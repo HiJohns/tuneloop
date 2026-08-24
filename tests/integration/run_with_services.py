@@ -23,10 +23,11 @@ import argparse
 def start_services():
     """启动后端服务"""
     print("🚀 启动后端服务...")
+    # 让子进程继承父进程的 stdout/stderr，这样输出可以被捕获
     proc = subprocess.Popen(
         ["make", "run"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stdout=sys.stdout,
+        stderr=sys.stderr,
         cwd=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     )
     
