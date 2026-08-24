@@ -39,6 +39,17 @@ func TestValidateModelColumns_MissingTableFails(t *testing.T) {
 	}
 }
 
+// fakeUserModel maps to the real users table via TableName() but includes a
+// column that does NOT exist in the real schema (#1771 M2). Without
+// TableName(), GORM would derive "fake_user_models" (a missing table) and the
+// test would pass for the wrong reason (#1770 tautological lesson).
+type fakeUserModel struct {
+	ID      string `gorm:"column:id"`
+	FakeCol string `gorm:"column:nonexistent_column_xyz"`
+}
+
+func (fakeUserModel) TableName() string { return "users" }
+
 // TestValidateModelColumns_MissingColumnFails verifies #1771 M2: a model whose
 // table exists but is missing a column must fail validation. This catches
 // models that drift out of sync with the schema (e.g. a new field added to the
@@ -52,14 +63,10 @@ func TestValidateModelColumns_MissingColumnFails(t *testing.T) {
 	}
 	SetDB(db)
 
-	// users table is guaranteed to exist. Define a fake struct that maps to
-	// it but includes a column that does NOT exist in the real schema.
-	type FakeUserModel struct {
-		ID       string `gorm:"column:id"`
-		FakeCol  string `gorm:"column:nonexistent_column_xyz"`
-	}
-	err = validateModelColumns(db, &FakeUserModel{})
+	// users table is guaranteed to exist. fakeUserModel maps to it but
+	// includes a column that does NOT exist in the real schema.
+	err = validateModelColumns(db, &fakeUserModel{})
 	if err == nil {
-		t.Errorf("expected missing-column failure for FakeUserModel (nonexistent_column_xyz), got nil")
+		t.Errorf("expected missing-column failure for fakeUserModel (nonexistent_column_xyz), got nil")
 	}
 }

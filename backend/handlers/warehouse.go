@@ -405,7 +405,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	}
 
 	// Create the unified damage report (#1708): every acceptance — including
-	// good (no damage) — writes one row; DamageAssessment is deprecated.
+	// good (no damage) — writes one row (the legacy assessment table is gone).
 	// The report also backs the damage notification's accept/reject buttons
 	// (#1607, L-04) and the order-detail damage panel (#1707).
 	userID := middleware.GetUserID(ctx)

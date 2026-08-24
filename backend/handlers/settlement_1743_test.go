@@ -49,7 +49,7 @@ func TestComputeSettlement_TierOverflowDays(t *testing.T) {
 		Status:       models.OrderStatusReturned,
 		ReturnedAt:   &returnedAt,
 		Deposit:      0,
-		CashPaid:     3600,
+		CashPaid:     models.FromYuan(36),
 		// Snapshot: single 1-day segment at ¥36/day (=3600 cents)
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":3600,"rent_days":1,"tiers":[{"days_max":1,"discount_percent":0,"daily_rate":3600}],"tier_segments":[{"tier":1,"days":1,"rate":3600,"discount":1,"subtotal":3600}],"total_amount":3600}`),
 	}
@@ -86,7 +86,7 @@ func TestInspectReturn_OverdueDays_CaMinusC(t *testing.T) {
 		InstrumentID: instrumentID, Status: models.OrderStatusReturning,
 		StartDate: str1743Ptr("2026-08-01"), EndDate: str1743Ptr("2026-08-02"),
 		LeaseTerm: 1, DeliveredAt: &deliveredAt,
-		CashPaid:         3600,
+		CashPaid:         models.FromYuan(36),
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":3600,"rent_days":1,"tier_segments":[{"tier":1,"days":1,"rate":3600,"discount":1,"subtotal":3600}]}`),
 	}).Error)
 	require.NoError(t, db.Create(&models.Instrument{
@@ -150,7 +150,7 @@ func TestExecuteRefund_ZeroCashRefund_CompletesSettlement(t *testing.T) {
 		Status:           models.OrderStatusCompleted,
 		ReturnedAt:       &returnedAt,
 		Deposit:          0,
-		CashPaid:         3600,
+		CashPaid:         models.FromYuan(36),
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":3600,"rent_days":1,"tiers":[{"days_max":1,"discount_percent":0,"daily_rate":3600}],"tier_segments":[{"tier":1,"days":1,"rate":3600,"discount":1,"subtotal":3600}],"total_amount":3600}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -191,7 +191,7 @@ func TestApplySideEffects_RentWritesBackCashPaid(t *testing.T) {
 	require.NoError(t, db.Create(&models.Order{
 		ID: orderID, TenantID: tenantID, OrgID: orgID, UserID: userID,
 		InstrumentID: instrumentID, Status: models.OrderStatusReserved,
-		CashPaid: 3600, // pre-order full-price snapshot
+		CashPaid: models.FromYuan(36), // pre-order full-price snapshot
 	}).Error)
 	require.NoError(t, db.Create(&models.Instrument{
 		ID: instrumentID, TenantID: tenantID, OrgID: &orgID,

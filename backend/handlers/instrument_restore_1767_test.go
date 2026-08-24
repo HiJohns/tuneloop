@@ -46,7 +46,7 @@ func seedRestoreOrder(t *testing.T, status string, stockStatus string) (models.O
 		StartDate: strPtr("2026-08-01"), EndDate: strPtr("2026-08-30"),
 		LeaseTerm: 30, Status: status,
 		ReturnedAt: &returnedAt,
-		Deposit:    models.FromYuan(500), CashPaid: 300000,
+		Deposit:    models.FromYuan(500), CashPaid: models.FromYuan(3000),
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)

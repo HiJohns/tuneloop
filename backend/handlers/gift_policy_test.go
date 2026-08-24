@@ -138,7 +138,7 @@ func TestGiftPolicyAffectsPaymentCalculate(t *testing.T) {
 		OrgID:    "00000000-0000-4000-8000-000000000001",
 		Username: "giftuser", Status: "active",
 		MembershipLevelID: intPtr(1),
-		PromoPoints:       1000,
+		PromoPoints:       models.Cents(1000),
 	}).Error)
 	require.NoError(t, db.Create(&models.GiftPolicy{
 		LevelID: 1, PayRatio: 0.5, RefundRatio: 0.1, IsActive: true,

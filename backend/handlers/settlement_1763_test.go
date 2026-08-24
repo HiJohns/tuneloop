@@ -36,7 +36,7 @@ func TestComputeSettlement_NoDamageNoOverdue_ZeroCents(t *testing.T) {
 		Status:       models.OrderStatusReturned,
 		ReturnedAt:   &returnedAt,
 		Deposit:      0,
-		CashPaid:     1, // 1 cent paid
+		CashPaid:     models.Cents(1), // 1 cent paid
 		// Snapshot: single 1-day segment at ¥0.01/day (=1 cent)
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":1,"rent_days":1,"tiers":[{"days_max":1,"discount_percent":0,"daily_rate":1}],"tier_segments":[{"tier":1,"days":1,"rate":1,"discount":1,"subtotal":1}],"total_amount":1}`),
 	}
@@ -79,7 +79,7 @@ func TestComputeSettlement_WholeYuanNotShifted(t *testing.T) {
 		Status:       models.OrderStatusReturned,
 		ReturnedAt:   &returnedAt,
 		Deposit:      0,
-		CashPaid:     3600, // ¥36.00
+		CashPaid:     models.FromYuan(36), // ¥36.00
 		// Snapshot: single 1-day segment at ¥36/day (=3600 cents)
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":3600,"rent_days":1,"tiers":[{"days_max":1,"discount_percent":0,"daily_rate":3600}],"tier_segments":[{"tier":1,"days":1,"rate":3600,"discount":1,"subtotal":3600}],"total_amount":3600}`),
 	}
@@ -116,7 +116,7 @@ func TestComputeSettlement_FractionalCents(t *testing.T) {
 		Status:       models.OrderStatusReturned,
 		ReturnedAt:   &returnedAt,
 		Deposit:      0,
-		CashPaid:     29, // 29 cents
+		CashPaid:     models.Cents(29), // 29 cents
 		// Snapshot: single 1-day segment at ¥0.29/day (=29 cents)
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":29,"rent_days":1,"tiers":[{"days_max":1,"discount_percent":0,"daily_rate":29}],"tier_segments":[{"tier":1,"days":1,"rate":29,"discount":1,"subtotal":29}],"total_amount":29}`),
 	}

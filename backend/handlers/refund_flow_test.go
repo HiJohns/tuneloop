@@ -45,7 +45,7 @@ func refundFlowSeed(t *testing.T, tenantID, orgID, userID string) (string, strin
 	db := testfixtures.SetupTestDB(t)
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
-		Username: "refunduser", Status: "active", PromoPoints: 2000,
+		Username: "refunduser", Status: "active", PromoPoints: models.Cents(2000),
 	}).Error)
 	inst := models.Instrument{
 		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID,
@@ -58,7 +58,7 @@ func refundFlowSeed(t *testing.T, tenantID, orgID, userID string) (string, strin
 		UserID: userID, InstrumentID: inst.ID,
 		StartDate: strPtr("2026-07-01"), EndDate: strPtr("2026-07-30"),
 		LeaseTerm: 30, Status: models.OrderStatusReturning,
-		Deposit: models.FromYuan(500), CashPaid: 3000,
+		Deposit: models.FromYuan(500), CashPaid: models.FromYuan(30),
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)

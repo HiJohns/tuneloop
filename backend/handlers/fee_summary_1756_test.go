@@ -48,9 +48,9 @@ func TestGetOrder_FeeSummary_Unsettled(t *testing.T) {
 		DeliveredAt: &deliveredAt, ReturnedAt: &returnedAt,
 		LeaseTerm:    3,
 		Status:       models.OrderStatusReturning,
-		Deposit:      100, // 1 元
-		CashPaid:     400, // 租金 3 元 + 押金 1 元 = 4 元 (400 分)
-		ShippingFee:  100, // 1 元未付
+		Deposit:     models.FromYuan(1), // 1 元
+		CashPaid:    models.FromYuan(4), // 租金 3 元 + 押金 1 元 = 4 元 (400 分)
+		ShippingFee: models.FromYuan(1), // 1 元未付
 		// total_amount = 300 分（3 天 × 1 元）
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":100,"rent_days":3,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":3,"rate":100,"discount":1,"subtotal":300}],"total_amount":300}`),
 	}
@@ -157,9 +157,9 @@ func TestGetOrder_FeeSummary_Settled(t *testing.T) {
 		DeliveredAt: &deliveredAt, ReturnedAt: &returnedAt,
 		LeaseTerm:    3,
 		Status:       models.OrderStatusCompleted,
-		Deposit:      100,
-		CashPaid:     400,
-		ShippingFee:  100,
+		Deposit:     models.FromYuan(1),
+		CashPaid:    models.FromYuan(4),
+		ShippingFee: models.FromYuan(1),
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":100,"rent_days":3,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":3,"rate":100,"discount":1,"subtotal":300}],"total_amount":300}`),
 	}
 	require.NoError(t, db.Create(&order).Error)

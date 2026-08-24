@@ -64,7 +64,7 @@ func TestSettlementFlow(t *testing.T) {
 		TenantID:      tenantID,
 		OrgID:         orgID,
 		Username:      "settlement_flow_user",
-		PrepaidPoints: 1000,
+		PrepaidPoints: models.Cents(1000),
 		Status:        "active",
 	}).Error)
 

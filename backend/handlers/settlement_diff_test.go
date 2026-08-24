@@ -28,7 +28,7 @@ func TestRefundDiff_PointsOverCap(t *testing.T) {
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
 		Username: "diffover", Status: "active", MembershipLevelID: intPtr(1),
-		PromoPoints: 2000,
+		PromoPoints: models.Cents(2000),
 	}).Error)
 
 	// R0 = 3000 (cash 2000 + gift 1000, deposit 500 excluded from rent formula)
@@ -43,8 +43,8 @@ func TestRefundDiff_PointsOverCap(t *testing.T) {
 		Status:           models.OrderStatusReturned,
 		ReturnedAt:       &returnedAt,
 		Deposit:          models.FromYuan(500),
-		CashPaid:         200000,
-		GiftPointsUsed:   100000,
+		CashPaid:         models.FromYuan(2000),
+		GiftPointsUsed:   models.FromYuan(1000),
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -84,7 +84,7 @@ func TestRefundDiff_PointsWithinCap(t *testing.T) {
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
 		Username: "diffwithin", Status: "active", MembershipLevelID: intPtr(1),
-		PromoPoints: 2000,
+		PromoPoints: models.Cents(2000),
 	}).Error)
 
 	returnedAt := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
@@ -97,8 +97,8 @@ func TestRefundDiff_PointsWithinCap(t *testing.T) {
 		Status:           models.OrderStatusReturned,
 		ReturnedAt:       &returnedAt,
 		Deposit:          models.FromYuan(500),
-		CashPaid:         250000,
-		GiftPointsUsed:   50000,
+		CashPaid:         models.FromYuan(2500),
+		GiftPointsUsed:   models.FromYuan(500),
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -130,7 +130,7 @@ func TestRefundDiff_TotalSpendingC1(t *testing.T) {
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
 		Username: "diffspend", Status: "active", MembershipLevelID: intPtr(1),
-		PromoPoints: 2000, TotalSpending: 0,
+		PromoPoints: models.Cents(2000), TotalSpending: 0,
 	}).Error)
 
 	returnedAt := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
@@ -143,8 +143,8 @@ func TestRefundDiff_TotalSpendingC1(t *testing.T) {
 		Status:           models.OrderStatusReturned,
 		ReturnedAt:       &returnedAt,
 		Deposit:          models.FromYuan(500),
-		CashPaid:         200000,
-		GiftPointsUsed:   100000,
+		CashPaid:         models.FromYuan(2000),
+		GiftPointsUsed:   models.FromYuan(1000),
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -187,8 +187,8 @@ func TestRefundDiff_RebatePoints(t *testing.T) {
 		Status:           models.OrderStatusCompleted,
 		ReturnedAt:       &returnedAt,
 		Deposit:          models.FromYuan(500),
-		CashPaid:         200000,
-		GiftPointsUsed:   100000,
+		CashPaid:         models.FromYuan(2000),
+		GiftPointsUsed:   models.FromYuan(1000),
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -220,7 +220,7 @@ func TestConfirmSettlement_ClosesOrder(t *testing.T) {
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
 		Username: "diffclose", Status: "active", MembershipLevelID: intPtr(1),
-		PromoPoints: 2000,
+		PromoPoints: models.Cents(2000),
 	}).Error)
 
 	returnedAt := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
@@ -233,8 +233,8 @@ func TestConfirmSettlement_ClosesOrder(t *testing.T) {
 		Status:           models.OrderStatusDepositRefunding,
 		ReturnedAt:       &returnedAt,
 		Deposit:          models.FromYuan(500),
-		CashPaid:         200000,
-		GiftPointsUsed:   100000,
+		CashPaid:         models.FromYuan(2000),
+		GiftPointsUsed:   models.FromYuan(1000),
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -263,14 +263,14 @@ func TestPaymentCallback_NoDoubleCount(t *testing.T) {
 
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
-		Username: "diffnodd", Status: "active", PromoPoints: 1000,
+		Username: "diffnodd", Status: "active", PromoPoints: models.Cents(1000),
 	}).Error)
 	order := models.Order{
 		TenantID: tenantID, OrgID: orgID, UserID: userID,
 		InstrumentID:     uuid.New().String(),
 		Status:           models.OrderStatusPaid,
 		Deposit:          models.FromYuan(500),
-		CashPaid:         300000, // full total at creation
+		CashPaid:         models.FromYuan(3000), // full total at creation
 		GiftPointsUsed:   0,
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}

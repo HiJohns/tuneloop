@@ -264,7 +264,7 @@ func TestCancelOrderByCustomer_StatusGuard(t *testing.T) {
 			LeaseTerm:    1,
 			Status:       status,
 			Deposit:      models.FromYuan(0),
-			CashPaid:     100,
+			CashPaid:     models.FromYuan(1),
 		}
 		require.NoError(t, db.Create(&order).Error)
 		return order.ID

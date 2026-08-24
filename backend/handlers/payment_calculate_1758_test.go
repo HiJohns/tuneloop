@@ -40,7 +40,7 @@ func TestCalculatePayment_Rent_Cents(t *testing.T) {
 		EndDate:      str1743Ptr("2026-08-04"),
 		LeaseTerm:    3,
 		Status:       models.OrderStatusReserved,
-		Deposit:      1, // 1 cent deposit
+		Deposit:      models.Cents(1), // 1 cent deposit
 		// total_amount = 3 cents (3 days × 1 cent)
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":1,"rent_days":3,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":1}],"tier_segments":[{"tier":1,"days":3,"rate":1,"discount":1,"subtotal":3}],"total_amount":3}`),
 	}

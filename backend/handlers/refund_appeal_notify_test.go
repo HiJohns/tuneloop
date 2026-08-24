@@ -82,7 +82,7 @@ func TestInspectReturn_Damaged_NotificationActionType(t *testing.T) {
 		EndDate:      &end,
 		LeaseTerm:    30,
 		Deposit:      models.FromYuan(500),
-		CashPaid:     3500,
+		CashPaid:     models.FromYuan(35),
 	}
 	require.NoError(t, db.Create(&order).Error)
 
@@ -168,7 +168,7 @@ func TestInspectReturn_Good_RefundReceiptNotification(t *testing.T) {
 		EndDate:          &end,
 		LeaseTerm:        30,
 		Deposit:          models.FromYuan(500),
-		CashPaid:         350000,
+		CashPaid:         models.FromYuan(3500),
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -238,9 +238,9 @@ func TestBuildRefundReceipt_IncludesAllLines(t *testing.T) {
 		UserID:         userID,
 		InstrumentID:   uuid.New().String(),
 		Deposit:        models.FromYuan(500),
-		CashPaid:       3500,
-		ShippingFee:    50,
-		GiftPointsUsed: 100,
+		CashPaid:       models.FromYuan(35),
+		ShippingFee:    models.Cents(50),
+		GiftPointsUsed: models.Cents(100),
 	}
 	require.NoError(t, db.Create(&order).Error)
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{
@@ -469,7 +469,7 @@ func TestResolveAppeal_Final_RefundReceiptAndStaffNotify(t *testing.T) {
 		EndDate:          &end,
 		LeaseTerm:        30,
 		Deposit:          models.FromYuan(500),
-		CashPaid:         350000,
+		CashPaid:         models.FromYuan(3500),
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)

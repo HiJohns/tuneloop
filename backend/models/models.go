@@ -789,8 +789,8 @@ type DamageReport struct {
 	AssessedAt        *time.Time `json:"assessed_at"`
 	DepositDeducted   Cents      `gorm:"type:bigint;default:0" json:"deposit_deducted"`
 	Status            string     `gorm:"type:varchar(20);default:'pending';index" json:"status"`
-	// 验收字段（#1708 从 DamageAssessment 并入）：所有验收（含 good 无损坏）统一
-	// 写入 damage_reports，DamageAssessment 表废弃。
+	// 验收字段（#1708 并入）：所有验收（含 good 无损坏）统一
+	// 写入 damage_reports（原定损评估表已合并废弃）。
 	Condition   string     `gorm:"type:varchar(20)" json:"condition"`
 	Notes       string     `gorm:"type:text" json:"notes"`
 	ScanTime    *time.Time `json:"scan_time"`

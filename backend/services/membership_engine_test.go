@@ -85,7 +85,7 @@ func TestCheckAndUpgradeLevel_Aggregation(t *testing.T) {
 		}
 		require.NoError(t, db.Create(&order).Error)
 		require.NoError(t, db.Create(&models.Settlement{
-			ID: "00000000-0000-0000-0000-0000000000f3", OrderID: order.ID, ActualRentAmount: 1000,
+			ID: "00000000-0000-0000-0000-0000000000f3", OrderID: order.ID, ActualRentAmount: models.Cents(1000),
 		}).Error)
 
 		require.NoError(t, CheckAndUpgradeLevel(userID, db))

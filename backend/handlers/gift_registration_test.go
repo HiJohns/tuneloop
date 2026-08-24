@@ -44,7 +44,7 @@ func TestGiftRegistration(t *testing.T) {
 		OrgID:             "00000000-0000-0000-0000-000000000001",
 		Username:          "referrer",
 		MembershipLevelID: intPtr(1),
-		PromoPoints:       10000, // #1757: cents (100 元)
+		PromoPoints:       models.FromYuan(100), // #1757: cents (100 元)
 		Status:            "active",
 	}
 	require.NoError(t, db.Create(&referrer).Error)

@@ -729,8 +729,8 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	}
 
 	// Overdue fee for staged settlement: collected once at return inspection
-	// (#1493) and persisted on the DamageReport (#1708; legacy data on
-	// DamageAssessment until the DDL migration). Legacy per-day overdue_charges
+	// (#1493) and persisted on the DamageReport (#1708; legacy pre-migration
+	// data no longer exists). Legacy per-day overdue_charges
 	// are ignored (daily deduction removed, #1492).
 	var reportOverdue models.DamageReport
 	if err := db.Where("lease_id = ?", order.ID).Order("created_at desc").First(&reportOverdue).Error; err != nil {

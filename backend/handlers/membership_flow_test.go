@@ -468,7 +468,7 @@ func TestPrepayRentWithCoupon_OREZ(t *testing.T) {
 		UserID:       user.ID,
 		InstrumentID: uuid.New().String(),
 		Status:       models.OrderStatusReserved,
-		CashPaid:     100.0,
+		CashPaid:     models.FromYuan(1),
 	}
 	require.NoError(t, db.Create(&order).Error)
 

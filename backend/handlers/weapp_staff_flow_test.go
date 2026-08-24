@@ -90,7 +90,7 @@ func TestShippingFlow_StaffToken(t *testing.T) {
 		InstrumentID: instrument.ID,
 		Status:       models.OrderStatusPaid,
 		Deposit:      models.FromYuan(500),
-		CashPaid:     3000,
+		CashPaid:     models.FromYuan(30),
 	}
 	require.NoError(t, db.Create(&order).Error)
 
@@ -166,7 +166,7 @@ func TestReceiveFlow_StaffToken(t *testing.T) {
 			EndDate:      &end,
 			LeaseTerm:    30,
 			Deposit:      models.FromYuan(500),
-			CashPaid:     3000,
+			CashPaid:     models.FromYuan(30),
 		}
 		require.NoError(t, db.Create(&o).Error)
 		return inst, o
@@ -240,7 +240,7 @@ func TestStaffFlow_UnauthenticatedDenied(t *testing.T) {
 		InstrumentID: instrument.ID,
 		Status:       models.OrderStatusPaid,
 		Deposit:      models.FromYuan(500),
-		CashPaid:     3000,
+		CashPaid:     models.FromYuan(30),
 	}
 	require.NoError(t, db.Create(&order).Error)
 
