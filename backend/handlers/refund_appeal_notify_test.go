@@ -283,6 +283,37 @@ func TestBuildRefundReceipt_IncludesAllLines(t *testing.T) {
 	require.Contains(t, receipt, "退回微信：¥400.00")
 	require.Contains(t, receipt, "实际退款合计：¥400.00")
 	require.Contains(t, receipt, "返点赠点到账")
+
+	// #1747 audit Round 3: receipt must include a refund line when an
+	// OrderRefundRecord exists linked through payment_record_id. The refund
+	// line is only rendered when the subquery finds matching records — this
+	// test is sensitive to the column used in the WHERE clause.
+	paymentID := uuid.New().String()
+	require.NoError(t, db.Create(&models.OrderPaymentRecord{
+		ID:        paymentID,
+		TenantID:  tenantID,
+		UserID:    userID,
+		OrderID:   &order.ID,
+		OrderType: "rent",
+		Amount:    1000,
+		Type:      "payment",
+		Status:    "paid",
+		CreatedAt: time.Now(),
+	}).Error)
+
+	refundAmount := 300
+	require.NoError(t, db.Create(&models.OrderRefundRecord{
+		ID:              uuid.New().String(),
+		TenantID:        tenantID,
+		PaymentRecordID: &paymentID,
+		Amount:          models.Cents(refundAmount),
+		Status:          "refunded",
+		CreatedAt:       time.Now(),
+	}).Error)
+
+	receiptWithRefund := buildRefundReceipt(db, order, s)
+	require.Contains(t, receiptWithRefund, "退款：¥3.00",
+		"receipt must include refund line for linked OrderRefundRecord")
 }
 
 // TestSubmitAppeal_StaffNotification verifies #1604: submitting an appeal
