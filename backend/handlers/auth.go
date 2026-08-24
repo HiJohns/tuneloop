@@ -204,6 +204,7 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 				Name:     claims.Name,
 				Role:     "USER",
 				Status:   "active",
+				WxOpenid: tokenResp.WxOpenid,
 			}
 			if createErr := h.db.Create(&newUser).Error; createErr != nil {
 				log.Printf("[Auth] Failed to create local user for iam_sub %s: %v", claims.UserID, createErr)
@@ -652,6 +653,7 @@ func (h *AuthHandler) WxLogin(c *gin.Context) {
 					Role:     "USER",
 					Status:   "active",
 					IsShadow: true,
+					WxOpenid: tokenResp.WxOpenid,
 				}
 				if err := h.db.Create(&localUser).Error; err != nil {
 					log.Printf("[WxLogin] Channel 3: failed to create local user %s: %v", claims.UserID, err)
