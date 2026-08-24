@@ -329,8 +329,8 @@ func validateModelColumns(db *gorm.DB, instance interface{}) error {
 		// through silently; see merchant_members/damage_reports incidents).
 		// Exempt known non-persisted/deprecated models so startup still works.
 		switch tableName {
-		case "confirmation_sessions", "labels", "damage_assessments":
-			return nil // intentionally non-persisted or dropped (#1711)
+		case "confirmation_sessions", "labels":
+			return nil // intentionally non-persisted
 		}
 		return fmt.Errorf("table %q for model %s is missing — a migration is required (models must have matching up/down SQL)", tableName, typ.Name())
 	}
@@ -395,7 +395,6 @@ func validateDatabaseSchema(db *gorm.DB) error {
 	// validated. Table-missing models below are NOT failures — they are either
 	// intentionally exempt (non-persisted / composite) or deprecated:
 	//   ConfirmationSession, Label — no table ever created (non-persisted)
-	//   DamageAssessment — dropped by migration 20260818004 (merged into DamageReport)
 	modelsToValidate := []interface{}{
 		&models.User{},
 		&models.Category{},
@@ -461,7 +460,7 @@ func validateDatabaseSchema(db *gorm.DB) error {
 		&models.Banner{},
 		&models.ConfirmationSession{},
 		&models.Label{},
-		&models.DamageAssessment{},
+
 	}
 
 	for _, m := range modelsToValidate {

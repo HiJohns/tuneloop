@@ -45,29 +45,6 @@ func TestDamageReport(t *testing.T) {
 	assert.Equal(t, now, *report.AssessedAt)
 }
 
-func TestDamageAssessment(t *testing.T) {
-	// Test struct creation
-	assessment := DamageAssessment{
-		ID:           uuid.New().String(),
-		TenantID:     uuid.New().String(),
-		OrgID:        uuid.New().String(),
-		OrderID:      uuid.New().String(),
-		InstrumentID: uuid.New().String(),
-		UserID:       uuid.New().String(),
-		Condition:    "good",
-		Notes:        "外观完好，功能正常",
-	}
-
-	assert.NotEmpty(t, assessment.ID)
-	assert.Equal(t, "good", assessment.Condition)
-	assert.Equal(t, "外观完好，功能正常", assessment.Notes)
-
-	// Test nullable fields
-	scanTime := time.Now()
-	assessment.ScanTime = &scanTime
-	assert.Equal(t, scanTime, *assessment.ScanTime)
-}
-
 func TestAppeal(t *testing.T) {
 	appealReason := "琴弦自然老化，非人为损坏"
 	dr1 := uuid.New().String()

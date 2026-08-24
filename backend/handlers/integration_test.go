@@ -35,7 +35,7 @@ func TestIntegration_Scenario1_RentalClosedLoop(t *testing.T) {
 	_ = db.Migrator().DropTable(&models.Order{})
 	_ = db.Migrator().DropTable(&models.LeaseSession{})
 	_ = db.Migrator().DropTable(&models.ElectronicContract{})
-	_ = db.Migrator().DropTable(&models.DamageAssessment{})
+
 	_ = db.Migrator().DropTable(&models.Appeal{})
 	_ = db.Migrator().DropTable(&models.MaintenanceWorker{})
 	_ = db.Migrator().DropTable(&models.OrderStatusHistory{})

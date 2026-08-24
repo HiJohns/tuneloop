@@ -800,27 +800,7 @@ type DamageReport struct {
 	UpdatedAt   time.Time  `json:"updated_at"`
 }
 
-// DamageAssessment 定损评估记录表
-type DamageAssessment struct {
-	ID            string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID      string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrgID         string     `gorm:"type:uuid;index" json:"org_id"`
-	OrderID       string     `gorm:"type:uuid;not null;index" json:"order_id"`
-	InstrumentID  string     `gorm:"type:uuid;index" json:"instrument_id"`
-	UserID        string     `gorm:"type:uuid;index" json:"user_id"`
-	InspectorID   *string    `gorm:"type:uuid;index" json:"inspector_id"`
-	Condition     string     `gorm:"type:varchar(20)" json:"condition"`
-	Description   string     `gorm:"type:text" json:"description"`
-	Photos        string     `gorm:"type:jsonb" json:"photos"`
-	Notes         string     `gorm:"type:text" json:"notes"`
-	EstimatedCost *Cents     `gorm:"type:bigint" json:"estimated_cost"`
-	OverdueDays   int        `gorm:"default:0" json:"overdue_days"`
-	OverdueFee    Cents      `gorm:"type:bigint;default:0" json:"overdue_fee"`
-	ScanTime      *time.Time `json:"scan_time"`
-	Status        string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
-	CreatedAt     time.Time  `json:"created_at"`
-	UpdatedAt     time.Time  `json:"updated_at"`
-}
+
 
 // AppealStatus constants
 const (

@@ -23,7 +23,7 @@ func setupWarehouseTables(t *testing.T, db *gorm.DB) error {
 	tables := []interface{}{
 		&models.Order{},
 		&models.OrderStatusHistory{},
-		&models.DamageAssessment{},
+
 	}
 	for _, table := range tables {
 		_ = db.Migrator().DropTable(table)

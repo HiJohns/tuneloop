@@ -29,7 +29,7 @@ func setupRefundNotifyTables(t *testing.T) *gorm.DB {
 	for _, m := range []interface{}{
 		&models.Instrument{},
 		&models.Order{},
-		&models.DamageAssessment{},
+
 		&models.DamageReport{},
 		&models.Appeal{},
 		&models.Notification{},

@@ -103,7 +103,7 @@ func TestSettlement_OverdueFeeDeducted(t *testing.T) {
 		Status:           models.OrderStatusReturned,
 		ReturnedAt:       &returnedAt,
 		Deposit:          models.FromYuan(500),
-		CashPaid:         150000, // rent 1000 + deposit 500 (production contract: CashPaid includes deposit)
+		CashPaid:         models.FromYuan(1500), // rent 1000 + deposit 500 (production contract: CashPaid includes deposit)
 		PricingBreakdown: &pricingBreakdown,
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -169,7 +169,7 @@ func TestSettlement_DamagePlusOverdue(t *testing.T) {
 		Status:           models.OrderStatusReturned,
 		ReturnedAt:       &returnedAt,
 		Deposit:          models.FromYuan(500),
-		CashPaid:         150000, // rent 1000 + deposit 500 (production contract: CashPaid includes deposit)
+		CashPaid:         models.FromYuan(1500), // rent 1000 + deposit 500 (production contract: CashPaid includes deposit)
 		PricingBreakdown: &pricingBreakdown,
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -184,11 +184,11 @@ func TestSettlement_DamagePlusOverdue(t *testing.T) {
 		InstrumentID:    instrument.ID,
 		UserID:          userID,
 		DamageAmount:    models.ToCentsPtr(&damageAmount),
-		DepositDeducted: 10000,
+		DepositDeducted: models.FromYuan(100),
 		Status:          "accepted",
 		Condition:       "damaged",
 		OverdueDays:     2,
-		OverdueFee:      3000,
+		OverdueFee:      models.FromYuan(30),
 	}).Error)
 
 	result := computeSettlement(order, db)

@@ -29,7 +29,7 @@ var allTables = []interface{}{
 	&models.OrderLog{},
 	&models.OrderStatusHistory{},
 	&models.AuditLog{},
-	&models.DamageAssessment{},
+
 	&models.Settlement{},
 	&models.OrderRefundRecord{},
 	&models.OrderPaymentRecord{},

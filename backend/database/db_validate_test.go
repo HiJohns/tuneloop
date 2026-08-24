@@ -38,3 +38,28 @@ func TestValidateModelColumns_MissingTableFails(t *testing.T) {
 		t.Errorf("expected missing-table failure for unknown model, got nil")
 	}
 }
+
+// TestValidateModelColumns_MissingColumnFails verifies #1771 M2: a model whose
+// table exists but is missing a column must fail validation. This catches
+// models that drift out of sync with the schema (e.g. a new field added to the
+// Go struct but no migration applied).
+func TestValidateModelColumns_MissingColumnFails(t *testing.T) {
+	cfg := LoadConfig()
+	db, err := InitDB(cfg)
+	if err != nil {
+		t.Skip("dev db not available")
+		return
+	}
+	SetDB(db)
+
+	// users table is guaranteed to exist. Define a fake struct that maps to
+	// it but includes a column that does NOT exist in the real schema.
+	type FakeUserModel struct {
+		ID       string `gorm:"column:id"`
+		FakeCol  string `gorm:"column:nonexistent_column_xyz"`
+	}
+	err = validateModelColumns(db, &FakeUserModel{})
+	if err == nil {
+		t.Errorf("expected missing-column failure for FakeUserModel (nonexistent_column_xyz), got nil")
+	}
+}

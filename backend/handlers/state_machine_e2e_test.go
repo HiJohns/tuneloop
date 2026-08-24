@@ -30,12 +30,12 @@ func setupE2ETestEnv(t *testing.T) (*gin.Engine, string, string, string, string)
 	}
 	database.SetDB(db)
 
-	_ = db.Migrator().DropTable(&models.Instrument{}, &models.Order{}, &models.LeaseSession{}, &models.OrderStatusHistory{}, &models.DamageAssessment{}, &models.Notification{}, &models.OrderPaymentRecord{}, &models.Settlement{}, &models.OrderRefundRecord{}, &models.PointsTransaction{}, &models.User{}, &models.DamageReport{}, &models.MembershipGiftRatio{})
+	_ = db.Migrator().DropTable(&models.Instrument{}, &models.Order{}, &models.LeaseSession{}, &models.OrderStatusHistory{}, &models.Notification{}, &models.OrderPaymentRecord{}, &models.Settlement{}, &models.OrderRefundRecord{}, &models.PointsTransaction{}, &models.User{}, &models.DamageReport{}, &models.MembershipGiftRatio{})
 	require.NoError(t, db.Migrator().CreateTable(&models.Instrument{}))
 	require.NoError(t, db.Migrator().CreateTable(&models.Order{}))
 	require.NoError(t, db.Migrator().CreateTable(&models.LeaseSession{}))
 	require.NoError(t, db.Migrator().CreateTable(&models.OrderStatusHistory{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.DamageAssessment{}))
+
 	require.NoError(t, db.Migrator().CreateTable(&models.Notification{}))
 	require.NoError(t, db.Migrator().CreateTable(&models.OrderPaymentRecord{}))
 	require.NoError(t, db.Migrator().CreateTable(&models.Settlement{}))
