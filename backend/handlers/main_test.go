@@ -90,6 +90,12 @@ func TestMain(m *testing.M) {
 	// iam_sub has -:migration tag and is excluded from AutoMigrate; add it manually
 	addIAMSubColumn(testDB)
 
+	// Truncate tables that tests seed directly (without setupE2ETestEnv) to
+	// avoid duplicate-key errors from rows left by previous test runs.
+	for _, tbl := range []string{"damage_reports", "orders", "instruments", "users", "settlements"} {
+		testDB.Exec("TRUNCATE TABLE " + tbl + " CASCADE")
+	}
+
 	database.SetDB(testDB)
 
 	code := m.Run()

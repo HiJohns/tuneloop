@@ -648,7 +648,7 @@ func TestComputeSettlement_DamageAccept(t *testing.T) {
 		LeaseID:         orderID,
 		InstrumentID:    "00000000-0000-0000-0000-0000dddddd02",
 		UserID:          "00000000-0000-0000-0000-000000000000",
-		DepositDeducted: 500,
+		DepositDeducted: models.FromYuan(500),
 		Status:          "resolved",
 	}).Error)
 
@@ -683,16 +683,15 @@ func TestComputeSettlement_LateReturn(t *testing.T) {
 	start := now.AddDate(0, 0, -35).Format("2006-01-02")
 	end := now.AddDate(0, 0, -5).Format("2006-01-02") // ended 5 days ago
 	orderID := "00000000-0000-0000-0000-0000ddddd002"
-	require.NoError(t, db.Create(&models.DamageAssessment{
+	require.NoError(t, db.Create(&models.DamageReport{
 		ID:           "00000000-0000-0000-0000-0000ddddda01",
 		TenantID:     "00000000-0000-0000-0000-000000000000",
 		OrgID:        "00000000-0000-0000-0000-000000000000",
-		OrderID:      orderID,
+		LeaseID:      orderID,
 		InstrumentID: "00000000-0000-0000-0000-000000000000",
 		UserID:       "00000000-0000-0000-0000-000000000000",
-		Photos:       "[]",
-		OverdueDays:  5,
-		OverdueFee:   750,
+		OverdueFee:   models.FromYuan(750),
+		Status:       "resolved",
 	}).Error)
 
 	order := models.Order{

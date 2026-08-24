@@ -1743,7 +1743,7 @@ checkRule() - 权限位过滤
 各行的取值逻辑：
 - **租金**：实际天数 × 阶梯定价（与 §2.7 `computeSettlement` 同算法）
 - **物流费**：`order.shipping_fee`，无则为 0（不显示行）
-- **逾期费**：`damage_assessments.overdue_fee`（good 验收时算），无则为 0
+- **逾期费**：`damage_reports.overdue_fee`（归还验收时一次性计算，Cents 列，#1743 口径），无则为 0
 - **损坏赔偿**：damaged 验收时 `req.DamageAmount`（申诉终审后为 adjust 金额），good 时为 0
 - **续期费用**：续期支付记录的 SUM(amount)，无续期为 0
 - **已收**：所有支付记录 SUM（租金+押金+物流费预收+续期）
