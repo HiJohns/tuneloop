@@ -303,9 +303,9 @@ function SingleCheckout({ id, nav }) {
               style={{ width: 80, height: 80, borderRadius: 8, backgroundColor: '#FDF4E7', marginRight: 12, flexShrink: 0 }}
             />
             <View style={{ flex: '1 1 0%', justifyContent: 'center' }}>
-              <Text style={{ fontWeight: '900', fontSize: 14, color: '#000', marginBottom: 4 }}>{instrument.name || instrument.sn || id?.slice(0, 8)}</Text>
-              <Text style={{ fontSize: 12, color: '#71717a', marginBottom: 2 }}>{instrument.category_name}{instrument.level_name ? ` · ${instrument.level_name}` : ''}</Text>
-              <Text style={{ fontSize: 12, color: '#a1a1aa' }}>网点: {instrument.site_name || '-'}</Text>
+              <Text style={{ fontWeight: '900', fontSize: 14, color: '#000', marginBottom: 4, display: 'block' }}>{instrument.name || instrument.sn || id?.slice(0, 8)}</Text>
+              <Text style={{ fontSize: 12, color: '#71717a', marginBottom: 2, display: 'block' }}>{instrument.category_name}{instrument.level_name ? ` · ${instrument.level_name}` : ''}</Text>
+              <Text style={{ fontSize: 12, color: '#a1a1aa', display: 'block' }}>网点: {instrument.site_name || '-'}</Text>
             </View>
           </View>
         </View>
@@ -453,7 +453,7 @@ function SingleCheckout({ id, nav }) {
             </View>
             <Text style={{ fontSize: 10, color: '#a1a1aa', textAlign: 'right' }}>租金 ¥{(totalRent / 100).toFixed(2)} + 押金 ¥{((effectiveDeposit || 0) / 100).toFixed(2)}</Text>
             {/* #1732: 物流费提醒——0 押金（含免押金）快递到付，已付押金从押金扣除 */}
-            <Text style={{ fontSize: 13, color: '#ef4444', fontWeight: 500, marginTop: 8, lineHeight: '18px' }}>
+            <Text style={{ fontSize: 13, color: '#ef4444', fontWeight: 500, marginTop: 8, lineHeight: '18px', display: 'block' }}>
               {effectiveDeposit === 0
                 ? '尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时我们将选择快递到付且保价，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！'
                 : '尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时的物流费届时将从您的押金中扣除，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！'}

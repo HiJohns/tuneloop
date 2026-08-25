@@ -357,6 +357,14 @@ export default function Payment() {
                   <Row label="合计" value={`¥${(Number(data.amount) / 100).toFixed(2)}`} bold />
                 </View>
               )}
+              {/* #1773: 物流费提醒——0 押金快递到付，已付押金从押金扣除 */}
+              {data.type === 'rent' && (
+                <Text style={{ fontSize: 13, color: '#ef4444', fontWeight: 500, marginTop: 8, lineHeight: '18px', display: 'block' }}>
+                  {Number(data.details?.deposit || 0) === 0
+                    ? '尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时我们将选择快递到付且保价，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！'
+                    : '尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时的物流费届时将从您的押金中扣除，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！'}
+                </Text>
+              )}
             </>
           )}
 
