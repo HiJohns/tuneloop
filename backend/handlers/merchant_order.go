@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -58,6 +59,8 @@ func ListMerchantOrders(c *gin.Context) {
 	var orders []models.Order
 	q.Offset(offset).Limit(pageSize).Find(&orders)
 
+	log.Printf("[ListMerchantOrders] role=%s tenantID=%s page=%d total=%d orders_len=%d", role, tenantID, page, total, len(orders))
+
 	// Build response list
 	type OrderItem struct {
 		ID             string  `json:"id"`
@@ -76,6 +79,9 @@ func ListMerchantOrders(c *gin.Context) {
 		CreatedAt      string  `json:"created_at"`
 	}
 	list := make([]OrderItem, 0, len(orders))
+	// #1776: reuse a single IAM client for all user-name lookups instead of
+	// creating a new one (with a new client-credentials token) per order.
+	iamClient := services.NewIAMClient()
 	for _, o := range orders {
 		startStr, endStr := "", ""
 		if o.StartDate != nil {
@@ -102,7 +108,6 @@ func ListMerchantOrders(c *gin.Context) {
 			if item.UserName == "" {
 				var iamSub string
 				if err := db.Raw("SELECT iam_sub FROM users WHERE id = ? LIMIT 1", o.UserID).Scan(&iamSub).Error; err == nil && iamSub != "" {
-					iamClient := services.NewIAMClient()
 					if iamUser, err2 := iamClient.GetUser(iamSub); err2 == nil && iamUser != nil {
 						if iamUser.Name != "" {
 							item.UserName = iamUser.Name

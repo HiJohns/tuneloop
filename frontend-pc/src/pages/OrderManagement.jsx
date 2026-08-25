@@ -68,7 +68,10 @@ export default function OrderManagement() {
         setOrders(res.data.list)
         setTotal(res.data.total)
       }
-    } catch { /* ignore */ }
+    } catch (e) {
+      console.error('[OrderManagement] fetchOrders failed:', e)
+      message.error('订单加载失败，请刷新页面重试')
+    }
     setLoading(false)
   }
 
