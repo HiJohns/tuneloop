@@ -41,6 +41,14 @@ func ListMerchantOrders(c *gin.Context) {
 	if siteID := c.Query("site_id"); siteID != "" {
 		q = q.Where("orders.site_id = ?", siteID)
 	}
+	// #1778: dashboard 今日新增订单 — start_date/end_date 为 YYYY-MM-DD，
+	// end_date 含当天全天（created_at < end_date + 1 day）。
+	if startDate := c.Query("start_date"); startDate != "" {
+		q = q.Where("orders.created_at >= ?", startDate)
+	}
+	if endDate := c.Query("end_date"); endDate != "" {
+		q = q.Where("orders.created_at < ?", endDate+" 23:59:59.999999")
+	}
 
 	// Pagination
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
