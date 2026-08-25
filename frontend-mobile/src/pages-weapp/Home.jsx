@@ -77,9 +77,9 @@ function InstrumentCard({ instrument, onClick }) {
         <Image src={thumb} style={{ width: 72, height: 72 }} mode="widthFix" />
       </View>
       <View style={{ flex: '1 1 0%', marginLeft: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <View style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 2, flex: '1 1 0%', overflow: 'hidden', width: 0 }}>
+        <View style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 2, flex: '1 1 0%', overflow: 'visible' }}>
           <View style={{ width: '100%' }}>
-            <Text style={{ fontSize: 22, lineHeight: '26px', fontWeight: '900', color: '#000', letterSpacing: '0.025em', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{instrument.name || instrument.sn}</Text>
+            <Text style={{ fontSize: 22, lineHeight: '26px', fontWeight: '900', color: '#000', letterSpacing: '0.025em', whiteSpace: 'nowrap', overflow: 'visible' }}>{instrument.name || instrument.sn}</Text>
             <Text style={{ fontSize: 14, color: '#71717a', fontWeight: '700', display: 'block', marginTop: 8 }}>{instrument.category_name}</Text>
           </View>
           {levelName && (
