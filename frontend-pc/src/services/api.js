@@ -376,6 +376,10 @@ export const instrumentsApi = {
 }
 
 export const ordersApi = {
+  list: (params = {}) => {
+    const query = new URLSearchParams(params).toString()
+    return api.get(`/merchant/orders${query ? '?' + query : ''}`)
+  },
   create: (data) => api.post('/user/orders', data),
   transferOwnership: (id) => api.post(`/orders/${id}/transfer-ownership`),
   terminate: (id) => api.put(`/orders/${id}/terminate`),
@@ -424,6 +428,7 @@ export const staffApi = {
 }
 
 export const inventoryApi = {
+  list: (params = {}) => api.get('/instruments', { params }),
   getTransferList: (params) => api.get('/merchant/inventory/transfers', { params }),
   getRentSetting: (params) => api.get('/inventory/rent-setting', { params }),
   batchUpdateRent: (data) => api.put('/inventory/rent-setting/batch', data),

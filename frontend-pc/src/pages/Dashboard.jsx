@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Table, Tag, Space, Form, Select, Statistic, Row, Col, Drawer, Timeline, Button, Badge, Spin, Card } from 'antd'
+import { Table, Tag, Space, Form, Select, Statistic, Row, Col, Drawer, Timeline, Button, Badge, Spin, Card, message } from 'antd'
 import { EyeOutlined, EditOutlined, ShoppingOutlined, ToolOutlined, BarChartOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { inventoryApi, sitesApi, ordersApi, maintenanceApi, leaseApi } from '../services/api'
@@ -46,19 +46,19 @@ export default function Dashboard() {
     try {
       const todayStr = new Date().toISOString().split('T')[0]
       setToday(todayStr)
-      const [inventoryRes, sitesRes, leasesRes, ordersRes, maintenanceRes] = await Promise.all([
+      const results = await Promise.allSettled([
         inventoryApi.list(),
         sitesApi.list(),
         leaseApi.list(),
-        ordersApi.list? ordersApi.list({ start_date: todayStr, end_date: todayStr }) : Promise.resolve({ data: [] }),
+        ordersApi.list({ start_date: todayStr, end_date: todayStr }),
         maintenanceApi.listMerchant(),
       ])
-      
-      const inventoryData = inventoryRes?.data?.list || []
-      const sitesData = sitesRes?.data?.list || []
-      const leasesList = leasesRes?.data?.list || []
-      const ordersResponse = ordersRes?.data?.list || []
-      const maintenanceData = maintenanceRes?.data?.list || []
+      const [inventoryRes, sitesRes, leasesRes, ordersRes, maintenanceRes] = results
+      const inventoryData = inventoryRes.status === 'fulfilled' ? (inventoryRes.value?.data?.list || []) : []
+      const sitesData = sitesRes.status === 'fulfilled' ? (sitesRes.value?.data?.list || []) : []
+      const leasesList = leasesRes.status === 'fulfilled' ? (leasesRes.value?.data?.list || []) : []
+      const ordersResponse = ordersRes.status === 'fulfilled' ? (ordersRes.value?.data?.list || []) : []
+      const maintenanceData = maintenanceRes.status === 'fulfilled' ? (maintenanceRes.value?.data?.list || []) : []
       
       setAssets(inventoryData)
       setLeasesData(leasesList) // Fix: add leases to state
@@ -83,6 +83,7 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error('Failed to load data:', error)
+      message.error('仪表盘数据加载失败，请刷新重试')
     } finally {
       setLoading(false)
     }
