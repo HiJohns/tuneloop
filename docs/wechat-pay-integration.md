@@ -507,9 +507,9 @@ curl POST "https://api.weixin.qq.com/wxa/sec/order/get_order_detail_path?access_
    - 回调处理时持久化到 `order_payment_records.openid`（迁移 `20260821001_add_payment_openid`）
    - `reportWechatShipping` / `reportVirtualGoodsShipping` 优先用 `record.OpenID`，`users.wx_openid` 仅兜底
 2. **notify_confirm_receive 请求体结构错误**：原发 `{merchant_trade_no, received_time}` 顶层字段 → 微信报 `10060014`。微信要求 `order_key` 对象（`order_number_type` + `mchid` + `out_trade_no`）+ `received_time`，已修复。
-3. **成功日志**：`[WechatShipping] uploaded shipping info for order ...`（排查用，失败日志原本已有）。虚拟商品上报成功后同样打印 `upload_shipping_info ok label=virtual ...`（#1777 统一日志）。
+3. **成功日志**：`[WechatShipping] upload_shipping_info ok label=... out_trade_no=... transaction_id=...`（#1777 统一日志，实物/虚拟共用）。
 
-**排查关键字**：`journalctl -u tuneloop | grep WechatShipping`——成功：`uploaded shipping info` / `upload_shipping_info ok`；失败：`upload attempt` / `upload_shipping_info failed` / `notify_confirm_receive failed` / `gave up`。
+**排查关键字**：`journalctl -u tuneloop | grep WechatShipping`——成功：`upload_shipping_info ok`；失败：`upload attempt` / `notify_confirm_receive failed` / `gave up`。
 
 ---
 
