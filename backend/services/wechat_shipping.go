@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -135,6 +136,31 @@ func UploadShippingInfo(openid, outTradeNo, transactionID, trackingNo, courierCo
 		return fmt.Errorf("wechat upload_shipping_info error %d: %s", result.Errcode, result.Errmsg)
 	}
 	return nil
+}
+
+// retryBackoffs defines the backoff schedule for UploadShippingInfoWithRetry
+// (first attempt immediate, then 1/5/15 minutes). Injectable for tests.
+var retryBackoffs = []time.Duration{0, time.Minute, 5 * time.Minute, 15 * time.Minute}
+
+// UploadShippingInfoWithRetry attempts upload_shipping_info with backoff retry
+// to handle WeChat's payment-order index sync delay (errcode 10060001 right
+// after payment callback). Non-fatal: exhaustion logs and returns.
+// label identifies the flow in logs (e.g. "rent order 7d5cadd7", "membership").
+func UploadShippingInfoWithRetry(openid, outTradeNo, transactionID, trackingNo, courierCompany, itemDesc string, logisticsType int, label string) {
+	var lastErr error
+	for i, d := range retryBackoffs {
+		if d > 0 {
+			time.Sleep(d)
+		}
+		if err := UploadShippingInfo(openid, outTradeNo, transactionID, trackingNo, courierCompany, itemDesc, logisticsType); err != nil {
+			lastErr = err
+			log.Printf("[WechatShipping] upload attempt %d/%d failed for %s (out_trade_no=%s transaction_id=%s): %v", i+1, len(retryBackoffs), label, outTradeNo, transactionID, err)
+			continue
+		}
+		log.Printf("[WechatShipping] upload_shipping_info ok label=%s out_trade_no=%s transaction_id=%s", label, outTradeNo, transactionID)
+		return
+	}
+	log.Printf("[WechatShipping] upload_shipping_info gave up after %d attempts for %s (out_trade_no=%s transaction_id=%s): %v", len(retryBackoffs), label, outTradeNo, transactionID, lastErr)
 }
 
 type notifyConfirmReceiveRequest struct {

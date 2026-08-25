@@ -207,9 +207,7 @@ func reportVirtualGoodsShipping(db *gorm.DB, record *models.OrderPaymentRecord) 
 		log.Printf("[WechatShipping] virtual goods %s: no openid for user %s", record.OrderType, record.UserID)
 	}
 	go func() {
-		if err := services.UploadShippingInfo(openid, *record.OutTradeNo, transactionID, "", "", itemDesc, 3); err != nil {
-			log.Printf("[WechatShipping] virtual-goods upload_shipping_info failed for %s (out_trade_no=%s): %v", record.OrderType, *record.OutTradeNo, err)
-		}
+		services.UploadShippingInfoWithRetry(openid, *record.OutTradeNo, transactionID, "", "", itemDesc, 3, fmt.Sprintf("virtual %s", record.OrderType))
 	}()
 }
 

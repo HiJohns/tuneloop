@@ -200,7 +200,7 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 	// WeChat shipping compliance (#1693): physical goods (rent) must report
 	// shipping info so the platform unfreezes funds. Non-fatal — a report
 	// failure must not block the business shipment.
-	reportWechatShipping(db, order, openidOfUser(db, order.UserID), company, trackingNumber)
+	reportWechatShipping(db, order, company, trackingNumber)
 
 	resp := gin.H{
 		"order_id": orderID,
@@ -845,7 +845,7 @@ func openidOfUser(db *gorm.DB, userID string) string {
 // at receipt. Only rent/repair (physical) flows report here; virtual goods
 // (membership/renewal/damage/repair fee) are reported at payment time with
 // logistics_type=3 (#1730). Non-fatal — failures never block business flows.
-func reportWechatShipping(db *gorm.DB, order models.Order, openid, company, trackingNumber string) {
+func reportWechatShipping(db *gorm.DB, order models.Order, company, trackingNumber string) {
 	if order.ID == "" || trackingNumber == "" {
 		return
 	}
@@ -866,16 +866,13 @@ func reportWechatShipping(db *gorm.DB, order models.Order, openid, company, trac
 	}
 	// #1731: the payer.openid persisted at payment callback is the
 	// authoritative source; the users.wx_openid cache is only a fallback.
+	openid := record.OpenID
 	if openid == "" {
-		openid = record.OpenID
+		openid = openidOfUser(db, record.UserID)
 	}
 	itemDesc := fmt.Sprintf("乐器租赁 %s", order.ID[:8])
 	go func() {
-		if err := services.UploadShippingInfo(openid, *record.OutTradeNo, transactionID, trackingNumber, company, itemDesc, 1); err != nil {
-			log.Printf("[WechatShipping] upload_shipping_info failed for order %s: %v", order.ID, err)
-			return
-		}
-		log.Printf("[WechatShipping] uploaded shipping info for order %s (out_trade_no=%s)", order.ID, *record.OutTradeNo)
+		services.UploadShippingInfoWithRetry(openid, *record.OutTradeNo, transactionID, trackingNumber, company, itemDesc, 1, fmt.Sprintf("rent order %s", order.ID))
 	}()
 }
 

@@ -495,7 +495,7 @@ curl POST "https://api.weixin.qq.com/wxa/sec/order/get_order_detail_path?access_
 
 1. **`order_key.order_number_type=1`（商户侧单号形式）必须带 `mchid` 字段**——代码 `shippingOrderKey` 虽有 `Mchid` 字段但 **UploadShippingInfo 从未赋值**（omitempty 导致省略）→ 微信报 `268485196: 商户侧单号形式下 mchid 字段必须设置`。生产 7 天零触发（无发货操作），**首次生产发货必中招**，需在 `UploadShippingInfo` 填充商户号。
 2. `notify_confirm_receive` 同链路（`10060014 参数错误` 同上根因）。
-3. 上报失败按设计不阻塞业务（非致命），但资金解冻/结算会受影响，日志需监控 `[WechatShipping]` 前缀。
+3. 上报失败按设计不阻塞业务（非致命），但资金解冻/结算会受影响，日志需监控 `[WechatShipping]` 前缀。**失败自动阶梯重试（立即 + 1/5/15min，最多 4 次，见 `UploadShippingInfoWithRetry`）**——支付回调后立即上报可能命中微信侧支付单索引同步延迟（`10060001 支付单不存在`），重试后通常成功。
 
 ### Phase 6 补充：实物发货同步 openid 权威来源 + notify 请求体（#1731）
 
@@ -507,9 +507,9 @@ curl POST "https://api.weixin.qq.com/wxa/sec/order/get_order_detail_path?access_
    - 回调处理时持久化到 `order_payment_records.openid`（迁移 `20260821001_add_payment_openid`）
    - `reportWechatShipping` / `reportVirtualGoodsShipping` 优先用 `record.OpenID`，`users.wx_openid` 仅兜底
 2. **notify_confirm_receive 请求体结构错误**：原发 `{merchant_trade_no, received_time}` 顶层字段 → 微信报 `10060014`。微信要求 `order_key` 对象（`order_number_type` + `mchid` + `out_trade_no`）+ `received_time`，已修复。
-3. **成功日志**：`[WechatShipping] uploaded shipping info for order ...`（排查用，失败日志原本已有）。
+3. **成功日志**：`[WechatShipping] uploaded shipping info for order ...`（排查用，失败日志原本已有）。虚拟商品上报成功后同样打印 `upload_shipping_info ok label=virtual ...`（#1777 统一日志）。
 
-**排查关键字**：`journalctl -u tuneloop | grep WechatShipping`——成功：`uploaded shipping info`；失败：`upload_shipping_info failed` / `notify_confirm_receive failed`。
+**排查关键字**：`journalctl -u tuneloop | grep WechatShipping`——成功：`uploaded shipping info` / `upload_shipping_info ok`；失败：`upload attempt` / `upload_shipping_info failed` / `notify_confirm_receive failed` / `gave up`。
 
 ---
 
