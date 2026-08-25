@@ -65,7 +65,7 @@ export default function Search() {
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#000' }}>{item.category_name}</Text>
               <Text style={{ fontSize: 12, color: '#71717a', marginTop: 4 }}>SN: {item.sn}</Text>
               <Text style={{ fontSize: 12, color: '#71717a' }}>{item.level_name}</Text>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#C21838', marginTop: 8 }}>{Math.round(item.base_daily_rate || 0)}/日</Text>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#C21838', marginTop: 8 }}>{((item.daily_rate_cents || 0) / 100).toFixed(2)}/日</Text>
             </View>
           </View>
         ))}

@@ -51,20 +51,11 @@ function BannerImage({ src, aspectRatio, onClick }) {
   )
 }
 
+// #1750/#1772: Server-computed daily_rate_cents (cents) is the single source of truth.
+// Tiers-format pricing has no top-level daily_rent; base_daily_rate is also cents.
+// Always use daily_rate_cents from the API and divide by 100 for display (yuan).
 function getDailyRate(instrument) {
-  const pricing = instrument.pricing
-  if (!pricing) return instrument.base_daily_rate || 0
-  if (typeof pricing === 'object' && !Array.isArray(pricing)) {
-    return pricing.daily_rent || instrument.base_daily_rate || 0
-  }
-  if (typeof pricing === 'string') {
-    try {
-      const parsed = JSON.parse(pricing)
-      if (Array.isArray(parsed)) return parsed[0]?.daily_rent || instrument.base_daily_rate || 0
-      return parsed.daily_rent || instrument.base_daily_rate || 0
-    } catch { return instrument.base_daily_rate || 0 }
-  }
-  return instrument.base_daily_rate || 0
+  return (instrument.daily_rate_cents || 0) / 100
 }
 
 function InstrumentCard({ instrument, onClick }) {
@@ -88,8 +79,8 @@ function InstrumentCard({ instrument, onClick }) {
       <View style={{ flex: '1 1 0%', marginLeft: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <View style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 2, flex: '1 1 0%', overflow: 'hidden', width: 0 }}>
           <View style={{ width: '100%' }}>
-            <Text style={{ fontSize: 22, lineHeight: '26px', fontWeight: '900', color: '#000', letterSpacing: '0.025em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{instrument.name || instrument.sn}</Text>
-            <Text style={{ fontSize: 14, color: '#71717a', fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 16 }}>{instrument.category_name}</Text>
+            <Text style={{ fontSize: 22, lineHeight: '26px', fontWeight: '900', color: '#000', letterSpacing: '0.025em', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{instrument.name || instrument.sn}</Text>
+            <Text style={{ fontSize: 14, color: '#71717a', fontWeight: '700', display: 'block', marginTop: 8 }}>{instrument.category_name}</Text>
           </View>
           {levelName && (
             <View style={{ backgroundColor: levelBg, color: '#fff', fontSize: 14, padding: '2px 10px', borderRadius: 999, fontWeight: '900', alignSelf: 'flex-start', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', marginTop: 3, whiteSpace: 'nowrap' }}>
