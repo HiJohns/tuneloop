@@ -280,10 +280,12 @@ export default function Detail() {
                 日租 ¥{(Number(dailyRent || 0) / 100).toFixed(2)}/日
               </Text>
             </View>
-            <View style={{ borderTop: '1px solid #f4f4f5', paddingTop: 12, marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: '#71717a', fontWeight: '700' }}>
-              <View style={{ display: 'flex', alignItems: 'center' }}><Text style={{ marginRight: 4 }}>🏠</Text><Text>{instrument.site_name || '暂无网点'}</Text></View>
-              <View style={{ display: 'flex', alignItems: 'center' }}><Text style={{ marginRight: 4 }}>📍</Text><Text>{instrument.site_address || '暂无地址'}</Text></View>
-              <View style={{ display: 'flex', alignItems: 'center' }}><Text style={{ marginRight: 4 }}>📞</Text><Text>{instrument.site_phone || ''}</Text></View>
+            <View style={{ borderTop: '1px solid #f4f4f5', paddingTop: 12, marginTop: 12, display: 'flex', flexDirection: 'column', fontSize: 12, color: '#71717a', fontWeight: '700' }}>
+              <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ display: 'flex', alignItems: 'center', flexShrink: 1, minWidth: 0 }}><Text style={{ marginRight: 4 }}>🏠</Text><Text>{instrument.site_name || '暂无网点'}</Text></View>
+                <View style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}><Text style={{ marginRight: 4 }}>📞</Text><Text>{instrument.site_phone || ''}</Text></View>
+              </View>
+              <View style={{ display: 'flex', alignItems: 'center', marginTop: 6 }}><Text style={{ marginRight: 4 }}>📍</Text><Text style={{ flex: 1 }}>{instrument.site_address || '暂无地址'}</Text></View>
             </View>
           </View>
 
