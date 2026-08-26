@@ -74,6 +74,7 @@ import UserManagement from './pages/System/UserManagement'
 
 import RentSetting from './pages/admin/inventory/RentSetting'
 import MerchantPricingConfig from './pages/admin/pricing/MerchantPricingConfig'
+import InvoiceList from './pages/admin/invoice/InvoiceList'
 
 const { Header, Content, Sider } = Layout
 
@@ -368,6 +369,7 @@ function MainLayout() {
       { key: '/maintenance/sessions', label: '会话管理', permission: { cusPermCodes: ['instrument:read', 'instrument:maintain'] } },
       { key: '/transit-routes', label: '中转路由', permission: { sysPermBits: [5] } },
       { key: '/overdue-alerts', label: '逾期告警', permission: { cusPermCodes: ['instrument:read'] } },
+      { key: '/merchant/invoices', label: '发票管理', permission: { cusPermCodes: ['order:read'] } },
     ]
   },
   {
@@ -442,7 +444,7 @@ function onMenuClick(e) {
   let openKeys = []
   if (['/instruments/categories', '/instruments/properties', '/instruments/list', '/site/stock'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['product']
   else if (['/inventory/rent-setting', '/pricing/config', '/system/promo-plans', '/repair/settings', '/system/rebate-config', '/system/gift-policies', '/system/membership-levels', '/system/banners'].includes(location.pathname)) openKeys = ['strategy']
-  else if (['/orders', '/warehouse', '/maintenance/sessions', '/transit-routes', '/overdue-alerts'].includes(location.pathname)) openKeys = ['transaction']
+  else if (['/orders', '/warehouse', '/maintenance/sessions', '/transit-routes', '/overdue-alerts', '/merchant/invoices'].includes(location.pathname)) openKeys = ['transaction']
   else if (location.pathname.startsWith('/merchants') || ['/system/user-management', '/organization/sites', '/staff', '/appeals', '/organization/iam-sync', '/system/permissions', '/system/warnings', '/system/warning-settings'].includes(location.pathname)) openKeys = ['platform']
   else if (['/', '/system/content-edit', '/system/audit-logs'].includes(location.pathname)) openKeys = ['system']
   else if (location.pathname.startsWith('/user/')) openKeys = []
@@ -475,6 +477,7 @@ function onMenuClick(e) {
     '/maintenance/sessions': { title: '会话管理', parent: '交易管理' },
     '/transit-routes': { title: '中转路由', parent: '交易管理' },
     '/overdue-alerts': { title: '逾期告警', parent: '交易管理' },
+    '/merchant/invoices': { title: '发票管理', parent: '交易管理' },
     '/organization/sites': { title: '网点管理', parent: '平台管理' },
     '/organization/sites/new': { title: '新建网点', parent: '网点管理' },
     '/staff': { title: '人员管理', parent: '平台管理' },
@@ -698,7 +701,8 @@ function onMenuClick(e) {
             <Route path="/inventory/rent-setting" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price'] }}><RentSetting /></ProtectedRoute>} />
             <Route path="/pricing/config" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price_config'] }}><MerchantPricingConfig /></ProtectedRoute>} />
             <Route path="/warehouse" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read', 'instrument:update'] }}><WarehouseManagement /></ProtectedRoute>} />
-             <Route path="/overdue-alerts" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read'] }}><OverdueAlerts /></ProtectedRoute>} />
+              <Route path="/overdue-alerts" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read'] }}><OverdueAlerts /></ProtectedRoute>} />
+              <Route path="/merchant/invoices" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['order:read'] }}><InvoiceList /></ProtectedRoute>} />
               <Route path="/admin/payments" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read'] }}><PaymentList /></ProtectedRoute>} />
               <Route path="/admin/billing" element={<ProtectedRoute><BillingDashboard /></ProtectedRoute>} />
              <Route path="/user/rentals" element={<ProtectedRoute><UserRental /></ProtectedRoute>} />

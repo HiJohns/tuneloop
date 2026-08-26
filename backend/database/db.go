@@ -458,6 +458,7 @@ func validateDatabaseSchema(db *gorm.DB) error {
 		&models.RepairTransitOrder{},
 		&models.Warning{},
 		&models.Banner{},
+		&models.InvoiceApplication{},
 		&models.ConfirmationSession{},
 		&models.Label{},
 

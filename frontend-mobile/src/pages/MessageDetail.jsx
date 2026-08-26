@@ -12,6 +12,7 @@ const typeConfig = {
   refund: { bg: 'bg-green-100', text: 'text-green-600', label: '退款通知' },
   payment: { bg: 'bg-blue-100', text: 'text-blue-600', label: '支付通知' },
   order: { bg: 'bg-gray-100', text: 'text-gray-600', label: '系统通知' },
+  invoice: { bg: 'bg-purple-100', text: 'text-purple-600', label: '发票通知' },
 }
 
 export default function MessageDetail() {
@@ -150,6 +151,20 @@ export default function MessageDetail() {
     navigate(`/repair-request?id=${ref?.repair_request_id || notification?.ref_id || ''}`)
   }
 
+  const handleViewInvoice = async (fileUrl) => {
+    if (!fileUrl) return
+    if (env.isMiniProgram) {
+      try {
+        const res = await Taro.downloadFile({ url: fileUrl })
+        Taro.openDocument({ filePath: res.tempFilePath, showMenu: true })
+      } catch (e) {
+        dialog.toast('打开失败')
+      }
+    } else {
+      window.open(fileUrl)
+    }
+  }
+
   if (loading) {
     return (
       <View className="min-h-screen bg-brand-bg flex items-center justify-center">
@@ -282,6 +297,30 @@ export default function MessageDetail() {
               className="w-full mt-6 py-2.5 bg-brand-primary text-white rounded-lg text-sm font-medium"
             >
               查看详情 / 确认新报价
+            </Button>
+          )}
+
+          {notification.type === 'invoice' && notification.action_type === 'invoice_reply' && actionData.invoice_file && (
+            <Button
+              onClick={() => handleViewInvoice(actionData.invoice_file)}
+              className="w-full mt-6 py-2.5 bg-brand-primary text-white rounded-lg text-sm font-medium"
+            >
+              查看/下载发票
+            </Button>
+          )}
+
+          {notification.type === 'invoice' && notification.action_type === 'invoice_reply' && (
+            <Button
+              onClick={() => {
+                if (env.isMiniProgram) {
+                  Taro.redirectTo({ url: '/pages-weapp/invoice/index' })
+                } else {
+                  navigate('/invoices')
+                }
+              }}
+              className="w-full mt-3 py-2.5 bg-white border border-brand-primary text-brand-primary rounded-lg text-sm font-medium"
+            >
+              查看申请详情
             </Button>
           )}
 

@@ -12,6 +12,7 @@ const typeConfig = {
   refund: { bg: 'bg-green-100', text: 'text-green-600', label: '退款通知' },
   payment: { bg: 'bg-blue-100', text: 'text-blue-600', label: '支付通知' },
   order: { bg: 'bg-gray-100', text: 'text-gray-600', label: '系统通知' },
+  invoice: { bg: 'bg-purple-100', text: 'text-purple-600', label: '发票通知' },
 }
 
 export default function Messages() {

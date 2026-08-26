@@ -97,6 +97,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	userPointsHandler := handlers.NewUserPointsHandler()
 	guarantorHandler := handlers.NewGuarantorHandler()
 	bannerHandler := handlers.NewBannerHandler()
+	invoiceHandler := handlers.NewInvoiceHandler()
+	merchantInvoiceHandler := handlers.NewMerchantInvoiceHandler()
 
 	// Bulk import handler (Issue #423)
 	bulkImportHandler := handlers.NewBulkImportHandler(iamClient, permRegistry)
@@ -304,6 +306,12 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		merchantRebate := authRequired.Group("")
 		merchantRebate.GET("/merchant/rebate-opt-in", handlers.GetMerchantRebateOptIn)
 		merchantRebate.PUT("/merchant/rebate-opt-in", handlers.UpdateMerchantRebateOptIn)
+
+		// Invoice merchant routes (#1786)
+		merchantInvoice := authRequired.Group("")
+		merchantInvoice.GET("/merchant/invoices", merchantInvoiceHandler.ListApplications)
+		merchantInvoice.GET("/merchant/invoices/:id", merchantInvoiceHandler.GetApplication)
+		merchantInvoice.POST("/merchant/invoices/:id/reply", merchantInvoiceHandler.Reply)
 
 		// Promo plans (admin)
 		promoAdmin := authRequired.Group("")
@@ -671,10 +679,16 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 
 				// Points wallet routes (prepaid purchase removed #1670)
 				userOptionalAuth.GET("/user/points/balance", userPointsHandler.GetBalance)
-				userOptionalAuth.GET("/user/points/transactions", userPointsHandler.ListTransactions)
-				userOptionalAuth.GET("/user/guarantors", guarantorHandler.ListGuarantors)
-				userOptionalAuth.POST("/user/guarantors", guarantorHandler.CreateGuarantor)
-				userOptionalAuth.DELETE("/user/guarantors/:id", guarantorHandler.DeleteGuarantor)
+			userOptionalAuth.GET("/user/points/transactions", userPointsHandler.ListTransactions)
+			userOptionalAuth.GET("/user/guarantors", guarantorHandler.ListGuarantors)
+			userOptionalAuth.POST("/user/guarantors", guarantorHandler.CreateGuarantor)
+			userOptionalAuth.DELETE("/user/guarantors/:id", guarantorHandler.DeleteGuarantor)
+
+			// Invoice application routes (#1786)
+			userOptionalAuth.GET("/user/invoices/eligible", invoiceHandler.ListEligible)
+			userOptionalAuth.POST("/user/invoices", invoiceHandler.Submit)
+			userOptionalAuth.GET("/user/invoices", invoiceHandler.ListApplications)
+			userOptionalAuth.GET("/user/invoices/:id", invoiceHandler.GetApplication)
 
 				userOptionalAuth.GET("/user/settlements/:id/calculate", userSettlementHandler.CalculateSettlement)
 				userOptionalAuth.POST("/user/settlements/:id", userSettlementHandler.ConfirmSettlement)

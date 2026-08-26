@@ -603,4 +603,10 @@ export const auditLogApi = {
   },
 }
 
+export const invoiceApi = {
+  list: () => api.get('/merchant/invoices'),
+  get: (id) => api.get(`/merchant/invoices/${id}`),
+  reply: (id, data) => api.post(`/merchant/invoices/${id}/reply`, data),
+}
+
 export { getToken, request }

@@ -413,6 +413,15 @@ export default function Profile() {
             </View>
           )}
           {!isGuest && (
+            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/invoice/index')}>
+              <View style={{ display: 'flex', alignItems: 'center' }}>
+                <Text style={{ fontSize: 18, marginRight: 8 }}>🧾</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>申请发票</Text>
+              </View>
+              <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
+            </View>
+          )}
+          {!isGuest && (
             <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/setting/index')}>
               <View style={{ display: 'flex', alignItems: 'center' }}>
                 <Text style={{ fontSize: 18, marginRight: 8 }}>⚙️</Text>

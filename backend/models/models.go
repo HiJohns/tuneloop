@@ -215,6 +215,8 @@ type Order struct {
 	PricingConfigSnapshot   *string    `gorm:"type:jsonb" json:"pricing_config_snapshot"`
 	CouponCode              *string    `gorm:"type:varchar(32)" json:"coupon_code,omitempty"`
 	CouponDiscount          Cents      `gorm:"type:bigint;not null;default:0" json:"coupon_discount"` // #1744: 优惠码折扣金额（分）
+	InvoiceApplied          bool       `gorm:"not null;default:false" json:"invoice_applied"`
+	InvoiceAppliedAt        *time.Time `gorm:"type:timestamptz" json:"invoice_applied_at"`
 	CurrentPaymentSessionID *string    `gorm:"type:uuid" json:"current_payment_session_id,omitempty"`
 	PaymentDeadline         *time.Time `json:"payment_deadline"`
 	CreatedAt               time.Time  `json:"created_at"`
@@ -1150,4 +1152,23 @@ type Banner struct {
 	BgColor   string    `gorm:"type:varchar(7);default:'#915F38'" json:"bg_color"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// InvoiceApplication represents a customer's invoice request grouped by merchant.
+// One application = one merchant's set of orders from a single submission.
+type InvoiceApplication struct {
+	ID         string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID     string     `gorm:"type:uuid;not null;index" json:"user_id"`
+	TenantID   string     `gorm:"type:uuid;not null;index" json:"tenant_id"`
+	Status     string     `gorm:"type:varchar(20);not null;default:'pending'" json:"status"` // pending | replied
+	TotalAmount Cents     `gorm:"type:bigint;not null;default:0" json:"total_amount"`
+	OrderCount int        `gorm:"not null;default:0" json:"order_count"`
+	Reply      *string    `gorm:"type:text" json:"reply"`
+	InvoiceFile *string   `gorm:"type:text" json:"invoice_file"`
+	RepliedAt  *time.Time `gorm:"type:timestamptz" json:"replied_at"`
+	CreatedAt  time.Time  `json:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at"`
+	// Orders is a computed join field, not stored in DB
+	Orders      []Order `gorm:"-" json:"orders,omitempty"`
+	MerchantName string `gorm:"-" json:"merchant_name,omitempty"`
 }

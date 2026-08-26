@@ -41,6 +41,7 @@ const weappPages = [
   'pages-weapp/repair-payment-complete/index',
   'pages-weapp/receiving-repair-scan/index',
   'pages-weapp/repair-scan/index',
+  'pages-weapp/invoice/index',
 ]
 
 const h5Pages = [
