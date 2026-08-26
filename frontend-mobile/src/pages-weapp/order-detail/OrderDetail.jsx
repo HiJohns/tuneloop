@@ -37,8 +37,8 @@ const EVENT_LABELS = {
 const baseUrl = env.apiBaseUrl
 
 export default function OrderDetail() {
-  const params = Taro.getCurrentInstance().router?.params || {}
-  const [id, setId] = useState(params.id || null)
+  const router = Taro.useRouter()
+  const [id, setId] = useState(router.params?.id || null)
   const [order, setOrder] = useState(null)
   const [instrument, setInstrument] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -63,9 +63,9 @@ export default function OrderDetail() {
 
   useEffect(() => {
     const resolve = async () => {
-      if (!params.id && params.out_trade_no) {
+      if (!router.params?.id && router.params?.out_trade_no) {
         try {
-          const resp = await apiFetch(`${baseUrl}/orders/by-trade-no/${params.out_trade_no}`)
+          const resp = await apiFetch(`${baseUrl}/orders/by-trade-no/${router.params.out_trade_no}`)
           const result = await resp.json()
           if (result.code === 20000 && result.data?.orders?.length > 0) {
             setId(result.data.orders[0].id)
@@ -73,10 +73,10 @@ export default function OrderDetail() {
           }
         } catch {}
       }
-      setId(params.id || null)
+      setId(router.params?.id || null)
     }
     resolve()
-  }, [params.id, params.out_trade_no])
+  }, [router.params?.id, router.params?.out_trade_no])
 
   const loadOrder = useCallback(async () => {
     if (!id) return
@@ -172,6 +172,10 @@ export default function OrderDetail() {
   }
 
   const handleConfirmReceipt = async () => {
+    if (!id) {
+      Taro.showToast({ title: '订单不存在', icon: 'none' })
+      return
+    }
     setActionLoading(true)
     try {
       const photos = await uploadPhotos(receivePhotos)

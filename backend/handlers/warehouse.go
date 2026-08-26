@@ -236,6 +236,12 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 	}
 
 	orderID := c.Param("id")
+	// #1780: reject non-UUID :id (e.g. literal "null" from frontend) with 40002
+	// instead of letting PG hit SQLSTATE 22P02 → misleading 404.
+	if _, err := uuid.Parse(orderID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid order id"})
+		return
+	}
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
 

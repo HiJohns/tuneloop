@@ -24,7 +24,8 @@ export default function ReceiveConfirm() {
     return Taro.navigateTo({ url: route.url })
   }
   // 跨端统一 query 约定（#1674）：跳转一律 ?order_id= / ?instrument=
-  const orderId = searchParams.get('order_id') || ''
+  const orderIdRaw = searchParams.get('order_id') || ''
+  const orderId = (orderIdRaw === 'null' || orderIdRaw === 'undefined') ? '' : orderIdRaw
   const instrumentId = searchParams.get('instrument') || ''
   const baseUrl = env.apiBaseUrl
 

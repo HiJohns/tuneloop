@@ -258,3 +258,57 @@ func TestReportWechatShipping_OpenIDPriority(t *testing.T) {
 		})
 	}
 }
+
+// #1780: ConfirmDelivery with non-UUID :id (e.g. literal "null") must return
+// 40002 instead of 404 (which would come from PG SQLSTATE 22P02).
+func TestConfirmDelivery_InvalidUUID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	config := database.LoadConfig()
+	db, err := database.InitDB(config)
+	if err != nil {
+		t.Skip("test database not available")
+		return
+	}
+	database.SetDB(db)
+	if err := setupWarehouseTables(t, db); err != nil {
+		t.Fatalf("failed to setup tables: %v", err)
+	}
+
+	tenantID := uuid.New().String()
+	handler := NewWarehouseHandler()
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		ctx := c.Request.Context()
+		ctx = context.WithValue(ctx, middleware.ContextKeyTenantID, tenantID)
+		ctx = context.WithValue(ctx, middleware.ContextKeyUserID, uuid.New().String())
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	router.PUT("/api/warehouse/orders/:id/delivery", handler.ConfirmDelivery)
+
+	for _, badID := range []string{"null", "undefined", "abc", ""} {
+		t.Run("id="+badID, func(t *testing.T) {
+			reqBody := map[string]interface{}{
+				"delivered_at": time.Now(),
+				"photos":       []string{"photo1.jpg"},
+			}
+			jsonBody, _ := json.Marshal(reqBody)
+			url := "/api/warehouse/orders/" + badID + "/delivery"
+			if badID == "" {
+				url = "/api/warehouse/orders//delivery"
+			}
+			req := httptest.NewRequest("PUT", url, bytes.NewBuffer(jsonBody))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, http.StatusBadRequest, w.Code, "non-UUID :id=%q must return 400", badID)
+			var resp struct {
+				Code    int    `json:"code"`
+				Message string `json:"message"`
+			}
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+			assert.Equal(t, 40002, resp.Code, "non-UUID :id=%q must return code 40002", badID)
+		})
+	}
+}
