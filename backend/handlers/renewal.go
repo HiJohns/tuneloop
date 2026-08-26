@@ -108,6 +108,14 @@ func loadRenewalPricing(db *gorm.DB, order *models.Order) (baseRate float64, pri
 			baseRate = float64(*inst.BaseDailyRate)
 		}
 	}
+	if baseRate <= 0 {
+		// #1781: snapshot base_daily_rent may be 0 (instrument base_daily_rate
+		// unconfigured; daily rate lives in pricing JSON, e.g. CV-08 ¥0.01/day).
+		// Recover from snapshot pricing_tiers[0].daily_rate (cents, P3-migrated).
+		if len(pb.PricingTiers) > 0 && pb.PricingTiers[0].DailyRate > 0 {
+			baseRate = pb.PricingTiers[0].DailyRate
+		}
+	}
 	disc := 1.0
 	for _, p := range pb.AppliedPolicies {
 		if p.Type == "membership_discount" || p.Type == "promo_campaign" {
@@ -251,6 +259,17 @@ func ConfirmRenewal(c *gin.Context) {
 	if consumedDays < 0 {
 		consumedDays = 0
 	}
+	// #1781: same as CalculateRenewal — extract rent_days from the pricing
+	// breakdown snapshot so consumedDays reflects the actual covered period,
+	// not the potentially stale lease_term.
+	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+		var pbConsumed struct {
+			RentDays int `json:"rent_days"`
+		}
+		if json.Unmarshal([]byte(*order.PricingBreakdown), &pbConsumed) == nil && pbConsumed.RentDays > 0 {
+			consumedDays = pbConsumed.RentDays
+		}
+	}
 	baseRate, pricingTiers, cumDisc := loadRenewalPricing(db, order)
 
 	// Minimum renewal days: must cover the overdue period (continuous).
@@ -294,7 +313,7 @@ func ConfirmRenewal(c *gin.Context) {
 	}
 	// 优惠快照回写（#1744）：记录最近一次支付使用的码 + 折扣（分）。
 	if couponApplied != "" {
-		discountCents := models.FromYuan(renewalCost) - models.FromYuan(totalAmount)
+		discountCents := models.Cents(renewalCost) - models.Cents(totalAmount)
 		if discountCents < 0 {
 			discountCents = 0
 		}
@@ -323,7 +342,7 @@ func ConfirmRenewal(c *gin.Context) {
 		OrderID:     &orderID,
 		OrderType:   "renewal",
 		OutTradeNo:  &outTradeNo,
-		Amount:      models.FromYuan(totalAmount),
+		Amount:      models.Cents(totalAmount),
 		Type:        "payment",
 		Status:      "pending",
 		RawResponse: &metaStr,
@@ -352,7 +371,7 @@ func ConfirmRenewal(c *gin.Context) {
 	result, err := client.CreateJSAPIOrder(ctx, wechatpay.JSAPIParams{
 		OutTradeNo:  outTradeNo,
 		OpenID:      req.OpenID,
-		TotalAmount: int64(models.FromYuan(totalAmount)),
+		TotalAmount: int64(totalAmount),
 		Description: fmt.Sprintf("TuneLoop 续期 %s", orderID[:8]),
 		NotifyURL:   cfg.NotifyURL,
 	})
