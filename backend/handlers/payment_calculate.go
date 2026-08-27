@@ -69,7 +69,11 @@ func CalculatePayment(c *gin.Context) {
 	case "renewal":
 		loadRenewalPayment(db, req.ID, &resp)
 	case "payment_shortfall":
-		loadShortfallPayment(db, req.ID, &resp)
+		if msg := loadShortfallPayment(db, req.ID, &resp); msg != "" {
+			// #1785: explicit error instead of a silent HTTP 200 + Amount:0.
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": msg})
+			return
+		}
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid type"})
 		return
@@ -318,19 +322,22 @@ func loadRenewalPayment(db *gorm.DB, id string, resp *PaymentCalculateResponse) 
 
 // loadShortfallPayment (#1746/#1748 L-04C 流程 3)：总账补缴支付确认页数据。
 // 金额与明细全部来自服务端（补缴记录 + computeSettlement），前端禁止自算。
-func loadShortfallPayment(db *gorm.DB, id string, resp *PaymentCalculateResponse) {
+// #1785: returns a non-empty error message on failure (order/shortfall missing
+// or no payable shortfall) so the caller can surface an explicit 40002 instead
+// of silently returning HTTP 200 with Amount:0.
+func loadShortfallPayment(db *gorm.DB, id string, resp *PaymentCalculateResponse) string {
 	var order models.Order
 	if err := db.Where("id = ?", id).First(&order).Error; err != nil {
-		return
+		return "补缴单不存在"
 	}
 	var record models.OrderPaymentRecord
 	if err := db.Where("order_id = ? AND order_type = ? AND status = ?", order.ID, "payment_shortfall", "pending").
 		Order("created_at desc").First(&record).Error; err != nil {
-		return
+		return "补缴单不存在"
 	}
 	result := computeSettlement(order, db)
 	if result.PayableShortfall <= 0 {
-		return
+		return "无需补缴"
 	}
 	resp.Title = "补缴差额"
 	// #1758: cents contract — record.Amount and settlement fields are Cents;
@@ -344,4 +351,5 @@ func loadShortfallPayment(db *gorm.DB, id string, resp *PaymentCalculateResponse
 		"damage_amount":    result.DamageDeducted * 100,
 		"paid_total":       float64(order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed),
 	}
+	return ""
 }

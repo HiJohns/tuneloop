@@ -39,6 +39,8 @@ export const request = (url, options = {}) => {
       url,
       method: (options.method || 'GET').toUpperCase(),
       data: options.body,
+      // #1785: 15s timeout — never spin forever on a hung request.
+      timeout: 15000,
       header: {
         'Content-Type': 'application/json',
         ...options.headers,
@@ -57,7 +59,10 @@ export const request = (url, options = {}) => {
           }),
         })
       },
-      fail: (err) => reject(err),
+      fail: (err) => {
+        const isTimeout = typeof err === 'object' && err && String(err.errMsg || '').includes('timeout')
+        reject(new Error(isTimeout ? '请求超时，请重试' : (err?.errMsg || 'network error')))
+      },
     })
   })
 }

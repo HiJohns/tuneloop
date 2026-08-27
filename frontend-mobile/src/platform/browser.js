@@ -40,7 +40,14 @@ export const cookie = {
   },
 }
 
-export const request = (url, options = {}) => fetch(url, options)
+// #1785: 15s request timeout — abort hangs so payment screens never spin forever.
+const REQUEST_TIMEOUT_MS = 15000
+
+export const request = (url, options = {}) => {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timeoutId))
+}
 
 export const uploadFile = (url, file, options = {}) => {
   const fd = new FormData()

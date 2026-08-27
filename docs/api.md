@@ -1659,7 +1659,20 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
       "payable": { "items": [{"item":"rent","amount":300},{"item":"shipping_fee","amount":100}], "subtotal": 400 },
       "expected": { "direction": "refund", "amount": 0 }, // 未终态显示；settled 时为 null
       "settled": false
-    }
+    },
+    "settlement": { // 结算信息（有 settlement 记录时返回；#1785 补缴字段见下）
+      "id": "uuid",
+      "actual_rent_days": 1,
+      "actual_rent_amount": 100,          // 分
+      "original_rent_amount": 200,        // 分
+      "gift_points_refunded": 0,
+      "cash_refundable": 0,               // 分
+      "prepaid_refunded": 0,
+      "refund_method": "wechat",
+      "refund_status": "pending",         // pending=处理中 / completed=已退回 / failed=失败
+      "overdue_charges_total": 0,         // 分
+      "payable_shortfall": 98             // 分；#1785 存在 pending payment_shortfall 记录时返回，仅补缴场景存在
+    },
     "damage": { // #1707/#1708：仅待回应定损/定损申诉态返回（pending_damage_response / damage_appealing）
       "report_id": "uuid",
       "damage_amount": 100.00,    // 定损金额（迁移后统一来自 damage_reports，见 #1708/#1711）

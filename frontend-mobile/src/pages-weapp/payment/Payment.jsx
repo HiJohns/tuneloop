@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import Taro from '@tarojs/taro'
+import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, resolveLogin } from '../../services/api'
 import { env, session } from '../../platform'
@@ -15,10 +15,35 @@ function clampPoints(raw, max) {
 
 export default function Payment() {
   const params = Taro.getCurrentInstance().router?.params || {}
-  const pType = params.type || ''
-  const pId = params.id || ''
-  const pAmount = parseFloat(params.amount || '0')
-  const pSessionId = params.session_id || ''
+  // #1785: weapp router params may be empty on first render. Keep type/id in
+  // state so a delayed parameter delivery (re-read in useDidShow) triggers a
+  // re-render and re-fetch instead of a false "parameters missing" error.
+  const [paramState, setParamState] = useState({
+    type: params.type || '',
+    id: params.id || '',
+    amount: params.amount || '',
+    session_id: params.session_id || '',
+  })
+  const pType = paramState.type
+  const pId = paramState.id
+  const pAmount = parseFloat(paramState.amount || '0')
+  const pSessionId = paramState.session_id
+
+  // #1785: dual-source fallback — re-read router params when they were not yet
+  // available on first render (e.g. weapp page.show fired before params set).
+  useDidShow(() => {
+    if (pType) return
+    const cur = Taro.getCurrentInstance().router?.params || {}
+    const reType = cur.type || ''
+    if (reType && !pType) {
+      setParamState({
+        type: reType,
+        id: cur.id || '',
+        amount: cur.amount || '',
+        session_id: cur.session_id || '',
+      })
+    }
+  })
 
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
