@@ -2725,13 +2725,74 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 **说明**: 上传身份证照片（multipart/form-data）
 
-**请求参数**: `file` (image/jpeg, image/png, image/webp, max 5MB)
+**请求参数**: `file` (image/jpeg, image/png, image/webp, max 5MB), `side` (front|back|other)
 
 **响应**:
 ```json
 {
   "code": 20000,
   "data": { "url": "/uploads/media/id_photos/uuid_123.jpg" }
+}
+```
+
+---
+
+**接口**: `POST /api/user/face-verify/token`
+
+**说明**: 获取腾讯云慧眼人脸核身 Token（需 real_name + id_card_no）
+
+**请求 Body**:
+```json
+{
+  "name": "张三",
+  "id_card_no": "110101199001011234"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": { "biz_token": "tencent-faceid-token" }
+}
+```
+
+**错误码**: 40012 — TENCENTCLOUD 未配置
+
+---
+
+**接口**: `POST /api/user/face-verify/result`
+
+**说明**: 轮询腾讯云慧眼核身结果，通过后标记用户为已实名
+
+**请求 Body**:
+```json
+{
+  "biz_token": "tencent-faceid-token"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": { "passed": true, "similarity": 95.5 }
+}
+```
+
+---
+
+**接口**: `POST /api/auth/registration-sessions/:id/id-photo`
+
+**说明**: 注册阶段上传身份证照片（会话级匿名端点，无需认证）
+
+**请求参数**: `file` (image), `side` (front|back|other)
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": { "side": "front", "url": "/uploads/media/id_photos/uuid_123.jpg" }
 }
 ```
 
