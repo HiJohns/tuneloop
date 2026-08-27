@@ -6,6 +6,7 @@ import dayjs from 'dayjs'
 import { dialog, env, session, storage, eventBus } from '../platform'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
 import regions from '../data/regions.json'
+import IdPhotoUploader from '../components/IdPhotoUploader'
 
 const IMG_BASE = env.apiBaseUrl.replace(/\/api$/, '')
 const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? IMG_BASE + url : url
@@ -77,8 +78,12 @@ function SingleCheckout({ id, nav }) {
   const [guarantors, setGuarantors] = useState([])
   const [selectedGuarantorIds, setSelectedGuarantorIds] = useState([])
   const [showAddGuarantor, setShowAddGuarantor] = useState(false)
-  const [newGuarantor, setNewGuarantor] = useState({ name: '', phone: '', company: '', title: '', address: '' })
+  const [newGuarantor, setNewGuarantor] = useState({ name: '', phone: '', company: '', title: '', address: '', id_card_no: '' })
   const [savingGuarantor, setSavingGuarantor] = useState(false)
+  // #1782: guarantor ID photo uploads + OCR auto-fill
+  const [gPhotoFront, setGPhotoFront] = useState('')
+  const [gPhotoBack, setGPhotoBack] = useState('')
+  const [gPhotoOther, setGPhotoOther] = useState('')
 
   const provinceNames = regions.map(r => r.name)
   const selectedProv = regions.find(r => r.name === newAddress.province)
@@ -266,14 +271,39 @@ function SingleCheckout({ id, nav }) {
       dialog.alert('请填写担保人姓名和电话')
       return
     }
+    if (!newGuarantor.id_card_no.trim() || newGuarantor.id_card_no.trim().length !== 18) {
+      dialog.alert('请填写18位身份证号')
+      return
+    }
+    if (!gPhotoFront) {
+      dialog.alert('请上传身份证正面照')
+      return
+    }
+    if (!gPhotoBack) {
+      dialog.alert('请上传身份证反面照')
+      return
+    }
+    if (!gPhotoOther) {
+      dialog.alert('请上传其他证件照（学生证/工作证）')
+      return
+    }
     setSavingGuarantor(true)
     try {
-      const resp = await guarantorsApi.create(newGuarantor)
+      const payload = {
+        ...newGuarantor,
+        id_photo_front: gPhotoFront,
+        id_photo_back: gPhotoBack,
+        other_cert_photo: gPhotoOther,
+      }
+      const resp = await guarantorsApi.create(payload)
       if (resp.code === 20000) {
         const saved = resp.data
         setGuarantors(prev => [...prev, saved])
         setSelectedGuarantorIds(prev => [...prev, saved.id])
-        setNewGuarantor({ name: '', phone: '', company: '', title: '', address: '' })
+        setNewGuarantor({ name: '', phone: '', company: '', title: '', address: '', id_card_no: '' })
+        setGPhotoFront('')
+        setGPhotoBack('')
+        setGPhotoOther('')
         setShowAddGuarantor(false)
         Taro.showToast({ title: '担保人已保存', icon: 'success' })
       } else {
@@ -401,10 +431,30 @@ function SingleCheckout({ id, nav }) {
                         style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                     </View>
                   </View>
-                  <View style={{ marginBottom: 10 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>地址</Text>
+                  <View style={{ marginBottom: 8 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>身份证号*</Text>
+                    <Input value={newGuarantor.id_card_no} onInput={e => setNewGuarantor(prev => ({ ...prev, id_card_no: e.detail.value }))} placeholder="18位身份证号"
+                      style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
+                  </View>
+                  <View style={{ marginBottom: 8 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>地址*</Text>
                     <Input value={newGuarantor.address} onInput={e => setNewGuarantor(prev => ({ ...prev, address: e.detail.value }))} placeholder="联系地址"
                       style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
+                  </View>
+                  {/* #1782: ID photo uploads */}
+                  <View style={{ display: 'flex', width: '100%', marginBottom: 8, flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                    <View style={{ width: '30%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>身份证正面*</Text>
+                      <IdPhotoUploader side="front" onChange={setGPhotoFront} />
+                    </View>
+                    <View style={{ width: '30%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>身份证反面*</Text>
+                      <IdPhotoUploader side="back" onChange={setGPhotoBack} />
+                    </View>
+                    <View style={{ width: '30%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>其他证件*</Text>
+                      <IdPhotoUploader side="other" onChange={setGPhotoOther} />
+                    </View>
                   </View>
                   <Button onClick={savingGuarantor ? undefined : handleSaveGuarantor}
                     style={{ width: '100%', backgroundColor: savingGuarantor ? 'rgba(145,95,56,0.5)' : '#915F38', color: '#fff', borderRadius: 8, fontWeight: '700', fontSize: 14, textAlign: 'center', padding: '10px 0', lineHeight: '20px', margin: 0 }}>

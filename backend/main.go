@@ -696,6 +696,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			userOptionalAuth.GET("/user/guarantors", guarantorHandler.ListGuarantors)
 			userOptionalAuth.POST("/user/guarantors", guarantorHandler.CreateGuarantor)
 			userOptionalAuth.DELETE("/user/guarantors/:id", guarantorHandler.DeleteGuarantor)
+			// #1782: ID card OCR for guarantor deposit-free application
+			userOptionalAuth.POST("/user/idcard-ocr", guarantorHandler.OCRIDCard)
 
 			// Invoice application routes (#1786)
 			userOptionalAuth.GET("/user/invoices/eligible", invoiceHandler.ListEligible)

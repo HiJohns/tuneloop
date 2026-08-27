@@ -569,6 +569,8 @@ export const guarantorsApi = {
   list: () => api.get('/user/guarantors'),
   create: (data) => api.post('/user/guarantors', data),
   delete: (id) => api.delete(`/user/guarantors/${id}`),
+  // #1782: ID card OCR for guarantor deposit-free application
+  idcardOCR: (storageKey, side) => api.post('/user/idcard-ocr', { storage_key: storageKey, side }),
 }
 
 export const pointsApi = {
