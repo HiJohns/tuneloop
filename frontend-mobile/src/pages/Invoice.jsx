@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Button, ScrollView } from '@tarojs/components'
-import { apiFetch, env, dialog } from '../platform'
+import { apiFetch } from '../services/api'
+import { env, dialog } from '../platform'
 
 function formatCents(cents) {
   return (cents / 100).toFixed(2)

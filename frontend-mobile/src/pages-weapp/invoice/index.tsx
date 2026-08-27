@@ -1,2 +1,1 @@
-import Invoice from '../Invoice'
-export default Invoice
+export { default } from '../../pages/Invoice'
