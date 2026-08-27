@@ -429,7 +429,19 @@ func scanPendingPayments(db *gorm.DB) {
 }
 
 func processPendingRecord(db *gorm.DB, rec *models.OrderPaymentRecord) {
+	// #1787-deploy: guard against records without out_trade_no (e.g. corrupt
+	// orphan pending rows) — dereferencing nil panics the payment scheduler
+	// and crashes the whole service (pre-prod incident 2026-08-27).
+	if rec.OutTradeNo == nil || *rec.OutTradeNo == "" {
+		log.Printf("[PaymentScheduler] skip record %s: missing out_trade_no", rec.ID)
+		return
+	}
+
 	client := wechatpay.GetClient()
+	if client == nil {
+		log.Printf("[PaymentScheduler] wechatpay client not initialized, skip %s", *rec.OutTradeNo)
+		return
+	}
 
 	result, err := client.QueryOrder(context.Background(), *rec.OutTradeNo)
 	if err != nil {
