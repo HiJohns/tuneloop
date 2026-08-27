@@ -119,7 +119,8 @@ steps:
 
 ## 前置条件
 - 系统已运行，media storage 可用
-- `users` 表需添加 `id_photo_front` 和 `id_photo_back` 列
+- `users` 表需添加 `id_photo_front`、`id_photo_back`、`id_photo_other` 列
+- 腾讯云慧眼 FaceID 已配置（可选，未配置时降级为纯照片模式）
 
 ## 流程概览
 
@@ -136,20 +137,28 @@ steps:
 
 ### users 表新增列
 ```sql
-ALTER TABLE users ADD COLUMN id_photo_front VARCHAR(500);
-ALTER TABLE users ADD COLUMN id_photo_back  VARCHAR(500);
+ALTER TABLE users ADD COLUMN id_photo_front  VARCHAR(500);
+ALTER TABLE users ADD COLUMN id_photo_back   VARCHAR(500);
+ALTER TABLE users ADD COLUMN id_photo_other  VARCHAR(500);  -- #1787 第三张照片
+ALTER TABLE users ADD COLUMN real_name       VARCHAR(100);  -- #1787 实名姓名
+ALTER TABLE users ADD COLUMN id_card_no      VARCHAR(20);   -- #1787 身份证号（明文）
+ALTER TABLE users ADD COLUMN face_verified   BOOLEAN DEFAULT FALSE;  -- #1787 人脸识别是否通过
+ALTER TABLE users ADD COLUMN face_verified_at TIMESTAMPTZ;  -- #1787 人脸识别通过时间
 ```
 
 ### API 端点
 
 | 方法 | 路径 | 用途 | 权限 |
 |------|------|------|------|
-| POST | `/api/user/id-photo` | 上传（FormData: file + side=front\|back） | 已登录用户 |
-| GET | `/api/user/id-photos` | 获取自己的正反面 URL | 已登录用户 |
-| DELETE | `/api/user/id-photo?side=front\|back` | 删除自己的一面 | 已登录用户 |
+| POST | `/api/user/id-photo` | 上传（FormData: file + side=front\|back\|other） | 已登录用户 |
+| GET | `/api/user/id-photos` | 获取自己的三张照片 URL | 已登录用户 |
+| DELETE | `/api/user/id-photo?side=front\|back\|other` | 删除自己的一面 | 已登录用户 |
 | GET | `/api/user/:userId/id-photos` | 员工查看用户的身份证 | STAFF + tenant 隔离 |
 | POST | `/api/admin/user-management/:id/id-photo` | 管理员替用户上传 | namespace_admin |
-| DELETE | `/api/admin/user-management/:id/id-photo?side=front\|back` | 管理员替用户删除 | namespace_admin |
+| DELETE | `/api/admin/user-management/:id/id-photo?side=front\|back\|other` | 管理员替用户删除 | namespace_admin |
+| POST | `/api/auth/registration-sessions/:id/id-photo` | 注册阶段上传（会话级匿名端点） | 无需认证 |
+| POST | `/api/user/face-verify/token` | 获取腾讯云慧眼核身 Token | 已登录用户 |
+| POST | `/api/user/face-verify/result` | 轮询核身结果 | 已登录用户 |
 
 ### 存储路径
 - 文件存储: `id_photos/{userID}_{timestamp}.{ext}`（media storage）
@@ -161,9 +170,9 @@ ALTER TABLE users ADD COLUMN id_photo_back  VARCHAR(500);
 ### 上传规则
 - 仅接受 JPEG、PNG、WebP
 - 单张 ≤ 5MB
-- 正反面独立上传，不强制同时具备
+- 三张独立上传（front/back/other），不强制同时具备
 - 上传覆盖：新上传自动替换对应面（覆盖旧文件 + 更新列值）
-- 上传后立即持久化 URL 到 `users.id_photo_front` / `users.id_photo_back`
+- 上传后立即持久化 URL 到对应 DB 列
 
 ### 查看规则
 - 顾客只能查看/替换/删除自己的身份证
@@ -171,20 +180,27 @@ ALTER TABLE users ADD COLUMN id_photo_back  VARCHAR(500);
 - PC 管理员（namespace_admin）可查看和替换任意用户身份证
 - 无身份证时显示「未上传」占位，不显示空白或错误
 
-### 修复项（Onboarding 现有 Bug）
-- 当前 `POST /api/user/id-photo` 上传文件但不保存 URL 到 DB
-- 当前 `PUT /user/onboarding` 不接受 id_photo 字段
-- 修复方案：上传接口内联保存（上传成功后直接写入对应的 DB 列）
+### 人脸识别核身规则（#1787）
+- **入口**：仅编辑资料页（两阶段注册无 token，无法绑账号）
+- **流程**：输入真实姓名 + 身份证号 → 获取 Token → 前端拉起核身 → 轮询结果
+- **降级**：TENCENTCLOUD_SECRET_ID 未配置 → 返回 40012，前端隐藏「人脸核身」按钮
+- **通过后**：`users.face_verified = true, face_verified_at = now()`，编辑资料页显示「已实名」绿标
+- **身份证号存储**：明文（腾讯云 API 需原文）；GET /users/me 返回掩码 `110***********1234`
+
+### 注册阶段照片上传（#1787）
+- weapp 注册页使用会话级匿名端点 `POST /auth/registration-sessions/:id/id-photo`
+- H5 注册页使用已登录端点 `POST /user/id-photo`
+- 注册完成时 `completeRegistrationFromSession` 自动将 form_data.id_photos 转移到 users 表
 
 ## 全局审计：所有需修改的页面
 
 | # | 平台 | 页面 | 角色 | 动作 | 当前状态 |
 |---|------|------|------|------|:---:|
-| 1 | H5 | `/register` | guest | 注册时上传 | **新建**（P-03） |
+| 1 | H5 | `/register` | guest | 注册时上传（3 张） | **已实现** |
 | 2 | H5 | `/onboarding` | customer | 登录后上传 | 上传可用但**不持久化** |
-| 3 | weapp | `/pages-weapp/profile-complete/index` | guest | 注册时上传 | **缺失** |
-| 4 | H5 | `/profile/edit` | customer | 查看+替换+删除 | **缺失**（页尚不存在） |
-| 5 | weapp | `/pages-weapp/profile/edit/index` | customer | 查看+替换+删除 | **缺失** |
+| 3 | weapp | `/pages-weapp/profile-complete/index` | guest | 注册时上传（3 张 + 会话端点） | **已实现** |
+| 4 | H5 | `/profile/edit` | customer | 查看+替换+删除（3 张 + 人脸核身） | **已实现** |
+| 5 | weapp | `/pages-weapp/profile/edit/index` | customer | 查看+替换+删除（3 张 + 人脸核身） | **已实现** |
 | 6 | PC | `/system/user-management` | namespace_admin | 查看+替换+删除 | **缺失**（P-02 已建页但无此区域） |
 | 7 | PC | `/orders/:id` | site_admin/member | 发货/收货时查看 | **缺失** |
 | 8 | H5 | `/repair-request` | staff | 操作时查看 | **缺失** |
@@ -192,6 +208,7 @@ ALTER TABLE users ADD COLUMN id_photo_back  VARCHAR(500);
 
 ## 验收
 - Go test: POST id-photo → DB 列值非空，GET id-photos → 返回 URL，DELETE → 列值清空
+- Go test: face-verify token/result → 40012 (未配置) / 20000 (通过/失败)
 - checklist-verify.py: P-04 displays 与 GET /users/me、GET /user/:userId/id-photos 响应交叉验证
 - 端到端: 注册上传 → 编辑资料可见 → 替换 → 编辑资料更新 → 删除 → 编辑资料显示未上传
 
@@ -199,12 +216,13 @@ ALTER TABLE users ADD COLUMN id_photo_back  VARCHAR(500);
 - 后端数据层 (DB + API)：[tuneloop#1598](https://github.com/HiJohns/tuneloop/issues/1598)
 - 前端全平台接入：[tuneloop#1599](https://github.com/HiJohns/tuneloop/issues/1599)
 - H5 注册页（含身份证上传入口）：[tuneloop#1597](https://github.com/HiJohns/tuneloop/issues/1597)
+- 身份证三处上传 + 人脸识别核身：[tuneloop#1787](https://github.com/HiJohns/tuneloop/issues/1787)
 
 ## 已知缺口
 - 未定义身份证过期/重新认证机制（首次上传即永久有效）
-- 未定义 OCR 自动识别（身份信息全靠人工查看）
+- 未定义 OCR 自动识别（身份信息全靠人工查看）→ #1782 已 accepted
 - 未定义存储清理策略（旧文件被替换后残留于 media storage）
 
 ---
 
-*Last updated: 2026-08-09*
+*Last updated: 2026-08-27*
