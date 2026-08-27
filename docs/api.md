@@ -2945,6 +2945,127 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ---
 
+### 8.15 发票申请（#1786）
+
+> 顾客侧。申请状态机：`pending`（待开票）→ `replied`（已开票）。一次申请 = 按商户分组的订单集合。
+
+**接口**: `GET /api/user/invoices/eligible`
+
+**说明**: 可开票订单列表（当前用户 `completed` 且未申请发票的订单）
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": [
+    {
+      "order_id": "uuid",
+      "sn": "CV-08",
+      "created_at": "2026-08-01T10:00:00Z",
+      "tenant_id": "uuid",
+      "merchant_name": "某某琴行",
+      "actual_rent_cents": 500000,
+      "overdue_cents": 0,
+      "total_cents": 500000
+    }
+  ]
+}
+```
+
+**说明**: 金额均为分（`models.Cents`）；实际消费 = settlement.ActualRentAmount + OverdueChargesTotal，无 settlement 时回退 deriveActualRent
+
+---
+
+**接口**: `POST /api/user/invoices`
+
+**说明**: 提交发票申请（按商户分组）
+
+**请求 Body**:
+```json
+{
+  "groups": [
+    {
+      "tenant_id": "uuid",
+      "order_ids": ["uuid1", "uuid2"]
+    }
+  ]
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "applications": [
+      { "id": "uuid", "tenant_id": "uuid", "total_amount": 1000000 }
+    ]
+  }
+}
+```
+
+**说明**: 逐组校验订单属于当前用户且 completed+未申请；创建 application → 标记订单 `invoice_applied=true` → 通知商户管理员（Notification type="invoice"）
+
+---
+
+**接口**: `GET /api/user/invoices`
+
+**说明**: 已申请发票列表
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": [
+    {
+      "id": "uuid",
+      "user_id": "uuid",
+      "tenant_id": "uuid",
+      "status": "pending",
+      "total_amount": 1000000,
+      "order_count": 2,
+      "reply": null,
+      "invoice_file": null,
+      "replied_at": null,
+      "created_at": "2026-08-10T10:00:00Z",
+      "merchant_name": "某某琴行",
+      "orders": [
+        { "order_id": "uuid", "sn": "CV-08", "created_at": "...", "actual_rent_cents": 500000, "overdue_cents": 0, "total_cents": 500000 }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+**接口**: `GET /api/user/invoices/:id`
+
+**说明**: 单条申请详情（含订单明细 + 回复 + 发票文件 + 商户名）
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "uuid",
+    "user_id": "uuid",
+    "tenant_id": "uuid",
+    "status": "replied",
+    "total_amount": 1000000,
+    "order_count": 2,
+    "reply": "发票已开具",
+    "invoice_file": "https://.../invoice.pdf",
+    "replied_at": "2026-08-12T10:00:00Z",
+    "created_at": "2026-08-10T10:00:00Z",
+    "merchant_name": "某某琴行",
+    "orders": []
+  }
+}
+```
+
+---
+
 ## 九、商家管理端
 
 > ⚠️ **所有接口必须从 Context 获取 tenant_id 和 org_id**
@@ -3439,6 +3560,99 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 ```
 Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
 Content-Disposition: attachment; filename="statement_202603.xlsx"
+```
+
+---
+
+### 9.18 发票管理（#1786）
+
+> 商户侧（merchant_admin / site_admin 可查看，回复仅 merchant_admin）。tenant_id 从 Context 获取（JWT）。
+
+**接口**: `GET /api/merchant/invoices?status=`
+
+**说明**: 本租户发票申请列表（可选状态过滤 pending/replied）
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": [
+    {
+      "id": "uuid",
+      "user_id": "uuid",
+      "tenant_id": "uuid",
+      "status": "pending",
+      "total_amount": 1000000,
+      "order_count": 2,
+      "reply": null,
+      "invoice_file": null,
+      "replied_at": null,
+      "created_at": "2026-08-10T10:00:00Z",
+      "customer_name": "张三",
+      "orders": [
+        { "order_id": "uuid", "sn": "CV-08", "created_at": "...", "actual_rent_cents": 500000, "overdue_cents": 0, "total_cents": 500000 }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+**接口**: `POST /api/merchant/invoices/:id/reply`
+
+**说明**: 开票回复（上传发票文件 + 回复信息，至少填一项）
+
+**请求 Body**:
+```json
+{
+  "reply": "发票已开具",
+  "invoice_file": "https://.../invoice.pdf"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "uuid",
+    "status": "replied",
+    "reply": "发票已开具",
+    "invoice_file": "https://.../invoice.pdf",
+    "replied_at": "2026-08-12T10:00:00Z"
+  }
+}
+```
+
+**说明**: 校验 application.tenant_id == 当前租户（否则 404）；status=replied + replied_at；通知顾客（Notification type="invoice", action_type="invoice_reply"）
+
+---
+
+**接口**: `GET /api/merchant/invoices/:id`
+
+**说明**: 单条申请详情（商户核对，含顾客名 + 订单明细）
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "uuid",
+    "user_id": "uuid",
+    "tenant_id": "uuid",
+    "status": "replied",
+    "total_amount": 1000000,
+    "order_count": 2,
+    "reply": "发票已开具",
+    "invoice_file": "https://.../invoice.pdf",
+    "replied_at": "2026-08-12T10:00:00Z",
+    "created_at": "2026-08-10T10:00:00Z",
+    "merchant_name": "某某琴行",
+    "customer_name": "张三",
+    "orders": []
+  }
+}
 ```
 
 ---

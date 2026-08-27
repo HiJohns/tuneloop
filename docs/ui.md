@@ -708,6 +708,77 @@ API 来源：
 
 ---
 
+### 2.6 注册会员 / 编辑资料 / 发票申请（#1787 / #1786）
+
+#### 2.6.1 注册会员页（weapp `/pages-weapp/profile-complete/index` + H5 `/register`）
+
+**路由**: weapp `pages-weapp/profile-complete/index`（薄壳）→ `ProfileComplete.jsx`；H5 `/register` → `Register.jsx`
+
+**布局**（weapp 三列并排）:
+
+| 槽位 | side | 组件 | 说明 |
+|------|------|------|------|
+| 身份证正面 | `front` | `<IdPhotoUploader defer sessionUpload={{sessionId}}>` | 30% 宽，defer 模式（选图本地预览） |
+| 身份证反面 | `back` | 同上 | 30% 宽 |
+| 其他证件 | `other` | 同上 | 30% 宽 |
+
+**流程**（weapp 两阶段注册）:
+1. 填写昵称/地址等 → 点击注册 → 创建 session 拿到 `session_id`
+2. 三张照片通过 `uploadPending()` 上传到会话级匿名端点 `POST /auth/registration-sessions/:id/id-photo`（无 token）
+3. 任一照片上传失败 → 弹窗「部分证件照上传失败，可在注册后于『编辑资料』补传」[继续支付 / 重试]（**非静默**）
+4. 成功 → 跳转支付页；支付回调 `completeRegistrationFromSession` 将照片转入 `users` 表
+
+**按钮规范**: 提交按钮文本「注册并支付」（动词+宾语）；进行中「处理中...」（#1744 按钮规范）
+
+#### 2.6.2 编辑资料页（weapp `/pages-weapp/profile/edit/index` + H5 `/profile/edit`）
+
+**路由**: weapp `pages-weapp/profile/edit/index`（薄壳）→ `EditProfile.jsx`（共享 .jsx）
+
+**身份证照片区**（三槽即时上传）:
+
+| 槽位 | side | 初始值 | 行为 |
+|------|------|--------|------|
+| 正面 | `front` | `GET /users/me → id_photo_front` | 即时上传/替换/删除 |
+| 反面 | `back` | `id_photo_back` | 同上 |
+| 其他证件 | `other` | `id_photo_other` | 同上 |
+
+**实名认证区块**（#1787）:
+
+| 状态 | 展示 | 操作 |
+|------|------|------|
+| 已认证（`face_verified=true`） | ✅ 已认证（绿底）+ 姓名 + 身份证掩码（`110***********1234`）+ 认证时间 | 无（信息变更需重新认证） |
+| 未认证 | 姓名输入框 + 身份证号输入框（18 位校验）+ 「发起人脸认证」按钮 | 输入 → POST `/user/face-verify/token` → weapp 拉起慧眼核身 → 回调 POST `/user/face-verify/result` |
+
+**降级**: 腾讯云未配置（40012）→ toast「人脸认证暂未开通」，照片上传不受影响；H5 端显示「请在微信小程序中完成人脸认证」
+
+**已认证用户修改姓名/身份证号** → 提交时后端自动重置 `face_verified=false`（信息变更需重新核身）
+
+#### 2.6.3 发票申请页（weapp `/pages-weapp/invoice/index` + H5 `/invoice`）（#1786）
+
+**路由**: weapp `pages-weapp/invoice/index`（薄壳）→ `Invoice.jsx`（共享 .jsx）
+
+**顶部两 Tab**（默认「未申请」）:
+
+| Tab | 数据源 | 展示 | 操作 |
+|-----|--------|------|------|
+| 未申请 | `GET /user/invoices/eligible` | 订单号、SN、下单日、实际消费（实际租金+逾期费用明细小字）、商户名 | 复选框多选 → 底部固定栏：已选 N 项 + 总开票金额 + 「提出申请」按钮（选中≥1 激活，灰态文案「请选择订单」） |
+| 已申请 | `GET /user/invoices` | 订单号、SN、下单日、实际消费、申请发票日、回复日（未回复显示「待开票」） | 有回复/发票文件的显示回复内容 + 「查看发票」按钮 |
+
+**确认步**（同页切换）: 按商户分组 → 每组商户名 + 订单数 + 开票金额 → 「确认提交」→ 成功 toast + 跳转已申请 Tab
+
+**查看发票**: weapp `Taro.downloadFile` → `Taro.openDocument`（PDF/图片）；H5 `window.open`
+
+**金额格式**: `¥(cents/100).toFixed(2)`（#1757 分语义）
+
+#### 2.6.4 个人中心菜单入口
+
+| 菜单项 | 可见条件 | 跳转 |
+|--------|---------|------|
+| 🧾 申请发票 | `!isGuest` | `/pages-weapp/invoice/index` |
+| 🪪 实名认证 | `!isGuest && !face_verified`（未认证橙色圆点） | `/pages-weapp/profile/edit/index` |
+
+---
+
 ### 2.7 购物车页 (`/cart`) 【新增】
 
 **布局结构**:

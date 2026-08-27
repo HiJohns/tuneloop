@@ -181,6 +181,18 @@ Tuneloop 后端代理 → IAM 解密 → 更新用户 phone
 
 - 手机号：用于登录和订单联系
 - 位置：用于附近网点推荐（如使用）
+- 身份证照片/姓名/身份证号：用于实名认证与人脸核身（#1787）
+- 人脸信息：由慧眼插件采集，用于身份证有效性确认（#1787）
+
+### 慧眼人脸核身插件（#1787）
+
+人脸识别核身依赖腾讯云慧眼 FaceID 插件，**需企业主体**：
+
+1. 腾讯云控制台开通「人脸核身」服务，创建 API 密钥（SecretId/SecretKey，与 #1782 OCR 共用同一套凭证）
+2. 微信小程序后台 → 设置 → 第三方服务 → 添加「慧眼人脸核身」插件（企业主体审核，1-3 工作日）
+3. 前端 `EditProfile.jsx` 的 `handleFaceVerify` 中完成插件跳转接入（当前为 TODO，`plugin://faceid/verify?token=...`）
+4. 慧眼按次计费套餐购买
+5. 未配置时降级：face-verify 端点返回 40012，前端隐藏人脸认证按钮，三处身份证照片上传不受影响
 
 ### 环境变量
 
@@ -191,7 +203,15 @@ WX_APPID=wx1234567890abcdef
 WX_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-Tuneloop 后端无需新增环境变量（使用现有 IAM 代理配置）。
+Tuneloop 后端新增（#1787，dev/预生产/生产三处 `.env`）：
+
+```env
+TENCENTCLOUD_SECRET_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TENCENTCLOUD_SECRET_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TENCENTCLOUD_FACEID_REGION=ap-guangzhou
+```
+
+> 未配置 TENCENTCLOUD_SECRET_ID/KEY 时服务正常启动，face-verify 返回 40012（降级模式）。
 
 ## 数据模型变更
 
