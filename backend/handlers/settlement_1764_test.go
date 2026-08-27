@@ -114,9 +114,9 @@ func TestComputeSettlement_FeeItems_Shortfall(t *testing.T) {
 	require.Equal(t, "refund", feeItems["rent"]["direction"])
 	require.Equal(t, int64(10000), feeItems["rent"]["amount"])
 
-	// deposit: 100 − (0 + 0 + 50 shipping) = +50 → refund 5000
+	// deposit: 100 − (0 + 0) = +100 → refund 10000 (shipping is separate line, #1784)
 	require.Equal(t, "refund", feeItems["deposit"]["direction"])
-	require.Equal(t, int64(5000), feeItems["deposit"]["amount"])
+	require.Equal(t, int64(10000), feeItems["deposit"]["amount"])
 
 	// shipping_fee: 0 − 50 = −50 → pay 5000 (待补缴)
 	require.Equal(t, "pay", feeItems["shipping_fee"]["direction"])

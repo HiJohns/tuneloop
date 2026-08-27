@@ -939,12 +939,12 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		}
 		return map[string]interface{}{"item": item, "direction": direction, "amount": c(v)}
 	}
-	// Rent: paid rent minus payable rent. Deposit: deposit minus all
-	// deductions (overdue + damage + shipping). The deduction items are
-	// negative (incurred but unpaid/not yet deducted) per the spec.
+	// Rent: paid rent minus payable rent. Deposit: deposit minus
+	// deductions (overdue + damage only — shipping is a separate line item,
+	// not deducted from deposit). #1784
 	feeItems := []map[string]interface{}{
 		feeItem("rent", totalRentPaid-rentPayable),
-		feeItem("deposit", order.Deposit.ToYuan()-(overdueFee+damageDeducted+shippingFee)),
+		feeItem("deposit", order.Deposit.ToYuan()-(overdueFee+damageDeducted)),
 		feeItem("shipping_fee", -shippingFee),
 		feeItem("overdue_fee", -overdueFee),
 		feeItem("damage", -damageDeducted),

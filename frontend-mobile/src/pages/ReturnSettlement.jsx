@@ -78,9 +78,9 @@ export default function ReturnSettlement() {
         <View className="text-6xl mb-4">🎉</View>
         <Text className="text-xl font-black text-black text-center block mb-2">归还申请已提交</Text>
         <Text className="text-sm text-zinc-500 text-center leading-relaxed block">
-          感谢您选择了{merchantName}，您的乐器已在归还途中。
-          网点收到乐器并完成验收定损后，将为您结算租金并退还押金，请留意到账通知。
-          期待与您再次相遇，祝您演奏愉快！🎵
+          感谢您选择{merchantName}，您的订单已在归还途中。
+          网点收到乐器并完成验收后，将为您核对结算，请留意平台通知。
+          期待与您再次相遇，祝您生活愉快~
         </Text>
       </View>
 
