@@ -799,22 +799,32 @@ export default function OrderDetail() {
             <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">{settlement.refund_method}</Text>
           </View>
           )}
-          {settlement.refund_status && (
-          <View className="flex justify-between text-sm">
-            <Text className="text-zinc-500 font-medium">退款状态</Text>
-            <Text className={`font-black flex-shrink-0 ml-auto whitespace-nowrap ${settlement.refund_status === 'completed' ? 'text-green-600' : 'text-orange-500'}`}>
-              {settlement.refund_status === 'completed'
-                ? (((Number(settlement.cash_refundable) || 0) + (Number(settlement.prepaid_refunded) || 0) + (Number(settlement.gift_points_refunded) || 0)) > 0 ? '已退款' : '无需退款')
-                : settlement.refund_status === 'pending' ? '处理中' : settlement.refund_status}
-            </Text>
-          </View>
-          )}
-          {settlement.payable_shortfall > 0 && (
-          <View className="flex justify-between text-sm">
-            <Text className="text-zinc-500 font-medium">需补缴</Text>
-            <Text className="text-red-500 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{((settlement.payable_shortfall || 0) / 100).toFixed(2)}</Text>
-          </View>
-          )}
+           {settlement.refund_status && (
+           <View className="flex justify-between text-sm">
+             <Text className="text-zinc-500 font-medium">退款状态</Text>
+             <Text className={`font-black flex-shrink-0 ml-auto whitespace-nowrap ${settlement.refund_status === 'completed' ? 'text-green-600' : 'text-orange-500'}`}>
+               {settlement.refund_status === 'completed'
+                 ? (((Number(settlement.cash_refundable) || 0) + (Number(settlement.prepaid_refunded) || 0) + (Number(settlement.gift_points_refunded) || 0)) > 0 ? '已退款' : '无需退款')
+                 // #1785: show "待补缴" when shortfall is pending (not generic "处理中")
+                 : settlement.refund_status === 'pending' && settlement.payable_shortfall > 0 ? '待补缴'
+                 : settlement.refund_status === 'pending' ? '处理中' : settlement.refund_status}
+             </Text>
+           </View>
+           )}
+           {settlement.payable_shortfall > 0 && (
+           <>
+           <View className="flex justify-between text-sm">
+             <Text className="text-zinc-500 font-medium">需补缴</Text>
+             <Text className="text-red-500 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{((settlement.payable_shortfall || 0) / 100).toFixed(2)}</Text>
+           </View>
+           <View className="flex justify-end mt-2">
+             <Text className="text-white text-xs font-bold px-4 py-1.5 rounded-full bg-red-500"
+               onClick={() => navigate(`/payment?type=payment_shortfall&id=${id}`)}>
+               去补缴
+             </Text>
+           </View>
+           </>
+           )}
         </View>
       </View>
       )}

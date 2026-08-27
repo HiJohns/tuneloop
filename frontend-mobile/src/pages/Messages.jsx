@@ -7,12 +7,12 @@ import { ArrowLeft, Bell } from 'lucide-react'
 import { View, Text, ScrollView } from '@tarojs/components'
 
 const typeConfig = {
-  damage: { bg: 'bg-red-100', text: 'text-red-600', label: '定损通知' },
-  appeal: { bg: 'bg-orange-100', text: 'text-orange-600', label: '申诉通知' },
-  refund: { bg: 'bg-green-100', text: 'text-green-600', label: '退款通知' },
-  payment: { bg: 'bg-blue-100', text: 'text-blue-600', label: '支付通知' },
-  order: { bg: 'bg-gray-100', text: 'text-gray-600', label: '系统通知' },
-  invoice: { bg: 'bg-purple-100', text: 'text-purple-600', label: '发票通知' },
+  damage: { bgColor: '#fee2e2', textColor: '#dc2626', label: '定损通知' },
+  appeal: { bgColor: '#ffedd5', textColor: '#ea580c', label: '申诉通知' },
+  refund: { bgColor: '#dcfce7', textColor: '#16a34a', label: '退款通知' },
+  payment: { bgColor: '#dbeafe', textColor: '#2563eb', label: '支付通知' },
+  order: { bgColor: '#f4f4f5', textColor: '#52525b', label: '系统通知' },
+  invoice: { bgColor: '#f3e8ff', textColor: '#9333ea', label: '发票通知' },
 }
 
 export default function Messages() {
@@ -76,23 +76,24 @@ export default function Messages() {
       </View>
       )}
       {env.isMiniProgram && unreadCount > 0 && (
-        <View className="px-4 pt-3 flex justify-end">
-          <Text className="text-sm text-brand-primary cursor-pointer" onClick={markAllRead}>全部已读</Text>
+        <View style={{ padding: '12px 16px 0', display: 'flex', justifyContent: 'flex-end' }}>
+          <Text style={{ fontSize: 14, color: '#915F38', cursor: 'pointer' }} onClick={markAllRead}>全部已读</Text>
         </View>
       )}
 
-      <ScrollView className="p-4">
+      <ScrollView style={{ flex: 1 }}>
+        <View style={{ padding: 16, boxSizing: 'border-box' }}>
         {loading ? (
-          <Text className="text-center py-8 text-gray-500 block">加载中...</Text>
+          <Text style={{ textAlign: 'center', padding: '32px 0', color: '#71717a', display: 'block' }}>加载中...</Text>
         ) : notifications.length === 0 ? (
-          <View className="text-center py-16">
-            <Bell size={48} className="mx-auto text-gray-300 mb-4" />
-            <Text className="text-gray-500">暂无消息</Text>
+          <View style={{ textAlign: 'center', padding: '64px 0' }}>
+            <Bell size={48} style={{ color: '#d1d5db', margin: '0 auto 16px' }} />
+            <Text style={{ color: '#71717a' }}>暂无消息</Text>
           </View>
         ) : (
           <View>
             {unreadCount > 0 && (
-              <Text className="text-sm text-gray-500 mb-2">{unreadCount} 条未读</Text>
+              <Text style={{ fontSize: 14, color: '#71717a', marginBottom: 8 }}>{unreadCount} 条未读</Text>
             )}
             <View>
               {notifications.map(notif => {
@@ -100,28 +101,28 @@ export default function Messages() {
                 return (
                   <View
                     key={notif.id}
-                    className={`bg-white rounded-xl p-4 shadow-sm cursor-pointer mb-3 ${
-                      notif.status === 'unread' ? 'border-l-4 border-brand-primary' : ''
-                    }`}
+                    style={{ backgroundColor: '#fff', borderRadius: 12, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', marginBottom: 12, maxWidth: 600, marginLeft: 'auto', marginRight: 'auto', boxSizing: 'border-box', overflow: 'hidden',
+                      borderLeft: notif.status === 'unread' ? '4px solid #915F38' : 'none' }}
                     onClick={() => handleClick(notif)}
                   >
-                    <View className="flex justify-between items-start mb-1">
-                      <Text className={`text-xs px-2 py-0.5 rounded ${type.bg} ${type.text}`}>
+                    <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                      <Text style={{ fontSize: 12, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4, backgroundColor: type.bgColor || '#f4f4f5', color: type.textColor || '#71717a' }}>
                         {type.label}
                       </Text>
                       {notif.status === 'unread' && (
-                        <Text className="w-2 h-2 rounded-full bg-brand-primary" />
+                        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#915F38' }} />
                       )}
                     </View>
-                    <Text className="font-medium text-sm mt-1">{notif.title}</Text>
-                    <Text className="text-gray-500 text-sm mt-1 line-clamp-2">{notif.content}</Text>
-                    <Text className="text-gray-400 text-xs mt-2">{new Date(notif.created_at).toLocaleString()}</Text>
+                    <Text style={{ fontWeight: '500', fontSize: 14, marginTop: 4 }}>{notif.title}</Text>
+                    <Text style={{ color: '#71717a', fontSize: 14, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{notif.content}</Text>
+                    <Text style={{ color: '#a1a1aa', fontSize: 12, marginTop: 8 }}>{new Date(notif.created_at).toLocaleString()}</Text>
                   </View>
                 )
               })}
             </View>
           </View>
         )}
+        </View>
       </ScrollView>
     </View>
   )

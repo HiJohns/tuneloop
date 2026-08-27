@@ -320,6 +320,18 @@ func GetOrder(c *gin.Context) {
 		}
 	}
 
+	// #1785: query pending payment_shortfall record so the detail page can
+	// show "需补缴" and a payment button.
+	var shortfallRecord models.OrderPaymentRecord
+	if err := db.Where("order_id = ? AND order_type = ? AND status = ?",
+		order.ID, "payment_shortfall", "pending").
+		Order("created_at DESC").First(&shortfallRecord).Error; err == nil {
+		if settlementData == nil {
+			settlementData = map[string]interface{}{}
+		}
+		settlementData["payable_shortfall"] = int64(shortfallRecord.Amount)
+	}
+
 	// Fetch order logs (paginated via logs_limit query param)
 	logsLimit, _ := strconv.Atoi(c.DefaultQuery("logs_limit", "15"))
 	var orderLogs []models.OrderLog

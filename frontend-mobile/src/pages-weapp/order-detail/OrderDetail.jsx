@@ -595,12 +595,24 @@ export default function OrderDetail() {
                   label="退款状态"
                   value={order.settlement.refund_status === 'completed'
                     ? (((Number(order.settlement.cash_refundable) || 0) + (Number(order.settlement.prepaid_refunded) || 0) + (Number(order.settlement.gift_points_refunded) || 0)) > 0 ? '已退款' : '无需退款')
+                    // #1785: show "待补缴" when shortfall is pending (not generic "处理中")
+                    : order.settlement.refund_status === 'pending' && Number(order.settlement.payable_shortfall) > 0 ? '待补缴'
                     : order.settlement.refund_status === 'pending' ? '处理中' : order.settlement.refund_status}
                   color={order.settlement.refund_status === 'completed' ? '#16a34a' : '#f59e0b'}
                 />
               )}
               {Number(order.settlement.payable_shortfall) > 0 && (
+                <>
                 <Row label="需补缴" value={`¥${((Number(order.settlement.payable_shortfall) || 0) / 100).toFixed(2)}`} color="#dc2626" />
+                <View style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                  <View
+                    style={{ backgroundColor: '#dc2626', borderRadius: 999, paddingHorizontal: 16, paddingVertical: 6 }}
+                    onClick={() => Taro.redirectTo({ url: `/pages-weapp/payment/index?type=payment_shortfall&id=${id}` })}
+                  >
+                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>去补缴</Text>
+                  </View>
+                </View>
+                </>
               )}
             </View>
           )}

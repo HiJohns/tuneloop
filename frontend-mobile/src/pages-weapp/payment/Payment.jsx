@@ -22,6 +22,7 @@ export default function Payment() {
 
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [paramsReady, setParamsReady] = useState(false)
   const [giftUsed, setGiftUsed] = useState(0)
   const [prepayData, setPrepayData] = useState(null)
   const [isPaying, setIsPaying] = useState(false)
@@ -37,7 +38,12 @@ export default function Payment() {
 
 
   useEffect(() => {
-    if (!pType) return
+    if (!pType) {
+      // #1785: weapp may not have router params on first render; show error
+      // after a short delay instead of staying stuck on loading forever.
+      const t = setTimeout(() => setParamsReady(true), 800)
+      return () => clearTimeout(t)
+    }
     const fetchData = async () => {
       if (pType === 'renewal') {
         setData({ type: 'renewal', title: '续期支付', amount: pAmount, details: null, wallet: null })
@@ -82,6 +88,12 @@ export default function Payment() {
   }, [pType, pId])
 
   if (loading) {
+    // #1785: if params are missing after delay, show explicit error
+    if (!pType && paramsReady) {
+      return <View style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FDFBF7' }}>
+        <Text style={{ color: '#ef4444' }}>支付参数缺失，请从订单详情重新进入</Text>
+      </View>
+    }
     return <View style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FDFBF7' }}>
       <Text style={{ color: '#a1a1aa' }}>加载中...</Text>
     </View>
