@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import Taro, { useDidShow } from '@tarojs/taro'
+import Taro, { useDidShow, useLoad } from '@tarojs/taro'
 import { View, Text, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, resolveLogin } from '../../services/api'
 import { env, session } from '../../platform'
@@ -29,25 +29,37 @@ export default function Payment() {
   const pAmount = parseFloat(paramState.amount || '0')
   const pSessionId = paramState.session_id
 
-  // #1785: dual-source fallback — re-read router params when they were not yet
-  // available on first render (e.g. weapp page.show fired before params set).
-  useDidShow(() => {
-    if (pType) return
-    const cur = Taro.getCurrentInstance().router?.params || {}
-    const reType = cur.type || ''
-    if (reType && !pType) {
+  // #1785: dual-source param fallback — router params may be empty on the
+  // first render; re-read on onLoad (page init options) and onShow so a
+  // delayed delivery triggers a re-render + re-fetch instead of a false
+  // "支付参数缺失" error or a permanent loading spinner.
+  useLoad((options) => {
+    if (options && options.type) {
       setParamState({
-        type: reType,
-        id: cur.id || '',
-        amount: cur.amount || '',
-        session_id: cur.session_id || '',
+        type: options.type,
+        id: options.id || '',
+        amount: options.amount || '',
+        session_id: options.session_id || '',
       })
+    }
+  })
+  useDidShow(() => {
+    const cur = Taro.getCurrentInstance().router?.params || {}
+    if (cur.type) {
+      setParamState((prev) =>
+        prev.type === cur.type && prev.id === (cur.id || '')
+          ? prev
+          : { type: cur.type, id: cur.id || '', amount: cur.amount || '', session_id: cur.session_id || '' }
+      )
     }
   })
 
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [paramsReady, setParamsReady] = useState(false)
+  // #1785: readable calculate errors (backend 40002 message / timeout) instead
+  // of a silent generic "支付数据不存在".
+  const [errorMsg, setErrorMsg] = useState('')
   const [giftUsed, setGiftUsed] = useState(0)
   const [prepayData, setPrepayData] = useState(null)
   const [isPaying, setIsPaying] = useState(false)
@@ -105,8 +117,15 @@ export default function Payment() {
           body: JSON.stringify({ type: pType, id: pId }),
         })
         const result = await resp.json()
-        if (result.code === 20000) setData(result.data)
-      } catch {}
+        if (result.code === 20000) {
+          setData(result.data)
+        } else {
+          // #1785: surface the backend's explicit error (e.g. 40002 补缴单不存在).
+          setErrorMsg(result.message || '支付数据不存在')
+        }
+      } catch (err) {
+        setErrorMsg(err.message || '请求失败，请重试')
+      }
       setLoading(false)
     }
     fetchData()
@@ -125,7 +144,7 @@ export default function Payment() {
   }
   if (!data) {
     return <View style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FDFBF7' }}>
-      <Text style={{ color: '#a1a1aa' }}>支付数据不存在</Text>
+      <Text style={{ color: errorMsg ? '#ef4444' : '#a1a1aa' }}>{errorMsg || '支付数据不存在'}</Text>
     </View>
   }
 
@@ -298,8 +317,8 @@ export default function Payment() {
           Taro.showToast({ title: '支付成功，注册处理中', icon: 'none', duration: 1500 })
           setTimeout(finishMembershipFlow, 1500)
         } else {
-          Taro.showToast({ title: params.type === 'membership' ? '会员已激活，赠点已到账' : '支付成功', icon: 'success' })
-          afterPaySuccess(params.id)
+          Taro.showToast({ title: pType === 'membership' ? '会员已激活，赠点已到账' : '支付成功', icon: 'success' })
+          afterPaySuccess(pId)
         }
       },
       fail: (err) => Taro.showModal({ title: '支付失败', content: err.errMsg || '请重试', showCancel: false }),
@@ -307,10 +326,6 @@ export default function Payment() {
   }
 
   const handlePay = async (cashAmount) => {
-    const params = Taro.getCurrentInstance().router?.params || {}
-    const pType = params.type || ''
-    const pId = params.id || ''
-
     if (cashAmount <= 0) {
       if (appliedCoupon || (pType === 'membership' && pSessionId)) {
         // OREZ full waiver (or membership session waiver): run prepay so

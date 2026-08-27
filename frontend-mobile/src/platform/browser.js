@@ -46,7 +46,15 @@ const REQUEST_TIMEOUT_MS = 15000
 export const request = (url, options = {}) => {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
-  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timeoutId))
+  return fetch(url, { ...options, signal: controller.signal })
+    .catch((err) => {
+      if (err && err.name === 'AbortError') {
+        // #1785: surface a readable message instead of a bare DOMException.
+        throw new Error('请求超时，请重试')
+      }
+      throw err
+    })
+    .finally(() => clearTimeout(timeoutId))
 }
 
 export const uploadFile = (url, file, options = {}) => {
