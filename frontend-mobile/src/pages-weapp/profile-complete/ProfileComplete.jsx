@@ -14,6 +14,7 @@ export default function ProfileComplete() {
   const [avatar, setAvatar] = useState('')
   const idPhotoFrontRef = useRef(null)
   const idPhotoBackRef = useRef(null)
+  const idPhotoOtherRef = useRef(null)
 
   const [province, setProvince] = useState('')
   const [city, setCity] = useState('')
@@ -133,6 +134,26 @@ export default function ProfileComplete() {
         }
       }
       session.setItem('pending_registration_session', sid)
+      // Upload ID photos to the session (#1787) — best-effort; failure shows
+      // a dialog allowing the user to continue to payment or retry.
+      const uploadResult = await Promise.allSettled([
+        idPhotoFrontRef.current?.uploadPending(),
+        idPhotoBackRef.current?.uploadPending(),
+        idPhotoOtherRef.current?.uploadPending(),
+      ])
+      const anyFailed = uploadResult.some(r => r.status === 'rejected' || (r.status === 'fulfilled' && r.value === null))
+      if (anyFailed) {
+        const { confirm } = await Taro.showModal({
+          title: '证件照上传失败',
+          content: '部分证件照上传失败，可在注册后于『编辑资料』补传。',
+          confirmText: '继续支付',
+          cancelText: '重试',
+        })
+        if (!confirm) {
+          setSaving(false)
+          return
+        }
+      }
       Taro.redirectTo({ url: `/pages-weapp/payment/index?type=membership&session_id=${sid}&amount=${amount}` })
     } catch (err) {
       Taro.showToast({ title: '网络错误, 请重试', icon: 'none' })
@@ -203,12 +224,15 @@ export default function ProfileComplete() {
         style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 24 }} />
 
       <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', width: '100%', marginBottom: 12 }}>身份证照片（选填）</Text>
-      <View style={{ display: 'flex', width: '100%', marginBottom: 24 }}>
-        <View style={{ flex: 1, marginRight: 8, display: 'flex', justifyContent: 'center' }}>
-          <IdPhotoUploader ref={idPhotoFrontRef} side="front" defer />
+      <View style={{ display: 'flex', width: '100%', marginBottom: 24, flexWrap: 'wrap', justifyContent: 'space-between' }}>
+        <View style={{ width: '30%', display: 'flex', justifyContent: 'center' }}>
+          <IdPhotoUploader ref={idPhotoFrontRef} side="front" defer sessionUpload={{ sessionId: resumeSid || undefined }} />
         </View>
-        <View style={{ flex: 1, marginLeft: 8, display: 'flex', justifyContent: 'center' }}>
-          <IdPhotoUploader ref={idPhotoBackRef} side="back" defer />
+        <View style={{ width: '30%', display: 'flex', justifyContent: 'center' }}>
+          <IdPhotoUploader ref={idPhotoBackRef} side="back" defer sessionUpload={{ sessionId: resumeSid || undefined }} />
+        </View>
+        <View style={{ width: '30%', display: 'flex', justifyContent: 'center' }}>
+          <IdPhotoUploader ref={idPhotoOtherRef} side="other" defer sessionUpload={{ sessionId: resumeSid || undefined }} />
         </View>
       </View>
 

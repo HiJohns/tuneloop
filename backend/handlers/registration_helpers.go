@@ -25,7 +25,7 @@ type registerForm struct {
 	Email    string                 `json:"email"`
 	Ref      string                 `json:"ref"`
 	Address  map[string]interface{} `json:"address"`
-	IDPhotos []string               `json:"id_photos"`
+	IDPhotos map[string]string      `json:"id_photos"`
 }
 
 // createIAMUserWithBind creates the IAM user and binds the WeChat identity
@@ -287,6 +287,26 @@ func completeRegistrationFromSession(tx *gorm.DB, record *models.OrderPaymentRec
 	}
 	if localUser != nil {
 		activateMembershipLevelForAmount(tx, localUser.ID, record.Amount.ToYuan())
+
+		// Transfer ID photos from session form_data to the user record (#1787).
+		// The form_data.id_photos is a map of side→storage_key populated by
+		// the session-scoped upload endpoint (POST /auth/registration-sessions/:id/id-photo).
+		if len(form.IDPhotos) > 0 {
+			photoUpdates := map[string]interface{}{}
+			for side, key := range form.IDPhotos {
+				switch side {
+				case "front":
+					photoUpdates["id_photo_front"] = key
+				case "back":
+					photoUpdates["id_photo_back"] = key
+				case "other":
+					photoUpdates["id_photo_other"] = key
+				}
+			}
+			if len(photoUpdates) > 0 {
+				tx.Model(&models.User{}).Where("id = ?", localUser.ID).Updates(photoUpdates)
+			}
+		}
 	}
 
 	return tx.Model(&session).Updates(map[string]interface{}{

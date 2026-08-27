@@ -1,16 +1,17 @@
-// IdPhotoUploader — 身份证单面上传组件（H5 + weapp 共用，#1599）
+// IdPhotoUploader — 身份证单面上传组件（H5 + weapp 共用，#1599/#1787）
 // Props:
-//   side: 'front' | 'back'
+//   side: 'front' | 'back' | 'other'
 //   initialUrl: 已上传的照片 URL（从 GET /user/id-photos 或 /users/me 预填）
 //   onChange(url): 上传成功后回调新 URL；点击删除后回调 ''
 //   defer: 延迟上传模式（注册页专用）——仅本地预览，通过 uploadPending() 显式上传
+//   sessionUpload: { sessionId } — 延迟上传时使用会话级端点（无 token）
 import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Image } from '@tarojs/components'
 import { uploadFile, env, storage, session } from '../platform'
 import { resolveErrorMessage } from '../services/api'
 
-const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl = '', onChange, defer = false }, ref) {
+const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl = '', onChange, defer = false, sessionUpload }, ref) {
   const [url, setUrl] = useState(initialUrl || '')
   const [uploading, setUploading] = useState(false)
   const [pendingFile, setPendingFile] = useState(null)
@@ -38,32 +39,45 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
     setUploading(true)
     try {
       const base = env.apiBaseUrl || '/api'
+      // Determine upload endpoint: session-scoped (no auth) or user-scoped (with token)
+      const useSession = sessionUpload?.sessionId
+      const uploadUrl = useSession
+        ? `${base}/auth/registration-sessions/${sessionUpload.sessionId}/id-photo`
+        : `${base}/user/id-photo`
+      const formDataExtra = useSession ? {} : {}
+      if (useSession) formDataExtra.session_id = sessionUpload.sessionId
+
       let resp
       if (env.isMiniProgram) {
-        resp = await uploadFile(`${base}/user/id-photo`, fileOrPath, {
+        resp = await uploadFile(uploadUrl, fileOrPath, {
           name: 'file',
           formData: { side },
-          headers: { Authorization: 'Bearer ' + getToken() },
+          headers: useSession ? {} : { Authorization: 'Bearer ' + getToken() },
         })
         if (!resp.ok) throw new Error('upload failed')
         const json = JSON.parse(resp.data)
         if (json.code === 20000 && json.data?.url) {
           setUrl(json.data.url)
           if (onChange) onChange(json.data.url)
+        } else if (json.code === 20000) {
+          // Session upload returns no url (file stored server-side by key)
+          if (onChange) onChange(side) // signal success with side name
         } else {
           throw new Error(resolveErrorMessage(json, 'upload failed'))
         }
       } else {
-        const headers = { Authorization: 'Bearer ' + getToken() }
+        const headers = useSession ? {} : { Authorization: 'Bearer ' + getToken() }
         if (fileOrPath instanceof File) {
           const fd = new FormData()
           fd.append('file', fileOrPath)
           fd.append('side', side)
-          const fetchResp = await fetch(`${base}/user/id-photo`, { method: 'POST', body: fd, headers })
+          const fetchResp = await fetch(uploadUrl, { method: 'POST', body: fd, headers })
           const json = await fetchResp.json()
           if (json.code === 20000 && json.data?.url) {
             setUrl(json.data.url)
             if (onChange) onChange(json.data.url)
+          } else if (json.code === 20000) {
+            if (onChange) onChange(side)
           } else {
             throw new Error(resolveErrorMessage(json, 'upload failed'))
           }
@@ -71,9 +85,9 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
       }
     } catch (err) {
       if (env.isMiniProgram) {
-        Taro.showToast({ title: '身份证上传失败', icon: 'none' })
+        Taro.showToast({ title: '证件照上传失败', icon: 'none' })
       } else {
-        alert('身份证上传失败')
+        alert('证件照上传失败')
       }
     } finally {
       setUploading(false)
@@ -97,39 +111,41 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
       setUploading(true)
       try {
         const base = env.apiBaseUrl || '/api'
+        const useSession = sessionUpload?.sessionId
+        const uploadUrl = useSession
+          ? `${base}/auth/registration-sessions/${sessionUpload.sessionId}/id-photo`
+          : `${base}/user/id-photo`
+
         if (env.isMiniProgram) {
-          const resp = await uploadFile(`${base}/user/id-photo`, pendingFile, {
+          const resp = await uploadFile(uploadUrl, pendingFile, {
             name: 'file',
             formData: { side },
-            headers: { Authorization: 'Bearer ' + getToken() },
+            headers: useSession ? {} : { Authorization: 'Bearer ' + getToken() },
           })
           if (!resp.ok) throw new Error('upload failed')
           const json = JSON.parse(resp.data)
-          if (json.code === 20000 && json.data?.url) {
+          if (json.code === 20000) {
             setPendingFile(null)
-            return json.data.url
+            return json.data?.url || side // session upload returns no url
           }
           throw new Error(resolveErrorMessage(json, 'upload failed'))
         }
         const fd = new FormData()
         fd.append('file', pendingFile)
         fd.append('side', side)
-        const fetchResp = await fetch(`${base}/user/id-photo`, {
-          method: 'POST',
-          body: fd,
-          headers: { Authorization: 'Bearer ' + getToken() },
-        })
+        const headers = useSession ? {} : { Authorization: 'Bearer ' + getToken() }
+        const fetchResp = await fetch(uploadUrl, { method: 'POST', body: fd, headers })
         const json = await fetchResp.json()
-        if (json.code === 20000 && json.data?.url) {
+        if (json.code === 20000) {
           setPendingFile(null)
-          return json.data.url
+          return json.data?.url || side // session upload returns no url
         }
         throw new Error(resolveErrorMessage(json, 'upload failed'))
       } catch (err) {
         if (env.isMiniProgram) {
-          Taro.showToast({ title: '身份证上传失败', icon: 'none' })
+          Taro.showToast({ title: '证件照上传失败', icon: 'none' })
         } else {
-          alert('身份证上传失败')
+          alert('证件照上传失败')
         }
         return null
       } finally {
@@ -169,7 +185,8 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
     if (onChange) onChange('')
   }
 
-  const label = side === 'front' ? '正面' : '反面'
+  const labelMap = { front: '正面', back: '反面', other: '其他证件' }
+  const label = labelMap[side] || side
 
   return (
     <View className="flex flex-col items-center">

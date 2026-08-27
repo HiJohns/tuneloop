@@ -15,6 +15,7 @@ import (
 	"tuneloop-backend/internal/tasks"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/services"
+	"tuneloop-backend/services/tencentcloud"
 	"tuneloop-backend/services/wechatpay"
 
 	"github.com/gin-contrib/cors"
@@ -80,6 +81,12 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	inventoryHandler := handlers.NewInventoryHandler()
 	authHandler := handlers.NewAuthHandler(database.GetDB())
 
+	// Face verify provider: NullFaceProvider when Tencent Cloud credentials are not set.
+	var faceVerifyProvider tencentcloud.FaceVerifyProvider = tencentcloud.NullFaceProvider{}
+	if cfg := tencentcloud.LoadConfig(); cfg.Configured() {
+		faceVerifyProvider = tencentcloud.NewRealFaceProvider(cfg)
+	}
+
 	// New handlers for Issue #299 (Maintenance, Appeal, Warehouse, User Rental)
 	maintenanceWorkerHandler := handlers.NewMaintenanceWorkerHandler()
 	maintenanceSessionHandler := handlers.NewMaintenanceSessionHandler()
@@ -93,6 +100,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	userRentalHandler := handlers.NewUserRentalHandler()
 	userAddressHandler := handlers.NewUserAddressHandler()
 	userOnboardingHandler := handlers.NewUserOnboardingHandler()
+	faceVerifyHandler := handlers.NewFaceVerifyHandler(faceVerifyProvider)
 	userSettlementHandler := handlers.NewUserSettlementHandler()
 	userPointsHandler := handlers.NewUserPointsHandler()
 	guarantorHandler := handlers.NewGuarantorHandler()
@@ -199,6 +207,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	api.POST("/auth/registration-sessions", regSessionHandler.CreateRegistrationSession)
 	api.GET("/auth/registration-sessions/me", regSessionHandler.GetMyRegistrationSession)
 	api.GET("/auth/registration-sessions/:id/status", regSessionHandler.GetRegistrationSessionStatus)
+	api.POST("/auth/registration-sessions/:id/id-photo", regSessionHandler.UploadSessionIDPhoto)
 	api.POST("/wx/login", authHandler.WxLogin)
 	api.POST("/wx/phone", authHandler.WxPhone)
 	api.POST("/wechatpay/notify", handlers.WechatPayCallback)
@@ -676,6 +685,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/user/id-photo", userOnboardingHandler.UploadIDPhoto)
 				userOptionalAuth.GET("/user/id-photos", userOnboardingHandler.GetIdPhotos)
 				userOptionalAuth.DELETE("/user/id-photo", userOnboardingHandler.DeleteIdPhoto)
+
+				// Face verification routes (#1787)
+				userOptionalAuth.POST("/user/face-verify/token", faceVerifyHandler.Token)
+				userOptionalAuth.POST("/user/face-verify/result", faceVerifyHandler.Result)
 
 				// Points wallet routes (prepaid purchase removed #1670)
 				userOptionalAuth.GET("/user/points/balance", userPointsHandler.GetBalance)

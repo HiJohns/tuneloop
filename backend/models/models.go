@@ -35,6 +35,11 @@ type User struct {
 	OnboardingCompleted bool       `gorm:"default:false" json:"onboarding_completed"`
 	IdPhotoFront        *string    `gorm:"type:varchar(500)" json:"id_photo_front"`
 	IdPhotoBack         *string    `gorm:"type:varchar(500)" json:"id_photo_back"`
+	IdPhotoOther        *string    `gorm:"type:varchar(500)" json:"id_photo_other"`
+	RealName            *string    `gorm:"type:varchar(64)" json:"real_name"`
+	IdCardNo            *string    `gorm:"type:varchar(18)" json:"id_card_no"`
+	FaceVerified        bool       `gorm:"default:false" json:"face_verified"`
+	FaceVerifiedAt      *time.Time `gorm:"column:face_verified_at" json:"face_verified_at"`
 	RefCode             string     `gorm:"type:varchar(16)" json:"ref_code"`
 	DeletedAt           *time.Time `gorm:"index" json:"deleted_at"`
 	CreatedAt           time.Time  `json:"created_at"`

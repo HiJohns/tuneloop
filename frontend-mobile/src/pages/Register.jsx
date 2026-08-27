@@ -28,6 +28,7 @@ export default function Register() {
   const [saving, setSaving] = useState(false)
   const idPhotoFrontRef = useRef(null)
   const idPhotoBackRef = useRef(null)
+  const idPhotoOtherRef = useRef(null)
 
   // 推荐码：从 URL ?ref= 或 ?scene=ref= 读取（微信扫码场景）
   useEffect(() => {
@@ -82,6 +83,7 @@ export default function Register() {
         try {
           if (idPhotoFrontRef.current?.uploadPending) await idPhotoFrontRef.current.uploadPending()
           if (idPhotoBackRef.current?.uploadPending) await idPhotoBackRef.current.uploadPending()
+          if (idPhotoOtherRef.current?.uploadPending) await idPhotoOtherRef.current.uploadPending()
         } catch (e) { console.error('[Register] id photo upload failed', e) }
 
         // 保存收货地址
@@ -182,12 +184,15 @@ export default function Register() {
         {/* 身份证照片（选填，defer 上传） */}
         <View className="mb-4">
           <View className="mb-1"><Text className="text-sm font-medium text-gray-700">身份证照片（选填）</Text></View>
-          <View className="flex flex-row gap-4">
+          <View className="flex flex-row gap-3">
             <View className="flex-1 flex justify-center">
               <IdPhotoUploader ref={idPhotoFrontRef} side="front" defer />
             </View>
             <View className="flex-1 flex justify-center">
               <IdPhotoUploader ref={idPhotoBackRef} side="back" defer />
+            </View>
+            <View className="flex-1 flex justify-center">
+              <IdPhotoUploader ref={idPhotoOtherRef} side="other" defer />
             </View>
           </View>
         </View>

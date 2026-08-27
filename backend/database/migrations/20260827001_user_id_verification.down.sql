@@ -1,0 +1,5 @@
+ALTER TABLE users DROP COLUMN IF EXISTS face_verified_at;
+ALTER TABLE users DROP COLUMN IF EXISTS face_verified;
+ALTER TABLE users DROP COLUMN IF EXISTS id_card_no;
+ALTER TABLE users DROP COLUMN IF EXISTS real_name;
+ALTER TABLE users DROP COLUMN IF EXISTS id_photo_other;

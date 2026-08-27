@@ -2,9 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
@@ -58,7 +61,7 @@ func (h *RegistrationSessionHandler) CreateRegistrationSession(c *gin.Context) {
 		WxCode        string                 `json:"wx_code"`
 		Ref           string                 `json:"ref"`
 		Address       map[string]interface{} `json:"address"`
-		IDPhotos      []string               `json:"id_photos"`
+		IDPhotos      map[string]string      `json:"id_photos"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
@@ -283,4 +286,86 @@ func (h *RegistrationSessionHandler) resolveOpenid(code string) (string, error) 
 func marshalForm(form registerForm) string {
 	b, _ := json.Marshal(form)
 	return string(b)
+}
+
+// UploadSessionIDPhoto handles POST /api/auth/registration-sessions/:id/id-photo.
+// This is a public (unauthenticated) endpoint — the user has no account yet.
+// It stores the uploaded file and updates the session's form_data.id_photos map.
+func (h *RegistrationSessionHandler) UploadSessionIDPhoto(c *gin.Context) {
+	sessionID := c.Param("id")
+	if sessionID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "session id required"})
+		return
+	}
+
+	var session models.RegistrationSession
+	if err := h.db.Where("id = ? AND status = ?", sessionID, "pending").First(&session).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "registration session not found or not pending"})
+		return
+	}
+
+	side := c.PostForm("side")
+	if side != "front" && side != "back" && side != "other" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "invalid side, must be front, back, or other"})
+		return
+	}
+
+	c.Request.ParseMultipartForm(10 << 20)
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "no file uploaded"})
+		return
+	}
+
+	mimeType := file.Header.Get("Content-Type")
+	if mimeType != "image/jpeg" && mimeType != "image/png" && mimeType != "image/webp" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "only JPEG, PNG, WebP allowed"})
+		return
+	}
+
+	if file.Size > 5*1024*1024 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "file too large, max 5MB"})
+		return
+	}
+
+	ext := filepath.Ext(file.Filename)
+	filename := fmt.Sprintf("id_photos/pending_%s_%s_%d%s", sessionID, side, time.Now().UnixNano(), ext)
+
+	reader, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50002, "message": "failed to open file"})
+		return
+	}
+	defer reader.Close()
+
+	storage := services.NewMediaStorage()
+	if err := storage.Upload(c.Request.Context(), filename, reader, mimeType); err != nil {
+		log.Printf("session id photo upload failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50003, "message": "failed to save file"})
+		return
+	}
+
+	// Update form_data.id_photos map: side → storage key.
+	var form registerForm
+	if session.FormData != "" {
+		_ = json.Unmarshal([]byte(session.FormData), &form)
+	}
+	if form.IDPhotos == nil {
+		form.IDPhotos = map[string]string{}
+	}
+	form.IDPhotos[side] = filename
+
+	if err := h.db.Model(&session).Update("form_data", marshalForm(form)).Error; err != nil {
+		log.Printf("session form_data update failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50004, "message": "failed to save photo reference"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "upload success",
+		"data": gin.H{
+			"side": side,
+		},
+	})
 }

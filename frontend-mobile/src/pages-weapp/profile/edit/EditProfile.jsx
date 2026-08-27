@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Input, Button } from '@tarojs/components'
-import { apiFetch, getToken } from '../../../services/api'
+import { apiFetch, getToken, resolveErrorMessage } from '../../../services/api'
 import { env, dialog, getInputValue, wxLogin as wxLoginCode } from '../../../platform'
 import { parseJWT } from '../../../platform/init'
 import IdPhotoUploader from '../../../components/IdPhotoUploader'
@@ -13,8 +13,15 @@ export default function EditProfile() {
   const [email, setEmail] = useState('')
   const [idPhotoFront, setIdPhotoFront] = useState('')
   const [idPhotoBack, setIdPhotoBack] = useState('')
+  const [idPhotoOther, setIdPhotoOther] = useState('')
+  const [realName, setRealName] = useState('')
+  const [idCardNo, setIdCardNo] = useState('')
+  const [faceVerified, setFaceVerified] = useState(false)
+  const [faceVerifiedAt, setFaceVerifiedAt] = useState('')
   const [saving, setSaving] = useState(false)
   const [bindingWx, setBindingWx] = useState(false)
+  const [showFaceVerify, setShowFaceVerify] = useState(false)
+  const [faceVerifyLoading, setFaceVerifyLoading] = useState(false)
   const baseUrl = env.apiBaseUrl
 
   const token = getToken()
@@ -37,6 +44,11 @@ export default function EditProfile() {
           setEmail(result.data.email || '')
           setIdPhotoFront(result.data.id_photo_front || '')
           setIdPhotoBack(result.data.id_photo_back || '')
+          setIdPhotoOther(result.data.id_photo_other || '')
+          setRealName(result.data.real_name || '')
+          setIdCardNo(result.data.id_card_no || '')
+          setFaceVerified(result.data.face_verified || false)
+          setFaceVerifiedAt(result.data.face_verified_at || '')
         }
       } catch {}
     }
@@ -54,6 +66,9 @@ export default function EditProfile() {
           // #1686: id photos were never submitted — backend supports them.
           ...(idPhotoFront ? { id_photo_front: idPhotoFront } : {}),
           ...(idPhotoBack ? { id_photo_back: idPhotoBack } : {}),
+          ...(idPhotoOther ? { id_photo_other: idPhotoOther } : {}),
+          ...(realName ? { real_name: realName } : {}),
+          ...(idCardNo ? { id_card_no: idCardNo } : {}),
         }),
       })
       const result = await resp.json()
@@ -99,6 +114,69 @@ export default function EditProfile() {
     setBindingWx(false)
   }
 
+  // Face verification (#1787)
+  const handleFaceVerify = async () => {
+    if (!realName.trim() || !idCardNo.trim()) {
+      Taro.showToast({ title: '请先填写姓名和身份证号', icon: 'none' })
+      return
+    }
+    setFaceVerifyLoading(true)
+    try {
+      const resp = await apiFetch(`${baseUrl}/user/face-verify/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: realName.trim(), id_card_no: idCardNo.trim() }),
+      })
+      const result = await resp.json()
+      if (result.code === 40012) {
+        Taro.showToast({ title: '人脸认证暂未开通', icon: 'none' })
+        setFaceVerifyLoading(false)
+        return
+      }
+      if (result.code !== 20000 || !result.data?.biz_token) {
+        Taro.showToast({ title: '获取认证令牌失败', icon: 'none' })
+        setFaceVerifyLoading(false)
+        return
+      }
+      // On weapp: show instructions (the actual plugin integration requires
+      // 慧眼小程序插件 to be added in the WeChat backend).
+      Taro.showModal({
+        title: '人脸认证',
+        content: '请确保在小程序后台已添加「慧眼人脸核身」插件。点击确定后将调起人脸核身。',
+        confirmText: '确定',
+        cancelText: '取消',
+      }).then(({ confirm }) => {
+        if (confirm) {
+          // TODO: integrate 慧眼 plugin — navigateTo plugin://faceid/verify?token=...
+          Taro.showToast({ title: '请先添加慧眼插件', icon: 'none' })
+        }
+      })
+    } catch {
+      Taro.showToast({ title: '网络错误', icon: 'none' })
+    }
+    setFaceVerifyLoading(false)
+  }
+
+  const handleQueryFaceResult = async (bizToken) => {
+    try {
+      const resp = await apiFetch(`${baseUrl}/user/face-verify/result`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ biz_token: bizToken }),
+      })
+      const result = await resp.json()
+      if (result.code === 20000 && result.data?.passed) {
+        setFaceVerified(true)
+        setFaceVerifiedAt(new Date().toISOString())
+        Taro.showToast({ title: '认证成功', icon: 'success' })
+      } else {
+        Taro.showToast({ title: '认证未通过，请重试', icon: 'none' })
+      }
+    } catch {
+      Taro.showToast({ title: '查询认证结果失败', icon: 'none' })
+    }
+  }
+
   return (
     <View style={{ height: '100vh', backgroundColor: '#f4f4f5', display: 'flex', flexDirection: 'column' }}>
       <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 12, padding: 16 }}>
@@ -128,14 +206,51 @@ export default function EditProfile() {
         </View>
         <View style={{ marginBottom: 20 }}>
           <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 10 }}>身份证照片</Text>
-          <View style={{ display: 'flex', flexDirection: 'row' }}>
-            <View style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+          <View style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+            <View style={{ width: '30%', display: 'flex', justifyContent: 'center' }}>
               <IdPhotoUploader side="front" initialUrl={idPhotoFront} onChange={setIdPhotoFront} />
             </View>
-            <View style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+            <View style={{ width: '30%', display: 'flex', justifyContent: 'center' }}>
               <IdPhotoUploader side="back" initialUrl={idPhotoBack} onChange={setIdPhotoBack} />
             </View>
+            <View style={{ width: '30%', display: 'flex', justifyContent: 'center' }}>
+              <IdPhotoUploader side="other" initialUrl={idPhotoOther} onChange={setIdPhotoOther} />
+            </View>
           </View>
+        </View>
+        {/* 实名认证区块 (#1787) */}
+        <View style={{ marginBottom: 20 }}>
+          <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 10 }}>实名认证</Text>
+          {faceVerified ? (
+            <View style={{ padding: 12, backgroundColor: '#f0fdf4', borderRadius: 8, borderWidth: 1, borderColor: '#bbf7d0' }}>
+              <Text style={{ fontSize: 13, color: '#16a34a', fontWeight: '600' }}>✅ 已认证</Text>
+              {realName && <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>姓名：{realName}</Text>}
+              {idCardNo && <Text style={{ fontSize: 12, color: '#6b7280' }}>身份证：{idCardNo}</Text>}
+              {faceVerifiedAt && <Text style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>认证时间：{new Date(faceVerifiedAt).toLocaleString()}</Text>}
+            </View>
+          ) : (
+            <View>
+              <View style={{ marginBottom: 10 }}>
+                <Text style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>姓名</Text>
+                <Input value={realName} onInput={e => setRealName(getInputValue(e))}
+                  placeholder="请输入真实姓名"
+                  style={{ width: '100%', height: 40, border: '1px solid #d4d4d8', borderRadius: 8, paddingLeft: 12, paddingRight: 12, fontSize: 13, boxSizing: 'border-box' }} />
+              </View>
+              <View style={{ marginBottom: 10 }}>
+                <Text style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>身份证号</Text>
+                <Input value={idCardNo} onInput={e => setIdCardNo(getInputValue(e))}
+                  placeholder="请输入18位身份证号"
+                  style={{ width: '100%', height: 40, border: '1px solid #d4d4d8', borderRadius: 8, paddingLeft: 12, paddingRight: 12, fontSize: 13, boxSizing: 'border-box' }} />
+              </View>
+              <View onClick={!faceVerifyLoading ? handleFaceVerify : undefined}
+                style={{ width: '100%', height: 40, backgroundColor: faceVerifyLoading ? '#d4d4d8' : '#915F38', borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>{faceVerifyLoading ? '获取认证中...' : '发起人脸认证'}</Text>
+              </View>
+              {!env.isMiniProgram && (
+                <Text style={{ fontSize: 12, color: '#9ca3af', marginTop: 8, textAlign: 'center' }}>请在微信小程序中完成人脸认证</Text>
+              )}
+            </View>
+          )}
         </View>
         {isStaff && (
           <View style={{ marginBottom: 20 }}>

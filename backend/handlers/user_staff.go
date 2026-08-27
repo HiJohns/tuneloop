@@ -763,6 +763,11 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 		"promo_points":          user.PromoPoints,
 		"id_photo_front":        h.resolveIdPhotoURL(ctx, user.IdPhotoFront),
 		"id_photo_back":         h.resolveIdPhotoURL(ctx, user.IdPhotoBack),
+		"id_photo_other":        h.resolveIdPhotoURL(ctx, user.IdPhotoOther),
+		"real_name":             user.RealName,
+		"id_card_no":            maskIdCardNo(user.IdCardNo),
+		"face_verified":         user.FaceVerified,
+		"face_verified_at":      user.FaceVerifiedAt,
 	}
 
 	// Resolve membership level name
@@ -844,6 +849,17 @@ func (h *UserStaffHandler) resolveIdPhotoURL(ctx context.Context, key *string) s
 	return url
 }
 
+// maskIdCardNo returns a masked version of the ID card number: first 3 + last 4 digits visible.
+// e.g. "110101199001011234" → "110***********1234"
+func maskIdCardNo(idCardNo *string) *string {
+	if idCardNo == nil || len(*idCardNo) < 8 {
+		return idCardNo
+	}
+	s := *idCardNo
+	masked := s[:3] + "***********" + s[len(s)-4:]
+	return &masked
+}
+
 // ResendEmailConfirmation POST /api/users/me/resend-email-confirmation
 func (h *UserStaffHandler) ResendEmailConfirmation(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -876,6 +892,8 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 		Password     string  `json:"password"`
 		IdPhotoFront *string `json:"id_photo_front"`
 		IdPhotoBack  *string `json:"id_photo_back"`
+		RealName     *string `json:"real_name"`
+		IdCardNo     *string `json:"id_card_no"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid request body: " + err.Error()})
@@ -921,6 +939,22 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 	}
 	if req.IdPhotoBack != nil {
 		localUpdates["id_photo_back"] = *req.IdPhotoBack
+	}
+	if req.RealName != nil {
+		localUpdates["real_name"] = *req.RealName
+	}
+	if req.IdCardNo != nil {
+		if !idCardRegex.MatchString(*req.IdCardNo) {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid id_card_no format, must be 18 digits (last may be X)"})
+			return
+		}
+		localUpdates["id_card_no"] = *req.IdCardNo
+		// If user was previously verified, changing id_card_no invalidates verification (#1787).
+		var currentUser models.User
+		if err := db.Select("face_verified").Where("iam_sub = ?", userID).First(&currentUser).Error; err == nil && currentUser.FaceVerified {
+			localUpdates["face_verified"] = false
+			localUpdates["face_verified_at"] = nil
+		}
 	}
 	if len(localUpdates) > 0 {
 		// Customers (USER) carry no tenant in JWT (oid/tid empty). Filtering

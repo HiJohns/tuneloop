@@ -96,8 +96,8 @@ func (h *UserOnboardingHandler) UploadIDPhoto(c *gin.Context) {
 	}
 
 	side := c.PostForm("side")
-	if side != "front" && side != "back" {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "invalid side, must be front or back"})
+	if side != "front" && side != "back" && side != "other" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "invalid side, must be front, back, or other"})
 		return
 	}
 
@@ -150,18 +150,25 @@ func (h *UserOnboardingHandler) UploadIDPhoto(c *gin.Context) {
 	col := "id_photo_front"
 	if side == "back" {
 		col = "id_photo_back"
+	} else if side == "other" {
+		col = "id_photo_other"
 	}
 	// Mark the previous id photo on this side as unreferenced before overwrite.
 	var oldUser models.User
 	if err := db.Select(col).Where("id = ?", userID).First(&oldUser).Error; err == nil {
 		var oldKey string
-		if col == "id_photo_front" {
+		switch col {
+		case "id_photo_front":
 			if oldUser.IdPhotoFront != nil {
 				oldKey = *oldUser.IdPhotoFront
 			}
-		} else {
+		case "id_photo_back":
 			if oldUser.IdPhotoBack != nil {
 				oldKey = *oldUser.IdPhotoBack
+			}
+		case "id_photo_other":
+			if oldUser.IdPhotoOther != nil {
+				oldKey = *oldUser.IdPhotoOther
 			}
 		}
 		if oldKey != "" && oldKey != filename {
@@ -186,7 +193,7 @@ func (h *UserOnboardingHandler) UploadIDPhoto(c *gin.Context) {
 	})
 }
 
-// GetIdPhotos returns the current user's ID photo URLs (front + back).
+// GetIdPhotos returns the current user's ID photo URLs (front + back + other).
 func (h *UserOnboardingHandler) GetIdPhotos(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
@@ -198,7 +205,7 @@ func (h *UserOnboardingHandler) GetIdPhotos(c *gin.Context) {
 	}
 
 	var user models.User
-	if err := db.Select("id_photo_front, id_photo_back").Where("id = ?", userID).First(&user).Error; err != nil {
+	if err := db.Select("id_photo_front, id_photo_back, id_photo_other").Where("id = ?", userID).First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
 		return
 	}
@@ -212,12 +219,17 @@ func (h *UserOnboardingHandler) GetIdPhotos(c *gin.Context) {
 	if user.IdPhotoBack != nil && *user.IdPhotoBack != "" {
 		back, _ = storage.GetURL(ctx, *user.IdPhotoBack)
 	}
+	other := ""
+	if user.IdPhotoOther != nil && *user.IdPhotoOther != "" {
+		other, _ = storage.GetURL(ctx, *user.IdPhotoOther)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"front": front,
-			"back":  back,
+			"front":  front,
+			"back":   back,
+			"other":  other,
 		},
 	})
 }
@@ -234,14 +246,16 @@ func (h *UserOnboardingHandler) DeleteIdPhoto(c *gin.Context) {
 	}
 
 	side := c.Query("side")
-	if side != "front" && side != "back" {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "invalid side, must be front or back"})
+	if side != "front" && side != "back" && side != "other" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "invalid side, must be front, back, or other"})
 		return
 	}
 
 	col := "id_photo_front"
 	if side == "back" {
 		col = "id_photo_back"
+	} else if side == "other" {
+		col = "id_photo_other"
 	}
 	// Read the old storage key, delete the physical file, then clear the field.
 	var user models.User
@@ -250,13 +264,18 @@ func (h *UserOnboardingHandler) DeleteIdPhoto(c *gin.Context) {
 		return
 	}
 	var oldKey string
-	if col == "id_photo_front" {
+	switch col {
+	case "id_photo_front":
 		if user.IdPhotoFront != nil {
 			oldKey = *user.IdPhotoFront
 		}
-	} else {
+	case "id_photo_back":
 		if user.IdPhotoBack != nil {
 			oldKey = *user.IdPhotoBack
+		}
+	case "id_photo_other":
+		if user.IdPhotoOther != nil {
+			oldKey = *user.IdPhotoOther
 		}
 	}
 	if oldKey != "" {
