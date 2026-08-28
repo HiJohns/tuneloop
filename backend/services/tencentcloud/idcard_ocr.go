@@ -15,6 +15,19 @@ type IDCardInfo struct {
 	IdNum     string `json:"id_num"`
 	Authority string `json:"authority,omitempty"`
 	ValidDate string `json:"valid_date,omitempty"`
+	// Warnings (#1782 §1): CopyWarn/BorderCheckWarn/ReshootWarn 告警——辅助人工审核。
+	Warnings []string `json:"warnings,omitempty"`
+}
+
+// warnCodeLabels maps Tencent IDCardOCR WarnInfos codes to human-readable labels.
+// Codes reference: http://*.tencentcloudapi.com IDCardOCR AdvancedInfo → WarnInfos.
+var warnCodeLabels = map[int]string{
+	-9101: "身份证边框不完整",
+	-9102: "身份证复印件",
+	-9103: "身份证翻拍",
+	-9105: "身份证框内遮挡",
+	-9107: "身份证反光",
+	-9108: "身份证复印件",
 }
 
 // IDCardOCRProvider abstracts ID card OCR so the handler can be tested

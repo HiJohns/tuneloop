@@ -103,7 +103,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	faceVerifyHandler := handlers.NewFaceVerifyHandler(faceVerifyProvider)
 	userSettlementHandler := handlers.NewUserSettlementHandler()
 	userPointsHandler := handlers.NewUserPointsHandler()
-	guarantorHandler := handlers.NewGuarantorHandler()
+	guarantorHandler := handlers.NewGuarantorHandler(nil) // nil → use env TENCENTCLOUD config
 	bannerHandler := handlers.NewBannerHandler()
 	invoiceHandler := handlers.NewInvoiceHandler()
 	merchantInvoiceHandler := handlers.NewMerchantInvoiceHandler()

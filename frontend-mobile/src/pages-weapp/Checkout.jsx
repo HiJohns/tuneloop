@@ -319,6 +319,28 @@ function SingleCheckout({ id, nav }) {
     setSelectedGuarantorIds(prev => prev.includes(gid) ? prev.filter(x => x !== gid) : [...prev, gid])
   }
 
+  // #1782: 正面身份证上传成功后，调用腾讯云 OCR 自动填充姓名/身份证号/住址。
+  // 未配置或识别失败时静默降级为手动填写（不阻断流程）。
+  const onFrontPhotoChange = async (url) => {
+    setGPhotoFront(url || '')
+    if (!url) return
+    try {
+      const storageKey = url.replace(/^\/uploads\/media\//, '')
+      const resp = await guarantorsApi.idcardOCR(storageKey, 'FRONT')
+      if (resp.code === 20000 && resp.data?.available) {
+        const d = resp.data
+        setNewGuarantor(prev => ({
+          ...prev,
+          name: prev.name || d.name || '',
+          id_card_no: prev.id_card_no || d.id_num || '',
+          address: prev.address || d.address || '',
+        }))
+      }
+    } catch (err) {
+      // silent degrade — OCR failure must not block manual entry
+    }
+  }
+
   if (loading) return <View style={{ minHeight: '100vh', backgroundColor: '#FDFBF7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#a1a1aa' }}>加载中...</Text></View>
   if (!instrument) return <View style={{ minHeight: '100vh', backgroundColor: '#FDFBF7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#a1a1aa' }}>乐器不存在</Text></View>
 
@@ -445,7 +467,7 @@ function SingleCheckout({ id, nav }) {
                   <View style={{ display: 'flex', width: '100%', marginBottom: 8, flexWrap: 'wrap', justifyContent: 'space-between' }}>
                     <View style={{ width: '30%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                       <Text style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>身份证正面*</Text>
-                      <IdPhotoUploader side="front" onChange={setGPhotoFront} />
+                      <IdPhotoUploader side="front" onChange={onFrontPhotoChange} />
                     </View>
                     <View style={{ width: '30%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                       <Text style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>身份证反面*</Text>

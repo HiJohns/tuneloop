@@ -17,10 +17,12 @@ import (
 
 // GuarantorHandler manages the current user's deposit guarantors (#1557).
 // Registered in userOptionalAuth — customers have no tenant/org context.
-type GuarantorHandler struct{}
+type GuarantorHandler struct {
+	ocrProvider tencentcloud.IDCardOCRProvider // injected for testability; nil → use env config
+}
 
-func NewGuarantorHandler() *GuarantorHandler {
-	return &GuarantorHandler{}
+func NewGuarantorHandler(ocrProvider tencentcloud.IDCardOCRProvider) *GuarantorHandler {
+	return &GuarantorHandler{ocrProvider: ocrProvider}
 }
 
 // ListGuarantors returns the current user's saved guarantors.
@@ -155,17 +157,19 @@ func (h *GuarantorHandler) OCRIDCard(c *gin.Context) {
 		return
 	}
 
-	cfg := tencentcloud.LoadConfig()
-	if !cfg.Configured() {
-		c.JSON(http.StatusOK, gin.H{
-			"code":    20000,
-			"data":    gin.H{"available": false},
-			"message": "OCR service not configured",
-		})
-		return
+	provider := h.ocrProvider
+	if provider == nil {
+		cfg := tencentcloud.LoadConfig()
+		if !cfg.Configured() {
+			c.JSON(http.StatusOK, gin.H{
+				"code":    20000,
+				"data":    gin.H{"available": false},
+				"message": "OCR service not configured",
+			})
+			return
+		}
+		provider = tencentcloud.NewRealOCRProvider(cfg)
 	}
-
-	provider := tencentcloud.NewRealOCRProvider(cfg)
 	info, err := provider.RecognizeIDCard(imagePath, req.Side)
 	if err != nil {
 		// Return available:false on failure so frontend can degrade to manual
@@ -180,15 +184,16 @@ func (h *GuarantorHandler) OCRIDCard(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"available": true,
-			"name":      info.Name,
-			"sex":       info.Sex,
-			"nation":    info.Nation,
-			"birth":     info.Birth,
-			"address":   info.Address,
-			"id_num":    info.IdNum,
-			"authority": info.Authority,
+			"available":  true,
+			"name":       info.Name,
+			"sex":        info.Sex,
+			"nation":     info.Nation,
+			"birth":      info.Birth,
+			"address":    info.Address,
+			"id_num":     info.IdNum,
+			"authority":  info.Authority,
 			"valid_date": info.ValidDate,
+			"warnings":   info.Warnings,
 		},
 	})
 }

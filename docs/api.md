@@ -2750,6 +2750,66 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ---
 
+**接口**: `POST /api/user/idcard-ocr`
+
+**说明**: 对已上传的身份证照片进行 OCR 识别（#1782），自动提取姓名、身份证号、住址等信息。OCR 未配置或识别失败时返回 `available: false`，前端降级为手动填写。
+
+**权限**: `userOptionalAuth`（顾客登录态）
+
+**请求 Body**:
+```json
+{
+  "storage_key": "uuid_123.jpg",
+  "side": "FRONT"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|:---:|------|
+| `storage_key` | string | ✅ | 身份证照片的 storage_key（`/uploads/media/` 下的文件名） |
+| `side` | string | ✅ | `FRONT`（人像面）或 `BACK`（国徽面） |
+
+**响应（识别成功）**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "available": true,
+    "name": "张三",
+    "sex": "男",
+    "nation": "汉",
+    "birth": "1990-01-01",
+    "address": "北京市朝阳区",
+    "id_num": "110101199001011234",
+    "authority": "北京市公安局",
+    "valid_date": "20200101-20300101",
+    "warnings": ["身份证复印件"]
+  }
+}
+```
+
+**响应（未配置/识别失败）**:
+```json
+{
+  "code": 20000,
+  "data": { "available": false },
+  "message": "OCR service not configured"
+}
+```
+
+**告警字段说明**: `warnings` 数组包含腾讯云 IDCardOCR 返回的告警码映射：
+
+| 告警码 | 含义 |
+|--------|------|
+| -9101 | 身份证边框不完整 |
+| -9102 | 身份证复印件 |
+| -9103 | 身份证翻拍 |
+| -9105 | 身份证框内遮挡 |
+| -9107 | 身份证反光 |
+| -9108 | 身份证复印件 |
+
+---
+
 **接口**: `POST /api/user/face-verify/token`
 
 **说明**: 获取腾讯云慧眼人脸核身 Token（需 real_name + id_card_no）

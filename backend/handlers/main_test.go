@@ -25,6 +25,7 @@ var allTestModels = []interface{}{
 	&models.Coupon{},
 	&models.DamageReport{},
 	&models.ElectronicContract{},
+	&models.Guarantor{},
 	&models.Instrument{},
 	&models.InstrumentLevel{},
 	&models.InstrumentMedia{},

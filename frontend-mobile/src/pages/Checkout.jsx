@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components'
-import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, getCartKey , resolveErrorMessage } from '../services/api'
+import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, getCartKey , resolveErrorMessage, guarantorsApi } from '../services/api'
 import { ArrowLeft, MapPin, Clock, Calendar, Plus, CheckCircle } from 'lucide-react'
 import dayjs from 'dayjs'
 import { dialog, env, session, storage, eventBus, getInputValue } from '../platform'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
 import regions from '../data/regions.json'
+import IdPhotoUploader from '../components/IdPhotoUploader'
 
 function parseImages(images) {
   if (!images) return []
@@ -76,7 +77,10 @@ function SingleCheckout({ id, navigate }) {
   const [guarantors, setGuarantors] = useState([])
   const [selectedGuarantorIds, setSelectedGuarantorIds] = useState([])
   const [showAddGuarantor, setShowAddGuarantor] = useState(false)
-  const [newGuarantor, setNewGuarantor] = useState({ name: '', phone: '', company: '', title: '', address: '' })
+  const [newGuarantor, setNewGuarantor] = useState({ name: '', phone: '', company: '', title: '', address: '', id_card_no: '' })
+  const [gPhotoFront, setGPhotoFront] = useState('')
+  const [gPhotoBack, setGPhotoBack] = useState('')
+  const [gPhotoOther, setGPhotoOther] = useState('')
   const [savingGuarantor, setSavingGuarantor] = useState(false)
 
   useEffect(() => {
@@ -197,13 +201,47 @@ function SingleCheckout({ id, navigate }) {
     setDiscountChecking(false)
   }
 
+  // #1782: 正面身份证上传成功后，调用腾讯云 OCR 自动填充姓名/身份证号/住址。
+  // 未配置或识别失败时静默降级为手动填写（不阻断流程）。
+  const onFrontPhotoChange = async (url) => {
+    setGPhotoFront(url || '')
+    if (!url) return
+    try {
+      const storageKey = url.replace(/^\/uploads\/media\//, '')
+      const resp = await guarantorsApi.idcardOCR(storageKey, 'FRONT')
+      if (resp.code === 20000 && resp.data?.available) {
+        const d = resp.data
+        setNewGuarantor(prev => ({
+          ...prev,
+          name: prev.name || d.name || '',
+          id_card_no: prev.id_card_no || d.id_num || '',
+          address: prev.address || d.address || '',
+        }))
+      }
+    } catch (err) {
+      // silent degrade — OCR failure must not block manual entry
+    }
+  }
+
   const handleSaveGuarantor = async () => {
     if (!newGuarantor.name.trim() || !newGuarantor.phone.trim()) {
       dialog.alert('请填写担保人姓名和联系电话')
       return
     }
-    if (!newGuarantor.company.trim() || !newGuarantor.title.trim()) {
-      dialog.alert('请填写工作单位和职务')
+    if (!newGuarantor.id_card_no.trim() || newGuarantor.id_card_no.trim().length !== 18) {
+      dialog.alert('请填写18位身份证号')
+      return
+    }
+    if (!gPhotoFront) {
+      dialog.alert('请上传身份证正面照')
+      return
+    }
+    if (!gPhotoBack) {
+      dialog.alert('请上传身份证反面照')
+      return
+    }
+    if (!gPhotoOther) {
+      dialog.alert('请上传其他证件照（学生证/工作证）')
       return
     }
     setSavingGuarantor(true)
@@ -211,14 +249,22 @@ function SingleCheckout({ id, navigate }) {
       const resp = await apiFetch(`${env.apiBaseUrl}/user/guarantors`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newGuarantor),
+        body: JSON.stringify({
+          ...newGuarantor,
+          id_photo_front: gPhotoFront,
+          id_photo_back: gPhotoBack,
+          other_cert_photo: gPhotoOther,
+        }),
       })
       const result = await resp.json()
       if (result.code === 20000) {
         const g = result.data
         setGuarantors(prev => [...prev, g])
         setSelectedGuarantorIds(prev => prev.includes(g.id) ? prev : [...prev, g.id])
-        setNewGuarantor({ name: '', phone: '', company: '', title: '', address: '' })
+        setNewGuarantor({ name: '', phone: '', company: '', title: '', address: '', id_card_no: '' })
+        setGPhotoFront('')
+        setGPhotoBack('')
+        setGPhotoOther('')
         setShowAddGuarantor(false)
         dialog.alert('担保人已保存')
       } else {
@@ -500,6 +546,24 @@ function SingleCheckout({ id, navigate }) {
                 </View>
                 <View className="mt-2">
                   <input className={inputClass} value={newGuarantor.address} onChange={e => setNewGuarantor(prev => ({ ...prev, address: e.target.value }))} placeholder="地址（选填）" />
+                </View>
+                {/* #1782: ID photo uploads */}
+                <View className="mt-2">
+                  <input className={inputClass} value={newGuarantor.id_card_no} onChange={e => setNewGuarantor(prev => ({ ...prev, id_card_no: e.target.value }))} placeholder="18位身份证号" />
+                </View>
+                <View className="flex gap-2 mt-2">
+                  <View className="flex-1 flex flex-col items-center text-center">
+                    <Text className="text-[10px] text-gray-500 mb-1">身份证正面*</Text>
+                    <IdPhotoUploader side="front" onChange={onFrontPhotoChange} />
+                  </View>
+                  <View className="flex-1 flex flex-col items-center text-center">
+                    <Text className="text-[10px] text-gray-500 mb-1">身份证反面*</Text>
+                    <IdPhotoUploader side="back" onChange={setGPhotoBack} />
+                  </View>
+                  <View className="flex-1 flex flex-col items-center text-center">
+                    <Text className="text-[10px] text-gray-500 mb-1">其他证件*</Text>
+                    <IdPhotoUploader side="other" onChange={setGPhotoOther} />
+                  </View>
                 </View>
                 <View className="flex gap-2 mt-3">
                   <Button

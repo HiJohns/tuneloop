@@ -2,6 +2,7 @@ package tencentcloud
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -46,6 +47,9 @@ func (p *RealOCRProvider) RecognizeIDCard(imagePath, cardSide string) (*IDCardIn
 
 	req := ocr.NewIDCardOCRRequest()
 	req.ImageBase64 = &imgBase64
+	// #1782 §1: 开启复印件/边框不完整/翻拍告警（辅助人工审核）。
+	configJSON := `{"CopyWarn":true,"BorderCheckWarn":true,"ReshootWarn":true}`
+	req.Config = &configJSON
 
 	resp, err := client.IDCardOCR(req)
 	if err != nil {
@@ -61,8 +65,32 @@ func (p *RealOCRProvider) RecognizeIDCard(imagePath, cardSide string) (*IDCardIn
 		IdNum:     getString(resp.Response.IdNum),
 		Authority: getString(resp.Response.Authority),
 		ValidDate: getString(resp.Response.ValidDate),
+		Warnings:  parseWarnInfos(resp.Response.AdvancedInfo),
 	}
 	return info, nil
+}
+
+// parseWarnInfos extracts WarnInfos codes from the AdvancedInfo JSON string and
+// maps them to human-readable labels (#1782 §1 CopyWarn/BorderCheckWarn/ReshootWarn).
+func parseWarnInfos(advancedInfo *string) []string {
+	if advancedInfo == nil || *advancedInfo == "" {
+		return nil
+	}
+	var adv struct {
+		WarnInfos []struct {
+			Code int `json:"Code"`
+		} `json:"WarnInfos"`
+	}
+	if err := json.Unmarshal([]byte(*advancedInfo), &adv); err != nil {
+		return nil
+	}
+	var warnings []string
+	for _, w := range adv.WarnInfos {
+		if label, ok := warnCodeLabels[w.Code]; ok {
+			warnings = append(warnings, label)
+		}
+	}
+	return warnings
 }
 
 func getString(p *string) string {
