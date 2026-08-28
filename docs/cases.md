@@ -1007,6 +1007,11 @@ flowchart TD
 
 **阶段1（顾客点归还）**：`ReturnOrder` 更新订单为 `returning`，前端跳转结算通知页（预估明细 + 感谢语，**不立即退款**）
 **阶段2（网点验收+定损）**：`InspectReturn` 计算逾期费（Ca−C）并持久化到 `damage_reports`；damaged 时走申诉 → `ResolveAppeal`/`AgreeDamage`
+**阶段2a（补缴订单防重复接收，#1799）**：
+  - 阶段3 结算若产生补缴（PayableShortfall>0），订单回退 `returning`（补缴完成前不关单，L-04C）
+  - **员工不可重复接收待补缴订单**：存在 pending `payment_shortfall` 记录时，`InspectReturn` 返回 40002「订单待顾客补缴，补缴完成后将自动完成，请勿重复接收」
+  - 订单详情页 returning + 有 pending 补缴 → 不显示「接收」按钮（避免误操作）
+  - **补缴完成后订单自动 completed**（支付回调闭环，员工无需再次操作）
 **阶段3（最终退款）**：订单进入 `completed` 时**自动触发**（#1537）：
   - 引擎：`computeSettlement` 按上述公式计算 → 退款（×r）或补缴
   - 退款顺序：赠点超 cap 部分 → 剩余退现金

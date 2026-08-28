@@ -436,15 +436,6 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		return
 	}
 
-	// Query shortfall amount for response (informs frontend to show "待补缴" message)
-	var shortfallAmount int64
-	var shortfallRecord models.OrderPaymentRecord
-	if err := db.Where("order_id = ? AND order_type = ? AND status = ?",
-		orderID, "payment_shortfall", "completed").
-		Order("created_at DESC").First(&shortfallRecord).Error; err == nil {
-		shortfallAmount = int64(shortfallRecord.Amount)
-	}
-
 	// Create the unified damage report (#1708): every acceptance — including
 	// good (no damage) — writes one row (the legacy assessment table is gone).
 	// The report also backs the damage notification's accept/reject buttons
@@ -620,6 +611,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	// the order, so compute actual rent and refund the difference.
 	notificationContent := ""
 	var completedOrder models.Order
+	var shortfallAmount int64 // #1799: >0 → 补缴场景（executeRefund 创建了 pending shortfall）
 	if req.Condition == "good" {
 		// Re-read the order so computeSettlement sees the completed status
 		// and updated returned_at.
@@ -630,6 +622,12 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 				log.Printf("[InspectReturn] Settlement failed for order %s: %v", orderID, err)
 			} else {
 				notificationContent = buildRefundReceipt(db, completedOrder, result)
+				// #1799: take shortfall from the settlement result — the pending
+				// shortfall record is created inside executeRefund, so querying
+				// the DB afterwards (or before) cannot reliably see it here.
+				if result.PayableShortfall > 0 {
+					shortfallAmount = int64(models.FromYuan(result.PayableShortfall))
+				}
 			}
 		}
 	}
