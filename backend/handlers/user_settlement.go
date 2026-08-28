@@ -822,9 +822,10 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 
 	// Deposit deduction: overdue fee (charged once at return, #1493) +
 	// damage deduction + logistics fee (filled by staff at SHIPPING page,
-	// #1541/#1621 — design moved fee entry to dispatch, not inspection).
+	// #1541/#1621 — design moved fee entry to dispatch, not inspection) +
+	// additional shipping fee (filled at return inspection, #1801).
 	// All come off the deposit; remainder participates in the refund.
-	shippingFee := order.ShippingFee.ToYuan()
+	shippingFee := order.ShippingFee.ToYuan() + report.AdditionalShippingFee.ToYuan()
 	if shippingFee < 0 {
 		shippingFee = 0
 	}

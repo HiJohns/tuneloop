@@ -803,6 +803,7 @@ type DamageReport struct {
 	ScanTime    *time.Time `json:"scan_time"`
 	OverdueDays int        `gorm:"default:0" json:"overdue_days"`
 	OverdueFee  Cents      `gorm:"type:bigint;default:0" json:"overdue_fee"`
+	AdditionalShippingFee Cents `gorm:"type:bigint;default:0" json:"additional_shipping_fee"` // #1801: 归还时追加物流费
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
 }

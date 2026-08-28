@@ -1693,13 +1693,14 @@ checkRule() - 权限位过滤
       - 此时不退款
 
 网点员工"接收"（returning）
-  → InspectReturn — 定损面板（无损坏/有损坏+拍照+备注）
-  ├── 路径 A：good（无损坏）→ 订单 → completed
-  │      → 差额结算退款（含物流费扣除、逾期费、赠点分账，见「退款差额结算与返点」）
+  → InspectReturn — 追缴费用区块（逾期未缴租金/追加物流费/损坏维修赔偿/备注 4 输入框）
+  │  有无损坏由「损坏维修赔偿」金额判断：=0 → 无损，>0 → 有损
+  ├── 路径 A：damage_amount=0（无损坏）→ 订单 → completed
+  │      → 差额结算退款（含物流费扣除、逾期费、追加物流费、赠点分账，见「退款差额结算与返点」）
   │      → 发完成通知（标准收据 + 感谢 + 赠点到账 + 会员中心链接）
   │      → 顾客看到退款明细，"已退款"状态
   │
-  └── 路径 B：damaged（有损坏）→ 订单 → pending_damage_response
+  └── 路径 B：damage_amount>0（有损坏）→ 订单 → pending_damage_response
          → 发系统通知给顾客（actionType=damage_accept_reject，
             ActionData 含 damage_amount/deposit/order_id）
          → MessageDetail 渲染"接受"/"拒绝"按钮

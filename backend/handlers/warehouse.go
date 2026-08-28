@@ -379,12 +379,14 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 // PUT /api/warehouse/orders/:id/return-inspect - Return inspection
 func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	var req struct {
-		InstrumentSN string    `json:"instrument_sn" binding:"required"`
-		ScanTime     time.Time `json:"scan_time" binding:"required"`
-		Condition    string    `json:"condition" binding:"required"`
-		Notes        string    `json:"notes"`
-		Photos       []string  `json:"photos" binding:"required"` // #1720 验收必须上传照片
-		DamageAmount float64   `json:"damage_amount"`             // staff-set compensation (#1544)
+		InstrumentSN          string    `json:"instrument_sn" binding:"required"`
+		ScanTime              time.Time `json:"scan_time" binding:"required"`
+		Condition             string    `json:"condition"` // #1801: now optional — derived from damage_amount if omitted
+		Notes                 string    `json:"notes"`
+		Photos                []string  `json:"photos" binding:"required"` // #1720 验收必须上传照片
+		DamageAmount          float64   `json:"damage_amount"`             // staff-set compensation (#1544)
+		OverdueFee            float64   `json:"overdue_fee"`               // #1801: 逾期未缴租金（元），员工手填覆盖自动计算值
+		AdditionalShippingFee float64   `json:"additional_shipping_fee"`   // #1801: 追加物流费（元）
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -395,6 +397,17 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	orderID := c.Param("id")
 	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(ctx)
+
+	// #1801: condition is now derived from damage_amount — employee no longer
+	// toggles "good/damaged" manually. If condition is explicitly provided
+	// (backward compat), honor it; otherwise derive.
+	if req.Condition == "" {
+		if req.DamageAmount > 0 {
+			req.Condition = "damaged"
+		} else {
+			req.Condition = "good"
+		}
+	}
 
 	if req.Condition != "good" && req.Condition != "damaged" {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "condition must be good or damaged"})
@@ -460,6 +473,10 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 			report.DamageAmount = models.ToCentsPtr(&req.DamageAmount)
 		}
 		report.DamageDescription = req.Notes
+	}
+	// #1801: save additional shipping fee to damage report
+	if req.AdditionalShippingFee > 0 {
+		report.AdditionalShippingFee = models.FromYuan(req.AdditionalShippingFee)
 	}
 	if err := db.Create(&report).Error; err != nil {
 		// Red line: never swallow — the damage report backs the
@@ -570,6 +587,10 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	// #1743: OverdueFee is a Cents column — store 分 (×100), not yuan. The
 	// settlement reads it via .ToYuan(), so writing yuan here silently shrank
 	// the fee by 100×.
+	// #1801: employee-filled overdue fee overrides auto-calculated value.
+	if req.OverdueFee > 0 {
+		overdueFee = req.OverdueFee
+	}
 	if overdueDays > 0 || overdueFee > 0 {
 		db.Model(&models.DamageReport{}).Where("id = ?", report.ID).
 			Updates(map[string]interface{}{"overdue_days": overdueDays, "overdue_fee": models.FromYuan(overdueFee)})

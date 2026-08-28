@@ -24,9 +24,10 @@ export default function StaffReceiveConfirm() {
   const [photoFiles, setPhotoFiles] = useState([])
   const [outboundPhotos, setOutboundPhotos] = useState([])
   const [photoSpecs, setPhotoSpecs] = useState([])
-  const [hasDamage, setHasDamage] = useState(false)
-  const [damageReason, setDamageReason] = useState('')
+  const [overdueFee, setOverdueFee] = useState('')
+  const [additionalShippingFee, setAdditionalShippingFee] = useState('')
   const [damageAmount, setDamageAmount] = useState('')
+  const [damageReason, setDamageReason] = useState('')
 
   useEffect(() => {
     const fetchData = async () => {
@@ -62,10 +63,6 @@ export default function StaffReceiveConfirm() {
   }, [instrument?.category_id])
 
   const handleConfirmReceive = async () => {
-    if (hasDamage && (!damageReason.trim() || !damageAmount.trim())) {
-      dialog.alert('请填写定损理由和金额')
-      return
-    }
     setSubmitting(true)
     const token = storage.getItem('token') || session.getItem('token')
     try {
@@ -77,15 +74,17 @@ export default function StaffReceiveConfirm() {
         const uploadResult = env.isMiniProgram ? JSON.parse(uploadResp.data || '{}') : await uploadResp.json()
         if (uploadResult.code === 20000 && uploadResult.data?.url) { photoUrls.push(uploadResult.data.url) }
       }
-      const condition = hasDamage ? 'damaged' : 'good'
+      const dmgAmt = parseFloat(damageAmount) || 0
       const resp = await apiFetch(`${baseUrl}/warehouse/orders/${orderId}/return-inspect`, {
         method: 'PUT',
         body: JSON.stringify({
           instrument_sn: instrument?.sn,
           scan_time: new Date().toISOString(),
-          condition,
-          notes: hasDamage ? damageReason.trim() : '验收通过',
+          notes: damageReason.trim() || '验收通过',
           photos: photoUrls,
+          damage_amount: dmgAmt,
+          overdue_fee: parseFloat(overdueFee) || 0,
+          additional_shipping_fee: parseFloat(additionalShippingFee) || 0,
         }),
       })
       const result = await resp.json()
@@ -98,7 +97,7 @@ export default function StaffReceiveConfirm() {
         }
         if (env.isMiniProgram) {
           Taro.navigateBack()
-        } else if (condition === 'good') {
+        } else if (dmgAmt <= 0) {
           navigate(`/return-settlement?order_id=${orderId}`)
         } else {
           navigate('/staff/orders')
@@ -172,35 +171,33 @@ export default function StaffReceiveConfirm() {
         <ImageUploader maxImages={5} onChange={(files) => setPhotoFiles(files)} />
       </View>
 
-      {/* Damage Assessment */}
+      {/* 追缴费用区块 (#1801) */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <Text className="text-base font-black text-black mb-3 flex items-center gap-2">
-          <AlertTriangle size={18} />定损
+          <AlertTriangle size={18} />追缴费用
         </Text>
-        <View className="flex gap-3 mb-3">
-          <Button onClick={() => { setHasDamage(false); setDamageReason(''); setDamageAmount('') }}
-            className={`flex-1 py-2 rounded-lg font-bold text-sm ${!hasDamage ? 'bg-green-100 text-green-700 border-2 border-green-500' : 'bg-zinc-100 text-zinc-500'}`}>
-            无损坏
-          </Button>
-          <Button onClick={() => setHasDamage(true)}
-            className={`flex-1 py-2 rounded-lg font-bold text-sm ${hasDamage ? 'bg-red-100 text-red-700 border-2 border-red-500' : 'bg-zinc-100 text-zinc-500'}`}>
-            有损坏
-          </Button>
-        </View>
-        {hasDamage && (
-          <View className="space-y-3">
-            <View>
-              <Text className="text-xs font-bold text-zinc-500 mb-1">定损理由</Text>
-              <Input value={damageReason} onInput={e => setDamageReason(getInputValue(e))}
-                placeholder="请描述损坏情况" className="w-full border rounded-lg px-3 py-2 text-sm" />
-            </View>
-            <View>
-              <Text className="text-xs font-bold text-zinc-500 mb-1">定损金额</Text>
-              <Input type="number" value={damageAmount} onInput={e => setDamageAmount(getInputValue(e))}
-                placeholder="请输入定损金额" className="w-full border rounded-lg px-3 py-2 text-sm" />
-            </View>
+        <View className="space-y-3">
+          <View>
+            <Text className="text-xs font-bold text-zinc-500 mb-1">逾期未缴租金（元）</Text>
+            <Input type="number" value={overdueFee} onInput={e => setOverdueFee(getInputValue(e))}
+              placeholder="0.00" className="w-full border rounded-lg px-3 py-2 text-sm" />
           </View>
-        )}
+          <View>
+            <Text className="text-xs font-bold text-zinc-500 mb-1">追加物流费（元）</Text>
+            <Input type="number" value={additionalShippingFee} onInput={e => setAdditionalShippingFee(getInputValue(e))}
+              placeholder="0.00" className="w-full border rounded-lg px-3 py-2 text-sm" />
+          </View>
+          <View>
+            <Text className="text-xs font-bold text-zinc-500 mb-1">损坏维修赔偿（元）</Text>
+            <Input type="number" value={damageAmount} onInput={e => setDamageAmount(getInputValue(e))}
+              placeholder="0.00（填0表示无损坏）" className="w-full border rounded-lg px-3 py-2 text-sm" />
+          </View>
+          <View>
+            <Text className="text-xs font-bold text-zinc-500 mb-1">备注说明</Text>
+            <Input value={damageReason} onInput={e => setDamageReason(getInputValue(e))}
+              placeholder="选填" className="w-full border rounded-lg px-3 py-2 text-sm" />
+          </View>
+        </View>
       </View>
       </ScrollView>
 

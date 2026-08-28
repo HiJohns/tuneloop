@@ -5500,14 +5500,23 @@ PUT /api/warehouse/orders/:id/return-inspect
   "instrument_sn": "SN123456",
   "scan_time": "2024-01-31T10:00:00Z",
   "photos": ["url1", "url2"],
-  "condition": "good",
-  "notes": "外观完好"
+  "notes": "外观完好",
+  "damage_amount": 0,
+  "overdue_fee": 0,
+  "additional_shipping_fee": 0
 }
 ```
 
-**condition 说明**:
-- `good`: 正常，直接进入在库状态
-- `damaged`: 损坏，进入定损流程
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|:---:|------|
+| `instrument_sn` | string | ✅ | 乐器序列号 |
+| `scan_time` | ISO8601 | ✅ | 验收扫描时间 |
+| `photos` | string[] | ✅ | 验收照片 URL 列表 |
+| `notes` | string | ❌ | 备注说明 |
+| `damage_amount` | float | ❌ | 损坏维修赔偿金额（元）。>0 → condition 自动推导为 `damaged`（pending_damage_response）；=0 → `good`（订单完成+结算） |
+| `overdue_fee` | float | ❌ | 逾期未缴租金（元）。员工手填覆盖自动计算值，未填时用自动值 |
+| `additional_shipping_fee` | float | ❌ | 追加物流费（元）。入结算 shipping 合计 |
+| `condition` | string | ❌ | 向后兼容字段。现由 `damage_amount` 推导，无需前端显式传递 |
 
 **响应**:
 ```json

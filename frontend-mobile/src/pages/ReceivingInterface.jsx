@@ -17,7 +17,8 @@ export default function ReceivingInterface() {
   const [currentItem, setCurrentItem] = useState(null)
   const [currentSN, setCurrentSN] = useState('')
   const [orderData, setOrderData] = useState(null)
-  const [condition, setCondition] = useState('')
+  const [overdueFee, setOverdueFee] = useState('')
+  const [additionalShippingFee, setAdditionalShippingFee] = useState('')
   const [damageDesc, setDamageDesc] = useState('')
   const [damageAmount, setDamageAmount] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -125,17 +126,17 @@ export default function ReceivingInterface() {
         body: JSON.stringify({
           instrument_sn: currentSN,
           scan_time: new Date().toISOString(),
-          condition,
-          notes: condition === 'damaged' ? damageDesc : '',
+          notes: damageDesc.trim() || '验收通过',
           photos: photoUrls,
-          // L-04: 一次提交带 damage_amount（后端 damaged 时创建定损报告并
-          // 通知顾客决策），不再单独调 /damage 二次定损
-          damage_amount: condition === 'damaged' ? (parseFloat(damageAmount) || 0) : 0,
+          damage_amount: parseFloat(damageAmount) || 0,
+          overdue_fee: parseFloat(overdueFee) || 0,
+          additional_shipping_fee: parseFloat(additionalShippingFee) || 0,
         }),
       })
       const result = await resp.json()
       if (result.code === 20000) {
-        if (condition === 'damaged') {
+        const dmgAmt = parseFloat(damageAmount) || 0
+        if (dmgAmt > 0) {
           dialog.alert('已提交定损，已通知顾客确认')
         } else {
           const sa = result.data?.shortfall_amount || 0
@@ -149,7 +150,7 @@ export default function ReceivingInterface() {
         return
       }
       dialog.alert('失败: ' + resolveErrorMessage(result))
-      setCurrentItem(null); setCurrentSN(''); setCondition(''); setDamageDesc(''); setDamageAmount(''); setOrderID(null); setOutboundPhotos([]); setCapturedPhotos([])
+      setCurrentItem(null); setCurrentSN(''); setOverdueFee(''); setAdditionalShippingFee(''); setDamageDesc(''); setDamageAmount(''); setOrderID(null); setOutboundPhotos([]); setCapturedPhotos([])
     } catch (err) { dialog.alert('错误: ' + err.message) }
     setSubmitting(false)
   }
@@ -249,37 +250,37 @@ export default function ReceivingInterface() {
         </View>
       )}
 
-      {/* Damage Assessment */}
+      {/* 追缴费用区块 (#1801) */}
       {currentItem && (
         <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
-          <Text className="text-base font-black text-black mb-3 flex items-center gap-2"><AlertTriangle size={18} />定损评估</Text>
-          <View className="flex gap-3 mb-3">
-            <Button onClick={() => setCondition('good')}
-              className={`flex-1 py-2 rounded-lg font-bold text-sm ${condition === 'good' ? 'bg-green-100 text-green-700 border-2 border-green-500' : 'bg-zinc-100 text-zinc-500'}`}>无损坏</Button>
-            <Button onClick={() => { setCondition('damaged'); if (!damageAmount) setDamageAmount('0') }}
-              className={`flex-1 py-2 rounded-lg font-bold text-sm ${condition === 'damaged' ? 'bg-red-100 text-red-700 border-2 border-red-500' : 'bg-zinc-100 text-zinc-500'}`}>有损坏</Button>
+          <Text className="text-base font-black text-black mb-3 flex items-center gap-2"><AlertTriangle size={18} />追缴费用</Text>
+          <View className="space-y-3">
+            <View>
+              <Text className="text-xs font-bold text-zinc-500 mb-1">逾期未缴租金（元）</Text>
+              <Input type="number" value={overdueFee} onInput={e => setOverdueFee(getInputValue(e))} placeholder="0.00" className="w-full border rounded-lg px-3 py-2 text-sm" />
+            </View>
+            <View>
+              <Text className="text-xs font-bold text-zinc-500 mb-1">追加物流费（元）</Text>
+              <Input type="number" value={additionalShippingFee} onInput={e => setAdditionalShippingFee(getInputValue(e))} placeholder="0.00" className="w-full border rounded-lg px-3 py-2 text-sm" />
+            </View>
+            <View>
+              <Text className="text-xs font-bold text-zinc-500 mb-1">损坏维修赔偿（元）</Text>
+              <Input type="number" value={damageAmount} onInput={e => setDamageAmount(getInputValue(e))} placeholder="0.00（填0表示无损坏）" className="w-full border rounded-lg px-3 py-2 text-sm" />
+            </View>
+            <View>
+              <Text className="text-xs font-bold text-zinc-500 mb-1">备注说明</Text>
+              <Input value={damageDesc} onInput={e => setDamageDesc(getInputValue(e))} placeholder="选填" className="w-full border rounded-lg px-3 py-2 text-sm" />
+            </View>
           </View>
-          {condition === 'damaged' && (
-            <View className="space-y-3">
-              <View>
-                <Text className="text-xs font-bold text-zinc-500 mb-1">损坏描述</Text>
-                <Input value={damageDesc} onInput={e => setDamageDesc(getInputValue(e))} placeholder="描述损坏情况" className="w-full border rounded-lg px-3 py-2 text-sm" />
-              </View>
-              <View>
-                <Text className="text-xs font-bold text-zinc-500 mb-1">定损金额</Text>
-                <Input type="number" value={damageAmount} onInput={e => setDamageAmount(getInputValue(e))} placeholder="请输入金额" className="w-full border rounded-lg px-3 py-2 text-sm" />
-               </View>
-             </View>
-           )}
-         </View>
+        </View>
       )}
       </ScrollView>
 
       {/* Submit Button */}
       {currentItem && (
         <View className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 safe-area-pb shadow-2xl">
-          <Button onClick={handleSubmit} disabled={submitting || !condition}
-            style={{ width: '100%', margin: 0, backgroundColor: '#16a34a', color: '#fff', fontWeight: '800', fontSize: 16, height: 48, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', letterSpacing: '0.05em', opacity: submitting || !condition ? 0.5 : 1 }}>
+          <Button onClick={handleSubmit} disabled={submitting || capturedPhotos.length === 0}
+            style={{ width: '100%', margin: 0, backgroundColor: '#16a34a', color: '#fff', fontWeight: '800', fontSize: 16, height: 48, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', letterSpacing: '0.05em', opacity: submitting || capturedPhotos.length === 0 ? 0.5 : 1 }}>
             {submitting ? '处理中...' : '确认接收'}
           </Button>
         </View>
