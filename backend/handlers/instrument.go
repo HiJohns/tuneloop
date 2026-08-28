@@ -976,8 +976,10 @@ func DeleteInstrument(c *gin.Context) {
 		switch reason {
 		case "instrument not found":
 			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": reason})
-		case "instrument in use", "instrument has linked orders":
+		case "instrument in use":
 			c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": reason})
+		case "instrument has linked orders":
+			c.JSON(http.StatusConflict, gin.H{"code": 40901, "message": reason})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": reason})
 		}
@@ -999,6 +1001,10 @@ func BatchDeleteInstruments(c *gin.Context) {
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
+		return
+	}
+	if len(req.IDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "ids must not be empty"})
 		return
 	}
 

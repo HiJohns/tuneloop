@@ -939,7 +939,7 @@
 |------|---------|---------|
 | 40400 | `instrument not found` | 乐器不存在 |
 | 40900 | `instrument in use` | 乐器正在使用中，无法删除 |
-| 40900 | `instrument has linked orders` | 乐器存在关联订单（历史交易），无法删除 |
+| 40901 | `instrument has linked orders` | 乐器存在关联订单（历史交易），无法删除 |
 | 50000 | `delete instrument failed` | 删除乐器失败，请重试 |
 
 ---
