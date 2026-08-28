@@ -58,10 +58,26 @@ func refundFlowSeed(t *testing.T, tenantID, orgID, userID string) (string, strin
 		UserID: userID, InstrumentID: inst.ID,
 		StartDate: strPtr("2026-07-01"), EndDate: strPtr("2026-07-30"),
 		LeaseTerm: 30, Status: models.OrderStatusReturning,
-		Deposit: models.FromYuan(500), CashPaid: models.FromYuan(30),
+		Deposit: models.FromYuan(500), CashPaid: models.FromYuan(3000), // #1806: #1726 迁移时 3000 误写成 30（丢两位）
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
+	// #1806: #1724 computeDamageRefund 改从 paid payment records 读 paidTotal；
+	// seed 需配套创建 rent paid record，否则 paidTotal=0 → refund<damage → 走补缴分支。
+	outTradeNo := "mock" + uuid.New().String()[:20]
+	require.NoError(t, db.Create(&models.OrderPaymentRecord{
+		ID:         uuid.New().String(),
+		TenantID:   tenantID,
+		OrgID:      &orgID,
+		UserID:     userID,
+		OrderID:    &order.ID,
+		OrderType:  "rent",
+		Amount:     models.FromYuan(3500), // deposit 500 + rent 3000
+		Type:       "payment",
+		Status:     "paid",
+		Method:     strPtr("mock"),
+		OutTradeNo: &outTradeNo,
+	}).Error)
 	return order.ID, inst.ID
 }
 
@@ -80,6 +96,7 @@ func TestRefundPath2_AcceptThenStaffRefund(t *testing.T) {
 	inspectBody, _ := json.Marshal(map[string]interface{}{
 		"instrument_sn": "RF-A", "scan_time": time.Now().UTC(),
 		"condition": "damaged", "damage_amount": 200, "notes": "划痕",
+		"photos": []string{"/uploads/media/test-inspect.jpg"}, // #1806: #1720 验收必须上传照片
 	})
 	req := httptest.NewRequest("PUT", "/api/warehouse/orders/"+orderID+"/return-inspect", bytes.NewBuffer(inspectBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -160,6 +177,7 @@ func TestDamageNotificationRefID(t *testing.T) {
 	inspectBody, _ := json.Marshal(map[string]interface{}{
 		"instrument_sn": "RF-D", "scan_time": time.Now().UTC(),
 		"condition": "damaged", "damage_amount": 150, "notes": "划痕",
+		"photos": []string{"/uploads/media/test-inspect.jpg"}, // #1806: #1720 验收必须上传照片
 	})
 	req := httptest.NewRequest("PUT", "/api/warehouse/orders/"+orderID+"/return-inspect", bytes.NewBuffer(inspectBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -190,6 +208,7 @@ func TestAssessDamage_StatePreserved(t *testing.T) {
 	inspectBody, _ := json.Marshal(map[string]interface{}{
 		"instrument_sn": "RF-E", "scan_time": time.Now().UTC(),
 		"condition": "damaged", "damage_amount": 200, "notes": "划痕",
+		"photos": []string{"/uploads/media/test-inspect.jpg"}, // #1806: #1720 验收必须上传照片
 	})
 	req := httptest.NewRequest("PUT", "/api/warehouse/orders/"+orderID+"/return-inspect", bytes.NewBuffer(inspectBody))
 	req.Header.Set("Content-Type", "application/json")

@@ -140,7 +140,10 @@ func TestLeaseEarlyReturn(t *testing.T) {
 	testutil.AssertState(t, orderID, models.OrderStatusShipped)
 
 	// Step 4: Deliver (30d ago → lease end today).
-	deliverBody, _ := json.Marshal(map[string]interface{}{"delivered_at": deliveredAt})
+	deliverBody, _ := json.Marshal(map[string]interface{}{
+		"delivered_at": deliveredAt,
+		"photos":       []string{"/uploads/media/test-delivery.jpg"}, // #1806: #1720 收货必须上传照片
+	})
 	req = httptest.NewRequest("PUT", "/api/warehouse/orders/"+orderID+"/delivery", bytes.NewBuffer(deliverBody))
 	req.Header.Set("Content-Type", "application/json")
 	w = httptest.NewRecorder()
@@ -179,15 +182,17 @@ func TestLeaseEarlyReturn(t *testing.T) {
 	var settlement models.Settlement
 	require.NoError(t, db.Where("order_id = ?", orderID).First(&settlement).Error)
 	require.Equal(t, 28, settlement.ActualRentDays)
-	require.Equal(t, 2800.0, settlement.ActualRentAmount)
-	require.Equal(t, 0.0, settlement.OverdueChargesTotal)
-	require.Equal(t, 700.0, settlement.CashRefundable, "3000 rent + 500 deposit - 2800 payable")
+	require.Equal(t, models.Cents(280000), settlement.ActualRentAmount)                                        // #1806: #1726 Cents 迁移后断言单位未同步
+	require.Equal(t, models.Cents(0), settlement.OverdueChargesTotal)                                          // #1806
+	require.Equal(t, models.Cents(70000), settlement.CashRefundable, "3000 rent + 500 deposit - 2800 payable") // #1806
 
-	// Step 8: Refund record booked (mock).
+	// Step 8: Refund record booked (mock). With a paid payment record, the
+	// refund goes through WeChat Pay async — record stays "pending" until the
+	// callback (#1530). Only the no-payment-record path marks "refunded" inline.
 	var refundRecord models.OrderRefundRecord
 	require.NoError(t, db.Where("tenant_id = ?", tenantID).Order("created_at desc").First(&refundRecord).Error)
-	assert.Equal(t, "refunded", refundRecord.Status)
-	assert.Equal(t, 700.0, refundRecord.Amount)
+	assert.Equal(t, "pending", refundRecord.Status)           // #1806: async refund → pending until callback
+	assert.Equal(t, models.Cents(70000), refundRecord.Amount) // #1806
 
 	// Step 9: Instrument returned to available.
 	var instrument models.Instrument
