@@ -922,6 +922,60 @@
 
 ---
 
+#### 5.6.4 乐器删除
+
+**接口**: `DELETE /api/instruments/:id`
+
+**说明**: 删除单个乐器。乐器有关联订单或正在使用时拒绝删除。
+
+**响应（成功）**:
+```json
+{ "code": 20000, "message": "乐器已删除" }
+```
+
+**错误码**（machine-readable English message，前端按 #1675 L1 映射）:
+
+| code | message | 前端显示 |
+|------|---------|---------|
+| 40400 | `instrument not found` | 乐器不存在 |
+| 40900 | `instrument in use` | 乐器正在使用中，无法删除 |
+| 40900 | `instrument has linked orders` | 乐器存在关联订单（历史交易），无法删除 |
+| 50000 | `delete instrument failed` | 删除乐器失败，请重试 |
+
+---
+
+#### 5.6.5 批量删除乐器
+
+**接口**: `DELETE /api/instruments/batch`
+
+**说明**: 批量删除乐器，部分成功语义——逐个 ID 独立校验。
+
+**请求 Body**:
+```json
+{
+  "ids": ["uuid-1", "uuid-2", "uuid-3"]
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "deleted": ["uuid-1"],
+  "failed": [
+    { "id": "uuid-2", "reason": "instrument has linked orders" },
+    { "id": "uuid-3", "reason": "instrument in use" }
+  ]
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| `deleted` | 成功删除的 ID 列表 |
+| `failed` | 删除失败的列表，每项含 `id` + `reason`（machine-readable English，前端按 L1 映射） |
+
+---
+
 ### 5.7 Excel批量导入/导出
 
 #### 5.7.1 导入乐器信息

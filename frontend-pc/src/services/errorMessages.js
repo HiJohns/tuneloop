@@ -71,6 +71,10 @@ export const ERROR_MESSAGE_MAP = {
   'registration session not found or not pending': '注册会话已失效，请重新提交',
   'registration session expired, please resubmit': '注册会话已过期，请重新提交',
   'wx_user_not_found': '该微信尚未注册，请先注册会员',
+  // #1798: instrument delete error messages (machine-readable English from backend)
+  'instrument in use': '乐器正在使用中，无法删除',
+  'instrument has linked orders': '乐器存在关联订单（历史交易），无法删除',
+  'delete instrument failed': '删除乐器失败，请重试',
 }
 
 // 解析器（唯一出口）

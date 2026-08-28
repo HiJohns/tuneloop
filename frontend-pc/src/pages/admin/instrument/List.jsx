@@ -4,6 +4,7 @@ import { Table, Button, Input, Space, Tag, Image, message, Popconfirm, Select, M
 import { Row, Col } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, ImportOutlined, ExportOutlined, CloseCircleFilled } from '@ant-design/icons'
 import { api, instrumentsApi } from '../../../services/api'
+import { resolveErrorMessage } from '../../../services/errorMessages'
 import InstrumentForm from './Form'
 import PermissionGate from '../../../components/PermissionGate'
 
@@ -282,7 +283,17 @@ export default function InstrumentList() {
           })
           
           if (result.code === 20000) {
-            message.success(`已成功删除 ${selectedRowKeys.length} 个乐器`)
+            const deletedCount = (result.deleted || []).length
+            const failedItems = result.failed || []
+            if (failedItems.length === 0) {
+              message.success(`已成功删除 ${deletedCount} 个乐器`)
+            } else {
+              const reasons = failedItems.map(f => resolveErrorMessage({ message: f.reason }, f.reason)).join('；')
+              Modal.warning({
+                title: `成功删除 ${deletedCount} 个，${failedItems.length} 个失败`,
+                content: reasons,
+              })
+            }
             setSelectedRowKeys([])
             fetchInstruments(pagination.page, pagination.pageSize)
           } else {

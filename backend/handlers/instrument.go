@@ -939,6 +939,31 @@ func GetInstrumentLevels(c *gin.Context) {
 	})
 }
 
+// deleteInstrumentWithChecks validates deletion eligibility and performs delete.
+// Returns a machine-readable reason code if deletion is blocked, empty string on success.
+// Used by both single and batch delete to avoid logic duplication (#1798).
+func deleteInstrumentWithChecks(db *gorm.DB, tenantID, instrumentID string) (reason string) {
+	var instrument models.Instrument
+	if err := db.Where("id = ? AND tenant_id = ?", instrumentID, tenantID).First(&instrument).Error; err != nil {
+		return "instrument not found"
+	}
+
+	if instrument.StockStatus == models.StockStatusRented {
+		return "instrument in use"
+	}
+
+	var orderCount int64
+	db.Model(&models.Order{}).Where("instrument_id = ?", instrumentID).Count(&orderCount)
+	if orderCount > 0 {
+		return "instrument has linked orders"
+	}
+
+	if err := db.Delete(&instrument).Error; err != nil {
+		return "delete instrument failed"
+	}
+	return ""
+}
+
 // DeleteInstrument handles DELETE /api/instruments/:id
 func DeleteInstrument(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -946,29 +971,51 @@ func DeleteInstrument(c *gin.Context) {
 	tenantID := middleware.GetTenantID(ctx)
 	instrumentID := c.Param("id")
 
-	var instrument models.Instrument
-	if err := db.Where("id = ? AND tenant_id = ?", instrumentID, tenantID).First(&instrument).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "乐器不存在"})
-		return
-	}
-
-	if instrument.StockStatus == models.StockStatusRented {
-		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "乐器正在使用中，无法删除"})
-		return
-	}
-
-	// Check for linked orders before deletion
-	var orderCount int64
-	db.Model(&models.Order{}).Where("instrument_id = ?", instrumentID).Count(&orderCount)
-	if orderCount > 0 {
-		c.JSON(http.StatusConflict, gin.H{"code": 40901, "message": "乐器有关联订单，无法删除"})
-		return
-	}
-
-	if err := db.Delete(&instrument).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "删除乐器失败"})
+	reason := deleteInstrumentWithChecks(db, tenantID, instrumentID)
+	if reason != "" {
+		switch reason {
+		case "instrument not found":
+			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": reason})
+		case "instrument in use", "instrument has linked orders":
+			c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": reason})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": reason})
+		}
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "乐器已删除"})
+}
+
+// BatchDeleteInstruments handles DELETE /api/instruments/batch (#1798).
+// Partial-success semantics: each id is processed independently.
+func BatchDeleteInstruments(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	tenantID := middleware.GetTenantID(ctx)
+
+	var req struct {
+		IDs []string `json:"ids" binding:"required,dive,required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
+		return
+	}
+
+	var deleted []string
+	var failed []map[string]string
+	for _, id := range req.IDs {
+		reason := deleteInstrumentWithChecks(db, tenantID, id)
+		if reason == "" {
+			deleted = append(deleted, id)
+		} else {
+			failed = append(failed, map[string]string{"id": id, "reason": reason})
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"deleted": deleted,
+		"failed":  failed,
+	})
 }
