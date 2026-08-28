@@ -399,14 +399,16 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	tenantID := middleware.GetTenantID(ctx)
 
 	// #1801: condition is now derived from damage_amount — employee no longer
-	// toggles "good/damaged" manually. If condition is explicitly provided
-	// (backward compat), honor it; otherwise derive.
-	if req.Condition == "" {
-		if req.DamageAmount > 0 {
-			req.Condition = "damaged"
-		} else {
-			req.Condition = "good"
-		}
+	// toggles "good/damaged" manually. If an explicit condition conflicts with
+	// damage_amount (legacy frontend), damage_amount wins — a positive damage
+	// amount must never silently complete an order without customer
+	// confirmation (L-04 pending_damage_response).
+	derivedCondition := "good"
+	if req.DamageAmount > 0 {
+		derivedCondition = "damaged"
+	}
+	if req.Condition == "" || req.Condition != derivedCondition {
+		req.Condition = derivedCondition
 	}
 
 	if req.Condition != "good" && req.Condition != "damaged" {

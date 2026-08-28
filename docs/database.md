@@ -436,6 +436,12 @@ photos:
 | assessed_at | TIMESTAMP | | 定损时间 |
 | deposit_deducted | DECIMAL(10,2) | DEFAULT 0 | 已扣除押金 |
 | status | VARCHAR(20) | DEFAULT 'pending', INDEX | 状态 |
+| condition | VARCHAR(20) | | 验收结果（good/damaged，#1708 并入） |
+| notes | TEXT | | 备注说明（#1801 追缴费用区块第 4 输入框） |
+| scan_time | TIMESTAMP | | 验收扫描时间 |
+| overdue_days | INT | DEFAULT 0 | 逾期天数 |
+| overdue_fee | BIGINT | DEFAULT 0 | 逾期费（分，#1743 Cents 列） |
+| additional_shipping_fee | BIGINT | DEFAULT 0 | 追加物流费（分，#1801 归还验收时员工填写，结算合入 shipping 费用） |
 | created_at | TIMESTAMP | | 创建时间 |
 | updated_at | TIMESTAMP | | 更新时间 |
 
