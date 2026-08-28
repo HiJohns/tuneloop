@@ -5492,7 +5492,7 @@ PUT /api/warehouse/orders/:id/delivery
 
 ### 8.4 归还验收
 ```
-POST /api/warehouse/orders/:id/inspect
+PUT /api/warehouse/orders/:id/return-inspect
 ```
 **请求体**:
 ```json
@@ -5515,10 +5515,17 @@ POST /api/warehouse/orders/:id/inspect
   "code": 20000,
   "message": "success",
   "data": {
-    "status": "completed"  // 或 "inspecting"
+    "status": "completed",
+    "shortfall_amount": 0
   }
 }
 ```
+
+**shortfall_amount**: 单位分。>0 表示补缴场景（executeRefund 创建了 payment_shortfall 待补缴记录，订单已回退 returning），前端应提示「已发起结算，待顾客补缴 ¥x.xx，补缴完成后订单自动完成」。
+
+**重复接收防御 (#1799)**:
+- 当订单存在 pending 状态的 `payment_shortfall` 记录时，拒绝重复接收
+- 错误码 `40002`，message: `订单待顾客补缴，补缴完成后将自动完成，请勿重复接收`
 
 ### 8.5 开始定损
 ```

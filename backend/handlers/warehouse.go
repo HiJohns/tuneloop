@@ -410,6 +410,28 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		return
 	}
 
+	// #1799: Block duplicate receive when a pending payment_shortfall exists.
+	// First receive creates the shortfall record and rolls back order to returning;
+	// a second receive would bypass the shortfall and mark the order completed
+	// while the customer still owes money.
+	var pendingShortfall int64
+	db.Model(&models.OrderPaymentRecord{}).
+		Where("order_id = ? AND order_type = ? AND status = ?", orderID, "payment_shortfall", "pending").
+		Count(&pendingShortfall)
+	if pendingShortfall > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "订单待顾客补缴，补缴完成后将自动完成，请勿重复接收"})
+		return
+	}
+
+	// Query shortfall amount for response (informs frontend to show "待补缴" message)
+	var shortfallAmount int64
+	var shortfallRecord models.OrderPaymentRecord
+	if err := db.Where("order_id = ? AND order_type = ? AND status = ?",
+		orderID, "payment_shortfall", "completed").
+		Order("created_at DESC").First(&shortfallRecord).Error; err == nil {
+		shortfallAmount = int64(shortfallRecord.Amount)
+	}
+
 	// Create the unified damage report (#1708): every acceptance — including
 	// good (no damage) — writes one row (the legacy assessment table is gone).
 	// The report also backs the damage notification's accept/reject buttons
@@ -665,6 +687,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 			"overdue_days":       overdueDays,
 			"overdue_daily_rate": overdueDailyRate,
 			"overdue_fee":        overdueFee,
+			"shortfall_amount":   shortfallAmount, // #1799: >0 → 补缴场景，前端切换文案
 		},
 	})
 }

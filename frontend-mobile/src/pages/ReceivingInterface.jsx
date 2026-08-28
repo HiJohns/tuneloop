@@ -138,7 +138,12 @@ export default function ReceivingInterface() {
         if (condition === 'damaged') {
           dialog.alert('已提交定损，已通知顾客确认')
         } else {
-          dialog.alert('验收通过，结算退款已自动发起')
+          const sa = result.data?.shortfall_amount || 0
+          if (sa > 0) {
+            dialog.alert(`已发起结算，待顾客补缴 ¥${(sa / 100).toFixed(2)}，补缴完成后订单自动完成`)
+          } else {
+            dialog.alert('验收通过，结算退款已自动发起')
+          }
         }
         env.isMiniProgram ? Taro.navigateBack() : navigate('/staff/orders')
         return

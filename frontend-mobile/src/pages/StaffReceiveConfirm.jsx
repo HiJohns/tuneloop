@@ -90,7 +90,12 @@ export default function StaffReceiveConfirm() {
       })
       const result = await resp.json()
       if (result.code === 20000) {
-        dialog.alert('接收确认成功')
+        const sa = result.data?.shortfall_amount || 0
+        if (sa > 0) {
+          dialog.alert(`已发起结算，待顾客补缴 ¥${(sa / 100).toFixed(2)}，补缴完成后订单自动完成`)
+        } else {
+          dialog.alert('接收确认成功')
+        }
         if (env.isMiniProgram) {
           Taro.navigateBack()
         } else if (condition === 'good') {

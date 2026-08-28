@@ -371,7 +371,7 @@ export default function OrderDetail() {
 
   const showStaffShip = isStaff && (status === 'paid' || status === 'pending_shipment')
   const showStaffTransit = isStaff && status === 'in_transit'
-  const showStaffReceive = isStaff && status === 'returning'
+  const showStaffReceive = isStaff && status === 'returning' && !order.settlement?.payable_shortfall
   const showStaffRefund = isStaff && status === 'deposit_refunding'
   // Staff cancel only on cancellable states, grouped with ship actions —
   // NOT in the guarantor panel (#1623).
