@@ -3115,7 +3115,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 - **N+1 优化（R2 H6）**：列表接口批量 IN 预查买家状态，禁止逐行查批次表
 
 **发货强制校验（#1791 T3 R1）**:
-- `PUT /api/warehouse/orders/:id/shipping`：买家 `id_verify_status != verified` → `40002`「用户未完成实名核身，请联系平台运营完成审核」
+- `PUT /api/warehouse/orders/:id/shipping`：买家 `id_verify_status != verified` → `40002`（message=`user id verification required`，前端 L1 映射「用户未完成实名核身，请联系平台运营完成审核」，#1675 机器码约定）
 - **无豁免，全量强制**（校验权威在后端，前端置灰仅为 UX）
 
 ---

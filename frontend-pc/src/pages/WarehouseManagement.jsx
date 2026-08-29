@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Table, Tag, Button, Card, Typography, Space, Modal, Descriptions, Steps, message, Select, Upload, Input } from 'antd';
+import { Table, Tag, Button, Card, Typography, Space, Modal, Descriptions, Steps, message, Select, Upload, Input, Tooltip } from 'antd';
 import { TruckOutlined, CheckCircleOutlined, EyeOutlined, CameraOutlined, QrcodeOutlined } from '@ant-design/icons';
 import { api } from '../services/api';
 // import QrScanner from 'qr-scanner';  // Temporarily disabled - install dependency to enable
@@ -108,7 +108,9 @@ export default function WarehouseManagement() {
       message.success('物流信息已更新');
       fetchOrders();
     } catch (error) {
-      message.error('更新失败');
+      // #1793 T5: 非静默——展示后端错误（40002 核身拒绝 → resolveErrorMessage
+      // 已翻译为「用户未完成实名核身…」）
+      message.error(error.message || '更新失败');
     }
   };
 
@@ -198,10 +200,17 @@ export default function WarehouseManagement() {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      render: (status) => {
-        const config = getStatusConfig(status);
-        return <Tag color={config.color}>{config.text}</Tag>;
-      }
+      render: (status, record) => (
+        <Space direction="vertical" size={2}>
+          <Tag color={getStatusConfig(status).color}>{getStatusConfig(status).text}</Tag>
+          {/* #1793 T5: 待发货订单核身角标（仅聚合状态，无敏感字段） */}
+          {status === 'paid' && record.user_id_verify_status && record.user_id_verify_status !== 'verified' && (
+            <Tag color={record.user_id_verify_status === 'pending_review' ? 'orange' : 'red'}>
+              {record.user_id_verify_status === 'pending_review' ? '审核中' : '未核身'}
+            </Tag>
+          )}
+        </Space>
+      )
     },
     {
       title: '物流信息',
@@ -226,19 +235,22 @@ export default function WarehouseManagement() {
             详情
           </Button>
           {record.status === 'paid' && (
-            <Button 
-              size="small" 
-              icon={<TruckOutlined />}
-              onClick={() => {
-                const tracking = prompt('请输入物流单号:');
-                const company = prompt('请输入快递公司:');
-                if (tracking && company) {
-                  handleUpdateShipping(record.id, { tracking_number: tracking, company, shipped_at: new Date().toISOString() });
-                }
-              }}
-            >
-              发货
-            </Button>
+            <Tooltip title={record.user_id_verify_status && record.user_id_verify_status !== 'verified' ? '用户未完成实名核身，请联系平台运营完成审核' : ''}>
+              <Button 
+                size="small" 
+                icon={<TruckOutlined />}
+                disabled={!!(record.user_id_verify_status && record.user_id_verify_status !== 'verified')}
+                onClick={() => {
+                  const tracking = prompt('请输入物流单号:');
+                  const company = prompt('请输入快递公司:');
+                  if (tracking && company) {
+                    handleUpdateShipping(record.id, { tracking_number: tracking, company, shipped_at: new Date().toISOString() });
+                  }
+                }}
+              >
+                发货
+              </Button>
+            </Tooltip>
           )}
           {record.status === 'shipped' && (
               <Button 

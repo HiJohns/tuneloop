@@ -29,6 +29,7 @@ export const ERROR_CODE_MAP = {
 
 // L1: 高频后端 message → 具体中文
 export const ERROR_MESSAGE_MAP = {
+  'user id verification required': '用户未完成实名核身，请联系平台运营完成审核', // #1793 T5
   'instrument id is required': '缺少乐器信息',
   'instrument not found': '未找到乐器',
   'user not found': '未找到用户',

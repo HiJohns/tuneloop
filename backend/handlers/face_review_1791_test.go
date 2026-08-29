@@ -198,5 +198,5 @@ func TestUpdateShipping_VerifyRequired(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusBadRequest, w.Code, w.Body.String())
-	require.Contains(t, w.Body.String(), "用户未完成实名核身")
+	require.Contains(t, w.Body.String(), "user id verification required")
 }

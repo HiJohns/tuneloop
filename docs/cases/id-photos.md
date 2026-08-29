@@ -158,7 +158,7 @@ steps:
     api:
       - {method: GET, path: /orders/:id, params: []}
       - {method: PUT, path: /warehouse/orders/:id/shipping, params: [], gate: "id_verify_status=verified，无豁免"}
-    rule: "后端强制校验：非 verified 拒绝发货（40002「用户未完成实名核身」）；前端置灰仅为 UX"
+    rule: "后端强制校验：非 verified 拒绝发货（40002，message=user id verification required）；前端置灰仅为 UX"
   - seq: 11
     action: 核身超时订单自动取消退款（H8，用户决策 2026-08-29：A 超时自动取消，3 天）
     actor: 系统定时任务
@@ -259,7 +259,7 @@ ALTER TABLE users ADD COLUMN face_verified_at TIMESTAMPTZ;  -- #1787 人脸识�
 
 **人工审核流程**：
 1. 顾客提交自拍 → `uploaded → pending_review`（新增待审核态）
-2. PC「实名审核队列」（site_admin）：查看证件照三张 + 自拍图/视频 → 通过/驳回（驳回附原因）
+2. PC「实名审核队列」（**平台员工/系统管理员**，SysPerm user 类权限，非 org 隔离）：查看证件照三张 + 自拍图/视频 → 通过/驳回（驳回附原因）
 3. 通过 → `verified`（method=manual）；驳回 → `rejected` → 顾客重新采集
 4. 自动比对（tencent）失败**不自动降级**人工——慧眼失败 ≠ 自拍无效，由顾客重新发起
 
@@ -313,7 +313,7 @@ none（未上传证件照）
 **消费点规则**：
 1. **订单确认页（/checkout）**：`none/uploaded/rejected` → 警告条 + 跳转按钮，**不阻断提交**（核身不设支付门槛）；`pending_review/verified` 无警告
 2. **订单详情页（/order/:id）**：订单未发货时同警告；已发货后不再展示（履约已开始）
-3. **员工发货（PUT /warehouse/orders/:id/shipping）**：**后端强制校验** `id_verify_status=verified` → 否则拒绝（错误码 40002「用户未完成实名核身，请联系平台运营完成审核」）；前端按钮置灰仅为 UX，不能替代后端校验；**无豁免**（无存量真实用户，全量强制）
+3. **员工发货（PUT /warehouse/orders/:id/shipping）**：**后端强制校验** `id_verify_status=verified` → 否则拒绝（错误码 40002，message=`user id verification required`，前端映射「用户未完成实名核身，请联系平台运营完成审核」）；前端按钮置灰仅为 UX，不能替代后端校验；**无豁免**（无存量真实用户，全量强制）
 4. **待发货列表**：非 verified 订单显示角标（未核身/审核中），便于员工识别
 5. **错误展示**：员工 weapp/H5 发货页（ShippingInterface）点击发货被拒 → toast/弹窗展示后端 40002 错误信息（**非静默**）；员工端不展示买家敏感字段（仅聚合状态）
 

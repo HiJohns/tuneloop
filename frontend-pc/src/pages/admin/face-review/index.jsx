@@ -1,0 +1,175 @@
+// 实名核身人工审核队列（#1793 T5）
+// 权限：平台员工/系统管理员（SysPermUserUpdate = bit 18）
+// 列表：pending 批次 + 用户证件照三张 + 自拍图/视频 → 通过/驳回（驳回必填原因）
+// 字段边界：仅展示审核所需（姓名 + 证件照 + 自拍），不展示身份证号明文
+import { useState, useCallback, useEffect } from 'react'
+import { Table, Card, Button, Space, Tag, Image, Modal, Input, message, Typography } from 'antd'
+import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
+import { faceReviewApi } from '../../../services/api'
+
+const { Text } = Typography
+
+export default function FaceReviewPage() {
+  const [list, setList] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [reviewing, setReviewing] = useState(null) // 当前驳回的 batch
+  const [rejectReason, setRejectReason] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const fetchQueue = useCallback(async () => {
+    setLoading(true)
+    try {
+      const resp = await faceReviewApi.queue()
+      if (resp.code === 20000) {
+        setList(resp.data?.list || [])
+      } else {
+        message.error(resp.message || '加载审核队列失败')
+      }
+    } catch (error) {
+      message.error(error.message || '加载审核队列失败')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchQueue() }, [fetchQueue])
+
+  const handleApprove = async (batchId) => {
+    try {
+      const resp = await faceReviewApi.review(batchId, { action: 'approve' })
+      if (resp.code === 20000) {
+        message.success('已通过')
+        fetchQueue()
+      } else {
+        message.error(resp.message || '操作失败')
+      }
+    } catch (error) {
+      message.error(error.message || '操作失败')
+    }
+  }
+
+  const handleReject = async () => {
+    if (!rejectReason.trim()) {
+      message.warning('请填写驳回原因')
+      return
+    }
+    setSubmitting(true)
+    try {
+      const resp = await faceReviewApi.review(reviewing, { action: 'reject', reason: rejectReason.trim() })
+      if (resp.code === 20000) {
+        message.success('已驳回')
+        setReviewing(null)
+        setRejectReason('')
+        fetchQueue()
+      } else {
+        message.error(resp.message || '操作失败')
+      }
+    } catch (error) {
+      message.error(error.message || '操作失败')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const columns = [
+    {
+      title: '用户',
+      dataIndex: 'user_name',
+      key: 'user_name',
+      render: (name, record) => (
+        <Space direction="vertical" size={0}>
+          <Text strong>{name || '-'}</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>{record.user_id}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: '证件照片',
+      key: 'id_photos',
+      render: (_, record) => (
+        <Space>
+          {(record.id_photos || []).map((url, i) => (
+            <Image key={i} src={url} width={48} height={48} style={{ objectFit: 'cover', borderRadius: 4 }} />
+          ))}
+          {(record.id_photos || []).length === 0 && <Text type="secondary">无</Text>}
+        </Space>
+      ),
+    },
+    {
+      title: '自拍素材',
+      key: 'selfie_urls',
+      render: (_, record) => (
+        <Space direction="vertical" size={4}>
+          {(record.selfie_urls || []).map((url, i) => (
+            url.endsWith('.mp4') || url.endsWith('.mov') || url.endsWith('.webm')
+              ? <video key={i} src={url} controls style={{ width: 96, height: 64, borderRadius: 4, background: '#f4f4f5' }} />
+              : <Image key={i} src={url} width={48} height={48} style={{ objectFit: 'cover', borderRadius: 4 }} />
+          ))}
+          {(record.selfie_urls || []).length === 0 && <Text type="secondary">无</Text>}
+        </Space>
+      ),
+    },
+    {
+      title: '提交时间',
+      dataIndex: 'submitted_at',
+      key: 'submitted_at',
+      render: (v) => v ? new Date(v).toLocaleString('zh-CN') : '-',
+    },
+    {
+      title: '操作',
+      key: 'action',
+      render: (_, record) => (
+        <Space>
+          <Button
+            size="small"
+            type="primary"
+            icon={<CheckCircleOutlined />}
+            onClick={() => handleApprove(record.batch_id)}
+          >
+            通过
+          </Button>
+          <Button
+            size="small"
+            danger
+            icon={<CloseCircleOutlined />}
+            onClick={() => { setReviewing(record.batch_id); setRejectReason('') }}
+          >
+            驳回
+          </Button>
+        </Space>
+      ),
+    },
+  ]
+
+  return (
+    <Card title="实名核身审核队列" extra={<Button size="small" onClick={fetchQueue}>刷新</Button>}>
+      <Table
+        rowKey="batch_id"
+        columns={columns}
+        dataSource={list}
+        loading={loading}
+        pagination={{ pageSize: 10 }}
+        locale={{ emptyText: '暂无待审核批次' }}
+      />
+      <Modal
+        title="驳回核身申请"
+        open={!!reviewing}
+        onOk={handleReject}
+        onCancel={() => setReviewing(null)}
+        okText="确认驳回"
+        cancelText="取消"
+        okButtonProps={{ danger: true, loading: submitting }}
+      >
+        <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>驳回原因将展示给顾客，请说明具体问题（如照片不清晰、与证件不符）。</Text>
+        <Input.TextArea
+          rows={3}
+          value={rejectReason}
+          onChange={(e) => setRejectReason(e.target.value)}
+          placeholder="请输入驳回原因（必填）"
+          maxLength={200}
+          showCount
+        />
+      </Modal>
+    </Card>
+  )
+}

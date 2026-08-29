@@ -610,4 +610,10 @@ export const invoiceApi = {
   reply: (id, data) => api.post(`/merchant/invoices/${id}/reply`, data),
 }
 
+// #1793 T5: 实名核身人工审核队列
+export const faceReviewApi = {
+  queue: () => api.get('/admin/face-review/queue'),
+  review: (batchId, data) => api.post(`/admin/face-review/${batchId}`, data),
+}
+
 export { getToken, request }

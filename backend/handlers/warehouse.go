@@ -136,7 +136,7 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 		var buyer models.User
 		if err := db.Where("id = ?", orderForVerify.UserID).First(&buyer).Error; err == nil {
 			if deriveIdVerifyStatus(db, &buyer) != IdVerifyStatusVerified {
-				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "用户未完成实名核身，请联系平台运营完成审核"})
+				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "user id verification required"})
 				return
 			}
 		}
