@@ -111,6 +111,62 @@ func ComputeTierSegments(totalDays int, tiers []PricingTierConfig) []TierSegment
 	return segments
 }
 
+// ComputeTierSegmentsFromOffset (#1803 T2): expands the tier segments that
+// fall within the global day range (offsetDays, offsetDays+extraDays].
+// Tier numbering continues globally (does not reset to 1 at the offset),
+// so a renewal block shows the tiers it actually spans (e.g. renewal starts
+// at tier 2 if the initial term already consumed tier 1). Segments crossing
+// the offset boundary are split so each returned segment lies strictly
+// inside the requested range.
+func ComputeTierSegmentsFromOffset(offsetDays int, extraDays int, tiers []PricingTierConfig) []TierSegment {
+	if extraDays <= 0 {
+		return nil
+	}
+	if len(tiers) == 0 {
+		tiers = defaultTiers
+	}
+	rangeStart := offsetDays
+	rangeEnd := offsetDays + extraDays
+
+	var segments []TierSegment
+	prevMax := 0
+	tierIndex := 1
+	for _, t := range tiers {
+		if prevMax >= rangeEnd {
+			break
+		}
+		var tierEnd int
+		if t.DaysMax < 0 {
+			tierEnd = rangeEnd
+		} else {
+			tierEnd = t.DaysMax
+		}
+		// Intersection of [prevMax, tierEnd) with (rangeStart, rangeEnd]
+		segStart := prevMax
+		if segStart < rangeStart {
+			segStart = rangeStart
+		}
+		segEnd := tierEnd
+		if segEnd > rangeEnd {
+			segEnd = rangeEnd
+		}
+		if segEnd > segStart {
+			discount := 1.0 - float64(t.DiscountPercent)/100.0
+			segments = append(segments, TierSegment{
+				Tier:     tierIndex,
+				Days:     segEnd - segStart,
+				Discount: discount,
+			})
+		}
+		if t.DaysMax < 0 {
+			break
+		}
+		prevMax = t.DaysMax
+		tierIndex++
+	}
+	return segments
+}
+
 func CalculatePricingBreakdown(input RentCalcInput) (*PricingBreakdown, error) {
 	db := database.GetDB().WithContext(nil)
 

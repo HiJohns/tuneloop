@@ -195,6 +195,146 @@ func deriveActualRent(db *gorm.DB, order *models.Order, settlementData map[strin
 	return actualRentDays, actualRentCents
 }
 
+// buildFeeDetail (#1803 T2): 统一费用明细三段结构（实付段/应付段/净额段）——
+// 单一数据源（computeSettlement）。settled 态从落库 settlement.Breakdown 读
+// 三段（重建现场，与落库完全一致）；未 settled 态实时 computeSettlement。
+// 旧落库数据无三段时 fallback 实时计算（数字为实时口径，展示降级）。
+// settled 标志按订单当前状态实时判定（不读落库值——落库时订单可能未终态）。
+func buildFeeDetail(order models.Order, db *gorm.DB, settlementData map[string]interface{}) map[string]interface{} {
+	unsettledStatus := map[string]bool{
+		models.OrderStatusReturning:             true,
+		models.OrderStatusPendingDamageResponse: true,
+		models.OrderStatusDamageAppealing:       true,
+		models.OrderStatusDepositRefunding:      true,
+	}
+	settled := !unsettledStatus[order.Status]
+	if settlementData != nil {
+		if bd, ok := settlementData["breakdown"].(map[string]interface{}); ok {
+			if pb, ok := bd["paid_block"].(map[string]interface{}); ok {
+				return map[string]interface{}{
+					"settled":       settled,
+					"paid_block":    pb,
+					"payable_block": bd["payable_block"],
+					"net_block":     bd["net_block"],
+				}
+			}
+		}
+	}
+	// 未 settled（或旧落库数据无三段）：实时计算。
+	result := computeSettlement(order, db)
+	bd := result.Breakdown
+	return map[string]interface{}{
+		"settled":       settled,
+		"paid_block":    bd["paid_block"],
+		"payable_block": bd["payable_block"],
+		"net_block":     bd["net_block"],
+	}
+}
+
+// feeSummaryFromFeeDetail (#1803 T2): fee_summary 从 fee_detail 派生投影
+// （保持既有 paid/payable/expected 响应结构，前端 T3 前不裂）。
+func feeSummaryFromFeeDetail(fd map[string]interface{}) map[string]interface{} {
+	paid, _ := fd["paid_block"].(map[string]interface{})
+	payable, _ := fd["payable_block"].(map[string]interface{})
+	net, _ := fd["net_block"].(map[string]interface{})
+
+	// paid.initial ← contract_rent + deposit 合并（保持「租金含押金」单条）。
+	initial := []map[string]interface{}{}
+	renewals := []map[string]interface{}{}
+	paidSubtotal := int64(0)
+	if paid != nil {
+		contractAmt := int64(0)
+		if cr, ok := paid["contract_rent"].(map[string]interface{}); ok {
+			if v, ok := cr["amount"].(int64); ok {
+				contractAmt = v
+			} else if v, ok := cr["amount"].(float64); ok {
+				contractAmt = int64(v)
+			}
+		}
+		depositAmt := int64(0)
+		if dep, ok := paid["deposit"].(map[string]interface{}); ok {
+			if v, ok := dep["amount"].(int64); ok {
+				depositAmt = v
+			} else if v, ok := dep["amount"].(float64); ok {
+				depositAmt = int64(v)
+			}
+		}
+		// 租金（含押金）单条（#1756 既有结构）。
+		initial = append(initial, map[string]interface{}{"item": "rent", "amount": contractAmt + depositAmt})
+		paidSubtotal = contractAmt + depositAmt
+
+		if rl, ok := paid["renewals"].([]interface{}); ok {
+			for _, r := range rl {
+				rm, _ := r.(map[string]interface{})
+				var amt int64
+				if v, ok := rm["amount"].(int64); ok {
+					amt = v
+				} else if v, ok := rm["amount"].(float64); ok {
+					amt = int64(v)
+				}
+				renewals = append(renewals, map[string]interface{}{"item": "renewal", "amount": amt})
+				paidSubtotal += amt
+			}
+		}
+	}
+
+	// payable.items ← payable_block 三项。
+	payableItems := []map[string]interface{}{}
+	payableSubtotal := int64(0)
+	if payable != nil {
+		appendItem := func(key, item string) {
+			if v, ok := payable[key].(map[string]interface{}); ok {
+				var amt int64
+				if a, ok := v["amount"].(int64); ok {
+					amt = a
+				} else if a, ok := v["amount"].(float64); ok {
+					amt = int64(a)
+				}
+				if amt > 0 || key == "shipping_fee" {
+					payableItems = append(payableItems, map[string]interface{}{"item": item, "amount": amt})
+				}
+				payableSubtotal += amt
+			}
+		}
+		appendItem("actual_rent", "rent")
+		appendItem("overdue_fee", "overdue_fee")
+		appendItem("shipping_fee", "shipping_fee")
+	}
+
+	// expected ← net_block。
+	var expected interface{}
+	settled := false
+	if net != nil {
+		direction, _ := net["direction"].(string)
+		if direction != "none" && direction != "" {
+			var amt int64
+			if v, ok := net["amount"].(int64); ok {
+				amt = v
+			} else if v, ok := net["amount"].(float64); ok {
+				amt = int64(v)
+			}
+			expected = map[string]interface{}{"direction": direction, "amount": amt}
+		}
+	}
+	if v, ok := fd["settled"].(bool); ok {
+		settled = v
+	}
+
+	return map[string]interface{}{
+		"paid": map[string]interface{}{
+			"initial":  initial,
+			"renewal":  renewals,
+			"subtotal": paidSubtotal,
+		},
+		"payable": map[string]interface{}{
+			"items":    payableItems,
+			"subtotal": payableSubtotal,
+		},
+		"expected": expected,
+		"settled":  settled,
+	}
+}
+
 // GetOrder retrieves a single order by ID
 func GetOrder(c *gin.Context) {
 	orderID := c.Param("id")
@@ -385,19 +525,19 @@ func GetOrder(c *gin.Context) {
 
 		// Actual rent days/amount: settlement if present, else derive from the
 		// pricing breakdown (actual tier fields) or delivered_at→returned_at.
-		// Helper returns cents; the refund formula below works in yuan.
+		// Helper returns cents; the refund formula works in cents
+		// (#1728 P3: API amounts are cents, frontend renders ÷100).
 		actualRentDays, actualRentCents := deriveActualRent(db, &order, settlementData, pricingBreakdownData)
-		actualRentAmount := float64(actualRentCents) / 100
 
 		// Refund = paid total - damage - actual rent - shipping fee (#1707).
-		paidTotal := 0.0
+		paidTotal := int64(0)
 		var paidRecords []models.OrderPaymentRecord
 		db.Where("order_id = ? AND status = ? AND type = ?", orderID, "paid", "payment").
 			Find(&paidRecords)
 		for _, pr := range paidRecords {
-			paidTotal += pr.Amount.ToYuan()
+			paidTotal += int64(pr.Amount)
 		}
-		damageAmount := 0.0
+		damageAmount := int64(0)
 		description := ""
 		status := ""
 		reportID := ""
@@ -406,10 +546,10 @@ func GetOrder(c *gin.Context) {
 			status = damageReport.Status
 			description = damageReport.DamageDescription
 			if damageReport.DamageAmount != nil {
-				damageAmount = (*damageReport.DamageAmount).ToYuan()
+				damageAmount = int64(*damageReport.DamageAmount)
 			}
 		}
-		refund := math.Round((paidTotal-damageAmount-actualRentAmount-order.ShippingFee.ToYuan())*100) / 100
+		refund := paidTotal - damageAmount - int64(actualRentCents) - int64(order.ShippingFee)
 		if refund < 0 {
 			refund = 0
 		}
@@ -422,8 +562,8 @@ func GetOrder(c *gin.Context) {
 			"photos":             photos,
 			"actual_rent_days":   actualRentDays,
 			"actual_rent_amount": actualRentCents,
-			"shipping_fee":       order.ShippingFee,
-			"deposit":            order.Deposit,
+			"shipping_fee":       int64(order.ShippingFee),
+			"deposit":            int64(order.Deposit),
 			"paid_total":         paidTotal,
 			"refund":             refund,
 		}
@@ -557,78 +697,12 @@ func GetOrder(c *gin.Context) {
 	orderData["actual_rent_days"] = allRentDays
 	orderData["actual_rent_amount"] = allRentCents
 
-	// #1756: fee_summary — three blocks, all cents, server-computed:
-	//   paid: initial (rent/deposit at order creation) + renewal records,
-	//         grouped by order_type from paid payment records
-	//   payable: actual rent + shipping fee + damage (if any)
-	//   expected: paid − payable (refund / shortfall) — only while NOT
-	//             settled (returning / pending_damage_response /
-	//             damage_appealing / deposit_refunding ...); null when settled
-	buildFeeSummary := func() map[string]interface{} {
-		paidInitial := []map[string]interface{}{}
-		paidRenewal := []map[string]interface{}{}
-		// 实付 = paid payment records (type=payment). Initial rent order
-		// (order_type=rent) covers rent+deposit as one record; renewal
-		// records (order_type=renewal) listed separately.
-		paidSubtotal := int64(0)
-		for _, pr := range paymentRecords {
-			item := map[string]interface{}{
-				"item":   pr.OrderType,
-				"amount": int64(pr.Amount),
-			}
-			paidSubtotal += int64(pr.Amount)
-			if pr.OrderType == "renewal" {
-				paidRenewal = append(paidRenewal, item)
-			} else {
-				paidInitial = append(paidInitial, item)
-			}
-		}
-		// Payable block: actual rent (cents) + shipping + damage (if any).
-		payableItems := []map[string]interface{}{
-			{"item": "rent", "amount": allRentCents},
-			{"item": "shipping_fee", "amount": int64(order.ShippingFee)},
-		}
-		payableSubtotal := allRentCents + int64(order.ShippingFee)
-		if damageData != nil {
-			if v, ok := damageData["damage_amount"].(float64); ok && v > 0 {
-				payableItems = append(payableItems, map[string]interface{}{"item": "damage", "amount": int64(math.Round(v * 100))})
-				payableSubtotal += int64(math.Round(v * 100))
-			}
-		}
-		// Expected block: only for unsettled statuses.
-		unsettled := map[string]bool{
-			models.OrderStatusReturning:             true,
-			models.OrderStatusPendingDamageResponse: true,
-			models.OrderStatusDamageAppealing:       true,
-			"deposit_refunding":                     true,
-		}
-		var expected interface{}
-		if unsettled[order.Status] {
-			diff := paidSubtotal - payableSubtotal
-			direction := "refund"
-			if diff < 0 {
-				direction = "shortfall"
-			}
-			expected = map[string]interface{}{
-				"direction": direction,
-				"amount":    diff,
-			}
-		}
-		return map[string]interface{}{
-			"paid": map[string]interface{}{
-				"initial":  paidInitial,
-				"renewal":  paidRenewal,
-				"subtotal": paidSubtotal,
-			},
-			"payable": map[string]interface{}{
-				"items":    payableItems,
-				"subtotal": payableSubtotal,
-			},
-			"expected": expected,
-			"settled":  !unsettled[order.Status],
-		}
-	}
-	orderData["fee_summary"] = buildFeeSummary()
+	// #1803 T2: 统一费用明细三段结构（单一数据源 computeSettlement）。
+	// fee_detail 为权威结构（returning 实时 / settled 落库重建）；
+	// fee_summary 为其派生投影（#1756 兼容结构，前端 T3 切换前不裂）。
+	feeDetail := buildFeeDetail(order, db, settlementData)
+	orderData["fee_detail"] = feeDetail
+	orderData["fee_summary"] = feeSummaryFromFeeDetail(feeDetail)
 
 	transitInfo := GetMerchantTransitInfo(c.Request.Context(), order.TenantID)
 	if transitInfo != nil && transitInfo.MerchantType == models.MerchantTypeControlled {

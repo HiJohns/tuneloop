@@ -754,10 +754,14 @@ func TestGetOrder_DamagePanel(t *testing.T) {
 
 	orderID := uuid.New().String()
 	require.NoError(t, db.Exec(`INSERT INTO orders (id, tenant_id, org_id, user_id, instrument_id, level, lease_term, monthly_rent, deposit, status, shipping_fee, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, 'standard', 1, 0, 1000, 'pending_damage_response', 50, now(), now())`,
+		VALUES (?, ?, ?, ?, ?, 'standard', 1, 0, 100000, 'pending_damage_response', 5000, now(), now())`,
 		orderID, tenantID, tenantID, userID, instID).Error)
 
-	damageAmt := 200.0
+	// Ensure tables exist even when other tests (SetupTestDB) dropped them.
+	if !db.Migrator().HasTable(&models.InstrumentMedia{}) {
+		require.NoError(t, db.Migrator().CreateTable(&models.InstrumentMedia{}))
+	}
+	damageAmt := 20000.0
 	reportID := uuid.New().String()
 	require.NoError(t, db.Exec(`INSERT INTO damage_reports (id, tenant_id, org_id, lease_id, instrument_id, user_id, damage_amount, damage_description, status, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, '乐器刮痕', 'pending', now(), now())`,
@@ -770,7 +774,7 @@ func TestGetOrder_DamagePanel(t *testing.T) {
 		VALUES (?, ?, ?, ?, ?, 'receiving', 'b.jpg', 'image', '/uploads/media/b.jpg', false, 1, now())`,
 		uuid.New().String(), tenantID, tenantID, instID, uuid.New().String()).Error)
 	require.NoError(t, db.Exec(`INSERT INTO order_payment_records (id, tenant_id, user_id, order_id, order_type, out_trade_no, amount, type, status, created_at, updated_at)
-		VALUES (?, ?, ?, ?, 'rent', ?, 1500, 'payment', 'paid', now(), now())`,
+		VALUES (?, ?, ?, ?, 'rent', ?, 150000, 'payment', 'paid', now(), now())`,
 		uuid.New().String(), tenantID, userID, orderID, "rent"+uuid.NewString()[:8]).Error)
 
 	router := setupTestRouter(t, tenantID, userID)
@@ -805,15 +809,16 @@ func TestGetOrder_DamagePanel(t *testing.T) {
 
 	d := resp.Data.Damage
 	require.Equal(t, reportID, d.ReportID, "damage.report_id must reference the damage report")
-	require.Equal(t, 200.0, d.DamageAmount)
+	// #1728 P3: API amounts are cents.
+	require.Equal(t, 20000.0, d.DamageAmount)
 	require.Equal(t, "乐器刮痕", d.Description)
 	require.Equal(t, "pending", d.Status)
 	require.Len(t, d.Photos, 2, "damage.photos must come from instrument_media receiving batch (#1708)")
-	require.Equal(t, 50.0, d.ShippingFee)
-	require.Equal(t, 1000.0, d.Deposit)
-	require.Equal(t, 1500.0, d.PaidTotal)
-	// refund = paid(1500) - damage(200) - rent(0, no settlement/breakdown) - shipping(50) = 1250
-	require.Equal(t, 1250.0, d.Refund, "refund = paid - damage - rent - shipping")
+	require.Equal(t, 5000.0, d.ShippingFee)
+	require.Equal(t, 100000.0, d.Deposit)
+	require.Equal(t, 150000.0, d.PaidTotal)
+	// refund = paid(150000) - damage(20000) - rent(0, no settlement/breakdown) - shipping(5000) = 125000
+	require.Equal(t, 125000.0, d.Refund, "refund = paid - damage - rent - shipping (cents)")
 }
 
 func TestGetOrder_DamagePanel_FromDamageReport(t *testing.T) {
@@ -831,19 +836,23 @@ func TestGetOrder_DamagePanel_FromDamageReport(t *testing.T) {
 
 	orderID := uuid.New().String()
 	require.NoError(t, db.Exec(`INSERT INTO orders (id, tenant_id, org_id, user_id, instrument_id, level, lease_term, monthly_rent, deposit, status, shipping_fee, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, 'standard', 1, 0, 1000, 'pending_damage_response', 50, now(), now())`,
+		VALUES (?, ?, ?, ?, ?, 'standard', 1, 0, 100000, 'pending_damage_response', 5000, now(), now())`,
 		orderID, tenantID, tenantID, userID, instID).Error)
 
+	// Ensure tables exist even when other tests (SetupTestDB) dropped them.
+	if !db.Migrator().HasTable(&models.InstrumentMedia{}) {
+		require.NoError(t, db.Migrator().CreateTable(&models.InstrumentMedia{}))
+	}
 	// Damage data lives in damage_reports (post-migration).
 	require.NoError(t, db.Exec(`INSERT INTO damage_reports (id, tenant_id, org_id, lease_id, instrument_id, user_id, condition, damage_description, damage_amount, status, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, 'damaged', '弦断了', 100, 'pending', now(), now())`,
+		VALUES (?, ?, ?, ?, ?, ?, 'damaged', '弦断了', 10000, 'pending', now(), now())`,
 		uuid.New().String(), tenantID, tenantID, orderID, instID, userID).Error)
 	// Staff photos live in instrument_media (receiving batch) — must fall back.
 	require.NoError(t, db.Exec(`INSERT INTO instrument_media (id, tenant_id, org_id, instrument_id, batch_id, batch_type, file_name, file_type, storage_key, is_display, sort_order, created_at)
 		VALUES (?, ?, ?, ?, ?, 'receiving', 'r1.jpg', 'image', '/uploads/media/staff_photo.webp', false, 0, now())`,
 		uuid.New().String(), tenantID, tenantID, instID, uuid.New().String()).Error)
 	require.NoError(t, db.Exec(`INSERT INTO order_payment_records (id, tenant_id, user_id, order_id, order_type, out_trade_no, amount, type, status, created_at, updated_at)
-		VALUES (?, ?, ?, ?, 'rent', ?, 1500, 'payment', 'paid', now(), now())`,
+		VALUES (?, ?, ?, ?, 'rent', ?, 150000, 'payment', 'paid', now(), now())`,
 		uuid.New().String(), tenantID, userID, orderID, "rent"+uuid.NewString()[:8]).Error)
 
 	router := setupTestRouter(t, tenantID, userID)
@@ -870,10 +879,10 @@ func TestGetOrder_DamagePanel_FromDamageReport(t *testing.T) {
 	require.Equal(t, 20000, resp.Code)
 
 	d := resp.Data.Damage
-	require.Equal(t, 100.0, d.DamageAmount, "damage_amount from damage_reports")
+	require.Equal(t, 10000.0, d.DamageAmount, "damage_amount from damage_reports (cents)")
 	require.Equal(t, "弦断了", d.Description)
 	require.Equal(t, "pending", d.Status)
 	require.Len(t, d.Photos, 1)
 	require.Equal(t, "/uploads/media/staff_photo.webp", d.Photos[0], "photos from instrument_media receiving batch")
-	require.Equal(t, 1350.0, d.Refund, "refund = 1500 - 100 - 0(rent) - 50")
+	require.Equal(t, 135000.0, d.Refund, "refund = 150000 - 10000 - 0(rent) - 5000 (cents)")
 }

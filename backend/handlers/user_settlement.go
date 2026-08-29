@@ -700,12 +700,21 @@ type settlementResult struct {
 // It mirrors docs/cases.md §2.7.
 func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	_, finalDailyRent, _ := parsePricingBreakdown(order.PricingBreakdown)
-	if finalDailyRent == 0 && order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+	// #1803 T2: 首期基准日租（分语义），用于首期/续费阶梯展开（Rate 赋值）。
+	// final_daily_rent 为折扣后，base_daily_rent 为折扣前基准。
+	baseDailyRentCents := 0.0
+	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
 		var pb map[string]interface{}
 		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
 			if v, ok := pb["base_daily_rent"].(float64); ok && v > 0 {
-				// #1734: 统一分语义（存量元残留归一），再 /100 得元。
-				finalDailyRent = resolveBaseDailyRentCents(db, &order, v) / 100
+				// #1734: 统一分语义（存量元残留归一）。
+				baseDailyRentCents = resolveBaseDailyRentCents(db, &order, v)
+			}
+			if finalDailyRent == 0 {
+				// 原 fallback 逻辑：base_daily_rent 归一为分后再 /100 得元。
+				if baseDailyRentCents > 0 {
+					finalDailyRent = baseDailyRentCents / 100
+				}
 			}
 		}
 	}
@@ -951,6 +960,149 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		feeItem("overdue_fee", -overdueFee),
 		feeItem("damage", -damageDeducted),
 	}
+
+	// #1803 T2: 三段统一费用明细（实付段/应付段/净额段）——单一数据源。
+	// 实付段需要续费支付记录（含 T1 落库的 days 列）展开续费阶梯。
+	type renewalRec struct {
+		Amount models.Cents
+		Days   *int
+		Status string
+	}
+	var renewalRecs []renewalRec
+	if err := db.Model(&models.OrderPaymentRecord{}).
+		Select("amount, days, status").
+		Where("order_id = ? AND order_type = ? AND type = ? AND status = ?", order.ID, "renewal", "payment", "paid").
+		Order("created_at ASC").Scan(&renewalRecs).Error; err != nil {
+		log.Printf("[computeSettlement] failed to load renewal records for order %s: %v", order.ID, err)
+	}
+
+	// 首期天数 = order.LeaseTerm（applyRenewalSideEffects 只累加
+	// PricingBreakdown.RentDays，不修改 LeaseTerm）。
+	initialDays := order.LeaseTerm
+	if initialDays <= 0 {
+		initialDays = coverDays
+	}
+
+	// 首期合同租金 = totalRentPaid（含首期+续费）− Σ续费金额。
+	renewalTotal := float64(0)
+	for _, r := range renewalRecs {
+		renewalTotal += r.Amount.ToYuan()
+	}
+	contractRent := totalRentPaid - renewalTotal
+	if contractRent < 0 {
+		contractRent = 0
+	}
+
+	// 定价策略：从 PricingBreakdown 读取（下单时落库，续费沿用）。
+	var pricingTiers []services.PricingTierConfig
+	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+		var pb services.PricingBreakdown
+		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
+			pricingTiers = pb.PricingTiers
+		}
+	}
+
+	// 实付段：合同租金（含阶梯）+ 押金 + 各次续费（含阶梯）+ 合计实付。
+	// ComputeTierSegments 只产出 Tier/Days/Discount——Rate 需按基准日租赋值，
+	// Subtotal = Rate × Discount × Days（与 applyRenewalSideEffects 同口径）。
+	segmentToMap := func(seg services.TierSegment) map[string]interface{} {
+		subtotal := baseDailyRentCents * seg.Discount * float64(seg.Days)
+		return map[string]interface{}{
+			"tier": seg.Tier, "rate": int64(math.Round(baseDailyRentCents)),
+			"days": seg.Days, "subtotal": int64(math.Round(subtotal)),
+		}
+	}
+	contractTiers := make([]map[string]interface{}, 0, 4)
+	for _, seg := range services.ComputeTierSegments(initialDays, pricingTiers) {
+		contractTiers = append(contractTiers, segmentToMap(seg))
+	}
+	paidBlock := map[string]interface{}{
+		"contract_rent": map[string]interface{}{
+			"amount": c(contractRent),
+			"date":   order.CreatedAt.Format("2006-01-02"),
+			"tiers":  contractTiers,
+		},
+		"deposit": map[string]interface{}{
+			"amount": int64(order.Deposit),
+		},
+		"renewals": []map[string]interface{}{},
+	}
+	renewalBlocks := []map[string]interface{}{}
+	renewalAmountSum := float64(0)
+	renewalOffset := initialDays
+	for _, r := range renewalRecs {
+		var tiers []map[string]interface{}
+		if r.Days != nil && *r.Days > 0 {
+			for _, seg := range services.ComputeTierSegmentsFromOffset(renewalOffset, *r.Days, pricingTiers) {
+				tiers = append(tiers, segmentToMap(seg))
+			}
+			renewalOffset += *r.Days
+		}
+		block := map[string]interface{}{
+			"amount": int64(r.Amount),
+			"days":   r.Days,
+			"tiers":  tiers,
+		}
+		renewalBlocks = append(renewalBlocks, block)
+		renewalAmountSum += r.Amount.ToYuan()
+	}
+	paidBlock["renewals"] = renewalBlocks
+	paidSubtotal := contractRent + order.Deposit.ToYuan() + renewalAmountSum
+	paidBlock["subtotal"] = c(paidSubtotal)
+
+	// 应付段：实际租金（含阶梯）+ 逾期费 + 物流费 + 实际应付。
+	payableTiers := make([]map[string]interface{}, 0, len(tierSegments))
+	for _, ts := range tierSegments {
+		payableTiers = append(payableTiers, map[string]interface{}{
+			"tier": ts.Tier, "rate": c(ts.Rate), "days": ts.Days,
+			"subtotal": c(ts.Subtotal),
+		})
+	}
+	payableSubtotal := rentPayable + overdueFee + shippingFee
+	payableBlock := map[string]interface{}{
+		"actual_rent": map[string]interface{}{
+			"amount": c(rentPayable), "days": actualDays, "tiers": payableTiers,
+		},
+		"overdue_fee": map[string]interface{}{
+			"amount": c(overdueFee), "days": reportOverdue.OverdueDays,
+		},
+		"shipping_fee": map[string]interface{}{
+			"amount": c(shippingFee),
+		},
+		"subtotal": c(payableSubtotal),
+	}
+
+	// #1803 T2: settled = 非进行中状态（与 fee_summary 的 unsettled 集合互补）。
+	unsettledStatus := map[string]bool{
+		models.OrderStatusReturning:             true,
+		models.OrderStatusPendingDamageResponse: true,
+		models.OrderStatusDamageAppealing:       true,
+		models.OrderStatusDepositRefunding:      true,
+	}
+
+	// 净额段：补缴/退款。
+	netDirection := "none"
+	netAmount := float64(0)
+	if totalRefund > 0 {
+		netDirection = "refund"
+		netAmount = totalRefund
+	} else if payableShortfall > 0 {
+		netDirection = "shortfall"
+		netAmount = payableShortfall
+	} else if !unsettledStatus[order.Status] {
+		// settled 且无差额 → none（净额段不展示）。
+		netDirection = "none"
+	} else {
+		// unsettled 且无差额（0 元）→ 保持 refund 方向兼容旧 expected 行为。
+		netDirection = "refund"
+		netAmount = 0
+	}
+	netBlock := map[string]interface{}{
+		"direction": netDirection,
+		"amount":    c(netAmount),
+		"items":     feeItems,
+	}
+
 	breakdown := map[string]interface{}{
 		"original_total":            int64(order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed),
 		"total_rent_paid":           c(totalRentPaid),
@@ -979,6 +1131,13 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		"tier_segments":             tierSegsCents,
 		"fee_items":                 feeItems,
 	}
+
+	// #1803 T2: 三段统一费用明细（实付段/应付段/净额段）——单一数据源，
+	// 落库 settlement.Breakdown 后 settled 态直接读回复现（重建现场）。
+	breakdown["paid_block"] = paidBlock
+	breakdown["payable_block"] = payableBlock
+	breakdown["net_block"] = netBlock
+	breakdown["settled"] = !unsettledStatus[order.Status]
 
 	// C1 = R1 − min(A1, A0): the cash portion of the adjusted payable rent.
 	// When A1 ≥ A0 the gift actually used is A0, so the cash basis is
