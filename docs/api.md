@@ -3019,7 +3019,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 }
 ```
 
-**存储**: `media_assets`（source_type=`face_capture`，`uploads/media/face_captures/{userID}/`）——生物特征合规数据，**GC 豁免**（禁止按 180 天回收，见 docs/media_directory.md）。
+**存储**: `media_assets`（source_type=`face_capture`，source_id=batch_id，`uploads/media/face_captures/{userID}/{batchID}/`）——生物特征合规数据，**GC 豁免**（禁止按 180 天回收，见 docs/media_directory.md）。
 
 ---
 
@@ -3067,7 +3067,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
         "user_id": "uuid",
         "user_name": "张三",
         "id_photos": ["/uploads/media/id_photos/front.jpg", "/uploads/media/id_photos/back.jpg", "/uploads/media/id_photos/other.jpg"],
-        "selfie_urls": ["/uploads/media/face_captures/{userID}/selfie1.jpg"],
+        "selfie_urls": ["/uploads/media/face_captures/{userID}/{batchID}/selfie.jpg"],
         "submitted_at": "2026-08-28T10:00:00Z"
       }
     ],

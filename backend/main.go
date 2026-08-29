@@ -101,6 +101,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	userAddressHandler := handlers.NewUserAddressHandler()
 	userOnboardingHandler := handlers.NewUserOnboardingHandler()
 	faceVerifyHandler := handlers.NewFaceVerifyHandler(faceVerifyProvider)
+	faceCaptureHandler := &handlers.FaceCaptureHandler{}
 	userSettlementHandler := handlers.NewUserSettlementHandler()
 	userPointsHandler := handlers.NewUserPointsHandler()
 	guarantorHandler := handlers.NewGuarantorHandler(nil) // nil → use env TENCENTCLOUD config
@@ -677,6 +678,9 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/pay/query", handlers.QueryPayment)
 				userOptionalAuth.GET("/users/me", staffHandler.GetCurrentUser)
 				userOptionalAuth.PUT("/users/me", staffHandler.UpdateCurrentUser)
+				// #1790 T2: 自拍采集存储（userOptionalAuth——顾客 USER 角色 tid/oid 空，#833 教训）
+				userOptionalAuth.POST("/user/face-capture", faceCaptureHandler.SubmitFaceCapture)
+				userOptionalAuth.GET("/user/face-capture/status", faceCaptureHandler.GetFaceCaptureStatus)
 				userOptionalAuth.POST("/users/me/avatar", handlers.UploadUserAvatar)
 				userOptionalAuth.PUT("/warehouse/orders/:id/delivery", warehouseHandler.ConfirmDelivery)
 				userOptionalAuth.GET("/user/addresses", userAddressHandler.ListAddresses)
@@ -696,18 +700,18 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 
 				// Points wallet routes (prepaid purchase removed #1670)
 				userOptionalAuth.GET("/user/points/balance", userPointsHandler.GetBalance)
-			userOptionalAuth.GET("/user/points/transactions", userPointsHandler.ListTransactions)
-			userOptionalAuth.GET("/user/guarantors", guarantorHandler.ListGuarantors)
-			userOptionalAuth.POST("/user/guarantors", guarantorHandler.CreateGuarantor)
-			userOptionalAuth.DELETE("/user/guarantors/:id", guarantorHandler.DeleteGuarantor)
-			// #1782: ID card OCR for guarantor deposit-free application
-			userOptionalAuth.POST("/user/idcard-ocr", guarantorHandler.OCRIDCard)
+				userOptionalAuth.GET("/user/points/transactions", userPointsHandler.ListTransactions)
+				userOptionalAuth.GET("/user/guarantors", guarantorHandler.ListGuarantors)
+				userOptionalAuth.POST("/user/guarantors", guarantorHandler.CreateGuarantor)
+				userOptionalAuth.DELETE("/user/guarantors/:id", guarantorHandler.DeleteGuarantor)
+				// #1782: ID card OCR for guarantor deposit-free application
+				userOptionalAuth.POST("/user/idcard-ocr", guarantorHandler.OCRIDCard)
 
-			// Invoice application routes (#1786)
-			userOptionalAuth.GET("/user/invoices/eligible", invoiceHandler.ListEligible)
-			userOptionalAuth.POST("/user/invoices", invoiceHandler.Submit)
-			userOptionalAuth.GET("/user/invoices", invoiceHandler.ListApplications)
-			userOptionalAuth.GET("/user/invoices/:id", invoiceHandler.GetApplication)
+				// Invoice application routes (#1786)
+				userOptionalAuth.GET("/user/invoices/eligible", invoiceHandler.ListEligible)
+				userOptionalAuth.POST("/user/invoices", invoiceHandler.Submit)
+				userOptionalAuth.GET("/user/invoices", invoiceHandler.ListApplications)
+				userOptionalAuth.GET("/user/invoices/:id", invoiceHandler.GetApplication)
 
 				userOptionalAuth.GET("/user/settlements/:id/calculate", userSettlementHandler.CalculateSettlement)
 				userOptionalAuth.POST("/user/settlements/:id", userSettlementHandler.ConfirmSettlement)
@@ -939,8 +943,6 @@ func main() {
 		}
 		os.Exit(0)
 	}
-
-
 
 	// One-off migration: JSONB 复合字段金额 元→分（#1727，fail-fast）。
 	if *migrateJSONBCents {

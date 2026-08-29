@@ -120,7 +120,7 @@ Cleanup is handled by `services/media_cleanup.go` scheduler which runs periodica
 | Directory | Purpose | Governed by |
 |-----------|---------|-------------|
 | `uploads/media/` | Unified media (rich-text content images, avatars, id photos, instrument media) | `media_assets` registry + `media_cleanup.go` GC |
-| `uploads/media/face_captures/{userID}/` | 实名核身自拍素材（图片 + 可选视频），人工审核证据，长期保存 | `media_assets` registry（source_type=face_capture，GC 豁免） |
+| `uploads/media/face_captures/{userID}/{batchID}/` | 实名核身自拍素材（图片 + 可选视频），人工审核证据，长期保存 | `media_assets` registry（source_type=face_capture，source_id=batch_id，GC 豁免） |
 | `uploads/batch/` | Batch-import ZIP extraction temp (`{sessionID}/`) | `media_cleanup.go` GC (expired session dirs) |
 | `uploads/photos/` | Legacy outbound photo mechanism (`{tenant}/{sn}/` with manifest.yaml + ZIP archive) | Historical — registered for attribution only, not refactored |
 

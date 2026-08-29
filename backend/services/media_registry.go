@@ -20,6 +20,7 @@ const (
 	SourceTypeAvatar          = "avatar"
 	SourceTypeIDPhoto         = "id_photo"
 	SourceTypeInstrumentMedia = "instrument_media"
+	SourceTypeFaceCapture     = "face_capture" // #1790 T2: 核身自拍素材（GC 豁免，生物特征合规数据）
 )
 
 // mediaKeyPattern matches physical files under /uploads/media/ embedded in rich

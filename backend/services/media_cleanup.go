@@ -136,8 +136,10 @@ func (s *MediaCleanupService) GCOrphans(dryRun bool) (int, error) {
 	deleted := 0
 
 	// 1. Registry-driven: unreferenced assets past the grace period.
+	// #1790 T2 R2 H3: face_capture 素材（生物特征合规数据）豁免孤儿回收。
 	var orphans []models.MediaAsset
-	if err := s.db.Where("is_referenced = ? AND last_referenced_at < ?", false, cutoff).
+	if err := s.db.Where("is_referenced = ? AND last_referenced_at < ? AND source_type != ?",
+		false, cutoff, "face_capture").
 		Find(&orphans).Error; err != nil {
 		return deleted, fmt.Errorf("failed to query orphan assets: %w", err)
 	}
@@ -169,6 +171,11 @@ func (s *MediaCleanupService) GCOrphans(dryRun bool) (int, error) {
 		return deleted, err
 	}
 	for _, f := range onDisk {
+		// #1790 T2 R2 H3: face_captures/ 目录（生物特征合规数据）即使注册
+		// 异常也保留——跳过目录扫描，防止物理删除。
+		if strings.HasPrefix(f, "face_captures/") {
+			continue
+		}
 		if registered[f] {
 			continue
 		}

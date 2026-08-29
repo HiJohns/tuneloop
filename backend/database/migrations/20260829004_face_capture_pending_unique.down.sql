@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS uq_face_capture_batches_user_pending;
