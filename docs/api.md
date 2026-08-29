@@ -1708,11 +1708,39 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
     "transfer_progress": 66.7,
     "transfer_eligible": false, // 是否满足转售条件
     "merchant_name": "北京音乐之家", // #1764 商户名（按订单 tenant_id 查 merchants；无记录为空，前端 fallback 云租吧）
-    "fee_summary": { // #1756 费用三区块（服务端计算，前端只读；金额全部分）
-      "paid": { "initial": [{"item":"rent","amount":400}], "renewal": [], "subtotal": 400 },
-      "payable": { "items": [{"item":"rent","amount":300},{"item":"shipping_fee","amount":100}], "subtotal": 400 },
-      "expected": { "direction": "refund", "amount": 0 }, // 未终态显示；settled 时为 null
-      "settled": false
+    "fee_detail": { // #1800 统一费用明细三段（单一数据源 computeSettlement；服务端计算，前端只读；金额全部分）
+      "settled": false, // 按订单当前状态判定（returning/pending_damage_response/damage_appealing/deposit_refunding 为 false）
+      "paid_block": { // 实付段
+        "contract_rent": { // 合同租金（首期，不含押金）
+          "amount": 300,             // 分
+          "date": "2026-08-01",      // 下单日期
+          "tiers": [                 // 首期阶梯明细（tier 编号从 1 起）
+            {"tier": 1, "rate": 100, "days": 30, "subtotal": 3000}
+          ]
+        },
+        "deposit": { "amount": 100 }, // 押金（分）
+        "renewals": [                 // 各次续费（按 created_at 升序）
+          {
+            "amount": 100,            // 该次续费实付（分）
+            "days": 10,               // 续费天数（T1 days 列；历史记录为 null）
+            "tiers": [                // 续费阶梯（tier 编号全局延续首期；历史记录无 days 时为空数组）
+              {"tier": 2, "rate": 90, "days": 10, "subtotal": 900}
+            ]
+          }
+        ],
+        "subtotal": 500               // 合计实付 = 合同租金 + 押金 + Σ续费
+      },
+      "payable_block": { // 应付段
+        "actual_rent": { "amount": 300, "days": 3, "tiers": [] }, // 实际租金（含阶梯）
+        "overdue_fee": { "amount": 0, "days": 0 },                // 逾期费（含天数）
+        "shipping_fee": { "amount": 100 },                        // 物流费
+        "subtotal": 400               // 实际应付 = 实际租金 + 逾期费 + 物流费
+      },
+      "net_block": { // 净额段
+        "direction": "refund",        // refund | shortfall | none（settled 且无差额为 none）
+        "amount": 100,                // 应退/应补金额（分，正数）
+        "items": []                   // fee_items 明细（与 settlement.breakdown.fee_items 同源）
+      }
     },
     "settlement": { // 结算信息（有 settlement 记录时返回；#1785 补缴字段见下）
       "id": "uuid",
@@ -1727,18 +1755,18 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
       "overdue_charges_total": 0,         // 分
       "payable_shortfall": 98             // 分；#1785 存在 pending payment_shortfall 记录时返回，仅补缴场景存在
     },
-    "damage": { // #1707/#1708：仅待回应定损/定损申诉态返回（pending_damage_response / damage_appealing）
+    "damage": { // #1707/#1708：仅待回应定损/定损申诉态返回（pending_damage_response / damage_appealing）；金额全部分（#1728 P3 契约）
       "report_id": "uuid",
-      "damage_amount": 100.00,    // 定损金额（迁移后统一来自 damage_reports，见 #1708/#1711）
+      "damage_amount": 10000,     // 定损金额（分；迁移后统一来自 damage_reports，见 #1708/#1711）
       "description": "弦断了",
       "status": "pending",        // pending=待决策 / agreed / appealed / completed（good 验收）
       "photos": ["/uploads/media/x.webp"], // 仅来自 instrument_media（receiving 批次）
       "actual_rent_days": 29,
-      "actual_rent_amount": 2900.00,
-      "shipping_fee": 50.00,
-      "deposit": 1000.00,
-      "paid_total": 4000.00,
-      "refund": 950.00            // = 实付合计 - 赔偿 - 实际租金 - 物流费（后端统一计算）
+      "actual_rent_amount": 290000, // 分
+      "shipping_fee": 5000,       // 分
+      "deposit": 100000,          // 分
+      "paid_total": 400000,       // 分（paid payment records 合计）
+      "refund": 95000             // 分；= 实付合计 - 赔偿 - 实际租金 - 物流费（后端统一计算）
     },
     "payment_history": [
       {

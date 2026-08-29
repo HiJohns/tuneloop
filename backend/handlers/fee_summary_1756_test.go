@@ -14,13 +14,14 @@ import (
 	"tuneloop-backend/models"
 )
 
-// #1756 regression tests: GetOrder fee_summary three-block structure
-// (paid / payable / expected), all cents, server-computed.
+// #1756/#1800 regression tests: GetOrder fee_detail 三段统一费用明细
+// （#1800 起 fee_summary 双口径废除，改由 fee_detail 单一数据源）。
+// 金额全部分（#1728 P3 契约）。
 
-// TestGetOrder_FeeSummary_Unsettled (#1756): returning order with a paid
-// record and shipping fee → paid block = rent payment, payable block =
-// actual rent + shipping, expected = refund (paid − payable).
-func TestGetOrder_FeeSummary_Unsettled(t *testing.T) {
+// TestGetOrder_FeeDetail_Unsettled (#1800): returning order with a paid
+// record and shipping fee → paid_block = contract rent + deposit, payable_block
+// = actual rent + shipping, net_block = refund (paid − payable, 0 差额).
+func TestGetOrder_FeeDetail_Unsettled(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
@@ -46,8 +47,8 @@ func TestGetOrder_FeeSummary_Unsettled(t *testing.T) {
 		InstrumentID: instrumentID,
 		StartDate:    &start, EndDate: &end,
 		DeliveredAt: &deliveredAt, ReturnedAt: &returnedAt,
-		LeaseTerm:    3,
-		Status:       models.OrderStatusReturning,
+		LeaseTerm:   3,
+		Status:      models.OrderStatusReturning,
 		Deposit:     models.FromYuan(1), // 1 元
 		CashPaid:    models.FromYuan(4), // 租金 3 元 + 押金 1 元 = 4 元 (400 分)
 		ShippingFee: models.FromYuan(1), // 1 元未付
@@ -76,60 +77,74 @@ func TestGetOrder_FeeSummary_Unsettled(t *testing.T) {
 	var resp struct {
 		Code int `json:"code"`
 		Data struct {
-			FeeSummary struct {
-				Paid struct {
-					Initial []struct {
-						Item   string `json:"item"`
+			FeeDetail struct {
+				Settled   bool `json:"settled"`
+				PaidBlock struct {
+					ContractRent struct {
 						Amount int64  `json:"amount"`
-					} `json:"initial"`
-					Renewal  []struct {
-						Item   string `json:"item"`
-						Amount int64  `json:"amount"`
-					} `json:"renewal"`
+						Date   string `json:"date"`
+						Tiers  []struct {
+							Tier     int   `json:"tier"`
+							Rate     int64 `json:"rate"`
+							Days     int   `json:"days"`
+							Subtotal int64 `json:"subtotal"`
+						} `json:"tiers"`
+					} `json:"contract_rent"`
+					Deposit struct {
+						Amount int64 `json:"amount"`
+					} `json:"deposit"`
+					Renewals []struct {
+						Amount int64 `json:"amount"`
+					} `json:"renewals"`
 					Subtotal int64 `json:"subtotal"`
-				} `json:"paid"`
-				Payable struct {
-					Items []struct {
-						Item   string `json:"item"`
-						Amount int64  `json:"amount"`
-					} `json:"items"`
+				} `json:"paid_block"`
+				PayableBlock struct {
+					ActualRent struct {
+						Amount int64 `json:"amount"`
+					} `json:"actual_rent"`
+					ShippingFee struct {
+						Amount int64 `json:"amount"`
+					} `json:"shipping_fee"`
 					Subtotal int64 `json:"subtotal"`
-				} `json:"payable"`
-				Expected *struct {
+				} `json:"payable_block"`
+				NetBlock struct {
 					Direction string `json:"direction"`
 					Amount    int64  `json:"amount"`
-				} `json:"expected"`
-				Settled bool `json:"settled"`
-			} `json:"fee_summary"`
+				} `json:"net_block"`
+			} `json:"fee_detail"`
 		} `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	require.Equal(t, 20000, resp.Code)
 
-	fs := resp.Data.FeeSummary
-	// Paid: rent 400 分 (initial), no renewal.
-	require.Len(t, fs.Paid.Initial, 1)
-	require.Equal(t, "rent", fs.Paid.Initial[0].Item)
-	require.Equal(t, int64(400), fs.Paid.Initial[0].Amount)
-	require.Len(t, fs.Paid.Renewal, 0)
-	require.Equal(t, int64(400), fs.Paid.Subtotal)
+	fd := resp.Data.FeeDetail
+	// Unsettled (returning) → settled=false.
+	require.False(t, fd.Settled)
+
+	// Paid: contract rent 300 分 + deposit 100 分 = subtotal 400.
+	require.Equal(t, int64(300), fd.PaidBlock.ContractRent.Amount, "contract rent cents")
+	require.Len(t, fd.PaidBlock.ContractRent.Tiers, 1)
+	require.Equal(t, 1, fd.PaidBlock.ContractRent.Tiers[0].Tier)
+	require.Equal(t, 3, fd.PaidBlock.ContractRent.Tiers[0].Days)
+	require.Equal(t, int64(100), fd.PaidBlock.ContractRent.Tiers[0].Rate)
+	require.Equal(t, int64(300), fd.PaidBlock.ContractRent.Tiers[0].Subtotal)
+	require.Equal(t, int64(100), fd.PaidBlock.Deposit.Amount)
+	require.Len(t, fd.PaidBlock.Renewals, 0)
+	require.Equal(t, int64(400), fd.PaidBlock.Subtotal)
 
 	// Payable: actual rent 300 + shipping 100 = 400.
-	require.Len(t, fs.Payable.Items, 2)
-	require.Equal(t, int64(300), fs.Payable.Items[0].Amount, "actual rent cents")
-	require.Equal(t, int64(100), fs.Payable.Items[1].Amount, "shipping cents")
-	require.Equal(t, int64(400), fs.Payable.Subtotal)
+	require.Equal(t, int64(300), fd.PayableBlock.ActualRent.Amount, "actual rent cents")
+	require.Equal(t, int64(100), fd.PayableBlock.ShippingFee.Amount, "shipping cents")
+	require.Equal(t, int64(400), fd.PayableBlock.Subtotal)
 
-	// Unsettled (returning) → expected block present.
-	require.False(t, fs.Settled)
-	require.NotNil(t, fs.Expected)
-	require.Equal(t, "refund", fs.Expected.Direction)
-	require.Equal(t, int64(0), fs.Expected.Amount, "paid 400 − payable 400 = 0")
+	// Unsettled 且 0 差额 → refund 方向（兼容旧 expected 行为），金额 0。
+	require.Equal(t, "refund", fd.NetBlock.Direction)
+	require.Equal(t, int64(0), fd.NetBlock.Amount)
 }
 
-// TestGetOrder_FeeSummary_Settled (#1756): completed order → expected is
-// null (settled), no expected block.
-func TestGetOrder_FeeSummary_Settled(t *testing.T) {
+// TestGetOrder_FeeDetail_Settled (#1800): completed order → settled=true,
+// net_block.direction = none（settled 且无差额，不展示净额段）。
+func TestGetOrder_FeeDetail_Settled(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
@@ -155,11 +170,11 @@ func TestGetOrder_FeeSummary_Settled(t *testing.T) {
 		InstrumentID: instrumentID,
 		StartDate:    &start, EndDate: &end,
 		DeliveredAt: &deliveredAt, ReturnedAt: &returnedAt,
-		LeaseTerm:    3,
-		Status:       models.OrderStatusCompleted,
-		Deposit:     models.FromYuan(1),
-		CashPaid:    models.FromYuan(4),
-		ShippingFee: models.FromYuan(1),
+		LeaseTerm:        3,
+		Status:           models.OrderStatusCompleted,
+		Deposit:          models.FromYuan(1),
+		CashPaid:         models.FromYuan(4),
+		ShippingFee:      models.FromYuan(1),
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":100,"rent_days":3,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":3,"rate":100,"discount":1,"subtotal":300}],"total_amount":300}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -183,26 +198,26 @@ func TestGetOrder_FeeSummary_Settled(t *testing.T) {
 	var resp struct {
 		Code int `json:"code"`
 		Data struct {
-			FeeSummary struct {
-				Paid struct {
+			FeeDetail struct {
+				Settled   bool `json:"settled"`
+				PaidBlock struct {
 					Subtotal int64 `json:"subtotal"`
-				} `json:"paid"`
-				Payable struct {
+				} `json:"paid_block"`
+				PayableBlock struct {
 					Subtotal int64 `json:"subtotal"`
-				} `json:"payable"`
-				Expected *struct {
+				} `json:"payable_block"`
+				NetBlock struct {
 					Direction string `json:"direction"`
-				} `json:"expected"`
-				Settled bool `json:"settled"`
-			} `json:"fee_summary"`
+				} `json:"net_block"`
+			} `json:"fee_detail"`
 		} `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	require.Equal(t, 20000, resp.Code)
 
-	fs := resp.Data.FeeSummary
-	require.True(t, fs.Settled, "completed order is settled")
-	require.Nil(t, fs.Expected, "no expected block when settled")
-	require.Equal(t, int64(400), fs.Paid.Subtotal)
-	require.Equal(t, int64(400), fs.Payable.Subtotal)
+	fd := resp.Data.FeeDetail
+	require.True(t, fd.Settled, "completed order is settled")
+	require.Equal(t, "none", fd.NetBlock.Direction, "settled with no balance → none")
+	require.Equal(t, int64(400), fd.PaidBlock.Subtotal)
+	require.Equal(t, int64(400), fd.PayableBlock.Subtotal)
 }

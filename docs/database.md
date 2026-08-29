@@ -513,6 +513,41 @@ photos:
 
 **说明**: 记录所有订单状态变更历史，用于追溯物流和租赁周期
 
+### 2.19 order_payment_records - 支付记录表
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| tenant_id | UUID | INDEX, NOT NULL | 租户 ID |
+| org_id | UUID | INDEX | 组织 ID |
+| user_id | UUID | INDEX, NOT NULL | 支付用户 ID |
+| order_id | UUID | INDEX | 关联订单 ID |
+| session_id | UUID | | 两阶段注册会话 ID（#1663；RawResponse 被回调覆盖后仍存续） |
+| order_type | VARCHAR(20) | NOT NULL | 订单类型: rent/renewal/damage/repair/payment_shortfall/membership |
+| out_trade_no | VARCHAR(32) | UNIQUE INDEX | 微信商户订单号 |
+| transaction_id | VARCHAR(64) | | 微信支付单号 |
+| openid | VARCHAR(128) | | 支付者 openid（#1731 回调权威源） |
+| amount | BIGINT | NOT NULL | 金额（分，#1727 P2 起） |
+| type | VARCHAR(20) | NOT NULL, DEFAULT 'payment' | 记录类型: payment |
+| status | VARCHAR(20) | NOT NULL, DEFAULT 'pending' | 状态: pending/paid/failed |
+| method | VARCHAR(20) | | 支付方式: jsapi/native/waived |
+| prepay_id | VARCHAR(64) | | 预支付 ID |
+| code_url | TEXT | | Native 支付二维码 URL |
+| fail_reason | TEXT | | 失败原因 |
+| raw_response | JSONB | | 原始响应（**会被微信回调覆盖**，见 days 列说明） |
+| reminded_at | TIMESTAMP | | 催缴幂等标记（#1749） |
+| **days** | INTEGER | | **续费天数（#1802 T1 独立持久化）**：仅 renewal 类型记录使用；RawResponse 会被微信回调（processPaymentCallback）覆盖，续费天数不再依赖其中 meta，改由此列读取 |
+| created_at | TIMESTAMPTZ | NOT NULL | 创建时间 |
+| updated_at | TIMESTAMPTZ | NOT NULL | 更新时间 |
+
+**days 列说明（#1802 T1）**：
+- 背景：续费天数（AdditionalDays）原存 `raw_response` JSON 中，但微信支付回调在 `applyRenewalSideEffects` **之前**覆盖 raw_response 为回调结果 → 真实回调路径续费天数丢失（潜在既有 bug）。
+- 修复：`ConfirmRenewal` 创建记录时写入 `days` 列；`applyRenewalSideEffects` 优先从 `days` 读取，历史记录（无 days）fallback 到 raw_response meta。
+- 历史续费记录天数不可回填 → 订单详情实付段该次续费降级展示（金额+日期，无阶梯明细）。
+- 迁移：`20260829001_order_payment_records_days.{up,down}.sql`
+
+**说明**: 每笔支付（首期租金/续费/定损/补缴/会员费）一行，paid 记录为订单详情实付段（fee_detail.paid_block）数据源。
+
 ### 2.22 audit_logs - 审计日志表
 
 | 字段名 | 类型 | 约束 | 说明 |

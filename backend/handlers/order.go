@@ -231,110 +231,6 @@ func buildFeeDetail(order models.Order, db *gorm.DB, settlementData map[string]i
 	}
 }
 
-// feeSummaryFromFeeDetail (#1803 T2): fee_summary 从 fee_detail 派生投影
-// （保持既有 paid/payable/expected 响应结构，前端 T3 前不裂）。
-func feeSummaryFromFeeDetail(fd map[string]interface{}) map[string]interface{} {
-	paid, _ := fd["paid_block"].(map[string]interface{})
-	payable, _ := fd["payable_block"].(map[string]interface{})
-	net, _ := fd["net_block"].(map[string]interface{})
-
-	// paid.initial ← contract_rent + deposit 合并（保持「租金含押金」单条）。
-	initial := []map[string]interface{}{}
-	renewals := []map[string]interface{}{}
-	paidSubtotal := int64(0)
-	if paid != nil {
-		contractAmt := int64(0)
-		if cr, ok := paid["contract_rent"].(map[string]interface{}); ok {
-			if v, ok := cr["amount"].(int64); ok {
-				contractAmt = v
-			} else if v, ok := cr["amount"].(float64); ok {
-				contractAmt = int64(v)
-			}
-		}
-		depositAmt := int64(0)
-		if dep, ok := paid["deposit"].(map[string]interface{}); ok {
-			if v, ok := dep["amount"].(int64); ok {
-				depositAmt = v
-			} else if v, ok := dep["amount"].(float64); ok {
-				depositAmt = int64(v)
-			}
-		}
-		// 租金（含押金）单条（#1756 既有结构）。
-		initial = append(initial, map[string]interface{}{"item": "rent", "amount": contractAmt + depositAmt})
-		paidSubtotal = contractAmt + depositAmt
-
-		if rl, ok := paid["renewals"].([]interface{}); ok {
-			for _, r := range rl {
-				rm, _ := r.(map[string]interface{})
-				var amt int64
-				if v, ok := rm["amount"].(int64); ok {
-					amt = v
-				} else if v, ok := rm["amount"].(float64); ok {
-					amt = int64(v)
-				}
-				renewals = append(renewals, map[string]interface{}{"item": "renewal", "amount": amt})
-				paidSubtotal += amt
-			}
-		}
-	}
-
-	// payable.items ← payable_block 三项。
-	payableItems := []map[string]interface{}{}
-	payableSubtotal := int64(0)
-	if payable != nil {
-		appendItem := func(key, item string) {
-			if v, ok := payable[key].(map[string]interface{}); ok {
-				var amt int64
-				if a, ok := v["amount"].(int64); ok {
-					amt = a
-				} else if a, ok := v["amount"].(float64); ok {
-					amt = int64(a)
-				}
-				if amt > 0 || key == "shipping_fee" {
-					payableItems = append(payableItems, map[string]interface{}{"item": item, "amount": amt})
-				}
-				payableSubtotal += amt
-			}
-		}
-		appendItem("actual_rent", "rent")
-		appendItem("overdue_fee", "overdue_fee")
-		appendItem("shipping_fee", "shipping_fee")
-	}
-
-	// expected ← net_block。
-	var expected interface{}
-	settled := false
-	if net != nil {
-		direction, _ := net["direction"].(string)
-		if direction != "none" && direction != "" {
-			var amt int64
-			if v, ok := net["amount"].(int64); ok {
-				amt = v
-			} else if v, ok := net["amount"].(float64); ok {
-				amt = int64(v)
-			}
-			expected = map[string]interface{}{"direction": direction, "amount": amt}
-		}
-	}
-	if v, ok := fd["settled"].(bool); ok {
-		settled = v
-	}
-
-	return map[string]interface{}{
-		"paid": map[string]interface{}{
-			"initial":  initial,
-			"renewal":  renewals,
-			"subtotal": paidSubtotal,
-		},
-		"payable": map[string]interface{}{
-			"items":    payableItems,
-			"subtotal": payableSubtotal,
-		},
-		"expected": expected,
-		"settled":  settled,
-	}
-}
-
 // GetOrder retrieves a single order by ID
 func GetOrder(c *gin.Context) {
 	orderID := c.Param("id")
@@ -697,12 +593,11 @@ func GetOrder(c *gin.Context) {
 	orderData["actual_rent_days"] = allRentDays
 	orderData["actual_rent_amount"] = allRentCents
 
-	// #1803 T2: 统一费用明细三段结构（单一数据源 computeSettlement）。
+	// #1803 T2/T4: 统一费用明细三段结构（单一数据源 computeSettlement）。
 	// fee_detail 为权威结构（returning 实时 / settled 落库重建）；
-	// fee_summary 为其派生投影（#1756 兼容结构，前端 T3 切换前不裂）。
+	// fee_summary 兼容投影已在 T4 移除（前端已全部切换 fee_detail）。
 	feeDetail := buildFeeDetail(order, db, settlementData)
 	orderData["fee_detail"] = feeDetail
-	orderData["fee_summary"] = feeSummaryFromFeeDetail(feeDetail)
 
 	transitInfo := GetMerchantTransitInfo(c.Request.Context(), order.TenantID)
 	if transitInfo != nil && transitInfo.MerchantType == models.MerchantTypeControlled {
