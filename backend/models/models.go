@@ -40,10 +40,24 @@ type User struct {
 	IdCardNo            *string    `gorm:"type:varchar(18)" json:"id_card_no"`
 	FaceVerified        bool       `gorm:"default:false" json:"face_verified"`
 	FaceVerifiedAt      *time.Time `gorm:"column:face_verified_at" json:"face_verified_at"`
+	FaceVerifyMethod    *string    `gorm:"type:varchar(10)" json:"face_verify_method"` // #1789 T1: tencent=自动比对 / manual=人工审核（信息变更时清除）
 	RefCode             string     `gorm:"type:varchar(16)" json:"ref_code"`
 	DeletedAt           *time.Time `gorm:"index" json:"deleted_at"`
 	CreatedAt           time.Time  `json:"created_at"`
 	UpdatedAt           time.Time  `json:"updated_at"`
+}
+
+// FaceCaptureBatch (#1789 T1): 实名核身自拍采集批次（人工审核用）。
+// 状态机：pending（待审核）→ approved（通过）/ rejected（驳回可重新采集）。
+type FaceCaptureBatch struct {
+	ID           string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID       string     `gorm:"type:uuid;not null;index:idx_face_capture_batches_user" json:"user_id"`
+	Status       string     `gorm:"type:varchar(20);not null;default:'pending'" json:"status"` // pending/approved/rejected
+	RejectReason *string    `gorm:"type:text" json:"reject_reason,omitempty"`
+	SubmittedAt  time.Time  `gorm:"not null;default:now()" json:"submitted_at"`
+	ReviewedBy   *string    `gorm:"type:varchar(255)" json:"reviewed_by,omitempty"` // 平台员工（本地 users 缓存 name/ID）
+	ReviewedAt   *time.Time `json:"reviewed_at,omitempty"`
+	CreatedAt    time.Time  `json:"created_at"`
 }
 
 type Category struct {

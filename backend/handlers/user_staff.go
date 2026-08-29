@@ -768,6 +768,8 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 		"id_card_no":            maskIdCardNo(user.IdCardNo),
 		"face_verified":         user.FaceVerified,
 		"face_verified_at":      user.FaceVerifiedAt,
+		"face_verify_method":    user.FaceVerifyMethod,
+		"id_verify_status":      deriveIdVerifyStatus(db, &user), // #1789 T1: 五态派生
 	}
 
 	// Resolve membership level name
@@ -951,9 +953,39 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 		localUpdates["id_card_no"] = *req.IdCardNo
 		// If user was previously verified, changing id_card_no invalidates verification (#1787).
 		var currentUser models.User
-		if err := db.Select("face_verified").Where("iam_sub = ?", userID).First(&currentUser).Error; err == nil && currentUser.FaceVerified {
+		if err := db.Select("face_verified, face_verify_method").Where("iam_sub = ?", userID).First(&currentUser).Error; err == nil && currentUser.FaceVerified {
 			localUpdates["face_verified"] = false
 			localUpdates["face_verified_at"] = nil
+			localUpdates["face_verify_method"] = nil
+		}
+	}
+	// #1789 T1 R2 C4: 信息变更（real_name/id_card_no/证件照）作废 pending 批次——
+	// 防止员工审核基于旧身份信息提交的批次。事务内完成。
+	identityChanged := req.RealName != nil || req.IdCardNo != nil || req.IdPhotoFront != nil || req.IdPhotoBack != nil
+	if identityChanged {
+		if len(localUpdates) > 0 {
+			if err := db.Transaction(func(tx *gorm.DB) error {
+				if err := tx.Model(&models.User{}).Where("iam_sub = ?", userID).Updates(localUpdates).Error; err != nil {
+					return err
+				}
+				var localUser models.User
+				if err := tx.Select("id").Where("iam_sub = ?", userID).First(&localUser).Error; err != nil {
+					return err
+				}
+				// 作废 pending 批次（仅当确实存在待审核批次）。
+				rejectReason := "身份信息已变更，请重新采集"
+				if err := tx.Model(&models.FaceCaptureBatch{}).
+					Where("user_id = ? AND status = ?", localUser.ID, "pending").
+					Updates(map[string]interface{}{"status": "rejected", "reject_reason": rejectReason}).Error; err != nil {
+					return err
+				}
+				return nil
+			}); err != nil {
+				log.Printf("[UpdateCurrentUser] identity change transaction failed for %s: %v", userID, err)
+				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "资料保存失败，请重试"})
+				return
+			}
+			localUpdates = nil // 事务已提交全部更新
 		}
 	}
 	if len(localUpdates) > 0 {

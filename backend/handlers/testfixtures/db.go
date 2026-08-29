@@ -35,6 +35,7 @@ var allTables = []interface{}{
 	&models.OrderPaymentRecord{},
 	&models.PointsTransaction{},
 	&models.User{},
+	&models.FaceCaptureBatch{}, // #1789 T1: 核身批次表
 	&models.DamageReport{},
 	&models.MembershipGiftRatio{},
 	&models.GiftPolicy{},

@@ -44,6 +44,32 @@
 - `active`: 已激活用户。IAM 侧确认后本地同步为 active
 - 创建时设密码或自动生成 → 本地直接为 `active`（跳过 IAM 确认）
 
+**实名核身字段（#1787/#1789）**:
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| face_verified | BOOLEAN | DEFAULT false | 是否已核身（人脸比对通过或人工审核通过） |
+| face_verified_at | TIMESTAMPTZ | | 核身通过时间 |
+| face_verify_method | VARCHAR(10) | | 核身来源：`tencent`=自动比对 / `manual`=人工审核；信息变更时清除 |
+
+**核身五态派生**（`id_verify_status`，非列存储，派生函数输出）：`none` / `uploaded` / `pending_review` / `verified` / `rejected`（判定优先级见 docs/cases/id-photos.md C6）
+
+### 2.1.1 face_capture_batches - 核身自拍采集批次表（#1789 T1）
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| user_id | UUID | NOT NULL, FK → users(id) ON DELETE CASCADE, INDEX(user_id, submitted_at DESC) | 所属用户 |
+| status | VARCHAR(20) | NOT NULL, DEFAULT 'pending' | pending（待审核）/ approved（通过）/ rejected（驳回） |
+| reject_reason | TEXT | | 驳回原因（rejected 时填写） |
+| submitted_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 自拍提交时间 |
+| reviewed_by | VARCHAR(255) | | 审核人（平台员工本地 users 缓存 name/ID） |
+| reviewed_at | TIMESTAMPTZ | | 审核时间 |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 创建时间 |
+
+**说明**: 每次自拍采集一条批次；人工审核通过/驳回后留痕（reviewed_by/at）；信息变更（real_name/id_card_no/证件照）时 pending 批次自动作废（rejected, reason=「身份信息已变更，请重新采集」）。自拍素材存 `media_assets`（source_type=face_capture，GC 豁免）。
+
+迁移：`20260829003_face_capture_batches.{up,down}.sql`
+
 ### 2.2 merchants - 商户表
 
 **说明**: 商户对应 IAM 中的 Organization

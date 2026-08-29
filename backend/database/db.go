@@ -397,6 +397,7 @@ func validateDatabaseSchema(db *gorm.DB) error {
 	//   ConfirmationSession, Label — no table ever created (non-persisted)
 	modelsToValidate := []interface{}{
 		&models.User{},
+		&models.FaceCaptureBatch{}, // #1789 T1: 核身批次表（20260829003 migration）
 		&models.Category{},
 		&models.Instrument{},
 		&models.Referral{},
