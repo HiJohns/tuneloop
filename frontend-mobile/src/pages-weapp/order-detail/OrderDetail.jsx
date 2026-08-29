@@ -6,6 +6,7 @@ import { env, uploadFile } from '../../platform'
 import { formatDeliveryAddress, formatDisplayDate, formatLogTime, formatPayMethod } from '../../utils/format'
 import { calculateDays, calculateEndDate } from '../../utils/daycalc'
 import LeaseInfo from '../../components/LeaseInfo'
+import VerifyWarningBar from '../../components/VerifyWarningBar'
 
 const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? `${env.apiBaseUrl.replace(/\/api$/, '')}${url}` : url
 
@@ -432,6 +433,13 @@ export default function OrderDetail() {
                 <Text style={{ fontSize: 11, color: '#dc2626', marginTop: 2 }}>（¥{((dailyRate || 0) / 100).toFixed(2)}/天）</Text>
               </View>
             </View>
+          </View>
+        )}
+
+        {/* #1792 T4: 核身警告条（仅未发货订单展示，已发货不展示） */}
+        {(status === 'paid' || status === 'pending_shipment') && order.user_id_verify_status && (
+          <View style={{ margin: 16 }}>
+            <VerifyWarningBar status={order.user_id_verify_status} />
           </View>
         )}
 

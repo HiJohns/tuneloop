@@ -5,6 +5,7 @@ import { apiFetch, getToken, resolveErrorMessage } from '../../../services/api'
 import { env, dialog, getInputValue, wxLogin as wxLoginCode } from '../../../platform'
 import { parseJWT } from '../../../platform/init'
 import IdPhotoUploader from '../../../components/IdPhotoUploader'
+import FaceCaptureUploader from '../../../components/FaceCaptureUploader'
 
 export default function EditProfile() {
   const [name, setName] = useState('')
@@ -18,6 +19,7 @@ export default function EditProfile() {
   const [idCardNo, setIdCardNo] = useState('')
   const [faceVerified, setFaceVerified] = useState(false)
   const [faceVerifiedAt, setFaceVerifiedAt] = useState('')
+  const [idVerifyStatus, setIdVerifyStatus] = useState('') // #1792 T4: 五态聚合
   const [saving, setSaving] = useState(false)
   const [bindingWx, setBindingWx] = useState(false)
   const [showFaceVerify, setShowFaceVerify] = useState(false)
@@ -49,6 +51,7 @@ export default function EditProfile() {
           setIdCardNo(result.data.id_card_no || '')
           setFaceVerified(result.data.face_verified || false)
           setFaceVerifiedAt(result.data.face_verified_at || '')
+          setIdVerifyStatus(result.data.id_verify_status || '')
         }
       } catch {}
     }
@@ -251,6 +254,14 @@ export default function EditProfile() {
               )}
             </View>
           )}
+          {/* #1792 T4: 自拍核身素材采集（face_verified=false 时显示；腾讯云未配置转人工审核） */}
+          <FaceCaptureUploader
+            initialStatus={idVerifyStatus}
+            onSubmitSuccess={() => {
+              setIdVerifyStatus('pending_review')
+              setFaceVerified(false)
+            }}
+          />
         </View>
         {isStaff && (
           <View style={{ marginBottom: 20 }}>

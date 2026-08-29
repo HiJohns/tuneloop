@@ -8,6 +8,7 @@ import { dialog, env, session, storage, eventBus, getInputValue } from '../platf
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
 import regions from '../data/regions.json'
 import IdPhotoUploader from '../components/IdPhotoUploader'
+import VerifyWarningBar from '../components/VerifyWarningBar'
 
 function parseImages(images) {
   if (!images) return []
@@ -357,6 +358,8 @@ function SingleCheckout({ id, navigate }) {
       </View>
 
       <View className="p-4">
+        {/* #1792 T4: 核身警告条（仅警告不阻断提交） */}
+        <VerifyWarningBar status={user?.id_verify_status || ''} navigate={navigate} />
         <View className="mb-3">
           <Text className="font-black text-black">租赁乐器</Text>
           <View className="flex gap-3 mt-2">
@@ -950,6 +953,10 @@ function BatchCheckout({ navigate }) {
       </View>
 
       <ScrollView className="w-full flex-1 pb-28" scrollY showScrollbar={false}>
+        {/* #1792 T4: 核身警告条（仅警告不阻断提交） */}
+        <View className="px-4 pt-3">
+          <VerifyWarningBar status={user?.id_verify_status || ''} navigate={navigate} />
+        </View>
         <View className="p-4 m-4 bg-white rounded-2xl shadow-sm border border-zinc-100 flex flex-col items-center">
           <View className="text-center">
             <Text className="text-xs text-zinc-400 font-bold tracking-widest block uppercase">TOTAL PAYABLE</Text>

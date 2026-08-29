@@ -8,6 +8,7 @@ import { dialog, env, previewImage } from '../platform'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
+import VerifyWarningBar from '../components/VerifyWarningBar'
 import { ArrowLeft, User, MapPin, Truck, Package, PackageCheck, RotateCcw, CreditCard, XCircle, AlertTriangle, CheckCircle, Clock, Calendar, Banknote } from 'lucide-react'
 
 const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? `${env.apiBaseUrl.replace(/\/api$/, '')}${url}` : url
@@ -429,6 +430,13 @@ export default function OrderDetail() {
               </Text>
             </View>
           </View>
+        </View>
+      )}
+
+      {/* #1792 T4: 核身警告条（仅未发货订单展示，已发货不展示） */}
+      {(status === 'paid' || status === 'pending_shipment') && order.user_id_verify_status && (
+        <View className="mx-4 mt-3">
+          <VerifyWarningBar status={order.user_id_verify_status} navigate={navigate} />
         </View>
       )}
 
