@@ -346,6 +346,7 @@ func ConfirmRenewal(c *gin.Context) {
 		Type:        "payment",
 		Status:      "pending",
 		RawResponse: &metaStr,
+		Days:        &req.AdditionalDays, // #1802 T1: 续费天数独立持久化（RawResponse 会被微信回调覆盖）
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
@@ -410,11 +411,19 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 			return err
 		}
 	}
+	// #1802 T1: 续费天数从独立 Days 列读取（RawResponse 被微信回调覆盖后
+	// 不再可靠）；历史记录无 Days 时 fallback 到 RawResponse meta。
+	additionalDays := 0
+	if record.Days != nil {
+		additionalDays = *record.Days
+	} else if meta.AdditionalDays > 0 {
+		additionalDays = meta.AdditionalDays
+	}
 	orderID := meta.OrderID
 	if orderID == "" && record.OrderID != nil {
 		orderID = *record.OrderID
 	}
-	if orderID == "" || meta.AdditionalDays <= 0 {
+	if orderID == "" || additionalDays <= 0 {
 		return fmt.Errorf("invalid renewal metadata")
 	}
 
@@ -426,7 +435,7 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 	// Renewal continues from the original end date (not from today), so an
 	// overdue order's new end date = end_date + additional_days (continuous).
 	endDate := parseDatePtr(order.EndDate)
-	newEndDate := endDate.AddDate(0, 0, meta.AdditionalDays)
+	newEndDate := endDate.AddDate(0, 0, additionalDays)
 	newEndDateStr := newEndDate.Format("2006-01-02")
 
 	if err := tx.Model(&order).Updates(map[string]interface{}{
@@ -442,7 +451,7 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 		var pb services.PricingBreakdown
 		if err := json.Unmarshal([]byte(*order.PricingBreakdown), &pb); err == nil {
 			originalDays := pb.RentDays
-			newTotalDays := originalDays + meta.AdditionalDays
+			newTotalDays := originalDays + additionalDays
 			pb.RentDays = newTotalDays
 
 			// Recompute tier segments for the full new term
@@ -497,7 +506,7 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 
 	tx.Create(&models.OrderLog{
 		OrderID:   orderID,
-		Event:     fmt.Sprintf("续期 %d 天, 新到期日 %s", meta.AdditionalDays, newEndDateStr),
+		Event:     fmt.Sprintf("续期 %d 天, 新到期日 %s", additionalDays, newEndDateStr),
 		CreatedAt: now,
 	})
 
@@ -530,7 +539,7 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 			UserID:     renewalUser.ID,
 			Type:       "renewal",
 			Title:      "续期成功",
-			Content:    fmt.Sprintf("乐器 %s 续期 %d 天成功，新到期日：%s", instrumentLabel, meta.AdditionalDays, newEndDateStr),
+			Content:    fmt.Sprintf("乐器 %s 续期 %d 天成功，新到期日：%s", instrumentLabel, additionalDays, newEndDateStr),
 			RefID:      orderID,
 			RefType:    "order",
 			ActionType: "order",
