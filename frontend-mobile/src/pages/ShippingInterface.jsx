@@ -110,7 +110,11 @@ export default function ShippingInterface() {
     setPhotos(prev => prev.filter((_, i) => i !== idx))
   }
 
-  const canSubmit = !!(logistics.company.trim() && logistics.trackingNumber.trim() && logistics.shippingFee !== '' && photos.length >= 1 && orderId && !submitting)
+  // #1796 T7: 买家核身状态（T3 订单接口 user_id_verify_status）。
+  const buyerVerifyStatus = order?.user_id_verify_status || ''
+  const buyerVerified = !buyerVerifyStatus || buyerVerifyStatus === 'verified' // 状态未知（旧订单）不阻断
+
+  const canSubmit = !!(logistics.company.trim() && logistics.trackingNumber.trim() && logistics.shippingFee !== '' && photos.length >= 1 && orderId && !submitting && buyerVerified)
 
   const handleSubmit = async () => {
     if (!canSubmit || !orderId) return
@@ -248,6 +252,12 @@ export default function ShippingInterface() {
                   <View className="flex items-start gap-2">
                     <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">创建人</Text>
                     <Text className="text-sm text-black font-medium">{order.user_name}</Text>
+                    {/* #1796 T7: 核身角标（仅聚合状态，无敏感字段） */}
+                    {buyerVerifyStatus && buyerVerifyStatus !== 'verified' && (
+                      <Text className={`text-xs font-bold px-2 py-0.5 rounded-full ${buyerVerifyStatus === 'pending_review' ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-500'}`}>
+                        {buyerVerifyStatus === 'pending_review' ? '审核中' : '未核身'}
+                      </Text>
+                    )}
                   </View>
                 )}
                 {order.delivery_address && (
@@ -379,12 +389,18 @@ export default function ShippingInterface() {
       {/* Submit Button */}
       {order && (
         <View className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 safe-area-pb shadow-2xl">
+          {/* #1796 T7: 未核身提示（置灰原因，非静默） */}
+          {!buyerVerified && (
+            <Text className="block text-center text-red-500 text-xs mb-2">
+              用户未完成实名核身，请联系平台运营完成审核
+            </Text>
+          )}
           <Button
             onClick={handleSubmit}
             disabled={!canSubmit}
             style={{ width: '100%', margin: 0, backgroundColor: canSubmit ? '#B98E5F' : '#d4d4d8', color: '#fff', fontWeight: '800', fontSize: 16, height: 48, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', letterSpacing: '0.05em' }}
           >
-            {submitting ? '处理中...' : photos.length === 0 ? '请先拍照存档' : '提交发货'}
+            {submitting ? '处理中...' : photos.length === 0 ? '请先拍照存档' : !buyerVerified ? '等待核身' : '提交发货'}
           </Button>
         </View>
       )}
