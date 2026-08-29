@@ -63,3 +63,29 @@ func deriveIdVerifyStatus(db *gorm.DB, user *models.User) string {
 		return IdVerifyStatusUploaded
 	}
 }
+
+// deriveIdVerifyStatusBulk (#1791 T3 R2 H6): 批量场景的派生版本——
+// 最新批次状态由调用方预加载（一次 IN 查询），避免逐行查批次表（N+1）。
+// 判定优先级与 deriveIdVerifyStatus 一致（证件照全空 → none 优先；
+// face_verified → verified；否则按 latestBatchStatus）。
+func deriveIdVerifyStatusBulk(user *models.User, latestBatchStatus string) string {
+	if user == nil {
+		return IdVerifyStatusNone
+	}
+	if (user.IdPhotoFront == nil || *user.IdPhotoFront == "") &&
+		(user.IdPhotoBack == nil || *user.IdPhotoBack == "") &&
+		(user.IdPhotoOther == nil || *user.IdPhotoOther == "") {
+		return IdVerifyStatusNone
+	}
+	if user.FaceVerified {
+		return IdVerifyStatusVerified
+	}
+	switch latestBatchStatus {
+	case "pending":
+		return IdVerifyStatusPendingReview
+	case "rejected":
+		return IdVerifyStatusRejected
+	default:
+		return IdVerifyStatusUploaded
+	}
+}

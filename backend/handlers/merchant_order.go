@@ -71,25 +71,59 @@ func ListMerchantOrders(c *gin.Context) {
 
 	// Build response list
 	type OrderItem struct {
-		ID             string  `json:"id"`
-		Status         string  `json:"status"`
-		InstrumentName string  `json:"instrument_name"`
-		InstrumentSN   string  `json:"instrument_sn"`
-		SiteName       string  `json:"site_name"`
-		UserID         string  `json:"user_id"`
-		UserName       string  `json:"user_name"`
-		StartDate      string  `json:"start_date"`
-		EndDate        string  `json:"end_date"`
-		DeliveredAt    string  `json:"delivered_at"`
-		ShippedAt      string  `json:"shipped_at"`
-		ReturnedAt     string  `json:"returned_at"`
-		TotalAmount    float64 `json:"total_amount"`
-		CreatedAt      string  `json:"created_at"`
+		ID               string  `json:"id"`
+		Status           string  `json:"status"`
+		InstrumentName   string  `json:"instrument_name"`
+		InstrumentSN     string  `json:"instrument_sn"`
+		SiteName         string  `json:"site_name"`
+		UserID           string  `json:"user_id"`
+		UserName         string  `json:"user_name"`
+		UserVerifyStatus string  `json:"user_id_verify_status"` // #1791 T3: 买家核身聚合状态（仅状态，无敏感字段）
+		StartDate        string  `json:"start_date"`
+		EndDate          string  `json:"end_date"`
+		DeliveredAt      string  `json:"delivered_at"`
+		ShippedAt        string  `json:"shipped_at"`
+		ReturnedAt       string  `json:"returned_at"`
+		TotalAmount      float64 `json:"total_amount"`
+		CreatedAt        string  `json:"created_at"`
 	}
 	list := make([]OrderItem, 0, len(orders))
 	// #1776: reuse a single IAM client for all user-name lookups instead of
 	// creating a new one (with a new client-credentials token) per order.
 	iamClient := services.NewIAMClient()
+
+	// #1791 T3 R2 H6: N+1 优化——一次 IN 查询所有买家 face 状态 + 一次批量查
+	// 最新批次，构造 user_id → id_verify_status 映射（禁止逐行查批次表）。
+	verifyStatusMap := map[string]string{}
+	if len(orders) > 0 {
+		userIDs := make([]string, 0, len(orders))
+		for _, o := range orders {
+			if o.UserID != "" {
+				userIDs = append(userIDs, o.UserID)
+			}
+		}
+		if len(userIDs) > 0 {
+			// 批量加载买家用户（含 face 字段）。
+			var buyers []models.User
+			db.Select("id, face_verified, id_photo_front, id_photo_back, id_photo_other").
+				Where("id IN ?", userIDs).Find(&buyers)
+			// 批量加载最新批次（每个用户一行，submitted_at 最新）。
+			rows := []struct {
+				UserID string
+				Status string
+			}{}
+			db.Raw(`SELECT DISTINCT ON (user_id) user_id, status FROM face_capture_batches
+				WHERE user_id IN ?
+				ORDER BY user_id, submitted_at DESC`, userIDs).Scan(&rows)
+			latestStatus := map[string]string{}
+			for _, r := range rows {
+				latestStatus[r.UserID] = r.Status
+			}
+			for _, b := range buyers {
+				verifyStatusMap[b.ID] = deriveIdVerifyStatusBulk(&b, latestStatus[b.ID])
+			}
+		}
+	}
 	for _, o := range orders {
 		startStr, endStr := "", ""
 		if o.StartDate != nil {
@@ -99,12 +133,13 @@ func ListMerchantOrders(c *gin.Context) {
 			endStr = *o.EndDate
 		}
 		item := OrderItem{
-			ID:        o.ID,
-			Status:    o.Status,
-			UserID:    o.UserID,
-			StartDate: startStr,
-			EndDate:   endStr,
-			CreatedAt: o.CreatedAt.Format("2006-01-02 15:04"),
+			ID:               o.ID,
+			Status:           o.Status,
+			UserID:           o.UserID,
+			UserVerifyStatus: verifyStatusMap[o.UserID],
+			StartDate:        startStr,
+			EndDate:          endStr,
+			CreatedAt:        o.CreatedAt.Format("2006-01-02 15:04"),
 		}
 		// Resolve user name
 		if o.UserID != "" {

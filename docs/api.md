@@ -3108,6 +3108,16 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 { "code": 20000, "data": { "status": "approved" } }
 ```
 
+**订单接口买家核身状态（#1791 T3）**:
+- `GET /api/orders/:id` → `data.user_id_verify_status`（五态聚合状态）
+- `GET /api/merchant/orders`（员工订单列表）→ 每项 `user_id_verify_status`
+- **字段边界（R2 H2）**：仅返回聚合状态（角标/校验数据源）；**禁止返回** real_name/id_card_no/证件照/自拍素材（用户对商户不可见原则）
+- **N+1 优化（R2 H6）**：列表接口批量 IN 预查买家状态，禁止逐行查批次表
+
+**发货强制校验（#1791 T3 R1）**:
+- `PUT /api/warehouse/orders/:id/shipping`：买家 `id_verify_status != verified` → `40002`「用户未完成实名核身，请联系平台运营完成审核」
+- **无豁免，全量强制**（校验权威在后端，前端置灰仅为 UX）
+
 ---
 
 ### 8.11.2 核身超时自动取消（H8，用户决策 2026-08-29）

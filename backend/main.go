@@ -102,6 +102,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	userOnboardingHandler := handlers.NewUserOnboardingHandler()
 	faceVerifyHandler := handlers.NewFaceVerifyHandler(faceVerifyProvider)
 	faceCaptureHandler := &handlers.FaceCaptureHandler{}
+	faceReviewHandler := &handlers.FaceReviewHandler{}
 	userSettlementHandler := handlers.NewUserSettlementHandler()
 	userPointsHandler := handlers.NewUserPointsHandler()
 	guarantorHandler := handlers.NewGuarantorHandler(nil) // nil → use env TENCENTCLOUD config
@@ -378,6 +379,9 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.GET("/admin/payments", handlers.ListPayments)
 		authRequired.GET("/admin/payments/export", handlers.ExportPayments)
 		authRequired.POST("/admin/payments/:out_trade_no/query", handlers.QueryPaymentByTradeNo)
+		// #1791 T3: 实名核身人工审核队列（平台员工/系统管理员，SysPermUserUpdate）
+		authRequired.GET("/admin/face-review/queue", middleware.RequireSysPerm(middleware.SysPermUserUpdate), faceReviewHandler.Queue)
+		authRequired.POST("/admin/face-review/:batchId", middleware.RequireSysPerm(middleware.SysPermUserUpdate), faceReviewHandler.Review)
 
 		// Instrument CRUD
 		authRequired.POST("/instruments", middleware.RequireCusPerm("instrument:create"), handlers.CreateInstrument)

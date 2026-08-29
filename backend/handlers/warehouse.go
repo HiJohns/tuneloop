@@ -125,6 +125,23 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 	userID := middleware.GetUserID(ctx)
 
+	// #1791 T3 R1: 发货强制核身校验——买家 id_verify_status=verified 才可发货，
+	// 无豁免，全量强制（#1787 用户决策）。校验权威在后端，前端置灰仅为 UX。
+	var orderForVerify models.Order
+	if err := db.Where("id = ? AND tenant_id = ?", orderID, tenantID).First(&orderForVerify).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "order not found"})
+		return
+	}
+	if orderForVerify.UserID != "" {
+		var buyer models.User
+		if err := db.Where("id = ?", orderForVerify.UserID).First(&buyer).Error; err == nil {
+			if deriveIdVerifyStatus(db, &buyer) != IdVerifyStatusVerified {
+				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "用户未完成实名核身，请联系平台运营完成审核"})
+				return
+			}
+		}
+	}
+
 	// Determine target status based on merchant type
 	targetStatus := models.OrderStatusShipped
 	var merchant models.Merchant

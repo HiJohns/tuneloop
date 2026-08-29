@@ -287,12 +287,16 @@ func GetOrder(c *gin.Context) {
 	userEmail := ""
 	userPhone := ""
 	userIAMSub := ""
+	userVerifyStatus := ""
 	var user models.User
 	if err := db.Raw("SELECT * FROM users WHERE id = ? LIMIT 1", order.UserID).Scan(&user).Error; err == nil && user.ID != "" {
 		userName = user.Name
 		userEmail = user.Email
 		userPhone = user.Phone
 		userIAMSub = user.IAMSub
+		// #1791 T3 R2 H7: 订单接口返回买家聚合核身状态（字段边界：仅聚合状态，
+		// 禁止 real_name/id_card_no/证件照/自拍素材——用户对商户不可见原则）。
+		userVerifyStatus = deriveIdVerifyStatus(db, &user)
 	}
 	// If local user has no name, try to fetch from IAM
 	if userName == "" && userIAMSub != "" {
@@ -546,44 +550,45 @@ func GetOrder(c *gin.Context) {
 	}
 
 	orderData := map[string]interface{}{
-		"id":                  order.ID,
-		"tenant_id":           order.TenantID,
-		"user_id":             order.UserID,
-		"user_name":           userName,
-		"user_email":          userEmail,
-		"user_phone":          userPhone,
-		"instrument_id":       order.InstrumentID,
-		"instrument_name":     instrumentName,
-		"instrument_category": instrumentCategory,
-		"instrument_sn":       instrumentSN,
-		"level":               order.Level,
-		"lease_term":          order.LeaseTerm,
-		"deposit_mode":        order.DepositMode,
-		"deposit":             order.Deposit,
-		"deposit_waived":      order.DepositWaived,
-		"guarantors":          guarantors,
-		"shipping_fee":        order.ShippingFee,
-		"accumulated_months":  order.AccumulatedMonths,
-		"status":              order.Status,
-		"start_date":          order.StartDate,
-		"end_date":            order.EndDate,
-		"coupon_code":         order.CouponCode,     // #1744 优惠码快照（无码为 null）
-		"coupon_discount":     order.CouponDiscount, // #1744 折扣金额（分，无码 0）
-		"tracking_number":     order.TrackingNumber,
-		"courier_company":     order.CourierCompany,
-		"shipped_at":          order.ShippedAt,
-		"delivered_at":        order.DeliveredAt,
-		"returned_at":         order.ReturnedAt,
-		"delivery_address":    deliveryAddress,
-		"created_at":          order.CreatedAt,
-		"updated_at":          order.UpdatedAt,
-		"paid_at":             paidAt,
-		"pricing_breakdown":   pricingBreakdownData,
-		"settlement":          settlementData,
-		"order_logs":          orderLogs,
-		"payment_records":     paymentEntries,
-		"refund_records":      refundEntries,
-		"damage":              damageData,
+		"id":                    order.ID,
+		"tenant_id":             order.TenantID,
+		"user_id":               order.UserID,
+		"user_name":             userName,
+		"user_id_verify_status": userVerifyStatus, // #1791 T3: 买家核身聚合状态（仅状态，无敏感字段）
+		"user_email":            userEmail,
+		"user_phone":            userPhone,
+		"instrument_id":         order.InstrumentID,
+		"instrument_name":       instrumentName,
+		"instrument_category":   instrumentCategory,
+		"instrument_sn":         instrumentSN,
+		"level":                 order.Level,
+		"lease_term":            order.LeaseTerm,
+		"deposit_mode":          order.DepositMode,
+		"deposit":               order.Deposit,
+		"deposit_waived":        order.DepositWaived,
+		"guarantors":            guarantors,
+		"shipping_fee":          order.ShippingFee,
+		"accumulated_months":    order.AccumulatedMonths,
+		"status":                order.Status,
+		"start_date":            order.StartDate,
+		"end_date":              order.EndDate,
+		"coupon_code":           order.CouponCode,     // #1744 优惠码快照（无码为 null）
+		"coupon_discount":       order.CouponDiscount, // #1744 折扣金额（分，无码 0）
+		"tracking_number":       order.TrackingNumber,
+		"courier_company":       order.CourierCompany,
+		"shipped_at":            order.ShippedAt,
+		"delivered_at":          order.DeliveredAt,
+		"returned_at":           order.ReturnedAt,
+		"delivery_address":      deliveryAddress,
+		"created_at":            order.CreatedAt,
+		"updated_at":            order.UpdatedAt,
+		"paid_at":               paidAt,
+		"pricing_breakdown":     pricingBreakdownData,
+		"settlement":            settlementData,
+		"order_logs":            orderLogs,
+		"payment_records":       paymentEntries,
+		"refund_records":        refundEntries,
+		"damage":                damageData,
 	}
 
 	// #1739: expose actual rent figures for ALL statuses so the detail page
