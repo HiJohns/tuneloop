@@ -58,7 +58,26 @@ const (
 	BusinessRoleSiteAdmin     = "site_admin"
 	BusinessRoleSiteMember    = "site_member"
 	BusinessRoleCustomer      = "customer"
+	BusinessRolePlatformStaff = "platform_staff" // #1795 T6: 平台员工（PLATFORM_ROOT_ORG_ID 根组织成员）
 )
+
+// platformRootOrgID 缓存 PLATFORM_ROOT_ORG_ID 环境变量（#1795 T6）。
+// 未配置时为空 → 平台员工分支不触发（默认行为不变）。
+var platformRootOrgID = ""
+
+func init() {
+	platformRootOrgID = os.Getenv("PLATFORM_ROOT_ORG_ID")
+}
+
+// PlatformRootOrgID 返回 PLATFORM_ROOT_ORG_ID 配置值（#1795 T6，供 handlers 使用）。
+func PlatformRootOrgID() string {
+	return platformRootOrgID
+}
+
+// SetPlatformRootOrgIDForTesting 测试辅助：覆盖平台根组织 ID（#1795 T6）。
+func SetPlatformRootOrgIDForTesting(v string) {
+	platformRootOrgID = v
+}
 
 var validIssuers = []string{
 	"beacon-iam",
@@ -609,6 +628,13 @@ func GetBusinessRole(ctx context.Context) string {
 		return BusinessRoleSystemAdmin
 	}
 
+	// #1795 T6: 平台员工——oid 精确匹配 PLATFORM_ROOT_ORG_ID（env 配置）。
+	// 禁止用 tid==oid 推断（商户根组织形态相同会被误判，R2 约束）；
+	// 未配置 PLATFORM_ROOT_ORG_ID 时该分支不触发。
+	if platformRootOrgID != "" && oid == platformRootOrgID {
+		return BusinessRolePlatformStaff
+	}
+
 	// Merchant admin: logged into the merchant root org
 	if tid == oid {
 		return BusinessRoleMerchantAdmin
@@ -635,6 +661,8 @@ func GetVisibleOrgIDs(ctx context.Context) ([]string, error) {
 
 	switch businessRole {
 	case BusinessRoleSystemAdmin:
+		return nil, nil
+	case BusinessRolePlatformStaff: // #1795 T6 R2 C2: 平台员工全用户可见（无 org 过滤）
 		return nil, nil
 	case BusinessRoleSiteMember:
 		return []string{orgID}, nil

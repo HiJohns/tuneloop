@@ -103,6 +103,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	faceVerifyHandler := handlers.NewFaceVerifyHandler(faceVerifyProvider)
 	faceCaptureHandler := &handlers.FaceCaptureHandler{}
 	faceReviewHandler := &handlers.FaceReviewHandler{}
+	platformStaffHandler := &handlers.PlatformStaffHandler{}
 	userSettlementHandler := handlers.NewUserSettlementHandler()
 	userPointsHandler := handlers.NewUserPointsHandler()
 	guarantorHandler := handlers.NewGuarantorHandler(nil) // nil → use env TENCENTCLOUD config
@@ -382,6 +383,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		// #1791 T3: 实名核身人工审核队列（平台员工/系统管理员，SysPermUserUpdate）
 		authRequired.GET("/admin/face-review/queue", middleware.RequireSysPerm(middleware.SysPermUserUpdate), faceReviewHandler.Queue)
 		authRequired.POST("/admin/face-review/:batchId", middleware.RequireSysPerm(middleware.SysPermUserUpdate), faceReviewHandler.Review)
+		// #1795 T6: 平台员工管理（user 类 sys_perm，非 TenantCreate 类）
+		authRequired.GET("/admin/platform-staff", middleware.RequireSysPerm(middleware.SysPermUserList), platformStaffHandler.List)
+		authRequired.POST("/admin/platform-staff", middleware.RequireSysPerm(middleware.SysPermUserCreate), platformStaffHandler.Create)
+		authRequired.DELETE("/admin/platform-staff/:id", middleware.RequireSysPerm(middleware.SysPermUserUpdate), platformStaffHandler.Disable)
 
 		// Instrument CRUD
 		authRequired.POST("/instruments", middleware.RequireCusPerm("instrument:create"), handlers.CreateInstrument)

@@ -616,4 +616,11 @@ export const faceReviewApi = {
   review: (batchId, data) => api.post(`/admin/face-review/${batchId}`, data),
 }
 
+// #1795 T6: 平台员工管理
+export const platformStaffApi = {
+  list: () => api.get('/admin/platform-staff'),
+  create: (data) => api.post('/admin/platform-staff', data),
+  disable: (id) => api.delete(`/admin/platform-staff/${id}`),
+}
+
 export { getToken, request }
