@@ -291,4 +291,57 @@ make weapp-upload-prod VERSION=1.2.3 DESC="bug fixes"
 
 ---
 
-> Last updated: 2026-06-11
+## 实名核身腾讯云配置（#1787，客户操作指引）
+
+> 实名核身自拍采集后，需腾讯云人脸核身/证件 OCR 能力完成自动比对。未配置时降级为人工审核（平台员工 PC 审核队列）。
+
+### 客户操作步骤（一次性配置）
+
+1. **注册腾讯云账号** → 开通「人脸核身」服务（https://cloud.tencent.com/product/faceid）
+2. **实名认证**：腾讯云账号需完成企业/个人实名认证（人脸核身依赖）
+3. **创建密钥**：访问控制 → API 密钥管理 → 新建 `SecretId` / `SecretKey`
+4. **开通慧眼插件**（weapp 端）：微信公众平台 → 设置 → 第三方设置 → 插件管理 → 添加「人脸核身（慧眼）」插件
+5. **配置后端环境变量**（.env）：
+   ```
+   TENCENTCLOUD_SECRET_ID=<SecretId>
+   TENCENTCLOUD_SECRET_KEY=<SecretKey>
+   TENCENTCLOUD_FACEID_REGION=ap-guangzhou
+   ```
+6. **配置核身超时参数**（H8，用户决策 2026-08-29）：
+   ```
+   FACE_VERIFY_TIMEOUT_HOURS=72   # 支付后未核身自动取消时限（默认 72 小时）
+   ```
+   > 超时自动取消**必须生成审计日志**（order_logs + audit_logs + refund_records），禁止静默取消。
+
+### 未配置降级说明
+
+| 能力 | 未配置行为 |
+|------|-----------|
+| 证件 OCR | `POST /user/idcard-ocr` 返回 `available: false`，前端降级手动填写 |
+| 人脸核身 | 自拍提交后直接进入 `pending_review`（人工审核），不自动比对 |
+| 人工审核 | 平台员工在 PC「实名审核队列」处理（`SysPermUserUpdate` 权限） |
+
+### PLATFORM_ROOT_ORG_ID（#1795 T6 平台员工识别）
+
+**作用**: 指定 IAM 根组织 ID，其下成员识别为平台员工（PlatformStaff）——用于实名审核队列等平台级操作。
+
+**获取方式**:
+1. **IAM bootstrap 产出**: beaconiam 初始化脚本/bootstrap 创建的根组织，其 ID 记录在 bootstrap 输出或 `namespaces` 表
+2. **手动查询**（IAM 数据库）:
+   ```sql
+   -- beaconiam DB
+   SELECT id, name FROM organizations WHERE parent_id IS NULL;  -- 根组织（无父级）
+   -- 或按 namespace 查询
+   SELECT id, name FROM organizations WHERE namespace_id = (SELECT id FROM namespaces WHERE name = 'tuneloop');
+   ```
+
+**配置**（.env）:
+```
+PLATFORM_ROOT_ORG_ID=<根组织 UUID>
+```
+
+**配错后果**: 平台员工识别失败 → 审核队列 403 / 员工无法执行平台级操作（不影响普通商户/顾客流程）。
+
+---
+
+> Last updated: 2026-08-29

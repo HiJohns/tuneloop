@@ -113,6 +113,63 @@ steps:
         ops:
           - {type: api, method: GET, path: /user/:userId/id-photos}
     api: {method: GET, path: /user/:userId/id-photos, params: [userId]}
+
+  # ── 核身状态消费场景（#1787 补充设计） ──
+  - seq: 8
+    action: 顾客下单确认页检查核身状态（警告 + 跳转，不阻断提交）
+    frontend:
+      - platform: [weapp, h5]
+        page: /checkout
+        role: [customer]
+        gate: ""
+        reach: "购物车 → 确认订单 → 核身状态区"
+        controls: [警告条, 跳转编辑资料按钮, 跳转人脸核身按钮]
+        displays: [未上传提示（去上传身份证）, 已上传未比对提示（去完成人脸认证）]
+        ops:
+          - {type: api, method: GET, path: /users/me}
+    api: {method: GET, path: /users/me, params: []}
+    rule: "仅警告不阻断：未认证仍可提交订单；状态派生：none/uploaded/verified"
+  - seq: 9
+    action: 顾客订单详情页检查核身状态（警告 + 跳转）
+    frontend:
+      - platform: [weapp, h5]
+        page: /order/:id
+        role: [customer]
+        gate: "订单未发货"
+        reach: "我的订单 → 订单详情 → 核身状态区"
+        controls: [警告条, 跳转编辑资料按钮, 跳转人脸核身按钮]
+        displays: [未上传提示, 已上传未比对提示]
+        ops:
+          - {type: api, method: GET, path: /users/me}
+    api: {method: GET, path: /users/me, params: []}
+    rule: "订单已发货后不再展示警告（履约已开始）"
+  - seq: 10
+    action: 员工待发货订单核身拦截（前端置灰 + 后端强制）
+    frontend:
+      - platform: [weapp, h5]
+        page: /staff/shipping, /orders/:id
+        role: [site_admin, site_member]
+        gate: "order.status=paid"
+        reach: "待发货列表 → 订单详情 → 发货按钮"
+        controls: [发货按钮（未核身置灰）, 未核身角标]
+        displays: [未核身标记, 置灰发货按钮]
+        ops:
+          - {type: api, method: GET, path: /orders/:id, params: []}
+    api:
+      - {method: GET, path: /orders/:id, params: []}
+      - {method: PUT, path: /warehouse/orders/:id/shipping, params: [], gate: "id_verify_status=verified，无豁免"}
+    rule: "后端强制校验：非 verified 拒绝发货（40002「用户未完成实名核身」）；前端置灰仅为 UX"
+  - seq: 11
+    action: 核身超时订单自动取消退款（H8，用户决策 2026-08-29：A 超时自动取消，3 天）
+    actor: 系统定时任务
+    gate: "order.status ∈ {paid, pending_shipment} 且 id_verify_status != verified 且 支付完成 > FACE_VERIFY_TIMEOUT_HOURS(默认72)"
+    steps:
+      - "扫描满足条件订单"
+      - "订单 status → cancelled"
+      - "按实付金额发起微信退款（order_refund_records，reason=核身超时自动取消退款）"
+      - "乐器 stock_status → available"
+      - "⚠️ 必须生成审计日志（强制，禁止静默取消）：order_logs Event=核身超时自动取消 + audit_logs action=auto_cancel_verify_timeout（details 含 trigger/timeout_hours/退款单号）+ 顾客站内通知"
+    rule: "幂等：已取消/已退款订单跳过；任何自动取消必须可追溯"
 ---
 
 # P-04 身份证照片全流程管理
@@ -183,9 +240,82 @@ ALTER TABLE users ADD COLUMN face_verified_at TIMESTAMPTZ;  -- #1787 人脸识�
 ### 人脸识别核身规则（#1787）
 - **入口**：仅编辑资料页（两阶段注册无 token，无法绑账号）
 - **流程**：输入真实姓名 + 身份证号 → 获取 Token → 前端拉起核身 → 轮询结果
-- **降级**：TENCENTCLOUD_SECRET_ID 未配置 → 返回 40012，前端隐藏「人脸核身」按钮
+- **降级**：TENCENTCLOUD_SECRET_ID 未配置 → 返回 40012，前端隐藏「人脸核身」按钮（自动比对不可用时，人工审核兜底，见下）
 - **通过后**：`users.face_verified = true, face_verified_at = now()`，编辑资料页显示「已实名」绿标
 - **身份证号存储**：明文（腾讯云 API 需原文）；GET /users/me 返回掩码 `110***********1234`
+
+### 配置降级与人工审核兜底（#1787 补充设计）
+
+**原则：腾讯云配置未就位不阻塞注册/测试；采集与存储始终可用。**
+
+| 能力 | 有配置（腾讯云） | 无配置（降级） |
+|------|-----------------|----------------|
+| 证件照上传（三张） | ✅ | ✅ |
+| 自拍采集界面（图+视频） | ✅（慧眼插件拉起） | ✅（小程序相机组件，采集照常） |
+| 自拍数据存储 `face_captures/{userID}/` | ✅ 长期保存 | ✅ 长期保存（GC 豁免） |
+| 身份证信息提取（OCR，#1782） | ✅（腾讯云 OCR） | ❌ 跳过（人工看照片） |
+| 生物特征比对（人脸） | ✅（慧眼 FaceID） | ❌ 跳过 → **人工审核** |
+| 核身确认 | 自动（method=tencent） | 人工（method=manual） |
+
+**人工审核流程**：
+1. 顾客提交自拍 → `uploaded → pending_review`（新增待审核态）
+2. PC「实名审核队列」（site_admin）：查看证件照三张 + 自拍图/视频 → 通过/驳回（驳回附原因）
+3. 通过 → `verified`（method=manual）；驳回 → `rejected` → 顾客重新采集
+4. 自动比对（tencent）失败**不自动降级**人工——慧眼失败 ≠ 自拍无效，由顾客重新发起
+
+**客户（商户）需完成的外部配置**（未完成时功能自动降级，不阻塞）：
+1. 腾讯云控制台：注册账号 → 实名认证（企业）→ 开通「人脸核身」服务（按次计费）→ 创建 API 密钥（SecretId/SecretKey）
+2. 开通「文字识别 OCR」（#1782 身份证信息提取用，可选）
+3. 微信小程序后台：添加「慧眼人脸核身」插件（需企业主体，审核 1-3 工作日）
+4. `.env` 配置 `TENCENTCLOUD_SECRET_ID` / `TENCENTCLOUD_SECRET_KEY` / `TENCENTCLOUD_FACEID_REGION`（三环境各一份）
+
+### 核身状态派生与消费（#1787 补充设计）
+
+**五态状态机**（后端提供 `id_verify_status`，前端禁止自行推导）：
+
+```
+none（未上传证件照）
+  → uploaded（证件照已传，未提交自拍）
+  → pending_review（已提交自拍，待人工审核）← 人工兜底引入的状态
+  → verified（核身通过）
+  → rejected（审核驳回，可重新采集提交）→ 回到 pending_review
+```
+
+| 状态 | 判定 | 顾客端展示 | 员工端 |
+|------|------|-----------|--------|
+| `none` | 三张照片均未上传 | 警告「请上传身份证件照」+ 跳编辑资料 | 待发货列表角标「未核身」 |
+| `uploaded` | 有照片未提交自拍 | 警告「请完成人脸认证」+ 跳核身 | 角标「未核身」+ 发货按钮置灰 |
+| `pending_review` | 自拍已提交，审核中 | 提示「核身审核中，预计 1-2 个工作日」 | 角标「审核中」（发货按钮置灰） |
+| `verified` | 审核/比对通过 | 无警告 | 正常发货 |
+| `rejected` | 审核驳回 | 警告「核身未通过，请重新提交」+ 跳核身 | 角标「未核身」+ 发货按钮置灰 |
+
+**审核角色**：平台员工 + 系统管理员（SysPerm user 类权限，如 `SysPermUserUpdate`）——商户侧员工无权审核（用户对商户不可见，架构约束）。平台员工由 `PLATFORM_ROOT_ORG_ID`（env）标识，`GetBusinessRole` 在 merchant_admin 判定前分支识别。
+
+**核身来源标记**：`face_verified=true` 时同时记录 `face_verify_method`（`tencent`=自动比对 / `manual`=人工审核）与 `face_verified_at`；信息变更（real_name/id_card_no）重置验证并清除来源标记，**同时作废该用户所有 pending 批次**（rejected, reason="身份信息已变更，请重新采集"）——防止审核基于旧身份信息提交的批次。
+
+**核身双通道入口**（核身页始终显示）：
+- 「发起人脸认证」：腾讯云已配置时可用（慧眼插件拉起）；未配置隐藏
+- 「提交人工审核」：**始终可用**——自动比对失败仅提示重试（不自动降级），顾客可主动选人工通道
+
+**隐私声明**（注册/核身页明示）：自拍数据用途（实名核身）+ 存储期限（长期保存）+ 隐私政策链接；生物特征数据合规留存。
+
+**采集界面一致性**：无论腾讯云是否配置，顾客端核身页均出现自拍采集界面（图片 + 可选视频，小程序相机组件实现）；自拍数据上传至 `face_captures/{userID}/`（长期保存，GC 豁免），配置缺失时采集照常进行，仅跳过自动比对。
+
+**人工审核流程**（腾讯云未配置或自动比对兜底）：
+1. 顾客提交自拍 → 状态 `uploaded → pending_review`
+2. **平台员工/系统管理员**（PC「实名审核队列」，SysPerm user 类权限）查看证件照三张 + 自拍图/视频
+3. 通过 → `verified`（method=manual）；驳回 → `rejected` + 原因，顾客重新采集
+4. 自动比对失败不自动降级人工（慧眼失败 ≠ 自拍无效，由顾客重新发起）
+5. 审核动作双写留痕：`face_capture_batches.reviewed_by/at` + `audit_logs`（action=face_review_approve/reject）
+
+**订单接口买家核身状态边界**：`GET /orders/:id` / 员工订单列表仅返回买家 `id_verify_status`（聚合状态，角标/校验数据源）；**禁止返回** real_name/id_card_no/证件照/自拍素材——用户对商户不可见原则。
+
+**消费点规则**：
+1. **订单确认页（/checkout）**：`none/uploaded/rejected` → 警告条 + 跳转按钮，**不阻断提交**（核身不设支付门槛）；`pending_review/verified` 无警告
+2. **订单详情页（/order/:id）**：订单未发货时同警告；已发货后不再展示（履约已开始）
+3. **员工发货（PUT /warehouse/orders/:id/shipping）**：**后端强制校验** `id_verify_status=verified` → 否则拒绝（错误码 40002「用户未完成实名核身，请联系平台运营完成审核」）；前端按钮置灰仅为 UX，不能替代后端校验；**无豁免**（无存量真实用户，全量强制）
+4. **待发货列表**：非 verified 订单显示角标（未核身/审核中），便于员工识别
+5. **错误展示**：员工 weapp/H5 发货页（ShippingInterface）点击发货被拒 → toast/弹窗展示后端 40002 错误信息（**非静默**）；员工端不展示买家敏感字段（仅聚合状态）
 
 ### 注册阶段照片上传（#1787）
 - weapp 注册页使用会话级匿名端点 `POST /auth/registration-sessions/:id/id-photo`
@@ -205,6 +335,9 @@ ALTER TABLE users ADD COLUMN face_verified_at TIMESTAMPTZ;  -- #1787 人脸识�
 | 7 | PC | `/orders/:id` | site_admin/member | 发货/收货时查看 | **缺失** |
 | 8 | H5 | `/repair-request` | staff | 操作时查看 | **缺失** |
 | 9 | weapp | `/repair-request` | staff | 操作时查看 | **缺失** |
+| 10 | weapp+h5 | `/checkout` | customer | 核身状态警告 + 跳转（不阻断） | **待实现**（#1787 补充） |
+| 11 | weapp+h5 | `/order/:id` | customer | 订单详情核身警告 + 跳转 | **待实现**（#1787 补充） |
+| 12 | weapp+h5 | `/staff/shipping` | site_admin/member | 发货按钮置灰 + 后端强制校验 | **待实现**（#1787 补充） |
 
 ## 验收
 - Go test: POST id-photo → DB 列值非空，GET id-photos → 返回 URL，DELETE → 列值清空

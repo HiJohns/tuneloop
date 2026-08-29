@@ -2995,6 +2995,163 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ---
 
+### 8.11.1 实名核身自拍采集与审核（#1787）
+
+> 五态状态机：`none` / `uploaded` / `pending_review` / `verified` / `rejected`（判定优先级见 docs/cases/id-photos.md C6）。
+
+**接口**: `POST /api/user/face-capture`
+
+**说明**: 顾客提交自拍核身素材（图片 + 可选视频），提交后状态 `uploaded → pending_review`（自动比对通道）/ `uploaded`（未配置腾讯云，等待人工审核）
+
+**权限**: 顾客登录态
+
+**请求 Body**（multipart/form-data）:
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|:---:|------|
+| `image` | file | ✅ | 自拍照片（image/jpeg/png/webp） |
+| `video` | file | ❌ | 自拍视频（可选，辅助人工审核） |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": { "batch_id": "uuid", "status": "pending_review" }
+}
+```
+
+**存储**: `media_assets`（source_type=`face_capture`，`uploads/media/face_captures/{userID}/`）——生物特征合规数据，**GC 豁免**（禁止按 180 天回收，见 docs/media_directory.md）。
+
+---
+
+**接口**: `GET /api/user/face-capture/status`
+
+**说明**: 查询当前顾客核身状态（五态） + 最近批次信息
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id_verify_status": "pending_review",
+    "face_verify_method": "manual",
+    "latest_batch": {
+      "id": "uuid",
+      "status": "pending_review",
+      "reject_reason": null,
+      "submitted_at": "2026-08-28T10:00:00Z"
+    }
+  }
+}
+```
+
+**字段说明**:
+- `id_verify_status`: none/uploaded/pending_review/verified/rejected（派生函数输出，见 #1789 T1）
+- `face_verify_method`: tencent/manual/null
+
+---
+
+**接口**: `GET /api/admin/face-review/queue`
+
+**说明**: 实名核身人工审核队列（待审核批次 + 关联用户证件照三张 + 自拍素材 URL）
+
+**权限**: 平台员工/系统管理员（`SysPermUserUpdate`），**非 org 隔离**（全用户可见）；商户数据仍 tenant 隔离
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "batch_id": "uuid",
+        "user_id": "uuid",
+        "user_name": "张三",
+        "id_photos": ["/uploads/media/id_photos/front.jpg", "/uploads/media/id_photos/back.jpg", "/uploads/media/id_photos/other.jpg"],
+        "selfie_urls": ["/uploads/media/face_captures/{userID}/selfie1.jpg"],
+        "submitted_at": "2026-08-28T10:00:00Z"
+      }
+    ],
+    "total": 1
+  }
+}
+```
+
+**⚠️ 字段边界**: 仅返回审核所需证件照/自拍（平台员工可见）；**禁止返回**身份证号明文（real_name 可按需展示，id_card_no 必须脱敏或省略）。
+
+---
+
+**接口**: `POST /api/admin/face-review/:batchId`
+
+**说明**: 人工审核决定：通过或驳回
+
+**权限**: 平台员工/系统管理员（`SysPermUserUpdate`）
+
+**请求 Body**:
+```json
+{
+  "action": "approve",
+  "reason": "与证件一致"
+}
+```
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|:---:|------|
+| `action` | string | ✅ | `approve` / `reject` |
+| `reason` | string | ❌ | 驳回原因（reject 时必填） |
+
+**逻辑**:
+- approve → `users.face_verified=true` + `face_verify_method=manual` + 批次 approved
+- reject → 批次 rejected + reason（顾客可重新采集新批次）
+- **留痕双写**: `face_capture_batches.reviewed_by/at` + `audit_logs`（action=`face_review_approve`/`face_review_reject`，目标 user_id，操作人=平台员工本地 users 缓存）
+
+**响应**:
+```json
+{ "code": 20000, "data": { "status": "approved" } }
+```
+
+---
+
+### 8.11.2 核身超时自动取消（H8，用户决策 2026-08-29）
+
+> 决策：**A. 超时自动取消退款**，时长 **3 天**（`FACE_VERIFY_TIMEOUT_HOURS=72`，默认 72 小时）。
+
+**触发条件**: 订单 `paid`（或 `pending_shipment`）状态下，买家 `id_verify_status != verified` 且支付完成超过 `FACE_VERIFY_TIMEOUT_HOURS`（默认 72 小时）未核身。
+
+**执行逻辑**（定时任务，如 cron/启动时扫描）:
+1. 扫描满足条件的订单（paid/pending_shipment + 未核身 + 超时）
+2. **自动取消订单**: `status → cancelled`
+3. **自动退款**: 按订单实付金额发起微信退款（复用现有退款路径）
+4. **乐器释放**: `stock_status → available`（取消未发货订单的占用）
+5. **⚠️ 必须生成审计日志（强制）**:
+   - `order_logs`: Event=`核身超时自动取消`（含超时原因、触发时间）
+   - `audit_logs`: action=`auto_cancel_verify_timeout`，resource_type=order，resource_id=订单 ID，details=JSON（含 `trigger=face_verify_timeout`、`timeout_hours`、退款单号）
+   - 退款记录 `order_refund_records`（reason=`核身超时自动取消退款`）
+   - **禁止静默取消**——任何自动取消必须可追溯（日志 + 退款记录 + 通知顾客）
+
+**顾客通知**: 取消后发送站内通知（type=order，标题含「核身超时订单已取消」），说明原因与退款进度。
+
+**配置**:
+| 环境变量 | 默认值 | 说明 |
+|---------|-------|------|
+| `FACE_VERIFY_TIMEOUT_HOURS` | `72` | 支付后未核身的自动取消时限（小时） |
+
+**幂等性**: 定时任务重复执行不重复取消（订单状态非 paid/pending_shipment 时跳过；已取消/已退款订单不再处理）。
+
+---
+
+### 8.11.3 平台员工管理（#1795 T6）
+
+**接口**: `GET/POST/PUT/DELETE /api/admin/platform-staff`（CRUD 平台员工绑定）
+
+**说明**: 平台员工（PlatformStaff）角色绑定——具有用户查看/审核权限（SysPerm user 类），用于实名审核队列等平台级操作
+
+**权限**: 系统管理员（`SysPermUserUpdate`）或现有管理员授予
+
+**角色识别**: 平台员工通过 IAM 绑定（user_org_relations + 角色模板），或由 `PLATFORM_ROOT_ORG_ID` 环境变量指定根组织下的成员识别（见 docs/permissions.md）
+
+**响应结构**: `{ code: 20000, data: { list: [...] } }`
+
+---
+
 ### 8.12 租金计算（v3 阶梯累加）
 
 **接口**: `POST /api/rental/calculate`

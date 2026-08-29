@@ -753,6 +753,58 @@ API 来源：
 
 **已认证用户修改姓名/身份证号** → 提交时后端自动重置 `face_verified=false`（信息变更需重新核身）
 
+#### 2.6.2a 实名核身自拍采集（#1787，编辑资料页内）
+
+**五态状态机**: `none` / `uploaded` / `pending_review` / `verified` / `rejected`（派生见 docs/cases/id-photos.md）
+
+**自拍采集区**（编辑资料页实名认证区块下方，`face_verified=false` 时显示）:
+
+| 状态 | 展示 | 操作 |
+|------|------|------|
+| `none`（未上传证件照） | 提示「请先上传身份证照片」 | 跳转证件照三槽上传区 |
+| `uploaded`（已上传照片未采集） | 「完成人脸认证」按钮 | 拉起自拍采集（weapp 相机 / H5 上传）→ `POST /user/face-capture` |
+| `pending_review` | 「审核中」状态（灰底 + 时钟图标） | 无（等待人工审核，可重新采集覆盖） |
+| `verified` | ✅ 已认证（绿底）+ 方法（腾讯云/人工） | 无 |
+| `rejected` | 「审核未通过」红色提示 + 驳回原因 | 「重新采集」按钮（提交新批次） |
+
+**自拍采集交互**:
+- weapp: 相机拍摄（图片）+ 可选视频录制 → 提交 `POST /user/face-capture`
+- H5: 文件上传（图片）+ 可选视频 → 同上
+- 提交成功 → toast「已提交，等待审核」+ 状态变 `pending_review`
+
+**双通道说明**: 腾讯云已配置 → 自动比对（慧眼通道，method=tencent）；未配置 → 人工审核（method=manual，需平台员工在 PC 审核队列处理）
+
+#### 2.6.2b 核身警告条（checkout / order-detail，#1787）
+
+**顾客侧警告条**（`id_verify_status != verified` 且订单未发货时展示，**不阻断提交**）:
+
+| 位置 | 触发状态 | 文案 | 操作 |
+|------|---------|------|------|
+| `/checkout`（确认订单页） | none/uploaded/rejected | 「请先完成实名核身，以免影响发货」 | 「去核身」→ 编辑资料页 |
+| `/order/:id`（订单详情，未发货） | none/uploaded/rejected | 同上 | 「去核身」→ 编辑资料页 |
+| `/order/:id`（已发货） | 任意 | 不展示（履约已开始） | — |
+| pending_review/verified | 任意 | 无警告 | — |
+
+#### 2.6.2c PC 实名审核队列页（#1787，平台员工）
+
+**路由**: PC `/face-review`（平台员工/系统管理员，`SysPermUserUpdate`）
+
+**页面结构**:
+- 顶部说明：平台员工可见全量用户（非 org 隔离）；商户数据仍 tenant 隔离
+- 列表：待审核批次（pending_review）→ 用户姓名 + 证件照三张（点击放大）+ 自拍图/视频（可播放）+ 提交时间
+- 操作：「通过」/「驳回」（驳回必填原因）
+- 通过 → `verified`(method=manual) + 列表移除；驳回 → `rejected` + 原因，顾客端显示重新采集
+- **隐私边界**: 不展示身份证号明文（仅姓名 + 证件照，审核用）
+
+#### 2.6.2d 员工发货页核身校验（#1787）
+
+**ShippingInterface.jsx**（weapp+h5 共享）:
+- 订单加载后读 `id_verify_status`：
+  - `verified` → 正常发货流程
+  - 非 verified → 发货按钮置灰 + 按钮下提示「用户未完成实名核身，请联系平台运营完成审核」（**置灰不阻断数据录入，仅阻断提交**）
+- 后端拒绝兜底：即使置灰，后端仍强制校验（40002），`resolveErrorMessage` 展示明确文案（**非静默**）
+- 待发货列表/订单详情：非 verified 订单显示「未核身/审核中」角标（仅聚合状态，不展示敏感字段）
+
 #### 2.6.3 发票申请页（weapp `/pages-weapp/invoice/index` + H5 `/invoice`）（#1786）
 
 **路由**: weapp `pages-weapp/invoice/index`（薄壳）→ `Invoice.jsx`（共享 .jsx）

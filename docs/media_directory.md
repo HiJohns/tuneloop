@@ -68,6 +68,7 @@ media_assets
 | `receiving` | Return inspection photos | → returned, → assessed |
 | `repair` | Repair process photos | maintenance/repair workflow |
 | `repaired` | Repair completion photos | → maintenance, → repaired |
+| `face_capture` | 用户自拍核身素材（图片+视频，人工审核用） | 实名核身流程（长期保存，GC 豁免） |
 
 ## File Types
 
@@ -109,6 +110,7 @@ Frontend                           Backend
 | Display images (`is_display=true`) | Permanent | No |
 | Process record images | 180 days | `system_settings.media_retention_days` |
 | Video files | 180 days | (same as process records) |
+| **Identity materials (`batch_type=face_capture`, id photos)** | **Permanent（长期保存）** | **No — GC 豁免（生物特征合规数据，禁止按 180 天回收）** |
 | Orphan files (unreferenced) | grace period (default 30 days) | `system_settings.media_orphan_grace_days` |
 
 Cleanup is handled by `services/media_cleanup.go` scheduler which runs periodically and deletes eligible `instrument_media` records **along with their physical storage files** (including derived `_display.webp` / `_thumb.jpg` and `video_thumb` entries). A separate orphan GC pass reconciles `media_assets` against the `uploads/media/` directory — files no longer referenced (rich-text image removed, avatar/id_photo replaced, batch-import session expired) are physically deleted after the grace period.
@@ -118,6 +120,7 @@ Cleanup is handled by `services/media_cleanup.go` scheduler which runs periodica
 | Directory | Purpose | Governed by |
 |-----------|---------|-------------|
 | `uploads/media/` | Unified media (rich-text content images, avatars, id photos, instrument media) | `media_assets` registry + `media_cleanup.go` GC |
+| `uploads/media/face_captures/{userID}/` | 实名核身自拍素材（图片 + 可选视频），人工审核证据，长期保存 | `media_assets` registry（source_type=face_capture，GC 豁免） |
 | `uploads/batch/` | Batch-import ZIP extraction temp (`{sessionID}/`) | `media_cleanup.go` GC (expired session dirs) |
 | `uploads/photos/` | Legacy outbound photo mechanism (`{tenant}/{sn}/` with manifest.yaml + ZIP archive) | Historical — registered for attribution only, not refactored |
 

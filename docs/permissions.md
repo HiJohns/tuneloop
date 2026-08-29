@@ -152,6 +152,19 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 维修工程师 | repair_technician | 2 | instrument:read, instrument:maintain |
 | 顾客 | customer | 4 | order:create, order:read, order:cancel, appeal:create |
 
+### 4.1.1 平台员工（PlatformStaff，#1795 T6 / #1787）
+
+**识别方式**: 由 `PLATFORM_ROOT_ORG_ID` 环境变量指定的 IAM 根组织成员，或 IAM 绑定平台员工角色模板。
+
+| 属性 | 值 |
+|------|-----|
+| 权限基础 | **sys_perm 用户类**（`SysPermUserUpdate` = bit 18 / `SysPermUserList` = bit 16）——**非 cus_perm** |
+| 数据可见性 | **全用户可见（非 org 隔离）**——实名审核队列等平台级操作；商户数据仍 tenant 隔离 |
+| 核心职责 | 实名核身人工审核队列（`GET/POST /admin/face-review/*`）、平台级用户管理 |
+| 边界 | 不可见顾客证件照之外的敏感字段（身份证号明文）；商户业务数据仍按 tenant 隔离 |
+| 配置 | `PLATFORM_ROOT_ORG_ID=<根组织 UUID>`（.env，获取方式见 docs/weapp.md） |
+| 配错后果 | 平台员工识别失败 → 审核队列 403（不影响普通商户/顾客流程） |
+
 ### 4.2 完整对照矩阵
 
 | 权限代码 | 命名空间管理员 | 商户管理员 | 网点管理员 | 网点员工 | 维修工程师 | 顾客 |
