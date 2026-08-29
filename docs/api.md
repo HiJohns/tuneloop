@@ -753,6 +753,48 @@
 }
 ```
 
+**排序说明（#1797）**：
+- 默认排序：`sort_order ASC, created_at DESC`（未排序存量数据 sort_order=0，退化为创建时间倒序）
+- `sort` 参数：`sort_order`（默认）/ `created_at` / `-created_at` / `+created_at`
+- 同分类（category_id）内可通过 `PUT /instruments/:id/sort` 调整顺序
+
+---
+
+### 5.3.1 乐器分类内排序
+
+**接口**: `PUT /api/instruments/:id/sort`
+
+**权限**: `instrument:update`
+
+**请求体**:
+```json
+{
+  "direction": "up"
+}
+```
+`direction`: `up`（上移）| `down`（下移）
+
+**逻辑**:
+- 同 `category_id` 组内（NULL 视作独立组）按 `sort_order ASC, created_at DESC` 取相邻记录，交换两者的 `sort_order`
+- 两个 `sort_order` 均为 0 时设为相邻序号（up → 2/1；down → 1/2），保证可重复操作
+- 边界：已在首位上移 / 已在末位下移 → `40002`「已在最前 / 已在最后」
+- 租户隔离：仅操作本租户乐器，其他租户 id → `40400`
+
+**成功响应**:
+```json
+{
+  "code": 20000,
+  "sort_order": 1
+}
+```
+（`sort_order` 为移动后的新序号）
+
+**错误响应**:
+```json
+{ "code": 40002, "message": "已在最前" }
+{ "code": 40400, "message": "instrument not found" }
+```
+
 ---
 
 ### 5.4 乐器详情

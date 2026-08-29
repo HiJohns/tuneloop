@@ -373,6 +373,7 @@ export const instrumentsApi = {
     })
   },
   getActivityLog: (id) => api.get(`/instruments/${id}/activity-log`),
+  sortInstrument: (id, direction) => api.put(`/instruments/${id}/sort`, { direction }),
 }
 
 export const ordersApi = {

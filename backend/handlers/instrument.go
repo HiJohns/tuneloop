@@ -1025,3 +1025,98 @@ func BatchDeleteInstruments(c *gin.Context) {
 		"failed":  failed,
 	})
 }
+
+// SortInstrument handles PUT /instruments/:id/sort (#1797).
+// 子分类内排序：同 category_id 组内按 (sort_order asc, created_at desc) 取
+// 相邻记录并交换 sort_order。两者均 0 时设为相邻序号（1/2），保证可重复
+// 操作。边界（首位 up / 末位 down）返回 40002。
+func SortInstrument(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	tenantID := middleware.GetTenantID(ctx)
+	instrumentID := c.Param("id")
+
+	var req struct {
+		Direction string `json:"direction" binding:"required,oneof=up down"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "direction must be up or down"})
+		return
+	}
+
+	tx := db.Begin()
+
+	var current models.Instrument
+	if err := tx.Where("id = ? AND tenant_id = ?", instrumentID, tenantID).First(&current).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
+		return
+	}
+
+	// 同 category_id 组内查询（NULL 视作独立组）。
+	groupQuery := tx.Model(&models.Instrument{}).Where("tenant_id = ?", tenantID)
+	if current.CategoryID != nil {
+		groupQuery = groupQuery.Where("category_id = ?", *current.CategoryID)
+	} else {
+		groupQuery = groupQuery.Where("category_id IS NULL")
+	}
+	groupQuery = groupQuery.Order("sort_order ASC, created_at DESC")
+
+	// 取相邻记录：up → sort_order 更小的上一条；down → 更大的下一条。
+	var neighbor models.Instrument
+	var neighborErr error
+	if req.Direction == "up" {
+		neighborErr = groupQuery.
+			Where("(sort_order < ?) OR (sort_order = ? AND created_at < ?)",
+				current.SortOrder, current.SortOrder, current.CreatedAt).
+			Order("sort_order DESC, created_at DESC").
+			First(&neighbor).Error
+	} else {
+		neighborErr = groupQuery.
+			Where("(sort_order > ?) OR (sort_order = ? AND created_at > ?)",
+				current.SortOrder, current.SortOrder, current.CreatedAt).
+			Order("sort_order ASC, created_at ASC").
+			First(&neighbor).Error
+	}
+	if neighborErr == gorm.ErrRecordNotFound {
+		tx.Rollback()
+		msg := "已在最前"
+		if req.Direction == "down" {
+			msg = "已在最后"
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": msg})
+		return
+	}
+	if neighborErr != nil {
+		tx.Rollback()
+		log.Printf("[SortInstrument] neighbor query failed for %s: %v", instrumentID, neighborErr)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query neighbor"})
+		return
+	}
+
+	// 交换 sort_order；两者均 0 时设为相邻序号（保证后续可重复操作）。
+	curOrder, nbOrder := current.SortOrder, neighbor.SortOrder
+	if curOrder == 0 && nbOrder == 0 {
+		if req.Direction == "up" {
+			curOrder, nbOrder = 2, 1
+		} else {
+			curOrder, nbOrder = 1, 2
+		}
+	}
+	if err := tx.Model(&models.Instrument{}).Where("id = ?", current.ID).
+		Update("sort_order", nbOrder).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update sort order"})
+		return
+	}
+	if err := tx.Model(&models.Instrument{}).Where("id = ?", neighbor.ID).
+		Update("sort_order", curOrder).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update sort order"})
+		return
+	}
+
+	tx.Commit()
+	// 响应返回移动后的 sort_order（current 拿到的邻居旧值）。
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "sort_order": nbOrder})
+}

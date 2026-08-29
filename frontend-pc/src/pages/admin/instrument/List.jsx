@@ -22,7 +22,7 @@ export default function InstrumentList() {
   const [categories, setCategories] = useState([])
   const [filterOptions, setFilterOptions] = useState({ categories: [], levels: [], statuses: [], sites: [] })
   const [levelFilter, setLevelFilter] = useState('')
-  const [sortBy, setSortBy] = useState('-created_at')
+  const [sortBy, setSortBy] = useState('sort_order')
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
   const [batchPriceModalVisible, setBatchPriceModalVisible] = useState(false)
   const [batchPriceForm] = Form.useForm()
@@ -82,6 +82,21 @@ export default function InstrumentList() {
   const debouncedSearch = (value) => {
     setSearchText(value)
     fetchInstruments(1, pagination.pageSize)
+  }
+
+  // #1797: 子分类内排序（行内上移/下移，非拖拽）。
+  const sortInstrument = async (record, direction) => {
+    try {
+      const result = await instrumentsApi.sortInstrument(record.id, direction)
+      if (result.code === 20000) {
+        message.success(direction === 'up' ? '已上移' : '已下移')
+        fetchInstruments(pagination.page, pagination.pageSize)
+      } else {
+        message.error(result.message || '排序失败')
+      }
+    } catch (error) {
+      message.error(error.message || '排序失败')
+    }
   }
 
   const fetchCategories = async () => {
@@ -174,9 +189,25 @@ export default function InstrumentList() {
     {
       title: '操作',
       key: 'action',
-      width: 120,
+      width: 150,
       render: (_, record) => (
         <Space>
+          <PermissionGate code="instrument:update">
+            <Button
+              type="link"
+              size="small"
+              icon={<ArrowUpOutlined />}
+              title="上移"
+              onClick={() => sortInstrument(record, 'up')}
+            />
+            <Button
+              type="link"
+              size="small"
+              icon={<ArrowDownOutlined />}
+              title="下移"
+              onClick={() => sortInstrument(record, 'down')}
+            />
+          </PermissionGate>
           <Button type="link" icon={<EyeOutlined />} onClick={() => navigate(`/instruments/detail/${record.id}`)}>
             查看
           </Button>

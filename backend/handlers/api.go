@@ -349,10 +349,13 @@ func GetInstruments(c *gin.Context) {
 		query = query.Where("stock_status = ?", stockStatus)
 	}
 
-	sortParam := c.DefaultQuery("sort", "-created_at")
-	orderClause := "created_at DESC"
-	if sortParam == "created_at" || sortParam == "+created_at" {
+	sortParam := c.DefaultQuery("sort", "sort_order")
+	orderClause := "sort_order ASC, created_at DESC"
+	switch sortParam {
+	case "created_at", "+created_at":
 		orderClause = "created_at ASC"
+	case "-created_at":
+		orderClause = "created_at DESC"
 	}
 	query = query.Order(orderClause)
 

@@ -90,6 +90,7 @@ type Instrument struct {
 	RepairWorkerID     *string    `gorm:"type:uuid;index" json:"repair_worker_id"`
 	Properties         string     `gorm:"type:jsonb;default:'{}'" json:"properties"`
 	MinMembershipLevel *int       `gorm:"type:int" json:"min_membership_level"`
+	SortOrder          int        `gorm:"default:0;index" json:"sort_order"` // #1797: 子分类内排序（0=未排序，退化 created_at 序）
 	CreatedAt          time.Time  `json:"created_at"`
 	UpdatedAt          time.Time  `json:"updated_at"`
 }

@@ -147,6 +147,14 @@
 **索引**:
 - `idx_instruments_tenant_category` ON (tenant_id, category_id)
 - `idx_instruments_tenant_status` ON (tenant_id, stock_status)
+- `idx_instruments_category_sort` ON (category_id, sort_order) — #1797 分类内排序查询索引
+
+**sort_order 列（#1797）**:
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| sort_order | INT | DEFAULT 0, INDEX | 子分类内排序序号。0 = 未排序（列表退化为 created_at 序）；同一 category_id 组内通过 `PUT /instruments/:id/sort` 交换调整 |
+
+迁移：`20260829002_instruments_sort_order.{up,down}.sql`
 
 **pricing JSONB 结构**:
 ```json
