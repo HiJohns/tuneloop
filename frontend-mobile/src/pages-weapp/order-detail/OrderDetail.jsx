@@ -495,39 +495,74 @@ export default function OrderDetail() {
         <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
           <Text style={{ fontSize: 16, fontWeight: '900', color: '#000', marginBottom: 16 }}>费用明细</Text>
 
-          {/* #1756: fee_summary 三区块（服务端计算，前端只读） */}
-          {order.fee_summary && (
+          {/* #1803 T3: fee_detail 三段统一明细（单一数据源，服务端计算，前端只读） */}
+          {order.fee_detail && (
             <>
               <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginTop: 12, marginBottom: 4 }}>实付部分</Text>
-              {(order.fee_summary.paid.initial || []).map((it, i) => (
-                <Row key={`init-${i}`} label={it.item === 'rent' ? '租金（含押金）' : it.item} value={`¥${(Number(it.amount) / 100).toFixed(2)}`} />
+              <Row
+                label={`合同租金 ¥${(Number(order.fee_detail.paid_block?.contract_rent?.amount) / 100).toFixed(2)}${order.fee_detail.paid_block?.contract_rent?.date ? `（${String(order.fee_detail.paid_block.contract_rent.date).slice(0, 10)}）` : ''}`}
+              />
+              {(order.fee_detail.paid_block?.contract_rent?.tiers || []).map((t, i) => (
+                <Row
+                  key={`ct-${i}`}
+                  indent
+                  label={`第${t.tier}阶梯 ¥${(Number(t.rate) / 100).toFixed(2)}/天 × ${t.days}天`}
+                  value={`¥${(Number(t.subtotal) / 100).toFixed(2)}`}
+                />
               ))}
-              {(order.fee_summary.paid.renewal || []).map((it, i) => (
-                <Row key={`ren-${i}`} label="续期租金" value={`¥${(Number(it.amount) / 100).toFixed(2)}`} />
+              <Row label="押金" value={`¥${(Number(order.fee_detail.paid_block?.deposit?.amount) / 100).toFixed(2)}`} />
+              {(order.fee_detail.paid_block?.renewals || []).map((r, i) => (
+                <View key={`ren-${i}`}>
+                  <Row label={`续费 ¥${(Number(r.amount) / 100).toFixed(2)}`} />
+                  {(r.tiers || []).map((t, j) => (
+                    <Row
+                      key={`rt-${j}`}
+                      indent
+                      label={`第${t.tier}阶梯 ¥${(Number(t.rate) / 100).toFixed(2)}/天 × ${t.days}天`}
+                      value={`¥${(Number(t.subtotal) / 100).toFixed(2)}`}
+                    />
+                  ))}
+                </View>
               ))}
-              <Row label="实付合计" value={`¥${(Number(order.fee_summary.paid.subtotal || 0) / 100).toFixed(2)}`} />
+              <Row label="合计实付" value={`¥${(Number(order.fee_detail.paid_block?.subtotal || 0) / 100).toFixed(2)}`} />
 
               <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginTop: 8, marginBottom: 4 }}>应付部分</Text>
-              {(order.fee_summary.payable.items || []).map((it, i) => (
-                <Row key={`pay-${i}`} label={it.item === 'rent' ? '实际租金' : it.item === 'shipping_fee' ? '物流费' : it.item === 'damage' ? '赔偿金' : it.item} value={`¥${(Number(it.amount) / 100).toFixed(2)}`} />
+              <Row label="实际租金" value={`¥${(Number(order.fee_detail.payable_block?.actual_rent?.amount) / 100).toFixed(2)}`} />
+              {(order.fee_detail.payable_block?.actual_rent?.tiers || []).map((t, i) => (
+                <Row
+                  key={`pr-${i}`}
+                  indent
+                  label={`第${t.tier}阶梯 ¥${(Number(t.rate) / 100).toFixed(2)}/天 × ${t.days}天`}
+                  value={`¥${(Number(t.subtotal) / 100).toFixed(2)}`}
+                />
               ))}
-              <Row label="应付合计" value={`¥${(Number(order.fee_summary.payable.subtotal || 0) / 100).toFixed(2)}`} />
+              {Number(order.fee_detail.payable_block?.overdue_fee?.amount) > 0 && (
+                <Row
+                  label={`逾期费${Number(order.fee_detail.payable_block.overdue_fee.days) > 0 ? `（${order.fee_detail.payable_block.overdue_fee.days}天）` : ''}`}
+                  value={`¥${(Number(order.fee_detail.payable_block.overdue_fee.amount) / 100).toFixed(2)}`}
+                  color="#ef4444"
+                />
+              )}
+              {Number(order.fee_detail.payable_block?.shipping_fee?.amount) > 0 && (
+                <Row label="物流费" value={`¥${(Number(order.fee_detail.payable_block.shipping_fee.amount) / 100).toFixed(2)}`} />
+              )}
+              <Row label="实际应付" value={`¥${(Number(order.fee_detail.payable_block?.subtotal || 0) / 100).toFixed(2)}`} />
 
-              {!order.fee_summary.settled && order.fee_summary.expected && (
+              {order.fee_detail.net_block?.direction && order.fee_detail.net_block.direction !== 'none' && (
                 <>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginTop: 8, marginBottom: 4 }}>预期退款 / 预期补缴</Text>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginTop: 8, marginBottom: 4 }}>结算差额</Text>
                   <Row
-                    label={order.fee_summary.expected.direction === 'refund' ? '预期退款' : '预期补缴'}
-                    value={`¥${(Math.abs(Number(order.fee_summary.expected.amount)) / 100).toFixed(2)}`}
-                    color={order.fee_summary.expected.direction === 'refund' ? '#16a34a' : '#ef4444'}
+                    label={order.fee_detail.net_block.direction === 'refund' ? '应退款' : '应补缴'}
+                    value={`¥${(Math.abs(Number(order.fee_detail.net_block.amount)) / 100).toFixed(2)}`}
+                    color={order.fee_detail.net_block.direction === 'refund' ? '#16a34a' : '#ef4444'}
                   />
                 </>
               )}
             </>
           )}
 
-          {/* ① 实付金额（fallback：无 fee_summary 的旧订单/异常） */}
-          {!order.fee_summary && order.payment_records?.length > 0 && (
+          {/* ① 实付金额（fallback：无 fee_detail 的旧订单/异常） */}
+          {!order.fee_detail && order.payment_records?.length > 0 && (
             <>
               <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginTop: 12, marginBottom: 4 }}>实付金额</Text>
               {order.payment_records.map(pr => (
@@ -537,20 +572,11 @@ export default function OrderDetail() {
             </>
           )}
 
-          {/* ② 实际租期与租金 */}
-          {order.settlement?.actual_rent_amount !== undefined && (
+          {/* ② 实际租期（金额明细已由 fee_detail 应付段展示，#1803 T3 去双口径） */}
+          {order.settlement?.actual_rent_days !== undefined && (
             <>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginTop: 8, marginBottom: 4 }}>实际租期与租金</Text>
-              {order.settlement.actual_rent_days !== undefined && (
-                <Row label="实际租期" value={`${order.settlement.actual_rent_days} 天`} />
-              )}
-              <Row label="实际租金" value={`¥${((order.settlement.actual_rent_amount || 0) / 100).toFixed(2)}`} color="#16a34a" />
-              {overdueFee > 0 && (
-                <>
-                  <Row label="逾期费用" value={`¥${((overdueFee || 0) / 100).toFixed(2)}`} color="#ef4444" />
-                  <Row label="  逾期日费" value={`¥${((dailyRate || 0) / 100).toFixed(2)}/天`} color="#a1a1aa" />
-                </>
-              )}
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginTop: 8, marginBottom: 4 }}>实际租期</Text>
+              <Row label="实际租期" value={`${order.settlement.actual_rent_days} 天`} />
             </>
           )}
 
@@ -571,22 +597,10 @@ export default function OrderDetail() {
             </>
           )}
 
-          {/* ④ 结算（原结算明细面板并入） */}
-          {order.settlement && (
+          {/* ④ 结算状态（金额明细已由 fee_detail 三段展示，#1803 T3 去双口径；此处仅保留执行状态） */}
+          {order.settlement && (order.settlement.refund_method || order.settlement.refund_status || Number(order.settlement.payable_shortfall) > 0) && (
             <View style={{ borderTop: '1px dashed #e4e4e7', marginTop: 8, paddingTop: 8 }}>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginBottom: 4 }}>结算</Text>
-              {order.settlement.original_rent_amount !== undefined && (
-                <Row label="原始租金" value={`¥${((order.settlement.original_rent_amount || 0) / 100).toFixed(2)}`} />
-              )}
-              {order.settlement.actual_rent_days !== undefined && (
-                <Row label="实际天数" value={`${order.settlement.actual_rent_days} 天`} />
-              )}
-              {order.settlement.overdue_charges_total !== undefined && Number(order.settlement.overdue_charges_total) > 0 && (
-                <Row label="逾期费用" value={`¥${((order.settlement.overdue_charges_total || 0) / 100).toFixed(2)}`} color="#ef4444" />
-              )}
-              {order.settlement.cash_refundable !== undefined && (
-                <Row label="可退现金" value={`¥${((order.settlement.cash_refundable || 0) / 100).toFixed(2)}`} />
-              )}
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginBottom: 4 }}>结算状态</Text>
               {order.settlement.refund_method && (
                 <Row label="退款方式" value={order.settlement.refund_method} />
               )}
@@ -974,13 +988,13 @@ export default function OrderDetail() {
   )
 }
 
-function Row({ label, value, color, mono }) {
+function Row({ label, value, color, mono, indent }) {
   return (
-    <View style={{ display: 'flex', justifyContent: 'space-between', paddingVertical: 6 }}>
-      <Text style={{ fontSize: 13, color: '#71717a' }}>{label}</Text>
+    <View style={{ display: 'flex', justifyContent: 'space-between', paddingVertical: 6, paddingLeft: indent ? 12 : 0 }}>
+      <Text style={{ fontSize: 13, color: indent ? '#a1a1aa' : '#71717a' }}>{label}</Text>
       <Text style={{
         fontSize: 13, fontWeight: '700',
-        color: color || '#000',
+        color: color || (indent ? '#a1a1aa' : '#000'),
         fontFamily: mono ? 'monospace' : undefined,
       }}>
         {value}

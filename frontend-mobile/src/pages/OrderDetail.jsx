@@ -368,10 +368,9 @@ export default function OrderDetail() {
    // Actual rental figures come from the server for ALL statuses (#1739):
    // GetOrder returns actual_rent_days / actual_rent_amount (cents) derived
    // from settlement → pricing breakdown → delivered_at→returned_at × rent.
+   // #1803 T3: 金额明细已由 fee_detail 应付段展示；此处仅保留日期/天数补充信息。
    const actualReturnedAt = order.returned_at
    const actualDays = order.actual_rent_days ?? 0
-   const actualRent = order.actual_rent_amount ?? 0
-   const showActualRent = (settlement && settlement.actual_rent_amount !== undefined) || (!settlement && !!actualReturnedAt)
 
    const isOverdue = (status === 'expired' || status === 'in_lease') && order.end_date && order.end_date.slice(0, 10) <= new Date().toISOString().slice(0, 10)
    const overdueDaysCalc = isOverdue ? calculateDays(new Date(order.end_date.slice(0, 10)), new Date()) : 0
@@ -477,49 +476,82 @@ export default function OrderDetail() {
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <Text className="text-base font-black text-black mb-4">费用信息</Text>
         <View className="space-y-2">
-          {/* #1756: fee_summary 三区块（服务端计算，前端只读） */}
-          {order.fee_summary && (
+          {/* #1803 T3: fee_detail 三段统一明细（单一数据源，服务端计算，前端只读） */}
+          {order.fee_detail && (
             <>
-              {/* ① 实付部分 */}
+              {/* ① 实付段 */}
               <Text className="text-xs font-bold text-zinc-400 mt-3">实付部分</Text>
-              {order.fee_summary.paid.initial?.map((it, i) => (
-                <View key={`init-${i}`} className="flex justify-between text-sm">
-                  <Text className="text-zinc-500 font-medium">{it.item === 'rent' ? '租金（含押金）' : it.item}</Text>
-                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(it.amount) / 100).toFixed(2)}</Text>
-                </View>
-              ))}
-              {order.fee_summary.paid.renewal?.map((it, i) => (
-                <View key={`ren-${i}`} className="flex justify-between text-sm">
-                  <Text className="text-zinc-500 font-medium">续期租金</Text>
-                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(it.amount) / 100).toFixed(2)}</Text>
-                </View>
-              ))}
-              <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
-                <Text className="text-zinc-500 font-medium">实付合计</Text>
-                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_summary.paid.subtotal || 0) / 100).toFixed(2)}</Text>
+              <View className="flex justify-between text-sm">
+                <Text className="text-zinc-500 font-medium">
+                  合同租金 ¥{(Number(order.fee_detail.paid_block?.contract_rent?.amount) / 100).toFixed(2)}
+                  {order.fee_detail.paid_block?.contract_rent?.date ? `（${String(order.fee_detail.paid_block.contract_rent.date).slice(0, 10)}）` : ''}
+                </Text>
               </View>
-
-              {/* ② 应付部分 */}
-              <Text className="text-xs font-bold text-zinc-400 mt-3">应付部分</Text>
-              {order.fee_summary.payable.items?.map((it, i) => (
-                <View key={`pay-${i}`} className="flex justify-between text-sm">
-                  <Text className="text-zinc-500 font-medium">{it.item === 'rent' ? '实际租金' : it.item === 'shipping_fee' ? '物流费' : it.item === 'damage' ? '赔偿金' : it.item}</Text>
-                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(it.amount) / 100).toFixed(2)}</Text>
+              {(order.fee_detail.paid_block?.contract_rent?.tiers || []).map((t, i) => (
+                <View key={`ct-${i}`} className="flex justify-between text-sm pl-3">
+                  <Text className="text-zinc-400">第{t.tier}阶梯 ¥{(Number(t.rate) / 100).toFixed(2)}/天 × {t.days}天</Text>
+                  <Text className="text-zinc-500 flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(t.subtotal) / 100).toFixed(2)}</Text>
                 </View>
               ))}
-              <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
-                <Text className="text-zinc-500 font-medium">应付合计</Text>
-                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_summary.payable.subtotal || 0) / 100).toFixed(2)}</Text>
+              <View className="flex justify-between text-sm">
+                <Text className="text-zinc-500 font-medium">押金</Text>
+                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_detail.paid_block?.deposit?.amount) / 100).toFixed(2)}</Text>
               </View>
-
-              {/* ③ 预期退款/补缴 — 仅未终态 */}
-              {!order.fee_summary.settled && order.fee_summary.expected && (
-                <>
-                  <Text className="text-xs font-bold text-zinc-400 mt-3">预期退款 / 预期补缴</Text>
+              {(order.fee_detail.paid_block?.renewals || []).map((r, i) => (
+                <View key={`ren-${i}`}>
                   <View className="flex justify-between text-sm">
-                    <Text className="text-zinc-500 font-medium">{order.fee_summary.expected.direction === 'refund' ? '预期退款' : '预期补缴'}</Text>
-                    <Text className={`font-black flex-shrink-0 ml-auto whitespace-nowrap ${order.fee_summary.expected.direction === 'refund' ? 'text-green-600' : 'text-red-500'}`}>
-                      ¥{(Math.abs(Number(order.fee_summary.expected.amount)) / 100).toFixed(2)}
+                    <Text className="text-zinc-500 font-medium">续费 ¥{(Number(r.amount) / 100).toFixed(2)}</Text>
+                  </View>
+                  {(r.tiers || []).map((t, j) => (
+                    <View key={`rt-${j}`} className="flex justify-between text-sm pl-3">
+                      <Text className="text-zinc-400">第{t.tier}阶梯 ¥{(Number(t.rate) / 100).toFixed(2)}/天 × {t.days}天</Text>
+                      <Text className="text-zinc-500 flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(t.subtotal) / 100).toFixed(2)}</Text>
+                    </View>
+                  ))}
+                </View>
+              ))}
+              <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
+                <Text className="text-zinc-500 font-medium">合计实付</Text>
+                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_detail.paid_block?.subtotal || 0) / 100).toFixed(2)}</Text>
+              </View>
+
+              {/* ② 应付段 */}
+              <Text className="text-xs font-bold text-zinc-400 mt-3">应付部分</Text>
+              <View className="flex justify-between text-sm">
+                <Text className="text-zinc-500 font-medium">实际租金</Text>
+                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_detail.payable_block?.actual_rent?.amount) / 100).toFixed(2)}</Text>
+              </View>
+              {(order.fee_detail.payable_block?.actual_rent?.tiers || []).map((t, i) => (
+                <View key={`pr-${i}`} className="flex justify-between text-sm pl-3">
+                  <Text className="text-zinc-400">第{t.tier}阶梯 ¥{(Number(t.rate) / 100).toFixed(2)}/天 × {t.days}天</Text>
+                  <Text className="text-zinc-500 flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(t.subtotal) / 100).toFixed(2)}</Text>
+                </View>
+              ))}
+              {Number(order.fee_detail.payable_block?.overdue_fee?.amount) > 0 && (
+                <View className="flex justify-between text-sm">
+                  <Text className="text-zinc-500 font-medium">逾期费{Number(order.fee_detail.payable_block.overdue_fee.days) > 0 ? `（${order.fee_detail.payable_block.overdue_fee.days}天）` : ''}</Text>
+                  <Text className="text-red-500 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_detail.payable_block.overdue_fee.amount) / 100).toFixed(2)}</Text>
+                </View>
+              )}
+              {Number(order.fee_detail.payable_block?.shipping_fee?.amount) > 0 && (
+                <View className="flex justify-between text-sm">
+                  <Text className="text-zinc-500 font-medium">物流费</Text>
+                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_detail.payable_block.shipping_fee.amount) / 100).toFixed(2)}</Text>
+                </View>
+              )}
+              <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
+                <Text className="text-zinc-500 font-medium">实际应付</Text>
+                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_detail.payable_block?.subtotal || 0) / 100).toFixed(2)}</Text>
+              </View>
+
+              {/* ③ 净额段（补缴/退款） */}
+              {order.fee_detail.net_block?.direction && order.fee_detail.net_block.direction !== 'none' && (
+                <>
+                  <Text className="text-xs font-bold text-zinc-400 mt-3">结算差额</Text>
+                  <View className="flex justify-between text-sm">
+                    <Text className="text-zinc-500 font-medium">{order.fee_detail.net_block.direction === 'refund' ? '应退款' : '应补缴'}</Text>
+                    <Text className={`font-black flex-shrink-0 ml-auto whitespace-nowrap ${order.fee_detail.net_block.direction === 'refund' ? 'text-green-600' : 'text-red-500'}`}>
+                      ¥{(Math.abs(Number(order.fee_detail.net_block.amount)) / 100).toFixed(2)}
                     </Text>
                   </View>
                 </>
@@ -527,8 +559,8 @@ export default function OrderDetail() {
             </>
           )}
 
-          {/* ① 实付金额（fallback：无 fee_summary 的旧订单/异常） */}
-          {!order.fee_summary && order.payment_records?.length > 0 && (
+          {/* ① 实付金额（fallback：无 fee_detail 的旧订单/异常） */}
+          {!order.fee_detail && order.payment_records?.length > 0 && (
             <>
               <Text className="text-xs font-bold text-zinc-400 mt-3">实付金额</Text>
               {order.payment_records.map(pr => (
@@ -545,10 +577,10 @@ export default function OrderDetail() {
             </>
           )}
 
-          {/* ② 实际租期与租金 */}
-          {showActualRent && (
+          {/* ② 实际租期与结束日期（金额明细已由 fee_detail 应付段展示，#1803 T3 去双口径） */}
+          {(actualReturnedAt || actualDays > 0) && (
             <>
-              <Text className="text-xs font-bold text-zinc-400 mt-2">实际租期与租金</Text>
+              <Text className="text-xs font-bold text-zinc-400 mt-2">实际租期与结束日期</Text>
               {actualReturnedAt && (
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-500 font-medium">实际结束日期</Text>
@@ -560,24 +592,6 @@ export default function OrderDetail() {
                   <Text className="text-zinc-500 font-medium">实际租期</Text>
                   <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">{actualDays} 天</Text>
                 </View>
-              )}
-              {actualRent > 0 && (
-                <View className="flex justify-between text-sm">
-                  <Text className="text-zinc-500 font-medium">实际租金</Text>
-                  <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(actualRent) / 100).toFixed(2)}</Text>
-                </View>
-              )}
-              {overdueFee > 0 && (
-                <>
-                  <View className="flex justify-between text-sm">
-                    <Text className="text-zinc-500 font-medium">逾期费用</Text>
-                    <Text className="text-red-500 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{((overdueFee || 0) / 100).toFixed(2)}</Text>
-                  </View>
-                  <View className="flex justify-between text-sm">
-                    <Text className="text-zinc-400">  逾期日费</Text>
-                    <Text className="text-zinc-400 flex-shrink-0 ml-auto whitespace-nowrap">¥{(dailyRate / 100).toFixed(2)}/天</Text>
-                  </View>
-                </>
               )}
             </>
           )}
@@ -746,53 +760,11 @@ export default function OrderDetail() {
         </View>
       )}
 
-      {/* Settlement Detail (for completed orders) */}
+      {/* Settlement Status (金额明细已由 fee_detail 三段展示，#1803 T3 去双口径；此处仅保留执行状态) */}
       {settlement && (
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
-        <Text className="text-base font-black text-black mb-3">结算明细</Text>
+        <Text className="text-base font-black text-black mb-3">结算状态</Text>
         <View className="space-y-2">
-          {settlement.original_rent_amount !== undefined && (
-          <View className="flex justify-between text-sm">
-            <Text className="text-zinc-500 font-medium">原始租金</Text>
-            <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{((settlement.original_rent_amount || 0) / 100).toFixed(2)}</Text>
-          </View>
-          )}
-          {settlement.actual_rent_amount !== undefined && (
-          <View className="flex justify-between text-sm">
-            <Text className="text-zinc-500 font-medium">实收租金</Text>
-            <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{((settlement.actual_rent_amount || 0) / 100).toFixed(2)}</Text>
-          </View>
-          )}
-          {settlement.actual_rent_days !== undefined && (
-          <View className="flex justify-between text-sm">
-            <Text className="text-zinc-500 font-medium">实际天数</Text>
-            <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">{settlement.actual_rent_days} 天</Text>
-          </View>
-          )}
-          {settlement.overdue_charges_total !== undefined && Number(settlement.overdue_charges_total) > 0 && (
-          <View className="flex justify-between text-sm">
-            <Text className="text-zinc-500 font-medium">逾期费用</Text>
-            <Text className="text-red-500 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{((settlement.overdue_charges_total || 0) / 100).toFixed(2)}</Text>
-          </View>
-          )}
-          {settlement.cash_refundable !== undefined && (
-          <View className="flex justify-between text-sm">
-            <Text className="text-zinc-500 font-medium">可退现金</Text>
-            <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{((settlement.cash_refundable || 0) / 100).toFixed(2)}</Text>
-          </View>
-          )}
-          {settlement.prepaid_refunded !== undefined && (
-          <View className="flex justify-between text-sm">
-            <Text className="text-zinc-500 font-medium">预付款退还</Text>
-            <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{((settlement.prepaid_refunded || 0) / 100).toFixed(2)}</Text>
-          </View>
-          )}
-          {settlement.gift_points_refunded !== undefined && (
-          <View className="flex justify-between text-sm">
-            <Text className="text-zinc-500 font-medium">赠送积分退还</Text>
-            <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{((settlement.gift_points_refunded || 0) / 100).toFixed(2)}</Text>
-          </View>
-          )}
           {settlement.refund_method && (
           <View className="flex justify-between text-sm">
             <Text className="text-zinc-500 font-medium">退款方式</Text>
