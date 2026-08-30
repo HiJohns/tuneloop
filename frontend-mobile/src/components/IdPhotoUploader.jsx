@@ -11,7 +11,7 @@ import { View, Text, Image } from '@tarojs/components'
 import { uploadFile, env, storage, session } from '../platform'
 import { resolveErrorMessage } from '../services/api'
 
-const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl = '', onChange, defer = false, sessionUpload }, ref) {
+const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl = '', onChange, defer = false, sessionUpload, leftAligned = false }, ref) {
   const [url, setUrl] = useState(initialUrl || '')
   const [uploading, setUploading] = useState(false)
   const [pendingFile, setPendingFile] = useState(null)
@@ -192,7 +192,7 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
   const label = labelMap[side] || side
 
   return (
-    <View className="flex flex-col items-center">
+    <View className={`flex flex-col ${leftAligned ? 'items-start' : 'items-center'}`}>
       {url ? (
         <View className="relative w-32">
           {env.isMiniProgram ? (

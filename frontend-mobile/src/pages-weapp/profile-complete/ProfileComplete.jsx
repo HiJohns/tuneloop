@@ -192,13 +192,13 @@ export default function ProfileComplete() {
 
       <Input placeholder="昵称" value={nickname} onInput={e => setNickname(e.detail.value)}
         type="nickname"
-        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12 }} />
+        style={{ width: '100%', height: '44px', border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 12 }} />
       <Input placeholder="姓名" value={name} onInput={e => setName(e.detail.value)}
-        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12 }} />
+        style={{ width: '100%', height: '44px', border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 12 }} />
       <Input placeholder="手机号" value={phone} onInput={e => setPhone(e.detail.value)}
-        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12 }} />
+        style={{ width: '100%', height: '44px', border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 12 }} />
       <Input placeholder="邮箱（选填）" value={email} onInput={e => setEmail(e.detail.value)}
-        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 24 }} />
+        style={{ width: '100%', height: '44px', border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 24 }} />
 
       <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', width: '100%', marginBottom: 12 }}>收货地址（选填）</Text>
       <View style={{ display: 'flex', width: '100%', marginBottom: 12 }}>
@@ -230,12 +230,12 @@ export default function ProfileComplete() {
         )}
       </View>
       <Input placeholder="详细地址" value={detail} onInput={e => setDetail(e.detail.value)}
-        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12 }} />
+        style={{ width: '100%', height: '44px', border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 12 }} />
       <Input placeholder="邮编（选填）" value={postalCode} onInput={e => setPostalCode(e.detail.value)}
-        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 24 }} />
+        style={{ width: '100%', height: '44px', border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 24 }} />
 
       <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', width: '100%', marginBottom: 12 }}>身份证照片（选填）</Text>
-      {/* #1807: 正反面一行（各 ~48%），第三证件单独一行 + 证件类型选择 */}
+      {/* #1807: 正反面一行（各 ~48%） */}
       <View style={{ display: 'flex', width: '100%', marginBottom: 12, justifyContent: 'space-between' }}>
         <View style={{ width: '48%', display: 'flex', justifyContent: 'center' }}>
           <IdPhotoUploader ref={idPhotoFrontRef} side="front" defer sessionUpload={{ sessionId: resumeSid || undefined }} />
@@ -244,16 +244,18 @@ export default function ProfileComplete() {
           <IdPhotoUploader ref={idPhotoBackRef} side="back" defer sessionUpload={{ sessionId: resumeSid || undefined }} />
         </View>
       </View>
-      <View style={{ display: 'flex', width: '100%', marginBottom: 24, flexDirection: 'column' }}>
-        <View style={{ marginBottom: 8 }}>
-          <IdPhotoUploader ref={idPhotoOtherRef} side="other" defer sessionUpload={{ sessionId: resumeSid || undefined }} />
-        </View>
+      {/* #1807: 其他证件小节标题 + 证件类型（在上，宽度与上传框一致）+ 上传框靠左 */}
+      <Text style={{ fontSize: 14, fontWeight: '600', color: '#000', width: '100%', marginBottom: 8 }}>其他证件</Text>
+      <View style={{ display: 'flex', width: '100%', marginBottom: 8 }}>
         <Picker mode="selector" range={ID_TYPE_OPTIONS} value={otherIdType ? ID_TYPE_OPTIONS.indexOf(otherIdType) : 0}
           onChange={e => setOtherIdType(ID_TYPE_OPTIONS[e.detail.value])}>
-          <View style={{ border: '1px solid #d4d4d8', borderRadius: 12, height: 44, display: 'flex', alignItems: 'center', padding: '0 16px', boxSizing: 'border-box', fontSize: 14, color: otherIdType ? '#000' : '#9ca3af' }}>
-            {otherIdType ? `证件类型：${otherIdType}` : '证件类型（学生证/教师证/工作证…）'}
+          <View className="w-32" style={{ border: '1px solid #d4d4d8', borderRadius: 12, height: '44px', display: 'flex', alignItems: 'center', paddingLeft: 12, paddingRight: 12, boxSizing: 'border-box', fontSize: 13, color: otherIdType ? '#000' : '#9ca3af' }}>
+            {otherIdType ? `证件类型：${otherIdType}` : '证件类型'}
           </View>
         </Picker>
+      </View>
+      <View style={{ display: 'flex', width: '100%', marginBottom: 24 }}>
+        <IdPhotoUploader ref={idPhotoOtherRef} side="other" defer sessionUpload={{ sessionId: resumeSid || undefined }} leftAligned />
       </View>
 
       <View onClick={handleRegister}

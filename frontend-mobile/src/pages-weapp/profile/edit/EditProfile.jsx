@@ -152,7 +152,7 @@ export default function EditProfile() {
         </View>
         <View style={{ marginBottom: 20 }}>
           <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 10 }}>身份证照片</Text>
-          {/* #1807: 正反面一行（各 ~48%），第三证件单独一行 + 证件类型选择 */}
+          {/* #1807: 正反面一行（各 ~48%） */}
           <View style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
             <View style={{ width: '48%', display: 'flex', justifyContent: 'center' }}>
               <IdPhotoUploader side="front" initialUrl={idPhotoFront} onChange={setIdPhotoFront} />
@@ -161,16 +161,18 @@ export default function EditProfile() {
               <IdPhotoUploader side="back" initialUrl={idPhotoBack} onChange={setIdPhotoBack} />
             </View>
           </View>
-          <View style={{ display: 'flex', flexDirection: 'column' }}>
-            <View style={{ marginBottom: 8 }}>
-              <IdPhotoUploader side="other" initialUrl={idPhotoOther} onChange={setIdPhotoOther} />
-            </View>
+          {/* #1807: 其他证件小节标题 + 证件类型（在上，宽度与上传框一致）+ 上传框靠左 */}
+          <Text style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>其他证件</Text>
+          <View style={{ marginBottom: 8 }}>
             <Picker mode="selector" range={ID_TYPE_OPTIONS} value={idPhotoOtherType ? ID_TYPE_OPTIONS.indexOf(idPhotoOtherType) : 0}
               onChange={e => setIdPhotoOtherType(ID_TYPE_OPTIONS[e.detail.value])}>
-              <View style={{ border: '1px solid #d4d4d8', borderRadius: 8, height: 44, display: 'flex', alignItems: 'center', padding: '0 12px', boxSizing: 'border-box', fontSize: 13, color: idPhotoOtherType ? '#000' : '#9ca3af' }}>
-                {idPhotoOtherType ? `证件类型：${idPhotoOtherType}` : '证件类型（学生证/教师证/工作证…）'}
+              <View className="w-32" style={{ border: '1px solid #d4d4d8', borderRadius: 8, height: '44px', display: 'flex', alignItems: 'center', paddingLeft: 12, paddingRight: 12, boxSizing: 'border-box', fontSize: 13, color: idPhotoOtherType ? '#000' : '#9ca3af' }}>
+                {idPhotoOtherType ? `证件类型：${idPhotoOtherType}` : '证件类型'}
               </View>
             </Picker>
+          </View>
+          <View>
+            <IdPhotoUploader side="other" initialUrl={idPhotoOther} onChange={setIdPhotoOther} leftAligned />
           </View>
         </View>
         {/* 实名认证区块 (#1787) */}
