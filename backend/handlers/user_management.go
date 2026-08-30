@@ -24,10 +24,19 @@ func NewUserManagementHandler() *UserManagementHandler {
 	return &UserManagementHandler{}
 }
 
+// platformDB returns a DB instance exempt from the tenant query scoping
+// (database.addTenantScope). User management is a platform-level feature
+// (RequireSysPerm SysPermTenant*) that must list ALL registered users,
+// including customers with empty tenant_id (00000000-0000-...).
+func (h *UserManagementHandler) platformDB(c *gin.Context) *gorm.DB {
+	ctx := context.WithValue(c.Request.Context(), database.TenantIDKey, "")
+	return database.GetDB().WithContext(ctx)
+}
+
 // ListUserManagement returns paginated registered users with search.
 // GET /admin/user-management?page=1&pageSize=20&search=...
 func (h *UserManagementHandler) List(c *gin.Context) {
-	db := database.GetDB().WithContext(c.Request.Context())
+	db := h.platformDB(c)
 
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
@@ -87,7 +96,7 @@ func (h *UserManagementHandler) List(c *gin.Context) {
 // Get returns full detail of one user.
 // GET /admin/user-management/:id
 func (h *UserManagementHandler) Get(c *gin.Context) {
-	db := database.GetDB().WithContext(c.Request.Context())
+	db := h.platformDB(c)
 	var user models.User
 	if err := db.Where("id = ?", c.Param("id")).First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
@@ -111,7 +120,7 @@ func (h *UserManagementHandler) Update(c *gin.Context) {
 		return
 	}
 
-	db := database.GetDB().WithContext(c.Request.Context())
+	db := h.platformDB(c)
 	var user models.User
 	if err := db.Where("id = ?", c.Param("id")).First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
@@ -155,7 +164,7 @@ func (h *UserManagementHandler) Update(c *gin.Context) {
 // Export returns all matching users as CSV.
 // GET /admin/user-management/export?search=...
 func (h *UserManagementHandler) Export(c *gin.Context) {
-	db := database.GetDB().WithContext(c.Request.Context())
+	db := h.platformDB(c)
 
 	search := c.Query("search")
 	q := db.Model(&models.User{})

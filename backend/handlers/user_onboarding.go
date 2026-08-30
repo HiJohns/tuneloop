@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -344,7 +345,9 @@ func (h *UserOnboardingHandler) GetUserIdPhotos(c *gin.Context) {
 // AdminUploadIDPhoto uploads an ID photo on behalf of a user (PC admin).
 // POST /api/admin/user-management/:id/id-photo
 func (h *UserOnboardingHandler) AdminUploadIDPhoto(c *gin.Context) {
-	ctx := c.Request.Context()
+	// Platform-level admin operation: exempt from tenant query scoping so
+	// customers (empty tenant_id) can be located (see UserManagementHandler.platformDB).
+	ctx := context.WithValue(c.Request.Context(), database.TenantIDKey, "")
 	db := database.GetDB().WithContext(ctx)
 
 	targetID := c.Param("id")
@@ -446,7 +449,9 @@ func (h *UserOnboardingHandler) AdminUploadIDPhoto(c *gin.Context) {
 // AdminDeleteIdPhoto clears one side of a user's ID photo (PC admin).
 // DELETE /api/admin/user-management/:id/id-photo?side=front|back
 func (h *UserOnboardingHandler) AdminDeleteIdPhoto(c *gin.Context) {
-	ctx := c.Request.Context()
+	// Platform-level admin operation: exempt from tenant query scoping
+	// (see UserManagementHandler.platformDB).
+	ctx := context.WithValue(c.Request.Context(), database.TenantIDKey, "")
 	db := database.GetDB().WithContext(ctx)
 
 	targetID := c.Param("id")
