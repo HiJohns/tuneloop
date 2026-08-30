@@ -190,15 +190,23 @@ export default function ProfileComplete() {
         )}
       </View>
 
-      <Input placeholder="昵称" value={nickname} onInput={e => setNickname(e.detail.value)}
-        type="nickname"
-        style={{ width: '100%', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 12 }} />
-      <Input placeholder="姓名" value={name} onInput={e => setName(e.detail.value)}
-        style={{ width: '100%', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 12 }} />
-      <Input placeholder="手机号" value={phone} onInput={e => setPhone(e.detail.value)}
-        style={{ width: '100%', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 12 }} />
-      <Input placeholder="邮箱（选填）" value={email} onInput={e => setEmail(e.detail.value)}
-        style={{ width: '100%', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 24 }} />
+      <View style={{ width: '100%', display: 'flex', alignItems: 'center', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', marginBottom: 12 }}>
+        <Input placeholder="昵称" value={nickname} onInput={e => setNickname(e.detail.value)}
+          type="nickname"
+          style={{ flex: 1, fontSize: 14, height: '20px', padding: 0 }} />
+      </View>
+      <View style={{ width: '100%', display: 'flex', alignItems: 'center', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', marginBottom: 12 }}>
+        <Input placeholder="姓名" value={name} onInput={e => setName(e.detail.value)}
+          style={{ flex: 1, fontSize: 14, height: '20px', padding: 0 }} />
+      </View>
+      <View style={{ width: '100%', display: 'flex', alignItems: 'center', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', marginBottom: 12 }}>
+        <Input placeholder="手机号" value={phone} onInput={e => setPhone(e.detail.value)}
+          style={{ flex: 1, fontSize: 14, height: '20px', padding: 0 }} />
+      </View>
+      <View style={{ width: '100%', display: 'flex', alignItems: 'center', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', marginBottom: 24 }}>
+        <Input placeholder="邮箱（选填）" value={email} onInput={e => setEmail(e.detail.value)}
+          style={{ flex: 1, fontSize: 14, height: '20px', padding: 0 }} />
+      </View>
 
       <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', width: '100%', marginBottom: 12 }}>收货地址（选填）</Text>
       <View style={{ display: 'flex', width: '100%', marginBottom: 12 }}>
@@ -229,10 +237,14 @@ export default function ProfileComplete() {
         </View>
         )}
       </View>
-      <Input placeholder="详细地址" value={detail} onInput={e => setDetail(e.detail.value)}
-        style={{ width: '100%', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 12 }} />
-      <Input placeholder="邮编（选填）" value={postalCode} onInput={e => setPostalCode(e.detail.value)}
-        style={{ width: '100%', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 24 }} />
+      <View style={{ width: '100%', display: 'flex', alignItems: 'center', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', marginBottom: 12 }}>
+        <Input placeholder="详细地址" value={detail} onInput={e => setDetail(e.detail.value)}
+          style={{ flex: 1, fontSize: 14, height: '20px', padding: 0 }} />
+      </View>
+      <View style={{ width: '100%', display: 'flex', alignItems: 'center', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', marginBottom: 24 }}>
+        <Input placeholder="邮编（选填）" value={postalCode} onInput={e => setPostalCode(e.detail.value)}
+          style={{ flex: 1, fontSize: 14, height: '20px', padding: 0 }} />
+      </View>
 
       <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', width: '100%', marginBottom: 12 }}>身份证照片（选填）</Text>
       {/* #1807: 正反面一行（各 ~48%） */}
