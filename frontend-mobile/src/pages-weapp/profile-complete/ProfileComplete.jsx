@@ -192,13 +192,13 @@ export default function ProfileComplete() {
 
       <Input placeholder="昵称" value={nickname} onInput={e => setNickname(e.detail.value)}
         type="nickname"
-        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 12 }} />
+        style={{ width: '100%', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 12 }} />
       <Input placeholder="姓名" value={name} onInput={e => setName(e.detail.value)}
-        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 12 }} />
+        style={{ width: '100%', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 12 }} />
       <Input placeholder="手机号" value={phone} onInput={e => setPhone(e.detail.value)}
-        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 12 }} />
+        style={{ width: '100%', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 12 }} />
       <Input placeholder="邮箱（选填）" value={email} onInput={e => setEmail(e.detail.value)}
-        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 24 }} />
+        style={{ width: '100%', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 24 }} />
 
       <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', width: '100%', marginBottom: 12 }}>收货地址（选填）</Text>
       <View style={{ display: 'flex', width: '100%', marginBottom: 12 }}>
@@ -230,9 +230,9 @@ export default function ProfileComplete() {
         )}
       </View>
       <Input placeholder="详细地址" value={detail} onInput={e => setDetail(e.detail.value)}
-        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 12 }} />
+        style={{ width: '100%', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 12 }} />
       <Input placeholder="邮编（选填）" value={postalCode} onInput={e => setPostalCode(e.detail.value)}
-        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 24 }} />
+        style={{ width: '100%', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', fontSize: 14, marginBottom: 24 }} />
 
       <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', width: '100%', marginBottom: 12 }}>身份证照片（选填）</Text>
       {/* #1807: 正反面一行（各 ~48%） */}
@@ -259,7 +259,7 @@ export default function ProfileComplete() {
       </View>
 
       <View onClick={handleRegister}
-        style={{ width: '100%', height: '44px', backgroundColor: '#915F38', borderRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+        style={{ width: '100%', paddingTop: 13, paddingBottom: 13, backgroundColor: '#915F38', borderRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
         <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>{saving ? '处理中...' : '支付会员费'}</Text>
       </View>
       {(resumeSid || sessionAmount > 0) && (

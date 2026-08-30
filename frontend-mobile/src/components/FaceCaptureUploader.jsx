@@ -123,6 +123,8 @@ const FaceCaptureUploader = ({ initialStatus = '', onSubmitSuccess }) => {
 
   return (
     <View style={{ marginTop: 8 }}>
+      {/* 人脸采样标题（#1807：必要步骤——未实装腾讯云时也须完成采样等待人工审核） */}
+      <Text style={{ fontSize: 13, fontWeight: '700', color: '#6b7280', marginBottom: 6 }}>人脸采样（必填）</Text>
       {/* 状态展示 */}
       {initialStatus && initialStatus !== 'none' && (
         <View style={{ padding: 8, backgroundColor: initialStatus === 'rejected' ? '#fef2f2' : '#f4f4f5', borderRadius: 8, marginBottom: 8 }}>
@@ -132,17 +134,17 @@ const FaceCaptureUploader = ({ initialStatus = '', onSubmitSuccess }) => {
         </View>
       )}
 
-      {/* 自拍选择 */}
+      {/* 人脸采样选择：自拍照片（必选）+ 动态视频（可选，活体佐证） */}
       <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
         <View
           onClick={submitting ? undefined : pickImage}
           style={{ flex: 1, height: 36, border: '1px solid #d4d4d8', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 8, boxSizing: 'border-box' }}>
-          <Text style={{ fontSize: 12, color: imagePath ? '#16a34a' : '#6b7280' }}>{imagePath ? '已选照片' : '选择自拍照片'}</Text>
+          <Text style={{ fontSize: 12, color: imagePath ? '#16a34a' : '#6b7280' }}>{imagePath ? '已选照片' : '选择自拍照片（必选）'}</Text>
         </View>
         <View
           onClick={submitting ? undefined : pickVideo}
           style={{ flex: 1, height: 36, border: '1px solid #d4d4d8', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}>
-          <Text style={{ fontSize: 12, color: videoPath ? '#16a34a' : '#9ca3af' }}>{videoPath ? '已选视频' : '选择视频（可选）'}</Text>
+          <Text style={{ fontSize: 12, color: videoPath ? '#16a34a' : '#9ca3af' }}>{videoPath ? '已选视频' : '动态视频（可选）'}</Text>
         </View>
       </View>
       {/* H5 文件输入（weapp 分支不渲染——无裸 HTML 交互控件问题） */}
@@ -155,12 +157,12 @@ const FaceCaptureUploader = ({ initialStatus = '', onSubmitSuccess }) => {
 
       <View
         onClick={submitting ? undefined : submit}
-        style={{ width: '100%', height: 40, backgroundColor: submitting || !imagePath ? '#d4d4d8' : '#915F38', borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>{submitting ? '提交中...' : '提交核身素材'}</Text>
+        style={{ width: '100%', paddingTop: 13, paddingBottom: 13, backgroundColor: submitting || !imagePath ? '#d4d4d8' : '#915F38', borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>{submitting ? '处理中...' : '发起人脸认证'}</Text>
       </View>
       {error && <Text style={{ fontSize: 12, color: '#dc2626', marginTop: 6 }}>{error}</Text>}
       <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 6 }}>
-        {initialStatus === 'pending_review' ? '已提交，等待平台审核' : '提交后将进行核身比对；腾讯云未配置时将转为人工审核'}
+        {initialStatus === 'pending_review' ? '已提交，等待平台审核' : '人脸采样为实名认证必要步骤：提交自拍照片（+动态视频）后由平台员工审核，通过后完成实名认证'}
       </Text>
     </View>
   )
