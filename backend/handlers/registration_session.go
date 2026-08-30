@@ -53,15 +53,16 @@ func (h *RegistrationSessionHandler) iamClientFor() *services.IAMClient {
 // membership fee; coupon discounts are applied at prepay time).
 func (h *RegistrationSessionHandler) CreateRegistrationSession(c *gin.Context) {
 	var req struct {
-		Nickname      string                 `json:"nickname" binding:"required"`
-		Name          string                 `json:"name" binding:"required"`
-		Phone         string                 `json:"phone" binding:"required"`
-		Email         string                 `json:"email"`
-		ExchangeToken string                 `json:"exchange_token"`
-		WxCode        string                 `json:"wx_code"`
-		Ref           string                 `json:"ref"`
-		Address       map[string]interface{} `json:"address"`
-		IDPhotos      map[string]string      `json:"id_photos"`
+		Nickname         string                 `json:"nickname" binding:"required"`
+		Name             string                 `json:"name" binding:"required"`
+		Phone            string                 `json:"phone" binding:"required"`
+		Email            string                 `json:"email"`
+		ExchangeToken    string                 `json:"exchange_token"`
+		WxCode           string                 `json:"wx_code"`
+		Ref              string                 `json:"ref"`
+		Address          map[string]interface{} `json:"address"`
+		IDPhotos         map[string]string      `json:"id_photos"`
+		IdPhotoOtherType string                 `json:"id_photo_other_type"` // #1807: 第三证件类型
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
@@ -69,13 +70,14 @@ func (h *RegistrationSessionHandler) CreateRegistrationSession(c *gin.Context) {
 	}
 
 	form := registerForm{
-		Nickname: req.Nickname,
-		Name:     req.Name,
-		Phone:    req.Phone,
-		Email:    req.Email,
-		Ref:      req.Ref,
-		Address:  req.Address,
-		IDPhotos: req.IDPhotos,
+		Nickname:         req.Nickname,
+		Name:             req.Name,
+		Phone:            req.Phone,
+		Email:            req.Email,
+		Ref:              req.Ref,
+		Address:          req.Address,
+		IDPhotos:         req.IDPhotos,
+		IdPhotoOtherType: req.IdPhotoOtherType,
 	}
 
 	session := models.RegistrationSession{

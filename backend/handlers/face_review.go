@@ -104,8 +104,10 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 	batchID := c.Param("batchId")
 
 	var req struct {
-		Action string `json:"action" binding:"required,oneof=approve reject"`
-		Reason string `json:"reason"`
+		Action   string `json:"action" binding:"required,oneof=approve reject"`
+		Reason   string `json:"reason"`
+		RealName string `json:"real_name"` // #1807: 员工根据身份证照核对填写（approve 时）
+		IdCardNo string `json:"id_card_no"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "action must be approve or reject"})
@@ -113,6 +115,11 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 	}
 	if req.Action == "reject" && req.Reason == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "reason is required for reject"})
+		return
+	}
+	// #1807: approve 必须由员工填写真实姓名 + 身份证号（根据证件照核对，防顾客手输伪造）。
+	if req.Action == "approve" && (req.RealName == "" || req.IdCardNo == "") {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "real_name and id_card_no are required for approve"})
 		return
 	}
 
@@ -133,12 +140,15 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 	tx := db.Begin()
 
 	if req.Action == "approve" {
-		// 批准：face_verified=true + method=manual + 批次 approved。
+		// 批准：face_verified=true + method=manual + 员工填写的 real_name/id_card_no
+		// （#1807：实名信息由员工根据身份证照核对填写，顾客不自行输入）。
 		if err := tx.Model(&models.User{}).Where("id = ?", batch.UserID).
 			Updates(map[string]interface{}{
 				"face_verified":      true,
 				"face_verify_method": "manual",
 				"face_verified_at":   now,
+				"real_name":          req.RealName,
+				"id_card_no":         req.IdCardNo,
 				"updated_at":         now,
 			}).Error; err != nil {
 			tx.Rollback()

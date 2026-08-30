@@ -28,6 +28,10 @@ export default function ProfileComplete() {
   // Two-phase registration (#1663): resume an existing pending session.
   const [resumeSid, setResumeSid] = useState('')
   const [sessionAmount, setSessionAmount] = useState(0)
+  // #1807: 第三证件类型（学生证/教师证/工作证/其他）
+  const [otherIdType, setOtherIdType] = useState('')
+
+  const ID_TYPE_OPTIONS = ['学生证', '教师证', '工作证', '其他']
 
   const provinceNames = regions.map(r => r.name)
   const selectedProv = regions.find(r => r.name === province)
@@ -97,6 +101,7 @@ export default function ProfileComplete() {
       let amount = sessionAmount
       if (!sid) {
         const body = { name: name.trim(), nickname: nickname.trim() || name.trim(), phone: phone.trim(), email: email.trim() }
+        if (otherIdType) { body.id_photo_other_type = otherIdType } // #1807: 第三证件类型
         if (province || city || detail) {
           body.address = { province, city, district, detail, postal_code: postalCode }
         }
@@ -127,6 +132,10 @@ export default function ProfileComplete() {
         if (result.code === 20000 && result.data?.session_id) {
           sid = result.data.session_id
           amount = result.data.amount
+          // #1807: 新建 session 后立即更新 state —— IdPhotoUploader 的
+          // sessionUpload.sessionId 随之 rerender 拿到新 sid，否则 uploadPending()
+          // 走 user/id-photo 端点（两阶段注册用户未创建 → 401 上传失败）。
+          setResumeSid(sid)
         } else {
           Taro.showToast({ title: resolveErrorMessage(result, '提交失败, 请重试'), icon: 'none', duration: 3000 })
           setSaving(false)
@@ -136,10 +145,12 @@ export default function ProfileComplete() {
       session.setItem('pending_registration_session', sid)
       // Upload ID photos to the session (#1787) — best-effort; failure shows
       // a dialog allowing the user to continue to payment or retry.
+      // #1807: 显式传 sid（新建 session 后 prop 更新有批处理延迟，直接传参
+      // 保证走 session 端点而非 user/id-photo 匿名 401）。
       const uploadResult = await Promise.allSettled([
-        idPhotoFrontRef.current?.uploadPending(),
-        idPhotoBackRef.current?.uploadPending(),
-        idPhotoOtherRef.current?.uploadPending(),
+        idPhotoFrontRef.current?.uploadPending(sid),
+        idPhotoBackRef.current?.uploadPending(sid),
+        idPhotoOtherRef.current?.uploadPending(sid),
       ])
       const anyFailed = uploadResult.some(r => r.status === 'rejected' || (r.status === 'fulfilled' && r.value === null))
       if (anyFailed) {
@@ -224,16 +235,25 @@ export default function ProfileComplete() {
         style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 24 }} />
 
       <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', width: '100%', marginBottom: 12 }}>身份证照片（选填）</Text>
-      <View style={{ display: 'flex', width: '100%', marginBottom: 24, flexWrap: 'wrap', justifyContent: 'space-between' }}>
-        <View style={{ width: '30%', display: 'flex', justifyContent: 'center' }}>
+      {/* #1807: 正反面一行（各 ~48%），第三证件单独一行 + 证件类型选择 */}
+      <View style={{ display: 'flex', width: '100%', marginBottom: 12, justifyContent: 'space-between' }}>
+        <View style={{ width: '48%', display: 'flex', justifyContent: 'center' }}>
           <IdPhotoUploader ref={idPhotoFrontRef} side="front" defer sessionUpload={{ sessionId: resumeSid || undefined }} />
         </View>
-        <View style={{ width: '30%', display: 'flex', justifyContent: 'center' }}>
+        <View style={{ width: '48%', display: 'flex', justifyContent: 'center' }}>
           <IdPhotoUploader ref={idPhotoBackRef} side="back" defer sessionUpload={{ sessionId: resumeSid || undefined }} />
         </View>
-        <View style={{ width: '30%', display: 'flex', justifyContent: 'center' }}>
+      </View>
+      <View style={{ display: 'flex', width: '100%', marginBottom: 24, flexDirection: 'column' }}>
+        <View style={{ marginBottom: 8 }}>
           <IdPhotoUploader ref={idPhotoOtherRef} side="other" defer sessionUpload={{ sessionId: resumeSid || undefined }} />
         </View>
+        <Picker mode="selector" range={ID_TYPE_OPTIONS} value={otherIdType ? ID_TYPE_OPTIONS.indexOf(otherIdType) : 0}
+          onChange={e => setOtherIdType(ID_TYPE_OPTIONS[e.detail.value])}>
+          <View style={{ border: '1px solid #d4d4d8', borderRadius: 12, height: 44, display: 'flex', alignItems: 'center', padding: '0 16px', boxSizing: 'border-box', fontSize: 14, color: otherIdType ? '#000' : '#9ca3af' }}>
+            {otherIdType ? `证件类型：${otherIdType}` : '证件类型（学生证/教师证/工作证…）'}
+          </View>
+        </Picker>
       </View>
 
       <View onClick={handleRegister}

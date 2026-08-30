@@ -14,6 +14,10 @@ export default function FaceReviewPage() {
   const [loading, setLoading] = useState(false)
   const [reviewing, setReviewing] = useState(null) // 当前驳回的 batch
   const [rejectReason, setRejectReason] = useState('')
+  // #1807: 通过审核时员工根据身份证照填写实名信息
+  const [approving, setApproving] = useState(null) // 当前通过的 batch
+  const [realName, setRealName] = useState('')
+  const [idCardNo, setIdCardNo] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const fetchQueue = useCallback(async () => {
@@ -34,17 +38,32 @@ export default function FaceReviewPage() {
 
   useEffect(() => { fetchQueue() }, [fetchQueue])
 
-  const handleApprove = async (batchId) => {
+  // #1807: 通过需填写实名信息（员工根据身份证照核对）——approve 必填 real_name/id_card_no。
+  const handleApprove = async () => {
+    if (!realName.trim() || !idCardNo.trim()) {
+      message.warning('请填写真实姓名和身份证号（根据证件照核对）')
+      return
+    }
+    if (!/^\d{17}[\dX]$/.test(idCardNo.trim())) {
+      message.warning('身份证号格式不正确（18 位，末位可为 X）')
+      return
+    }
+    setSubmitting(true)
     try {
-      const resp = await faceReviewApi.review(batchId, { action: 'approve' })
+      const resp = await faceReviewApi.review(approving, { action: 'approve', real_name: realName.trim(), id_card_no: idCardNo.trim() })
       if (resp.code === 20000) {
         message.success('已通过')
+        setApproving(null)
+        setRealName('')
+        setIdCardNo('')
         fetchQueue()
       } else {
         message.error(resp.message || '操作失败')
       }
     } catch (error) {
       message.error(error.message || '操作失败')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -124,7 +143,7 @@ export default function FaceReviewPage() {
             size="small"
             type="primary"
             icon={<CheckCircleOutlined />}
-            onClick={() => handleApprove(record.batch_id)}
+            onClick={() => { setApproving(record.batch_id); setRealName(''); setIdCardNo('') }}
           >
             通过
           </Button>
@@ -151,6 +170,29 @@ export default function FaceReviewPage() {
         pagination={{ pageSize: 10 }}
         locale={{ emptyText: '暂无待审核批次' }}
       />
+      <Modal
+        title="通过核身申请"
+        open={!!approving}
+        onOk={handleApprove}
+        onCancel={() => setApproving(null)}
+        okText="确认通过"
+        cancelText="取消"
+        okButtonProps={{ loading: submitting }}
+      >
+        <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>请根据证件照核对填写真实姓名与身份证号（#1807：实名信息由员工填写，顾客不自行输入）。</Text>
+        <Input
+          value={realName}
+          onChange={(e) => setRealName(e.target.value)}
+          placeholder="真实姓名（必填）"
+          style={{ marginBottom: 12 }}
+        />
+        <Input
+          value={idCardNo}
+          onChange={(e) => setIdCardNo(e.target.value)}
+          placeholder="身份证号（必填，18 位）"
+          maxLength={18}
+        />
+      </Modal>
       <Modal
         title="驳回核身申请"
         open={!!reviewing}

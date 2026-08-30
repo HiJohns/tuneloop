@@ -36,6 +36,7 @@ type User struct {
 	IdPhotoFront        *string    `gorm:"type:varchar(500)" json:"id_photo_front"`
 	IdPhotoBack         *string    `gorm:"type:varchar(500)" json:"id_photo_back"`
 	IdPhotoOther        *string    `gorm:"type:varchar(500)" json:"id_photo_other"`
+	IdPhotoOtherType    *string    `gorm:"type:varchar(50)" json:"id_photo_other_type"` // #1807: 第三证件类型（student/teacher/work/other）
 	RealName            *string    `gorm:"type:varchar(64)" json:"real_name"`
 	IdCardNo            *string    `gorm:"type:varchar(18)" json:"id_card_no"`
 	FaceVerified        bool       `gorm:"default:false" json:"face_verified"`

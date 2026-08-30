@@ -38,11 +38,14 @@ steps:
         role: [guest]
         gate: ""
         reach: "注册页 → 身份证区域（可选）"
-        controls: [正面上传区域, 反面上传区域, 预览及删除按钮]
+        controls: [正面上传区域, 反面上传区域, 第三证件上传区域, 证件类型选择（学生证/教师证/工作证/其他）]
         displays: [已选图片预览]
         ops:
-          - {type: api, method: POST, path: /user/id-photo}
-    api: {method: POST, path: /user/id-photo, params: [file, side]}
+          - {type: api, method: POST, path: /auth/registration-sessions/:id/id-photo}
+    api:
+      - {method: POST, path: /auth/registration-sessions/:id/id-photo, params: [file, side]}
+      - {method: POST, path: /auth/registration-sessions, params: [id_photo_other_type]}
+    rule: "#1807: 布局正反面一行 + 第三证件单独一行（含证件类型选择）；证件照延迟上传到注册 session（会话端点），注册完成回调时转移至用户记录；证件类型随 session form_data 一并转移（users.id_photo_other_type）"
 
   # ── 查看/替换入口（顾客自助） ──
   - seq: 4
@@ -53,7 +56,7 @@ steps:
         role: [customer]
         gate: ""
         reach: "个人中心 → 编辑资料 → 身份证区域"
-        controls: [当前正面预览, 当前反面预览, 替换按钮, 删除按钮]
+        controls: [当前正面预览, 当前反面预览, 第三证件预览, 证件类型选择, 替换按钮, 删除按钮]
         displays: [已上传的正面图, 已上传的反面图, 未上传时的占位]
         ops:
           - {type: api, method: GET, path: /user/id-photos}
@@ -63,6 +66,7 @@ steps:
       - {method: GET, path: /user/id-photos}
       - {method: POST, path: /user/id-photo, params: [file, side]}
       - {method: DELETE, path: /user/id-photo, params: [side]}
+    rule: "#1807: 布局正反面一行（各 ~48%）+ 第三证件单独一行（含证件类型选择 users.id_photo_other_type）；实名认证区块隐藏「姓名/身份证号输入框」与「发起人脸认证」按钮——实名信息由员工在审核流程根据身份证照核对填写（见人工审核流程）"
 
   # ── 查看/替换入口（PC 管理员） ──
   - seq: 5
@@ -123,12 +127,12 @@ steps:
         role: [customer]
         gate: ""
         reach: "购物车 → 确认订单 → 核身状态区"
-        controls: [警告条, 跳转编辑资料按钮, 跳转人脸核身按钮]
-        displays: [未上传提示（去上传身份证）, 已上传未比对提示（去完成人脸认证）]
+        controls: [警告条, 跳转编辑资料按钮]
+        displays: [未上传提示（去上传身份证）, 已上传未提交自拍提示（去编辑资料）]
         ops:
           - {type: api, method: GET, path: /users/me}
     api: {method: GET, path: /users/me, params: []}
-    rule: "仅警告不阻断：未认证仍可提交订单；状态派生：none/uploaded/verified"
+    rule: "仅警告不阻断：未认证仍可提交订单；状态派生：none/uploaded/verified（#1807：跳转目标为编辑资料提交自拍，非人脸核身）"
   - seq: 9
     action: 顾客订单详情页检查核身状态（警告 + 跳转）
     frontend:
@@ -137,12 +141,12 @@ steps:
         role: [customer]
         gate: "订单未发货"
         reach: "我的订单 → 订单详情 → 核身状态区"
-        controls: [警告条, 跳转编辑资料按钮, 跳转人脸核身按钮]
-        displays: [未上传提示, 已上传未比对提示]
+        controls: [警告条, 跳转编辑资料按钮]
+        displays: [未上传提示, 已上传未提交自拍提示]
         ops:
           - {type: api, method: GET, path: /users/me}
     api: {method: GET, path: /users/me, params: []}
-    rule: "订单已发货后不再展示警告（履约已开始）"
+    rule: "订单已发货后不再展示警告（履约已开始）；#1807：跳转目标为编辑资料提交自拍，非人脸核身"
   - seq: 10
     action: 员工待发货订单核身拦截（前端置灰 + 后端强制）
     frontend:
@@ -170,6 +174,23 @@ steps:
       - "乐器 stock_status → available"
       - "⚠️ 必须生成审计日志（强制，禁止静默取消）：order_logs Event=核身超时自动取消 + audit_logs action=auto_cancel_verify_timeout（details 含 trigger/timeout_hours/退款单号）+ 顾客站内通知"
     rule: "幂等：已取消/已退款订单跳过；任何自动取消必须可追溯"
+  - seq: 12
+    action: 平台员工审核队列 — 根据身份证照填写实名信息并通过/驳回（#1807）
+    frontend:
+      - platform: [pc]
+        page: /face-review
+        role: [platform_staff, system_admin]
+        gate: "SysPermUserUpdate"
+        reach: "平台管理 → 实名审核队列 → 待审核批次"
+        controls: [证件照三张预览, 自拍图/视频预览, 真实姓名输入框, 身份证号输入框, 通过按钮, 驳回按钮（必填原因）]
+        displays: [用户姓名, 提交时间]
+        ops:
+          - {type: api, method: GET, path: /admin/face-review/queue}
+          - {type: api, method: POST, path: /admin/face-review/:batchId, params: [action, real_name, id_card_no, reason]}
+    api:
+      - {method: GET, path: /admin/face-review/queue, params: []}
+      - {method: POST, path: /admin/face-review/:batchId, params: [action], gate: "approve 必填 real_name+id_card_no；reject 必填 reason"}
+    rule: "#1807: 实名信息（real_name/id_card_no）由员工根据身份证照核对填写，approve 时一并落库（face_verified=true, method=manual）；字段边界：审核队列不返回身份证号明文，仅证件照供核对；驳回附原因顾客重新采集"
 ---
 
 # P-04 身份证照片全流程管理
@@ -197,8 +218,9 @@ steps:
 ALTER TABLE users ADD COLUMN id_photo_front  VARCHAR(500);
 ALTER TABLE users ADD COLUMN id_photo_back   VARCHAR(500);
 ALTER TABLE users ADD COLUMN id_photo_other  VARCHAR(500);  -- #1787 第三张照片
-ALTER TABLE users ADD COLUMN real_name       VARCHAR(100);  -- #1787 实名姓名
-ALTER TABLE users ADD COLUMN id_card_no      VARCHAR(20);   -- #1787 身份证号（明文）
+ALTER TABLE users ADD COLUMN id_photo_other_type VARCHAR(50); -- #1807 第三证件类型（student/teacher/work/other）
+ALTER TABLE users ADD COLUMN real_name       VARCHAR(100);  -- #1787 实名姓名（#1807 起由员工审核填写）
+ALTER TABLE users ADD COLUMN id_card_no      VARCHAR(20);   -- #1787 身份证号（明文，#1807 起由员工审核填写）
 ALTER TABLE users ADD COLUMN face_verified   BOOLEAN DEFAULT FALSE;  -- #1787 人脸识别是否通过
 ALTER TABLE users ADD COLUMN face_verified_at TIMESTAMPTZ;  -- #1787 人脸识别通过时间
 ```
@@ -237,12 +259,14 @@ ALTER TABLE users ADD COLUMN face_verified_at TIMESTAMPTZ;  -- #1787 人脸识�
 - PC 管理员（namespace_admin）可查看和替换任意用户身份证
 - 无身份证时显示「未上传」占位，不显示空白或错误
 
-### 人脸识别核身规则（#1787）
-- **入口**：仅编辑资料页（两阶段注册无 token，无法绑账号）
-- **流程**：输入真实姓名 + 身份证号 → 获取 Token → 前端拉起核身 → 轮询结果
-- **降级**：TENCENTCLOUD_SECRET_ID 未配置 → 返回 40012，前端隐藏「人脸核身」按钮（自动比对不可用时，人工审核兜底，见下）
-- **通过后**：`users.face_verified = true, face_verified_at = now()`，编辑资料页显示「已实名」绿标
+### 人脸识别核身规则（#1787，#1807 修订）
+
+> #1807 调整：人脸识别未实装阶段，**实名信息（真实姓名/身份证号）不由顾客输入**，改为员工在人工审核流程根据身份证照核对填写；编辑资料页不显示「发起人脸认证」按钮。
+
+- **实名信息填写方**：平台员工（人工审核时填写，见人工审核流程）——顾客端不再提供 real_name/id_card_no 输入框
+- **通过后**：`users.face_verified = true, face_verified_at = now(), real_name, id_card_no`（员工填写值），编辑资料页显示「已实名」绿标（姓名 + 掩码身份证）
 - **身份证号存储**：明文（腾讯云 API 需原文）；GET /users/me 返回掩码 `110***********1234`
+- **人脸识别按钮**：未实装阶段编辑资料页**不显示**「发起人脸认证」按钮（腾讯云配置就绪、慧眼插件接入后再开放）
 
 ### 配置降级与人工审核兜底（#1787 补充设计）
 
@@ -257,11 +281,12 @@ ALTER TABLE users ADD COLUMN face_verified_at TIMESTAMPTZ;  -- #1787 人脸识�
 | 生物特征比对（人脸） | ✅（慧眼 FaceID） | ❌ 跳过 → **人工审核** |
 | 核身确认 | 自动（method=tencent） | 人工（method=manual） |
 
-**人工审核流程**：
+**人工审核流程**（#1807 修订：员工填写实名信息）：
 1. 顾客提交自拍 → `uploaded → pending_review`（新增待审核态）
-2. PC「实名审核队列」（**平台员工/系统管理员**，SysPerm user 类权限，非 org 隔离）：查看证件照三张 + 自拍图/视频 → 通过/驳回（驳回附原因）
-3. 通过 → `verified`（method=manual）；驳回 → `rejected` → 顾客重新采集
-4. 自动比对（tencent）失败**不自动降级**人工——慧眼失败 ≠ 自拍无效，由顾客重新发起
+2. PC「实名审核队列」（**平台员工/系统管理员**，SysPerm user 类权限，非 org 隔离）：查看证件照三张 + 自拍图/视频
+3. **员工根据身份证照核对填写 真实姓名 + 身份证号**（OCR 可用时预填辅助）→ 通过（approve 必填 real_name/id_card_no）；驳回（reject 必填原因）→ 顾客重新采集
+4. 通过 → `verified`（method=manual）+ `real_name/id_card_no` 一并落库；驳回 → `rejected` + 原因
+5. 自动比对（tencent）失败**不自动降级**人工——慧眼失败 ≠ 自拍无效，由顾客重新发起
 
 **客户（商户）需完成的外部配置**（未完成时功能自动降级，不阻塞）：
 1. 腾讯云控制台：注册账号 → 实名认证（企业）→ 开通「人脸核身」服务（按次计费）→ 创建 API 密钥（SecretId/SecretKey）
@@ -284,7 +309,7 @@ none（未上传证件照）
 | 状态 | 判定 | 顾客端展示 | 员工端 |
 |------|------|-----------|--------|
 | `none` | 三张照片均未上传 | 警告「请上传身份证件照」+ 跳编辑资料 | 待发货列表角标「未核身」 |
-| `uploaded` | 有照片未提交自拍 | 警告「请完成人脸认证」+ 跳核身 | 角标「未核身」+ 发货按钮置灰 |
+| `uploaded` | 有照片未提交自拍 | 警告「请提交自拍核身素材」+ 跳编辑资料（#1807：不再提示人脸认证） | 角标「未核身」+ 发货按钮置灰 |
 | `pending_review` | 自拍已提交，审核中 | 提示「核身审核中，预计 1-2 个工作日」 | 角标「审核中」（发货按钮置灰） |
 | `verified` | 审核/比对通过 | 无警告 | 正常发货 |
 | `rejected` | 审核驳回 | 警告「核身未通过，请重新提交」+ 跳核身 | 角标「未核身」+ 发货按钮置灰 |
@@ -293,18 +318,18 @@ none（未上传证件照）
 
 **核身来源标记**：`face_verified=true` 时同时记录 `face_verify_method`（`tencent`=自动比对 / `manual`=人工审核）与 `face_verified_at`；信息变更（real_name/id_card_no）重置验证并清除来源标记，**同时作废该用户所有 pending 批次**（rejected, reason="身份信息已变更，请重新采集"）——防止审核基于旧身份信息提交的批次。
 
-**核身双通道入口**（核身页始终显示）：
-- 「发起人脸认证」：腾讯云已配置时可用（慧眼插件拉起）；未配置隐藏
-- 「提交人工审核」：**始终可用**——自动比对失败仅提示重试（不自动降级），顾客可主动选人工通道
+**核身采集入口**（#1807 修订）：
+- 「发起人脸认证」：**未实装阶段不显示**（腾讯云配置 + 慧眼插件就绪后开放）
+- 「提交自拍素材」：**始终可用**——提交后进入人工审核（或自动比对），由平台员工审核确认实名信息
 
 **隐私声明**（注册/核身页明示）：自拍数据用途（实名核身）+ 存储期限（长期保存）+ 隐私政策链接；生物特征数据合规留存。
 
 **采集界面一致性**：无论腾讯云是否配置，顾客端核身页均出现自拍采集界面（图片 + 可选视频，小程序相机组件实现）；自拍数据上传至 `face_captures/{userID}/`（长期保存，GC 豁免），配置缺失时采集照常进行，仅跳过自动比对。
 
-**人工审核流程**（腾讯云未配置或自动比对兜底）：
+**人工审核流程**（腾讯云未配置或自动比对兜底，#1807 修订）：
 1. 顾客提交自拍 → 状态 `uploaded → pending_review`
 2. **平台员工/系统管理员**（PC「实名审核队列」，SysPerm user 类权限）查看证件照三张 + 自拍图/视频
-3. 通过 → `verified`（method=manual）；驳回 → `rejected` + 原因，顾客重新采集
+3. **员工根据身份证照填写 real_name + id_card_no**（approve 必填）→ 通过 → `verified`（method=manual）+ 实名信息落库；驳回 → `rejected` + 原因，顾客重新采集
 4. 自动比对失败不自动降级人工（慧眼失败 ≠ 自拍无效，由顾客重新发起）
 5. 审核动作双写留痕：`face_capture_batches.reviewed_by/at` + `audit_logs`（action=face_review_approve/reject）
 
@@ -329,15 +354,16 @@ none（未上传证件照）
 | 1 | H5 | `/register` | guest | 注册时上传（3 张） | **已实现** |
 | 2 | H5 | `/onboarding` | customer | 登录后上传 | 上传可用但**不持久化** |
 | 3 | weapp | `/pages-weapp/profile-complete/index` | guest | 注册时上传（3 张 + 会话端点） | **已实现** |
-| 4 | H5 | `/profile/edit` | customer | 查看+替换+删除（3 张 + 人脸核身） | **已实现** |
-| 5 | weapp | `/pages-weapp/profile/edit/index` | customer | 查看+替换+删除（3 张 + 人脸核身） | **已实现** |
+| 4 | H5 | `/profile/edit` | customer | 查看+替换+删除（3 张 + 证件类型）；实名信息员工审核填写 | **已实现** |
+| 5 | weapp | `/pages-weapp/profile/edit/index` | customer | 查看+替换+删除（3 张 + 证件类型）；实名信息员工审核填写 | **已实现** |
 | 6 | PC | `/system/user-management` | namespace_admin | 查看+替换+删除 | **缺失**（P-02 已建页但无此区域） |
 | 7 | PC | `/orders/:id` | site_admin/member | 发货/收货时查看 | **缺失** |
 | 8 | H5 | `/repair-request` | staff | 操作时查看 | **缺失** |
 | 9 | weapp | `/repair-request` | staff | 操作时查看 | **缺失** |
-| 10 | weapp+h5 | `/checkout` | customer | 核身状态警告 + 跳转（不阻断） | **待实现**（#1787 补充） |
-| 11 | weapp+h5 | `/order/:id` | customer | 订单详情核身警告 + 跳转 | **待实现**（#1787 补充） |
-| 12 | weapp+h5 | `/staff/shipping` | site_admin/member | 发货按钮置灰 + 后端强制校验 | **待实现**（#1787 补充） |
+| 10 | weapp+h5 | `/checkout` | customer | 核身状态警告 + 跳转（不阻断） | **已实现**（#1787/#1807） |
+| 11 | weapp+h5 | `/order/:id` | customer | 订单详情核身警告 + 跳转 | **已实现**（#1787/#1807） |
+| 12 | weapp+h5 | `/staff/shipping` | site_admin/member | 发货按钮置灰 + 后端强制校验 | **已实现**（#1787） |
+| 13 | PC | `/face-review` | 平台员工/系统管理员 | 审核队列：查看证件照+自拍 → **填写 real_name/id_card_no** → 通过/驳回 | **已实现**（#1793/#1807） |
 
 ## 验收
 - Go test: POST id-photo → DB 列值非空，GET id-photos → 返回 URL，DELETE → 列值清空

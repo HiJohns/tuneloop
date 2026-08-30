@@ -19,13 +19,14 @@ import (
 // struct — the two-phase flow (#1663) runs side-by-side with the legacy
 // register endpoint (which is untouched).
 type registerForm struct {
-	Nickname string                 `json:"nickname"`
-	Name     string                 `json:"name"`
-	Phone    string                 `json:"phone"`
-	Email    string                 `json:"email"`
-	Ref      string                 `json:"ref"`
-	Address  map[string]interface{} `json:"address"`
-	IDPhotos map[string]string      `json:"id_photos"`
+	Nickname         string                 `json:"nickname"`
+	Name             string                 `json:"name"`
+	Phone            string                 `json:"phone"`
+	Email            string                 `json:"email"`
+	Ref              string                 `json:"ref"`
+	Address          map[string]interface{} `json:"address"`
+	IDPhotos         map[string]string      `json:"id_photos"`
+	IdPhotoOtherType string                 `json:"id_photo_other_type"` // #1807: 第三证件类型
 }
 
 // createIAMUserWithBind creates the IAM user and binds the WeChat identity
@@ -306,6 +307,11 @@ func completeRegistrationFromSession(tx *gorm.DB, record *models.OrderPaymentRec
 			if len(photoUpdates) > 0 {
 				tx.Model(&models.User{}).Where("id = ?", localUser.ID).Updates(photoUpdates)
 			}
+		}
+		// #1807: 第三证件类型一并转移。
+		if form.IdPhotoOtherType != "" {
+			tx.Model(&models.User{}).Where("id = ?", localUser.ID).
+				Update("id_photo_other_type", form.IdPhotoOtherType)
 		}
 	}
 

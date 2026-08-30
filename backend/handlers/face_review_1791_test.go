@@ -62,7 +62,7 @@ func TestFaceReview_Approve(t *testing.T) {
 	userID, batchID, db := setupReviewUser(t)
 	router := faceReviewRouter(t, uuid.New().String())
 
-	body, _ := json.Marshal(map[string]interface{}{"action": "approve"})
+	body, _ := json.Marshal(map[string]interface{}{"action": "approve", "real_name": "张三", "id_card_no": "110101199001011234"})
 	req := httptest.NewRequest("POST", "/admin/face-review/"+batchID, bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -74,6 +74,11 @@ func TestFaceReview_Approve(t *testing.T) {
 	require.True(t, updated.FaceVerified, "face_verified=true")
 	require.NotNil(t, updated.FaceVerifyMethod)
 	require.Equal(t, "manual", *updated.FaceVerifyMethod)
+	// #1807: 员工填写实名信息落库。
+	require.NotNil(t, updated.RealName)
+	require.Equal(t, "张三", *updated.RealName)
+	require.NotNil(t, updated.IdCardNo)
+	require.Equal(t, "110101199001011234", *updated.IdCardNo)
 
 	var batch models.FaceCaptureBatch
 	require.NoError(t, db.Where("id = ?", batchID).First(&batch).Error)
@@ -199,4 +204,19 @@ func TestUpdateShipping_VerifyRequired(t *testing.T) {
 	router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusBadRequest, w.Code, w.Body.String())
 	require.Contains(t, w.Body.String(), "user id verification required")
+}
+
+// TestFaceReview_Approve_RequiresRealInfo (#1807): approve 必须携带员工填写的
+// real_name + id_card_no（实名信息由员工根据身份证照核对填写）。
+func TestFaceReview_Approve_RequiresRealInfo(t *testing.T) {
+	_, batchID, _ := setupReviewUser(t)
+	router := faceReviewRouter(t, uuid.New().String())
+
+	body, _ := json.Marshal(map[string]interface{}{"action": "approve"})
+	req := httptest.NewRequest("POST", "/admin/face-review/"+batchID, bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusBadRequest, w.Code, w.Body.String())
+	require.Contains(t, w.Body.String(), "real_name and id_card_no are required")
 }

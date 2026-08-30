@@ -106,14 +106,17 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
 
   useImperativeHandle(ref, () => ({
     // Explicit upload for defer mode (registration pages): returns URL or null.
-    uploadPending: async () => {
+    // overrideSessionId (#1807): 新建注册 session 后显式传入新 sid——
+    // prop 更新有 React 批处理时序延迟，注册页在创建 session 后立即上传时
+    // 直接传 sid，避免走 user/id-photo 端点（匿名 401 上传失败）。
+    uploadPending: async (overrideSessionId) => {
       if (!pendingFile) return null
       setUploading(true)
       try {
         const base = env.apiBaseUrl || '/api'
-        const useSession = sessionUpload?.sessionId
+        const useSession = overrideSessionId || sessionUpload?.sessionId
         const uploadUrl = useSession
-          ? `${base}/auth/registration-sessions/${sessionUpload.sessionId}/id-photo`
+          ? `${base}/auth/registration-sessions/${useSession}/id-photo`
           : `${base}/user/id-photo`
 
         if (env.isMiniProgram) {

@@ -764,6 +764,7 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 		"id_photo_front":        h.resolveIdPhotoURL(ctx, user.IdPhotoFront),
 		"id_photo_back":         h.resolveIdPhotoURL(ctx, user.IdPhotoBack),
 		"id_photo_other":        h.resolveIdPhotoURL(ctx, user.IdPhotoOther),
+		"id_photo_other_type":   user.IdPhotoOtherType, // #1807: 第三证件类型
 		"real_name":             user.RealName,
 		"id_card_no":            maskIdCardNo(user.IdCardNo),
 		"face_verified":         user.FaceVerified,

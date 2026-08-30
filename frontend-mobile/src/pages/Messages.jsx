@@ -20,19 +20,21 @@ export default function Messages() {
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    fetchNotifications()
-  }, [])
-
   const fetchNotifications = async () => {
     try {
       const resp = await notificationApi.list()
-      setNotifications(resp || [])
+      // #1807: resp 是完整响应 {code, data:{list}} — 取 data.list（此前设成
+      // 整个对象导致 filter/map 崩溃，消息页空白但角标有未读数）。
+      setNotifications(resp?.data?.list || [])
     } catch (err) {
       console.error('Failed to fetch notifications:', err)
     }
     setLoading(false)
   }
+
+  useEffect(() => {
+    fetchNotifications()
+  }, [])
 
   const markRead = async (id) => {
     try {
