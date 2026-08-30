@@ -5,7 +5,6 @@ import { notificationApi } from '../services/api'
 import { dialog, env } from '../platform'
 import { ArrowLeft, Bell } from 'lucide-react'
 import { View, Text, ScrollView } from '@tarojs/components'
-
 const typeConfig = {
   damage: { bgColor: '#fee2e2', textColor: '#dc2626', label: '定损通知' },
   appeal: { bgColor: '#ffedd5', textColor: '#ea580c', label: '申诉通知' },
@@ -36,6 +35,12 @@ export default function Messages() {
   useEffect(() => {
     fetchNotifications()
   }, [])
+
+  // #1807: weapp 从详情页返回（navigateBack）时列表不重新挂载——
+  // useDidShow 在页面每次显示时刷新，打开详情后返回未读标记才消失。
+  Taro.useDidShow(() => {
+    if (env.isMiniProgram) fetchNotifications()
+  })
 
   const markRead = async (id) => {
     try {
