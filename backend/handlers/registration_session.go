@@ -256,6 +256,10 @@ func (h *RegistrationSessionHandler) GetRegistrationSessionStatus(c *gin.Context
 		"code": 20000,
 		"data": gin.H{
 			"status": session.Status,
+			// #1807: completed 后返回新注册账户的 IAM user_id——前端
+			// finishMembershipFlow 直接 wx-login-select 登录新会员（多账户
+			// 场景下不跳账户选择页，注册完成即切换为新账户）。
+			"user_id": session.IAMUserID,
 		},
 	})
 }

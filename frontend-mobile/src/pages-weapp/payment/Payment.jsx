@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import Taro, { useDidShow, useLoad } from '@tarojs/taro'
 import { View, Text, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, resolveLogin } from '../../services/api'
-import { env, session } from '../../platform'
+import { env, session, storage, wxLogin } from '../../platform'
 import { formatDisplayDate } from '../../utils/format'
 
 const baseUrl = env.apiBaseUrl
@@ -204,22 +204,58 @@ export default function Payment() {
 
   // Two-phase registration (#1663): after the membership fee is paid the
   // account is created by the payment callback. Poll the session until it is
-  // completed, then log in via wx-login-select and land on the profile page.
+  // completed, then log in as the NEW member via wx-login-select and land on
+  // the profile page. (#1807: 多账户场景——openid 可能同时绑定员工+顾客，
+  // resolveLogin('profile') 会跳账户选择页并返回 false，导致 token 未更新
+  // 仍停留原账户；改为直接用 session 返回的新账户 user_id 登录。)
   const finishMembershipFlow = async () => {
     if (!pSessionId) return
     let completed = false
+    let newUserId = ''
     for (let i = 0; i < 10; i++) {
       try {
         const resp = await apiFetch(`${baseUrl}/auth/registration-sessions/${pSessionId}/status`, { auth: false })
         const r = await resp.json()
-        if (r.code === 20000 && r.data?.status === 'completed') { completed = true; break }
+        if (r.code === 20000 && r.data?.status === 'completed') { completed = true; newUserId = r.data?.user_id || ''; break }
       } catch (e) { console.warn('[payment] session status poll failed', e) }
       await new Promise(res => setTimeout(res, 1000))
     }
     session.removeItem('pending_registration_session')
     if (completed) {
       Taro.showToast({ title: '注册成功，正在登录...', icon: 'none', duration: 1500 })
-      const ok = await resolveLogin('profile')
+      // #1807: 直接用新账户 user_id 登录（需要 exchange_token——调 wx-accounts 获取）。
+      let loggedIn = false
+      if (newUserId) {
+        try {
+          const code = await wxLogin()
+          if (code) {
+            const accResp = await apiFetch(`${baseUrl}/auth/wx-accounts?code=${encodeURIComponent(code)}`, { auth: false })
+            const acc = await accResp.json()
+            const exchangeToken = acc.data?.exchange_token || ''
+            if (exchangeToken) {
+              const loginResp = await apiFetch(`${baseUrl}/auth/wx-login-select`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ exchange_token: exchangeToken, user_id: newUserId }),
+              })
+              const loginResult = await loginResp.json()
+              if (loginResult.code === 20000 && loginResult.data?.access_token) {
+                storage.setItem('token', loginResult.data.access_token)
+                if (loginResult.data.expires_in) {
+                  storage.setItem('token_expiry', (new Date().getTime() + loginResult.data.expires_in * 1000).toString())
+                }
+                if (loginResult.data.refresh_token) storage.setItem('refresh_token', loginResult.data.refresh_token)
+                loggedIn = true
+              }
+            }
+          }
+        } catch (e) { console.warn('[payment] auto-login new member failed', e) }
+      }
+      if (!loggedIn) {
+        // 降级：走通用路由（可能跳账户选择页）。
+        loggedIn = await resolveLogin('profile')
+      }
+      const ok = loggedIn
       // #1690: 来源 B（立即租赁/购物车支付）注册完成后回跳原页面
       const redirect = session.getItem('post_auth_redirect')
       if (redirect) {

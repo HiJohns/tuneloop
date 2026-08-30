@@ -23,9 +23,10 @@ export default function Messages() {
   const fetchNotifications = async () => {
     try {
       const resp = await notificationApi.list()
-      // #1807: resp 是完整响应 {code, data:{list}} — 取 data.list（此前设成
-      // 整个对象导致 filter/map 崩溃，消息页空白但角标有未读数）。
-      setNotifications(resp?.data?.list || [])
+      // #1807: api.js request → processApiResponse 已将 {code,data:{list}} 解包为
+      // 数组返回（data.data.list 分支）——resp 本身就是数组；res?.data?.list
+      // 会得到 undefined → 空列表（此前误改导致消息页「暂无消息」）。
+      setNotifications(Array.isArray(resp) ? resp : [])
     } catch (err) {
       console.error('Failed to fetch notifications:', err)
     }
