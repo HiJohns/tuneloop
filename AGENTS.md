@@ -96,8 +96,13 @@ See `prompts/instructions.md` for full port mapping. Key rule:
 **Prerelease vs Production database isolation**:
 | 环境 | tuneloop DB | IAM DB | IAM_NAMESPACE |
 |------|-------------|--------|:---:|
-| Prerelease | `tuneloop_pre` | `beaconiam_pre` | `tuneloop-pre` |
+| Prerelease | `tuneloop_pre_snapshot` | `beaconiam_pre_snapshot` | `tuneloop-pre` |
 | Production | `tuneloop` | `beaconiam` | `tuneloop` |
+
+> **⚠️ 预生产用快照库（2026-08-30 起，已多次查错库）**：预生产服务实际连接的数据库是 **`tuneloop_pre_snapshot`**（tuneloop）和 **`beaconiam_pre_snapshot`**（IAM），由 `.env` 的 `TUNELOOP_DB` / `BEACONIAM_DB` 决定——**不是** `tuneloop_pre` / `beaconiam_pre`。库里仍存在同名的旧库 `tuneloop_pre` / `beaconiam_pre`（废弃/过期，migration 未执行、缺列），查错库会误判「迁移没跑 / 缺字段」。查询预生产数据前务必先确认 `.env` 的实际库名：
+> ```bash
+> ssh cadenza "grep -E 'TUNELOOP_DB|BEACONIAM_DB' /opt/tuneloop-pre/apps/tuneloop-pre/.env /opt/tuneloop-pre/apps/beaconiam/.env"
+> ```
 
 - 除非用户明确指明"预生产"，否则所有讨论、调试、Issue 都指 Dev 环境
 - Production/Prerelease 各有独立的 beaconiam 实例、独立的 RSA 密钥对、独立的数据库、独立的 OAuth client
@@ -791,6 +796,8 @@ sudo journalctl -u tuneloop --since "30 seconds ago" --no-pager | grep -E "liste
 - **看不到日志不等于成功**：scp 完成后不验证二进制 hash 和 service 重启状态，可能跑着旧版。`sudo journalctl -u SERVICE --since "1 min ago"` 确认新进程已启动。
 
 ### 远程数据库访问 (Remote Database Access)
+
+> **⚠️ 预生产库名（2026-08-30）**：预生产 tuneloop=`tuneloop_pre_snapshot`、IAM=`beaconiam_pre_snapshot`（**不是** `tuneloop_pre`/`beaconiam_pre`，那俩是废弃旧库）。IAM 库用户是 `beaconiam_user`，非 `tuneloop_user`。查预生产数据前先 `grep -E 'TUNELOOP_DB|BEACONIAM_DB' /opt/tuneloop-pre/apps/*/.env` 确认。
 
 ```bash
 # 获取 PostgreSQL 容器名
@@ -1645,8 +1652,8 @@ Z=10002→ 粘连菜单 (fixed, 双菜单 opacity 切换, 固定高度 48px)
 | PC 前端 | `web.cadenzayueqi.com` :5558 | `preweb.cadenzayueqi.com` :5563 |
 | Mobile 前端 | `wx.cadenzayueqi.com` :5566 | `prewx.cadenzayueqi.com` :5564 |
 | IAM | `iam.cadenzayueqi.com` :5560 | `preiam.cadenzayueqi.com` :5562 |
-| tuneloop DB | `tuneloop` | `tuneloop_pre` |
-| IAM DB | `beaconiam` | `beaconiam_pre` |
+| tuneloop DB | `tuneloop` | `tuneloop_pre_snapshot`（⚠️ 快照库，非 `tuneloop_pre`） |
+| IAM DB | `beaconiam` | `beaconiam_pre_snapshot`（⚠️ 快照库，非 `beaconiam_pre`） |
 | IAM namespace | `tuneloop` | `tuneloop-pre` |
 | systemd unit | `tuneloop.service` | `tuneloop-pre.service` |
 | 工作目录 | `/opt/tuneloop/apps/tuneloop` | `/opt/tuneloop-pre/apps/tuneloop-pre` |
