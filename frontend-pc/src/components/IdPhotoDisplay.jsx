@@ -10,10 +10,10 @@ import { api } from '../services/api'
 //   uploadEndpoint: 上传端点（如 /admin/user-management/:id/id-photo）
 //   deleteEndpoint: 删除端点（如 /admin/user-management/:id/id-photo）
 //   readOnly: 只读模式（业务场景查看，如订单/报修详情）
-export default function IdPhotoDisplay({ side, initialUrl = '', uploadEndpoint, deleteEndpoint, readOnly = false }) {
+export default function IdPhotoDisplay({ side, label: labelOverride = '', initialUrl = '', uploadEndpoint, deleteEndpoint, readOnly = false }) {
   const [url, setUrl] = useState(initialUrl || '')
   const [uploading, setUploading] = useState(false)
-  const label = side === 'front' ? '正面' : '反面'
+  const label = labelOverride || (side === 'front' ? '正面' : '反面')
 
   useEffect(() => {
     setUrl(initialUrl || '')

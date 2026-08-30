@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -51,7 +52,8 @@ func (h *UserManagementHandler) List(c *gin.Context) {
 	q := db.Model(&models.User{})
 	if search != "" {
 		like := "%" + search + "%"
-		q = q.Where("username ILIKE ? OR phone ILIKE ? OR wx_openid ILIKE ?", like, like, like)
+		q = q.Where("nickname ILIKE ? OR name ILIKE ? OR username ILIKE ? OR phone ILIKE ? OR wx_openid ILIKE ?",
+			like, like, like, like, like)
 	}
 
 	var total int64
@@ -170,7 +172,8 @@ func (h *UserManagementHandler) Export(c *gin.Context) {
 	q := db.Model(&models.User{})
 	if search != "" {
 		like := "%" + search + "%"
-		q = q.Where("username ILIKE ? OR phone ILIKE ? OR wx_openid ILIKE ?", like, like, like)
+		q = q.Where("nickname ILIKE ? OR name ILIKE ? OR username ILIKE ? OR phone ILIKE ? OR wx_openid ILIKE ?",
+			like, like, like, like, like)
 	}
 
 	var users []models.User
@@ -199,10 +202,11 @@ func (h *UserManagementHandler) Export(c *gin.Context) {
 
 	w := csv.NewWriter(c.Writer)
 	defer w.Flush()
-	w.Write([]string{"username", "wx_openid", "phone", "level", "points", "registered_at", "last_active", "status"})
+	w.Write([]string{"nickname", "username", "wx_openid", "phone", "level", "points", "registered_at", "last_active", "status"})
 	for _, u := range users {
 		s := userSummary(u, exportLevelNames)
 		w.Write([]string{
+			fmt.Sprintf("%v", s["nickname"]),
 			fmt.Sprintf("%v", s["username"]),
 			fmt.Sprintf("%v", s["wx_openid"]),
 			fmt.Sprintf("%v", s["phone"]),
@@ -222,6 +226,7 @@ func userSummary(u models.User, levelNames map[int]string) gin.H {
 	}
 	return gin.H{
 		"id":                  u.ID,
+		"nickname":            u.Nickname,
 		"username":            u.Username,
 		"wx_openid":           u.WxOpenid,
 		"phone":               u.Phone,
@@ -254,6 +259,8 @@ func userDetail(u models.User, db *gorm.DB) gin.H {
 	s["created_at"] = u.CreatedAt
 	s["id_photo_front"] = resolveStorageKey(db.Statement.Context, u.IdPhotoFront)
 	s["id_photo_back"] = resolveStorageKey(db.Statement.Context, u.IdPhotoBack)
+	s["id_photo_other"] = resolveStorageKey(db.Statement.Context, u.IdPhotoOther)
+	s["id_photo_other_type"] = u.IdPhotoOtherType
 	return s
 }
 
@@ -262,10 +269,15 @@ func resolveStorageKey(ctx context.Context, key *string) string {
 	if key == nil || *key == "" {
 		return ""
 	}
+	k := *key
+	// 历史数据兼容：部分记录存的是完整 URL（/uploads/media/...），直接返回避免双前缀 404。
+	if strings.HasPrefix(k, "/uploads/media/") || strings.HasPrefix(k, "http://") || strings.HasPrefix(k, "https://") {
+		return k
+	}
 	storage := services.NewMediaStorage()
-	url, err := storage.GetURL(ctx, *key)
+	url, err := storage.GetURL(ctx, k)
 	if err != nil || url == "" {
-		return fmt.Sprintf("/uploads/media/%s", *key)
+		return fmt.Sprintf("/uploads/media/%s", k)
 	}
 	return url
 }

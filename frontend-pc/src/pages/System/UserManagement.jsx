@@ -44,10 +44,10 @@ export default function UserManagement() {
     setCurrent(record)
     form.setFieldsValue({
       membership_level_id: record.membership_level_id,
-      promo_points: record.points,
+      promo_points: record.points != null ? record.points / 100 : undefined,
       status: record.status === 'active',
     })
-    setIdPhotos({ front: '', back: '' })
+    setIdPhotos({ front: '', back: '', other: '' })
     setDetailVisible(true)
     // Fetch full detail (includes id_photo URLs) for the ID photo section (#1599)
     api.get(`/admin/user-management/${record.id}`).then((resp) => {
@@ -55,6 +55,8 @@ export default function UserManagement() {
         setIdPhotos({
           front: resp.data.id_photo_front || '',
           back: resp.data.id_photo_back || '',
+          other: resp.data.id_photo_other || '',
+          otherType: resp.data.id_photo_other_type || '',
         })
       }
     }).catch(() => {})
@@ -65,7 +67,7 @@ export default function UserManagement() {
     try {
       const resp = await api.put(`/admin/user-management/${current.id}`, {
         membership_level_id: values.membership_level_id,
-        promo_points: values.promo_points,
+        promo_points: values.promo_points != null ? Math.round(values.promo_points * 100) : undefined,
         status: values.status ? 'active' : 'disabled',
       })
       if (resp?.code === 20000) {
@@ -81,11 +83,18 @@ export default function UserManagement() {
   }
 
   const columns = [
-    { title: '注册名', dataIndex: 'username', key: 'username' },
+    {
+      title: '昵称', dataIndex: 'nickname', key: 'nickname',
+      render: (v, record) => (
+        <Button type="link" size="small" style={{ padding: 0 }} onClick={() => openDetail(record)}>
+          {v || record.username || record.phone || '-'}
+        </Button>
+      ),
+    },
     { title: '微信号', dataIndex: 'wx_openid', key: 'wx_openid', render: v => v ? <Text ellipsis style={{ maxWidth: 120 }}>{v}</Text> : '-' },
     { title: '电话', dataIndex: 'phone', key: 'phone', render: v => v || '-' },
     { title: '当前等级', dataIndex: 'level', key: 'level', render: v => v || '-' },
-    { title: '当前积分', dataIndex: 'points', key: 'points' },
+    { title: '当前积分', dataIndex: 'points', key: 'points', render: v => v != null ? v / 100 : '-' },
     { title: '注册时间', dataIndex: 'registered_at', key: 'registered_at', render: v => v ? new Date(v).toLocaleString() : '-' },
     { title: '最新活动', dataIndex: 'last_active', key: 'last_active', render: v => v ? new Date(v).toLocaleString() : '-' },
     { title: '状态', dataIndex: 'status', key: 'status', render: v => v === 'disabled'
@@ -93,16 +102,13 @@ export default function UserManagement() {
       : v === 'active'
         ? <Tag color="green">可用</Tag>
         : <Tag>{v || '未知'}</Tag> },
-    { title: '操作', key: 'action', render: (_, record) => (
-      <Button type="link" size="small" onClick={() => openDetail(record)}>详情 / 编辑</Button>
-    )},
   ]
 
   return (
     <div>
       <Space style={{ marginBottom: 16 }}>
         <Input.Search
-          placeholder="搜索 用户名/电话/微信号"
+          placeholder="搜索 昵称/电话/微信号"
           allowClear
           style={{ width: 280 }}
           onSearch={(v) => { setSearch(v); fetchList(1, pageSize, v) }}
@@ -135,7 +141,7 @@ export default function UserManagement() {
           <Form.Item label="当前等级" name="membership_level_id">
             <InputNumber min={0} style={{ width: '100%' }} placeholder="等级 ID（见会员级别管理）" />
           </Form.Item>
-          <Form.Item label="当前积分" name="promo_points">
+          <Form.Item label="当前积分（点，1点=1元）" name="promo_points">
             <InputNumber min={0} precision={0} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item label="禁用/可用" name="status" valuePropName="checked">
@@ -155,6 +161,20 @@ export default function UserManagement() {
                   initialUrl={idPhotos.back}
                   uploadEndpoint={`/admin/user-management/${current.id}/id-photo`}
                   deleteEndpoint={`/admin/user-management/${current.id}/id-photo`}
+                />
+              </div>
+            </Form.Item>
+          )}
+          {current && (
+            <Form.Item label={`其他证件照片${idPhotos.otherType ? `（${idPhotos.otherType}）` : ''}`}>
+              <div style={{ display: 'flex', gap: 24 }}>
+                <IdPhotoDisplay
+                  side="other"
+                  label={idPhotos.otherType || '其他证件'}
+                  initialUrl={idPhotos.other}
+                  uploadEndpoint=""
+                  deleteEndpoint=""
+                  readOnly
                 />
               </div>
             </Form.Item>
