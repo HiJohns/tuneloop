@@ -30,11 +30,16 @@ type faceCaptureResponse struct {
 }
 
 // SubmitFaceCapture handles POST /user/face-capture.
-// multipart: image（必选，自拍图）+ video（可选，自拍视频）。
+// multipart: image（自拍图）+ video（可选，自拍视频）。
+// 两种模式（#1792 修复：支持 weapp 分离上传——Taro.uploadFile 一次仅一个文件）：
+//   - 无 batch_id（form field）：创建模式——image 必选，建 FaceCaptureBatch
+//     {status: pending}，旧 pending 批次事务内作废（rejected, reason=已重新提交，
+//     并发幂等由部分唯一索引兜底 R2 M3）
+//   - 有 batch_id：追加模式——校验批次存在且属于当前用户且 pending，将素材
+//     注册到该批次（image 或 video 至少一个，不创建新批次）
+//
 // 存储：uploads/media/face_captures/{userID}/{batchID}/（GC 豁免，
 // media_assets source_type=face_capture，source_id=batch_id —— #1790 M5 关联键）。
-// 建 FaceCaptureBatch{status: pending}；旧 pending 批次事务内作废
-// （rejected, reason=已重新提交）——并发幂等由部分唯一索引兜底（R2 M3）。
 func (h *FaceCaptureHandler) SubmitFaceCapture(c *gin.Context) {
 	ctx := c.Request.Context()
 	userID := middleware.GetUserID(ctx)
@@ -43,18 +48,29 @@ func (h *FaceCaptureHandler) SubmitFaceCapture(c *gin.Context) {
 		return
 	}
 
-	imageFile, imageHeader, err := c.Request.FormFile("image")
-	if err != nil {
+	// 可选 batch_id → 追加模式（weapp 分离上传，#1792 修复）。
+	appendBatchID := c.PostForm("batch_id")
+	isAppend := appendBatchID != ""
+
+	imageFile, imageHeader, imageErr := c.Request.FormFile("image")
+	videoFile, videoHeader, videoErr := c.Request.FormFile("video")
+
+	if !isAppend && imageErr != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "image file is required"})
 		return
 	}
-	defer imageFile.Close()
-
-	// 校验图片类型。
-	imageExt := strings.ToLower(filepath.Ext(imageHeader.Filename))
-	if imageExt != ".jpg" && imageExt != ".jpeg" && imageExt != ".png" && imageExt != ".webp" {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "unsupported image format, use jpg/png/webp"})
+	if isAppend && imageErr != nil && videoErr != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "image or video file is required"})
 		return
+	}
+
+	// 校验图片类型（有 image 时）。
+	if imageErr == nil {
+		imageExt := strings.ToLower(filepath.Ext(imageHeader.Filename))
+		if imageExt != ".jpg" && imageExt != ".jpeg" && imageExt != ".png" && imageExt != ".webp" {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "unsupported image format, use jpg/png/webp"})
+			return
+		}
 	}
 
 	db := database.GetDB().WithContext(ctx)
@@ -66,33 +82,51 @@ func (h *FaceCaptureHandler) SubmitFaceCapture(c *gin.Context) {
 		return
 	}
 
-	batchID := uuid.New().String()
-	dir := filepath.Join("./uploads/media", "face_captures", localUser.ID, batchID)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		log.Printf("[FaceCapture] mkdir failed for %s: %v", dir, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to store selfie"})
-		return
+	// 追加模式：校验批次存在且属于当前用户且 pending。
+	if isAppend {
+		var batch models.FaceCaptureBatch
+		if err := db.Where("id = ? AND user_id = ? AND status = ?", appendBatchID, localUser.ID, "pending").
+			First(&batch).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "batch not found or not pending"})
+			return
+		}
 	}
 
-	// 保存图片。
-	imageKey := "face_captures/" + localUser.ID + "/" + batchID + "/selfie" + imageExt
-	imageDst, err := os.Create(filepath.Join("./uploads/media", imageKey))
-	if err != nil {
-		log.Printf("[FaceCapture] create image failed: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to store selfie"})
-		return
+	batchID := appendBatchID
+	if !isAppend {
+		batchID = uuid.New().String()
+		dir := filepath.Join("./uploads/media", "face_captures", localUser.ID, batchID)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			log.Printf("[FaceCapture] mkdir failed for %s: %v", dir, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to store selfie"})
+			return
+		}
 	}
-	if _, err := io.Copy(imageDst, imageFile); err != nil {
+
+	// 保存图片（有 image 时）。
+	imageKey := ""
+	if imageErr == nil {
+		defer imageFile.Close()
+		imageExt := strings.ToLower(filepath.Ext(imageHeader.Filename))
+		imageKey = "face_captures/" + localUser.ID + "/" + batchID + "/selfie" + imageExt
+		imageDst, err := os.Create(filepath.Join("./uploads/media", imageKey))
+		if err != nil {
+			log.Printf("[FaceCapture] create image failed: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to store selfie"})
+			return
+		}
+		if _, err := io.Copy(imageDst, imageFile); err != nil {
+			imageDst.Close()
+			log.Printf("[FaceCapture] save image failed: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to store selfie"})
+			return
+		}
 		imageDst.Close()
-		log.Printf("[FaceCapture] save image failed: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to store selfie"})
-		return
 	}
-	imageDst.Close()
 
 	// 可选视频。
 	videoKey := ""
-	if videoFile, videoHeader, err := c.Request.FormFile("video"); err == nil {
+	if videoErr == nil {
 		defer videoFile.Close()
 		videoExt := strings.ToLower(filepath.Ext(videoHeader.Filename))
 		if videoExt == ".mp4" || videoExt == ".mov" || videoExt == ".webm" {
@@ -116,35 +150,39 @@ func (h *FaceCaptureHandler) SubmitFaceCapture(c *gin.Context) {
 	now := time.Now()
 	status := "pending"
 
-	// 事务：建批次 + 作废旧 pending + 注册 media_assets。
-	if err := db.Transaction(func(tx *gorm.DB) error {
-		// 作废旧 pending 批次（R2 M3 幂等：同一时刻仅一个 pending 存活）。
-		rejectReason := "已重新提交"
-		if err := tx.Model(&models.FaceCaptureBatch{}).
-			Where("user_id = ? AND status = ?", localUser.ID, "pending").
-			Updates(map[string]interface{}{"status": "rejected", "reject_reason": rejectReason}).Error; err != nil {
-			return err
+	// 创建模式：事务建批次 + 作废旧 pending；追加模式跳过（批次已存在）。
+	if !isAppend {
+		if err := db.Transaction(func(tx *gorm.DB) error {
+			// 作废旧 pending 批次（R2 M3 幂等：同一时刻仅一个 pending 存活）。
+			rejectReason := "已重新提交"
+			if err := tx.Model(&models.FaceCaptureBatch{}).
+				Where("user_id = ? AND status = ?", localUser.ID, "pending").
+				Updates(map[string]interface{}{"status": "rejected", "reject_reason": rejectReason}).Error; err != nil {
+				return err
+			}
+			batch := models.FaceCaptureBatch{
+				ID:          batchID,
+				UserID:      localUser.ID,
+				Status:      status,
+				SubmittedAt: now,
+				CreatedAt:   now,
+			}
+			if err := tx.Create(&batch).Error; err != nil {
+				return err
+			}
+			return nil
+		}); err != nil {
+			log.Printf("[FaceCapture] batch create failed for %s: %v", localUser.ID, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create capture batch"})
+			return
 		}
-		batch := models.FaceCaptureBatch{
-			ID:          batchID,
-			UserID:      localUser.ID,
-			Status:      status,
-			SubmittedAt: now,
-			CreatedAt:   now,
-		}
-		if err := tx.Create(&batch).Error; err != nil {
-			return err
-		}
-		return nil
-	}); err != nil {
-		log.Printf("[FaceCapture] batch create failed for %s: %v", localUser.ID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create capture batch"})
-		return
 	}
 
 	// 注册 media_assets（GC 豁免 source_type=face_capture）。
-	if err := services.NewMediaRegistry().RegisterAsset(ctx, imageKey, services.SourceTypeFaceCapture, batchID, imageHeader.Size, "image"); err != nil {
-		log.Printf("[FaceCapture] register image asset failed: %v", err)
+	if imageKey != "" {
+		if err := services.NewMediaRegistry().RegisterAsset(ctx, imageKey, services.SourceTypeFaceCapture, batchID, imageHeader.Size, "image"); err != nil {
+			log.Printf("[FaceCapture] register image asset failed: %v", err)
+		}
 	}
 	if videoKey != "" {
 		if err := services.NewMediaRegistry().RegisterAsset(ctx, videoKey, services.SourceTypeFaceCapture, batchID, 0, "video"); err != nil {

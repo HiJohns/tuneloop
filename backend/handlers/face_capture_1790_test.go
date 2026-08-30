@@ -184,3 +184,88 @@ func TestFaceCapture_Resubmit_InvalidatesOldPending(t *testing.T) {
 	db.Model(&models.FaceCaptureBatch{}).Where("user_id = ? AND status = ?", oldBatch.UserID, "pending").Count(&pendingCount)
 	require.Equal(t, int64(1), pendingCount)
 }
+
+// TestFaceCapture_AppendVideo_AfterImage (#1792 修复): weapp 分离上传——
+// 先传 image（创建批次拿 batch_id）→ 再传 video（带 batch_id 追加到同一批次）。
+func TestFaceCapture_AppendVideo_AfterImage(t *testing.T) {
+	iamSub, db := setupFaceCaptureUser(t)
+	router := faceCaptureRouter(t, iamSub)
+
+	// Step 1: 传 image（创建批次）。
+	body, contentType := multipartBody(t, false)
+	req := httptest.NewRequest("POST", "/user/face-capture", body)
+	req.Header.Set("Content-Type", contentType)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			BatchID string `json:"batch_id"`
+			Status  string `json:"status"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+	batchID := resp.Data.BatchID
+	require.NotEmpty(t, batchID)
+
+	// Step 2: 传 video（带 batch_id 追加到同一批次，不创建新批次）。
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	vw, err := mw.CreateFormFile("video", "selfie.mp4")
+	require.NoError(t, err)
+	vw.Write([]byte("fake-mp4-bytes"))
+	require.NoError(t, mw.WriteField("batch_id", batchID))
+	mw.Close()
+
+	req2 := httptest.NewRequest("POST", "/user/face-capture", &buf)
+	req2.Header.Set("Content-Type", mw.FormDataContentType())
+	w2 := httptest.NewRecorder()
+	router.ServeHTTP(w2, req2)
+	require.Equal(t, http.StatusOK, w2.Code, w2.Body.String())
+	var resp2 struct {
+		Code int `json:"code"`
+		Data struct {
+			BatchID string `json:"batch_id"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w2.Body.Bytes(), &resp2))
+	require.Equal(t, 20000, resp2.Code)
+	require.Equal(t, batchID, resp2.Data.BatchID, "video appended to same batch, not a new one")
+
+	// 批次仍 pending 且仅一个（追加不创建新批次）。
+	var pendingCount int64
+	db.Model(&models.FaceCaptureBatch{}).Where("user_id = ? AND status = ?", func() string {
+		var u models.User
+		db.Where("iam_sub = ?", iamSub).First(&u)
+		return u.ID
+	}(), "pending").Count(&pendingCount)
+	require.Equal(t, int64(1), pendingCount, "append mode does not create a new batch")
+
+	// 该批次下两个 asset（image + video）。
+	var assetCount int64
+	db.Model(&models.MediaAsset{}).Where("source_id = ? AND source_type = ?", batchID, "face_capture").Count(&assetCount)
+	require.Equal(t, int64(2), assetCount, "image + video both registered on the batch")
+}
+
+// TestFaceCapture_Append_InvalidBatch (#1792): 追加到不存在/非 pending 的批次 → 404。
+func TestFaceCapture_Append_InvalidBatch(t *testing.T) {
+	iamSub, _ := setupFaceCaptureUser(t)
+	router := faceCaptureRouter(t, iamSub)
+
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	vw, err := mw.CreateFormFile("video", "selfie.mp4")
+	require.NoError(t, err)
+	vw.Write([]byte("fake-mp4-bytes"))
+	require.NoError(t, mw.WriteField("batch_id", uuid.New().String()))
+	mw.Close()
+
+	req := httptest.NewRequest("POST", "/user/face-capture", &buf)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusNotFound, w.Code, w.Body.String())
+}

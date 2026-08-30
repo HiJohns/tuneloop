@@ -68,17 +68,28 @@ const FaceCaptureUploader = ({ initialStatus = '', onSubmitSuccess }) => {
     try {
       const base = env.apiBaseUrl || '/api'
       const headers = { Authorization: 'Bearer ' + getToken() }
-      let resp
       if (env.isMiniProgram) {
-        // weapp：uploadFile 一次传一个文件——图必选、视频可选（两个文件分两次传）。
-        // 简化：weapp 端只传图片（视频可选降级，后端 image 必选）。
-        resp = await uploadFile(`${base}/user/face-capture`, imagePath, {
+        // #1792 修复: weapp 分离上传（Taro.uploadFile 一次仅一个文件）——
+        // 先传 image（创建批次拿 batch_id），再传 video（带 batch_id 追加）。
+        const resp = await uploadFile(`${base}/user/face-capture`, imagePath, {
           name: 'image',
           headers,
         })
         if (!resp.ok) throw new Error('upload failed')
         const json = JSON.parse(resp.data)
         if (json.code !== 20000) throw new Error(resolveErrorMessage(json, '提交失败'))
+        const batchId = json.data?.batch_id
+        // 可选视频：追加到同一批次（不再静默丢弃）。
+        if (videoPath && batchId) {
+          const videoResp = await uploadFile(`${base}/user/face-capture`, videoPath, {
+            name: 'video',
+            formData: { batch_id: batchId },
+            headers,
+          })
+          if (!videoResp.ok) throw new Error('video upload failed')
+          const videoJson = JSON.parse(videoResp.data)
+          if (videoJson.code !== 20000) throw new Error(resolveErrorMessage(videoJson, '视频上传失败'))
+        }
       } else {
         // H5：FormData 一次带 image + 可选 video。
         const formData = new FormData()

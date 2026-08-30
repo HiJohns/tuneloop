@@ -3008,8 +3008,11 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 **请求 Body**（multipart/form-data）:
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|:---:|------|
-| `image` | file | ✅ | 自拍照片（image/jpeg/png/webp） |
+| `image` | file | 视模式 | 自拍照片（image/jpeg/png/webp）；创建模式必填 |
 | `video` | file | ❌ | 自拍视频（可选，辅助人工审核） |
+| `batch_id` | string | ❌ | **追加模式**（#1792）：带 batch_id 时将素材注册到已有批次（不创建新批次）。用于 weapp 分离上传（Taro.uploadFile 一次仅一个文件：先传 image 拿 batch_id，再带 batch_id 传 video）；追加模式下 image/video 至少一个 |
+
+**创建模式**（无 `batch_id`）：`image` 必选 + `video` 可选 → 建 FaceCaptureBatch(pending)（旧 pending 批次作废）→ 返回 batch_id
 
 **响应**:
 ```json
