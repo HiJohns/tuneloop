@@ -1,18 +1,21 @@
-// FaceCaptureUploader — 实名核身自拍采集组件（H5 + weapp 共用，#1792 T4）
-// 图（必选）+ 可选视频 → POST /user/face-capture
+// FaceCaptureUploader — 实名核身人脸采样组件（H5 + weapp 共用，#1792 T4/#1807）
+// 自拍照片（必选）+ 动态视频（可选，活体佐证）→ POST /user/face-capture
+// UI 与 IdPhotoUploader 一致：虚线小窗口 → 点击采样 → 返回显示缩略图。
 // Props:
 //   initialStatus: id_verify_status（none/uploaded/pending_review/verified/rejected）
 //   onSubmitSuccess(): 提交成功回调（刷新状态）
 import { useState, useRef } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text } from '@tarojs/components'
+import { View, Text, Image } from '@tarojs/components'
 import { uploadFile, env } from '../platform'
 import { resolveErrorMessage } from '../services/api'
 import { storage, session } from '../platform'
 
 const FaceCaptureUploader = ({ initialStatus = '', onSubmitSuccess }) => {
   const [imagePath, setImagePath] = useState('')
+  const [imagePreview, setImagePreview] = useState('')
   const [videoPath, setVideoPath] = useState('')
+  const [videoPreview, setVideoPreview] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const imageInputRef = useRef(null)
@@ -25,7 +28,7 @@ const FaceCaptureUploader = ({ initialStatus = '', onSubmitSuccess }) => {
       Taro.chooseMedia({ count: 1, mediaType: ['image'], sourceType: ['album', 'camera'] })
         .then(res => {
           const f = res.tempFiles?.[0]
-          if (f) setImagePath(f.tempFilePath)
+          if (f) { setImagePath(f.tempFilePath); setImagePreview(f.tempFilePath) }
         })
         .catch(() => {})
     } else {
@@ -38,7 +41,11 @@ const FaceCaptureUploader = ({ initialStatus = '', onSubmitSuccess }) => {
       Taro.chooseMedia({ count: 1, mediaType: ['video'], sourceType: ['album', 'camera'] })
         .then(res => {
           const f = res.tempFiles?.[0]
-          if (f) setVideoPath(f.tempFilePath)
+          if (f) {
+            setVideoPath(f.tempFilePath)
+            // 视频用 thumbTempFilePath 缩略图（chooseMedia 返回首帧）
+            setVideoPreview(f.thumbTempFilePath || f.tempFilePath)
+          }
         })
         .catch(() => {})
     } else {
@@ -48,13 +55,13 @@ const FaceCaptureUploader = ({ initialStatus = '', onSubmitSuccess }) => {
 
   const handleH5Image = (e) => {
     const file = e.target.files?.[0]
-    if (file) setImagePath(file)
+    if (file) { setImagePath(file); setImagePreview(URL.createObjectURL(file)) }
     e.target.value = ''
   }
 
   const handleH5Video = (e) => {
     const file = e.target.files?.[0]
-    if (file) setVideoPath(file)
+    if (file) { setVideoPath(file); setVideoPreview(URL.createObjectURL(file)) }
     e.target.value = ''
   }
 
@@ -134,17 +141,33 @@ const FaceCaptureUploader = ({ initialStatus = '', onSubmitSuccess }) => {
         </View>
       )}
 
-      {/* 人脸采样选择：自拍照片（必选）+ 动态视频（可选，活体佐证） */}
-      <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+      {/* 人脸采样：虚线小窗口 → 点击采样 → 缩略图（与身份证照上传一致） */}
+      <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 8 }}>
+        {/* 自拍照片（必选） */}
         <View
           onClick={submitting ? undefined : pickImage}
-          style={{ flex: 1, height: 36, border: '1px solid #d4d4d8', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 8, boxSizing: 'border-box' }}>
-          <Text style={{ fontSize: 12, color: imagePath ? '#16a34a' : '#6b7280' }}>{imagePath ? '已选照片' : '选择自拍照片（必选）'}</Text>
+          style={{ width: 128, height: 80, border: '2px dashed #d4d4d8', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 12, overflow: 'hidden', backgroundColor: '#fafafa', flexShrink: 0 }}>
+          {imagePreview ? (
+            <Image src={imagePreview} mode="aspectFill" style={{ width: '100%', height: '100%' }} />
+          ) : (
+            <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <Text style={{ fontSize: 22 }}>📷</Text>
+              <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>自拍照片（必选）</Text>
+            </View>
+          )}
         </View>
+        {/* 动态视频（可选，活体佐证） */}
         <View
           onClick={submitting ? undefined : pickVideo}
-          style={{ flex: 1, height: 36, border: '1px solid #d4d4d8', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}>
-          <Text style={{ fontSize: 12, color: videoPath ? '#16a34a' : '#9ca3af' }}>{videoPath ? '已选视频' : '动态视频（可选）'}</Text>
+          style={{ width: 128, height: 80, border: '2px dashed #d4d4d8', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: '#fafafa', flexShrink: 0 }}>
+          {videoPreview ? (
+            <Image src={videoPreview} mode="aspectFill" style={{ width: '100%', height: '100%' }} />
+          ) : (
+            <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <Text style={{ fontSize: 22 }}>🎥</Text>
+              <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>动态视频（可选）</Text>
+            </View>
+          )}
         </View>
       </View>
       {/* H5 文件输入（weapp 分支不渲染——无裸 HTML 交互控件问题） */}
