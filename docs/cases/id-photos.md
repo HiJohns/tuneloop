@@ -175,22 +175,22 @@ steps:
       - "⚠️ 必须生成审计日志（强制，禁止静默取消）：order_logs Event=核身超时自动取消 + audit_logs action=auto_cancel_verify_timeout（details 含 trigger/timeout_hours/退款单号）+ 顾客站内通知"
     rule: "幂等：已取消/已退款订单跳过；任何自动取消必须可追溯"
   - seq: 12
-    action: 平台员工审核队列 — 根据身份证照填写实名信息并通过/驳回（#1807）
+    action: 平台员工审核队列 — 根据身份证照填写实名信息（5 项）并通过/驳回（#1807 扩充）
     frontend:
       - platform: [pc]
         page: /face-review
         role: [platform_staff, system_admin]
         gate: "SysPermUserUpdate"
         reach: "平台管理 → 实名审核队列 → 待审核批次"
-        controls: [证件照三张预览, 自拍图/视频预览, 真实姓名输入框, 身份证号输入框, 通过按钮, 驳回按钮（必填原因）]
+        controls: [证件照三张预览, 自拍图/视频预览, 真实姓名输入框, 身份证号输入框, 有效期输入框, 签发机关输入框, 住址输入框, 通过按钮, 驳回按钮（必填原因）]
         displays: [用户姓名, 提交时间]
         ops:
           - {type: api, method: GET, path: /admin/face-review/queue}
-          - {type: api, method: POST, path: /admin/face-review/:batchId, params: [action, real_name, id_card_no, reason]}
+          - {type: api, method: POST, path: /admin/face-review/:batchId, params: [action, real_name, id_card_no, id_card_expire, id_card_authority, id_card_address, reason]}
     api:
       - {method: GET, path: /admin/face-review/queue, params: []}
-      - {method: POST, path: /admin/face-review/:batchId, params: [action], gate: "approve 必填 real_name+id_card_no；reject 必填 reason"}
-    rule: "#1807: 实名信息（real_name/id_card_no）由员工根据身份证照核对填写，approve 时一并落库（face_verified=true, method=manual）；字段边界：审核队列不返回身份证号明文，仅证件照供核对；驳回附原因顾客重新采集"
+      - {method: POST, path: /admin/face-review/:batchId, params: [action], gate: "approve 必填 real_name+id_card_no+id_card_expire+id_card_authority+id_card_address（宽松校验：非空即可）；reject 必填 reason"}
+    rule: "#1807: 实名信息（真实姓名/身份证号/有效期/签发机关/住址 5 项）由员工根据身份证照核对填写，approve 时一并落库（face_verified=true, method=manual, id_card_expire 支持 YYYY-MM-DD 或「长期」）；字段边界：审核队列不返回身份证号明文，仅证件照供核对；驳回附原因顾客重新采集"
 ---
 
 # P-04 身份证照片全流程管理
@@ -221,6 +221,9 @@ ALTER TABLE users ADD COLUMN id_photo_other  VARCHAR(500);  -- #1787 第三张�
 ALTER TABLE users ADD COLUMN id_photo_other_type VARCHAR(50); -- #1807 第三证件类型（student/teacher/work/other）
 ALTER TABLE users ADD COLUMN real_name       VARCHAR(100);  -- #1787 实名姓名（#1807 起由员工审核填写）
 ALTER TABLE users ADD COLUMN id_card_no      VARCHAR(20);   -- #1787 身份证号（明文，#1807 起由员工审核填写）
+ALTER TABLE users ADD COLUMN id_card_expire  VARCHAR(20);   -- #1807 身份证有效期（YYYY-MM-DD 或「长期」，员工审核填写）
+ALTER TABLE users ADD COLUMN id_card_authority VARCHAR(100); -- #1807 签发机关（员工审核填写）
+ALTER TABLE users ADD COLUMN id_card_address VARCHAR(200);  -- #1807 证件住址（员工审核填写）
 ALTER TABLE users ADD COLUMN face_verified   BOOLEAN DEFAULT FALSE;  -- #1787 人脸识别是否通过
 ALTER TABLE users ADD COLUMN face_verified_at TIMESTAMPTZ;  -- #1787 人脸识别通过时间
 ```
@@ -281,11 +284,11 @@ ALTER TABLE users ADD COLUMN face_verified_at TIMESTAMPTZ;  -- #1787 人脸识�
 | 生物特征比对（人脸） | ✅（慧眼 FaceID） | ❌ 跳过 → **人工审核** |
 | 核身确认 | 自动（method=tencent） | 人工（method=manual） |
 
-**人工审核流程**（#1807 修订：员工填写实名信息）：
+**人工审核流程**（#1807 修订：员工填写 5 项实名信息）：
 1. 顾客提交自拍 → `uploaded → pending_review`（新增待审核态）
 2. PC「实名审核队列」（**平台员工/系统管理员**，SysPerm user 类权限，非 org 隔离）：查看证件照三张 + 自拍图/视频
-3. **员工根据身份证照核对填写 真实姓名 + 身份证号**（OCR 可用时预填辅助）→ 通过（approve 必填 real_name/id_card_no）；驳回（reject 必填原因）→ 顾客重新采集
-4. 通过 → `verified`（method=manual）+ `real_name/id_card_no` 一并落库；驳回 → `rejected` + 原因
+3. **员工根据身份证照核对填写 真实姓名 + 身份证号 + 身份证有效期 + 签发机关 + 住址**（宽松校验：非空即可；有效期 `YYYY-MM-DD` 或「长期」；OCR 可用时预填辅助）→ 通过（approve 必填 5 项）；驳回（reject 必填原因）→ 顾客重新采集
+4. 通过 → `verified`（method=manual）+ 5 项实名信息一并落库；驳回 → `rejected` + 原因
 5. 自动比对（tencent）失败**不自动降级**人工——慧眼失败 ≠ 自拍无效，由顾客重新发起
 
 **客户（商户）需完成的外部配置**（未完成时功能自动降级，不阻塞）：
@@ -329,7 +332,7 @@ none（未上传证件照）
 **人工审核流程**（腾讯云未配置或自动比对兜底，#1807 修订）：
 1. 顾客提交自拍 → 状态 `uploaded → pending_review`
 2. **平台员工/系统管理员**（PC「实名审核队列」，SysPerm user 类权限）查看证件照三张 + 自拍图/视频
-3. **员工根据身份证照填写 real_name + id_card_no**（approve 必填）→ 通过 → `verified`（method=manual）+ 实名信息落库；驳回 → `rejected` + 原因，顾客重新采集
+3. **员工根据身份证照填写 5 项实名信息**（real_name + id_card_no + id_card_expire + id_card_authority + id_card_address，approve 必填，宽松校验）→ 通过 → `verified`（method=manual）+ 实名信息落库；驳回 → `rejected` + 原因，顾客重新采集
 4. 自动比对失败不自动降级人工（慧眼失败 ≠ 自拍无效，由顾客重新发起）
 5. 审核动作双写留痕：`face_capture_batches.reviewed_by/at` + `audit_logs`（action=face_review_approve/reject）
 
@@ -378,7 +381,7 @@ none（未上传证件照）
 - 身份证三处上传 + 人脸识别核身：[tuneloop#1787](https://github.com/HiJohns/tuneloop/issues/1787)
 
 ## 已知缺口
-- 未定义身份证过期/重新认证机制（首次上传即永久有效）
+- 未定义身份证过期/重新认证机制（首次上传即永久有效）——#1807 起记录有效期 id_card_expire（员工填写），到期提醒/重认证机制未定义
 - 未定义 OCR 自动识别（身份信息全靠人工查看）→ #1782 已 accepted
 - 未定义存储清理策略（旧文件被替换后残留于 media storage）
 

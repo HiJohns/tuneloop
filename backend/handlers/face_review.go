@@ -104,10 +104,13 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 	batchID := c.Param("batchId")
 
 	var req struct {
-		Action   string `json:"action" binding:"required,oneof=approve reject"`
-		Reason   string `json:"reason"`
-		RealName string `json:"real_name"` // #1807: 员工根据身份证照核对填写（approve 时）
-		IdCardNo string `json:"id_card_no"`
+		Action         string `json:"action" binding:"required,oneof=approve reject"`
+		Reason         string `json:"reason"`
+		RealName       string `json:"real_name"` // #1807: 员工根据身份证照核对填写（approve 时）
+		IdCardNo       string `json:"id_card_no"`
+		IdCardExpire   string `json:"id_card_expire"`   // #1807: 有效期（YYYY-MM-DD 或「长期」）
+		IdCardAuthority string `json:"id_card_authority"` // #1807: 签发机关
+		IdCardAddress  string `json:"id_card_address"`  // #1807: 证件住址
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "action must be approve or reject"})
@@ -117,9 +120,11 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "reason is required for reject"})
 		return
 	}
-	// #1807: approve 必须由员工填写真实姓名 + 身份证号（根据证件照核对，防顾客手输伪造）。
-	if req.Action == "approve" && (req.RealName == "" || req.IdCardNo == "") {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "real_name and id_card_no are required for approve"})
+	// #1807: approve 必须由员工填写实名信息（真实姓名/身份证号/有效期/签发机关/住址，
+	// 根据证件照核对，防顾客手输伪造）。
+	if req.Action == "approve" && (req.RealName == "" || req.IdCardNo == "" || req.IdCardExpire == "" ||
+		req.IdCardAuthority == "" || req.IdCardAddress == "") {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "real_name, id_card_no, id_card_expire, id_card_authority and id_card_address are required for approve"})
 		return
 	}
 
@@ -140,16 +145,19 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 	tx := db.Begin()
 
 	if req.Action == "approve" {
-		// 批准：face_verified=true + method=manual + 员工填写的 real_name/id_card_no
-		// （#1807：实名信息由员工根据身份证照核对填写，顾客不自行输入）。
+		// 批准：face_verified=true + method=manual + 员工填写的实名信息
+		// （#1807：真实姓名/身份证号/有效期/签发机关/住址由员工根据身份证照核对填写）。
 		if err := tx.Model(&models.User{}).Where("id = ?", batch.UserID).
 			Updates(map[string]interface{}{
-				"face_verified":      true,
-				"face_verify_method": "manual",
-				"face_verified_at":   now,
-				"real_name":          req.RealName,
-				"id_card_no":         req.IdCardNo,
-				"updated_at":         now,
+				"face_verified":       true,
+				"face_verify_method":  "manual",
+				"face_verified_at":    now,
+				"real_name":           req.RealName,
+				"id_card_no":          req.IdCardNo,
+				"id_card_expire":      req.IdCardExpire,
+				"id_card_authority":   req.IdCardAuthority,
+				"id_card_address":     req.IdCardAddress,
+				"updated_at":          now,
 			}).Error; err != nil {
 			tx.Rollback()
 			log.Printf("[FaceReview] approve user update failed for %s: %v", batch.UserID, err)

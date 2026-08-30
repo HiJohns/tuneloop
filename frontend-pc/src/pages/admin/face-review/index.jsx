@@ -14,10 +14,13 @@ export default function FaceReviewPage() {
   const [loading, setLoading] = useState(false)
   const [reviewing, setReviewing] = useState(null) // 当前驳回的 batch
   const [rejectReason, setRejectReason] = useState('')
-  // #1807: 通过审核时员工根据身份证照填写实名信息
+  // #1807: 通过需填写实名信息（员工根据身份证照核对）——approve 必填 5 项。
   const [approving, setApproving] = useState(null) // 当前通过的 batch
   const [realName, setRealName] = useState('')
   const [idCardNo, setIdCardNo] = useState('')
+  const [idCardExpire, setIdCardExpire] = useState('')
+  const [idCardAuthority, setIdCardAuthority] = useState('')
+  const [idCardAddress, setIdCardAddress] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const fetchQueue = useCallback(async () => {
@@ -38,10 +41,10 @@ export default function FaceReviewPage() {
 
   useEffect(() => { fetchQueue() }, [fetchQueue])
 
-  // #1807: 通过需填写实名信息（员工根据身份证照核对）——approve 必填 real_name/id_card_no。
+  // #1807: 通过需填写实名信息（员工根据身份证照核对）——approve 必填 5 项。
   const handleApprove = async () => {
-    if (!realName.trim() || !idCardNo.trim()) {
-      message.warning('请填写真实姓名和身份证号（根据证件照核对）')
+    if (!realName.trim() || !idCardNo.trim() || !idCardExpire.trim() || !idCardAuthority.trim() || !idCardAddress.trim()) {
+      message.warning('请填写完整实名信息（真实姓名、身份证号、有效期、签发机关、住址，根据证件照核对）')
       return
     }
     if (!/^\d{17}[\dX]$/.test(idCardNo.trim())) {
@@ -50,12 +53,22 @@ export default function FaceReviewPage() {
     }
     setSubmitting(true)
     try {
-      const resp = await faceReviewApi.review(approving, { action: 'approve', real_name: realName.trim(), id_card_no: idCardNo.trim() })
+      const resp = await faceReviewApi.review(approving, {
+        action: 'approve',
+        real_name: realName.trim(),
+        id_card_no: idCardNo.trim(),
+        id_card_expire: idCardExpire.trim(),
+        id_card_authority: idCardAuthority.trim(),
+        id_card_address: idCardAddress.trim(),
+      })
       if (resp.code === 20000) {
         message.success('已通过')
         setApproving(null)
         setRealName('')
         setIdCardNo('')
+        setIdCardExpire('')
+        setIdCardAuthority('')
+        setIdCardAddress('')
         fetchQueue()
       } else {
         message.error(resp.message || '操作失败')
@@ -143,7 +156,7 @@ export default function FaceReviewPage() {
             size="small"
             type="primary"
             icon={<CheckCircleOutlined />}
-            onClick={() => { setApproving(record.batch_id); setRealName(''); setIdCardNo('') }}
+            onClick={() => { setApproving(record.batch_id); setRealName(''); setIdCardNo(''); setIdCardExpire(''); setIdCardAuthority(''); setIdCardAddress('') }}
           >
             通过
           </Button>
@@ -179,7 +192,7 @@ export default function FaceReviewPage() {
         cancelText="取消"
         okButtonProps={{ loading: submitting }}
       >
-        <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>请根据证件照核对填写真实姓名与身份证号（#1807：实名信息由员工填写，顾客不自行输入）。</Text>
+        <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>请根据证件照核对填写完整实名信息（#1807：实名信息由员工填写，顾客不自行输入）。</Text>
         <Input
           value={realName}
           onChange={(e) => setRealName(e.target.value)}
@@ -191,6 +204,27 @@ export default function FaceReviewPage() {
           onChange={(e) => setIdCardNo(e.target.value)}
           placeholder="身份证号（必填，18 位）"
           maxLength={18}
+          style={{ marginBottom: 12 }}
+        />
+        <Input
+          value={idCardExpire}
+          onChange={(e) => setIdCardExpire(e.target.value)}
+          placeholder="身份证有效期（必填，如 2035-12-31 或 长期）"
+          maxLength={20}
+          style={{ marginBottom: 12 }}
+        />
+        <Input
+          value={idCardAuthority}
+          onChange={(e) => setIdCardAuthority(e.target.value)}
+          placeholder="签发机关（必填，按证件照抄录）"
+          maxLength={100}
+          style={{ marginBottom: 12 }}
+        />
+        <Input
+          value={idCardAddress}
+          onChange={(e) => setIdCardAddress(e.target.value)}
+          placeholder="证件住址（必填，按证件照抄录）"
+          maxLength={200}
         />
       </Modal>
       <Modal

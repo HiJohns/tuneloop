@@ -39,6 +39,9 @@ type User struct {
 	IdPhotoOtherType    *string    `gorm:"type:varchar(50)" json:"id_photo_other_type"` // #1807: 第三证件类型（student/teacher/work/other）
 	RealName            *string    `gorm:"type:varchar(64)" json:"real_name"`
 	IdCardNo            *string    `gorm:"type:varchar(18)" json:"id_card_no"`
+	IdCardExpire        *string    `gorm:"type:varchar(20)" json:"id_card_expire"`     // #1807: 身份证有效期（YYYY-MM-DD 或「长期」），员工审核时按证件照填写
+	IdCardAuthority     *string    `gorm:"type:varchar(100)" json:"id_card_authority"` // #1807: 签发机关（员工审核填写）
+	IdCardAddress       *string    `gorm:"type:varchar(200)" json:"id_card_address"`   // #1807: 证件住址（员工审核填写）
 	FaceVerified        bool       `gorm:"default:false" json:"face_verified"`
 	FaceVerifiedAt      *time.Time `gorm:"column:face_verified_at" json:"face_verified_at"`
 	FaceVerifyMethod    *string    `gorm:"type:varchar(10)" json:"face_verify_method"` // #1789 T1: tencent=自动比对 / manual=人工审核（信息变更时清除）

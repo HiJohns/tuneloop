@@ -58,11 +58,15 @@ func setupReviewUser(t *testing.T) (string, string, *gorm.DB) {
 
 // TestFaceReview_Approve (#1791): approve → face_verified=true +
 // face_verify_method=manual + 批次 approved + audit_logs 留痕。
+// #1807: 员工填写 5 项实名信息（姓名/身份证号/有效期/签发机关/住址）一并落库。
 func TestFaceReview_Approve(t *testing.T) {
 	userID, batchID, db := setupReviewUser(t)
 	router := faceReviewRouter(t, uuid.New().String())
 
-	body, _ := json.Marshal(map[string]interface{}{"action": "approve", "real_name": "张三", "id_card_no": "110101199001011234"})
+	body, _ := json.Marshal(map[string]interface{}{
+		"action": "approve", "real_name": "张三", "id_card_no": "110101199001011234",
+		"id_card_expire": "2035-12-31", "id_card_authority": "北京市公安局", "id_card_address": "北京市东城区XX街道1号",
+	})
 	req := httptest.NewRequest("POST", "/admin/face-review/"+batchID, bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -74,11 +78,17 @@ func TestFaceReview_Approve(t *testing.T) {
 	require.True(t, updated.FaceVerified, "face_verified=true")
 	require.NotNil(t, updated.FaceVerifyMethod)
 	require.Equal(t, "manual", *updated.FaceVerifyMethod)
-	// #1807: 员工填写实名信息落库。
+	// #1807: 员工填写实名信息落库（5 项）。
 	require.NotNil(t, updated.RealName)
 	require.Equal(t, "张三", *updated.RealName)
 	require.NotNil(t, updated.IdCardNo)
 	require.Equal(t, "110101199001011234", *updated.IdCardNo)
+	require.NotNil(t, updated.IdCardExpire)
+	require.Equal(t, "2035-12-31", *updated.IdCardExpire)
+	require.NotNil(t, updated.IdCardAuthority)
+	require.Equal(t, "北京市公安局", *updated.IdCardAuthority)
+	require.NotNil(t, updated.IdCardAddress)
+	require.Equal(t, "北京市东城区XX街道1号", *updated.IdCardAddress)
 
 	var batch models.FaceCaptureBatch
 	require.NoError(t, db.Where("id = ?", batchID).First(&batch).Error)
@@ -88,6 +98,28 @@ func TestFaceReview_Approve(t *testing.T) {
 	// audit_logs 留痕。
 	var audit models.AuditLog
 	require.NoError(t, db.Where("action = ? AND resource_id = ?", "face_review_approve", userID).First(&audit).Error)
+}
+
+// TestFaceReview_Approve_LongExpire (#1807): 有效期支持「长期」。
+func TestFaceReview_Approve_LongExpire(t *testing.T) {
+	userID, batchID, db := setupReviewUser(t)
+	router := faceReviewRouter(t, uuid.New().String())
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"action": "approve", "real_name": "李四", "id_card_no": "110101199002021234",
+		"id_card_expire": "长期", "id_card_authority": "北京市公安局", "id_card_address": "北京市西城区XX路2号",
+	})
+	req := httptest.NewRequest("POST", "/admin/face-review/"+batchID, bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var updated models.User
+	require.NoError(t, db.Where("id = ?", userID).First(&updated).Error)
+	require.NotNil(t, updated.IdCardExpire)
+	require.Equal(t, "长期", *updated.IdCardExpire)
+	require.True(t, updated.FaceVerified)
 }
 
 // TestFaceReview_Reject (#1791): reject → 批次 rejected + reason + audit_logs。
@@ -207,7 +239,7 @@ func TestUpdateShipping_VerifyRequired(t *testing.T) {
 }
 
 // TestFaceReview_Approve_RequiresRealInfo (#1807): approve 必须携带员工填写的
-// real_name + id_card_no（实名信息由员工根据身份证照核对填写）。
+// 5 项实名信息（real_name/id_card_no/id_card_expire/id_card_authority/id_card_address）。
 func TestFaceReview_Approve_RequiresRealInfo(t *testing.T) {
 	_, batchID, _ := setupReviewUser(t)
 	router := faceReviewRouter(t, uuid.New().String())
@@ -218,5 +250,5 @@ func TestFaceReview_Approve_RequiresRealInfo(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusBadRequest, w.Code, w.Body.String())
-	require.Contains(t, w.Body.String(), "real_name and id_card_no are required")
+	require.Contains(t, w.Body.String(), "real_name, id_card_no, id_card_expire, id_card_authority and id_card_address are required")
 }
