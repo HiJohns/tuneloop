@@ -590,12 +590,14 @@ func GetPublicInstrumentDisplayMedia(c *gin.Context) {
 	})
 }
 
+// normalizeMediaKey 归一化媒体存储 key：循环去除 /uploads/media/ 前缀。
+// #1807: 历史脏数据可能带双前缀（/uploads/media//uploads/media/...），循环处理。
 func normalizeMediaKey(storageKey string) string {
-	if strings.HasPrefix(storageKey, "/uploads/media/") {
-		return strings.TrimPrefix(storageKey, "/uploads/media/")
+	for strings.HasPrefix(storageKey, "/uploads/media/") {
+		storageKey = strings.TrimPrefix(storageKey, "/uploads/media/")
 	}
 	if strings.HasPrefix(storageKey, "uploads/media/") {
-		return strings.TrimPrefix(storageKey, "uploads/media/")
+		storageKey = strings.TrimPrefix(storageKey, "uploads/media/")
 	}
 	return storageKey
 }

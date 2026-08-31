@@ -840,16 +840,9 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 }
 
 // resolveIdPhotoURL converts a stored storage key into an accessible URL.
+// 统一走 resolveMediaURL（防历史双前缀脏值 404，#1807）。
 func (h *UserStaffHandler) resolveIdPhotoURL(ctx context.Context, key *string) string {
-	if key == nil || *key == "" {
-		return ""
-	}
-	storage := services.NewMediaStorage()
-	url, err := storage.GetURL(ctx, *key)
-	if err != nil || url == "" {
-		return fmt.Sprintf("/uploads/media/%s", *key)
-	}
-	return url
+	return resolveMediaURL(ctx, key)
 }
 
 // maskIdCardNo returns a masked version of the ID card number: first 3 + last 4 digits visible.
@@ -946,11 +939,30 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 	if req.Nickname != "" {
 		localUpdates["nickname"] = req.Nickname
 	}
-	if req.IdPhotoFront != nil && (currentUser.IdPhotoFront == nil || *currentUser.IdPhotoFront != *req.IdPhotoFront) {
-		localUpdates["id_photo_front"] = *req.IdPhotoFront
+	// #1807: 证件照按归一化 key 比较（库值可能是 URL/双前缀脏数据，
+	// users/me 返回的 URL 回传后同值重提交必须不算变更，否则误作废批次）。
+	// 写入时归一化为纯 key。
+	idPhotoFrontChanged := false
+	idPhotoBackChanged := false
+	if req.IdPhotoFront != nil {
+		cur := ""
+		if currentUser.IdPhotoFront != nil {
+			cur = *currentUser.IdPhotoFront
+		}
+		if normalizeMediaKey(cur) != normalizeMediaKey(*req.IdPhotoFront) {
+			localUpdates["id_photo_front"] = normalizeMediaKey(*req.IdPhotoFront)
+			idPhotoFrontChanged = true
+		}
 	}
-	if req.IdPhotoBack != nil && (currentUser.IdPhotoBack == nil || *currentUser.IdPhotoBack != *req.IdPhotoBack) {
-		localUpdates["id_photo_back"] = *req.IdPhotoBack
+	if req.IdPhotoBack != nil {
+		cur := ""
+		if currentUser.IdPhotoBack != nil {
+			cur = *currentUser.IdPhotoBack
+		}
+		if normalizeMediaKey(cur) != normalizeMediaKey(*req.IdPhotoBack) {
+			localUpdates["id_photo_back"] = normalizeMediaKey(*req.IdPhotoBack)
+			idPhotoBackChanged = true
+		}
 	}
 	if req.RealName != nil && (currentUser.RealName == nil || *currentUser.RealName != *req.RealName) {
 		localUpdates["real_name"] = *req.RealName
@@ -972,11 +984,10 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 	}
 	// #1789 T1 R2 C4: 信息变更（real_name/id_card_no/证件照）作废 pending 批次——
 	// 防止员工审核基于旧身份信息提交的批次。事务内完成。
-	// #1807: 仅"值实际变化"时判定变更（同值重提交不算，避免误作废）。
+	// #1807: 仅"值实际变化"时判定变更（归一化比较，同值重提交不算，避免误作废）。
 	identityChanged := (req.RealName != nil && (currentUser.RealName == nil || *currentUser.RealName != *req.RealName)) ||
 		(req.IdCardNo != nil && (currentUser.IdCardNo == nil || *currentUser.IdCardNo != *req.IdCardNo)) ||
-		(req.IdPhotoFront != nil && (currentUser.IdPhotoFront == nil || *currentUser.IdPhotoFront != *req.IdPhotoFront)) ||
-		(req.IdPhotoBack != nil && (currentUser.IdPhotoBack == nil || *currentUser.IdPhotoBack != *req.IdPhotoBack))
+		idPhotoFrontChanged || idPhotoBackChanged
 	if identityChanged {
 		if len(localUpdates) > 0 {
 			if err := db.Transaction(func(tx *gorm.DB) error {

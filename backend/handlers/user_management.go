@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +13,6 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
-	"tuneloop-backend/services"
 )
 
 // UserManagementHandler manages platform-wide registered users (#1545).
@@ -266,20 +264,7 @@ func userDetail(u models.User, db *gorm.DB) gin.H {
 
 // resolveStorageKey converts a stored media storage key into an accessible URL.
 func resolveStorageKey(ctx context.Context, key *string) string {
-	if key == nil || *key == "" {
-		return ""
-	}
-	k := *key
-	// 历史数据兼容：部分记录存的是完整 URL（/uploads/media/...），直接返回避免双前缀 404。
-	if strings.HasPrefix(k, "/uploads/media/") || strings.HasPrefix(k, "http://") || strings.HasPrefix(k, "https://") {
-		return k
-	}
-	storage := services.NewMediaStorage()
-	url, err := storage.GetURL(ctx, k)
-	if err != nil || url == "" {
-		return fmt.Sprintf("/uploads/media/%s", k)
-	}
-	return url
+	return resolveMediaURL(ctx, key)
 }
 
 var _ = middleware.GetTenantID
