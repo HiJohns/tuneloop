@@ -4,8 +4,9 @@ import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/
 import { apiFetch } from '../services/api';
 import { Card, Steps, Tag, Button as AntButton } from 'antd';
 import { CheckCircleFilled } from '@ant-design/icons';
+import { env } from '../platform';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+const API_BASE = env.apiBaseUrl || '/api';
 
 const STEPS = [
   { title: '提交报修', key: 'pending' },

@@ -4,9 +4,9 @@ import { apiFetch } from '../services/api';
 import { Card, Button as AntButton, Image, Tag, Divider } from 'antd';
 import { EnvironmentOutlined, PhoneOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { View, Text, Button } from '@tarojs/components';
-import { phone } from '../platform';
+import { env, phone } from '../platform';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+const API_BASE = env.apiBaseUrl || '/api';
 
 export default function SiteDetail() {
   const { id } = useParams();
