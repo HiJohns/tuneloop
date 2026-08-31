@@ -190,3 +190,75 @@ func TestUpdateCurrentUser_IdentityChange_InvalidatesBatches(t *testing.T) {
 	require.NotNil(t, batch.RejectReason)
 	require.Equal(t, "身份信息已变更，请重新采集", *batch.RejectReason)
 }
+
+// TestUpdateCurrentUser_SameValue_KeepsBatches (#1807):
+// 顾客保存资料时原样提交已上传的 id_photo_front/back（值相同）→
+// 不判定身份信息变更 → pending 批次保留、face_verified 不清除。
+func TestUpdateCurrentUser_SameValue_KeepsBatches(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	user := models.User{
+		ID: uuid.New().String(), IAMSub: uuid.New().String(),
+		TenantID: uuid.New().String(), OrgID: uuid.New().String(),
+		Username: "verify-samevalue", Status: "active",
+		FaceVerified:     true,
+		FaceVerifyMethod: strPtr("manual"),
+		IdPhotoFront:     strPtr("/uploads/media/front.jpg"),
+		IdPhotoBack:      strPtr("/uploads/media/back.jpg"),
+	}
+	require.NoError(t, db.Create(&user).Error)
+
+	// 创建 pending 批次。
+	require.NoError(t, db.Create(&models.FaceCaptureBatch{
+		ID: uuid.New().String(), UserID: user.ID, Status: "pending",
+		SubmittedAt: time.Now(), CreatedAt: time.Now(),
+	}).Error)
+
+	// Mock IAM UpdateUser。
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/auth/token", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"access_token": "mock-token", "expires_in": 3600, "token_type": "Bearer",
+		})
+	})
+	mux.HandleFunc("/api/v1/users/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]interface{}{"code": 20000, "message": "success"})
+	})
+	mockIAM := httptest.NewServer(mux)
+	defer mockIAM.Close()
+	services.SetIAMInternalURLForTesting(mockIAM.URL)
+	defer services.SetIAMInternalURLForTesting("")
+
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		ctx := context.WithValue(c.Request.Context(), middleware.ContextKeyUserID, user.IAMSub)
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	router.PUT("/users/me", (&UserStaffHandler{}).UpdateCurrentUser)
+
+	// 原样重提交已上传的证件照（保存资料场景，EditProfile 会带上这些值）。
+	body, _ := json.Marshal(map[string]interface{}{
+		"nickname":       "测试",
+		"id_photo_front": "/uploads/media/front.jpg",
+		"id_photo_back":  "/uploads/media/back.jpg",
+	})
+	req := httptest.NewRequest("PUT", "/users/me", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	// face_verified 保留 + pending 批次保留。
+	var updated models.User
+	require.NoError(t, db.Where("id = ?", user.ID).First(&updated).Error)
+	require.True(t, updated.FaceVerified, "face_verified kept")
+	require.NotNil(t, updated.FaceVerifyMethod)
+	require.Equal(t, "manual", *updated.FaceVerifyMethod)
+
+	var batch models.FaceCaptureBatch
+	require.NoError(t, db.Where("user_id = ?", user.ID).First(&batch).Error)
+	require.Equal(t, "pending", batch.Status, "pending batch kept (same value is not an identity change)")
+}

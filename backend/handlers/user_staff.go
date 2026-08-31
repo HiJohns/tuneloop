@@ -925,8 +925,17 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": err.Error()})
 		return
 	}
-
 	db := database.GetDB().WithContext(ctx)
+
+	// 当前用户现值（#1807：identityChanged 需与现值比较——顾客保存资料时
+	// 会原样提交已上传的 id_photo_front/back，仅"值变化"才算身份信息变更，
+	// 否则误作废 pending 核身批次）。
+	var currentUser models.User
+	if err := db.Select("face_verified, face_verify_method, real_name, id_card_no, id_photo_front, id_photo_back").
+		Where("iam_sub = ?", userID).First(&currentUser).Error; err != nil {
+		log.Printf("[UpdateCurrentUser] load current user failed for %s: %v", userID, err)
+	}
+
 	localUpdates := map[string]interface{}{}
 	if req.Name != "" {
 		localUpdates["name"] = req.Name
@@ -937,13 +946,13 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 	if req.Nickname != "" {
 		localUpdates["nickname"] = req.Nickname
 	}
-	if req.IdPhotoFront != nil {
+	if req.IdPhotoFront != nil && (currentUser.IdPhotoFront == nil || *currentUser.IdPhotoFront != *req.IdPhotoFront) {
 		localUpdates["id_photo_front"] = *req.IdPhotoFront
 	}
-	if req.IdPhotoBack != nil {
+	if req.IdPhotoBack != nil && (currentUser.IdPhotoBack == nil || *currentUser.IdPhotoBack != *req.IdPhotoBack) {
 		localUpdates["id_photo_back"] = *req.IdPhotoBack
 	}
-	if req.RealName != nil {
+	if req.RealName != nil && (currentUser.RealName == nil || *currentUser.RealName != *req.RealName) {
 		localUpdates["real_name"] = *req.RealName
 	}
 	if req.IdCardNo != nil {
@@ -951,18 +960,23 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid id_card_no format, must be 18 digits (last may be X)"})
 			return
 		}
-		localUpdates["id_card_no"] = *req.IdCardNo
-		// If user was previously verified, changing id_card_no invalidates verification (#1787).
-		var currentUser models.User
-		if err := db.Select("face_verified, face_verify_method").Where("iam_sub = ?", userID).First(&currentUser).Error; err == nil && currentUser.FaceVerified {
-			localUpdates["face_verified"] = false
-			localUpdates["face_verified_at"] = nil
-			localUpdates["face_verify_method"] = nil
+		if currentUser.IdCardNo == nil || *currentUser.IdCardNo != *req.IdCardNo {
+			localUpdates["id_card_no"] = *req.IdCardNo
+			// If user was previously verified, changing id_card_no invalidates verification (#1787).
+			if currentUser.FaceVerified {
+				localUpdates["face_verified"] = false
+				localUpdates["face_verified_at"] = nil
+				localUpdates["face_verify_method"] = nil
+			}
 		}
 	}
 	// #1789 T1 R2 C4: 信息变更（real_name/id_card_no/证件照）作废 pending 批次——
 	// 防止员工审核基于旧身份信息提交的批次。事务内完成。
-	identityChanged := req.RealName != nil || req.IdCardNo != nil || req.IdPhotoFront != nil || req.IdPhotoBack != nil
+	// #1807: 仅"值实际变化"时判定变更（同值重提交不算，避免误作废）。
+	identityChanged := (req.RealName != nil && (currentUser.RealName == nil || *currentUser.RealName != *req.RealName)) ||
+		(req.IdCardNo != nil && (currentUser.IdCardNo == nil || *currentUser.IdCardNo != *req.IdCardNo)) ||
+		(req.IdPhotoFront != nil && (currentUser.IdPhotoFront == nil || *currentUser.IdPhotoFront != *req.IdPhotoFront)) ||
+		(req.IdPhotoBack != nil && (currentUser.IdPhotoBack == nil || *currentUser.IdPhotoBack != *req.IdPhotoBack))
 	if identityChanged {
 		if len(localUpdates) > 0 {
 			if err := db.Transaction(func(tx *gorm.DB) error {
