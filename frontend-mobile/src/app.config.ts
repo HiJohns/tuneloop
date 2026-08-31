@@ -42,6 +42,7 @@ const weappPages = [
   'pages-weapp/receiving-repair-scan/index',
   'pages-weapp/repair-scan/index',
   'pages-weapp/invoice/index',
+  'pages-weapp/face-verify/index',
 ]
 
 const h5Pages = [
@@ -82,6 +83,7 @@ const h5Pages = [
   'pages/staff-receive-confirm/index',
   'pages/transit-workflow/index',
   'pages/user-warnings/index',
+  'pages/face-verify/index',
 ]
 
 // Native tabBar semantics (switchTab) without native UI: custom:true hides

@@ -16,6 +16,7 @@ import Success from './pages/Success'
 import Booking from './pages/Booking'
 import Profile from './pages/Profile'
 import EditProfile from './pages/profile/edit'
+import FaceVerify from './pages/FaceVerify'
 import AccountSelect from './pages/account-select'
 import ReceiveConfirm from './pages/ReceiveConfirm'
 import ReturnConfirm from './pages/ReturnConfirm'
@@ -213,6 +214,7 @@ function App() {
         <Route path="/booking/:assetId" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
+        <Route path="/face-verify" element={<ProtectedRoute><FaceVerify /></ProtectedRoute>} />
         <Route path="/account-select" element={<ProtectedRoute requireAuth={false}><AccountSelect /></ProtectedRoute>} />
         <Route path="/receive/:orderId" element={<ProtectedRoute><ReceiveConfirm /></ProtectedRoute>} />
         <Route path="/receive" element={<ProtectedRoute><ReceiveConfirm /></ProtectedRoute>} />

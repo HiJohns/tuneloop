@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Input, Button, Picker } from '@tarojs/components'
+import { useNavigate } from 'react-router-dom'
 import { apiFetch, getToken, resolveErrorMessage } from '../../../services/api'
 import { env, dialog, getInputValue, wxLogin as wxLoginCode } from '../../../platform'
 import { parseJWT } from '../../../platform/init'
 import IdPhotoUploader from '../../../components/IdPhotoUploader'
-import FaceCaptureUploader from '../../../components/FaceCaptureUploader'
 
 const ID_TYPE_OPTIONS = ['学生证', '教师证', '工作证', '其他']
 
@@ -25,9 +25,15 @@ export default function EditProfile() {
   const [idVerifyStatus, setIdVerifyStatus] = useState('') // #1792 T4: 五态聚合
   const [saving, setSaving] = useState(false)
   const [bindingWx, setBindingWx] = useState(false)
-  const [showFaceVerify, setShowFaceVerify] = useState(false)
-  const [faceVerifyLoading, setFaceVerifyLoading] = useState(false)
   const baseUrl = env.apiBaseUrl
+  const navigate = useNavigate()
+
+  // #1807: 进入独立「人脸识别模式」页（自拍照片 + 动态视频采样）。
+  // H5 用 react-router 路径；weapp 用完整 /pages-weapp/... 路径（#1665 跨端导航规则）。
+  const goFaceVerify = () => {
+    if (!env.isMiniProgram) return navigate('/face-verify')
+    Taro.navigateTo({ url: '/pages-weapp/face-verify/index' })
+  }
 
   const token = getToken()
   const claims = token ? parseJWT(token) : {}
@@ -185,25 +191,26 @@ export default function EditProfile() {
               {idCardNo && <Text style={{ fontSize: 12, color: '#6b7280' }}>身份证：{maskIdCard(idCardNo)}</Text>}
               {faceVerifiedAt && <Text style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>认证时间：{new Date(faceVerifiedAt).toLocaleString()}</Text>}
             </View>
+          ) : idVerifyStatus === 'pending_review' ? (
+            <View style={{ padding: 12, backgroundColor: '#fefce8', borderRadius: 8, borderWidth: 1, borderColor: '#fde68a' }}>
+              <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600' }}>⚠️ 实名认证审核中</Text>
+              <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>已提交人脸采样，平台员工审核通过后即完成实名认证（预计 1-2 个工作日）。</Text>
+            </View>
           ) : (
             <View>
-              {/* #1807: 实名信息（真实姓名/身份证号）由员工在审核流程根据身份证照
-                  核对填写——顾客不自行输入；人脸采样为必要步骤（见下方「人脸采样」） */}
-              <View style={{ padding: 12, backgroundColor: '#f4f4f5', borderRadius: 8 }}>
-                <Text style={{ fontSize: 12, color: '#6b7280' }}>
-                  请先上传身份证照片，并完成下方「人脸采样」提交。平台员工审核通过后自动填写真实姓名与身份证号（实名信息不自行输入）。
+              {/* #1807: 身份证照未验证 → 黄色字体警告 + 链接进入独立人脸识别模式页。
+                   实名信息（真实姓名/身份证号）由员工在审核流程根据身份证照核对填写。 */}
+              <View style={{ padding: 12, backgroundColor: '#fefce8', borderRadius: 8, borderWidth: 1, borderColor: '#fde68a' }}>
+                <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600' }}>⚠️ 尚未完成实名认证</Text>
+                <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>
+                  请先上传身份证照片，并完成人脸识别。提交后由平台员工核对证件信息完成实名认证。
                 </Text>
+                <View onClick={goFaceVerify} style={{ marginTop: 8, padding: 4 }}>
+                  <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600', textDecorationLine: 'underline' }}>去人脸识别 ›</Text>
+                </View>
               </View>
             </View>
           )}
-          {/* #1792 T4: 自拍核身素材采集（face_verified=false 时显示；腾讯云未配置转人工审核） */}
-          <FaceCaptureUploader
-            initialStatus={idVerifyStatus}
-            onSubmitSuccess={() => {
-              setIdVerifyStatus('pending_review')
-              setFaceVerified(false)
-            }}
-          />
         </View>
         {isStaff && (
           <View style={{ marginBottom: 20 }}>
