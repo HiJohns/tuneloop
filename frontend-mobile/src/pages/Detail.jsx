@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { instrumentsApi, getToken, apiFetch, redirectToLogin, getCartKey } from '../services/api'
 import { ArrowLeft, Shield, Clock, AlertCircle, MapPin, Bell, CheckCircle, X, ShoppingCart } from 'lucide-react'
 import { Switch, Tag } from 'antd'
@@ -35,7 +35,8 @@ function parsePricing(pricing) {
 }
 
 export default function Detail() {
-  const { id } = useParams()
+  const [searchParams] = useSearchParams()
+  const id = searchParams.get('id') || ''
   const navigate = useNavigate()
   const [instrument, setInstrument] = useState(null)
   const [loading, setLoading] = useState(true)

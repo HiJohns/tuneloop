@@ -89,8 +89,9 @@ export default function Cart() {
     if (to === -1) return Taro.navigateBack()
     if (to === '/') return Taro.switchTab({ url: '/pages-weapp/home/index' })
     if (to === '/checkout') return Taro.navigateTo({ url: '/pages-weapp/checkout/index' })
-    if (typeof to === 'string' && to.startsWith('/instrument/')) {
-      return Taro.navigateTo({ url: `/pages-weapp/detail/index?id=${to.split('/')[2]}` })
+    if (typeof to === 'string' && to.startsWith('/instrument?')) {
+      const id = to.split('?')[1]?.match(/id=([^&]*)/)?.[1] || ''
+      return Taro.navigateTo({ url: `/pages-weapp/detail/index?id=${id}` })
     }
     return Taro.navigateTo({ url: to })
   }
@@ -381,7 +382,7 @@ export default function Cart() {
                             <View
                               className="w-20 h-20 bg-zinc-50 rounded-xl overflow-hidden flex items-center justify-center"
                               style={{ position: 'relative' }}
-                              onClick={rentedOut ? undefined : () => nav(`/instrument/${itemId}`)}
+                              onClick={rentedOut ? undefined : () => nav(`/instrument?id=${itemId}`)}
                             >
                               <Image
                                 src={imgSrc}

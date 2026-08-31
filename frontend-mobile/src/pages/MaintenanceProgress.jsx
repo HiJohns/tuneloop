@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components';
 import { apiFetch } from '../services/api';
 import { Card, Steps, Tag, Button as AntButton } from 'antd';
@@ -18,7 +18,8 @@ const STEPS = [
 ];
 
 export default function MaintenanceProgress() {
-  const { id } = useParams();
+  const [searchParams] = useSearchParams()
+  const id = searchParams.get('id') || ''
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
 

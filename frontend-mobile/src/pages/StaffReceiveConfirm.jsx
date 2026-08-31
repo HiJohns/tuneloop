@@ -123,7 +123,7 @@ export default function StaffReceiveConfirm() {
       )}
 
       <ScrollView>
-      <View className="mx-4">{instrument && <InstrumentInfo instrument={instrument} onClick={() => env.isMiniProgram ? Taro.navigateTo({ url: `/pages-weapp/detail/index?id=${instrument.id}` }) : navigate(`/instrument/${instrument.id}`)} />}</View>
+      <View className="mx-4">{instrument && <InstrumentInfo instrument={instrument} onClick={() => env.isMiniProgram ? Taro.navigateTo({ url: `/pages-weapp/detail/index?id=${instrument.id}` }) : navigate(`/instrument?id=${instrument.id}`)} />}</View>
 
       {order && (
         <LeaseInfo

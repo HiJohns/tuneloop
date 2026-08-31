@@ -114,7 +114,7 @@ export default function Renewal() {
       <ScrollView className="w-full flex-1">
         <View className="px-4 box-border">
         {instrument && (
-          <View className="bg-white rounded-2xl p-4 shadow-sm mb-3" style={{ cursor: 'pointer' }} onClick={() => navigate(`/instrument/${instrument.id}`)}>
+          <View className="bg-white rounded-2xl p-4 shadow-sm mb-3" style={{ cursor: 'pointer' }} onClick={() => navigate(`/instrument?id=${instrument.id}`)}>
             {(instrument.cover_image || instrument.images?.[0]) && (
               <Image src={fixImg(instrument.cover_image || instrument.images?.[0])} className="w-full h-40 object-cover rounded-lg bg-zinc-100 mb-3" mode="aspectFill" />
             )}

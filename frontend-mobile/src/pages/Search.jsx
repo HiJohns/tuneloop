@@ -66,7 +66,7 @@ export default function Search() {
 
         {loading && <Text className="text-center text-zinc-400 py-8 font-black">搜索中...</Text>}
         {results.map(item => (
-          <View key={item.id} onClick={() => navigate(`/instrument/${item.id}`)}
+          <View key={item.id} onClick={() => navigate(`/instrument?id=${item.id}`)}
             className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4 flex gap-3 cursor-pointer active:opacity-80">
             <Image src={item.cover_image || ''} className="w-20 h-20 rounded-xl bg-zinc-100" mode="aspectFill" />
             <View className="flex-1">

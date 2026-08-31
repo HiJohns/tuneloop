@@ -356,7 +356,7 @@ export default function Home() {
               <InstrumentCard
                 key={instrument.id}
                 instrument={instrument}
-                onClick={() => { const url = tenant ? `/instrument/${instrument.id}?tenant=${tenant}` : `/instrument/${instrument.id}`; navigate(url) }}
+                onClick={() => { const url = tenant ? `/instrument?id=${instrument.id}&tenant=${tenant}` : `/instrument?id=${instrument.id}`; navigate(url) }}
               />
             ))
           ) : (

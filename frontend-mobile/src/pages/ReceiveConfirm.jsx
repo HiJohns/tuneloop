@@ -140,7 +140,7 @@ export default function ReceiveConfirm() {
         </View>
       )}
 
-      <View className="mx-4">{instrument && <InstrumentInfo instrument={instrument} onClick={() => nav(`/instrument/${instrument.id}`)} />}</View>
+      <View className="mx-4">{instrument && <InstrumentInfo instrument={instrument} onClick={() => nav(`/instrument?id=${instrument.id}`)} />}</View>
 
       {order && (
         <LeaseInfo

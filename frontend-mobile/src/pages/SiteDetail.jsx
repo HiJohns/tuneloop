@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../services/api';
 import { Card, Button as AntButton, Image, Tag, Divider } from 'antd';
 import { EnvironmentOutlined, PhoneOutlined, ClockCircleOutlined } from '@ant-design/icons';
@@ -9,7 +9,8 @@ import { env, phone } from '../platform';
 const API_BASE = env.apiBaseUrl || '/api';
 
 export default function SiteDetail() {
-  const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const id = searchParams.get('id') || '';
   const [site, setSite] = useState(null);
   const [loading, setLoading] = useState(true);
   const [stockStatus, setStockStatus] = useState({});

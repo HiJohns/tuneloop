@@ -87,7 +87,7 @@ function SingleCheckout({ id, navigate }) {
   useEffect(() => {
     const token = getToken()
     if (!token) {
-      session.setItem('post_auth_redirect', `/checkout/${id}`)
+      session.setItem('post_auth_redirect', `/checkout?id=${id}`)
       redirectToLogin('checkout')
       return
     }

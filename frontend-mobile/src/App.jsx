@@ -204,7 +204,7 @@ function App() {
         <Route path="/content/:key" element={<ProtectedRoute requireAuth={false}><ContentPage /></ProtectedRoute>} />
         <Route path="/content" element={<ProtectedRoute requireAuth={false}><ContentPage /></ProtectedRoute>} />
         <Route path="/setting" element={<ProtectedRoute requireAuth={false}><Setting /></ProtectedRoute>} />
-        <Route path="/instrument/:id" element={<ProtectedRoute requireAuth={false}><Detail /></ProtectedRoute>} />
+        <Route path="/instrument" element={<ProtectedRoute requireAuth={false}><Detail /></ProtectedRoute>} />
         <Route path="/search" element={<ProtectedRoute requireAuth={false}><Search /></ProtectedRoute>} />
         <Route path="/checkout" element={<ProtectedRoute requireAuth={false}><Checkout /></ProtectedRoute>} />
         <Route path="/checkout/:id" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
@@ -248,8 +248,8 @@ function App() {
         <Route path="/staff/repair-scan" element={<ProtectedRoute><RepairScan /></ProtectedRoute>} />
         <Route path="/order/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
         <Route path="/cart" element={<ProtectedRoute requireAuth={false}><Cart /></ProtectedRoute>} />
-        <Route path="/maintenance/:id" element={<ProtectedRoute><MaintenanceProgress /></ProtectedRoute>} />
-        <Route path="/site/:id" element={<ProtectedRoute requireAuth={false}><SiteDetail /></ProtectedRoute>} />
+        <Route path="/maintenance" element={<ProtectedRoute><MaintenanceProgress /></ProtectedRoute>} />
+        <Route path="/site" element={<ProtectedRoute requireAuth={false}><SiteDetail /></ProtectedRoute>} />
         <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
         <Route path="/return-settlement/:orderId" element={<ProtectedRoute><ReturnSettlement /></ProtectedRoute>} />
         <Route path="/return-settlement" element={<ProtectedRoute><ReturnSettlement /></ProtectedRoute>} />

@@ -22,7 +22,7 @@ const ROUTE_MAP = [
   { match: '/staff/shipping', type: 'navigateTo', url: '/pages-weapp/shipping-interface/index' },
   { match: '/staff/receiving', type: 'navigateTo', url: '/pages-weapp/receiving-interface/index' },
   { match: '/staff/receive', type: 'navigateTo', url: '/pages-weapp/staff-receive-confirm/index' },
-  { match: '/instrument/:id', type: 'navigateTo', url: (p) => `/pages-weapp/detail/index?id=${p.id}` },
+  { match: '/instrument', type: 'navigateTo', url: '/pages-weapp/detail/index' },
   { match: '/return-settlement', type: 'navigateTo', url: '/pages-weapp/return-settlement/index' },
   { match: '/receive-confirm', type: 'navigateTo', url: '/pages-weapp/receive-confirm/index' },
   { match: '/return-confirm', type: 'navigateTo', url: '/pages-weapp/return-confirm/index' },
