@@ -1,6 +1,7 @@
 package tencentcloud
 
 import (
+	"encoding/json"
 	"fmt"
 
 	tencentcloudsdk "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
@@ -12,25 +13,30 @@ import (
 // 服务端同样只负责签发凭证（GetEidToken）与查询结果（GetEidResult）。
 // #1807 阶段1：FACE_VERIFY_PROVIDER=eid 时启用。
 type EidProvider struct {
-	secretID  string
-	secretKey string
-	region    string
+	secretID     string
+	secretKey    string
+	region       string
+	merchantID   string
 }
 
 func NewEidProvider(cfg Config) *EidProvider {
 	return &EidProvider{
-		secretID:  cfg.SecretID,
-		secretKey: cfg.SecretKey,
-		region:    cfg.Region,
+		secretID:   cfg.SecretID,
+		secretKey:  cfg.SecretKey,
+		region:     cfg.Region,
+		merchantID: cfg.EIDMerchantID,
 	}
 }
 
-// GetToken requests an E证通 verification token (EidToken, 5 分钟有效)。
-// CompareLib=BUSINESS：权威库（公安库）比对，需 Name+IdCard。
+// GetToken requests an E证通 verification token (EidToken)。
+// 必填 MerchantId（E证通商户 ID）+ CompareLib=BUSINESS + Name + IdCard。
 func (p *EidProvider) GetToken(name, idCard string) (string, error) {
+	if p.merchantID == "" {
+		return "", fmt.Errorf("EID merchant id not configured (EID_MERCHANT_ID)")
+	}
 	credential := tencentcloudsdk.NewCredential(p.secretID, p.secretKey)
 	cpf := profile.NewClientProfile()
-	cpf.HttpProfile.Endpoint = "eid.tencentcloudapi.com"
+	cpf.HttpProfile.Endpoint = "faceid.tencentcloudapi.com"
 
 	client, err := NewEidClient(credential, p.region, cpf)
 	if err != nil {
@@ -39,6 +45,7 @@ func (p *EidProvider) GetToken(name, idCard string) (string, error) {
 
 	compareLib := "BUSINESS"
 	req := NewGetEidTokenRequest()
+	req.MerchantId = &p.merchantID
 	req.CompareLib = &compareLib
 	req.Name = &name
 	req.IdCard = &idCard
@@ -54,10 +61,12 @@ func (p *EidProvider) GetToken(name, idCard string) (string, error) {
 }
 
 // GetResult queries the E证通 verification result.
+// 核验结果解析待真实联调定型：当前宽松探测 Text（DetectInfoText）中的
+// ErrCode/Text 字段；结构确认后收紧（#1807 阶段1 联调中）。
 func (p *EidProvider) GetResult(eidToken string) (bool, float64, error) {
 	credential := tencentcloudsdk.NewCredential(p.secretID, p.secretKey)
 	cpf := profile.NewClientProfile()
-	cpf.HttpProfile.Endpoint = "eid.tencentcloudapi.com"
+	cpf.HttpProfile.Endpoint = "faceid.tencentcloudapi.com"
 
 	client, err := NewEidClient(credential, p.region, cpf)
 	if err != nil {
@@ -75,10 +84,22 @@ func (p *EidProvider) GetResult(eidToken string) (bool, float64, error) {
 		return false, 0, fmt.Errorf("GetEidResult: empty response")
 	}
 
-	passed := resp.Response.Result != nil && *resp.Response.Result == "Success"
+	// TODO(#1807 联调): 依据真实响应结构收紧判定。
+	passed := false
 	similarity := float64(0)
 	if resp.Response.Similarity != nil {
 		similarity = *resp.Response.Similarity
+	}
+	if len(resp.Response.Text) > 0 {
+		var di struct {
+			ErrCode *int64  `json:"ErrCode"`
+			Text    *string `json:"Text"`
+		}
+		if err := json.Unmarshal(resp.Response.Text, &di); err == nil {
+			if di.ErrCode != nil && *di.ErrCode == 0 && di.Text != nil && *di.Text == "验证通过" {
+				passed = true
+			}
+		}
 	}
 	return passed, similarity, nil
 }

@@ -8,10 +8,11 @@ import (
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
 )
 
-// E证通 API（eid.tencentcloudapi.com，2018-03-01）。
-// 腾讯云未发布 eid 的拆分 SDK 包，此 client 仿 faceid 结构手写，
-// 复用 common.Client 的 TC3-HMAC-SHA256 签名（GetEidToken/GetEidResult）。
-// 字段以腾讯云「人脸核身·E证通」文档为准，联调时核对（#1807 阶段1）。
+// E证通 API（#1807 阶段1）。
+// 关键：E证通接口挂在 **faceid** 服务下（faceid.tencentcloudapi.com，
+// Version 2018-03-01），非独立 eid 服务——腾讯云未发布独立 SDK 包，
+// 此 client 仿 faceid 结构手写，复用 common.Client 的 TC3 签名。
+// GetEidToken 必填 MerchantId（E证通商户 ID，控制台自助接入申请）。
 
 const eidAPIVersion = "2018-03-01"
 
@@ -30,9 +31,10 @@ func NewEidClient(credential tencentcloudsdk.CredentialIface, region string, cli
 }
 
 // GetEidTokenRequest requests an EID verification token.
-// 必填：CompareLib（比对库，如 BUSINESS）+ Name + IdCard。
+// 必填：MerchantId（E证通商户 ID）+ CompareLib（BUSINESS）+ Name + IdCard。
 type GetEidTokenRequest struct {
 	*tchttp.BaseRequest
+	MerchantId *string `json:"MerchantId,omitnil,omitempty" name:"MerchantId"`
 	CompareLib *string `json:"CompareLib,omitnil,omitempty" name:"CompareLib"`
 	Name       *string `json:"Name,omitnil,omitempty" name:"Name"`
 	IdCard     *string `json:"IdCard,omitnil,omitempty" name:"IdCard"`
@@ -43,13 +45,14 @@ func NewGetEidTokenRequest() (request *GetEidTokenRequest) {
 	request = &GetEidTokenRequest{
 		BaseRequest: &tchttp.BaseRequest{},
 	}
-	request.Init().WithApiInfo("eid", eidAPIVersion, "GetEidToken")
+	// 服务名 faceid：E证通接口与慧眼共用 faceid 产品
+	request.Init().WithApiInfo("faceid", eidAPIVersion, "GetEidToken")
 	return
 }
 
 // GetEidTokenResponseParams holds the response payload of GetEidToken.
 type GetEidTokenResponseParams struct {
-	EidToken *string `json:"EidToken,omitnil,omitempty" name:"EidToken"` // 核身凭证，5 分钟有效
+	EidToken *string `json:"EidToken,omitnil,omitempty" name:"EidToken"` // 核身凭证
 }
 
 // GetEidTokenResponse wraps the response.
@@ -74,14 +77,16 @@ func NewGetEidResultRequest() (request *GetEidResultRequest) {
 	request = &GetEidResultRequest{
 		BaseRequest: &tchttp.BaseRequest{},
 	}
-	request.Init().WithApiInfo("eid", eidAPIVersion, "GetEidResult")
+	request.Init().WithApiInfo("faceid", eidAPIVersion, "GetEidResult")
 	return
 }
 
 // GetEidResultResponseParams holds the response payload of GetEidResult.
+// 核验结果结构待真实联调定型（Text=DetectInfoText 文本类信息；实名信息
+// DesKey/UserInfo 加密返回需商户私钥）——先宽松捕获原始 JSON。
 type GetEidResultResponseParams struct {
-	Result     *string  `json:"Result,omitnil,omitempty" name:"Result"`         // Success / Failed / InProgress
-	Similarity *float64 `json:"Similarity,omitnil,omitempty" name:"Similarity"` // 相似度 0-100
+	Text       json.RawMessage `json:"Text,omitempty"`
+	Similarity *float64        `json:"Similarity,omitempty"`
 }
 
 // GetEidResultResponse wraps the response.
