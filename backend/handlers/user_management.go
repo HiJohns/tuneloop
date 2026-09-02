@@ -259,6 +259,16 @@ func userDetail(u models.User, db *gorm.DB) gin.H {
 	s["id_photo_back"] = resolveStorageKey(db.Statement.Context, u.IdPhotoBack)
 	s["id_photo_other"] = resolveStorageKey(db.Statement.Context, u.IdPhotoOther)
 	s["id_photo_other_type"] = u.IdPhotoOtherType
+	// #1810: 实名核身区块字段（模块 1 身份证信息 + 模块 2 人脸信息）。
+	s["real_name"] = u.RealName
+	s["id_card_no"] = u.IdCardNo
+	s["id_card_expire"] = u.IdCardExpire
+	s["id_card_authority"] = u.IdCardAuthority
+	s["id_card_address"] = u.IdCardAddress
+	s["face_verified"] = u.FaceVerified
+	s["face_verify_method"] = u.FaceVerifyMethod
+	s["face_verified_at"] = u.FaceVerifiedAt
+	s["id_verify_status"] = deriveIdVerifyStatus(db, &u)
 	return s
 }
 

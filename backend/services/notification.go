@@ -33,10 +33,20 @@ func Notify(db *gorm.DB, tenantID, userID, ntype, title, content, refID, refType
 		Status:     "unread",
 		CreatedAt:  time.Now(),
 	}
-	if err := db.Create(&notif).Error; err != nil {
+	if err := notifyCreate(db, &notif); err != nil {
 		log.Printf("[Notify] Failed to create notification for user %s: %v", userID, err)
 	}
 	log.Printf("[Notify] WeChat stub: would send template message to user %s (type=%s, ref=%s)", userID, ntype, refID)
+}
+
+// notifyCreate inserts a notification, omitting org_id when empty
+// (notifications.org_id is a uuid column — empty string raises SQLSTATE
+// 22P02; NULL is the correct value for customer notifications).
+func notifyCreate(db *gorm.DB, notif *models.Notification) error {
+	if notif.OrgID == "" {
+		return db.Omit("org_id").Create(notif).Error
+	}
+	return db.Create(notif).Error
 }
 
 // NotifyUsersBySite sends a notification to all site_members with the given roles at a site.
@@ -94,7 +104,7 @@ func NotifyUsersBySiteWithAction(db *gorm.DB, tenantID, siteID, ntype, title, co
 			Status:     "unread",
 			CreatedAt:  time.Now(),
 		}
-		if err := db.Create(&notif).Error; err != nil {
+		if err := notifyCreate(db, &notif); err != nil {
 			log.Printf("[NotifyUsersBySiteWithAction] Failed to create notification for user %s: %v", m.UserID, err)
 		}
 	}
@@ -151,7 +161,7 @@ func NotifyMerchantAdmins(db *gorm.DB, tenantID, ntype, title, content, refID, r
 			Status:     "unread",
 			CreatedAt:  time.Now(),
 		}
-		if err := db.Create(&notif).Error; err != nil {
+		if err := notifyCreate(db, &notif); err != nil {
 			log.Printf("[NotifyMerchantAdmins] Failed to create notification for user %s: %v", a.ID, err)
 		}
 	}

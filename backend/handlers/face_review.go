@@ -91,6 +91,65 @@ func (h *FaceReviewHandler) Queue(c *gin.Context) {
 	})
 }
 
+// UserBatches handles GET /admin/face-review/user/:userId.
+// Returns ALL batches of one user (pending/approved/rejected history) with
+// selfie material URLs — the user-detail dialog module 2 data source (#1810).
+type faceReviewBatchItem struct {
+	BatchID     string   `json:"batch_id"`
+	Status      string   `json:"status"`
+	RejectReason string   `json:"reject_reason,omitempty"`
+	SelfieURLs  []string `json:"selfie_urls"`
+	SubmittedAt string   `json:"submitted_at"`
+	ReviewedAt  string   `json:"reviewed_at,omitempty"`
+}
+
+func (h *FaceReviewHandler) UserBatches(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	userID := c.Param("userId")
+
+	var user models.User
+	if err := db.Select("id").Where("id = ?", userID).First(&user).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		return
+	}
+
+	var batches []models.FaceCaptureBatch
+	if err := db.Where("user_id = ?", userID).
+		Order("submitted_at DESC").Find(&batches).Error; err != nil {
+		log.Printf("[FaceReview] user batches query failed for %s: %v", userID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to load user batches"})
+		return
+	}
+
+	items := make([]faceReviewBatchItem, 0, len(batches))
+	for _, b := range batches {
+		item := faceReviewBatchItem{
+			BatchID:     b.ID,
+			Status:      b.Status,
+			SubmittedAt: b.SubmittedAt.Format(time.RFC3339),
+		}
+		if b.RejectReason != nil {
+			item.RejectReason = *b.RejectReason
+		}
+		if b.ReviewedAt != nil {
+			item.ReviewedAt = b.ReviewedAt.Format(time.RFC3339)
+		}
+		var assets []models.MediaAsset
+		db.Where("source_id = ? AND source_type = ?", b.ID, "face_capture").
+			Order("created_at ASC").Find(&assets)
+		for _, a := range assets {
+			item.SelfieURLs = append(item.SelfieURLs, resolveSelfieURL(a.StorageKey))
+		}
+		items = append(items, item)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{"list": items, "total": len(items)},
+	})
+}
+
 // Review handles POST /admin/face-review/:batchId.
 // action: approve → users.face_verified=true + face_verify_method=manual + 批次 approved
 //
