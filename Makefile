@@ -177,8 +177,8 @@ release: clean-prerelease
 	@echo "=========================================="
 	mkdir -p $(RELEASE_BUILD)/tuneloop-pre/www $(RELEASE_BUILD)/tuneloop-pre/mobile \
 	         $(RELEASE_BUILD)/tuneloop-pre/service $(RELEASE_BUILD)/tuneloop-pre/database
-	# PC frontend (IAM config from /api/config at runtime)
-	$(NVM22) cd frontend-pc && npm run build
+	# PC frontend (IAM config from /api/config at runtime; version = FRONTEND_VERSION with git short hash)
+	$(NVM22) cd frontend-pc && VITE_APP_VERSION=$(FRONTEND_VERSION) npm run build
 	cp -r frontend-pc/dist/* $(RELEASE_BUILD)/tuneloop-pre/www/
 	# Mobile frontend (Vite H5, IAM config from /api/config at runtime)
 	$(NVM22) cd frontend-mobile && VITE_APP_VERSION=$(FRONTEND_VERSION) npm run build -- --mode prerelease
