@@ -46,16 +46,16 @@ func setupIdCardTestDB(t *testing.T) (*gorm.DB, string) {
 	front := "id/front.jpg"
 	back := "id/back.jpg"
 	db.Create(&models.User{
-		ID:            userID,
-		TenantID:      tenantID,
-		OrgID:         tenantID,
-		IAMSub:        userID,
-		Role:          "USER",
-		Status:        "active",
-		IdPhotoFront:  &front,
-		IdPhotoBack:   &back,
-		IdPhotoOther:  nil,
-		FaceVerified:  false,
+		ID:               userID,
+		TenantID:         tenantID,
+		OrgID:            tenantID,
+		IAMSub:           userID,
+		Role:             "USER",
+		Status:           "active",
+		IdPhotoFront:     &front,
+		IdPhotoBack:      &back,
+		IdPhotoOther:     nil,
+		FaceVerified:     false,
 		FaceVerifyMethod: strPtr("manual"),
 	})
 
@@ -68,8 +68,6 @@ func setupIdCardTestDB(t *testing.T) (*gorm.DB, string) {
 
 	return db, userID
 }
-
-
 
 // idCardRouter registers the two new handlers + UserBatches on a router.
 // operatorID is injected into the request context (mirrors IAMInterceptor),

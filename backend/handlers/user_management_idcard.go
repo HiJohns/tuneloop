@@ -26,11 +26,11 @@ import (
 // On success notifies the user (ntype=id_verify).
 func (h *UserManagementHandler) UpdateIdCard(c *gin.Context) {
 	var req struct {
-		RealName       *string `json:"real_name"`
-		IdCardNo       *string `json:"id_card_no"`
-		IdCardExpire   *string `json:"id_card_expire"`
+		RealName        *string `json:"real_name"`
+		IdCardNo        *string `json:"id_card_no"`
+		IdCardExpire    *string `json:"id_card_expire"`
 		IdCardAuthority *string `json:"id_card_authority"`
-		IdCardAddress  *string `json:"id_card_address"`
+		IdCardAddress   *string `json:"id_card_address"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
@@ -135,18 +135,18 @@ func (h *UserManagementHandler) RejectIdPhotos(c *gin.Context) {
 	// log（不阻断业务提交），但错误必须可见，不得静默吞错。
 	err := db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(&user).Updates(map[string]interface{}{
-			"id_photo_front":     nil,
-			"id_photo_back":      nil,
-			"id_photo_other":     nil,
+			"id_photo_front":      nil,
+			"id_photo_back":       nil,
+			"id_photo_other":      nil,
 			"id_photo_other_type": nil,
-			"real_name":          nil,
-			"id_card_no":         nil,
-			"id_card_expire":     nil,
-			"id_card_authority":  nil,
-			"id_card_address":    nil,
-			"face_verified":      false,
-			"face_verify_method": nil,
-			"updated_at":         now,
+			"real_name":           nil,
+			"id_card_no":          nil,
+			"id_card_expire":      nil,
+			"id_card_authority":   nil,
+			"id_card_address":     nil,
+			"face_verified":       false,
+			"face_verify_method":  nil,
+			"updated_at":          now,
 		}).Error; err != nil {
 			return fmt.Errorf("clear user id photos: %w", err)
 		}
