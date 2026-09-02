@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"tuneloop-backend/database"
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
@@ -30,7 +32,7 @@ func setupIdCardTestDB(t *testing.T) (*gorm.DB, string) {
 	database.SetDB(db)
 
 	for _, m := range []interface{}{
-		&models.User{}, &models.FaceCaptureBatch{}, &models.Notification{},
+		&models.User{}, &models.FaceCaptureBatch{}, &models.Notification{}, &models.AuditLog{},
 	} {
 		_ = db.Migrator().DropTable(m)
 		require.NoError(t, db.Migrator().CreateTable(m))
@@ -70,9 +72,16 @@ func setupIdCardTestDB(t *testing.T) (*gorm.DB, string) {
 
 
 // idCardRouter registers the two new handlers + UserBatches on a router.
-func idCardRouter() *gin.Engine {
+// operatorID is injected into the request context (mirrors IAMInterceptor),
+// which the handlers read via middleware.GetUserID for reviewed_by/audit_logs.
+func idCardRouter(operatorID string) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		ctx := context.WithValue(c.Request.Context(), middleware.ContextKeyUserID, operatorID)
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
 	h := NewUserManagementHandler()
 	fh := &FaceReviewHandler{}
 	router.PUT("/api/admin/user-management/:id/id-card", h.UpdateIdCard)
@@ -83,7 +92,8 @@ func idCardRouter() *gin.Engine {
 
 func TestUpdateIdCard_HappyPath(t *testing.T) {
 	db, userID := setupIdCardTestDB(t)
-	router := idCardRouter()
+	operatorID := uuid.New().String()
+	router := idCardRouter(operatorID)
 
 	body := `{"real_name":"张三","id_card_no":"110101199001011234","id_card_expire":"长期","id_card_authority":"北京市公安局","id_card_address":"北京市朝阳区"}`
 	req := httptest.NewRequest("PUT", "/api/admin/user-management/"+userID+"/id-card", bytes.NewBufferString(body))
@@ -98,6 +108,12 @@ func TestUpdateIdCard_HappyPath(t *testing.T) {
 	assert.Equal(t, "110101199001011234", *u.IdCardNo)
 	assert.Equal(t, "长期", *u.IdCardExpire)
 
+	// B2.3: audit_logs 必须真实写入（action=id_card_update，操作人 = operatorID）。
+	var audit models.AuditLog
+	require.NoError(t, db.Where("action = ? AND resource_id = ?", "id_card_update", userID).First(&audit).Error)
+	assert.Equal(t, operatorID, audit.UserID)
+	assert.Contains(t, *audit.Details, "real_name")
+
 	var n models.Notification
 	require.NoError(t, db.Where("user_id = ? AND type = ?", userID, "id_verify").First(&n).Error)
 	assert.Contains(t, n.Title, "实名信息已采集")
@@ -105,7 +121,7 @@ func TestUpdateIdCard_HappyPath(t *testing.T) {
 
 func TestUpdateIdCard_InvalidIdCardNo(t *testing.T) {
 	setupIdCardTestDB(t)
-	router := idCardRouter()
+	router := idCardRouter(uuid.New().String())
 
 	body := `{"id_card_no":"12345"}`
 	req := httptest.NewRequest("PUT", "/api/admin/user-management/xxx/id-card", bytes.NewBufferString(body))
@@ -117,7 +133,7 @@ func TestUpdateIdCard_InvalidIdCardNo(t *testing.T) {
 
 func TestUpdateIdCard_UserNotFound(t *testing.T) {
 	setupIdCardTestDB(t)
-	router := idCardRouter()
+	router := idCardRouter(uuid.New().String())
 
 	body := `{"real_name":"李四"}`
 	req := httptest.NewRequest("PUT", "/api/admin/user-management/00000000-0000-0000-0000-000000000000/id-card", bytes.NewBufferString(body))
@@ -129,7 +145,8 @@ func TestUpdateIdCard_UserNotFound(t *testing.T) {
 
 func TestRejectIdPhotos_ClearsPhotosAndVoidsBatch(t *testing.T) {
 	db, userID := setupIdCardTestDB(t)
-	router := idCardRouter()
+	operatorID := uuid.New().String()
+	router := idCardRouter(operatorID)
 
 	req := httptest.NewRequest("POST", "/api/admin/user-management/"+userID+"/id-photo/reject", nil)
 	w := httptest.NewRecorder()
@@ -146,6 +163,14 @@ func TestRejectIdPhotos_ClearsPhotosAndVoidsBatch(t *testing.T) {
 	require.NoError(t, db.Where("user_id = ?", userID).First(&batch).Error)
 	assert.Equal(t, "rejected", batch.Status)
 	assert.NotNil(t, batch.RejectReason)
+	// B2.3/M1: reviewed_by 已写入操作人（无 name 记录 → fallback operatorID）。
+	require.NotNil(t, batch.ReviewedBy)
+	assert.Equal(t, operatorID, *batch.ReviewedBy)
+
+	// B2.3: audit_logs 必须真实写入（action=id_photo_reject，操作人 = operatorID）。
+	var audit models.AuditLog
+	require.NoError(t, db.Where("action = ? AND resource_id = ?", "id_photo_reject", userID).First(&audit).Error)
+	assert.Equal(t, operatorID, audit.UserID)
 
 	var n models.Notification
 	require.NoError(t, db.Where("user_id = ? AND type = ?", userID, "id_verify").Order("created_at DESC").First(&n).Error)
@@ -154,7 +179,7 @@ func TestRejectIdPhotos_ClearsPhotosAndVoidsBatch(t *testing.T) {
 
 func TestUserBatches_ReturnsHistory(t *testing.T) {
 	db, userID := setupIdCardTestDB(t)
-	router := idCardRouter()
+	router := idCardRouter(uuid.New().String())
 
 	// Add a rejected historical batch.
 	rejected := models.FaceCaptureBatch{
@@ -190,7 +215,7 @@ func TestUserBatches_ReturnsHistory(t *testing.T) {
 
 func TestUserBatches_UserNotFound(t *testing.T) {
 	setupIdCardTestDB(t)
-	router := idCardRouter()
+	router := idCardRouter(uuid.New().String())
 
 	req := httptest.NewRequest("GET", "/api/admin/face-review/user/00000000-0000-0000-0000-000000000000", nil)
 	w := httptest.NewRecorder()

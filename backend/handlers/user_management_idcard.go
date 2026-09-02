@@ -73,27 +73,35 @@ func (h *UserManagementHandler) UpdateIdCard(c *gin.Context) {
 	}
 
 	updates["updated_at"] = time.Now()
-	if err := db.Model(&user).Updates(updates).Error; err != nil {
+	// audit_logs 与业务写入同事务（与 face_review.go Review 一致）；audit 失败仅
+	// log（不阻断业务提交），但错误必须可见，不得静默吞错。
+	err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&user).Updates(updates).Error; err != nil {
+			return fmt.Errorf("update user id card: %w", err)
+		}
+		detailsJSON, _ := json.Marshal(map[string]interface{}{
+			"fields_updated": updates,
+		})
+		detailStr := string(detailsJSON)
+		if err := tx.Create(&models.AuditLog{
+			ID:           uuid.New().String(),
+			TenantID:     user.TenantID,
+			UserID:       operatorID,
+			Action:       "id_card_update",
+			ResourceType: "user",
+			ResourceID:   user.ID,
+			Details:      &detailStr,
+			CreatedAt:    time.Now(),
+		}).Error; err != nil {
+			log.Printf("[IdCard] audit log write failed for user %s: %v", user.ID, err)
+		}
+		return nil
+	})
+	if err != nil {
 		log.Printf("[IdCard] update failed for user %s: %v", user.ID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update id card info"})
 		return
 	}
-
-	// audit_logs 留痕（与 face_review.go Review 一致）。
-	detailsJSON, _ := json.Marshal(map[string]interface{}{
-		"fields_updated": updates,
-	})
-	detailStr := string(detailsJSON)
-	_ = db.Create(&models.AuditLog{
-		ID:           uuid.New().String(),
-		TenantID:     user.TenantID,
-		UserID:       operatorID,
-		Action:       "id_card_update",
-		ResourceType: "user",
-		ResourceID:   user.ID,
-		Details:      &detailStr,
-		CreatedAt:    time.Now(),
-	}).Error
 
 	services.Notify(db, user.TenantID, user.ID, "id_verify", "实名信息已采集",
 		"平台已完成您的实名信息采集，请继续完成人脸信息采集", user.ID, "user")
@@ -109,6 +117,12 @@ func (h *UserManagementHandler) UpdateIdCard(c *gin.Context) {
 func (h *UserManagementHandler) RejectIdPhotos(c *gin.Context) {
 	ctx := c.Request.Context()
 	operatorID := middleware.GetUserID(ctx)
+	// 操作人姓名（本地 users 缓存，reviewed_by/audit 留痕用；与 face_review.go 一致）。
+	operatorName := operatorID
+	var opUser models.User
+	if err := h.platformDB(c).Select("name").Where("iam_sub = ?", operatorID).First(&opUser).Error; err == nil && opUser.Name != "" {
+		operatorName = opUser.Name
+	}
 	db := h.platformDB(c)
 	var user models.User
 	if err := db.Where("id = ?", c.Param("id")).First(&user).Error; err != nil {
@@ -117,6 +131,8 @@ func (h *UserManagementHandler) RejectIdPhotos(c *gin.Context) {
 	}
 
 	now := time.Now()
+	// audit_logs 与业务写入同事务（与 face_review.go Review 一致）；audit 失败仅
+	// log（不阻断业务提交），但错误必须可见，不得静默吞错。
 	err := db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(&user).Updates(map[string]interface{}{
 			"id_photo_front":     nil,
@@ -138,9 +154,23 @@ func (h *UserManagementHandler) RejectIdPhotos(c *gin.Context) {
 			Where("user_id = ? AND status = ?", user.ID, "pending").
 			Updates(map[string]interface{}{
 				"status": "rejected", "reject_reason": "证件照被管理员拒绝，请重新提交",
-				"reviewed_by": operatorID, "reviewed_at": now,
+				"reviewed_by": operatorName, "reviewed_at": now,
 			}).Error; err != nil {
 			return fmt.Errorf("void pending batches: %w", err)
+		}
+		detailsJSON, _ := json.Marshal(map[string]string{"result": "rejected", "reason": "证件照被管理员拒绝"})
+		detailStr := string(detailsJSON)
+		if err := tx.Create(&models.AuditLog{
+			ID:           uuid.New().String(),
+			TenantID:     user.TenantID,
+			UserID:       operatorID,
+			Action:       "id_photo_reject",
+			ResourceType: "user",
+			ResourceID:   user.ID,
+			Details:      &detailStr,
+			CreatedAt:    now,
+		}).Error; err != nil {
+			log.Printf("[IdCard] audit log write failed for user %s: %v", user.ID, err)
 		}
 		return nil
 	})
@@ -149,20 +179,6 @@ func (h *UserManagementHandler) RejectIdPhotos(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to reject id photos"})
 		return
 	}
-
-	// audit_logs 留痕（与 face_review.go Review 一致）。
-	detailsJSON, _ := json.Marshal(map[string]string{"result": "rejected", "reason": "证件照被管理员拒绝"})
-	detailStr := string(detailsJSON)
-	_ = db.Create(&models.AuditLog{
-		ID:           uuid.New().String(),
-		TenantID:     user.TenantID,
-		UserID:       operatorID,
-		Action:       "id_photo_reject",
-		ResourceType: "user",
-		ResourceID:   user.ID,
-		Details:      &detailStr,
-		CreatedAt:    time.Now(),
-	}).Error
 
 	services.Notify(db, user.TenantID, user.ID, "id_verify", "证件照未通过，请重新上传",
 		"您提交的身份证照片未通过审核，请重新上传清晰的证件照", user.ID, "user")
