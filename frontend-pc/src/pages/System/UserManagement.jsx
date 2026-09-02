@@ -371,9 +371,10 @@ export default function UserManagement() {
                       </div>
                       <Space>
                         <Button type="primary" onClick={handleSaveIdCard}>保存</Button>
-                        <Button danger onClick={handleRejectIdPhotos}>拒绝采用</Button>
                       </Space>
                     </Form>
+                    {/* Bug 3 fix: 拒绝采用按钮移出 Form disabled 包裹，verified 状态下仍可点击 */}
+                    <Button danger onClick={handleRejectIdPhotos} style={{ marginTop: 8 }}>拒绝采用</Button>
                   </div>
                 ),
               },

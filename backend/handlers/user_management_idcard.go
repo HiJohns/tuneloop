@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -8,10 +9,12 @@ import (
 	"strings"
 	"time"
 
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -60,6 +63,8 @@ func (h *UserManagementHandler) UpdateIdCard(c *gin.Context) {
 		return
 	}
 
+	ctx := c.Request.Context()
+	operatorID := middleware.GetUserID(ctx)
 	db := h.platformDB(c)
 	var user models.User
 	if err := db.Where("id = ?", c.Param("id")).First(&user).Error; err != nil {
@@ -74,6 +79,22 @@ func (h *UserManagementHandler) UpdateIdCard(c *gin.Context) {
 		return
 	}
 
+	// audit_logs 留痕（与 face_review.go Review 一致）。
+	detailsJSON, _ := json.Marshal(map[string]interface{}{
+		"fields_updated": updates,
+	})
+	detailStr := string(detailsJSON)
+	_ = db.Create(&models.AuditLog{
+		ID:           uuid.New().String(),
+		TenantID:     user.TenantID,
+		UserID:       operatorID,
+		Action:       "id_card_update",
+		ResourceType: "user",
+		ResourceID:   user.ID,
+		Details:      &detailStr,
+		CreatedAt:    time.Now(),
+	}).Error
+
 	services.Notify(db, user.TenantID, user.ID, "id_verify", "实名信息已采集",
 		"平台已完成您的实名信息采集，请继续完成人脸信息采集", user.ID, "user")
 
@@ -86,6 +107,8 @@ func (h *UserManagementHandler) UpdateIdCard(c *gin.Context) {
 // POST /admin/user-management/:id/id-photo/reject
 // On success notifies the user (ntype=id_verify).
 func (h *UserManagementHandler) RejectIdPhotos(c *gin.Context) {
+	ctx := c.Request.Context()
+	operatorID := middleware.GetUserID(ctx)
 	db := h.platformDB(c)
 	var user models.User
 	if err := db.Where("id = ?", c.Param("id")).First(&user).Error; err != nil {
@@ -115,7 +138,7 @@ func (h *UserManagementHandler) RejectIdPhotos(c *gin.Context) {
 			Where("user_id = ? AND status = ?", user.ID, "pending").
 			Updates(map[string]interface{}{
 				"status": "rejected", "reject_reason": "证件照被管理员拒绝，请重新提交",
-				"reviewed_at": now,
+				"reviewed_by": operatorID, "reviewed_at": now,
 			}).Error; err != nil {
 			return fmt.Errorf("void pending batches: %w", err)
 		}
@@ -126,6 +149,20 @@ func (h *UserManagementHandler) RejectIdPhotos(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to reject id photos"})
 		return
 	}
+
+	// audit_logs 留痕（与 face_review.go Review 一致）。
+	detailsJSON, _ := json.Marshal(map[string]string{"result": "rejected", "reason": "证件照被管理员拒绝"})
+	detailStr := string(detailsJSON)
+	_ = db.Create(&models.AuditLog{
+		ID:           uuid.New().String(),
+		TenantID:     user.TenantID,
+		UserID:       operatorID,
+		Action:       "id_photo_reject",
+		ResourceType: "user",
+		ResourceID:   user.ID,
+		Details:      &detailStr,
+		CreatedAt:    time.Now(),
+	}).Error
 
 	services.Notify(db, user.TenantID, user.ID, "id_verify", "证件照未通过，请重新上传",
 		"您提交的身份证照片未通过审核，请重新上传清晰的证件照", user.ID, "user")
