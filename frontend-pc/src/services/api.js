@@ -614,6 +614,8 @@ export const invoiceApi = {
 export const faceReviewApi = {
   queue: () => api.get('/admin/face-review/queue'),
   review: (batchId, data) => api.post(`/admin/face-review/${batchId}`, data),
+  // #1810: 按用户查全部采集批次（详情对话框模块 2）
+  userBatches: (userId) => api.get(`/admin/face-review/user/${userId}`),
 }
 
 // #1795 T6: 平台员工管理
