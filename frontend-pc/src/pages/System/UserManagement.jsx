@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Table, Input, Button, Space, Modal, Form, InputNumber, Switch, message, Tag, Typography, Collapse, Descriptions, Image, Divider, Alert } from 'antd'
+import { Table, Input, Button, Space, Modal, Form, InputNumber, Switch, message, Tag, Typography, Collapse, Image, Divider, Alert } from 'antd'
 import { DownloadOutlined, IdcardOutlined, ScanOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { api, faceReviewApi } from '../../services/api'
 import IdPhotoDisplay from '../../components/IdPhotoDisplay'
@@ -60,6 +60,7 @@ export default function UserManagement() {
   useEffect(() => { fetchList(1) }, [])
 
   const handleExport = () => {
+    // eslint-disable-next-line no-undef
     const params = new URLSearchParams()
     if (search) params.set('search', search)
     window.open(`/api/admin/user-management/export?${params.toString()}`)
@@ -251,7 +252,6 @@ export default function UserManagement() {
 
   const idCardStatusTag = idCardStatus(detail)
   const verifyStatus = detail?.id_verify_status || 'none'
-  const latestBatch = batches.length > 0 ? batches[0] : null
 
   return (
     <div>
