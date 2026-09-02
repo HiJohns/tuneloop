@@ -63,7 +63,9 @@ export default function EditProfile() {
           setFaceVerifiedAt(result.data.face_verified_at || '')
           setIdVerifyStatus(result.data.id_verify_status || '')
         }
-      } catch {}
+      } catch (e) {
+        // Silently ignore fetch errors on mount
+      }
     }
     fetchUser()
   }, [])
@@ -91,9 +93,11 @@ export default function EditProfile() {
         // H5 (Vite) has no Taro runtime — use platform dialog/navigation
         if (env.isMiniProgram) {
           Taro.showToast({ title: '保存成功', icon: 'success' })
+          // eslint-disable-next-line no-undef
           setTimeout(() => Taro.navigateBack(), 800)
         } else {
           dialog.toast('保存成功')
+          // eslint-disable-next-line no-undef
           setTimeout(() => window.history.back(), 800)
         }
       } else {
