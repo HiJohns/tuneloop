@@ -81,10 +81,19 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	inventoryHandler := handlers.NewInventoryHandler()
 	authHandler := handlers.NewAuthHandler(database.GetDB())
 
-	// Face verify provider: NullFaceProvider when Tencent Cloud credentials are not set.
+	// Face verify provider (#1807 阶段1)：
+	//   FACE_VERIFY_PROVIDER=manual（默认）→ NullFaceProvider，人工审核兜底（现状）
+	//   FACE_VERIFY_PROVIDER=eid      → 腾讯云 E证通（跳转官方小程序核身）
+	//   FACE_VERIFY_PROVIDER=faceid   → 腾讯云慧眼 FaceID（站内插件核身）
+	// 仅当 TENCENTCLOUD_SECRET_ID/KEY 配置就绪时切换，否则一律人工审核。
 	var faceVerifyProvider tencentcloud.FaceVerifyProvider = tencentcloud.NullFaceProvider{}
 	if cfg := tencentcloud.LoadConfig(); cfg.Configured() {
-		faceVerifyProvider = tencentcloud.NewRealFaceProvider(cfg)
+		switch os.Getenv("FACE_VERIFY_PROVIDER") {
+		case "eid":
+			faceVerifyProvider = tencentcloud.NewEidProvider(cfg)
+		case "faceid":
+			faceVerifyProvider = tencentcloud.NewRealFaceProvider(cfg)
+		}
 	}
 
 	// New handlers for Issue #299 (Maintenance, Appeal, Warehouse, User Rental)

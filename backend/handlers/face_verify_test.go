@@ -182,6 +182,9 @@ func TestFaceVerify_ResultPassed(t *testing.T) {
 	require.NoError(t, db.Where("iam_sub = ?", userID).First(&user).Error)
 	require.True(t, user.FaceVerified)
 	require.NotNil(t, user.FaceVerifiedAt)
+	// #1807 阶段1: 自动核身来源标记
+	require.NotNil(t, user.FaceVerifyMethod)
+	require.Equal(t, "tencent", *user.FaceVerifyMethod)
 }
 
 func TestFaceVerify_ResultFailed(t *testing.T) {
