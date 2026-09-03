@@ -207,10 +207,7 @@ export default function EditProfile() {
                 {idVerifyStatus === 'none' ? (
                   <>
                     <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600' }}>⚠️ 尚未完成实名认证</Text>
-                    <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>请先上传身份证照片</Text>
-                    <View onClick={goFaceVerify} style={{ marginTop: 8, padding: 4 }}>
-                      <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600', textDecorationLine: 'underline' }}>去上传身份证 ›</Text>
-                    </View>
+                    <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>请先在上方上传身份证照片</Text>
                   </>
                 ) : idVerifyStatus === 'rejected' ? (
                   <>

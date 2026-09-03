@@ -7,7 +7,7 @@ import Taro from '@tarojs/taro'
 import { View, Text, Camera } from '@tarojs/components'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, resolveErrorMessage } from '../services/api'
-import { env, dialog, uploadFile, storage } from '../platform'
+import { env, dialog, uploadFile, storage, getCameraContext } from '../platform'
 import { session } from '../platform'
 import FaceCaptureUploader from '../components/FaceCaptureUploader'
 
@@ -21,8 +21,8 @@ export default function FaceVerify() {
   const [countdown, setCountdown] = useState(0)
   const [blinkVisible, setBlinkVisible] = useState(false)
   const [uploadError, setUploadError] = useState('')
-  const cameraRef = useRef(null)
   const photoPathRef = useRef('')
+  const videoPathRef = useRef('')
   const countdownRef = useRef(null)
   const navigate = useNavigate()
   const baseUrl = env.apiBaseUrl
@@ -62,7 +62,6 @@ export default function FaceVerify() {
   }
 
   // Upload photo + optional video → POST /user/face-capture (weapp 分离上传)
-  // Defined first so handleStopRecord / handleShutter can reference it without no-use-before-define.
   const doUpload = async (imagePath, videoPath) => {
     setUploadError('')
     try {
@@ -95,6 +94,7 @@ export default function FaceVerify() {
       }, 800)
     } catch (err) {
       setUploadError(err.message || '上传失败，请重试')
+      // P5: don't lose recorded material — return to idle but keep photo/video refs
       setPhase('idle')
     }
   }
@@ -106,27 +106,23 @@ export default function FaceVerify() {
     }
     setBlinkVisible(false)
     setPhase('Uploading')
-    const cam = cameraRef.current
-    if (cam) {
-      cam.stopRecord({
-        success: (res) => {
-          const videoPath = res?.tempFilePath || ''
-          doUpload(photoPathRef.current, videoPath)
-        },
-        fail: () => {
-          doUpload(photoPathRef.current, '')
-        },
-      })
-    } else {
-      doUpload(photoPathRef.current, '')
-    }
+    const cam = getCameraContext()
+    cam.stopRecord({
+      success: (res) => {
+        const vp = res?.tempFilePath || ''
+        videoPathRef.current = vp
+        doUpload(photoPathRef.current, vp)
+      },
+      fail: () => {
+        doUpload(photoPathRef.current, '')
+      },
+    })
   }
 
   // Shutter button: click 1st = photo + auto-record, click 2nd = stop record
   const handleShutter = () => {
     if (phase === 'idle') {
-      const cam = cameraRef.current
-      if (!cam) return
+      const cam = getCameraContext()
       cam.takePhoto({
         quality: 'high',
         success: (res) => {
@@ -217,9 +213,8 @@ export default function FaceVerify() {
 
     return (
       <View style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#000' }}>
-        {/* Full-screen front camera */}
+        {/* Full-screen front camera — getCameraContext() targets first <Camera> on page */}
         <Camera
-          ref={cameraRef}
           devicePosition="front"
           style={{ width: '100%', height: '100%' }}
           onError={handleCameraError}

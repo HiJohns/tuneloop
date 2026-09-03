@@ -178,6 +178,13 @@ export const env = {
   isMiniProgram,
   isWechat: isWechatBrowser || isMiniProgram,
 }
+// H5: no Camera component — return a stub that rejects all operations.
+export const getCameraContext = () => ({
+  takePhoto: (opts) => opts?.fail?.({ errMsg: 'H5 不支持摄像头' }) || opts?.complete?.({}),
+  startRecord: (opts) => opts?.fail?.({ errMsg: 'H5 不支持录像' }) || opts?.complete?.({}),
+  stopRecord: (opts) => opts?.fail?.({ errMsg: 'H5 不支持录像' }) || opts?.complete?.({}),
+})
+
 export const wxLogin = () => Promise.resolve('')
 export const getPhoneNumber = () => ({ encryptedData: '', iv: '' })
 

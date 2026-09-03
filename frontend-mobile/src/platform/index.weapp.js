@@ -188,6 +188,9 @@ export const getWindowSize = () => {
   }
 }
 
+// Weapp: wrap Taro.createCameraContext() for FaceVerify camera flow.
+export const getCameraContext = () => Taro.createCameraContext()
+
 export const wxLogin = () => new Promise((resolve, reject) => {
   const timer = setTimeout(() => reject(new Error('wxLogin timeout')), 5000)
   Taro.login({
