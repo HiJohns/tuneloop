@@ -612,7 +612,7 @@ export const invoiceApi = {
 
 // #1793 T5: 实名核身人工审核队列
 export const faceReviewApi = {
-  queue: () => api.get('/admin/face-review/queue'),
+  queue: (params = {}) => api.get('/admin/face-review/queue', { params }),
   review: (batchId, data) => api.post(`/admin/face-review/${batchId}`, data),
   // #1810: 按用户查全部采集批次（详情对话框模块 2）
   userBatches: (userId) => api.get(`/admin/face-review/user/${userId}`),

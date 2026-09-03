@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Table, Input, Button, Space, Modal, Form, InputNumber, Switch, message, Tag, Typography, Collapse, Image, Divider, Alert } from 'antd'
-import { DownloadOutlined, IdcardOutlined, ScanOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
+import { DownloadOutlined, IdcardOutlined, ScanOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import { api, faceReviewApi } from '../../services/api'
 import IdPhotoDisplay from '../../components/IdPhotoDisplay'
 
@@ -35,13 +35,8 @@ export default function UserManagement() {
   const [detail, setDetail] = useState(null)
   const [idCardForm] = Form.useForm()
   const [form] = Form.useForm()
-  // Module 2: face batches + review state
+  // Module 2: face batches (read-only, review via face-review queue #1813)
   const [batches, setBatches] = useState([])
-  const [approving, setApproving] = useState(null)
-  const [reviewing, setReviewing] = useState(null)
-  const [rejectReason, setRejectReason] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [showIdPhotosCompare, setShowIdPhotosCompare] = useState(false)
 
   const fetchList = async (p = page, ps = pageSize, s = search) => {
     setLoading(true)
@@ -171,62 +166,7 @@ export default function UserManagement() {
   }
 
   // ---- Module 2: face review ----
-  const handleApprove = async (batchId) => {
-    const values = approving
-    if (!values.real_name?.trim() || !values.id_card_no?.trim() || !values.id_card_expire?.trim() || !values.id_card_authority?.trim() || !values.id_card_address?.trim()) {
-      message.warning('请填写完整实名信息（根据证件照核对）')
-      return
-    }
-    if (!/^\d{17}[\dX]$/.test(values.id_card_no.trim())) {
-      message.warning('身份证号格式不正确（18 位，末位可为 X）')
-      return
-    }
-    setSubmitting(true)
-    try {
-      const resp = await faceReviewApi.review(batchId, {
-        action: 'approve',
-        real_name: values.real_name.trim(),
-        id_card_no: values.id_card_no.trim(),
-        id_card_expire: values.id_card_expire.trim(),
-        id_card_authority: values.id_card_authority.trim(),
-        id_card_address: values.id_card_address.trim(),
-      })
-      if (resp.code === 20000) {
-        message.success('已通过')
-        setApproving(null)
-        loadDetail(current.id)
-      } else {
-        message.error(resp.message || '操作失败')
-      }
-    } catch (error) {
-      message.error(error.message || '操作失败')
-    } finally {
-      setSubmitting(false)
-    }
-  }
 
-  const handleReject = async (batchId) => {
-    if (!rejectReason.trim()) {
-      message.warning('请填写驳回原因')
-      return
-    }
-    setSubmitting(true)
-    try {
-      const resp = await faceReviewApi.review(batchId, { action: 'reject', reason: rejectReason.trim() })
-      if (resp.code === 20000) {
-        message.success('已驳回')
-        setReviewing(null)
-        setRejectReason('')
-        loadDetail(current.id)
-      } else {
-        message.error(resp.message || '操作失败')
-      }
-    } catch (error) {
-      message.error(error.message || '操作失败')
-    } finally {
-      setSubmitting(false)
-    }
-  }
 
   const columns = [
     {
@@ -418,13 +358,9 @@ export default function UserManagement() {
                             {(b.selfie_urls || []).length === 0 && <Text type="secondary">无自拍素材</Text>}
                           </Space>
                           {b.status === 'pending' && detail?.face_verify_method !== 'tencent' && (
-                            <Space>
-                              <Button type="primary" size="small" icon={<CheckCircleOutlined />}
-                                onClick={() => setApproving({ batch_id: b.batch_id })}>确认通过</Button>
-                              <Button danger size="small" icon={<CloseCircleOutlined />}
-                                onClick={() => setReviewing(b.batch_id)}>驳回</Button>
-                              <Button size="small" onClick={() => setShowIdPhotosCompare(true)}>唤出证件照对比</Button>
-                            </Space>
+                            <Button type="link" size="small" href={`/face-review?user_id=${current?.id}`} target="_blank">
+                              去实名审核队列处理 ›
+                            </Button>
                           )}
                           {b.status === 'approved' && detail?.face_verified && (
                             <Text type="success"><CheckCircleOutlined /> 已核身{detail?.face_verified_at ? `（${new Date(detail.face_verified_at).toLocaleString()}）` : ''}</Text>
@@ -438,71 +374,6 @@ export default function UserManagement() {
             ]}
           />
         </Form>
-      </Modal>
-
-      {/* Approve modal: fill identity info per #1807 */}
-      <Modal
-        title="确认通过核身"
-        open={!!approving}
-        onOk={() => handleApprove(approving?.batch_id)}
-        confirmLoading={submitting}
-        onCancel={() => setApproving(null)}
-        okText="确认通过"
-        cancelText="取消"
-      >
-        <Alert type="warning" showIcon message="请根据身份证照核对填写以下实名信息（不可留空）" style={{ marginBottom: 12 }} />
-        <Form layout="vertical">
-          <Form.Item label="真实姓名" required>
-            <Input value={approving?.real_name || ''} onChange={(e) => setApproving({ ...approving, real_name: e.target.value })} />
-          </Form.Item>
-          <Form.Item label="身份证号" required>
-            <Input maxLength={18} value={approving?.id_card_no || ''} onChange={(e) => setApproving({ ...approving, id_card_no: e.target.value })} />
-          </Form.Item>
-          <Form.Item label="有效期" required>
-            <Input placeholder="YYYY-MM-DD 或「长期」" value={approving?.id_card_expire || ''} onChange={(e) => setApproving({ ...approving, id_card_expire: e.target.value })} />
-          </Form.Item>
-          <Form.Item label="签发机关" required>
-            <Input value={approving?.id_card_authority || ''} onChange={(e) => setApproving({ ...approving, id_card_authority: e.target.value })} />
-          </Form.Item>
-          <Form.Item label="住址" required>
-            <Input value={approving?.id_card_address || ''} onChange={(e) => setApproving({ ...approving, id_card_address: e.target.value })} />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* Reject modal */}
-      <Modal
-        title="驳回人脸采集"
-        open={!!reviewing}
-        onOk={() => handleReject(reviewing)}
-        confirmLoading={submitting}
-        onCancel={() => setReviewing(null)}
-        okText="驳回"
-        okButtonProps={{ danger: true }}
-        cancelText="取消"
-      >
-        <Input.TextArea
-          rows={3}
-          placeholder="请填写驳回原因（必填，将通知用户）"
-          value={rejectReason}
-          onChange={(e) => setRejectReason(e.target.value)}
-        />
-      </Modal>
-
-      {/* ID photo compare modal */}
-      <Modal
-        title="身份证照对比"
-        open={showIdPhotosCompare}
-        onCancel={() => setShowIdPhotosCompare(false)}
-        footer={null}
-        width={560}
-      >
-        <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
-          {idPhotos.front && <Image src={idPhotos.front} width={160} alt="正面" />}
-          {idPhotos.back && <Image src={idPhotos.back} width={160} alt="背面" />}
-          {idPhotos.other && <Image src={idPhotos.other} width={160} alt="其他证件" />}
-          {!idPhotos.front && !idPhotos.back && !idPhotos.other && <Text type="secondary">该用户无证件照</Text>}
-        </div>
       </Modal>
     </div>
   )

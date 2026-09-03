@@ -3,6 +3,7 @@
 // 列表：pending 批次 + 用户证件照三张 + 自拍图/视频 → 通过/驳回（驳回必填原因）
 // 字段边界：仅展示审核所需（姓名 + 证件照 + 自拍），不展示身份证号明文
 import { useState, useCallback, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Table, Card, Button, Space, Tag, Image, Modal, Input, message, Typography } from 'antd'
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { faceReviewApi } from '../../../services/api'
@@ -10,6 +11,8 @@ import { faceReviewApi } from '../../../services/api'
 const { Text } = Typography
 
 export default function FaceReviewPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const filterUserId = searchParams.get('user_id') || ''
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(false)
   const [reviewing, setReviewing] = useState(null) // 当前驳回的 batch
@@ -26,7 +29,8 @@ export default function FaceReviewPage() {
   const fetchQueue = useCallback(async () => {
     setLoading(true)
     try {
-      const resp = await faceReviewApi.queue()
+      const params = filterUserId ? { user_id: filterUserId } : {}
+      const resp = await faceReviewApi.queue(params)
       if (resp.code === 20000) {
         setList(resp.data?.list || [])
       } else {
@@ -37,7 +41,7 @@ export default function FaceReviewPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [filterUserId])
 
   useEffect(() => { fetchQueue() }, [fetchQueue])
 
@@ -174,7 +178,19 @@ export default function FaceReviewPage() {
   ]
 
   return (
-    <Card title="实名核身审核队列" extra={<Button size="small" onClick={fetchQueue}>刷新</Button>}>
+    <Card
+      title="实名核身审核队列"
+      extra={
+        <Space>
+          {filterUserId && (
+            <Tag closable onClose={() => { searchParams.delete('user_id'); setSearchParams(searchParams) }}>
+              按用户筛选：{filterUserId.slice(0, 8)}…
+            </Tag>
+          )}
+          <Button size="small" onClick={fetchQueue}>刷新</Button>
+        </Space>
+      }
+    >
       <Table
         rowKey="batch_id"
         columns={columns}

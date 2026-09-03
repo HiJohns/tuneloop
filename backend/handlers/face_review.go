@@ -55,8 +55,12 @@ func (h *FaceReviewHandler) Queue(c *gin.Context) {
 	db := h.platformDB(c)
 
 	var batches []models.FaceCaptureBatch
-	if err := db.Where("status = ?", "pending").
-		Order("submitted_at ASC").Find(&batches).Error; err != nil {
+	q := db.Where("status = ?", "pending")
+	// #1813: optional user_id filter for single-user focus from user management detail.
+	if uid := c.Query("user_id"); uid != "" {
+		q = q.Where("user_id = ?", uid)
+	}
+	if err := q.Order("submitted_at ASC").Find(&batches).Error; err != nil {
 		log.Printf("[FaceReview] queue query failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to load review queue"})
 		return
