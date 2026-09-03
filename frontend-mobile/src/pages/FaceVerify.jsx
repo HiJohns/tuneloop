@@ -4,23 +4,26 @@
 // H5：保留卡片式 FaceCaptureUploader（下期统一）。
 import { useState, useEffect, useRef } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, Camera } from '@tarojs/components'
+import { View, Text, Camera, Image } from '@tarojs/components'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, resolveErrorMessage } from '../services/api'
 import { env, dialog, uploadFile, storage, getCameraContext } from '../platform'
 import { session } from '../platform'
 import FaceCaptureUploader from '../components/FaceCaptureUploader'
 
+const ACTION_PROMPTS = ['请眨眨眼', '请左右转头', '请张嘴', '请微笑']
+
 export default function FaceVerify() {
   const [status, setStatus] = useState('')
   const [hasIdPhoto, setHasIdPhoto] = useState(false)
   const [loading, setLoading] = useState(true)
   const [cameraErr, setCameraErr] = useState('')
-  // Phase: idle → recording → blink → uploading → fail(保留素材可重试)
+  // Phase: idle → photo_done → recording → blink → uploading → fail(保留素材可重试)
   const [phase, setPhase] = useState('idle')
   const [countdown, setCountdown] = useState(0)
   const [blinkVisible, setBlinkVisible] = useState(false)
   const [uploadError, setUploadError] = useState('')
+  const [actionPrompt, setActionPrompt] = useState('')
   const photoPathRef = useRef('')
   const videoPathRef = useRef('')
   const countdownRef = useRef(null)
@@ -115,6 +118,7 @@ export default function FaceVerify() {
     photoPathRef.current = ''
     videoPathRef.current = ''
     setUploadError('')
+    setActionPrompt('')
     setPhase('idle')
   }
 
@@ -140,7 +144,7 @@ export default function FaceVerify() {
     })
   }
 
-  // Shutter button: click 1st = photo + auto-record, click 2nd = stop record
+  // Shutter button: idle → take photo → photo_done; Recording/Blink → stop early
   const handleShutter = () => {
     if (phase === 'idle') {
       const cam = getCameraContext()
@@ -150,28 +154,35 @@ export default function FaceVerify() {
           const photoPath = res?.tempImagePath
           if (!photoPath) return
           photoPathRef.current = photoPath
-          cam.startRecord({
-            success: () => {
-              setPhase('Recording')
-              setCountdown(5)
-              let remaining = 5
-              countdownRef.current = setInterval(() => {
-                remaining -= 1
-                setCountdown(remaining)
-                if (remaining <= 2) setBlinkVisible(true)
-                if (remaining <= 0) {
-                  clearInterval(countdownRef.current)
-                  countdownRef.current = null
-                  handleStopRecord()
-                }
-              }, 1000)
-            },
-          })
+          setPhase('photo_done')
         },
       })
     } else if (phase === 'Recording' || phase === 'Blink') {
       handleStopRecord()
     }
+  }
+
+  // Continue from photo_done → recording: pick random action + start record
+  const handleContinueRecord = () => {
+    setActionPrompt(ACTION_PROMPTS[Math.floor(Math.random() * ACTION_PROMPTS.length)])
+    const cam = getCameraContext()
+    cam.startRecord({
+      success: () => {
+        setPhase('Recording')
+        setCountdown(5)
+        let remaining = 5
+        countdownRef.current = setInterval(() => {
+          remaining -= 1
+          setCountdown(remaining)
+          if (remaining <= 2) setBlinkVisible(true)
+          if (remaining <= 0) {
+            clearInterval(countdownRef.current)
+            countdownRef.current = null
+            handleStopRecord()
+          }
+        }, 1000)
+      },
+    })
   }
 
   // ---- Status-based message bar (shown in both weapp and H5) ----
@@ -227,7 +238,7 @@ export default function FaceVerify() {
       )
     }
 
-    // Camera mode: idle / recording / blink / uploading
+    // Camera mode: idle / photo_done / recording / blink / uploading
     const shutterLabel = phase === 'Uploading' ? '处理中...'
       : phase === 'Recording' || phase === 'Blink' ? '停止'
       : '拍照'
@@ -260,7 +271,7 @@ export default function FaceVerify() {
             {blinkVisible && phase !== 'Uploading' && (
               <View style={{ position: 'absolute', top: '35%', left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 10 }}>
                 <View style={{ backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 8, padding: '8px 20px' }}>
-                  <Text style={{ fontSize: 18, color: '#fff', fontWeight: '700' }}>请眨眨眼</Text>
+                  <Text style={{ fontSize: 18, color: '#fff', fontWeight: '700' }}>{actionPrompt || '请眨眨眼'}</Text>
                 </View>
               </View>
             )}
@@ -281,11 +292,16 @@ export default function FaceVerify() {
               </View>
             ) : null}
 
-            {/* Bottom controls: fail 态显示 重试上传/重新拍摄 双按钮，其余显示快门 */}
-            <View style={{ position: 'absolute', bottom: 60, left: 0, right: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10 }}>
-              {phase === 'fail' ? (
+            {/* Photo confirmation transition panel (photo_done phase) */}
+            {phase === 'photo_done' && (
+              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 20 }}>
+                <Image
+                  src={photoPathRef.current}
+                  style={{ width: 200, height: 266, borderRadius: 12, marginBottom: 24 }}
+                  mode="aspectFill"
+                />
+                <Text style={{ fontSize: 16, color: '#fff', fontWeight: '600', marginBottom: 48 }}>确认自拍照片</Text>
                 <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
-                  {/* 重新拍摄（左，次要） */}
                   <View
                     onClick={handleRetake}
                     style={{
@@ -297,30 +313,61 @@ export default function FaceVerify() {
                     }}>
                     <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600' }}>重新拍摄</Text>
                   </View>
-                  {/* 重试上传（右，主要） */}
                   <View
-                    onClick={handleRetryUpload}
+                    onClick={handleContinueRecord}
                     style={{
                       paddingLeft: 22, paddingRight: 22, height: 44,
                       borderRadius: 22, backgroundColor: '#915F38',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                    <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600' }}>重试上传</Text>
+                    <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600' }}>继续录视频</Text>
                   </View>
                 </View>
-              ) : (
-                <View
-                  onClick={phase === 'Uploading' ? undefined : handleShutter}
-                  style={{
-                    width: 68, height: 68, borderRadius: 34,
-                    border: '4px solid #fff',
-                    backgroundColor: phase === 'Recording' || phase === 'Blink' ? '#dc2626' : 'rgba(255,255,255,0.3)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                  <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600' }}>{shutterLabel}</Text>
-                </View>
-              )}
-            </View>
+              </View>
+            )}
+
+            {/* Bottom controls: fail → 重试上传/重新拍摄; photo_done → hidden (panel above); else → shutter */}
+            {phase !== 'photo_done' && (
+              <View style={{ position: 'absolute', bottom: 60, left: 0, right: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10 }}>
+                {phase === 'fail' ? (
+                  <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+                    {/* 重新拍摄（左，次要） */}
+                    <View
+                      onClick={handleRetake}
+                      style={{
+                        paddingLeft: 22, paddingRight: 22, height: 44,
+                        borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.25)',
+                        border: '1px solid rgba(255,255,255,0.6)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        marginRight: 16,
+                      }}>
+                      <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600' }}>重新拍摄</Text>
+                    </View>
+                    {/* 重试上传（右，主要） */}
+                    <View
+                      onClick={handleRetryUpload}
+                      style={{
+                        paddingLeft: 22, paddingRight: 22, height: 44,
+                        borderRadius: 22, backgroundColor: '#915F38',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                      <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600' }}>重试上传</Text>
+                    </View>
+                  </View>
+                ) : (
+                  <View
+                    onClick={phase === 'Uploading' ? undefined : handleShutter}
+                    style={{
+                      width: 68, height: 68, borderRadius: 34,
+                      border: '4px solid #fff',
+                      backgroundColor: phase === 'Recording' || phase === 'Blink' ? '#dc2626' : 'rgba(255,255,255,0.3)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                    <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600' }}>{shutterLabel}</Text>
+                  </View>
+                )}
+              </View>
+            )}
           </>
         )}
       </View>

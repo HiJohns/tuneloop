@@ -769,7 +769,7 @@ API 来源：
 | `rejected` | 「审核未通过」红色提示 + 驳回原因 | 「重新采集」按钮（提交新批次） |
 
 **自拍采集交互**:
-- weapp: 相机拍摄（图片）+ 可选视频录制 → 提交 `POST /user/face-capture`（weapp 分离上传：先 image 创建批次，再带 batch_id 追加 video）
+- weapp: 相机拍摄（图片）→ 过渡界面（确认照片，可重拍/继续）→ 可选视频录制（最后 2s 随机动作提示）→ 提交 `POST /user/face-capture`（weapp 分离上传：先 image 创建批次，再带 batch_id 追加 video）
 - H5: 文件上传（图片）+ 可选视频 → 同上
 - 提交成功 → toast「已提交，等待审核」+ 状态变 `pending_review`
 
