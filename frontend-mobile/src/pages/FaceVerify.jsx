@@ -132,7 +132,7 @@ export default function FaceVerify() {
     const cam = getCameraContext()
     cam.stopRecord({
       success: (res) => {
-        const vp = res?.tempFilePath || ''
+        const vp = res?.tempVideoPath || ''
         videoPathRef.current = vp
         doUpload(photoPathRef.current, vp)
       },
