@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
+	"tuneloop-backend/database"
 	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -34,6 +35,43 @@ func faceReviewRouter(t *testing.T, operatorID string) *gin.Engine {
 	router.GET("/admin/face-review/queue", h.Queue)
 	router.POST("/admin/face-review/:batchId", h.Review)
 	return router
+}
+
+// faceReviewRouterWithTenant 创建测试路由器，中间件同时设置 tenant_id（模拟平台员工带租户 scope）。
+func faceReviewRouterWithTenant(t *testing.T, operatorID, tenantID string) *gin.Engine {
+	t.Helper()
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		ctx := context.WithValue(c.Request.Context(), middleware.ContextKeyUserID, operatorID)
+		ctx = database.SetTenantID(ctx, tenantID)
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	h := &FaceReviewHandler{}
+	router.GET("/admin/face-review/queue", h.Queue)
+	router.POST("/admin/face-review/:batchId", h.Review)
+	router.GET("/admin/face-review/user/:userId", h.UserBatches)
+	return router
+}
+
+// setupReviewUserZeroTenant 创建零租户顾客（tenant_id=00000000-...）+ pending 批次，用于验证 #1812 修复。
+func setupReviewUserZeroTenant(t *testing.T) (string, string, *gorm.DB) {
+	t.Helper()
+	db := testfixtures.SetupTestDB(t)
+	user := models.User{
+		ID: uuid.New().String(), IAMSub: uuid.New().String(),
+		TenantID: "00000000-0000-0000-0000-000000000000", OrgID: "00000000-0000-0000-0000-000000000000",
+		Username: "zero-" + uuid.NewString()[:6], Status: "active",
+		Name:         "零租户顾客",
+		IdPhotoFront: strPtr("/uploads/media/front.jpg"),
+	}
+	require.NoError(t, db.Create(&user).Error)
+	batch := models.FaceCaptureBatch{
+		ID: uuid.New().String(), UserID: user.ID, Status: "pending",
+		SubmittedAt: time.Now(), CreatedAt: time.Now(),
+	}
+	require.NoError(t, db.Create(&batch).Error)
+	return user.ID, batch.ID, db
 }
 
 // setupReviewUser 创建待审核用户（证件照 + pending 批次）+ 返回 userID/batchID。
@@ -251,4 +289,56 @@ func TestFaceReview_Approve_RequiresRealInfo(t *testing.T) {
 	router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusBadRequest, w.Code, w.Body.String())
 	require.Contains(t, w.Body.String(), "real_name, id_card_no, id_card_expire, id_card_authority and id_card_address are required")
+}
+
+// TestFaceReview_Queue_ZeroTenantCustomer (#1812): 平台员工带 tenant scope 访问队列，
+// 应能看到零租户顾客（tenant_id=00000000-...）的 pending 批次。修复前因
+// addTenantScope 过滤 users 查询导致 record not found → 队列空。
+func TestFaceReview_Queue_ZeroTenantCustomer(t *testing.T) {
+	_, batchID, _ := setupReviewUserZeroTenant(t)
+	staffTenant := uuid.New().String()
+	router := faceReviewRouterWithTenant(t, uuid.New().String(), staffTenant)
+
+	req := httptest.NewRequest("GET", "/admin/face-review/queue", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			List  []map[string]interface{} `json:"list"`
+			Total int                      `json:"total"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+	require.Equal(t, 1, resp.Data.Total, "zero-tenant customer batch should appear in queue")
+	require.Equal(t, batchID, resp.Data.List[0]["batch_id"])
+}
+
+// TestFaceReview_UserBatches_ZeroTenantCustomer (#1812): 平台员工带 tenant scope
+// 访问用户批次列表，应能看到零租户顾客的全部批次。修复前因 addTenantScope 过滤
+// users 查询导致 404。
+func TestFaceReview_UserBatches_ZeroTenantCustomer(t *testing.T) {
+	userID, batchID, _ := setupReviewUserZeroTenant(t)
+	staffTenant := uuid.New().String()
+	router := faceReviewRouterWithTenant(t, uuid.New().String(), staffTenant)
+
+	req := httptest.NewRequest("GET", "/admin/face-review/user/"+userID, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			List  []map[string]interface{} `json:"list"`
+			Total int                      `json:"total"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+	require.Equal(t, 1, resp.Data.Total, "zero-tenant customer batch should appear")
+	require.Equal(t, batchID, resp.Data.List[0]["batch_id"])
 }

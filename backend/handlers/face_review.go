@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -12,11 +13,21 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // FaceReviewHandler (#1791 T3): 实名核身人工审核队列。
 // 权限：平台员工/系统管理员（SysPermUserUpdate），非 org 隔离（全用户可见）。
 type FaceReviewHandler struct{}
+
+// platformDB returns a DB instance exempt from tenant query scoping.
+// Face review is a platform-level feature that must see ALL users including
+// customers with empty tenant_id (00000000-...). Without this, the global
+// addTenantScope callback filters out zero-tenant users (bug #1812).
+func (h *FaceReviewHandler) platformDB(c *gin.Context) *gorm.DB {
+	ctx := context.WithValue(c.Request.Context(), database.TenantIDKey, "")
+	return database.GetDB().WithContext(ctx)
+}
 
 // faceReviewItem 审核队列条目（含用户证件照三张 + 自拍素材 URL）。
 type faceReviewItem struct {
@@ -41,8 +52,7 @@ func resolveSelfieURL(key string) string {
 
 // Queue handles GET /admin/face-review/queue.
 func (h *FaceReviewHandler) Queue(c *gin.Context) {
-	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
+	db := h.platformDB(c)
 
 	var batches []models.FaceCaptureBatch
 	if err := db.Where("status = ?", "pending").
@@ -104,8 +114,7 @@ type faceReviewBatchItem struct {
 }
 
 func (h *FaceReviewHandler) UserBatches(c *gin.Context) {
-	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
+	db := h.platformDB(c)
 	userID := c.Param("userId")
 
 	var user models.User
@@ -158,7 +167,7 @@ func (h *FaceReviewHandler) UserBatches(c *gin.Context) {
 // 留痕双写（R2 M4）：face_capture_batches.reviewed_by/at + audit_logs。
 func (h *FaceReviewHandler) Review(c *gin.Context) {
 	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
+	db := h.platformDB(c)
 	operatorID := middleware.GetUserID(ctx)
 	batchID := c.Param("batchId")
 
