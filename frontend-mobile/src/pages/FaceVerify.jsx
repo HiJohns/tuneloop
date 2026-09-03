@@ -307,7 +307,7 @@ export default function FaceVerify() {
                   mode="aspectFill"
                 />
                 <Text style={{ fontSize: 16, color: '#fff', fontWeight: '600', marginBottom: 8 }}>图像采集完成！</Text>
-                <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginBottom: 40, paddingHorizontal: 32, textAlign: 'center', lineHeight: 20 }}>下面还需要采集一段视频，录制过程中会提示您完成一个动作，请配合。</Text>
+                <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginBottom: 40, paddingHorizontal: 32, textAlign: 'center', lineHeight: '20px' }}>下面还需要采集一段视频，录制过程中会提示您完成一个动作，请配合。</Text>
                 <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
                   <View
                     onClick={handleRetake}
