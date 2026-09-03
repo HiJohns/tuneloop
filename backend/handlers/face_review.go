@@ -10,6 +10,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -214,6 +215,12 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 		return
 	}
 
+	// 查目标用户 tenant_id（通知用；零租户顾客 tenant_id 为 UUID 零值）。
+	var targetUser models.User
+	if err := db.Select("id, tenant_id").Where("id = ?", batch.UserID).First(&targetUser).Error; err != nil {
+		log.Printf("[FaceReview] target user %s not found: %v", batch.UserID, err)
+	}
+
 	tx := db.Begin()
 
 	if req.Action == "approve" {
@@ -279,6 +286,18 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 	}
 
 	tx.Commit()
+
+	// #1816: 审核通过/驳回后通知顾客（ntype=id_verify，与 user_management_idcard.go 一致）。
+	if targetUser.ID != "" {
+		if req.Action == "approve" {
+			services.Notify(db, targetUser.TenantID, targetUser.ID, "id_verify", "实名认证已通过",
+				"您的人脸核身已审核通过，实名认证已完成", targetUser.ID, "user")
+		} else {
+			services.Notify(db, targetUser.TenantID, targetUser.ID, "id_verify", "实名认证未通过，请重新采集",
+				"您的人脸核身审核未通过，请重新采集。原因："+req.Reason, targetUser.ID, "user")
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{"status": batch.Status},

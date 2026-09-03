@@ -136,6 +136,11 @@ func TestFaceReview_Approve(t *testing.T) {
 	// audit_logs 留痕。
 	var audit models.AuditLog
 	require.NoError(t, db.Where("action = ? AND resource_id = ?", "face_review_approve", userID).First(&audit).Error)
+
+	// #1816: 通知顾客（ntype=id_verify）。
+	var notif models.Notification
+	require.NoError(t, db.Where("user_id = ? AND type = ?", userID, "id_verify").First(&notif).Error)
+	require.Equal(t, "实名认证已通过", notif.Title)
 }
 
 // TestFaceReview_Approve_LongExpire (#1807): 有效期支持「长期」。
@@ -185,6 +190,12 @@ func TestFaceReview_Reject(t *testing.T) {
 	var user models.User
 	require.NoError(t, db.Where("id = ?", userID).First(&user).Error)
 	require.False(t, user.FaceVerified)
+
+	// #1816: 通知顾客（ntype=id_verify）。
+	var notif models.Notification
+	require.NoError(t, db.Where("user_id = ? AND type = ?", userID, "id_verify").First(&notif).Error)
+	require.Equal(t, "实名认证未通过，请重新采集", notif.Title)
+	require.Contains(t, notif.Content, "照片与证件不符")
 }
 
 // TestFaceReview_Queue (#1791): 队列返回 pending 批次 + 证件照 + 自拍素材。
