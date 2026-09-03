@@ -202,16 +202,33 @@ export default function EditProfile() {
             </View>
           ) : (
             <View>
-              {/* #1807: 身份证照未验证 → 黄色字体警告 + 链接进入独立人脸识别模式页。
-                   实名信息（真实姓名/身份证号）由员工在审核流程根据身份证照核对填写。 */}
+              {/* #1811: 按 id_verify_status 细分文案 + 分行（weapp Text 不渲染 \n） */}
               <View style={{ padding: 12, backgroundColor: '#fefce8', borderRadius: 8, borderWidth: 1, borderColor: '#fde68a' }}>
-                <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600' }}>⚠️ 尚未完成实名认证</Text>
-                <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>
-                  请先上传身份证照片，并完成人脸识别。提交后由平台员工核对证件信息完成实名认证。
-                </Text>
-                <View onClick={goFaceVerify} style={{ marginTop: 8, padding: 4 }}>
-                  <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600', textDecorationLine: 'underline' }}>去人脸识别 ›</Text>
-                </View>
+                {idVerifyStatus === 'none' ? (
+                  <>
+                    <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600' }}>⚠️ 尚未完成实名认证</Text>
+                    <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>请先上传身份证照片</Text>
+                    <View onClick={goFaceVerify} style={{ marginTop: 8, padding: 4 }}>
+                      <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600', textDecorationLine: 'underline' }}>去上传身份证 ›</Text>
+                    </View>
+                  </>
+                ) : idVerifyStatus === 'rejected' ? (
+                  <>
+                    <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600' }}>⚠️ 审核未通过</Text>
+                    <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>请重新发起人脸识别</Text>
+                    <View onClick={goFaceVerify} style={{ marginTop: 8, padding: 4 }}>
+                      <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600', textDecorationLine: 'underline' }}>发起人脸识别 ›</Text>
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600' }}>⚠️ 已上传身份证照片</Text>
+                    <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>请完成人脸识别</Text>
+                    <View onClick={goFaceVerify} style={{ marginTop: 8, padding: 4 }}>
+                      <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600', textDecorationLine: 'underline' }}>发起人脸识别 ›</Text>
+                    </View>
+                  </>
+                )}
               </View>
             </View>
           )}

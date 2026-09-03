@@ -1,27 +1,29 @@
-// FaceVerify — 人脸识别模式独立页（#1807）
+// FaceVerify — 人脸识别模式独立页（#1807 → #1811 重构）
 // 编辑资料页身份证照未验证时，黄色警告 + 链接进入本页。
-// 采集信息取决于人脸识别+身份证校验所需：自拍照片（必选）+ 动态视频（可选，
-// 活体佐证）→ POST /user/face-capture → 平台员工人工审核（未实装腾讯云）。
-import { useState, useEffect } from 'react'
+// weapp：全屏 Camera 前摄预览 + 快门（拍照+自动录像+眨眼引导）→ 自动上传 → 自动返回。
+// H5：保留卡片式 FaceCaptureUploader（下期统一）。
+import { useState, useEffect, useRef } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text } from '@tarojs/components'
+import { View, Text, Camera } from '@tarojs/components'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, resolveErrorMessage } from '../services/api'
-import { env, dialog } from '../platform'
+import { env, dialog, uploadFile, storage } from '../platform'
+import { session } from '../platform'
 import FaceCaptureUploader from '../components/FaceCaptureUploader'
-
-const STATUS_TEXT = {
-  none: '未上传身份证',
-  uploaded: '已上传身份证，待提交人脸采样',
-  pending_review: '已提交，等待平台员工审核',
-  verified: '已实名认证',
-  rejected: '审核未通过，请重新提交',
-}
 
 export default function FaceVerify() {
   const [status, setStatus] = useState('')
   const [hasIdPhoto, setHasIdPhoto] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [cameraErr, setCameraErr] = useState('')
+  // Phase: idle → recording → blink → uploading
+  const [phase, setPhase] = useState('idle')
+  const [countdown, setCountdown] = useState(0)
+  const [blinkVisible, setBlinkVisible] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const cameraRef = useRef(null)
+  const photoPathRef = useRef('')
+  const countdownRef = useRef(null)
   const navigate = useNavigate()
   const baseUrl = env.apiBaseUrl
 
@@ -42,45 +44,261 @@ export default function FaceVerify() {
 
   useEffect(() => { fetchStatus() }, [])
 
+  // Cleanup countdown on unmount
+  useEffect(() => {
+    return () => { if (countdownRef.current) clearInterval(countdownRef.current) }
+  }, [])
+
   const goBack = () => {
     if (!env.isMiniProgram) return navigate('/profile/edit')
     Taro.navigateBack()
   }
 
+  const getToken = () => storage.getItem('token') || session.getItem('token')
+
+  // Camera error handler
+  const handleCameraError = (e) => {
+    setCameraErr(e.detail?.errMsg || '摄像头授权失败，请在小程序设置中允许使用摄像头')
+  }
+
+  // Upload photo + optional video → POST /user/face-capture (weapp 分离上传)
+  // Defined first so handleStopRecord / handleShutter can reference it without no-use-before-define.
+  const doUpload = async (imagePath, videoPath) => {
+    setUploadError('')
+    try {
+      const base = baseUrl || '/api'
+      const headers = { Authorization: 'Bearer ' + getToken() }
+      // Upload image first (creates batch)
+      const imgResp = await uploadFile(`${base}/user/face-capture`, imagePath, {
+        name: 'image',
+        headers,
+      })
+      if (!imgResp.ok) throw new Error('照片上传失败')
+      const imgJson = JSON.parse(imgResp.data)
+      if (imgJson.code !== 20000) throw new Error(resolveErrorMessage(imgJson, '提交失败'))
+      const batchId = imgJson.data?.batch_id
+      // Upload video (optional, appended to same batch)
+      if (videoPath && batchId) {
+        const vidResp = await uploadFile(`${base}/user/face-capture`, videoPath, {
+          name: 'video',
+          formData: { batch_id: batchId },
+          headers,
+        })
+        if (!vidResp.ok) throw new Error('视频上传失败')
+        const vidJson = JSON.parse(vidResp.data)
+        if (vidJson.code !== 20000) throw new Error(resolveErrorMessage(vidJson, '视频上传失败'))
+      }
+      setStatus('pending_review')
+      dialog.toast('提交成功，等待审核')
+      setTimeout(() => {
+        if (env.isMiniProgram) { Taro.navigateBack() } else { navigate('/profile/edit') }
+      }, 800)
+    } catch (err) {
+      setUploadError(err.message || '上传失败，请重试')
+      setPhase('idle')
+    }
+  }
+
+  const handleStopRecord = () => {
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current)
+      countdownRef.current = null
+    }
+    setBlinkVisible(false)
+    setPhase('Uploading')
+    const cam = cameraRef.current
+    if (cam) {
+      cam.stopRecord({
+        success: (res) => {
+          const videoPath = res?.tempFilePath || ''
+          doUpload(photoPathRef.current, videoPath)
+        },
+        fail: () => {
+          doUpload(photoPathRef.current, '')
+        },
+      })
+    } else {
+      doUpload(photoPathRef.current, '')
+    }
+  }
+
+  // Shutter button: click 1st = photo + auto-record, click 2nd = stop record
+  const handleShutter = () => {
+    if (phase === 'idle') {
+      const cam = cameraRef.current
+      if (!cam) return
+      cam.takePhoto({
+        quality: 'high',
+        success: (res) => {
+          const photoPath = res?.tempImagePath
+          if (!photoPath) return
+          photoPathRef.current = photoPath
+          cam.startRecord({
+            success: () => {
+              setPhase('Recording')
+              setCountdown(5)
+              let remaining = 5
+              countdownRef.current = setInterval(() => {
+                remaining -= 1
+                setCountdown(remaining)
+                if (remaining <= 2) setBlinkVisible(true)
+                if (remaining <= 0) {
+                  clearInterval(countdownRef.current)
+                  countdownRef.current = null
+                  handleStopRecord()
+                }
+              }, 1000)
+            },
+          })
+        },
+      })
+    } else if (phase === 'Recording' || phase === 'Blink') {
+      handleStopRecord()
+    }
+  }
+
+  // ---- Status-based message bar (shown in both weapp and H5) ----
+  const renderStatusBar = () => {
+    if (loading) return null
+    if (status === 'verified') {
+      return (
+        <View style={{ padding: 12, backgroundColor: '#f0fdf4', borderRadius: 8, borderWidth: 1, borderColor: '#bbf7d0', marginBottom: 12 }}>
+          <Text style={{ fontSize: 13, color: '#16a34a', fontWeight: '600' }}>✅ 已实名认证</Text>
+        </View>
+      )
+    }
+    if (!hasIdPhoto) {
+      return (
+        <View style={{ padding: 12, backgroundColor: '#fefce8', borderRadius: 8, borderWidth: 1, borderColor: '#fde68a', marginBottom: 12 }}>
+          <Text style={{ fontSize: 13, color: '#b45309', fontWeight: '600' }}>⚠️ 请先上传身份证照片</Text>
+          <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>人脸识别前需先上传身份证件照。</Text>
+          <View onClick={goBack} style={{ marginTop: 8 }}>
+            <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600', textDecorationLine: 'underline' }}>去上传身份证 ›</Text>
+          </View>
+        </View>
+      )
+    }
+    if (status === 'pending_review') {
+      return (
+        <View style={{ padding: 12, backgroundColor: '#fefce8', borderRadius: 8, borderWidth: 1, borderColor: '#fde68a', marginBottom: 12 }}>
+          <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600' }}>⚠️ 实名认证审核中</Text>
+          <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>已提交人脸采样，平台员工审核通过后即完成实名认证（预计 1-2 个工作日）。</Text>
+        </View>
+      )
+    }
+    if (status === 'rejected') {
+      return (
+        <View style={{ padding: 12, backgroundColor: '#fef2f2', borderRadius: 8, borderWidth: 1, borderColor: '#fecaca', marginBottom: 12 }}>
+          <Text style={{ fontSize: 12, color: '#dc2626', fontWeight: '600' }}>审核未通过，请重新发起人脸识别。</Text>
+        </View>
+      )
+    }
+    return null
+  }
+
+  // ---- weapp: full-screen camera mode ----
+  if (env.isMiniProgram) {
+    // Status-only modes: don't show camera
+    if (loading || status === 'verified' || !hasIdPhoto || status === 'pending_review') {
+      return (
+        <View style={{ minHeight: '100vh', backgroundColor: '#f4f4f5' }}>
+          <View style={{ margin: 16, backgroundColor: '#fff', borderRadius: 12, padding: 16 }}>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#111', marginBottom: 8 }}>实名认证</Text>
+            {renderStatusBar()}
+          </View>
+        </View>
+      )
+    }
+
+    // Camera mode: idle / recording / blink / uploading
+    const shutterLabel = phase === 'Uploading' ? '处理中...'
+      : phase === 'Recording' || phase === 'Blink' ? '停止'
+      : '拍照'
+
+    return (
+      <View style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#000' }}>
+        {/* Full-screen front camera */}
+        <Camera
+          ref={cameraRef}
+          devicePosition="front"
+          style={{ width: '100%', height: '100%' }}
+          onError={handleCameraError}
+        />
+
+        {/* Camera error overlay */}
+        {cameraErr ? (
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.85)' }}>
+            <Text style={{ fontSize: 16, color: '#fff', marginBottom: 12 }}>⚠️ {cameraErr}</Text>
+            <View onClick={goBack} style={{ padding: '8px 24px', backgroundColor: '#915F38', borderRadius: 20 }}>
+              <Text style={{ fontSize: 14, color: '#fff' }}>返回</Text>
+            </View>
+          </View>
+        ) : (
+          <>
+            {/* Status bar overlay (top) */}
+            <View style={{ position: 'absolute', top: 48, left: 16, right: 16, zIndex: 10 }}>
+              {renderStatusBar()}
+            </View>
+
+            {/* Blink prompt (center-top, visible during last 2s) */}
+            {blinkVisible && phase !== 'Uploading' && (
+              <View style={{ position: 'absolute', top: '35%', left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 10 }}>
+                <View style={{ backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 8, padding: '8px 20px' }}>
+                  <Text style={{ fontSize: 18, color: '#fff', fontWeight: '700' }}>请眨眨眼</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Upload error */}
+            {uploadError ? (
+              <View style={{ position: 'absolute', bottom: 140, left: 16, right: 16, zIndex: 10 }}>
+                <View style={{ backgroundColor: 'rgba(220,38,38,0.9)', borderRadius: 8, padding: 10 }}>
+                  <Text style={{ fontSize: 13, color: '#fff', textAlign: 'center' }}>{uploadError}</Text>
+                </View>
+              </View>
+            ) : null}
+
+            {/* Countdown (when recording) */}
+            {(phase === 'Recording' || phase === 'Blink') && countdown > 0 ? (
+              <View style={{ position: 'absolute', bottom: 130, left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 10 }}>
+                <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)' }}>{countdown}s</Text>
+              </View>
+            ) : null}
+
+            {/* Shutter button (bottom center) */}
+            <View style={{ position: 'absolute', bottom: 60, left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 10 }}>
+              <View
+                onClick={phase === 'Uploading' ? undefined : handleShutter}
+                style={{
+                  width: 68, height: 68, borderRadius: 34,
+                  border: '4px solid #fff',
+                  backgroundColor: phase === 'Recording' || phase === 'Blink' ? '#dc2626' : 'rgba(255,255,255,0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600' }}>{shutterLabel}</Text>
+              </View>
+            </View>
+          </>
+        )}
+      </View>
+    )
+  }
+
+  // ---- H5: card-based with FaceCaptureUploader (kept from #1807, #1811 C requirement) ----
   return (
     <View style={{ minHeight: '100vh', backgroundColor: '#f4f4f5' }}>
       {/* H5 手写标题条（weapp 用原生导航栏，见 #1511 规则） */}
-      {!env.isMiniProgram && (
-        <View style={{ padding: 12, paddingLeft: 16, backgroundColor: '#fff', display: 'flex', alignItems: 'center' }}>
-          <View onClick={goBack} style={{ marginRight: 8, padding: 4 }}>
-            <Text style={{ fontSize: 20, color: '#6b7280' }}>‹</Text>
-          </View>
-          <Text style={{ fontSize: 16, fontWeight: '700', color: '#111' }}>人脸识别</Text>
+      <View style={{ padding: 12, paddingLeft: 16, backgroundColor: '#fff', display: 'flex', alignItems: 'center' }}>
+        <View onClick={goBack} style={{ marginRight: 8, padding: 4 }}>
+          <Text style={{ fontSize: 20, color: '#6b7280' }}>‹</Text>
         </View>
-      )}
+        <Text style={{ fontSize: 16, fontWeight: '700', color: '#111' }}>人脸识别</Text>
+      </View>
 
       <View style={{ margin: 16, backgroundColor: '#fff', borderRadius: 12, padding: 16 }}>
         <Text style={{ fontSize: 14, fontWeight: '700', color: '#111', marginBottom: 8 }}>实名认证</Text>
-        {loading ? (
-          <Text style={{ fontSize: 13, color: '#9ca3af' }}>加载中...</Text>
-        ) : status === 'verified' ? (
-          <View style={{ padding: 12, backgroundColor: '#f0fdf4', borderRadius: 8, borderWidth: 1, borderColor: '#bbf7d0' }}>
-            <Text style={{ fontSize: 13, color: '#16a34a', fontWeight: '600' }}>✅ 已实名认证</Text>
-          </View>
-        ) : !hasIdPhoto ? (
-          <View style={{ padding: 12, backgroundColor: '#fefce8', borderRadius: 8, borderWidth: 1, borderColor: '#fde68a' }}>
-            <Text style={{ fontSize: 13, color: '#b45309', fontWeight: '600' }}>⚠️ 请先上传身份证照片</Text>
-            <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>人脸识别前需先上传身份证件照。</Text>
-            <View onClick={goBack} style={{ marginTop: 8 }}>
-              <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600', textDecorationLine: 'underline' }}>去上传身份证 ›</Text>
-            </View>
-          </View>
-        ) : status === 'pending_review' ? (
-          <View style={{ padding: 12, backgroundColor: '#fefce8', borderRadius: 8, borderWidth: 1, borderColor: '#fde68a' }}>
-            <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600' }}>⚠️ 实名认证审核中</Text>
-            <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>已提交人脸采样，平台员工审核通过后即完成实名认证（预计 1-2 个工作日）。</Text>
-          </View>
-        ) : (
+        {renderStatusBar()}
+        {!loading && status !== 'verified' && hasIdPhoto && status !== 'pending_review' && (
           <View>
             <View style={{ padding: 12, backgroundColor: '#f4f4f5', borderRadius: 8, marginBottom: 12 }}>
               <Text style={{ fontSize: 12, color: '#6b7280' }}>
@@ -92,18 +310,12 @@ export default function FaceVerify() {
               onSubmitSuccess={() => {
                 setStatus('pending_review')
                 dialog.toast('提交成功，等待审核')
-                setTimeout(() => { if (env.isMiniProgram) { Taro.navigateBack() } else { navigate('/profile/edit') } }, 800)
+                setTimeout(() => { navigate('/profile/edit') }, 800)
               }}
             />
           </View>
         )}
       </View>
-
-      {!loading && status === 'rejected' && (
-        <View style={{ margin: 16, marginTop: 0, padding: 12, backgroundColor: '#fef2f2', borderRadius: 8, borderWidth: 1, borderColor: '#fecaca' }}>
-          <Text style={{ fontSize: 12, color: '#dc2626' }}>审核未通过，请重新提交人脸采样素材。</Text>
-        </View>
-      )}
     </View>
   )
 }
