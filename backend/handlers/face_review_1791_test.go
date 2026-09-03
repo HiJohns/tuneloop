@@ -226,6 +226,48 @@ func TestFaceReview_Queue(t *testing.T) {
 	_ = db
 }
 
+// TestFaceReview_Queue_NormalizeDoublePrefix (#1814): 预生产历史脏数据
+// users.id_photo_front/back 带双前缀 /uploads/media//uploads/media/...
+// resolveSelfieURL 归一化为单前缀，修复审核队列证件照 404。
+func TestFaceReview_Queue_NormalizeDoublePrefix(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	user := models.User{
+		ID: uuid.New().String(), IAMSub: uuid.New().String(),
+		TenantID: uuid.New().String(), OrgID: uuid.New().String(),
+		Username: "dirty-" + uuid.NewString()[:6], Status: "active",
+		Name: "脏数据用户",
+		// 与预生产确认的脏值同构：/uploads/media//uploads/media/id_photos/pending_...
+		IdPhotoFront: strPtr("/uploads/media//uploads/media/id_photos/pending_front.jpg"),
+	}
+	require.NoError(t, db.Create(&user).Error)
+	batch := models.FaceCaptureBatch{
+		ID: uuid.New().String(), UserID: user.ID, Status: "pending",
+		SubmittedAt: time.Now(), CreatedAt: time.Now(),
+	}
+	require.NoError(t, db.Create(&batch).Error)
+
+	router := faceReviewRouter(t, uuid.New().String())
+	req := httptest.NewRequest("GET", "/admin/face-review/queue", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			List []struct {
+				IDPhotos []string `json:"id_photos"`
+			} `json:"list"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+	require.Len(t, resp.Data.List, 1)
+	require.Len(t, resp.Data.List[0].IDPhotos, 1, "front photo included")
+	require.Equal(t, "/uploads/media/id_photos/pending_front.jpg", resp.Data.List[0].IDPhotos[0],
+		"double-prefix dirty value normalized to single prefix")
+}
+
 // TestFaceReview_Reject_RequiresReason (#1791): reject 无 reason → 40002。
 func TestFaceReview_Reject_RequiresReason(t *testing.T) {
 	_, batchID, _ := setupReviewUser(t)

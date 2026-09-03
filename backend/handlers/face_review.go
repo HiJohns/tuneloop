@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"tuneloop-backend/database"
@@ -40,15 +41,15 @@ type faceReviewItem struct {
 	SubmittedAt string   `json:"submitted_at"`
 }
 
-// resolveSelfieURL 组装自拍素材访问 URL。
+// resolveSelfieURL 组装自拍素材访问 URL（统一归一化，防历史双前缀脏值 404，#1807）。
 func resolveSelfieURL(key string) string {
 	if key == "" {
 		return ""
 	}
-	if key[0] == '/' || len(key) > 5 && (key[:4] == "http") {
+	if strings.HasPrefix(key, "http://") || strings.HasPrefix(key, "https://") {
 		return key
 	}
-	return "/uploads/media/" + key
+	return mediaURLPrefix + normalizeMediaKey(key)
 }
 
 // Queue handles GET /admin/face-review/queue.
