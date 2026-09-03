@@ -260,6 +260,7 @@ export default function FaceReviewPage() {
           placeholder="请输入驳回原因（必填）"
           maxLength={200}
           showCount
+          style={{ marginBottom: 24 }}
         />
       </Modal>
     </Card>
