@@ -389,6 +389,7 @@ none（未上传证件照）
 - weapp 连续多次采集应观察到不同动作提示（随机性可被观察）
 - weapp 重拍路径：照片不满意可重拍，不残留旧照片（photoPathRef 清空）
 - weapp 「继续录视频」前无录像启动（无后台录音）
+- weapp 提交后审核队列（PC「实名审核队列」）应能看到**自拍图 + 视频**两项素材（非仅图片）——分离上传两步均成功：image 建批次 + video 按 batch_id 追加（#1815 后曾因 `stopRecord` 读错字段 `tempFilePath`→`tempVideoPath` 导致视频静默丢失，仅图片上传，人工测试才暴露）
 
 ## 关联 Issue
 - 后端数据层 (DB + API)：[tuneloop#1598](https://github.com/HiJohns/tuneloop/issues/1598)
