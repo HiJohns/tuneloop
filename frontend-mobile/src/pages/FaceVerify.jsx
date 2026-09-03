@@ -162,9 +162,9 @@ export default function FaceVerify() {
     }
   }
 
-  // Continue from photo_done → recording: pick random action + start record
-  const handleContinueRecord = () => {
-    setActionPrompt(ACTION_PROMPTS[Math.floor(Math.random() * ACTION_PROMPTS.length)])
+  // Start 5s recording with countdown + blink/action prompt in last 2s.
+  // Extracted per plan 3.4 for readability and future testability.
+  const startRecording = () => {
     const cam = getCameraContext()
     cam.startRecord({
       success: () => {
@@ -183,6 +183,12 @@ export default function FaceVerify() {
         }, 1000)
       },
     })
+  }
+
+  // Continue from photo_done → recording: pick random action + start record
+  const handleContinueRecord = () => {
+    setActionPrompt(ACTION_PROMPTS[Math.floor(Math.random() * ACTION_PROMPTS.length)])
+    startRecording()
   }
 
   // ---- Status-based message bar (shown in both weapp and H5) ----
@@ -300,7 +306,8 @@ export default function FaceVerify() {
                   style={{ width: 200, height: 266, borderRadius: 12, marginBottom: 24 }}
                   mode="aspectFill"
                 />
-                <Text style={{ fontSize: 16, color: '#fff', fontWeight: '600', marginBottom: 48 }}>确认自拍照片</Text>
+                <Text style={{ fontSize: 16, color: '#fff', fontWeight: '600', marginBottom: 8 }}>图像采集完成！</Text>
+                <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginBottom: 40, paddingHorizontal: 32, textAlign: 'center', lineHeight: 20 }}>下面还需要采集一段视频，录制过程中会提示您完成一个动作，请配合。</Text>
                 <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
                   <View
                     onClick={handleRetake}
