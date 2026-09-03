@@ -35,6 +35,16 @@ export default function EditProfile() {
     Taro.navigateTo({ url: '/pages-weapp/face-verify/index' })
   }
 
+  // #1811 P4: none 态「去上传身份证」→ 滚动到本页身份证照片上传区（不跳转）。
+  const goIdPhotoSection = () => {
+    if (env.isMiniProgram) {
+      Taro.pageScrollTo({ selector: '#edit-id-photo-section', duration: 300, offsetTop: -10 })
+    } else {
+      const el = document.getElementById('edit-id-photo-section')
+      if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
   const token = getToken()
   const claims = token ? parseJWT(token) : {}
   // 员工判定统一口径（#1639 / #1700）：对齐后端 GetBusinessRole——
@@ -160,7 +170,7 @@ export default function EditProfile() {
             placeholder={email ? '' : '请输入邮箱'}
             style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, paddingLeft: 12, paddingRight: 12, fontSize: 14, boxSizing: 'border-box' }} />
         </View>
-        <View style={{ marginBottom: 20 }}>
+        <View id="edit-id-photo-section" style={{ marginBottom: 20 }}>
           <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 10 }}>身份证照片</Text>
           {/* #1807: 正反面一行（各 ~48%） */}
           <View style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -207,7 +217,10 @@ export default function EditProfile() {
                 {idVerifyStatus === 'none' ? (
                   <>
                     <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600' }}>⚠️ 尚未完成实名认证</Text>
-                    <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>请先在上方上传身份证照片</Text>
+                    <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>请先上传身份证照片</Text>
+                    <View onClick={goIdPhotoSection} style={{ marginTop: 8, padding: 4 }}>
+                      <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600', textDecorationLine: 'underline' }}>去上传身份证 ›</Text>
+                    </View>
                   </>
                 ) : idVerifyStatus === 'rejected' ? (
                   <>

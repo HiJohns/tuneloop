@@ -66,7 +66,7 @@ steps:
       - {method: GET, path: /user/id-photos}
       - {method: POST, path: /user/id-photo, params: [file, side]}
       - {method: DELETE, path: /user/id-photo, params: [side]}
-    rule: "#1807: 布局正反面一行（各 ~48%）+ 第三证件单独一行（含证件类型选择 users.id_photo_other_type）；实名认证区块隐藏「姓名/身份证号输入框」与「发起人脸认证」按钮——实名信息由员工在审核流程根据身份证照核对填写（见人工审核流程）"
+    rule: "#1807: 布局正反面一行（各 ~48%）+ 第三证件单独一行（含证件类型选择 users.id_photo_other_type）；实名认证区块隐藏「姓名/身份证号输入框」——实名信息由员工在审核流程根据身份证照核对填写；「发起人脸识别」入口按 id_verify_status 状态显示（none 引导上传 / uploaded·rejected 进入人脸识别页，见 #1811）"
 
   # ── 查看/替换入口（PC 管理员） ──
   - seq: 5

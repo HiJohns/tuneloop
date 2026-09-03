@@ -16,7 +16,7 @@ export default function FaceVerify() {
   const [hasIdPhoto, setHasIdPhoto] = useState(false)
   const [loading, setLoading] = useState(true)
   const [cameraErr, setCameraErr] = useState('')
-  // Phase: idle → recording → blink → uploading
+  // Phase: idle → recording → blink → uploading → fail(保留素材可重试)
   const [phase, setPhase] = useState('idle')
   const [countdown, setCountdown] = useState(0)
   const [blinkVisible, setBlinkVisible] = useState(false)
@@ -93,10 +93,29 @@ export default function FaceVerify() {
         if (env.isMiniProgram) { Taro.navigateBack() } else { navigate('/profile/edit') }
       }, 800)
     } catch (err) {
+      // P5: 上传失败进入 fail 态并保留已录素材（photo/video temp paths），
+      // 供「重试上传」直接复用——不丢失已录素材状态。
       setUploadError(err.message || '上传失败，请重试')
-      // P5: don't lose recorded material — return to idle but keep photo/video refs
-      setPhase('idle')
+      setPhase('fail')
     }
+  }
+
+  // P5: fail 态「重试上传」——复用保留的 photo/video ref 重新上传（不重拍）。
+  const handleRetryUpload = () => {
+    if (!photoPathRef.current) {
+      setUploadError('未找到已拍摄素材，请重新拍摄')
+      return
+    }
+    setPhase('Uploading')
+    doUpload(photoPathRef.current, videoPathRef.current)
+  }
+
+  // P5: fail 态「重新拍摄」——清空保留素材，回到 idle 可重新采集。
+  const handleRetake = () => {
+    photoPathRef.current = ''
+    videoPathRef.current = ''
+    setUploadError('')
+    setPhase('idle')
   }
 
   const handleStopRecord = () => {
@@ -114,6 +133,8 @@ export default function FaceVerify() {
         doUpload(photoPathRef.current, vp)
       },
       fail: () => {
+        // 录像失败 → 仅上传照片（视频素材不可用）
+        videoPathRef.current = ''
         doUpload(photoPathRef.current, '')
       },
     })
@@ -260,18 +281,45 @@ export default function FaceVerify() {
               </View>
             ) : null}
 
-            {/* Shutter button (bottom center) */}
-            <View style={{ position: 'absolute', bottom: 60, left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 10 }}>
-              <View
-                onClick={phase === 'Uploading' ? undefined : handleShutter}
-                style={{
-                  width: 68, height: 68, borderRadius: 34,
-                  border: '4px solid #fff',
-                  backgroundColor: phase === 'Recording' || phase === 'Blink' ? '#dc2626' : 'rgba(255,255,255,0.3)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600' }}>{shutterLabel}</Text>
-              </View>
+            {/* Bottom controls: fail 态显示 重试上传/重新拍摄 双按钮，其余显示快门 */}
+            <View style={{ position: 'absolute', bottom: 60, left: 0, right: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10 }}>
+              {phase === 'fail' ? (
+                <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+                  {/* 重新拍摄（左，次要） */}
+                  <View
+                    onClick={handleRetake}
+                    style={{
+                      paddingLeft: 22, paddingRight: 22, height: 44,
+                      borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.25)',
+                      border: '1px solid rgba(255,255,255,0.6)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      marginRight: 16,
+                    }}>
+                    <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600' }}>重新拍摄</Text>
+                  </View>
+                  {/* 重试上传（右，主要） */}
+                  <View
+                    onClick={handleRetryUpload}
+                    style={{
+                      paddingLeft: 22, paddingRight: 22, height: 44,
+                      borderRadius: 22, backgroundColor: '#915F38',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                    <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600' }}>重试上传</Text>
+                  </View>
+                </View>
+              ) : (
+                <View
+                  onClick={phase === 'Uploading' ? undefined : handleShutter}
+                  style={{
+                    width: 68, height: 68, borderRadius: 34,
+                    border: '4px solid #fff',
+                    backgroundColor: phase === 'Recording' || phase === 'Blink' ? '#dc2626' : 'rgba(255,255,255,0.3)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                  <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600' }}>{shutterLabel}</Text>
+                </View>
+              )}
             </View>
           </>
         )}

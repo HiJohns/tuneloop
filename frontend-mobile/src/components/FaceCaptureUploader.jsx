@@ -181,7 +181,7 @@ const FaceCaptureUploader = ({ initialStatus = '', onSubmitSuccess }) => {
       <View
         onClick={submitting ? undefined : submit}
         style={{ width: '100%', paddingTop: 13, paddingBottom: 13, backgroundColor: submitting || !imagePath ? '#d4d4d8' : '#915F38', borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>{submitting ? '处理中...' : '发起人脸认证'}</Text>
+        <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>{submitting ? '处理中...' : '发起人脸识别'}</Text>
       </View>
       {error && <Text style={{ fontSize: 12, color: '#dc2626', marginTop: 6 }}>{error}</Text>}
       <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 6 }}>
