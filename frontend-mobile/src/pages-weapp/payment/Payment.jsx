@@ -339,8 +339,12 @@ export default function Payment() {
 
   // doRealPay: 拉起微信支付。prepay 成功后 handlePay 会立即自动调用（一次点击
   // 直达支付，避免两段式「发起支付→微信支付」两次点击）；按钮点击时作为兜底。
+  // isPaying 生命周期（防抖，QA #1819）：拉起支付框起保持 true——成功路径由
+  // 跳转收尾（不复位），仅 fail（取消/失败）复位允许重试，杜绝支付框弹出期间
+  // 二次点击重复扣款。
   const doRealPay = async (payData = prepayData) => {
     if (!payData?.data) return
+    setIsPaying(true)
     Taro.requestPayment({
       appId: payData.data.app_id || 'wxcb44a1be70e356ed',
       timeStamp: payData.data.time_stamp,
@@ -357,11 +361,15 @@ export default function Payment() {
           afterPaySuccess(pId)
         }
       },
-      fail: (err) => Taro.showModal({ title: '支付失败', content: err.errMsg || '请重试', showCancel: false }),
+      fail: (err) => {
+        setIsPaying(false)
+        Taro.showModal({ title: '支付失败', content: err.errMsg || '请重试', showCancel: false })
+      },
     })
   }
 
   const handlePay = async (cashAmount) => {
+    if (isPaying) return // 防抖：支付流程进行中忽略重复点击（QA #1819）
     if (cashAmount <= 0) {
       if (appliedCoupon || (pType === 'membership' && pSessionId)) {
         // OREZ full waiver (or membership session waiver): run prepay so
@@ -379,12 +387,12 @@ export default function Payment() {
               afterPaySuccess(pId)
             }
           } else {
+            setIsPaying(false)
             Taro.showModal({ title: '支付失败', content: result.message, showCancel: false })
           }
         } catch (err) {
-          Taro.showModal({ title: '支付失败', content: err.message, showCancel: false })
-        } finally {
           setIsPaying(false)
+          Taro.showModal({ title: '支付失败', content: err.message, showCancel: false })
         }
         return
       }
@@ -402,6 +410,7 @@ export default function Payment() {
           setPrepayData(d)
           // 一次点击直达：prepay 成功后立即拉起微信支付（不等待用户再点
           // 「微信支付」按钮）。按钮保留作兜底（自动拉起失败时重试）。
+          // isPaying 保持 true——由 doRealPay 的 fail 复位或成功跳转收尾。
           doRealPay(d)
         } else if (d.success) {
           // Waive 记账成功（优惠码 OREZ → 后端 amount=0 直接记账，无 prepay_id）。
@@ -413,15 +422,16 @@ export default function Payment() {
             afterPaySuccess(pId)
           }
         } else {
+          setIsPaying(false)
           Taro.showModal({ title: '支付失败', content: '无法获取支付参数', showCancel: false })
         }
       } else {
+        setIsPaying(false)
         Taro.showModal({ title: '支付失败', content: result.message, showCancel: false })
       }
     } catch (err) {
-      Taro.showModal({ title: '支付失败', content: err.message, showCancel: false })
-    } finally {
       setIsPaying(false)
+      Taro.showModal({ title: '支付失败', content: err.message, showCancel: false })
     }
   }
 
@@ -598,8 +608,8 @@ export default function Payment() {
         ) : prepayData?.data ? (
           <View style={{ display: 'flex', flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
-              <Button style={btnStyle('#B98E5F')} onClick={doRealPay}>
-                微信支付 ¥{(Number(cashAmount) / 100).toFixed(2)}
+              <Button style={btnStyle('#B98E5F')} onClick={doRealPay} disabled={isPaying}>
+                {isPaying ? '处理中...' : `微信支付 ¥${(Number(cashAmount) / 100).toFixed(2)}`}
               </Button>
             </View>
           </View>
@@ -617,13 +627,15 @@ export default function Payment() {
   )
 }
 
-function Button({ children, onClick, style }) {
+function Button({ children, onClick, style, disabled }) {
   return (
     <View
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
       style={{
         width: '100%', padding: '14px 0', borderRadius: 16, fontWeight: '700', fontSize: 15,
-        textAlign: 'center', color: '#fff', cursor: 'pointer', ...style,
+        textAlign: 'center', color: '#fff', cursor: 'pointer',
+        opacity: disabled ? 0.6 : 1,
+        ...style,
       }}
     >
       {children}
