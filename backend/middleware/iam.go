@@ -600,7 +600,12 @@ func EnsureLocalUser(ctx context.Context, db *gorm.DB) (string, error) {
 func LocalUserID(ctx context.Context, db *gorm.DB) (string, error) {
 	iamSub := GetUserID(ctx)
 	if iamSub == "" {
-		return "", fmt.Errorf("no user ID in context")
+		// Anonymous on an optional-auth route: no local user by definition —
+		// return empty (not an error) so read paths (notifications/
+		// unread-count/appeals) answer 200 with empty results instead of 500
+		// (observed: registration-flow & expired-token clients poll
+		// unread-count anonymously).
+		return "", nil
 	}
 	var user models.User
 	if err := db.Where("iam_sub = ?", iamSub).First(&user).Error; err != nil {
