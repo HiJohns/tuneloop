@@ -36,7 +36,9 @@ func WechatPayCallback(c *gin.Context) {
 	client := wechatpay.GetClient()
 	result, err := client.VerifyPaymentCallback(c.Request.Context(), body, signature, serial, timestamp, nonce)
 	if err != nil {
-		log.Printf("[WechatPayCallback] verification failed: %v", err)
+		// serial identifies WHICH WeChat key signed this callback — capture it
+		// for key-rotation diagnosis (platform cert / 公钥 轮换时旧 key 验签失败）。
+		log.Printf("[WechatPayCallback] verification failed serial=%s timestamp=%s: %v", serial, timestamp, err)
 		c.JSON(http.StatusOK, gin.H{"code": "FAIL", "message": "verification failed"})
 		return
 	}

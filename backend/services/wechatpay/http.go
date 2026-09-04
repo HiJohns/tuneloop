@@ -97,8 +97,14 @@ func (c *httpClient) do(ctx context.Context, method, path string, body interface
 	wxNonce := resp.Header.Get("Wechatpay-Nonce")
 	if wxSig != "" && wxSerial != "" {
 		if err := verifyResponseSignature(wxSerial, wxTimestamp, wxNonce, string(respBytes), wxSig); err != nil {
-			log.Printf("[wechatpay] response signature verification failed: %v", err)
+			log.Printf("[wechatpay] response signature verification failed serial=%s: %v", wxSerial, err)
 		}
+	}
+	if wxSerial != "" {
+		// Observe which WeChat signing key serial is current (rotation
+		// diagnosis — a serial change without our action = WeChat-side key
+		// rotation / platform-cert retirement).
+		log.Printf("[wechatpay] api %s %s ok serial=%s", method, path, wxSerial)
 	}
 
 	return resp.StatusCode, nil
