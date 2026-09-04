@@ -139,8 +139,11 @@ func UploadShippingInfo(openid, outTradeNo, transactionID, trackingNo, courierCo
 }
 
 // retryBackoffs defines the backoff schedule for UploadShippingInfoWithRetry
-// (first attempt immediate, then 1/5/15 minutes). Injectable for tests.
-var retryBackoffs = []time.Duration{0, time.Minute, 5 * time.Minute, 15 * time.Minute}
+// (immediate, then 15s/1/5 minutes). Injectable for tests.
+// The first retry is 15s (not 1min): WeChat's payment-order index sync delay
+// (errcode 10060001) clears within seconds typically, so a 15s retry frees
+// frozen funds much sooner; later attempts cover longer sync tails.
+var retryBackoffs = []time.Duration{0, 15 * time.Second, time.Minute, 5 * time.Minute}
 
 // UploadShippingInfoWithRetry attempts upload_shipping_info with backoff retry
 // to handle WeChat's payment-order index sync delay (errcode 10060001 right

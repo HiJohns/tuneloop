@@ -495,7 +495,7 @@ curl POST "https://api.weixin.qq.com/wxa/sec/order/get_order_detail_path?access_
 
 1. **`order_key.order_number_type=1`（商户侧单号形式）必须带 `mchid` 字段**——代码 `shippingOrderKey` 虽有 `Mchid` 字段但 **UploadShippingInfo 从未赋值**（omitempty 导致省略）→ 微信报 `268485196: 商户侧单号形式下 mchid 字段必须设置`。生产 7 天零触发（无发货操作），**首次生产发货必中招**，需在 `UploadShippingInfo` 填充商户号。
 2. `notify_confirm_receive` 同链路（`10060014 参数错误` 同上根因）。
-3. 上报失败按设计不阻塞业务（非致命），但资金解冻/结算会受影响，日志需监控 `[WechatShipping]` 前缀。**失败自动阶梯重试（立即 + 1/5/15min，最多 4 次，见 `UploadShippingInfoWithRetry`）**——支付回调后立即上报可能命中微信侧支付单索引同步延迟（`10060001 支付单不存在`），重试后通常成功。
+3. 上报失败按设计不阻塞业务（非致命），但资金解冻/结算会受影响，日志需监控 `[WechatShipping]` 前缀。**失败自动阶梯重试（立即 + 15s/1min/5min，最多 4 次，见 `UploadShippingInfoWithRetry`）**——支付回调后立即上报可能命中微信侧支付单索引同步延迟（`10060001 支付单不存在`），该延迟通常秒级即消失，15s 首重试即可解冻资金（首版 1min 间隔过保守，2026-09-04 调优）。
 
 ### Phase 6 补充：实物发货同步 openid 权威来源 + notify 请求体（#1731）
 
