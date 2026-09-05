@@ -868,7 +868,10 @@ API 来源：
 | 菜单项 | 可见条件 | 跳转 |
 |--------|---------|------|
 | 🧾 申请发票 | `!isGuest` | `/pages-weapp/invoice/index` |
-| 🪪 实名认证 | `!isGuest && !face_verified`（未认证橙色圆点） | `/pages-weapp/profile/edit/index` |
+| ✏️ 编辑资料 | `!isGuest`（常显，已登录均可编辑本人资料） | `/pages-weapp/profile/edit/index`（weapp）/ `/profile/edit`（H5） |
+| 🪪 实名认证 | `!isGuest && !face_verified`（未认证引导，橙色圆点；已认证用户在编辑资料页实名区块看状态） | `/pages-weapp/profile/edit/index` |
+
+> 「编辑资料」为常显通用入口（姓名/昵称/手机/邮箱/证件照管理，见 §2.6.2）。不得因实名认证完成而隐藏通用编辑入口（#1817）。
 
 ---
 

@@ -271,6 +271,14 @@ export default function Profile() {
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
           )}
+          {/* #1817: 编辑资料常显入口——与实名认证解耦 */}
+          <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => nav('/profile/edit')}>
+            <View className="flex items-center gap-2">
+              <Text className="text-lg">✏️</Text>
+              <Text className="text-base font-bold text-zinc-800">编辑资料</Text>
+            </View>
+            <Text className="text-sm text-zinc-300">❯</Text>
+          </View>
           <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => nav('/setting')}>
             <View className="flex items-center gap-2">
               <Text className="text-lg">⚙️</Text>
