@@ -153,30 +153,30 @@ export default function CreateRepairRequest() {
       </View>
       )}
 
-      <ScrollView scrollY className="flex-1 px-4 min-h-0" style={{ paddingBottom: 80 }}>
+      <ScrollView scrollY className="flex-1 min-h-0" style={{ paddingBottom: 80 }}>
         <View className="p-4 space-y-3">
           {/* 面板 ① 乐器信息 */}
           <View className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
             <View>
               <Text className="block text-sm font-medium text-gray-700 mb-1">识别码 *</Text>
-              <Input className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm"
+              <Input className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm"
                 value={form.sn} onInput={e => handleSnChange(getInputValue(e))} placeholder="输入识别码" />
             </View>
             <View style={{ display: 'flex', flexDirection: 'row', gap: 8 }}>
               <View style={{ flex: '1 1 0%', minWidth: 0 }}>
                 <Text className="block text-sm font-medium text-gray-700 mb-1">类型 *</Text>
-                <Input className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm"
+                <Input className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm"
                   value={form.instrument_type} onInput={e => setForm(p => ({ ...p, instrument_type: getInputValue(e) }))} placeholder="乐器类型" />
               </View>
               <View style={{ flex: '1 1 0%', minWidth: 0 }}>
                 <Text className="block text-sm font-medium text-gray-700 mb-1">品牌 *</Text>
-                <Input className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm"
+                <Input className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm"
                   value={form.brand} onInput={e => setForm(p => ({ ...p, brand: getInputValue(e) }))} placeholder="品牌" />
               </View>
             </View>
             <View>
               <Text className="block text-sm font-medium text-gray-700 mb-1">型号 *</Text>
-              <Input className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm"
+              <Input className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm"
                 value={form.model} onInput={e => setForm(p => ({ ...p, model: getInputValue(e) }))} placeholder="型号" />
             </View>
           </View>
@@ -185,7 +185,7 @@ export default function CreateRepairRequest() {
           <View className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
             <View>
               <Text className="block text-sm font-medium text-gray-700 mb-1">描述 *</Text>
-              <Textarea className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm"
+              <Textarea className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm"
                 value={form.description} onInput={e => setForm(p => ({ ...p, description: getInputValue(e) }))} placeholder="描述故障情况" />
             </View>
             <View>
