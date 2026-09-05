@@ -146,111 +146,129 @@ export default function CreateRepairRequest() {
 
   return (
     <View className="h-screen bg-[#FDFBF7] flex flex-col">
-      <View className="bg-gradient-to-b from-blue-50 to-white px-4 py-3">
-        <Text className="text-lg mr-2" onClick={goBack}>{'<'}</Text>
-        <Text className="text-lg font-bold flex-1 text-center">创建报修单</Text>
+      {!env.isMiniProgram && (
+      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-4 flex items-center gap-3">
+        <Text className="text-xl" onClick={goBack}>{'<'}</Text>
+        <Text className="text-lg font-black text-black">创建报修单</Text>
       </View>
+      )}
 
-      <ScrollView scrollY className="flex-1 px-4 min-h-0">
-        <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 space-y-3">
-          <View>
-            <Text className="block text-sm font-medium text-gray-700 mb-1">识别码 *</Text>
-            <Input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={form.sn} onInput={e => handleSnChange(getInputValue(e))} placeholder="输入识别码" />
-          </View>
-          <View className="grid grid-cols-2 gap-2">
+      <ScrollView scrollY className="flex-1 px-4 min-h-0" style={{ paddingBottom: 80 }}>
+        <View className="p-4 space-y-3">
+          {/* 面板 ① 乐器信息 */}
+          <View className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
             <View>
-              <Text className="block text-sm font-medium text-gray-700 mb-1">类型 *</Text>
-              <Input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                value={form.instrument_type} onInput={e => setForm(p => ({ ...p, instrument_type: getInputValue(e) }))} placeholder="乐器类型" />
+              <Text className="block text-sm font-medium text-gray-700 mb-1">识别码 *</Text>
+              <Input className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm"
+                value={form.sn} onInput={e => handleSnChange(getInputValue(e))} placeholder="输入识别码" />
+            </View>
+            <View style={{ display: 'flex', flexDirection: 'row', gap: 8 }}>
+              <View style={{ flex: '1 1 0%', minWidth: 0 }}>
+                <Text className="block text-sm font-medium text-gray-700 mb-1">类型 *</Text>
+                <Input className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm"
+                  value={form.instrument_type} onInput={e => setForm(p => ({ ...p, instrument_type: getInputValue(e) }))} placeholder="乐器类型" />
+              </View>
+              <View style={{ flex: '1 1 0%', minWidth: 0 }}>
+                <Text className="block text-sm font-medium text-gray-700 mb-1">品牌 *</Text>
+                <Input className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm"
+                  value={form.brand} onInput={e => setForm(p => ({ ...p, brand: getInputValue(e) }))} placeholder="品牌" />
+              </View>
             </View>
             <View>
-              <Text className="block text-sm font-medium text-gray-700 mb-1">品牌 *</Text>
-              <Input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                value={form.brand} onInput={e => setForm(p => ({ ...p, brand: getInputValue(e) }))} placeholder="品牌" />
+              <Text className="block text-sm font-medium text-gray-700 mb-1">型号 *</Text>
+              <Input className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm"
+                value={form.model} onInput={e => setForm(p => ({ ...p, model: getInputValue(e) }))} placeholder="型号" />
             </View>
           </View>
-          <View>
-            <Text className="block text-sm font-medium text-gray-700 mb-1">型号 *</Text>
-            <Input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={form.model} onInput={e => setForm(p => ({ ...p, model: getInputValue(e) }))} placeholder="型号" />
-          </View>
-          <View>
-            <Text className="block text-sm font-medium text-gray-700 mb-1">描述 *</Text>
-            <Textarea className="w-full border border-gray-300 rounded-lg p-3 text-sm"
-              value={form.description} onInput={e => setForm(p => ({ ...p, description: getInputValue(e) }))} placeholder="描述故障情况" />
-          </View>
-          <View>
-            <Text className="block text-sm font-medium text-gray-700 mb-1">照片 *（{form.photos.length} 张）</Text>
-            <View className="grid grid-cols-3 gap-2 mb-2">
-              {form.photos.map((file, i) => (
-                <View key={i} className="relative aspect-square rounded-lg overflow-hidden border">
-                  <Image src={env.isMiniProgram ? file : URL.createObjectURL(file)} className="w-full h-full object-cover" mode="aspectFill" />
-                  <View className="absolute top-1 right-1 bg-black/50 rounded-full w-5 h-5 flex items-center justify-center"
-                    onClick={() => setForm(p => ({ ...p, photos: p.photos.filter((_, j) => j !== i) }))}>
-                    <Text className="text-white text-xs">✕</Text>
+
+          {/* 面板 ② 故障描述 */}
+          <View className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
+            <View>
+              <Text className="block text-sm font-medium text-gray-700 mb-1">描述 *</Text>
+              <Textarea className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm"
+                value={form.description} onInput={e => setForm(p => ({ ...p, description: getInputValue(e) }))} placeholder="描述故障情况" />
+            </View>
+            <View>
+              <Text className="block text-sm font-medium text-gray-700 mb-1">照片 *（{form.photos.length} 张）</Text>
+              <View style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                {form.photos.map((file, i) => (
+                  <View key={i} className="relative aspect-square rounded-lg overflow-hidden border" style={{ width: 'calc(33.33% - 6px)' }}>
+                    <Image src={env.isMiniProgram ? file : URL.createObjectURL(file)} className="w-full h-full object-cover" mode="aspectFill" />
+                    <View className="absolute top-1 right-1 bg-black/50 rounded-full w-5 h-5 flex items-center justify-center"
+                      onClick={() => setForm(p => ({ ...p, photos: p.photos.filter((_, j) => j !== i) }))}>
+                      <Text className="text-white text-xs">✕</Text>
+                    </View>
                   </View>
-                </View>
-              ))}
-              {form.photos.length < 10 && (
-                env.isMiniProgram ? (
-                  <View className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 active:opacity-60"
-                    onClick={handlePhotoChooseWeapp}>
+                ))}
+                {form.photos.length < 10 && (
+                  env.isMiniProgram ? (
+                    <View className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 active:opacity-60"
+                      style={{ width: 'calc(33.33% - 6px)' }} onClick={handlePhotoChooseWeapp}>
+                      <Camera size={24} />
+                      <Text className="text-xs mt-1">拍摄</Text>
+                    </View>
+                  ) : (
+                  <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 active:opacity-60"
+                    style={{ width: 'calc(33.33% - 6px)' }}>
                     <Camera size={24} />
                     <Text className="text-xs mt-1">拍摄</Text>
-                  </View>
-                ) : (
-                <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 active:opacity-60">
-                  <Camera size={24} />
-                  <Text className="text-xs mt-1">拍摄</Text>
-                  <input type="file" accept="image/*" capture="environment" multiple className="hidden"
-                    onChange={e => setForm(p => ({ ...p, photos: [...p.photos, ...Array.from(e.target.files || [])].slice(0, 10) }))} />
-                </label>
-                )
+                    <input type="file" accept="image/*" capture="environment" multiple className="hidden"
+                      onChange={e => setForm(p => ({ ...p, photos: [...p.photos, ...Array.from(e.target.files || [])].slice(0, 10) }))} />
+                  </label>
+                  )
+                )}
+              </View>
+              {form.photos.length === 0 && (
+                <Text className="text-xs text-red-500">请先拍照存档（至少 1 张）</Text>
               )}
             </View>
-            {form.photos.length === 0 && (
-              <Text className="text-xs text-red-500">请先拍照存档（至少 1 张）</Text>
-            )}
-          </View>
-          <View>
-            <Text className="block text-sm font-medium text-gray-700 mb-1">视频（可选，估价用）</Text>
-            {env.isMiniProgram ? (
-              <View className="flex items-center gap-2 py-2 bg-gray-100 rounded-lg px-3 active:opacity-60" onClick={handleVideoChooseWeapp}>
+            <View>
+              <Text className="block text-sm font-medium text-gray-700 mb-1">视频（可选，估价用）</Text>
+              {env.isMiniProgram ? (
+                <View className="flex items-center gap-2 py-2 bg-gray-100 rounded-lg px-3 active:opacity-60" onClick={handleVideoChooseWeapp}>
+                  <Camera size={20} className="text-gray-500" />
+                  <Text className="text-xs text-gray-600">{form.video ? '已选择视频' : '上传视频'}</Text>
+                </View>
+              ) : (
+              <label className="flex items-center gap-2 py-2 bg-gray-100 rounded-lg px-3 active:opacity-60">
                 <Camera size={20} className="text-gray-500" />
                 <Text className="text-xs text-gray-600">{form.video ? '已选择视频' : '上传视频'}</Text>
-              </View>
-            ) : (
-            <label className="flex items-center gap-2 py-2 bg-gray-100 rounded-lg px-3 active:opacity-60">
-              <Camera size={20} className="text-gray-500" />
-              <Text className="text-xs text-gray-600">{form.video ? '已选择视频' : '上传视频'}</Text>
-              <input type="file" accept="video/*" className="hidden"
-                onChange={e => { const f = e.target.files?.[0]; if (f) setForm(p => ({ ...p, video: f })) }} />
-            </label>
-            )}
+                <input type="file" accept="video/*" className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) setForm(p => ({ ...p, video: f })) }} />
+              </label>
+              )}
+            </View>
           </View>
-          <View>
-            <Text className="block text-sm font-medium text-gray-700 mb-1">选择商户</Text>
-            <Button onClick={() => setShowMerchantPicker(true)}
-              className="w-full py-2 bg-gray-100 rounded-lg text-xs text-left px-3 text-gray-600">
-              {form.merchant_id ? merchants.find(m => m.id === form.merchant_id)?.name || '已选' : '点击选择商户 *'}
-            </Button>
-          </View>
-          {form.merchant_id && (
+
+          {/* 面板 ③ 服务网点 */}
+          <View className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
             <View>
-              <Text className="block text-sm font-medium text-gray-700 mb-1">选择网点</Text>
-              <Button onClick={() => setShowSitePicker(true)}
+              <Text className="block text-sm font-medium text-gray-700 mb-1">选择商户</Text>
+              <Button onClick={() => setShowMerchantPicker(true)}
                 className="w-full py-2 bg-gray-100 rounded-lg text-xs text-left px-3 text-gray-600">
-                {form.site_id ? sites.find(s => s.id === form.site_id)?.name || '已选' : '点击选择网点 *'}
+                {form.merchant_id ? merchants.find(m => m.id === form.merchant_id)?.name || '已选' : '点击选择商户 *'}
               </Button>
             </View>
-          )}
-          <Button onClick={handleSubmit} disabled={!isFormValid || submitting}
-            className="w-full py-3 bg-black text-white rounded-xl font-bold text-sm text-center mt-2">
-            {submitting ? '处理中...' : '提交评估'}
-          </Button>
+            {form.merchant_id && (
+              <View>
+                <Text className="block text-sm font-medium text-gray-700 mb-1">选择网点</Text>
+                <Button onClick={() => setShowSitePicker(true)}
+                  className="w-full py-2 bg-gray-100 rounded-lg text-xs text-left px-3 text-gray-600">
+                  {form.site_id ? sites.find(s => s.id === form.site_id)?.name || '已选' : '点击选择网点 *'}
+                </Button>
+              </View>
+            )}
+          </View>
         </View>
       </ScrollView>
+
+      {/* 底部常驻提交按钮 */}
+      <View className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 safe-area-pb">
+        <Button onClick={handleSubmit} disabled={!isFormValid || submitting}
+          style={{ width: '100%', margin: 0, backgroundColor: isFormValid ? '#B98E5F' : '#d4d4d8', color: '#fff', fontWeight: '800', fontSize: 16, height: 48, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', letterSpacing: '0.05em' }}>
+          {submitting ? '处理中...' : '提交评估'}
+        </Button>
+      </View>
 
       {/* Merchant picker modal */}
       {showMerchantPicker && (
