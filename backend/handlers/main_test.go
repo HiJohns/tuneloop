@@ -104,7 +104,7 @@ func TestMain(m *testing.M) {
 
 	// Truncate tables that tests seed directly (without setupE2ETestEnv) to
 	// avoid duplicate-key errors from rows left by previous test runs.
-	for _, tbl := range []string{"damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "invoice_application_orders"} {
+	for _, tbl := range []string{"damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "invoice_application_orders", "notifications"} {
 		testDB.Exec("TRUNCATE TABLE " + tbl + " CASCADE")
 	}
 
