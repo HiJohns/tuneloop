@@ -28,7 +28,7 @@ export default function FaceVerify() {
   const videoPathRef = useRef('')
   const lastBatchIdRef = useRef('')
   const countdownRef = useRef(null)
-  // 上传管理（#1822/#1823）：task 句柄 / 停滞看门狗 / 部件标识 / 处理标记
+  // 上传管理（#1821）：task 句柄 / 停滞看门狗 / 部件标识 / 处理标记
   const uploadTaskRef = useRef(null)
   const stallTimerRef = useRef(null)
   const lastProgressAtRef = useRef(0)
@@ -37,7 +37,7 @@ export default function FaceVerify() {
   const navigate = useNavigate()
   const baseUrl = env.apiBaseUrl
 
-  // #1823: 桌面版微信（Mac/Windows）的 <camera> 仅支持拍照，录像不可用——
+  // #1821: 桌面版微信（Mac/Windows）的 <camera> 仅支持拍照，录像不可用——
   // 之前在此环境下静默走了「录像失败→仅提交照片」，用户以为已上传视频。
   const isDesktopWeapp = (() => {
     if (!env.isMiniProgram) return false
@@ -88,11 +88,16 @@ export default function FaceVerify() {
 
   const [uploadProgress, setUploadProgress] = useState(null)
 
-  // #1822/#1823: 上传管理三件套——
+  // #1821: 上传管理三件套——
   // 1) 总超时：照片 90s / 视频 300s
   // 2) 停滞看门狗：黑屏/后台/断流时微信不再派发进度事件且定时器被挂起；
   //    90s 无任何进度 → abort 任务 + 弹窗，绝不留下无限"正在上传"
   // 3) 进度百分比：显示真实上传进度
+  //
+  // 语义约定（audit #1821 Bug1/2/3）：
+  // - stallHandledRef 只表示「停滞看门狗已弹窗接管 UI」——由 handleUploadStall
+  //   置 true，startUploadPart 重置；wrapUploadTimeout 硬超时不得置它，
+  //   否则超时会被上层 catch 当"已停滞处理"吞掉 → 图片无限上传中 / 视频假成功
   const STALL_MS = 90000
 
   const clearStallWatchdog = () => {
@@ -100,6 +105,17 @@ export default function FaceVerify() {
       clearInterval(stallTimerRef.current)
       stallTimerRef.current = null
     }
+  }
+
+  // abort 当前底层上传任务（Taro.uploadFile 的 UploadTask），
+  // 硬超时与停滞看门狗共用（audit Bug1/2：超时也必须中止传输，防半包批次）。
+  const abortActiveUpload = () => {
+    try {
+      if (uploadTaskRef.current && typeof uploadTaskRef.current.abort === 'function') {
+        uploadTaskRef.current.abort()
+      }
+    } catch {}
+    uploadTaskRef.current = null
   }
 
   const startUploadPart = (name) => {
@@ -126,7 +142,7 @@ export default function FaceVerify() {
       new Promise((_, reject) =>
         setTimeout(() => {
           clearStallWatchdog()
-          stallHandledRef.current = true
+          abortActiveUpload()
           reject(new Error('上传超时，请检查网络后重试'))
         }, ms)
       ),
@@ -155,6 +171,10 @@ export default function FaceVerify() {
       return batchId
     } catch (err) {
       clearStallWatchdog()
+      // audit #1821 Bug1：停滞（watchdog abort，stallHandledRef=true）时 UI 已由
+      // handleUploadStall 接管（fail 态弹窗）→ 静默返回空 batchId 即可；
+      // 其余错误（含硬超时）必须 throw → doUpload 外层 catch 进 fail 态，
+      // 绝不静默卡在 Uploading（旧代码超时误置 stallHandledRef 导致无限"正在上传"）。
       if (stallHandledRef.current) return ''
       throw err
     }
@@ -181,7 +201,10 @@ export default function FaceVerify() {
       if (vidJson.code !== 20000) throw new Error(resolveErrorMessage(vidJson, '视频上传失败'))
     } catch (err) {
       clearStallWatchdog()
-      if (stallHandledRef.current) return
+      // audit #1821 Bug2/3：任何失败（硬超时/停滞/服务端错误）一律 throw——
+      // 由 doUpload 层统一分流（停滞时 handleUploadStall 已弹 askVideoFail，
+      // doUpload 依据 stallHandledRef 不重复弹窗、不 finishSubmit）。
+      // 旧代码停滞时静默 return 会令 doUpload 误以为成功 → finishSubmit 假成功。
       throw err
     }
   }
@@ -196,7 +219,7 @@ export default function FaceVerify() {
     }, 800)
   }
 
-  // #1823: 视频上传失败/超时/停滞（慢网）→ 照片批次已建好，询问是否仅提交照片，
+  // #1821: 视频上传失败/超时/停滞（慢网）→ 照片批次已建好，询问是否仅提交照片，
   // 不静默降级也不整体重来（重试只补视频，不重复传照片/不新建批次）。
   function askVideoFail(batchId, err) {
     setUploadProgress(null)
@@ -222,15 +245,14 @@ export default function FaceVerify() {
   }
 
   // 停滞看门狗触发：abort 后按当前部件分流。
+  // audit #1821 Bug3：abort → task fail → uploadVideoPart/uploadImagePart
+  // 的 catch 会 throw → doUpload catch 依据 stallHandledRef 不再重复弹窗，
+  // 也不会 finishSubmit——UI 完全由本函数弹的模态/fail 态接管，杜绝
+  // 「弹窗一闪而过 + 假成功跳页」竞态。
   function handleUploadStall() {
     clearStallWatchdog()
-    try {
-      if (uploadTaskRef.current && typeof uploadTaskRef.current.abort === 'function') {
-        uploadTaskRef.current.abort()
-      }
-    } catch {}
+    abortActiveUpload()
     stallHandledRef.current = true
-    uploadTaskRef.current = null
     setUploadProgress(null)
     if (uploadPartRef.current === 'video' && lastBatchIdRef.current) {
       askVideoFail(lastBatchIdRef.current, new Error('网络停滞（可能是锁屏/断流），请重试或仅提交照片'))
@@ -301,7 +323,7 @@ export default function FaceVerify() {
         doUpload()
       },
       fail: () => {
-        // #1823: 录像拿不到素材（桌面版微信等）——不再静默降级为仅照片上传。
+        // #1821: 录像拿不到素材（桌面版微信等）——不再静默降级为仅照片上传。
         videoPathRef.current = ''
         setPhase('idle')
         Taro.showModal({
@@ -356,7 +378,7 @@ export default function FaceVerify() {
         }, 1000)
       },
       fail: (err) => {
-        // #1823: 开始录像失败要给反馈（桌面微信常不支持），不再静默卡住。
+        // #1821: 开始录像失败要给反馈（桌面微信常不支持），不再静默卡住。
         Taro.showModal({
           title: '无法开始录像',
           content: '当前设备不支持视频录制，实名认证需要动态视频。请改用手机微信操作。',
@@ -427,13 +449,13 @@ export default function FaceVerify() {
     }
 
     // Camera mode: idle / photo_done / recording / blink / uploading
-    // #1822: 采集窗压缩至约 1/4 屏 + resolution=low → 录制视频为低分辨率，
+    // #1821: 采集窗压缩至约 1/4 屏 + resolution=low → 录制视频为低分辨率，
     // 上传更快、服务器占用更小（全屏预览不改变录制分辨率，真正压缩靠 low）。
     const shutterLabel = phase === 'Uploading' ? '处理中...'
       : phase === 'Recording' || phase === 'Blink' ? '停止'
       : '拍照'
 
-    // #1823: 桌面微信录像不可用 → 直接引导用手机，不进相机流程。
+    // #1821: 桌面微信录像不可用 → 直接引导用手机，不进相机流程。
     if (isDesktopWeapp) {
       return (
         <View style={{ minHeight: '100vh', backgroundColor: '#f4f4f5', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 60, paddingLeft: 32, paddingRight: 32 }}>
