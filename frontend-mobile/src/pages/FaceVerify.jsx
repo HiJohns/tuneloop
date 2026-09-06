@@ -90,6 +90,7 @@ export default function FaceVerify() {
     ])
 
   const uploadImagePart = async () => {
+    setUploadProgress(null)
     const headers = { Authorization: 'Bearer ' + getToken() }
     const imgResp = await wrapUploadTimeout(
       uploadFile(`${baseUrl}/user/face-capture`, photoPathRef.current, {
@@ -108,6 +109,7 @@ export default function FaceVerify() {
   }
 
   const uploadVideoPart = async (batchId) => {
+    setUploadProgress(null)
     const headers = { Authorization: 'Bearer ' + getToken() }
     const vidResp = await wrapUploadTimeout(
       uploadFile(`${baseUrl}/user/face-capture`, videoPathRef.current, {

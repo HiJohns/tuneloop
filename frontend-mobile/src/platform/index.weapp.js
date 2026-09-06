@@ -76,8 +76,10 @@ export const uploadFile = (url, filePath, options = {}) => {
     header: options.headers || {},
   })
   // 进度回调（慢网显示百分比，避免用户以为卡死）。
+  // total<=0 的事件（微信首帧/未知总长）会覆盖有效百分比 → 直接丢弃。
   if (typeof options.onProgress === 'function' && task && typeof task.onProgressUpdate === 'function') {
     task.onProgressUpdate((r) => {
+      if (!r || !(r.totalBytesExpectedToSend > 0)) return
       options.onProgress({
         loaded: r.totalBytesSent,
         total: r.totalBytesExpectedToSend,
