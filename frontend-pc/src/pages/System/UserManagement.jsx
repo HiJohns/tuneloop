@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Table, Input, Button, Space, Modal, Form, InputNumber, Switch, message, Tag, Typography, Collapse, Image, Divider, Alert } from 'antd'
 import { DownloadOutlined, IdcardOutlined, ScanOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import { api, faceReviewApi } from '../../services/api'
@@ -23,6 +24,7 @@ function idCardStatus(user) {
 }
 
 export default function UserManagement() {
+  const navigate = useNavigate()
   const [list, setList] = useState([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -358,7 +360,7 @@ export default function UserManagement() {
                             {(b.selfie_urls || []).length === 0 && <Text type="secondary">无自拍素材</Text>}
                           </Space>
                           {b.status === 'pending' && detail?.face_verify_method !== 'tencent' && (
-                            <Button type="link" size="small" href={`/face-review?user_id=${current?.id}`} target="_blank">
+                            <Button type="link" size="small" onClick={() => navigate(`/face-review?user_id=${current?.id}`)}>
                               去实名审核队列处理 ›
                             </Button>
                           )}
