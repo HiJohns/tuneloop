@@ -473,7 +473,9 @@ export default function Profile() {
             v{env.version}
           </Text>
         )}
-
+        {/* 底部垫片：BottomNav 为 absolute 覆盖层，滚到底时需 ≥nav 高度的
+            内边距才能让版本号浮在导航上方可见（菜单加长后曾遮挡） */}
+        <View style={{ height: 120 }} />
       </ScrollView>
 
       {/* 5. 底部固定导航栏 */}
