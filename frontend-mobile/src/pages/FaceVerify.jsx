@@ -64,6 +64,17 @@ export default function FaceVerify() {
     setCameraErr(e.detail?.errMsg || '摄像头授权失败，请在小程序设置中允许使用摄像头')
   }
 
+  // #1822: 上传超时兜底——弱网（如海外直连国内）下 Taro.uploadFile 无超时
+  // 参数，失败前会无限"上传中"。60s 未完成即抛错进入 fail 态（可重试/重拍）。
+  const UPLOAD_TIMEOUT_MS = 60000
+  const withUploadTimeout = (promise) =>
+    Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('上传超时，请检查网络后重试')), UPLOAD_TIMEOUT_MS)
+      ),
+    ])
+
   // Upload photo + optional video → POST /user/face-capture (weapp 分离上传)
   const doUpload = async (imagePath, videoPath) => {
     setUploadError('')
@@ -71,21 +82,21 @@ export default function FaceVerify() {
       const base = baseUrl || '/api'
       const headers = { Authorization: 'Bearer ' + getToken() }
       // Upload image first (creates batch)
-      const imgResp = await uploadFile(`${base}/user/face-capture`, imagePath, {
+      const imgResp = await withUploadTimeout(uploadFile(`${base}/user/face-capture`, imagePath, {
         name: 'image',
         headers,
-      })
+      }))
       if (!imgResp.ok) throw new Error('照片上传失败')
       const imgJson = JSON.parse(imgResp.data)
       if (imgJson.code !== 20000) throw new Error(resolveErrorMessage(imgJson, '提交失败'))
       const batchId = imgJson.data?.batch_id
       // Upload video (optional, appended to same batch)
       if (videoPath && batchId) {
-        const vidResp = await uploadFile(`${base}/user/face-capture`, videoPath, {
+        const vidResp = await withUploadTimeout(uploadFile(`${base}/user/face-capture`, videoPath, {
           name: 'video',
           formData: { batch_id: batchId },
           headers,
-        })
+        }))
         if (!vidResp.ok) throw new Error('视频上传失败')
         const vidJson = JSON.parse(vidResp.data)
         if (vidJson.code !== 20000) throw new Error(resolveErrorMessage(vidJson, '视频上传失败'))
@@ -245,69 +256,84 @@ export default function FaceVerify() {
     }
 
     // Camera mode: idle / photo_done / recording / blink / uploading
+    // #1822: 采集窗压缩至约 1/4 屏 + resolution=low → 录制视频为低分辨率，
+    // 上传更快、服务器占用更小（全屏预览不改变录制分辨率，真正压缩靠 low）。
     const shutterLabel = phase === 'Uploading' ? '处理中...'
       : phase === 'Recording' || phase === 'Blink' ? '停止'
       : '拍照'
 
     return (
-      <View style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#000' }}>
-        {/* Full-screen front camera — getCameraContext() targets first <Camera> on page */}
-        <Camera
-          devicePosition="front"
-          style={{ width: '100%', height: '100%' }}
-          onError={handleCameraError}
-        />
-
-        {/* Camera error overlay */}
+      <View style={{ position: 'relative', width: '100vw', minHeight: '100vh', backgroundColor: '#0b0b0f', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 24, paddingBottom: 48, boxSizing: 'border-box' }}>
         {cameraErr ? (
-          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.85)' }}>
-            <Text style={{ fontSize: 16, color: '#fff', marginBottom: 12 }}>⚠️ {cameraErr}</Text>
-            <View onClick={goBack} style={{ padding: '8px 24px', backgroundColor: '#915F38', borderRadius: 20 }}>
+          <View style={{ width: '100%', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: 15, color: '#fff', marginBottom: 16, textAlign: 'center', paddingHorizontal: 32 }}>⚠️ {cameraErr}</Text>
+            <View onClick={goBack} style={{ paddingLeft: 24, paddingRight: 24, height: 44, backgroundColor: '#915F38', borderRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ fontSize: 14, color: '#fff' }}>返回</Text>
             </View>
           </View>
         ) : (
           <>
-            {/* Status bar overlay (top) */}
-            <View style={{ position: 'absolute', top: 48, left: 16, right: 16, zIndex: 10 }}>
-              {renderStatusBar()}
+            {/* Status bar (top) */}
+            <View style={{ width: '100%', paddingLeft: 16, paddingRight: 16, zIndex: 10 }}>{renderStatusBar()}</View>
+
+            {/* Compact camera stage (~1/4 screen area) */}
+            <View style={{ marginTop: 20, width: 232, height: 320, borderRadius: 20, overflow: 'hidden', position: 'relative', backgroundColor: '#000' }}>
+              <Camera
+                devicePosition="front"
+                resolution="low"
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                onError={handleCameraError}
+              />
+              {/* Blink prompt (inside stage, visible during last 2s) */}
+              {blinkVisible && phase !== 'Uploading' && (
+                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+                  <View style={{ backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 8, paddingLeft: 20, paddingRight: 20, paddingTop: 8, paddingBottom: 8 }}>
+                    <Text style={{ fontSize: 18, color: '#fff', fontWeight: '700' }}>{actionPrompt || '请眨眨眼'}</Text>
+                  </View>
+                </View>
+              )}
+              {/* Countdown (inside stage bottom) */}
+              {(phase === 'Recording' || phase === 'Blink') && countdown > 0 ? (
+                <View style={{ position: 'absolute', bottom: 12, left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 10 }}>
+                  <Text style={{ fontSize: 15, color: 'rgba(255,255,255,0.9)' }}>{countdown}s</Text>
+                </View>
+              ) : null}
+              {/* 录像中红点指示 */}
+              {(phase === 'Recording' || phase === 'Blink') && (
+                <View style={{ position: 'absolute', top: 10, left: 12, display: 'flex', flexDirection: 'row', alignItems: 'center', zIndex: 10 }}>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#dc2626', marginRight: 5 }} />
+                  <Text style={{ fontSize: 11, color: '#fff' }}>录制中</Text>
+                </View>
+              )}
             </View>
 
-            {/* Blink prompt (center-top, visible during last 2s) */}
-            {blinkVisible && phase !== 'Uploading' && (
-              <View style={{ position: 'absolute', top: '35%', left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 10 }}>
-                <View style={{ backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 8, padding: '8px 20px' }}>
-                  <Text style={{ fontSize: 18, color: '#fff', fontWeight: '700' }}>{actionPrompt || '请眨眨眼'}</Text>
-                </View>
-              </View>
-            )}
-
-            {/* Upload error */}
-            {uploadError ? (
-              <View style={{ position: 'absolute', bottom: 140, left: 16, right: 16, zIndex: 10 }}>
-                <View style={{ backgroundColor: 'rgba(220,38,38,0.9)', borderRadius: 8, padding: 10 }}>
-                  <Text style={{ fontSize: 13, color: '#fff', textAlign: 'center' }}>{uploadError}</Text>
-                </View>
-              </View>
-            ) : null}
-
-            {/* Countdown (when recording) */}
-            {(phase === 'Recording' || phase === 'Blink') && countdown > 0 ? (
-              <View style={{ position: 'absolute', bottom: 130, left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 10 }}>
-                <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)' }}>{countdown}s</Text>
-              </View>
-            ) : null}
+            {/* Instruction / upload error text under the stage */}
+            <View style={{ marginTop: 14, paddingLeft: 28, paddingRight: 28, width: '100%', display: 'flex', alignItems: 'center' }}>
+              {uploadError ? (
+                <Text style={{ fontSize: 13, color: '#fca5a5', textAlign: 'center', lineHeight: '18px' }}>{uploadError}</Text>
+              ) : phase === 'Uploading' ? (
+                <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', textAlign: 'center' }}>正在上传，请勿离开页面…</Text>
+              ) : (
+                <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', textAlign: 'center', lineHeight: '18px' }}>
+                  {phase === 'Recording' || phase === 'Blink'
+                    ? '请正对屏幕，保持面部在框内，完成提示动作（≤5 秒）'
+                    : phase === 'photo_done'
+                      ? '照片已采集，即将录制动态视频'
+                      : '请正对屏幕并保持光线充足，点击下方快门拍照；随后录制 ≤5 秒视频完成动作验证。视频为压缩采集，上传更快'}
+                </Text>
+              )}
+            </View>
 
             {/* Photo confirmation transition panel (photo_done phase) */}
             {phase === 'photo_done' && (
-              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 20 }}>
+              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.88)', zIndex: 20 }}>
                 <Image
                   src={photoPathRef.current}
-                  style={{ width: 200, height: 266, borderRadius: 12, marginBottom: 24 }}
+                  style={{ width: 180, height: 240, borderRadius: 12, marginBottom: 24 }}
                   mode="aspectFill"
                 />
                 <Text style={{ fontSize: 16, color: '#fff', fontWeight: '600', marginBottom: 8 }}>图像采集完成！</Text>
-                <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginBottom: 40, paddingHorizontal: 32, textAlign: 'center', lineHeight: '20px' }}>下面还需要采集一段视频，录制过程中会提示您完成一个动作，请配合。</Text>
+                <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginBottom: 36, paddingHorizontal: 40, textAlign: 'center', lineHeight: '20px' }}>下面还需要采集一段视频，录制过程中会提示您完成一个动作，请配合。</Text>
                 <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
                   <View
                     onClick={handleRetake}
@@ -335,7 +361,7 @@ export default function FaceVerify() {
 
             {/* Bottom controls: fail → 重试上传/重新拍摄; photo_done → hidden (panel above); else → shutter */}
             {phase !== 'photo_done' && (
-              <View style={{ position: 'absolute', bottom: 60, left: 0, right: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10 }}>
+              <View style={{ marginTop: 28, display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10 }}>
                 {phase === 'fail' ? (
                   <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
                     {/* 重新拍摄（左，次要） */}
@@ -365,12 +391,12 @@ export default function FaceVerify() {
                   <View
                     onClick={phase === 'Uploading' ? undefined : handleShutter}
                     style={{
-                      width: 68, height: 68, borderRadius: 34,
-                      border: '4px solid #fff',
-                      backgroundColor: phase === 'Recording' || phase === 'Blink' ? '#dc2626' : 'rgba(255,255,255,0.3)',
+                      width: 64, height: 64, borderRadius: 32,
+                      border: '3px solid #fff',
+                      backgroundColor: phase === 'Recording' || phase === 'Blink' ? '#dc2626' : 'rgba(255,255,255,0.25)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                    <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600' }}>{shutterLabel}</Text>
+                    <Text style={{ fontSize: 13, color: '#fff', fontWeight: '600' }}>{shutterLabel}</Text>
                   </View>
                 )}
               </View>
