@@ -30,6 +30,18 @@ export default function FaceVerify() {
   const navigate = useNavigate()
   const baseUrl = env.apiBaseUrl
 
+  // #1823: 桌面版微信（Mac/Windows）的 <camera> 仅支持拍照，录像不可用——
+  // 之前在此环境下静默走了「录像失败→仅提交照片」，用户以为已上传视频。
+  const isDesktopWeapp = (() => {
+    if (!env.isMiniProgram) return false
+    try {
+      const platform = Taro.getSystemInfoSync().platform
+      return platform === 'mac' || platform === 'windows'
+    } catch {
+      return false
+    }
+  })()
+
   const fetchStatus = async () => {
     try {
       const resp = await apiFetch(`${baseUrl}/users/me`)
@@ -148,9 +160,18 @@ export default function FaceVerify() {
         doUpload(photoPathRef.current, vp)
       },
       fail: () => {
-        // 录像失败 → 仅上传照片（视频素材不可用）
+        // #1823: 录像拿不到素材（桌面版微信等）——不再静默降级为仅照片上传。
         videoPathRef.current = ''
-        doUpload(photoPathRef.current, '')
+        setPhase('idle')
+        Taro.showModal({
+          title: '未获取到视频',
+          content: '当前设备未能录制视频（电脑版微信通常不支持录像）。实名认证需要动态视频，请改用手机微信完成；如需继续请仅提交照片（不推荐）。',
+          confirmText: '仅提交照片',
+          cancelText: '知道了',
+          success: (r) => {
+            if (r.confirm) doUpload(photoPathRef.current, '')
+          },
+        })
       },
     })
   }
@@ -192,6 +213,15 @@ export default function FaceVerify() {
             handleStopRecord()
           }
         }, 1000)
+      },
+      fail: (err) => {
+        // #1823: 开始录像失败要给反馈（桌面微信常不支持），不再静默卡住。
+        Taro.showModal({
+          title: '无法开始录像',
+          content: '当前设备不支持视频录制，实名认证需要动态视频。请改用手机微信操作。',
+          showCancel: false,
+        })
+        setPhase('photo_done')
       },
     })
   }
@@ -261,6 +291,21 @@ export default function FaceVerify() {
     const shutterLabel = phase === 'Uploading' ? '处理中...'
       : phase === 'Recording' || phase === 'Blink' ? '停止'
       : '拍照'
+
+    // #1823: 桌面微信录像不可用 → 直接引导用手机，不进相机流程。
+    if (isDesktopWeapp) {
+      return (
+        <View style={{ minHeight: '100vh', backgroundColor: '#f4f4f5', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 60, paddingLeft: 32, paddingRight: 32 }}>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#111', marginBottom: 12 }}>请使用手机微信</Text>
+          <Text style={{ fontSize: 13, color: '#52525b', textAlign: 'center', lineHeight: '20px', marginBottom: 28 }}>
+            实名认证需要录制动态视频（活体检测），电脑版微信不支持视频录制。请使用手机微信打开本小程序完成实名认证。
+          </Text>
+          <View onClick={goBack} style={{ paddingLeft: 32, paddingRight: 32, height: 44, borderRadius: 22, backgroundColor: '#915F38', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: 14, color: '#fff' }}>返回</Text>
+          </View>
+        </View>
+      )
+    }
 
     return (
       <View style={{ position: 'relative', width: '100vw', minHeight: '100vh', backgroundColor: '#0b0b0f', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 24, paddingBottom: 48, boxSizing: 'border-box' }}>
