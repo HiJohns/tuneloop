@@ -28,6 +28,12 @@ export default function FaceVerify() {
   const videoPathRef = useRef('')
   const lastBatchIdRef = useRef('')
   const countdownRef = useRef(null)
+  // 上传管理（#1822/#1823）：task 句柄 / 停滞看门狗 / 部件标识 / 处理标记
+  const uploadTaskRef = useRef(null)
+  const stallTimerRef = useRef(null)
+  const lastProgressAtRef = useRef(0)
+  const uploadPartRef = useRef('')
+  const stallHandledRef = useRef(false)
   const navigate = useNavigate()
   const baseUrl = env.apiBaseUrl
 
@@ -62,7 +68,10 @@ export default function FaceVerify() {
 
   // Cleanup countdown on unmount
   useEffect(() => {
-    return () => { if (countdownRef.current) clearInterval(countdownRef.current) }
+    return () => {
+      if (countdownRef.current) clearInterval(countdownRef.current)
+      if (stallTimerRef.current) clearInterval(stallTimerRef.current)
+    }
   }, [])
 
   const goBack = () => {
@@ -79,53 +88,106 @@ export default function FaceVerify() {
 
   const [uploadProgress, setUploadProgress] = useState(null)
 
-  // #1822/#1823: 上传超时兜底——海外弱网只有数十 KB/s，低清原片 ~3MB 需
-  // 数分钟。照片 90s / 视频 300s；超时不再整体失败（见 video 失败弹窗）。
+  // #1822/#1823: 上传管理三件套——
+  // 1) 总超时：照片 90s / 视频 300s
+  // 2) 停滞看门狗：黑屏/后台/断流时微信不再派发进度事件且定时器被挂起；
+  //    90s 无任何进度 → abort 任务 + 弹窗，绝不留下无限"正在上传"
+  // 3) 进度百分比：显示真实上传进度
+  const STALL_MS = 90000
+
+  const clearStallWatchdog = () => {
+    if (stallTimerRef.current) {
+      clearInterval(stallTimerRef.current)
+      stallTimerRef.current = null
+    }
+  }
+
+  const startUploadPart = (name) => {
+    uploadPartRef.current = name
+    lastProgressAtRef.current = Date.now()
+    stallHandledRef.current = false
+    setUploadProgress(null)
+    clearStallWatchdog()
+    stallTimerRef.current = setInterval(() => {
+      if (Date.now() - lastProgressAtRef.current > STALL_MS) {
+        handleUploadStall()
+      }
+    }, 5000)
+  }
+
+  const onUploadProgress = (p) => {
+    lastProgressAtRef.current = Date.now()
+    setUploadProgress(p)
+  }
+
   const wrapUploadTimeout = (promise, ms) =>
     Promise.race([
       promise,
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('上传超时，请检查网络后重试')), ms)
+        setTimeout(() => {
+          clearStallWatchdog()
+          stallHandledRef.current = true
+          reject(new Error('上传超时，请检查网络后重试'))
+        }, ms)
       ),
     ])
 
   const uploadImagePart = async () => {
-    setUploadProgress(null)
+    startUploadPart('image')
     const headers = { Authorization: 'Bearer ' + getToken() }
-    const imgResp = await wrapUploadTimeout(
-      uploadFile(`${baseUrl}/user/face-capture`, photoPathRef.current, {
-        name: 'image',
-        headers,
-        onProgress: setUploadProgress,
-      }),
-      90000
-    )
-    if (!imgResp.ok) throw new Error('照片上传失败')
-    const imgJson = JSON.parse(imgResp.data)
-    if (imgJson.code !== 20000) throw new Error(resolveErrorMessage(imgJson, '提交失败'))
-    const batchId = imgJson.data?.batch_id || ''
-    lastBatchIdRef.current = batchId
-    return batchId
+    try {
+      const imgResp = await wrapUploadTimeout(
+        uploadFile(`${baseUrl}/user/face-capture`, photoPathRef.current, {
+          name: 'image',
+          headers,
+          onProgress: onUploadProgress,
+          onStart: (t) => { uploadTaskRef.current = t },
+        }),
+        90000
+      )
+      clearStallWatchdog()
+      uploadTaskRef.current = null
+      if (!imgResp.ok) throw new Error('照片上传失败')
+      const imgJson = JSON.parse(imgResp.data)
+      if (imgJson.code !== 20000) throw new Error(resolveErrorMessage(imgJson, '提交失败'))
+      const batchId = imgJson.data?.batch_id || ''
+      lastBatchIdRef.current = batchId
+      return batchId
+    } catch (err) {
+      clearStallWatchdog()
+      if (stallHandledRef.current) return ''
+      throw err
+    }
   }
 
   const uploadVideoPart = async (batchId) => {
-    setUploadProgress(null)
+    startUploadPart('video')
     const headers = { Authorization: 'Bearer ' + getToken() }
-    const vidResp = await wrapUploadTimeout(
-      uploadFile(`${baseUrl}/user/face-capture`, videoPathRef.current, {
-        name: 'video',
-        formData: { batch_id: batchId },
-        headers,
-        onProgress: setUploadProgress,
-      }),
-      300000
-    )
-    if (!vidResp.ok) throw new Error('视频上传失败')
-    const vidJson = JSON.parse(vidResp.data)
-    if (vidJson.code !== 20000) throw new Error(resolveErrorMessage(vidJson, '视频上传失败'))
+    try {
+      const vidResp = await wrapUploadTimeout(
+        uploadFile(`${baseUrl}/user/face-capture`, videoPathRef.current, {
+          name: 'video',
+          formData: { batch_id: batchId },
+          headers,
+          onProgress: onUploadProgress,
+          onStart: (t) => { uploadTaskRef.current = t },
+        }),
+        300000
+      )
+      clearStallWatchdog()
+      uploadTaskRef.current = null
+      if (!vidResp.ok) throw new Error('视频上传失败')
+      const vidJson = JSON.parse(vidResp.data)
+      if (vidJson.code !== 20000) throw new Error(resolveErrorMessage(vidJson, '视频上传失败'))
+    } catch (err) {
+      clearStallWatchdog()
+      if (stallHandledRef.current) return
+      throw err
+    }
   }
 
   const finishSubmit = (toastText) => {
+    clearStallWatchdog()
     setStatus('pending_review')
     setUploadProgress(null)
     dialog.toast(toastText || '提交成功，等待审核')
@@ -134,9 +196,9 @@ export default function FaceVerify() {
     }, 800)
   }
 
-  // #1823: 视频上传失败/超时（慢网）→ 照片批次已建好，询问是否仅提交照片，
+  // #1823: 视频上传失败/超时/停滞（慢网）→ 照片批次已建好，询问是否仅提交照片，
   // 不静默降级也不整体重来（重试只补视频，不重复传照片/不新建批次）。
-  const askVideoFail = (batchId, err) => {
+  function askVideoFail(batchId, err) {
     setUploadProgress(null)
     Taro.showModal({
       title: '视频上传未完成',
@@ -153,10 +215,29 @@ export default function FaceVerify() {
           await uploadVideoPart(batchId)
           finishSubmit()
         } catch (e2) {
-          askVideoFail(batchId, e2)
+          if (!stallHandledRef.current) askVideoFail(batchId, e2)
         }
       },
     })
+  }
+
+  // 停滞看门狗触发：abort 后按当前部件分流。
+  function handleUploadStall() {
+    clearStallWatchdog()
+    try {
+      if (uploadTaskRef.current && typeof uploadTaskRef.current.abort === 'function') {
+        uploadTaskRef.current.abort()
+      }
+    } catch {}
+    stallHandledRef.current = true
+    uploadTaskRef.current = null
+    setUploadProgress(null)
+    if (uploadPartRef.current === 'video' && lastBatchIdRef.current) {
+      askVideoFail(lastBatchIdRef.current, new Error('网络停滞（可能是锁屏/断流），请重试或仅提交照片'))
+    } else {
+      setUploadError('上传停滞（网络中断或锁屏挂起），请重试')
+      setPhase('fail')
+    }
   }
 
   // Upload photo + optional video → POST /user/face-capture (weapp 分离上传)
@@ -165,12 +246,13 @@ export default function FaceVerify() {
     setUploadProgress(null)
     try {
       const batchId = await uploadImagePart()
+      if (!batchId) return // 停滞已处理（fail 态弹窗）
       if (videoPathRef.current && batchId) {
         try {
           await uploadVideoPart(batchId)
           finishSubmit()
         } catch (err) {
-          askVideoFail(batchId, err)
+          if (!stallHandledRef.current) askVideoFail(batchId, err)
         }
       } else {
         finishSubmit()
@@ -179,6 +261,7 @@ export default function FaceVerify() {
       // P5: 上传失败进入 fail 态并保留已录素材（photo/video temp paths），
       // 供「重试上传」直接复用——不丢失已录素材状态。
       setUploadProgress(null)
+      clearStallWatchdog()
       setUploadError(err.message || '上传失败，请重试')
       setPhase('fail')
     }
