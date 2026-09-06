@@ -374,6 +374,144 @@ func TestPrepayRent_OpenIDBackfillFromLocalUser(t *testing.T) {
 		"openid must be backfilled from local users.wx_openid (#1684)")
 }
 
+// TestPrepayRent_WeappNoOpenID_Rejects guards the 2026-09-06 pre-prod
+// incident: a mini-program prepay without a resolvable openid used to
+// silently downgrade to Native (QR) pay — weapp can't show a QR, the client
+// "paid" nothing while showing the success page, and the order later timed
+// out. Now weapp prepay without openid must hard-fail with 40002.
+func TestPrepayRent_WeappNoOpenID_Rejects(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+
+	rec := &recordingJSAPIClient{}
+	wechatpay.ResetGlobalForTesting()
+	wechatpay.SetClientForTesting(rec, &wechatpay.Config{
+		AppID:           "wxcb44a1be70e356ed",
+		NotifyURL:       "http://localhost:5553/api/wechatpay/notify",
+		RefundNotifyURL: "http://localhost:5553/api/wechatpay/notify",
+	})
+	t.Cleanup(func() {
+		wechatpay.ResetGlobalForTesting()
+		testfixtures.SetupWechatPayMock(t)
+	})
+
+	// Local user WITHOUT wx_openid — mirrors the pre-prod state after an
+	// account restore that only fixed the IAM binding, not the local cache.
+	user := models.User{
+		ID:       uuid.New().String(),
+		IAMSub:   "22222222-3333-4444-8555-666666666666",
+		TenantID: "00000000-0000-0000-0000-000000000000",
+		OrgID:    "00000000-0000-0000-0000-000000000000",
+		Name:     "NoOpenIDUser",
+		Phone:    "13800138002",
+		Role:     "USER",
+		Status:   "active",
+		WxOpenid: "",
+	}
+	require.NoError(t, db.Create(&user).Error)
+
+	customer := testutil.MakeCustomer("", user.IAMSub)
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		ctx := customer.InjectContext(c.Request.Context())
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	router.POST("/api/pay/prepay", PrepayOrder)
+
+	prepayBody, _ := json.Marshal(map[string]interface{}{
+		"order_id":   uuid.New().String(),
+		"order_type": "rent",
+		"amount":     0.02,
+	})
+	req := httptest.NewRequest("POST", "/api/pay/prepay", bytes.NewBuffer(prepayBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Client-Platform", "weapp")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusBadRequest, w.Code, "weapp prepay without openid must fail: %s", w.Body.String())
+	var resp struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 40002, resp.Code)
+	assert.Contains(t, resp.Message, "微信支付身份缺失")
+
+	// No payment record may be persisted for the refused prepay.
+	var count int64
+	db.Model(&models.OrderPaymentRecord{}).Where("user_id = ?", user.IAMSub).Count(&count)
+	assert.Zero(t, count, "refused prepay must not persist a payment record")
+}
+
+// TestPrepayRent_NoOpenID_PCNativeFallback locks the PC/H5 side of the split:
+// a non-mini-program prepay without openid keeps the Native (QR) fallback
+// (#1684) — hard-failing it would break desktop checkout flows.
+func TestPrepayRent_NoOpenID_PCNativeFallback(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+
+	rec := &recordingJSAPIClient{}
+	wechatpay.ResetGlobalForTesting()
+	wechatpay.SetClientForTesting(rec, &wechatpay.Config{
+		AppID:           "wxcb44a1be70e356ed",
+		NotifyURL:       "http://localhost:5553/api/wechatpay/notify",
+		RefundNotifyURL: "http://localhost:5553/api/wechatpay/notify",
+	})
+	t.Cleanup(func() {
+		wechatpay.ResetGlobalForTesting()
+		testfixtures.SetupWechatPayMock(t)
+	})
+
+	user := models.User{
+		ID:       uuid.New().String(),
+		IAMSub:   "33333333-4444-4555-8666-777777777777",
+		TenantID: "00000000-0000-0000-0000-000000000000",
+		OrgID:    "00000000-0000-0000-0000-000000000000",
+		Name:     "PCOpenIDUser",
+		Phone:    "13800138003",
+		Role:     "USER",
+		Status:   "active",
+		WxOpenid: "",
+	}
+	require.NoError(t, db.Create(&user).Error)
+
+	customer := testutil.MakeCustomer("", user.IAMSub)
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		ctx := customer.InjectContext(c.Request.Context())
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	router.POST("/api/pay/prepay", PrepayOrder)
+
+	prepayBody, _ := json.Marshal(map[string]interface{}{
+		"order_id":   uuid.New().String(),
+		"order_type": "rent",
+		"amount":     0.02,
+	})
+	req := httptest.NewRequest("POST", "/api/pay/prepay", bytes.NewBuffer(prepayBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code, "PC native fallback must stay valid: %s", w.Body.String())
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			Success bool `json:"success"`
+			Data    struct {
+				CodeURL string `json:"code_url"`
+			} `json:"data"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+	assert.True(t, resp.Data.Success)
+	assert.Equal(t, "stub", resp.Data.Data.CodeURL, "non-weapp prepay without openid must return a native QR code_url")
+}
+
 // TestPrepayMembership_SessionOpenIDBackfill verifies (#1678) that in the
 // two-phase registration flow the prepay handler backfills openid from the
 // pending session — the frontend no longer calls /api/wechat/openid.

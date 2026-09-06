@@ -320,6 +320,18 @@ func PrepayOrder(c *gin.Context) {
 			}
 		}
 		if req.OpenID == "" {
+			// 小程序端没有 openid 时绝不静默降级 Native 扫码：weapp 无法展示
+			// 二维码，用户只会「到达付款页却未扣款」（2026-09-06 预生产 incident，
+			// 根因：本地 users.wx_openid 缓存缺失）→ 必须显式报错。
+			// PC/H5 保留 Native (QR) fallback（#1684，PC 扫码支付是正常路径）。
+			if isMiniProgramClient(c) {
+				log.Printf("[PrepayOrder] weapp prepay without openid refused: orderType=%s user=%s orderID=%q tenant=%s",
+					req.OrderType, userID, effectiveOrderID, tenantID)
+				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "微信支付身份缺失，请退出后重新登录再试"})
+				return
+			}
+			log.Printf("[PrepayOrder] native QR fallback (no local openid): orderType=%s user=%s orderID=%q",
+				req.OrderType, userID, effectiveOrderID)
 			// Native payment (QR code) for PC
 			result, err := client.CreateNativeOrder(ctx, wechatpay.NativeParams{
 				OutTradeNo:  outTradeNo,
@@ -416,6 +428,7 @@ func PrepayOrder(c *gin.Context) {
 			}
 		}
 		if req.OpenID == "" {
+			log.Printf("[PrepayOrder] renewal prepay without openid refused: user=%s", userID)
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "renewal payment requires open_id"})
 			return
 		}
@@ -474,6 +487,7 @@ func PrepayOrder(c *gin.Context) {
 			openid = session.OpenID
 		}
 		if openid == "" {
+			log.Printf("[PrepayOrder] membership prepay without openid refused: user=%s sessionFlow=%v", userID, sessionFlow)
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "membership payment requires open_id"})
 			return
 		}
@@ -526,6 +540,17 @@ func PrepayOrder(c *gin.Context) {
 }
 
 func strPtr(s string) *string { return &s }
+
+// isMiniProgramClient reports whether the prepay request originates from the
+// WeChat mini-program. The weapp client marks itself with X-Client-Platform:
+// weapp; UA fallback catches legacy builds (Taro/WeChat request UA contains
+// "miniProgram"). PC/H5 browsers carry neither → Native QR fallback stays valid.
+func isMiniProgramClient(c *gin.Context) bool {
+	if strings.EqualFold(c.GetHeader("X-Client-Platform"), "weapp") {
+		return true
+	}
+	return strings.Contains(c.GetHeader("User-Agent"), "miniProgram")
+}
 
 // QueryPayment handles POST /api/pay/query
 func QueryPayment(c *gin.Context) {

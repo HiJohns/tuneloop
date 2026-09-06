@@ -314,6 +314,9 @@ export default function Payment() {
     const resp = await apiFetch(`${baseUrl}/pay/prepay`, {
       method: 'POST',
       body: JSON.stringify(body),
+      // #18xx: 声明小程序来源——后端对 weapp 缺 openid 的 prepay 直接报错，
+      // 绝不静默降级 Native 扫码（PC 才有二维码可扫）。
+      headers: { 'x-client-platform': 'weapp' },
       auth: false, // #1681: anonymous — no account exists during registration
     })
     return resp.json()
@@ -412,18 +415,16 @@ export default function Payment() {
           // 「微信支付」按钮）。按钮保留作兜底（自动拉起失败时重试）。
           // isPaying 保持 true——由 doRealPay 的 fail 复位或成功跳转收尾。
           doRealPay(d)
-        } else if (d.success) {
-          // Waive 记账成功（优惠码 OREZ → 后端 amount=0 直接记账，无 prepay_id）。
-          if (pType === 'membership' && pSessionId) {
-            Taro.showToast({ title: '会员已激活，赠点已到账', icon: 'success' })
-            setTimeout(finishMembershipFlow, 2000)
-          } else {
-            Taro.showToast({ title: '支付成功', icon: 'success' })
-            afterPaySuccess(pId)
-          }
-        } else {
+        } else if (d.data?.code_url) {
+          // #18xx: 后端误降级 Native（应已被后端 weapp 守卫拦截）——weapp
+          // 无法扫码，绝不能当作成功。
           setIsPaying(false)
-          Taro.showModal({ title: '支付失败', content: '无法获取支付参数', showCancel: false })
+          Taro.showModal({ title: '支付失败', content: '无法发起微信支付，请退出后重新进入再试', showCancel: false })
+        } else {
+          // 有金额的真实支付必须返回 prepay_id；无 prepay_id = 支付未创建，
+          // 禁止走 waive 假成功路径（2026-09-06 预生产 incident 教训）。
+          setIsPaying(false)
+          Taro.showModal({ title: '支付失败', content: '无法获取支付参数，请稍后重试', showCancel: false })
         }
       } else {
         setIsPaying(false)
