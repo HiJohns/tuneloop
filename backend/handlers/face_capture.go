@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"context"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -135,6 +137,9 @@ func (h *FaceCaptureHandler) SubmitFaceCapture(c *gin.Context) {
 			if err == nil {
 				if _, err := io.Copy(videoDst, videoFile); err == nil {
 					videoDst.Close()
+					// #1822: 服务端压码率——低分辨率(480p)用 ~800kbps 足够，
+					// 4.9s 视频可压到 ~0.5MB；失败非致命，保留原文件。
+					transcodeFaceVideo(filepath.Join("./uploads/media", videoKey))
 				} else {
 					videoDst.Close()
 					log.Printf("[FaceCapture] save video failed: %v", err)
@@ -185,7 +190,11 @@ func (h *FaceCaptureHandler) SubmitFaceCapture(c *gin.Context) {
 		}
 	}
 	if videoKey != "" {
-		if err := services.NewMediaRegistry().RegisterAsset(ctx, videoKey, services.SourceTypeFaceCapture, batchID, 0, "video"); err != nil {
+		videoSize := int64(0)
+		if fi, err := os.Stat(filepath.Join("./uploads/media", videoKey)); err == nil {
+			videoSize = fi.Size()
+		}
+		if err := services.NewMediaRegistry().RegisterAsset(ctx, videoKey, services.SourceTypeFaceCapture, batchID, videoSize, "video"); err != nil {
 			log.Printf("[FaceCapture] register video asset failed: %v", err)
 		}
 	}
@@ -234,4 +243,52 @@ func (h *FaceCaptureHandler) GetFaceCaptureStatus(c *gin.Context) {
 		}
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": data})
+}
+
+// transcodeFaceVideo re-encodes the just-uploaded liveness video to a capped
+// bitrate H.264 MP4 (audio dropped — liveness clips need no sound). weapp
+// <Camera resolution=low> outputs 480p at a wasteful ~4.8Mbps VBR; 800kbps is
+// visually sufficient at 480p and shrinks a 5s clip to ~0.5MB.
+//
+// Failure is deliberately non-fatal: ffmpeg missing or a transcode error
+// keeps the original upload — face verification must never break because
+// compression failed (pre-prod incident 2026-09-06, #1822).
+func transcodeFaceVideo(videoPath string) {
+	ff, err := exec.LookPath("ffmpeg")
+	if err != nil {
+		log.Printf("[FaceCapture] ffmpeg not found, keep original video %s", videoPath)
+		return
+	}
+	tmpPath := videoPath + ".transcode.mp4"
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, ff,
+		"-y",
+		"-i", videoPath,
+		"-an",
+		"-c:v", "libx264",
+		"-preset", "veryfast",
+		"-b:v", "800k",
+		"-maxrate", "900k",
+		"-bufsize", "1800k",
+		"-pix_fmt", "yuv420p",
+		"-movflags", "+faststart",
+		tmpPath)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		os.Remove(tmpPath)
+		msg := strings.TrimSpace(string(out))
+		if len(msg) > 300 {
+			msg = msg[:300]
+		}
+		log.Printf("[FaceCapture] transcode failed for %s: %v: %s", videoPath, err, msg)
+		return
+	}
+	if err := os.Rename(tmpPath, videoPath); err != nil {
+		os.Remove(tmpPath)
+		log.Printf("[FaceCapture] transcode rename failed for %s: %v", videoPath, err)
+		return
+	}
+	if fi, err := os.Stat(videoPath); err == nil {
+		log.Printf("[FaceCapture] transcoded %s -> %d bytes", videoPath, fi.Size())
+	}
 }
