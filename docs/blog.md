@@ -335,3 +335,4 @@
 - 2026-09-03: 批量处理完成，包含任务: 
 - 2026-09-03: 批量处理完成，包含任务: 
 - 2026-09-05: 批量处理完成，包含任务: 
+- 2026-09-06: Issue #1819 (invoice handler user_id bug) — PASS, committed 105fd362 + 96ae2cf5, all 5 tests PASS
