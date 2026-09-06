@@ -17,9 +17,21 @@ import (
 	"tuneloop-backend/models"
 )
 
-func setupInvoiceTestData(t *testing.T, tenantID, userID, orgID string) (string, string) {
+// #1819: create local users record + orders with localID, so LocalUserID
+// (iam_sub → users.id lookup) resolves correctly in handler tests.
+func setupInvoiceTestData(t *testing.T, tenantID, iamSub, localID, orgID string) (string, string) {
 	t.Helper()
 	db := database.GetDB()
+
+	// Local user record — id = localID, iam_sub = iamSub (non-equal for registered users)
+	user := models.User{
+		ID:       localID,
+		IAMSub:   iamSub,
+		TenantID: "00000000-0000-0000-0000-000000000000",
+		OrgID:    "00000000-0000-0000-0000-000000000000",
+		Status:   "active",
+	}
+	require.NoError(t, db.Create(&user).Error)
 
 	instrument := models.Instrument{
 		TenantID:    tenantID,
@@ -32,7 +44,7 @@ func setupInvoiceTestData(t *testing.T, tenantID, userID, orgID string) (string,
 	order1 := models.Order{
 		TenantID:     tenantID,
 		OrgID:        orgID,
-		UserID:       userID,
+		UserID:       localID,
 		InstrumentID: instrument.ID,
 		LeaseTerm:    30,
 		MonthlyRent:  500000,
@@ -51,7 +63,7 @@ func setupInvoiceTestData(t *testing.T, tenantID, userID, orgID string) (string,
 	order2 := models.Order{
 		TenantID:     tenantID,
 		OrgID:        orgID,
-		UserID:       userID,
+		UserID:       localID,
 		InstrumentID: instrument.ID,
 		LeaseTerm:    30,
 		MonthlyRent:  300000,
@@ -86,8 +98,9 @@ func invoiceRouter(tenantID, userID, orgID string) *gin.Engine {
 
 func TestInvoice_EligibleList(t *testing.T) {
 	tenantID := "00000000-0000-0000-0000-000000000101"
-	userID := "00000000-0000-0000-0000-000000000102"
+	localID := "00000000-0000-0000-0000-000000000102"
 	orgID := "00000000-0000-0000-0000-000000000103"
+	iamSub := "00000000-0000-0000-0000-000000000105"
 
 	db := database.GetDB()
 	merchant := models.Merchant{
@@ -100,9 +113,9 @@ func TestInvoice_EligibleList(t *testing.T) {
 	}
 	require.NoError(t, db.Create(&merchant).Error)
 
-	completedOrderID, _ := setupInvoiceTestData(t, tenantID, userID, orgID)
+	completedOrderID, _ := setupInvoiceTestData(t, tenantID, iamSub, localID, orgID)
 
-	router := invoiceRouter(tenantID, userID, orgID)
+	router := invoiceRouter(tenantID, iamSub, orgID)
 
 	req := httptest.NewRequest("GET", "/api/user/invoices/eligible", nil)
 	w := httptest.NewRecorder()
@@ -128,8 +141,9 @@ func TestInvoice_EligibleList(t *testing.T) {
 
 func TestInvoice_Submit(t *testing.T) {
 	tenantID := "00000000-0000-0000-0000-000000000201"
-	userID := "00000000-0000-0000-0000-000000000202"
+	localID := "00000000-0000-0000-0000-000000000202"
 	orgID := "00000000-0000-0000-0000-000000000203"
+	iamSub := "00000000-0000-0000-0000-000000000205"
 
 	db := database.GetDB()
 	merchant := models.Merchant{
@@ -142,9 +156,9 @@ func TestInvoice_Submit(t *testing.T) {
 	}
 	require.NoError(t, db.Create(&merchant).Error)
 
-	completedOrderID, _ := setupInvoiceTestData(t, tenantID, userID, orgID)
+	completedOrderID, _ := setupInvoiceTestData(t, tenantID, iamSub, localID, orgID)
 
-	router := invoiceRouter(tenantID, userID, orgID)
+	router := invoiceRouter(tenantID, iamSub, orgID)
 
 	body, _ := json.Marshal(map[string]interface{}{
 		"groups": []map[string]interface{}{
@@ -185,8 +199,9 @@ func TestInvoice_Submit(t *testing.T) {
 
 func TestInvoice_SubmitValidation(t *testing.T) {
 	tenantID := "00000000-0000-0000-0000-000000000301"
-	userID := "00000000-0000-0000-0000-000000000302"
+	localID := "00000000-0000-0000-0000-000000000302"
 	orgID := "00000000-0000-0000-0000-000000000303"
+	iamSub := "00000000-0000-0000-0000-000000000305"
 
 	db := database.GetDB()
 	merchant := models.Merchant{
@@ -199,9 +214,9 @@ func TestInvoice_SubmitValidation(t *testing.T) {
 	}
 	require.NoError(t, db.Create(&merchant).Error)
 
-	_, nonCompletedOrderID := setupInvoiceTestData(t, tenantID, userID, orgID)
+	_, nonCompletedOrderID := setupInvoiceTestData(t, tenantID, iamSub, localID, orgID)
 
-	router := invoiceRouter(tenantID, userID, orgID)
+	router := invoiceRouter(tenantID, iamSub, orgID)
 
 	// non-completed order → should fail
 	body, _ := json.Marshal(map[string]interface{}{
@@ -219,9 +234,10 @@ func TestInvoice_SubmitValidation(t *testing.T) {
 
 func TestInvoice_MerchantReply(t *testing.T) {
 	tenantID := "00000000-0000-0000-0000-000000000401"
-	userID := "00000000-0000-0000-0000-000000000402"
+	localID := "00000000-0000-0000-0000-000000000402"
 	orgID := "00000000-0000-0000-0000-000000000403"
 	merchantAdminID := "00000000-0000-0000-0000-000000000404"
+	iamSub := "00000000-0000-0000-0000-000000000405"
 
 	db := database.GetDB()
 	merchant := models.Merchant{
@@ -234,11 +250,11 @@ func TestInvoice_MerchantReply(t *testing.T) {
 	}
 	require.NoError(t, db.Create(&merchant).Error)
 
-	completedOrderID, _ := setupInvoiceTestData(t, tenantID, userID, orgID)
+	completedOrderID, _ := setupInvoiceTestData(t, tenantID, iamSub, localID, orgID)
 
 	app := models.InvoiceApplication{
 		ID:          uuid.New().String(),
-		UserID:      userID,
+		UserID:      localID, // #1819: local users.id (not IAM sub)
 		TenantID:    tenantID,
 		Status:      "pending",
 		TotalAmount: 416700,
@@ -255,7 +271,7 @@ func TestInvoice_MerchantReply(t *testing.T) {
 	require.NoError(t, db.Model(&models.Order{}).Where("id = ?", completedOrderID).
 		Updates(map[string]interface{}{"invoice_applied": true}).Error)
 
-	// Router uses merchant admin's identity
+	// Router uses merchant admin's identity (LocalUserID resolves merchantAdminID to same value)
 	router := invoiceRouter(tenantID, merchantAdminID, orgID)
 
 	body, _ := json.Marshal(map[string]interface{}{
@@ -284,19 +300,20 @@ func TestInvoice_MerchantReply(t *testing.T) {
 	require.Equal(t, "https://example.com/invoice.pdf", resp.Data.InvoiceFile)
 	require.NotNil(t, resp.Data.RepliedAt)
 
-	// Verify notification to customer
+	// Verify notification to customer — uses localID (app.UserID = local users.id)
 	var notifCount int64
 	db.Model(&models.Notification{}).
-		Where("user_id = ? AND type = ? AND action_type = ?", userID, "invoice", "invoice_reply").
+		Where("user_id = ? AND type = ? AND action_type = ?", localID, "invoice", "invoice_reply").
 		Count(&notifCount)
 	require.Equal(t, int64(1), notifCount)
 }
 
 func TestInvoice_MerchantReply_CrossTenant(t *testing.T) {
 	tenantID := "00000000-0000-0000-0000-000000000501"
-	userID := "00000000-0000-0000-0000-000000000502"
+	localID := "00000000-0000-0000-0000-000000000502"
 	orgID := "00000000-0000-0000-0000-000000000503"
 	otherTenantID := "00000000-0000-0000-0000-000000000504"
+	iamSub := "00000000-0000-0000-0000-000000000505"
 
 	db := database.GetDB()
 	merchant := models.Merchant{
@@ -309,11 +326,11 @@ func TestInvoice_MerchantReply_CrossTenant(t *testing.T) {
 	}
 	require.NoError(t, db.Create(&merchant).Error)
 
-	completedOrderID, _ := setupInvoiceTestData(t, tenantID, userID, orgID)
+	completedOrderID, _ := setupInvoiceTestData(t, tenantID, iamSub, localID, orgID)
 
 	app := models.InvoiceApplication{
 		ID:          uuid.New().String(),
-		UserID:      userID,
+		UserID:      localID, // #1819: local users.id
 		TenantID:    tenantID,
 		Status:      "pending",
 		TotalAmount: 416700,

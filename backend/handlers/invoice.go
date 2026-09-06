@@ -25,19 +25,6 @@ func NewInvoiceHandler() *InvoiceHandler {
 func (h *InvoiceHandler) ListEligible(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
-	userID := middleware.GetUserID(ctx)
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "请先登录"})
-		return
-	}
-
-	var orders []models.Order
-	if err := db.Where("user_id = ? AND status = ? AND invoice_applied = false", userID, models.OrderStatusCompleted).
-		Order("created_at DESC").
-		Find(&orders).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "查询失败"})
-		return
-	}
 
 	type eligibleOrder struct {
 		OrderID       string `json:"order_id"`
@@ -49,6 +36,26 @@ func (h *InvoiceHandler) ListEligible(c *gin.Context) {
 		OverdueCents  int64  `json:"overdue_cents"`
 		TotalCents    int64  `json:"total_cents"`
 	}
+
+	// #1819: orders/invoice_applications store LOCAL users.id, not the IAM sub.
+	localID, err := middleware.LocalUserID(ctx, db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "查询用户失败"})
+		return
+	}
+	if localID == "" {
+		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": []eligibleOrder{}})
+		return
+	}
+
+	var orders []models.Order
+	if err := db.Where("user_id = ? AND status = ? AND invoice_applied = false", localID, models.OrderStatusCompleted).
+		Order("created_at DESC").
+		Find(&orders).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "查询失败"})
+		return
+	}
+
 	var result []eligibleOrder
 
 	// batch-load instruments for SN
@@ -124,8 +131,14 @@ type invoiceSubmitRequest struct {
 func (h *InvoiceHandler) Submit(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
-	userID := middleware.GetUserID(ctx)
-	if userID == "" {
+
+	// #1819: orders/invoice_applications store LOCAL users.id, not the IAM sub.
+	localID, err := middleware.LocalUserID(ctx, db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "查询用户失败"})
+		return
+	}
+	if localID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "请先登录"})
 		return
 	}
@@ -143,16 +156,17 @@ func (h *InvoiceHandler) Submit(c *gin.Context) {
 	}
 	var results []applicationResult
 
-	err := db.Transaction(func(tx *gorm.DB) error {
+	err = db.Transaction(func(tx *gorm.DB) error {
 		for _, group := range req.Groups {
 			if len(group.OrderIDs) == 0 {
 				continue
 			}
 
 			// Verify all orders belong to current user + are completed + not yet applied
+			// #1819: user_id = local users.id (not IAM sub)
 			var orders []models.Order
 			if err := tx.Where("id IN ? AND user_id = ? AND status = ? AND invoice_applied = false",
-				group.OrderIDs, userID, models.OrderStatusCompleted).Find(&orders).Error; err != nil {
+				group.OrderIDs, localID, models.OrderStatusCompleted).Find(&orders).Error; err != nil {
 				return fmt.Errorf("查询订单失败: %w", err)
 			}
 			if len(orders) != len(group.OrderIDs) {
@@ -172,10 +186,10 @@ func (h *InvoiceHandler) Submit(c *gin.Context) {
 				totalCents += actual + overdue
 			}
 
-			// Create application
+			// Create application — UserID = local users.id (matches orders.user_id dimension)
 			app := models.InvoiceApplication{
 				ID:         uuid.New().String(),
-				UserID:     userID,
+				UserID:     localID,
 				TenantID:   group.TenantID,
 				Status:     "pending",
 				TotalAmount: models.Cents(totalCents),
@@ -253,14 +267,26 @@ func (h *InvoiceHandler) Submit(c *gin.Context) {
 func (h *InvoiceHandler) ListApplications(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
-	userID := middleware.GetUserID(ctx)
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "请先登录"})
+
+	type appResponse struct {
+		models.InvoiceApplication
+		MerchantName string         `json:"merchant_name"`
+		Orders       []orderDetail `json:"orders"`
+	}
+
+	// #1819: invoice_applications.user_id stores LOCAL users.id, not the IAM sub.
+	localID, err := middleware.LocalUserID(ctx, db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "查询用户失败"})
+		return
+	}
+	if localID == "" {
+		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": []appResponse{}})
 		return
 	}
 
 	var apps []models.InvoiceApplication
-	if err := db.Where("user_id = ?", userID).Order("created_at DESC").Find(&apps).Error; err != nil {
+	if err := db.Where("user_id = ?", localID).Order("created_at DESC").Find(&apps).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "查询失败"})
 		return
 	}
@@ -281,12 +307,6 @@ func (h *InvoiceHandler) ListApplications(c *gin.Context) {
 		for _, m := range merchants {
 			merchantMap[m.TenantID] = m.Name
 		}
-	}
-
-	type appResponse struct {
-		models.InvoiceApplication
-		MerchantName string         `json:"merchant_name"`
-		Orders       []orderDetail `json:"orders"`
 	}
 
 	var result []appResponse
@@ -321,15 +341,21 @@ func (h *InvoiceHandler) ListApplications(c *gin.Context) {
 func (h *InvoiceHandler) GetApplication(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
-	userID := middleware.GetUserID(ctx)
+
+	// #1819: invoice_applications.user_id stores LOCAL users.id, not the IAM sub.
+	localID, err := middleware.LocalUserID(ctx, db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "查询用户失败"})
+		return
+	}
 	appID := c.Param("id")
-	if userID == "" || appID == "" {
+	if localID == "" || appID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "参数错误"})
 		return
 	}
 
 	var app models.InvoiceApplication
-	if err := db.Where("id = ? AND user_id = ?", appID, userID).First(&app).Error; err != nil {
+	if err := db.Where("id = ? AND user_id = ?", appID, localID).First(&app).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "申请不存在"})
 		return
 	}

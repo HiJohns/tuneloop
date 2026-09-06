@@ -95,9 +95,16 @@ func TestMain(m *testing.M) {
 	// iam_sub has -:migration tag and is excluded from AutoMigrate; add it manually
 	addIAMSubColumn(testDB)
 
+	// invoice_application_orders is a plain join table not modeled by GORM; create manually
+	testDB.Exec(`CREATE TABLE IF NOT EXISTS invoice_application_orders (
+		application_id UUID NOT NULL,
+		order_id UUID NOT NULL,
+		PRIMARY KEY (application_id, order_id)
+	)`)
+
 	// Truncate tables that tests seed directly (without setupE2ETestEnv) to
 	// avoid duplicate-key errors from rows left by previous test runs.
-	for _, tbl := range []string{"damage_reports", "orders", "instruments", "users", "settlements"} {
+	for _, tbl := range []string{"damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "invoice_application_orders"} {
 		testDB.Exec("TRUNCATE TABLE " + tbl + " CASCADE")
 	}
 
