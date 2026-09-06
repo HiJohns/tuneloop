@@ -26,6 +26,7 @@ export default function FaceVerify() {
   const [actionPrompt, setActionPrompt] = useState('')
   const photoPathRef = useRef('')
   const videoPathRef = useRef('')
+  const lastBatchIdRef = useRef('')
   const countdownRef = useRef(null)
   const navigate = useNavigate()
   const baseUrl = env.apiBaseUrl
@@ -76,51 +77,106 @@ export default function FaceVerify() {
     setCameraErr(e.detail?.errMsg || '摄像头授权失败，请在小程序设置中允许使用摄像头')
   }
 
-  // #1822: 上传超时兜底——弱网（如海外直连国内）下 Taro.uploadFile 无超时
-  // 参数，失败前会无限"上传中"。60s 未完成即抛错进入 fail 态（可重试/重拍）。
-  const UPLOAD_TIMEOUT_MS = 60000
-  const withUploadTimeout = (promise) =>
+  const [uploadProgress, setUploadProgress] = useState(null)
+
+  // #1822/#1823: 上传超时兜底——海外弱网只有数十 KB/s，低清原片 ~3MB 需
+  // 数分钟。照片 90s / 视频 300s；超时不再整体失败（见 video 失败弹窗）。
+  const wrapUploadTimeout = (promise, ms) =>
     Promise.race([
       promise,
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('上传超时，请检查网络后重试')), UPLOAD_TIMEOUT_MS)
+        setTimeout(() => reject(new Error('上传超时，请检查网络后重试')), ms)
       ),
     ])
 
-  // Upload photo + optional video → POST /user/face-capture (weapp 分离上传)
-  const doUpload = async (imagePath, videoPath) => {
-    setUploadError('')
-    try {
-      const base = baseUrl || '/api'
-      const headers = { Authorization: 'Bearer ' + getToken() }
-      // Upload image first (creates batch)
-      const imgResp = await withUploadTimeout(uploadFile(`${base}/user/face-capture`, imagePath, {
+  const uploadImagePart = async () => {
+    const headers = { Authorization: 'Bearer ' + getToken() }
+    const imgResp = await wrapUploadTimeout(
+      uploadFile(`${baseUrl}/user/face-capture`, photoPathRef.current, {
         name: 'image',
         headers,
-      }))
-      if (!imgResp.ok) throw new Error('照片上传失败')
-      const imgJson = JSON.parse(imgResp.data)
-      if (imgJson.code !== 20000) throw new Error(resolveErrorMessage(imgJson, '提交失败'))
-      const batchId = imgJson.data?.batch_id
-      // Upload video (optional, appended to same batch)
-      if (videoPath && batchId) {
-        const vidResp = await withUploadTimeout(uploadFile(`${base}/user/face-capture`, videoPath, {
-          name: 'video',
-          formData: { batch_id: batchId },
-          headers,
-        }))
-        if (!vidResp.ok) throw new Error('视频上传失败')
-        const vidJson = JSON.parse(vidResp.data)
-        if (vidJson.code !== 20000) throw new Error(resolveErrorMessage(vidJson, '视频上传失败'))
+        onProgress: setUploadProgress,
+      }),
+      90000
+    )
+    if (!imgResp.ok) throw new Error('照片上传失败')
+    const imgJson = JSON.parse(imgResp.data)
+    if (imgJson.code !== 20000) throw new Error(resolveErrorMessage(imgJson, '提交失败'))
+    const batchId = imgJson.data?.batch_id || ''
+    lastBatchIdRef.current = batchId
+    return batchId
+  }
+
+  const uploadVideoPart = async (batchId) => {
+    const headers = { Authorization: 'Bearer ' + getToken() }
+    const vidResp = await wrapUploadTimeout(
+      uploadFile(`${baseUrl}/user/face-capture`, videoPathRef.current, {
+        name: 'video',
+        formData: { batch_id: batchId },
+        headers,
+        onProgress: setUploadProgress,
+      }),
+      300000
+    )
+    if (!vidResp.ok) throw new Error('视频上传失败')
+    const vidJson = JSON.parse(vidResp.data)
+    if (vidJson.code !== 20000) throw new Error(resolveErrorMessage(vidJson, '视频上传失败'))
+  }
+
+  const finishSubmit = (toastText) => {
+    setStatus('pending_review')
+    setUploadProgress(null)
+    dialog.toast(toastText || '提交成功，等待审核')
+    setTimeout(() => {
+      if (env.isMiniProgram) { Taro.navigateBack() } else { navigate('/profile/edit') }
+    }, 800)
+  }
+
+  // #1823: 视频上传失败/超时（慢网）→ 照片批次已建好，询问是否仅提交照片，
+  // 不静默降级也不整体重来（重试只补视频，不重复传照片/不新建批次）。
+  const askVideoFail = (batchId, err) => {
+    setUploadProgress(null)
+    Taro.showModal({
+      title: '视频上传未完成',
+      content: `照片已提交成功，但动态视频上传失败${err && err.message ? '：' + err.message : ''}。您可重试视频（网络较慢时可能需要几分钟），或仅提交当前照片进入审核。`,
+      confirmText: '重试视频',
+      cancelText: '仅提交照片',
+      success: async (r) => {
+        if (!r.confirm) {
+          finishSubmit('已提交照片，等待审核（未含视频）')
+          return
+        }
+        setPhase('Uploading')
+        try {
+          await uploadVideoPart(batchId)
+          finishSubmit()
+        } catch (e2) {
+          askVideoFail(batchId, e2)
+        }
+      },
+    })
+  }
+
+  // Upload photo + optional video → POST /user/face-capture (weapp 分离上传)
+  const doUpload = async () => {
+    setUploadError('')
+    setUploadProgress(null)
+    try {
+      const batchId = await uploadImagePart()
+      if (videoPathRef.current && batchId) {
+        try {
+          await uploadVideoPart(batchId)
+          finishSubmit()
+        } catch (err) {
+          askVideoFail(batchId, err)
+        }
+      } else {
+        finishSubmit()
       }
-      setStatus('pending_review')
-      dialog.toast('提交成功，等待审核')
-      setTimeout(() => {
-        if (env.isMiniProgram) { Taro.navigateBack() } else { navigate('/profile/edit') }
-      }, 800)
     } catch (err) {
       // P5: 上传失败进入 fail 态并保留已录素材（photo/video temp paths），
       // 供「重试上传」直接复用——不丢失已录素材状态。
+      setUploadProgress(null)
       setUploadError(err.message || '上传失败，请重试')
       setPhase('fail')
     }
@@ -133,7 +189,7 @@ export default function FaceVerify() {
       return
     }
     setPhase('Uploading')
-    doUpload(photoPathRef.current, videoPathRef.current)
+    doUpload()
   }
 
   // P5: fail 态「重新拍摄」——清空保留素材，回到 idle 可重新采集。
@@ -157,7 +213,7 @@ export default function FaceVerify() {
       success: (res) => {
         const vp = res?.tempVideoPath || ''
         videoPathRef.current = vp
-        doUpload(photoPathRef.current, vp)
+        doUpload()
       },
       fail: () => {
         // #1823: 录像拿不到素材（桌面版微信等）——不再静默降级为仅照片上传。
@@ -169,7 +225,7 @@ export default function FaceVerify() {
           confirmText: '仅提交照片',
           cancelText: '知道了',
           success: (r) => {
-            if (r.confirm) doUpload(photoPathRef.current, '')
+            if (r.confirm) doUpload()
           },
         })
       },
@@ -357,7 +413,11 @@ export default function FaceVerify() {
               {uploadError ? (
                 <Text style={{ fontSize: 13, color: '#fca5a5', textAlign: 'center', lineHeight: '18px' }}>{uploadError}</Text>
               ) : phase === 'Uploading' ? (
-                <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', textAlign: 'center' }}>正在上传，请勿离开页面…</Text>
+                <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: '18px' }}>
+                  {uploadProgress && uploadProgress.total > 0
+                    ? `正在上传 ${Math.min(100, Math.round((uploadProgress.loaded / uploadProgress.total) * 100))}%（网络较慢时可能需要几分钟，请勿离开）`
+                    : '正在上传，请勿离开页面…'}
+                </Text>
               ) : (
                 <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', textAlign: 'center', lineHeight: '18px' }}>
                   {phase === 'Recording' || phase === 'Blink'

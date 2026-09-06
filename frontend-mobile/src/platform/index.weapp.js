@@ -68,23 +68,27 @@ export const request = (url, options = {}) => {
 }
 
 export const uploadFile = (url, filePath, options = {}) => {
-  return new Promise((resolve, reject) => {
-    Taro.uploadFile({
-      url,
-      filePath,
-      name: options.name || 'file',
-      formData: options.formData || {},
-      header: options.headers || {},
-      success: (res) => {
-        resolve({
-          ok: res.statusCode >= 200 && res.statusCode < 300,
-          status: res.statusCode,
-          data: res.data,
-        })
-      },
-      fail: (err) => reject(err),
-    })
+  const task = Taro.uploadFile({
+    url,
+    filePath,
+    name: options.name || 'file',
+    formData: options.formData || {},
+    header: options.headers || {},
   })
+  // 进度回调（慢网显示百分比，避免用户以为卡死）。
+  if (typeof options.onProgress === 'function' && task && typeof task.onProgressUpdate === 'function') {
+    task.onProgressUpdate((r) => {
+      options.onProgress({
+        loaded: r.totalBytesSent,
+        total: r.totalBytesExpectedToSend,
+      })
+    })
+  }
+  return task.then((res) => ({
+    ok: res.statusCode >= 200 && res.statusCode < 300,
+    status: res.statusCode,
+    data: res.data,
+  }))
 }
 
 export const previewImage = (args) => Taro.previewImage(args)
