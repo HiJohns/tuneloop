@@ -132,18 +132,34 @@ export default function FaceReviewPage() {
       ),
     },
     {
-      title: '自拍素材',
-      key: 'selfie_urls',
-      render: (_, record) => (
-        <Space direction="vertical" size={4}>
-          {(record.selfie_urls || []).map((url, i) => (
-            url.endsWith('.mp4') || url.endsWith('.mov') || url.endsWith('.webm')
-              ? <video key={i} src={url} controls style={{ width: 96, height: 64, borderRadius: 4, background: '#f4f4f5' }} />
-              : <Image key={i} src={url} width={48} height={48} style={{ objectFit: 'cover', borderRadius: 4 }} />
-          ))}
-          {(record.selfie_urls || []).length === 0 && <Text type="secondary">无</Text>}
-        </Space>
-      ),
+      title: '自拍照',
+      key: 'selfie_photos',
+      render: (_, record) => {
+        const photos = (record.selfie_urls || []).filter((u) => !/\.(mp4|mov|webm)(\?|$)/i.test(u))
+        return (
+          <Space>
+            {photos.map((url, i) => (
+              <Image key={i} src={url} width={48} height={48} style={{ objectFit: 'cover', borderRadius: 4 }} />
+            ))}
+            {photos.length === 0 && <Text type="secondary">无</Text>}
+          </Space>
+        )
+      },
+    },
+    {
+      title: '自拍视频',
+      key: 'selfie_videos',
+      render: (_, record) => {
+        const videos = (record.selfie_urls || []).filter((u) => /\.(mp4|mov|webm)(\?|$)/i.test(u))
+        return (
+          <Space direction="vertical" size={4}>
+            {videos.map((url, i) => (
+              <video key={i} src={url} controls style={{ width: 96, height: 64, borderRadius: 4, background: '#f4f4f5' }} />
+            ))}
+            {videos.length === 0 && <Text type="secondary">无</Text>}
+          </Space>
+        )
+      },
     },
     {
       title: '提交时间',
