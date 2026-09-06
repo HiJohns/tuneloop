@@ -344,6 +344,134 @@ func TestFaceReview_Approve_RequiresRealInfo(t *testing.T) {
 	require.Contains(t, w.Body.String(), "real_name, id_card_no, id_card_expire, id_card_authority and id_card_address are required")
 }
 
+// setupReviewUserCollected 创建已采录实名信息的待审核用户
+// （real_name + id_card_no 已录入，模拟用户详情已维护 → #1822 已采录态）。
+func setupReviewUserCollected(t *testing.T) (string, string, *gorm.DB) {
+	t.Helper()
+	db := testfixtures.SetupTestDB(t)
+	user := models.User{
+		ID: uuid.New().String(), IAMSub: uuid.New().String(),
+		TenantID: uuid.New().String(), OrgID: uuid.New().String(),
+		Username: "collected-" + uuid.NewString()[:6], Status: "active",
+		Name:            "王五",
+		IdPhotoFront:    strPtr("/uploads/media/front.jpg"),
+		RealName:        strPtr("王五"),
+		IdCardNo:        strPtr("110101199003031234"),
+		IdCardExpire:    strPtr("2036-03-03"),
+		IdCardAuthority: strPtr("北京市公安局"),
+		IdCardAddress:   strPtr("北京市朝阳区XX路3号"),
+	}
+	require.NoError(t, db.Create(&user).Error)
+	batch := models.FaceCaptureBatch{
+		ID: uuid.New().String(), UserID: user.ID, Status: "pending",
+		SubmittedAt: time.Now(), CreatedAt: time.Now(),
+	}
+	require.NoError(t, db.Create(&batch).Error)
+	return user.ID, batch.ID, db
+}
+
+// TestFaceReview_Approve_CollectedSkipsFields (#1822): 用户详情已采录实名信息时，
+// approve 不携带 5 项字段也应通过（证/人核验态），且不得用空值覆盖已存身份证字段。
+func TestFaceReview_Approve_CollectedSkipsFields(t *testing.T) {
+	userID, batchID, db := setupReviewUserCollected(t)
+	router := faceReviewRouter(t, uuid.New().String())
+
+	body, _ := json.Marshal(map[string]interface{}{"action": "approve"})
+	req := httptest.NewRequest("POST", "/admin/face-review/"+batchID, bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var updated models.User
+	require.NoError(t, db.Where("id = ?", userID).First(&updated).Error)
+	require.True(t, updated.FaceVerified, "face_verified=true")
+	// 已存身份证字段不得被 approve 请求的空值覆盖（#1822 防重复抄录错误覆盖）。
+	require.NotNil(t, updated.RealName)
+	require.Equal(t, "王五", *updated.RealName)
+	require.NotNil(t, updated.IdCardNo)
+	require.Equal(t, "110101199003031234", *updated.IdCardNo)
+	require.NotNil(t, updated.IdCardExpire)
+	require.Equal(t, "2036-03-03", *updated.IdCardExpire)
+	require.NotNil(t, updated.IdCardAuthority)
+	require.Equal(t, "北京市公安局", *updated.IdCardAuthority)
+	require.NotNil(t, updated.IdCardAddress)
+	require.Equal(t, "北京市朝阳区XX路3号", *updated.IdCardAddress)
+
+	var batch models.FaceCaptureBatch
+	require.NoError(t, db.Where("id = ?", batchID).First(&batch).Error)
+	require.Equal(t, "approved", batch.Status)
+}
+
+// TestFaceReview_Queue_CollectedSummary (#1822): 已采录用户出现在队列时，
+// row 携带 id_info_collected=true + 姓名 + 掩码后四位摘要（不含完整身份证号明文）。
+func TestFaceReview_Queue_CollectedSummary(t *testing.T) {
+	_, batchID, db := setupReviewUserCollected(t)
+	router := faceReviewRouter(t, uuid.New().String())
+
+	req := httptest.NewRequest("GET", "/admin/face-review/queue", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			List []struct {
+				BatchID         string `json:"batch_id"`
+				IDInfoCollected bool   `json:"id_info_collected"`
+				RealName        string `json:"real_name"`
+				IDCardNoMasked  string `json:"id_card_no_masked"`
+				IDCardExpire    string `json:"id_card_expire"`
+				RawCardNo       string `json:"id_card_no"`
+			} `json:"list"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+	require.Len(t, resp.Data.List, 1)
+	item := resp.Data.List[0]
+	require.Equal(t, batchID, item.BatchID)
+	require.True(t, item.IDInfoCollected, "id_info_collected=true for collected user")
+	require.Equal(t, "王五", item.RealName)
+	require.Equal(t, "****1234", item.IDCardNoMasked, "last-4 masked only")
+	require.Equal(t, "2036-03-03", item.IDCardExpire, "summary carries expire for read-only check")
+	require.Empty(t, item.RawCardNo, "full id_card_no must never be exposed in queue")
+	_ = db
+}
+
+// TestFaceReview_Queue_Uncollected (#1822): 未采录用户 queue row 的
+// id_info_collected=false 且无摘要字段（保持未采录录入路径语义）。
+func TestFaceReview_Queue_Uncollected(t *testing.T) {
+	_, batchID, _ := setupReviewUser(t)
+	router := faceReviewRouter(t, uuid.New().String())
+
+	req := httptest.NewRequest("GET", "/admin/face-review/queue", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			List []struct {
+				BatchID         string `json:"batch_id"`
+				IDInfoCollected bool   `json:"id_info_collected"`
+				RealName        string `json:"real_name"`
+				IDCardNoMasked  string `json:"id_card_no_masked"`
+			} `json:"list"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+	require.Len(t, resp.Data.List, 1)
+	item := resp.Data.List[0]
+	require.Equal(t, batchID, item.BatchID)
+	require.False(t, item.IDInfoCollected, "id_info_collected=false for uncollected user")
+	require.Empty(t, item.RealName)
+	require.Empty(t, item.IDCardNoMasked)
+}
+
 // TestFaceReview_Queue_ZeroTenantCustomer (#1812): 平台员工带 tenant scope 访问队列，
 // 应能看到零租户顾客（tenant_id=00000000-...）的 pending 批次。修复前因
 // addTenantScope 过滤 users 查询导致 record not found → 队列空。

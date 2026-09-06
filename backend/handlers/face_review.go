@@ -31,14 +31,27 @@ func (h *FaceReviewHandler) platformDB(c *gin.Context) *gorm.DB {
 	return database.GetDB().WithContext(ctx)
 }
 
-// faceReviewItem 审核队列条目（含用户证件照三张 + 自拍素材 URL）。
+// faceReviewItem 审核队列条目（含用户证件照三张 + 自拍素材 URL + 实名信息采集状态）。
 type faceReviewItem struct {
-	BatchID     string   `json:"batch_id"`
-	UserID      string   `json:"user_id"`
-	UserName    string   `json:"user_name"`
-	IDPhotos    []string `json:"id_photos"`
-	SelfieURLs  []string `json:"selfie_urls"`
-	SubmittedAt string   `json:"submitted_at"`
+	BatchID         string   `json:"batch_id"`
+	UserID          string   `json:"user_id"`
+	UserName        string   `json:"user_name"`
+	IDPhotos        []string `json:"id_photos"`
+	SelfieURLs      []string `json:"selfie_urls"`
+	SubmittedAt     string   `json:"submitted_at"`
+	IDInfoCollected bool     `json:"id_info_collected"`           // #1822: 实名信息已采录
+	RealName        string   `json:"real_name,omitempty"`         // #1822: 已采录时展示姓名
+	IDCardNoMasked  string   `json:"id_card_no_masked,omitempty"` // #1822: 身份证号后四位掩码
+	IDCardExpire    string   `json:"id_card_expire,omitempty"`    // #1822: 已采录摘要（弹窗只读核对）
+	IDCardAuthority string   `json:"id_card_authority,omitempty"` // #1822: 已采录摘要
+	IDCardAddress   string   `json:"id_card_address,omitempty"`   // #1822: 已采录摘要
+}
+
+// userHasCoreIDInfo 判断用户是否已采录核心实名信息（真实姓名 + 身份证号，#1822）。
+// 仅这两项被视为「采集完成」门槛：expire/authority/address 可后补（用户管理
+// id-card 入口维护），但姓名与号码缺失则无法做证/人核验。
+func userHasCoreIDInfo(u *models.User) bool {
+	return u.RealName != nil && *u.RealName != "" && u.IdCardNo != nil && *u.IdCardNo != ""
 }
 
 // resolveSelfieURL 组装自拍素材访问 URL（统一归一化，防历史双前缀脏值 404，#1807）。
@@ -71,7 +84,7 @@ func (h *FaceReviewHandler) Queue(c *gin.Context) {
 	items := make([]faceReviewItem, 0, len(batches))
 	for _, b := range batches {
 		var user models.User
-		if err := db.Select("id, name, id_photo_front, id_photo_back, id_photo_other").
+		if err := db.Select("id, name, id_photo_front, id_photo_back, id_photo_other, real_name, id_card_no, id_card_expire, id_card_authority, id_card_address").
 			Where("id = ?", b.UserID).First(&user).Error; err != nil {
 			continue // 用户不存在（可能已删除）跳过
 		}
@@ -80,6 +93,30 @@ func (h *FaceReviewHandler) Queue(c *gin.Context) {
 			UserID:      user.ID,
 			UserName:    user.Name,
 			SubmittedAt: b.SubmittedAt.Format(time.RFC3339),
+		}
+		// #1822: 实名信息采集状态（已采录时展示脱敏摘要，审核员无需重复抄录）。
+		if userHasCoreIDInfo(&user) {
+			item.IDInfoCollected = true
+			if user.RealName != nil {
+				item.RealName = *user.RealName
+			}
+			if user.IdCardNo != nil {
+				cardNo := *user.IdCardNo
+				if len(cardNo) > 4 {
+					item.IDCardNoMasked = "****" + cardNo[len(cardNo)-4:]
+				} else {
+					item.IDCardNoMasked = cardNo
+				}
+			}
+			if user.IdCardExpire != nil {
+				item.IDCardExpire = *user.IdCardExpire
+			}
+			if user.IdCardAuthority != nil {
+				item.IDCardAuthority = *user.IdCardAuthority
+			}
+			if user.IdCardAddress != nil {
+				item.IDCardAddress = *user.IdCardAddress
+			}
 		}
 		// 证件照三张（隐私边界：仅审核用，不返回身份证号）。
 		if user.IdPhotoFront != nil {
@@ -111,12 +148,12 @@ func (h *FaceReviewHandler) Queue(c *gin.Context) {
 // Returns ALL batches of one user (pending/approved/rejected history) with
 // selfie material URLs — the user-detail dialog module 2 data source (#1810).
 type faceReviewBatchItem struct {
-	BatchID     string   `json:"batch_id"`
-	Status      string   `json:"status"`
+	BatchID      string   `json:"batch_id"`
+	Status       string   `json:"status"`
 	RejectReason string   `json:"reject_reason,omitempty"`
-	SelfieURLs  []string `json:"selfie_urls"`
-	SubmittedAt string   `json:"submitted_at"`
-	ReviewedAt  string   `json:"reviewed_at,omitempty"`
+	SelfieURLs   []string `json:"selfie_urls"`
+	SubmittedAt  string   `json:"submitted_at"`
+	ReviewedAt   string   `json:"reviewed_at,omitempty"`
 }
 
 func (h *FaceReviewHandler) UserBatches(c *gin.Context) {
@@ -178,13 +215,13 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 	batchID := c.Param("batchId")
 
 	var req struct {
-		Action         string `json:"action" binding:"required,oneof=approve reject"`
-		Reason         string `json:"reason"`
-		RealName       string `json:"real_name"` // #1807: 员工根据身份证照核对填写（approve 时）
-		IdCardNo       string `json:"id_card_no"`
-		IdCardExpire   string `json:"id_card_expire"`   // #1807: 有效期（YYYY-MM-DD 或「长期」）
+		Action          string `json:"action" binding:"required,oneof=approve reject"`
+		Reason          string `json:"reason"`
+		RealName        string `json:"real_name"` // #1807: 员工根据身份证照核对填写（approve 时）
+		IdCardNo        string `json:"id_card_no"`
+		IdCardExpire    string `json:"id_card_expire"`    // #1807: 有效期（YYYY-MM-DD 或「长期」）
 		IdCardAuthority string `json:"id_card_authority"` // #1807: 签发机关
-		IdCardAddress  string `json:"id_card_address"`  // #1807: 证件住址
+		IdCardAddress   string `json:"id_card_address"`   // #1807: 证件住址
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "action must be approve or reject"})
@@ -194,12 +231,29 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "reason is required for reject"})
 		return
 	}
-	// #1807: approve 必须由员工填写实名信息（真实姓名/身份证号/有效期/签发机关/住址，
-	// 根据证件照核对，防顾客手输伪造）。
-	if req.Action == "approve" && (req.RealName == "" || req.IdCardNo == "" || req.IdCardExpire == "" ||
-		req.IdCardAuthority == "" || req.IdCardAddress == "") {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "real_name, id_card_no, id_card_expire, id_card_authority and id_card_address are required for approve"})
+
+	now := time.Now()
+	var batch models.FaceCaptureBatch
+	if err := db.Where("id = ? AND status = ?", batchID, "pending").First(&batch).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "batch not found or already reviewed"})
 		return
+	}
+
+	// #1807/#1822: approve 时实名信息校验。
+	// - 已采录（用户详情已录 real_name + id_card_no）：审核 = 证/人一致性核验，
+	//   approve 无需携带 5 项字段（复用已存，弹窗呈只读摘要），也不得覆盖已存字段
+	// - 未采录：员工必须填写 5 项实名信息（按证件照抄录，防顾客手输伪造）
+	collected := false
+	if req.Action == "approve" {
+		var checkUser models.User
+		if err := db.Select("real_name, id_card_no").Where("id = ?", batch.UserID).
+			First(&checkUser).Error; err == nil && userHasCoreIDInfo(&checkUser) {
+			collected = true
+		} else if req.RealName == "" || req.IdCardNo == "" || req.IdCardExpire == "" ||
+			req.IdCardAuthority == "" || req.IdCardAddress == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "real_name, id_card_no, id_card_expire, id_card_authority and id_card_address are required for approve (user has no existing ID info)"})
+			return
+		}
 	}
 
 	// 操作人姓名（本地 users 缓存，audit 留痕用）。
@@ -207,13 +261,6 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 	var opUser models.User
 	if err := db.Select("name").Where("iam_sub = ?", operatorID).First(&opUser).Error; err == nil && opUser.Name != "" {
 		operatorName = opUser.Name
-	}
-
-	now := time.Now()
-	var batch models.FaceCaptureBatch
-	if err := db.Where("id = ? AND status = ?", batchID, "pending").First(&batch).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "batch not found or already reviewed"})
-		return
 	}
 
 	// 查目标用户 tenant_id（通知用；零租户顾客 tenant_id 为 UUID 零值）。
@@ -225,20 +272,24 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 	tx := db.Begin()
 
 	if req.Action == "approve" {
-		// 批准：face_verified=true + method=manual + 员工填写的实名信息
-		// （#1807：真实姓名/身份证号/有效期/签发机关/住址由员工根据身份证照核对填写）。
+		// 批准：face_verified=true + method=manual。
+		// #1807/#1822：未采录时员工填写 5 项实名信息落库（按证件照核对抄录）；
+		// 已采录时仅做证/人核验，不覆盖用户详情已存身份证字段（防重复抄录错误覆盖）。
+		userUpdates := map[string]interface{}{
+			"face_verified":      true,
+			"face_verify_method": "manual",
+			"face_verified_at":   now,
+			"updated_at":         now,
+		}
+		if !collected {
+			userUpdates["real_name"] = req.RealName
+			userUpdates["id_card_no"] = req.IdCardNo
+			userUpdates["id_card_expire"] = req.IdCardExpire
+			userUpdates["id_card_authority"] = req.IdCardAuthority
+			userUpdates["id_card_address"] = req.IdCardAddress
+		}
 		if err := tx.Model(&models.User{}).Where("id = ?", batch.UserID).
-			Updates(map[string]interface{}{
-				"face_verified":       true,
-				"face_verify_method":  "manual",
-				"face_verified_at":    now,
-				"real_name":           req.RealName,
-				"id_card_no":          req.IdCardNo,
-				"id_card_expire":      req.IdCardExpire,
-				"id_card_authority":   req.IdCardAuthority,
-				"id_card_address":     req.IdCardAddress,
-				"updated_at":          now,
-			}).Error; err != nil {
+			Updates(userUpdates).Error; err != nil {
 			tx.Rollback()
 			log.Printf("[FaceReview] approve user update failed for %s: %v", batch.UserID, err)
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to approve"})
