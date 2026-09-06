@@ -5,27 +5,22 @@ import { View, Text, ScrollView } from '@tarojs/components'
 import { env } from '../platform'
 import { getToken } from '../services/api'
 
-// Setting — 设置页（#1686）：协议条款入口 + 编辑资料入口。
+// Setting — 协议条款页（#1686 → 2026-09 调整）：纯协议入口列表。
+// 编辑资料入口已移至个人中心顶层菜单（不再与顶层重复）。
 // 内容页统一走 /content?key=xxx（ContentPage 渲染，后台 ContentEdit 可编辑）。
 export default function Setting() {
   const navigate = useNavigate()
-  const [hasToken, setHasToken] = useState(false)
-
-  useEffect(() => {
-    setHasToken(!!getToken())
-  }, [])
 
   // #1686: cross-end nav — H5 short path vs weapp full path.
   const nav = (to) => {
     if (!env.isMiniProgram) { navigate(to); return }
     const [path, query] = to.split('?')
-    const page = { '/content': 'content', '/profile/edit': 'profile/edit' }[path]
+    const page = { '/content': 'content' }[path]
     if (!page) { navigate(to); return }
     Taro.navigateTo({ url: `/pages-weapp/${page}/index${query ? '?' + query : ''}` })
   }
 
   const rows = [
-    { icon: '✏️', label: '编辑资料', onClick: () => hasToken && nav('/profile/edit') },
     { icon: '📄', label: '租用服务协议', onClick: () => nav('/content?key=rental_agreement') },
     { icon: '📄', label: '用户协议', onClick: () => nav('/content?key=user_agreement') },
     { icon: '🔒', label: '隐私协议', onClick: () => nav('/content?key=privacy_policy') },
@@ -41,7 +36,6 @@ export default function Setting() {
             <View
               key={i}
               className="flex justify-between items-center py-3.5 active:opacity-60"
-              style={{ opacity: row.label === '编辑资料' && !hasToken ? 0.4 : 1 }}
               onClick={row.onClick}
             >
               <View className="flex items-center gap-2">

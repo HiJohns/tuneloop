@@ -281,8 +281,8 @@ export default function Profile() {
           </View>
           <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => nav('/setting')}>
             <View className="flex items-center gap-2">
-              <Text className="text-lg">⚙️</Text>
-              <Text className="text-base font-bold text-zinc-800">设置</Text>
+              <Text className="text-lg">📄</Text>
+              <Text className="text-base font-bold text-zinc-800">协议</Text>
             </View>
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
@@ -297,6 +297,13 @@ export default function Profile() {
             <View className="flex items-center gap-2">
               <Text className="text-lg">📞</Text>
               <Text className="text-base font-bold text-zinc-800">联系我们</Text>
+            </View>
+            <Text className="text-sm text-zinc-300">❯</Text>
+          </View>
+          <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => nav('/about')}>
+            <View className="flex items-center gap-2">
+              <Text className="text-lg">ℹ️</Text>
+              <Text className="text-base font-bold text-zinc-800">关于</Text>
             </View>
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>

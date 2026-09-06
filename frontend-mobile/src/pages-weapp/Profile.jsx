@@ -422,7 +422,7 @@ export default function Profile() {
               <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>
           )}
-          {/* #1817: 编辑资料常显入口——实名认证不取代编辑资料 */}
+          {/* #1817: 编辑资料常显入口（实名认证在编辑资料页内引导，不重复占菜单） */}
           {!isGuest && (
             <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/profile/edit/index')}>
               <View style={{ display: 'flex', alignItems: 'center' }}>
@@ -432,21 +432,11 @@ export default function Profile() {
               <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>
           )}
-          {!isGuest && !user?.face_verified && (
-            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/profile/edit/index')}>
-              <View style={{ display: 'flex', alignItems: 'center' }}>
-                <Text style={{ fontSize: 18, marginRight: 8 }}>🪪</Text>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>实名认证</Text>
-                <View style={{ marginLeft: 6, backgroundColor: '#f97316', borderRadius: 999, width: 6, height: 6 }} />
-              </View>
-              <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
-            </View>
-          )}
           {!isGuest && (
             <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/setting/index')}>
               <View style={{ display: 'flex', alignItems: 'center' }}>
-                <Text style={{ fontSize: 18, marginRight: 8 }}>⚙️</Text>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>设置</Text>
+                <Text style={{ fontSize: 18, marginRight: 8 }}>📄</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>协议</Text>
               </View>
               <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>
@@ -458,10 +448,17 @@ export default function Profile() {
             </View>
             <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
           </View>
-          <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14 }} onClick={() => nav('/pages-weapp/content/index?key=contact_us')}>
+          <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/content/index?key=contact_us')}>
             <View style={{ display: 'flex', alignItems: 'center' }}>
               <Text style={{ fontSize: 18, marginRight: 8 }}>📞</Text>
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>联系我们</Text>
+            </View>
+            <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
+          </View>
+          <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14 }} onClick={() => nav('/pages-weapp/about/index')}>
+            <View style={{ display: 'flex', alignItems: 'center' }}>
+              <Text style={{ fontSize: 18, marginRight: 8 }}>ℹ️</Text>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>关于</Text>
             </View>
             <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
           </View>
