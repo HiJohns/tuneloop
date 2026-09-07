@@ -334,15 +334,30 @@ export default function MembershipCenter() {
               </View>
             </View>
             <View className={`grid gap-2 ${(() => { const prov = regions.find(r => r.name === form.province); if (!prov) return 'grid-cols-2'; const city = prov.children.find(c => c.name === form.city); return (city && city.children && city.children.length > 0) ? 'grid-cols-3' : 'grid-cols-2' })()}`}>
-              <Picker mode="selector" range={provinceNames} value={form.province ? Math.max(provinceNames.indexOf(form.province), 0) : 0}
-                onChange={e => { const v = provinceNames[e.detail.value]; setForm(p => ({ ...p, province: v, city: '', district: '' })) }}>
-                <View className={`${inputClass} ${form.province ? '' : 'text-gray-400'}`}>{form.province || '省'}</View>
-              </Picker>
+              {env.isMiniProgram ? (
+                <Picker mode="selector" range={provinceNames} value={form.province ? Math.max(provinceNames.indexOf(form.province), 0) : 0}
+                  onChange={e => { const v = provinceNames[e.detail.value]; setForm(p => ({ ...p, province: v, city: '', district: '' })) }}>
+                  <View className={`${inputClass} ${form.province ? '' : 'text-gray-400'}`}>{form.province || '省'}</View>
+                </Picker>
+              ) : (
+                <select className={inputClass} value={form.province} onChange={e => setForm(p => ({ ...p, province: e.target.value, city: '', district: '' }))}>
+                  <option value="">省</option>
+                  {regions.map((r, i) => <option key={i} value={r.name}>{r.name}</option>)}
+                </select>
+              )}
               {(() => {
                 const prov = regions.find(r => r.name === form.province)
                 const cityNames = prov ? prov.children.map(c => c.name) : []
                 if (cityNames.length === 0) {
                   return <View className={`${inputClass} text-gray-400`}>市</View>
+                }
+                if (!env.isMiniProgram) {
+                  return (
+                    <select className={inputClass} value={form.city} onChange={e => setForm(p => ({ ...p, city: e.target.value, district: '' }))}>
+                      <option value="">市</option>
+                      {cityNames.map((c, i) => <option key={i} value={c}>{c}</option>)}
+                    </select>
+                  )
                 }
                 return (
                   <Picker mode="selector" range={cityNames} value={form.city ? Math.max(cityNames.indexOf(form.city), 0) : 0}
@@ -358,6 +373,14 @@ export default function MembershipCenter() {
                 const districts = city ? city.children || [] : []
                 if (districts.length === 0) return null
                 const districtNames = districts.map(d => d.name)
+                if (!env.isMiniProgram) {
+                  return (
+                    <select className={inputClass} value={form.district} onChange={e => setForm(p => ({ ...p, district: e.target.value }))}>
+                      <option value="">区</option>
+                      {districts.map((d, i) => <option key={i} value={d.name}>{d.name}</option>)}
+                    </select>
+                  )
+                }
                 return (
                   <Picker mode="selector" range={districtNames} value={form.district ? Math.max(districtNames.indexOf(form.district), 0) : 0}
                     onChange={e => { const v = districtNames[e.detail.value]; setForm(p => ({ ...p, district: v })) }}>
