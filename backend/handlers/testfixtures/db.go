@@ -48,6 +48,7 @@ var allTables = []interface{}{
 	&models.PromoPlan{},
 	&models.Referral{},
 	&models.MembershipLevel{},
+	&models.MembershipLevelBenefit{}, // #1830: 会员权益行
 	&models.DiscountPolicy{},
 	&models.DiscountCode{},
 	&models.DiscountCodeUsage{},

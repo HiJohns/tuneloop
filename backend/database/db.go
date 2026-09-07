@@ -460,6 +460,7 @@ func validateDatabaseSchema(db *gorm.DB) error {
 		&models.Warning{},
 		&models.Banner{},
 		&models.InvoiceApplication{},
+		&models.MembershipLevelBenefit{}, // #1830: 会员权益行（20260907001 migration）
 		&models.ConfirmationSession{},
 		&models.Label{},
 

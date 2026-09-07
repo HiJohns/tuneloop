@@ -92,3 +92,18 @@ type InstrumentPromoOverride struct {
 	Enabled      bool      `gorm:"not null;default:true" json:"enabled"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
+
+// MembershipLevelBenefit defines per-level benefit text rows rendered on the
+// customer Membership Center page (#1830). Content is admin-configurable:
+// PC "会员级别管理 → 权益" edits rows per level (title + description).
+type MembershipLevelBenefit struct {
+	ID          string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	LevelID     int       `gorm:"not null;index" json:"level_id"`
+	SortOrder   int       `gorm:"not null;default:0" json:"sort_order"`
+	Title       string    `gorm:"type:varchar(100);not null" json:"title"`
+	Description string    `gorm:"type:varchar(500);not null;default:''" json:"description"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+func (MembershipLevelBenefit) TableName() string { return "membership_level_benefits" }
