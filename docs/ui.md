@@ -122,7 +122,7 @@
 
 ### 2.1a React Mobile App 路由表（Vite 模式）
 
-**组件**: `frontend-mobile/src/App.jsx`
+**组件**: `frontend-mobile/src/App-H5.jsx`
 
 ### 2.1b Taro 小程序路由表（Taro 模式）
 

@@ -132,7 +132,7 @@ orgID := database.GetOrgIDFromContext(ctx)
 - `frontend-pc/src/App.jsx`
 
 **Mobile Frontend**:
-- `frontend-mobile/src/App.jsx`
+- `frontend-mobile/src/App-H5.jsx`
 
 ### Authentication Flow
 
@@ -346,7 +346,7 @@ SysAdmin (role: SYS_ADMIN)
 - ✅ `frontend-pc/src/App.jsx` - Route guards and IAM redirect
 - ✅ `frontend-pc/src/components/ProtectedRoute.jsx` - Auth checking component
 - ✅ `frontend-pc/src/pages/*.jsx` - Replaced mock data with API calls
-- ✅ `frontend-mobile/src/App.jsx` - Mobile route guards
+- ✅ `frontend-mobile/src/App-H5.jsx` - Mobile route guards
 - ✅ `frontend-mobile/src/pages/*.jsx` - Removed mock data imports
 - ✅ `frontend-mobile/src/services/api.js` - API service with auth headers
 

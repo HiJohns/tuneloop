@@ -21,7 +21,7 @@ import yaml
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CASES_DIR = os.path.join(REPO, "docs", "cases")
 WEAPP_CONFIG = os.path.join(REPO, "frontend-mobile", "src", "app.config.ts")
-H5_APP = os.path.join(REPO, "frontend-mobile", "src", "App.jsx")
+H5_APP = os.path.join(REPO, "frontend-mobile", "src", "App-H5.jsx")
 BACKEND_MAIN = os.path.join(REPO, "backend", "main.go")
 
 VERBOSE = "--verbose" in sys.argv
