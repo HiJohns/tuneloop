@@ -54,7 +54,7 @@
 
 ### 1.4 容器与骨架原则（员工端通用）
 
-- **大圆角通铺白卡片**：功能模块一律 `bg-white rounded-2xl shadow-sm`，模块间用 `space-y-3/4` 做视觉隔离，禁止使用生硬边框黑线。
+- **大圆角通铺白卡片**：功能模块一律 `bg-white rounded-2xl shadow-sm`，模块间用 gap 内联（`space-y-3`=12px / `space-y-4`=16px 的语义）做视觉隔离，禁止在 className 中使用 `space-y-*`（weapp 端失效），禁止使用生硬边框黑线。
 - **非对称截断贴边**：商品/信息/过滤卡片采用左侧精准控距（`pl-7`）、右侧直角贴边（`pr-0 rounded-l-2xl`），最大化屏幕空间。
 - **防御性 Flex 盒模型**：
   - 核心文本：`min-w-0 flex-1 truncate` 防止长内容溢出。
@@ -108,8 +108,8 @@
 | 准则 | 说明 | 反例 | 正例 |
 |------|------|------|------|
 | **每一行文本必须包 `<View>`** | Taro 的 `<Text>` 在 H5（Vite）端渲染为 `<span>`（inline），不会垂直堆叠。必须用 `<View>` 包裹才能利用 CSS 间距 | `<Text>行1</Text><Text>行2</Text>` → 横排挤在一起 | `<View><Text>行1</Text></View><View><Text>行2</Text></View>` → 垂直排列 |
-| **列表间距用 `space-y-*`，永远不用 `margin-bottom`** | Tailwind 的 `space-y-*` 在 `<View>` 容器上工作，对 Taro 的 `<Text>` 不生效 | 在父容器上用 `space-y-2` 但子元素是裸 `<Text>` | 父容器 `space-y-2` + 每个子项为 `<View>` 包裹 |
-| **不依赖 `<Text>` 的 `margin` 类** | Taro H5 模式下 `<Text>` 的 `mb-*`/`mt-*` 等 margin 类可能被浏览器忽略 | `<Text className="mb-3">` | 用外层 `<View>` 的 padding 或 `space-y-*` 控制间距 |
+| **列表间距用 gap 内联，永远不用 `margin-bottom`** | Tailwind 的 `space-y-*` 在 weapp（postcss wxsCompat）端被删除、对 Taro 的 `<Text>` 不生效；`margin-bottom` 依赖 `mb-*` 在 H5 端 `<Text>` 上可能被忽略 | 在父容器上写 `space-y-2`（weapp 失效）或 `<Text>` 子项用 `mb-*` | 父容器内联 `gap`（`gap:'8px'`），每个子项为 `<View>` 包裹 |
+| **不依赖 `<Text>` 的 `margin` 类** | Taro H5 模式下 `<Text>` 的 `mb-*`/`mt-*` 等 margin 类可能被浏览器忽略；weapp 端 `space-y-*` 已被删除 | `<Text className="mb-3">` | 用外层 `<View>` 的 padding 或内联 `gap` 控制间距 |
 | **`flex-row` 与 `flex flex-row` 的区别** | `flex-row` 在 Tailwind 中仅设置 `flex-direction:row`，不启用 `display:flex` | `<View className="flex-row">` → 不生效 | `<View className="flex flex-row">` |
 | **`min-h-0` 防止 flex-1 溢出** | flex 子项默认 `min-height: auto`，阻止 `flex-1` 的子项收缩 | ScrollView 的 `flex-1` 推到底条以下 | ScrollView 加 `flex-1 min-h-0 overflow-y-auto` |
 | **输入框宽度不得 `100% + padding` 组合** | 小程序 `box-sizing` 默认 `content-box`（#1514），`width:100% + padding` 总宽溢出、文字贴边 | `width:'100%'` + `padding:'0 12px'` + `boxSizing:'border-box'` | `width:'100%'` + 明确的 `paddingLeft/paddingRight`，不依赖 boxSizing |
@@ -117,6 +117,8 @@
 | **微信昵称控件不得用于可编辑昵称** | `type="nickname"` 是微信强制昵称选择器，锁死输入、无法自定义（#1588） | 编辑资料昵称框用 `type="nickname"` | 普通 `Input`，微信昵称仅作默认值预填 |
 | **多个键值对须分行分列显示** | 表单多字段不得挤在一行，须分行分列清晰展示（#1588） | 昵称/手机/邮箱连续堆叠 | 每字段独立行 + 明确标签 + 间距 |
 | **小程序页面不得自定义页首/回退按钮** | weapp 有原生导航栏（标题 + 返回），页面内再写页首/回退按钮属重复（#1511/#1513 与 AGENTS.md 方法论 7） | 手写 `<Button onClick={navigate(-1)}>` + `ArrowLeft` 页首 | `pages/` 共享 jsx 用 `{!env.isMiniProgram && (...)}` 包裹仅 H5 显示；`pages-weapp/` 独有 jsx 直接删除 |
+
+**⚠️ weapp 样式禁区**（详见 `AGENTS.md` §weapp 样式禁区规则，#1831）：`space-y/x`、分数类（`w-1/2` 等）、变体类（`active:`/`hover:` 等）、透明度类（`bg-x/80`）、任意值类（`text-[10px]`/`bg-[#hex]` 等全部含 `[` 类）在 weapp 端被 postcss wxsCompat **静默删除**。内联写法参考：间距 `gap:'12px'`、宽度 `width:'50%'`、居中 `top:'50%'+transform:'translateY(-50%)'`。存量归 #1832 收敛，新代码禁止新增。
 
 ---
 
@@ -3038,7 +3040,7 @@ cd frontend-pc && npm run build  # 应该成功
 
 **间距规范**（遵循 §1.3 跨端渲染规则）:
 - 面板标题：用 `<View>` 包裹 `<Text>`（`<View><Text className="text-base font-black text-black">标题</Text></View>`）
-- 标题与正文间距：父容器 `space-y-4`（16px），正文内行间距 `space-y-2`
+- 标题与正文间距：16px（等价于 `space-y-4` 语义），正文内行间距 8px（等价于 `space-y-2` 语义）——用内联 `gap`（`gap:'16px'` / `gap:'8px'`）实现，禁止在 className 中使用 `space-y-*`（weapp 端失效）
 - 禁止在 `<Text>` 上使用 `mb-*` margin 类
 
 **功能**:

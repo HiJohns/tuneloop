@@ -5,6 +5,21 @@ NVM22 := . "$$HOME/.nvm/nvm.sh" && nvm use 22 >/dev/null 2>&1 &&
 
 weapp-check:
 	@$(NVM22) echo "Node $$(node -v) ready" || (echo "ERROR: Node 22 not available via nvm"; exit 1)
+	@echo "== weapp 样式禁区门禁 (#1831) =="
+	@SRC_DIR=frontend-mobile/src; \
+	HARD1=$$(grep -rhoE "space-[xy]-[0-9]" $$SRC_DIR --include="*.jsx" 2>/dev/null | wc -l | tr -d ' '); \
+	HARD2=$$(grep -rhoE "(w|h|top|bottom|left|right|translate-[xy]|rotate|scale)-(-?[0-9]+/[0-9]+)" $$SRC_DIR --include="*.jsx" 2>/dev/null | wc -l | tr -d ' '); \
+	if [ "$$HARD1" != "0" ] || [ "$$HARD2" != "0" ]; then \
+		echo "ERROR [硬禁区]: space-y/x=$$HARD1, 分数类=$$HARD2 (均须为 0, 存量已清零, 归 #1829)"; \
+		exit 1; \
+	fi; \
+	NEW_VIOL=$$( { git diff -- $$SRC_DIR; git diff --cached -- $$SRC_DIR; git ls-files --others --exclude-standard -- $$SRC_DIR | xargs -r sed 's/^/+/'; } 2>/dev/null | grep -E "^\+" | grep -E "space-[xy]-[0-9]|[a-z-]+-\[[^]]*\]|(w|h|top|bottom|left|right|translate-[xy]|rotate|scale)-(-?[0-9]+/[0-9]+)|(^| )((active|hover|focus|first|last|sm|md|lg):)|\b(bg|text|border)-(gray|zinc|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|black|white|transparent)-[0-9]+/[0-9]+" | sed 's/^+//' | sort -u); \
+	if [ -n "$$NEW_VIOL" ]; then \
+		echo "ERROR [增量硬拦截]: 新增行含 weapp 禁区类 (软禁区: 变体/透明度/任意值, 存量归 #1832):"; \
+		echo "$$NEW_VIOL" | sed 's/^/    + /'; \
+		exit 1; \
+	fi; \
+	echo "== weapp 样式禁区门禁: 通过 (存量 71/25/55+ 放行, 增量 0) =="
 
 kill-port:
 	@fuser -k 5556/tcp 2>/dev/null || true

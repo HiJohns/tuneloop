@@ -254,6 +254,30 @@ tuneloop/
 | **⚠️ pages-weapp 文件被 H5 薄壳引用时** | 必须本地 `npm run dev:h5` 手动验证该页所有 Input/Textarea 可输入。来源：#1589 EditProfile.jsx（weapp 独有）被 H5 薄壳引用后在 H5 下所有输入框失效 |
 | **⚠️ 共享 .jsx 禁止裸 `navigate('/xxx')`（H5 短路径）** | weapp 端 Taro 兼容层把 `navigate(p)` 实现为 `Taro.navigateTo('/pages'+p+'/index')`，但 weapp 构建只注册 `pages-weapp/xxx/index` → 跳转静默失败（无报错无提示）。必须跨端适配：H5 用 `navigate(path)`，weapp 用完整 `Taro.navigateTo({url:'/pages-weapp/<page>/index'})`（tabBar 页用 `switchTab`，返回用 `navigateBack`）。参照：Cart.jsx `nav()` 封装（commit `b81388b8`）、StaffInstruments.jsx:125 条件分支。来源：#1665 去结算无反应、#1673 系统性清理 |
 
+### ⚠️ weapp 样式禁区规则（#1831 沉淀）
+
+> **原理**：`frontend-mobile/postcss.config.mjs` 的 wxsCompat 对含 `[`（任意值）或残留 `\` 的 Tailwind 规则**直接删除**，含 `:`/`/` 的规则在 stage2 被清理（原生小程序无伪类/透明度体系）。此类样式在微信端**静默失效**——无报错、无提示，源代码看起来正确但产物无对应规则。
+
+#### 硬禁区（weapp 规则被删、样式静默失效，**存量已清零，禁绝新增**）
+
+| 禁区类 | 典型示例 | 替代写法 |
+|--------|---------|---------|
+| space-y/x | `space-y-3` / `space-x-2` | 内联 `gap: '12px'` / `gap: '8px'` |
+| 分数类 | `w-1/2` / `top-1/2` / `-translate-y-1/2` | 内联 `width: '50%'` / `top: '50%'` + `transform: 'translateY(-50%)'` |
+
+#### 软禁区（存量存在但**新代码禁止新增**，存量归 #1832 内联）
+
+| 禁区类 | 典型示例 | 存量规模 |
+|--------|---------|:---:|
+| 变体类 | `active:opacity-80` / `hover:` / `focus:` / `first:` / `last:` / `sm:` / `md:` / `lg:` | 71 |
+| 透明度类 | `bg-zinc-50/80` / `bg-zinc-200/60` | 25 |
+| 任意值类（全部含 `[`，含颜色） | `text-[10px]` / `bg-[#FDFBF7]` / `w-[72px]` / `max-h-[90vh]` | 55+ 尺寸 + 61 颜色 |
+
+#### 审计清单
+
+- **diff 新增任一硬/软禁区类 → REJECT**（Weapp 端样式静默失效，不可接受）
+- 存量禁区类不在本规则禁止范围（仅禁止新增），由 issue #1832 统一内联收敛
+
 ### ⚠️ 跨端导航排查方法论（#1665 沉淀）
 
 「点击按钮无反应、无错误提示」的排查顺序（按成本递增）：
