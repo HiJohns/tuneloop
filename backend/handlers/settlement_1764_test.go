@@ -96,7 +96,7 @@ func TestComputeSettlement_FeeItems_Shortfall(t *testing.T) {
 		Status:       models.OrderStatusReturned,
 		ReturnedAt:   &returnedAt,
 		Deposit:      models.FromYuan(100),
-		CashPaid:     models.FromYuan(300), // rent paid 200 + deposit 100
+		CashPaid:     models.FromYuan(700), // rent paid 600（=合同原价全额，无码）+ deposit 100
 		ShippingFee:  models.FromYuan(50),  // shipping charged to deposit
 		// 30-day lease at ¥20/day; 5 days used → payable rent ¥100.
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":2000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":2000}],"tier_segments":[{"tier":1,"days":30,"rate":2000,"discount":1,"subtotal":60000}],"total_amount":60000}`),
@@ -110,9 +110,9 @@ func TestComputeSettlement_FeeItems_Shortfall(t *testing.T) {
 	result := computeSettlement(order, db)
 	feeItems := feeItemsFrom(t, result.Breakdown)
 
-	// rent: 200 − 100 = +100 → refund
+	// rent: 600 − 100 = +500 → refund（段级模型：段实付=合同全款 600，折后日租=原价）
 	require.Equal(t, "refund", feeItems["rent"]["direction"])
-	require.Equal(t, int64(10000), feeItems["rent"]["amount"])
+	require.Equal(t, int64(50000), feeItems["rent"]["amount"])
 
 	// deposit: 100 − (0 + 0) = +100 → refund 10000 (shipping is separate line, #1784)
 	require.Equal(t, "refund", feeItems["deposit"]["direction"])

@@ -693,6 +693,9 @@ type settlementResult struct {
 	OverdueChargesTotal    float64
 	ActualDays             int
 	CashBasis              float64 // C1: cash actually paid for rent (R1 − A1), spending/rebate basis
+	DiscountedRent         float64 // #1836: 段级折后租金应收（元）
+	DiscountedDue          float64 // #1836: 段级折后应收（元，含物流原价）
+	SegmentModel           bool    // #1836: 净额是否由段级模型判定（false=#1743 兜底）
 	Breakdown              map[string]interface{}
 }
 
@@ -845,23 +848,86 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		remainingDeposit = 0
 	}
 
-	// #1743 业务终稿（第四轮修正）：优惠码适用整单所有费用（含押金），
-	// 退款 = 应退原价 × 优惠比例 r。
-	//   paid = 实付总额（整单折后）     T = paid + coupon_discount（原价）
-	//   r = paid / T                     due = Re + 逾期 + 定损 + 物流（原价）
-	//   应退原价 = T − due → 实退 = max(0, 应退原价) × r；负值 = 补缴（原价）
-	// 例：ENO 1000→10、实际租金 500 → 退 (1000−500)×0.01 = 5；OREZ → 0。
-	paidTotal := totalRentPaid + order.Deposit.ToYuan() // 实付总额（含押金）
-	originalTotal := paidTotal + order.CouponDiscount.ToYuan()
-	couponRatio := 1.0
-	if originalTotal > 0 {
-		couponRatio = paidTotal / originalTotal
+	// ===== #1836 段级折后结算模型（全面替换 #1743 整单 r 模型）=====
+	// 口径（用户/业务确认 2026-09-07）：
+	//   - 优惠码可多次使用；每笔支付（合同 + 各次续费）按序覆盖租期段
+	//   - 段原价 = 定价展开 subtotal（base_daily_rent × discount × days）
+	//   - 段折后日租 = 段实付 × used/Days（段内均匀）；物流/逾期/定损不打折
+	//   - 守恒：净额 = (折后租金应收 + 逾期 + 定损 + 物流全价) − (租金实付 + 押金)
+	//     正 → 顾客补缴；负 → 应退（押金剩余 + 多付租金；路径 A 整单抵用）
+	//   - 无码订单数学等价原模型（段折扣=1）；段数据畸形（缺 days/超付）时
+	//     回退 #1743 原计算兜底（log 告警，不静默产出错误金额）。
+	// ---- 前置：续费支付记录 / 首期天数 / 合同实付 / 定价策略 ----
+	var renewalRecs []renewalRec
+	if err := db.Model(&models.OrderPaymentRecord{}).
+		Select("amount, days, status").
+		Where("order_id = ? AND order_type = ? AND type = ? AND status = ?", order.ID, "renewal", "payment", "paid").
+		Order("created_at ASC").Scan(&renewalRecs).Error; err != nil {
+		log.Printf("[computeSettlement] failed to load renewal records for order %s: %v", order.ID, err)
 	}
-	dueTotal := rentPayable + overdueFee + damageDeducted + shippingFee
-	refundOriginal := originalTotal - dueTotal
-	totalRefund := refundOriginal * couponRatio
-	if totalRefund < 0 {
-		totalRefund = 0
+	initialDays := order.LeaseTerm
+	if initialDays <= 0 {
+		initialDays = coverDays
+	}
+	renewalTotal := float64(0)
+	for _, r := range renewalRecs {
+		renewalTotal += r.Amount.ToYuan()
+	}
+	contractRent := totalRentPaid - renewalTotal
+	if contractRent < 0 {
+		contractRent = 0
+	}
+	var pricingTiers []services.PricingTierConfig
+	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+		var pb services.PricingBreakdown
+		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
+			pricingTiers = pb.PricingTiers
+		}
+	}
+	// ---- 段级净额 ----
+	paidTotal := totalRentPaid + order.Deposit.ToYuan() // 实付总额（含押金）
+	useDiscounted := false
+	discountedRent := 0.0
+	discountedDue := 0.0
+	var segmentUsage []int
+	if segs, err := makePaidSegments(initialDays, pricingTiers, baseDailyRentCents, contractRent, renewalRecs); err == nil {
+		if ds, err := computeDiscountedSettlement(actualDays, segs, int64(math.Round(shippingFee*100))); err == nil {
+			useDiscounted = true
+			discountedRent = float64(ds.DiscountedRent) / 100
+			discountedDue = float64(ds.DiscountedDue) / 100
+			segmentUsage = ds.Usage
+		} else {
+			log.Printf("[computeSettlement] segment model rejected order %s: %v — falling back to #1743", order.ID, err)
+		}
+	} else {
+		log.Printf("[computeSettlement] segment build failed for order %s: %v — falling back to #1743", order.ID, err)
+	}
+
+	var totalRefund, payableShortfall float64
+	if useDiscounted {
+		// 折后应收（分）已含物流；逾期/定损按原价追加（不打折）。
+		netYuan := (discountedDue + overdueFee + damageDeducted) - paidTotal
+		if netYuan > 0 {
+			payableShortfall = netYuan
+		} else {
+			totalRefund = -netYuan
+		}
+	} else {
+		// #1743 兜底（历史数据不具备段条件时）：整单比例 r。
+		originalTotal := paidTotal + order.CouponDiscount.ToYuan()
+		couponRatio := 1.0
+		if originalTotal > 0 {
+			couponRatio = paidTotal / originalTotal
+		}
+		dueTotal := rentPayable + overdueFee + damageDeducted + shippingFee
+		refundOriginal := originalTotal - dueTotal
+		totalRefund = refundOriginal * couponRatio
+		if totalRefund < 0 {
+			totalRefund = 0
+		}
+		if refundOriginal < 0 {
+			payableShortfall = -refundOriginal
+		}
 	}
 
 	// Early-return rebate: rent paid for days not actually used.
@@ -908,13 +974,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		a1 = 0
 	}
 
-	// #1743: 补缴 = 应退原价 < 0 的部分（原价，补缴时顾客可再输优惠码）。
-	// totalRefund 已按 ×r 折算并 clamp ≥ 0。
-	payableShortfall := 0.0
-	if refundOriginal < 0 {
-		payableShortfall = -refundOriginal
-	}
-
+	// 净额已由上方段级模型（或 #1743 兜底）判定：totalRefund / payableShortfall。
 	var giftPointsRefunded, cashRefundable float64
 	if a1 < a0 {
 		giftPointsRefunded = (a0 - a1).ToYuan()
@@ -953,8 +1013,14 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	// Rent: paid rent minus payable rent. Deposit: deposit minus
 	// deductions (overdue + damage only — shipping is a separate line item,
 	// not deducted from deposit). #1784
+	// #1836: rent 项用段级折后差（租金实付 − 段级折后应收），
+	// 其余项为应收方向（负）或押金退回（正）；方向与净额语义一致。
+	rentFee := totalRentPaid - rentPayable
+	if useDiscounted {
+		rentFee = totalRentPaid - discountedRent
+	}
 	feeItems := []map[string]interface{}{
-		feeItem("rent", totalRentPaid-rentPayable),
+		feeItem("rent", rentFee),
 		feeItem("deposit", order.Deposit.ToYuan()-(overdueFee+damageDeducted)),
 		feeItem("shipping_fee", -shippingFee),
 		feeItem("overdue_fee", -overdueFee),
@@ -962,45 +1028,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	}
 
 	// #1803 T2: 三段统一费用明细（实付段/应付段/净额段）——单一数据源。
-	// 实付段需要续费支付记录（含 T1 落库的 days 列）展开续费阶梯。
-	type renewalRec struct {
-		Amount models.Cents
-		Days   *int
-		Status string
-	}
-	var renewalRecs []renewalRec
-	if err := db.Model(&models.OrderPaymentRecord{}).
-		Select("amount, days, status").
-		Where("order_id = ? AND order_type = ? AND type = ? AND status = ?", order.ID, "renewal", "payment", "paid").
-		Order("created_at ASC").Scan(&renewalRecs).Error; err != nil {
-		log.Printf("[computeSettlement] failed to load renewal records for order %s: %v", order.ID, err)
-	}
-
-	// 首期天数 = order.LeaseTerm（applyRenewalSideEffects 只累加
-	// PricingBreakdown.RentDays，不修改 LeaseTerm）。
-	initialDays := order.LeaseTerm
-	if initialDays <= 0 {
-		initialDays = coverDays
-	}
-
-	// 首期合同租金 = totalRentPaid（含首期+续费）− Σ续费金额。
-	renewalTotal := float64(0)
-	for _, r := range renewalRecs {
-		renewalTotal += r.Amount.ToYuan()
-	}
-	contractRent := totalRentPaid - renewalTotal
-	if contractRent < 0 {
-		contractRent = 0
-	}
-
-	// 定价策略：从 PricingBreakdown 读取（下单时落库，续费沿用）。
-	var pricingTiers []services.PricingTierConfig
-	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
-		var pb services.PricingBreakdown
-		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
-			pricingTiers = pb.PricingTiers
-		}
-	}
+	// （renewalRecs/initialDays/contractRent/pricingTiers 已在上方段级块前置计算。）
 
 	// 实付段：合同租金（含阶梯）+ 押金 + 各次续费（含阶梯）+ 合计实付。
 	// ComputeTierSegments 只产出 Tier/Days/Discount——Rate 需按基准日租赋值，
@@ -1138,6 +1166,15 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	breakdown["payable_block"] = payableBlock
 	breakdown["net_block"] = netBlock
 	breakdown["settled"] = !unsettledStatus[order.Status]
+	// #1836 段级折后字段（分；discounted_* 供 UI 折后口径展示，#1837）
+	breakdown["segment_model"] = useDiscounted
+	breakdown["discounted_rent"] = c(discountedRent)
+	breakdown["discounted_due"] = c(discountedDue)
+	usageCents := make([]int64, len(segmentUsage))
+	for i, u := range segmentUsage {
+		usageCents[i] = int64(u)
+	}
+	breakdown["segment_usage"] = usageCents
 
 	// C1 = R1 − min(A1, A0): the cash portion of the adjusted payable rent.
 	// When A1 ≥ A0 the gift actually used is A0, so the cash basis is
@@ -1164,6 +1201,9 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		OverdueChargesTotal:    overdueFee,
 		ActualDays:             actualDays,
 		CashBasis:              cashBasis,
+		DiscountedRent:         discountedRent,
+		DiscountedDue:          discountedDue,
+		SegmentModel:           useDiscounted,
 		Breakdown:              breakdown,
 	}
 }

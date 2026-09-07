@@ -1,0 +1,99 @@
+package handlers
+
+import (
+	"testing"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
+	"tuneloop-backend/handlers/testfixtures"
+	"tuneloop-backend/models"
+)
+
+// TestComputeSettlement_SegmentScenarios 固化 #1836 用户确认场景在
+// computeSettlement 全链路的净额结果（合同 1 天 ¥36/天 + 续费 1+1 天）：
+//
+//	场景 1：合同/续1/续2 均 ENO（实付 0.36/0.36/0.36）→ 实租 1 天 → 补缴 0.28
+//	场景 2A：续1 无码（36.00）其余 ENO → 实租 1 天 → 应退 35.36
+//	场景 2B：同上 → 实租 2 天 → 应补 0.64
+//
+// 物流 ¥1.00 不打折；押金 0（免押）。
+func TestComputeSettlement_SegmentScenarios(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+
+	cents := func(yuan float64) models.Cents { return models.Cents(int64(yuan*100 + 0.5)) }
+	tenantID := uuid.New().String()
+	orgID := tenantID
+	userID := uuid.New().String()
+	instID := uuid.New().String()
+	require.NoError(t, db.Create(&models.Instrument{
+		ID: instID, TenantID: tenantID, OrgID: &orgID,
+		SN: "SN-SEG1836", StockStatus: "rented",
+	}).Error)
+
+	// pricing: 第1阶梯 3 天内 ¥36/天；合同租 1 天。
+	pb := `{"base_daily_rent":3600,"rent_days":1,"deposit":0,"total_amount":3600,
+		"tiers":[{"days_max":3,"daily_rate":3600,"discount_percent":0}],
+		"tier_segments":[{"tier":1,"days":1,"rate":3600,"discount":1,"subtotal":3600}]}`
+
+	mkOrder := func(t *testing.T, cash float64, delivered, returned time.Time, renewals [][]interface{}) models.Order {
+		t.Helper()
+		o := models.Order{
+			TenantID: tenantID, OrgID: orgID, UserID: userID, InstrumentID: instID,
+			StartDate: str1743Ptr("2026-08-01"), EndDate: str1743Ptr("2026-08-01"),
+			LeaseTerm: 1, Status: models.OrderStatusReturned,
+			DeliveredAt: &delivered, ReturnedAt: &returned,
+			Deposit: 0, CashPaid: cents(cash), ShippingFee: cents(1),
+			PricingBreakdown: str1743Ptr(pb),
+		}
+		require.NoError(t, db.Create(&o).Error)
+		for i, r := range renewals {
+			days := r[0].(int)
+			amount := r[1].(float64)
+			require.NoError(t, db.Create(&models.OrderPaymentRecord{
+				TenantID: tenantID, UserID: userID, OrderID: &o.ID,
+				OrderType: "renewal", Type: "payment", Status: "paid",
+				Amount: cents(amount), Days: &days,
+				CreatedAt: time.Date(2026, 8, 1, 10+i, 0, 0, 0, time.UTC),
+			}).Error)
+		}
+		return o
+	}
+
+	t.Run("场景1-三码-实租1天-补缴0.28", func(t *testing.T) {
+		delivered := time.Date(2026, 8, 1, 10, 0, 0, 0, time.UTC)
+		returned := time.Date(2026, 8, 1, 22, 0, 0, 0, time.UTC)
+		o := mkOrder(t, 1.08, delivered, returned, [][]interface{}{{1, 0.36}, {1, 0.36}})
+		res := computeSettlement(o, db)
+		require.True(t, res.SegmentModel)
+		require.InDelta(t, 0.36, res.DiscountedRent, 1e-9)
+		require.InDelta(t, 1.36, res.DiscountedDue, 1e-9)
+		require.InDelta(t, 0, res.TotalRefund, 1e-9)
+		require.InDelta(t, 0.28, res.PayableShortfall, 1e-9)
+		require.Equal(t, int64(28), res.Breakdown["payable_shortfall"])
+	})
+
+	t.Run("场景2A-续1无码-实租1天-应退35.36", func(t *testing.T) {
+		delivered := time.Date(2026, 8, 1, 10, 0, 0, 0, time.UTC)
+		returned := time.Date(2026, 8, 1, 22, 0, 0, 0, time.UTC)
+		o := mkOrder(t, 36.72, delivered, returned, [][]interface{}{{1, 36.00}, {1, 0.36}})
+		res := computeSettlement(o, db)
+		require.True(t, res.SegmentModel)
+		require.InDelta(t, 0.36, res.DiscountedRent, 1e-9)
+		require.InDelta(t, 1.36, res.DiscountedDue, 1e-9)
+		require.InDelta(t, 35.36, res.TotalRefund, 1e-9)
+		require.InDelta(t, 0, res.PayableShortfall, 1e-9)
+	})
+
+	t.Run("场景2B-续1无码-实租2天-应补0.64", func(t *testing.T) {
+		delivered := time.Date(2026, 8, 1, 10, 0, 0, 0, time.UTC)
+		returned := time.Date(2026, 8, 2, 12, 0, 0, 0, time.UTC)
+		o := mkOrder(t, 36.72, delivered, returned, [][]interface{}{{1, 36.00}, {1, 0.36}})
+		res := computeSettlement(o, db)
+		require.True(t, res.SegmentModel)
+		require.InDelta(t, 36.36, res.DiscountedRent, 1e-9)
+		require.InDelta(t, 37.36, res.DiscountedDue, 1e-9)
+		require.InDelta(t, 0, res.TotalRefund, 1e-9)
+		require.InDelta(t, 0.64, res.PayableShortfall, 1e-9)
+	})
+}
