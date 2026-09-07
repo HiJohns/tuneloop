@@ -165,12 +165,14 @@ make weapp-cleanup          # 实际执行
 
 ```
 releases/
-├── weapp-pre/           # 预生产归档（prewx apiBaseUrl，appid wx9f96827856269a6c）
+├── weapp-pre/           # 预生产归档（prewx apiBaseUrl）
 │   └── YYYYMMDD-HHMMSS_COMMITID/
 │       └── dist-weapp/  （构建产物，app.wxss 已清理 !important）
-└── weapp-prod/          # 生产归档（wx apiBaseUrl，appid wxcb44a1be70e356ed）
+└── weapp-prod/          # 生产归档（wx apiBaseUrl）
     └── ...
 ```
+
+> **单 appid 策略（#1694）**：预生产/生产小程序共用 appid `wxcb44a1be70e356ed`，**不存在独立的预生产小程序 appid**。预生产 = `weapp-build-pre`（prewx apiBaseUrl）+ `weapp-upload-dev`（上传为**开发版**，微信版本号 `1.0.0-dev`）；生产 = `weapp-build-prod`（wx apiBaseUrl）+ `weapp-upload-prod`（上传为**正式版**）。`weapp-upload-pre` 是历史命令名别名（= `weapp-upload-dev`，语义为开发版上传）。
 
 #### 关键规则
 - **上传不重新编译**：`weapp-upload-*` 依赖归档已存在（不存在则报错 exit 2），保证发布内容 = 已验证内容
@@ -753,6 +755,70 @@ ssh cadenza
 - `cadenza:~/download.sh` 用**固定 Seafile 分享链接**下载并执行 `sudo TUNELOOP_APPS_BASE=/opt/tuneloop-pre/apps ./deploy.sh <pkg>`——`deploy.sh` 按 zip 内目录名自动识别 beaconiam（预生产），**不再需要手动 `cd /opt/flow && TUNELOOP_APPS_BASE=... ./deploy.sh`**
 - **生产部署**（预生产验证后）：`ssh cadenza 'cd /opt/flow && ./deploy.sh beaconiam_<ts>.zip'`（不带 TUNELOOP_APPS_BASE → 生产 `/opt/tuneloop/apps/beaconiam`）
 - 注意：tuneloop 与 beaconiam 共用同一个固定 Seafile 链接（`test.zip`），两个 `make release` 需顺序执行（上传→立即 download.sh），不可并行
+
+### 预生产环境完整更新流程（服务 + 小程序）
+
+> ⚠️ **关键**：`make release` 只构建**后端 + PC 前端 + H5 移动端**，**不含小程序（weapp）**。若改动涉及小程序（`frontend-mobile/src/pages-weapp/`、`pages/`、`platform/`、`components/` 等），必须单独 `make weapp-build-pre` + `make weapp-upload-dev`，否则小程序仍是旧版（教训：2026-09-07 续期支付明细修复只跑 `make release`，小程序仍是旧版 `v1.0.c17f20b0`）。
+
+#### 1. 服务端（后端 + PC + H5 移动端）
+
+```bash
+make release
+# 自动：构建后端（注入 VERSION）+ PC + H5（mode prerelease）
+#   → 打包 tuneloop-pre_YYYYMMDD-HHMMSS_COMMITID.zip
+#   → cp ~/test.zip → Seafile 上传 → ssh cadenza "~/download.sh <pkg>.zip"
+#   → cadenza deploy.sh 切换软链接 + 重启 tuneloop-pre + nginx
+```
+
+验证（逐项）：
+```bash
+# 服务状态
+ssh cadenza "systemctl is-active tuneloop-pre"
+# 端口（5562 IAM / 5563 PC / 5564 Mobile）
+ssh cadenza "ss -tlnp | grep -E '556[234]'"
+# 版本号
+ssh cadenza "curl -s http://localhost:5563/api/config | grep -oE '\"version\":\"[^\"]*\"'"
+# 迁移 + schema 校验
+ssh cadenza "sudo journalctl -u tuneloop-pre --since '1 min ago' --no-pager | grep -iE 'migration|schema validation'"
+# 后端 FATAL/panic
+ssh cadenza "sudo journalctl -u tuneloop-pre --since '1 min ago' --no-pager | grep -iE 'FATAL|panic'"
+# 前端 JS hash 已更新
+ssh cadenza "curl -s -k https://prewx.cadenzayueqi.com/index.html | grep -oE 'index-[a-zA-Z0-9]+\.js'"
+```
+
+#### 2. 小程序（weapp，仅当改动涉及小程序时）
+
+```bash
+make weapp-build-pre
+# 构建（prewx apiBaseUrl，TARO_APP_VERSION=1.0.<git短码>）+ 自动归档
+# 输出归档号如 20260907-014231_1181c021
+
+make weapp-upload-dev VERSION=20260907-014231_1181c021 APP_VERSION=1.0.0-dev DESC="描述"
+# 上传开发版（appid wxcb44a1be70e356ed）
+# ⚠️ 上传后需人工在微信公众平台后台「版本管理 → 开发版本」设为【体验版】分发，
+#    否则测试者无法在手机微信打开新版本
+```
+
+#### 3. 版本号对照（各端「我的」页/页脚显示）
+
+| 端 | 版本号来源 | 显示位置 |
+|----|-----------|---------|
+| 服务端 | `VERSION` 文件（发布时手动 bump） | `GET /api/config` 的 `version` |
+| PC 前端 | `1.0.<git短码>`（FRONTEND_VERSION） | App.jsx 页脚 `v{/api/config.version}` |
+| H5 移动端 | `1.0.<git短码>`（VITE_APP_VERSION） | 「我的」页底部 |
+| 小程序 | `1.0.<git短码>`（TARO_APP_VERSION） | 「我的」页底部 `v1.0.<短码>` |
+
+> 排查「版本没更新」：小程序显示 `v1.0.<短码>`，短码 = 构建时 `git rev-parse --short HEAD`。看到旧短码 = 小程序未重新构建上传（`make release` 不含 weapp）。
+
+#### 4. 预生产数据修复（红线：必须用户授权）
+
+```bash
+# ⚠️ 预生产库是 tuneloop_pre_snapshot（非 tuneloop_pre）
+ssh cadenza "docker ps | grep postgres"   # 取容器名
+ssh cadenza "docker exec <container> psql -U tuneloop_user -d tuneloop_pre_snapshot -c 'UPDATE ...'"
+```
+
+---
 
 ### 部署流程 (Deployment Flow)
 
