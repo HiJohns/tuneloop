@@ -93,7 +93,41 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 		require.True(t, res.SegmentModel)
 		require.InDelta(t, 36.36, res.DiscountedRent, 1e-9)
 		require.InDelta(t, 37.36, res.DiscountedDue, 1e-9)
-		require.InDelta(t, 0, res.TotalRefund, 1e-9)
+		require.Zero(t, res.TotalRefund)
 		require.InDelta(t, 0.64, res.PayableShortfall, 1e-9)
+	})
+
+	t.Run("跨阶-无码-实租12天-段级应收与rentPayable逐分相等", func(t *testing.T) {
+		// 合同 30 天跨两阶：tier1 10天@¥20 + tier2 20天@¥15 = 原价 ¥500 全额支付；
+		// 实租 12 天 → rentPayable（tier 截断）= 10×20 + 2×15 = ¥230。
+		// 回归点：#1836 Round1 审计——整段均匀折算曾得 ¥220，子段化后必须相等。
+		tenantID := uuid.New().String()
+		orgID := tenantID
+		userID := uuid.New().String()
+		instID := uuid.New().String()
+		require.NoError(t, db.Create(&models.Instrument{
+			ID: instID, TenantID: tenantID, OrgID: &orgID,
+			SN: "SN-SEG-XTIER", StockStatus: "rented",
+		}).Error)
+		delivered := time.Date(2026, 8, 1, 10, 0, 0, 0, time.UTC)
+		returned := time.Date(2026, 8, 13, 10, 0, 0, 0, time.UTC) // 12 天
+		xt := models.Order{
+			TenantID: tenantID, OrgID: orgID, UserID: userID, InstrumentID: instID,
+			StartDate: str1743Ptr("2026-08-01"), EndDate: str1743Ptr("2026-08-31"),
+			LeaseTerm: 30, Status: models.OrderStatusReturned,
+			DeliveredAt: &delivered, ReturnedAt: &returned,
+			Deposit: 0, CashPaid: cents(500), ShippingFee: 0,
+			PricingBreakdown: str1743Ptr(`{"base_daily_rent":2000,"rent_days":30,"deposit":0,"total_amount":50000,
+				"pricing_tiers":[{"days_max":10,"daily_rate":2000,"discount_percent":0},{"days_max":30,"daily_rate":1500,"discount_percent":0}],
+				"tier_segments":[{"tier":1,"days":10,"rate":2000,"discount":1,"subtotal":20000},
+				                {"tier":2,"days":20,"rate":1500,"discount":1,"subtotal":30000}]}`),
+		}
+		require.NoError(t, db.Create(&xt).Error)
+		res := computeSettlement(xt, db)
+		require.True(t, res.SegmentModel)
+		require.InDelta(t, 230.0, res.RentPayable, 1e-9)
+		require.InDelta(t, 230.0, res.DiscountedRent, 1e-9, "无码段级应收必须与 rentPayable 逐分相等")
+		require.InDelta(t, 270.0, res.TotalRefund, 1e-9, "应退 500−230")
+		require.Equal(t, []int64{10, 2}, res.Breakdown["segment_usage"])
 	})
 }

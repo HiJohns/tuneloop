@@ -890,8 +890,8 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	discountedRent := 0.0
 	discountedDue := 0.0
 	var segmentUsage []int
-	if segs, err := makePaidSegments(initialDays, pricingTiers, baseDailyRentCents, contractRent, renewalRecs); err == nil {
-		if ds, err := computeDiscountedSettlement(actualDays, segs, int64(math.Round(shippingFee*100))); err == nil {
+	if segs, paidTotalCents, err := makePaidSegments(initialDays, pricingTiers, baseDailyRentCents, contractRent, renewalRecs); err == nil {
+		if ds, err := computeDiscountedSettlement(actualDays, segs, int64(math.Round(shippingFee*100)), paidTotalCents); err == nil {
 			useDiscounted = true
 			discountedRent = float64(ds.DiscountedRent) / 100
 			discountedDue = float64(ds.DiscountedDue) / 100
