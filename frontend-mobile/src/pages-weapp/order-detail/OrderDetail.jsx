@@ -33,7 +33,7 @@ const EVENT_LABELS = {
   shipped: '已发货', in_transit: '运输中', delivered: '已收货',
   in_lease: '租赁中', returning: '归还中', returned: '已归还',
   completed: '已完成', cancelled: '已取消', expired: '已超期',
-  renewed: '已续期', settlement_confirmed: '结算完成',
+  renewed: '已续期', settlement_confirmed: '结算确认',
 }
 
 const baseUrl = env.apiBaseUrl
@@ -98,7 +98,7 @@ export default function OrderDetail() {
             setAllLogs(logsRes.data?.logs || [])
             setLogHasMore((logsRes.data?.total || 0) > 15)
           }
-        } catch {}
+        } catch (e) { console.warn('[OrderDetail] failed to load logs', e) }
         if (result.data.instrument_id) {
           const iResp = await apiFetch(`${baseUrl}/public/instruments/${result.data.instrument_id}`)
           const iResult = await iResp.json()

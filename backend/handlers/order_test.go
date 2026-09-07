@@ -691,6 +691,18 @@ func TestGetOrderLogs_DedupAndOperator(t *testing.T) {
 		VALUES (?, ?, ?, 'paid', 'pending_shipment', ?, now(), now(), now())`,
 		uuid.New().String(), tenantID, orderID, userID)
 
+	// #1835 fallback branch: legacy order_logs with NULL operator_id that
+	// represent customer-initiated actions (paid/renew/renewal notice) must be
+	// attributed to the order owner; non-matching NULL events stay "system".
+	for _, ev := range []string{"已支付", "renewed", "续期 1 天, 新到期日 2026-10-09"} {
+		db.Exec(`INSERT INTO order_logs (id, order_id, event, operator_id, operator_name, created_at)
+			VALUES (?, ?, ?, NULL, NULL, now())`,
+			uuid.New().String(), orderID, ev)
+	}
+	db.Exec(`INSERT INTO order_logs (id, order_id, event, operator_id, operator_name, created_at)
+		VALUES (?, ?, 'settlement_confirmed', NULL, NULL, now())`,
+		uuid.New().String(), orderID)
+
 	router := setupTestRouter(t, tenantID, userID)
 	router.GET("/orders/:id/logs", GetOrderLogs)
 
@@ -714,6 +726,8 @@ func TestGetOrderLogs_DedupAndOperator(t *testing.T) {
 	// "已签收，租赁开始" (order_log) present; bare history in_lease entry skipped.
 	hasSigned := false
 	hasBareInLease := false
+	// #1835: NULL-operator logs → owner attribution / system fallback.
+	attributed := map[string]bool{}
 	for _, l := range resp.Data.List {
 		if l.Event == "已签收，租赁开始" {
 			hasSigned = true
@@ -727,12 +741,29 @@ func TestGetOrderLogs_DedupAndOperator(t *testing.T) {
 		if l.Event == "in_lease" {
 			hasBareInLease = true
 		}
+		// #1835: order owner display name (setupTestData user) — assert it is
+		// not empty/system for customer-initiated events, and stays "system"
+		// for the non-matching settlement_confirmed row.
+		if l.Event == "已支付" || l.Event == "renewed" || l.Event == "续期 1 天, 新到期日 2026-10-09" {
+			attributed[l.Event] = l.Operator != "" && l.Operator != "system"
+		}
+		if l.Event == "settlement_confirmed" {
+			attributed[l.Event] = l.Operator == "system"
+		}
 	}
 	if !hasSigned {
 		t.Error("expected order_log 已签收，租赁开始 in timeline")
 	}
 	if hasBareInLease {
 		t.Error("bare history in_lease entry must be deduped when order_log exists (#1701)")
+	}
+	for _, ev := range []string{"已支付", "renewed", "续期 1 天, 新到期日 2026-10-09"} {
+		if !attributed[ev] {
+			t.Errorf("#1835: NULL-operator log %q must be attributed to order owner, not system/empty", ev)
+		}
+	}
+	if !attributed["settlement_confirmed"] {
+		t.Error("#1835: NULL-operator settlement_confirmed must stay 'system'")
 	}
 }
 
