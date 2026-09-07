@@ -97,6 +97,50 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 		require.InDelta(t, 0.64, res.PayableShortfall, 1e-9)
 	})
 
+	t.Run("历史单-lease_term=0-回退1743-场景1金额0.28", func(t *testing.T) {
+		// #1838 回归：历史订单 lease_term=0（legacy），段模型不得启用
+		// （rent_days 被续费重写为覆盖天数，合同段无法拆分）→ #1743 兜底。
+		// 该单结构同场景1（三码 0.36×3、实租 1 天、物流 1.00、CouponDiscount
+		// 单笔面值 35.64）→ 旧口径补缴 0.28（与用户确认数值一致）。
+		tenantID := uuid.New().String()
+		orgID := tenantID
+		userID := uuid.New().String()
+		instID := uuid.New().String()
+		require.NoError(t, db.Create(&models.Instrument{
+			ID: instID, TenantID: tenantID, OrgID: &orgID,
+			SN: "SN-SEG-LT0", StockStatus: "rented",
+		}).Error)
+		delivered := time.Date(2026, 8, 1, 10, 0, 0, 0, time.UTC)
+		returned := time.Date(2026, 8, 1, 22, 0, 0, 0, time.UTC)
+		o := models.Order{
+			TenantID: tenantID, OrgID: orgID, UserID: userID, InstrumentID: instID,
+			StartDate: str1743Ptr("2026-08-01"), EndDate: str1743Ptr("2026-08-01"),
+			LeaseTerm:   0, // legacy 单：无初始合同天数
+			Status:      models.OrderStatusReturned,
+			DeliveredAt: &delivered, ReturnedAt: &returned,
+			Deposit: 0, CashPaid: cents(1.08), ShippingFee: cents(1),
+			CouponDiscount: cents(35.64), // #1743 单笔面值口径
+			PricingBreakdown: str1743Ptr(`{"base_daily_rent":3600,"rent_days":3,"deposit":0,"total_amount":10800,
+				"pricing_tiers":[{"days_max":30,"daily_rate":3600,"discount_percent":0}],
+				"tier_segments":[{"tier":1,"days":3,"rate":3600,"discount":1,"subtotal":10800}]}`),
+		}
+		require.NoError(t, db.Create(&o).Error)
+		require.NoError(t, db.Create(&models.OrderPaymentRecord{
+			TenantID: tenantID, UserID: userID, OrderID: &o.ID,
+			OrderType: "renewal", Type: "payment", Status: "paid",
+			Amount: cents(0.36), Days: intPtr(1),
+		}).Error)
+		require.NoError(t, db.Create(&models.OrderPaymentRecord{
+			TenantID: tenantID, UserID: userID, OrderID: &o.ID,
+			OrderType: "renewal", Type: "payment", Status: "paid",
+			Amount: cents(0.36), Days: intPtr(1),
+		}).Error)
+		res := computeSettlement(o, db)
+		require.False(t, res.SegmentModel, "lease_term=0 不得启用段模型")
+		require.InDelta(t, 0.28, res.PayableShortfall, 1e-9, "#1743 兜底口径：补缴 0.28")
+		require.Zero(t, res.TotalRefund)
+	})
+
 	t.Run("跨阶-无码-实租12天-段级应收与rentPayable逐分相等", func(t *testing.T) {
 		// 合同 30 天跨两阶：tier1 10天@¥20 + tier2 20天@¥15 = 原价 ¥500 全额支付；
 		// 实租 12 天 → rentPayable（tier 截断）= 10×20 + 2×15 = ¥230。

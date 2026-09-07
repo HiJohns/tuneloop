@@ -890,17 +890,26 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	discountedRent := 0.0
 	discountedDue := 0.0
 	var segmentUsage []int
-	if segs, paidTotalCents, err := makePaidSegments(initialDays, pricingTiers, baseDailyRentCents, contractRent, renewalRecs); err == nil {
-		if ds, err := computeDiscountedSettlement(actualDays, segs, int64(math.Round(shippingFee*100)), paidTotalCents); err == nil {
-			useDiscounted = true
-			discountedRent = float64(ds.DiscountedRent) / 100
-			discountedDue = float64(ds.DiscountedDue) / 100
-			segmentUsage = ds.Usage
+	// 段模型仅在 LeaseTerm > 0 时启用：lease_term 是唯一可靠的"初始合同天数"
+	// 权威源——pricing_breakdown.rent_days/tier_segments 会被续费重写为全部
+	// 覆盖天数（renewal.go），历史单 lease_term=0 时无法区分初始合同段，
+	// fallback coverDays 会把续费天数摊进合同段（#1838：29846d18 补缴 0.04
+	// 错误，实为 3 天段被 1/300 摊薄）。无 lease_term → #1743 兜底。
+	if order.LeaseTerm > 0 {
+		if segs, paidTotalCents, err := makePaidSegments(initialDays, pricingTiers, baseDailyRentCents, contractRent, renewalRecs); err == nil {
+			if ds, err := computeDiscountedSettlement(actualDays, segs, int64(math.Round(shippingFee*100)), paidTotalCents); err == nil {
+				useDiscounted = true
+				discountedRent = float64(ds.DiscountedRent) / 100
+				discountedDue = float64(ds.DiscountedDue) / 100
+				segmentUsage = ds.Usage
+			} else {
+				log.Printf("[computeSettlement] segment model rejected order %s: %v — falling back to #1743", order.ID, err)
+			}
 		} else {
-			log.Printf("[computeSettlement] segment model rejected order %s: %v — falling back to #1743", order.ID, err)
+			log.Printf("[computeSettlement] segment build failed for order %s: %v — falling back to #1743", order.ID, err)
 		}
 	} else {
-		log.Printf("[computeSettlement] segment build failed for order %s: %v — falling back to #1743", order.ID, err)
+		log.Printf("[computeSettlement] order %s has lease_term=0 (legacy) — segment model skipped, falling back to #1743", order.ID)
 	}
 
 	var totalRefund, payableShortfall float64
