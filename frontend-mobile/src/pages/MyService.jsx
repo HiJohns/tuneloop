@@ -8,7 +8,7 @@ import { ArrowLeft, Phone, Calendar } from 'lucide-react'
 function ServiceCard({ order }) {
   return (
     <View className="bg-[#FDFBF7] rounded-xl shadow-sm p-4">
-      <View className="space-y-2">
+      <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <View className="flex items-center justify-between">
           <Text className="font-medium text-brand-text">{order.assetName}</Text>
           <Tag color={order.status === "处理中" ? "blue" : "orange"}>
@@ -69,7 +69,7 @@ export default function MyService() {
       </View>
       
       {/* Service Orders List */}
-      <View className="p-4 space-y-4">
+      <View className="p-4" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {loading ? (
           <View className="text-center py-8 text-gray-500">加载中...</View>
         ) : (

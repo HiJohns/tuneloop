@@ -31,7 +31,7 @@ export default function PaymentComplete() {
       <CheckCircle size={64} className="text-green-500 mb-4" />
       <Text className="text-xl font-bold mb-6">支付完成</Text>
       <View className="bg-white rounded-xl p-6 w-full max-w-sm shadow-sm">
-        <View className="space-y-3 text-sm">
+        <View className="text-sm" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <View className="flex justify-between">
             <Text className="text-gray-500">支付金额</Text>
             <Text className="font-medium text-red-500">¥{(Number(state.paymentAmount || 0) / 100).toFixed(2)}</Text>

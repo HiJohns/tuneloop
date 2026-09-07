@@ -154,9 +154,9 @@ export default function CreateRepairRequest() {
       )}
 
       <ScrollView scrollY className="flex-1 min-h-0" style={{ paddingBottom: 80 }}>
-        <View className="p-4 space-y-3">
+        <View className="p-4" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* 面板 ① 乐器信息 */}
-          <View className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
+          <View className="bg-white rounded-2xl shadow-sm p-4" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <View>
               <Text className="block text-sm font-medium text-gray-700 mb-1">识别码 *</Text>
               <Input className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm"
@@ -182,7 +182,7 @@ export default function CreateRepairRequest() {
           </View>
 
           {/* 面板 ② 故障描述 */}
-          <View className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
+          <View className="bg-white rounded-2xl shadow-sm p-4" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <View>
               <Text className="block text-sm font-medium text-gray-700 mb-1">描述 *</Text>
               <Textarea className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm"
@@ -241,7 +241,7 @@ export default function CreateRepairRequest() {
           </View>
 
           {/* 面板 ③ 服务网点 */}
-          <View className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
+          <View className="bg-white rounded-2xl shadow-sm p-4" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <View>
               <Text className="block text-sm font-medium text-gray-700 mb-1">选择商户</Text>
               <Button onClick={() => setShowMerchantPicker(true)}

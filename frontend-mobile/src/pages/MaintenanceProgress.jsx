@@ -68,7 +68,7 @@ export default function MaintenanceProgress() {
           </Tag>
         </View>
         
-        <View className="space-y-2 text-sm">
+        <View className="text-sm" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <View className="flex justify-between">
             <Text className="text-gray-500">工单编号</Text>
             <Text>{ticket.id?.slice(0, 8)}</Text>

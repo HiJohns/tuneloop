@@ -50,7 +50,7 @@ export default function AddressForm({ address, onClose, onSaved }) {
           <button onClick={onClose} className="p-1"><X size={20} /></button>
         </div>
 
-        <div className="space-y-3">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className={labelClass}>收货人</label>

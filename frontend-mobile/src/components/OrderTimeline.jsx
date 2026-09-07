@@ -64,9 +64,9 @@ export default function OrderTimeline({ orderId, status }) {
   if (logs.length === 0) return null
 
   return (
-    <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4 space-y-4">
+    <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <View><Text className="text-base font-black text-black">订单动态</Text></View>
-      <View className="space-y-0">
+      <View>
         {logs.map((log, idx) => {
           const statusIdx = LIFECYCLE_ORDER.indexOf(status)
           const eventIdx = LIFECYCLE_ORDER.indexOf(log.event)

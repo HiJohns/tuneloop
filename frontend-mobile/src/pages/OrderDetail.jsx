@@ -446,7 +446,7 @@ export default function OrderDetail() {
       {/* Customer Info */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <Text className="text-base font-black text-black mb-3">配送信息</Text>
-        <View className="space-y-3">
+        <View style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <View className="flex items-start gap-3">
             <User size={18} className="text-zinc-400 mt-0.5" />
             <View className="flex items-start flex-1 min-w-0">
@@ -483,7 +483,7 @@ export default function OrderDetail() {
       {/* Fee Info */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <Text className="text-base font-black text-black mb-4">费用信息</Text>
-        <View className="space-y-2">
+        <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {/* #1803 T3: fee_detail 三段统一明细（单一数据源，服务端计算，前端只读） */}
           {order.fee_detail && (
             <>
@@ -671,7 +671,7 @@ export default function OrderDetail() {
                 <Text className="text-xs text-zinc-400">{showContract ? '收起 ▲' : '展开 ▼'}</Text>
               </View>
               {showContract && (
-                <View className="space-y-2 mt-2">
+                <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }} className="mt-2">
                   {order.pricing_breakdown.rent_days && (
                     <View className="flex justify-between text-sm">
                       <Text className="text-zinc-500 font-medium">合同租期（天）</Text>
@@ -772,7 +772,7 @@ export default function OrderDetail() {
       {settlement && (
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <Text className="text-base font-black text-black mb-3">结算状态</Text>
-        <View className="space-y-2">
+        <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {settlement.refund_method && (
           <View className="flex justify-between text-sm">
             <Text className="text-zinc-500 font-medium">退款方式</Text>
@@ -813,7 +813,7 @@ export default function OrderDetail() {
       {['completed', 'returned'].includes(order?.status) && (order?.payment_records?.length > 0 || order?.refund_records?.length > 0) && (
         <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
           <Text className="text-base font-black text-black mb-3">收支明细</Text>
-          <View className="space-y-2">
+          <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {order?.payment_records?.length > 0 && (
               <>
                 <Text className="text-xs font-bold text-zinc-400">支付记录</Text>
@@ -864,7 +864,7 @@ export default function OrderDetail() {
       {orderLogs.length > 0 && (
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <Text className="text-base font-black text-black mb-4">订单日志</Text>
-        <View className="space-y-0">
+        <View>
           {orderLogs.map((log, idx) => {
             const statusIdx = LIFECYCLE_ORDER.indexOf(order?.status)
             const eventIdx = LIFECYCLE_ORDER.indexOf(log.event)
@@ -950,7 +950,7 @@ export default function OrderDetail() {
 
       {/* Action Buttons */}
       <View className="bg-white border-t-2 border-zinc-200 p-4 safe-area-pb" style={{boxShadow:'0 -4px 12px rgba(0,0,0,0.08)'}}>
-        <View className="space-y-3 max-w-[480px] mx-auto">
+        <View className="max-w-[480px] mx-auto" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {isStaff ? (
             <>
               {showStaffShip && (

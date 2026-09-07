@@ -235,7 +235,7 @@ export default function StaffInstrumentDetail() {
         </View>
       )}
 
-      <View className="p-4 space-y-4">
+      <View className="p-4" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* Image */}
         <InstrumentInfo instrument={instrument} />
 
@@ -247,7 +247,7 @@ export default function StaffInstrumentDetail() {
               {statusLabel[instrument.stock_status] || instrument.stock_status}
             </Text>
           </View>
-          <View className="space-y-2 text-sm">
+          <View className="text-sm" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <View className="flex justify-between">
               <Text className="text-zinc-500 font-medium">SN</Text>
               <Text className="font-mono font-black">{instrument.sn || '-'}</Text>
@@ -294,7 +294,7 @@ export default function StaffInstrumentDetail() {
         {/* Pricing Info */}
         <View className="bg-white mt-3 rounded-2xl shadow-sm p-4">
           <Text className="font-black text-base text-black mb-3">租赁设置</Text>
-          <View className="space-y-2 text-sm">
+          <View className="text-sm" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <View className="flex justify-between">
               <Text className="text-zinc-500 font-medium">日租金</Text>
               <Text className="font-black">¥{((pricingInfo.daily_rent || instrument.base_daily_rate || 0 || 0) / 100).toFixed(2)}</Text>

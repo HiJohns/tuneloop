@@ -150,16 +150,16 @@ export default function MyRepairs() {
         {/* Customer: My repair requests + create button */}
         {isCustomer && (
           <>
-          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 space-y-1">
+          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <View><Text className="text-sm font-bold text-black">我的报修 ({repairRequests.length})</Text></View>
             {loading ? (
               <View><Text className="text-xs text-zinc-400">加载中...</Text></View>
             ) : repairRequests.length === 0 ? (
               <View><Text className="text-xs text-zinc-400">暂无报修记录</Text></View>
             ) : (
-              <View className="space-y-2">
+              <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {repairRequests.map(r => (
-                  <View key={r.id} className="border border-zinc-100 rounded-xl p-3 space-y-1 active:opacity-80"
+                  <View key={r.id} className="border border-zinc-100 rounded-xl p-3 active:opacity-80" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}
                     onClick={() => nav(`/repair-request?request_id=${r.id}`)}>
                     <View className="flex justify-between items-center">
                       <Text className="text-sm font-bold text-black">{r.created_at ? new Date(r.created_at).toLocaleDateString() : '#' + r.id?.slice(0, 8)}</Text>
@@ -204,14 +204,14 @@ export default function MyRepairs() {
         {/* Pure repair technician: My repairs + pending_assessment/repairing requests */}
         {isPureTech && (
           <>
-          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 space-y-1">
+          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <View><Text className="text-sm font-bold text-black">我的维修 ({myRepairs.length})</Text></View>
             {loading ? (
               <View><Text className="text-xs text-zinc-400">加载中...</Text></View>
             ) : myRepairs.length === 0 ? (
               <View><Text className="text-xs text-zinc-400">暂无进行中的维修</Text></View>
             ) : (
-              <View className="space-y-2">
+              <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {myRepairs.map(inst => (
                   <View key={inst.id} className="border border-zinc-100 rounded-xl p-3 active:opacity-80"
                     onClick={() => nav(`/repair?instrument_id=${inst.id}`)}>
@@ -224,12 +224,12 @@ export default function MyRepairs() {
               </View>
             )}
           </View>
-          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 space-y-1">
+          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <View><Text className="text-sm font-bold text-black">质检/维修中报修 ({repairRequests.length})</Text></View>
             {repairRequests.length === 0 ? (
               <View><Text className="text-xs text-zinc-400">暂无</Text></View>
             ) : (
-              <View className="space-y-2">
+              <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {repairRequests.map(r => (
                   <View key={r.id} className="border border-zinc-100 rounded-xl p-3 active:opacity-80"
                     onClick={() => nav(`/repair-request?request_id=${r.id}`)}>
@@ -240,12 +240,12 @@ export default function MyRepairs() {
               </View>
             )}
           </View>
-          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4 space-y-1">
+          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <View><Text className="text-sm font-bold text-black">待维修乐器 ({pendingRepairs.length})</Text></View>
             {pendingRepairs.length === 0 ? (
               <View><Text className="text-xs text-zinc-400">暂无</Text></View>
             ) : (
-              <View className="space-y-2">
+              <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {pendingRepairs.map(inst => (
                   <View key={inst.id} className="border border-zinc-100 rounded-xl p-3 active:opacity-80"
                     onClick={() => nav(`/repair?instrument_id=${inst.id}`)}>
@@ -263,7 +263,7 @@ export default function MyRepairs() {
         {/* Staff: Site repair requests + return-pending logistics */}
         {hasSiteRole && (
           <>
-          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 space-y-1">
+          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <View className="flex justify-between items-center" onClick={() => setShowSiteRepairs(v => !v)}>
               <Text className="text-sm font-bold text-black">本网点报修 ({repairRequests.length})</Text>
               <Text className="text-xs text-zinc-400">{showSiteRepairs ? '▾' : '▸'}</Text>
@@ -273,9 +273,9 @@ export default function MyRepairs() {
             ) : repairRequests.length === 0 ? (
               <View><Text className="text-xs text-zinc-400">暂无报修</Text></View>
             ) : (
-              <View className="space-y-2">
+              <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {repairRequests.map(r => (
-                  <View key={r.id} className="border border-zinc-100 rounded-xl p-3 space-y-1 active:opacity-80"
+                  <View key={r.id} className="border border-zinc-100 rounded-xl p-3 active:opacity-80" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}
                     onClick={() => nav(`/repair-request?request_id=${r.id}`)}>
                     <View className="flex justify-between items-center">
                       <Text className="text-sm font-bold text-black">{r.created_at ? new Date(r.created_at).toLocaleDateString() : '#' + r.id?.slice(0, 8)}</Text>
@@ -306,7 +306,7 @@ export default function MyRepairs() {
               </View>
             ))}
           </View>
-          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4 space-y-1">
+          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <View className="flex justify-between items-center" onClick={() => setShowPending(v => !v)}>
               <Text className="text-sm font-bold text-black">待维修乐器 ({pendingRepairs.length})</Text>
               <Text className="text-xs text-zinc-400">{showPending ? '▾' : '▸'}</Text>
@@ -314,7 +314,7 @@ export default function MyRepairs() {
             {showPending && (pendingRepairs.length === 0 ? (
               <View><Text className="text-xs text-zinc-400">暂无等待维修的乐器</Text></View>
             ) : (
-              <View className="space-y-2">
+              <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {pendingRepairs.map(inst => (
                   <View key={inst.id} className="border border-zinc-100 rounded-xl p-3 active:opacity-80">
                     <Text className="text-sm font-bold text-black">{inst.sn || '未知SN'}</Text>

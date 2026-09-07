@@ -41,7 +41,7 @@ export default function MyContracts() {
         <Text className="text-lg font-bold">我的合同</Text>
       </View>
 
-      <View className="p-4 space-y-3">
+      <View className="p-4" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {contracts.length === 0 ? (
           <View className="bg-white rounded-xl p-8 text-center text-gray-400">
             <FileText size={48} className="mx-auto mb-3 opacity-50" />
@@ -64,7 +64,7 @@ export default function MyContracts() {
                   {contract.status === 'active' ? '有效' : contract.status}
                 </Text>
               </View>
-              <View className="mt-2 text-xs text-gray-500 space-y-1">
+              <View className="mt-2 text-xs text-gray-500" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <Text className="flex items-center gap-1">
                   <Calendar size={12} />
                   {contract.generated_at ? new Date(contract.generated_at).toLocaleDateString() : '-'}

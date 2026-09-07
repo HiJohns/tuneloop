@@ -260,7 +260,7 @@ export default function MembershipCenter() {
 
         {/* Address list (when not showing form) */}
         {!showForm && addresses.length > 0 && (
-          <View className="space-y-2">
+          <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {addresses.map(addr => (
               <View key={addr.id} className="border border-zinc-100 rounded-xl p-3">
                 <View className="flex items-center gap-2 mb-1">
@@ -283,7 +283,7 @@ export default function MembershipCenter() {
 
         {/* Address form */}
         {showForm && (
-          <View className="space-y-3">
+          <View style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <View className="grid grid-cols-2 gap-2">
               <View>
                 <Text className="block text-xs font-medium text-zinc-500 mb-1">收货人</Text>

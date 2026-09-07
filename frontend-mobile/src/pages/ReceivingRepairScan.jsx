@@ -143,14 +143,14 @@ export default function ReceivingRepairScan() {
       {request && (
         <View className="bg-white rounded-2xl shadow-sm p-4">
           <Text className="text-sm font-bold text-green-700 mb-2">匹配到报修单</Text>
-          <View className="space-y-1 mb-3">
+          <View className="mb-3" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <Text className="text-xs text-zinc-500">乐器：{request.instrument_type} {request.brand}</Text>
             <Text className="text-xs text-zinc-500">描述：{request.description}</Text>
             <Text className="text-xs text-zinc-500">当前状态：{status} {isControlled ? '(受控)' : '(全权)'}</Text>
           </View>
 
           {!mode && (
-            <View className="space-y-2">
+            <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {status === 'shipping' && (
                 <>
                   <Button onClick={() => setMode('receive')}

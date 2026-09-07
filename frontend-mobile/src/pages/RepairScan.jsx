@@ -123,7 +123,7 @@ export default function RepairScan() {
       {relayRequest && (
         <View className="bg-white rounded-2xl shadow-sm p-4">
           <Text className="text-sm font-bold text-green-700 mb-2">已匹配报修单</Text>
-          <View className="space-y-1 mb-3">
+          <View className="mb-3" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <Text className="text-xs text-zinc-500">乐器：{relayRequest.instrument_type} {relayRequest.brand}</Text>
             <Text className="text-xs text-zinc-500">描述：{relayRequest.description}</Text>
             <Text className="text-xs text-zinc-500">目标地址：{relayRequest.site_name || '-'}</Text>

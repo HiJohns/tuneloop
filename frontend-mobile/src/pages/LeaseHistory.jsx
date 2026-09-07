@@ -103,7 +103,7 @@ export default function LeaseHistory() {
           </View>
         ) : (
           <>
-            <View className="space-y-3">
+            <View style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {orders.filter(o => o.status !== 'reserved').map(order => (
                 <View
                   key={order.id}

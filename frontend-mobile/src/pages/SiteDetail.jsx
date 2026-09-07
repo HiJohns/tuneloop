@@ -77,7 +77,7 @@ export default function SiteDetail() {
       <View className="p-4">
         <Card className="mb-4">
           <Text className="text-lg font-bold">{site.name}</Text>
-          <View className="mt-2 space-y-1">
+          <View className="mt-2" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <View className="flex items-center text-gray-600">
               <EnvironmentOutlined className="mr-2" />
               <Text>{site.address}</Text>

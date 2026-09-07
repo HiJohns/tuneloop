@@ -254,7 +254,7 @@ export default function ReceivingInterface() {
       {currentItem && (
         <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
           <Text className="text-base font-black text-black mb-3 flex items-center gap-2"><AlertTriangle size={18} />追缴费用</Text>
-          <View className="space-y-3">
+          <View style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <View>
               <Text className="text-xs font-bold text-zinc-500 mb-1">逾期未缴租金（元）</Text>
               <Input type="number" value={overdueFee} onInput={e => setOverdueFee(getInputValue(e))} placeholder="0.00" className="w-full border rounded-lg px-3 py-2 text-sm" />

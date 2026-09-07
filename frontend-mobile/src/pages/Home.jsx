@@ -43,7 +43,7 @@ function InstrumentCard({ instrument, onClick }) {
         <Image src={thumb} className="w-[72px] h-[72px] object-contain" />
       </View>
       <View className="flex-1 ml-3 h-20 flex justify-between items-start pr-4 overflow-hidden">
-        <View className="flex flex-col space-y-1 h-full justify-between py-0.5 min-w-0 flex-1">
+        <View className="flex flex-col h-full justify-between py-0.5 min-w-0 flex-1" style={{ gap: 4 }}>
           <View className="w-full min-w-0">
             <Text className="block text-[1.4rem] leading-[1.6rem] font-black text-black tracking-wide truncate">{instrument.name || instrument.sn}</Text>
             <Text className="block text-sm text-zinc-500 font-bold truncate">{instrument.category_name}</Text>
@@ -267,7 +267,7 @@ export default function Home() {
       {/* Carousel dots — hide on scroll */}
       {!scrolled && (
         <View className="absolute left-0 right-0 z-[40] flex items-center justify-center" style={{ bottom: 8 }}>
-          <View className="flex items-center space-x-1.5">
+          <View className="flex items-center" style={{ gap: 6 }}>
             {(banners.length > 0 ? banners : Array.from({ length: 3 })).map((_, i) => {
               const r = currentBanner < 0 ? banners.length - 1 : currentBanner >= banners.length ? 0 : currentBanner
               return <View key={i} className={`${i === r ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === r ? 'bg-white' : 'bg-white/40'}`} />
@@ -345,9 +345,9 @@ export default function Home() {
             Array(3).fill(0).map((_, i) => (
               <View key={i} className="bg-white rounded-2xl p-3 flex shadow-md">
                 <View className="w-20 h-20 bg-zinc-200 rounded-xl animate-pulse flex-shrink-0" />
-                <View className="flex-1 ml-3 pr-4 space-y-2">
-                  <View className="h-5 bg-zinc-200 rounded w-3/4 animate-pulse" />
-                  <View className="h-4 bg-zinc-200 rounded w-1/2 animate-pulse" />
+                <View className="flex-1 ml-3 pr-4" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <View className="h-5 bg-zinc-200 rounded animate-pulse" style={{ width: '75%' }} />
+                  <View className="h-4 bg-zinc-200 rounded animate-pulse" style={{ width: '50%' }} />
                 </View>
               </View>
             ))

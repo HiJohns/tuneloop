@@ -298,7 +298,7 @@ export default function RepairRequestDetail() {
         {/* Request info */}
         <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
           <View><Text className="text-sm font-bold text-black">报修信息</Text></View>
-          <View className="space-y-2 mt-3">
+          <View className="mt-3" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <View className="flex justify-between items-center">
               <Text className="text-xs text-zinc-400">识别码</Text>
               <Text className="text-xs text-zinc-600">{request.instrument_sn || '-'}</Text>
@@ -405,7 +405,7 @@ export default function RepairRequestDetail() {
               )}
               {quotes.filter(q => q.status === 'pending').map(q => (
                 <View key={q.id} className="border border-zinc-200 rounded-xl p-3 mb-3">
-                  <View className="space-y-1">
+                  <View style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <View className="flex justify-between">
                       <Text className="text-xs text-zinc-500">报价单号</Text>
                       <Text className="text-xs text-zinc-700">{q.quote_no}</Text>
@@ -485,7 +485,7 @@ export default function RepairRequestDetail() {
 
           {/* Add / Edit buttons */}
           {!showQuoteForm && (
-            <View className="space-y-2 mt-2 mb-4">
+            <View className="mt-2 mb-4" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <Button onClick={() => { setShowQuoteForm(true); setEditingQuoteId(null); setQuoteForm({ material_fee: '', service_fee: '', logistics_fee: '', duration: '', comment: '' }) }}
                 className="w-full py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
                 添加报价
@@ -519,7 +519,7 @@ export default function RepairRequestDetail() {
             ) : (
               quotes.filter(q => q.status === 'pending').map(q => (
                 <View key={q.id} className="border border-zinc-200 rounded-xl p-3 mb-3">
-                  <View className="space-y-1">
+                  <View style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <View className="flex justify-between">
                       <Text className="text-xs text-zinc-500">报价单号</Text>
                       <Text className="text-xs text-zinc-700">{q.quote_no}</Text>
@@ -575,7 +575,7 @@ export default function RepairRequestDetail() {
             <View className="bg-zinc-50 rounded-xl p-3 mb-3">
               <Text className="text-xs text-zinc-500 mb-1">收货信息</Text>
               {request.merchant_type === 'controlled' ? (
-                <View className="space-y-1">
+                <View style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <View className="flex justify-between">
                     <Text className="text-xs text-zinc-400">地址</Text>
                     <Text className="text-xs text-zinc-700 text-right">{request.transit_site_address || '-'}</Text>
@@ -590,7 +590,7 @@ export default function RepairRequestDetail() {
                   </View>
                 </View>
               ) : (
-                <View className="space-y-1">
+                <View style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <View className="flex justify-between">
                     <Text className="text-xs text-zinc-400">商户</Text>
                     <Text className="text-xs text-zinc-700">{request.merchant_name || '-'}</Text>
@@ -746,7 +746,7 @@ export default function RepairRequestDetail() {
         {status === 'shipping' && isSiteStaff && (
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
             <Text className="text-sm font-bold text-black mb-3">收货处理</Text>
-            <View className="bg-zinc-50 rounded-xl p-3 mb-3 space-y-1">
+            <View className="bg-zinc-50 rounded-xl p-3 mb-3" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <Text className="text-xs text-zinc-500">物流信息</Text>
               {request.tracking_company && <Text className="text-xs text-zinc-700">物流公司：{request.tracking_company}</Text>}
               {request.tracking_number && <Text className="text-xs text-zinc-700">物流单号：{request.tracking_number}</Text>}
@@ -800,7 +800,7 @@ export default function RepairRequestDetail() {
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
             <Text className="text-sm font-bold text-black mb-3">收件人信息</Text>
             {request.merchant_type === 'controlled' ? (
-              <View className="bg-zinc-50 rounded-xl p-3 space-y-1">
+              <View className="bg-zinc-50 rounded-xl p-3" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <View className="flex justify-between">
                   <Text className="text-xs text-zinc-400">中转网点</Text>
                   <Text className="text-xs text-zinc-700">{request.transit_site_name || '-'}</Text>
@@ -815,7 +815,7 @@ export default function RepairRequestDetail() {
                 </View>
               </View>
             ) : (
-              <View className="bg-zinc-50 rounded-xl p-3 space-y-1">
+              <View className="bg-zinc-50 rounded-xl p-3" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <View className="flex justify-between">
                   <Text className="text-xs text-zinc-400">姓名</Text>
                   <Text className="text-xs text-zinc-700">{request.reporter_name || '-'}</Text>

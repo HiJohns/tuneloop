@@ -81,7 +81,7 @@ export default function RepairQuote() {
         <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
           <Text className="text-sm font-bold text-black mb-3">费用明细</Text>
           {acceptedQuote ? (
-            <View className="space-y-2">
+            <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <View className="flex justify-between">
                 <Text className="text-xs text-zinc-500">材料费</Text>
                 <Text className="text-xs text-zinc-700">¥{((materialFee || 0) / 100).toFixed(2)}</Text>

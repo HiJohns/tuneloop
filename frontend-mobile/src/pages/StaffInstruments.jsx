@@ -117,7 +117,7 @@ export default function StaffInstruments() {
         {loading ? (
           <View className="text-center py-8 text-zinc-500 font-black">加载中...</View>
         ) : (
-          <View className="space-y-3">
+          <View style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {instruments.map(inst => (
               <View
                 key={inst.id}

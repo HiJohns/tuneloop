@@ -147,7 +147,7 @@ export default function StaffReceiveConfirm() {
         {photoSpecs.length > 0 && (
           <View className="mb-4 p-3 bg-blue-50 rounded-lg">
             <Text className="text-sm font-bold text-blue-800 mb-1">拍照要求</Text>
-            <Text className="text-xs text-blue-700 space-y-0.5">
+            <Text className="text-xs text-blue-700" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {photoSpecs.map((spec, idx) => (
                 <Text key={idx} className="block">• {spec.position}: {spec.description}</Text>
               ))}
@@ -176,7 +176,7 @@ export default function StaffReceiveConfirm() {
         <Text className="text-base font-black text-black mb-3 flex items-center gap-2">
           <AlertTriangle size={18} />追缴费用
         </Text>
-        <View className="space-y-3">
+        <View style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <View>
             <Text className="text-xs font-bold text-zinc-500 mb-1">逾期未缴租金（元）</Text>
             <Input type="number" value={overdueFee} onInput={e => setOverdueFee(getInputValue(e))}

@@ -215,7 +215,7 @@ export default function MessageDetail() {
           {damageReport && (
             <View className="border-t pt-4 mb-4">
               <Text className="text-sm font-medium text-gray-500 mb-2">定损信息</Text>
-              <View className="bg-gray-50 rounded-lg p-3 space-y-1 text-sm">
+              <View className="bg-gray-50 rounded-lg p-3 text-sm" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <View className="flex justify-between">
                   <Text className="text-gray-500">定损金额</Text>
                   <Text className="font-medium">
@@ -239,7 +239,7 @@ export default function MessageDetail() {
           {order && (
             <View className="border-t pt-4">
               <Text className="text-sm font-medium text-gray-500 mb-2">订单信息</Text>
-              <View className="bg-gray-50 rounded-lg p-3 space-y-1 text-sm">
+              <View className="bg-gray-50 rounded-lg p-3 text-sm" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <View className="flex justify-between">
                   <Text className="text-gray-500">押金</Text>
                   <Text className="font-medium">¥{((order.deposit || 0) / 100).toFixed(2)}</Text>

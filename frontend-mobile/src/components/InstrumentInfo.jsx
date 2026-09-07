@@ -34,11 +34,13 @@ export default function InstrumentInfo({ instrument, onClick }) {
             {allImgs.length > 1 && (
               <>
                 <View onClick={e => { e.stopPropagation(); setImageIndex(i => (i - 1 + allImgs.length) % allImgs.length) }}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 rounded-full w-8 h-8 flex items-center justify-center shadow-sm">
+                  style={{ top: '50%', transform: 'translateY(-50%)' }}
+                  className="absolute left-2 bg-white/80 rounded-full w-8 h-8 flex items-center justify-center shadow-sm">
                   <ArrowLeft size={18} className="text-zinc-600" />
                 </View>
                 <View onClick={e => { e.stopPropagation(); setImageIndex(i => (i + 1) % allImgs.length) }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 rounded-full w-8 h-8 flex items-center justify-center shadow-sm">
+                  style={{ top: '50%', transform: 'translateY(-50%)' }}
+                  className="absolute right-2 bg-white/80 rounded-full w-8 h-8 flex items-center justify-center shadow-sm">
                   <ChevronRight size={18} className="text-zinc-600" />
                 </View>
                 <View className="absolute bottom-2 right-2 bg-black/70 rounded-full px-2 py-0.5">
@@ -54,7 +56,7 @@ export default function InstrumentInfo({ instrument, onClick }) {
         )}
       </View>
 
-      <View className="space-y-1.5">
+      <View style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <View className="flex justify-between text-sm">
           <Text className="text-zinc-500 font-medium">SN</Text>
           <Text className="text-black font-black">{instrument?.sn || '-'}</Text>

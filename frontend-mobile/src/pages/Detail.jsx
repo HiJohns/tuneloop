@@ -272,7 +272,7 @@ export default function Detail() {
         )}
       </View>
     </View>
-          <View className="flex items-center justify-center space-x-1.5 pb-3" style={{ backgroundColor: '#FDF4E7' }}>
+          <View className="flex items-center justify-center pb-3" style={{ backgroundColor: '#FDF4E7', gap: 6 }}>
             {bannerImages.map((_, i) => (
               <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-[#915F38]' : 'bg-black/15'}`} />
             ))}
@@ -281,7 +281,7 @@ export default function Detail() {
         <View className="px-4 mt-4 pb-4">
 
           {/* Card A: Instrument info + deposit */}
-          <View className="bg-white rounded-2xl p-4 shadow-sm mb-3 flex flex-col space-y-2">
+          <View className="bg-white rounded-2xl p-4 shadow-sm mb-3 flex flex-col" style={{ gap: 8 }}>
             <View className="flex justify-between items-start w-full">
               <View className="flex-1 min-w-0 pr-4">
                 <Text className="block text-2xl font-black text-black tracking-wide truncate">{instrument.name || instrument.sn}</Text>
@@ -292,7 +292,7 @@ export default function Detail() {
                 </Text>
               </View>
             </View>
-            <View className="flex items-center space-x-3">
+            <View className="flex items-center" style={{ gap: 12 }}>
               {levelName && (
                 <View className={`inline-block ${levelBg} text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-sm`}>
                   {levelName}
@@ -303,9 +303,9 @@ export default function Detail() {
               </Text>
             </View>
             <View className="border-t border-zinc-100 pt-3 flex justify-between items-center text-xs text-zinc-500 font-bold">
-              <View className="flex items-center space-x-1"><Text>🏠</Text><Text>{instrument.site_name || '暂无网点'}</Text></View>
-              <View className="flex items-center space-x-1"><Text>📍</Text><Text>{instrument.site_address || '暂无地址'}</Text></View>
-              <View className="flex items-center space-x-1"><Text>📞</Text><Text>{instrument.site_phone || ''}</Text></View>
+              <View className="flex items-center" style={{ gap: 4 }}><Text>🏠</Text><Text>{instrument.site_name || '暂无网点'}</Text></View>
+              <View className="flex items-center" style={{ gap: 4 }}><Text>📍</Text><Text>{instrument.site_address || '暂无地址'}</Text></View>
+              <View className="flex items-center" style={{ gap: 4 }}><Text>📞</Text><Text>{instrument.site_phone || ''}</Text></View>
             </View>
           </View>
 
@@ -335,7 +335,7 @@ export default function Detail() {
           )}
 
           {/* Card C: Specifications & properties */}
-          <View className="bg-white rounded-2xl p-4 shadow-sm mb-3 space-y-2">
+          <View className="bg-white rounded-2xl p-4 shadow-sm mb-3" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <Text className="text-base font-black text-black">规格参数</Text>
             {instrument.properties && typeof instrument.properties === 'object' ? (
               Object.entries(instrument.properties).map(([key, vals]) => (
@@ -353,7 +353,7 @@ export default function Detail() {
 
           {/* Pricing V2 tiers */}
           {isRentable && pricingV2?.tiers?.length > 0 && (
-            <View className="bg-white rounded-2xl p-4 shadow-sm mb-3 space-y-2">
+            <View className="bg-white rounded-2xl p-4 shadow-sm mb-3" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <Text className="text-base font-black text-black">定价策略</Text>
               {pricingV2.tiers.map((t, i) => {
                 const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
@@ -366,7 +366,7 @@ export default function Detail() {
                 )
               })}
               {(pricingV2.deposit > 0 || pricingV2.shipping_fee > 0) && (
-                <View className="border-t border-zinc-100 pt-2 space-y-1">
+                <View className="border-t border-zinc-100 pt-2" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {pricingV2.deposit > 0 && (
                     <View className="flex justify-between text-sm">
                       <Text className="text-zinc-500">押金</Text>
@@ -381,7 +381,7 @@ export default function Detail() {
                   )}
                 </View>
               )}
-              <View className="border-t border-zinc-100 pt-2 mt-1 space-y-1">
+              <View className="border-t border-zinc-100 pt-2 mt-1" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-500">合计金额</Text>
                   <Text className="text-black font-bold">预付全款租金 + 固定押金 + 往返运费</Text>
@@ -420,7 +420,7 @@ export default function Detail() {
           {!isCustomer && currentUser && auditLogs.length > 0 && (
             <View className="bg-white rounded-2xl p-4 shadow-sm mb-3">
               <Text className="text-base font-black text-black mb-3">操作日志</Text>
-              <View className="space-y-2 max-h-48 overflow-y-auto">
+              <View className="max-h-48 overflow-y-auto" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {auditLogs.map((log, i) => (
                   <View key={log.id || i} className="flex gap-2 items-center py-1.5 px-2 bg-gray-50 rounded text-xs">
                     <Text className="text-gray-400 w-28 flex-shrink-0">{new Date(log.created_at).toLocaleString()}</Text>
@@ -453,7 +453,7 @@ export default function Detail() {
       </View>
 
       {/* Bottom panel */}
-      <View className="border-t border-zinc-100 p-4 flex flex-col space-y-2 z-50 shadow-2xl" style={{ backgroundColor: '#FDF4E7' }}>
+      <View className="border-t border-zinc-100 p-4 flex flex-col z-50 shadow-2xl" style={{ backgroundColor: '#FDF4E7', gap: 8 }}>
         {isRentable && isCustomer ? (
           <>
             <View className="flex w-full" style={{ gap: 12 }}>
@@ -481,7 +481,7 @@ export default function Detail() {
           </View>
         ) : activeOrder ? (
           activeOrder.order_status === 'in_lease' ? (
-            <View className="p-3 bg-green-50 rounded-lg space-y-2">
+            <View className="p-3 bg-green-50 rounded-lg" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <Text className="text-green-700 font-medium">租赁中</Text>
               <Text className="text-gray-500 text-sm">
                 租期：{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}
@@ -501,7 +501,7 @@ export default function Detail() {
               )}
             </View>
           ) : activeOrder.order_status === 'returning' ? (
-            <View className="p-3 bg-orange-50 rounded-lg space-y-2">
+            <View className="p-3 bg-orange-50 rounded-lg" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <Text className="text-orange-700 font-medium">归还中</Text>
               <Text className="text-gray-500 text-sm">该乐器正在归还流程中</Text>
               <Text className="text-gray-500 text-sm">
@@ -512,14 +512,14 @@ export default function Detail() {
               )}
             </View>
           ) : ['reserved', 'pending', 'paid', 'pending_shipment'].includes(activeOrder.order_status) ? (
-            <View className="p-3 bg-blue-50 rounded-lg space-y-2">
+            <View className="p-3 bg-blue-50 rounded-lg" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <Text className="text-blue-700 font-medium">已预约</Text>
               <Text className="text-gray-500 text-sm">
                 租期：{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}
               </Text>
             </View>
           ) : ['in_transit', 'shipped'].includes(activeOrder.order_status) ? (
-            <View className="p-3 bg-cyan-50 rounded-lg text-center space-y-2">
+            <View className="p-3 bg-cyan-50 rounded-lg text-center" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <Text className="text-cyan-700 font-medium">乐器物流中</Text>
               <Text className="text-gray-500 text-sm">该乐器正在运输途中</Text>
               {currentUser?.id === activeOrder?.user_id && (
@@ -532,7 +532,7 @@ export default function Detail() {
               )}
             </View>
           ) : activeOrder.order_status === 'expired' ? (
-            <View className="p-3 bg-red-50 rounded-lg space-y-2">
+            <View className="p-3 bg-red-50 rounded-lg" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <Text className="text-red-700 font-medium">已超期</Text>
               <Text className="text-gray-500 text-sm">
                 租期：{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}
@@ -552,7 +552,7 @@ export default function Detail() {
               )}
             </View>
           ) : (
-            <View className="p-3 bg-cyan-50 rounded-lg text-center space-y-2">
+            <View className="p-3 bg-cyan-50 rounded-lg text-center" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <Text className="text-cyan-700 font-medium">乐器物流中</Text>
               <Text className="text-gray-500 text-sm">该乐器正在运输途中</Text>
               {currentUser?.id === activeOrder?.user_id && (

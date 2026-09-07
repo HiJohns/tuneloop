@@ -164,7 +164,7 @@ export default function ReceiveConfirm() {
         return (
           <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
             <Text className="text-base font-black text-black mb-3">费用信息</Text>
-            <View className="space-y-2">
+            <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <View className="flex justify-between text-sm">
                 <Text className="text-zinc-500 font-medium">租金小计</Text>
                 <Text className="text-black font-black">¥{(subtotal / 100).toFixed(2)}</Text>

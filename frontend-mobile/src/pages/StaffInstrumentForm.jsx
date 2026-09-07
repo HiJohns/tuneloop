@@ -274,17 +274,17 @@ export default function StaffInstrumentForm() {
         </View>
       )}
 
-      <View className="p-4 space-y-4">
-        <View className="bg-white rounded-xl p-4 space-y-4">
+      <View className="p-4" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <View className="bg-white rounded-xl p-4" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Text className="text-sm font-semibold text-gray-600">基本信息</Text>
 
           <View>
             <Text className={labelClass}>识别码 *</Text>
             <View className="relative">
               <Input className={inputClass} value={form.sn} onInput={e => handleSnChange(getInputValue(e))} placeholder="请输入识别码" />
-              {snChecking && <Text className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">检查中...</Text>}
-              {!snChecking && snExists && <Text className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-red-500">已存在</Text>}
-              {!snChecking && form.sn && !snExists && <Text className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-500">可用</Text>}
+              {snChecking && <Text style={{ top: '50%', transform: 'translateY(-50%)' }} className="absolute right-3 text-xs text-gray-400">检查中...</Text>}
+              {!snChecking && snExists && <Text style={{ top: '50%', transform: 'translateY(-50%)' }} className="absolute right-3 text-xs text-red-500">已存在</Text>}
+              {!snChecking && form.sn && !snExists && <Text style={{ top: '50%', transform: 'translateY(-50%)' }} className="absolute right-3 text-xs text-green-500">可用</Text>}
             </View>
           </View>
 
@@ -320,7 +320,7 @@ export default function StaffInstrumentForm() {
           </View>
         </View>
 
-        <View className="bg-white rounded-xl p-4 space-y-4">
+        <View className="bg-white rounded-xl p-4" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Text className="text-sm font-semibold text-gray-600">租金设置</Text>
 
           <View className="grid grid-cols-2 gap-3">
@@ -345,7 +345,7 @@ export default function StaffInstrumentForm() {
         </View>
 
         {properties.length > 0 && (
-          <View className="bg-white rounded-xl p-4 space-y-4">
+          <View className="bg-white rounded-xl p-4" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <Text className="text-sm font-semibold text-gray-600">乐器属性</Text>
             {properties.map(prop => (
               <View key={prop.id}>
@@ -362,7 +362,7 @@ export default function StaffInstrumentForm() {
           </View>
         )}
 
-        <View className="bg-white rounded-xl p-4 space-y-4">
+        <View className="bg-white rounded-xl p-4" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Text className="text-sm font-semibold text-gray-600">图片上传</Text>
           <View className="flex gap-2 flex-wrap">
             {files.map((file, i) => (
@@ -388,7 +388,7 @@ export default function StaffInstrumentForm() {
           </View>
         </View>
 
-        <View className="bg-white rounded-xl p-4 space-y-4">
+        <View className="bg-white rounded-xl p-4" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Text className="text-sm font-semibold text-gray-600">海报上传</Text>
           <Text className="text-xs text-gray-400">建议宽度不超过 750px，适配手机阅读</Text>
           {posterFile ? (
@@ -400,12 +400,12 @@ export default function StaffInstrumentForm() {
             </View>
           ) : (
             env.isMiniProgram ? (
-              <View className="w-full h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center flex-col space-y-2" onClick={handlePosterUploadWeapp}>
+              <View className="w-full h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center flex-col" style={{ gap: 8 }} onClick={handlePosterUploadWeapp}>
                 <Upload size={24} className="text-gray-400" />
                 <Text className="text-sm text-gray-400">上传海报图片</Text>
               </View>
             ) : (
-              <label className="w-full h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer flex-col space-y-2">
+              <label className="w-full h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer flex-col" style={{ gap: 8 }}>
                 <Upload size={24} className="text-gray-400" />
                 <Text className="text-sm text-gray-400">上传海报图片</Text>
                 <input type="file" accept="image/*" className="hidden" onChange={handlePosterUpload} />

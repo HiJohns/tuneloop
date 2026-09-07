@@ -87,7 +87,7 @@ export default function ReturnSettlement() {
       {/* Rent estimate notice */}
       <View className="mx-4 mt-6 bg-white rounded-2xl p-4 shadow-sm">
         <View><Text className="text-sm font-black text-black">费用更新（预估）</Text></View>
-        <View className="space-y-2 text-sm mt-3">
+        <View className="text-sm mt-3" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {feeItems.length > 0 ? (
             feeItems.map((it) => (
               <View key={it.item} className={`flex justify-between ${it.direction === 'refund' ? 'text-green-600' : 'text-red-500'}`}>

@@ -148,9 +148,9 @@ export default function ReturnConfirm() {
 
       {order && (
         <>
-          <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4 space-y-3">
+          <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <View><Text className="text-base font-black text-black">订单信息</Text></View>
-            <View className="space-y-2">
+            <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <View className="flex items-center">
                 <Text className="text-sm text-zinc-400 w-16">订单号</Text>
                 <Text className="text-sm font-bold text-black">{(order.id || '').slice(0, 8)}</Text>
@@ -211,7 +211,7 @@ export default function ReturnConfirm() {
           <Truck size={18} />物流信息
         </Text>
         <Text className="text-xs text-zinc-400 mb-3">请填写返程物流信息，用于归还乐器</Text>
-        <View className="space-y-3">
+        <View style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <View>
             <Text className="text-xs font-bold text-zinc-500 mb-1">承运公司</Text>
             <Input value={courierCompany} onInput={e => setCourierCompany(getInputValue(e))}

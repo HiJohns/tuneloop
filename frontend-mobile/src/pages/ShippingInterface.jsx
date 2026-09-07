@@ -198,9 +198,9 @@ export default function ShippingInterface() {
       )}
 
       <ScrollView>
-        <View className="p-4 space-y-3">
+        <View className="p-4" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {!order && !orderId && (
-          <View className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
+          <View className="bg-white rounded-2xl shadow-sm p-4" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <Text className="font-black text-black flex items-center gap-2">
               <Scan size={18} />
               扫描乐器识别码
@@ -239,7 +239,7 @@ export default function ShippingInterface() {
             {/* Order Info */}
             <View className="bg-white mt-3 rounded-2xl shadow-sm p-4">
               <Text className="font-black text-black mb-3">订单信息</Text>
-              <View className="space-y-2">
+              <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <View className="flex items-start gap-2">
                   <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">订单号</Text>
                   <Text className="text-sm text-black font-mono font-medium truncate max-w-[200px]" title={order.id}>{order.id.length > 32 ? order.id.slice(0, 32) + '...' : order.id}</Text>
@@ -284,7 +284,7 @@ export default function ShippingInterface() {
                   如担保人不符合要求，请取消订单（费用将原路退还）。
                 </Text>
                 {(order.guarantors || []).length > 0 && (
-                  <View className="mt-2 space-y-1.5">
+                  <View className="mt-2" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {order.guarantors.map((g, i) => (
                       <Text key={g.id || i} className="block text-xs text-amber-800 bg-white rounded-lg px-2.5 py-1.5">
                         {g.name} · {g.phone}
@@ -303,7 +303,7 @@ export default function ShippingInterface() {
               </View>
             )}
             {/* Logistics Info */}
-            <View className="bg-white mt-3 rounded-2xl shadow-sm p-4 space-y-3">
+            <View className="bg-white mt-3 rounded-2xl shadow-sm p-4" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <Text className="font-black text-black flex items-center gap-2">
                 <Text className="w-2 h-2 bg-red-500 rounded-full inline-block" />
                 物流信息

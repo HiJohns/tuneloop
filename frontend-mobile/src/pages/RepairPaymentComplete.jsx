@@ -26,7 +26,7 @@ export default function RepairPaymentComplete() {
         {state.amount != null && (
           <Text className="text-lg text-zinc-500 mb-8">支付金额：<Text className="text-red-500 font-bold">¥{((state.amount || 0) / 100).toFixed(2)}</Text></Text>
         )}
-        <View className="w-full max-w-sm space-y-3 px-4">
+        <View className="w-full max-w-sm px-4" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <Button onClick={() => nav(`/repair-request?request_id=${state.requestId}`)}
             className="w-full py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
             查看报修单

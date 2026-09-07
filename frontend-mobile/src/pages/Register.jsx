@@ -159,17 +159,17 @@ export default function Register() {
         <View className="mb-4">
           <View className="mb-1"><Text className="text-sm font-medium text-gray-700">收货地址（选填）</Text></View>
           <View className="flex flex-row gap-2 mb-2">
-            <select className="border border-gray-300 rounded-lg px-2 py-3 text-sm bg-white w-1/2"
+            <select style={{ width: '50%' }} className="border border-gray-300 rounded-lg px-2 py-3 text-sm bg-white"
               value={province} onChange={e => { setProvince(e.target.value); setCity(''); setDistrict('') }}>
               <option value="">省</option>
               {provinceNames.map((r, i) => <option key={i} value={r}>{r}</option>)}
             </select>
-            <select className="border border-gray-300 rounded-lg px-2 py-3 text-sm bg-white w-1/4"
+            <select style={{ width: '25%' }} className="border border-gray-300 rounded-lg px-2 py-3 text-sm bg-white"
               value={city} onChange={e => { setCity(e.target.value); setDistrict('') }}>
               <option value="">市</option>
               {cityNames.map((c, i) => <option key={i} value={c}>{c}</option>)}
             </select>
-            <select className="border border-gray-300 rounded-lg px-2 py-3 text-sm bg-white w-1/4"
+            <select style={{ width: '25%' }} className="border border-gray-300 rounded-lg px-2 py-3 text-sm bg-white"
               value={district} onChange={e => setDistrict(e.target.value)}>
               <option value="">区</option>
               {districtNames.map((d, i) => <option key={i} value={d}>{d}</option>)}

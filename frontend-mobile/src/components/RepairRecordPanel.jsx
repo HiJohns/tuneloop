@@ -93,7 +93,7 @@ export default function RepairRecordPanel({ instrumentId, records, onRecordAdded
         {records.length === 0 ? (
           <Text className="text-xs text-zinc-400">暂无记录</Text>
         ) : (
-          <View className="space-y-2">
+          <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {records.map(r => (
               <View key={r.id} className="border-b border-zinc-100 pb-3 mb-1">
                 <View className="flex justify-between items-center">

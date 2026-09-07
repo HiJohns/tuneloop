@@ -33,7 +33,7 @@ export default function UserRepairs() {
       </View>
 
       <ScrollView scrollY className="flex-1 px-4 min-h-0">
-        <View className="mt-4 space-y-3">
+        <View className="mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {loading ? (
             <Text className="text-center text-zinc-400 py-8">加载中...</Text>
           ) : requests.length === 0 ? (

@@ -2,7 +2,7 @@ import { MapPin } from 'lucide-react'
 
 export default function SiteSelector({ sites, selectedSite, onSelect }) {
   return (
-    <div className="space-y-3">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <select
         value={selectedSite?.id || ''}
         onChange={(e) => {

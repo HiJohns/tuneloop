@@ -978,7 +978,7 @@ function BatchCheckout({ navigate }) {
               return (
                 <View key={group.tenant_id || 'unknown'} className="bg-zinc-50/40 rounded-xl p-3">
                   <View className="flex items-center justify-between mb-2">
-                    <View className="flex items-center space-x-1">
+                    <View className="flex items-center" style={{ gap: 4 }}>
                       <Text>🏢</Text>
                       <Text className="text-sm font-bold text-zinc-700">{group.tenant_name}</Text>
                       <Text className="text-zinc-300 mx-0.5">|</Text>
@@ -1190,7 +1190,7 @@ function BatchCheckout({ navigate }) {
         </View>
 
         <View className="mx-4 p-4 bg-white rounded-2xl shadow-sm flex items-center justify-between border border-zinc-100">
-          <View className="flex items-center space-x-3">
+          <View className="flex items-center" style={{ gap: 12 }}>
             <Text className="text-2xl">🟢</Text>
             <View>
               <Text className="block text-base font-black text-black">微信支付</Text>

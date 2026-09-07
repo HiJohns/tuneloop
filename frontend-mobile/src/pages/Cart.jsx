@@ -316,7 +316,7 @@ export default function Cart() {
 
       <ScrollView className="w-full flex-1 pb-24" scrollY showScrollbar={false}>
         {cartItems.length === 0 ? (
-          <View className="w-full flex flex-col items-center justify-center pt-24 px-6 space-y-4">
+          <View className="w-full flex flex-col items-center justify-center pt-24 px-6" style={{ gap: 16 }}>
             <View className="w-48 h-48 bg-transparent flex items-center justify-center relative">
               <Text className="text-9xl opacity-20">🛒</Text>
               <Text className="text-4xl absolute bottom-6 right-8">🎸</Text>
@@ -325,7 +325,7 @@ export default function Cart() {
             <Text className="text-blue-600 font-bold text-sm border-b border-blue-600 pb-0.5" onClick={handleGoHome}>去逛逛</Text>
           </View>
         ) : (
-          <View className="p-4 space-y-4">
+          <View className="p-4" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {groups.map((group) => {
               let totalRent = 0
               let totalDeposit = 0
@@ -340,7 +340,7 @@ export default function Cart() {
               return (
                 <View key={group.tenant_id || 'unknown'} className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col">
                   <View className="bg-zinc-50/80 px-4 py-2.5 flex items-center justify-between border-b border-zinc-100 text-[11px] text-zinc-400 font-bold">
-                    <View className="flex items-center space-x-1">
+                    <View className="flex items-center" style={{ gap: 4 }}>
                       <Text>🏢</Text>
                       <Text className="text-zinc-700 font-black">{group.tenant_name}</Text>
                       <Text className="mx-1 text-zinc-300">|</Text>
@@ -424,7 +424,7 @@ export default function Cart() {
                             </View>
 
                             {/* Tier breakdown (小票标准：阶梯天数×日租金=费用 → 租金合计 + 押金 + 总金额) */}
-                            <View className="text-[11px] text-right space-y-0.5 mt-2">
+                            <View className="text-[11px] text-right mt-2" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                               {pricing.tiers.map((t, i) => (
                                 <Text key={i} className="block text-zinc-500">
                                   {t.days}天 × ¥{((t.rate || 0) / 100).toFixed(2)}/天 = ¥{((t.fee || 0) / 100).toFixed(2)}
@@ -441,7 +441,7 @@ export default function Cart() {
                   </View>
 
                   <View className="bg-zinc-50/40 border-t border-zinc-100 p-4 flex justify-between items-end flex-shrink-0 mt-auto">
-                    <View className="flex flex-col space-y-1 text-[11px] text-zinc-400 font-semibold min-w-0 flex-1">
+                    <View className="flex flex-col text-[11px] text-zinc-400 font-semibold min-w-0 flex-1" style={{ gap: 4 }}>
                       <Text className="truncate">🗺️ 发货仓: {group.site_address || group.site_name || '-'}</Text>
                       {group.site_phone && <Text className="truncate">📞 电话: {group.site_phone}</Text>}
                     </View>

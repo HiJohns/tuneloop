@@ -211,7 +211,7 @@ export default function StaffOrders() {
       </View>
 
       {/* Order List */}
-      <View className="mt-3 space-y-3">
+      <View className="mt-3" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {loading ? (
           <View className="text-center text-zinc-400 py-8 font-medium">加载中...</View>
         ) : orders.length === 0 ? (
@@ -239,24 +239,24 @@ export default function StaffOrders() {
                   <View className="flex-1">
                     {isTerminal ? (
                       order.status === 'cancelled' ? (
-                      <View className="space-y-1 text-sm">
+                      <View className="text-sm" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                         <View><Text className="text-zinc-400 font-medium">乐器: {order.instrument_category || '-'}</Text></View>
                         <View><Text className="text-zinc-400 font-medium">创建日: {order.start_date ? formatDisplayDate(order.start_date) : formatDisplayDate(order.created_at)}</Text></View>
                         <View><Text className="text-zinc-400 font-medium">状态: <Text className="text-red-500 font-medium">已取消</Text></Text></View>
                       </View>
                     ) : order.returned_at ? (
-                      <View className="space-y-1 text-sm">
+                      <View className="text-sm" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                         <View><Text className="text-zinc-400 font-medium">实际租期: {formatDisplayDate(order.start_date)} ~ {formatDisplayDate(order.returned_at)}</Text></View>
                         <View><Text className="text-zinc-400 font-medium">实际天数: {(() => { const d = calculateDays(new Date((order.start_date || '').slice(0,10)), new Date((order.returned_at || '').slice(0,10))); return d || '-'; })()} 天</Text></View>
                         <View><Text className="text-zinc-400 font-medium">乐器: {order.instrument_category || '-'}</Text></View>
                       </View>
                     ) : (
-                      <View className="space-y-1 text-sm">
+                      <View className="text-sm" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                         <View><Text className="text-zinc-400 font-medium">租赁日期: {formatDisplayDate(order.start_date)} ~ {formatDisplayDate(order.end_date)}</Text></View>
                         <View><Text className="text-zinc-400 font-medium">乐器: {order.instrument_category || '-'}</Text></View>
                       </View>
                     )) : (
-                      <View className="space-y-1 text-sm">
+                      <View className="text-sm" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                         <View><Text className="text-zinc-400 font-medium">下单日: {formatDisplayDate(order.created_at)}</Text></View>
                         <View><Text className="text-zinc-400 font-medium">乐器: {order.instrument_category || '-'}</Text></View>
                         <View><Text className="text-zinc-400 font-medium">预计天数: {order.lease_term || (order.start_date && order.end_date ? calculateDays(new Date(order.start_date.slice(0,10)), new Date(order.end_date.slice(0,10))) : '-')} 天</Text></View>

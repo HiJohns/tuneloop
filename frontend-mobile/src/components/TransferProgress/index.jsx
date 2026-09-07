@@ -59,7 +59,7 @@ export default function TransferProgress({ accumulatedMonths, targetMonths = 12,
       
       <div className="mt-4 text-center">
         {isComplete ? (
-          <div className="space-y-2">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <p className="text-green-600 font-medium">恭喜！租期已满</p>
             <Button type="primary" onClick={onViewCertificate}>
               查看电子证书

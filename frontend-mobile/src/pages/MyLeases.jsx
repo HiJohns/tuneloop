@@ -205,7 +205,7 @@ export default function MyLeases() {
           </View>
         ) : (
           <>
-          <View className="space-y-3 overflow-hidden">
+          <View className="overflow-hidden" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {orders.map(order => {
               const showReturn = !isStaff && order.status === 'in_lease'
               const showStaffReceive = isStaff && order.status === 'returning'
@@ -230,7 +230,7 @@ export default function MyLeases() {
                 </View>
                 <View className="flex flex-row overflow-hidden" style={{ display:'flex', flexDirection:'row', overflow:'hidden' }}>
                   <View className="flex-1" style={{ flexShrink: 1, minWidth: 0, overflow: 'hidden' }}>
-                <View className="space-y-1 text-sm">
+                <View className="text-sm" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {order.instrument_name && (
                     <View><Text className="text-zinc-400 font-medium">
                       乐器: <Text className="text-black font-medium">{order.instrument_name}</Text>

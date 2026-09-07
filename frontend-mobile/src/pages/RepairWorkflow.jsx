@@ -116,7 +116,7 @@ export default function RepairWorkflow() {
         {/* Instrument info */}
         <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
           <Text className="text-sm font-bold text-black">乐器信息</Text>
-          <View className="mt-2 space-y-1 text-sm">
+          <View className="mt-2 text-sm" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <Text className="text-zinc-500">编号: <Text className="text-black">{instrument.sn || '-'}</Text></Text>
             <Text className="text-zinc-500">类别: <Text className="text-black">{instrument.category_name || '-'}</Text></Text>
             {instrument.repair_worker_name && <Text className="text-zinc-500">负责人: <Text className="text-black">{instrument.repair_worker_name}</Text></Text>}
@@ -129,7 +129,7 @@ export default function RepairWorkflow() {
           {records.length === 0 ? (
             <Text className="text-xs text-zinc-400">暂无记录</Text>
           ) : (
-            <View className="space-y-2">
+            <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {records.map(r => (
                 <View key={r.id} className="border-b border-zinc-50 pb-2">
                   <Text className="text-xs text-zinc-400">{formatDisplayDate(r.created_at)}</Text>

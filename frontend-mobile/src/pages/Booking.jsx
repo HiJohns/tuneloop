@@ -90,13 +90,13 @@ export default function Booking() {
         <Text className="text-lg font-bold">维修预约</Text>
       </View>
 
-      <View className="p-4 space-y-4">
+      <View className="p-4" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {loading && <View className="text-center py-8 text-gray-500">加载中...</View>}
         
         {/* Package Selection */}
         <View className="bg-white rounded-lg p-4">
           <Text className="font-medium text-gray-800 mb-3">选择服务</Text>
-          <View className="space-y-2">
+          <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {maintenancePackages.map(pkg => (
               <View
                 key={pkg.id}
@@ -146,7 +146,7 @@ export default function Booking() {
         {/* Date & Time */}
         <View className="bg-white rounded-lg p-4">
           <Text className="font-medium text-gray-800 mb-3">预约时间</Text>
-          <View className="space-y-3">
+          <View style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <View>
               <label className="text-gray-500 text-sm mb-1 block">选择日期</label>
               <input

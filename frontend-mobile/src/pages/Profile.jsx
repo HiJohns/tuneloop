@@ -56,7 +56,7 @@ function EditProfileModal({ visible, user, onClose, onSave }) {
     <View className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
       <View className="bg-white rounded-t-2xl w-full max-w-[480px] p-6">
         <Text className="text-lg font-bold mb-4">编辑资料</Text>
-        <View className="space-y-4">
+        <View style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <View>
             <Text className="text-sm text-gray-500">姓名</Text>
             <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full border rounded-lg px-3 py-2 mt-1" />

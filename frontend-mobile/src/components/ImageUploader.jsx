@@ -67,7 +67,7 @@ export default function ImageUploader({ onChange, maxImages = 5 }) {
   }
 
   return (
-    <div className="space-y-3">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div className="flex flex-wrap gap-2">
         {images.map((img, index) => (
           <div key={index} className="relative">

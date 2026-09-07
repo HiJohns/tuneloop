@@ -60,7 +60,7 @@ export default function TransitWorkflow() {
           <Text className="text-lg font-bold flex-1">{step === 'receive' ? '收货拆包' : '转包发货'}</Text>
         </View>
         <ScrollView scrollY className="flex-1 px-4 min-h-0">
-          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 space-y-3">
+          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <Text className="text-sm font-bold text-black mb-2">拆包拍照</Text>
             <View className="grid grid-cols-3 gap-2">
               {photos.map((f, i) => (
@@ -76,7 +76,7 @@ export default function TransitWorkflow() {
             </View>
           </View>
           {step === 'repack' && (
-            <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 space-y-3">
+            <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <Text className="text-sm font-bold text-black">转包信息</Text>
               <input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm"
                 value={company} onChange={e => setCompany(e.target.value)} placeholder="物流公司" />
@@ -99,7 +99,7 @@ export default function TransitWorkflow() {
         <Text className="text-lg font-bold">中转收货</Text>
       </View>
       <ScrollView scrollY className="flex-1 px-4 min-h-0">
-        <View className="mt-4 space-y-3">
+        <View className="mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {orders.length === 0 ? (
             <Text className="text-center text-zinc-400 py-8">暂无待收货的中转订单</Text>
           ) : orders.map(o => (
