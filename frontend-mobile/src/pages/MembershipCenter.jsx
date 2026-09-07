@@ -11,6 +11,16 @@ import '../utils/text-encoder'
 const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm'
 const provinceNames = regions.map(r => r.name)
 
+// 会员手册 — unified static copy for every member (#1830), consistent with
+// current system mechanics; policy figures stay admin-configurable.
+const HANDBOOK_SECTIONS = [
+  { title: '会员体系', body: '平台设初级 / 中级 / 高级三级会员，按跨商户累计消费金额自动升级，只升不降。' },
+  { title: '升级门槛', body: '累计实付消费达到对应档位门槛即自动升级，当前档位门槛见「会员权益」展示。' },
+  { title: '返现积分', body: '每笔实付租单结算完成后，按当前档位返现比例赠送积分；积分按元计，可用于后续订单抵扣，具体抵扣上限以当期政策为准。' },
+  { title: '积分使用', body: '下单支付时可使用积分抵扣租金（抵用比例以当期系统配置为准）；积分无现金价值、不可转让。' },
+  { title: '其他权益', body: '会员专属活动与权益更新，以平台公告及「会员权益」展示为准。' },
+]
+
 export default function MembershipCenter() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -23,6 +33,8 @@ export default function MembershipCenter() {
   const [qrSrc, setQrSrc] = useState('')
   const [showQR, setShowQR] = useState(false)
   const [refCode, setRefCode] = useState('')
+  const [benefits, setBenefits] = useState([])
+  const [showHandbook, setShowHandbook] = useState(false)
   const navigate = useNavigate()
   // Cross-end navigation (issue-1673): weapp has no react-router short paths;
   // central toWeappRoute maps H5 paths → /pages-weapp/... page urls.
@@ -120,6 +132,20 @@ export default function MembershipCenter() {
 
   useEffect(() => { fetchUser(); fetchAddresses() }, [])
 
+  // Benefits follow the current membership level (#1830)
+  useEffect(() => {
+    if (!user?.membership_level_id) { setBenefits([]); return }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const resp = await apiFetch(`${baseUrl}/membership/benefits?level_id=${user.membership_level_id}`)
+        const result = await resp.json()
+        if (result.code === 20000 && !cancelled) setBenefits(result.data?.list || [])
+      } catch { /* benefits are optional UI; keep card hidden on failure */ }
+    })()
+    return () => { cancelled = true }
+  }, [user?.membership_level_id])
+
   const openNewForm = () => {
     setEditingId(null)
     setForm({ recipient_name: user?.name || '', phone: user?.phone || '', province: '', city: '', district: '', detail: '', postal_code: '' })
@@ -192,6 +218,24 @@ export default function MembershipCenter() {
         </View>
       </View>
 
+      {/* Membership benefits card — follows current level (#1830) */}
+      {benefits.length > 0 && (
+        <View className="mx-4 mt-4 bg-white rounded-2xl shadow-sm p-4">
+          <View className="flex items-center justify-between mb-3">
+            <Text className="text-sm font-bold text-zinc-800">会员权益</Text>
+            <Text className="text-xs font-bold text-amber-700">{user?.membership_level_name || ''}</Text>
+          </View>
+          <View style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {benefits.map(b => (
+              <View key={b.id}>
+                <Text className="text-sm font-bold text-zinc-800 block">{b.title}</Text>
+                {b.description && <Text className="text-xs text-zinc-500 block mt-1">{b.description}</Text>}
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
       {/* Stats cards */}
       <View className="mx-4 mt-4">
         <View className="bg-white rounded-2xl shadow-sm p-4">
@@ -201,16 +245,10 @@ export default function MembershipCenter() {
               ¥{user?.total_spending ? (Number(user.total_spending) / 100).toLocaleString() : '0'}
             </Text>
           </View>
-          <View className="flex justify-between items-center py-3 border-b border-zinc-50">
-            <Text className="text-sm text-zinc-500">预付点数</Text>
-            <Text className="text-base font-bold text-zinc-800">
-              {user?.prepaid_points ? Number(user.prepaid_points).toLocaleString() : '0'} 点
-            </Text>
-          </View>
           <View className="flex justify-between items-center py-3">
-            <Text className="text-sm text-zinc-500">赠点数</Text>
+            <Text className="text-sm text-zinc-500">积分</Text>
             <Text className="text-base font-bold text-zinc-800">
-              {user?.promo_points ? Number(user.promo_points).toLocaleString() : '0'} 点
+              {user?.promo_points ? Number((Number(user.promo_points) / 100).toFixed(1)).toLocaleString() : '0'}
             </Text>
           </View>
           </View>
@@ -225,7 +263,7 @@ export default function MembershipCenter() {
             style={{ backgroundColor: '#000', color: '#fff', borderRadius: 999, padding: '10px 24px', fontSize: 14, fontWeight: '700', border: 'none' }}>
             获取推广二维码
           </Button>
-          <Text className="text-xs text-zinc-400 mt-2">邀请好友注册，赚取奖励点数</Text>
+          <Text className="text-xs text-zinc-400 mt-2">邀请好友注册，赚取奖励积分</Text>
         </View>
       </View>
 
@@ -344,6 +382,24 @@ export default function MembershipCenter() {
         {/* Empty state */}
         {!showForm && addresses.length === 0 && (
           <Text className="text-xs text-zinc-400 text-center py-4">暂无地址，点击上方"+ 新地址"添加</Text>
+        )}
+      </View>
+
+      {/* Membership handbook — unified static copy for all members (#1830) */}
+      <View className="mx-4 mt-4 bg-white rounded-2xl shadow-sm p-4 mb-8">
+        <View className="flex items-center justify-between" onClick={() => setShowHandbook(!showHandbook)}>
+          <Text className="text-sm font-bold text-zinc-800">会员手册</Text>
+          <Text className="text-xs text-zinc-400">{showHandbook ? '收起 ▲' : '展开 ▼'}</Text>
+        </View>
+        {showHandbook && (
+          <View className="mt-3" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {HANDBOOK_SECTIONS.map((s, i) => (
+              <View key={i}>
+                <Text className="text-xs font-bold text-zinc-700 block">{s.title}</Text>
+                <Text className="text-xs text-zinc-500 block mt-1" style={{ lineHeight: '1.6' }}>{s.body}</Text>
+              </View>
+            ))}
+          </View>
         )}
       </View>
 
