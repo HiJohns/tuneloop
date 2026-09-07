@@ -844,7 +844,7 @@ export default function OrderDetail() {
                     </Text>
                     <Text style={{ fontSize: 11, color: '#a1a1aa', marginTop: 2, display: 'block' }}>
                       {formatLogTime(log.time || log.created_at)}
-                      {log.operator ? ` by ${log.operator}` : ''}
+                      {log.operator ? ` · ${log.operator === 'system' ? '系统' : log.operator}` : ''}
                     </Text>
                   </View>
                 </View>

@@ -234,10 +234,14 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 		}
 		// Order timeline (order_logs) — payment must be visible to customer
 		if record.OrderID != nil {
+			// 支付由顾客主动发起，日志归属支付人（record.UserID = iam_sub），
+			// 否则订单详情误显示 "system"。
+			operatorID := record.UserID
 			if err := tx.Create(&models.OrderLog{
-				OrderID:   *record.OrderID,
-				Event:     "已支付",
-				CreatedAt: now,
+				OrderID:    *record.OrderID,
+				Event:      "已支付",
+				OperatorID: &operatorID,
+				CreatedAt:  now,
 			}).Error; err != nil {
 				log.Printf("[applySideEffects] failed to write payment order log: %v", err)
 			}

@@ -887,7 +887,7 @@ export default function OrderDetail() {
               </Text>
               <Text className="text-xs text-zinc-400 mt-0.5">
                 {formatLogTime(log.time || log.created_at)}
-                {log.operator && <Text className="ml-2">by {log.operator}</Text>}
+                {log.operator && <Text className="ml-2">· {log.operator === 'system' ? '系统' : log.operator}</Text>}
               </Text>
             </View>
           </View>

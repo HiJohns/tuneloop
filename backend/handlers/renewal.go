@@ -498,16 +498,21 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 		})
 	}
 
+	// 续期是顾客主动发起（续期页选天数 + 微信支付），日志须归属支付人
+	// （record.UserID = iam_sub），否则订单详情显示 "system"（误标系统操作）。
+	operatorID := record.UserID
 	tx.Create(&models.OrderLog{
-		OrderID:   orderID,
-		Event:     "renewed",
-		CreatedAt: now,
+		OrderID:    orderID,
+		Event:      "renewed",
+		OperatorID: &operatorID,
+		CreatedAt:  now,
 	})
 
 	tx.Create(&models.OrderLog{
-		OrderID:   orderID,
-		Event:     fmt.Sprintf("续期 %d 天, 新到期日 %s", additionalDays, newEndDateStr),
-		CreatedAt: now,
+		OrderID:    orderID,
+		Event:      fmt.Sprintf("续期 %d 天, 新到期日 %s", additionalDays, newEndDateStr),
+		OperatorID: &operatorID,
+		CreatedAt:  now,
 	})
 
 	// Query instrument SN so the notification identifies the instrument.
