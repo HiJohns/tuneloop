@@ -33,6 +33,7 @@ const EVENT_LABELS = {
   shipped: '已发货', in_transit: '运输中', delivered: '已收货',
   in_lease: '租赁中', returning: '归还中', returned: '已归还',
   completed: '已完成', cancelled: '已取消', expired: '已超期',
+  renewed: '已续期', settlement_confirmed: '结算完成',
 }
 
 const baseUrl = env.apiBaseUrl
@@ -82,13 +83,22 @@ export default function OrderDetail() {
   const loadOrder = useCallback(async () => {
     if (!id) return
     try {
-      const resp = await apiFetch(`${baseUrl}/orders/${id}?logs_limit=15`)
+      const resp = await apiFetch(`${baseUrl}/orders/${id}`)
       const result = await resp.json()
       if (result.code === 20000) {
         setOrder(result.data)
-        const logs = result.data?.order_logs || []
-        setAllLogs(logs)
-        setLogHasMore(logs.length >= 15)
+        // Timeline first page must come from the enriched /logs endpoint
+        // (operator resolution + dedup #1701). GET /orders/:id embeds raw
+        // order_logs rows without operator — was hiding operators (#1835).
+        setLogPage(1)
+        try {
+          const logsResp = await apiFetch(`${baseUrl}/orders/${id}/logs?page=1&pageSize=15`)
+          const logsRes = await logsResp.json()
+          if (logsRes.code === 20000) {
+            setAllLogs(logsRes.data?.logs || [])
+            setLogHasMore((logsRes.data?.total || 0) > 15)
+          }
+        } catch {}
         if (result.data.instrument_id) {
           const iResp = await apiFetch(`${baseUrl}/public/instruments/${result.data.instrument_id}`)
           const iResult = await iResp.json()

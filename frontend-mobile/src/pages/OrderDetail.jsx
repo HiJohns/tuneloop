@@ -52,6 +52,7 @@ const EVENT_LABELS = {
   cancelled: '已取消',
   expired: '已超期',
   settlement_confirmed: '结算确认',
+  renewed: '已续期',
   pickup_confirmed: '已提货',
   damage_assessed: '定损完成',
   return_inspected: '验货完成',

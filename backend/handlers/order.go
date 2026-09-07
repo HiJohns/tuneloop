@@ -1497,6 +1497,10 @@ func GetOrderLogs(c *gin.Context) {
 		op := "system"
 		if ol.OperatorID != nil && *ol.OperatorID != "" {
 			op = resolveOperatorName(*ol.OperatorID)
+		} else if strings.HasPrefix(ol.Event, "已支付") || ol.Event == "renewed" || strings.HasPrefix(ol.Event, "续期 ") {
+			// 支付/续期由顾客主动发起；52835216 之前的存量日志 OperatorID 为空，
+			// 语义上归属订单主人而非系统（#1835）。
+			op = customerName
 		}
 		logs = append(logs, logEntry{
 			Event:     ol.Event,
