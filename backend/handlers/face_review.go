@@ -272,15 +272,16 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 	tx := db.Begin()
 
 	if req.Action == "approve" {
-		// 批准：face_verified=true + method=manual。
-		// #1807/#1822：未采录时员工填写 5 项实名信息落库（按证件照核对抄录）；
-		// 已采录时仅做证/人核验，不覆盖用户详情已存身份证字段（防重复抄录错误覆盖）。
+		// 批准：face_verified=true + method=manual + 实名信息（#1807/#1822）。
+		// - 已采录（id_info_collected）：仅更新 face_verified 相关字段，保留已存实名信息
+		// - 未采录：员工填写 5 项实名信息一并落库
 		userUpdates := map[string]interface{}{
 			"face_verified":      true,
 			"face_verify_method": "manual",
 			"face_verified_at":   now,
 			"updated_at":         now,
 		}
+		// 未采录：员工填写 5 项实名信息一并写入；已采录：仅更新 face_verified，保留已存字段
 		if !collected {
 			userUpdates["real_name"] = req.RealName
 			userUpdates["id_card_no"] = req.IdCardNo
