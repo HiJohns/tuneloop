@@ -499,3 +499,20 @@ DELETE /api/admin/roles/:id
 ---
 
 *Model: glm-5*
+
+---
+
+## Membership Level Benefits API (#1830)
+
+**Admin (cus_perm `membership:manage`)**:
+- `GET /api/admin/membership-levels/:id/benefits` — list benefit rows of one level
+- `PUT /api/admin/membership-levels/:id/benefits` — bulk replace rows: body `{"items":[{"title":"...","description":"..."}]}` (list order = display order; empty array clears the level)
+
+**Customer**:
+- `GET /api/membership/benefits?level_id=N` — benefit rows for the given level (used by Membership Center; `level_id` required)
+
+Response shape: `{ "code": 20000, "data": { "level_id": N, "list": [{ "id", "level_id", "sort_order", "title", "description" }] } }`
+
+Table: `membership_level_benefits` (migration 20260907001, seeded with per-tier draft copy).
+
+*Model: deepseek-v4-flash*

@@ -511,3 +511,18 @@ Order Status:
 ---
 
 *Model: glm-5*
+
+---
+
+## Membership Center — Mobile (#1830)
+
+Shared page `frontend-mobile/src/pages/MembershipCenter.jsx` (H5 + weapp), top-to-bottom:
+
+1. **Level card**: current tier name (`/users/me` → `membership_level_name`; fallback "普通会员")
+2. **Benefits card** (new): title 会员权益 + current tier; rows fetched from `GET /api/membership/benefits?level_id=current` (admin-configured per tier); hidden when empty; auto-follows level changes; current tier only (no switcher)
+3. **Stats card**: 消费总额 (yuan); **积分** = `promo_points ÷ 100` (yuan basis, no unit). The 预付点数 row was removed (prepaid points are no longer supported)
+4. **Promo QR card**
+5. **Address card**: cross-end form (Taro `Input` + province/city/district `Picker`)
+6. **Handbook card** (new, bottom): collapsible 会员手册, unified static copy (`HANDBOOK_SECTIONS`) for all members
+
+*Model: deepseek-v4-flash*

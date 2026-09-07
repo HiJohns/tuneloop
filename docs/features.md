@@ -162,6 +162,8 @@
 
 聚合结果与 `membership_levels.min_amount` 比较，仅升级不降级。
 
+**会员权益（#1830）**：三档会员权益文案由 namespace_admin 在 PC「系统管理 → 会员级别管理 → 权益」维护（`membership_level_benefits` 表，每档若干条 标题+说明，整档替换保存）。移动端「会员中心」按当前 `membership_level_id` 读取 `GET /api/membership/benefits` 渲染权益卡，等级变化后内容自动跟随；权益条目标题/说明文本仅作展示，实际返现/赠点数值以 rebate_config / gift_policies 等政策表为准（文案由运营维护，与政策配置可能不一致，需运营人工对齐）。
+
 详细设计见 `docs/features/membership.md`。
 
 ### 5.2 赠点策略（Gift Policies）

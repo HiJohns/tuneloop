@@ -5083,6 +5083,51 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 
 **接口**: `DELETE /api/admin/membership-levels/:id` — 删除会员级别
 
+**接口**: `GET /api/admin/membership-levels/:id/benefits` — 列出某档会员权益行（#1830）
+
+**权限码**: `membership:manage`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "level_id": 2,
+    "list": [
+      { "id": "uuid", "level_id": 2, "sort_order": 1, "title": "租金返现", "description": "按当期比例返现积分", "created_at": "...", "updated_at": "..." }
+    ]
+  }
+}
+```
+
+**接口**: `PUT /api/admin/membership-levels/:id/benefits` — 整档替换会员权益行（#1830）
+
+**请求 Body**（items 顺序即展示顺序；空数组 = 清空该档权益）:
+```json
+{
+  "items": [
+    { "title": "租金返现", "description": "每笔实付租单结算完成后，按当期返现比例赠送积分" },
+    { "title": "积分抵用", "description": "下单支付时可按当期政策使用积分抵扣" }
+  ]
+}
+```
+
+**接口**: `GET /api/membership/benefits?level_id=N` — 顾客端读取指定档位权益（#1830，移动端会员中心）
+
+- `level_id` 必填，缺失/非法返回 40002
+- 响应结构同上（`data.level_id` + `data.list`），无需登录态以外的权限（userOptionalAuth）
+- 前端用法：`/users/me` 取 `membership_level_id` → 本接口取权益行；空 list 时前端隐藏权益卡
+
+**表结构**: `membership_level_benefits`（20260907001 migration，含三档种子文案草案）:
+| 列 | 类型 | 说明 |
+|----|------|------|
+| id | uuid PK | 行 ID |
+| level_id | int | 会员级别 ID（membership_levels.id） |
+| sort_order | int | 展示顺序（1 起） |
+| title | varchar(100) | 权益标题 |
+| description | varchar(500) | 权益说明 |
+| created_at / updated_at | timestamptz | 时间戳 |
+
 ---
 
 ### 12.6 返点配置
