@@ -15,6 +15,17 @@ const typeConfig = {
   invoice: { bg: 'bg-purple-100', text: 'text-purple-600', label: '发票通知' },
 }
 
+// 结算明细行（payment_shortfall 通知等结构化展示）。#1838 补漏：41c1ea92
+// 引入 <Row> 用法但未定义/导入 → ReferenceError: Row is not defined。
+function Row({ label, value, color, bold }) {
+  return (
+    <View className="flex justify-between items-center py-1">
+      <Text className="text-xs text-zinc-500">{label}</Text>
+      <Text className={`text-xs ${bold ? 'font-bold' : ''}`} style={{ color: color || '#18181b' }}>{value}</Text>
+    </View>
+  )
+}
+
 export default function MessageDetail() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
