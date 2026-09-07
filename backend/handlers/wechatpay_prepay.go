@@ -432,6 +432,22 @@ func PrepayOrder(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "renewal payment requires open_id"})
 			return
 		}
+		// 续期天数回填（#1826）：续期确认（ConfirmRenewal）已创建带 days 的
+		// record，但前端丢弃 confirm 的预付单、跳支付确认页后走 /pay/prepay
+		// 重建 record——此处必须回填 days，否则回调 applyRenewalSideEffects
+		// 因缺续期天数报 "invalid renewal metadata"，续期永不生效。
+		if record.Days == nil && req.OrderID != "" {
+			var prev models.OrderPaymentRecord
+			if err := db.Where("order_id = ? AND order_type = ? AND type = ? AND days IS NOT NULL",
+				req.OrderID, "renewal", "payment").
+				Order("created_at desc").First(&prev).Error; err == nil && prev.Days != nil {
+				d := *prev.Days
+				record.Days = &d
+			} else {
+				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "续期信息缺失，请返回续期页重新发起"})
+				return
+			}
+		}
 		result, err := client.CreateJSAPIOrder(ctx, wechatpay.JSAPIParams{
 			OutTradeNo:  outTradeNo,
 			OpenID:      req.OpenID,
