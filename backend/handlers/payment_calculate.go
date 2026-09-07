@@ -318,6 +318,18 @@ func loadRenewalPayment(db *gorm.DB, id string, resp *PaymentCalculateResponse) 
 	resp.Title = "续期支付"
 	// #1758: record.Amount is Cents — pass through as cents (frontend /100).
 	resp.Amount = float64(record.Amount)
+	// 支付确认页需展示续期支付明细（此前 details 缺失 → 确认页明细面板空白）。
+	// 明细以 record 为准（Days + Amount，分契约）；续期天数在 confirm 时持久化
+	// 到 Days 列（#1802 T1），金额取服务端已算好的续期费。
+	days := 0
+	if record.Days != nil {
+		days = *record.Days
+	}
+	resp.Details = map[string]interface{}{
+		"days":         days,
+		"renewal_cost": float64(record.Amount),
+		"total":        float64(record.Amount),
+	}
 }
 
 // loadShortfallPayment (#1746/#1748 L-04C 流程 3)：总账补缴支付确认页数据。

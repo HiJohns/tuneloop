@@ -422,6 +422,19 @@ function renderDetailsBlock(details, type) {
       </div>
     )
   }
+  if (type === 'renewal') {
+    // 续期支付明细：续期天数 + 续期费 + 合计（服务端 calculate 返回，分契约）。
+    const days = Number(details.days || 0)
+    return (
+      <div>
+        <Row label="续期天数" value={`${days} 天`} />
+        <Row label="续期费" value={`¥${(Number(details.renewal_cost || 0) / 100).toFixed(2)}`} />
+        <div className="border-t border-zinc-100 pt-2 mt-1">
+          <Row label="合计" value={`¥${(Number(details.total || 0) / 100).toFixed(2)}`} bold />
+        </div>
+      </div>
+    )
+  }
   if (type === 'payment_shortfall') {
     // #1748 L-04C 流程 3: 补缴支付确认页明细（全部来自服务端 calculate）。
     return (

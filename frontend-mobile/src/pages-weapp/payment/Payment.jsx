@@ -82,11 +82,6 @@ export default function Payment() {
       return () => clearTimeout(t)
     }
     const fetchData = async () => {
-      if (pType === 'renewal') {
-        setData({ type: 'renewal', title: '续期支付', amount: pAmount, details: null, wallet: null })
-        setLoading(false)
-        return
-      }
       if (pType === 'membership') {
         setData({ type: 'membership', title: '会员入会费', amount: pAmount, details: { items: [{ label: 'VIP 会员注册', amount: pAmount }] }, wallet: null })
         setLoading(false)
@@ -503,12 +498,10 @@ export default function Payment() {
         </View>
 
         {/* Points usage (only for non-refund, non-appeal) */}
-        {!isRefund && pType !== 'appeal' && pType !== 'membership' && data.amount > 0 && (
+        {!isRefund && pType !== 'appeal' && pType !== 'membership' && data.amount > 0 && maxGift > 0 && (
           <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-           {maxGift > 0 && (<>
             <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>点数使用</Text>
 
-            {maxGift > 0 && (
             <View style={{ marginBottom: 4 }}>
               <Row label="赠点余额" value={`¥${(Number(maxGift) / 100).toFixed(2)}`} />
               <View style={{ display: 'flex', alignItems: 'center', marginTop: 4 }}>
@@ -522,17 +515,13 @@ export default function Payment() {
                 <Text style={{ fontSize: 13, color: '#71717a', marginLeft: 4 }}>点</Text>
               </View>
             </View>
-            )}
-            {maxGift > 0 && (
             <Text style={{ fontSize: 11, color: '#a1a1aa', textAlign: 'right', marginBottom: 8 }}>
               赠点使用不得超过租金的 {Math.round((wallet.max_gift_ratio || 0.3) * 100)}%
             </Text>
-            )}
 
             <View style={{ borderTop: '1px solid #e4e4e7', paddingTop: 8 }}>
               <Row label="现金差额" value={`¥${(Number(cashAmount) / 100).toFixed(2)}`} bold />
             </View>
-          </>)}
           </View>
         )}
 
@@ -744,6 +733,19 @@ function renderDetailsBlock(details, type) {
         )}
         <View style={{ borderTop: '1px solid #f4f4f5', paddingTop: 8, marginTop: 4 }}>
           <Row label="退款金额" value={`¥${(Number(details.cash_refundable || 0) / 100).toFixed(2)}`} bold color="#3b82f6" />
+        </View>
+      </View>
+    )
+  }
+  if (type === 'renewal') {
+    // 续期支付明细：续期天数 + 续期费 + 合计（服务端 calculate 返回，分契约）。
+    const days = Number(details.days || 0)
+    return (
+      <View>
+        <Row label="续期天数" value={`${days} 天`} />
+        <Row label="续期费" value={`¥${(Number(details.renewal_cost || 0) / 100).toFixed(2)}`} />
+        <View style={{ borderTop: '1px solid #f4f4f5', paddingTop: 8, marginTop: 4 }}>
+          <Row label="合计" value={`¥${(Number(details.total || 0) / 100).toFixed(2)}`} bold />
         </View>
       </View>
     )
