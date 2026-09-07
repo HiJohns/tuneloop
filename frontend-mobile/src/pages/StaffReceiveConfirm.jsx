@@ -28,6 +28,7 @@ export default function StaffReceiveConfirm() {
   const [additionalShippingFee, setAdditionalShippingFee] = useState('')
   const [damageAmount, setDamageAmount] = useState('')
   const [damageReason, setDamageReason] = useState('')
+  const [hasDamage, setHasDamage] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -74,7 +75,12 @@ export default function StaffReceiveConfirm() {
         const uploadResult = env.isMiniProgram ? JSON.parse(uploadResp.data || '{}') : await uploadResp.json()
         if (uploadResult.code === 20000 && uploadResult.data?.url) { photoUrls.push(uploadResult.data.url) }
       }
-      const dmgAmt = parseFloat(damageAmount) || 0
+      const dmgAmt = hasDamage ? (parseFloat(damageAmount) || 0) : 0
+      if (hasDamage && dmgAmt <= 0) {
+        dialog.alert('请填写赔偿金额')
+        setSubmitting(false)
+        return
+      }
       const resp = await apiFetch(`${baseUrl}/warehouse/orders/${orderId}/return-inspect`, {
         method: 'PUT',
         body: JSON.stringify({
@@ -89,11 +95,15 @@ export default function StaffReceiveConfirm() {
       })
       const result = await resp.json()
       if (result.code === 20000) {
-        const sa = result.data?.shortfall_amount || 0
-        if (sa > 0) {
-          dialog.alert(`已发起结算，待顾客补缴 ¥${(sa / 100).toFixed(2)}，补缴完成后订单自动完成`)
+        if (dmgAmt > 0) {
+          dialog.alert('已提交定损，已通知顾客确认')
         } else {
-          dialog.alert('接收确认成功')
+          const sa = result.data?.shortfall_amount || 0
+          if (sa > 0) {
+            dialog.alert(`已发起结算，待顾客补缴 ¥${(sa / 100).toFixed(2)}，补缴完成后订单自动完成`)
+          } else {
+            dialog.alert('接收确认成功')
+          }
         }
         if (env.isMiniProgram) {
           Taro.navigateBack()
@@ -171,33 +181,37 @@ export default function StaffReceiveConfirm() {
         <ImageUploader maxImages={5} onChange={(files) => setPhotoFiles(files)} />
       </View>
 
-      {/* 追缴费用区块 (#1801) */}
+      {/* 定损区块：无损坏/有损坏 toggle + 追缴费用 */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <Text className="text-base font-black text-black mb-3 flex items-center gap-2">
-          <AlertTriangle size={18} />追缴费用
+          <AlertTriangle size={18} />定损评估
         </Text>
-        <View style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <View>
-            <Text className="text-xs font-bold text-zinc-500 mb-1">逾期未缴租金（元）</Text>
-            <Input type="number" value={overdueFee} onInput={e => setOverdueFee(getInputValue(e))}
-              placeholder="0.00" className="w-full border rounded-lg px-3 py-2 text-sm" />
+        <View className="flex gap-3 mb-4">
+          <View onClick={() => { setHasDamage(false); setDamageReason(''); setDamageAmount('') }}
+            className="flex-1 py-2 rounded-lg font-medium text-sm flex items-center justify-center"
+            style={{ backgroundColor: !hasDamage ? '#dcfce7' : '#f4f4f5', color: !hasDamage ? '#15803d' : '#71717a', borderWidth: 2, borderColor: !hasDamage ? '#22c55e' : 'transparent' }}>
+            <Text className="text-sm font-bold">无损坏</Text>
           </View>
-          <View>
-            <Text className="text-xs font-bold text-zinc-500 mb-1">追加物流费（元）</Text>
-            <Input type="number" value={additionalShippingFee} onInput={e => setAdditionalShippingFee(getInputValue(e))}
-              placeholder="0.00" className="w-full border rounded-lg px-3 py-2 text-sm" />
-          </View>
-          <View>
-            <Text className="text-xs font-bold text-zinc-500 mb-1">损坏维修赔偿（元）</Text>
-            <Input type="number" value={damageAmount} onInput={e => setDamageAmount(getInputValue(e))}
-              placeholder="0.00（填0表示无损坏）" className="w-full border rounded-lg px-3 py-2 text-sm" />
-          </View>
-          <View>
-            <Text className="text-xs font-bold text-zinc-500 mb-1">备注说明</Text>
-            <Input value={damageReason} onInput={e => setDamageReason(getInputValue(e))}
-              placeholder="选填" className="w-full border rounded-lg px-3 py-2 text-sm" />
+          <View onClick={() => setHasDamage(true)}
+            className="flex-1 py-2 rounded-lg font-medium text-sm flex items-center justify-center"
+            style={{ backgroundColor: hasDamage ? '#fee2e2' : '#f4f4f5', color: hasDamage ? '#dc2626' : '#71717a', borderWidth: 2, borderColor: hasDamage ? '#ef4444' : 'transparent' }}>
+            <Text className="text-sm font-bold">有损坏</Text>
           </View>
         </View>
+        {hasDamage && (
+          <View style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <View>
+              <Text className="text-xs font-bold text-zinc-500 mb-1">损坏维修赔偿（元）</Text>
+              <Input type="number" value={damageAmount} onInput={e => setDamageAmount(getInputValue(e))}
+                placeholder="0.00" className="w-full border rounded-lg px-3 py-2 text-sm" />
+            </View>
+            <View>
+              <Text className="text-xs font-bold text-zinc-500 mb-1">备注说明</Text>
+              <Input value={damageReason} onInput={e => setDamageReason(getInputValue(e))}
+                placeholder="选填" className="w-full border rounded-lg px-3 py-2 text-sm" />
+            </View>
+          </View>
+        )}
       </View>
       </ScrollView>
 
