@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, ScrollView, Button, Image, Canvas, Input } from '@tarojs/components'
+import { View, Text, ScrollView, Button, Image, Canvas, Input, Picker } from '@tarojs/components'
 import { apiFetch, addressesApi, resolveErrorMessage } from '../services/api'
-import { env, dialog, toWeappRoute } from '../platform'
+import { env, dialog, getInputValue, toWeappRoute } from '../platform'
 import { useNavigate } from 'react-router-dom'
 import regions from '../data/regions.json'
 import QRCode from 'qrcode'
 import '../utils/text-encoder'
 
 const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm'
+const provinceNames = regions.map(r => r.name)
 
 export default function MembershipCenter() {
   const [user, setUser] = useState(null)
@@ -287,41 +288,48 @@ export default function MembershipCenter() {
             <View className="grid grid-cols-2 gap-2">
               <View>
                 <Text className="block text-xs font-medium text-zinc-500 mb-1">收货人</Text>
-                <input className={inputClass} value={form.recipient_name} onChange={e => setForm(p => ({ ...p, recipient_name: e.target.value }))} placeholder="姓名" />
+                <Input className={inputClass} value={form.recipient_name} onInput={e => setForm(p => ({ ...p, recipient_name: getInputValue(e) }))} placeholder="姓名" />
               </View>
               <View>
                 <Text className="block text-xs font-medium text-zinc-500 mb-1">电话</Text>
-                <input className={inputClass} value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} placeholder="手机号" />
+                <Input className={inputClass} type="number" value={form.phone} onInput={e => setForm(p => ({ ...p, phone: getInputValue(e) }))} placeholder="手机号" />
               </View>
             </View>
             <View className={`grid gap-2 ${(() => { const prov = regions.find(r => r.name === form.province); if (!prov) return 'grid-cols-2'; const city = prov.children.find(c => c.name === form.city); return (city && city.children && city.children.length > 0) ? 'grid-cols-3' : 'grid-cols-2' })()}`}>
-              <select className={inputClass} value={form.province} onChange={e => setForm(p => ({ ...p, province: e.target.value, city: '', district: '' }))}>
-                <option value="">省</option>
-                {regions.map((r, i) => <option key={i} value={r.name}>{r.name}</option>)}
-              </select>
-              <select className={inputClass} value={form.city} onChange={e => setForm(p => ({ ...p, city: e.target.value, district: '' }))}>
-                <option value="">市</option>
-                {(() => {
-                  const prov = regions.find(r => r.name === form.province)
-                  return prov ? prov.children.map((c, i) => <option key={i} value={c.name}>{c.name}</option>) : null
-                })()}
-              </select>
+              <Picker mode="selector" range={provinceNames} value={form.province ? Math.max(provinceNames.indexOf(form.province), 0) : 0}
+                onChange={e => { const v = provinceNames[e.detail.value]; setForm(p => ({ ...p, province: v, city: '', district: '' })) }}>
+                <View className={`${inputClass} ${form.province ? '' : 'text-gray-400'}`}>{form.province || '省'}</View>
+              </Picker>
+              {(() => {
+                const prov = regions.find(r => r.name === form.province)
+                const cityNames = prov ? prov.children.map(c => c.name) : []
+                if (cityNames.length === 0) {
+                  return <View className={`${inputClass} text-gray-400`}>市</View>
+                }
+                return (
+                  <Picker mode="selector" range={cityNames} value={form.city ? Math.max(cityNames.indexOf(form.city), 0) : 0}
+                    onChange={e => { const v = cityNames[e.detail.value]; setForm(p => ({ ...p, city: v, district: '' })) }}>
+                    <View className={`${inputClass} ${form.city ? '' : 'text-gray-400'}`}>{form.city || '市'}</View>
+                  </Picker>
+                )
+              })()}
               {(() => {
                 const prov = regions.find(r => r.name === form.province)
                 if (!prov) return null
                 const city = prov.children.find(c => c.name === form.city)
                 const districts = city ? city.children || [] : []
                 if (districts.length === 0) return null
+                const districtNames = districts.map(d => d.name)
                 return (
-                  <select className={inputClass} value={form.district} onChange={e => setForm(p => ({ ...p, district: e.target.value }))}>
-                    <option value="">区</option>
-                    {districts.map((d, i) => <option key={i} value={d.name}>{d.name}</option>)}
-                  </select>
+                  <Picker mode="selector" range={districtNames} value={form.district ? Math.max(districtNames.indexOf(form.district), 0) : 0}
+                    onChange={e => { const v = districtNames[e.detail.value]; setForm(p => ({ ...p, district: v })) }}>
+                    <View className={`${inputClass} ${form.district ? '' : 'text-gray-400'}`}>{form.district || '区'}</View>
+                  </Picker>
                 )
               })()}
             </View>
-            <input className={inputClass} value={form.detail} onChange={e => setForm(p => ({ ...p, detail: e.target.value }))} placeholder="详细地址" />
-            <input className={inputClass} value={form.postal_code} onChange={e => setForm(p => ({ ...p, postal_code: e.target.value }))} placeholder="邮编" pattern="\d{6}" maxLength={6} inputMode="numeric" title="请输入6位数字邮编" />
+            <Input className={inputClass} value={form.detail} onInput={e => setForm(p => ({ ...p, detail: getInputValue(e) }))} placeholder="详细地址" />
+            <Input className={inputClass} type="number" value={form.postal_code} onInput={e => setForm(p => ({ ...p, postal_code: getInputValue(e) }))} placeholder="邮编" />
             <View className="flex gap-2">
               <Button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 bg-black text-white rounded-xl font-bold text-sm">
                 {saving ? '保存中...' : editingId ? '保存修改' : '新增地址'}
