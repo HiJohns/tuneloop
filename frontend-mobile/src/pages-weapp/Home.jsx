@@ -3,6 +3,7 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, getCartKey, redirectToLogin, resolveLogin } from '../services/api'
 import { env, dialog, getWindowSize, storage, session } from '../platform'
+import { getMinTierDailyRateYuan } from '../utils/pricing'
 import BottomNav from '../components-weapp/BottomNav'
 
 const IMG_BASE = env.apiBaseUrl.replace(/\/api$/, '')
@@ -61,8 +62,12 @@ function getDailyRate(instrument) {
 function InstrumentCard({ instrument, onClick }) {
   const images = parseImages(instrument.images)
   const dailyRate = getDailyRate(instrument)
+  // #1842: 卡片价格 = 阶梯最低日均价（pricing tiers 的 min daily_rate，元）+「起」；
+  // 无 pricing 时回退 daily_rate_cents 基准日租（不加「起」）。
+  const minTierRate = getMinTierDailyRateYuan(instrument)
+  const showFrom = minTierRate !== null && minTierRate > 0
+  const priceDisplay = showFrom ? Number(minTierRate.toFixed(2)) : Number(dailyRate.toFixed(2))
   const monthlyRent = Number((dailyRate * 30).toFixed(2))
-  const rentDisplay = Number(dailyRate.toFixed(2))
   const levelName = instrument.level_name || ''
   const thumb = fixImg(instrument.cover_image || instrument.thumbnail || images[0] || INSTRUMENT_PLACEHOLDER)
 
@@ -76,10 +81,12 @@ function InstrumentCard({ instrument, onClick }) {
       <View style={{ width: 80, height: 80, backgroundColor: '#fafafa', borderRadius: 12, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Image src={thumb} style={{ width: 72, height: 72 }} mode="widthFix" />
       </View>
-      <View style={{ flex: '1 1 0%', marginLeft: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <View style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 2, flex: '1 1 0%', overflow: 'visible' }}>
-          <View style={{ width: '100%' }}>
-            <Text style={{ fontSize: 22, lineHeight: '26px', fontWeight: '900', color: '#000', letterSpacing: '0.025em', whiteSpace: 'nowrap', overflow: 'visible' }}>{instrument.name || instrument.sn}</Text>
+      <View style={{ flex: '1 1 0%', marginLeft: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0 }}>
+        <View style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 2, flex: '1 1 0%', minWidth: 0, overflow: 'hidden' }}>
+          <View style={{ width: '100%', overflow: 'hidden' }}>
+            {/* #1842: 标题单行省略——weapp Text 必须显式 display/overflow/宽度约束，
+                否则长名称把右侧价格挤出边界（缺 minWidth:0 + ellipsis 无效）。 */}
+            <Text style={{ fontSize: 22, lineHeight: '26px', fontWeight: '900', color: '#000', letterSpacing: '0.025em', display: 'block', width: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{instrument.name || instrument.sn}</Text>
             <Text style={{ fontSize: 14, color: '#71717a', fontWeight: '700', display: 'block', marginTop: 8 }}>{instrument.category_name}</Text>
           </View>
           {levelName && (
@@ -91,8 +98,8 @@ function InstrumentCard({ instrument, onClick }) {
         <View style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', textAlign: 'right', alignSelf: 'flex-end', marginLeft: 8, flexShrink: 0, whiteSpace: 'nowrap' }}>
           {instrument.stock_status === 'available' ? (
             <View style={{ alignItems: 'flex-end' }}>
-              <Text style={{ color: '#C21838', fontWeight: '900', fontSize: 26, letterSpacing: '-0.025em' }}>{rentDisplay}</Text>
-              <Text style={{ fontSize: 12, color: 'rgba(194,24,56,0.7)', fontWeight: '700' }}>/日</Text>
+              <Text style={{ color: '#C21838', fontWeight: '900', fontSize: 26, letterSpacing: '-0.025em' }}>{priceDisplay}</Text>
+              <Text style={{ fontSize: 12, color: 'rgba(194,24,56,0.7)', fontWeight: '700' }}>{showFrom ? '/日起' : '/日'}</Text>
             </View>
           ) : (
             <Text style={{ color: '#a1a1aa', fontWeight: '700', fontSize: 16 }}>租赁中</Text>

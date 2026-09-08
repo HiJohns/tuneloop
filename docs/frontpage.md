@@ -212,10 +212,16 @@ Taro 的 ScrollView 组件内部使用 CSS sticky 时，定位基准是 ScrollVi
 frontend-mobile/src/pages/Home.jsx
 ├── InstrumentCard      # 乐器卡片子组件
 ├── parseImages()       # 图片解析工具
-├── getDailyRate()      # 日租金计算
+├── getDailyRate()      # 日租金计算（daily_rate_cents 基准日租，分）
 ├── MenuContent()       # 菜单条子组件（支持触摸滑动）
 └── Home()              # 首页主组件
 ```
+
+> **卡片价格语义（#1842）**：`InstrumentCard` 价格优先取阶梯最低日均价
+> （`utils/pricing.js` `getMinTierDailyRateYuan`：解析 `/public/instruments` 返回的
+> `pricing.tiers[].daily_rate`（单位元）取 min）并以小字「起」后缀（`/日起`）；
+> `pricing` 缺失/解析失败时回退 `daily_rate_cents` 基准日租（不加「起」）。
+> H5（`pages/Home.jsx`）与 weapp（`pages-weapp/Home.jsx`）同一语义，改动需双端同步。
 
 ---
 

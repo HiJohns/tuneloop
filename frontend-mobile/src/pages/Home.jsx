@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Image, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken, getCartKey, redirectToLogin } from '../services/api'
 import { env, getWindowSize, storage, session } from '../platform'
+import { getMinTierDailyRateYuan } from '../utils/pricing'
 import BottomNav from '../components/BottomNav'
 
 const INSTRUMENT_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
@@ -28,6 +29,11 @@ function getDailyRate(instrument) {
 function InstrumentCard({ instrument, onClick }) {
   const images = parseImages(instrument.images)
   const dailyRate = getDailyRate(instrument)
+  // #1842: 卡片价格 = 阶梯最低日均价（pricing tiers 的 min daily_rate，元）+「起」；
+  // 无 pricing 时回退 daily_rate_cents 基准日租（不加「起」）。
+  const minTierRate = getMinTierDailyRateYuan(instrument)
+  const showFrom = minTierRate !== null && minTierRate > 0
+  const priceDisplay = showFrom ? Number(minTierRate.toFixed(2)) : Number(dailyRate.toFixed(2))
   const monthlyRent = Number((dailyRate * 30).toFixed(2))
   const levelName = instrument.level_name || ''
   const thumb = instrument.cover_image || instrument.thumbnail || images[0] || INSTRUMENT_PLACEHOLDER
@@ -57,7 +63,7 @@ function InstrumentCard({ instrument, onClick }) {
         <View className="h-full flex flex-col justify-end text-right self-end ml-2 flex-shrink-0 whitespace-nowrap">
           {instrument.stock_status === 'available' ? (
             <Text className="font-black tracking-tight" style={{ color: '#C21838' , fontSize: 26}}>
-              {Number(dailyRate.toFixed(2))}<Text className="text-base font-bold" style={{ color: '#C21838', opacity: 0.7 }}>/日</Text>
+              {priceDisplay}<Text className="text-base font-bold" style={{ color: '#C21838', opacity: 0.7 }}>{showFrom ? '/日起' : '/日'}</Text>
             </Text>
           ) : (
             <Text className="text-zinc-400 font-bold text-base">租赁中</Text>

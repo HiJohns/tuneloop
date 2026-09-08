@@ -260,25 +260,24 @@ export default function Detail() {
         <View style={{ paddingLeft: 16, paddingRight: 16, marginTop: 16, paddingBottom: 16 }}>
           {/* Card A: Instrument info + deposit */}
           <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', marginBottom: 12 }}>
-            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
-              <View style={{ flex: '1 1 0%', minWidth: 0, paddingRight: 16 }}>
-                <Text style={{ fontSize: 24, fontWeight: '900', color: '#000', letterSpacing: '0.025em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{instrument.name || instrument.sn}</Text>
+            {/* #1842: 标题独占整行（单行省略）——押金不再与标题同行，杜绝长标题交叠 */}
+            <Text style={{ display: 'block', width: '100%', fontSize: 24, fontWeight: '900', color: '#000', letterSpacing: '0.025em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{instrument.name || instrument.sn}</Text>
+            <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, width: '100%' }}>
+              <View style={{ display: 'flex', alignItems: 'center', flexShrink: 1, minWidth: 0 }}>
+                {levelName && (
+                  <View style={{ backgroundColor: levelBg, color: '#fff', fontSize: 10, fontWeight: '900', padding: '2px 10px', borderRadius: 999, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', marginRight: 12, flexShrink: 0 }}>
+                    {levelName}
+                  </View>
+                )}
+                <Text style={{ color: '#C21838', fontSize: 16, letterSpacing: '-0.025em', whiteSpace: 'nowrap' }}>
+                  日租 ¥{(Number(dailyRent || 0) / 100).toFixed(2)}/日
+                </Text>
               </View>
-              <View style={{ flexShrink: 0, whiteSpace: 'nowrap', textAlign: 'right' }}>
+              <View style={{ flexShrink: 0, whiteSpace: 'nowrap', textAlign: 'right', marginLeft: 8 }}>
                 <Text style={{ color: '#C21838', fontSize: 16, letterSpacing: '-0.025em' }}>
                   押金 ¥{((deposit || 0) / 100).toFixed(2)} <Text style={{ color: '#a1a1aa', fontWeight: '400' }}>❯</Text>
                 </Text>
               </View>
-            </View>
-            <View style={{ display: 'flex', alignItems: 'center', marginTop: 8 }}>
-              {levelName && (
-                <View style={{ backgroundColor: levelBg, color: '#fff', fontSize: 10, fontWeight: '900', padding: '2px 10px', borderRadius: 999, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', marginRight: 12 }}>
-                  {levelName}
-                </View>
-              )}
-              <Text style={{ color: '#C21838', fontSize: 16, letterSpacing: '-0.025em' }}>
-                日租 ¥{(Number(dailyRent || 0) / 100).toFixed(2)}/日
-              </Text>
             </View>
             <View style={{ borderTop: '1px solid #f4f4f5', paddingTop: 12, marginTop: 12, display: 'flex', flexDirection: 'column', fontSize: 12, color: '#71717a', fontWeight: '700' }}>
               <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
