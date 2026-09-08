@@ -578,7 +578,8 @@ func TestPrepayRentWithCoupon_OREZ(t *testing.T) {
 		testfixtures.SetupWechatPayMock(t)
 	})
 
-	db.Exec("DELETE FROM coupons") // fixed code, isolated per test
+	db.Exec("DELETE FROM coupons")                                  // fixed code, isolated per test
+	require.NoError(t, db.Migrator().CreateTable(&models.Coupon{})) // #1838: SetupTestDB drops coupons (not in fixtures)
 	require.NoError(t, db.Create(&models.Coupon{
 		ID:     uuid.New().String(),
 		Code:   "OREZ",
@@ -676,6 +677,7 @@ func TestPrepayRentWithCoupon_ENO(t *testing.T) {
 	})
 
 	db.Exec("DELETE FROM coupons")
+	require.NoError(t, db.Migrator().CreateTable(&models.Coupon{})) // #1838: SetupTestDB drops coupons (not in fixtures)
 	require.NoError(t, db.Create(&models.Coupon{
 		ID:     uuid.New().String(),
 		Code:   "ENO",

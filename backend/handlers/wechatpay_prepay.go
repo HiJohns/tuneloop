@@ -73,7 +73,13 @@ func PrepayOrder(c *gin.Context) {
 		}
 	}
 
-	outTradeNo := fmt.Sprintf("%s%s%d", req.OrderType, uuid.New().String()[:8], time.Now().Unix())
+	// out_trade_no 列 varchar(32)；orderType 前缀可能超长（如
+	// payment_shortfall=17）→ 前缀截断至 14，uuid8+unix 保证唯一（#1838）。
+	orderTypePrefix := req.OrderType
+	if len(orderTypePrefix) > 14 {
+		orderTypePrefix = orderTypePrefix[:14]
+	}
+	outTradeNo := fmt.Sprintf("%s%s%d", orderTypePrefix, uuid.New().String()[:8], time.Now().Unix())
 
 	// membership payments have no pre-existing order: OrderID
 	// holds the local user id, resolved from the JWT (iam_sub).
