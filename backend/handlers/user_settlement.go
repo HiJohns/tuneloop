@@ -890,13 +890,32 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	discountedRent := 0.0
 	discountedDue := 0.0
 	var segmentUsage []int
-	// 段模型仅在 LeaseTerm > 0 时启用：lease_term 是唯一可靠的"初始合同天数"
-	// 权威源——pricing_breakdown.rent_days/tier_segments 会被续费重写为全部
-	// 覆盖天数（renewal.go），历史单 lease_term=0 时无法区分初始合同段，
-	// fallback coverDays 会把续费天数摊进合同段（#1838：29846d18 补缴 0.04
-	// 错误，实为 3 天段被 1/300 摊薄）。无 lease_term → #1743 兜底。
-	if order.LeaseTerm > 0 {
-		if segs, paidTotalCents, err := makePaidSegments(initialDays, pricingTiers, baseDailyRentCents, contractRent, renewalRecs); err == nil {
+	// 合同初始覆盖天数（#1838 二次修正）：orders.lease_term 为【月】语义
+	// （days/30，日租单=0），不可作为段模型输入。权威反推：pricing_breakdown.
+	// rent_days 被续费累加为"全部覆盖天数"（renewal.go）→ 合同初始天数 =
+	// rent_days − Σ续费 days（续费 payment.days T1 落库，逐笔事实）。
+	// 29846d18: 3−1−1=1；1bf456df: 2−1=1。反推 ≤0 或续费缺 days →
+	// 段模型不可用 → #1743 兜底（log）。
+	contractDays := 0
+	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+		var pb services.PricingBreakdown
+		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil && pb.RentDays > 0 {
+			renewalDays := 0
+			renewalDaysOK := true
+			for _, r := range renewalRecs {
+				if r.Days == nil || *r.Days <= 0 {
+					renewalDaysOK = false
+					break
+				}
+				renewalDays += *r.Days
+			}
+			if renewalDaysOK {
+				contractDays = pb.RentDays - renewalDays
+			}
+		}
+	}
+	if contractDays > 0 {
+		if segs, paidTotalCents, err := makePaidSegments(contractDays, pricingTiers, baseDailyRentCents, contractRent, renewalRecs); err == nil {
 			if ds, err := computeDiscountedSettlement(actualDays, segs, int64(math.Round(shippingFee*100)), paidTotalCents); err == nil {
 				useDiscounted = true
 				discountedRent = float64(ds.DiscountedRent) / 100
@@ -909,7 +928,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 			log.Printf("[computeSettlement] segment build failed for order %s: %v — falling back to #1743", order.ID, err)
 		}
 	} else {
-		log.Printf("[computeSettlement] order %s has lease_term=0 (legacy) — segment model skipped, falling back to #1743", order.ID)
+		log.Printf("[computeSettlement] order %s contract days unresolvable (lease_term=%d, rent_days-derived=%d) — segment model skipped, falling back to #1743", order.ID, order.LeaseTerm, contractDays)
 	}
 
 	var totalRefund, payableShortfall float64
