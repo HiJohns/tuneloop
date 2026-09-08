@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Table, Button, Input, Space, Tag, Image, message, Popconfirm, Select, Modal, Form, InputNumber, Checkbox } from 'antd'
 import { Row, Col } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, ImportOutlined, ExportOutlined, CloseCircleFilled } from '@ant-design/icons'
@@ -12,17 +12,20 @@ const { Option } = Select
 
 export default function InstrumentList() {
   const navigate = useNavigate()
+  // #1843: 列表筛选/分页 ↔ URL query 双向同步——跳详情后浏览器「返回」可恢复
+  // 离开前的筛选条件与页码（useState 初始值取自 URL，mount 即恢复）。
+  const [searchParams, setSearchParams] = useSearchParams()
   const [instruments, setInstruments] = useState([])
   const [loading, setLoading] = useState(false)
-  const [searchText, setSearchText] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
+  const [searchText, setSearchText] = useState(searchParams.get('sn') || '')
+  const [categoryFilter, setCategoryFilter] = useState(searchParams.get('category_id') || '')
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('stock_status') || '')
   const [formVisible, setFormVisible] = useState(false)
   const [editingInstrument, setEditingInstrument] = useState(null)
   const [categories, setCategories] = useState([])
   const [filterOptions, setFilterOptions] = useState({ categories: [], levels: [], statuses: [], sites: [] })
-  const [levelFilter, setLevelFilter] = useState('')
-  const [sortBy, setSortBy] = useState('sort_order')
+  const [levelFilter, setLevelFilter] = useState(searchParams.get('level_id') || '')
+  const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'sort_order')
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
   const [batchPriceModalVisible, setBatchPriceModalVisible] = useState(false)
   const [batchPriceForm] = Form.useForm()
@@ -30,8 +33,8 @@ export default function InstrumentList() {
   const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
   
   const [pagination, setPagination] = useState({
-    page: 1,
-    pageSize: 20,
+    page: Number(searchParams.get('page')) || 1,
+    pageSize: Number(searchParams.get('pageSize')) || 20,
     total: 0
   })
   
@@ -48,6 +51,17 @@ export default function InstrumentList() {
   }, [])
 
   useEffect(() => {
+    // #1843: mount 即按 URL 恢复的筛选/页码取数（首次渲染由 URL 驱动）。
+    fetchInstruments(pagination.page, pagination.pageSize)
+  }, [])
+
+  // #1843: 筛选变化重置到第 1 页；首轮渲染已由 URL 驱动，跳过避免重复请求。
+  const firstRenderRef = useRef(true)
+  useEffect(() => {
+    if (firstRenderRef.current) {
+      firstRenderRef.current = false
+      return
+    }
     fetchInstruments(1, pagination.pageSize)
   }, [categoryFilter, levelFilter, statusFilter])
 
@@ -63,6 +77,20 @@ export default function InstrumentList() {
       if (levelFilter) params.level_id = levelFilter
       if (statusFilter) params.stock_status = statusFilter
       params.sort = overrideSort || sortBy
+      // #1843: 每次取数将当前筛选/页码写入 URL（replace），浏览器后退可恢复。
+      const sp = new URLSearchParams()
+      if (categoryFilter) sp.set('category_id', categoryFilter)
+      if (levelFilter) sp.set('level_id', levelFilter)
+      if (statusFilter) sp.set('stock_status', statusFilter)
+      if (searchText) sp.set('sn', searchText)
+      const sortVal = overrideSort || sortBy
+      if (sortVal && sortVal !== 'sort_order') sp.set('sort', sortVal)
+      sp.set('page', String(page))
+      sp.set('pageSize', String(pageSize))
+      setSearchParams(sp.toString(), { replace: true })
+      // #1843: 记忆带筛选的列表 URL，供详情页面包屑「乐器列表」返回当前状态。
+      const qs = sp.toString()
+      sessionStorage.setItem('instrument_list_back', qs ? `/instruments/list?${qs}` : '/instruments/list')
       const response = await instrumentsApi.list(params)
       const list = response?.data?.list || []
       setInstruments(Array.isArray(list) ? list : [])

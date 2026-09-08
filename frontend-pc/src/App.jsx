@@ -455,7 +455,15 @@ function onMenuClick(e) {
 
 
   let pageTitle = '管理后台'
-  
+
+  // #1843: 详情/编辑页面包屑「乐器列表」→ 回到离开列表前的筛选/页码状态
+  //（List.jsx 每次取数把带 query 的列表 URL 写入 sessionStorage；直达场景
+  // 无记录时回退普通列表页）。
+  const goInstrumentList = () => {
+    const saved = sessionStorage.getItem('instrument_list_back')
+    navigate(saved && saved.startsWith('/instruments/list') ? saved : '/instruments/list')
+  }
+
   // Make breadcrumb items clickable
   const breadcrumbItems = [
     { title: <a href="#" onClick={(e) => { e.preventDefault(); navigate('/'); }}>TuneLoop</a> }
@@ -523,14 +531,14 @@ function onMenuClick(e) {
     pageTitle = '乐器详情'
     breadcrumbItems.push(
       { title: <a href="#" onClick={(e) => { e.preventDefault(); navigate('/'); }}>乐器管理</a> },
-      { title: <a href="#" onClick={(e) => { e.preventDefault(); navigate('/instruments/list'); }}>乐器列表</a> },
+      { title: <a href="#" onClick={(e) => { e.preventDefault(); goInstrumentList(); }}>乐器列表</a> },
       { title: '乐器详情' }
     )
   } else if (location.pathname.match(/^\/instruments\/[^/]+\/edit$/)) {
     pageTitle = '编辑乐器'
     breadcrumbItems.push(
       { title: <a href="#" onClick={(e) => { e.preventDefault(); navigate('/'); }}>乐器管理</a> },
-      { title: <a href="#" onClick={(e) => { e.preventDefault(); navigate('/instruments/list'); }}>乐器列表</a> },
+      { title: <a href="#" onClick={(e) => { e.preventDefault(); goInstrumentList(); }}>乐器列表</a> },
       { title: '编辑乐器' }
     )
   } else if (location.pathname.match(/^\/instruments\/[^/]+$/) && location.pathname !== '/instruments/list') {

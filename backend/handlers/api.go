@@ -331,11 +331,9 @@ func GetInstruments(c *gin.Context) {
 		query = query.Where("sn ILIKE ?", "%"+sn+"%")
 	}
 	if categoryID := c.Query("category_id"); categoryID != "" {
-		var childIDs []string
-		db.WithContext(ctx).
-			Model(&models.Category{}).
-			Where("parent_id = ? OR id = ?", categoryID, categoryID).
-			Pluck("id", &childIDs)
+		// #1843: 顶级分类须筛出全部后代分类的乐器（与 public 端同语义）。
+		// 旧实现仅含一层直接子级（parent_id = X OR id = X），分类加深即漏。
+		childIDs := getDescendantCategoryIDs(db, categoryID)
 		if len(childIDs) > 0 {
 			query = query.Where("category_id IN ?", childIDs)
 		} else {

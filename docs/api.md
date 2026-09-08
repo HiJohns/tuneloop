@@ -418,7 +418,7 @@
 |------|------|------|
 | page | int | 页码 (默认: 1) |
 | pageSize | int | 每页数量 (默认: 20, 最大: 100) |
-| category_id | string | 分类 ID (可选) |
+| category_id | string | 分类 ID（可选）。含该分类自身及**全部后代分类**的乐器（递归，#1843——选顶级分类即可筛出所有子孙分类乐器） |
 | site_id | string | 网点 ID (可选) |
 | level_id | string | 级别 ID (可选) |
 | tenant | string | 租户 ID (可选, 不传则返回所有租户) |
