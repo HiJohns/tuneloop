@@ -720,12 +720,12 @@ API 来源：
 
 | 槽位 | side | 组件 | 说明 |
 |------|------|------|------|
-| 身份证正面 | `front` | `<IdPhotoUploader defer sessionUpload={{sessionId}}>` | 30% 宽，defer 模式（选图本地预览）；**必填**（#1845） |
-| 身份证反面 | `back` | 同上 | 30% 宽；**必填**（#1845） |
+| 身份证正面 | `front` | `<IdPhotoUploader defer sessionUpload={{sessionId}}>` | 30% 宽，defer 模式（选图本地预览）；**默认必填**，选「学生证」类型并上传学生证后可豁免（#1845） |
+| 身份证反面 | `back` | 同上 | 30% 宽；同上 |
 | 其他证件 | `other` | 同上 | 选填；标题「学生证、教职工等其他证件」+ 绿色通道说明行（#1845） |
 
 **流程**（weapp 两阶段注册）:
-1. 填写昵称/地址等 → 点击注册 → 创建 session 拿到 `session_id`；**前置校验：身份证正/反面必须已选图或 resume 会话已上传**（未满足 toast「请先上传身份证正反面照片」不提交，#1845）
+1. 填写昵称/地址等 → 点击注册 → 创建 session 拿到 `session_id`；**实名证件前置校验**：默认须身份证正/反面已选图或 resume 会话已上传；**学生证豁免** = 选择「学生证」类型且已选/上传学生证照 → 跳过身份证（不做年龄判定；提交时写 `reg_student_exempt` 标记，支付完成后强制引导人脸识别）（#1845）
 2. 已选图槽位通过 `uploadPending()` 上传到会话级匿名端点 `POST /auth/registration-sessions/:id/id-photo`（无 token）；**空槽返回 `skip` 不计失败**（#1845：修复「仅传身份证仍弹上传失败」误报）
 3. 真实上传失败 → 弹窗「{侧面}上传失败，可在注册后于『编辑资料』补传」[继续支付 / 重试]（**非静默**）
 4. 成功 → 跳转支付页；支付回调 `completeRegistrationFromSession` 将照片转入 `users` 表

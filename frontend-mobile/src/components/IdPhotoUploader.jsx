@@ -11,7 +11,7 @@ import { View, Text, Image } from '@tarojs/components'
 import { uploadFile, env, storage, session } from '../platform'
 import { resolveErrorMessage } from '../services/api'
 
-const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl = '', onChange, defer = false, sessionUpload, leftAligned = false }, ref) {
+const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl = '', onChange, onSelect, defer = false, sessionUpload, leftAligned = false }, ref) {
   const [url, setUrl] = useState(initialUrl || '')
   const [uploading, setUploading] = useState(false)
   const [pendingFile, setPendingFile] = useState(null)
@@ -99,6 +99,7 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
     if (defer) {
       setPendingFile(fileOrPath)
       setUrl(env.isMiniProgram ? fileOrPath : URL.createObjectURL(fileOrPath))
+      if (onSelect) onSelect(fileOrPath) // #1845: 通知父组件已选图（豁免判定/标签）
       return
     }
     uploadToServer(fileOrPath)

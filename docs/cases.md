@@ -1626,6 +1626,50 @@ checkRule() - 权限位过滤
 
 ---
 
+---
+
+### 场景：小程序两阶段会员注册（#1663/#1845）
+
+**入口/前置**：微信小程序内无账号游客进入注册页（`/pages-weapp/profile-complete/index`，标题「注册账号」）；可携带 `?session_id=`（中断恢复）、`?ref=`/`scene=ref=`（推荐码）、`?phone=`。
+
+**提交前校验（本地，不建号）**：
+- 必填：姓名、手机号
+- 实名证件（#1845 口径：身份证默认必填；**学生证豁免**——选择「学生证」类型并上传学生证照即可跳过身份证正反面，**不做年龄判定**；其余证件类型不豁免）
+- 校验失败 toast 阻断，不发任何请求
+
+| 用户证件组合 | 身份证正/反面 | 学生证（other + 类型=学生证） | 其他证件类型（教职工/教师/工作/其他） | 放行 |
+|------|:---:|:---:|:---:|:---:|
+| 有身份证（默认） | 必填并上传 | 可选 | 可选 | ✅ |
+| 学生（能提供学生证） | **可跳过** | 必填并上传（豁免条件） | — | ✅ 注册后强制引导人脸识别 |
+| 选了「学生证」但未传学生证图 | 回退为必填 | ❌ 未满足 | — | ❌ toast「请先上传身份证正反面照片」 |
+| 仅教职工/教师/工作证等其他类型、无身份证 | 必填并上传 | — | 可上传 | ❌ 同上 |
+
+**提交流程**：
+1. 通过校验 → `POST /auth/registration-sessions` 创建 pending session（exchange_token + 新 wx_code；姓名/昵称/手机/邮箱/地址/证件类型随表单）→ 拿 `session_id`
+2. **仅对「本地已选图」的槽位**调用 `uploadPending(session_id)` 串行上传（会话级匿名端点）；空槽返回 skip **不计失败**（修复：只传身份证不再误报「证件照上传失败」）；resume 会话已传侧自动跳过
+3. 真实上传失败 → modal 精确到失败侧面（如「身份证正面上传失败，可在注册后于『编辑资料』补传」）[继续支付 / 重试]
+4. 学生证豁免路径：提交前写标记 `reg_student_exempt`（供支付完成页引导人脸）
+5. `redirectTo /payment?type=membership&session_id=xxx&amount=xx`
+
+**resume 中断恢复**（带 `?session_id=` 重进）：GET session → 回填姓名/昵称/手机/邮箱/地址/**证件类型**/**已上传证件侧**（id_photos map）→ 必填校验按「已传侧 ∪ 本轮新选图」计算，不重复上传旧照片
+
+**支付与入会（payment 页 membership）**：
+1. 微信支付成功 → toast「支付成功，注册处理中」→ 1.5s 后轮询 `GET /auth/registration-sessions/:id/status`（≤20 次 × 1s，约 20s 窗口）等待回调建号（`completeRegistrationFromSession`）
+2. 会话 completed → 以新用户身份自动登录（wx-accounts 取 exchange_token → wx-login-select 指定 user_id），落地顺序：
+   - ① `post_auth_redirect`（购物车/立即租赁来源）回跳原页
+   - ② 学生证豁免 → `redirectTo /pages-weapp/face-verify/index`（**强制人脸识别引导**）
+   - ③ 其余 → switchTab 个人中心
+3. 轮询超时（>20s）/ 异常 / 请求永不返回 → **35s 保险丝兜底必达出口**：modal「注册处理中，请稍后返回首页刷新」→ 2s 后回首页；redirectTo 失败也 fallback switchTab——任何路径不得滞留「处理中」按钮（#1845 修复：支付成功卡死只能杀进程）
+4. 人脸核身：FaceVerify 页以 `id_photo_front/back/other` 任一存在即放行采样（学生证即可）；提交 `face-capture` → 员工 `face_review` approve → `face_verified=true`
+   - ⚠️ 开放问题（见 #1845 评论）：无身份证号学生经 face_review 批准时后端现要求员工填 5 项实名（real_name/id_card_no/…）——**学生证无身份证号，批准路径待产品确认口径**（录学号 / 允许 id_card_no 空置仅核姓名）
+
+**关键规则**：
+- 证件照片三槽：身份证正面/反面（约 48% 宽）+「学生证、教职工等其他证件」区（选填，标题含学校师生专属绿色通道说明）；证件类型 Picker = 学生证/教职工证/教师证/工作证/其他
+- 「继续支付」保留：个别证件上传失败不阻断入会，注册后可在编辑资料补传
+- 会员费 99 元 → 回调 `applySideEffects` membership：按金额匹配最高会员等级 + 赠点（规则同下节「会员注册 — 支付 — 激活」）
+
+---
+
 ### 场景：会员注册 — 支付 — 激活
 
 **前置条件**：用户完成注册（PostRegister 创建本地用户 + 生成 ref_code）
