@@ -34,6 +34,7 @@ const EVENT_LABELS = {
   in_lease: '租赁中', returning: '归还中', returned: '已归还',
   completed: '已完成', cancelled: '已取消', expired: '已超期',
   renewed: '已续期', settlement_confirmed: '结算确认',
+  pickup_confirmed: '已提货', damage_assessed: '定损完成', return_inspected: '验货完成',
 }
 
 const baseUrl = env.apiBaseUrl

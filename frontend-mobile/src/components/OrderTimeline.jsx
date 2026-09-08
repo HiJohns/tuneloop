@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { View, Text } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
-import { formatDisplayDate } from '../utils/format'
+import { formatLogTime } from '../utils/format'
 
 const LIFECYCLE_ORDER = [
   'created', 'paid', 'pending_shipment', 'shipped', 'in_transit',
@@ -18,19 +18,17 @@ const EVENT_LABELS = {
   shipped: '已发货',
   in_transit: '运输中',
   delivered: '已收货',
-  in_lease: '租赁开始',
-  renewed: '续期',
-  returning: '申请归还',
+  in_lease: '租赁中',
+  returning: '归还中',
   returned: '已归还',
-  damage_assessed: '定损完成',
-  return_inspected: '验货完成',
-  assessed: '定损',
-  maintenance: '维修中',
-  repaired: '完成维修',
   completed: '已完成',
   cancelled: '已取消',
   expired: '已超期',
   settlement_confirmed: '结算确认',
+  renewed: '已续期',
+  pickup_confirmed: '已提货',
+  damage_assessed: '定损完成',
+  return_inspected: '验货完成',
 }
 
 export default function OrderTimeline({ orderId, status }) {
@@ -87,9 +85,9 @@ export default function OrderTimeline({ orderId, status }) {
                 <Text className={`text-sm font-black ${isCurrent ? 'text-black' : isFuture ? 'text-zinc-300' : 'text-zinc-500'}`}>
                   {EVENT_LABELS[log.event] || log.event}
                 </Text>
-                <Text className="text-xs text-zinc-400 mt-0.5">
-                  {formatDisplayDate(log.time || log.created_at)}
-                  {log.operator && <Text className="ml-2">by {log.operator}</Text>}
+                <Text className="text-xs text-zinc-400 mt-0.5" style={{ display: 'block' }}>
+                  {formatLogTime(log.time || log.created_at)}
+                  {log.operator && <Text className="ml-2">· {log.operator === 'system' ? '系统' : log.operator}</Text>}
                 </Text>
               </View>
             </View>
