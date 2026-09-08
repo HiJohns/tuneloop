@@ -243,13 +243,13 @@ export default function MyLeases() {
                           onClick={(e) => { e.stopPropagation(); Taro.redirectTo({ url: `/pages-weapp/payment/index?type=rent&id=${order.id}` }) }}
                           style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#000', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
                         >
-                          立即支付
+                          支付
                         </Button>
                       )}
                       {showConfirm && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); nav(`/pages-weapp/order-detail/index?id=${order.id}`) }}
-                          style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#000', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
+                          style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#16a34a', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
                         >
                           确认收货
                         </Button>
@@ -260,15 +260,15 @@ export default function MyLeases() {
                             e.stopPropagation()
                             nav(`/pages-weapp/return-confirm/index?order_id=${order.id}&instrument=${order.instrument_id}`)
                           }}
-                          style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#000', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
+                          style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#f97316', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
                         >
-                          归还乐器
+                          归还
                         </Button>
                       )}
                       {showStaffReceive && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); nav(`/pages-weapp/receiving-interface/index?order_id=${order.id}`) }}
-                          style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#000', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
+                          style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#be123c', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
                         >
                           接收
                         </Button>
@@ -284,7 +284,7 @@ export default function MyLeases() {
                       {showCancel && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); handleCancelFromList(order.id, order.status) }}
-                          style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#f4f4f5', color: '#52525b', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
+                          style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#ef4444', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
                         >
                           取消订单
                         </Button>

@@ -258,13 +258,13 @@ export default function MyLeases() {
                           onClick={(e) => { e.stopPropagation(); navigate(`/payment?type=rent&id=${order.id}`, { replace: true }) }}
                           className="flex-1 min-w-0 py-2.5 bg-black text-white rounded-xl font-black text-sm"
                         >
-                          立即支付
+                          支付
                         </Button>
                       )}
                       {showConfirm && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); navigate(`/order/${order.id}`) }}
-                          className="flex-1 min-w-0 py-2.5 bg-black text-white rounded-xl font-black text-sm"
+                          className="flex-1 min-w-0 py-2.5 bg-green-600 text-white rounded-xl font-black text-sm"
                         >
                           确认收货
                         </Button>
@@ -275,15 +275,15 @@ export default function MyLeases() {
                             e.stopPropagation()
                             navigate(`/return?order_id=${order.id}&instrument=${order.instrument_id}`)
                           }}
-                          className="flex-1 min-w-0 py-2.5 bg-black text-white rounded-xl font-black text-sm"
+                          className="flex-1 min-w-0 py-2.5 bg-orange-500 text-white rounded-xl font-black text-sm"
                         >
-                          归还乐器
+                          归还
                         </Button>
                       )}
                       {showStaffReceive && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); navigate(`/order/${order.id}`) }}
-                          className="flex-1 min-w-0 py-2.5 bg-black text-white rounded-xl font-black text-sm"
+                          className="flex-1 min-w-0 py-2.5 bg-rose-700 text-white rounded-xl font-black text-sm"
                         >
                           接收
                         </Button>
@@ -291,7 +291,7 @@ export default function MyLeases() {
                       {showCancel && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); handleCancelFromList(order.id, order.status) }}
-                          className="flex-1 min-w-0 py-2.5 bg-zinc-100 text-zinc-600 rounded-xl font-black text-sm"
+                          className="flex-1 min-w-0 py-2.5 bg-red-500 text-white rounded-xl font-black text-sm"
                         >
                           取消订单
                         </Button>
