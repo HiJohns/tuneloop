@@ -145,9 +145,9 @@ export default function CreateRepairRequest() {
   }
 
   return (
-    <View className="h-screen bg-[#FDFBF7] flex flex-col">
+    <View style={{ backgroundColor: "#FDFBF7" }} className="h-screen flex flex-col">
       {!env.isMiniProgram && (
-      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-4 flex items-center gap-3">
+      <View className="bg-gradient-to-b px-4 pt-4 pb-4 flex items-center gap-3">
         <Text className="text-xl" onClick={goBack}>{'<'}</Text>
         <Text className="text-lg font-black text-black">创建报修单</Text>
       </View>
@@ -194,7 +194,7 @@ export default function CreateRepairRequest() {
                 {form.photos.map((file, i) => (
                   <View key={i} className="relative aspect-square rounded-lg overflow-hidden border" style={{ width: 'calc(33.33% - 6px)' }}>
                     <Image src={env.isMiniProgram ? file : URL.createObjectURL(file)} className="w-full h-full object-cover" mode="aspectFill" />
-                    <View className="absolute top-1 right-1 bg-black/50 rounded-full w-5 h-5 flex items-center justify-center"
+                    <View className="absolute top-1 right-1 rounded-full w-5 h-5 flex items-center justify-center"
                       onClick={() => setForm(p => ({ ...p, photos: p.photos.filter((_, j) => j !== i) }))}>
                       <Text className="text-white text-xs">✕</Text>
                     </View>
@@ -202,13 +202,13 @@ export default function CreateRepairRequest() {
                 ))}
                 {form.photos.length < 10 && (
                   env.isMiniProgram ? (
-                    <View className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 active:opacity-60"
+                    <View className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400"
                       style={{ width: 'calc(33.33% - 6px)' }} onClick={handlePhotoChooseWeapp}>
                       <Camera size={24} />
                       <Text className="text-xs mt-1">拍摄</Text>
                     </View>
                   ) : (
-                  <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 active:opacity-60"
+                  <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400"
                     style={{ width: 'calc(33.33% - 6px)' }}>
                     <Camera size={24} />
                     <Text className="text-xs mt-1">拍摄</Text>
@@ -225,12 +225,12 @@ export default function CreateRepairRequest() {
             <View>
               <Text className="block text-sm font-medium text-gray-700 mb-1">视频（可选，估价用）</Text>
               {env.isMiniProgram ? (
-                <View className="flex items-center gap-2 py-2 bg-gray-100 rounded-lg px-3 active:opacity-60" onClick={handleVideoChooseWeapp}>
+                <View className="flex items-center gap-2 py-2 bg-gray-100 rounded-lg px-3" onClick={handleVideoChooseWeapp}>
                   <Camera size={20} className="text-gray-500" />
                   <Text className="text-xs text-gray-600">{form.video ? '已选择视频' : '上传视频'}</Text>
                 </View>
               ) : (
-              <label className="flex items-center gap-2 py-2 bg-gray-100 rounded-lg px-3 active:opacity-60">
+              <label className="flex items-center gap-2 py-2 bg-gray-100 rounded-lg px-3">
                 <Camera size={20} className="text-gray-500" />
                 <Text className="text-xs text-gray-600">{form.video ? '已选择视频' : '上传视频'}</Text>
                 <input type="file" accept="video/*" className="hidden"
@@ -272,17 +272,17 @@ export default function CreateRepairRequest() {
 
       {/* Merchant picker modal */}
       {showMerchantPicker && (
-        <View className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowMerchantPicker(false)}>
+        <View className="fixed inset-0 z-50 flex items-end" onClick={() => setShowMerchantPicker(false)}>
           <View className="bg-white rounded-t-2xl w-full max-h-80 p-4" onClick={e => e.stopPropagation()}>
             <Text className="text-sm font-bold text-black mb-3">选择商户</Text>
             {merchants.map(m => (
-              <View key={m.id} className="py-3 border-b border-gray-50 active:opacity-60"
+              <View key={m.id} className="py-3 border-b border-gray-50"
                 onClick={() => handleMerchantSelect(m)}>
                 <Text className="text-sm text-black">{m.name}</Text>
               </View>
             ))}
             {hasControlled && (
-              <View className="py-3 border-b border-gray-50 active:opacity-60"
+              <View className="py-3 border-b border-gray-50"
                 onClick={() => handleMerchantSelect({ id: '__cooperative__', name: '合作商家' })}>
                 <Text className="text-sm text-blue-600 font-bold">合作商家</Text>
               </View>
@@ -293,11 +293,11 @@ export default function CreateRepairRequest() {
 
       {/* Site picker modal (full merchant) */}
       {showSitePicker && !cooperativeMode && (
-        <View className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowSitePicker(false)}>
+        <View className="fixed inset-0 z-50 flex items-end" onClick={() => setShowSitePicker(false)}>
           <View className="bg-white rounded-t-2xl w-full max-h-80 p-4" onClick={e => e.stopPropagation()}>
             <Text className="text-sm font-bold text-black mb-3">选择网点</Text>
             {sites.map(s => (
-              <View key={s.id} className="py-3 border-b border-gray-50 active:opacity-60"
+              <View key={s.id} className="py-3 border-b border-gray-50"
                 onClick={() => { setForm(p => ({ ...p, site_id: s.id, merchant_type: 'full' })); setShowSitePicker(false) }}>
                 <Text className="text-sm text-black">{s.name}</Text>
               </View>
@@ -308,11 +308,11 @@ export default function CreateRepairRequest() {
 
       {/* Transit site picker (cooperative/controlled mode) */}
       {showSitePicker && cooperativeMode && (
-        <View className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowSitePicker(false)}>
+        <View className="fixed inset-0 z-50 flex items-end" onClick={() => setShowSitePicker(false)}>
           <View className="bg-white rounded-t-2xl w-full max-h-80 p-4" onClick={e => e.stopPropagation()}>
             <Text className="text-sm font-bold text-black mb-3">选择中转网点</Text>
             {transitSites.map(s => (
-              <View key={s.id} className="py-3 border-b border-gray-50 active:opacity-60"
+              <View key={s.id} className="py-3 border-b border-gray-50"
                 onClick={() => { setForm(p => ({ ...p, site_id: s.id, transit_site_id: s.id, merchant_type: 'controlled' })); setShowSitePicker(false) }}>
                 <Text className="text-sm text-black">{s.name}</Text>
               </View>

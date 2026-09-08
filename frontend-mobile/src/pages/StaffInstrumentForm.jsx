@@ -223,7 +223,7 @@ export default function StaffInstrumentForm() {
     }
   }
 
-  const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-primary'
+  const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm'
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1'
 
   const openPicker = (type, propName = '') => {
@@ -264,7 +264,7 @@ export default function StaffInstrumentForm() {
   }
 
   return (
-    <View className="min-h-screen bg-[#FDFBF7] pb-24">
+    <View style={{ backgroundColor: "#FDFBF7" }} className="min-h-screen pb-24">
       {!env.isMiniProgram && (
         <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
           <Button onClick={() => navigate(-1)}>
@@ -316,7 +316,7 @@ export default function StaffInstrumentForm() {
 
           <View>
             <Text className={labelClass}>描述</Text>
-            <Textarea className={`${inputClass} min-h-[72px]`} value={form.description} onInput={e => handleChange('description', getInputValue(e))} placeholder="可选描述" />
+            <Textarea className={`${inputClass} min-`} value={form.description} onInput={e => handleChange('description', getInputValue(e))} placeholder="可选描述" />
           </View>
         </View>
 
@@ -368,7 +368,7 @@ export default function StaffInstrumentForm() {
             {files.map((file, i) => (
               <View key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border">
                 <Image src={env.isMiniProgram ? file : URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
-                <Button onClick={() => removeFile(i)} className="absolute top-0.5 right-0.5 bg-black/50 rounded-full p-0.5">
+                <Button onClick={() => removeFile(i)} className="absolute top-0.5 right-0.5 rounded-full p-0.5">
                   <X size={12} className="text-white" />
                 </Button>
               </View>
@@ -394,7 +394,7 @@ export default function StaffInstrumentForm() {
           {posterFile ? (
             <View className="relative w-full">
               <Image src={env.isMiniProgram ? posterFile : URL.createObjectURL(posterFile)} className="w-full rounded-lg" mode="widthFix" />
-              <Button onClick={() => { setPosterFile(null); setForm(prev => ({ ...prev, poster: '' })) }} className="absolute top-1 right-1 bg-black/50 rounded-full p-1">
+              <Button onClick={() => { setPosterFile(null); setForm(prev => ({ ...prev, poster: '' })) }} className="absolute top-1 right-1 rounded-full p-1">
                 <X size={14} className="text-white" />
               </Button>
             </View>
@@ -417,7 +417,7 @@ export default function StaffInstrumentForm() {
 
       {/* Cross-end picker modal (issue-1676): categories/sites/levels/property options */}
       {picker && (
-        <View className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setPicker(null)}>
+        <View className="fixed inset-0 z-50 flex items-end" onClick={() => setPicker(null)}>
           <View className="bg-white rounded-t-2xl w-full max-h-80 p-4" onClick={e => e.stopPropagation()}>
             <Text className="text-sm font-bold text-black mb-3">{picker.title}</Text>
             {picker.options.length === 0 ? (
@@ -426,7 +426,7 @@ export default function StaffInstrumentForm() {
               </View>
             ) : (
               picker.options.map(opt => (
-                <View key={opt.id} className="py-3 border-b border-gray-50 active:opacity-60" onClick={() => selectOption(opt.id)}>
+                <View key={opt.id} className="py-3 border-b border-gray-50" onClick={() => selectOption(opt.id)}>
                   <Text className="text-sm text-black">{opt.label}</Text>
                 </View>
               ))
@@ -439,7 +439,7 @@ export default function StaffInstrumentForm() {
         <Button
           onClick={handleSubmit}
           disabled={loading || snExists}
-          className="w-full py-3 bg-brand-primary text-white rounded-xl font-medium disabled:opacity-50"
+          className="w-full py-3 bg-brand-primary text-white rounded-xl font-medium"
         >
           {loading ? '处理中...' : '创建乐器'}
         </Button>

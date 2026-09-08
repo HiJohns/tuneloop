@@ -118,15 +118,15 @@ export default function StaffReceiveConfirm() {
   }
 
   if (loading) {
-    return <View className="min-h-screen bg-[#FDFBF7] flex items-center justify-center">
+    return <View style={{ backgroundColor: "#FDFBF7" }} className="min-h-screen flex items-center justify-center">
       <Text className="text-zinc-400 font-medium">加载中...</Text>
     </View>
   }
 
   return (
-    <View className="min-h-screen bg-[#FDFBF7] pb-24">
+    <View style={{ backgroundColor: "#FDFBF7" }} className="min-h-screen pb-24">
       {!env.isMiniProgram && (
-        <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
+        <View className="bg-gradient-to-b px-4 pt-4 pb-3 flex items-center gap-2">
           <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
           <Text className="text-lg font-black text-black">接收确认</Text>
         </View>
@@ -218,7 +218,7 @@ export default function StaffReceiveConfirm() {
       {/* Submit Button */}
       <View className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 safe-area-pb shadow-2xl">
         <Button onClick={handleConfirmReceive} disabled={submitting || photoFiles.length === 0}
-          className="w-full py-3 bg-green-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 disabled:opacity-50">
+          className="w-full py-3 bg-green-600 text-white rounded-2xl font-black flex items-center justify-center gap-2">
           <CheckCircle size={20} />{submitting ? '处理中...' : (photoFiles.length === 0 ? '请先拍照存档' : '确认接收')}
         </Button>
       </View>

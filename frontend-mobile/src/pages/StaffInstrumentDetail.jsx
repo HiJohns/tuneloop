@@ -229,7 +229,7 @@ export default function StaffInstrumentDetail() {
   return (
     <View className="min-h-screen pb-24" style={{backgroundColor: '#FDFBF7'}}>
       {!env.isMiniProgram && (
-        <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
+        <View className="bg-gradient-to-b px-4 pt-4 pb-3 flex items-center gap-2">
           <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
           <Text className="text-lg font-black text-black">乐器详情</Text>
         </View>
@@ -326,7 +326,7 @@ export default function StaffInstrumentDetail() {
                 {session.events?.map((event, ei) => {
                   const label = eventLabels[event.status_key || event.event] || event.event
                   return (
-                    <View key={ei} className="relative pl-6 pb-4 border-l-2 border-zinc-200 last:border-transparent">
+                    <View key={ei} className="relative pl-6 pb-4 border-l-2 border-zinc-200">
                       <View className="text-sm">
                         <View className="flex items-center gap-2">
                           <Text className="font-black">{label}</Text>
@@ -352,7 +352,7 @@ export default function StaffInstrumentDetail() {
                                   className="w-16 h-16 rounded object-cover"
                                   mode="aspectFill"
                                 />
-                                <View className="absolute inset-0 flex items-center justify-center bg-black/30 rounded">
+                                <View className="absolute inset-0 flex items-center justify-center rounded" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
                                   <Text className="text-white text-xs">▶</Text>
                                 </View>
                               </View>
@@ -422,7 +422,7 @@ export default function StaffInstrumentDetail() {
                 </Button>
               )}
               {instrument.stock_status === 'returning' && has('order:update') && (
-                <Button onClick={handleReceive} disabled={actionLoading || !activeOrder} className="flex-1 py-3 bg-[#C21838] text-white rounded-2xl font-black flex items-center justify-center gap-2">
+                <Button onClick={handleReceive} disabled={actionLoading || !activeOrder} className="flex-1 py-3 text-white rounded-2xl font-black flex items-center justify-center gap-2">
                   <RotateCcw size={18} />接收
                 </Button>
               )}

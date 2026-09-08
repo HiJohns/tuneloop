@@ -39,12 +39,12 @@ export default function AddressForm({ address, onClose, onSaved }) {
     setSaving(false)
   }
 
-  const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-primary'
+  const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm'
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1'
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-md p-5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
+      <div className="bg-white rounded-t-2xl w-full max-w-md p-5 overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-medium text-lg">{address ? '编辑地址' : '新建地址'}</h3>
           <button onClick={onClose} className="p-1"><X size={20} /></button>
@@ -75,7 +75,7 @@ export default function AddressForm({ address, onClose, onSaved }) {
           <button
             onClick={handleSubmit}
             disabled={saving}
-            className="w-full py-3 bg-brand-primary text-white rounded-lg font-medium disabled:opacity-50"
+            className="w-full py-3 bg-brand-primary text-white rounded-lg font-medium"
           >
             {saving ? '保存中...' : '保存'}
           </button>

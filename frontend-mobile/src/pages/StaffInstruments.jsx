@@ -89,7 +89,7 @@ export default function StaffInstruments() {
   return (
     <View className="min-h-screen pb-24" style={{backgroundColor: '#FDFBF7'}}>
       {!env.isMiniProgram && (
-        <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
+        <View className="bg-gradient-to-b px-4 pt-4 pb-3 flex items-center gap-2">
           <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
           <Text className="text-lg font-black text-black">乐器管理</Text>
         </View>
@@ -121,7 +121,7 @@ export default function StaffInstruments() {
             {instruments.map(inst => (
               <View
                 key={inst.id}
-                className="bg-white rounded-2xl p-4 flex gap-3 cursor-pointer active:opacity-80"
+                className="bg-white rounded-2xl p-4 flex gap-3 cursor-pointer"
                 onClick={() => env.isMiniProgram ? Taro.navigateTo({ url: `/pages-weapp/staff-instrument-detail/index?id=${inst.id}` }) : navigate(`/staff/instrument?id=${inst.id}`)}
               >
                 {(() => {

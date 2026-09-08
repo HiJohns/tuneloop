@@ -191,7 +191,7 @@ export default function ShippingInterface() {
   return (
     <View className="min-h-screen pb-24" style={{backgroundColor: '#FDFBF7'}}>
       {!env.isMiniProgram && (
-        <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-4 flex items-center gap-3">
+        <View className="bg-gradient-to-b px-4 pt-4 pb-4 flex items-center gap-3">
           <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
           <Text className="text-lg font-black text-black">发货</Text>
         </View>
@@ -215,7 +215,7 @@ export default function ShippingInterface() {
               <Button
                 onClick={() => handleLookupByCode(codeInput)}
                 disabled={lookupLoading || !codeInput.trim()}
-                className="px-4 py-2 bg-black text-white rounded-lg text-sm font-black disabled:opacity-50"
+                className="px-4 py-2 bg-black text-white rounded-lg text-sm font-black"
               >
                 <Text className="text-sm">{lookupLoading ? '查询中...' : '查询'}</Text>
               </Button>
@@ -242,7 +242,7 @@ export default function ShippingInterface() {
               <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <View className="flex items-start gap-2">
                   <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">订单号</Text>
-                  <Text className="text-sm text-black font-mono font-medium truncate max-w-[200px]" title={order.id}>{order.id.length > 32 ? order.id.slice(0, 32) + '...' : order.id}</Text>
+                  <Text className="text-sm text-black font-mono font-medium truncate" title={order.id}>{order.id.length > 32 ? order.id.slice(0, 32) + '...' : order.id}</Text>
                 </View>
                 <View className="flex items-start gap-2">
                   <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">创建时间</Text>
@@ -296,7 +296,7 @@ export default function ShippingInterface() {
                 <Button
                   onClick={handleStaffCancel}
                   disabled={cancelling}
-                  className="w-full mt-3 py-2.5 bg-red-500 text-white rounded-xl font-black disabled:opacity-50"
+                  className="w-full mt-3 py-2.5 bg-red-500 text-white rounded-xl font-black"
                 >
                   {cancelling ? '处理中...' : '取消订单'}
                 </Button>
@@ -353,7 +353,7 @@ export default function ShippingInterface() {
                     <Image src={env.isMiniProgram ? file : URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
                     <Button
                       onClick={() => removePhoto(i)}
-                      className="absolute top-1 right-1 bg-black/50 rounded-full w-5 h-5 flex items-center justify-center"
+                      className="absolute top-1 right-1 rounded-full w-5 h-5 flex items-center justify-center"
                     >
                       <Text className="text-white text-xs">✕</Text>
                     </Button>
@@ -366,7 +366,7 @@ export default function ShippingInterface() {
                       <Text className="text-xs mt-1">拍摄</Text>
                     </View>
                   ) : (
-                    <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer text-gray-400 hover:text-brand-primary">
+                    <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer text-gray-400">
                       <Camera size={24} />
                       <Text className="text-xs mt-1">拍摄</Text>
                       <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handlePhotoCapture} />

@@ -288,7 +288,7 @@ export default function RepairRequestDetail() {
   const status = request.status
 
   return (
-    <View className="flex flex-col h-screen bg-[#FDFBF7]">
+    <View style={{ backgroundColor: "#FDFBF7" }} className="flex flex-col h-screen">
       <View className="bg-white px-4 py-3 border-b border-zinc-100 flex items-center gap-2">
         <Text className="text-lg mr-2" onClick={goBack}>{'<'}</Text>
         <Text className="text-lg font-bold flex-1">报修详情</Text>
@@ -460,7 +460,7 @@ export default function RepairRequestDetail() {
                   placeholder="工期" type="number" />
                 <Text className="text-sm text-zinc-500">天</Text>
               </View>
-              <Textarea className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2 min-h-[60px]"
+              <Textarea className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
                 value={quoteForm.comment} onInput={e => setQuoteForm(p => ({ ...p, comment: e.detail?.value || e.target?.value || '' }))}
                 placeholder="报价备注（禁止含联系方式）" />
               <View className="flex gap-2">

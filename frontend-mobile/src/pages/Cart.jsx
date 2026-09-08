@@ -304,7 +304,7 @@ export default function Cart() {
   }
 
   return (
-    <View className="container h-screen w-screen bg-[#FDFBF7] overflow-hidden flex flex-col relative antialiased">
+    <View style={{ backgroundColor: "#FDFBF7" }} className="container h-screen w-screen overflow-hidden flex flex-col relative antialiased">
       <View
         className="w-full pb-2 px-4 flex justify-between items-center bg-white border-b border-zinc-100 flex-shrink-0"
         style={{ paddingTop: env.isMiniProgram ? (Taro.getSystemInfoSync().statusBarHeight || 0) + 8 : 12 }}
@@ -339,7 +339,7 @@ export default function Cart() {
 
               return (
                 <View key={group.tenant_id || 'unknown'} className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col">
-                  <View className="bg-zinc-50/80 px-4 py-2.5 flex items-center justify-between border-b border-zinc-100 text-[11px] text-zinc-400 font-bold">
+                  <View className="px-4 py-2.5 flex items-center justify-between border-b border-zinc-100 text-zinc-400 font-bold">
                     <View className="flex items-center" style={{ gap: 4 }}>
                       <Text>🏢</Text>
                       <Text className="text-zinc-700 font-black">{group.tenant_name}</Text>
@@ -410,12 +410,12 @@ export default function Cart() {
                               <View className="flex-1 min-w-0">
                                 <Text className="text-base font-black text-black tracking-wide truncate block">{item.sn || item.name || '未知乐器'}</Text>
                                 <View className="flex items-center flex-wrap gap-1 mt-1">
-                                  {item.level_name && <Text className="bg-blue-50 text-blue-600 text-[10px] font-black px-1.5 py-0.5 rounded flex-shrink-0">{item.level_name}</Text>}
+                                  {item.level_name && <Text className="bg-blue-50 text-blue-600 font-black px-1.5 py-0.5 rounded flex-shrink-0">{item.level_name}</Text>}
                                   <Text className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-extrabold flex-shrink-0">🔶 {item.category_name || '乐器'}</Text>
                                 </View>
                               </View>
                               {!rentedOut && (
-                                <View className="flex items-center border border-zinc-200 rounded-full h-7 px-1 bg-zinc-50/50 flex-shrink-0 ml-2">
+                                <View className="flex items-center border border-zinc-200 rounded-full h-7 px-1 flex-shrink-0 ml-2">
                                   <Text className="px-2 text-zinc-400 font-bold text-sm select-none" onClick={() => adjustRentDays(itemId, -1)}>—</Text>
                                   <Text className="px-1 text-black font-black text-xs">{days}天</Text>
                                   <Text className="px-2 text-zinc-600 font-bold text-sm select-none" onClick={() => adjustRentDays(itemId, 1)}>+</Text>
@@ -424,7 +424,7 @@ export default function Cart() {
                             </View>
 
                             {/* Tier breakdown (小票标准：阶梯天数×日租金=费用 → 租金合计 + 押金 + 总金额) */}
-                            <View className="text-[11px] text-right mt-2" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <View className="text-right mt-2" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                               {pricing.tiers.map((t, i) => (
                                 <Text key={i} className="block text-zinc-500">
                                   {t.days}天 × ¥{((t.rate || 0) / 100).toFixed(2)}/天 = ¥{((t.fee || 0) / 100).toFixed(2)}
@@ -440,14 +440,14 @@ export default function Cart() {
                     })}
                   </View>
 
-                  <View className="bg-zinc-50/40 border-t border-zinc-100 p-4 flex justify-between items-end flex-shrink-0 mt-auto">
-                    <View className="flex flex-col text-[11px] text-zinc-400 font-semibold min-w-0 flex-1" style={{ gap: 4 }}>
+                  <View className="border-t border-zinc-100 p-4 flex justify-between items-end flex-shrink-0 mt-auto">
+                    <View className="flex flex-col text-zinc-400 font-semibold min-w-0 flex-1" style={{ gap: 4 }}>
                       <Text className="truncate">🗺️ 发货仓: {group.site_address || group.site_name || '-'}</Text>
                       {group.site_phone && <Text className="truncate">📞 电话: {group.site_phone}</Text>}
                     </View>
 
                     <View className="text-right flex-shrink-0 ml-3">
-                      <Text className="text-[10px] text-zinc-400 font-bold block mb-0.5">网点小计</Text>
+                      <Text className="text-zinc-400 font-bold block mb-0.5">网点小计</Text>
                       <Text className="text-black font-black text-lg tracking-tight">
                         ¥{groupSubtotal.toFixed(0)}
                       </Text>

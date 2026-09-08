@@ -199,10 +199,10 @@ export default function MessageDetail() {
   const type = typeConfig[notification.type] || typeConfig.order
 
   return (
-    <View className="min-h-screen bg-[#FDFBF7] pb-20">
+    <View style={{ backgroundColor: "#FDFBF7" }} className="min-h-screen pb-20">
       {/* #1706: 手写顶条仅 H5（无原生导航栏）；weapp 用原生导航栏 */}
       {!env.isMiniProgram && (
-      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
+      <View className="bg-gradient-to-b px-4 pt-4 pb-3 flex items-center gap-2">
         <ArrowLeft size={20} className="text-black cursor-pointer" onClick={() => env.isMiniProgram ? Taro.navigateBack() : navigate(-1)} />
         <Text className="text-lg font-black text-black">消息详情</Text>
       </View>
@@ -236,7 +236,7 @@ export default function MessageDetail() {
                 {damageReport.damage_description && (
                   <View className="flex justify-between">
                     <Text className="text-gray-500">说明</Text>
-                    <Text className="text-right max-w-[60%]">{damageReport.damage_description}</Text>
+                    <Text className="text-right">{damageReport.damage_description}</Text>
                   </View>
                 )}
                 <View className="flex justify-between">
@@ -416,7 +416,7 @@ export default function MessageDetail() {
           <View style={{ width: '82%', backgroundColor: '#fff', borderRadius: 16, padding: 20 }}>
             <Text className="text-base font-bold mb-3">申诉</Text>
             <Textarea
-              className="w-full border rounded-lg p-3 text-sm min-h-[120px]"
+              className="w-full border rounded-lg p-3 text-sm"
               value={appealReason}
               onChange={e => setAppealReason(e.detail?.value ?? e.target?.value ?? '')}
               placeholder="请输入申诉原因..."

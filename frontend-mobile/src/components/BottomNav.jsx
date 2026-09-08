@@ -13,14 +13,14 @@ export default function BottomNav({ tabs = [], active = '', badges = {} }) {
             <View className="text-3xl mb-0.5 relative">
               {tab.icon}
               {badge > 0 && (
-                <View className="absolute -top-1 -right-2 bg-[#FF2A55] text-white text-[9px] font-black min-w-[16px] h-4 rounded-full flex items-center justify-center px-1"
+                <View className="absolute -top-1 -right-2 text-white font-black h-4 rounded-full flex items-center justify-center px-1"
                   style={{ border: '1px solid #5A3B24' }}
                 >
                   {badge > 99 ? '99+' : badge}
                 </View>
               )}
             </View>
-            <Text className={`text-[10px] font-bold ${isActive ? 'text-white' : 'text-white/40'}`}>{tab.label}</Text>
+            <Text className={`font-bold ${isActive ? 'text-white' : ''}`} style={!isActive ? { color: 'rgba(255,255,255,0.4)' } : undefined}>{tab.label}</Text>
           </View>
         )
       })}

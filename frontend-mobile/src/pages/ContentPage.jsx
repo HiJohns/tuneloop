@@ -76,10 +76,10 @@ export default function ContentPage() {
   )
 
   return (
-    <View className="min-h-screen bg-[#FDFBF7]">
+    <View style={{ backgroundColor: "#FDFBF7" }} className="min-h-screen">
       {/* Navigation bar — H5 only, weapp uses native nav (#1511) */}
       {!env.isMiniProgram && (
-        <View className="flex items-center px-4 pt-3 pb-2 bg-[#FDF4E7]">
+        <View style={{ backgroundColor: "#FDF4E7" }} className="flex items-center px-4 pt-3 pb-2">
           <Text className="text-xl font-bold text-black mr-4" onClick={goBack}>❮</Text>
           <Text className="text-lg font-black text-black">{titles[key] || '内容'}</Text>
         </View>

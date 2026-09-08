@@ -88,7 +88,7 @@ export default function ImageUploader({ onChange, maxImages = 5 }) {
         {images.length < maxImages && (
           <button
             onClick={onPickClick}
-            className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:border-orange-500 hover:text-orange-500"
+            className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400"
           >
             <Upload size={20} />
             <span className="text-xs mt-1">添加照片</span>

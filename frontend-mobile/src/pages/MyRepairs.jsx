@@ -129,7 +129,7 @@ export default function MyRepairs() {
   }
 
   return (
-    <View className="flex flex-col h-screen bg-[#FDFBF7]">
+    <View style={{ backgroundColor: "#FDFBF7" }} className="flex flex-col h-screen">
       <View className="bg-white px-4 py-3 border-b border-zinc-100">
         <Text className="text-lg font-black text-black">维修</Text>
       </View>
@@ -159,7 +159,7 @@ export default function MyRepairs() {
             ) : (
               <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {repairRequests.map(r => (
-                  <View key={r.id} className="border border-zinc-100 rounded-xl p-3 active:opacity-80" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}
+                  <View key={r.id} className="border border-zinc-100 rounded-xl p-3" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}
                     onClick={() => nav(`/repair-request?request_id=${r.id}`)}>
                     <View className="flex justify-between items-center">
                       <Text className="text-sm font-bold text-black">{r.created_at ? new Date(r.created_at).toLocaleDateString() : '#' + r.id?.slice(0, 8)}</Text>
@@ -213,7 +213,7 @@ export default function MyRepairs() {
             ) : (
               <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {myRepairs.map(inst => (
-                  <View key={inst.id} className="border border-zinc-100 rounded-xl p-3 active:opacity-80"
+                  <View key={inst.id} className="border border-zinc-100 rounded-xl p-3"
                     onClick={() => nav(`/repair?instrument_id=${inst.id}`)}>
                     <Text className="text-sm font-bold text-black">{inst.sn || '未知SN'}</Text>
                     <Text className="text-xs text-zinc-400 mt-1">
@@ -231,7 +231,7 @@ export default function MyRepairs() {
             ) : (
               <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {repairRequests.map(r => (
-                  <View key={r.id} className="border border-zinc-100 rounded-xl p-3 active:opacity-80"
+                  <View key={r.id} className="border border-zinc-100 rounded-xl p-3"
                     onClick={() => nav(`/repair-request?request_id=${r.id}`)}>
                     <Text className="text-sm font-bold text-black">#{r.id?.slice(0, 8)}</Text>
                     <Text className="text-xs text-zinc-400">{statusLabels[r.status] || r.status}</Text>
@@ -247,7 +247,7 @@ export default function MyRepairs() {
             ) : (
               <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {pendingRepairs.map(inst => (
-                  <View key={inst.id} className="border border-zinc-100 rounded-xl p-3 active:opacity-80"
+                  <View key={inst.id} className="border border-zinc-100 rounded-xl p-3"
                     onClick={() => nav(`/repair?instrument_id=${inst.id}`)}>
                     <Text className="text-sm font-bold text-black">{inst.sn || '未知SN'}</Text>
                     <Text className="text-xs text-zinc-400">{inst.category_name || ''}</Text>
@@ -275,7 +275,7 @@ export default function MyRepairs() {
             ) : (
               <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {repairRequests.map(r => (
-                  <View key={r.id} className="border border-zinc-100 rounded-xl p-3 active:opacity-80" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}
+                  <View key={r.id} className="border border-zinc-100 rounded-xl p-3" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}
                     onClick={() => nav(`/repair-request?request_id=${r.id}`)}>
                     <View className="flex justify-between items-center">
                       <Text className="text-sm font-bold text-black">{r.created_at ? new Date(r.created_at).toLocaleDateString() : '#' + r.id?.slice(0, 8)}</Text>
@@ -316,7 +316,7 @@ export default function MyRepairs() {
             ) : (
               <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {pendingRepairs.map(inst => (
-                  <View key={inst.id} className="border border-zinc-100 rounded-xl p-3 active:opacity-80">
+                  <View key={inst.id} className="border border-zinc-100 rounded-xl p-3">
                     <Text className="text-sm font-bold text-black">{inst.sn || '未知SN'}</Text>
                     <Text className="text-xs text-zinc-400">{inst.category_name || ''}</Text>
                     <Button onClick={() => nav(`/repair?instrument_id=${inst.id}`)}

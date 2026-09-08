@@ -72,10 +72,10 @@ export default function Messages() {
   const unreadCount = notifications.filter(n => n.status === 'unread').length
 
   return (
-    <View className="min-h-screen bg-[#FDFBF7] pb-20">
+    <View style={{ backgroundColor: "#FDFBF7" }} className="min-h-screen pb-20">
       {/* 手写顶条仅 H5（无原生导航栏）；weapp 用原生导航栏（#1706） */}
       {!env.isMiniProgram && (
-      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
+      <View className="bg-gradient-to-b px-4 pt-4 pb-3 flex items-center gap-2">
         <ArrowLeft size={20} className="text-black cursor-pointer" onClick={() => navigate(-1)} />
         <Text className="text-lg font-black text-black flex-1">消息</Text>
         {unreadCount > 0 && (

@@ -162,9 +162,9 @@ export default function ReceivingInterface() {
   }
 
   return (
-    <View className="min-h-screen bg-[#FDFBF7] pb-24">
+    <View style={{ backgroundColor: "#FDFBF7" }} className="min-h-screen pb-24">
       {!env.isMiniProgram && (
-        <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
+        <View className="bg-gradient-to-b px-4 pt-4 pb-3 flex items-center gap-2">
           <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
           <Text className="text-lg font-black text-black">收货确认</Text>
         </View>
@@ -234,7 +234,7 @@ export default function ReceivingInterface() {
               <View key={i} className="relative aspect-square rounded-lg overflow-hidden border">
                 <Image src={env.isMiniProgram ? file : URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
                 <Button onClick={() => setCapturedPhotos(prev => prev.filter((_, j) => j !== i))}
-                  className="absolute top-1 right-1 bg-black/50 rounded-full w-5 h-5 flex items-center justify-center">
+                  className="absolute top-1 right-1 rounded-full w-5 h-5 flex items-center justify-center">
                   <Text className="text-white text-xs">✕</Text>
                 </Button>
               </View>

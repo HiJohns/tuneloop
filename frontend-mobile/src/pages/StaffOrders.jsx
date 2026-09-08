@@ -143,8 +143,8 @@ export default function StaffOrders() {
   }
 
   return (
-    <View className="flex flex-col h-screen bg-[#FDFBF7]">
-      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3">
+    <View style={{ backgroundColor: "#FDFBF7" }} className="flex flex-col h-screen">
+      <View className="bg-gradient-to-b px-4 pt-4 pb-3">
         <Text className="text-lg font-black text-black">订单管理</Text>
       </View>
 
@@ -226,7 +226,7 @@ export default function StaffOrders() {
               return (
               <View
                 key={order.id}
-                className="bg-white rounded-2xl shadow-sm p-4 active:opacity-80"
+                className="bg-white rounded-2xl shadow-sm p-4"
                 onClick={() => env.isMiniProgram ? Taro.navigateTo({ url: `/pages-weapp/order-detail/index?id=${order.id}` }) : navigate(`/staff/orders/${order.id}`)}
               >
                 <View className="flex items-center justify-between mb-2">

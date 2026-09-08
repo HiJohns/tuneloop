@@ -200,7 +200,7 @@ export default function MembershipCenter() {
 
   return (
     <>
-    <ScrollView className="h-screen w-screen bg-[#FDFBF7]">
+    <ScrollView style={{ backgroundColor: "#FDFBF7" }} className="h-screen w-screen">
       {/* Navigation bar — H5 only, weapp uses native nav */}
       {!env.isMiniProgram && (
       <View className="flex items-center px-4 py-3 bg-white border-b border-zinc-100">
@@ -272,7 +272,7 @@ export default function MembershipCenter() {
 
       {/* QR Code Modal */}
       {showQR && (
-        <View className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={() => setShowQR(false)}>
+        <View className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setShowQR(false)}>
           <View className="bg-white rounded-2xl p-6 mx-8 flex-col" style={{ display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
             <Text className="text-sm font-bold text-center mb-4">推广二维码</Text>
             <View style={{ alignItems: 'center' }}>

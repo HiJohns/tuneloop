@@ -38,7 +38,7 @@ export default function Setting() {
           {rows.map((row, i) => (
             <View
               key={i}
-              className="flex justify-between items-center py-3.5 active:opacity-60"
+              className="flex justify-between items-center py-3.5"
               onClick={row.onClick}
             >
               <View className="flex items-center gap-2">

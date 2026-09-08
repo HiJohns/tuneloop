@@ -102,7 +102,7 @@ export default function RepairScan() {
   }
 
   return (
-    <View className="flex flex-col h-screen bg-[#FDFBF7] p-4">
+    <View style={{ backgroundColor: "#FDFBF7" }} className="flex flex-col h-screen p-4">
       <View className="flex items-center mb-4">
         <Text className="text-lg mr-2" onClick={() => nav(-1)}>{'<'}</Text>
         <Text className="text-lg font-bold flex-1">转出中转处理</Text>

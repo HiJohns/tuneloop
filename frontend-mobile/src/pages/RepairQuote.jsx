@@ -70,7 +70,7 @@ export default function RepairQuote() {
   const total = acceptedQuote?.total_amount ?? acceptedQuote?.total ?? 0
 
   return (
-    <View className="flex flex-col h-screen bg-[#FDFBF7]">
+    <View style={{ backgroundColor: "#FDFBF7" }} className="flex flex-col h-screen">
       <View className="bg-white px-4 py-3 border-b border-zinc-100 flex items-center gap-2">
         <Text className="text-lg mr-2" onClick={goBack}>{'<'}</Text>
         <Text className="text-lg font-bold flex-1">维修报价</Text>
