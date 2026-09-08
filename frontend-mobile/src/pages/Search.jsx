@@ -39,7 +39,7 @@ export default function Search() {
   }
 
   return (
-    <View className="h-screen bg-[#FDFBF7] flex flex-col">
+    <View className="h-screen flex flex-col">
       <View className="bg-white px-4 py-3 flex items-center gap-2 border-b border-zinc-100">
         <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
         <input
@@ -50,7 +50,7 @@ export default function Search() {
           className="flex-1 h-10 border border-zinc-300 rounded-full px-4 text-sm outline-none"
           autoFocus
         />
-        <Text onClick={() => handleSearch()} className="text-sm font-black text-[#915F38] px-2 cursor-pointer">搜索</Text>
+        <Text onClick={() => handleSearch()} className="text-sm font-black px-2 cursor-pointer">搜索</Text>
       </View>
 
       <ScrollView className="flex-1">
@@ -59,7 +59,7 @@ export default function Search() {
             <Text className="text-sm font-black text-zinc-500 mb-3">历史搜索</Text>
             {history.map((h, i) => (
               <Text key={i} onClick={() => { setQuery(h); handleSearch(h) }}
-                className="text-sm font-black text-[#915F38] py-2 block cursor-pointer">{h}</Text>
+                className="text-sm font-black py-2 block cursor-pointer">{h}</Text>
             ))}
           </View>
         )}
@@ -67,13 +67,13 @@ export default function Search() {
         {loading && <Text className="text-center text-zinc-400 py-8 font-black">搜索中...</Text>}
         {results.map(item => (
           <View key={item.id} onClick={() => navigate(`/instrument?id=${item.id}`)}
-            className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4 flex gap-3 cursor-pointer active:opacity-80">
+            className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4 flex gap-3 cursor-pointer">
             <Image src={item.cover_image || ''} className="w-20 h-20 rounded-xl bg-zinc-100" mode="aspectFill" />
             <View className="flex-1">
               <Text className="text-base font-black text-black">{item.category_name}</Text>
               <Text className="text-xs text-zinc-500 mt-1 font-medium">SN: {item.sn}</Text>
               <Text className="text-xs text-zinc-500 font-medium">{item.level_name}</Text>
-              <Text className="text-sm font-black text-[#C21838] mt-2">{Math.round((item.daily_rate_cents || 0) / 100)}/日</Text>
+              <Text className="text-sm font-black mt-2">{Math.round((item.daily_rate_cents || 0) / 100)}/日</Text>
             </View>
           </View>
         ))}

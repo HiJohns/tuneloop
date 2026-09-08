@@ -344,15 +344,15 @@ function SingleCheckout({ id, navigate }) {
     setSubmitting(false)
   }
 
-  const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-primary'
+  const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-brand-primary'
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1'
 
-  if (loading) return <View className="min-h-screen bg-[#FDFBF7] flex items-center justify-center"><Text className="text-zinc-400">加载中...</Text></View>
-  if (!instrument) return <View className="min-h-screen bg-[#FDFBF7] flex items-center justify-center"><Text className="text-zinc-400">乐器不存在</Text></View>
+  if (loading) return <View className="min-h-screen flex items-center justify-center"><Text className="text-zinc-400">加载中...</Text></View>
+  if (!instrument) return <View className="min-h-screen flex items-center justify-center"><Text className="text-zinc-400">乐器不存在</Text></View>
 
   return (
-    <View className="min-h-screen bg-[#FDFBF7] pb-28">
-      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
+    <View className="min-h-screen pb-28">
+      <View className="bg-gradient-to-b px-4 pt-4 pb-3 flex items-center gap-2">
         <ArrowLeft size={20} className="text-black cursor-pointer" onClick={() => navigate(-1)} />
         <Text className="text-lg font-black text-black">确认订单</Text>
       </View>
@@ -363,7 +363,7 @@ function SingleCheckout({ id, navigate }) {
         <View className="mb-3">
           <Text className="font-black text-black">租赁乐器</Text>
           <View className="flex gap-3 mt-2">
-            <Image src={instrument?.cover_image || instrument?.images?.[0]} mode="aspectFill" className="w-20 h-20 object-cover rounded-lg bg-[#FDF4E7]" />
+            <Image src={instrument?.cover_image || instrument?.images?.[0]} mode="aspectFill" className="w-20 h-20 object-cover rounded-lg" style={{ backgroundColor: "#FDF4E7" }} />
             <View className="flex-1 justify-center">
               <Text className="font-black text-sm text-black">{instrument?.name || instrument?.sn}</Text>
               <Text className="text-xs text-zinc-500">{instrument?.category_name}</Text>
@@ -417,7 +417,7 @@ function SingleCheckout({ id, navigate }) {
                 {depositWaived ? (
                   <Text className="text-green-600 font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥0（免押金）</Text>
                 ) : (
-                  <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{((deposit || 0) / 100).toFixed(2)}{deposit === 0 ? <Text className="text-[10px] text-zinc-400 ml-1">(日租金×倍率)</Text> : null}</Text>
+                  <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{((deposit || 0) / 100).toFixed(2)}{deposit === 0 ? <Text className="text-zinc-400 ml-1">(日租金×倍率)</Text> : null}</Text>
                 )}
               </View>
             </View>
@@ -473,13 +473,13 @@ function SingleCheckout({ id, navigate }) {
               <Text className="font-black text-zinc-900 text-base">合计</Text>
               <Text className="text-brand-primary font-black text-lg flex-shrink-0 ml-auto whitespace-nowrap">¥{(totalAmount / 100).toFixed(2)}</Text>
             </View>
-            <Text className="text-[10px] text-zinc-400 text-right mt-1">租金 ¥{(totalRent / 100).toFixed(2)} + 押金 ¥{((deposit || 0) / 100).toFixed(2)}</Text>
+            <Text className="text-zinc-400 text-right mt-1">租金 ¥{(totalRent / 100).toFixed(2)} + 押金 ¥{((deposit || 0) / 100).toFixed(2)}</Text>
             {effectiveDeposit === 0 ? (
               // #1732: 0 押金订单（乐器本身 0 押金或免押金）→ 快递到付文案
-              <Text className="block text-red-500 text-[13px] font-medium mt-2 leading-relaxed">尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时我们将选择快递到付且保价，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！</Text>
+              <Text className="block text-red-500 font-medium mt-2 leading-relaxed">尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时我们将选择快递到付且保价，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！</Text>
             ) : (
               // #1732: 已付押金订单 → 押金扣除文案
-              <Text className="block text-red-500 text-[13px] font-medium mt-2 leading-relaxed">尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时的物流费届时将从您的押金中扣除，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！</Text>
+              <Text className="block text-red-500 font-medium mt-2 leading-relaxed">尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时的物流费届时将从您的押金中扣除，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！</Text>
             )}
           </View>
         </View>
@@ -495,7 +495,7 @@ function SingleCheckout({ id, navigate }) {
               type="checkbox"
               checked={depositWaived}
               onChange={e => setDepositWaived(e.target.checked)}
-              className="w-5 h-5 accent-[#B98E5F]"
+              className="w-5 h-5"
             />
           </View>
           {depositWaived && (
@@ -510,7 +510,7 @@ function SingleCheckout({ id, navigate }) {
         {depositWaived && (
           <View className="bg-white rounded-2xl shadow-sm p-4 mb-3">
             <Text className="font-black text-black mb-1">担保人信息</Text>
-            <Text className="text-[10px] text-zinc-400 mb-3">已选 {selectedGuarantorIds.length}/2</Text>
+            <Text className="text-zinc-400 mb-3">已选 {selectedGuarantorIds.length}/2</Text>
             {guarantors.length > 0 && (
               <View className="mb-3">
                 {guarantors.map((g, gi) => (
@@ -556,15 +556,15 @@ function SingleCheckout({ id, navigate }) {
                 </View>
                 <View className="flex gap-2 mt-2">
                   <View className="flex-1 flex flex-col items-center text-center">
-                    <Text className="text-[10px] text-gray-500 mb-1">身份证正面*</Text>
+                    <Text className="text-gray-500 mb-1">身份证正面*</Text>
                     <IdPhotoUploader side="front" onChange={onFrontPhotoChange} />
                   </View>
                   <View className="flex-1 flex flex-col items-center text-center">
-                    <Text className="text-[10px] text-gray-500 mb-1">身份证反面*</Text>
+                    <Text className="text-gray-500 mb-1">身份证反面*</Text>
                     <IdPhotoUploader side="back" onChange={setGPhotoBack} />
                   </View>
                   <View className="flex-1 flex flex-col items-center text-center">
-                    <Text className="text-[10px] text-gray-500 mb-1">其他证件*</Text>
+                    <Text className="text-gray-500 mb-1">其他证件*</Text>
                     <IdPhotoUploader side="other" onChange={setGPhotoOther} />
                   </View>
                 </View>
@@ -829,7 +829,7 @@ function BatchCheckout({ navigate }) {
     return total
   }, [groups, depositWaived])
 
-  const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-primary'
+  const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-brand-primary'
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1'
 
   const handleSaveGuarantor = async () => {
@@ -960,7 +960,7 @@ function BatchCheckout({ navigate }) {
         <View className="p-4 m-4 bg-white rounded-2xl shadow-sm border border-zinc-100 flex flex-col items-center">
           <View className="text-center">
             <Text className="text-xs text-zinc-400 font-bold tracking-widest block uppercase">TOTAL PAYABLE</Text>
-            <Text className="text-[#915F38] text-4xl font-black tracking-tight block">
+            <Text className="text-4xl font-black tracking-tight block">
               ¥{(grandTotal / 100).toFixed(2)}
             </Text>
           </View>
@@ -991,22 +991,22 @@ function BatchCheckout({ navigate }) {
                     const images = parseImages(item.images)
                         const imgSrc = item.cover_image || images[0] || ''
                     return (
-                      <View key={item.instrument_id || item.id} className="flex items-center py-1.5 border-b border-zinc-100 last:border-b-0">
+                      <View key={item.instrument_id || item.id} className="flex items-center py-1.5 border-b border-zinc-100">
                         {imgSrc && (
                           <Image src={imgSrc} className="w-8 h-8 rounded object-cover bg-zinc-100 mr-2 flex-shrink-0" />
                         )}
                         <View className="flex-1 min-w-0">
                           <Text className="text-xs font-bold text-zinc-700 truncate">{item.sn || item.name}</Text>
-                          <Text className="text-[10px] text-zinc-400">{item.category_name || ''}</Text>
+                          <Text className="text-zinc-400">{item.category_name || ''}</Text>
                         </View>
-                        <Text className="text-[10px] text-zinc-500 flex-shrink-0 ml-2">
+                        <Text className="text-zinc-500 flex-shrink-0 ml-2">
                           {item.rent_qty || 30}天 · ¥{((p.rent || 0) / 100).toFixed(2)}
                         </Text>
                       </View>
                     )
                   })}
-                  <View className="flex justify-between items-center mt-1 pt-1 border-t border-zinc-200/60">
-                    <Text className="text-[10px] text-zinc-400">
+                  <View className="flex justify-between items-center mt-1 pt-1 border-t" style={{ borderColor: 'rgba(228,228,231,0.6)' }}>
+                    <Text className="text-zinc-400">
                       {depositWaived ? '免押金' : `押金 ¥${((groupDeposit || 0) / 100).toFixed(2)}`}
                     </Text>
                     <Text className="text-sm font-bold text-zinc-800">小计 ¥{((groupSubtotal || 0) / 100).toFixed(2)}</Text>
@@ -1016,20 +1016,20 @@ function BatchCheckout({ navigate }) {
             })}
           </View>
 
-          <View className="w-full bg-zinc-50 p-3 rounded-xl text-[11px] text-zinc-400 leading-normal">
+          <View className="w-full bg-zinc-50 p-3 rounded-xl text-zinc-400 leading-normal">
             🔒 暖心提示：资产固定押金将在乐器归还、网点网管质检合格后，按原支付渠道原路退回至您的微信零钱。
           </View>
 
           <View className="w-full flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2.5">
             <View className="flex-1 min-w-0">
               <Text className="text-sm font-medium text-gray-700">免押金租赁</Text>
-              <Text className="block text-[10px] text-gray-400">需提供两位担保人的联系方式</Text>
+              <Text className="block text-gray-400">需提供两位担保人的联系方式</Text>
             </View>
             <input
               type="checkbox"
               checked={depositWaived}
               onChange={e => setDepositWaived(e.target.checked)}
-              className="w-5 h-5 accent-[#B98E5F]"
+              className="w-5 h-5"
             />
           </View>
           {depositWaived && (
@@ -1042,7 +1042,7 @@ function BatchCheckout({ navigate }) {
           {depositWaived && (
             <View className="w-full bg-white rounded-xl border border-zinc-100 p-3">
               <Text className="text-xs font-bold text-zinc-500 mb-1">🛡 担保人信息</Text>
-              <Text className="text-[10px] text-zinc-400 mb-3">已选 {selectedGuarantorIds.length}/2</Text>
+              <Text className="text-zinc-400 mb-3">已选 {selectedGuarantorIds.length}/2</Text>
               {guarantors.length > 0 && (
                 <View className="mb-3">
                   {guarantors.map((g, gi) => (
@@ -1194,7 +1194,7 @@ function BatchCheckout({ navigate }) {
             <Text className="text-2xl">🟢</Text>
             <View>
               <Text className="block text-base font-black text-black">微信支付</Text>
-              <Text className="block text-[11px] text-zinc-400">亿万用户的安全选择</Text>
+              <Text className="block text-zinc-400">亿万用户的安全选择</Text>
             </View>
           </View>
           <Text className="text-sm font-black" style={{ color: '#915F38' }}>✓</Text>

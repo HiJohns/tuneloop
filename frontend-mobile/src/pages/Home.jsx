@@ -40,12 +40,12 @@ function InstrumentCard({ instrument, onClick }) {
   return (
     <View className="bg-white rounded-2xl p-3 flex items-center shadow-md w-full" onClick={onClick}>
       <View className="w-20 h-20 bg-zinc-50 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
-        <Image src={thumb} className="w-[72px] h-[72px] object-contain" />
+        <Image src={thumb} className=" object-contain" />
       </View>
       <View className="flex-1 ml-3 h-20 flex justify-between items-start pr-4 overflow-hidden">
         <View className="flex flex-col h-full justify-between py-0.5 min-w-0 flex-1" style={{ gap: 4 }}>
           <View className="w-full min-w-0">
-            <Text className="block text-[1.4rem] leading-[1.6rem] font-black text-black tracking-wide truncate">{instrument.name || instrument.sn}</Text>
+            <Text className="block font-black text-black tracking-wide truncate">{instrument.name || instrument.sn}</Text>
             <Text className="block text-sm text-zinc-500 font-bold truncate">{instrument.category_name}</Text>
           </View>
           {levelName && (
@@ -56,7 +56,7 @@ function InstrumentCard({ instrument, onClick }) {
         </View>
         <View className="h-full flex flex-col justify-end text-right self-end ml-2 flex-shrink-0 whitespace-nowrap">
           {instrument.stock_status === 'available' ? (
-            <Text className="font-black text-[26px] tracking-tight" style={{ color: '#C21838' }}>
+            <Text className="font-black tracking-tight" style={{ color: '#C21838' , fontSize: 26}}>
               {Number(dailyRate.toFixed(2))}<Text className="text-base font-bold" style={{ color: '#C21838', opacity: 0.7 }}>/日</Text>
             </Text>
           ) : (
@@ -249,7 +249,7 @@ export default function Home() {
                   mode="aspectFill"
                 />
                 {item.title ? (
-                  <View className="absolute bottom-0 left-0 right-0 bg-black/40 px-4 py-2">
+                  <View className="absolute bottom-0 left-0 right-0 px-4 py-2" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
                     <Text className="text-white text-sm">{item.title}</Text>
                   </View>
                 ) : null}
@@ -266,7 +266,7 @@ export default function Home() {
 
       {/* Carousel dots — hide on scroll */}
       {!scrolled && (
-        <View className="absolute left-0 right-0 z-[40] flex items-center justify-center" style={{ bottom: 8 }}>
+        <View className="absolute left-0 right-0 flex items-center justify-center" style={{ bottom: 8 , zIndex: 40}}>
           <View className="flex items-center" style={{ gap: 6 }}>
             {(banners.length > 0 ? banners : Array.from({ length: 3 })).map((_, i) => {
               const r = currentBanner < 0 ? banners.length - 1 : currentBanner >= banners.length ? 0 : currentBanner
@@ -279,7 +279,7 @@ export default function Home() {
         {/* Swipe layer — intercepts touch and mouse over the banner area.
             z drops to 0 once scrolled so the fixed menu becomes clickable (#1572). */}
         {banners.length > 0 && (
-          <View className={`absolute top-0 left-0 right-0 ${scrolled ? 'z-0' : 'z-[10002]'}`} style={{ height: 240 }}
+          <View className={`absolute top-0 left-0 right-0 ${scrolled ? 'z-0' : ''}`} style={{ height: 240 , zIndex: 10002}}
             onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
             onTouchEnd={(e) => {
               const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
@@ -311,13 +311,13 @@ export default function Home() {
         )}
 
       {/* E layer: frosted backdrop — transparent→blurs carousel on scroll */}
-      <View className={`fixed inset-0 z-[5] transition-all duration-500 ${scrolled ? 'bg-[#5A3B24]/70' : 'bg-transparent'}`}
+      <View className={`fixed inset-0 transition-all duration-500 ${scrolled ? '' : 'bg-transparent'}`}
         style={scrolled ? { backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' } : {}}
       />
 
       {/* A: Search bar — fixed above carousel, clickable pill to /search */}
-      <View className="fixed left-0 right-0 z-[10003] flex items-center justify-center" style={{ top: '16px' }}>
-        <View onClick={() => navigate('/search')} className="rounded-full flex items-center px-4 cursor-pointer active:opacity-70"
+      <View className="fixed left-0 right-0 flex items-center justify-center" style={{ top: '16px' , zIndex: 10003}}>
+        <View onClick={() => navigate('/search')} className="rounded-full flex items-center px-4 cursor-pointer"
           style={{ backgroundColor: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.5)', paddingTop: 6, paddingBottom: 6, width: '30%' }}
         >
           <Text className="text-sm mr-2" style={{ color: '#fff' }}>🔍</Text>
@@ -333,7 +333,7 @@ export default function Home() {
       </View>
 
       {/* B: clip layer — wraps both ScrollView and BottomNav, overflow:hidden clips at edges */}
-       <View className="fixed left-0 right-0 z-[100] flex flex-col" style={{ top: '142px', bottom: 0, overflow: 'hidden' }}>
+       <View className="fixed left-0 right-0 flex flex-col" style={{ top: '142px', bottom: 0, overflow: 'hidden' , zIndex: 100}}>
         <ScrollView className="flex-1 overflow-y-auto bg-transparent"
           scrollY scrollWithAnimation enhanced showScrollbar={false}
           onScroll={e => setScrollY(e.detail?.scrollTop ?? e.target?.scrollTop ?? 0)}>
@@ -360,7 +360,7 @@ export default function Home() {
               />
             ))
           ) : (
-            <View className="text-center py-16 text-white/60">
+            <View className="text-center py-16" style={{ color: 'rgba(255,255,255,0.6)' }}>
               <Text className="text-5xl block mb-4">🎵</Text>
               <Text className="text-lg">暂无乐器</Text>
             </View>
@@ -385,8 +385,8 @@ export default function Home() {
           Inside the clip layer, weapp strict CSS clips fixed children and the
           z-50 < z-100 stack blocks taps (#1601). Inline zIndex 10004 keeps it
           above the content layer and sibling to the menu. */}
-      <View onClick={handleCartClick} className="fixed bottom-24 right-4 bg-[#002140] text-white p-3 rounded-full shadow-lg"
-        style={{ zIndex: 10004 }}>
+      <View onClick={handleCartClick} className="fixed bottom-24 right-4 text-white p-3 rounded-full shadow-lg"
+        style={{ zIndex: 10004, backgroundColor: '#002140' }}>
         <Text className="text-xl">🛒</Text>
         {cartItemCount > 0 && (
           <Text className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
@@ -441,7 +441,8 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
   }
 
   return (
-    <View className="w-full overflow-hidden pl-7 bg-black/20 py-1"
+    <View className="w-full overflow-hidden pl-7 py-1"
+      style={{ backgroundColor: 'rgba(0,0,0,0.2)' }}
       onTouchStart={e => {
         localTouchRef.current = { x: e.touches[0].clientX, offset: catOffsetX }
       }}
@@ -458,8 +459,8 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
         {displayItems.map(item => (
           <Text
             key={item.id || 'all'}
-            className={`text-lg whitespace-nowrap ${selectedCategory === item.id ? `font-black border-b-2 pb-0.5 text-white border-white` : `font-bold text-white/80`}`}
-            style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
+            className={`text-lg whitespace-nowrap ${selectedCategory === item.id ? `font-black border-b-2 pb-0.5 text-white border-white` : `font-bold`}`}
+            style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)', ...(selectedCategory !== item.id ? { color: 'rgba(255,255,255,0.8)' } : {}) }}
             onClick={() => handleItemClick(item)}
           >
             {item.name}

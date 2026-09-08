@@ -400,7 +400,7 @@ export default function OrderDetail() {
   return (
     <View className="h-screen flex flex-col" style={{backgroundColor: '#FDFBF7'}}>
       {!env.isMiniProgram && (
-        <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
+        <View className="bg-gradient-to-b px-4 pt-4 pb-3 flex items-center gap-2">
           <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
           <Text className="text-lg font-black text-black">订单详情</Text>
         </View>
@@ -691,7 +691,7 @@ export default function OrderDetail() {
           {(order.pricing_breakdown && typeof order.pricing_breakdown === 'object') && (
             <View className="mt-3 border-t border-dashed border-zinc-200 pt-2">
               <View
-                className="flex justify-between items-center cursor-pointer active:opacity-70"
+                className="flex justify-between items-center cursor-pointer"
                 onClick={() => setShowContract(!showContract)}
               >
                 <Text className="text-sm font-bold text-zinc-500">合同快照</Text>
@@ -750,7 +750,7 @@ export default function OrderDetail() {
                       <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{((deposit || 0) / 100).toFixed(2)}</Text>
                     </View>
                     {order.pricing_breakdown.deposit_method && (
-                      <Text className="text-[10px] text-zinc-400 text-right -mt-1">
+                      <Text className="text-zinc-400 text-right -mt-1">
                         {order.pricing_breakdown.deposit_method === 'total_price'
                           ? `原价 ¥${((order.pricing_breakdown.total_price || 0 || 0) / 100).toFixed(2)} × ${order.pricing_breakdown.deposit_ratio || 0}`
                           : (order.pricing_breakdown.deposit_multiplier > 0
@@ -923,7 +923,7 @@ export default function OrderDetail() {
         </View>
         {logHasMore && (
           <View onClick={() => fetchLogs(logPage + 1, true)}
-            className="mt-3 py-2.5 rounded-xl bg-zinc-100 text-center cursor-pointer active:opacity-70">
+            className="mt-3 py-2.5 rounded-xl bg-zinc-100 text-center cursor-pointer">
             <Text className="text-sm font-black text-zinc-500">加载更多</Text>
           </View>
         )}
@@ -943,7 +943,7 @@ export default function OrderDetail() {
           </View>
           <View className="flex justify-between text-sm mb-1">
             <Text className="text-zinc-500 font-medium">定损说明</Text>
-            <Text className="text-zinc-900 font-black flex-shrink-0 ml-auto text-right max-w-[60%]">{order.damage.description || '暂无'}</Text>
+            <Text className="text-zinc-900 font-black flex-shrink-0 ml-auto text-right">{order.damage.description || '暂无'}</Text>
           </View>
           {(order.damage.photos || []).length > 0 && (
             <View className="flex flex-row flex-wrap gap-2 mb-3">
@@ -977,43 +977,43 @@ export default function OrderDetail() {
 
       {/* Action Buttons */}
       <View className="bg-white border-t-2 border-zinc-200 p-4 safe-area-pb" style={{boxShadow:'0 -4px 12px rgba(0,0,0,0.08)'}}>
-        <View className="max-w-[480px] mx-auto" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <View className="mx-auto" style={{ display: 'flex', flexDirection: 'column', gap: 12 , maxWidth: 480}}>
           {isStaff ? (
             <>
               {showStaffShip && (
                 <View onClick={() => navigate(`/staff/shipping?order_id=${id}`)}
-                  className="w-full py-3 bg-black text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
+                  className="w-full py-3 bg-black text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer">
                   <Truck size={20} /><Text>发货</Text>
                 </View>
               )}
               {showStaffCancel && (
                 <View onClick={actionLoading ? undefined : handleStaffCancel}
-                  className="w-full py-3 bg-red-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80"
+                  className="w-full py-3 bg-red-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer"
                   style={{ opacity: actionLoading ? 0.5 : 1 }}>
                   {actionLoading ? '处理中...' : '❌ 取消订单'}
                 </View>
               )}
               {showStaffTransit && (
                 <View onClick={() => navigate(`/staff/shipping?order_id=${id}`)}
-                  className="w-full py-3 bg-cyan-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
+                  className="w-full py-3 bg-cyan-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer">
                   <Truck size={20} /><Text>接收并转发</Text>
                 </View>
               )}
               {showStaffDeliver && (
                 <View onClick={() => navigate(`/staff/receive?order_id=${id}&instrument=${order.instrument_id}`)}
-                  className="w-full py-3 bg-green-700 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
+                  className="w-full py-3 bg-green-700 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer">
                   <PackageCheck size={20} /><Text>代收货</Text>
                 </View>
               )}
               {showStaffReceive && (
                 <View onClick={() => navigate(`/staff/receiving?order_id=${id}`)}
-                  className="w-full py-3 bg-rose-700 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
+                  className="w-full py-3 bg-rose-700 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer">
                   <RotateCcw size={20} /><Text>接收</Text>
                 </View>
               )}
               {showStaffRefund && (
                 <View onClick={handleStaffRefund}
-                  className="w-full py-3 bg-amber-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
+                  className="w-full py-3 bg-amber-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer">
                   <Banknote size={20} /><Text>{refunding ? '退款处理中...' : '退款'}</Text>
                 </View>
               )}
@@ -1035,19 +1035,19 @@ export default function OrderDetail() {
             <>
               {showPayButton && (
                 <Button onClick={handlePay} disabled={actionLoading}
-                  className="w-full py-3 bg-black text-white rounded-2xl font-black flex items-center justify-center gap-2 disabled:opacity-50">
+                  className="w-full py-3 bg-black text-white rounded-2xl font-black flex items-center justify-center gap-2">
                   <CreditCard size={20} />{actionLoading ? '处理中...' : '支付'}
                 </Button>
               )}
               {showCancelButton && (
                 <Button onClick={handleCancel} disabled={actionLoading}
-                  className="w-full py-3 bg-red-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 disabled:opacity-50">
+                  className="w-full py-3 bg-red-500 text-white rounded-2xl font-black flex items-center justify-center gap-2">
                   <XCircle size={20} />{actionLoading ? '处理中...' : '取消订单'}
                 </Button>
               )}
               {showReceiveButton && (
                 <View onClick={() => navigate(`/receive?order_id=${id}&instrument=${order.instrument_id}`)}
-                  className="w-full py-3 bg-green-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
+                  className="w-full py-3 bg-green-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer">
                   <CheckCircle size={20} />确认收货
                 </View>
               )}
@@ -1055,13 +1055,13 @@ export default function OrderDetail() {
                 <View className="flex gap-3">
                   {showRenewButton && (
                     <View onClick={() => navigate(`/renewal/${id}`)}
-                      className="flex-1 py-3 bg-blue-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
+                      className="flex-1 py-3 bg-blue-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer">
                       <Calendar size={20} />续期
                     </View>
                   )}
                   {showReturnButton && (
                     <View onClick={() => navigate(`/return?order_id=${id}&instrument=${order.instrument_id}`)}
-                      className="flex-1 py-3 bg-orange-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
+                      className="flex-1 py-3 bg-orange-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer">
                       <RotateCcw size={20} />归还
                     </View>
                   )}

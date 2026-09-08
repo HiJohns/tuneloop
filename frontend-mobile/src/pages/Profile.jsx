@@ -9,7 +9,7 @@ import BottomNav from '../components/BottomNav'
 
 function Badge({ count }) {
   return (
-    <View className="absolute -top-1 -right-2 bg-[#FF2A55] text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">
+    <View className="absolute -top-1 -right-2 text-white font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">
       {count > 9 ? '9+' : count}
     </View>
   )
@@ -53,8 +53,8 @@ function EditProfileModal({ visible, user, onClose, onSave }) {
   }
 
   return (
-    <View className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
-      <View className="bg-white rounded-t-2xl w-full max-w-[480px] p-6">
+    <View className="fixed inset-0 z-50 flex items-end justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+      <View className="bg-white rounded-t-2xl w-full p-6">
         <Text className="text-lg font-bold mb-4">编辑资料</Text>
         <View style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <View>
@@ -72,8 +72,8 @@ function EditProfileModal({ visible, user, onClose, onSave }) {
         </View>
         {msg && <Text className="text-sm text-center mt-3 text-amber-600">{msg}</Text>}
         <View className="flex gap-3 mt-4">
-          <View className="flex-1 text-center py-2 border rounded-lg text-gray-500 active:bg-gray-50" onClick={onClose}>取消</View>
-          <View className="flex-1 text-center py-2 bg-amber-800 text-white rounded-lg active:opacity-80" onClick={handleSave}>{saving ? '保存中...' : '保存'}</View>
+          <View className="flex-1 text-center py-2 border rounded-lg text-gray-500" onClick={onClose}>取消</View>
+          <View className="flex-1 text-center py-2 bg-amber-800 text-white rounded-lg" onClick={handleSave}>{saving ? '保存中...' : '保存'}</View>
         </View>
       </View>
     </View>
@@ -172,7 +172,7 @@ export default function Profile() {
       <ScrollView className="w-full flex-1 pb-36" scrollY showScrollbar={false}>
 
         {/* 1. 头部渐变身份区 */}
-        <View className="w-full bg-gradient-to-b from-[#FDF4E7] to-white px-6 pt-8 pb-4 flex items-start relative">
+        <View className="w-full bg-gradient-to-b px-6 pt-8 pb-4 flex items-start relative">
           <View className="flex items-center gap-4">
             <View className="w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-sm flex-shrink-0 bg-zinc-200 flex items-center justify-center" onClick={() => setShowEdit(true)}>
               {user?.avatar ? (
@@ -197,7 +197,8 @@ export default function Profile() {
 
               {/* 退出登录 — 与小程序一致，位于昵称下方（#1608） */}
               <View
-                className="bg-white/80 backdrop-blur-sm border border-zinc-100 text-amber-800 text-xs font-bold px-4 h-8 rounded-full shadow-sm flex items-center justify-center self-start mt-2 active:opacity-70"
+                className="backdrop-blur-sm border border-zinc-100 text-amber-800 text-xs font-bold px-4 h-8 rounded-full shadow-sm flex items-center justify-center self-start mt-2"
+                style={{ backgroundColor: 'rgba(255,255,255,0.8)' }}
                 onClick={handleLogout}
               >
                 退出登录
@@ -210,36 +211,36 @@ export default function Profile() {
         <View className="mx-4 bg-white rounded-2xl shadow-sm mt-3 p-4 grid grid-cols-3 gap-2 text-center">
           {isStaff ? (
             <>
-              <View className="flex flex-col items-center justify-center py-1 active:bg-zinc-50 rounded-xl" onClick={() => navigate('/staff/instruments')}>
+              <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={() => navigate('/staff/instruments')}>
                 <View className="text-2xl mb-1">🎸</View>
                 <Text className="text-xs font-bold text-zinc-700">乐器管理</Text>
               </View>
-              <View className="flex flex-col items-center justify-center py-1 active:bg-zinc-50 rounded-xl" onClick={() => navigate('/staff/receiving')}>
+              <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={() => navigate('/staff/receiving')}>
                 <View className="text-2xl mb-1">📥</View>
                 <Text className="text-xs font-bold text-zinc-700">接收</Text>
               </View>
-              <View className="flex flex-col items-center justify-center py-1 active:bg-zinc-50 rounded-xl" onClick={() => navigate('/staff/shipping')}>
+              <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={() => navigate('/staff/shipping')}>
                 <View className="text-2xl mb-1">📤</View>
                 <Text className="text-xs font-bold text-zinc-700">发货</Text>
               </View>
             </>
           ) : (
             <>
-              <View className="flex flex-col items-center justify-center py-1 active:bg-zinc-50 rounded-xl" onClick={() => navigate('/my-leases?status=reserved')}>
+              <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={() => navigate('/my-leases?status=reserved')}>
                 <View className="text-2xl mb-1 relative">
                   📥
                   {orderCounts.reserved > 0 && <Badge count={orderCounts.reserved} />}
                 </View>
                 <Text className="text-xs font-bold text-zinc-700">待付款</Text>
               </View>
-              <View className="flex flex-col items-center justify-center py-1 active:bg-zinc-50 rounded-xl" onClick={() => navigate('/my-leases?status=in_lease')}>
+              <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={() => navigate('/my-leases?status=in_lease')}>
                 <View className="text-2xl mb-1 relative">
                   💬
                   {orderCounts.in_lease > 0 && <Badge count={orderCounts.in_lease} />}
                 </View>
                 <Text className="text-xs font-bold text-zinc-700">服务中</Text>
               </View>
-              <View className="flex flex-col items-center justify-center py-1 active:bg-zinc-50 rounded-xl" onClick={() => navigate('/my-leases?status=completed')}>
+              <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={() => navigate('/my-leases?status=completed')}>
                 <View className="text-2xl mb-1">
                   ✖️
                 </View>
@@ -252,18 +253,18 @@ export default function Profile() {
 
         {/* 4. 下方通用抽屉式列表 */}
         <View className="mx-4 bg-white rounded-2xl shadow-sm mt-3 p-4 divide-y divide-zinc-100">
-          <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => nav('/messages')}>
+          <View className="flex justify-between items-center py-3.5" onClick={() => nav('/messages')}>
             <View className="flex items-center gap-2">
               <Text className="text-lg">✉️</Text>
               <Text className="text-base font-bold text-zinc-800">系统信息</Text>
             </View>
             <View className="flex items-center gap-1">
-              {unreadCount > 0 && <Text className="text-xs text-[#FF2A55] font-bold">{unreadCount}条未读</Text>}
+              {unreadCount > 0 && <Text className="text-xs font-bold" style={{ color: '#FF2A55' }}>{unreadCount}条未读</Text>}
               <Text className="text-sm text-zinc-300">❯</Text>
             </View>
           </View>
           {!isStaff && (
-          <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => nav('/membership')}>
+          <View className="flex justify-between items-center py-3.5" onClick={() => nav('/membership')}>
             <View className="flex items-center gap-2">
               <Text className="text-lg">👑</Text>
               <Text className="text-base font-bold text-zinc-800">会员中心</Text>
@@ -272,35 +273,35 @@ export default function Profile() {
           </View>
           )}
           {/* #1817: 编辑资料常显入口——与实名认证解耦 */}
-          <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => nav('/profile/edit')}>
+          <View className="flex justify-between items-center py-3.5" onClick={() => nav('/profile/edit')}>
             <View className="flex items-center gap-2">
               <Text className="text-lg">✏️</Text>
               <Text className="text-base font-bold text-zinc-800">编辑资料</Text>
             </View>
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
-          <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => nav('/setting')}>
+          <View className="flex justify-between items-center py-3.5" onClick={() => nav('/setting')}>
             <View className="flex items-center gap-2">
               <Text className="text-lg">📄</Text>
               <Text className="text-base font-bold text-zinc-800">协议</Text>
             </View>
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
-          <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => nav('/content?key=cooperation')}>
+          <View className="flex justify-between items-center py-3.5" onClick={() => nav('/content?key=cooperation')}>
             <View className="flex items-center gap-2">
               <Text className="text-lg">💼</Text>
               <Text className="text-base font-bold text-zinc-800">商务合作</Text>
             </View>
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
-          <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => nav('/content?key=contact_us')}>
+          <View className="flex justify-between items-center py-3.5" onClick={() => nav('/content?key=contact_us')}>
             <View className="flex items-center gap-2">
               <Text className="text-lg">📞</Text>
               <Text className="text-base font-bold text-zinc-800">联系我们</Text>
             </View>
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
-          <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => nav('/about')}>
+          <View className="flex justify-between items-center py-3.5" onClick={() => nav('/about')}>
             <View className="flex items-center gap-2">
               <Text className="text-lg">ℹ️</Text>
               <Text className="text-base font-bold text-zinc-800">关于</Text>

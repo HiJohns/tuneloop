@@ -287,18 +287,18 @@ export default function Detail() {
                 <Text className="block text-2xl font-black text-black tracking-wide truncate">{instrument.name || instrument.sn}</Text>
               </View>
               <View className="flex-shrink-0 whitespace-nowrap text-right">
-                <Text className="text-[#C21838] text-base tracking-tight">
+                <Text className="text-base tracking-tight">
                   押金 ¥{((deposit || 0) / 100).toFixed(2)} <Text className="text-zinc-400 font-normal">❯</Text>
                 </Text>
               </View>
             </View>
             <View className="flex items-center" style={{ gap: 12 }}>
               {levelName && (
-                <View className={`inline-block ${levelBg} text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-sm`}>
+                <View className={`inline-block ${levelBg} text-white font-black px-2.5 py-0.5 rounded-full shadow-sm`}>
                   {levelName}
                 </View>
               )}
-              <Text className="text-[#C21838] text-base tracking-tight">
+              <Text className="text-base tracking-tight">
                 日租 ¥{(Number(dailyRent || 0) / 100).toFixed(2)}/日
               </Text>
             </View>
@@ -441,8 +441,8 @@ export default function Detail() {
           (weapp: native scroll component can cover subsequent fixed views) */}
       <View
         onClick={() => navigate('/cart')}
-        className={`fixed bottom-24 right-4 bg-[#002140] text-white p-3 rounded-full shadow-lg ${cartBouncing ? 'scale-125' : ''}`}
-        style={{ transition: 'transform 0.3s ease-in-out', zIndex: 10004 }}
+        className={`fixed bottom-24 right-4 text-white p-3 rounded-full shadow-lg ${cartBouncing ? 'scale-125' : ''}`}
+        style={{ transition: 'transform 0.3s ease-in-out', zIndex: 10004, backgroundColor: '#002140' }}
       >
         <Text className="text-xl">🛒</Text>
         {cartItemCount > 0 && (
@@ -476,8 +476,8 @@ export default function Detail() {
         ) : isRentable ? (
           // 乐器可租但当前角色非顾客（员工）——显示可租提示而非"不可租赁"
           <View className="p-3 bg-green-50 rounded-lg text-center">
-            <Text className="block text-green-700 font-bold text-[15px]">乐器可租赁</Text>
-            <Text className="block text-gray-400 text-[13px] mt-1">当前乐器可供租赁</Text>
+            <Text className="block text-green-700 font-bold">乐器可租赁</Text>
+            <Text className="block text-gray-400 mt-1">当前乐器可供租赁</Text>
           </View>
         ) : activeOrder ? (
           activeOrder.order_status === 'in_lease' ? (
@@ -567,8 +567,8 @@ export default function Detail() {
           )
         ) : (
           <View className="p-3 bg-gray-100 rounded-lg text-center">
-            <Text className="block text-gray-500 font-bold text-[15px]">该乐器目前不可租赁</Text>
-            <Text className="block text-gray-400 text-[13px] mt-1">乐器已被预约，暂时无法租赁</Text>
+            <Text className="block text-gray-500 font-bold">该乐器目前不可租赁</Text>
+            <Text className="block text-gray-400 mt-1">乐器已被预约，暂时无法租赁</Text>
           </View>
         )}
       </View>

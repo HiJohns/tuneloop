@@ -55,12 +55,12 @@ export default function Payment() {
   }, [pType, pId])
 
   if (loading) {
-    return <div className="h-screen flex items-center justify-center bg-[#FDFBF7]">
+    return <div className="h-screen flex items-center justify-center">
       <span className="text-zinc-400">加载中...</span>
     </div>
   }
   if (!data) {
-    return <div className="h-screen flex items-center justify-center bg-[#FDFBF7]">
+    return <div className="h-screen flex items-center justify-center">
       <span className="text-zinc-400">支付数据不存在</span>
     </div>
   }
@@ -76,8 +76,8 @@ export default function Payment() {
     : Math.max(0, displayAmount - giftUsed)
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] pb-[100px]">
-      <div className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 py-3 flex items-center">
+    <div className="min-h-screen" style={{ paddingBottom: 100 }}>
+      <div className="bg-gradient-to-b px-4 py-3 flex items-center">
         <span className="text-xl font-bold text-black cursor-pointer" onClick={() => navigate(-1)}>❮</span>
         <span className="text-lg font-bold flex-1 text-center">
           {pType === 'appeal' ? '申诉结果确认' : pType === 'payment_shortfall' ? '补缴确认' : isRefund ? '退款确认' : '支付确认'}
@@ -145,7 +145,7 @@ export default function Payment() {
           <div className="mb-1">
             <Row label="赠点余额" value={`¥${(Number(maxGift) / 100).toFixed(2)}`} />
             <div className="flex items-center mt-1">
-              <span className="text-xs text-zinc-500 w-[72px]">使用</span>
+              <span className="text-xs text-zinc-500">使用</span>
               <div className="flex-1 flex items-center gap-2">
                 <input type="number" min={0} max={Math.min(maxGift, data.amount)} step={1}
                   value={giftUsed}
@@ -155,7 +155,7 @@ export default function Payment() {
               </div>
               <span className="text-xs text-zinc-500 ml-1">点</span>
             </div>
-            <div className="text-[11px] text-zinc-400 text-right mb-2">
+            <div className="text-zinc-400 text-right mb-2">
               赠点使用不得超过租金的 {Math.round((wallet.max_gift_ratio || 0.3) * 100)}%
             </div>
           </div>
@@ -176,7 +176,7 @@ export default function Payment() {
               value={couponCode}
               onChange={e => setCouponCode(e.target.value)}
               placeholder="输入优惠码（选填）"
-              className="flex-1 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none"
+              className="flex-1 border border-zinc-200 rounded-lg px-3 py-2 text-sm"
             />
             <button
               style={{ backgroundColor: appliedCoupon ? '#f4f4f5' : '#915F38', color: appliedCoupon ? '#71717a' : '#fff', borderRadius: 10, padding: '0 16px', border: 'none', fontWeight: 600, fontSize: 13 }}
@@ -333,8 +333,8 @@ export default function Payment() {
 function Row({ label, value, color, bold, valueSize }) {
   return (
     <div className="flex justify-between py-1">
-      <span className="text-[13px] text-zinc-500">{label}</span>
-      <span className="text-[13px]" style={{ fontWeight: bold ? 700 : 500, color: color || '#000', fontSize: valueSize }}>
+      <span className="text-zinc-500">{label}</span>
+      <span  style={{ fontWeight: bold ? 700 : 500, color: color || '#000', fontSize: valueSize , fontSize: 13}}>
         {value}
       </span>
     </div>
@@ -348,7 +348,7 @@ function renderDetailsBlock(details, type) {
     if (pb && pb.tier_segments) {
       return (
         <div>
-          <span className="text-[13px] font-semibold text-zinc-600 mb-1">阶梯定价</span>
+          <span className="font-semibold text-zinc-600 mb-1">阶梯定价</span>
           {pb.tier_segments.map((seg, i) => (
             <div key={i} className="pl-4 pr-5">
               <Row label={`第${seg.tier}阶 ${seg.days}天`}
