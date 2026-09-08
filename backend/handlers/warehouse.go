@@ -294,17 +294,42 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 	}
 
 	// 3. Update order status and record delivery time as lease start (must be in shipped status)
-	//    Also recalculate start_date/end_date based on actual delivery time
+	//    Also recalculate start_date/end_date based on actual delivery time.
+	//    Lease window semantics (#1847): N rental days cover [delivered, delivered+N-1]
+	//    — same as CreateOrder's CalculateEndDate and LeaseInfo's 预期归还 (start+N).
+	//    Covered-days resolution order:
+	//      ① pricing_breakdown.rent_days (authoritative, renewal-accumulated,
+	//        same source as renewal.go's consumedDays)
+	//      ② stored date window CalculateDays(sd, ed) — no end>start gate:
+	//         1-day leases have end==start and CalculateDays returns 1
+	//      ③ neither available: log loudly and assume 1 day (never silently
+	//        expand the lease — the old 30-day fallback turned 1-day rentals
+	//        into 30-day windows, #1847)
 	newStartDate := req.DeliveredAt.Format("2006-01-02")
-	originalDays := 30 // default fallback
-	if order.StartDate != nil && order.EndDate != nil {
-		sd, err1 := time.Parse("2006-01-02", *order.StartDate)
-		ed, err2 := time.Parse("2006-01-02", *order.EndDate)
-		if err1 == nil && err2 == nil && ed.After(sd) {
-			originalDays = services.CalculateDays(sd, ed)
+	originalDays := 0
+	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+		var pb struct {
+			RentDays int `json:"rent_days"`
+		}
+		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil && pb.RentDays > 0 {
+			originalDays = pb.RentDays
 		}
 	}
-	newEndDate := req.DeliveredAt.AddDate(0, 0, originalDays).Format("2006-01-02")
+	if originalDays <= 0 && order.StartDate != nil && order.EndDate != nil {
+		// parseDatePtr (multi-layout, same helper the renewal flow uses) —
+		// DATE columns can scan back as RFC3339 strings, and a plain
+		// time.Parse("2006-01-02") on those would fail and silently drop
+		// this fallback into a wrong day count (#1847).
+		sd := parseDatePtr(order.StartDate)
+		ed := parseDatePtr(order.EndDate)
+		originalDays = services.CalculateDays(sd, ed)
+	}
+	if originalDays <= 0 {
+		log.Printf("[ConfirmDelivery] order %s: no rent_days in pricing_breakdown and unparseable dates (start=%v end=%v) — assuming 1 day, please verify data",
+			orderID, order.StartDate, order.EndDate)
+		originalDays = 1
+	}
+	newEndDate := req.DeliveredAt.AddDate(0, 0, originalDays-1).Format("2006-01-02")
 
 	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ? AND status = ?", orderID, order.TenantID, models.OrderStatusShipped).Updates(map[string]interface{}{
 		"status":       models.OrderStatusInLease,

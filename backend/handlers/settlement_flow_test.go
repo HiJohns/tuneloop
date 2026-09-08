@@ -95,12 +95,13 @@ func TestSettlementFlow(t *testing.T) {
 	startDate := "2026-07-01"
 	endDate := "2026-07-30" // 30 days inclusive
 
-	// Delivery 30 days ago: UpdateShipping recalculates the lease window from
-	// delivered_at (#lease starts at delivery), so delivered 30 days ago with
-	// rent_days=30 puts the lease end at today. The return then happens today
-	// (on-time, no overdue), making the settlement math deterministic.
+	// Delivery 29 days ago: ConfirmDelivery re-anchors the lease window to
+	// the delivery date with end = delivered + rent_days - 1 (#1847), so
+	// delivered 29 days ago with rent_days=30 puts the lease end at today.
+	// The return then happens today (on-time, no overdue), making the
+	// settlement math deterministic.
 	now := time.Now()
-	deliveredAt := now.AddDate(0, 0, -30)
+	deliveredAt := now.AddDate(0, 0, -29)
 	// scan at end_date 00:00:00 → not "after" end date → no overdue fee.
 	scanTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 
@@ -232,11 +233,10 @@ func TestSettlementFlow(t *testing.T) {
 	var settlement models.Settlement
 	require.NoError(t, db.Where("order_id = ?", orderID).First(&settlement).Error, "settlement must be created")
 
-	// Lease window: delivered now-30d, lease end = now-30d + 30 = today.
-	// Returned today (on-time, no overdue). Actual days = 31 (inclusive).
-	// Rent payable = tier 1 (30 days × 100) = 3000; the 31st day has no
-	// segment → not charged.
-	require.Equal(t, 31, settlement.ActualRentDays)
+	// Lease window: delivered now-29d, lease end = delivered + 29 = today.
+	// Returned today (on-time, no overdue). Actual days = 30 (inclusive).
+	// Rent payable = tier 1 (30 days × 100) = 3000.
+	require.Equal(t, 30, settlement.ActualRentDays)
 	require.Equal(t, models.Cents(300000), settlement.ActualRentAmount)
 	// No overdue fee (returned on end date), no damage.
 	require.Equal(t, models.Cents(0), settlement.OverdueChargesTotal)

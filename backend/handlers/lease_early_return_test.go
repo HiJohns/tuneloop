@@ -20,7 +20,7 @@ import (
 
 // TestLeaseEarlyReturn covers §2.7 early-return refund end-to-end:
 // full lease flow with return BEFORE the lease end → rebate on unused
-// days. Delivery 30d ago, return at day 28 → 2 unused days rebated.
+// days. Delivery 27d ago, return at day 28 → 2 unused days rebated.
 func TestLeaseEarlyReturn(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	testfixtures.SetupWechatPayMock(t)
@@ -73,8 +73,9 @@ func TestLeaseEarlyReturn(t *testing.T) {
 	router.POST("/api/orders/:id/return", ReturnOrder)
 	router.PUT("/api/warehouse/orders/:id/return-inspect", warehouseHandler.InspectReturn)
 
-	// Delivery 27 days ago: lease runs now-27 .. now+3 (30 days). Return
-	// happens today → 28 actual days (CalculateDays is inclusive of both
+	// Delivery 27 days ago: lease runs now-27 .. now+2 (30 days from
+	// delivery, end = delivered + rent_days - 1, #1847). Return happens
+	// today → 28 actual days (CalculateDays is inclusive of both
 	// endpoints), 2 unused days rebated.
 	now := time.Now()
 	deliveredAt := now.AddDate(0, 0, -27)
@@ -139,7 +140,7 @@ func TestLeaseEarlyReturn(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code, "ship: %s", w.Body.String())
 	testutil.AssertState(t, orderID, models.OrderStatusShipped)
 
-	// Step 4: Deliver (30d ago → lease end today).
+	// Step 4: Deliver (27d ago → 30-day window ends now+2).
 	deliverBody, _ := json.Marshal(map[string]interface{}{
 		"delivered_at": deliveredAt,
 		"photos":       []string{"/uploads/media/test-delivery.jpg"}, // #1806: #1720 收货必须上传照片
