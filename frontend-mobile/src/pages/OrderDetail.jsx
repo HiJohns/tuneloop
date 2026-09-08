@@ -502,8 +502,16 @@ export default function OrderDetail() {
                   <Text className="text-zinc-500 flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(t.subtotal) / 100).toFixed(2)}</Text>
                 </View>
               ))}
+              {Number(order.fee_detail.paid_block?.contract_rent?.discount_amount) > 0 && (
+                <View className="flex justify-between text-sm pl-3">
+                  <Text className="text-zinc-400">优惠券抵扣</Text>
+                  <Text className="text-green-600 flex-shrink-0 ml-auto whitespace-nowrap">−¥{(Number(order.fee_detail.paid_block.contract_rent.discount_amount) / 100).toFixed(2)}</Text>
+                </View>
+              )}
               <View className="flex justify-between text-sm">
-                <Text className="text-zinc-500 font-medium">押金</Text>
+                <Text className="text-zinc-500 font-medium">
+                  {Number(order.fee_detail.paid_block?.deposit?.amount) === 0 ? '押金：免押金' : '押金'}
+                </Text>
                 <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_detail.paid_block?.deposit?.amount) / 100).toFixed(2)}</Text>
               </View>
               {(order.fee_detail.paid_block?.renewals || []).map((r, i) => (
@@ -517,6 +525,12 @@ export default function OrderDetail() {
                       <Text className="text-zinc-500 flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(t.subtotal) / 100).toFixed(2)}</Text>
                     </View>
                   ))}
+                  {Number(r.discount_amount) > 0 && (
+                    <View className="flex justify-between text-sm pl-3">
+                      <Text className="text-zinc-400">优惠券抵扣</Text>
+                      <Text className="text-green-600 flex-shrink-0 ml-auto whitespace-nowrap">−¥{(Number(r.discount_amount) / 100).toFixed(2)}</Text>
+                    </View>
+                  )}
                 </View>
               ))}
               <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
@@ -536,6 +550,12 @@ export default function OrderDetail() {
                   <Text className="text-zinc-500 flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(t.subtotal) / 100).toFixed(2)}</Text>
                 </View>
               ))}
+              {Number(order.fee_detail.payable_block?.discount_amount) > 0 && (
+                <View className="flex justify-between text-sm pl-3">
+                  <Text className="text-zinc-400">优惠券抵扣</Text>
+                  <Text className="text-green-600 flex-shrink-0 ml-auto whitespace-nowrap">−¥{(Number(order.fee_detail.payable_block.discount_amount) / 100).toFixed(2)}</Text>
+                </View>
+              )}
               {Number(order.fee_detail.payable_block?.overdue_fee?.amount) > 0 && (
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-500 font-medium">逾期费{Number(order.fee_detail.payable_block.overdue_fee.days) > 0 ? `（${order.fee_detail.payable_block.overdue_fee.days}天）` : ''}</Text>
@@ -552,6 +572,12 @@ export default function OrderDetail() {
                 <Text className="text-zinc-500 font-medium">实际应付</Text>
                 <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_detail.payable_block?.subtotal || 0) / 100).toFixed(2)}</Text>
               </View>
+              {order.fee_detail.segment_model && Number(order.fee_detail.discounted_due) > 0 && (
+                <View className="flex justify-between text-sm">
+                  <Text className="text-zinc-500 font-medium">（折后）应付</Text>
+                  <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_detail.discounted_due) / 100).toFixed(2)}</Text>
+                </View>
+              )}
 
               {/* ③ 净额段（补缴/退款） */}
               {order.fee_detail.net_block?.direction && order.fee_detail.net_block.direction !== 'none' && (

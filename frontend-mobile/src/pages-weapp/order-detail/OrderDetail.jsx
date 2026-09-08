@@ -528,7 +528,10 @@ export default function OrderDetail() {
                   value={`¥${(Number(t.subtotal) / 100).toFixed(2)}`}
                 />
               ))}
-              <Row label="押金" value={`¥${(Number(order.fee_detail.paid_block?.deposit?.amount) / 100).toFixed(2)}`} />
+              {Number(order.fee_detail.paid_block?.contract_rent?.discount_amount) > 0 && (
+                <Row indent label="优惠券抵扣" value={`−¥${(Number(order.fee_detail.paid_block.contract_rent.discount_amount) / 100).toFixed(2)}`} color="#16a34a" />
+              )}
+              <Row label={Number(order.fee_detail.paid_block?.deposit?.amount) === 0 ? '押金：免押金' : '押金'} value={`¥${(Number(order.fee_detail.paid_block?.deposit?.amount) / 100).toFixed(2)}`} />
               {(order.fee_detail.paid_block?.renewals || []).map((r, i) => (
                 <View key={`ren-${i}`}>
                   <Row label={`续费 ¥${(Number(r.amount) / 100).toFixed(2)}`} />
@@ -540,6 +543,9 @@ export default function OrderDetail() {
                       value={`¥${(Number(t.subtotal) / 100).toFixed(2)}`}
                     />
                   ))}
+                  {Number(r.discount_amount) > 0 && (
+                    <Row indent label="优惠券抵扣" value={`−¥${(Number(r.discount_amount) / 100).toFixed(2)}`} color="#16a34a" />
+                  )}
                 </View>
               ))}
               <Row label="合计实付" value={`¥${(Number(order.fee_detail.paid_block?.subtotal || 0) / 100).toFixed(2)}`} />
@@ -554,6 +560,9 @@ export default function OrderDetail() {
                   value={`¥${(Number(t.subtotal) / 100).toFixed(2)}`}
                 />
               ))}
+              {Number(order.fee_detail.payable_block?.discount_amount) > 0 && (
+                <Row indent label="优惠券抵扣" value={`−¥${(Number(order.fee_detail.payable_block.discount_amount) / 100).toFixed(2)}`} color="#16a34a" />
+              )}
               {Number(order.fee_detail.payable_block?.overdue_fee?.amount) > 0 && (
                 <Row
                   label={`逾期费${Number(order.fee_detail.payable_block.overdue_fee.days) > 0 ? `（${order.fee_detail.payable_block.overdue_fee.days}天）` : ''}`}
@@ -565,6 +574,9 @@ export default function OrderDetail() {
                 <Row label="物流费" value={`¥${(Number(order.fee_detail.payable_block.shipping_fee.amount) / 100).toFixed(2)}`} />
               )}
               <Row label="实际应付" value={`¥${(Number(order.fee_detail.payable_block?.subtotal || 0) / 100).toFixed(2)}`} />
+              {order.fee_detail.segment_model && Number(order.fee_detail.discounted_due) > 0 && (
+                <Row label="（折后）应付" value={`¥${(Number(order.fee_detail.discounted_due) / 100).toFixed(2)}`} color="#16a34a" />
+              )}
 
               {order.fee_detail.net_block?.direction && order.fee_detail.net_block.direction !== 'none' && (
                 <>
