@@ -26,6 +26,9 @@ export default function Setting() {
     { icon: '🔒', label: '隐私协议', onClick: () => nav('/content?key=privacy_policy') },
     { icon: '🪪', label: '数字证书授权使用协议', onClick: () => nav('/content?key=digital_certificate') },
     { icon: '⚖️', label: '《乐器损耗与赔偿标准》细则', onClick: () => nav('/content?key=damage_standard') },
+    { icon: '📜', label: '平台规则文档', onClick: () => nav('/content?key=platform_rules') },
+    { icon: '📋', label: '平台入驻审核要求与规范', onClick: () => nav('/content?key=merchant_audit_requirements') },
+    { icon: '📝', label: '商家入驻协议', onClick: () => nav('/content?key=merchant_agreement') },
   ]
 
   return (

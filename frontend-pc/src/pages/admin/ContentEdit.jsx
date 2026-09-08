@@ -14,6 +14,9 @@ const KEYS = [
   { key: 'privacy_policy', title: '隐私协议' },
   { key: 'digital_certificate', title: '数字证书授权使用协议' },
   { key: 'damage_standard', title: '《乐器损耗与赔偿标准》细则' },
+  { key: 'platform_rules', title: '平台规则文档' },
+  { key: 'merchant_audit_requirements', title: '平台入驻审核要求与规范' },
+  { key: 'merchant_agreement', title: '商家入驻协议' },
 ]
 
 // Upload an image via /api/upload and insert its URL at the current cursor.

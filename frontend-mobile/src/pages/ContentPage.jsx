@@ -1,9 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Taro from '@tarojs/taro'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, RichText } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { env } from '../platform'
+
+// Normalize relative URLs in HTML content to absolute URLs so wechat
+// rich-text can load images (relative src like "/uploads/..." are not
+// resolved by the wechat WebView).
+const normalizeContentUrls = (html, origin) => {
+  if (!html || !origin) return html
+  return html.replace(/(src|href)=(["'])\/(?!\/)/g, `$1=$2${origin}/`)
+}
 
 export default function ContentPage() {
   const [searchParams] = useSearchParams()
@@ -22,6 +30,9 @@ export default function ContentPage() {
     privacy_policy: '隐私协议',
     digital_certificate: '数字证书授权使用协议',
     damage_standard: '《乐器损耗与赔偿标准》细则',
+    platform_rules: '平台规则文档',
+    merchant_audit_requirements: '平台入驻审核要求与规范',
+    merchant_agreement: '商家入驻协议',
   }
 
   // #1686: default content when the backend has no record yet — the entry
@@ -29,6 +40,9 @@ export default function ContentPage() {
   const DEFAULT_CONTENT = {
     cooperation: '商务合作联系方式：\n邮箱：business@cadenzayueqi.com\n电话：400-xxx-xxxx（工作日 9:00-18:00）\n\n欢迎乐器品牌、教育机构、渠道伙伴洽谈合作。',
     contact_us: '联系我们：\n客服电话：400-xxx-xxxx\n客服邮箱：service@cadenzayueqi.com\n服务时间：每日 9:00-21:00\n\n如遇问题请前往「我的-设置」查看协议条款，或联系门店工作人员。',
+    platform_rules: '暂无内容',
+    merchant_audit_requirements: '暂无内容',
+    merchant_agreement: '暂无内容',
   }
 
   const goBack = () => {
@@ -55,6 +69,12 @@ export default function ContentPage() {
     if (key) fetchContent()
   }, [key])
 
+  const origin = (env.apiBaseUrl || '').replace(/\/api\/?$/, '')
+  const normalizedContent = useMemo(
+    () => normalizeContentUrls(content, origin),
+    [content, origin]
+  )
+
   return (
     <View className="min-h-screen bg-[#FDFBF7]">
       {/* Navigation bar — H5 only, weapp uses native nav (#1511) */}
@@ -67,10 +87,10 @@ export default function ContentPage() {
       <View className="px-4 py-4">
         {loading ? (
           <Text className="text-zinc-400">加载中...</Text>
-        ) : /<[a-z][\s\S]*>/i.test(content) ? (
-          <RichText nodes={content} />
+        ) : /<[a-z][\s\S]*>/i.test(normalizedContent) ? (
+          <RichText nodes={normalizedContent} />
         ) : (
-          <Text className="text-sm text-zinc-700 leading-6 whitespace-pre-wrap">{content}</Text>
+          <Text className="text-sm text-zinc-700 leading-6 whitespace-pre-wrap">{normalizedContent}</Text>
         )}
       </View>
     </View>
