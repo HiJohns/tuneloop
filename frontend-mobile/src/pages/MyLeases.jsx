@@ -148,8 +148,8 @@ export default function MyLeases() {
   }
 
   return (
-    <View className="flex flex-col h-screen bg-[#FDFBF7]">
-      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-4">
+    <View className="flex flex-col h-screen">
+      <View className="bg-gradient-to-b px-4 pt-4 pb-4">
         <Text className="text-lg font-black text-black">我的租约 v11</Text>
       </View>
 
@@ -217,7 +217,7 @@ export default function MyLeases() {
               return (
               <View
                 key={order.id}
-                className="bg-white rounded-2xl shadow-sm p-4 active:opacity-80 overflow-hidden box-border" style={{ maxWidth: '100%', boxSizing: 'border-box' }}
+                className="bg-white rounded-2xl shadow-sm p-4 overflow-hidden box-border" style={{ maxWidth: '100%', boxSizing: 'border-box' }}
                 onClick={() => navigate(`/order/${order.id}`)}
               >
                 <View className="flex items-center justify-between mb-2">

@@ -7,7 +7,7 @@ import { ArrowLeft, Phone, Calendar } from 'lucide-react'
 
 function ServiceCard({ order }) {
   return (
-    <View className="bg-[#FDFBF7] rounded-xl shadow-sm p-4">
+    <View className="rounded-xl shadow-sm p-4">
       <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <View className="flex items-center justify-between">
           <Text className="font-medium text-brand-text">{order.assetName}</Text>
@@ -81,7 +81,7 @@ export default function MyService() {
       
       {/* Bottom Navigation */}
       <View className="fixed bottom-0 left-0 right-0 bg-white border-t safe-area-pb">
-        <View className="flex justify-around py-3 max-w-[480px] mx-auto">
+        <View className="flex justify-around py-3 mx-auto">
           <View 
             className="flex flex-col items-center text-gray-400 cursor-pointer"
             onClick={() => navigate('/')}

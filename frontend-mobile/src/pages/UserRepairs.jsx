@@ -26,7 +26,7 @@ export default function UserRepairs() {
   }, [])
 
   return (
-    <View className="flex flex-col h-screen bg-[#FDFBF7]">
+    <View className="flex flex-col h-screen">
       <View className="bg-white px-4 py-3 border-b border-zinc-100">
         <Text className="text-lg mr-2" onClick={() => navigate(-1)}>{'<'}</Text>
         <Text className="text-lg font-bold flex-1 text-center">我的报修</Text>
@@ -39,7 +39,7 @@ export default function UserRepairs() {
           ) : requests.length === 0 ? (
             <Text className="text-center text-zinc-400 py-8">暂无报修记录</Text>
           ) : requests.map(r => (
-            <View key={r.id} className="bg-white rounded-2xl shadow-sm p-4 active:opacity-80"
+            <View key={r.id} className="bg-white rounded-2xl shadow-sm p-4"
               onClick={() => navigate(`/repair-request?request_id=${r.id}`)}>
               <View className="flex items-center justify-between mb-1">
                 <Text className="text-sm font-bold text-black">{r.sn || '#' + r.id?.slice(0, 8)}</Text>

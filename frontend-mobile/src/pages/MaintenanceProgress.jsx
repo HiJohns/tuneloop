@@ -59,7 +59,7 @@ export default function MaintenanceProgress() {
   if (!ticket) return <View className="p-4">工单不存在</View>;
 
   return (
-    <View className="min-h-screen bg-[#FDFBF7] p-4">
+    <View className="min-h-screen p-4">
       <Card className="mb-4">
         <View className="flex justify-between items-center mb-4">
           <Text className="text-lg font-medium">工单详情</Text>

@@ -54,7 +54,7 @@ export default function TransitWorkflow() {
 
   if (step === 'receive' || step === 'repack') {
     return (
-      <View className="h-screen bg-[#FDFBF7]">
+      <View className="h-screen">
         <View className="bg-white px-4 py-3 border-b border-zinc-100 flex items-center">
           <Text className="text-lg mr-2" onClick={() => navigate(-1)}>{'<'}</Text>
           <Text className="text-lg font-bold flex-1">{step === 'receive' ? '收货拆包' : '转包发货'}</Text>
@@ -68,7 +68,7 @@ export default function TransitWorkflow() {
                   <Image src={typeof f === 'string' ? f : URL.createObjectURL(f)} className="w-full h-full object-cover" mode="aspectFill" />
                 </View>
               ))}
-              <label className="aspect-square border-2 border-dashed border-zinc-300 rounded-lg flex items-center justify-center active:opacity-60">
+              <label className="aspect-square border-2 border-dashed border-zinc-300 rounded-lg flex items-center justify-center">
                 <Camera size={24} className="text-zinc-400" />
                 <input type="file" accept="image/*" capture="environment" multiple className="hidden"
                   onChange={e => setPhotos(p => [...p, ...Array.from(e.target.files || [])].slice(0, 10))} />
@@ -103,7 +103,7 @@ export default function TransitWorkflow() {
           {orders.length === 0 ? (
             <Text className="text-center text-zinc-400 py-8">暂无待收货的中转订单</Text>
           ) : orders.map(o => (
-            <View key={o.id} className="bg-white rounded-2xl shadow-sm p-4 active:opacity-80"
+            <View key={o.id} className="bg-white rounded-2xl shadow-sm p-4"
               onClick={() => { setSelected(o.id); setStep('receive'); setPhotos([]) }}>
               <Text className="text-sm font-bold text-black">中转单 #{o.id?.slice(0, 8)}</Text>
               <Text className="text-xs text-zinc-400 mt-1">{o.transit_order_number || ''}</Text>
