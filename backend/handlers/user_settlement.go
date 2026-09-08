@@ -890,7 +890,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	discountedRent := 0.0
 	discountedDue := 0.0
 	var segmentUsage []int
-	// 合同初始覆盖天数（#1838 二次修正）：orders.lease_term 为【月】语义
+	// 合同初始覆盖天数（#1838 二次修正 + #1837 共用）：orders.lease_term 为【月】语义
 	// （days/30，日租单=0），不可作为段模型输入。权威反推：pricing_breakdown.
 	// rent_days 被续费累加为"全部覆盖天数"（renewal.go）→ 合同初始天数 =
 	// rent_days − Σ续费 days（续费 payment.days T1 落库，逐笔事实）。
@@ -1069,15 +1069,28 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		}
 	}
 	contractTiers := make([]map[string]interface{}, 0, 4)
-	for _, seg := range services.ComputeTierSegments(initialDays, pricingTiers) {
+	contractTierDays := initialDays
+	if contractDays > 0 {
+		contractTierDays = contractDays
+	}
+	for _, seg := range services.ComputeTierSegments(contractTierDays, pricingTiers) {
 		contractTiers = append(contractTiers, segmentToMap(seg))
 	}
+	contractTierSubtotal := int64(0)
+	for _, t := range contractTiers {
+		contractTierSubtotal += t["subtotal"].(int64)
+	}
+	contractDiscount := contractTierSubtotal - c(contractRent)
+	contractRentBlock := map[string]interface{}{
+		"amount": c(contractRent),
+		"date":   order.CreatedAt.Format("2006-01-02"),
+		"tiers":  contractTiers,
+	}
+	if contractDiscount > 0 {
+		contractRentBlock["discount_amount"] = contractDiscount
+	}
 	paidBlock := map[string]interface{}{
-		"contract_rent": map[string]interface{}{
-			"amount": c(contractRent),
-			"date":   order.CreatedAt.Format("2006-01-02"),
-			"tiers":  contractTiers,
-		},
+		"contract_rent": contractRentBlock,
 		"deposit": map[string]interface{}{
 			"amount": int64(order.Deposit),
 		},
@@ -1098,6 +1111,16 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 			"amount": int64(r.Amount),
 			"days":   r.Days,
 			"tiers":  tiers,
+		}
+		if len(tiers) > 0 {
+			renewalTierSubtotal := int64(0)
+			for _, t := range tiers {
+				renewalTierSubtotal += t["subtotal"].(int64)
+			}
+			renewalDiscount := renewalTierSubtotal - int64(r.Amount)
+			if renewalDiscount > 0 {
+				block["discount_amount"] = renewalDiscount
+			}
 		}
 		renewalBlocks = append(renewalBlocks, block)
 		renewalAmountSum += r.Amount.ToYuan()
@@ -1126,6 +1149,12 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 			"amount": c(shippingFee),
 		},
 		"subtotal": c(payableSubtotal),
+	}
+	if useDiscounted {
+		payableDiscount := c(rentPayable) - c(discountedRent)
+		if payableDiscount > 0 {
+			payableBlock["discount_amount"] = payableDiscount
+		}
 	}
 
 	// #1803 T2: settled = 非进行中状态（与 fee_summary 的 unsettled 集合互补）。
