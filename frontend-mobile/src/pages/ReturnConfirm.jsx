@@ -128,6 +128,21 @@ export default function ReturnConfirm() {
     setPhotoFiles(prev => prev.filter((_, i) => i !== idx))
   }
 
+  // #1847: 归还截止日 = 起始日 + rent_days（与详情页 LeaseInfo「预期归还」
+  // 同口径）；end_date 列存的是租期末日（start+N−1）。用 UTC 日算术避免时区
+  // 偏移；pb.rent_days 缺失或起始日不可解析时回退 end_date 列。
+  const expectedReturnDate = (o) => {
+    const rentDays = Number(o?.pricing_breakdown?.rent_days) || 0
+    if (rentDays > 0 && o?.start_date) {
+      const parts = o.start_date.slice(0, 10).split('-').map(Number)
+      if (parts.length === 3 && parts.every(Number.isFinite)) {
+        const due = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2] + rentDays))
+        return due.toISOString().slice(0, 10)
+      }
+    }
+    return o?.end_date
+  }
+
   if (loading) {
     return <View style={{ backgroundColor: "#FDFBF7" }} className="min-h-screen flex items-center justify-center">
       <Text className="text-zinc-400 font-medium">加载中...</Text>
@@ -164,7 +179,10 @@ export default function ReturnConfirm() {
               {order.end_date && (
                 <View className="flex items-center">
                   <Text className="text-sm text-zinc-400 w-16">到期日</Text>
-                  <Text className="text-sm font-bold text-black">{formatDisplayDate(order.end_date)}</Text>
+                  {/* #1847: 到期日展示口径与详情页 LeaseInfo 一致 = 归还截止日
+                      （起始日 + rent_days）；end_date 列是租期末日（start+N−1），
+                      裸读会比详情页早一天。pb.rent_days 缺失时回退 end_date。 */}
+                  <Text className="text-sm font-bold text-black">{formatDisplayDate(expectedReturnDate(order))}</Text>
                 </View>
               )}
             </View>
