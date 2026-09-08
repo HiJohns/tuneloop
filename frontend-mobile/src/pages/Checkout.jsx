@@ -351,8 +351,8 @@ function SingleCheckout({ id, navigate }) {
   if (!instrument) return <View className="min-h-screen flex items-center justify-center"><Text className="text-zinc-400">乐器不存在</Text></View>
 
   return (
-    <View className="min-h-screen pb-28">
-      <View className="bg-gradient-to-b px-4 pt-4 pb-3 flex items-center gap-2">
+    <View className="min-h-screen pb-28" style={{ backgroundColor: '#FDFBF7' }}>
+      <View className="px-4 pt-4 pb-3 flex items-center gap-2" style={{ backgroundImage: 'linear-gradient(to bottom, #FDF4E7, #FFFFFF)' }}>
         <ArrowLeft size={20} className="text-black cursor-pointer" onClick={() => navigate(-1)} />
         <Text className="text-lg font-black text-black">确认订单</Text>
       </View>

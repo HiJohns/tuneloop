@@ -9,7 +9,7 @@ import BottomNav from '../components/BottomNav'
 
 function Badge({ count }) {
   return (
-    <View className="absolute -top-1 -right-2 text-white font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">
+    <View className="absolute -top-1 -right-2 text-white font-black w-4 h-4 rounded-full flex items-center justify-center border border-white" style={{ backgroundColor: '#FF2A55' }}>
       {count > 9 ? '9+' : count}
     </View>
   )
@@ -172,7 +172,7 @@ export default function Profile() {
       <ScrollView className="w-full flex-1 pb-36" scrollY showScrollbar={false}>
 
         {/* 1. 头部渐变身份区 */}
-        <View className="w-full bg-gradient-to-b px-6 pt-8 pb-4 flex items-start relative">
+        <View className="w-full px-6 pt-8 pb-4 flex items-start relative" style={{ backgroundImage: 'linear-gradient(to bottom, #FDF4E7, #FFFFFF)' }}>
           <View className="flex items-center gap-4">
             <View className="w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-sm flex-shrink-0 bg-zinc-200 flex items-center justify-center" onClick={() => setShowEdit(true)}>
               {user?.avatar ? (

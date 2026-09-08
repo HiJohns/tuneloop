@@ -270,7 +270,7 @@ export default function Home() {
           <View className="flex items-center" style={{ gap: 6 }}>
             {(banners.length > 0 ? banners : Array.from({ length: 3 })).map((_, i) => {
               const r = currentBanner < 0 ? banners.length - 1 : currentBanner >= banners.length ? 0 : currentBanner
-              return <View key={i} className={`${i === r ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === r ? 'bg-white' : 'bg-white/40'}`} />
+              return <View key={i} className={`${i === r ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === r ? 'bg-white' : ''}`} style={i !== r ? { backgroundColor: 'rgba(255,255,255,0.4)' } : undefined} />
             })}
           </View>
         </View>

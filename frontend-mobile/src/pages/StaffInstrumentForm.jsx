@@ -264,7 +264,7 @@ export default function StaffInstrumentForm() {
   }
 
   return (
-    <View style={{ backgroundColor: "#FDFBF7" }} className="min-h-screen pb-24">
+    <View style={{ backgroundColor: "#FDFBF7" }} className="min-h-screen pb-24" style={{ backgroundColor: '#FDFBF7' }}>
       {!env.isMiniProgram && (
         <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
           <Button onClick={() => navigate(-1)}>
@@ -417,7 +417,7 @@ export default function StaffInstrumentForm() {
 
       {/* Cross-end picker modal (issue-1676): categories/sites/levels/property options */}
       {picker && (
-        <View className="fixed inset-0 z-50 flex items-end" onClick={() => setPicker(null)}>
+        <View className="fixed inset-0 z-50 flex items-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setPicker(null)}>
           <View className="bg-white rounded-t-2xl w-full max-h-80 p-4" onClick={e => e.stopPropagation()}>
             <Text className="text-sm font-bold text-black mb-3">{picker.title}</Text>
             {picker.options.length === 0 ? (

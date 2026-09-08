@@ -272,7 +272,7 @@ export default function MembershipCenter() {
 
       {/* QR Code Modal */}
       {showQR && (
-        <View className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setShowQR(false)}>
+        <View className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setShowQR(false)}>
           <View className="bg-white rounded-2xl p-6 mx-8 flex-col" style={{ display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
             <Text className="text-sm font-bold text-center mb-4">推广二维码</Text>
             <View style={{ alignItems: 'center' }}>

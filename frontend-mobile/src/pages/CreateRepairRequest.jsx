@@ -147,7 +147,7 @@ export default function CreateRepairRequest() {
   return (
     <View style={{ backgroundColor: "#FDFBF7" }} className="h-screen flex flex-col">
       {!env.isMiniProgram && (
-      <View className="bg-gradient-to-b px-4 pt-4 pb-4 flex items-center gap-3">
+      <View className=" px-4 pt-4 pb-4 flex items-center gap-3" style={{ backgroundImage: 'linear-gradient(to bottom, #FDF4E7, #FFFFFF)' }}>
         <Text className="text-xl" onClick={goBack}>{'<'}</Text>
         <Text className="text-lg font-black text-black">创建报修单</Text>
       </View>
@@ -272,7 +272,7 @@ export default function CreateRepairRequest() {
 
       {/* Merchant picker modal */}
       {showMerchantPicker && (
-        <View className="fixed inset-0 z-50 flex items-end" onClick={() => setShowMerchantPicker(false)}>
+        <View className="fixed inset-0 z-50 flex items-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setShowMerchantPicker(false)}>
           <View className="bg-white rounded-t-2xl w-full max-h-80 p-4" onClick={e => e.stopPropagation()}>
             <Text className="text-sm font-bold text-black mb-3">选择商户</Text>
             {merchants.map(m => (
@@ -293,7 +293,7 @@ export default function CreateRepairRequest() {
 
       {/* Site picker modal (full merchant) */}
       {showSitePicker && !cooperativeMode && (
-        <View className="fixed inset-0 z-50 flex items-end" onClick={() => setShowSitePicker(false)}>
+        <View className="fixed inset-0 z-50 flex items-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setShowSitePicker(false)}>
           <View className="bg-white rounded-t-2xl w-full max-h-80 p-4" onClick={e => e.stopPropagation()}>
             <Text className="text-sm font-bold text-black mb-3">选择网点</Text>
             {sites.map(s => (
@@ -308,7 +308,7 @@ export default function CreateRepairRequest() {
 
       {/* Transit site picker (cooperative/controlled mode) */}
       {showSitePicker && cooperativeMode && (
-        <View className="fixed inset-0 z-50 flex items-end" onClick={() => setShowSitePicker(false)}>
+        <View className="fixed inset-0 z-50 flex items-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setShowSitePicker(false)}>
           <View className="bg-white rounded-t-2xl w-full max-h-80 p-4" onClick={e => e.stopPropagation()}>
             <Text className="text-sm font-bold text-black mb-3">选择中转网点</Text>
             {transitSites.map(s => (

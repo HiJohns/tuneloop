@@ -191,7 +191,7 @@ export default function ShippingInterface() {
   return (
     <View className="min-h-screen pb-24" style={{backgroundColor: '#FDFBF7'}}>
       {!env.isMiniProgram && (
-        <View className="bg-gradient-to-b px-4 pt-4 pb-4 flex items-center gap-3">
+        <View className=" px-4 pt-4 pb-4 flex items-center gap-3" style={{ backgroundImage: 'linear-gradient(to bottom, #FDF4E7, #FFFFFF)' }}>
           <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
           <Text className="text-lg font-black text-black">发货</Text>
         </View>

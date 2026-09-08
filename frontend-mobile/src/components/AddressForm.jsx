@@ -43,7 +43,7 @@ export default function AddressForm({ address, onClose, onSaved }) {
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
       <div className="bg-white rounded-t-2xl w-full max-w-md p-5 overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-medium text-lg">{address ? '编辑地址' : '新建地址'}</h3>

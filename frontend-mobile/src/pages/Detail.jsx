@@ -274,7 +274,7 @@ export default function Detail() {
     </View>
           <View className="flex items-center justify-center pb-3" style={{ backgroundColor: '#FDF4E7', gap: 6 }}>
             {bannerImages.map((_, i) => (
-              <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-[#915F38]' : 'bg-black/15'}`} />
+              <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? '' : ''}`} style={i === currentBanner ? { backgroundColor: '#915F38' } : { backgroundColor: 'rgba(0,0,0,0.15)' }} />
             ))}
           </View>
         </View>

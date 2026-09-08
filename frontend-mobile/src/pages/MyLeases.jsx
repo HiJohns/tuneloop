@@ -149,7 +149,7 @@ export default function MyLeases() {
 
   return (
     <View className="flex flex-col h-screen">
-      <View className="bg-gradient-to-b px-4 pt-4 pb-4">
+      <View className=" px-4 pt-4 pb-4" style={{ backgroundImage: 'linear-gradient(to bottom, #FDF4E7, #FFFFFF)' }}>
         <Text className="text-lg font-black text-black">我的租约 v11</Text>
       </View>
 

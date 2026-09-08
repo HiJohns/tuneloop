@@ -39,8 +39,8 @@ export default function InstrumentInfo({ instrument, onClick }) {
                   <ArrowLeft size={18} className="text-zinc-600" />
                 </View>
                 <View onClick={e => { e.stopPropagation(); setImageIndex(i => (i + 1) % allImgs.length) }}
-                  style={{ top: '50%', transform: 'translateY(-50%)' }}
-                  className="absolute right-2 rounded-full w-8 h-8 flex items-center justify-center shadow-sm" style={{ backgroundColor: 'rgba(255,255,255,0.8)' }}>
+                  className="absolute right-2 rounded-full w-8 h-8 flex items-center justify-center shadow-sm"
+                  style={{ top: '50%', transform: 'translateY(-50%)', backgroundColor: 'rgba(255,255,255,0.8)' }}>
                   <ChevronRight size={18} className="text-zinc-600" />
                 </View>
                 <View className="absolute bottom-2 right-2 rounded-full px-2 py-0.5" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>

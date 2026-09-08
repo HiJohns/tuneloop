@@ -76,8 +76,8 @@ export default function Payment() {
     : Math.max(0, displayAmount - giftUsed)
 
   return (
-    <div className="min-h-screen" style={{ paddingBottom: 100 }}>
-      <div className="bg-gradient-to-b px-4 py-3 flex items-center">
+    <div className="min-h-screen" style={{ paddingBottom: 100, backgroundColor: '#FDFBF7' }}>
+      <div className="px-4 py-3 flex items-center" style={{ backgroundImage: 'linear-gradient(to bottom, #FDF4E7, #FFFFFF)' }}>
         <span className="text-xl font-bold text-black cursor-pointer" onClick={() => navigate(-1)}>❮</span>
         <span className="text-lg font-bold flex-1 text-center">
           {pType === 'appeal' ? '申诉结果确认' : pType === 'payment_shortfall' ? '补缴确认' : isRefund ? '退款确认' : '支付确认'}
