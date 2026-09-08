@@ -157,17 +157,14 @@ func TestFeeDetail_PaidBlock_Tiers(t *testing.T) {
 	require.Equal(t, int64(3500), fd.PaidBlock.ContractRent.Amount)
 	require.Equal(t, "2026-08-01", fd.PaidBlock.ContractRent.Date)
 
-	// 首期阶梯：tier1=30 天（rate 100 分，subtotal 3000），tier2=5 天（475）。
-	require.Len(t, fd.PaidBlock.ContractRent.Tiers, 2)
+	// 首期阶梯：tier1=25 天（rate 100 分，subtotal 2500）。
+	// 注：contractDays = rent_days(35) - renewalDays(10) = 25 天（#1838 反推）。
+	require.Len(t, fd.PaidBlock.ContractRent.Tiers, 1)
 	ct0 := fd.PaidBlock.ContractRent.Tiers[0]
 	require.Equal(t, 1, ct0.Tier)
-	require.Equal(t, 30, ct0.Days)
+	require.Equal(t, 25, ct0.Days)
 	require.Equal(t, int64(100), ct0.Rate)
-	require.Equal(t, int64(3000), ct0.Subtotal)
-	ct1 := fd.PaidBlock.ContractRent.Tiers[1]
-	require.Equal(t, 2, ct1.Tier)
-	require.Equal(t, 5, ct1.Days)
-	require.Equal(t, int64(475), ct1.Subtotal)
+	require.Equal(t, int64(2500), ct0.Subtotal)
 
 	// 押金 1 元 = 100 分。
 	require.Equal(t, int64(100), fd.PaidBlock.Deposit.Amount)

@@ -77,6 +77,17 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 		require.InDelta(t, 0, res.TotalRefund, 1e-9)
 		require.InDelta(t, 0.28, res.PayableShortfall, 1e-9)
 		require.Equal(t, int64(28), res.Breakdown["payable_shortfall"])
+		// #1837: discount_amount fields (plan §4)
+		paidBlock := res.Breakdown["paid_block"].(map[string]interface{})
+		contractRent := paidBlock["contract_rent"].(map[string]interface{})
+		require.Equal(t, int64(3564), contractRent["discount_amount"])
+		renewals := paidBlock["renewals"].([]map[string]interface{})
+		require.Len(t, renewals, 2)
+		for i, renewal := range renewals {
+			require.Equal(t, int64(3564), renewal["discount_amount"], "renewal %d", i)
+		}
+		payableBlock := res.Breakdown["payable_block"].(map[string]interface{})
+		require.Equal(t, int64(3564), payableBlock["discount_amount"])
 	})
 
 	t.Run("场景2A-续1无码-实租1天-应退35.36", func(t *testing.T) {
@@ -89,6 +100,20 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 		require.InDelta(t, 1.36, res.DiscountedDue, 1e-9)
 		require.InDelta(t, 35.36, res.TotalRefund, 1e-9)
 		require.InDelta(t, 0, res.PayableShortfall, 1e-9)
+		// #1837: discount_amount fields (plan §4)
+		paidBlock := res.Breakdown["paid_block"].(map[string]interface{})
+		contractRent := paidBlock["contract_rent"].(map[string]interface{})
+		require.Equal(t, int64(3564), contractRent["discount_amount"])
+		renewals := paidBlock["renewals"].([]map[string]interface{})
+		require.Len(t, renewals, 2)
+		// renewal1: no coupon (36.00) -> discount_amount absent or zero
+		if d, exists := renewals[0]["discount_amount"]; exists {
+			require.Equal(t, int64(0), d, "renewal1 discount_amount should be zero")
+		}
+		// renewal2: ENO -> discount_amount 3564
+		require.Equal(t, int64(3564), renewals[1]["discount_amount"])
+		payableBlock := res.Breakdown["payable_block"].(map[string]interface{})
+		require.Equal(t, int64(3564), payableBlock["discount_amount"])
 	})
 
 	t.Run("场景2B-续1无码-实租2天-应补0.64", func(t *testing.T) {
@@ -250,5 +275,15 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 		require.InDelta(t, 230.0, res.DiscountedRent, 1e-9, "无码段级应收必须与 rentPayable 逐分相等")
 		require.InDelta(t, 270.0, res.TotalRefund, 1e-9, "应退 500−230")
 		require.Equal(t, []int64{10, 2}, res.Breakdown["segment_usage"])
+		// #1837: no-coupon -> discount_amount = tier discount (base rate vs tier rate)
+		paidBlock := res.Breakdown["paid_block"].(map[string]interface{})
+		contractRent := paidBlock["contract_rent"].(map[string]interface{})
+		require.Equal(t, int64(10000), contractRent["discount_amount"], "tier discount should be baseDailyRent*contractDays - contractRent")
+		renewals := paidBlock["renewals"].([]map[string]interface{})
+		require.Empty(t, renewals, "no renewals")
+		payableBlock := res.Breakdown["payable_block"].(map[string]interface{})
+		if discount, exists := payableBlock["discount_amount"]; exists {
+			require.Equal(t, int64(0), discount, "no-coupon payable discount_amount should be zero")
+		}
 	})
 }
