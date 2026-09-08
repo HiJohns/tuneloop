@@ -976,7 +976,7 @@ function BatchCheckout({ navigate }) {
               })
               const groupSubtotal = groupRent + (depositWaived ? 0 : groupDeposit)
               return (
-                <View key={group.tenant_id || 'unknown'} className="bg-zinc-50/40 rounded-xl p-3">
+                <View key={group.tenant_id || 'unknown'} className="rounded-xl p-3" style={{ backgroundColor: 'rgba(250,250,250,0.4)' }}>
                   <View className="flex items-center justify-between mb-2">
                     <View className="flex items-center" style={{ gap: 4 }}>
                       <Text>🏢</Text>

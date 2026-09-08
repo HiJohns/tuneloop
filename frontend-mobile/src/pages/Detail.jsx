@@ -188,10 +188,10 @@ export default function Detail() {
 
   const levelName = instrument.level_name || ''
 
-  const levelBg = levelName.includes('大师') ? 'bg-[#8A2BE2]'
-    : levelName.includes('专业') ? 'bg-[#0084FF]'
-    : levelName.includes('入门') ? 'bg-[#FF6B00]'
-    : 'bg-zinc-500'
+  const levelBg = levelName.includes('大师') ? '#8A2BE2'
+    : levelName.includes('专业') ? '#0084FF'
+    : levelName.includes('入门') ? '#FF6B00'
+    : '#71717a'
 
   return (
     <View className="h-screen flex flex-col antialiased" style={{ backgroundColor: '#FDFBF7' }}>
@@ -294,7 +294,7 @@ export default function Detail() {
             </View>
             <View className="flex items-center" style={{ gap: 12 }}>
               {levelName && (
-                <View className={`inline-block ${levelBg} text-white font-black px-2.5 py-0.5 rounded-full shadow-sm`}>
+                <View className="inline-block text-white font-black px-2.5 py-0.5 rounded-full shadow-sm" style={{ backgroundColor: levelBg }}>
                   {levelName}
                 </View>
               )}

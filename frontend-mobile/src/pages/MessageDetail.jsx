@@ -202,7 +202,7 @@ export default function MessageDetail() {
     <View style={{ backgroundColor: "#FDFBF7" }} className="min-h-screen pb-20">
       {/* #1706: 手写顶条仅 H5（无原生导航栏）；weapp 用原生导航栏 */}
       {!env.isMiniProgram && (
-      <View className="bg-gradient-to-b px-4 pt-4 pb-3 flex items-center gap-2">
+      <View style={{ backgroundImage: 'linear-gradient(to bottom, #FDF4E7, #FFFFFF)' }} className="px-4 pt-4 pb-3 flex items-center gap-2">
         <ArrowLeft size={20} className="text-black cursor-pointer" onClick={() => env.isMiniProgram ? Taro.navigateBack() : navigate(-1)} />
         <Text className="text-lg font-black text-black">消息详情</Text>
       </View>

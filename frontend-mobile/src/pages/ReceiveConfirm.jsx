@@ -134,7 +134,7 @@ export default function ReceiveConfirm() {
   return (
     <View style={{ backgroundColor: "#FDFBF7" }} className="min-h-screen pb-24">
       {!env.isMiniProgram && (
-        <View className="bg-gradient-to-b px-4 pt-4 pb-3 flex items-center gap-2">
+        <View style={{ backgroundImage: 'linear-gradient(to bottom, #FDF4E7, #FFFFFF)' }} className="px-4 pt-4 pb-3 flex items-center gap-2">
           <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
           <Text className="text-lg font-black text-black">确认收货</Text>
         </View>

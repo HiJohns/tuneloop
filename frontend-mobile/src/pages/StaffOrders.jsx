@@ -144,7 +144,7 @@ export default function StaffOrders() {
 
   return (
     <View style={{ backgroundColor: "#FDFBF7" }} className="flex flex-col h-screen">
-      <View className="bg-gradient-to-b px-4 pt-4 pb-3">
+      <View style={{ backgroundImage: 'linear-gradient(to bottom, #FDF4E7, #FFFFFF)' }} className="px-4 pt-4 pb-3">
         <Text className="text-lg font-black text-black">订单管理</Text>
       </View>
 
