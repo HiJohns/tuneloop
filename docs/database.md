@@ -285,7 +285,7 @@ photos:
 | accumulated_months | INT | DEFAULT 0 | 已累计月份 |
 | status | VARCHAR(20) | DEFAULT 'pending', INDEX | 订单状态 |
 | start_date | DATE | | 开始日期 |
-| end_date | DATE | | 结束日期 |
+| end_date | DATE | | 租期末日（start_date + rent_days − 1，#1847）；「预期归还日」展示口径 = start_date + rent_days |
 | created_at | TIMESTAMP | | 创建时间 |
 | updated_at | TIMESTAMP | | 更新时间 |
 
@@ -669,7 +669,7 @@ tenants (1) ---> (N) clients
 | user_id | UUID | NOT NULL, INDEX | 用户 ID |
 | instrument_id | UUID | NOT NULL | 乐器 ID |
 | start_date | DATE | NOT NULL | 起租日期 |
-| end_date | DATE | NOT NULL | 结束日期 |
+| end_date | DATE | NOT NULL | 租期末日（start_date + rent_days − 1，#1847）|
 | actual_end_date | DATE | | 实际归还日期 |
 | status | VARCHAR(20) | DEFAULT 'active', INDEX | 状态 |
 | delivery_address | JSONB | | 收货地址 |
