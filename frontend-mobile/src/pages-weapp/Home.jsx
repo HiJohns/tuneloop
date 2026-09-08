@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, getCartKey, redirectToLogin, resolveLogin } from '../services/api'
@@ -152,7 +152,7 @@ export default function Home() {
       return { statusBarHeight: 20, menuTop: 10, menuHeight: 32, menuRight: 0, windowWidth: 375, navHeight: 44 }
     }
   }
-  const navBar = getNavBarLayout()
+  const navBar = useMemo(() => getNavBarLayout(), [])
   const searchTop = navBar.menuTop
   const menuTop = navBar.menuTop + navBar.menuHeight + 8
   const stickyMenuHeight = 48 // MenuContent: outer padding 4×2 + item padding 10×2 + text 18 + border 2

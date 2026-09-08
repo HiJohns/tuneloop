@@ -189,13 +189,26 @@ export const env = {
   isWechat: true,
 }
 
-export const getWindowSize = () => {
-  try {
-    const info = Taro.getSystemInfoSync()
-    return { width: info.windowWidth || 375, height: info.windowHeight || 667 }
-  } catch {
-    return { width: 375, height: 667 }
+let cachedSystemInfo = null
+const getSystemInfoCached = () => {
+  if (!cachedSystemInfo) {
+    try {
+      cachedSystemInfo = Taro.getSystemInfoSync()
+    } catch {
+      cachedSystemInfo = {}
+    }
   }
+  return cachedSystemInfo
+}
+
+export const getWindowSize = () => {
+  const info = getSystemInfoCached()
+  return { width: info.windowWidth || 375, height: info.windowHeight || 667 }
+}
+
+export const getStatusBarHeight = () => {
+  const info = getSystemInfoCached()
+  return info.statusBarHeight || 0
 }
 
 // Weapp: wrap Taro.createCameraContext() for FaceVerify camera flow.

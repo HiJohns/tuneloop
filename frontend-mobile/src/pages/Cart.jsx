@@ -3,7 +3,7 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
-import { dialog, storage, eventBus, env, session } from '../platform'
+import { dialog, storage, eventBus, env, session, getStatusBarHeight } from '../platform'
 import { apiFetch, getCartKey, getToken, redirectToLogin } from '../services/api'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
@@ -307,7 +307,7 @@ export default function Cart() {
     <View style={{ backgroundColor: "#FDFBF7" }} className="container h-screen w-screen overflow-hidden flex flex-col relative antialiased">
       <View
         className="w-full pb-2 px-4 flex justify-between items-center bg-white border-b border-zinc-100 flex-shrink-0"
-        style={{ paddingTop: env.isMiniProgram ? (Taro.getSystemInfoSync().statusBarHeight || 0) + 8 : 12 }}
+        style={{ paddingTop: env.isMiniProgram ? getStatusBarHeight() + 8 : 12 }}
       >
         <Text className="text-xl font-bold text-black" onClick={() => nav(-1)}>❮</Text>
         <Text className="text-lg font-black text-black">购物车</Text>

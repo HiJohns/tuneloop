@@ -112,6 +112,7 @@ export default {
     navigationBarBackgroundColor: '#fff',
     navigationBarTitleText: 'TuneLoop',
     navigationBarTextStyle: 'black',
+    pageOrientation: 'portrait',
   },
   ...(tabBar ? { tabBar } : {}),
 }

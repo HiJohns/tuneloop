@@ -15,6 +15,8 @@ export const storage = {
 
 export const getWindowSize = () => ({ width: window.innerWidth || 375, height: window.innerHeight || 667 })
 
+export const getStatusBarHeight = () => 0
+
 export const session = {
   getItem: (key) => sessionStorage.getItem(key),
   setItem: (key, value) => sessionStorage.setItem(key, value),
