@@ -3,6 +3,8 @@
 //   side: 'front' | 'back' | 'other'
 //   initialUrl: 已上传的照片 URL（从 GET /user/id-photos 或 /users/me 预填）
 //   onChange(url): 上传成功后回调新 URL；点击删除后回调 ''
+//   onSelect(file): 延迟上传模式下用户新选图（父组件感知已选图）
+//   onClear(): 点击删除当前图片后回调（父组件撤销 onSelect 侧的状态——#1845 R1）
 //   defer: 延迟上传模式（注册页专用）——仅本地预览，通过 uploadPending() 显式上传
 //   sessionUpload: { sessionId } — 延迟上传时使用会话级端点（无 token）
 import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from 'react'
@@ -11,7 +13,7 @@ import { View, Text, Image } from '@tarojs/components'
 import { uploadFile, env, storage, session } from '../platform'
 import { resolveErrorMessage } from '../services/api'
 
-const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl = '', onChange, onSelect, defer = false, sessionUpload, leftAligned = false }, ref) {
+const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl = '', onChange, onSelect, onClear, defer = false, sessionUpload, leftAligned = false }, ref) {
   const [url, setUrl] = useState(initialUrl || '')
   const [uploading, setUploading] = useState(false)
   const [pendingFile, setPendingFile] = useState(null)
@@ -190,6 +192,9 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
     setUrl('')
     setPendingFile(null)
     if (onChange) onChange('')
+    // #1845 R1: 删图后同步撤销 onSelect 记录的父组件状态（如学生证豁免
+    // otherPicked），否则父组件误判「已传证」而放行无证提交。
+    if (onClear) onClear()
   }
 
   const labelMap = { front: '正面', back: '反面', other: '其他证件' }

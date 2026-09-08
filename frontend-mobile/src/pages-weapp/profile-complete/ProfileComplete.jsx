@@ -317,7 +317,7 @@ export default function ProfileComplete() {
         </Picker>
       </View>
       <View style={{ display: 'flex', width: '100%', marginBottom: 24 }}>
-        <IdPhotoUploader ref={idPhotoOtherRef} side="other" defer sessionUpload={{ sessionId: resumeSid || undefined }} leftAligned onSelect={() => setOtherPicked(true)} />
+        <IdPhotoUploader ref={idPhotoOtherRef} side="other" defer sessionUpload={{ sessionId: resumeSid || undefined }} leftAligned onSelect={() => setOtherPicked(true)} onClear={() => setOtherPicked(false)} />
       </View>
 
       <View onClick={handleRegister}
