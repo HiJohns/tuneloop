@@ -2660,7 +2660,7 @@ cd frontend-pc && npm run build  # 应该成功
 - 租期信息：租期起点、预计天数、预计到期日
 - 费用信息（#1800 单一口径三段，后端 fee_detail 服务端计算，前端只读渲染；金额全部分）：
   - **实付段**：合同租金（含下单日期）→ 各阶梯明细（`第N阶梯 ¥x/天 × D天 = ¥y`，缩进）→ 优惠券抵扣（`discount_amount > 0` 时显示，绿色）→ 押金（amount=0 时文案「押金：免押金」）→ 各次续费（含阶梯明细 + 各段优惠券抵扣）→ 合计实付
-  - **应付段**：实际租金（含阶梯明细）→ 优惠券抵扣（`payable_block.discount_amount > 0` 时显示，绿色）→ 逾期费（含天数）→ 物流费 → 实际应付 → （折后）应付（仅 `segment_model=true` 且 `discounted_due > 0` 时显示，绿色）
+  - **应付段**：实际租金（含阶梯明细，**阶梯按实际租期 actualDays 截断，Σtiers 与实际租金逐分一致**，#1850）→ 优惠券抵扣（`payable_block.discount_amount > 0` 时显示，绿色）→ 逾期费（含天数）→ 物流费 → 实际应付 → （折后）应付（数据源 `fee_detail.segment_model`/`fee_detail.discounted_due` 透传，#1850；`segment_model=true` 且 `discounted_due > 0` 时显示，绿色）
   - **净额段**：应退款 / 应补缴（无差额时不显示）
   - **口径说明**：paid_block 合同段天数 = `rent_days − Σ续费days`（contractDays 反推，#1838/#1837 共用），与段模型同源；`discount_amount` = Σtiers.subtotal − amount（各支付段独立计算）
 - 结算状态（已完成/归还中订单，金额明细已并入 fee_detail；此处仅执行状态）：退款方式、退款状态（已退款/无需退款/待补缴/处理中）、需补缴金额 + 「去补缴」按钮

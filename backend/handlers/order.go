@@ -216,6 +216,10 @@ func buildFeeDetail(order models.Order, db *gorm.DB, settlementData map[string]i
 					"paid_block":    pb,
 					"payable_block": bd["payable_block"],
 					"net_block":     bd["net_block"],
+					// #1850: 透传折后口径字段（前端（折后）应付行读取），
+					// Breakdown 顶层自 #1836 起持久化；旧数据缺键 → 前端 falsy 渐进降级。
+					"segment_model":  bd["segment_model"],
+					"discounted_due": bd["discounted_due"],
 				}
 			}
 		}
@@ -228,6 +232,9 @@ func buildFeeDetail(order models.Order, db *gorm.DB, settlementData map[string]i
 		"paid_block":    bd["paid_block"],
 		"payable_block": bd["payable_block"],
 		"net_block":     bd["net_block"],
+		// #1850: 实时分支同样透传（Breakdown 顶层含 segment_model/discounted_due，L1226-1230）。
+		"segment_model":  bd["segment_model"],
+		"discounted_due": bd["discounted_due"],
 	}
 }
 

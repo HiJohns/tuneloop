@@ -311,3 +311,61 @@ func TestFeeDetail_SettledReconstruction(t *testing.T) {
 	settledSub, _ := settledResp.Data.FeeDetail.PaidBlock["subtotal"].(float64)
 	require.Equal(t, returningSub, settledSub, "paid subtotal identical across states")
 }
+
+// TestFeeDetail_DiscountedPassthrough (#1850): fee_detail 顶层必须透传
+// segment_model（bool）与 discounted_due（分）——前端「（折后）应付」行的
+// 渲染条件（H5 L575 / weapp L582）读取这两个键；修复前 buildFeeDetail 只
+// 下发四键导致行永不显示。fixture：无码全价 2 天单（paid==original → 段模型
+// 启用；setupFeeDetailOrder 的续费 amount>原价会拒段模型，不适用）。
+func TestFeeDetail_DiscountedPassthrough(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	tenantID := uuid.New().String()
+	orgID := uuid.New().String()
+	userID := uuid.New().String()
+	require.NoError(t, db.Create(&models.User{
+		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
+		Username: "fd-passthrough", Name: "Passthrough", Status: "active",
+	}).Error)
+	instrumentID := uuid.New().String()
+	instRate := models.Cents(1800)
+	require.NoError(t, db.Create(&models.Instrument{
+		ID: instrumentID, TenantID: tenantID, OrgID: &orgID,
+		SN: "SN-PASSTHROUGH", BaseDailyRate: &instRate, StockStatus: "rented",
+	}).Error)
+	start := "2026-09-01"
+	end := "2026-09-02"
+	deliveredAt := time.Date(2026, 9, 1, 10, 0, 0, 0, time.UTC)
+	returnedAt := time.Date(2026, 9, 3, 10, 0, 0, 0, time.UTC) // 实租 2 天 = 全租期
+	pb := `{"base_daily_rent":1800,"rent_days":2,"pricing_tiers":[{"days_max":30,"daily_rate":1800,"discount_percent":0}],"tier_segments":[{"tier":1,"days":2,"rate":1800,"discount":1,"subtotal":3600}],"total_amount":3600}`
+	order := models.Order{
+		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID, UserID: userID,
+		InstrumentID: instrumentID, StartDate: &start, EndDate: &end,
+		Status:      models.OrderStatusReturning,
+		DeliveredAt: &deliveredAt, ReturnedAt: &returnedAt,
+		CashPaid: models.FromYuan(36), ShippingFee: 0,
+		PricingBreakdown: &pb, CreatedAt: time.Date(2026, 8, 31, 9, 0, 0, 0, time.UTC),
+	}
+	require.NoError(t, db.Create(&order).Error)
+
+	router := setupTestRouter(t, tenantID, userID)
+	router.GET("/orders/:id", GetOrder)
+
+	req := httptest.NewRequest(http.MethodGet, "/orders/"+order.ID, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			FeeDetail struct {
+				SegmentModel  bool  `json:"segment_model"`
+				DiscountedDue int64 `json:"discounted_due"`
+			} `json:"fee_detail"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code, w.Body.String())
+	require.True(t, resp.Data.FeeDetail.SegmentModel, "segment_model 必须透传且为 true")
+	require.Equal(t, int64(3600), resp.Data.FeeDetail.DiscountedDue, "discounted_due 必须透传（分）")
+}

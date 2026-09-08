@@ -1139,12 +1139,26 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	paidBlock["subtotal"] = c(paidSubtotal)
 
 	// 应付段：实际租金（含阶梯）+ 逾期费 + 物流费 + 实际应付。
+	// #1850: tiers 按 actualDays 截断（与 rentPayable L782-798 同 cursor 口径）——
+	// 提前归还时 amount 已按实际租期计算，tiers 若全租期展开会与 amount 矛盾
+	// （16fdfb81: amount=¥36/1天 vs Σtiers=¥72/2天）。截断后 Σtiers==amount 逐分一致。
 	payableTiers := make([]map[string]interface{}, 0, len(tierSegments))
+	cursor := 1
 	for _, ts := range tierSegments {
-		payableTiers = append(payableTiers, map[string]interface{}{
-			"tier": ts.Tier, "rate": c(ts.Rate), "days": ts.Days,
-			"subtotal": c(ts.Subtotal),
-		})
+		if cursor > actualDays {
+			break
+		}
+		effectiveDays := ts.Days
+		if cursor+effectiveDays-1 > actualDays {
+			effectiveDays = actualDays - cursor + 1
+		}
+		if effectiveDays > 0 {
+			payableTiers = append(payableTiers, map[string]interface{}{
+				"tier": ts.Tier, "rate": c(ts.Rate), "days": effectiveDays,
+				"subtotal": c(float64(effectiveDays) * ts.Rate * ts.Discount),
+			})
+		}
+		cursor += ts.Days
 	}
 	payableSubtotal := rentPayable + overdueFee + shippingFee
 	payableBlock := map[string]interface{}{

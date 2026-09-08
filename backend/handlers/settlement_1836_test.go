@@ -311,7 +311,7 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 		o := models.Order{
 			TenantID: tenantID, OrgID: orgID, UserID: userID, InstrumentID: instID,
 			StartDate: str1743Ptr("2026-08-01"), EndDate: str1743Ptr("2026-09-03"),
-			LeaseTerm: 0, // 月语义：日租单 0 → fallback coverDays = rent_days = 33
+			LeaseTerm:   0, // 月语义：日租单 0 → fallback coverDays = rent_days = 33
 			Status:      models.OrderStatusReturned,
 			DeliveredAt: &delivered, ReturnedAt: &returned,
 			Deposit: 0,
@@ -355,4 +355,98 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 		require.InDelta(t, 0, res.PayableShortfall, 1e-9)
 		require.InDelta(t, 0, res.TotalRefund, 1e-9)
 	})
+}
+
+// TestPayableTiers_TruncatedByActualDays (#1850): 16fdfb81 形状 — returning、
+// 实租 1 天（当天交付当天申请归还）、pb rent_days=2（合同 1 + 续费 1）。
+// payable_block.actual_rent.tiers 必须按 actualDays 截断（1 天 ¥36.00），
+// 与 amount 一致；修复前全租期展开 2 天 ¥72.00 与 amount ¥36.00 自相矛盾。
+func TestPayableTiers_TruncatedByActualDays(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+
+	cents := func(yuan float64) models.Cents { return models.Cents(int64(yuan*100 + 0.5)) }
+	tenantID := uuid.New().String()
+	orgID := tenantID
+	userID := uuid.New().String()
+	instID := uuid.New().String()
+	require.NoError(t, db.Create(&models.Instrument{
+		ID: instID, TenantID: tenantID, OrgID: &orgID,
+		SN: "SN-TIER-TRUNC", StockStatus: "rented",
+	}).Error)
+	delivered := time.Date(2026, 9, 8, 16, 56, 0, 0, time.UTC)
+	returned := time.Date(2026, 9, 8, 20, 34, 0, 0, time.UTC) // 同日 → 实租 1 天
+	days1 := 1
+	o := models.Order{
+		TenantID: tenantID, OrgID: orgID, UserID: userID, InstrumentID: instID,
+		StartDate: str1743Ptr("2026-09-08"), EndDate: str1743Ptr("2026-09-08"),
+		LeaseTerm:   0, // 月语义：日租单 0
+		Status:      models.OrderStatusReturning,
+		DeliveredAt: &delivered, ReturnedAt: &returned,
+		Deposit: 0, CashPaid: cents(0.72), ShippingFee: cents(0.01),
+		CouponDiscount: cents(35.64),
+		PricingBreakdown: str1743Ptr(`{"base_daily_rent":3600,"rent_days":2,"deposit":0,"total_amount":7200,
+			"pricing_tiers":[{"days_max":30,"daily_rate":3600,"discount_percent":0}],
+			"tier_segments":[{"tier":1,"days":2,"rate":3600,"discount":1,"subtotal":7200}]}`),
+	}
+	require.NoError(t, db.Create(&o).Error)
+	require.NoError(t, db.Create(&models.OrderPaymentRecord{
+		TenantID: tenantID, UserID: userID, OrderID: &o.ID,
+		OrderType: "renewal", Type: "payment", Status: "paid",
+		Amount: cents(0.36), Days: &days1,
+	}).Error)
+
+	res := computeSettlement(o, db)
+	require.True(t, res.SegmentModel, "rent_days(2)−续费(1)=1 应启用段模型")
+
+	payable := res.Breakdown["payable_block"].(map[string]interface{})
+	actualRent := payable["actual_rent"].(map[string]interface{})
+	require.Equal(t, int64(3600), actualRent["amount"], "1 天原价 36.00")
+	require.Equal(t, 1, actualRent["days"])
+	tiers := actualRent["tiers"].([]map[string]interface{})
+	require.Len(t, tiers, 1, "全租期 2 天须截断为实租 1 天")
+	require.Equal(t, 1, tiers[0]["tier"])
+	require.Equal(t, 1, tiers[0]["days"])
+	require.Equal(t, int64(3600), tiers[0]["subtotal"], "截断后 Σtiers == amount")
+	// 折后口径顶层字段（fee_detail 透传的数据源）
+	require.Equal(t, true, res.Breakdown["segment_model"])
+	require.Equal(t, int64(37), res.Breakdown["discounted_due"], "折后 0.36 + 物流 0.01 = 0.37")
+	require.InDelta(t, 0.35, res.TotalRefund, 1e-9, "0.72 − 0.37 = 0.35 应退")
+}
+
+// TestPayableTiers_FullTerm_NoOp (#1850 用例 C): actualDays=全租期时截断为
+// no-op——tiers 输出与旧行为一致（全段完整展开）。
+func TestPayableTiers_FullTerm_NoOp(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+
+	cents := func(yuan float64) models.Cents { return models.Cents(int64(yuan*100 + 0.5)) }
+	tenantID := uuid.New().String()
+	orgID := tenantID
+	userID := uuid.New().String()
+	instID := uuid.New().String()
+	require.NoError(t, db.Create(&models.Instrument{
+		ID: instID, TenantID: tenantID, OrgID: &orgID,
+		SN: "SN-TIER-FULL", StockStatus: "rented",
+	}).Error)
+	delivered := time.Date(2026, 9, 1, 10, 0, 0, 0, time.UTC)
+	returned := time.Date(2026, 9, 3, 10, 0, 0, 0, time.UTC) // 实租 2 天 = 全租期
+	o := models.Order{
+		TenantID: tenantID, OrgID: orgID, UserID: userID, InstrumentID: instID,
+		StartDate: str1743Ptr("2026-09-01"), EndDate: str1743Ptr("2026-09-02"),
+		LeaseTerm: 0, Status: models.OrderStatusReturned,
+		DeliveredAt: &delivered, ReturnedAt: &returned,
+		Deposit: 0, CashPaid: cents(36.00), ShippingFee: 0,
+		PricingBreakdown: str1743Ptr(`{"base_daily_rent":1800,"rent_days":2,"deposit":0,"total_amount":3600,
+			"pricing_tiers":[{"days_max":30,"daily_rate":1800,"discount_percent":0}],
+			"tier_segments":[{"tier":1,"days":2,"rate":1800,"discount":1,"subtotal":3600}]}`),
+	}
+	require.NoError(t, db.Create(&o).Error)
+
+	res := computeSettlement(o, db)
+	payable := res.Breakdown["payable_block"].(map[string]interface{})
+	actualRent := payable["actual_rent"].(map[string]interface{})
+	tiers := actualRent["tiers"].([]map[string]interface{})
+	require.Len(t, tiers, 1, "全租期展开不变")
+	require.Equal(t, 2, tiers[0]["days"])
+	require.Equal(t, int64(3600), tiers[0]["subtotal"])
+	require.Equal(t, int64(3600), actualRent["amount"])
 }
