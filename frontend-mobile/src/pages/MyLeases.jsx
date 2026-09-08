@@ -212,6 +212,9 @@ export default function MyLeases() {
               const showPay = !isStaff && order.status === 'reserved'
               const showCancel = !isStaff && ['reserved', 'paid', 'pending_shipment'].includes(order.status)
               const showConfirm = !isStaff && order.status === 'shipped'
+              // #1846: 员工列表发货入口（与 weapp 列表对齐，此前 H5 缺失，
+              // 员工必须先点进详情才能发货）。
+              const showStaffShip = isStaff && ['paid', 'pending_shipment'].includes(order.status)
               const isTerminal = ['completed', 'returned', 'cancelled'].includes(order.status)
 
               return (
@@ -288,6 +291,14 @@ export default function MyLeases() {
                           接收
                         </Button>
                       )}
+                      {showStaffShip && (
+                        <Button
+                          onClick={(e) => { e.stopPropagation(); navigate(`/staff/shipping?order_id=${order.id}`) }}
+                          className="flex-1 min-w-0 py-2.5 bg-black text-white rounded-xl font-black text-sm"
+                        >
+                          发货
+                        </Button>
+                      )}
                       {showCancel && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); handleCancelFromList(order.id, order.status) }}
@@ -296,7 +307,7 @@ export default function MyLeases() {
                           取消订单
                         </Button>
                       )}
-                      {!showPay && !showConfirm && !showReturn && !showCancel && !showStaffReceive && (
+                      {!showPay && !showConfirm && !showReturn && !showCancel && !showStaffReceive && !showStaffShip && (
                         <View className="w-full py-2.5 bg-zinc-100 rounded-xl text-center">
                           <Text className="text-zinc-400 font-black text-sm">等待处理</Text>
                         </View>

@@ -383,6 +383,10 @@ export default function OrderDetail() {
 
   const showStaffShip = isStaff && (status === 'paid' || status === 'pending_shipment')
   const showStaffTransit = isStaff && status === 'in_transit'
+  // 代收货 (#1693): shipped（最终发货完成）时员工按快递签收情况代用户
+  // 确认收货（填写实际到货时间，租期按此起算）。in_transit 为网点间流转，
+  // 不代收货。#1846: weapp 副本此前缺失该按钮，员工在小程序无法代收货。
+  const showStaffDeliver = isStaff && status === 'shipped'
   const showStaffReceive = isStaff && status === 'returning' && !order.settlement?.payable_shortfall
   const showStaffRefund = isStaff && status === 'deposit_refunding'
   // Staff cancel only on cancellable states, grouped with ship actions —
@@ -946,6 +950,10 @@ export default function OrderDetail() {
             {showStaffTransit && (
               <View onClick={() => Taro.navigateTo({ url: `/pages-weapp/shipping-interface/index?order_id=${id}` })}
                 style={btnStyle('#06b6d4')}>🚚 接收并转发</View>
+            )}
+            {showStaffDeliver && (
+              <View onClick={() => Taro.navigateTo({ url: `/pages-weapp/staff-receive-confirm/index?order_id=${id}&instrument=${order.instrument_id}` })}
+                style={btnStyle('#15803d')}>📦 代收货</View>
             )}
             {showStaffReceive && (
               <View onClick={() => Taro.navigateTo({ url: `/pages-weapp/receiving-interface/index?order_id=${id}` })}
