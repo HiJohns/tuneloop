@@ -46,6 +46,12 @@ func TestPrepayShortfall_OREZ(t *testing.T) {
 		Status: models.OrderStatusReturning,
 	}
 	require.NoError(t, db.Create(&order).Error)
+	// 验收时创建的 pending 补缴单（#1799）——waived 结清后必须被关闭。
+	require.NoError(t, db.Create(&models.OrderPaymentRecord{
+		ID: uuid.New().String(), TenantID: user.TenantID, UserID: user.ID, OrderID: &order.ID,
+		OrderType: "payment_shortfall", Type: "payment", Status: "pending",
+		Amount: models.Cents(64),
+	}).Error)
 
 	customer := testutil.MakeCustomer("", user.IAMSub)
 	router := gin.New()
@@ -95,4 +101,16 @@ func TestPrepayShortfall_OREZ(t *testing.T) {
 	var orderAfter models.Order
 	require.NoError(t, db.Where("id = ?", order.ID).First(&orderAfter).Error)
 	assert.Equal(t, models.OrderStatusCompleted, orderAfter.Status, "shortfall waive completes the order")
+
+	// #1838：原 pending 补缴单必须被关闭（防重复补缴入口）。
+	var pendingCount int64
+	require.NoError(t, db.Model(&models.OrderPaymentRecord{}).
+		Where("order_id = ? AND order_type = ? AND status = ?", order.ID, "payment_shortfall", "pending").
+		Count(&pendingCount).Error)
+	assert.Zero(t, pendingCount, "no pending shortfall record may remain after settlement")
+	var closedCount int64
+	require.NoError(t, db.Model(&models.OrderPaymentRecord{}).
+		Where("order_id = ? AND order_type = ? AND status = ?", order.ID, "payment_shortfall", "closed").
+		Count(&closedCount).Error)
+	assert.Equal(t, int64(1), closedCount, "previous pending shortfall record closed")
 }

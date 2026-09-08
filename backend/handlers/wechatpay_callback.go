@@ -311,6 +311,15 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 		// #1746 L-04C 流程 4/5：补缴支付成功 → 订单 completed → 结算闭环。
 		// settlement 已存在（shortfall 时创建，pending）→ 标记完成
 		// （此时已付 ≥ 应付，无退款/走幂等 executeRefund）。
+		// #1838：补缴结清（微信回调 / OREZ waived 均经此）→ 关闭该单所有
+		// 仍 pending 的补缴记录（幂等），防悬挂 pending 造成重复补缴入口。
+		if record.OrderID != nil {
+			if err := tx.Model(&models.OrderPaymentRecord{}).
+				Where("order_id = ? AND order_type = ? AND status = ?", *record.OrderID, "payment_shortfall", "pending").
+				Update("status", "closed").Error; err != nil {
+				return err
+			}
+		}
 		if err := tx.Model(&models.Order{}).Where("id = ?", record.OrderID).Update("status", models.OrderStatusCompleted).Error; err != nil {
 			return err
 		}

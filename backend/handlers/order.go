@@ -362,14 +362,24 @@ func GetOrder(c *gin.Context) {
 
 	// #1785: query pending payment_shortfall record so the detail page can
 	// show "需补缴" and a payment button.
+	// #1838: 仅未结清订单暴露待补缴——completed/returned 等结清态可能残留
+	// 悬挂 pending 行（waived 结清前创建的），暴露会导致重复补缴入口。
+	shortfallUnsettled := map[string]bool{
+		models.OrderStatusReturning:             true,
+		models.OrderStatusPendingDamageResponse: true,
+		models.OrderStatusDamageAppealing:       true,
+		models.OrderStatusDepositRefunding:      true,
+	}
 	var shortfallRecord models.OrderPaymentRecord
-	if err := db.Where("order_id = ? AND order_type = ? AND status = ?",
-		order.ID, "payment_shortfall", "pending").
-		Order("created_at DESC").First(&shortfallRecord).Error; err == nil {
-		if settlementData == nil {
-			settlementData = map[string]interface{}{}
+	if shortfallUnsettled[order.Status] {
+		if err := db.Where("order_id = ? AND order_type = ? AND status = ?",
+			order.ID, "payment_shortfall", "pending").
+			Order("created_at DESC").First(&shortfallRecord).Error; err == nil {
+			if settlementData == nil {
+				settlementData = map[string]interface{}{}
+			}
+			settlementData["payable_shortfall"] = int64(shortfallRecord.Amount)
 		}
-		settlementData["payable_shortfall"] = int64(shortfallRecord.Amount)
 	}
 
 	// Fetch order logs (paginated via logs_limit query param)
