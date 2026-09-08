@@ -2794,6 +2794,24 @@ cd frontend-pc && npm run build  # 应该成功
 | `cancelled` | 无 | 显示「该订单已取消」 | — |
 | `returned` / `completed` / `transferred` | 无 | 显示「该订单已完成」 | — |
 
+**订单操作按钮文案/色值统一对照表（#1849）**：
+
+同一动作在 列表（MyLeases）/ 详情（OrderDetail）× H5 / weapp 四个表面使用同一文案与色值；权威值来源 = 详情页现值。导航行为不在统一范围（列表「确认收货」仍跳详情）。
+
+| 动作 | 统一文案 | 统一色值 | 出现表面 |
+|------|---------|---------|---------|
+| 支付 | 支付 | `#000000` 黑 | 列表+详情（顾客 reserved）|
+| 取消订单 | 取消订单 | `#ef4444` 红底白字 | 列表+详情（reserved/paid/pending_shipment）|
+| 确认收货 | 确认收货 | `#16a34a` 绿 | 列表+详情（shipped/in_transit，顾客）|
+| 续期 | 续期 | `#2563eb` 蓝 | 详情（in_lease/expired，顾客）|
+| 归还 | 归还 | `#f97316` 橙 | 列表+详情（in_lease/expired，顾客）|
+| 发货 | 发货 | `#000000` 黑 | weapp 列表 + 双端详情（paid/pending_shipment，员工；H5 列表见 #1846）|
+| 接收并转发 | 接收并转发 | `#06b6d4` 青 | 详情（in_transit，员工）|
+| 代收货 | 代收货 | `#15803d` 深绿 | H5 详情（shipped，员工；weapp 见 #1846）|
+| 接收 | 接收 | `#be123c` 玫红 | 列表+详情（returning 无补缴，员工）|
+| 退款 | 退款 | `#d97706` 琥珀 | 详情（deposit_refunding，员工）|
+| 终态/归还中占位 | （状态文案）| `#71717a` 灰字浅灰底 | 列表+详情（无动作状态）|
+
 **超期提醒**:
 - 当 `status === 'expired'` 或 `in_lease` 且 `end_date < now` 时，在状态区域下方显示醒目红框
 - 内容：超期 X 天 · 累计逾期费 ¥XXX（¥XX/天）
