@@ -7,7 +7,7 @@ import { env, dialog, getInputValue, wxLogin as wxLoginCode } from '../../../pla
 import { parseJWT } from '../../../platform/init'
 import IdPhotoUploader from '../../../components/IdPhotoUploader'
 
-const ID_TYPE_OPTIONS = ['学生证', '教师证', '工作证', '其他']
+const ID_TYPE_OPTIONS = ['学生证', '教职工证', '教师证', '工作证', '其他']
 
 export default function EditProfile() {
   const [name, setName] = useState('')

@@ -30,8 +30,11 @@ export default function ProfileComplete() {
   const [sessionAmount, setSessionAmount] = useState(0)
   // #1807: 第三证件类型（学生证/教师证/工作证/其他）
   const [otherIdType, setOtherIdType] = useState('')
+  // #1845: resume 会话时回填服务端已上传的证件侧（defer 本地无预览，
+  // 以 id_photos map 键为凭）→ 满足身份证必填校验。
+  const [uploadedSides, setUploadedSides] = useState({})
 
-  const ID_TYPE_OPTIONS = ['学生证', '教师证', '工作证', '其他']
+  const ID_TYPE_OPTIONS = ['学生证', '教职工证', '教师证', '工作证', '其他']
 
   const provinceNames = regions.map(r => r.name)
   const selectedProv = regions.find(r => r.name === province)
@@ -67,6 +70,15 @@ export default function ProfileComplete() {
             if (f.nickname) setNickname(f.nickname)
             if (f.phone) setPhone(f.phone)
             if (f.email) setEmail(f.email)
+            // #1845: 已上传证件侧回填（id_photos: {front|back|other: key}）。
+            // 服务端照片随会话保留，本次不再重复上传，仅用于必填校验。
+            if (f.id_photos && typeof f.id_photos === 'object') {
+              const sides = {}
+              Object.keys(f.id_photos).forEach(side => {
+                if (side === 'front' || side === 'back' || side === 'other') sides[side] = true
+              })
+              if (Object.keys(sides).length > 0) setUploadedSides(sides)
+            }
             // Resume the shipping address too — the form was fully filled
             // before; only the basic fields were restored previously.
             if (f.address) {
@@ -92,6 +104,13 @@ export default function ProfileComplete() {
   const handleRegister = async () => {
     if (!name.trim()) { Taro.showToast({ title: '请输入姓名', icon: 'none' }); return }
     if (!phone.trim()) { Taro.showToast({ title: '请输入手机号', icon: 'none' }); return }
+    // #1845: 身份证正反面必填——本地已选图或 resume 会话已上传，二者至少其一。
+    const frontReady = uploadedSides.front || !!idPhotoFrontRef.current?.hasFile()
+    const backReady = uploadedSides.back || !!idPhotoBackRef.current?.hasFile()
+    if (!frontReady || !backReady) {
+      Taro.showToast({ title: '请先上传身份证正反面照片', icon: 'none' })
+      return
+    }
     setSaving(true)
     try {
       // Two-phase registration (#1663): submitting creates a pending session
@@ -143,20 +162,29 @@ export default function ProfileComplete() {
         }
       }
       session.setItem('pending_registration_session', sid)
-      // Upload ID photos to the session (#1787) — best-effort; failure shows
-      // a dialog allowing the user to continue to payment or retry.
-      // #1807: 显式传 sid（新建 session 后 prop 更新有批处理延迟，直接传参
-      // 保证走 session 端点而非 user/id-photo 匿名 401）。
-      const uploadResult = await Promise.allSettled([
-        idPhotoFrontRef.current?.uploadPending(sid),
-        idPhotoBackRef.current?.uploadPending(sid),
-        idPhotoOtherRef.current?.uploadPending(sid),
-      ])
-      const anyFailed = uploadResult.some(r => r.status === 'rejected' || (r.status === 'fulfilled' && r.value === null))
-      if (anyFailed) {
+      // Upload ID photos to the session (#1787) — only slots that actually
+      // carry a locally picked image are uploaded (#1845): empty slots return
+      // 'skip' and must NOT be counted as failures (previously any unselected
+      // slot made the flow show a false "证件照上传失败" dialog).
+      const slots = [
+        { label: '身份证正面', ref: idPhotoFrontRef, uploaded: uploadedSides.front },
+        { label: '身份证反面', ref: idPhotoBackRef, uploaded: uploadedSides.back },
+        { label: '其他证件', ref: idPhotoOtherRef, uploaded: uploadedSides.other },
+      ]
+      const failedSides = []
+      for (const slot of slots) {
+        const hasLocal = !!slot.ref.current?.hasFile()
+        if (!hasLocal && slot.uploaded) continue // resume 会话已传，无本地新图
+        if (!hasLocal) continue // 未选图 = skip，不尝试上传
+        // #1807: 显式传 sid（新建 session 后 prop 更新有批处理延迟，直接传参
+        // 保证走 session 端点而非 user/id-photo 匿名 401）。
+        const outcome = await slot.ref.current?.uploadPending(sid)
+        if (outcome === null) failedSides.push(slot.label)
+      }
+      if (failedSides.length > 0) {
         const { confirm } = await Taro.showModal({
           title: '证件照上传失败',
-          content: '部分证件照上传失败，可在注册后于『编辑资料』补传。',
+          content: `${failedSides.join('、')}上传失败，可在注册后于『编辑资料』补传。`,
           confirmText: '继续支付',
           cancelText: '重试',
         })
@@ -246,7 +274,9 @@ export default function ProfileComplete() {
           style={{ flex: 1, fontSize: 14, height: '20px', padding: 0 }} />
       </View>
 
-      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', width: '100%', marginBottom: 12 }}>身份证照片（选填）</Text>
+      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', width: '100%', marginBottom: 12 }}>
+        身份证照片<Text style={{ color: '#ef4444' }}>（必填）</Text>
+      </Text>
       {/* #1807: 正反面一行（各 ~48%） */}
       <View style={{ display: 'flex', width: '100%', marginBottom: 12, justifyContent: 'space-between' }}>
         <View style={{ width: '48%', display: 'flex', justifyContent: 'center' }}>
@@ -256,8 +286,11 @@ export default function ProfileComplete() {
           <IdPhotoUploader ref={idPhotoBackRef} side="back" defer sessionUpload={{ sessionId: resumeSid || undefined }} />
         </View>
       </View>
-      {/* #1807: 其他证件小节标题 + 证件类型（在上，宽度与上传框一致）+ 上传框靠左 */}
-      <Text style={{ fontSize: 14, fontWeight: '600', color: '#000', width: '100%', marginBottom: 8 }}>其他证件</Text>
+      {/* #1807/#1845: 第三证件标题改版——学校师生专属文案；证件类型（在上，宽度与上传框一致）+ 上传框靠左 */}
+      <Text style={{ fontSize: 14, fontWeight: '600', color: '#000', width: '100%', marginBottom: 4 }}>学生证、教职工等其他证件</Text>
+      <Text style={{ fontSize: 12, color: '#a16207', width: '100%', marginBottom: 8, lineHeight: '18px' }}>
+        （学校师生专属：上传学生证/教职工证，享绿色通道及特殊政策！）
+      </Text>
       <View style={{ display: 'flex', width: '100%', marginBottom: 8 }}>
         <Picker mode="selector" range={ID_TYPE_OPTIONS} value={otherIdType ? ID_TYPE_OPTIONS.indexOf(otherIdType) : 0}
           onChange={e => setOtherIdType(ID_TYPE_OPTIONS[e.detail.value])}>

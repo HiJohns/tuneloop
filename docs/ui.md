@@ -716,18 +716,18 @@ API 来源：
 
 **路由**: weapp `pages-weapp/profile-complete/index`（薄壳）→ `ProfileComplete.jsx`；H5 `/register` → `Register.jsx`
 
-**布局**（weapp 三列并排）:
+**布局**（weapp 正反面一行 + 第三证件单独一行）:
 
 | 槽位 | side | 组件 | 说明 |
 |------|------|------|------|
-| 身份证正面 | `front` | `<IdPhotoUploader defer sessionUpload={{sessionId}}>` | 30% 宽，defer 模式（选图本地预览） |
-| 身份证反面 | `back` | 同上 | 30% 宽 |
-| 其他证件 | `other` | 同上 | 30% 宽 |
+| 身份证正面 | `front` | `<IdPhotoUploader defer sessionUpload={{sessionId}}>` | 30% 宽，defer 模式（选图本地预览）；**必填**（#1845） |
+| 身份证反面 | `back` | 同上 | 30% 宽；**必填**（#1845） |
+| 其他证件 | `other` | 同上 | 选填；标题「学生证、教职工等其他证件」+ 绿色通道说明行（#1845） |
 
 **流程**（weapp 两阶段注册）:
-1. 填写昵称/地址等 → 点击注册 → 创建 session 拿到 `session_id`
-2. 三张照片通过 `uploadPending()` 上传到会话级匿名端点 `POST /auth/registration-sessions/:id/id-photo`（无 token）
-3. 任一照片上传失败 → 弹窗「部分证件照上传失败，可在注册后于『编辑资料』补传」[继续支付 / 重试]（**非静默**）
+1. 填写昵称/地址等 → 点击注册 → 创建 session 拿到 `session_id`；**前置校验：身份证正/反面必须已选图或 resume 会话已上传**（未满足 toast「请先上传身份证正反面照片」不提交，#1845）
+2. 已选图槽位通过 `uploadPending()` 上传到会话级匿名端点 `POST /auth/registration-sessions/:id/id-photo`（无 token）；**空槽返回 `skip` 不计失败**（#1845：修复「仅传身份证仍弹上传失败」误报）
+3. 真实上传失败 → 弹窗「{侧面}上传失败，可在注册后于『编辑资料』补传」[继续支付 / 重试]（**非静默**）
 4. 成功 → 跳转支付页；支付回调 `completeRegistrationFromSession` 将照片转入 `users` 表
 
 **按钮规范**: 提交按钮文本「注册并支付」（动词+宾语）；进行中「处理中...」（#1744 按钮规范）
@@ -743,7 +743,7 @@ API 来源：
 | 正面 | `front` | `GET /users/me → id_photo_front` | 一行（~48%） | 即时上传/替换/删除 |
 | 反面 | `back` | `id_photo_back` | 一行（~48%） | 同上 |
 | 其他证件 | `other` | `id_photo_other` | 单独一行（下方） | 即时上传/替换/删除 |
-| 证件类型 | `id_photo_other_type` | `GET /users/me → id_photo_other_type` | 第三证件下方 | Picker 选择：学生证/教师证/工作证/其他 |
+| 证件类型 | `id_photo_other_type` | `GET /users/me → id_photo_other_type` | 第三证件下方 | Picker 选择：学生证/教职工证/教师证/工作证/其他 |
 
 **实名认证区块**（#1787/#1807：实名信息由员工审核填写）:
 

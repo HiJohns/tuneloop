@@ -105,12 +105,15 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
   }
 
   useImperativeHandle(ref, () => ({
+    // True when the user picked a local image (defer) or an uploaded URL exists.
+    hasFile: () => !!(pendingFile || url),
     // Explicit upload for defer mode (registration pages): returns URL or null.
     // overrideSessionId (#1807): 新建注册 session 后显式传入新 sid——
     // prop 更新有 React 批处理时序延迟，注册页在创建 session 后立即上传时
     // 直接传 sid，避免走 user/id-photo 端点（匿名 401 上传失败）。
     uploadPending: async (overrideSessionId) => {
-      if (!pendingFile) return null
+      // 'skip' = 该槽未选图（注册页勿判为失败——#1845：空槽误报上传失败）。
+      if (!pendingFile) return 'skip'
       setUploading(true)
       try {
         const base = env.apiBaseUrl || '/api'

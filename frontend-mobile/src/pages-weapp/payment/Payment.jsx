@@ -203,70 +203,99 @@ export default function Payment() {
   // the profile page. (#1807: 多账户场景——openid 可能同时绑定员工+顾客，
   // resolveLogin('profile') 会跳账户选择页并返回 false，导致 token 未更新
   // 仍停留原账户；改为直接用 session 返回的新账户 user_id 登录。)
+  // #1845: 加固——任何异常/超时都必须到达出口（switchTab），禁止页面
+  // 永久停留「处理中」按钮。
+  const safeExitTab = (url) => {
+    Taro.switchTab({
+      url,
+      fail: () => Taro.switchTab({
+        url: url === '/pages-weapp/profile/index' ? '/pages-weapp/home/index' : '/pages-weapp/profile/index',
+        fail: () => {},
+      }),
+    })
+  }
+
   const finishMembershipFlow = async () => {
-    if (!pSessionId) return
-    let completed = false
-    let newUserId = ''
-    for (let i = 0; i < 10; i++) {
-      try {
-        const resp = await apiFetch(`${baseUrl}/auth/registration-sessions/${pSessionId}/status`, { auth: false })
-        const r = await resp.json()
-        if (r.code === 20000 && r.data?.status === 'completed') { completed = true; newUserId = r.data?.user_id || ''; break }
-      } catch (e) { console.warn('[payment] session status poll failed', e) }
-      await new Promise(res => setTimeout(res, 1000))
-    }
-    session.removeItem('pending_registration_session')
-    if (completed) {
-      Taro.showToast({ title: '注册成功，正在登录...', icon: 'none', duration: 1500 })
-      // #1807: 直接用新账户 user_id 登录（需要 exchange_token——调 wx-accounts 获取）。
-      let loggedIn = false
-      if (newUserId) {
+    let exited = false
+    const exit = (url) => { if (exited) return; exited = true; safeExitTab(url) }
+    try {
+      let completed = false
+      let newUserId = ''
+      for (let i = 0; i < 20; i++) {
         try {
-          const code = await wxLogin()
-          if (code) {
-            const accResp = await apiFetch(`${baseUrl}/auth/wx-accounts?code=${encodeURIComponent(code)}`, { auth: false })
-            const acc = await accResp.json()
-            const exchangeToken = acc.data?.exchange_token || ''
-            if (exchangeToken) {
-              const loginResp = await apiFetch(`${baseUrl}/auth/wx-login-select`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ exchange_token: exchangeToken, user_id: newUserId }),
-              })
-              const loginResult = await loginResp.json()
-              if (loginResult.code === 20000 && loginResult.data?.access_token) {
-                storage.setItem('token', loginResult.data.access_token)
-                if (loginResult.data.expires_in) {
-                  storage.setItem('token_expiry', (new Date().getTime() + loginResult.data.expires_in * 1000).toString())
+          const resp = await apiFetch(`${baseUrl}/auth/registration-sessions/${pSessionId}/status`, { auth: false })
+          const r = await resp.json()
+          if (r.code === 20000 && r.data?.status === 'completed') { completed = true; newUserId = r.data?.user_id || ''; break }
+        } catch (e) { console.warn('[payment] session status poll failed', e) }
+        await new Promise(res => setTimeout(res, 1000))
+      }
+      session.removeItem('pending_registration_session')
+      if (completed) {
+        Taro.showToast({ title: '注册成功，正在登录...', icon: 'none', duration: 1500 })
+        // #1807: 直接用新账户 user_id 登录（需要 exchange_token——调 wx-accounts 获取）。
+        let loggedIn = false
+        if (newUserId) {
+          try {
+            const code = await wxLogin()
+            if (code) {
+              const accResp = await apiFetch(`${baseUrl}/auth/wx-accounts?code=${encodeURIComponent(code)}`, { auth: false })
+              const acc = await accResp.json()
+              const exchangeToken = acc.data?.exchange_token || ''
+              if (exchangeToken) {
+                const loginResp = await apiFetch(`${baseUrl}/auth/wx-login-select`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ exchange_token: exchangeToken, user_id: newUserId }),
+                })
+                const loginResult = await loginResp.json()
+                if (loginResult.code === 20000 && loginResult.data?.access_token) {
+                  storage.setItem('token', loginResult.data.access_token)
+                  if (loginResult.data.expires_in) {
+                    storage.setItem('token_expiry', (new Date().getTime() + loginResult.data.expires_in * 1000).toString())
+                  }
+                  if (loginResult.data.refresh_token) storage.setItem('refresh_token', loginResult.data.refresh_token)
+                  loggedIn = true
                 }
-                if (loginResult.data.refresh_token) storage.setItem('refresh_token', loginResult.data.refresh_token)
-                loggedIn = true
               }
             }
-          }
-        } catch (e) { console.warn('[payment] auto-login new member failed', e) }
+          } catch (e) { console.warn('[payment] auto-login new member failed', e) }
+        }
+        if (!loggedIn) {
+          // 降级：走通用路由（可能跳账户选择页）。
+          loggedIn = await resolveLogin('profile')
+        }
+        const ok = loggedIn
+        // #1690: 来源 B（立即租赁/购物车支付）注册完成后回跳原页面
+        const redirect = session.getItem('post_auth_redirect')
+        if (redirect) {
+          session.removeItem('post_auth_redirect')
+          // H5 短路径 → weapp 完整路径（/checkout?id=x → /pages-weapp/checkout/index?id=x）
+          const [path, query] = redirect.split('?')
+          const weappUrl = `/pages-weapp${path}/index${query ? '?' + query : ''}`
+          // #1845: redirectTo 加 fail 兜底，目标页异常不得滞留支付页。
+          Taro.redirectTo({ url: weappUrl, fail: () => exit('/pages-weapp/profile/index') })
+          return
+        }
+        if (ok) exit('/pages-weapp/profile/index')
+        else exit('/pages-weapp/home/index')
+      } else {
+        Taro.showModal({ title: '注册处理中', content: '会员费已支付，账户正在创建，请稍后返回首页刷新。', showCancel: false })
+        setTimeout(() => exit('/pages-weapp/home/index'), 2000)
       }
-      if (!loggedIn) {
-        // 降级：走通用路由（可能跳账户选择页）。
-        loggedIn = await resolveLogin('profile')
-      }
-      const ok = loggedIn
-      // #1690: 来源 B（立即租赁/购物车支付）注册完成后回跳原页面
-      const redirect = session.getItem('post_auth_redirect')
-      if (redirect) {
-        session.removeItem('post_auth_redirect')
-        // H5 短路径 → weapp 完整路径（/checkout?id=x → /pages-weapp/checkout/index?id=x）
-        const [path, query] = redirect.split('?')
-        const weappUrl = `/pages-weapp${path}/index${query ? '?' + query : ''}`
-        Taro.redirectTo({ url: weappUrl })
-        return
-      }
-      if (ok) Taro.switchTab({ url: '/pages-weapp/profile/index' })
-      else Taro.switchTab({ url: '/pages-weapp/home/index' })
-    } else {
-      Taro.showModal({ title: '注册处理中', content: '会员费已支付，账户正在创建，请稍后返回首页刷新。', showCancel: false })
-      setTimeout(() => Taro.switchTab({ url: '/pages-weapp/home/index' }), 2000)
+    } catch (e) {
+      console.warn('[payment] finishMembershipFlow failed', e)
+      Taro.showToast({ title: '注册处理中，请稍后在首页查看', icon: 'none' })
+      exit('/pages-weapp/home/index')
     }
+  }
+
+  // #1845: 支付成功 → 1.5s 后进入注册完成流程；并起 35s 保险丝——
+  // 即使轮询/登录链中某次请求永不返回，也必须离开支付页（防「处理中」卡死）。
+  const startMembershipFlow = () => {
+    setTimeout(finishMembershipFlow, 1500)
+    setTimeout(() => {
+      Taro.switchTab({ url: '/pages-weapp/home/index', fail: () => {} })
+    }, 35000)
   }
 
   const doPrepay = async (amountOverride) => {
@@ -353,7 +382,7 @@ export default function Payment() {
       success: () => {
         if (pType === 'membership' && pSessionId) {
           Taro.showToast({ title: '支付成功，注册处理中', icon: 'none', duration: 1500 })
-          setTimeout(finishMembershipFlow, 1500)
+          startMembershipFlow()
         } else {
           Taro.showToast({ title: pType === 'membership' ? '会员已激活，赠点已到账' : '支付成功', icon: 'success' })
           afterPaySuccess(pId)
@@ -379,7 +408,7 @@ export default function Payment() {
           if (result.code === 20000) {
             if (pType === 'membership' && pSessionId) {
               Taro.showToast({ title: '会员已激活，赠点已到账', icon: 'success' })
-              setTimeout(finishMembershipFlow, 2000)
+              startMembershipFlow()
             } else {
               Taro.showToast({ title: '支付成功', icon: 'success' })
               afterPaySuccess(pId)
