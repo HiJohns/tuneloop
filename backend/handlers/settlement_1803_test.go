@@ -169,16 +169,26 @@ func TestFeeDetail_PaidBlock_Tiers(t *testing.T) {
 	// 押金 1 元 = 100 分。
 	require.Equal(t, int64(100), fd.PaidBlock.Deposit.Amount)
 
-	// 续费块：金额 1000 分，days=10，阶梯 tier 全局编号=2（延续首期）。
+	// 续费块：金额 1000 分，days=10。offset 与合同段续接（#1837 R2：
+	// renewalOffset = contractDays=25，修复前从 initialDays=35 起步产生
+	// day26-35 空洞）→ (25,35] 跨 30 天边界拆两段：tier1 5 天全价 +
+	// tier2 5 天（5% off），tier 编号延续全局。
 	require.Len(t, fd.PaidBlock.Renewals, 1)
 	rn := fd.PaidBlock.Renewals[0]
 	require.Equal(t, int64(1000), rn.Amount)
 	require.NotNil(t, rn.Days)
 	require.Equal(t, 10, *rn.Days)
-	require.Len(t, rn.Tiers, 1)
-	require.Equal(t, 2, rn.Tiers[0].Tier, "renewal tier continues global numbering (tier 2)")
-	require.Equal(t, 10, rn.Tiers[0].Days)
-	require.Equal(t, int64(950), rn.Tiers[0].Subtotal, "10 days × 100 cents × 0.95 discount")
+	require.Len(t, rn.Tiers, 2, "renewal spans the 30-day tier boundary from day 25")
+	rt0 := rn.Tiers[0]
+	require.Equal(t, 1, rt0.Tier, "days 26-30 stay in tier 1 (5 days full price)")
+	require.Equal(t, 5, rt0.Days)
+	require.Equal(t, int64(100), rt0.Rate)
+	require.Equal(t, int64(500), rt0.Subtotal, "5 days × 100 cents")
+	rt1 := rn.Tiers[1]
+	require.Equal(t, 2, rt1.Tier, "days 31-35 fall into tier 2 (5% discount)")
+	require.Equal(t, 5, rt1.Days)
+	require.Equal(t, int64(100), rt1.Rate)
+	require.Equal(t, int64(475), rt1.Subtotal, "5 days × 100 cents × 0.95 discount")
 
 	// 合计实付 = 3500 + 100 + 1000 = 4600 分。
 	require.Equal(t, int64(4600), fd.PaidBlock.Subtotal)

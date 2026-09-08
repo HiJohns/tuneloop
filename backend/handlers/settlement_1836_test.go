@@ -286,4 +286,73 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 			require.Equal(t, int64(0), discount, "no-coupon payable discount_amount should be zero")
 		}
 	})
+
+	t.Run("跨阶-无码-续费跨30天边界-renewalOffset与contractDays续接", func(t *testing.T) {
+		// #1837 Round2 REJECT「发现 2」裁决路径 A（先证后修）：
+		// 日租单 lease_term=0（月语义）→ initialDays 回退 coverDays=rent_days=33
+		// （合同 28 + 续费 5 的总覆盖）。合同段已按反推 contractDays=28 展开，
+		// 续费真实发生在合同之后 → 展示层 renewalOffset 必须从 contractDays(28)
+		// 续接（(28,33] = tier1 2 天 + tier2 3 天）；若仍从 initialDays(33) 起步
+		// → (33,38] 整段落入 tier2（5% off），与合同段之间出现 5 天空洞，
+		// tier 展开错误且 discount_amount 与真实支付脱节。
+		// 判别断言：renewal tiers 必须为 2 段 {tier1:2 天全价, tier2:3 天 5% off}，
+		// 无码 → discount_amount 必须 absent（原价 subtotal = 实付，差 0）。
+		tenantID := uuid.New().String()
+		orgID := tenantID
+		userID := uuid.New().String()
+		instID := uuid.New().String()
+		require.NoError(t, db.Create(&models.Instrument{
+			ID: instID, TenantID: tenantID, OrgID: &orgID,
+			SN: "SN-SEG-XOFFSET", StockStatus: "rented",
+		}).Error)
+		delivered := time.Date(2026, 8, 1, 10, 0, 0, 0, time.UTC)
+		returned := time.Date(2026, 9, 3, 10, 0, 0, 0, time.UTC) // 实租 33 天 = 全段覆盖 → 平账
+		days5 := 5
+		o := models.Order{
+			TenantID: tenantID, OrgID: orgID, UserID: userID, InstrumentID: instID,
+			StartDate: str1743Ptr("2026-08-01"), EndDate: str1743Ptr("2026-09-03"),
+			LeaseTerm: 0, // 月语义：日租单 0 → fallback coverDays = rent_days = 33
+			Status:      models.OrderStatusReturned,
+			DeliveredAt: &delivered, ReturnedAt: &returned,
+			Deposit: 0,
+			// 无码全价：合同 28×3600=100800 + 续费 (28,33] 2×3600+3×3600×0.95=17460
+			CashPaid: cents(1008.00 + 174.60), ShippingFee: 0,
+			PricingBreakdown: str1743Ptr(`{"base_daily_rent":3600,"rent_days":33,"deposit":0,"total_amount":118260,
+				"pricing_tiers":[{"days_max":30,"daily_rate":3600,"discount_percent":0},{"days_max":180,"daily_rate":3600,"discount_percent":5}],
+				"tier_segments":[{"tier":1,"days":30,"rate":3600,"discount":1,"subtotal":108000},
+				                {"tier":2,"days":3,"rate":3600,"discount":0.95,"subtotal":10260}]}`),
+		}
+		require.NoError(t, db.Create(&o).Error)
+		require.NoError(t, db.Create(&models.OrderPaymentRecord{
+			TenantID: tenantID, UserID: userID, OrderID: &o.ID,
+			OrderType: "renewal", Type: "payment", Status: "paid",
+			Amount: cents(174.60), Days: &days5,
+		}).Error)
+		res := computeSettlement(o, db)
+		require.True(t, res.SegmentModel, "rent_days(33)−续费(5)=28 应启用段模型")
+		paidBlock := res.Breakdown["paid_block"].(map[string]interface{})
+		contractRent := paidBlock["contract_rent"].(map[string]interface{})
+		contractTiers := contractRent["tiers"].([]map[string]interface{})
+		require.Len(t, contractTiers, 1, "合同 28 天全在 tier1（30 天边界内）")
+		require.Equal(t, 28, contractTiers[0]["days"])
+		renewals := paidBlock["renewals"].([]map[string]interface{})
+		require.Len(t, renewals, 1)
+		renewalTiers := renewals[0]["tiers"].([]map[string]interface{})
+		// 判别断言：offset=28 续接 → 跨边界拆 2 段（tier1 2 天 + tier2 3 天）。
+		// 错误实现（renewalOffset=initialDays=33）→ (33,38] 整段 tier2 5 天 1 段 → 红。
+		require.Len(t, renewalTiers, 2, "续费跨 30 天边界必须拆为 tier1+tier2 两段")
+		require.Equal(t, 1, renewalTiers[0]["tier"])
+		require.Equal(t, 2, renewalTiers[0]["days"])
+		require.Equal(t, int64(7200), renewalTiers[0]["subtotal"], "2 天全价 3600/天")
+		require.Equal(t, 2, renewalTiers[1]["tier"])
+		require.Equal(t, 3, renewalTiers[1]["days"])
+		require.Equal(t, int64(10260), renewalTiers[1]["subtotal"], "3 天 × 3600 × 0.95")
+		// 无码续费：原价 subtotal(17460) = 实付(17460) → discount_amount 必须 absent（无伪优惠抵扣）
+		if d, exists := renewals[0]["discount_amount"]; exists {
+			require.Equal(t, int64(0), d, "无码跨阶续费不得出现伪 discount_amount")
+		}
+		// 段模型应收 = 实付 → 无补退（无码平账，仅租金）
+		require.InDelta(t, 0, res.PayableShortfall, 1e-9)
+		require.InDelta(t, 0, res.TotalRefund, 1e-9)
+	})
 }

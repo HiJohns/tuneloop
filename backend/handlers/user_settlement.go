@@ -1098,7 +1098,16 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	}
 	renewalBlocks := []map[string]interface{}{}
 	renewalAmountSum := float64(0)
+	// #1837 R2: renewal 阶梯 offset 必须与合同段（contractTierDays/contractDays）
+	// 续接——真实续费发生在合同覆盖之后，展开起点 = contractDays；此前从
+	// initialDays（lease_term 月语义或 coverDays=总覆盖天数）起步会在合同段与
+	// 续费段之间留下空洞，续费整段落入更高折扣 tier，与段模型 makePaidSegments
+	// （offset 从 contractDays 起）错位 → 无码续费可能产生伪 discount_amount。
+	// contractDays 不可反推（segment_model=false）时维持 legacy initialDays 起点。
 	renewalOffset := initialDays
+	if contractDays > 0 {
+		renewalOffset = contractDays
+	}
 	for _, r := range renewalRecs {
 		var tiers []map[string]interface{}
 		if r.Days != nil && *r.Days > 0 {
