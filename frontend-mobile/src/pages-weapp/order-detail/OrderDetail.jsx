@@ -948,16 +948,16 @@ export default function OrderDetail() {
             )}
             {showStaffReceive && (
               <View onClick={() => Taro.navigateTo({ url: `/pages-weapp/receiving-interface/index?order_id=${id}` })}
-                style={btnStyle('#C21838')}>↩️ 接收</View>
+                style={btnStyle('#be123c')}>↩️ 接收</View>
             )}
             {showStaffRefund && (
               <View onClick={actionLoading ? undefined : handleStaffRefund}
-                style={{ ...btnStyle('#000'), opacity: actionLoading ? 0.5 : 1 }}>
+                style={{ ...btnStyle('#d97706'), opacity: actionLoading ? 0.5 : 1 }}>
                 {actionLoading ? '处理中...' : '💸 退款'}
               </View>
             )}
             {!showStaffShip && !showStaffTransit && !showStaffReceive && !showStaffRefund && (
-              <View style={{ ...btnStyle('#a1a1aa'), backgroundColor: '#f4f4f5', cursor: 'default' }}>
+              <View style={{ ...btnStyle('#a1a1aa'), backgroundColor: '#f4f4f5', color: '#71717a', cursor: 'default' }}>
                 {status === 'reserved' ? '⏳ 未支付'
                 : status === 'shipped' ? '✅ 乐器已发货，等待用户签收'
                 : status === 'in_lease' ? '✅ 租赁中'
@@ -1003,7 +1003,7 @@ export default function OrderDetail() {
               </View>
             )}
             {isTerminal && (
-              <View style={{ ...btnStyle('#a1a1aa'), backgroundColor: '#f4f4f5', cursor: 'default' }}>
+              <View style={{ ...btnStyle('#a1a1aa'), backgroundColor: '#f4f4f5', color: '#71717a', cursor: 'default' }}>
                 {['completed', 'returned'].includes(status) ? '✅ 该订单已完成'
                 : status === 'cancelled' ? '❌ 该订单已取消'
                 : status === 'returning' ? '↩️ 乐器归还中，等待验收'
