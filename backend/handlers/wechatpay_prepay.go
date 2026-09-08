@@ -197,7 +197,7 @@ func PrepayOrder(c *gin.Context) {
 	if req.CouponCode != "" {
 		var coupon models.Coupon
 		if err := db.Where("code = ? AND active = ?", strings.ToUpper(req.CouponCode), true).First(&coupon).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid coupon code"})
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "优惠码无效"})
 			return
 		}
 		switch coupon.Type {
@@ -215,7 +215,7 @@ func PrepayOrder(c *gin.Context) {
 			// amount in cents — 分 × ‰ / 1000, no float round-trip.
 			baseAmount = baseAmount * models.Cents(coupon.Value) / 1000
 		default:
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "unsupported coupon type"})
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "优惠码无效"})
 			return
 		}
 		couponApplied = coupon.Code

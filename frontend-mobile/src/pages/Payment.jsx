@@ -258,7 +258,7 @@ export default function Payment() {
       setAppliedCoupon({ code, hint: '已应用，优惠后金额 ¥' + (discounted / 100).toFixed(2) })
       setCouponAmount(discounted)
     } else {
-      dialog.alert('优惠码无效（仅支持 OREZ / ENO）')
+      dialog.alert('优惠码无效')
     }
   }
 

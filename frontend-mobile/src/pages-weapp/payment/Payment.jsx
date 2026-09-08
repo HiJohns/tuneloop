@@ -183,7 +183,7 @@ export default function Payment() {
         setAppliedCoupon({ code, hint: '已应用，优惠后金额 ¥' + (discounted / 100).toFixed(2) })
         setCouponAmount(discounted)
       } else {
-        Taro.showToast({ title: '优惠码无效（仅支持 OREZ / ENO）', icon: 'none' })
+        Taro.showToast({ title: '优惠码无效', icon: 'none' })
       }
     }
     // Fast typing + immediate tap: the last input event may still be in
