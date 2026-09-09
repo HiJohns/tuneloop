@@ -44,7 +44,9 @@ export default function Dashboard() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const todayStr = new Date().toISOString().split('T')[0]
+      // #1857: 业务日期=北京日历日（与后端 time.Local=Asia/Shanghai 对齐）；
+      // UTC toISOString 在北京 00:00–07:59 时段会取到前一天，导致今日订单/逾期统计错位
+      const todayStr = new Date(Date.now() + 8 * 3600000).toISOString().split('T')[0]
       setToday(todayStr)
       const results = await Promise.allSettled([
         inventoryApi.list(),

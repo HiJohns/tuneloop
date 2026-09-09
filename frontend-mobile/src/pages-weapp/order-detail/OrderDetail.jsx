@@ -4,11 +4,17 @@ import { View, Text, ScrollView, Image, Button } from '@tarojs/components'
 import { apiFetch, getToken } from '../../services/api'
 import { env, uploadFile } from '../../platform'
 import { formatDeliveryAddress, formatDisplayDate, formatLogTime, formatPayMethod } from '../../utils/format'
-import { calculateDays, calculateEndDate } from '../../utils/daycalc'
 import LeaseInfo from '../../components/LeaseInfo'
 import VerifyWarningBar from '../../components/VerifyWarningBar'
 
 const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? `${env.apiBaseUrl.replace(/\/api$/, '')}${url}` : url
+
+// #1857: 业务日历日 = 北京时间（docs/api.md 约定，与后端 time.Local=Asia/Shanghai
+// 对齐）。模块级辅助（LeaseInfo today() 同款）——react-compiler 纯度规则禁止
+// 在组件体内直接调 Date.now()。
+function bjTodayStr() {
+  return new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10)
+}
 
 const STATUS = {
   reserved: { color: '#f59e0b', label: '未支付' },
@@ -369,8 +375,14 @@ export default function OrderDetail() {
   // GetOrder derives them from settlement → pricing breakdown → delivered→returned.
   const actualRentDays = order.actual_rent_days ?? 0
 
-  const isOverdue = (status === 'expired' || status === 'in_lease') && endDate !== '-' && new Date(order.end_date) < new Date()
-  const overdueDaysCalc = isOverdue ? calculateDays(new Date(order.end_date), new Date()) : 0
+  // #1857: 业务日历日=北京（docs/api.md 约定，与后端 time.Local=Asia/Shanghai 对齐）。
+  // end_date 为租期末日（含当天），仅当北京今天严格晚于 end_date 才判超期；
+  // 天数=北京日历差（与续费/逾期扣费口径一致：今天不计入超期）。不用 calculateDays——
+  // 其 UTC 零点起点 × 本地 23:59 终点混用时区会把凌晨收货的超期放大（84ab8ebd: 0→2 天）。
+  const todayBJ = bjTodayStr()
+  const endDayStr = order.end_date ? order.end_date.slice(0, 10) : ''
+  const isOverdue = (status === 'expired' || status === 'in_lease') && endDayStr && endDayStr < todayBJ
+  const overdueDaysCalc = isOverdue ? Math.round((Date.parse(todayBJ) - Date.parse(endDayStr)) / 86400000) : 0
   const overdueFee = isOverdue ? (dailyRate > 0 ? dailyRate * overdueDaysCalc : 0).toFixed(2) : 0
 
   const showPayButton = !isStaff && status === 'reserved'

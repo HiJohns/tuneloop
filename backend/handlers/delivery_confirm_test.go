@@ -238,3 +238,33 @@ func TestConfirmDelivery_ThenRenewal_ChainsCorrectly(t *testing.T) {
 	_, gotEnd = loadOrderDates(t, order.ID)
 	require.Equal(t, "2026-09-09", gotEnd, "renewal +1 chains from the corrected end date")
 }
+
+// TestConfirmDelivery_LateEveningUTC_UsesBeijingNextDay (#1857): frontend
+// delivers delivered_at as a UTC string (toISOString). The lease-window
+// calendar dates must follow the business timezone Asia/Shanghai
+// (time.Local set in main.go) — a 01:14 Beijing sign-off (17:14Z previous
+// UTC day) must NOT be dated one day early by the UTC calendar.
+func TestConfirmDelivery_LateEveningUTC_UsesBeijingNextDay(t *testing.T) {
+	cleanup := setupMockIAMAndDB(t)
+	defer cleanup()
+
+	pb := `{"base_daily_rent":10000,"rent_days":1}`
+	start := "2026-09-08"
+	tenantID, _, userID, orderID := setupDeliveryOrder(t, &pb, &start, &start)
+
+	// Business timezone is Asia/Shanghai in production (main.go); the Go
+	// test environment defaults to UTC, so pin the local zone for this case.
+	origLocal := time.Local
+	sh, err := time.LoadLocation("Asia/Shanghai")
+	require.NoError(t, err)
+	time.Local = sh
+	t.Cleanup(func() { time.Local = origLocal })
+
+	// 2026-09-08T16:30:00Z == 2026-09-09 00:30 Beijing.
+	deliveredAt := time.Date(2026, 9, 8, 16, 30, 0, 0, time.UTC)
+	confirmDelivery(t, testutil.MakeCustomer(tenantID, userID), orderID, deliveredAt)
+
+	gotStart, gotEnd := loadOrderDates(t, orderID)
+	require.Equal(t, "2026-09-09", gotStart, "start_date = Beijing calendar day of delivery, not UTC")
+	require.Equal(t, "2026-09-09", gotEnd, "1-day lease ends on the Beijing delivery date")
+}

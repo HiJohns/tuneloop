@@ -1111,7 +1111,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	contractDiscount := contractTierSubtotal - c(contractRent)
 	contractRentBlock := map[string]interface{}{
 		"amount": c(contractRent),
-		"date":   order.CreatedAt.Format("2006-01-02"),
+		"date":   order.CreatedAt.In(time.Local).Format("2006-01-02"), // #1857: 业务时区折算（北京凌晨下单差一天）
 		"tiers":  contractTiers,
 	}
 	if contractDiscount > 0 {

@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"tuneloop-backend/database"
@@ -168,15 +169,16 @@ func ListMerchantOrders(c *gin.Context) {
 				}
 			}
 		}
-		// Timestamps
+		// Timestamps（#1857：按业务时区 Asia/Shanghai 折算日历日展示——DB 存
+		// timestamptz=UTC，直接 Format 会按 UTC 日历日投影，北京凌晨时段差一天）
 		if o.DeliveredAt != nil {
-			item.DeliveredAt = o.DeliveredAt.Format("2006-01-02")
+			item.DeliveredAt = o.DeliveredAt.In(time.Local).Format("2006-01-02")
 		}
 		if o.ShippedAt != nil {
-			item.ShippedAt = o.ShippedAt.Format("2006-01-02")
+			item.ShippedAt = o.ShippedAt.In(time.Local).Format("2006-01-02")
 		}
 		if o.ReturnedAt != nil {
-			item.ReturnedAt = o.ReturnedAt.Format("2006-01-02")
+			item.ReturnedAt = o.ReturnedAt.In(time.Local).Format("2006-01-02")
 		}
 		// Fetch instrument name/SN
 		var inst models.Instrument

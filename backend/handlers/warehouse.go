@@ -305,7 +305,11 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 	//      ③ neither available: log loudly and assume 1 day (never silently
 	//        expand the lease — the old 30-day fallback turned 1-day rentals
 	//        into 30-day windows, #1847)
-	newStartDate := req.DeliveredAt.Format("2006-01-02")
+	// #1857: 租期日历日按业务时区（Asia/Shanghai，main.go time.Local）折算——
+	// 前端 delivered_at 发 UTC 串，直接 Format 会取 UTC 日历日，北京 00:00–07:59
+	// 签收（=UTC 前一日 16:00–23:59）的订单租期被提前一天（当日即显示超期）。
+	bjDelivered := req.DeliveredAt.In(time.Local)
+	newStartDate := bjDelivered.Format("2006-01-02")
 	originalDays := 0
 	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
 		var pb struct {
@@ -329,7 +333,7 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 			orderID, order.StartDate, order.EndDate)
 		originalDays = 1
 	}
-	newEndDate := req.DeliveredAt.AddDate(0, 0, originalDays-1).Format("2006-01-02")
+	newEndDate := bjDelivered.AddDate(0, 0, originalDays-1).Format("2006-01-02")
 
 	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ? AND status = ?", orderID, order.TenantID, models.OrderStatusShipped).Updates(map[string]interface{}{
 		"status":       models.OrderStatusInLease,
