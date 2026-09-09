@@ -29,6 +29,13 @@ const EVENT_LABELS = {
   pickup_confirmed: '已提货',
   damage_assessed: '定损完成',
   return_inspected: '验货完成',
+  // 状态机事件（order_status_history StatusTo 并入动态时以状态码为 event，
+  // 缺映射会原样输出 deposit_refunding 等英文码）
+  reserved: '未支付',
+  deposit_refunding: '押金退款中',
+  damage_appealing: '定损申诉',
+  pending_damage_response: '待回应定损',
+  transferred: '已过户',
 }
 
 export default function OrderTimeline({ orderId, status }) {
