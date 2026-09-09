@@ -254,14 +254,36 @@ export default function MessageDetail() {
             <View className="border-t pt-4">
               <Text className="text-sm font-medium text-gray-500 mb-2">订单信息</Text>
               <View className="bg-gray-50 rounded-lg p-3 text-sm" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {/* #1859: 免押金单显示「免押金」语义（deposit=0 但 deposit_waived 时展示金额易误读） */}
                 <View className="flex justify-between">
                   <Text className="text-gray-500">押金</Text>
-                  <Text className="font-medium">¥{((order.deposit || 0) / 100).toFixed(2)}</Text>
+                  <Text className="font-medium">{order.deposit_waived ? '免押金' : `¥${((order.deposit || 0) / 100).toFixed(2)}`}</Text>
                 </View>
-                <View className="flex justify-between">
-                  <Text className="text-gray-500">月租</Text>
-                  <Text>¥{((order.monthly_rent || 0) / 100).toFixed(2)}</Text>
-                </View>
+                {/* #1859: 结算方向行（定损上下文）。ref.damage 由 #1858 后端挂载
+                    （与订单详情 damage 对象同源）；未部署时优雅降级不渲染。 */}
+                {damageReport && (() => {
+                  const damagePreview = ref?.damage || order?.damage || null
+                  if (!damagePreview) return null
+                  const shortfall = Number(damagePreview.shortfall || 0)
+                  const refund = Number(damagePreview.refund || 0)
+                  if (shortfall > 0) {
+                    return (
+                      <View className="flex justify-between">
+                        <Text className="text-gray-500">结算方向</Text>
+                        <Text className="font-medium" style={{ color: '#dc2626' }}>需补缴 ¥{(shortfall / 100).toFixed(2)}</Text>
+                      </View>
+                    )
+                  }
+                  if (refund > 0) {
+                    return (
+                      <View className="flex justify-between">
+                        <Text className="text-gray-500">结算方向</Text>
+                        <Text className="font-medium" style={{ color: '#16a34a' }}>应退 ¥{(refund / 100).toFixed(2)}</Text>
+                      </View>
+                    )
+                  }
+                  return null
+                })()}
               </View>
             </View>
           )}
