@@ -237,6 +237,11 @@ func PrepayOrder(c *gin.Context) {
 			Updates(map[string]interface{}{"coupon_code": couponApplied, "coupon_discount": int64(discount)}).Error; err != nil {
 			log.Printf("[PrepayOrder] failed to write coupon snapshot for order %s: %v", effectiveOrderID, err)
 		}
+		// #1853: 逐笔折扣入库 — 值随 record 的 Create 一起持久化（此时 record
+		// 尚未落库，先赋字段；session 流程另有 RawResponse 记录码，本字段同样生效）。
+		cc := couponApplied
+		record.CouponCode = &cc
+		record.CouponDiscount = models.Cents(discount)
 	}
 
 	if sessionFlow {

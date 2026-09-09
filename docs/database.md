@@ -571,8 +571,16 @@ photos:
 | raw_response | JSONB | | 原始响应（**会被微信回调覆盖**，见 days 列说明） |
 | reminded_at | TIMESTAMP | | 催缴幂等标记（#1749） |
 | **days** | INTEGER | | **续费天数（#1802 T1 独立持久化）**：仅 renewal 类型记录使用；RawResponse 会被微信回调（processPaymentCallback）覆盖，续费天数不再依赖其中 meta，改由此列读取 |
+| **coupon_code** | VARCHAR(32) | | **本笔支付优惠码（#1853 逐笔入库）**：仅优惠笔写入；orders.coupon_code 为最近一笔覆盖式快照，此为逐笔明细 |
+| **coupon_discount** | BIGINT | NOT NULL, DEFAULT 0 | **本笔支付折扣（分，#1853）**：优惠笔 = 当笔原价 − 当笔折后实付；无码为 0 |
 | created_at | TIMESTAMPTZ | NOT NULL | 创建时间 |
 | updated_at | TIMESTAMPTZ | NOT NULL | 更新时间 |
+
+**coupon 列说明（#1853）**：
+- 背景：orders.coupon_code/coupon_discount 为覆盖式快照（#1744），多笔优惠单（合同+多次续费各用码）只能还原最近一笔 → 无法按笔对账/审计
+- 写入点：`wechatpay_prepay.go`（订单支付/补缴，record 随 Create 落库）与 `renewal.go`（续费确认，Create 后补写）；无码笔保持 NULL/0
+- 历史记录不可回填（写入时未存）→ 列留空；orders.coupon_* 快照保留
+- 迁移：`20260909001_payment_coupon_columns.{up,down}.sql`
 
 **days 列说明（#1802 T1）**：
 - 背景：续费天数（AdditionalDays）原存 `raw_response` JSON 中，但微信支付回调在 `applyRenewalSideEffects` **之前**覆盖 raw_response 为回调结果 → 真实回调路径续费天数丢失（潜在既有 bug）。

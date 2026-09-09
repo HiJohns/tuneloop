@@ -93,6 +93,14 @@ func TestPrepayCouponSnapshot_ENO_Percent(t *testing.T) {
 	require.Equal(t, "ENO", *after.CouponCode)
 	// 原价 3600 分 − 折后 36 分 = 3564 分（af3f8cf2 对账场景）
 	require.Equal(t, models.Cents(3564), after.CouponDiscount, "discount = 3600 − 36 = 3564 cents")
+
+	// #1853: 逐笔折扣入库 — payment record 独立持久化（同一笔优惠事实）。
+	var rec models.OrderPaymentRecord
+	require.NoError(t, database.GetDB().Where("order_id = ? AND order_type = ?", order.ID, "rent").
+		Order("created_at desc").First(&rec).Error)
+	require.NotNil(t, rec.CouponCode, "payment record coupon_code must be written")
+	require.Equal(t, "ENO", *rec.CouponCode)
+	require.Equal(t, int64(3564), int64(rec.CouponDiscount), "record discount = 3564 cents")
 }
 
 // T4b: OREZ waive → coupon_code='OREZ'、coupon_discount=原价（全额免除）。
@@ -142,6 +150,13 @@ func TestPrepayCouponSnapshot_NoCoupon(t *testing.T) {
 	require.NoError(t, database.GetDB().Where("id = ?", order.ID).First(&after).Error)
 	require.Nil(t, after.CouponCode, "no coupon → NULL")
 	require.Equal(t, models.Cents(0), after.CouponDiscount)
+
+	// #1853: 无码 → payment record 不写优惠列（NULL/0 默认）。
+	var rec models.OrderPaymentRecord
+	require.NoError(t, database.GetDB().Where("order_id = ? AND order_type = ?", order.ID, "rent").
+		Order("created_at desc").First(&rec).Error)
+	require.Nil(t, rec.CouponCode, "no coupon → record coupon_code NULL")
+	require.Zero(t, rec.CouponDiscount, "no coupon → record coupon_discount 0")
 }
 
 // T4d: session 流程（membership 无订单）→ 不回写（无 panic）。

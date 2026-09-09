@@ -30,7 +30,7 @@ type User struct {
 	IsProfileCompleted  bool       `gorm:"default:false" json:"is_profile_completed"`
 	MembershipLevelID   *int       `gorm:"type:int" json:"membership_level_id"`
 	TotalSpending       Cents      `gorm:"type:bigint;default:0" json:"total_spending"`
-	PrepaidPoints       Cents      `gorm:"type:bigint;default:0" json:"-"` // deprecated (#1531)
+	PrepaidPoints       Cents      `gorm:"type:bigint;default:0" json:"-"`            // deprecated (#1531)
 	PromoPoints         Cents      `gorm:"type:bigint;default:0" json:"promo_points"` // #1757: cents (1 点 = 1 分)
 	OnboardingCompleted bool       `gorm:"default:false" json:"onboarding_completed"`
 	IdPhotoFront        *string    `gorm:"type:varchar(500)" json:"id_photo_front"`
@@ -281,17 +281,17 @@ type Settlement struct {
 // Stores the order input snapshot and the computed result (cents JSONB)
 // so any displayed amount can be traced to a persisted calculation.
 type SettlementCalculation struct {
-	ID            string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	OrderID       string    `gorm:"type:uuid;index;not null" json:"order_id"`
-	TenantID      string    `gorm:"type:uuid;index" json:"tenant_id"`
-	Trigger       string    `gorm:"type:varchar(20);not null" json:"trigger"` // preview | confirm
-	InputSnapshot *string   `gorm:"type:jsonb" json:"input_snapshot,omitempty"`
+	ID            string  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	OrderID       string  `gorm:"type:uuid;index;not null" json:"order_id"`
+	TenantID      string  `gorm:"type:uuid;index" json:"tenant_id"`
+	Trigger       string  `gorm:"type:varchar(20);not null" json:"trigger"` // preview | confirm
+	InputSnapshot *string `gorm:"type:jsonb" json:"input_snapshot,omitempty"`
 	// Result is TEXT (not JSONB): #1738 audit contract requires the stored
 	// bytes to be byte-identical to what the handler responded — JSONB
 	// normalization (key reorder + whitespace) would break that guarantee.
-	Result        *string   `gorm:"type:text" json:"result,omitempty"`
-	ActualDays    int       `gorm:"not null;default:0" json:"actual_days"`
-	CreatedAt     time.Time `json:"created_at"`
+	Result     *string   `gorm:"type:text" json:"result,omitempty"`
+	ActualDays int       `gorm:"not null;default:0" json:"actual_days"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 type OverdueCharge struct {
@@ -344,28 +344,30 @@ type SessionOrderLink struct {
 
 // OrderPaymentRecord 支付记录表（包含完整审计字段）— 已废弃，由 PaymentSession 替代
 type OrderPaymentRecord struct {
-	ID            string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID      string    `gorm:"type:uuid;index:idx_payment_tenant;not null" json:"tenant_id"`
-	OrgID         *string   `gorm:"type:uuid" json:"org_id,omitempty"`
-	UserID        string    `gorm:"type:uuid;index:idx_payment_user;not null" json:"user_id"`
-	OrderID       *string   `gorm:"type:uuid;index:idx_payment_order" json:"order_id,omitempty"`
-	SessionID     *string   `gorm:"type:uuid" json:"session_id,omitempty"` // two-phase registration session (#1663) — survives the callback (RawResponse is overwritten by the callback result)
-	OrderType     string    `gorm:"type:varchar(20);not null" json:"order_type"`
-	OutTradeNo    *string   `gorm:"type:varchar(32);uniqueIndex" json:"out_trade_no"`
-	TransactionID *string   `gorm:"type:varchar(64)" json:"transaction_id"`
-	OpenID        string    `gorm:"column:openid;type:varchar(128)" json:"openid"` // payer.openid from payment callback (#1731)
-	Amount        Cents     `gorm:"type:bigint;not null" json:"amount"`
-	Type          string    `gorm:"type:varchar(20);not null;default:'payment'" json:"type"`
-	Status        string    `gorm:"type:varchar(20);not null;default:'pending'" json:"status"`
-	Method        *string   `gorm:"type:varchar(20)" json:"method"`
-	PrepayID      *string   `gorm:"type:varchar(64)" json:"prepay_id"`
-	CodeURL       *string   `gorm:"type:text" json:"code_url"`
-	FailReason    *string   `gorm:"type:text" json:"fail_reason"`
-	RawResponse   *string   `gorm:"type:jsonb" json:"raw_response"`
-	RemindedAt    *time.Time `gorm:"type:timestamp" json:"reminded_at,omitempty"`  // #1749 L-04D: 催缴幂等标记
-	Days          *int      `gorm:"type:integer" json:"days,omitempty"`           // #1802 T1: 续费天数独立持久化（RawResponse 会被微信回调覆盖）
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	ID             string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID       string     `gorm:"type:uuid;index:idx_payment_tenant;not null" json:"tenant_id"`
+	OrgID          *string    `gorm:"type:uuid" json:"org_id,omitempty"`
+	UserID         string     `gorm:"type:uuid;index:idx_payment_user;not null" json:"user_id"`
+	OrderID        *string    `gorm:"type:uuid;index:idx_payment_order" json:"order_id,omitempty"`
+	SessionID      *string    `gorm:"type:uuid" json:"session_id,omitempty"` // two-phase registration session (#1663) — survives the callback (RawResponse is overwritten by the callback result)
+	OrderType      string     `gorm:"type:varchar(20);not null" json:"order_type"`
+	OutTradeNo     *string    `gorm:"type:varchar(32);uniqueIndex" json:"out_trade_no"`
+	TransactionID  *string    `gorm:"type:varchar(64)" json:"transaction_id"`
+	OpenID         string     `gorm:"column:openid;type:varchar(128)" json:"openid"` // payer.openid from payment callback (#1731)
+	Amount         Cents      `gorm:"type:bigint;not null" json:"amount"`
+	Type           string     `gorm:"type:varchar(20);not null;default:'payment'" json:"type"`
+	Status         string     `gorm:"type:varchar(20);not null;default:'pending'" json:"status"`
+	Method         *string    `gorm:"type:varchar(20)" json:"method"`
+	PrepayID       *string    `gorm:"type:varchar(64)" json:"prepay_id"`
+	CodeURL        *string    `gorm:"type:text" json:"code_url"`
+	FailReason     *string    `gorm:"type:text" json:"fail_reason"`
+	RawResponse    *string    `gorm:"type:jsonb" json:"raw_response"`
+	RemindedAt     *time.Time `gorm:"type:timestamp" json:"reminded_at,omitempty"`           // #1749 L-04D: 催缴幂等标记
+	Days           *int       `gorm:"type:integer" json:"days,omitempty"`                    // #1802 T1: 续费天数独立持久化（RawResponse 会被微信回调覆盖）
+	CouponCode     *string    `gorm:"type:varchar(32)" json:"coupon_code,omitempty"`         // #1853: 本笔支付优惠码（逐笔入库）
+	CouponDiscount Cents      `gorm:"type:bigint;not null;default:0" json:"coupon_discount"` // #1853: 本笔支付折扣（分，无码 0）
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
 }
 
 // OrderRefundRecord 退款记录表（支持部分退款，与支付记录一对多）
@@ -818,17 +820,15 @@ type DamageReport struct {
 	Status            string     `gorm:"type:varchar(20);default:'pending';index" json:"status"`
 	// 验收字段（#1708 并入）：所有验收（含 good 无损坏）统一
 	// 写入 damage_reports（原定损评估表已合并废弃）。
-	Condition   string     `gorm:"type:varchar(20)" json:"condition"`
-	Notes       string     `gorm:"type:text" json:"notes"`
-	ScanTime    *time.Time `json:"scan_time"`
-	OverdueDays int        `gorm:"default:0" json:"overdue_days"`
-	OverdueFee  Cents      `gorm:"type:bigint;default:0" json:"overdue_fee"`
-	AdditionalShippingFee Cents `gorm:"type:bigint;default:0" json:"additional_shipping_fee"` // #1801: 归还时追加物流费
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	Condition             string     `gorm:"type:varchar(20)" json:"condition"`
+	Notes                 string     `gorm:"type:text" json:"notes"`
+	ScanTime              *time.Time `json:"scan_time"`
+	OverdueDays           int        `gorm:"default:0" json:"overdue_days"`
+	OverdueFee            Cents      `gorm:"type:bigint;default:0" json:"overdue_fee"`
+	AdditionalShippingFee Cents      `gorm:"type:bigint;default:0" json:"additional_shipping_fee"` // #1801: 归还时追加物流费
+	CreatedAt             time.Time  `json:"created_at"`
+	UpdatedAt             time.Time  `json:"updated_at"`
 }
-
-
 
 // AppealStatus constants
 const (
@@ -1183,18 +1183,18 @@ type Banner struct {
 // InvoiceApplication represents a customer's invoice request grouped by merchant.
 // One application = one merchant's set of orders from a single submission.
 type InvoiceApplication struct {
-	ID         string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	UserID     string     `gorm:"type:uuid;not null;index" json:"user_id"`
-	TenantID   string     `gorm:"type:uuid;not null;index" json:"tenant_id"`
-	Status     string     `gorm:"type:varchar(20);not null;default:'pending'" json:"status"` // pending | replied
-	TotalAmount Cents     `gorm:"type:bigint;not null;default:0" json:"total_amount"`
-	OrderCount int        `gorm:"not null;default:0" json:"order_count"`
-	Reply      *string    `gorm:"type:text" json:"reply"`
-	InvoiceFile *string   `gorm:"type:text" json:"invoice_file"`
-	RepliedAt  *time.Time `gorm:"type:timestamptz" json:"replied_at"`
-	CreatedAt  time.Time  `json:"created_at"`
-	UpdatedAt  time.Time  `json:"updated_at"`
+	ID          string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID      string     `gorm:"type:uuid;not null;index" json:"user_id"`
+	TenantID    string     `gorm:"type:uuid;not null;index" json:"tenant_id"`
+	Status      string     `gorm:"type:varchar(20);not null;default:'pending'" json:"status"` // pending | replied
+	TotalAmount Cents      `gorm:"type:bigint;not null;default:0" json:"total_amount"`
+	OrderCount  int        `gorm:"not null;default:0" json:"order_count"`
+	Reply       *string    `gorm:"type:text" json:"reply"`
+	InvoiceFile *string    `gorm:"type:text" json:"invoice_file"`
+	RepliedAt   *time.Time `gorm:"type:timestamptz" json:"replied_at"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 	// Orders is a computed join field, not stored in DB
-	Orders      []Order `gorm:"-" json:"orders,omitempty"`
-	MerchantName string `gorm:"-" json:"merchant_name,omitempty"`
+	Orders       []Order `gorm:"-" json:"orders,omitempty"`
+	MerchantName string  `gorm:"-" json:"merchant_name,omitempty"`
 }

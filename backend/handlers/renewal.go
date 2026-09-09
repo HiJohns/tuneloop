@@ -312,8 +312,10 @@ func ConfirmRenewal(c *gin.Context) {
 		couponApplied = coupon.Code
 	}
 	// 优惠快照回写（#1744）：记录最近一次支付使用的码 + 折扣（分）。
+	// discountCents 提升作用域：record 创建后补写本笔优惠事实（#1853）。
+	var discountCents models.Cents
 	if couponApplied != "" {
-		discountCents := models.Cents(renewalCost) - models.Cents(totalAmount)
+		discountCents = models.Cents(renewalCost) - models.Cents(totalAmount)
 		if discountCents < 0 {
 			discountCents = 0
 		}
@@ -354,6 +356,17 @@ func ConfirmRenewal(c *gin.Context) {
 	if err := db.Create(&record).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create payment record"})
 		return
+	}
+
+	// #1853: 逐笔折扣入库 — record 已落库，补写本笔优惠事实（码 + 折扣分）。
+	// 无码续费（couponApplied 为空）不写，保持列默认 NULL/0。
+	if couponApplied != "" {
+		cc := couponApplied
+		if err := db.Model(&record).Updates(map[string]interface{}{
+			"coupon_code": cc, "coupon_discount": int64(discountCents),
+		}).Error; err != nil {
+			log.Printf("[ConfirmRenewal] failed to write payment coupon for record %s: %v", record.ID, err)
+		}
 	}
 
 	// #1760: resolve openid server-side when the client omits it — the

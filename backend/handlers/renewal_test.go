@@ -213,4 +213,11 @@ func TestRenewal_CouponSnapshot(t *testing.T) {
 	original := rec.Amount + after.CouponDiscount
 	require.InDelta(t, int64(original)*99/100, int64(after.CouponDiscount), 2,
 		"discount ≈ 99% of original renewal cost")
+
+	// #1853: 逐笔折扣入库 — 同一支付记录上独立持久化码与折扣（分），
+	// 与订单级覆盖式快照（after.CouponDiscount）同值但按笔留存。
+	require.NotNil(t, rec.CouponCode, "payment record coupon_code must be written")
+	require.Equal(t, "ENO", *rec.CouponCode)
+	require.Equal(t, int64(after.CouponDiscount), int64(rec.CouponDiscount),
+		"record-level discount equals this payment's discount (cents)")
 }
