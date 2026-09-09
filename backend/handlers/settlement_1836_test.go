@@ -450,3 +450,73 @@ func TestPayableTiers_FullTerm_NoOp(t *testing.T) {
 	require.Equal(t, int64(3600), tiers[0]["subtotal"])
 	require.Equal(t, int64(3600), actualRent["amount"])
 }
+
+// TestSettlement_PostDamageStates (#1852 B1): 归还后未结算态（pending_damage_response/
+// damage_appealing/deposit_refunding）租期已定格——ReturnedAt 生效（不再回退
+// end_date），段模型必须启用。16fdfb81 形状：实租 1 天、优惠码两段 0.36。
+// 修复前该态回退（历史错值）end_date → actualDays 虚增 → 段模型拒 → fallback。
+func TestSettlement_PostDamageStates(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+
+	cents := func(yuan float64) models.Cents { return models.Cents(int64(yuan*100 + 0.5)) }
+	for _, status := range []string{
+		models.OrderStatusPendingDamageResponse,
+		models.OrderStatusDamageAppealing,
+		models.OrderStatusDepositRefunding,
+	} {
+		t.Run(status, func(t *testing.T) {
+			tenantID := uuid.New().String()
+			orgID := tenantID
+			userID := uuid.New().String()
+			instID := uuid.New().String()
+			require.NoError(t, db.Create(&models.Instrument{
+				ID: instID, TenantID: tenantID, OrgID: &orgID,
+				SN: "SN-DMG-" + uuid.New().String()[:6], StockStatus: "rented",
+			}).Error)
+			delivered := time.Date(2026, 9, 8, 16, 56, 0, 0, time.UTC)
+			returned := time.Date(2026, 9, 8, 20, 34, 0, 0, time.UTC) // 同日 → 实租 1 天
+			days1 := 1
+			o := models.Order{
+				TenantID: tenantID, OrgID: orgID, UserID: userID, InstrumentID: instID,
+				StartDate: str1743Ptr("2026-09-08"), EndDate: str1743Ptr("2026-10-09"), // 历史错值 end_date 不应影响
+				LeaseTerm: 0, Status: status,
+				DeliveredAt: &delivered, ReturnedAt: &returned,
+				Deposit: 0, CashPaid: cents(0.72), ShippingFee: cents(0.01),
+				CouponDiscount: cents(35.64),
+				PricingBreakdown: str1743Ptr(`{"base_daily_rent":3600,"rent_days":2,"deposit":0,"total_amount":7200,
+					"pricing_tiers":[{"days_max":30,"daily_rate":3600,"discount_percent":0}],
+					"tier_segments":[{"tier":1,"days":2,"rate":3600,"discount":1,"subtotal":7200}]}`),
+			}
+			require.NoError(t, db.Create(&o).Error)
+			require.NoError(t, db.Create(&models.OrderPaymentRecord{
+				TenantID: tenantID, UserID: userID, OrderID: &o.ID,
+				OrderType: "renewal", Type: "payment", Status: "paid",
+				Amount: cents(0.36), Days: &days1,
+			}).Error)
+			damage := models.Cents(100) // 定损赔偿 ¥1
+			require.NoError(t, db.Create(&models.DamageReport{
+				TenantID: tenantID, OrgID: orgID, LeaseID: o.ID, InstrumentID: instID, UserID: userID,
+				DamageAmount: &damage, DamageDescription: "刮痕", Status: "pending",
+			}).Error)
+
+			res := computeSettlement(o, db)
+			require.True(t, res.SegmentModel, "归还后未结算态必须启用段模型（修复前 fallback）")
+			payable := res.Breakdown["payable_block"].(map[string]interface{})
+			actualRent := payable["actual_rent"].(map[string]interface{})
+			require.Equal(t, 1, actualRent["days"], "租期定格：实租 1 天")
+			require.Equal(t, int64(3600), actualRent["amount"])
+
+			if status == models.OrderStatusDepositRefunding {
+				// agreed 后：deposit_deducted=damage（appeal 裁决落库值）→ 扣赔偿
+				require.NoError(t, db.Model(&models.DamageReport{}).
+					Where("lease_id = ?", o.ID).Update("deposit_deducted", int64(100)).
+					Update("status", "agreed").Error)
+				res2 := computeSettlement(o, db)
+				require.InDelta(t, 0.65, res2.PayableShortfall, 1e-9, "0.37+1.00−0.72 = 0.65 补缴（裁决值）")
+			} else {
+				// pending/appealing：预扣 damage_amount → 净补缴 0.65
+				require.InDelta(t, 0.65, res.PayableShortfall, 1e-9, "预扣赔偿：0.37+1.00−0.72 = 0.65")
+			}
+		})
+	}
+}

@@ -27,7 +27,9 @@ func computeDamageRefund(db *gorm.DB, order models.Order, damageYuan float64) (r
 		paidTotal += pr.Amount.ToYuan()
 	}
 
-	// actualRent：settlement 优先
+	// actualRent：settlement 优先（#1724 原口径保留为 fallback；#1852 拍板后
+	// 优惠单以段模型折后为准——computeDamageRefund 在 appeal/preview 处与
+	// 结算同源，见下方 computeSettlement 分支）
 	actualRentDays := 0
 	var settlement models.Settlement
 	if err := db.Where("order_id = ?", order.ID).Order("created_at DESC").First(&settlement).Error; err == nil {
@@ -56,6 +58,14 @@ func computeDamageRefund(db *gorm.DB, order models.Order, damageYuan float64) (r
 				actualRent = math.Round(bdr/100*float64(days)*100) / 100
 			}
 		}
+	}
+
+	// #1852 B2（产品拍板：定损扣款按折后口径）：优惠码订单的实租租金应收以
+	// 段模型折后值（DiscountedRent）为权威——此前用原价 bdr×days，优惠单在
+	// 定损预览/补缴通知与结算间系统性分裂（16fdfb81: 原价 ¥36 vs 折后 ¥0.36）。
+	// 段模型不可用（无 pb/回退单）时保持上述原价 fallback，不劣化旧单。
+	if sr := computeSettlement(order, db); sr.SegmentModel && sr.DiscountedRent > 0 {
+		actualRent = sr.DiscountedRent
 	}
 
 	refund = math.Round((paidTotal-damageYuan-actualRent-order.ShippingFee.ToYuan())*100) / 100

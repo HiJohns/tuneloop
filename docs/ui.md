@@ -2663,6 +2663,7 @@ cd frontend-pc && npm run build  # 应该成功
   - **应付段**：实际租金（含阶梯明细，**阶梯按实际租期 actualDays 截断，Σtiers 与实际租金逐分一致**，#1850）→ 优惠券抵扣（`payable_block.discount_amount > 0` 时显示，绿色）→ 逾期费（含天数）→ 物流费 → 实际应付 → （折后）应付（数据源 `fee_detail.segment_model`/`fee_detail.discounted_due` 透传，#1850；`segment_model=true` 且 `discounted_due > 0` 时显示，绿色）
   - **净额段**：应退款 / 应补缴（无差额时不显示）
   - **口径说明**：paid_block 合同段天数 = `rent_days − Σ续费days`（contractDays 反推，#1838/#1837 共用），与段模型同源；`discount_amount` = Σtiers.subtotal − amount（各支付段独立计算）
+  - **实际租期口径（#1852）**：ReturnedAt/DeliveredAt 覆盖归还后全部未结算态（returning / pending_damage_response / damage_appealing / deposit_refunding）——租期已定格不回退 end_date；赔偿金额 pending/appealing 态预扣 `damage_amount`（行标注「（等待回应中）/（申诉中）」），deposit_refunding（agreed）用 `DepositDeducted` 裁决值；定损预览与费用明细同一折后口径（优惠码订单实租租金按段模型折后）
 - 结算状态（已完成/归还中订单，金额明细已并入 fee_detail；此处仅执行状态）：退款方式、退款状态（已退款/无需退款/待补缴/处理中）、需补缴金额 + 「去补缴」按钮
 - 订单日志：时间线视图（下单 → 付款 → 发货 → 租赁中 → 归还 → 结算确认）
 

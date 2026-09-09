@@ -446,6 +446,13 @@ func GetOrder(c *gin.Context) {
 		// (#1728 P3: API amounts are cents, frontend renders ÷100).
 		actualRentDays, actualRentCents := deriveActualRent(db, &order, settlementData, pricingBreakdownData)
 
+		// #1852 B2（产品拍板：定损扣款按折后口径）：优惠码订单实租租金应收以段模型
+		// 折后值（DiscountedRent，元）为权威——原价口径使定损预览与结算分裂
+		// （16fdfb81: 原价 ¥36 vs 折后 ¥0.36）。段模型不可用保持 deriveActualRent 原价。
+		if sr := computeSettlement(order, db); sr.SegmentModel && sr.DiscountedRent > 0 {
+			actualRentCents = int64(math.Round(sr.DiscountedRent * 100))
+		}
+
 		// Refund = paid total - damage - actual rent - shipping fee (#1707).
 		paidTotal := int64(0)
 		var paidRecords []models.OrderPaymentRecord
@@ -466,9 +473,14 @@ func GetOrder(c *gin.Context) {
 				damageAmount = int64(*damageReport.DamageAmount)
 			}
 		}
-		refund := paidTotal - damageAmount - int64(actualRentCents) - int64(order.ShippingFee)
-		if refund < 0 {
+		// 净额方向（#1852 B2 拍板 3）：refund<0 即需补缴，不钳 0——前端按正负
+		// 显示「退款 ¥x / 应补缴 ¥x」，直观展示若答应定损需补缴多少。
+		net := paidTotal - damageAmount - actualRentCents - int64(order.ShippingFee)
+		refund := net
+		shortfall := int64(0)
+		if net < 0 {
 			refund = 0
+			shortfall = -net
 		}
 
 		damageData = map[string]interface{}{
@@ -483,6 +495,7 @@ func GetOrder(c *gin.Context) {
 			"deposit":            int64(order.Deposit),
 			"paid_total":         paidTotal,
 			"refund":             refund,
+			"shortfall":          shortfall, // #1852: 应补缴方向（damage+租金+物流 > 已付时）
 		}
 	}
 

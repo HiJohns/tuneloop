@@ -761,13 +761,19 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	// Derive actual lease period: returned_at for returned/completed orders,
 	// end_date otherwise. Start from delivered_at (实际收货) when available so
 	// 当天收货当天归还 (北京同日, 不足 24h) 计 1 天而非自然日 2 天 (#1665 口径).
+	// #1852 B1: 归还后全部未结算态（含定损回应中/申诉中/押金退款中）租期均已定格
+	// ——ReturnedAt/DeliveredAt 生效；此前缺失导致回退 end_date（可能含历史错值）
+	// 使 actualDays 虚增 → 段模型拒绝 → #1743 fallback 大额错账（16fdfb81 实证）。
+	leaseEnded := order.Status == "returned" || order.Status == "completed" ||
+		order.Status == "returning" || order.Status == "pending_damage_response" ||
+		order.Status == "damage_appealing" || order.Status == "deposit_refunding"
 	actualLeaseEnd := parseDate(order.EndDate)
-	if order.ReturnedAt != nil && (order.Status == "returned" || order.Status == "completed" || order.Status == "returning") {
+	if order.ReturnedAt != nil && leaseEnded {
 		rt := *order.ReturnedAt
 		actualLeaseEnd = &rt
 	}
 	actualLeaseStart := startDate
-	if order.DeliveredAt != nil && (order.Status == "returned" || order.Status == "completed" || order.Status == "returning") {
+	if order.DeliveredAt != nil && leaseEnded {
 		actualLeaseStart = order.DeliveredAt
 	}
 	if actualLeaseStart != nil && actualLeaseEnd != nil {
@@ -829,9 +835,18 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	var damageDeducted float64
 	var report models.DamageReport
 	if err := db.Where("lease_id = ?", order.ID).First(&report).Error; err == nil {
-		damageDeducted = report.DepositDeducted.ToYuan()
+		// #1852 B2（产品拍板）：赔偿金额按状态取源——
+		//   pending_damage_response / damage_appealing：预扣 DamageAmount
+		//     （顾客未回应/申诉中，直观展示「若答应需补缴多少」，对应行前端标注等待回应中/申诉中）
+		//   deposit_refunding 及之后（agreed）：DepositDeducted（appeal 裁决后落库的最终值）
+		if order.Status == "pending_damage_response" || order.Status == "damage_appealing" {
+			if report.DamageAmount != nil {
+				damageDeducted = report.DamageAmount.ToYuan()
+			}
+		} else {
+			damageDeducted = report.DepositDeducted.ToYuan()
+		}
 	}
-
 	// Deposit deduction: overdue fee (charged once at return, #1493) +
 	// damage deduction + logistics fee (filled by staff at SHIPPING page,
 	// #1541/#1621 — design moved fee entry to dispatch, not inspection) +

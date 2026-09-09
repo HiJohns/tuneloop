@@ -677,13 +677,26 @@ export default function OrderDetail() {
                 </View>
               )}
               <View className="flex justify-between text-sm">
-                <Text className="text-zinc-500 font-medium">赔偿金额</Text>
+                <Text className="text-zinc-500 font-medium">
+                  赔偿金额
+                  {/* #1852 B2：未回应/申诉中标注——直观提示当前为预扣，回应后生效 */}
+                  {order.damage.status === 'pending' && <Text className="text-zinc-400 font-normal">（等待回应中）</Text>}
+                  {order.damage.status === 'appealed' && <Text className="text-zinc-400 font-normal">（申诉中）</Text>}
+                </Text>
                 <Text className="text-red-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.damage.damage_amount) / 100).toFixed(2)}</Text>
               </View>
-              <View className="flex justify-between text-sm">
-                <Text className="text-zinc-500 font-medium">退款</Text>
-                <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.damage.refund) / 100).toFixed(2)}</Text>
-              </View>
+              {Number(order.damage.refund) > 0 && (
+                <View className="flex justify-between text-sm">
+                  <Text className="text-zinc-500 font-medium">退款</Text>
+                  <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.damage.refund) / 100).toFixed(2)}</Text>
+                </View>
+              )}
+              {Number(order.damage.shortfall) > 0 && (
+                <View className="flex justify-between text-sm">
+                  <Text className="text-zinc-500 font-medium">应补缴</Text>
+                  <Text className="text-red-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.damage.shortfall) / 100).toFixed(2)}</Text>
+                </View>
+              )}
             </View>
           )}
 

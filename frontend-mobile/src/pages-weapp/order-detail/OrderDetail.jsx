@@ -694,8 +694,16 @@ export default function OrderDetail() {
               {Number(order.damage.actual_rent_amount) > 0 && (
                 <Row label="实际租金" value={`¥${(Number(order.damage.actual_rent_amount) / 100).toFixed(2)}`} />
               )}
-              <Row label="赔偿金额" value={`¥${(Number(order.damage.damage_amount) / 100).toFixed(2)}`} color="#ef4444" />
-              <Row label="退款" value={`¥${(Number(order.damage.refund) / 100).toFixed(2)}`} color="#16a34a" />
+              <Row
+                label={`赔偿金额${order.damage.status === 'pending' ? '（等待回应中）' : order.damage.status === 'appealed' ? '（申诉中）' : ''}`}
+                value={`¥${(Number(order.damage.damage_amount) / 100).toFixed(2)}`} color="#ef4444"
+              />
+              {Number(order.damage.refund) > 0 && (
+                <Row label="退款" value={`¥${(Number(order.damage.refund) / 100).toFixed(2)}`} color="#16a34a" />
+              )}
+              {Number(order.damage.shortfall) > 0 && (
+                <Row label="应补缴" value={`¥${(Number(order.damage.shortfall) / 100).toFixed(2)}`} color="#ef4444" />
+              )}
             </View>
           )}
 
