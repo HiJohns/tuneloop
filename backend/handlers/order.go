@@ -200,6 +200,118 @@ func deriveActualRent(db *gorm.DB, order *models.Order, settlementData map[strin
 // 三段（重建现场，与落库完全一致）；未 settled 态实时 computeSettlement。
 // 旧落库数据无三段时 fallback 实时计算（数字为实时口径，展示降级）。
 // settled 标志按订单当前状态实时判定（不读落库值——落库时订单可能未终态）。
+// fetchSettlementData loads the latest settlement for an order and maps it
+// to the API settlementData shape (top-level fields + parsed breakdown).
+// Shared by GetOrder and GetNotificationDetail (#1858) so both derive the
+// same damage/refund figures.
+func fetchSettlementData(db *gorm.DB, orderID string) map[string]interface{} {
+	var settlement models.Settlement
+	var settlementData map[string]interface{}
+	if err := db.Where("order_id = ?", orderID).Order("created_at DESC").First(&settlement).Error; err == nil {
+		settlementData = map[string]interface{}{
+			"id":                    settlement.ID,
+			"actual_rent_days":      settlement.ActualRentDays,
+			"actual_rent_amount":    settlement.ActualRentAmount,
+			"original_rent_amount":  settlement.OriginalRentAmount,
+			"gift_points_refunded":  settlement.GiftPointsRefunded,
+			"cash_refundable":       settlement.CashRefundable,
+			"prepaid_refunded":      settlement.PrepaidRefunded,
+			"refund_method":         settlement.RefundMethod,
+			"refund_status":         settlement.RefundStatus,
+			"overdue_charges_total": settlement.OverdueChargesTotal,
+		}
+		if settlement.Breakdown != "" {
+			var breakdown map[string]interface{}
+			if err := json.Unmarshal([]byte(settlement.Breakdown), &breakdown); err == nil {
+				settlementData["breakdown"] = breakdown
+			}
+		}
+	}
+	return settlementData
+}
+
+// buildDamagePanelData assembles the damage panel object shared by the order
+// detail (GET /orders/:id) and the damage notification detail
+// (GET /notifications/:id, ref.damage, #1858) so both surfaces show identical
+// refund/shortfall figures (fields mirror the legacy inline damageData shape).
+func buildDamagePanelData(db *gorm.DB, order *models.Order, damageReport *models.DamageReport, settlementData map[string]interface{}, pricingBreakdownData interface{}) map[string]interface{} {
+	// Staff photos live in instrument_media (batch_type=receiving,
+	// is_display=false) — the InspectReturn photo upload writes there.
+	// damage_assessments.photos JSONB is deprecated (#1708/#1710).
+	photos := []string{}
+	if order.InstrumentID != "" {
+		var receivingMedia []models.InstrumentMedia
+		db.Where("instrument_id = ? AND batch_type = ? AND file_type = ?",
+			order.InstrumentID, "receiving", "image").
+			Order("created_at asc").Find(&receivingMedia)
+		for _, m := range receivingMedia {
+			url := m.StorageKey
+			if !strings.HasPrefix(url, "/uploads/") && !strings.HasPrefix(url, "http") {
+				url = "/uploads/media/" + url
+			}
+			photos = append(photos, url)
+		}
+	}
+
+	// Actual rent days/amount: settlement if present, else derive from the
+	// pricing breakdown (actual tier fields) or delivered_at→returned_at.
+	// Helper returns cents; the refund formula works in cents
+	// (#1728 P3: API amounts are cents, frontend renders ÷100).
+	actualRentDays, actualRentCents := deriveActualRent(db, order, settlementData, pricingBreakdownData)
+
+	// #1852 B2（产品拍板：定损扣款按折后口径）：优惠码订单实租租金应收以段模型
+	// 折后值（DiscountedRent，元）为权威——原价口径使定损预览与结算分裂
+	// （16fdfb81: 原价 ¥36 vs 折后 ¥0.36）。段模型不可用保持 deriveActualRent 原价。
+	if sr := computeSettlement(*order, db); sr.SegmentModel && sr.DiscountedRent > 0 {
+		actualRentCents = int64(math.Round(sr.DiscountedRent * 100))
+	}
+
+	// Refund = paid total - damage - actual rent - shipping fee (#1707).
+	paidTotal := int64(0)
+	var paidRecords []models.OrderPaymentRecord
+	db.Where("order_id = ? AND status = ? AND type = ?", order.ID, "paid", "payment").
+		Find(&paidRecords)
+	for _, pr := range paidRecords {
+		paidTotal += int64(pr.Amount)
+	}
+	damageAmount := int64(0)
+	description := ""
+	status := ""
+	reportID := ""
+	if damageReport != nil {
+		reportID = damageReport.ID
+		status = damageReport.Status
+		description = damageReport.DamageDescription
+		if damageReport.DamageAmount != nil {
+			damageAmount = int64(*damageReport.DamageAmount)
+		}
+	}
+	// 净额方向（#1852 B2 拍板 3）：refund<0 即需补缴，不钳 0——前端按正负
+	// 显示「退款 ¥x / 应补缴 ¥x」，直观展示若答应定损需补缴多少。
+	net := paidTotal - damageAmount - actualRentCents - int64(order.ShippingFee)
+	refund := net
+	shortfall := int64(0)
+	if net < 0 {
+		refund = 0
+		shortfall = -net
+	}
+
+	return map[string]interface{}{
+		"report_id":          reportID,
+		"damage_amount":      damageAmount,
+		"description":        description,
+		"status":             status,
+		"photos":             photos,
+		"actual_rent_days":   actualRentDays,
+		"actual_rent_amount": actualRentCents,
+		"shipping_fee":       int64(order.ShippingFee),
+		"deposit":            int64(order.Deposit),
+		"paid_total":         paidTotal,
+		"refund":             refund,
+		"shortfall":          shortfall, // #1852: 应补缴方向（damage+租金+物流 > 已付时）
+	}
+}
+
 func buildFeeDetail(order models.Order, db *gorm.DB, settlementData map[string]interface{}) map[string]interface{} {
 	unsettledStatus := map[string]bool{
 		models.OrderStatusReturning:             true,
@@ -343,29 +455,9 @@ func GetOrder(c *gin.Context) {
 	}
 	instrumentSN := instrument.SN
 
-	// Fetch settlement
-	var settlement models.Settlement
+	// Fetch settlement (#1858: 与通知详情共享 fetchSettlementData)
 	var settlementData map[string]interface{}
-	if err := db.Where("order_id = ?", order.ID).Order("created_at DESC").First(&settlement).Error; err == nil {
-		settlementData = map[string]interface{}{
-			"id":                    settlement.ID,
-			"actual_rent_days":      settlement.ActualRentDays,
-			"actual_rent_amount":    settlement.ActualRentAmount,
-			"original_rent_amount":  settlement.OriginalRentAmount,
-			"gift_points_refunded":  settlement.GiftPointsRefunded,
-			"cash_refundable":       settlement.CashRefundable,
-			"prepaid_refunded":      settlement.PrepaidRefunded,
-			"refund_method":         settlement.RefundMethod,
-			"refund_status":         settlement.RefundStatus,
-			"overdue_charges_total": settlement.OverdueChargesTotal,
-		}
-		if settlement.Breakdown != "" {
-			var breakdown map[string]interface{}
-			if err := json.Unmarshal([]byte(settlement.Breakdown), &breakdown); err == nil {
-				settlementData["breakdown"] = breakdown
-			}
-		}
-	}
+	settlementData = fetchSettlementData(db, order.ID)
 
 	// #1785: query pending payment_shortfall record so the detail page can
 	// show "需补缴" and a payment button.
@@ -415,87 +507,12 @@ func GetOrder(c *gin.Context) {
 	// need the damage panel data (amount, description, photos) plus a settlement
 	// preview (actual rent days/tier rent/refund) so the order detail page can
 	// render accept/reject — the notification may have been lost (deadlock).
+	// #1858: 面板组装提取为 buildDamagePanelData，与通知详情（ref.damage）同源。
 	var damageData map[string]interface{}
 	if order.Status == models.OrderStatusPendingDamageResponse || order.Status == models.OrderStatusDamageAppealing {
 		var damageReport models.DamageReport
-		reportFound := false
 		if err := db.Where("lease_id = ?", order.ID).Order("created_at asc").First(&damageReport).Error; err == nil {
-			reportFound = true
-		}
-		// Staff photos live in instrument_media (batch_type=receiving,
-		// is_display=false) — the InspectReturn photo upload writes there.
-		// damage_assessments.photos JSONB is deprecated (#1708/#1710).
-		photos := []string{}
-		if order.InstrumentID != "" {
-			var receivingMedia []models.InstrumentMedia
-			db.Where("instrument_id = ? AND batch_type = ? AND file_type = ?",
-				order.InstrumentID, "receiving", "image").
-				Order("created_at asc").Find(&receivingMedia)
-			for _, m := range receivingMedia {
-				url := m.StorageKey
-				if !strings.HasPrefix(url, "/uploads/") && !strings.HasPrefix(url, "http") {
-					url = "/uploads/media/" + url
-				}
-				photos = append(photos, url)
-			}
-		}
-
-		// Actual rent days/amount: settlement if present, else derive from the
-		// pricing breakdown (actual tier fields) or delivered_at→returned_at.
-		// Helper returns cents; the refund formula works in cents
-		// (#1728 P3: API amounts are cents, frontend renders ÷100).
-		actualRentDays, actualRentCents := deriveActualRent(db, &order, settlementData, pricingBreakdownData)
-
-		// #1852 B2（产品拍板：定损扣款按折后口径）：优惠码订单实租租金应收以段模型
-		// 折后值（DiscountedRent，元）为权威——原价口径使定损预览与结算分裂
-		// （16fdfb81: 原价 ¥36 vs 折后 ¥0.36）。段模型不可用保持 deriveActualRent 原价。
-		if sr := computeSettlement(order, db); sr.SegmentModel && sr.DiscountedRent > 0 {
-			actualRentCents = int64(math.Round(sr.DiscountedRent * 100))
-		}
-
-		// Refund = paid total - damage - actual rent - shipping fee (#1707).
-		paidTotal := int64(0)
-		var paidRecords []models.OrderPaymentRecord
-		db.Where("order_id = ? AND status = ? AND type = ?", orderID, "paid", "payment").
-			Find(&paidRecords)
-		for _, pr := range paidRecords {
-			paidTotal += int64(pr.Amount)
-		}
-		damageAmount := int64(0)
-		description := ""
-		status := ""
-		reportID := ""
-		if reportFound {
-			reportID = damageReport.ID
-			status = damageReport.Status
-			description = damageReport.DamageDescription
-			if damageReport.DamageAmount != nil {
-				damageAmount = int64(*damageReport.DamageAmount)
-			}
-		}
-		// 净额方向（#1852 B2 拍板 3）：refund<0 即需补缴，不钳 0——前端按正负
-		// 显示「退款 ¥x / 应补缴 ¥x」，直观展示若答应定损需补缴多少。
-		net := paidTotal - damageAmount - actualRentCents - int64(order.ShippingFee)
-		refund := net
-		shortfall := int64(0)
-		if net < 0 {
-			refund = 0
-			shortfall = -net
-		}
-
-		damageData = map[string]interface{}{
-			"report_id":          reportID,
-			"damage_amount":      damageAmount,
-			"description":        description,
-			"status":             status,
-			"photos":             photos,
-			"actual_rent_days":   actualRentDays,
-			"actual_rent_amount": actualRentCents,
-			"shipping_fee":       int64(order.ShippingFee),
-			"deposit":            int64(order.Deposit),
-			"paid_total":         paidTotal,
-			"refund":             refund,
-			"shortfall":          shortfall, // #1852: 应补缴方向（damage+租金+物流 > 已付时）
+			damageData = buildDamagePanelData(db, &order, &damageReport, settlementData, pricingBreakdownData)
 		}
 	}
 

@@ -151,6 +151,18 @@ func GetNotificationDetail(c *gin.Context) {
 			var order models.Order
 			if err := db.Where("id = ?", damageReport.LeaseID).First(&order).Error; err == nil {
 				ref["order"] = order
+				// #1858: 挂载与订单详情同源的 damage 预览（refund/shortfall/
+				// actual_rent 等），使消息详情能正确展示结算方向与同意后分流，
+				// 不再因缺数据而把退款单误导向付款页。
+				var pbData interface{}
+				if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+					var pb map[string]interface{}
+					if err := json.Unmarshal([]byte(*order.PricingBreakdown), &pb); err == nil {
+						pbData = pb
+					}
+				}
+				settlementData := fetchSettlementData(db, order.ID)
+				ref["damage"] = buildDamagePanelData(db, &order, &damageReport, settlementData, pbData)
 			}
 		}
 	case "appeal":

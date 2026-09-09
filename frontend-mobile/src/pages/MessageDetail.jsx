@@ -35,6 +35,7 @@ export default function MessageDetail() {
   const [loading, setLoading] = useState(true)
   const [appealModalVisible, setAppealModalVisible] = useState(false)
   const [appealReason, setAppealReason] = useState('')
+  const [accepting, setAccepting] = useState(false)
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -69,9 +70,13 @@ export default function MessageDetail() {
 
   const damageAmount = actionData.damage_amount || damageReport?.damage_amount || 0
   const deposit = actionData.deposit || order?.deposit || 0
+  // #1858: damage 预览统一取 ref.damage（通知详情后端挂载，与订单详情同源），
+  // 兼容旧响应回退 order.damage——ref.order 原始行不再含有 refund/shortfall。
+  const damagePreview = ref?.damage || order?.damage || null
   // #1854：补缴额用后端净缺口（damageData.shortfall），非 damage−refund（refund clamp 后恒 0）
-  const shortfall = order?.damage?.shortfall ?? 0
-  const refund = order?.damage?.refund ?? 0
+  const shortfall = Number(damagePreview?.shortfall ?? 0)
+  const refund = Number(damagePreview?.refund ?? 0)
+  const actualRent = Number(damagePreview?.actual_rent_amount ?? 0)
 
   const goBack = () => {
     if (env.isMiniProgram) {
@@ -84,35 +89,38 @@ export default function MessageDetail() {
   const handleAccept = async () => {
     const ok = await dialog.confirm(
       shortfall > 0
-        ? `定损金额 ¥${(damageAmount / 100).toFixed(2)}，实际租期租金 ¥${((order?.damage?.actual_rent ?? 0) / 100).toFixed(2)}，需补缴 ¥${(shortfall / 100).toFixed(2)}`
+        ? `定损金额 ¥${(damageAmount / 100).toFixed(2)}，实际租期租金 ¥${(actualRent / 100).toFixed(2)}，需补缴 ¥${(shortfall / 100).toFixed(2)}`
         : refund > 0
-          ? `定损金额 ¥${(damageAmount / 100).toFixed(2)}，应退 ¥${(refund / 100).toFixed(2)}，将退还差额 ¥${((refund - damageAmount) / 100).toFixed(2)}`
+          ? `定损金额 ¥${(damageAmount / 100).toFixed(2)}，应退 ¥${(refund / 100).toFixed(2)}，将退还差额 ¥${(Math.max(0, refund - damageAmount) / 100).toFixed(2)}`
           : `定损金额 ¥${(damageAmount / 100).toFixed(2)}，无额外补缴或退还`
     )
     if (!ok) return
+    setAccepting(true)
     try {
-      await appealsApi.agree(damageReport.id)
-      if (damageAmount <= refund) {
-        dialog.toast('已接受定损，押金退还流程将开始')
+      const result = await appealsApi.agree(damageReport.id)
+      // #1858 幂等/冲突：非 20000（如 40900 定损已处理）→ 提示后返回，不产生实质动作
+      if (!result || result.code !== 20000) {
+        dialog.toast(result?.message || '定损已处理，请勿重复操作')
         goBack()
+        return
+      }
+      // #1858: 按服务端真实结果分流——order_status=deposit_refunding 即退款方向，
+      // 绝不再把退款单导向付款页（84ab8ebd 实证：应退 ¥0.34 却被引导付 ¥0.01）。
+      if (result.data?.order_status === 'deposit_refunding') {
+        dialog.toast('已接受定损，退款将在 3-5 个工作日内原路退回')
+        goBack()
+        return
+      }
+      // 需补缴：跳付款（H5/weapp 入口与 OrderDetail「去支付」一致）
+      const orderId = actionData.order_id || order?.id || ''
+      if (env.isMiniProgram) {
+        Taro.redirectTo({ url: `/pages-weapp/payment/index?type=damage&id=${orderId}` })
       } else {
-        if (env.isMiniProgram) {
-          Taro.redirectTo({ url: `/pages-weapp/payment/index?type=damage&id=${actionData.order_id || order?.id || ''}` })
-        } else {
-          navigate('/payment-complete', {
-            state: {
-              paymentAmount: shortfall,
-              damageAmount,
-              deposit,
-              merchantName: ref?.order?.merchant_name || '商户',
-              orderId: actionData.order_id || order?.id,
-            },
-            replace: true,
-          })
-        }
+        navigate(`/payment?type=damage&id=${orderId}`)
       }
     } catch (err) {
       dialog.toast('操作失败: ' + (err.message || '未知错误'))
+      setAccepting(false)
     }
   }
 
@@ -127,10 +135,16 @@ export default function MessageDetail() {
       return
     }
     try {
-      await appealsApi.submit({
+      const result = await appealsApi.submit({
         damage_report_id: damageReport.id,
         appeal_reason: appealReason,
       })
+      // #1858 幂等/冲突：非 20000（如 40900 定损已处理）→ 提示后关闭弹窗，不提交
+      if (!result || result.code !== 20000) {
+        dialog.toast(result?.message || '提交失败，请重试')
+        setAppealModalVisible(false)
+        return
+      }
       dialog.toast('申诉已提交，等待处理')
       setAppealModalVisible(false)
       goBack()
@@ -293,12 +307,16 @@ export default function MessageDetail() {
             <View className="flex gap-3 mt-6">
               <Button
                 onClick={handleAccept}
+                disabled={accepting}
+                style={accepting ? { opacity: 0.6 } : undefined}
                 className="flex-1 py-2.5 bg-green-500 text-white rounded-lg text-sm font-medium"
               >
-                接受
+                {accepting ? '处理中...' : '接受'}
               </Button>
               <Button
                 onClick={handleReject}
+                disabled={accepting}
+                style={accepting ? { opacity: 0.6 } : undefined}
                 className="flex-1 py-2.5 bg-red-500 text-white rounded-lg text-sm font-medium"
               >
                 拒绝

@@ -181,8 +181,10 @@ func TestAgreeDamage_CustomerNoTenant(t *testing.T) {
 	t.Logf("first: refund=%v actualRent=%v paidTotal=%v", rf1, rent1, paid1)
 
 	// 补缴场景：damage 1000 > refund(3500−1000−2000=500) → 补缴 1000−500=500
+	// #1858: 幂等守卫上线后，已 agreed 的报告不可重复同意——第二次场景前
+	// 显式把报告状态重置回 pending（现实中定损金额在同意后不可变更）。
 	require.NoError(t, db.Model(&models.DamageReport{}).Where("id = ?", damageID).
-		Update("damage_amount", models.FromYuan(1000)).Error)
+		Updates(map[string]interface{}{"damage_amount": models.FromYuan(1000), "status": "pending"}).Error)
 	require.NoError(t, db.Model(&models.Order{}).Where("id = ?", order.ID).
 		Update("status", models.OrderStatusPendingDamageResponse).Error)
 

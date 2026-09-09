@@ -475,6 +475,12 @@ func (h *AppealHandler) SubmitAppeal(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "damage report not found"})
 		return
 	}
+	// #1858 幂等守卫：已同意/已申诉的定损不接受再次申诉（重复申诉会重复置
+	// damage_appealing 并重复通知员工）。
+	if damageReport.Status != "pending" {
+		c.JSON(http.StatusOK, gin.H{"code": 40900, "message": "定损已处理，不能重复申诉"})
+		return
+	}
 	var submitOrder models.Order
 	if err := db.Where("id = ?", damageReport.LeaseID).First(&submitOrder).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "order not found"})
@@ -606,6 +612,14 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 	var damageReport models.DamageReport
 	if err := db.Where("id = ? AND user_id = ?", damageID, localUserID).First(&damageReport).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "damage report not found"})
+		return
+	}
+
+	// #1858 幂等守卫：已处理（agreed/appealed/closed）的定损不接受重复同意——
+	// 否则重复落账并重复发「押金退还通知」。HTTP 200 + 40900，前端按业务冲突
+	// toast 提示后返回，不产生任何实质动作。
+	if damageReport.Status != "pending" {
+		c.JSON(http.StatusOK, gin.H{"code": 40900, "message": "定损已处理，请勿重复操作"})
 		return
 	}
 

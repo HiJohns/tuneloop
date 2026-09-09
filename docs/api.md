@@ -5698,16 +5698,24 @@ POST /api/appeals
 POST /api/appeals/:id/agree
 ```
 
-**响应**:
+**响应**（#1858 语义补录；金额全部分）:
 ```json
 {
   "code": 20000,
   "message": "success",
   "data": {
-    "payment_url": "https://pay.example.com/123"  // 仅押金不足时返回
+    "damage_report": { "id": "uuid", "status": "agreed" },
+    "order_status": "deposit_refunding",
+    "deposit_deducted": 100
   }
 }
 ```
+- `order_status` 为**分流依据**：`deposit_refunding` = 净方向为退款（应退金额由
+  定损 preview/refund 给出，前端不得引导付款）；保持原状态（如
+  pending_damage_response）= 需补缴，前端才进入付款页
+- 幂等（#1858）：定损已处理（非 `pending`）时重复同意返回
+  `code: 40900, message: "定损已处理，请勿重复操作"`——不重复落账/不重复发通知
+- `POST /api/appeals`（申诉）同守卫：非 `pending` → `code: 40900`
 
 ### 7.6 顾客（无组织绑定）可调用的接口（#1579）
 
@@ -5715,7 +5723,7 @@ POST /api/appeals/:id/agree
 
 | 接口 | 说明 |
 |------|------|
-| `GET /api/notifications`、`GET /api/notifications/:id`、`POST /api/notifications/:id/read`、`POST /api/notifications/mark-all-read` | 系统消息列表/详情/已读（handler 按 user_id 过滤） |
+| `GET /api/notifications`、`GET /api/notifications/:id`、`POST /api/notifications/:id/read`、`POST /api/notifications/mark-all-read` | 系统消息列表/详情/已读（handler 按 user_id 过滤）。详情响应 `data.ref` 在 `ref_type=damage_report` 时额外挂载 `ref.damage`（#1858，字段与订单详情 `damage` 对象同源：damage_amount/refund/shortfall/actual_rent_amount/paid_total/status 等，金额全部分）——消息详情据此展示结算方向并决定同意后分流 |
 | `POST /api/repair-appeals` | 顾客报修申诉（列表/关闭/审核等仍为员工接口） |
 | `POST /api/appeals`、`POST /api/appeals/:id/agree` | 顾客定损申诉/同意 |
 | `GET /api/orders/by-instrument-sn` | 乐器详情页"当前租赁中"（顾客/员工共用） |
