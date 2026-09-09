@@ -33,6 +33,20 @@ export function formatLogTime(dateStr) {
   return `${datePart} ${hh}:${mi}`
 }
 
+// formatBeijingDateTime renders a timestamp as a Beijing-time (Asia/Shanghai,
+// fixed UTC+8) Chinese datetime string — device timezone/locale independent.
+// Business timezone convention: docs/api.md (time.Local = Asia/Shanghai);
+// devices in other zones (e.g. GMT-0400) must not see local/English dates.
+// Format: "2026年9月10日 02:07"
+export function formatBeijingDateTime(dateStr) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return ''
+  const bj = new Date(d.getTime() + 8 * 3600000)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${bj.getUTCFullYear()}年${bj.getUTCMonth() + 1}月${bj.getUTCDate()}日 ${pad(bj.getUTCHours())}:${pad(bj.getUTCMinutes())}`
+}
+
 export function formatDeliveryAddress(raw) {
   if (!raw) return ''
   try {
