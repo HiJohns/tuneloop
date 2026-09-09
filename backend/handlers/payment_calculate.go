@@ -200,7 +200,7 @@ func loadDamagePayment(db *gorm.DB, id string, resp *PaymentCalculateResponse) {
 	var report models.DamageReport
 	if err := db.Where("id = ?", id).First(&report).Error; err != nil {
 		// 按 lease_id 回退（id 当 order_id）
-		if err2 := db.Where("lease_id = ?").Order("created_at DESC").First(&report).Error; err2 != nil {
+		if err2 := db.Where("lease_id = ?", id).Order("created_at DESC").First(&report).Error; err2 != nil {
 			return
 		}
 	}

@@ -211,3 +211,172 @@ func TestAgreeDamage_CustomerNoTenant(t *testing.T) {
 		require.False(t, resp2.Data.PaymentRequired, "shortfall<=0 → no payment needed")
 	}
 }
+
+// TestAgreeDamage_ShortfallPositive (#1854): 16fdfb81 形状正例——补缴净缺口
+// = damage + 折后租金 + 物流 − 已付 = 1.00 + 0.36 + 0.01 − 0.72 = 0.65。
+// 修复前 payDiff = damage − refund = 1.00（refund clamp 0）→ 多收 0.35。
+func TestAgreeDamage_ShortfallPositive(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+
+	tenantID := uuid.New().String()
+	orgID := tenantID
+	userID := uuid.New().String()
+
+	require.NoError(t, db.Create(&models.User{
+		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
+		Username: "shortfall", Status: "active", MembershipLevelID: intPtr(1),
+	}).Error)
+
+	// 16fdfb81 形状：实租 1 天（同日归还）、优惠码两段折后租金 0.36、物流 0.01、已付 0.72
+	instID := uuid.New().String()
+	require.NoError(t, db.Create(&models.Instrument{
+		ID: instID, TenantID: tenantID, OrgID: &orgID,
+		SN: "SN-SF-" + uuid.New().String()[:6], StockStatus: "rented",
+	}).Error)
+	delivered := time.Date(2026, 9, 8, 16, 56, 0, 0, time.UTC)
+	returned := time.Date(2026, 9, 8, 20, 34, 0, 0, time.UTC) // 同日 → 实租 1 天
+	days1 := 1
+	order := models.Order{
+		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID, UserID: userID,
+		InstrumentID: instID,
+		StartDate:    strPtr("2026-09-08"), EndDate: strPtr("2026-10-09"),
+		LeaseTerm: 0, Status: models.OrderStatusPendingDamageResponse,
+		DeliveredAt: &delivered, ReturnedAt: &returned,
+		Deposit: 0, CashPaid: models.FromYuan(0.72), ShippingFee: models.FromYuan(0.01),
+		CouponDiscount: models.FromYuan(35.64),
+		PricingBreakdown: strPtr(`{"base_daily_rent":3600,"rent_days":2,"deposit":0,"total_amount":7200,
+			"pricing_tiers":[{"days_max":30,"daily_rate":3600,"discount_percent":0}],
+			"tier_segments":[{"tier":1,"days":2,"rate":3600,"discount":1,"subtotal":7200}]}`),
+	}
+	require.NoError(t, db.Create(&order).Error)
+	// 已付 0.72 = 原单租金 0.36（rent）+ 续租租金 0.36（renewal, days=1）
+	// ——renewal days 供段模型反推 contractDays（2−1=1），全 renewal 会导致段模型拒绝
+	tnoRent := "sf-rent-" + uuid.New().String()[:8]
+	require.NoError(t, db.Create(&models.OrderPaymentRecord{
+		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID: userID,
+		OrderID: &order.ID, OrderType: "rent", OutTradeNo: &tnoRent,
+		Amount: models.FromYuan(0.36), Type: "payment", Status: "paid",
+		Method: strPtr("jsapi"),
+	}).Error)
+	tnoRenew := "sf-renew-" + uuid.New().String()[:8]
+	require.NoError(t, db.Create(&models.OrderPaymentRecord{
+		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID: userID,
+		OrderID: &order.ID, OrderType: "renewal", OutTradeNo: &tnoRenew,
+		Amount: models.FromYuan(0.36), Type: "payment", Status: "paid",
+		Method: strPtr("jsapi"), Days: &days1,
+	}).Error)
+
+	damageID := uuid.New().String()
+	damageAmount := models.Cents(100) // 定损 ¥1.00
+	require.NoError(t, db.Create(&models.DamageReport{
+		ID: damageID, TenantID: tenantID, OrgID: orgID, LeaseID: order.ID,
+		InstrumentID: instID, UserID: userID,
+		DamageAmount: &damageAmount, Status: "pending",
+	}).Error)
+
+	customer := testutil.MakeCustomer("", userID)
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		ctx := customer.InjectContext(c.Request.Context())
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	router.POST("/api/user/appeals/:id/agree", (&AppealHandler{}).AgreeDamage)
+
+	req := httptest.NewRequest("POST", "/api/user/appeals/"+damageID+"/agree", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			PaymentRequired bool    `json:"payment_required"`
+			Amount          float64 `json:"amount"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code, "body: %s", w.Body.String())
+	// #1854：净缺口 0.65（damage 1.00 + 折后租金 0.36 + 物流 0.01 − 已付 0.72）
+	require.True(t, resp.Data.PaymentRequired, "shortfall 0.65 > 0 → payment required")
+	require.InDelta(t, 0.65, resp.Data.Amount, 0.001,
+		"payDiff = 净缺口 0.65（修复前 damage−refund = 1.00）")
+
+	// 支付记录落库：65 分
+	var record models.OrderPaymentRecord
+	require.NoError(t, db.Where("order_id = ? AND order_type = ? AND status = ?",
+		order.ID, "damage", "pending").First(&record).Error)
+	require.Equal(t, models.Cents(65), record.Amount, "支付记录 = 65 分")
+}
+
+// TestLoadDamagePayment_IdCompat (#1854): 支付页 id 兼容——前端跳转传 order_id
+// （存量通知 actionData 仅含 order_id），loadDamagePayment 必须按 lease_id 回退
+// 查最新 report；金额口径 = 净缺口 0.65 元 = 65 分。
+func TestLoadDamagePayment_IdCompat(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+
+	tenantID := uuid.New().String()
+	orgID := tenantID
+	userID := uuid.New().String()
+
+	instID := uuid.New().String()
+	require.NoError(t, db.Create(&models.Instrument{
+		ID: instID, TenantID: tenantID, OrgID: &orgID,
+		SN: "SN-IDC-" + uuid.New().String()[:6], StockStatus: "rented",
+	}).Error)
+	delivered := time.Date(2026, 9, 8, 16, 56, 0, 0, time.UTC)
+	returned := time.Date(2026, 9, 8, 20, 34, 0, 0, time.UTC)
+	days1 := 1
+	order := models.Order{
+		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID, UserID: userID,
+		InstrumentID: instID,
+		StartDate:    strPtr("2026-09-08"), EndDate: strPtr("2026-10-09"),
+		LeaseTerm: 0, Status: models.OrderStatusPendingDamageResponse,
+		DeliveredAt: &delivered, ReturnedAt: &returned,
+		Deposit: 0, CashPaid: models.FromYuan(0.72), ShippingFee: models.FromYuan(0.01),
+		CouponDiscount: models.FromYuan(35.64),
+		PricingBreakdown: strPtr(`{"base_daily_rent":3600,"rent_days":2,"deposit":0,"total_amount":7200,
+			"pricing_tiers":[{"days_max":30,"daily_rate":3600,"discount_percent":0}],
+			"tier_segments":[{"tier":1,"days":2,"rate":3600,"discount":1,"subtotal":7200}]}`),
+	}
+	require.NoError(t, db.Create(&order).Error)
+	// 同 ShortfallPositive：rent 0.36 + renewal 0.36（days=1）→ 段模型 contractDays=1
+	tnoRent := "idc-rent-" + uuid.New().String()[:8]
+	require.NoError(t, db.Create(&models.OrderPaymentRecord{
+		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID: userID,
+		OrderID: &order.ID, OrderType: "rent", OutTradeNo: &tnoRent,
+		Amount: models.FromYuan(0.36), Type: "payment", Status: "paid",
+		Method: strPtr("jsapi"),
+	}).Error)
+	tnoRenew := "idc-renew-" + uuid.New().String()[:8]
+	require.NoError(t, db.Create(&models.OrderPaymentRecord{
+		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID: userID,
+		OrderID: &order.ID, OrderType: "renewal", OutTradeNo: &tnoRenew,
+		Amount: models.FromYuan(0.36), Type: "payment", Status: "paid",
+		Method: strPtr("jsapi"), Days: &days1,
+	}).Error)
+
+	damageID := uuid.New().String()
+	damageAmount := models.Cents(100)
+	require.NoError(t, db.Create(&models.DamageReport{
+		ID: damageID, TenantID: tenantID, OrgID: orgID, LeaseID: order.ID,
+		InstrumentID: instID, UserID: userID,
+		DamageAmount: &damageAmount, Status: "agreed",
+	}).Error)
+
+	// Case 1: id = damage_report.id（原路径回归）
+	respByID := PaymentCalculateResponse{}
+	loadDamagePayment(db, damageID, &respByID)
+	require.Equal(t, 65.0, respByID.Amount, "按 report.id：净缺口 65 分")
+	require.Equal(t, models.Cents(65), respByID.Details["pay_amount"], "details.pay_amount = 65 分")
+
+	// Case 2: id = order_id（lease_id 回退——修复前缺参查询恒败 → Amount=0）
+	respByOrder := PaymentCalculateResponse{}
+	loadDamagePayment(db, order.ID, &respByOrder)
+	require.Equal(t, 65.0, respByOrder.Amount, "按 order_id 回退 lease_id：净缺口 65 分")
+
+	// Case 3: 未知 id → 空响应（不 panic）
+	respUnknown := PaymentCalculateResponse{}
+	loadDamagePayment(db, uuid.New().String(), &respUnknown)
+	require.Zero(t, respUnknown.Amount, "未知 id → Amount 0")
+}
