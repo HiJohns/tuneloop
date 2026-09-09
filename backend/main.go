@@ -25,6 +25,11 @@ import (
 
 var Version = "dev"
 
+// Build is the git commit short hash injected at release time via ldflags
+// (-X main.Build=...). Lets ops identify the exact deployed commit from
+// GET /api/config (PC footer shows "v1.0.3 (build abc1234)").
+var Build = "dev"
+
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
@@ -186,6 +191,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				},
 				"appName":    "TuneLoop",
 				"version":    Version,
+				"build":      Build, // git 短码（make release 注入；dev 为 "dev"）
 				"debug_mode": os.Getenv("DEBUG_MODE") == "true",
 			},
 		})

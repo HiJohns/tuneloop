@@ -75,6 +75,8 @@ WEAPP_RELEASE_DIR := releases
 WEAPP_AUTO_VERSION := $(shell date -u +%Y%m%d-%H%M%S)_$(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 # Frontend package version shown in app UI: 1.0.<git short hash> (#1692)
 FRONTEND_VERSION := 1.0.$(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
+# Backend build tag: git short hash injected via ldflags (GET /api/config build)
+GIT_SHORT := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 
 weapp-build: weapp-check
 	@rm -rf frontend-mobile/node_modules/.cache
@@ -198,8 +200,8 @@ release: clean-prerelease
 	# Mobile frontend (Vite H5, IAM config from /api/config at runtime)
 	$(NVM22) cd frontend-mobile && VITE_APP_VERSION=$(FRONTEND_VERSION) npm run build -- --mode prerelease
 	cp -r frontend-mobile/dist/* $(RELEASE_BUILD)/tuneloop-pre/mobile/
-	# Backend (version injected via ldflags)
-	cd backend && go build -ldflags "-X main.Version=$(VERSION)" -o $(RELEASE_BUILD)/tuneloop-pre/service/tuneloop .
+	# Backend (version + build hash injected via ldflags)
+	cd backend && go build -ldflags "-X main.Version=$(VERSION) -X main.Build=$(GIT_SHORT)" -o $(RELEASE_BUILD)/tuneloop-pre/service/tuneloop .
 	cp -r backend/database/migrations $(RELEASE_BUILD)/tuneloop-pre/database/
 	# Migration scripts
 	cp scripts/migrate.sh $(RELEASE_BUILD)/tuneloop-pre/service/

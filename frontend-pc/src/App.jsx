@@ -641,7 +641,9 @@ function onMenuClick(e) {
             {window.APP_CONFIG?.version && window.APP_CONFIG.version !== 'dev' && (
               <span className="text-xs text-gray-400">
                 v{window.APP_CONFIG.version}
-                {import.meta.env.VITE_APP_VERSION ? ` (build ${import.meta.env.VITE_APP_VERSION})` : ''}
+                {window.APP_CONFIG?.build && window.APP_CONFIG.build !== 'dev'
+                  ? ` (build ${window.APP_CONFIG.build})`
+                  : import.meta.env.VITE_APP_VERSION ? ` (build ${import.meta.env.VITE_APP_VERSION})` : ''}
               </span>
             )}
             <div>
