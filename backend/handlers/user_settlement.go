@@ -1531,10 +1531,54 @@ func (h *UserSettlementHandler) StaffRefundOrder(c *gin.Context) {
 		return
 	}
 
-	// Org isolation: site staff may only refund orders in their org.
+	// Org isolation: site staff may only refund orders whose instrument is
+	// under their visible orgs. order.OrgID inherits the instrument's
+	// TENANT-level org (#1860), so comparing it to the staff JWT oid (site
+	// org) structurally fails for site-based instruments. The authoritative
+	// bridge: instrument OrgID / its site(s) org_id ∈ GetVisibleOrgIDs.
 	if role == middleware.BusinessRoleSiteAdmin || role == middleware.BusinessRoleSiteMember {
 		orgID := middleware.GetOrgID(ctx)
-		if orgID == "" || order.OrgID != orgID {
+		if orgID == "" {
+			c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "order does not belong to your site"})
+			return
+		}
+		visible, visErr := middleware.GetVisibleOrgIDs(ctx)
+		// GetVisibleOrgIDs: site_member=[oid], site_admin=oid+descendants;
+		// err → 保守降级为 [oid]（与旧行为等价，仅兜底路径）。
+		if visErr != nil || len(visible) == 0 {
+			visible = []string{orgID}
+		}
+		inVisible := func(org string) bool {
+			for _, v := range visible {
+				if v != "" && v == org {
+					return true
+				}
+			}
+			return false
+		}
+		allowed := inVisible(order.OrgID) // 兼容：乐器挂在员工 org（老布局）
+		if !allowed && order.InstrumentID != "" {
+			var inst models.Instrument
+			if err := db.Where("id = ?", order.InstrumentID).First(&inst).Error; err == nil {
+				if inst.OrgID != nil && inVisible(*inst.OrgID) {
+					allowed = true
+				}
+				if !allowed {
+					// 乐器所在网点桥：site.org_id = 员工可见 org
+					for _, sid := range []*uuid.UUID{inst.SiteID, inst.CurrentSiteID} {
+						if sid == nil {
+							continue
+						}
+						var site models.Site
+						if err := db.Where("id = ?", sid.String()).First(&site).Error; err == nil && site.OrgID != "" && inVisible(site.OrgID) {
+							allowed = true
+							break
+						}
+					}
+				}
+			}
+		}
+		if !allowed {
 			c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "order does not belong to your site"})
 			return
 		}
