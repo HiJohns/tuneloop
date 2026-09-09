@@ -76,6 +76,10 @@ export const ERROR_MESSAGE_MAP = {
   'instrument in use': '乐器正在使用中，无法删除',
   'instrument has linked orders': '乐器存在关联订单（历史交易），无法删除',
   'delete instrument failed': '删除乐器失败，请重试',
+  // #1861: staff refund / settlement isolation messages
+  'order does not belong to your site': '订单不属于您所在的网点',
+  'no permission to refund orders': '无退款权限',
+  'order is not in refunding status': '订单当前状态不允许退款',
 }
 
 // 解析器（唯一出口）

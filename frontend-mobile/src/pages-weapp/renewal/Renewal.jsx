@@ -83,10 +83,10 @@ export default function Renewal() {
           url: `/pages-weapp/payment/index?type=renewal&id=${orderId}&amount=${calcResult.total_amount}`,
         })
       } else {
-        Taro.showModal({ title: '续期失败', content: resolveErrorMessage(result.data, '请重试'), showCancel: false })
+        Taro.showModal({ title: '续期失败', content: resolveErrorMessage(result, '请稍后重试'), showCancel: false })
       }
     } catch (err) {
-      Taro.showModal({ title: '网络错误', content: err.message, showCancel: false })
+      Taro.showModal({ title: '网络错误', content: resolveErrorMessage(err, '网络异常，请重试'), showCancel: false })
     } finally {
       setSubmitting(false)
     }

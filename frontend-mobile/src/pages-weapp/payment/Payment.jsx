@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Taro, { useDidShow, useLoad } from '@tarojs/taro'
 import { View, Text, ScrollView, Input } from '@tarojs/components'
-import { apiFetch, resolveLogin } from '../../services/api'
+import { apiFetch, resolveLogin, resolveErrorMessage } from '../../services/api'
 import { env, session, storage, wxLogin } from '../../platform'
 import { formatDisplayDate } from '../../utils/format'
 
@@ -425,11 +425,11 @@ export default function Payment() {
             }
           } else {
             setIsPaying(false)
-            Taro.showModal({ title: '支付失败', content: result.message, showCancel: false })
+            Taro.showModal({ title: '支付失败', content: resolveErrorMessage(result, '请稍后重试'), showCancel: false })
           }
         } catch (err) {
           setIsPaying(false)
-          Taro.showModal({ title: '支付失败', content: err.message, showCancel: false })
+          Taro.showModal({ title: '支付失败', content: resolveErrorMessage(err, '网络异常，请重试'), showCancel: false })
         }
         return
       }
@@ -462,11 +462,11 @@ export default function Payment() {
         }
       } else {
         setIsPaying(false)
-        Taro.showModal({ title: '支付失败', content: result.message, showCancel: false })
+        Taro.showModal({ title: '支付失败', content: resolveErrorMessage(result, '请稍后重试'), showCancel: false })
       }
     } catch (err) {
       setIsPaying(false)
-      Taro.showModal({ title: '支付失败', content: err.message, showCancel: false })
+      Taro.showModal({ title: '支付失败', content: resolveErrorMessage(err, '网络异常，请重试'), showCancel: false })
     }
   }
 

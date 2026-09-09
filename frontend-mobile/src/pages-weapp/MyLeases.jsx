@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Button, ScrollView, Image, Picker } from '@tarojs/components'
-import { apiFetch, getToken } from '../services/api'
+import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
 import { env } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import BottomNav from '../components-weapp/BottomNav'
@@ -144,10 +144,10 @@ export default function MyLeases() {
               setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'cancelled' } : o))
             }
           } else {
-            Taro.showModal({ title: '取消失败', content: result.message, showCancel: false })
+            Taro.showModal({ title: '取消失败', content: resolveErrorMessage(result, '请稍后重试'), showCancel: false })
           }
         } catch (err) {
-          Taro.showModal({ title: '取消失败', content: err.message, showCancel: false })
+          Taro.showModal({ title: '取消失败', content: resolveErrorMessage(err, '网络异常，请重试'), showCancel: false })
         }
       },
     })

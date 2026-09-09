@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, ScrollView, Image, Button } from '@tarojs/components'
-import { apiFetch, getToken } from '../../services/api'
+import { apiFetch, getToken, resolveErrorMessage } from '../../services/api'
 import { env, uploadFile } from '../../platform'
 import { formatDeliveryAddress, formatDisplayDate, formatLogTime, formatPayMethod } from '../../utils/format'
 import LeaseInfo from '../../components/LeaseInfo'
@@ -174,10 +174,10 @@ export default function OrderDetail() {
               setOrder(prev => ({ ...prev, status: 'cancelled' }))
             }
           } else {
-            Taro.showModal({ title: '取消失败', content: result.message, showCancel: false })
+            Taro.showModal({ title: '取消失败', content: resolveErrorMessage(result, '请稍后重试'), showCancel: false })
           }
         } catch (err) {
-          Taro.showModal({ title: '取消失败', content: err.message, showCancel: false })
+          Taro.showModal({ title: '取消失败', content: resolveErrorMessage(err, '网络异常，请重试'), showCancel: false })
         }
         setActionLoading(false)
       }
@@ -213,10 +213,10 @@ export default function OrderDetail() {
         Taro.showToast({ title: '确认收货成功', icon: 'success' })
         setTimeout(() => Taro.navigateBack(), 800)
       } else {
-        Taro.showModal({ title: '操作失败', content: result.message, showCancel: false })
+        Taro.showModal({ title: '操作失败', content: resolveErrorMessage(result, '请稍后重试'), showCancel: false })
       }
     } catch (err) {
-      Taro.showModal({ title: '操作失败', content: err.message, showCancel: false })
+      Taro.showModal({ title: '操作失败', content: resolveErrorMessage(err, '网络异常，请重试'), showCancel: false })
     }
     setActionLoading(false)
   }
@@ -243,10 +243,10 @@ export default function OrderDetail() {
             Taro.showToast({ title: '退款成功', icon: 'success' })
             setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/payment/index?type=refund&id=${id}` }), 800)
           } else {
-            Taro.showModal({ title: '退款失败', content: result.message, showCancel: false })
+            Taro.showModal({ title: '退款失败', content: resolveErrorMessage(result, '请稍后重试'), showCancel: false })
           }
         } catch (err) {
-          Taro.showModal({ title: '退款失败', content: err.message, showCancel: false })
+          Taro.showModal({ title: '退款失败', content: resolveErrorMessage(err, '网络异常，请重试'), showCancel: false })
         }
         setActionLoading(false)
       },
@@ -270,10 +270,10 @@ export default function OrderDetail() {
             Taro.showToast({ title: '订单已取消', icon: 'success' })
             setTimeout(() => Taro.navigateBack(), 800)
           } else {
-            Taro.showModal({ title: '取消失败', content: result.message, showCancel: false })
+            Taro.showModal({ title: '取消失败', content: resolveErrorMessage(result, '请稍后重试'), showCancel: false })
           }
         } catch (err) {
-          Taro.showModal({ title: '取消失败', content: err.message, showCancel: false })
+          Taro.showModal({ title: '取消失败', content: resolveErrorMessage(err, '网络异常，请重试'), showCancel: false })
         }
         setActionLoading(false)
       },
@@ -304,10 +304,10 @@ export default function OrderDetail() {
         Taro.showToast({ title: '已接受定损', icon: 'success' })
         setTimeout(() => Taro.navigateBack(), 800)
       } else {
-        Taro.showModal({ title: '操作失败', content: result.message, showCancel: false })
+        Taro.showModal({ title: '操作失败', content: resolveErrorMessage(result, '请稍后重试'), showCancel: false })
       }
     } catch (err) {
-      Taro.showModal({ title: '操作失败', content: err.message, showCancel: false })
+      Taro.showModal({ title: '操作失败', content: resolveErrorMessage(err, '网络异常，请重试'), showCancel: false })
     }
     setActionLoading(false)
   }
@@ -338,10 +338,10 @@ export default function OrderDetail() {
         Taro.showToast({ title: '已提交申诉', icon: 'success' })
         setTimeout(() => Taro.navigateBack(), 800)
       } else {
-        Taro.showModal({ title: '申诉失败', content: result.message, showCancel: false })
+        Taro.showModal({ title: '申诉失败', content: resolveErrorMessage(result, '请稍后重试'), showCancel: false })
       }
     } catch (err) {
-      Taro.showModal({ title: '申诉失败', content: err.message, showCancel: false })
+      Taro.showModal({ title: '申诉失败', content: resolveErrorMessage(err, '网络异常，请重试'), showCancel: false })
     }
     setActionLoading(false)
   }
