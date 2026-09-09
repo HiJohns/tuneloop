@@ -25,6 +25,8 @@ const STATUS_LABELS = {
   shipped: '已发货', in_lease: '租赁中',
   returning: '归还中', returned: '已归还', completed: '已完成',
   cancelled: '已取消', expired: '超期', transferred: '已过户',
+  damage_appealing: '定损申诉', pending_damage_response: '待回应定损',
+  deposit_refunding: '押金退款中',
 }
 
 const STATUS_COLORS = {
@@ -39,6 +41,9 @@ const STATUS_COLORS = {
   cancelled: { backgroundColor: '#fee2e2', color: '#b91c1c' },
   expired: { backgroundColor: '#fee2e2', color: '#b91c1c' },
   transferred: { backgroundColor: '#f3e8ff', color: '#7e22ce' },
+  damage_appealing: { backgroundColor: '#ffedd5', color: '#c2410c' },
+  pending_damage_response: { backgroundColor: '#fee2e2', color: '#b91c1c' },
+  deposit_refunding: { backgroundColor: '#fef3c7', color: '#b45309' },
 }
 
 const getActualRent = (order) => {
