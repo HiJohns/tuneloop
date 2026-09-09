@@ -196,9 +196,13 @@ func loadRepairPayment(db *gorm.DB, id, ptype string, resp *PaymentCalculateResp
 }
 
 func loadDamagePayment(db *gorm.DB, id string, resp *PaymentCalculateResponse) {
+	// #1854: id 兼容——先按 report.id 查，未命中按 lease_id 查最新 report（存量通知 actionData 仅含 order_id）
 	var report models.DamageReport
 	if err := db.Where("id = ?", id).First(&report).Error; err != nil {
-		return
+		// 按 lease_id 回退（id 当 order_id）
+		if err2 := db.Where("lease_id = ?").Order("created_at DESC").First(&report).Error; err2 != nil {
+			return
+		}
 	}
 	damageAmount := models.Cents(0)
 	if report.DamageAmount != nil {
@@ -209,29 +213,24 @@ func loadDamagePayment(db *gorm.DB, id string, resp *PaymentCalculateResponse) {
 		return
 	}
 
-	// Compute pricing breakdown from order
-	pricingBreakdown := make(map[string]interface{})
-	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
-		json.Unmarshal([]byte(*order.PricingBreakdown), &pricingBreakdown)
+	// #1854：净缺口口径（damage + 折后租金 + 物流 − 已付），与 damageData.shortfall 同源
+	damageYuan := damageAmount.ToYuan()
+	refund, actualRent, paidTotal := computeDamageRefund(db, order, damageYuan)
+	shippingFee := order.ShippingFee.ToYuan()
+	payAmountYuan := damageYuan + actualRent + shippingFee - paidTotal
+	if payAmountYuan < 0 {
+		payAmountYuan = 0
 	}
-	rentSubtotal := 0.0
-	if pb, ok := pricingBreakdown["total_amount"]; ok {
-		if v, ok2 := pb.(float64); ok2 {
-			rentSubtotal = v
-		}
-	}
+	payAmount := models.FromYuan(payAmountYuan)
 
-	// #1758: cents contract — damageAmount/Deposit are Cents; the payable
-	// excess and every breakdown field stay in cents (frontend /100).
-	payAmount := math.Max(0, float64(damageAmount-order.Deposit))
 	resp.Title = "定损赔偿"
-	resp.Amount = payAmount
+	resp.Amount = float64(payAmount)
 	resp.Details = map[string]interface{}{
 		"paid_breakdown": map[string]float64{
-			"rent_subtotal": rentSubtotal,
-			"deposit":       float64(order.Deposit),
-			"shipping_fee":  float64(order.ShippingFee),
-			"paid_total":    rentSubtotal + float64(order.Deposit) + float64(order.ShippingFee),
+			"actual_rent": actualRent,
+			"shipping":    shippingFee,
+			"paid_total":  paidTotal,
+			"refund":      refund,
 		},
 		"damage_amount":     float64(damageAmount),
 		"deposit_deduction": math.Min(float64(order.Deposit), float64(damageAmount)),

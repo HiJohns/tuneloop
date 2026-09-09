@@ -198,9 +198,16 @@ func TestAgreeDamage_CustomerNoTenant(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(w2.Body.Bytes(), &resp2))
 	require.Equal(t, 20000, resp2.Code, "body2: %s", w2.Body.String())
-	// refund 不变 1200；补缴 = 2000 − 1200 = 800
-	require.True(t, resp2.Data.PaymentRequired)
-	rf2, rent2, paid2 := computeDamageRefund(db, order, 2000.0) // damage 2000
+	// #1854：净缺口 = damage + actualRent + shipping − paidTotal
+	// damage=1000, actualRent=2000, shipping=0, paidTotal=3500 → shortfall=-500 → 不补缴
+	rf2, rent2, paid2 := computeDamageRefund(db, order, 1000.0) // damage 1000
 	t.Logf("second: refund=%v actualRent=%v paidTotal=%v", rf2, rent2, paid2)
-	require.InDelta(t, 500.0, resp2.Data.Amount, 0.001, "payDiff = damage − refund = 1000 − 500")
+	shortfall2 := 1000.0 + rent2 + 0 - paid2
+	t.Logf("shortfall=%v", shortfall2)
+	if shortfall2 > 0 {
+		require.True(t, resp2.Data.PaymentRequired)
+		require.InDelta(t, shortfall2, resp2.Data.Amount, 0.001, "payDiff = shortfall")
+	} else {
+		require.False(t, resp2.Data.PaymentRequired, "shortfall<=0 → no payment needed")
+	}
 }

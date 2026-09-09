@@ -981,9 +981,19 @@ export default function OrderDetail() {
             </View>
           )}
           {order.damage.status !== 'pending' && (
-            <Text className="text-sm text-zinc-500 mt-1">
-              {order.damage.status === 'agreed' ? '已接受定损' : order.damage.status === 'appealed' ? '已提交申诉' : `定损状态：${order.damage.status}`}
-            </Text>
+            <View className="mt-1">
+              <Text className="text-sm text-zinc-500">
+                {order.damage.status === 'agreed' ? '已接受定损' : order.damage.status === 'appealed' ? '已提交申诉' : `定损状态：${order.damage.status}`}
+              </Text>
+              {order.damage.status === 'agreed' && order.damage.shortfall > 0 && (
+                <View
+                  onClick={() => navigate(`/payment?type=damage&id=${id}`)}
+                  className="mt-2 w-full py-3 bg-sky-500 text-white rounded-2xl font-black text-sm text-center cursor-pointer"
+                >
+                  去支付 ¥{(order.damage.shortfall / 100).toFixed(2)}
+                </View>
+              )}
+            </View>
           )}
         </View>
       )}

@@ -68,8 +68,9 @@ export default function MessageDetail() {
   const order = ref?.order
 
   const damageAmount = actionData.damage_amount || damageReport?.damage_amount || 0
-  // #1724：补缴/退还按 refund 公式（damage − refund / refund − damage），非押金对比
   const deposit = actionData.deposit || order?.deposit || 0
+  // #1854：补缴额用后端净缺口（damageData.shortfall），非 damage−refund（refund clamp 后恒 0）
+  const shortfall = order?.damage?.shortfall ?? 0
   const refund = order?.damage?.refund ?? 0
 
   const goBack = () => {
@@ -82,9 +83,11 @@ export default function MessageDetail() {
 
   const handleAccept = async () => {
     const ok = await dialog.confirm(
-      damageAmount > refund
-        ? `定损金额 ¥${(damageAmount / 100).toFixed(2)}，应退 ¥${(refund / 100).toFixed(2)}，需补缴 ¥${((damageAmount - refund) / 100).toFixed(2)}`
-        : `定损金额 ¥${(damageAmount / 100).toFixed(2)}，应退 ¥${(refund / 100).toFixed(2)}，将退还差额 ¥${((refund - damageAmount) / 100).toFixed(2)}`
+      shortfall > 0
+        ? `定损金额 ¥${(damageAmount / 100).toFixed(2)}，实际租期租金 ¥${((order?.damage?.actual_rent ?? 0) / 100).toFixed(2)}，需补缴 ¥${(shortfall / 100).toFixed(2)}`
+        : refund > 0
+          ? `定损金额 ¥${(damageAmount / 100).toFixed(2)}，应退 ¥${(refund / 100).toFixed(2)}，将退还差额 ¥${((refund - damageAmount) / 100).toFixed(2)}`
+          : `定损金额 ¥${(damageAmount / 100).toFixed(2)}，无额外补缴或退还`
     )
     if (!ok) return
     try {
@@ -98,7 +101,7 @@ export default function MessageDetail() {
         } else {
           navigate('/payment-complete', {
             state: {
-              paymentAmount: damageAmount - refund,
+              paymentAmount: shortfall,
               damageAmount,
               deposit,
               merchantName: ref?.order?.merchant_name || '商户',

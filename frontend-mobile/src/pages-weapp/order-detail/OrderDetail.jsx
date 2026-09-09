@@ -934,9 +934,19 @@ export default function OrderDetail() {
             </View>
           )}
           {order.damage.status !== 'pending' && (
-            <Text style={{ fontSize: 13, color: '#71717a', marginTop: 4 }}>
-              {order.damage.status === 'agreed' ? '已接受定损' : order.damage.status === 'appealed' ? '已提交申诉' : `定损状态：${order.damage.status}`}
-            </Text>
+            <View style={{ marginTop: 4 }}>
+              <Text style={{ fontSize: 13, color: '#71717a' }}>
+                {order.damage.status === 'agreed' ? '已接受定损' : order.damage.status === 'appealed' ? '已提交申诉' : `定损状态：${order.damage.status}`}
+              </Text>
+              {order.damage.status === 'agreed' && order.damage.shortfall > 0 && (
+                <View
+                  onClick={() => Taro.navigateTo({ url: `/pages-weapp/payment/index?type=damage&id=${id}` })}
+                  style={{ marginTop: 8, padding: '9px 0', backgroundColor: '#0ea5e9', borderRadius: 10, textAlign: 'center' }}
+                >
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>去支付 ¥{(order.damage.shortfall / 100).toFixed(2)}</Text>
+                </View>
+              )}
+            </View>
           )}
         </View>
       )}

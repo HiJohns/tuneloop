@@ -631,7 +631,13 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 	// #1724：补缴/退还按 refund 公式（damage − refund / refund − damage），
 	// 非押金对比——提前归还/剩余租金已折算进 actualRent 与 paidTotal。
 	damageYuan := damageAmount.ToYuan()
-	refund, actualRent, _ := computeDamageRefund(db, order, damageYuan)
+	refund, actualRent, paidTotal := computeDamageRefund(db, order, damageYuan)
+	shippingFee := order.ShippingFee.ToYuan()
+	// #1854：补缴净缺口 = damage + 折后租金 + 物流 − 已付（与 damageData.shortfall 同源）
+	shortfall := damageYuan + actualRent + shippingFee - paidTotal
+	if shortfall < 0 {
+		shortfall = 0
+	}
 	if damageYuan <= refund {
 		// 押金/余额退还：退 refund − damage
 		nextOrderStatus = models.OrderStatusDepositRefunding
@@ -641,13 +647,13 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 		notifTitle = "押金退还通知"
 		notifContent = fmt.Sprintf("定损金额 ¥%.2f，应退 ¥%.2f，将退还差额 ¥%.2f", damageYuan, refund, refund-damageYuan)
 	} else {
-		// 需补缴：damage − refund
+		// 需补缴：净缺口（damage + 折后租金 + 物流 − 已付，#1854）
 		nextOrderStatus = order.Status // keep current status, wait for payment
 		damageReport.DepositDeducted = damageAmount
 		notifType = "payment"
 		notifActionType = "payment"
 		notifTitle = "定损付款通知"
-		notifContent = fmt.Sprintf("定损金额 ¥%.2f，应退 ¥%.2f，需补缴 ¥%.2f（实际租期租金 ¥%.2f）", damageYuan, refund, damageYuan-refund, actualRent)
+		notifContent = fmt.Sprintf("定损金额 ¥%.2f，实际租期租金 ¥%.2f，需补缴 ¥%.2f", damageYuan, actualRent, shortfall)
 	}
 
 	// Update damage report
@@ -661,9 +667,9 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 		log.Printf("[AgreeDamage] Failed to update order status: %v", err)
 	}
 
-	// For payment-needed damage, create payment record（#1724：补缴 = damage − refund）
-	if damageYuan > refund && damageAmount > 0 {
-		payDiff := damageAmount - models.FromYuan(refund)
+	// For payment-needed damage, create payment record（#1854：补缴 = 净缺口）
+	if damageYuan > refund && damageAmount > 0 && shortfall > 0 {
+		payDiff := models.FromYuan(shortfall)
 		outTradeNo := fmt.Sprintf("dm_%s_%d", order.ID[:8], time.Now().Unix())
 
 		record := models.OrderPaymentRecord{
@@ -687,7 +693,7 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 			"message": "请完成支付",
 			"data": gin.H{
 				"payment_required": true,
-				"amount":           payDiff.ToYuan(),
+				"amount":           shortfall,
 				"out_trade_no":     outTradeNo,
 				"damage_report_id": damageID,
 			},
