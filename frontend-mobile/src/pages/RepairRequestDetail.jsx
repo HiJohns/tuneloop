@@ -447,13 +447,13 @@ export default function RepairRequestDetail() {
               </Text>
               <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
                 value={quoteForm.material_fee} onInput={e => setQuoteForm(p => ({ ...p, material_fee: e.detail?.value || e.target?.value || '' }))}
-                placeholder="材料费（元）" type="number" />
+                placeholder="材料费（元）" type={env.isMiniProgram ? 'digit' : 'number'} />
               <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
                 value={quoteForm.service_fee} onInput={e => setQuoteForm(p => ({ ...p, service_fee: e.detail?.value || e.target?.value || '' }))}
-                placeholder="服务费（元）" type="number" />
+                placeholder="服务费（元）" type={env.isMiniProgram ? 'digit' : 'number'} />
               <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
                 value={quoteForm.logistics_fee} onInput={e => setQuoteForm(p => ({ ...p, logistics_fee: e.detail?.value || e.target?.value || '' }))}
-                placeholder="物流费（元）" type="number" />
+                placeholder="物流费（元）" type={env.isMiniProgram ? 'digit' : 'number'} />
               <View className="flex items-center gap-2 mb-2">
                 <Input className="flex-1 border border-zinc-300 rounded-lg px-3 py-2 text-sm"
                   value={quoteForm.duration} onInput={e => setQuoteForm(p => ({ ...p, duration: e.detail?.value || e.target?.value || '' }))}
@@ -680,13 +680,13 @@ export default function RepairRequestDetail() {
               <View>
                 <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
                   value={quoteForm.material_fee} onInput={e => setQuoteForm(p => ({ ...p, material_fee: e.detail?.value || e.target?.value || '' }))}
-                  placeholder="材料费（元）" type="number" />
+                  placeholder="材料费（元）" type={env.isMiniProgram ? 'digit' : 'number'} />
                 <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
                   value={quoteForm.service_fee} onInput={e => setQuoteForm(p => ({ ...p, service_fee: e.detail?.value || e.target?.value || '' }))}
-                  placeholder="服务费（元）" type="number" />
+                  placeholder="服务费（元）" type={env.isMiniProgram ? 'digit' : 'number'} />
                 <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
                   value={quoteForm.logistics_fee} onInput={e => setQuoteForm(p => ({ ...p, logistics_fee: e.detail?.value || e.target?.value || '' }))}
-                  placeholder="物流费（元）" type="number" />
+                  placeholder="物流费（元）" type={env.isMiniProgram ? 'digit' : 'number'} />
                 <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
                   value={quoteForm.duration} onInput={e => setQuoteForm(p => ({ ...p, duration: e.detail?.value || e.target?.value || '' }))}
                   placeholder="工期（如：3个工作日）" />
@@ -727,10 +727,10 @@ export default function RepairRequestDetail() {
             <Text className="text-sm font-bold text-black mb-3">中转处理</Text>
             <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
               value={quoteForm.material_fee} onInput={e => setQuoteForm(p => ({ ...p, material_fee: e.detail?.value || e.target?.value || '' }))}
-              placeholder="中转服务费（元）" type="number" />
+              placeholder="中转服务费（元）" type={env.isMiniProgram ? 'digit' : 'number'} />
             <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
               value={quoteForm.service_fee} onInput={e => setQuoteForm(p => ({ ...p, service_fee: e.detail?.value || e.target?.value || '' }))}
-              placeholder="中转物流费（元）" type="number" />
+              placeholder="中转物流费（元）" type={env.isMiniProgram ? 'digit' : 'number'} />
             <Button onClick={() => handleAction('transit-process', {
               transit_service_fee: Number(quoteForm.material_fee),
               transit_logistics_fee: Number(quoteForm.service_fee),

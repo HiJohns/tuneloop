@@ -202,7 +202,7 @@ export default function StaffReceiveConfirm() {
           <View style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <View>
               <Text className="text-xs font-bold text-zinc-500 mb-1">损坏维修赔偿（元）</Text>
-              <Input type="number" value={damageAmount} onInput={e => setDamageAmount(getInputValue(e))}
+              <Input type={env.isMiniProgram ? 'digit' : 'number'} value={damageAmount} onInput={e => setDamageAmount(getInputValue(e))}
                 placeholder="0.00" className="w-full border rounded-lg px-3 py-2 text-sm" />
             </View>
             <View>
