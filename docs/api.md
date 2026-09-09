@@ -1817,6 +1817,27 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
         "paid_at": "2026-03-21T10:35:00Z",
         "status": "paid"
       }
+    ],
+    "payment_records": [ // #1856 收支记录数据源：status=paid 的支付记录（升序）；金额分
+      {
+        "id": "uuid",
+        "amount": 36,             // 实付金额（分）；waived 优惠码全免记录为 0
+        "method": "waived",       // jsapi=微信支付 / waived=优惠码全免 / native / mock
+        "status": "paid",
+        "coupon_code": "OREZ",    // #1856 优惠码（无码为空字符串；waived 必有）
+        "coupon_discount": 65,    // #1856 优惠码减免金额（分，无码 0）——前端以其展示「优惠券抵扣」，waived 记录不作为支付行
+        "created_at": "2026-09-09T12:57:08Z"
+      }
+    ],
+    "refund_records": [ // #1856 收支记录数据源：来自 settlements，仅含实际发生退款的结算（零退款已滤除）；金额分
+      {
+        "id": "uuid",
+        "amount": 5000,           // 退款合计 = cash_refundable + prepaid_refunded + gift_points_refunded
+        "breakdown": { "cash": 5000, "prepaid": 0, "gift": 0 },
+        "method": "wechat_pay",   // settlement.refund_method
+        "status": "completed",
+        "created_at": "2026-09-09T12:57:08Z"
+      }
     ]
   }
 }

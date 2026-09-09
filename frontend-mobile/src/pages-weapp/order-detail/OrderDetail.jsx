@@ -600,10 +600,18 @@ export default function OrderDetail() {
           {!order.fee_detail && order.payment_records?.length > 0 && (
             <>
               <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginTop: 12, marginBottom: 4 }}>实付金额</Text>
-              {order.payment_records.map(pr => (
-                <Row key={pr.id} label={formatPayMethod(pr.method)} value={`¥${(Number(pr.amount) / 100).toFixed(2)}`} />
-              ))}
-              <Row label="实付合计" value={`¥${(order.payment_records.reduce((s, p) => s + Number(p.amount || 0), 0) / 100).toFixed(2)}`} />
+              {order.payment_records.map(pr => {
+                // #1856: waived（优惠码全免）记录不作为支付行——减免金额以
+                // 「优惠券抵扣」呈现，零减免的异常记录直接隐藏。
+                const isWaived = pr.method === 'waived'
+                const couponDiscount = Number(pr.coupon_discount || 0)
+                if (isWaived && couponDiscount <= 0) return null
+                if (isWaived) {
+                  return <Row key={pr.id} label="优惠券抵扣" value={`-¥${(couponDiscount / 100).toFixed(2)}`} color="#16a34a" />
+                }
+                return <Row key={pr.id} label={formatPayMethod(pr.method)} value={`¥${(Number(pr.amount) / 100).toFixed(2)}`} />
+              })}
+              <Row label="实付合计" value={`¥${(order.payment_records.filter(p => p.method !== 'waived').reduce((s, p) => s + Number(p.amount || 0), 0) / 100).toFixed(2)}`} />
             </>
           )}
 
@@ -670,15 +678,23 @@ export default function OrderDetail() {
           {['completed', 'returned'].includes(order?.status) && (order?.payment_records?.length > 0 || order?.refund_records?.length > 0) && (
             <View style={{ borderTop: '1px dashed #e4e4e7', marginTop: 8, paddingTop: 8 }}>
               <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginBottom: 4 }}>收支记录</Text>
-              {(order.payment_records || []).map(pr => (
-                <Row key={pr.id} label={`支付 · ${formatPayMethod(pr.method)}`.trim()} value={`¥${(Number(pr.amount) / 100).toFixed(2)}`} />
-              ))}
-              {(order.refund_records || []).map(rf => (
+              {(order.payment_records || []).map(pr => {
+                // #1856: waived（优惠码全免）记录不作为支付行——减免金额以
+                // 「优惠券抵扣」呈现，零减免的异常记录直接隐藏。
+                const isWaived = pr.method === 'waived'
+                const couponDiscount = Number(pr.coupon_discount || 0)
+                if (isWaived && couponDiscount <= 0) return null
+                if (isWaived) {
+                  return <Row key={pr.id} label="优惠券抵扣" value={`-¥${(couponDiscount / 100).toFixed(2)}`} color="#16a34a" />
+                }
+                return <Row key={pr.id} label={`支付 · ${formatPayMethod(pr.method)}`.trim()} value={`¥${(Number(pr.amount) / 100).toFixed(2)}`} />
+              })}
+              {(order.refund_records || []).filter(rf => Number(rf.amount) > 0).map(rf => (
                 <Row key={rf.id} label={`退款 · ${rf.method === 'prepaid' ? '预付点' : rf.method === 'cash_withdrawal' ? '现金' : '微信'}`} value={`-¥${(Number(rf.amount) / 100).toFixed(2)}`} color="#16a34a" />
               ))}
               {(() => {
-                const paid = (order.payment_records || []).reduce((s, p) => s + Number(p.amount || 0), 0)
-                const refunded = (order.refund_records || []).reduce((s, r) => s + Number(r.amount || 0), 0)
+                const paid = (order.payment_records || []).filter(p => p.method !== 'waived').reduce((s, p) => s + Number(p.amount || 0), 0)
+                const refunded = (order.refund_records || []).filter(r => Number(r.amount) > 0).reduce((s, r) => s + Number(r.amount || 0), 0)
                 return <Row label="净支出" value={`¥${(Math.max(0, paid - refunded) / 100).toFixed(2)}`} />
               })()}
             </View>

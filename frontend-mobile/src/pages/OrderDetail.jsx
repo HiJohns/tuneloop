@@ -598,16 +598,25 @@ export default function OrderDetail() {
           {!order.fee_detail && order.payment_records?.length > 0 && (
             <>
               <Text className="text-xs font-bold text-zinc-400 mt-3">实付金额</Text>
-              {order.payment_records.map(pr => (
-                <View key={pr.id} className="flex justify-between text-sm">
-                  <Text className="text-zinc-500 font-medium">{formatPayMethod(pr.method)}</Text>
-                  <Text className="text-zinc-400 text-xs flex-shrink-0 ml-auto mr-2">{pr.created_at ? String(pr.created_at).slice(5, 16) : ''}</Text>
-                  <Text className="text-black font-black flex-shrink-0 whitespace-nowrap">¥{(Number(pr.amount) / 100).toFixed(2)}</Text>
-                </View>
-              ))}
+              {order.payment_records.map(pr => {
+                // #1856: waived（优惠码全免）记录不作为支付行——减免金额以
+                // 「优惠券抵扣」呈现，零减免的异常记录直接隐藏。
+                const isWaived = pr.method === 'waived'
+                const couponDiscount = Number(pr.coupon_discount || 0)
+                if (isWaived && couponDiscount <= 0) return null
+                return (
+                  <View key={pr.id} className="flex justify-between text-sm">
+                    <Text className="text-zinc-500 font-medium">{isWaived ? '优惠券抵扣' : formatPayMethod(pr.method)}</Text>
+                    <Text className="text-zinc-400 text-xs flex-shrink-0 ml-auto mr-2">{pr.created_at ? String(pr.created_at).slice(5, 16) : ''}</Text>
+                    <Text className={`font-black flex-shrink-0 whitespace-nowrap ${isWaived ? 'text-green-600' : 'text-black'}`}>
+                      {isWaived ? `-¥${(couponDiscount / 100).toFixed(2)}` : `¥${(Number(pr.amount) / 100).toFixed(2)}`}
+                    </Text>
+                  </View>
+                )
+              })}
               <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
                 <Text className="text-zinc-500 font-medium">实付合计</Text>
-                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(order.payment_records.reduce((s, p) => s + Number(p.amount || 0), 0) / 100).toFixed(2)}</Text>
+                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(order.payment_records.filter(p => p.method !== 'waived').reduce((s, p) => s + Number(p.amount || 0), 0) / 100).toFixed(2)}</Text>
               </View>
             </>
           )}
@@ -857,23 +866,32 @@ export default function OrderDetail() {
             {order?.payment_records?.length > 0 && (
               <>
                 <Text className="text-xs font-bold text-zinc-400">支付记录</Text>
-                {order.payment_records.map(pr => (
-                  <View key={pr.id} className="flex justify-between text-sm">
-                    <Text className="text-zinc-500 font-medium">{formatPayMethod(pr.method)}</Text>
-                    <Text className="text-zinc-400 text-xs flex-shrink-0 ml-auto mr-2">{pr.created_at ? String(pr.created_at).slice(5, 16) : ''}</Text>
-                    <Text className="text-black font-black flex-shrink-0 whitespace-nowrap">¥{(Number(pr.amount) / 100).toFixed(2)}</Text>
-                  </View>
-                ))}
+                {order.payment_records.map(pr => {
+                  // #1856: waived（优惠码全免）记录不作为支付行——减免金额以
+                  // 「优惠券抵扣」呈现，零减免的异常记录直接隐藏。
+                  const isWaived = pr.method === 'waived'
+                  const couponDiscount = Number(pr.coupon_discount || 0)
+                  if (isWaived && couponDiscount <= 0) return null
+                  return (
+                    <View key={pr.id} className="flex justify-between text-sm">
+                      <Text className="text-zinc-500 font-medium">{isWaived ? '优惠券抵扣' : formatPayMethod(pr.method)}</Text>
+                      <Text className="text-zinc-400 text-xs flex-shrink-0 ml-auto mr-2">{pr.created_at ? String(pr.created_at).slice(5, 16) : ''}</Text>
+                      <Text className={`font-black flex-shrink-0 whitespace-nowrap ${isWaived ? 'text-green-600' : 'text-black'}`}>
+                        {isWaived ? `-¥${(couponDiscount / 100).toFixed(2)}` : `¥${(Number(pr.amount) / 100).toFixed(2)}`}
+                      </Text>
+                    </View>
+                  )
+                })}
                 <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
                   <Text className="text-zinc-500 font-medium">支付合计</Text>
-                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(order.payment_records.reduce((s, p) => s + Number(p.amount || 0), 0) / 100).toFixed(2)}</Text>
+                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(order.payment_records.filter(p => p.method !== 'waived').reduce((s, p) => s + Number(p.amount || 0), 0) / 100).toFixed(2)}</Text>
                 </View>
               </>
             )}
-            {order?.refund_records?.length > 0 && (
+            {order?.refund_records?.some(rf => Number(rf.amount) > 0) && (
               <>
                 <Text className="text-xs font-bold text-zinc-400 mt-2">退款记录</Text>
-                {order.refund_records.map(rf => (
+                {order.refund_records.filter(rf => Number(rf.amount) > 0).map(rf => (
                   <View key={rf.id} className="flex justify-between text-sm">
                     <Text className="text-zinc-500 font-medium">{rf.method === 'prepaid' ? '退回预付点' : rf.method === 'cash_withdrawal' ? '退回现金' : '退款'}</Text>
                     <Text className="text-zinc-400 text-xs flex-shrink-0 ml-auto mr-2">{rf.created_at ? String(rf.created_at).slice(5, 16) : ''}</Text>
@@ -882,13 +900,13 @@ export default function OrderDetail() {
                 ))}
                 <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
                   <Text className="text-zinc-500 font-medium">退款合计</Text>
-                  <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">-¥{(order.refund_records.reduce((s, r) => s + Number(r.amount || 0), 0) / 100).toFixed(2)}</Text>
+                  <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">-¥{(order.refund_records.filter(rf => Number(rf.amount) > 0).reduce((s, r) => s + Number(r.amount || 0), 0) / 100).toFixed(2)}</Text>
                 </View>
               </>
             )}
             {(order?.payment_records?.length > 0 || order?.refund_records?.length > 0) && (() => {
-              const paid = (order.payment_records || []).reduce((s, p) => s + Number(p.amount || 0), 0)
-              const refunded = (order.refund_records || []).reduce((s, r) => s + Number(r.amount || 0), 0)
+              const paid = (order.payment_records || []).filter(p => p.method !== 'waived').reduce((s, p) => s + Number(p.amount || 0), 0)
+              const refunded = (order.refund_records || []).filter(rf => Number(rf.amount) > 0).reduce((s, r) => s + Number(r.amount || 0), 0)
               return (
                 <View className="flex justify-between text-sm border-t border-zinc-100 pt-2 mt-2">
                   <Text className="text-zinc-900 font-bold">净支出</Text>

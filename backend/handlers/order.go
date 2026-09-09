@@ -509,11 +509,13 @@ func GetOrder(c *gin.Context) {
 
 	// Fetch payment records for 收支明细
 	type paymentEntry struct {
-		ID        string    `json:"id"`
-		Amount    float64   `json:"amount"`
-		Method    string    `json:"method"`
-		Status    string    `json:"status"`
-		CreatedAt time.Time `json:"created_at"`
+		ID              string    `json:"id"`
+		Amount          float64   `json:"amount"`
+		Method          string    `json:"method"`
+		Status          string    `json:"status"`
+		CouponCode      string    `json:"coupon_code,omitempty"`   // #1856: 优惠码透传（无码为空）
+		CouponDiscount  int64     `json:"coupon_discount"`         // #1856: 优惠码减免（分，#1743 契约）
+		CreatedAt       time.Time `json:"created_at"`
 	}
 	var paymentEntries []paymentEntry
 	var paymentRecords []models.OrderPaymentRecord
@@ -524,16 +526,24 @@ func GetOrder(c *gin.Context) {
 		if pr.Method != nil {
 			method = *pr.Method
 		}
+		couponCode := ""
+		if pr.CouponCode != nil {
+			couponCode = *pr.CouponCode
+		}
 		paymentEntries = append(paymentEntries, paymentEntry{
-			ID:        pr.ID,
-			Amount:    float64(pr.Amount), // #1743: Cents（分），前端统一 /100 显示，禁止双重 ÷100
-			Method:    method,
-			Status:    pr.Status,
-			CreatedAt: pr.CreatedAt,
+			ID:             pr.ID,
+			Amount:         float64(pr.Amount), // #1743: Cents（分），前端统一 /100 显示，禁止双重 ÷100
+			Method:         method,
+			Status:         pr.Status,
+			CouponCode:     couponCode,
+			CouponDiscount: int64(pr.CouponDiscount),
+			CreatedAt:      pr.CreatedAt,
 		})
 	}
 
-	// Fetch refund records from settlements (authoritative refund data)
+	// Fetch refund records from settlements (authoritative refund data).
+	// #1856: 零退款 settlement 不生成行（refund_records = 实际发生的退款），
+	// 避免 completed 无退款订单渲染「退款 · -¥0.00」噪音行。
 	type refundEntry struct {
 		ID        string             `json:"id"`
 		Amount    float64            `json:"amount"`
@@ -546,9 +556,13 @@ func GetOrder(c *gin.Context) {
 	var settlements []models.Settlement
 	db.Where("order_id = ?", orderID).Order("created_at DESC").Find(&settlements)
 	for _, s := range settlements {
+		totalRefund := s.CashRefundable + s.PrepaidRefunded + s.GiftPointsRefunded
+		if totalRefund <= 0 {
+			continue
+		}
 		refundEntries = append(refundEntries, refundEntry{
 			ID:     s.ID,
-			Amount: float64(s.CashRefundable + s.PrepaidRefunded + s.GiftPointsRefunded), // #1743: 分契约
+			Amount: float64(totalRefund), // #1743: 分契约
 			Breakdown: map[string]float64{
 				"cash":    float64(s.CashRefundable),
 				"prepaid": float64(s.PrepaidRefunded),
