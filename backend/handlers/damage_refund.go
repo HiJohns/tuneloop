@@ -19,12 +19,12 @@ import (
 // actualRent 推导：settlement → pricing_breakdown（actual_rent_*，P3 起为分）→
 // delivered_at→returned_at 天数 × base_daily_rent（JSONB 分）。
 func computeDamageRefund(db *gorm.DB, order models.Order, damageYuan float64) (refund float64, actualRent float64, paidTotal float64) {
-	// paidTotal = 全部 paid 支付记录（元）
+	// paidTotal = 全部 paid/waived 支付记录（元）#1855：含优惠码减扣
 	var paidRecords []models.OrderPaymentRecord
-	db.Where("order_id = ? AND status = ? AND type = ?", order.ID, "paid", "payment").
+	db.Where("order_id = ? AND status IN (?) AND type = ?", order.ID, []string{"paid", "waived"}, "payment").
 		Find(&paidRecords)
 	for _, pr := range paidRecords {
-		paidTotal += pr.Amount.ToYuan()
+		paidTotal += pr.Amount.ToYuan() + pr.CouponDiscount.ToYuan()
 	}
 
 	// actualRent：settlement 优先（#1724 原口径保留为 fallback；#1852 拍板后

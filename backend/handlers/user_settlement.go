@@ -901,6 +901,19 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	}
 	// ---- 段级净额 ----
 	paidTotal := totalRentPaid + order.Deposit.ToYuan() // 实付总额（含押金）
+	// #1855: 定损/补缴类支付记录（含优惠码减扣）冲减应付——此前 waived 记录
+	// Amount=0 + CouponDiscount 不计入 paidTotal，结算重算时该笔优惠被视为「未收」，
+	// 导致 damage 应付被重复追缴（16fdfb81 死循环根因）。
+	var supplementPaid float64
+	var supplementRecs []models.OrderPaymentRecord
+	db.Where("order_id = ? AND status IN (?) AND order_type IN (?, ?)",
+		order.ID, []string{"paid", "waived"},
+		"damage", "payment_shortfall").
+		Select("amount, coupon_discount").Find(&supplementRecs)
+	for _, sr := range supplementRecs {
+		supplementPaid += sr.Amount.ToYuan() + sr.CouponDiscount.ToYuan()
+	}
+	paidTotal += supplementPaid
 	useDiscounted := false
 	discountedRent := 0.0
 	discountedDue := 0.0
