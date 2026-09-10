@@ -2482,7 +2482,6 @@ Content-Disposition: attachment; filename="assessment_order_001.pdf"
         "worker_id": "uuid",
         "comment": "已接手维修",
         "photos": "[\"photo_key.jpg\"]",
-        "record_type": "progress",
         "created_at": "2026-09-10T08:30:00Z"
       }
     ],
@@ -2505,7 +2504,7 @@ Content-Disposition: attachment; filename="assessment_order_001.pdf"
 - `records`: 该乐器所有维修记录，按 `created_at ASC` 排序
 - `damage`: 最近一条 `damage_report`（按 `created_at DESC` 取第一条），无定损时为 `null`
 - `damage.damage_amount`: 单位为分（int64），前端需除以 100 显示元
-- `damage.status`: 定损报告状态（`pending`/`agreed`/`appealed`/`cancelled`/`resolved`）
+- `damage.status`: 定损报告状态（`pending`/`completed`/`agreed`/`appealed`/`cancelled`/`resolved`）
 
 ---
 

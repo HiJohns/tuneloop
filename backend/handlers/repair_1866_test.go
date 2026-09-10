@@ -19,6 +19,8 @@ import (
 
 // T1: AgreeDamage on instrument with repair_pending → stock_status stays maintenance,
 // repair_status remains repair_pending (repair chain must close the loop).
+// Path requirement: damage(100) ≤ refund(3500−100−3200=200) → deposit_refunding
+// branch is actually taken, so the repair_status guard block IS executed.
 func TestAgreeDamage_StockGuard_WithRepairPending(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
@@ -40,15 +42,15 @@ func TestAgreeDamage_StockGuard_WithRepairPending(t *testing.T) {
 	deliveredAt := time.Date(2026, 8, 1, 9, 0, 0, 0, time.UTC)
 	order := models.Order{
 		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID, UserID: userID,
-		InstrumentID:  instID,
-		StartDate:     strPtr("2026-08-01"), EndDate: strPtr("2026-08-30"),
-		LeaseTerm:     30,
-		Status:        models.OrderStatusPendingDamageResponse,
-		DeliveredAt:   &deliveredAt,
-		ReturnedAt:    &returnedAt,
-		Deposit:       models.FromYuan(500),
-		CashPaid:      models.FromYuan(3500),
-		ShippingFee:   0,
+		InstrumentID: instID,
+		StartDate:    strPtr("2026-08-01"), EndDate: strPtr("2026-08-30"),
+		LeaseTerm:        30,
+		Status:           models.OrderStatusPendingDamageResponse,
+		DeliveredAt:      &deliveredAt,
+		ReturnedAt:       &returnedAt,
+		Deposit:          models.FromYuan(500),
+		CashPaid:         models.FromYuan(3500),
+		ShippingFee:      0,
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -63,7 +65,8 @@ func TestAgreeDamage_StockGuard_WithRepairPending(t *testing.T) {
 	require.NoError(t, db.Create(&models.DamageReport{
 		ID: damageID, TenantID: tenantID, OrgID: orgID, LeaseID: order.ID,
 		InstrumentID: instID, UserID: userID,
-		DamageAmount: models.ToCentsPtr(float64Ptr(300)),
+		// damage 100 ≤ refund 200 → deposit_refunding (guard path must execute).
+		DamageAmount: models.ToCentsPtr(float64Ptr(100)),
 		Status:       "pending",
 	}).Error)
 
@@ -83,9 +86,15 @@ func TestAgreeDamage_StockGuard_WithRepairPending(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code, "AgreeDamage should succeed")
 	var resp struct {
 		Code int `json:"code"`
+		Data struct {
+			OrderStatus string `json:"order_status"`
+		} `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	require.Equal(t, 20000, resp.Code, "body: %s", w.Body.String())
+	// Path proof: deposit_refunding means the guard block was entered (non-trivial test).
+	assert.Equal(t, "deposit_refunding", resp.Data.OrderStatus,
+		"T1: must take deposit_refunding path for the repair guard to execute")
 
 	// Verify instrument stock_status is NOT changed to available (repair_pending guard)
 	var inst models.Instrument
@@ -118,15 +127,15 @@ func TestAgreeDamage_StockGuard_NoRepairStatus(t *testing.T) {
 	deliveredAt := time.Date(2026, 8, 1, 9, 0, 0, 0, time.UTC)
 	order := models.Order{
 		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID, UserID: userID,
-		InstrumentID:  instID,
-		StartDate:     strPtr("2026-08-01"), EndDate: strPtr("2026-08-30"),
-		LeaseTerm:     30,
-		Status:        models.OrderStatusPendingDamageResponse,
-		DeliveredAt:   &deliveredAt,
-		ReturnedAt:    &returnedAt,
-		Deposit:       models.FromYuan(500),
-		CashPaid:      models.FromYuan(3500),
-		ShippingFee:   0,
+		InstrumentID: instID,
+		StartDate:    strPtr("2026-08-01"), EndDate: strPtr("2026-08-30"),
+		LeaseTerm:        30,
+		Status:           models.OrderStatusPendingDamageResponse,
+		DeliveredAt:      &deliveredAt,
+		ReturnedAt:       &returnedAt,
+		Deposit:          models.FromYuan(500),
+		CashPaid:         models.FromYuan(3500),
+		ShippingFee:      0,
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -209,10 +218,11 @@ func TestListRecords_DamageObject(t *testing.T) {
 
 	// Case B: Damage report exists → damage object with fields
 	damageID := uuid.New().String()
+	leaseID := uuid.New().String()
 	require.NoError(t, db.Create(&models.DamageReport{
 		ID: damageID, TenantID: tenantID, OrgID: orgID,
-		LeaseID: uuid.New().String(), InstrumentID: instID,
-		UserID: uuid.New().String(),
+		LeaseID: leaseID, InstrumentID: instID,
+		UserID:            uuid.New().String(),
 		DamageAmount:      models.ToCentsPtr(float64Ptr(500)),
 		DamageDescription: "琴盒损坏",
 		Notes:             "外观有划痕",
@@ -229,6 +239,7 @@ func TestListRecords_DamageObject(t *testing.T) {
 		Data struct {
 			Damage *struct {
 				ID                string  `json:"id"`
+				LeaseID           string  `json:"lease_id"`
 				DamageDescription string  `json:"damage_description"`
 				Notes             string  `json:"notes"`
 				DamageAmount      float64 `json:"damage_amount"`
@@ -238,6 +249,7 @@ func TestListRecords_DamageObject(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(wB.Body.Bytes(), &respB))
 	require.NotNil(t, respB.Data.Damage, "T3b: damage object should exist")
+	assert.Equal(t, leaseID, respB.Data.Damage.LeaseID, "T3b: lease_id must match created value")
 	assert.Equal(t, "琴盒损坏", respB.Data.Damage.DamageDescription)
 	assert.Equal(t, "外观有划痕", respB.Data.Damage.Notes)
 	assert.Equal(t, "pending", respB.Data.Damage.Status)

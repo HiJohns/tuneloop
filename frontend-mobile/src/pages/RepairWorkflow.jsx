@@ -10,7 +10,7 @@ const statusLabels = {
 }
 
 const damageStatusLabels = {
-  pending: '待确认', agreed: '已确认', appealed: '申诉中', cancelled: '已撤销', resolved: '已解决',
+  pending: '待确认', completed: '已完成', agreed: '已确认', appealed: '申诉中', cancelled: '已撤销', resolved: '已解决',
 }
 
 export default function RepairWorkflow() {
