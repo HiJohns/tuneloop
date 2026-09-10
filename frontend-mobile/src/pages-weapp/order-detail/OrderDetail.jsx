@@ -851,6 +851,14 @@ export default function OrderDetail() {
             )) : (
               <Text style={{ fontSize: 12, color: '#a1a1aa' }}>暂无担保人信息</Text>
             )}
+            {/* #1867: uploaded recommendation letter for staff review */}
+            {order.recommendation_letter ? (
+              <View style={{ backgroundColor: '#fafafa', borderRadius: 8, padding: 10 }}
+                onClick={() => Taro.previewImage({ urls: [fixImg(order.recommendation_letter)] })}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#000' }}>✍️ 推荐信</Text>
+                <Text style={{ fontSize: 12, color: '#2563eb', marginTop: 2 }}>点击查看</Text>
+              </View>
+            ) : null}
           </View>
         )}
 

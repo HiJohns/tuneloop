@@ -834,6 +834,19 @@ export default function OrderDetail() {
           )) : (
             <Text className="text-xs text-zinc-400">暂无担保人信息</Text>
           )}
+          {/* #1867: uploaded recommendation letter for staff review */}
+          {order.recommendation_letter && (
+            <View className="bg-gray-50 rounded-lg p-2.5" onClick={() => {
+              const abs = order.recommendation_letter.startsWith('http')
+                ? order.recommendation_letter
+                : `${(env.apiBaseUrl || '').replace(/\/api\/?$/, '')}${order.recommendation_letter}`
+              if (env.isMiniProgram) Taro.previewImage({ urls: [abs] })
+              else previewImage({ urls: [abs] })
+            }}>
+              <Text className="block text-sm font-semibold text-black">✍️ 推荐信</Text>
+              <Text className="block text-xs text-blue-500 mt-0.5">点击查看</Text>
+            </View>
+          )}
         </View>
       )}
 

@@ -627,6 +627,7 @@ func GetOrder(c *gin.Context) {
 		"deposit_mode":          order.DepositMode,
 		"deposit":               order.Deposit,
 		"deposit_waived":        order.DepositWaived,
+		"recommendation_letter": order.RecommendationLetter, // #1867: letter URL for staff review
 		"guarantors":            guarantors,
 		"shipping_fee":          order.ShippingFee,
 		"accumulated_months":    order.AccumulatedMonths,

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -172,6 +173,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		DiscountCode    string      `json:"discount_code"`  // redeemable code (#1539)
 		DepositWaived   bool        `json:"deposit_waived"` // deposit-free application (#1557)
 		GuarantorIDs    []string    `json:"guarantor_ids"`  // guarantors for deposit-free order (#1557)
+		RecommendationLetter string `json:"recommendation_letter"` // #1867: deposit-free letter URL
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -243,6 +245,21 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 				"email": iamUser.Email,
 				"phone": iamUser.Phone,
 			})
+		}
+	}
+
+	// #1867: deposit-free gate — verified student/teacher identity, credit
+	// score threshold and a recommendation letter. Fail fast before the
+	// transaction/row-lock; the guarantor ownership check keeps its
+	// original position inside the flow.
+	if req.DepositWaived {
+		if bizCode, msg := checkDepositWaiverEligibility(db, userID); bizCode != 0 {
+			c.JSON(http.StatusForbidden, gin.H{"code": bizCode, "message": msg})
+			return
+		}
+		if strings.TrimSpace(req.RecommendationLetter) == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "deposit-free order requires a recommendation letter"})
+			return
 		}
 	}
 
@@ -455,6 +472,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		MonthlyRent:     0,
 		Deposit:         models.FromYuan(deposit),
 		DepositWaived:   req.DepositWaived,
+		RecommendationLetter: req.RecommendationLetter,
 		ShippingFee:     models.FromYuan(shippingFee),
 		Status:          models.OrderStatusReserved, // Must pay via WeChat Pay before status becomes paid
 		StartDate:       &startDateStr,
@@ -687,6 +705,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		DeliveryAddress interface{} `json:"delivery_address"`
 		DepositWaived   bool        `json:"deposit_waived"` // deposit-free application (#1557)
 		GuarantorIDs    []string    `json:"guarantor_ids"`  // shared guarantors for all items (#1557)
+		RecommendationLetter string `json:"recommendation_letter"` // #1867: deposit-free letter URL
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -728,6 +747,21 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			} else if inst.CurrentSiteID != nil {
 				effectiveOrgID = inst.CurrentSiteID.String()
 			}
+		}
+	}
+
+	// #1867: deposit-free gate — verified student/teacher identity, credit
+	// score threshold and a recommendation letter. Runs before the guarantor
+	// ownership check so the more fundamental eligibility failure surfaces
+	// first; EnsureLocalUser has already guaranteed the local user row.
+	if req.DepositWaived {
+		if bizCode, msg := checkDepositWaiverEligibility(db, userID); bizCode != 0 {
+			c.JSON(http.StatusForbidden, gin.H{"code": bizCode, "message": msg})
+			return
+		}
+		if strings.TrimSpace(req.RecommendationLetter) == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "deposit-free order requires a recommendation letter"})
+			return
 		}
 	}
 
@@ -931,6 +965,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			MonthlyRent:      0,
 			Deposit:          models.FromYuan(deposit),
 			DepositWaived:    req.DepositWaived,
+			RecommendationLetter: req.RecommendationLetter,
 			ShippingFee:      models.FromYuan(shippingFee),
 			CashPaid:         models.FromYuan(orderAmount),
 			Status:           models.OrderStatusReserved,

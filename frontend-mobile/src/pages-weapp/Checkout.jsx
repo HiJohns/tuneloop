@@ -4,6 +4,7 @@ import { View, Text, Image, Button, ScrollView, Input, Picker, Checkbox } from '
 import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, guarantorsApi, getCartKey , resolveErrorMessage } from '../services/api'
 import dayjs from 'dayjs'
 import { dialog, env, session, storage, eventBus } from '../platform'
+import { fetchWaiverEligibility, waiverReasonText, downloadLetterTemplate, uploadLetterPhoto } from '../utils/depositWaiver'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
 import regions from '../data/regions.json'
 import IdPhotoUploader from '../components/IdPhotoUploader'
@@ -75,6 +76,10 @@ function SingleCheckout({ id, nav }) {
   const [daysInputText, setDaysInputText] = useState('30')
 
   const [depositWaived, setDepositWaived] = useState(false)
+  // #1867: deposit-free eligibility + recommendation letter
+  const [waiver, setWaiver] = useState(null)
+  const [letterUrl, setLetterUrl] = useState('')
+  const [letterUploading, setLetterUploading] = useState(false)
   const [guarantors, setGuarantors] = useState([])
   const [selectedGuarantorIds, setSelectedGuarantorIds] = useState([])
   const [showAddGuarantor, setShowAddGuarantor] = useState(false)
@@ -168,12 +173,11 @@ function SingleCheckout({ id, nav }) {
             phone: prev.phone || userResult.data.phone || '',
           }))
         }
-        if (pointsRes?.code === 20000) {
-          setPointsBalance(pointsRes.data)
-        }
       } catch {}
     }
     fetchUser()
+    // #1867: deposit-free eligibility gates the waiver toggle
+    fetchWaiverEligibility(env.apiBaseUrl).then(setWaiver)
   }, [])
 
   const totalRent = pricingV2 ? computeTieredRent(pricingV2, days, pricingV2.base_daily_rate || 0) : 0
@@ -191,6 +195,24 @@ function SingleCheckout({ id, nav }) {
     setDaysInputText(String(Math.max(1, Math.min(730, v))))
   }
 
+  // #1867: pick + upload the signed recommendation letter photo (weapp picker)
+  const handleLetterUpload = () => {
+    Taro.chooseImage({
+      count: 1,
+      sizeType: ['compressed'],
+      sourceType: ['camera', 'album'],
+      success: async (res) => {
+        const path = res.tempFilePaths?.[0]
+        if (!path) return
+        setLetterUploading(true)
+        const r = await uploadLetterPhoto(env.apiBaseUrl, path)
+        setLetterUploading(false)
+        if (r.ok) setLetterUrl(r.url)
+        else dialog.alert('上传失败: ' + r.error)
+      },
+    })
+  }
+
   const handleSubmit = async () => {
     if (!useNewAddress && !selectedAddressId) {
       dialog.alert('请选择收货地址')
@@ -203,6 +225,17 @@ function SingleCheckout({ id, nav }) {
     if (depositWaived && selectedGuarantorIds.length < 2) {
       dialog.alert('免押金订单需至少选择 2 位担保人')
       return
+    }
+    // #1867: eligibility + recommendation letter gates
+    if (depositWaived) {
+      if (waiver && !waiver.eligible) {
+        dialog.alert(waiverReasonText(waiver.reasons))
+        return
+      }
+      if (!letterUrl) {
+        dialog.alert('免押金订单需上传签名的推荐信照片，模板可在免押金区块下载')
+        return
+      }
     }
 
     const token = getToken()
@@ -246,6 +279,7 @@ function SingleCheckout({ id, nav }) {
       if (depositWaived) {
         body.deposit_waived = true
         body.guarantor_ids = selectedGuarantorIds
+        body.recommendation_letter = letterUrl
       }
 
       const resp = await ordersApi.create(body)
@@ -391,21 +425,50 @@ function SingleCheckout({ id, nav }) {
           </View>
         </View>
 
-        {/* Deposit-free application (#1557) */}
+        {/* Deposit-free application (#1557) + #1867 eligibility gate */}
         <View style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12 }}>
-          <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} onClick={() => setDepositWaived(!depositWaived)}>
+          <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} onClick={() => {
+            if (waiver && !waiver.eligible) { dialog.alert(waiverReasonText(waiver.reasons)); return }
+            setDepositWaived(!depositWaived)
+          }}>
             <Text style={{ fontWeight: '900', color: '#000' }}>申请免押金</Text>
-            <View style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: depositWaived ? '#915F38' : '#d4d4d8', position: 'relative', flexShrink: 0 }}>
-              <View style={{ position: 'absolute', top: 2, left: depositWaived ? 22 : 2, width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', transition: 'left 0.2s' }} />
+            <View style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: depositWaived && (!waiver || waiver.eligible) ? '#915F38' : '#d4d4d8', position: 'relative', flexShrink: 0 }}>
+              <View style={{ position: 'absolute', top: 2, left: depositWaived && (!waiver || waiver.eligible) ? 22 : 2, width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', transition: 'left 0.2s' }} />
             </View>
           </View>
-          <Text style={{ fontSize: 11, color: '#a1a1aa', marginTop: 6 }}>免押金订单可免除押金，需提供担保人信息供核验</Text>
+          <Text style={{ fontSize: 11, color: '#a1a1aa', marginTop: 6 }}>
+            {waiver && !waiver.eligible ? '学生／教职工专享（需实名核验+信用分达标）' : '免押金订单可免除押金，需提供担保人信息供核验'}
+          </Text>
+          {waiver && !waiver.eligible && (
+            <View style={{ backgroundColor: '#fafafa', border: '1px solid #e4e4e7', borderRadius: 8, padding: 10, marginTop: 8 }}>
+              <Text style={{ fontSize: 12, color: '#71717a', lineHeight: '18px' }}>{waiverReasonText(waiver.reasons)}</Text>
+            </View>
+          )}
 
           {depositWaived && (
             <View style={{ marginTop: 12, borderTop: '1px dashed #e4e4e7', paddingTop: 12 }}>
               <View style={{ backgroundColor: '#fffbeb', border: '1px solid #fef3c7', borderRadius: 8, padding: 10, marginBottom: 10 }}>
                 <Text style={{ fontSize: 12, color: '#b45309', lineHeight: '18px' }}>应提供两位担保人的联系方式。我们的员工将会与他们联系确认。</Text>
               </View>
+
+              {/* #1867: recommendation letter — template download + signed photo upload */}
+              {(!waiver || waiver.eligible) && (
+                <View style={{ border: '1px solid #e4e4e7', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 6 }}>推荐信</Text>
+                  <View style={{ display: 'flex', marginBottom: 8 }}>
+                    <View style={{ flex: '1 1 0%', marginRight: 8, backgroundColor: '#f4f4f5', borderRadius: 8, padding: 8, alignItems: 'center' }} onClick={() => downloadLetterTemplate(env.apiBaseUrl)}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46', textAlign: 'center' }}>下载推荐信模板</Text>
+                    </View>
+                    <View style={{ flex: '1 1 0%', backgroundColor: '#000', borderRadius: 8, padding: 8, alignItems: 'center' }} onClick={() => { if (!letterUploading) handleLetterUpload() }}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff', textAlign: 'center' }}>
+                        {letterUploading ? '上传中...' : (letterUrl ? '重新上传' : '上传签名推荐信')}
+                      </Text>
+                    </View>
+                  </View>
+                  {letterUrl && <Image src={fixImg(letterUrl)} mode="aspectFill" style={{ width: 96, height: 96, borderRadius: 8 }} />}
+                  <Text style={{ fontSize: 11, color: '#a1a1aa', marginTop: 6 }}>打印模板 → 推荐人签名 → 拍照上传</Text>
+                </View>
+              )}
 
               {guarantors.length > 0 && (
                 <View style={{ marginBottom: 10 }}>
@@ -671,6 +734,10 @@ function BatchCheckout({ nav }) {
   const [user, setUser] = useState(null)
 
   const [depositWaived, setDepositWaived] = useState(false)
+  // #1867: deposit-free eligibility + recommendation letter
+  const [waiver, setWaiver] = useState(null)
+  const [letterUrl, setLetterUrl] = useState('')
+  const [letterUploading, setLetterUploading] = useState(false)
   const [guarantors, setGuarantors] = useState([])
   const [selectedGuarantorIds, setSelectedGuarantorIds] = useState([])
   const [showAddGuarantor, setShowAddGuarantor] = useState(false)
@@ -739,6 +806,8 @@ function BatchCheckout({ nav }) {
       } catch {}
     }
     fetchUser()
+    // #1867: deposit-free eligibility gates the waiver toggle
+    fetchWaiverEligibility(env.apiBaseUrl).then(setWaiver)
   }, [])
 
   const groups = useMemo(() => {
@@ -777,6 +846,24 @@ function BatchCheckout({ nav }) {
     return total
   }, [groups, depositWaived])
 
+  // #1867: pick + upload the signed recommendation letter photo (weapp picker)
+  const handleLetterUpload = () => {
+    Taro.chooseImage({
+      count: 1,
+      sizeType: ['compressed'],
+      sourceType: ['camera', 'album'],
+      success: async (res) => {
+        const path = res.tempFilePaths?.[0]
+        if (!path) return
+        setLetterUploading(true)
+        const r = await uploadLetterPhoto(env.apiBaseUrl, path)
+        setLetterUploading(false)
+        if (r.ok) setLetterUrl(r.url)
+        else dialog.alert('上传失败: ' + r.error)
+      },
+    })
+  }
+
   const handleSubmit = async () => {
     if (cartItems.length === 0) return
     if (!useNewAddress && !selectedAddressId) {
@@ -790,6 +877,17 @@ function BatchCheckout({ nav }) {
     if (depositWaived && selectedGuarantorIds.length < 2) {
       dialog.alert('免押金订单需至少选择 2 位担保人')
       return
+    }
+    // #1867: eligibility + recommendation letter gates
+    if (depositWaived) {
+      if (waiver && !waiver.eligible) {
+        dialog.alert(waiverReasonText(waiver.reasons))
+        return
+      }
+      if (!letterUrl) {
+        dialog.alert('免押金订单需上传签名的推荐信照片，模板可在免押金区块下载')
+        return
+      }
     }
 
     const token = getToken()
@@ -834,6 +932,7 @@ function BatchCheckout({ nav }) {
       if (depositWaived) {
         body.deposit_waived = true
         body.guarantor_ids = selectedGuarantorIds
+        body.recommendation_letter = letterUrl
       }
       const orderResp = await ordersApi.batchCreate(body)
       if (orderResp.code === 20000) {
@@ -960,19 +1059,48 @@ function BatchCheckout({ nav }) {
           </View>
 
           <View style={{ width: '100%', borderTop: '1px dashed #e4e4e7', paddingTop: 16, marginTop: 16 }}>
-            <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }} onClick={() => setDepositWaived(!depositWaived)}>
+            <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }} onClick={() => {
+              if (waiver && !waiver.eligible) { dialog.alert(waiverReasonText(waiver.reasons)); return }
+              setDepositWaived(!depositWaived)
+            }}>
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#6b7280' }}>申请免押金</Text>
-              <View style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: depositWaived ? '#915F38' : '#d4d4d8', position: 'relative', flexShrink: 0 }}>
-                <View style={{ position: 'absolute', top: 2, left: depositWaived ? 22 : 2, width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff' }} />
+              <View style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: depositWaived && (!waiver || waiver.eligible) ? '#915F38' : '#d4d4d8', position: 'relative', flexShrink: 0 }}>
+                <View style={{ position: 'absolute', top: 2, left: depositWaived && (!waiver || waiver.eligible) ? 22 : 2, width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff' }} />
               </View>
             </View>
-            <Text style={{ fontSize: 11, color: '#a1a1aa', marginBottom: 12 }}>免押金订单可免除押金，需提供担保人信息供核验</Text>
+            <Text style={{ fontSize: 11, color: '#a1a1aa', marginBottom: 12 }}>
+              {waiver && !waiver.eligible ? '学生／教职工专享（需实名核验+信用分达标）' : '免押金订单可免除押金，需提供担保人信息供核验'}
+            </Text>
+            {waiver && !waiver.eligible && (
+              <View style={{ backgroundColor: '#fafafa', border: '1px solid #e4e4e7', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                <Text style={{ fontSize: 12, color: '#71717a', lineHeight: '18px' }}>{waiverReasonText(waiver.reasons)}</Text>
+              </View>
+            )}
 
             {depositWaived && (
               <View style={{ marginBottom: 12, borderTop: '1px dashed #e4e4e7', paddingTop: 12 }}>
                 <View style={{ backgroundColor: '#fffbeb', border: '1px solid #fef3c7', borderRadius: 8, padding: 10, marginBottom: 10 }}>
                   <Text style={{ fontSize: 12, color: '#b45309', lineHeight: '18px' }}>应提供两位担保人的联系方式。我们的员工将会与他们联系确认。</Text>
                 </View>
+
+                {/* #1867: recommendation letter — template download + signed photo upload */}
+                {(!waiver || waiver.eligible) && (
+                  <View style={{ border: '1px solid #e4e4e7', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6 }}>推荐信</Text>
+                    <View style={{ display: 'flex', marginBottom: 8 }}>
+                      <View style={{ flex: '1 1 0%', marginRight: 8, backgroundColor: '#f4f4f5', borderRadius: 8, padding: 8, alignItems: 'center' }} onClick={() => downloadLetterTemplate(env.apiBaseUrl)}>
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46', textAlign: 'center' }}>下载推荐信模板</Text>
+                      </View>
+                      <View style={{ flex: '1 1 0%', backgroundColor: '#000', borderRadius: 8, padding: 8, alignItems: 'center' }} onClick={() => { if (!letterUploading) handleLetterUpload() }}>
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff', textAlign: 'center' }}>
+                          {letterUploading ? '上传中...' : (letterUrl ? '重新上传' : '上传签名推荐信')}
+                        </Text>
+                      </View>
+                    </View>
+                    {letterUrl && <Image src={fixImg(letterUrl)} mode="aspectFill" style={{ width: 96, height: 96, borderRadius: 8 }} />}
+                    <Text style={{ fontSize: 11, color: '#a1a1aa', marginTop: 6 }}>打印模板 → 推荐人签名 → 拍照上传</Text>
+                  </View>
+                )}
 
                 {guarantors.length > 0 && (
                   <View style={{ marginBottom: 10 }}>

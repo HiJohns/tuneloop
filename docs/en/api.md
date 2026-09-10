@@ -212,6 +212,7 @@ POST /api/orders/preview
 ```
 POST /api/orders
 ```
+> **Deposit-free orders (#1867)**: when `deposit_waived=true` the server enforces — verified student/teacher identity (`face_verified` + third cert type), credit score ≥ `DEPOSIT_WAIVER_MIN_CREDIT` (default 600), ≥ 2 guarantors owned by the user, and a non-empty `recommendation_letter` (signed letter photo URL from `POST /upload`). Rejects with `40301` (not eligible) / `40002` (missing letter). Eligibility preview endpoint: `GET /api/user/deposit-waiver/eligibility`.
 
 ### 5.3 List Orders
 ```

@@ -1655,11 +1655,16 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
   "end_date": "2026-06-21",
   "rent_days": 92,
   "delivery_address": {},
-  "notes": ""
+  "notes": "",
+  "deposit_waived": false,
+  "guarantor_ids": [],
+  "recommendation_letter": ""
 }
 ```
 
 > **#1762: `end_date` 由服务端按 `rent_days` 权威重算**——`rent_days > 0` 时服务端以 `end_date = start_date + (rent_days − 1)` 覆盖前端提交值（前端 end_date 仅供参考，不信任）；`rent_days = 0` 时按提交的 start/end 推导天数（legacy 兼容）。批量下单（6.3）同规则（按每项 `rent_days`）。
+>
+> **#1867 免押金字段**：`deposit_waived=true` 时必须同时满足——① 用户已实名核验且第三证件类型为 `student`/`teacher`；② 内部信用分 ≥ `DEPOSIT_WAIVER_MIN_CREDIT`（默认 600）；③ `guarantor_ids` ≥ 2 个本人名下担保人；④ `recommendation_letter` 非空（`POST /upload` 返回的推荐信照片 URL）。不满足时返回 `40301`（资格不符）或 `40002`（缺推荐信）。
 
 **响应**:
 ```json
@@ -1739,6 +1744,31 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
   }
 }
 ```
+
+---
+
+### 6.3b 免押金资格查询（#1867）
+
+**接口**: `GET /api/user/deposit-waiver/eligibility`
+
+> 免押金资格由服务端权威判定：已实名核验 + 第三证件类型为 `student`/`teacher` + 内部信用分达标（`DEPOSIT_WAIVER_MIN_CREDIT`，默认 600）。未登录返回 `40001`。
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "eligible": false,
+    "reasons": ["identity_not_student_or_teacher"],
+    "identity_type": "work",
+    "face_verified": true,
+    "credit_score": 700,
+    "min_credit_score": 600
+  }
+}
+```
+
+**reasons 枚举**：`face_not_verified`（未实名）/ `identity_not_student_or_teacher`（非学生/教职工）/ `credit_below_threshold`（信用分不足）/ `profile_not_ready`（本地档案未建立）/ `user_not_found` / `load_failed`（前端降级用）。
 
 ---
 

@@ -219,6 +219,7 @@ type Order struct {
 	MonthlyRent             Cents      `gorm:"type:bigint;not null" json:"monthly_rent"`
 	Deposit                 Cents      `gorm:"type:bigint;default:0" json:"deposit"`
 	DepositWaived           bool       `gorm:"column:deposit_waived;not null;default:false" json:"deposit_waived"`
+	RecommendationLetter    string     `gorm:"column:recommendation_letter;type:varchar(500);not null;default:''" json:"recommendation_letter"` // #1867: deposit-free application letter URL
 	ShippingFee             Cents      `gorm:"type:bigint;default:0" json:"shipping_fee"`
 	AccumulatedMonths       int        `gorm:"default:0" json:"accumulated_months"`
 	Status                  string     `gorm:"type:varchar(40);default:'reserved';index" json:"status"`

@@ -88,6 +88,14 @@ export default function OrderPayment() {
               {(order.guarantors || []).map(g => `${g.name}(${g.phone})`).join('、') || '-'}
             </Descriptions.Item>
           )}
+          {order.deposit_waived && order.recommendation_letter && (
+            <Descriptions.Item label="推荐信">
+              {/* #1867: uploaded letter photo — /uploads is same-origin on PC */}
+              <a href={order.recommendation_letter} target="_blank" rel="noreferrer">
+                查看推荐信
+              </a>
+            </Descriptions.Item>
+          )}
           <Descriptions.Item label="总计">
             <span className="text-2xl font-bold text-blue-600">
               ¥{order.total_amount || order.monthly_rent}
