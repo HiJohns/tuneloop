@@ -348,6 +348,16 @@ func GetPublicInstrumentByID(c *gin.Context) {
 		response["transit_info"] = nil
 	}
 
+	// (#1863): attach rent_to_own config for mobile detail page
+	var rentOverride models.InstrumentPromoOverride
+	rentToOwn := gin.H{"enabled": true, "content": ""}
+	if err := db.Where("tenant_id = ? AND instrument_id = ? AND override_type = ?",
+		instrument.TenantID, instrument.ID, "rent_to_own").First(&rentOverride).Error; err == nil {
+		rentToOwn["enabled"] = rentOverride.Enabled != nil && *rentOverride.Enabled
+		rentToOwn["content"] = rentOverride.Content
+	}
+	response["rent_to_own"] = rentToOwn
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": response,

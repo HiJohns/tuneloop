@@ -53,6 +53,7 @@ var allTables = []interface{}{
 	&models.DiscountCode{},
 	&models.DiscountCodeUsage{},
 	&models.ConfirmationSession{},
+	&models.InstrumentPromoOverride{}, // #1863: rent_to_own tests
 	&models.RepairRecord{}, // #1866 T3: ListRecords queries repair_records
 }
 

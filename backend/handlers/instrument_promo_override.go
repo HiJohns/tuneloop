@@ -35,7 +35,7 @@ func UpdateInstrumentPromoOverride(c *gin.Context) {
 	}
 	var req struct {
 		OverrideType string `json:"override_type" binding:"required"`
-		Enabled      bool   `json:"enabled" binding:"required"`
+		Enabled      *bool  `json:"enabled"`
 		Content      string `json:"content"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -57,15 +57,21 @@ func UpdateInstrumentPromoOverride(c *gin.Context) {
 			TenantID:     tenantID,
 			InstrumentID: instrumentID,
 			OverrideType: req.OverrideType,
-			Enabled:      req.Enabled,
 			Content:      req.Content,
+		}
+		if req.Enabled != nil {
+			v := *req.Enabled
+			override.Enabled = &v
 		}
 		if err := db.Create(&override).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": err.Error()})
 			return
 		}
 	} else {
-		updates := map[string]interface{}{"enabled": req.Enabled, "content": req.Content}
+		updates := map[string]interface{}{"content": req.Content}
+		if req.Enabled != nil {
+			updates["enabled"] = *req.Enabled
+		}
 		if err := db.Model(&existing).Updates(updates).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": err.Error()})
 			return

@@ -268,6 +268,22 @@ photos:
 
 ---
 
+### 2.6.1 instrument_promo_overrides - 乐器促销覆盖配置表（#1863）
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| tenant_id | UUID | INDEX, NOT NULL | 租户 ID |
+| instrument_id | UUID | INDEX, NOT NULL | 乐器 ID |
+| override_type | VARCHAR(20), NOT NULL | | 覆盖类型：`discount` / `rebate` / `rent_to_own` |
+| enabled | BOOL, NOT NULL, DEFAULT true | | 是否启用 |
+| content | TEXT, NOT NULL, DEFAULT '' | | 自定义文案（rent_to_own 类型；空=默认文案） |
+| updated_at | TIMESTAMP | | 更新时间 |
+
+**用途**: 按乐器粒度控制促销模块的可见性和文案。`rent_to_own` 类型控制移动端详情页的租购转化模块（默认可见）。
+
+---
+
 ### 2.7 orders - 订单表
 
 | 字段名 | 类型 | 约束 | 说明 |
