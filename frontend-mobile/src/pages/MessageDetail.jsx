@@ -130,6 +130,12 @@ export default function MessageDetail() {
     setAppealModalVisible(true)
   }
 
+  // #1862: weapp 端 Textarea onChange 不触发（可用输入先例统一用 onInput），
+  // 双绑定同一 handler 保证 weapp（onInput）/H5（onChange）均可回写。
+  const handleAppealReasonInput = (e) => {
+    setAppealReason(e.detail?.value ?? e.target?.value ?? '')
+  }
+
   const submitAppeal = async () => {
     if (!appealReason.trim()) {
       dialog.toast('请输入申诉原因')
@@ -464,7 +470,9 @@ export default function MessageDetail() {
             <Textarea
               className="w-full border rounded-lg p-3 text-sm"
               value={appealReason}
-              onChange={e => setAppealReason(e.detail?.value ?? e.target?.value ?? '')}
+              onInput={handleAppealReasonInput}
+              onChange={handleAppealReasonInput}
+              {...(env.isMiniProgram ? { cursorSpacing: 120 } : {})}
               placeholder="请输入申诉原因..."
             />
             <View style={{ display: 'flex', gap: 12, marginTop: 16 }}>
