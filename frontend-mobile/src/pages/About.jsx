@@ -10,6 +10,7 @@ import { apiFetch } from '../services/api'
 export default function About() {
   const navigate = useNavigate()
   const [serverVersion, setServerVersion] = useState('')
+  const [serverBuild, setServerBuild] = useState('')
   const baseUrl = env.apiBaseUrl || '/api'
 
   const goBack = () => {
@@ -25,6 +26,7 @@ export default function About() {
         const json = await resp.json()
         if (!cancelled && json.code === 20000 && json.data?.version) {
           setServerVersion(json.data.version)
+          setServerBuild(json.data.build || '')
         } else if (!cancelled) {
           setServerVersion('—')
         }
@@ -38,7 +40,14 @@ export default function About() {
 
   const rows = [
     { label: '小程序版本', value: env.version ? `v${env.version}` : 'dev' },
-    { label: '服务器版本', value: serverVersion ? `v${serverVersion}` : '加载中…' },
+    {
+      label: '服务器版本',
+      value: serverVersion
+        ? serverBuild && serverBuild !== 'dev'
+          ? `v${serverVersion} (build ${serverBuild})`
+          : `v${serverVersion}`
+        : '加载中…',
+    },
   ]
 
   return (
