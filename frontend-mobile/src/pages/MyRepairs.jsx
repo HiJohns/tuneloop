@@ -134,8 +134,8 @@ export default function MyRepairs() {
         <Text className="text-lg font-black text-black">{isCustomer ? '我的报修' : isPureTech ? '维修工作台' : '报修管理'}</Text>
       </View>
 
-      <ScrollView scrollY className="flex-1 min-h-0">
-        <View style={{ padding: '0 16px', boxSizing: 'border-box' }}>
+      <ScrollView scrollY className="flex-1 min-h-0 overflow-y-auto">
+        <View style={{ padding: '0 16px 96px', boxSizing: 'border-box' }}>
         {/* Scan / SN search — staff and repair technicians only */}
         {!isCustomer && (
         <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
@@ -253,8 +253,11 @@ export default function MyRepairs() {
                     style={{ display: 'flex', flexDirection: 'column', gap: 4, cursor: 'pointer' }}>
                     <View><Text className="text-sm font-bold text-black">{inst.sn || '未知SN'}</Text></View>
                     <View><Text className="text-xs text-zinc-400">{inst.category_name || ''}</Text></View>
-                    <Button style={{ height: 40, margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      className="bg-black text-white rounded-lg text-xs font-bold">接单</Button>
+                    <Button
+                      style={{ height: 40, margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      className="bg-black text-white rounded-lg text-xs font-bold"
+                      onClick={(e) => { e.stopPropagation(); nav(`/repair?instrument_id=${inst.id}`) }}
+                    >接单</Button>
                   </View>
                 ))}
               </View>
