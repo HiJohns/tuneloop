@@ -1587,7 +1587,7 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
 |------|------|------|------|
 | override_type | string | 是 | `discount` / `rebate` / `rent_to_own` |
 | enabled | bool | 否 | 是否启用（不传则不更新现有值；新建设备默认 true） |
-| content | string | 否 | 自定义文案（rent_to_own 类型；空=默认文案） |
+| content | string | 否 | 自定义文案（rent_to_own 类型；**不传则不更新现有值**，传空串=重置为默认文案） |
 
 **说明**: `enabled` 使用 `*bool` 类型，`false` 可正常保存（不被零值覆盖）。`rent_to_own` 类型控制移动端乐器详情页的租购转化模块：
 - `enabled: true`（默认）→ 显示租购转化模块

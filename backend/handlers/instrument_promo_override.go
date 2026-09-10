@@ -34,9 +34,9 @@ func UpdateInstrumentPromoOverride(c *gin.Context) {
 		return
 	}
 	var req struct {
-		OverrideType string `json:"override_type" binding:"required"`
-		Enabled      *bool  `json:"enabled"`
-		Content      string `json:"content"`
+		OverrideType string  `json:"override_type" binding:"required"`
+		Enabled      *bool   `json:"enabled"`
+		Content      *string `json:"content"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
@@ -57,24 +57,34 @@ func UpdateInstrumentPromoOverride(c *gin.Context) {
 			TenantID:     tenantID,
 			InstrumentID: instrumentID,
 			OverrideType: req.OverrideType,
-			Content:      req.Content,
 		}
 		if req.Enabled != nil {
 			v := *req.Enabled
 			override.Enabled = &v
+		}
+		if req.Content != nil {
+			override.Content = *req.Content
 		}
 		if err := db.Create(&override).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": err.Error()})
 			return
 		}
 	} else {
-		updates := map[string]interface{}{"content": req.Content}
+		// #1863 audit fix: only update fields explicitly provided — an omitted
+		// content must NOT wipe the stored custom copy (PC switch sends
+		// enabled-only). Empty string still resets to the default copy.
+		updates := map[string]interface{}{}
 		if req.Enabled != nil {
 			updates["enabled"] = *req.Enabled
 		}
-		if err := db.Model(&existing).Updates(updates).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": err.Error()})
-			return
+		if req.Content != nil {
+			updates["content"] = *req.Content
+		}
+		if len(updates) > 0 {
+			if err := db.Model(&existing).Updates(updates).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": err.Error()})
+				return
+			}
 		}
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "updated"})
