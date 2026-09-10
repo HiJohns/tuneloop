@@ -523,6 +523,6 @@ Shared page `frontend-mobile/src/pages/MembershipCenter.jsx` (H5 + weapp), top-t
 3. **Stats card**: 消费总额 (yuan); **积分** = `promo_points ÷ 100` (yuan basis, no unit). The 预付点数 row was removed (prepaid points are no longer supported)
 4. **Promo QR card**
 5. **Address card**: cross-end form (Taro `Input` + province/city/district `Picker`)
-6. **Handbook card** (new, bottom): collapsible 会员手册, unified static copy (`HANDBOOK_SECTIONS`) for all members
+6. **Membership Rules & Benefits Handbook card** (new, bottom; backend-editable since the #1830 follow-up): collapsible title「会员规则与权益手册」; body renders the admin-configured rich text from PC "策略配置-会员手册编辑" (settings key `membership_handbook`, read via `GET /public/settings/:key`, images normalized by `normalizeContentUrls`); falls back to the unified static copy (`HANDBOOK_SECTIONS`) when no admin content exists — identical for all members
 
 *Model: deepseek-v4-flash*

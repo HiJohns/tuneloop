@@ -1,18 +1,21 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, ScrollView, Button, Image, Canvas, Input, Picker } from '@tarojs/components'
+import { View, Text, ScrollView, Button, Image, Canvas, Input, Picker, RichText } from '@tarojs/components'
 import { apiFetch, addressesApi, resolveErrorMessage } from '../services/api'
 import { env, dialog, getInputValue, toWeappRoute } from '../platform'
 import { useNavigate } from 'react-router-dom'
 import regions from '../data/regions.json'
 import QRCode from 'qrcode'
+import { normalizeContentUrls } from '../utils/content'
 import '../utils/text-encoder'
 
 const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm'
 const provinceNames = regions.map(r => r.name)
 
-// 会员手册 — unified static copy for every member (#1830), consistent with
-// current system mechanics; policy figures stay admin-configurable.
+// 会员规则与权益手册 — backend-editable rich text (#1830 增量); the static
+// copy below stays as the fallback when no admin content exists yet,
+// consistent with current system mechanics; policy figures stay
+// admin-configurable.
 const HANDBOOK_SECTIONS = [
   { title: '会员体系', body: '平台设初级 / 中级 / 高级三级会员，按跨商户累计消费金额自动升级，只升不降。' },
   { title: '升级门槛', body: '累计实付消费达到对应档位门槛即自动升级，当前档位门槛见「会员权益」展示。' },
@@ -34,6 +37,8 @@ export default function MembershipCenter() {
   const [showQR, setShowQR] = useState(false)
   const [refCode, setRefCode] = useState('')
   const [benefits, setBenefits] = useState([])
+  // #1830 增量: backend-editable handbook rich text (empty → static fallback)
+  const [handbookHtml, setHandbookHtml] = useState('')
   const [showHandbook, setShowHandbook] = useState(false)
   const navigate = useNavigate()
   // Cross-end navigation (issue-1673): weapp has no react-router short paths;
@@ -81,7 +86,10 @@ export default function MembershipCenter() {
     }
   }
 
-  const generateQRCanvas = (url) => {
+  // Function declaration (hoisted): the fetchUser effect above references
+  // this during its callback body — a const arrow here trips
+  // no-use-before-define even though runtime order is safe.
+  function generateQRCanvas(url) {
     Taro.nextTick(() => {
     console.log('[QR DEBUG] generateQRCanvas called, url=', url)
     const query = Taro.createSelectorQuery()
@@ -131,6 +139,21 @@ export default function MembershipCenter() {
   }
 
   useEffect(() => { fetchUser(); fetchAddresses() }, [])
+
+  // #1830 增量: fetch the admin-editable handbook (GET public settings).
+  // Empty/failed loads fall back to the static HANDBOOK_SECTIONS copy.
+  useEffect(() => {
+    let cancelled = false
+    const fetchHandbook = async () => {
+      try {
+        const res = await apiFetch(`${env.apiBaseUrl}/public/settings/membership_handbook`)
+        const r = await res.json()
+        if (!cancelled && r.code === 20000 && r.data?.value) setHandbookHtml(r.data.value)
+      } catch {}
+    }
+    fetchHandbook()
+    return () => { cancelled = true }
+  }, [])
 
   // Benefits follow the current membership level (#1830)
   useEffect(() => {
@@ -408,13 +431,19 @@ export default function MembershipCenter() {
         )}
       </View>
 
-      {/* Membership handbook — unified static copy for all members (#1830) */}
+      {/* Membership rules & benefits handbook (#1830 增量: backend-editable) */}
       <View className="mx-4 mt-4 bg-white rounded-2xl shadow-sm p-4 mb-8">
         <View className="flex items-center justify-between" onClick={() => setShowHandbook(!showHandbook)}>
-          <Text className="text-sm font-bold text-zinc-800">会员手册</Text>
+          <Text className="text-sm font-bold text-zinc-800">会员规则与权益手册</Text>
           <Text className="text-xs text-zinc-400">{showHandbook ? '收起 ▲' : '展开 ▼'}</Text>
         </View>
-        {showHandbook && (
+        {showHandbook && (handbookHtml ? (() => {
+          const origin = (env.apiBaseUrl || '').replace(/\/api\/?$/, '')
+          const normalized = normalizeContentUrls(handbookHtml, origin)
+          return /<[a-z][\s\S]*>/i.test(normalized)
+            ? <View className="mt-3"><RichText nodes={normalized} /></View>
+            : <Text className="text-xs text-zinc-500 block mt-3" style={{ lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{normalized}</Text>
+        })() : (
           <View className="mt-3" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {HANDBOOK_SECTIONS.map((s, i) => (
               <View key={i}>
@@ -423,7 +452,7 @@ export default function MembershipCenter() {
               </View>
             ))}
           </View>
-        )}
+        ))}
       </View>
 
       {loading && (

@@ -8,10 +8,9 @@ import { env } from '../platform'
 // Normalize relative URLs in HTML content to absolute URLs so wechat
 // rich-text can load images (relative src like "/uploads/..." are not
 // resolved by the wechat WebView).
-const normalizeContentUrls = (html, origin) => {
-  if (!html || !origin) return html
-  return html.replace(/(src|href)=(["'])\/(?!\/)/g, `$1=$2${origin}/`)
-}
+// #1830: URL normalization moved to utils/content.js (shared with the
+// membership handbook rich-text rendering).
+import { normalizeContentUrls } from '../utils/content'
 
 export default function ContentPage() {
   const [searchParams] = useSearchParams()

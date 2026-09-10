@@ -67,6 +67,7 @@ import AuditLogPage from './pages/System/AuditLogPage'
 import BannerManagePage from './pages/System/BannerManagePage'
 import ContentEdit from './pages/admin/ContentEdit'
 import MembershipLevelsPage from './pages/System/MembershipLevelsPage'
+import MembershipHandbookPage from './pages/System/MembershipHandbookPage'
 import RebateConfigPage from './pages/System/RebateConfigPage'
 import GiftPolicies from './pages/System/GiftPolicies'
 import PromoPlanManagePage from './pages/System/PromoPlanManagePage'
@@ -388,6 +389,7 @@ function MainLayout() {
       { key: '/system/rebate-config', label: '返点配置', permission: { cusPermCodes: ['rebate:manage'] } },
       { key: '/system/gift-policies', label: '赠点策略', permission: { cusPermCodes: ['rebate:manage'] } },
       { key: '/system/membership-levels', label: '会员级别管理', permission: { cusPermCodes: ['membership:manage'] } },
+      { key: '/system/membership-handbook', label: '会员手册编辑', permission: { cusPermCodes: ['membership:manage'] } },
       { key: '/system/banners', label: '轮播图管理', permission: { cusPermCodes: ['banner:manage'] } },
     ]
   },
@@ -447,7 +449,7 @@ function onMenuClick(e) {
     : [location.pathname]
   let openKeys = []
   if (['/instruments/categories', '/instruments/properties', '/instruments/list', '/site/stock'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['product']
-  else if (['/inventory/rent-setting', '/pricing/config', '/system/promo-plans', '/repair/settings', '/system/rebate-config', '/system/gift-policies', '/system/membership-levels', '/system/banners'].includes(location.pathname)) openKeys = ['strategy']
+  else if (['/inventory/rent-setting', '/pricing/config', '/system/promo-plans', '/repair/settings', '/system/rebate-config', '/system/gift-policies', '/system/membership-levels', '/system/membership-handbook', '/system/banners'].includes(location.pathname)) openKeys = ['strategy']
   else if (['/orders', '/warehouse', '/maintenance/sessions', '/transit-routes', '/overdue-alerts', '/merchant/invoices'].includes(location.pathname)) openKeys = ['transaction']
   else if (location.pathname.startsWith('/merchants') || ['/system/user-management', '/organization/sites', '/staff', '/appeals', '/organization/iam-sync', '/system/permissions', '/system/warnings', '/system/warning-settings'].includes(location.pathname)) openKeys = ['platform']
   else if (['/', '/system/content-edit', '/system/audit-logs'].includes(location.pathname)) openKeys = ['system']
@@ -482,6 +484,7 @@ function onMenuClick(e) {
     '/system/rebate-config': { title: '返点配置', parent: '策略配置' },
     '/system/gift-policies': { title: '赠点策略', parent: '策略配置' },
     '/system/membership-levels': { title: '会员级别管理', parent: '策略配置' },
+    '/system/membership-handbook': { title: '会员手册编辑', parent: '策略配置' },
     '/orders': { title: '订单管理', parent: '交易管理' },
     '/instruments/list': { title: '乐器列表', parent: '商品管理' },
     '/site/stock': { title: '库存监控', parent: '商品管理' },
@@ -710,6 +713,7 @@ function onMenuClick(e) {
             <Route path="/system/banners" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['banner:manage'] }}><BannerManagePage /></ProtectedRoute>} />
             <Route path="/system/content-edit" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['category:manage'] }}><ContentEdit /></ProtectedRoute>} />
             <Route path="/system/membership-levels" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['membership:manage'] }}><MembershipLevelsPage /></ProtectedRoute>} />
+            <Route path="/system/membership-handbook" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['membership:manage'] }}><MembershipHandbookPage /></ProtectedRoute>} />
             <Route path="/system/rebate-config" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['rebate:manage'] }}><RebateConfigPage /></ProtectedRoute>} />
             <Route path="/system/gift-policies" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['rebate:manage'] }}><GiftPolicies /></ProtectedRoute>} />
             <Route path="/system/promo-plans" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['promo:manage'] }}><PromoPlanManagePage scope="admin" /></ProtectedRoute>} />
