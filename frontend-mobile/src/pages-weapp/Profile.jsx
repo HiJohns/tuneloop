@@ -441,17 +441,18 @@ export default function Profile() {
               <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>
           )}
-          <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/content/index?key=cooperation')}>
-            <View style={{ display: 'flex', alignItems: 'center' }}>
-              <Text style={{ fontSize: 18, marginRight: 8 }}>💼</Text>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>商务合作</Text>
-            </View>
-            <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
-          </View>
+          {/* #1840: 联系我们 precedes 商务合作 (canonical sequence 1–2) */}
           <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/content/index?key=contact_us')}>
             <View style={{ display: 'flex', alignItems: 'center' }}>
               <Text style={{ fontSize: 18, marginRight: 8 }}>📞</Text>
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>联系我们</Text>
+            </View>
+            <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
+          </View>
+          <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/content/index?key=cooperation')}>
+            <View style={{ display: 'flex', alignItems: 'center' }}>
+              <Text style={{ fontSize: 18, marginRight: 8 }}>💼</Text>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>商务合作</Text>
             </View>
             <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
           </View>

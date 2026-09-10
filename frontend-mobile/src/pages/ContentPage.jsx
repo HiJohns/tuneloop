@@ -21,13 +21,14 @@ export default function ContentPage() {
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(true)
 
+  // #1840: titles follow the canonical 10-item sequence; rental_notice
+  // removed (legacy key no longer reachable from any UI entry).
   const titles = {
-    rental_notice: '租赁须知',
     contact_us: '联系我们',
     cooperation: '商务合作',
     rental_agreement: '租用服务协议',
-    user_agreement: '用户协议',
-    privacy_policy: '隐私协议',
+    user_agreement: '个人信息查询授权书',
+    privacy_policy: '个人信息保护政策',
     digital_certificate: '数字证书授权使用协议',
     damage_standard: '《乐器损耗与赔偿标准》细则',
     platform_rules: '平台规则文档',

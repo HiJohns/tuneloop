@@ -385,13 +385,7 @@ export default function Detail() {
             </View>
           )}
 
-          {/* Rental notice */}
-          <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', marginBottom: 12 }} onClick={() => Taro.navigateTo({ url: '/pages-weapp/content/index?key=rental_notice' })}>
-            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={{ fontSize: 16, fontWeight: '900', color: '#000' }}>租赁须知</Text>
-              <Text style={{ fontSize: 14, color: '#a1a1aa' }}>查看详情 ❯</Text>
-            </View>
-          </View>
+          {/* Rental notice card removed (#1840) */}
 
           {/* Audit log section (staff only) */}
           {!isCustomer && currentUser && auditLogs.length > 0 && (

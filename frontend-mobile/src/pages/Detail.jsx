@@ -408,13 +408,7 @@ export default function Detail() {
             </View>
           )}
 
-          {/* Rental notice */}
-          <View className="bg-white rounded-2xl p-4 shadow-sm mb-3" onClick={() => navigate('/content?key=rental_notice')}>
-            <View className="flex justify-between items-center">
-              <Text className="text-base font-black text-black">租赁须知</Text>
-              <Text className="text-sm text-zinc-400">查看详情 ❯</Text>
-            </View>
-          </View>
+          {/* Rental notice card removed (#1840) */}
 
           {/* Audit log section (staff only) */}
           {!isCustomer && currentUser && auditLogs.length > 0 && (

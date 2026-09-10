@@ -287,17 +287,18 @@ export default function Profile() {
             </View>
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
-          <View className="flex justify-between items-center py-3.5" onClick={() => nav('/content?key=cooperation')}>
-            <View className="flex items-center gap-2">
-              <Text className="text-lg">💼</Text>
-              <Text className="text-base font-bold text-zinc-800">商务合作</Text>
-            </View>
-            <Text className="text-sm text-zinc-300">❯</Text>
-          </View>
+          {/* #1840: 联系我们 precedes 商务合作 (canonical sequence 1–2) */}
           <View className="flex justify-between items-center py-3.5" onClick={() => nav('/content?key=contact_us')}>
             <View className="flex items-center gap-2">
               <Text className="text-lg">📞</Text>
               <Text className="text-base font-bold text-zinc-800">联系我们</Text>
+            </View>
+            <Text className="text-sm text-zinc-300">❯</Text>
+          </View>
+          <View className="flex justify-between items-center py-3.5" onClick={() => nav('/content?key=cooperation')}>
+            <View className="flex items-center gap-2">
+              <Text className="text-lg">💼</Text>
+              <Text className="text-base font-bold text-zinc-800">商务合作</Text>
             </View>
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>

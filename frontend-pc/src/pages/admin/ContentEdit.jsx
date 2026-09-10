@@ -5,16 +5,17 @@ import ReactQuill from 'react-quill'
 import 'react-quill/dist/quill.snow.css'
 import { api } from '../../services/api'
 
+// #1840: display order is the canonical 10-item sequence (user-confirmed);
+// rental_notice removed from the admin list (its setting data stays in DB).
 const KEYS = [
-  { key: 'rental_notice', title: '租赁须知' },
   { key: 'contact_us', title: '联系我们' },
   { key: 'cooperation', title: '商务合作' },
-  { key: 'rental_agreement', title: '租用服务协议' },
-  { key: 'user_agreement', title: '用户协议' },
-  { key: 'privacy_policy', title: '隐私协议' },
-  { key: 'digital_certificate', title: '数字证书授权使用协议' },
-  { key: 'damage_standard', title: '《乐器损耗与赔偿标准》细则' },
   { key: 'platform_rules', title: '平台规则文档' },
+  { key: 'rental_agreement', title: '租用服务协议' },
+  { key: 'damage_standard', title: '《乐器损耗与赔偿标准》细则' },
+  { key: 'user_agreement', title: '个人信息查询授权书' },
+  { key: 'privacy_policy', title: '个人信息保护政策' },
+  { key: 'digital_certificate', title: '数字证书授权使用协议' },
   { key: 'merchant_audit_requirements', title: '平台入驻审核要求与规范' },
   { key: 'merchant_agreement', title: '商家入驻协议' },
 ]
