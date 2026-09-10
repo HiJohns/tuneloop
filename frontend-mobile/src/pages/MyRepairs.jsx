@@ -131,7 +131,7 @@ export default function MyRepairs() {
   return (
     <View style={{ backgroundColor: "#FDFBF7" }} className="flex flex-col h-screen">
       <View className="bg-white px-4 py-3 border-b border-zinc-100">
-        <Text className="text-lg font-black text-black">维修</Text>
+        <Text className="text-lg font-black text-black">{isCustomer ? '我的报修' : isPureTech ? '维修工作台' : '报修管理'}</Text>
       </View>
 
       <ScrollView scrollY className="flex-1 min-h-0">
@@ -268,7 +268,7 @@ export default function MyRepairs() {
           <>
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <View className="flex justify-between items-center" onClick={() => setShowSiteRepairs(v => !v)}>
-              <Text className="text-sm font-bold text-black">本网点报修 ({repairRequests.length})</Text>
+              <Text className="text-sm font-bold text-black">报修单（本网点全部）({repairRequests.length})</Text>
               <Text className="text-xs text-zinc-400">{showSiteRepairs ? '▾' : '▸'}</Text>
             </View>
             {showSiteRepairs && (loading ? (
