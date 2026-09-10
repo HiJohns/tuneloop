@@ -90,6 +90,7 @@ type InstrumentPromoOverride struct {
 	InstrumentID string    `gorm:"type:uuid;not null;index" json:"instrument_id"`
 	OverrideType string    `gorm:"type:varchar(20);not null" json:"override_type"`
 	Enabled      bool      `gorm:"not null;default:true" json:"enabled"`
+	Content      string    `gorm:"type:text;not null;default:''" json:"content"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 

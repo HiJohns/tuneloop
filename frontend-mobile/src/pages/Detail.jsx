@@ -395,15 +395,15 @@ export default function Detail() {
             </View>
           )}
 
-          {/* Rent-to-own */}
-          {isRentable && (
+          {/* Rent-to-own (#1863) */}
+          {isRentable && instrument?.rent_to_own?.enabled !== false && (
             <View className="bg-white rounded-2xl p-4 shadow-sm mb-3">
               <View className="flex items-center">
                 <Text>🎁</Text>
                 <Text className="font-bold text-sm text-purple-800 ml-1">租购转化</Text>
               </View>
               <Text className="text-purple-600 text-sm mt-1 font-bold">
-                如需购买此乐器，请联系商户{instrument?.site_phone || ''}
+                {instrument?.rent_to_own?.content || `如需购买此乐器，请联系商户${instrument?.site_phone || ''}`}
               </Text>
             </View>
           )}

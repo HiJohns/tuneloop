@@ -461,6 +461,7 @@ func validateDatabaseSchema(db *gorm.DB) error {
 		&models.Banner{},
 		&models.InvoiceApplication{},
 		&models.MembershipLevelBenefit{}, // #1830: 会员权益行（20260907001 migration）
+		&models.InstrumentPromoOverride{}, // #1863: 乐器促销覆盖（20260910001 migration）
 		&models.ConfirmationSession{},
 		&models.Label{},
 

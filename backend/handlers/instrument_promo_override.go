@@ -36,13 +36,14 @@ func UpdateInstrumentPromoOverride(c *gin.Context) {
 	var req struct {
 		OverrideType string `json:"override_type" binding:"required"`
 		Enabled      bool   `json:"enabled" binding:"required"`
+		Content      string `json:"content"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
 		return
 	}
-	if req.OverrideType != "discount" && req.OverrideType != "rebate" {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "override_type must be discount or rebate"})
+	if req.OverrideType != "discount" && req.OverrideType != "rebate" && req.OverrideType != "rent_to_own" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "override_type must be discount, rebate, or rent_to_own"})
 		return
 	}
 	ctx := c.Request.Context()
@@ -57,13 +58,15 @@ func UpdateInstrumentPromoOverride(c *gin.Context) {
 			InstrumentID: instrumentID,
 			OverrideType: req.OverrideType,
 			Enabled:      req.Enabled,
+			Content:      req.Content,
 		}
 		if err := db.Create(&override).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": err.Error()})
 			return
 		}
 	} else {
-		if err := db.Model(&existing).Update("enabled", req.Enabled).Error; err != nil {
+		updates := map[string]interface{}{"enabled": req.Enabled, "content": req.Content}
+		if err := db.Model(&existing).Updates(updates).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": err.Error()})
 			return
 		}

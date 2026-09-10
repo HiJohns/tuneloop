@@ -372,15 +372,15 @@ export default function Detail() {
             </View>
           )}
 
-          {/* Rent-to-own */}
-          {isRentable && (
+          {/* Rent-to-own (#1863) */}
+          {isRentable && instrument?.rent_to_own?.enabled !== false && (
             <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', marginBottom: 12 }}>
               <View style={{ display: 'flex', alignItems: 'center' }}>
                 <Text>🎁</Text>
                 <Text style={{ fontWeight: '700', fontSize: 14, color: '#6b21a8', marginLeft: 4 }}>租购转化</Text>
               </View>
               <Text style={{ color: '#9333ea', fontSize: 14, marginTop: 4, fontWeight: '700' }}>
-                如需购买此乐器，请联系商户{instrument?.site_phone || ''}
+                {instrument?.rent_to_own?.content || `如需购买此乐器，请联系商户${instrument?.site_phone || ''}`}
               </Text>
             </View>
           )}

@@ -887,6 +887,8 @@ function ActivityLogTab({ instrumentId }) {
 function PromoOverrideTab({ instrumentId }) {
   const [discountEnabled, setDiscountEnabled] = useState(true)
   const [rebateEnabled, setRebateEnabled] = useState(true)
+  const [rentToOwnEnabled, setRentToOwnEnabled] = useState(true)
+  const [rentToOwnContent, setRentToOwnContent] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -897,16 +899,23 @@ function PromoOverrideTab({ instrumentId }) {
         res.data.forEach(o => {
           if (o.override_type === 'discount') setDiscountEnabled(o.enabled)
           if (o.override_type === 'rebate') setRebateEnabled(o.enabled)
+          if (o.override_type === 'rent_to_own') {
+            setRentToOwnEnabled(o.enabled)
+            setRentToOwnContent(o.content || '')
+          }
         })
       }
     }).catch(() => {}).finally(() => setLoading(false))
   }, [instrumentId])
 
-  const handleToggle = async (type, value) => {
-    const res = await api.put(`/instruments/${instrumentId}/promo-overrides`, { override_type: type, enabled: value })
+  const handleToggle = async (type, value, content) => {
+    const body = { override_type: type, enabled: value }
+    if (content !== undefined) body.content = content
+    const res = await api.put(`/instruments/${instrumentId}/promo-overrides`, body)
     if (res.code === 20000) {
       if (type === 'discount') setDiscountEnabled(value)
-      else setRebateEnabled(value)
+      else if (type === 'rebate') setRebateEnabled(value)
+      else if (type === 'rent_to_own') { setRentToOwnEnabled(value); if (content !== undefined) setRentToOwnContent(content) }
       message.success('已更新')
     } else {
       message.error(res.message)
@@ -931,6 +940,25 @@ function PromoOverrideTab({ instrumentId }) {
             <div className="text-xs text-gray-400">开启后该乐器适用返点政策</div>
           </div>
           <Switch checked={rebateEnabled} onChange={v => handleToggle('rebate', v)} />
+        </div>
+        <div className="p-3 bg-gray-50 rounded">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="font-medium">租购转化</div>
+              <div className="text-xs text-gray-400">控制乐器详情页「租购转化」模块的显示与文案</div>
+            </div>
+            <Switch checked={rentToOwnEnabled} onChange={v => handleToggle('rent_to_own', v)} />
+          </div>
+          <div className="mt-3">
+            <div className="text-xs text-gray-500 mb-1">自定义文案（留空显示默认文案）</div>
+            <input
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+              value={rentToOwnContent}
+              onChange={e => setRentToOwnContent(e.target.value)}
+              onBlur={() => handleToggle('rent_to_own', rentToOwnEnabled, rentToOwnContent)}
+              placeholder="如需购买此乐器，请联系商户"
+            />
+          </div>
         </div>
       </div>
     </Card>
