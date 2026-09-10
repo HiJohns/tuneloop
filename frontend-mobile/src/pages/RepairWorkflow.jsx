@@ -147,9 +147,11 @@ export default function RepairWorkflow() {
 
         {/* Repair records */}
         <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
-          <Text className="text-sm font-bold text-black mb-2">维修记录 ({records.length})</Text>
+          <Text className="text-sm font-bold text-black">维修记录 ({records.length})</Text>
           {records.length === 0 ? (
-            <Text className="text-xs text-zinc-400">暂无记录</Text>
+            <View style={{ marginTop: 8 }}>
+              <Text className="text-xs text-zinc-400">暂无记录</Text>
+            </View>
           ) : (
             <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {records.map(r => (
@@ -246,7 +248,7 @@ export default function RepairWorkflow() {
           </View>
         )}
 
-        {!isValid && (
+        {!isValid && !damage && (
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
             <Text className="text-sm text-zinc-400 text-center">乐器状态正常，不需要维修</Text>
           </View>
