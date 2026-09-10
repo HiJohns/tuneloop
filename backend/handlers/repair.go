@@ -355,7 +355,14 @@ func (h *RepairHandler) ListRecords(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"records": records}})
+	// (#1866): include latest damage report for context display
+	var latestDamage models.DamageReport
+	damageObj := interface{}(nil)
+	if err := db.Where("instrument_id = ?", instrumentID).Order("created_at DESC").First(&latestDamage).Error; err == nil {
+		damageObj = latestDamage
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"records": records, "damage": damageObj}})
 }
 
 // ListMyRepairs returns all repairs assigned to the current user.
@@ -378,9 +385,10 @@ func (h *RepairHandler) ListMyRepairs(c *gin.Context) {
 func (h *RepairHandler) ListPendingRepairs(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
+	tenantID := middleware.GetTenantID(ctx)
 
 	var instruments []models.Instrument
-	if err := db.Where("repair_status = ?", "repair_pending").
+	if err := db.Where("tenant_id = ? AND repair_status = ?", tenantID, "repair_pending").
 		Order("updated_at DESC").Find(&instruments).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query repairs"})
 		return

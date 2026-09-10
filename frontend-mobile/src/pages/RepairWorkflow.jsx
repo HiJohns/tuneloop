@@ -17,6 +17,7 @@ export default function RepairWorkflow() {
 
   const [instrument, setInstrument] = useState(null)
   const [records, setRecords] = useState([])
+  const [damage, setDamage] = useState(null)
   const [comment, setComment] = useState('')
   const [photos, setPhotos] = useState([])
   const [loading, setLoading] = useState(true)
@@ -36,7 +37,10 @@ export default function RepairWorkflow() {
       const inst = await instRes.json()
       const rec = await recRes.json()
       if (inst.code === 20000) setInstrument(inst.data)
-      if (rec.code === 20000) setRecords(rec.data?.records || [])
+      if (rec.code === 20000) {
+        setRecords(rec.data?.records || [])
+        setDamage(rec.data?.damage || null)
+      }
     } catch {}
     setLoading(false)
   }
@@ -122,6 +126,19 @@ export default function RepairWorkflow() {
             {instrument.repair_worker_name && <Text className="text-zinc-500">负责人: <Text className="text-black">{instrument.repair_worker_name}</Text></Text>}
           </View>
         </View>
+
+        {/* (#1866) Damage info */}
+        {damage && (damage.damage_description || damage.notes) && (
+          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
+            <Text className="text-sm font-bold text-black mb-2">定损信息</Text>
+            <View style={{ display: 'flex', flexDirection: 'column', gap: 4 }} className="text-sm">
+              {damage.lease_id && <Text className="text-zinc-500">来源订单: <Text className="text-black">{damage.lease_id.slice(0, 8)}</Text></Text>}
+              {damage.damage_amount != null && <Text className="text-zinc-500">赔偿金额: <Text className="text-black">¥{(damage.damage_amount / 100).toFixed(2)}</Text></Text>}
+              {damage.damage_description && <Text className="text-zinc-500">损坏描述: <Text className="text-black">{damage.damage_description}</Text></Text>}
+              {damage.notes && <Text className="text-zinc-500">员工评语: <Text className="text-black">{damage.notes}</Text></Text>}
+            </View>
+          </View>
+        )}
 
         {/* Repair records */}
         <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">

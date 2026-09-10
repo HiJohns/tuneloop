@@ -354,9 +354,16 @@ func (h *AppealHandler) ResolveAppeal(c *gin.Context) {
 	}
 
 	// Update instrument if order completed or refunding
+	// (#1866): skip available rollback when instrument is in active repair
+	// (repair_pending/repair_in_progress) — repair chain must close the loop.
 	if nextOrderStatus == models.OrderStatusCompleted || nextOrderStatus == models.OrderStatusDepositRefunding {
-		if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).Update("stock_status", models.StockStatusAvailable).Error; err != nil {
-			log.Printf("[ResolveAppeal] Failed to update instrument status: %v", err)
+		var inst models.Instrument
+		if err := db.Where("id = ?", order.InstrumentID).First(&inst).Error; err != nil {
+			log.Printf("[ResolveAppeal] Failed to load instrument: %v", err)
+		} else if inst.RepairStatus != "repair_pending" && inst.RepairStatus != "repair_in_progress" {
+			if err := db.Model(&inst).Update("stock_status", models.StockStatusAvailable).Error; err != nil {
+				log.Printf("[ResolveAppeal] Failed to update instrument status: %v", err)
+			}
 		}
 	}
 
@@ -716,9 +723,16 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 	}
 
 	// Update instrument if order completed (reached when no payment needed)
+	// (#1866): skip available rollback when instrument is in active repair
+	// (repair_pending/repair_in_progress) — repair chain must close the loop.
 	if nextOrderStatus == models.OrderStatusCompleted || nextOrderStatus == models.OrderStatusDepositRefunding {
-		if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).Update("stock_status", models.StockStatusAvailable).Error; err != nil {
-			log.Printf("[AgreeDamage] Failed to update instrument status: %v", err)
+		var inst models.Instrument
+		if err := db.Where("id = ?", order.InstrumentID).First(&inst).Error; err != nil {
+			log.Printf("[AgreeDamage] Failed to load instrument: %v", err)
+		} else if inst.RepairStatus != "repair_pending" && inst.RepairStatus != "repair_in_progress" {
+			if err := db.Model(&inst).Update("stock_status", models.StockStatusAvailable).Error; err != nil {
+				log.Printf("[AgreeDamage] Failed to update instrument status: %v", err)
+			}
 		}
 	}
 
