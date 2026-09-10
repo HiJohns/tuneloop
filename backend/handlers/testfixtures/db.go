@@ -53,6 +53,7 @@ var allTables = []interface{}{
 	&models.DiscountCode{},
 	&models.DiscountCodeUsage{},
 	&models.ConfirmationSession{},
+	&models.RepairRecord{}, // #1866 T3: ListRecords queries repair_records
 }
 
 // SetupTestDB connects to the test database, drops and recreates all

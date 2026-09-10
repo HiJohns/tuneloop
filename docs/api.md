@@ -2387,6 +2387,85 @@ Content-Disposition: attachment; filename="assessment_order_001.pdf"
 
 ---
 
+### 7.9 待维修乐器列表（员工）
+
+**接口**: `GET /api/repair/pending`
+
+**说明**: 返回当前租户下所有 `repair_status=repair_pending` 的乐器，供维修师傅浏览和接手。按 `updated_at DESC` 排序。
+
+**权限**: 需认证（员工/管理员）
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "tenant_id": "uuid",
+        "org_id": "uuid",
+        "sn": "CVZ-03",
+        "stock_status": "maintenance",
+        "repair_status": "repair_pending",
+        "updated_at": "2026-09-10T08:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+**说明**: `tenant_id` 过滤确保仅返回当前租户数据，防止跨租户泄漏。
+
+---
+
+### 7.10 维修记录与定损上下文（员工）
+
+**接口**: `GET /api/repair/:id/records`
+
+**说明**: 查询指定乐器的所有维修记录（repair_records），并附带最近一条定损报告（damage_reports）作为维修上下文。
+
+**权限**: 需认证（员工/管理员）
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "records": [
+      {
+        "id": "uuid",
+        "instrument_id": "uuid",
+        "worker_id": "uuid",
+        "comment": "已接手维修",
+        "photos": "[\"photo_key.jpg\"]",
+        "record_type": "progress",
+        "created_at": "2026-09-10T08:30:00Z"
+      }
+    ],
+    "damage": {
+      "id": "uuid",
+      "lease_id": "uuid",
+      "instrument_id": "uuid",
+      "status": "agreed",
+      "condition": "damaged",
+      "damage_description": "琴盒损坏",
+      "notes": "外观有划痕",
+      "damage_amount": 50000,
+      "created_at": "2026-09-09T10:00:00Z"
+    }
+  }
+}
+```
+
+**说明**:
+- `records`: 该乐器所有维修记录，按 `created_at ASC` 排序
+- `damage`: 最近一条 `damage_report`（按 `created_at DESC` 取第一条），无定损时为 `null`
+- `damage.damage_amount`: 单位为分（int64），前端需除以 100 显示元
+- `damage.status`: 定损报告状态（`pending`/`agreed`/`appealed`/`cancelled`/`resolved`）
+
+---
+
 ## 八、个人中心模块
 
 ### 8.1 租约管理

@@ -9,6 +9,10 @@ const statusLabels = {
   repair_pending: '待维修', repair_in_progress: '维修中', repair_completed: '已修复',
 }
 
+const damageStatusLabels = {
+  pending: '待确认', agreed: '已确认', appealed: '申诉中', cancelled: '已撤销', resolved: '已解决',
+}
+
 export default function RepairWorkflow() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -133,6 +137,7 @@ export default function RepairWorkflow() {
             <Text className="text-sm font-bold text-black mb-2">定损信息</Text>
             <View style={{ display: 'flex', flexDirection: 'column', gap: 4 }} className="text-sm">
               {damage.lease_id && <Text className="text-zinc-500">来源订单: <Text className="text-black">{damage.lease_id.slice(0, 8)}</Text></Text>}
+              {damage.status && <Text className="text-zinc-500">状态: <Text className="text-black">{damageStatusLabels[damage.status] || damage.status}</Text></Text>}
               {damage.damage_amount != null && <Text className="text-zinc-500">赔偿金额: <Text className="text-black">¥{(damage.damage_amount / 100).toFixed(2)}</Text></Text>}
               {damage.damage_description && <Text className="text-zinc-500">损坏描述: <Text className="text-black">{damage.damage_description}</Text></Text>}
               {damage.notes && <Text className="text-zinc-500">员工评语: <Text className="text-black">{damage.notes}</Text></Text>}
