@@ -21,6 +21,9 @@ frontend-mobile/dist/
 frontend-mobile/dist-weapp/
 frontend-mobile/dist-h5/
 
+# Mobile global stylesheet (case-ambiguous ghost entry, local only)
+frontend-mobile/src/App.css
+
 # Prerelease environment
 prerelease/
 prerelease/database/
