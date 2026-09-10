@@ -156,6 +156,11 @@ func GetInstrumentByID(c *gin.Context) {
 		"total_price":     instrument.TotalPrice,
 		"stock_status":    instrument.StockStatus,
 		"status":          instrument.StockStatus,
+		// Repair workflow fields (#1868): RepairWorkflow.jsx drives all action
+		// panels (start / records / takeover / accept) from these values.
+		"repair_status":    instrument.RepairStatus,
+		"repair_worker_id": instrument.RepairWorkerID,
+		"repair_worker_name": repairWorkerName(instrument.RepairWorkerID, db),
 		"created_at":      instrument.CreatedAt,
 		"updated_at":      instrument.UpdatedAt,
 		"specifications":  specsArray,
@@ -298,6 +303,24 @@ func GetInstrumentByID(c *gin.Context) {
 		"code": 20000,
 		"data": instrumentMap,
 	})
+}
+
+// repairWorkerName resolves the display name for an instrument's assigned
+// repair worker (#1868). Display-only field: lookup failures are logged as a
+// warning and return nil — they must never fail the instrument detail request.
+func repairWorkerName(workerID *string, db *gorm.DB) *string {
+	if workerID == nil || *workerID == "" {
+		return nil
+	}
+	var worker models.User
+	if err := db.Select("name").First(&worker, "id = ?", *workerID).Error; err != nil {
+		log.Printf("[WARN] repair_worker_name lookup failed for worker %s: %v", *workerID, err)
+		return nil
+	}
+	if worker.Name == "" {
+		return nil
+	}
+	return &worker.Name
 }
 
 func GetInstruments(c *gin.Context) {

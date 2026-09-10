@@ -820,6 +820,9 @@
       "size": "121cm",
       "suitable": "进阶学习者"
     },
+    "repair_status": "repair_pending",
+    "repair_worker_id": null,
+    "repair_worker_name": null,
     "pricing": {
       "monthly_rent": 800,
       "deposit": 5000,
@@ -840,6 +843,14 @@
   }
 }
 ```
+
+**维修字段说明**（#1868）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `repair_status` | string | 维修状态：`repair_pending`（待维修）/ `repair_in_progress`（维修中）/ `repair_completed`（已修复）/ `""`（不在维修流程）。维修工作流页面的操作按钮（开始维修/记录/验收）依赖该字段驱动 |
+| `repair_worker_id` | uuid\|null | 维修负责人用户 ID，无负责人时为 `null` |
+| `repair_worker_name` | string\|null | 负责人姓名（按 `repair_worker_id` 查 `users.name`），无负责人或查无此人时为 `null` |
 
 ---
 
