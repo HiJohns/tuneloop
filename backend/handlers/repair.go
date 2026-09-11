@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type RepairHandler struct{}
@@ -424,4 +425,26 @@ func (h *RepairHandler) ListPendingRepairs(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": instruments}})
+}
+
+// resolveOperatorSiteID returns the site the operator belongs to (first
+// site_members row, oldest first). Used when an instrument enters the repair
+// flow so the acceptance gate has a site to check (#1889). Returns nil when
+// the operator has no site membership — callers fall back to the order's site.
+func resolveOperatorSiteID(db *gorm.DB, userID string) *string {
+	if userID == "" {
+		return nil
+	}
+	var localUser models.User
+	if err := db.Select("id").Where("iam_sub = ?", userID).First(&localUser).Error; err != nil {
+		return nil
+	}
+	var member models.SiteMember
+	if err := db.Where("user_id = ?", localUser.ID).Order("created_at ASC").First(&member).Error; err != nil {
+		return nil
+	}
+	if member.SiteID == "" {
+		return nil
+	}
+	return &member.SiteID
 }

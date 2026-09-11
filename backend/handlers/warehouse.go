@@ -639,6 +639,16 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	var updates map[string]interface{}
 	if req.Condition == "damaged" {
 		updates = map[string]interface{}{"stock_status": models.StockStatusMaintenance, "repair_status": "repair_pending"}
+		// #1889: record where the instrument physically is so the acceptance
+		// gate can verify the operator's site. Prefer the inspecting operator's
+		// site; fall back to the order's site.
+		if siteID := resolveOperatorSiteID(db, userID); siteID != nil {
+			updates["current_site_id"] = *siteID
+		} else if order.OrgID != "" {
+			updates["current_site_id"] = order.OrgID
+		} else {
+			log.Printf("[WARN] #1889: no site resolved for instrument %s entering repair", order.InstrumentID)
+		}
 	} else {
 		updates = map[string]interface{}{"stock_status": models.StockStatusAvailable, "repair_status": nil}
 	}
@@ -794,10 +804,22 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 	}
 
 	orgID := middleware.GetOrgID(ctx)
+	userID := middleware.GetUserID(ctx)
 
 	// Update instrument status to maintenance + repair_pending
+	instUpdates := map[string]interface{}{"stock_status": models.StockStatusMaintenance, "repair_status": "repair_pending"}
+	// #1889: record where the instrument physically is so the acceptance gate
+	// can verify the operator's site. Prefer the assessing operator's site;
+	// fall back to the order's site.
+	if siteID := resolveOperatorSiteID(db, userID); siteID != nil {
+		instUpdates["current_site_id"] = *siteID
+	} else if order.OrgID != "" {
+		instUpdates["current_site_id"] = order.OrgID
+	} else {
+		log.Printf("[WARN] #1889: no site resolved for instrument %s entering repair", order.InstrumentID)
+	}
 	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).
-		Updates(map[string]interface{}{"stock_status": models.StockStatusMaintenance, "repair_status": "repair_pending"}).Error; err != nil {
+		Updates(instUpdates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update instrument status: " + err.Error()})
 		return
 	}

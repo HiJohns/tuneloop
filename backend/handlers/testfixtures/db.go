@@ -55,6 +55,8 @@ var allTables = []interface{}{
 	&models.ConfirmationSession{},
 	&models.InstrumentPromoOverride{}, // #1863: rent_to_own tests
 	&models.RepairRecord{},            // #1866 T3: ListRecords queries repair_records
+	&models.InstrumentMedia{},         // #1889: InspectReturn writes return photos
+	&models.MaintenanceTicket{},       // #1889: SubmitAssessment creates legacy ticket (removal tracked by #1886)
 }
 
 // SetupTestDB connects to the test database, drops and recreates all

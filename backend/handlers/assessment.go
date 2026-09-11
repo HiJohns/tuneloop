@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"time"
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
@@ -108,6 +110,7 @@ func (h *AssessmentHandler) SubmitAssessment(c *gin.Context) {
 	var order struct {
 		InstrumentID string `json:"instrument_id"`
 		Status       string `json:"status"`
+		OrgID        string `json:"org_id"`
 	}
 
 	if err := h.db.Table("orders").Where("id = ?", orderID).First(&order).Error; err != nil {
@@ -138,8 +141,19 @@ func (h *AssessmentHandler) SubmitAssessment(c *gin.Context) {
 		}
 
 		// Update instrument status to maintenance + repair_pending
+		instUpdates := map[string]interface{}{"stock_status": models.StockStatusMaintenance, "repair_status": "repair_pending"}
+		// #1889: record where the instrument physically is so the acceptance
+		// gate can verify the operator's site. Prefer the assessing operator's
+		// site; fall back to the order's site.
+		if siteID := resolveOperatorSiteID(h.db, middleware.GetUserID(c.Request.Context())); siteID != nil {
+			instUpdates["current_site_id"] = *siteID
+		} else if order.OrgID != "" {
+			instUpdates["current_site_id"] = order.OrgID
+		} else {
+			log.Printf("[WARN] #1889: no site resolved for instrument %s entering repair", order.InstrumentID)
+		}
 		if err := h.db.Table("instruments").Where("id = ?", order.InstrumentID).
-			Updates(map[string]interface{}{"stock_status": models.StockStatusMaintenance, "repair_status": "repair_pending"}).Error; err != nil {
+			Updates(instUpdates).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"code":    50000,
 				"message": "Failed to update instrument status",
