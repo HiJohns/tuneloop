@@ -1,6 +1,17 @@
+import { useState } from 'react'
 import Taro from '@tarojs/taro'
 
 const STATE_KEY = '__nav_state__'
+
+function readInitialParams() {
+  const live = Taro.getCurrentInstance().router?.params
+  if (live && Object.keys(live).length > 0) return live
+  const pages = Taro.getCurrentPages()
+  if (pages.length > 0) {
+    return pages[pages.length - 1].options || {}
+  }
+  return {}
+}
 
 export function useNavigate() {
   return (to, options) => {
@@ -21,11 +32,12 @@ export function useNavigate() {
 }
 
 export function useParams() {
-  return Taro.getCurrentInstance().router?.params || {}
+  const [params] = useState(readInitialParams)
+  return params
 }
 
 export function useSearchParams() {
-  const params = Taro.getCurrentInstance().router?.params || {}
+  const [params] = useState(readInitialParams)
   const searchStr = Object.entries(params)
     .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
     .join('&')
