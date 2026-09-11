@@ -850,7 +850,7 @@
 |------|------|------|
 | `repair_status` | string | 维修状态：`repair_pending`（待维修）/ `repair_in_progress`（维修中）/ `repair_completed`（已修复）/ `""`（不在维修流程）。维修工作流页面的操作按钮（开始维修/记录/验收）依赖该字段驱动 |
 | `repair_worker_id` | uuid\|null | 维修负责人用户 ID，无负责人时为 `null` |
-| `repair_worker_name` | string\|null | 负责人姓名（按 `repair_worker_id` 查 `users.name`），无负责人或查无此人时为 `null` |
+| `repair_worker_name` | string\|null | 负责人姓名（#1873：`repair_worker_id` 存储 IAM sub，按 `users.iam_sub` 解析，回退链 `name → username → phone`；无负责人或查无此人时为 `null`） |
 
 ---
 
@@ -2169,6 +2169,8 @@ Content-Disposition: attachment; filename="assessment_order_001.pdf"
 
 ## 七、维保服务模块
 
+> ⚠️ **遗留维保模块（废弃公告）**：§7.1-§7.7 与 §9.13-§9.15 为旧的维保工单（maintenance ticket/worker/session）体系，**已决定废弃（#1888 R6，清理见 #1886）**。以下契约与实现存在多处偏差（枚举大小写/字段名/响应层级，明细见 #1886），仅存档参考，勿用于新开发。租赁乐器维修见 §7.9-§7.11，客户报修 v3 见 §7.12-§7.14。
+
 ### 7.1 查询服务包覆盖项
 
 **接口**: `GET /api/maintenance/coverage/:instrumentId`
@@ -2421,6 +2423,7 @@ Content-Disposition: attachment; filename="assessment_order_001.pdf"
         "id": "uuid",
         "repair_request_id": "uuid",
         "worker_id": "uuid",
+        "worker_name": "李四",
         "comment": "报修单已创建",
         "photos": "[\"photo_key.jpg\"]",
         "record_type": "created",
@@ -2430,6 +2433,8 @@ Content-Disposition: attachment; filename="assessment_order_001.pdf"
   }
 }
 ```
+
+> `worker_name`（#1873）：按 `worker_id`（IAM sub）解析展示名，回退链 `name → username → phone`；无匹配时为空字符串。
 
 ---
 
@@ -2548,6 +2553,213 @@ Content-Disposition: attachment; filename="assessment_order_001.pdf"
 - `damage`: 最近一条 `damage_report`（按 `created_at DESC` 取第一条），无定损时为 `null`
 - `damage.damage_amount`: 单位为分（int64），前端需除以 100 显示元
 - `damage.status`: 定损报告状态（`pending`/`completed`/`agreed`/`appealed`/`cancelled`/`resolved`）
+
+---
+
+### 7.11 租赁乐器维修动作端点（员工/师傅）
+
+> 权限组：`repairRequired`（authRequired + `instrument:maintain`）。`#1882` 计划接入 `repair:start/complete/accept` 及站点/角色校验（目标契约见下）。
+
+#### 7.11.1 开始维修
+**接口**: `POST /api/repair/:id/start`
+**说明**: 将 `repair_pending` 乐器置为 `repair_in_progress`，当前用户成为 `repair_worker_id`。
+**响应**: `{code:20000, message}`
+**错误**: 40001 id 缺失 / 40400 乐器不存在 / 40002 非 repair_pending / 50000
+
+#### 7.11.2 维修完成
+**接口**: `POST /api/repair/:id/complete`
+**说明**: `repair_in_progress` → `repair_completed`；**要求至少一条当前负责人提交的、含照片的维修记录**（`photos` JSONB 数组非空，按 `jsonb_array_length > 0` 校验，#1875）。
+**错误**: 40001 / 40400 / 40002 非维修中 / 40300 非指派负责人 / 40003 缺少带照片记录 / 50000
+**目标契约（#1882）**: 追加站点校验（操作员站点 ∩ 乐器 current_site_id）
+
+#### 7.11.3 接手
+**接口**: `POST /api/repair/:id/takeover`
+**说明**: `repair_pending`/`repair_in_progress` 下，任意用户接管为负责人。
+**目标契约（#1882 R4）**: 仅同站点师傅可接手（操作员站点 ∩ 乐器 `current_site_id`）
+**错误**: 40001 / 40400 / 40002 状态不符 / 50000
+
+#### 7.11.4 改派负责人
+**接口**: `POST /api/repair/:id/reassign`
+**请求**: `{"worker_id": "uuid"}`
+**说明**: `repair_in_progress` 下更换 `repair_worker_id`。
+**目标契约（#1882 R5）**: 仅 `site_admin` 可改派，目标须为同站点成员
+**错误**: 40001 / 40002 worker_id 必填 / 40400 / 40003 非维修中 / 50000
+
+#### 7.11.5 验收通过
+**接口**: `POST /api/repair/:id/accept`
+**说明**: `repair_completed` → `available`，清空 `repair_status/repair_worker_id`。
+**校验**: 乐器须有关联站点（`current_site_id`，否则 40003）；调用者须为该站点 `site_members` 成员。
+**目标契约（#1882 R1）**: 成员角色限 `site_admin/site_member` 且 `≠ repair_worker_id`（禁止自验收）
+**错误**: 40001 / 40400 乐器/用户不存在 / 40002 非 repair_completed / 40003 乐器无网点 / 40300 非该网点成员 / 50000
+
+#### 7.11.6 验收不通过
+**接口**: `POST /api/repair/:id/reject`
+**请求**: `{"comment": "不通过原因"}`
+**说明**: `repair_completed` → `repair_in_progress`。
+**目标契约（#1882 R1/R3）**: 同 7.11.5 的站点+角色+非本单维修人校验；原因写入 `repair_records`（`comment` 前缀「验收驳回：」）
+**错误**: 40001 / 40002 comment 必填 / 40400 / 40003 非 repair_completed / 50000
+
+#### 7.11.7 添加维修记录
+**接口**: `POST /api/repair/:id/records`
+**请求**: `{"comment": "已更换琴弦", "photos": ["/uploads/media/x.webp"]}`
+**响应**: `{"code":20000,"data":{"id":"uuid"}}`
+**说明**: 记录写入 `repair_records`；`photos` 为 URL 数组（`/upload` 返回的 `data.url`），同时逐张登记 `instrument_media`（batch_type=`repair`, is_display=false）。
+**错误**: 40001 / 40002 / 50000
+
+#### 7.11.8 我的维修列表
+**接口**: `GET /api/repair/mine`
+**说明**: 当前用户作为 `repair_worker_id` 且 `repair_status IS NOT NULL` 的乐器，按 `updated_at DESC`。
+**响应**: `{"code":20000,"data":{"list":[Instrument...]}}`
+**目标契约（#1882）**: pending 列表按操作员站点过滤
+
+---
+
+### 7.12 客户报修 v3 — 报修单与记录
+
+> 权限组：`userOptionalAuth`（顾客无组织绑定）。**目标契约（#1880）**：以下顾客写操作须校验属主 `req.user_id == caller`；详情按「报修人本人 / 该单站点成员」可见并脱敏；创建须校验 `user_instrument` 属主。
+
+#### 7.12.1 创建报修单
+**接口**: `POST /api/repair-requests`
+**权限**: userOptionalAuth（**目标**：登录顾客；匿名拒绝）
+**请求**:
+```json
+{
+  "user_instrument_id": "uuid（与 sn 二选一）",
+  "sn": "CVZ-01",
+  "instrument_type": "小提琴", "brand": "Yamaha", "model": "V3",
+  "site_id": "uuid（必填）",
+  "merchant_type": "full | controlled（默认 full）",
+  "transit_site_id": "uuid（受控时）",
+  "description": "琴颈开裂",
+  "photos": ["/uploads/media/x.webp"],
+  "video_url": "/uploads/media/v.mp4",
+  "tracking_company": "", "tracking_number": ""
+}
+```
+**响应**: `data` = RepairRequest 全模型（字段见 §7.12.2 列表项 + `photos` 为 JSONB 字符串）
+**说明**: 无 `tenant_id`（顾客）时由 `site_id` 反查 `tenant_id/org_id`
+**错误**: 40002 参数/站点无效 / 50000 创建失败
+
+#### 7.12.2 报修列表
+**接口**: `GET /api/repair-requests`
+**Query**: `status`（可选，逗号分隔多状态）
+**说明**: USER → 本人报修单；员工 → 本网点（目标契约 #1881：无站点归属返回空集，不回退全量；merchant_admin 按商户范围）；每项含 `instrument_sn/instrument_type/brand/model/site_name/merchant_name/reporter_name` 等派生字段
+**错误**: 无显式错误码（查询错误当前被忽略，恒 20000 —— 待修 #1881 一并治理）
+
+#### 7.12.3 报修详情
+**接口**: `GET /api/repair-requests/:id`
+**说明**: 返回报修单 + 派生字段，并含 `reporter_phone/reporter_address/reporter_postal_code`（PII）、`transit_site_*`（受控）
+**目标契约（#1880）**: 报修人本人 / 该单站点成员可见，否则 404；受控情形对站点成员脱敏 PII
+**错误**: 40001 / 40400
+
+#### 7.12.4 添加报修记录
+**接口**: `POST /api/repair-requests/:id/records`
+**请求**: `{"comment": "...", "photos": ["key"], "video_url": "key"}`（三者至少一项）
+**响应**: `data` = RepairRequestRecord（`id/repair_request_id/worker_id/comment/photos/record_type/created_at`）
+**目标契约（#1880/#1884）**: 报修人本人或该单站点成员可写；技师/员工过程记录入口（#1884）
+**错误**: 40002 参数/三者全空 / 40400 / 50000
+
+#### 7.12.5 报修记录列表
+**接口**: `GET /api/repair-requests/:id/records`
+**响应**: `{records: [{id, repair_request_id, worker_id, worker_name, comment, photos, record_type, created_at}]}`（`photos` JSONB 字符串；`worker_name` 按 IAM sub 解析）
+**错误**: 50000
+
+---
+
+### 7.13 客户报修 v3 — 报价与接受
+
+#### 7.13.1 提交报价（师傅）
+**接口**: `POST /api/repair-requests/:id/quotes`
+**请求**（金额单位：**元**，落库转分）: `{"material_fee": 100, "service_fee": 50, "logistics_fee": 20, "duration": "3天", "comment": "..."}`
+**响应**: `data` = RepairQuote（`material_fee/service_fee/logistics_fee` 为**分**；`quote_no`；`is_renegotiation`；`status`）
+**说明**: 评论过敏感信息校验；报价 `site_id` 取技师站点
+**目标契约（#1881 R7）**: 仅受控/目标网点 `repair_technician` 可提；路由移出 userOptionalAuth（匿名拒绝）
+**错误**: 40001 / 40002 敏感信息 / 50000
+
+#### 7.13.2 报价列表
+**接口**: `GET /api/repair-requests/:id/quotes`
+**说明**: 顾客（全权）见报价全字段；受控情形脱敏（去 `repair_request_id/site_id/worker_id/is_renegotiation`）；员工见站点报价 + `total_amount`（分）；另返回 `accepted_quote`（无则 `null`）
+**目标契约（#1881 R7）**: 员工按本人全部站点过滤（修复 members[0]/空集回退）；跨网点互不可见
+**错误**: 40002 repair_request_id required
+
+#### 7.13.3 接受报价（顾客）
+**接口**: `POST /api/repair-requests/:id/quotes/:qid/accept`
+**说明**: quote → accepted，报修单 → `pending_payment`
+**目标契约（#1880）**: 仅报修人本人可接受
+**错误**: 40001 / 40400 quote not found / 40002 quote 非 pending / 50000
+
+---
+
+### 7.14 客户报修 v3 — 支付与物流流转
+
+#### 7.14.1 支付
+**接口**: `POST /api/repair-requests/:id/pay`
+**说明**: `pending_payment` → 创建支付记录（调试期返回 `payment_required`）
+**响应**: `{"payment_required": true, "amount": 6000.0, "out_trade_no": "..."}`
+**⚠️ 单位异常**: `amount` 为**元**（`amount.ToYuan()`），与全系统「分为单位」约定不一致（#1887 标注；建议后续统一为分）
+**目标契约（#1880）**: 仅报修人本人可支付
+**错误**: 40001 / 40400 / 40004 非 pending_payment / 40002 无已接受报价或金额非正 / 50000
+
+#### 7.14.2 填写寄送物流（顾客）
+**接口**: `PUT /api/repair-requests/:id/tracking`
+**请求**: `{"tracking_company": "顺丰", "tracking_number": "SF..."}`（number 必填）
+**说明**: 仅 `pending_ship` 可更新 → `shipping`
+**目标契约（#1880）**: 仅报修人本人
+**错误**: 40002 / 40400 / 40003 状态不符
+
+#### 7.14.3 网点确认收货
+**接口**: `POST /api/repair-requests/:id/receive`
+**说明**: `shipping`/`transit_in` → `repairing`（拆箱场景另经 transit-relay）
+**响应**: `{status}`
+**目标契约（#1881）**: 按状态校验目标/受控/中转网点成员
+**错误**: 40400 / 40002 状态不符
+
+#### 7.14.4 中转处理（中转网点员工）
+**接口**: `POST /api/repair-requests/:id/transit-process`
+**请求**（单位：**元**）: `{"transit_service_fee": 30, "transit_logistics_fee": 50}`
+**说明**: `transit_processing` → `pending_assessment`；写入 `repair_transit_orders` 并扇出受控网点
+**目标契约（#1881）**: 仅 `transit_site_id` 成员
+**错误**: 40400 / 40002 状态或 merchant_type 不符 / 50000
+
+#### 7.14.5 中转转发（拆箱/重装）
+**接口**: `POST /api/repair-requests/:id/transit-relay`
+**请求**: `{"direction": "in|out", "transit_order_number": "...", "unpack_photos": ["key"], "repack_company": "...", "repack_tracking_number": "...", "note": "..."}`
+**说明**: 按 direction 操作转入/转出 transit order（状态/照片/重装单号）
+**目标契约（#1881）**: 仅该 transit order 的 `site_id` 成员
+**错误**: 40400 报修单/transit order not found / 40002
+
+#### 7.14.6 维修完成（客户报修）
+**接口**: `POST /api/repair-requests/:id/complete`
+**说明**: `repairing` → `return_pending`
+**目标契约（#1881）**: 仅该单站点（受控网点）成员/技师
+**错误**: 40400 / 40002 状态不符
+
+#### 7.14.7 重新报价（师傅，仅一次）
+**接口**: `POST /api/repair-requests/:id/requote`
+**请求**（单位：**元**）: 同 §7.13.1
+**响应**: `data` = RepairQuote（`is_renegotiation=true`）
+**目标契约（#1881）**: 仅受控网点 `repair_technician`；仅一次
+**错误**: 40400 / 40002 非 repairing 或已重报 / 40002 敏感信息 / 50000
+
+#### 7.14.8 拒绝重新报价（顾客）
+**接口**: `POST /api/repair-requests/:id/requote-reject`
+**说明**: 回退结算：`refund = (材料+服务) - 检查费`（分），报修单 → `return_pending`
+**响应**: `{"refund": 0, "retained_fees": 5000}`（分）
+**目标契约（#1880）**: 仅报修人本人（资金操作）
+**错误**: 40400 / 40002 非 repairing 或无可回滚报价 / 50000
+
+#### 7.14.9 填写发回物流（员工）
+**接口**: `PUT /api/repair-requests/:id/return-shipping`
+**请求**: `{"return_company": "顺丰", "return_tracking_number": "SF..."}`（number 必填）
+**说明**: `return_pending` → `returned`（全权）/ `transit_out`（受控）
+**目标契约（#1881）**: 仅该单站点成员
+**错误**: 40002 / 40400 / 40003 状态不符
+
+#### 7.14.10 确认收货（顾客）
+**接口**: `POST /api/repair-requests/:id/confirm-receipt`
+**说明**: `returned` → `closed`
+**目标契约（#1880）**: 仅报修人本人
+**错误**: 40400 / 40002 非 returned / 50000
 
 ---
 
@@ -3977,6 +4189,8 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 ```
 
 ---
+
+> ⚠️ **§9.13-§9.15 为遗留维保（maintenance）接口，已决定废弃（#1888 R6，清理见 #1886）**，契约失真明细见 #1886，勿用于新开发。
 
 ### 9.13 确认取琴
 
