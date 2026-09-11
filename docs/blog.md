@@ -357,3 +357,4 @@
 - 2026-09-11: 批量处理完成，包含任务: Resolved Issues: #1871, #1870
 - 2026-09-11: 批量处理完成，包含任务: Resolved Issues: #1872（weapp 选图后参数丢失热修）
 - 2026-09-11: 批量处理完成，包含任务: Resolved Issues: #1873; Rejected: #1874（日期迁移遗漏 LeaseInfo/Checkout/weapp renewal，待返工）
+- 2026-09-11: 批量处理完成，包含任务: Resolved Issues: #1874（返工补齐 4 处遗漏，复审 PASS）
