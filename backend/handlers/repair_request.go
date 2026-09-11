@@ -246,6 +246,13 @@ func (h *RepairRequestHandler) Get(c *gin.Context) {
 		return
 	}
 
+	// #1880: visibility — reporter or a member of the request's sites; others 404
+	callerSub := middleware.GetUserID(ctx)
+	if !canViewRepairRequest(db, req, callerSub) {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "not found"})
+		return
+	}
+
 	instrumentSN, instrumentType, brand, model, siteName, siteAddress, sitePhone, merchantName, reporterName := resolveRepairMeta(db, req)
 
 	// Look up transit order for this repair request
@@ -279,6 +286,11 @@ func (h *RepairRequestHandler) Get(c *gin.Context) {
 				}
 			}
 		}
+	}
+
+	// #1880: controlled requests hide reporter identity from site members
+	if req.MerchantType == models.MerchantTypeControlled && !isRepairRequestOwner(req, callerSub) {
+		reporterName, reporterPhone, reporterAddress, reporterPostalCode = "", "", "", ""
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
@@ -353,7 +365,21 @@ func (h *RepairRequestHandler) Create(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 	userID := middleware.GetUserID(ctx)
 
+	// #1880: only authenticated customers may create repair requests
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "authentication required"})
+		return
+	}
+
 	userInstrumentID := body.UserInstrumentID
+	if userInstrumentID != "" {
+		// #1880: the referenced instrument must belong to the caller
+		var ui models.UserInstrument
+		if err := db.Where("id = ? AND user_id = ?", userInstrumentID, userID).First(&ui).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "user instrument not found or not owned by caller"})
+			return
+		}
+	}
 	if userInstrumentID == "" && body.SN != "" {
 		var existing models.UserInstrument
 		if err := db.Where("sn = ? AND user_id = ?", body.SN, userID).First(&existing).Error; err != nil {
@@ -527,6 +553,12 @@ func (h *RepairRequestHandler) UpdateTracking(c *gin.Context) {
 		return
 	}
 
+	// #1880: only the reporter may submit tracking
+	if !isRepairRequestOwner(req, middleware.GetUserID(ctx)) {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "only the reporter can update tracking"})
+		return
+	}
+
 	db.Model(&req).Updates(map[string]interface{}{
 		"tracking_company": body.TrackingCompany,
 		"tracking_number":  body.TrackingNumber,
@@ -601,6 +633,12 @@ func (h *RepairRequestHandler) AddRecord(c *gin.Context) {
 	var req models.RepairRequest
 	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "repair request not found"})
+		return
+	}
+
+	// #1880/#1881: reporter or a member of the request's sites may add records
+	if !canViewRepairRequest(db, req, middleware.GetUserID(ctx)) {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "no permission to add records to this request"})
 		return
 	}
 
@@ -916,6 +954,12 @@ func (h *RepairRequestHandler) ConfirmReceipt(c *gin.Context) {
 		return
 	}
 
+	// #1880: only the reporter may confirm receipt
+	if !isRepairRequestOwner(req, middleware.GetUserID(ctx)) {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "only the reporter can confirm receipt"})
+		return
+	}
+
 	now := time.Now()
 	if err := db.Model(&req).Updates(map[string]interface{}{
 		"status":     models.RepairReqStatusClosed,
@@ -1055,6 +1099,12 @@ func (h *RepairRequestHandler) PayRepairRequest(c *gin.Context) {
 
 	if req.Status != models.RepairReqStatusPendingPay {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "not in pending_payment status"})
+		return
+	}
+
+	// #1880: only the reporter may pay
+	if !isRepairRequestOwner(req, middleware.GetUserID(ctx)) {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "only the reporter can pay this repair request"})
 		return
 	}
 
@@ -1295,6 +1345,12 @@ func (h *RepairRequestHandler) RejectRequote(c *gin.Context) {
 		return
 	}
 
+	// #1880: only the reporter may reject a requote (triggers refund)
+	if !isRepairRequestOwner(req, middleware.GetUserID(ctx)) {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "only the reporter can reject a requote"})
+		return
+	}
+
 	// Rollback settlement: refund = max(0, material+service - check_fee_snapshot)
 	// Logistics and transit fees are retained (lock-in at shipping time)
 	if req.AcceptedQuoteID == nil {
@@ -1406,4 +1462,40 @@ func createRepairRecord(db *gorm.DB, reqID, workerID, recordType, comment string
 		CreatedAt:       time.Now(),
 	}
 	db.Create(&rec)
+}
+
+// isRepairRequestOwner reports whether the caller owns the repair request (#1880).
+func isRepairRequestOwner(req models.RepairRequest, callerSub string) bool {
+	return callerSub != "" && req.UserID == callerSub
+}
+
+// repairRequestSiteIDs lists the sites bound to a repair request (#1880).
+func repairRequestSiteIDs(req models.RepairRequest) []string {
+	ids := make([]string, 0, 3)
+	if req.SiteID != "" {
+		ids = append(ids, req.SiteID)
+	}
+	if req.TransitSiteID != nil && *req.TransitSiteID != "" {
+		ids = append(ids, *req.TransitSiteID)
+	}
+	if req.ControlledSiteID != nil && *req.ControlledSiteID != "" {
+		ids = append(ids, *req.ControlledSiteID)
+	}
+	return ids
+}
+
+// canViewRepairRequest reports whether callerSub may view the request: the
+// reporter themselves, or a staff member/technician of one of its sites
+// (#1880 visibility + #1881 site scoping).
+func canViewRepairRequest(db *gorm.DB, req models.RepairRequest, callerSub string) bool {
+	if isRepairRequestOwner(req, callerSub) {
+		return true
+	}
+	memberships := resolveOperatorSiteMemberships(db, callerSub)
+	for _, sid := range repairRequestSiteIDs(req) {
+		if hasSiteRole(memberships, sid, "site_admin", "site_member", "repair_technician") {
+			return true
+		}
+	}
+	return false
 }

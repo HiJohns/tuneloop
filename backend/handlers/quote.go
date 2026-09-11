@@ -250,6 +250,17 @@ func AcceptQuote(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
 
+	// #1880: only the reporter may accept a quote for their request
+	var acceptReq models.RepairRequest
+	if err := db.Where("id = ?", repairRequestID).First(&acceptReq).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "repair request not found"})
+		return
+	}
+	if !isRepairRequestOwner(acceptReq, middleware.GetUserID(ctx)) {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "only the reporter can accept a quote"})
+		return
+	}
+
 	var quote models.RepairQuote
 	if err := db.Where("id = ? AND repair_request_id = ?", quoteID, repairRequestID).First(&quote).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "quote not found"})

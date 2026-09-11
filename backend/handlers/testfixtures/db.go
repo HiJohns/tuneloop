@@ -56,6 +56,7 @@ var allTables = []interface{}{
 	&models.InstrumentPromoOverride{}, // #1863: rent_to_own tests
 	&models.RepairRecord{},            // #1866 T3: ListRecords queries repair_records
 	&models.RepairRequest{},           // #1881: v3 staff/tech authorization tests
+	&models.UserInstrument{},          // #1880: create ownership tests
 	&models.RepairRequestRecord{},     // #1881: createRepairRecord writes
 	&models.RepairQuote{},             // #1881: quote visibility tests
 	&models.RepairTransitOrder{},      // #1881: transit process/relay tests
