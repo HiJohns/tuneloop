@@ -43,15 +43,17 @@ func (h *RepairRequestHandler) List(c *gin.Context) {
 	if role == "USER" {
 		query = query.Where("user_id = ?", userID)
 	} else {
-		// Staff: filter by current user's sites
-		var localUser models.User
-		if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
-			var siteIDs []string
-			db.Table("site_members").Where("user_id = ?", localUser.ID).Pluck("site_id", &siteIDs)
-			if len(siteIDs) > 0 {
-				query = query.Where("site_id IN ?", siteIDs)
-			}
+		// #1881: staff scope to their sites; no memberships → empty result
+		// (never fall back to a tenant-wide listing).
+		siteIDs := []string{}
+		for _, m := range resolveOperatorSiteMemberships(db, userID) {
+			siteIDs = append(siteIDs, m.SiteID)
 		}
+		if len(siteIDs) == 0 {
+			c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": []interface{}{}}})
+			return
+		}
+		query = query.Where("site_id IN ?", siteIDs)
 	}
 
 	query.Order("created_at DESC").Find(&requests)
@@ -724,6 +726,13 @@ func (h *RepairRequestHandler) TransitProcess(c *gin.Context) {
 		return
 	}
 
+	// #1881: only staff of the transit site may process
+	userID := middleware.GetUserID(ctx)
+	if req.TransitSiteID == nil || !hasSiteRole(resolveOperatorSiteMemberships(db, userID), *req.TransitSiteID, "site_admin", "site_member") {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "you do not belong to this transit site"})
+		return
+	}
+
 	var body struct {
 		TransitServiceFee   float64 `json:"transit_service_fee"`
 		TransitLogisticsFee float64 `json:"transit_logistics_fee"`
@@ -744,7 +753,7 @@ func (h *RepairRequestHandler) TransitProcess(c *gin.Context) {
 		TransitLogisticsFee: models.ToCentsPtr(&body.TransitLogisticsFee),
 		CreatedAt:           time.Now(),
 	}
-	if err := db.Create(&transitOrder).Error; err != nil {
+	if err := db.Omit("ControlledSiteID").Create(&transitOrder).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create transit order"})
 		return
 	}
@@ -785,6 +794,25 @@ func (h *RepairRequestHandler) Receive(c *gin.Context) {
 	}
 	if req.Status != models.RepairReqStatusShipping && req.Status != models.RepairReqStatusTransitIn {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "not in shipping or transit_in status"})
+		return
+	}
+
+	// #1881: the receiving site must match the flow stage:
+	//   shipping (full)       → target site (SiteID)
+	//   shipping (controlled) → transit site (TransitSiteID) marks transit_in
+	//   transit_in            → controlled site (ControlledSiteID) receives
+	memberships := resolveOperatorSiteMemberships(db, middleware.GetUserID(ctx))
+	var siteID string
+	if req.Status == models.RepairReqStatusShipping {
+		siteID = req.SiteID
+		if req.MerchantType == models.MerchantTypeControlled && req.TransitSiteID != nil {
+			siteID = *req.TransitSiteID
+		}
+	} else if req.ControlledSiteID != nil {
+		siteID = *req.ControlledSiteID
+	}
+	if siteID == "" || !hasSiteRole(memberships, siteID, "site_admin", "site_member") {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "you do not belong to the receiving site"})
 		return
 	}
 
@@ -833,6 +861,12 @@ func (h *RepairRequestHandler) TransitRelay(c *gin.Context) {
 	var transitOrder models.RepairTransitOrder
 	if err := db.Where("repair_request_id = ? AND direction = ?", id, body.Direction).First(&transitOrder).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "transit order not found"})
+		return
+	}
+
+	// #1881: only staff of the transit order's site may relay
+	if !hasSiteRole(resolveOperatorSiteMemberships(db, middleware.GetUserID(ctx)), transitOrder.TransitSiteID, "site_admin", "site_member") {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "you do not belong to this transit site"})
 		return
 	}
 
@@ -913,6 +947,12 @@ func (h *RepairRequestHandler) CompleteRepairRequest(c *gin.Context) {
 		return
 	}
 
+	// #1881: only staff of the request's site (repair site) may complete
+	if !hasSiteRole(resolveOperatorSiteMemberships(db, middleware.GetUserID(ctx)), req.SiteID, "site_admin", "site_member", "repair_technician") {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "you do not belong to this repair site"})
+		return
+	}
+
 	if err := db.Model(&req).Updates(map[string]interface{}{
 		"status":     models.RepairReqStatusReturnPend,
 		"updated_at": time.Now(),
@@ -948,6 +988,12 @@ func (h *RepairRequestHandler) ReturnShipping(c *gin.Context) {
 
 	if req.Status != models.RepairReqStatusReturnPend {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "only return_pending requests can update return shipping"})
+		return
+	}
+
+	// #1881: only staff of the request's site may ship back
+	if !hasSiteRole(resolveOperatorSiteMemberships(db, middleware.GetUserID(ctx)), req.SiteID, "site_admin", "site_member") {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "you do not belong to this repair site"})
 		return
 	}
 
@@ -1110,6 +1156,23 @@ func (h *RepairRequestHandler) Requote(c *gin.Context) {
 	}
 	if req.Status != models.RepairReqStatusRepairing {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "not in repairing status"})
+		return
+	}
+
+	// #1881: only a repair_technician of the controlled (repair) site may requote
+	requoteSiteID := req.SiteID
+	if req.ControlledSiteID != nil {
+		requoteSiteID = *req.ControlledSiteID
+	}
+	requoteAllowed := false
+	for _, m := range resolveOperatorSiteMemberships(db, userID) {
+		if m.SiteID == requoteSiteID && m.Role == "repair_technician" {
+			requoteAllowed = true
+			break
+		}
+	}
+	if !requoteAllowed {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "only this site's repair technician may requote"})
 		return
 	}
 

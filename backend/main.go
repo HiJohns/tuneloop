@@ -734,7 +734,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/repair-requests/:id/requote", repairReqHandler.Requote)
 				userOptionalAuth.POST("/repair-requests/:id/requote-reject", repairReqHandler.RejectRequote)
 				// v3 quoting subsystem (nested under repair-requests)
-				userOptionalAuth.POST("/repair-requests/:id/quotes", handlers.SubmitQuote)
+				// #1881: submission requires an authenticated repair technician
+				authRequired.POST("/repair-requests/:id/quotes", handlers.SubmitQuote)
 				userOptionalAuth.GET("/repair-requests/:id/quotes", handlers.ListQuotes)
 				userOptionalAuth.POST("/repair-requests/:id/quotes/:qid/accept", handlers.AcceptQuote)
 				userOptionalAuth.POST("/repair-requests/:id/confirm-receipt", repairReqHandler.ConfirmReceipt)

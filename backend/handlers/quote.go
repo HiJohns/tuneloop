@@ -46,15 +46,23 @@ func SubmitQuote(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 	userID := middleware.GetUserID(ctx)
 
-	// Determine the technician's site
-	var siteID string
-	var localUser models.User
-	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
-		var members []models.SiteMember
-		db.Where("user_id = ? AND role = ?", localUser.ID, "repair_technician").Limit(1).Find(&members)
-		if len(members) > 0 {
-			siteID = members[0].SiteID
+	// #1881: only a repair_technician site member may quote; the quote is
+	// attributed to their site.
+	var reqModel models.RepairRequest
+	if err := db.Where("id = ?", repairRequestID).First(&reqModel).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "repair request not found"})
+		return
+	}
+	siteID := ""
+	for _, m := range resolveOperatorSiteMemberships(db, userID) {
+		if m.Role == "repair_technician" {
+			siteID = m.SiteID
+			break
 		}
+	}
+	if siteID == "" {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "only repair technicians may submit quotes"})
+		return
 	}
 
 	// Generate a unique quote number
@@ -79,9 +87,8 @@ func SubmitQuote(c *gin.Context) {
 		return
 	}
 
-	// Notify customer of new quote
-	var reqModel models.RepairRequest
-	if err := db.Where("id = ?", repairRequestID).First(&reqModel).Error; err == nil {
+	// Notify customer of new quote (reqModel loaded above for authorization)
+	{
 		var customerUser models.User
 		if err := database.GetDB().Where("iam_sub = ?", reqModel.UserID).First(&customerUser).Error; err == nil {
 			title := "收到新报价"
@@ -125,15 +132,17 @@ func ListQuotes(c *gin.Context) {
 	if role == "USER" {
 		query.Find(&quotes)
 	} else {
-		// Staff/tech: find the user's site, then show only that site's quotes
-		var localUser models.User
-		if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
-			var members []models.SiteMember
-			db.Where("user_id = ?", localUser.ID).Limit(1).Find(&members)
-			if len(members) > 0 {
-				query = query.Where("site_id = ?", members[0].SiteID)
-			}
+		// #1881 R7: staff/tech see only quotes from their own sites; no
+		// memberships → empty list (never fall back to a cross-site listing).
+		siteIDs := []string{}
+		for _, m := range resolveOperatorSiteMemberships(db, userID) {
+			siteIDs = append(siteIDs, m.SiteID)
 		}
+		if len(siteIDs) == 0 {
+			c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": []interface{}{}, "accepted_quote": nil}})
+			return
+		}
+		query = query.Where("site_id IN ?", siteIDs)
 		query.Find(&quotes)
 	}
 
@@ -175,20 +184,20 @@ func ListQuotes(c *gin.Context) {
 	items := make([]gin.H, len(quotes))
 	for i, q := range quotes {
 		items[i] = gin.H{
-			"id":               q.ID,
+			"id":                q.ID,
 			"repair_request_id": q.RepairRequestID,
-			"site_id":          q.SiteID,
-			"worker_id":        q.WorkerID,
-			"quote_no":         q.QuoteNo,
-			"material_fee":     q.MaterialFee,
-			"service_fee":      q.ServiceFee,
-			"logistics_fee":    q.LogisticsFee,
-			"duration":         q.Duration,
-			"comment":          q.Comment,
-			"is_renegotiation": q.IsRenegotiation,
-			"status":           q.Status,
-			"created_at":       q.CreatedAt,
-			"total_amount":     quoteTotalAmount(q, isControlled, transitServiceFee, transitLogisticsFee),
+			"site_id":           q.SiteID,
+			"worker_id":         q.WorkerID,
+			"quote_no":          q.QuoteNo,
+			"material_fee":      q.MaterialFee,
+			"service_fee":       q.ServiceFee,
+			"logistics_fee":     q.LogisticsFee,
+			"duration":          q.Duration,
+			"comment":           q.Comment,
+			"is_renegotiation":  q.IsRenegotiation,
+			"status":            q.Status,
+			"created_at":        q.CreatedAt,
+			"total_amount":      quoteTotalAmount(q, isControlled, transitServiceFee, transitLogisticsFee),
 		}
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": items, "accepted_quote": acceptedQuote}})
