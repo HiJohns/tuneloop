@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Table, Button, Space, message, Tag, Popconfirm, Modal, Input, Select, Checkbox, Typography, Alert } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import api from '../services/api';
+import { formatBeijingDate } from '../utils/date';
 import { adminApi } from '../services/api';
 
 const ROLE_COLORS = {
@@ -296,7 +297,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
       title: '加入时间',
       dataIndex: 'created_at',
       key: 'created_at',
-      render: (date) => new Date(date).toLocaleDateString(),
+      render: (date) => formatBeijingDate(date),
     },
     {
       title: '操作',

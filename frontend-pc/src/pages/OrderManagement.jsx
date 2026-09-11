@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { Table, Card, Tag, Input, Select, Space, Spin, Button, Modal, message, DatePicker } from 'antd'
 import dayjs from 'dayjs'
 import api from '../services/api'
+import { formatBeijingDate } from '../utils/date'
+
+const formatMD = formatBeijingDate
 
 const STATUS_MAP = {
   reserved: { color: 'orange', text: '未支付' },
@@ -17,20 +20,6 @@ const STATUS_MAP = {
 
 const NOT_STARTED = ['reserved', 'paid', 'in_transit', 'shipped']
 const NOT_RETURNED = ['reserved', 'paid', 'in_transit', 'shipped', 'in_lease']
-
-const formatMD = (s) => {
-  if (!s) return '-'
-  // Parse YYYY-MM-DD or YYYY-MM-DDTHH:MM... as local date
-  const m = s.length >= 10 ? s.slice(0, 10) : s
-  const parts = m.split('-')
-  if (parts.length === 3) {
-    const year = parseInt(parts[0]), month = parseInt(parts[1]), day = parseInt(parts[2])
-    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) return `${month}月${day}日`
-  }
-  const d = new Date(s)
-  if (isNaN(d.getTime())) return s
-  return `${d.getMonth() + 1}月${d.getDate()}日`
-}
 
 const calcDays = (r) => {
   if (!r.delivered_at) return '-'

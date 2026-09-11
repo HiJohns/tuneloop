@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Table, Tag, Button, Card, Typography, Space, message, Select } from 'antd';
 import { EyeOutlined, WarningOutlined } from '@ant-design/icons';
 import { api } from '../services/api';
+import { formatBeijingDateTimeShort } from '../utils/date';
 
 const { Title } = Typography;
 
@@ -113,7 +114,7 @@ export default function OverdueAlerts() {
       dataIndex: 'created_at',
       key: 'created_at',
       width: 170,
-      render: (t) => t ? new Date(t).toLocaleString() : '-',
+      render: (t) => t ? formatBeijingDateTimeShort(t) : '-',
     },
   ];
 

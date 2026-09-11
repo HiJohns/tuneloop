@@ -3,7 +3,7 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, ScrollView, Image, Button } from '@tarojs/components'
 import { apiFetch, getToken, resolveErrorMessage } from '../../services/api'
 import { env, uploadFile } from '../../platform'
-import { formatDeliveryAddress, formatDisplayDate, formatLogTime, formatPayMethod } from '../../utils/format'
+import { formatDeliveryAddress, formatBeijingDate, formatBeijingDateTimeShort, formatPayMethod } from '../../utils/format'
 import LeaseInfo from '../../components/LeaseInfo'
 import VerifyWarningBar from '../../components/VerifyWarningBar'
 
@@ -363,9 +363,9 @@ export default function OrderDetail() {
 
   const status = order.status || ''
   const statusDef = STATUS[status] || { color: '#a1a1aa', label: status }
-  const startDate = formatDisplayDate(order.start_date)
-  const endDate = formatDisplayDate(order.returned_at || order.end_date)
-  const returnedAt = order.returned_at ? formatDisplayDate(order.returned_at) : null
+  const startDate = formatBeijingDate(order.start_date)
+  const endDate = formatBeijingDate(order.returned_at || order.end_date)
+  const returnedAt = order.returned_at ? formatBeijingDate(order.returned_at) : null
   const deposit = order.deposit || 0
   const shippingFee = order.shipping_fee || 0
   // Shipping fee is filled by staff at dispatch (#1541); it is only shown
@@ -542,7 +542,7 @@ export default function OrderDetail() {
             <>
               <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginTop: 12, marginBottom: 4 }}>实付部分</Text>
               <Row
-                label={`合同租金 ¥${(Number(order.fee_detail.paid_block?.contract_rent?.amount) / 100).toFixed(2)}${order.fee_detail.paid_block?.contract_rent?.date ? `（${String(order.fee_detail.paid_block.contract_rent.date).slice(0, 10)}）` : ''}`}
+                label={`合同租金 ¥${(Number(order.fee_detail.paid_block?.contract_rent?.amount) / 100).toFixed(2)}${order.fee_detail.paid_block?.contract_rent?.date ? `（${formatBeijingDate(order.fee_detail.paid_block.contract_rent.date)}）` : ''}`}
               />
               {(order.fee_detail.paid_block?.contract_rent?.tiers || []).map((t, i) => (
                 <Row
@@ -921,7 +921,7 @@ export default function OrderDetail() {
                       {EVENT_LABELS[log.event] || log.event}
                     </Text>
                     <Text style={{ fontSize: 11, color: '#a1a1aa', marginTop: 2, display: 'block' }}>
-                      {formatLogTime(log.time || log.created_at)}
+                      {formatBeijingDateTimeShort(log.time || log.created_at)}
                       {log.operator ? ` · ${log.operator === 'system' ? '系统' : log.operator}` : ''}
                     </Text>
                   </View>

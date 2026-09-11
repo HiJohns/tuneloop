@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { notificationApi, appealsApi } from '../services/api'
 import { dialog, env } from '../platform'
-import { formatBeijingDateTime } from '../utils/format'
+import { formatBeijingDateTimeShort } from '../utils/format'
 import { ArrowLeft, Bell } from 'lucide-react'
 import { View, Text, Button, Textarea } from '@tarojs/components'
 
@@ -244,7 +244,7 @@ export default function MessageDetail() {
           {/* 日期行块级化：weapp/H5 的 Text 均 inline，纵向 margin 不生效 →
               标题与日期同行；北京时区 + 中文格式（设备时区无关，#1857 同约定） */}
           <Text style={{ display: 'block' }} className="text-gray-400 text-xs mb-4">
-            {formatBeijingDateTime(notification.created_at)}
+            {formatBeijingDateTimeShort(notification.created_at)}
           </Text>
 
           <Text className="text-gray-700 text-sm leading-relaxed mb-6">{notification.content}</Text>

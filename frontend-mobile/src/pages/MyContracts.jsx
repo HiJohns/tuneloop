@@ -4,6 +4,7 @@ import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/
 import { contractsApi } from '../services/api'
 import { ArrowLeft, FileText, ChevronRight, ExternalLink, Calendar } from 'lucide-react'
 import { openLink } from '../platform'
+import { formatBeijingDate } from '../utils/format'
 
 export default function MyContracts() {
   const navigate = useNavigate()
@@ -67,7 +68,7 @@ export default function MyContracts() {
               <View className="mt-2 text-xs text-gray-500" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <Text className="flex items-center gap-1">
                   <Calendar size={12} />
-                  {contract.generated_at ? new Date(contract.generated_at).toLocaleDateString() : '-'}
+                  {contract.generated_at ? formatBeijingDate(contract.generated_at) : '-'}
                 </Text>
               </View>
               {contract.contract_url ? (

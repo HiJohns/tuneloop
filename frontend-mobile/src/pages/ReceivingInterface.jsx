@@ -6,7 +6,6 @@ import { apiFetch , resolveErrorMessage } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, Camera, Scan, AlertTriangle, User, MapPin } from 'lucide-react'
 import { dialog, env, storage, session, uploadFile, navigation, getInputValue } from '../platform'
-import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
 import StaffIdPhotoViewer from '../components/StaffIdPhotoViewer'
 

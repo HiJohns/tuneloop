@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, Table, Tag, Spin, Select } from 'antd'
 import { api } from '../../../services/api'
+import { formatBeijingDate, formatBeijingDateTimeShort } from '../../../utils/date'
 
 const statusLabels = {
   pending_ship: '待发送', shipping: '发送中', inspecting: '质检中',
@@ -27,7 +28,7 @@ export default function MerchantRepairList() {
   }, [statusFilter])
 
   const columns = [
-    { title: '创建时间', dataIndex: 'created_at', key: 'created_at', render: v => v ? new Date(v).toLocaleDateString() : '-' },
+    { title: '创建时间', dataIndex: 'created_at', key: 'created_at', render: v => v ? formatBeijingDate(v) : '-' },
     { title: '乐器', dataIndex: 'user_instrument_id', key: 'instrument', render: (_, r) => r.sn || '-' },
     { title: '状态', dataIndex: 'status', key: 'status', render: s => <Tag color={statusColors[s]}>{statusLabels[s] || s}</Tag> },
     { title: '网点', dataIndex: 'site_id', key: 'site', render: v => v?.slice(0, 8) || '-' },

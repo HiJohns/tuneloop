@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
-import { formatDisplayDate } from '../utils/format'
+import { formatBeijingDate } from '../utils/format'
 import { calculateDays } from '../utils/daycalc'
 import { ArrowLeft, Package, History, Clock } from 'lucide-react'
 
@@ -130,7 +130,7 @@ export default function LeaseHistory() {
                       <View>
                         <View className="flex items-center text-xs text-gray-500 mt-1">
                           <Clock size={12} className="mr-1" />
-                          <Text>实际租期: {formatDisplayDate(li.start)} ~ {formatDisplayDate(li.end)}</Text>
+                          <Text>实际租期: {formatBeijingDate(li.start)} ~ {formatBeijingDate(li.end)}</Text>
                         </View>
                         <Text className="text-xs text-gray-400 mt-0.5">{li.days} 天</Text>
                       </View>

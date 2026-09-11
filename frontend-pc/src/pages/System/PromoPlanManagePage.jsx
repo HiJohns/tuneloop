@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, Table, Button, Space, Modal, Form, Input, DatePicker, Switch, InputNumber, message, Select, Tag } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SettingOutlined } from '@ant-design/icons';
 import { api } from '../../services/api';
+import { formatBeijingDate } from '../../utils/date';
 import dayjs from 'dayjs';
 
 export default function PromoPlanManagePage({ scope }) {
@@ -83,7 +84,7 @@ export default function PromoPlanManagePage({ scope }) {
     { title: '名称', dataIndex: 'name' },
     { title: '类型', dataIndex: 'plan_type', render: v => <Tag>{v === 'discount_policy' ? '折扣政策' : '促销活动'}</Tag> },
     { title: '范围', dataIndex: 'scope_type', render: v => ({ system: '全站', merchant: '本商户' })[v] || v },
-    { title: '起止日期', render: (_, r) => r.start_date ? `${r.start_date} ~ ${r.end_date || '长期'}` : '长期有效' },
+    { title: '起止日期', render: (_, r) => r.start_date ? `${formatBeijingDate(r.start_date)} ~ ${r.end_date ? formatBeijingDate(r.end_date) : '长期'}` : '长期有效' },
     { title: '启用', dataIndex: 'is_active', render: v => v ? <Tag color="green">是</Tag> : <Tag color="red">否</Tag> },
     {
       title: '操作', width: 200,

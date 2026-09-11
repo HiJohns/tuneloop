@@ -1,6 +1,7 @@
 // ui.md §1.6 日期与时间显示规范（强制）：北京时间（UTC+8）+ 中文格式，
 // 禁止 MM-DD / YYYY-MM-DD 等连字符格式出现在用户可见展示。
 // 当年省略年份；跨年保留年份。「当年」判定同样基于北京时间。
+// 与 frontend-mobile/src/utils/format.js 的同名 helper 保持语义一致。
 
 function beijingParts(dateStr) {
   if (!dateStr) return null
@@ -25,8 +26,7 @@ export function formatBeijingDate(dateStr) {
   if (!dateStr) return '-'
   const p = beijingParts(dateStr)
   if (!p) return dateStr
-  const datePart = p.y === beijingNowYear() ? `${p.m}月${p.d}日` : `${p.y}年${p.m}月${p.d}日`
-  return datePart
+  return p.y === beijingNowYear() ? `${p.m}月${p.d}日` : `${p.y}年${p.m}月${p.d}日`
 }
 
 // formatBeijingDateTimeShort — 日期+时间展示：当年 "M月D日 HH:mm"，跨年 "YYYY年M月D日 HH:mm"。
@@ -36,38 +36,4 @@ export function formatBeijingDateTimeShort(dateStr) {
   if (!p) return dateStr
   const datePart = p.y === beijingNowYear() ? `${p.m}月${p.d}日` : `${p.y}年${p.m}月${p.d}日`
   return `${datePart} ${p.hh}:${p.mi}`
-}
-
-export function formatDeliveryAddress(raw) {
-  if (!raw) return ''
-  try {
-    const obj = JSON.parse(raw)
-    if (typeof obj === 'string') return obj
-    if (typeof obj === 'object' && obj !== null) {
-      if (obj.street) {
-        return [obj.street, obj.phone ? `电话:${obj.phone}` : ''].filter(Boolean).join(' ')
-      }
-      const parts = [obj.province, obj.city, obj.district, obj.detail].filter(Boolean)
-      const addr = parts.join('')
-      const prefix = [obj.recipient_name, obj.phone].filter(Boolean).join(' ')
-      return [prefix, addr].filter(Boolean).join(' ')
-    }
-    return raw
-  } catch {
-    return raw
-  }
-}
-
-// #1756: payment method codes → user-facing labels. Unknown values fall
-// back to the raw code so no information is hidden.
-export const PAY_METHOD_LABEL = {
-  jsapi: '微信支付',
-  native: '扫码支付',
-  waived: '优惠码免付',
-  mock: '测试支付',
-}
-
-export function formatPayMethod(method) {
-  if (!method) return '支付'
-  return PAY_METHOD_LABEL[method] || method
 }

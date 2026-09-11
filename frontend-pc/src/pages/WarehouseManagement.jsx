@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Table, Tag, Button, Card, Typography, Space, Modal, Descriptions, Steps, message, Select, Upload, Input, Tooltip } from 'antd';
 import { TruckOutlined, CheckCircleOutlined, EyeOutlined, CameraOutlined, QrcodeOutlined } from '@ant-design/icons';
 import { api } from '../services/api';
+import { formatBeijingDateTimeShort } from '../utils/date';
 // import QrScanner from 'qr-scanner';  // Temporarily disabled - install dependency to enable
 
 const { Title } = Typography;
@@ -363,10 +364,10 @@ export default function WarehouseManagement() {
               <Descriptions.Item label="快递公司">{selectedOrder.courier_company || '-'}</Descriptions.Item>
               <Descriptions.Item label="物流单号">{selectedOrder.tracking_number || '-'}</Descriptions.Item>
               {selectedOrder.shipped_at && (
-                <Descriptions.Item label="发货时间">{selectedOrder.shipped_at}</Descriptions.Item>
+                <Descriptions.Item label="发货时间">{formatBeijingDateTimeShort(selectedOrder.shipped_at)}</Descriptions.Item>
               )}
               {selectedOrder.delivered_at && (
-                <Descriptions.Item label="送达时间">{selectedOrder.delivered_at}</Descriptions.Item>
+                <Descriptions.Item label="送达时间">{formatBeijingDateTimeShort(selectedOrder.delivered_at)}</Descriptions.Item>
               )}
               {selectedOrder.transit_info && (
                 <Descriptions.Item label="中转地址" span={2}>

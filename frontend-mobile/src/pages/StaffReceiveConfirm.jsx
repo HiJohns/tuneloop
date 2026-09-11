@@ -6,7 +6,6 @@ import { ArrowLeft, CheckCircle, Camera, AlertTriangle, Image as ImageIcon } fro
 import ImageUploader from '../components/ImageUploader'
 import { apiFetch , resolveErrorMessage } from '../services/api'
 import { dialog, env, storage, session, uploadFile, getInputValue } from '../platform'
-import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
 

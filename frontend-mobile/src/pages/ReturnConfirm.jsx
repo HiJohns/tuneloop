@@ -5,7 +5,7 @@ import Taro from '@tarojs/taro'
 import { ArrowLeft, CheckCircle, Camera, Truck } from 'lucide-react'
 import { getToken, redirectToLogin, apiFetch, resolveErrorMessage } from '../services/api'
 import { dialog, env, uploadFile, getInputValue, toWeappRoute } from '../platform'
-import { formatDisplayDate } from '../utils/format'
+import { formatBeijingDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
 import OrderTimeline from '../components/OrderTimeline'
 
@@ -173,7 +173,7 @@ export default function ReturnConfirm() {
               {order.start_date && (
                 <View className="flex items-center">
                   <Text className="text-sm text-zinc-400 w-16">起始日</Text>
-                  <Text className="text-sm font-bold text-black">{formatDisplayDate(order.start_date)}</Text>
+                  <Text className="text-sm font-bold text-black">{formatBeijingDate(order.start_date)}</Text>
                 </View>
               )}
               {order.end_date && (
@@ -182,7 +182,7 @@ export default function ReturnConfirm() {
                   {/* #1847: 到期日展示口径与详情页 LeaseInfo 一致 = 归还截止日
                       （起始日 + rent_days）；end_date 列是租期末日（start+N−1），
                       裸读会比详情页早一天。pb.rent_days 缺失时回退 end_date。 */}
-                  <Text className="text-sm font-bold text-black">{formatDisplayDate(expectedReturnDate(order))}</Text>
+                  <Text className="text-sm font-bold text-black">{formatBeijingDate(expectedReturnDate(order))}</Text>
                 </View>
               )}
             </View>

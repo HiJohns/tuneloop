@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, Table, Tag, Select, Button, message, Modal, Input } from 'antd'
 import { api } from '../../../services/api'
+import { formatBeijingDate, formatBeijingDateTimeShort } from '../../../utils/date'
 
 const severityColors = { low: 'green', medium: 'orange', high: 'red' }
 const statusColors = { open: 'red', acknowledged: 'blue', resolved: 'gray' }
@@ -40,7 +41,7 @@ export default function WarningManagement() {
     { title: '事由', dataIndex: 'reason', width: 120 },
     { title: '描述', dataIndex: 'description', ellipsis: true },
     { title: '状态', dataIndex: 'status', width: 100, render: s => <Tag color={statusColors[s]}>{s}</Tag> },
-    { title: '时间', dataIndex: 'created_at', width: 160, render: v => v ? new Date(v).toLocaleString() : '-' },
+    { title: '时间', dataIndex: 'created_at', width: 160, render: v => v ? formatBeijingDateTimeShort(v) : "-" },
     { title: '操作', width: 200, render: (_, r) => (
       <span>
         {r.status === 'open' && <Button size="small" onClick={() => handleAcknowledge(r.id)} style={{ marginRight: 8 }}>标记已读</Button>}

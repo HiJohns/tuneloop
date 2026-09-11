@@ -5,7 +5,7 @@ import { ArrowLeft, Shield, Clock, AlertCircle, MapPin, Bell, CheckCircle, X, Sh
 import { Switch, Tag } from 'antd'
 import dayjs from 'dayjs'
 import { env, storage, session, eventBus, getWindowSize, previewImage } from '../platform'
-import { formatDisplayDate } from '../utils/format'
+import { formatBeijingDate, formatBeijingDateTimeShort } from '../utils/format'
 import { calculateDays } from '../utils/daycalc'
 import { View, Text, Image, Button, Video, ScrollView } from '@tarojs/components'
 
@@ -417,7 +417,7 @@ export default function Detail() {
               <View className="max-h-48 overflow-y-auto" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {auditLogs.map((log, i) => (
                   <View key={log.id || i} className="flex gap-2 items-center py-1.5 px-2 bg-gray-50 rounded text-xs">
-                    <Text className="text-gray-400 w-28 flex-shrink-0">{new Date(log.created_at).toLocaleString()}</Text>
+                    <Text className="text-gray-400 w-28 flex-shrink-0">{formatBeijingDateTimeShort(log.created_at)}</Text>
                     <View className="px-1.5 py-0.5 rounded bg-white text-gray-600 font-medium">
                       {{'CREATE': '创建', 'UPDATE': '编辑', 'DELETE': '删除', 'SHIP': '发货', 'RECEIVE': '收货', 'RETURN': '归还', 'INSPECT': '验收'}[log.action] || log.action}
                     </View>
@@ -478,7 +478,7 @@ export default function Detail() {
             <View className="p-3 bg-green-50 rounded-lg" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <Text className="text-green-700 font-medium">租赁中</Text>
               <Text className="text-gray-500 text-sm">
-                租期：{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}
+                租期：{formatBeijingDate(activeOrder.start_date)} 至 {formatBeijingDate(activeOrder.end_date)}
               </Text>
               {activeOrder.end_date && new Date(activeOrder.end_date) < new Date() && (
                 <Text className="text-red-600 font-bold">
@@ -499,7 +499,7 @@ export default function Detail() {
               <Text className="text-orange-700 font-medium">归还中</Text>
               <Text className="text-gray-500 text-sm">该乐器正在归还流程中</Text>
               <Text className="text-gray-500 text-sm">
-                租期：{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}
+                租期：{formatBeijingDate(activeOrder.start_date)} 至 {formatBeijingDate(activeOrder.end_date)}
               </Text>
               {activeOrder.deposit_refunded && (
                 <Text className="text-green-600 text-sm mt-1">押金已退还</Text>
@@ -509,7 +509,7 @@ export default function Detail() {
             <View className="p-3 bg-blue-50 rounded-lg" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <Text className="text-blue-700 font-medium">已预约</Text>
               <Text className="text-gray-500 text-sm">
-                租期：{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}
+                租期：{formatBeijingDate(activeOrder.start_date)} 至 {formatBeijingDate(activeOrder.end_date)}
               </Text>
             </View>
           ) : ['in_transit', 'shipped'].includes(activeOrder.order_status) ? (
@@ -529,7 +529,7 @@ export default function Detail() {
             <View className="p-3 bg-red-50 rounded-lg" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <Text className="text-red-700 font-medium">已超期</Text>
               <Text className="text-gray-500 text-sm">
-                租期：{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}
+                租期：{formatBeijingDate(activeOrder.start_date)} 至 {formatBeijingDate(activeOrder.end_date)}
               </Text>
               {activeOrder.end_date && (
                 <Text className="text-red-600 font-bold">

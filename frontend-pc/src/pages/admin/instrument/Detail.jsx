@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Card, Descriptions, Tag, Image, Row, Col, Button, Space, Divider, Tabs, Table, Spin, Empty, message, Popconfirm, Input, InputNumber, Form, Select, TreeSelect, Switch } from 'antd'
 import { ArrowLeftOutlined, DeleteOutlined, EditOutlined, DollarOutlined, UserOutlined, EnvironmentOutlined, CalendarOutlined, TruckOutlined } from '@ant-design/icons'
 import { api, pricingApi, instrumentsApi, request } from '../../../services/api'
+import { formatBeijingDate } from '../../../utils/date'
 
 function parsePricing(pricing) {
   if (!pricing) return null
@@ -386,10 +387,10 @@ export default function InstrumentDetail() {
                       {instrument.rating} ⭐ ({instrument.review_count} 评价)
                     </Descriptions.Item>
                     <Descriptions.Item label="创建时间" span={2}>
-                      {new Date(instrument.created_at).toLocaleString()}
+                      {formatBeijingDateTimeShort(instrument.created_at)}
                     </Descriptions.Item>
                     <Descriptions.Item label="更新时间" span={2}>
-                      {new Date(instrument.updated_at).toLocaleString()}
+                      {formatBeijingDateTimeShort(instrument.updated_at)}
                     </Descriptions.Item>
                     {instrument.properties && Object.entries(instrument.properties).map(([key, vals]) => (
                       <Descriptions.Item label={key} key={key}>
@@ -765,7 +766,7 @@ export default function InstrumentDetail() {
                       </Descriptions.Item>
                       <Descriptions.Item label="电话">{leaseData.user?.phone || '-'}</Descriptions.Item>
                       <Descriptions.Item label="租期">
-                        <Space><CalendarOutlined />{leaseData.order?.start_date || '-'} 至 {leaseData.order?.end_date || '-'}</Space>
+                        <Space><CalendarOutlined />{formatBeijingDate(leaseData.order?.start_date)} 至 {formatBeijingDate(leaseData.order?.end_date)}</Space>
                       </Descriptions.Item>
                     </Descriptions>
                     <div className="text-sm text-gray-500 space-y-1 mt-2">
@@ -828,7 +829,7 @@ function ActivityLogTab({ instrumentId }) {
           <div className="max-h-60 overflow-y-auto space-y-1">
             {auditLogs.map((log, i) => (
               <div key={log.id || i} className="flex gap-3 items-center py-1.5 px-2 bg-gray-50 rounded text-xs">
-                <span className="text-gray-400 w-32 flex-shrink-0">{new Date(log.created_at).toLocaleString()}</span>
+                <span className="text-gray-400 w-32 flex-shrink-0">{formatBeijingDateTimeShort(log.created_at)}</span>
                 <Tag color={log.action === 'CREATE' ? 'green' : log.action === 'DELETE' ? 'red' : 'blue'}>
                   {actionMap[log.action] || log.action}
                 </Tag>
@@ -845,7 +846,7 @@ function ActivityLogTab({ instrumentId }) {
             <Space>
               <span className="font-mono text-xs">#{session.order_id.slice(0, 8)}</span>
               <Tag>{session.status}</Tag>
-              <span className="text-xs text-gray-400">{session.start_date} ~ {session.end_date || '进行中'}</span>
+              <span className="text-xs text-gray-400">{formatBeijingDate(session.start_date)} ~ {session.end_date ? formatBeijingDate(session.end_date) : '进行中'}</span>
             </Space>
           }
         >
@@ -855,7 +856,7 @@ function ActivityLogTab({ instrumentId }) {
             <div className="space-y-2">
               {session.events?.map((event, idx) => (
                 <div key={idx} className="flex gap-3 p-2 bg-gray-50 rounded">
-                  <div className="w-20 flex-shrink-0 text-xs text-gray-400">{new Date(event.time).toLocaleString()}</div>
+                  <div className="w-20 flex-shrink-0 text-xs text-gray-400">{formatBeijingDateTimeShort(event.time)}</div>
                   <div className="flex-1">
                     <p className="text-sm font-medium">{event.event}</p>
                     {event.operator && <p className="text-xs text-gray-400">操作人: {event.operator}</p>}

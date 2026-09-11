@@ -4,7 +4,7 @@ import Taro from '@tarojs/taro'
 import { Button, Image, ScrollView, Text, Textarea, View } from '@tarojs/components'
 import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
 import { dialog, env, getInputValue, uploadFile, storage, session, previewImage } from '../platform'
-import { formatDisplayDate } from '../utils/format'
+import { formatBeijingDateTimeShort } from '../utils/format'
 
 const statusLabels = {
   repair_pending: '待维修', repair_in_progress: '维修中', repair_completed: '已修复',
@@ -183,7 +183,7 @@ export default function RepairWorkflow() {
             <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {records.map(r => (
                 <View key={r.id} className="border-b border-zinc-50 pb-2">
-                  <Text className="text-xs text-zinc-400">{formatDisplayDate(r.created_at)}</Text>
+                  <Text className="text-xs text-zinc-400">{formatBeijingDateTimeShort(r.created_at)}</Text>
                   {r.comment && <Text className="text-sm text-black mt-1">{r.comment}</Text>}
                   {r.photos && r.photos !== '[]' && <Text className="text-xs text-blue-500 mt-1">[有照片]</Text>}
                 </View>

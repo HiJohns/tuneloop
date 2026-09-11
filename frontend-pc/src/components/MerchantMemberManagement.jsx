@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Table, Button, Space, message, Tag, Popconfirm, Modal, Input, Select, Checkbox, Typography, Alert } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import api from '../services/api';
+import { formatBeijingDate } from '../utils/date';
 
 const ROLE_COLORS = {
   owner: 'red', merchant_admin: 'red',
@@ -259,7 +260,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
       title: '加入时间',
       dataIndex: 'created_at',
       key: 'created_at',
-      render: (date) => new Date(date).toLocaleDateString(),
+      render: (date) => formatBeijingDate(date),
     },
     {
       title: '操作',

@@ -6,7 +6,6 @@ import { apiFetch , resolveErrorMessage } from '../services/api'
 import { ArrowLeft, Camera } from 'lucide-react'
 import { calculateDays } from '../utils/daycalc'
 import { dialog, env, storage, session, uploadFile, toWeappRoute } from '../platform'
-import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
 

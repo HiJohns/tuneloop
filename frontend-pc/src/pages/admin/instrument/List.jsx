@@ -4,6 +4,7 @@ import { Table, Button, Input, Space, Tag, Image, message, Popconfirm, Select, M
 import { Row, Col } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, ImportOutlined, ExportOutlined, CloseCircleFilled } from '@ant-design/icons'
 import { api, instrumentsApi } from '../../../services/api'
+import { formatBeijingDate } from '../../../utils/date'
 import { resolveErrorMessage } from '../../../services/errorMessages'
 import InstrumentForm from './Form'
 import PermissionGate from '../../../components/PermissionGate'
@@ -188,7 +189,7 @@ export default function InstrumentList() {
       key: 'created_at',
       width: 120,
       sorter: true,
-      render: (text) => text ? new Date(text).toLocaleDateString('zh-CN') : '-'
+      render: (text) => text ? formatBeijingDate(text) : '-'
     },
     {
       title: '网点',

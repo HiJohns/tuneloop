@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Table, Tag, Button, Card, Typography, Space, Modal, Descriptions, message, Input, Select, InputNumber, Radio } from 'antd';
 import { EyeOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import { api } from '../services/api';
+import { formatBeijingDateTimeShort } from '../utils/date';
 
 const { Title } = Typography;
 const { TextArea } = Input;
@@ -149,7 +150,7 @@ export default function AppealManagement() {
       dataIndex: 'submitted_at',
       key: 'submitted_at',
       width: 160,
-      render: (t) => t ? new Date(t).toLocaleString() : '-',
+      render: (t) => t ? formatBeijingDateTimeShort(t) : '-',
     },
     {
       title: '状态',
@@ -233,7 +234,7 @@ export default function AppealManagement() {
                   </Tag>
                 </Descriptions.Item>
                 <Descriptions.Item label="申诉时间" span={2}>
-                  {selected.appeal?.submitted_at ? new Date(selected.appeal.submitted_at).toLocaleString() : '-'}
+                  {selected.appeal?.submitted_at ? formatBeijingDateTimeShort(selected.appeal.submitted_at) : "-"}
                 </Descriptions.Item>
                 <Descriptions.Item label="申诉原因" span={2}>
                   {selected.appeal?.appeal_reason || '-'}
@@ -250,7 +251,7 @@ export default function AppealManagement() {
                       {selected.appeal.manager_comment || '-'}
                     </Descriptions.Item>
                     <Descriptions.Item label="处理时间" span={2}>
-                      {selected.appeal.resolved_at ? new Date(selected.appeal.resolved_at).toLocaleString() : '-'}
+                      {selected.appeal.resolved_at ? formatBeijingDateTimeShort(selected.appeal.resolved_at) : "-"}
                     </Descriptions.Item>
                   </>
                 )}

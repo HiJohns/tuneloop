@@ -4,6 +4,7 @@ import { View, Text, Input, Button, Picker } from '@tarojs/components'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, getToken, resolveErrorMessage } from '../../../services/api'
 import { env, dialog, getInputValue, wxLogin as wxLoginCode } from '../../../platform'
+import { formatBeijingDateTimeShort } from '../../../utils/format'
 import { parseJWT } from '../../../platform/init'
 import IdPhotoUploader from '../../../components/IdPhotoUploader'
 
@@ -203,7 +204,7 @@ export default function EditProfile() {
               <Text style={{ fontSize: 13, color: '#16a34a', fontWeight: '600' }}>✅ 已认证</Text>
               {realName && <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>姓名：{realName}</Text>}
               {idCardNo && <Text style={{ fontSize: 12, color: '#6b7280' }}>身份证：{maskIdCard(idCardNo)}</Text>}
-              {faceVerifiedAt && <Text style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>认证时间：{new Date(faceVerifiedAt).toLocaleString()}</Text>}
+              {faceVerifiedAt && <Text style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>认证时间：{formatBeijingDateTimeShort(faceVerifiedAt)}</Text>}
             </View>
           ) : idVerifyStatus === 'pending_review' ? (
             <View style={{ padding: 12, backgroundColor: '#fefce8', borderRadius: 8, borderWidth: 1, borderColor: '#fde68a' }}>

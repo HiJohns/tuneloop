@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, Table, Tag, Row, Col, DatePicker, Button, message, Space, Statistic } from 'antd'
 import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons'
+import { formatBeijingDate } from '../../../utils/date'
 import api from '../../../services/api'
 
 const { RangePicker } = DatePicker
@@ -14,7 +15,7 @@ const statusLabels = {
 
 const columns = [
   { title: '订单号', dataIndex: 'order_id', key: 'order_id', width: 100, render: v => v?.slice(0, 8) },
-  { title: '时间', dataIndex: 'created_at', key: 'created_at', width: 100, render: v => v?.slice(0, 10) },
+  { title: '时间', dataIndex: 'created_at', key: 'created_at', width: 100, render: v => formatBeijingDate(v) },
   { title: '用户', dataIndex: 'user_name', key: 'user_name' },
   { title: '乐器', dataIndex: 'instrument_name', key: 'instrument_name' },
   { title: '实付', dataIndex: 'cash_paid', key: 'cash_paid', width: 80, render: v => `¥${Number(v).toFixed(2)}` },

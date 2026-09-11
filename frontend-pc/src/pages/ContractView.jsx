@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Card, Button, Space, Descriptions, Tag, message } from 'antd'
 import { ArrowLeftOutlined, DownloadOutlined, FileTextOutlined } from '@ant-design/icons'
 import { api } from '../services/api'
+import { formatBeijingDate } from '../utils/date'
 
 export default function ContractView() {
   const { id } = useParams()
@@ -69,7 +70,7 @@ export default function ContractView() {
             合同编号: {contract.contract_number || '-'}
           </div>
           <div className="text-gray-500 text-sm mt-2">
-            签约日期: {contract.signed_at?.slice(0, 10) || '-'}
+            签约日期: {formatBeijingDate(contract.signed_at)}
           </div>
         </div>
 
@@ -78,8 +79,8 @@ export default function ContractView() {
           <Descriptions.Item label="承租方">{contract.user_name || '用户'}</Descriptions.Item>
           <Descriptions.Item label="乐器名称">{contract.instrument_name}</Descriptions.Item>
           <Descriptions.Item label="品牌型号">{contract.brand} {contract.model}</Descriptions.Item>
-          <Descriptions.Item label="租赁开始">{contract.start_date?.slice(0, 10)}</Descriptions.Item>
-          <Descriptions.Item label="租赁结束">{contract.end_date?.slice(0, 10)}</Descriptions.Item>
+          <Descriptions.Item label="租赁开始">{formatBeijingDate(contract.start_date)}</Descriptions.Item>
+          <Descriptions.Item label="租赁结束">{formatBeijingDate(contract.end_date)}</Descriptions.Item>
           <Descriptions.Item label="月租金">¥{contract.monthly_rent}</Descriptions.Item>
           <Descriptions.Item label="押金">¥{contract.deposit}</Descriptions.Item>
           <Descriptions.Item label="合同状态" span={2}>

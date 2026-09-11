@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Card, Table, Tag, Button, message, Modal, Input, Upload, Space, Descriptions } from 'antd'
 import { EyeOutlined, UploadOutlined } from '@ant-design/icons'
 import { api } from '../../../services/api'
+import { formatBeijingDate, formatBeijingDateTimeShort } from '../../../utils/date'
 
 const statusConfig = {
   pending: { text: '待开票', color: 'orange' },
@@ -83,7 +84,7 @@ export default function InvoiceList() {
   }
 
   const columns = [
-    { title: '申请时间', dataIndex: 'created_at', width: 170, render: v => v ? new Date(v).toLocaleString() : '-' },
+    { title: '申请时间', dataIndex: 'created_at', width: 170, render: v => v ? formatBeijingDateTimeShort(v) : "-" },
     { title: '顾客', dataIndex: 'customer_name', width: 120, ellipsis: true },
     { title: '订单数', dataIndex: 'order_count', width: 80, align: 'center' },
     {
@@ -94,7 +95,7 @@ export default function InvoiceList() {
       title: '状态', dataIndex: 'status', width: 100,
       render: v => <Tag color={statusConfig[v]?.color || 'default'}>{statusConfig[v]?.text || v}</Tag>,
     },
-    { title: '回复时间', dataIndex: 'replied_at', width: 170, render: v => v ? new Date(v).toLocaleString() : '-' },
+    { title: '回复时间', dataIndex: 'replied_at', width: 170, render: v => v ? formatBeijingDateTimeShort(v) : "-" },
     {
       title: '操作', width: 140,
       render: (_, record) => (
@@ -111,7 +112,7 @@ export default function InvoiceList() {
   const orderColumns = [
     { title: '订单号', dataIndex: 'order_id', width: 280, ellipsis: true },
     { title: 'SN', dataIndex: 'sn', width: 140, ellipsis: true },
-    { title: '下单日', dataIndex: 'created_at', width: 120, render: v => v ? new Date(v).toLocaleDateString() : '-' },
+    { title: '下单日', dataIndex: 'created_at', width: 120, render: v => v ? formatBeijingDate(v) : '-' },
     { title: '实际租金', dataIndex: 'actual_rent_cents', width: 100, render: v => formatCents(v) },
     { title: '逾期费用', dataIndex: 'overdue_cents', width: 100, render: v => formatCents(v) },
     { title: '合计', dataIndex: 'total_cents', width: 100, render: v => <span style={{ fontWeight: 600 }}>{formatCents(v)}</span> },
@@ -140,12 +141,12 @@ export default function InvoiceList() {
         {current && (
           <>
             <Descriptions column={2} bordered size="small" style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="申请时间">{current.created_at ? new Date(current.created_at).toLocaleString() : '-'}</Descriptions.Item>
+              <Descriptions.Item label="申请时间">{current.created_at ? formatBeijingDateTimeShort(current.created_at) : "-"}</Descriptions.Item>
               <Descriptions.Item label="顾客">{current.customer_name || '-'}</Descriptions.Item>
               <Descriptions.Item label="订单数">{current.order_count}</Descriptions.Item>
               <Descriptions.Item label="开票金额"><span style={{ fontWeight: 700, color: '#D97706' }}>{formatCents(current.total_amount)}</span></Descriptions.Item>
               <Descriptions.Item label="状态"><Tag color={statusConfig[current.status]?.color}>{statusConfig[current.status]?.text}</Tag></Descriptions.Item>
-              <Descriptions.Item label="回复时间">{current.replied_at ? new Date(current.replied_at).toLocaleString() : '-'}</Descriptions.Item>
+              <Descriptions.Item label="回复时间">{current.replied_at ? formatBeijingDateTimeShort(current.replied_at) : "-"}</Descriptions.Item>
               {current.reply && (
                 <Descriptions.Item label="回复内容" span={2}>{current.reply}</Descriptions.Item>
               )}

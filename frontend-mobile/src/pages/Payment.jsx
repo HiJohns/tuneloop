@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { apiFetch , resolveErrorMessage } from '../services/api'
 import { env, dialog } from '../platform'
-import { formatDisplayDate } from '../utils/format'
 
 const baseUrl = env.apiBaseUrl
 

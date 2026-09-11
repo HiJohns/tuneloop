@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { notificationApi } from '../services/api'
 import { dialog, env } from '../platform'
-import { formatBeijingDateTime } from '../utils/format'
+import { formatBeijingDateTimeShort } from '../utils/format'
 import { ArrowLeft, Bell } from 'lucide-react'
 import { View, Text, ScrollView } from '@tarojs/components'
 const typeConfig = {
@@ -124,7 +124,7 @@ export default function Messages() {
                     </View>
                     <Text style={{ fontWeight: '500', fontSize: 14, marginTop: 4 }}>{notif.title}</Text>
                     <Text style={{ color: '#71717a', fontSize: 14, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{notif.content}</Text>
-                    <Text style={{ color: '#a1a1aa', fontSize: 12, marginTop: 8 }}>{formatBeijingDateTime(notif.created_at)}</Text>
+                    <Text style={{ color: '#a1a1aa', fontSize: 12, marginTop: 8 }}>{formatBeijingDateTimeShort(notif.created_at)}</Text>
                   </View>
                 )
               })}

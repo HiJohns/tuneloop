@@ -3,7 +3,6 @@ import Taro, { useDidShow, useLoad } from '@tarojs/taro'
 import { View, Text, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, resolveLogin, resolveErrorMessage } from '../../services/api'
 import { env, session, storage, wxLogin } from '../../platform'
-import { formatDisplayDate } from '../../utils/format'
 
 const baseUrl = env.apiBaseUrl
 

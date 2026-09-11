@@ -4,7 +4,7 @@ import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
 import { warehouseApi, apiFetch, getToken } from '../services/api'
 import { env, scanQRCode } from '../platform'
-import { formatDisplayDate } from '../utils/format'
+import { formatBeijingDate } from '../utils/format'
 import { calculateDays } from '../utils/daycalc'
 import { Package, Search, Scan } from 'lucide-react'
 import BottomNav from '../components/BottomNav'
@@ -241,26 +241,26 @@ export default function StaffOrders() {
                       order.status === 'cancelled' ? (
                       <View className="text-sm" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                         <View><Text className="text-zinc-400 font-medium">乐器: {order.instrument_category || '-'}</Text></View>
-                        <View><Text className="text-zinc-400 font-medium">创建日: {order.start_date ? formatDisplayDate(order.start_date) : formatDisplayDate(order.created_at)}</Text></View>
+                        <View><Text className="text-zinc-400 font-medium">创建日: {order.start_date ? formatBeijingDate(order.start_date) : formatBeijingDate(order.created_at)}</Text></View>
                         <View><Text className="text-zinc-400 font-medium">状态: <Text className="text-red-500 font-medium">已取消</Text></Text></View>
                       </View>
                     ) : order.returned_at ? (
                       <View className="text-sm" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <View><Text className="text-zinc-400 font-medium">实际租期: {formatDisplayDate(order.start_date)} ~ {formatDisplayDate(order.returned_at)}</Text></View>
+                        <View><Text className="text-zinc-400 font-medium">实际租期: {formatBeijingDate(order.start_date)} ~ {formatBeijingDate(order.returned_at)}</Text></View>
                         <View><Text className="text-zinc-400 font-medium">实际天数: {(() => { const d = calculateDays(new Date((order.start_date || '').slice(0,10)), new Date((order.returned_at || '').slice(0,10))); return d || '-'; })()} 天</Text></View>
                         <View><Text className="text-zinc-400 font-medium">乐器: {order.instrument_category || '-'}</Text></View>
                       </View>
                     ) : (
                       <View className="text-sm" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <View><Text className="text-zinc-400 font-medium">租赁日期: {formatDisplayDate(order.start_date)} ~ {formatDisplayDate(order.end_date)}</Text></View>
+                        <View><Text className="text-zinc-400 font-medium">租赁日期: {formatBeijingDate(order.start_date)} ~ {formatBeijingDate(order.end_date)}</Text></View>
                         <View><Text className="text-zinc-400 font-medium">乐器: {order.instrument_category || '-'}</Text></View>
                       </View>
                     )) : (
                       <View className="text-sm" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <View><Text className="text-zinc-400 font-medium">下单日: {formatDisplayDate(order.created_at)}</Text></View>
+                        <View><Text className="text-zinc-400 font-medium">下单日: {formatBeijingDate(order.created_at)}</Text></View>
                         <View><Text className="text-zinc-400 font-medium">乐器: {order.instrument_category || '-'}</Text></View>
                         <View><Text className="text-zinc-400 font-medium">预计天数: {order.lease_term || (order.start_date && order.end_date ? calculateDays(new Date(order.start_date.slice(0,10)), new Date(order.end_date.slice(0,10))) : '-')} 天</Text></View>
-                        <View><Text className="text-zinc-400 font-medium">预期归还日: {formatDisplayDate(order.end_date)}</Text></View>
+                        <View><Text className="text-zinc-400 font-medium">预期归还日: {formatBeijingDate(order.end_date)}</Text></View>
                       </View>
                     )}
                   </View>

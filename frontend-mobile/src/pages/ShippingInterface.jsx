@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components'
 import { apiFetch , resolveErrorMessage } from '../services/api'
-import { formatDeliveryAddress } from '../utils/format'
+import { formatDeliveryAddress, formatBeijingDateTimeShort } from '../utils/format'
 import { ArrowLeft, Camera, Scan } from 'lucide-react'
 import { dialog, env, storage, session, uploadFile, scanQRCode, navigation, getInputValue } from '../platform'
 import InstrumentInfo from '../components/InstrumentInfo'
@@ -246,7 +246,7 @@ export default function ShippingInterface() {
                 </View>
                 <View className="flex items-start gap-2">
                   <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">创建时间</Text>
-                  <Text className="text-sm text-black font-medium">{order.created_at ? new Date(order.created_at).toLocaleString() : '-'}</Text>
+                  <Text className="text-sm text-black font-medium">{order.created_at ? formatBeijingDateTimeShort(order.created_at) : '-'}</Text>
                 </View>
                 {order.user_name && (
                   <View className="flex items-start gap-2">

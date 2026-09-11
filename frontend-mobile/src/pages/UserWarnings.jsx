@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { View, Text, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
+import { formatBeijingDateTimeShort } from '../utils/format'
 
 export default function UserWarnings() {
   const [warnings, setWarnings] = useState([])
@@ -43,7 +44,7 @@ export default function UserWarnings() {
               <Text className={`text-xs px-2 py-0.5 rounded-full font-bold ${w.level === 'high' ? 'bg-red-100 text-red-700' : w.level === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}`}>
                 {w.level}
               </Text>
-              <Text className="text-xs text-zinc-400">{w.created_at ? new Date(w.created_at).toLocaleString() : ''}</Text>
+              <Text className="text-xs text-zinc-400">{w.created_at ? formatBeijingDateTimeShort(w.created_at) : ''}</Text>
             </View>
             <Text className="text-sm font-bold text-black">{w.reason}</Text>
             {w.description && <Text className="text-xs text-zinc-500 mt-1">{w.description}</Text>}

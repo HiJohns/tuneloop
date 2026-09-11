@@ -3,7 +3,7 @@ import Taro from '@tarojs/taro'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken , resolveErrorMessage } from '../services/api'
-import { formatDeliveryAddress, formatDisplayDate, formatLogTime, formatPayMethod } from '../utils/format'
+import { formatDeliveryAddress, formatBeijingDate, formatBeijingDateTimeShort, formatPayMethod } from '../utils/format'
 import { dialog, env, previewImage } from '../platform'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
 import InstrumentInfo from '../components/InstrumentInfo'
@@ -367,8 +367,8 @@ export default function OrderDetail() {
     'deposit_refunding', 'expired', 'transferred',
   ].includes(status)
 
-  const startDate = formatDisplayDate(order.start_date)
-  const endDate = formatDisplayDate(order.end_date)
+  const startDate = formatBeijingDate(order.start_date)
+  const endDate = formatBeijingDate(order.end_date)
   const leaseTerm = order.lease_term || 0
   const effStartDate = order.delivered_at || order.start_date
   const rentalDays = (effStartDate && (order.end_date || order.returned_at))
@@ -513,7 +513,7 @@ export default function OrderDetail() {
               <View className="flex justify-between text-sm">
                 <Text className="text-zinc-500 font-medium">
                   合同租金 ¥{(Number(order.fee_detail.paid_block?.contract_rent?.amount) / 100).toFixed(2)}
-                  {order.fee_detail.paid_block?.contract_rent?.date ? `（${String(order.fee_detail.paid_block.contract_rent.date).slice(0, 10)}）` : ''}
+                  {order.fee_detail.paid_block?.contract_rent?.date ? `（${formatBeijingDate(order.fee_detail.paid_block.contract_rent.date)}）` : ''}
                 </Text>
               </View>
               {(order.fee_detail.paid_block?.contract_rent?.tiers || []).map((t, i) => (
@@ -648,7 +648,7 @@ export default function OrderDetail() {
               {actualReturnedAt && (
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-500 font-medium">实际结束日期</Text>
-                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">{formatDisplayDate(actualReturnedAt)}</Text>
+                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">{formatBeijingDate(actualReturnedAt)}</Text>
                 </View>
               )}
               {actualDays > 0 && (
@@ -977,7 +977,7 @@ export default function OrderDetail() {
                 {EVENT_LABELS[log.event] || log.event}
               </Text>
               <Text className="text-xs text-zinc-400 mt-0.5">
-                {formatLogTime(log.time || log.created_at)}
+                {formatBeijingDateTimeShort(log.time || log.created_at)}
                 {log.operator && <Text className="ml-2">· {log.operator === 'system' ? '系统' : log.operator}</Text>}
               </Text>
             </View>

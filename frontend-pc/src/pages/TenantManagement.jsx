@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Table, Button, Modal, Form, Input, message, Tag, Space, Select } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { api } from '../services/api'
+import { formatBeijingDate } from '../utils/date'
 
 const { Option } = Select
 
@@ -67,7 +68,7 @@ export default function TenantManagement() {
       title: '创建时间',
       dataIndex: 'created_at',
       key: 'created_at',
-      render: (text) => new Date(text).toLocaleDateString(),
+      render: (text) => formatBeijingDate(text),
     },
   ]
 

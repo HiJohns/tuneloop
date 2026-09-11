@@ -3,15 +3,8 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { View, Text, ScrollView, Image } from '@tarojs/components'
 import { apiFetch, resolveErrorMessage } from '../services/api'
 import { env } from '../platform'
+import { formatBeijingDate } from '../utils/format'
 import { ArrowLeft } from 'lucide-react'
-
-
-function formatDate(raw) {
-  if (!raw) return '-'
-  const d = new Date(raw.slice(0, 10))
-  if (isNaN(d.getTime())) return raw.slice(0, 10)
-  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
-}
 
 export default function Renewal() {
   // #1674: weapp jumps use query (?order_id=); H5 legacy links may use
@@ -120,8 +113,8 @@ export default function Renewal() {
             )}
             <View className="text-base font-bold mb-2"><Text>{instrument.category_name || '乐器'}</Text></View>
             <View className="flex flex-row text-sm mb-1"><Text className="text-gray-500 w-24">SN</Text><Text className="text-black font-medium">{instrument.sn || '-'}</Text></View>
-            <View className="flex flex-row text-sm mb-1"><Text className="text-gray-500 w-24">下单日</Text><Text className="text-black font-medium">{formatDate(order?.created_at)}</Text></View>
-            <View className="flex flex-row text-sm mb-1"><Text className="text-gray-500 w-24">原预期归还</Text><Text className="text-black font-medium">{formatDate(endDate)}</Text></View>
+            <View className="flex flex-row text-sm mb-1"><Text className="text-gray-500 w-24">下单日</Text><Text className="text-black font-medium">{formatBeijingDate(order?.created_at)}</Text></View>
+            <View className="flex flex-row text-sm mb-1"><Text className="text-gray-500 w-24">原预期归还</Text><Text className="text-black font-medium">{formatBeijingDate(endDate)}</Text></View>
             {overdueDays > 0 && (
               <View className="flex flex-row text-sm mb-1"><Text className="text-gray-500 w-24">超期</Text><Text className="font-medium text-red-500">{overdueDays} 天（续期需覆盖）</Text></View>
             )}
@@ -157,7 +150,7 @@ export default function Renewal() {
             <Text className="text-sm text-gray-500">天</Text>
           </View>
           {days > 0 && calcResult?.new_end_date && (
-            <View className="mt-2 text-sm text-gray-500"><Text>预期归还日: </Text><Text className="text-black font-medium">{formatDate(calcResult.new_end_date)}</Text></View>
+            <View className="mt-2 text-sm text-gray-500"><Text>预期归还日: </Text><Text className="text-black font-medium">{formatBeijingDate(calcResult.new_end_date)}</Text></View>
           )}
         </View>
 
@@ -181,7 +174,7 @@ export default function Renewal() {
               <Text>¥{(Number(calcResult.total_amount || 0) / 100).toFixed(2)}</Text>
             </View>
             <View className="mt-2 text-sm text-gray-400">
-              <Text>新到期日: {formatDate(calcResult.new_end_date)}</Text>
+              <Text>新到期日: {formatBeijingDate(calcResult.new_end_date)}</Text>
             </View>
           </View>
         )}

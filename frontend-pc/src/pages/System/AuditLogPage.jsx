@@ -3,6 +3,7 @@ import { Table, Card, Button, Space, DatePicker, Checkbox, Tag, message, Modal, 
 import { DownloadOutlined, SearchOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { api, auditLogApi } from '../../services/api';
 import dayjs from 'dayjs';
+import { formatBeijingDateTimeShort } from '../../utils/date';
 
 const actionDisplayMap = {
   CREATE: '创建', UPDATE: '更新', DELETE: '删除',
@@ -113,7 +114,7 @@ export default function AuditLogPage() {
 
   const columns = [
     { title: '时间', dataIndex: 'created_at', key: 'created_at',
-      render: (v) => v ? new Date(v).toLocaleString() : '-', width: 180 },
+      render: (v) => v ? formatBeijingDateTimeShort(v) : '-', width: 180 },
     { title: '操作者', dataIndex: 'actor_name', key: 'actor_name', width: 100,
       render: (v, record) => v || record.user_id?.slice(0, 8) || '-' },
     { title: '对象类型', dataIndex: 'resource_type', key: 'resource_type', width: 100,
@@ -191,7 +192,7 @@ export default function AuditLogPage() {
         footer={null} width={720}>
         {detailLog && (
           <Descriptions column={2} bordered size="small">
-            <Descriptions.Item label="时间" span={2}>{new Date(detailLog.created_at).toLocaleString()}</Descriptions.Item>
+            <Descriptions.Item label="时间" span={2}>{formatBeijingDateTimeShort(detailLog.created_at)}</Descriptions.Item>
             <Descriptions.Item label="结果" span={2}>
               <Tag color={getStatusColor(detailLog.status)} icon={getStatusIcon(detailLog.status)}>
                 {detailLog.status === 'failure' ? '失败' : '成功'}

@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Card, Table, Button, Form, Input, Select, Switch, message, Space, Popconfirm, Tag, InputNumber, Tabs, Descriptions, Empty } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import api from '../services/api';
+import { formatBeijingDate } from '../utils/date';
 import MerchantMemberManagement from '../components/MerchantMemberManagement';
 
 const MerchantManagement = () => {
@@ -194,7 +195,7 @@ const MerchantManagement = () => {
       title: '创建时间',
       dataIndex: 'created_at',
       key: 'created_at',
-      render: (date) => new Date(date).toLocaleDateString(),
+      render: (date) => formatBeijingDate(date),
     },
   ];
 

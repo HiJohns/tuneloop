@@ -6,6 +6,7 @@ import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
 import { dialog, env, getInputValue, toWeappRoute } from '../platform'
 import BottomNav from '../components/BottomNav'
 import BottomNavWeapp from '../components-weapp/BottomNav'
+import { formatBeijingDate } from '../utils/format'
 
 const statusLabels = {
   pending_assessment: '待评估', transit_processing: '中转处理中',
@@ -163,7 +164,7 @@ export default function MyRepairs() {
                   <View key={r.id} className="border border-zinc-100 rounded-xl p-3" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}
                     onClick={() => nav(`/repair-request?request_id=${r.id}`)}>
                     <View className="flex justify-between items-center">
-                      <Text className="text-sm font-bold text-black">{r.created_at ? new Date(r.created_at).toLocaleDateString() : '#' + r.id?.slice(0, 8)}</Text>
+                      <Text className="text-sm font-bold text-black">{r.created_at ? formatBeijingDate(r.created_at) : '#' + r.id?.slice(0, 8)}</Text>
                       <Text className="text-xs text-zinc-400">{statusLabels[r.status] || r.status}</Text>
                     </View>
                     <View className="flex justify-between items-center">
@@ -284,7 +285,7 @@ export default function MyRepairs() {
                   <View key={r.id} className="border border-zinc-100 rounded-xl p-3" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}
                     onClick={() => nav(`/repair-request?request_id=${r.id}`)}>
                     <View className="flex justify-between items-center">
-                      <Text className="text-sm font-bold text-black">{r.created_at ? new Date(r.created_at).toLocaleDateString() : '#' + r.id?.slice(0, 8)}</Text>
+                      <Text className="text-sm font-bold text-black">{r.created_at ? formatBeijingDate(r.created_at) : '#' + r.id?.slice(0, 8)}</Text>
                       <Text className="text-xs text-zinc-400">{statusLabels[r.status] || r.status}</Text>
                     </View>
                     <View className="flex justify-between items-center">

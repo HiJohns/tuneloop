@@ -7,6 +7,7 @@ import { useSearchParams } from 'react-router-dom'
 import { Table, Card, Button, Space, Tag, Image, Modal, Input, message, Typography } from 'antd'
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { faceReviewApi } from '../../../services/api'
+import { formatBeijingDateTimeShort } from '../../../utils/date'
 
 const { Text } = Typography
 
@@ -176,7 +177,7 @@ export default function FaceReviewPage() {
       title: '提交时间',
       dataIndex: 'submitted_at',
       key: 'submitted_at',
-      render: (v) => v ? new Date(v).toLocaleString('zh-CN') : '-',
+      render: (v) => v ? formatBeijingDateTimeShort(v) : '-',
     },
     {
       title: '操作',

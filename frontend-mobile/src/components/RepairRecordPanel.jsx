@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { View, Text, Button, Image } from '@tarojs/components'
 import { apiFetch , resolveErrorMessage } from '../services/api'
 import { env } from '../platform'
-import { formatDisplayDate } from '../utils/format'
+import { formatBeijingDateTimeShort } from '../utils/format'
 
 const RECORD_TYPE_LABELS = {
   created: '报修单已创建',
@@ -98,7 +98,7 @@ export default function RepairRecordPanel({ instrumentId, records, onRecordAdded
               <View key={r.id} className="border-b border-zinc-100 pb-3 mb-1">
                 <View className="flex justify-between items-center">
                   <Text className="text-sm font-bold text-black">{RECORD_TYPE_LABELS[r.record_type] || r.comment || r.record_type}</Text>
-                  <Text className="text-xs text-zinc-400">{formatDisplayDate(r.created_at)}</Text>
+                  <Text className="text-xs text-zinc-400">{formatBeijingDateTimeShort(r.created_at)}</Text>
                 </View>
                 <Text className="text-xs text-zinc-400 mt-0.5">{r.worker_name || '系统'}</Text>
                 {r.comment && r.record_type !== 'progress' && (

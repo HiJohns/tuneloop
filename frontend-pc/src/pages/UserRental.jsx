@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Table, Tag, Button, Card, Typography, Space, Modal, Descriptions, message } from 'antd';
 import { FileTextOutlined, EyeOutlined, UndoOutlined } from '@ant-design/icons';
 import { api } from '../services/api';
+import { formatBeijingDate } from '../utils/date';
 
 const { Title } = Typography;
 
@@ -77,13 +78,13 @@ export default function UserRental() {
       title: '租赁开始',
       dataIndex: 'start_date',
       key: 'start_date',
-      render: (date) => date?.slice(0, 10) || '-'
+      render: (date) => formatBeijingDate(date)
     },
     {
       title: '租赁结束',
       dataIndex: 'end_date',
       key: 'end_date',
-      render: (date) => date?.slice(0, 10) || '-'
+      render: (date) => formatBeijingDate(date)
     },
     {
       title: '状态',
@@ -153,8 +154,8 @@ export default function UserRental() {
           <Descriptions bordered column={1}>
             <Descriptions.Item label="合同编号">{selectedRental.contract_number || '-'}</Descriptions.Item>
             <Descriptions.Item label="乐器">{selectedRental.instrument_name || '-'}</Descriptions.Item>
-            <Descriptions.Item label="租赁开始">{selectedRental.start_date?.slice(0, 10) || '-'}</Descriptions.Item>
-            <Descriptions.Item label="租赁结束">{selectedRental.end_date?.slice(0, 10) || '-'}</Descriptions.Item>
+            <Descriptions.Item label="租赁开始">{formatBeijingDate(selectedRental.start_date)}</Descriptions.Item>
+            <Descriptions.Item label="租赁结束">{formatBeijingDate(selectedRental.end_date)}</Descriptions.Item>
             <Descriptions.Item label="月租金">¥{selectedRental.monthly_rent || '-'}</Descriptions.Item>
             <Descriptions.Item label="押金">¥{selectedRental.deposit || '-'}</Descriptions.Item>
             <Descriptions.Item label="状态">

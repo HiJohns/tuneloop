@@ -3,7 +3,7 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Video } from '@tarojs/components'
 import { apiFetch, getCartKey, getToken, resolveLogin } from '../services/api'
 import { env, getWindowSize, previewImage, session, storage } from '../platform'
-import { formatDisplayDate } from '../utils/format'
+import { formatBeijingDate, formatBeijingDateTimeShort } from '../utils/format'
 import { calculateDays } from '../utils/daycalc'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
@@ -394,7 +394,7 @@ export default function Detail() {
               <View style={{ maxHeight: 192, overflowY: 'auto' }}>
                 {auditLogs.map((log, i) => (
                   <View key={log.id || i} style={{ display: 'flex', alignItems: 'center', padding: '6px 8px', backgroundColor: '#f9fafb', borderRadius: 4, fontSize: 12, marginBottom: 8 }}>
-                    <Text style={{ color: '#9ca3af', width: 112, flexShrink: 0 }}>{new Date(log.created_at).toLocaleString()}</Text>
+                    <Text style={{ color: '#9ca3af', width: 112, flexShrink: 0 }}>{formatBeijingDateTimeShort(log.created_at)}</Text>
                     <View style={{ padding: '2px 6px', borderRadius: 4, backgroundColor: '#fff', color: '#4b5563', fontWeight: '500', marginRight: 8 }}>
                       {{'CREATE': '创建', 'UPDATE': '编辑', 'DELETE': '删除', 'SHIP': '发货', 'RECEIVE': '收货', 'RETURN': '归还', 'INSPECT': '验收'}[log.action] || log.action}
                     </View>
@@ -463,7 +463,7 @@ export default function Detail() {
             <View style={{ padding: 12, backgroundColor: '#f0fdf4', borderRadius: 8, marginBottom: 8 }}>
               <Text style={{ color: '#15803d', fontWeight: '500' }}>租赁中</Text>
               <Text style={{ color: '#6b7280', fontSize: 14 }}>
-                租期：{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}
+                租期：{formatBeijingDate(activeOrder.start_date)} 至 {formatBeijingDate(activeOrder.end_date)}
               </Text>
               {activeOrder.end_date && new Date(activeOrder.end_date) < new Date() && (
                 <Text style={{ color: '#dc2626', fontWeight: '700' }}>
@@ -484,7 +484,7 @@ export default function Detail() {
               <Text style={{ color: '#c2410c', fontWeight: '500' }}>归还中</Text>
               <Text style={{ color: '#6b7280', fontSize: 14 }}>该乐器正在归还流程中</Text>
               <Text style={{ color: '#6b7280', fontSize: 14 }}>
-                租期：{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}
+                租期：{formatBeijingDate(activeOrder.start_date)} 至 {formatBeijingDate(activeOrder.end_date)}
               </Text>
               {activeOrder.deposit_refunded && (
                 <Text style={{ color: '#16a34a', fontSize: 14, marginTop: 4 }}>押金已退还</Text>
@@ -494,7 +494,7 @@ export default function Detail() {
             <View style={{ padding: 12, backgroundColor: '#eff6ff', borderRadius: 8, marginBottom: 8 }}>
               <Text style={{ color: '#1d4ed8', fontWeight: '500' }}>已预约</Text>
               <Text style={{ color: '#6b7280', fontSize: 14 }}>
-                租期：{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}
+                租期：{formatBeijingDate(activeOrder.start_date)} 至 {formatBeijingDate(activeOrder.end_date)}
               </Text>
             </View>
           ) : ['in_transit', 'shipped'].includes(activeOrder.order_status) ? (
@@ -514,7 +514,7 @@ export default function Detail() {
             <View style={{ padding: 12, backgroundColor: '#fef2f2', borderRadius: 8, marginBottom: 8 }}>
               <Text style={{ color: '#dc2626', fontWeight: '500' }}>已超期</Text>
               <Text style={{ color: '#6b7280', fontSize: 14 }}>
-                租期：{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}
+                租期：{formatBeijingDate(activeOrder.start_date)} 至 {formatBeijingDate(activeOrder.end_date)}
               </Text>
               {activeOrder.end_date && (
                 <Text style={{ color: '#dc2626', fontWeight: '700' }}>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { View, Text } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
-import { formatLogTime } from '../utils/format'
+import { formatBeijingDateTimeShort } from '../utils/format'
 
 const LIFECYCLE_ORDER = [
   'created', 'paid', 'pending_shipment', 'shipped', 'in_transit',
@@ -93,7 +93,7 @@ export default function OrderTimeline({ orderId, status }) {
                   {EVENT_LABELS[log.event] || log.event}
                 </Text>
                 <Text className="text-xs text-zinc-400 mt-0.5" style={{ display: 'block' }}>
-                  {formatLogTime(log.time || log.created_at)}
+                  {formatBeijingDateTimeShort(log.time || log.created_at)}
                   {log.operator && <Text className="ml-2">· {log.operator === 'system' ? '系统' : log.operator}</Text>}
                 </Text>
               </View>

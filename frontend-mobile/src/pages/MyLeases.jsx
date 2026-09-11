@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Button, ScrollView, Image } from '@tarojs/components'
 import { apiFetch, getToken , resolveErrorMessage } from '../services/api'
 import { env, dialog } from '../platform'
-import { formatDisplayDate } from '../utils/format'
+import { formatBeijingDate } from '../utils/format'
 import { Package } from 'lucide-react'
 import BottomNav from '../components/BottomNav'
 
@@ -242,7 +242,7 @@ export default function MyLeases() {
                   )}
                   {order.created_at && (
                     <View><Text className="text-zinc-400 font-medium">
-                      下单日: <Text className="text-black font-medium">{formatDisplayDate(order.created_at)}</Text>
+                      下单日: <Text className="text-black font-medium">{formatBeijingDate(order.created_at)}</Text>
                     </Text></View>
                   )}
                   <View className="flex items-center gap-2">

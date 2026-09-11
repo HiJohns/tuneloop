@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Card, Button, Space, Form, Input, Radio, message, Modal } from 'antd'
 import { ArrowLeftOutlined, CheckCircleOutlined, TruckOutlined } from '@ant-design/icons'
 import { api } from '../services/api'
+import { formatBeijingDate } from '../utils/date'
 
 const { TextArea } = Input
 
@@ -68,7 +69,7 @@ export default function ReturnProcess() {
           <div className="text-sm text-gray-600 space-y-1">
             <div>乐器: {rental.instrument_name}</div>
             <div>租赁单号: {rental.id?.slice(0, 8)}</div>
-            <div>应还日期: {rental.end_date?.slice(0, 10)}</div>
+            <div>应还日期: {formatBeijingDate(rental.end_date)}</div>
             {rental.return_address && (
               <div className="mt-2 pt-2 border-t border-blue-200">
                 <div className="font-medium text-blue-700">请将乐器寄回以下地址：</div>

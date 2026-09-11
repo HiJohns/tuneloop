@@ -4,6 +4,7 @@ import { View, Text, ScrollView, Button } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { env } from '../platform'
 import BottomNav from '../components/BottomNav'
+import { formatBeijingDate } from '../utils/format'
 
 const statusLabels = {
   pending_assessment: '待评估', transit_processing: '中转处理中',
@@ -47,7 +48,7 @@ export default function UserRepairs() {
                   {statusLabels[r.status] || r.status}
                 </Text>
               </View>
-              <Text className="text-xs text-zinc-400">{r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}</Text>
+              <Text className="text-xs text-zinc-400">{r.created_at ? formatBeijingDate(r.created_at) : ''}</Text>
               {r.quote_amount && <Text className="text-xs text-zinc-500 mt-1">报价: ¥{((r.quote_amount || 0) / 100).toFixed(2)}</Text>}
             </View>
           ))}

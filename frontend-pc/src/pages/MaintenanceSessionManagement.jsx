@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Table, Tag, Button, Card, Typography, Space, Modal, Descriptions, Steps, message, Input, Select } from 'antd';
 import { PlayCircleOutlined, CheckCircleOutlined, CameraOutlined, ReloadOutlined } from '@ant-design/icons';
 import { api } from '../services/api';
+import { formatBeijingDate } from '../utils/date';
 
 const { Title } = Typography;
 const { TextArea } = Input;
@@ -93,7 +94,7 @@ export default function MaintenanceSessionManagement() {
       title: '日期',
       dataIndex: 'created_at',
       key: 'created_at',
-      render: (date) => date?.slice(0, 10) || '-'
+      render: (date) => formatBeijingDate(date)
     },
     {
       title: '类别',

@@ -4,6 +4,7 @@ import { Table, Input, Button, Space, Modal, Form, InputNumber, Switch, message,
 import { DownloadOutlined, IdcardOutlined, ScanOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import { api, faceReviewApi } from '../../services/api'
 import IdPhotoDisplay from '../../components/IdPhotoDisplay'
+import { formatBeijingDate, formatBeijingDateTimeShort } from '../../utils/date'
 
 const { Text } = Typography
 
@@ -183,8 +184,8 @@ export default function UserManagement() {
     { title: '电话', dataIndex: 'phone', key: 'phone', render: v => v || '-' },
     { title: '当前等级', dataIndex: 'level', key: 'level', render: v => v || '-' },
     { title: '当前积分', dataIndex: 'points', key: 'points', render: v => v != null ? v / 100 : '-' },
-    { title: '注册时间', dataIndex: 'registered_at', key: 'registered_at', render: v => v ? new Date(v).toLocaleString() : '-' },
-    { title: '最新活动', dataIndex: 'last_active', key: 'last_active', render: v => v ? new Date(v).toLocaleString() : '-' },
+    { title: '注册时间', dataIndex: 'registered_at', key: 'registered_at', render: v => v ? formatBeijingDateTimeShort(v) : '-' },
+    { title: '最新活动', dataIndex: 'last_active', key: 'last_active', render: v => v ? formatBeijingDateTimeShort(v) : '-' },
     { title: '状态', dataIndex: 'status', key: 'status', render: v => v === 'disabled'
       ? <Tag color="red">已禁用</Tag>
       : v === 'active'
@@ -346,7 +347,7 @@ export default function UserManagement() {
                           <Tag color={b.status === 'approved' ? 'green' : b.status === 'pending' ? 'gold' : 'red'}>
                             {b.status === 'approved' ? '已通过' : b.status === 'pending' ? '待审核' : '已驳回'}
                           </Tag>
-                          <Text type="secondary" style={{ fontSize: 12 }}>提交于 {b.submitted_at}</Text>
+                          <Text type="secondary" style={{ fontSize: 12 }}>提交于 {formatBeijingDateTimeShort(b.submitted_at)}</Text>
                           {b.reviewed_at && <Text type="secondary" style={{ fontSize: 12 }}>审核于 {b.reviewed_at}</Text>}
                         </Space>
                         {b.reject_reason && <Alert type="error" showIcon message={`驳回原因：${b.reject_reason}`} style={{ marginBottom: 8 }} />}
@@ -365,7 +366,7 @@ export default function UserManagement() {
                             </Button>
                           )}
                           {b.status === 'approved' && detail?.face_verified && (
-                            <Text type="success"><CheckCircleOutlined /> 已核身{detail?.face_verified_at ? `（${new Date(detail.face_verified_at).toLocaleString()}）` : ''}</Text>
+                             <Text type="success"><CheckCircleOutlined /> 已核身{detail?.face_verified_at ? `（${formatBeijingDateTimeShort(detail.face_verified_at)}）` : ''}</Text>
                           )}
                         </Space>
                       </div>

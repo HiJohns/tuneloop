@@ -6,7 +6,6 @@ import { apiFetch , resolveErrorMessage } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, Truck, Wrench, RotateCcw, CheckCircle, User, Archive, Clock } from 'lucide-react'
 import { dialog, env, storage } from '../platform'
-import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
 

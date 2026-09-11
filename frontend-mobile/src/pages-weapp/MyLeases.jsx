@@ -3,7 +3,7 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Button, ScrollView, Image, Picker } from '@tarojs/components'
 import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
 import { env } from '../platform'
-import { formatDisplayDate } from '../utils/format'
+import { formatBeijingDate } from '../utils/format'
 import BottomNav from '../components-weapp/BottomNav'
 
 const FILTERS = [
@@ -229,7 +229,7 @@ export default function MyLeases() {
                   )}
                   {order.created_at && (
                     <View style={{ marginBottom: 4 }}><Text style={{ color: '#a1a1aa', fontWeight: '500' }}>
-                      下单日: <Text style={{ color: '#000', fontWeight: '500' }}>{formatDisplayDate(order.created_at)}</Text>
+                      下单日: <Text style={{ color: '#000', fontWeight: '500' }}>{formatBeijingDate(order.created_at)}</Text>
                     </Text></View>
                   )}
                   <View style={{ display: 'flex', alignItems: 'center' }}>

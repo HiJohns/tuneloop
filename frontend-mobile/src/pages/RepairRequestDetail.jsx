@@ -6,6 +6,7 @@ import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
 import { dialog, env, getInputValue, toWeappRoute, uploadFile as uploadFileApi } from '../platform'
 import RepairRecordPanel from '../components/RepairRecordPanel'
 import StaffIdPhotoViewer from '../components/StaffIdPhotoViewer'
+import { formatBeijingDateTimeShort } from '../utils/format'
 
 export default function RepairRequestDetail() {
   const navigate = useNavigate()
@@ -339,7 +340,7 @@ export default function RepairRequestDetail() {
             </View>
             <View className="flex justify-between items-center">
               <Text className="text-xs text-zinc-400">创建时间</Text>
-              <Text className="text-xs text-zinc-600">{request.created_at ? new Date(request.created_at).toLocaleString() : '-'}</Text>
+              <Text className="text-xs text-zinc-600">{request.created_at ? formatBeijingDateTimeShort(request.created_at) : '-'}</Text>
             </View>
           </View>
         </View>

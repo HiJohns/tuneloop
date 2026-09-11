@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Card, Button, Space, Descriptions, message, Modal, Form, Input, Radio } from 'antd'
 import { ArrowLeftOutlined, CheckCircleOutlined, CreditCardOutlined } from '@ant-design/icons'
 import { api } from '../services/api'
+import { formatBeijingDate } from '../utils/date'
 
 const { TextArea } = Input
 
@@ -76,8 +77,8 @@ export default function OrderPayment() {
         <Descriptions bordered column={2}>
           <Descriptions.Item label="订单号">{order.id?.slice(0, 8)}</Descriptions.Item>
           <Descriptions.Item label="乐器">{order.instrument_name}</Descriptions.Item>
-          <Descriptions.Item label="租赁开始">{order.start_date}</Descriptions.Item>
-          <Descriptions.Item label="租赁结束">{order.end_date}</Descriptions.Item>
+          <Descriptions.Item label="租赁开始">{formatBeijingDate(order.start_date)}</Descriptions.Item>
+          <Descriptions.Item label="租赁结束">{formatBeijingDate(order.end_date)}</Descriptions.Item>
           <Descriptions.Item label="天数">{order.lease_term} 天</Descriptions.Item>
           <Descriptions.Item label="月租金">¥{order.monthly_rent}</Descriptions.Item>
           <Descriptions.Item label="押金">

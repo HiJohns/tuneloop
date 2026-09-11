@@ -3,14 +3,10 @@ import Taro from '@tarojs/taro'
 import { View, Text, Button, ScrollView } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { env, dialog } from '../platform'
+import { formatBeijingDate } from '../utils/format'
 
 function formatCents(cents) {
   return (cents / 100).toFixed(2)
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
 }
 
 export default function Invoice() {
@@ -206,7 +202,7 @@ export default function Invoice() {
                         <Text style={{ fontSize: 15, fontWeight: '600' }}>{o.merchant_name || '商户'}</Text>
                         <Text style={{ fontSize: 15, fontWeight: '700', color: '#D97706' }}>¥{formatCents(o.total_cents)}</Text>
                       </View>
-                      <Text style={{ fontSize: 12, color: '#a1a1aa' }}>SN: {o.sn || '-'} · {formatDate(o.created_at)}</Text>
+                      <Text style={{ fontSize: 12, color: '#a1a1aa' }}>SN: {o.sn || '-'} · {formatBeijingDate(o.created_at)}</Text>
                     </View>
                   </View>
                 ))}
@@ -248,9 +244,9 @@ export default function Invoice() {
                     </Text>
                   </View>
                   <Text style={{ fontSize: 13, color: '#666', marginBottom: 4 }}>{app.order_count} 笔订单 · ¥{formatCents(app.total_amount)}</Text>
-                  <Text style={{ fontSize: 12, color: '#a1a1aa' }}>申请于 {formatDate(app.created_at)}</Text>
+                  <Text style={{ fontSize: 12, color: '#a1a1aa' }}>申请于 {formatBeijingDate(app.created_at)}</Text>
                   {app.replied_at && (
-                    <Text style={{ fontSize: 12, color: '#a1a1aa' }}>回复于 {formatDate(app.replied_at)}</Text>
+                    <Text style={{ fontSize: 12, color: '#a1a1aa' }}>回复于 {formatBeijingDate(app.replied_at)}</Text>
                   )}
                   {app.reply && (
                     <View style={{ marginTop: 8, padding: 8, background: '#f9fafb', borderRadius: 8 }}>

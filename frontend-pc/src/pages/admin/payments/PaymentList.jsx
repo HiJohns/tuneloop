@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Card, Table, Tag, Select, Button, message, DatePicker, Input, Space } from 'antd'
 import { DownloadOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons'
 import { api } from '../../../services/api'
+import { formatBeijingDate, formatBeijingDateTimeShort } from '../../../utils/date'
 
 const { RangePicker } = DatePicker
 
@@ -73,7 +74,7 @@ export default function PaymentList() {
   }
 
   const columns = [
-    { title: '时间', dataIndex: 'created_at', width: 160, render: (v) => v ? new Date(v).toLocaleString() : '-' },
+    { title: '时间', dataIndex: 'created_at', width: 160, render: (v) => v ? formatBeijingDateTimeShort(v) : '-' },
     { title: '商户订单号', dataIndex: 'out_trade_no', width: 180, ellipsis: true },
     { title: '微信交易号', dataIndex: 'transaction_id', width: 180, ellipsis: true },
     { title: '类别', dataIndex: 'order_type', width: 100, render: (v) => typeOptions.find(o => o.value === v)?.label || v },
