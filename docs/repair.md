@@ -33,6 +33,12 @@ TuneLoop 的维修功能覆盖两类场景：
 
 维修师傅是业务侧角色（`site_members.role = 'repair_technician'`），不涉及 IAM 修改。可与 site_member 角色共存（兼职工）。
 
+**流程规则（#1888 锁定，验收依据）**：
+- **R1 禁止自验收**：`/repair` 验收操作仅**乐器所在站点**的 `site_admin/site_member` 且 `≠ repair_worker_id`；兼职（site_member + repair_technician）同样不得验收自己完成的维修
+- **R4 接手范围**：仅同站点师傅可接手（操作员站点 ∩ 乐器 `current_site_id`）
+- **R5 改派权限**：改派维修负责人仅 `site_admin`
+- **R7 报价可见性**：报修人本人 / 报价所属站点成员；跨网点报价互不可见（接口级返回空集而非全量）
+
 **双向脱敏（受控/合作商户情形）**：
 - 师傅方向：受控网点师傅看不到报修人信息；报价单评论**禁止出现任何联系方式**（提交前校验）
 - 用户方向：用户仅见报价金额与**报价单号**，看不到师傅姓名/联系方式
@@ -106,9 +112,9 @@ returned → appealing → (管理员关闭) → closed
 
 **角色参与**：
 
-- 员工：定损后触发维修（`assessment.go`/`warehouse.go` → `repair_status = repair_pending`）
+- 员工：定损后触发维修（`assessment.go`/`warehouse.go` → `repair_status = repair_pending`；**R2**：同时写入 `current_site_id` = 操作员站点）
 - 师傅：扫码 → 开始维修 → 拍照/记录 → 完成维修（至少一张照片）
-- 员工：验收通过/不通过（不通过回退到维修中）
+- 员工：验收通过/不通过（不通过回退到维修中；**R3**：驳回原因写入 `repair_records`；**R1**：不得自验收）
 
 **API**：`POST /api/repair/:id/{start|complete|takeover|accept|reject|records}`
 
@@ -325,6 +331,8 @@ returned → appealing → (管理员关闭) → closed
 
 ## 9. 相关文档
 
+- `docs/ui.md` §2.9 — 维修域页面设计（角色矩阵 + R1-R7 + 8 页面规格，#1888）
+- `docs/cases/lease-repair.md` — R-03 租赁乐器维修结构化用例（#1888）
 - `docs/cases.md` §3 — 维修用例
 - `AGENTS.md` §Instrument Image Hierarchy — 图片分层规范
 - `AGENTS.md` §Repair Request Tables — 报修表字段说明

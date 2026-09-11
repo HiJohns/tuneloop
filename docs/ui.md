@@ -164,7 +164,7 @@
 | `Home.jsx` | `/` | 首页 |
 | `Detail.jsx` | `/instrument/:id` | 乐器详情 |
 | `LeaseHistory.jsx` | `/leases` | 租赁历史 |
-| `MaintenanceProgress.jsx` | `/staff/maintenance/:id` | 维修进度 |
+| `MaintenanceProgress.jsx` | `/staff/maintenance/:id` | ~~维修进度~~ ⚠️ 已废弃（#1888 R6，清理见 #1886） |
 | `MessageDetail.jsx` | `/messages/:id` | 消息详情 |
 | `Messages.jsx` | `/messages` | 消息列表 |
 | `MyContracts.jsx` | `/contracts` | 我的合同 |
@@ -175,7 +175,7 @@
 | `Profile.jsx` | `/profile` | 个人中心 |
 | `ReceiveConfirm.jsx` | `/receive/:orderId` | 确认收货 |
 | `ReceivingInterface.jsx` | `/staff/receiving` | 收货界面 |
-| `RepairScan.jsx` | `/staff/repair-scan` | 维修扫码 |
+| `RepairScan.jsx` | `/staff/repair-scan` | 转出中转处理（#1888 勘误：原「维修扫码」描述不符实际） |
 | `MyRepairs.jsx` | `/my-repairs` | 维修中心（扫码入口+维修列表） |
 | `RepairWorkflow.jsx` | `/repair` | 维修工作流（多面板） |
 | `CreateRepairRequest.jsx` | `/create-repair` | 创建报修单 |
@@ -962,6 +962,105 @@ API 来源：
 - 点击加入 → 不弹窗、不跳转
 - 🛒 浮动图标执行 scale(1→1.25→1) 弹跳动画（300ms ease-in-out）
 - 图标始终可见（含角标数字）
+
+---
+
+### 2.9 维修域页面设计（#1888）
+
+> 来源：维修域全面静态审计（#1877-#1889）。本节定义**目标行为**（R1-R7 规则落地后），实现差距逐项标注关联 Issue；执行修复时以本节为验收依据。
+
+#### 2.9.0 角色 × 页面矩阵与全局规则
+
+| 页面 | 顾客 USER | 网点员工 site_member/admin | 维修师傅 repair_technician |
+|------|:---:|:---:|:---:|
+| `/my-repairs` | 我的报修列表 + 创建入口 | 本网点报修列表 + 待发回填物流 | 我的维修 + 待维修列表 |
+| `/repair` | ❌ 不可达 | **验收面板**（已修复 · 本站点 · 非本单维修人） | 维修面板（开始/记录/完成/接手） |
+| `/repair-request` | 报修详情 + 接受/拒绝报价 + 支付 + 评价/申诉 | 本单站点：收发货/过程记录 | 本单站点：报价/维修/过程记录 |
+| `/create-repair` | ✅ | — | — |
+| `/receiving-repair-scan` | ❌ | 收货识别 | — |
+| `/staff/repair-scan` | ❌ | 转出中转处理 | — |
+| `/repair-quote` | ✅（接受报价后跳支付） | — | — |
+| `/repair-payment-complete` | ✅ | — | — |
+
+**全局规则（R1-R7）**：
+- **R1 禁止自验收**：`/repair` 验收操作仅**乐器所在站点**的 `site_admin/site_member` 且 `≠ repair_worker_id`（兼职身份也不例外）
+- **R2** 进入维修（定损/收货 damaged）时写入 `current_site_id` = 操作员站点（回退 order.org_id）
+- **R3** 验收驳回原因写入 `repair_records`（comment 前缀「验收驳回：」），记录列表可见
+- **R4** 接手仅限同站点（操作员站点 ∩ 乐器 current_site_id）
+- **R5** 改派负责人仅 `site_admin`
+- **R6** 遗留维保（maintenance）模块废弃（前端 4 页/路由移除，表数据保留）
+- **R7** 报价可见性：报修人本人 / 报价所属站点成员；无归属返回空集
+
+**通用要求**：错误反馈一律 `dialog.alert`（weapp 无全局 alert）；时间按 §1.6；照片经 `photoSrc` 补 origin + 点击 `previewImage`；异步按钮须 loading/disabled 防重；跨端控件用 Taro 组件（禁原生 `<textarea>/<input>`）。
+
+#### 2.9.1 维修中心 `/my-repairs`
+
+**角色视图**（顶部 tab 由角色生成）：
+- 顾客：我的报修列表（`repair_requests by user_id`）+ 「创建报修」按钮
+- 网点员工：本网点报修列表 + 「填物流发回」动作（`return_pending`）
+- 维修师傅：我的维修（`repair/mine`）+ 待维修列表（`repair/pending`，按站点过滤）
+
+**交互**：
+- 列表项点击 → `/repair-request?request_id=` 或 `/repair?instrument_id=`（`nav()` 跨端封装）
+- 「填物流发回」异步按钮须 loading/disabled（防重复提交）
+- 扫码入口：员工/师傅视图提供扫码按钮 → `/receiving-repair-scan` 或 `/repair?instrument_id=`
+- 列表项文本分行：SN / 状态各自 `<View>` 包裹（ui.md:110）
+
+**底部导航**：纯维修师傅（无 `site_member`）隐藏「租赁」tab（H5 + weapp 一致）。
+
+#### 2.9.2 维修工作台 `/repair`（共享页，按状态×角色裁剪）
+
+| repair_status | 员工（本站点） | 师傅（本单负责人） | 其他师傅 |
+|---|---|---|---|
+| `repair_pending` | 开始维修 | 开始维修 | 开始维修（谁点谁负责） |
+| `repair_in_progress` | 信息视图 | 添加记录 + 维修完成 | 显示负责人 + 接手（同站点，R4） |
+| `repair_completed` | 验收通过 / 验收不通过（R1、R3） | 「已修复，等待网点员工验收」信息卡（无按钮） | 仅状态信息 |
+
+- **添加记录**：评论 + 照片（H5 `input capture` / weapp `Taro.chooseImage`，最多 10 张，缩略图可预览）；「维修完成」后端要求至少一条含照片的记录
+- **验收不通过**：必填原因（weapp `Taro.showModal editable` / H5 `prompt`）；提交后乐器回 `repair_in_progress`，原因写入维修记录（R3）
+- **验收通过**：乐器回 `available`，清空 `repair_status/repair_worker_id`
+- 面板展示：乐器信息 / 定损信息 / 维修记录（`时间 · 提交人` + 照片网格）
+- loading：每个操作按钮独立 loading（`处理中...`），互斥禁用
+
+#### 2.9.3 报修详情 `/repair-request`
+
+**可见性**：报修人本人 / 该单站点（`site_id`、`transit_site_id`、`controlled_site_id`）成员；其余 404（防探测）。受控情形对站点成员脱敏报修人联系信息（§双向脱敏）。
+
+**阶段面板**（按状态 + 站点归属）：
+- 待估价：报价列表（R7 隔离）+ 师傅报价表单（技师，本单受控网点）
+- 待付款：支付入口（顾客）；价格明细（分 → /100）
+- 待发送：填物流（顾客）
+- 已发货/转入中：网点/中转网点收货（含拆箱拍照）
+- 维修中：师傅过程记录（**技师/员工可见输入表单**）+ 完成维修；重新报价（仅一次）
+- 待发回：员工填发回物流
+- 已发回：顾客确认收货 → 评价/申诉
+
+**过程记录面板**（`RepairRecordPanel`）：
+- 跨端控件（Taro Textarea/Input + `platform.uploadFile` + weapp `Taro.chooseImage/chooseMedia`）
+- 记录列表：正文 / 照片网格（可预览）/ 操作人 + 时间分行显示
+
+#### 2.9.4 创建报修单 `/create-repair`（顾客）
+
+- 识别码输入（500ms 防抖）→ 回填 SN/类型/品牌/型号
+- 选择商户/网点（全权=网点；合作=中转网点）
+- 照片/视频上传（H5 input / weapp `Taro.chooseImage`/`chooseMedia`）
+- 提交 → `POST /repair-requests`（须登录且引用本人 `user_instrument`）
+
+#### 2.9.5 扫码工作页（员工）
+
+- **收货识别 `/receiving-repair-scan`**：输入/扫描乐器识别码 → 匹配报修单（显示状态/受控）→ 拆箱拍照 → 确认收货（`transit_in` 场景）
+- **转出中转处理 `/staff/repair-scan`**：输入返回运单号 → 匹配转出单 → 拆箱拍照 → 提交转出（`transit_out` 场景）
+- 两页均需**站点员工角色**（非员工显示无权提示）；入口：`/my-repairs` 员工视图扫码按钮
+- **文档勘误**：ui.md 历史路由表把 `/staff/repair-scan` 标注为「维修扫码」，实际为「转出中转处理」（本节为准）
+
+#### 2.9.6 报价页 `/repair-quote`（顾客）
+
+- 展示报价对比（材料/服务/物流/工期/评论）；接受报价 → 跳转支付
+- 支付按钮守卫：`paying` 状态生效（防重复点击）
+
+#### 2.9.7 支付完成 `/repair-payment-complete`（顾客）
+
+- 展示支付金额；提供返回报修详情入口
 
 ---
 
@@ -2561,9 +2660,9 @@ cd frontend-pc && npm run build  # 应该成功
 | 乐器分类 | `/instruments/categories` | 需要登录 |
 | 属性管理 | `/instruments/properties` | 需要登录 |
 | 订单列表 | `/orders` | 需要登录 |
-| 维修工单 | `/maintenance` | 需要登录 |
-| 维修师傅管理 | `/maintenance/workers` | MANAGER |
-| 维修会话 | `/maintenance/sessions` | MANAGER/技师 |
+| 维修工单 | `/maintenance` | 需要登录 | ⚠️ 已废弃（#1888 R6，清理见 #1886） |
+| 维修师傅管理 | `/maintenance/workers` | MANAGER | ⚠️ 已废弃（改由网点管理-成员管理） |
+| 维修会话 | `/maintenance/sessions` | MANAGER/技师 | ⚠️ 已废弃（#1886 移除） |
 | 库存调拨 | `/inventory/transfer` | 需要登录 |
 | 库存管理&租金设定 | `/inventory/rent-setting` | MANAGER |
 | 租赁台账 | `/leases` | 需要登录 |
