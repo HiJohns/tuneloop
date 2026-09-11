@@ -161,6 +161,7 @@ func GetInstrumentByID(c *gin.Context) {
 		"repair_status":      instrument.RepairStatus,
 		"repair_worker_id":   instrument.RepairWorkerID,
 		"repair_worker_name": repairWorkerName(instrument.RepairWorkerID, db),
+		"current_site_id":    instrument.CurrentSiteID, // #1884: site-scoped UI gating
 		"created_at":         instrument.CreatedAt,
 		"updated_at":         instrument.UpdatedAt,
 		"specifications":     specsArray,

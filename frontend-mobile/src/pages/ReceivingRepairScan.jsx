@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Image, Input, Text, View } from '@tarojs/components'
 import { apiFetch, resolveErrorMessage } from '../services/api'
@@ -11,6 +11,14 @@ export default function ReceivingRepairScan() {
   const [request, setRequest] = useState(null)
   const [searching, setSearching] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
+  // #1884: site staff only
+  const [roles, setRoles] = useState(null)
+  useEffect(() => {
+    apiFetch(`${env.apiBaseUrl}/site-members/me`).then(r => r.json())
+      .then(res => setRoles(res.code === 20000 ? (res.data?.roles || []) : []))
+      .catch(() => setRoles([]))
+  }, [])
+  const hasSiteRole = (roles || []).some(r => ['site_admin', 'site_member'].includes(r))
   const [mode, setMode] = useState(null) // null | 'receive' | 'transit_in'
   const [unpackPhotos, setUnpackPhotos] = useState([])
   const baseUrl = env.apiBaseUrl
@@ -121,6 +129,15 @@ export default function ReceivingRepairScan() {
 
   const isControlled = request?.merchant_type === 'controlled'
   const status = request?.status
+
+  // #1884: site staff only (AGENTS 角色矩阵 /receiving-repair-scan = 网点员工)
+  if (roles !== null && !hasSiteRole) {
+    return (
+      <View style={{ backgroundColor: '#FDFBF7' }} className="flex flex-col h-screen items-center justify-center p-4">
+        <Text className="text-zinc-500 text-sm">无权访问：仅网点员工可执行收货识别</Text>
+      </View>
+    )
+  }
 
   return (
     <View style={{ backgroundColor: "#FDFBF7" }} className="flex flex-col h-screen p-4">

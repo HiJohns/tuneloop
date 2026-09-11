@@ -53,6 +53,8 @@ export default function RepairQuote() {
   useEffect(() => { fetchData() }, [requestId])
 
   const handlePay = () => {
+    if (paying) return
+    setPaying(true)
     nav(`/payment?type=repair&id=${requestId}`, { replace: true })
   }
 

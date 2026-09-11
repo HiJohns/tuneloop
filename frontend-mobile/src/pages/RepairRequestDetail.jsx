@@ -18,6 +18,7 @@ export default function RepairRequestDetail() {
   const [request, setRequest] = useState(null)
   const [records, setRecords] = useState([])
   const [roles, setRoles] = useState([])
+  const [sites, setSites] = useState([])
   const [quotes, setQuotes] = useState([])
   const [acceptedQuote, setAcceptedQuote] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -57,8 +58,10 @@ export default function RepairRequestDetail() {
       return payload?.role === 'USER' || !payload?.role
     } catch { return true }
   })()
-  const isTechnician = roles.includes('repair_technician')
-  const isSiteStaff = roles.some(r => ['site_admin', 'site_member'].includes(r))
+  // #1884: gate panels by the request's sites (not just by role name)
+  const requestSiteIds = [request?.site_id, request?.transit_site_id, request?.controlled_site_id].filter(Boolean)
+  const isRequestSiteStaff = sites.some(s => requestSiteIds.includes(s.site_id) && ['site_admin', 'site_member'].includes(s.role))
+  const isRequestSiteTech = sites.some(s => requestSiteIds.includes(s.site_id) && s.role === 'repair_technician')
 
   const fetchData = async () => {
     if (!requestId) return
@@ -76,7 +79,7 @@ export default function RepairRequestDetail() {
       const q = await quoteRes.json()
       if (req.code === 20000) setRequest(req.data)
       if (rec.code === 20000) setRecords(rec.data?.records || [])
-      if (role.code === 20000) setRoles(role.data?.roles || [])
+      if (role.code === 20000) { setRoles(role.data?.roles || []); setSites(role.data?.sites || []) }
       if (q.code === 20000) {
         setQuotes(q.data?.list || [])
         setAcceptedQuote(q.data?.accepted_quote || null)
@@ -372,13 +375,13 @@ export default function RepairRequestDetail() {
         )}
 
         {/* Repair records panel — visible to customer, technician, and staff */}
-        {(isCustomer || isTechnician || isSiteStaff) && (
+        {(isCustomer || isRequestSiteTech || isRequestSiteStaff) && (
           <RepairRecordPanel instrumentId={requestId} records={records} baseUrl={baseUrl}
-            onRecordAdded={fetchData} hideForm={!isCustomer} />
+            onRecordAdded={fetchData} hideForm={!isCustomer && !isRequestSiteTech && !isRequestSiteStaff} />
         )}
 
         {/* ========== PENDING ASSESSMENT ========== */}
-        {status === 'pending_assessment' && isTechnician && (
+        {status === 'pending_assessment' && isRequestSiteTech && (
           <>
           {/* Quote list (always shown) */}
           {quotes.length > 0 && (
@@ -627,7 +630,7 @@ export default function RepairRequestDetail() {
         )}
 
         {/* ========== REPAIRING (technician) ========== */}
-        {status === 'repairing' && isTechnician && (
+        {status === 'repairing' && isRequestSiteTech && (
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
             <View className="flex border-b border-zinc-200 mb-4">
               <View className={`flex-1 pb-2 text-center font-bold text-sm ${techTab === 'complete' ? 'border-b-2 border-black text-black' : 'text-zinc-400'}`} onClick={() => setTechTab('complete')}>
@@ -724,7 +727,7 @@ export default function RepairRequestDetail() {
         )}
 
         {/* ========== TRANSIT PROCESSING (transit staff) ========== */}
-        {status === 'transit_processing' && isSiteStaff && (
+        {status === 'transit_processing' && isRequestSiteStaff && (
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
             <Text className="text-sm font-bold text-black mb-3">中转处理</Text>
             <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
@@ -745,7 +748,7 @@ export default function RepairRequestDetail() {
         )}
 
         {/* ========== SHIPPING (staff receive) ========== */}
-        {status === 'shipping' && isSiteStaff && (
+        {status === 'shipping' && isRequestSiteStaff && (
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
             <Text className="text-sm font-bold text-black mb-3">收货处理</Text>
             <View className="bg-zinc-50 rounded-xl p-3 mb-3" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -786,7 +789,7 @@ export default function RepairRequestDetail() {
         )}
 
         {/* ========== TRANSIT IN (staff receive) ========== */}
-        {status === 'transit_in' && isSiteStaff && (
+        {status === 'transit_in' && isRequestSiteStaff && (
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
             <Text className="text-sm font-bold text-black mb-3">转入收货</Text>
             <Button onClick={() => handleAction('receive')} disabled={actionLoading}
@@ -797,7 +800,7 @@ export default function RepairRequestDetail() {
         )}
 
         {/* ========== RETURN PENDING (staff fill return logistics) ========== */}
-        {status === 'return_pending' && isSiteStaff && (
+        {status === 'return_pending' && isRequestSiteStaff && (
           <>
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
             <Text className="text-sm font-bold text-black mb-3">收件人信息</Text>
@@ -854,7 +857,7 @@ export default function RepairRequestDetail() {
         )}
 
         {/* ========== TRANSIT OUT (staff relay out) ========== */}
-        {status === 'transit_out' && isSiteStaff && (
+        {status === 'transit_out' && isRequestSiteStaff && (
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
             <Text className="text-sm font-bold text-black mb-3">转出中转</Text>
             <View className="flex flex-wrap gap-2 mb-3">

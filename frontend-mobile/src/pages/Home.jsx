@@ -99,6 +99,18 @@ export default function Home() {
   const bannerTouchStartXRef = useRef(0)
   const lastSwipeRef = useRef(0)
 
+  // #1884: pure repair technicians (no site role) must not see the Rental tab
+  const [myRoles, setMyRoles] = useState([])
+  const isPureTech = myRoles.includes('repair_technician') && !myRoles.some(r => ['site_admin', 'site_member'].includes(r))
+
+  useEffect(() => {
+    if (!getToken()) return
+    apiFetch(`${env.apiBaseUrl}/site-members/me`)
+      .then(r => r.json())
+      .then(res => { if (res.code === 20000) setMyRoles(res.data?.roles || []) })
+      .catch(() => {})
+  }, [])
+
   const baseUrl = env.apiBaseUrl
   const imageBaseUrl = baseUrl.replace(/\/api$/, '')
   const cartItemCount = (() => {
@@ -379,7 +391,7 @@ export default function Home() {
           active="home"
           tabs={[
             { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
-            { key: 'rent', icon: '🪕', label: '租赁', onClick: navigateToList },
+            ...(isPureTech ? [] : [{ key: 'rent', icon: '🪕', label: '租赁', onClick: navigateToList }]),
             { key: 'service', icon: '🛠️', label: '维修', onClick: () => { const url = tenant ? `/my-repairs?tenant=${tenant}` : '/my-repairs'; navigate(url) } },
             { key: 'profile', icon: '👤', label: '我的', onClick: () => { const url = tenant ? `/profile?tenant=${tenant}` : '/profile'; navigate(url) } },
           ]}

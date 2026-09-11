@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Button, Image, Input } from '@tarojs/components'
@@ -17,6 +17,14 @@ export default function RepairScan() {
   const [unpackPhotos, setUnpackPhotos] = useState([])
   const [searching, setSearching] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  // #1884: site staff only (转出中转处理 = 网点员工)
+  const [roles, setRoles] = useState(null)
+  useEffect(() => {
+    apiFetch(`${env.apiBaseUrl}/site-members/me`).then(r => r.json())
+      .then(res => setRoles(res.code === 20000 ? (res.data?.roles || []) : []))
+      .catch(() => setRoles([]))
+  }, [])
+  const hasSiteRole = (roles || []).some(r => ['site_admin', 'site_member'].includes(r))
   const photoInputRef = useRef(null)
 
   const nav = (to) => {
@@ -100,6 +108,15 @@ export default function RepairScan() {
       }
     } catch { dialog.alert('操作失败') }
     setSubmitting(false)
+  }
+
+  // #1884: site staff only
+  if (roles !== null && !hasSiteRole) {
+    return (
+      <View style={{ backgroundColor: '#FDFBF7' }} className="flex flex-col h-screen items-center justify-center p-4">
+        <Text className="text-zinc-500 text-sm">无权访问：仅网点员工可执行转出中转处理</Text>
+      </View>
+    )
   }
 
   return (

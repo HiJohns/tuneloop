@@ -121,6 +121,17 @@ export default function Home() {
   const instance = Taro.getCurrentInstance()
   const routerParams = instance.router?.params || {}
   const [tenant, setTenant] = useState(routerParams.tenant || null)
+  // #1884: pure repair technicians (no site role) must not see the Rental tab
+  const [myRoles, setMyRoles] = useState([])
+  const isPureTech = myRoles.includes('repair_technician') && !myRoles.some(r => ['site_admin', 'site_member'].includes(r))
+
+  useEffect(() => {
+    if (!getToken()) return
+    apiFetch(`${env.apiBaseUrl}/site-members/me`)
+      .then(r => r.json())
+      .then(res => { if (res.code === 20000) setMyRoles(res.data?.roles || []) })
+      .catch(() => {})
+  }, [])
   const categoryFromUrl = routerParams.category_id || null
 
   const [categories, setCategories] = useState([])
@@ -465,7 +476,7 @@ export default function Home() {
         active="home"
         tabs={[
           { key: 'home', icon: '🏪', label: '首页', onClick: () => switchTab('/pages-weapp/home/index') },
-          { key: 'rent', icon: '🪕', label: '租赁', onClick: () => switchTab('/pages-weapp/my-leases/index') },
+          ...(isPureTech ? [] : [{ key: 'rent', icon: '🪕', label: '租赁', onClick: () => switchTab('/pages-weapp/my-leases/index') }]),
           { key: 'service', icon: '🛠️', label: '维修', onClick: () => {
             if (Taro.getCurrentPages().length >= 9) {
               Taro.reLaunch({ url: '/pages-weapp/my-repairs/index' })

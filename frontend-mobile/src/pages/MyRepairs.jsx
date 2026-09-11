@@ -34,6 +34,7 @@ export default function MyRepairs() {
   const [repairRequests, setRepairRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [roles, setRoles] = useState([])
+  const [shippingBack, setShippingBack] = useState(false)
   const [showSiteRepairs, setShowSiteRepairs] = useState(true)
   const [showPending, setShowPending] = useState(true)
   const baseUrl = env.apiBaseUrl
@@ -117,6 +118,7 @@ export default function MyRepairs() {
       number = prompt('输入物流单号')
       if (!number) return
     }
+    setShippingBack(true)
     try {
       const resp = await apiFetch(`${baseUrl}/repair-requests/${id}/return-shipping`, {
         method: 'PUT',
@@ -127,6 +129,7 @@ export default function MyRepairs() {
       if (result.code === 20000) { await fetchRepairs() }
       else { dialog.alert(resolveErrorMessage(result)) }
     } catch {}
+    setShippingBack(false)
   }
 
   return (
@@ -146,6 +149,12 @@ export default function MyRepairs() {
               value={snInput} onInput={e => setSnInput(getInputValue(e))} placeholder="输入乐器编号或扫码" />
             <Button onClick={handleSearch} className="px-4 py-2 bg-black text-white rounded-lg text-sm font-bold">查找</Button>
           </View>
+          {hasSiteRole && (
+            <Button onClick={() => nav('/receiving-repair-scan')}
+              className="w-full mt-2 py-2 bg-zinc-100 text-zinc-700 rounded-lg text-sm font-bold">
+              扫码收货
+            </Button>
+          )}
         </View>
         )}
 
@@ -217,10 +226,12 @@ export default function MyRepairs() {
                 {myRepairs.map(inst => (
                   <View key={inst.id} className="border border-zinc-100 rounded-xl p-3"
                     onClick={() => nav(`/repair?instrument_id=${inst.id}`)}>
-                    <Text className="text-sm font-bold text-black">{inst.sn || '未知SN'}</Text>
-                    <Text className="text-xs text-zinc-400 mt-1">
-                      状态: {inst.repair_status === 'repair_in_progress' ? '维修中' : inst.repair_status}
-                    </Text>
+                    <View><Text className="text-sm font-bold text-black">{inst.sn || '未知SN'}</Text></View>
+                    <View className="mt-1">
+                      <Text className="text-xs text-zinc-400">
+                        状态: {inst.repair_status === 'repair_in_progress' ? '维修中' : inst.repair_status}
+                      </Text>
+                    </View>
                   </View>
                 ))}
               </View>
@@ -305,8 +316,8 @@ export default function MyRepairs() {
                       <Text className="text-xs text-zinc-600">{r.reporter_name || '-'}</Text>
                     </View>
                     {r.status === 'return_pending' && (
-                      <Button onClick={(e) => { e.stopPropagation(); handleShipBack(r.id) }}
-                        className="mt-1 py-1.5 bg-black text-white rounded-lg text-xs font-bold">填物流发回</Button>
+                      <Button onClick={(e) => { e.stopPropagation(); handleShipBack(r.id) }} disabled={shippingBack}
+                        className="mt-1 py-1.5 bg-black text-white rounded-lg text-xs font-bold">{shippingBack ? '处理中...' : '填物流发回'}</Button>
                     )}
                   </View>
                 ))}
@@ -343,7 +354,7 @@ export default function MyRepairs() {
           active="service"
           tabs={[
             { key: 'home', icon: '🏪', label: '首页', onClick: () => Taro.switchTab({ url: '/pages-weapp/home/index' }) },
-            { key: 'rent', icon: '🪕', label: '租赁', onClick: () => Taro.switchTab({ url: '/pages-weapp/my-leases/index' }) },
+            ...(isPureTech ? [] : [{ key: 'rent', icon: '🪕', label: '租赁', onClick: () => Taro.switchTab({ url: '/pages-weapp/my-leases/index' }) }]),
             { key: 'service', icon: '🛠️', label: '维修', onClick: () => Taro.redirectTo({ url: '/pages-weapp/my-repairs/index' }) },
             { key: 'profile', icon: '👤', label: '我的', onClick: () => Taro.switchTab({ url: '/pages-weapp/profile/index' }) },
           ]}
@@ -353,7 +364,7 @@ export default function MyRepairs() {
         active="service"
         tabs={[
           { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
-          { key: 'rent', icon: '🪕', label: '租赁', onClick: () => navigate('/my-leases') },
+          ...(isPureTech ? [] : [{ key: 'rent', icon: '🪕', label: '租赁', onClick: () => navigate('/my-leases') }]),
           { key: 'service', icon: '🛠️', label: '维修', onClick: () => navigate('/my-repairs') },
           { key: 'profile', icon: '👤', label: '我的', onClick: () => navigate('/profile') },
         ]}
