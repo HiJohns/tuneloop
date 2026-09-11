@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import Taro from '@tarojs/taro'
 import { useNavigate } from 'react-router-dom'
 import { Button, Image, Input, Text, View } from '@tarojs/components'
 import { apiFetch, resolveErrorMessage } from '../services/api'
