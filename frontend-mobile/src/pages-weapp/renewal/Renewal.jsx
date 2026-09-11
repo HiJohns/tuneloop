@@ -3,13 +3,7 @@ import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Input, Button, Image } from '@tarojs/components'
 import { apiFetch, resolveErrorMessage } from '../../services/api'
 import { env } from '../../platform'
-
-function formatDate(raw) {
-  if (!raw) return '-'
-  const d = new Date(raw.slice(0, 10))
-  if (isNaN(d.getTime())) return raw.slice(0, 10)
-  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
-}
+import { formatBeijingDate } from '../../utils/format'
 
 export default function Renewal() {
   const params = Taro.getCurrentInstance()?.router?.params || {}
@@ -127,8 +121,8 @@ export default function Renewal() {
             {(instrument.cover_image || instrument.images?.[0]) && <Image src={fixImg(instrument.cover_image || instrument.images?.[0])} style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 8, marginBottom: 12, backgroundColor: '#f4f4f5' }} mode="aspectFill" />}
             <Text style={{ fontSize: 14, fontWeight: '700', marginBottom: 8 }}>{instrument.category_name || '乐器'}</Text>
             <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>SN</Text><Text style={{ fontSize: 12, color: '#000' }}>{instrument.sn || '-'}</Text></View>
-            <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>下单日</Text><Text style={{ fontSize: 12, color: '#000' }}>{formatDate(order.created_at)}</Text></View>
-            <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>原预期归还</Text><Text style={{ fontSize: 12, color: '#000' }}>{formatDate(order.end_date)}</Text></View>
+            <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>下单日</Text><Text style={{ fontSize: 12, color: '#000' }}>{formatBeijingDate(order.created_at)}</Text></View>
+            <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>原预期归还</Text><Text style={{ fontSize: 12, color: '#000' }}>{formatBeijingDate(order.end_date)}</Text></View>
             {overdueDays > 0 && (
               <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>超期</Text><Text style={{ fontSize: 12, color: '#ef4444' }}>{overdueDays} 天（续期需覆盖）</Text></View>
             )}
@@ -169,7 +163,7 @@ export default function Renewal() {
             <Text style={{ fontSize: 12, color: '#71717a' }}>天</Text>
           </View>
           {days > 0 && calcResult?.new_end_date && (
-            <View style={{ marginTop: 8 }}><Text style={{ fontSize: 12, color: '#a1a1aa' }}>预期归还日: </Text><Text style={{ fontSize: 12, color: '#000', fontWeight: '500' }}>{formatDate(calcResult.new_end_date)}</Text></View>
+            <View style={{ marginTop: 8 }}><Text style={{ fontSize: 12, color: '#a1a1aa' }}>预期归还日: </Text><Text style={{ fontSize: 12, color: '#000', fontWeight: '500' }}>{formatBeijingDate(calcResult.new_end_date)}</Text></View>
           )}
         </View>
 
@@ -192,7 +186,7 @@ export default function Renewal() {
               <Text style={{ fontSize: 14, fontWeight: '700' }}>合计</Text>
               <Text style={{ fontSize: 14, fontWeight: '700' }}>¥{(Number(calcResult.total_amount || 0) / 100).toFixed(2)}</Text>
             </View>
-            <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 8 }}>新到期日: {formatDate(calcResult.new_end_date)}</Text>
+            <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 8 }}>新到期日: {formatBeijingDate(calcResult.new_end_date)}</Text>
             {calcResult.renewal_cost <= 0 && (
               <Text style={{ fontSize: 12, color: '#ef4444', marginTop: 8 }}>当前订单定价数据不完整，请联系管理员</Text>
             )}

@@ -6,6 +6,7 @@ import dayjs from 'dayjs'
 import { dialog, env, session, storage, eventBus } from '../platform'
 import { fetchWaiverEligibility, waiverReasonText, downloadLetterTemplate, uploadLetterPhoto } from '../utils/depositWaiver'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
+import { formatBeijingDate } from '../utils/format'
 import regions from '../data/regions.json'
 import IdPhotoUploader from '../components/IdPhotoUploader'
 
@@ -420,7 +421,7 @@ function SingleCheckout({ id, nav }) {
           </View>
           <View style={{ marginTop: 8, fontSize: 12, color: '#9ca3af', display: 'flex', alignItems: 'center' }}>
             <Text style={{ fontSize: 12, marginRight: 4 }}>🕐</Text>
-            <Text>预计归还: {returnDate}</Text>
+            <Text>预计归还: {formatBeijingDate(returnDate)}</Text>
             {pricingV2?.tiers?.length > 0 && <Text style={{ marginLeft: 4 }}>· 阶梯计价</Text>}
           </View>
         </View>

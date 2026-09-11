@@ -1,4 +1,5 @@
 import { View, Text } from '@tarojs/components'
+import { formatBeijingDate } from '../utils/format'
 
 function Row({ icon, label, value, valueColor }) {
   return (
@@ -8,15 +9,6 @@ function Row({ icon, label, value, valueColor }) {
       <Text style={{ fontSize: 13, fontWeight: '700', color: valueColor || '#000', flex: 1, textAlign: 'right' }}>{value}</Text>
     </View>
   )
-}
-
-function fmt(raw) {
-  if (!raw) return '-'
-  const s = raw.length >= 10 ? raw.slice(0, 10) : raw
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return raw.slice(0, 10)
-  const now = new Date()
-  if (s.startsWith(`${now.getFullYear()}-`)) return s.slice(5)
-  return s
 }
 
 function today() {
@@ -84,7 +76,7 @@ export default function LeaseInfo({ status, startDate, endDate, deliveredAt, dai
             <Row
               icon="🎯"
               label="预期归还"
-              value={`${fmt(displayEndDt.toISOString().slice(0, 10))}${isOverdue ? `（已过期 ${overdueDays} 天）` : ''}`}
+              value={`${formatBeijingDate(displayEndDt.toISOString())}${isOverdue ? `（已过期 ${overdueDays} 天）` : ''}`}
               valueColor={isOverdue ? '#ef4444' : undefined}
             />
           ) : null}
@@ -93,7 +85,7 @@ export default function LeaseInfo({ status, startDate, endDate, deliveredAt, dai
       )}
       {ended && (
         <>
-          {returnedAt && <Row icon="↩️" label="归还日期" value={fmt(String(returnedAt).slice(0, 10))} />}
+          {returnedAt && <Row icon="↩️" label="归还日期" value={formatBeijingDate(returnedAt)} />}
           {leaseDays > 0 ? <Row icon="📊" label="实际租期" value={`${leaseDays} 天`} /> : null}
         </>
       )}

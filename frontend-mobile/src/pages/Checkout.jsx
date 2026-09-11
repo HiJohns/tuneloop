@@ -6,6 +6,7 @@ import { ArrowLeft, MapPin, Clock, Calendar, Plus, CheckCircle } from 'lucide-re
 import dayjs from 'dayjs'
 import { dialog, env, session, storage, eventBus, getInputValue } from '../platform'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
+import { formatBeijingDate } from '../utils/format'
 import regions from '../data/regions.json'
 import IdPhotoUploader from '../components/IdPhotoUploader'
 import VerifyWarningBar from '../components/VerifyWarningBar'
@@ -430,7 +431,7 @@ function SingleCheckout({ id, navigate }) {
           </View>
           <View className="mt-2 text-xs text-gray-400 flex items-center gap-1">
             <Clock size={12} />
-            预计归还: {returnDate}
+            预计归还: {formatBeijingDate(returnDate)}
             {pricingV2?.tiers?.length > 0 && <Text className="ml-1">· 阶梯计价</Text>}
           </View>
         </View>
