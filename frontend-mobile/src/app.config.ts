@@ -49,12 +49,10 @@ const weappPages = [
 const h5Pages = [
   'pages/home/index',
   'pages/detail/index',
-  'pages/booking/index',
   'pages/cart/index',
   'pages/create-repair/index',
   'pages/checkout/index',
   'pages/lease-history/index',
-  'pages/maintenance-progress/index',
   'pages/membership/index',
   'pages/message-detail/index',
   'pages/messages/index',

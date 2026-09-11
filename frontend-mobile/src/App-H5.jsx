@@ -14,7 +14,6 @@ import About from './pages/About'
 import Detail from './pages/Detail'
 import Checkout from './pages/Checkout'
 import Success from './pages/Success'
-import Booking from './pages/Booking'
 import Profile from './pages/Profile'
 import EditProfile from './pages/profile/edit'
 import FaceVerify from './pages/FaceVerify'
@@ -37,7 +36,6 @@ import ShippingInterface from './pages/ShippingInterface'
 import Search from './pages/Search'
 import ReceivingInterface from './pages/ReceivingInterface'
 import Cart from './pages/Cart'
-import MaintenanceProgress from './pages/MaintenanceProgress'
 import SiteDetail from './pages/SiteDetail'
 import MyContracts from './pages/MyContracts'
 import StaffOrders from './pages/StaffOrders'
@@ -212,8 +210,6 @@ function App() {
         <Route path="/checkout" element={<ProtectedRoute requireAuth={false}><Checkout /></ProtectedRoute>} />
         <Route path="/checkout/:id" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
         <Route path="/success" element={<Success />} />
-        <Route path="/booking" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
-        <Route path="/booking/:assetId" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
         <Route path="/face-verify" element={<ProtectedRoute><FaceVerify /></ProtectedRoute>} />
@@ -252,7 +248,6 @@ function App() {
         <Route path="/staff/repair-scan" element={<ProtectedRoute><RepairScan /></ProtectedRoute>} />
         <Route path="/order/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
         <Route path="/cart" element={<ProtectedRoute requireAuth={false}><Cart /></ProtectedRoute>} />
-        <Route path="/maintenance" element={<ProtectedRoute><MaintenanceProgress /></ProtectedRoute>} />
         <Route path="/site" element={<ProtectedRoute requireAuth={false}><SiteDetail /></ProtectedRoute>} />
         <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
         <Route path="/return-settlement/:orderId" element={<ProtectedRoute><ReturnSettlement /></ProtectedRoute>} />

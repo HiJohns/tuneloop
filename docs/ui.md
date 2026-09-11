@@ -164,7 +164,7 @@
 | `Home.jsx` | `/` | 首页 |
 | `Detail.jsx` | `/instrument/:id` | 乐器详情 |
 | `LeaseHistory.jsx` | `/leases` | 租赁历史 |
-| `MaintenanceProgress.jsx` | `/staff/maintenance/:id` | ~~维修进度~~ ⚠️ 已废弃（#1888 R6，清理见 #1886） |
+| ~~`MaintenanceProgress.jsx`~~ | ~~`/staff/maintenance/:id`~~ | 已移除（#1886 遗留维保废弃） |
 | `MessageDetail.jsx` | `/messages/:id` | 消息详情 |
 | `Messages.jsx` | `/messages` | 消息列表 |
 | `MyContracts.jsx` | `/contracts` | 我的合同 |

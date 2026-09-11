@@ -101,9 +101,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		}
 	}
 
-	// New handlers for Issue #299 (Maintenance, Appeal, Warehouse, User Rental)
-	maintenanceWorkerHandler := handlers.NewMaintenanceWorkerHandler()
-	maintenanceSessionHandler := handlers.NewMaintenanceSessionHandler()
+	// New handlers for Issue #299 (Repair, Appeal, Warehouse, User Rental)
 	repairHandler := handlers.NewRepairHandler()
 	repairReqHandler := handlers.NewRepairRequestHandler()
 	appealHandler := handlers.NewAppealHandler()
@@ -539,25 +537,11 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			userRequired.POST("/orders/:id/refund", userSettlementHandler.StaffRefundOrder)
 		}
 
-		maintHandler := handlers.NewMaintenanceHandler()
+		// #1886: legacy maintenance ticket routes removed (deprecated per #1888 R6)
 		maintRequired := authRequired.Group("")
 		maintRequired.Use(middleware.RequireCusPerm("instrument:maintain"))
-		{
-			maintRequired.POST("/maintenance", maintHandler.SubmitRepair)
-			maintRequired.POST("/maintenance/report", maintHandler.ReportRepair)
-			maintRequired.GET("/maintenance/:id", maintHandler.GetMaintenanceDetail)
-			maintRequired.PUT("/maintenance/:id/cancel", maintHandler.CancelMaintenance)
-			maintRequired.PUT("/maintenance/tickets/:id/status", maintHandler.UpdateTicketStatus)
-		}
 
-		merchantMaint := authRequired.Group("")
-		merchantMaint.Use(middleware.RequireCusPerm("instrument:maintain"))
 		{
-			merchantMaint.GET("/merchant/maintenance", maintHandler.ListMerchantMaintenance)
-			merchantMaint.PUT("/merchant/maintenance/:id/accept", maintHandler.AcceptMaintenance)
-			merchantMaint.PUT("/merchant/maintenance/:id/assign", maintHandler.AssignTechnician)
-			merchantMaint.PUT("/merchant/maintenance/:id/update", maintHandler.UpdateProgress)
-
 			// Outbound confirmation routes for mini-program (must be before /orders/:id)
 			outboundHandler := handlers.NewOutboundHandler(database.GetDB())
 			authRequired.GET("/orders/:id/outbound-photos", outboundHandler.GetOutboundPhotos)
@@ -575,28 +559,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.PUT("/labels/:id/approve", labelHandler.ApproveLabel)
 			authRequired.PUT("/labels/:id/reject", labelHandler.RejectLabel)
 			authRequired.POST("/labels/merge", labelHandler.MergeLabels)
-			merchantMaint.POST("/merchant/maintenance/:id/quote", maintHandler.SendQuote)
-
-			techMaint := authRequired.Group("")
-			{
-				techMaint.GET("/technician/tickets", maintHandler.ListTechnicianTickets)
-				techMaint.PUT("/technician/tickets/:id/accept", maintHandler.AcceptTicket)
-				techMaint.POST("/technician/tickets/:id/complete", maintHandler.CompleteTicket)
-			}
-
-			// Issue #303: Maintenance Worker Management Routes
-			maintRequired.GET("/maintenance/workers", maintenanceWorkerHandler.ListWorkers)
-			maintRequired.POST("/maintenance/workers", maintenanceWorkerHandler.CreateWorker)
-			maintRequired.GET("/maintenance/workers/:id", maintenanceWorkerHandler.GetWorker)
-			maintRequired.DELETE("/maintenance/workers/:id", maintenanceWorkerHandler.DeleteWorker)
-
-			// Issue #304: Maintenance Session Routes
-			maintRequired.GET("/maintenance/sessions", maintenanceSessionHandler.ListSessions)
-			maintRequired.GET("/maintenance/sessions/:id", maintenanceSessionHandler.GetSession)
-			maintRequired.POST("/maintenance/:id/start", maintenanceSessionHandler.StartWork)
-			maintRequired.PUT("/maintenance/:id/status", maintenanceSessionHandler.UpdateStatus)
-			maintRequired.POST("/maintenance/:id/record", maintenanceSessionHandler.SubmitRecord)
-			maintRequired.POST("/maintenance/:id/inspect", maintenanceSessionHandler.Inspect)
 
 			// New repair state machine API (flat, replacing ticket/session layers)
 			repairRequired := maintRequired
@@ -707,9 +669,9 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/pay/prepay", handlers.PrepayOrder)
 				userOptionalAuth.POST("/pay/calculate", handlers.CalculatePayment)
 				userOptionalAuth.POST("/pay/query", handlers.QueryPayment)
-			userOptionalAuth.GET("/users/me", staffHandler.GetCurrentUser)
-			userOptionalAuth.PUT("/users/me", staffHandler.UpdateCurrentUser)
-			userOptionalAuth.GET("/membership/benefits", handlers.GetMembershipBenefits)
+				userOptionalAuth.GET("/users/me", staffHandler.GetCurrentUser)
+				userOptionalAuth.PUT("/users/me", staffHandler.UpdateCurrentUser)
+				userOptionalAuth.GET("/membership/benefits", handlers.GetMembershipBenefits)
 				// #1790 T2: 自拍采集存储（userOptionalAuth——顾客 USER 角色 tid/oid 空，#833 教训）
 				userOptionalAuth.POST("/user/face-capture", faceCaptureHandler.SubmitFaceCapture)
 				userOptionalAuth.GET("/user/face-capture/status", faceCaptureHandler.GetFaceCaptureStatus)

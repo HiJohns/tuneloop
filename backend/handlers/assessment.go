@@ -121,25 +121,9 @@ func (h *AssessmentHandler) SubmitAssessment(c *gin.Context) {
 		return
 	}
 
-	// If has damage, create maintenance ticket and update instrument status
+	// If has damage, update instrument status (#1886: legacy maintenance
+	// ticket creation removed with the deprecated maintenance module)
 	if req.HasDamage {
-		// Create maintenance ticket
-		ticket := map[string]interface{}{
-			"order_id":            orderID,
-			"instrument_id":       order.InstrumentID,
-			"status":              "PENDING",
-			"problem_description": "归还定损发现损坏",
-			"created_at":          time.Now(),
-		}
-
-		if err := h.db.Table("maintenance_tickets").Create(&ticket).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"code":    50000,
-				"message": "Failed to create maintenance ticket",
-			})
-			return
-		}
-
 		// Update instrument status to maintenance + repair_pending
 		instUpdates := map[string]interface{}{"stock_status": models.StockStatusMaintenance, "repair_status": "repair_pending"}
 		// #1889: record where the instrument physically is so the acceptance

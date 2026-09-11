@@ -443,17 +443,6 @@ export const pricingApi = {
   getInstrumentPricingV2: (id) => api.get(`/instruments/${id}/pricing-v2`),
 }
 
-export const maintenanceApi = {
-  submit: (data) => api.post('/maintenance', data),
-  get: (id) => api.get(`/maintenance/${id}`),
-  cancel: (id) => api.put(`/maintenance/${id}/cancel`),
-  listMerchant: () => api.get('/merchant/maintenance'),
-  accept: (id) => api.put(`/merchant/maintenance/${id}/accept`),
-  assign: (id, data) => api.put(`/merchant/maintenance/${id}/assign`, data),
-  updateProgress: (id, data) => api.put(`/merchant/maintenance/${id}/update`, data),
-  sendQuote: (id, data) => api.post(`/merchant/maintenance/${id}/quote`, data),
-}
-
 export const ownershipApi = {
   get: (id) => api.get(`/user/ownership/${id}`),
   download: (id) => api.get(`/user/ownership/${id}/download`),

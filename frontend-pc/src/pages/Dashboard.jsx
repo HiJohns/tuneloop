@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Table, Tag, Space, Form, Select, Statistic, Row, Col, Drawer, Timeline, Button, Badge, Spin, Card, message } from 'antd'
-import { EyeOutlined, EditOutlined, ShoppingOutlined, ToolOutlined, BarChartOutlined } from '@ant-design/icons'
+import { EyeOutlined, EditOutlined, ShoppingOutlined, BarChartOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
-import { inventoryApi, sitesApi, ordersApi, maintenanceApi, leaseApi } from '../services/api'
+import { inventoryApi, sitesApi, ordersApi, leaseApi } from '../services/api'
 import { LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Legend, Tooltip } from 'recharts'
 
 const statusColors = {
@@ -34,7 +34,6 @@ export default function Dashboard() {
   const [totalAssets, setTotalAssets] = useState(0)
   const [activeRentals, setActiveRentals] = useState(0)
   const [todaysNewOrders, setTodaysNewOrders] = useState(0)
-  const [maintenanceDue, setMaintenanceDue] = useState(0)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -53,14 +52,12 @@ export default function Dashboard() {
         sitesApi.list(),
         leaseApi.list(),
         ordersApi.list({ start_date: todayStr, end_date: todayStr }),
-        maintenanceApi.listMerchant(),
       ])
-      const [inventoryRes, sitesRes, leasesRes, ordersRes, maintenanceRes] = results
+      const [inventoryRes, sitesRes, leasesRes, ordersRes] = results
       const inventoryData = inventoryRes.status === 'fulfilled' ? (inventoryRes.value?.data?.list || []) : []
       const sitesData = sitesRes.status === 'fulfilled' ? (sitesRes.value?.data?.list || []) : []
       const leasesList = leasesRes.status === 'fulfilled' ? (leasesRes.value?.data?.list || []) : []
       const ordersResponse = ordersRes.status === 'fulfilled' ? (ordersRes.value?.data?.list || []) : []
-      const maintenanceData = maintenanceRes.status === 'fulfilled' ? (maintenanceRes.value?.data?.list || []) : []
       
       setAssets(inventoryData)
       setLeasesData(leasesList) // Fix: add leases to state
@@ -76,13 +73,6 @@ export default function Dashboard() {
       }
       
       setTodaysNewOrders(ordersResponse.length)
-      
-      if (maintenanceData.length > 0) {
-        const pendingMaintenance = maintenanceData.filter(m => 
-          m.status === 'PENDING' || m.status === 'PROCESSING'
-        )
-        setMaintenanceDue(pendingMaintenance.length)
-      }
     } catch (error) {
       console.error('Failed to load data:', error)
       message.error('仪表盘数据加载失败，请刷新重试')
@@ -104,8 +94,6 @@ export default function Dashboard() {
       navigate('/site/stock?status=rented')
     } else if (filterType === 'new-orders') {
       navigate('/orders')
-    } else if (filterType === 'maintenance') {
-      navigate('/maintenance')
     }
   }
 
@@ -253,7 +241,7 @@ export default function Dashboard() {
       </Row>
 
       <Row gutter={16} className="mb-6">
-        <Col span={6}>
+        <Col span={8}>
           <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('total-assets')}>
             <Statistic
               title="资产总数"
@@ -263,7 +251,7 @@ export default function Dashboard() {
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={8}>
           <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('active-rentals')}>
             <Statistic
               title="在租数"
@@ -273,23 +261,13 @@ export default function Dashboard() {
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={8}>
           <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('new-orders')}>
             <Statistic
               title="今日新订单"
               value={todaysNewOrders}
               prefix={<BarChartOutlined />}
               valueStyle={{ color: '#722ed1' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('maintenance')}>
-            <Statistic
-              title="待处理工单"
-              value={maintenanceDue}
-              prefix={<ToolOutlined />}
-              valueStyle={{ color: '#faad14' }}
             />
           </Card>
         </Col>
@@ -345,7 +323,7 @@ export default function Dashboard() {
       </Row>
 
       <Row gutter={16} className="mb-6">
-        <Col span={8}>
+        <Col span={12}>
           <Card title="可租资产" variant="borderless" style={{ background: '#fff1f0' }}>
             <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#52c41a' }}>
               {assets.filter(a => a.stock_status === 'available').length}
@@ -355,7 +333,7 @@ export default function Dashboard() {
             </div>
           </Card>
         </Col>
-        <Col span={8}>
+        <Col span={12}>
           <Card title="逾期未归还" variant="borderless" style={{ background: '#fff7e6' }}>
             <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#faad14' }}>
               {leasesData.filter(lease => 
@@ -364,16 +342,6 @@ export default function Dashboard() {
             </div>
             <div style={{ marginTop: '8px', color: '#595959' }}>
               已逾期
-            </div>
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card title="待处理维修" variant="borderless" style={{ background: '#f6ffed' }}>
-            <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#52c41a' }}>
-              {maintenanceDue || 0}
-            </div>
-            <div style={{ marginTop: '8px', color: '#595959' }}>
-              需处理
             </div>
           </Card>
         </Col>

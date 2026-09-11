@@ -34,7 +34,6 @@ import AssetDetail from './pages/AssetDetail'
 import ClientManagement from './pages/ClientManagement'
 import TenantManagement from './pages/TenantManagement'
 import AppealManagement from './pages/AppealManagement'
-import MaintenanceSessionManagement from './pages/MaintenanceSessionManagement'
 import RepairConfigPage from './pages/admin/repair/RepairConfigPage'
 import WarningManagement from './pages/admin/warnings/WarningManagement'
 import WarningSettings from './pages/admin/warnings/WarningSettings'
@@ -371,7 +370,6 @@ function MainLayout() {
     children: [
       { key: '/orders', label: '订单管理', permission: { cusPermCodes: ['order:read'] } },
       { key: '/warehouse', label: '库管工作台', permission: { cusPermCodes: ['instrument:read', 'instrument:update'] } },
-      { key: '/maintenance/sessions', label: '会话管理', permission: { cusPermCodes: ['instrument:read', 'instrument:maintain'] } },
       { key: '/transit-routes', label: '中转路由', permission: { sysPermBits: [5] } },
       { key: '/overdue-alerts', label: '逾期告警', permission: { cusPermCodes: ['instrument:read'] } },
       { key: '/merchant/invoices', label: '发票管理', permission: { cusPermCodes: ['order:read'] } },
@@ -450,7 +448,7 @@ function onMenuClick(e) {
   let openKeys = []
   if (['/instruments/categories', '/instruments/properties', '/instruments/list', '/site/stock'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['product']
   else if (['/inventory/rent-setting', '/pricing/config', '/system/promo-plans', '/repair/settings', '/system/rebate-config', '/system/gift-policies', '/system/membership-levels', '/system/membership-handbook', '/system/banners'].includes(location.pathname)) openKeys = ['strategy']
-  else if (['/orders', '/warehouse', '/maintenance/sessions', '/transit-routes', '/overdue-alerts', '/merchant/invoices'].includes(location.pathname)) openKeys = ['transaction']
+  else if (['/orders', '/warehouse', '/transit-routes', '/overdue-alerts', '/merchant/invoices'].includes(location.pathname)) openKeys = ['transaction']
   else if (location.pathname.startsWith('/merchants') || ['/system/user-management', '/organization/sites', '/staff', '/appeals', '/organization/iam-sync', '/system/permissions', '/system/warnings', '/system/warning-settings'].includes(location.pathname)) openKeys = ['platform']
   else if (['/', '/system/content-edit', '/system/audit-logs'].includes(location.pathname)) openKeys = ['system']
   else if (location.pathname.startsWith('/user/')) openKeys = []
@@ -489,7 +487,6 @@ function onMenuClick(e) {
     '/instruments/list': { title: '乐器列表', parent: '商品管理' },
     '/site/stock': { title: '库存监控', parent: '商品管理' },
     '/warehouse': { title: '库管工作台', parent: '交易管理' },
-    '/maintenance/sessions': { title: '会话管理', parent: '交易管理' },
     '/transit-routes': { title: '中转路由', parent: '交易管理' },
     '/overdue-alerts': { title: '逾期告警', parent: '交易管理' },
     '/merchant/invoices': { title: '发票管理', parent: '交易管理' },
@@ -704,7 +701,6 @@ function onMenuClick(e) {
             <Route path="/staff/:id/reset-password" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15] }}><StaffResetPassword /></ProtectedRoute>} />
             <Route path="/appeals" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['appeal:read'] }}><AppealManagement /></ProtectedRoute>} />
             <Route path="/workorders" element={<ProtectedRoute><WorkOrderList /></ProtectedRoute>} />
-            <Route path="/maintenance/sessions" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read', 'instrument:maintain'] }}><MaintenanceSessionManagement /></ProtectedRoute>} />
             <Route path="/repair/settings" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price_config'] }}><RepairConfigPage /></ProtectedRoute>} />
             <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />
             <Route path="/system/permissions" element={<ProtectedRoute requiredPermission={{ sysPermBits: [27] }}><PermissionManage /></ProtectedRoute>} />

@@ -79,7 +79,6 @@ func TestIntegration_Scenario1_RentalClosedLoop(t *testing.T) {
 		c.Next()
 	})
 
-	maintenanceWorkerHandler := NewMaintenanceWorkerHandler()
 	userRentalHandler := NewUserRentalHandler()
 	warehouseHandler := NewWarehouseHandler()
 	router.GET("/api/user/instruments", userRentalHandler.ListInstruments)
@@ -89,7 +88,6 @@ func TestIntegration_Scenario1_RentalClosedLoop(t *testing.T) {
 	router.POST("/api/user/rentals/:id/return", userRentalHandler.ReturnRental)
 	router.GET("/api/user/contracts/:id", userRentalHandler.GetContract)
 	router.GET("/api/warehouse/orders", warehouseHandler.ListOrders)
-	router.GET("/api/maintenance/workers", maintenanceWorkerHandler.ListWorkers)
 
 	// Step 2: Browse instruments - GET /api/user/instruments
 	req := httptest.NewRequest("GET", "/api/user/instruments?page=1&pageSize=10", nil)
@@ -228,77 +226,6 @@ func TestIntegration_Scenario2_WarehouseProcess(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, float64(20000), updateResponse["code"])
 	assert.Equal(t, "success", updateResponse["message"])
-}
-
-// IntegrationTest04_Scenario3_MaintenanceProcess tests maintenance workflow
-func TestIntegration_Scenario3_MaintenanceProcess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	database.SetDB(db)
-
-	setupTestTables(t, db)
-	tenantID := uuid.New().String()
-	userID := uuid.New().String()
-
-	router := gin.New()
-	router.Use(func(c *gin.Context) {
-		ctx := c.Request.Context()
-		ctx = context.WithValue(ctx, middleware.ContextKeyTenantID, tenantID)
-		ctx = context.WithValue(ctx, middleware.ContextKeyUserID, userID)
-		c.Request = c.Request.WithContext(ctx)
-		c.Next()
-	})
-
-	maintenanceWorkerHandler := NewMaintenanceWorkerHandler()
-	router.POST("/api/maintenance/workers", maintenanceWorkerHandler.CreateWorker)
-	router.GET("/api/maintenance/workers", maintenanceWorkerHandler.ListWorkers)
-	router.DELETE("/api/maintenance/workers/:id", maintenanceWorkerHandler.DeleteWorker)
-
-	// Step 1: Create worker
-	reqBody := map[string]interface{}{
-		"name":  "张师傅",
-		"phone": "13800138001",
-	}
-	jsonBody, _ := json.Marshal(reqBody)
-	req := httptest.NewRequest("POST", "/api/maintenance/workers", bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	var createResponse map[string]interface{}
-	err = json.Unmarshal(w.Body.Bytes(), &createResponse)
-	require.NoError(t, err)
-	assert.Equal(t, float64(20000), createResponse["code"])
-	data := createResponse["data"].(map[string]interface{})
-	workerID := data["id"].(string)
-
-	// Step 2: List workers
-	req = httptest.NewRequest("GET", "/api/maintenance/workers", nil)
-	w = httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	var listResponse struct {
-		Code int `json:"code"`
-		Data struct {
-			List []interface{} `json:"list"`
-		}
-	}
-	err = json.Unmarshal(w.Body.Bytes(), &listResponse)
-	require.NoError(t, err)
-	assert.Equal(t, 20000, listResponse.Code)
-	assert.Greater(t, len(listResponse.Data.List), 0)
-
-	// Step 3: Delete worker
-	req = httptest.NewRequest("DELETE", "/api/maintenance/workers/"+workerID, nil)
-	w = httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
 }
 
 // IntegrationTest04_Scenario4_AppealProcess tests appeal workflow

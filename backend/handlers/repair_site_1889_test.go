@@ -159,14 +159,8 @@ func TestAssessDamage_SetsCurrentSiteID(t *testing.T) {
 }
 
 // D: SubmitAssessment (hasDamage) sets current_site_id to the operator's site.
-// NOTE: production's maintenance_tickets.tenant_id carries a zero-UUID DEFAULT
-// (legacy migration), while AutoMigrate in the test DB enforces NOT NULL
-// without a default. Mirror the production schema so the legacy ticket insert
-// (removed by #1886) can succeed here.
 func TestSubmitAssessment_Damaged_SetsCurrentSiteID(t *testing.T) {
 	router, db := setup1889Fixture(t)
-	require.NoError(t, db.Exec(`ALTER TABLE maintenance_tickets ALTER COLUMN tenant_id SET DEFAULT '00000000-0000-0000-0000-000000000000'`).Error)
-	require.NoError(t, db.Exec(`ALTER TABLE maintenance_tickets ALTER COLUMN user_id DROP NOT NULL`).Error)
 	f := newFixture1889(t, db, "1889c3d4e5f6", "returning")
 
 	actor := testutil.MakeSiteMember(f.tenantID, f.orgID, f.operatorSub)

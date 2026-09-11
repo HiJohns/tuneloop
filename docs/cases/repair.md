@@ -91,7 +91,7 @@ steps:
 - 报价单跨网点互不可见
 
 ## 验收
-- `go test -run TestIntegration_Scenario3_MaintenanceProcess ./handlers/ -v`
+- `go test -run TestCreateRepairRequest|TestGetRepairRequest|TestListRepairRequest ./handlers/ -v`（v3 报修单；原 `TestIntegration_Scenario3_MaintenanceProcess` 随遗留维保模块于 #1886 移除）
 
 ---
 id: R-02
