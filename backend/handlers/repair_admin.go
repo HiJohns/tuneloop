@@ -31,7 +31,45 @@ func ListMerchantRepairRequests(c *gin.Context) {
 	}
 	query.Order("created_at DESC").Find(&requests)
 
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": requests}})
+	// #1879: resolve display identifiers (instrument SN + site name)
+	uiIDs := make([]string, 0, len(requests))
+	siteIDs := make([]string, 0, len(requests))
+	for _, r := range requests {
+		if r.UserInstrumentID != "" {
+			uiIDs = append(uiIDs, r.UserInstrumentID)
+		}
+		if r.SiteID != "" {
+			siteIDs = append(siteIDs, r.SiteID)
+		}
+	}
+	snMap := map[string]string{}
+	if len(uiIDs) > 0 {
+		var uis []models.UserInstrument
+		db.Select("id, sn").Where("id IN ?", uiIDs).Find(&uis)
+		for _, ui := range uis {
+			snMap[ui.ID] = ui.SN
+		}
+	}
+	siteNameMap := map[string]string{}
+	if len(siteIDs) > 0 {
+		var sites []models.Site
+		db.Select("id, name").Where("id IN ?", siteIDs).Find(&sites)
+		for _, s := range sites {
+			siteNameMap[s.ID] = s.Name
+		}
+	}
+
+	type merchantRepairItem struct {
+		models.RepairRequest
+		SN       string `json:"sn"`
+		SiteName string `json:"site_name"`
+	}
+	result := make([]merchantRepairItem, len(requests))
+	for i, r := range requests {
+		result[i] = merchantRepairItem{RepairRequest: r, SN: snMap[r.UserInstrumentID], SiteName: siteNameMap[r.SiteID]}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": result}})
 }
 
 // ListAppeals returns appeals for the current user or admin.

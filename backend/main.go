@@ -751,6 +751,9 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/users/me/wechat-unbind", bindHandler.Unbind)
 			}
 
+			// #1879: merchant owner repair-request list (PC admin)
+			authRequired.GET("/merchant/repair-requests", middleware.RequireRole("OWNER"), handlers.ListMerchantRepairRequests)
+
 			// Permission Management (merchant admin only, sys_perm bit 26)
 			permRequired := authRequired.Group("")
 			permRequired.Use(middleware.RequireSysPerm(middleware.SysPermPermissionCreate))

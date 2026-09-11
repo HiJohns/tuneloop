@@ -4,15 +4,18 @@ import { api } from '../../../services/api'
 import { formatBeijingDate, formatBeijingDateTimeShort } from '../../../utils/date'
 
 const statusLabels = {
-  pending_ship: '待发送', shipping: '发送中', inspecting: '质检中',
-  quoted: '待回复', pending_payment: '待付款', pending_cancel: '待取消',
-  repairing: '维修中', return_pending: '待发回', returned: '已发回',
+  pending_assessment: '待估价', transit_processing: '中转处理中',
+  pending_ship: '待发送', shipping: '发送中', transit_in: '转入中',
+  pending_payment: '待付款', repairing: '维修中', return_pending: '待发回',
+  transit_out: '转出中', returned: '已发回',
   closed: '已关闭', appealing: '申诉中',
 }
 const statusColors = {
-  pending_ship: 'orange', shipping: 'blue', inspecting: 'purple',
-  quoted: 'gold', pending_payment: 'cyan', pending_cancel: 'red',
-  repairing: 'geekblue', return_pending: 'lime', returned: 'green',
+  pending_assessment: 'purple', transit_processing: 'gold',
+  closed: 'default', appealing: 'red',
+  pending_ship: 'orange', shipping: 'blue', transit_in: 'cyan',
+  pending_payment: 'cyan', repairing: 'geekblue', return_pending: 'lime',
+  transit_out: 'blue', returned: 'green',
 }
 
 export default function MerchantRepairList() {
@@ -22,7 +25,7 @@ export default function MerchantRepairList() {
 
   useEffect(() => {
     const params = statusFilter ? `?status=${statusFilter}` : ''
-    adminApi.get(`/merchant/repair-requests${params}`).then(r => {
+    api.get(`/merchant/repair-requests${params}`).then(r => {
       if (r.code === 20000) setRequests(r.data?.list || [])
     }).finally(() => setLoading(false))
   }, [statusFilter])
@@ -31,8 +34,8 @@ export default function MerchantRepairList() {
     { title: '创建时间', dataIndex: 'created_at', key: 'created_at', render: v => v ? formatBeijingDate(v) : '-' },
     { title: '乐器', dataIndex: 'user_instrument_id', key: 'instrument', render: (_, r) => r.sn || '-' },
     { title: '状态', dataIndex: 'status', key: 'status', render: s => <Tag color={statusColors[s]}>{statusLabels[s] || s}</Tag> },
-    { title: '网点', dataIndex: 'site_id', key: 'site', render: v => v?.slice(0, 8) || '-' },
-    { title: '报价', dataIndex: 'quote_amount', key: 'quote', render: v => v ? `¥${Number(v).toFixed(2)}` : '-' },
+    { title: '网点', dataIndex: 'site_id', key: 'site', render: (_, r) => r.site_name || '-' },
+    { title: '报价', dataIndex: 'quote_amount', key: 'quote', render: v => v ? `¥${(Number(v) / 100).toFixed(2)}` : '-' },
   ]
 
   return (
