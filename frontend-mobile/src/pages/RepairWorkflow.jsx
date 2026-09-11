@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Button, ScrollView, Text, Textarea, View } from '@tarojs/components'
+import Taro from '@tarojs/taro'
+import { Button, Image, ScrollView, Text, Textarea, View } from '@tarojs/components'
 import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
-import { dialog, env, getInputValue } from '../platform'
+import { dialog, env, getInputValue, uploadFile, storage, session, previewImage } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 
 const statusLabels = {
@@ -23,12 +24,35 @@ export default function RepairWorkflow() {
   const [records, setRecords] = useState([])
   const [damage, setDamage] = useState(null)
   const [comment, setComment] = useState('')
-  const [photos, setPhotos] = useState([])
+  const [capturedPhotos, setCapturedPhotos] = useState([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
 
   const token = getToken()
   const currentUserId = token ? JSON.parse(atob(token.split('.')[1]))?.sub || '' : ''
+
+  const handlePhotoCapture = (e) => {
+    const files = Array.from(e.target.files || [])
+    setCapturedPhotos(prev => [...prev, ...files].slice(0, 10))
+  }
+
+  const handlePhotoCaptureWeapp = async () => {
+    try {
+      const res = await Taro.chooseImage({ count: 10 - capturedPhotos.length, sizeType: ['compressed'], sourceType: ['camera', 'album'] })
+      setCapturedPhotos(prev => [...prev, ...(res.tempFilePaths || [])].slice(0, 10))
+    } catch (err) {
+      console.error('Failed to choose image:', err)
+    }
+  }
+
+  const removePhoto = (index) => {
+    setCapturedPhotos(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const previewPhoto = (file) => {
+    const url = env.isMiniProgram ? file : URL.createObjectURL(file)
+    previewImage({ urls: [url], current: url })
+  }
 
   const fetchData = async () => {
     if (!instrumentId) return
@@ -181,22 +205,65 @@ export default function RepairWorkflow() {
             <Text className="text-sm font-bold text-black mb-2">添加记录</Text>
             <Textarea className="w-full border border-zinc-300 rounded-lg p-3 text-sm"
               value={comment} onInput={e => setComment(getInputValue(e))} placeholder="输入评论..." />
-            <View className="flex gap-2 mt-2">
-              <Button onClick={() => { const p = [...photos, `photo_${Date.now()}.jpg`]; setPhotos(p) }}
-                className="flex-1 py-2 bg-zinc-100 rounded-lg text-xs font-bold text-zinc-600">+ 拍照</Button>
-              <Button onClick={async () => {
-                if (!comment && photos.length === 0) { dialog.alert('请输入评论或拍照'); return }
-                try {
-                  const resp = await apiFetch(`${baseUrl}/repair/${instrumentId}/records`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ comment, photos }),
-                  })
-                  const r = await resp.json()
-                  if (r.code === 20000) { setComment(''); setPhotos([]); await fetchData() }
-                } catch {}
-              }} className="flex-1 py-2 bg-black text-white rounded-lg text-xs font-bold">提交记录</Button>
+            
+            {/* Photo Capture Section */}
+            <View className="mt-3">
+              <Text className="text-sm font-bold text-black mb-2">📷 拍照存档</Text>
+              <View className="grid grid-cols-3 gap-2 mb-2">
+                {capturedPhotos.map((file, i) => (
+                  <View key={i} className="relative aspect-square rounded-lg overflow-hidden border" onClick={() => previewPhoto(file)}>
+                    <Image src={env.isMiniProgram ? file : URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
+                    <Button onClick={(e) => { e.stopPropagation(); removePhoto(i) }}
+                      className="absolute top-1 right-1 rounded-full w-5 h-5 flex items-center justify-center">
+                      <Text className="text-white text-xs">✕</Text>
+                    </Button>
+                  </View>
+                ))}
+                {capturedPhotos.length < 10 && (
+                  env.isMiniProgram ? (
+                    <View className="aspect-square border-2 border-dashed border-zinc-300 rounded-lg flex flex-col items-center justify-center text-zinc-400" onClick={handlePhotoCaptureWeapp}>
+                      <Text className="text-2xl">📷</Text><Text className="text-xs mt-1">拍摄</Text>
+                    </View>
+                  ) : (
+                    <label className="aspect-square border-2 border-dashed border-zinc-300 rounded-lg flex flex-col items-center justify-center cursor-pointer text-zinc-400">
+                      <Text className="text-2xl">📷</Text><Text className="text-xs mt-1">拍摄</Text>
+                      <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handlePhotoCapture} />
+                    </label>
+                  )
+                )}
+              </View>
+              <Text className="text-xs text-zinc-400">已拍摄 {capturedPhotos.length} 张，最多 10 张</Text>
             </View>
+
+            {/* Submit Record Button */}
+            <Button onClick={async () => {
+              if (!comment && capturedPhotos.length === 0) { dialog.alert('请输入评论或拍照'); return }
+              setActionLoading(true)
+              try {
+                const photoUrls = []
+                const token = storage.getItem('token') || session.getItem('token')
+                for (const file of capturedPhotos) {
+                  const uploadResp = await uploadFile(`${baseUrl}/upload`, file, {
+                    headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+                  })
+                  const uploadResult = env.isMiniProgram ? JSON.parse(uploadResp.data || '{}') : await uploadResp.json()
+                  if (uploadResult.code === 20000 && uploadResult.data?.url) photoUrls.push(uploadResult.data.url)
+                }
+                const resp = await apiFetch(`${baseUrl}/repair/${instrumentId}/records`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ comment, photos: photoUrls }),
+                })
+                const r = await resp.json()
+                if (r.code === 20000) { setComment(''); setCapturedPhotos([]); await fetchData() }
+                else { dialog.alert(resolveErrorMessage(r, '提交失败')) }
+              } catch (err) { dialog.alert('提交失败: ' + (err.message || '')) }
+              setActionLoading(false)
+            }} disabled={actionLoading}
+              className="w-full mt-3 py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
+              {actionLoading ? '处理中...' : '提交记录'}
+            </Button>
+
             <Button onClick={() => handleAction('complete')} disabled={actionLoading}
               className="w-full mt-3 py-3 bg-green-600 text-white rounded-xl font-bold text-sm text-center">
               {actionLoading ? '处理中...' : '维修完成'}
