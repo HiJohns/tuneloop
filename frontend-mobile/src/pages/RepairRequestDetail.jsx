@@ -7,6 +7,7 @@ import { dialog, env, getInputValue, toWeappRoute, uploadFile as uploadFileApi }
 import RepairRecordPanel from '../components/RepairRecordPanel'
 import StaffIdPhotoViewer from '../components/StaffIdPhotoViewer'
 import { formatBeijingDateTimeShort } from '../utils/format'
+import { photoSrc } from '../utils/media'
 
 export default function RepairRequestDetail() {
   const navigate = useNavigate()
@@ -351,7 +352,7 @@ export default function RepairRequestDetail() {
           <View><Text className="text-sm font-bold text-black mb-2">图片</Text></View>
           <View className="flex flex-wrap gap-2">
             {JSON.parse(request.photos).map((p, i) => (
-              <Image key={i} src={`/uploads/media/${p}`} className="w-24 h-24 rounded-lg object-cover" mode="aspectFill" />
+              <Image key={i} src={photoSrc(p)} className="w-24 h-24 rounded-lg object-cover" mode="aspectFill" />
             ))}
           </View>
         </View>
@@ -359,7 +360,7 @@ export default function RepairRequestDetail() {
         {request.video_url && (
         <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
           <View><Text className="text-sm font-bold text-black mb-2">视频</Text></View>
-          <Video src={`/uploads/media/${request.video_url}`} className="w-full h-48 rounded-lg" controls />
+          <Video src={photoSrc(request.video_url)} className="w-full h-48 rounded-lg" controls />
         </View>
         )}
 
@@ -757,7 +758,7 @@ export default function RepairRequestDetail() {
               <>
                 <View className="flex flex-wrap gap-2 mb-3">
                   {unpackPhotos.length > 0 && unpackPhotos.map((p, i) => (
-                    <Image key={i} src={`/uploads/media/${p}`} className="w-16 h-16 rounded object-cover" mode="aspectFill" />
+                    <Image key={i} src={photoSrc(p)} className="w-16 h-16 rounded object-cover" mode="aspectFill" />
                   ))}
                   {env.isMiniProgram ? (
                     <View className="w-16 h-16 border-2 border-dashed border-zinc-300 rounded flex items-center justify-center" onClick={handleUnpackPhotoChoose}>
@@ -858,7 +859,7 @@ export default function RepairRequestDetail() {
             <Text className="text-sm font-bold text-black mb-3">转出中转</Text>
             <View className="flex flex-wrap gap-2 mb-3">
               {unpackPhotos.length > 0 && unpackPhotos.map((p, i) => (
-                <Image key={i} src={`/uploads/media/${p}`} className="w-16 h-16 rounded object-cover" mode="aspectFill" />
+                <Image key={i} src={photoSrc(p)} className="w-16 h-16 rounded object-cover" mode="aspectFill" />
               ))}
               {env.isMiniProgram ? (
                 <View className="w-16 h-16 border-2 border-dashed border-zinc-300 rounded flex items-center justify-center" onClick={handleUnpackPhotoChoose}>

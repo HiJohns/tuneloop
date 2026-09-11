@@ -4,6 +4,7 @@ import Taro from '@tarojs/taro'
 import { View, Text, Button, Image, Input } from '@tarojs/components'
 import { apiFetch, resolveErrorMessage } from '../services/api'
 import { dialog, env, getInputValue, toWeappRoute, uploadFile as uploadFileApi } from '../platform'
+import { photoSrc } from '../utils/media'
 
 export default function RepairScan() {
   const navigate = useNavigate()
@@ -132,7 +133,7 @@ export default function RepairScan() {
           <Text className="text-xs text-zinc-500 mb-2">拆箱拍照（转出）：</Text>
           <View className="flex flex-wrap gap-2 mb-3">
             {unpackPhotos.map((p, i) => (
-              <Image key={i} src={`/uploads/media/${p}`} className="w-16 h-16 rounded object-cover" mode="aspectFill" />
+              <Image key={i} src={photoSrc(p)} className="w-16 h-16 rounded object-cover" mode="aspectFill" />
             ))}
             {env.isMiniProgram ? (
               <View className="w-16 h-16 border-2 border-dashed border-zinc-300 rounded flex items-center justify-center"
