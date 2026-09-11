@@ -158,13 +158,13 @@ func GetInstrumentByID(c *gin.Context) {
 		"status":          instrument.StockStatus,
 		// Repair workflow fields (#1868): RepairWorkflow.jsx drives all action
 		// panels (start / records / takeover / accept) from these values.
-		"repair_status":    instrument.RepairStatus,
-		"repair_worker_id": instrument.RepairWorkerID,
+		"repair_status":      instrument.RepairStatus,
+		"repair_worker_id":   instrument.RepairWorkerID,
 		"repair_worker_name": repairWorkerName(instrument.RepairWorkerID, db),
-		"created_at":      instrument.CreatedAt,
-		"updated_at":      instrument.UpdatedAt,
-		"specifications":  specsArray,
-		"pricing":         pricingField,
+		"created_at":         instrument.CreatedAt,
+		"updated_at":         instrument.UpdatedAt,
+		"specifications":     specsArray,
+		"pricing":            pricingField,
 	}
 
 	// Fetch dynamic properties from instrument_properties table
@@ -308,19 +308,44 @@ func GetInstrumentByID(c *gin.Context) {
 // repairWorkerName resolves the display name for an instrument's assigned
 // repair worker (#1868). Display-only field: lookup failures are logged as a
 // warning and return nil — they must never fail the instrument detail request.
+// (#1873) worker ids store the IAM sub (JWT sub), not users.id — the two
+// diverge for most users; resolve by iam_sub.
 func repairWorkerName(workerID *string, db *gorm.DB) *string {
 	if workerID == nil || *workerID == "" {
 		return nil
 	}
-	var worker models.User
-	if err := db.Select("name").First(&worker, "id = ?", *workerID).Error; err != nil {
-		log.Printf("[WARN] repair_worker_name lookup failed for worker %s: %v", *workerID, err)
-		return nil
+	names := resolveUserNamesByIAMSub(db, []string{*workerID})
+	if name := names[*workerID]; name != "" {
+		return &name
 	}
-	if worker.Name == "" {
-		return nil
+	return nil
+}
+
+// resolveUserNamesByIAMSub batch-resolves display names for IAM subs
+// (#1873). Fallback chain: name → username → phone. Display-only helper:
+// lookup failures log a warning and yield a best-effort (possibly partial)
+// map — callers must never fail a request because of it.
+func resolveUserNamesByIAMSub(db *gorm.DB, iamSubs []string) map[string]string {
+	names := make(map[string]string, len(iamSubs))
+	if len(iamSubs) == 0 {
+		return names
 	}
-	return &worker.Name
+	var users []models.User
+	if err := db.Select("iam_sub, name, username, phone").Where("iam_sub IN ?", iamSubs).Find(&users).Error; err != nil {
+		log.Printf("[WARN] resolveUserNamesByIAMSub failed for %d subs: %v", len(iamSubs), err)
+		return names
+	}
+	for _, u := range users {
+		name := u.Name
+		if name == "" {
+			name = u.Username
+		}
+		if name == "" {
+			name = u.Phone
+		}
+		names[u.IAMSub] = name
+	}
+	return names
 }
 
 func GetInstruments(c *gin.Context) {

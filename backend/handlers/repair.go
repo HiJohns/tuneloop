@@ -355,6 +355,28 @@ func (h *RepairHandler) ListRecords(c *gin.Context) {
 		return
 	}
 
+	// (#1873) resolve worker display names (worker_id stores the IAM sub)
+	workerIDs := make([]string, 0, len(records))
+	for _, r := range records {
+		if r.WorkerID != "" {
+			workerIDs = append(workerIDs, r.WorkerID)
+		}
+	}
+	workerNames := resolveUserNamesByIAMSub(db, workerIDs)
+
+	recordList := make([]gin.H, len(records))
+	for i, r := range records {
+		recordList[i] = gin.H{
+			"id":            r.ID,
+			"instrument_id": r.InstrumentID,
+			"worker_id":     r.WorkerID,
+			"worker_name":   workerNames[r.WorkerID],
+			"comment":       r.Comment,
+			"photos":        r.Photos,
+			"created_at":    r.CreatedAt,
+		}
+	}
+
 	// (#1866): include latest damage report for context display
 	var latestDamage models.DamageReport
 	damageObj := interface{}(nil)
@@ -362,7 +384,7 @@ func (h *RepairHandler) ListRecords(c *gin.Context) {
 		damageObj = latestDamage
 	}
 
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"records": records, "damage": damageObj}})
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"records": recordList, "damage": damageObj}})
 }
 
 // ListMyRepairs returns all repairs assigned to the current user.

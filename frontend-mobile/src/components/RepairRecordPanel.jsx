@@ -3,6 +3,7 @@ import { View, Text, Button, Image } from '@tarojs/components'
 import { apiFetch , resolveErrorMessage } from '../services/api'
 import { env } from '../platform'
 import { formatBeijingDateTimeShort } from '../utils/format'
+import { parsePhotos, photoSrc } from '../utils/media'
 
 const RECORD_TYPE_LABELS = {
   created: '报修单已创建',
@@ -73,14 +74,12 @@ export default function RepairRecordPanel({ instrumentId, records, onRecordAdded
   }
 
   const renderPhotos = (photosStr) => {
-    if (!photosStr || photosStr === '[]') return null
-    let parsed
-    try { parsed = JSON.parse(photosStr) } catch { return null }
+    const parsed = parsePhotos(photosStr)
     if (!parsed.length) return null
     return (
       <View className="flex flex-wrap gap-1 mt-1">
         {parsed.map((p, i) => (
-          <Image key={i} src={`/uploads/media/${p}`} className="w-12 h-12 rounded object-cover" mode="aspectFill" />
+          <Image key={i} src={photoSrc(p)} className="w-12 h-12 rounded object-cover" mode="aspectFill" />
         ))}
       </View>
     )

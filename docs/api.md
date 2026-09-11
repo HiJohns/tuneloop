@@ -2521,6 +2521,7 @@ Content-Disposition: attachment; filename="assessment_order_001.pdf"
         "id": "uuid",
         "instrument_id": "uuid",
         "worker_id": "uuid",
+        "worker_name": "李四",
         "comment": "已接手维修",
         "photos": "[\"photo_key.jpg\"]",
         "created_at": "2026-09-10T08:30:00Z"
@@ -2543,6 +2544,7 @@ Content-Disposition: attachment; filename="assessment_order_001.pdf"
 
 **说明**:
 - `records`: 该乐器所有维修记录，按 `created_at ASC` 排序
+- `worker_name`: 维修师傅展示名（#1873）——`worker_id` 存储的是 IAM sub，按 `users.iam_sub` 批量解析，名字回退链 `name → username → phone`；无匹配用户时为空字符串
 - `damage`: 最近一条 `damage_report`（按 `created_at DESC` 取第一条），无定损时为 `null`
 - `damage.damage_amount`: 单位为分（int64），前端需除以 100 显示元
 - `damage.status`: 定损报告状态（`pending`/`completed`/`agreed`/`appealed`/`cancelled`/`resolved`）

@@ -5,6 +5,7 @@ import { Button, Image, ScrollView, Text, Textarea, View } from '@tarojs/compone
 import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
 import { dialog, env, getInputValue, uploadFile, storage, session, previewImage } from '../platform'
 import { formatBeijingDateTimeShort } from '../utils/format'
+import { parsePhotos, photoSrc } from '../utils/media'
 
 const statusLabels = {
   repair_pending: '待维修', repair_in_progress: '维修中', repair_completed: '已修复',
@@ -27,6 +28,7 @@ export default function RepairWorkflow() {
   const [capturedPhotos, setCapturedPhotos] = useState([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
+  const [submittingRecord, setSubmittingRecord] = useState(false)
 
   const token = getToken()
   const currentUserId = token ? JSON.parse(atob(token.split('.')[1]))?.sub || '' : ''
@@ -181,13 +183,30 @@ export default function RepairWorkflow() {
             </View>
           ) : (
             <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {records.map(r => (
-                <View key={r.id} className="border-b border-zinc-50 pb-2">
-                  <Text className="text-xs text-zinc-400">{formatBeijingDateTimeShort(r.created_at)}</Text>
-                  {r.comment && <Text className="text-sm text-black mt-1">{r.comment}</Text>}
-                  {r.photos && r.photos !== '[]' && <Text className="text-xs text-blue-500 mt-1">[有照片]</Text>}
-                </View>
-              ))}
+              {records.map(r => {
+                const recordPhotos = parsePhotos(r.photos)
+                return (
+                  <View key={r.id} className="border-b border-zinc-100 pb-3">
+                    {r.comment && (
+                      <View><Text className="text-sm text-black">{r.comment}</Text></View>
+                    )}
+                    {recordPhotos.length > 0 && (
+                      <View className="flex flex-wrap gap-1 mt-2">
+                        {recordPhotos.map((p, i) => (
+                          <Image key={i} src={photoSrc(p)} mode="aspectFill"
+                            className="w-16 h-16 rounded object-cover"
+                            onClick={() => previewImage({ urls: recordPhotos.map(photoSrc), current: photoSrc(p) })} />
+                        ))}
+                      </View>
+                    )}
+                    <View className="mt-1">
+                      <Text className="text-xs text-zinc-400">
+                        {formatBeijingDateTimeShort(r.created_at)}{r.worker_name ? ` · ${r.worker_name}` : ''}
+                      </Text>
+                    </View>
+                  </View>
+                )
+              })}
             </View>
           )}
         </View>
@@ -196,7 +215,7 @@ export default function RepairWorkflow() {
         {status === 'repair_pending' && (
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
             <Text className="text-sm text-zinc-600">此乐器等待维修</Text>
-            <Button onClick={() => handleAction('start')} disabled={actionLoading}
+            <Button onClick={() => handleAction('start')} disabled={actionLoading || submittingRecord}
               className="w-full mt-3 py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
               {actionLoading ? '处理中...' : '开始维修'}
             </Button>
@@ -241,7 +260,7 @@ export default function RepairWorkflow() {
             {/* Submit Record Button */}
             <Button onClick={async () => {
               if (!comment && capturedPhotos.length === 0) { dialog.alert('请输入评论或拍照'); return }
-              setActionLoading(true)
+              setSubmittingRecord(true)
               try {
                 const photoUrls = []
                 const token = storage.getItem('token') || session.getItem('token')
@@ -261,13 +280,13 @@ export default function RepairWorkflow() {
                 if (r.code === 20000) { setComment(''); setCapturedPhotos([]); await fetchData() }
                 else { dialog.alert(resolveErrorMessage(r, '提交失败')) }
               } catch (err) { dialog.alert('提交失败: ' + (err.message || '')) }
-              setActionLoading(false)
-            }} disabled={actionLoading}
+              setSubmittingRecord(false)
+            }} disabled={submittingRecord || actionLoading}
               className="w-full mt-3 py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
-              {actionLoading ? '处理中...' : '提交记录'}
+              {submittingRecord ? '处理中...' : '提交记录'}
             </Button>
 
-            <Button onClick={() => handleAction('complete')} disabled={actionLoading}
+            <Button onClick={() => handleAction('complete')} disabled={actionLoading || submittingRecord}
               className="w-full mt-3 py-3 bg-green-600 text-white rounded-xl font-bold text-sm text-center">
               {actionLoading ? '处理中...' : '维修完成'}
             </Button>
@@ -277,7 +296,7 @@ export default function RepairWorkflow() {
         {status === 'repair_in_progress' && !isMyJob && (
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
             <Text className="text-sm text-zinc-600">此乐器由 {instrument.repair_worker_name || '其他师傅'} 负责处理中</Text>
-            <Button onClick={handleTakeover} disabled={actionLoading}
+            <Button onClick={handleTakeover} disabled={actionLoading || submittingRecord}
               className="w-full mt-3 py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
               {actionLoading ? '处理中...' : '接手'}
             </Button>
@@ -288,7 +307,7 @@ export default function RepairWorkflow() {
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
             <Text className="text-sm text-zinc-600">乐器已修复，等待验收</Text>
             <View className="flex gap-2 mt-3">
-              <Button onClick={() => handleAction('accept')} disabled={actionLoading}
+              <Button onClick={() => handleAction('accept')} disabled={actionLoading || submittingRecord}
                 className="flex-1 py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
                 验收通过
               </Button>

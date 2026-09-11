@@ -548,28 +548,14 @@ func (h *RepairRequestHandler) ListRecords(c *gin.Context) {
 		return
 	}
 
-	// Batch lookup worker names
+	// Batch lookup worker names (#1873: shared resolver, same name→username→phone chain)
 	workerIDs := make([]string, 0)
 	for _, r := range records {
 		if r.WorkerID != "" {
 			workerIDs = append(workerIDs, r.WorkerID)
 		}
 	}
-	workerNameMap := make(map[string]string)
-	if len(workerIDs) > 0 {
-		var users []models.User
-		db.Where("iam_sub IN ?", workerIDs).Find(&users)
-		for _, u := range users {
-			name := u.Name
-			if name == "" {
-				name = u.Username
-			}
-			if name == "" {
-				name = u.Phone
-			}
-			workerNameMap[u.IAMSub] = name
-		}
-	}
+	workerNameMap := resolveUserNamesByIAMSub(db, workerIDs)
 
 	result := make([]gin.H, len(records))
 	for i, r := range records {
