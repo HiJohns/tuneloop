@@ -56,7 +56,7 @@ export default function ReceivingRepairScan() {
         dialog.alert('收货成功，报修单进入维修状态')
         nav(`/repair-request?request_id=${request.id}`)
       } else {
-        alert(resolveErrorMessage(r, '操作失败'))
+        dialog.alert(resolveErrorMessage(r, '操作失败'))
       }
     } catch { dialog.alert('操作失败') }
     setActionLoading(false)
@@ -84,7 +84,7 @@ export default function ReceivingRepairScan() {
         dialog.alert('中转处理成功')
         nav(`/repair-request?request_id=${request.id}`)
       } else {
-        alert(resolveErrorMessage(r, '操作失败'))
+        dialog.alert(resolveErrorMessage(r, '操作失败'))
       }
     } catch { dialog.alert('操作失败') }
     setActionLoading(false)

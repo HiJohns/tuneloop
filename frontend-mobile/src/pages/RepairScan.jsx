@@ -95,7 +95,7 @@ export default function RepairScan() {
         dialog.alert('转出中转处理成功')
         nav(`/repair-request?request_id=${relayRequest.id}`)
       } else {
-        alert(resolveErrorMessage(r, '操作失败'))
+        dialog.alert(resolveErrorMessage(r, '操作失败'))
       }
     } catch { dialog.alert('操作失败') }
     setSubmitting(false)

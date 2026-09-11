@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Input, Button, ScrollView } from '@tarojs/components'
 import { apiFetch , resolveErrorMessage } from '../services/api'
-import { env, storage, session, navigation } from '../platform'
+import { dialog, env, storage, session, navigation } from '../platform'
 import { getWXConfig } from '../platform/init'
 import IdPhotoUploader from '../components/IdPhotoUploader'
 import regions from '../data/regions.json'
@@ -52,11 +52,11 @@ export default function Register() {
   }
 
   const handleRegister = async () => {
-    if (!name.trim()) { alert('请输入姓名'); return }
-    if (!phone.trim()) { alert('请输入手机号'); return }
-    if (!/^1[3-9]\d{9}$/.test(phone.trim())) { alert('手机号格式不正确'); return }
-    if (!password) { alert('请输入密码'); return }
-    if (password !== confirmPassword) { alert('两次输入的密码不一致'); return }
+    if (!name.trim()) { dialog.alert('请输入姓名'); return }
+    if (!phone.trim()) { dialog.alert('请输入手机号'); return }
+    if (!/^1[3-9]\d{9}$/.test(phone.trim())) { dialog.alert('手机号格式不正确'); return }
+    if (!password) { dialog.alert('请输入密码'); return }
+    if (password !== confirmPassword) { dialog.alert('两次输入的密码不一致'); return }
     setSaving(true)
     try {
       const body = {
@@ -105,10 +105,10 @@ export default function Register() {
         const fee = result.data?.membership_fee || 99
         navigate(`/payment?type=membership&amount=${fee}`)
       } else {
-        alert(resolveErrorMessage(result, '注册失败, 请重试'))
+        dialog.alert(resolveErrorMessage(result, '注册失败, 请重试'))
       }
     } catch (err) {
-      alert('网络错误, 请重试')
+      dialog.alert('网络错误, 请重试')
     }
     setSaving(false)
   }

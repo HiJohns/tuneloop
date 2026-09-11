@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { View, Text, ScrollView, Image } from '@tarojs/components'
 import { apiFetch, resolveErrorMessage } from '../services/api'
-import { env } from '../platform'
+import { dialog, env } from '../platform'
 import { formatBeijingDate } from '../utils/format'
 import { ArrowLeft } from 'lucide-react'
 
@@ -79,10 +79,10 @@ export default function Renewal() {
       if (result.code === 20000 && result.data?.success) {
         navigate(`/payment?type=renewal&id=${orderId}&amount=${calcResult.total_amount}`, { replace: true })
       } else {
-        alert(resolveErrorMessage(result.data, '创建续期失败'))
+        dialog.alert(resolveErrorMessage(result.data, '创建续期失败'))
       }
     } catch (err) {
-      alert('网络错误')
+      dialog.alert('网络错误')
     } finally {
       setSubmitting(false)
     }

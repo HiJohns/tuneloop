@@ -136,7 +136,7 @@ export default function CreateRepairRequest() {
         dialog.alert('报修单已提交，等待评估')
         goBack()
       } else {
-        alert(resolveErrorMessage(r, '提交失败'))
+        dialog.alert(resolveErrorMessage(r, '提交失败'))
       }
     } catch (err) {
       dialog.alert('提交失败: ' + (err.message || ''))

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { View, Text, ScrollView, Button, Image } from '@tarojs/components'
 import { apiFetch , resolveErrorMessage } from '../services/api'
-import { env } from '../platform'
+import { dialog, env } from '../platform'
 import { Camera } from 'lucide-react'
 
 export default function TransitWorkflow() {
@@ -23,7 +23,7 @@ export default function TransitWorkflow() {
   }, [])
 
   const handleReceive = async () => {
-    if (!selected || photos.length === 0) { alert('请先拍照'); return }
+    if (!selected || photos.length === 0) { dialog.alert('请先拍照'); return }
     setActionLoading(true)
     try {
       const resp = await apiFetch(`${baseUrl}/transit-orders/${selected}/receive`, {
@@ -32,13 +32,13 @@ export default function TransitWorkflow() {
         body: JSON.stringify({ photos }),
       })
       const r = await resp.json()
-      if (r.code === 20000) { setStep('repack') } else { alert(resolveErrorMessage(r)) }
+      if (r.code === 20000) { setStep('repack') } else { dialog.alert(resolveErrorMessage(r)) }
     } catch {}
     setActionLoading(false)
   }
 
   const handleRepack = async () => {
-    if (!company || !number) { alert('请填写物流信息'); return }
+    if (!company || !number) { dialog.alert('请填写物流信息'); return }
     setActionLoading(true)
     try {
       const resp = await apiFetch(`${baseUrl}/transit-orders/${selected}/repack`, {
@@ -47,7 +47,7 @@ export default function TransitWorkflow() {
         body: JSON.stringify({ company, number, photos }),
       })
       const r = await resp.json()
-      if (r.code === 20000) { alert('转包完成'); navigate(-1) } else { alert(resolveErrorMessage(r)) }
+      if (r.code === 20000) { dialog.alert('转包完成'); navigate(-1) } else { dialog.alert(resolveErrorMessage(r)) }
     } catch {}
     setActionLoading(false)
   }

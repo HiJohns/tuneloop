@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { addressesApi , resolveErrorMessage } from '../services/api'
 import { X } from 'lucide-react'
+import { dialog } from '../platform'
 
 export default function AddressForm({ address, onClose, onSaved }) {
   const [form, setForm] = useState({
@@ -16,9 +17,9 @@ export default function AddressForm({ address, onClose, onSaved }) {
   const [saving, setSaving] = useState(false)
 
   const handleSubmit = async () => {
-    if (!form.recipient_name) { alert('请填写收货人'); return }
-    if (!form.phone) { alert('请填写手机号'); return }
-    if (form.postal_code && !/^\d{6}$/.test(form.postal_code)) { alert('邮编格式不正确，请输入6位数字'); return }
+    if (!form.recipient_name) { dialog.alert('请填写收货人'); return }
+    if (!form.phone) { dialog.alert('请填写手机号'); return }
+    if (form.postal_code && !/^\d{6}$/.test(form.postal_code)) { dialog.alert('邮编格式不正确，请输入6位数字'); return }
     setSaving(true)
     try {
       let resp
@@ -31,10 +32,10 @@ export default function AddressForm({ address, onClose, onSaved }) {
         if (onSaved) onSaved()
         onClose()
       } else {
-        alert(resolveErrorMessage(resp, '保存失败'))
+        dialog.alert(resolveErrorMessage(resp, '保存失败'))
       }
     } catch (err) {
-      alert('保存失败: ' + (err.message || '网络错误'))
+      dialog.alert('保存失败: ' + (err.message || '网络错误'))
     }
     setSaving(false)
   }

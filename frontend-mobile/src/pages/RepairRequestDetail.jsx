@@ -101,7 +101,7 @@ export default function RepairRequestDetail() {
         setShowQuoteForm(false)
         await fetchData()
       } else {
-        alert(resolveErrorMessage(r, '操作失败'))
+        dialog.alert(resolveErrorMessage(r, '操作失败'))
       }
     } catch (err) { dialog.alert('操作失败') }
     setActionLoading(false)
@@ -115,7 +115,7 @@ export default function RepairRequestDetail() {
       if (r.code === 20000) {
         nav(`/repair-quote?request_id=${requestId}`)
       } else {
-        alert(resolveErrorMessage(r, '操作失败'))
+        dialog.alert(resolveErrorMessage(r, '操作失败'))
       }
     } catch { dialog.alert('操作失败') }
     setActionLoading(false)
@@ -136,7 +136,7 @@ export default function RepairRequestDetail() {
         setTrackingNumber('')
         await fetchData()
       } else {
-        alert(resolveErrorMessage(r, '提交失败'))
+        dialog.alert(resolveErrorMessage(r, '提交失败'))
       }
     } catch { dialog.alert('提交失败') }
     setActionLoading(false)
@@ -165,8 +165,8 @@ export default function RepairRequestDetail() {
       })
       const r = await resp.json()
       if (r.code === 20000) { await fetchData() }
-      else { alert(resolveErrorMessage(r, '申诉提交失败')) }
-    } catch { alert('操作失败') }
+      else { dialog.alert(resolveErrorMessage(r, '申诉提交失败')) }
+    } catch { dialog.alert('操作失败') }
     setActionLoading(false)
   }
 
@@ -176,8 +176,8 @@ export default function RepairRequestDetail() {
       const resp = await apiFetch(`${baseUrl}/repair-requests/${requestId}/confirm-receipt`, { method: 'POST' })
       const r = await resp.json()
       if (r.code === 20000) { await fetchData() }
-      else { alert(resolveErrorMessage(r, '操作失败')) }
-    } catch { alert('操作失败') }
+      else { dialog.alert(resolveErrorMessage(r, '操作失败')) }
+    } catch { dialog.alert('操作失败') }
     setActionLoading(false)
   }
 
@@ -196,7 +196,7 @@ export default function RepairRequestDetail() {
         setReturnNumber('')
         await fetchData()
       } else {
-        alert(resolveErrorMessage(r, '提交失败'))
+        dialog.alert(resolveErrorMessage(r, '提交失败'))
       }
     } catch { dialog.alert('提交失败') }
     setActionLoading(false)
@@ -276,7 +276,7 @@ export default function RepairRequestDetail() {
         setCompleteVideo(null)
         await fetchData()
       } else {
-        alert(resolveErrorMessage(r, '操作失败'))
+        dialog.alert(resolveErrorMessage(r, '操作失败'))
       }
     } catch { dialog.alert('操作失败') }
     setActionLoading(false)

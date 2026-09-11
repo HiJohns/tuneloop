@@ -125,7 +125,7 @@ export default function MyRepairs() {
       })
       const result = await resp.json()
       if (result.code === 20000) { await fetchRepairs() }
-      else { alert(resolveErrorMessage(result)) }
+      else { dialog.alert(resolveErrorMessage(result)) }
     } catch {}
   }
 

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
 import { warehouseApi, apiFetch, getToken } from '../services/api'
-import { env, scanQRCode } from '../platform'
+import { dialog, env, scanQRCode } from '../platform'
 import { formatBeijingDate } from '../utils/format'
 import { calculateDays } from '../utils/daycalc'
 import { Package, Search, Scan } from 'lucide-react'
@@ -138,7 +138,7 @@ export default function StaffOrders() {
         navigate(`/staff/orders/${result}`)
       }
     } catch {
-      alert('扫码失败，请手动输入订单号')
+      dialog.alert('扫码失败，请手动输入订单号')
     }
   }
 

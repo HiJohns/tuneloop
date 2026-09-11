@@ -86,7 +86,7 @@ export default function RepairWorkflow() {
       if (result.code === 20000) {
         await fetchData()
       } else {
-        alert(resolveErrorMessage(result, '操作失败'))
+        dialog.alert(resolveErrorMessage(result, '操作失败'))
       }
     } catch (err) {
       dialog.alert('操作失败: ' + (err.message || ''))
@@ -102,7 +102,7 @@ export default function RepairWorkflow() {
       if (result.code === 20000) {
         await fetchData()
       } else {
-        alert(resolveErrorMessage(result, '接手失败'))
+        dialog.alert(resolveErrorMessage(result, '接手失败'))
       }
     } catch (err) {
       dialog.alert('接手失败: ' + (err.message || ''))
@@ -328,7 +328,7 @@ export default function RepairWorkflow() {
                   })
                   const r = await resp.json()
                   if (r.code === 20000) { await fetchData() }
-                  else { alert(resolveErrorMessage(r)) }
+                  else { dialog.alert(resolveErrorMessage(r)) }
                 } catch {}
               }} className="flex-1 py-3 bg-red-500 text-white rounded-xl font-bold text-sm text-center">
                 验收不通过

@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { View, Text, Button, Image } from '@tarojs/components'
 import { apiFetch , resolveErrorMessage } from '../services/api'
-import { env } from '../platform'
+import { dialog, env } from '../platform'
 import { formatBeijingDateTimeShort } from '../utils/format'
 import { parsePhotos, photoSrc } from '../utils/media'
 
@@ -43,7 +43,7 @@ export default function RepairRecordPanel({ instrumentId, records, onRecordAdded
   const apiPath = `${baseUrl}/repair-requests/${instrumentId}/records`
 
   const handleSubmitRecord = async () => {
-    if (!comment && photoFiles.length === 0 && !videoFile) { alert('请输入评论、拍照或选择视频'); return }
+    if (!comment && photoFiles.length === 0 && !videoFile) { dialog.alert('请输入评论、拍照或选择视频'); return }
     setSubmitting(true)
     try {
       const photoKeys = []
@@ -67,9 +67,9 @@ export default function RepairRecordPanel({ instrumentId, records, onRecordAdded
         setVideoFile(null)
         if (onRecordAdded) onRecordAdded()
       } else {
-        alert(resolveErrorMessage(r, '提交失败'))
+        dialog.alert(resolveErrorMessage(r, '提交失败'))
       }
-    } catch { alert('提交失败') }
+    } catch { dialog.alert('提交失败') }
     setSubmitting(false)
   }
 

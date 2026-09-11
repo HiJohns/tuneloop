@@ -89,10 +89,17 @@ func (h *RepairHandler) CompleteRepair(c *gin.Context) {
 		return
 	}
 
-	// Verify at least one repair record with photos exists
+	// Verify at least one repair record with photos exists (#1875: photos is
+	// JSONB — comparing it to '' raises a Postgres error, so use jsonb_typeof/
+	// jsonb_array_length which are safe for any valid JSON value).
 	var recordCount int64
-	db.Model(&models.RepairRecord{}).Where("instrument_id = ? AND worker_id = ?", instrumentID, userID).
-		Where("photos IS NOT NULL AND photos != '[]' AND photos != ''").Count(&recordCount)
+	if err := db.Model(&models.RepairRecord{}).
+		Where("instrument_id = ? AND worker_id = ?", instrumentID, userID).
+		Where("photos IS NOT NULL AND jsonb_typeof(photos) = 'array' AND jsonb_array_length(photos) > 0").
+		Count(&recordCount).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to verify repair records"})
+		return
+	}
 	if recordCount == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "at least one photo record is required before completing"})
 		return

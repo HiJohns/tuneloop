@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import Taro from '@tarojs/taro'
 import { Upload, X } from 'lucide-react'
-import { env } from '../platform'
+import { dialog, env } from '../platform'
 
 export default function ImageUploader({ onChange, maxImages = 5 }) {
   const [images, setImages] = useState([])
@@ -10,7 +10,7 @@ export default function ImageUploader({ onChange, maxImages = 5 }) {
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files)
     if (images.length + files.length > maxImages) {
-      alert(`最多上传 ${maxImages} 张图片`)
+      dialog.alert(`最多上传 ${maxImages} 张图片`)
       return
     }
 
