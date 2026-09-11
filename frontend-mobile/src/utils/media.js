@@ -4,6 +4,8 @@
 //   - 纯文件 key —— RepairRecordPanel 等按 key 存储
 //   - 历史假文件名（"photo_<ts>.jpg"，#1871 之前的 mock 数据，渲染必 404）—— 过滤
 
+import { env } from '../platform'
+
 const LEGACY_FAKE_PHOTO = /^photo_\d+\.jpg$/i
 
 export function parsePhotos(raw) {
@@ -18,8 +20,11 @@ export function parsePhotos(raw) {
   return parsed.filter(p => typeof p === 'string' && p && !LEGACY_FAKE_PHOTO.test(p))
 }
 
+// #1876: 相对路径 /uploads/... 必须补全 origin 后交给 weapp <Image>
+// （小程序 Image 不支持相对路径，静默失败；与 Cart/OrderDetail 的 fixImg 同语义）。
 export function photoSrc(p) {
   if (!p) return ''
-  if (/^https?:\/\//.test(p) || p.startsWith('/')) return p
-  return `/uploads/media/${p}`
+  if (/^https?:\/\//.test(p) || p.startsWith('data:')) return p
+  const path = p.startsWith('/') ? p : `/uploads/media/${p}`
+  return env.apiBaseUrl.replace(/\/api$/, '') + path
 }
