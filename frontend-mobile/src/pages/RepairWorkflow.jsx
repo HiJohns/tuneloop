@@ -136,15 +136,18 @@ export default function RepairWorkflow() {
 
   return (
     <View className="flex flex-col h-screen bg-zinc-50">
-      <View className="bg-white px-4 py-3 border-b border-zinc-100 flex items-center gap-2">
-        <Text className="text-lg mr-2" onClick={goBack}>{'<'}</Text>
-        <Text className="text-lg font-bold flex-1">维修 - {instrument.sn || ''}</Text>
-        <Text className={`text-xs px-2 py-1 rounded-full font-bold ${status === 'repair_completed' ? 'bg-green-100 text-green-700' : status === 'repair_in_progress' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}`}>
-          {statusLabels[status] || status}
-        </Text>
-      </View>
+      {!env.isMiniProgram && (
+        <View className="bg-white px-4 py-3 border-b border-zinc-100 flex items-center gap-2">
+          <Text className="text-lg mr-2" onClick={goBack}>{'<'}</Text>
+          <Text className="text-lg font-bold flex-1">维修 - {instrument.sn || ''}</Text>
+          <Text className={`text-xs px-2 py-1 rounded-full font-bold ${status === 'repair_completed' ? 'bg-green-100 text-green-700' : status === 'repair_in_progress' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}`}>
+            {statusLabels[status] || status}
+          </Text>
+        </View>
+      )}
 
-      <ScrollView scrollY className="flex-1 px-4 min-h-0">
+      <ScrollView scrollY className="flex-1 min-h-0 overflow-y-auto">
+        <View style={{ padding: '0 16px', boxSizing: 'border-box' }}>
         {/* Instrument info */}
         <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
           <Text className="text-sm font-bold text-black">乐器信息</Text>
@@ -320,6 +323,7 @@ export default function RepairWorkflow() {
             <Text className="text-sm text-zinc-400 text-center">乐器状态正常，不需要维修</Text>
           </View>
         )}
+        </View>
       </ScrollView>
     </View>
   )
