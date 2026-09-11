@@ -29,6 +29,8 @@ export default function RepairWorkflow() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [submittingRecord, setSubmittingRecord] = useState(false)
+  const [myRoles, setMyRoles] = useState(null)
+  const [siteMemberships, setSiteMemberships] = useState([])
 
   const token = getToken()
   const currentUserId = token ? JSON.parse(atob(token.split('.')[1]))?.sub || '' : ''
@@ -60,16 +62,24 @@ export default function RepairWorkflow() {
     if (!instrumentId) return
     setLoading(true)
     try {
-      const [instRes, recRes] = await Promise.all([
+      const [instRes, recRes, roleRes] = await Promise.all([
         apiFetch(`${baseUrl}/instruments/${instrumentId}`),
         apiFetch(`${baseUrl}/repair/${instrumentId}/records`),
+        apiFetch(`${baseUrl}/site-members/me`),
       ])
       const inst = await instRes.json()
       const rec = await recRes.json()
+      const role = await roleRes.json()
       if (inst.code === 20000) setInstrument(inst.data)
       if (rec.code === 20000) {
         setRecords(rec.data?.records || [])
         setDamage(rec.data?.damage || null)
+      }
+      if (role.code === 20000) {
+        setMyRoles(role.data?.roles || [])
+        setSiteMemberships(role.data?.sites || [])
+      } else {
+        setMyRoles([])
       }
     } catch {}
     setLoading(false)
@@ -131,10 +141,23 @@ export default function RepairWorkflow() {
     return <View className="h-screen bg-zinc-50 flex items-center justify-center"><Text className="text-zinc-400">乐器不存在</Text></View>
   }
 
+  // #1883: role gate — only site staff or repair technicians may open /repair
+  if (myRoles !== null && !myRoles.some(r => ['site_admin', 'site_member', 'repair_technician'].includes(r))) {
+    return (
+      <View className="h-screen bg-zinc-50 flex items-center justify-center p-4">
+        <Text className="text-zinc-500 text-sm">无权访问：维修工作台仅对网点员工与维修师傅开放</Text>
+      </View>
+    )
+  }
+
   const status = instrument.repair_status
   const workerId = instrument.repair_worker_id
   const isMyJob = workerId === currentUserId
   const isValid = ['repair_pending', 'repair_in_progress', 'repair_completed'].includes(status)
+  // #1883 R1: acceptance requires staff of THIS instrument's site and not the
+  // assigned repair worker (no self-acceptance, even for dual roles)
+  const isSiteStaffHere = siteMemberships.some(s => s.site_id === instrument.current_site_id && ['site_admin', 'site_member'].includes(s.role))
+  const canAccept = status === 'repair_completed' && isSiteStaffHere && currentUserId !== workerId
 
   return (
     <View className="flex flex-col h-screen bg-zinc-50">
@@ -305,13 +328,17 @@ export default function RepairWorkflow() {
 
         {status === 'repair_completed' && (
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
-            <Text className="text-sm text-zinc-600">乐器已修复，等待验收</Text>
+            <Text className="text-sm text-zinc-600">
+              {canAccept ? '乐器已修复，等待验收' : '乐器已修复，等待网点员工验收'}
+            </Text>
+            {canAccept && (
             <View className="flex gap-2 mt-3">
               <Button onClick={() => handleAction('accept')} disabled={actionLoading || submittingRecord}
                 className="flex-1 py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
                 验收通过
               </Button>
               <Button onClick={async () => {
+                if (actionLoading) return
                 let reason = ''
                 if (env.isMiniProgram) {
                   const res = await Taro.showModal({ title: '验收不通过', editable: true, placeholderText: '请输入不通过原因' })
@@ -320,6 +347,7 @@ export default function RepairWorkflow() {
                   reason = prompt('请输入不通过原因')
                 }
                 if (!reason) return
+                setActionLoading(true)
                 try {
                   const resp = await apiFetch(`${baseUrl}/repair/${instrumentId}/reject`, {
                     method: 'POST',
@@ -330,10 +358,12 @@ export default function RepairWorkflow() {
                   if (r.code === 20000) { await fetchData() }
                   else { dialog.alert(resolveErrorMessage(r)) }
                 } catch {}
-              }} className="flex-1 py-3 bg-red-500 text-white rounded-xl font-bold text-sm text-center">
-                验收不通过
+                setActionLoading(false)
+              }} disabled={actionLoading || submittingRecord} className="flex-1 py-3 bg-red-500 text-white rounded-xl font-bold text-sm text-center">
+                {actionLoading ? '处理中...' : '验收不通过'}
               </Button>
             </View>
+            )}
           </View>
         )}
 
