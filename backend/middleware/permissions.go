@@ -165,3 +165,36 @@ func RequireCusPerm(name string) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+// RequireAnyCusPerm is like RequireCusPerm but passes when ANY of the named
+// permissions is granted (#1882 transition): newly introduced permissions
+// (e.g. repair:start) are not yet present in IAM role-template bitmaps for
+// existing users, so routes accept the legacy permission as a fallback until
+// templates are resynced and users regranted. Unknown codes are ignored; when
+// every code resolves to an unknown bit the check passes through.
+func RequireAnyCusPerm(names ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		hasKnownBit := false
+		matched := false
+		cusPerm := GetCusPerm(c.Request.Context())
+		for _, name := range names {
+			bit := PermissionRegistry.GetCusPermBit(name)
+			if bit < 0 {
+				continue
+			}
+			hasKnownBit = true
+			if cusPerm&(1<<bit) != 0 {
+				matched = true
+				break
+			}
+		}
+		if !hasKnownBit || cusPerm == 0 || matched {
+			c.Next()
+			return
+		}
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"code":    40305,
+			"message": "insufficient customer permission",
+		})
+	}
+}

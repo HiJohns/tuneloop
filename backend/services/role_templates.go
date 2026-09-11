@@ -31,6 +31,7 @@ var AllRoleTemplates = map[string]RoleTemplate{
 		CusPermCodes: []string{
 			"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:price", "instrument:price_config",
 			"instrument:maintain",
+			"repair:start", "repair:complete", "repair:accept",
 			"instrument:media_upload", "instrument:media_display", "instrument:media_delete",
 			"order:create", "order:read", "order:update", "order:cancel",
 			"appeal:create", "appeal:read", "appeal:handle",
@@ -43,7 +44,7 @@ var AllRoleTemplates = map[string]RoleTemplate{
 		Name:        "网点管理员",
 		SysPermBits: []int{15, 16, 17},
 		CusPermCodes: []string{
-			"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:price", "instrument:maintain",
+			"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:price", "instrument:maintain", "repair:start", "repair:complete", "repair:accept",
 			"instrument:media_upload", "instrument:media_display", "instrument:media_delete",
 			"order:create", "order:read", "order:update", "order:cancel",
 			"appeal:read", "appeal:handle",
@@ -55,13 +56,13 @@ var AllRoleTemplates = map[string]RoleTemplate{
 	"site_member": {
 		Name:         "网点员工",
 		SysPermBits:  []int{},
-		CusPermCodes: []string{"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:maintain", "instrument:media_upload", "instrument:media_delete", "order:create", "order:read", "order:update", "audit_log:read"},
+		CusPermCodes: []string{"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:maintain", "repair:start", "repair:complete", "repair:accept", "instrument:media_upload", "instrument:media_delete", "order:create", "order:read", "order:update", "audit_log:read"},
 		Description:  "网点员工基础权限",
 	},
 	"repair_technician": {
 		Name:         "维修师傅",
 		SysPermBits:  []int{},
-		CusPermCodes: []string{"instrument:read", "instrument:maintain"},
+		CusPermCodes: []string{"instrument:read", "instrument:maintain", "repair:start", "repair:complete"},
 		Description:  "维修权限",
 	},
 	"customer": {
@@ -76,7 +77,7 @@ var CustomRoleTemplates = map[string]RoleTemplate{
 	"repair_technician": {
 		Name:         "维修师傅",
 		SysPermBits:  []int{},
-		CusPermCodes: []string{"instrument:read", "instrument:maintain"},
+		CusPermCodes: []string{"instrument:read", "instrument:maintain", "repair:start", "repair:complete"},
 		Description:  "维修权限",
 	},
 }

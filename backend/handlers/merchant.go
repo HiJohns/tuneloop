@@ -680,10 +680,10 @@ func parseInt(s string, defaultValue int) int {
 func initSystemRoles(db *gorm.DB, iamClient *services.IAMClient, tenantID, nsID string) {
 	log.Printf("[initSystemRoles] Starting role init for tenant=%s ns=%s", tenantID, nsID)
 	systemRoles := map[string][]string{
-		"merchant_admin":    {"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:price", "instrument:price_config", "instrument:maintain", "order:create", "order:read", "order:update", "order:cancel"},
-		"site_admin":        {"instrument:create", "instrument:read", "instrument:update", "instrument:price", "instrument:maintain", "order:read", "order:update", "order:cancel"},
-		"site_member":       {"instrument:create", "instrument:read", "instrument:update", "instrument:maintain", "order:create", "order:read", "order:update"},
-		"repair_technician": {"instrument:read", "instrument:maintain"},
+		"merchant_admin":    {"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:price", "instrument:price_config", "instrument:maintain", "repair:start", "repair:complete", "repair:accept", "order:create", "order:read", "order:update", "order:cancel"},
+		"site_admin":        {"instrument:create", "instrument:read", "instrument:update", "instrument:price", "instrument:maintain", "repair:start", "repair:complete", "repair:accept", "order:read", "order:update", "order:cancel"},
+		"site_member":       {"instrument:create", "instrument:read", "instrument:update", "instrument:maintain", "repair:start", "repair:complete", "repair:accept", "order:create", "order:read", "order:update"},
+		"repair_technician": {"instrument:read", "instrument:maintain", "repair:start", "repair:complete"},
 	}
 	for code, codes := range systemRoles {
 		role := models.Role{

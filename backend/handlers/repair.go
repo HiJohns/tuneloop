@@ -137,24 +137,21 @@ func (h *RepairHandler) AcceptRepair(c *gin.Context) {
 		return
 	}
 
-	// Verify the current user belongs to this instrument's site
+	// #1882 R1: only staff of this instrument's site may accept, and the
+	// assigned repair worker can never accept their own repair.
 	userID := middleware.GetUserID(ctx)
 	siteID := inst.CurrentSiteID
 	if siteID == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "instrument has no site"})
 		return
 	}
-
-	var localUser models.User
-	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+	memberships := resolveOperatorSiteMemberships(db, userID)
+	if !hasSiteRole(memberships, siteID.String(), "site_admin", "site_member") {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "only staff of this instrument's site can accept"})
 		return
 	}
-
-	var count int64
-	db.Table("site_members").Where("user_id = ? AND site_id = ?", localUser.ID, siteID.String()).Count(&count)
-	if count == 0 {
-		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "you are not a member of this instrument's site"})
+	if inst.RepairWorkerID != nil && *inst.RepairWorkerID == userID {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "the repair worker cannot accept their own repair"})
 		return
 	}
 
@@ -201,6 +198,38 @@ func (h *RepairHandler) RejectRepair(c *gin.Context) {
 		return
 	}
 
+	// #1882 R1: same site/role gate as accept; the repair worker cannot reject
+	// their own repair either.
+	userID := middleware.GetUserID(ctx)
+	siteID := inst.CurrentSiteID
+	if siteID == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "instrument has no site"})
+		return
+	}
+	memberships := resolveOperatorSiteMemberships(db, userID)
+	if !hasSiteRole(memberships, siteID.String(), "site_admin", "site_member") {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "only staff of this instrument's site can reject"})
+		return
+	}
+	if inst.RepairWorkerID != nil && *inst.RepairWorkerID == userID {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "the repair worker cannot reject their own repair"})
+		return
+	}
+
+	// #1882 R3: persist the rejection reason as a repair record
+	record := models.RepairRecord{
+		ID:           uuid.New().String(),
+		InstrumentID: instrumentID,
+		WorkerID:     userID,
+		Comment:      "验收驳回：" + req.Comment,
+		Photos:       "[]",
+		CreatedAt:    time.Now(),
+	}
+	if err := db.Create(&record).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to record rejection reason"})
+		return
+	}
+
 	if err := db.Model(&inst).Update("repair_status", "repair_in_progress").Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to reject repair"})
 		return
@@ -233,6 +262,18 @@ func (h *RepairHandler) TakeoverRepair(c *gin.Context) {
 
 	if inst.RepairStatus != "repair_pending" && inst.RepairStatus != "repair_in_progress" {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "instrument must be pending or in progress"})
+		return
+	}
+
+	// #1882 R4: takeover is restricted to the instrument's site (no cross-site)
+	siteID := inst.CurrentSiteID
+	if siteID == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "instrument has no site"})
+		return
+	}
+	memberships := resolveOperatorSiteMemberships(db, userID)
+	if !hasSiteRole(memberships, siteID.String(), "site_admin", "site_member", "repair_technician") {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "you do not belong to this instrument's site"})
 		return
 	}
 
@@ -275,6 +316,23 @@ func (h *RepairHandler) ReassignRepair(c *gin.Context) {
 
 	if inst.RepairStatus != "repair_in_progress" {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "instrument must be in progress"})
+		return
+	}
+
+	// #1882 R5: only the instrument's site_admin may reassign; the target must
+	// be a member of the same site.
+	userID := middleware.GetUserID(ctx)
+	siteID := inst.CurrentSiteID
+	if siteID == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "instrument has no site"})
+		return
+	}
+	if !hasSiteRole(resolveOperatorSiteMemberships(db, userID), siteID.String(), "site_admin") {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "only site_admin can reassign"})
+		return
+	}
+	if !hasSiteRole(resolveOperatorSiteMemberships(db, req.WorkerID), siteID.String(), "site_admin", "site_member", "repair_technician") {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "worker is not a member of this instrument's site"})
 		return
 	}
 
@@ -411,14 +469,25 @@ func (h *RepairHandler) ListMyRepairs(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": instruments}})
 }
 
-// ListPendingRepairs returns all repair_pending instruments (for browsing/takeover).
+// ListPendingRepairs returns repair_pending instruments at the operator's
+// sites (#1882: site-scoped, no tenant-wide leak).
 func (h *RepairHandler) ListPendingRepairs(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
-	tenantID := middleware.GetTenantID(ctx)
+	userID := middleware.GetUserID(ctx)
+
+	memberships := resolveOperatorSiteMemberships(db, userID)
+	siteIDs := make([]string, 0, len(memberships))
+	for _, m := range memberships {
+		siteIDs = append(siteIDs, m.SiteID)
+	}
+	if len(siteIDs) == 0 {
+		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": []interface{}{}}})
+		return
+	}
 
 	var instruments []models.Instrument
-	if err := db.Where("tenant_id = ? AND repair_status = ?", tenantID, "repair_pending").
+	if err := db.Where("current_site_id IN ? AND repair_status = ?", siteIDs, "repair_pending").
 		Order("updated_at DESC").Find(&instruments).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query repairs"})
 		return
@@ -427,11 +496,16 @@ func (h *RepairHandler) ListPendingRepairs(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": instruments}})
 }
 
-// resolveOperatorSiteID returns the site the operator belongs to (first
-// site_members row, oldest first). Used when an instrument enters the repair
-// flow so the acceptance gate has a site to check (#1889). Returns nil when
-// the operator has no site membership — callers fall back to the order's site.
-func resolveOperatorSiteID(db *gorm.DB, userID string) *string {
+// siteMembership is one site_members row for an operator (#1882).
+type siteMembership struct {
+	SiteID string
+	Role   string
+}
+
+// resolveOperatorSiteMemberships returns all site memberships for the operator
+// (#1882): used for site- and role-scoped gating across the repair domain.
+// Returns nil for unknown users or lookup failures.
+func resolveOperatorSiteMemberships(db *gorm.DB, userID string) []siteMembership {
 	if userID == "" {
 		return nil
 	}
@@ -439,12 +513,44 @@ func resolveOperatorSiteID(db *gorm.DB, userID string) *string {
 	if err := db.Select("id").Where("iam_sub = ?", userID).First(&localUser).Error; err != nil {
 		return nil
 	}
-	var member models.SiteMember
-	if err := db.Where("user_id = ?", localUser.ID).Order("created_at ASC").First(&member).Error; err != nil {
+	var members []models.SiteMember
+	if err := db.Where("user_id = ?", localUser.ID).Order("created_at ASC").Find(&members).Error; err != nil {
 		return nil
 	}
-	if member.SiteID == "" {
+	out := make([]siteMembership, 0, len(members))
+	for _, m := range members {
+		out = append(out, siteMembership{SiteID: m.SiteID, Role: m.Role})
+	}
+	return out
+}
+
+// hasSiteRole reports whether the memberships grant one of roles at siteID.
+func hasSiteRole(memberships []siteMembership, siteID string, roles ...string) bool {
+	for _, m := range memberships {
+		if m.SiteID != siteID {
+			continue
+		}
+		for _, r := range roles {
+			if m.Role == r {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// resolveOperatorSiteID returns the site the operator belongs to (first
+// site_members row, oldest first). Used when an instrument enters the repair
+// flow so the acceptance gate has a site to check (#1889). Returns nil when
+// the operator has no site membership — callers fall back to the order's site.
+func resolveOperatorSiteID(db *gorm.DB, userID string) *string {
+	memberships := resolveOperatorSiteMemberships(db, userID)
+	if len(memberships) == 0 {
 		return nil
 	}
-	return &member.SiteID
+	siteID := memberships[0].SiteID
+	if siteID == "" {
+		return nil
+	}
+	return &siteID
 }

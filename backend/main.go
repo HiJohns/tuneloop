@@ -561,13 +561,15 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.POST("/labels/merge", labelHandler.MergeLabels)
 
 			// New repair state machine API (flat, replacing ticket/session layers)
+			// #1882: repair:* permissions with legacy instrument:maintain fallback
+			// until IAM role-template bitmaps are resynced and users regranted.
 			repairRequired := maintRequired
-			repairRequired.POST("/repair/:id/start", repairHandler.StartRepair)
-			repairRequired.POST("/repair/:id/complete", repairHandler.CompleteRepair)
+			repairRequired.POST("/repair/:id/start", middleware.RequireAnyCusPerm("repair:start", "instrument:maintain"), repairHandler.StartRepair)
+			repairRequired.POST("/repair/:id/complete", middleware.RequireAnyCusPerm("repair:complete", "instrument:maintain"), repairHandler.CompleteRepair)
 			repairRequired.POST("/repair/:id/takeover", repairHandler.TakeoverRepair)
 			repairRequired.POST("/repair/:id/reassign", repairHandler.ReassignRepair)
-			repairRequired.POST("/repair/:id/accept", repairHandler.AcceptRepair)
-			repairRequired.POST("/repair/:id/reject", repairHandler.RejectRepair)
+			repairRequired.POST("/repair/:id/accept", middleware.RequireAnyCusPerm("repair:accept", "instrument:maintain"), repairHandler.AcceptRepair)
+			repairRequired.POST("/repair/:id/reject", middleware.RequireAnyCusPerm("repair:accept", "instrument:maintain"), repairHandler.RejectRepair)
 			repairRequired.POST("/repair/:id/records", repairHandler.AddRecord)
 			repairRequired.GET("/repair/:id/records", repairHandler.ListRecords)
 			repairRequired.GET("/repair/mine", repairHandler.ListMyRepairs)
