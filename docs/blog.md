@@ -364,3 +364,4 @@
 - 2026-09-12: 批量处理完成，包含任务: Resolved Issues: #1890, #1891（真机反馈：维修状态中文化 + weapp 详情状态徽标；#1889 回填遗漏 org 唯一站点推导；另移除维修页顶条 738d6df5）
 - 2026-09-12: 批量处理完成，包含任务: Resolved Issues: #1892（网点员工待验收乐器入口：新增 GET /repair/acceptance + MyRepairs 卡片；ui.md §2.9.1 + api.md §7.11.9）
 - 2026-09-12: 批量处理完成，包含任务: Resolved Issues: #1893（乐器管理页两级分类筛选 + 封面 thumbnail 链 + OptionSheet 复用改造）
+- 2026-09-12: 批量处理完成，包含任务: Resolved Issues: #1894（乐器 org 对齐站点 org 回填迁移 204 行 + 批量导入补写 org；根因：站点员工 ApplyOrgScope 按 org 过滤导致漏显示）
