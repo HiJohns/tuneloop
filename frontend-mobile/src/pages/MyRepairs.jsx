@@ -134,9 +134,11 @@ export default function MyRepairs() {
 
   return (
     <View style={{ backgroundColor: "#FDFBF7" }} className="flex flex-col h-screen">
+      {!env.isMiniProgram && (
       <View className="bg-white px-4 py-3 border-b border-zinc-100">
         <Text className="text-lg font-black text-black">{isCustomer ? '我的报修' : isPureTech ? '维修工作台' : '报修管理'}</Text>
       </View>
+      )}
 
       <ScrollView scrollY className="flex-1 min-h-0 overflow-y-auto">
         <View style={{ padding: '0 16px 96px', boxSizing: 'border-box' }}>
