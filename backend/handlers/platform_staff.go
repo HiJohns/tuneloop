@@ -35,9 +35,12 @@ func (h *PlatformStaffHandler) List(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
 
-	rootOrgID := middleware.PlatformRootOrgID()
+	// #1897: platform staff live in the operator's own org (the system-admin
+	// root org). Access is already restricted by user-class sys_perm, so the
+	// PLATFORM_ROOT_ORG_ID env dependency was removed (user decision 2026-09-12).
+	rootOrgID := middleware.GetOrgID(ctx)
 	if rootOrgID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "PLATFORM_ROOT_ORG_ID not configured"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "operator has no organization"})
 		return
 	}
 
@@ -92,9 +95,12 @@ func (h *PlatformStaffHandler) Create(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 	operatorID := middleware.GetUserID(ctx)
 
-	rootOrgID := middleware.PlatformRootOrgID()
+	// #1897: platform staff live in the operator's own org (the system-admin
+	// root org). Access is already restricted by user-class sys_perm, so the
+	// PLATFORM_ROOT_ORG_ID env dependency was removed (user decision 2026-09-12).
+	rootOrgID := middleware.GetOrgID(ctx)
 	if rootOrgID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "PLATFORM_ROOT_ORG_ID not configured"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "operator has no organization"})
 		return
 	}
 
@@ -171,9 +177,12 @@ func (h *PlatformStaffHandler) Disable(c *gin.Context) {
 	operatorID := middleware.GetUserID(ctx)
 	staffID := c.Param("id")
 
-	rootOrgID := middleware.PlatformRootOrgID()
+	// #1897: platform staff live in the operator's own org (the system-admin
+	// root org). Access is already restricted by user-class sys_perm, so the
+	// PLATFORM_ROOT_ORG_ID env dependency was removed (user decision 2026-09-12).
+	rootOrgID := middleware.GetOrgID(ctx)
 	if rootOrgID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "PLATFORM_ROOT_ORG_ID not configured"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "operator has no organization"})
 		return
 	}
 
@@ -189,9 +198,10 @@ func (h *PlatformStaffHandler) Disable(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": err.Error()})
 		return
 	}
-	// 本地缓存标记禁用（org_id 置空，保留记录可追溯）。
+	// 本地缓存标记禁用（users.org_id 为 uuid NOT NULL 不可置空；IAM 解绑
+	// 才是失效权威，#685）。
 	if err := db.Model(&user).Updates(map[string]interface{}{
-		"org_id": "", "status": "disabled", "updated_at": time.Now(),
+		"status": "disabled", "updated_at": time.Now(),
 	}).Error; err != nil {
 		log.Printf("[PlatformStaff] local disable failed: %v", err)
 	}
