@@ -223,7 +223,7 @@ export default function MembershipCenter() {
 
   return (
     <>
-    <ScrollView style={{ backgroundColor: "#FDFBF7" }} className="h-screen w-screen">
+    <ScrollView scrollY style={{ backgroundColor: "#FDFBF7" }} className="h-screen w-screen">
       {/* Navigation bar — H5 only, weapp uses native nav */}
       {!env.isMiniProgram && (
       <View className="flex items-center px-4 py-3 bg-white border-b border-zinc-100">
