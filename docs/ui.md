@@ -997,7 +997,7 @@ API 来源：
 
 **角色视图**（顶部 tab 由角色生成）：
 - 顾客：我的报修列表（`repair_requests by user_id`）+ 「创建报修」按钮
-- 网点员工：本网点报修列表 + 「填物流发回」动作（`return_pending`）
+- 网点员工：本网点报修列表 + 「填物流发回」动作（`return_pending`）+ **待验收乐器列表**（本站点 `repair_completed`，`repair/acceptance`，「去验收」→ `/repair?instrument_id=`，#1892）
 - 维修师傅：我的维修（`repair/mine`）+ 待维修列表（`repair/pending`，按站点过滤）
 
 **交互**：

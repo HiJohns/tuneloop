@@ -2612,6 +2612,12 @@ Content-Disposition: attachment; filename="assessment_order_001.pdf"
 **响应**: `{"code":20000,"data":{"list":[Instrument...]}}`
 **目标契约（#1882）**: pending 列表按操作员站点过滤
 
+#### 7.11.9 待验收列表（#1892）
+**接口**: `GET /api/repair/acceptance`
+**说明**: 操作员站点内 `repair_status='repair_completed'` 的乐器（`current_site_id IN 操作员站点`），按 `updated_at DESC`；无站点成员 → 空集（不回落租户全量）。列表项在原 Instrument 字段外补 `repair_worker_name`（显示名，解析失败为 null）。
+**用途**: 网点员工验收入口（`repair_completed` 不再只能靠扫码发现）；操作按钮由 `/repair` 面板按 R1 裁剪。
+**响应**: `{"code":20000,"data":{"list":[Instrument + repair_worker_name...]}}`
+
 ---
 
 ### 7.12 客户报修 v3 — 报修单与记录

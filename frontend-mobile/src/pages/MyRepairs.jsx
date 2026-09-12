@@ -31,6 +31,7 @@ export default function MyRepairs() {
   const [snInput, setSnInput] = useState('')
   const [myRepairs, setMyRepairs] = useState([])
   const [pendingRepairs, setPendingRepairs] = useState([])
+  const [acceptanceRepairs, setAcceptanceRepairs] = useState([])
   const [repairRequests, setRepairRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [roles, setRoles] = useState([])
@@ -84,6 +85,13 @@ export default function MyRepairs() {
         const statusFilter = isPureTech ? '?status=pending_assessment,repairing,return_pending' : '?status=pending_assessment,shipping,transit_in,repairing,return_pending,transit_out,returned,appealing'
         fetches.push(apiFetch(`${baseUrl}/repair-requests${statusFilter}`).then(r => r.json()).then(r => {
           if (r.code === 20000) setRepairRequests(r.data?.list || [])
+        }))
+      }
+
+      // Staff: instruments awaiting acceptance at their sites (#1892)
+      if (hasSiteRole) {
+        fetches.push(apiFetch(`${baseUrl}/repair/acceptance`).then(r => r.json()).then(r => {
+          if (r.code === 20000) setAcceptanceRepairs(r.data?.list || [])
         }))
       }
 
@@ -325,6 +333,28 @@ export default function MyRepairs() {
                 ))}
               </View>
             ))}
+          </View>
+          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <View><Text className="text-sm font-bold text-black">待验收乐器 ({acceptanceRepairs.length})</Text></View>
+            {loading ? (
+              <View><Text className="text-xs text-zinc-400">加载中...</Text></View>
+            ) : acceptanceRepairs.length === 0 ? (
+              <View><Text className="text-xs text-zinc-400">暂无待验收乐器</Text></View>
+            ) : (
+              <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {acceptanceRepairs.map(inst => (
+                  <View key={inst.id} className="border border-zinc-100 rounded-xl p-3"
+                    onClick={() => nav(`/repair?instrument_id=${inst.id}`)}
+                    style={{ display: 'flex', flexDirection: 'column', gap: 4, cursor: 'pointer' }}>
+                    <View><Text className="text-sm font-bold text-black">{inst.sn || '未知SN'}</Text></View>
+                    <View><Text className="text-xs text-zinc-400">{inst.repair_worker_name ? `维修师: ${inst.repair_worker_name}` : '已修复，等待验收'}</Text></View>
+                    <Button onClick={(e) => { e.stopPropagation(); nav(`/repair?instrument_id=${inst.id}`) }}
+                      style={{ height: 40, margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      className="bg-black text-white rounded-lg text-xs font-bold">去验收</Button>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <View className="flex justify-between items-center" onClick={() => setShowPending(v => !v)}>

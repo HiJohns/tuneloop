@@ -496,6 +496,59 @@ func (h *RepairHandler) ListPendingRepairs(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": instruments}})
 }
 
+// ListAcceptanceRepairs returns repair_completed instruments at the operator's
+// sites that await staff acceptance (#1892: without this list the acceptance
+// handoff from technician to site staff had no discoverable entry point).
+func (h *RepairHandler) ListAcceptanceRepairs(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	userID := middleware.GetUserID(ctx)
+
+	memberships := resolveOperatorSiteMemberships(db, userID)
+	siteIDs := make([]string, 0, len(memberships))
+	for _, m := range memberships {
+		siteIDs = append(siteIDs, m.SiteID)
+	}
+	if len(siteIDs) == 0 {
+		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": []interface{}{}}})
+		return
+	}
+
+	var instruments []models.Instrument
+	if err := db.Where("current_site_id IN ? AND repair_status = ?", siteIDs, "repair_completed").
+		Order("updated_at DESC").Find(&instruments).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query repairs"})
+		return
+	}
+
+	// Enrich with the assigned worker's display name, same as the instrument
+	// detail payload (#1873). Best-effort: never fail the request.
+	workerIDs := make([]string, 0, len(instruments))
+	for _, inst := range instruments {
+		if inst.RepairWorkerID != nil && *inst.RepairWorkerID != "" {
+			workerIDs = append(workerIDs, *inst.RepairWorkerID)
+		}
+	}
+	names := resolveUserNamesByIAMSub(db, workerIDs)
+
+	type acceptanceItem struct {
+		models.Instrument
+		RepairWorkerName *string `json:"repair_worker_name"`
+	}
+	list := make([]acceptanceItem, 0, len(instruments))
+	for _, inst := range instruments {
+		item := acceptanceItem{Instrument: inst}
+		if inst.RepairWorkerID != nil {
+			if n := names[*inst.RepairWorkerID]; n != "" {
+				item.RepairWorkerName = &n
+			}
+		}
+		list = append(list, item)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": list}})
+}
+
 // siteMembership is one site_members row for an operator (#1882).
 type siteMembership struct {
 	SiteID string

@@ -574,6 +574,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			repairRequired.GET("/repair/:id/records", repairHandler.ListRecords)
 			repairRequired.GET("/repair/mine", repairHandler.ListMyRepairs)
 			repairRequired.GET("/repair/pending", repairHandler.ListPendingRepairs)
+			repairRequired.GET("/repair/acceptance", repairHandler.ListAcceptanceRepairs)
 
 			// Warning routes (Issue #1140)
 			authRequired.GET("/warnings", handlers.ListWarnings)
