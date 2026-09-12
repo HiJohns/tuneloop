@@ -6,7 +6,7 @@ import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
 import { dialog, env, getInputValue, toWeappRoute } from '../platform'
 import BottomNav from '../components/BottomNav'
 import BottomNavWeapp from '../components-weapp/BottomNav'
-import { formatBeijingDate } from '../utils/format'
+import { formatBeijingDate, repairStatusLabel } from '../utils/format'
 
 const statusLabels = {
   pending_assessment: '待评估', transit_processing: '中转处理中',
@@ -231,7 +231,7 @@ export default function MyRepairs() {
                     <View><Text className="text-sm font-bold text-black">{inst.sn || '未知SN'}</Text></View>
                     <View className="mt-1">
                       <Text className="text-xs text-zinc-400">
-                        状态: {inst.repair_status === 'repair_in_progress' ? '维修中' : inst.repair_status}
+                        状态: {repairStatusLabel(inst.repair_status)}
                       </Text>
                     </View>
                   </View>

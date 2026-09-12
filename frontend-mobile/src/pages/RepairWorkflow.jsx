@@ -4,12 +4,8 @@ import Taro from '@tarojs/taro'
 import { Button, Image, ScrollView, Text, Textarea, View } from '@tarojs/components'
 import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
 import { dialog, env, getInputValue, uploadFile, storage, session, previewImage } from '../platform'
-import { formatBeijingDateTimeShort } from '../utils/format'
+import { formatBeijingDateTimeShort, repairStatusLabel } from '../utils/format'
 import { parsePhotos, photoSrc } from '../utils/media'
-
-const statusLabels = {
-  repair_pending: '待维修', repair_in_progress: '维修中', repair_completed: '已修复',
-}
 
 const damageStatusLabels = {
   pending: '待确认', completed: '已完成', agreed: '已确认', appealed: '申诉中', cancelled: '已撤销', resolved: '已解决',
@@ -165,9 +161,6 @@ export default function RepairWorkflow() {
         <View className="bg-white px-4 py-3 border-b border-zinc-100 flex items-center gap-2">
           <Text className="text-lg mr-2" onClick={goBack}>{'<'}</Text>
           <Text className="text-lg font-bold flex-1">维修 - {instrument.sn || ''}</Text>
-          <Text className={`text-xs px-2 py-1 rounded-full font-bold ${status === 'repair_completed' ? 'bg-green-100 text-green-700' : status === 'repair_in_progress' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}`}>
-            {statusLabels[status] || status}
-          </Text>
         </View>
       )}
 
@@ -175,7 +168,12 @@ export default function RepairWorkflow() {
         <View style={{ padding: '0 16px', boxSizing: 'border-box' }}>
         {/* Instrument info */}
         <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
-          <Text className="text-sm font-bold text-black">乐器信息</Text>
+          <View className="flex justify-between items-center">
+            <Text className="text-sm font-bold text-black">乐器信息</Text>
+            <Text className={`text-xs px-2 py-1 rounded-full font-bold ${status === 'repair_completed' ? 'bg-green-100 text-green-700' : status === 'repair_in_progress' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}`}>
+              {repairStatusLabel(status)}
+            </Text>
+          </View>
           <View className="mt-2 text-sm" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <Text className="text-zinc-500">编号: <Text className="text-black">{instrument.sn || '-'}</Text></Text>
             <Text className="text-zinc-500">类别: <Text className="text-black">{instrument.category_name || '-'}</Text></Text>

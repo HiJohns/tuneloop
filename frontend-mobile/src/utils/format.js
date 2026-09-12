@@ -71,3 +71,17 @@ export function formatPayMethod(method) {
   if (!method) return '支付'
   return PAY_METHOD_LABEL[method] || method
 }
+
+// #1890: instrument repair workflow status → user-facing labels. The pending
+// acceptance state (repair_completed) is labelled 待验收 so it cannot be
+// confused with the damage-assessment status shown elsewhere.
+const REPAIR_STATUS_LABEL = {
+  repair_pending: '待维修',
+  repair_in_progress: '维修中',
+  repair_completed: '待验收',
+}
+
+export function repairStatusLabel(status) {
+  if (!status) return '-'
+  return REPAIR_STATUS_LABEL[status] || status
+}
