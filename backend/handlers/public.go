@@ -324,18 +324,9 @@ func GetPublicInstrumentByID(c *gin.Context) {
 		propsMap[prop.PropertyName] = append(propsMap[prop.PropertyName], prop.Value)
 	}
 
-	// Also include all property definitions (even without assigned values)
-	var propDefs []models.Property
-	globalQuery := db.Where("scope_type = ?", "global")
-	if instrument.CategoryID != nil {
-		globalQuery = globalQuery.Or("related_category_id = ?", *instrument.CategoryID)
-	}
-	globalQuery.Find(&propDefs)
-	for _, p := range propDefs {
-		if _, exists := propsMap[p.Name]; !exists {
-			propsMap[p.Name] = []string{}
-		}
-	}
+	// #1896: only assigned properties are returned for the customer view.
+	// Injecting every definition produced rows with empty values ("-") that
+	// made fully-unfilled instruments look partially filled.
 	response["properties"] = propsMap
 
 	if transitInfo != nil && transitInfo.MerchantType == models.MerchantTypeControlled {

@@ -337,18 +337,25 @@ export default function Detail() {
           {/* Card C: Specifications & properties */}
           <View className="bg-white rounded-2xl p-4 shadow-sm mb-3" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <Text className="text-base font-black text-black">规格参数</Text>
-            {instrument.properties && typeof instrument.properties === 'object' ? (
-              Object.entries(instrument.properties).map(([key, vals]) => (
+            {(() => {
+              // #1896: only rows with actual values — unassigned definitions
+              // are no longer injected by the API, and empty values must not
+              // render a blank card.
+              const propEntries = Object.entries(instrument.properties || {}).filter(([, vals]) =>
+                (Array.isArray(vals) ? vals : [vals]).some(v => v != null && String(v).trim() !== '')
+              )
+              if (propEntries.length === 0) {
+                return <Text className="block text-sm text-zinc-400">暂无规格参数</Text>
+              }
+              return propEntries.map(([key, vals]) => (
                 <View key={key} className="flex justify-between items-center">
                   <Text className="text-sm font-bold text-zinc-600">{key}</Text>
                   <Text className="text-sm text-zinc-400">
-                    {(Array.isArray(vals) ? vals : [vals]).join(', ') || '-'}
+                    {(Array.isArray(vals) ? vals : [vals]).join(', ')}
                   </Text>
                 </View>
               ))
-            ) : (
-              <Text className="block text-sm text-zinc-400">暂无规格参数</Text>
-            )}
+            })()}
           </View>
 
           {/* Pricing V2 tiers */}
