@@ -7,6 +7,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -256,9 +257,10 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		}
 	}
 
-	// Increment total spending by the CASH portion (C1, L-06)
+	// Increment total spending by the CASH portion (C1, L-06); #1901: test
+	// coupons (points_basis=gross, non-production only) count the full rent.
 	spendingBasis := result.CashBasis
-	if spendingBasis <= 0 {
+	if couponCountsAsPaid(tx, order) || spendingBasis <= 0 {
 		spendingBasis = result.RentPayable
 	}
 	if err := tx.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
@@ -316,6 +318,27 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 //
 // Idempotent: if a settlement already exists for the order it returns
 // the existing result without refunding twice.
+// testCouponGrossBasisEnabled reports whether gross-basis test coupons are
+// active. Explicit opt-in: TEST_COUPON_GROSS_POINTS=true must only be set in
+// non-production environments (#1901).
+func testCouponGrossBasisEnabled() bool {
+	return os.Getenv("TEST_COUPON_GROSS_POINTS") == "true"
+}
+
+// couponCountsAsPaid reports whether the order's coupon counts as fully paid
+// for membership spend and rebate purposes. Only coupons with
+// points_basis='gross' qualify, and only when the non-production flag is on.
+func couponCountsAsPaid(db *gorm.DB, order models.Order) bool {
+	if !testCouponGrossBasisEnabled() || order.CouponCode == nil || *order.CouponCode == "" {
+		return false
+	}
+	var coupon models.Coupon
+	if err := db.Where("code = ?", *order.CouponCode).First(&coupon).Error; err != nil {
+		return false
+	}
+	return coupon.PointsBasis == "gross"
+}
+
 func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 	var existing models.Settlement
 	existingFound := tx.Where("order_id = ?", order.ID).First(&existing).Error == nil
@@ -549,8 +572,9 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 	// Increment total spending by the CASH portion of actual rental amount
 	// (C1 = R1 − A1, gift points excluded — prevents gift-point feedback
 	// loops, L-06). Industry practice: growth values count real spend.
+	// #1901: test coupons count the full rent in non-production.
 	spendingBasis := result.CashBasis
-	if spendingBasis <= 0 {
+	if couponCountsAsPaid(tx, order) || spendingBasis <= 0 {
 		spendingBasis = result.RentPayable
 	}
 	if err := tx.Model(&models.User{}).Where("id = ?", order.UserID).Updates(map[string]interface{}{
@@ -563,13 +587,20 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 	// Rebate gift points (L-06): A2 = floor(C1 × refund_ratio) credited on
 	// refund completion. refund_ratio from the user's level gift policy;
 	// legacy fallback: membership_gift_ratios.SelfSpendRatio on RentPayable.
+	// #1901: test coupons (gross, non-production) compute A2 on the full rent.
 	var orderUser models.User
 	if err := tx.Where("id = ?", order.UserID).First(&orderUser).Error; err == nil {
 		rebatePoints := 0.0
 		rebateDesc := ""
+		rebateBase := result.CashBasis
+		rebateBaseLabel := "实付现金"
+		if couponCountsAsPaid(tx, order) {
+			rebateBase = result.RentPayable
+			rebateBaseLabel = "测试优惠码按全额租金"
+		}
 		if policy := services.GetGiftPolicyByLevel(tx, levelIDOrZero(orderUser.MembershipLevelID)); policy != nil && policy.RefundRatio > 0 {
-			rebatePoints = math.Floor(result.CashBasis * policy.RefundRatio)
-			rebateDesc = fmt.Sprintf("退款返赠点: 实付现金 ¥%.2f × %.2f%%", result.CashBasis, policy.RefundRatio*100)
+			rebatePoints = math.Floor(rebateBase * policy.RefundRatio)
+			rebateDesc = fmt.Sprintf("退款返赠点: %s ¥%.2f × %.2f%%", rebateBaseLabel, rebateBase, policy.RefundRatio*100)
 		}
 		if rebatePoints <= 0 {
 			var selfRatio float64

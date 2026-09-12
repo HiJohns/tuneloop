@@ -10,4 +10,9 @@ type Coupon struct {
 	Value       float64 `json:"value"`
 	Active      bool    `json:"active"`
 	Description string  `json:"description"`
+	// #1901: how orders using this coupon count toward membership spend and
+	// rebate points. "cash" (default) = actual cash paid; "gross" = full rent.
+	// "gross" only takes effect when TEST_COUPON_GROSS_POINTS=true, which must
+	// only be set in non-production environments (test coupons OREZ/ENO).
+	PointsBasis string `gorm:"size:10;not null;default:cash" json:"points_basis"`
 }

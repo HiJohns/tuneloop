@@ -63,6 +63,7 @@ var allTables = []interface{}{
 	&models.TransitRoute{},            // #1881: transit fan-out query
 	&models.InstrumentMedia{},         // #1889: InspectReturn writes return photos
 	&models.MaintenanceTicket{},       // #1886: legacy table retained (AutoMigrate kept; business refs removed)
+	&models.Coupon{},                  // #1901: test-coupon points basis (OREZ/ENO)
 }
 
 // SetupTestDB connects to the test database, drops and recreates all
