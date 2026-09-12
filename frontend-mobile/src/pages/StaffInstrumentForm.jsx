@@ -5,6 +5,7 @@ import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/
 import { ArrowLeft, Upload, X } from 'lucide-react'
 import { apiFetch, resolveErrorMessage } from '../services/api'
 import { dialog, env, storage, uploadFile, getInputValue } from '../platform'
+import OptionSheet from '../components/OptionSheet'
 
 const BASE_URL = env.apiBaseUrl
 
@@ -417,22 +418,7 @@ export default function StaffInstrumentForm() {
 
       {/* Cross-end picker modal (issue-1676): categories/sites/levels/property options */}
       {picker && (
-        <View className="fixed inset-0 z-50 flex items-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setPicker(null)}>
-          <View className="bg-white rounded-t-2xl w-full max-h-80 p-4" onClick={e => e.stopPropagation()}>
-            <Text className="text-sm font-bold text-black mb-3">{picker.title}</Text>
-            {picker.options.length === 0 ? (
-              <View className="py-3 border-b border-gray-50">
-                <Text className="text-sm text-gray-400">暂无选项</Text>
-              </View>
-            ) : (
-              picker.options.map(opt => (
-                <View key={opt.id} className="py-3 border-b border-gray-50" onClick={() => selectOption(opt.id)}>
-                  <Text className="text-sm text-black">{opt.label}</Text>
-                </View>
-              ))
-            )}
-          </View>
-        </View>
+        <OptionSheet title={picker.title} options={picker.options} onSelect={selectOption} onClose={() => setPicker(null)} />
       )}
 
       <View className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t">

@@ -5,6 +5,8 @@ import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { ArrowLeft, Search, Truck } from 'lucide-react'
 import { env, storage } from '../platform'
+import { photoSrc } from '../utils/media'
+import OptionSheet from '../components/OptionSheet'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -25,8 +27,10 @@ function parseImages(images) {
 export default function StaffInstruments() {
   const navigate = useNavigate()
   const [instruments, setInstruments] = useState([])
-  const [categories, setCategories] = useState([{ id: 'all', name: '全部' }])
-  const [activeCategory, setActiveCategory] = useState('all')
+  const [categories, setCategories] = useState([])
+  const [selTop, setSelTop] = useState('')
+  const [selSub, setSelSub] = useState('')
+  const [picker, setPicker] = useState(null)
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
@@ -39,13 +43,21 @@ export default function StaffInstruments() {
         const resp = await apiFetch(`${baseUrl}/categories`)
         const result = await resp.json()
         if (result.code === 20000) {
-          const list = result.data?.list || result.data || []
-          setCategories([{ id: 'all', name: '全部' }, ...list.map(c => ({ id: c.id, name: c.name }))])
+          setCategories(result.data?.list || result.data || [])
         }
       } catch {}
     }
     fetchCategories()
   }, [])
+
+  // #1893: two-level category filter — top-level select, then its children.
+  const topCategories = categories.filter(c => !c.parent_id).map(cat => ({
+    ...cat,
+    sub_categories: categories.filter(c => c.parent_id === cat.id).sort((a, b) => (a.sort || 0) - (b.sort || 0)),
+  }))
+  const selectedTop = topCategories.find(c => c.id === selTop)
+  const subCategories = selectedTop?.sub_categories || []
+  const effCategory = selSub || selTop
 
   useEffect(() => {
     const fetchInstruments = async () => {
@@ -53,8 +65,8 @@ export default function StaffInstruments() {
         setLoading(true)
         const baseUrl = env.apiBaseUrl
         let url = `${baseUrl}/instruments?page=${page}&pageSize=${pageSize}`
-        if (activeCategory !== 'all') {
-          url += `&category_id=${activeCategory}`
+        if (effCategory) {
+          url += `&category_id=${effCategory}`
         }
         const resp = await apiFetch(url)
         const result = await resp.json()
@@ -68,7 +80,7 @@ export default function StaffInstruments() {
       setLoading(false)
     }
     fetchInstruments()
-  }, [page, activeCategory])
+  }, [page, effCategory])
 
   const statusColor = {
     available: 'bg-green-100 text-green-700',
@@ -95,22 +107,27 @@ export default function StaffInstruments() {
         </View>
       )}
 
-      <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm overflow-x-auto">
-        <View className="flex px-4 py-3 gap-2">
-          {categories.map(cat => (
-            <Button
-              key={cat.id}
-              onClick={() => { setActiveCategory(cat.id); setPage(1) }}
-              className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap font-black ${
-                activeCategory === cat.id
-                  ? 'bg-black text-white'
-                  : 'bg-zinc-100 text-zinc-600'
-              }`}
-            >
-              {cat.name}
-            </Button>
-          ))}
-        </View>
+      <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4 flex gap-2">
+        <Button
+          onClick={() => setPicker({ kind: 'top' })}
+          style={{ margin: 0, height: 36, display: 'flex', alignItems: 'center' }}
+          className={`px-3 rounded-full text-sm font-black ${
+            selTop ? 'bg-black text-white' : 'bg-zinc-100 text-zinc-600'
+          }`}
+        >
+          {selectedTop?.name || '全部分类'} ▼
+        </Button>
+        {subCategories.length > 0 && (
+          <Button
+            onClick={() => setPicker({ kind: 'sub' })}
+            style={{ margin: 0, height: 36, display: 'flex', alignItems: 'center' }}
+            className={`px-3 rounded-full text-sm font-black ${
+              selSub ? 'bg-black text-white' : 'bg-zinc-100 text-zinc-600'
+            }`}
+          >
+            {subCategories.find(c => c.id === selSub)?.name || '全部'} ▼
+          </Button>
+        )}
       </View>
 
       <View className="px-4 pt-3">
@@ -125,7 +142,7 @@ export default function StaffInstruments() {
                 onClick={() => env.isMiniProgram ? Taro.navigateTo({ url: `/pages-weapp/staff-instrument-detail/index?id=${inst.id}` }) : navigate(`/staff/instrument?id=${inst.id}`)}
               >
                 {(() => {
-                  const imgSrc = inst.poster || parseImages(inst.images)[0] || PLACEHOLDER_IMAGE
+                  const imgSrc = photoSrc(inst.cover_image || inst.thumbnail || inst.poster || parseImages(inst.images)[0]) || PLACEHOLDER_IMAGE
                   return (
                   <Image
                   src={imgSrc}
@@ -181,6 +198,23 @@ export default function StaffInstruments() {
           ) : null
         })()}
       </View>
+
+      {picker?.kind === 'top' && (
+        <OptionSheet
+          title="选择分类"
+          options={[{ id: '', label: '全部分类' }, ...topCategories.map(c => ({ id: c.id, label: c.name }))]}
+          onSelect={(id) => { setSelTop(id); setSelSub(''); setPage(1); setPicker(null) }}
+          onClose={() => setPicker(null)}
+        />
+      )}
+      {picker?.kind === 'sub' && (
+        <OptionSheet
+          title={selectedTop?.name || '选择二级分类'}
+          options={[{ id: '', label: '全部' }, ...subCategories.map(c => ({ id: c.id, label: c.name }))]}
+          onSelect={(id) => { setSelSub(id); setPage(1); setPicker(null) }}
+          onClose={() => setPicker(null)}
+        />
+      )}
     </View>
   )
 }
