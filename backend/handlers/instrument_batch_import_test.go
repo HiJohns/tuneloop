@@ -313,3 +313,55 @@ func TestExecuteBatchImport_PricingDailyRent(t *testing.T) {
 	require.True(t, ok, "pricing.deposit must be preserved from CSV")
 	require.Equal(t, 5000.0, deposit)
 }
+
+// #1894: imported instruments must carry the site's org (same as the
+// single-create path), otherwise site-scoped staff cannot see them.
+func TestExecuteBatchImport_OrgFromSite(t *testing.T) {
+	db, tenantID := setupPropertyResolutionTest(t)
+	if db == nil {
+		return
+	}
+	defer db.Exec("DELETE FROM instruments WHERE tenant_id = ?", tenantID)
+	defer db.Exec("DELETE FROM categories WHERE tenant_id = ?", tenantID)
+
+	orgID := uuid.New().String()
+	siteID := uuid.New().String()
+	require.NoError(t, db.Create(&models.Site{
+		ID: siteID, TenantID: tenantID, OrgID: orgID, Name: "导入测试网点",
+	}).Error)
+	defer db.Exec("DELETE FROM sites WHERE id = ?", siteID)
+
+	sessionID := uuid.New().String()
+	importSessions[sessionID] = &ImportSession{
+		ID:        sessionID,
+		TenantID:  tenantID,
+		CreatedAt: time.Now(),
+		Instruments: []map[string]interface{}{
+			{"sn": "BATCH-ORG-001", "site_id": siteID, "base_daily_rate": "100", "total_price": "20000"},
+		},
+		Images: map[string][]string{},
+	}
+	defer delete(importSessions, sessionID)
+
+	require.NoError(t, db.Exec(`INSERT INTO merchant_pricing_configs (id, tenant_id, template_id, config)
+		VALUES (?, ?, ?, '{}')`, uuid.New().String(), tenantID, uuid.New().String()).Error)
+
+	req := httptest.NewRequest("POST", "/instruments/batch-import", nil)
+	req.Header.Set("Content-Type", "application/json")
+	reqBody, _ := json.Marshal(map[string]interface{}{"session_id": sessionID})
+	req.Body = io.NopCloser(bytes.NewBuffer(reqBody))
+
+	w := httptest.NewRecorder()
+	router := setupTestRouter(t, tenantID, "")
+	router.POST("/instruments/batch-import", ExecuteBatchImport)
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code, "batch import: %s", w.Body.String())
+
+	var instrument models.Instrument
+	require.NoError(t, db.Where("tenant_id = ? AND sn = ?", tenantID, "BATCH-ORG-001").First(&instrument).Error)
+	require.NotNil(t, instrument.SiteID)
+	assert.Equal(t, siteID, instrument.SiteID.String())
+	require.NotNil(t, instrument.OrgID)
+	assert.Equal(t, orgID, *instrument.OrgID)
+}

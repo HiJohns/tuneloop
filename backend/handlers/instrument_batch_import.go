@@ -548,6 +548,9 @@ func ExecuteBatchImport(c *gin.Context) {
 			if siteID, ok := instData["site_id"].(string); ok && siteID != "" {
 				if siteUUID, err := uuid.Parse(siteID); err == nil {
 					instrument.SiteID = &siteUUID
+					// #1894: imported instruments must carry the site org, same
+					// as the single-create path (ApplyOrgScope visibility).
+					instrument.OrgID = resolveSiteOrg(tx, siteID)
 				}
 			}
 
@@ -992,6 +995,9 @@ func BatchImportInstruments(c *gin.Context) {
 			if siteID, ok := instData["site_id"].(string); ok {
 				if siteUUID, err := uuid.Parse(siteID); err == nil {
 					instrument.SiteID = &siteUUID
+					// #1894: imported instruments must carry the site org, same
+					// as the single-create path (ApplyOrgScope visibility).
+					instrument.OrgID = resolveSiteOrg(tx, siteID)
 				}
 			}
 			if levelID, ok := instData["level_id"].(string); ok {
@@ -1181,6 +1187,17 @@ func lookupCategoryID(name string) (string, error) {
 		return "", err
 	}
 	return category.ID, nil
+}
+
+// #1894: resolve a site's org so imported instruments carry the same org_id as
+// the single-create path (site-scoped staff visibility via ApplyOrgScope).
+func resolveSiteOrg(db *gorm.DB, siteID string) *string {
+	var site models.Site
+	if err := db.Select("org_id").Where("id = ?", siteID).First(&site).Error; err != nil || site.OrgID == "" {
+		return nil
+	}
+	orgID := site.OrgID
+	return &orgID
 }
 
 func lookupSiteID(name string, db *gorm.DB, tenantID string) (string, error) {
