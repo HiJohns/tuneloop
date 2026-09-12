@@ -370,7 +370,7 @@ function MainLayout() {
     label: '交易管理',
     children: [
       { key: '/orders', label: '订单管理', permission: { cusPermCodes: ['order:read'] } },
-      { key: '/repair/requests', label: '报修列表', permission: { cusPermCodes: ['order:read'] } },
+      { key: '/repair/requests', label: '报修列表', permission: { cusPermCodes: ['instrument:price_config'] } },
       { key: '/warehouse', label: '库管工作台', permission: { cusPermCodes: ['instrument:read', 'instrument:update'] } },
       { key: '/transit-routes', label: '中转路由', permission: { sysPermBits: [5] } },
       { key: '/overdue-alerts', label: '逾期告警', permission: { cusPermCodes: ['instrument:read'] } },
@@ -705,7 +705,7 @@ function onMenuClick(e) {
             <Route path="/appeals" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['appeal:read'] }}><AppealManagement /></ProtectedRoute>} />
             <Route path="/workorders" element={<ProtectedRoute><WorkOrderList /></ProtectedRoute>} />
             <Route path="/repair/settings" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price_config'] }}><RepairConfigPage /></ProtectedRoute>} />
-            <Route path="/repair/requests" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['order:read'] }}><MerchantRepairList /></ProtectedRoute>} />
+            <Route path="/repair/requests" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price_config'] }}><MerchantRepairList /></ProtectedRoute>} />
             <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />
             <Route path="/system/permissions" element={<ProtectedRoute requiredPermission={{ sysPermBits: [27] }}><PermissionManage /></ProtectedRoute>} />
             <Route path="/system/clients" element={<ProtectedRoute requiredPermission={{ sysPermBits: [0] }}><ClientManagement /></ProtectedRoute>} />
