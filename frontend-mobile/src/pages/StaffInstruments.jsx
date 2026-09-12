@@ -51,9 +51,14 @@ export default function StaffInstruments() {
   }, [])
 
   // #1893: two-level category filter — top-level select, then its children.
+  // /api/categories returns nested top-levels (children under sub_categories);
+  // /public/categories (Home) is flat — support both shapes.
   const topCategories = categories.filter(c => !c.parent_id).map(cat => ({
     ...cat,
-    sub_categories: categories.filter(c => c.parent_id === cat.id).sort((a, b) => (a.sort || 0) - (b.sort || 0)),
+    sub_categories: (Array.isArray(cat.sub_categories) && cat.sub_categories.length > 0
+      ? cat.sub_categories
+      : categories.filter(c => c.parent_id === cat.id)
+    ).sort((a, b) => (a.sort || 0) - (b.sort || 0)),
   }))
   const selectedTop = topCategories.find(c => c.id === selTop)
   const subCategories = selectedTop?.sub_categories || []
