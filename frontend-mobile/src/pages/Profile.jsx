@@ -173,7 +173,7 @@ export default function Profile() {
 
   return (
     <View className="h-screen w-screen bg-zinc-50 overflow-hidden flex flex-col relative antialiased">
-      <ScrollView className="w-full flex-1 pb-36" scrollY showScrollbar={false}>
+      <ScrollView className="w-full flex-1 min-h-0 pb-36" scrollY showScrollbar={false}>
 
         {/* 1. 头部渐变身份区 */}
         <View className="w-full px-6 pt-8 pb-4 flex items-start relative" style={{ backgroundImage: 'linear-gradient(to bottom, #FDF4E7, #FFFFFF)' }}>
