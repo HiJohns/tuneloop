@@ -370,3 +370,4 @@
 - 2026-09-13: 批量处理完成，包含任务: Resolved Issues: #1899（方案 A：移除系统折扣政策+返点配置 页面/路由/后端模块，表保留；返点统一到赠点策略）
 - 2026-09-13: 批量处理完成，包含任务: Resolved Issues: #1897 返工（平台员工列表按 role=staff 过滤 + Create 持久化 STAFF；用例 #1795 T6.1/T6.2）
 - 2026-09-13: 批量处理完成，包含任务: Resolved Issues: #1897 返工 2（平台员工管理仅系统管理员：后端 403 门控 + 前端 bit5；不设 PLATFORM_ROOT_ORG_ID）
+- 2026-09-13: 批量处理完成，包含任务: Resolved Issues: #1904（beaconiam fn_roles claim 未解析 → 系统管理员被判为商户管理员 → 平台员工管理 403；修正 claim 映射 + 前端 fn_roles 识别）
