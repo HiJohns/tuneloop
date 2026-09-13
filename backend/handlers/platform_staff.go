@@ -30,8 +30,21 @@ type platformStaffItem struct {
 	PendingCount int64  `json:"pending_review_count"` // #1791 批次表待审计数
 }
 
+// requireSystemAdmin gates platform-staff management to system administrators
+// (user decision 2026-09-13): management is not delegated to platform staff.
+func requireSystemAdmin(c *gin.Context) bool {
+	if middleware.GetBusinessRole(c.Request.Context()) != middleware.BusinessRoleSystemAdmin {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "仅系统管理员可管理平台员工"})
+		return false
+	}
+	return true
+}
+
 // List handles GET /admin/platform-staff.
 func (h *PlatformStaffHandler) List(c *gin.Context) {
+	if !requireSystemAdmin(c) {
+		return
+	}
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
 
@@ -93,6 +106,9 @@ func (h *PlatformStaffHandler) List(c *gin.Context) {
 // 流程（IAM 先、本地后，#685）：CreateOrGetUser → BindUserToOrganizationWithToken
 // （PLATFORM_ROOT_ORG_ID）→ 本地 users 缓存同步。
 func (h *PlatformStaffHandler) Create(c *gin.Context) {
+	if !requireSystemAdmin(c) {
+		return
+	}
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
 	operatorID := middleware.GetUserID(ctx)
@@ -177,6 +193,9 @@ func (h *PlatformStaffHandler) Create(c *gin.Context) {
 
 // Disable handles DELETE /admin/platform-staff/:id（禁用优先，不硬删）。
 func (h *PlatformStaffHandler) Disable(c *gin.Context) {
+	if !requireSystemAdmin(c) {
+		return
+	}
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
 	operatorID := middleware.GetUserID(ctx)

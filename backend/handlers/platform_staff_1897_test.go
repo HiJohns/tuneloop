@@ -40,6 +40,7 @@ func TestListPlatformStaff_UsesOperatorOrg(t *testing.T) {
 	router.GET("/admin/platform-staff", (&PlatformStaffHandler{}).List)
 
 	actor := testutil.MakeSiteAdmin(tenantID, orgID, uuid.New().String())
+	actor.Role = "NAMESPACE_ADMIN" // #1897: only system admins may manage platform staff
 	req := httptest.NewRequest(http.MethodGet, "/admin/platform-staff", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req.WithContext(actor.InjectContext(req.Context())))
@@ -56,4 +57,21 @@ func TestListPlatformStaff_UsesOperatorOrg(t *testing.T) {
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	require.Equal(t, 20000, resp.Code)
 	assert.Len(t, resp.Data.List, 3, "staff + system admin of the operator org only")
+}
+
+// #1897: platform-staff management is restricted to system administrators.
+func TestListPlatformStaff_NonSystemAdmin_Forbidden(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+	tenantID, orgID, _ := testfixtures.NewTenantIDs("1897f1e2d3c4")
+	_ = db
+
+	router := gin.New()
+	router.GET("/admin/platform-staff", (&PlatformStaffHandler{}).List)
+
+	actor := testutil.MakeSiteAdmin(tenantID, orgID, uuid.New().String())
+	req := httptest.NewRequest(http.MethodGet, "/admin/platform-staff", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req.WithContext(actor.InjectContext(req.Context())))
+	require.Equal(t, http.StatusForbidden, w.Code)
 }

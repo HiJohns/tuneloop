@@ -3560,7 +3560,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 **说明**: 平台员工（PlatformStaff）角色绑定——具有用户查看/审核权限（SysPerm user 类），用于实名审核队列等平台级操作
 
-**权限**: 系统管理员（`SysPermUserUpdate`）或现有管理员授予
+**权限**: **仅系统管理员**（业务角色 system_admin，`SysPermUserUpdate` 等 user 类 sys_perm 且非商户/网点角色）；列表以操作员 oid 为组织过滤条件（#1897）
 
 **角色识别**: 平台员工通过 IAM 绑定（user_org_relations + 角色模板），或由 `PLATFORM_ROOT_ORG_ID` 环境变量指定根组织下的成员识别（见 docs/permissions.md）
 
