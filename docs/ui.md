@@ -3239,6 +3239,9 @@ cd frontend-pc && npm run build  # 应该成功
 
 ### 3.34 PC 返点配置 (`/system/rebate-config`)
 
+> ⚠️ **已废弃（#1899 方案 A）**：页面/菜单/路由与后端接口已移除（表数据保留）；返点统一到「赠点策略」。
+
+
 **组件**: `frontend-pc/src/pages/System/RebateConfigPage.jsx`
 
 **路由注册**: `frontend-pc/src/App.jsx` — 系统管理子菜单
@@ -3251,6 +3254,9 @@ cd frontend-pc && npm run build  # 应该成功
 - 保存按钮
 
 ### 3.35 PC 折扣政策管理 (`/system/promo-plans` / `/merchant/promo-plans`)
+
+> ⚠️ **已废弃（#1899 方案 A）**：页面/菜单/路由与后端接口已移除（表数据保留）；返点统一到「赠点策略」。
+
 
 **组件**: `frontend-pc/src/pages/System/PromoPlanManagePage.jsx`（两个 scope 共用同一组件）
 

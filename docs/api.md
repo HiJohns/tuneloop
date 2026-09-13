@@ -5537,6 +5537,9 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 
 ### 12.6 返点配置
 
+> ⚠️ **已废弃（#1899 方案 A）**：本模块已从 PC 菜单/路由与后端移除，表数据保留。返点统一由「赠点策略」（`gift_policies`：pay_ratio 使用上限 + refund_ratio 返还比例）承担，见 §12.8 相关章节。
+
+
 **权限码**: `rebate:manage`
 
 **接口**: `GET /api/admin/rebate-config` — 获取返点配置
@@ -5576,6 +5579,9 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 ---
 
 ### 12.7 折扣政策管理
+
+> ⚠️ **已废弃（#1899 方案 A）**：本模块已从 PC 菜单/路由与后端移除，表数据保留。返点统一由「赠点策略」（`gift_policies`：pay_ratio 使用上限 + refund_ratio 返还比例）承担，见 §12.8 相关章节。
+
 
 **权限码**: `promo:manage`
 

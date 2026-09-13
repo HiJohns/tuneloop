@@ -68,9 +68,7 @@ import BannerManagePage from './pages/System/BannerManagePage'
 import ContentEdit from './pages/admin/ContentEdit'
 import MembershipLevelsPage from './pages/System/MembershipLevelsPage'
 import MembershipHandbookPage from './pages/System/MembershipHandbookPage'
-import RebateConfigPage from './pages/System/RebateConfigPage'
 import GiftPolicies from './pages/System/GiftPolicies'
-import PromoPlanManagePage from './pages/System/PromoPlanManagePage'
 import UserManagement from './pages/System/UserManagement'
 import FaceReviewPage from './pages/admin/face-review'
 import PlatformStaffPage from './pages/admin/platform-staff'
@@ -384,9 +382,7 @@ function MainLayout() {
     children: [
       { key: '/inventory/rent-setting', label: '租金设定', permission: { cusPermCodes: ['instrument:price'] } },
       { key: '/pricing/config', label: '定价策略', permission: { cusPermCodes: ['instrument:price_config'] } },
-      { key: '/system/promo-plans', label: '系统折扣政策', permission: { cusPermCodes: ['promo:manage'] } },
       { key: '/repair/settings', label: '报修设置', permission: { cusPermCodes: ['instrument:price_config'] } },
-      { key: '/system/rebate-config', label: '返点配置', permission: { cusPermCodes: ['rebate:manage'] } },
       { key: '/system/gift-policies', label: '赠点策略', permission: { cusPermCodes: ['rebate:manage'] } },
       { key: '/system/membership-levels', label: '会员级别管理', permission: { cusPermCodes: ['membership:manage'] } },
       { key: '/system/membership-handbook', label: '会员手册编辑', permission: { cusPermCodes: ['membership:manage'] } },
@@ -449,7 +445,7 @@ function onMenuClick(e) {
     : [location.pathname]
   let openKeys = []
   if (['/instruments/categories', '/instruments/properties', '/instruments/list', '/site/stock'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['product']
-  else if (['/inventory/rent-setting', '/pricing/config', '/system/promo-plans', '/repair/settings', '/system/rebate-config', '/system/gift-policies', '/system/membership-levels', '/system/membership-handbook', '/system/banners'].includes(location.pathname)) openKeys = ['strategy']
+  else if (['/inventory/rent-setting', '/pricing/config', '/repair/settings', '/system/gift-policies', '/system/membership-levels', '/system/membership-handbook', '/system/banners'].includes(location.pathname)) openKeys = ['strategy']
   else if (['/orders', '/warehouse', '/transit-routes', '/overdue-alerts', '/merchant/invoices'].includes(location.pathname)) openKeys = ['transaction']
   else if (location.pathname.startsWith('/merchants') || ['/system/user-management', '/organization/sites', '/staff', '/appeals', '/organization/iam-sync', '/system/permissions', '/system/warnings', '/system/warning-settings'].includes(location.pathname)) openKeys = ['platform']
   else if (['/', '/system/content-edit', '/system/audit-logs'].includes(location.pathname)) openKeys = ['system']
@@ -479,10 +475,8 @@ function onMenuClick(e) {
     '/system/content-edit': { title: '内容编辑', parent: '系统设置' },
     '/inventory/rent-setting': { title: '租金设定', parent: '策略配置' },
     '/pricing/config': { title: '定价策略', parent: '策略配置' },
-    '/system/promo-plans': { title: '系统折扣政策', parent: '策略配置' },
     '/repair/settings': { title: '报修设置', parent: '策略配置' },
     '/repair/requests': { title: '报修列表', parent: '交易管理' },
-    '/system/rebate-config': { title: '返点配置', parent: '策略配置' },
     '/system/gift-policies': { title: '赠点策略', parent: '策略配置' },
     '/system/membership-levels': { title: '会员级别管理', parent: '策略配置' },
     '/system/membership-handbook': { title: '会员手册编辑', parent: '策略配置' },
@@ -714,13 +708,10 @@ function onMenuClick(e) {
             <Route path="/system/content-edit" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['category:manage'] }}><ContentEdit /></ProtectedRoute>} />
             <Route path="/system/membership-levels" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['membership:manage'] }}><MembershipLevelsPage /></ProtectedRoute>} />
             <Route path="/system/membership-handbook" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['membership:manage'] }}><MembershipHandbookPage /></ProtectedRoute>} />
-            <Route path="/system/rebate-config" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['rebate:manage'] }}><RebateConfigPage /></ProtectedRoute>} />
             <Route path="/system/gift-policies" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['rebate:manage'] }}><GiftPolicies /></ProtectedRoute>} />
-            <Route path="/system/promo-plans" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['promo:manage'] }}><PromoPlanManagePage scope="admin" /></ProtectedRoute>} />
             <Route path="/system/warnings" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><WarningManagement /></ProtectedRoute>} />
             <Route path="/system/warning-settings" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><WarningSettings /></ProtectedRoute>} />
             <Route path="/transit-routes" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><TransitRouteConfig /></ProtectedRoute>} />
-            <Route path="/merchant/promo-plans" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['promo:manage'] }}><PromoPlanManagePage scope="merchant" /></ProtectedRoute>} />
             <Route path="/inventory/rent-setting" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price'] }}><RentSetting /></ProtectedRoute>} />
             <Route path="/pricing/config" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price_config'] }}><MerchantPricingConfig /></ProtectedRoute>} />
             <Route path="/warehouse" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read', 'instrument:update'] }}><WarehouseManagement /></ProtectedRoute>} />
