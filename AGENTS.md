@@ -278,6 +278,23 @@ tuneloop/
 - **diff 新增任一硬/软禁区类 → REJECT**（Weapp 端样式静默失效，不可接受）
 - 存量禁区类不在本规则禁止范围（仅禁止新增），由 issue #1832 统一内联收敛
 
+### ⚠️ 富文本渲染组件红线（#1907 沉淀）
+
+> **原理**：微信小程序 `<rich-text>` 是独立原生组件，其内部 HTML 节点既不受 page/body 外部 CSS 影响（`img{max-width:100%}` 对 H5 有效、对 weapp 无效），也不响应 onTap 事件——因此无法直接约束图片宽度、无法挂载 images preview。
+> **对策**：所有富文本渲染必须统一走共享组件 `RichContent`（`frontend-mobile/src/components/RichContent.jsx`），由其在内部完成 origin 推导、URL 规范化、图片内联 `max-width` 注入、图片拆分渲染（`<Image>` + 点击 previewImage 多图横滑）。
+
+| 规则 | 说明 |
+|------|------|
+| **必须** 用共享组件 `<RichContent html={...} />` | 新增页面/组件渲染任何富文本（含图片）一律走它，调用方只传 `html`，无需关心 origin/分片/预览细节 |
+| **禁止** 裸 `<RichText nodes={...} />` | 直接 import `@tarojs/components` 的 RichText 渲染含图片的富文本 → weapp 图片溢出 / 不可预览 |
+| **禁止** 新写富文本 HTML 片段解析逻辑 | `splitRichTextImages`/`injectResponsiveImageStyle` 已收拢在 `utils/content.js`，新逻辑须扩展该模块而非旁路复制 |
+
+#### 审计清单
+
+- **diff 新增裸 `<RichText`（排除 `RichContent.jsx`/`taro-shim.js`）→ REJECT**（weapp 富文本图片静默失效/不可预览，不可接受）
+- 新富文本图片处理逻辑若有在 `utils/content.js` 之外的复制实现 → REJECT
+- 存量 `RichText` 直用已由 #1907 收敛，后续新增一律必须 `RichContent`
+
 ### ⚠️ 跨端导航排查方法论（#1665 沉淀）
 
 「点击按钮无反应、无错误提示」的排查顺序（按成本递增）：
