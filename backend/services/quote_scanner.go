@@ -66,6 +66,9 @@ func HandleSensitiveQuote(repairRequestID, workerID, comment string) bool {
 	}
 	if err := db.Create(&w).Error; err != nil {
 		log.Printf("[QuoteScanner] Failed to create warning: %v", err)
+	} else if _, err := SendWarningNotification(&w); err != nil {
+		// #1898: no API response on this internal path — log loudly.
+		log.Printf("[QuoteScanner] Warning notification failed: %v", err)
 	}
 
 	log.Printf("[QuoteScanner] Sensitive content detected in quote %s: %v", repairRequestID, result.Matched)

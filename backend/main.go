@@ -582,6 +582,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.GET("/warnings/:id", handlers.GetWarning)
 			authRequired.PUT("/warnings/:id/status", handlers.UpdateWarningStatus)
 
+			// Warning notification settings (#1898): per-level e-mail recipients.
+			authRequired.GET("/warning-settings", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.GetWarningSettings)
+			authRequired.PUT("/warning-settings", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.UpdateWarningSettings)
+
 			// Transit route routes (Issue #1133)
 			authRequired.GET("/transit-routes", handlers.ListTransitRoutes)
 			authRequired.POST("/transit-routes", handlers.CreateTransitRoute)

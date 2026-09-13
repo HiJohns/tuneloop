@@ -9,8 +9,13 @@ import (
 	"github.com/google/uuid"
 )
 
-// SendWarningNotification dispatches notifications for a warning based on its level configuration.
-func SendWarningNotification(warning *models.Warning) {
+// SendWarningNotification dispatches notifications for a warning based on its
+// level configuration. Returns whether the configured e-mail alert was sent,
+// plus any configuration/SMTP error (#1898).
+func SendWarningNotification(warning *models.Warning) (bool, error) {
+	if warning == nil {
+		return false, nil
+	}
 	level := warning.Level
 	notifyRoles := getNotifyRoles(level)
 	notifyMethods := getNotifyMethods(level)
@@ -22,13 +27,14 @@ func SendWarningNotification(warning *models.Warning) {
 				sendSystemMessage(warning, role)
 			case "wechat":
 				sendWechatAlert(warning, role)
-			case "email":
-				sendEmailAlert(warning, role)
-			default:
-				log.Printf("[WarningNotification] Unknown method: %s", method)
 			}
 		}
 	}
+
+	// #1898: the e-mail alert goes to the configured recipients (arbitrary
+	// addresses, not roles), at most once per cooldown window.
+	sent, _, err := sendWarningEmail(warning)
+	return sent, err
 }
 
 func getNotifyRoles(level string) []string {
@@ -45,7 +51,7 @@ func getNotifyRoles(level string) []string {
 func getNotifyMethods(level string) []string {
 	switch level {
 	case models.WarningSeverityHigh:
-		return []string{"system_message", "wechat", "email"}
+		return []string{"system_message", "wechat"}
 	case models.WarningSeverityMedium:
 		return []string{"system_message", "wechat"}
 	default:
@@ -88,10 +94,6 @@ func sendWechatAlert(warning *models.Warning, role string) {
 	log.Printf("[WarningNotify] WeChat alert to %s: warning %s (%s)", role, warning.ID, warning.Reason)
 }
 
-func sendEmailAlert(warning *models.Warning, role string) {
-	log.Printf("[WarningNotify] Email to %s: warning %s (%s)", role, warning.ID, warning.Reason)
-}
-
 // InitWarningScheduler starts a background goroutine for recurring alert dispatch.
 func InitWarningScheduler() {
 	go func() {
@@ -113,6 +115,8 @@ func resendUnresolved() {
 		Find(&warnings)
 
 	for _, w := range warnings {
-		SendWarningNotification(&w)
+		if _, err := SendWarningNotification(&w); err != nil {
+			log.Printf("[WarningScheduler] notify failed warning=%s: %v", w.ID, err)
+		}
 	}
 }

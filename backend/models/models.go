@@ -1165,6 +1165,8 @@ type Warning struct {
 	CreatedAt   time.Time  `json:"created_at"`
 	ResolvedAt  *time.Time `json:"resolved_at,omitempty"`
 	ResolvedBy  *string    `gorm:"type:uuid" json:"resolved_by"`
+	// #1898: last time a warning e-mail was sent (cooldown/repeat window).
+	LastNotifiedAt *time.Time `gorm:"type:timestamptz" json:"last_notified_at,omitempty"`
 }
 
 // Banner stores WeChat homepage carousel images

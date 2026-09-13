@@ -6,6 +6,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -83,7 +84,58 @@ func CreateWarning(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create warning"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": w})
+
+	// #1898: notify the configured recipients by e-mail. The warning record is
+	// the business outcome, so a send failure is surfaced in the response
+	// (never silently swallowed) rather than failing the creation.
+	notify := gin.H{"sent": false}
+	if sent, nerr := services.SendWarningNotification(&w); nerr != nil {
+		notify["error"] = nerr.Error()
+	} else if sent {
+		notify["sent"] = true
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": w, "notify": notify})
+}
+
+// GetWarningSettings returns the per-level warning notification config (#1898).
+// Recipients are free-form e-mail addresses (not limited to platform users).
+func GetWarningSettings(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	out := make(map[string]services.WarningNotifyConfig, len(services.WarningLevels))
+	for _, lv := range services.WarningLevels {
+		cfg, err := services.LoadWarningNotifyConfig(db, lv)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": err.Error()})
+			return
+		}
+		out[lv] = cfg
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": out})
+}
+
+// UpdateWarningSettings saves the per-level warning notification config (#1898).
+func UpdateWarningSettings(c *gin.Context) {
+	var req map[string]services.WarningNotifyConfig
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
+		return
+	}
+	if len(req) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "at least one level is required"})
+		return
+	}
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	for level, cfg := range req {
+		if err := services.SaveWarningNotifyConfig(db, level, cfg); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
+			return
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "saved"})
 }
 
 // UpdateWarningStatus updates a warning's status (acknowledge/resolve).
