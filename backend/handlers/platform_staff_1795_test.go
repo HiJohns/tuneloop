@@ -66,3 +66,11 @@ func TestGetBusinessRole_PlatformStaff_VisibleOrgs(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, ids, "platform staff sees all users (no org filter)")
 }
+
+// #1903: namespace_admin functional role (fn_roles claim) must classify the
+// holder as SystemAdmin even when role=OWNER and tid==oid (platform tenant).
+func TestGetBusinessRole_NamespaceAdminViaFunctionalRoles(t *testing.T) {
+	ctx := ctxWithTenantOrg(t, "22222222-2222-4222-8222-222222222222", "22222222-2222-4222-8222-222222222222", "OWNER")
+	ctx = context.WithValue(ctx, middleware.ContextKeyFunctionalRoles, []string{"namespace_admin"})
+	require.Equal(t, middleware.BusinessRoleSystemAdmin, middleware.GetBusinessRole(ctx))
+}

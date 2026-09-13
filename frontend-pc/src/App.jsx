@@ -242,7 +242,8 @@ function MainLayout() {
         const tid = payload.tid || ''
         const oid = payload.oid || ''
         const isOwner = !!(payload.is_owner || payload.isOwner)
-        const roles = Array.isArray(payload.roles) ? payload.roles : []
+        // beaconiam 功能角色 claim 名为 fn_roles（roles 为历史兼容）
+        const roles = Array.isArray(payload.fn_roles) ? payload.fn_roles : (Array.isArray(payload.roles) ? payload.roles : [])
         let businessRole = 'site_member'
         if (!tid || !oid || roles.includes('namespace_admin')) {
           businessRole = 'system_admin'

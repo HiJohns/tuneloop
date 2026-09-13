@@ -28,7 +28,7 @@ type IAMClaims struct {
 	Role       string   `json:"role"`
 	Own        bool     `json:"own"`
 	Name       string   `json:"name"`
-	Roles      []string `json:"roles"`
+	Roles      []string `json:"fn_roles"` // beaconiam 功能角色 claim 名（旧 tag roles 已弃用）
 	SysPerm    int64    `json:"sys_perm"`
 	CusPerm    int64    `json:"cus_perm"`
 	CusPermExt string   `json:"cus_perm_ext,omitempty"`

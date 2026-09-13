@@ -112,7 +112,7 @@ type JWTClaims struct {
 	Role        string   `json:"role"`
 	Name        string   `json:"name"`
 	IsOwner     bool     `json:"is_owner"`
-	Roles       []string `json:"roles"`    // Functional roles
+	Roles       []string `json:"fn_roles"` // Functional roles（beaconiam 以 fn_roles 签发；旧 tag roles 解析为空）
 	SysPerm     int64    `json:"sys_perm"` // System permission bitmap
 	CusPerm     int64    `json:"cus_perm"` // Customer permission bitmap
 	CusPermExt  string   `json:"cus_perm_ext,omitempty"`
