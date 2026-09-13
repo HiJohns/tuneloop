@@ -104,6 +104,8 @@ export default function Profile() {
   // mounted once via useEffect.
   useDidShow(() => {
     const fetchUser = async () => {
+      // #1903: guest state has no token — skip the protected call (#1620 stale UI)
+      if (!getToken()) { setUser(null); setLoading(false); return }
       try {
         const resp = await apiFetch(`${baseUrl}/users/me`)
         const result = await resp.json()
@@ -136,6 +138,8 @@ export default function Profile() {
 
   useEffect(() => {
     const fetchUnread = async () => {
+      // #1903: guest state must not poll the backend
+      if (!getToken()) { setUnreadCount(0); return }
       try {
         const resp = await notificationApi.unreadCount()
         setUnreadCount(resp?.data?.count ?? 0)
