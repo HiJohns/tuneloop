@@ -98,42 +98,33 @@ func CreateWarning(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": w, "notify": notify})
 }
 
-// GetWarningSettings returns the per-level warning notification config (#1898).
-// Recipients are free-form e-mail addresses (not limited to platform users).
+// GetWarningSettings returns the warning notification config (#1898/#1908:
+// a single config, not split by severity). Recipients are free-form e-mail
+// addresses (not limited to platform users).
 func GetWarningSettings(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
 
-	out := make(map[string]services.WarningNotifyConfig, len(services.WarningLevels))
-	for _, lv := range services.WarningLevels {
-		cfg, err := services.LoadWarningNotifyConfig(db, lv)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": err.Error()})
-			return
-		}
-		out[lv] = cfg
-	}
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": out})
-}
-
-// UpdateWarningSettings saves the per-level warning notification config (#1898).
-func UpdateWarningSettings(c *gin.Context) {
-	var req map[string]services.WarningNotifyConfig
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
+	cfg, err := services.LoadWarningNotifyConfig(db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": err.Error()})
 		return
 	}
-	if len(req) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "at least one level is required"})
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": cfg})
+}
+
+// UpdateWarningSettings saves the warning notification config (#1898/#1908).
+func UpdateWarningSettings(c *gin.Context) {
+	var cfg services.WarningNotifyConfig
+	if err := c.ShouldBindJSON(&cfg); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
 		return
 	}
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
-	for level, cfg := range req {
-		if err := services.SaveWarningNotifyConfig(db, level, cfg); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
-			return
-		}
+	if err := services.SaveWarningNotifyConfig(db, cfg); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
+		return
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "saved"})
 }
