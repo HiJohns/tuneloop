@@ -165,7 +165,17 @@ func SendSMTPMail(cfg SMTPConfig, to []string, subject, body string) error {
 		return fmt.Errorf("no recipients")
 	}
 	addr := net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port))
-	conn, err := net.Dial("tcp", addr)
+
+	// Port 465 is implicit TLS (SMTPS, e.g. smtp.qq.com as used by the IAM
+	// mailer); other TLS ports use STARTTLS.
+	implicitTLS := cfg.UseTLS && cfg.Port == 465
+	var conn net.Conn
+	var err error
+	if implicitTLS {
+		conn, err = tls.Dial("tcp", addr, &tls.Config{ServerName: cfg.Host})
+	} else {
+		conn, err = net.Dial("tcp", addr)
+	}
 	if err != nil {
 		return fmt.Errorf("smtp dial %s: %w", addr, err)
 	}
@@ -177,7 +187,7 @@ func SendSMTPMail(cfg SMTPConfig, to []string, subject, body string) error {
 	}
 	defer c.Quit()
 
-	if cfg.UseTLS {
+	if cfg.UseTLS && !implicitTLS {
 		if err := c.StartTLS(&tls.Config{ServerName: cfg.Host}); err != nil {
 			return fmt.Errorf("smtp starttls: %w", err)
 		}
