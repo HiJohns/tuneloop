@@ -23,16 +23,18 @@ func TestListPlatformStaff_UsesOperatorOrg(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 	tenantID, orgID, _ := testfixtures.NewTenantIDs("1897a1b2c3d4")
 
-	mkUser := func(name, org string) {
+	mkUser := func(name, org, role string) {
 		sub := uuid.New().String()
 		require.NoError(t, db.Create(&models.User{
 			ID: sub, IAMSub: sub, TenantID: tenantID, OrgID: org,
-			Username: name, Name: name, Status: "active",
+			Username: name, Name: name, Role: role, Status: "active",
 		}).Error)
 	}
-	mkUser("平台员工甲", orgID)
-	mkUser("平台员工乙", orgID)
-	mkUser("其他组织成员", uuid.New().String())
+	mkUser("平台员工甲", orgID, "STAFF")
+	mkUser("平台员工乙", orgID, "staff") // role 大小写不敏感
+	mkUser("系统管理员", orgID, "namespace_admin")
+	mkUser("根组织顾客", orgID, "")                     // 空 role 不得混入
+	mkUser("其他组织员工", uuid.New().String(), "STAFF") // 跨组织不可见
 
 	router := gin.New()
 	router.GET("/admin/platform-staff", (&PlatformStaffHandler{}).List)
@@ -53,5 +55,5 @@ func TestListPlatformStaff_UsesOperatorOrg(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	require.Equal(t, 20000, resp.Code)
-	assert.Len(t, resp.Data.List, 2, "only members of the operator's org are listed")
+	assert.Len(t, resp.Data.List, 3, "staff + system admin of the operator org only")
 }

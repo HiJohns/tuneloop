@@ -44,10 +44,12 @@ func (h *PlatformStaffHandler) List(c *gin.Context) {
 		return
 	}
 
-	// 平台员工 = 本地 users 缓存中 org_id = 根组织的成员（IAM 为准，#685：
-	// 绑定在 IAM 侧完成，本地是缓存快照）。
+	// 平台员工 = 本地 users 缓存中 org_id = 根组织、且 role 为 staff 的成员
+	// （#1795 T6.1/T6.2；另含系统管理员）。本地缓存里顾客/测试账号的 org_id
+	// 也可能落在根组织（注册默认），必须靠 role 区分，否则"把所有用户都返回"。
 	var users []models.User
-	if err := db.Where("org_id = ?", rootOrgID).Order("created_at DESC").Find(&users).Error; err != nil {
+	if err := db.Where("org_id = ? AND LOWER(role) IN ?", rootOrgID, []string{"staff", "namespace_admin", "sys_admin"}).
+		Order("created_at DESC").Find(&users).Error; err != nil {
 		log.Printf("[PlatformStaff] list failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list platform staff"})
 		return
@@ -149,7 +151,10 @@ func (h *PlatformStaffHandler) Create(c *gin.Context) {
 		Phone:    req.Phone,
 		Email:    req.Email,
 		OrgID:    rootOrgID,
-		Status:   "active",
+		// #1795/#1897: mirror the IAM binding role so the staff list can filter
+		// platform staff from other root-org users (customers).
+		Role:   "STAFF",
+		Status: "active",
 	}
 	if err := db.Where("iam_sub = ?", result.UserID).First(&existing).Error; err == nil {
 		user = existing
@@ -157,7 +162,7 @@ func (h *PlatformStaffHandler) Create(c *gin.Context) {
 		user.Name = req.Name
 		user.Phone = req.Phone
 		if err := db.Model(&user).Updates(map[string]interface{}{
-			"org_id": rootOrgID, "name": req.Name, "phone": req.Phone, "email": req.Email,
+			"org_id": rootOrgID, "role": "STAFF", "name": req.Name, "phone": req.Phone, "email": req.Email,
 		}).Error; err != nil {
 			log.Printf("[PlatformStaff] local cache update failed: %v", err)
 		}
