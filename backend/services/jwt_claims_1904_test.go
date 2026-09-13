@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// #1903: beaconiam signs the functional-roles claim as fn_roles; the previous
+// #1904: beaconiam signs the functional-roles claim as fn_roles; the previous
 // "roles" tag parsed to an empty slice, so namespace admins were classified as
 // merchant admins (tid==oid) and platform-staff management returned 403.
 func TestJWTClaimsFnRolesMapping(t *testing.T) {
