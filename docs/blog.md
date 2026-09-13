@@ -366,3 +366,4 @@
 - 2026-09-12: 批量处理完成，包含任务: Resolved Issues: #1893（乐器管理页两级分类筛选 + 封面 thumbnail 链 + OptionSheet 复用改造）
 - 2026-09-12: 批量处理完成，包含任务: Resolved Issues: #1894（乐器 org 对齐站点 org 回填迁移 204 行 + 批量导入补写 org；根因：站点员工 ApplyOrgScope 按 org 过滤导致漏显示）
 - 2026-09-13: 批量处理完成，包含任务: Resolved Issues: #1897（平台员工改用操作员 oid）, #1900（赠点策略数据归一 5/10/15% + 返点 0.5/1/2% + 护栏 + legacy 旁路）, #1901（OREZ/ENO points_basis + 非生产全额开关）；预生产已部署 ec3fab35 并开启 TEST_COUPON_GROSS_POINTS
+- 2026-09-13: 批量处理完成，包含任务: Resolved Issues: #1898（警告邮件通知：SMTP 服务/三级配置页/即时触发/冷却/不静默；SMTPS 465 兼容）
