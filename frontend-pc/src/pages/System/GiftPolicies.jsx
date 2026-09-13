@@ -34,7 +34,7 @@ export default function GiftPolicies() {
   };
 
   const columns = [
-    { title: '会员级别', dataIndex: 'name', render: v => v || '-' },
+    { title: '会员级别', dataIndex: 'name', render: (v, r) => v ? `${v}${r.is_fallback ? '（默认）' : ''}` : '-' },
     { title: '赠点使用比例', dataIndex: 'pay_ratio', render: v => `${((v || 0) * 100).toFixed(1)}%` },
     { title: '退款返点比例', dataIndex: 'refund_ratio', render: v => `${((v || 0) * 100).toFixed(1)}%` },
     { title: '状态', dataIndex: 'is_active', render: v => v ? '启用' : '停用' },
@@ -53,12 +53,12 @@ export default function GiftPolicies() {
         {editing && (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">赠点使用比例（付款抵扣上限 = 应付总额 × 比例）</label>
-              <InputNumber min={0} max={1} step={0.01} value={editing.pay_ratio} onChange={v => setEditing(p => ({ ...p, pay_ratio: v }))} style={{ width: '100%' }} />
+              <label className="block text-sm font-medium mb-1">赠点使用比例（付款抵扣上限 = 应付总额 × 比例，最高 50%）</label>
+              <InputNumber min={0} max={0.5} step={0.01} value={editing.pay_ratio} onChange={v => setEditing(p => ({ ...p, pay_ratio: v }))} style={{ width: '100%' }} />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">退款返点比例（退款完成后 = 实付现金 × 比例）</label>
-              <InputNumber min={0} max={1} step={0.01} value={editing.refund_ratio} onChange={v => setEditing(p => ({ ...p, refund_ratio: v }))} style={{ width: '100%' }} />
+              <label className="block text-sm font-medium mb-1">退款返点比例（退款完成后 = 实付现金 × 比例，最高 20%）</label>
+              <InputNumber min={0} max={0.2} step={0.01} value={editing.refund_ratio} onChange={v => setEditing(p => ({ ...p, refund_ratio: v }))} style={{ width: '100%' }} />
             </div>
             <div className="flex items-center gap-2"><Switch checked={editing.is_active} onChange={v => setEditing(p => ({ ...p, is_active: v }))} /><span>{editing.is_active ? '启用' : '停用'}</span></div>
           </div>

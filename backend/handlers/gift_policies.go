@@ -39,27 +39,38 @@ func ListGiftPolicies(c *gin.Context) {
 
 	result := make([]gin.H, 0, len(levels)+1)
 	// Default row first (level_id=0)
-	if def, ok := byLevel[0]; ok {
+	def, hasDef := byLevel[0]
+	if hasDef {
 		result = append(result, gin.H{
 			"level_id":     0,
 			"name":         "默认（未设置级别）",
 			"pay_ratio":    def.PayRatio,
 			"refund_ratio": def.RefundRatio,
 			"is_active":    def.IsActive,
+			"is_fallback":  false,
 		})
+	}
+	// #1900: levels without their own row run on the level-0 fallback at
+	// runtime; surface the effective values (plus is_fallback) so the admin
+	// table matches actual behavior instead of showing 0/停用.
+	fallbackPay, fallbackRefund, fallbackActive := 0.0, 0.0, false
+	if hasDef {
+		fallbackPay, fallbackRefund, fallbackActive = def.PayRatio, def.RefundRatio, def.IsActive
 	}
 	for _, lv := range levels {
 		entry := gin.H{
 			"level_id":     lv.LevelID,
 			"name":         lv.Name,
-			"pay_ratio":    0.0,
-			"refund_ratio": 0.0,
-			"is_active":    false,
+			"pay_ratio":    fallbackPay,
+			"refund_ratio": fallbackRefund,
+			"is_active":    fallbackActive,
+			"is_fallback":  true,
 		}
 		if p, ok := byLevel[lv.LevelID]; ok {
 			entry["pay_ratio"] = p.PayRatio
 			entry["refund_ratio"] = p.RefundRatio
 			entry["is_active"] = p.IsActive
+			entry["is_fallback"] = false
 		}
 		result = append(result, entry)
 	}
@@ -83,13 +94,14 @@ func UpdateGiftPolicy(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
 
-	// Validate ratio bounds
-	if req.PayRatio != nil && (*req.PayRatio < 0 || *req.PayRatio > 1) {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "pay_ratio must be between 0 and 1"})
+	// Validate ratio bounds. #1900: business ceilings — 100% would allow
+	// zero-pay rentals (pay_ratio) and unbounded point inflation (refund_ratio).
+	if req.PayRatio != nil && (*req.PayRatio < 0 || *req.PayRatio > 0.5) {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "pay_ratio 必须在 0~0.5 之间（赠点最多抵扣应付金额的 50%）"})
 		return
 	}
-	if req.RefundRatio != nil && (*req.RefundRatio < 0 || *req.RefundRatio > 1) {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "refund_ratio must be between 0 and 1"})
+	if req.RefundRatio != nil && (*req.RefundRatio < 0 || *req.RefundRatio > 0.2) {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "refund_ratio 必须在 0~0.2 之间（返点最多为实付现金的 20%）"})
 		return
 	}
 

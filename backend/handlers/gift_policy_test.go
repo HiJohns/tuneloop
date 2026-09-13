@@ -59,7 +59,7 @@ func TestGiftPolicyCRUD(t *testing.T) {
 
 	// PUT update policy for level 1
 	body2, _ := json.Marshal(map[string]interface{}{
-		"level_id": 1, "pay_ratio": 0.6, "refund_ratio": 0.25, "is_active": true,
+		"level_id": 1, "pay_ratio": 0.4, "refund_ratio": 0.15, "is_active": true,
 	})
 	req2 := httptest.NewRequest("PUT", "/api/admin/gift-policies", bytes.NewBuffer(body2))
 	req2.Header.Set("Content-Type", "application/json")
@@ -83,8 +83,8 @@ func TestGiftPolicyCRUD(t *testing.T) {
 	found := false
 	for _, row := range resp.Data {
 		if row["level_id"].(float64) == 1 {
-			require.Equal(t, 0.6, row["pay_ratio"].(float64))
-			require.Equal(t, 0.25, row["refund_ratio"].(float64))
+			require.Equal(t, 0.4, row["pay_ratio"].(float64))
+			require.Equal(t, 0.15, row["refund_ratio"].(float64))
 			require.Equal(t, "初级", row["name"].(string))
 			found = true
 		}
@@ -189,4 +189,32 @@ func TestGiftPolicyPermissionGate(t *testing.T) {
 	router.ServeHTTP(w, req)
 	// Customer (no cus_perm) → 403
 	require.Equal(t, http.StatusForbidden, w.Code, "customer denied: %s", w.Body.String())
+}
+
+// TestGiftPolicyRatioGuardrails (#1900): 100% usage/rebate ratios are rejected
+// at the API boundary (zero-pay rental / unbounded point inflation).
+func TestGiftPolicyRatioGuardrails(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	_ = db
+	router := giftPolicyRouter(makeAdminActor())
+
+	cases := []struct {
+		pay, refund float64
+		want        int
+	}{
+		{0.6, 0.0, http.StatusBadRequest},
+		{0.0, 0.25, http.StatusBadRequest},
+		{1.0, 1.0, http.StatusBadRequest},
+		{0.5, 0.2, http.StatusOK},
+	}
+	for _, c := range cases {
+		body, _ := json.Marshal(map[string]interface{}{
+			"level_id": 1, "pay_ratio": c.pay, "refund_ratio": c.refund, "is_active": true,
+		})
+		req := httptest.NewRequest("PUT", "/api/admin/gift-policies", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		require.Equal(t, c.want, w.Code, "pay=%v refund=%v body=%s", c.pay, c.refund, w.Body.String())
+	}
 }

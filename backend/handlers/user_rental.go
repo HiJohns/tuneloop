@@ -163,17 +163,17 @@ func (h *UserRentalHandler) GetInstrument(c *gin.Context) {
 // POST /api/user/orders - Create rental order
 func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	var req struct {
-		InstrumentID    string      `json:"instrument_id" binding:"required"`
-		StartDate       string      `json:"start_date" binding:"required"`
-		EndDate         string      `json:"end_date" binding:"required"`
-		RentDays        int         `json:"rent_days"`
-		DeliveryAddress interface{} `json:"delivery_address"`
-		Notes           string      `json:"notes"`
-		GiftPointsUsed  float64     `json:"gift_points_used"`
-		DiscountCode    string      `json:"discount_code"`  // redeemable code (#1539)
-		DepositWaived   bool        `json:"deposit_waived"` // deposit-free application (#1557)
-		GuarantorIDs    []string    `json:"guarantor_ids"`  // guarantors for deposit-free order (#1557)
-		RecommendationLetter string `json:"recommendation_letter"` // #1867: deposit-free letter URL
+		InstrumentID         string      `json:"instrument_id" binding:"required"`
+		StartDate            string      `json:"start_date" binding:"required"`
+		EndDate              string      `json:"end_date" binding:"required"`
+		RentDays             int         `json:"rent_days"`
+		DeliveryAddress      interface{} `json:"delivery_address"`
+		Notes                string      `json:"notes"`
+		GiftPointsUsed       float64     `json:"gift_points_used"`
+		DiscountCode         string      `json:"discount_code"`         // redeemable code (#1539)
+		DepositWaived        bool        `json:"deposit_waived"`        // deposit-free application (#1557)
+		GuarantorIDs         []string    `json:"guarantor_ids"`         // guarantors for deposit-free order (#1557)
+		RecommendationLetter string      `json:"recommendation_letter"` // #1867: deposit-free letter URL
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -436,10 +436,11 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	req.GiftPointsUsed = max(0, req.GiftPointsUsed)
 
 	if req.GiftPointsUsed > 0 {
-		pointsPolicies, err := queryApplicablePointsPolicies(db, effectiveTenantID, effectiveOrgID)
-		if err == nil && len(pointsPolicies) > 0 {
-			maxGiftRatio := pointsPolicies[0].MaxPayRatio
-			maxGiftAllowed := floorFloat(totalAmount * maxGiftRatio)
+		// #1900: server-side cap from gift_policies (per level, level-0 fallback).
+		// Legacy points_policies is empty in most environments, which silently
+		// disabled the cap entirely.
+		if policy := services.GetGiftPolicyByLevel(db, levelIDOrZero(userWallet.MembershipLevelID)); policy != nil {
+			maxGiftAllowed := floorFloat(totalAmount * policy.PayRatio)
 			if req.GiftPointsUsed > maxGiftAllowed {
 				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": fmt.Sprintf("gift points usage exceeds max allowed: %.2f (max %.2f)", req.GiftPointsUsed, maxGiftAllowed)})
 				return
@@ -462,26 +463,26 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	startDateStr := req.StartDate
 	endDateStr := req.EndDate
 	order := models.Order{
-		ID:              uuid.New().String(),
-		TenantID:        effectiveTenantID,
-		OrgID:           effectiveOrgID,
-		UserID:          userID,
-		InstrumentID:    req.InstrumentID,
-		Level:           instrument.Level,
-		LeaseTerm:       months,
-		MonthlyRent:     0,
-		Deposit:         models.FromYuan(deposit),
-		DepositWaived:   req.DepositWaived,
+		ID:                   uuid.New().String(),
+		TenantID:             effectiveTenantID,
+		OrgID:                effectiveOrgID,
+		UserID:               userID,
+		InstrumentID:         req.InstrumentID,
+		Level:                instrument.Level,
+		LeaseTerm:            months,
+		MonthlyRent:          0,
+		Deposit:              models.FromYuan(deposit),
+		DepositWaived:        req.DepositWaived,
 		RecommendationLetter: req.RecommendationLetter,
-		ShippingFee:     models.FromYuan(shippingFee),
-		Status:          models.OrderStatusReserved, // Must pay via WeChat Pay before status becomes paid
-		StartDate:       &startDateStr,
-		EndDate:         &endDateStr,
-		CashPaid:        models.FromYuan(cashPaid),
-		GiftPointsUsed:  models.FromYuan(req.GiftPointsUsed),
-		CreatedAt:       time.Now(),
-		UpdatedAt:       time.Now(),
-		PaymentDeadline: computePaymentDeadline(db, effectiveTenantID, effectiveOrgID),
+		ShippingFee:          models.FromYuan(shippingFee),
+		Status:               models.OrderStatusReserved, // Must pay via WeChat Pay before status becomes paid
+		StartDate:            &startDateStr,
+		EndDate:              &endDateStr,
+		CashPaid:             models.FromYuan(cashPaid),
+		GiftPointsUsed:       models.FromYuan(req.GiftPointsUsed),
+		CreatedAt:            time.Now(),
+		UpdatedAt:            time.Now(),
+		PaymentDeadline:      computePaymentDeadline(db, effectiveTenantID, effectiveOrgID),
 	}
 	if pricingBreakdownJSON != "" {
 		order.PricingBreakdown = &pricingBreakdownJSON
@@ -702,10 +703,10 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			EndDate      string `json:"end_date" binding:"required"`
 			RentDays     int    `json:"rent_days"`
 		} `json:"items" binding:"required,min=1"`
-		DeliveryAddress interface{} `json:"delivery_address"`
-		DepositWaived   bool        `json:"deposit_waived"` // deposit-free application (#1557)
-		GuarantorIDs    []string    `json:"guarantor_ids"`  // shared guarantors for all items (#1557)
-		RecommendationLetter string `json:"recommendation_letter"` // #1867: deposit-free letter URL
+		DeliveryAddress      interface{} `json:"delivery_address"`
+		DepositWaived        bool        `json:"deposit_waived"`        // deposit-free application (#1557)
+		GuarantorIDs         []string    `json:"guarantor_ids"`         // shared guarantors for all items (#1557)
+		RecommendationLetter string      `json:"recommendation_letter"` // #1867: deposit-free letter URL
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -955,49 +956,41 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		endDateStr := item.EndDate
 
 		order := models.Order{
-			ID:               uuid.New().String(),
-			TenantID:         effectiveTenantID,
-			OrgID:            effectiveOrgID,
-			UserID:           userID,
-			InstrumentID:     item.InstrumentID,
-			Level:            lockedInstrument.Level,
-			LeaseTerm:        months,
-			MonthlyRent:      0,
-			Deposit:          models.FromYuan(deposit),
-			DepositWaived:    req.DepositWaived,
+			ID:                   uuid.New().String(),
+			TenantID:             effectiveTenantID,
+			OrgID:                effectiveOrgID,
+			UserID:               userID,
+			InstrumentID:         item.InstrumentID,
+			Level:                lockedInstrument.Level,
+			LeaseTerm:            months,
+			MonthlyRent:          0,
+			Deposit:              models.FromYuan(deposit),
+			DepositWaived:        req.DepositWaived,
 			RecommendationLetter: req.RecommendationLetter,
-			ShippingFee:      models.FromYuan(shippingFee),
-			CashPaid:         models.FromYuan(orderAmount),
-			Status:           models.OrderStatusReserved,
-			StartDate:        &startDateStr,
-			EndDate:          &endDateStr,
-			PaymentDeadline:  computePaymentDeadline(db, effectiveTenantID, effectiveOrgID),
-			CreatedAt:        time.Now(),
-			UpdatedAt:        time.Now(),
-			PricingBreakdown: pricingBreakdownJSON,
+			ShippingFee:          models.FromYuan(shippingFee),
+			CashPaid:             models.FromYuan(orderAmount),
+			Status:               models.OrderStatusReserved,
+			StartDate:            &startDateStr,
+			EndDate:              &endDateStr,
+			PaymentDeadline:      computePaymentDeadline(db, effectiveTenantID, effectiveOrgID),
+			CreatedAt:            time.Now(),
+			UpdatedAt:            time.Now(),
+			PricingBreakdown:     pricingBreakdownJSON,
 		}
 
-		// Snapshot applicable points policy
-		func() {
-			var pps []struct {
-				ScopeType string  `json:"scope_type"`
-				ScopeID   *string `json:"scope_id"`
-				PayRatio  float64 `json:"pay_ratio"`
+		// Snapshot applicable gift policy (#1900: replaces legacy points_policies)
+		if policy := services.GetGiftPolicyByLevel(database.GetDB().WithContext(c.Request.Context()), levelIDOrZero(userWallet.MembershipLevelID)); policy != nil {
+			snap, err := json.Marshal(map[string]interface{}{
+				"source":       "gift_policies",
+				"level_id":     policy.LevelID,
+				"pay_ratio":    policy.PayRatio,
+				"refund_ratio": policy.RefundRatio,
+			})
+			if err == nil {
+				snapStr := string(snap)
+				order.PointsPolicySnapshot = &snapStr
 			}
-			if err := database.GetDB().WithContext(c.Request.Context()).
-				Table("points_policies").
-				Select("scope_type, scope_id, max_pay_ratio AS pay_ratio").
-				Where("is_active = ?", true).
-				Order("CASE scope_type WHEN 'site' THEN 0 WHEN 'merchant' THEN 1 WHEN 'system' THEN 2 END ASC").
-				Limit(1).
-				Find(&pps).Error; err == nil && len(pps) > 0 {
-				snap, err := json.Marshal(pps[0])
-				if err == nil {
-					snapStr := string(snap)
-					order.PointsPolicySnapshot = &snapStr
-				}
-			}
-		}()
+		}
 
 		// Snapshot creation request for audit/compliance
 		requestSnapshot := map[string]interface{}{
@@ -1458,15 +1451,15 @@ func (h *UserRentalHandler) CalculateRental(c *gin.Context) {
 		prepaidPointsBalance = localUser.PrepaidPoints.ToYuan()
 	}
 
-	// Gift points max = min(balance, total × max_pay_ratio) — cents contract
+	// Gift points max = min(balance, total × pay_ratio) — cents contract
 	// (#1757): balance is cents; total (yuan) × ratio converted to cents.
-	var pointsPolicy models.PointsPolicy
+	// #1900: ratio from gift_policies (per level, level-0 fallback).
 	giftPointsMax := float64(0)
 	totalPay := pricingResult.TotalRent + deposit + shippingFee
-	if err := db.Where("is_active = ?", true).First(&pointsPolicy).Error; err == nil {
+	if policy := services.GetGiftPolicyByLevel(db, levelIDOrZero(localUser.MembershipLevelID)); policy != nil {
 		giftPointsMax = giftPointsBalance
-		if pointsPolicy.MaxPayRatio > 0 {
-			maxByRatio := totalPay * pointsPolicy.MaxPayRatio * 100
+		if policy.PayRatio > 0 {
+			maxByRatio := totalPay * policy.PayRatio * 100
 			if maxByRatio < giftPointsMax {
 				giftPointsMax = maxByRatio
 			}

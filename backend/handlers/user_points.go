@@ -34,11 +34,10 @@ func (h *UserPointsHandler) GetBalance(c *gin.Context) {
 		log.Printf("[GetBalance] membership level check failed: %v", err)
 	}
 
-	// Max gift points ratio for display (default 0.3, from PointsPolicy).
+	// #1900: effective usage cap from gift_policies (per level, level-0 fallback).
 	maxPayRatio := 0.3
-	policies, err := queryApplicablePointsPolicies(db, localUser.TenantID, "")
-	if err == nil && len(policies) > 0 {
-		maxPayRatio = policies[0].MaxPayRatio
+	if policy := services.GetGiftPolicyByLevel(db, levelIDOrZero(localUser.MembershipLevelID)); policy != nil {
+		maxPayRatio = policy.PayRatio
 	}
 
 	c.JSON(http.StatusOK, gin.H{
