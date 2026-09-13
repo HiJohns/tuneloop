@@ -32,40 +32,36 @@ func setupWarningEmailTestDB(t *testing.T) *gorm.DB {
 // when malformed, de-duplicated, and stored in system_settings.
 func TestWarningNotifyConfigValidation(t *testing.T) {
 	db := setupWarningEmailTestDB(t)
+	require.NoError(t, db.Where("setting_key = ?", WarningConfigKey).Delete(&models.SystemSetting{}).Error)
 
-	level := "high"
-	require.NoError(t, db.Where("setting_key = ?", WarningConfigKey(level)).Delete(&models.SystemSetting{}).Error)
-
-	err := SaveWarningNotifyConfig(db, level, WarningNotifyConfig{Enabled: true, Emails: []string{"not-an-email"}})
+	err := SaveWarningNotifyConfig(db, WarningNotifyConfig{Enabled: true, Emails: []string{"not-an-email"}})
 	require.Error(t, err, "malformed recipient rejected")
 
-	require.NoError(t, SaveWarningNotifyConfig(db, level, WarningNotifyConfig{
+	require.NoError(t, SaveWarningNotifyConfig(db, WarningNotifyConfig{
 		Enabled: true,
 		// arbitrary addresses allowed (not limited to platform users)
 		Emails:          []string{" ops@example.com ", "ops@example.com", "it@corp.cn"},
 		CooldownMinutes: 30,
 	}))
-	cfg, err := LoadWarningNotifyConfig(db, level)
+	cfg, err := LoadWarningNotifyConfig(db)
 	require.NoError(t, err)
 	assert.True(t, cfg.Enabled)
 	assert.Equal(t, []string{"ops@example.com", "it@corp.cn"}, cfg.Emails)
 	assert.Equal(t, 30, cfg.CooldownMinutes)
 
-	require.Error(t, SaveWarningNotifyConfig(db, "urgent", WarningNotifyConfig{}))
-	require.Error(t, SaveWarningNotifyConfig(db, level, WarningNotifyConfig{CooldownMinutes: 2000}))
+	require.Error(t, SaveWarningNotifyConfig(db, WarningNotifyConfig{CooldownMinutes: 2000}))
 
-	require.NoError(t, db.Where("setting_key = ?", WarningConfigKey(level)).Delete(&models.SystemSetting{}).Error)
+	require.NoError(t, db.Where("setting_key = ?", WarningConfigKey).Delete(&models.SystemSetting{}).Error)
 }
 
 // #1898: sends once per warning (cooldown 0), records the marker, and reports
 // missing SMTP config as an explicit error instead of silently skipping.
 func TestSendWarningEmailConfigAndCooldown(t *testing.T) {
 	db := setupWarningEmailTestDB(t)
-	level := "high"
-	require.NoError(t, SaveWarningNotifyConfig(db, level, WarningNotifyConfig{
+	require.NoError(t, SaveWarningNotifyConfig(db, WarningNotifyConfig{
 		Enabled: true, Emails: []string{"ops@example.com"},
 	}))
-	defer db.Where("setting_key = ?", WarningConfigKey(level)).Delete(&models.SystemSetting{})
+	defer db.Where("setting_key = ?", WarningConfigKey).Delete(&models.SystemSetting{})
 
 	w := &models.Warning{
 		ID: uuid.New().String(), SiteID: uuid.New().String(), MerchantID: uuid.New().String(),

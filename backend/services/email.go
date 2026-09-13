@@ -27,8 +27,9 @@ import (
 // WarningConfigTenantID is the platform tenant that owns warning settings.
 const WarningConfigTenantID = "00000000-0000-0000-0000-000000000000"
 
-// WarningLevels enumerates the configurable severity levels.
-var WarningLevels = []string{models.WarningSeverityLow, models.WarningSeverityMedium, models.WarningSeverityHigh}
+// WarningConfigKey is the single system_settings key for warning
+// notifications (#1908: one config, not per-severity).
+const WarningConfigKey = "warning_notification"
 
 // SMTPConfig holds the SMTP connection settings from the environment.
 type SMTPConfig struct {
@@ -70,28 +71,12 @@ type WarningNotifyConfig struct {
 	CooldownMinutes int      `json:"cooldown_minutes"`
 }
 
-// WarningConfigKey returns the system_settings key for a level.
-func WarningConfigKey(level string) string { return "warning_level_" + level + "_actions" }
-
-// ValidWarningLevel reports whether level is configurable.
-func ValidWarningLevel(level string) bool {
-	for _, l := range WarningLevels {
-		if l == level {
-			return true
-		}
-	}
-	return false
-}
-
-// LoadWarningNotifyConfig reads the per-level config; missing rows yield a
-// zero (disabled) config without error.
-func LoadWarningNotifyConfig(db *gorm.DB, level string) (WarningNotifyConfig, error) {
+// LoadWarningNotifyConfig reads the single warning notification config;
+// a missing row yields a zero (disabled) config without error.
+func LoadWarningNotifyConfig(db *gorm.DB) (WarningNotifyConfig, error) {
 	var cfg WarningNotifyConfig
-	if !ValidWarningLevel(level) {
-		return cfg, fmt.Errorf("invalid warning level %q", level)
-	}
 	var s models.SystemSetting
-	err := db.Where("tenant_id = ? AND setting_key = ?", WarningConfigTenantID, WarningConfigKey(level)).First(&s).Error
+	err := db.Where("tenant_id = ? AND setting_key = ?", WarningConfigTenantID, WarningConfigKey).First(&s).Error
 	if err == gorm.ErrRecordNotFound {
 		return cfg, nil
 	}
@@ -102,16 +87,13 @@ func LoadWarningNotifyConfig(db *gorm.DB, level string) (WarningNotifyConfig, er
 		return cfg, nil
 	}
 	if err := json.Unmarshal([]byte(s.SettingValue), &cfg); err != nil {
-		return cfg, fmt.Errorf("invalid config JSON for level %q: %w", level, err)
+		return cfg, fmt.Errorf("invalid warning notification config JSON: %w", err)
 	}
 	return cfg, nil
 }
 
-// SaveWarningNotifyConfig validates and upserts the per-level config.
-func SaveWarningNotifyConfig(db *gorm.DB, level string, cfg WarningNotifyConfig) error {
-	if !ValidWarningLevel(level) {
-		return fmt.Errorf("invalid warning level %q", level)
-	}
+// SaveWarningNotifyConfig validates and upserts the single config.
+func SaveWarningNotifyConfig(db *gorm.DB, cfg WarningNotifyConfig) error {
 	if len(cfg.Emails) > 50 {
 		return fmt.Errorf("收件邮箱最多 50 个")
 	}
@@ -141,14 +123,14 @@ func SaveWarningNotifyConfig(db *gorm.DB, level string, cfg WarningNotifyConfig)
 	}
 
 	var s models.SystemSetting
-	err = db.Where("tenant_id = ? AND setting_key = ?", WarningConfigTenantID, WarningConfigKey(level)).First(&s).Error
+	err = db.Where("tenant_id = ? AND setting_key = ?", WarningConfigTenantID, WarningConfigKey).First(&s).Error
 	if err == nil {
 		return db.Model(&s).Update("setting_value", string(raw)).Error
 	}
 	if err == gorm.ErrRecordNotFound {
 		return db.Create(&models.SystemSetting{
 			TenantID:     WarningConfigTenantID,
-			SettingKey:   WarningConfigKey(level),
+			SettingKey:   WarningConfigKey,
 			SettingValue: string(raw),
 		}).Error
 	}
@@ -249,7 +231,7 @@ func sendWarningEmail(w *models.Warning) (sent bool, recipients int, err error) 
 		return false, 0, nil
 	}
 	db := database.GetDB()
-	cfg, err := LoadWarningNotifyConfig(db, w.Level)
+	cfg, err := LoadWarningNotifyConfig(db)
 	if err != nil {
 		return false, 0, err
 	}
