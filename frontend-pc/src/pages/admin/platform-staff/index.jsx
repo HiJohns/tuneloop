@@ -1,9 +1,8 @@
-// 平台员工管理（#1795 T6）
-// 权限：user 类 sys_perm（List=16 / Create=17 / Update=18）
-// 平台员工 = PLATFORM_ROOT_ORG_ID 根组织成员：用户/审核队列全可见（无 org 过滤），
-// 商户数据仍 tenant 隔离；不授予 TenantCreate 类权限（不能创建商户）。
+// 平台员工管理（#1795 T6 / #1897）
+// 仅系统管理员可用；平台员工 = 顶级组织（当前管理员 oid）中 role=staff 的成员。
+// 密码设置与其他成员管理一致：默认自动生成初始密码（仅展示一次），可手动设置。
 import { useState, useCallback, useEffect } from 'react'
-import { Table, Card, Button, Space, Tag, Modal, Form, Input, message, Popconfirm } from 'antd'
+import { Table, Card, Button, Space, Tag, Modal, Form, Input, Radio, Checkbox, message, Popconfirm } from 'antd'
 import { PlusOutlined, StopOutlined } from '@ant-design/icons'
 import { platformStaffApi } from '../../../services/api'
 
@@ -12,6 +11,7 @@ export default function PlatformStaffPage() {
   const [loading, setLoading] = useState(false)
   const [createVisible, setCreateVisible] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [autoGenerate, setAutoGenerate] = useState(true)
   const [form] = Form.useForm()
 
   const fetchList = useCallback(async () => {
@@ -38,10 +38,29 @@ export default function PlatformStaffPage() {
     try {
       const resp = await platformStaffApi.create(values)
       if (resp.code === 20000) {
-        message.success('平台员工已创建')
         setCreateVisible(false)
         form.resetFields()
+        setAutoGenerate(true)
         fetchList()
+        const initialPwd = resp.data?.initial_password
+        if (initialPwd) {
+          Modal.info({
+            title: '平台员工已创建',
+            width: 480,
+            content: (
+              <div>
+                <p>以下为该员工的初始密码，仅展示一次，请妥善保存并告知本人：</p>
+                <div style={{
+                  padding: '12px 16px', background: '#f5f5f5', borderRadius: 4,
+                  fontFamily: 'monospace', fontSize: 18, textAlign: 'center',
+                  margin: '12px 0', userSelect: 'all',
+                }}>{initialPwd}</div>
+              </div>
+            ),
+          })
+        } else {
+          message.success('平台员工已创建')
+        }
       } else {
         message.error(resp.message || '创建失败')
       }
@@ -118,13 +137,13 @@ export default function PlatformStaffPage() {
         dataSource={list}
         loading={loading}
         pagination={{ pageSize: 10 }}
-        locale={{ emptyText: '暂无平台员工（未配置 PLATFORM_ROOT_ORG_ID 或根组织无成员）' }}
+        locale={{ emptyText: '暂无平台员工（顶级组织下尚无 staff 成员）' }}
       />
       <Modal
         title="新建平台员工"
         open={createVisible}
         onOk={handleCreate}
-        onCancel={() => setCreateVisible(false)}
+        onCancel={() => { setCreateVisible(false); setAutoGenerate(true) }}
         okText="创建"
         cancelText="取消"
         confirmLoading={creating}
@@ -142,8 +161,19 @@ export default function PlatformStaffPage() {
           <Form.Item name="email" label="邮箱">
             <Input placeholder="选填" />
           </Form.Item>
-          <Form.Item name="password" label="初始密码" rules={[{ required: true, min: 8, message: '至少 8 位' }]}>
-            <Input.Password placeholder="初始登录密码（至少 8 位）" />
+          <Form.Item name="auto_generate" label="密码设置" initialValue={true}>
+            <Radio.Group onChange={e => setAutoGenerate(e.target.value)}>
+              <Radio value={true}>自动生成</Radio>
+              <Radio value={false}>手动设置</Radio>
+            </Radio.Group>
+          </Form.Item>
+          {!autoGenerate && (
+            <Form.Item name="password" label="初始密码" rules={[{ required: true, min: 8, message: '至少 8 位' }]}>
+              <Input.Password placeholder="8位+大写+小写+数字" />
+            </Form.Item>
+          )}
+          <Form.Item name="force_password_change" valuePropName="checked" initialValue={true}>
+            <Checkbox>首次登录时强制修改密码</Checkbox>
           </Form.Item>
         </Form>
       </Modal>

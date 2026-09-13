@@ -123,11 +123,13 @@ func (h *PlatformStaffHandler) Create(c *gin.Context) {
 	}
 
 	var req struct {
-		Username string `json:"username" binding:"required"`
-		Name     string `json:"name" binding:"required"`
-		Phone    string `json:"phone"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		Username            string `json:"username" binding:"required"`
+		Name                string `json:"name" binding:"required"`
+		Phone               string `json:"phone"`
+		Email               string `json:"email"`
+		Password            string `json:"password"`
+		AutoGenerate        bool   `json:"auto_generate"`
+		ForcePasswordChange bool   `json:"force_password_change"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
@@ -135,18 +137,50 @@ func (h *PlatformStaffHandler) Create(c *gin.Context) {
 	}
 
 	iamClient := services.NewIAMClient()
+
+	// 密码设置与其他成员管理一致（商户/网点成员）：默认自动生成初始密码，也可
+	// 手动设置；自动生成时返回初始密码（仅展示一次）并触发 IAM 通知邮件。
+	var initialPassword string
+	if req.AutoGenerate {
+		initialPassword = generatePassword()
+	} else {
+		if req.Password == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "手动设置密码时不能为空"})
+			return
+		}
+		if err := validatePassword(req.Password); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": err.Error()})
+			return
+		}
+	}
+	password := req.Password
+	if req.AutoGenerate {
+		password = initialPassword
+	}
+
 	// 1. IAM 创建/获取用户。
 	result, err := iamClient.CreateOrGetUser("", &services.CreateUserRequest{
-		Username:       req.Username,
-		Name:           req.Name,
-		Phone:          req.Phone,
-		Email:          req.Email,
-		Password:       req.Password,
-		SkipActivation: true,
+		Username:              req.Username,
+		Name:                  req.Name,
+		Phone:                 req.Phone,
+		Email:                 req.Email,
+		Password:              password,
+		SkipActivation:        true,
+		SendNotificationEmail: req.AutoGenerate && req.Email != "",
+		NotificationLang:      middleware.GetCulture(c),
+		ForcePasswordChange:   req.ForcePasswordChange,
 	})
 	if err != nil {
 		log.Printf("[PlatformStaff] CreateOrGetUser failed for %s: %v", req.Username, err)
 		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": err.Error()})
+		return
+	}
+	if result.Conflict {
+		c.JSON(http.StatusConflict, gin.H{
+			"code":    40900,
+			"message": "用户已存在（手机号/邮箱/用户名重复），请修改后重试",
+			"data":    gin.H{"existing_users": result.ExistingUsers},
+		})
 		return
 	}
 
@@ -188,7 +222,11 @@ func (h *PlatformStaffHandler) Create(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": user.ID, "iam_sub": result.UserID}})
+	data := gin.H{"id": user.ID, "iam_sub": result.UserID}
+	if initialPassword != "" {
+		data["initial_password"] = initialPassword
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": data})
 }
 
 // Disable handles DELETE /admin/platform-staff/:id（禁用优先，不硬删）。
