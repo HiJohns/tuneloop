@@ -1,16 +1,10 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { View, Text, RichText } from '@tarojs/components'
+import { View, Text } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { env } from '../platform'
-
-// Normalize relative URLs in HTML content to absolute URLs so wechat
-// rich-text can load images (relative src like "/uploads/..." are not
-// resolved by the wechat WebView).
-// #1830: URL normalization moved to utils/content.js (shared with the
-// membership handbook rich-text rendering).
-import { normalizeContentUrls } from '../utils/content'
+import RichContent from '../components/RichContent'
 
 export default function ContentPage() {
   const [searchParams] = useSearchParams()
@@ -69,12 +63,6 @@ export default function ContentPage() {
     if (key) fetchContent()
   }, [key])
 
-  const origin = (env.apiBaseUrl || '').replace(/\/api\/?$/, '')
-  const normalizedContent = useMemo(
-    () => normalizeContentUrls(content, origin),
-    [content, origin]
-  )
-
   return (
     <View style={{ backgroundColor: "#FDFBF7" }} className="min-h-screen">
       {/* Navigation bar — H5 only, weapp uses native nav (#1511) */}
@@ -87,10 +75,8 @@ export default function ContentPage() {
       <View className="px-4 py-4">
         {loading ? (
           <Text className="text-zinc-400">加载中...</Text>
-        ) : /<[a-z][\s\S]*>/i.test(normalizedContent) ? (
-          <RichText nodes={normalizedContent} />
         ) : (
-          <Text className="text-sm text-zinc-700 leading-6 whitespace-pre-wrap">{normalizedContent}</Text>
+          <RichContent html={content} />
         )}
       </View>
     </View>

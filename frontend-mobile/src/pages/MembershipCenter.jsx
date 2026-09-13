@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, ScrollView, Button, Image, Canvas, Input, Picker, RichText } from '@tarojs/components'
+import { View, Text, ScrollView, Button, Image, Canvas, Input, Picker } from '@tarojs/components'
 import { apiFetch, addressesApi, resolveErrorMessage } from '../services/api'
 import { env, dialog, getInputValue, toWeappRoute } from '../platform'
 import { useNavigate } from 'react-router-dom'
 import regions from '../data/regions.json'
 import QRCode from 'qrcode'
-import { normalizeContentUrls } from '../utils/content'
+import RichContent from '../components/RichContent'
 import '../utils/text-encoder'
 
 const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm'
@@ -437,13 +437,9 @@ export default function MembershipCenter() {
           <Text className="text-sm font-bold text-zinc-800">会员规则与权益手册</Text>
           <Text className="text-xs text-zinc-400">{showHandbook ? '收起 ▲' : '展开 ▼'}</Text>
         </View>
-        {showHandbook && (handbookHtml ? (() => {
-          const origin = (env.apiBaseUrl || '').replace(/\/api\/?$/, '')
-          const normalized = normalizeContentUrls(handbookHtml, origin)
-          return /<[a-z][\s\S]*>/i.test(normalized)
-            ? <View className="mt-3"><RichText nodes={normalized} /></View>
-            : <Text className="text-xs text-zinc-500 block mt-3" style={{ lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{normalized}</Text>
-        })() : (
+        {showHandbook && (handbookHtml ? (
+          <View className="mt-3"><RichContent html={handbookHtml} /></View>
+        ) : (
           <View className="mt-3" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {HANDBOOK_SECTIONS.map((s, i) => (
               <View key={i}>
