@@ -7,48 +7,49 @@ import (
 )
 
 type User struct {
-	ID                  string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	IAMSub              string     `gorm:"type:varchar(255);not null;-:migration" json:"iam_sub"`
-	TenantID            string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrgID               string     `gorm:"type:uuid;index;not null" json:"org_id"`
-	Username            string     `gorm:"type:varchar(255)" json:"username"`
-	Nickname            string     `gorm:"type:varchar(64)" json:"nickname"`
-	Name                string     `gorm:"type:varchar(255)" json:"name"`
-	Phone               string     `gorm:"type:varchar(50)" json:"phone"`
-	Email               string     `gorm:"type:varchar(255)" json:"email"`
-	CreditScore         int        `gorm:"default:600" json:"credit_score"`
-	DepositMode         string     `gorm:"type:varchar(20);default:'standard'" json:"deposit_mode"` // 已弃用，仅用于兼容旧数据，勿写入新值
-	IsShadow            bool       `gorm:"default:true" json:"is_shadow"`
-	IsSystemAdmin       bool       `gorm:"default:false" json:"is_system_admin"`
-	Status              string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
-	Position            string     `gorm:"type:varchar(100)" json:"position"`
-	Role                string     `gorm:"type:varchar(50)" json:"role"`
-	ForcePasswordChange bool       `gorm:"default:false" json:"force_password_change"`
-	WxOpenid            string     `gorm:"type:varchar(128);index" json:"wx_openid"`
-	WxUnionid           string     `gorm:"type:varchar(128)" json:"wx_unionid"`
-	AvatarURL           string     `gorm:"type:varchar(500)" json:"avatar"`
-	IsProfileCompleted  bool       `gorm:"default:false" json:"is_profile_completed"`
-	MembershipLevelID   *int       `gorm:"type:int" json:"membership_level_id"`
-	TotalSpending       Cents      `gorm:"type:bigint;default:0" json:"total_spending"`
-	PrepaidPoints       Cents      `gorm:"type:bigint;default:0" json:"-"`            // deprecated (#1531)
-	PromoPoints         Cents      `gorm:"type:bigint;default:0" json:"promo_points"` // #1757: cents (1 点 = 1 分)
-	OnboardingCompleted bool       `gorm:"default:false" json:"onboarding_completed"`
-	IdPhotoFront        *string    `gorm:"type:varchar(500)" json:"id_photo_front"`
-	IdPhotoBack         *string    `gorm:"type:varchar(500)" json:"id_photo_back"`
-	IdPhotoOther        *string    `gorm:"type:varchar(500)" json:"id_photo_other"`
-	IdPhotoOtherType    *string    `gorm:"type:varchar(50)" json:"id_photo_other_type"` // #1807: 第三证件类型（student/teacher/work/other）
-	RealName            *string    `gorm:"type:varchar(64)" json:"real_name"`
-	IdCardNo            *string    `gorm:"type:varchar(18)" json:"id_card_no"`
-	IdCardExpire        *string    `gorm:"type:varchar(20)" json:"id_card_expire"`     // #1807: 身份证有效期（YYYY-MM-DD 或「长期」），员工审核时按证件照填写
-	IdCardAuthority     *string    `gorm:"type:varchar(100)" json:"id_card_authority"` // #1807: 签发机关（员工审核填写）
-	IdCardAddress       *string    `gorm:"type:varchar(200)" json:"id_card_address"`   // #1807: 证件住址（员工审核填写）
-	FaceVerified        bool       `gorm:"default:false" json:"face_verified"`
-	FaceVerifiedAt      *time.Time `gorm:"column:face_verified_at" json:"face_verified_at"`
-	FaceVerifyMethod    *string    `gorm:"type:varchar(10)" json:"face_verify_method"` // #1789 T1: tencent=自动比对 / manual=人工审核（信息变更时清除）
-	RefCode             string     `gorm:"type:varchar(16)" json:"ref_code"`
-	DeletedAt           *time.Time `gorm:"index" json:"deleted_at"`
-	CreatedAt           time.Time  `json:"created_at"`
-	UpdatedAt           time.Time  `json:"updated_at"`
+	ID                   string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	IAMSub               string     `gorm:"type:varchar(255);not null;-:migration" json:"iam_sub"`
+	TenantID             string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID                string     `gorm:"type:uuid;index;not null" json:"org_id"`
+	Username             string     `gorm:"type:varchar(255)" json:"username"`
+	Nickname             string     `gorm:"type:varchar(64)" json:"nickname"`
+	Name                 string     `gorm:"type:varchar(255)" json:"name"`
+	Phone                string     `gorm:"type:varchar(50)" json:"phone"`
+	Email                string     `gorm:"type:varchar(255)" json:"email"`
+	CreditScore          int        `gorm:"default:600" json:"credit_score"`
+	DepositMode          string     `gorm:"type:varchar(20);default:'standard'" json:"deposit_mode"` // 已弃用，仅用于兼容旧数据，勿写入新值
+	IsShadow             bool       `gorm:"default:true" json:"is_shadow"`
+	IsSystemAdmin        bool       `gorm:"default:false" json:"is_system_admin"`
+	Status               string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
+	Position             string     `gorm:"type:varchar(100)" json:"position"`
+	Role                 string     `gorm:"type:varchar(50)" json:"role"`
+	ForcePasswordChange  bool       `gorm:"default:false" json:"force_password_change"`
+	WxOpenid             string     `gorm:"type:varchar(128);index" json:"wx_openid"`
+	WxUnionid            string     `gorm:"type:varchar(128)" json:"wx_unionid"`
+	AvatarURL            string     `gorm:"type:varchar(500)" json:"avatar"`
+	IsProfileCompleted   bool       `gorm:"default:false" json:"is_profile_completed"`
+	MembershipLevelID    *int       `gorm:"type:int" json:"membership_level_id"`
+	TotalSpending        Cents      `gorm:"type:bigint;default:0" json:"total_spending"`
+	PrepaidPoints        Cents      `gorm:"type:bigint;default:0" json:"-"`            // deprecated (#1531)
+	PromoPoints          Cents      `gorm:"type:bigint;default:0" json:"promo_points"` // #1757: cents (1 点 = 1 分)
+	OnboardingCompleted  bool       `gorm:"default:false" json:"onboarding_completed"`
+	IdPhotoFront         *string    `gorm:"type:varchar(500)" json:"id_photo_front"`
+	IdPhotoBack          *string    `gorm:"type:varchar(500)" json:"id_photo_back"`
+	IdPhotoOther         *string    `gorm:"type:varchar(500)" json:"id_photo_other"`
+	IdPhotoOtherType     *string    `gorm:"type:varchar(50)" json:"id_photo_other_type"`  // #1807: 第三证件类型（student/teacher/work/other）
+	IdPhotoOtherVerified bool       `gorm:"default:false" json:"id_photo_other_verified"` // #1924: 第二证件审核通过（类型由审核员指定）
+	RealName             *string    `gorm:"type:varchar(64)" json:"real_name"`
+	IdCardNo             *string    `gorm:"type:varchar(18)" json:"id_card_no"`
+	IdCardExpire         *string    `gorm:"type:varchar(20)" json:"id_card_expire"`     // #1807: 身份证有效期（YYYY-MM-DD 或「长期」），员工审核时按证件照填写
+	IdCardAuthority      *string    `gorm:"type:varchar(100)" json:"id_card_authority"` // #1807: 签发机关（员工审核填写）
+	IdCardAddress        *string    `gorm:"type:varchar(200)" json:"id_card_address"`   // #1807: 证件住址（员工审核填写）
+	FaceVerified         bool       `gorm:"default:false" json:"face_verified"`
+	FaceVerifiedAt       *time.Time `gorm:"column:face_verified_at" json:"face_verified_at"`
+	FaceVerifyMethod     *string    `gorm:"type:varchar(10)" json:"face_verify_method"` // #1789 T1: tencent=自动比对 / manual=人工审核（信息变更时清除）
+	RefCode              string     `gorm:"type:varchar(16)" json:"ref_code"`
+	DeletedAt            *time.Time `gorm:"index" json:"deleted_at"`
+	CreatedAt            time.Time  `json:"created_at"`
+	UpdatedAt            time.Time  `json:"updated_at"`
 }
 
 // FaceCaptureBatch (#1789 T1): 实名核身自拍采集批次（人工审核用）。
@@ -56,7 +57,8 @@ type User struct {
 type FaceCaptureBatch struct {
 	ID           string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	UserID       string     `gorm:"type:uuid;not null;index:idx_face_capture_batches_user" json:"user_id"`
-	Status       string     `gorm:"type:varchar(20);not null;default:'pending'" json:"status"` // pending/approved/rejected
+	Status       string     `gorm:"type:varchar(20);not null;default:'pending'" json:"status"`    // pending/approved/rejected
+	Kind         string     `gorm:"type:varchar(20);not null;default:'registration'" json:"kind"` // #1924: registration / second_doc
 	RejectReason *string    `gorm:"type:text" json:"reject_reason,omitempty"`
 	SubmittedAt  time.Time  `gorm:"not null;default:now()" json:"submitted_at"`
 	ReviewedBy   *string    `gorm:"type:varchar(255)" json:"reviewed_by,omitempty"` // 平台员工（本地 users 缓存 name/ID）

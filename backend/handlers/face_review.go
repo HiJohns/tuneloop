@@ -39,6 +39,11 @@ type faceReviewItem struct {
 	IDPhotos        []string `json:"id_photos"`
 	SelfieURLs      []string `json:"selfie_urls"`
 	SubmittedAt     string   `json:"submitted_at"`
+	Kind            string   `json:"kind"`                        // #1924: registration / second_doc
+	HasSecondDoc    bool     `json:"has_second_doc"`              // #1924: 用户已提交第二证件
+	OtherVerified   bool     `json:"id_photo_other_verified"`     // #1924: 第二证件认证态
+	OtherType       string   `json:"id_photo_other_type"`         // #1924: 审核员指定类型（未定时为空）
+	FaceVerified    bool     `json:"face_verified"`               // #1924: 身份证实名是否已认证
 	IDInfoCollected bool     `json:"id_info_collected"`           // #1822: 实名信息已采录
 	RealName        string   `json:"real_name,omitempty"`         // #1822: 已采录时展示姓名
 	IDCardNoMasked  string   `json:"id_card_no_masked,omitempty"` // #1822: 身份证号后四位掩码
@@ -84,15 +89,19 @@ func (h *FaceReviewHandler) Queue(c *gin.Context) {
 	items := make([]faceReviewItem, 0, len(batches))
 	for _, b := range batches {
 		var user models.User
-		if err := db.Select("id, name, id_photo_front, id_photo_back, id_photo_other, real_name, id_card_no, id_card_expire, id_card_authority, id_card_address").
+		if err := db.Select("id, name, id_photo_front, id_photo_back, id_photo_other, real_name, id_card_no, id_card_expire, id_card_authority, id_card_address, id_photo_other_verified, id_photo_other_type, face_verified").
 			Where("id = ?", b.UserID).First(&user).Error; err != nil {
 			continue // 用户不存在（可能已删除）跳过
 		}
 		item := faceReviewItem{
-			BatchID:     b.ID,
-			UserID:      user.ID,
-			UserName:    user.Name,
-			SubmittedAt: b.SubmittedAt.Format(time.RFC3339),
+			BatchID:       b.ID,
+			UserID:        user.ID,
+			UserName:      user.Name,
+			SubmittedAt:   b.SubmittedAt.Format(time.RFC3339),
+			Kind:          b.Kind,
+			HasSecondDoc:  user.IdPhotoOther != nil && *user.IdPhotoOther != "",
+			OtherVerified: user.IdPhotoOtherVerified,
+			FaceVerified:  user.FaceVerified,
 		}
 		// #1822: 实名信息采集状态（已采录时展示脱敏摘要，审核员无需重复抄录）。
 		if userHasCoreIDInfo(&user) {
@@ -149,6 +158,7 @@ func (h *FaceReviewHandler) Queue(c *gin.Context) {
 // selfie material URLs — the user-detail dialog module 2 data source (#1810).
 type faceReviewBatchItem struct {
 	BatchID      string   `json:"batch_id"`
+	Kind         string   `json:"kind"`
 	Status       string   `json:"status"`
 	RejectReason string   `json:"reject_reason,omitempty"`
 	SelfieURLs   []string `json:"selfie_urls"`
@@ -178,6 +188,7 @@ func (h *FaceReviewHandler) UserBatches(c *gin.Context) {
 	for _, b := range batches {
 		item := faceReviewBatchItem{
 			BatchID:     b.ID,
+			Kind:        b.Kind,
 			Status:      b.Status,
 			SubmittedAt: b.SubmittedAt.Format(time.RFC3339),
 		}
@@ -222,6 +233,7 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 		IdCardExpire    string `json:"id_card_expire"`    // #1807: 有效期（YYYY-MM-DD 或「长期」）
 		IdCardAuthority string `json:"id_card_authority"` // #1807: 签发机关
 		IdCardAddress   string `json:"id_card_address"`   // #1807: 证件住址
+		SecondDocType   string `json:"second_doc_type"`   // #1924: 员工审核时指定第二证件类型（student/teacher/work/other）
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "action must be approve or reject"})
@@ -243,16 +255,36 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 	// - 已采录（用户详情已录 real_name + id_card_no）：审核 = 证/人一致性核验，
 	//   approve 无需携带 5 项字段（复用已存，弹窗呈只读摘要），也不得覆盖已存字段
 	// - 未采录：员工必须填写 5 项实名信息（按证件照抄录，防顾客手输伪造）
+	// 目标用户（#1924：审核涉及第二证件状态）。
+	var targetUser models.User
+	targetUserFound := db.Select("id, tenant_id, real_name, id_card_no, id_photo_other, id_photo_other_type, face_verified").
+		Where("id = ?", batch.UserID).First(&targetUser).Error == nil
+	secondDocPresent := targetUserFound && targetUser.IdPhotoOther != nil && *targetUser.IdPhotoOther != ""
+
 	collected := false
 	if req.Action == "approve" {
-		var checkUser models.User
-		if err := db.Select("real_name, id_card_no").Where("id = ?", batch.UserID).
-			First(&checkUser).Error; err == nil && userHasCoreIDInfo(&checkUser) {
-			collected = true
-		} else if req.RealName == "" || req.IdCardNo == "" || req.IdCardExpire == "" ||
-			req.IdCardAuthority == "" || req.IdCardAddress == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "real_name, id_card_no, id_card_expire, id_card_authority and id_card_address are required for approve (user has no existing ID info)"})
-			return
+		if batch.Kind == "second_doc" {
+			// 第二证件复审：身份证实名信息已认证，仅需指定类型。
+			if !secondDocPresent {
+				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "user has no second document to review"})
+				return
+			}
+			if !validSecondDocType(req.SecondDocType) {
+				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "second_doc_type 必填且需为 student/teacher/work/other"})
+				return
+			}
+		} else {
+			collected = targetUserFound && userHasCoreIDInfo(&targetUser)
+			if !collected && (req.RealName == "" || req.IdCardNo == "" || req.IdCardExpire == "" ||
+				req.IdCardAuthority == "" || req.IdCardAddress == "") {
+				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "real_name, id_card_no, id_card_expire, id_card_authority and id_card_address are required for approve (user has no existing ID info)"})
+				return
+			}
+			// #1924: 顾客提交了第二证件 → 审核时必须指定类型。
+			if secondDocPresent && !validSecondDocType(req.SecondDocType) {
+				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "second_doc_type 必填且需为 student/teacher/work/other"})
+				return
+			}
 		}
 	}
 
@@ -263,10 +295,8 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 		operatorName = opUser.Name
 	}
 
-	// 查目标用户 tenant_id（通知用；零租户顾客 tenant_id 为 UUID 零值）。
-	var targetUser models.User
-	if err := db.Select("id, tenant_id").Where("id = ?", batch.UserID).First(&targetUser).Error; err != nil {
-		log.Printf("[FaceReview] target user %s not found: %v", batch.UserID, err)
+	if !targetUserFound {
+		log.Printf("[FaceReview] target user %s not found", batch.UserID)
 	}
 
 	tx := db.Begin()
@@ -275,19 +305,29 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 		// 批准：face_verified=true + method=manual + 实名信息（#1807/#1822）。
 		// - 已采录（id_info_collected）：仅更新 face_verified 相关字段，保留已存实名信息
 		// - 未采录：员工填写 5 项实名信息一并落库
-		userUpdates := map[string]interface{}{
-			"face_verified":      true,
-			"face_verify_method": "manual",
-			"face_verified_at":   now,
-			"updated_at":         now,
-		}
-		// 未采录：员工填写 5 项实名信息一并写入；已采录：仅更新 face_verified，保留已存字段
-		if !collected {
-			userUpdates["real_name"] = req.RealName
-			userUpdates["id_card_no"] = req.IdCardNo
-			userUpdates["id_card_expire"] = req.IdCardExpire
-			userUpdates["id_card_authority"] = req.IdCardAuthority
-			userUpdates["id_card_address"] = req.IdCardAddress
+		userUpdates := map[string]interface{}{}
+		if batch.Kind == "second_doc" {
+			// #1924: 第二证件复审只落类型与认证态，不触碰 face_verified。
+			userUpdates["id_photo_other_type"] = req.SecondDocType
+			userUpdates["id_photo_other_verified"] = true
+			userUpdates["updated_at"] = now
+		} else {
+			userUpdates["face_verified"] = true
+			userUpdates["face_verify_method"] = "manual"
+			userUpdates["face_verified_at"] = now
+			userUpdates["updated_at"] = now
+			// 未采录：员工填写 5 项实名信息一并写入；已采录：仅更新 face_verified。
+			if !collected {
+				userUpdates["real_name"] = req.RealName
+				userUpdates["id_card_no"] = req.IdCardNo
+				userUpdates["id_card_expire"] = req.IdCardExpire
+				userUpdates["id_card_authority"] = req.IdCardAuthority
+				userUpdates["id_card_address"] = req.IdCardAddress
+			}
+			if secondDocPresent {
+				userUpdates["id_photo_other_type"] = req.SecondDocType
+				userUpdates["id_photo_other_verified"] = true
+			}
 		}
 		if err := tx.Model(&models.User{}).Where("id = ?", batch.UserID).
 			Updates(userUpdates).Error; err != nil {
@@ -355,4 +395,13 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 		"code": 20000,
 		"data": gin.H{"status": batch.Status},
 	})
+}
+
+// #1924: reviewer-assigned second document type.
+func validSecondDocType(t string) bool {
+	switch t {
+	case "student", "teacher", "work", "other":
+		return true
+	}
+	return false
 }

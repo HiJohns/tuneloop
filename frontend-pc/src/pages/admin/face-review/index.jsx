@@ -4,12 +4,20 @@
 // 字段边界：仅展示审核所需（姓名 + 证件照 + 自拍），不展示身份证号明文
 import { useState, useCallback, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Table, Card, Button, Space, Tag, Image, Modal, Input, message, Typography } from 'antd'
+import { Table, Card, Button, Space, Tag, Image, Modal, Input, Select, message, Typography } from 'antd'
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { faceReviewApi } from '../../../services/api'
 import { formatBeijingDateTimeShort } from '../../../utils/date'
 
 const { Text } = Typography
+
+// #1924: 审核员指定的第二证件类型
+const SECOND_DOC_OPTIONS = [
+  { value: 'student', label: '学生证' },
+  { value: 'teacher', label: '教职工证' },
+  { value: 'work', label: '工作证' },
+  { value: 'other', label: '其他' },
+]
 
 export default function FaceReviewPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -21,6 +29,7 @@ export default function FaceReviewPage() {
   // #1807/#1822: 通过弹窗两态——未采录时员工录入 5 项实名信息（根据证件照核对）；
   // 已采录（id_info_collected=true）时仅展示只读摘要做证/人核验，确认即通过。
   const [approving, setApproving] = useState(null) // 当前通过的 batch record
+  const [secondDocType, setSecondDocType] = useState('') // #1924: 第二证件类型
   const [realName, setRealName] = useState('')
   const [idCardNo, setIdCardNo] = useState('')
   const [idCardExpire, setIdCardExpire] = useState('')
@@ -51,7 +60,10 @@ export default function FaceReviewPage() {
   // 未采录用户仍需员工录入完整 5 项（按证件照抄录，#1807）。
   const handleApprove = async () => {
     const collected = !!(approving && approving.id_info_collected)
-    if (!collected) {
+    const isSecondDoc = approving?.kind === 'second_doc'
+    const needsSecondType = !!(approving?.has_second_doc)
+    // #1924: 第二证件复审只指定类型；注册审核未采录时才需录入 5 项实名信息。
+    if (!collected && !isSecondDoc) {
       if (!realName.trim() || !idCardNo.trim() || !idCardExpire.trim() || !idCardAuthority.trim() || !idCardAddress.trim()) {
         message.warning('请填写完整实名信息（真实姓名、身份证号、有效期、签发机关、住址，根据证件照核对）')
         return
@@ -61,22 +73,28 @@ export default function FaceReviewPage() {
         return
       }
     }
+    if (needsSecondType && !secondDocType) {
+      message.warning('请指定第二证件类型（学生证/教职工证/工作证/其他）')
+      return
+    }
     setSubmitting(true)
     try {
-      const payload = collected
-        ? { action: 'approve' }
-        : {
-            action: 'approve',
-            real_name: realName.trim(),
-            id_card_no: idCardNo.trim(),
-            id_card_expire: idCardExpire.trim(),
-            id_card_authority: idCardAuthority.trim(),
-            id_card_address: idCardAddress.trim(),
-          }
+      const payload = { action: 'approve' }
+      if (!collected && !isSecondDoc) {
+        payload.real_name = realName.trim()
+        payload.id_card_no = idCardNo.trim()
+        payload.id_card_expire = idCardExpire.trim()
+        payload.id_card_authority = idCardAuthority.trim()
+        payload.id_card_address = idCardAddress.trim()
+      }
+      if (needsSecondType) {
+        payload.second_doc_type = secondDocType
+      }
       const resp = await faceReviewApi.review(approving.batch_id, payload)
       if (resp.code === 20000) {
         message.success('已通过')
         setApproving(null)
+        setSecondDocType('')
         setRealName('')
         setIdCardNo('')
         setIdCardExpire('')
@@ -140,6 +158,12 @@ export default function FaceReviewPage() {
             <Image key={i} src={url} width={48} height={48} style={{ objectFit: 'cover', borderRadius: 4 }} />
           ))}
           {(record.id_photos || []).length === 0 && <Text type="secondary">无</Text>}
+          {record.has_second_doc && (
+            <Tag color={record.id_photo_other_verified ? 'green' : 'orange'}>
+              第二证件{record.id_photo_other_verified ? '已认证' : '未认证'}
+            </Tag>
+          )}
+          {record.kind === 'second_doc' && <Tag color="blue">第二证件复审</Tag>}
         </Space>
       ),
     },
@@ -231,12 +255,12 @@ export default function FaceReviewPage() {
         title="通过核身申请"
         open={!!approving}
         onOk={handleApprove}
-        onCancel={() => setApproving(null)}
+        onCancel={() => { setApproving(null); setSecondDocType('') }}
         okText="确认通过"
         cancelText="取消"
         okButtonProps={{ loading: submitting }}
       >
-        {approving && approving.id_info_collected ? (
+        {approving && (approving.id_info_collected || approving.kind === 'second_doc') ? (
           // #1822: 已采录态——用户详情已维护实名信息，本弹窗只做证/人核验，
           // 展示只读摘要（不含身份证号明文），确认即 approve（不带 id 字段防覆盖）。
           <div>
@@ -289,6 +313,21 @@ export default function FaceReviewPage() {
               onChange={(e) => setIdCardAddress(e.target.value)}
               placeholder="证件住址（必填，按证件照抄录）"
               maxLength={200}
+            />
+          </div>
+        )}
+        {/* #1924: 用户提交了第二证件 → 审核人必须指定类型 */}
+        {approving?.has_second_doc && (
+          <div style={{ marginTop: 16 }}>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+              第二证件类型（审核人指定）：{approving.id_photo_other_verified ? '（当前已认证，可修改类型）' : '（当前未认证）'}
+            </Text>
+            <Select
+              value={secondDocType || undefined}
+              onChange={setSecondDocType}
+              options={SECOND_DOC_OPTIONS}
+              placeholder="选择第二证件类型"
+              style={{ width: 220 }}
             />
           </div>
         )}

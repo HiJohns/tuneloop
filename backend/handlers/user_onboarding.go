@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -184,9 +185,33 @@ func (h *UserOnboardingHandler) UploadIDPhoto(c *gin.Context) {
 		return
 	}
 
+	// #1924: 提交/更换第二证件 → 重置认证态并投递专属审核批次（待审核期间幂等）。
+	if side == "other" {
+		if err := db.Model(&models.User{}).Where("id = ?", userID).
+			Update("id_photo_other_verified", false).Error; err != nil {
+			log.Printf("[IDPhoto] reset second-doc verification failed: %v", err)
+		}
+		var pendingCount int64
+		db.Model(&models.FaceCaptureBatch{}).
+			Where("user_id = ? AND kind = ? AND status = ?", userID, "second_doc", "pending").
+			Count(&pendingCount)
+		if pendingCount == 0 {
+			if err := db.Create(&models.FaceCaptureBatch{
+				ID: uuid.New().String(), UserID: userID, Status: "pending", Kind: "second_doc",
+				SubmittedAt: time.Now(), CreatedAt: time.Now(),
+			}).Error; err != nil {
+				log.Printf("[IDPhoto] create second-doc review batch failed: %v", err)
+			}
+		}
+	}
+
+	msg := "upload success"
+	if side == "other" {
+		msg = "第二证件照已提交审核，类型将由平台审核时指定"
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
-		"message": "upload success",
+		"message": msg,
 		"data": gin.H{
 			"url":  fileURL,
 			"side": side,
@@ -228,9 +253,9 @@ func (h *UserOnboardingHandler) GetIdPhotos(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"front":  front,
-			"back":   back,
-			"other":  other,
+			"front": front,
+			"back":  back,
+			"other": other,
 		},
 	})
 }

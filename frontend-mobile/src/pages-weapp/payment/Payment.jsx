@@ -275,15 +275,10 @@ export default function Payment() {
           Taro.redirectTo({ url: weappUrl, fail: () => exit('/pages-weapp/profile/index') })
           return
         }
-        // #1845: 学生证豁免路径（注册页已传学生证、跳过身份证）→ 注册完成后
-        // 强制引导人脸识别；非豁免用户照常落地个人中心。
+        // #1924: 注册（支付会员费）完成后必须完成实名核身（自拍+视频）。
         if (ok) {
-          if (session.getItem('reg_student_exempt') === '1') {
-            session.removeItem('reg_student_exempt')
-            Taro.redirectTo({ url: '/pages-weapp/face-verify/index', fail: () => exit('/pages-weapp/profile/index') })
-            return
-          }
-          exit('/pages-weapp/profile/index')
+          Taro.redirectTo({ url: '/pages-weapp/face-verify/index', fail: () => exit('/pages-weapp/profile/index') })
+          return
         } else {
           exit('/pages-weapp/home/index')
         }

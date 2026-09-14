@@ -30,7 +30,6 @@ export default function ProfileComplete() {
   const [resumeSid, setResumeSid] = useState('')
   const [sessionAmount, setSessionAmount] = useState(0)
   // #1807: 第三证件类型（学生证/教师证/工作证/其他）
-  const [otherIdType, setOtherIdType] = useState('')
   // #1845: resume 会话时回填服务端已上传的证件侧（defer 本地无预览，
   // 以 id_photos map 键为凭）→ 满足身份证必填校验。
   const [uploadedSides, setUploadedSides] = useState({})
@@ -74,7 +73,6 @@ export default function ProfileComplete() {
             if (f.phone) setPhone(f.phone)
             if (f.email) setEmail(f.email)
             // #1845: resume 会话回填第三证件类型（学生证豁免判定依赖）。
-            if (f.id_photo_other_type) setOtherIdType(f.id_photo_other_type)
             // #1845: 已上传证件侧回填（id_photos: {front|back|other: key}）。
             // 服务端照片随会话保留，本次不再重复上传，仅用于必填校验。
             if (f.id_photos && typeof f.id_photos === 'object') {
@@ -110,22 +108,13 @@ export default function ProfileComplete() {
     if (!name.trim()) { Taro.showToast({ title: '请输入姓名', icon: 'none' }); return }
     if (!phone.trim()) { Taro.showToast({ title: '请输入手机号', icon: 'none' }); return }
     if (!agreed) { Taro.showToast({ title: '请先阅读并同意协议', icon: 'none' }); return }
-    // #1845: 实名证件必填——学生证豁免：选择「学生证」类型且学生证已传
-    //（本轮选图 或 resume 会话已传）的，跳过身份证正反面（不做年龄判定）；
-    // 其余证件类型仍须身份证正反面。
-    const otherReady = otherPicked || uploadedSides.other
-    const studentExempt = otherIdType === '学生证' && otherReady
+    // #1924: 身份证正反面必填（取消学生证豁免）；第二证件可选，类型由平台
+    // 审核时指定（顾客提交时保持「未定」）。
     const frontReady = uploadedSides.front || !!idPhotoFrontRef.current?.hasFile()
     const backReady = uploadedSides.back || !!idPhotoBackRef.current?.hasFile()
-    if (!studentExempt && (!frontReady || !backReady)) {
+    if (!frontReady || !backReady) {
       Taro.showToast({ title: '请先上传身份证正反面照片', icon: 'none' })
       return
-    }
-    if (studentExempt) {
-      // 学生证豁免路径：支付完成后引导人脸识别（FaceVerify），标记供 Payment 读取。
-      session.setItem('reg_student_exempt', '1')
-    } else {
-      session.removeItem('reg_student_exempt')
     }
     setSaving(true)
     try {
@@ -136,7 +125,6 @@ export default function ProfileComplete() {
       let amount = sessionAmount
       if (!sid) {
         const body = { name: name.trim(), nickname: nickname.trim() || name.trim(), phone: phone.trim(), email: email.trim(), agreed_terms: true }
-        if (otherIdType) { body.id_photo_other_type = otherIdType } // #1807: 第三证件类型
         if (province || city || detail) {
           body.address = { province, city, district, detail, postal_code: postalCode }
         }
@@ -292,9 +280,7 @@ export default function ProfileComplete() {
 
       {/* #1845: 默认身份证必填；选择「学生证」类型并已传学生证后提示可豁免 */}
       <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', width: '100%', marginBottom: 12 }}>
-        身份证照片{(otherIdType === '学生证' && (otherPicked || uploadedSides.other))
-          ? <Text style={{ color: '#a16207' }}>（学生证已传可免填）</Text>
-          : <Text style={{ color: '#ef4444' }}>（必填）</Text>}
+        身份证照片<Text style={{ color: '#ef4444' }}>（必填）</Text>
       </Text>
       {/* #1807: 正反面一行（各 ~48%） */}
       <View style={{ display: 'flex', width: '100%', marginBottom: 12, justifyContent: 'space-between' }}>
@@ -305,19 +291,11 @@ export default function ProfileComplete() {
           <IdPhotoUploader ref={idPhotoBackRef} side="back" defer sessionUpload={{ sessionId: resumeSid || undefined }} />
         </View>
       </View>
-      {/* #1807/#1845: 第三证件标题改版——学校师生专属文案；证件类型（在上，宽度与上传框一致）+ 上传框靠左 */}
-      <Text style={{ fontSize: 14, fontWeight: '600', color: '#000', width: '100%', marginBottom: 4 }}>学生证、教职工等其他证件</Text>
+      {/* #1924: 第二证件可选；类型不再由顾客指定（审核时由平台员工指定） */}
+      <Text style={{ fontSize: 14, fontWeight: '600', color: '#000', width: '100%', marginBottom: 4 }}>第二证件照（可选）</Text>
       <Text style={{ fontSize: 12, color: '#a16207', width: '100%', marginBottom: 8, lineHeight: '18px' }}>
-        （学校师生专属：上传学生证/教职工证，享绿色通道及特殊政策！）
+        （学生证/教职工证/工作证等；类型由平台审核时指定，可用于免押金等政策）
       </Text>
-      <View style={{ display: 'flex', width: '100%', marginBottom: 8 }}>
-        <Picker mode="selector" range={ID_TYPE_OPTIONS} value={otherIdType ? ID_TYPE_OPTIONS.indexOf(otherIdType) : 0}
-          onChange={e => setOtherIdType(ID_TYPE_OPTIONS[e.detail.value])}>
-          <View className="w-32" style={{ border: '1px solid #d4d4d8', borderRadius: 12, height: '44px', display: 'flex', alignItems: 'center', paddingLeft: 12, paddingRight: 12, boxSizing: 'border-box', fontSize: 13, color: otherIdType ? '#000' : '#9ca3af' }}>
-            {otherIdType ? `证件类型：${otherIdType}` : '证件类型'}
-          </View>
-        </Picker>
-      </View>
       <View style={{ display: 'flex', width: '100%', marginBottom: 24 }}>
         <IdPhotoUploader ref={idPhotoOtherRef} side="other" defer sessionUpload={{ sessionId: resumeSid || undefined }} leftAligned onSelect={() => setOtherPicked(true)} onClear={() => setOtherPicked(false)} />
       </View>

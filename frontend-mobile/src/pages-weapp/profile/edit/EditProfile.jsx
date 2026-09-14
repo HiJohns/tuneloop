@@ -10,6 +10,9 @@ import IdPhotoUploader from '../../../components/IdPhotoUploader'
 
 const ID_TYPE_OPTIONS = ['学生证', '教职工证', '教师证', '工作证', '其他']
 
+// #1924: 审核员指定的类型码 → 展示名（兼容存量中文值）。
+const SECOND_DOC_LABELS = { student: '学生证', teacher: '教职工证', work: '工作证', other: '其他' }
+
 export default function EditProfile() {
   const [name, setName] = useState('')
   const [nickname, setNickname] = useState('')
@@ -18,7 +21,8 @@ export default function EditProfile() {
   const [idPhotoFront, setIdPhotoFront] = useState('')
   const [idPhotoBack, setIdPhotoBack] = useState('')
   const [idPhotoOther, setIdPhotoOther] = useState('')
-  const [idPhotoOtherType, setIdPhotoOtherType] = useState('') // #1807: 第三证件类型
+  const [idPhotoOtherType, setIdPhotoOtherType] = useState('') // #1924: 审核员指定（只读展示）
+  const [idPhotoOtherVerified, setIdPhotoOtherVerified] = useState(false) // #1924: 第二证件审核态
   const [realName, setRealName] = useState('')
   const [idCardNo, setIdCardNo] = useState('')
   const [faceVerified, setFaceVerified] = useState(false)
@@ -67,7 +71,8 @@ export default function EditProfile() {
           setIdPhotoFront(result.data.id_photo_front || '')
           setIdPhotoBack(result.data.id_photo_back || '')
           setIdPhotoOther(result.data.id_photo_other || '')
-          setIdPhotoOtherType(result.data.id_photo_other_type || '') // #1807
+          setIdPhotoOtherType(result.data.id_photo_other_type || '') // #1924: 审核员指定（只读）
+          setIdPhotoOtherVerified(result.data.id_photo_other_verified || false) // #1924
           setRealName(result.data.real_name || '')
           setIdCardNo(result.data.id_card_no || '')
           setFaceVerified(result.data.face_verified || false)
@@ -93,8 +98,7 @@ export default function EditProfile() {
           ...(idPhotoFront ? { id_photo_front: idPhotoFront } : {}),
           ...(idPhotoBack ? { id_photo_back: idPhotoBack } : {}),
           ...(idPhotoOther ? { id_photo_other: idPhotoOther } : {}),
-          // #1807: 第三证件类型
-          ...(idPhotoOtherType ? { id_photo_other_type: idPhotoOtherType } : {}),
+          // #1924: 第二证件类型不再由顾客提交（审核时由平台员工指定）。
           // #1807: real_name/id_card_no 不再由顾客提交——实名信息由员工在
           // 审核流程根据身份证照核对填写（face_review approve）。
         }),
@@ -182,18 +186,16 @@ export default function EditProfile() {
               <IdPhotoUploader side="back" initialUrl={idPhotoBack} onChange={setIdPhotoBack} />
             </View>
           </View>
-          {/* #1807: 其他证件小节标题 + 证件类型（在上，宽度与上传框一致）+ 上传框靠左 */}
-          <Text style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>其他证件</Text>
-          <View style={{ marginBottom: 8 }}>
-            <Picker mode="selector" range={ID_TYPE_OPTIONS} value={idPhotoOtherType ? ID_TYPE_OPTIONS.indexOf(idPhotoOtherType) : 0}
-              onChange={e => setIdPhotoOtherType(ID_TYPE_OPTIONS[e.detail.value])}>
-              <View className="w-32" style={{ border: '1px solid #d4d4d8', borderRadius: 8, height: '44px', display: 'flex', alignItems: 'center', paddingLeft: 12, paddingRight: 12, boxSizing: 'border-box', fontSize: 13, color: idPhotoOtherType ? '#000' : '#9ca3af' }}>
-                {idPhotoOtherType ? `证件类型：${idPhotoOtherType}` : '证件类型'}
-              </View>
-            </Picker>
-          </View>
+          {/* #1924: 第二证件可选；类型由平台审核时指定；展示认证状态 */}
+          <Text style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>第二证件照（可选，类型由平台审核指定）</Text>
+          {idPhotoOther ? (
+            <Text style={{ fontSize: 12, marginBottom: 8, color: idPhotoOtherVerified ? '#16a34a' : '#a16207' }}>
+              {idPhotoOtherVerified ? `✅ 已认证（${SECOND_DOC_LABELS[idPhotoOtherType] || idPhotoOtherType || '已指定类型'}）` : '⏳ 已提交，待平台审核（审核后指定类型）'}
+            </Text>
+          ) : null}
           <View>
-            <IdPhotoUploader side="other" initialUrl={idPhotoOther} onChange={setIdPhotoOther} leftAligned />
+            <IdPhotoUploader side="other" initialUrl={idPhotoOther}
+              onChange={(u) => { setIdPhotoOther(u); if (u) setIdPhotoOtherVerified(false) }} leftAligned />
           </View>
         </View>
         {/* 实名认证区块 (#1787) */}

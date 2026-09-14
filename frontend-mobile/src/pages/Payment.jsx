@@ -264,7 +264,8 @@ export default function Payment() {
   // #1753: 支付成功后跳转。membership → 个人中心；其他 → 成功页。
   function afterPaySuccess(orderIdForSuccess) {
     if (pType === 'membership') {
-      navigate('/profile', { replace: true })
+      // #1924: 注册支付保费后必须完成实名核身（自拍+视频）。
+      navigate('/face-verify', { replace: true })
     } else {
       navigate(`/success?order_id=${orderIdForSuccess}`, { replace: true })
     }

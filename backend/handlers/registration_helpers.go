@@ -308,11 +308,8 @@ func completeRegistrationFromSession(tx *gorm.DB, record *models.OrderPaymentRec
 				tx.Model(&models.User{}).Where("id = ?", localUser.ID).Updates(photoUpdates)
 			}
 		}
-		// #1807: 第三证件类型一并转移。
-		if form.IdPhotoOtherType != "" {
-			tx.Model(&models.User{}).Where("id = ?", localUser.ID).
-				Update("id_photo_other_type", form.IdPhotoOtherType)
-		}
+		// #1924: 第二证件类型不再由顾客指定 —— 保持「未定」，由平台员工在
+		// 审核时指定（face_review approve 的 second_doc_type）。
 	}
 
 	return tx.Model(&session).Updates(map[string]interface{}{
