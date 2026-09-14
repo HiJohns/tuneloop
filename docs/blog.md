@@ -381,3 +381,4 @@
 - 2026-09-14: 紧急处置：生产 tuneloop 崩溃循环 29h（DB schema 超前于部署快照）→ 正向发布 1.0.4，迁移 20260829003 → 20260912006，服务恢复；cadenza 磁盘回收 20G + deploy.sh 30 天保留策略（#1912/#1913）
 - 2026-09-14: 批量处理完成，包含任务: Resolved Issues: #1915（订单详情支持微信订单中心 out_trade_no 跳转，审核订单 path 端到端可用）
 - 2026-09-14: 批量处理完成，包含任务: Resolved Issues: #1919（PC乐器详情页白屏：补全Detail.jsx中formatBeijingDateTimeShort的import） 
+- 2026-09-14: 批量处理完成，包含任务: Resolved Issues: #1926（待发货/已发货订单详情实际租赁天数与实际租金归零，收货后才计算）
