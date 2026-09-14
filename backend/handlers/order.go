@@ -168,6 +168,12 @@ func deriveActualRent(db *gorm.DB, order *models.Order, settlementData map[strin
 		}
 	}
 	if actualRentDays == 0 && actualRentCents == 0 {
+		// #1926: the lease starts at delivery — before that, initial/planned
+		// actual_* snapshots in the breakdown must not surface (paid /
+		// pending shipment / shipped orders show 0 days and ¥0 actual rent).
+		if order.DeliveredAt == nil {
+			return 0, 0
+		}
 		if pb, ok := pricingBreakdownData.(map[string]interface{}); ok {
 			if v, ok := pb["actual_rent_days"].(float64); ok {
 				actualRentDays = int(v)
@@ -526,13 +532,13 @@ func GetOrder(c *gin.Context) {
 
 	// Fetch payment records for 收支明细
 	type paymentEntry struct {
-		ID              string    `json:"id"`
-		Amount          float64   `json:"amount"`
-		Method          string    `json:"method"`
-		Status          string    `json:"status"`
-		CouponCode      string    `json:"coupon_code,omitempty"`   // #1856: 优惠码透传（无码为空）
-		CouponDiscount  int64     `json:"coupon_discount"`         // #1856: 优惠码减免（分，#1743 契约）
-		CreatedAt       time.Time `json:"created_at"`
+		ID             string    `json:"id"`
+		Amount         float64   `json:"amount"`
+		Method         string    `json:"method"`
+		Status         string    `json:"status"`
+		CouponCode     string    `json:"coupon_code,omitempty"` // #1856: 优惠码透传（无码为空）
+		CouponDiscount int64     `json:"coupon_discount"`       // #1856: 优惠码减免（分，#1743 契约）
+		CreatedAt      time.Time `json:"created_at"`
 	}
 	var paymentEntries []paymentEntry
 	var paymentRecords []models.OrderPaymentRecord
