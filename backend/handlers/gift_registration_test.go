@@ -76,11 +76,12 @@ func TestGiftRegistration(t *testing.T) {
 		router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)
 
 		body, _ := json.Marshal(map[string]interface{}{
-			"name":     "Gift User",
-			"phone":    "13900139001",
-			"password": "secret123",
-			"wx_code":  "gift-wx-code",
-			"ref":      "abc12345",
+			"agreed_terms": true,
+			"name":         "Gift User",
+			"phone":        "13900139001",
+			"password":     "secret123",
+			"wx_code":      "gift-wx-code",
+			"ref":          "abc12345",
 		})
 		req := httptest.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -139,10 +140,11 @@ func TestGiftRegistration(t *testing.T) {
 		router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)
 
 		body, _ := json.Marshal(map[string]interface{}{
-			"name":     "No Ref User",
-			"phone":    "13900139002",
-			"password": "secret123",
-			"wx_code":  "noref-wx-code",
+			"agreed_terms": true,
+			"name":         "No Ref User",
+			"phone":        "13900139002",
+			"password":     "secret123",
+			"wx_code":      "noref-wx-code",
 		})
 		req := httptest.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")

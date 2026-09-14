@@ -26,6 +26,7 @@ export default function Register() {
   const [detail, setDetail] = useState('')
   const [postalCode, setPostalCode] = useState('')
   const [saving, setSaving] = useState(false)
+  const [agreed, setAgreed] = useState(false) // #1923: 协议同意
   const idPhotoFrontRef = useRef(null)
   const idPhotoBackRef = useRef(null)
   const idPhotoOtherRef = useRef(null)
@@ -57,6 +58,7 @@ export default function Register() {
     if (!/^1[3-9]\d{9}$/.test(phone.trim())) { dialog.alert('手机号格式不正确'); return }
     if (!password) { dialog.alert('请输入密码'); return }
     if (password !== confirmPassword) { dialog.alert('两次输入的密码不一致'); return }
+    if (!agreed) { dialog.alert('请先阅读并同意《租用服务协议》与《个人信息保护政策》'); return }
     setSaving(true)
     try {
       const body = {
@@ -65,6 +67,7 @@ export default function Register() {
         phone: phone.trim(),
         email: email.trim(),
         password,
+        agreed_terms: true,
       }
       const refCode = storage.getItem('ref_code')
       if (refCode) body.ref = refCode
@@ -197,8 +200,23 @@ export default function Register() {
           </View>
         </View>
 
+        {/* #1923: 协议同意（必选） */}
+        <View className="flex items-start gap-2 mb-3 px-1">
+          <View onClick={() => setAgreed(v => !v)}
+            style={{ width: 18, height: 18, borderRadius: 4, border: agreed ? 'none' : '1px solid #d4d4d8', backgroundColor: agreed ? '#915F38' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+            {agreed ? <Text style={{ color: '#fff', fontSize: 12, lineHeight: '18px' }}>✓</Text> : null}
+          </View>
+          <View style={{ flex: 1, display: 'flex', flexDirection: 'row', flexWrap: 'wrap' }}>
+            <Text className="text-xs text-zinc-500">如果继续支付保费，代表已接受并同意</Text>
+            <Text className="text-xs text-blue-600 font-bold" onClick={() => navigate('/content?key=rental_agreement')}>《租用服务协议》</Text>
+            <Text className="text-xs text-zinc-500">与</Text>
+            <Text className="text-xs text-blue-600 font-bold" onClick={() => navigate('/content?key=privacy_policy')}>《个人信息保护政策》</Text>
+            <Text className="text-xs text-zinc-500">内容</Text>
+          </View>
+        </View>
+
         <Button className="w-full bg-blue-500 text-white py-4 rounded-xl text-lg font-medium"
-          disabled={saving} onClick={handleRegister}>
+          disabled={saving || !agreed} onClick={handleRegister}>
           {saving ? '注册中...' : '注  册'}
         </Button>
 

@@ -23,6 +23,7 @@ export default function ProfileComplete() {
   const [postalCode, setPostalCode] = useState('')
 
   const [saving, setSaving] = useState(false)
+  const [agreed, setAgreed] = useState(false) // #1923: 协议同意
   // mode=member: 从购物车提交/立即租赁的员工弹窗进入 — 隐藏「用户名密码登录」
   const [mode, setMode] = useState('')
   // Two-phase registration (#1663): resume an existing pending session.
@@ -108,6 +109,7 @@ export default function ProfileComplete() {
   const handleRegister = async () => {
     if (!name.trim()) { Taro.showToast({ title: '请输入姓名', icon: 'none' }); return }
     if (!phone.trim()) { Taro.showToast({ title: '请输入手机号', icon: 'none' }); return }
+    if (!agreed) { Taro.showToast({ title: '请先阅读并同意协议', icon: 'none' }); return }
     // #1845: 实名证件必填——学生证豁免：选择「学生证」类型且学生证已传
     //（本轮选图 或 resume 会话已传）的，跳过身份证正反面（不做年龄判定）；
     // 其余证件类型仍须身份证正反面。
@@ -133,7 +135,7 @@ export default function ProfileComplete() {
       let sid = resumeSid
       let amount = sessionAmount
       if (!sid) {
-        const body = { name: name.trim(), nickname: nickname.trim() || name.trim(), phone: phone.trim(), email: email.trim() }
+        const body = { name: name.trim(), nickname: nickname.trim() || name.trim(), phone: phone.trim(), email: email.trim(), agreed_terms: true }
         if (otherIdType) { body.id_photo_other_type = otherIdType } // #1807: 第三证件类型
         if (province || city || detail) {
           body.address = { province, city, district, detail, postal_code: postalCode }
@@ -320,8 +322,23 @@ export default function ProfileComplete() {
         <IdPhotoUploader ref={idPhotoOtherRef} side="other" defer sessionUpload={{ sessionId: resumeSid || undefined }} leftAligned onSelect={() => setOtherPicked(true)} onClear={() => setOtherPicked(false)} />
       </View>
 
+      {/* #1923: 协议同意（必选） */}
+      <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12, width: '100%' }}>
+        <View onClick={() => setAgreed(v => !v)}
+          style={{ width: 18, height: 18, borderRadius: 4, borderWidth: agreed ? 0 : 1, borderStyle: 'solid', borderColor: '#d4d4d8', backgroundColor: agreed ? '#915F38' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 8, marginTop: 2, flexShrink: 0 }}>
+          {agreed ? <Text style={{ color: '#fff', fontSize: 12, lineHeight: '18px' }}>✓</Text> : null}
+        </View>
+        <View style={{ flex: 1, display: 'flex', flexDirection: 'row', flexWrap: 'wrap' }}>
+          <Text style={{ fontSize: 12, color: '#71717a' }}>如果继续支付保费，代表已接受并同意</Text>
+          <Text style={{ fontSize: 12, color: '#915F38', fontWeight: '700' }} onClick={() => Taro.navigateTo({ url: '/pages-weapp/content/index?key=rental_agreement' })}>《租用服务协议》</Text>
+          <Text style={{ fontSize: 12, color: '#71717a' }}>与</Text>
+          <Text style={{ fontSize: 12, color: '#915F38', fontWeight: '700' }} onClick={() => Taro.navigateTo({ url: '/pages-weapp/content/index?key=privacy_policy' })}>《个人信息保护政策》</Text>
+          <Text style={{ fontSize: 12, color: '#71717a' }}>内容</Text>
+        </View>
+      </View>
+
       <View onClick={handleRegister}
-        style={{ width: '100%', paddingTop: 13, paddingBottom: 13, backgroundColor: '#915F38', borderRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+        style={{ width: '100%', paddingTop: 13, paddingBottom: 13, backgroundColor: '#915F38', opacity: agreed ? 1 : 0.5, borderRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
         <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>{saving ? '处理中...' : '支付会员费'}</Text>
       </View>
       {(resumeSid || sessionAmount > 0) && (

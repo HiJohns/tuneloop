@@ -143,6 +143,14 @@ export default function Login() {
         <Text style={{ fontSize: 14, color: '#71717a' }} onClick={handleGuestBrowse}>👀 随便看看</Text>
       </View>
 
+      {/* #1923: 未登录也可查看协议 */}
+      <View style={{ marginTop: 20, display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ fontSize: 12, color: '#a1a1aa' }}>注册/登录即代表同意</Text>
+        <Text style={{ fontSize: 12, color: '#915F38' }} onClick={() => Taro.navigateTo({ url: '/pages-weapp/content/index?key=rental_agreement' })}>《租用服务协议》</Text>
+        <Text style={{ fontSize: 12, color: '#a1a1aa' }}>与</Text>
+        <Text style={{ fontSize: 12, color: '#915F38' }} onClick={() => Taro.navigateTo({ url: '/pages-weapp/content/index?key=privacy_policy' })}>《个人信息保护政策》</Text>
+      </View>
+
       {/* Developer mode toggle */}
       <Text style={{ fontSize: 10, color: '#d4d4d8', marginTop: 32 }} onClick={handleVersionTap}>版本 v1.0.0</Text>
       {showDevMode && (

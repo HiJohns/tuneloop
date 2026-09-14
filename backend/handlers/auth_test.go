@@ -296,12 +296,13 @@ func TestPostRegister_RefConsumption(t *testing.T) {
 
 	register := func(wxCode, ref string) *httptest.ResponseRecorder {
 		body, _ := json.Marshal(map[string]interface{}{
-			"name":     "New User",
-			"nickname": "微信昵称",
-			"phone":    "13900139000",
-			"password": "secret123",
-			"wx_code":  wxCode,
-			"ref":      ref,
+			"agreed_terms": true,
+			"name":         "New User",
+			"nickname":     "微信昵称",
+			"phone":        "13900139000",
+			"password":     "secret123",
+			"wx_code":      wxCode,
+			"ref":          ref,
 		})
 		req := httptest.NewRequest("POST", "/api/auth/register", strings.NewReader(string(body)))
 		req.Header.Set("Content-Type", "application/json")
@@ -434,10 +435,11 @@ func TestPostRegister_NoPassword_WxBind_FullFlow(t *testing.T) {
 	router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)
 
 	body, _ := json.Marshal(map[string]interface{}{
-		"name":     "无密码注册用户",
-		"nickname": "无密码昵称",
-		"phone":    "13900221133",
-		"wx_code":  "wx-register-code",
+		"agreed_terms": true,
+		"name":         "无密码注册用户",
+		"nickname":     "无密码昵称",
+		"phone":        "13900221133",
+		"wx_code":      "wx-register-code",
 	})
 	req := httptest.NewRequest("POST", "/api/auth/register", strings.NewReader(string(body)))
 	req.Header.Set("Content-Type", "application/json")
@@ -801,10 +803,11 @@ func TestPostRegister_PhoneExists_409(t *testing.T) {
 	router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)
 
 	body, _ := json.Marshal(map[string]interface{}{
-		"name":     "新用户",
-		"nickname": "新昵称",
-		"phone":    "13900331122",
-		"wx_code":  "wx-code-dup",
+		"agreed_terms": true,
+		"name":         "新用户",
+		"nickname":     "新昵称",
+		"phone":        "13900331122",
+		"wx_code":      "wx-code-dup",
 	})
 	req := httptest.NewRequest("POST", "/api/auth/register", strings.NewReader(string(body)))
 	req.Header.Set("Content-Type", "application/json")
@@ -887,10 +890,11 @@ func TestPostRegister_WxBindFailure_Aborts(t *testing.T) {
 	router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)
 
 	body, _ := json.Marshal(map[string]interface{}{
-		"name":     "绑定失败用户",
-		"nickname": "绑定失败",
-		"phone":    "13900442255",
-		"wx_code":  "wx-code-bind-fail",
+		"agreed_terms": true,
+		"name":         "绑定失败用户",
+		"nickname":     "绑定失败",
+		"phone":        "13900442255",
+		"wx_code":      "wx-code-bind-fail",
 	})
 	req := httptest.NewRequest("POST", "/api/auth/register", strings.NewReader(string(body)))
 	req.Header.Set("Content-Type", "application/json")
@@ -962,6 +966,7 @@ func TestPostRegister_ExchangeToken_Flow(t *testing.T) {
 	router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)
 
 	body, _ := json.Marshal(map[string]interface{}{
+		"agreed_terms":   true,
 		"name":           "exchange_token 注册用户",
 		"nickname":       "token 昵称",
 		"phone":          "13900556677",
@@ -993,8 +998,9 @@ func TestPostRegister_NicknameRequired(t *testing.T) {
 	router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)
 
 	body, _ := json.Marshal(map[string]interface{}{
-		"name":  "无昵称用户",
-		"phone": "13900556677",
+		"agreed_terms": true,
+		"name":         "无昵称用户",
+		"phone":        "13900556677",
 	})
 	req := httptest.NewRequest("POST", "/api/auth/register", strings.NewReader(string(body)))
 	req.Header.Set("Content-Type", "application/json")
@@ -1092,11 +1098,12 @@ func TestPostRegister_UsernameDerivedFromPhone(t *testing.T) {
 
 	// Send a legacy username field that must be IGNORED (#1638)
 	body, _ := json.Marshal(map[string]interface{}{
-		"username": "legacy_username_ignored",
-		"name":     "派生用户",
-		"nickname": "派生昵称",
-		"phone":    "13900668899",
-		"wx_code":  "wx-code-derived",
+		"agreed_terms": true,
+		"username":     "legacy_username_ignored",
+		"name":         "派生用户",
+		"nickname":     "派生昵称",
+		"phone":        "13900668899",
+		"wx_code":      "wx-code-derived",
 	})
 	req := httptest.NewRequest("POST", "/api/auth/register", strings.NewReader(string(body)))
 	req.Header.Set("Content-Type", "application/json")

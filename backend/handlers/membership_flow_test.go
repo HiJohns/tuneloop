@@ -49,11 +49,12 @@ func TestMembershipFlow(t *testing.T) {
 	services.SetIAMInternalURLForTesting(srv.URL)
 
 	registerBody, _ := json.Marshal(map[string]interface{}{
-		"name":     "Membership User",
-		"nickname": "会员用户",
-		"phone":    "13800138000",
-		"password": "secret123",
-		"wx_code":  "mem-wx-code",
+		"agreed_terms": true,
+		"name":         "Membership User",
+		"nickname":     "会员用户",
+		"phone":        "13800138000",
+		"password":     "secret123",
+		"wx_code":      "mem-wx-code",
 	})
 	req := httptest.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(registerBody))
 	req.Header.Set("Content-Type", "application/json")

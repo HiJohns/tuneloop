@@ -98,6 +98,7 @@ func TestCreateRegistrationSession(t *testing.T) {
 	router.POST("/api/auth/registration-sessions", h.CreateRegistrationSession)
 
 	body, _ := json.Marshal(map[string]interface{}{
+		"agreed_terms":   true,
 		"nickname":       "微信昵称",
 		"name":           "张会员",
 		"phone":          "13800139000",

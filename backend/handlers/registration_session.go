@@ -63,11 +63,19 @@ func (h *RegistrationSessionHandler) CreateRegistrationSession(c *gin.Context) {
 		Address          map[string]interface{} `json:"address"`
 		IDPhotos         map[string]string      `json:"id_photos"`
 		IdPhotoOtherType string                 `json:"id_photo_other_type"` // #1807: 第三证件类型
+		AgreedTerms      bool                   `json:"agreed_terms"`        // #1923: 协议同意（必填）
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
 		return
 	}
+
+	// #1923: 注册/支付保费前必须勾选协议（租用服务协议 + 个人信息保护政策）。
+	if !req.AgreedTerms {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "请先阅读并同意《租用服务协议》与《个人信息保护政策》"})
+		return
+	}
+	log.Printf("[Consent] registration session: terms agreed (rental_agreement, privacy_policy)")
 
 	form := registerForm{
 		Nickname:         req.Nickname,
