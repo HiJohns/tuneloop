@@ -1,6 +1,40 @@
 #!/bin/bash
 set -euo pipefail
 
+# ---------------------------------------------------------------------------
+# Clean up old release packages/snapshots (default: older than 30 days).
+# Active symlink targets are never removed (a long-lived production snapshot
+# must survive even when older than the retention window).
+# ---------------------------------------------------------------------------
+cleanup_old_releases() {
+    local base="${FLOW_BASE}"
+    local days="${RELEASE_RETENTION_DAYS:-30}"
+    local keep=""
+    local link target name
+
+    for link in /opt/tuneloop/apps/*/* /opt/tuneloop-pre/apps/*/*; do
+        [ -L "$link" ] || continue
+        target=$(readlink -f "$link" 2>/dev/null) || continue
+        case "$target" in
+            "$base"/*) keep="${keep} $(echo "$target" | cut -d/ -f4)" ;;
+        esac
+    done
+
+    local removed=0
+    while IFS= read -r path; do
+        [ -n "$path" ] || continue
+        name=$(basename "$path")
+        case " ${keep} " in
+            *" ${name} "*) echo "  keep (active): ${name}"; continue ;;
+        esac
+        rm -rf -- "$path" && removed=$((removed + 1))
+    done < <(find "$base" -mindepth 1 -maxdepth 1 -mtime +"$days" \
+               \( -name 'tuneloop_*' -o -name 'tuneloop-pre_*' -o -name 'beaconiam_*' -o -name 'unwrap.*' \) 2>/dev/null)
+
+    echo "  cleaned releases older than ${days}d: ${removed} item(s)"
+}
+
+
 # Deploy a release zip (pre-prod or production)
 # Usage: ./deploy.sh <path/to/pkg.zip>
 #   OR set SEAFILE_DEPLOY=<download-url>
@@ -138,3 +172,6 @@ echo ""
 echo "=========================================="
 echo "Deploy complete: $SERVICE"
 echo "=========================================="
+
+# Prune old releases/snapshots (keeps active symlink targets).
+cleanup_old_releases
