@@ -41,8 +41,25 @@ type SMTPConfig struct {
 	UseTLS   bool
 }
 
-// LoadSMTPConfig reads the SMTP settings (same env keys as beaconiam).
-func LoadSMTPConfig() SMTPConfig {
+// SMTPConfigRecord is the UI-managed SMTP configuration (阿里云 DirectMail),
+// stored in system_settings. Password is write-only for the API and kept
+// encrypted at rest (#1910).
+type SMTPConfigRecord struct {
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	Username string `json:"username"`
+	From     string `json:"from"`
+	UseTLS   bool   `json:"use_tls"`
+	Enabled  bool   `json:"enabled"`
+	Password string `json:"password,omitempty"`
+}
+
+// SMTPConfigKey is the system_settings key for the UI-managed SMTP config.
+const SMTPConfigKey = "smtp_config"
+
+// LoadSMTPConfigFromEnv reads the SMTP settings from the environment
+// (legacy personal-mailbox fallback; same keys as beaconiam).
+func LoadSMTPConfigFromEnv() SMTPConfig {
 	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
 	if port == 0 {
 		port = 587
@@ -63,6 +80,114 @@ func LoadSMTPConfig() SMTPConfig {
 
 // Configured reports whether enough settings exist to attempt a send.
 func (c SMTPConfig) Configured() bool { return c.Host != "" && c.From != "" }
+
+// LoadSMTPConfigFromDB reads the UI-managed config. ok=false when it is
+// absent, disabled or incomplete.
+func LoadSMTPConfigFromDB(db *gorm.DB) (SMTPConfig, bool, error) {
+	var s models.SystemSetting
+	err := db.Where("tenant_id = ? AND setting_key = ?", WarningConfigTenantID, SMTPConfigKey).First(&s).Error
+	if err == gorm.ErrRecordNotFound {
+		return SMTPConfig{}, false, nil
+	}
+	if err != nil {
+		return SMTPConfig{}, false, err
+	}
+	if strings.TrimSpace(s.SettingValue) == "" {
+		return SMTPConfig{}, false, nil
+	}
+	var rec SMTPConfigRecord
+	if err := json.Unmarshal([]byte(s.SettingValue), &rec); err != nil {
+		return SMTPConfig{}, false, fmt.Errorf("SMTP 配置 JSON 解析失败: %w", err)
+	}
+	if !rec.Enabled || rec.Host == "" || rec.From == "" {
+		return SMTPConfig{}, false, nil
+	}
+	password, err := DecryptSecret(rec.Password)
+	if err != nil {
+		return SMTPConfig{}, false, err
+	}
+	return SMTPConfig{
+		Host: rec.Host, Port: rec.Port, User: rec.Username,
+		Password: password, From: rec.From, UseTLS: rec.UseTLS,
+	}, true, nil
+}
+
+// SaveSMTPConfigRecord validates and upserts the UI-managed config. An empty
+// password keeps the stored one; a non-empty password is encrypted at rest.
+func SaveSMTPConfigRecord(db *gorm.DB, rec SMTPConfigRecord) error {
+	if rec.Enabled && (strings.TrimSpace(rec.Host) == "" || strings.TrimSpace(rec.From) == "") {
+		return fmt.Errorf("启用时必须填写 SMTP 主机与发件人地址")
+	}
+	if rec.Port == 0 {
+		rec.Port = 587
+	}
+	if rec.Port < 1 || rec.Port > 65535 {
+		return fmt.Errorf("SMTP 端口不合法")
+	}
+	if rec.Password == "" {
+		var s models.SystemSetting
+		if err := db.Where("tenant_id = ? AND setting_key = ?", WarningConfigTenantID, SMTPConfigKey).First(&s).Error; err == nil {
+			var old SMTPConfigRecord
+			if json.Unmarshal([]byte(s.SettingValue), &old) == nil {
+				rec.Password = old.Password // already-encrypted envelope
+			}
+		}
+	} else {
+		enc, err := EncryptSecret(rec.Password)
+		if err != nil {
+			return err
+		}
+		rec.Password = enc
+	}
+	raw, err := json.Marshal(rec)
+	if err != nil {
+		return err
+	}
+	var s models.SystemSetting
+	err = db.Where("tenant_id = ? AND setting_key = ?", WarningConfigTenantID, SMTPConfigKey).First(&s).Error
+	if err == nil {
+		return db.Model(&s).Update("setting_value", string(raw)).Error
+	}
+	if err == gorm.ErrRecordNotFound {
+		return db.Create(&models.SystemSetting{
+			TenantID:     WarningConfigTenantID,
+			SettingKey:   SMTPConfigKey,
+			SettingValue: string(raw),
+		}).Error
+	}
+	return err
+}
+
+// SendMailWithFallback sends via the UI-managed config (DirectMail) and falls
+// back to the legacy env SMTP (personal mailbox) when the primary is missing,
+// disabled or fails. Returns the channel actually used (#1910).
+func SendMailWithFallback(to []string, subject, body string) (string, error) {
+	var primaryErr error
+	if db := database.GetDB(); db != nil {
+		dbCfg, ok, err := LoadSMTPConfigFromDB(db)
+		if err != nil {
+			log.Printf("[Mail] UI-managed SMTP config unreadable, using env fallback: %v", err)
+		} else if ok {
+			if err := smtpSend(dbCfg, to, subject, body); err == nil {
+				return "directmail", nil
+			} else {
+				primaryErr = err
+				log.Printf("[Mail] primary (UI) send failed, falling back to env SMTP: %v", err)
+			}
+		}
+	}
+	envCfg := LoadSMTPConfigFromEnv()
+	if envCfg.Configured() {
+		if err := smtpSend(envCfg, to, subject, body); err != nil {
+			return "", err
+		}
+		return "personal", nil
+	}
+	if primaryErr != nil {
+		return "", primaryErr
+	}
+	return "", fmt.Errorf("SMTP 未配置（界面与 .env 均无可用配置）")
+}
 
 // WarningNotifyConfig is the per-level notification target configuration.
 type WarningNotifyConfig struct {
@@ -244,23 +369,20 @@ func sendWarningEmail(w *models.Warning) (sent bool, recipients int, err error) 
 			return false, 0, nil
 		}
 	}
-	smtpCfg := LoadSMTPConfig()
-	if !smtpCfg.Configured() {
-		return false, 0, fmt.Errorf("SMTP 未配置（SMTP_HOST/SMTP_FROM），警告邮件未发送")
-	}
 	subject := fmt.Sprintf("[TuneLoop 警告][%s] %s", warningLevelLabel(w.Level), w.Reason)
 	body := fmt.Sprintf("级别: %s\n原因: %s\n分类: %s\n对象: %s/%s\n描述: %s\n时间: %s\n",
 		warningLevelLabel(w.Level), w.Reason, w.Category, w.ObjectType, w.ObjectID,
 		w.Description, w.CreatedAt.Format("2006-01-02 15:04:05"))
-	if err := smtpSend(smtpCfg, cfg.Emails, subject, body); err != nil {
+	channel, err := SendMailWithFallback(cfg.Emails, subject, body)
+	if err != nil {
 		log.Printf("[WarningEmail] send failed warning=%s level=%s: %v", w.ID, w.Level, err)
 		return false, len(cfg.Emails), err
 	}
+	log.Printf("[WarningEmail] sent via %s warning=%s level=%s recipients=%d", channel, w.ID, w.Level, len(cfg.Emails))
 	now := time.Now()
 	if uerr := db.Model(&models.Warning{}).Where("id = ?", w.ID).Update("last_notified_at", now).Error; uerr != nil {
 		log.Printf("[WarningEmail] failed to record last_notified_at warning=%s: %v", w.ID, uerr)
 	}
 	w.LastNotifiedAt = &now
-	log.Printf("[WarningEmail] sent warning=%s level=%s recipients=%d", w.ID, w.Level, len(cfg.Emails))
 	return true, len(cfg.Emails), nil
 }

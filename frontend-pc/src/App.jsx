@@ -38,6 +38,7 @@ import RepairConfigPage from './pages/admin/repair/RepairConfigPage'
 import MerchantRepairList from './pages/admin/repair/MerchantRepairList'
 import WarningManagement from './pages/admin/warnings/WarningManagement'
 import WarningSettings from './pages/admin/warnings/WarningSettings'
+import SmtpSettings from './pages/admin/warnings/SmtpSettings'
 import TransitRouteConfig from './pages/admin/transit/TransitRouteConfig'
 import PaymentList from './pages/admin/payments/PaymentList'
 import BillingDashboard from './pages/admin/billing/BillingDashboard'
@@ -350,6 +351,7 @@ function MainLayout() {
       { key: '/system/permissions', label: '权限管理', permission: { sysPermBits: [27] } },
       { key: '/system/warnings', label: '警告管理', permission: { sysPermBits: [5] } },
       { key: '/system/warning-settings', label: '警告配置', permission: { sysPermBits: [5] } },
+      { key: '/system/smtp-settings', label: '邮件服务配置', permission: { sysPermBits: [5] } },
     ]
   },
   {
@@ -448,7 +450,7 @@ function onMenuClick(e) {
   if (['/instruments/categories', '/instruments/properties', '/instruments/list', '/site/stock'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['product']
   else if (['/inventory/rent-setting', '/pricing/config', '/repair/settings', '/system/gift-policies', '/system/membership-levels', '/system/membership-handbook', '/system/banners'].includes(location.pathname)) openKeys = ['strategy']
   else if (['/orders', '/warehouse', '/transit-routes', '/overdue-alerts', '/merchant/invoices'].includes(location.pathname)) openKeys = ['transaction']
-  else if (location.pathname.startsWith('/merchants') || ['/system/user-management', '/organization/sites', '/staff', '/appeals', '/organization/iam-sync', '/system/permissions', '/system/warnings', '/system/warning-settings'].includes(location.pathname)) openKeys = ['platform']
+  else if (location.pathname.startsWith('/merchants') || ['/system/user-management', '/organization/sites', '/staff', '/appeals', '/organization/iam-sync', '/system/permissions', '/system/warnings', '/system/warning-settings', '/system/smtp-settings'].includes(location.pathname)) openKeys = ['platform']
   else if (['/', '/system/content-edit', '/system/audit-logs'].includes(location.pathname)) openKeys = ['system']
   else if (location.pathname.startsWith('/user/')) openKeys = []
 
@@ -501,6 +503,7 @@ function onMenuClick(e) {
     '/system/permissions': { title: '权限管理', parent: '平台管理' },
     '/system/warnings': { title: '警告管理', parent: '平台管理' },
     '/system/warning-settings': { title: '警告配置', parent: '平台管理' },
+    '/system/smtp-settings': { title: '邮件服务配置', parent: '平台管理' },
   }
 
 
@@ -712,6 +715,7 @@ function onMenuClick(e) {
             <Route path="/system/gift-policies" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['rebate:manage'] }}><GiftPolicies /></ProtectedRoute>} />
             <Route path="/system/warnings" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><WarningManagement /></ProtectedRoute>} />
             <Route path="/system/warning-settings" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><WarningSettings /></ProtectedRoute>} />
+            <Route path="/system/smtp-settings" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><SmtpSettings /></ProtectedRoute>} />
             <Route path="/transit-routes" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><TransitRouteConfig /></ProtectedRoute>} />
             <Route path="/inventory/rent-setting" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price'] }}><RentSetting /></ProtectedRoute>} />
             <Route path="/pricing/config" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price_config'] }}><MerchantPricingConfig /></ProtectedRoute>} />

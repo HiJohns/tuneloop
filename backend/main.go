@@ -566,6 +566,11 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.GET("/warning-settings", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.GetWarningSettings)
 			authRequired.PUT("/warning-settings", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.UpdateWarningSettings)
 
+			// SMTP configuration (#1910): UI-managed DirectMail + env fallback.
+			authRequired.GET("/admin/smtp-config", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.GetSMTPConfig)
+			authRequired.PUT("/admin/smtp-config", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.UpdateSMTPConfig)
+			authRequired.POST("/admin/smtp-config/test", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.TestSMTPConfig)
+
 			// Transit route routes (Issue #1133)
 			authRequired.GET("/transit-routes", handlers.ListTransitRoutes)
 			authRequired.POST("/transit-routes", handlers.CreateTransitRoute)
