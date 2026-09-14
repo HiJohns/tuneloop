@@ -249,6 +249,10 @@ export default function MyLeases() {
                     <Text className="text-zinc-400 font-medium">总金额:</Text>
                     <Text className="text-black font-black">¥{(((getActualRent(order) || 0) + (order.deposit || 0) + (order.shipping_fee || 0)) / 100).toFixed(2)}</Text>
                   </View>
+                  {/* #1918: 总额含运费时标注口径，避免与"租金+押金"记忆不符 */}
+                  {order.shipping_fee > 0 && (
+                    <Text className="text-zinc-400 text-xs">含运费 ¥{(order.shipping_fee / 100).toFixed(2)}</Text>
+                  )}
                 </View>
                   </View>
                   {order.cover_image && <Image src={order.cover_image} className="w-20 h-20 rounded-lg ml-3 self-start" mode="aspectFill" />}

@@ -228,6 +228,8 @@
 
 点数钱包、订单支付点数抵扣详见 `docs/features/membership.md §2.4-2.5`。
 
+**实际租金展示口径（#1918）**：订单详情「实际租金」天数——未归还订单按**下单租期**（含尾自然日，与下单定价 `CalculateDays` 一致）展示；已归还订单按实际占用天数（`delivered → returned`，`CalculateLeaseDays` ceil-hours/24、基数 1，#1738 统一口径）。「全部订单」列表总金额 = 租金 + 押金 + 运费，**含运费时列表项标注「含运费 ¥xx」**避免与用户"租金+押金"记忆不符。
+
 **逾期费收取**：逾期费在**归还验收时统一收取**（`InspectReturn` 计算，`overdue_daily_fee` 或默认 1.5× 日租金），从押金扣除。不再有每日 01:00 自动扣款（`OverdueDeductionScheduler` 仅做 `expired` 状态转移），不产生 `overdue_charges` 挂账。详见 `docs/cases.md §2.5`。
 
 **订单完成结算**：订单进入 `completed` 状态时（good 验收自动、damaged 接受/申诉后员工点退款、损坏赔偿支付回调），执行差额结算：按调整后应付 R1 与用户当前级别赠点策略重算赠点上限 A1，超 A1 的赠点退回 promo_points，剩余现金（C0−C1）走微信原路退款；关单后 `total_spending += C1`（实付现金口径），并按 C1 × refund_ratio 发放返点赠点（A2），最后发送完成通知（标准收据 + 感谢 + 赠点到账 + 会员中心链接）。`DepositRefundScheduler` 仅作 `deposit_refunding` 超时兜底。详见 `docs/cases.md §2.7` 与 `docs/cases/lease.md L-06`。

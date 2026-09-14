@@ -803,6 +803,14 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		rt := *order.ReturnedAt
 		actualLeaseEnd = &rt
 	}
+	// #1918: 未归还订单与下单定价口径对齐 —— 下单租金用 CalculateDays（含尾，
+	// start..end 自然日数），结算 actualDays 用 CalculateLeaseDays（不含尾，
+	// #1738 P3 ceil-hours/24）。未归还时 actualLeaseEnd 取 end_date+1 天使
+	// 两口径等价（start 09-15、end 09-17 → 下单 3 天，结算亦 3 天而非 2 天）。
+	if !leaseEnded && actualLeaseEnd != nil {
+		notEndedEnd := actualLeaseEnd.AddDate(0, 0, 1)
+		actualLeaseEnd = &notEndedEnd
+	}
 	actualLeaseStart := startDate
 	if order.DeliveredAt != nil && leaseEnded {
 		actualLeaseStart = order.DeliveredAt
