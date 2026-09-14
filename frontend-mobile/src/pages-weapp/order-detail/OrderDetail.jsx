@@ -680,13 +680,12 @@ export default function OrderDetail() {
               {Number(order.settlement.payable_shortfall) > 0 && (
                 <>
                 <Row label="需补缴" value={`¥${((Number(order.settlement.payable_shortfall) || 0) / 100).toFixed(2)}`} color="#dc2626" />
-                <View style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
-                  <View
-                    style={{ backgroundColor: '#dc2626', borderRadius: 999, paddingHorizontal: 16, paddingVertical: 6 }}
-                    onClick={() => Taro.redirectTo({ url: `/pages-weapp/payment/index?type=payment_shortfall&id=${id}` })}
-                  >
-                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>去补缴</Text>
-                  </View>
+                {/* #1920: 小胶囊改全宽主按钮，文案带金额，真机可读可点 */}
+                <View
+                  style={{ backgroundColor: '#dc2626', borderRadius: 16, padding: '12px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 8, width: '100%' }}
+                  onClick={() => Taro.redirectTo({ url: `/pages-weapp/payment/index?type=payment_shortfall&id=${id}` })}
+                >
+                  <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>去补缴 ¥{((Number(order.settlement.payable_shortfall) || 0) / 100).toFixed(2)}</Text>
                 </View>
                 </>
               )}
@@ -1005,7 +1004,8 @@ export default function OrderDetail() {
             {showStaffCancel && (
               <View onClick={actionLoading ? undefined : handleStaffCancel}
                 style={{ ...btnStyle('#ef4444'), opacity: actionLoading ? 0.5 : 1 }}>
-                {actionLoading ? '处理中...' : '❌ 取消订单'}
+                {/* #1920: ❌ 红叉 emoji 与红底同色不可见 → 白色 ✕ */}
+                {actionLoading ? '处理中...' : '✕ 取消订单'}
               </View>
             )}
             {showStaffTransit && (
@@ -1051,7 +1051,8 @@ export default function OrderDetail() {
             {showCancelButton && (
               <View onClick={actionLoading ? undefined : handleCancel}
                 style={{ ...btnStyle('#ef4444'), opacity: actionLoading ? 0.5 : 1 }}>
-                {actionLoading ? '处理中...' : '❌ 取消订单'}
+                {/* #1920: ❌ 红叉 emoji 与红底同色不可见 → 白色 ✕ */}
+                {actionLoading ? '处理中...' : '✕ 取消订单'}
               </View>
             )}
             {showReceiveButton && (

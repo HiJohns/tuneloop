@@ -896,20 +896,19 @@ export default function OrderDetail() {
              </Text>
            </View>
            )}
-           {settlement.payable_shortfall > 0 && (
-           <>
-           <View className="flex justify-between text-sm">
-             <Text className="text-zinc-500 font-medium">需补缴</Text>
-             <Text className="text-red-500 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{((settlement.payable_shortfall || 0) / 100).toFixed(2)}</Text>
-           </View>
-           <View className="flex justify-end mt-2">
-             <Text className="text-white text-xs font-bold px-4 py-1.5 rounded-full bg-red-500"
-               onClick={() => navigate(`/payment?type=payment_shortfall&id=${orderId}`)}>
-               去补缴
-             </Text>
-           </View>
-           </>
-           )}
+            {settlement.payable_shortfall > 0 && (
+            <>
+            <View className="flex justify-between text-sm">
+              <Text className="text-zinc-500 font-medium">需补缴</Text>
+              <Text className="text-red-500 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{((settlement.payable_shortfall || 0) / 100).toFixed(2)}</Text>
+            </View>
+            {/* #1920: 小胶囊改全宽主按钮，文案带金额，真机可读可点 */}
+            <View className="w-full py-3 bg-red-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 mt-2"
+              onClick={() => navigate(`/payment?type=payment_shortfall&id=${orderId}`)}>
+              去补缴 ¥{((settlement.payable_shortfall || 0) / 100).toFixed(2)}
+            </View>
+            </>
+            )}
         </View>
       </View>
       )}
@@ -1087,7 +1086,8 @@ export default function OrderDetail() {
                 <View onClick={actionLoading ? undefined : handleStaffCancel}
                   className="w-full py-3 bg-red-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer"
                   style={{ opacity: actionLoading ? 0.5 : 1 }}>
-                  {actionLoading ? '处理中...' : '❌ 取消订单'}
+                  {/* #1920: ❌ 红叉 emoji 与红底同色不可见 → 与顾客版一致的 XCircle 白描边 */}
+                  <XCircle size={20} />{actionLoading ? '处理中...' : '取消订单'}
                 </View>
               )}
               {showStaffTransit && (

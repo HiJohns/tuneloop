@@ -25,14 +25,15 @@ const VerifyWarningBar = ({ status = '', navigate }) => {
       }
     }
     return (
-      <View style={{ backgroundColor: isRejected ? '#fef2f2' : '#fffbeb', borderWidth: 1, borderColor: isRejected ? '#fecaca' : '#fde68a', borderRadius: 8, padding: 10, marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text style={{ fontSize: 12, color: isRejected ? '#dc2626' : '#92400e', flex: 1 }}>
+      // #1920: 两行布局（文字上/按钮下），按钮加大可读（fontSize 12、padding 6px 14px）
+      <View style={{ backgroundColor: isRejected ? '#fef2f2' : '#fffbeb', borderWidth: 1, borderColor: isRejected ? '#fecaca' : '#fde68a', borderRadius: 8, padding: 10, marginBottom: 12, display: 'flex', flexDirection: 'column' }}>
+        <Text style={{ fontSize: 12, color: isRejected ? '#dc2626' : '#92400e' }}>
           {text}
         </Text>
         <View
           onClick={goVerify}
-          style={{ marginLeft: 8, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: isRejected ? '#dc2626' : '#f59e0b', borderRadius: 12 }}>
-          <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>去核身</Text>
+          style={{ marginTop: 8, alignSelf: 'flex-end', padding: '6px 14px', backgroundColor: isRejected ? '#dc2626' : '#f59e0b', borderRadius: 12, flexShrink: 0 }}>
+          <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>去核身</Text>
         </View>
       </View>
     )
