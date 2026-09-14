@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/chai2010/webp"
@@ -349,6 +350,28 @@ func resolveUserNamesByIAMSub(db *gorm.DB, iamSubs []string) map[string]string {
 	return names
 }
 
+// applyInstrumentListScope (#1911): site-level staff and repair technicians
+// (classified as SiteMember) see instruments of ALL their site memberships;
+// operators without site membership rows and admin roles keep the existing
+// org scope.
+func applyInstrumentListScope(db *gorm.DB, ctx context.Context, query *gorm.DB) *gorm.DB {
+	role := middleware.GetBusinessRole(ctx)
+	if role == middleware.BusinessRoleSiteAdmin || role == middleware.BusinessRoleSiteMember {
+		memberships := resolveOperatorSiteMemberships(db, middleware.GetUserID(ctx))
+		if len(memberships) > 0 {
+			siteIDs := make([]string, 0, len(memberships))
+			for _, m := range memberships {
+				siteIDs = append(siteIDs, m.SiteID)
+			}
+			return query.Where("site_id IN ?", siteIDs)
+		}
+	}
+	if scopedDB, err := middleware.ApplyOrgScope(query, ctx); err == nil {
+		return scopedDB
+	}
+	return query
+}
+
 func GetInstruments(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
@@ -372,9 +395,8 @@ func GetInstruments(c *gin.Context) {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
 
-	if scopedDB, err := middleware.ApplyOrgScope(query, ctx); err == nil {
-		query = scopedDB
-	}
+	// #1911: multi-site staff/technicians see every site they belong to.
+	query = applyInstrumentListScope(db, ctx, query)
 
 	if sn := c.Query("sn"); sn != "" {
 		query = query.Where("sn ILIKE ?", "%"+sn+"%")
@@ -597,9 +619,8 @@ func GetInstrumentFilterOptions(c *gin.Context) {
 	tenantID := middleware.GetTenantID(ctx)
 
 	query := db.Model(&models.Instrument{}).Where("tenant_id = ?", tenantID)
-	if scopedDB, err := middleware.ApplyOrgScope(query, ctx); err == nil {
-		query = scopedDB
-	}
+	// #1911: same multi-site scope as the instrument list.
+	query = applyInstrumentListScope(db, ctx, query)
 
 	type categoryOption struct {
 		CategoryID   string `json:"category_id"`
