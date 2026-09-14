@@ -93,6 +93,10 @@ export default function OrderDetail() {
   const { id: pathId } = useParams()
   const [searchParams] = useSearchParams()
   const id = searchParams.get('id') || pathId || ''
+  // #1915: 微信订单中心（我 → 小店与卡包 → 小程序购物订单）跳转携带
+  // out_trade_no（非订单 id），需先反查订单。
+  const outTradeNo = searchParams.get('out_trade_no') || ''
+  const [orderId, setOrderId] = useState(id)
   const navigate = useNavigate()
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -117,11 +121,30 @@ export default function OrderDetail() {
     } catch { return false }
   })()
 
+  // #1915: resolve out_trade_no → order id once, then the normal flow runs.
+  useEffect(() => {
+    if (orderId || !outTradeNo) return
+    const resolve = async () => {
+      try {
+        const resp = await apiFetch(`${baseUrl}/orders/by-trade-no/${encodeURIComponent(outTradeNo)}`)
+        const result = await resp.json()
+        const resolved = result.code === 20000 ? (result.data?.orders?.[0]?.id || '') : ''
+        if (resolved) setOrderId(resolved)
+        else setLoading(false)
+      } catch (err) {
+        console.error('Failed to resolve out_trade_no:', err)
+        setLoading(false)
+      }
+    }
+    resolve()
+  }, [orderId, outTradeNo, baseUrl])
+
   useEffect(() => {
     const fetchOrder = async () => {
+      if (!orderId) { setLoading(false); return }
       setLoading(true)
       try {
-        const resp = await apiFetch(`${baseUrl}/orders/${id}`)
+        const resp = await apiFetch(`${baseUrl}/orders/${orderId}`)
         const result = await resp.json()
         if (result.code === 20000) {
           setOrder(result.data)
@@ -131,8 +154,8 @@ export default function OrderDetail() {
       }
       setLoading(false)
     }
-    if (id) fetchOrder()
-  }, [id])
+    fetchOrder()
+  }, [orderId, baseUrl])
 
   useEffect(() => {
     if (!order) return
@@ -142,7 +165,7 @@ export default function OrderDetail() {
 
   const fetchLogs = async (page, append) => {
     try {
-      const resp = await apiFetch(`${baseUrl}/orders/${id}/logs?page=${page}&pageSize=15`)
+      const resp = await apiFetch(`${baseUrl}/orders/${orderId}/logs?page=${page}&pageSize=15`)
       const res = await resp.json()
       if (res.code === 20000 && res.data) {
         setOrderLogs(prev => append ? [...prev, ...(res.data.logs || [])] : (res.data.logs || []))
@@ -168,7 +191,7 @@ export default function OrderDetail() {
   }, [order?.instrument_id])
 
   const handlePay = () => {
-    navigate(`/payment?type=rent&id=${id}`, { replace: true })
+    navigate(`/payment?type=rent&id=${orderId}`, { replace: true })
   }
 
   const handleCancel = async () => {
@@ -176,19 +199,19 @@ export default function OrderDetail() {
     if (!ok) return
     setActionLoading(true)
     try {
-      const resp = await apiFetch(`${baseUrl}/orders/${id}/cancel-by-user`, {
+      const resp = await apiFetch(`${baseUrl}/orders/${orderId}/cancel-by-user`, {
         method: 'POST',
       })
       const result = await resp.json()
       if (result.code === 20000) {
         if (result.data?.refund_amount > 0) {
           // paid/pending_shipment: full original payment refunded — go to refund page
-          navigate(`/payment?type=refund&id=${id}`, { replace: true })
+          navigate(`/payment?type=refund&id=${orderId}`, { replace: true })
         } else {
           setOrder(prev => ({ ...prev, status: 'cancelled' }))
           // Reload order to sync cancelled state + hide cancel button (#1623)
           try {
-            const reload = await apiFetch(`${baseUrl}/orders/${id}`)
+            const reload = await apiFetch(`${baseUrl}/orders/${orderId}`)
             const reloadData = await reload.json()
             if (reloadData.code === 20000) setOrder(reloadData.data)
           } catch { /* keep local state */ }
@@ -213,12 +236,12 @@ export default function OrderDetail() {
     if (!ok) return
     setRefunding(true)
     try {
-      const resp = await apiFetch(`${baseUrl}/orders/${id}/refund`, {
+      const resp = await apiFetch(`${baseUrl}/orders/${orderId}/refund`, {
         method: 'POST',
       })
       const result = await resp.json()
       if (result.code === 20000) {
-        navigate(`/payment?type=refund&id=${id}`, { replace: true })
+        navigate(`/payment?type=refund&id=${orderId}`, { replace: true })
       } else {
         dialog.alert('退款失败: ' + (resolveErrorMessage(result, '请重试')))
       }
@@ -235,7 +258,7 @@ export default function OrderDetail() {
     if (!ok) return
     setActionLoading(true)
     try {
-      const resp = await apiFetch(`${baseUrl}/warehouse/orders/${id}/staff-cancel`, {
+      const resp = await apiFetch(`${baseUrl}/warehouse/orders/${orderId}/staff-cancel`, {
         method: 'POST',
         body: JSON.stringify({ reason: '担保人不符合要求' }),
       })
@@ -244,7 +267,7 @@ export default function OrderDetail() {
         dialog.toast('订单已取消')
         // Reload order to reflect cancelled status + refund info
         try {
-          const reload = await apiFetch(`${baseUrl}/orders/${id}`)
+          const reload = await apiFetch(`${baseUrl}/orders/${orderId}`)
           const reloadData = await reload.json()
           if (reloadData.code === 20000) setOrder(reloadData.data)
         } catch { /* keep current state */ }
@@ -282,7 +305,7 @@ export default function OrderDetail() {
       const result = await resp.json()
       if (result.code === 20000) {
         dialog.toast('已接受定损')
-        const reload = await apiFetch(`${baseUrl}/orders/${id}`)
+        const reload = await apiFetch(`${baseUrl}/orders/${orderId}`)
         const reloadData = await reload.json()
         if (reloadData.code === 20000) setOrder(reloadData.data)
       } else {
@@ -312,7 +335,7 @@ export default function OrderDetail() {
       const result = await resp.json()
       if (result.code === 20000) {
         dialog.toast('已提交申诉')
-        const reload = await apiFetch(`${baseUrl}/orders/${id}`)
+        const reload = await apiFetch(`${baseUrl}/orders/${orderId}`)
         const reloadData = await reload.json()
         if (reloadData.code === 20000) setOrder(reloadData.data)
       } else {
@@ -881,7 +904,7 @@ export default function OrderDetail() {
            </View>
            <View className="flex justify-end mt-2">
              <Text className="text-white text-xs font-bold px-4 py-1.5 rounded-full bg-red-500"
-               onClick={() => navigate(`/payment?type=payment_shortfall&id=${id}`)}>
+               onClick={() => navigate(`/payment?type=payment_shortfall&id=${orderId}`)}>
                去补缴
              </Text>
            </View>
@@ -1038,7 +1061,7 @@ export default function OrderDetail() {
               </Text>
               {order.damage.status === 'agreed' && order.damage.shortfall > 0 && (
                 <View
-                  onClick={() => navigate(`/payment?type=damage&id=${id}`)}
+                  onClick={() => navigate(`/payment?type=damage&id=${orderId}`)}
                   className="mt-2 w-full py-3 bg-sky-500 text-white rounded-2xl font-black text-sm text-center cursor-pointer"
                 >
                   去支付 ¥{(order.damage.shortfall / 100).toFixed(2)}
@@ -1055,7 +1078,7 @@ export default function OrderDetail() {
           {isStaff ? (
             <>
               {showStaffShip && (
-                <View onClick={() => navigate(`/staff/shipping?order_id=${id}`)}
+                <View onClick={() => navigate(`/staff/shipping?order_id=${orderId}`)}
                   className="w-full py-3 bg-black text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer">
                   <Truck size={20} /><Text>发货</Text>
                 </View>
@@ -1068,19 +1091,19 @@ export default function OrderDetail() {
                 </View>
               )}
               {showStaffTransit && (
-                <View onClick={() => navigate(`/staff/shipping?order_id=${id}`)}
+                <View onClick={() => navigate(`/staff/shipping?order_id=${orderId}`)}
                   className="w-full py-3 bg-cyan-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer">
                   <Truck size={20} /><Text>接收并转发</Text>
                 </View>
               )}
               {showStaffDeliver && (
-                <View onClick={() => navigate(`/staff/receive?order_id=${id}&instrument=${order.instrument_id}`)}
+                <View onClick={() => navigate(`/staff/receive?order_id=${orderId}&instrument=${order.instrument_id}`)}
                   className="w-full py-3 bg-green-700 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer">
                   <PackageCheck size={20} /><Text>代收货</Text>
                 </View>
               )}
               {showStaffReceive && (
-                <View onClick={() => navigate(`/staff/receiving?order_id=${id}`)}
+                <View onClick={() => navigate(`/staff/receiving?order_id=${orderId}`)}
                   className="w-full py-3 bg-rose-700 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer">
                   <RotateCcw size={20} /><Text>接收</Text>
                 </View>
@@ -1120,7 +1143,7 @@ export default function OrderDetail() {
                 </Button>
               )}
               {showReceiveButton && (
-                <View onClick={() => navigate(`/receive?order_id=${id}&instrument=${order.instrument_id}`)}
+                <View onClick={() => navigate(`/receive?order_id=${orderId}&instrument=${order.instrument_id}`)}
                   className="w-full py-3 bg-green-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer">
                   <CheckCircle size={20} />确认收货
                 </View>
@@ -1128,13 +1151,13 @@ export default function OrderDetail() {
               {(showRenewButton || showReturnButton) && (
                 <View className="flex gap-3">
                   {showRenewButton && (
-                    <View onClick={() => navigate(`/renewal/${id}`)}
+                    <View onClick={() => navigate(`/renewal/${orderId}`)}
                       className="flex-1 py-3 bg-blue-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer">
                       <Calendar size={20} />续期
                     </View>
                   )}
                   {showReturnButton && (
-                    <View onClick={() => navigate(`/return?order_id=${id}&instrument=${order.instrument_id}`)}
+                    <View onClick={() => navigate(`/return?order_id=${orderId}&instrument=${order.instrument_id}`)}
                       className="flex-1 py-3 bg-orange-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer">
                       <RotateCcw size={20} />归还
                     </View>
