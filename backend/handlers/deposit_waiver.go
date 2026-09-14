@@ -39,12 +39,13 @@ func depositWaiverMinCredit() int {
 // DepositWaiverEligibility describes whether a user may apply for a
 // deposit-free order, with machine-readable reasons for the frontend.
 type DepositWaiverEligibility struct {
-	Eligible       bool     `json:"eligible"`
-	Reasons        []string `json:"reasons"`
-	IdentityType   *string  `json:"identity_type"`
-	FaceVerified   bool     `json:"face_verified"`
-	CreditScore    int      `json:"credit_score"`
-	MinCreditScore int      `json:"min_credit_score"`
+	Eligible             bool     `json:"eligible"`
+	Reasons              []string `json:"reasons"`
+	IdentityType         *string  `json:"identity_type"`
+	FaceVerified         bool     `json:"face_verified"`
+	IdPhotoOtherVerified bool     `json:"id_photo_other_verified"`
+	CreditScore          int      `json:"credit_score"`
+	MinCreditScore       int      `json:"min_credit_score"`
 }
 
 // EvaluateDepositWaiverEligibility loads the user row and evaluates the
@@ -59,7 +60,7 @@ func EvaluateDepositWaiverEligibility(db *gorm.DB, userID string) DepositWaiverE
 	}
 
 	var user models.User
-	if err := db.Select("face_verified, id_photo_other_type, credit_score").
+	if err := db.Select("face_verified, id_photo_other_type, id_photo_other_verified, credit_score").
 		First(&user, "id = ?", userID).Error; err != nil {
 		result.Eligible = false
 		result.Reasons = append(result.Reasons, "user_not_found")
@@ -68,6 +69,7 @@ func EvaluateDepositWaiverEligibility(db *gorm.DB, userID string) DepositWaiverE
 
 	result.FaceVerified = user.FaceVerified
 	result.IdentityType = user.IdPhotoOtherType
+	result.IdPhotoOtherVerified = user.IdPhotoOtherVerified
 	result.CreditScore = user.CreditScore
 
 	if !user.FaceVerified {
@@ -78,6 +80,12 @@ func EvaluateDepositWaiverEligibility(db *gorm.DB, userID string) DepositWaiverE
 		(*user.IdPhotoOtherType != "student" && *user.IdPhotoOtherType != "teacher") {
 		result.Eligible = false
 		result.Reasons = append(result.Reasons, "identity_not_student_or_teacher")
+	}
+	// #1925: the second document must have passed staff review — a self-declared
+	// student/teacher type alone no longer qualifies for the waiver.
+	if !user.IdPhotoOtherVerified {
+		result.Eligible = false
+		result.Reasons = append(result.Reasons, "second_doc_not_verified")
 	}
 	if user.CreditScore < minCredit {
 		result.Eligible = false

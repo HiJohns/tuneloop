@@ -34,13 +34,16 @@ func setup1867Fixture(t *testing.T) (*gorm.DB, *UserRentalHandler) {
 }
 
 // seed1867User creates a local user resolvable via iam_sub (EnsureLocalUser).
-func seed1867User(t *testing.T, db *gorm.DB, tenantID, orgID, iamSub string, faceVerified bool, idType *string, credit int) string {
+// otherVerified = users.id_photo_other_verified (#1924/#1925 — second
+// document passed staff review).
+func seed1867User(t *testing.T, db *gorm.DB, tenantID, orgID, iamSub string, faceVerified bool, idType *string, otherVerified bool, credit int) string {
 	t.Helper()
 	userID := uuid.New().String()
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: iamSub, TenantID: tenantID, OrgID: orgID,
 		Username: "u-" + iamSub[:8], Status: "active",
-		FaceVerified: faceVerified, IdPhotoOtherType: idType, CreditScore: credit,
+		FaceVerified: faceVerified, IdPhotoOtherType: idType,
+		IdPhotoOtherVerified: otherVerified, CreditScore: credit,
 	}).Error)
 	return userID
 }
@@ -96,24 +99,27 @@ func TestDepositWaiverEligibilityRules(t *testing.T) {
 	tenantID, orgID, _ := testfixtures.NewTenantIDs("1867f1a2b3c4")
 
 	cases := []struct {
-		name        string
-		faceOK      bool
-		idType      *string
-		credit      int
-		wantOK      bool
-		wantReason  string
+		name          string
+		faceOK        bool
+		idType        *string
+		otherVerified bool
+		credit        int
+		wantOK        bool
+		wantReason    string
 	}{
-		{"verified student passes", true, strPtr1867("student"), 700, true, ""},
-		{"verified teacher passes", true, strPtr1867("teacher"), 600, true, ""},
-		{"unverified rejected", false, strPtr1867("student"), 700, false, "face_not_verified"},
-		{"work identity rejected", true, strPtr1867("work"), 700, false, "identity_not_student_or_teacher"},
-		{"nil identity rejected", true, nil, 700, false, "identity_not_student_or_teacher"},
-		{"low credit rejected", true, strPtr1867("student"), 500, false, "credit_below_threshold"},
+		{"verified student passes", true, strPtr1867("student"), true, 700, true, ""},
+		{"verified teacher passes", true, strPtr1867("teacher"), true, 600, true, ""},
+		{"unverified rejected", false, strPtr1867("student"), true, 700, false, "face_not_verified"},
+		{"work identity rejected", true, strPtr1867("work"), true, 700, false, "identity_not_student_or_teacher"},
+		{"nil identity rejected", true, nil, true, 700, false, "identity_not_student_or_teacher"},
+		{"low credit rejected", true, strPtr1867("student"), true, 500, false, "credit_below_threshold"},
+		{"unverified second doc rejected", true, strPtr1867("student"), false, 700, false, "second_doc_not_verified"},
+		{"unverified second doc teacher rejected", true, strPtr1867("teacher"), false, 700, false, "second_doc_not_verified"},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			userID := seed1867User(t, db, tenantID, orgID, uuid.New().String(), tc.faceOK, tc.idType, tc.credit)
+			userID := seed1867User(t, db, tenantID, orgID, uuid.New().String(), tc.faceOK, tc.idType, tc.otherVerified, tc.credit)
 			got := EvaluateDepositWaiverEligibility(db, userID)
 			assert.Equal(t, tc.wantOK, got.Eligible)
 			if tc.wantReason == "" {
@@ -132,7 +138,7 @@ func TestDepositWaiverEligibilityEndpoint(t *testing.T) {
 	tenantID, orgID, _ := testfixtures.NewTenantIDs("1867a2b3c4d5")
 
 	sub := uuid.New().String()
-	seed1867User(t, db, tenantID, orgID, sub, true, strPtr1867("work"), 700)
+	seed1867User(t, db, tenantID, orgID, sub, true, strPtr1867("work"), true, 700)
 
 	router := new1867Router(NewUserRentalHandler(), tenantID, orgID, sub)
 	req := httptest.NewRequest(http.MethodGet, "/api/user/deposit-waiver/eligibility", nil)
@@ -170,7 +176,7 @@ func TestCreateOrder_DepositWaiverGate(t *testing.T) {
 	instID := seed1867Instrument(t, db, tenantID, orgID)
 
 	// 3a: work identity → 403/40301 (user row seeded with work type)
-	seed1867User(t, db, tenantID, orgID, iamSub, true, strPtr1867("work"), 700)
+	seed1867User(t, db, tenantID, orgID, iamSub, true, strPtr1867("work"), true, 700)
 	router := new1867Router(handler, tenantID, orgID, iamSub)
 	httpCode, bizCode, _ := post1867JSON(t, router, "/api/user/orders", map[string]interface{}{
 		"instrument_id": instID, "start_date": "2026-09-15", "end_date": "2026-09-20",
@@ -182,7 +188,7 @@ func TestCreateOrder_DepositWaiverGate(t *testing.T) {
 
 	// 3b: eligible user, no letter → 400/40002
 	db.Exec(`DELETE FROM users WHERE iam_sub = ?`, iamSub)
-	seed1867User(t, db, tenantID, orgID, iamSub, true, strPtr1867("student"), 700)
+	seed1867User(t, db, tenantID, orgID, iamSub, true, strPtr1867("student"), true, 700)
 	httpCode, bizCode, _ = post1867JSON(t, router, "/api/user/orders", map[string]interface{}{
 		"instrument_id": instID, "start_date": "2026-09-15", "end_date": "2026-09-20",
 		"deposit_waived": true, "guarantor_ids": []string{uuid.New().String(), uuid.New().String()},
@@ -194,7 +200,7 @@ func TestCreateOrder_DepositWaiverGate(t *testing.T) {
 	// 3c: fully eligible → 201/20000, order persisted with letter + zero deposit
 	g1, g2 := uuid.New().String(), uuid.New().String()
 	sub2 := uuid.New().String()
-	userID := seed1867User(t, db, tenantID, orgID, sub2, true, strPtr1867("student"), 700)
+	userID := seed1867User(t, db, tenantID, orgID, sub2, true, strPtr1867("student"), true, 700)
 	require.NoError(t, db.Create(&models.Guarantor{ID: g1, UserID: userID, Name: "G1", Phone: "13800000001"}).Error)
 	require.NoError(t, db.Create(&models.Guarantor{ID: g2, UserID: userID, Name: "G2", Phone: "13800000002"}).Error)
 
@@ -228,7 +234,7 @@ func TestBatchCreateOrder_DepositWaiverGate(t *testing.T) {
 
 	// 4a: ineligible → 403/40301
 	iamSub := uuid.New().String()
-	seed1867User(t, db, tenantID, orgID, iamSub, true, strPtr1867("other"), 900)
+	seed1867User(t, db, tenantID, orgID, iamSub, true, strPtr1867("other"), true, 900)
 	router := new1867Router(handler, tenantID, orgID, iamSub)
 	httpCode, bizCode, _ := post1867JSON(t, router, "/api/user/orders/batch", map[string]interface{}{
 		"items": []map[string]interface{}{
@@ -243,7 +249,7 @@ func TestBatchCreateOrder_DepositWaiverGate(t *testing.T) {
 
 	// 4b: eligible → order persisted with letter and zeroed deposit
 	sub := uuid.New().String()
-	userID := seed1867User(t, db, tenantID, orgID, sub, true, strPtr1867("teacher"), 700)
+	userID := seed1867User(t, db, tenantID, orgID, sub, true, strPtr1867("teacher"), true, 700)
 	g1, g2 := uuid.New().String(), uuid.New().String()
 	require.NoError(t, db.Create(&models.Guarantor{ID: g1, UserID: userID, Name: "G1", Phone: "13800000003"}).Error)
 	require.NoError(t, db.Create(&models.Guarantor{ID: g2, UserID: userID, Name: "G2", Phone: "13800000004"}).Error)

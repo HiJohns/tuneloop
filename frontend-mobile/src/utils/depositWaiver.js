@@ -22,6 +22,7 @@ export async function fetchWaiverEligibility(baseUrl) {
 const REASON_COPY = {
   face_not_verified: '需先完成实名认证',
   identity_not_student_or_teacher: '免押金仅限学生／教职工申请',
+  second_doc_not_verified: '第二证件照尚未认证完成',
   credit_below_threshold: '信用分未达到免押门槛',
   profile_not_ready: '请先完善个人资料',
   user_not_found: '请先完善个人资料',
