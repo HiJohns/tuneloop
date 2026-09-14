@@ -827,6 +827,7 @@ func main() {
 	migrateJSONBCentsReverse := flag.Bool("migrate-jsonb-cents-reverse", false, "Reverse JSONB cents conversion back to yuan (rollback), then exit")
 	gcMedia := flag.Bool("gc-media", false, "Garbage-collect orphan media files (unreferenced assets + batch-import dirs), then exit")
 	previewWebP := flag.Bool("preview-display-webp", false, "Preview how many display images would be converted, then exit")
+	requeueSecondDoc := flag.Bool("requeue-second-doc", false, "Requeue second-document review batches for legacy users with untyped second docs (#1921), then exit")
 	dryRunFlag := flag.Bool("dry-run", false, "Dry-run mode")
 	downloadPlatformCert := flag.Bool("download-platform-cert", false, "Download WeChat platform certificate and exit")
 	setOrderDetailPath := flag.String("set-order-detail-path", "", "Set WeChat mini program order detail path (e.g. 'pages-weapp/order-detail/index?out_trade_no=${商品订单号}')")
@@ -911,6 +912,22 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Printf("Display images: %d total, %d already WebP, %d need conversion\n", total, already, needs)
+		os.Exit(0)
+	}
+
+	// One-off requeue: create second_doc review batches for legacy users
+	// with an uploaded but untyped second document (#1921)
+	if *requeueSecondDoc {
+		count, err := handlers.RequeueSecondDocBatches(*dryRunFlag)
+		if err != nil {
+			fmt.Printf("FATAL: Second-doc requeue failed: %v\n", err)
+			os.Exit(1)
+		}
+		if *dryRunFlag {
+			fmt.Printf("DRY RUN: %d users would get a second_doc review batch\n", count)
+		} else {
+			fmt.Printf("Second-doc requeue complete: %d review batches created\n", count)
+		}
 		os.Exit(0)
 	}
 

@@ -30,6 +30,7 @@ export default function FaceReviewPage() {
   // 已采录（id_info_collected=true）时仅展示只读摘要做证/人核验，确认即通过。
   const [approving, setApproving] = useState(null) // 当前通过的 batch record
   const [secondDocType, setSecondDocType] = useState('') // #1924: 第二证件类型
+  const [previewVideo, setPreviewVideo] = useState(null) // #1921: 大窗播放的自拍视频 URL
   const [realName, setRealName] = useState('')
   const [idCardNo, setIdCardNo] = useState('')
   const [idCardExpire, setIdCardExpire] = useState('')
@@ -189,8 +190,16 @@ export default function FaceReviewPage() {
         const videos = (record.selfie_urls || []).filter((u) => /\.(mp4|mov|webm)(\?|$)/i.test(u))
         return (
           <Space direction="vertical" size={4}>
+            {/* #1921: 96×64 缩略，点击弹出大窗播放（证件照/自拍照为 antd Image，自带点击放大预览） */}
             {videos.map((url, i) => (
-              <video key={i} src={url} controls style={{ width: 96, height: 64, borderRadius: 4, background: '#f4f4f5' }} />
+              <video
+                key={i}
+                src={url}
+                muted
+                preload="metadata"
+                onClick={() => setPreviewVideo(url)}
+                style={{ width: 96, height: 64, borderRadius: 4, background: '#f4f4f5', cursor: 'pointer', objectFit: 'cover' }}
+              />
             ))}
             {videos.length === 0 && <Text type="secondary">无</Text>}
           </Space>
@@ -351,6 +360,25 @@ export default function FaceReviewPage() {
           showCount
           style={{ marginBottom: 24 }}
         />
+      </Modal>
+
+      {/* #1921: 自拍视频大窗播放 */}
+      <Modal
+        open={!!previewVideo}
+        title="自拍视频预览"
+        footer={null}
+        width={720}
+        onCancel={() => setPreviewVideo(null)}
+        destroyOnClose
+      >
+        {previewVideo && (
+          <video
+            src={previewVideo}
+            controls
+            autoPlay
+            style={{ width: '100%', maxHeight: '70vh', borderRadius: 8, background: '#000' }}
+          />
+        )}
       </Modal>
     </Card>
   )
