@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Card, Descriptions, Tag, Image, Row, Col, Button, Space, Divider, Tabs, Table, Spin, Empty, message, Popconfirm, Input, InputNumber, Form, Select, TreeSelect, Switch } from 'antd'
 import { ArrowLeftOutlined, DeleteOutlined, EditOutlined, DollarOutlined, UserOutlined, EnvironmentOutlined, CalendarOutlined, TruckOutlined } from '@ant-design/icons'
 import { api, pricingApi, instrumentsApi, request } from '../../../services/api'
-import { formatBeijingDate } from '../../../utils/date'
+import { formatBeijingDate, formatBeijingDateTimeShort } from '../../../utils/date'
 
 function parsePricing(pricing) {
   if (!pricing) return null
