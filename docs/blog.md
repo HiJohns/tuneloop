@@ -382,3 +382,4 @@
 - 2026-09-14: 批量处理完成，包含任务: Resolved Issues: #1915（订单详情支持微信订单中心 out_trade_no 跳转，审核订单 path 端到端可用）
 - 2026-09-14: 批量处理完成，包含任务: Resolved Issues: #1919（PC乐器详情页白屏：补全Detail.jsx中formatBeijingDateTimeShort的import） 
 - 2026-09-14: 批量处理完成，包含任务: Resolved Issues: #1926（待发货/已发货订单详情实际租赁天数与实际租金归零，收货后才计算）
+- 2026-09-14: 批量处理完成，包含任务: Resolved Issues: #1923（注册勾选协议强校验 H5/小程序 + 登录页未登录协议入口）
