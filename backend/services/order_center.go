@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
 
 type updateOrderDetailPathReq struct {
@@ -57,7 +58,7 @@ func GetOrderDetailPath() (string, error) {
 	}
 
 	url := fmt.Sprintf("https://api.weixin.qq.com/wxa/sec/order/get_order_detail_path?access_token=%s", token)
-	resp, err := http.Post(url, "application/json", nil)
+	resp, err := http.Post(url, "application/json", strings.NewReader("{}"))
 	if err != nil {
 		return "", fmt.Errorf("get_order_detail_path request failed: %w", err)
 	}

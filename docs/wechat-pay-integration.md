@@ -476,7 +476,7 @@ wx.requestPayment 失败回调:
 ./service/tuneloop --set-order-detail-path "pages-weapp/order-detail/index?out_trade_no=${商品订单号}"
 
 # 验证
-curl POST "https://api.weixin.qq.com/wxa/sec/order/get_order_detail_path?access_token=$(your_token)"
+curl -X POST -H "Content-Type: application/json" -d '{}' "https://api.weixin.qq.com/wxa/sec/order/get_order_detail_path?access_token=$(your_token)"
 ```
 
 ### Phase 6 补充：无物流订单必须上报虚拟商品发货（#1730）
