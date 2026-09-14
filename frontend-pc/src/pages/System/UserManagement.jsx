@@ -183,7 +183,7 @@ export default function UserManagement() {
     { title: '微信号', dataIndex: 'wx_openid', key: 'wx_openid', render: v => v ? <Text ellipsis style={{ maxWidth: 120 }}>{v}</Text> : '-' },
     { title: '电话', dataIndex: 'phone', key: 'phone', render: v => v || '-' },
     { title: '当前等级', dataIndex: 'level', key: 'level', render: v => v || '-' },
-    { title: '当前积分', dataIndex: 'points', key: 'points', render: v => v != null ? v / 100 : '-' },
+    { title: '当前乐币', dataIndex: 'points', key: 'points', render: v => v != null ? v / 100 : '-' },
     { title: '注册时间', dataIndex: 'registered_at', key: 'registered_at', render: v => v ? formatBeijingDateTimeShort(v) : '-' },
     { title: '最新活动', dataIndex: 'last_active', key: 'last_active', render: v => v ? formatBeijingDateTimeShort(v) : '-' },
     { title: '状态', dataIndex: 'status', key: 'status', render: v => v === 'disabled'
@@ -234,7 +234,7 @@ export default function UserManagement() {
           <Form.Item label="当前等级" name="membership_level_id">
             <InputNumber min={0} style={{ width: '100%' }} placeholder="等级 ID（见会员级别管理）" />
           </Form.Item>
-          <Form.Item label="当前积分（点，1点=1元）" name="promo_points">
+          <Form.Item label="当前乐币（点，1点=1元）" name="promo_points">
             <InputNumber min={0} precision={0} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item label="禁用/可用" name="status" valuePropName="checked">

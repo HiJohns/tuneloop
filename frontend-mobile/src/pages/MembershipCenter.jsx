@@ -19,8 +19,8 @@ const provinceNames = regions.map(r => r.name)
 const HANDBOOK_SECTIONS = [
   { title: '会员体系', body: '平台设初级 / 中级 / 高级三级会员，按跨商户累计消费金额自动升级，只升不降。' },
   { title: '升级门槛', body: '累计实付消费达到对应档位门槛即自动升级，当前档位门槛见「会员权益」展示。' },
-  { title: '返现积分', body: '每笔实付租单结算完成后，按当前档位返现比例赠送积分；积分按元计，可用于后续订单抵扣，具体抵扣上限以当期政策为准。' },
-  { title: '积分使用', body: '下单支付时可使用积分抵扣租金（抵用比例以当期系统配置为准）；积分无现金价值、不可转让。' },
+  { title: '返现乐币', body: '每笔实付租单结算完成后，按当前档位返现比例赠送乐币；乐币按元计，可用于后续订单抵扣，具体抵扣上限以当期政策为准。' },
+  { title: '乐币使用', body: '下单支付时可使用乐币抵扣租金（抵用比例以当期系统配置为准）；乐币无现金价值、不可转让。' },
   { title: '其他权益', body: '会员专属活动与权益更新，以平台公告及「会员权益」展示为准。' },
 ]
 
@@ -269,7 +269,7 @@ export default function MembershipCenter() {
             </Text>
           </View>
           <View className="flex justify-between items-center py-3">
-            <Text className="text-sm text-zinc-500">积分</Text>
+            <Text className="text-sm text-zinc-500">乐币</Text>
             <Text className="text-base font-bold text-zinc-800">
               {user?.promo_points ? Number((Number(user.promo_points) / 100).toFixed(1)).toLocaleString() : '0'}
             </Text>
@@ -286,7 +286,7 @@ export default function MembershipCenter() {
             style={{ backgroundColor: '#000', color: '#fff', borderRadius: 999, padding: '10px 24px', fontSize: 14, fontWeight: '700', border: 'none' }}>
             获取推广二维码
           </Button>
-          <Text className="text-xs text-zinc-400 mt-2">邀请好友注册，赚取奖励积分</Text>
+          <Text className="text-xs text-zinc-400 mt-2">邀请好友注册，赚取奖励乐币</Text>
         </View>
       </View>
 

@@ -653,7 +653,7 @@ export default function OrderDetail() {
                 <Row label="退回预付点" value={`¥${((order.settlement.prepaid_refunded || 0) / 100).toFixed(2)}`} color="#3b82f6" />
               )}
               {order.settlement.gift_points_refunded > 0 && (
-                <Row label="赠送积分退还" value={`¥${((order.settlement.gift_points_refunded || 0) / 100).toFixed(2)}`} color="#3b82f6" />
+                <Row label="赠送乐币退还" value={`¥${((order.settlement.gift_points_refunded || 0) / 100).toFixed(2)}`} color="#3b82f6" />
               )}
               <Row label="退款合计" value={`¥${((Number(order.settlement.cash_refundable) + Number(order.settlement.prepaid_refunded) + Number(order.settlement.gift_points_refunded)) / 100).toFixed(2)}`} color="#16a34a" />
             </>

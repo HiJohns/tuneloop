@@ -701,7 +701,7 @@ export default function OrderDetail() {
               )}
               {settlement.gift_points_refunded > 0 && (
                 <View className="flex justify-between text-sm">
-                  <Text className="text-zinc-500 font-medium">赠送积分退还</Text>
+                  <Text className="text-zinc-500 font-medium">赠送乐币退还</Text>
                   <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{((settlement.gift_points_refunded || 0) / 100).toFixed(2)}</Text>
                 </View>
               )}
