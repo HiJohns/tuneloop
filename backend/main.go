@@ -566,6 +566,14 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.GET("/warning-settings", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.GetWarningSettings)
 			authRequired.PUT("/warning-settings", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.UpdateWarningSettings)
 
+			// Platform WeCom robot test (#1909).
+			authRequired.POST("/warning-settings/test-webhook", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.TestPlatformWebhook)
+
+			// Merchant WeCom robot (#1909): merchant admins configure their own.
+			authRequired.GET("/merchant/notification-webhook", handlers.GetMerchantWebhook)
+			authRequired.PUT("/merchant/notification-webhook", handlers.UpdateMerchantWebhook)
+			authRequired.POST("/merchant/notification-webhook/test", handlers.TestMerchantWebhook)
+
 			// SMTP configuration (#1910): UI-managed DirectMail + env fallback.
 			authRequired.GET("/admin/smtp-config", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.GetSMTPConfig)
 			authRequired.PUT("/admin/smtp-config", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.UpdateSMTPConfig)

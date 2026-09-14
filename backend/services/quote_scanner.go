@@ -52,7 +52,8 @@ func HandleSensitiveQuote(repairRequestID, workerID, comment string) bool {
 
 	db := database.GetDB()
 
-	// Create warning
+	// Create warning. Populate the request's site/merchant so in-app role
+	// notifications and the merchant WeCom robot can be resolved (#1909).
 	w := models.Warning{
 		ID:          uuid.New().String(),
 		Reason:      "sensitive_content_in_quote",
@@ -63,6 +64,14 @@ func HandleSensitiveQuote(repairRequestID, workerID, comment string) bool {
 		Description: "报价评论含敏感信息: " + comment[:min(100, len(comment))],
 		Status:      models.WarningStatusOpen,
 		CreatedAt:   time.Now(),
+	}
+	var req models.RepairRequest
+	if err := db.Where("id = ?", repairRequestID).First(&req).Error; err == nil {
+		w.SiteID = req.SiteID
+		var merchant models.Merchant
+		if err := db.Where("tenant_id = ?", req.TenantID).First(&merchant).Error; err == nil {
+			w.MerchantID = merchant.ID
+		}
 	}
 	if err := db.Create(&w).Error; err != nil {
 		log.Printf("[QuoteScanner] Failed to create warning: %v", err)

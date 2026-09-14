@@ -189,11 +189,14 @@ func SendMailWithFallback(to []string, subject, body string) (string, error) {
 	return "", fmt.Errorf("SMTP 未配置（界面与 .env 均无可用配置）")
 }
 
-// WarningNotifyConfig is the per-level notification target configuration.
+// WarningNotifyConfig is the single warning notification configuration
+// (email recipients + platform WeCom robot, #1908/#1909).
 type WarningNotifyConfig struct {
 	Enabled         bool     `json:"enabled"`
 	Emails          []string `json:"emails"`
 	CooldownMinutes int      `json:"cooldown_minutes"`
+	WebhookEnabled  bool     `json:"webhook_enabled"`
+	WebhookURL      string   `json:"webhook_url,omitempty"` // encrypted at rest, decrypted by Load
 }
 
 // LoadWarningNotifyConfig reads the single warning notification config;
@@ -213,6 +216,13 @@ func LoadWarningNotifyConfig(db *gorm.DB) (WarningNotifyConfig, error) {
 	}
 	if err := json.Unmarshal([]byte(s.SettingValue), &cfg); err != nil {
 		return cfg, fmt.Errorf("invalid warning notification config JSON: %w", err)
+	}
+	if cfg.WebhookURL != "" {
+		plain, err := DecryptSecret(cfg.WebhookURL)
+		if err != nil {
+			return cfg, err
+		}
+		cfg.WebhookURL = plain
 	}
 	return cfg, nil
 }
@@ -241,6 +251,25 @@ func SaveWarningNotifyConfig(db *gorm.DB, cfg WarningNotifyConfig) error {
 	cfg.Emails = clean
 	if cfg.CooldownMinutes < 0 || cfg.CooldownMinutes > 1440 {
 		return fmt.Errorf("重复间隔必须在 0~1440 分钟之间")
+	}
+	if cfg.WebhookURL != "" {
+		if err := ValidateWeComWebhookURL(cfg.WebhookURL); err != nil {
+			return err
+		}
+		enc, err := EncryptSecret(cfg.WebhookURL)
+		if err != nil {
+			return err
+		}
+		cfg.WebhookURL = enc
+	} else {
+		// keep the stored robot URL when the field is left empty
+		var s models.SystemSetting
+		if err := db.Where("tenant_id = ? AND setting_key = ?", WarningConfigTenantID, WarningConfigKey).First(&s).Error; err == nil {
+			var old WarningNotifyConfig
+			if json.Unmarshal([]byte(s.SettingValue), &old) == nil {
+				cfg.WebhookURL = old.WebhookURL
+			}
+		}
 	}
 	raw, err := json.Marshal(cfg)
 	if err != nil {

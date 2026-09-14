@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Card, InputNumber, Switch, Button, message, Spin, Input } from 'antd'
+import { Card, InputNumber, Switch, Button, message, Spin, Input, Space } from 'antd'
 import { api } from '../../../services/api'
 
 // #1908: 警告通知配置（合并为单一配置，不再分级）。
@@ -7,9 +7,12 @@ import { api } from '../../../services/api'
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function WarningSettings() {
-  const [cfg, setCfg] = useState({ enabled: false, emails: [], cooldown_minutes: 0 })
+  const [cfg, setCfg] = useState({ enabled: false, emails: [], cooldown_minutes: 0, webhook_enabled: false })
+  const [webhookUrl, setWebhookUrl] = useState('')
+  const [webhookConfigured, setWebhookConfigured] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [testing, setTesting] = useState(false)
 
   useEffect(() => {
     api.get('/warning-settings').then(res => {
@@ -18,12 +21,25 @@ export default function WarningSettings() {
           enabled: !!res.data?.enabled,
           emails: res.data?.emails || [],
           cooldown_minutes: res.data?.cooldown_minutes || 0,
+          webhook_enabled: !!res.data?.webhook_enabled,
         })
+        setWebhookConfigured(!!res.data?.webhook_configured)
+        setWebhookUrl('')
       } else {
         message.error(res.message || '加载警告配置失败')
       }
     }).catch(err => message.error(err.message || '加载警告配置失败')).finally(() => setLoading(false))
   }, [])
+
+  const handleTestWebhook = async () => {
+    setTesting(true)
+    try {
+      const res = await api.post('/warning-settings/test-webhook', {})
+      if (res.code === 20000) message.success('测试消息已发送到企业微信群')
+      else message.error(res.message || '测试发送失败')
+    } catch (err) { message.error(err.message || '测试发送失败') }
+    setTesting(false)
+  }
 
   const handleSave = async () => {
     const emails = (cfg.emails || []).map(e => (e || '').trim()).filter(Boolean)
@@ -38,6 +54,8 @@ export default function WarningSettings() {
         enabled: !!cfg.enabled,
         emails,
         cooldown_minutes: cfg.cooldown_minutes || 0,
+        webhook_enabled: !!cfg.webhook_enabled,
+        webhook_url: webhookUrl.trim(),
       })
       if (res.code === 20000) message.success('警告配置已保存')
       else message.error(res.message || '保存失败')
@@ -71,6 +89,29 @@ export default function WarningSettings() {
               onChange={e => setCfg(p => ({ ...p, emails: e.target.value.split('\n') }))}
               placeholder={'每行一个邮箱，例如：\nops@example.com\nit@corp.cn'}
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">企业微信机器人（可选，建议配置）</label>
+            <div className="flex items-center gap-2 mb-2">
+              <Switch
+                checked={cfg.webhook_enabled}
+                onChange={v => setCfg(p => ({ ...p, webhook_enabled: v }))}
+                checkedChildren="启用"
+                unCheckedChildren="停用"
+              />
+              <span>{cfg.webhook_enabled ? '启用企业微信推送' : '停用企业微信推送'}</span>
+              <Button size="small" loading={testing} onClick={handleTestWebhook} disabled={!webhookConfigured && !webhookUrl.trim()}>
+                发送测试
+              </Button>
+            </div>
+            <Input
+              value={webhookUrl}
+              onChange={e => setWebhookUrl(e.target.value)}
+              placeholder={webhookConfigured ? '已配置（留空表示不修改）' : '企业微信群机器人 Webhook URL'}
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              未配置或推送失败时，警告仍会以站内通知送达；Webhook 地址加密存储，不会回显。
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">重复间隔（分钟，0 = 仅一次）</label>

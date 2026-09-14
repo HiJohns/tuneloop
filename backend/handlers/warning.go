@@ -110,7 +110,16 @@ func GetWarningSettings(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": cfg})
+	// #1909: never echo the robot URL; report whether one is stored.
+	webhookConfigured := cfg.WebhookURL != ""
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
+		"enabled":            cfg.Enabled,
+		"emails":             cfg.Emails,
+		"cooldown_minutes":   cfg.CooldownMinutes,
+		"webhook_enabled":    cfg.WebhookEnabled,
+		"webhook_url":        "",
+		"webhook_configured": webhookConfigured,
+	}})
 }
 
 // UpdateWarningSettings saves the warning notification config (#1898/#1908).

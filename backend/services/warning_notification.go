@@ -33,8 +33,15 @@ func SendWarningNotification(warning *models.Warning) (bool, error) {
 
 	// #1898: the e-mail alert goes to the configured recipients (arbitrary
 	// addresses, not roles), at most once per cooldown window.
-	sent, _, err := sendWarningEmail(warning)
-	return sent, err
+	sent, _, emailErr := sendWarningEmail(warning)
+	// #1909: WeCom robot push (merchant robot first, platform robot fallback).
+	// In-app notifications were already written above, so an absent/failing
+	// webhook degrades to the built-in notification.
+	webhookErr := sendWarningWebhook(warning)
+	if emailErr != nil {
+		return sent, emailErr
+	}
+	return sent, webhookErr
 }
 
 func getNotifyRoles(level string) []string {
