@@ -861,6 +861,28 @@ ssh cadenza "docker exec <container> psql -U tuneloop_user -d tuneloop_pre_snaps
 
 ---
 
+### 发布后监控提醒（强制，来源 #1913 / #1929）
+
+> **教训**：2026-09-13 生产因「DB schema 超前于部署包 + systemd 无限重启」静默崩溃 29h（~20k 次重启）才被人工发现。发布完成 ≠ 发布成功。
+
+**规则**：AI 每次完成发布动作后（`make release` / `release.sh` 生产提升 / `weapp-upload-*`），**必须主动输出监控提醒**并向用户明确「发布后观察窗口」，不得在未提醒的情况下结束发布流程。提醒内容 = 发布确认 + 以下核对项 + 明确告知"若有异常立即回滚（上传更早归档/切回上一快照）":
+
+**① 立即核对（发布后 5 分钟内，AI 应主动执行并报告）**：
+```bash
+ssh cadenza "systemctl is-active tuneloop"                     # active（不是 activating/auto-restart）
+ssh cadenza "sudo journalctl -u tuneloop --since '5 min ago' --no-pager | grep -iE 'FATAL|panic' | head"   # 必须为空
+ssh cadenza "curl -s localhost:5558/api/config | grep version"  # 版本号 = 预期
+ssh cadenza "systemctl show tuneloop -p NRestarts"              # 重启计数不应持续增长
+```
+
+**② 观察窗口（≥30 分钟，提醒用户关注）**：错误率、`journalctl` 中 FATAL/panic、关键接口可用性（`web.cadenzayueqi.com` / `wx.cadenzayueqi.com`）、小程序真机核心路径（登录/下单/支付）。
+
+**③ 迁移相关发布加严**：只要本次发布包含 `database/migrations/` 变更（或曾对生产库单独执行过迁移），监控窗口内必须确认 bootstrap 日志为「Successfully applied migrations + schema validation passed」，且**不得在验证前关闭终端/中断观察**。
+
+**④ 小程序发布**：提醒用户在微信后台「提交审核 → 发布」，并说明 AI 无微信后台权限、无法监控审核状态。
+
+---
+
 ### 部署流程 (Deployment Flow)
 
 ```bash
