@@ -614,3 +614,61 @@ func TestPaymentCallback_SessionFlow_RealCallback(t *testing.T) {
 	require.NoError(t, db.Model(&models.User{}).Where("iam_sub = ?", newUserID).Count(&userCount).Error)
 	assert.Equal(t, int64(1), userCount, "repeat callback must not create a second account")
 }
+
+// TestRegistrationSecondDocType_Ignored (#1924-audit Bug2): 顾客自填的
+// id_photo_other_type 在注册完成时必须被读取但**忽略** —— user 保持「未定」，
+// 类型由平台员工在 face_review approve 时指定。
+// 说明：走 legacy 完成路径（无预留用户）的自足用例 —— 既有 payment-callback
+// 用例存在存量性问题（iam_sub/Amount 口径过期，被全量套件在
+// TestImportInstruments panic 截断后长期未被运行，与 #1924 无关）。
+func TestRegistrationSecondDocType_Ignored(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+
+	t.Setenv("IAM_SECRET", testIAMSecret)
+	t.Setenv("IAM_NAMESPACE", "test-ns")
+	newUserID := "6d1e2c3a-0000-4000-8000-0000000000f2"
+	srv := newRegisterMockServer(t, newUserID, "SecondDocIgnored")
+	defer srv.Close()
+	services.SetIAMInternalURLForTesting(srv.URL)
+
+	form := registerForm{
+		Nickname:         "微信用户",
+		Name:             "测试会员",
+		Phone:            "13800176000",
+		IdPhotoOtherType: "student", // 顾客自行申报的类型
+	}
+	s := models.RegistrationSession{
+		ID:            uuid.New().String(),
+		ExchangeToken: "exch-ignore-type",
+		FormData:      marshalForm(form),
+		Amount:        models.FromYuan(99),
+		Status:        "pending",
+	}
+	require.NoError(t, db.Create(&s).Error)
+
+	record := models.OrderPaymentRecord{
+		ID:          uuid.New().String(),
+		TenantID:    "00000000-0000-0000-0000-000000000000",
+		UserID:      "someone",
+		OrderType:   "membership",
+		OutTradeNo:  strPtr("msess-ignore-type"),
+		Amount:      models.FromYuan(99),
+		Type:        "payment",
+		Status:      "paid",
+		SessionID:   &s.ID,
+		RawResponse: strPtr(`{"session_id":"` + s.ID + `","original_amount":99}`),
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+
+	require.NoError(t, applySideEffects(db, &record, time.Now()), "legacy registration completion")
+
+	var user models.User
+	require.NoError(t, db.Where("iam_sub = ?", newUserID).First(&user).Error, "user created via legacy completion path")
+	assert.Nil(t, user.IdPhotoOtherType, "customer-declared second-doc type must NOT be applied at registration")
+
+	var session models.RegistrationSession
+	require.NoError(t, db.Where("id = ?", s.ID).First(&session).Error)
+	assert.Equal(t, "completed", session.Status)
+}

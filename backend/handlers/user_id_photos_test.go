@@ -161,6 +161,63 @@ func TestIdPhotoUploadPersistsAndDeletes(t *testing.T) {
 	assert.Equal(t, "", *user.IdPhotoFront)
 }
 
+// TestUploadIDPhoto_SecondDocTriggersReview (#1924/#1924-audit): 上传第二证件照
+// (side=other) 必须 重置 id_photo_other_verified + 创建 pending second_doc 审核
+// 批次（报告已提交审核），且待审核期间重复上传幂等（不重复建批次）。
+// 审计前缺失该用例 —— Bug2 of the #1924 rejection report.
+func TestUploadIDPhoto_SecondDocTriggersReview(t *testing.T) {
+	db, tenantID, userID := setupIdPhotoTestDB(t)
+	// face_capture_batches 不在 setupIdPhotoTestDB 的表集内 —— 本测试自建。
+	_ = db.Migrator().DropTable(&models.FaceCaptureBatch{})
+	require.NoError(t, db.Migrator().CreateTable(&models.FaceCaptureBatch{}))
+
+	// 用户已有「已认证」第二证件状态 —— 上传新照必须重置。
+	require.NoError(t, db.Model(&models.User{}).Where("id = ?", userID).
+		Update("id_photo_other_verified", true).Error)
+
+	actor := testutil.MakeCustomer(tenantID, userID)
+	router := idPhotoRouter(actor)
+
+	body, ctype := uploadForm("other")
+	req := httptest.NewRequest("POST", "/api/user/id-photo", body)
+	req.Header.Set("Content-Type", ctype)
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code, resp.Body.String())
+
+	var out map[string]interface{}
+	require.NoError(t, json.Unmarshal(resp.Body.Bytes(), &out))
+	assert.Equal(t, float64(20000), out["code"])
+	// #1924 计划要求的响应提示「已提交审核」。
+	msg, _ := out["message"].(string)
+	assert.Contains(t, msg, "已提交审核")
+
+	var user models.User
+	require.NoError(t, db.Where("id = ?", userID).First(&user).Error)
+	assert.False(t, user.IdPhotoOtherVerified, "second-doc upload must reset verification")
+	require.NotNil(t, user.IdPhotoOther)
+	assert.Contains(t, *user.IdPhotoOther, "id_photos/")
+
+	countPending := func(t *testing.T) int64 {
+		t.Helper()
+		var n int64
+		require.NoError(t, db.Model(&models.FaceCaptureBatch{}).
+			Where("user_id = ? AND kind = ? AND status = ?", userID, "second_doc", "pending").
+			Count(&n).Error)
+		return n
+	}
+	require.Equal(t, int64(1), countPending(t), "upload must create exactly one pending second_doc batch")
+
+	// 幂等：待审核期间重复上传不得再建批次。
+	body, ctype = uploadForm("other")
+	req = httptest.NewRequest("POST", "/api/user/id-photo", bytes.NewReader(body.Bytes()))
+	req.Header.Set("Content-Type", ctype)
+	resp = httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code, resp.Body.String())
+	assert.Equal(t, int64(1), countPending(t), "repeat upload while pending must be idempotent")
+}
+
 // TestIdPhotoStaffViewAndIsolation covers staff viewing a user's ID photos
 // and the customer-forbidden path. (#1598)
 func TestIdPhotoStaffViewAndIsolation(t *testing.T) {

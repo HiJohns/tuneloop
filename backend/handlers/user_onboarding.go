@@ -186,21 +186,32 @@ func (h *UserOnboardingHandler) UploadIDPhoto(c *gin.Context) {
 	}
 
 	// #1924: 提交/更换第二证件 → 重置认证态并投递专属审核批次（待审核期间幂等）。
+	// #1924 audit fix: 三条 DB 失败路径此前仅 log 后返回 200「已提交审核」——
+	// 审核队列将无记录、免押金卡死无信号，且 Count 失败可致重复批次。任一
+	// 失败必须显式 5xx（对齐同函数照片持久化的 50004 模式）。
 	if side == "other" {
 		if err := db.Model(&models.User{}).Where("id = ?", userID).
 			Update("id_photo_other_verified", false).Error; err != nil {
 			log.Printf("[IDPhoto] reset second-doc verification failed: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50004, "message": "failed to submit second document"})
+			return
 		}
 		var pendingCount int64
-		db.Model(&models.FaceCaptureBatch{}).
+		if err := db.Model(&models.FaceCaptureBatch{}).
 			Where("user_id = ? AND kind = ? AND status = ?", userID, "second_doc", "pending").
-			Count(&pendingCount)
+			Count(&pendingCount).Error; err != nil {
+			log.Printf("[IDPhoto] second-doc idempotency check failed: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50004, "message": "failed to submit second document"})
+			return
+		}
 		if pendingCount == 0 {
 			if err := db.Create(&models.FaceCaptureBatch{
 				ID: uuid.New().String(), UserID: userID, Status: "pending", Kind: "second_doc",
 				SubmittedAt: time.Now(), CreatedAt: time.Now(),
 			}).Error; err != nil {
 				log.Printf("[IDPhoto] create second-doc review batch failed: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"code": 50004, "message": "failed to submit second document"})
+				return
 			}
 		}
 	}
