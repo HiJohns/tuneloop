@@ -26,6 +26,17 @@
 - ✅ 四个 bucket 已创建并按上表设置 ACL
 - ⚠️ **预生产与生产物理隔离**（与 DB `tuneloop_pre_snapshot`/`tuneloop`、uploads 目录隔离策略一致），杜绝跨环境误删/串写
 
+### Endpoint 一览（以 `tuneloop-media` 控制台属性为准，其余 bucket 同构）
+
+| 访问端口 | Endpoint | Bucket 域名 | 用途 |
+|---------|----------|------------|------|
+| 外网 | `oss-cn-beijing.aliyuncs.com` | `tuneloop-media.oss-cn-beijing.aliyuncs.com` | **默认**：后端读写 + 用户/小程序访问 URL |
+| CNAME 域名 | `cn-beijing.taihangcda.cn` | `tuneloop-media.cn-beijing.taihangcda.cn` | 专属云 CNAME 端点（⚠️ 非标准公有云行）；**绑定自定义域名时以控制台「域名管理」给出的 CNAME 目标为准** |
+| ECS 经典网络/VPC（内网） | `oss-cn-beijing-internal.aliyuncs.com` | `tuneloop-media.oss-cn-beijing-internal.aliyuncs.com` | 仅当 cadenza 为同 region 阿里云 ECS 时用于服务端上传/回填（免外网流量费） |
+| 传输加速 | 未开启 | — | 暂不需要 |
+
+**GetURL 输出原则**：用户可见 URL 一律用**外网 bucket 域名**（或绑定的自定义域名），**绝不用内网 endpoint**（客户端不可达）。服务端上传 endpoint 通过 env 可选内网优化（仅 ECS 同 region 部署时）。
+
 ### P0 待办（剩余）
 
 | # | 事项 | 状态 |
