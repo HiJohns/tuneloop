@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Card, Tabs, Button, message } from 'antd'
 import { SaveOutlined } from '@ant-design/icons'
 import ReactQuill from 'react-quill'
@@ -60,6 +60,34 @@ export default function ContentEdit() {
   // save() reads from it.
   const draftRefs = useRef({})
 
+  // #1927: 稳定每个 tab 的 modules 引用。react-quill@2.0.0 把 modules 列为
+  // dirtyProp，每次 re-render 若传入新对象/新函数（lodash isEqual 对函数仅在
+  // 引用相同时才相等）即触发编辑器 regenerate；而该版本 destroyEditor 只
+  // unhook 不置空 this.editor，regenerate 后新 DOM 永不初始化 → 整片空白。
+  // useMemo 空依赖保证 modules 对象引用恒定，父组件 re-render 不再触发 rebuild。
+  // 闭包仅捕获稳定的 quillRefs（ref）与 KEYS 常量中的 k.key，安全。
+  const modulesMap = useMemo(() => {
+    const map = {}
+    KEYS.forEach(k => {
+      map[k.key] = {
+        toolbar: {
+          container: [
+            [{ header: [1, 2, 3, false] }],
+            ['bold', 'italic', 'underline', 'strike'],
+            [{ list: 'ordered' }, { list: 'bullet' }],
+            [{ align: [] }],
+            ['link', 'image'],
+            ['clean'],
+          ],
+          handlers: {
+            image: () => imageHandler(quillRefs, k.key),
+          },
+        },
+      }
+    })
+    return map
+  }, [])
+
   useEffect(() => {
     KEYS.forEach(k => load(k.key))
   }, [])
@@ -101,21 +129,7 @@ export default function ContentEdit() {
           onChange={val => { draftRefs.current[k.key] = val }}
           placeholder={`请输入${k.title}内容`}
           style={{ marginBottom: 12, height: 300 }}
-          modules={{
-            toolbar: {
-              container: [
-                [{ header: [1, 2, 3, false] }],
-                ['bold', 'italic', 'underline', 'strike'],
-                [{ list: 'ordered' }, { list: 'bullet' }],
-                [{ align: [] }],
-                ['link', 'image'],
-                ['clean'],
-              ],
-              handlers: {
-                image: () => imageHandler(quillRefs, k.key),
-              },
-            },
-          }}
+          modules={modulesMap[k.key]}
         />
         )}
         <div style={{ height: 48 }} />

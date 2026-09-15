@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Card, Button, message } from 'antd'
 import { SaveOutlined } from '@ant-design/icons'
 import ReactQuill from 'react-quill'
@@ -6,6 +6,34 @@ import 'react-quill/dist/quill.snow.css'
 import { api } from '../../services/api'
 
 const HANDBOOK_KEY = 'membership_handbook'
+
+// #1927: 模块级稳定函数，供 useMemo 空依赖捕获（避免每次 render 新闭包触发
+// react-quill regenerate）。与 ContentEdit 的 imageHandler 同构。
+const imageHandler = async (quillRef) => {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.onchange = async () => {
+    const file = input.files?.[0]
+    if (!file) return
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await api.uploadFile('/upload', formData)
+      if (res.code === 20000 && res.data?.url) {
+        const quill = quillRef.current?.getEditor?.()
+        if (!quill) return
+        const range = quill.getSelection(true)
+        const index = range?.index != null ? range.index : quill.getLength()
+        quill.insertEmbed(index, 'image', res.data.url)
+        quill.setSelection(index + 1)
+      } else {
+        message.error(res.message || '图片上传失败')
+      }
+    } catch { message.error('图片上传失败') }
+  }
+  input.click()
+}
 
 // #1830 增量: backend-editable membership handbook. Stored via the generic
 // global settings store (same chain as the content editor), read by the
@@ -16,6 +44,23 @@ export default function MembershipHandbookPage() {
   const [initialValue, setInitialValue] = useState('')
   const quillRef = useRef(null)
   const draftRef = useRef('')
+  // #1927: 稳定 modules 引用，避免 save() 的 setSaving re-render 触发
+  // react-quill@2.0.0 regenerate（destroyEditor 不置空 → 编辑器空白）。
+  const modules = useMemo(() => ({
+    toolbar: {
+      container: [
+        [{ header: [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        [{ align: [] }],
+        ['link', 'image'],
+        ['clean'],
+      ],
+      handlers: {
+        image: () => imageHandler(quillRef),
+      },
+    },
+  }), [])
 
   useEffect(() => {
     const load = async () => {
@@ -35,32 +80,6 @@ export default function MembershipHandbookPage() {
     }
     load()
   }, [])
-
-  const imageHandler = async () => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = 'image/*'
-    input.onchange = async () => {
-      const file = input.files?.[0]
-      if (!file) return
-      try {
-        const formData = new FormData()
-        formData.append('file', file)
-        const res = await api.uploadFile('/upload', formData)
-        if (res.code === 20000 && res.data?.url) {
-          const quill = quillRef.current?.getEditor?.()
-          if (!quill) return
-          const range = quill.getSelection(true)
-          const index = range?.index != null ? range.index : quill.getLength()
-          quill.insertEmbed(index, 'image', res.data.url)
-          quill.setSelection(index + 1)
-        } else {
-          message.error(res.message || '图片上传失败')
-        }
-      } catch { message.error('图片上传失败') }
-    }
-    input.click()
-  }
 
   const save = async () => {
     setSaving(true)
