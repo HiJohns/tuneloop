@@ -927,7 +927,9 @@ func loadOverdueDailyRate(db *gorm.DB, instrumentID string, order models.Order) 
 	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
 		var pb services.PricingBreakdown
 		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil && pb.BaseDailyRent > 0 {
-			baseRate = pb.BaseDailyRent
+			// #1902: pricing_breakdown.base_daily_rent 为分语义（#1757），
+			// 此前直接当元使用 → 逾期日租 ×100（¥150/天 → ¥15000/天）。
+			baseRate = pb.BaseDailyRent / 100
 		}
 	}
 	if baseRate <= 0 {

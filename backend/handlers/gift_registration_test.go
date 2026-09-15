@@ -77,6 +77,7 @@ func TestGiftRegistration(t *testing.T) {
 
 		body, _ := json.Marshal(map[string]interface{}{
 			"agreed_terms": true,
+			"nickname":     "Gift Nick", // #1902: PostRegister 契约 Nickname required
 			"name":         "Gift User",
 			"phone":        "13900139001",
 			"password":     "secret123",
@@ -141,6 +142,7 @@ func TestGiftRegistration(t *testing.T) {
 
 		body, _ := json.Marshal(map[string]interface{}{
 			"agreed_terms": true,
+			"nickname":     "NoRef Nick", // #1902: PostRegister 契约 Nickname required
 			"name":         "No Ref User",
 			"phone":        "13900139002",
 			"password":     "secret123",

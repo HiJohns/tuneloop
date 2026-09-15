@@ -957,6 +957,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	discountedRent := 0.0
 	discountedDue := 0.0
 	var segmentUsage []int
+	couponRemainderYuan := 0.0 // #1902: 优惠码未折入段折扣的剩余抵扣额（元）
 	// 合同初始覆盖天数（#1838 二次修正 + #1837 共用）：orders.lease_term 为【月】语义
 	// （days/30，日租单=0），不可作为段模型输入。权威反推：pricing_breakdown.
 	// rent_days 被续费累加为"全部覆盖天数"（renewal.go）→ 合同初始天数 =
@@ -982,17 +983,31 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		}
 	}
 	if contractDays > 0 {
-		if segs, paidTotalCents, err := makePaidSegments(contractDays, pricingTiers, baseDailyRentCents, contractRent, renewalRecs); err == nil {
-			if ds, err := computeDiscountedSettlement(actualDays, segs, int64(math.Round(shippingFee*100)), paidTotalCents); err == nil {
+		var segs []PaidSegment
+		var paidTotalCents int64
+		segs, paidTotalCents, segErr := makePaidSegments(contractDays, pricingTiers, baseDailyRentCents, contractRent, renewalRecs)
+		if segErr == nil {
+			if ds, dsErr := computeDiscountedSettlement(actualDays, segs, int64(math.Round(shippingFee*100)), paidTotalCents); dsErr == nil {
 				useDiscounted = true
 				discountedRent = float64(ds.DiscountedRent) / 100
 				discountedDue = float64(ds.DiscountedDue) / 100
 				segmentUsage = ds.Usage
+				// #1902: 段折扣率只承载了优惠码中「折入租金」的部分；押金/物流等
+				// 非租金抵扣额不在段模型内 → 未折入部分继续抵扣净额补缴，
+				// 余额不产生退款（OREZ 整单免 → 不退也不补，#1743 第四轮口径）。
+				couponAppliedToRentCents := int64(0)
+				for _, seg := range segs {
+					couponAppliedToRentCents += int64(math.Round(float64(seg.OriginalDaily) * float64(seg.Days) * (1 - seg.Rate)))
+				}
+				couponRemainder := (order.CouponDiscount.ToYuan()*100 - float64(couponAppliedToRentCents)) / 100
+				if couponRemainder > 0 {
+					couponRemainderYuan = couponRemainder
+				}
 			} else {
-				log.Printf("[computeSettlement] segment model rejected order %s: %v — falling back to #1743", order.ID, err)
+				log.Printf("[computeSettlement] segment model rejected order %s: %v — falling back to #1743", order.ID, dsErr)
 			}
 		} else {
-			log.Printf("[computeSettlement] segment build failed for order %s: %v — falling back to #1743", order.ID, err)
+			log.Printf("[computeSettlement] segment build failed for order %s: %v — falling back to #1743", order.ID, segErr)
 		}
 	} else {
 		log.Printf("[computeSettlement] order %s contract days unresolvable (lease_term=%d, rent_days-derived=%d) — segment model skipped, falling back to #1743", order.ID, order.LeaseTerm, contractDays)
@@ -1002,6 +1017,10 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	if useDiscounted {
 		// 折后应收（分）已含物流；逾期/定损按原价追加（不打折）。
 		netYuan := (discountedDue + overdueFee + damageDeducted) - paidTotal
+		// #1902: 优惠码未折入段折扣的抵扣额仅抵扣补缴方向（不产生退款）。
+		if couponRemainderYuan > 0 && netYuan > 0 {
+			netYuan -= math.Min(couponRemainderYuan, netYuan)
+		}
 		if netYuan > 0 {
 			payableShortfall = netYuan
 		} else {

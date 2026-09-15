@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 )
@@ -21,13 +21,9 @@ import (
 func TestCreateInstrumentSavesAllFields(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("Test database not available, skipping:", err)
-		return
-	}
-	database.SetDB(db)
+	// #1902: SetupTestDB 每次落表重建 —— 修复跨运行残留（properties 按 name
+	// 跨租户命中历史 option → 不再新建 pending option → 计数断言失败）。
+	db := testfixtures.SetupTestDB(t)
 
 	// Clean all tables
 	db.Exec(`DELETE FROM instrument_properties`)
@@ -39,7 +35,7 @@ func TestCreateInstrumentSavesAllFields(t *testing.T) {
 
 	levelID := uuid.New().String()
 	db.Exec(`INSERT INTO instrument_levels (id, caption, code, sort_order) VALUES (?, ?, ?, ?)`,
-		levelID, "入门", "entry", 1)
+		levelID, "入门", "entry-"+levelID[:8], 1)
 
 	// Create test data
 	siteID := uuid.New().String()
@@ -53,9 +49,9 @@ func TestCreateInstrumentSavesAllFields(t *testing.T) {
 		categoryID, "测试分类", tenantID, now)
 
 	propertyID := uuid.New().String()
-	db.Exec(`INSERT INTO properties (id, name, tenant_id, property_type, is_required, created_at) 
-		VALUES (?, ?, ?, 'text', false, ?)`,
-		propertyID, "型号", tenantID, now)
+	db.Exec(`INSERT INTO properties (id, name, tenant_id, property_type, is_required, caption, created_at) 
+		VALUES (?, ?, ?, 'text', false, ?, ?)`,
+		propertyID, "型号", tenantID, "型号", now)
 
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
@@ -99,7 +95,7 @@ func TestCreateInstrumentSavesAllFields(t *testing.T) {
 		TotalPrice     *float64
 	}
 
-	err = db.Raw(`SELECT id, sn, level_id::text, category_id, site_id, specifications, total_price 
+	err := db.Raw(`SELECT id, sn, level_id::text, category_id, site_id, specifications, total_price 
 		FROM instruments WHERE tenant_id = ? AND sn = ?`, tenantID, "TEST-SN-001").Scan(&instrument).Error
 	require.NoError(t, err)
 
@@ -110,7 +106,8 @@ func TestCreateInstrumentSavesAllFields(t *testing.T) {
 	assert.Equal(t, siteID, *instrument.SiteID)
 	assert.NotEmpty(t, instrument.Specifications)
 	require.NotNil(t, instrument.TotalPrice)
-	assert.Equal(t, 50000.0, *instrument.TotalPrice)
+	// #1902: #1757 Cents 迁移 —— 请求 total_price 按元解释，落库存分（¥50000 → 5,000,000 分）
+	assert.Equal(t, 5000000.0, *instrument.TotalPrice)
 
 	// Cleanup
 	db.Exec(`DELETE FROM instruments WHERE tenant_id = ?`, tenantID)
@@ -122,13 +119,9 @@ func TestCreateInstrumentSavesAllFields(t *testing.T) {
 func TestCreateInstrumentWithLevelID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("Test database not available, skipping:", err)
-		return
-	}
-	database.SetDB(db)
+	// #1902: SetupTestDB 每次落表重建 —— 修复跨运行残留（properties 按 name
+	// 跨租户命中历史 option → 不再新建 pending option → 计数断言失败）。
+	db := testfixtures.SetupTestDB(t)
 
 	// Clean instrument_levels
 	db.Exec(`DELETE FROM instrument_levels`)
@@ -139,7 +132,7 @@ func TestCreateInstrumentWithLevelID(t *testing.T) {
 	// Create test level
 	levelID := uuid.New()
 	db.Exec(`INSERT INTO instrument_levels (id, caption, code, sort_order) 
-		VALUES (?, '专业', 'professional', 2)`, levelID)
+		VALUES (?, '专业', ?, 2)`, levelID, "prof-"+uuid.New().String()[:8])
 
 	// Create test category
 	categoryID := uuid.New().String()
@@ -180,7 +173,7 @@ func TestCreateInstrumentWithLevelID(t *testing.T) {
 		Level   string
 	}
 
-	err = db.Raw(`SELECT id, level_id, level FROM instruments 
+	err := db.Raw(`SELECT id, level_id, level FROM instruments 
 		WHERE tenant_id = ? AND sn = ?`, tenantID, "TEST-SN-LEVELID").Scan(&instrument).Error
 	require.NoError(t, err)
 
@@ -196,32 +189,33 @@ func TestCreateInstrumentWithLevelID(t *testing.T) {
 func TestCreateInstrumentWithProperties(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("Test database not available, skipping:", err)
-		return
-	}
-	database.SetDB(db)
+	// #1902: SetupTestDB 每次落表重建 —— 修复跨运行残留（properties 按 name
+	// 跨租户命中历史 option → 不再新建 pending option → 计数断言失败）。
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	now := time.Now()
 
 	// Create test category
 	categoryID := uuid.New().String()
-	db.Exec(`INSERT INTO categories (id, name, tenant_id, created_at) 
-		VALUES (?, ?, ?, 1, ?, ?)`,
-		categoryID, "测试分类", tenantID, now, now)
+	db.Exec(`INSERT INTO categories (id, name, tenant_id, created_at)
+		VALUES (?, ?, ?, ?)`,
+		categoryID, "测试分类", tenantID, now)
 
 	// Create test properties
 	prop1ID := uuid.New().String()
 	prop2ID := uuid.New().String()
-	db.Exec(`INSERT INTO properties (id, name, tenant_id, property_type, is_required, created_at) 
-		VALUES (?, ?, ?, 'text', false, ?)`,
-		prop1ID, "品牌", tenantID, now, now)
-	db.Exec(`INSERT INTO properties (id, name, tenant_id, property_type, is_required, created_at) 
-		VALUES (?, ?, ?, 'text', false, ?)`,
-		prop2ID, "颜色", tenantID, now, now)
+	db.Exec(`INSERT INTO properties (id, name, tenant_id, property_type, is_required, caption, created_at)
+		VALUES (?, ?, ?, 'text', false, ?, ?)`,
+		prop1ID, "品牌", tenantID, "品牌", now)
+	db.Exec(`INSERT INTO properties (id, name, tenant_id, property_type, is_required, caption, created_at)
+		VALUES (?, ?, ?, 'text', false, ?, ?)`,
+		prop2ID, "颜色", tenantID, "颜色", now)
+
+	// #1902: level_id 现为必填（level 字符串分支已不可达），补建级别行并在请求中携带
+	levelID := uuid.New().String()
+	db.Exec(`INSERT INTO instrument_levels (id, caption, code, sort_order)
+		VALUES (?, '专业', ?, 2)`, levelID, "prof-"+uuid.New().String()[:8])
 
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
@@ -235,7 +229,7 @@ func TestCreateInstrumentWithProperties(t *testing.T) {
 
 	requestBody := map[string]interface{}{
 		"sn":          "TEST-SN-PROPS",
-		"level":       "professional",
+		"level_id":    levelID,
 		"category_id": categoryID,
 		"name":        "测试乐器",
 		"properties": map[string]interface{}{
@@ -254,7 +248,7 @@ func TestCreateInstrumentWithProperties(t *testing.T) {
 
 	// Get created instrument
 	var instrument models.Instrument
-	err = db.Where("sn = ? AND tenant_id = ?", "TEST-SN-PROPS", tenantID).First(&instrument).Error
+	err := db.Where("sn = ? AND tenant_id = ?", "TEST-SN-PROPS", tenantID).First(&instrument).Error
 	require.NoError(t, err)
 
 	// Verify instrument_properties were created
@@ -274,32 +268,35 @@ func TestCreateInstrumentWithProperties(t *testing.T) {
 	db.Exec(`DELETE FROM property_options WHERE tenant_id = ?`, tenantID)
 	db.Exec(`DELETE FROM properties WHERE tenant_id = ?`, tenantID)
 	db.Exec(`DELETE FROM categories WHERE tenant_id = ?`, tenantID)
+	db.Exec(`DELETE FROM instrument_levels`)
 }
 
 func TestCreateInstrumentPropertyValidation(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("Test database not available, skipping:", err)
-		return
-	}
-	database.SetDB(db)
+	// #1902: SetupTestDB 每次落表重建 —— 修复跨运行残留（properties 按 name
+	// 跨租户命中历史 option → 不再新建 pending option → 计数断言失败）。
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	now := time.Now()
 
 	// Create test category
 	categoryID := uuid.New().String()
-	db.Exec(`INSERT INTO categories (id, name, tenant_id, created_at) 
+	db.Exec(`INSERT INTO categories (id, name, tenant_id, created_at)
 		VALUES (?, ?, ?, ?)`,
 		categoryID, "测试分类", tenantID, now)
+
+	// #1902: level_id 现为必填，补建级别行并在请求中携带
+	levelID := uuid.New().String()
+	db.Exec(`INSERT INTO instrument_levels (id, caption, code, sort_order)
+		VALUES (?, '专业', ?, 2)`, levelID, "prof-"+uuid.New().String()[:8])
 
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
 		ctx := context.WithValue(c.Request.Context(), middleware.ContextKeyTenantID, tenantID)
 		ctx = context.WithValue(ctx, middleware.ContextKeyOrgID, tenantID)
+		c.Request = c.Request.WithContext(ctx) // #1902: 缺此行导致 handler 读不到 tenant → 401
 		c.Next()
 	})
 	router.POST("/api/instruments", CreateInstrument)
@@ -307,7 +304,7 @@ func TestCreateInstrumentPropertyValidation(t *testing.T) {
 	// Test with undefined property (should fail or skip)
 	requestBody := map[string]interface{}{
 		"sn":          "TEST-SN-INVALID-PROP",
-		"level":       "professional",
+		"level_id":    levelID,
 		"category_id": categoryID,
 		"properties": map[string]interface{}{
 			"不存在的属性": []string{"测试值"},
@@ -326,7 +323,7 @@ func TestCreateInstrumentPropertyValidation(t *testing.T) {
 
 	// Verify no instrument_properties were created for invalid property
 	var instrument models.Instrument
-	err = db.Where("sn = ? AND tenant_id = ?", "TEST-SN-INVALID-PROP", tenantID).First(&instrument).Error
+	err := db.Where("sn = ? AND tenant_id = ?", "TEST-SN-INVALID-PROP", tenantID).First(&instrument).Error
 	require.NoError(t, err)
 
 	var instrumentProps []models.InstrumentProperty
@@ -337,18 +334,15 @@ func TestCreateInstrumentPropertyValidation(t *testing.T) {
 	// Cleanup
 	db.Exec(`DELETE FROM instruments WHERE tenant_id = ?`, tenantID)
 	db.Exec(`DELETE FROM categories WHERE tenant_id = ?`, tenantID)
+	db.Exec(`DELETE FROM instrument_levels`)
 }
 
 func TestCreateInstrumentBackwardCompatibility(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("Test database not available, skipping:", err)
-		return
-	}
-	database.SetDB(db)
+	// #1902: SetupTestDB 每次落表重建 —— 修复跨运行残留（properties 按 name
+	// 跨租户命中历史 option → 不再新建 pending option → 计数断言失败）。
+	db := testfixtures.SetupTestDB(t)
 
 	// Clean instrument_levels
 	db.Exec(`DELETE FROM instrument_levels`)
@@ -359,7 +353,7 @@ func TestCreateInstrumentBackwardCompatibility(t *testing.T) {
 	// Create instrument_levels entry for backward compatibility
 	levelID := uuid.New()
 	db.Exec(`INSERT INTO instrument_levels (id, caption, code, sort_order) 
-		VALUES (?, '专业', 'professional', 2)`, levelID)
+		VALUES (?, '专业', ?, 2)`, levelID, "prof-"+uuid.New().String()[:8])
 
 	// Create test category
 	categoryID := uuid.New().String()
@@ -369,19 +363,23 @@ func TestCreateInstrumentBackwardCompatibility(t *testing.T) {
 
 	// Create test property
 	propID := uuid.New().String()
-	db.Exec(`INSERT INTO properties (id, name, tenant_id, property_type, is_required, created_at) 
-		VALUES (?, ?, ?, 'text', false, ?)`,
-		propID, "品牌", tenantID, now, now)
+	db.Exec(`INSERT INTO properties (id, name, tenant_id, property_type, is_required, caption, created_at) 
+		VALUES (?, ?, ?, 'text', false, ?, ?)`,
+		propID, "品牌", tenantID, "品牌", now)
 
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
 		ctx := context.WithValue(c.Request.Context(), middleware.ContextKeyTenantID, tenantID)
 		ctx = context.WithValue(ctx, middleware.ContextKeyOrgID, tenantID)
+		c.Request = c.Request.WithContext(ctx) // #1902: 缺此行导致 handler 读不到 tenant → 401
 		c.Next()
 	})
 	router.POST("/api/instruments", CreateInstrument)
 
 	// Test backward compatibility with level string
+	// #1902: 契约已收紧 —— level_id 必填，仅传 level 字符串的旧兼容请求在入口
+	// 即被 400 拒绝（handler 的 level 字符串映射分支在 400 门之后已不可达）。
+	// 本用例由「自动映射成功」改为「锁定新契约：400 + 明确报错」。
 	requestBody := map[string]interface{}{
 		"sn":          "TEST-SN-BACKWARD",
 		"level":       "专业", // Using Chinese caption instead of level_id
@@ -397,28 +395,15 @@ func TestCreateInstrumentBackwardCompatibility(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 
-	// Verify level was mapped to level_id
-	var instrument struct {
-		ID      string
-		LevelID *uuid.UUID
-		Level   string
+	var errResp struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
 	}
-
-	err = db.Raw(`SELECT id, level_id, level FROM instruments 
-		WHERE tenant_id = ? AND sn = ?`, tenantID, "TEST-SN-BACKWARD").Scan(&instrument).Error
-	require.NoError(t, err)
-
-	require.NotNil(t, instrument.LevelID, "LevelID should be auto-mapped from '专业'")
-	assert.Equal(t, levelID, *instrument.LevelID)
-	assert.Equal(t, "专业", instrument.Level)
-
-	// Verify properties were processed
-	var instrumentProps []models.InstrumentProperty
-	err = db.Where("instrument_id = ? AND tenant_id = ?", instrument.ID, tenantID).Find(&instrumentProps).Error
-	require.NoError(t, err)
-	assert.Len(t, instrumentProps, 1, "Should have 1 instrument_property")
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &errResp))
+	assert.Equal(t, 40001, errResp.Code)
+	assert.Contains(t, errResp.Message, "level_id is required")
 
 	// Cleanup
 	db.Exec(`DELETE FROM instruments WHERE tenant_id = ?`, tenantID)

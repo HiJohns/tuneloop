@@ -200,10 +200,12 @@ func TestInspectReturn_Good_RefundReceiptNotification(t *testing.T) {
 
 	reqBody, _ := json.Marshal(map[string]interface{}{
 		"instrument_sn": instrument.SN,
-		"scan_time":     now.Format(time.RFC3339),
-		"condition":     "good",
-		"notes":         "无损",
-		"photos":        []string{"/uploads/media/inspect-test.jpg"},
+		// #1902: 原用 now（晚于租期 2026-08-30）→ 触发逾期费；固定在租期第 29 天
+		//（对应断言「实际租期：29 天」的原意）。
+		"scan_time": "2026-08-29T12:00:00Z",
+		"condition": "good",
+		"notes":     "无损",
+		"photos":    []string{"/uploads/media/inspect-test.jpg"},
 	})
 	req := httptest.NewRequest("PUT", "/api/warehouse/orders/"+order.ID+"/return-inspect", bytes.NewReader(reqBody))
 	req.Header.Set("Content-Type", "application/json")

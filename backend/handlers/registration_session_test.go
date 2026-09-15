@@ -121,7 +121,7 @@ func TestCreateRegistrationSession(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	require.Equal(t, 20000, resp.Code)
-	assert.Equal(t, 99.0, resp.Data.Amount, "amount = membership_fee")
+	assert.Equal(t, 9900.0, resp.Data.Amount, "amount = membership_fee (¥99 → 9900 cents, #1757 Cents 口径)")
 
 	var session models.RegistrationSession
 	require.NoError(t, db.Where("id = ?", resp.Data.SessionID).First(&session).Error)

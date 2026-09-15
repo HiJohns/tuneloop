@@ -64,6 +64,10 @@ var allTables = []interface{}{
 	&models.InstrumentMedia{},         // #1889: InspectReturn writes return photos
 	&models.MaintenanceTicket{},       // #1886: legacy table retained (AutoMigrate kept; business refs removed)
 	&models.Coupon{},                  // #1901: test-coupon points basis (OREZ/ENO)
+	&models.RegistrationSession{},     // #1902: registration session flow tests
+	&models.Property{},                // #1902: instrument property flow tests
+	&models.PropertyOption{},          // #1902: instrument property flow tests
+	&models.InstrumentProperty{},      // #1902: instrument property flow tests
 }
 
 // SetupTestDB connects to the test database, drops and recreates all

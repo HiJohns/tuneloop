@@ -51,7 +51,7 @@ func TestComputeSettlement_TierOverflowDays(t *testing.T) {
 		Deposit:      0,
 		CashPaid:     models.FromYuan(36),
 		// Snapshot: single 1-day segment at ¥36/day (=3600 cents)
-		PricingBreakdown: str1743Ptr(`{"base_daily_rent":3600,"rent_days":1,"tiers":[{"days_max":1,"discount_percent":0,"daily_rate":3600}],"tier_segments":[{"tier":1,"days":1,"rate":3600,"discount":1,"subtotal":3600}],"total_amount":3600}`),
+		PricingBreakdown: str1743Ptr(`{"base_daily_rent":3600,"rent_days":1,"pricing_tiers":[{"days_max":1,"discount_percent":0,"daily_rate":3600}],"tier_segments":[{"tier":1,"days":1,"rate":3600,"discount":1,"subtotal":3600}],"total_amount":3600}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
 	require.NoError(t, db.Create(&models.Instrument{
@@ -151,7 +151,7 @@ func TestExecuteRefund_ZeroCashRefund_CompletesSettlement(t *testing.T) {
 		ReturnedAt:       &returnedAt,
 		Deposit:          0,
 		CashPaid:         models.FromYuan(36),
-		PricingBreakdown: str1743Ptr(`{"base_daily_rent":3600,"rent_days":1,"tiers":[{"days_max":1,"discount_percent":0,"daily_rate":3600}],"tier_segments":[{"tier":1,"days":1,"rate":3600,"discount":1,"subtotal":3600}],"total_amount":3600}`),
+		PricingBreakdown: str1743Ptr(`{"base_daily_rent":3600,"rent_days":1,"pricing_tiers":[{"days_max":1,"discount_percent":0,"daily_rate":3600}],"tier_segments":[{"tier":1,"days":1,"rate":3600,"discount":1,"subtotal":3600}],"total_amount":3600}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
 	require.NoError(t, db.Create(&models.Instrument{
@@ -299,7 +299,7 @@ func TestSettlement_UserScenarioA_CouponWaiveDepositOnly(t *testing.T) {
 		CouponDiscount: models.FromYuan(10440),
 		ShippingFee:    models.FromYuan(100),
 		// 阶梯: 30 天 @10 元 + 5 天 @8 元 → 合同租金 340
-		PricingBreakdown: str1743Ptr(`{"base_daily_rent":1000,"rent_days":35,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":1000},{"days_max":35,"discount_percent":20,"daily_rate":800}],"tier_segments":[{"tier":1,"days":30,"rate":1000,"discount":1,"subtotal":30000},{"tier":2,"days":5,"rate":1000,"discount":0.8,"subtotal":4000}],"total_amount":34000}`),
+		PricingBreakdown: str1743Ptr(`{"base_daily_rent":1000,"rent_days":35,"pricing_tiers":[{"days_max":30,"discount_percent":0,"daily_rate":1000},{"days_max":35,"discount_percent":20,"daily_rate":800}],"tier_segments":[{"tier":1,"days":30,"rate":1000,"discount":1,"subtotal":30000},{"tier":2,"days":5,"rate":1000,"discount":0.8,"subtotal":4000}],"total_amount":34000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
 	require.NoError(t, db.Create(&models.Instrument{
@@ -340,7 +340,7 @@ func TestSettlement_CouponRefundRatio(t *testing.T) {
 		CashPaid:     models.FromYuan(10), // ENO 1% → 实付 10
 		CouponCode:   str1743Ptr("ENO"),
 		CouponDiscount: models.FromYuan(990), // 原价 1000 − 实付 10
-		PricingBreakdown: str1743Ptr(`{"base_daily_rent":5000,"rent_days":20,"tiers":[{"days_max":20,"discount_percent":0,"daily_rate":5000}],"tier_segments":[{"tier":1,"days":20,"rate":5000,"discount":1,"subtotal":100000}],"total_amount":100000}`),
+		PricingBreakdown: str1743Ptr(`{"base_daily_rent":5000,"rent_days":20,"pricing_tiers":[{"days_max":20,"discount_percent":0,"daily_rate":5000}],"tier_segments":[{"tier":1,"days":20,"rate":5000,"discount":1,"subtotal":100000}],"total_amount":100000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
 	require.NoError(t, db.Create(&models.Instrument{
@@ -381,7 +381,7 @@ func TestSettlement_UserScenarioB_NoDepositNoCoupon(t *testing.T) {
 		Deposit:          0, // 免押
 		CashPaid:         models.FromYuan(340),
 		ShippingFee:      models.FromYuan(100),
-		PricingBreakdown: str1743Ptr(`{"base_daily_rent":1000,"rent_days":35,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":1000},{"days_max":35,"discount_percent":20,"daily_rate":800}],"tier_segments":[{"tier":1,"days":30,"rate":1000,"discount":1,"subtotal":30000},{"tier":2,"days":5,"rate":1000,"discount":0.8,"subtotal":4000}],"total_amount":34000}`),
+		PricingBreakdown: str1743Ptr(`{"base_daily_rent":1000,"rent_days":35,"pricing_tiers":[{"days_max":30,"discount_percent":0,"daily_rate":1000},{"days_max":35,"discount_percent":20,"daily_rate":800}],"tier_segments":[{"tier":1,"days":30,"rate":1000,"discount":1,"subtotal":30000},{"tier":2,"days":5,"rate":1000,"discount":0.8,"subtotal":4000}],"total_amount":34000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
 	require.NoError(t, db.Create(&models.Instrument{
@@ -421,7 +421,7 @@ func TestSettlement_UserScenarioC_Overdue_Shortfall(t *testing.T) {
 		Deposit:          0,
 		CashPaid:         models.FromYuan(340),
 		ShippingFee:      models.FromYuan(100),
-		PricingBreakdown: str1743Ptr(`{"base_daily_rent":1000,"rent_days":35,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":1000},{"days_max":35,"discount_percent":20,"daily_rate":800}],"tier_segments":[{"tier":1,"days":30,"rate":1000,"discount":1,"subtotal":30000},{"tier":2,"days":5,"rate":1000,"discount":0.8,"subtotal":4000}],"total_amount":34000}`),
+		PricingBreakdown: str1743Ptr(`{"base_daily_rent":1000,"rent_days":35,"pricing_tiers":[{"days_max":30,"discount_percent":0,"daily_rate":1000},{"days_max":35,"discount_percent":20,"daily_rate":800}],"tier_segments":[{"tier":1,"days":30,"rate":1000,"discount":1,"subtotal":30000},{"tier":2,"days":5,"rate":1000,"discount":0.8,"subtotal":4000}],"total_amount":34000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
 	require.NoError(t, db.Create(&models.Instrument{

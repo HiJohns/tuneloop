@@ -59,12 +59,18 @@ func TestSettlementFlow(t *testing.T) {
 	}).Error)
 
 	// Customer actor with a user row (prepaid points for points tracking).
+	// #1902: IAMSub=userID（EnsureLocalUser 按 iam_sub 解析，缺失会生成未核身
+	// 影子用户 → 发货被 #1791 核身校验 400 拦截）；FaceVerified=true + 证件照
+	// 使 deriveIdVerifyStatus == verified。
 	require.NoError(t, db.Create(&models.User{
 		ID:            userID,
+		IAMSub:        userID,
 		TenantID:      tenantID,
 		OrgID:         orgID,
 		Username:      "settlement_flow_user",
 		PrepaidPoints: models.Cents(1000),
+		FaceVerified:  true,
+		IdPhotoFront:  strPtr("/uploads/media/id-front-test.jpg"),
 		Status:        "active",
 	}).Error)
 

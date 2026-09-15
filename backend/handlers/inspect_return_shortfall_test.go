@@ -162,7 +162,9 @@ func TestInspectReturn_NoShortfallCompletesOrder(t *testing.T) {
 
 	reqBody, _ := json.Marshal(map[string]interface{}{
 		"instrument_sn": instrument.SN,
-		"scan_time":     now.Format(time.RFC3339),
+		// #1902: 原用 now（晚于租期）→ 逾期费触发补缴路径；固定在租期内回归
+		// "无 shortfall 正常完成" 的原意。
+		"scan_time":     "2026-08-29T12:00:00Z",
 		"condition":     "good",
 		"notes":         "验收通过",
 		"damage_amount": 0,
