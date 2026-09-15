@@ -53,6 +53,11 @@ const imageHandler = async (quillRefs, currentKey) => {
 
 export default function ContentEdit() {
   const [loading, setLoading] = useState({})
+  // #1927 R2: 保存中状态独立于 loading —— loading 控制编辑器挂载
+  // （`loading[k.key] !== false` 时渲染「加载中」占位并卸载 ReactQuill），
+  // 若 save() 复用 loading，保存会卸载→重挂编辑器并依旧 defaultValue 初始化，
+  // 导致「编辑→保存后内容回退」。saving 仅驱动按钮 loading。
+  const [saving, setSaving] = useState({})
   const [values, setValues] = useState({})
   const quillRefs = useRef({})
   // #1687: keystrokes must NOT re-render the parent — any re-render rebuilds
@@ -104,14 +109,19 @@ export default function ContentEdit() {
   }
 
   const save = async (key) => {
-    setLoading(prev => ({ ...prev, [key]: true }))
+    setSaving(prev => ({ ...prev, [key]: true }))
     try {
       const res = await api.put(`/admin/content/${key}`, { value: draftRefs.current[key] ?? values[key] ?? '' })
       if (res.code === 20000) {
         message.success(`${KEYS.find(k => k.key === key)?.title}已保存`)
+        // #1927 R2: 保存成功后同步 values，避免未来 Tabs 挂载策略变化
+        // （destroyInactiveTabPane/条件渲染）导致编辑器重挂时 defaultValue 回旧值。
+        // defaultValue 不在 react-quill 的 dirty/cleanProps，此 setState 不会触发
+        // 编辑器 re-render/regenerate，仅一次父组件 diff，无性能/资源代价。
+        setValues(prev => ({ ...prev, [key]: draftRefs.current[key] ?? prev[key] ?? '' }))
       } else { message.error(res.message || '保存失败') }
     } catch { message.error('保存失败') }
-    setLoading(prev => ({ ...prev, [key]: false }))
+    setSaving(prev => ({ ...prev, [key]: false }))
   }
 
   const items = KEYS.map(k => ({
@@ -133,7 +143,7 @@ export default function ContentEdit() {
         />
         )}
         <div style={{ height: 48 }} />
-        <Button type="primary" icon={<SaveOutlined />} onClick={() => save(k.key)} loading={loading[k.key]}>
+        <Button type="primary" icon={<SaveOutlined />} onClick={() => save(k.key)} loading={!!loading[k.key] || !!saving[k.key]}>
           保存
         </Button>
       </div>
