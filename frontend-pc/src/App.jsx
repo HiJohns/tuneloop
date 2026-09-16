@@ -40,7 +40,7 @@ import WarningManagement from './pages/admin/warnings/WarningManagement'
 import WarningSettings from './pages/admin/warnings/WarningSettings'
 import SmtpSettings from './pages/admin/warnings/SmtpSettings'
 import NotificationSettings from './pages/merchant/NotificationSettings'
-import TransitRouteConfig from './pages/admin/transit/TransitRouteConfig'
+import TransitCenter from './pages/admin/transit/TransitCenter'
 import PaymentList from './pages/admin/payments/PaymentList'
 import BillingDashboard from './pages/admin/billing/BillingDashboard'
 import WarehouseManagement from './pages/WarehouseManagement'
@@ -375,7 +375,7 @@ function MainLayout() {
       { key: '/orders', label: '订单管理', permission: { cusPermCodes: ['order:read'] } },
       { key: '/repair/requests', label: '报修列表', permission: { cusPermCodes: ['instrument:price_config'] } },
       { key: '/warehouse', label: '库管工作台', permission: { cusPermCodes: ['instrument:read', 'instrument:update'] } },
-      { key: '/transit-routes', label: '中转路由', permission: { sysPermBits: [5] } },
+      { key: '/transit-center', label: '中转中心', permission: { sysPermBits: [5] } },
       { key: '/overdue-alerts', label: '逾期告警', permission: { cusPermCodes: ['instrument:read'] } },
       { key: '/merchant/invoices', label: '发票管理', permission: { cusPermCodes: ['order:read'] } },
     ]
@@ -451,7 +451,7 @@ function onMenuClick(e) {
   let openKeys = []
   if (['/instruments/categories', '/instruments/properties', '/instruments/list', '/site/stock'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['product']
   else if (['/inventory/rent-setting', '/pricing/config', '/repair/settings', '/system/gift-policies', '/system/membership-levels', '/system/membership-handbook', '/system/banners'].includes(location.pathname)) openKeys = ['strategy']
-  else if (['/orders', '/warehouse', '/transit-routes', '/overdue-alerts', '/merchant/invoices'].includes(location.pathname)) openKeys = ['transaction']
+  else if (['/orders', '/warehouse', '/transit-center', '/overdue-alerts', '/merchant/invoices'].includes(location.pathname)) openKeys = ['transaction']
   else if (location.pathname.startsWith('/merchants') || ['/system/user-management', '/organization/sites', '/staff', '/appeals', '/organization/iam-sync', '/system/permissions', '/system/warnings', '/system/warning-settings', '/system/smtp-settings', '/merchant/notification-settings'].includes(location.pathname)) openKeys = ['platform']
   else if (['/', '/system/content-edit', '/system/audit-logs'].includes(location.pathname)) openKeys = ['system']
   else if (location.pathname.startsWith('/user/')) openKeys = []
@@ -489,7 +489,7 @@ function onMenuClick(e) {
     '/instruments/list': { title: '乐器列表', parent: '商品管理' },
     '/site/stock': { title: '库存监控', parent: '商品管理' },
     '/warehouse': { title: '库管工作台', parent: '交易管理' },
-    '/transit-routes': { title: '中转路由', parent: '交易管理' },
+    '/transit-center': { title: '中转中心', parent: '交易管理' },
     '/overdue-alerts': { title: '逾期告警', parent: '交易管理' },
     '/merchant/invoices': { title: '发票管理', parent: '交易管理' },
     '/organization/sites': { title: '网点管理', parent: '平台管理' },
@@ -720,7 +720,7 @@ function onMenuClick(e) {
             <Route path="/system/warning-settings" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><WarningSettings /></ProtectedRoute>} />
             <Route path="/system/smtp-settings" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><SmtpSettings /></ProtectedRoute>} />
             <Route path="/merchant/notification-settings" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><NotificationSettings /></ProtectedRoute>} />
-            <Route path="/transit-routes" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><TransitRouteConfig /></ProtectedRoute>} />
+            <Route path="/transit-center" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><TransitCenter /></ProtectedRoute>} />
             <Route path="/inventory/rent-setting" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price'] }}><RentSetting /></ProtectedRoute>} />
             <Route path="/pricing/config" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price_config'] }}><MerchantPricingConfig /></ProtectedRoute>} />
             <Route path="/warehouse" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read', 'instrument:update'] }}><WarehouseManagement /></ProtectedRoute>} />
