@@ -582,6 +582,14 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.GET("/transit-routes", handlers.ListTransitRoutes)
 			authRequired.POST("/transit-routes", handlers.CreateTransitRoute)
 			authRequired.DELETE("/transit-routes/:id", handlers.DeleteTransitRoute)
+			// #1935: 平台级中转网点管理（中转中心）
+			authRequired.GET("/admin/transit-sites", handlers.ListAdminTransitSites)
+			authRequired.POST("/admin/transit-sites", handlers.CreateAdminTransitSite)
+			authRequired.PUT("/admin/transit-sites/:id", handlers.UpdateAdminTransitSite)
+			authRequired.DELETE("/admin/transit-sites/:id", handlers.DeleteAdminTransitSite)
+			authRequired.GET("/admin/transit-sites/:id/members", handlers.ListTransitSiteMembers)
+			authRequired.POST("/admin/transit-sites/:id/members", handlers.AddTransitSiteMember)
+			authRequired.DELETE("/admin/transit-sites/:id/members/:member_id", handlers.RemoveTransitSiteMember)
 
 			// Transit order routes (Issue #1134)
 			authRequired.GET("/transit-orders", handlers.ListTransitOrders)

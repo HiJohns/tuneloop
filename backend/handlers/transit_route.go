@@ -41,6 +41,17 @@ func CreateTransitRoute(c *gin.Context) {
 	}
 
 	db := database.GetDB()
+	// #1935: 校验两端站点类型 —— 受控网点 ↔ 中转网点
+	var controlledSite, transitSite models.Site
+	if err := db.Where("id = ?", req.ControlledSiteID).First(&controlledSite).Error; err != nil ||
+		controlledSite.Type == transitSiteType {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "controlled_site_id 非法或为中转网点"})
+		return
+	}
+	if err := db.Where("id = ? AND type = ?", req.TransitSiteID, transitSiteType).First(&transitSite).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "transit_site_id 必须为中转网点"})
+		return
+	}
 	if err := db.Create(&route).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create"})
 		return
