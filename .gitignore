@@ -57,3 +57,6 @@ releases/
 
 # Local git worktree checkouts (dev scratch)
 .worktree-*/
+
+# OSS 账号密钥（#1914 — 严禁提交）
+oss-accounts.md

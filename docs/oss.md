@@ -41,10 +41,21 @@
 
 | # | 事项 | 状态 |
 |---|------|------|
-| 1 | RAM 用户 ×2（`tuneloop-oss-prod` / `tuneloop-oss-pre`）+ 最小权限策略（各自 bucket 的 Put/Get/Delete/List） | ⛔ **阻塞：需账户管理员参与** |
-| 2 | AccessKey ID/Secret 各一套（只显示一次；填入各环境 `.env`，不贴聊天/仓库） | ⏳ 依赖 #1 |
+| 1 | RAM 用户 ×2（`tuneloop-oss-prod` / `tuneloop-oss-pre`）+ 最小权限策略（各自 bucket 的 Put/Get/Delete/List） | ✅ 已创建（2026-09-16；预生产/生产各一把）+ **ECS 实例角色方案已采纳（见 §2.1）** |
+| 2 | AccessKey 已保存至本机 `./oss-accounts.md`（**已 .gitignore，严禁提交**；仅用于本地 dev 联调与兜底） | ✅ |
 | 3 | 微信公众平台 downloadFile 合法域名（单 appid `wxcb44a1be70e356ed`，加 4 个直连域名或绑自定义域名后加 `img*` 域） | ⏳ 待办 |
 | 4 | 自定义域名 CNAME + 所有权验证 + HTTPS 证书（可后补，见 §3） | ⏳ 可选后补 |
+
+### 2.1 凭证策略（#1914 P1，2026-09-16 决策）
+
+> 阿里云建议优先 STS。本项目落地采用**更彻底的 ECS 实例角色方案**：cadenza（生产+预生产同机）为阿里云 ECS，服务端凭据由 SDK 经 metadata 自动获取**临时凭证并自动轮换，零 AK 落盘**。
+
+**凭证解析顺序（OSSStorage 初始化实现）**：
+1. **ECS 实例 RAM 角色**（生产/预生产 cadenza 生效；控制台绑定角色一次，无 AK）
+2. **环境变量 AK 兜底**（`OSS_ACCESS_KEY_ID/SECRET`，仅本地 dev 联调用 `tuneloop-oss-pre` 这把）
+3. 均无 → 启动 WARN + 回退 `LocalStorage`
+
+**RAM 用户角色降级**：仅本地开发联调 + 应急兜底；**不承载生产/预生产服务端运行时**。STS AssumeRole 不引入（实例角色内部即 STS 且自动续期）。
 
 ## 3. 自定义域名 CNAME 计划
 
