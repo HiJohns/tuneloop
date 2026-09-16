@@ -84,7 +84,10 @@ func NewOSSStorage() (*OSSStorage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("resolve OSS credentials: %w", err)
 	}
-	client, err := oss.New(cfg.Endpoint, "", "", oss.SetCredentialsProvider(provider))
+	// #1914: buckets enforce HTTPS (plain HTTP returns a misleading 403
+	// "bucket acl"); the SDK defaults to HTTP when the endpoint carries no
+	// scheme — force https.
+	client, err := oss.New(normalizeEndpoint(cfg.Endpoint), "", "", oss.SetCredentialsProvider(provider))
 	if err != nil {
 		return nil, fmt.Errorf("create oss client: %w", err)
 	}
@@ -269,4 +272,18 @@ func envInt64(name string, def int64) int64 {
 		}
 	}
 	return def
+}
+
+// normalizeEndpoint forces an https scheme (SDK defaults to plain HTTP when
+// no scheme is present, and the buckets reject plain HTTP with a misleading
+// "bucket acl" 403 — #1914 smoke finding).
+func normalizeEndpoint(endpoint string) string {
+	ep := strings.TrimSpace(endpoint)
+	if ep == "" {
+		return ep
+	}
+	if strings.Contains(ep, "://") {
+		return ep
+	}
+	return "https://" + ep
 }
