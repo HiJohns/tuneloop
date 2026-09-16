@@ -84,12 +84,15 @@
 | `OSS_ENDPOINT` | endpoint | `oss-cn-beijing.aliyuncs.com` |
 | `OSS_BUCKET` | 公开业务 bucket | `tuneloop-media` |
 | `OSS_REGION` | region | `cn-beijing` |
-| `OSS_ACCESS_KEY_ID` / `OSS_ACCESS_KEY_SECRET` | RAM AK | （各环境 `.env` 填写） |
+| `OSS_ACCESS_KEY_ID` / `OSS_ACCESS_KEY_SECRET` | RAM AK（可选——dev 联调；生产走实例角色） | （各环境 `.env` 可选填写） |
+| `OSS_SIGNED_URL_TTL` | 私有签名 URL 有效期秒（默认 900） | `900` |
 | `OSS_CDN_PREFIX` | 公开读域名前缀（可空=直连） | `https://img.cadenzayueqi.com` |
 | `OSS_PRIVATE_BUCKET` | 敏感素材私有 bucket（可空=不启用私有区） | `tuneloop-media-sec` |
 | `OSS_PRIVATE_CDN_PREFIX` | 私有区签名 URL 域名前缀（可空=直连） | `https://imgsec.cadenzayueqi.com` |
 
-**回退语义（P2）**：缺任一必填项 → 启动 WARN + 回退 `LocalStorage`（保持本地可跑）；`OSS_ENDPOINT/OSS_BUCKET` 同时为空 = 显式本地模式。
+**回退语义（P2）**：缺任一必填项 → 启动 WARN + 回退 `LocalStorage`（保持本地可跑）；`OSS_ENDPOINT/OSS_BUCKET` 同时为空 = 显式本地模式。凭据解析顺序：env AK → ECS 实例角色（见 §2.1）。
+
+> ⚠️ **强制 HTTPS（冒烟实证 2026-09-16）**：四个桶均拒绝明文 HTTP（HTTP 请求返回误导性的 `403 because of bucket acl`，HTTPS 正常）。SDK endpoint **必须带 `https://`**（实现已在 `normalizeEndpoint` 强制注入），`.env` 建议也写成 `OSS_ENDPOINT=https://oss-cn-beijing.aliyuncs.com`。
 
 **核身路径约定**：`face_capture_batches` 素材 key 前缀 `face_captures/`（现状同）→ 迁移后写入 `OSS_PRIVATE_BUCKET`，读走签名 URL。
 
