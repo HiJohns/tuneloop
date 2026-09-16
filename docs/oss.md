@@ -41,7 +41,7 @@
 
 | # | 事项 | 状态 |
 |---|------|------|
-| 1 | RAM 用户 ×2（`tuneloop-oss-prod` / `tuneloop-oss-pre`）+ 最小权限策略（各自 bucket 的 Put/Get/Delete/List） | ✅ 已创建（2026-09-16；预生产/生产各一把）+ **ECS 实例角色方案已采纳（见 §2.1）** |
+| 1 | RAM 用户 ×2（`tuneloop-oss-prod` / `tuneloop-oss-pre`）+ 最小权限策略（各自 bucket 的 Put/Get/Delete/List） | ✅ 已创建 **且权限实测通过（2026-09-16）**：四桶 RAM 读写删全 OK、匿名层 media=公共读/sec=私有；分片项留待 P1 联调复验；**ECS 实例角色方案已采纳（见 §2.1）** |
 | 2 | AccessKey 已保存至本机 `./oss-accounts.md`（**已 .gitignore，严禁提交**；仅用于本地 dev 联调与兜底） | ✅ |
 | 3 | 微信公众平台 downloadFile 合法域名（单 appid `wxcb44a1be70e356ed`，加 4 个直连域名或绑自定义域名后加 `img*` 域） | ⏳ 待办 |
 | 4 | 自定义域名 CNAME + 所有权验证 + HTTPS 证书（可后补，见 §3） | ⏳ 可选后补 |
