@@ -335,22 +335,22 @@ const MerchantManagement = () => {
           <>
             <Form.Item
               name="transit_address"
-              label="中转地址"
-              rules={[{ required: true, message: '受控商户必须填写中转地址' }]}
+              label="中转地址（可选）"
+              tooltip="零售订单收寄件地址展示用（可选）；报修中转请配置「中转网点 + 路由」"
             >
-              <Input placeholder="输入中转地址" />
+              <Input placeholder="输入中转地址（可选）" />
             </Form.Item>
 
             <Form.Item
               name="transit_phone"
-              label="中转电话"
-              rules={[{ required: true, message: '受控商户必须填写中转电话' }]}
+              label="中转电话（可选）"
+              tooltip="零售订单收寄件电话展示用（可选）"
             >
-              <Input placeholder="输入中转电话" />
+              <Input placeholder="输入中转电话（可选）" />
             </Form.Item>
 
-            <Form.Item name="transit_contact_name" label="中转联系人">
-              <Input placeholder="输入中转联系人" />
+            <Form.Item name="transit_contact_name" label="中转联系人（可选）">
+              <Input placeholder="输入中转联系人（可选）" />
             </Form.Item>
           </>
         )}

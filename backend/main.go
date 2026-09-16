@@ -248,7 +248,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		publicGroup.GET("/public/instruments/lookup", handlers.LookupInstrumentBySN)
 		publicGroup.GET("/public/banners", bannerHandler.GetPublicBanners)
 		publicGroup.GET("/public/merchants", handlers.ListPublicMerchants)
-		publicGroup.GET("/public/merchants/:id/transit-sites", handlers.ListTransitSites)
 		publicGroup.GET("/public/settings/:key", handlers.GetPublicSetting)
 		publicGroup.GET("/public/instruments/search", handlers.SearchInstruments)
 	}

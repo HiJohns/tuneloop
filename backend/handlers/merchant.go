@@ -178,15 +178,10 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		input.MerchantType = models.MerchantTypeFull
 	}
 
-	if input.MerchantType == models.MerchantTypeControlled {
-		if input.TransitAddress == "" || input.TransitPhone == "" {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":    40001,
-				"message": "受控商户必须填写中转地址和中转电话",
-			})
-			return
-		}
-	}
+	// #1924-era cleanup: transit address/phone are NOT mandatory for controlled
+	// merchants — transit logistics are handled by transit SITES + TransitRoute
+	// (cases.md §4.1.5). The merchant-level fields remain OPTIONAL (retail
+	// order/return display via GetMerchantTransitInfo, features.md).
 
 	db := database.GetDB().WithContext(c.Request.Context())
 	tenantID := middleware.GetTenantID(c.Request.Context())
