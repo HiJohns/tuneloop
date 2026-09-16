@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 )
@@ -107,41 +109,34 @@ func (s *LocalStorage) DeletePrefix(ctx context.Context, prefix string) error {
 	})
 }
 
+// NewMediaStorage selects the storage backend from environment (#1914):
+// OSS when OSS_ENDPOINT+OSS_BUCKET are set AND credentials resolve;
+// otherwise LocalStorage with a startup WARN (keeps local dev runnable).
+var (
+	ossStorageOnce   sync.Once
+	ossStorageCached MediaStorage
+)
+
 func NewMediaStorage() MediaStorage {
-	if os.Getenv("OSS_ENDPOINT") != "" && os.Getenv("OSS_BUCKET") != "" {
-		return NewOSSStorage()
+	if os.Getenv("OSS_ENDPOINT") == "" || os.Getenv("OSS_BUCKET") == "" {
+		return NewLocalStorage()
 	}
-	return NewLocalStorage()
+	ossStorageOnce.Do(func() {
+		st, err := NewOSSStorage()
+		if err != nil {
+			log.Printf("[MediaStorage] OSS init failed (%v) — falling back to LocalStorage", err)
+			ossStorageCached = NewLocalStorage()
+			return
+		}
+		ossStorageCached = st
+	})
+	return ossStorageCached
 }
 
-type OSSStorage struct{}
-
-func NewOSSStorage() *OSSStorage {
-	return &OSSStorage{}
-}
-
-func (s *OSSStorage) Upload(ctx context.Context, key string, reader io.Reader, contentType string) error {
-	return fmt.Errorf("OSS storage not implemented yet")
-}
-
-func (s *OSSStorage) GetURL(ctx context.Context, key string) (string, error) {
-	return "", fmt.Errorf("OSS storage not implemented yet")
-}
-
-func (s *OSSStorage) Delete(ctx context.Context, key string) error {
-	return fmt.Errorf("OSS storage not implemented yet")
-}
-
-func (s *OSSStorage) DeletePrefix(ctx context.Context, prefix string) error {
-	return fmt.Errorf("OSS storage not implemented yet")
-}
-
-func (s *OSSStorage) Copy(ctx context.Context, srcKey string, dstKey string) error {
-	return fmt.Errorf("OSS storage not implemented yet")
-}
-
-func (s *OSSStorage) Rename(ctx context.Context, srcKey string, dstKey string) error {
-	return fmt.Errorf("OSS storage not implemented yet")
+// ResetMediaStorageCache clears the cached OSS instance (test-only helper).
+func ResetMediaStorageCache() {
+	ossStorageOnce = sync.Once{}
+	ossStorageCached = nil
 }
 
 func MediaStorageFromContext(c *gin.Context) MediaStorage {
