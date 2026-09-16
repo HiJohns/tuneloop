@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import Taro from '@tarojs/taro'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button, Image, Input, ScrollView, Text, Textarea, View } from '@tarojs/components'
-import { addressesApi, resolveErrorMessage } from '../services/api'
+import { addressesApi, resolveErrorMessage, getToken } from '../services/api'
 import { apiFetch } from '../services/api'
 import { dialog, env, getInputValue, uploadFile as uploadFileApi } from '../platform'
 import { Camera } from 'lucide-react'
@@ -62,15 +62,18 @@ export default function CreateRepairRequest() {
   }
 
   const uploadFile = async (file) => {
+    // #1924: /api/upload 注册于严格鉴权组（authRequired）——必须携带 token，
+    // 否则返回 40100 missing or invalid authorization header。
+    const authHeaders = { Authorization: 'Bearer ' + (getToken() || '') }
     if (env.isMiniProgram) {
-      const resp = await uploadFileApi(`${baseUrl}/upload`, file)
+      const resp = await uploadFileApi(`${baseUrl}/upload`, file, { headers: authHeaders })
       const r = JSON.parse(resp.data)
       if (r.code === 20000) return r.data.file_key
       throw new Error(r.message || 'upload failed')
     }
     const fd = new FormData()
     fd.append('file', file)
-    const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', body: fd })
+    const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', headers: authHeaders, body: fd })
     const r = await resp.json()
     if (r.code === 20000) return r.data.file_key
     throw new Error(resolveErrorMessage(r, 'upload failed'))
@@ -250,15 +253,17 @@ export default function CreateRepairRequest() {
                 {form.merchant_id ? merchants.find(m => m.id === form.merchant_id)?.name || '已选' : '点击选择商户 *'}
               </Button>
             </View>
-            {form.merchant_id && (
-              <View>
-                <Text className="block text-sm font-medium text-gray-700 mb-1">选择网点</Text>
-                <Button onClick={() => setShowSitePicker(true)}
-                  className="w-full py-2 bg-gray-100 rounded-lg text-xs text-left px-3 text-gray-600">
-                  {form.site_id ? sites.find(s => s.id === form.site_id)?.name || '已选' : '点击选择网点 *'}
-                </Button>
-              </View>
-            )}
+            {/* #1924: 网点行常驻（未选商户显示占位）——条件插入会改变 ScrollView
+                内容高度导致滚动跳动/回顶 */}
+            <View>
+              <Text className="block text-sm font-medium text-gray-700 mb-1">选择网点</Text>
+              <Button onClick={form.merchant_id ? () => setShowSitePicker(true) : undefined}
+                className="w-full py-2 bg-gray-100 rounded-lg text-xs text-left px-3 text-gray-600"
+                style={{ opacity: form.merchant_id ? 1 : 0.5 }}>
+                {form.site_id ? sites.find(s => s.id === form.site_id)?.name || '已选'
+                  : form.merchant_id ? '点击选择网点 *' : '请先选择商户'}
+              </Button>
+            </View>
           </View>
         </View>
       </ScrollView>
