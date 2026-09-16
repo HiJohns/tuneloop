@@ -98,13 +98,78 @@
 
 **各环境 `.env` 差异**：生产 `OSS_BUCKET=tuneloop-media` / `OSS_PRIVATE_BUCKET=tuneloop-media-sec`；预生产 `OSS_BUCKET=tuneloop-media-pre` / `OSS_PRIVATE_BUCKET=tuneloop-media-sec-pre` + 各自 AK（两把 RAM key 互不可见对方 bucket）。
 
+### 4.1 各环境 `.env` 配置模板
+
+```ini
+# ===== 生产 /opt/tuneloop/apps/tuneloop/.env =====
+OSS_ENDPOINT=https://oss-cn-beijing.aliyuncs.com
+OSS_REGION=cn-beijing
+OSS_BUCKET=tuneloop-media
+OSS_PRIVATE_BUCKET=tuneloop-media-sec
+# 生产凭据走 ECS 实例角色（不填 AK；见 §4.2）
+# OSS_ACCESS_KEY_ID=/OSS_ACCESS_KEY_SECRET=（不设置）
+
+# ===== 预生产 /opt/tuneloop-pre/apps/tuneloop-pre/.env =====
+OSS_ENDPOINT=https://oss-cn-beijing.aliyuncs.com
+OSS_REGION=cn-beijing
+OSS_BUCKET=tuneloop-media-pre
+OSS_PRIVATE_BUCKET=tuneloop-media-sec-pre
+# 预生产凭据用 pre RAM 用户（tuneloop-oss-pre 的 AK）
+OSS_ACCESS_KEY_ID=<tuneloop-oss-pre 的 ID>
+OSS_ACCESS_KEY_SECRET=<tuneloop-oss-pre 的 Secret>
+
+# ===== 本地开发 backend/.env（可选，联调预生产桶） =====
+# OSS_ENDPOINT=https://oss-cn-beijing.aliyuncs.com
+# OSS_REGION=cn-beijing
+# OSS_BUCKET=tuneloop-media-pre
+# OSS_PRIVATE_BUCKET=tuneloop-media-sec-pre
+# OSS_ACCESS_KEY_ID=<tuneloop-oss-pre 的 ID>
+# OSS_ACCESS_KEY_SECRET=<Secret>
+# 不配置以上任意项 = 本地 LocalStorage 模式
+```
+
+### 4.2 ECS 实例角色配置指南（生产）
+
+> 背景：生产（+预生产同机）cadenza 为阿里云 ECS。按 §2.1 决策，**生产服务凭据 = ECS 实例角色（零 AK 落盘）**；预生产用 env AK——**实例角色按“实例”粒度绑定、无法按进程区分**，故角色只授予**生产两桶**权限，达到同机双环境权限隔离。
+
+**控制台操作（约 5 分钟，一次完成）**：
+1. RAM 控制台 → 角色 → 创建角色：可信实体「阿里云账号」→ 普通服务角色 → 服务类型 **ECS**；
+2. 给角色附加**最小权限策略（仅生产两桶）**：`tuneloop-media` + `tuneloop-media-sec` 的 Put/Get/Delete/List + 分片全集（AM JSON 同 §P0 RAM 策略，替换 bucket 名）；
+3. ECS 控制台 → 实例（cadenza）→ 更多 → 实例设置 → **授予/修改 RAM 角色** → 选刚建的角色；**无需重启实例**，1-2 分钟生效。
+
+**绑定后验证**：
+```bash
+ssh cadenza "curl -s -m 4 http://100.100.100.100/latest/meta-data/ram/security-credentials/"
+# 应有角色名输出；再用无 AK 形式跑冒烟（见 §7）
+ssh cadenza "OSS_ENDPOINT=https://oss-cn-beijing.aliyuncs.com OSS_BUCKET=tuneloop-media OSS_PRIVATE_BUCKET=tuneloop-media-sec /tmp/oss-smoke"
+```
+
+### 4.3 冒烟验证（P2）
+
+独立工具 `backend/tools/oss_smoke`（不依赖 services 包，避免 cgo/webp 牵连）：
+
+```bash
+# 构建机（本仓库 backend/ 下）
+CGO_ENABLED=0 GOOS=linux go build -o /tmp/oss-smoke ./tools/oss_smoke
+scp /tmp/oss-smoke cadenza:/tmp/oss-smoke
+# cadenza 上执行（预生产桶示例；凭据链自动选择 env AK 或实例角色）
+ssh cadenza "OSS_ENDPOINT=https://oss-cn-beijing.aliyuncs.com OSS_BUCKET=tuneloop-media-pre OSS_PRIVATE_BUCKET=tuneloop-media-sec-pre /tmp/oss-smoke"
+```
+
+**覆盖项**：公开上传→匿名读内容一致；私有上传→签名 URL 读→无签名 403；Copy；DeletePrefix 清理；退出码 0=ALL PASS。
+
+**2026-09-16 实测结果**：
+- 预生产两桶（pre AK）：🔴→🟢 修复后 **ALL PASS**（先因强制 HTTPS 问题 403，见下）
+- ⚠️ **强制 HTTPS**：桶拒 HTTP（误导性 `403 bucket acl`）→ endpoint 必须 `https://`；实现 `normalizeEndpoint` 已强制注入
+- ⏳ ECS 实例角色：绑定前 metadata 空 → 角色绑定后复测（见 §4.2）
+
 ## 5. 阶段路线图（摘要，详见 #1914）
 
 | 阶段 | 内容 | 状态 |
 |------|------|:---:|
-| P0 | OSS 开通 / bucket / RAM-AK / 域名 / 微信白名单 | 🔶 bucket ✅，RAM ⛔ 阻塞 |
-| P1 | `OSSStorage` 实现（SDK v2、分片、幂等覆盖、私有签名）+ fake/mock 单测 | ⏳ 可先行（mock） |
-| P2 | env 配置与缺项回退 | ⏳ |
+| P0 | OSS 开通 / bucket / RAM-AK / 域名 / 微信白名单 | ✅ 完成（权限实测通过）；微信白名单/CNAME 待办 |
+| P1 | `OSSStorage` 实现（凭证链、分片、幂等删除、私有签名）+ 单测 | ✅ 完成（`5b7051e4`） |
+| P2 | env 配置与缺项回退 + 冒烟 | 🔶 实现✅；冒烟✅（预生产桶 ALL PASS）；**.env 落地待运维**；ECS 角色待绑定 |
 | P3 | 双写开关（OSS 写失败显式报错，可配置阻断） | ⏳ |
 | P4 | CLI `--migrate-media-oss`（dry-run 先行、幂等、断点续传、失败清单） | ⏳ |
 | P5 | `GetURL` 切读开关 + nginx `/uploads/*` 未命中重定向兜底 | ⏳ |
