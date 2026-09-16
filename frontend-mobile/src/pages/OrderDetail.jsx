@@ -605,12 +605,18 @@ export default function OrderDetail() {
                   <Text className="text-red-500 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_detail.payable_block.overdue_fee.amount) / 100).toFixed(2)}</Text>
                 </View>
               )}
-              {Number(order.fee_detail.payable_block?.shipping_fee?.amount) > 0 && (
+              {/* #1934: 受控商户中转单 → 物流费为多段加和单一项（logistics_fee_total），覆盖段级 shipping_fee 展示 */}
+              {Number(order.logistics_fee_total) > 0 ? (
+                <View className="flex justify-between text-sm">
+                  <Text className="text-zinc-500 font-medium">物流费（含各段）</Text>
+                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.logistics_fee_total) / 100).toFixed(2)}</Text>
+                </View>
+              ) : Number(order.fee_detail.payable_block?.shipping_fee?.amount) > 0 ? (
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-500 font-medium">物流费</Text>
                   <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_detail.payable_block.shipping_fee.amount) / 100).toFixed(2)}</Text>
                 </View>
-              )}
+              ) : null}
               <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
                 <Text className="text-zinc-500 font-medium">实际应付</Text>
                 <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_detail.payable_block?.subtotal || 0) / 100).toFixed(2)}</Text>
@@ -831,12 +837,18 @@ export default function OrderDetail() {
                       <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">免押金</Text>
                     </View>
                   )}
-                  {showShippingFee && (
+                  {/* #1934: 员工端物流费含中转全部段（logistics_fee_total 覆盖 pb 单段） */}
+                  {showShippingFee && Number(order.logistics_fee_total) > 0 ? (
+                    <View className="flex justify-between text-sm">
+                      <Text className="text-zinc-500 font-medium">物流费（各段合计）</Text>
+                      <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.logistics_fee_total) / 100).toFixed(2)}</Text>
+                    </View>
+                  ) : showShippingFee && pbShippingFee > 0 ? (
                     <View className="flex justify-between text-sm">
                       <Text className="text-zinc-500 font-medium">物流费</Text>
                       <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(pbShippingFee / 100).toFixed(2)}</Text>
                     </View>
-                  )}
+                  ) : null}
                 </View>
               )}
             </View>
