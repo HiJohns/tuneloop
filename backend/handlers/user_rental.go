@@ -687,6 +687,13 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		"payment_url": "https://pay.example.com/" + order.ID,
 	}
 
+	// #1934（受控商户）: outbound 转发会话在下单时自动创建（docs/cases/transit.md B1）。
+	// 判定：乐器的归属租户为受控商户（GetMerchantTransitInfo 命中 controlled）。
+	if ti := GetMerchantTransitInfo(c.Request.Context(), instrument.TenantID); ti != nil && ti.MerchantType == models.MerchantTypeControlled {
+		dbCommitted := database.GetDB().WithContext(c.Request.Context())
+		createForwardingSession(c, dbCommitted, instrument.TenantID, strVal(leaseSession.OrgID), leaseSession.ID, order.ID, leaseSession.InstrumentID, models.ForwardingDirectionOutbound)
+	}
+
 	c.JSON(http.StatusCreated, gin.H{
 		"code":    20000,
 		"message": "success",

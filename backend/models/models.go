@@ -787,10 +787,31 @@ type ForwardingSession struct {
 	SessionCode      string    `gorm:"type:varchar(6);uniqueIndex" json:"session_code"`
 	InstrumentID     string    `gorm:"type:uuid;index" json:"instrument_id"`
 	TrackingNumbers  string    `gorm:"type:jsonb" json:"tracking_numbers"`
-	Notes            string    `gorm:"type:text" json:"notes"`
-	CreatedAt        time.Time `json:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at"`
+	// #1934: 段级物流留痕（中转发货回填 / 中转收货拍照）
+	TrackingCompany   string    `gorm:"type:varchar(100);not null;default:''" json:"tracking_company"`
+	TrackingNumber    string    `gorm:"type:varchar(100);not null;default:''" json:"tracking_number"`
+	Photos            *string   `gorm:"type:jsonb" json:"photos"`
+	LogisticsFeeCents Cents     `gorm:"type:bigint;not null;default:0" json:"logistics_fee_cents"`
+	Notes             string    `gorm:"type:text" json:"notes"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
 }
+
+// TransitShippingFee 受控商户中转物流费分段（#1934，docs/cases/transit.md v1）：
+// 承担矩阵 —— 顾客承担 ①(受控→中转, outbound) + ②(中转→顾客, outbound) + ③(顾客→中转, return)；
+// 商户承担 ④(中转→受控, return)。订单详情「物流费」= SUM(paid_by='customer')。
+type TransitShippingFee struct {
+	ID         string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	OrderID    string    `gorm:"type:uuid;index;not null" json:"order_id"`
+	Direction  string    `gorm:"type:varchar(20);not null" json:"direction"` // outbound / return
+	Segment    int       `gorm:"not null" json:"segment"`                    // 1..4（矩阵编号）
+	Amount     Cents     `gorm:"type:bigint;not null;default:0" json:"amount"`
+	PaidBy     string    `gorm:"type:varchar(20);not null" json:"paid_by"`     // customer / merchant
+	RecordedBy string    `gorm:"type:varchar(255);not null" json:"recorded_by"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+func (TransitShippingFee) TableName() string { return "transit_shipping_fees" }
 
 // ElectronicContract 电子合同表
 type ElectronicContract struct {

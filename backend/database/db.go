@@ -438,6 +438,7 @@ func validateDatabaseSchema(db *gorm.DB) error {
 		&models.RepairRecord{},
 		&models.LeaseSession{},
 		&models.ForwardingSession{},
+		&models.TransitShippingFee{}, // #1934: 受控中转物流费分段
 		&models.ElectronicContract{},
 		&models.DamageReport{},
 		&models.Appeal{},

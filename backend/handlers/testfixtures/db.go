@@ -35,8 +35,10 @@ var allTables = []interface{}{
 	&models.OrderPaymentRecord{},
 	&models.PointsTransaction{},
 	&models.User{},
-	&models.FaceCaptureBatch{}, // #1789 T1: 核身批次表
-	&models.MediaAsset{},       // #1790 T2: 媒体资产注册表（face_capture GC 豁免）
+	&models.FaceCaptureBatch{},   // #1789 T1: 核身批次表
+	&models.ForwardingSession{},  // #1934: 受控中转转发会话
+	&models.TransitShippingFee{}, // #1934: 中转物流费分段
+	&models.MediaAsset{},         // #1790 T2: 媒体资产注册表（face_capture GC 豁免）
 	&models.DamageReport{},
 	&models.MembershipGiftRatio{},
 	&models.GiftPolicy{},

@@ -672,12 +672,33 @@ func GetOrder(c *gin.Context) {
 	feeDetail := buildFeeDetail(order, db, settlementData)
 	orderData["fee_detail"] = feeDetail
 
-	transitInfo := GetMerchantTransitInfo(c.Request.Context(), order.TenantID)
+	var transitInfo *MerchantTransitInfo
+	transitInfo = GetMerchantTransitInfo(c.Request.Context(), order.TenantID)
 	if transitInfo != nil && transitInfo.MerchantType == models.MerchantTypeControlled {
 		orderData["transit_info"] = map[string]string{
 			"address": transitInfo.Address,
 			"phone":   transitInfo.Phone,
 			"contact": transitInfo.ContactName,
+		}
+		// #1934: 承担矩阵聚合 —— 顾客应付物流费 = ①+②+③（paid_by=customer）；
+		// 分段④（paid_by=merchant）不进入顾客口径。
+		var custFee, merchFee int64
+		if err := db.Table("transit_shipping_fees").Select("COALESCE(SUM(amount_cents),0)").
+			Where("order_id = ? AND paid_by = ?", order.ID, "customer").Scan(&custFee).Error; err != nil {
+			log.Printf("[GetOrder] transit fee sum failed: %v", err)
+		}
+		if err := db.Table("transit_shipping_fees").Select("COALESCE(SUM(amount_cents),0)").
+			Where("order_id = ? AND paid_by = ?", order.ID, "merchant").Scan(&merchFee).Error; err != nil {
+			log.Printf("[GetOrder] transit fee (merchant) sum failed: %v", err)
+		}
+		orderData["logistics_fee_total"] = custFee // 单一项加和（docs/cases/transit.md §3）
+		// 调用方可能为受控商户员工（state-machine §4.2）：隐藏下单人三件套
+		callerID := middleware.GetUserID(c.Request.Context())
+		if order.UserID != "" && callerID != "" && order.UserID != callerID {
+			orderData["user_id"] = ""
+			orderData["user_name"] = "合作商户客户"
+			orderData["user_email"] = ""
+			orderData["user_phone"] = ""
 		}
 	}
 
@@ -686,6 +707,12 @@ func GetOrder(c *gin.Context) {
 	var merchantName string
 	if err := db.Table("merchants").Select("name").Where("tenant_id = ?", order.TenantID).Scan(&merchantName).Error; err != nil {
 		log.Printf("[GetOrder] merchant lookup failed for tenant=%s: %v", order.TenantID, err)
+	}
+	// #1934: 受控商户对顾客显示「合作商户」占位（docs/cases/transit.md §7）
+	if transitInfo != nil && transitInfo.MerchantType == models.MerchantTypeControlled {
+		if merchantName != "" {
+			merchantName = "合作商户"
+		}
 	}
 	orderData["merchant_name"] = merchantName
 
