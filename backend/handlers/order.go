@@ -682,16 +682,23 @@ func GetOrder(c *gin.Context) {
 		}
 		// #1934: 承担矩阵聚合 —— 顾客应付物流费 = ①+②+③（paid_by=customer）；
 		// 分段④（paid_by=merchant）不进入顾客口径。
+		// audit #1934 Bug1: 列名为 amount（amount_cents 不存在 → 聚合恒 0）；
+		// 聚合失败必须 500，不得 log 后以 0 值继续下发。
 		var custFee, merchFee int64
-		if err := db.Table("transit_shipping_fees").Select("COALESCE(SUM(amount_cents),0)").
+		if err := db.Table("transit_shipping_fees").Select("COALESCE(SUM(amount),0)").
 			Where("order_id = ? AND paid_by = ?", order.ID, "customer").Scan(&custFee).Error; err != nil {
 			log.Printf("[GetOrder] transit fee sum failed: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to aggregate transit fees"})
+			return
 		}
-		if err := db.Table("transit_shipping_fees").Select("COALESCE(SUM(amount_cents),0)").
+		if err := db.Table("transit_shipping_fees").Select("COALESCE(SUM(amount),0)").
 			Where("order_id = ? AND paid_by = ?", order.ID, "merchant").Scan(&merchFee).Error; err != nil {
 			log.Printf("[GetOrder] transit fee (merchant) sum failed: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to aggregate transit fees"})
+			return
 		}
 		orderData["logistics_fee_total"] = custFee // 单一项加和（docs/cases/transit.md §3）
+		_ = merchFee                               // 分段④商户口径（内部/商户侧展示预留）
 		// 调用方可能为受控商户员工（state-machine §4.2）：隐藏下单人三件套
 		callerID := middleware.GetUserID(c.Request.Context())
 		if order.UserID != "" && callerID != "" && order.UserID != callerID {

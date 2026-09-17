@@ -76,6 +76,8 @@ func TestForwardingSessionLifecycleAndFees(t *testing.T) {
 	s3 := get1934Session(t, db, session.ID)
 	assert.Equal(t, models.ForwardingStatusLastMile, s3.Status)
 	require1934Fee(t, db, orderID, TransitSegmentOutboundTransitToCustomer, "outbound", 1250, "customer")
+	// audit #1934 Bug3: 会话级 logistics_fee_cents 与 tracking 三件套同源接线
+	assert.Equal(t, int64(1250), int64(s3.LogisticsFeeCents))
 
 	// complete
 	w = put1934(router, "/api/forwarding/sessions/"+session.ID+"/complete", map[string]interface{}{})
@@ -107,9 +109,12 @@ func TestLastMileReturnFeesMerchantPays(t *testing.T) {
 	require1934Fee(t, db, orderID, TransitSegmentReturnTransitToControlled, "return", 800, "merchant")
 
 	// 聚合语义：paid_by 口径 —— 顾客合计不含 ④
+	// audit #1934 Bug2: 列名为 amount（amount_cents 不存在）且必须检查 Scan 错误
 	var custSum int64
-	db.Table("transit_shipping_fees").Select("COALESCE(SUM(amount_cents),0)").
-		Where("order_id = ? AND paid_by = ?", orderID, "customer").Scan(&custSum)
+	require.NoError(t, db.Table("transit_shipping_fees").
+		Select("COALESCE(SUM(amount),0)").
+		Where("order_id = ? AND paid_by = ?", orderID, "customer").
+		Scan(&custSum).Error)
 	assert.Equal(t, int64(0), custSum)
 }
 
@@ -266,4 +271,115 @@ func code1934(w *httptest.ResponseRecorder) int {
 		return -1
 	}
 	return resp.Code
+}
+
+// TestGetOrderLogisticsFeeTotalAggregation — 订单详情聚合（audit Bug2 验收项）：
+// logistics_fee_total = ①+②+③（paid_by=customer），④（merchant）不入顾客口径。
+func TestGetOrderLogisticsFeeTotalAggregation(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+	tenantID, orgID, _ := testfixtures.NewTenantIDs("1934ac1d000a")
+
+	// 受控商户（GetMerchantTransitInfo 按 tenant_id 查 merchants）
+	require.NoError(t, db.Exec(`INSERT INTO merchants (id, tenant_id, org_id, name, code, merchant_type, transit_address, transit_phone, created_at, updated_at)
+		VALUES (?, ?, ?, '受控商户A', 'ctrl-1934a', 'controlled', '北京市中转路1号', '010-88880000', now(), now())`,
+		uuid.New().String(), tenantID, tenantID).Error)
+
+	ownerID := uuid.New().String()
+	orderID := uuid.New().String()
+	require.NoError(t, db.Exec(`INSERT INTO orders (id, tenant_id, user_id, instrument_id, status, level, lease_term, monthly_rent, created_at, updated_at)
+		VALUES (?, ?, ?, ?, 'shipped', '入门', 30, 10000, now(), now())`,
+		orderID, tenantID, ownerID, uuid.New().String()).Error)
+
+	seedFee := func(segment int, direction, paidBy string, cents int64) {
+		require.NoError(t, db.Exec(`INSERT INTO transit_shipping_fees (order_id, direction, segment, amount, paid_by, recorded_by, created_at)
+			VALUES (?, ?, ?, ?, ?, 'staff', now())`, orderID, direction, segment, cents, paidBy).Error)
+	}
+	seedFee(1, "outbound", "customer", 1000) // ① 受控→中转
+	seedFee(2, "outbound", "customer", 1250) // ② 中转→顾客
+	seedFee(3, "return", "customer", 800)    // ③ 顾客→中转
+	seedFee(4, "return", "merchant", 3000)   // ④ 中转→受控（商户承担）
+
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		// caller ≠ 下单人（受控商户员工视角）→ 同时验证脱敏
+		actor := testutil.TestActor{TenantID: tenantID, OrgID: orgID, UserID: uuid.New().String(), Role: "STAFF"}
+		c.Request = c.Request.WithContext(actor.InjectContext(c.Request.Context()))
+		c.Next()
+	})
+	router.GET("/orders/:id", GetOrder)
+
+	req := httptest.NewRequest(http.MethodGet, "/orders/"+orderID, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var resp struct {
+		Code int                    `json:"code"`
+		Data map[string]interface{} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+	assert.Equal(t, float64(3050), resp.Data["logistics_fee_total"], "①+②+③=3050；④(merchant) 不入顾客口径")
+	assert.Equal(t, "合作商户", resp.Data["merchant_name"], "受控商户名占位")
+	assert.Equal(t, "合作商户客户", resp.Data["user_name"], "受控员工不可见下单人")
+}
+
+// TestOutboundSessionAutoCreatedOnCreateOrder — audit Bug2 验收项：
+// 受控商户下单 → 自动创建 direction=outbound 会话（此前仅 return 方向被创建）。
+func TestOutboundSessionAutoCreatedOnCreateOrder(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+	tenantID, orgID, _ := testfixtures.NewTenantIDs("1934ac2e000a")
+
+	// 受控商户
+	require.NoError(t, db.Exec(`INSERT INTO merchants (id, tenant_id, org_id, name, code, merchant_type, created_at, updated_at)
+		VALUES (?, ?, ?, '受控商户B', 'ctrl-1934b', 'controlled', now(), now())`,
+		uuid.New().String(), tenantID, tenantID).Error)
+
+	instrumentID := uuid.New().String()
+	userID := uuid.New().String()
+	now := time.Now()
+	require.NoError(t, db.Exec(`INSERT INTO users (id, iam_sub, tenant_id, org_id, name, email, phone, credit_score, is_shadow, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, 600, false, ?, ?)`,
+		userID, userID, tenantID, orgID, "Guest User", "guest1934@example.com", "13900139001", now, now).Error)
+	require.NoError(t, db.Exec(`INSERT INTO instruments (id, tenant_id, org_id, site_id, level, stock_status, images, specifications, pricing, created_at, updated_at)
+		VALUES (?, ?, ?, NULL, 'standard', 'available', '[]', '{}', '[]', ?, ?)`,
+		instrumentID, tenantID, orgID, now, now).Error)
+
+	defer func() {
+		db.Exec(`DELETE FROM forwarding_sessions WHERE tenant_id = ?`, tenantID)
+		db.Exec(`DELETE FROM orders WHERE tenant_id = ?`, tenantID)
+		db.Exec(`DELETE FROM instruments WHERE id = ?`, instrumentID)
+		db.Exec(`DELETE FROM users WHERE id = ?`, userID)
+	}()
+
+	router := setupGuestTestRouter(t, userID)
+	handler := &UserRentalHandler{}
+	router.POST("/user/orders", handler.CreateOrder)
+
+	body := map[string]interface{}{
+		"instrument_id": instrumentID,
+		"start_date":    "2026-09-20",
+		"end_date":      "2026-10-20",
+		"delivery_address": map[string]interface{}{
+			"city":    "Beijing",
+			"address": "Chaoyang District",
+		},
+	}
+	jsonBody, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, "/user/orders", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusCreated, w.Code, w.Body.String())
+
+	var order models.Order
+	require.NoError(t, db.Where("user_id = ? AND instrument_id = ?", userID, instrumentID).First(&order).Error)
+
+	var sess models.ForwardingSession
+	require.NoError(t, db.Where("order_id = ? AND direction = ?", order.ID, models.ForwardingDirectionOutbound).First(&sess).Error,
+		"受控商户下单必须自动创建 outbound 会话")
+	assert.Equal(t, models.ForwardingStatusPending, sess.Status)
+	assert.Equal(t, tenantID, sess.TenantID)
 }

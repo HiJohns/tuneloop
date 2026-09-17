@@ -689,9 +689,16 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 
 	// #1934（受控商户）: outbound 转发会话在下单时自动创建（docs/cases/transit.md B1）。
 	// 判定：乐器的归属租户为受控商户（GetMerchantTransitInfo 命中 controlled）。
+	// audit #1934 Bug6: 幂等守卫 —— 同 order 同 direction 已存在则跳过，防重复下单/重试产生重复会话。
 	if ti := GetMerchantTransitInfo(c.Request.Context(), instrument.TenantID); ti != nil && ti.MerchantType == models.MerchantTypeControlled {
 		dbCommitted := database.GetDB().WithContext(c.Request.Context())
-		createForwardingSession(c, dbCommitted, instrument.TenantID, strVal(leaseSession.OrgID), leaseSession.ID, order.ID, leaseSession.InstrumentID, models.ForwardingDirectionOutbound)
+		var outboundCount int64
+		dbCommitted.Model(&models.ForwardingSession{}).
+			Where("order_id = ? AND direction = ?", order.ID, models.ForwardingDirectionOutbound).
+			Count(&outboundCount)
+		if outboundCount == 0 {
+			createForwardingSession(c, dbCommitted, instrument.TenantID, strVal(leaseSession.OrgID), leaseSession.ID, order.ID, leaseSession.InstrumentID, models.ForwardingDirectionOutbound)
+		}
 	}
 
 	c.JSON(http.StatusCreated, gin.H{

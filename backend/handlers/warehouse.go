@@ -422,13 +422,16 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 	}
 
 	// #1934: 受控商户链路 —— 顾客确认收货 = outbound 会话送达完成
-	db.Model(&models.ForwardingSession{}).
+	// audit #1934 Bug4: 回写失败必须留痕
+	if err := db.Model(&models.ForwardingSession{}).
 		Where("order_id = ? AND direction = ?", orderID, models.ForwardingDirectionOutbound).
 		Where("status IN ?", []string{models.ForwardingStatusLastMile, models.ForwardingStatusDelivered}).
 		Updates(map[string]interface{}{
 			"status":     models.ForwardingStatusCompleted,
 			"updated_at": time.Now(),
-		})
+		}).Error; err != nil {
+		log.Printf("[ConfirmDelivery] complete outbound session failed: %v", err)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
@@ -691,13 +694,16 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	var shortfallAmount int64 // #1799: >0 → 补缴场景（executeRefund 创建了 pending shortfall）
 	if req.Condition == "good" {
 		// #1934: 受控商户链路 —— 归还给员工验收 good = return 会话送达完成
-		db.Model(&models.ForwardingSession{}).
+		// audit #1934 Bug4: 回写失败必须留痕
+		if err := db.Model(&models.ForwardingSession{}).
 			Where("order_id = ? AND direction = ?", orderID, models.ForwardingDirectionReturn).
 			Where("status IN ?", []string{models.ForwardingStatusLastMile, models.ForwardingStatusDelivered}).
 			Updates(map[string]interface{}{
 				"status":     models.ForwardingStatusCompleted,
 				"updated_at": time.Now(),
-			})
+			}).Error; err != nil {
+			log.Printf("[InspectReturn] complete return session failed: %v", err)
+		}
 
 		// Re-read the order so computeSettlement sees the completed status
 		// and updated returned_at.
