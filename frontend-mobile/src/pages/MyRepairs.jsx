@@ -189,13 +189,18 @@ export default function MyRepairs() {
       )}
       <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>我的维修服务 ({myServices.length})</Text>
+        <Button onClick={() => nav('/repair-service-create')}
+          style={{ width: '100%', margin: 0, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#171717', color: '#FFFFFF', borderRadius: 8, fontSize: 14, fontWeight: 'bold' }}>
+          ＋ 创建维修服务
+        </Button>
         {!servicesLoaded ? (
           <Text style={{ fontSize: 12, color: '#A1A1AA' }}>加载中...</Text>
         ) : myServices.length === 0 ? (
           <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无维修服务记录</Text>
         ) : (
           myServices.map(s => (
-            <View key={s.id} className="border border-zinc-100 rounded-xl p-3" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <View key={s.id} className="border border-zinc-100 rounded-xl p-3" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}
+              onClick={() => nav(`/repair-service-detail?order_id=${s.id}`)}>
               <View className="flex justify-between items-center">
                 <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>
                   编码 {s.repair_code || '-'}

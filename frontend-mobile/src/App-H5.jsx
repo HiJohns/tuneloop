@@ -42,6 +42,8 @@ import StaffOrders from './pages/StaffOrders'
 import MyRepairs from './pages/MyRepairs'
 import StaffRepairServices from './pages/StaffRepairServices'
 import TechRepairWorkbench from './pages/TechRepairWorkbench'
+import RepairServiceCreate from './pages/RepairServiceCreate'
+import RepairServiceDetail from './pages/RepairServiceDetail'
 import RepairWorkflow from './pages/RepairWorkflow'
 import CreateRepairRequest from './pages/CreateRepairRequest'
 import RepairRequestDetail from './pages/RepairRequestDetail'
@@ -246,6 +248,8 @@ function App() {
         <Route path="/my-repairs" element={<ProtectedRoute><MyRepairs /></ProtectedRoute>} />
         <Route path="/staff-repair-services" element={<ProtectedRoute><StaffRepairServices /></ProtectedRoute>} />
         <Route path="/tech-repair-workbench" element={<ProtectedRoute><TechRepairWorkbench /></ProtectedRoute>} />
+        <Route path="/repair-service-create" element={<ProtectedRoute><RepairServiceCreate /></ProtectedRoute>} />
+        <Route path="/repair-service-detail" element={<ProtectedRoute><RepairServiceDetail /></ProtectedRoute>} />
         <Route path="/create-repair" element={<ProtectedRoute><CreateRepairRequest /></ProtectedRoute>} />
         <Route path="/repair" element={<ProtectedRoute><RepairWorkflow /></ProtectedRoute>} />
         <Route path="/repair-request" element={<ProtectedRoute><RepairRequestDetail /></ProtectedRoute>} />
