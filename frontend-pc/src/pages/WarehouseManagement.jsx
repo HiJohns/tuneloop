@@ -245,7 +245,10 @@ export default function WarehouseManagement() {
                   const tracking = prompt('请输入物流单号:');
                   const company = prompt('请输入快递公司:');
                   if (tracking && company) {
-                    handleUpdateShipping(record.id, { tracking_number: tracking, company, shipped_at: new Date().toISOString() });
+                    // #1936 audit Bug5: 受控发货分段①（受控→中转）需录入物流费
+                    const feeRaw = prompt('请输入物流费（元，无运费可留空）:');
+                    const fee = feeRaw ? Number(feeRaw) : 0;
+                    handleUpdateShipping(record.id, { tracking_number: tracking, company, shipping_fee: isNaN(fee) ? 0 : fee, shipped_at: new Date().toISOString() });
                   }
                 }}
               >

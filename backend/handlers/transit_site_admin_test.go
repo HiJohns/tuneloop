@@ -39,6 +39,7 @@ func setup1935Test(t *testing.T) (*gin.Engine, string) {
 	router.GET("/api/admin/transit-sites/:id/members", ListTransitSiteMembers)
 	router.POST("/api/admin/transit-sites/:id/members", AddTransitSiteMember)
 	router.DELETE("/api/admin/transit-sites/:id/members/:member_id", RemoveTransitSiteMember)
+	router.GET("/api/admin/controlled-sites", ListControlledSites)
 	return router, tenantID
 }
 
@@ -102,6 +103,30 @@ func get1935(t *testing.T, router *gin.Engine, path string) (int, map[string]int
 	var resp map[string]interface{}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	return w.Code, resp
+}
+
+func TestListControlledSitesExcludesTransit(t *testing.T) {
+	router, tenantID := setup1935Test(t)
+	db := database.GetDB()
+
+	// 受控商户 + 普通网点 → 应入选
+	require.NoError(t, db.Exec(`INSERT INTO merchants (id, tenant_id, org_id, name, code, merchant_type, created_at, updated_at)
+		VALUES (?, ?, ?, '受控商户', 'ctrl-1936', 'controlled', now(), now())`, uuid.New().String(), tenantID, tenantID).Error)
+	controlledSite := models.Site{ID: uuid.New().String(), TenantID: tenantID, OrgID: tenantID, Name: "受控网点A", Type: "store", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	require.NoError(t, db.Create(&controlledSite).Error)
+
+	// 中转网点 → 必须被排除
+	transitSite := seedTransitSite1935(t, tenantID)
+
+	code, resp := get1935(t, router, "/api/admin/controlled-sites")
+	require.Equal(t, 200, code, "response: %v", resp)
+	list := resp["data"].(map[string]interface{})["list"].([]interface{})
+	ids := map[string]bool{}
+	for _, item := range list {
+		ids[item.(map[string]interface{})["id"].(string)] = true
+	}
+	assert.True(t, ids[controlledSite.ID], "受控商户网点应入选")
+	assert.False(t, ids[transitSite.ID], "中转网点必须被排除")
 }
 
 func TestCreateAdminTransitSiteValidation(t *testing.T) {

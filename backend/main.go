@@ -590,6 +590,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.GET("/admin/transit-sites/:id/members", handlers.ListTransitSiteMembers)
 			authRequired.POST("/admin/transit-sites/:id/members", handlers.AddTransitSiteMember)
 			authRequired.DELETE("/admin/transit-sites/:id/members/:member_id", handlers.RemoveTransitSiteMember)
+			// #1936: 受控网点候选列表（中转路由创建下拉；fix audit #1936 Bug1 — GET /sites 不存在）
+			authRequired.GET("/admin/controlled-sites", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.ListControlledSites)
 
 			// Transit order routes (Issue #1134)
 			authRequired.GET("/transit-orders", handlers.ListTransitOrders)

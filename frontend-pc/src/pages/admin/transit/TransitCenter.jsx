@@ -27,14 +27,16 @@ export default function TransitCenter() {
   const fetchAll = useCallback(async () => {
     setLoading(true)
     try {
+      // #1936 audit Bug1: GET /api/sites 不存在 → 改用平台级受控网点列表端点
       const [s, r, cs] = await Promise.all([
         api.get('/admin/transit-sites'),
         api.get('/transit-routes'),
-        api.get('/sites'),
+        api.get('/admin/controlled-sites'),
       ])
       if (s.code === 20000) setSites(s.data?.list || [])
       if (r.code === 20000) setRoutes(r.data?.list || [])
-      if (cs.code === 20000) setControlledSites((cs.data?.list || cs.data?.sites || []).filter(x => x.merchant_type !== 'controlled' ? x.type !== 'transit' : true))
+      // 后端已按 controlled 商户 + 非中转类型过滤，前端无需再筛
+      if (cs.code === 20000) setControlledSites(cs.data?.list || [])
     } catch (e) {
       message.error(e.message || '加载失败')
     } finally {
@@ -137,6 +139,7 @@ export default function TransitCenter() {
           dataSource={sites}
           columns={[
             { title: '名称', dataIndex: 'name', key: 'name' },
+            { title: '类型', dataIndex: 'type', key: 'type', render: v => <Tag color="purple">{v === 'transit' ? '中转网点' : (v || '-')}</Tag> },
             { title: '地址', dataIndex: 'address', key: 'address' },
             { title: '电话', dataIndex: 'phone', key: 'phone' },
             { title: '路由引用', dataIndex: 'route_count', key: 'route_count', render: v => <Tag color={v > 0 ? 'blue' : 'default'}>{v} 条</Tag> },
@@ -246,7 +249,7 @@ export default function TransitCenter() {
           <Form.Item name="transit_site_id" label="中转网点" rules={[{ required: true, message: '请选择中转网点' }]}>
             <Select placeholder="选择中转网点" options={sites.map(s => ({ value: s.id, label: s.name }))} />
           </Form.Item>
-          <Form.Item name="is_default" label="设为默认" valuePropName="checked" initialValue={false}>
+          <Form.Item name="is_default" label="设为默认" initialValue={false}>
             <Select options={[{ value: true, label: '是' }, { value: false, label: '否' }]} />
           </Form.Item>
         </Form>

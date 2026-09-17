@@ -44,6 +44,24 @@ func ListAdminTransitSites(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": list}})
 }
 
+// ListControlledSites returns candidate controlled sites for transit route
+// creation (#1936 audit Bug1: no GET /api/sites endpoint existed, leaving the
+// frontend route-creation dropdown permanently empty) — sites owned by
+// controlled-type merchants, excluding transit-type sites.
+func ListControlledSites(c *gin.Context) {
+	db := database.GetDB()
+	var sites []models.Site
+	if err := db.
+		Joins("JOIN merchants m ON m.tenant_id = sites.tenant_id AND m.merchant_type = ?", models.MerchantTypeControlled).
+		Where("sites.type <> ? AND sites.status = ?", transitSiteType, "active").
+		Order("sites.created_at DESC").
+		Find(&sites).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list controlled sites"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": sites}})
+}
+
 // CreateAdminTransitSite creates a platform-direct transit site.
 func CreateAdminTransitSite(c *gin.Context) {
 	var req struct {
