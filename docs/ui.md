@@ -2356,7 +2356,7 @@ components/
 - 3 个标准角色（网点管理员/网点员工/维修工程师）
 - 商户管理员创建的自定义角色（全商户可见）
 
-选择角色后调用 `PUT /admin/users/:id/roles` 实时更新。
+选择角色后调用 `PUT /sites/:id/members/:user_id`（body `{role}`）实时更新；角色下拉来源 `GET /admin/roles`（过滤 `site_admin`/`site_member`/`repair_technician`）。
 
 ---
 
@@ -3338,3 +3338,42 @@ cd frontend-pc && npm run build  # 应该成功
 尊敬的顾客您好，感谢您选择云租吧的乐器，乐器寄回时请优先选择顺丰快递且保价，还原初始包装保护乐器，为保障您的权益，我们将第一时间查收并检验乐器状态，谢谢您，祝您生活愉快！
 
 **样式**: 红色（`text-red-500` / `#ef4444`）13px 中等字重，下单页在合计摘要下方，归还页在订单信息卡之后。
+
+---
+
+### 3.38 中转中心 (`/transit-center`)（#1938）
+
+> 平台级「中转网点 + 中转路由 + 成员管理」管理页。**权限门 `sysPermBits:[5]`**（后端 `RequireSysPerm(SysPermTenantView)`）；菜单「中转中心」（交易管理）；面包屑「交易管理 / 中转中心」；**仅 PC**。
+
+**页面结构**
+1. 卡片「中转网点（平台直辖）」：表格 + 右上「创建中转网点」
+2. 卡片「中转路由（受控网点 ↔ 中转网点）」：表格 + 右上「新增路由」
+3. 「成员管理」弹窗（`Modal width=720`，标题「成员管理 — {网点名}」，**复用 `frontend-pc/src/components/SiteMemberManagement.jsx`**）
+
+**中转网点表格**
+- 列：名称 | 类型（Tag「中转网点」）| 地址 | 电话 | 路由引用（Tag「N 条」）| 成员 | 状态（启用/停用）
+- 行操作：编辑（Modal 回填）| 成员（打开成员管理弹窗）| 停用（仅 `status==='active'` 显示，**Popconfirm 二次确认**；被路由引用时后端 400 拒绝，透出文案）
+- 创建/编辑 Modal（`layout="vertical"`）：名称* | 地址*（物流面单用）| 电话* | 联系人（选填）；地址/电话后端亦校验非空
+
+**中转路由表格**
+- 列：受控网点 | 中转网点（按 `sites` 名称渲染，缺则截断 id）| 默认（Tag）| 优先级 | 操作（删除，**Popconfirm 二次确认**）
+- 新增路由 Modal：受控网点（下拉，来源 `GET /admin/controlled-sites`）| 中转网点（下拉，来源 `GET /admin/transit-sites`）| 设为默认（Select 是/否，默认「否」）
+- 端点：`GET/POST/DELETE /transit-routes`（`RequireSysPerm(SysPermTenantView)`）
+
+**成员管理区（复用的 `SiteMemberManagement`）**
+- 组件注入：`membersBase="/admin/transit-sites"`、`roles=[{code:'site_admin',name:'中转网点管理员'},{code:'site_member',name:'中转网点员工'}]`（**静态两类，不走 `/admin/roles`**——该端点权限门为 `SysPermPermissionCreate`，与中转中心 bit5 不同）、`onRefresh`
+- 端点契约：
+  - `GET  /admin/transit-sites/:id/members` → `data.list[{user_id,user_name,user_email,role,created_at}]`（JOIN users enrich）
+  - `POST /admin/transit-sites/:id/members` → `{user_id(+role) | user_ids:[{user_id,role}] | new_users:[{username,name,email,phone,role}], skip_activation}` → `data{directly_added[], bind_errors?, initial_passwords?, role_errors?}`
+  - `PUT  /admin/transit-sites/:id/members/:user_id`（body `{role}`）
+  - `DELETE /admin/transit-sites/:id/members/:user_id`（按 `site_id` + `user_id` 归属校验，跨站 404）
+- 列表列：姓名 | 邮箱 | 角色（**行内 Select 即时更新**）| 加入时间 | 操作（移除，**Popconfirm**）；搜索框「搜索姓名或邮箱」（前端过滤）；空态「暂无成员」；加载态 Table `loading`
+- 添加成员 Modal（宽 520）：
+  - **新建用户**：用户名* / 姓名* / 邮箱* / 手机*；`username`/`email`/`phone` 失焦调 `GET /users/check?<field>=`，命中即标红「已注册」并提供「改为绑定现有用户」；角色下拉（静态两类，默认 `site_member`）；复选「跳过邮箱验证（直接激活）」
+  - **绑定现有用户**：展示只读用户名/姓名/邮箱/手机 + 角色下拉；提交 `user_ids`
+  - 提交后续：成功（20000/20100）关闭 + 重置 + 刷新列表 + `onRefresh`；有 `role_errors` → `message.warning`；`bind_errors` → 显示错误并刷新；`skip_activation` 且有 `initial_passwords` → `Modal.success` **一次性**展示（`copyable`）；`40901` 冲突按「同商户不同网点 → 确认后加入 / 已是本网点 → 提示 / 与商户无关 → 提示联系商户管理员」处理
+- 角色仅 `site_admin`/`site_member`；**IAM 同步**（bind 先行，失败不写本地缓存）；错误一律 `message.error` 透出（禁止静默）
+
+**权限/角色**
+- 页面与全部端点：平台管理员（`sys_perm bit5`）
+- 成员角色：中转网点管理员（`site_admin`）/ 中转网点员工（`site_member`），与网点成员角色代码同构但**不承接维修师傅等细分角色**

@@ -590,8 +590,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.DELETE("/admin/transit-sites/:id", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.DeleteAdminTransitSite)
 			authRequired.GET("/admin/transit-sites/:id/members", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.ListTransitSiteMembers)
 			authRequired.POST("/admin/transit-sites/:id/members", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.AddTransitSiteMember)
-			authRequired.PUT("/admin/transit-sites/:id/members/:member_id", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.UpdateTransitSiteMemberRole)
-			authRequired.DELETE("/admin/transit-sites/:id/members/:member_id", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.RemoveTransitSiteMember)
+			authRequired.PUT("/admin/transit-sites/:id/members/:user_id", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.UpdateTransitSiteMemberRole)
+			authRequired.DELETE("/admin/transit-sites/:id/members/:user_id", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.RemoveTransitSiteMember)
 			// #1936: 受控网点候选列表（中转路由创建下拉；fix audit #1936 Bug1 — GET /sites 不存在）
 			authRequired.GET("/admin/controlled-sites", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.ListControlledSites)
 

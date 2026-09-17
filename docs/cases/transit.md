@@ -55,9 +55,41 @@ status: design
 | 配置项 | 说明 |
 |--------|------|
 | 基本信息 | 名称 / **地址（必填）** / **电话（必填）** / 联系人（可选）/ 状态；地址电话是物流面单关键（顾客寄收件地址） |
-| **成员管理** | 复用 `site_members`（site_id/user_id/role），**角色仅两类：中转网点管理员 / 中转网点员工**（不承接普通网点细分角色） |
+| **成员管理** | 复用 `site_members`（site_id/user_id/role），**角色仅两类：中转网点管理员（`site_admin`）/ 中转网点员工（`site_member`）**（不承接普通网点细分角色）；交互详见 §4.1 |
 | 归属 | 平台顶层组织（租户=平台根），平台级「中转中心」管理（创建/编辑/停用 + 路由配置同页） |
 | 路由 | TransitRoute（受控网点 ↔ 中转网点）：一受控↔一中转；一中转可服务多受控；`is_default` 标记默认，`priority` 为多候选排序 |
+
+### 4.1 成员管理用例（#1938：与网点成员管理体验一致）
+
+> 入口：中转中心「中转网点」表格行「成员」→ 弹「成员管理」弹窗（复用 `frontend-pc/src/components/SiteMemberManagement.jsx`）。
+
+**UC-1 查看/搜索成员**
+- 列表列：姓名 / 邮箱 / 角色 / 加入时间 / 操作
+- 搜索框按姓名或邮箱**前端过滤**；空态「暂无成员」
+- 数据：`GET /admin/transit-sites/:id/members`（JOIN users enrich `user_name`/`user_email`）
+
+**UC-2 添加成员 — 绑定现有用户**
+- 输入用户名 / 邮箱 / 手机之一，失焦调 `GET /users/check?<field>=`；`exists=true` → 标红「已注册」并切「绑定现有用户」确认态（展示只读用户信息）
+- 选角色（两类，默认 `site_member`）→ 提交 `user_ids:[{user_id,role}]`
+- 唯一性：同一用户已是本网点成员 → 后端 400，前端 `message.error`
+
+**UC-3 添加成员 — 新建用户**
+- 输入：用户名* / 姓名* / 邮箱* / 手机*（三项唯一性检查同上）+ 角色 + 「跳过邮箱验证（直接激活）」复选
+- 提交 `new_users:[{username,name,email,phone,role}], skip_activation`
+- 成功：关闭 + 刷新；`skip_activation` 时**一次性**展示初始密码（`initial_passwords`，copyable）
+- 冲突 `40901`：同商户不同网点 → 确认后以 `user_ids` 直接加入；已是本网点成员 → 提示；与商户无关 → 提示联系商户管理员
+
+**UC-4 变更角色**
+- 行内 `Select` 即时调用 `PUT /admin/transit-sites/:id/members/:user_id {role}`；成功 toast + 刷新
+- 顺序：先 IAM `UpdateUserRoleInOrgWithToken`，成功后更新本地缓存
+
+**UC-5 移除成员**
+- 行内「移除」→ Popconfirm 确认 → `DELETE /admin/transit-sites/:id/members/:user_id`
+- 按 `site_id + user_id` 归属校验（跨站 404，不误删）
+
+**通用规则**
+- 角色仅 `site_admin`/`site_member`；IAM 绑定先行，**失败不写本地缓存**（红线）
+- IAM 角色模板失败：`role_errors` 随响应体透出（不静默）
 
 ## 5. 中转员工工作流（小程序 + PC）
 

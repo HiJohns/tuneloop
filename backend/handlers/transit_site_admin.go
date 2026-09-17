@@ -165,6 +165,7 @@ func DeleteAdminTransitSite(c *gin.Context) {
 }
 
 // ListTransitSiteMembers returns site members of a transit site (admin/member roles only).
+// #1938: enrich user_name/user_email/created_at（对齐网点 ListMembers，供共享组件渲染）。
 func ListTransitSiteMembers(c *gin.Context) {
 	siteID := c.Param("id")
 	db := database.GetDB()
@@ -174,8 +175,18 @@ func ListTransitSiteMembers(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "transit site not found"})
 		return
 	}
-	var members []models.SiteMember
-	if err := db.Where("site_id = ?", siteID).Find(&members).Error; err != nil {
+	var members []struct {
+		UserID    string    `json:"user_id"`
+		UserName  string    `json:"user_name"`
+		UserEmail string    `json:"user_email"`
+		Role      string    `json:"role"`
+		CreatedAt time.Time `json:"created_at"`
+	}
+	if err := db.Table("site_members").
+		Select("site_members.user_id, users.name as user_name, users.email as user_email, site_members.role, site_members.created_at").
+		Joins("JOIN users ON users.id = site_members.user_id").
+		Where("site_members.site_id = ?", siteID).
+		Scan(&members).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list members"})
 		return
 	}
@@ -209,20 +220,12 @@ func assignTransitRoleTemplate(c *gin.Context, iamClient *services.IAMClient, us
 	return roleErrors
 }
 
-// AddTransitSiteMember adds a member (role restricted to site_admin / site_member)
-// with IAM org binding — #1935 audit Bug1: 本地 site_members 仅为缓存，账户/权限操作
-// 必须以 IAM 为准（AGENTS §685）；IAM 绑定失败必须返回错误，不得静默写本地缓存。
+// AddTransitSiteMember adds member(s) to a transit site.
+// #1938: 契约与网点 AddMember 同构（user_id / user_ids / new_users / skip_activation），
+// 复用 addMembersCore；保持 #1935 红线（IAM 绑定失败不写本地缓存由 core 保证）。
+// 角色收敛为中转网点管理员/员工（site_admin / site_member）。
 func AddTransitSiteMember(c *gin.Context) {
 	siteID := c.Param("id")
-	var req struct {
-		UserID string `json:"user_id" binding:"required"`
-		Role   string `json:"role" binding:"required,oneof=site_admin site_member"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "user_id/role 为必填（role: site_admin|site_member）"})
-		return
-	}
-
 	db := database.GetDB()
 	var site models.Site
 	if err := db.Where("id = ? AND type = ?", siteID, transitSiteType).First(&site).Error; err != nil {
@@ -230,50 +233,57 @@ func AddTransitSiteMember(c *gin.Context) {
 		return
 	}
 
-	var count int64
-	db.Model(&models.SiteMember{}).Where("site_id = ? AND user_id = ?", siteID, req.UserID).Count(&count)
-	if count > 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "该用户已是本中转网点成员"})
+	var input addMemberInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "Invalid input: " + err.Error()})
 		return
 	}
-
-	// IAM bind first — local cache only after success
-	var roleErrors []gin.H
-	if site.OrgID != "" {
-		iamClient := services.NewIAMClient()
-		userToken := services.ExtractUserToken(c)
-		operatorID := middleware.GetUserID(c.Request.Context())
-		if err := iamClient.BindUserToOrganizationWithToken(userToken, req.UserID, site.OrgID, toIAMRole(req.Role), operatorID); err != nil {
-			c.JSON(http.StatusBadGateway, gin.H{"code": 50000, "message": "IAM 绑定失败: " + err.Error()})
+	// 角色收敛：中转仅两类
+	if input.Role != "" && input.Role != "site_admin" && input.Role != "site_member" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "role 仅支持 site_admin|site_member"})
+		return
+	}
+	for _, u := range input.NewUsers {
+		if u.Role != "" && u.Role != "site_admin" && u.Role != "site_member" {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "role 仅支持 site_admin|site_member"})
 			return
 		}
-		roleErrors = assignTransitRoleTemplate(c, iamClient, userToken, req.UserID, site.OrgID, req.Role)
+	}
+	for _, u := range input.UserIDs {
+		if r, ok := u["role"].(string); ok && r != "" && r != "site_admin" && r != "site_member" {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "role 仅支持 site_admin|site_member"})
+			return
+		}
 	}
 
-	member := models.SiteMember{
-		ID:       uuid.New().String(),
-		SiteID:   siteID,
-		UserID:   req.UserID,
-		TenantID: site.TenantID,
-		Role:     req.Role,
-	}
-	if err := db.Create(&member).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to add member"})
+	res, fail := addMembersCore(c, db, site, site.TenantID, siteID, input)
+	if fail != nil {
+		c.JSON(fail.Status, fail.Body)
 		return
 	}
-	resp := gin.H{"code": 20000, "data": member}
-	if len(roleErrors) > 0 {
-		// audit #1935 Bug A（红线）：IAM 角色模板失败必须透出，不得静默 200
-		resp["role_errors"] = roleErrors
+	if len(res.DirectlyAdded) == 0 && len(res.BindErrors) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "该用户已是本中转网点成员或无可添加用户"})
+		return
 	}
-	c.JSON(http.StatusOK, resp)
+
+	data := gin.H{"site_id": siteID, "directly_added": res.DirectlyAdded}
+	if len(res.BindErrors) > 0 {
+		data["bind_errors"] = res.BindErrors
+	}
+	if len(res.InitialPasswords) > 0 {
+		data["initial_passwords"] = res.InitialPasswords
+	}
+	if len(res.RoleErrors) > 0 {
+		data["role_errors"] = res.RoleErrors
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": data})
 }
 
 // UpdateTransitSiteMemberRole changes a member's role (#1935 audit Bug5:
 // 计划「增删改查」缺「改」) — IAM role update first, then the local cache row.
 func UpdateTransitSiteMemberRole(c *gin.Context) {
 	siteID := c.Param("id")
-	memberID := c.Param("member_id")
+	userID := c.Param("user_id")
 	var req struct {
 		Role string `json:"role" binding:"required,oneof=site_admin site_member"`
 	}
@@ -289,7 +299,7 @@ func UpdateTransitSiteMemberRole(c *gin.Context) {
 		return
 	}
 	var member models.SiteMember
-	if err := db.Where("id = ? AND site_id = ?", memberID, siteID).First(&member).Error; err != nil {
+	if err := db.Where("user_id = ? AND site_id = ?", userID, siteID).First(&member).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "member not found"})
 		return
 	}
@@ -323,7 +333,7 @@ func UpdateTransitSiteMemberRole(c *gin.Context) {
 // 可越站删除任意网点成员）；unbind 失败按 site_member.go 同构策略 log 后继续。
 func RemoveTransitSiteMember(c *gin.Context) {
 	siteID := c.Param("id")
-	memberID := c.Param("member_id")
+	userID := c.Param("user_id")
 	db := database.GetDB()
 
 	var site models.Site
@@ -332,7 +342,7 @@ func RemoveTransitSiteMember(c *gin.Context) {
 		return
 	}
 	var member models.SiteMember
-	if err := db.Where("id = ? AND site_id = ?", memberID, siteID).First(&member).Error; err != nil {
+	if err := db.Where("user_id = ? AND site_id = ?", userID, siteID).First(&member).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "member not found"})
 		return
 	}
@@ -346,7 +356,7 @@ func RemoveTransitSiteMember(c *gin.Context) {
 		}
 	}
 
-	if err := db.Where("id = ? AND site_id = ?", memberID, siteID).Delete(&models.SiteMember{}).Error; err != nil {
+	if err := db.Where("user_id = ? AND site_id = ?", userID, siteID).Delete(&models.SiteMember{}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to remove member"})
 		return
 	}

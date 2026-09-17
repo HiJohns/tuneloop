@@ -27,7 +27,9 @@ const roleToCode = (role) => {
   return map[role] || role
 }
 
-const SiteMemberManagement = ({ siteId, onRefresh }) => {
+// #1938: 参数化以复用——membersBase 支持中转中心（/admin/transit-sites）；
+// roles 注入静态角色（中转仅两类，且 /admin/roles 权限门与中转中心不同）。
+const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles = null }) => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -54,6 +56,11 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
   }, [siteId]);
 
   const fetchRoles = async () => {
+    // #1938: 调用方注入静态角色时优先使用（中转中心仅 site_admin/site_member）
+    if (roles && roles.length > 0) {
+      setAvailableRoles(roles);
+      return;
+    }
     try {
       const resp = await adminApi.listRoles();
       if (resp.code === 20000) setAvailableRoles((resp.data || []).filter(r => SITE_ROLES.includes(r.code)));
@@ -63,7 +70,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
   const fetchMembers = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/sites/${siteId}/members`);
+      const response = await api.get(`${membersBase}/${siteId}/members`);
       if (response && response.code === 20000) {
         setMembers(response.data?.list || []);
       }
@@ -76,7 +83,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
 
   const handleUpdateRole = async (userId, newRole) => {
     try {
-      const resp = await api.put(`/sites/${siteId}/members/${userId}`, { role: newRole });
+      const resp = await api.put(`${membersBase}/${siteId}/members/${userId}`, { role: newRole });
       if (resp.code === 20000) {
         message.success('角色已更新');
         fetchMembers();
@@ -87,7 +94,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
 
   const handleRemoveMember = async (userId) => {
     try {
-      const response = await api.delete(`/sites/${siteId}/members/${userId}`);
+      const response = await api.delete(`${membersBase}/${siteId}/members/${userId}`);
       if (response.code === 20000) {
         message.success('成员移除成功');
         fetchMembers();
@@ -146,7 +153,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
     setAdding(true);
     try {
       if (formMode === 'existing') {
-        const response = await api.post(`/sites/${siteId}/members`, {
+        const response = await api.post(`${membersBase}/${siteId}/members`, {
           user_ids: [{ user_id: existingUser.id, role: selectedRole }],
         });
         if (response.code === 20000 || response.code === 20100) {
@@ -162,7 +169,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
           message.error(response.message || '绑定失败');
         }
       } else {
-        const response = await api.post(`/sites/${siteId}/members`, {
+        const response = await api.post(`${membersBase}/${siteId}/members`, {
           new_users: [{ username: username.trim(), name: name.trim(), email: email.trim(), phone: phone.trim(), role: selectedRole }],
           skip_activation: skipActivation,
         });
@@ -238,7 +245,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
   const bindExistingUser = async (userId) => {
     setAdding(true);
     try {
-      const response = await api.post(`/sites/${siteId}/members`, {
+      const response = await api.post(`${membersBase}/${siteId}/members`, {
         user_ids: [{ user_id: userId, role: selectedRole }],
       });
       if (response.code === 20000 || response.code === 20100) {

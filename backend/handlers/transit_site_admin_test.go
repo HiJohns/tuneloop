@@ -49,8 +49,8 @@ func setup1935Test(t *testing.T) (*gin.Engine, string) {
 	router.DELETE("/api/admin/transit-sites/:id", DeleteAdminTransitSite)
 	router.GET("/api/admin/transit-sites/:id/members", ListTransitSiteMembers)
 	router.POST("/api/admin/transit-sites/:id/members", AddTransitSiteMember)
-	router.PUT("/api/admin/transit-sites/:id/members/:member_id", UpdateTransitSiteMemberRole)
-	router.DELETE("/api/admin/transit-sites/:id/members/:member_id", RemoveTransitSiteMember)
+	router.PUT("/api/admin/transit-sites/:id/members/:user_id", UpdateTransitSiteMemberRole)
+	router.DELETE("/api/admin/transit-sites/:id/members/:user_id", RemoveTransitSiteMember)
 	router.GET("/api/admin/controlled-sites", ListControlledSites)
 	return router, tenantID
 }
@@ -231,22 +231,23 @@ func TestTransitSiteMemberRoleRestriction(t *testing.T) {
 	assert.Equal(t, 400, code)
 	assert.Contains(t, resp["message"], "site_admin")
 
-	// 合法角色 → 200
+	// 合法角色 → 200（#1938：data.directly_added 数组）
+	userID := uuid.New().String()
 	code, resp = post1935JSON(t, router, "/api/admin/transit-sites/"+site.ID+"/members", map[string]interface{}{
-		"user_id": uuid.New().String(), "role": "site_member",
+		"user_id": userID, "role": "site_member",
 	})
 	assert.Equal(t, 200, code)
-	member := resp["data"].(map[string]interface{})
-	assert.Equal(t, "site_member", member["role"])
+	added := resp["data"].(map[string]interface{})["directly_added"].([]interface{})
+	require.Len(t, added, 1)
+	assert.Equal(t, "site_member", added[0].(map[string]interface{})["role"])
 
 	// 列表
 	code, resp = get1935(t, router, "/api/admin/transit-sites/"+site.ID+"/members")
 	assert.Equal(t, 200, code)
 	_ = resp
 
-	// 移除
-	mid := member["id"].(string)
-	code, resp = del1935(t, router, "/api/admin/transit-sites/"+site.ID+"/members/"+mid)
+	// 移除（#1938：路径参数 user_id）
+	code, resp = del1935(t, router, "/api/admin/transit-sites/"+site.ID+"/members/"+userID)
 	assert.Equal(t, 200, code)
 }
 
@@ -258,28 +259,30 @@ func TestTransitSiteMemberIAMSync(t *testing.T) {
 	site := seedTransitSite1935(t, tenantID)
 
 	// 合法角色 → 200（IAM mock bind 200 后才写本地）
+	userID := uuid.New().String()
 	code, resp := post1935JSON(t, router, "/api/admin/transit-sites/"+site.ID+"/members", map[string]interface{}{
-		"user_id": uuid.New().String(), "role": "site_member",
+		"user_id": userID, "role": "site_member",
 	})
 	require.Equal(t, 200, code, "add member response: %v", resp)
-	member := resp["data"].(map[string]interface{})
-	assert.Equal(t, "site_member", member["role"])
+	added := resp["data"].(map[string]interface{})["directly_added"].([]interface{})
+	require.Len(t, added, 1)
+	assert.Equal(t, "site_member", added[0].(map[string]interface{})["role"])
 
-	// 重复添加 → 40002
+	// 重复添加 → 400
 	code, resp = post1935JSON(t, router, "/api/admin/transit-sites/"+site.ID+"/members", map[string]interface{}{
-		"user_id": member["user_id"], "role": "site_member",
+		"user_id": userID, "role": "site_member",
 	})
 	assert.Equal(t, 400, code)
 
 	// 改角色（audit Bug5「改」）→ 200
-	code, resp = put1935JSON(t, router, "/api/admin/transit-sites/"+site.ID+"/members/"+member["id"].(string), map[string]interface{}{
+	code, resp = put1935JSON(t, router, "/api/admin/transit-sites/"+site.ID+"/members/"+userID, map[string]interface{}{
 		"role": "site_admin",
 	})
 	require.Equal(t, 200, code, "role update response: %v", resp)
 	assert.Equal(t, "site_admin", resp["data"].(map[string]interface{})["role"])
 
 	// 非法角色 → 400
-	code, _ = put1935JSON(t, router, "/api/admin/transit-sites/"+site.ID+"/members/"+member["id"].(string), map[string]interface{}{
+	code, _ = put1935JSON(t, router, "/api/admin/transit-sites/"+site.ID+"/members/"+userID, map[string]interface{}{
 		"role": "manager",
 	})
 	assert.Equal(t, 400, code)
@@ -287,18 +290,19 @@ func TestTransitSiteMemberIAMSync(t *testing.T) {
 	// 跨站删除防护（audit Bug2）：普通网点成员不可经中转端点删除
 	otherSite := models.Site{ID: uuid.New().String(), TenantID: tenantID, OrgID: tenantID, Name: "普通网点", Type: "store", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}
 	require.NoError(t, db.Create(&otherSite).Error)
-	otherMember := models.SiteMember{ID: uuid.New().String(), SiteID: otherSite.ID, UserID: uuid.New().String(), TenantID: tenantID, Role: "site_member"}
+	otherUser := uuid.New().String()
+	otherMember := models.SiteMember{ID: uuid.New().String(), SiteID: otherSite.ID, UserID: otherUser, TenantID: tenantID, Role: "site_member"}
 	require.NoError(t, db.Create(&otherMember).Error)
-	code, _ = del1935(t, router, "/api/admin/transit-sites/"+site.ID+"/members/"+otherMember.ID)
+	code, _ = del1935(t, router, "/api/admin/transit-sites/"+site.ID+"/members/"+otherUser)
 	assert.Equal(t, 404, code, "跨站成员删除必须 404")
 	var stillThere models.SiteMember
 	require.NoError(t, db.Where("id = ?", otherMember.ID).First(&stillThere).Error, "被跨站删除的成员必须仍存在")
 
 	// 本站成员删除 → 200 且行已删
-	code, _ = del1935(t, router, "/api/admin/transit-sites/"+site.ID+"/members/"+member["id"].(string))
+	code, _ = del1935(t, router, "/api/admin/transit-sites/"+site.ID+"/members/"+userID)
 	assert.Equal(t, 200, code)
 	var cnt int64
-	db.Model(&models.SiteMember{}).Where("id = ?", member["id"]).Count(&cnt)
+	db.Model(&models.SiteMember{}).Where("site_id = ? AND user_id = ?", site.ID, userID).Count(&cnt)
 	assert.Equal(t, int64(0), cnt)
 }
 
@@ -335,7 +339,8 @@ func TestTransitSiteMemberRoleTemplateErrorReported(t *testing.T) {
 		"user_id": uuid.New().String(), "role": "site_member",
 	})
 	require.Equal(t, 200, code, "bind 成功时成员仍应创建: %v", resp)
-	assert.NotEmpty(t, resp["role_errors"], "IAM 模板失败必须透出 role_errors（不得静默 200）")
+	// #1938：role_errors 位于 data 内（与网点 AddMember 契约一致）
+	assert.NotEmpty(t, resp["data"].(map[string]interface{})["role_errors"], "IAM 模板失败必须透出 role_errors（不得静默 200）")
 
 	var cnt int64
 	database.GetDB().Model(&models.SiteMember{}).Where("site_id = ?", site.ID).Count(&cnt)

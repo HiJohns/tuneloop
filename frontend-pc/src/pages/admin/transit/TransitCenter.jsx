@@ -3,8 +3,15 @@ import { useCallback, useEffect, useState } from 'react'
 import { Button, Card, Form, Input, Modal, Select, Space, Table, Tag, message, Typography } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { api } from '../../../services/api'
+import SiteMemberManagement from '../../../components/SiteMemberManagement'
 
 const { Text } = Typography
+
+// #1938: 中转成员角色仅两类，静态注入（不复用 /admin/roles——其权限门与中转中心不同）
+const TRANSIT_ROLES = [
+  { code: 'site_admin', name: '中转网点管理员' },
+  { code: 'site_member', name: '中转网点员工' },
+]
 
 export default function TransitCenter() {
   const [sites, setSites] = useState([])
@@ -18,8 +25,6 @@ export default function TransitCenter() {
 
   const [memberModalOpen, setMemberModalOpen] = useState(false)
   const [memberSite, setMemberSite] = useState(null)
-  const [members, setMembers] = useState([])
-  const [memberForm] = Form.useForm()
 
   const [routeModalOpen, setRouteModalOpen] = useState(false)
   const [routeForm] = Form.useForm()
@@ -78,35 +83,9 @@ export default function TransitCenter() {
     else message.error(r.message || '停用失败（需先解除路由引用）')
   }
 
-  const openMembers = async (site) => {
+  const openMembers = (site) => {
     setMemberSite(site)
     setMemberModalOpen(true)
-    const r = await api.get(`/admin/transit-sites/${site.id}/members`)
-    if (r.code === 20000) setMembers(r.data?.list || [])
-  }
-
-  const handleAddMember = async () => {
-    const values = await memberForm.validateFields()
-    const r = await api.post(`/admin/transit-sites/${memberSite.id}/members`, values)
-    if (r.code === 20000) {
-      message.success('成员已添加')
-      memberForm.resetFields()
-      const rr = await api.get(`/admin/transit-sites/${memberSite.id}/members`)
-      if (rr.code === 20000) setMembers(rr.data?.list || [])
-    } else {
-      message.error(r.message || '添加失败')
-    }
-  }
-
-  const handleRemoveMember = async (memberId) => {
-    const r = await api.delete(`/admin/transit-sites/${memberSite.id}/members/${memberId}`)
-    if (r.code === 20000) {
-      message.success('已移除')
-      const rr = await api.get(`/admin/transit-sites/${memberSite.id}/members`)
-      if (rr.code === 20000) setMembers(rr.data?.list || [])
-    } else {
-      message.error(r.message || '移除失败')
-    }
   }
 
   const handleRouteCreate = async () => {
@@ -202,36 +181,23 @@ export default function TransitCenter() {
         </Form>
       </Modal>
 
-      {/* 成员管理 */}
+      {/* 成员管理（#1938：复用网点成员管理组件 SiteMemberManagement） */}
       <Modal
         title={`成员管理 — ${memberSite?.name || ''}`}
         open={memberModalOpen}
         footer={null}
         onCancel={() => setMemberModalOpen(false)}
-        width={640}
+        width={720}
+        destroyOnClose
       >
-        <Form form={memberForm} layout="inline" style={{ marginBottom: 12 }} onFinish={handleAddMember}>
-          <Form.Item name="user_id" rules={[{ required: true, message: '用户 ID' }]}>
-            <Input placeholder="用户 ID (uuid)" style={{ width: 280 }} />
-          </Form.Item>
-          <Form.Item name="role" rules={[{ required: true }]} initialValue="site_member">
-            <Select style={{ width: 140 }} options={[
-              { value: 'site_admin', label: '中转网点管理员' },
-              { value: 'site_member', label: '中转网点成员' },
-            ]} />
-          </Form.Item>
-          <Button type="primary" htmlType="submit">添加</Button>
-        </Form>
-        <Table
-          rowKey="id"
-          dataSource={members}
-          columns={[
-            { title: '成员', dataIndex: 'user_id', key: 'user_id', render: v => <Text code>{String(v).slice(0, 8)}</Text> },
-            { title: '角色', dataIndex: 'role', key: 'role', render: v => v === 'site_admin' ? '管理员' : '成员' },
-            { title: '操作', key: 'ops', render: (_, m) => <Button size="small" danger onClick={() => handleRemoveMember(m.id)}>移除</Button> },
-          ]}
-          pagination={false}
-        />
+        {memberSite && (
+          <SiteMemberManagement
+            siteId={memberSite.id}
+            membersBase="/admin/transit-sites"
+            roles={TRANSIT_ROLES}
+            onRefresh={fetchAll}
+          />
+        )}
       </Modal>
 
       {/* 新增路由 */}
