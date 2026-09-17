@@ -38,6 +38,10 @@ export default function MyRepairs() {
   const [shippingBack, setShippingBack] = useState(false)
   const [showSiteRepairs, setShowSiteRepairs] = useState(true)
   const [showPending, setShowPending] = useState(true)
+  // #1957 入口区分：乐器报修（v3）/ 维修服务（RS-10）
+  const [svcTab, setSvcTab] = useState('legacy')
+  const [myServices, setMyServices] = useState([])
+  const [servicesLoaded, setServicesLoaded] = useState(false)
   const baseUrl = env.apiBaseUrl
 
   // Check if user is customer (no staff claims)
@@ -140,6 +144,65 @@ export default function MyRepairs() {
     setShippingBack(false)
   }
 
+  // #1957：维修服务（type='service'）我的单（顾客视角，只读摘要；完整流程见阶段3a）
+  const fetchMyServices = async () => {
+    try {
+      const res = await apiFetch(`${baseUrl}/user/repair-services`)
+      const result = await res.json()
+      if (result.code === 20000) setMyServices(result.data?.list || [])
+    } catch {}
+    setServicesLoaded(true)
+  }
+
+  const svcStatusLabels = {
+    pending_quote: '待报价', pending_payment: '待付款', paid: '已支付·待寄出',
+    shipping: '寄送中', repairing: '维修中', adjust_pending: '加价待确认',
+    done_repair: '待发回', closed: '已结算',
+  }
+
+  const openServiceTab = () => {
+    setSvcTab('service')
+    if (!servicesLoaded) fetchMyServices()
+  }
+
+  const serviceSection = (
+    <View style={{ display: 'flex', flexDirection: 'column' }}>
+      {!isCustomer && (
+        <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>网点维修服务工作台</Text>
+          <Text style={{ fontSize: 12, color: '#71717A' }}>待发回清单 · 分段物流费实填 · 发回并结算</Text>
+          <Button onClick={() => nav('/staff-repair-services')}
+            style={{ width: '100%', margin: 0, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#171717', color: '#FFFFFF', borderRadius: 8, fontSize: 14, fontWeight: 'bold' }}>
+            进入工作台
+          </Button>
+        </View>
+      )}
+      <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>我的维修服务 ({myServices.length})</Text>
+        {!servicesLoaded ? (
+          <Text style={{ fontSize: 12, color: '#A1A1AA' }}>加载中...</Text>
+        ) : myServices.length === 0 ? (
+          <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无维修服务记录</Text>
+        ) : (
+          myServices.map(s => (
+            <View key={s.id} className="border border-zinc-100 rounded-xl p-3" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <View className="flex justify-between items-center">
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>
+                  编码 {s.repair_code || '-'}
+                </Text>
+                <Text style={{ fontSize: 12, color: '#A1A1AA' }}>{svcStatusLabels[s.status] || s.status}</Text>
+              </View>
+              <Text style={{ fontSize: 12, color: '#52525B' }}>{s.description || '（无描述）'}</Text>
+              <Text style={{ fontSize: 11, color: '#A1A1AA' }}>
+                {s.created_at ? formatBeijingDate(s.created_at) : '-'}
+              </Text>
+            </View>
+          ))
+        )}
+      </View>
+    </View>
+  )
+
   return (
     <View style={{ backgroundColor: "#FDFBF7" }} className="flex flex-col h-screen">
       {!env.isMiniProgram && (
@@ -148,6 +211,30 @@ export default function MyRepairs() {
       </View>
       )}
 
+      {/* #1957 RS-10 入口区分：乐器报修（v3）/ 维修服务 */}
+      <View style={{ display: 'flex', gap: 8, backgroundColor: '#FFFFFF', padding: '10px 16px 0' }}>
+        {[
+          { key: 'legacy', label: '乐器报修' },
+          { key: 'service', label: '维修服务' },
+        ].map(t => (
+          <View key={t.key} onClick={() => (t.key === 'service' ? openServiceTab() : setSvcTab('legacy'))}
+            style={{
+              flex: 1, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: 8,
+              backgroundColor: svcTab === t.key ? '#171717' : '#F4F4F5',
+            }}>
+            <Text style={{ fontSize: 13, fontWeight: 'bold', color: svcTab === t.key ? '#FFFFFF' : '#52525B' }}>{t.label}</Text>
+          </View>
+        ))}
+      </View>
+
+      {svcTab === 'service' ? (
+      <ScrollView scrollY className="flex-1 min-h-0 overflow-y-auto">
+        <View style={{ padding: '0 16px 96px', boxSizing: 'border-box' }}>
+          {serviceSection}
+        </View>
+      </ScrollView>
+      ) : (
       <ScrollView scrollY className="flex-1 min-h-0 overflow-y-auto">
         <View style={{ padding: '0 16px 96px', boxSizing: 'border-box' }}>
         {/* Scan / SN search — staff and repair technicians only */}
@@ -380,6 +467,7 @@ export default function MyRepairs() {
         )}
         </View>
       </ScrollView>
+      )}
 
       {env.isMiniProgram ? (
         <BottomNavWeapp

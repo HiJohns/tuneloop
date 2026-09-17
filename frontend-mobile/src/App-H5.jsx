@@ -40,6 +40,7 @@ import SiteDetail from './pages/SiteDetail'
 import MyContracts from './pages/MyContracts'
 import StaffOrders from './pages/StaffOrders'
 import MyRepairs from './pages/MyRepairs'
+import StaffRepairServices from './pages/StaffRepairServices'
 import RepairWorkflow from './pages/RepairWorkflow'
 import CreateRepairRequest from './pages/CreateRepairRequest'
 import RepairRequestDetail from './pages/RepairRequestDetail'
@@ -242,6 +243,7 @@ function App() {
         <Route path="/staff/orders" element={<ProtectedRoute><StaffOrders /></ProtectedRoute>} />
         <Route path="/staff/orders/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
         <Route path="/my-repairs" element={<ProtectedRoute><MyRepairs /></ProtectedRoute>} />
+        <Route path="/staff-repair-services" element={<ProtectedRoute><StaffRepairServices /></ProtectedRoute>} />
         <Route path="/create-repair" element={<ProtectedRoute><CreateRepairRequest /></ProtectedRoute>} />
         <Route path="/repair" element={<ProtectedRoute><RepairWorkflow /></ProtectedRoute>} />
         <Route path="/repair-request" element={<ProtectedRoute><RepairRequestDetail /></ProtectedRoute>} />
