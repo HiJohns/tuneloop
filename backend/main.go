@@ -621,6 +621,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			repairReqRequired.POST("/repair-services/:id/complete", middleware.RequireAnyCusPerm("repair:complete", "instrument:maintain"), repairServiceHandler.Complete)
 			repairReqRequired.POST("/repair-services/:id/dispatch", repairServiceHandler.Dispatch)
 			repairReqRequired.GET("/repair-services/pending-dispatch", repairServiceHandler.ListPendingDispatch)
+			// #1954 RS-API-2：师傅/员工任务列表（员工上下文，JWT oid 作用域）
+			repairReqRequired.GET("/repair-services", repairServiceHandler.ListTasks)
 
 			// Repair config routes (Issue #1118) — merchant_admin only
 			authRequired.GET("/config/repair", middleware.RequireRole("OWNER"), handlers.GetRepairAllSettings)
@@ -682,6 +684,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/orders/:id/cancel-by-user", handlers.CancelOrderByCustomer)
 				userOptionalAuth.GET("/orders/by-instrument-sn", handlers.GetOrderByInstrumentSN)
 				userOptionalAuth.GET("/common/sites/nearby", siteHandler.GetNearbySites)
+				// #1954 RS-API-1：顾客可选维修师列表（顾客上下文，无 tid/oid，公共口径）
+				userOptionalAuth.GET("/common/repair-technicians", repairServiceHandler.ListTechnicians)
 				userOptionalAuth.GET("/common/sites/:id", siteHandler.GetSiteDetail)
 				userOptionalAuth.POST("/orders/:id/pay", handlers.PayOrder)
 				userOptionalAuth.POST("/orders/:id/renewal/calculate", handlers.CalculateRenewal)

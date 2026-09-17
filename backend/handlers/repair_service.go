@@ -267,9 +267,13 @@ func (h *RepairServiceHandler) Get(c *gin.Context) {
 	}
 	userID := middleware.GetUserID(ctx)
 	role := middleware.GetRole(ctx)
-	if rr.UserID != userID && !isRepairStaffRole(role) {
-		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
-		return
+	// 双上下文可见性（RS-API-3）：顾客按本人归属（JWT 无 tid/oid）；
+	// 员工按 JWT 归属（有 tid/oid，repairServiceStaffAllowed），不得跨租户读。
+	if rr.UserID != userID {
+		if !isRepairStaffRole(role) || !repairServiceStaffAllowed(rr, ctx) {
+			c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
+			return
+		}
 	}
 	var fees []models.RepairLogisticsFee
 	db.Where("repair_id = ?", rr.ID).Order("leg ASC").Find(&fees)
@@ -278,6 +282,19 @@ func (h *RepairServiceHandler) Get(c *gin.Context) {
 	data := gin.H{"repair": rr, "logistics_fees": fees}
 	if review.ID != "" {
 		data["review"] = review
+	}
+	// RS-API-3：寄件地址（所选网点）；未选师时无 site
+	if rr.SiteID != "" {
+		var site models.Site
+		if err := db.Where("id = ?", rr.SiteID).First(&site).Error; err == nil {
+			data["site"] = gin.H{
+				"id":           site.ID,
+				"name":         site.Name,
+				"address":      site.Address,
+				"contact_name": site.ContactName,
+				"phone":        site.Phone,
+			}
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": data})
 }
@@ -887,6 +904,87 @@ func (h *RepairServiceHandler) ListPendingDispatch(c *gin.Context) {
 	var list []models.RepairRequest
 	if err := query.Order("updated_at ASC").Find(&list).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list pending dispatches"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": list, "total": len(list)}})
+}
+
+// ListTechnicians GET /api/common/repair-technicians[?site_id=]
+// RS-API-1：顾客可选维修师列表。**顾客上下文（JWT 无 tid/oid）**——不得用 JWT 推导
+// 租户/网点，作用域只来自入参与公共口径（跨租户，同 /common/sites/nearby）。
+// 仅暴露展示字段（name/avatar/网点），不含手机号/邮箱。
+func (h *RepairServiceHandler) ListTechnicians(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	type techRow struct {
+		TechnicianID string `json:"technician_id"`
+		Name         string `json:"name"`
+		Avatar       string `json:"avatar"`
+		SiteID       string `json:"site_id"`
+		SiteName     string `json:"site_name"`
+		SiteAddress  string `json:"site_address"`
+	}
+	rows := []techRow{}
+	query := db.Table("site_members AS sm").
+		Select("sm.user_id AS technician_id, u.name AS name, COALESCE(u.avatar_url, '') AS avatar, "+
+			"s.id AS site_id, s.name AS site_name, COALESCE(s.address, '') AS site_address").
+		Joins("JOIN users u ON u.id = sm.user_id").
+		Joins("JOIN sites s ON s.id = sm.site_id AND s.status = 'active'").
+		Where("sm.status = ? AND sm.role = ?", "active", "repair_technician")
+	if siteID := c.Query("site_id"); siteID != "" {
+		query = query.Where("s.id = ?", siteID)
+	}
+	if err := query.Order("s.name ASC, u.name ASC").Scan(&rows).Error; err != nil {
+		log.Printf("[RepairService.ListTechnicians] query failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list technicians"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": rows, "total": len(rows)}})
+}
+
+// ListTasks GET /api/repair-services?scope=mine|site&status=<csv>
+// RS-API-2：师傅/员工任务列表。**员工上下文（JWT 有 tid/oid）**——必须以 JWT
+// 作用域：scope=mine → 指派给我（本地用户 id）；scope=site → 本网点（oid，回退 tid）。
+func (h *RepairServiceHandler) ListTasks(c *gin.Context) {
+	ctx := c.Request.Context()
+	if !isRepairStaffRole(middleware.GetRole(ctx)) {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
+		return
+	}
+	db := database.GetDB().WithContext(ctx)
+	scope := c.DefaultQuery("scope", "site")
+
+	query := db.Model(&models.RepairRequest{}).Where("type = ?", repairServiceTypeVal)
+	switch scope {
+	case "mine":
+		// 指派给我的（technician_id 存本地 users.id；兼容直接存 IAM sub 的历史行）
+		me := localUserIDBySub(db, middleware.GetUserID(ctx))
+		if me == "" {
+			me = middleware.GetUserID(ctx)
+		}
+		query = query.Where("technician_id = ?", me)
+	case "site":
+		if orgID := middleware.GetOrgID(ctx); orgID != "" {
+			query = query.Where("site_id = ?", orgID)
+		} else if tid := middleware.GetTenantID(ctx); tid != "" {
+			query = query.Where("tenant_id = ?", tid)
+		} else {
+			// 员工上下文缺组织信息 → 不泄露任何数据（#688）
+			c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": []interface{}{}, "total": 0}})
+			return
+		}
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "scope must be mine or site"})
+		return
+	}
+	if statusParam := c.Query("status"); statusParam != "" {
+		query = query.Where("status IN ?", strings.Split(statusParam, ","))
+	}
+	var list []models.RepairRequest
+	if err := query.Order("updated_at DESC").Limit(200).Find(&list).Error; err != nil {
+		log.Printf("[RepairService.ListTasks] query failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list tasks"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": list, "total": len(list)}})

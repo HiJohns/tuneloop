@@ -73,6 +73,8 @@ func setupRepairServiceFixture(t *testing.T) svcFixture {
 	r.POST("/repair-services/:id/adjust", h.Adjust)
 	r.POST("/repair-services/:id/complete", h.Complete)
 	r.POST("/repair-services/:id/dispatch", h.Dispatch)
+	r.GET("/repair-services", h.ListTasks)
+	r.GET("/common/repair-technicians", h.ListTechnicians)
 
 	return svcFixture{tenantID: tenantID, orgID: orgID, siteID: siteID,
 		otherTenantID: otherTenantID, otherSiteID: otherSiteID,
@@ -349,4 +351,150 @@ func TestRepairService_StatusGuardsAndTenantIsolation(t *testing.T) {
 	// 非本人响应加价 → 403
 	_, resp = svcPost(t, f, customer, "/user/repair-services/"+id+"/adjust/decline", nil)
 	assert.Equal(t, float64(40900), resp["code"], "无 pending 加价 → 409")
+}
+
+// TestRepairService_TechnicianList（RS-API-1）：顾客上下文（无 tid/oid）可选师傅列表。
+func TestRepairService_TechnicianList(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	// 另建一名非师傅的 site_member（不应出现在列表）
+	plainSub := uuid.New().String()
+	require.NoError(t, f.db.Create(&models.User{
+		ID: plainSub, IAMSub: plainSub, TenantID: f.tenantID, OrgID: f.orgID,
+		Username: "plain-" + plainSub[:8], Name: "非师傅", Status: "active",
+	}).Error)
+	require.NoError(t, f.db.Create(&models.SiteMember{
+		TenantID: f.tenantID, SiteID: f.siteID, UserID: plainSub, Role: "site_member", Status: "active",
+	}).Error)
+
+	// 顾客上下文：tid/oid 为空（#833），仅可用入参过滤
+	customer := testutil.TestActor{TenantID: "", OrgID: "", UserID: f.customerSub, Role: "USER"}
+	req := httptest.NewRequest(http.MethodGet, "/common/repair-technicians", nil)
+	w := httptest.NewRecorder()
+	f.router.ServeHTTP(w, req.WithContext(customer.InjectContext(req.Context())))
+	require.Equal(t, http.StatusOK, w.Code)
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			List []struct {
+				TechnicianID string `json:"technician_id"`
+				Name         string `json:"name"`
+				SiteID       string `json:"site_id"`
+				SiteName     string `json:"site_name"`
+				SiteAddress  string `json:"site_address"`
+				Phone        string `json:"phone"`
+				Email        string `json:"email"`
+			} `json:"list"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+	require.Len(t, resp.Data.List, 1, "仅 repair_technician 入列（非师傅 site_member 排除）")
+	row := resp.Data.List[0]
+	assert.Equal(t, f.techID, row.TechnicianID)
+	assert.Equal(t, f.siteID, row.SiteID)
+	assert.NotEmpty(t, row.SiteName)
+	assert.Empty(t, row.Phone, "不暴露手机号")
+	assert.Empty(t, row.Email, "不暴露邮箱")
+
+	// site_id 过滤：传其他网点 → 空
+	req = httptest.NewRequest(http.MethodGet, "/common/repair-technicians?site_id="+f.otherSiteID, nil)
+	w = httptest.NewRecorder()
+	f.router.ServeHTTP(w, req.WithContext(customer.InjectContext(req.Context())))
+	require.Equal(t, http.StatusOK, w.Code)
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Len(t, resp.Data.List, 0)
+}
+
+// TestRepairService_TaskListScopes（RS-API-2）：员工上下文 scope 过滤 + 跨租户隔离。
+func TestRepairService_TaskListScopes(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	customer := testutil.MakeCustomer("", f.customerSub)
+	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
+	otherStaff := testutil.TestActor{TenantID: f.otherTenantID, OrgID: f.otherSiteID, UserID: f.otherStaffSub, Role: "site_member"}
+
+	mkSvc := func(desc string) string {
+		_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": desc})
+		return svcData(t, resp)["id"].(string)
+	}
+	idA := mkSvc("A-本网点")
+	svcPost(t, f, customer, "/user/repair-services/"+idA+"/select-technician", gin.H{"technician_id": f.techID})
+	idB := mkSvc("B-未选师")
+
+	getList := func(actor testutil.TestActor, query string) (int, []models.RepairRequest) {
+		req := httptest.NewRequest(http.MethodGet, "/repair-services"+query, nil)
+		w := httptest.NewRecorder()
+		f.router.ServeHTTP(w, req.WithContext(actor.InjectContext(req.Context())))
+		var resp struct {
+			Code int `json:"code"`
+			Data struct {
+				List []models.RepairRequest `json:"list"`
+			} `json:"data"`
+		}
+		_ = json.Unmarshal(w.Body.Bytes(), &resp)
+		return w.Code, resp.Data.List
+	}
+
+	// scope=site（JWT oid=site）→ 只见本网点已选师单
+	code, list := getList(staff, "?scope=site")
+	require.Equal(t, http.StatusOK, code)
+	ids := map[string]bool{}
+	for _, rr := range list {
+		ids[rr.ID] = true
+	}
+	assert.True(t, ids[idA], "本网点单在列")
+	assert.False(t, ids[idB], "未选师单（无网点）不出现在 site 列表")
+
+	// scope=mine（师傅本人）→ 指派给我的
+	code, list = getList(staff, "?scope=mine&status=pending_quote")
+	require.Equal(t, http.StatusOK, code)
+	require.Len(t, list, 1)
+	assert.Equal(t, idA, list[0].ID)
+	assert.Equal(t, models.RepairReqStatusPendingQuote, list[0].Status)
+
+	// 跨租户员工 scope=site → 空（JWT oid=otherSite，#688）
+	code, list = getList(otherStaff, "?scope=site")
+	require.Equal(t, http.StatusOK, code)
+	assert.Len(t, list, 0)
+
+	// 非员工角色 → 403
+	code, _ = getList(customer, "?scope=site")
+	assert.Equal(t, http.StatusForbidden, code)
+}
+
+// TestRepairService_DetailSite（RS-API-3）：详情含寄件地址；跨租户员工 403。
+func TestRepairService_DetailSite(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	customer := testutil.MakeCustomer("", f.customerSub)
+	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
+	otherStaff := testutil.TestActor{TenantID: f.otherTenantID, OrgID: f.otherSiteID, UserID: f.otherStaffSub, Role: "site_member"}
+
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "详情site"})
+	id := svcData(t, resp)["id"].(string)
+	svcPost(t, f, customer, "/user/repair-services/"+id+"/select-technician", gin.H{"technician_id": f.techID})
+
+	getDetail := func(actor testutil.TestActor) (int, map[string]interface{}) {
+		req := httptest.NewRequest(http.MethodGet, "/user/repair-services/"+id, nil)
+		w := httptest.NewRecorder()
+		f.router.ServeHTTP(w, req.WithContext(actor.InjectContext(req.Context())))
+		var out map[string]interface{}
+		_ = json.Unmarshal(w.Body.Bytes(), &out)
+		return w.Code, out
+	}
+
+	// 顾客上下文（tid/oid 空）→ 可读 + site 寄件地址
+	code, out := getDetail(customer)
+	require.Equal(t, http.StatusOK, code)
+	data := svcData(t, out)
+	site, ok := data["site"].(map[string]interface{})
+	require.True(t, ok, "详情应含 site 对象")
+	assert.Equal(t, f.siteID, site["id"])
+	assert.NotNil(t, site["address"])
+
+	// 本网点员工 → 可读
+	code, _ = getDetail(staff)
+	assert.Equal(t, http.StatusOK, code)
+
+	// 跨租户员工 → 403（#688）
+	code, _ = getDetail(otherStaff)
+	assert.Equal(t, http.StatusForbidden, code)
 }
