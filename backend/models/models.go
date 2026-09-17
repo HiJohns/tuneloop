@@ -599,9 +599,39 @@ type RepairRequest struct {
 	ReturnCompany        string     `gorm:"type:varchar(100)" json:"return_company"`
 	ReturnTrackingNumber string     `gorm:"type:varchar(100)" json:"return_tracking_number"`
 	WorkerID             *string    `gorm:"type:varchar(255)" json:"worker_id"`
-	CreatedAt            time.Time  `json:"created_at"`
-	UpdatedAt            time.Time  `json:"updated_at"`
-	ClosedAt             *time.Time `json:"closed_at"`
+	// #1942 维修服务（单项服务商品）：type='service' 分支字段
+	Type                string     `gorm:"type:varchar(20);default:'warranty';index" json:"type"`
+	RepairCode          *string    `gorm:"type:varchar(6);uniqueIndex" json:"repair_code"` // 6 位唯一编码（数字+大写字母），warranty 为 NULL
+	TechnicianID        *string    `gorm:"type:uuid;index" json:"technician_id"`           // 师傅指派
+	QuoteRepairCents    *Cents     `gorm:"type:bigint" json:"quote_repair_cents"`          // 报价：修理费
+	QuoteLogisticsCents *Cents     `gorm:"type:bigint" json:"quote_logistics_cents"`       // 报价：物流费预估
+	QuoteStatus         string     `gorm:"type:varchar(20);default:''" json:"quote_status"`
+	AdjustedQuoteCents  *Cents     `gorm:"type:bigint" json:"adjusted_quote_cents"`  // 加价后新总价
+	IncurredRepairCents *Cents     `gorm:"type:bigint" json:"incurred_repair_cents"` // 到此为止修理费
+	CreatedAt           time.Time  `json:"created_at"`
+	UpdatedAt           time.Time  `json:"updated_at"`
+	ClosedAt            *time.Time `json:"closed_at"`
+}
+
+// RepairLogisticsFee 维修服务分段物流费（#1942，RS-05）：每段发运时经手员工实填
+type RepairLogisticsFee struct {
+	ID          string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	RepairID    string    `gorm:"type:uuid;index;not null" json:"repair_id"`
+	Leg         int       `gorm:"not null" json:"leg"`
+	AmountCents Cents     `gorm:"type:bigint;not null;default:0" json:"amount_cents"`
+	FilledBy    string    `gorm:"type:varchar(255)" json:"filled_by"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+// RepairReview 维修服务评价（#1942，RS-09）：评分/留言/拍照，PC 后台可见
+type RepairReview struct {
+	ID        string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	RepairID  string    `gorm:"type:uuid;uniqueIndex;not null" json:"repair_id"`
+	UserID    string    `gorm:"type:uuid;index;not null" json:"user_id"`
+	Rating    int       `gorm:"not null" json:"rating"`
+	Message   string    `gorm:"type:text" json:"message"`
+	Photos    string    `gorm:"type:jsonb;default:'[]'" json:"photos"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // RepairRequestRecord stores logs for a repair request.
@@ -776,18 +806,18 @@ type LeaseSession struct {
 
 // ForwardingSession 转发会话表
 type ForwardingSession struct {
-	ID               string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID         string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrgID            string    `gorm:"type:uuid;index" json:"org_id"`
-	LeaseSessionID   string    `gorm:"type:uuid;not null;index" json:"lease_session_id"`
-	OrderID          string    `gorm:"type:uuid;index" json:"order_id"`
-	MerchantID       string    `gorm:"type:uuid;index" json:"merchant_id"`
-	ForwardingSiteID string    `gorm:"type:uuid;index" json:"forwarding_site_id"`
-	Direction        string    `gorm:"type:varchar(20);not null" json:"direction"`
-	Status           string    `gorm:"type:varchar(20);default:'pending';index" json:"status"`
-	SessionCode      string    `gorm:"type:varchar(6);uniqueIndex" json:"session_code"`
-	InstrumentID     string    `gorm:"type:uuid;index" json:"instrument_id"`
-	TrackingNumbers  string    `gorm:"type:jsonb" json:"tracking_numbers"`
+	ID               string `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID         string `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID            string `gorm:"type:uuid;index" json:"org_id"`
+	LeaseSessionID   string `gorm:"type:uuid;not null;index" json:"lease_session_id"`
+	OrderID          string `gorm:"type:uuid;index" json:"order_id"`
+	MerchantID       string `gorm:"type:uuid;index" json:"merchant_id"`
+	ForwardingSiteID string `gorm:"type:uuid;index" json:"forwarding_site_id"`
+	Direction        string `gorm:"type:varchar(20);not null" json:"direction"`
+	Status           string `gorm:"type:varchar(20);default:'pending';index" json:"status"`
+	SessionCode      string `gorm:"type:varchar(6);uniqueIndex" json:"session_code"`
+	InstrumentID     string `gorm:"type:uuid;index" json:"instrument_id"`
+	TrackingNumbers  string `gorm:"type:jsonb" json:"tracking_numbers"`
 	// #1934: 段级物流留痕（中转发货回填 / 中转收货拍照）
 	TrackingCompany   string    `gorm:"type:varchar(100);not null;default:''" json:"tracking_company"`
 	TrackingNumber    string    `gorm:"type:varchar(100);not null;default:''" json:"tracking_number"`
@@ -807,7 +837,7 @@ type TransitShippingFee struct {
 	Direction  string    `gorm:"type:varchar(20);not null" json:"direction"` // outbound / return
 	Segment    int       `gorm:"not null" json:"segment"`                    // 1..4（矩阵编号）
 	Amount     Cents     `gorm:"type:bigint;not null;default:0" json:"amount"`
-	PaidBy     string    `gorm:"type:varchar(20);not null" json:"paid_by"`     // customer / merchant
+	PaidBy     string    `gorm:"type:varchar(20);not null" json:"paid_by"` // customer / merchant
 	RecordedBy string    `gorm:"type:varchar(255);not null" json:"recorded_by"`
 	CreatedAt  time.Time `json:"created_at"`
 }

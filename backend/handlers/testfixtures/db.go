@@ -58,6 +58,8 @@ var allTables = []interface{}{
 	&models.InstrumentPromoOverride{}, // #1863: rent_to_own tests
 	&models.RepairRecord{},            // #1866 T3: ListRecords queries repair_records
 	&models.RepairRequest{},           // #1881: v3 staff/tech authorization tests
+	&models.RepairLogisticsFee{},      // #1942: 维修服务分段物流费
+	&models.RepairReview{},            // #1942: 维修服务评价
 	&models.UserInstrument{},          // #1880: create ownership tests
 	&models.RepairRequestRecord{},     // #1881: createRepairRecord writes
 	&models.RepairQuote{},             // #1881: quote visibility tests
