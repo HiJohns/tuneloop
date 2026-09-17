@@ -113,9 +113,9 @@ export default function InvoiceList() {
     { title: '订单号', dataIndex: 'order_id', width: 280, ellipsis: true },
     { title: 'SN', dataIndex: 'sn', width: 140, ellipsis: true },
     { title: '下单日', dataIndex: 'created_at', width: 120, render: v => v ? formatBeijingDate(v) : '-' },
-    { title: '实际租金', dataIndex: 'actual_rent_cents', width: 100, render: v => formatCents(v) },
-    { title: '逾期费用', dataIndex: 'overdue_cents', width: 100, render: v => formatCents(v) },
-    { title: '合计', dataIndex: 'total_cents', width: 100, render: v => <span style={{ fontWeight: 600 }}>{formatCents(v)}</span> },
+    { title: '实际租金', dataIndex: 'actual_rent_cents', width: 100, align: 'right', render: v => formatCents(v) },
+    { title: '逾期费用', dataIndex: 'overdue_cents', width: 100, align: 'right', render: v => formatCents(v) },
+    { title: '合计', dataIndex: 'total_cents', width: 100, align: 'right', render: v => <span style={{ fontWeight: 600 }}>{formatCents(v)}</span> },
   ]
 
   return (
@@ -162,6 +162,7 @@ export default function InvoiceList() {
               rowKey="order_id"
               size="small"
               pagination={false}
+              scroll={{ x: 840 }}
             />
           </>
         )}
