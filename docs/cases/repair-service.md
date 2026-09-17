@@ -112,6 +112,51 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 报修，并存
   - 读取（本人/员工）：`GET /api/user/repair-services/:id` → `{repair, logistics_fees[], review?}`
 - 展示：PC 后台维修管理页可见评分/留言/照片
 
+## RS-11 状态机（权威，用户 2026-09-17 明确：维修单须如订单一般有自身状态机）
+
+> **状态集**：`pending_quote` → `pending_payment` → `paid` → `shipping` → `repairing` → `done_repair` → `closed`；加价分支 `adjust_pending`。
+
+| # | 起始状态 | 动作 | 触发者 | 守卫 | 结束状态 |
+|---|---------|------|--------|------|---------|
+| 1 | — | 创建维修单 | 用户 | 描述必填；分配 6 位编码 | `pending_quote` |
+| 2 | `pending_quote` | 选维修师 | 用户 | 未选师；回填 site/tenant | `pending_quote`（不变） |
+| 3 | `pending_quote` | 报价（修理费+物流预估） | 师傅/员工 | **必须已选师**且 JWT 归属匹配；写 `quote_status=pending` | `pending_payment` |
+| 4 | `pending_payment` | 接受报价 | 用户 | `quote_status=pending` → `accepted` | `pending_payment`（不变） |
+| 5 | `pending_payment` | 支付（初付，服务端重算） | 用户+系统回调 | prepay 仅允许 `pending_payment`/`adjust_pending` | `paid` |
+| 6 | `paid` | 寄出（运单号） | 用户 | 详情须展示寄件网点地址 | `shipping` |
+| 7 | `shipping` / `repairing` | 发起加价（新总价 + 到此为止） | 师傅/员工 | `incurred ≤ new_quote`；`quote_status=pending` | `adjust_pending` |
+| 8 | `adjust_pending` | 继续并补差价 | 用户+系统回调 | 补差 = `new_quote − quote_repair`；回调置 `quote_status=accepted` | `repairing` |
+| 9 | `adjust_pending` | 不继续 | 用户 | `quote_status=declined` | `done_repair` |
+| 10 | `paid` / `shipping` / `repairing` | 完成修理 | 师傅/员工 | 归属匹配 | `done_repair` |
+| 11 | `done_repair` | 发回 + 结算 | 员工 | 归属匹配；退款先行（失败 502 不闭单可重试） | `closed` |
+| 12 | `closed` | 评价 | 用户 | `settled_at`/closed；一人一评 | `closed`（不变） |
+| 13 | `closed` | 补缴支付（少补场景） | 用户+系统回调 | 存在 pending `order_type='repair'` 补缴记录 | `closed`（不变） |
+
+**未实现（已知缺口，勿在实现中臆造）**：超时取消 / 用户主动取消 / 平台强制终止 —— 如需要请先补计划。
+
+## RS-12 维修单详情与分状态列表（用户 2026-09-17 明确为阶段3 必备）
+
+### 详情页（须对齐订单详情的"信息完整度"）
+1. **状态时间线**：按时间展示全部状态迁移（含操作者/动作/备注），数据来源 = 维修单时间线记录（**当前缺失，需后端补**）
+2. **费用明细**：报价（修理费/物流预估）→ 加价（新总价/到此为止/实际补差）→ 分段物流费逐段（段号/金额/经手人/时间）→ **已付合计** → 结算结果（退款/补缴额）→ 待补缴（若有）
+3. **物流明细**：用户寄出（公司/单号）→ 各段实填（含中转段）→ 发回（公司/单号/时间）
+4. **操作区**：按状态 × 角色（用户/师傅/员工）显示可用动作（即 RS-11 转换表）
+5. 编码/描述/照片/寄件网点地址
+
+### 分状态列表（不再扁平）
+- **用户**「我的维修服务」：按状态分组（进行中 / 待我处理 / 已完成）+ 状态筛选；每项含编码、状态、关键金额、待办提示（如「待补差价 ¥100」/「待支付」/「待评价」）
+- **师傅**工作台：待报价 / 维修中（含 `adjust_pending`）/ 已完成（自己相关）
+- **员工**工作台：待发回 / 进行中（分段实填）/ 本网点全部
+- **平台（PC）**：状态筛选（已有）+ 详情时间线（增强）
+
+### 新增数据面需求（RS-API 增补）
+| # | 端点/字段 | 说明 |
+|---|----------|------|
+| RS-API-4 | `GET /user/repair-services/:id` 增 `timeline[]` | 状态迁移时间线（所有迁移点写入） |
+| RS-API-5 | `GET /user/repair-services/:id` 增 `payments{made_cents, pending_shortfall_cents, refund_cents, records[]}` | 已付/待补缴/退款汇总（补缴支付入口的前置） |
+| RS-API-6 | `GET /user/repair-services?status=<csv>` | 用户侧列表状态过滤/分组（现仅返回全量） |
+| RS-API-7 | prepay 允许 service 单在 `closed` + pending 补缴时按补缴额支付 | 补缴支付（#1955 item 8 缺口） |
+
 ## RS-API 端点总表（阶段3 前端实现依据）
 
 > **登录上下文（强制，实现前必读）**：
