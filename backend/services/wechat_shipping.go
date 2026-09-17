@@ -166,37 +166,40 @@ func UploadShippingInfoWithRetry(openid, outTradeNo, transactionID, trackingNo, 
 	log.Printf("[WechatShipping] upload_shipping_info gave up after %d attempts for %s (out_trade_no=%s transaction_id=%s): %v", len(retryBackoffs), label, outTradeNo, transactionID, lastErr)
 }
 
+// notifyConfirmReceiveRequest 为**扁平**结构（#1953 预生产实测确证）：
+// 订单定位用 `transaction_id` 或 `merchant_id` + `merchant_trade_no`；
+// `received_time` 为 **number（Unix 秒）**。
+//
+// 两个反直觉点（勿回退）：
+//  1. `order_key` 嵌套对象**仅**适用于 upload_shipping_info；本接口传
+//     order_key 会被微信拒为 47001 data format error（实测变体 C）。
+//     —— #1731 为修 10060014 引入 order_key，正是本 bug 的来源。
+//  2. received_time 不是 RFC3339 字符串（与 upload_time 不同），
+//     传字符串同样会 47001（实测变体 A/B 用 number 均 errcode=0）。
 type notifyConfirmReceiveRequest struct {
-	OrderKey shippingOrderKey `json:"order_key"`
-	// received_time 与同族 upload_shipping_info 的 upload_time 一致，
-	// 微信期望 RFC3339 字符串；传 int64 Unix 秒会被拒为
-	// 47001 data format error（#1953）。
-	ReceivedTime string `json:"received_time"`
+	MerchantID      string `json:"merchant_id"`
+	MerchantTradeNo string `json:"merchant_trade_no"`
+	ReceivedTime    int64  `json:"received_time"`
 }
 
 // NotifyConfirmReceive reminds WeChat that the goods were signed (courier
 // receipt) so the platform can settle funds; one call per order.
-// The request body must carry the order_key object (order_number_type +
-// mchid + out_trade_no) — a flat merchant_trade_no field is rejected with
-// errcode 10060014 (#1731).
+// 请求体为扁平结构（merchant_id + merchant_trade_no + received_time number），
+// 见 notifyConfirmReceiveRequest 注释与 #1953。
 func NotifyConfirmReceive(outTradeNo string, receivedTime time.Time) error {
 	token, err := GetWxAccessToken()
 	if err != nil {
 		return fmt.Errorf("get access token: %w", err)
 	}
 
-	orderKey := shippingOrderKey{
-		OrderNumberType: 1, // merchant-side out_trade_no form
-		OutTradeNo:      outTradeNo,
+	reqBody := notifyConfirmReceiveRequest{
+		MerchantTradeNo: outTradeNo,
+		ReceivedTime:    receivedTime.Unix(),
 	}
 	if cfg := wechatpay.GetConfig(); cfg != nil {
-		orderKey.Mchid = cfg.MchID
+		reqBody.MerchantID = cfg.MchID
 	}
 
-	reqBody := notifyConfirmReceiveRequest{
-		OrderKey:     orderKey,
-		ReceivedTime: receivedTime.Format(time.RFC3339),
-	}
 	body, err := json.Marshal(reqBody)
 	if err != nil {
 		return fmt.Errorf("marshal notify request: %w", err)

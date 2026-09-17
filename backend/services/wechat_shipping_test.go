@@ -118,11 +118,12 @@ func TestUploadShippingInfoWithRetry_GivesUpAfterExhaustion(t *testing.T) {
 	}
 }
 
-// TestNotifyConfirmReceive_ReceivedTimeIsRFC3339String is the #1953 regression:
-// WeChat rejects an int64 received_time with 47001 data format error — the
-// field must serialize as an RFC3339 string (same as upload_shipping_info's
-// upload_time).
-func TestNotifyConfirmReceive_ReceivedTimeIsRFC3339String(t *testing.T) {
+// TestNotifyConfirmReceive_FlatBodyWithNumericReceivedTime is the #1953
+// regression, asserting the contract verified against WeChat on prerelease:
+//   - flat body: merchant_id + merchant_trade_no (NOT the order_key object,
+//     which is what caused 47001 data format error)
+//   - received_time serialized as a JSON NUMBER (Unix seconds), not RFC3339
+func TestNotifyConfirmReceive_FlatBodyWithNumericReceivedTime(t *testing.T) {
 	var captured []byte
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/cgi-bin/token") {
@@ -160,26 +161,26 @@ func TestNotifyConfirmReceive_ReceivedTimeIsRFC3339String(t *testing.T) {
 		t.Fatalf("notify body is not valid JSON: %v (%s)", err, captured)
 	}
 
+	// received_time 必须是 JSON number（Unix 秒）——字符串/整型误传曾致 47001 排查弯路
 	rt, present := body["received_time"]
 	if !present {
 		t.Fatalf("received_time missing from body: %s", captured)
 	}
-	rtStr, isString := rt.(string)
-	if !isString {
-		t.Fatalf("received_time must serialize as a JSON string (int64 → WeChat 47001), got %T (%v)", rt, rt)
+	rtNum, isNumber := rt.(float64)
+	if !isNumber {
+		t.Fatalf("received_time must serialize as a JSON number (WeChat expects Unix seconds), got %T (%v)", rt, rt)
 	}
-	if _, err := time.Parse(time.RFC3339, rtStr); err != nil {
-		t.Fatalf("received_time %q is not RFC3339: %v", rtStr, err)
-	}
-	if want := received.Format(time.RFC3339); rtStr != want {
-		t.Fatalf("received_time = %q, want %q", rtStr, want)
+	if want := float64(received.Unix()); rtNum != want {
+		t.Fatalf("received_time = %v, want %v (Unix seconds)", rtNum, want)
 	}
 
-	orderKey, hasKey := body["order_key"].(map[string]interface{})
-	if !hasKey {
-		t.Fatalf("order_key missing from body: %s", captured)
+	// 扁平定位字段：merchant_trade_no = out_trade_no（merchant_id 由配置注入）
+	if got := body["merchant_trade_no"]; got != "rent_out_trade_1" {
+		t.Fatalf("merchant_trade_no = %v, want rent_out_trade_1", got)
 	}
-	if got := orderKey["out_trade_no"]; got != "rent_out_trade_1" {
-		t.Fatalf("order_key.out_trade_no = %v, want rent_out_trade_1", got)
+
+	// 关键回归守卫：order_key 嵌套对象会导致 47001（实测变体 C），不得出现
+	if _, hasKey := body["order_key"]; hasKey {
+		t.Fatalf("body must NOT contain order_key (WeChat rejects it with 47001): %s", captured)
 	}
 }
