@@ -68,8 +68,14 @@ func PrepayOrder(c *gin.Context) {
 	// For customer (USER) JWT, tenantID is empty — derive from the order
 	if tenantID == "" && req.OrderID != "" {
 		var order struct{ TenantID string }
-		if err := db.Table("orders").Select("tenant_id").Where("id = ?", req.OrderID).Scan(&order).Error; err == nil {
+		if err := db.Table("orders").Select("tenant_id").Where("id = ?", req.OrderID).Scan(&order).Error; err == nil && order.TenantID != "" {
 			tenantID = order.TenantID
+		} else {
+			// #1942 维修服务单无 orders 行，租户从 repair_requests 推导
+			var rr struct{ TenantID string }
+			if err := db.Table("repair_requests").Select("tenant_id").Where("id = ?", req.OrderID).Scan(&rr).Error; err == nil {
+				tenantID = rr.TenantID
+			}
 		}
 	}
 
@@ -192,6 +198,18 @@ func PrepayOrder(c *gin.Context) {
 	baseAmount := models.FromYuan(req.Amount)
 	if sessionFlow {
 		baseAmount = session.Amount
+	}
+	// #1942 维修服务单：金额由服务端按报价（或加价）重算，客户端金额不可信。
+	if req.OrderType == "repair" && effectiveOrderID != "" {
+		var rr models.RepairRequest
+		if err := db.Where("id = ?", effectiveOrderID).First(&rr).Error; err == nil && rr.Type == repairServiceTypeVal {
+			amount, msg := repairServicePaymentAmount(&rr)
+			if msg != "" {
+				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": msg})
+				return
+			}
+			baseAmount = amount
+		}
 	}
 	couponApplied := ""
 	if req.CouponCode != "" {

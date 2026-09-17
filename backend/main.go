@@ -104,6 +104,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	// New handlers for Issue #299 (Repair, Appeal, Warehouse, User Rental)
 	repairHandler := handlers.NewRepairHandler()
 	repairReqHandler := handlers.NewRepairRequestHandler()
+	repairServiceHandler := handlers.NewRepairServiceHandler()
 	appealHandler := handlers.NewAppealHandler()
 	iamClient := services.NewIAMClient()
 	permManageHandler := handlers.NewPermissionManageHandler(database.GetDB(), iamClient, permRegistry)
@@ -612,6 +613,13 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			repairReqRequired.POST("/repair-requests/:id/receive", repairReqHandler.Receive)
 			repairReqRequired.POST("/repair-requests/:id/complete", repairReqHandler.CompleteRepairRequest)
 			repairReqRequired.POST("/repair-requests/:id/transit-relay", repairReqHandler.TransitRelay)
+			// #1942 阶段2 维修服务（type='service'）师傅/员工端
+			repairReqRequired.POST("/repair-services/:id/quote", repairServiceHandler.Quote)
+			repairReqRequired.POST("/repair-services/:id/legs", repairServiceHandler.AddLegFee)
+			repairReqRequired.POST("/repair-services/:id/adjust", repairServiceHandler.Adjust)
+			repairReqRequired.POST("/repair-services/:id/done-repair", repairServiceHandler.DoneRepair)
+			repairReqRequired.POST("/repair-services/:id/dispatch", repairServiceHandler.Dispatch)
+			repairReqRequired.GET("/repair-services/pending-dispatch", repairServiceHandler.ListPendingDispatch)
 
 			// Repair config routes (Issue #1118) — merchant_admin only
 			authRequired.GET("/config/repair", middleware.RequireRole("OWNER"), handlers.GetRepairAllSettings)
@@ -715,6 +723,16 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/user/deposit-waiver/eligibility", handlers.GetDepositWaiverEligibility)
 
 				// Invoice application routes (#1786)
+				// #1942 阶段2 维修服务（type='service'）顾客端
+				userOptionalAuth.POST("/user/repair-services", repairServiceHandler.Create)
+				userOptionalAuth.GET("/user/repair-services", repairServiceHandler.ListMine)
+				userOptionalAuth.GET("/user/repair-services/:id", repairServiceHandler.Get)
+				userOptionalAuth.POST("/user/repair-services/:id/select-technician", repairServiceHandler.SelectTechnician)
+				userOptionalAuth.POST("/user/repair-services/:id/accept", repairServiceHandler.AcceptQuote)
+				userOptionalAuth.POST("/user/repair-services/:id/ship", repairServiceHandler.Ship)
+				userOptionalAuth.POST("/user/repair-services/:id/adjust/respond", repairServiceHandler.RespondAdjust)
+				userOptionalAuth.POST("/user/repair-services/:id/review", repairServiceHandler.Review)
+
 				userOptionalAuth.GET("/user/invoices/eligible", invoiceHandler.ListEligible)
 				userOptionalAuth.POST("/user/invoices", invoiceHandler.Submit)
 				userOptionalAuth.GET("/user/invoices", invoiceHandler.ListApplications)

@@ -570,13 +570,18 @@ const (
 	RepairReqStatusTransitProcessing = "transit_processing"
 	RepairReqStatusTransitIn         = "transit_in"
 	RepairReqStatusTransitOut        = "transit_out"
+	// #1942 维修服务（type='service'）状态
+	RepairReqStatusPendingQuote      = "pending_quote"
+	RepairReqStatusPaid              = "paid"
+	RepairReqStatusAdjustPending     = "adjust_pending"
+	RepairReqStatusDoneRepair        = "done_repair"
 )
 
 // RepairRequest represents a customer repair request.
 type RepairRequest struct {
 	ID                   string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID             string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	SiteID               string     `gorm:"type:uuid;index;not null" json:"site_id"`
+	TenantID             string     `gorm:"type:uuid;index" json:"tenant_id"`
+	SiteID               string     `gorm:"type:uuid;index" json:"site_id"`
 	UserID               string     `gorm:"type:varchar(255);index;not null" json:"user_id"`
 	UserInstrumentID     string     `gorm:"type:uuid;index" json:"user_instrument_id"`
 	Status               string     `gorm:"type:varchar(20);default:'pending_ship'" json:"status"`
