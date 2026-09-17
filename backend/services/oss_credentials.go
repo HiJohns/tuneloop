@@ -19,11 +19,14 @@ import (
 // ECS metadata provider — implemented here so production/prerelease on
 // cadenza (an Aliyun ECS) can run WITHOUT any AccessKey on disk: the
 // provider fetches short-lived STS credentials from the metadata service
-// (http://100.100.100.100/...) and caches them until shortly before
+// (http://100.100.100.200/...) and caches them until shortly before
 // expiration, then refreshes automatically.
 
 const (
-	ecsMetadataRoleListDefault = "http://100.100.100.100/latest/meta-data/ram/security-credentials"
+	// Aliyun ECS metadata service address is 100.100.100.200 (verified on
+	// cadenza 2026-09-17: .100 returns 404 for every path, .200 returns the
+	// bound role). Do NOT change to .100.
+	ecsMetadataRoleListDefault = "http://100.100.100.200/latest/meta-data/ram/security-credentials"
 	ecsTokenRefreshMargin      = 5 * time.Minute
 	ecsMetadataTimeout         = 3 * time.Second
 )

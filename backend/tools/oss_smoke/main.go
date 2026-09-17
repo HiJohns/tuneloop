@@ -27,7 +27,9 @@ import (
 )
 
 const (
-	metadataBase  = "http://100.100.100.100/latest/meta-data/ram/security-credentials"
+	// Aliyun ECS metadata service is 100.100.100.200 (verified on cadenza
+	// 2026-09-17 — .100 returns 404).
+	metadataBase  = "http://100.100.100.200/latest/meta-data/ram/security-credentials"
 	refreshMargin = 5 * time.Minute
 )
 
