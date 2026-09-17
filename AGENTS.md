@@ -33,14 +33,51 @@ This file contains instructions and guidelines for AI coding agents working in t
 
 ### 发布流程
 
+> **核心规则**：`main` = 审核/发布分支（只从 develop 合并重建）；`develop` = 开发/集成分支。
+> 发布版小程序**必须在 main 上构建**（否则打进 `prewx` 地址）；`make release` **不含 weapp**，小程序需单独 build + upload。
+
 ```
 develop（开发累积，随时可部署 dev 验证）
-  → 发布时：git checkout main && git merge develop
+  → 发布时：git checkout main && git merge develop（push）
   → make release（预生产部署）→ 预生产验证
   → ssh cadenza release.sh 提升生产
   → 版本号 bump（1.0.x）+ git tag v1.0.x（可选）
   → 小程序发布版：make weapp-build-prod + weapp-upload-prod APP_VERSION=1.0.x（见 docs/weapp.md 发布清单）
 ```
+
+#### 每次发布的完整动作清单
+
+**① 合并前（在 develop 上）**
+- [ ] 验证：`go build .`、相关 `go test ./...`、前端构建 / ESLint（无 CI，必须手动）
+- [ ] 待发 Issue 均 `status:ready`（审计 PASS）；`status:wip` 的不得混入
+- [ ] 迁移完整性：`database/migrations/` 的 up/down 成对，且**不少于** DB `schema_migrations` 已应用版本（#1913 停机根因）
+
+**② 合并**
+- [ ] `git checkout main && git merge develop && git push`（无分叉为 ff；有分叉用 `--no-ff`）
+
+**③ 版本 + 服务端构建（在 main 上）**
+- [ ] bump `VERSION`（服务器语义化，**必须高于线上**）
+- [ ] `make release` → 后端(注入 VERSION)+PC+H5 → Seafile → `ssh cadenza ~/download.sh`（**不含 weapp**）
+- [ ] 预生产验证：端口 5562/5563/5564、`/api/config` 版本、`Successfully applied migrations` 日志、前端 JS hash、真机
+
+**④ 小程序**
+- [ ] 预生产：`make weapp-build-pre` + `make weapp-upload-dev VERSION=<归档号> APP_VERSION=1.0.0-dev` → 微信后台**手动设体验版** → 真机验收
+- [ ] 生产：`make weapp-build-prod` + `make weapp-upload-prod VERSION=<归档号> APP_VERSION=1.0.<x> DESC="…"`（appid `wxcb44a1be70e356ed`）→ 微信后台**手动提交审核 → 发布**（AI 无后台权限）
+- [ ] 归档保留 ≥180 天（回退 = 上传更早归档）
+
+**⑤ 生产提升与收尾**
+- [ ] `ssh cadenza 'cd /opt/flow && ./release.sh tuneloop-pre_*.zip'`
+- [ ] `git tag v1.0.<x>`（可选）
+- [ ] Hotfix 必须合回 **main + develop**（防遗漏）
+- [ ] 预生产若改动挂载 symlink → `docker restart tuneloop-nginx`
+
+**⑥ 发布后监控（≥30 分钟，强制，见「发布后监控提醒」）**
+- [ ] `systemctl is-active` / `NRestarts` 不持续增长 / FATAL·panic 为空 / 版本号正确 / 关键接口可用 / 小程序真机核心路径
+- [ ] 含迁移的发布：确认 bootstrap 日志 `Successfully applied migrations + schema validation passed`
+
+> **三个最易漏点**：① `make release` 不含 weapp；② `APP_VERSION` 必须高于线上/审核中版本；③ 生产小程序必须从 `main` 构建。
+>
+> 详细验证命令见 `docs/release-checklist.md`；小程序发布/归档细则见 `docs/weapp.md`。
 
 ### Hotfix
 
