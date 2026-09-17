@@ -1,11 +1,13 @@
 // 中转收货页（#1931/#1934 Sub4）—— 会话详情+拍照留痕+提交
-// PUT /forwarding/sessions/:id/receive { photo_keys }
+// PUT /forwarding/sessions/:id/receive { photo_keys } → received
+// PUT /forwarding/sessions/:id/ready {} → ready「等待转发」（audit #1937 Bug 3：
+//   last-mile 强制要求 ready，收货成功后必须补调 ready，否则发货页不可达）
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Image, Text, View, Button } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
-import { dialog, env, uploadFile as uploadFileApi } from '../platform'
+import { dialog, env, uploadFile as uploadFileApi, toWeappRoute } from '../platform'
 
 const MAX_PHOTOS = 6
 
@@ -17,6 +19,16 @@ export default function TransitReceive() {
 
   const [photos, setPhotos] = useState([])
   const [submitting, setSubmitting] = useState(false)
+
+  // Cross-end navigation (issue-1673): weapp must use /pages-weapp/... urls
+  const nav = (to) => {
+    if (!env.isMiniProgram) return navigate(to)
+    if (to === -1) return Taro.navigateBack()
+    const route = toWeappRoute(to)
+    if (!route) { dialog.alert('该功能请在 H5 端使用'); return }
+    if (route.type === 'switchTab') return Taro.switchTab({ url: route.url })
+    return Taro.navigateTo({ url: route.url })
+  }
 
   const addPhotoWeapp = async () => {
     try {
@@ -41,6 +53,15 @@ export default function TransitReceive() {
     throw new Error(resolveErrorMessage(r, 'upload failed'))
   }
 
+  const markReady = async () => {
+    const resp = await apiFetch(`${baseUrl}/forwarding/sessions/${sessionId}/ready`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    })
+    return resp.json()
+  }
+
   const handleSubmit = async () => {
     if (photos.length === 0) { dialog.alert('请先拍照留痕'); return }
     setSubmitting(true)
@@ -53,9 +74,29 @@ export default function TransitReceive() {
         body: JSON.stringify({ photo_keys: keys }),
       })
       const r = await resp.json()
-      if (r.code === 20000) {
+      if (r.code === 20000 || r.code === 40002) {
+        // 40002 = 会话已收货（received）——补调 ready 继续（重试路径）
+        if (r.code === 40002) {
+          const readyResp = await markReady()
+          if (readyResp.code !== 20000) {
+            dialog.alert(resolveErrorMessage(readyResp, '确认转发失败'))
+            setSubmitting(false)
+            return
+          }
+          dialog.alert('收货已确认，等待转发')
+          nav('/transit-workbench')
+          setSubmitting(false)
+          return
+        }
+        // 收货成功 → 显式 ready（等待转发），否则 last-mile 永远不可达
+        const readyResp = await markReady()
+        if (readyResp.code !== 20000) {
+          dialog.alert('收货已确认，但确认转发失败: ' + resolveErrorMessage(readyResp, '') + '（可重试提交）')
+          setSubmitting(false)
+          return
+        }
         dialog.alert('收货已确认，等待转发')
-        navigate('/transit-workbench')
+        nav('/transit-workbench')
       } else {
         dialog.alert(resolveErrorMessage(r, '提交失败'))
       }

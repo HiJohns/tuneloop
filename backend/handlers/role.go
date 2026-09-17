@@ -27,11 +27,15 @@ func GetMyRoles(c *gin.Context) {
 	db.Table("site_members").Where("user_id = ?", localUser.ID).Pluck("role", &roles)
 
 	type siteRole struct {
-		SiteID string `json:"site_id"`
-		Role   string `json:"role"`
+		SiteID   string `json:"site_id"`
+		Role     string `json:"role"`
+		SiteType string `json:"site_type"` // #1937: 中转工作台入口按站点类型判断（transit）
 	}
 	var sites []siteRole
-	db.Table("site_members").Select("site_id, role").Where("user_id = ?", localUser.ID).Find(&sites)
+	db.Table("site_members sm").
+		Select("sm.site_id, sm.role, s.type AS site_type").
+		Joins("LEFT JOIN sites s ON s.id = sm.site_id").
+		Where("sm.user_id = ?", localUser.ID).Find(&sites)
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"roles": uniqueStrings(roles), "sites": sites}})
 }

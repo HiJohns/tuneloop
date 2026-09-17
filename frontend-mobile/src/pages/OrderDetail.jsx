@@ -508,6 +508,21 @@ export default function OrderDetail() {
               <Text className="text-sm font-medium text-black">{formatDeliveryAddress(order.delivery_address) || '-'}</Text>
             </View>
           </View>
+          {/* #1937: 受控商户 —— 「合作商户」占位 + 中转网点地址（对齐 ReturnConfirm 既有实现） */}
+          {order.transit_info && (
+            <View className="flex items-start gap-3">
+              <MapPin size={18} className="text-zinc-400 mt-0.5" />
+              <View className="flex items-start flex-1 min-w-0">
+                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">中转网点</Text>
+                <View>
+                  <Text className="text-sm font-medium text-black">{order.merchant_name || '合作商户'}</Text>
+                  {order.transit_info.contact && <Text className="text-xs text-zinc-500">{order.transit_info.contact}</Text>}
+                  {order.transit_info.phone && <Text className="text-xs text-zinc-500">{order.transit_info.phone}</Text>}
+                  {order.transit_info.address && <Text className="text-xs text-zinc-500">{order.transit_info.address}</Text>}
+                </View>
+              </View>
+            </View>
+          )}
         </View>
       </View>
 

@@ -3,7 +3,7 @@ import Taro from '@tarojs/taro'
 import { useNavigate } from 'react-router-dom'
 import { View, Text, Image, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken, notificationApi , resolveErrorMessage } from '../services/api'
-import { env, storage } from '../platform'
+import { env, storage, toWeappRoute } from '../platform'
 import { parseJWT, getAppConfig } from '../platform/init'
 import BottomNav from '../components/BottomNav'
 
@@ -103,6 +103,7 @@ export default function Profile() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [orderCounts, setOrderCounts] = useState({ reserved: 0, in_lease: 0, returning: 0, completed: 0 })
   const [appVersion, setAppVersion] = useState('')
+  const [transitMember, setTransitMember] = useState(false) // #1937: 中转网点成员身份
 
   const baseUrl = env.apiBaseUrl
 
@@ -160,6 +161,27 @@ export default function Profile() {
     if (!isStaff) fetchCounts()
   }, [baseUrl, isStaff])
 
+  // #1937: 中转网点成员 → 个人中心展示「中转工作台」入口（/site-members/me 返回 site_type）
+  useEffect(() => {
+    const fetchMySites = async () => {
+      try {
+        const resp = await apiFetch(`${baseUrl}/site-members/me`)
+        const result = await resp.json()
+        if (result.code === 20000) {
+          const sites = result.data?.sites || []
+          setTransitMember(sites.some(s => s.site_type === 'transit'))
+        }
+      } catch {}
+    }
+    if (isStaff) fetchMySites()
+  }, [baseUrl, isStaff])
+
+  const navTransitWorkbench = () => {
+    if (!env.isMiniProgram) return navigate('/transit-workbench')
+    const route = toWeappRoute('/transit-workbench')
+    if (route) Taro.navigateTo({ url: route.url })
+  }
+
   const handleLogout = () => {
     storage.removeItem('token')
     storage.removeItem('token_expiry')
@@ -212,7 +234,7 @@ export default function Profile() {
         </View>
 
         {/* 2. 金刚过滤区 — 员工 vs 顾客 */}
-        <View className="mx-4 bg-white rounded-2xl shadow-sm mt-3 p-4 grid grid-cols-3 gap-2 text-center">
+        <View className={`mx-4 bg-white rounded-2xl shadow-sm mt-3 p-4 grid ${isStaff && transitMember ? 'grid-cols-4' : 'grid-cols-3'} gap-2 text-center`}>
           {isStaff ? (
             <>
               <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={() => navigate('/staff/instruments')}>
@@ -227,6 +249,12 @@ export default function Profile() {
                 <View className="text-2xl mb-1">📤</View>
                 <Text className="text-xs font-bold text-zinc-700">发货</Text>
               </View>
+              {transitMember && (
+                <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={navTransitWorkbench}>
+                  <View className="text-2xl mb-1">🚚</View>
+                  <Text className="text-xs font-bold text-zinc-700">中转工作台</Text>
+                </View>
+              )}
             </>
           ) : (
             <>

@@ -50,6 +50,9 @@ import RepairScan from './pages/RepairScan'
 import OrderDetail from './pages/OrderDetail'
 import ReturnSettlement from './pages/ReturnSettlement'
 import MembershipCenter from './pages/MembershipCenter'
+import TransitWorkbench from './pages/TransitWorkbench'
+import TransitReceive from './pages/TransitReceive'
+import TransitShip from './pages/TransitShip'
 import Register from './pages/Register'
 
 function ProtectedRoute({ children, requireAuth = true }) {
@@ -253,6 +256,9 @@ function App() {
         <Route path="/return-settlement/:orderId" element={<ProtectedRoute><ReturnSettlement /></ProtectedRoute>} />
         <Route path="/return-settlement" element={<ProtectedRoute><ReturnSettlement /></ProtectedRoute>} />
         <Route path="/membership" element={<ProtectedRoute><MembershipCenter /></ProtectedRoute>} />
+        <Route path="/transit-workbench" element={<ProtectedRoute><TransitWorkbench /></ProtectedRoute>} />
+        <Route path="/transit-receive" element={<ProtectedRoute><TransitReceive /></ProtectedRoute>} />
+        <Route path="/transit-ship" element={<ProtectedRoute><TransitShip /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   )

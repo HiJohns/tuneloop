@@ -400,7 +400,13 @@ function SingleCheckout({ id, navigate }) {
             <View className="flex-1 justify-center">
               <Text className="font-black text-sm text-black">{instrument?.name || instrument?.sn}</Text>
               <Text className="text-xs text-zinc-500">{instrument?.category_name}</Text>
-              {instrument?.site_name && <Text className="text-xs text-zinc-400">网点: {instrument.site_name}</Text>}
+              {/* #1937: 受控商户 —— 合作商户占位 + 中转网点地址（后端 instrument.transit_info 已下发） */}
+              {instrument?.transit_info ? (
+                <View>
+                  <Text className="text-xs text-zinc-400">商户: 合作商户（中转发货）</Text>
+                  {instrument.transit_info.address && <Text className="text-xs text-zinc-400">中转地址: {instrument.transit_info.address}</Text>}
+                </View>
+              ) : (instrument?.site_name && <Text className="text-xs text-zinc-400">网点: {instrument.site_name}</Text>)}
             </View>
           </View>
         </View>

@@ -3,8 +3,12 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Input, Text, View } from '@tarojs/components'
+import Taro from '@tarojs/taro'
 import { apiFetch, resolveErrorMessage } from '../services/api'
-import { dialog, env, getInputValue } from '../platform'
+import { dialog, env, getInputValue, toWeappRoute } from '../platform'
+
+// 可操作状态 → 深链目标；终态卡片不可点（audit #1937 Bug 8）
+const TERMINAL_STATUSES = ['last_mile', 'completed', 'delivered', 'lost', 'cancelled', 'exception']
 
 export default function TransitWorkbench() {
   const navigate = useNavigate()
@@ -14,6 +18,16 @@ export default function TransitWorkbench() {
   const [searched, setSearched] = useState(false)
   const [loading, setLoading] = useState(false)
   const debounceTimer = useRef(null)
+
+  // Cross-end navigation (issue-1673): weapp must use /pages-weapp/... urls
+  const nav = (to) => {
+    if (!env.isMiniProgram) return navigate(to)
+    if (to === -1) return Taro.navigateBack()
+    const route = toWeappRoute(to)
+    if (!route) { dialog.alert('该功能请在 H5 端使用'); return }
+    if (route.type === 'switchTab') return Taro.switchTab({ url: route.url })
+    return Taro.navigateTo({ url: route.url })
+  }
 
   const handleSearch = (val) => {
     setKeyword(val)
@@ -40,9 +54,10 @@ export default function TransitWorkbench() {
   }
 
   const goDetail = (s) => {
-    // last mile 已发货后跳发货查证/详情；ready 状态 → 发货页；其余 → 收貨页
-    if (s.status === 'ready') navigate(`/transit-ship?session=${s.id}`)
-    else navigate(`/transit-receive?session=${s.id}`)
+    if (TERMINAL_STATUSES.includes(s.status)) return
+    // ready（等待转发）→ 发货页；pending/in_transit/received → 收货页
+    if (s.status === 'ready') nav(`/transit-ship?session=${s.id}`)
+    else nav(`/transit-receive?session=${s.id}`)
   }
 
   return (
@@ -70,7 +85,7 @@ export default function TransitWorkbench() {
         {sessions.map(s => (
           <View key={s.id}
             onClick={() => goDetail(s)}
-            style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+            style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', opacity: TERMINAL_STATUSES.includes(s.status) ? 0.6 : 1 }}>
             <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={{ fontSize: 14, fontWeight: 900, color: '#000' }}>短码 {s.session_code || '-'}</Text>
               <StatusBadge status={s.status} direction={s.direction} />
@@ -95,14 +110,18 @@ function Row({ label, value }) {
 }
 
 function StatusBadge({ status, direction }) {
+  // 枚举与 backend/models.go ForwardingStatus* 一致（audit #1937 Bug 6）
   const map = {
     pending: { label: '待发运', color: '#a1a1aa' },
     in_transit: { label: '运输中', color: '#06b6d4' },
     received: { label: '已收货', color: '#0ea5e9' },
     ready: { label: '等待转发', color: '#f59e0b' },
     last_mile: { label: '派送中', color: '#3b82f6' },
-    completed: { label: '已送达', color: '#16a34a' },
+    delivered: { label: '已送达', color: '#22c55e' },
+    completed: { label: '已完成', color: '#16a34a' },
     lost: { label: '丢失', color: '#ef4444' },
+    cancelled: { label: '已取消', color: '#a1a1aa' },
+    exception: { label: '异常', color: '#f97316' },
   }
   const info = map[status] || { label: status, color: '#a1a1aa' }
   return (

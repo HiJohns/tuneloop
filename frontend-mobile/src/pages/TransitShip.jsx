@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Input, Text, View, Button } from '@tarojs/components'
+import Taro from '@tarojs/taro'
 import { apiFetch, resolveErrorMessage } from '../services/api'
-import { dialog, env, getInputValue } from '../platform'
+import { dialog, env, getInputValue, toWeappRoute } from '../platform'
 
 export default function TransitShip() {
   const navigate = useNavigate()
@@ -16,6 +17,16 @@ export default function TransitShip() {
   const [number, setNumber] = useState('')
   const [fee, setFee] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  // Cross-end navigation (issue-1673): weapp must use /pages-weapp/... urls
+  const nav = (to) => {
+    if (!env.isMiniProgram) return navigate(to)
+    if (to === -1) return Taro.navigateBack()
+    const route = toWeappRoute(to)
+    if (!route) { dialog.alert('该功能请在 H5 端使用'); return }
+    if (route.type === 'switchTab') return Taro.switchTab({ url: route.url })
+    return Taro.navigateTo({ url: route.url })
+  }
 
   const valid = company.trim() && number.trim() && fee !== '' && !isNaN(Number(fee))
 
@@ -35,7 +46,7 @@ export default function TransitShip() {
       const r = await resp.json()
       if (r.code === 20000) {
         dialog.alert('转发已发出，等待顾客/商户确认')
-        navigate('/transit-workbench')
+        nav('/transit-workbench')
       } else {
         dialog.alert(resolveErrorMessage(r, '提交失败'))
       }
