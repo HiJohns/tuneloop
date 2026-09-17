@@ -276,16 +276,17 @@ func TestPaymentCallback_NoDoubleCount(t *testing.T) {
 	}
 	require.NoError(t, db.Create(&order).Error)
 
-	// Simulate the payment-callback update: gift_used=1000 → cash_paid 3000−1000=2000
+	// Simulate the payment-callback update: gift_used=1000 cents → cash_paid
+	// 300000−1000=299000 cents (#1757 Cents 口径；cash_paid 以分存储)
 	require.NoError(t, db.Model(&models.Order{}).Where("id = ?", order.ID).
 		Updates(map[string]interface{}{
-			"gift_points_used": 1000.0,
-			"cash_paid":        gorm.Expr("GREATEST(cash_paid - ?, 0)", 1000.0),
+			"gift_points_used": models.Cents(1000),
+			"cash_paid":        gorm.Expr("GREATEST(cash_paid - ?, 0)", 1000),
 		}).Error)
 
 	var updated models.Order
 	require.NoError(t, db.Where("id = ?", order.ID).First(&updated).Error)
-	require.Equal(t, 2000.0, updated.CashPaid, "cash_paid reduced by gift_used")
+	require.Equal(t, models.Cents(299000), updated.CashPaid, "cash_paid reduced by gift_used (cents)")
 }
 
 // TestSettlement_ShippingFeeSingleDeduction (#1721): shipping fee is deducted
@@ -308,15 +309,15 @@ func TestSettlement_ShippingFeeSingleDeduction(t *testing.T) {
 	returnedAt := time.Date(2026, 8, 30, 12, 0, 0, 0, time.UTC)
 	order := models.Order{
 		TenantID: tenantID, OrgID: orgID, UserID: userID,
-		InstrumentID:   uuid.New().String(),
-		StartDate:      strPtr("2026-08-01"),
-		EndDate:        strPtr("2026-08-30"),
-		LeaseTerm:      30,
-		Status:         models.OrderStatusCompleted,
-		ReturnedAt:     &returnedAt,
-		Deposit:        models.FromYuan(500),
-		CashPaid:       models.FromYuan(3500), // rent 3000 + deposit 500; shipping billed at dispatch
-		ShippingFee:    models.FromYuan(12.50),
+		InstrumentID:     uuid.New().String(),
+		StartDate:        strPtr("2026-08-01"),
+		EndDate:          strPtr("2026-08-30"),
+		LeaseTerm:        30,
+		Status:           models.OrderStatusCompleted,
+		ReturnedAt:       &returnedAt,
+		Deposit:          models.FromYuan(500),
+		CashPaid:         models.FromYuan(3500), // rent 3000 + deposit 500; shipping billed at dispatch
+		ShippingFee:      models.FromYuan(12.50),
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
