@@ -578,18 +578,20 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.PUT("/admin/smtp-config", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.UpdateSMTPConfig)
 			authRequired.POST("/admin/smtp-config/test", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.TestSMTPConfig)
 
-			// Transit route routes (Issue #1133)
-			authRequired.GET("/transit-routes", handlers.ListTransitRoutes)
-			authRequired.POST("/transit-routes", handlers.CreateTransitRoute)
-			authRequired.DELETE("/transit-routes/:id", handlers.DeleteTransitRoute)
-			// #1935: 平台级中转网点管理（中转中心）
-			authRequired.GET("/admin/transit-sites", handlers.ListAdminTransitSites)
-			authRequired.POST("/admin/transit-sites", handlers.CreateAdminTransitSite)
-			authRequired.PUT("/admin/transit-sites/:id", handlers.UpdateAdminTransitSite)
-			authRequired.DELETE("/admin/transit-sites/:id", handlers.DeleteAdminTransitSite)
-			authRequired.GET("/admin/transit-sites/:id/members", handlers.ListTransitSiteMembers)
-			authRequired.POST("/admin/transit-sites/:id/members", handlers.AddTransitSiteMember)
-			authRequired.DELETE("/admin/transit-sites/:id/members/:member_id", handlers.RemoveTransitSiteMember)
+			// Transit route routes (Issue #1133) — #1935 audit Bug3: 补后端权限门
+			authRequired.GET("/transit-routes", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.ListTransitRoutes)
+			authRequired.POST("/transit-routes", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.CreateTransitRoute)
+			authRequired.DELETE("/transit-routes/:id", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.DeleteTransitRoute)
+			// #1935: 平台级中转网点管理（中转中心）— 权限门 sys_perm bit5（SysPermTenantView，
+			// 与前端 App.jsx sysPermBits:[5] 一致；audit Bug3：此前任意登录用户可调用）
+			authRequired.GET("/admin/transit-sites", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.ListAdminTransitSites)
+			authRequired.POST("/admin/transit-sites", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.CreateAdminTransitSite)
+			authRequired.PUT("/admin/transit-sites/:id", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.UpdateAdminTransitSite)
+			authRequired.DELETE("/admin/transit-sites/:id", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.DeleteAdminTransitSite)
+			authRequired.GET("/admin/transit-sites/:id/members", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.ListTransitSiteMembers)
+			authRequired.POST("/admin/transit-sites/:id/members", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.AddTransitSiteMember)
+			authRequired.PUT("/admin/transit-sites/:id/members/:member_id", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.UpdateTransitSiteMemberRole)
+			authRequired.DELETE("/admin/transit-sites/:id/members/:member_id", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.RemoveTransitSiteMember)
 			// #1936: 受控网点候选列表（中转路由创建下拉；fix audit #1936 Bug1 — GET /sites 不存在）
 			authRequired.GET("/admin/controlled-sites", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.ListControlledSites)
 

@@ -402,6 +402,7 @@ type Site struct {
 	Latitude         float64    `gorm:"type:decimal(10,6)" json:"latitude"`
 	Longitude        float64    `gorm:"type:decimal(10,6)" json:"longitude"`
 	Phone            string     `gorm:"type:varchar(50)" json:"phone"`
+	ContactName      string     `gorm:"type:varchar(255)" json:"contact_name"` // #1935: 中转网点联系人（audit Bug4：模型缺列致 Update 500）
 	PostalCode       string     `gorm:"type:varchar(20)" json:"postal_code"`
 	BusinessHours    string     `gorm:"type:varchar(100)" json:"business_hours"`
 	Status           string     `gorm:"type:varchar(20);default:'active'" json:"status"`
