@@ -14,12 +14,12 @@ source: 用户需求（任何状态下乐器都可能丢失：物流途中/天�
 
 - 入口：员工小程序 → 乐器管理 → 找到乐器 → **「丢失」**
 - 表单：描述（必填）+ **责任方**（用户/物流公司/平台/网点）+ **用户责任比例**（0-100%，系统按责任方给出默认：用户=100%、其他=0%，可改）+ 赔偿金额（员工按乐器价值填写）
-- 副作用：
+- 副作用（**状态落点见 LS-03a**）：
   - 乐器 `stock_status = 'lost'`（不可再租）
-  - 有租约 → **租约中止** → 触发 LS-03 结算
+  - 有租约 → **租约中止**（`orders.status = 'cancelled'`，非正常终止）→ 触发 LS-03 结算
   - 维修会话中 → 维修会话终止（已付修理费全额退 + 用户承担赔偿），丢失记录留痕（财务线下与责任方处理）
   - 纯库存 → 仅丢失记录 + 库存状态
-- ops: `POST /instruments/:id/lost {description, responsible_party, user_ratio, compensation_cents}`
+- ops: `POST /instruments/:id/lost {description, responsible_party, user_ratio, compensation_cents, user_burden_cents?}`
 
 ## LS-02 丢失登记（平台管理员，PC 后台）
 
@@ -29,11 +29,33 @@ source: 用户需求（任何状态下乐器都可能丢失：物流途中/天�
 ## LS-03 丢失结算（系统，登记时计算）
 
 - **用户承担赔偿** = 赔偿金额 × 用户责任比例；**员工可直接覆盖该金额**（最终裁量权）
-- **应付（用户）** = 至丢失日租金（正常计算）+ 用户承担赔偿
 - **已付** = 已付租金 + **押金（全额计入）**
-- 应付 > 已付 → **补缴**：`order_payment_records(order_type='loss', status='pending')` + 系统通知 → **未支付阻止会员升级**（membership.md M-08）
-- 应付 < 已付 → **退款**：微信原路 + 系统通知
+- **应付（用户）** = **租金（按场景，见下表）** + 用户承担赔偿
+- 判定：应付 > 已付 → **补缴**（`order_payment_records(order_type='loss', status='pending')` + 系统通知 → **未支付阻止会员升级**，membership.md M-08）；应付 < 已付 → **退款**（微信原路 + 系统通知）
 - 无租约（纯库存/无会话）→ 无用户结算，仅记录留痕
+
+### LS-03a 租金口径（按丢失所处阶段，用户 2026-09-17 决策）
+
+| 场景 | 判定 | 租金 |
+|------|------|------|
+| **① 去程物流中丢失**（未签收，含中转） | `orders.status ∈ {reserved, paid, pending_shipment, shipped}`（签收后才转 `in_lease`） | **0**（用户未使用） |
+| **② 租期中丢失** | `orders.status = 'in_lease'` | `final_daily_rent × 租赁天数`（`StartDate` → 丢失日） |
+| **③ 返程物流中丢失** | `orders.status = 'returning'` | `final_daily_rent × 租赁天数`（`StartDate` → **归还寄出日**；返程期不计租）⚠️ 寄出时间数据源待定（`order_status_history` 的 `→ returning` 时间戳，或新增字段） |
+
+- **押金处理统一口径**：押金**全额计入「已付」→ 抵扣应付 → 余额退回**（即"按责任比例退押金"的等价表述；避免双重扣与文案歧义）
+- **去程丢失的默认结果**：非用户责任 → 租金 0 + 无赔偿 → 应付 0，押金**全额退回**（与现有 `cancelled` 的"无条件全额退"口径自然一致）；若员工判定用户有责（如提供错误地址致滞留丢失）→ 按裁量比例产生赔偿
+
+### LS-03b 订单与资产状态落点（用户 2026-09-17 决策：不新增订单状态）
+
+| 对象 | 落点 | 说明 |
+|------|------|------|
+| 订单 | `orders.status = 'cancelled'` | 强调**非正常终止**；**不得**用 `expired`（会触发 M-08 第 1 项误判且补缴清了仍阻塞） |
+| 押金 | `orders.deposit_refunded` | **仅在实际退押金（或结清）时置 true**；⚠️ 与 `order_terminate` 的"无条件全额退"是**两种财务口径**，非丢失场景不得假定 |
+| 租约会话 | `lease_sessions.status = 'cancelled'` | 现有 `order_terminate` 漏关会话（不一致），丢失流程必须显式关闭 |
+| 乐器 | `instruments.stock_status = 'lost'` | 防再租 |
+| 状态历史 | `order_status_history`：`in_lease`(或前置) → `cancelled` | 与现有取消路径一致，便于审计 |
+| 结算 | 自算（**不复用** `ConfirmSettlement/executeRefund`——其入口仅允许 `in_lease`/`returning`/`deposit_refunding`），退款单号 `loss_re_*` | |
+| 台账 | `instrument_loss_records`（责任方/比例/金额/描述/照片） | **丢失原因的唯一权威来源**；前端/报表按"存在 loss 记录"显示「已终止·丢失」，不靠订单状态区分原因 |
 
 ## LS-04 追偿（轻量）
 
@@ -44,15 +66,17 @@ source: 用户需求（任何状态下乐器都可能丢失：物流途中/天�
 
 - 入口：乐器管理 → 筛选 `stock_status='lost'` → 「**恢复**」
 - 恢复表单：**是否有损坏**（是/否）+ 描述 + 照片（≤6，走 /upload）
-- 两个分支：
-  - **分支 A（丢失结算完成前找回）**：取消丢失结算，乐器恢复正常状态；若有损坏 → 走定损/赔偿流程
-  - **分支 B（结算完成后找回）**：乐器恢复（可租）；损坏 → **留痕并进入定损/赔偿流程**（已按丢失赔付的结算**不重算**，损坏走正常定损新增）
+- 分支判定依据：**丢失记录 `settled_at`**
+  - **分支 A（`settled_at` 为空 = 未产生用户结算，如纯库存）**：取消丢失（赠送撤销），乐器恢复正常状态；若有损坏 → 走定损/赔偿流程
+  - **分支 B（`settled_at` 非空 = 登记时已结算）**：乐器恢复（可租）；损坏 → **留痕并进入定损/赔偿流程**（已按丢失赔付的结算**不重算**，损坏走正常定损新增）
+- **订单不复活**：找回不恢复 `orders.status`（保持 `cancelled`），仅把乐器恢复到可租（`available`）；恢复表单内容（damaged/描述/照片/时间）留痕于丢失记录
 - ops: `POST /instruments/:id/restore {damaged, description, photos[]}`
 
 ## LS-06 违约联动
 
 - 丢失产生的**未支付补缴** → 阻止会员升级（membership.md M-08 统一判定，`order_type='loss'`）
 - 非用户责任（用户无承担金额）→ 不产生补缴，不阻塞
+- **`orders.status='cancelled'` 本身不触发任何违约判定**（M-08 仅认 `expired`）；「丢失」通过 loss 记录的 pending 补缴独立阻塞，与订单终态解耦
 
 ## 角色矩阵
 
