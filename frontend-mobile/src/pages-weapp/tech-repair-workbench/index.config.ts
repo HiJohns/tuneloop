@@ -1,0 +1,3 @@
+export default {
+  navigationBarTitleText: '师傅工作台',
+}

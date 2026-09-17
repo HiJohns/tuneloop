@@ -167,6 +167,16 @@ export default function MyRepairs() {
 
   const serviceSection = (
     <View style={{ display: 'flex', flexDirection: 'column' }}>
+      {!isCustomer && roles.includes('repair_technician') && (
+        <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>师傅工作台</Text>
+          <Text style={{ fontSize: 12, color: '#71717A' }}>待报价 · 报价 · 加价发起 · 完成修理</Text>
+          <Button onClick={() => nav('/tech-repair-workbench')}
+            style={{ width: '100%', margin: 0, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#171717', color: '#FFFFFF', borderRadius: 8, fontSize: 14, fontWeight: 'bold' }}>
+            进入师傅工作台
+          </Button>
+        </View>
+      )}
       {!isCustomer && (
         <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>网点维修服务工作台</Text>
