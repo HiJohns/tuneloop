@@ -167,8 +167,11 @@ func UploadShippingInfoWithRetry(openid, outTradeNo, transactionID, trackingNo, 
 }
 
 type notifyConfirmReceiveRequest struct {
-	OrderKey     shippingOrderKey `json:"order_key"`
-	ReceivedTime int64            `json:"received_time"`
+	OrderKey shippingOrderKey `json:"order_key"`
+	// received_time 与同族 upload_shipping_info 的 upload_time 一致，
+	// 微信期望 RFC3339 字符串；传 int64 Unix 秒会被拒为
+	// 47001 data format error（#1953）。
+	ReceivedTime string `json:"received_time"`
 }
 
 // NotifyConfirmReceive reminds WeChat that the goods were signed (courier
@@ -192,7 +195,7 @@ func NotifyConfirmReceive(outTradeNo string, receivedTime time.Time) error {
 
 	reqBody := notifyConfirmReceiveRequest{
 		OrderKey:     orderKey,
-		ReceivedTime: receivedTime.Unix(),
+		ReceivedTime: receivedTime.Format(time.RFC3339),
 	}
 	body, err := json.Marshal(reqBody)
 	if err != nil {
