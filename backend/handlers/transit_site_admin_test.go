@@ -30,7 +30,7 @@ func setup1935Test(t *testing.T) (*gin.Engine, string) {
 
 	// #1935 fix: member endpoints now call IAM (bind/unbind/templates) —
 	// stub a mock IAM server so the flow is exercisable in tests.
-	mockIAM := newTransitMockIAM(t)
+	mockIAM := newTransitMockIAM(t, false)
 	services.SetIAMInternalURLForTesting(mockIAM.URL)
 	t.Cleanup(func() {
 		services.SetIAMInternalURLForTesting("")
@@ -57,7 +57,9 @@ func setup1935Test(t *testing.T) (*gin.Engine, string) {
 
 // newTransitMockIAM stubs the IAM endpoints the transit member handlers call:
 // client-credentials token, org bind/unbind/role-update, role templates.
-func newTransitMockIAM(t *testing.T) *httptest.Server {
+// failTemplates=true makes the role-templates endpoint return 500 (audit
+// #1935 Bug A failure-path coverage).
+func newTransitMockIAM(t *testing.T, failTemplates bool) *httptest.Server {
 	t.Helper()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/auth/token", func(w http.ResponseWriter, r *http.Request) {
@@ -76,6 +78,10 @@ func newTransitMockIAM(t *testing.T) *httptest.Server {
 	mux.HandleFunc("/api/v1/namespaces/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if strings.HasSuffix(r.URL.Path, "/role-templates") {
+			if failTemplates {
+				http.Error(w, "iam role templates down", http.StatusInternalServerError)
+				return
+			}
 			json.NewEncoder(w).Encode([]map[string]interface{}{
 				{"id": uuid.New().String(), "code": "site_member"},
 				{"id": uuid.New().String(), "code": "site_admin"},
@@ -309,4 +315,29 @@ func TestUpdateAdminTransitSiteContactName(t *testing.T) {
 	var updated models.Site
 	require.NoError(t, database.GetDB().Where("id = ?", site.ID).First(&updated).Error)
 	assert.Equal(t, "李四", updated.ContactName)
+}
+
+// TestTransitSiteMemberRoleTemplateErrorReported — audit #1935 Bug A（红线）：
+// IAM 角色模板分配失败必须透出 role_errors（响应体），不得静默 200。
+func TestTransitSiteMemberRoleTemplateErrorReported(t *testing.T) {
+	router, tenantID := setup1935Test(t)
+	site := seedTransitSite1935(t, tenantID)
+
+	// 覆盖为「角色模板接口 500」的 IAM mock
+	failIAM := newTransitMockIAM(t, true)
+	services.SetIAMInternalURLForTesting(failIAM.URL)
+	t.Cleanup(func() {
+		services.SetIAMInternalURLForTesting("")
+		failIAM.Close()
+	})
+
+	code, resp := post1935JSON(t, router, "/api/admin/transit-sites/"+site.ID+"/members", map[string]interface{}{
+		"user_id": uuid.New().String(), "role": "site_member",
+	})
+	require.Equal(t, 200, code, "bind 成功时成员仍应创建: %v", resp)
+	assert.NotEmpty(t, resp["role_errors"], "IAM 模板失败必须透出 role_errors（不得静默 200）")
+
+	var cnt int64
+	database.GetDB().Model(&models.SiteMember{}).Where("site_id = ?", site.ID).Count(&cnt)
+	assert.Equal(t, int64(1), cnt, "bind 成功后本地缓存仍应写入")
 }

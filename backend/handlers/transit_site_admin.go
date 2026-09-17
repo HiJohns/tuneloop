@@ -183,24 +183,30 @@ func ListTransitSiteMembers(c *gin.Context) {
 }
 
 // assignTransitRoleTemplate best-effort assigns the role template that feeds
-// JWT roles/sys_perm — mirrors site_member.go (bind already succeeded at this
-// point, so a template failure is logged instead of leaving an unbound local
-// cache row behind).
-func assignTransitRoleTemplate(c *gin.Context, iamClient *services.IAMClient, userToken, userID, orgID, templateCode string) {
+// JWT roles/sys_perm — audit #1935 Bug A（红线）：IAM 错误不得静默吞没，失败
+// 必须透出到响应体（role_errors，与 site_member.go 同构），由调用方随响应返回。
+func assignTransitRoleTemplate(c *gin.Context, iamClient *services.IAMClient, userToken, userID, orgID, templateCode string) []gin.H {
+	roleErrors := []gin.H{}
 	nsID := middleware.GetNamespaceID(c.Request.Context())
 	templates, err := iamClient.ListRoleTemplates(nsID)
 	if err != nil {
 		log.Printf("[TransitSiteMember] ListRoleTemplates failed: %v", err)
-		return
+		return []gin.H{{"error": "failed to list role templates: " + err.Error()}}
 	}
 	for _, t := range templates {
 		if t.Code == templateCode {
 			if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, userID, orgID, t.Code); err != nil {
 				log.Printf("[TransitSiteMember] AssignRoleTemplate failed for user %s code %s: %v", userID, templateCode, err)
+				roleErrors = append(roleErrors, gin.H{
+					"user_id":       userID,
+					"template_code": templateCode,
+					"error":         err.Error(),
+				})
 			}
 			break
 		}
 	}
+	return roleErrors
 }
 
 // AddTransitSiteMember adds a member (role restricted to site_admin / site_member)
@@ -232,6 +238,7 @@ func AddTransitSiteMember(c *gin.Context) {
 	}
 
 	// IAM bind first — local cache only after success
+	var roleErrors []gin.H
 	if site.OrgID != "" {
 		iamClient := services.NewIAMClient()
 		userToken := services.ExtractUserToken(c)
@@ -240,7 +247,7 @@ func AddTransitSiteMember(c *gin.Context) {
 			c.JSON(http.StatusBadGateway, gin.H{"code": 50000, "message": "IAM 绑定失败: " + err.Error()})
 			return
 		}
-		assignTransitRoleTemplate(c, iamClient, userToken, req.UserID, site.OrgID, req.Role)
+		roleErrors = assignTransitRoleTemplate(c, iamClient, userToken, req.UserID, site.OrgID, req.Role)
 	}
 
 	member := models.SiteMember{
@@ -254,7 +261,12 @@ func AddTransitSiteMember(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to add member"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": member})
+	resp := gin.H{"code": 20000, "data": member}
+	if len(roleErrors) > 0 {
+		// audit #1935 Bug A（红线）：IAM 角色模板失败必须透出，不得静默 200
+		resp["role_errors"] = roleErrors
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 // UpdateTransitSiteMemberRole changes a member's role (#1935 audit Bug5:
@@ -282,6 +294,7 @@ func UpdateTransitSiteMemberRole(c *gin.Context) {
 		return
 	}
 
+	var roleErrors []gin.H
 	if site.OrgID != "" && member.UserID != "" {
 		iamClient := services.NewIAMClient()
 		userToken := services.ExtractUserToken(c)
@@ -289,7 +302,7 @@ func UpdateTransitSiteMemberRole(c *gin.Context) {
 			c.JSON(http.StatusBadGateway, gin.H{"code": 50000, "message": "IAM 角色更新失败: " + err.Error()})
 			return
 		}
-		assignTransitRoleTemplate(c, iamClient, userToken, member.UserID, site.OrgID, req.Role)
+		roleErrors = assignTransitRoleTemplate(c, iamClient, userToken, member.UserID, site.OrgID, req.Role)
 	}
 
 	if err := db.Model(&member).Update("role", req.Role).Error; err != nil {
@@ -297,7 +310,12 @@ func UpdateTransitSiteMemberRole(c *gin.Context) {
 		return
 	}
 	member.Role = req.Role
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "updated", "data": member})
+	resp := gin.H{"code": 20000, "message": "updated", "data": member}
+	if len(roleErrors) > 0 {
+		// audit #1935 Bug A（红线）：IAM 角色模板失败必须透出，不得静默 200
+		resp["role_errors"] = roleErrors
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 // RemoveTransitSiteMember removes a member from a transit site.
