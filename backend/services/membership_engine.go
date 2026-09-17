@@ -1,6 +1,8 @@
 package services
 
 import (
+	"log"
+
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
 
@@ -29,11 +31,61 @@ func CheckAndUpgradeLevel(userID string, db *gorm.DB) error {
 		}
 	}
 	if user.MembershipLevelID == nil || *user.MembershipLevelID < newLevelID {
+		// #1939 Sub-C（M-08）：晋升前违约校验——存在任一未结违约即阻止晋升
+		//（口径 = 当前未结，结清/归还后解除可恢复，与 docs/cases/membership.md 一致）。
+		if blocked, reason := hasBlockingDefault(&user, db); blocked {
+			log.Printf("[membership] upgrade blocked for user %s: %s", user.ID, reason)
+			return nil
+		}
 		if err := db.Model(&user).Update("membership_level_id", newLevelID).Error; err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// hasBlockingDefault 晋升违约校验（M-08 四项，任一命中即阻止晋升）：
+//
+//  1. 逾期未归还       orders.status='expired'
+//  2. 补缴未支付       order_payment_records.status='pending'
+//     AND order_type IN ('damage','repair','loss')
+//     （repair 含维修服务 dispatch 生成的补缴记录，user_id 为 IAM sub）
+//  3. 损坏流程未结     orders.status IN ('pending_damage_response','damage_appealing')
+//  4. 申诉未决         appeals.status IN ('pending','reviewing','forwarded')
+//     （appellant_id 以 GetUserID 即 IAM sub 落库）
+func hasBlockingDefault(user *models.User, db *gorm.DB) (bool, string) {
+	var n int64
+
+	db.Model(&models.Order{}).Where("user_id = ? AND status = ?", user.ID, "expired").Count(&n)
+	if n > 0 {
+		return true, "存在逾期未归还订单（orders.status=expired）"
+	}
+
+	db.Table("order_payment_records").
+		Where("user_id = ? AND status = ? AND order_type IN ?", user.IAMSub, "pending",
+			[]string{"damage", "repair", "loss"}).
+		Count(&n)
+	if n > 0 {
+		return true, "存在未支付补缴记录（damage/repair/loss pending）"
+	}
+
+	db.Model(&models.Order{}).
+		Where("user_id = ? AND status IN ?", user.ID,
+			[]string{"pending_damage_response", "damage_appealing"}).
+		Count(&n)
+	if n > 0 {
+		return true, "存在未结损坏流程（pending_damage_response/damage_appealing）"
+	}
+
+	db.Table("appeals").
+		Where("appellant_id = ? AND status IN ?", user.IAMSub,
+			[]string{"pending", "reviewing", "forwarded"}).
+		Count(&n)
+	if n > 0 {
+		return true, "存在未决申诉（pending/reviewing/forwarded）"
+	}
+
+	return false, ""
 }
 
 // aggregateUserSpending computes lifetime spending on demand from payment
