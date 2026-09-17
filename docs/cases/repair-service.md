@@ -24,36 +24,55 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 报修，并存
 ## RS-01 创建维修单（用户，weapp）
 
 - 入口：小程序「维修」Tab →「维修服务」
-- 表单：描述（必填）+ 照片（≤6，走 /upload）——**不填识别码**
+- 表单：描述（必填）+ 照片（≤6）——**不填识别码**
 - 提交后系统分配 **6 位唯一编码**（数字+大写字母，`repair_code` uniqueIndex，冲突重试），界面展示并提示「请将该编码写在物流单信息栏」
-- ops: `POST /user/repair-services`（创建，返回 repair_code）
+- **调用 / 获取**
+  - `POST /api/user/repair-services {description, photos[]}` → `{id, repair_code, status}`
+  - 照片上传：`POST /api/upload`（现有）→ 取返回 url 填入 `photos`
+  - 页面无需其他数据（可不绑定乐器；`user_instrument_id` 可选）
 
-## RS-02 选择维修师 / 报价（师傅，weapp 工作台）
+## RS-02 选择维修师（用户）／报价（师傅，weapp 工作台）
 
-- 用户浏览/选择维修师（师傅基础档案：姓名/网点/专长；评分展示待后续）
+- **用户浏览并选择维修师**（师傅基础档案：姓名/头像/网点；评分展示待后续）
 - 咨询能力 → #1943（holdon）
-- 师傅**报价**：`修理费` + `物流费预估`
+- 选择后服务单归属该师傅所在网点（`site_id/tenant_id` 回填），寄件地址即该网点地址
+- **调用 / 获取**
+  - `GET /api/common/repair-technicians[?site_id=]` → `{list:[{technician_id, name, avatar, site_id, site_name, site_address}]}`　**【RS-API-1，新增】**
+    - 数据源：`site_members(status='active', role='repair_technician')` JOIN `sites(status='active')`
+    - `technician_id` = `users.id`（与 select-technician 解析口径一致）；仅暴露姓名/头像/网点展示字段（**不含手机号/邮箱**）
+    - 可选 `site_id` 过滤（配合 `/api/common/sites/nearby` 做「按网点选师傅」两段式 UX）
+  - `POST /api/user/repair-services/:id/select-technician {technician_id}` → `{id, site_id}`
+- **师傅报价**：`修理费` + `物流费预估`
   - 直连模式（无中转）：1 段受管物流（网点→用户）
   - 受控组合：3 段受管物流（中转→受控、受控→中转、中转→用户）；**用户→中转段用户自担**
-- ops: `POST /repair-services/:id/quote`
+- **调用 / 获取（师傅）**
+  - `GET /api/repair-services?scope=mine&status=pending_quote` → 待报价列表　**【RS-API-2，新增】**
+  - `POST /api/repair-services/:id/quote {quote_repair_cents, quote_logistics_cents}` → `{id, status, payable}`
 
 ## RS-03 用户接受报价并支付（用户，weapp）
 
 - 接受报价 → **虚拟商品支付**（修理费 + 物流费预估；`order_type='repair'`，不绑乐器订单）
 - 支付成功 → **会话建立（合约开始）**，状态 `paid`
-- ops: 支付回调（虚拟商品路径）
+- **调用 / 获取**
+  - `POST /api/user/repair-services/:id/accept` → `{id, payable_cents}`（金额服务端重算）
+  - `POST /api/pay/prepay {order_type:"repair", order_id:<维修单id>}`（现有；服务端按状态重算金额，客户端金额不可信）→ JSAPI 参数
+  - 回调：虚拟商品路径（无物流上报收货确认）
 
 ## RS-04 用户寄出（用户，weapp）
 
 - 用户自行联系物流寄出（运费自担），**填写物流单号**（物流单信息栏须写 6 位编码）
-- ops: `POST /repair-services/:id/ship {tracking_number}`
-- 状态 `shipped`
+- **调用 / 获取**
+  - 详情页需展示**寄件地址**（所选网点名称/地址/联系人/电话）→ `GET /api/user/repair-services/:id` 需返回 `site` 对象　**【RS-API-3，新增】**
+  - `POST /api/user/repair-services/:id/ship {tracking_company, tracking_number}` → 状态 `shipping`
 
 ## RS-05 分段物流（网点/中转员工，weapp + PC 后台）
 
 - 每段发运时，经手员工**实填本段物流费**（报价预估为参考）
 - 受控组合的段序：中转→受控（网点员工）→（师傅修理）→ 受控→中转（受控侧员工）→ 中转→用户（网点员工，**末段触发结算**）
-- 每段费用落库：`repair_logistics_fees`（repair_id/leg/from_site/to_site/amount/filled_by）
+- 每段费用落库：`repair_logistics_fees`（repair_id/leg/amount_cents/filled_by）
+- **调用 / 获取（员工）**
+  - `POST /api/repair-services/:id/legs {leg, logistics_fee_cents}`
+  - 待发回清单：`GET /api/repair-services?scope=site&status=done_repair`　**【RS-API-2】**（现 `GET /api/repair-services/pending-dispatch` 保留兼容）
 
 ## RS-06 加价（师傅报价修正，weapp 工作台）
 
@@ -63,6 +82,10 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 报修，并存
   - **继续** → **立即补差价** = `新总价 − 原报价修理费`（= 100；**物流费不参与补差**，按各段实填结算）→ 虚拟商品支付 → 师傅继续修理
   - **不继续** → 师傅停止修理 → 乐器进入**待发回**（结算修理费基准 = **到此为止修理费**）
 - 加价记录留痕（原报价/新报价/用户决定）
+- **调用 / 获取**
+  - 师傅：`POST /api/repair-services/:id/adjust {new_quote_cents, incurred_cents}` → `{id, status, payable_cents(差价), incurred_cents}`
+  - 用户：`POST /api/user/repair-services/:id/adjust/accept` → `{payable_cents(差价)}`，随后 `POST /api/pay/prepay {order_type:"repair", order_id}`
+  - 用户：`POST /api/user/repair-services/:id/adjust/decline` → 状态 `done_repair`（待发回）
 
 ## RS-07 完成修理（师傅，weapp 工作台）
 
@@ -82,9 +105,45 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 报修，并存
 ## RS-09 评价（用户，weapp）
 
 - 结算完成（发回）后推送「维修完成」通知（含评价邀请）
-- 评价：**评分（1-5）+ 留言 + 照片**（≤6，走 /upload）
-- ops: `POST /repair-services/:id/review`
+- 评价：**评分（1-5）+ 留言 + 照片**（≤6）
+- **调用 / 获取**
+  - 照片上传：`POST /api/upload`（现有）→ url 列表
+  - 提交：`POST /api/user/repair-services/:id/review {rating, message, photos[]}`
+  - 读取（本人/员工）：`GET /api/user/repair-services/:id` → `{repair, logistics_fees[], review?}`
 - 展示：PC 后台维修管理页可见评分/留言/照片
+
+## RS-API 端点总表（阶段3 前端实现依据）
+
+> **登录上下文（强制，实现前必读）**：
+> - **顾客（USER）**：JWT **无** `tid`/`oid` → 端点必须注册在 **`userOptionalAuth`**（`OptionalIAMInterceptor`），
+>   且**不得**用 JWT 推导租户/网点（从**资源或参数**推导：如 repair 单的 `tenant_id/site_id`、`site_id` 查询参数）；
+>   否则空 `tid` 触发 40104（#833 教训）。
+> - **员工 / 师傅**：JWT **有** `tid`/`oid` → 端点注册在 **`authRequired`**（`IAMInterceptor`），
+>   **必须**以 JWT `oid`/`tid` 做作用域与归属校验（`repairServiceStaffAllowed`，#688 教训）。
+> - 同一资源两种上下文分别开端点（如顾客 `/api/user/repair-services/:id` vs 员工 `/api/repair-services/:id/...`），不复用。
+
+| # | 端点 | 角色（登录上下文） | 路由组 | 用途 / 返回 |
+|---|------|------------------|--------|------------|
+| — | `POST /api/user/repair-services` | 顾客（无 oid） | userOptionalAuth | 创建 → `{id, repair_code}` |
+| RS-API-1 | `GET /api/common/repair-technicians[?site_id=]`　**新增** | 顾客（无 oid） | userOptionalAuth | 可选师傅列表 → `{list:[{technician_id,name,avatar,site_id,site_name,site_address}]}`（**不得**依赖 JWT 租户；按入参/公共口径） |
+| — | `POST /api/user/repair-services/:id/select-technician` | 顾客（无 oid） | userOptionalAuth | 选师 → `{id, site_id}`（归属校验按 `repair.user_id`） |
+| RS-API-2 | `GET /api/repair-services?scope=mine\|site&status=<csv>`　**新增** | 师傅/员工（**有 oid**） | authRequired | 任务列表（scope=mine 指派给我；scope=site 用 JWT `oid`→`tid` 回退） |
+| — | `POST /api/repair-services/:id/quote` | 师傅（有 oid） | authRequired | 报价（归属校验 `repairServiceStaffAllowed`） |
+| — | `POST /api/user/repair-services/:id/accept` | 顾客（无 oid） | userOptionalAuth | 接受报价 → `{payable_cents}` |
+| — | `POST /api/pay/prepay` | 顾客（无 oid） | userOptionalAuth | 支付（`order_type=repair`，服务端重算；租户从 repair 单推导） |
+| RS-API-3 | `GET /api/user/repair-services/:id`　**扩展** | 顾客（无 oid）+ 员工（有 oid） | userOptionalAuth | 详情 + `site`（寄件地址/联系人）；员工可见性按 JWT 归属 |
+| — | `POST /api/user/repair-services/:id/ship` | 顾客（无 oid） | userOptionalAuth | 寄出 |
+| — | `POST /api/repair-services/:id/legs` | 员工（有 oid） | authRequired | 分段实填物流费 |
+| — | `POST /api/repair-services/:id/adjust` | 师傅（有 oid） | authRequired | 加价申请（双字段） |
+| — | `POST /api/user/repair-services/:id/adjust/accept\|decline` | 顾客（无 oid） | userOptionalAuth | 加价响应 |
+| — | `POST /api/repair-services/:id/complete` | 师傅（有 oid） | authRequired | 完成修理 |
+| — | `POST /api/repair-services/:id/dispatch` | 员工（有 oid） | authRequired | 末段发回 + 结算 |
+| — | `POST /api/user/repair-services/:id/review` | 顾客（无 oid） | userOptionalAuth | 评价 |
+| — | `GET /api/user/repair-services` | 顾客（无 oid） | userOptionalAuth | 我的维修单列表（按 `user_id`） |
+| — | `GET /api/repair-services/pending-dispatch` | 员工（有 oid） | authRequired | 待发回（`RS-API-2` 兼容别名） |
+
+> **新增端点归属**：RS-API-1/2/3 属**阶段3 前置后端补丁**（阶段2 实现时未覆盖的数据获取面），
+> 在阶段3 首个执行单元中一并实现（3 文件：`handlers/repair_service.go` + `main.go` + 测试）。
 
 ## RS-10 与 v3 报修的并存与迁移
 
