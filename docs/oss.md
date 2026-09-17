@@ -41,7 +41,7 @@
 
 | # | 事项 | 状态 |
 |---|------|------|
-| 1 | RAM 用户 ×2（`tuneloop-oss-prod` / `tuneloop-oss-pre`）+ 最小权限策略（各自 bucket 的 Put/Get/Delete/List） | ✅ 已创建 **且权限实测通过（2026-09-16）**：四桶 RAM 读写删全 OK、匿名层 media=公共读/sec=私有；分片项留待 P1 联调复验；**ECS 实例角色方案已采纳（见 §2.1）** |
+| 1 | RAM 用户 ×2（`tuneloop-oss-prod` / `tuneloop-oss-pre`）+ 最小权限策略（各自 bucket 的 Put/Get/Delete/List） | ✅ 已创建 **且权限实测通过（2026-09-16）**：四桶 RAM 读写删全 OK、匿名层 media=公共读/sec=私有；**ECS 实例角色 `tuneloop-oss-prod-role` 已创建 + 策略 `TuneLoopOSSProdMinimal` v2 + 授予 cadenza 实例 → 2026-09-17 生产两桶零 AK 冒烟 ALL PASS（见 §4.2 / §4.3）** |
 | 2 | AccessKey 已保存至本机 `./oss-accounts.md`（**已 .gitignore，严禁提交**；仅用于本地 dev 联调与兜底） | ✅ |
 | 3 | 微信公众平台 downloadFile 合法域名（单 appid `wxcb44a1be70e356ed`，加 4 个直连域名或绑自定义域名后加 `img*` 域） | ⏳ 待办 |
 | 4 | 自定义域名 CNAME + 所有权验证 + HTTPS 证书（可后补，见 §3） | ⏳ 可选后补 |
@@ -50,10 +50,16 @@
 
 > 阿里云建议优先 STS。本项目落地采用**更彻底的 ECS 实例角色方案**：cadenza（生产+预生产同机）为阿里云 ECS，服务端凭据由 SDK 经 metadata 自动获取**临时凭证并自动轮换，零 AK 落盘**。
 
-**凭证解析顺序（OSSStorage 初始化实现）**：
-1. **ECS 实例 RAM 角色**（生产/预生产 cadenza 生效；控制台绑定角色一次，无 AK）
-2. **环境变量 AK 兜底**（`OSS_ACCESS_KEY_ID/SECRET`，仅本地 dev 联调用 `tuneloop-oss-pre` 这把）
+**凭证解析顺序（`services/oss_credentials.go resolveCredentialsProvider`，2026-09-17 核对实现）**：
+1. **环境变量 AK 优先**（`OSS_ACCESS_KEY_ID` 存在即用——预生产 / 本地 dev 联调走各自 RAM key）
+2. **ECS 实例 RAM 角色**（env AK 缺省时经 metadata 取临时 STS，自动轮换，零 AK 落盘——生产 cadenza）
 3. 均无 → 启动 WARN + 回退 `LocalStorage`
+
+> ⚠️ **顺序订正**：实现是 env AK 存在时**优先 env AK**，仅在无 AK 时才用实例角色——这正是**同机双环境隔离**的实现方式：预生产 `.env` 有 `tuneloop-oss-pre` AK → 走 AK；生产 `.env` 不填 AK → 落实例角色（角色仅授生产两桶）。本节旧文曾误写为「角色优先」，已按实现订正。
+
+> ⚠️ **阿里云 ECS 元数据地址是 `100.100.100.200`（不是 `.100`）**：`.100` 对所有路径返回 404，会导致生产取不到角色凭证并静默回退本地。`services/oss_credentials.go` 与 `tools/oss_smoke` 已于 2026-09-17 修正为 `.200`（`100.100.100.100` 残留 → REJECT 级 bug）。
+
+**生产角色（2026-09-17 落地）**：`acs:ram::1761850082287035:role/tuneloop-oss-prod-role`（普通服务角色，可信实体 ECS），附加自定义策略 `TuneLoopOSSProdMinimal`（**v2**）；已授予 cadenza 实例，生产两桶零 AK 冒烟 **ALL PASS**（见 §4.2 / §4.3）。
 
 **RAM 用户角色降级**：仅本地开发联调 + 应急兜底；**不承载生产/预生产服务端运行时**。STS AssumeRole 不引入（实例角色内部即 STS 且自动续期）。
 
@@ -128,21 +134,67 @@ OSS_ACCESS_KEY_SECRET=<tuneloop-oss-pre 的 Secret>
 # 不配置以上任意项 = 本地 LocalStorage 模式
 ```
 
-### 4.2 ECS 实例角色配置指南（生产）
+### 4.2 ECS 实例角色配置指南（生产）✅ 已完成（2026-09-17）
 
-> 背景：生产（+预生产同机）cadenza 为阿里云 ECS。按 §2.1 决策，**生产服务凭据 = ECS 实例角色（零 AK 落盘）**；预生产用 env AK——**实例角色按“实例”粒度绑定、无法按进程区分**，故角色只授予**生产两桶**权限，达到同机双环境权限隔离。
+> 背景：生产（+预生产同机）cadenza 为阿里云 ECS。按 §2.1，**生产服务凭据 = ECS 实例角色（零 AK 落盘）**；预生产用 env AK——**实例角色按“实例”粒度绑定、无法按进程区分**，故角色只授予**生产两桶**权限，达到同机双环境权限隔离（实现上靠 env AK 优先，见 §2.1）。
 
-**控制台操作（约 5 分钟，一次完成）**：
-1. RAM 控制台 → 角色 → 创建角色：可信实体「阿里云账号」→ 普通服务角色 → 服务类型 **ECS**；
-2. 给角色附加**最小权限策略（仅生产两桶）**：`tuneloop-media` + `tuneloop-media-sec` 的 Put/Get/Delete/List + 分片全集（AM JSON 同 §P0 RAM 策略，替换 bucket 名）；
-3. ECS 控制台 → 实例（cadenza）→ 更多 → 实例设置 → **授予/修改 RAM 角色** → 选刚建的角色；**无需重启实例**，1-2 分钟生效。
+**控制台操作（已完成，供复现/换机参考）**：
+1. RAM 控制台 → 角色 → 创建角色：**可信实体「阿里云服务」→ 服务类型 ECS**（普通服务角色），名称 `tuneloop-oss-prod-role`；
+2. 创建/附加**最小权限策略**（自定义，名称建议 `TuneLoopOSSProdMinimal`），内容见下；**注意必须同时包含桶级 ARN 与对象级 `bucket/*` ARN**——只写桶级 ARN 会导致 Put/Get/Delete 全部「资源无匹配操作」而 403；
+3. ECS 控制台 → 实例（cadenza）→ 更多 → 实例设置 → **授予/修改 RAM 角色** → 选中该角色；无需重启实例，1-2 分钟生效。
 
-**绑定后验证**：
-```bash
-ssh cadenza "curl -s -m 4 http://100.100.100.100/latest/meta-data/ram/security-credentials/"
-# 应有角色名输出；再用无 AK 形式跑冒烟（见 §7）
-ssh cadenza "OSS_ENDPOINT=https://oss-cn-beijing.aliyuncs.com OSS_BUCKET=tuneloop-media OSS_PRIVATE_BUCKET=tuneloop-media-sec /tmp/oss-smoke"
+**最小权限策略 JSON（`TuneLoopOSSProdMinimal` v2，仅生产两桶）**：
+
+```json
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "oss:PutObject",
+        "oss:GetObject",
+        "oss:DeleteObject",
+        "oss:ListObjects",
+        "oss:AbortMultipartUpload",
+        "oss:ListMultipartUploads",
+        "oss:ListParts"
+      ],
+      "Resource": [
+        "acs:oss:*:*:tuneloop-media",
+        "acs:oss:*:*:tuneloop-media/*",
+        "acs:oss:*:*:tuneloop-media-sec",
+        "acs:oss:*:*:tuneloop-media-sec/*"
+      ]
+    }
+  ]
+}
 ```
+
+> 动作说明：分片 `Initiate/UploadPart/Complete/UploadPartCopy` 由 `oss:PutObject` 覆盖；`Abort/ListMultipartUploads/ListParts` 单列。`Copy`=Get+Put；`DeletePrefix`=List+Delete。
+
+**验证（绑定后）**：
+
+```bash
+# 1) 元数据：应输出角色名（注意是 100.100.100.200）
+ssh cadenza 'curl -s -m 5 http://100.100.100.200/latest/meta-data/ram/security-credentials/'
+# → tuneloop-oss-prod-role
+
+# 2) 零 AK 冒烟（生产两桶，强制走实例角色）
+ssh cadenza 'env -u OSS_ACCESS_KEY_ID -u OSS_ACCESS_KEY_SECRET \
+  OSS_ENDPOINT=https://oss-cn-beijing.aliyuncs.com \
+  OSS_BUCKET=tuneloop-media OSS_PRIVATE_BUCKET=tuneloop-media-sec /tmp/oss-smoke'
+# → credential chain: ECS instance role (metadata) ... ALL PASS (exit 0)
+```
+
+**2026-09-17 实测结果**：元数据返回 `tuneloop-oss-prod-role`（ECS owner 账号 `1761850082287035` = 角色 ARN 账号，排除跨账号）；生产两桶零 AK 冒烟 **0 失败 / ALL PASS**（公开上传→匿名读一致；私有上传→签名读→无签名 403；删除；DeletePrefix）。
+
+**踩坑记录（避免重犯）**：
+- ❌ 策略只给桶级 ARN（`acs:oss:*:*:tuneloop-media-sec`）→ 对象级动作「资源无匹配操作」→ 403；✅ 必须带 `/*`。
+- ❌ 策略漏掉公开桶 `tuneloop-media` → 该桶 ListObjects 报 `The bucket you access does not belong to you`。
+- ❌ 元数据 IP 写 `100.100.100.100`（404）；✅ 正确为 `100.100.100.200`。
+
+**回滚**：ECS → 实例 → 更多 → 实例设置 → 授予/修改 RAM 角色 → 清除；或解绑策略。生产 `.env` 不填 AK 时会 WARN 并回退 `LocalStorage`，不影响服务。
 
 ### 4.3 冒烟验证（P2）
 
@@ -161,15 +213,18 @@ ssh cadenza "OSS_ENDPOINT=https://oss-cn-beijing.aliyuncs.com OSS_BUCKET=tuneloo
 **2026-09-16 实测结果**：
 - 预生产两桶（pre AK）：🔴→🟢 修复后 **ALL PASS**（先因强制 HTTPS 问题 403，见下）
 - ⚠️ **强制 HTTPS**：桶拒 HTTP（误导性 `403 bucket acl`）→ endpoint 必须 `https://`；实现 `normalizeEndpoint` 已强制注入
-- ⏳ ECS 实例角色：绑定前 metadata 空 → 角色绑定后复测（见 §4.2）
+
+**2026-09-17 实测结果（生产，ECS 实例角色，零 AK）**：
+- 生产两桶 `tuneloop-media` + `tuneloop-media-sec`：**ALL PASS**（`credential chain: ECS instance role (metadata)`，exit 0）
+- 工具同轮修正元数据 IP（`.100`→`.200`，见 §4.2 踩坑记录）
 
 ## 5. 阶段路线图（摘要，详见 #1914）
 
 | 阶段 | 内容 | 状态 |
 |------|------|:---:|
-| P0 | OSS 开通 / bucket / RAM-AK / 域名 / 微信白名单 | ✅ 完成（权限实测通过）；微信白名单/CNAME 待办 |
-| P1 | `OSSStorage` 实现（凭证链、分片、幂等删除、私有签名）+ 单测 | ✅ 完成（`5b7051e4`） |
-| P2 | env 配置与缺项回退 + 冒烟 | 🔶 实现✅；冒烟✅（预生产桶 ALL PASS）；**.env 落地待运维**；ECS 角色待绑定 |
+| P0 | OSS 开通 / bucket / RAM-AK / 域名 / 微信白名单 | ✅ 完成（权限实测通过，2026-09-16）；**ECS 实例角色 + 策略 v2 + 实例绑定完成（2026-09-17）**；微信白名单/CNAME 待办 |
+| P1 | `OSSStorage` 实现（凭证链、分片、幂等删除、私有签名）+ 单测 | ✅ 完成（`5b7051e4`）；元数据 IP 修正（`.200`，2026-09-17） |
+| P2 | env 配置与缺项回退 + 冒烟 | 🔶 实现✅；冒烟✅（预生产桶 + **生产桶实例角色均 ALL PASS**）；**.env 落地待运维** |
 | P3 | 双写开关（OSS 写失败显式报错，可配置阻断） | ⏳ |
 | P4 | CLI `--migrate-media-oss`（dry-run 先行、幂等、断点续传、失败清单） | ⏳ |
 | P5 | `GetURL` 切读开关 + nginx `/uploads/*` 未命中重定向兜底 | ⏳ |
