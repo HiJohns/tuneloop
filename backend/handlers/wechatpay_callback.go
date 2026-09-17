@@ -257,10 +257,13 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 			var rr models.RepairRequest
 			if err := tx.First(&rr, "id = ?", *record.OrderID).Error; err == nil && rr.Type == repairServiceTypeVal {
 				if rr.Status == models.RepairReqStatusAdjustPending {
+					// 加价补差到账 → 继续修理。**不得**用 incurred 覆盖
+					// adjusted_quote_cents：后者是「加价后新修理费总价」，结算基准
+					// （RS-06/RS-08；审计 F2）。
 					return tx.Model(&models.RepairRequest{}).Where("id = ?", rr.ID).
 						Updates(map[string]interface{}{
-							"status":               models.RepairReqStatusRepairing,
-							"adjusted_quote_cents": rr.IncurredRepairCents,
+							"status":       models.RepairReqStatusRepairing,
+							"quote_status": "accepted",
 						}).Error
 				}
 				return tx.Model(&models.RepairRequest{}).Where("id = ?", rr.ID).

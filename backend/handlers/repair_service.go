@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -22,11 +23,16 @@ import (
 //
 //	用户创建（pending_quote，尚无网点/租户）→ 选维修师（回填 site/tenant）
 //	→ 师傅报价（pending_payment）→ 用户接受并支付（paid，微信回调置位）
-//	→ 用户寄出（shipping）→ 分段物流实填 → 师傅完工（done_repair）
+//	→ 用户寄出（shipping）→ 分段物流实填 → 师傅完工（complete → done_repair）
 //	→ 网点员工发回并结算（closed，多退少补）→ 用户评价
 //
-// 加价：repairing → adjust_pending（师傅出具加价）→ 用户支付差价（回调→repairing）
-// 或用户拒绝 → done_repair
+// 加价（docs/cases/repair-service.md RS-06）：repairing → adjust_pending
+//   - `new_quote_cents` = 新修理费**总价**；`incurred_cents` = **到此为止已发生**的修理费
+//   - accept → 补差 = 新总价 − 原报价修理费（虚拟商品支付，回调 → repairing）
+//   - decline → 停止修理 → done_repair，结算修理费基准 = incurred
+//
+// 结算（RS-08）：actual = 修理费基准（accept→新总价 / decline→incurred / 无加价→原报价）
+// + Σ各段实填物流费；prepaid = Σ已付；多退少补。
 type RepairServiceHandler struct{}
 
 func NewRepairServiceHandler() *RepairServiceHandler { return &RepairServiceHandler{} }
@@ -46,17 +52,26 @@ func genRepairCode(db *gorm.DB) string {
 	return strings.ToUpper(strings.ReplaceAll(uuid.New().String(), "-", ""))[:8]
 }
 
-// repairServicePaymentAmount 支付阶段权威应付金额（分）= 修理费 + 物流费预估。
-// 加价阶段（adjust_pending）以「到此为止修理费」为准。
+// repairServicePaymentAmount 支付阶段权威应付金额（分，服务端重算，客户端金额不可信）。
+//
+//   - 初付（pending_payment）：报价修理费 + 物流费预估
+//   - 加价补差（adjust_pending）：`new_quote_cents − quote_repair_cents`
+//     —— **补差价**，不是新总价全额（RS-06；审计 F2）
+//
+// 优惠码/折扣导致的已付与报价差额由结算「多退少补」兜底。
 func repairServicePaymentAmount(rr *models.RepairRequest) (models.Cents, string) {
-	if rr.Status == models.RepairReqStatusAdjustPending {
-		if rr.IncurredRepairCents == nil {
-			return 0, "adjustment amount missing"
-		}
-		return *rr.IncurredRepairCents, ""
-	}
 	if rr.QuoteRepairCents == nil {
 		return 0, "quote missing"
+	}
+	if rr.Status == models.RepairReqStatusAdjustPending {
+		if rr.AdjustedQuoteCents == nil {
+			return 0, "adjustment amount missing"
+		}
+		diff := *rr.AdjustedQuoteCents - *rr.QuoteRepairCents
+		if diff < 0 {
+			diff = 0
+		}
+		return diff, ""
 	}
 	amount := *rr.QuoteRepairCents
 	if rr.QuoteLogisticsCents != nil {
@@ -65,9 +80,10 @@ func repairServicePaymentAmount(rr *models.RepairRequest) (models.Cents, string)
 	return amount, ""
 }
 
-// repairServiceRepairOnly 结算用修理费：加价后以 incurred/adjusted 为准。
+// repairServiceRepairOnly 结算用修理费基准（RS-08）：
+// 用户拒绝加价 → incurred（到此为止）；已加价 → 新总价；否则原报价修理费。
 func repairServiceRepairOnly(rr *models.RepairRequest) models.Cents {
-	if rr.Status == models.RepairReqStatusAdjustPending && rr.IncurredRepairCents != nil {
+	if rr.QuoteStatus == "declined" && rr.IncurredRepairCents != nil {
 		return *rr.IncurredRepairCents
 	}
 	if rr.AdjustedQuoteCents != nil {
@@ -117,6 +133,23 @@ func localUserIDBySub(db *gorm.DB, sub string) string {
 		return u.ID
 	}
 	return ""
+}
+
+// repairServiceStaffAllowed 员工/师傅操作目标服务单的归属校验（审计 F1，#688 清单）：
+// 目标单的 tenant/site 必须与 JWT 的 tid/oid 匹配；未选定网点（tenant 为空）的服务单
+// 不允许任何 staff 操作。namespace/merchant 级（oid 空）只校验租户。
+func repairServiceStaffAllowed(rr *models.RepairRequest, ctx context.Context) bool {
+	if rr.TenantID == "" || rr.SiteID == "" {
+		return false
+	}
+	tid := middleware.GetTenantID(ctx)
+	if tid == "" || rr.TenantID != tid {
+		return false
+	}
+	if oid := middleware.GetOrgID(ctx); oid != "" && rr.SiteID != oid {
+		return false
+	}
+	return true
 }
 
 // Create POST /api/user/repair-services
@@ -318,6 +351,11 @@ func (h *RepairServiceHandler) Quote(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "quote is only allowed in pending_quote"})
 		return
 	}
+	// 报价必须先选师（才有网点/租户归属），且操作者须属该网点（F1）
+	if !repairServiceStaffAllowed(rr, ctx) {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
+		return
+	}
 	now := time.Now()
 	updates := map[string]interface{}{
 		"quote_repair_cents":    models.Cents(body.QuoteRepairCents),
@@ -414,12 +452,13 @@ func (h *RepairServiceHandler) Ship(c *gin.Context) {
 }
 
 // AddLegFee POST /api/repair-services/:id/legs （员工实填某段物流费）
+// 请求体：{leg, logistics_fee_cents}（契约见 RS-07）
 func (h *RepairServiceHandler) AddLegFee(c *gin.Context) {
 	var body struct {
-		Leg         int   `json:"leg" binding:"required"`
-		AmountCents int64 `json:"amount_cents"`
+		Leg               int   `json:"leg" binding:"required"`
+		LogisticsFeeCents int64 `json:"logistics_fee_cents"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil || body.Leg < 1 || body.AmountCents < 0 {
+	if err := c.ShouldBindJSON(&body); err != nil || body.Leg < 1 || body.LogisticsFeeCents < 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid leg fee"})
 		return
 	}
@@ -434,6 +473,10 @@ func (h *RepairServiceHandler) AddLegFee(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "repair service not found"})
 		return
 	}
+	if !repairServiceStaffAllowed(rr, ctx) {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
+		return
+	}
 	switch rr.Status {
 	case models.RepairReqStatusShipping, models.RepairReqStatusRepairing, models.RepairReqStatusDoneRepair, models.RepairReqStatusPaid:
 	default:
@@ -444,7 +487,7 @@ func (h *RepairServiceHandler) AddLegFee(c *gin.Context) {
 		ID:          uuid.New().String(),
 		RepairID:    rr.ID,
 		Leg:         body.Leg,
-		AmountCents: models.Cents(body.AmountCents),
+		AmountCents: models.Cents(body.LogisticsFeeCents),
 		FilledBy:    middleware.GetUserID(ctx),
 		CreatedAt:   time.Now(),
 	}
@@ -457,12 +500,18 @@ func (h *RepairServiceHandler) AddLegFee(c *gin.Context) {
 }
 
 // Adjust POST /api/repair-services/:id/adjust （师傅加价）
+// 请求体（RS-06）：{new_quote_cents（新修理费总价）, incurred_cents（到此为止修理费）}
 func (h *RepairServiceHandler) Adjust(c *gin.Context) {
 	var body struct {
-		IncurredRepairCents int64 `json:"incurred_repair_cents" binding:"required"`
+		NewQuoteCents int64 `json:"new_quote_cents" binding:"required"`
+		IncurredCents int64 `json:"incurred_cents" binding:"required"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil || body.IncurredRepairCents < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "incurred_repair_cents is required"})
+	if err := c.ShouldBindJSON(&body); err != nil || body.NewQuoteCents < 0 || body.IncurredCents < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "new_quote_cents and incurred_cents are required"})
+		return
+	}
+	if body.IncurredCents > body.NewQuoteCents {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "incurred_cents must not exceed new_quote_cents"})
 		return
 	}
 	ctx := c.Request.Context()
@@ -476,35 +525,47 @@ func (h *RepairServiceHandler) Adjust(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "repair service not found"})
 		return
 	}
-	if rr.Status != models.RepairReqStatusRepairing {
-		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "adjustment is only allowed while repairing"})
+	if !repairServiceStaffAllowed(rr, ctx) {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
+		return
+	}
+	// 乐器已寄出（shipping）或维修中（repairing）均可发起加价——计划未设「开始维修」
+	// 端点，首次加价发生在师傅收货时（RS-06 主流程 7），故 shipping 必须可加价。
+	switch rr.Status {
+	case models.RepairReqStatusShipping, models.RepairReqStatusRepairing:
+	default:
+		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "adjustment is only allowed while shipping or repairing"})
+		return
+	}
+	if rr.QuoteRepairCents == nil {
+		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "quote missing"})
 		return
 	}
 	if err := db.Model(&models.RepairRequest{}).Where("id = ?", rr.ID).
 		Updates(map[string]interface{}{
-			"incurred_repair_cents": models.Cents(body.IncurredRepairCents),
+			"incurred_repair_cents": models.Cents(body.IncurredCents),
+			"adjusted_quote_cents":  models.Cents(body.NewQuoteCents),
+			"quote_status":          "pending",
 			"status":                models.RepairReqStatusAdjustPending,
 			"updated_at":            time.Now(),
 		}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to submit adjustment"})
 		return
 	}
+	// 用户继续时应付**差价**（新总价 − 原报价修理费），非全额
+	diff := body.NewQuoteCents - int64(*rr.QuoteRepairCents)
+	if diff < 0 {
+		diff = 0
+	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
-		"id": rr.ID, "status": models.RepairReqStatusAdjustPending, "payable_cents": body.IncurredRepairCents,
+		"id": rr.ID, "status": models.RepairReqStatusAdjustPending,
+		"payable_cents": diff, "incurred_cents": body.IncurredCents,
 	}})
 }
 
-// RespondAdjust POST /api/user/repair-services/:id/adjust/respond
-// accept=true → 保留 adjust_pending（前端调用 /pay/prepay 支付差价，回调置 repairing）
-// accept=false → 停止维修 → done_repair
-func (h *RepairServiceHandler) RespondAdjust(c *gin.Context) {
-	var body struct {
-		Accept bool `json:"accept"`
-	}
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request"})
-		return
-	}
+// AdjustAccept POST /api/user/repair-services/:id/adjust/accept
+// 用户同意加价 → 保留 adjust_pending（前端调用 /pay/prepay 支付**差价**，回调置 repairing）
+func (h *RepairServiceHandler) AdjustAccept(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
 	rr, ok := loadRepairService(db, c.Param("id"))
@@ -520,20 +581,51 @@ func (h *RepairServiceHandler) RespondAdjust(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "no pending adjustment"})
 		return
 	}
-	if body.Accept {
-		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": rr.ID, "status": rr.Status, "action": "pay"}})
+	if err := db.Model(&models.RepairRequest{}).Where("id = ?", rr.ID).
+		Updates(map[string]interface{}{"quote_status": "accepted", "updated_at": time.Now()}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to accept adjustment"})
+		return
+	}
+	payable, msg := repairServicePaymentAmount(rr)
+	if msg != "" {
+		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": msg})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": rr.ID, "status": rr.Status, "payable_cents": payable}})
+}
+
+// AdjustDecline POST /api/user/repair-services/:id/adjust/decline
+// 用户拒绝加价 → 师傅停止修理 → done_repair（待发回）；结算修理费基准 = incurred_cents
+func (h *RepairServiceHandler) AdjustDecline(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	rr, ok := loadRepairService(db, c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "repair service not found"})
+		return
+	}
+	if rr.UserID != middleware.GetUserID(ctx) {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
+		return
+	}
+	if rr.Status != models.RepairReqStatusAdjustPending {
+		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "no pending adjustment"})
 		return
 	}
 	if err := db.Model(&models.RepairRequest{}).Where("id = ?", rr.ID).
-		Updates(map[string]interface{}{"status": models.RepairReqStatusDoneRepair, "updated_at": time.Now()}).Error; err != nil {
+		Updates(map[string]interface{}{
+			"quote_status": "declined",
+			"status":       models.RepairReqStatusDoneRepair,
+			"updated_at":   time.Now(),
+		}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to decline adjustment"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": rr.ID, "status": models.RepairReqStatusDoneRepair, "action": "stopped"}})
 }
 
-// DoneRepair POST /api/repair-services/:id/done-repair （师傅完工）
-func (h *RepairServiceHandler) DoneRepair(c *gin.Context) {
+// Complete POST /api/repair-services/:id/complete （师傅完工；契约见 RS-07）
+func (h *RepairServiceHandler) Complete(c *gin.Context) {
 	ctx := c.Request.Context()
 	if !isRepairStaffRole(middleware.GetRole(ctx)) {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
@@ -543,6 +635,10 @@ func (h *RepairServiceHandler) DoneRepair(c *gin.Context) {
 	rr, ok := loadRepairService(db, c.Param("id"))
 	if !ok {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "repair service not found"})
+		return
+	}
+	if !repairServiceStaffAllowed(rr, ctx) {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
 		return
 	}
 	switch rr.Status {
@@ -585,44 +681,34 @@ func (h *RepairServiceHandler) Dispatch(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "dispatch is only allowed after repair completion"})
 		return
 	}
-	if rr.TenantID == "" || rr.SiteID == "" {
-		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "repair service has no assigned site"})
+	if !repairServiceStaffAllowed(rr, ctx) {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
 		return
 	}
 	now := time.Now()
 
-	// 末段物流费
-	var maxLeg int
-	db.Model(&models.RepairLogisticsFee{}).Where("repair_id = ?", rr.ID).
-		Select("COALESCE(MAX(leg), 0)").Scan(&maxLeg)
-	if err := db.Create(&models.RepairLogisticsFee{
-		ID:          uuid.New().String(),
-		RepairID:    rr.ID,
-		Leg:         maxLeg + 1,
-		AmountCents: models.Cents(body.LogisticsFeeCents),
-		FilledBy:    middleware.GetUserID(ctx),
-		CreatedAt:   now,
-	}).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to record final leg fee"})
-		return
-	}
-
-	// 实际应付 = 修理费（加价后以 incurred 为准）＋ 各段物流费实填合计
+	// 实际应付 = 修理费基准 + Σ各段实填物流费（含本次末段费）
 	// 注意：SUM(numeric) 经 lib/pq 返回 float64，models.Cents.Scan(float64) 会按
 	// 「元」再 ×100（cents.go）→ 必须先落 int64 再转换，否则金额放大 100 倍。
 	var legsTotalInt int64
 	db.Model(&models.RepairLogisticsFee{}).Where("repair_id = ?", rr.ID).
 		Select("COALESCE(SUM(amount_cents), 0)").Scan(&legsTotalInt)
-	actual := repairServiceRepairOnly(rr) + models.Cents(legsTotalInt)
+	legsTotal := models.Cents(legsTotalInt) + models.Cents(body.LogisticsFeeCents)
 
 	var prepaidInt int64
 	db.Model(&models.OrderPaymentRecord{}).
 		Where("order_id = ? AND order_type = ? AND type = ? AND status = ?", rr.ID, "repair", "payment", "paid").
 		Select("COALESCE(SUM(amount), 0)").Scan(&prepaidInt)
 	prepaid := models.Cents(prepaidInt)
+	actual := repairServiceRepairOnly(rr) + legsTotal
 
-	result := gin.H{"id": rr.ID, "status": models.RepairReqStatusClosed, "actual_cents": actual, "prepaid_cents": prepaid}
+	result := gin.H{"id": rr.ID, "status": models.RepairReqStatusClosed,
+		"actual_cents": actual, "prepaid_cents": prepaid}
 
+	// 退款是不可回滚的外部调用 → **先执行**；失败即中止（不写任何 DB、不闭单），
+	// 订单保持 done_repair 可重试。out_refund_no 稳定（`repair_re_<id8>`）→ 重试
+	// 时微信按幂等处理，不会重复退款（审计 F6）。
+	var refundRecord *models.OrderRefundRecord
 	if prepaid > actual {
 		diff := prepaid - actual
 		var rec models.OrderPaymentRecord
@@ -631,7 +717,7 @@ func (h *RepairServiceHandler) Dispatch(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "paid record not found for refund"})
 			return
 		}
-		outRefundNo := fmt.Sprintf("repair_re_%s_%d", rr.ID[:8], now.Unix())
+		outRefundNo := fmt.Sprintf("repair_re_%s", rr.ID[:8])
 		refund := models.OrderRefundRecord{
 			ID:              uuid.New().String(),
 			TenantID:        rr.TenantID,
@@ -639,15 +725,12 @@ func (h *RepairServiceHandler) Dispatch(c *gin.Context) {
 			OutRefundNo:     &outRefundNo,
 			Amount:          diff,
 			Reason:          strPtr("维修服务结算退款"),
-			Status:          "pending",
+			Status:          "refunded", // 无线上支付记录（如优惠全免）时视为已退
 			CreatedAt:       now,
 			UpdatedAt:       now,
 		}
-		if rec.OutTradeNo == nil {
-			refund.Status = "refunded"
-		} else {
-			client := wechatpay.GetClient()
-			resp, err := client.Refund(ctx, wechatpay.RefundParams{
+		if rec.OutTradeNo != nil {
+			resp, err := wechatpay.GetClient().Refund(ctx, wechatpay.RefundParams{
 				OutTradeNo:   *rec.OutTradeNo,
 				OutRefundNo:  outRefundNo,
 				TotalAmount:  int64(rec.Amount),
@@ -656,55 +739,79 @@ func (h *RepairServiceHandler) Dispatch(c *gin.Context) {
 				NotifyURL:    wechatpay.GetConfig().RefundNotifyURL,
 			})
 			if err != nil {
-				// 红线：不静默吞错——退款失败状态落库并随响应返回
-				refund.Status = "failed"
-				fr := err.Error()
-				refund.FailReason = &fr
-				result["refund_error"] = err.Error()
+				// 红线：不静默吞错；且不闭单 —— 保持可重试（F6）
 				log.Printf("[RepairService.Dispatch] refund failed for %s: %v", rr.ID, err)
-			} else {
-				refund.RefundID = &resp.RefundID
-				refund.Status = "refunding"
+				c.JSON(http.StatusBadGateway, gin.H{
+					"code":    50200,
+					"message": "refund failed, repair remains open for retry: " + err.Error(),
+					"data": gin.H{"id": rr.ID, "refund_cents": diff,
+						"actual_cents": actual, "prepaid_cents": prepaid},
+				})
+				return
 			}
+			refund.RefundID = &resp.RefundID
+			refund.Status = "refunding"
 		}
-		if err := db.Create(&refund).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to record refund"})
-			return
-		}
+		refundRecord = &refund
 		result["refund_cents"] = diff
 		result["refund_status"] = refund.Status
-	} else if actual > prepaid {
-		diff := actual - prepaid
-		rec := models.OrderPaymentRecord{
-			ID:        uuid.New().String(),
-			TenantID:  rr.TenantID,
-			UserID:    rr.UserID,
-			OrderID:   &rr.ID,
-			OrderType: "repair",
-			Amount:    diff,
-			Type:      "payment",
-			Status:    "pending",
-			Method:    strPtr("shortfall"),
-			CreatedAt: now,
-			UpdatedAt: now,
-		}
-		if err := db.Create(&rec).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to record shortfall"})
-			return
-		}
-		result["shortfall_cents"] = diff
 	}
 
-	if err := db.Model(&models.RepairRequest{}).Where("id = ?", rr.ID).
-		Updates(map[string]interface{}{
-			"return_company":         body.TrackingCompany,
-			"return_tracking_number": body.TrackingNumber,
-			"status":                 models.RepairReqStatusClosed,
-			"closed_at":              now,
-			"updated_at":             now,
+	// DB 部分（末段物流费 + 退款记录 + 补缴记录 + 闭单）单事务（F6）
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		var maxLeg int
+		if err := tx.Model(&models.RepairLogisticsFee{}).Where("repair_id = ?", rr.ID).
+			Select("COALESCE(MAX(leg), 0)").Scan(&maxLeg).Error; err != nil {
+			return err
+		}
+		if err := tx.Create(&models.RepairLogisticsFee{
+			ID:          uuid.New().String(),
+			RepairID:    rr.ID,
+			Leg:         maxLeg + 1,
+			AmountCents: models.Cents(body.LogisticsFeeCents),
+			FilledBy:    middleware.GetUserID(ctx),
+			CreatedAt:   now,
 		}).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to close repair service"})
+			return err
+		}
+		if refundRecord != nil {
+			if err := tx.Create(refundRecord).Error; err != nil {
+				return err
+			}
+		}
+		if actual > prepaid {
+			diff := actual - prepaid
+			if err := tx.Create(&models.OrderPaymentRecord{
+				ID:        uuid.New().String(),
+				TenantID:  rr.TenantID,
+				UserID:    rr.UserID,
+				OrderID:   &rr.ID,
+				OrderType: "repair",
+				Amount:    diff,
+				Type:      "payment",
+				Status:    "pending",
+				Method:    strPtr("shortfall"),
+				CreatedAt: now,
+				UpdatedAt: now,
+			}).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Model(&models.RepairRequest{}).Where("id = ?", rr.ID).
+			Updates(map[string]interface{}{
+				"return_company":         body.TrackingCompany,
+				"return_tracking_number": body.TrackingNumber,
+				"status":                 models.RepairReqStatusClosed,
+				"closed_at":              now,
+				"updated_at":             now,
+			}).Error
+	}); err != nil {
+		log.Printf("[RepairService.Dispatch] settle tx failed for %s: %v", rr.ID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to settle repair service"})
 		return
+	}
+	if actual > prepaid {
+		result["shortfall_cents"] = actual - prepaid
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": result})
 }

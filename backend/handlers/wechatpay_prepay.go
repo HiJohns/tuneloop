@@ -199,10 +199,18 @@ func PrepayOrder(c *gin.Context) {
 	if sessionFlow {
 		baseAmount = session.Amount
 	}
-	// #1942 维修服务单：金额由服务端按报价（或加价）重算，客户端金额不可信。
+	// #1942 维修服务单：金额由服务端按报价（或加价）重算，客户端金额不可信；
+	// 且只允许在可支付状态发起（初付 pending_payment / 加价补差 adjust_pending）
+	// —— 防止已支付/未报价/已结算重复扣款（审计 F3）。
 	if req.OrderType == "repair" && effectiveOrderID != "" {
 		var rr models.RepairRequest
 		if err := db.Where("id = ?", effectiveOrderID).First(&rr).Error; err == nil && rr.Type == repairServiceTypeVal {
+			switch rr.Status {
+			case models.RepairReqStatusPendingPay, models.RepairReqStatusAdjustPending:
+			default:
+				c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "repair service is not payable in current status"})
+				return
+			}
 			amount, msg := repairServicePaymentAmount(&rr)
 			if msg != "" {
 				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": msg})
