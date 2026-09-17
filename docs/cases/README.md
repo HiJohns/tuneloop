@@ -13,6 +13,10 @@
 | `organization.md` | 组织管理 | O-01~ | cases.md §4 |
 | `transit.md` | 中转工作流 | T-01~ | cases.md §5 |
 | `cart.md` | 购物车 | C-01~ | #1665 教训沉淀（数据刷新/下单移除/跨端导航） |
+| `membership.md` | 会员与乐币（手册口径 v2） | M-01~ | #1939（9.14.docx 手册对齐） |
+| `repair-service.md` | 维修服务改版 | RS-01~ | #1942 |
+| `instrument-loss.md` | 乐器丢失与找回 | IL-01~ | #1939 派生（用户定义 2026-09-17） |
+| `invoice.md` | 发票申请 v2 | INV-01~ | #1941 |
 
 ## 用例编号规范
 
