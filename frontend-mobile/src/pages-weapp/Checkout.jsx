@@ -392,7 +392,15 @@ function SingleCheckout({ id, nav }) {
             <View style={{ flex: '1 1 0%', justifyContent: 'center' }}>
               <Text style={{ fontWeight: '900', fontSize: 14, color: '#000', marginBottom: 4, display: 'block' }}>{instrument.name || instrument.sn || id?.slice(0, 8)}</Text>
               <Text style={{ fontSize: 12, color: '#71717a', marginBottom: 2, display: 'block' }}>{instrument.category_name}{instrument.level_name ? ` · ${instrument.level_name}` : ''}</Text>
-              <Text style={{ fontSize: 12, color: '#a1a1aa', display: 'block' }}>网点: {instrument.site_name || '-'}</Text>
+              {/* #1937: 受控商户 —— 合作商户占位 + 中转网点地址（后端 instrument.transit_info 已下发） */}
+              {instrument.transit_info ? (
+                <View>
+                  <Text style={{ fontSize: 12, color: '#a1a1aa', display: 'block' }}>商户: 合作商户（中转发货）</Text>
+                  {instrument.transit_info.address && <Text style={{ fontSize: 12, color: '#a1a1aa', display: 'block' }}>中转地址: {instrument.transit_info.address}</Text>}
+                </View>
+              ) : (
+                <Text style={{ fontSize: 12, color: '#a1a1aa', display: 'block' }}>网点: {instrument.site_name || '-'}</Text>
+              )}
             </View>
           </View>
         </View>

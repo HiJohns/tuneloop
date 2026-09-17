@@ -95,6 +95,7 @@ export default function Profile() {
   const [showEdit, setShowEdit] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [orderCounts, setOrderCounts] = useState({ reserved: 0, in_lease: 0, returning: 0, completed: 0 })
+  const [transitMember, setTransitMember] = useState(false) // #1937: 中转网点成员身份
 
   const baseUrl = env.apiBaseUrl
   const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? baseUrl.replace(/\/api$/, '') + url : url
@@ -227,6 +228,21 @@ export default function Profile() {
       } catch {}
     }
     if (!isStaff) fetchCounts()
+  }, [baseUrl, isStaff])
+
+  // #1937: 中转网点成员 → 个人中心展示「中转工作台」入口（/site-members/me 返回 site_type）
+  useEffect(() => {
+    const fetchMySites = async () => {
+      try {
+        const resp = await apiFetch(`${baseUrl}/site-members/me`)
+        const result = await resp.json()
+        if (result.code === 20000) {
+          const sites = result.data?.sites || []
+          setTransitMember(sites.some(s => s.site_type === 'transit'))
+        }
+      } catch {}
+    }
+    if (isStaff) fetchMySites()
   }, [baseUrl, isStaff])
 
   const handleLogout = () => {
@@ -366,6 +382,12 @@ export default function Profile() {
                 <View style={{ fontSize: 24, marginBottom: 4 }}>📤</View>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>发货</Text>
               </View>
+              {transitMember && (
+                <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => nav('/pages-weapp/transit-workbench/index')}>
+                  <View style={{ fontSize: 24, marginBottom: 4 }}>🚚</View>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>中转工作台</Text>
+                </View>
+              )}
             </>
           ) : (
             <>

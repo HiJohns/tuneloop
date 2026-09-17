@@ -502,6 +502,18 @@ export default function OrderDetail() {
                 {order.user_phone && <Text style={{ fontSize: 12, color: '#a1a1aa' }}>{order.user_phone}</Text>}
               </View>
             </View>
+            {/* #1937: 受控商户 —— 「合作商户」占位 + 中转网点地址（对齐 H5 共享实现） */}
+            {order.transit_info && (
+              <View style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+                <Text style={{ fontSize: 13, color: '#a1a1aa', width: 60 }}>🏪 中转网点</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '500', color: '#000' }}>{order.merchant_name || '合作商户'}</Text>
+                  {order.transit_info.contact && <Text style={{ fontSize: 12, color: '#a1a1aa', display: 'block' }}>{order.transit_info.contact}</Text>}
+                  {order.transit_info.phone && <Text style={{ fontSize: 12, color: '#a1a1aa', display: 'block' }}>{order.transit_info.phone}</Text>}
+                  {order.transit_info.address && <Text style={{ fontSize: 12, color: '#a1a1aa', display: 'block' }}>{order.transit_info.address}</Text>}
+                </View>
+              </View>
+            )}
             {deliveryAddress && (
               <View style={{ display: 'flex', gap: 8 }}>
                 <Text style={{ fontSize: 13, color: '#a1a1aa', width: 60 }}>📍 地址</Text>
