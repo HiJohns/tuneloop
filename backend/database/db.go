@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"tuneloop-backend/models"
@@ -216,6 +218,49 @@ func RunMigrations(db *gorm.DB) error {
 }
 
 // RunMigrationsWithLogging runs database migrations with detailed logging
+// migrationsDir is the on-disk migration source directory (relative to the
+// service working directory).
+const migrationsDir = "database/migrations"
+
+// maxLocalMigrationVersion scans the migration directory and returns the
+// highest numeric filename prefix. Supports legacy 3-digit names
+// (031_add_photo_tables.up.sql) and timestamp names (20260914001_...).
+// Empty directory or no match -> (0, nil).
+func maxLocalMigrationVersion(dir string) (uint, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return 0, fmt.Errorf("read migrations dir %s: %w", dir, err)
+	}
+	var max uint
+	re := regexp.MustCompile(`^([0-9]+)_`)
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		m := re.FindStringSubmatch(e.Name())
+		if m == nil {
+			continue
+		}
+		n, err := strconv.ParseUint(m[1], 10, 64)
+		if err != nil {
+			continue
+		}
+		if uint(n) > max {
+			max = uint(n)
+		}
+	}
+	return max, nil
+}
+
+// checkPackageFreshness aborts when the database schema version is ahead of
+// the newest migration shipped in this package (#1913 停机根因 / #1929 防御)。
+func checkPackageFreshness(dbVersion, localMax uint) error {
+	if dbVersion > localMax {
+		return fmt.Errorf("database schema is AHEAD of this build (db=%d, package max=%d) — this package is outdated; deploy a package containing migration %d or later", dbVersion, localMax, dbVersion)
+	}
+	return nil
+}
+
 func RunMigrationsWithLogging(db *gorm.DB) error {
 	sqlDB, err := db.DB()
 	if err != nil {
@@ -233,6 +278,16 @@ func RunMigrationsWithLogging(db *gorm.DB) error {
 	}
 
 	fmt.Printf("Current database version: %d, Dirty: %v\n", currentVersion, dirty)
+
+	// #1929: 包过期防御 —— DB schema 超前于本包迁移目录时，在 m.Up() 前显式报错
+	// （避免 golang-migrate 抛出的晦涩错误，并明确告知"包过期"）。
+	localMax, err := maxLocalMigrationVersion(migrationsDir)
+	if err != nil {
+		return fmt.Errorf("package freshness check failed: %w", err)
+	}
+	if err := checkPackageFreshness(uint(currentVersion), localMax); err != nil {
+		return err
+	}
 
 	m, err := migrate.NewWithDatabaseInstance(
 		"file://database/migrations",
@@ -461,11 +516,10 @@ func validateDatabaseSchema(db *gorm.DB) error {
 		&models.Warning{},
 		&models.Banner{},
 		&models.InvoiceApplication{},
-		&models.MembershipLevelBenefit{}, // #1830: 会员权益行（20260907001 migration）
+		&models.MembershipLevelBenefit{},  // #1830: 会员权益行（20260907001 migration）
 		&models.InstrumentPromoOverride{}, // #1863: 乐器促销覆盖（20260910001 migration）
 		&models.ConfirmationSession{},
 		&models.Label{},
-
 	}
 
 	for _, m := range modelsToValidate {

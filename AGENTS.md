@@ -879,6 +879,8 @@ ssh cadenza "systemctl show tuneloop -p NRestarts"              # 重启计数�
 
 **③ 迁移相关发布加严**：只要本次发布包含 `database/migrations/` 变更（或曾对生产库单独执行过迁移），监控窗口内必须确认 bootstrap 日志为「Successfully applied migrations + schema validation passed」，且**不得在验证前关闭终端/中断观察**。
 
+> **迁移完整性纪律（#1913/#1929）**：发布快照中的 `database/migrations` 必须包含 `schema_migrations` 已应用过的**全部版本（up+down 成对）**——DB 版本超前于包会导致启动 `FATAL: database schema is AHEAD of this build (db=…, package max=…) — this package is outdated`（停机根因 #1913）。unit 应配 `StartLimitBurst` 防热循环（`scripts/cadenza/deploy.sh` 启动前会 WARN 检查）。
+
 **④ 小程序发布**：提醒用户在微信后台「提交审核 → 发布」，并说明 AI 无微信后台权限、无法监控审核状态。
 
 ---

@@ -148,6 +148,13 @@ case "$SERVICE" in
         ;;
 esac
 
+# #1929: 启动前守卫 —— unit 未配置 StartLimit 时提示热循环风险（仅 WARN，不阻断）
+if ! systemctl cat "$SYSTEMD_UNIT" 2>/dev/null | grep -q "StartLimitBurst"; then
+    echo "WARN: $SYSTEMD_UNIT 未配置 StartLimitBurst —— 启动失败时可能触发热循环（#1913/#1929）。建议执行："
+    echo "      sudo systemctl edit $SYSTEMD_UNIT   # [Unit] StartLimitIntervalSec=300 + [Service] StartLimitBurst=10"
+    echo "      然后： sudo systemctl daemon-reload"
+fi
+
 echo "Starting $SYSTEMD_UNIT..."
 sudo systemctl start "$SYSTEMD_UNIT"
 sleep 2
