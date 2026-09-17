@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Card, Table, Tag, Spin, Select } from 'antd'
+import { Card, Table, Tag, Spin, Select, Tabs, Modal, Descriptions, Image, Rate, Empty } from 'antd'
 import { api } from '../../../services/api'
 import { formatBeijingDate, formatBeijingDateTimeShort } from '../../../utils/date'
 
@@ -18,7 +18,34 @@ const statusColors = {
   transit_out: 'blue', returned: 'green',
 }
 
+// #1952 阶段4：维修服务（type='service'）状态（RS-API 契约）
+const svcStatusLabels = {
+  pending_quote: '待报价', pending_payment: '待付款', paid: '已支付·待寄出',
+  shipping: '寄送中', repairing: '维修中', adjust_pending: '加价待确认',
+  done_repair: '待发回', closed: '已结算',
+}
+const svcStatusColors = {
+  pending_quote: 'orange', pending_payment: 'cyan', paid: 'blue',
+  shipping: 'geekblue', repairing: 'purple', adjust_pending: 'gold',
+  done_repair: 'lime', closed: 'green',
+}
+const yuan = (cents) => (cents == null ? '-' : `¥${(Number(cents) / 100).toFixed(2)}`)
+
 export default function MerchantRepairList() {
+  return (
+    <Card title="维修管理">
+      <Tabs
+        defaultActiveKey="warranty"
+        items={[
+          { key: 'warranty', label: '乐器报修', children: <WarrantyList /> },
+          { key: 'service', label: '维修服务', children: <ServiceList /> },
+        ]}
+      />
+    </Card>
+  )
+}
+
+function WarrantyList() {
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('')
@@ -39,12 +66,127 @@ export default function MerchantRepairList() {
   ]
 
   return (
-    <Card title="报修列表" extra={
-      <Select value={statusFilter} onChange={setStatusFilter} allowClear placeholder="全部状态" style={{ width: 140 }}>
+    <>
+      <Select value={statusFilter} onChange={setStatusFilter} allowClear placeholder="全部状态" style={{ width: 140, marginBottom: 12 }}>
         {Object.entries(statusLabels).map(([k, v]) => <Select.Option key={k} value={k}>{v}</Select.Option>)}
       </Select>
-    }>
       {loading ? <Spin /> : <Table rowKey="id" dataSource={requests} columns={columns} />}
-    </Card>
+    </>
+  )
+}
+
+// #1952：维修服务（type='service'）列表 + 详情（报价/加价/分段物流/结算/评价）
+function ServiceList() {
+  const [list, setList] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [statusFilter, setStatusFilter] = useState('')
+  const [detail, setDetail] = useState(null) // {repair, logistics_fees, review?, site?}
+  const [detailLoading, setDetailLoading] = useState(false)
+
+  useEffect(() => {
+    setLoading(true)
+    // RS-API-2：scope=site（员工上下文 JWT oid，商户/平台管理员回退 tid）
+    const params = statusFilter ? `?scope=site&status=${statusFilter}` : '?scope=site'
+    api.get(`/repair-services${params}`).then(r => {
+      if (r.code === 20000) setList(r.data?.list || [])
+    }).finally(() => setLoading(false))
+  }, [statusFilter])
+
+  const openDetail = (id) => {
+    setDetailLoading(true)
+    // RS-API-3：详情含 site（寄件地址）/ logistics_fees（分段物流）/ review（评价）
+    api.get(`/user/repair-services/${id}`).then(r => {
+      if (r.code === 20000) setDetail(r.data || {})
+    }).finally(() => setDetailLoading(false))
+  }
+
+  const columns = [
+    { title: '维修编码', dataIndex: 'repair_code', key: 'repair_code', render: v => v || '-' },
+    { title: '描述', dataIndex: 'description', key: 'description', ellipsis: true, render: v => v || '-' },
+    { title: '状态', dataIndex: 'status', key: 'status', render: s => <Tag color={svcStatusColors[s]}>{svcStatusLabels[s] || s}</Tag> },
+    { title: '修理费', dataIndex: 'quote_repair_cents', key: 'quote_repair', render: v => yuan(v) },
+    {
+      title: '加价后', dataIndex: 'adjusted_quote_cents', key: 'adjusted',
+      render: v => (v == null ? '-' : yuan(v)),
+    },
+    { title: '更新时间', dataIndex: 'updated_at', key: 'updated_at', render: v => v ? formatBeijingDateTimeShort(v) : '-' },
+    { title: '操作', key: 'action', render: (_, r) => <a onClick={() => openDetail(r.id)}>详情</a> },
+  ]
+
+  // 详情：评价展示（评分/留言/照片预览）—— #1952 验收项
+  const review = detail?.review
+  const fees = detail?.logistics_fees || []
+  const rr = detail?.repair || {}
+
+  return (
+    <>
+      <Select value={statusFilter} onChange={setStatusFilter} allowClear placeholder="全部状态" style={{ width: 140, marginBottom: 12 }}>
+        {Object.entries(svcStatusLabels).map(([k, v]) => <Select.Option key={k} value={k}>{v}</Select.Option>)}
+      </Select>
+      {loading ? <Spin /> : <Table rowKey="id" dataSource={list} columns={columns} />}
+      <Modal
+        title={`维修服务详情${rr.repair_code ? ` · ${rr.repair_code}` : ''}`}
+        open={!!detail}
+        onCancel={() => setDetail(null)}
+        footer={null}
+        width={680}
+      >
+        {detailLoading ? <Spin /> : (
+          <>
+            <Descriptions size="small" column={2} bordered>
+              <Descriptions.Item label="状态" span={2}>
+                <Tag color={svcStatusColors[rr.status]}>{svcStatusLabels[rr.status] || rr.status}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="描述" span={2}>{rr.description || '-'}</Descriptions.Item>
+              <Descriptions.Item label="报价修理费">{yuan(rr.quote_repair_cents)}</Descriptions.Item>
+              <Descriptions.Item label="物流费预估">{yuan(rr.quote_logistics_cents)}</Descriptions.Item>
+              <Descriptions.Item label="加价后修理费">{rr.adjusted_quote_cents == null ? '-' : yuan(rr.adjusted_quote_cents)}</Descriptions.Item>
+              <Descriptions.Item label="到此为止修理费">{rr.incurred_repair_cents == null ? '-' : yuan(rr.incurred_repair_cents)}</Descriptions.Item>
+              <Descriptions.Item label="寄出物流" span={2}>
+                {rr.tracking_number ? `${rr.tracking_company || ''} ${rr.tracking_number}` : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="发回物流" span={2}>
+                {rr.return_tracking_number ? `${rr.return_company || ''} ${rr.return_tracking_number}` : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="寄件网点" span={2}>
+                {detail?.site ? `${detail.site.name}${detail.site.address ? `（${detail.site.address}）` : ''}` : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="创建时间">{rr.created_at ? formatBeijingDateTimeShort(rr.created_at) : '-'}</Descriptions.Item>
+              <Descriptions.Item label="结算时间">{rr.closed_at ? formatBeijingDateTimeShort(rr.closed_at) : '-'}</Descriptions.Item>
+            </Descriptions>
+
+            <Descriptions size="small" column={1} bordered style={{ marginTop: 12 }}
+              items={[{
+                key: 'legs', label: '分段物流费（实填）',
+                children: fees.length === 0 ? '-' : fees.map(f => (
+                  <div key={f.id}>第 {f.leg} 段：{yuan(f.amount_cents)}（{f.filled_by ? f.filled_by.slice(0, 8) : '-'}）</div>
+                )),
+              }]}
+            />
+
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontWeight: 'bold', marginBottom: 6 }}>用户评价</div>
+              {review && review.id ? (
+                <div>
+                  <Rate disabled value={review.rating} />
+                  {review.message ? <div style={{ marginTop: 6 }}>{review.message}</div> : null}
+                  {(() => {
+                    let photos = []
+                    try { photos = typeof review.photos === 'string' ? JSON.parse(review.photos || '[]') : (review.photos || []) } catch { photos = [] }
+                    return photos.length ? (
+                      <Image.PreviewGroup style={{ marginTop: 8 }}>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                          {photos.map((p, i) => <Image key={i} src={p} width={80} height={80} style={{ objectFit: 'cover', borderRadius: 8 }} />)}
+                        </div>
+                      </Image.PreviewGroup>
+                    ) : null
+                  })()}
+                </div>
+              ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无评价" />}
+            </div>
+          </>
+        )}
+      </Modal>
+    </>
   )
 }
