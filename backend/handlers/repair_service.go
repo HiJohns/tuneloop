@@ -355,7 +355,9 @@ func (h *RepairServiceHandler) Get(c *gin.Context) {
 	if review.ID != "" {
 		data["review"] = review
 	}
-	// RS-API-3：寄件地址（所选网点）；未选师时无 site
+	// RS-API-3：寄件地址
+	// - 历史/异常单带 site → 网点地址（兼容）
+	// - #1974 T1（师傅直属商户，2026-09-18）：新单无 site → **商户地址**（用户寄件地址来源）
 	if rr.SiteID != "" {
 		var site models.Site
 		if err := db.Where("id = ?", rr.SiteID).First(&site).Error; err == nil {
@@ -365,6 +367,17 @@ func (h *RepairServiceHandler) Get(c *gin.Context) {
 				"address":      site.Address,
 				"contact_name": site.ContactName,
 				"phone":        site.Phone,
+			}
+		}
+	} else if rr.TenantID != "" {
+		var m models.Merchant
+		if err := db.Where("tenant_id = ?", rr.TenantID).Order("created_at ASC").First(&m).Error; err == nil {
+			data["merchant"] = gin.H{
+				"id":           m.ID,
+				"name":         m.Name,
+				"address":      m.Address,
+				"contact_name": m.ContactName,
+				"phone":        m.ContactPhone,
 			}
 		}
 	}

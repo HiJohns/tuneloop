@@ -55,6 +55,12 @@ func setupRepairServiceFixture(t *testing.T) svcFixture {
 	require.NoError(t, db.Create(&models.SiteMember{
 		TenantID: tenantID, SiteID: siteID, UserID: techID, Role: "repair_technician", Status: "active",
 	}).Error)
+	// #1974 T1：商户（师傅直属商户 → 用户寄件地址来源 = 商户地址）
+	require.NoError(t, db.Create(&models.Merchant{
+		TenantID: tenantID, OrgID: orgID, Name: "测试商户", Address: "北京市朝阳区 XX 路 1 号",
+		ContactName: "商户联系人", ContactPhone: "13800000000", Status: "active",
+		AdminUID: uuid.New().String(),
+	}).Error)
 	// #1974 T1：师傅档案（创建维修单需锁定 active 师傅）
 	require.NoError(t, db.Create(&models.TechnicianProfile{
 		UserID: techID, TenantID: tenantID, Photo: "p.jpg", Bio: "钢琴维修 12 年",
@@ -450,6 +456,23 @@ func TestRepairService_DetailSite(t *testing.T) {
 	// 本网点员工 → 可读
 	code, _ = getDetail(staff)
 	assert.Equal(t, http.StatusOK, code)
+
+	// #1974 T1：未选师（无 site）单 → 返回【商户】寄件地址（新设计来源）
+	_, resp2 := svcPost(t, f, customer, "/user/repair-services", gin.H{
+		"description": "无site单", "technician_id": f.techID,
+	})
+	id2 := svcData(t, resp2)["id"].(string)
+	req2 := httptest.NewRequest(http.MethodGet, "/user/repair-services/"+id2, nil)
+	w2 := httptest.NewRecorder()
+	f.router.ServeHTTP(w2, req2.WithContext(customer.InjectContext(req2.Context())))
+	require.Equal(t, http.StatusOK, w2.Code)
+	var out2 map[string]interface{}
+	require.NoError(t, json.Unmarshal(w2.Body.Bytes(), &out2))
+	d2 := svcData(t, out2)
+	merchant, hasMerchant := d2["merchant"].(map[string]interface{})
+	require.True(t, hasMerchant, "无 site 单应返回 merchant 地址块")
+	assert.Equal(t, "测试商户", merchant["name"])
+	assert.Equal(t, "北京市朝阳区 XX 路 1 号", merchant["address"])
 
 	// 跨租户员工 → 403（#688）
 	code, _ = getDetail(otherStaff)

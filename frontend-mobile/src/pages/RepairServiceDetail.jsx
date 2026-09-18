@@ -291,6 +291,7 @@ export default function RepairServiceDetail() {
   }
 
   const site = detail.site
+  const cc = detail.merchant // 商户地址（无 site 的新单寄件地址来源）
   const photos = Array.isArray(rr.photos) ? rr.photos : (() => { try { return JSON.parse(rr.photos || '[]') } catch { return [] } })()
   const reviewPhotosParsed = detail.review && detail.review.photos
     ? (Array.isArray(detail.review.photos) ? detail.review.photos : (() => { try { return JSON.parse(detail.review.photos || '[]') } catch { return [] } })())
@@ -448,12 +449,13 @@ export default function RepairServiceDetail() {
         {rr.status === 'paid' && (
           <View style={cardStyle}>
             <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>寄出乐器</Text>
-            {site && (
+            {/* #1974 T1：寄件地址 = 历史单取网点 site / 新单（师傅直属商户）取 merchant */}
+            {(site || cc) && (
               <View style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Text style={labelStyle}>寄件地址：{site.name}</Text>
-                {site.address ? <Text style={labelStyle}>{site.address}</Text> : null}
-                {site.contact_name || site.phone ? (
-                  <Text style={labelStyle}>联系人：{site.contact_name || '-'} {site.phone || ''}</Text>
+                <Text style={labelStyle}>寄件地址：{(site || cc).name}</Text>
+                {(site || cc).address ? <Text style={labelStyle}>{(site || cc).address}</Text> : null}
+                {(site || cc).contact_name || (site || cc).phone ? (
+                  <Text style={labelStyle}>联系人：{(site || cc).contact_name || '-'} {(site || cc).phone || ''}</Text>
                 ) : null}
               </View>
             )}
