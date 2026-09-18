@@ -153,9 +153,7 @@ export default function InstrumentLossManage() {
       const result = await resp.json()
       if (result.code === 20000) {
         const d = result.data || {}
-        if (d.reversal === 'refunded') dialog.alert(`恢复成功，冲正退款 ¥${((d.refund_cents || 0) / 100).toFixed(2)}`)
-        else if (d.reversal === 'held_pending_assessment') dialog.alert('恢复成功（有损坏，赔偿暂扣待定损）')
-        else dialog.alert('恢复成功')
+        dialog.alert(d.restored_damaged ? '已恢复上架（有损坏，已留痕）' : '已恢复上架（无损坏）')
         setExpanded('')
         fetchAll()
       } else dialog.alert(resolveErrorMessage(result))
@@ -194,7 +192,7 @@ export default function InstrumentLossManage() {
 
   const renderRestoreForm = (inst) => (
     <View style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 4 }}>
-      <Text style={labelStyle}>是否有损坏（损坏时赔偿暂扣待定损）</Text>
+      <Text style={labelStyle}>是否有损坏（恢复上架，损坏仅留痕）</Text>
       <View style={{ display: 'flex', gap: 6 }}>
         {[{ v: false, label: '无损坏' }, { v: true, label: '有损坏' }].map(o => (
           <View key={String(o.v)} onClick={() => setDamaged(o.v)}
@@ -290,7 +288,6 @@ export default function InstrumentLossManage() {
               </View>
               <Text style={{ fontSize: 11, color: '#71717A' }}>
                 赔偿 ¥{((r2.compensation_cents || 0) / 100).toFixed(2)} · 承担 ¥{((r2.user_burden_cents || 0) / 100).toFixed(2)}
-                {r2.reversed_amount_cents ? ` · 冲正退 ¥${(r2.reversed_amount_cents / 100).toFixed(2)}` : ''}
               </Text>
               <Text style={{ fontSize: 11, color: '#A1A1AA' }}>
                 {r2.created_at ? formatBeijingDate(r2.created_at) : '-'} {r2.reverse_note ? ` · ${r2.reverse_note}` : ''}

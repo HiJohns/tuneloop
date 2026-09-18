@@ -137,9 +137,11 @@ func TestInstrumentLoss_InLease_Settlement(t *testing.T) {
 	d := resp["data"].(map[string]interface{})
 	var breakdown map[string]interface{}
 	require.NoError(t, json.Unmarshal([]byte(d["settle_breakdown"].(string)), &breakdown))
-	assert.Equal(t, float64(models.FromYuan(50)), breakdown["rent_cents"], "租金=5天×10元")
+	assert.Equal(t, "in_lease_no_rent_refund", breakdown["scene"], "租期中丢失：不退租金")
+	assert.Equal(t, float64(0), breakdown["rent_refunded_cents"], "已付租金全额保留")
+	assert.Equal(t, float64(models.FromYuan(5000)), breakdown["deposit_cents"])
 	assert.Equal(t, float64(models.FromYuan(5000)), breakdown["user_burden_cents"])
-	assert.Equal(t, float64(models.FromYuan(50)), breakdown["diff_cents"], "退 50")
+	assert.Equal(t, float64(0), breakdown["diff_cents"], "差额 = 押金 − 承担 = 0")
 
 	var inst models.Instrument
 	require.NoError(t, f.db.First(&inst, "id = ?", instID).Error)
@@ -223,14 +225,13 @@ func TestInstrumentLoss_Restore_Reversal(t *testing.T) {
 	})
 	require.Equal(t, http.StatusOK, code, "resp=%v", resp)
 	d := resp["data"].(map[string]interface{})
-	assert.Equal(t, "refunded", d["reversal"])
-	// 追加租金：CalculateLeaseDays min 1 天 × 10 元 × 100% = 1000 分 → 冲正 500000−1000=499000 分
-	assert.Equal(t, float64(499000), d["refund_cents"])
+	assert.Equal(t, "put_back_on_shelf", d["action"], "找回仅恢复上架（LS-05a 作废，无冲正）")
 
 	var rec models.InstrumentLossRecord
 	require.NoError(t, f.db.Where("instrument_id = ?", instID).First(&rec).Error)
-	require.NotNil(t, rec.ReversedAt)
-	assert.Equal(t, models.Cents(499000), rec.ReversedAmountCents)
+	require.NotNil(t, rec.RestoredAt, "恢复留痕")
+	assert.Nil(t, rec.ReversedAt, "冲正已作废：不写 reversed_at")
+	assert.Equal(t, models.Cents(0), rec.ReversedAmountCents)
 
 	var inst models.Instrument
 	require.NoError(t, f.db.First(&inst, "id = ?", instID).Error)
@@ -248,27 +249,30 @@ func TestInstrumentLoss_Restore_Damaged_Hold(t *testing.T) {
 	end := time.Now().AddDate(0, 0, 5).Format("2006-01-02")
 	instID, orderID := mkLossInstrument(t, f, models.StockStatusRented, true,
 		models.OrderStatusInLease, start, end, 10, 100)
-	// 全责，赔偿=押金 → 补缴 4950（已付 100 < 应付 50+5000；start -4 天 → 租 5 天）
+	// 全责，承担 6000 元 > 押金 5000 元 → 补缴 = 承担 − 押金 = 1000 元（租期中租金不退）
 	lossPost(t, f, "/instruments/"+instID+"/lost", gin.H{
 		"description": "丢失", "responsible_party": "user", "user_ratio": 100,
-		"compensation_cents": models.FromYuan(5000),
+		"compensation_cents": models.FromYuan(6000),
 	})
 	var shortfall models.OrderPaymentRecord
 	require.NoError(t, f.db.Where("order_id = ? AND order_type = ? AND method = ? AND status = ?",
 		orderID, "loss", "loss", "pending").First(&shortfall).Error)
-	assert.Equal(t, models.Cents(models.FromYuan(4950)), shortfall.Amount, "补缴 = 应付 5050 − 已付 100")
+	assert.Equal(t, models.Cents(models.FromYuan(1000)), shortfall.Amount, "补缴 = 承担 6000 − 押金 5000")
 
-	// 找回有损坏 → 挂起 + 补缴关闭
+	// 找回（有损坏）→ 恢复上架 + 损坏留痕 + 补缴关闭（无冲正/无退款）
 	code, resp := lossPost(t, f, "/instruments/"+instID+"/restore", gin.H{
 		"damaged": true, "description": "找回了但有损坏",
 	})
 	require.Equal(t, http.StatusOK, code, "resp=%v", resp)
-	assert.Equal(t, "held_pending_assessment", resp["data"].(map[string]interface{})["reversal"])
+	d := resp["data"].(map[string]interface{})
+	assert.Equal(t, "put_back_on_shelf", d["action"])
+	assert.Equal(t, true, d["restored_damaged"])
 
 	var rec models.InstrumentLossRecord
 	require.NoError(t, f.db.Where("instrument_id = ?", instID).First(&rec).Error)
-	assert.Nil(t, rec.ReversedAt, "冲正挂起")
-	assert.Equal(t, models.Cents(models.FromYuan(5000)), rec.DeductedDamageCents)
+	require.NotNil(t, rec.RestoredAt)
+	assert.True(t, rec.RestoredDamaged, "有损坏留痕")
+	assert.Nil(t, rec.ReversedAt, "无冲正（LS-05a 作废）")
 
 	var cnt int64
 	require.NoError(t, f.db.Model(&models.OrderPaymentRecord{}).
@@ -302,7 +306,7 @@ func TestInstrumentLoss_ShortfallPayCallback(t *testing.T) {
 		models.OrderStatusInLease, start, end, 10, 100)
 	lossPost(t, f, "/instruments/"+instID+"/lost", gin.H{
 		"description": "丢失", "responsible_party": "user", "user_ratio": 100,
-		"compensation_cents": models.FromYuan(5000),
+		"compensation_cents": models.FromYuan(6000),
 	})
 
 	// prepay order_type=loss（金额服务端取 pending 记录合计；客户端传错值）
@@ -325,7 +329,7 @@ func TestInstrumentLoss_ShortfallPayCallback(t *testing.T) {
 
 	var payRec models.OrderPaymentRecord
 	require.NoError(t, f.db.Where("out_trade_no = ?", pre.Data.Data.OutTradeNo).First(&payRec).Error)
-	assert.Equal(t, models.Cents(models.FromYuan(4950)), payRec.Amount, "收单金额=补缴合计")
+	assert.Equal(t, models.Cents(models.FromYuan(1000)), payRec.Amount, "收单金额=补缴合计（承担 6000 − 押金 5000）")
 
 	// 回调：置 paid + applySideEffects → 补缴记录关闭
 	require.NoError(t, f.db.Model(&payRec).Update("status", "paid").Error)

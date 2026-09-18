@@ -202,14 +202,28 @@ func (h *InstrumentLossHandler) Register(c *gin.Context) {
 	var refundRec *models.OrderRefundRecord
 	if order != nil {
 		rec.OrderID = &order.ID
-		rentCents, scene := lossRentToDateCents(db, order, now)
-		owed := models.Cents(rentCents) + models.Cents(burden)
-		paidCash := order.CashPaid
-		breakdown = map[string]interface{}{
-			"scene": scene, "rent_cents": rentCents, "user_burden_cents": burden,
-			"owed_cents": owed, "paid_cash_cents": paidCash,
+		var diff models.Cents
+		if order.Status == models.OrderStatusInLease {
+			// 2026-09-18 口径（LS-03a 场景②）：租期中丢失**不退租金**（已付租金全额保留）
+			// → 差额 = 押金 − 用户承担赔偿（押金抵扣赔偿，余额退 / 不足补缴）
+			diff = order.Deposit - models.Cents(burden)
+			breakdown = map[string]interface{}{
+				"scene":               "in_lease_no_rent_refund",
+				"rent_refunded_cents": 0,
+				"deposit_cents":       order.Deposit,
+				"user_burden_cents":   burden,
+			}
+		} else {
+			// ①去程（未签收）租金 0、押金全退；③返程租金至归还寄出日 —— 口径不变（2026-09-18 复核）
+			rentCents, scene := lossRentToDateCents(db, order, now)
+			owed := models.Cents(rentCents) + models.Cents(burden)
+			paidCash := order.CashPaid
+			diff = paidCash - owed
+			breakdown = map[string]interface{}{
+				"scene": scene, "rent_cents": rentCents, "user_burden_cents": burden,
+				"owed_cents": owed, "paid_cash_cents": paidCash,
+			}
 		}
-		diff := paidCash - owed
 		breakdown["diff_cents"] = diff
 		rec.SettledAt = &now
 		if diff > 0 {
@@ -338,127 +352,30 @@ func (h *InstrumentLossHandler) Restore(c *gin.Context) {
 	now := time.Now()
 	photosJSON, _ := json.Marshal(body.Photos)
 
-	result := gin.H{"id": rec.ID, "restored_damaged": body.Damaged}
-
-	// 找回冲正（LS-05a）：仅当丢失时已结算；damaged=true 挂起（方案 B）
-	if rec.SettledAt != nil && rec.ReversedAt == nil && rec.UserBurdenCents > 0 {
-		// 追加租金 = daily × CalculateLeaseDays(丢失日, min(找回日, 原租期结束日)) × ratio%
-		extra := models.Cents(0)
-		if rec.OrderID != nil {
-			var order models.Order
-			if err := db.Where("id = ?", *rec.OrderID).First(&order).Error; err == nil {
-				daily := lossDailyRentCents(&order)
-				lossDate := rec.CreatedAt
-				end := now
-				if order.EndDate != nil {
-					if te, ok := lossDateParse(*order.EndDate); ok && te.Before(now) {
-						end = te
-					}
-				}
-				if daily > 0 && end.After(lossDate) {
-					days := services.CalculateLeaseDays(lossDate, end)
-					extra = models.Cents(daily) * models.Cents(days) * models.Cents(rec.UserRatio) / 100
-				}
-			}
-		}
-		net := rec.UserBurdenCents - extra
-		if body.Damaged {
-			// 挂起：损坏待定损，暂扣全额（差额处理另立 Issue）
-			result["reversal"] = "held_pending_assessment"
-			updates := map[string]interface{}{
-				"reversed_amount_cents": models.Cents(0),
-				"deducted_damage_cents": rec.UserBurdenCents,
-				"deducted_idle_cents":   models.Cents(0),
-				"reverse_note":          "损坏待定损，暂扣赔偿额，定损后多退少补",
-				"restored_at":           now, "restored_damaged": true,
-				"restore_description": body.Description,
-			}
-			if len(body.Photos) > 0 {
-				updates["restore_photos"] = string(photosJSON)
-			}
-			if err := db.Model(&models.InstrumentLossRecord{}).Where("id = ?", rec.ID).
-				Updates(updates).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to record restore"})
-				return
-			}
-		} else if net > 0 {
-			// 退款先行（loss_rv_*）
-			var payRec models.OrderPaymentRecord
-			var outRefundNo string
-			if rec.OrderID != nil {
-				if err := db.Where("order_id = ? AND order_type = ? AND type = ? AND status = ?",
-					*rec.OrderID, "rent", "payment", "paid").Order("created_at ASC").
-					First(&payRec).Error; err == nil && payRec.OutTradeNo != nil {
-					outRefundNo = fmt.Sprintf("loss_rv_%s", inst.ID[:8])
-					if _, err := wechatpay.GetClient().Refund(ctx, wechatpay.RefundParams{
-						OutTradeNo: *payRec.OutTradeNo, OutRefundNo: outRefundNo,
-						TotalAmount: int64(payRec.Amount), RefundAmount: int64(net),
-						Reason: "乐器找回冲正退款", NotifyURL: wechatpay.GetConfig().RefundNotifyURL,
-					}); err != nil {
-						log.Printf("[InstrumentLoss.Restore] reversal refund failed: %v", err)
-						c.JSON(http.StatusBadGateway, gin.H{
-							"code":    50200,
-							"message": "reversal refund failed, restore aborted for retry: " + err.Error(),
-							"data":    gin.H{"refund_cents": net},
-						})
-						return
-					}
-				}
-			}
-			updates := map[string]interface{}{
-				"reversed_at": now, "reversed_amount_cents": net,
-				"deducted_damage_cents": models.Cents(0), "deducted_idle_cents": models.Cents(0),
-				"reverse_note": "找回无损坏，全额冲正（含追加租金扣除 " + fmt.Sprint(extra) + " 分）",
-				"restored_at":  now, "restored_damaged": false,
-				"restore_description": body.Description,
-			}
-			if len(body.Photos) > 0 {
-				updates["restore_photos"] = string(photosJSON)
-			}
-			if err := db.Model(&models.InstrumentLossRecord{}).Where("id = ?", rec.ID).
-				Updates(updates).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to record restore"})
-				return
-			}
-			result["reversal"] = "refunded"
-			result["refund_cents"] = net
-		} else {
-			// net <= 0：无需退款，仅终结冲正
-			if err := db.Model(&models.InstrumentLossRecord{}).Where("id = ?", rec.ID).
-				Updates(map[string]interface{}{
-					"reversed_at": now, "reversed_amount_cents": models.Cents(0),
-					"deducted_damage_cents": models.Cents(0),
-					"reverse_note":          "找回无损坏，追加租金已抵扣全部赔偿额",
-					"restored_at":           now, "restored_damaged": false,
-					"restore_description": body.Description,
-				}).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to record restore"})
-				return
-			}
-			result["reversal"] = "no_refund"
-		}
-		// 债务冲销（必做，幂等）：关闭 pending loss 补缴
+	// 2026-09-18（LS-05 简化 / LS-05a 作废）：找回仅「**恢复上架**」——
+	// 不做结算重算与冲正（无 loss_rv_* 退款、无追加租金/定损扣除/hold 语义）。
+	updates := map[string]interface{}{
+		"restored_at": now, "restored_damaged": body.Damaged,
+		"restore_description": body.Description,
+	}
+	if len(body.Photos) > 0 {
+		updates["restore_photos"] = string(photosJSON)
+	}
+	if err := db.Model(&models.InstrumentLossRecord{}).Where("id = ?", rec.ID).
+		Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to record restore"})
+		return
+	}
+	// 债务冲销（幂等，必做）：关闭 pending loss 补缴 → M-08 解除
+	if rec.OrderID != nil {
 		if err := db.Model(&models.OrderPaymentRecord{}).
 			Where("order_id = ? AND order_type = ? AND status = ? AND method = ?",
-				rec.OrderID, "loss", "pending", "loss").
+				*rec.OrderID, "loss", "pending", "loss").
 			Update("status", "closed").Error; err != nil {
 			log.Printf("[InstrumentLoss.Restore] close shortfall failed: %v", err)
 		}
-	} else {
-		// 分支 A（未结算/纯库存）：仅恢复 + 留痕
-		updates := map[string]interface{}{
-			"restored_at": now, "restored_damaged": body.Damaged,
-			"restore_description": body.Description,
-		}
-		if len(body.Photos) > 0 {
-			updates["restore_photos"] = string(photosJSON)
-		}
-		if err := db.Model(&models.InstrumentLossRecord{}).Where("id = ?", rec.ID).
-			Updates(updates).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to record restore"})
-			return
-		}
 	}
+	result := gin.H{"id": rec.ID, "restored_damaged": body.Damaged, "action": "put_back_on_shelf"}
 	// 乐器恢复可租；订单不复活（保持 cancelled）
 	if err := db.Model(&models.Instrument{}).Where("id = ?", inst.ID).
 		Update("stock_status", models.StockStatusAvailable).Error; err != nil {

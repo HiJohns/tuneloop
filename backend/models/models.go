@@ -1283,7 +1283,8 @@ type InstrumentLossRecord struct {
 	RestoredDamaged    bool       `gorm:"default:false" json:"restored_damaged"`
 	RestoreDescription string     `gorm:"type:text" json:"restore_description"`
 	RestorePhotos      string     `gorm:"type:jsonb;default:'[]'" json:"restore_photos"`
-	// 冲正留痕（LS-05a 方案 B）
+	// ⛔ 冲正留痕 —— **已作废（2026-09-18）**：LS-05a 取消找回冲正，找回仅「恢复上架」。
+	// 列保留以兼容历史行，**新流程不再写入**（#1979）。
 	ReversedAt          *time.Time `json:"reversed_at"`
 	ReversedAmountCents Cents      `gorm:"type:bigint;default:0" json:"reversed_amount_cents"`
 	DeductedDamageCents Cents      `gorm:"type:bigint;default:0" json:"deducted_damage_cents"`

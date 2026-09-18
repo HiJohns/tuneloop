@@ -246,7 +246,6 @@ export default function InstrumentStock() {
         ? <Tag color="green">已恢复{r.restored_damaged ? '（有损坏）' : ''}</Tag>
         : <Tag color="red">丢失中</Tag>,
     },
-    { title: '冲正退款', dataIndex: 'reversed_amount_cents', align: 'right', render: v => v ? `¥${(v / 100).toFixed(2)}` : '-' },
     { title: '登记时间', dataIndex: 'created_at', render: v => v ? new Date(v).toLocaleString('zh-CN') : '-' },
     { title: '操作', key: 'op', render: (_, r) => <Button type="link" size="small" onClick={() => setLossDetail(r)}>详情</Button> },
   ]
@@ -360,9 +359,9 @@ export default function InstrumentStock() {
             <Descriptions.Item label="责任比例">{lossDetail.user_ratio}%</Descriptions.Item>
             <Descriptions.Item label="赔偿金额">¥{((lossDetail.compensation_cents || 0) / 100).toFixed(2)}</Descriptions.Item>
             <Descriptions.Item label="用户承担">¥{((lossDetail.user_burden_cents || 0) / 100).toFixed(2)}</Descriptions.Item>
-            <Descriptions.Item label="结算结果" span={2}>
+            <Descriptions.Item label="找回/结算" span={2}>
               {lossDetail.restored_at
-                ? `已恢复${lossDetail.restored_damaged ? '（有损坏）' : ''}${lossDetail.reversed_amount_cents ? `，冲正退款 ¥${(lossDetail.reversed_amount_cents / 100).toFixed(2)}` : ''}${lossDetail.reverse_note ? `（${lossDetail.reverse_note}）` : ''}`
+                ? `已恢复上架${lossDetail.restored_damaged ? '（有损坏）' : '（无损坏）'}`
                 : lossDetail.settled_at ? '已结算（丢失中）' : '未结算（纯库存）'}
             </Descriptions.Item>
             <Descriptions.Item label="描述" span={2}>{lossDetail.description || '-'}</Descriptions.Item>
