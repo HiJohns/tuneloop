@@ -354,7 +354,7 @@ export default function Profile() {
         tabs={[
           { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
           { key: 'rent', icon: '🪕', label: '租赁', onClick: () => token && navigate(isStaff ? '/staff/orders' : '/my-leases') },
-          { key: 'service', icon: '🛠️', label: '维修', onClick: () => token && navigate(isStaff ? '/my-repairs' : '/my-repairs') },
+          { key: 'service', icon: '🛠️', label: '维修', onClick: () => token && navigate('/tech-list') },
           { key: 'profile', icon: '👤', label: '我的', onClick: () => {} },
         ]}
         badges={{ profile: isStaff ? 0 : unreadCount }}

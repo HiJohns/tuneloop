@@ -524,7 +524,7 @@ export default function MyRepairs() {
           tabs={[
             { key: 'home', icon: '🏪', label: '首页', onClick: () => Taro.switchTab({ url: '/pages-weapp/home/index' }) },
             ...(isPureTech ? [] : [{ key: 'rent', icon: '🪕', label: '租赁', onClick: () => Taro.switchTab({ url: '/pages-weapp/my-leases/index' }) }]),
-            { key: 'service', icon: '🛠️', label: '维修', onClick: () => Taro.redirectTo({ url: '/pages-weapp/my-repairs/index' }) },
+            { key: 'service', icon: '🛠️', label: '维修', onClick: () => Taro.redirectTo({ url: '/pages-weapp/tech-list/index' }) },
             { key: 'profile', icon: '👤', label: '我的', onClick: () => Taro.switchTab({ url: '/pages-weapp/profile/index' }) },
           ]}
         />
@@ -534,7 +534,7 @@ export default function MyRepairs() {
         tabs={[
           { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
           ...(isPureTech ? [] : [{ key: 'rent', icon: '🪕', label: '租赁', onClick: () => navigate('/my-leases') }]),
-          { key: 'service', icon: '🛠️', label: '维修', onClick: () => navigate('/my-repairs') },
+          { key: 'service', icon: '🛠️', label: '维修', onClick: () => navigate('/tech-list') },
           { key: 'profile', icon: '👤', label: '我的', onClick: () => navigate('/profile') },
         ]}
       />
