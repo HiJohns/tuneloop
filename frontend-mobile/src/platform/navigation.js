@@ -13,6 +13,7 @@ const ROUTE_MAP = [
   { match: '/tech-repair-workbench', type: 'navigateTo', url: '/pages-weapp/tech-repair-workbench/index' },
   { match: '/repair-service-create', type: 'navigateTo', url: '/pages-weapp/repair-service-create/index' },
   { match: '/repair-service-detail', type: 'navigateTo', url: '/pages-weapp/repair-service-detail/index' },
+  { match: '/instrument-loss-manage', type: 'navigateTo', url: '/pages-weapp/instrument-loss-manage/index' },
   { match: '/messages',    type: 'navigateTo', url: '/pages-weapp/messages/index' },
   { match: '/message-detail', type: 'navigateTo', url: '/pages-weapp/message-detail/index' },
   { match: '/profile/edit', type: 'navigateTo', url: '/pages-weapp/profile/edit/index' },

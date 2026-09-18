@@ -114,6 +114,13 @@ export default function StaffInstruments() {
 
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4 flex gap-2">
         <Button
+          onClick={() => env.isMiniProgram ? Taro.navigateTo({ url: '/pages-weapp/instrument-loss-manage/index' }) : navigate('/instrument-loss-manage')}
+          style={{ margin: 0, height: 36, display: 'flex', alignItems: 'center' }}
+          className="px-3 rounded-full text-sm font-black bg-red-50 text-red-600"
+        >
+          丢失 / 恢复
+        </Button>
+        <Button
           onClick={() => setPicker({ kind: 'top' })}
           style={{ margin: 0, height: 36, display: 'flex', alignItems: 'center' }}
           className={`px-3 rounded-full text-sm font-black ${
