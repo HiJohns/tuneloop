@@ -21,32 +21,44 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 报修，并存
 | 物流 | 网点/中转安排 | 用户自寄出（编码标记）+ 网点员工发回（**分段物流费**） |
 | 评价 | 无 | 评分/留言/拍照，PC 后台可见 |
 
-## RS-01 创建维修单（用户，weapp）
+## RS-01 创建维修单（用户，weapp）——**入口经师傅详情**（2026-09-18 设计变更）
 
-- 入口：小程序「维修」Tab →「维修服务」
+- **入口链路**：「维修」Tab → **师傅列表**（RS-02）→ 点击师傅 → **师傅详情页**（RS-02）→ 下方「**创建维修订单**」按钮 → **维修单创建页**
+- **创建页要点**：**师傅锁定 = 刚才查看的师傅**（只读展示师傅头像/姓名）；**无需选择商户与网点**
 - 表单：描述（必填）+ 照片（≤6）——**不填识别码**
 - 提交后系统分配 **6 位唯一编码**（数字+大写字母，`repair_code` uniqueIndex，冲突重试），界面展示并提示「请将该编码写在物流单信息栏」
 - **调用 / 获取**
-  - `POST /api/user/repair-services {description, photos[]}` → `{id, repair_code, status}`
+  - `POST /api/user/repair-services {description, photos[], technician_id}`（**创建即锁定师傅**）→ `{id, repair_code, status}`
   - 照片上传：`POST /api/upload`（现有）→ 取返回 url 填入 `photos`
-  - 页面无需其他数据（可不绑定乐器；`user_instrument_id` 可选）
+  - 服务单归属 = **师傅直属商户**（`tenant_id` 回填；**不再有 site 维度**，见 RS-13）
+- **兼容**：`POST …/select-technician` 保留（老数据/未锁定单补选），新流程创建时即锁定
 
-## RS-02 选择维修师（用户）／报价（师傅，weapp 工作台）
+## RS-02 师傅列表 / 师傅详情（用户浏览）＋ 报价（师傅，weapp 工作台）
 
-- **用户浏览并选择维修师**（师傅基础档案：姓名/头像/网点；评分展示待后续）
+### 师傅列表（维修 Tab 首屏，2026-09-18 变更）
+- **样式参照乐器列表**；每项展示：**个人照片** + 姓名 + **详细介绍摘要**（如「钢琴维修 12 年 · 小提琴维修 8 年」）
+- **右上角『我的维修』链接**（师傅视角）：
+  - **无活跃维修会话 → 置灰（仍可点击）**；**有活跃会话 → 点亮并显示个数**
+  - 点击进入「**我的维修**」= **现存维修页（师傅工作台，TechRepairWorkbench）**，查看自己的维修会话
 - 咨询能力 → #1943（holdon）
-- 选择后服务单归属该师傅所在网点（`site_id/tenant_id` 回填），寄件地址即该网点地址
-- **调用 / 获取**
-  - `GET /api/common/repair-technicians[?site_id=]` → `{list:[{technician_id, name, avatar, site_id, site_name, site_address}]}`　**【RS-API-1，新增】**
-    - 数据源：`site_members(status='active', role='repair_technician')` JOIN `sites(status='active')`
-    - `technician_id` = `users.id`（与 select-technician 解析口径一致）；仅暴露姓名/头像/网点展示字段（**不含手机号/邮箱**）
-    - 可选 `site_id` 过滤（配合 `/api/common/sites/nearby` 做「按网点选师傅」两段式 UX）
-  - `POST /api/user/repair-services/:id/select-technician {technician_id}` → `{id, site_id}`
-- **师傅报价**：`修理费` + `物流费预估`
-  - 直连模式（无中转）：1 段受管物流（网点→用户）
+
+### 师傅详情页
+- **样式参照乐器详情页**；展示：个人照片、完整介绍（专长与年限列表）、（评分展示待后续）
+- **下方固定「创建维修订单」按钮** → 进入创建页（RS-01，师傅锁定）
+
+### 师傅档案与归属（2026-09-18 设计变更，见 RS-13）
+- **师傅不再挂靠网点**，**直属商户**（tenant 级）；`tenant_id` 即服务单归属
+- 档案字段：`photo`（个人照片）、`bio`（详细介绍）、`experience`（专长与年限，结构化：`[{craft, years}]`）
+
+### 报价（师傅，weapp 工作台）
+- 师傅**报价**：`修理费` + `物流费预估`
+  - 直连模式（无中转）：1 段受管物流（**师傅→用户**）
   - 受控组合：3 段受管物流（中转→受控、受控→中转、中转→用户）；**用户→中转段用户自担**
-- **调用 / 获取（师傅）**
-  - `GET /api/repair-services?scope=mine&status=pending_quote` → 待报价列表　**【RS-API-2，新增】**
+- **调用 / 获取**
+  - `GET /api/common/repair-technicians` → 师傅列表（**商户直属**，档案字段；去 site 维度）　**【RS-API-1 修订】**
+  - `GET /api/common/repair-technicians/:id` → 师傅详情　**【RS-API-8，新增】**
+  - `GET /api/common/repair-technicians/active-session-count`（师傅本人）→ `{count}`（『我的维修』点亮/计数）　**【RS-API-9，新增】**
+  - `GET /api/repair-services?scope=mine&status=pending_quote` → 待报价列表　**【RS-API-2】**
   - `POST /api/repair-services/:id/quote {quote_repair_cents, quote_logistics_cents}` → `{id, status, payable}`
 
 ## RS-03 用户接受报价并支付（用户，weapp）
@@ -200,10 +212,22 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 报修，并存
 
 | 角色 | 能力 |
 |------|------|
-| 用户（weapp） | 创建/寄出/支付/加价响应/评价 |
-| 师傅（weapp 工作台） | 报价 / 加价 / 完成修理 |
-| 网点员工（weapp + PC） | 分段发运/实填运费 / 触发结算 |
+| 用户（weapp） | 浏览师傅列表/详情 → 创建（师傅锁定）/寄出/支付/加价响应/评价 |
+| 师傅（weapp，**直属商户**） | 报价 / 加价 / 完成修理；**『我的维修』**（活跃会话计数） |
+| 网点员工（weapp + PC） | 分段发运/实填运费 / 触发结算（物流段仍由网点/中转执行） |
 | 平台管理员（PC） | 全量查看 + 评价审核视角 |
+
+---
+*Model: zhipuai/glm-5.3-flash*
+
+## RS-13 师傅档案与归属（2026-09-18 设计变更）
+
+- **归属**：师傅**直属商户**（tenant 级），**不再挂靠网点**。服务单 `tenant_id` = 师傅所属商户；**无 `site_id` 维度**（原「选师后回填网点」作废）
+  - 过渡：历史数据中 `technician_id` 来自 `site_members(role=repair_technician)` 的服务单保持原样（不迁移）；新流程以师傅档案为准
+- **档案模型**（`technician_profiles` 新表，或 users 扩展——实现时定，见实现 Issue）：
+  - `user_id`（师傅，FK users）/ `tenant_id`（直属商户）/ `photo`（个人照片 URL）/ `bio`（详细介绍 text）/ `experience` jsonb（`[{craft, years}]` 专长与年限）/ `status`（active/inactive）/ `created_at/updated_at`
+- **物流段执行方不变**：受控/中转模式下的分段发运仍由**网点/中转员工**执行（师傅不离开商户，但其不承担网点职能）
+- **入口**：师傅列表（RS-02）仅列 `status='active'` 的档案；管理员在 PC 维护师傅档案（新增/编辑/停用）→ 实现 Issue
 
 ---
 *Model: zhipuai/glm-5.3-flash*
