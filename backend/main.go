@@ -389,9 +389,15 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/instruments", middleware.RequireCusPerm("instrument:create"), handlers.CreateInstrument)
 		// #1948 乐器丢失与找回（员工/管理员，双入口之一；归属校验在 handler 内）
 		lossHandler := handlers.NewInstrumentLossHandler()
+		technicianProfileHandler := handlers.NewTechnicianProfileHandler()
 		authRequired.POST("/instruments/:id/lost", middleware.RequireCusPerm("instrument:update"), lossHandler.Register)
 		authRequired.POST("/instruments/:id/restore", middleware.RequireCusPerm("instrument:update"), lossHandler.Restore)
 		authRequired.GET("/instrument-loss", middleware.RequireCusPerm("instrument:read"), lossHandler.List)
+		// #1974 T1 师傅档案维护（PC 管理端）
+		authRequired.GET("/technician-profiles", middleware.RequireCusPerm("instrument:read"), technicianProfileHandler.List)
+		authRequired.POST("/technician-profiles", middleware.RequireCusPerm("instrument:update"), technicianProfileHandler.Create)
+		authRequired.PUT("/technician-profiles/:id", middleware.RequireCusPerm("instrument:update"), technicianProfileHandler.Update)
+		authRequired.PUT("/technician-profiles/:id/status", middleware.RequireCusPerm("instrument:update"), technicianProfileHandler.SetStatus)
 		authRequired.DELETE("/instruments/:id", middleware.RequireCusPerm("instrument:delete"), handlers.DeleteInstrument)
 		// #1798: batch delete (static path registered before :id param — httprouter static-first)
 		authRequired.DELETE("/instruments/batch", middleware.RequireCusPerm("instrument:delete"), handlers.BatchDeleteInstruments)
@@ -689,8 +695,12 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/orders/:id/cancel-by-user", handlers.CancelOrderByCustomer)
 				userOptionalAuth.GET("/orders/by-instrument-sn", handlers.GetOrderByInstrumentSN)
 				userOptionalAuth.GET("/common/sites/nearby", siteHandler.GetNearbySites)
-				// #1954 RS-API-1：顾客可选维修师列表（顾客上下文，无 tid/oid，公共口径）
-				userOptionalAuth.GET("/common/repair-technicians", repairServiceHandler.ListTechnicians)
+				// #1974 T1（2026-09-18 设计变更）：师傅**直属商户**——档案驱动
+				// RS-API-1 列表 / RS-API-8 详情（顾客上下文，公共口径）
+				userOptionalAuth.GET("/common/repair-technicians", technicianProfileHandler.PublicList)
+				userOptionalAuth.GET("/common/repair-technicians/:id", technicianProfileHandler.PublicGet)
+				// RS-API-9 活跃会话计数（师傅本人；未登录 401——handler 内校验）
+				userOptionalAuth.GET("/common/repair-technicians/active-session-count", technicianProfileHandler.ActiveSessionCount)
 				userOptionalAuth.GET("/common/sites/:id", siteHandler.GetSiteDetail)
 				userOptionalAuth.POST("/orders/:id/pay", handlers.PayOrder)
 				userOptionalAuth.POST("/orders/:id/renewal/calculate", handlers.CalculateRenewal)

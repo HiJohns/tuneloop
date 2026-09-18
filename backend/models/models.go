@@ -1293,3 +1293,17 @@ type InstrumentLossRecord struct {
 	CreatedAt           time.Time  `json:"created_at"`
 	UpdatedAt           time.Time  `json:"updated_at"`
 }
+
+// TechnicianProfile 维修师傅档案（#1974 T1，2026-09-18 设计变更）：
+// 师傅**直属商户**（tenant 级，不再挂靠网点）；档案含个人照片/介绍/专长年限。
+type TechnicianProfile struct {
+	ID         string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID     string    `gorm:"type:uuid;index;not null" json:"user_id"`
+	TenantID   string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	Photo      string    `gorm:"type:varchar(500)" json:"photo"`
+	Bio        string    `gorm:"type:text" json:"bio"`
+	Experience string    `gorm:"type:jsonb;default:'[]'" json:"experience"` // [{craft, years}]
+	Status     string    `gorm:"type:varchar(20);default:'active';index" json:"status"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}

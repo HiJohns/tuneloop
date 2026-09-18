@@ -156,15 +156,19 @@ func appendRepairServiceTimeline(db *gorm.DB, repairID, operatorID, recordType, 
 // 目标单的 tenant/site 必须与 JWT 的 tid/oid 匹配；未选定网点（tenant 为空）的服务单
 // 不允许任何 staff 操作。namespace/merchant 级（oid 空）只校验租户。
 func repairServiceStaffAllowed(rr *models.RepairRequest, ctx context.Context) bool {
-	if rr.TenantID == "" || rr.SiteID == "" {
+	if rr.TenantID == "" {
 		return false
 	}
 	tid := middleware.GetTenantID(ctx)
 	if tid == "" || rr.TenantID != tid {
 		return false
 	}
-	if oid := middleware.GetOrgID(ctx); oid != "" && rr.SiteID != oid {
-		return false
+	// #1974 T1（2026-09-18）：服务单**无 site 维度**（师傅直属商户）→ 租户匹配即可；
+	// 若历史/异常单带 site，则网点级账号仍需匹配 site
+	if rr.SiteID != "" {
+		if oid := middleware.GetOrgID(ctx); oid != "" && rr.SiteID != oid {
+			return false
+		}
 	}
 	return true
 }
@@ -219,23 +223,30 @@ func (h *RepairServiceHandler) Create(c *gin.Context) {
 		}
 	}
 	// 创建时可选指定维修师 → 回填其网点/租户（不指定则保持 NULL，选师时回填）
-	if body.TechnicianID != "" {
-		siteID, tenantID, ok := resolveTechnicianSite(db, body.TechnicianID)
-		if !ok {
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "technician not found"})
-			return
-		}
-		rr.SiteID = siteID
-		rr.TenantID = tenantID
-		tid := body.TechnicianID
-		rr.TechnicianID = &tid
+	// #1974 T1（2026-09-18 设计变更）：创建即**锁定师傅**（必填），师傅**直属商户**
+	// → 回填 technician_id + tenant_id（**不再有 site 维度**）
+	if strings.TrimSpace(body.TechnicianID) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "technician_id is required"})
+		return
 	}
+	var profile models.TechnicianProfile
+	if err := db.Where("user_id = ? AND status = ?", body.TechnicianID, "active").First(&profile).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "technician not found or inactive"})
+		return
+	}
+	rr.TenantID = profile.TenantID
+	tid := body.TechnicianID
+	rr.TechnicianID = &tid
 	// 未选维修师时无网点/租户归属：uuid 列不可写空串，必须 Omit 以存 NULL
 	// （迁移 20260917003 已放开 site_id/tenant_id NOT NULL）。
 	create := db
 	var omit []string
+	// 分别判空：师傅直属商户（#1974 T1）下 tenant_id 有值而 site_id 为空 → 只 Omit site_id
 	if rr.SiteID == "" {
-		omit = append(omit, "site_id", "tenant_id")
+		omit = append(omit, "site_id")
+	}
+	if rr.TenantID == "" {
+		omit = append(omit, "tenant_id")
 	}
 	if rr.UserInstrumentID == "" {
 		omit = append(omit, "user_instrument_id")
@@ -1042,40 +1053,6 @@ func (h *RepairServiceHandler) ListPendingDispatch(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": list, "total": len(list)}})
 }
 
-// ListTechnicians GET /api/common/repair-technicians[?site_id=]
-// RS-API-1：顾客可选维修师列表。**顾客上下文（JWT 无 tid/oid）**——不得用 JWT 推导
-// 租户/网点，作用域只来自入参与公共口径（跨租户，同 /common/sites/nearby）。
-// 仅暴露展示字段（name/avatar/网点），不含手机号/邮箱。
-func (h *RepairServiceHandler) ListTechnicians(c *gin.Context) {
-	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
-
-	type techRow struct {
-		TechnicianID string `json:"technician_id"`
-		Name         string `json:"name"`
-		Avatar       string `json:"avatar"`
-		SiteID       string `json:"site_id"`
-		SiteName     string `json:"site_name"`
-		SiteAddress  string `json:"site_address"`
-	}
-	rows := []techRow{}
-	query := db.Table("site_members AS sm").
-		Select("sm.user_id AS technician_id, u.name AS name, COALESCE(u.avatar_url, '') AS avatar, "+
-			"s.id AS site_id, s.name AS site_name, COALESCE(s.address, '') AS site_address").
-		Joins("JOIN users u ON u.id = sm.user_id").
-		Joins("JOIN sites s ON s.id = sm.site_id AND s.status = 'active'").
-		Where("sm.status = ? AND sm.role = ?", "active", "repair_technician")
-	if siteID := c.Query("site_id"); siteID != "" {
-		query = query.Where("s.id = ?", siteID)
-	}
-	if err := query.Order("s.name ASC, u.name ASC").Scan(&rows).Error; err != nil {
-		log.Printf("[RepairService.ListTechnicians] query failed: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list technicians"})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": rows, "total": len(rows)}})
-}
-
 // ListTasks GET /api/repair-services?scope=mine|site&status=<csv>
 // RS-API-2：师傅/员工任务列表。**员工上下文（JWT 有 tid/oid）**——必须以 JWT
 // 作用域：scope=mine → 指派给我（本地用户 id）；scope=site → 本网点（oid，回退 tid）。
@@ -1098,8 +1075,12 @@ func (h *RepairServiceHandler) ListTasks(c *gin.Context) {
 		}
 		query = query.Where("technician_id = ?", me)
 	case "site":
+		// #1974 T1：服务单可能无 site（师傅直属商户）→ 网点账号也可见本租户的无 site 单
 		if orgID := middleware.GetOrgID(ctx); orgID != "" {
-			query = query.Where("site_id = ?", orgID)
+			query = query.Where("(site_id = ? OR site_id IS NULL)", orgID)
+			if tid := middleware.GetTenantID(ctx); tid != "" {
+				query = query.Where("tenant_id = ?", tid)
+			}
 		} else if tid := middleware.GetTenantID(ctx); tid != "" {
 			query = query.Where("tenant_id = ?", tid)
 		} else {

@@ -55,6 +55,11 @@ func setupRepairServiceFixture(t *testing.T) svcFixture {
 	require.NoError(t, db.Create(&models.SiteMember{
 		TenantID: tenantID, SiteID: siteID, UserID: techID, Role: "repair_technician", Status: "active",
 	}).Error)
+	// #1974 T1：师傅档案（创建维修单需锁定 active 师傅）
+	require.NoError(t, db.Create(&models.TechnicianProfile{
+		UserID: techID, TenantID: tenantID, Photo: "p.jpg", Bio: "钢琴维修 12 年",
+		Experience: `[{"craft":"钢琴","years":12}]`, Status: "active",
+	}).Error)
 	require.NoError(t, db.Create(&models.SiteMember{
 		TenantID: otherTenantID, SiteID: otherSiteID, UserID: otherStaffSub, Role: "site_member", Status: "active",
 	}).Error)
@@ -76,7 +81,10 @@ func setupRepairServiceFixture(t *testing.T) svcFixture {
 	r.POST("/repair-services/:id/complete", h.Complete)
 	r.POST("/repair-services/:id/dispatch", h.Dispatch)
 	r.GET("/repair-services", h.ListTasks)
-	r.GET("/common/repair-technicians", h.ListTechnicians)
+	tp := NewTechnicianProfileHandler()
+	r.GET("/common/repair-technicians", tp.PublicList)
+	r.GET("/common/repair-technicians/:id", tp.PublicGet)
+	r.GET("/common/repair-technicians/active-session-count", tp.ActiveSessionCount)
 	r.POST("/api/pay/prepay", PrepayOrder)
 
 	return svcFixture{tenantID: tenantID, orgID: orgID, siteID: siteID,
@@ -160,7 +168,7 @@ func TestRepairService_HappyPathSettlementRefund(t *testing.T) {
 	customer := testutil.MakeCustomer("", f.customerSub)
 	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
 
-	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "琴颈修复"})
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "琴颈修复", "technician_id": f.techID})
 	id := svcData(t, resp)["id"].(string)
 	require.NotEmpty(t, id)
 
@@ -216,7 +224,7 @@ func TestRepairService_AdjustAcceptPaysDifference(t *testing.T) {
 	customer := testutil.MakeCustomer("", f.customerSub)
 	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
 
-	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "加价-继续"})
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "加价-继续", "technician_id": f.techID})
 	id := svcData(t, resp)["id"].(string)
 	svcPost(t, f, customer, "/user/repair-services/"+id+"/select-technician", gin.H{"technician_id": f.techID})
 	svcPost(t, f, staff, "/repair-services/"+id+"/quote", gin.H{"quote_repair_cents": 20000, "quote_logistics_cents": 5000})
@@ -261,7 +269,7 @@ func TestRepairService_AdjustDeclineSettlement(t *testing.T) {
 	customer := testutil.MakeCustomer("", f.customerSub)
 	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
 
-	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "加价-拒绝"})
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "加价-拒绝", "technician_id": f.techID})
 	id := svcData(t, resp)["id"].(string)
 	svcPost(t, f, customer, "/user/repair-services/"+id+"/select-technician", gin.H{"technician_id": f.techID})
 	svcPost(t, f, staff, "/repair-services/"+id+"/quote", gin.H{"quote_repair_cents": 20000, "quote_logistics_cents": 5000})
@@ -293,7 +301,7 @@ func TestRepairService_SettlementShortfall(t *testing.T) {
 	customer := testutil.MakeCustomer("", f.customerSub)
 	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
 
-	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "补缴"})
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "补缴", "technician_id": f.techID})
 	id := svcData(t, resp)["id"].(string)
 	svcPost(t, f, customer, "/user/repair-services/"+id+"/select-technician", gin.H{"technician_id": f.techID})
 	svcPost(t, f, staff, "/repair-services/"+id+"/quote", gin.H{"quote_repair_cents": 1000, "quote_logistics_cents": 0})
@@ -322,21 +330,15 @@ func TestRepairService_StatusGuardsAndTenantIsolation(t *testing.T) {
 	customer := testutil.MakeCustomer("", f.customerSub)
 	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
 
-	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "守卫"})
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "守卫", "technician_id": f.techID})
 	id := svcData(t, resp)["id"].(string)
 
-	// F1：未选定网点（tenant/site 为空）时 staff 一律不可操作（含完工）→ 403
-	_, resp = svcPost(t, f, staff, "/repair-services/"+id+"/complete", nil)
-	assert.Equal(t, float64(40300), resp["code"])
-	_, resp = svcPost(t, f, staff, "/repair-services/"+id+"/quote", gin.H{"quote_repair_cents": 10000, "quote_logistics_cents": 0})
-	assert.Equal(t, float64(40300), resp["code"])
-
-	svcPost(t, f, customer, "/user/repair-services/"+id+"/select-technician", gin.H{"technician_id": f.techID})
-	// 已选师但未支付/未寄出即完工 → 409（状态守卫）
+	// #1974 T1：创建即锁定师傅（tenant 已回填）→ 本租户员工可操作；
+	// 但未支付/未寄出即完工 → 409（状态守卫）
 	_, resp = svcPost(t, f, staff, "/repair-services/"+id+"/complete", nil)
 	assert.Equal(t, float64(40900), resp["code"])
 	_, resp = svcPost(t, f, staff, "/repair-services/"+id+"/quote", gin.H{"quote_repair_cents": 10000, "quote_logistics_cents": 0})
-	require.Equal(t, float64(20000), resp["code"])
+	require.Equal(t, float64(20000), resp["code"], "创建即锁定 → 本租户员工可报价")
 	// 重复报价 → 409
 	_, resp = svcPost(t, f, staff, "/repair-services/"+id+"/quote", gin.H{"quote_repair_cents": 10000, "quote_logistics_cents": 0})
 	assert.Equal(t, float64(40900), resp["code"])
@@ -356,58 +358,6 @@ func TestRepairService_StatusGuardsAndTenantIsolation(t *testing.T) {
 	assert.Equal(t, float64(40900), resp["code"], "无 pending 加价 → 409")
 }
 
-// TestRepairService_TechnicianList（RS-API-1）：顾客上下文（无 tid/oid）可选师傅列表。
-func TestRepairService_TechnicianList(t *testing.T) {
-	f := setupRepairServiceFixture(t)
-	// 另建一名非师傅的 site_member（不应出现在列表）
-	plainSub := uuid.New().String()
-	require.NoError(t, f.db.Create(&models.User{
-		ID: plainSub, IAMSub: plainSub, TenantID: f.tenantID, OrgID: f.orgID,
-		Username: "plain-" + plainSub[:8], Name: "非师傅", Status: "active",
-	}).Error)
-	require.NoError(t, f.db.Create(&models.SiteMember{
-		TenantID: f.tenantID, SiteID: f.siteID, UserID: plainSub, Role: "site_member", Status: "active",
-	}).Error)
-
-	// 顾客上下文：tid/oid 为空（#833），仅可用入参过滤
-	customer := testutil.TestActor{TenantID: "", OrgID: "", UserID: f.customerSub, Role: "USER"}
-	req := httptest.NewRequest(http.MethodGet, "/common/repair-technicians", nil)
-	w := httptest.NewRecorder()
-	f.router.ServeHTTP(w, req.WithContext(customer.InjectContext(req.Context())))
-	require.Equal(t, http.StatusOK, w.Code)
-	var resp struct {
-		Code int `json:"code"`
-		Data struct {
-			List []struct {
-				TechnicianID string `json:"technician_id"`
-				Name         string `json:"name"`
-				SiteID       string `json:"site_id"`
-				SiteName     string `json:"site_name"`
-				SiteAddress  string `json:"site_address"`
-				Phone        string `json:"phone"`
-				Email        string `json:"email"`
-			} `json:"list"`
-		} `json:"data"`
-	}
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	require.Equal(t, 20000, resp.Code)
-	require.Len(t, resp.Data.List, 1, "仅 repair_technician 入列（非师傅 site_member 排除）")
-	row := resp.Data.List[0]
-	assert.Equal(t, f.techID, row.TechnicianID)
-	assert.Equal(t, f.siteID, row.SiteID)
-	assert.NotEmpty(t, row.SiteName)
-	assert.Empty(t, row.Phone, "不暴露手机号")
-	assert.Empty(t, row.Email, "不暴露邮箱")
-
-	// site_id 过滤：传其他网点 → 空
-	req = httptest.NewRequest(http.MethodGet, "/common/repair-technicians?site_id="+f.otherSiteID, nil)
-	w = httptest.NewRecorder()
-	f.router.ServeHTTP(w, req.WithContext(customer.InjectContext(req.Context())))
-	require.Equal(t, http.StatusOK, w.Code)
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	assert.Len(t, resp.Data.List, 0)
-}
-
 // TestRepairService_TaskListScopes（RS-API-2）：员工上下文 scope 过滤 + 跨租户隔离。
 func TestRepairService_TaskListScopes(t *testing.T) {
 	f := setupRepairServiceFixture(t)
@@ -416,7 +366,7 @@ func TestRepairService_TaskListScopes(t *testing.T) {
 	otherStaff := testutil.TestActor{TenantID: f.otherTenantID, OrgID: f.otherSiteID, UserID: f.otherStaffSub, Role: "site_member"}
 
 	mkSvc := func(desc string) string {
-		_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": desc})
+		_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": desc, "technician_id": f.techID})
 		return svcData(t, resp)["id"].(string)
 	}
 	idA := mkSvc("A-本网点")
@@ -445,14 +395,18 @@ func TestRepairService_TaskListScopes(t *testing.T) {
 		ids[rr.ID] = true
 	}
 	assert.True(t, ids[idA], "本网点单在列")
-	assert.False(t, ids[idB], "未选师单（无网点）不出现在 site 列表")
+	// #1974 T1：服务单去 site 维度 → 本租户的「无 site 单」对网点账号可见
+	assert.True(t, ids[idB], "无 site 单（本租户）对网点账号可见")
 
 	// scope=mine（师傅本人）→ 指派给我的
 	code, list = getList(staff, "?scope=mine&status=pending_quote")
 	require.Equal(t, http.StatusOK, code)
-	require.Len(t, list, 1)
-	assert.Equal(t, idA, list[0].ID)
-	assert.Equal(t, models.RepairReqStatusPendingQuote, list[0].Status)
+	// #1974 T1：创建即锁定师傅 → 两单均指派给该师傅（pending_quote）
+	require.Len(t, list, 2)
+	for _, rr := range list {
+		assert.Equal(t, models.RepairReqStatusPendingQuote, rr.Status)
+		assert.Equal(t, f.techID, *rr.TechnicianID)
+	}
 
 	// 跨租户员工 scope=site → 空（JWT oid=otherSite，#688）
 	code, list = getList(otherStaff, "?scope=site")
@@ -471,7 +425,7 @@ func TestRepairService_DetailSite(t *testing.T) {
 	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
 	otherStaff := testutil.TestActor{TenantID: f.otherTenantID, OrgID: f.otherSiteID, UserID: f.otherStaffSub, Role: "site_member"}
 
-	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "详情site"})
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "详情site", "technician_id": f.techID})
 	id := svcData(t, resp)["id"].(string)
 	svcPost(t, f, customer, "/user/repair-services/"+id+"/select-technician", gin.H{"technician_id": f.techID})
 
@@ -508,7 +462,7 @@ func TestRepairService_Timeline(t *testing.T) {
 	customer := testutil.MakeCustomer("", f.customerSub)
 	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
 
-	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "时间线"})
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "时间线", "technician_id": f.techID})
 	id := svcData(t, resp)["id"].(string)
 	svcPost(t, f, customer, "/user/repair-services/"+id+"/select-technician", gin.H{"technician_id": f.techID})
 	svcPost(t, f, staff, "/repair-services/"+id+"/quote", gin.H{"quote_repair_cents": 20000, "quote_logistics_cents": 5000})
@@ -554,7 +508,7 @@ func TestRepairService_PaymentsSummary(t *testing.T) {
 	customer := testutil.MakeCustomer("", f.customerSub)
 	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
 
-	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "汇总"})
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "汇总", "technician_id": f.techID})
 	id := svcData(t, resp)["id"].(string)
 	svcPost(t, f, customer, "/user/repair-services/"+id+"/select-technician", gin.H{"technician_id": f.techID})
 	svcPost(t, f, staff, "/repair-services/"+id+"/quote", gin.H{"quote_repair_cents": 1000, "quote_logistics_cents": 0})
@@ -601,9 +555,9 @@ func TestRepairService_ListMineStatusFilter(t *testing.T) {
 	customer := testutil.MakeCustomer("", f.customerSub)
 	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
 
-	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "过滤A"})
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "过滤A", "technician_id": f.techID})
 	idA := svcData(t, resp)["id"].(string)
-	svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "过滤B"})
+	svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "过滤B", "technician_id": f.techID})
 	svcPost(t, f, customer, "/user/repair-services/"+idA+"/select-technician", gin.H{"technician_id": f.techID})
 	svcPost(t, f, staff, "/repair-services/"+idA+"/quote", gin.H{"quote_repair_cents": 1000, "quote_logistics_cents": 0})
 
@@ -628,7 +582,7 @@ func TestRepairService_ShortfallPrepay(t *testing.T) {
 	customer := testutil.MakeCustomer("", f.customerSub)
 	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
 
-	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "补缴支付"})
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "补缴支付", "technician_id": f.techID})
 	id := svcData(t, resp)["id"].(string)
 	svcPost(t, f, customer, "/user/repair-services/"+id+"/select-technician", gin.H{"technician_id": f.techID})
 	svcPost(t, f, staff, "/repair-services/"+id+"/quote", gin.H{"quote_repair_cents": 1000, "quote_logistics_cents": 0})
