@@ -72,7 +72,8 @@ export default function InvoiceList() {
     const formData = new FormData()
     formData.append('file', file)
     try {
-      const resp = await api.post('/upload', formData, { headers: {} })
+      // #1967：必须走 uploadFile（FormData 不可被 JSON.stringify）
+      const resp = await api.uploadFile('/upload', formData)
       if (resp.code === 20000 && resp.data?.url) {
         setReplyFileUrl(resp.data.url)
         message.success('上传成功')
@@ -191,7 +192,7 @@ export default function InvoiceList() {
             </div>
             <div style={{ marginTop: 16 }}>
               <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>上传发票文件</label>
-              <Upload beforeUpload={handleUpload} showUploadList={false}>
+              <Upload beforeUpload={handleUpload} showUploadList={false} accept=".pdf,image/*">
                 <Button icon={<UploadOutlined />}>选择文件</Button>
               </Upload>
               {replyFileUrl && (

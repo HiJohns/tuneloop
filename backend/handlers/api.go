@@ -1053,11 +1053,13 @@ func HandleUpload(c *gin.Context) {
 	mimeType := file.Header.Get("Content-Type")
 	isImage := mimeType == "image/jpeg" || mimeType == "image/png" || mimeType == "image/gif" || mimeType == "image/webp"
 	isVideo := mimeType == "video/mp4" || mimeType == "video/webm" || mimeType == "video/quicktime"
+	// #1967：发票/凭证场景需 PDF
+	isPDF := mimeType == "application/pdf"
 
-	if !isImage && !isVideo {
+	if !isImage && !isVideo && !isPDF {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
-			"message": "Invalid file type. Only JPEG, PNG, GIF, WebP, MP4, WebM, MOV allowed",
+			"message": "Invalid file type. Only JPEG, PNG, GIF, WebP, MP4, WebM, MOV, PDF allowed",
 		})
 		return
 	}
@@ -1080,7 +1082,7 @@ func HandleUpload(c *gin.Context) {
 		videoMaxSize = os.Getenv("UPLOAD_VIDEO_MAX_SIZE")
 	}
 
-	if isImage {
+	if isImage || isPDF {
 		if imageMaxSize != "" {
 			if parsed, err := strconv.Atoi(imageMaxSize); err == nil && parsed > 0 {
 				maxSizeBytes = int64(parsed * 1024 * 1024)
