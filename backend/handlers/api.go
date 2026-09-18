@@ -1224,34 +1224,28 @@ func HandleUpload(c *gin.Context) {
 
 // GetOverdueLeases returns overdue lease data (replaces the old abnormal work orders API)
 func GetOverdueLeases(c *gin.Context) {
+	// #1966：语义校正 —— 「逾期告警」= **逾期未归还**（orders.status='expired'，
+	// 由 overdue_deduction_scheduler 维护），而非过去的扣款失败记录（overdue_charges）。
+	// 并修复原 select `users.display_name`（列不存在 → SQL 500 → 页面无显示）为 users.name。
 	tenantID := middleware.GetTenantID(c.Request.Context())
 	orgID := middleware.GetOrgID(c.Request.Context())
 
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
-	statusFilter := c.Query("status")
 
 	db := database.GetDB()
-	query := db.Table("overdue_charges").
-		Select(`overdue_charges.id, overdue_charges.order_id, overdue_charges.charge_date,
-			overdue_charges.amount, overdue_charges.deducted_from_prepaid,
-			overdue_charges.remaining_balance, overdue_charges.status,
-			overdue_charges.failure_reason, overdue_charges.created_at,
-			orders.instrument_id, instruments.sn AS instrument_sn,
-			instruments.category_name, users.display_name AS user_name,
-			users.phone AS user_phone`).
-		Joins("JOIN orders ON orders.id = overdue_charges.order_id").
+	query := db.Table("orders").
+		Select(`orders.id AS order_id, orders.end_date, orders.status,
+			instruments.sn AS instrument_sn, instruments.category_name,
+			users.name AS user_name, users.phone AS user_phone,
+			GREATEST(0, (CURRENT_DATE - orders.end_date)) AS overdue_days`).
 		Joins("JOIN instruments ON instruments.id = orders.instrument_id").
 		Joins("JOIN users ON users.id = orders.user_id").
-		Where("orders.tenant_id = ?", tenantID).
-		Where("overdue_charges.status IN ?", []string{"failed", "partial"})
+		Where("orders.status = ?", models.OrderStatusExpired).
+		Where("orders.tenant_id = ?", tenantID)
 
-	if orgID != "" {
+	if orgID != "" && orgID != tenantID {
 		query = query.Where("orders.org_id = ?", orgID)
-	}
-
-	if statusFilter != "" {
-		query = query.Where("overdue_charges.status = ?", statusFilter)
 	}
 
 	var total int64
@@ -1259,7 +1253,7 @@ func GetOverdueLeases(c *gin.Context) {
 
 	var results []map[string]interface{}
 	offset := (page - 1) * pageSize
-	query.Order("overdue_charges.created_at DESC").
+	query.Order("orders.end_date ASC").
 		Offset(offset).Limit(pageSize).Scan(&results)
 
 	if results == nil {

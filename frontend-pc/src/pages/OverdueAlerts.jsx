@@ -48,73 +48,33 @@ export default function OverdueAlerts() {
     {
       title: '乐器',
       key: 'instrument',
-      width: 200,
+      width: 220,
       render: (_, record) => {
-        const sn = record.instrument_sn || '-';
-        const cat = record.category_name || '';
-        return <span>{cat ? `${cat} (${sn})` : sn}</span>;
+        const sn = record.instrument_sn || '-'
+        const cat = record.category_name || ''
+        return <span>{cat ? `${cat}（${sn}）` : sn}</span>
       },
     },
     {
       title: '用户',
       key: 'user',
-      width: 160,
+      width: 180,
       render: (_, record) => (
-        <span>{record.user_name || '-'} {record.user_phone ? `(${record.user_phone})` : ''}</span>
+        <span>{record.user_name || '-'} {record.user_phone ? `（${record.user_phone}）` : ''}</span>
       ),
     },
+    { title: '应还日期', dataIndex: 'end_date', key: 'end_date', width: 130, render: v => v || '-' },
     {
-      title: '扣款日期',
-      dataIndex: 'charge_date',
-      key: 'charge_date',
-      width: 120,
+      title: '逾期天数', dataIndex: 'overdue_days', key: 'overdue_days', width: 110, align: 'right',
+      render: v => (v != null ? <span className="text-red-500 font-medium">{v} 天</span> : '-'),
     },
     {
-      title: '逾期金额',
-      dataIndex: 'amount',
-      key: 'amount',
-      width: 120,
-      render: (v) => v != null ? `¥${Number(v).toFixed(2)}` : '-',
+      title: '订单号', dataIndex: 'order_id', key: 'order_id', width: 180,
+      render: v => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{v ? `${v.slice(0, 8)}…` : '-'}</span>,
     },
     {
-      title: '已扣预付',
-      dataIndex: 'deducted_from_prepaid',
-      key: 'deducted_from_prepaid',
-      width: 120,
-      render: (v) => v != null ? `¥${Number(v).toFixed(2)}` : '-',
-    },
-    {
-      title: '欠款余额',
-      dataIndex: 'remaining_balance',
-      key: 'remaining_balance',
-      width: 120,
-      render: (v) => v != null ? (
-        <span className="text-red-500 font-medium">¥{Number(v).toFixed(2)}</span>
-      ) : '-',
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      width: 110,
-      render: (status) => {
-        const cfg = statusConfig[status] || { text: status, color: 'default' };
-        return <Tag color={cfg.color}>{cfg.text}</Tag>;
-      },
-    },
-    {
-      title: '失败原因',
-      dataIndex: 'failure_reason',
-      key: 'failure_reason',
-      ellipsis: true,
-      width: 200,
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      width: 170,
-      render: (t) => t ? formatBeijingDateTimeShort(t) : '-',
+      title: '状态', dataIndex: 'status', key: 'status', width: 110,
+      render: () => <Tag color="red">已逾期</Tag>,
     },
   ];
 
