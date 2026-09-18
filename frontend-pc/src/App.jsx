@@ -36,6 +36,7 @@ import TenantManagement from './pages/TenantManagement'
 import AppealManagement from './pages/AppealManagement'
 import RepairConfigPage from './pages/admin/repair/RepairConfigPage'
 import MerchantRepairList from './pages/admin/repair/MerchantRepairList'
+import TechnicianProfiles from './pages/System/TechnicianProfiles'
 import WarningManagement from './pages/admin/warnings/WarningManagement'
 import WarningSettings from './pages/admin/warnings/WarningSettings'
 import SmtpSettings from './pages/admin/warnings/SmtpSettings'
@@ -374,6 +375,7 @@ function MainLayout() {
     children: [
       { key: '/orders', label: '订单管理', permission: { cusPermCodes: ['order:read'] } },
       { key: '/repair/requests', label: '报修列表', permission: { cusPermCodes: ['instrument:price_config'] } },
+      { key: '/technician-profiles', label: '师傅档案', permission: { cusPermCodes: ['instrument:read'] } },
       { key: '/warehouse', label: '库管工作台', permission: { cusPermCodes: ['instrument:read', 'instrument:update'] } },
       { key: '/transit-center', label: '中转中心', permission: { sysPermBits: [5] } },
       { key: '/overdue-alerts', label: '逾期告警', permission: { cusPermCodes: ['instrument:read'] } },
@@ -482,6 +484,7 @@ function onMenuClick(e) {
     '/pricing/config': { title: '定价策略', parent: '策略配置' },
     '/repair/settings': { title: '报修设置', parent: '策略配置' },
     '/repair/requests': { title: '报修列表', parent: '交易管理' },
+    '/technician-profiles': { title: '师傅档案', parent: '交易管理' },
     '/system/gift-policies': { title: '赠点策略', parent: '策略配置' },
     '/system/membership-levels': { title: '会员级别管理', parent: '策略配置' },
     '/system/membership-handbook': { title: '会员手册编辑', parent: '策略配置' },
@@ -707,6 +710,7 @@ function onMenuClick(e) {
             <Route path="/workorders" element={<ProtectedRoute><WorkOrderList /></ProtectedRoute>} />
             <Route path="/repair/settings" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price_config'] }}><RepairConfigPage /></ProtectedRoute>} />
             <Route path="/repair/requests" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price_config'] }}><MerchantRepairList /></ProtectedRoute>} />
+            <Route path="/technician-profiles" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read'] }}><TechnicianProfiles /></ProtectedRoute>} />
             <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />
             <Route path="/system/permissions" element={<ProtectedRoute requiredPermission={{ sysPermBits: [27] }}><PermissionManage /></ProtectedRoute>} />
             <Route path="/system/clients" element={<ProtectedRoute requiredPermission={{ sysPermBits: [0] }}><ClientManagement /></ProtectedRoute>} />

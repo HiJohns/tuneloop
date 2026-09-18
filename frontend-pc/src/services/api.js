@@ -428,6 +428,14 @@ export const staffApi = {
   activateUser: (id) => api.post(`/users/${id}/activate`),
 }
 
+export const technicianApi = {
+  // #1974 T1/T4 师傅档案（直属商户）
+  list: (params = {}) => api.get('/technician-profiles', { params }),
+  create: (data) => api.post('/technician-profiles', data),
+  update: (id, data) => api.put(`/technician-profiles/${id}`, data),
+  setStatus: (id, status) => api.put(`/technician-profiles/${id}/status`, { status }),
+}
+
 export const lossApi = {
   // #1948 乐器丢失与找回（LS-01/02/05 台账）
   register: (instrumentId, data) => api.post(`/instruments/${instrumentId}/lost`, data),
