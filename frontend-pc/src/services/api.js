@@ -428,6 +428,13 @@ export const staffApi = {
   activateUser: (id) => api.post(`/users/${id}/activate`),
 }
 
+export const lossApi = {
+  // #1948 乐器丢失与找回（LS-01/02/05 台账）
+  register: (instrumentId, data) => api.post(`/instruments/${instrumentId}/lost`, data),
+  restore: (instrumentId, data) => api.post(`/instruments/${instrumentId}/restore`, data),
+  list: (params = {}) => api.get('/instrument-loss', { params }),
+}
+
 export const inventoryApi = {
   list: (params = {}) => api.get('/instruments', { params }),
   getTransferList: (params) => api.get('/merchant/inventory/transfers', { params }),

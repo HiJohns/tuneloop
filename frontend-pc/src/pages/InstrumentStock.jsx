@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Table, Tag, Button, Space, Spin } from 'antd'
-import { EyeOutlined, EditOutlined } from '@ant-design/icons'
+import { Table, Tag, Button, Space, Spin, Modal, Form, Input, InputNumber, Select, Radio, Upload, Descriptions, Image, message } from 'antd'
+import { EyeOutlined, EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined } from '@ant-design/icons'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { inventoryApi } from '../services/api'
+import { inventoryApi, lossApi, api } from '../services/api'
 
 const statusColors = {
   "在租": "green",
@@ -12,6 +12,7 @@ const statusColors = {
   "rented": "green",
   "available": "blue",
   "maintenance": "orange",
+  "lost": "red",
 }
 
 export default function InstrumentStock() {
@@ -104,7 +105,8 @@ export default function InstrumentStock() {
             "available": { color: 'blue', text: '待租' },
             "维修中": { color: 'orange', text: '维修中' },
             "maintenance": { color: 'orange', text: '维修中' },
-            "已熔断": { color: 'red', text: '已熔断' }
+            "已熔断": { color: 'red', text: '已熔断' },
+            "lost": { color: 'red', text: '已丢失' }
           }
           return statusMap[status] || { color: 'default', text: status }
         }
@@ -130,14 +132,123 @@ export default function InstrumentStock() {
     {
       title: '操作',
       key: 'action',
-      width: 120,
+      width: 200,
       render: (_, record) => (
         <Space>
           <Button type="link" size="small" icon={<EyeOutlined />}>详情</Button>
-          <Button type="link" size="small" icon={<EditOutlined />}>编辑</Button>
+          {record.status === 'lost' ? (
+            <Button type="link" size="small" icon={<RollbackOutlined />}
+              onClick={(e) => { e.stopPropagation(); openRestoreModal(record) }}>恢复</Button>
+          ) : (
+            <Button type="link" size="small" danger icon={<WarningOutlined />}
+              onClick={(e) => { e.stopPropagation(); openLostModal(record) }}>丢失</Button>
+          )}
         </Space>
       )
     }
+  ]
+
+  // ===== #1948 丢失登记 / 恢复 / 台账 =====
+  const [view, setView] = useState('stock') // stock | loss
+  const [lossRows, setLossRows] = useState([])
+  const [lossLoading, setLossLoading] = useState(false)
+  const [lossDetail, setLossDetail] = useState(null)
+  const [lostTarget, setLostTarget] = useState(null)
+  const [restoreTarget, setRestoreTarget] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [lossForm] = Form.useForm()
+  const [restoreForm] = Form.useForm()
+  const [restoreFiles, setRestoreFiles] = useState([])
+
+  const openLostModal = (record) => {
+    setLostTarget(record)
+    lossForm.setFieldsValue({ responsible_party: 'user', user_ratio: 100 })
+    setRestoreFiles([])
+  }
+  const openRestoreModal = (record) => {
+    setRestoreTarget(record)
+    restoreForm.setFieldsValue({ damaged: false })
+    setRestoreFiles([])
+  }
+
+  const uploadOne = async (file) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    const resp = await api.post('/upload', fd, { headers: {} })
+    if (resp.code === 20000) return resp.data?.url || resp.data?.file_key
+    throw new Error(resp.message || 'upload failed')
+  }
+
+  const submitLost = async () => {
+    const v = await lossForm.validateFields()
+    setSubmitting(true)
+    try {
+      const resp = await lossApi.register(lostTarget.id, {
+        description: v.description,
+        responsible_party: v.responsible_party,
+        user_ratio: v.user_ratio ?? 0,
+        compensation_cents: Math.round((v.compensation_yuan || 0) * 100),
+        ...(v.user_burden_yuan != null ? { user_burden_cents: Math.round(v.user_burden_yuan * 100) } : {}),
+      })
+      if (resp.code === 20000) {
+        message.success('丢失登记完成')
+        setLostTarget(null)
+        loadData()
+      } else message.error(resp.message || '登记失败')
+    } catch (e) { message.error(e.message || '登记失败') }
+    setSubmitting(false)
+  }
+
+  const submitRestore = async () => {
+    const v = await restoreForm.validateFields()
+    setSubmitting(true)
+    try {
+      const photos = []
+      for (const f of restoreFiles) photos.push(await uploadOne(f))
+      const resp = await lossApi.restore(restoreTarget.id, {
+        damaged: !!v.damaged, description: v.description || '', photos,
+      })
+      if (resp.code === 20000) {
+        const d = resp.data || {}
+        message.success(d.reversal === 'refunded'
+          ? `恢复成功，冲正退款 ¥${((d.refund_cents || 0) / 100).toFixed(2)}`
+          : d.reversal === 'held_pending_assessment' ? '恢复成功（有损坏，赔偿暂扣待定损）' : '恢复成功')
+        setRestoreTarget(null)
+        loadData()
+      } else message.error(resp.message || '恢复失败')
+    } catch (e) { message.error(e.message || '恢复失败') }
+    setSubmitting(false)
+  }
+
+  const loadLossRecords = async () => {
+    setLossLoading(true)
+    try {
+      const resp = await lossApi.list()
+      if (resp.code === 20000) setLossRows(resp.data?.list || [])
+    } finally { setLossLoading(false) }
+  }
+
+  const switchView = (key) => {
+    setView(key)
+    if (key === 'loss') loadLossRecords()
+  }
+
+  const lossColumns = [
+    { title: '乐器', dataIndex: 'instrument_id', render: v => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{v?.slice(0, 8)}…</span> },
+    { title: '订单', dataIndex: 'order_id', render: v => v ? <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{v.slice(0, 8)}…</span> : '-' },
+    { title: '责任方', dataIndex: 'responsible_party', render: v => ({ user: '用户', logistics: '物流公司', platform: '平台', site: '网点' }[v] || v) },
+    { title: '责任比例', dataIndex: 'user_ratio', render: v => `${v}%` },
+    { title: '赔偿', dataIndex: 'compensation_cents', align: 'right', render: v => v ? `¥${(v / 100).toFixed(2)}` : '-' },
+    { title: '用户承担', dataIndex: 'user_burden_cents', align: 'right', render: v => `¥${((v || 0) / 100).toFixed(2)}` },
+    {
+      title: '状态', key: 'state',
+      render: (_, r) => r.restored_at
+        ? <Tag color="green">已恢复{r.restored_damaged ? '（有损坏）' : ''}</Tag>
+        : <Tag color="red">丢失中</Tag>,
+    },
+    { title: '冲正退款', dataIndex: 'reversed_amount_cents', align: 'right', render: v => v ? `¥${(v / 100).toFixed(2)}` : '-' },
+    { title: '登记时间', dataIndex: 'created_at', render: v => v ? new Date(v).toLocaleString('zh-CN') : '-' },
+    { title: '操作', key: 'op', render: (_, r) => <Button type="link" size="small" onClick={() => setLossDetail(r)}>详情</Button> },
   ]
 
   if (loading) {
@@ -150,7 +261,12 @@ export default function InstrumentStock() {
 
   return (
     <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">乐器库存</h2>
+      <Space style={{ marginBottom: 16 }}>
+        <h2 className="text-xl font-bold" style={{ margin: 0 }}>{view === 'stock' ? '乐器库存' : '丢失台账'}</h2>
+        <Button icon={<WarningOutlined />} onClick={() => switchView(view === 'stock' ? 'loss' : 'stock')}>
+          {view === 'stock' ? '丢失台账' : '返回库存'}
+        </Button>
+      </Space>
       {statusParam && (
         <div className="mb-4 p-3 bg-blue-50 rounded">
           <Space>
@@ -167,16 +283,102 @@ export default function InstrumentStock() {
           </Space>
         </div>
       )}
-       <Table 
-        columns={columns} 
-        dataSource={filteredAssets || []} 
-        rowKey="id"
-        pagination={{ total: filteredAssets.length, pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
-        onRow={(record) => ({
-          onClick: () => navigate(`/site/stock/${record.id}`),
-          style: { cursor: 'pointer' }
-        })}
-      />
+      {view === 'stock' ? (
+        <Table
+          columns={columns}
+          dataSource={filteredAssets || []}
+          rowKey="id"
+          pagination={{ total: filteredAssets.length, pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
+          onRow={(record) => ({
+            onClick: () => navigate(`/site/stock/${record.id}`),
+            style: { cursor: 'pointer' }
+          })}
+        />
+      ) : (
+        <Table columns={lossColumns} dataSource={lossRows} rowKey="id" loading={lossLoading} />
+      )}
+
+      {/* 丢失登记（LS-01/02） */}
+      <Modal title={`丢失登记 — ${lostTarget?.name || ''}`} open={!!lostTarget}
+        onCancel={() => setLostTarget(null)} onOk={submitLost} confirmLoading={submitting} okText="提交登记">
+        <Form form={lossForm} layout="vertical">
+          <Form.Item name="description" label="丢失描述" rules={[{ required: true, message: '请填写丢失描述' }]}>
+            <Input.TextArea rows={3} placeholder="描述丢失经过" />
+          </Form.Item>
+          <Form.Item name="responsible_party" label="责任方" rules={[{ required: true }]}>
+            <Select options={[
+              { value: 'user', label: '用户' }, { value: 'logistics', label: '物流公司' },
+              { value: 'platform', label: '平台' }, { value: 'site', label: '网点' },
+            ]} onChange={(v) => lossForm.setFieldValue('user_ratio', v === 'user' ? 100 : 0)} />
+          </Form.Item>
+          <Form.Item name="user_ratio" label="用户责任比例（%）" rules={[{ required: true }]}>
+            <InputNumber min={0} max={100} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="compensation_yuan" label="赔偿金额（元，按乐器价值填写）">
+            <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="user_burden_yuan" label="用户承担金额（元，留空=按比例计算）">
+            <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 恢复（LS-05） */}
+      <Modal title={`乐器恢复 — ${restoreTarget?.name || ''}`} open={!!restoreTarget}
+        onCancel={() => setRestoreTarget(null)} onOk={submitRestore} confirmLoading={submitting} okText="确认恢复">
+        <Form form={restoreForm} layout="vertical">
+          <Form.Item name="damaged" label="是否有损坏">
+            <Radio.Group>
+              <Radio value={false}>无损坏</Radio>
+              <Radio value={true}>有损坏（赔偿暂扣，待定损）</Radio>
+            </Radio.Group>
+          </Form.Item>
+          <Form.Item name="description" label="描述">
+            <Input.TextArea rows={2} placeholder="找回情况说明（可选）" />
+          </Form.Item>
+          <Form.Item label="照片（可选，≤6）">
+            <Upload
+              listType="picture-card"
+              maxCount={6}
+              beforeUpload={() => false}
+              fileList={restoreFiles.map((f, i) => ({ uid: String(i), name: f?.name || `photo${i}`, status: 'done' }))}
+              onChange={({ fileList }) => setRestoreFiles(fileList.map(f => f.originFileObj || f).filter(Boolean))}
+            >
+              {restoreFiles.length < 6 && <span>＋</span>}
+            </Upload>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 台账详情 */}
+      <Modal title="丢失记录详情" open={!!lossDetail} onCancel={() => setLossDetail(null)} footer={null} width={640}>
+        {lossDetail && (
+          <Descriptions size="small" column={2} bordered>
+            <Descriptions.Item label="乐器" span={2}><span style={{ fontFamily: 'monospace' }}>{lossDetail.instrument_id}</span></Descriptions.Item>
+            <Descriptions.Item label="关联订单" span={2}><span style={{ fontFamily: 'monospace' }}>{lossDetail.order_id || '-'}</span></Descriptions.Item>
+            <Descriptions.Item label="责任方">{({ user: '用户', logistics: '物流公司', platform: '平台', site: '网点' })[lossDetail.responsible_party] || lossDetail.responsible_party}</Descriptions.Item>
+            <Descriptions.Item label="责任比例">{lossDetail.user_ratio}%</Descriptions.Item>
+            <Descriptions.Item label="赔偿金额">¥{((lossDetail.compensation_cents || 0) / 100).toFixed(2)}</Descriptions.Item>
+            <Descriptions.Item label="用户承担">¥{((lossDetail.user_burden_cents || 0) / 100).toFixed(2)}</Descriptions.Item>
+            <Descriptions.Item label="结算结果" span={2}>
+              {lossDetail.restored_at
+                ? `已恢复${lossDetail.restored_damaged ? '（有损坏）' : ''}${lossDetail.reversed_amount_cents ? `，冲正退款 ¥${(lossDetail.reversed_amount_cents / 100).toFixed(2)}` : ''}${lossDetail.reverse_note ? `（${lossDetail.reverse_note}）` : ''}`
+                : lossDetail.settled_at ? '已结算（丢失中）' : '未结算（纯库存）'}
+            </Descriptions.Item>
+            <Descriptions.Item label="描述" span={2}>{lossDetail.description || '-'}</Descriptions.Item>
+            <Descriptions.Item label="登记人/时间" span={2}>
+              {lossDetail.created_by ? lossDetail.created_by.slice(0, 8) : '-'} · {lossDetail.created_at ? new Date(lossDetail.created_at).toLocaleString('zh-CN') : '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="照片" span={2}>
+              {(() => {
+                let ps = []
+                try { ps = typeof lossDetail.photos === 'string' ? JSON.parse(lossDetail.photos || '[]') : (lossDetail.photos || []) } catch { ps = [] }
+                return ps.length ? <Image.PreviewGroup>{ps.map((p, i) => <Image key={i} src={p} width={72} height={72} style={{ objectFit: 'cover', borderRadius: 6 }} />)}</Image.PreviewGroup> : '-'
+              })()}
+            </Descriptions.Item>
+          </Descriptions>
+        )}
+      </Modal>
     </div>
   )
 }
