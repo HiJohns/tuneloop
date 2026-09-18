@@ -11,9 +11,26 @@ import { formatBeijingDate } from '../utils/format'
 //   维修中（paid/shipping/repairing）→ 加价发起（RS-06 双字段）/ 完成修理
 
 const svcStatusLabels = {
-  paid: '已支付·待寄出', shipping: '寄送中', repairing: '维修中',
-  adjust_pending: '加价待确认', done_repair: '待发回', closed: '已结算',
+  pending_quote: '待报价', pending_payment: '待付款', paid: '已支付·待寄出',
+  shipping: '寄送中', repairing: '维修中', adjust_pending: '加价待确认',
+  done_repair: '待发回', closed: '已结算',
 }
+// RS-12：每项金额与待办提示
+const svcAmount = (rr) => {
+  const cents = rr.adjusted_quote_cents != null ? rr.adjusted_quote_cents
+    : (rr.quote_repair_cents || 0) + (rr.quote_logistics_cents || 0)
+  return `¥${(cents / 100).toFixed(2)}`
+}
+const svcTodo = (rr) => ({
+  pending_quote: '等待用户接受报价',
+  pending_payment: '等待用户支付',
+  paid: '已支付，等待寄出',
+  shipping: '寄送中，等待收货',
+  repairing: '维修进行中',
+  adjust_pending: '加价待用户确认',
+  done_repair: '待网点发回结算',
+  closed: '已结算',
+}[rr.status] || '')
 
 const cardStyle = {
   display: 'flex', flexDirection: 'column', gap: 6,
@@ -47,6 +64,7 @@ export default function TechRepairWorkbench() {
   const [loading, setLoading] = useState(true)
   const [pendingQuotes, setPendingQuotes] = useState([])
   const [working, setWorking] = useState([])
+  const [doneList, setDoneList] = useState([])
   const [expanded, setExpanded] = useState('') // `${id}:quote|adjust`
   const [submitting, setSubmitting] = useState(false)
   // 报价表单（元）
@@ -66,14 +84,16 @@ export default function TechRepairWorkbench() {
   const fetchLists = async () => {
     setLoading(true)
     try {
-      const [qRes, wRes] = await Promise.all([
+      const [qRes, wRes, dRes] = await Promise.all([
         apiFetch(`${baseUrl}/repair-services?scope=mine&status=pending_quote`),
-        apiFetch(`${baseUrl}/repair-services?scope=mine&status=paid,shipping,repairing`),
+        apiFetch(`${baseUrl}/repair-services?scope=mine&status=paid,shipping,repairing,adjust_pending`),
+        apiFetch(`${baseUrl}/repair-services?scope=mine&status=closed`),
       ])
       const q = await qRes.json()
       const w = await wRes.json()
       setPendingQuotes(q.code === 20000 ? (q.data?.list || []) : [])
       setWorking(w.code === 20000 ? (w.data?.list || []) : [])
+      setDoneList(dRes.code === 20000 ? (dRes.data?.list || []) : [])
     } catch (e) {
       dialog.alert(resolveErrorMessage(e))
     }
@@ -176,6 +196,7 @@ export default function TechRepairWorkbench() {
         <Text style={{ fontSize: 12, color: '#52525B' }} numberOfLines={2}>
           {rr.description || '（无描述）'}
         </Text>
+        <Text style={{ fontSize: 11, color: '#71717A' }}>金额 {svcAmount(rr)} · {svcTodo(rr)}</Text>
         <Button onClick={() => toggle(rr.id, 'quote')} style={btnSecondaryStyle}>
           {isOpen ? '收起' : '填写报价'}
         </Button>
@@ -214,7 +235,7 @@ export default function TechRepairWorkbench() {
           {rr.description || '（无描述）'}
         </Text>
         <Text style={{ fontSize: 11, color: '#A1A1AA' }}>
-          更新于 {rr.updated_at ? formatBeijingDate(rr.updated_at) : '-'}
+          金额 {svcAmount(rr)} · {svcTodo(rr)} · 更新于 {rr.updated_at ? formatBeijingDate(rr.updated_at) : '-'}
         </Text>
         {canAdjust && (
           <Button onClick={() => toggle(rr.id, 'adjust')} style={btnSecondaryStyle}>
@@ -273,6 +294,26 @@ export default function TechRepairWorkbench() {
           {!loading && working.length === 0 ? (
             <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无维修中维修单</Text>
           ) : working.map(renderWorkCard)}
+
+          <View style={{ marginTop: 14, marginBottom: 8 }}>
+            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>已完成（{doneList.length}）</Text>
+          </View>
+          {!loading && doneList.length === 0 ? (
+            <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无已完成维修单</Text>
+          ) : doneList.map(rr => (
+            <View key={rr.id} style={cardStyle}>
+              <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>
+                  编码 {rr.repair_code || '-'}
+                </Text>
+                <Text style={{ fontSize: 12, color: '#A1A1AA' }}>已结算</Text>
+              </View>
+              <Text style={{ fontSize: 12, color: '#52525B' }} numberOfLines={2}>
+                {rr.description || '（无描述）'}
+              </Text>
+              <Text style={{ fontSize: 11, color: '#71717A' }}>金额 {svcAmount(rr)}</Text>
+            </View>
+          ))}
         </View>
       </ScrollView>
     </View>

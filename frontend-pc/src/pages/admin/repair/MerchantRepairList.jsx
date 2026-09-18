@@ -19,6 +19,16 @@ const statusColors = {
 }
 
 // #1952 阶段4：维修服务（type='service'）状态（RS-API 契约）
+// RS-API-4：时间线类型 → 展示文案（与后端 record_type 对应）
+const svcTimelineLabels = {
+  created: '创建维修单', technician_selected: '选择维修师', quoted: '师傅报价',
+  quote_accepted: '接受报价', paid: '支付成功', shipped: '乐器寄出',
+  adjust_requested: '师傅发起加价', adjust_accepted: '同意加价',
+  adjust_paid: '补差价到账', adjust_declined: '拒绝加价', leg_fee: '分段物流费登记',
+  repair_completed: '完成修理', settled: '发回结算', reviewed: '提交评价',
+  shortfall_paid: '补缴到账',
+}
+
 const svcStatusLabels = {
   pending_quote: '待报价', pending_payment: '待付款', paid: '已支付·待寄出',
   shipping: '寄送中', repairing: '维修中', adjust_pending: '加价待确认',
@@ -156,12 +166,32 @@ function ServiceList() {
             </Descriptions>
 
             <Descriptions size="small" column={1} bordered style={{ marginTop: 12 }}
-              items={[{
-                key: 'legs', label: '分段物流费（实填）',
-                children: fees.length === 0 ? '-' : fees.map(f => (
-                  <div key={f.id}>第 {f.leg} 段：{yuan(f.amount_cents)}（{f.filled_by ? f.filled_by.slice(0, 8) : '-'}）</div>
-                )),
-              }]}
+              items={[
+                {
+                  key: 'legs', label: '分段物流费（实填）',
+                  children: fees.length === 0 ? '-' : fees.map(f => (
+                    <div key={f.id}>第 {f.leg} 段：{yuan(f.amount_cents)}（{f.filled_by ? f.filled_by.slice(0, 8) : '-'}）</div>
+                  )),
+                },
+                {
+                  key: 'timeline', label: '状态时间线',
+                  children: (detail.timeline || []).length === 0 ? '-' : (detail.timeline || []).map(t => (
+                    <div key={t.id}>
+                      [{t.created_at ? formatBeijingDateTimeShort(t.created_at) : '-'}]{' '}
+                      {svcTimelineLabels[t.record_type] || t.record_type}
+                      {t.comment ? ` — ${t.comment}` : ''}
+                    </div>
+                  )),
+                },
+                {
+                  key: 'payments', label: '支付汇总',
+                  children: detail.payments
+                    ? `已付 ${yuan(detail.payments.made_cents)}` +
+                      (detail.payments.refund_cents > 0 ? ` ｜ 已退 ${yuan(detail.payments.refund_cents)}` : '') +
+                      (detail.payments.pending_shortfall_cents > 0 ? ` ｜ 待补缴 ${yuan(detail.payments.pending_shortfall_cents)}` : '')
+                    : '-',
+                },
+              ]}
             />
 
             <div style={{ marginTop: 12 }}>

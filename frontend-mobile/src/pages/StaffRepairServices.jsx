@@ -15,6 +15,11 @@ const svcStatusLabels = {
   shipping: '寄送中', repairing: '维修中', adjust_pending: '加价待确认',
   done_repair: '待发回', closed: '已结算',
 }
+const svcAmount = (rr) => {
+  const cents = rr.adjusted_quote_cents != null ? rr.adjusted_quote_cents
+    : (rr.quote_repair_cents || 0) + (rr.quote_logistics_cents || 0)
+  return `¥${(cents / 100).toFixed(2)}`
+}
 
 const cardStyle = {
   display: 'flex', flexDirection: 'column', gap: 6,
@@ -48,6 +53,7 @@ export default function StaffRepairServices() {
   const [loading, setLoading] = useState(true)
   const [pendingDispatch, setPendingDispatch] = useState([])
   const [inProgress, setInProgress] = useState([])
+  const [allList, setAllList] = useState([])
   const [expanded, setExpanded] = useState('') // `${id}:dispatch` | `${id}:leg`
   const [submitting, setSubmitting] = useState(false)
   // 表单态
@@ -66,14 +72,17 @@ export default function StaffRepairServices() {
   const fetchLists = async () => {
     setLoading(true)
     try {
-      const [doneRes, activeRes] = await Promise.all([
+      const [doneRes, activeRes, allRes] = await Promise.all([
         apiFetch(`${baseUrl}/repair-services?scope=site&status=done_repair`),
         apiFetch(`${baseUrl}/repair-services?scope=site&status=paid,shipping,repairing`),
+        apiFetch(`${baseUrl}/repair-services?scope=site`),
       ])
       const done = await doneRes.json()
       const active = await activeRes.json()
+      const all = await allRes.json()
       setPendingDispatch(done.code === 20000 ? (done.data?.list || []) : [])
       setInProgress(active.code === 20000 ? (active.data?.list || []) : [])
+      setAllList(all.code === 20000 ? (all.data?.list || []) : [])
     } catch (e) {
       dialog.alert(resolveErrorMessage(e))
     }
@@ -172,7 +181,7 @@ export default function StaffRepairServices() {
           {rr.description || '（无描述）'}
         </Text>
         <Text style={{ fontSize: 11, color: '#A1A1AA' }}>
-          更新于 {rr.updated_at ? formatBeijingDate(rr.updated_at) : '-'}
+          金额 {svcAmount(rr)} · 更新于 {rr.updated_at ? formatBeijingDate(rr.updated_at) : '-'}
         </Text>
         {mode === 'dispatch' ? (
           <Button onClick={() => toggle(rr.id, 'dispatch')} style={btnSecondaryStyle}>
@@ -237,6 +246,26 @@ export default function StaffRepairServices() {
           {!loading && inProgress.length === 0 ? (
             <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无进行中维修单</Text>
           ) : inProgress.map(rr => renderCard(rr, 'leg'))}
+
+          <View style={{ marginTop: 14, marginBottom: 8 }}>
+            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>本网点全部（{allList.length}）</Text>
+          </View>
+          {!loading && allList.length === 0 ? (
+            <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无记录</Text>
+          ) : allList.map(rr => (
+            <View key={rr.id} style={cardStyle}>
+              <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>
+                  编码 {rr.repair_code || '-'}
+                </Text>
+                <Text style={{ fontSize: 12, color: '#A1A1AA' }}>{svcStatusLabels[rr.status] || rr.status}</Text>
+              </View>
+              <Text style={{ fontSize: 12, color: '#52525B' }} numberOfLines={2}>
+                {rr.description || '（无描述）'}
+              </Text>
+              <Text style={{ fontSize: 11, color: '#71717A' }}>金额 {svcAmount(rr)}</Text>
+            </View>
+          ))}
         </View>
       </ScrollView>
     </View>
