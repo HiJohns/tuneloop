@@ -508,6 +508,21 @@ export default function OrderDetail() {
               <Text className="text-sm font-medium text-black">{formatDeliveryAddress(order.delivery_address) || '-'}</Text>
             </View>
           </View>
+          {/* #1937: 受控商户 —— 「合作商户」占位 + 中转网点地址（对齐 ReturnConfirm 既有实现） */}
+          {order.transit_info && (
+            <View className="flex items-start gap-3">
+              <MapPin size={18} className="text-zinc-400 mt-0.5" />
+              <View className="flex items-start flex-1 min-w-0">
+                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">中转网点</Text>
+                <View>
+                  <Text className="text-sm font-medium text-black">{order.merchant_name || '合作商户'}</Text>
+                  {order.transit_info.contact && <Text className="text-xs text-zinc-500">{order.transit_info.contact}</Text>}
+                  {order.transit_info.phone && <Text className="text-xs text-zinc-500">{order.transit_info.phone}</Text>}
+                  {order.transit_info.address && <Text className="text-xs text-zinc-500">{order.transit_info.address}</Text>}
+                </View>
+              </View>
+            </View>
+          )}
         </View>
       </View>
 
@@ -605,12 +620,18 @@ export default function OrderDetail() {
                   <Text className="text-red-500 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_detail.payable_block.overdue_fee.amount) / 100).toFixed(2)}</Text>
                 </View>
               )}
-              {Number(order.fee_detail.payable_block?.shipping_fee?.amount) > 0 && (
+              {/* #1934: 受控商户中转单 → 物流费为多段加和单一项（logistics_fee_total），覆盖段级 shipping_fee 展示 */}
+              {Number(order.logistics_fee_total) > 0 ? (
+                <View className="flex justify-between text-sm">
+                  <Text className="text-zinc-500 font-medium">物流费（含各段）</Text>
+                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.logistics_fee_total) / 100).toFixed(2)}</Text>
+                </View>
+              ) : Number(order.fee_detail.payable_block?.shipping_fee?.amount) > 0 ? (
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-500 font-medium">物流费</Text>
                   <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_detail.payable_block.shipping_fee.amount) / 100).toFixed(2)}</Text>
                 </View>
-              )}
+              ) : null}
               <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
                 <Text className="text-zinc-500 font-medium">实际应付</Text>
                 <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_detail.payable_block?.subtotal || 0) / 100).toFixed(2)}</Text>
@@ -831,12 +852,18 @@ export default function OrderDetail() {
                       <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">免押金</Text>
                     </View>
                   )}
-                  {showShippingFee && (
+                  {/* #1934: 员工端物流费含中转全部段（logistics_fee_total 覆盖 pb 单段） */}
+                  {showShippingFee && Number(order.logistics_fee_total) > 0 ? (
+                    <View className="flex justify-between text-sm">
+                      <Text className="text-zinc-500 font-medium">物流费（各段合计）</Text>
+                      <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.logistics_fee_total) / 100).toFixed(2)}</Text>
+                    </View>
+                  ) : showShippingFee && pbShippingFee > 0 ? (
                     <View className="flex justify-between text-sm">
                       <Text className="text-zinc-500 font-medium">物流费</Text>
                       <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(pbShippingFee / 100).toFixed(2)}</Text>
                     </View>
-                  )}
+                  ) : null}
                 </View>
               )}
             </View>

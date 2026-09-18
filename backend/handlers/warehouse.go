@@ -142,14 +142,10 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 		}
 	}
 
-	// Determine target status based on merchant type
+	// #1934: 受控商户发货——订单主状态保持 shipped（设计 v1：状态在中转会话，
+	// 不新增主状态）；流转进度由 outbound 会话 in_transit 承载（见下方置位）。
+	_ = models.OrderStatusInTransit // 主状态语义保留约束（编译期引用）
 	targetStatus := models.OrderStatusShipped
-	var merchant models.Merchant
-	if err := db.Where("tenant_id = ?", tenantID).First(&merchant).Error; err == nil {
-		if merchant.MerchantType == models.MerchantTypeControlled {
-			targetStatus = models.OrderStatusInTransit
-		}
-	}
 
 	// Update order logistics info (must be in paid status)
 	shippedAt := req.ShippedAt
@@ -181,6 +177,20 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).Update("stock_status", models.StockStatusRented).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update instrument: " + err.Error()})
 		return
+	}
+
+	// #1934: 受控商户 → outbound 会话置 in_transit + 录分段①（受控→中转，顾客承担）
+	var outboundSession models.ForwardingSession
+	if err := db.Where("order_id = ? AND direction = ? AND status = ?", orderID, models.ForwardingDirectionOutbound, models.ForwardingStatusPending).
+		First(&outboundSession).Error; err == nil {
+		if err := db.Model(&outboundSession).Updates(map[string]interface{}{
+			"status":           models.ForwardingStatusInTransit,
+			"tracking_company": company,
+			"tracking_number":  trackingNumber,
+		}).Error; err != nil {
+			log.Printf("[UpdateShipping] forward session in_transit failed: %v", err)
+		}
+		recordTransitFee(db, outboundSession, TransitSegmentOutboundControlledToTransit, req.ShippingFee, middleware.GetUserID(ctx))
 	}
 
 	// Record status history
@@ -409,6 +419,18 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 				log.Printf("[ConfirmDelivery] Failed to save photo %d: %v", i, err)
 			}
 		}
+	}
+
+	// #1934: 受控商户链路 —— 顾客确认收货 = outbound 会话送达完成
+	// audit #1934 Bug4: 回写失败必须留痕
+	if err := db.Model(&models.ForwardingSession{}).
+		Where("order_id = ? AND direction = ?", orderID, models.ForwardingDirectionOutbound).
+		Where("status IN ?", []string{models.ForwardingStatusLastMile, models.ForwardingStatusDelivered}).
+		Updates(map[string]interface{}{
+			"status":     models.ForwardingStatusCompleted,
+			"updated_at": time.Now(),
+		}).Error; err != nil {
+		log.Printf("[ConfirmDelivery] complete outbound session failed: %v", err)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -671,6 +693,18 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	var completedOrder models.Order
 	var shortfallAmount int64 // #1799: >0 → 补缴场景（executeRefund 创建了 pending shortfall）
 	if req.Condition == "good" {
+		// #1934: 受控商户链路 —— 归还给员工验收 good = return 会话送达完成
+		// audit #1934 Bug4: 回写失败必须留痕
+		if err := db.Model(&models.ForwardingSession{}).
+			Where("order_id = ? AND direction = ?", orderID, models.ForwardingDirectionReturn).
+			Where("status IN ?", []string{models.ForwardingStatusLastMile, models.ForwardingStatusDelivered}).
+			Updates(map[string]interface{}{
+				"status":     models.ForwardingStatusCompleted,
+				"updated_at": time.Now(),
+			}).Error; err != nil {
+			log.Printf("[InspectReturn] complete return session failed: %v", err)
+		}
+
 		// Re-read the order so computeSettlement sees the completed status
 		// and updated returned_at.
 		if err := db.Where("id = ?", orderID).First(&completedOrder).Error; err != nil {

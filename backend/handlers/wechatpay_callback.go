@@ -250,6 +250,23 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 			Where("id = (SELECT instrument_id FROM orders WHERE id = ? LIMIT 1)", record.OrderID).
 			Update("stock_status", "rented").Error
 	case "repair":
+		// #1942 维修服务单（type='service'）状态感知：初付 → paid；
+		// 加价补差价 → repairing（并以 incurred 落定加价后修理费）。
+		// v3 报修（warranty）保持原行为 pending_ship。
+		if record.OrderID != nil {
+			var rr models.RepairRequest
+			if err := tx.First(&rr, "id = ?", *record.OrderID).Error; err == nil && rr.Type == repairServiceTypeVal {
+				if rr.Status == models.RepairReqStatusAdjustPending {
+					return tx.Model(&models.RepairRequest{}).Where("id = ?", rr.ID).
+						Updates(map[string]interface{}{
+							"status":               models.RepairReqStatusRepairing,
+							"adjusted_quote_cents": rr.IncurredRepairCents,
+						}).Error
+				}
+				return tx.Model(&models.RepairRequest{}).Where("id = ?", rr.ID).
+					Update("status", models.RepairReqStatusPaid).Error
+			}
+		}
 		return tx.Model(&models.RepairRequest{}).Where("id = ?", record.OrderID).Update("status", models.RepairReqStatusPendingShip).Error
 	case "membership":
 		// Two-phase registration (session flow, #1663): payment completes

@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"bytes"
+	"context"
+	"encoding/json"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -11,9 +13,12 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/xuri/excelize/v2"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+
+	"tuneloop-backend/middleware"
 )
 
 func setupTestDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock) {
@@ -111,22 +116,20 @@ func TestImportInstruments(t *testing.T) {
 
 			req := httptest.NewRequest("POST", "/api/instruments/import", body)
 			req.Header.Set("Content-Type", contentType)
-			req = req.WithContext(ctx.Request.Context())
+			// #1928: handler 读 middleware.GetTenantID(c.Request.Context())，须注入到 request ctx
+			req = req.WithContext(context.WithValue(req.Context(), middleware.ContextKeyTenantID, "tenant-123"))
 
 			ctx.Request = req
 			ctx.Set("db", db)
-			ctx.Set("user", map[string]interface{}{
-				"tenant_id": "tenant-123",
-			})
 
 			ImportInstruments(ctx)
 
-			assert.Equal(t, tt.expectedCode, w.Code)
+			// #1928: 断言 API code（响应体）而非 HTTP status；响应用 w.Body 解析
+			var response map[string]interface{}
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &response))
+			assert.Equal(t, float64(tt.expectedCode), response["code"])
 
 			if tt.expectedError {
-				var response map[string]interface{}
-				err := ctx.ShouldBindJSON(&response)
-				assert.NoError(t, err)
 				assert.Contains(t, response["message"], tt.expectedStatus)
 			}
 		})
@@ -193,14 +196,12 @@ func TestExportInstruments(t *testing.T) {
 			ctx, _ := gin.CreateTestContext(w)
 
 			req := httptest.NewRequest("GET", "/api/instruments/export"+tt.queryParams, nil)
-			req = req.WithContext(ctx.Request.Context())
+			// #1928: handler 读 middleware.GetTenantID(c.Request.Context())，须注入到 request ctx
+			req = req.WithContext(context.WithValue(req.Context(), middleware.ContextKeyTenantID, "tenant-123"))
 
 			ctx.Request = req
 			ctx.Set("db", db)
 			ctx.Set("request_time", time.Now().Unix())
-			ctx.Set("user", map[string]interface{}{
-				"tenant_id": "tenant-123",
-			})
 
 			ExportInstruments(ctx)
 
@@ -331,7 +332,6 @@ func TestAPIErrorResponses(t *testing.T) {
 			ctx, _ := gin.CreateTestContext(w)
 
 			req := tt.setupRequest()
-			req = req.WithContext(ctx.Request.Context())
 
 			ctx.Request = req
 			ctx.Set("db", db)

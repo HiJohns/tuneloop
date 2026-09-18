@@ -20,6 +20,11 @@ import (
 	"tuneloop-backend/testutil"
 )
 
+// reservedIAMSub is the reserved-user iam_sub created alongside a session
+// (#1688) — the payment callback completes THIS user, not the IAM mock's
+// freshly-returned id.
+const reservedIAMSub = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+
 // seedSession creates a pending registration session directly in the DB.
 func seedSession(t *testing.T, db *gorm.DB, openid, exchangeToken string, amount float64) models.RegistrationSession {
 	t.Helper()
@@ -29,7 +34,7 @@ func seedSession(t *testing.T, db *gorm.DB, openid, exchangeToken string, amount
 		ID:            uuid.New().String(),
 		OpenID:        openid,
 		ExchangeToken: exchangeToken,
-		IAMUserID:     strPtr("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"),
+		IAMUserID:     strPtr(reservedIAMSub),
 		LocalUserID:   strPtr("11111111-2222-3333-4444-555555555555"),
 		FormData:      marshalForm(form),
 		Amount:        models.FromYuan(amount),
@@ -41,7 +46,7 @@ func seedSession(t *testing.T, db *gorm.DB, openid, exchangeToken string, amount
 	// (status=init) — mirrors CreateRegistrationSession.
 	require.NoError(t, db.Create(&models.User{
 		ID:                 "11111111-2222-3333-4444-555555555555",
-		IAMSub:             "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+		IAMSub:             reservedIAMSub,
 		TenantID:           "00000000-0000-0000-0000-000000000000",
 		OrgID:              "00000000-0000-0000-0000-000000000000",
 		Username:           "13800139000",
@@ -325,7 +330,7 @@ func TestPrepayMembershipWithCoupon_OREZ(t *testing.T) {
 	// Payment record: amount re-priced to 0.
 	var record models.OrderPaymentRecord
 	require.NoError(t, db.Where("out_trade_no = ?", resp.Data.Data.OutTradeNo).First(&record).Error)
-	assert.Equal(t, 0.0, record.Amount, "OREZ re-priced to 0")
+	assert.Equal(t, models.Cents(0), record.Amount, "OREZ re-priced to 0 (#1757 Cents 口径)")
 	assert.Contains(t, *record.RawResponse, s.ID, "session_id stored on record")
 	assert.NotNil(t, record.SessionID, "session_id stored in dedicated column")
 	assert.Equal(t, s.ID, *record.SessionID, "dedicated column holds the session")
@@ -470,7 +475,7 @@ func TestPaymentCallback_RegistrationComplete(t *testing.T) {
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
 
-	// No user exists before the payment is processed.
+	// No user exists before the payment is processed (session not seeded yet).
 	var beforeCount int64
 	require.NoError(t, db.Model(&models.User{}).Count(&beforeCount).Error)
 	assert.Equal(t, int64(0), beforeCount, "no orphan users before callback")
@@ -496,7 +501,7 @@ func TestPaymentCallback_RegistrationComplete(t *testing.T) {
 	require.NoError(t, applySideEffects(db, &record, now), "first callback side effects")
 
 	var user models.User
-	require.NoError(t, db.Where("iam_sub = ?", newUserID).First(&user).Error)
+	require.NoError(t, db.Where("iam_sub = ?", reservedIAMSub).First(&user).Error, "callback completes the reserved user (#1688)")
 	assert.Equal(t, "13800139000", user.Phone)
 	assert.Equal(t, "openid-register-001", user.WxOpenid, "bound via exchange_token (IAM mock openid)")
 	assert.Equal(t, models.Cents(9900), user.PromoPoints, "registration gift points in cents (#1757)")
@@ -510,7 +515,7 @@ func TestPaymentCallback_RegistrationComplete(t *testing.T) {
 	require.NoError(t, applySideEffects(db, &record, now.Add(time.Minute)), "repeat callback")
 
 	var userCount int64
-	require.NoError(t, db.Model(&models.User{}).Where("iam_sub = ?", newUserID).Count(&userCount).Error)
+	require.NoError(t, db.Model(&models.User{}).Where("iam_sub = ?", reservedIAMSub).Count(&userCount).Error)
 	assert.Equal(t, int64(1), userCount, "repeat callback must not create a second account")
 
 	// Coupon + full flow: coupon recorded on the session for audit.
@@ -568,7 +573,7 @@ func TestPaymentCallback_SessionFlow_RealCallback(t *testing.T) {
 	// No user exists before the real callback fires.
 	var beforeCount int64
 	require.NoError(t, db.Model(&models.User{}).Count(&beforeCount).Error)
-	assert.Equal(t, int64(0), beforeCount, "no orphan users before callback")
+	assert.Equal(t, int64(1), beforeCount, "only the reserved user (#1688) exists before callback")
 
 	// Real WeChat callback: processPaymentCallback overwrites RawResponse
 	// with the callback result (no session_id) — the link must come from
@@ -590,7 +595,7 @@ func TestPaymentCallback_SessionFlow_RealCallback(t *testing.T) {
 
 	// Account created server-side from the session form_data.
 	var user models.User
-	require.NoError(t, db.Where("iam_sub = ?", newUserID).First(&user).Error)
+	require.NoError(t, db.Where("iam_sub = ?", reservedIAMSub).First(&user).Error, "callback completes the reserved user (#1688)")
 	assert.Equal(t, "13800139000", user.Phone)
 	assert.Equal(t, "openid-register-001", user.WxOpenid, "bound via exchange_token (IAM mock openid)")
 
@@ -611,7 +616,7 @@ func TestPaymentCallback_SessionFlow_RealCallback(t *testing.T) {
 	// Repeat callback (same out_trade_no) → idempotent, no second account.
 	require.True(t, callCallback(), "repeat callback accepted (already processed)")
 	var userCount int64
-	require.NoError(t, db.Model(&models.User{}).Where("iam_sub = ?", newUserID).Count(&userCount).Error)
+	require.NoError(t, db.Model(&models.User{}).Where("iam_sub = ?", reservedIAMSub).Count(&userCount).Error)
 	assert.Equal(t, int64(1), userCount, "repeat callback must not create a second account")
 }
 

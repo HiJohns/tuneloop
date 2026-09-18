@@ -104,6 +104,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	// New handlers for Issue #299 (Repair, Appeal, Warehouse, User Rental)
 	repairHandler := handlers.NewRepairHandler()
 	repairReqHandler := handlers.NewRepairRequestHandler()
+	repairServiceHandler := handlers.NewRepairServiceHandler()
 	appealHandler := handlers.NewAppealHandler()
 	iamClient := services.NewIAMClient()
 	permManageHandler := handlers.NewPermissionManageHandler(database.GetDB(), iamClient, permRegistry)
@@ -248,7 +249,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		publicGroup.GET("/public/instruments/lookup", handlers.LookupInstrumentBySN)
 		publicGroup.GET("/public/banners", bannerHandler.GetPublicBanners)
 		publicGroup.GET("/public/merchants", handlers.ListPublicMerchants)
-		publicGroup.GET("/public/merchants/:id/transit-sites", handlers.ListTransitSites)
 		publicGroup.GET("/public/settings/:key", handlers.GetPublicSetting)
 		publicGroup.GET("/public/instruments/search", handlers.SearchInstruments)
 	}
@@ -579,10 +579,22 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.PUT("/admin/smtp-config", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.UpdateSMTPConfig)
 			authRequired.POST("/admin/smtp-config/test", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.TestSMTPConfig)
 
-			// Transit route routes (Issue #1133)
-			authRequired.GET("/transit-routes", handlers.ListTransitRoutes)
-			authRequired.POST("/transit-routes", handlers.CreateTransitRoute)
-			authRequired.DELETE("/transit-routes/:id", handlers.DeleteTransitRoute)
+			// Transit route routes (Issue #1133) — #1935 audit Bug3: 补后端权限门
+			authRequired.GET("/transit-routes", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.ListTransitRoutes)
+			authRequired.POST("/transit-routes", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.CreateTransitRoute)
+			authRequired.DELETE("/transit-routes/:id", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.DeleteTransitRoute)
+			// #1935: 平台级中转网点管理（中转中心）— 权限门 sys_perm bit5（SysPermTenantView，
+			// 与前端 App.jsx sysPermBits:[5] 一致；audit Bug3：此前任意登录用户可调用）
+			authRequired.GET("/admin/transit-sites", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.ListAdminTransitSites)
+			authRequired.POST("/admin/transit-sites", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.CreateAdminTransitSite)
+			authRequired.PUT("/admin/transit-sites/:id", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.UpdateAdminTransitSite)
+			authRequired.DELETE("/admin/transit-sites/:id", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.DeleteAdminTransitSite)
+			authRequired.GET("/admin/transit-sites/:id/members", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.ListTransitSiteMembers)
+			authRequired.POST("/admin/transit-sites/:id/members", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.AddTransitSiteMember)
+			authRequired.PUT("/admin/transit-sites/:id/members/:user_id", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.UpdateTransitSiteMemberRole)
+			authRequired.DELETE("/admin/transit-sites/:id/members/:user_id", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.RemoveTransitSiteMember)
+			// #1936: 受控网点候选列表（中转路由创建下拉；fix audit #1936 Bug1 — GET /sites 不存在）
+			authRequired.GET("/admin/controlled-sites", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.ListControlledSites)
 
 			// Transit order routes (Issue #1134)
 			authRequired.GET("/transit-orders", handlers.ListTransitOrders)
@@ -601,6 +613,13 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			repairReqRequired.POST("/repair-requests/:id/receive", repairReqHandler.Receive)
 			repairReqRequired.POST("/repair-requests/:id/complete", repairReqHandler.CompleteRepairRequest)
 			repairReqRequired.POST("/repair-requests/:id/transit-relay", repairReqHandler.TransitRelay)
+			// #1942 阶段2 维修服务（type='service'）师傅/员工端
+			repairReqRequired.POST("/repair-services/:id/quote", repairServiceHandler.Quote)
+			repairReqRequired.POST("/repair-services/:id/legs", repairServiceHandler.AddLegFee)
+			repairReqRequired.POST("/repair-services/:id/adjust", repairServiceHandler.Adjust)
+			repairReqRequired.POST("/repair-services/:id/done-repair", repairServiceHandler.DoneRepair)
+			repairReqRequired.POST("/repair-services/:id/dispatch", repairServiceHandler.Dispatch)
+			repairReqRequired.GET("/repair-services/pending-dispatch", repairServiceHandler.ListPendingDispatch)
 
 			// Repair config routes (Issue #1118) — merchant_admin only
 			authRequired.GET("/config/repair", middleware.RequireRole("OWNER"), handlers.GetRepairAllSettings)
@@ -704,6 +723,16 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/user/deposit-waiver/eligibility", handlers.GetDepositWaiverEligibility)
 
 				// Invoice application routes (#1786)
+				// #1942 阶段2 维修服务（type='service'）顾客端
+				userOptionalAuth.POST("/user/repair-services", repairServiceHandler.Create)
+				userOptionalAuth.GET("/user/repair-services", repairServiceHandler.ListMine)
+				userOptionalAuth.GET("/user/repair-services/:id", repairServiceHandler.Get)
+				userOptionalAuth.POST("/user/repair-services/:id/select-technician", repairServiceHandler.SelectTechnician)
+				userOptionalAuth.POST("/user/repair-services/:id/accept", repairServiceHandler.AcceptQuote)
+				userOptionalAuth.POST("/user/repair-services/:id/ship", repairServiceHandler.Ship)
+				userOptionalAuth.POST("/user/repair-services/:id/adjust/respond", repairServiceHandler.RespondAdjust)
+				userOptionalAuth.POST("/user/repair-services/:id/review", repairServiceHandler.Review)
+
 				userOptionalAuth.GET("/user/invoices/eligible", invoiceHandler.ListEligible)
 				userOptionalAuth.POST("/user/invoices", invoiceHandler.Submit)
 				userOptionalAuth.GET("/user/invoices", invoiceHandler.ListApplications)

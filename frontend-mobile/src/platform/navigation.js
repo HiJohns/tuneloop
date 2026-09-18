@@ -35,6 +35,9 @@ const ROUTE_MAP = [
   { match: '/repair-payment-complete', type: 'navigateTo', url: '/pages-weapp/repair-payment-complete/index' },
   { match: '/receiving-repair-scan', type: 'navigateTo', url: '/pages-weapp/receiving-repair-scan/index' },
   { match: '/repair-scan', type: 'navigateTo', url: '/pages-weapp/repair-scan/index' },
+  { match: '/transit-workbench', type: 'navigateTo', url: '/pages-weapp/transit-workbench/index' },
+  { match: '/transit-receive', type: 'navigateTo', url: '/pages-weapp/transit-receive/index' },
+  { match: '/transit-ship', type: 'navigateTo', url: '/pages-weapp/transit-ship/index' },
 ]
 
 // Translate an H5 react-router path (optionally with query string) into a

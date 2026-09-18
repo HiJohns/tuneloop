@@ -861,6 +861,30 @@ ssh cadenza "docker exec <container> psql -U tuneloop_user -d tuneloop_pre_snaps
 
 ---
 
+### 发布后监控提醒（强制，来源 #1913 / #1929）
+
+> **教训**：2026-09-13 生产因「DB schema 超前于部署包 + systemd 无限重启」静默崩溃 29h（~20k 次重启）才被人工发现。发布完成 ≠ 发布成功。
+
+**规则**：AI 每次完成发布动作后（`make release` / `release.sh` 生产提升 / `weapp-upload-*`），**必须主动输出监控提醒**并向用户明确「发布后观察窗口」，不得在未提醒的情况下结束发布流程。提醒内容 = 发布确认 + 以下核对项 + 明确告知"若有异常立即回滚（上传更早归档/切回上一快照）":
+
+**① 立即核对（发布后 5 分钟内，AI 应主动执行并报告）**：
+```bash
+ssh cadenza "systemctl is-active tuneloop"                     # active（不是 activating/auto-restart）
+ssh cadenza "sudo journalctl -u tuneloop --since '5 min ago' --no-pager | grep -iE 'FATAL|panic' | head"   # 必须为空
+ssh cadenza "curl -s localhost:5558/api/config | grep version"  # 版本号 = 预期
+ssh cadenza "systemctl show tuneloop -p NRestarts"              # 重启计数不应持续增长
+```
+
+**② 观察窗口（≥30 分钟，提醒用户关注）**：错误率、`journalctl` 中 FATAL/panic、关键接口可用性（`web.cadenzayueqi.com` / `wx.cadenzayueqi.com`）、小程序真机核心路径（登录/下单/支付）。
+
+**③ 迁移相关发布加严**：只要本次发布包含 `database/migrations/` 变更（或曾对生产库单独执行过迁移），监控窗口内必须确认 bootstrap 日志为「Successfully applied migrations + schema validation passed」，且**不得在验证前关闭终端/中断观察**。
+
+> **迁移完整性纪律（#1913/#1929）**：发布快照中的 `database/migrations` 必须包含 `schema_migrations` 已应用过的**全部版本（up+down 成对）**——DB 版本超前于包会导致启动 `FATAL: database schema is AHEAD of this build (db=…, package max=…) — this package is outdated`（停机根因 #1913）。unit 应配 `StartLimitBurst` 防热循环（`scripts/cadenza/deploy.sh` 启动前会 WARN 检查）。
+
+**④ 小程序发布**：提醒用户在微信后台「提交审核 → 发布」，并说明 AI 无微信后台权限、无法监控审核状态。
+
+---
+
 ### 部署流程 (Deployment Flow)
 
 ```bash
@@ -1203,6 +1227,22 @@ done
 ---
 
 > *Last updated: 2026-06-10*
+
+---
+
+## 📐 设计准则：业务数值必须配置化（#1939）
+
+> 来源：#1939 乐币/会员体系对齐《平台会员规则与权益手册》（9.14.docx，2026-09-01 起执行）。
+
+**准则**：产品文档（会员手册/权益手册等）中给出的**所有业务数值**——比例、上限、门槛、有效期、奖励数额——一律视为**可调整**：
+
+1. **禁止硬编码**：数值必须来自配置（后台配置页 / DB 表 / 系统设置），不得写死在代码中
+2. **必须提供配置入口**：每个可调数值都要有后台管理界面 + 调整用例（含越界拒绝/默认值/回退行为）
+3. **运行时读取**：业务逻辑在执行时读取当前配置值，修改即时生效（或明确缓存/刷新语义）
+4. **文档对齐义务**：产品手册变更时，先更新 `docs/cases/*.md` 用例与配置默认值，再对齐代码
+5. **测试覆盖**：每个可配置数值至少覆盖 手册默认值 / 越界拒绝 / 边界值 三类用例
+
+**适用示例**：赠点抵扣比例（pay_ratio）、裂变奖励比例（referral_ratio，乐手 2%/首席 5%/演奏家 8%）、会员晋升门槛（5000/10000 元）、乐币效期（2 年）、到期提醒提前量（30 天）、丢失赔偿的责任比例——全部可配置，禁止以常量写死。
 
 ---
 
