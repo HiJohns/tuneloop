@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Textarea, Image, Button } from '@tarojs/components'
@@ -23,6 +23,22 @@ export default function RepairServiceCreate() {
   const [photos, setPhotos] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [created, setCreated] = useState(null) // {id, repair_code}
+  // #1977 T3：创建页**师傅锁定**（从师傅详情页带入 technician_id）——双源读取
+  const technicianId = (() => {
+    if (env.isMiniProgram) {
+      const p2 = Taro.getCurrentInstance()?.router?.params || {}
+      return p2.technician_id || ''
+    }
+    return new URLSearchParams(window.location.search).get('technician_id') || ''
+  })()
+  const [tech, setTech] = useState(null)
+  useEffect(() => {
+    if (!technicianId) return
+    apiFetch(`${env.apiBaseUrl}/common/repair-technicians/${technicianId}`)
+      .then(r => r.json())
+      .then(r => { if (r.code === 20000) setTech(r.data || {}) })
+      .catch(() => {})
+  }, [technicianId])
   const baseUrl = env.apiBaseUrl
 
   const goBack = () => nav(-1)
@@ -60,6 +76,7 @@ export default function RepairServiceCreate() {
   }
 
   const submit = async () => {
+    if (!technicianId) { dialog.alert('请先选择维修师'); nav('/my-repairs'); return }
     if (!description.trim()) { dialog.alert('请填写问题描述'); return }
     if (photos.length === 0) { dialog.alert('请至少上传一张照片'); return }
     setSubmitting(true)
@@ -69,7 +86,7 @@ export default function RepairServiceCreate() {
       const resp = await apiFetch(`${baseUrl}/user/repair-services`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: description.trim(), photos: keys }),
+        body: JSON.stringify({ description: description.trim(), photos: keys, technician_id: technicianId }),
       })
       const result = await resp.json()
       if (result.code === 20000) {
@@ -123,6 +140,20 @@ export default function RepairServiceCreate() {
       </View>
 
       <View style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* #1977 T3：师傅锁定（只读；无需再选商户/网点） */}
+        <View style={{ display: 'flex', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12 }}>
+          {tech?.avatar ? (
+            <Image src={tech.avatar} mode="aspectFill" style={{ width: 44, height: 44, borderRadius: 22 }} />
+          ) : (
+            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#F4F4F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 16, color: '#A1A1AA' }}>师</Text>
+            </View>
+          )}
+          <View style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>维修师：{tech?.name || '已锁定'}</Text>
+            <Text style={{ fontSize: 11, color: '#71717A' }}>已锁定，无需选择商户/网点</Text>
+          </View>
+        </View>
         <View style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>问题描述 *</Text>
           <Textarea style={{ width: '100%', boxSizing: 'border-box', minHeight: 100, backgroundColor: '#FFFFFF', border: '1px solid #E4E4E7', borderRadius: 10, padding: 10, fontSize: 13 }}
