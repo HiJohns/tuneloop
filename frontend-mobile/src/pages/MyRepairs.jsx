@@ -159,6 +159,25 @@ export default function MyRepairs() {
     shipping: '寄送中', repairing: '维修中', adjust_pending: '加价待确认',
     done_repair: '待发回', closed: '已结算',
   }
+  // RS-12：分状态分组 + 待办提示（金额/标志来自列表接口 reviewed/pending_shortfall_cents）
+  const svcTodo = (s) => {
+    if (s.status === 'pending_quote') return s.technician_id ? '等待师傅报价' : '待选择维修师'
+    if (s.status === 'pending_payment') return '待接受报价并支付'
+    if (s.status === 'adjust_pending') {
+      const diff = (s.adjusted_quote_cents || 0) - (s.quote_repair_cents || 0)
+      return `待决定：继续需补差价 ¥${(Math.max(0, diff) / 100).toFixed(2)}`
+    }
+    if (s.status === 'closed') {
+      if (s.pending_shortfall_cents > 0) return `待补缴 ¥${(s.pending_shortfall_cents / 100).toFixed(2)}`
+      return s.reviewed ? '' : '待评价'
+    }
+    return ''
+  }
+  const svcGroups = [
+    { key: 'todo', label: '待我处理', match: s => ['pending_quote', 'pending_payment', 'adjust_pending'].includes(s.status) },
+    { key: 'doing', label: '进行中', match: s => ['paid', 'shipping', 'repairing', 'done_repair'].includes(s.status) },
+    { key: 'done', label: '已完成', match: s => s.status === 'closed' },
+  ]
 
   const openServiceTab = () => {
     setSvcTab('service')
@@ -198,21 +217,36 @@ export default function MyRepairs() {
         ) : myServices.length === 0 ? (
           <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无维修服务记录</Text>
         ) : (
-          myServices.map(s => (
-            <View key={s.id} className="border border-zinc-100 rounded-xl p-3" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}
-              onClick={() => nav(`/repair-service-detail?order_id=${s.id}`)}>
-              <View className="flex justify-between items-center">
-                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>
-                  编码 {s.repair_code || '-'}
-                </Text>
-                <Text style={{ fontSize: 12, color: '#A1A1AA' }}>{svcStatusLabels[s.status] || s.status}</Text>
+          svcGroups.map(g => {
+            const items = myServices.filter(g.match)
+            if (items.length === 0) return null
+            return (
+              <View key={g.key} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#71717A' }}>{g.label}（{items.length}）</Text>
+                {items.map(s => {
+                  const todo = svcTodo(s)
+                  return (
+                    <View key={s.id} className="border border-zinc-100 rounded-xl p-3" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}
+                      onClick={() => nav(`/repair-service-detail?order_id=${s.id}`)}>
+                      <View className="flex justify-between items-center">
+                        <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>
+                          编码 {s.repair_code || '-'}
+                        </Text>
+                        <Text style={{ fontSize: 12, color: '#A1A1AA' }}>{svcStatusLabels[s.status] || s.status}</Text>
+                      </View>
+                      <Text style={{ fontSize: 12, color: '#52525B' }}>{s.description || '（无描述）'}</Text>
+                      {todo ? (
+                        <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#D97706' }}>{todo}</Text>
+                      ) : null}
+                      <Text style={{ fontSize: 11, color: '#A1A1AA' }}>
+                        {s.created_at ? formatBeijingDate(s.created_at) : '-'}
+                      </Text>
+                    </View>
+                  )
+                })}
               </View>
-              <Text style={{ fontSize: 12, color: '#52525B' }}>{s.description || '（无描述）'}</Text>
-              <Text style={{ fontSize: 11, color: '#A1A1AA' }}>
-                {s.created_at ? formatBeijingDate(s.created_at) : '-'}
-              </Text>
-            </View>
-          ))
+            )
+          })
         )}
       </View>
     </View>

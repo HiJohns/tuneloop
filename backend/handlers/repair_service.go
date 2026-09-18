@@ -275,7 +275,46 @@ func (h *RepairServiceHandler) ListMine(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list repair services"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": list, "total": len(list)}})
+	// RS-12 列表待办提示数据源：每单已评价标记 + 待补缴额（#1955 分状态列表）
+	ids := make([]string, 0, len(list))
+	for _, rr := range list {
+		ids = append(ids, rr.ID)
+	}
+	reviewedSet := map[string]bool{}
+	shortfallMap := map[string]int64{}
+	if len(ids) > 0 {
+		var reviews []models.RepairReview
+		db.Where("repair_id IN ?", ids).Find(&reviews)
+		for _, rv := range reviews {
+			reviewedSet[rv.RepairID] = true
+		}
+		type shortfallRow struct {
+			OrderID string
+			Total   int64
+		}
+		var shorts []shortfallRow
+		db.Model(&models.OrderPaymentRecord{}).
+			Where("order_id IN ? AND order_type = ? AND status = ? AND method = ?", ids, "repair", "pending", "shortfall").
+			Select("order_id, COALESCE(SUM(amount), 0) AS total").Group("order_id").Scan(&shorts)
+		for _, s := range shorts {
+			shortfallMap[s.OrderID] = s.Total
+		}
+	}
+	out := make([]gin.H, 0, len(list))
+	for _, rr := range list {
+		b, err := json.Marshal(rr)
+		if err != nil {
+			continue
+		}
+		var m map[string]interface{}
+		if err := json.Unmarshal(b, &m); err != nil {
+			continue
+		}
+		m["reviewed"] = reviewedSet[rr.ID]
+		m["pending_shortfall_cents"] = shortfallMap[rr.ID]
+		out = append(out, m)
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": out, "total": len(out)}})
 }
 
 // Get GET /api/user/repair-services/:id （顾客本人或员工）

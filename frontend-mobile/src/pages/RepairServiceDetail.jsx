@@ -15,6 +15,15 @@ const svcStatusLabels = {
   shipping: '寄送中', repairing: '维修中', adjust_pending: '加价待确认',
   done_repair: '待发回', closed: '已结算',
 }
+// RS-12：时间线类型 → 展示文案（与后端 appendRepairServiceTimeline 的 record_type 对应）
+const timelineLabels = {
+  created: '创建维修单', technician_selected: '选择维修师', quoted: '师傅报价',
+  quote_accepted: '接受报价', paid: '支付成功', shipped: '乐器寄出',
+  adjust_requested: '师傅发起加价', adjust_accepted: '同意加价',
+  adjust_paid: '补差价到账', adjust_declined: '拒绝加价', leg_fee: '分段物流费登记',
+  repair_completed: '完成修理', settled: '发回结算', reviewed: '提交评价',
+  shortfall_paid: '补缴到账',
+}
 const cardStyle = {
   backgroundColor: '#FFFFFF', borderRadius: 12, padding: 14, marginBottom: 12,
   display: 'flex', flexDirection: 'column', gap: 8,
@@ -321,6 +330,73 @@ export default function RepairServiceDetail() {
           </Text>
         </View>
 
+        {/* RS-12 费用明细 */}
+        <View style={cardStyle}>
+          <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>费用明细</Text>
+          <View style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Text style={labelStyle}>报价修理费</Text>
+            <Text style={{ fontSize: 12, color: '#18181B' }}>{yuan(rr.quote_repair_cents)}</Text>
+          </View>
+          <View style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Text style={labelStyle}>物流费预估</Text>
+            <Text style={{ fontSize: 12, color: '#18181B' }}>{yuan(rr.quote_logistics_cents)}</Text>
+          </View>
+          {rr.adjusted_quote_cents != null && (
+            <View style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Text style={labelStyle}>加价后修理费</Text>
+              <Text style={{ fontSize: 12, color: '#18181B' }}>{yuan(rr.adjusted_quote_cents)}</Text>
+            </View>
+          )}
+          {rr.incurred_repair_cents != null && rr.quote_status === 'declined' && (
+            <View style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Text style={labelStyle}>到此为止修理费（按停止时结算）</Text>
+              <Text style={{ fontSize: 12, color: '#18181B' }}>{yuan(rr.incurred_repair_cents)}</Text>
+            </View>
+          )}
+          {(detail.logistics_fees || []).map(f => (
+            <View key={f.id} style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Text style={labelStyle}>第 {f.leg} 段物流（实填）</Text>
+              <Text style={{ fontSize: 12, color: '#18181B' }}>{yuan(f.amount_cents)}</Text>
+            </View>
+          ))}
+          {detail.payments && (
+            <>
+              <View style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>已付合计</Text>
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>{yuan(detail.payments.made_cents)}</Text>
+              </View>
+              {detail.payments.refund_cents > 0 && (
+                <View style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text style={labelStyle}>已退款</Text>
+                  <Text style={{ fontSize: 12, color: '#16A34A' }}>{yuan(detail.payments.refund_cents)}</Text>
+                </View>
+              )}
+              {detail.payments.pending_shortfall_cents > 0 && (
+                <View style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#D97706' }}>待补缴</Text>
+                  <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#D97706' }}>{yuan(detail.payments.pending_shortfall_cents)}</Text>
+                </View>
+              )}
+            </>
+          )}
+        </View>
+
+        {/* RS-12 物流明细 */}
+        {((rr.tracking_number || rr.return_tracking_number || (detail.logistics_fees || []).length > 0) && (
+          <View style={cardStyle}>
+            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>物流明细</Text>
+            {rr.tracking_number && (
+              <Text style={labelStyle}>寄出：{rr.tracking_company || '-'} {rr.tracking_number}</Text>
+            )}
+            {(detail.logistics_fees || []).map(f => (
+              <Text key={f.id} style={labelStyle}>第 {f.leg} 段实填运费：{yuan(f.amount_cents)}（{f.created_at ? formatBeijingDate(f.created_at) : '-'}）</Text>
+            ))}
+            {rr.return_tracking_number && (
+              <Text style={labelStyle}>发回：{rr.return_company || '-'} {rr.return_tracking_number}</Text>
+            )}
+          </View>
+        ))}
+
         {/* RS-02 选维修师 */}
         {rr.status === 'pending_quote' && !rr.technician_id && (
           <View style={cardStyle}>
@@ -439,6 +515,23 @@ export default function RepairServiceDetail() {
         )}
 
         {/* RS-09 评价 */}
+        {/* RS-API-7 待补缴支付（closed + 有 pending 补缴） */}
+        {rr.status === 'closed' && detail.payments && detail.payments.pending_shortfall_cents > 0 && (
+          <View style={cardStyle}>
+            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>维修服务补缴</Text>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#D97706' }}>
+                {yuan(detail.payments.pending_shortfall_cents)}
+              </Text>
+            </View>
+            <Text style={labelStyle}>实际费用超出预付部分，未支付将影响会员升级</Text>
+            <Button disabled={busy} onClick={() => payNow(detail.payments.pending_shortfall_cents)}
+              style={btnPrimaryStyle}>
+              支付补缴 {yuan(detail.payments.pending_shortfall_cents)}
+            </Button>
+          </View>
+        )}
+
         {rr.status === 'closed' && (
           <View style={cardStyle}>
             {detail.review && detail.review.id ? (
@@ -500,6 +593,26 @@ export default function RepairServiceDetail() {
                 </Button>
               </>
             )}
+          </View>
+        )}
+
+        {/* RS-12 状态时间线 */}
+        {(detail.timeline || []).length > 0 && (
+          <View style={cardStyle}>
+            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>进度记录</Text>
+            {detail.timeline.map((t, i) => (
+              <View key={t.id || i} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#3F3F46' }}>
+                    {timelineLabels[t.record_type] || t.record_type}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#A1A1AA' }}>
+                    {t.created_at ? formatBeijingDate(t.created_at) : '-'}
+                  </Text>
+                </View>
+                {t.comment ? <Text style={{ fontSize: 11, color: '#71717A' }}>{t.comment}</Text> : null}
+              </View>
+            ))}
           </View>
         )}
       </View>
