@@ -1,0 +1,165 @@
+// frontend-mobile/src/pages/Cart.jsx
+import React, { useState } from 'react';
+import { View, Text, Image, ScrollView, Button } from '@tarojs/components';
+
+const CartPage = () => {
+  // 模拟聚合后的数据结构：按 商户/网点 联合分组成一个大卡片
+  const [cartGroups] = useState([
+    {
+      tenant_id: 'tenant_01',
+      tenant_name: '乐器管家旗舰店',
+      site_name: '北京朝阳网点',
+      site_address: '朝阳区艺术园区A座',
+      site_phone: '010-88888888',
+      shipping_fee: 120, // 该网点单笔合并物流费
+      
+      // 属于该商户网点下的商品数组
+      items: [
+        {
+          id: 'item_01',
+          name: 'fffcc',
+          category_name: '钢琴',
+          level_name: '标准',
+          cover: 'https://example.com/piano-thumb.jpg',
+          rent_qty: 1,
+          unit_rent: 2500,
+          deposit: 5000
+        },
+        {
+          id: 'item_02',
+          name: '谱架/配件',
+          category_name: '配件',
+          level_name: '通用',
+          cover: 'https://example.com/stand-thumb.jpg',
+          rent_qty: 1,
+          unit_rent: 50,
+          deposit: 100
+        }
+      ]
+    }
+  ]);
+
+  return (
+    <View className="container h-screen w-screen bg-zinc-100 overflow-hidden flex flex-col relative antialiased">
+      {/* 顶部常驻简易标题栏 */}
+      <View className="w-full pt-3 pb-2 px-4 flex justify-between items-center bg-white border-b border-zinc-100 flex-shrink-0">
+        <Text className="text-xl font-bold text-black" onClick={() => wx.navigateBack()}>❮</Text>
+        <Text className="text-lg font-black text-black">购物车</Text>
+        <View className="w-6"></View>
+      </View>
+
+      {/* 主展示滚动区 */}
+      <ScrollView className="w-full flex-1 pb-24" scrollY showScrollbar={false}>
+        <View className="p-4 space-y-4">
+          
+          {/* 核心重构：遍历同一商户网点的【大组合卡片】 */}
+          {cartGroups.map((group) => {
+            // 动态累加计算该网点下所有设备的总租金和总押金
+            let totalRent = 0;
+            let totalDeposit = 0;
+            group.items.forEach(item => {
+              totalRent += (item.unit_rent * item.rent_qty);
+              totalDeposit += item.deposit;
+            });
+            // 最终该网点小计 = 总租金 + 总押金 + 运费
+            const groupSubtotal = totalRent + totalDeposit + group.shipping_fee;
+
+            return (
+              <View key={group.tenant_id} className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col">
+                
+                {/* ────────────────── 【1. 统一组头】 ────────────────── */}
+                <View className="bg-zinc-50/80 px-4 py-2.5 flex items-center justify-between border-b border-zinc-100 text-[11px] text-zinc-400 font-bold">
+                  <View className="flex items-center space-x-1">
+                    <Text>🏢</Text>
+                    <Text className="text-zinc-700 font-black">{group.tenant_name}</Text>
+                    <Text className="mx-1 text-zinc-300">|</Text>
+                    <Text>📍</Text>
+                    <Text className="text-zinc-600">{group.site_name}</Text>
+                  </View>
+                  <Text className="text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded scale-90">合并打包</Text>
+                </View>
+
+                {/* ────────────────── 【2. 纯净乐器列表】 ────────────────── */}
+                <View className="divide-y divide-zinc-50 px-4">
+                  {group.items.map((item) => (
+                    <View key={item.id} className="py-4 flex flex-col space-y-3">
+                      <View className="flex items-center justify-between w-full">
+                        {/* 左侧大图 */}
+                        <View className="w-20 h-20 bg-zinc-50 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
+                          <Image src={item.cover} className="w-16 h-16 object-contain" />
+                        </View>
+
+                        {/* 中间文本区 */}
+                        <View className="flex-1 ml-3 flex flex-col space-y-1 min-w-0">
+                          <View className="flex items-center space-x-1.5 min-w-0">
+                            <Text className="text-xl font-black text-black tracking-wide truncate">{item.name}</Text>
+                            <Text className="bg-blue-50 text-blue-600 text-[10px] font-black px-1.5 py-0.5 rounded flex-shrink-0">
+                              {item.level_name}
+                            </Text>
+                          </View>
+                          <Text className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-extrabold self-start">
+                            🔶 {item.category_name}
+                          </Text>
+                          <Text className="text-[10px] text-zinc-400 font-medium">租金: ¥{item.unit_rent}/期 · 押金: ¥{item.deposit}</Text>
+                        </View>
+
+                        {/* 右侧租期步进器 */}
+                        <View className="flex-shrink-0 items-end ml-2">
+                          <View className="flex items-center border border-zinc-200 rounded-full h-7 px-1 bg-zinc-50/50">
+                            <Text className="px-2 text-zinc-400 font-bold text-sm">—</Text>
+                            <Text className="px-2 text-black font-black text-xs">{item.rent_qty}天</Text>
+                            <Text className="px-2 text-zinc-600 font-bold text-sm">+</Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* 红点删除键单独靠左 */}
+                      <View className="flex justify-start">
+                        <Button className="m-0 bg-white border border-red-100 text-red-500 rounded-full px-3 h-6 text-[10px] font-bold flex items-center space-x-1 shadow-sm">
+                          <Text className="text-red-600 font-black">🔴</Text>
+                          <Text>删除</Text>
+                        </Button>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+
+                {/* ────────────────── 【3. 统一组尾（计费小计与联系入口）】 ────────────────── */}
+                <View className="bg-zinc-50/40 border-t border-zinc-100 p-4 flex justify-between items-end w-full mt-auto">
+                  {/* 左侧：抽离出来的网点地址电话与打包计费项 */}
+                  <View className="flex flex-col space-y-1 text-[11px] text-zinc-400 font-semibold max-w-[60%]">
+                    <Text className="truncate">🗺️ 发货仓: {group.site_address}</Text>
+                    <Text>📞 电话: {group.site_phone}</Text>
+                    <View className="text-[10px] text-zinc-400/80 mt-1 pt-1 border-t border-zinc-200/60">
+                      含租金全款 ¥{totalRent} + 累计押金 ¥{totalDeposit} + 运费 ¥{group.shipping_fee}
+                    </View>
+                  </View>
+                  
+                  {/* 右侧：高对比度整组结算总小计 */}
+                  <View className="text-right flex-shrink-0 whitespace-nowrap">
+                    <Text className="text-[10px] text-zinc-400 font-bold block mb-0.5">网点合并小计</Text>
+                    <Text className="text-black font-black text-2xl tracking-tight">
+                      ¥{groupSubtotal}
+                    </Text>
+                  </View>
+                </View>
+
+              </View>
+            );
+          })}
+          
+        </View>
+      </ScrollView>
+
+      {/* 底部固定总结算栏 */}
+      <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 pb-6 flex justify-between items-center z-50 shadow-2xl flex-shrink-0">
+        <Text className="text-xl font-black text-black tracking-wide">合计总额</Text>
+        <Button className="m-0 bg-[#B98E5F] text-white font-extrabold text-base px-10 h-12 rounded-full shadow-md flex items-center justify-center">
+          去结算
+        </Button>
+      </View>
+    </View>
+  );
+};
+
+export default CartPage;
