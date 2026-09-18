@@ -210,20 +210,22 @@ type InstrumentPhotoSpec struct {
 }
 
 type Order struct {
-	ID                      string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID                string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrgID                   string     `gorm:"type:uuid;index" json:"org_id"`
-	UserID                  string     `gorm:"type:uuid;not null;index" json:"user_id"`
-	InstrumentID            string     `gorm:"type:uuid;not null" json:"instrument_id"`
-	Level                   string     `gorm:"type:varchar(20);not null" json:"level"`
-	LeaseTerm               int        `gorm:"not null" json:"lease_term"`
-	DepositMode             string     `gorm:"type:varchar(20);default:'standard'" json:"deposit_mode"`
-	MonthlyRent             Cents      `gorm:"type:bigint;not null" json:"monthly_rent"`
-	Deposit                 Cents      `gorm:"type:bigint;default:0" json:"deposit"`
-	DepositWaived           bool       `gorm:"column:deposit_waived;not null;default:false" json:"deposit_waived"`
-	RecommendationLetter    string     `gorm:"column:recommendation_letter;type:varchar(500);not null;default:''" json:"recommendation_letter"` // #1867: deposit-free application letter URL
-	ShippingFee             Cents      `gorm:"type:bigint;default:0" json:"shipping_fee"`
-	AccumulatedMonths       int        `gorm:"default:0" json:"accumulated_months"`
+	ID                   string `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID             string `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID                string `gorm:"type:uuid;index" json:"org_id"`
+	UserID               string `gorm:"type:uuid;not null;index" json:"user_id"`
+	InstrumentID         string `gorm:"type:uuid;not null" json:"instrument_id"`
+	Level                string `gorm:"type:varchar(20);not null" json:"level"`
+	LeaseTerm            int    `gorm:"not null" json:"lease_term"`
+	DepositMode          string `gorm:"type:varchar(20);default:'standard'" json:"deposit_mode"`
+	MonthlyRent          Cents  `gorm:"type:bigint;not null" json:"monthly_rent"`
+	Deposit              Cents  `gorm:"type:bigint;default:0" json:"deposit"`
+	DepositWaived        bool   `gorm:"column:deposit_waived;not null;default:false" json:"deposit_waived"`
+	RecommendationLetter string `gorm:"column:recommendation_letter;type:varchar(500);not null;default:''" json:"recommendation_letter"` // #1867: deposit-free application letter URL
+	ShippingFee          Cents  `gorm:"type:bigint;default:0" json:"shipping_fee"`
+	AccumulatedMonths    int    `gorm:"default:0" json:"accumulated_months"`
+	// #1965 业务订单号：`YL<YYYYMMDD>-<NNN>`（当日第 N 单），唯一索引
+	OrderNo                 string     `gorm:"type:varchar(24);uniqueIndex" json:"order_no"`
 	Status                  string     `gorm:"type:varchar(40);default:'reserved';index" json:"status"`
 	StartDate               *string    `gorm:"type:date" json:"start_date"`
 	EndDate                 *string    `gorm:"type:date" json:"end_date"`
@@ -1307,3 +1309,6 @@ type TechnicianProfile struct {
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }
+
+// OrderNoPrefix 业务订单号前缀（#1965）：`YL<YYYYMMDD>-<NNN>`（当日第 N 单）
+const OrderNoPrefix = "YL"

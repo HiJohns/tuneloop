@@ -543,7 +543,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		order.PricingConfigSnapshot = &snapStr
 	}
 
-	if err := tx.Create(&order).Error; err != nil {
+	if err := createOrderWithNo(tx, &order); err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create order: " + err.Error()})
 		return
@@ -1037,7 +1037,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			order.PricingConfigSnapshot = &snapStr
 		}
 
-		if err := tx.Create(&order).Error; err != nil {
+		if err := createOrderWithNo(tx, &order); err != nil {
 			tx.Rollback()
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create order for " + item.InstrumentID})
 			return

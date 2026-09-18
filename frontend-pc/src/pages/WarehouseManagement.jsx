@@ -13,10 +13,11 @@ export default function WarehouseManagement() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
+  const [keyword, setKeyword] = useState('');
 
   useEffect(() => {
     fetchOrders();
-  }, [statusFilter]);
+  }, [statusFilter, keyword]);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -24,6 +25,9 @@ export default function WarehouseManagement() {
       const params = {};
       if (statusFilter) {
         params.status = statusFilter;
+      }
+      if (keyword.trim()) {
+        params.keyword = keyword.trim();
       }
       const data = await api.get('/warehouse/orders', { params });
       setOrders(data?.data?.list || []);
@@ -157,12 +161,21 @@ export default function WarehouseManagement() {
   };
 
   const getStatusConfig = (status) => {
+    // #1965：状态中文全集（含下单/取消/逾期/押金等仓库域全状态）
     const configMap = {
+      'reserved': { text: '待支付', color: 'default' },
       'paid': { text: '待发货', color: 'orange' },
+      'pending_shipment': { text: '待发货', color: 'orange' },
       'shipped': { text: '运输中', color: 'blue' },
       'in_lease': { text: '已送达', color: 'green' },
       'returning': { text: '归还申请', color: 'orange' },
       'in_store': { text: '归还完成', color: 'green' },
+      'deposit_refunding': { text: '押金退还中', color: 'gold' },
+      'completed': { text: '已完成', color: 'green' },
+      'cancelled': { text: '已取消', color: 'default' },
+      'expired': { text: '已逾期', color: 'red' },
+      'pending_damage_response': { text: '损坏待响应', color: 'volcano' },
+      'damage_appealing': { text: '损坏申诉中', color: 'red' },
       'maintenance': { text: '维修中', color: 'red' }
     };
     return configMap[status] || { text: status, color: 'default' };
@@ -183,19 +196,25 @@ export default function WarehouseManagement() {
   const columns = [
     {
       title: '订单号',
-      dataIndex: 'id',
-      key: 'id',
-      render: (id) => id?.slice(0, 8) || '-'
+      dataIndex: 'order_no',
+      key: 'order_no',
+      render: (no, record) => (
+        <Tooltip title={record.id}>
+          <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{no || record.id?.slice(0, 8) || '-'}</span>
+        </Tooltip>
+      )
     },
     {
       title: '乐器',
-      dataIndex: 'instrument_name',
-      key: 'instrument_name'
+      key: 'instrument',
+      render: (_, r) => (
+        <span>{r.instrument_name || r.instrument_category || '-'}{r.instrument_sn ? `（${r.instrument_sn}）` : ''}</span>
+      )
     },
     {
       title: '客户',
-      dataIndex: 'user_name',
-      key: 'user_name'
+      key: 'customer',
+      render: (_, r) => <span>{r.user_name || '-'}{r.user_phone ? `（${r.user_phone}）` : ''}</span>
     },
     {
       title: '状态',
@@ -312,6 +331,7 @@ export default function WarehouseManagement() {
                 { label: '归还申请', value: 'returning' }
               ]}
             />
+        <Input.Search placeholder="订单号 / SN / 客户姓名 / 电话" style={{ width: 260, marginLeft: 8 }} allowClear onSearch={(v) => setKeyword(v)} />
             <Button onClick={fetchOrders}>刷新</Button>
           </Space>
         </div>

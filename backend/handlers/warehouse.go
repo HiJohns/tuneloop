@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"tuneloop-backend/database"
@@ -58,6 +59,16 @@ func (h *WarehouseHandler) ListOrders(c *gin.Context) {
 	if status != "" {
 		query = query.Where("status = ?", status)
 	}
+	// #1965：关键字检索（订单号 / 乐器 SN / 客户姓名 / 电话）
+	if keyword := strings.TrimSpace(c.Query("keyword")); keyword != "" {
+		like := "%" + keyword + "%"
+		query = query.Where(
+			`orders.order_no ILIKE ? OR orders.id::text ILIKE ? OR EXISTS (
+				SELECT 1 FROM instruments i WHERE i.id = orders.instrument_id AND i.sn ILIKE ?
+			) OR EXISTS (
+				SELECT 1 FROM users u WHERE u.id = orders.user_id AND (u.name ILIKE ? OR u.phone ILIKE ?)
+			)`, like, like, like, like, like)
+	}
 
 	var total int64
 	query.Count(&total)
@@ -69,8 +80,11 @@ func (h *WarehouseHandler) ListOrders(c *gin.Context) {
 	type warehouseOrder struct {
 		models.Order
 		InstrumentSN       string `json:"instrument_sn"`
+		InstrumentName     string `json:"instrument_name"` // #1965：乐器名称（面板既有列）
 		InstrumentCategory string `json:"instrument_category"`
 		CoverImage         string `json:"cover_image"`
+		UserName           string `json:"user_name"` // #1965：客户姓名/电话
+		UserPhone          string `json:"user_phone"`
 	}
 	list := make([]warehouseOrder, 0, len(orders))
 	storageSvc := services.MediaStorageFromContext(c)
@@ -79,7 +93,13 @@ func (h *WarehouseHandler) ListOrders(c *gin.Context) {
 		var instr models.Instrument
 		if err := db.Raw("SELECT sn, category_name FROM instruments WHERE id = ? LIMIT 1", o.InstrumentID).Scan(&instr).Error; err == nil {
 			item.InstrumentSN = instr.SN
+			item.InstrumentName = instr.CategoryName // 模型无独立 name，名称取分类名
 			item.InstrumentCategory = instr.CategoryName
+		}
+		var cust models.User
+		if err := db.Select("name, phone").Where("id = ?", o.UserID).First(&cust).Error; err == nil {
+			item.UserName = cust.Name
+			item.UserPhone = cust.Phone
 		}
 		var media models.InstrumentMedia
 		if err := db.Where("instrument_id = ? AND is_display = ?", o.InstrumentID, true).Order("sort_order ASC").First(&media).Error; err == nil && media.StorageKey != "" {
