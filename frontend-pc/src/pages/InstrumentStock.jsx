@@ -30,7 +30,9 @@ export default function InstrumentStock() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const response = await inventoryApi.list()
+      // #1973：与「乐器列表」同源（GET /instruments）；此处为**库存状态视图**，
+      // 显式分页避免静默只取默认第一页（导致与列表页集合不一致的观感）
+      const response = await inventoryApi.list({ page: 1, pageSize: 200 })
       setAssets(response?.data?.list || [])
     } catch (error) {
       console.error('Failed to load inventory:', error)
@@ -267,12 +269,17 @@ export default function InstrumentStock() {
 
   return (
     <div className="p-6">
-      <Space style={{ marginBottom: 16 }}>
-        <h2 className="text-xl font-bold" style={{ margin: 0 }}>{view === 'stock' ? '乐器库存' : '丢失台账'}</h2>
+      <Space style={{ marginBottom: 8 }}>
+        <h2 className="text-xl font-bold" style={{ margin: 0 }}>{view === 'stock' ? '库存监控' : '丢失台账'}</h2>
         <Button icon={<WarningOutlined />} onClick={() => switchView(view === 'stock' ? 'loss' : 'stock')}>
           {view === 'stock' ? '丢失台账' : '返回库存'}
         </Button>
       </Space>
+      {view === 'stock' && (
+        <div className="text-xs text-gray-500 mb-3">
+          按状态查看乐器（待租 / 在租 / 维修中 / 已丢失）；乐器档案的新增与编辑请用「乐器列表」。
+        </div>
+      )}
       {statusParam && (
         <div className="mb-4 p-3 bg-blue-50 rounded">
           <Space>
