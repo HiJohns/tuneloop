@@ -67,11 +67,13 @@ export default function InstrumentStock() {
       }
     },
     {
-      title: '资产ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 180,
-      render: (id) => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{id?.slice(0, 8)}...</span>
+      title: 'SN',
+      dataIndex: 'sn',
+      key: 'sn',
+      width: 160,
+      render: (sn, record) => (
+        <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{sn || record.id?.slice(0, 8) || '-'}</span>
+      )
     },
     {
       title: '乐器名称',
@@ -106,7 +108,9 @@ export default function InstrumentStock() {
             "维修中": { color: 'orange', text: '维修中' },
             "maintenance": { color: 'orange', text: '维修中' },
             "已熔断": { color: 'red', text: '已熔断' },
-            "lost": { color: 'red', text: '已丢失' }
+            "lost": { color: 'red', text: '已丢失' },
+            "archived": { color: 'default', text: '已下架' },
+            "sold": { color: 'default', text: '已售出' }
           }
           return statusMap[status] || { color: 'default', text: status }
         }
@@ -135,7 +139,10 @@ export default function InstrumentStock() {
       width: 200,
       render: (_, record) => (
         <Space>
-          <Button type="link" size="small" icon={<EyeOutlined />}>详情</Button>
+          <Button type="link" size="small" icon={<EyeOutlined />}
+            onClick={(e) => { e.stopPropagation(); navigate(`/site/stock/${record.id}`) }}>详情</Button>
+          <Button type="link" size="small" icon={<EditOutlined />}
+            onClick={(e) => { e.stopPropagation(); navigate(`/instruments/list/edit/${record.id}`) }}>编辑</Button>
           {record.status === 'lost' ? (
             <Button type="link" size="small" icon={<RollbackOutlined />}
               onClick={(e) => { e.stopPropagation(); openRestoreModal(record) }}>恢复</Button>
