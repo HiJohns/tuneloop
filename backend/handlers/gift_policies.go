@@ -81,13 +81,19 @@ func ListGiftPolicies(c *gin.Context) {
 // Body: {pay_ratio?, refund_ratio?, is_active?}
 func UpdateGiftPolicy(c *gin.Context) {
 	var req struct {
-		LevelID     int      `json:"level_id" binding:"required"`
+		// #1944 Sub-A：level_id=0 是合法兜底行（binding:required 会把 0 当缺省拒绝）
+		LevelID     int      `json:"level_id"`
 		PayRatio    *float64 `json:"pay_ratio"`
 		RefundRatio *float64 `json:"refund_ratio"`
 		IsActive    *bool    `json:"is_active"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
+		return
+	}
+	// #1944 Sub-A：负数 level_id 非法（0=兜底行，正数=会员等级）
+	if req.LevelID < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "level_id 不能为负数"})
 		return
 	}
 

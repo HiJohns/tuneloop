@@ -218,3 +218,52 @@ func TestGiftPolicyRatioGuardrails(t *testing.T) {
 		require.Equal(t, c.want, w.Code, "pay=%v refund=%v body=%s", c.pay, c.refund, w.Body.String())
 	}
 }
+
+// TestGiftPolicyUpdateDefaultRow (#1944 Sub-A): level_id=0 is a valid fallback
+// row — PUT with level_id=0 must update it (binding:required used to reject 0).
+func TestGiftPolicyUpdateDefaultRow(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	require.NoError(t, db.Create(&models.GiftPolicy{
+		LevelID: 0, PayRatio: 0.3, RefundRatio: 0, IsActive: true,
+	}).Error)
+
+	router := giftPolicyRouter(makeAdminActor())
+
+	// PUT update default row (level_id=0, omitting level_id entirely also works)
+	body, _ := json.Marshal(map[string]interface{}{
+		"level_id": 0, "pay_ratio": 0.5, "is_active": true,
+	})
+	req := httptest.NewRequest("PUT", "/api/admin/gift-policies", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, "update default row: %s", w.Body.String())
+	var resp struct {
+		Code int `json:"code"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+
+	// 回读：默认行 pay_ratio 已更新
+	var row models.GiftPolicy
+	require.NoError(t, db.Where("level_id = ?", 0).First(&row).Error)
+	require.Equal(t, 0.5, row.PayRatio)
+}
+
+// TestGiftPolicyUpdateNegativeLevel (#1944 Sub-A): negative level_id → 40002.
+func TestGiftPolicyUpdateNegativeLevel(t *testing.T) {
+	router := giftPolicyRouter(makeAdminActor())
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"level_id": -1, "pay_ratio": 0.5,
+	})
+	req := httptest.NewRequest("PUT", "/api/admin/gift-policies", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	var resp struct {
+		Code int `json:"code"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 40002, resp.Code, "负数 level_id 应被拒绝: %s", w.Body.String())
+}

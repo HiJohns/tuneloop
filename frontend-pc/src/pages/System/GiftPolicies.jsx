@@ -23,14 +23,19 @@ export default function GiftPolicies() {
 
   const handleSave = async () => {
     if (!editing) return;
-    const res = await api.put('/admin/gift-policies', {
-      level_id: editing.level_id,
-      pay_ratio: editing.pay_ratio,
-      refund_ratio: editing.refund_ratio,
-      is_active: editing.is_active,
-    });
-    if (res.code === 20000) { message.success('已更新'); setEditVisible(false); fetchPolicies(); }
-    else { message.error(res.message); }
+    // #1944 Sub-A：网络/服务异常必须透出（原实现在异常时静默无反应）
+    try {
+      const res = await api.put('/admin/gift-policies', {
+        level_id: editing.level_id,
+        pay_ratio: editing.pay_ratio,
+        refund_ratio: editing.refund_ratio,
+        is_active: editing.is_active,
+      });
+      if (res.code === 20000) { message.success('已更新'); setEditVisible(false); fetchPolicies(); }
+      else { message.error(res.message || '保存失败'); }
+    } catch (e) {
+      message.error(e.message || '保存失败，请稍后重试');
+    }
   };
 
   const columns = [
