@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
+	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
+	"tuneloop-backend/models"
 	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
@@ -40,10 +43,69 @@ func ListAuditLogs(c *gin.Context) {
 		return
 	}
 
+	// #1969：展示层补充（不改库/原始字段）——姓名回填 + 动作/资源中文 + UA 摘要
+	enrichAuditLogs(c.Request.Context(), result.List)
+	enriched := make([]gin.H, 0, len(result.List))
+	for _, lg := range result.List {
+		enriched = append(enriched, auditLogView(lg))
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": result,
+		"data": gin.H{
+			"list":     enriched,
+			"total":    result.Total,
+			"page":     result.Page,
+			"pageSize": result.PageSize,
+		},
 	})
+}
+
+// enrichAuditLogs 历史行 actor_name 为空时按 users.iam_sub=user_id 回填（批量，不改库）
+func enrichAuditLogs(ctx context.Context, logs []models.AuditLog) {
+	missing := make([]string, 0)
+	for _, lg := range logs {
+		if lg.ActorName == "" && lg.UserID != "" {
+			missing = append(missing, lg.UserID)
+		}
+	}
+	if len(missing) == 0 {
+		return
+	}
+	db := database.GetDB().WithContext(ctx)
+	var users []models.User
+	db.Select("iam_sub, name").Where("iam_sub IN ?", missing).Find(&users)
+	nameMap := map[string]string{}
+	for _, u := range users {
+		if u.Name != "" {
+			nameMap[u.IAMSub] = u.Name
+		}
+	}
+	for i := range logs {
+		if logs[i].ActorName == "" {
+			if n, ok := nameMap[logs[i].UserID]; ok {
+				logs[i].ActorName = n
+			}
+		}
+	}
+}
+
+// auditLogView 单条日志的展示视图（原始字段 + 展示字段）
+func auditLogView(lg models.AuditLog) gin.H {
+	actionLabel := services.AuditActionLabel(lg.Action, lg.ResourceType)
+	resourceLabel := services.AuditResourceLabel(lg.ResourceType)
+	uaSummary := services.ParseUserAgent(lg.UserAgent)
+	actorName := lg.ActorName
+	if actorName == "" && len(lg.UserID) >= 8 {
+		actorName = lg.UserID[:8] + "…"
+	}
+	return gin.H{
+		"id": lg.ID, "created_at": lg.CreatedAt, "status": lg.Status, "status_code": lg.StatusCode,
+		"actor_name": actorName, "actor_role": lg.ActorRole, "user_id": lg.UserID,
+		"action": lg.Action, "action_label": actionLabel,
+		"resource_type": lg.ResourceType, "resource_type_label": resourceLabel, "resource_id": lg.ResourceID,
+		"ip_address": lg.IPAddress, "user_agent": lg.UserAgent, "user_agent_summary": uaSummary,
+		"error_message": lg.ErrorMessage, "details": lg.Details,
+	}
 }
 
 func GetAuditLog(c *gin.Context) {
@@ -63,9 +125,11 @@ func GetAuditLog(c *gin.Context) {
 		return
 	}
 
+	// #1969：详情同样补充展示字段
+	enrichAuditLogs(ctx, []models.AuditLog{*log})
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": log,
+		"data": auditLogView(*log),
 	})
 }
 

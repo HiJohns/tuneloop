@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Table, Card, Button, Space, DatePicker, Checkbox, Tag, message, Modal, Descriptions } from 'antd';
+import { Table, Card, Button, Space, DatePicker, Checkbox, Tag, message, Modal, Descriptions, Typography } from 'antd';
 import { DownloadOutlined, SearchOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { api, auditLogApi } from '../../services/api';
 import dayjs from 'dayjs';
@@ -37,8 +37,9 @@ function formatLogMessage(record) {
     } catch {}
   }
   // 回退到原逻辑
-  const action = actionDisplayMap[record.action] || record.action
-  const resource = resourceDisplayMap[record.resource_type] || record.resource_type
+  // #1969：优先用后端展示字段（action_label/resource_type_label）
+  const action = record.action_label || actionDisplayMap[record.action] || record.action
+  const resource = record.resource_type_label || resourceDisplayMap[record.resource_type] || record.resource_type
   let detail = record.resource_id || ''
   if (record.resource_type === 'order' && record.request_body) {
     try {
@@ -118,7 +119,7 @@ export default function AuditLogPage() {
     { title: '操作者', dataIndex: 'actor_name', key: 'actor_name', width: 100,
       render: (v, record) => v || record.user_id?.slice(0, 8) || '-' },
     { title: '对象类型', dataIndex: 'resource_type', key: 'resource_type', width: 100,
-      render: (v) => resourceDisplayMap[v] || v || '-' },
+      render: (v, record) => record.resource_type_label || resourceDisplayMap[v] || v || '-' },
     { title: '操作描述', key: 'description', width: 500,
       render: (_, record) => formatLogMessage(record) },
     { title: '结果', dataIndex: 'status', key: 'status', width: 100,
@@ -200,13 +201,30 @@ export default function AuditLogPage() {
               {detailLog.status === 'failure' && detailLog.error_message &&
                 <span style={{ marginLeft: 8, color: '#ff4d4f' }}>{detailLog.error_message}</span>}
             </Descriptions.Item>
-            <Descriptions.Item label="操作用户">{detailLog.user_id}</Descriptions.Item>
+            <Descriptions.Item label="操作用户">
+              {detailLog.actor_name || detailLog.user_id || '-'}
+            </Descriptions.Item>
             <Descriptions.Item label="角色">{detailLog.actor_role}</Descriptions.Item>
-            <Descriptions.Item label="操作">{actionDisplayMap[detailLog.action] || detailLog.action}</Descriptions.Item>
-            <Descriptions.Item label="资源类型">{resourceDisplayMap[detailLog.resource_type] || detailLog.resource_type}</Descriptions.Item>
-            <Descriptions.Item label="资源ID">{detailLog.resource_id || '-'}</Descriptions.Item>
+            <Descriptions.Item label="操作">
+              {detailLog.action_label || actionDisplayMap[detailLog.action] || detailLog.action}
+            </Descriptions.Item>
+            <Descriptions.Item label="资源类型">
+              {detailLog.resource_type_label || resourceDisplayMap[detailLog.resource_type] || detailLog.resource_type}
+            </Descriptions.Item>
+            <Descriptions.Item label="资源ID" span={2}>
+              <Typography.Text copyable style={{ fontFamily: 'monospace', fontSize: 12 }}>
+                {detailLog.resource_id || '-'}
+              </Typography.Text>
+            </Descriptions.Item>
             <Descriptions.Item label="IP地址">{detailLog.ip_address || '-'}</Descriptions.Item>
-            <Descriptions.Item label="User-Agent" span={2}>{detailLog.user_agent || '-'}</Descriptions.Item>
+            <Descriptions.Item label="设备">
+              {detailLog.user_agent_summary || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="原始 User-Agent" span={2}>
+              <Typography.Text copyable style={{ fontSize: 12, color: '#8c8c8c' }}>
+                {detailLog.user_agent || '-'}
+              </Typography.Text>
+            </Descriptions.Item>
             {detailLog.error_message && detailLog.status === 'failure' && (
               <Descriptions.Item label="错误信息" span={2}>
                 <span style={{ color: '#ff4d4f' }}>{detailLog.error_message}</span>
