@@ -60,6 +60,7 @@ var allTables = []interface{}{
 	&models.RepairRequest{},           // #1881: v3 staff/tech authorization tests
 	&models.RepairLogisticsFee{},      // #1942: 维修服务分段物流费
 	&models.RepairReview{},            // #1942: 维修服务评价
+	&models.InstrumentLossRecord{},    // #1948: 乐器丢失台账
 	&models.UserInstrument{},          // #1880: create ownership tests
 	&models.RepairRequestRecord{},     // #1881: createRepairRecord writes
 	&models.RepairQuote{},             // #1881: quote visibility tests

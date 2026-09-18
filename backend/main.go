@@ -387,6 +387,11 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 
 		// Instrument CRUD
 		authRequired.POST("/instruments", middleware.RequireCusPerm("instrument:create"), handlers.CreateInstrument)
+		// #1948 乐器丢失与找回（员工/管理员，双入口之一；归属校验在 handler 内）
+		lossHandler := handlers.NewInstrumentLossHandler()
+		authRequired.POST("/instruments/:id/lost", middleware.RequireCusPerm("instrument:update"), lossHandler.Register)
+		authRequired.POST("/instruments/:id/restore", middleware.RequireCusPerm("instrument:update"), lossHandler.Restore)
+		authRequired.GET("/instrument-loss", middleware.RequireCusPerm("instrument:read"), lossHandler.List)
 		authRequired.DELETE("/instruments/:id", middleware.RequireCusPerm("instrument:delete"), handlers.DeleteInstrument)
 		// #1798: batch delete (static path registered before :id param — httprouter static-first)
 		authRequired.DELETE("/instruments/batch", middleware.RequireCusPerm("instrument:delete"), handlers.BatchDeleteInstruments)

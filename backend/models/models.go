@@ -571,10 +571,10 @@ const (
 	RepairReqStatusTransitIn         = "transit_in"
 	RepairReqStatusTransitOut        = "transit_out"
 	// #1942 维修服务（type='service'）状态
-	RepairReqStatusPendingQuote      = "pending_quote"
-	RepairReqStatusPaid              = "paid"
-	RepairReqStatusAdjustPending     = "adjust_pending"
-	RepairReqStatusDoneRepair        = "done_repair"
+	RepairReqStatusPendingQuote  = "pending_quote"
+	RepairReqStatusPaid          = "paid"
+	RepairReqStatusAdjustPending = "adjust_pending"
+	RepairReqStatusDoneRepair    = "done_repair"
 )
 
 // RepairRequest represents a customer repair request.
@@ -1259,4 +1259,36 @@ type InvoiceApplication struct {
 	// Orders is a computed join field, not stored in DB
 	Orders       []Order `gorm:"-" json:"orders,omitempty"`
 	MerchantName string  `gorm:"-" json:"merchant_name,omitempty"`
+}
+
+// InstrumentLossRecord 乐器丢失记录（#1948，LS-00）：
+// 员工裁量制——责任方/比例/赔偿额由员工填写，系统按 LS-03 分场景结算；
+// 冲正/恢复留痕见 LS-05/LS-05a。
+type InstrumentLossRecord struct {
+	ID                string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID          string     `gorm:"type:uuid;index" json:"tenant_id"`
+	InstrumentID      string     `gorm:"type:uuid;index;not null" json:"instrument_id"`
+	OrderID           *string    `gorm:"type:uuid;index" json:"order_id"`                    // 关联租约订单（纯库存为 NULL）
+	ResponsibleParty  string     `gorm:"type:varchar(20);not null" json:"responsible_party"` // user|logistics|platform|site
+	UserRatio         int        `gorm:"not null;default:0" json:"user_ratio"`               // 0-100
+	CompensationCents Cents      `gorm:"type:bigint;not null;default:0" json:"compensation_cents"`
+	UserBurdenCents   Cents      `gorm:"type:bigint;not null;default:0" json:"user_burden_cents"` // 员工可覆盖
+	Description       string     `gorm:"type:text" json:"description"`
+	Photos            string     `gorm:"type:jsonb;default:'[]'" json:"photos"`
+	SettledAt         *time.Time `json:"settled_at"` // 租约结算完成时间（纯库存 NULL）
+	SettleBreakdown   string     `gorm:"type:jsonb;default:'{}'" json:"settle_breakdown"`
+	CreatedBy         string     `gorm:"type:varchar(255)" json:"created_by"`
+	// 恢复留痕（LS-05）
+	RestoredAt         *time.Time `json:"restored_at"`
+	RestoredDamaged    bool       `gorm:"default:false" json:"restored_damaged"`
+	RestoreDescription string     `gorm:"type:text" json:"restore_description"`
+	RestorePhotos      string     `gorm:"type:jsonb;default:'[]'" json:"restore_photos"`
+	// 冲正留痕（LS-05a 方案 B）
+	ReversedAt          *time.Time `json:"reversed_at"`
+	ReversedAmountCents Cents      `gorm:"type:bigint;default:0" json:"reversed_amount_cents"`
+	DeductedDamageCents Cents      `gorm:"type:bigint;default:0" json:"deducted_damage_cents"`
+	DeductedIdleCents   Cents      `gorm:"type:bigint;default:0" json:"deducted_idle_cents"`
+	ReverseNote         string     `gorm:"type:text" json:"reverse_note"`
+	CreatedAt           time.Time  `json:"created_at"`
+	UpdatedAt           time.Time  `json:"updated_at"`
 }

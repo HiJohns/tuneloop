@@ -167,7 +167,7 @@ func processPaymentCallback(c *gin.Context, result *wechatpay.CallbackResult) bo
 	// #1730: virtual/service goods (no physical delivery) must report
 	// shipping info (logistics_type=3) so WeChat settles the frozen funds.
 	switch record.OrderType {
-	case "membership", "renewal", "damage", "repair", "payment_shortfall":
+	case "membership", "renewal", "damage", "repair", "payment_shortfall", "loss":
 		reportVirtualGoodsShipping(db, &record)
 	}
 
@@ -196,6 +196,8 @@ func reportVirtualGoodsShipping(db *gorm.DB, record *models.OrderPaymentRecord) 
 		itemDesc = "定损赔付"
 	case "payment_shortfall":
 		itemDesc = "补缴差额"
+	case "loss":
+		itemDesc = "乐器丢失补缴"
 	case "repair":
 		itemDesc = "维修服务费"
 	}
@@ -337,6 +339,18 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 				if _, err := executeRefund(tx, completedOrder); err != nil {
 					log.Printf("[applySideEffects] Settlement failed for order %s: %v", *record.OrderID, err)
 				}
+			}
+		}
+		return nil
+	case "loss":
+		// #1948 LS-06：丢失补缴到账 → 幂等关闭 pending 补缴记录（M-08 解除）。
+		// 订单已因丢失置 cancelled，不改变。
+		if record.OrderID != nil {
+			if err := tx.Model(&models.OrderPaymentRecord{}).
+				Where("order_id = ? AND order_type = ? AND status = ? AND method = ?",
+					*record.OrderID, "loss", "pending", "loss").
+				Update("status", "closed").Error; err != nil {
+				return err
 			}
 		}
 		return nil

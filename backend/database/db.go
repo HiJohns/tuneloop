@@ -480,8 +480,9 @@ func validateDatabaseSchema(db *gorm.DB) error {
 		&models.Deposit{},
 		&models.UserInstrument{},
 		&models.RepairRequest{},
-		&models.RepairLogisticsFee{}, // #1942: 维修服务分段物流费
-		&models.RepairReview{},       // #1942: 维修服务评价
+		&models.RepairLogisticsFee{},   // #1942: 维修服务分段物流费
+		&models.RepairReview{},         // #1942: 维修服务评价
+		&models.InstrumentLossRecord{}, // #1948: 乐器丢失台账
 		&models.RepairRequestRecord{},
 		&models.PointsTransaction{},
 		&models.Tenant{},

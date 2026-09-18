@@ -53,9 +53,9 @@ func PrepayOrder(c *gin.Context) {
 		return
 	}
 
-	validTypes := map[string]bool{"rent": true, "repair": true, "damage": true, "renewal": true, "membership": true, "payment_shortfall": true}
+	validTypes := map[string]bool{"rent": true, "repair": true, "damage": true, "renewal": true, "membership": true, "payment_shortfall": true, "loss": true}
 	if !validTypes[req.OrderType] {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid order_type, must be rent/repair/damage/renewal/membership/payment_shortfall"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid order_type, must be rent/repair/damage/renewal/membership/payment_shortfall/loss"})
 		return
 	}
 
@@ -256,6 +256,19 @@ func PrepayOrder(c *gin.Context) {
 		}
 		couponApplied = coupon.Code
 	}
+	// #1948 乐器丢失补缴（LS-03/LS-06）：金额 = 该订单 pending 补缴记录合计（服务端权威）
+	if req.OrderType == "loss" && effectiveOrderID != "" {
+		var shortfallInt int64
+		if err := db.Model(&models.OrderPaymentRecord{}).
+			Where("order_id = ? AND order_type = ? AND type = ? AND status = ? AND method = ?",
+				effectiveOrderID, "loss", "payment", "pending", "loss").
+			Select("COALESCE(SUM(amount), 0)").Scan(&shortfallInt).Error; err != nil || shortfallInt <= 0 {
+			c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "no pending loss shortfall to pay"})
+			return
+		}
+		baseAmount = models.Cents(shortfallInt)
+	}
+
 	record.Amount = baseAmount // server-priced; never trust the client amount
 
 	// #1744: 优惠码使用订单快照 — prepay 服务端重算后回写订单，
@@ -351,7 +364,7 @@ func PrepayOrder(c *gin.Context) {
 	client := wechatpay.GetClient()
 
 	switch req.OrderType {
-	case "rent", "repair", "damage", "payment_shortfall":
+	case "rent", "repair", "damage", "payment_shortfall", "loss":
 		// #1684: backfill openid from the local users cache (wx_openid bound
 		// at registration) — the weapp Payment.jsx no longer sends open_id
 		// (#1678), so mini-program rent payments must resolve it server-side.
