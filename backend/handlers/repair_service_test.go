@@ -10,6 +10,7 @@ import (
 
 	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services/wechatpay"
 	"tuneloop-backend/testutil"
 
 	"github.com/gin-gonic/gin"
@@ -61,6 +62,7 @@ func setupRepairServiceFixture(t *testing.T) svcFixture {
 	h := NewRepairServiceHandler()
 	r := gin.New()
 	r.POST("/user/repair-services", h.Create)
+	r.GET("/user/repair-services", h.ListMine)
 	r.GET("/user/repair-services/:id", h.Get)
 	r.POST("/user/repair-services/:id/select-technician", h.SelectTechnician)
 	r.POST("/user/repair-services/:id/accept", h.AcceptQuote)
@@ -75,6 +77,7 @@ func setupRepairServiceFixture(t *testing.T) svcFixture {
 	r.POST("/repair-services/:id/dispatch", h.Dispatch)
 	r.GET("/repair-services", h.ListTasks)
 	r.GET("/common/repair-technicians", h.ListTechnicians)
+	r.POST("/api/pay/prepay", PrepayOrder)
 
 	return svcFixture{tenantID: tenantID, orgID: orgID, siteID: siteID,
 		otherTenantID: otherTenantID, otherSiteID: otherSiteID,
@@ -497,4 +500,200 @@ func TestRepairService_DetailSite(t *testing.T) {
 	// 跨租户员工 → 403（#688）
 	code, _ = getDetail(otherStaff)
 	assert.Equal(t, http.StatusForbidden, code)
+}
+
+// TestRepairService_Timeline（RS-API-4）：全流程各迁移点均写时间线且按序返回。
+func TestRepairService_Timeline(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	customer := testutil.MakeCustomer("", f.customerSub)
+	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
+
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "时间线"})
+	id := svcData(t, resp)["id"].(string)
+	svcPost(t, f, customer, "/user/repair-services/"+id+"/select-technician", gin.H{"technician_id": f.techID})
+	svcPost(t, f, staff, "/repair-services/"+id+"/quote", gin.H{"quote_repair_cents": 20000, "quote_logistics_cents": 5000})
+	svcPost(t, f, customer, "/user/repair-services/"+id+"/accept", nil)
+	svcPay(t, f, id, 25000)
+	svcPost(t, f, customer, "/user/repair-services/"+id+"/ship", gin.H{"tracking_number": "SF-TL"})
+	svcPost(t, f, staff, "/repair-services/"+id+"/adjust", gin.H{"new_quote_cents": 30000, "incurred_cents": 5000})
+	svcPost(t, f, customer, "/user/repair-services/"+id+"/adjust/accept", nil)
+	svcPay(t, f, id, 10000)
+	svcPost(t, f, staff, "/repair-services/"+id+"/legs", gin.H{"leg": 1, "logistics_fee_cents": 1000})
+	svcPost(t, f, staff, "/repair-services/"+id+"/complete", nil)
+	svcPost(t, f, staff, "/repair-services/"+id+"/dispatch", gin.H{"tracking_number": "SF-TL2", "logistics_fee_cents": 2000})
+	svcPost(t, f, customer, "/user/repair-services/"+id+"/review", gin.H{"rating": 5, "message": "好评"})
+
+	req := httptest.NewRequest(http.MethodGet, "/user/repair-services/"+id, nil)
+	w := httptest.NewRecorder()
+	f.router.ServeHTTP(w, req.WithContext(customer.InjectContext(req.Context())))
+	require.Equal(t, http.StatusOK, w.Code)
+	var out struct {
+		Data struct {
+			Timeline []struct {
+				RecordType string `json:"record_type"`
+			} `json:"timeline"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &out))
+	wantOrder := []string{"created", "technician_selected", "quoted", "quote_accepted", "paid",
+		"shipped", "adjust_requested", "adjust_accepted", "adjust_paid", "leg_fee",
+		"repair_completed", "settled", "reviewed"}
+	got := make([]string, 0, len(out.Data.Timeline))
+	for _, t2 := range out.Data.Timeline {
+		got = append(got, t2.RecordType)
+	}
+	require.Len(t, got, len(wantOrder), "时间线条目数：got=%v", got)
+	for i, want := range wantOrder {
+		require.Equal(t, want, got[i], "时间线第 %d 项", i+1)
+	}
+}
+
+// TestRepairService_PaymentsSummary（RS-API-5）：已付/待补缴/退款汇总正确。
+func TestRepairService_PaymentsSummary(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	customer := testutil.MakeCustomer("", f.customerSub)
+	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
+
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "汇总"})
+	id := svcData(t, resp)["id"].(string)
+	svcPost(t, f, customer, "/user/repair-services/"+id+"/select-technician", gin.H{"technician_id": f.techID})
+	svcPost(t, f, staff, "/repair-services/"+id+"/quote", gin.H{"quote_repair_cents": 1000, "quote_logistics_cents": 0})
+	svcPost(t, f, customer, "/user/repair-services/"+id+"/accept", nil)
+	svcPay(t, f, id, 1000)
+	svcPost(t, f, staff, "/repair-services/"+id+"/complete", nil)
+	// 实际物流 12000 > 已付 1000 → 补缴 11000
+	svcPost(t, f, staff, "/repair-services/"+id+"/dispatch", gin.H{"tracking_number": "SF-PS", "logistics_fee_cents": 12000})
+
+	req := httptest.NewRequest(http.MethodGet, "/user/repair-services/"+id, nil)
+	w := httptest.NewRecorder()
+	f.router.ServeHTTP(w, req.WithContext(customer.InjectContext(req.Context())))
+	var out struct {
+		Data struct {
+			Payments struct {
+				MadeCents             int64 `json:"made_cents"`
+				PendingShortfallCents int64 `json:"pending_shortfall_cents"`
+				RefundCents           int64 `json:"refund_cents"`
+				Records               []struct {
+					Kind   string `json:"kind"`
+					Status string `json:"status"`
+					Amount int64  `json:"amount_cents"`
+				} `json:"records"`
+			} `json:"payments"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &out))
+	p := out.Data.Payments
+	assert.Equal(t, int64(1000), p.MadeCents)
+	assert.Equal(t, int64(12000), p.PendingShortfallCents, "补缴 = actual 13000 − prepaid 1000")
+	assert.Equal(t, int64(0), p.RefundCents)
+	foundPending := false
+	for _, r := range p.Records {
+		if r.Kind == "payment" && r.Status == "pending" {
+			foundPending = true
+		}
+	}
+	assert.True(t, foundPending, "明细含 pending 补缴记录")
+}
+
+// TestRepairService_ListMineStatusFilter（RS-API-6）：用户列表状态过滤。
+func TestRepairService_ListMineStatusFilter(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	customer := testutil.MakeCustomer("", f.customerSub)
+	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
+
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "过滤A"})
+	idA := svcData(t, resp)["id"].(string)
+	svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "过滤B"})
+	svcPost(t, f, customer, "/user/repair-services/"+idA+"/select-technician", gin.H{"technician_id": f.techID})
+	svcPost(t, f, staff, "/repair-services/"+idA+"/quote", gin.H{"quote_repair_cents": 1000, "quote_logistics_cents": 0})
+
+	req := httptest.NewRequest(http.MethodGet, "/user/repair-services?status=pending_payment", nil)
+	w := httptest.NewRecorder()
+	f.router.ServeHTTP(w, req.WithContext(customer.InjectContext(req.Context())))
+	var out struct {
+		Data struct {
+			List  []models.RepairRequest `json:"list"`
+			Total int                    `json:"total"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &out))
+	require.Equal(t, 1, out.Data.Total, "只返回 pending_payment 状态的单")
+	assert.Equal(t, idA, out.Data.List[0].ID)
+}
+
+// TestRepairService_ShortfallPrepay（RS-API-7）：补缴支付——金额取服务端记录额，
+// 回调幂等关闭补缴记录（M-08 解除），订单保持 closed。
+func TestRepairService_ShortfallPrepay(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	customer := testutil.MakeCustomer("", f.customerSub)
+	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
+
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "补缴支付"})
+	id := svcData(t, resp)["id"].(string)
+	svcPost(t, f, customer, "/user/repair-services/"+id+"/select-technician", gin.H{"technician_id": f.techID})
+	svcPost(t, f, staff, "/repair-services/"+id+"/quote", gin.H{"quote_repair_cents": 1000, "quote_logistics_cents": 0})
+	svcPost(t, f, customer, "/user/repair-services/"+id+"/accept", nil)
+	svcPay(t, f, id, 1000)
+	svcPost(t, f, staff, "/repair-services/"+id+"/complete", nil)
+	svcPost(t, f, staff, "/repair-services/"+id+"/dispatch", gin.H{"tracking_number": "SF-SP", "logistics_fee_cents": 12000})
+
+	// prepay（stub 客户端）：客户端传错误金额 0.01 → 服务端应按补缴记录额 11000 收单
+	wechatpay.ResetGlobalForTesting()
+	wechatpay.SetClientForTesting(stubJSAPIClient{}, &wechatpay.Config{
+		AppID: "wx_test", NotifyURL: "http://localhost/notify", RefundNotifyURL: "http://localhost/notify",
+	})
+	t.Cleanup(func() {
+		wechatpay.ResetGlobalForTesting()
+		testfixtures.SetupWechatPayMock(t)
+	})
+	body, _ := json.Marshal(map[string]interface{}{"order_type": "repair", "order_id": id, "amount": 0.01})
+	req := httptest.NewRequest(http.MethodPost, "/api/pay/prepay", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	f.router.ServeHTTP(w, req.WithContext(customer.InjectContext(req.Context())))
+	require.Equal(t, http.StatusOK, w.Code, "响应：%s", w.Body.String())
+	var pre struct {
+		Data struct {
+			Success bool `json:"success"`
+			Data    struct {
+				OutTradeNo string `json:"out_trade_no"`
+			} `json:"data"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &pre))
+	require.True(t, pre.Data.Success, "prepay 应成功：%s", w.Body.String())
+	require.NotEmpty(t, pre.Data.Data.OutTradeNo)
+
+	// 服务端收单金额 = 补缴额 12000 分（客户端 0.01 元被忽略）
+	var newRec models.OrderPaymentRecord
+	require.NoError(t, f.db.Where("out_trade_no = ?", pre.Data.Data.OutTradeNo).First(&newRec).Error)
+	assert.Equal(t, models.Cents(12000), newRec.Amount, "收单金额=补缴记录额")
+
+	// 模拟回调：记录置 paid + applySideEffects → 补缴记录关闭、订单保持 closed
+	require.NoError(t, f.db.Model(&newRec).Update("status", "paid").Error)
+	require.NoError(t, f.db.Transaction(func(tx *gorm.DB) error {
+		return applySideEffects(tx, &newRec, time.Now())
+	}))
+	var closedShortfall models.OrderPaymentRecord
+	require.NoError(t, f.db.Where("order_id = ? AND order_type = ? AND method = ? AND status = ?",
+		id, "repair", "shortfall", "closed").First(&closedShortfall).Error, "补缴记录应被幂等关闭")
+	assert.Equal(t, models.Cents(12000), closedShortfall.Amount)
+
+	// M-08 解除：不再存在 order_type='repair' status='pending' 的记录
+	var pendingCount int64
+	require.NoError(t, f.db.Model(&models.OrderPaymentRecord{}).
+		Where("order_id = ? AND order_type = ? AND status = ?", id, "repair", "pending").
+		Count(&pendingCount).Error)
+	assert.Equal(t, int64(0), pendingCount, "M-08 阻塞解除")
+
+	// 订单保持 closed（不复活为 paid）
+	var stored models.RepairRequest
+	require.NoError(t, f.db.First(&stored, "id = ?", id).Error)
+	assert.Equal(t, models.RepairReqStatusClosed, stored.Status)
+
+	// 时间线含补缴支付
+	var tlCount int64
+	require.NoError(t, f.db.Model(&models.RepairRequestRecord{}).
+		Where("repair_request_id = ? AND record_type = ?", id, "shortfall_paid").Count(&tlCount).Error)
+	assert.Equal(t, int64(1), tlCount)
 }

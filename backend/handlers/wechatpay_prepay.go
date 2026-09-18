@@ -200,23 +200,33 @@ func PrepayOrder(c *gin.Context) {
 		baseAmount = session.Amount
 	}
 	// #1942 维修服务单：金额由服务端按报价（或加价）重算，客户端金额不可信；
-	// 且只允许在可支付状态发起（初付 pending_payment / 加价补差 adjust_pending）
-	// —— 防止已支付/未报价/已结算重复扣款（审计 F3）。
+	// 且只允许在可支付状态发起（初付 pending_payment / 加价补差 adjust_pending /
+	// 补缴支付 closed + pending 补缴记录）——防重复扣款（审计 F3，RS-API-7）。
 	if req.OrderType == "repair" && effectiveOrderID != "" {
 		var rr models.RepairRequest
 		if err := db.Where("id = ?", effectiveOrderID).First(&rr).Error; err == nil && rr.Type == repairServiceTypeVal {
 			switch rr.Status {
 			case models.RepairReqStatusPendingPay, models.RepairReqStatusAdjustPending:
+				amount, msg := repairServicePaymentAmount(&rr)
+				if msg != "" {
+					c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": msg})
+					return
+				}
+				baseAmount = amount
+			case models.RepairReqStatusClosed:
+				// RS-API-7 补缴支付：金额 = pending 补缴记录额（服务端权威）
+				var shortfallRec models.OrderPaymentRecord
+				if err := db.Where("order_id = ? AND order_type = ? AND type = ? AND status = ? AND method = ?",
+					rr.ID, "repair", "payment", "pending", "shortfall").
+					Order("created_at DESC").First(&shortfallRec).Error; err != nil {
+					c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "no pending shortfall to pay"})
+					return
+				}
+				baseAmount = shortfallRec.Amount
 			default:
 				c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "repair service is not payable in current status"})
 				return
 			}
-			amount, msg := repairServicePaymentAmount(&rr)
-			if msg != "" {
-				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": msg})
-				return
-			}
-			baseAmount = amount
 		}
 	}
 	couponApplied := ""

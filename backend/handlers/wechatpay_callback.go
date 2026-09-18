@@ -251,23 +251,36 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 			Update("stock_status", "rented").Error
 	case "repair":
 		// #1942 维修服务单（type='service'）状态感知：初付 → paid；
-		// 加价补差价 → repairing（并以 incurred 落定加价后修理费）。
+		// 加价补差价 → repairing（**不得**用 incurred 覆盖 adjusted_quote_cents：
+		// 后者是「加价后新修理费总价」，结算基准，RS-06/RS-08 审计 F2）；
+		// 补缴到账（RS-API-7）→ 保持 closed + 幂等关闭 pending 补缴记录。
 		// v3 报修（warranty）保持原行为 pending_ship。
 		if record.OrderID != nil {
 			var rr models.RepairRequest
 			if err := tx.First(&rr, "id = ?", *record.OrderID).Error; err == nil && rr.Type == repairServiceTypeVal {
-				if rr.Status == models.RepairReqStatusAdjustPending {
-					// 加价补差到账 → 继续修理。**不得**用 incurred 覆盖
-					// adjusted_quote_cents：后者是「加价后新修理费总价」，结算基准
-					// （RS-06/RS-08；审计 F2）。
+				switch rr.Status {
+				case models.RepairReqStatusAdjustPending:
+					appendRepairServiceTimeline(tx, rr.ID, "system", "adjust_paid", "用户补差价支付成功，继续修理")
 					return tx.Model(&models.RepairRequest{}).Where("id = ?", rr.ID).
 						Updates(map[string]interface{}{
 							"status":       models.RepairReqStatusRepairing,
 							"quote_status": "accepted",
 						}).Error
+				case models.RepairReqStatusClosed:
+					// RS-API-7 补缴到账：幂等关闭 pending 补缴记录（M-08 阻塞随之解除）
+					if err := tx.Model(&models.OrderPaymentRecord{}).
+						Where("order_id = ? AND order_type = ? AND status = ? AND method = ?",
+							rr.ID, "repair", "pending", "shortfall").
+						Update("status", "closed").Error; err != nil {
+						return err
+					}
+					appendRepairServiceTimeline(tx, rr.ID, "system", "shortfall_paid", "用户补缴支付成功")
+					return nil
+				default:
+					appendRepairServiceTimeline(tx, rr.ID, "system", "paid", "初付支付成功")
+					return tx.Model(&models.RepairRequest{}).Where("id = ?", rr.ID).
+						Update("status", models.RepairReqStatusPaid).Error
 				}
-				return tx.Model(&models.RepairRequest{}).Where("id = ?", rr.ID).
-					Update("status", models.RepairReqStatusPaid).Error
 			}
 		}
 		return tx.Model(&models.RepairRequest{}).Where("id = ?", record.OrderID).Update("status", models.RepairReqStatusPendingShip).Error

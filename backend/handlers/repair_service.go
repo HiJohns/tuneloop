@@ -135,6 +135,23 @@ func localUserIDBySub(db *gorm.DB, sub string) string {
 	return ""
 }
 
+// appendRepairServiceTimeline 写入维修服务单时间线（RS-API-4，#1961）。
+// 复用 v3 `repair_request_records` 表（已注册 modelsToValidate/testfixtures，无迁移）：
+// `record_type` 承载迁移类型（created/quoted/paid/leg_fee/settled...），
+// `worker_id` 存操作者（IAM sub 或 "system"）。写失败仅记日志不阻断主流程。
+func appendRepairServiceTimeline(db *gorm.DB, repairID, operatorID, recordType, comment string) {
+	if err := db.Create(&models.RepairRequestRecord{
+		ID:              uuid.New().String(),
+		RepairRequestID: repairID,
+		WorkerID:        operatorID,
+		RecordType:      recordType,
+		Comment:         comment,
+		CreatedAt:       time.Now(),
+	}).Error; err != nil {
+		log.Printf("[RepairService.Timeline] write failed for %s (%s): %v", repairID, recordType, err)
+	}
+}
+
 // repairServiceStaffAllowed 员工/师傅操作目标服务单的归属校验（审计 F1，#688 清单）：
 // 目标单的 tenant/site 必须与 JWT 的 tid/oid 匹配；未选定网点（tenant 为空）的服务单
 // 不允许任何 staff 操作。namespace/merchant 级（oid 空）只校验租户。
@@ -231,6 +248,7 @@ func (h *RepairServiceHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create repair service"})
 		return
 	}
+	appendRepairServiceTimeline(db, rr.ID, userID, "created", "创建维修服务单")
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
 		"id":          rr.ID,
 		"repair_code": code,
@@ -248,8 +266,12 @@ func (h *RepairServiceHandler) ListMine(c *gin.Context) {
 		return
 	}
 	var list []models.RepairRequest
-	if err := db.Where("user_id = ? AND type = ?", userID, repairServiceTypeVal).
-		Order("created_at DESC").Find(&list).Error; err != nil {
+	query := db.Where("user_id = ? AND type = ?", userID, repairServiceTypeVal)
+	// RS-API-6：状态过滤（逗号分隔），供分状态列表/分组
+	if statusParam := c.Query("status"); statusParam != "" {
+		query = query.Where("status IN ?", strings.Split(statusParam, ","))
+	}
+	if err := query.Order("created_at DESC").Find(&list).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list repair services"})
 		return
 	}
@@ -296,6 +318,57 @@ func (h *RepairServiceHandler) Get(c *gin.Context) {
 			}
 		}
 	}
+	// RS-API-4：状态时间线（RS-12 详情规格）
+	var timeline []models.RepairRequestRecord
+	db.Where("repair_request_id = ?", rr.ID).Order("created_at ASC, id ASC").Find(&timeline)
+	data["timeline"] = timeline
+	// RS-API-5：支付/结算汇总（已付 / 待补缴 / 退款 + 明细）
+	var recs []models.OrderPaymentRecord
+	db.Where("order_id = ? AND order_type = ?", rr.ID, "repair").Order("created_at ASC").Find(&recs)
+	type svcPaymentItem struct {
+		ID        string    `json:"id"`
+		Kind      string    `json:"kind"` // payment | refund
+		Status    string    `json:"status"`
+		Amount    int64     `json:"amount_cents"`
+		Method    string    `json:"method,omitempty"`
+		CreatedAt time.Time `json:"created_at"`
+	}
+	items := []svcPaymentItem{}
+	payIDs := make([]string, 0, len(recs))
+	var madeCents, pendingShortfall int64
+	for _, r := range recs {
+		m := ""
+		if r.Method != nil {
+			m = *r.Method
+		}
+		items = append(items, svcPaymentItem{ID: r.ID, Kind: "payment", Status: r.Status,
+			Amount: int64(r.Amount), Method: m, CreatedAt: r.CreatedAt})
+		payIDs = append(payIDs, r.ID)
+		if r.Status == "paid" {
+			madeCents += int64(r.Amount)
+		}
+		if r.Status == "pending" && m == "shortfall" {
+			pendingShortfall += int64(r.Amount)
+		}
+	}
+	var refundCents int64
+	if len(payIDs) > 0 {
+		var refunds []models.OrderRefundRecord
+		db.Where("payment_record_id IN ?", payIDs).Order("created_at ASC").Find(&refunds)
+		for _, rf := range refunds {
+			items = append(items, svcPaymentItem{ID: rf.ID, Kind: "refund", Status: rf.Status,
+				Amount: int64(rf.Amount), CreatedAt: rf.CreatedAt})
+			if rf.Status == "refunded" || rf.Status == "refunding" {
+				refundCents += int64(rf.Amount)
+			}
+		}
+	}
+	data["payments"] = gin.H{
+		"made_cents":              madeCents,
+		"pending_shortfall_cents": pendingShortfall,
+		"refund_cents":            refundCents,
+		"records":                 items,
+	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": data})
 }
 
@@ -339,6 +412,7 @@ func (h *RepairServiceHandler) SelectTechnician(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to select technician"})
 		return
 	}
+	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "technician_selected", "选择维修师")
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": rr.ID, "site_id": siteID}})
 }
 
@@ -393,6 +467,8 @@ func (h *RepairServiceHandler) Quote(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to quote"})
 		return
 	}
+	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "quoted",
+		fmt.Sprintf("报价：修理费 %d 分，物流预估 %d 分", body.QuoteRepairCents, body.QuoteLogisticsCents))
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
 		"id":      rr.ID,
 		"status":  models.RepairReqStatusPendingPay,
@@ -427,6 +503,7 @@ func (h *RepairServiceHandler) AcceptQuote(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": msg})
 		return
 	}
+	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "quote_accepted", "用户接受报价")
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": rr.ID, "payable_cents": amount}})
 }
 
@@ -465,6 +542,7 @@ func (h *RepairServiceHandler) Ship(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update shipping"})
 		return
 	}
+	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "shipped", "用户寄出 "+body.TrackingNumber)
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": rr.ID, "status": models.RepairReqStatusShipping}})
 }
 
@@ -513,6 +591,8 @@ func (h *RepairServiceHandler) AddLegFee(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to add leg fee"})
 		return
 	}
+	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "leg_fee",
+		fmt.Sprintf("第 %d 段物流费 %d 分", body.Leg, body.LogisticsFeeCents))
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": fee.ID}})
 }
 
@@ -574,6 +654,8 @@ func (h *RepairServiceHandler) Adjust(c *gin.Context) {
 	if diff < 0 {
 		diff = 0
 	}
+	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "adjust_requested",
+		fmt.Sprintf("发起加价：新总价 %d 分，到此为止 %d 分", body.NewQuoteCents, body.IncurredCents))
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
 		"id": rr.ID, "status": models.RepairReqStatusAdjustPending,
 		"payable_cents": diff, "incurred_cents": body.IncurredCents,
@@ -608,6 +690,7 @@ func (h *RepairServiceHandler) AdjustAccept(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": msg})
 		return
 	}
+	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "adjust_accepted", "用户同意加价")
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": rr.ID, "status": rr.Status, "payable_cents": payable}})
 }
 
@@ -638,6 +721,7 @@ func (h *RepairServiceHandler) AdjustDecline(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to decline adjustment"})
 		return
 	}
+	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "adjust_declined", "用户拒绝加价，停止修理")
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": rr.ID, "status": models.RepairReqStatusDoneRepair, "action": "stopped"}})
 }
 
@@ -669,6 +753,7 @@ func (h *RepairServiceHandler) Complete(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to complete repair"})
 		return
 	}
+	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "repair_completed", "师傅完成修理")
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": rr.ID, "status": models.RepairReqStatusDoneRepair}})
 }
 
@@ -830,6 +915,14 @@ func (h *RepairServiceHandler) Dispatch(c *gin.Context) {
 	if actual > prepaid {
 		result["shortfall_cents"] = actual - prepaid
 	}
+	settleNote := fmt.Sprintf("发回结算：应收 %d 分，已付 %d 分", actual, prepaid)
+	if v, ok := result["refund_cents"]; ok {
+		settleNote += fmt.Sprintf("，退 %v 分", v)
+	}
+	if v, ok := result["shortfall_cents"]; ok {
+		settleNote += fmt.Sprintf("，补缴 %v 分", v)
+	}
+	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "settled", settleNote)
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": result})
 }
 
@@ -884,6 +977,7 @@ func (h *RepairServiceHandler) Review(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to submit review"})
 		return
 	}
+	appendRepairServiceTimeline(db, rr.ID, userID, "reviewed", fmt.Sprintf("评价 %d 星", body.Rating))
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": review.ID}})
 }
 
