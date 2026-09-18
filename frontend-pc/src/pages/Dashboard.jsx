@@ -59,9 +59,15 @@ export default function Dashboard() {
       const leasesList = leasesRes.status === 'fulfilled' ? (leasesRes.value?.data?.list || []) : []
       const ordersResponse = ordersRes.status === 'fulfilled' ? (ordersRes.value?.data?.list || []) : []
       
-      setAssets(inventoryData)
+      // #1971：资产总数口径按角色区分——网点级账号（tid≠oid）只计本网点
+      const userInfo0 = JSON.parse(localStorage.getItem('user_info') || '{}')
+      const isSiteLevel = userInfo0.tid && userInfo0.oid && userInfo0.tid !== userInfo0.oid
+      const scopedAssets = isSiteLevel
+        ? inventoryData.filter(a => (a.current_site_id || a.site_id) === userInfo0.oid)
+        : inventoryData
+      setAssets(scopedAssets)
       setLeasesData(leasesList) // Fix: add leases to state
-      setTotalAssets(inventoryData.length) // Fix 5: Total Assets 改为资产总数
+      setTotalAssets(scopedAssets.length)
       setSites(sitesData.map(s => ({
         value: s.id,
         label: s.name,
@@ -87,13 +93,16 @@ export default function Dashboard() {
     } else if (filterType === '维修中') {
       navigate('/site/stock?status=maintenance')
     } else if (filterType === '逾期') {
-      navigate('/site/stock?overdue=true')
+      // #1971：指向 #1966 修复后的逾期告警页（原 ?overdue=true 依赖缺失字段恒空）
+      navigate('/overdue-alerts')
     } else if (filterType === 'total-assets') {
       navigate('/site/stock')
     } else if (filterType === 'active-rentals') {
       navigate('/site/stock?status=rented')
     } else if (filterType === 'new-orders') {
-      navigate('/orders')
+      // #1971：带上当日筛选（与卡片口径一致），订单页支持 query 预置
+      const d = new Date(Date.now() + 8 * 3600000).toISOString().split('T')[0]
+      navigate(`/orders?start_date=${d}&end_date=${d}`)
     }
   }
 
@@ -244,7 +253,10 @@ export default function Dashboard() {
         <Col span={8}>
           <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('total-assets')}>
             <Statistic
-              title="资产总数"
+              title={(() => {
+                const u = JSON.parse(localStorage.getItem('user_info') || '{}')
+                return u.tid && u.oid && u.tid !== u.oid ? '本网点资产' : '租户资产总数'
+              })()}
               value={totalAssets}
               precision={0}
               valueStyle={{ color: '#1890ff' }}
@@ -254,7 +266,7 @@ export default function Dashboard() {
         <Col span={8}>
           <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('active-rentals')}>
             <Statistic
-              title="在租数"
+              title="生效租约"
               value={activeRentals}
               prefix={<ShoppingOutlined />}
               valueStyle={{ color: '#52c41a' }}

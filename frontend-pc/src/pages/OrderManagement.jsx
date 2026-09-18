@@ -38,13 +38,19 @@ export default function OrderManagement() {
   const [page, setPage] = useState(1)
   const [statusFilter, setStatusFilter] = useState('')
   const [snSearch, setSnSearch] = useState('')
+  // #1971：支持 /orders?start_date=&end_date= 预置（仪表盘「今日新订单」联动）
+  const [dateRange, setDateRange] = useState(() => {
+    const sp = new URLSearchParams(window.location.search)
+    const f = sp.get('start_date'); const t = sp.get('end_date')
+    return f && t ? [dayjs(f), dayjs(t)] : null
+  })
   const [debugMode, setDebugMode] = useState(false)
   const [debugModal, setDebugModal] = useState({ open: false, order: null, status: '', deliveredAt: null, returnedAt: null })
   const [debugSaving, setDebugSaving] = useState(false)
 
   useEffect(() => { api.get('/config').then(r => { if (r.code === 20000 && r.data?.debug_mode) setDebugMode(true) }).catch(() => {}) }, [])
 
-  useEffect(() => { fetchOrders() }, [page, statusFilter])
+  useEffect(() => { fetchOrders() }, [page, statusFilter, snSearch, dateRange])
 
   const fetchOrders = async () => {
     setLoading(true)
@@ -52,6 +58,10 @@ export default function OrderManagement() {
       const params = { page, pageSize: 20 }
       if (statusFilter) params.status = statusFilter
       if (snSearch) params.sn = snSearch
+      if (dateRange && dateRange[0] && dateRange[1]) {
+        params.start_date = dateRange[0].format('YYYY-MM-DD')
+        params.end_date = dateRange[1].format('YYYY-MM-DD')
+      }
       const res = await api.get('/merchant/orders', { params })
       if (res.code === 20000) {
         setOrders(res.data.list)
@@ -99,6 +109,10 @@ export default function OrderManagement() {
         <Input.Search
           placeholder="搜索 SN" style={{ width: 200 }}
           onSearch={v => { setSnSearch(v); setPage(1) }}
+        />
+        <DatePicker.RangePicker
+          value={dateRange}
+          onChange={(v) => { setDateRange(v); setPage(1) }}
         />
       </Space>
       <Spin spinning={loading}>
