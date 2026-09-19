@@ -884,13 +884,19 @@ API 来源：
 
 #### 2.6.4 个人中心菜单入口
 
-| 菜单项 | 可见条件 | 跳转 |
-|--------|---------|------|
-| 🧾 申请发票 | `!isGuest` | `/pages-weapp/invoice/index` |
-| ✏️ 编辑资料 | `!isGuest`（常显，已登录均可编辑本人资料） | `/pages-weapp/profile/edit/index`（weapp）/ `/profile/edit`（H5） |
-| 🪪 实名认证 | `!isGuest && !face_verified`（未认证引导，橙色圆点；已认证用户在编辑资料页实名区块看状态） | `/pages-weapp/profile/edit/index` |
+| 菜单项 | 可见条件 (weapp / H5) | 跳转 (weapp / H5) |
+|--------|----------------------|------------------|
+| 📄 平台规则 | `!isGuest` / 全员 | `/pages-weapp/setting/index` / `/setting` |
+| 👑 会员中心 | `!isStaff && !isGuest` / 顾客 | `/pages-weapp/membership/index` / `/membership` |
+| ✏️ 个人资料 | `!isGuest` / 全员 | `/pages-weapp/profile/edit/index` / `/profile/edit` |
+| ✉️ 系统通知 | `!isGuest` / 全员 | `/pages-weapp/messages/index` / `/messages` |
+| 🧾 申请发票 | `!isStaff && !isGuest` / 顾客 | `/pages-weapp/invoice/index` / `/content?key=invoice` |
+| 💼 商务合作 | 全员 | `/pages-weapp/content/index?key=cooperation` / `/content?key=cooperation` |
+| 📞 联系我们 | 全员 | `/pages-weapp/content/index?key=contact_us` / `/content?key=contact_us` |
+| ℹ️ 关于 | 全员 | `/pages-weapp/about/index` / `/about` |
 
 > 「编辑资料」为常显通用入口（姓名/昵称/手机/邮箱/证件照管理，见 §2.6.2）。不得因实名认证完成而隐藏通用编辑入口（#1817）。
+> 实名认证引导（`!isGuest && !face_verified`，橙色圆点）在编辑资料页内实名区块显示，不在此菜单列表中（#1817）。
 
 ---
 

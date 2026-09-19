@@ -417,18 +417,17 @@ export default function Profile() {
 
         {/* 4. 下方通用抽屉式列表 */}
         <View style={{ marginLeft: 16, marginRight: 16, backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', marginTop: 12, padding: 16 }}>
+          {/* 1. 平台规则（非游客） */}
           {!isGuest && (
-            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/messages/index')}>
+            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/setting/index')}>
               <View style={{ display: 'flex', alignItems: 'center' }}>
-                <Text style={{ fontSize: 18, marginRight: 8 }}>✉️</Text>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>系统信息</Text>
+                <Text style={{ fontSize: 18, marginRight: 8 }}>📄</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>平台规则</Text>
               </View>
-              <View style={{ display: 'flex', alignItems: 'center' }}>
-                {unreadCount > 0 && <Text style={{ fontSize: 12, color: '#FF2A55', fontWeight: '700', marginRight: 4 }}>{unreadCount}条未读</Text>}
-                <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
-              </View>
+              <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>
           )}
+          {/* 2. 会员中心（顾客） */}
           {!isStaff && !isGuest && (
             <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/membership/index')}>
               <View style={{ display: 'flex', alignItems: 'center' }}>
@@ -438,8 +437,31 @@ export default function Profile() {
               <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>
           )}
-          {/* #1807: 申请发票为顾客专有——员工（张三等）不显示 */}
-          {!isGuest && !isStaff && (
+          {/* 3. 个人资料（非游客） */}
+          {!isGuest && (
+            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/profile/edit/index')}>
+              <View style={{ display: 'flex', alignItems: 'center' }}>
+                <Text style={{ fontSize: 18, marginRight: 8 }}>✏️</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>个人资料</Text>
+              </View>
+              <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
+            </View>
+          )}
+          {/* 4. 系统通知（非游客） */}
+          {!isGuest && (
+            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/messages/index')}>
+              <View style={{ display: 'flex', alignItems: 'center' }}>
+                <Text style={{ fontSize: 18, marginRight: 8 }}>✉️</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>系统通知</Text>
+              </View>
+              <View style={{ display: 'flex', alignItems: 'center' }}>
+                {unreadCount > 0 && <Text style={{ fontSize: 12, color: '#FF2A55', fontWeight: '700', marginRight: 4 }}>{unreadCount}条未读</Text>}
+                <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
+              </View>
+            </View>
+          )}
+          {/* 5. 申请发票（顾客） */}
+          {!isStaff && !isGuest && (
             <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/invoice/index')}>
               <View style={{ display: 'flex', alignItems: 'center' }}>
                 <Text style={{ fontSize: 18, marginRight: 8 }}>🧾</Text>
@@ -448,33 +470,7 @@ export default function Profile() {
               <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>
           )}
-          {/* #1817: 编辑资料常显入口（实名认证在编辑资料页内引导，不重复占菜单） */}
-          {!isGuest && (
-            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/profile/edit/index')}>
-              <View style={{ display: 'flex', alignItems: 'center' }}>
-                <Text style={{ fontSize: 18, marginRight: 8 }}>✏️</Text>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>编辑资料</Text>
-              </View>
-              <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
-            </View>
-          )}
-          {!isGuest && (
-            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/setting/index')}>
-              <View style={{ display: 'flex', alignItems: 'center' }}>
-                <Text style={{ fontSize: 18, marginRight: 8 }}>📄</Text>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>协议</Text>
-              </View>
-              <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
-            </View>
-          )}
-          {/* #1840: 联系我们 precedes 商务合作 (canonical sequence 1–2) */}
-          <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/content/index?key=contact_us')}>
-            <View style={{ display: 'flex', alignItems: 'center' }}>
-              <Text style={{ fontSize: 18, marginRight: 8 }}>📞</Text>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>联系我们</Text>
-            </View>
-            <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
-          </View>
+          {/* 6. 商务合作（全员） */}
           <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/content/index?key=cooperation')}>
             <View style={{ display: 'flex', alignItems: 'center' }}>
               <Text style={{ fontSize: 18, marginRight: 8 }}>💼</Text>
@@ -482,6 +478,15 @@ export default function Profile() {
             </View>
             <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
           </View>
+          {/* 7. 联系我们（全员） */}
+          <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/content/index?key=contact_us')}>
+            <View style={{ display: 'flex', alignItems: 'center' }}>
+              <Text style={{ fontSize: 18, marginRight: 8 }}>📞</Text>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>联系我们</Text>
+            </View>
+            <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
+          </View>
+          {/* 8. 关于（全员） */}
           <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14 }} onClick={() => nav('/pages-weapp/about/index')}>
             <View style={{ display: 'flex', alignItems: 'center' }}>
               <Text style={{ fontSize: 18, marginRight: 8 }}>ℹ️</Text>

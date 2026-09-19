@@ -285,16 +285,15 @@ export default function Profile() {
 
         {/* 4. 下方通用抽屉式列表 */}
         <View className="mx-4 bg-white rounded-2xl shadow-sm mt-3 p-4 divide-y divide-zinc-100">
-          <View className="flex justify-between items-center py-3.5" onClick={() => nav('/messages')}>
+          {/* 1. 平台规则 */}
+          <View className="flex justify-between items-center py-3.5" onClick={() => nav('/setting')}>
             <View className="flex items-center gap-2">
-              <Text className="text-lg">✉️</Text>
-              <Text className="text-base font-bold text-zinc-800">系统信息</Text>
+              <Text className="text-lg">📄</Text>
+              <Text className="text-base font-bold text-zinc-800">平台规则</Text>
             </View>
-            <View className="flex items-center gap-1">
-              {unreadCount > 0 && <Text className="text-xs font-bold" style={{ color: '#FF2A55' }}>{unreadCount}条未读</Text>}
-              <Text className="text-sm text-zinc-300">❯</Text>
-            </View>
+            <Text className="text-sm text-zinc-300">❯</Text>
           </View>
+          {/* 2. 会员中心（仅顾客） */}
           {!isStaff && (
           <View className="flex justify-between items-center py-3.5" onClick={() => nav('/membership')}>
             <View className="flex items-center gap-2">
@@ -304,29 +303,36 @@ export default function Profile() {
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
           )}
-          {/* #1817: 编辑资料常显入口——与实名认证解耦 */}
+          {/* 3. 个人资料 */}
           <View className="flex justify-between items-center py-3.5" onClick={() => nav('/profile/edit')}>
             <View className="flex items-center gap-2">
               <Text className="text-lg">✏️</Text>
-              <Text className="text-base font-bold text-zinc-800">编辑资料</Text>
+              <Text className="text-base font-bold text-zinc-800">个人资料</Text>
             </View>
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
-          <View className="flex justify-between items-center py-3.5" onClick={() => nav('/setting')}>
+          {/* 4. 系统通知 */}
+          <View className="flex justify-between items-center py-3.5" onClick={() => nav('/messages')}>
             <View className="flex items-center gap-2">
-              <Text className="text-lg">📄</Text>
-              <Text className="text-base font-bold text-zinc-800">协议</Text>
+              <Text className="text-lg">✉️</Text>
+              <Text className="text-base font-bold text-zinc-800">系统通知</Text>
             </View>
-            <Text className="text-sm text-zinc-300">❯</Text>
+            <View className="flex items-center gap-1">
+              {unreadCount > 0 && <Text className="text-xs font-bold" style={{ color: '#FF2A55' }}>{unreadCount}条未读</Text>}
+              <Text className="text-sm text-zinc-300">❯</Text>
+            </View>
           </View>
-          {/* #1840: 联系我们 precedes 商务合作 (canonical sequence 1–2) */}
-          <View className="flex justify-between items-center py-3.5" onClick={() => nav('/content?key=contact_us')}>
+          {/* 5. 申请发票（仅顾客） */}
+          {!isStaff && (
+          <View className="flex justify-between items-center py-3.5" onClick={() => nav('/content?key=invoice')}>
             <View className="flex items-center gap-2">
-              <Text className="text-lg">📞</Text>
-              <Text className="text-base font-bold text-zinc-800">联系我们</Text>
+              <Text className="text-lg">🧾</Text>
+              <Text className="text-base font-bold text-zinc-800">申请发票</Text>
             </View>
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
+          )}
+          {/* 6. 商务合作 */}
           <View className="flex justify-between items-center py-3.5" onClick={() => nav('/content?key=cooperation')}>
             <View className="flex items-center gap-2">
               <Text className="text-lg">💼</Text>
@@ -334,6 +340,15 @@ export default function Profile() {
             </View>
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
+          {/* 7. 联系我们 */}
+          <View className="flex justify-between items-center py-3.5" onClick={() => nav('/content?key=contact_us')}>
+            <View className="flex items-center gap-2">
+              <Text className="text-lg">📞</Text>
+              <Text className="text-base font-bold text-zinc-800">联系我们</Text>
+            </View>
+            <Text className="text-sm text-zinc-300">❯</Text>
+          </View>
+          {/* 8. 关于 */}
           <View className="flex justify-between items-center py-3.5" onClick={() => nav('/about')}>
             <View className="flex items-center gap-2">
               <Text className="text-lg">ℹ️</Text>
