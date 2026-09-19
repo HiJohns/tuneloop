@@ -2,7 +2,7 @@
 
 > 版本: v2.1  
 > 最后更新: 2026-07-26  
-> 来源: 本文档汇总了 `backend/middleware/permissions.go`、`backend/services/permission_registry.go`、`backend/services/role_templates.go`、`frontend-pc/src/config/menuPermissions.js` 和 `docs/iam.md` 中的权限定义  
+> 来源: 本文档汇总了 `backend/middleware/permissions.go`、`backend/services/permission_registry.go`、`backend/services/role_templates.go`、`frontend-pc/src/config/menuPermissions.js` 和 `docs/topics/iam/iam.md` 中的权限定义  
 > 重大变更: cus_perm 当前 30 码（bits 0-29），含业务操作 18 码 + 平台配置 8 码 + 维修 4 码（#660 后持续扩展）
 
 ---
@@ -164,7 +164,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 数据可见性 | **全用户可见（非 org 隔离）**——实名审核队列等平台级操作；商户数据仍 tenant 隔离 |
 | 核心职责 | 实名核身人工审核队列（`GET/POST /admin/face-review/*`）、平台级用户管理 |
 | 边界 | 不可见顾客证件照之外的敏感字段（身份证号明文）；商户业务数据仍按 tenant 隔离 |
-| 配置 | `PLATFORM_ROOT_ORG_ID=<根组织 UUID>`（.env，获取方式见 docs/weapp.md） |
+| 配置 | `PLATFORM_ROOT_ORG_ID=<根组织 UUID>`（.env，获取方式见 docs/topics/wechat/weapp.md） |
 | 配错后果 | 平台员工识别失败 → 审核队列 403（不影响普通商户/顾客流程） |
 
 ### 4.2 完整对照矩阵
@@ -309,4 +309,4 @@ IAM JWT 签发时：effective = org.DefaultCusPerm | relation.CusPerm | override
 
 ---
 
-*数据来源: `backend/middleware/permissions.go`、`backend/services/permission_registry.go`、`backend/services/role_templates.go`、`frontend-pc/src/config/menuPermissions.js`、`docs/iam.md`*
+*数据来源: `backend/middleware/permissions.go`、`backend/services/permission_registry.go`、`backend/services/role_templates.go`、`frontend-pc/src/config/menuPermissions.js`、`docs/topics/iam/iam.md`*

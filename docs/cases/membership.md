@@ -52,7 +52,7 @@ source: 平台会员规则与权益手册（9.14.docx，2026-09-01 起执行）
 ## 乐币效期与过期（M-05）
 
 - 每个批次：`acquired_at`（获取日）→ `expires_at`（获取日 + 2 年；**运营可调**）
-- 余额 = **未过期批次 remaining 之和**（`users.promo_points` 为冗余快照，写路径同步维护）
+- 余额 = **未过期批次 remaining 之和**（`users.promo_points` 快照已随 #1983 阶段 2 删除，读路径统一 `SUM(未过期批次)`）
 - **过期清扫**：`remaining > 0 且 expires_at < now` → 清零留痕（`expired_cents`/`expired_at` + `points_transactions(type='expired')`）+ 余额扣减
 - **到期提醒**：`expires_at - 30 天`推送提醒（复用 notifications + 小程序订阅消息）
 - 找回/退回的乐币：**恢复原批次** remaining（保留原到期日）；原批次已清零部分不恢复（过期清零不可逆）
@@ -118,6 +118,3 @@ source: 平台会员规则与权益手册（9.14.docx，2026-09-01 起执行）
 - 售后权益（免费调试维护 1/2 次/年）
 - 商城兑换（首席/演奏家）
 - 购买乐币入口/限额的产品化配置
-
----
-*Model: zhipuai/glm-5.3-flash*

@@ -217,9 +217,6 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 报修，并存
 | 网点员工（weapp + PC） | 分段发运/实填运费 / 触发结算（物流段仍由网点/中转执行） |
 | 平台管理员（PC） | 全量查看 + 评价审核视角 |
 
----
-*Model: zhipuai/glm-5.3-flash*
-
 ## RS-13 师傅档案与归属（2026-09-18 设计变更）
 
 - **归属**：师傅**直属商户**（tenant 级），**不再挂靠网点**。服务单 `tenant_id` = 师傅所属商户；**无 `site_id` 维度**（原「选师后回填网点」作废）
@@ -228,6 +225,3 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 报修，并存
   - `user_id`（师傅，FK users）/ `tenant_id`（直属商户）/ `photo`（个人照片 URL）/ `bio`（详细介绍 text）/ `experience` jsonb（`[{craft, years}]` 专长与年限）/ `status`（active/inactive）/ `created_at/updated_at`
 - **物流段执行方不变**：受控/中转模式下的分段发运仍由**网点/中转员工**执行（师傅不离开商户，但其不承担网点职能）
 - **入口**：师傅列表（RS-02）仅列 `status='active'` 的档案；管理员在 PC 维护师傅档案（新增/编辑/停用）→ 实现 Issue
-
----
-*Model: zhipuai/glm-5.3-flash*

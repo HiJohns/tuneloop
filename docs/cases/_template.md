@@ -39,5 +39,3 @@ steps:
 - 断言点列表
 
 ---
-
-*Model: deepseek/deepseek-v4-flash*

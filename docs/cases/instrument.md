@@ -274,5 +274,3 @@ steps:
 - 已失效乐器置灰 + 一键清理
 
 ---
-
-*Model: deepseek/deepseek-v4-flash*

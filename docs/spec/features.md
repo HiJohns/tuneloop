@@ -4,6 +4,10 @@
 
 # 乐器租赁系统功能需求规格说明书 (v26.3.16)
 
+> 版本: v26.3.16（与标题报价清单版本一致）
+> 最后更新: 2026-09-14
+> 来源: 《乐器租赁小程序功能报价清单-26.3.16》
+
 ## 一、 用户端（微信小程序）
 
 用户端面向最终租机用户，重点在于商品展示、便捷租赁及维保服务闭环。
@@ -165,13 +169,13 @@
 
 **会员权益（#1830）**：三档会员权益文案由 namespace_admin 在 PC「系统管理 → 会员级别管理 → 权益」维护（`membership_level_benefits` 表，每档若干条 标题+说明，整档替换保存）。移动端「会员中心」按当前 `membership_level_id` 读取 `GET /api/membership/benefits` 渲染权益卡，等级变化后内容自动跟随；权益条目标题/说明文本仅作展示，实际返现/赠点数值以 rebate_config / gift_policies 等政策表为准（文案由运营维护，与政策配置可能不一致，需运营人工对齐）。
 
-详细设计见 `docs/features/membership.md`。
+详细设计见 `docs/domains/membership.md`（域索引）。
 
 ### 5.2 乐币规则（Gift Policies）
 
 > **用户可见命名（#1922）**：移动端/PC 界面统一展示为「**乐币**」（此前展示为「积分」）；内部字段名（`promo_points`、`gift_points_refunded` 等）与后端接口**不变**。
 
-乐币规则是平台统一管理的点数规则配置，由 namespace_admin 在 PC「系统管理 → 乐币规则」维护（原「赠点策略」，#1945 合并），**分会员级别独立设置**（`level_id=0` 默认行兜底）。
+乐币规则是平台统一管理的点数规则配置，由 namespace_admin 在 PC「系统管理 → 乐币规则」维护（原「赠点策略」，#1945 合并），**分会员级别独立设置**（`level_id=0` 默认行兜底）。数值均为可调整配置，禁止硬编码（#1939 准则）。
 
 > **余额口径（#1947/#1983）**：乐币余额 = **未过期批次 `point_batches.remaining_cents` 之和**（按 FIFO——先到期先扣消费；发放批次按「获取 + 有效期」归一化到次月首日 00:00 北京时间到期）。`users.promo_points` 快照列已在 #1983 阶段 2 **删除**，读路径统一 `SUM(未过期批次)`。
 >
@@ -196,6 +200,8 @@
 - `A1 < A0`：退 `A0−A1` 回乐币账户（原批次按消费逆序恢复，保留原到期日），退 `C0−C1` 回微信（`C1 = R1 − A1`）
 - 累计花销 `total_spending` 按 **C1（实付现金）** 累计，不含乐币面值（行业惯例：航司里程/信用卡积分均按实付；防乐币循环放大）
 - **不再发放"退款返点给自己"**（`refund_ratio` 随 #1945 移除；旧 `points_policies.max_pay_ratio` 与 `membership_gift_ratios` 并入本策略）
+
+> **权威口径**：会员晋升/乐币获取/使用/效期/裂变/退款结算/违约判定全部规则见 `docs/cases/membership.md`（M-00~M-08，手册权威，凡与旧文档冲突以该文件为准）。表结构见 `docs/spec/database/database.md` §2.45（gift_policies）。
 
 ---
 
@@ -230,23 +236,23 @@
 ### 折扣要素
 | 折扣类型 | 来源 | 说明 |
 |---------|------|------|
-| 阶梯折扣 | 阶梯定义 | 按天数分段累加（非统一折扣率），见 `docs/features/membership.md §2.2` |
+| 阶梯折扣 | 阶梯定义 | 按天数分段累加（非统一折扣率），见 `docs/domains/membership.md` |
 | 促销折扣 | promo_plan_details | 按 instrument_promo_overrides 判断是否适用 |
 | 逾期费率 | promo_plan_details (overdue_discount) | 默认 1.5× 日租金 |
 
 ### 6.2 租金结算与点数
 
-点数钱包、订单支付点数抵扣详见 `docs/features/membership.md §2.4-2.5`。
+点数钱包、订单支付点数抵扣详见 `docs/domains/membership.md` 与 `docs/cases/membership.md` M-03。
 
 **实际租金展示口径（#1918）**：订单详情「实际租金」天数——未归还订单按**下单租期**（含尾自然日，与下单定价 `CalculateDays` 一致）展示；已归还订单按实际占用天数（`delivered → returned`，`CalculateLeaseDays` ceil-hours/24、基数 1，#1738 统一口径）。「全部订单」列表总金额 = 租金 + 押金 + 运费，**含运费时列表项标注「含运费 ¥xx」**避免与用户"租金+押金"记忆不符。
 
-**逾期费收取**：逾期费在**归还验收时统一收取**（`InspectReturn` 计算，`overdue_daily_fee` 或默认 1.5× 日租金），从押金扣除。不再有每日 01:00 自动扣款（`OverdueDeductionScheduler` 仅做 `expired` 状态转移），不产生 `overdue_charges` 挂账。详见 `docs/cases.md §2.5`。
+**逾期费收取**：逾期费在**归还验收时统一收取**（`InspectReturn` 计算，`overdue_daily_fee` 或默认 1.5× 日租金），从押金扣除。不再有每日 01:00 自动扣款（`OverdueDeductionScheduler` 仅做 `expired` 状态转移），不产生 `overdue_charges` 挂账。详见 `docs/cases/cases.md §2.5`。
 
-**订单完成结算**：订单进入 `completed` 状态时（good 验收自动、damaged 接受/申诉后员工点退款、损坏赔偿支付回调），执行差额结算：按调整后应付 R1 与用户当前级别乐币规则重算抵扣上限 A1，超 A1 的乐币退回原批次（保留原到期日），剩余现金（C0−C1）走微信原路退款；关单后 `total_spending += C1`（实付现金口径）；**不再发放退款返点**（#1945 取消"返点给自己"）。最后发送完成通知（标准收据 + 感谢 + 会员中心链接）。`DepositRefundScheduler` 仅作 `deposit_refunding` 超时兜底。详见 `docs/cases.md §2.7` 与 `docs/cases/lease.md L-06`。
+**订单完成结算**：订单进入 `completed` 状态时（good 验收自动、damaged 接受/申诉后员工点退款、损坏赔偿支付回调），执行差额结算：按调整后应付 R1 与用户当前级别乐币规则重算抵扣上限 A1，超 A1 的乐币退回原批次（保留原到期日），剩余现金（C0−C1）走微信原路退款；关单后 `total_spending += C1`（实付现金口径）；**不再发放退款返点**（#1945 取消"返点给自己"）。最后发送完成通知（标准收据 + 感谢 + 会员中心链接）。`DepositRefundScheduler` 仅作 `deposit_refunding` 超时兜底。详见 `docs/cases/cases.md §2.7` 与 `docs/cases/lease.md L-06`。
 
 ---
 
-## 7. 通知设计规范（Notification Contract）
+## 七、 通知设计规范（Notification Contract）
 
 > 来源: #1595 续期通知不明确审计。所有通知生成点必须遵循 4 项规范。
 
@@ -280,7 +286,7 @@
 ---
 ---
 
-## 8. 新功能文档要求（强制）
+## 八、 新功能文档要求（强制）
 
 > 来源： #1545 新功能审计——新功能完成后漏了 docs/cases 文档。
 
@@ -293,5 +299,3 @@
 - [ ] 如有新页面，checklist-verify.py 是否需要补控件映射
 
 **反例**：#1545 平台管理员用户管理实现了 4 个 API + 1 个新页面，首次提交时无 docs/cases 文档，后续补充。
-
-*Model: deepseek/deepseek-v4-flash*

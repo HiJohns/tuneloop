@@ -25,7 +25,7 @@ const (
 	defaultSignedURLTTL     = 900      // seconds (15 min)
 )
 
-// OSSStorageConfig mirrors docs/oss.md §4.
+// OSSStorageConfig mirrors docs/topics/media/oss.md §4.
 type OSSStorageConfig struct {
 	Endpoint         string
 	Region           string
@@ -199,7 +199,7 @@ func (s *OSSStorage) publicURL(key string) string {
 	if s.cfg.CDNPrefix != "" {
 		return s.cfg.CDNPrefix + "/" + key
 	}
-	// https://<bucket>.<endpoint>/<key> — external endpoint only (docs/oss.md).
+	// https://<bucket>.<endpoint>/<key> — external endpoint only (docs/topics/media/oss.md).
 	ep := strings.TrimPrefix(s.cfg.Endpoint, "https://")
 	ep = strings.TrimPrefix(ep, "http://")
 	return "https://" + s.cfg.Bucket + "." + ep + "/" + key

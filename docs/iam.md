@@ -1,1 +1,0 @@
-../../beaconiam/README.md

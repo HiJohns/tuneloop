@@ -1,6 +1,6 @@
 # Tuneloop 侧对 IAM 的补充说明和过渡期记录
 
-> IAM 权威文档请直接阅读 `docs/iam.md`（symlink → `../../beaconiam/README.md`）。
+> IAM 权威文档请直接阅读 `docs/topics/iam/iam.md`（symlink → `../../beaconiam/README.md`）。
 
 ## 已知文档差异
 
@@ -20,7 +20,7 @@ Tuneloop 的 `IAMClaims` 结构体中同时有 `Oid` 和 `Gid`。`Gid` 在 IAM J
 
 ## 微信小程序登录流程
 
-> 完整架构说明见 `docs/weapp.md`。
+> 完整架构说明见 `docs/topics/wechat/weapp.md`。
 
 ```
 wx.login() → code → POST /api/wx/login → BeaconIAM
@@ -42,7 +42,7 @@ wx.login() → code → POST /api/wx/login → BeaconIAM
 - IAM `users` 表新增 `wx_openid` 字段，唯一索引（NULL 排除）
 - 首次登录自动创建 `USER` 角色用户，随机名 `wx_{8chars}`
 - 下单时检测信息完整性，缺 phone/email 则跳转注册补全页
-- 详情见 `docs/weapp.md`
+- 详情见 `docs/topics/wechat/weapp.md`
 
 ## 已向 IAM 组提交的 Issue
 

@@ -1070,8 +1070,6 @@ steps:
 
 ## 域级参考
 
-- 状态机: `docs/state-machine.md`
+- 状态机: `docs/archive/reports/state-machine.md`
 - 结算公式: cases.md §2.7（迁移后见本文件历史）
 - 展示原则: §2.8 合同快照 vs 实际结算分离
-
-*Model: deepseek/deepseek-v4-flash*

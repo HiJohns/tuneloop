@@ -21,7 +21,7 @@ import (
 //   - internal credit score >= DEPOSIT_WAIVER_MIN_CREDIT (default 600)
 //   - a recommendation letter must be attached to the order
 //
-// External credit-score providers are out of scope (docs/features.md keeps
+// External credit-score providers are out of scope (docs/spec/features.md keeps
 // the credit model as simulated/internal until an integration is agreed).
 
 const defaultDepositWaiverMinCredit = 600

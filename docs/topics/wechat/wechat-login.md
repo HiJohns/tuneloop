@@ -437,4 +437,4 @@ CREATE INDEX IF NOT EXISTS idx_users_wx_openid ON users(wx_openid);
 
 ---
 
-*参考: `docs/wechat_transform.md`（迁移总计划）、`docs/weapp.md`（现有 weapp 架构）*
+*参考: `docs/archive/reports/wechat_transform.md`（迁移总计划）、`docs/topics/wechat/weapp.md`（现有 weapp 架构）*

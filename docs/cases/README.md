@@ -9,10 +9,17 @@
 | `bootstrapping.md` | 冷启动/商户/用户 | B-01~ | cases.md §0 |
 | `instrument.md` | 乐器管理 | I-01~ | cases.md §1 |
 | `lease.md` | 租赁闭环 | L-01~L-08 | cases.md §2 |
-| `repair.md` | 维修 | R-01~ | cases.md §3 + docs/repair.md |
+| `lease-repair.md` | 租赁乐器维修 | R-03 | cases.md §3 + #1888 |
+| `repair.md` | 客户报修 v3 | R-01~R-02 | cases.md §3 + docs/domains/repair.md |
 | `organization.md` | 组织管理 | O-01~ | cases.md §4 |
 | `transit.md` | 中转工作流 | T-01~ | cases.md §5 |
 | `cart.md` | 购物车 | C-01~ | #1665 教训沉淀（数据刷新/下单移除/跨端导航） |
+| `category.md` | 分类管理 | CAT-01~ | #1545 分类维护流程 |
+| `profile.md` | 个人资料编辑 | P-01 | #1589（H5 个人中心编辑资料） |
+| `user-management.md` | 平台用户管理 | P-02 | #1545 用户管理 |
+| `registration-h5.md` | H5 用户注册 | P-03 | #1588 注册流程 |
+| `id-photos.md` | 身份证照片全流程 | P-04 | #1787 实名核身 |
+| `account-select.md` | 微信多账户登录分流 | P-05 | #1637 三通道登录 |
 | `membership.md` | 会员与乐币（手册口径 v2） | M-01~ | #1939（9.14.docx 手册对齐） |
 | `repair-service.md` | 维修服务改版 | RS-01~ | #1942 |
 | `instrument-loss.md` | 乐器丢失与找回 | IL-01~ | #1939 派生（用户定义 2026-09-17） |
@@ -21,7 +28,7 @@
 ## 用例编号规范
 
 - 格式：`{域前缀}-{序号}`（L-01, R-02, O-03...）
-- 域前缀：B(ootstrapping) / I(nstrument) / L(ease) / R(epair) / O(rganization) / T(ransit) / C(art)
+- 域前缀：B(ootstrapping) / I(nstrument) / L(ease) / R(epair) / O(rganization) / T(ransit) / C(art) / P(rofile&user) / M(embership) / RS(epair-service) / IL(instrument-loss) / INV(invoice) / CAT(egory)
 
 ## YAML 前置块规范（AI 消费格式）
 
@@ -110,5 +117,3 @@ steps:               # 步骤列表
 - 新用例文档遵循 `docs/cases/_template.md`
 
 ---
-
-*Model: deepseek/deepseek-v4-flash*

@@ -76,5 +76,3 @@ steps:
 - [ ] 游客/登录购物车合并后选中同步，去结算可用
 
 ---
-
-*Model: deepseek/deepseek-v4-pro*

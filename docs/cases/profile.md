@@ -11,8 +11,8 @@ steps:
         role: [customer]
         gate: "已登录（非游客）"
         reach: "底部导航 → 我的"
-        controls: [编辑资料入口, 昵称显示, 会员等级显示]
-        displays: [标题栏显示名, 昵称, 会员等级, 积分]
+        controls: [平台规则, 会员中心, 个人资料, 系统通知, 申请发票, 商务合作, 联系我们, 关于, 昵称显示, 会员等级显示]
+        displays: [标题栏显示名, 昵称, 会员等级, 积分, 抽屉列表 8 项菜单]
         ops:
           - {type: api, method: GET, path: /users/me}
     api: {method: GET, path: /users/me, params: []}
@@ -136,5 +136,3 @@ steps:
 - [ ] GET /users/me 返回 tenant_name 字段（后端测试覆盖）
 
 ---
-
-*Model: deepseek/deepseek-v4-pro*

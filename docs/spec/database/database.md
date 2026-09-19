@@ -1,6 +1,10 @@
 # TuneLoop 数据库设计文档
 
-## 1. 概述
+> 版本: v1.0
+> 最后更新: 2026-09-10
+> 来源: `backend/models/` + `backend/database/migrations` 实际 schema
+
+## 一、 概述
 
 ### 1.1 文档目的
 本文档定义 TuneLoop 乐器租赁管理系统的数据库表结构设计。
@@ -17,7 +21,7 @@
 
 ---
 
-## 2. 表结构
+## 二、 表结构
 
 ### 2.1 users - 用户表
 
@@ -51,7 +55,7 @@
 | face_verified_at | TIMESTAMPTZ | | 核身通过时间 |
 | face_verify_method | VARCHAR(10) | | 核身来源：`tencent`=自动比对 / `manual`=人工审核；信息变更时清除 |
 
-**核身五态派生**（`id_verify_status`，非列存储，派生函数输出）：`none` / `uploaded` / `pending_review` / `verified` / `rejected`（判定优先级见 docs/cases/id-photos.md C6）
+**核身五态派生**（`id_verify_status`，非列存储，派生函数输出）：`none` / `uploaded` / `pending_review` / `verified` / `rejected`（判定优先级见 docs/cases/id-photos.md §核身状态派生与消费）
 
 > **`users.promo_points` 已删除（#1983 阶段 2，迁移 `20260918001`）**：乐币余额不再存列，改由 `point_batches` 未过期批次合计实时派生（`SUM(remaining_cents)`，FIFO 消费先到期先扣）。
 
@@ -163,7 +167,7 @@
 | visible | BOOLEAN | DEFAULT true | 是否可见 |
 | created_at | TIMESTAMP | | 创建时间 |
 
-### 2.3 instruments - 乐器表
+### 2.5 instruments - 乐器表
 
 **重要变更** (2026-04-16):
 - 乐器不再有 `name`（名称）字段，完全由 `sn`（识别码）标识
@@ -223,7 +227,7 @@
 ]
 ```
 
-### 2.4 instrument_levels - 乐器等级表
+### 2.6 instrument_levels - 乐器等级表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -241,7 +245,7 @@
 | advanced | 高级 |
 | professional | 专业级 |
 
-### 2.5 instrument_properties - 乐器动态属性关联表
+### 2.7 instrument_properties - 乐器动态属性关联表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -254,7 +258,7 @@
 
 **说明**: 乐器与属性值的多对多关联表，通过此表实现乐器的动态属性（品牌、型号、年份等）。同一乐器可以有多个属性值。
 
-### 2.6 instrument_photo_batches - 乐器照片批次表 ⚠️ DEPRECATED
+### 2.8 instrument_photo_batches - 乐器照片批次表 ⚠️ DEPRECATED
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -267,7 +271,7 @@
 
 **说明**: 记录乐器照片批次信息。每次员工按拍照要求对乐器拍照，生成一个批次，同一天同一乐器的员工拍照归为同一批次，打包为 ZIP 文件存储。
 
-> ⚠️ **已废弃**: 此表已被 `instrument_media` 表取代（见 `docs/media_directory.md`）。新代码禁止写入此表，旧数据保留供历史查询。
+> ⚠️ **已废弃**: 此表已被 `instrument_media` 表取代（见 `docs/topics/media/media_directory.md`）。新代码禁止写入此表，旧数据保留供历史查询。
 
 **存储结构**:
 ```
@@ -296,7 +300,7 @@ photos:
 
 ---
 
-### 2.6.1 instrument_promo_overrides - 乐器促销覆盖配置表（#1863）
+### 2.8.1 instrument_promo_overrides - 乐器促销覆盖配置表（#1863）
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -312,7 +316,7 @@ photos:
 
 ---
 
-### 2.7 orders - 订单表
+### 2.9 orders - 订单表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -344,7 +348,7 @@ photos:
 
 > **注意**: 以上为标准状态机值。所有 handler 中的状态字符串已使用 `models.OrderStatus*` 常量替代。
 
-### 2.6 sites - 网点表
+### 2.10 sites - 网点表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -364,7 +368,7 @@ photos:
 | created_at | TIMESTAMP | | 创建时间 |
 | updated_at | TIMESTAMP | | 更新时间 |
 
-### 2.7 site_images - 网点图片表
+### 2.11 site_images - 网点图片表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -375,7 +379,7 @@ photos:
 | sort_order | INT | DEFAULT 0 | 排序序号 |
 | created_at | TIMESTAMP | | 创建时间 |
 
-### 2.8 maintenance_tickets - 维修工单表
+### 2.12 maintenance_tickets - 维修工单表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -407,7 +411,7 @@ photos:
 - `PROCESSING`: 处理中
 - `COMPLETED`: 已完成
 
-### 2.9 inventory_transfers - 库存调拨表
+### 2.13 inventory_transfers - 库存调拨表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -423,7 +427,7 @@ photos:
 | created_at | TIMESTAMP | | 创建时间 |
 | completed_at | TIMESTAMP | | 完成时间 |
 
-### 2.10 ownership_certificates - 所有权证书表
+### 2.14 ownership_certificates - 所有权证书表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -437,7 +441,7 @@ photos:
 | certificate_url | VARCHAR(500) | | 证书 PDF URL |
 | created_at | TIMESTAMP | | 创建时间 |
 
-### 2.11 maintenance_workers - 维修师傅表
+### 2.15 maintenance_workers - 维修师傅表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -453,7 +457,7 @@ photos:
 | updated_at | TIMESTAMP | | 更新时间 |
 | deleted_at | TIMESTAMP | | 删除时间（软删除） |
 
-### 2.12 maintenance_sessions - 维修会话表
+### 2.16 maintenance_sessions - 维修会话表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -480,7 +484,7 @@ photos:
 - `passed`: 验收通过
 - `failed`: 验收不通过
 
-### 2.13 maintenance_session_records - 维修记录表
+### 2.17 maintenance_session_records - 维修记录表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -492,12 +496,12 @@ photos:
 | photos | JSONB | DEFAULT '[]' | 照片数组 |
 | created_at | TIMESTAMP | | 创建时间 |
 
-### 2.14 leases - 租赁记录表 (Legacy)
+### 2.18 leases - 租赁记录表 (Legacy)
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
 
-### 2.15 damage_reports - 定损报告表
+### 2.19 damage_reports - 定损报告表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -530,7 +534,7 @@ photos:
 - `resolved`: 已解决
 - `cancelled`: 已撤销
 
-### 2.16 appeals - 申诉记录表
+### 2.20 appeals - 申诉记录表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -557,7 +561,7 @@ photos:
 - `resolved`: 已处理
 - `cancelled`: 用户撤销
 
-### 2.17 damage_assessments - 定损评估记录表
+### 2.21 damage_assessments - 定损评估记录表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -575,7 +579,7 @@ photos:
 | created_at | TIMESTAMP | | 创建时间 |
 | updated_at | TIMESTAMP | | 更新时间 |
 
-### 2.18 order_status_history - 订单状态历史表
+### 2.22 order_status_history - 订单状态历史表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -591,7 +595,7 @@ photos:
 
 **说明**: 记录所有订单状态变更历史，用于追溯物流和租赁周期
 
-### 2.19 order_payment_records - 支付记录表
+### 2.23 order_payment_records - 支付记录表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -634,7 +638,7 @@ photos:
 
 **说明**: 每笔支付（首期租金/续费/定损/补缴/会员费）一行，paid 记录为订单详情实付段（fee_detail.paid_block）数据源。
 
-### 2.22 audit_logs - 审计日志表
+### 2.24 audit_logs - 审计日志表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -711,7 +715,7 @@ tenants (1) ---> (N) clients
 | maintenance_tickets | INDEX | status |
 | maintenance_tickets | INDEX | completed_at |
 
-### 2.19 lease_sessions - 租赁会话表
+### 2.25 lease_sessions - 租赁会话表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -740,7 +744,7 @@ tenants (1) ---> (N) clients
 - `completed`: 已完成
 - `cancelled`: 已取消
 
-### 2.20 electronic_contracts - 电子合同表
+### 2.26 electronic_contracts - 电子合同表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -758,7 +762,7 @@ tenants (1) ---> (N) clients
 
 **说明**: 支付完成后自动生成，作为租赁凭证存入用户资料
 
-### 2.21 confirmation_sessions - 确认会话表
+### 2.27 confirmation_sessions - 确认会话表
 
 **说明**: 本地状态跟踪表。确认流程委托 IAM 管理，IAM 确认后通过回调同步状态。本表不再主动创建会话，仅在回调时记录/更新。
 
@@ -805,7 +809,7 @@ tenants (1) ---> (N) clients
 
 ---
 
-### 2.23 pricing_templates - 定价模板表
+### 2.28 pricing_templates - 定价模板表
 
 **说明**: 系统定价策略模板表。其中最多仅有一条记录的 `is_system_default = true`，作为商户未自定义配置时的全局回退策略。
 
@@ -826,7 +830,7 @@ tenants (1) ---> (N) clients
 
 ---
 
-### 2.24 merchant_pricing_configs - 商户定价配置表
+### 2.29 merchant_pricing_configs - 商户定价配置表
 
 **说明**: 商户自定义定价配置。每个商户最多一条记录。无记录时回退到 `pricing_templates` 中 `is_system_default = true` 的模板。
 
@@ -845,4 +849,479 @@ tenants (1) ---> (N) clients
 
 ---
 
-*Model: glm-5*
+
+### 2.30 repair_records - 维修记录表（租赁乐器维修）
+
+**说明**: 租赁乐器维修过程记录（师傅操作留痕）。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| instrument_id | UUID | NOT NULL, FK → instruments.id | 乐器 ID |
+| worker_id | varchar(255) | NOT NULL | 维修师傅 ID |
+| comment | text | | 记录内容 |
+| photos | jsonb | DEFAULT '[]' | 照片 |
+| created_at | TIMESTAMP | | 创建时间 |
+
+---
+
+### 2.31 user_instruments - 客户自有乐器表
+
+**说明**: 顾客自有乐器（客户报修入口，SN 查自有乐器）。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| user_id | varchar(255) | NOT NULL | 用户 ID |
+| sn | varchar(255) | NOT NULL, INDEX | 乐器序列号 |
+| instrument_type | varchar(100) | | 乐器类型 |
+| brand | varchar(100) | | 品牌 |
+| model | varchar(100) | | 型号 |
+| created_at | TIMESTAMP | | 创建时间 |
+| updated_at | TIMESTAMP | | 更新时间 |
+
+**索引**:
+- `idx_user_instruments_user_sn` (user_id, sn)
+
+---
+
+### 2.32 repair_requests - 报修单表
+
+**说明**: 客户报修单（v3 主流程 + 维修服务分支 type='service'）。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| tenant_id | UUID | INDEX | 租户 ID |
+| site_id | UUID | INDEX | 网点 ID |
+| user_id | varchar(255) | NOT NULL, INDEX | 报修人 |
+| user_instrument_id | UUID | INDEX | 自有乐器（warranty 分支） |
+| status | varchar(20) | DEFAULT 'pending_ship' | 状态（见 §3.3 枚举） |
+| merchant_type | varchar(10) | DEFAULT 'full' | v3: full / controlled |
+| transit_site_id | UUID | INDEX | v3: 中转网点（受控路径） |
+| controlled_site_id | UUID | INDEX | v3: 报价受控网点 |
+| accepted_quote_id | UUID | INDEX | v3: 已接受报价 ID |
+| check_fee_snapshot | bigint | | v3: 支付时系统检查费快照（分） |
+| paid_amount | bigint | | v3: 已付总额（分） |
+| expire_at | TIMESTAMP | | v3: 待估价过期时间 |
+| reminder_sent | boolean | DEFAULT false | v3: 24h 提醒标记 |
+| description | text | | 描述 |
+| photos | jsonb | DEFAULT '[]' | 照片 |
+| video_url | varchar(500) | | 视频 |
+| quote_amount | bigint | | 已废弃：v3 用 repair_quotes |
+| inspection_fee | bigint | | 已废弃：v3 用 check_fee_snapshot |
+| shipping_fee | bigint | | 物流费 |
+| tracking_company | varchar(100) | | 寄件物流公司 |
+| tracking_number | varchar(100) | | 寄件物流单号 |
+| return_company | varchar(100) | | 发回物流公司 |
+| return_tracking_number | varchar(100) | | 发回物流单号 |
+| worker_id | varchar(255) | | 维修师傅 |
+| type | varchar(20) | DEFAULT 'warranty', INDEX | #1942: warranty（报修）/ service（维修服务） |
+| repair_code | varchar(6) | UNIQUE | #1942: 6 位唯一编码（service 分支） |
+| technician_id | UUID | INDEX | #1942: 师傅指派 |
+| quote_repair_cents | bigint | | #1942: 报价修理费（分） |
+| quote_logistics_cents | bigint | | #1942: 报价物流费预估（分） |
+| quote_status | varchar(20) | DEFAULT '' | #1942: 报价状态 |
+| adjusted_quote_cents | bigint | | #1942: 加价后新总价（分） |
+| incurred_repair_cents | bigint | | #1942: 到此为止修理费（分） |
+| created_at | TIMESTAMP | | 创建时间 |
+| updated_at | TIMESTAMP | | 更新时间 |
+| closed_at | TIMESTAMP | | 关闭时间 |
+
+**索引**:
+- `idx_repair_requests_status` (status)
+- `idx_repair_requests_type` (type)
+
+---
+
+### 2.33 repair_quotes - 报价单表
+
+**说明**: 报修报价单（v3 多师傅竞价）。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| repair_request_id | UUID | NOT NULL, INDEX, FK → repair_requests.id | 报修单 ID |
+| site_id | UUID | INDEX | 报价网点 |
+| worker_id | varchar(255) | NOT NULL | 报价师傅 |
+| quote_no | varchar(30) | UNIQUE | 报价单号 |
+| material_fee | bigint | NOT NULL | 材料费（分） |
+| service_fee | bigint | NOT NULL | 服务费（分） |
+| logistics_fee | bigint | | 物流费 C 段（分） |
+| duration | varchar(100) | | 工期 |
+| comment | text | | 报价说明 |
+| is_renegotiation | boolean | DEFAULT false | 是否重新协商 |
+| status | varchar(20) | DEFAULT 'pending' | pending/accepted/rejected/superseded |
+| created_at | TIMESTAMP | | 创建时间 |
+
+---
+
+### 2.34 repair_transit_orders - 中转单表
+
+**说明**: 报修中转单（v3 受控路径转入/转出）。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| repair_request_id | UUID | INDEX, FK → repair_requests.id | 报修单 ID |
+| transit_site_id | UUID | NOT NULL, INDEX | 中转网点 |
+| controlled_site_id | UUID | INDEX | 受控网点 |
+| direction | varchar(10) | | v3: in / out |
+| status | varchar(20) | DEFAULT 'pending_activation' | pending_activation/active/received/relayed |
+| transit_service_fee | bigint | | 中转服务费（分） |
+| transit_logistics_fee | bigint | | 中转物流费 B+D 段（分） |
+| note | text | | 备注 |
+| unpack_photos | jsonb | DEFAULT '[]' | 拆箱照片 |
+| repack_company | varchar(100) | | 重装物流公司 |
+| repack_tracking_number | varchar(100) | | 重装物流单号 |
+| transit_order_number | varchar(50) | | 中转单号 |
+| created_at | TIMESTAMP | | 创建时间 |
+| updated_at | TIMESTAMP | | 更新时间 |
+
+---
+
+### 2.35 repair_request_records - 报修日志表
+
+**说明**: 报修日志（v3 承载重新协商时间线）。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| repair_request_id | UUID | NOT NULL, INDEX, FK → repair_requests.id | 报修单 ID |
+| worker_id | varchar(255) | | 操作人 |
+| comment | text | | 内容 |
+| photos | jsonb | DEFAULT '[]' | 照片 |
+| record_type | varchar(20) | | 记录类型 |
+| created_at | TIMESTAMP | | 创建时间 |
+
+---
+
+### 2.36 repair_logistics_fees - 维修服务分段物流费表（#1942）
+
+**说明**: 维修服务（type='service'）每段实际物流费，经手员工实填。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| repair_id | UUID | NOT NULL, INDEX, FK → repair_requests.id | 维修单 ID |
+| leg | int | NOT NULL | 物流段序号 |
+| amount_cents | bigint | NOT NULL, DEFAULT 0 | 本段实际物流费（分） |
+| filled_by | varchar(255) | | 经手员工 |
+| created_at | TIMESTAMP | | 创建时间 |
+
+---
+
+### 2.37 repair_reviews - 维修服务评价表（#1942）
+
+**说明**: 维修服务评价（RS-09）：评分/留言/拍照，PC 后台可见。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| repair_id | UUID | NOT NULL, UNIQUE, FK → repair_requests.id | 维修单 ID |
+| user_id | UUID | NOT NULL, INDEX | 评价用户 |
+| rating | int | NOT NULL | 评分 1-5 |
+| message | text | | 留言 |
+| photos | jsonb | DEFAULT '[]' | 照片 |
+| created_at | TIMESTAMP | | 创建时间 |
+
+---
+
+### 2.38 报修单状态枚举（v3 + 维修服务）
+
+**报修单（warranty）状态**:
+```
+pending_assessment(待估价) → pending_payment(待付款) → pending_ship(待发送)
+  → shipping(已发货) → repairing(维修中) → return_pending(待发回) → returned(已发回) → closed(已关闭)
+```
+受控路径插入中转态：`transit_processing`（早期定价扇出）→ ... → `transit_in`（转入中）→ repairing → ... → `transit_out`（转出中）。
+
+废弃旧态：`inspecting` / `quoted` / `pending_cancel`（v3 由 `pending_assessment` + 报价单表取代）。
+
+**维修服务（type='service'）状态**:
+```
+pending_quote(待报价) → paid(已支付) → adjust_pending(加价待响应) → done_repair(已修完待发回) → ...
+```
+
+---
+
+### 2.39 乐器维修状态枚举
+
+```
+repair_pending     → 待维修（定损后自动设置）
+repair_in_progress → 维修中（师傅扫码开始）
+repair_completed   → 已修复（师傅完成）
+```
+验收通过后 clear，`stock_status` 回 available。
+
+
+
+### 2.40 membership_levels - 会员级别表
+
+**说明**: 会员级别配置，按跨商户累计消费金额自动升级。级别名称和门槛金额由管理员在后台配置。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | int | PK | 级别 ID，数字越大级别越高 |
+| name | varchar(50) | NOT NULL | 级别名称（由管理员定义） |
+| min_amount | bigint | NOT NULL | 晋升门槛（分；Cents） |
+
+> **数据说明**: 各级别名称和门槛金额由运营人员在管理后台设置，此处不预设默认值。
+
+---
+
+### 2.41 promo_plans - 促销方案表
+
+**说明**: 促销方案活动（时间限定）。`plan_type` 可为 `discount_policy`（已弃用）/ `promo_campaign`；`scope_type` 可为 `system` / `merchant` / `site`（折扣政策不可用 `site`）。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| plan_type | varchar(20) | NOT NULL, DEFAULT 'promo_campaign' | discount_policy（弃用）/ promo_campaign |
+| scope_type | varchar(20) | NOT NULL | system / merchant / site |
+| scope_id | UUID | | 商户或网点 ID（system 级为空） |
+| name | varchar(100) | NOT NULL | 方案名称 |
+| start_date | date | | 开始日期（null = 长期） |
+| end_date | date | | 结束日期（null = 长期） |
+| stackable | bool | NOT NULL, DEFAULT false | 是否可叠加 |
+| is_active | bool | NOT NULL, DEFAULT true | 是否启用 |
+| created_at | TIMESTAMP | | 创建时间 |
+| updated_at | TIMESTAMP | | 更新时间 |
+
+---
+
+### 2.42 promo_plan_details - 促销方案明细表
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| promo_plan_id | UUID | NOT NULL, INDEX, FK → promo_plans.id | 促销方案 ID |
+| level_id | int | NOT NULL | 会员级别 ID |
+| rent_discount | decimal(5,4) | | 租金折扣率（仅促销活动 promo_campaign；会员折扣已移除 #1543） |
+| deposit_discount | decimal(5,4) | | 押金折扣率 |
+| overdue_discount | decimal(5,4) | | 逾期租金折扣率 |
+
+---
+
+### 2.43 rebate_config - 返点配置表
+
+> ⚠️ **已废弃（#1899 方案 A）**：返点配置页/接口已移除，实际返点由 `gift_policies.refund_ratio` 承担；本节仅存档参考。表与模型仍在（`backend/models/membership.go` RebateConfig、迁移 072/073）。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| level_id | int | NOT NULL, UNIQUE, FK → membership_levels.id | 会员级别 |
+| rent_ratio | decimal(5,4) | NOT NULL, DEFAULT 0.01 | 返点与租金比例 |
+| is_active | bool | NOT NULL, DEFAULT true | 是否启用 |
+| created_at | TIMESTAMP | | 创建时间 |
+| updated_at | TIMESTAMP | | 更新时间 |
+
+---
+
+### 2.44 points_policies - 点数政策表（旧体系，v2 并入 gift_policies）
+
+> ⚠️ **旧体系**：`points_policies.max_pay_ratio` 已并入 `gift_policies.pay_ratio`（#1939 v2）。表仍存在，作为历史存档。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| scope_type | varchar(20) | NOT NULL | system / merchant / site |
+| scope_id | UUID | | 商户或网点 ID |
+| max_pay_ratio | decimal(5,4) | | 可支付价格百分比上限 |
+| valid_days | int | | 有效期（天） |
+| is_active | bool | NOT NULL, DEFAULT true | 是否启用 |
+
+优先级：网点 > 商户 > 系统。
+
+---
+
+### 2.45 gift_policies - 赠点策略表（v2 权威，#1939）
+
+**说明**: 平台统一管理的点数规则，按会员级别独立设置（level_id=0 为默认兜底行）。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| level_id | int | NOT NULL, UNIQUE | 会员级别（0 = 兜底） |
+| pay_ratio | decimal(5,4) | NOT NULL, DEFAULT 0.3 | 赠点使用比例（支付时抵扣上限） |
+| refund_ratio | decimal(5,4) | NOT NULL, DEFAULT 0 | 退款返点比例（M-06 已取消"退款返点给自己"，字段保留） |
+| is_active | bool | NOT NULL, DEFAULT true | 是否启用 |
+| created_at | TIMESTAMP | | 创建时间 |
+| updated_at | TIMESTAMP | | 更新时间 |
+
+> **M-04 裂变奖励比例**（`referral_ratio`，乐手 2% / 首席 5% / 演奏家 8%）：为手册承诺设计（cases/membership.md M-04），**后端尚未实现**（gift_policies 无此列），待立项。
+
+---
+
+### 2.46 membership_gift_ratios - 会员赠点比例表（旧体系，退役）
+
+> ⚠️ **已退役（M-06）**：`SelfSpendRatio` / `ReferralSpendRatio` 分支废除（#1939 v2），表保留存档。裂变奖励由 `gift_policies.referral_ratio`（待实现）承担。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| level_id | int | NOT NULL, UNIQUE, FK → membership_levels.id | 会员级别 |
+| self_spend_ratio | decimal(5,4) | NOT NULL, DEFAULT 0 | 自消费赠点比例（退役） |
+| referral_reg_points | decimal(10,2) | NOT NULL, DEFAULT 0 | 推荐注册赠点（退役） |
+| referral_spend_ratio | decimal(5,4) | NOT NULL, DEFAULT 0 | 推荐消费赠点比例（退役） |
+| is_active | bool | NOT NULL, DEFAULT true | 是否启用 |
+| created_at | TIMESTAMP | | 创建时间 |
+| updated_at | TIMESTAMP | | 更新时间 |
+
+---
+
+### 2.47 membership_level_benefits - 会员权益表（#1830）
+
+**说明**: 每档会员权益文案（标题+说明），PC「系统管理 → 会员级别管理 → 权益」维护，移动端「会员中心」按 level_id 渲染。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| level_id | int | NOT NULL, INDEX | 会员级别 |
+| sort_order | int | NOT NULL, DEFAULT 0 | 排序 |
+| title | varchar(100) | NOT NULL | 权益标题 |
+| description | varchar(500) | NOT NULL, DEFAULT '' | 权益说明 |
+| created_at | TIMESTAMP | | 创建时间 |
+| updated_at | TIMESTAMP | | 更新时间 |
+
+---
+
+### 2.48 settlements - 结算表（#1738）
+
+> ⚠️ 补充核对表：结算记录，会员累计消费权威来源之一（`settlements.actual_rent_amount`）。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| order_id | UUID | NOT NULL, INDEX | 订单 ID |
+| actual_rent_days | int | NOT NULL, DEFAULT 0 | 实际租期天数 |
+| actual_rent_amount | bigint | NOT NULL, DEFAULT 0 | 实际租金（分） |
+| original_rent_amount | bigint | NOT NULL, DEFAULT 0 | 原租金（分） |
+| gift_points_refunded | bigint | NOT NULL, DEFAULT 0 | 退还赠点（分） |
+| cash_refundable | bigint | NOT NULL, DEFAULT 0 | 应退现金（分） |
+| prepaid_refunded | bigint | NOT NULL, DEFAULT 0 | 退还预付（分） |
+| refund_method | varchar(20) | NOT NULL, DEFAULT 'prepaid' | 退款方式 |
+| refund_status | varchar(20) | NOT NULL, DEFAULT 'pending' | 退款状态 |
+| overdue_charges_total | bigint | NOT NULL, DEFAULT 0 | 逾期扣款合计（分） |
+| breakdown | jsonb | NOT NULL, DEFAULT '{}' | 结算明细 |
+| created_at | TIMESTAMP | | 创建时间 |
+| updated_at | TIMESTAMP | | 更新时间 |
+
+---
+
+### 2.49 order_refund_records - 订单退款记录表
+
+> ⚠️ 补充核对表：退款记录，会员累计消费扣除退款时用（`status='refunded'`）。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| tenant_id | UUID | NOT NULL | 租户 ID |
+| payment_record_id | UUID | INDEX | 支付记录 ID |
+| out_refund_no | varchar(32) | UNIQUE | 外部退款单号 |
+| refund_id | varchar(64) | | 微信退款 ID |
+| amount | bigint | NOT NULL | 退款金额（分） |
+| reason | varchar(200) | | 退款原因 |
+| status | varchar(20) | NOT NULL, DEFAULT 'pending' | 退款状态 |
+| fail_reason | text | | 失败原因 |
+| raw_response | jsonb | | 原始响应 |
+| created_at | TIMESTAMP | | 创建时间 |
+| updated_at | TIMESTAMP | | 更新时间 |
+
+---
+
+### 2.50 instrument_promo_overrides - 乐器促销覆盖表
+
+**说明**: 单件乐器是否适用促销政策（折扣/返点）。网点管理员可开关，不能修改政策本身。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| tenant_id | UUID | NOT NULL | 租户 ID |
+| instrument_id | UUID | NOT NULL, FK → instruments.id (ON DELETE CASCADE) | 乐器 ID |
+| override_type | varchar(20) | NOT NULL | discount / rebate |
+| enabled | bool | NOT NULL, DEFAULT true | 是否适用 |
+| content | text | NOT NULL, DEFAULT '' | 覆盖内容 |
+| updated_at | TIMESTAMP | | 更新时间 |
+
+**约束**: UNIQUE (tenant_id, instrument_id, override_type)
+
+---
+
+### 2.51 会员域字段补充
+
+**users 表新增字段**（FK → membership_levels.id）：
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| membership_level_id | int | | 会员级别 ID（null = 未定级） |
+| total_spending | bigint | DEFAULT 0 | 累计消费（分；#1542 实时聚合为主，此字段仅展示缓存） |
+| ~~promo_points~~ | — | — | **已删除（#1983 阶段 2，迁移 `20260918001`）**；乐币余额 = `SUM(point_batches.remaining_cents)` 未过期批次合计（见 §2.1.1） |
+
+**instruments 表新增字段**：
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| min_membership_level | int | | 最低可租会员级别 ID（null = 无限制） |
+
+**orders 表新增字段**：
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| pricing_breakdown | jsonb | | 计费快照（订单创建时写入不可修改） |
+| promo_points | bigint | DEFAULT 0 | 赠点抵扣（分） |
+| gift_points_used | bigint | NOT NULL, DEFAULT 0 | 乐币使用（分） |
+| points_policy_snapshot | jsonb | | 点数政策快照 |
+| gift_points_refunded | bigint | NOT NULL, DEFAULT 0 | 已退赠点（分） |
+
+**merchants 表新增字段**：
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| rebate_opt_in | bool | NOT NULL, DEFAULT true | 商户是否参与返点（#1899 方案 A 保留） |
+
+---
+
+
+### 2.52 invoice_applications - 发票申请表（#1786）
+
+**说明**: 电子发票申请，每个商户分组一张申请（用户一次提交按商户分组创建多张）。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| user_id | UUID | NOT NULL, INDEX | 申请用户 |
+| tenant_id | UUID | NOT NULL, INDEX | 商户 ID |
+| status | varchar(20) | NOT NULL, DEFAULT 'pending' | pending / replied |
+| total_amount | bigint | NOT NULL, DEFAULT 0 | 申请金额合计（分） |
+| order_count | int | NOT NULL, DEFAULT 0 | 关联订单数 |
+| reply | text | | 商户回复 |
+| invoice_file | text | | 发票文件 |
+| replied_at | TIMESTAMPTZ | | 回复时间 |
+| created_at | TIMESTAMPTZ | NOT NULL | 创建时间 |
+| updated_at | TIMESTAMPTZ | NOT NULL | 更新时间 |
+
+> **#1941 待实现**：发票类型（普通/专用）/ 抬头 / 税号三字段（`invoice_type` / `title` / `tax_number`）为用户需求，**后端尚未实现**（无迁移/无模型列），待立项。
+
+---
+
+### 2.53 invoice_application_orders - 发票申请-订单关联表
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| application_id | UUID | PK, FK → invoice_applications.id (ON DELETE CASCADE) | 发票申请 ID |
+| order_id | UUID | PK | 订单 ID |
+
+---
+
+### 2.54 发票域字段补充
+
+**orders 表新增字段**（迁移 #1786）：
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| invoice_applied | boolean | NOT NULL, DEFAULT false | 是否已申请发票 |
+| invoice_applied_at | TIMESTAMPTZ | | 申请时间 |
+
+---
+
+### 2.55 乐器丢失域（#1939 派生，待立项）
+
+> ⚠️ **待立项**：乐器丢失与找回（LS-01~LS-06，`cases/instrument-loss.md`）为 2026-09-17 用户需求，**后端无表/无端点**（仅 `instruments.stock_status='lost'` 常量已定义）。丢失登记/找回/结算所需表结构（丢失记录、赔偿、恢复）待立项后补录。
+
+---

@@ -6,7 +6,7 @@
 
 | 文档 | 路径 | 角色 |
 |------|------|------|
-| 需求文档 | `docs/cases.md` | Step 1 推导来源 |
+| 需求文档 | `docs/cases/cases.md` | Step 1 推导来源 |
 | 设计文档 | `docs/ui.md` | Step 2 对比目标 |
 | API 文档 | `docs/api.md` | 端点/权限参考 |
 | 权限矩阵 | `docs/permissions.md` | 角色-权限对照 |

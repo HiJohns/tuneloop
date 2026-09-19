@@ -578,5 +578,5 @@ curl -X POST -H "Content-Type: application/json" -d '{}' "https://api.weixin.qq.
 | OpenID 路由注册 | `backend/main.go` | 211 |
 | JSAPI 签名生成 | `backend/services/wechatpay/real.go` | 64-81 |
 | 平台证书解析 | `backend/services/wechatpay/signer.go` | 29-54 |
-| 公钥提取 + 部署 | `docs/wechat-20260717.md` | 步骤 1 |
+| 公钥提取 + 部署 | `docs/archive/reports/wechat-20260717.md` | 步骤 1 |
 | 前置 prepay open_id | `frontend-mobile/src/pages-weapp/payment/Payment.jsx` | `handlePay()` |

@@ -228,7 +228,7 @@ ssh cadenza "OSS_ENDPOINT=https://oss-cn-beijing.aliyuncs.com OSS_BUCKET=tuneloo
 | P3 | 双写开关（OSS 写失败显式报错，可配置阻断） | ⏳ |
 | P4 | CLI `--migrate-media-oss`（dry-run 先行、幂等、断点续传、失败清单） | ⏳ |
 | P5 | `GetURL` 切读开关 + nginx `/uploads/*` 未命中重定向兜底 | ⏳ |
-| P6 | 观察期 → 停本地写 / `gc-media` 适配 / 更新 `docs/media_directory.md` | ⏳ |
+| P6 | 观察期 → 停本地写 / `gc-media` 适配 / 更新 `docs/topics/media/media_directory.md` | ⏳ |
 
 ## 6. 关键约束（迁移红线）
 

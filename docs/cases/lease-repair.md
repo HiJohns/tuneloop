@@ -112,5 +112,3 @@ steps:
 - 规划：`TestAcceptRepair` / `TestRejectRepair`（R1 自验收拒绝/驳回落记录，见 #1882）
 
 ---
-
-*Model: deepseek/deepseek-v4-flash*
