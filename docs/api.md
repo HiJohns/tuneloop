@@ -3779,6 +3779,8 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 **说明**: 金额均为分（`models.Cents`）；实际消费 = settlement.ActualRentAmount + OverdueChargesTotal，无 settlement 时回退 deriveActualRent
 
+> **`merchant_name` 回退链（#1980）**：`merchants.name`（按 `tenant_id`）→ 缺失/空时回退 `tenants.name` → 均缺返回空串（前端隐藏商户名行，不再显示「未知商户」）。发票为税务凭证，**不适用** #1934「合作商户」遮罩。
+
 ---
 
 **接口**: `POST /api/user/invoices`

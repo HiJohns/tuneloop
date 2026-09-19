@@ -160,8 +160,16 @@ export default function Invoice() {
             const f = getForm(g.tenant_id)
             return (
             <View key={g.tenant_id} style={{ background: '#fff', borderRadius: 12, padding: 16, marginBottom: 12 }}>
-              <Text style={{ fontSize: 16, fontWeight: '700', marginBottom: 8 }}>{g.merchant_name || '未知商户'}</Text>
-              <Text style={{ fontSize: 13, color: '#666', marginBottom: 4 }}>{g.orders.length} 笔订单</Text>
+              {/* #1980: 每行用 View 包裹承载间距（weapp Text 为内联元素，marginBottom 无效）；
+                  商户名缺失时不渲染，避免「未知商户」占位泄漏到顾客 UI。 */}
+              {g.merchant_name ? (
+                <View style={{ marginBottom: 8 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '700' }}>{g.merchant_name}</Text>
+                </View>
+              ) : null}
+              <View style={{ marginBottom: 4 }}>
+                <Text style={{ fontSize: 13, color: '#666' }}>{g.orders.length} 笔订单</Text>
+              </View>
               {g.orders.map(o => (
                 <View key={o.order_id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderTop: '1px solid #f4f4f5' }}>
                   <Text style={{ fontSize: 13, color: '#555' }}>SN: {o.sn || '-'}</Text>
@@ -319,7 +327,9 @@ export default function Invoice() {
                       {app.status === 'replied' ? '已开票' : '待开票'}
                     </Text>
                   </View>
-                  <Text style={{ fontSize: 13, color: '#666', marginBottom: 4 }}>{app.order_count} 笔订单 · ¥{formatCents(app.total_amount)}</Text>
+                  <View style={{ marginBottom: 4 }}>
+                    <Text style={{ fontSize: 13, color: '#666' }}>{app.order_count} 笔订单 · ¥{formatCents(app.total_amount)}</Text>
+                  </View>
                   <Text style={{ fontSize: 12, color: '#a1a1aa' }}>申请于 {formatBeijingDate(app.created_at)}</Text>
                   {app.replied_at && (
                     <Text style={{ fontSize: 12, color: '#a1a1aa' }}>回复于 {formatBeijingDate(app.replied_at)}</Text>

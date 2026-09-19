@@ -465,3 +465,45 @@ func TestInvoice_MerchantReply_CrossTenant(t *testing.T) {
 
 	require.Equal(t, 404, w.Code, "cross-tenant reply should return 404")
 }
+
+// #1980: eligible 列表 merchant_name 回退链 merchants.name → tenants.name → ""。
+func TestInvoice_Eligible_MerchantNameFallback(t *testing.T) {
+	db := database.GetDB()
+
+	// Case A: no merchant row, tenant row exists → tenants.name.
+	tenantA, orgA := uuid.New().String(), uuid.New().String()
+	localA, iamA := uuid.New().String(), uuid.New().String()
+	require.NoError(t, db.Create(&models.Tenant{ID: tenantA, Name: "回退租户A", Status: "active"}).Error)
+	setupInvoiceTestData(t, tenantA, iamA, localA, orgA)
+
+	wA := httptest.NewRecorder()
+	invoiceRouter(tenantA, iamA, orgA).ServeHTTP(wA, httptest.NewRequest("GET", "/api/user/invoices/eligible", nil))
+	require.Equal(t, 200, wA.Code)
+	var respA struct {
+		Code int `json:"code"`
+		Data []struct {
+			MerchantName string `json:"merchant_name"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(wA.Body.Bytes(), &respA))
+	require.Len(t, respA.Data, 1)
+	require.Equal(t, "回退租户A", respA.Data[0].MerchantName, "缺 merchant 行时回退 tenants.name")
+
+	// Case B: neither merchant nor tenant → "" (frontend hides the line).
+	tenantB, orgB := uuid.New().String(), uuid.New().String()
+	localB, iamB := uuid.New().String(), uuid.New().String()
+	setupInvoiceTestData(t, tenantB, iamB, localB, orgB)
+
+	wB := httptest.NewRecorder()
+	invoiceRouter(tenantB, iamB, orgB).ServeHTTP(wB, httptest.NewRequest("GET", "/api/user/invoices/eligible", nil))
+	require.Equal(t, 200, wB.Code)
+	var respB struct {
+		Code int `json:"code"`
+		Data []struct {
+			MerchantName string `json:"merchant_name"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(wB.Body.Bytes(), &respB))
+	require.Len(t, respB.Data, 1)
+	require.Equal(t, "", respB.Data[0].MerchantName, "merchant 与 tenant 皆缺时返回空串")
+}

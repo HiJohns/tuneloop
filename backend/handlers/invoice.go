@@ -91,6 +91,24 @@ func (h *InvoiceHandler) ListEligible(c *gin.Context) {
 		for _, m := range merchants {
 			merchantMap[m.TenantID] = m.Name
 		}
+
+		// #1980: fall back to tenants.name for tenants without a (non-empty)
+		// merchant row, then leave "" (frontend hides the line) if both missing.
+		var missing []string
+		for _, tid := range tenantIDs {
+			if merchantMap[tid] == "" {
+				missing = append(missing, tid)
+			}
+		}
+		if len(missing) > 0 {
+			var tenants []models.Tenant
+			db.Where("id IN ?", missing).Select("id, name").Find(&tenants)
+			for _, t := range tenants {
+				if t.Name != "" {
+					merchantMap[t.ID] = t.Name
+				}
+			}
+		}
 	}
 
 	for _, order := range orders {
