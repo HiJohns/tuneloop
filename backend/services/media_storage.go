@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/gin-gonic/gin"
@@ -125,33 +126,55 @@ func (s *LocalStorage) DeletePrefix(ctx context.Context, prefix string) error {
 }
 
 // NewMediaStorage selects the storage backend from environment (#1914):
-// OSS when OSS_ENDPOINT+OSS_BUCKET are set AND credentials resolve;
-// otherwise LocalStorage with a startup WARN (keeps local dev runnable).
+//
+//	STORAGE_MODE=local (default) → LocalStorage (现状)
+//	STORAGE_MODE=dual            → DualStorage(OSS primary + local cold backup)
+//	STORAGE_MODE=oss             → OSSStorage only
+//
+// dual/oss require OSS_ENDPOINT+OSS_BUCKET AND resolvable credentials;
+// otherwise fall back to LocalStorage with a startup WARN (keeps local dev runnable).
 var (
 	ossStorageOnce   sync.Once
-	ossStorageCached MediaStorage
+	ossStorageCached *OSSStorage
+	ossStorageErr    error
 )
 
+// ossStorageFromEnv returns the cached OSS backend (built once).
+func ossStorageFromEnv() (*OSSStorage, error) {
+	ossStorageOnce.Do(func() {
+		ossStorageCached, ossStorageErr = NewOSSStorage()
+	})
+	return ossStorageCached, ossStorageErr
+}
+
 func NewMediaStorage() MediaStorage {
-	if os.Getenv("OSS_ENDPOINT") == "" || os.Getenv("OSS_BUCKET") == "" {
+	mode := strings.ToLower(strings.TrimSpace(os.Getenv("STORAGE_MODE")))
+	if mode == "" {
+		mode = "local"
+	}
+	if mode != "dual" && mode != "oss" {
 		return NewLocalStorage()
 	}
-	ossStorageOnce.Do(func() {
-		st, err := NewOSSStorage()
-		if err != nil {
-			log.Printf("[MediaStorage] OSS init failed (%v) — falling back to LocalStorage", err)
-			ossStorageCached = NewLocalStorage()
-			return
-		}
-		ossStorageCached = st
-	})
-	return ossStorageCached
+	if os.Getenv("OSS_ENDPOINT") == "" || os.Getenv("OSS_BUCKET") == "" {
+		log.Printf("[MediaStorage] STORAGE_MODE=%s but OSS_ENDPOINT/OSS_BUCKET missing — falling back to LocalStorage", mode)
+		return NewLocalStorage()
+	}
+	st, err := ossStorageFromEnv()
+	if err != nil {
+		log.Printf("[MediaStorage] OSS init failed (%v) — falling back to LocalStorage", err)
+		return NewLocalStorage()
+	}
+	if mode == "oss" {
+		return st
+	}
+	return NewDualStorage(st, NewLocalStorage())
 }
 
 // ResetMediaStorageCache clears the cached OSS instance (test-only helper).
 func ResetMediaStorageCache() {
 	ossStorageOnce = sync.Once{}
 	ossStorageCached = nil
+	ossStorageErr = nil
 }
 
 func MediaStorageFromContext(c *gin.Context) MediaStorage {

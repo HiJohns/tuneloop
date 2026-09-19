@@ -225,10 +225,25 @@ ssh cadenza "OSS_ENDPOINT=https://oss-cn-beijing.aliyuncs.com OSS_BUCKET=tuneloo
 | P0 | OSS 开通 / bucket / RAM-AK / 域名 / 微信白名单 | ✅ 完成（权限实测通过，2026-09-16）；**ECS 实例角色 + 策略 v2 + 实例绑定完成（2026-09-17）**；微信白名单/CNAME 待办 |
 | P1 | `OSSStorage` 实现（凭证链、分片、幂等删除、私有签名）+ 单测 | ✅ 完成（`5b7051e4`）；元数据 IP 修正（`.200`，2026-09-17） |
 | P2 | env 配置与缺项回退 + 冒烟 | 🔶 实现✅；冒烟✅（预生产桶 + **生产桶实例角色均 ALL PASS**）；**.env 落地待运维** |
-| P3 | 双写开关（OSS 写失败显式报错，可配置阻断） | ⏳ |
+| P3 | 双写开关（OSS 写失败显式报错，可配置阻断） | ✅ 已实现（#1992） |
 | P4 | CLI `--migrate-media-oss`（dry-run 先行、幂等、断点续传、失败清单） | ✅ 已实现（#1991） |
 | P5 | `GetURL` 切读开关 + nginx `/uploads/*` 未命中重定向兜底 | ⏳ |
 | P6 | 观察期 → 停本地写 / `gc-media` 适配 / 更新 `docs/topics/media/media_directory.md` | ⏳ |
+
+### 5.2 P3 双写开关（#1992）
+
+`STORAGE_MODE` 统一控制存储后端（缺省 `local`，保持现状）：
+
+| 模式 | 写 | 读 | 用途 |
+|------|----|----|------|
+| `local`（缺省） | 本地 | 本地 | 现状 / 未接入 OSS |
+| `dual` | OSS + 本地（先 OSS 后本地） | OSS（#1993 起） | 过渡期双写 |
+| `oss` | 仅 OSS | OSS | P6 停本地写后 |
+
+- **`DualStorage`**（`services/dual_storage.go`）：组合 OSS（primary）+ LocalStorage（冷备），**不改任何调用方**（工厂层切换）；上传先 spool 到项目 `tmp/` 再分别写两侧（大文件单次读取）。
+- **失败策略**：OSS 写失败**默认阻断**（显式 error，禁静默）；`OSS_FAIL_SOFT=true` 降级为 WARN + 失败清单 `tmp/oss_write_failures.log`；本地冷备写失败仅 WARN。
+- **缺配置回退**：`dual/oss` 但 `OSS_ENDPOINT/OSS_BUCKET` 缺失或凭证不可用 → WARN + 回退 `local`（保持 dev 可跑）。
+- `Delete/DeletePrefix/Copy/Rename` 两侧同步（汇总错误，互不掩盖）；`Stat` 委托 OSS（读侧权威）。
 
 ### 5.1 P4 回填 CLI 用法（#1991）
 

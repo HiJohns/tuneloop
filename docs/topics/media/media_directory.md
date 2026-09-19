@@ -124,6 +124,19 @@ Cleanup is handled by `services/media_cleanup.go` scheduler which runs periodica
 | `uploads/batch/` | Batch-import ZIP extraction temp (`{sessionID}/`) | `media_cleanup.go` GC (expired session dirs) |
 | `uploads/photos/` | Legacy outbound photo mechanism (`{tenant}/{sn}/` with manifest.yaml + ZIP archive) | Historical — registered for attribution only, not refactored |
 
+### Storage Backend (write modes, #1914)
+
+`storage_key` 语义不变（key 不换、DB 不改）；后端由 `STORAGE_MODE` 统一选择（`services/media_storage.go` 工厂）：
+
+| `STORAGE_MODE` | 写 | 读 | 说明 |
+|----------------|----|----|------|
+| `local`（缺省） | 本地 `uploads/media/` | 相对路径 `/uploads/media/<key>` | 现状 |
+| `dual` | OSS + 本地双写（先 OSS 后本地） | OSS（#1993 起） | 过渡期；本地为**冷备** |
+| `oss` | 仅 OSS | OSS | 停本地写后（P6） |
+
+- **失败策略**：OSS 写失败默认**阻断**（显式 error）；`OSS_FAIL_SOFT=true` 降级 WARN + `tmp/oss_write_failures.log`；本地冷备写失败仅 WARN。
+- **敏感素材**：`face_captures/**` 经 `MediaStorage` 路由到**私有桶**（`OSS_PRIVATE_BUCKET`），仅签名 URL 可读（#1993）。
+- 回填历史数据见 `--migrate-media-oss`（`docs/topics/media/oss.md §5.1`）。
 
 ## Image Hierarchy
 
