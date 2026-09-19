@@ -122,5 +122,3 @@ status: design
 - 迁移：`transit_shipping_fees`（或等价）up/down + modelsToValidate
 
 ---
-
-*Model: zhipuai/glm-5.3-flash*

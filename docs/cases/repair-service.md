@@ -98,6 +98,3 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 报修，并存
 | 师傅（weapp 工作台） | 报价 / 加价 / 完成修理 |
 | 网点员工（weapp + PC） | 分段发运/实填运费 / 触发结算 |
 | 平台管理员（PC） | 全量查看 + 评价审核视角 |
-
----
-*Model: zhipuai/glm-5.3-flash*

@@ -54,8 +54,8 @@ steps:
         controls: [物流公司, 单号输入]
         displays: [收货地址(系统给), 中转地址+转入单号]
         ops:
-          - {type: api, method: PUT, path: /repair-requests/:id/return-shipping}
-    api: {method: PUT, path: /repair-requests/:id/return-shipping, params: [courier, tracking_number]}
+          - {type: api, method: PUT, path: /repair-requests/:id/tracking}
+    api: {method: PUT, path: /repair-requests/:id/tracking, params: [tracking_company, tracking_number]}
   - seq: 5
     action: 确认收货
     frontend:
@@ -67,8 +67,8 @@ steps:
         controls: [确认收货按钮]
         displays: [维修结果]
         ops:
-          - {type: api, method: POST, path: /repair-requests/:id/complete}
-    api: {method: POST, path: /repair-requests/:id/complete, params: []}
+          - {type: api, method: POST, path: /repair-requests/:id/confirm-receipt}
+    api: {method: POST, path: /repair-requests/:id/confirm-receipt, params: []}
 ---
 
 # R-01 客户报修（v3）
@@ -129,5 +129,3 @@ steps:
 - 关联 Issue: #1577（新旧报价对比确认页）
 
 ---
-
-*Model: deepseek/deepseek-v4-flash*

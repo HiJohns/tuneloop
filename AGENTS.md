@@ -10,17 +10,17 @@ This file contains instructions and guidelines for AI coding agents working in t
 
 - `README.md` - 项目主文档，包含开发环境和预生产环境配置
 - `AGENTS.md` - AI 助手工作指南
-- `docs/features.md` - 功能需求文档
-- `docs/api.md` - API 接口文档
-- `docs/ui.md` - UI 设计文档
-- `docs/iam.md` - IAM 集成说明（**symlink → `../../beaconiam/README.md`，禁止本地修改，I AM 权威文档以 beaconiam 仓库为准**）
-- `docs/iam-notes.md` - tuneloop 侧对 IAM 的补充说明和过渡期记录
-- `docs/permissions.md` - 权限-人员矩阵
-- `docs/account-lifecycle.md` - 账户生命周期与数据完整性
-- `docs/weapp.md` - 微信小程序架构与部署（Taro 构建策略、三端架构、登录流程、发布流程）
-- `docs/wechat-login.md` - 微信小程序登录架构（三通道登录、注册流程、身份合并、安全审计）
-- `docs/media_directory.md` - 媒体存储架构（instrument_media 表结构、batch_type 全集、目录体系）
-- `docs/wechat-pay-integration.md` - 微信支付集成架构（对接点、手动配置清单、.env 设计、测试模式、核查体系、失败处置）
+- `docs/spec/features.md` - 功能需求文档
+- `docs/spec/api/api.md` - API 接口文档
+- `docs/spec/ui/ui.md` - UI 设计文档
+- `docs/topics/iam/iam.md` - IAM 集成说明（**symlink → `../../../../beaconiam/README.md`，禁止本地修改，I AM 权威文档以 beaconiam 仓库为准**）
+- `docs/topics/iam/iam-notes.md` - tuneloop 侧对 IAM 的补充说明和过渡期记录
+- `docs/spec/permissions.md` - 权限-人员矩阵
+- `docs/ops/account-lifecycle.md` - 账户生命周期与数据完整性
+- `docs/topics/wechat/weapp.md` - 微信小程序架构与部署（Taro 构建策略、三端架构、登录流程、发布流程）
+- `docs/topics/wechat/wechat-login.md` - 微信小程序登录架构（三通道登录、注册流程、身份合并、安全审计）
+- `docs/topics/media/media_directory.md` - 媒体存储架构（instrument_media 表结构、batch_type 全集、目录体系）
+- `docs/topics/wechat/wechat-pay-integration.md` - 微信支付集成架构（对接点、手动配置清单、.env 设计、测试模式、核查体系、失败处置）
 
 ## 分支策略（main / develop，#1694）
 
@@ -39,7 +39,7 @@ develop（开发累积，随时可部署 dev 验证）
   → make release（预生产部署）→ 预生产验证
   → ssh cadenza release.sh 提升生产
   → 版本号 bump（1.0.x）+ git tag v1.0.x（可选）
-  → 小程序发布版：make weapp-build-prod + weapp-upload-prod APP_VERSION=1.0.x（见 docs/weapp.md 发布清单）
+  → 小程序发布版：make weapp-build-prod + weapp-upload-prod APP_VERSION=1.0.x（见 docs/topics/wechat/weapp.md 发布清单）
 ```
 
 ### Hotfix
@@ -447,7 +447,7 @@ As the codebase grows, this file should be updated with:
 - State management patterns
 - Styling conventions (CSS modules, styled-components, etc.)
 
-> Detailed UI specifications, navigation structure, permissions, and code locations: see `docs/ui.md`
+> Detailed UI specifications, navigation structure, permissions, and code locations: see `docs/spec/ui/ui.md`
 
 ---
 
@@ -649,7 +649,7 @@ Usage:
 ## Instrument Image Hierarchy（乐器图像分层规范）
 
 > 来源：#1099 — 避免后端图像字段在前端各处混用，定义每类图像的使用范围。
-> 统一存储架构：见 `docs/media_directory.md`。
+> 统一存储架构：见 `docs/topics/media/media_directory.md`。
 
 ### 数据库字段分类
 
@@ -1341,9 +1341,9 @@ DepositDeducted: models.FromYuan(100),  // 100 元 = 10000 分
 | API | 操作对应什么后端调用 | "定损" → PUT /api/warehouse/orders/:id/return-inspect |
 | 导航 | 从哪里来，到哪里去 | "从订单详情点击收货" → /staff/receiving |
 
-#### Step 2: 对比 `docs/ui.md`
+#### Step 2: 对比 `docs/spec/ui/ui.md`
 
-将 Step 1 的推导结果与 `docs/ui.md` 中对应该页面的描述逐项对比。
+将 Step 1 的推导结果与 `docs/spec/ui/ui.md` 中对应该页面的描述逐项对比。
 
 | 检查项 | 方法 |
 |--------|------|

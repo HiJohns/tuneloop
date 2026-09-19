@@ -136,5 +136,3 @@ steps:
 - [ ] GET /users/me 返回 tenant_name 字段（后端测试覆盖）
 
 ---
-
-*Model: deepseek/deepseek-v4-pro*

@@ -262,8 +262,8 @@ frontend-pc/src/
 ```
 
 ### B. Documentation Location
-- Feature Requirements: `docs/features.md`
-- UI Design: `docs/ui.md`
+- Feature Requirements: `docs/spec/features.md`
+- UI Design: `docs/spec/ui/ui.md`
 
 ---
 

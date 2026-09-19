@@ -88,6 +88,3 @@ steps:
 ## 验收
 - `go test ./handlers/ -count=1` 回归通过
 - PC `npm run build` 通过
-
----
-*Model: deepseek/deepseek-v4-flash*

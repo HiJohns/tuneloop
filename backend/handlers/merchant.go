@@ -180,8 +180,8 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 
 	// #1924-era cleanup: transit address/phone are NOT mandatory for controlled
 	// merchants — transit logistics are handled by transit SITES + TransitRoute
-	// (cases.md §4.1.5). The merchant-level fields remain OPTIONAL (retail
-	// order/return display via GetMerchantTransitInfo, features.md).
+	// (cases/cases.md §4.1.5). The merchant-level fields remain OPTIONAL (retail
+	// order/return display via GetMerchantTransitInfo, spec/features.md).
 
 	db := database.GetDB().WithContext(c.Request.Context())
 	tenantID := middleware.GetTenantID(c.Request.Context())

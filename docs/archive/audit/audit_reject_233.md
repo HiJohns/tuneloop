@@ -43,7 +43,7 @@ c.JSON(http.StatusOK, gin.H{
 
 ### ✅ 已完成项
 
-- [x] 规范文档创建 `backend/docs/api_response_format.md`
+- [x] 规范文档创建 `./api_response_format.md`
 - [x] `/merchant/inventory` 返回格式已统一为 `data.list`
 - [x] `go build` 成功
 - [x] `npm run lint` 通过

@@ -19,7 +19,7 @@ This investigation conducted a comprehensive review of **15** page components in
 - ⚠️ **2/15 pages** (13%) implement API calls but have improper error handling
 - ⚠️ **0/15 pages** (0%) implement **complete real data flow**
 
-**Documentation vs Reality**: The status assessment in `docs/pc_frontend_development_report.md` is **overly optimistic**, with actual implementation far below documented descriptions.
+**Documentation vs Reality**: The status assessment in `docs/archive/reports/pc_frontend_development_report.md` is **overly optimistic**, with actual implementation far below documented descriptions.
 
 ---
 
@@ -255,7 +255,7 @@ const getStatusColor = (status) => {
 
 ### 4.1 Documented Status vs Actual Status
 
-**Investigation Method**: Comparing `docs/pc_frontend_development_report.md` with actual code implementation
+**Investigation Method**: Comparing `docs/archive/reports/pc_frontend_development_report.md` with actual code implementation
 
 **Key Differences**:
 

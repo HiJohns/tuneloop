@@ -161,7 +161,6 @@ steps:
 
 ---
 
-*Model: deepseek/deepseek-v4-flash*
 
 ---
 id: O-03

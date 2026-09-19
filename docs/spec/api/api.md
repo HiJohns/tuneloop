@@ -1,0 +1,6413 @@
+## 一、基础规范
+
+### 1.1 统一前缀
+所有 API 端点前缀: `/api`
+
+### 1.2 认证方式
+- Header: `Authorization: Bearer <JWT_TOKEN>`
+- JWT 由 Lin-IAM 统一颁发
+- Token 校验中间件: `IAMInterceptor`
+
+### 1.3 统一响应格式
+
+**成功响应:**
+```json
+{
+  "code": 20000,
+  "data": {},
+  "message": "success"
+}
+```
+
+**错误响应:**
+```json
+{
+  "code": 40001,
+  "message": "错误描述信息"
+}
+```
+
+> **用户可见文案（#1675）**：后端 `message` 为机器可读标识（英文为主），前端统一由 `resolveErrorMessage` 解析（`frontend-mobile/src/services/errorMessages.js` / `frontend-pc/src/services/errorMessages.js`）翻译为用户友好中文。三层回退：L1 message 精确匹配（高频错误，如 `order not found` → 「未找到订单」）→ L2 code 家族映射（如 40400 → 「未找到相关数据」）→ L3 调用点业务 fallback。完整错误码分类见 [`docs/archive/reports/backend_api_error_codes_report.md`](../../archive/reports/backend_api_error_codes_report.md)。新增后端错误消息时，如属用户可见高频错误，请同步补充 `ERROR_MESSAGE_MAP`。
+
+### 1.4 时间戳契约（#1759）
+- 所有时间字段（`created_at` / `updated_at` / 各事件时间戳）为 **ISO8601 UTC**，JSON 序列化带 `Z` 后缀（如 `"2026-08-22T16:02:01Z"`）
+- DB 存储为 `timestamptz`（迁移 `20260824002_timestamptz`：存量北京数值 → 正确 UTC）；业务时区 = Asia/Shanghai（Go 启动时显式 `time.Local`）
+- 前端一律本地化显示（`new Date()` / dayjs 自动按设备时区解析 Z 后缀），禁止按 UTC 字符串直接展示
+
+### 1.5 分页参数
+所有列表接口支持:
+- `page`: 页码 (默认: 1)
+- `pageSize`: 每页数量 (默认: 20, 最大: 100)
+
+### 1.6 权限模型 (v2.1)
+
+权限控制基于 JWT 中的两层位图。
+
+> 完整 sys_perm 位码表见 [`docs/spec/permissions.md` §二](../permissions.md#二sys_perm-系统权限)
+> 完整 cus_perm 业务权限列表见 [`docs/spec/permissions.md` §三](../permissions.md#三cus_perm-业务权限表)
+> 角色-权限矩阵见 [`docs/spec/permissions.md` §四](../permissions.md#四角色-权限分配矩阵)
+
+**API 权限要求汇总**：
+
+| 端点分类 | 权限类型 | 示例权限 |
+|---------|---------|---------|
+| 认证（登录/回调/刷新） | 无 | — |
+| 乐器查看/分类查看 | 已登录 | — |
+| 乐器创建/编辑/删除 | cus_perm | instrument:create/update/delete |
+| 分类配置 | cus_perm | category:manage |
+| 属性管理 | cus_perm | attribute:manage |
+| 库存查看 | cus_perm | instrument:read |
+| 库存调拨 | cus_perm | instrument:update |
+| 租金设定 | cus_perm | instrument:price |
+| 订单创建 | 已登录 | — |
+| 订单/租约管理 | cus_perm | order:create/read/update/cancel |
+| 维修提交 | 已登录 | — |
+| 维修管理 | cus_perm | instrument:maintain |
+| 商户管理 | sys_perm | tenant_* (bits 5-9) |
+| 商户创建 | sys_perm | tenant:create (bit 25, 命名空间管理员仅) |
+| 网点管理 | sys_perm | organization_* (bits 10-14) |
+| 人员管理 | sys_perm | user_* (bits 15-19) |
+| IAM 同步 | sys_perm | organization_create / user_create |
+| 权限管理 | sys_perm | permission:manage (bit 26) |
+| 客户端管理 | sys_perm | namespace_* (bits 0-4) |
+| 定价管理 | cus_perm | instrument:price |
+
+---
+
+## 二、认证与授权模块
+
+### 2.1 IAM 回跳处理
+> **说明**: 业务系统不直接处理微信登录，引导用户跳转 IAM 登录页
+
+**接口**: `GET /api/auth/callback`
+
+**请求参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| code | string | IAM 授权码 (必填) |
+| state | string | 随机状态值 (防 CSRF) |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "access_token": "eyJhbGc...",
+    "refresh_token": "eyJhbGc...",
+    "expires_in": 2592000,
+    "token_type": "Bearer"
+  }
+}
+```
+
+**流程说明**:
+1. 前端重定向至 IAM 登录页: `https://iam.example.com/oauth/authorize?client_id=xxx`
+2. 用户登录后，IAM 回调业务系统: `/api/auth/callback?code=xxx&state=xxx`
+3. 业务系统用 code 换取 JWT token
+
+---
+
+### 2.2 微信小程序登录
+
+> 小程序使用 `wx.login()` 获取 code，调 `POST /api/wx/login` 代理到 IAM 换取 JWT。详见 `docs/topics/wechat/weapp.md`。
+
+**接口**: `POST /api/wx/login`
+
+**请求 Body**:
+```json
+{
+  "code": "0b3eZklFpWsHmq4kIbjFpUVg"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "access_token": "eyJhbGc...",
+    "refresh_token": "eyJhbGc...",
+    "expires_in": 86400,
+    "token_type": "Bearer"
+  }
+}
+```
+
+**错误响应**:
+| code | 说明 |
+|------|------|
+| 40002 | 缺少必填参数 code |
+| 50000 | IAM 服务调用失败 |
+
+**流程说明**:
+1. 前端 `wx.login()` → 获取临时 code
+2. `POST /api/wx/login { code }` → tuneloop 后端代理 → BeaconIAM
+3. IAM 调用 jscode2session → 获取 openid → 查/建用户 → 返回 JWT
+
+---
+
+### 2.3 Token 刷新
+
+**接口**: `POST /api/auth/refresh`
+
+**请求 Body**:
+```json
+{
+  "refresh_token": "eyJhbGc..."
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "access_token": "eyJhbGc...",
+    "refresh_token": "eyJhbGc...",
+    "expires_in": 2592000
+  }
+}
+```
+
+---
+
+### 2.4 用户信息
+
+**接口**: `GET /api/auth/profile`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "sub": "uuid-user-id",
+    "tenant_id": "tenant-001",
+    "org_id": "org-001",
+    "phone": "138****8888",
+    "email": "user@example.com",
+    "credit_score": 750,
+    "deposit_mode": "free" // free | standard
+  }
+}
+```
+
+---
+
+### 2.5 影子用户同步
+
+**接口**: `POST /api/auth/sync-user`
+
+**说明**: Hook 接口，用户首次登录时从 JWT 创建本地业务用户记录
+
+**请求 Body**:
+```json
+{
+  "sub": "uuid-user-id",
+  "tenant_id": "tenant-001",
+  "org_id": "org-001",
+  "phone": "13800000000"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "user_id": "user-001",
+    "is_created": true
+  }
+}
+```
+
+---
+
+### 2.6 IAM 代理接口
+
+> **说明**: 业务系统与 Lin-IAM 的代理层，支持 JIT 用户创建
+
+#### 2.6.1 查询 IAM 用户
+
+**接口**: `GET /api/iam/users/lookup`
+
+**请求参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| query | string | 邮箱或手机号查询 |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "user_id": "user-001",
+    "email": "manager@example.com",
+    "phone": "13800000000",
+    "role": "site_manager",
+    "status": "active",
+    "org_id": "org-001"
+  }
+}
+```
+
+#### 2.6.2 创建 IAM 用户 (JIT)
+
+**接口**: `POST /api/iam/users`
+
+**说明**: Just-In-Time 用户创建，用于网点负责人注册
+
+**请求 Body**:
+```json
+{
+  "email": "newmanager@example.com",
+  "phone": "13800000000",
+  "role": "site_manager",
+  "org_id": "org-001"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "user_id": "user-002",
+    "status": "pending",
+    "message": "User creation in progress"
+  }
+}
+```
+
+#### 2.6.3 同步 IAM 组织
+
+**接口**: `POST /api/iam/organizations/sync`
+
+**说明**: 手动触发从 IAM 同步组织列表到本地 sites 表
+
+**权限**: ADMIN, OWNER
+
+**请求 Body**: 无
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "synced": 3,
+    "skipped": 1,
+    "conflicts": 0,
+    "details": [
+      {
+        "id": "org-001",
+        "name": "海淀店",
+        "parent_id": "org-tenant",
+        "kind": "site",
+        "result": "added"
+      },
+      {
+        "id": "org-002",
+        "name": "朝阳店",
+        "parent_id": "org-tenant",
+        "kind": "site",
+        "result": "existing"
+      }
+    ]
+  },
+  "message": "success"
+}
+```
+
+**字段说明**:
+- `synced`: 成功同步的组织数量（含新增与更新）
+- `skipped`: 跳过的组织数量（已存在且一致）
+- `conflicts`: 发生冲突的数量
+- `details`: 逐条明细数组，每项含 `id`（IAM 组织 ID）、`name`、`parent_id`、`kind`（merchant/site）、`result`（added/existing/updated/skipped/error）
+
+---
+
+#### 2.6.4 同步 IAM 用户
+
+**接口**: `POST /api/iam/users/sync`
+
+**说明**: 手动触发从 IAM 同步用户列表到本地 users 表，包括 name、email、phone、role、org_id、status
+
+**权限**: ADMIN, OWNER
+
+**请求 Body**: 无
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "synced": 5,
+    "skipped": 2,
+    "conflicts": 0,
+    "details": [
+      {
+        "id": "user-001",
+        "name": "张三",
+        "email": "zhangsan@example.com",
+        "org_id": "org-tenant",
+        "result": "added"
+      },
+      {
+        "id": "user-002",
+        "name": "李四",
+        "email": "lisi@example.com",
+        "org_id": "org-tenant",
+        "result": "existing"
+      }
+    ]
+  },
+  "message": "success"
+}
+```
+
+**字段说明**:
+- `synced`: 成功同步的用户数量（含新增与更新）
+- `skipped`: 跳过的用户数量（已存在且一致）
+- `conflicts`: 发生冲突的数量
+- `details`: 逐条明细数组，每项含 `id`（IAM 用户 ID）、`name`、`email`、`org_id`、`result`（added/existing/updated/error）
+
+---
+
+
+### 2.7 冷启动（Setup）
+### 2.7.1 获取系统初始化状态
+
+```
+GET /api/setup/status
+```
+
+**说明**: 检查系统是否需要初始化（User 表是否为空），无需认证
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "requires_setup": true,
+    "user_count": 0
+  }
+}
+```
+
+### 2.7.2 初始化系统
+
+```
+POST /api/setup/init
+```
+
+**说明**: 创建系统第一个管理员账户，无需认证，仅 User 表为空时可调用
+
+**请求体**:
+```json
+{
+  "email": "admin@example.com",
+  "password": "secure_password"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20100,
+  "data": {
+    "user_id": "uuid",
+    "oidc_url": "https://iam.example.com/oauth/authorize?..."
+  }
+}
+```
+
+**错误码**:
+- `40300`: 系统已初始化，禁止重复操作
+- `40001`: 请求参数错误（邮箱格式、密码强度）
+
+
+### 2.8 确认会话
+**架构变更**: 确认流程委托 IAM 管理。Tuneloop 本地 confirmation_sessions 仅用于状态跟踪，不再主动发送邮件/短信。
+
+### 2.8.1 查询确认会话
+
+```
+GET /api/confirmation-sessions/:id
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "session_uuid",
+    "user_id": "uuid",
+    "iam_session_id": "iam-session-uuid",
+    "confirm_type": "email",
+    "confirm_target": "user@example.com",
+    "merchant_id": "uuid",
+    "action_type": "merchant_admin",
+    "action_target_id": "uuid",
+    "callback_url": "https://web.cadenzayueqi.com/api/iam/confirmation-callback",
+    "status": "waiting",
+    "message": null,
+    "expires_at": "2024-01-16T10:00:00Z",
+    "confirmed_at": null,
+    "created_at": "2024-01-15T10:00:00Z"
+  }
+}
+```
+
+**新增字段**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| iam_session_id | string | IAM 侧确认会话 ID |
+| callback_url | string | IAM 确认后的回调地址 |
+
+## 三、白标化配置模块
+
+### 3.1 品牌配置
+
+**接口**: `GET /api/common/brand-config`
+
+**请求参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| client_id | string | IAM 客户端 ID |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "primary_color": "#6366F1",
+    "logo_url": "https://cdn.example.com/logo.png",
+    "brand_name": "TuneLoop",
+    "support_phone": "400-123-4567"
+  }
+}
+```
+
+---
+
+## 四、网点与 LBS 模块
+
+### 4.1 网点列表
+
+**接口**: `GET /api/common/sites`
+
+**请求参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| city | string | 城市编码 |
+| status | string | 状态: active, closed |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "site-001",
+        "name": "北京朝阳店",
+        "address": "北京市朝阳区xxx路123号",
+        "latitude": 39.9042,
+        "longitude": 116.4074,
+        "phone": "010-12345678",
+        "business_hours": "09:00-21:00",
+        "status": "active"
+      }
+    ],
+    "total": 15
+  }
+}
+```
+
+---
+
+### 4.2 附近网点
+
+**接口**: `GET /api/common/sites/nearby`
+
+**请求参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| lat | float | 纬度 (必填) |
+| lng | float | 经度 (必填) |
+| radius | int | 搜索半径 (米, 默认 5000) |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "site-001",
+        "name": "北京朝阳店",
+        "address": "北京市朝阳区xxx路123号",
+        "distance": 1200, // 距离 (米)
+        "phone": "010-12345678",
+        "stock_status": {
+          "piano": 12,
+          "violin": 8
+        }
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 4.3 网点详情
+
+**接口**: `GET /api/common/sites/:id`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "site-001",
+    "name": "北京朝阳店",
+    "address": "北京市朝阳区xxx路123号",
+    "latitude": 39.9042,
+    "longitude": 116.4074,
+    "phone": "010-12345678",
+    "business_hours": "09:00-21:00",
+    "images": ["image1.jpg", "image2.jpg"],
+    "stock_status": {
+      "piano": {
+        "available": 12,
+        "renting": 8,
+        "maintenance": 2
+      }
+    }
+  }
+}
+```
+
+---
+
+### 4.4 网点树结构
+
+**接口**: `GET /api/sites/tree`
+
+**说明**: 获取网点层级树，用于管理端组织架构展示
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "tree": [
+      {
+        "id": "org-001",
+        "name": "北京分公司",
+        "type": "org",
+        "children": [
+          {
+            "id": "site-001",
+            "name": "北京朝阳店",
+            "type": "site",
+            "manager": "user-001"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### 4.5 网点管理 (商家端)
+
+#### 4.5.1 创建网点
+
+**接口**: `POST /api/merchant/sites`
+
+**请求 Body**:
+```json
+{
+  "name": "北京海淀店",
+  "address": "北京市海淀区xxx路456号",
+  "latitude": 39.9562,
+  "longitude": 116.2987,
+  "phone": "010-87654321",
+  "business_hours": "09:00-21:00",
+  "manager_user_id": "user-002",
+  "transit_site_id": "site-003"
+}
+```
+
+> **注**: `transit_site_id` 为受控商户（`merchant_type=controlled`）创建网点时的必填项。可选的中转网点通过 `GET /api/public/sites?type=transit` 获取（返回含 `address`）。
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "site_id": "site-002",
+    "created_at": "2026-03-22T10:00:00Z"
+  }
+}
+```
+
+#### 4.5.2 更新网点
+
+**接口**: `PUT /api/merchant/sites/:id`
+
+**请求 Body**: 同创建
+
+**响应**: 同创建
+
+#### 4.5.3 删除网点
+
+**接口**: `DELETE /api/merchant/sites/:id`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "deleted": true,
+    "deleted_at": "2026-03-22T11:00:00Z"
+  }
+}
+```
+
+---
+
+## 五、乐器租赁模块
+
+### 5.1 公共浏览
+### 5.1.1 乐器列表
+
+**接口**: `GET /api/public/instruments`
+
+**查询参数**:
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| page | int | 页码 (默认: 1) |
+| pageSize | int | 每页数量 (默认: 20, 最大: 100) |
+| category_id | string | 分类 ID（可选）。含该分类自身及**全部后代分类**的乐器（递归，#1843——选顶级分类即可筛出所有子孙分类乐器） |
+| site_id | string | 网点 ID (可选) |
+| level_id | string | 级别 ID (可选) |
+| tenant | string | 租户 ID (可选, 不传则返回所有租户) |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "name": "乐器名称",
+        "brand": "品牌",
+        "model": "型号",
+        "category_id": "cat-01",
+        "category_name": "分类名",
+        "level_name": "级别名",
+        "images": ["url1", "url2"],
+        "pricing": {},
+        "stock_status": "available", // available/rented/maintenance/archived/lost
+        "base_daily_rate": 10000,   // 分（P3 契约）
+        "daily_rate_cents": 10000,  // #1750 日租金（分）——前端展示一律用此字段 /100，勿读 pricing.daily_rent（元/分历史混写）
+        "tenant_id": "uuid",
+        "site_id": "uuid",
+        "site_name": "网点名",
+        "description": "描述"
+      }
+    ],
+    "total": 100,
+    "page": 1,
+    "pageSize": 20
+  }
+}
+```
+
+> **金额单位契约矩阵（#1750/#1755）**：`base_daily_rate`（分）、`daily_rate_cents`（分，权威展示字段）、`pricing` JSONB（元语义，历史写入可能为分——勿用于金额计算）、`pricing-v2`（**分**，#1755 迁移：base_daily_rate/tiers.daily_rate/deposit/shipping_fee 均为分）、`search` 的 `daily_rate_cents`（分）。前端展示价格一律消费分字段 `/100`。
+
+### 5.1.2 乐器详情
+
+**接口**: `GET /api/public/instruments/:id`
+
+**响应**: 同上单条乐器数据, 包含 `tenant_id` 用于购物车按租户分组
+
+### 5.1.3 分类列表
+
+**接口**: `GET /api/public/categories` — 公开分类（不限制 tenant）
+**接口**: `GET /api/categories` — 全站统一分类，需已登录（不限 tenant，由 namespace_admin 统一管理）
+
+### 5.1.4 网点列表
+
+**接口**: `GET /api/public/sites`
+
+---
+
+
+
+### 5.2 乐器分类
+
+**接口**: `GET /api/instruments/categories`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": [
+    {
+      "id": "cat-01",
+      "name": "钢琴",
+      "icon": "piano.png",
+      "children_count": 5
+    },
+    {
+      "id": "cat-02",
+      "name": "弦乐器",
+      "icon": "string.png",
+      "children_count": 8
+    }
+  ]
+}
+```
+
+---
+
+### 5.3 二级分类
+
+**接口**: `GET /api/instruments/categories/:parentId/items`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": [
+    {
+      "id": "sub-01",
+      "name": "雅马哈立式钢琴",
+      "brand": "Yamaha",
+      "model": "U1",
+      "min_price": 300,
+      "stock_count": 15
+    }
+  ]
+}
+```
+
+---
+
+### 5.4 乐器列表
+
+**接口**: `GET /api/instruments`
+
+**请求参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| category_id | string | 分类 ID |
+| brand | string | 品牌 |
+| level | string | 级别: entry, professional, master |
+| min_price | int | 最低租金 |
+| max_price | int | 最高租金 |
+| sort_by | string | 排序: price_asc, price_desc, popular |
+| site_id | string | 网点 ID (筛选有库存) |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "instr-001",
+        "name": "雅马哈立式钢琴 U1",
+        "cover_image": "piano.jpg",
+        "level": "professional",
+        "level_name": "专业级",
+        "monthly_rent": 800,
+        "total_price": 50000,
+        "deposit": 5000,
+        "stock_status": "available" // available, rented, maintenance, archived, lost
+      }
+    ],
+    "total": 120
+  }
+}
+```
+
+**排序说明（#1797）**：
+- 默认排序：`sort_order ASC, created_at DESC`（未排序存量数据 sort_order=0，退化为创建时间倒序）
+- `sort` 参数：`sort_order`（默认）/ `created_at` / `-created_at` / `+created_at`
+- 同分类（category_id）内可通过 `PUT /instruments/:id/sort` 调整顺序
+
+---
+
+### 5.4.1 乐器分类内排序
+
+**接口**: `PUT /api/instruments/:id/sort`
+
+**权限**: `instrument:update`
+
+**请求体**:
+```json
+{
+  "direction": "up"
+}
+```
+`direction`: `up`（上移）| `down`（下移）
+
+**逻辑**:
+- 同 `category_id` 组内（NULL 视作独立组）按 `sort_order ASC, created_at DESC` 取相邻记录，交换两者的 `sort_order`
+- 两个 `sort_order` 均为 0 时设为相邻序号（up → 2/1；down → 1/2），保证可重复操作
+- 边界：已在首位上移 / 已在末位下移 → `40002`「已在最前 / 已在最后」
+- 租户隔离：仅操作本租户乐器，其他租户 id → `40400`
+
+**成功响应**:
+```json
+{
+  "code": 20000,
+  "sort_order": 1
+}
+```
+（`sort_order` 为移动后的新序号）
+
+**错误响应**:
+```json
+{ "code": 40002, "message": "已在最前" }
+{ "code": 40400, "message": "instrument not found" }
+```
+
+---
+
+### 5.5 乐器详情
+
+**接口**: `GET /api/instruments/:id`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "instr-001",
+    "name": "雅马哈立式钢琴 U1",
+    "brand": "Yamaha",
+    "level": "professional",
+    "level_name": "专业级",
+    "description": "专业级立式钢琴，适合进阶学习...",
+    "images": ["img1.jpg", "img2.jpg", "img3.jpg"],
+    "video": "intro.mp4",
+    "poster": "https://example.com/poster.jpg",
+    "specifications": {
+      "material": "实木",
+      "size": "121cm",
+      "suitable": "进阶学习者"
+    },
+    "repair_status": "repair_pending",
+    "repair_worker_id": null,
+    "repair_worker_name": null,
+    "pricing": {
+      "monthly_rent": 800,
+      "deposit": 5000,
+      "total_price": 50000,
+      "discounts": {
+        "3_months": 1.0,
+        "6_months": 0.98,
+        "12_months": 0.95
+      }
+    },
+    "available_sites": [
+      {
+        "id": "site-001",
+        "name": "北京朝阳店",
+        "distance": 1200
+      }
+    ]
+  }
+}
+```
+
+**维修字段说明**（#1868）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `repair_status` | string | 维修状态：`repair_pending`（待维修）/ `repair_in_progress`（维修中）/ `repair_completed`（已修复）/ `""`（不在维修流程）。维修工作流页面的操作按钮（开始维修/记录/验收）依赖该字段驱动 |
+| `repair_worker_id` | uuid\|null | 维修负责人用户 ID，无负责人时为 `null` |
+| `repair_worker_name` | string\|null | 负责人姓名（#1873：`repair_worker_id` 存储 IAM sub，按 `users.iam_sub` 解析，回退链 `name → username → phone`；无负责人或查无此人时为 `null`） |
+
+---
+
+### 5.6 阶梯定价方案
+
+**接口**: `GET /api/instruments/:id/pricing`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "entry_level": {
+      "monthly_rent": 300,
+      "deposit": 2000,
+      "service_coverage": ["基础清洁", "免费调音 1 次/年"]
+    },
+    "professional_level": {
+      "monthly_rent": 800,
+      "deposit": 5000,
+      "service_coverage": ["深度清洁", "免费调音 2 次/年", "免费维修"]
+    },
+    "master_level": {
+      "monthly_rent": 2000,
+      "deposit": 10000,
+      "service_coverage": ["专家精调", "无限次调音", "免费维修", "上门保养"]
+    }
+  }
+}
+```
+
+---
+
+### 5.6.1 阶梯定价方案 V2（含分阶段计价）
+
+**接口**: `GET /api/public/instruments/:id/pricing-v2`
+
+> **#1755 单位**：响应金额字段（`base_daily_rate` / `tiers[].daily_rate` / `deposit` / `shipping_fee`）为**分**（P3 契约，前端 /100 显示）。
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "base_daily_rate": 100,
+    "deposit": 2000,
+    "shipping_fee": 50,
+    "overdue_daily_fee": 150,
+    "tiers": [
+      { "days_max": 30, "daily_rate": 100 },
+      { "days_max": 90, "daily_rate": 85 },
+      { "days_max": 365, "daily_rate": 70 },
+      { "days_max": 0, "daily_rate": 55 }
+    ]
+  }
+}
+```
+
+> **注**: `days_max=0` 表示无上限（即超过 365 天后按此费率）。
+>
+> **押金计算**：ratio 模式下优先级为：
+> 1. 用户手动录入押金（最高优先级）
+> 2. 有总价时：`deposit = total_price × deposit_ratio`（`deposit_ratio` 默认 0.3，即总价 30%）
+> 3. 仅日租金时：`deposit = base_daily_rate × deposit_multiplier`（`deposit_multiplier` 默认 7，即 7 倍日租金）
+>
+> 两参数可在商户定价策略中分别配置。网点管理员可通过批零价覆盖手动修改押金金额。
+
+---
+
+### 5.7 乐器管理扩展
+
+#### 5.7.1 检查乐器 SN 码
+
+**接口**: `GET /api/instruments/check`
+
+**请求参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| sn | string | SN 码 |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "available": true,
+    "message": "SN 码可用"
+  }
+}
+```
+
+#### 5.7.2 更新乐器状态
+
+**接口**: `PUT /api/instruments/:id/status`
+
+**请求 Body**:
+```json
+{
+  "status": "maintenance",
+  "reason": "用户报修"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "asset_id": "instr-001",
+    "old_status": "renting",
+    "new_status": "maintenance",
+    "updated_at": "2026-03-22T10:00:00Z"
+  }
+}
+```
+
+#### 5.7.3 下载导入模板
+
+**接口**: `GET /api/instruments/import/template`
+
+**响应**: Excel 文件流
+
+---
+
+#### 5.7.4 乐器删除
+
+**接口**: `DELETE /api/instruments/:id`
+
+**说明**: 删除单个乐器。乐器有关联订单或正在使用时拒绝删除。
+
+**响应（成功）**:
+```json
+{ "code": 20000, "message": "乐器已删除" }
+```
+
+**错误码**（machine-readable English message，前端按 #1675 L1 映射）:
+
+| code | message | 前端显示 |
+|------|---------|---------|
+| 40400 | `instrument not found` | 乐器不存在 |
+| 40900 | `instrument in use` | 乐器正在使用中，无法删除 |
+| 40901 | `instrument has linked orders` | 乐器存在关联订单（历史交易），无法删除 |
+| 50000 | `delete instrument failed` | 删除乐器失败，请重试 |
+
+---
+
+#### 5.7.5 批量删除乐器
+
+**接口**: `DELETE /api/instruments/batch`
+
+**说明**: 批量删除乐器，部分成功语义——逐个 ID 独立校验。
+
+**请求 Body**:
+```json
+{
+  "ids": ["uuid-1", "uuid-2", "uuid-3"]
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "deleted": ["uuid-1"],
+  "failed": [
+    { "id": "uuid-2", "reason": "instrument has linked orders" },
+    { "id": "uuid-3", "reason": "instrument in use" }
+  ]
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| `deleted` | 成功删除的 ID 列表 |
+| `failed` | 删除失败的列表，每项含 `id` + `reason`（machine-readable English，前端按 L1 映射） |
+
+---
+
+### 5.8 Excel批量导入/导出
+
+#### 5.8.1 导入乐器信息
+
+**接口**: `POST /api/instruments/import`
+
+**Content-Type**: `multipart/form-data`
+
+**表单字段**:
+- `file`: Excel文件 (.xlsx, .xls)
+
+**请求示例**:
+```bash
+curl -X POST http://localhost:5554/api/instruments/import \  -H "Authorization: Bearer <JWT_TOKEN>" \  -F "file=@instruments.xlsx"
+```
+
+**成功响应 (部分成功)**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "total": 100,
+    "success": 95,
+    "failed": 5,
+    "errors": [
+      {
+        "row": 10,
+        "error": "Missing required field: name"
+      },
+      {
+        "row": 25,
+        "error": "Invalid price format"
+      }
+    ]
+  },
+  "message": "Import completed: 95 success, 5 failed (23.5 records/s)"
+}
+```
+
+**错误响应**:
+```json
+{
+  "code": 40003,
+  "message": "Only Excel files (.xlsx, .xls) are supported"
+}
+```
+
+**Excel模板字段**:
+| 字段名 | 中文标题 | 必填 | 说明 |
+|--------|----------|------|------|
+| name | 乐器名称 | ✅ | 乐器名称 |
+| brand | 品牌 | ❌ | 品牌名称 |
+| model | 型号 | ❌ | 型号 |
+| category_name | 分类名称 | ✅ | 分类名称，支持模糊匹配 |
+| level | 级别 | ❌ | enum: entry/pro/master，默认entry |
+| daily_rate | 日租金 | ❌ | 数字格式，如: 50（旧模型） |
+| monthly_rate | 月租金 | ❌ | 数字格式（旧模型，建议用 base_daily_rate） |
+| base_daily_rate | 第一阶梯日均价 | ❌ | 数字格式，阶梯定价锚点 |
+| total_price | 乐器总价 | ❌ | 数字格式，采购价/标价 |
+| deposit | 押金 | ❌ | 数字格式 |
+| stock | 库存数量 | ❌ | 整数，默认0 |
+| status | 状态 | ❌ | enum: available/rented/maintenance/archived/lost，默认available |
+| description | 描述 | ❌ | 乐器描述 |
+| images | 图片URL | ❌ | 支持多个，逗号分隔 |
+
+**业务规则**:
+- 支持部分成功导入，每行独立验证
+- 重复检测: name + brand + model 组合唯一
+- 分类模糊匹配，未找到时自动归类到"未分类"
+- 批次提交，每100条提交一次事务
+
+---
+
+#### 5.8.2 导出乐器列表
+
+**接口**: `GET /api/instruments/export`
+
+**查询参数**:
+- `category`: 分类筛选 (可选)
+- `status`: 状态筛选 (可选)
+- `search_text`: 搜索文本，匹配name或brand (可选)
+- `fields`: 导出字段，逗号分隔 (可选，默认全部)
+
+**请求示例**:
+```bash
+curl -X GET "http://localhost:5554/api/instruments/export?category=钢琴&status=available&fields=name,brand,price" \  -H "Authorization: Bearer <JWT_TOKEN>" \  --output instruments.xlsx
+```
+
+**成功响应**:
+```
+HTTP/1.1 200 OK
+Content-Type: application/octet-stream
+Content-Disposition: attachment; filename="instruments_1234567890.xlsx"
+
+[Binary Excel File Content]
+```
+
+**错误响应**:
+```json
+{
+  "code": 40006,
+  "message": "Export failed: no instruments found with given filters"
+}
+```
+
+**可用导出字段**:
+- `name` - 乐器名称
+- `brand` - 品牌
+- `model` - 型号
+- `category_name` - 分类名称
+- `level` - 级别
+- `daily_rate` - 日租金
+- `monthly_rate` - 月租金
+- `deposit` - 押金
+- `stock` - 库存
+- `status` - 状态
+- `description` - 描述
+- `images` - 图片URL
+
+---
+
+#### 5.8.3 下载导入模板
+
+**接口**: `GET /api/instruments/import/template`
+
+**请求示例**:
+```bash
+curl -X GET http://localhost:5554/api/instruments/import/template \  -H "Authorization: Bearer <JWT_TOKEN>" \  --output instrument_template.xlsx
+```
+
+**成功响应**:
+```
+HTTP/1.1 200 OK
+Content-Type: application/octet-stream
+Content-Disposition: attachment; filename="instrument_import_template.xlsx"
+
+[Binary Excel File Content]
+```
+
+**模板内容**:
+- 第1行: 字段标题（红色为必填）
+- 第2行: 示例数据
+- 第4-8行: 填写说明
+
+**安全特性**:
+- Excel公式注入防护: 自动转义以`=`, `+`, `-`, `@`开头的值
+- 输入长度限制: 超过1000字符自动截断
+- 严格数值验证: 价格字段必须为有效数字\n\n#### 5.6.1 导入乐器信息\n\n**接口**: `POST /api/instruments/import`\n\n**Content-Type**: `multipart/form-data`\n\n**表单字段**:\n- `file`: Excel文件 (.xlsx, .xls)\n\n**请求示例**:\n```bash\ncurl -X POST http://localhost:5554/api/instruments/import \\  -H "Authorization: Bearer <JWT_TOKEN>" \\  -F "file=@instruments.xlsx"\n```\n\n**成功响应 (部分成功)**:\n```json\n{\n  "code": 20000,\n  "data": {\n    "total": 100,\n    "success": 95,\n    "failed": 5,\n    "errors": [\n      {\n        "row": 10,\n        "error": "Missing required field: name"\n      },\n      {\n        "row": 25,\n        "error": "Invalid price format"\n      }\n    ]\n  },\n  "message": "Import completed: 95 success, 5 failed (23.5 records/s)"\n}\n```\n\n**错误响应**:\n```json\n{\n  "code": 40003,\n  "message": "Only Excel files (.xlsx, .xls) are supported"\n}\n```\n\n**Excel模板字段**:\n| 字段名 | 中文标题 | 必填 | 说明 |\n|--------|----------|------|------|\n| name | 乐器名称 | ✅ | 乐器名称 |\n| brand | 品牌 | ❌ | 品牌名称 |\n| model | 型号 | ❌ | 型号 |\n| category_name | 分类名称 | ✅ | 分类名称，支持模糊匹配 |\n| level | 级别 | ❌ | enum: entry/pro/master，默认entry |\n| daily_rate | 日租金 | ❌ | 数字格式，如: 50 |\n| monthly_rate | 月租金 | ❌ | 数字格式 |\n| deposit | 押金 | ❌ | 数字格式 |\n| stock | 库存数量 | ❌ | 整数，默认0 |\n| status | 状态 | ❌ | enum: available/rented/maintenance，默认available |\n| description | 描述 | ❌ | 乐器描述 |\n| images | 图片URL | ❌ | 支持多个，逗号分隔 |\n\n**业务规则**:\n- 支持部分成功导入，每行独立验证\n- 重复检测: name + brand + model 组合唯一\n- 分类模糊匹配，未找到时自动归类到"未分类"\n- 批次提交，每100条提交一次事务\n\n---\n\n#### 5.6.2 导出乐器列表\n\n**接口**: `GET /api/instruments/export`\n\n**查询参数**:\n- `category`: 分类筛选 (可选)\n- `status`: 状态筛选 (可选)\n- `search_text`: 搜索文本，匹配name或brand (可选)\n- `fields`: 导出字段，逗号分隔 (可选，默认全部)\n\n**请求示例**:\n```bash\ncurl -X GET "http://localhost:5554/api/instruments/export?category=钢琴&status=available&fields=name,brand,price" \\  -H "Authorization: Bearer <JWT_TOKEN>" \\  --output instruments.xlsx\n```\n\n**成功响应**:\n```\nHTTP/1.1 200 OK\nContent-Type: application/octet-stream\nContent-Disposition: attachment; filename="instruments_1234567890.xlsx"\n\n[Binary Excel File Content]\n```\n\n**错误响应**:\n```json\n{\n  "code": 40006,\n  "message": "Export failed: no instruments found with given filters"\n}\n```\n\n**可用导出字段**:\n- `name` - 乐器名称\n- `brand` - 品牌\n- `model` - 型号\n- `category_name` - 分类名称\n- `level` - 级别\n- `daily_rate` - 日租金\n- `monthly_rate` - 月租金\n- `deposit` - 押金\n- `stock` - 库存\n- `status` - 状态\n- `description` - 描述\n- `images` - 图片URL\n\n---\n\n#### 5.6.3 下载导入模板\n\n**接口**: `GET /api/instruments/import/template`\n\n**请求示例**:\n```bash\ncurl -X GET http://localhost:5554/api/instruments/import/template \\  -H "Authorization: Bearer <JWT_TOKEN>" \\  --output instrument_template.xlsx\n```\n\n**成功响应**:\n```\nHTTP/1.1 200 OK\nContent-Type: application/octet-stream\nContent-Disposition: attachment; filename="instrument_import_template.xlsx"\n\n[Binary Excel File Content]\n```\n\n**模板内容**:\n- 第1行: 字段标题（红色为必填）\n- 第2行: 示例数据\n- 第4-8行: 填写说明\n\n**安全特性**:\n- Excel公式注入防护: 自动转义以`=`, `+`, `-`, `@`开头的值\n- 输入长度限制: 超过1000字符自动截断\n- 严格数值验证: 价格字段必须为有效数字
+
+---
+
+### 5.9 乐器照片存储 (Deprecated)
+
+> ⚠️ **已废弃**: 此模块已被 §5.9 乐器媒体管理 替代。`POST /api/instruments/:id/photos/upload` 和 `GET /api/instruments/:id/photos/latest` 保留向后兼容，不再新增记录。新功能请使用 §5.9 的接口。
+
+#### 5.9.1 上传乐器照片批次
+
+**接口**: `POST /api/instruments/:id/photos/upload`
+
+**Content-Type**: `multipart/form-data`
+
+**路径参数**:
+- `id`: 乐器ID (UUID)
+
+**表单字段**:
+- `photos`: 图片文件数组 (支持多个文件)
+- `batch_type`: 批次类型 (enum: outbound/return/maintenance)
+
+**认证**: 需要 `Authorization: Bearer <JWT_TOKEN>`
+
+**请求示例**:
+```bash
+curl -X POST http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-426614174000/photos/upload \
+  -H "Authorization: Bearer <JWT_TOKEN>" \
+  -F "batch_type=outbound" \
+  -F "photos=@front.jpg" \
+  -F "photos=@side.jpg"
+```
+
+**成功响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "batch_id": "abc123...",
+    "instrument_id": "123e4567-e89b-12d3-a456-426614174000",
+    "batch_type": "outbound",
+    "storage_path": "/uploads/photos/tenant_abc/SN-12345/batch_20240101_120000.zip",
+    "photo_count": 2,
+    "created_at": "2024-01-01T12:00:00Z"
+  }
+}
+```
+
+**错误响应**:
+```json
+{
+  "code": 40004,
+  "message": "No photos uploaded"
+}
+```
+
+**存储结构**:
+```
+uploads/photos/{tenant_id}/{instrument_sn}/batch_{timestamp}/
+  ├─ photo1.jpg
+  ├─ photo2.jpg
+  └─ manifest.yaml
+```
+
+**manifest.yaml 内容**:
+```yaml
+version: "1.0"
+batch_id: abc123...
+instrument_id: 123e4567-e89b-12d3-a456-426614174000
+instrument_sn: SN-12345
+batch_type: outbound
+operator_id: user_789
+tenant_id: tenant_abc
+created_at: "2024-01-01T12:00:00Z"
+photos:
+  - filename: front.jpg
+    position: front
+    timestamp: "2024-01-01T12:00:01Z"
+    size: 2048576
+  - filename: side.jpg
+    position: side
+    timestamp: "2024-01-01T12:00:02Z"
+    size: 1872451
+```
+
+---
+
+#### 5.9.2 获取最新照片批次
+
+**接口**: `GET /api/instruments/:id/photos/latest`
+
+**路径参数**:
+- `id`: 乐器ID (UUID)
+
+**认证**: 需要 `Authorization: Bearer <JWT_TOKEN>`
+
+**请求示例**:
+```bash
+curl -X GET http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-426614174000/photos/latest \
+  -H "Authorization: Bearer <JWT_TOKEN>"
+```
+
+**成功响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "instrument_id": "123e4567-e89b-12d3-a456-426614174000",
+    "instrument_sn": "SN-12345",
+    "photos": [
+      "/uploads/photos/tenant_abc/SN-12345/latest/front.jpg",
+      "/uploads/photos/tenant_abc/SN-12345/latest/side.jpg"
+    ],
+    "count": 2
+  }
+}
+```
+
+**错误响应 (无照片)**:
+```json
+{
+  "code": 40401,
+  "message": "No photo batches found for this instrument"
+}
+```
+
+**存储结构**:
+系统将创建 `uploads/photos/{tenant_id}/{instrument_sn}/latest/` 软链接，指向最新的员工拍照批次目录。
+
+---
+
+#### 5.9.3 获取乐器照片批次列表
+
+**接口**: `GET /api/instruments/:id/photos/batches`
+
+**路径参数**:
+- `id`: 乐器ID (UUID)
+
+**查询参数**:
+- `page`: 页码 (默认: 1)
+- `pageSize`: 每页数量 (默认: 20, 最大: 100)
+- `batch_type`: 按批次类型筛选 (可选)
+
+**认证**: 需要 `Authorization: Bearer <JWT_TOKEN>`
+
+**请求示例**:
+```bash
+curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-426614174000/photos/batches?page=1&batch_type=outbound" \
+  -H "Authorization: Bearer <JWT_TOKEN>"
+```
+
+**成功响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "items": [
+      {
+        "batch_id": "abc123...",
+        "batch_type": "outbound",
+        "storage_path": "/uploads/photos/tenant_abc/SN-12345/batch_20240101_120000.zip",
+        "photo_count": 2,
+        "operator_id": "user_789",
+        "created_at": "2024-01-01T12:00:00Z"
+      },
+      {
+        "batch_id": "def456...",
+        "batch_type": "return",
+        "storage_path": "/uploads/photos/tenant_abc/SN-12345/batch_20240115_140000.zip",
+        "photo_count": 3,
+        "operator_id": "user_012",
+        "created_at": "2024-01-15T14:00:00Z"
+      }
+    ],
+    "total": 2,
+    "page": 1,
+    "pageSize": 20
+  }
+}
+```
+
+**错误响应**:
+```json
+{
+  "code": 40400,
+  "message": "Instrument not found"
+}
+```
+
+---
+
+### 5.10 乐器媒体管理
+
+> 取代 §5.8 照片存储系统，支持图片/视频上传、OSS/本地双模式、按批次管理。
+
+#### 5.10.1 通用文件上传
+
+**接口**: `POST /api/upload`
+
+**Content-Type**: `multipart/form-data`
+
+**表单字段**:
+- `file`: 图片或视频文件
+- `filename`: 可选，指定文件名（不含扩展名）
+
+**允许的文件类型**: JPEG, PNG, GIF, WebP, MP4, WebM, MOV
+
+**认证**: 需要 `Authorization: Bearer <JWT_TOKEN>`
+
+**成功响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "url": "/uploads/media/1234567890_a1b2c3d4.jpg",
+    "file_key": "1234567890_a1b2c3d4.jpg",
+    "fileName": "original.jpg",
+    "size": 2048576
+  }
+}
+```
+`file_key` 为后续绑定到乐器时的唯一标识。
+
+#### 5.10.2 绑定媒体到乐器
+
+**接口**: `POST /api/instruments/:id/media`
+
+**请求 Body**:
+```json
+{
+  "batch_type": "shipping",
+  "is_display": true,
+  "files": [
+    { "file_key": "1234567890_a1b2c3d4.jpg", "file_type": "image", "sort_order": 1 },
+    { "file_key": "0987654321_e5f6g7h8.mp4", "file_type": "video", "sort_order": 0 }
+  ]
+}
+```
+
+**batch_type 枚举**: shipping / forwarding / accepting / returning / relaying / receiving / repaired
+
+**行为说明**:
+- `is_display=true` 时自动重置同乐器的其他展示批次
+- 视频唯一性：后上传的视频自动替换旧视频（删除旧视频 + 缩略图 + DB 记录）
+- 视频上传后自动提取缩略图（需容器部署 FFmpeg）
+
+**成功响应**: `{ "code": 20000, "data": { "batch_id": "uuid" } }`
+
+#### 5.10.3 设置展示批次
+
+**接口**: `PUT /api/instruments/:id/media/display`
+
+**请求 Body**: `{ "batch_id": "uuid" }`
+
+设置后自动同步到 `Instrument.Images`/`Video` 字段以保持向后兼容。
+
+#### 5.10.4 删除媒体批次
+
+**接口**: `DELETE /api/instruments/:id/media/:batch_id`
+
+删除对应存储文件及 DB 记录，自动同步 `Instrument.Images`/`Video`。
+
+**单条删除**: `DELETE /api/instruments/:id/media/key/*storage_key` —— `storage_key` 为结构化路径（如 `{tenant}/{org}/{uuid}_display_*.webp`，含 `/`），通配符路由匹配整段路径；删除对应物理文件 + `instrument_media` 记录，并同步 `media_assets` 引用状态（#1646/#1692）。
+
+#### 5.10.5 获取乐器媒体列表
+
+**接口**: `GET /api/instruments/:id/media`
+
+**成功响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "display": [
+      { "batch_id": "uuid", "batch_type": "shipping", "file_type": "image", "url": "/uploads/media/...", "sort_order": 1 }
+    ],
+    "batches": [
+      { "batch_id": "uuid", "batch_type": "shipping", "count": 5, "created_at": "2026-06-06T00:00:00Z" }
+    ],
+    "video": { "batch_id": "uuid", "batch_type": "shipping", "file_type": "video", "url": "/uploads/media/...", "thumb_url": "/uploads/media/..._thumb.jpg", "sort_order": 0 },
+    "groups": [
+      {
+        "batch_id": "uuid",
+        "batch_type": "shipping",
+        "created_at": "2026-06-06T00:00:00Z",
+        "items": [
+          { "batch_id": "uuid", "batch_type": "shipping", "file_type": "image", "url": "/uploads/media/...", "sort_order": 1 }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`display`: 当前设为展示的图片列表。`batches`: 所有批次的汇总信息（不含具体文件）。`groups`: 按 `batch_id` 分组的完整文件列表。
+
+#### 5.10.6 公共乐器媒体列表
+
+**接口**: `GET /api/public/instruments/:id/media`
+
+**说明**: 无登录访问，仅返回当前展示图片和当前视频，不暴露历史批次数据。
+
+**成功响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "images": [
+      { "url": "/uploads/media/...", "file_type": "image" }
+    ],
+    "video": { "url": "/uploads/media/...", "thumb_url": "/uploads/media/..._thumb.jpg", "file_type": "video" }
+  }
+}
+```
+
+`images`: 当前展示的图片列表。`video`: 当前视频（含缩略图封面）。无视频时 `video` 为 `null`。
+
+#### 5.10.7 上传/替换展示图像
+
+**接口**: `POST /api/instruments/:id/display-image`
+
+**权限**: `instrument:media_upload`
+
+**请求**: multipart/form-data
+- `image`: 图片文件 (jpg/png/webp, 自动缩放到最大宽度 1920px)
+
+**成功响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "id": "uuid",
+    "url": "/uploads/media/...",
+    "width": 1920,
+    "height": 1080,
+    "file_size": 245000
+  }
+}
+```
+
+**行为**: 上传后自动清除此乐器的所有 `is_display` 标记，新图像设为当前展示。
+
+#### 5.10.8 乐器活动日志
+
+**接口**: `GET /api/instruments/:id/activity-log`
+
+**权限**: 认证用户
+
+**成功响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "sessions": [
+      {
+        "order_id": "uuid",
+        "status": "completed",
+        "start_date": "2026-01-01",
+        "end_date": "2026-06-01",
+        "events": [
+          {
+            "event": "发货",
+            "time": "2026-01-05T10:30:00Z",
+            "operator": "张三",
+            "media": [{ "url": "/uploads/media/...", "batch_type": "shipping" }]
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**数据来源**: `order_status_history` + `instrument_media`，按订单分组，按时间排序。
+
+#### 5.10.9 上传大小限制
+
+全站点设置，存储于 `system_settings` 表：
+
+| 设置字段 | 默认值 | 说明 |
+|---------|--------|------|
+| `upload_image_max_size` | 10 MB | 图片最大尺寸 |
+| `upload_video_max_size` | 100 MB | 视频最大尺寸 |
+
+仅命名空间管理员可通过 `GET/PUT /api/settings/:key` 修改。
+
+---
+
+### 5.11 乐器促销覆盖配置
+
+**权限**: `promo:override`
+
+#### 5.11.1 查询乐器促销覆盖
+
+**接口**: `GET /api/instruments/:id/promo-overrides`
+
+**说明**: 返回指定乐器的所有促销覆盖配置（discount/rebate/rent_to_own）。
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": [
+    {
+      "id": "uuid",
+      "override_type": "rent_to_own",
+      "enabled": false,
+      "content": "此乐器不出售"
+    }
+  ]
+}
+```
+
+#### 5.11.2 更新乐器促销覆盖
+
+**接口**: `PUT /api/instruments/:id/promo-overrides`
+
+**请求 Body**:
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| override_type | string | 是 | `discount` / `rebate` / `rent_to_own` |
+| enabled | bool | 否 | 是否启用（不传则不更新现有值；新建设备默认 true） |
+| content | string | 否 | 自定义文案（rent_to_own 类型；**不传则不更新现有值**，传空串=重置为默认文案） |
+
+**说明**: `enabled` 使用 `*bool` 类型，`false` 可正常保存（不被零值覆盖）。`rent_to_own` 类型控制移动端乐器详情页的租购转化模块：
+- `enabled: true`（默认）→ 显示租购转化模块
+- `enabled: false` → 隐藏租购转化模块
+- `content` 非空 → 显示自定义文案；空 → 默认「如需购买此乐器，请联系商户」
+
+---
+
+## 六、订单模块
+
+### 6.1 预计算首期费用
+
+**接口**: `POST /api/orders/preview`
+
+**请求 Body**:
+```json
+{
+  "instrument_id": "instr-001",
+  "level": "professional",
+  "lease_term": 12, // 3, 6, 12 个月
+  "deposit_mode": "free" // free | standard
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "first_month_rent": 760, // 800 * 0.95
+    "deposit": 0, // 免押金
+    "total_amount": 760,
+    "discount_info": "12个月租期享95折",
+    "deposit_info": "信用分达标，押金已免除",
+    "contract_preview": "租用协议摘要..."
+  }
+}
+```
+
+---
+
+### 6.2 创建订单
+
+**接口**: `POST /api/user/orders`
+
+> **游客支持**：已认证但未绑定组织的用户（token 中 `tid`/`oid` 为空）也可调用此接口。
+> 订单的 `tenant_id` 和 `org_id` 从乐器 (`instrument`) 记录中派生，无需依赖 token 中的组织绑定。
+
+**请求 Body**:
+```json
+{
+  "instrument_id": "instr-001",
+  "start_date": "2026-03-21",
+  "end_date": "2026-06-21",
+  "rent_days": 92,
+  "delivery_address": {},
+  "notes": "",
+  "deposit_waived": false,
+  "guarantor_ids": [],
+  "recommendation_letter": ""
+}
+```
+
+> **#1762: `end_date` 由服务端按 `rent_days` 权威重算**——`rent_days > 0` 时服务端以 `end_date = start_date + (rent_days − 1)` 覆盖前端提交值（前端 end_date 仅供参考，不信任）；`rent_days = 0` 时按提交的 start/end 推导天数（legacy 兼容）。批量下单（6.3）同规则（按每项 `rent_days`）。
+>
+> **#1867 免押金字段**：`deposit_waived=true` 时必须同时满足——① 用户已实名核验且第三证件类型为 `student`/`teacher`；② 内部信用分 ≥ `DEPOSIT_WAIVER_MIN_CREDIT`（默认 600）；③ `guarantor_ids` ≥ 2 个本人名下担保人；④ `recommendation_letter` 非空（`POST /upload` 返回的推荐信照片 URL）。不满足时返回 `40301`（资格不符）或 `40002`（缺推荐信）。
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "order_id": "order-001",
+    "amount": 2800,
+    "deposit": 500,
+    "lease_id": "lease-001",
+    "contract_id": "contract-001",
+    "payment_url": "https://pay.example.com/..."
+  }
+}
+```
+
+---
+
+### 6.3 批量创建订单
+
+**接口**: `POST /api/user/orders/batch`
+
+> **游客支持**：已认证但未绑定组织的用户（token 中 `tid`/`oid` 为空）也可调用此接口。
+> 订单的 `tenant_id` 和 `org_id` 从第一批乐器的记录中派生。
+
+**请求 Body**:
+```json
+{
+  "items": [
+    {
+      "instrument_id": "instr-001",
+      "start_date": "2026-03-21",
+      "end_date": "2026-06-21"
+    },
+    {
+      "instrument_id": "instr-002",
+      "start_date": "2026-03-21",
+      "end_date": "2026-06-21"
+    }
+  ]
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "orders": [
+      { "order_id": "order-001", "amount": 2800, "status": "reserved" },
+      { "order_id": "order-002", "amount": 1500, "status": "reserved" }
+    ],
+    "total_amount": 4300
+  }
+}
+```
+
+---
+
+### 6.3a 订单计数
+
+**接口**: `GET /api/user/orders/counts`
+
+> **游客支持**：已认证的用户均可调用，返回当前用户各状态订单数量。
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "reserved": 2,
+    "in_lease": 1,
+    "returning": 0,
+    "completed": 5
+  }
+}
+```
+
+---
+
+### 6.3b 免押金资格查询（#1867）
+
+**接口**: `GET /api/user/deposit-waiver/eligibility`
+
+> 免押金资格由服务端权威判定：已实名核验 + 第三证件类型为 `student`/`teacher` + 内部信用分达标（`DEPOSIT_WAIVER_MIN_CREDIT`，默认 600）。未登录返回 `40001`。
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "eligible": false,
+    "reasons": ["identity_not_student_or_teacher"],
+    "identity_type": "work",
+    "face_verified": true,
+    "credit_score": 700,
+    "min_credit_score": 600
+  }
+}
+```
+
+**reasons 枚举**：`face_not_verified`（未实名）/ `identity_not_student_or_teacher`（非学生/教职工）/ `credit_below_threshold`（信用分不足）/ `profile_not_ready`（本地档案未建立）/ `user_not_found` / `load_failed`（前端降级用）。
+
+---
+
+### 6.4 订单列表
+
+**接口**: `GET /api/orders`
+
+**请求参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| status | string | 状态: reserved, paid, pending_shipment, in_transit, shipped, in_lease, returning, returned, completed, cancelled, expired |
+| type | string | 类型: lease, maintenance |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "order-001",
+        "instrument_name": "雅马哈立式钢琴 U1",
+        "status": "active",
+        "created_at": "2026-03-21T10:30:00Z",
+        "next_payment_date": "2026-04-21",
+        "accumulated_months": 8, // 已累计租期
+        "transfer_progress": 66.7 // 租转售进度 %
+      }
+    ],
+    "total": 5
+  }
+}
+```
+
+---
+
+### 6.5 订单详情
+
+**接口**: `GET /api/orders/:id`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "order-001",
+    "instrument": {
+      "id": "instr-001",
+      "name": "雅马哈立式钢琴 U1",
+      "level": "professional"
+    },
+    "lease_term": 12,
+    "monthly_rent": 760,
+    "deposit": 0,
+    "deposit_refunded": false,
+    "status": "active",
+    "coupon_code": "ENO",            // #1744 优惠码快照（无码为 null）
+    "coupon_discount": 3564,         // #1744 折扣金额（分；无码 0）
+    "created_at": "2026-03-21T10:30:00Z",
+    "start_date": "2026-03-21",
+    "end_date": "2027-03-21",
+    "accumulated_months": 8,
+    "transfer_progress": 66.7,
+    "transfer_eligible": false, // 是否满足转售条件
+    "merchant_name": "北京音乐之家", // #1764 商户名（按订单 tenant_id 查 merchants；无记录为空，前端 fallback 云租吧）
+    "fee_detail": { // #1800 统一费用明细三段（单一数据源 computeSettlement；服务端计算，前端只读；金额全部分）
+      "settled": false, // 按订单当前状态判定（returning/pending_damage_response/damage_appealing/deposit_refunding 为 false）
+      "paid_block": { // 实付段
+        "contract_rent": { // 合同租金（首期，不含押金）
+          "amount": 300,             // 分
+          "date": "2026-08-01",      // 下单日期
+          "tiers": [                 // 首期阶梯明细（tier 编号从 1 起）
+            {"tier": 1, "rate": 100, "days": 30, "subtotal": 3000}
+          ]
+        },
+        "deposit": { "amount": 100 }, // 押金（分）
+        "renewals": [                 // 各次续费（按 created_at 升序）
+          {
+            "amount": 100,            // 该次续费实付（分）
+            "days": 10,               // 续费天数（T1 days 列；历史记录为 null）
+            "tiers": [                // 续费阶梯（tier 编号全局延续首期；历史记录无 days 时为空数组）
+              {"tier": 2, "rate": 90, "days": 10, "subtotal": 900}
+            ]
+          }
+        ],
+        "subtotal": 500               // 合计实付 = 合同租金 + 押金 + Σ续费
+      },
+      "payable_block": { // 应付段
+        "actual_rent": { "amount": 300, "days": 3, "tiers": [] }, // 实际租金（含阶梯）
+        "overdue_fee": { "amount": 0, "days": 0 },                // 逾期费（含天数）
+        "shipping_fee": { "amount": 100 },                        // 物流费
+        "subtotal": 400               // 实际应付 = 实际租金 + 逾期费 + 物流费
+      },
+      "net_block": { // 净额段
+        "direction": "refund",        // refund | shortfall | none（settled 且无差额为 none）
+        "amount": 100,                // 应退/应补金额（分，正数）
+        "items": []                   // fee_items 明细（与 settlement.breakdown.fee_items 同源）
+      }
+    },
+    "settlement": { // 结算信息（有 settlement 记录时返回；#1785 补缴字段见下）
+      "id": "uuid",
+      "actual_rent_days": 1,
+      "actual_rent_amount": 100,          // 分
+      "original_rent_amount": 200,        // 分
+      "gift_points_refunded": 0,
+      "cash_refundable": 0,               // 分
+      "prepaid_refunded": 0,
+      "refund_method": "wechat",
+      "refund_status": "pending",         // pending=处理中 / completed=已退回 / failed=失败
+      "overdue_charges_total": 0,         // 分
+      "payable_shortfall": 98             // 分；#1785 存在 pending payment_shortfall 记录时返回，仅补缴场景存在
+    },
+    "damage": { // #1707/#1708：仅待回应定损/定损申诉态返回（pending_damage_response / damage_appealing）；金额全部分（#1728 P3 契约）
+      "report_id": "uuid",
+      "damage_amount": 10000,     // 定损金额（分；迁移后统一来自 damage_reports，见 #1708/#1711）
+      "description": "弦断了",
+      "status": "pending",        // pending=待决策 / agreed / appealed / completed（good 验收）
+      "photos": ["/uploads/media/x.webp"], // 仅来自 instrument_media（receiving 批次）
+      "actual_rent_days": 29,
+      "actual_rent_amount": 290000, // 分
+      "shipping_fee": 5000,       // 分
+      "deposit": 100000,          // 分
+      "paid_total": 400000,       // 分（paid payment records 合计）
+      "refund": 95000             // 分；= 实付合计 - 赔偿 - 实际租金 - 物流费（后端统一计算）
+    },
+    "payment_history": [
+      {
+        "month": 1,
+        "amount": 760,
+        "paid_at": "2026-03-21T10:35:00Z",
+        "status": "paid"
+      }
+    ],
+    "payment_records": [ // #1856 收支记录数据源：status=paid 的支付记录（升序）；金额分
+      {
+        "id": "uuid",
+        "amount": 36,             // 实付金额（分）；waived 优惠码全免记录为 0
+        "method": "waived",       // jsapi=微信支付 / waived=优惠码全免 / native / mock
+        "status": "paid",
+        "coupon_code": "OREZ",    // #1856 优惠码（无码为空字符串；waived 必有）
+        "coupon_discount": 65,    // #1856 优惠码减免金额（分，无码 0）——前端以其展示「优惠券抵扣」，waived 记录不作为支付行
+        "created_at": "2026-09-09T12:57:08Z"
+      }
+    ],
+    "refund_records": [ // #1856 收支记录数据源：来自 settlements，仅含实际发生退款的结算（零退款已滤除）；金额分
+      {
+        "id": "uuid",
+        "amount": 5000,           // 退款合计 = cash_refundable + prepaid_refunded + gift_points_refunded
+        "breakdown": { "cash": 5000, "prepaid": 0, "gift": 0 },
+        "method": "wechat_pay",   // settlement.refund_method
+        "status": "completed",
+        "created_at": "2026-09-09T12:57:08Z"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 6.6 获取合同列表
+
+**接口**: `GET /api/user/contracts`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "contract-001",
+        "order_id": "order-001",
+        "contract_number": "CT-order-00",
+        "status": "active",
+        "contract_url": "",
+        "generated_at": "2026-03-21T10:30:00Z",
+        "created_at": "2026-03-21T10:30:00Z"
+      }
+    ]
+  }
+}
+```
+
+### 6.7 获取合同详情
+
+**接口**: `GET /api/user/contracts/:id`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "contract-001",
+    "order_id": "order-001",
+    "contract_number": "CT-order-00",
+    "status": "active",
+    "contract_url": "",
+    "generated_at": "2026-03-21T10:30:00Z",
+    "instrument_name": "雅马哈立式钢琴 U1",
+    "order_status": "reserved",
+    "start_date": "2026-03-21",
+    "end_date": "2026-06-21",
+    "monthly_rent": 2500,
+    "deposit": 500,
+    "created_at": "2026-03-21T10:30:00Z"
+  }
+}
+```
+
+> **注**: PDF 生成和签署功能（原 §6.5 租赁协议签署 / §6.6 签署协议）尚未实现，需单独 Issue 处理。
+
+---
+
+### 6.8 签署协议
+
+**接口**: `POST /api/orders/:id/sign`
+
+**请求 Body**:
+```json
+{
+  "signature": "data:image/png;base64,..."
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "signed_at": "2026-03-21T10:40:00Z",
+    "contract_url": "https://cdn.example.com/contracts/001.pdf"
+  }
+}
+```
+
+---
+
+### 6.9 终止租约
+
+**接口**: `PUT /api/orders/:id/terminate`
+
+**请求 Body**:
+```json
+{
+  "reason": "个人原因"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "terminated_at": "2026-06-21T15:00:00Z",
+    "refund_amount": 1500 // 押金退还金额
+  }
+}
+```
+
+---
+
+### 6.10 触发所有权转移
+
+**接口**: `POST /api/orders/:id/transfer-ownership`
+
+> **说明**: 租满 12 个月后，由系统定时任务或管理员手动触发
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "transfer_completed": true,
+    "ownership_certificate_id": "cert-001",
+    "transferred_at": "2027-03-21T00:00:00Z"
+  }
+}
+```
+
+---
+
+### 6.11 出库确认管理
+
+#### 6.11.1 获取出库照片
+
+**接口**: `GET /api/orders/:id/outbound-photos`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "outbound_photos": [
+      {
+        "url": "https://cdn.example.com/outbound/photo1.jpg",
+        "batch_id": "batch-001",
+        "taken_at": "2026-03-21T10:30:00Z"
+      }
+    ],
+    "assessment_photos": []
+  }
+}
+```
+
+#### 6.11.2 确认出库
+
+**接口**: `POST /api/orders/:id/outbound-confirm`
+
+**请求 Body**:
+```json
+{
+  "confirmed_by": "user-001",
+  "photos": ["img-001", "img-002"],
+  "condition_notes": "外观完好，音色正常"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "outbound_confirmed": true,
+    "confirmed_at": "2026-03-21T10:35:00Z"
+  }
+}
+```
+
+### 6.12 损伤评估管理
+
+#### 6.12.1 获取评估数据
+
+**接口**: `GET /api/orders/:id/assessment`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "outbound_condition": {
+      "photos": ["https://cdn.example.com/shipping/photo1.jpg"]
+    },
+    "return_condition": {
+      "photos": ["https://cdn.example.com/receiving/photo2.jpg"],
+      "damage_level": "none"
+    },
+    "assessment_status": "pending"
+  }
+}
+```
+
+#### 6.12.2 提交评估
+
+**接口**: `POST /api/orders/:id/assessment`
+
+**请求 Body**:
+```json
+{
+  "damage_items": [
+    {
+      "label_id": "label-001",
+      "severity": "minor",
+      "repair_cost": 200
+    }
+  ],
+  "liability": "user", // user, normal_wear, covered
+  "total_deduction": 500,
+  "notes": "琴键正常磨损"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "assessment_id": "assmt-001",
+    "total_deduction": 500,
+    "deposit_adjustment": 500
+  }
+}
+```
+
+#### 6.12.3 生成评估报告
+
+**接口**: `GET /api/reports/assessment/:order_id`
+
+**响应**: PDF 文件流
+
+**Headers**:
+```
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="assessment_order_001.pdf"
+```
+
+---
+
+
+### 6.13 获取订单列表
+```
+GET /api/warehouse/orders
+```
+**查询参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| status | string | 订单状态 (preparing/shipped/in_lease/returning) |
+| site_id | string | 网点 ID |
+| page | int | 页码 |
+| pageSize | int | 每页数量 |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "instrument": {...},
+        "user": {...},
+        "status": "shipped",
+        "shipping_info": {
+          "tracking_number": "SF123456",
+          "company": "顺丰",
+          "shipped_at": "2024-01-15T10:00:00Z"
+        }
+      }
+    ],
+    "total": 10
+  }
+}
+```
+
+### 6.14 录入物流信息
+```
+PUT /api/warehouse/orders/:id/shipping
+```
+**请求体**:
+```json
+{
+  "tracking_number": "SF123456",
+  "company": "顺丰",
+  "shipped_at": "2024-01-15T10:00:00Z"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "order_id": "uuid",
+    "status": "shipped"
+  }
+}
+```
+
+### 6.15 确认收货（租赁中）
+```
+PUT /api/warehouse/orders/:id/delivery
+```
+**请求体**:
+```json
+{
+  "delivered_at": "2024-01-16T15:00:00Z"
+}
+```
+
+**说明**: 确认收货后订单状态变为 in_lease，以物流到达时间点为起租点
+
+### 6.16 归还验收
+```
+PUT /api/warehouse/orders/:id/return-inspect
+```
+**请求体**:
+```json
+{
+  "instrument_sn": "SN123456",
+  "scan_time": "2024-01-31T10:00:00Z",
+  "photos": ["url1", "url2"],
+  "notes": "外观完好",
+  "damage_amount": 0,
+  "overdue_fee": 0,
+  "additional_shipping_fee": 0
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|:---:|------|
+| `instrument_sn` | string | ✅ | 乐器序列号 |
+| `scan_time` | ISO8601 | ✅ | 验收扫描时间 |
+| `photos` | string[] | ✅ | 验收照片 URL 列表 |
+| `notes` | string | ❌ | 备注说明 |
+| `damage_amount` | float | ❌ | 损坏维修赔偿金额（元）。>0 → condition 自动推导为 `damaged`（pending_damage_response）；=0 → `good`（订单完成+结算） |
+| `overdue_fee` | float | ❌ | 逾期未缴租金（元）。员工手填覆盖自动计算值，未填时用自动值 |
+| `additional_shipping_fee` | float | ❌ | 追加物流费（元）。入结算 shipping 合计 |
+| `condition` | string | ❌ | 向后兼容字段。现由 `damage_amount` 推导，无需前端显式传递 |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "status": "completed",
+    "shortfall_amount": 0
+  }
+}
+```
+
+**shortfall_amount**: 单位分。>0 表示补缴场景（executeRefund 创建了 payment_shortfall 待补缴记录，订单已回退 returning），前端应提示「已发起结算，待顾客补缴 ¥x.xx，补缴完成后订单自动完成」。
+
+**重复接收防御 (#1799)**:
+- 当订单存在 pending 状态的 `payment_shortfall` 记录时，拒绝重复接收
+- 错误码 `40002`，message: `订单待顾客补缴，补缴完成后将自动完成，请勿重复接收`
+
+### 6.17 开始定损
+```
+POST /api/warehouse/orders/:id/assess-damage
+```
+**请求体**:
+```json
+{
+  "damage_description": "琴弦断裂",
+  "damage_photos": ["url1"],
+  "damage_amount": 500.00,
+  "notes": "需要更换琴弦"
+}
+```
+
+**说明**: 提交后订单状态变为 inspecting，创建 damage_report 记录
+
+## 七、维保服务模块
+
+> ⚠️ **遗留维保模块（废弃公告）**：§7.1-§7.7 与 §9.13-§9.15 为旧的维保工单（maintenance ticket/worker/session）体系，**已决定废弃（#1888 R6，清理见 #1886）**。以下契约与实现存在多处偏差（枚举大小写/字段名/响应层级，明细见 #1886），仅存档参考，勿用于新开发。租赁乐器维修见 §7.9-§7.11，客户报修 v3 见 §7.12-§7.14。
+
+### 7.1 查询服务包覆盖项
+
+**接口**: `GET /api/maintenance/coverage/:instrumentId`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "instrument_level": "professional",
+    "free_services": [
+      "基础清洁",
+      "免费调音 2 次/年",
+      "免费维修"
+    ],
+    "paid_services": [
+      "专家上门调律 (+￥200)",
+      "深度保养 (+￥500)"
+    ]
+  }
+}
+```
+
+---
+
+### 7.2 提交报修工单
+
+**接口**: `POST /api/maintenance`
+
+**请求 Body**:
+```json
+{
+  "order_id": "order-001",
+  "instrument_id": "instr-001",
+  "problem_description": "琴弦松动，音准不准",
+  "images": ["img1.jpg", "img2.jpg"],
+  "service_type": "self_delivery", // self_delivery, pickup
+  "preferred_site_id": "site-001"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "ticket_id": "ticket-001",
+    "status": "pending",
+    "created_at": "2026-03-22T09:00:00Z",
+    "estimated_cost": 0 // 预估费用（服务包内免费则为 0）
+  }
+}
+```
+
+---
+
+### 7.3 工单列表
+
+**接口**: `GET /api/maintenance`
+
+**请求参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| status | string | 状态: pending, processing, completed |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "ticket-001",
+        "instrument_name": "雅马哈立式钢琴 U1",
+        "status": "processing",
+        "created_at": "2026-03-22T09:00:00Z",
+        "progress": "维修中"
+      }
+    ],
+    "total": 3
+  }
+}
+```
+
+---
+
+### 7.4 工单详情
+
+**接口**: `GET /api/maintenance/:id`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "ticket-001",
+    "instrument": {
+      "id": "instr-001",
+      "name": "雅马哈立式钢琴 U1"
+    },
+    "problem_description": "琴弦松动",
+    "images": ["img1.jpg"],
+    "status": "processing",
+    "service_type": "self_delivery",
+    "assigned_site": {
+      "id": "site-001",
+      "name": "北京朝阳店"
+    },
+    "progress_updates": [
+      {
+        "status": "已接单",
+        "description": "师傅已确认接单",
+        "updated_at": "2026-03-22T10:00:00Z"
+      },
+      {
+        "status": "维修中",
+        "description": "更换琴弦，调整音准",
+        "updated_at": "2026-03-22T14:00:00Z"
+      }
+    ],
+    "estimated_cost": 0,
+    "actual_cost": 0
+  }
+}
+```
+
+---
+
+### 7.5 取消报修
+
+**接口**: `PUT /api/maintenance/:id/cancel`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "status": "cancelled",
+    "cancelled_at": "2026-03-22T10:00:00Z"
+  }
+}
+```
+
+---
+
+### 7.6 技师工作台
+
+#### 7.6.1 技师工单列表
+
+**接口**: `GET /api/technician/tickets`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "ticket-001",
+        "instrument_name": "雅马哈立式钢琴 U1",
+        "problem": "琴弦松动",
+        "status": "pending",
+        "created_at": "2026-03-22T09:00:00Z",
+        "assigned_site": "北京朝阳店"
+      }
+    ],
+    "total": 3
+  }
+}
+```
+
+#### 7.6.2 技师接单
+
+**接口**: `PUT /api/technician/tickets/:id/accept`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "status": "processing",
+    "accepted_at": "2026-03-22T10:00:00Z",
+    "technician_id": "tech-001"
+  }
+}
+```
+
+#### 7.6.3 完成工单
+
+**接口**: `POST /api/technician/tickets/:id/complete`
+
+**请求 Body**:
+```json
+{
+  "actual_cost": 0,
+  "repair_details": "更换琴弦，调整音准",
+  "completion_photos": ["repair1.jpg"]
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "status": "completed",
+    "completed_at": "2026-03-22T18:00:00Z"
+  }
+}
+```
+
+### 7.7 工单状态更新
+
+**接口**: `PUT /api/maintenance/tickets/:id/status`
+
+**请求 Body**:
+```json
+{
+  "status": "processing",
+  "notes": "已分配师傅"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "status": "processing",
+    "updated_at": "2026-03-22T10:30:00Z"
+  }
+}
+```
+
+---
+
+### 7.8 报修记录（维修进度）
+
+**接口**: `GET /api/repair-requests/:id/records`
+
+**说明**: 查询报修单的所有维修进度记录（含初始创建记录和后续追加的进度记录）。创建报修单时自动生成 `record_type=created` 的初始记录。
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "records": [
+      {
+        "id": "uuid",
+        "repair_request_id": "uuid",
+        "worker_id": "uuid",
+        "worker_name": "李四",
+        "comment": "报修单已创建",
+        "photos": "[\"photo_key.jpg\"]",
+        "record_type": "created",
+        "created_at": "2026-07-04T05:01:58Z"
+      }
+    ]
+  }
+}
+```
+
+> `worker_name`（#1873）：按 `worker_id`（IAM sub）解析展示名，回退链 `name → username → phone`；无匹配时为空字符串。
+
+---
+
+**接口**: `POST /api/repair-requests/:id/records`
+
+**说明**: 追加一条维修进度记录。可附带照片和视频，照片累积，视频替换旧文件（旧视频文件会被删除）。
+
+**请求 Body**:
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| comment | string | 否 | 进度描述 |
+| photos | string[] | 否 | 照片 file_key 列表（需先通过 `/upload` 上传） |
+| video_url | string | 否 | 视频 file_key（需先通过 `/upload` 上传，会替换旧视频） |
+
+**请求示例**:
+```json
+{
+  "comment": "已完成检查，开始维修",
+  "photos": ["photo_abc123.jpg", "photo_def456.jpg"],
+  "video_url": "video_xyz789.mp4"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "uuid",
+    "repair_request_id": "uuid",
+    "worker_id": "uuid",
+    "comment": "已完成检查，开始维修",
+    "photos": "[\"photo_abc123.jpg\",\"photo_def456.jpg\"]",
+    "record_type": "progress",
+    "created_at": "2026-07-04T06:00:00Z"
+  }
+}
+```
+
+---
+
+### 7.9 待维修乐器列表（员工）
+
+**接口**: `GET /api/repair/pending`
+
+**说明**: 返回当前租户下所有 `repair_status=repair_pending` 的乐器，供维修师傅浏览和接手。按 `updated_at DESC` 排序。
+
+**权限**: 需认证（员工/管理员）
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "tenant_id": "uuid",
+        "org_id": "uuid",
+        "sn": "CVZ-03",
+        "stock_status": "maintenance",
+        "repair_status": "repair_pending",
+        "updated_at": "2026-09-10T08:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+**说明**: `tenant_id` 过滤确保仅返回当前租户数据，防止跨租户泄漏。
+
+---
+
+### 7.10 维修记录与定损上下文（员工）
+
+**接口**: `GET /api/repair/:id/records`
+
+**说明**: 查询指定乐器的所有维修记录（repair_records），并附带最近一条定损报告（damage_reports）作为维修上下文。
+
+**权限**: 需认证（员工/管理员）
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "records": [
+      {
+        "id": "uuid",
+        "instrument_id": "uuid",
+        "worker_id": "uuid",
+        "worker_name": "李四",
+        "comment": "已接手维修",
+        "photos": "[\"photo_key.jpg\"]",
+        "created_at": "2026-09-10T08:30:00Z"
+      }
+    ],
+    "damage": {
+      "id": "uuid",
+      "lease_id": "uuid",
+      "instrument_id": "uuid",
+      "status": "agreed",
+      "condition": "damaged",
+      "damage_description": "琴盒损坏",
+      "notes": "外观有划痕",
+      "damage_amount": 50000,
+      "created_at": "2026-09-09T10:00:00Z"
+    }
+  }
+}
+```
+
+**说明**:
+- `records`: 该乐器所有维修记录，按 `created_at ASC` 排序
+- `worker_name`: 维修师傅展示名（#1873）——`worker_id` 存储的是 IAM sub，按 `users.iam_sub` 批量解析，名字回退链 `name → username → phone`；无匹配用户时为空字符串
+- `damage`: 最近一条 `damage_report`（按 `created_at DESC` 取第一条），无定损时为 `null`
+- `damage.damage_amount`: 单位为分（int64），前端需除以 100 显示元
+- `damage.status`: 定损报告状态（`pending`/`completed`/`agreed`/`appealed`/`cancelled`/`resolved`）
+
+---
+
+### 7.11 租赁乐器维修动作端点（员工/师傅）
+
+> 权限组：`repairRequired`（authRequired + `instrument:maintain`）。`#1882` 计划接入 `repair:start/complete/accept` 及站点/角色校验（目标契约见下）。
+
+#### 7.11.1 开始维修
+**接口**: `POST /api/repair/:id/start`
+**说明**: 将 `repair_pending` 乐器置为 `repair_in_progress`，当前用户成为 `repair_worker_id`。
+**响应**: `{code:20000, message}`
+**错误**: 40001 id 缺失 / 40400 乐器不存在 / 40002 非 repair_pending / 50000
+
+#### 7.11.2 维修完成
+**接口**: `POST /api/repair/:id/complete`
+**说明**: `repair_in_progress` → `repair_completed`；**要求至少一条当前负责人提交的、含照片的维修记录**（`photos` JSONB 数组非空，按 `jsonb_array_length > 0` 校验，#1875）。
+**错误**: 40001 / 40400 / 40002 非维修中 / 40300 非指派负责人 / 40003 缺少带照片记录 / 50000
+**目标契约（#1882）**: 追加站点校验（操作员站点 ∩ 乐器 current_site_id）
+
+#### 7.11.3 接手
+**接口**: `POST /api/repair/:id/takeover`
+**说明**: `repair_pending`/`repair_in_progress` 下，任意用户接管为负责人。
+**目标契约（#1882 R4）**: 仅同站点师傅可接手（操作员站点 ∩ 乐器 `current_site_id`）
+**错误**: 40001 / 40400 / 40002 状态不符 / 50000
+
+#### 7.11.4 改派负责人
+**接口**: `POST /api/repair/:id/reassign`
+**请求**: `{"worker_id": "uuid"}`
+**说明**: `repair_in_progress` 下更换 `repair_worker_id`。
+**目标契约（#1882 R5）**: 仅 `site_admin` 可改派，目标须为同站点成员
+**错误**: 40001 / 40002 worker_id 必填 / 40400 / 40003 非维修中 / 50000
+
+#### 7.11.5 验收通过
+**接口**: `POST /api/repair/:id/accept`
+**说明**: `repair_completed` → `available`，清空 `repair_status/repair_worker_id`。
+**校验**: 乐器须有关联站点（`current_site_id`，否则 40003）；调用者须为该站点 `site_members` 成员。
+**目标契约（#1882 R1）**: 成员角色限 `site_admin/site_member` 且 `≠ repair_worker_id`（禁止自验收）
+**错误**: 40001 / 40400 乐器/用户不存在 / 40002 非 repair_completed / 40003 乐器无网点 / 40300 非该网点成员 / 50000
+
+#### 7.11.6 验收不通过
+**接口**: `POST /api/repair/:id/reject`
+**请求**: `{"comment": "不通过原因"}`
+**说明**: `repair_completed` → `repair_in_progress`。
+**目标契约（#1882 R1/R3）**: 同 7.11.5 的站点+角色+非本单维修人校验；原因写入 `repair_records`（`comment` 前缀「验收驳回：」）
+**错误**: 40001 / 40002 comment 必填 / 40400 / 40003 非 repair_completed / 50000
+
+#### 7.11.7 添加维修记录
+**接口**: `POST /api/repair/:id/records`
+**请求**: `{"comment": "已更换琴弦", "photos": ["/uploads/media/x.webp"]}`
+**响应**: `{"code":20000,"data":{"id":"uuid"}}`
+**说明**: 记录写入 `repair_records`；`photos` 为 URL 数组（`/upload` 返回的 `data.url`），同时逐张登记 `instrument_media`（batch_type=`repair`, is_display=false）。
+**错误**: 40001 / 40002 / 50000
+
+#### 7.11.8 我的维修列表
+**接口**: `GET /api/repair/mine`
+**说明**: 当前用户作为 `repair_worker_id` 且 `repair_status IS NOT NULL` 的乐器，按 `updated_at DESC`。
+**响应**: `{"code":20000,"data":{"list":[Instrument...]}}`
+**目标契约（#1882）**: pending 列表按操作员站点过滤
+
+#### 7.11.9 待验收列表（#1892）
+**接口**: `GET /api/repair/acceptance`
+**说明**: 操作员站点内 `repair_status='repair_completed'` 的乐器（`current_site_id IN 操作员站点`），按 `updated_at DESC`；无站点成员 → 空集（不回落租户全量）。列表项在原 Instrument 字段外补 `repair_worker_name`（显示名，解析失败为 null）。
+**用途**: 网点员工验收入口（`repair_completed` 不再只能靠扫码发现）；操作按钮由 `/repair` 面板按 R1 裁剪。
+**响应**: `{"code":20000,"data":{"list":[Instrument + repair_worker_name...]}}`
+
+---
+
+### 7.12 客户报修 v3 — 报修单与记录
+
+> 权限组：`userOptionalAuth`（顾客无组织绑定）。**目标契约（#1880）**：以下顾客写操作须校验属主 `req.user_id == caller`；详情按「报修人本人 / 该单站点成员」可见并脱敏；创建须校验 `user_instrument` 属主。
+
+#### 7.12.1 创建报修单
+**接口**: `POST /api/repair-requests`
+**权限**: userOptionalAuth（**目标**：登录顾客；匿名拒绝）
+**请求**:
+```json
+{
+  "user_instrument_id": "uuid（与 sn 二选一）",
+  "sn": "CVZ-01",
+  "instrument_type": "小提琴", "brand": "Yamaha", "model": "V3",
+  "site_id": "uuid（必填）",
+  "merchant_type": "full | controlled（默认 full）",
+  "transit_site_id": "uuid（受控时）",
+  "description": "琴颈开裂",
+  "photos": ["/uploads/media/x.webp"],
+  "video_url": "/uploads/media/v.mp4",
+  "tracking_company": "", "tracking_number": ""
+}
+```
+**响应**: `data` = RepairRequest 全模型（字段见 §7.12.2 列表项 + `photos` 为 JSONB 字符串）
+**说明**: 无 `tenant_id`（顾客）时由 `site_id` 反查 `tenant_id/org_id`
+**错误**: 40002 参数/站点无效 / 50000 创建失败
+
+#### 7.12.2 报修列表
+**接口**: `GET /api/repair-requests`
+**Query**: `status`（可选，逗号分隔多状态）
+**说明**: USER → 本人报修单；员工 → 本网点（目标契约 #1881：无站点归属返回空集，不回退全量；merchant_admin 按商户范围）；每项含 `instrument_sn/instrument_type/brand/model/site_name/merchant_name/reporter_name` 等派生字段
+**错误**: 无显式错误码（查询错误当前被忽略，恒 20000 —— 待修 #1881 一并治理）
+
+#### 7.12.3 报修详情
+**接口**: `GET /api/repair-requests/:id`
+**说明**: 返回报修单 + 派生字段，并含 `reporter_phone/reporter_address/reporter_postal_code`（PII）、`transit_site_*`（受控）
+**目标契约（#1880）**: 报修人本人 / 该单站点成员可见，否则 404；受控情形对站点成员脱敏 PII
+**错误**: 40001 / 40400
+
+#### 7.12.4 添加报修记录
+**接口**: `POST /api/repair-requests/:id/records`
+**请求**: `{"comment": "...", "photos": ["key"], "video_url": "key"}`（三者至少一项）
+**响应**: `data` = RepairRequestRecord（`id/repair_request_id/worker_id/comment/photos/record_type/created_at`）
+**目标契约（#1880/#1884）**: 报修人本人或该单站点成员可写；技师/员工过程记录入口（#1884）
+**错误**: 40002 参数/三者全空 / 40400 / 50000
+
+#### 7.12.5 报修记录列表
+**接口**: `GET /api/repair-requests/:id/records`
+**响应**: `{records: [{id, repair_request_id, worker_id, worker_name, comment, photos, record_type, created_at}]}`（`photos` JSONB 字符串；`worker_name` 按 IAM sub 解析）
+**错误**: 50000
+
+---
+
+### 7.13 客户报修 v3 — 报价与接受
+
+#### 7.13.1 提交报价（师傅）
+**接口**: `POST /api/repair-requests/:id/quotes`
+**请求**（金额单位：**元**，落库转分）: `{"material_fee": 100, "service_fee": 50, "logistics_fee": 20, "duration": "3天", "comment": "..."}`
+**响应**: `data` = RepairQuote（`material_fee/service_fee/logistics_fee` 为**分**；`quote_no`；`is_renegotiation`；`status`）
+**说明**: 评论过敏感信息校验；报价 `site_id` 取技师站点
+**目标契约（#1881 R7）**: 仅受控/目标网点 `repair_technician` 可提；路由移出 userOptionalAuth（匿名拒绝）
+**错误**: 40001 / 40002 敏感信息 / 50000
+
+#### 7.13.2 报价列表
+**接口**: `GET /api/repair-requests/:id/quotes`
+**说明**: 顾客（全权）见报价全字段；受控情形脱敏（去 `repair_request_id/site_id/worker_id/is_renegotiation`）；员工见站点报价 + `total_amount`（分）；另返回 `accepted_quote`（无则 `null`）
+**目标契约（#1881 R7）**: 员工按本人全部站点过滤（修复 members[0]/空集回退）；跨网点互不可见
+**错误**: 40002 repair_request_id required
+
+#### 7.13.3 接受报价（顾客）
+**接口**: `POST /api/repair-requests/:id/quotes/:qid/accept`
+**说明**: quote → accepted，报修单 → `pending_payment`
+**目标契约（#1880）**: 仅报修人本人可接受
+**错误**: 40001 / 40400 quote not found / 40002 quote 非 pending / 50000
+
+---
+
+### 7.14 客户报修 v3 — 支付与物流流转
+
+#### 7.14.1 支付
+**接口**: `POST /api/repair-requests/:id/pay`
+**说明**: `pending_payment` → 创建支付记录（调试期返回 `payment_required`）
+**响应**: `{"payment_required": true, "amount": 6000.0, "out_trade_no": "..."}`
+**⚠️ 单位异常**: `amount` 为**元**（`amount.ToYuan()`），与全系统「分为单位」约定不一致（#1887 标注；建议后续统一为分）
+**目标契约（#1880）**: 仅报修人本人可支付
+**错误**: 40001 / 40400 / 40004 非 pending_payment / 40002 无已接受报价或金额非正 / 50000
+
+#### 7.14.2 填写寄送物流（顾客）
+**接口**: `PUT /api/repair-requests/:id/tracking`
+**请求**: `{"tracking_company": "顺丰", "tracking_number": "SF..."}`（number 必填）
+**说明**: 仅 `pending_ship` 可更新 → `shipping`
+**目标契约（#1880）**: 仅报修人本人
+**错误**: 40002 / 40400 / 40003 状态不符
+
+#### 7.14.3 网点确认收货
+**接口**: `POST /api/repair-requests/:id/receive`
+**说明**: `shipping`/`transit_in` → `repairing`（拆箱场景另经 transit-relay）
+**响应**: `{status}`
+**目标契约（#1881）**: 按状态校验目标/受控/中转网点成员
+**错误**: 40400 / 40002 状态不符
+
+#### 7.14.4 中转处理（中转网点员工）
+**接口**: `POST /api/repair-requests/:id/transit-process`
+**请求**（单位：**元**）: `{"transit_service_fee": 30, "transit_logistics_fee": 50}`
+**说明**: `transit_processing` → `pending_assessment`；写入 `repair_transit_orders` 并扇出受控网点
+**目标契约（#1881）**: 仅 `transit_site_id` 成员
+**错误**: 40400 / 40002 状态或 merchant_type 不符 / 50000
+
+#### 7.14.5 中转转发（拆箱/重装）
+**接口**: `POST /api/repair-requests/:id/transit-relay`
+**请求**: `{"direction": "in|out", "transit_order_number": "...", "unpack_photos": ["key"], "repack_company": "...", "repack_tracking_number": "...", "note": "..."}`
+**说明**: 按 direction 操作转入/转出 transit order（状态/照片/重装单号）
+**目标契约（#1881）**: 仅该 transit order 的 `site_id` 成员
+**错误**: 40400 报修单/transit order not found / 40002
+
+#### 7.14.6 维修完成（客户报修）
+**接口**: `POST /api/repair-requests/:id/complete`
+**说明**: `repairing` → `return_pending`
+**目标契约（#1881）**: 仅该单站点（受控网点）成员/技师
+**错误**: 40400 / 40002 状态不符
+
+#### 7.14.7 重新报价（师傅，仅一次）
+**接口**: `POST /api/repair-requests/:id/requote`
+**请求**（单位：**元**）: 同 §7.13.1
+**响应**: `data` = RepairQuote（`is_renegotiation=true`）
+**目标契约（#1881）**: 仅受控网点 `repair_technician`；仅一次
+**错误**: 40400 / 40002 非 repairing 或已重报 / 40002 敏感信息 / 50000
+
+#### 7.14.8 拒绝重新报价（顾客）
+**接口**: `POST /api/repair-requests/:id/requote-reject`
+**说明**: 回退结算：`refund = (材料+服务) - 检查费`（分），报修单 → `return_pending`
+**响应**: `{"refund": 0, "retained_fees": 5000}`（分）
+**目标契约（#1880）**: 仅报修人本人（资金操作）
+**错误**: 40400 / 40002 非 repairing 或无可回滚报价 / 50000
+
+#### 7.14.9 填写发回物流（员工）
+**接口**: `PUT /api/repair-requests/:id/return-shipping`
+**请求**: `{"return_company": "顺丰", "return_tracking_number": "SF..."}`（number 必填）
+**说明**: `return_pending` → `returned`（全权）/ `transit_out`（受控）
+**目标契约（#1881）**: 仅该单站点成员
+**错误**: 40002 / 40400 / 40003 状态不符
+
+#### 7.14.10 确认收货（顾客）
+**接口**: `POST /api/repair-requests/:id/confirm-receipt`
+**说明**: `returned` → `closed`
+**目标契约（#1880）**: 仅报修人本人
+**错误**: 40400 / 40002 非 returned / 50000
+
+---
+
+### 7.15 维修服务（#1942，type='service' 分支）
+
+> 维修从「已出租乐器的报修工单」重构为「可独立购买的服务商品」：用户选维修师、可咨询、不绑租赁乐器。与 v3 报修（§7.12-7.14）并存，入口区分「乐器报修」/「维修服务」。
+
+#### 7.15.1 创建维修单（用户）
+**接口**: `POST /api/user/repair-services`
+**请求**: 描述 + 照片（≤6，走 /upload）——不填识别码
+**响应**: 返回 `repair_code`（6 位唯一编码，数字+大写字母，冲突重试）
+**说明**: 分配 6 位编码并展示「请将该编码写在物流单信息栏」
+**目标契约（#1942）**: 用户本人
+**错误**: 40002 / 50000
+
+#### 7.15.2 维修单列表（我的）
+**接口**: `GET /api/user/repair-services`
+**说明**: 当前用户维修单列表
+**目标契约（#1942）**: 用户本人
+
+#### 7.15.3 维修单详情
+**接口**: `GET /api/user/repair-services/:id`
+**说明**: 当前用户维修单详情
+**目标契约（#1942）**: 用户本人
+
+#### 7.15.4 选择维修师（用户）
+**接口**: `POST /api/user/repair-services/:id/select-technician`
+**请求**: `{technician_id}`
+**说明**: 用户选择维修师（师傅基础档案：姓名/网点/专长）
+**目标契约（#1942）**: 用户本人
+
+#### 7.15.5 师傅报价（师傅）
+**接口**: `POST /api/repair-services/:id/quote`
+**请求**: 修理费 + 物流费预估（`quote_repair_cents` / `quote_logistics_cents`）
+**说明**: 直连 1 段受管物流；受控组合 3 段受管物流
+**目标契约（#1942）**: 该单维修师（repairReqRequired 组）
+
+#### 7.15.6 用户接受报价（用户）
+**接口**: `POST /api/user/repair-services/:id/accept`
+**说明**: 接受报价 → 虚拟商品支付 → 会话建立（状态 `paid`）
+**目标契约（#1942）**: 用户本人
+
+#### 7.15.7 用户寄出（用户）
+**接口**: `POST /api/user/repair-services/:id/ship`
+**请求**: `{tracking_number}`
+**说明**: 用户自寄出（物流信息栏须写 6 位编码），状态 `shipped`
+**目标契约（#1942）**: 用户本人
+
+#### 7.15.8 分段物流费（网点/中转员工）
+**接口**: `POST /api/repair-services/:id/legs`
+**请求**: `{leg, amount_cents, from_site, to_site}`
+**说明**: 每段发运经手员工实填本段物流费，落库 `repair_logistics_fees`；末段触发结算
+**目标契约（#1942）**: 经手网点/中转员工（repairReqRequired 组）
+
+#### 7.15.9 加价申请（师傅）
+**接口**: `POST /api/repair-services/:id/adjust`
+**请求**: 新修理费 + 到此为止修理费（二者同填）
+**说明**: 师傅发现与描述不符需加钱，提交加价申请，状态 `adjust_pending`
+**目标契约（#1942）**: 该单维修师（repairReqRequired 组）
+
+#### 7.15.10 加价响应（用户）
+**接口**: `POST /api/user/repair-services/:id/adjust/respond`
+**请求**: `{decision: continue|cancel}`
+**说明**: 继续 → 立即补差价；不继续 → 乐器待发回
+**目标契约（#1942）**: 用户本人
+
+#### 7.15.11 完成修理（师傅）
+**接口**: `POST /api/repair-services/:id/done-repair`
+**说明**: 师傅点完成 → 乐器待发回，状态 `done_repair`
+**目标契约（#1942）**: 该单维修师（repairReqRequired 组）
+
+#### 7.15.12 网点发回（员工）
+**接口**: `POST /api/repair-services/:id/dispatch`
+**请求**: `{leg_fee}`
+**说明**: 网点员工联系物流、填本段实际物流费 → 发回 → 触发结算
+**目标契约（#1942）**: 经手网点员工（repairReqRequired 组）
+
+#### 7.15.13 待发回列表（网点）
+**接口**: `GET /api/repair-services/pending-dispatch`
+**说明**: 待发回维修单列表（repairReqRequired 组）
+**目标契约（#1942）**: 网点员工
+
+#### 7.15.14 评价（用户）
+**接口**: `POST /api/user/repair-services/:id/review`
+**请求**: 评分（1-5）+ 留言 + 照片（≤6，走 /upload）
+**说明**: 结算完成（发回）后推送「维修完成」通知含评价邀请；PC 后台维修管理页可见
+**目标契约（#1942）**: 用户本人
+
+---
+
+
+## 八、个人中心模块
+
+### 8.1 租约管理
+
+**接口**: `GET /api/user/leases`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "lease-001",
+        "order_id": "order-001",
+        "instrument_name": "雅马哈立式钢琴 U1",
+        "start_date": "2026-03-21",
+        "end_date": "2027-03-21",
+        "accumulated_months": 8,
+        "status": "active"
+      }
+    ],
+    "total": 3
+  }
+}
+```
+
+---
+
+### 8.2 租转售进度
+
+**接口**: `GET /api/user/leases/:id/progress`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "lease_id": "lease-001",
+    "instrument_name": "雅马哈立式钢琴 U1",
+    "accumulated_months": 8,
+    "total_required_months": 12,
+    "progress_percentage": 66.7,
+    "remaining_months": 4,
+    "estimated_transfer_date": "2025-07-21",
+    "transfer_eligible": false,
+    "message": "🎁 距离永久拥有仅剩 4 个月"
+  }
+}
+```
+
+---
+
+### 8.3 电子所有权证明
+
+**接口**: `GET /api/user/ownership/:id`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "certificate_id": "cert-001",
+    "order_id": "order-001",
+    "instrument": {
+      "id": "instr-001",
+      "name": "雅马哈立式钢琴 U1",
+      "sn": "SN-2024-0001"
+    },
+    "owner": {
+      "user_id": "user-001",
+      "name": "张三",
+      "phone": "138****8888"
+    },
+    "transfer_date": "2027-03-21",
+    "certificate_url": "https://cdn.example.com/certificates/cert-001.pdf"
+  }
+}
+```
+
+---
+
+### 8.4 下载 PDF 证明
+
+**接口**: `GET /api/user/ownership/:id/download`
+
+**响应**: 二进制 PDF 文件流
+
+**Headers**:
+```
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
+```
+
+---
+
+### 8.5 文件上传
+
+**接口**: `POST /api/upload`
+
+**Content-Type**: `multipart/form-data`
+
+**表单字段**:
+- `file`: 文件数据
+- `type`: 文件类型 (optional)
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "file_id": "file-001",
+    "url": "https://cdn.example.com/uploads/image.jpg",
+    "filename": "image.jpg",
+    "size": 2048576
+  }
+}
+```
+
+### 8.6 逾期租约列表
+
+**接口**: `GET /api/overdue-leases`
+
+**说明**: 获取所有逾期未归还的租约列表
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "lease_id": "lease-002",
+        "order_id": "order-002",
+        "instrument_name": "雅马哈立式钢琴 U3",
+        "user_name": "李四",
+        "user_phone": "139****9999",
+        "end_date": "2026-03-15",
+        "overdue_days": 7,
+        "monthly_rent": 800,
+        "deposit": 5000
+      }
+    ],
+    "total": 3
+  }
+}
+```
+
+### 8.7 收藏列表
+
+**接口**: `GET /api/user/favorites`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+
+**接口**: `GET /api/user/favorites`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "fav-001",
+        "instrument_id": "instr-001",
+        "instrument_name": "雅马哈立式钢琴 U1",
+        "added_at": "2026-03-20T18:00:00Z"
+      }
+    ],
+    "total": 5
+  }
+}
+```
+
+---
+
+### 8.8 添加收藏
+
+**接口**: `POST /api/user/favorites`
+
+**请求 Body**:
+```json
+{
+  "instrument_id": "instr-002"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "favorite_id": "fav-002",
+    "created": true
+  }
+}
+```
+
+---
+
+### 8.9 取消收藏
+
+**接口**: `DELETE /api/user/favorites/:id`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "deleted": true
+  }
+}
+```
+
+---
+
+### 8.10 地址管理
+
+#### 8.10.1 地址列表
+
+**接口**: `GET /api/user/addresses`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "addr-001",
+        "recipient_name": "张三",
+        "phone": "13800000000",
+        "province": "北京市",
+        "city": "北京市",
+        "district": "朝阳区",
+        "detail": "xxx路123号",
+        "postal_code": "100000",
+        "is_default": true,
+        "created_at": "2026-06-01T10:00:00Z",
+        "updated_at": "2026-06-01T10:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+---
+
+#### 8.10.2 新增地址
+
+**接口**: `POST /api/user/addresses`
+
+**请求 Body**:
+```json
+{
+  "recipient_name": "李四",
+  "phone": "13900000000",
+  "province": "上海市",
+  "city": "上海市",
+  "district": "浦东新区",
+  "detail": "xxx路456号",
+  "postal_code": "200000",
+  "is_default": false
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "id": "addr-002",
+    "user_id": "user-001",
+    "recipient_name": "李四",
+    "phone": "13900000000",
+    "province": "上海市",
+    "city": "上海市",
+    "district": "浦东新区",
+    "detail": "xxx路456号",
+    "postal_code": "200000",
+    "is_default": false,
+    "created_at": "2026-06-01T10:00:00Z",
+    "updated_at": "2026-06-01T10:00:00Z"
+  }
+}
+```
+
+---
+
+#### 8.10.3 更新地址
+
+**接口**: `PUT /api/user/addresses/:id`
+
+**请求 Body**: 同新增地址
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success"
+}
+```
+
+---
+
+#### 8.10.4 设为默认地址
+
+**接口**: `PUT /api/user/addresses/:id/default`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success"
+}
+```
+
+---
+
+#### 8.10.5 删除地址
+
+**接口**: `DELETE /api/user/addresses/:id`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success"
+}
+```
+
+---
+
+### 8.11 点数钱包
+
+> **#1757 赠点单位契约**：`promo_points` / `points_transactions.amount` 均为**分**（1 点 = 1 分）。注册赠点 99 元 → `promo_points = 9900`；前端显示「9900 点」。支付抵扣（`gift_used`）、退款返点、推荐奖励全链路分运算。策略配置（`pay_ratio` / `refund_ratio`）为比例，不受单位影响。
+
+**接口**: `GET /api/user/points/balance`
+
+**说明**: 查询当前用户点数余额（分）
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "promo_points": 9900
+  }
+}
+```
+
+---
+
+**接口**: `GET /api/user/points/transactions?page=1&page_size=20`
+
+**说明**: 查询点数交易记录
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "type": "promo_earn",
+        "amount": 100.00,
+        "balance_after": 100.00,
+        "description": "签到获赠",
+        "created_at": "2026-06-28T00:00:00Z"
+      }
+    ],
+    "total": 1,
+    "page": 1,
+    "page_size": 20
+  }
+}
+```
+
+### 8.11.1 支付计算
+
+**接口**: `POST /api/pay/calculate`
+
+**说明**: 支付确认页数据（金额 + 钱包信息 + 明细）。**响应 `amount` 及明细金额均为分**（#1728 P3 / #1758 契约，前端 /100 显示；prepay 提交时再 /100 转元）。
+
+**请求 Body**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| type | string | rent / repair / requote / damage / refund / deposit-refund / renewal / payment_shortfall |
+| id | uuid | 订单/报修/定损/结算/补缴记录 ID |
+
+**响应 data**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| type | string | 同请求 |
+| title | string | 中文标题 |
+| amount | int64(分) | 应付/应退金额（前端 /100 显示） |
+| wallet | object | 赠点信息（promo_points / max_gift_ratio / max_gift_amount，均为分） |
+| details | object | 明细（各字段分契约；rent 含 pricing_breakdown、refund 含 cash_refundable 等） |
+
+### 8.11.2 创建预付支付
+
+**接口**: `POST /api/pay/prepay`
+
+**说明**: 创建预付支付记录。支持赠点抵扣，抵扣后仅支付现金差额。
+
+> **#1758 单位契约**：请求 `amount` / `gift_used` 为**元**（decimal，服务端 `FromYuan` 转分——前端把 calculate 响应的分值 /100 后提交）；响应为**分**契约（#1728 P3，前端 /100 显示）。**禁止分当元提交**（曾致 7d5cadd7 多扣 100 倍）。
+
+**请求 Body**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| order_id | uuid | 订单 ID |
+| order_type | string | rent / repair / damage / renewal / membership |
+| amount | decimal(元) | 现金支付金额（总额 − 赠点；有优惠码时传原金额，后端重算） |
+| gift_used | decimal(元) | 赠点抵扣金额（默认 0；优惠码场景前端传 0） |
+| open_id | string | 微信 openid（仅 JSAPI 支付，可选；后端可按 iam_sub 回填） |
+| coupon_code | string | 优惠码（可选，#1719 所有支付类型通用：OREZ waive 全免 / ENO percent 1%） |
+
+**请求示例**:
+```json
+{
+  "order_id": "fb7f4596-4fea-458e-9ab9-cd39f4ccf8fd",
+  "order_type": "rent",
+  "amount": 558.00,
+  "gift_used": 0,
+  "coupon_code": "ENO"
+}
+```
+
+**优惠码行为**（#1719 通用化，服务端权威）:
+- `waive`（OREZ）：金额重算为 0 → 直接记账 `paid`（method=`waived`）并执行副作用（applySideEffects），不调微信
+- `percent`（ENO）：比例 = value / 1000（千分比，10‰ = 1%，#1728）→ 金额 = round(原金额 × 比例) → 走正常微信 JSAPI/Native
+- **优惠快照（#1744）**：优惠码应用后回写订单 `orders.coupon_code` / `orders.coupon_discount`（分 = 优惠前金额 − 折后实付；waive 全额）——非 session 流程（有 order_id）才回写，幂等覆盖，无码订单保持 NULL/0
+- 模拟支付已移除（#1719）：运行时一律真实微信支付
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "success": true,
+    "data": { "out_trade_no": "rent65d2a8fb1785442641", "prepay_id": "wx..." }
+  }
+}
+```
+
+---
+
+**接口**: `GET /api/user/onboarding`
+
+**说明**: 查询引导状态
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "name": "用户昵称",
+    "onboarding_completed": false,
+    "promo_points": 0
+  }
+}
+```
+
+---
+
+**接口**: `PUT /api/user/onboarding`
+
+**说明**: 提交引导（标记完成 + 可选更新昵称）
+
+**请求 Body**:
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| name | string | 否 | 用户昵称 |
+
+**请求示例**:
+```json
+{ "name": "小明" }
+```
+
+**响应**:
+```json
+{ "code": 20000, "message": "onboarding completed" }
+```
+
+---
+
+**接口**: `POST /api/user/id-photo`
+
+**说明**: 上传身份证照片（multipart/form-data）
+
+**请求参数**: `file` (image/jpeg, image/png, image/webp, max 5MB), `side` (front|back|other)
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": { "url": "/uploads/media/id_photos/uuid_123.jpg" }
+}
+```
+
+---
+
+**接口**: `POST /api/user/idcard-ocr`
+
+**说明**: 对已上传的身份证照片进行 OCR 识别（#1782），自动提取姓名、身份证号、住址等信息。OCR 未配置或识别失败时返回 `available: false`，前端降级为手动填写。
+
+**权限**: `userOptionalAuth`（顾客登录态）
+
+**请求 Body**:
+```json
+{
+  "storage_key": "uuid_123.jpg",
+  "side": "FRONT"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|:---:|------|
+| `storage_key` | string | ✅ | 身份证照片的 storage_key（`/uploads/media/` 下的文件名） |
+| `side` | string | ✅ | `FRONT`（人像面）或 `BACK`（国徽面） |
+
+**响应（识别成功）**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "available": true,
+    "name": "张三",
+    "sex": "男",
+    "nation": "汉",
+    "birth": "1990-01-01",
+    "address": "北京市朝阳区",
+    "id_num": "110101199001011234",
+    "authority": "北京市公安局",
+    "valid_date": "20200101-20300101",
+    "warnings": ["身份证复印件"]
+  }
+}
+```
+
+**响应（未配置/识别失败）**:
+```json
+{
+  "code": 20000,
+  "data": { "available": false },
+  "message": "OCR service not configured"
+}
+```
+
+**告警字段说明**: `warnings` 数组包含腾讯云 IDCardOCR 返回的告警码映射：
+
+| 告警码 | 含义 |
+|--------|------|
+| -9101 | 身份证边框不完整 |
+| -9102 | 身份证复印件 |
+| -9103 | 身份证翻拍 |
+| -9105 | 身份证框内遮挡 |
+| -9107 | 身份证反光 |
+| -9108 | 身份证复印件 |
+
+---
+
+**接口**: `POST /api/user/face-verify/token`
+
+**说明**: 获取腾讯云慧眼人脸核身 Token（需 real_name + id_card_no）
+
+**请求 Body**:
+```json
+{
+  "name": "张三",
+  "id_card_no": "110101199001011234"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": { "biz_token": "tencent-faceid-token" }
+}
+```
+
+**错误码**: 40012 — TENCENTCLOUD 未配置
+
+---
+
+**接口**: `POST /api/user/face-verify/result`
+
+**说明**: 轮询腾讯云慧眼核身结果，通过后标记用户为已实名
+
+**请求 Body**:
+```json
+{
+  "biz_token": "tencent-faceid-token"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": { "passed": true, "similarity": 95.5 }
+}
+```
+
+---
+
+**接口**: `POST /api/auth/registration-sessions/:id/id-photo`
+
+**说明**: 注册阶段上传身份证照片（会话级匿名端点，无需认证）
+
+**请求参数**: `file` (image), `side` (front|back|other)
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": { "side": "front", "url": "/uploads/media/id_photos/uuid_123.jpg" }
+}
+```
+
+---
+
+### 8.11a.1 实名核身自拍采集与审核（#1787）
+
+> 五态状态机：`none` / `uploaded` / `pending_review` / `verified` / `rejected`（判定优先级见 docs/cases/id-photos.md §核身状态派生与消费）。
+
+**接口**: `POST /api/user/face-capture`
+
+**说明**: 顾客提交自拍核身素材（图片 + 可选视频），提交后状态 `uploaded → pending_review`（自动比对通道）/ `uploaded`（未配置腾讯云，等待人工审核）
+
+**权限**: 顾客登录态
+
+**请求 Body**（multipart/form-data）:
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|:---:|------|
+| `image` | file | 视模式 | 自拍照片（image/jpeg/png/webp）；创建模式必填 |
+| `video` | file | ❌ | 自拍视频（可选，辅助人工审核） |
+| `batch_id` | string | ❌ | **追加模式**（#1792）：带 batch_id 时将素材注册到已有批次（不创建新批次）。用于 weapp 分离上传（Taro.uploadFile 一次仅一个文件：先传 image 拿 batch_id，再带 batch_id 传 video）；追加模式下 image/video 至少一个 |
+
+**创建模式**（无 `batch_id`）：`image` 必选 + `video` 可选 → 建 FaceCaptureBatch(pending)（旧 pending 批次作废）→ 返回 batch_id
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": { "batch_id": "uuid", "status": "pending_review" }
+}
+```
+
+**存储**: `media_assets`（source_type=`face_capture`，source_id=batch_id，`uploads/media/face_captures/{userID}/{batchID}/`）——生物特征合规数据，**GC 豁免**（禁止按 180 天回收，见 docs/topics/media/media_directory.md）。
+
+---
+
+**接口**: `GET /api/user/face-capture/status`
+
+**说明**: 查询当前顾客核身状态（五态） + 最近批次信息
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id_verify_status": "pending_review",
+    "face_verify_method": "manual",
+    "latest_batch": {
+      "id": "uuid",
+      "status": "pending_review",
+      "reject_reason": null,
+      "submitted_at": "2026-08-28T10:00:00Z"
+    }
+  }
+}
+```
+
+**字段说明**:
+- `id_verify_status`: none/uploaded/pending_review/verified/rejected（派生函数输出，见 #1789 T1）
+- `face_verify_method`: tencent/manual/null
+
+---
+
+**接口**: `GET /api/admin/face-review/queue`
+
+**说明**: 实名核身人工审核队列（待审核批次 + 关联用户证件照三张 + 自拍素材 URL）
+
+**权限**: 平台员工/系统管理员（`SysPermUserUpdate`），**非 org 隔离**（全用户可见）；商户数据仍 tenant 隔离
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "batch_id": "uuid",
+        "user_id": "uuid",
+        "user_name": "张三",
+        "id_photos": ["/uploads/media/id_photos/front.jpg", "/uploads/media/id_photos/back.jpg", "/uploads/media/id_photos/other.jpg"],
+        "selfie_urls": ["/uploads/media/face_captures/{userID}/{batchID}/selfie.jpg"],
+        "submitted_at": "2026-08-28T10:00:00Z"
+      }
+    ],
+    "total": 1
+  }
+}
+```
+
+**⚠️ 字段边界**: 仅返回审核所需证件照/自拍（平台员工可见）；**禁止返回**身份证号明文（real_name 可按需展示，id_card_no 必须脱敏或省略）。
+
+---
+
+**接口**: `POST /api/admin/face-review/:batchId`
+
+**说明**: 人工审核决定：通过或驳回
+
+**权限**: 平台员工/系统管理员（`SysPermUserUpdate`）
+
+**请求 Body**:
+```json
+{
+  "action": "approve",
+  "reason": "与证件一致"
+}
+```
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|:---:|------|
+| `action` | string | ✅ | `approve` / `reject` |
+| `reason` | string | ❌ | 驳回原因（reject 时必填） |
+
+**逻辑**:
+- approve → `users.face_verified=true` + `face_verify_method=manual` + 批次 approved
+- reject → 批次 rejected + reason（顾客可重新采集新批次）
+- **留痕双写**: `face_capture_batches.reviewed_by/at` + `audit_logs`（action=`face_review_approve`/`face_review_reject`，目标 user_id，操作人=平台员工本地 users 缓存）
+
+**响应**:
+```json
+{ "code": 20000, "data": { "status": "approved" } }
+```
+
+**订单接口买家核身状态（#1791 T3）**:
+- `GET /api/orders/:id` → `data.user_id_verify_status`（五态聚合状态）
+- `GET /api/merchant/orders`（员工订单列表）→ 每项 `user_id_verify_status`
+- **字段边界（R2 H2）**：仅返回聚合状态（角标/校验数据源）；**禁止返回** real_name/id_card_no/证件照/自拍素材（用户对商户不可见原则）
+- **N+1 优化（R2 H6）**：列表接口批量 IN 预查买家状态，禁止逐行查批次表
+
+**发货强制校验（#1791 T3 R1）**:
+- `PUT /api/warehouse/orders/:id/shipping`：买家 `id_verify_status != verified` → `40002`（message=`user id verification required`，前端 L1 映射「用户未完成实名核身，请联系平台运营完成审核」，#1675 机器码约定）
+- **无豁免，全量强制**（校验权威在后端，前端置灰仅为 UX）
+
+---
+
+### 8.11a.2 核身超时自动取消（H8，用户决策 2026-08-29）
+
+> 决策：**A. 超时自动取消退款**，时长 **3 天**（`FACE_VERIFY_TIMEOUT_HOURS=72`，默认 72 小时）。
+
+**触发条件**: 订单 `paid`（或 `pending_shipment`）状态下，买家 `id_verify_status != verified` 且支付完成超过 `FACE_VERIFY_TIMEOUT_HOURS`（默认 72 小时）未核身。
+
+**执行逻辑**（定时任务，如 cron/启动时扫描）:
+1. 扫描满足条件的订单（paid/pending_shipment + 未核身 + 超时）
+2. **自动取消订单**: `status → cancelled`
+3. **自动退款**: 按订单实付金额发起微信退款（复用现有退款路径）
+4. **乐器释放**: `stock_status → available`（取消未发货订单的占用）
+5. **⚠️ 必须生成审计日志（强制）**:
+   - `order_logs`: Event=`核身超时自动取消`（含超时原因、触发时间）
+   - `audit_logs`: action=`auto_cancel_verify_timeout`，resource_type=order，resource_id=订单 ID，details=JSON（含 `trigger=face_verify_timeout`、`timeout_hours`、退款单号）
+   - 退款记录 `order_refund_records`（reason=`核身超时自动取消退款`）
+   - **禁止静默取消**——任何自动取消必须可追溯（日志 + 退款记录 + 通知顾客）
+
+**顾客通知**: 取消后发送站内通知（type=order，标题含「核身超时订单已取消」），说明原因与退款进度。
+
+**配置**:
+| 环境变量 | 默认值 | 说明 |
+|---------|-------|------|
+| `FACE_VERIFY_TIMEOUT_HOURS` | `72` | 支付后未核身的自动取消时限（小时） |
+
+**幂等性**: 定时任务重复执行不重复取消（订单状态非 paid/pending_shipment 时跳过；已取消/已退款订单不再处理）。
+
+---
+
+### 8.12 租金计算（v3 阶梯累加）
+
+**接口**: `POST /api/rental/calculate`
+
+**说明**: 计算租金阶梯明细、押金、物流费、积分上限。用户可在返回限额内选择赠点使用量以计算现金差额。
+
+**请求 Body**:
+```json
+{
+  "instrument_id": "uuid",
+  "days": 70
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "tiers": [
+      {"days_min": 1, "days_max": 30, "discount_percent": 0, "days_in_tier": 30, "effective_rate": 100, "subtotal": 3000},
+      {"days_min": 31, "days_max": 70, "discount_percent": 5, "days_in_tier": 40, "effective_rate": 95, "subtotal": 3800}
+    ],
+    "total_rent": 6800,
+    "deposit": 2000,
+    "shipping_fee": 50,
+    "gift_points_max": 100,
+    "gift_points_used": 0,
+    "cash_to_pay": 8850
+  }
+}
+```
+
+> 赠点上限 = `min(用户赠点余额, 总支付额 × PointsPolicy.MaxPayRatio)`。现金 = 总支付额 − 赠点。
+
+---
+
+### 8.13 归还结算
+
+**接口**: `GET /api/user/settlements/:orderId/calculate`
+
+**说明**: 结算预览（不创建记录）。金额均为**分**（#1728 P3 契约，前端 /100 显示）。公式见 docs/cases/cases.md §2.7（#1743 业务口径：Re 按覆盖天数 C 封顶、逾期 = Ro×(Ca−C)、退款 = 应退原价 × 优惠比例 r、补缴 = 原价差额）。
+
+> #1764: `fee_items` 为逐项方向化金额（分），前端只读禁止自算：
+> 每项 amount = 该项目「已付/可抵 − 应付」；>0 → `direction: "refund"`（待退，绿），<0 → `direction: "pay"`（待补缴，红），=0 前端隐藏。总方向与 `total_refund`/`payable_shortfall` 判定一致（#1745 L-04C）。
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "actual_rent_days": 15,
+    "final_daily_rent": 5000,
+    "actual_rent_amount": 75000,
+    "gift_points_used": 20000,
+    "gift_cap": 7500,
+    "gift_points_refunded": 12500,
+    "cash_paid": 100000,
+    "total_refund": 45000,
+    "cash_refundable": 45000,
+    "payable_shortfall": 0,      // #1743 补缴金额（分；应付 > 已付时 > 0）
+    "cover_days": 30,            // #1743 C = 总覆盖天数（含续期）
+    "overdue_charges_total": 0,
+    "breakdown": { "tier_segments": [{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}] },
+    "fee_items": [               // #1764 逐项方向化（amount 分）
+      {"item": "rent", "direction": "refund", "amount": 5000},        // 实付租金 − 应付租金（正=待退）
+      {"item": "deposit", "direction": "refund", "amount": 10000},    // 押金 −（逾期+损坏+物流）（正=待退）
+      {"item": "shipping_fee", "direction": "pay", "amount": 2000},   // −物流费（负=待补缴）
+      {"item": "overdue_fee", "direction": "pay", "amount": 0},       // −逾期费（0 前端隐藏）
+      {"item": "damage", "direction": "pay", "amount": 0}             // −损坏赔偿（0 前端隐藏）
+    ]
+  }
+}
+```
+
+---
+
+**接口**: `POST /api/user/settlements/:orderId`
+
+**说明**: 确认结算（创建 settlement 记录，更新余额 and 订单状态）
+
+**请求 Body**:
+| 字段 | 类型 | 默认 | 说明 |
+|------|------|------|------|
+| refund_method | string | "cash_withdrawal" | "cash_withdrawal" |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "settlement_id": "uuid",
+    "cash_refundable": 450.00,
+    "gift_points_refunded": 125.00
+  }
+}
+```
+
+---
+
+**接口**: `GET /api/user/settlements/:orderId`
+
+**说明**: 查询结算记录
+
+---
+
+### 8.14 逾期扣款告警
+
+**更新说明**: 原 `GET /api/overdue-leases` 已改为从 `overdue_charges` 表读取真实数据，返回 failed/partial 状态的扣款记录。
+
+**接口**: `GET /api/overdue-leases?page=1&page_size=10&status=`
+
+**查询参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| page | int | 页码 |
+| page_size | int | 每页条数 |
+| status | string | 筛选: failed / partial |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "order_id": "uuid",
+        "charge_date": "2026-06-28",
+        "amount": 75.00,
+        "remaining_balance": 25.00,
+        "status": "partial",
+        "failure_reason": null,
+        "instrument_sn": "YAMAHA-001",
+        "category_name": "立式钢琴",
+        "user_name": "张三",
+        "user_phone": "138****1234",
+        "created_at": "2026-06-28T00:00:00Z"
+      }
+    ],
+    "total": 1
+  }
+}
+```
+
+---
+
+### 8.15 发票申请（#1786）
+
+> 顾客侧。申请状态机：`pending`（待开票）→ `replied`（已开票）。一次申请 = 按商户分组的订单集合。
+> **#1941 待实现**：发票类型（普通/专用）/ 抬头 / 税号三字段为用户需求，后端尚未实现，请求 body 暂为 `{tenant_id, order_ids}`；实现后每组增加 `invoice_type` / `title` / `tax_number`（见 `docs/cases/invoice.md` INV-01）。
+
+**接口**: `GET /api/user/invoices/eligible`
+
+**说明**: 可开票订单列表（当前用户 `completed` 且未申请发票的订单）
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": [
+    {
+      "order_id": "uuid",
+      "sn": "CV-08",
+      "created_at": "2026-08-01T10:00:00Z",
+      "tenant_id": "uuid",
+      "merchant_name": "某某琴行",
+      "actual_rent_cents": 500000,
+      "overdue_cents": 0,
+      "total_cents": 500000
+    }
+  ]
+}
+```
+
+**说明**: 金额均为分（`models.Cents`）；实际消费 = settlement.ActualRentAmount + OverdueChargesTotal，无 settlement 时回退 deriveActualRent
+
+---
+
+**接口**: `POST /api/user/invoices`
+
+**说明**: 提交发票申请（按商户分组）
+
+**请求 Body**:
+```json
+{
+  "groups": [
+    {
+      "tenant_id": "uuid",
+      "order_ids": ["uuid1", "uuid2"]
+    }
+  ]
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "applications": [
+      { "id": "uuid", "tenant_id": "uuid", "total_amount": 1000000 }
+    ]
+  }
+}
+```
+
+**说明**: 逐组校验订单属于当前用户且 completed+未申请；创建 application → 标记订单 `invoice_applied=true` → 通知商户管理员（Notification type="invoice"）
+
+---
+
+**接口**: `GET /api/user/invoices`
+
+**说明**: 已申请发票列表
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": [
+    {
+      "id": "uuid",
+      "user_id": "uuid",
+      "tenant_id": "uuid",
+      "status": "pending",
+      "total_amount": 1000000,
+      "order_count": 2,
+      "reply": null,
+      "invoice_file": null,
+      "replied_at": null,
+      "created_at": "2026-08-10T10:00:00Z",
+      "merchant_name": "某某琴行",
+      "orders": [
+        { "order_id": "uuid", "sn": "CV-08", "created_at": "...", "actual_rent_cents": 500000, "overdue_cents": 0, "total_cents": 500000 }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+**接口**: `GET /api/user/invoices/:id`
+
+**说明**: 单条申请详情（含订单明细 + 回复 + 发票文件 + 商户名）
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "uuid",
+    "user_id": "uuid",
+    "tenant_id": "uuid",
+    "status": "replied",
+    "total_amount": 1000000,
+    "order_count": 2,
+    "reply": "发票已开具",
+    "invoice_file": "https://.../invoice.pdf",
+    "replied_at": "2026-08-12T10:00:00Z",
+    "created_at": "2026-08-10T10:00:00Z",
+    "merchant_name": "某某琴行",
+    "orders": []
+  }
+}
+```
+
+---
+
+
+### 8.16 用户提交申诉
+```
+POST /api/appeals
+```
+**请求体**:
+```json
+{
+  "damage_report_id": "uuid",
+  "appeal_reason": "申诉理由"
+}
+```
+
+### 8.17 用户同意定损
+```
+POST /api/appeals/:id/agree
+```
+
+**响应**（#1858 语义补录；金额全部分）:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "damage_report": { "id": "uuid", "status": "agreed" },
+    "order_status": "deposit_refunding",
+    "deposit_deducted": 100
+  }
+}
+```
+- `order_status` 为**分流依据**：`deposit_refunding` = 净方向为退款（应退金额由
+  定损 preview/refund 给出，前端不得引导付款）；保持原状态（如
+  pending_damage_response）= 需补缴，前端才进入付款页
+- 幂等（#1858）：定损已处理（非 `pending`）时重复同意返回
+  `code: 40900, message: "定损已处理，请勿重复操作"`——不重复落账/不重复发通知
+- `POST /api/appeals`（申诉）同守卫：非 `pending` → `code: 40900`
+
+### 8.18 顾客（无组织绑定）可调用的接口（#1579）
+
+以下接口注册在 `userOptionalAuth` 组，顾客 token（oid/tid 为空）无需组织绑定即可调用：
+
+| 接口 | 说明 |
+|------|------|
+| `GET /api/notifications`、`GET /api/notifications/:id`、`POST /api/notifications/:id/read`、`POST /api/notifications/mark-all-read` | 系统消息列表/详情/已读（handler 按 user_id 过滤）。详情响应 `data.ref` 在 `ref_type=damage_report` 时额外挂载 `ref.damage`（#1858，字段与订单详情 `damage` 对象同源：damage_amount/refund/shortfall/actual_rent_amount/paid_total/status 等，金额全部分）——消息详情据此展示结算方向并决定同意后分流 |
+| `POST /api/repair-appeals` | 顾客报修申诉（列表/关闭/审核等仍为员工接口） |
+| `POST /api/appeals`、`POST /api/appeals/:id/agree` | 顾客定损申诉/同意 |
+| `GET /api/orders/by-instrument-sn` | 乐器详情页"当前租赁中"（顾客/员工共用） |
+| `GET /api/common/sites/:id`、`GET /api/common/sites/nearby` | 网点详情/附近网点（游客/顾客/员工） |
+
+## 九、商家管理端
+
+> ⚠️ **所有接口必须从 Context 获取 tenant_id 和 org_id**
+
+### 9.1 设备台账
+
+**接口**: `GET /api/merchant/assets`
+
+**请求参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| sn | string | SN 码筛选 |
+| level | string | 级别筛选 |
+| status | string | 状态筛选 |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "asset-001",
+        "sn": "SN-2024-0001",
+        "name": "雅马哈立式钢琴 U1",
+        "level": "professional",
+        "purchase_date": "2024-01-15",
+        "depreciation_rate": 0.85,
+        "current_value": 17000,
+        "status": "renting",
+        "current_order_id": "order-001",
+        "accumulated_rent_months": 18
+      }
+    ],
+    "total": 150
+  }
+}
+```
+
+---
+
+### 9.2 设备详情
+
+**接口**: `GET /api/merchant/assets/:id`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "asset-001",
+    "sn": "SN-2024-0001",
+    "name": "雅马哈立式钢琴 U1",
+    "level": "professional",
+    "purchase_info": {
+      "date": "2024-01-15",
+      "price": 20000,
+      "supplier": "雅马哈中国"
+    },
+    "depreciation": {
+      "rate": 0.85,
+      "current_value": 17000,
+      "method": "直线法"
+    },
+    "lifecycle": {
+      "status": "renting",
+      "current_order_id": "order-001",
+      "rental_history": [
+        {
+          "order_id": "order-001",
+          "user_name": "张三",
+          "start_date": "2026-03-21",
+          "end_date": "2027-03-21"
+        }
+      ],
+      "maintenance_history": [
+        {
+          "ticket_id": "ticket-001",
+          "date": "2026-08-10",
+          "issue": "琴弦松动",
+          "cost": 0
+        }
+      ]
+    }
+  }
+}
+```
+
+---
+
+### 9.3 库存监控
+
+**接口**: `GET /api/merchant/inventory`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "overview": {
+      "total_assets": 150,
+      "in_stock": 45,
+      "renting": 85,
+      "maintenance": 20
+    },
+    "by_category": [
+      {
+        "category": "钢琴",
+        "in_stock": 15,
+        "renting": 35,
+        "maintenance": 5
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 9.4 强制状态翻转
+
+**接口**: `PUT /api/merchant/inventory/:id/status`
+
+**请求 Body**:
+```json
+{
+  "status": "maintenance",
+  "reason": "用户报修"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "asset_id": "asset-001",
+    "old_status": "renting",
+    "new_status": "maintenance",
+    "updated_at": "2026-03-22T10:00:00Z"
+  }
+}
+```
+
+---
+
+### 9.5 网点间调拨
+
+**接口**: `POST /api/merchant/inventory/transfer`
+
+**请求 Body**:
+```json
+{
+  "asset_id": "asset-001",
+  "from_site_id": "site-001",
+  "to_site_id": "site-002",
+  "reason": "库存调配"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "transfer_id": "transfer-001",
+    "asset_id": "asset-001",
+    "status": "pending",
+    "created_at": "2026-03-22T11:00:00Z"
+  }
+}
+```
+
+---
+
+### 9.6 所有权监控
+
+**接口**: `GET /api/merchant/ownership-monitor`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "asset_id": "asset-001",
+        "sn": "SN-2024-0001",
+        "name": "雅马哈立式钢琴 U1",
+        "accumulated_rent_months": 11,
+        "remaining_months": 1,
+        "estimated_transfer_date": "2025-04-21",
+        "current_user": "张三"
+      }
+    ],
+    "total": 8
+  }
+}
+```
+
+---
+
+### 9.7 租约台账
+
+**接口**: `GET /api/merchant/leases`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "lease-001",
+        "order_id": "order-001",
+        "instrument_name": "雅马哈立式钢琴 U1",
+        "user_name": "张三",
+        "user_phone": "138****8888",
+        "start_date": "2026-03-21",
+        "end_date": "2027-03-21",
+        "monthly_rent": 760,
+        "deposit": 0,
+        "status": "active"
+      }
+    ],
+    "total": 85
+  }
+}
+```
+
+---
+
+### 9.8 逾期预警
+
+**接口**: `GET /api/merchant/leases/overdue`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "lease-002",
+        "order_id": "order-002",
+        "instrument_name": "雅马哈立式钢琴 U3",
+        "user_name": "李四",
+        "user_phone": "139****9999",
+        "end_date": "2026-03-15",
+        "overdue_days": 7,
+        "monthly_rent": 800,
+        "deposit": 5000
+      }
+    ],
+    "total": 3
+  }
+}
+```
+
+---
+
+### 9.9 发送逾期提醒
+
+**接口**: `POST /api/merchant/leases/:id/notify`
+
+**请求 Body**:
+```json
+{
+  "notify_type": "sms", // sms, wechat, phone
+  "template": "overdue_reminder"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "notification_sent": true,
+    "sent_at": "2026-03-22T10:00:00Z"
+  }
+}
+```
+
+---
+
+### 9.10 维保工单列表
+
+**接口**: `GET /api/merchant/maintenance`
+
+**请求参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| status | string | pending, processing, completed |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "ticket-001",
+        "instrument_name": "雅马哈立式钢琴 U1",
+        "user_name": "张三",
+        "problem": "琴弦松动",
+        "status": "processing",
+        "created_at": "2026-03-22T09:00:00Z",
+        "assigned_technician": "李师傅"
+      }
+    ],
+    "total": 12
+  }
+}
+```
+
+---
+
+### 9.11 接单
+
+**接口**: `PUT /api/merchant/maintenance/:id/accept`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "status": "processing",
+    "accepted_at": "2026-03-22T10:00:00Z"
+  }
+}
+```
+
+---
+
+### 9.12 分配师傅
+
+**接口**: `PUT /api/merchant/maintenance/:id/assign`
+
+**请求 Body**:
+```json
+{
+  "technician_id": "tech-001"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "status": "processing",
+    "technician": "李师傅",
+    "assigned_at": "2026-03-22T10:30:00Z"
+  }
+}
+```
+
+---
+
+> ⚠️ **§9.13-§9.15 为遗留维保（maintenance）接口，已决定废弃（#1888 R6，清理见 #1886）**，契约失真明细见 #1886，勿用于新开发。
+
+### 9.13 确认取琴
+
+**接口**: `PUT /api/merchant/maintenance/:id/pickup`
+
+**请求 Body**:
+```json
+{
+  "pickup_time": "2026-03-22T15:00:00Z",
+  "notes": "用户已送至门店"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "status": "processing",
+    "picked_up_at": "2026-03-22T15:00:00Z"
+  }
+}
+```
+
+---
+
+### 9.14 更新维修进度
+
+**接口**: `PUT /api/merchant/maintenance/:id/update`
+
+**请求 Body**:
+```json
+{
+  "progress": "更换琴弦中",
+  "images": ["repair1.jpg"],
+  "estimated_completion": "2026-03-23T18:00:00Z"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "status": "processing",
+    "progress": "更换琴弦中",
+    "updated_at": "2026-03-22T16:00:00Z"
+  }
+}
+```
+
+---
+
+### 9.15 维保报价
+
+**接口**: `POST /api/merchant/maintenance/:id/quote`
+
+**请求 Body**:
+```json
+{
+  "service_item": "专家精调",
+  "price": 200,
+  "reason": "超出服务包范围"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "quote_id": "quote-001",
+    "price": 200,
+    "approval_required": true,
+    "created_at": "2026-03-22T17:00:00Z"
+  }
+}
+```
+
+---
+
+### 9.16 佣金明细
+
+**接口**: `GET /api/merchant/finance/commissions`
+
+**请求参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| start_date | string | 开始日期 (YYYY-MM-DD) |
+| end_date | string | 结束日期 (YYYY-MM-DD) |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "order_id": "order-001",
+        "type": "lease",
+        "amount": 760,
+        "commission_rate": 0.15,
+        "commission_amount": 114,
+        "status": "settled",
+        "settled_at": "2026-03-25T00:00:00Z"
+      }
+    ],
+    "total": 25,
+    "summary": {
+      "total_commission": 2850,
+      "pending_settlement": 450
+    }
+  }
+}
+```
+
+---
+
+### 9.17 流水报表导出
+
+**接口**: `GET /api/merchant/finance/statement`
+
+**请求参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| start_date | string | 开始日期 |
+| end_date | string | 结束日期 |
+| format | string | csv, excel (默认 excel) |
+
+**响应**: 二进制文件流
+
+**Headers**:
+```
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+Content-Disposition: attachment; filename="statement_202603.xlsx"
+```
+
+---
+
+### 9.18 发票管理（#1786）
+
+> 商户侧（merchant_admin / site_admin 可查看，回复仅 merchant_admin）。tenant_id 从 Context 获取（JWT）。
+
+**接口**: `GET /api/merchant/invoices?status=`
+
+**说明**: 本租户发票申请列表（可选状态过滤 pending/replied）
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": [
+    {
+      "id": "uuid",
+      "user_id": "uuid",
+      "tenant_id": "uuid",
+      "status": "pending",
+      "total_amount": 1000000,
+      "order_count": 2,
+      "reply": null,
+      "invoice_file": null,
+      "replied_at": null,
+      "created_at": "2026-08-10T10:00:00Z",
+      "customer_name": "张三",
+      "orders": [
+        { "order_id": "uuid", "sn": "CV-08", "created_at": "...", "actual_rent_cents": 500000, "overdue_cents": 0, "total_cents": 500000 }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+**接口**: `POST /api/merchant/invoices/:id/reply`
+
+**说明**: 开票回复（上传发票文件 + 回复信息，至少填一项）
+
+**请求 Body**:
+```json
+{
+  "reply": "发票已开具",
+  "invoice_file": "https://.../invoice.pdf"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "uuid",
+    "status": "replied",
+    "reply": "发票已开具",
+    "invoice_file": "https://.../invoice.pdf",
+    "replied_at": "2026-08-12T10:00:00Z"
+  }
+}
+```
+
+**说明**: 校验 application.tenant_id == 当前租户（否则 404）；status=replied + replied_at；通知顾客（Notification type="invoice", action_type="invoice_reply"）
+
+---
+
+**接口**: `GET /api/merchant/invoices/:id`
+
+**说明**: 单条申请详情（商户核对，含顾客名 + 订单明细）
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "uuid",
+    "user_id": "uuid",
+    "tenant_id": "uuid",
+    "status": "replied",
+    "total_amount": 1000000,
+    "order_count": 2,
+    "reply": "发票已开具",
+    "invoice_file": "https://.../invoice.pdf",
+    "replied_at": "2026-08-12T10:00:00Z",
+    "created_at": "2026-08-10T10:00:00Z",
+    "merchant_name": "某某琴行",
+    "customer_name": "张三",
+    "orders": []
+  }
+}
+```
+
+---
+
+
+### 9.19 获取申诉列表
+```
+GET /api/merchant/appeals
+```
+**查询参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| status | string | 申诉状态 (pending/reviewing/resolved) |
+| site_id | string | 网点 ID |
+| page | int | 页码 |
+| pageSize | int | 每页数量 |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "instrument": {
+          "id": "uuid",
+          "category": "钢琴",
+          "level": "专业级",
+          "brand": "Yamaha",
+          "model": "U1"
+        },
+        "damage_report": {
+          "amount": 500.00,
+          "comment": "琴弦断裂",
+          "photos": ["url1"]
+        },
+        "user_appeal": {
+          "reason": "琴弦是自然老化",
+          "submitted_at": "2024-01-15T10:00:00Z"
+        },
+        "status": "reviewing",
+        "created_at": "2024-01-15T10:00:00Z"
+      }
+    ],
+    "total": 1,
+    "page": 1,
+    "pageSize": 20
+  }
+}
+```
+
+### 9.20 获取申诉详情
+```
+GET /api/merchant/appeals/:id
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "uuid",
+    "instrument": {...},
+    "lease_info": {
+      "rental_period": "2024-01-01 至 2024-01-31",
+      "total_rent": 2500.00
+    },
+    "damage_report": {...},
+    "user_appeal": {...},
+    "employee_info": {
+      "name": "李四",
+      "damage_assessment": "用户操作不当"
+    },
+    "status": "reviewing"
+  }
+}
+```
+
+### 9.21 处理申诉
+```
+PUT /api/merchant/appeals/:id/resolve
+```
+**请求体**:
+```json
+{
+  "decision": "adjust",  // no_damage, adjust, confirm
+  "adjust_amount": 200.00,  // 仅在 decision=adjust 时有效
+  "comment": "经理判定琴弦为自然老化"
+}
+```
+
+**decision 说明**:
+- `no_damage`: 无损坏，取消赔款，直接生成退还事务，乐器在库状态
+- `adjust`: 调整定损金额
+- `confirm`: 确认原判（不调整）
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "refund_deposit": 5000.00,
+    "status": "resolved"
+  }
+}
+```
+
+## 十、平台运营端
+
+### 10.1 商家准入审核
+
+**接口**: `POST /api/admin/merchants`
+
+**请求 Body**:
+```json
+{
+  "merchant_name": "北京音乐之家",
+  "legal_person": "王五",
+  "business_license": "image.jpg",
+  "contact_phone": "13800000000",
+  "deposit_amount": 50000
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "merchant_id": "merchant-001",
+    "audit_status": "pending",
+    "created_at": "2026-03-22T10:00:00Z"
+  }
+}
+```
+
+---
+
+### 10.2 商家列表
+
+**接口**: `GET /api/admin/merchants`
+
+**请求参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| status | string | pending, approved, rejected |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "merchant-001",
+        "name": "北京音乐之家",
+        "legal_person": "王五",
+        "status": "approved",
+        "created_at": "2026-03-22T10:00:00Z",
+        "deposit_paid": true
+      }
+    ],
+    "total": 15
+  }
+}
+```
+
+---
+
+### 10.3 商家资质审核
+
+**接口**: `PUT /api/admin/merchants/:id/audit`
+
+**请求 Body**:
+```json
+{
+  "status": "approved", // approved, rejected
+  "remark": "资料齐全，符合要求"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "merchant_id": "merchant-001",
+    "audit_status": "approved",
+    "audited_at": "2026-03-23T09:00:00Z"
+  }
+}
+```
+
+---
+
+### 10.4 权限管理 — 成员列表
+
+**接口**: `GET /api/admin/users`
+
+**守卫**: `RequireSysPerm(26)` (permission:manage)
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": [
+    {
+      "user_id": "uuid",
+      "name": "张三",
+      "site_id": "site-uuid",
+      "site_name": "朝阳店",
+      "role_code": "admin",
+      "role_name": "网点管理员",
+      "cus_perm_codes": ["instrument:read", "instrument:update"]
+    }
+  ]
+}
+```
+
+### 10.5 权限管理 — 设置个人权限
+
+**接口**: `PUT /api/admin/users/:id/permissions`
+
+**守卫**: `RequireSysPerm(26)`
+
+**请求 Body**:
+```json
+{
+  "cus_perm_codes": ["instrument:read", "instrument:maintain"]
+}
+```
+
+**验证规则**: 每个 code 必须 ⊆ 当前管理员的 cus_perm，不可授予自己没有的权限。
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "permissions updated, will take effect on next login"
+}
+```
+
+### 10.5.1 权限管理 — 设置成员角色
+
+**接口**: `PUT /api/admin/users/:id/roles`
+
+**守卫**: `RequireSysPerm(26)`
+
+**请求 Body**:
+```json
+{
+  "role_code": "repair_technician"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "role updated, will take effect on next login"
+}
+```
+
+### 10.5.2 权限管理 — 角色列表
+
+**接口**: `GET /api/admin/roles`
+
+**守卫**: `RequireSysPerm(26)`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": [
+    {
+      "id": "uuid",
+      "name": "商户管理员",
+      "code": "owner",
+      "cus_perm_codes": ["instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:price", "instrument:maintain", "order:create", "order:read", "order:update", "order:cancel"],
+      "is_system": true,
+      "permission_count": 10
+    }
+  ]
+}
+```
+
+### 10.5.3 权限管理 — 创建角色
+
+**接口**: `POST /api/admin/roles`
+
+**守卫**: `RequireSysPerm(26)` + 商户管理员
+
+**请求 Body**:
+```json
+{
+  "name": "库管员",
+  "code": "warehouse_keeper",
+  "cus_perm_codes": ["instrument:read", "instrument:update"]
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "role created",
+  "data": { "id": "uuid" }
+}
+```
+
+### 10.5.4 权限管理 — 更新角色
+
+**接口**: `PUT /api/admin/roles/:id`
+
+**守卫**: `RequireSysPerm(26)` + 商户管理员
+
+**请求 Body**:
+```json
+{
+  "cus_perm_codes": ["instrument:read", "instrument:price", "order:read"]
+}
+```
+
+### 10.5.5 权限管理 — 删除角色
+
+**接口**: `DELETE /api/admin/roles/:id`
+
+**守卫**: `RequireSysPerm(26)` + 商户管理员
+
+**约束**: 系统角色不可删除；有成员使用的角色不可删除（需先重新分配）
+
+---
+
+### 10.6 定价矩阵
+
+**接口**: `GET /api/admin/pricing-matrix`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "matrix": {
+      "piano": {
+        "entry": {
+          "monthly_rent": 300,
+          "deposit": 2000,
+          "discount_12months": 0.95
+        },
+        "professional": {
+          "monthly_rent": 800,
+          "deposit": 5000,
+          "discount_12months": 0.95
+        },
+        "master": {
+          "monthly_rent": 2000,
+          "deposit": 10000,
+          "discount_12months": 0.90
+        }
+      }
+    }
+  }
+}
+```
+
+---
+
+### 10.7 更新定价矩阵
+
+**接口**: `PUT /api/admin/pricing-matrix`
+
+**请求 Body**:
+```json
+{
+  "category": "piano",
+  "level": "professional",
+  "monthly_rent": 850,
+  "deposit": 5500
+}
+```
+
+---
+
+### 10.8 维保服务包配置
+
+**接口**: `GET /api/admin/maintenance-packages`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "packages": {
+      "entry": {
+        "name": "基础服务包",
+        "services": ["基础清洁", "免费调音 1 次/年"]
+      },
+      "professional": {
+        "name": "标准服务包",
+        "services": ["深度清洁", "免费调音 2 次/年", "免费维修"]
+      },
+      "master": {
+        "name": "尊享服务包",
+        "services": ["专家精调", "无限次调音", "免费维修", "上门保养"]
+      }
+    }
+  }
+}
+```
+
+---
+
+### 10.9 更新服务包
+
+**接口**: `PUT /api/admin/maintenance-packages`
+
+**请求 Body**:
+```json
+{
+  "level": "professional",
+  "services": [
+    "深度清洁",
+    "免费调音 2 次/年",
+    "免费维修",
+    "新增服务项"
+  ]
+}
+```
+
+---
+
+### 10.10 强制触发所有权转移
+
+**接口**: `POST /api/admin/ownership/trigger`
+
+**请求 Body**:
+```json
+{
+  "order_id": "order-001",
+  "approve": true
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "transfer_completed": true,
+    "certificate_generated": true
+  }
+}
+```
+
+---
+
+### 10.11 全局结算
+
+**接口**: `GET /api/admin/settlements`
+
+**请求参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| period | string | 结算周期: weekly, monthly |
+| status | string | pending, completed |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "settlement_id": "stl-001",
+        "merchant_id": "merchant-001",
+        "merchant_name": "北京音乐之家",
+        "period": "2026-03",
+        "total_revenue": 50000,
+        "commission_rate": 0.15,
+        "commission_amount": 7500,
+        "settlement_amount": 42500,
+        "status": "pending"
+      }
+    ],
+    "total": 15
+  }
+}
+```
+
+---
+
+### 10.12 结算确认
+
+**接口**: `PUT /api/admin/settlements/:id`
+
+**请求 Body**:
+```json
+{
+  "status": "completed",
+  "payment_transaction_id": "txn-001"
+}
+```
+
+---
+
+### 10.13 押金监管
+
+**接口**: `GET /api/admin/deposits`
+
+**请求参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| status | string | frozen, released, deducted |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "deposit_id": "dep-001",
+        "order_id": "order-001",
+        "user_name": "张三",
+        "amount": 5000,
+        "status": "frozen",
+        "frozen_at": "2026-03-21",
+        "reason": "标准押金"
+      }
+    ],
+    "total": 120,
+    "summary": {
+      "total_frozen": 600000,
+      "total_released": 450000,
+      "total_deducted": 15000
+    }
+  }
+}
+```
+
+---
+
+### 10.14 押金处理
+
+**接口**: `PUT /api/admin/deposits/:id`
+
+**请求 Body**:
+```json
+{
+  "action": "release", // release, deduct
+  "amount": 5000,
+  "reason": "租约正常结束"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "deposit_id": "dep-001",
+    "action": "release",
+    "processed_at": "2026-03-22T10:00:00Z"
+  }
+}
+```
+
+---
+
+### 10.15 资产流转轨迹
+
+**接口**: `GET /api/admin/assets/:id/trail`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "asset_id": "asset-001",
+    "sn": "SN-2024-0001",
+    "timeline": [
+      {
+        "event": "入库",
+        "date": "2024-01-15",
+        "location": "北京总仓",
+        "description": "采购入库"
+      },
+      {
+        "event": "租赁",
+        "date": "2026-03-21",
+        "location": "北京朝阳店",
+        "description": "租给用户张三"
+      },
+      {
+        "event": "维保",
+        "date": "2026-08-10",
+        "location": "北京朝阳店",
+        "description": "琴弦松动维修"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 10.16 统计大屏
+
+**接口**: `GET /api/admin/dashboard`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "overview": {
+      "total_assets": 1500,
+      "total_value": 30000000,
+      "rental_rate": 85.3, // 在租率 %
+      "total_revenue": 2500000
+    },
+    "by_category": {
+      "piano": {
+        "total": 500,
+        "renting": 420,
+        "revenue": 1200000
+      }
+    },
+    "transfer_stats": {
+      "total_transferred": 120,
+      "conversion_rate": 8.0 // 转售转化率 %
+    }
+  }
+}
+```
+
+---
+
+### 10.17 仪表盘
+
+### 10.17.1 获取统计数据
+```
+GET /api/admin/dashboard/stats
+```
+
+### 10.17.2 获取即将到期列表
+```
+GET /api/admin/dashboard/near-transfers
+```
+
+
+### 10.18 人员管理
+
+#### 10.18.1 创建用户
+
+**接口**: `POST /api/users`
+
+**权限**: `sys_perm bit 17 (user:create)`
+
+**请求 Body**:
+```json
+{
+  "name": "张三",
+  "phone": "13800000000",
+  "email": "zhangsan@example.com",
+  "username": "zhangsan",
+  "position": "销售",
+  "site_id": "uuid-here",
+  "role": "site_member",
+  "password": "MyPwd123",
+  "auto_generate": false,
+  "force_password_change": true
+}
+```
+
+**参数说明**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| name | string | 是 | 姓名 |
+| phone | string | 是 | 手机号 |
+| email | string | 否 | 邮箱（改选填） |
+| username | string | 否 | 用户名（不传时自动使用 email 前缀） |
+| position | string | 否 | 职位 |
+| site_id | string | 否 | 归属网点 ID |
+| role | string | 否 | 角色：site_member / site_admin / repair_technician |
+| password | string | 否 | 管理员设置的初始密码（8位+大写+小写+数字） |
+| auto_generate | bool | 否 | 自动生成密码（true时忽略 password 字段） |
+| force_password_change | bool | 否 | 首次登录强制修改密码 |
+
+**密码设置场景**:
+
+| 场景 | password | auto_generate | 说明 |
+|------|----------|---------------|------|
+| 手动设密 | 提供 | false | 用户直接激活，无确认邮件 |
+| 自动生成 | 空 | true | 后端返回 initial_password |
+| 兼容旧流程 | 空 | false | IAM 发送确认邮件 |
+
+**角色默认值逻辑**：
+- 未传 `role` 时，若指定了 `site_id`，查询该网点已有成员数：
+  - **第一个成员** → `site_admin`（网点管理员）
+  - **后续成员** → `site_member`（网点员工）
+- 未传 `role` 且未指定 `site_id` → `site_member`
+
+**约束**：
+- `phone`、`email`、`username` 在租户内唯一，冲突返回 `40900`
+- 只有 `site_admin`/`merchant_admin` 可以创建 `site_admin` 角色
+- 创建用户后自动在 IAM 侧绑定组织、设置权限位图、分配角色模板
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "id": "uuid",
+    "username": "zhangsan",
+    "name": "张三",
+    "phone": "13800000000",
+    "email": "zhangsan@example.com",
+    "position": "销售",
+    "created_at": "2026-01-01T00:00:00Z",
+    "updated_at": "2026-01-01T00:00:00Z",
+    "initial_password": "aB3xK9mQ2pL7"
+  }
+}
+```
+
+> `initial_password` 仅在 `auto_generate=true` 时返回，展示一次后应丢弃。
+
+---
+
+#### 10.18.2 修改个人密码
+
+**接口**: `POST /api/user/change-password`
+
+**权限**: 登录即可（自服务）
+
+**说明**: 当前登录用户直接修改密码（无需邮件确认）。成功后清除 `force_password_change` 标志。
+
+**请求 Body**:
+```json
+{
+  "new_password": "NewPwd123"
+}
+```
+
+**参数说明**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| new_password | string | 是 | 新密码（8位+大写+小写+数字） |
+
+**频率限制**: 同用户每 5 分钟最多 3 次。
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "密码修改成功"
+}
+```
+
+---
+
+#### 10.18.3 重置个人密码
+
+**接口**: `POST /api/user/reset-password`
+
+**说明**: 当前登录用户请求发送密码重置邮件。后端代理转发到 beaconiam 的 `POST /api/v1/users/reset-password`。
+
+**权限**: 已登录用户（从 JWT 获取 `iam_sub`）
+
+**频率限制**: 每用户每 30 分钟最多 3 次，超出返回 `42900`
+
+**请求 Body**: 无（空请求体）
+
+**成功响应**:
+```json
+{
+  "code": 20000,
+  "message": "密码重置邮件已发送至 z***@example.com，请查收",
+  "data": {
+    "email_masked": "z***@example.com",
+    "expires_in_minutes": 60
+  }
+}
+```
+
+**错误响应**:
+| HTTP 状态码 | code | message |
+|-------------|------|---------|
+| 400 | 40001 | 您的账户未绑定邮箱，请联系管理员 |
+| 429 | 42900 | 操作过于频繁，请 30 分钟后再试 |
+| 500 | 50002 | 邮件发送失败，请稍后重试 |
+
+---
+
+#### 10.18.4 批量导入用户
+
+**接口**: `POST /api/admin/bulk-import/accounts`
+
+**权限**: `sys_perm bit 17 (user:create)`
+
+**Content-Type**: `multipart/form-data`
+
+**表单字段**:
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| file | file | 是 | CSV 文件 |
+| skip_activation | bool | 否 | 跳过邮箱激活（默认 false） |
+
+**查询参数**:
+- `skip_activation=true`：自动生成密码，IAM 发送通知邮件，用户直接激活
+- `skip_activation=false`（默认）：用户为 pending 状态，需邮箱确认
+
+**CSV 格式**:
+```csv
+username,name,email,phone,site,role
+zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "summary": { "total": 2, "created": 2, "failed": 0 },
+    "details": [
+      { "row": 1, "key": "zhangsan@example.com", "action": "created" }
+    ]
+  }
+}
+```
+
+---
+
+#### 10.18.5 预览批量导入
+
+**接口**: `POST /api/admin/bulk-import/accounts?dry_run=true`
+
+**说明**: 预览解析结果，不实际创建用户。支持 `skip_activation` 参数。
+
+---
+
+
+### 10.19 平台员工管理（#1795 T6）
+
+**接口**: `GET/POST/PUT/DELETE /api/admin/platform-staff`（CRUD 平台员工绑定）
+
+**说明**: 平台员工（PlatformStaff）角色绑定——具有用户查看/审核权限（SysPerm user 类），用于实名审核队列等平台级操作
+
+**权限**: **仅系统管理员**（业务角色 system_admin，`SysPermUserUpdate` 等 user 类 sys_perm 且非商户/网点角色）；列表以操作员 oid 为组织过滤条件（#1897）
+
+**角色识别**: 平台员工通过 IAM 绑定（user_org_relations + 角色模板），或由 `PLATFORM_ROOT_ORG_ID` 环境变量指定根组织下的成员识别（见 docs/spec/permissions.md）
+
+**响应结构**: `{ code: 20000, data: { list: [...] } }`
+
+---
+
+## 十一、通用模块
+
+### 11.1 文件上传
+
+**接口**: `POST /api/common/upload`
+
+**请求**: multipart/form-data
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "file_id": "file-001",
+    "url": "https://cdn.example.com/uploads/image.jpg",
+    "filename": "image.jpg",
+    "size": 2048576
+  }
+}
+```
+
+---
+
+### 11.2 地区数据
+
+**接口**: `GET /api/common/regions`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "provinces": [
+      {
+        "code": "110000",
+        "name": "北京市"
+      }
+    ],
+    "cities": [
+      {
+        "code": "110100",
+        "name": "北京市",
+        "province_code": "110000"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 十二、系统管理模块
+
+### 12.1 客户端管理
+
+**接口**: `GET /api/system/clients`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "clients": [
+      {
+        "client_id": "tuneloop-pc",
+        "client_name": "PC Web Client",
+        "redirect_uris": ["http://localhost:5554/callback"]
+      }
+    ]
+  }
+}
+```
+
+### 12.2 租户管理
+
+**接口**: `GET /api/system/tenants`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "tenants": [
+      {
+        "tenant_id": "tenant-001",
+        "tenant_name": "TuneLoop Primary",
+        "org_count": 5
+      }
+    ]
+  }
+}
+
+### 12.3 商户管理
+
+#### 12.3.1 创建商户
+
+**接口**: `POST /api/merchants`
+
+**请求 Body**:
+```json
+{
+  "name": "cadenza",
+  "phone": "13800000000",
+  "address": "北京市海淀区",
+  "admin_name": "管理员姓名",
+  "admin_email": "admin@example.com",
+  "admin_phone": "13800000001",
+  "merchant_type": "controlled",
+  "transit_address": "中转库房地址",
+  "transit_phone": "13911112222",
+  "transit_contact_name": "中转联系人",
+  "skip_activation": true
+}
+```
+
+**字段说明**:
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| name | string | ✅ | 商户名，命名空间下唯一 |
+| phone | string | | 联系电话 |
+| address | string | | 地址 |
+| admin_uid | string | | 已有用户 UUID（与 admin_name+admin_email 二选一） |
+| admin_name | string | | 新管理员姓名（与 admin_uid 二选一） |
+| admin_email | string | | 新管理员邮箱（与 admin_uid 二选一） |
+| admin_phone | string | | 新管理员手机号 |
+| merchant_type | string | | 商户类型：`full`（全权商户，默认）或 `controlled`（受控商户）。受控商户使用中转地址隔离消费者与商户直接联系 |
+| transit_address | string | | 中转地址（受控商户必填） |
+| transit_phone | string | | 中转电话（受控商户必填） |
+| transit_contact_name | string | | 中转联系人（可选） |
+| skip_activation | bool | | 跳过邮箱验证，管理员直接激活（默认 false）。`true` 时管理员无需确认邮件即可登录，响应中返回 `initial_password` |
+
+**响应**:
+```json
+{
+  "code": 20100,
+  "data": {
+    "id": "uuid",
+    "name": "cadenza",
+    "code": "cadenza",
+    "iam_org_id": "uuid",
+    "admin_uid": "uuid",
+    "directly_added": ["uuid"],
+    "callback_url": "https://example.com/api/iam/confirmation-callback",
+    "iam_admin_id": "uuid",
+    "initial_password": "AbCd1234XyZ"
+  }
+}
+```
+
+**响应字段补充**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| initial_password | string | 仅在 `skip_activation=true` 时返回。管理员初始密码，请尽快通知管理员修改 |
+
+**错误码**:
+- `40002`: 商户名已存在
+- `40001`: 请求参数错误
+- `40900`: IAM 组织名称冲突
+
+#### 12.3.2 商户列表
+
+**接口**: `GET /api/merchants`
+
+**查询参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| page | int | 页码 |
+| pageSize | int | 每页数量 |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "name": "cadenza",
+        "phone": "13800000000",
+        "address": "北京市海淀区",
+        "admin_uid": "uuid",
+        "merchant_type": "full",
+        "transit_address": "",
+        "transit_phone": "",
+        "status": "active",
+        "created_at": "2026-05-18T04:49:55Z"
+      }
+    ],
+    "total": 1
+  }
+}
+```
+
+#### 12.3.3 更新商户
+
+**接口**: `PUT /api/merchants/:id`
+
+**请求 Body**:
+```json
+{
+  "name": "new-name",
+  "phone": "13900000000",
+  "address": "新地址",
+  "merchant_type": "controlled",
+  "transit_address": "新中转地址",
+  "transit_phone": "13911112222",
+  "transit_contact_name": "新联系人"
+}
+```
+
+**响应**: 常规成功响应 `{ code: 20000, data: { ... } }`
+
+#### 12.3.4 删除商户
+
+**接口**: `DELETE /api/merchants/:id`
+
+**响应**: `{ "code": 20000, "message": "success" }`
+```
+
+### 12.4 审计日志
+
+#### 12.4.1 查询审计日志列表
+
+**接口**: `GET /api/admin/audit-logs`
+
+**查询参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| page | int | 页码，默认 1 |
+| pageSize | int | 每页数量，默认 20，最大 100 |
+| resource_type | string | 资源类型筛选 |
+| action | string | 操作类型筛选 |
+| user_id | string | 操作用户 ID |
+| date_from | string | 起始时间 (YYYY-MM-DD) |
+| date_to | string | 结束时间 (YYYY-MM-DD) |
+| keyword | string | 关键词搜索（resource_type/resource_id/action） |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "tenant_id": "uuid",
+        "org_id": "uuid",
+        "user_id": "uuid",
+        "actor_role": "ADMIN",
+        "action": "CREATE",
+        "resource_type": "order",
+        "resource_id": "uuid",
+        "details": null,
+        "request_body": null,
+        "ip_address": "192.168.1.1",
+        "user_agent": "Mozilla/5.0",
+        "created_at": "2026-05-19T03:00:00Z"
+      }
+    ],
+    "total": 100,
+    "page": 1,
+    "pageSize": 20
+  }
+}
+```
+
+**RBAC 可见范围**:
+| 角色 | 可见范围 |
+|------|---------|
+| ADMIN/OWNER | 全租户（tenant_id 范围） |
+| site_admin | 本组织（org_id 范围） |
+| 其他用户 | 仅本人日志（user_id 范围） |
+
+#### 12.4.2 获取审计日志详情
+
+**接口**: `GET /api/admin/audit-logs/:id`
+
+**响应**: 单条审计日志对象，格式同列表中的元素
+
+#### 12.4.3 导出审计日志
+
+**接口**: `POST /api/admin/audit-logs/export`
+
+**请求 Body**（可选筛选参数，同列表接口）:
+```json
+{
+  "resource_type": "order",
+  "action": "CREATE",
+  "user_id": "uuid",
+  "date_from": "2026-01-01",
+  "date_to": "2026-12-31",
+  "keyword": ""
+}
+```
+
+**响应**: CSV 文件下载（Content-Type: text/csv, Content-Disposition: attachment; filename=audit_logs.csv）
+
+**CSV 列**: Time, UserID, ActorRole, Action, ResourceType, ResourceID, IPAddress
+
+---
+
+### 12.5 会员级别管理
+
+**权限码**: `membership:manage`
+
+**接口**: `GET /api/admin/membership-levels` — 列出所有会员级别
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": [
+    { "id": 1, "name": "初级会员", "min_spending": 0, "discount_rate": 1.0, "sort_order": 1 },
+    { "id": 2, "name": "中级会员", "min_spending": 5000, "discount_rate": 0.95, "sort_order": 2 }
+  ]
+}
+```
+
+**接口**: `POST /api/admin/membership-levels` — 创建会员级别
+
+**请求 Body**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| name | string | 级别名称 |
+| discount_rate | decimal | 折扣率 (0.0–1.0) |
+| min_spending | decimal | 升级所需累计消费 |
+| sort_order | int | 排序号 |
+
+**接口**: `PUT /api/admin/membership-levels/:id` — 更新会员级别
+
+**接口**: `DELETE /api/admin/membership-levels/:id` — 删除会员级别
+
+**接口**: `GET /api/admin/membership-levels/:id/benefits` — 列出某档会员权益行（#1830）
+
+**权限码**: `membership:manage`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "level_id": 2,
+    "list": [
+      { "id": "uuid", "level_id": 2, "sort_order": 1, "title": "租金返现", "description": "按当期比例返现积分", "created_at": "...", "updated_at": "..." }
+    ]
+  }
+}
+```
+
+**接口**: `PUT /api/admin/membership-levels/:id/benefits` — 整档替换会员权益行（#1830）
+
+**请求 Body**（items 顺序即展示顺序；空数组 = 清空该档权益）:
+```json
+{
+  "items": [
+    { "title": "租金返现", "description": "每笔实付租单结算完成后，按当期返现比例赠送积分" },
+    { "title": "积分抵用", "description": "下单支付时可按当期政策使用积分抵扣" }
+  ]
+}
+```
+
+**接口**: `GET /api/membership/benefits?level_id=N` — 顾客端读取指定档位权益（#1830，移动端会员中心）
+
+- `level_id` 必填，缺失/非法返回 40002
+- 响应结构同上（`data.level_id` + `data.list`），无需登录态以外的权限（userOptionalAuth）
+- 前端用法：`/users/me` 取 `membership_level_id` → 本接口取权益行；空 list 时前端隐藏权益卡
+
+**表结构**: `membership_level_benefits`（20260907001 migration，含三档种子文案草案）:
+| 列 | 类型 | 说明 |
+|----|------|------|
+| id | uuid PK | 行 ID |
+| level_id | int | 会员级别 ID（membership_levels.id） |
+| sort_order | int | 展示顺序（1 起） |
+| title | varchar(100) | 权益标题 |
+| description | varchar(500) | 权益说明 |
+| created_at / updated_at | timestamptz | 时间戳 |
+
+---
+
+### 12.6 返点配置
+
+> ⚠️ **已废弃（#1899 方案 A）**：本模块已从 PC 菜单/路由与后端移除，表数据保留。返点统一由「赠点策略」（`gift_policies`：pay_ratio 使用上限 + refund_ratio 返还比例）承担，见 §12.8 相关章节。
+
+
+**权限码**: `rebate:manage`
+
+**接口**: `GET /api/admin/rebate-config` — 获取返点配置
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "rates": [
+      { "level_id": 1, "rebate_rate": 0.02 },
+      { "level_id": 2, "rebate_rate": 0.05 }
+    ]
+  }
+}
+```
+
+**接口**: `PUT /api/admin/rebate-config` — 更新返点配置（按会员级别设租金→点数返还比例）
+
+**接口**: `GET /api/merchant/rebate-opt-in` — 获取商户返点参与状态
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": { "opt_in": true }
+}
+```
+
+**接口**: `PUT /api/merchant/rebate-opt-in` — 更新商户返点参与状态
+
+**请求 Body**:
+```json
+{ "opt_in": false }
+```
+
+---
+
+### 12.7 折扣政策管理
+
+> ⚠️ **已废弃（#1899 方案 A）**：本模块已从 PC 菜单/路由与后端移除，表数据保留。返点统一由「赠点策略」（`gift_policies`：pay_ratio 使用上限 + refund_ratio 返还比例）承担，见 §12.8 相关章节。
+
+
+**权限码**: `promo:manage`
+
+#### 12.7.1 系统级
+
+**接口**: `GET /api/admin/promo-plans` — 列出系统折扣政策
+
+**接口**: `POST /api/admin/promo-plans` — 创建系统折扣政策
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| plan_name | string | 政策名称 |
+| plan_type | string | 类型: overdue_discount / seasonal |
+| is_active | bool | 是否启用 |
+| applicable_levels | string | 适用会员级别 ID 列表 (逗号分隔) |
+
+**接口**: `PUT /api/admin/promo-plans/:id` — 更新系统折扣政策
+
+**接口**: `DELETE /api/admin/promo-plans/:id` — 删除系统折扣政策
+
+**接口**: `GET /api/admin/promo-plans/:id/details` — 获取折扣政策详情（按级别折扣率）
+
+**接口**: `PUT /api/admin/promo-plans/:id/details` — 更新折扣政策详情
+
+**请求 Body**:
+```json
+{ "details": [{ "level_id": 1, "discount_rate": 0.9 }] }
+```
+
+#### 12.7.2 商户级
+
+**接口**: `GET /api/merchant/promo-plans` — 列出商户折扣政策
+**接口**: `POST /api/merchant/promo-plans` — 创建商户折扣政策
+**接口**: `PUT /api/merchant/promo-plans/:id` — 更新
+**接口**: `DELETE /api/merchant/promo-plans/:id` — 删除
+**接口**: `GET /api/merchant/promo-plans/:id/details` — 详情
+**接口**: `PUT /api/merchant/promo-plans/:id/details` — 更新详情
+
+参数同系统级。
+
+---
+
+### 12.8 乐器促销覆盖
+
+**权限码**: `promo:override`
+
+**接口**: `GET /api/instruments/:id/promo-overrides` — 获取乐器折扣/返点开关
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "discount_enabled": true,
+    "rebate_enabled": true
+  }
+}
+```
+
+**接口**: `PUT /api/instruments/:id/promo-overrides` — 更新乐器折扣/返点开关
+
+**请求 Body**:
+```json
+{ "discount_enabled": false, "rebate_enabled": true }
+```
+
+---
+
+### 12.9 点数政策管理
+
+**权限码**: `points:manage`
+
+三级可覆盖（网点＞商户＞系统），定义点数可支付上限和有效期。
+
+#### 12.9.1 系统级
+
+**接口**: `GET /api/admin/points-policies` — 列出系统点数政策
+**接口**: `POST /api/admin/points-policies` — 创建系统点数政策
+**接口**: `PUT /api/admin/points-policies/:id` — 更新系统点数政策
+
+**请求 Body**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| cap_rate | decimal | 支付上限比率（如 10 表示 10%） |
+| valid_days | int | 点数有效期（天） |
+| is_active | bool | 是否启用 |
+
+#### 12.9.2 商户级
+
+**接口**: `GET /api/merchant/points-policies` — 列出商户点数政策
+**接口**: `POST /api/merchant/points-policies` — 创建
+**接口**: `PUT /api/merchant/points-policies/:id` — 更新
+
+#### 12.9.3 网点级
+
+**接口**: `GET /api/site/points-policies` — 列出网点点数政策
+**接口**: `POST /api/site/points-policies` — 创建
+**接口**: `PUT /api/site/points-policies/:id` — 更新
+
+---
+
+## 十三、标签与属性管理模块
+
+### 13.1 标签管理
+
+#### 13.1.1 获取标签列表
+
+**接口**: `GET /api/labels`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "label-001",
+        "name": "琴弦松动",
+        "status": "pending",
+        "created_at": "2026-03-22T09:00:00Z"
+      }
+    ],
+    "total": 25
+  }
+}
+```
+
+#### 13.1.2 创建标签
+
+**接口**: `POST /api/labels`
+
+**请求 Body**:
+```json
+{
+  "name": "键盘磨损",
+  "category": "damage"
+}
+```
+
+#### 13.1.3 审批标签
+
+**接口**: `PUT /api/labels/:id/approve`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "approved": true,
+    "status": "approved"
+  }
+}
+```
+
+#### 13.1.4 拒绝标签
+
+**接口**: `PUT /api/labels/:id/reject`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "rejected": true,
+    "status": "rejected"
+  }
+}
+```
+
+#### 13.1.5 合并标签
+
+**接口**: `POST /api/labels/merge`
+
+**请求 Body**:
+```json
+{
+  "source_id": "label-002",
+  "target_id": "label-001",
+  "reason": "重复标签合并"
+}
+```
+
+---
+
+### 13.2 属性管理
+
+#### 13.2.1 属性列表
+
+**接口**: `GET /api/properties`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "prop-001",
+        "name": "琴键数",
+        "type": "number",
+        "options": []
+      },
+      {
+        "id": "prop-002",
+        "name": "颜色",
+        "type": "select",
+        "options": ["黑色", "白色", "棕色"]
+      }
+    ]
+  }
+}
+```
+
+#### 13.2.2 创建属性
+
+**接口**: `POST /api/property`
+
+**请求 Body**:
+```json
+{
+  "name": "材质",
+  "type": "select",
+  "category": "instrument"
+}
+```
+
+#### 13.2.3 更新属性
+
+**接口**: `PUT /api/property/:id`
+
+**请求 Body**: 同创建
+
+#### 13.2.4 创建属性选项
+
+**接口**: `POST /api/property/option`
+
+**请求 Body**:
+```json
+{
+  "property_id": "prop-002",
+  "value": "红色"
+}
+```
+
+#### 13.2.5 确认属性值
+
+**接口**: `PUT /api/property/confirm`
+
+**请求 Body**:
+```json
+{
+  "asset_id": "asset-001",
+  "property_id": "prop-001",
+  "value": "88键"
+}
+```
+
+#### 13.2.6 合并属性值
+
+**接口**: `PUT /api/property/merge`
+
+**请求 Body**:
+```json
+{
+  "from_value": "黑色",
+  "to_value": "深黑色",
+  "property_id": "prop-002"
+}
+```
+
+---
+
+## 十四、技术实现要点
+
+### 14.1 IAM 集成
+- JWT 校验中间件: `IAMInterceptor`
+- 从 JWT 提取: `sub`, `tenant_id`, `org_id`
+- Token 失效自动刷新机制
+
+### 14.2 数据模型约束
+- `Order` 表必须包含 `accumulated_months` 字段
+- `User` 表支持 `is_shadow` 标记（IAM 同步用户）
+
+### 14.3 关键业务逻辑
+- **租转售状态机**: 定时任务每月检查 `accumulated_months >= 12`
+- **计费计算器**: 前端实时计算，后端签名验证
+- **押金双轨制**: 校验用户免押资格（信用分/会员等级）
+- **LBS 排序**: 使用 geohash 加速地理位置查询
+
+### 14.4 错误码定义
+| 错误码 | 说明 |
+|--------|------|
+| 20000 | 成功 |
+| 40001 | 通用错误 |
+| 40002 | 参数错误 |
+| 40100 | 认证失败（缺 Authorization） |
+| 40101 | Token 过期 / 签名校验失败 |
+| 40102 | Token issuer 不合法 |
+| 40104 | Token 无组织绑定 |
+| 40105 | 账户不存在（已在 IAM 删除，#1735） |
+| 40106 | 账户已禁用（IAM status ≠ active，#1735） |
+| 40107 | Token 已吊销（签发时间早于 token_version bump，#1735） |
+| 40300 | 权限不足 |
+| 40400 | 资源不存在 |
+| 40900 | 资源冲突 |
+| 42200 | 业务逻辑错误 |
+| 50000 | 服务器错误 |
+
+> **#1735 会话失效语义**：收到 `40105`/`40106`/`40107` 时前端**不得尝试静默续期**（refresh），必须清除本地凭证并引导重新登录；网络/临时错误保持登录态可重试。
+
+---
+
+## 附录 A: 角色权限说明
+
+> 完整角色定义和权限分配参见 [`docs/spec/permissions.md` §一](../permissions.md#一权限体系概述) 和 [`docs/spec/permissions.md` §四](../permissions.md#四角色-权限分配矩阵)。
+
+---
+
+## 附录 B: 乐器状态说明
+
+| 状态 | 说明 |
+|------|------|
+| available | 可租 |
+| rented | 已租出 |
+| maintenance | 维修中 |
+
+---
+
+## 附录 C: 订单状态说明
+
+| 状态 | 说明 |
+|------|------|
+| pending | 待支付 |
+| paid | 已支付 |
+| in_lease | 租赁中 |
+| completed | 已完成 |
+| cancelled | 已取消 |
+
+---
+
+
+## 版本记录
+
+| 版本 | 日期 | 变更内容 |
+|------|------|----------|
+| v1.0 | 2026-03-20 | 初始版本 |
+| v2.0 | 2026-03-21 | 整合 Lin-IAM 深度集成要求 |
+
+---
+
+
+---

@@ -59,7 +59,7 @@ TuneLoop 是一个面向乐器租赁业务的 SaaS 平台，提供：
 - **移动端**: Taro 4.x（一套 React 代码同时输出 **H5** 和 **微信小程序**）
 - **地图**: 高德地图 AMap
 
-> **架构要点**：移动端通过 `src/platform/` 抽象层实现跨端适配。同一份 `.jsx` 代码经 Vite 编译为 H5（浏览器），经 Taro 编译为微信小程序。`.tsx` 文件仅为 Taro 页面注册所需的薄壳（`export { default } from '../../Xxx'`），业务逻辑全在 `.jsx` 中。详见 `docs/weapp.md` 和 `AGENTS.md §跨端代码复用架构`。
+> **架构要点**：移动端通过 `src/platform/` 抽象层实现跨端适配。同一份 `.jsx` 代码经 Vite 编译为 H5（浏览器），经 Taro 编译为微信小程序。`.tsx` 文件仅为 Taro 页面注册所需的薄壳（`export { default } from '../../Xxx'`），业务逻辑全在 `.jsx` 中。详见 `docs/topics/wechat/weapp.md` 和 `AGENTS.md §跨端代码复用架构`。
 
 ### 核心依赖
 ```
@@ -149,7 +149,7 @@ frontend-mobile:
 
 **运行时一律为真实微信支付**（#1719 起模拟支付已移除，`WECHAT_PAY_MOCK_MODE` 不再生效）。支付页支持优惠码（OREZ 全免 / ENO 1%），金额由后端服务端重算。
 
-配置详见 `docs/wechat-pay-integration.md §一`：
+配置详见 `docs/topics/wechat/wechat-pay-integration.md §一`：
 
 #### .env 配置（tuneloop 侧）
 
@@ -237,7 +237,7 @@ npm run build      # H5
 npm run build:weapp # 小程序
 ```
 
-> **架构说明**：同一套 `.jsx` 代码同时编译为 H5（Vite）和微信小程序（Taro）。`src/platform/` 层根据编译目标自动切换浏览器 API ↔ Taro API。详见 `docs/weapp.md`。
+> **架构说明**：同一套 `.jsx` 代码同时编译为 H5（Vite）和微信小程序（Taro）。`src/platform/` 层根据编译目标自动切换浏览器 API ↔ Taro API。详见 `docs/topics/wechat/weapp.md`。
 
 > **预生产小程序**：预生产环境使用独立的小程序账户，编译后**归档到本地 `releases/weapp-pre/`**，再从归档上传（不重新编译——保证发布内容 = 已验证内容）。生产版 AppID = `wxcb44a1be70e356ed`，预生产 AppID = `wx9f96827856269a6c`。归档保留 ≥180 天，可随时回退到更早版本。详见 §小程序发布流程（#1619）。
 
@@ -605,5 +605,5 @@ MIT License
 
 ---
 
-*最后更新: 2026-07-17 | 基于 docs/features.md v26.3.16*
+*最后更新: 2026-07-17 | 基于 docs/spec/features.md v26.3.16*
 *Model: minimax-m2.5-free*

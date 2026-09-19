@@ -32,6 +32,3 @@ source: 用户需求 2026-09-17（申请发票时缺 发票类型/抬头/税号�
 ## 验收（对应测试）
 - `go test ./handlers/ -run Invoice` 全绿（三字段落库/下发/必填校验）
 - 移动端构建 + PC 构建通过
-
----
-*Model: zhipuai/glm-5.3-flash*

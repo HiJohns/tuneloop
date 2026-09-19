@@ -1,0 +1,3434 @@
+# TuneLoop UI 设计文档
+
+> 版本: v2.4 (会员系统: 会员级别管理 + 返点配置 + 折扣政策 + 引导页 + 结算页 + 逾期告警)
+> 最后更新: 2026-09-11（§1.6 日期与时间显示规范·强制）
+> 覆盖度: 100% features.md
+
+---
+
+## 一、设计原则
+
+### 1.1 白标化适配 (White-labeling)
+- **BrandProvider**: 根据 `client_id` 动态加载品牌配置
+- **动态变量**: `--brand-primary`, `--brand-logo-url`
+- **覆盖范围**: 所有页面（小程序/PC）支持主题切换
+
+### 1.2 状态色规范
+
+#### Instrument 状态
+```css
+:root {
+  --status-available: #10B981;     /* Green - 可租 */
+  --status-rented: #3B82F6;        /* Blue/Indigo - 租赁中 */
+  --status-maintenance: #F59E0B;   /* Orange - 维修中 */
+  --status-archived: #9CA3AF;      /* Gray - 已下架 */
+  --status-lost: #6B7280;          /* Dark Gray - 已丢失 */
+}
+```
+
+#### Order 状态
+```css
+:root {
+  --order-reserved: #3B82F6;       /* Blue - 已预约 */
+  --order-paid: #F97316;           /* Orange - 待发货 */
+  --order-pending-shipment: #F97316; /* Orange - 待发货 */
+  --order-in-transit: #06B6D4;     /* Cyan - 运输中 */
+  --order-shipped: #10B981;        /* Green - 已发货 */
+  --order-in-lease: #6366F1;       /* Indigo - 租赁中 */
+  --order-returning: #EAB308;      /* Yellow - 归还中 */
+  --order-returned: #9CA3AF;       /* Gray - 已归还 */
+  --order-completed: #9CA3AF;      /* Gray - 已完成 */
+  --order-cancelled: #EF4444;      /* Red - 已取消 */
+  --order-expired: #EF4444;        /* Red - 超期 */
+  --order-transferred: #8B5CF6;    /* Purple - 已过户 */
+}
+```
+
+### 1.3 色彩与光感原则（员工端通用）
+
+> 源自 #968 #960 个人中心和首页迭代。作为除首页和乐器详情页之外（员工订单列表/详情、报修、网点管理等）的总体 UI 设计指导。
+
+- **全站主背景**：放弃纯白或死板灰色，采用高明度暖色（如 `bg-[#915F38]` 太妃糖棕 或 `bg-[#FDFBF7]` 浅杏色），营造乐器温润木质感。
+- **高阶渐变应用**：页面头部使用暖色→白色纵向线性渐变（如 `bg-gradient-to-b from-[#FDF4E7] to-white`），利用色彩暗示视觉自然流动。
+- **功能色点缀**：文本使用 `text-black font-black`（高对比纯黑）与 `text-[#C21838]`（复古暗红）。状态/气泡/标签使用高饱和度原色做局部提神。
+
+### 1.4 容器与骨架原则（员工端通用）
+
+- **大圆角通铺白卡片**：功能模块一律 `bg-white rounded-2xl shadow-sm`，模块间用 gap 内联（`space-y-3`=12px / `space-y-4`=16px 的语义）做视觉隔离，禁止在 className 中使用 `space-y-*`（weapp 端失效），禁止使用生硬边框黑线。
+- **非对称截断贴边**：商品/信息/过滤卡片采用左侧精准控距（`pl-7`）、右侧直角贴边（`pr-0 rounded-l-2xl`），最大化屏幕空间。
+- **防御性 Flex 盒模型**：
+  - 核心文本：`min-w-0 flex-1 truncate` 防止长内容溢出。
+  - 价格/金额：`flex-shrink-0 ml-auto whitespace-nowrap` 保证数字绝不换行。
+
+### 1.5 路径与交互原则（员工端通用）
+
+- **大 Tab + 状态金刚区**：复杂历史和状态追踪页面采用一级双轨制大 Tab + 下方图标过滤层，路径扁平化。
+- **无缝条件渲染**：有数据时精美卡片、无数据时极简插画 + 跳转链接，闭环写在同一页面，保证视觉饱满度。
+- **常驻功能绝对脱离**：底部导航条/结算面板作为独立 DOM 节点（`absolute bottom-0 z-50`），锁定外层视口（`h-screen overflow-hidden`），确保滚动时底盘不动。
+
+### 1.6 日期与时间显示规范（强制）
+
+> 来源：预生产实测反馈（2026-09-11，维修记录展示）。**所有面向用户的日期时间展示统一使用北京时间（UTC+8）+ 中文格式；禁止 `MM-DD` / `MM-DD HH:mm` / `YYYY-MM-DD` 等连字符格式。**
+
+- **时区**：固定北京时间（Asia/Shanghai，UTC+8），不依赖设备时区/locale——设备在其他时区不得显示设备本地时间或英文日期（UTC+8 处理参考 `frontend-mobile/src/utils/format.js` 的 `formatBeijingDateTime`）
+- **日期时间**：
+  - 当年：`M月D日 HH:mm`（例：`9月11日 14:30`）
+  - 跨年：`YYYY年M月D日 HH:mm`（例：`2025年12月31日 09:05`）
+- **仅日期**：
+  - 当年：`M月D日`（例：`9月11日`）
+  - 跨年：`YYYY年M月D日`（例：`2025年12月31日`）
+- **日志/记录/时间线行**：正文一行 + `<时间> · <操作人>` 一行；系统生成显示「系统」（沿用 `OrderTimeline` 的两行结构，时间格式按本节替换）
+- **禁止**：`09-11`、`09-11 14:30`、`2026-09-11` 等连字符格式出现在任何用户可见展示文本（移动端 H5/weapp + PC 管理后台）。表单日期控件与机器可读数据（API 载荷/数据库/导出文件）不受此限。
+- **迁移义务**：存量 `formatDisplayDate`（移动端 18 文件 45 处）、`formatLogTime`（8 处日志行）等连字符格式使用点按本规范逐步迁移；**新代码禁止使用产生连字符日期的格式函数**。
+
+---
+
+## 二、用户端（微信小程序）
+
+### 2.1 页面架构
+
+```
+/pages
+├── index/                          # 首页
+│   ├── index.wxml
+│   ├── index.wxss
+│   └── index.js
+├── instrument/
+│   └── detail/                     # 乐器详情
+│       └── detail.wxml
+├── order/
+│   ├── confirm/                    # 订单确认
+│   ├── list/                       # 订单列表
+│   └── detail/                     # 订单详情
+├── maintenance/
+│   ├── apply/                      # 报修申请
+│   └── progress/                   # 报修进度
+├── site/
+│   └── detail/                     # 【新增】网点实境
+├── certificate/
+│   └── preview/                    # 【新增】证书预览
+└── user/
+    ├── index/                      # 个人中心
+    ├── leases/                     # 租约管理
+    ├── favorites/                  # 我的收藏
+    └── addresses/                  # 地址管理
+```
+
+---
+
+### 2.1a 跨端渲染基本准则（Taro H5 + 微信小程序）
+
+> 来源：#1096《Text 垂直堆叠》反复修复 + #1122 同模式修复。Taro 的双端编译存在 CSS 行为差异。
+
+| 准则 | 说明 | 反例 | 正例 |
+|------|------|------|------|
+| **每一行文本必须包 `<View>`** | Taro 的 `<Text>` 在 H5（Vite）端渲染为 `<span>`（inline），不会垂直堆叠。必须用 `<View>` 包裹才能利用 CSS 间距 | `<Text>行1</Text><Text>行2</Text>` → 横排挤在一起 | `<View><Text>行1</Text></View><View><Text>行2</Text></View>` → 垂直排列 |
+| **列表间距用 gap 内联，永远不用 `margin-bottom`** | Tailwind 的 `space-y-*` 在 weapp（postcss wxsCompat）端被删除、对 Taro 的 `<Text>` 不生效；`margin-bottom` 依赖 `mb-*` 在 H5 端 `<Text>` 上可能被忽略 | 在父容器上写 `space-y-2`（weapp 失效）或 `<Text>` 子项用 `mb-*` | 父容器内联 `gap`（`gap:'8px'`），每个子项为 `<View>` 包裹 |
+| **不依赖 `<Text>` 的 `margin` 类** | Taro H5 模式下 `<Text>` 的 `mb-*`/`mt-*` 等 margin 类可能被浏览器忽略；weapp 端 `space-y-*` 已被删除 | `<Text className="mb-3">` | 用外层 `<View>` 的 padding 或内联 `gap` 控制间距 |
+| **`flex-row` 与 `flex flex-row` 的区别** | `flex-row` 在 Tailwind 中仅设置 `flex-direction:row`，不启用 `display:flex` | `<View className="flex-row">` → 不生效 | `<View className="flex flex-row">` |
+| **`min-h-0` 防止 flex-1 溢出** | flex 子项默认 `min-height: auto`，阻止 `flex-1` 的子项收缩 | ScrollView 的 `flex-1` 推到底条以下 | ScrollView 加 `flex-1 min-h-0 overflow-y-auto` |
+ | **输入框宽度不得 `100% + padding` 组合** | 小程序 `box-sizing` 默认 `content-box`（#1514），`width:100% + padding` 总宽溢出、文字贴边 | `width:'100%'` + `padding:'0 12px'` + `boxSizing:'border-box'` | `width:'100%'` + 明确的 `paddingLeft/paddingRight`，不依赖 boxSizing |
+| **操作按钮高度基准** | weapp 端 Taro `<Button>` 原生默认样式（padding/margin）干扰 Tailwind `py-*` 推算高度（#归还页/#1865） | `py-1.5 text-xs` → 高度≈字体 | 主操作 48px / 次要·行内 40-44px，内联 `height` + `margin:0` + flex 居中，禁止仅靠 `py-*` |
+| **ScrollView 内边距范式** | weapp 子元素仍按屏宽 100% 计算，ScrollView 自身 padding 不砍子元素宽度（#1514/#1865） | `<ScrollView className="px-4">` → 内容贴右缘 | padding 移到 ScrollView **内部**普通 `<View style={{padding:'0 16px', boxSizing:'border-box'}}>` 承载 |
+| **表单字段必须有明确垂直间距** | 多字段表单（昵称/手机/邮箱）字段间须显式间距，避免粘连（#1588） | 字段容器 `marginBottom: 0` 或依赖浏览器默认 | 每字段容器 `marginBottom: 20` + 标签 `marginBottom: 6` |
+| **微信昵称控件不得用于可编辑昵称** | `type="nickname"` 是微信强制昵称选择器，锁死输入、无法自定义（#1588） | 编辑资料昵称框用 `type="nickname"` | 普通 `Input`，微信昵称仅作默认值预填 |
+| **多个键值对须分行分列显示** | 表单多字段不得挤在一行，须分行分列清晰展示（#1588） | 昵称/手机/邮箱连续堆叠 | 每字段独立行 + 明确标签 + 间距 |
+| **小程序页面不得自定义页首/回退按钮** | weapp 有原生导航栏（标题 + 返回），页面内再写页首/回退按钮属重复（#1511/#1513 与 AGENTS.md 方法论 7） | 手写 `<Button onClick={navigate(-1)}>` + `ArrowLeft` 页首 | `pages/` 共享 jsx 用 `{!env.isMiniProgram && (...)}` 包裹仅 H5 显示；`pages-weapp/` 独有 jsx 直接删除 |
+
+**⚠️ weapp 样式禁区**（详见 `AGENTS.md` §weapp 样式禁区规则，#1831）：`space-y/x`、分数类（`w-1/2` 等）、变体类（`active:`/`hover:` 等）、透明度类（`bg-x/80`）、任意值类（`text-[10px]`/`bg-[#hex]` 等全部含 `[` 类）在 weapp 端被 postcss wxsCompat **静默删除**。内联写法参考：间距 `gap:'12px'`、宽度 `width:'50%'`、居中 `top:'50%'+transform:'translateY(-50%)'`。存量归 #1832 收敛，新代码禁止新增。
+
+---
+
+### 2.1b React Mobile App 路由表（Vite 模式）
+
+**组件**: `frontend-mobile/src/App-H5.jsx`
+
+### 2.1c Taro 小程序路由表（Taro 模式）
+
+**框架**: Taro v4.2.0，页面注册在 `src/app.config.ts`。
+
+**已注册的 Taro 专有页面**（带独立 `index.tsx` 入口，`app.config.ts` 中注册）：
+
+| 路由 | Taro 页面组件 | 对应 Vite JSX 组件 |
+|------|--------------|-------------------|
+| `pages/home/index` | `src/pages/home/index.tsx` | `Home.jsx` |
+| `pages/detail/index` | `src/pages/detail/index.tsx` | `Detail.jsx` |
+
+**双端兼容页面**（`.jsx` 文件使用 `@tarojs/components`，Vite 通过 taro-shim 映射，Taro 原生编译）：
+
+| 文件 | 对应路由 | 说明 |
+|------|---------|------|
+| `Booking.jsx` | `/booking/:instrumentId` | 预约 |
+| `Cart.jsx` | `/cart` | 购物车 |
+| `Checkout.jsx` | `/checkout/:instrumentId` | 确认订单 |
+| `Home.jsx` | `/` | 首页 |
+| `Detail.jsx` | `/instrument/:id` | 乐器详情 |
+| `LeaseHistory.jsx` | `/leases` | 租赁历史 |
+| ~~`MaintenanceProgress.jsx`~~ | ~~`/staff/maintenance/:id`~~ | 已移除（#1886 遗留维保废弃） |
+| `MessageDetail.jsx` | `/messages/:id` | 消息详情 |
+| `Messages.jsx` | `/messages` | 消息列表 |
+| `MyContracts.jsx` | `/contracts` | 我的合同 |
+| `MyLeases.jsx` | `/my-leases` | 我的租赁 |
+| `MyService.jsx` | `/my-service` | 我的售后 |
+| `OrderDetail.jsx` | `/order/:id` | 订单详情 |
+| `PaymentComplete.jsx` | `/payment/complete` | 支付完成 |
+| `Profile.jsx` | `/profile` | 个人中心 |
+| `ReceiveConfirm.jsx` | `/receive/:orderId` | 确认收货 |
+| `ReceivingInterface.jsx` | `/staff/receiving` | 收货界面 |
+| `RepairScan.jsx` | `/staff/repair-scan` | 转出中转处理（#1888 勘误：原「维修扫码」描述不符实际） |
+| `MyRepairs.jsx` | `/my-repairs` | 维修中心（扫码入口+维修列表） |
+| `RepairWorkflow.jsx` | `/repair` | 维修工作流（多面板） |
+| `CreateRepairRequest.jsx` | `/create-repair` | 创建报修单 |
+| `RepairRequestDetail.jsx` | `/repair-request/:id` | 报修详情 |
+| `ReturnConfirm.jsx` | `/return/:orderId` | 归还确认 |
+| `ShippingInterface.jsx` | `/staff/shipping` | 发货界面 |
+| `SiteDetail.jsx` | `/site/:id` | 网点详情 |
+| `StaffInstrumentDetail.jsx` | `/staff/instrument/:id` | 员工乐器详情 |
+| `StaffInstrumentForm.jsx` | `/staff/instrument/new` | 员工乐器表单 |
+| `StaffInstruments.jsx` | `/staff/instruments` | 员工乐器管理 |
+| `StaffOrderDetail.jsx` | `/staff/orders/:id` | 员工订单详情 |
+| `StaffOrders.jsx` | `/staff/orders` | 员工订单管理 |
+| `StaffReceiveConfirm.jsx` | `/staff/receiving/:orderId` | 员工收货确认 |
+| `Success.jsx` | `/success` | 成功页 |
+
+**迁移状态**: 所有 29 个 `.jsx` 页面已完成 HTML 标签迁移（`<div>`→`<View>`等），可通过 Vite（taro-shim 映射）和 Taro（原生编译）双构建。Taro 专有页面（`index.tsx`）与 Vite 页面（`*.jsx`）共存。
+
+**详细架构说明**: `docs/topics/wechat/weapp.md`
+
+#### antd-mobile 兼容性说明
+
+`package.json` 中依赖 `antd-mobile@^5.42.3`，但该库基于 DOM API（`document.createElement`、CSS-in-JS 等），在 Taro 小程序环境不可用。
+
+- **当前状态**: 源码中无页面直接 `import` antd-mobile 组件，该依赖仅保留供 Vite H5 模式使用
+- **小程序策略**: 如需移动端 UI 组件，应使用 Taro 兼容方案（如 `taro-ui`、`@antmjs/vantui` 或自定义组件）
+- **Vite H5 策略**: antd-mobile 正常可用（依赖 DOM API，Vite 构建为浏览器环境）
+
+| 路由 | 组件 | 认证 | 说明 |
+|------|------|------|------|
+| `/` | `Home` | 可选 | 首页（乐器浏览） |
+| `/instrument/:id` | `Detail` | 可选 | 乐器详情 |
+| `/order/:id` | `OrderDetail` | 必须 | 顾客订单详情 |
+| `/profile` | `Profile` | 必须 | 个人中心 |
+| `/cart` | `Cart` | 可选 | 购物车 |
+| `/receive/:orderId` | `ReceiveConfirm` | 必须 | 确认收货 |
+| `/return/:orderId` | `ReturnConfirm` | 必须 | 归还 |
+| `/staff/orders` | `StaffOrders` | 必须 | 员工订单管理（含搜索+扫码） |
+| `/staff/orders/:id` | `StaffOrderDetail` | 必须 | 员工订单详情 |
+| `/staff/instruments` | `StaffInstruments` | 必须 | 员工乐器管理 |
+| `/staff/instrument/:id` | `StaffInstrumentDetail` | 必须 | 员工乐器详情 |
+| `/staff/instrument/new` | `StaffInstrumentForm` | 必须 | 新建乐器 |
+| `/staff/shipping` | `ShippingInterface` | 必须 | 发货界面 |
+| `/staff/receiving` | `ReceivingInterface` | 必须 | 收货界面 |
+| `/staff/receiving/:orderId` | `StaffReceiveConfirm` | 必须 | 收货确认 |
+
+---
+
+### 2.1d 轮播图实现参考（Home.jsx / Detail.jsx）
+
+### 无限循环轮播（clone + transitionEnd 模式）
+
+**原理**：渲染 n 张真图片 + 首尾各一克隆图（共 n+2 张），自动/手动滑动到达克隆位置时触发 `transitionEnd` 瞬间跳回真图位置，实现无缝循环（无倒带）。
+
+**关键 state**：
+- `currentBanner` — 当前 `displayIndex - 1`。值域 `-1` ~ `n`。`-1` 为 clone-last 位，`n` 为 clone-first 位
+- `jumpReset` — 是否正在执行复位跳。为 `true` 时 `transition: 'none'`（瞬间跳），复位完成后 `setTimeout(50ms)` 恢复 transition
+
+**transition 驱动**：
+```jsx
+transition: jumpReset ? 'none' : 'transform 0.5s ease-in-out'
+```
+> ⚠️ **常见 Bug**：不要在渲染时用 `currentBanner === -1 || currentBanner === n` 判断来设 `transition: 'none'`——这会导致 transitionEnd 永不触发、轮播卡死在 clone 位置。必须用独立 `jumpReset` state 控制。
+
+**transitionEnd 复位逻辑**：
+```jsx
+onTransitionEnd={() => {
+  if (currentBanner === -1) {
+    setJumpReset(true)
+    setCurrentBanner(n - 1)
+    setTimeout(() => setJumpReset(false), 50)
+  } else if (currentBanner === n) {
+    setJumpReset(true)
+    setCurrentBanner(0)
+    setTimeout(() => setJumpReset(false), 50)
+  }
+}}
+```
+
+**自动轮播定时器**：
+```jsx
+setInterval(() => {
+  setCurrentBanner(prev => prev >= n ? 0 : prev < n - 1 ? prev + 1 : n)
+}, 4000)
+```
+> `prev >= n` 安全阀：HMR 或异常时 state 残留在 clone 位，自动拉回。
+
+**圆点指示器**：用归一化索引 `r = currentBanner < 0 ? n-1 : currentBanner >= n ? 0 : currentBanner` 代替直接 `currentBanner`。
+
+### 拖拽/滑动支持（Home.jsx）
+
+**层级**：
+| Z | 元素 | pointer-events | 说明 |
+|----|------|----------------|------|
+| 10002 | `<div>` swipe 层 | auto（默认） | 最高，捕获鼠标/触摸 |
+| 10000 | 搜索栏外层 | `none`（容器）/ `auto`（输入框） | 穿透 |
+| 100 | 菜单+列表剪切层 | `none` | 穿透 |
+| 5 | 磨砂背景 | `none` | 穿透 |
+
+**鼠标/触摸事件**：
+- 必须用原生 `<div>` 而非 Taro `<View>`——H5 模式下 Taro View 不转发 `onMouseDown`/`onMouseUp`
+- 鼠标用 `onMouseDownCapture`（capture 阶段从 document 往下，swipe 在 DOM 序中先于 clip 层，故先截获）
+- 触摸保留 Taro View 的 `onTouchStart`/`onTouchEnd`（正常转发）
+- 阈值 `abs(diff) > 50px` 触发翻页，≤50px 视为点击
+
+### 菜单文字可读性（Home.jsx）
+
+**问题**：轮播图背景深浅不一，菜单文字难以辨认。
+
+**方案**：三层防护确保文字在任何背景图上可读：
+1. **Z=1 渐变遮罩**：`linear-gradient(to bottom, rgba(0,0,0,0.55) → transparent)` 覆盖顶部 240px
+2. **MenuContent 容器背景**：`bg-black/20`（半透明黑色直角背景）
+3. **文字样式**：白色 `text-white` + `textShadow: '0 1px 4px rgba(0,0,0,0.6)'`
+
+**菜单层级**（对齐 `docs/topics/frontpage.md` §2.2）：
+- 自然菜单：ScrollView 内，`scrollY < 130` 时可见，`scrolled={false}`
+- 粘连菜单：Z=10001, `top:102px`，`menuStuck`（≥130）时接管
+- 搜索栏：`top:60px`，文字统一白色 + 阴影
+
+**数据源**：
+- `Home.jsx`：`GET /public/banners` → `banners[]`（`image_url`, `bg_color`, `link_url`, `title`）
+- `Detail.jsx`：`GET /public/instruments/:id/display-media` → `displayMedia.images[]`（媒体 key 列表）
+
+### 轮播图宽高比
+
+- `Detail.jsx` 乐器展示图：3:4（`height = width × 4/3`）
+
+---
+
+### 2.2 首页 (`/pages/index`)
+
+> **实际实现**：已从原设计重构为五层 Z 轴架构，详见 [`docs/topics/frontpage.md`](../../topics/frontpage.md)。
+
+**布局结构**:
+```html
+<view class="container">
+  <!-- LBS 网点地图卡片 -->
+  <view class="site-map-card" bindtap="navigateToNearbySites">
+    <map 
+      latitude="{{userLat}}" 
+      longitude="{{userLng}}"
+      markers="{{nearbySites}}"
+      style="width: 100%; height: 120px;"
+    />
+    <text class="site-card-title">查看附近可租网点 (1.5km内)</text>
+  </view>
+
+  <!-- 分类入口 -->
+  <scroll-view class="category-nav" scroll-x>
+    <view class="category-item" wx:for="{{categories}}">
+      <image src="{{item.icon}}" />
+      <text>{{item.name}}</text>
+    </view>
+  </scroll-view>
+
+  <!-- 限时推荐 (高亮大师级) -->
+  <view class="recommend-section">
+    <text class="section-title">🎯 限时推荐</text>
+    <view class="instrument-card" wx:for="{{recommendInstruments}}">
+      <image class="card-cover" src="{{item.cover}}" />
+      <view class="card-info">
+        <text class="card-title">{{item.name}}</text>
+        <text class="card-level tag-master">大师级</text>
+        <text class="card-price">¥{{item.rent}}/月</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 快捷功能区 -->
+  <view class="quick-actions">
+    <view class="action-item" bindtap="navigateToOrders">
+      <icon type="order" />
+      <text>我的订单</text>
+    </view>
+    <view class="action-item" bindtap="navigateToMaintenance">
+      <icon type="repair" />
+      <text>报修服务</text>
+    </view>
+    <view class="action-item" bindtap="contactCustomerService">
+      <icon type="service" />
+      <text>联系客服</text>
+    </view>
+  </view>
+</view>
+```
+
+**交互说明**:
+- 网点地图卡片：点击跳转至 `/pages/site/detail?id=xxx`
+- 分类入口：点击筛选对应品类乐器
+- 推荐卡片：点击跳转乐器详情页
+
+---
+
+### 2.3 乐器详情页 (`/pages/instrument/detail`)
+
+**布局结构**:
+```html
+<view class="instrument-detail">
+  <!-- Banner 轮播图 -->
+  <swiper class="image-swiper">
+    <swiper-item wx:for="{{bannerImages}}">
+      <image src="{{item}}" mode="aspectFill" />
+    </swiper-item>
+  </swiper>
+
+  <!-- 视频播放器 (数据来源: GET /api/public/instruments/:id/display-media → data.video) -->
+  <view wx:if="{{video}}" class="video-section">
+    <video src="{{video.url}}" poster="{{video.thumb_url}}" controls />
+  </view>
+
+  <!-- 海报图片 (数据来源: instrument.poster，宽度限制 750px 适配微信) -->
+  <image wx:if="{{instrument.poster}}" src="{{instrument.poster}}" mode="widthFix" style="max-width:750px" />
+
+  <!-- 基础信息 -->
+  <view class="info-section">
+    <text class="instrument-name">{{instrument.name}}</text>
+    <text class="instrument-brand">{{instrument.brand}}</text>
+    <view class="level-badge level-{{instrument.level}}">
+      {{instrument.level_name}}
+    </view>
+  </view>
+
+  <!-- 服务权益对比浮层 (核心) -->
+  <view class="service-comparison">
+    <text class="section-title">📊 服务权益对比</text>
+    <view class="comparison-table">
+      <view class="table-header">
+        <text class="header-item">权益项</text>
+        <text class="header-item level-entry">入门级</text>
+        <text class="header-item level-professional">专业级</text>
+        <text class="header-item level-master">大师级</text>
+      </view>
+      <view class="table-row" wx:for="{{serviceItems}}">
+        <text class="row-item service-name">{{item.name}}</text>
+        <text class="row-item {{item.entry ? 'included' : 'excluded'}}">
+          {{item.entry ? '✓' : '✗'}}
+        </text>
+        <text class="row-item {{item.professional ? 'included' : 'excluded'}}">
+          {{item.professional ? '✓' : '✗'}}
+        </text>
+        <text class="row-item {{item.master ? 'included-highlight'}}">
+          {{item.master ? '✓ 免费' : '✗'}}
+        </text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 规格选择器 -->
+  <view class="spec-selector">
+    <text class="selector-label">规格选择</text>
+    <view class="spec-options">
+      <view 
+        class="spec-option {{selectedSpec == item.id ? 'active' : ''}}"
+        wx:for="{{specs}}"
+        bindtap="selectSpec"
+        data-id="{{item.id}}"
+      >
+        {{item.name}}
+      </view>
+    </view>
+  </view>
+
+  <!-- 租期选择器 -->
+  <view class="term-selector">
+    <text class="selector-label">租期选择</text>
+    <view class="term-options">
+      <view 
+        class="term-option {{selectedTerm == item.months ? 'active' : ''}}"
+        wx:for="{{terms}}"
+        bindtap="selectTerm"
+        data-months="{{item.months}}"
+      >
+        <text>{{item.months}}个月</text>
+        <text wx:if="{{item.discount < 1}}" class="discount-tag">
+          {{item.discount * 10}}折
+        </text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 免押开关 (核心) -->
+  <view class="deposit-section">
+    <view class="deposit-switch">
+      <text>信用免押金</text>
+      <switch 
+        checked="{{depositFreeEnabled}}" 
+        bindchange="toggleDepositFree"
+        disabled="{{!userDepositEligible}}"
+      />
+    </view>
+    <view class="deposit-amount {{depositFreeEnabled ? 'crossed-out' : ''}}">
+      押金 ¥{{instrument.deposit}}
+    </view>
+    <view wx:if="{{depositFreeEnabled}}" class="deposit-waiver">
+      已免除 ¥{{instrument.deposit}}
+    </view>
+  </view>
+
+  <!-- 计费汇总 -->
+  <view class="pricing-summary">
+    <text class="summary-label">首月租金</text>
+    <text class="summary-value">¥{{calculatedRent}}</text>
+    <text class="summary-label">押金</text>
+    <text class="summary-value">{{depositFreeEnabled ? '¥0' : '¥' + instrument.deposit}}</text>
+    <view class="summary-total">
+      <text>合计</text>
+      <text class="total-amount">¥{{totalAmount}}</text>
+    </view>
+  </view>
+
+  <!-- 底部 CTA -->
+  <view class="bottom-bar">
+    <block wx:if="{{instrument.stock_status === 'in_stock'}}">
+      <button class="btn-cart" bindtap="addToCart">🛒 加入购物车</button>
+    </block>
+    <button class="btn-primary" bindtap="createOrder">立即租用</button>
+  </view>
+</view>
+```
+
+**购物车交互**:
+- **加入购物车**：乐器状态为 `in_stock` 时，底部操作栏并排显示"加入购物车"和"立即租赁"按钮
+- **已加入状态**：已加入购物车时按钮显示「已加入购物车」（灰色，不可点击）；再次点击跳转购物车页
+- **加入动画**：点击加入后不弹窗，🛒 浮动图标执行 scale(1→1.25→1) 弹跳动画（300ms）
+- **购物车存储**：用户隔离 key：游客 `cart` / 已登录 `cart_{user_id}`
+
+**核心交互**:
+1. **服务权益对比**：动态高亮当前选中级别的免费项
+2. **免押开关**：信用达标用户可开启，押金实时划线免除
+3. **租期联动**：选择12个月自动显示95折标签
+4. **实时计价**：所有选择联动更新合计金额
+
+---
+
+### 2.4 网点实境页 (`/pages/site/detail`) 【新增】
+
+**布局结构**:
+```html
+<view class="site-detail">
+  <!-- 门店实拍图 -->
+  <swiper class="site-images">
+    <swiper-item wx:for="{{site.images}}">
+      <image src="{{item}}" mode="aspectFill" />
+    </swiper-item>
+  </swiper>
+
+  <!-- 基础信息 -->
+  <view class="site-info">
+    <text class="site-name">{{site.name}}</text>
+    <view class="info-row">
+      <icon type="location" />
+      <text>{{site.address}}</text>
+    </view>
+    <view class="info-row">
+      <icon type="phone" />
+      <text bindtap="makePhoneCall">{{site.phone}}</text>
+    </view>
+    <view class="info-row">
+      <icon type="clock" />
+      <text>营业时间: {{site.business_hours}}</text>
+    </view>
+  </view>
+
+  <!-- 在线导航 -->
+  <button class="nav-btn" bindtap="openMap">
+    导航去这里
+  </button>
+
+  <!-- 实时库存 -->
+  <view class="stock-status">
+    <text class="section-title">本店可租库存</text>
+    <view class="stock-items">
+      <view class="stock-item" wx:for="{{site.stock_status}}">
+        <text class="instrument-name">{{item.name}}</text>
+        <view class="stock-counts">
+          <text class="available">可租: {{item.available}}</text>
+          <text class="renting">在租: {{item.renting}}</text>
+          <text class="maintenance">维保: {{item.maintenance}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
+```
+
+**交互说明**:
+- `makePhoneCall`: 一键拨打门店电话
+- `openMap`: 调用微信内置地图导航
+
+---
+
+### 2.5 个人中心页 (`/pages/user/index`)
+
+**布局结构**:
+```html
+<view class="user-center">
+  <!-- 用户信息 -->
+  <view class="user-header">
+    <image class="avatar" src="{{user.avatar}}" />
+    <text class="user-name">{{user.name}}</text>
+    <text class="user-phone">{{user.phone}}</text>
+    <view wx:if="{{user.is_shadow}}" class="shadow-badge">
+      👻 IAM同步用户
+    </view>
+  </view>
+
+  <!-- 租转售进度组件 (高光) -->
+  <view class="ownership-progress-widget">
+    <view class="progress-ring" style="--progress: {{progress}}%">
+      <text class="progress-text">{{accumulated}}/12 个月</text>
+    </view>
+    <text class="progress-message">{{progressMessage}}</text>
+    <button 
+      wx:if="{{transferEligible}}" 
+      class="cert-btn"
+      bindtap="viewCertificate"
+    >
+      查看电子证书
+    </button>
+    <text wx:else class="countdown">预计 {{remaining}} 个月后获得所有权</text>
+  </view>
+
+  <!-- 快捷入口 -->
+  <view class="quick-menu">
+    <view class="menu-item" bindtap="navigateToLeases">
+      <icon type="lease" />
+      <text>租约管理</text>
+    </view>
+    <view class="menu-item" bindtap="navigateToFavorites">
+      <icon type="star" />
+      <text>我的收藏</text>
+    </view>
+    <view class="menu-item" bindtap="navigateToAddresses">
+      <icon type="address" />
+      <text>收货地址</text>
+    </view>
+    <view class="menu-item" bindtap="navigateToHelp">
+      <icon type="help" />
+      <text>帮助中心</text>
+    </view>
+  </view>
+</view>
+```
+
+**核心样式**:
+```css
+/* 动态进度环 */
+.progress-ring {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--progress-rent) 0deg, 
+    var(--progress-rent) calc(var(--progress) * 3.6deg), 
+    #eee calc(var(--progress) * 3.6deg)
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.progress-ring::before {
+  content: '';
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: white;
+}
+```
+
+---
+
+### 2.5a 个人中心-React实现 (Profile Page)
+
+**路由**: `/profile`
+**组件**: `frontend-mobile/src/pages/Profile.jsx`
+
+#### 顾客视图
+
+当 `businessRole` 不是 `site_admin` 或 `site_member` 时显示：
+
+**当前租赁区**:
+- 显示活跃订单列表（状态：`reserved`/`paid`/`pending_shipment`/`in_transit`/`shipped`/`in_lease`/`returning`/`expired`）
+- 订单卡片：订单号、状态标签、租期、逾期提醒、月租/押金
+- 点击 → 跳转 `/order/:id`（订单详情页）
+
+**租赁历史区**:
+- 显示已结束订单（`returned`/`completed`/`cancelled`/`transferred`）
+- 显示押金退还状态
+- 点击 → 跳转 `/order/:id`
+
+**订单详情页**（顾客，`/order/:id`）:
+
+| 状态 | 按钮 | 行为 |
+|------|------|------|
+| `reserved` | 支付 | `POST /orders/:id/pay`（二次确认） |
+| `paid`/`pending_shipment`/`in_transit` | 取消订单 | `POST /orders/:id/cancel`（二次确认） |
+| `shipped` | 确认收货 | 跳转 `/receive/:id` |
+| `in_lease`/`expired` | 归还 | 跳转 `/return/:id` |
+| `expired` | — | 状态区上方红框显示逾期天数+累计费 |
+| `returning` | — | "乐器归还中，等待验收" |
+| `cancelled`/`completed`/`returned`/`transferred` | — | 终端描述 |
+
+#### 员工视图
+
+当 `businessRole` 为 `site_admin` 或 `site_member` 时显示：
+
+**员工功能区**（权限门控）：
+
+| 按钮 | 目标 | 所需权限 |
+|------|------|---------|
+| 乐器管理 | `/staff/instruments` | `instrument:read` |
+| 订单管理 | `/staff/orders` | `order:read` |
+
+权限检查方式（客户端 bitmask）:
+```js
+const mapping = JSON.parse(localStorage.getItem('permission_mapping') || '{}')
+const cusPerm = parseInt(localStorage.getItem('user_cus_perm') || '0')
+const has = (code) => { const b = mapping[code]; return b !== undefined && (cusPerm & (1 << b)) !== 0 }
+```
+
+API 来源：
+- `GET /api/config/permissions` → `cus_perm_mapping`（权限位映射）
+- JWT claims → `sys_perm` / `cus_perm`（用户权限位掩码）
+
+---
+
+**布局结构**:
+```html
+<view class="certificate-preview">
+  <image 
+    class="certificate-image" 
+    src="{{certificate.preview_url}}" 
+    mode="widthFix"
+  />
+  <view class="preview-actions">
+    <button class="btn-download" bindtap="downloadPDF">
+      下载PDF证书
+    </button>
+    <button class="btn-share" bindtap="shareCertificate">
+      分享证书
+    </button>
+  </view>
+</view>
+```
+
+**交互**:
+- `downloadPDF`: 调用 `/api/user/ownership/:id/download` 获取PDF流
+- `shareCertificate`: 调用微信分享API
+
+---
+
+### 2.6 注册会员 / 编辑资料 / 发票申请（#1787 / #1786）
+
+#### 2.6.1 注册会员页（weapp `/pages-weapp/profile-complete/index` + H5 `/register`）
+
+**路由**: weapp `pages-weapp/profile-complete/index`（薄壳）→ `ProfileComplete.jsx`；H5 `/register` → `Register.jsx`
+
+**布局**（weapp 正反面一行 + 第三证件单独一行）:
+
+| 槽位 | side | 组件 | 说明 |
+|------|------|------|------|
+| 身份证正面 | `front` | `<IdPhotoUploader defer sessionUpload={{sessionId}}>` | 30% 宽，defer 模式（选图本地预览）；**默认必填**，选「学生证」类型并上传学生证后可豁免（#1845） |
+| 身份证反面 | `back` | 同上 | 30% 宽；同上 |
+| 其他证件 | `other` | 同上 | 选填；标题「学生证、教职工等其他证件」+ 绿色通道说明行（#1845） |
+
+**流程**（weapp 两阶段注册）:
+1. 填写昵称/地址等 → 点击注册 → 创建 session 拿到 `session_id`；**实名证件前置校验**：默认须身份证正/反面已选图或 resume 会话已上传；**学生证豁免** = 选择「学生证」类型且已选/上传学生证照 → 跳过身份证（不做年龄判定；提交时写 `reg_student_exempt` 标记，支付完成后强制引导人脸识别）（#1845）
+2. 已选图槽位通过 `uploadPending()` 上传到会话级匿名端点 `POST /auth/registration-sessions/:id/id-photo`（无 token）；**空槽返回 `skip` 不计失败**（#1845：修复「仅传身份证仍弹上传失败」误报）
+3. 真实上传失败 → 弹窗「{侧面}上传失败，可在注册后于『编辑资料』补传」[继续支付 / 重试]（**非静默**）
+4. 成功 → 跳转支付页；支付回调 `completeRegistrationFromSession` 将照片转入 `users` 表
+
+**按钮规范**: 提交按钮文本「注册并支付」（动词+宾语）；进行中「处理中...」（#1744 按钮规范）
+
+#### 2.6.2 编辑资料页（weapp `/pages-weapp/profile/edit/index` + H5 `/profile/edit`）
+
+**路由**: weapp `pages-weapp/profile/edit/index`（薄壳）→ `EditProfile.jsx`（共享 .jsx）
+
+**身份证照片区**（#1807 布局调整：正反面一行 + 第三证件单独一行 + 证件类型）:
+
+| 槽位 | side | 初始值 | 布局 | 行为 |
+|------|------|--------|------|------|
+| 正面 | `front` | `GET /users/me → id_photo_front` | 一行（~48%） | 即时上传/替换/删除 |
+| 反面 | `back` | `id_photo_back` | 一行（~48%） | 同上 |
+| 其他证件 | `other` | `id_photo_other` | 单独一行（下方） | 即时上传/替换/删除 |
+| 证件类型 | `id_photo_other_type` | `GET /users/me → id_photo_other_type` | 第三证件下方 | Picker 选择：学生证/教职工证/教师证/工作证/其他 |
+
+**实名认证区块**（#1787/#1807：实名信息由员工审核填写）:
+
+| 状态 | 展示 | 操作 |
+|------|------|------|
+| 已认证（`face_verified=true`） | ✅ 已认证（绿底）+ 姓名 + 身份证掩码（`110***********1234`）+ 认证方式 + 认证时间 | 无（信息变更需重新核身） |
+| 未认证 | 提示「实名信息将由平台审核后确认。请先上传身份证照片并提交自拍核身素材，平台员工审核通过后自动填写真实姓名与身份证号。」 | 无输入框、无人脸按钮（#1807：不再由顾客输入 real_name/id_card_no，不显示「发起人脸认证」） |
+
+**实名信息填写方**（#1807）：平台员工在 PC 实名审核队列根据身份证照核对填写 `real_name` + `id_card_no`（approve 时必填），落库后顾客端仅展示姓名 + 掩码身份证。
+
+**已认证用户修改姓名/身份证号** → 由员工在审核流程维护；信息变更后后端重置 `face_verified=false`（需重新核身）
+
+#### 2.6.2a 实名核身自拍采集（#1787，编辑资料页内）
+
+**五态状态机**: `none` / `uploaded` / `pending_review` / `verified` / `rejected`（派生见 docs/cases/id-photos.md）
+
+**自拍采集区**（编辑资料页实名认证区块下方，`face_verified=false` 时显示）:
+
+| 状态 | 展示 | 操作 |
+|------|------|------|
+| `none`（未上传证件照） | 提示「请先上传身份证照片」 | 跳转证件照上传区（正反面 + 第三证件 + 证件类型） |
+| `uploaded`（已上传照片未采集） | 「提交自拍核身素材」按钮（#1807：不再提示人脸认证） | 拉起自拍采集（weapp 相机 / H5 上传）→ `POST /user/face-capture` |
+| `pending_review` | 「审核中」状态（灰底 + 时钟图标） | 无（等待人工审核，可重新采集覆盖） |
+| `verified` | ✅ 已认证（绿底）+ 姓名 + 掩码身份证 + 方法（腾讯云/人工） | 无 |
+| `rejected` | 「审核未通过」红色提示 + 驳回原因 | 「重新采集」按钮（提交新批次） |
+
+**自拍采集交互**:
+- weapp: 相机拍摄（图片）→ 过渡界面（确认照片，可重拍/继续）→ 可选视频录制（最后 2s 随机动作提示）→ 提交 `POST /user/face-capture`（weapp 分离上传：先 image 创建批次，再带 batch_id 追加 video）
+- H5: 文件上传（图片）+ 可选视频 → 同上
+- 提交成功 → toast「已提交，等待审核」+ 状态变 `pending_review`
+
+**核身通道说明**（#1807）：人脸识别未实装阶段**不显示「发起人脸认证」**——统一走人工审核（method=manual，平台员工在 PC 审核队列处理，员工根据身份证照填写实名信息）；腾讯云配置就绪后再开放自动比对通道
+
+#### 2.6.2b 核身警告条（checkout / order-detail，#1787）
+
+**顾客侧警告条**（`id_verify_status != verified` 且订单未发货时展示，**不阻断提交**）:
+
+| 位置 | 触发状态 | 文案 | 操作 |
+|------|---------|------|------|
+| `/checkout`（确认订单页） | none/uploaded/rejected | 「请先完成实名核身，以免影响发货」 | 「去核身」→ 编辑资料页 |
+| `/order/:id`（订单详情，未发货） | none/uploaded/rejected | 同上 | 「去核身」→ 编辑资料页 |
+| `/order/:id`（已发货） | 任意 | 不展示（履约已开始） | — |
+| pending_review/verified | 任意 | 无警告 | — |
+
+#### 2.6.2c PC 实名审核队列页（#1787/#1807，平台员工）
+
+**路由**: PC `/face-review`（平台员工/系统管理员，`SysPermUserUpdate`）
+
+**页面结构**:
+- 顶部说明：平台员工可见全量用户（非 org 隔离）；商户数据仍 tenant 隔离
+- 支持 URL 参数 `?user_id=<id>` 按用户筛选（从用户详情「去审核队列」链接带入），显示筛选 Tag 可清除
+- 列表：待审核批次（pending_review）→ 用户姓名 + 证件照三张（点击放大）+ 自拍图/视频（可播放）+ 提交时间
+- **通过操作**（#1807）：弹出填写框——员工根据身份证照核对填写「真实姓名」+「身份证号」（必填）→ 确认通过
+- 操作：「通过」/「驳回」（驳回必填原因）
+- 通过 → `verified`(method=manual) + `real_name/id_card_no` 一并落库 + 列表移除；驳回 → `rejected` + 原因，顾客端显示重新采集
+- **隐私边界**: 不展示身份证号明文（仅姓名 + 证件照，审核用）；顾客端仅展示掩码身份证
+
+#### 2.6.2c1 PC 用户详情对话框实名核身区块（#1810，平台员工）
+
+**位置**: PC 用户管理（`/user-management`）→ 点开用户 → 详情对话框底部「实名核身」区块
+
+**区块结构**: 两个可折叠子面板（Collapse），默认折叠
+
+##### 模块 1：身份证信息
+
+| 状态 | 判定（`GET /admin/user-management/:id` 返回字段） | 展示 | 操作 |
+|------|------|------|------|
+| 未提供 | 三张证件照全空 | 提示「用户未上传证件照」 | 无 |
+| 已提供·待采集 | 有证件照且 `real_name` 空 | 表单 5 项（真实姓名/身份证号/有效期/签发机关/住址，均可空） | 「保存」采集 / 「拒绝采用」 |
+| 已采集 | `real_name` 非空 | 表单回显（只读） | 无 |
+
+- **保存**：`PUT /admin/user-management/:id/id-card`（身份证号格式校验 18 位，末位可 X；成功 → 系统通知「实名信息已采集」）
+- **拒绝采用**：二次确认 → `POST /admin/user-management/:id/id-photo/reject`——事务内清空三张证件照 + 全部实名信息 + `face_verified/method` 置空 + **作废 pending 批次**（rejected，原因「证件照被管理员拒绝，请重新提交」）；成功 → 系统通知「证件照未通过，请重新上传」
+- 隐私：实名信息仅平台员工可见（详情接口），顾客端仅展示掩码
+
+##### 模块 2：人脸信息采集（#1813 改为只读展示，审核入口收敛到实名审核队列）
+
+| 状态 | 判定（`id_verify_status` 五态，复用 `deriveIdVerifyStatus`） | 展示 | 操作 |
+|------|------|------|------|
+| 未采集 | `none`/`uploaded` 且无批次 | 提示「用户未提交人脸采集素材」 | 无 |
+| 待审核 | 最新批次 `pending` | 自拍素材（图/视频）+ 提交/审核时间 | 「去实名审核队列处理 ›」链接（跳转 `/face-review?user_id=<id>`） |
+| 已通过 | 最新批次 `approved` | ✓ 已核身 + 核身时间 + 通道（人工/自动） | 无 |
+| 已驳回 | 最新批次 `rejected` | 驳回原因 + 提交时间 | 无（顾客端重新采集） |
+
+- 数据源：`GET /admin/face-review/user/:userId`（该用户全部批次 + 自拍素材 URL，含历史驳回/通过，只读展示）
+- 通道：`face_verify_method=manual` 显示人工审核标签；`tencent`（自动识别）显示自动识别标签
+- **审核操作已移除**：审核（approve/reject）仅在实名审核队列页（`/admin/face-review/queue`，bit18 权限）执行，用户详情不再提供审核入口
+
+##### 通知（ntype=`id_verify`，新增）
+
+| 触发 | 标题 | 顾客端效果 |
+|------|------|-----------|
+| 身份证信息采集保存 | 「实名信息已采集」 | 消息列表可见 |
+| 证件照拒绝采用 | 「证件照未通过，请重新上传」 | 消息列表可见 + 警告条（§2.6.2b）恢复提醒 |
+| 人脸批次审核通过/驳回 | 复用 face-review 通知 | 顾客端状态联动 |
+
+#### 2.6.2d 员工发货页核身校验（#1787）
+**ShippingInterface.jsx**（weapp+h5 共享）:
+- 订单加载后读 `id_verify_status`：
+  - `verified` → 正常发货流程
+  - 非 verified → 发货按钮置灰 + 按钮下提示「用户未完成实名核身，请联系平台运营完成审核」（**置灰不阻断数据录入，仅阻断提交**）
+- 后端拒绝兜底：即使置灰，后端仍强制校验（40002），`resolveErrorMessage` 展示明确文案（**非静默**）
+- 待发货列表/订单详情：非 verified 订单显示「未核身/审核中」角标（仅聚合状态，不展示敏感字段）
+
+#### 2.6.3 发票申请页（weapp `/pages-weapp/invoice/index` + H5 `/invoice`）（#1786）
+
+**路由**: weapp `pages-weapp/invoice/index`（薄壳）→ `Invoice.jsx`（共享 .jsx）
+
+**顶部两 Tab**（默认「未申请」）:
+
+| Tab | 数据源 | 展示 | 操作 |
+|-----|--------|------|------|
+| 未申请 | `GET /user/invoices/eligible` | 订单号、SN、下单日、实际消费（实际租金+逾期费用明细小字）、商户名 | 复选框多选 → 底部固定栏：已选 N 项 + 总开票金额 + 「提出申请」按钮（选中≥1 激活，灰态文案「请选择订单」） |
+| 已申请 | `GET /user/invoices` | 订单号、SN、下单日、实际消费、申请发票日、回复日（未回复显示「待开票」） | 有回复/发票文件的显示回复内容 + 「查看发票」按钮 |
+
+**确认步**（同页切换）: 按商户分组 → 每组商户名 + 订单数 + 开票金额 → 「确认提交」→ 成功 toast + 跳转已申请 Tab
+
+**查看发票**: weapp `Taro.downloadFile` → `Taro.openDocument`（PDF/图片）；H5 `window.open`
+
+**金额格式**: `¥(cents/100).toFixed(2)`（#1757 分语义）
+
+#### 2.6.4 个人中心菜单入口
+
+| 菜单项 | 可见条件 | 跳转 |
+|--------|---------|------|
+| 🧾 申请发票 | `!isGuest` | `/pages-weapp/invoice/index` |
+| ✏️ 编辑资料 | `!isGuest`（常显，已登录均可编辑本人资料） | `/pages-weapp/profile/edit/index`（weapp）/ `/profile/edit`（H5） |
+| 🪪 实名认证 | `!isGuest && !face_verified`（未认证引导，橙色圆点；已认证用户在编辑资料页实名区块看状态） | `/pages-weapp/profile/edit/index` |
+
+> 「编辑资料」为常显通用入口（姓名/昵称/手机/邮箱/证件照管理，见 §2.6.2）。不得因实名认证完成而隐藏通用编辑入口（#1817）。
+
+---
+
+### 2.7 购物车页 (`/cart`) 【新增】
+
+**布局结构**:
+```html
+<view class="cart-page">
+  <view class="cart-header">
+    <text>购物车</text>
+  </view>
+
+  <!-- 按租户分组 -->
+  <view class="cart-group" wx:for="{{groups}}">
+    <view class="group-header">租户: {{item.tenant_id}}</view>
+    <view class="cart-item" wx:for="{{item.items}}">
+      <image src="{{subItem.images[0]}}" class="item-image" />
+      <view class="item-info">
+        <text class="item-name">{{subItem.name}}</text>
+        <text class="item-brand">{{subItem.brand}} {{subItem.model}}</text>
+        <text class="item-price">¥{{subItem.pricing.monthly_rent}}/月起</text>
+      </view>
+      <button class="btn-delete" bindtap="removeItem" data-id="{{subItem.instrument_id}}">
+        🗑️
+      </button>
+    </view>
+  </view>
+
+  <!-- 空购物车 -->
+  <view wx:if="{{items.length === 0}}" class="cart-empty">
+    <text>购物车为空</text>
+    <button bindtap="goHome">去逛逛</button>
+  </view>
+
+  <!-- 底部下单栏 -->
+  <view class="bottom-bar" wx:if="{{items.length > 0}}">
+    <button class="btn-order" bindtap="handleOrder">
+      下单 ({{items.length}} 件)
+    </button>
+  </view>
+</view>
+```
+
+**交互**:
+- **分组显示**：按 `tenant_id` 将购物车中的乐器分组，每组显示租户标识
+- **单项删除**：每个乐器项右侧有删除按钮，点击从购物车移除
+- **阶梯计价**：购物车自动从 `pricing_v2.tiers` 读取阶梯配置，按租期天数分段计算租金；显示 `（阶梯计价）` 标签而非扁平 `¥N/天 × M天` 公式
+- **押金来源**：优先级 `pricing_v2.deposit` > `instrument.deposit` > 旧 `pricing.deposit`
+- **合并对话框**：登录后若游客购物车与用户购物车均非空 → 弹窗询问「是否将之前的 N 件乐器合并到当前购物车？」
+  - 确认 → 按 `instrument_id` 去重合并，清空游客购物车
+  - 取消 → 保持用户购物车，清空游客购物车
+- **下单校验**：
+  - 未登录 → 跳转登录页，登录后返回购物车
+  - 已登录 → 选中乐器进入结算页，调用批量下单 API
+- **数据持久化**：用户隔离存储：
+  - 游客：key `cart`
+  - 已登录：key `cart_{user_id}`
+  - 不同账户购物车互不影响
+- **结算登录保护**：点击「去结算」若未登录 → 保存 `post_auth_redirect=/checkout` → 跳转登录页
+
+### 2.8 乐器详情页加入购物车
+
+**按钮**：
+- 乐器可租且用户为顾客时显示「加入购物车」
+- 已加入购物车 → 按钮变为「已加入购物车」，灰色不可点击
+- 已加入时再次点击 → 跳转 `/cart`
+
+**交互**：
+- 点击加入 → 不弹窗、不跳转
+- 🛒 浮动图标执行 scale(1→1.25→1) 弹跳动画（300ms ease-in-out）
+- 图标始终可见（含角标数字）
+
+---
+
+### 2.9 维修域页面设计（#1888）
+
+> 来源：维修域全面静态审计（#1877-#1889）。本节定义**目标行为**（R1-R7 规则落地后），实现差距逐项标注关联 Issue；执行修复时以本节为验收依据。
+
+#### 2.9.0 角色 × 页面矩阵与全局规则
+
+| 页面 | 顾客 USER | 网点员工 site_member/admin | 维修师傅 repair_technician |
+|------|:---:|:---:|:---:|
+| `/my-repairs` | 我的报修列表 + 创建入口 | 本网点报修列表 + 待发回填物流 | 我的维修 + 待维修列表 |
+| `/repair` | ❌ 不可达 | **验收面板**（已修复 · 本站点 · 非本单维修人） | 维修面板（开始/记录/完成/接手） |
+| `/repair-request` | 报修详情 + 接受/拒绝报价 + 支付 + 评价/申诉 | 本单站点：收发货/过程记录 | 本单站点：报价/维修/过程记录 |
+| `/create-repair` | ✅ | — | — |
+| `/receiving-repair-scan` | ❌ | 收货识别 | — |
+| `/staff/repair-scan` | ❌ | 转出中转处理 | — |
+| `/repair-quote` | ✅（接受报价后跳支付） | — | — |
+| `/repair-payment-complete` | ✅ | — | — |
+
+**全局规则（R1-R7）**：
+- **R1 禁止自验收**：`/repair` 验收操作仅**乐器所在站点**的 `site_admin/site_member` 且 `≠ repair_worker_id`（兼职身份也不例外）
+- **R2** 进入维修（定损/收货 damaged）时写入 `current_site_id` = 操作员站点（回退 order.org_id）
+- **R3** 验收驳回原因写入 `repair_records`（comment 前缀「验收驳回：」），记录列表可见
+- **R4** 接手仅限同站点（操作员站点 ∩ 乐器 current_site_id）
+- **R5** 改派负责人仅 `site_admin`
+- **R6** 遗留维保（maintenance）模块废弃（前端 4 页/路由移除，表数据保留）
+- **R7** 报价可见性：报修人本人 / 报价所属站点成员；无归属返回空集
+
+**通用要求**：错误反馈一律 `dialog.alert`（weapp 无全局 alert）；时间按 §1.6；照片经 `photoSrc` 补 origin + 点击 `previewImage`；异步按钮须 loading/disabled 防重；跨端控件用 Taro 组件（禁原生 `<textarea>/<input>`）。
+
+#### 2.9.1 维修中心 `/my-repairs`
+
+**角色视图**（顶部 tab 由角色生成）：
+- 顾客：我的报修列表（`repair_requests by user_id`）+ 「创建报修」按钮
+- 网点员工：本网点报修列表 + 「填物流发回」动作（`return_pending`）+ **待验收乐器列表**（本站点 `repair_completed`，`repair/acceptance`，「去验收」→ `/repair?instrument_id=`，#1892）
+- 维修师傅：我的维修（`repair/mine`）+ 待维修列表（`repair/pending`，按站点过滤）
+
+**交互**：
+- 列表项点击 → `/repair-request?request_id=` 或 `/repair?instrument_id=`（`nav()` 跨端封装）
+- 「填物流发回」异步按钮须 loading/disabled（防重复提交）
+- 扫码入口：员工/师傅视图提供扫码按钮 → `/receiving-repair-scan` 或 `/repair?instrument_id=`
+- 列表项文本分行：SN / 状态各自 `<View>` 包裹（ui.md:110）
+
+**底部导航**：纯维修师傅（无 `site_member`）隐藏「租赁」tab（H5 + weapp 一致）。
+
+#### 2.9.2 维修工作台 `/repair`（共享页，按状态×角色裁剪）
+
+| repair_status | 员工（本站点） | 师傅（本单负责人） | 其他师傅 |
+|---|---|---|---|
+| `repair_pending` | 开始维修 | 开始维修 | 开始维修（谁点谁负责） |
+| `repair_in_progress` | 信息视图 | 添加记录 + 维修完成 | 显示负责人 + 接手（同站点，R4） |
+| `repair_completed` | 验收通过 / 验收不通过（R1、R3） | 「已修复，等待网点员工验收」信息卡（无按钮） | 仅状态信息 |
+
+- **添加记录**：评论 + 照片（H5 `input capture` / weapp `Taro.chooseImage`，最多 10 张，缩略图可预览）；「维修完成」后端要求至少一条含照片的记录
+- **验收不通过**：必填原因（weapp `Taro.showModal editable` / H5 `prompt`）；提交后乐器回 `repair_in_progress`，原因写入维修记录（R3）
+- **验收通过**：乐器回 `available`，清空 `repair_status/repair_worker_id`
+- 面板展示：乐器信息 / 定损信息 / 维修记录（`时间 · 提交人` + 照片网格）
+- loading：每个操作按钮独立 loading（`处理中...`），互斥禁用
+
+#### 2.9.3 报修详情 `/repair-request`
+
+**可见性**：报修人本人 / 该单站点（`site_id`、`transit_site_id`、`controlled_site_id`）成员；其余 404（防探测）。受控情形对站点成员脱敏报修人联系信息（§双向脱敏）。
+
+**阶段面板**（按状态 + 站点归属）：
+- 待估价：报价列表（R7 隔离）+ 师傅报价表单（技师，本单受控网点）
+- 待付款：支付入口（顾客）；价格明细（分 → /100）
+- 待发送：填物流（顾客）
+- 已发货/转入中：网点/中转网点收货（含拆箱拍照）
+- 维修中：师傅过程记录（**技师/员工可见输入表单**）+ 完成维修；重新报价（仅一次）
+- 待发回：员工填发回物流
+- 已发回：顾客确认收货 → 评价/申诉
+
+**过程记录面板**（`RepairRecordPanel`）：
+- 跨端控件（Taro Textarea/Input + `platform.uploadFile` + weapp `Taro.chooseImage/chooseMedia`）
+- 记录列表：正文 / 照片网格（可预览）/ 操作人 + 时间分行显示
+
+#### 2.9.4 创建报修单 `/create-repair`（顾客）
+
+- 识别码输入（500ms 防抖）→ 回填 SN/类型/品牌/型号
+- 选择商户/网点（全权=网点；合作=中转网点）
+- 照片/视频上传（H5 input / weapp `Taro.chooseImage`/`chooseMedia`）
+- 提交 → `POST /repair-requests`（须登录且引用本人 `user_instrument`）
+
+#### 2.9.5 扫码工作页（员工）
+
+- **收货识别 `/receiving-repair-scan`**：输入/扫描乐器识别码 → 匹配报修单（显示状态/受控）→ 拆箱拍照 → 确认收货（`transit_in` 场景）
+- **转出中转处理 `/staff/repair-scan`**：输入返回运单号 → 匹配转出单 → 拆箱拍照 → 提交转出（`transit_out` 场景）
+- 两页均需**站点员工角色**（非员工显示无权提示）；入口：`/my-repairs` 员工视图扫码按钮
+- **文档勘误**：ui.md 历史路由表把 `/staff/repair-scan` 标注为「维修扫码」，实际为「转出中转处理」（本节为准）
+
+#### 2.9.6 报价页 `/repair-quote`（顾客）
+
+- 展示报价对比（材料/服务/物流/工期/评论）；接受报价 → 跳转支付
+- 支付按钮守卫：`paying` 状态生效（防重复点击）
+
+#### 2.9.7 支付完成 `/repair-payment-complete`（顾客）
+
+- 展示支付金额；提供返回报修详情入口
+
+---
+
+### 2.10 用户申诉 (UserAppeal)
+
+**路由**: `/user/appeals`
+
+**权限**: 用户本人
+
+**功能点**:
+- 申诉列表
+- 申诉详情
+  - 定损通知（照片、评论、金额）
+  - 同意定损按钮
+  - 申诉提交表单
+- 申诉提交
+  - 输入申诉理由
+  - 支持上传反驳证据
+
+**状态流转**:
+- 收到定损通知后 72 小时内可操作
+- 同意：押金扣除，生成退还事务或支付页面
+- 申诉：进入经理仲裁流程
+- 超时未操作：按申诉处理
+
+
+---
+
+### 2.11 用户订单详情 (Customer Order Detail)
+
+**路由**: `/order/:id`
+**组件**: `frontend-mobile/src/pages/OrderDetail.jsx`
+
+**权限**: 需要登录，仅可查看本人订单（后端 `user_id` 过滤）
+
+**入口**: Profile 页「当前租赁」/「租赁历史」点击订单卡片
+
+**数据来源**: `GET /api/orders/:id`
+
+**展示项**:
+- 订单编号（大字醒目）
+- 当前状态标签
+- 超期警告条（红框，显示逾期天数 + 累计逾期费 + 日费率）
+- 乐器信息：图片轮播、SN、类型、级别、商户、网点
+- 配送信息：下单人、收货地址
+- 租期信息：租期起点、预计天数、预计到期日
+- 日期口径（#1847）：`end_date` 列存租期末日（start + rent_days − 1）；「预计到期日 / 预期归还日」展示 = start + rent_days（归还截止日，LeaseInfo 计算口径）。租期展示一律走计算口径，裸读 end_date 会比预期归还早一天
+- 费用信息：日租金、租期天数、分级计价明细、押金、物流费、逾期费
+- 结算明细（已完成订单）：原始租金、实收租金、实际天数、可退现金、退款方式/状态
+- 订单日志：时间线视图（下单 → 付款 → 发货 → 租赁中 → 归还 → 结算确认）
+
+**状态按钮**:
+
+| 状态 | 按钮 | 行为 | 确认弹窗 |
+|------|------|------|---------|
+| `reserved` | 支付 | `POST /orders/:id/pay` | 二次确认 |
+| `paid` | 取消订单 | `POST /orders/:id/cancel` | 二次确认 |
+| `pending_shipment` | 取消订单 | `POST /orders/:id/cancel` | 二次确认 |
+| `in_transit` | 取消订单 | `POST /orders/:id/cancel` | 二次确认 |
+| `shipped` | 确认收货 | 跳转 `/receive/:id` | — |
+| `in_lease` | 归还 | 跳转 `/return/:id` | — |
+| `in_lease` | 续期 | 跳转 `/renewal/:id` | — |
+| `expired` | 归还 | 跳转 `/return/:id` | — |
+| `expired` | 续期 | 跳转 `/renewal/:id` | — |
+| `returning` | 无 | 显示「乐器归还中，等待验收」 | — |
+| `cancelled` | 无 | 显示「该订单已取消」 | — |
+| `returned` / `completed` / `transferred` | 无 | 显示「该订单已完成」 | — |
+
+**订单操作按钮文案/色值统一对照表（#1849）**：
+
+同一动作在 列表（MyLeases）/ 详情（OrderDetail）× H5 / weapp 四个表面使用同一文案与色值；权威值来源 = 详情页现值。导航行为不在统一范围（列表「确认收货」仍跳详情）。
+
+| 动作 | 统一文案 | 统一色值 | 出现表面 |
+|------|---------|---------|---------|
+| 支付 | 支付 | `#000000` 黑 | 列表+详情（顾客 reserved）|
+| 取消订单 | 取消订单 | `#ef4444` 红底白字 | 列表+详情（reserved/paid/pending_shipment）|
+| 确认收货 | 确认收货 | `#16a34a` 绿 | 列表+详情（shipped/in_transit，顾客）|
+| 续期 | 续期 | `#2563eb` 蓝 | 详情（in_lease/expired，顾客）|
+| 归还 | 归还 | `#f97316` 橙 | 列表+详情（in_lease/expired，顾客）|
+| 发货 | 发货 | `#000000` 黑 | weapp 列表 + 双端详情（paid/pending_shipment，员工；H5 列表见 #1846）|
+| 接收并转发 | 接收并转发 | `#06b6d4` 青 | 详情（in_transit，员工）|
+| 代收货 | 代收货 | `#15803d` 深绿 | H5 详情（shipped，员工；weapp 见 #1846）|
+| 接收 | 接收 | `#be123c` 玫红 | 列表+详情（returning 无补缴，员工）|
+| 退款 | 退款 | `#d97706` 琥珀 | 详情（deposit_refunding，员工）|
+| 终态/归还中占位 | （状态文案）| `#71717a` 灰字浅灰底 | 列表+详情（无动作状态）|
+
+**超期提醒**:
+- 当 `status === 'expired'` 或 `in_lease` 且 `end_date < now` 时，在状态区域下方显示醒目红框
+- 内容：超期 X 天 · 累计逾期费 ¥XXX（¥XX/天）
+
+**路由**: `/user/rentals`
+
+**权限**: 用户本人
+
+**功能点**:
+- 租赁会话列表
+  - 乐器类别
+  - 到期时间
+  - 当前状态
+- 租赁详情
+  - 乐器信息（图片、品牌、型号）
+  - 租赁周期
+  - 日/周/月租金
+  - 押金说明
+- 归还操作
+  - 点击期满的租赁会话
+  - 输入物流信息
+  - 提交归还请求
+
+**状态说明**:
+- active: 租赁中
+- expiring_soon: 即将到期（3天内）
+- overdue: 已逾期
+
+
+---
+
+### 2.12 乐器浏览 (InstrumentBrowse)
+
+> 内容已归入正文 §2.2 首页（乐器浏览），本节保留编号作占位。
+
+
+---
+
+### 2.13 乐器详情 (InstrumentDetail)
+
+> 内容已归入正文 §2.3 乐器详情页，本节保留编号作占位。
+
+
+---
+
+### 2.14 订单支付 (OrderPayment)
+
+**路由**: `/orders/:id/payment`
+
+**权限**: 用户本人
+
+**功能点**:
+- 订单确认
+  - 乐器信息
+  - 租赁时间
+  - 租金明细（按天/周/月计算）
+  - 押金金额
+- 收货地址确认
+- 支付方式选择
+- 支付确认
+
+**说明**: 完成支付后，乐器进入预订状态
+
+
+---
+
+### 2.15 电子合同 (LeaseContract)
+
+**路由**: `/user/contracts/:id`
+
+**权限**: 用户本人
+
+**功能点**:
+- 合同/收据展示
+  - PDF 格式
+  - 租赁凭证
+- 下载功能
+- 存储位置：用户的"我的资料"中
+
+**生成时机**: 支付完成后自动生成
+
+
+---
+
+### 2.16 归还流程 (ReturnProcess)
+
+**路由**: `/user/rentals/:id/return`
+
+**权限**: 用户本人
+
+**功能点**:
+- 归还确认
+  - 确认归还乐器 SN
+  - 确认租赁结束时间
+- 物流信息录入
+  - 物流公司
+  - 物流单号
+- 提交归还
+
+**物流费提醒红字**（#1732）:
+- 归还确认页（`/return/:orderId`，ReturnConfirm.jsx）所有订单无条件显示红色提醒文案：
+  「尊敬的顾客您好，感谢您选择云租吧的乐器，乐器寄回时请优先选择顺丰快递且保价，还原初始包装保护乐器，为保障您的权益，我们将第一时间查收并检验乐器状态，谢谢您，祝您生活愉快！」
+
+**订单动态时间线**（#1848）:
+- 归还页与订单详情页时间线格式一致（共享 `components/OrderTimeline.jsx`）：每条日志正文一行 + 「时间 · 操作人」一行（时间格式按 §1.6：当年 `M月D日 HH:mm`、跨年 `YYYY年M月D日 HH:mm`；system 显示为「系统」）；事件文案映射与详情页 EVENT_LABELS 同表
+
+**状态变更**:
+- 提交后租赁会话状态变为 returning
+- 系统生成归还通知给库管
+
+---
+
+
+---
+
+
+---
+
+### 2.17 移动端首次登录引导页 (`/onboarding`) — **已废弃**
+
+> ⚠️ **已废弃**：本节保留编号作占位，功能已由替代页面承担。
+
+
+> **状态**: 已废弃（2026-08-10）。字段收集由 H5 注册页（/register）与编辑资料页承担。
+> - 前端 `/onboarding` 路由与 `Onboarding.jsx` 已移除
+> - OAuth 登录回调默认跳首页（不再跳 `/onboarding`）
+> - 后端 `GET/PUT /user/onboarding` 端点保留（兼容存量数据）
+> - 原功能参考（历史）：
+>   - 昵称输入（可选）、收货地址（可选）、身份证照片（可选）、预购点数（可选）、提交/跳过
+
+
+---
+
+### 2.18 移动端归还结算页 (`/return-settlement/:orderId`)
+
+**组件**: `frontend-mobile/src/pages/ReturnSettlement.jsx`
+
+**权限**: 已登录用户（订单所属用户）
+
+**触发条件**: 用户提交归还申请后跳转
+
+**布局**: 卡片分块展示
+
+**间距规范**（遵循 §1.3 跨端渲染规则）:
+- 面板标题：用 `<View>` 包裹 `<Text>`（`<View><Text className="text-base font-black text-black">标题</Text></View>`）
+- 标题与正文间距：16px（等价于 `space-y-4` 语义），正文内行间距 8px（等价于 `space-y-2` 语义）——用内联 `gap`（`gap:'16px'` / `gap:'8px'`）实现，禁止在 className 中使用 `space-y-*`（weapp 端失效）
+- 禁止在 `<Text>` 上使用 `mb-*` margin 类
+
+**功能**:
+ 1. **租金计算** — 实际租期 × 日租金
+2. **赠点调整** — 已用赠点 vs 可用额度（`floor(实际租金 × cap_rate / 100)`），超额自动退回 promo_points
+3. **逾期费用** — 逾期扣款汇总（如有）
+4. **退款明细** — 原实付现金 / 应退总额 / 可提现（原路退回）
+5. 确认结算 → 标记 order.completed，更新余额 → 跳转租期列表
+
+
+---
+
+### 2.19 移动端支付确认点数选择
+
+**组件**: `frontend-mobile/src/pages/Checkout.jsx`
+
+**功能**: 在 `SingleCheckout`（独立租琴）结算时：
+- 展示当前赠点余额
+- 可选使用赠点抵扣（输入抵扣金额）
+- 赠点由系统自动计算（根据 points_policy.cap_rate 限定最高使用比例）
+- 底部确认栏显示：月租金、租期、押金、运费、赠点优惠、实付合计
+
+
+---
+
+### 2.20 移动端个人中心未读角标
+
+**组件**: `frontend-mobile/src/pages/Profile.jsx` + `frontend-mobile/src/components/BottomNav.jsx`
+
+**功能**:
+- `BottomNav` 新增 `badges` prop: `{ tabKey: number }`
+- 有未读时在图标右上角显示红圈数字（>99 显示 `99+`）
+- Profile.jsx 在页面加载时获取未读数，传给 BottomNav 的 profile Tab
+- 跳转消息列表后未读清零
+
+
+---
+
+### 2.21 移动端会员中心（#1830）
+
+**组件**: `frontend-mobile/src/pages/MembershipCenter.jsx`（H5 + weapp 共享页，weapp 入口：我的 → 会员中心）
+
+**页面结构（自上而下）**:
+1. **会员等级卡**：当前档位名称（`/users/me` 的 `membership_level_name`，未定级显示「普通会员」）
+2. **会员权益卡**（#1830 新增）：标题「会员权益」+ 当前档位名；内容 = `GET /api/membership/benefits?level_id=当前档`（admin 在 PC 会员级别管理维护）。行结构：标题加粗 + 说明小字；权益为空时不渲染该卡；用户等级变化后重新拉取自动跟随（仅展示当前档位，无切换器）
+3. **统计卡**：消费总额（元）；**积分**（`promo_points ÷ 100` 按元计，无单位——2026-09-07 起移除「预付点数」行，系统不再支持预付点）
+4. **推广二维码卡**：文案「邀请好友注册，赚取奖励积分」
+5. **收货地址卡**：新增/编辑地址表单为跨端控件（Taro `Input` + 省/市/区 `Picker`，三级联动）
+6. **会员规则与权益手册卡**（#1830 新增，页面最底部；#1830 增量改为后台可编辑）：标题「会员规则与权益手册」+ 展开/收起（收起为一行标题）；正文优先渲染后台配置的富文本（PC「策略配置-会员手册编辑」，存储 key `membership_handbook`，走 `GET /public/settings/:key` 读取，图片经 `normalizeContentUrls` 归一）；后台未配置或为空时回退为**统一静态文案**（`HANDBOOK_SECTIONS` 常量：会员体系 / 升级门槛 / 返现积分 / 积分使用 / 其他权益），所有会员一致
+
+---
+
+
+---
+
+### 2.22 移动端下单/归还物流费提醒（#1732）
+
+**适用端**: H5 移动端 + 微信小程序（weapp）顾客端
+
+**下单页（Checkout.jsx，双副本同步：`pages/Checkout.jsx` H5 + `pages-weapp/Checkout.jsx` weapp）**:
+
+按有效押金 `effectiveDeposit === 0` 判定（覆盖「乐器本身 0 押金」与「免押金开关」两种场景）显示红色提醒：
+
+| 条件 | 文案 |
+|------|------|
+| `effectiveDeposit === 0` | 尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时我们将选择快递到付且保价，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！ |
+| `effectiveDeposit > 0` | 尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时的物流费届时将从您的押金中扣除，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！ |
+
+**归还页（ReturnConfirm.jsx，共享版即两端）**: 所有订单无条件显示：
+
+尊敬的顾客您好，感谢您选择云租吧的乐器，乐器寄回时请优先选择顺丰快递且保价，还原初始包装保护乐器，为保障您的权益，我们将第一时间查收并检验乐器状态，谢谢您，祝您生活愉快！
+
+**样式**: 红色（`text-red-500` / `#ef4444`）13px 中等字重，下单页在合计摘要下方，归还页在订单信息卡之后。
+
+---
+
+
+---
+
+### 2.23 发票申请表单（移动端 `Invoice.jsx`）（#1941）
+
+> 确认页按**商户分组**新增发票信息表单：发票类型（单选：普通发票/专用发票，默认普通）| 发票抬头（文本必填 ≤255）| 税号（普通选填/专用必填；宽松校验 15/18/20 位字母数字）
+> PC `InvoiceList` 详情 Descriptions 增：发票类型 / 抬头 / 税号
+
+
+---
+
+## 三、PC 端（商家管理端 & 平台运营端）
+
+### 3.1 技术栈
+- **框架**: React 18 + TypeScript
+- **UI 库**: Ant Design 5.x
+- **样式**: Tailwind CSS
+- **图表**: ECharts
+- **地图**: AMap（高德地图）
+
+---
+
+### 3.2 登录页 (`/login`)
+
+**组件结构**:
+```tsx
+// pages/Login/index.tsx
+import { BrandProvider } from '@/components/BrandProvider';
+
+const LoginPage: React.FC = () => {
+  const { brandConfig, loading } = useBrandConfig();
+
+  if (loading) {
+    return (
+      <div className="redirect-transition">
+        <Spin size="large" />
+        <p>正在跳转至安全身份验证中心...</p>
+      </div>
+    );
+  }
+
+  return (
+    <BrandProvider config={brandConfig}>
+      <div className="login-container" style={{ '--brand-primary': brandConfig.primary_color }}>
+        <div className="login-box">
+          <img src={brandConfig.logo_url} className="brand-logo" alt="logo" />
+          <h1 className="brand-name">{brandConfig.brand_name}</h1>
+          <Button 
+            type="primary" 
+            size="large" 
+            onClick={redirectToIAM}
+            style={{ backgroundColor: 'var(--brand-primary)' }}
+          >
+            立即登录
+          </Button>
+        </div>
+      </div>
+    </BrandProvider>
+  );
+};
+```
+
+**BrandProvider 实现**:
+```tsx
+// components/BrandProvider/index.tsx
+import { ConfigProvider } from 'antd';
+
+const BrandProvider: React.FC<{ config: BrandConfig; children: React.ReactNode }> = ({ config, children }) => {
+  return (
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: config.primary_color,
+          borderRadius: 6,
+        },
+      }}
+    >
+      {children}
+    </ConfigProvider>
+  );
+};
+```
+
+---
+
+### 3.2.1 冷启动向导 (Setup)
+
+**路由**: `/setup`  
+**权限**: 无需登录（仅限未初始化系统访问）
+
+**页面流程**:
+
+1. **状态检测**: 页面加载时调用 `GET /api/setup/status`
+   - 若 `requires_setup = false` → 自动重定向至登录页 `/`
+   - 若 `requires_setup = true` → 显示初始化表单
+
+2. **初始化表单**:
+   - 邮箱（输入框，带格式验证）
+   - 密码（密码框，强度提示）
+   - 确认密码（密码框，一致性验证）
+   - 『创建管理员』按钮（提交）
+
+3. **提交处理**:
+   - 表单验证通过后调用 `POST /api/setup/init`
+   - 显示加载状态
+   - 成功后后端返回 OIDC 授权 URL
+   - 前端自动跳转至 IAM 完成首次认证
+
+4. **错误处理**:
+   - 系统已初始化（403）→ 显示错误并跳转登录页
+   - 参数错误（400）→ 高亮显示错误字段
+
+**交互细节**:
+- 表单验证实时反馈
+- 密码强度可视化（弱/中/强）
+- 提交按钮禁用状态管理
+
+
+
+---
+
+### 3.3 Dashboard 首页 (`/dashboard`)
+
+**组件结构**:
+```tsx
+// pages/Dashboard/index.tsx
+import { Row, Col, Card, Statistic } from 'antd';
+import { useNavigate } from 'react-router-dom';
+
+const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
+
+  // 统计卡片数据（可点击穿透）
+  const stats = [
+    {
+      title: '今日订单',
+      value: 12,
+      filter: { created_today: 1 },
+      route: '/merchant/leases',
+    },
+    {
+      title: '在租资产',
+      value: 85,
+      filter: { status: 'renting' },
+      route: '/merchant/assets',
+    },
+    {
+      title: '逾期预警',
+      value: 3,
+      filter: { overdue: 1 },
+      route: '/merchant/leases/overdue',
+      valueStyle: { color: '#EF4444' }, // 状态色
+    },
+    {
+      title: '待处理工单',
+      value: 5,
+      filter: { status: 'pending' },
+      route: '/merchant/maintenance',
+      valueStyle: { color: '#F59E0B' }, // 状态色
+    },
+  ];
+
+  const handleStatClick = (stat: any) => {
+    navigate(`${stat.route}?${new URLSearchParams(stat.filter)}`);
+  };
+
+  return (
+    <div className="dashboard">
+      <Row gutter={16}>
+        {stats.map((stat, index) => (
+          <Col span={6} key={index}>
+            <Card 
+              className="stat-card clickable" 
+              onClick={() => handleStatClick(stat)}
+              hoverable
+            >
+              <Statistic 
+                title={stat.title} 
+                value={stat.value} 
+                valueStyle={stat.valueStyle}
+              />
+            </Card>
+          </Col>
+        ))}
+      </Row>
+
+      {/* 待办事项 */}
+      <Card title="待办事项" style={{ marginTop: 24 }}>
+        <List>
+          <List.Item>
+            <Badge dot><Icon type="warning" /></Badge>
+            <span>订单 #L002 已逾期7天，请尽快联系客户</span>
+            <Button size="small" onClick={() => navigate('/merchant/leases/overdue')}>
+              立即处理
+            </Button>
+          </List.Item>
+        </List>
+      </Card>
+
+      {/* 最近订单 */}
+      <Card title="最近订单" style={{ marginTop: 24 }}>
+        <Table 
+          columns={recentOrderColumns} 
+          dataSource={recentOrders}
+          onRow={(record) => ({
+            onClick: () => navigate(`/merchant/leases/${record.id}`),
+          })}
+        />
+      </Card>
+    </div>
+  );
+};
+```
+
+---
+
+### 3.4 商家管理端 - 左侧边栏
+
+**菜单结构**:
+```tsx
+// layouts/MerchantLayout/menu.tsx
+const merchantMenu = [
+  {
+    key: 'asset',
+    icon: <Icon component={PackageIcon} />,
+    label: '资产管理',
+    children: [
+      {
+        key: '/merchant/assets',
+        label: '设备台账',
+        route: '/merchant/assets',
+      },
+      {
+        key: '/merchant/inventory',
+        label: '库存监控',
+        route: '/merchant/inventory',
+      },
+      {
+        key: '/merchant/ownership-monitor',
+        label: '所有权监控',
+        route: '/merchant/ownership-monitor',
+      },
+      {
+        key: '/merchant/inventory/transfer',
+        label: '调拨申请', // 【新增】
+        route: '/merchant/inventory/transfer',
+      },
+    ],
+  },
+  {
+    key: 'lease',
+    icon: <Icon component={FileTextIcon} />,
+    label: '租赁管理',
+    children: [
+      {
+        key: '/merchant/leases',
+        label: '租约台账',
+        route: '/merchant/leases',
+      },
+      {
+        key: '/merchant/leases/overdue',
+        label: '逾期预警',
+        route: '/merchant/leases/overdue',
+      },
+    ],
+  },
+  {
+    key: 'maintenance',
+    icon: <Icon component={ToolIcon} />,
+    label: '维保管理',
+    children: [
+      {
+        key: '/merchant/maintenance',
+        label: '工单列表',
+        route: '/merchant/maintenance',
+      },
+      {
+        key: '/merchant/maintenance/quotes',
+        label: '报价中心',
+        route: '/merchant/maintenance/quotes',
+      },
+    ],
+  },
+  {
+    key: 'finance',
+    icon: <Icon component={DollarIcon} />,
+    label: '财务结算',
+    children: [
+      {
+        key: '/merchant/finance/commissions',
+        label: '佣金明细',
+        route: '/merchant/finance/commissions',
+      },
+      {
+        key: '/merchant/finance/statement',
+        label: '流水报表',
+        route: '/merchant/finance/statement',
+      },
+    ],
+  },
+];
+```
+
+---
+
+### 3.5 平台运营端 - 左侧边栏
+
+**菜单结构**:
+```tsx
+// layouts/AdminLayout/menu.tsx
+const adminMenu = [
+  {
+    key: 'merchant',
+    icon: <Icon component={ShopIcon} />,
+    label: '商家管理',
+    children: [
+      {
+        key: '/admin/merchants',
+        label: '商家准入审核',
+        route: '/admin/merchants',
+      },
+      {
+        key: '/admin/permissions',
+        label: '权限管理',
+        route: '/system/permissions',
+      },
+    ],
+  },
+  {
+    key: 'pricing',
+    icon: <Icon component={CalculatorIcon} />,
+    label: '计费规则',
+    children: [
+      {
+        key: '/admin/pricing-matrix',
+        label: '定价矩阵',
+        route: '/admin/pricing-matrix',
+      },
+      {
+        key: '/admin/maintenance-packages',
+        label: '维保服务包',
+        route: '/admin/maintenance-packages',
+      },
+    ],
+  },
+  {
+    key: 'finance',
+    icon: <Icon component={BankIcon} />,
+    label: '财务中心',
+    children: [
+      {
+        key: '/admin/settlements',
+        label: '全局结算',
+        route: '/admin/settlements',
+      },
+      {
+        key: '/admin/deposits',
+        label: '押金监管',
+        route: '/admin/deposits',
+      },
+    ],
+  },
+  {
+    key: 'audit',
+    icon: <Icon component={AuditIcon} />,
+    label: '资产审计',
+    children: [
+      {
+        key: '/admin/assets/trail',
+        label: '流转轨迹',
+        route: '/admin/assets/trail',
+      },
+      {
+        key: '/admin/assets/map', // 【新增】
+        label: '全网资产地图',
+        route: '/admin/assets/map',
+      },
+    ],
+  },
+];
+```
+
+---
+
+### 3.6 定价矩阵页 - Excel 网格编辑 UI (`/admin/pricing-matrix`)
+
+**组件实现**:
+```tsx
+// pages/PricingMatrix/index.tsx
+import { Table } from 'antd';
+
+const PricingMatrix: React.FC = () => {
+  const categories = ['钢琴', '小提琴', '吉他', '架子鼓'];
+  const levels = ['entry', 'professional', 'master'];
+  
+  // 模拟数据
+  const dataSource = categories.map(category => {
+    const row: any = { category };
+    levels.forEach(level => {
+      row[`${level}_rent`] = pricingData[category][level].monthly_rent;
+      row[`${level}_deposit`] = pricingData[category][level].deposit;
+    });
+    return row;
+  });
+
+  const columns = [
+    {
+      title: '品类',
+      dataIndex: 'category',
+      fixed: 'left',
+      width: 120,
+    },
+    {
+      title: '入门级',
+      children: [
+        {
+          title: '租金',
+          dataIndex: 'entry_rent',
+          editable: true,
+          render: (value: number) => `¥${value}`,
+        },
+        {
+          title: '押金',
+          dataIndex: 'entry_deposit',
+          editable: true,
+          render: (value: number) => `¥${value}`,
+        },
+      ],
+    },
+    {
+      title: '专业级',
+      children: [
+        {
+          title: '租金',
+          dataIndex: 'professional_rent',
+          editable: true,
+          render: (value: number) => `¥${value}`,
+        },
+        {
+          title: '押金',
+          dataIndex: 'professional_deposit',
+          editable: true,
+          render: (value: number) => `¥${value}`,
+        },
+      ],
+    },
+    {
+      title: '大师级',
+      children: [
+        {
+          title: '租金',
+          dataIndex: 'master_rent',
+          editable: true,
+          render: (value: number) => `¥${value}`,
+        },
+        {
+          title: '押金',
+          dataIndex: 'master_deposit',
+          editable: true,
+          render: (value: number) => `¥${value}`,
+        },
+      ],
+    },
+  ];
+
+  return (
+    <div className="pricing-matrix">
+      <Card title="定价矩阵 (Excel网格编辑)">
+        <Table
+          dataSource={dataSource}
+          columns={columns}
+          bordered
+          pagination={false}
+          scroll={{ x: 800 }}
+          components={{
+            body: {
+              cell: EditableCell, // 自定义可编辑单元格
+            },
+          }}
+        />
+        <div style={{ marginTop: 16 }}>
+          <Button type="primary" onClick={saveMatrix}>
+            保存修改
+          </Button>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+// 可编辑单元格组件
+const EditableCell: React.FC = ({
+  editing,
+  dataIndex,
+  title,
+  record,
+  index,
+  children,
+  ...restProps
+}) => {
+  const inputNode = <InputNumber />;
+  return (
+    <td {...restProps}>
+      {editing ? (
+        <Form.Item
+          name={dataIndex}
+          style={{ margin: 0 }}
+          rules={[{ required: true, message: `请输入${title}` }]}
+        >
+          {inputNode}
+        </Form.Item>
+      ) : (
+        children
+      )}
+    </td>
+  );
+};
+```
+
+**交互特性**:
+- 双击单元格进入编辑模式
+- 支持批量修改
+- 实时校验输入
+- 保存前预览变更
+
+---
+
+### 3.7 资产流转轨迹 - Timeline 视图 (`/admin/assets/:id/trail`)
+
+**组件实现**:
+```tsx
+// pages/AssetTrail/index.tsx
+import { Timeline } from 'antd';
+import { ClockCircleOutlined, CheckCircleOutlined, ToolOutlined } from '@ant-design/icons';
+
+const AssetTrail: React.FC = () => {
+  const timelineItems = [
+    {
+      dot: <ClockCircleOutlined style={{ fontSize: '16px', color: '#10B981' }} />,
+      color: '#10B981',
+      children: (
+        <div>
+          <h4>入库</h4>
+          <p>北京总仓</p>
+          <p>2024-01-15</p>
+          <p>采购入库 - 供应商: 雅马哈中国</p>
+        </div>
+      ),
+    },
+    {
+      dot: <FileTextOutlined style={{ fontSize: '16px', color: '#3B82F6' }} />,
+      color: '#3B82F6',
+      children: (
+        <div>
+          <h4>租约 #L001</h4>
+          <p>租客: 张三</p>
+          <p>2026-03-21 ~ 2027-03-21</p>
+          <p>状态: 已完成</p>
+        </div>
+      ),
+    },
+    {
+      dot: <ToolOutlined style={{ fontSize: '16px', color: '#F59E0B' }} />,
+      color: '#F59E0B',
+      children: (
+        <div>
+          <h4>维保记录 #T001</h4>
+          <p>师傅: 李师傅</p>
+          <p>2026-08-10</p>
+          <p>问题: 琴弦松动</p>
+          <p>费用: ¥0 (服务包内)</p>
+        </div>
+      ),
+    },
+    {
+      dot: <FileTextOutlined style={{ fontSize: '16px', color: '#3B82F6' }} />,
+      color: '#3B82F6',
+      children: (
+        <div>
+          <h4>租约 #L002 (当前)</h4>
+          <p>租客: 王五</p>
+          <p>2026-04-01 ~ 2027-04-01</p>
+          <p>状态: 在租中</p>
+          <p>已累计: 8个月</p>
+        </div>
+      ),
+    },
+    {
+      dot: <GiftOutlined style={{ fontSize: '16px', color: '#8B5CF6' }} />,
+      color: '#8B5CF6',
+      children: (
+        <div>
+          <h4>转售/报废 (预计)</h4>
+          <p>预计日期: 2027-04-01</p>
+          <p>剩余: 4个月</p>
+          <Progress percent={66.7} strokeColor="#8B5CF6" />
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="asset-trail">
+      <Card title="资产流转轨迹">
+        <div className="asset-info">
+          <h3>资产编号: INS-2024-00001</h3>
+          <p>SN码: SN-2024-0001</p>
+          <p>名称: 雅马哈立式钢琴 U1</p>
+          <p>当前状态: 在租中</p>
+        </div>
+        
+        <Timeline mode="left">
+          {timelineItems.map((item, index) => (
+            <Timeline.Item key={index} dot={item.dot} color={item.color}>
+              {item.children}
+            </Timeline.Item>
+          ))}
+        </Timeline>
+      </Card>
+    </div>
+  );
+};
+```
+
+**视觉特性**:
+- 不同事件类型使用不同颜色图标
+- 左侧垂直时间轴，清晰展示资产全生命周期
+- 包含时间、地点、参与方、费用等完整信息
+
+---
+
+### 3.8 全网资产地图 (`/admin/assets/map`) 【新增】
+
+**组件实现**:
+```tsx
+// pages/AssetsMap/index.tsx
+import AMapLoader from '@amap/amap-jsapi-loader';
+
+const AssetsMap: React.FC = () => {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [amap, setAmap] = useState<any>(null);
+
+  useEffect(() => {
+    AMapLoader.load({
+      key: 'your-amap-key',
+      version: '2.0',
+    }).then((AMap) => {
+      const map = new AMap.Map(mapRef.current, {
+        zoom: 5,
+        center: [116.4074, 39.9042], // 北京
+      });
+
+      // 按城市聚合资产数据
+      const cityData = [
+        { name: '北京', center: [116.4074, 39.9042], total: 150, renting: 120 },
+        { name: '上海', center: [121.4737, 31.2304], total: 120, renting: 95 },
+        { name: '广州', center: [113.2644, 23.1291], total: 80, renting: 65 },
+        { name: '深圳', center: [114.0579, 22.5431], total: 90, renting: 78 },
+      ];
+
+      cityData.forEach((city) => {
+        const marker = new AMap.Marker({
+          position: city.center,
+          content: `
+            <div class="asset-marker">
+              <div class="marker-total">${city.total}</div>
+              <div class="marker-renting">${city.renting}</div>
+            </div>
+          `,
+        });
+        map.add(marker);
+      });
+
+      setAmap(map);
+    });
+  }, []);
+
+  return (
+    <div className="assets-map">
+      <Card title="全网资产分布地图">
+        <div ref={mapRef} style={{ width: '100%', height: '600px' }} />
+        
+        <div className="map-legend">
+          <div className="legend-item">
+            <span className="color-box total"></span>
+            <span>资产总数</span>
+          </div>
+          <div className="legend-item">
+            <span className="color-box renting"></span>
+            <span>在租数量</span>
+          </div>
+        </div>
+
+        <div className="map-stats">
+          <Row gutter={16}>
+            <Col span={6}>
+              <Statistic title="全国资产总数" value={440} />
+            </Col>
+            <Col span={6}>
+              <Statistic title="在租总数" value={358} />
+            </Col>
+            <Col span={6}>
+              <Statistic title="在租率" value={81.4} suffix="%" />
+            </Col>
+            <Col span={6}>
+              <Statistic title="覆盖城市" value={4} />
+            </Col>
+          </Row>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+// 自定义标记样式
+const markerStyle = `
+  .asset-marker {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #6366F1;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+  }
+  .marker-total::after {
+    content: ' 总';
+    font-size: 10px;
+  }
+  .marker-renting {
+    font-size: 10px;
+  }
+  .marker-renting::after {
+    content: ' 租';
+  }
+`;
+```
+
+**功能特性**:
+- 地图展示各城市资产分布
+- 聚合标记显示总数和在租数
+- 点击查看城市详情
+- 右侧统计面板实时更新
+
+---
+
+### 3.9 影子用户状态标识
+
+**组件实现**:
+```tsx
+// components/ShadowUserBadge/index.tsx
+import { Tooltip, Badge } from 'antd';
+
+interface ShadowUserBadgeProps {
+  isShadow: boolean;
+  userSource?: string; // IAM来源
+}
+
+const ShadowUserBadge: React.FC<ShadowUserBadgeProps> = ({ isShadow, userSource }) => {
+  if (!isShadow) return null;
+
+  return (
+    <Tooltip title={`来自 ${userSource || 'IAM'} 自动同步`}>
+      <Badge count="👻" style={{ backgroundColor: '#8B5CF6' }} />
+    </Tooltip>
+  );
+};
+
+// 使用示例：在用户列表中
+const UserList: React.FC = () => {
+  const columns = [
+    {
+      title: '用户',
+      render: (record: User) => (
+        <Space>
+          {record.user_name}
+          <ShadowUserBadge 
+            isShadow={record.is_shadow} 
+            userSource={record.identity_source}
+          />
+        </Space>
+      ),
+    },
+    // 其他列...
+  ];
+
+  return <Table columns={columns} dataSource={userData} />;
+};
+```
+
+---
+
+### 3.10 IAM 同步按钮 (IAM Sync Button)
+
+#### 3.10.1 网点管理 - IAM 组织同步按钮
+
+**位置**: `src/pages/SiteManagement.jsx` 页面头部
+
+**按钮文案**: "从 IAM 同步组织"
+
+**权限控制**:
+- 仅对 `role === 'ADMIN'` 或 `role === 'OWNER'` 的用户可见
+- 无权限用户不渲染此按钮
+
+**交互流程**:
+```javascript
+// 点击 handler
+const handleSyncFromIAM = async () => {
+  setSyncLoading(true);
+  try {
+    const response = await api.post('/api/iam/organizations/sync');
+    if (response.code === 20000) {
+      message.success(`同步成功：新增 ${response.data.synced} 个组织`);
+      // 重新加载网点树
+      fetchSiteTree();
+    }
+  } catch (error) {
+    message.error('同步失败：' + error.message);
+  } finally {
+    setSyncLoading(false);
+  }
+};
+```
+
+**UI 状态**:
+- **默认**: "从 IAM 同步组织" (Button type="primary")
+- **加载中**: 显示 `<Spin />` 图标 + "同步中..." (按钮 disabled)
+- **成功**: message.success + 自动刷新列表
+- **失败**: message.error
+
+**视觉设计**:
+```jsx
+<Button 
+  type="primary" 
+  icon={<CloudSyncOutlined />}
+  onClick={handleSyncFromIAM}
+  loading={syncLoading}
+  disabled={!isAdminOrOwner}
+>
+  从 IAM 同步组织
+</Button>
+```
+
+---
+
+### 3.10.2 人员管理 - IAM 用户同步按钮
+
+**位置**: `src/pages/StaffManagement.jsx` 页面头部（或用户管理页面）
+
+**按钮文案**: "从 IAM 同步用户"
+
+**权限控制**:
+- 仅对 `role === 'ADMIN'` 或 `role === 'OWNER'` 的用户可见
+
+**交互流程**:
+```javascript
+const handleSyncUsersFromIAM = async () => {
+  setSyncLoading(true);
+  try {
+    const response = await api.post('/api/iam/users/sync');
+    if (response.code === 20000) {
+      message.success(`同步成功：新增 ${response.data.synced} 个用户`);
+      // 重新加载用户列表
+      fetchUsers();
+    }
+  } catch (error) {
+    message.error('同步失败：' + error.message);
+  } finally {
+    setSyncLoading(false);
+  }
+};
+```
+
+**UI 状态**: 同 3.10.1
+
+**视觉设计**:
+```jsx
+<Button 
+  type="primary" 
+  icon={<UserAddOutlined />}
+  onClick={handleSyncUsersFromIAM}
+  loading={syncLoading}
+  disabled={!isAdminOrOwner}
+>
+  从 IAM 同步用户
+</Button>
+```
+
+---
+
+### 3.10.3 权限管理页面设计（#660）
+
+
+**路由**: `/system/permissions`  
+**权限**: sys_perm bit 26 (`permission:manage`)，商户管理员可见  
+**组件**: `frontend-pc/src/pages/admin/PermissionManage/index.jsx`
+
+#### 页面结构
+
+双 Tab 布局：
+
+```
+┌──────────────────────────────────────────────────────┐
+│  权限管理                                             │
+│  ┌──────────────┐ ┌──────────────┐                   │
+│  │ 成员权限     │ │ 角色管理     │                   │
+│  └──────────────┘ └──────────────┘                   │
+│                                                      │
+│  [Tab 内容区]                                         │
+└──────────────────────────────────────────────────────┘
+```
+
+#### Tab 1 — 成员权限
+
+**表格列**: 姓名 | 所属网点 | 角色标签 | 权限摘要 | 操作
+
+**编辑权限 Modal**：
+- 角色下拉：从 `GET /admin/roles` 获取角色列表
+- 个人权限 Checkbox：按「乐器」和「订单」两个域分组显示
+  - 乐器: 创建/查看/编辑/删除/定价/维修管理
+  - 订单: 创建/查看/编辑/取消
+- 管理员未持有的权限码置灰 + Tooltip 提示
+- 保存后提示「权限已更新，该用户下次登录后生效」
+
+#### Tab 2 — 角色管理（商户管理员可见）
+
+**表格列**: 角色名称 | 代码 | 权限数 | 权限详情 | 操作
+
+- 系统角色（owner/admin/staff/worker）：不可删除
+- 自定义角色：可编辑/删除
+- 删除前检查是否有成员使用，若有则需先重新分配
+
+**新建/编辑角色 Modal**：
+- 角色名称 + 代码（新建时填写，编辑时只读）
+- 权限 Checkbox：按域分组
+- 权限列表自动过滤为当前管理员持有的权限子集
+
+#### 网点管理员角色分配
+
+**组件**: `frontend-pc/src/components/SiteMemberManagement.jsx`
+
+网点管理员在人员管理页面通过行内 `Select` 下拉为成员分配角色。下拉选项实时从 `GET /admin/roles` 获取：
+- 3 个标准角色（网点管理员/网点员工/维修工程师）
+- 商户管理员创建的自定义角色（全商户可见）
+
+选择角色后调用 `PUT /sites/:id/members/:user_id`（body `{role}`）实时更新；角色下拉来源 `GET /admin/roles`（过滤 `site_admin`/`site_member`/`repair_technician`）。
+
+---
+
+
+---
+
+### 3.11 申诉处理 (AppealManagement)
+
+**路由**: `/appeals`
+
+**权限**: MANAGER
+
+**功能点**:
+- 申诉列表
+  - 乐器信息（类别、型号）
+  - 当前图片
+  - 用户、员工信息
+  - 员工定损说明
+  - 用户申诉理由
+  - 租赁过程
+- 申诉详情页
+  - 完整信息展示
+  - 仲裁操作面板
+- 仲裁操作
+  - 无损坏（取消赔款，直接生成退还事务，乐器在库状态）
+  - 调整定损金额
+  - 输入仲裁说明
+  - 确定（乐器进入维修状态，押金扣除赔款后>0自动生成退还事务）
+
+**状态流转**:
+- pending: 待处理（用户申诉提交）
+- reviewing: 经理仲裁中
+- resolved: 已处理
+- canceled: 用户撤销
+
+**交互逻辑**:
+- 申诉提交后通知经理
+- 仲裁决策需填写完整说明
+- 调整金额需合理范围验证
+- 处理结果通知双方用户
+
+
+---
+
+### 3.12 库管工作台 / 员工订单管理 (Staff Order Management)
+
+**移动端路由**: `/staff/orders` → `/staff/orders/:id`
+**移动端组件**: `frontend-mobile/src/pages/StaffOrders.jsx`, `frontend-mobile/src/pages/StaffOrderDetail.jsx`
+
+**权限**: `businessRole === 'site_admin' || businessRole === 'site_member'`
+
+**入口**: Profile 页「员工功能」→「订单管理」（权限 `order:read`）
+
+#### 订单列表页 (`/staff/orders`)
+
+**功能点**:
+- 顶部搜索栏：手动输入订单号 + 扫码按钮（调用 `BarcodeDetector` API 识别二维码）
+- 状态筛选 Tab：全部 / 待发货 / 运输中 / 租赁中 / 归还验收
+- 订单卡片：订单号、下单人、乐器 SN、到期日、状态标签
+- 点击卡片 → 进入订单详情
+
+#### 订单详情页 (`/staff/orders/:id`)
+
+**数据来源**: `GET /api/orders/:id`
+
+**展示项**:
+- 订单编号（大字醒目）
+- 当前状态标签
+- 乐器信息：图片轮播、SN、类型、级别、商户、网点
+- 客户信息：下单人、收货地址
+- 租期信息：租期起点、预计天数、预计到期日
+- 费用信息（#1800 单一口径三段，后端 fee_detail 服务端计算，前端只读渲染；金额全部分）：
+  - **实付段**：合同租金（含下单日期）→ 各阶梯明细（`第N阶梯 ¥x/天 × D天 = ¥y`，缩进）→ 优惠券抵扣（`discount_amount > 0` 时显示，绿色）→ 押金（amount=0 时文案「押金：免押金」）→ 各次续费（含阶梯明细 + 各段优惠券抵扣）→ 合计实付
+  - **应付段**：实际租金（含阶梯明细，**阶梯按实际租期 actualDays 截断，Σtiers 与实际租金逐分一致**，#1850）→ 优惠券抵扣（`payable_block.discount_amount > 0` 时显示，绿色）→ 逾期费（含天数）→ 物流费 → 实际应付 → （折后）应付（数据源 `fee_detail.segment_model`/`fee_detail.discounted_due` 透传，#1850；`segment_model=true` 且 `discounted_due > 0` 时显示，绿色）
+  - **净额段**：应退款 / 应补缴（无差额时不显示）
+  - **口径说明**：paid_block 合同段天数 = `rent_days − Σ续费days`（contractDays 反推，#1838/#1837 共用），与段模型同源；`discount_amount` = Σtiers.subtotal − amount（各支付段独立计算）
+  - **实际租期口径（#1852）**：ReturnedAt/DeliveredAt 覆盖归还后全部未结算态（returning / pending_damage_response / damage_appealing / deposit_refunding）——租期已定格不回退 end_date；赔偿金额 pending/appealing 态预扣 `damage_amount`（行标注「（等待回应中）/（申诉中）」），deposit_refunding（agreed）用 `DepositDeducted` 裁决值；定损预览与费用明细同一折后口径（优惠码订单实租租金按段模型折后）
+- 结算状态（已完成/归还中订单，金额明细已并入 fee_detail；此处仅执行状态）：退款方式、退款状态（已退款/无需退款/待补缴/处理中）、需补缴金额 + 「去补缴」按钮
+- 订单日志：时间线视图（下单 → 付款 → 发货 → 租赁中 → 归还 → 结算确认）
+
+**状态按钮**:
+
+| 状态 | 按钮 | 目标 | 权限 |
+|------|------|------|------|
+| `reserved` | 无 | 等待用户支付 | — |
+| `paid` / `pending_shipment` | 发货 | /staff/shipping | order:update |
+| `in_transit` | 接收并转发 | /staff/shipping | order:update |
+| `shipped` | 无 | 乐器已发货，等待用户签收 | — |
+| `in_lease` | 无 | 租赁中 | — |
+| `expired` | 无 | 租约已超期 ⚠️ | — |
+| `returning` | 收货 | /staff/receiving | inventory:manage |
+| `returned` / `completed` | 无 | 该订单已完成 | — |
+| `cancelled` | 无 | 该订单已取消 | — |
+| `transferred` | 无 | 已过户 | — |
+
+#### 发货界面 (`/staff/shipping`)
+
+**组件**: `frontend-mobile/src/pages/ShippingInterface.jsx`
+
+**权限**: `businessRole === 'site_admin' || businessRole === 'site_member'`
+
+**入口**:
+1. **扫码模式**（无参数）：Profile 页「员工功能」→「发货」→ 显示扫码 + 乐器 SN 输入面板
+2. **订单模式**（有参数）：订单详情页点击「发货」按钮，附带 `?order=XXX` 参数，跳过扫码直接加载
+
+**扫码面板**:
+- 扫码按钮（调用 `scanQRCode` 平台 API，支持 QR + Barcode）
+- 手动乐器 SN 输入框 + 查询按钮
+- 提交后调用 `GET /api/orders/by-instrument-sn?sn={code}`
+- 未找到乐器 → 显示"未找到该乐器的待发货订单"
+- 订单状态非 `paid`/`pending_shipment` → 显示"该订单当前不可发货"
+- 找到且状态正确 → 隐藏扫码面板，加载订单数据
+
+**信息面板（订单加载后，卡片布局）**:
+1. **乐器信息**: SN、类型、级别、展示图片（缩略图）、商户名、网点名
+2. **网点信息**: 商户、网点名、地址、电话（通过 `GET /api/common/sites/:id` 获取）
+3. **订单信息**: 订单号、创建时间、创建人、**收件地址**（字段名为 `delivery_address`，即目标用户地址；**不设独立"收货人信息"面板**，避免地址重复展示）
+
+**物流信息表单**:
+- 承运公司 + 快递单号（必填）
+
+**拍照存档（强制）**:
+- 标题红字标记「必填，至少 1 张」
+- 最多 10 张
+- 未拍照时提交按钮文案为"请先拍照存档"，且按钮不可点击
+- 提交时上传至 `PUT /api/upload`, 打捆至 `PUT /api/warehouse/orders/:id/shipping`
+
+**状态按钮**: 见上方状态按钮表格（`paid`/`pending_shipment` → 发货）
+
+**交互逻辑**:
+- 扫码使用 `platform.scanQRCode()`（跨端适配：浏览器使用 BarcodeDetector API，小程序使用 Taro.scanCode）
+- 订单信息实时加载，拍照后即可提交
+- 发货成功后跳转至 `/staff/orders`
+
+#### 收货界面 (`/staff/receiving`)
+
+**功能点**:
+- 扫码/手动输入订单号 → 搜索 → 进入订单详情
+- 订单详情中 `returning` 状态点击「收货」→ 进入收货验收流程
+
+**状态流转（订单维度）**:
+- `reserved` → `paid`（支付完成）
+- `paid` → `pending_shipment` → `in_transit` → `shipped`（发货流程）
+- `shipped` → `in_lease`（用户签收）
+- `in_lease` → `returning`（用户发起归还）
+- `returning` → `returned`（验收通过）
+- `returning` → `completed`（验收通过或维修完成关闭）
+- `in_lease` → `expired`（租约超期）
+- `expired` → `returning`（用户归还）
+- `reserved` → `cancelled`（10分钟超时或用户取消）
+- `paid` / `pending_shipment` / `in_transit` → `cancelled`（用户取消）
+- `in_lease` → `transferred`（租转售完成）
+
+**交互逻辑**:
+- 扫码使用移动端相机 + BarcodeDetector API
+- 订单详情实时渲染，状态变更后自动刷新
+- 发货/收货需填写完整物流信息
+
+**追缴费用区块（#1801，替换原「定损评估」区块）**:
+- 4 个输入框（无「无损坏/有损坏」toggle）：
+  1. **逾期未缴租金（元）** — 数字输入，默认 0.00
+  2. **追加物流费（元）** — 数字输入，默认 0.00
+  3. **损坏维修赔偿（元）** — 数字输入，默认 0.00；**=0 表示无损坏**，>0 进入定损确认流程（pending_damage_response）
+  4. **备注说明** — 文字输入，选填
+- 有无损坏由「损坏维修赔偿」金额自动判断，员工无需选择
+- 提交按钮 disabled 条件：照片未上传（无 toggle 前置条件）
+
+---
+
+
+---
+
+### 3.13 PC 乐器详情页 (`/instruments/detail/:id`)
+
+**组件**: `frontend-pc/src/pages/admin/instrument/Detail.jsx`
+
+**布局**: Tab 分页（3 个 Tab）
+
+**Tab 1 — 基本信息**:
+- 左侧: 乐器信息 (SN/分类/级别/状态/评分/创建时间/描述)
+- 右侧: 价格配置（分段租金表 + 底价/押金/物流费/逾期费）+ 当前租赁信息
+
+**Tab 2 — 多媒体**:
+- 左侧: 展示图像（当前展示图 + 上传/替换按钮，单幅，宽度≤1920px）+ 视频（显示/删除）
+- 右侧: 操作记录图像（按 batch_type 分组的操作阶段图像列表，可设为展示或删除）
+
+**Tab 3 — 日志**:
+- 按租借会话分组（每笔订单为一个会话）
+- 每个会话内按时间排序显示操作事件（发货/接收/归还/定损等）
+- 每事件显示：事件名称、时间、操作人、关联图像（≤3 张缩略图）
+
+
+---
+
+### 3.14 PC 逾期告警视图 (`/overdue-alerts`)
+
+**组件**: `frontend-pc/src/pages/OverdueAlerts.jsx`
+
+**路由注册**: `frontend-pc/src/App.jsx` — 库存监控子菜单
+
+**权限**: `instrument:read`
+
+**功能**:
+- 表格展示 failed/partial 状态的逾期扣款记录
+- 列：乐器、用户(手机)、扣款日期、逾期金额、已扣预付、欠款余额(红色)、状态、失败原因、创建时间
+- 状态筛选器（全部/扣款失败/部分扣款）
+- 分页
+
+
+---
+
+### 3.15 PC 会员级别管理 (`/system/membership-levels`)
+
+**组件**: `frontend-pc/src/pages/System/MembershipLevelsPage.jsx`
+
+**路由注册**: `frontend-pc/src/App.jsx` — 系统管理子菜单
+
+**权限**: `membership:manage`
+
+**功能**:
+- 表格展示所有会员级别（id、名称、折扣率、升级消费门槛、排序）
+- 新建/编辑/删除会员级别
+- 表单：级别名称、折扣率、最低消费金额、排序号
+
+
+---
+
+### 3.16 PC 返点配置 (`/system/rebate-config`)
+
+> ⚠️ **已废弃**：本节保留编号作占位，功能已由替代页面承担。
+
+
+> ⚠️ **已废弃（#1899 方案 A）**：页面/菜单/路由与后端接口已移除（表数据保留）；返点统一到「赠点策略」。
+
+
+**组件**: `frontend-pc/src/pages/System/RebateConfigPage.jsx`
+
+**路由注册**: `frontend-pc/src/App.jsx` — 系统管理子菜单
+
+**权限**: `rebate:manage`
+
+**功能**:
+- 按会员级别设置租金→点数返还比例
+- 表格：级别名称 + 返点比例输入框
+- 保存按钮
+
+
+---
+
+### 3.17 PC 折扣政策管理 (`/system/promo-plans` / `/merchant/promo-plans`)
+
+> ⚠️ **已废弃**：本节保留编号作占位，功能已由替代页面承担。
+
+
+> ⚠️ **已废弃（#1899 方案 A）**：页面/菜单/路由与后端接口已移除（表数据保留）；返点统一到「赠点策略」。
+
+
+**组件**: `frontend-pc/src/pages/System/PromoPlanManagePage.jsx`（两个 scope 共用同一组件）
+
+**路由注册**: `frontend-pc/src/App.jsx` — 系统管理 + 组织管理子菜单
+
+**权限**: `promo:manage`
+
+**功能**:
+- 列表展示折扣政策（名称、类型、启用状态）
+- 新建/编辑/删除
+- 政策详情管理：按会员级别设折扣率
+- scope 切换：sys_admin 见系统级，merchant_admin 见商户级
+
+
+---
+
+### 3.18 PC 定价策略配置 (`/pricing/config`)
+
+**组件**: `frontend-pc/src/pages/admin/pricing/MerchantPricingConfig.jsx`
+
+**路由**: 经营策略 → 定价策略
+
+**权限**: `instrument:price_config`
+
+**功能**:
+- 阶梯定价表：天数上限 + 折扣率（%），支持添加/删除阶梯
+- 押金模式选择：按原价比列（百分比滑块） / 自定义金额
+- 保存后自动计算所有乐器的阶梯日租和押金
+- 阶梯价格预览（假设基准日租 ¥100）
+
+
+---
+
+### 3.19 PC 租金设定 (`/inventory/rent-setting`)
+
+**组件**: `frontend-pc/src/pages/*/inventory/*`（库存监控组）
+
+**路由**: 经营策略 → 租金设定
+
+**权限**: `instrument:price`
+
+**功能**:
+- 乐器列表展示（识别码、分类、网点、级别、日租金、押金、物流费、逾期日费）
+- 筛选：品牌、型号、类别、级别、网点
+- 在线编辑各字段，保存后批量更新（`PUT /api/inventory/rent-setting/batch`）
+
+
+---
+
+### 3.20 中转中心 (`/transit-center`)（#1938）
+
+> 平台级「中转网点 + 中转路由 + 成员管理」管理页。**权限门 `sysPermBits:[5]`**（后端 `RequireSysPerm(SysPermTenantView)`）；菜单「中转中心」（交易管理）；面包屑「交易管理 / 中转中心」；**仅 PC**。
+
+**页面结构**
+1. 卡片「中转网点（平台直辖）」：表格 + 右上「创建中转网点」
+2. 卡片「中转路由（受控网点 ↔ 中转网点）」：表格 + 右上「新增路由」
+3. 「成员管理」弹窗（`Modal width=720`，标题「成员管理 — {网点名}」，**复用 `frontend-pc/src/components/SiteMemberManagement.jsx`**）
+
+**中转网点表格**
+- 列：名称 | 类型（Tag「中转网点」）| 地址 | 电话 | 路由引用（Tag「N 条」）| 成员 | 状态（启用/停用）
+- 行操作：编辑（Modal 回填）| 成员（打开成员管理弹窗）| 停用（仅 `status==='active'` 显示，**Popconfirm 二次确认**；被路由引用时后端 400 拒绝，透出文案）
+- 创建/编辑 Modal（`layout="vertical"`）：名称* | 地址*（物流面单用）| 电话* | 联系人（选填）；地址/电话后端亦校验非空
+
+**中转路由表格**
+- 列：受控网点 | 中转网点（按 `sites` 名称渲染，缺则截断 id）| 默认（Tag）| 优先级 | 操作（删除，**Popconfirm 二次确认**）
+- 新增路由 Modal：受控网点（下拉，来源 `GET /admin/controlled-sites`）| 中转网点（下拉，来源 `GET /admin/transit-sites`）| 设为默认（Select 是/否，默认「否」）
+- 端点：`GET/POST/DELETE /transit-routes`（`RequireSysPerm(SysPermTenantView)`）
+
+**成员管理区（复用的 `SiteMemberManagement`）**
+- 组件注入：`membersBase="/admin/transit-sites"`、`roles=[{code:'site_admin',name:'中转网点管理员'},{code:'site_member',name:'中转网点员工'}]`（**静态两类，不走 `/admin/roles`**——该端点权限门为 `SysPermPermissionCreate`，与中转中心 bit5 不同）、`onRefresh`
+- 端点契约：
+  - `GET  /admin/transit-sites/:id/members` → `data.list[{user_id,user_name,user_email,role,created_at}]`（JOIN users enrich）
+  - `POST /admin/transit-sites/:id/members` → `{user_id(+role) | user_ids:[{user_id,role}] | new_users:[{username,name,email,phone,role}], skip_activation}` → `data{directly_added[], bind_errors?, initial_passwords?, role_errors?}`
+  - `PUT  /admin/transit-sites/:id/members/:user_id`（body `{role}`）
+  - `DELETE /admin/transit-sites/:id/members/:user_id`（按 `site_id` + `user_id` 归属校验，跨站 404）
+- 列表列：姓名 | 邮箱 | 角色（**行内 Select 即时更新**）| 加入时间 | 操作（移除，**Popconfirm**）；搜索框「搜索姓名或邮箱」（前端过滤）；空态「暂无成员」；加载态 Table `loading`
+- 添加成员 Modal（宽 520）：
+  - **新建用户**：用户名* / 姓名* / 邮箱* / 手机*；`username`/`email`/`phone` 失焦调 `GET /users/check?<field>=`，命中即标红「已注册」并提供「改为绑定现有用户」；角色下拉（静态两类，默认 `site_member`）；复选「跳过邮箱验证（直接激活）」
+  - **绑定现有用户**：展示只读用户名/姓名/邮箱/手机 + 角色下拉；提交 `user_ids`
+  - 提交后续：成功（20000/20100）关闭 + 重置 + 刷新列表 + `onRefresh`；有 `role_errors` → `message.warning`；`bind_errors` → 显示错误并刷新；`skip_activation` 且有 `initial_passwords` → `Modal.success` **一次性**展示（`copyable`）；`40901` 冲突按「同商户不同网点 → 确认后加入 / 已是本网点 → 提示 / 与商户无关 → 提示联系商户管理员」处理
+- 角色仅 `site_admin`/`site_member`；**IAM 同步**（bind 先行，失败不写本地缓存）；错误一律 `message.error` 透出（禁止静默）
+
+**权限/角色**
+- 页面与全部端点：平台管理员（`sys_perm bit5`）
+- 成员角色：中转网点管理员（`site_admin`）/ 中转网点员工（`site_member`），与网点成员角色代码同构但**不承接维修师傅等细分角色**
+
+---
+
+
+---
+
+### 3.21 赠点策略 v2（`/system/gift-policies`）（#1939）
+
+> 表格列变更：会员级别 | 赠点使用比例（`pay_ratio`，手册值 100%）| **裂变奖励比例（`referral_ratio`，乐手 2%/首席 5%/演奏家 8%）** | 状态 | 操作
+> 编辑 Modal：pay_ratio（0~1.0，手册值=全额抵扣，**可调**）+ referral_ratio（0~1.0，**可调**）+ 启用开关；~~退款返点比例~~（`refund_ratio` 字段废弃，已移除）
+> 保存失败必须 `message.error` 透出（`level_id=0` 兜底行可编辑）
+
+
+---
+
+### 3.22 订单对象页展示规范
+
+**背景**: 所有涉及订单的对象页应统一展示乐器信息和订单信息，确保用户体验一致。
+
+**规则**:
+- **乐器信息**：缩略图、SN、类别、所属商户、所属网点，可点击跳转乐器详情页 (`/instrument/:id`)
+- **订单信息**：下单人、地址、起止日期、状态
+
+**统一模板**:
+```jsx
+{instrument && (
+  <div className="cursor-pointer" onClick={() => navigate(`/instrument/${instrument.id}`)}>
+    <h3>乐器信息</h3>
+    <div className="flex gap-3">
+      <img src={images[0] || PLACEHOLDER_IMAGE} className="w-16 h-16 object-cover rounded" />
+      <div>
+        <p className="font-mono">SN: {instrument.sn}</p>
+        <p className="text-xs text-gray-500">{instrument.category_name}</p>
+        {instrument.tenant_name && <p className="text-xs text-gray-400">{instrument.tenant_name}</p>}
+        {instrument.site_name && <p className="text-xs text-gray-400">网点: {instrument.site_name}</p>}
+      </div>
+    </div>
+  </div>
+)}
+```
+
+**适用页面**:
+| 页面 | 完成状态 |
+|------|---------|
+| StaffOrderDetail | 新增乐器信息卡片 + 跳转 |
+| OrderDetail（顾客） | 已有卡片，新增跳转 |
+| ReceiveConfirm | 已有卡片，新增商户名 + 跳转 |
+| ReturnConfirm | 已有卡片，新增跳转 |
+| StaffReceiveConfirm | 已有卡片，新增商户名 + 跳转 |
+| ShippingInterface | 已有卡片，新增商户/网点 + 跳转 |
+| ReceivingInterface | 已有卡片，新增商户/网点 + 跳转 |
+
+---
+
+
+---
+
+### 3.23 PC/移动端个人中心会员级别展示
+
+**组件**: `frontend-pc/src/pages/UserProfile.jsx` + `frontend-mobile/src/pages/Profile.jsx`
+
+**功能**:
+- 展示当前用户会员级别名称
+- 展示累计消费总额（total_spending）
+- 显示下一级别的消费缺口
+
+
+---
+
+### 3.24 本地化规范 (Localization Rule)
+
+**生效范围**: PC 管理端 (`frontend-pc`) + 微信小程序端 (`frontend-mobile`) + 后端返回的错误信息
+
+**原则**: 本项目面向国内市场，所有面向用户的可见文本必须使用中文。
+
+**具体要求**:
+
+| 类别 | 必须中文 | 可保留英文 |
+|------|---------|-----------|
+| 页面标题/章节标题 | ✅ | — |
+| 按钮/链接文本 | ✅ | — |
+| 表单标签/占位符 | ✅ | — |
+| 表格列名 | ✅ | — |
+| Toast/Alert 提示 | ✅ | — |
+| 空状态/加载状态提示 | ✅ | — |
+| 图表标签/图例 | ✅ | — |
+| 后端错误信息 message | ✅ | — |
+| 代码变量名/函数名/属性名 | — | ✅ |
+| URL 路径/路由参数 | — | ✅ |
+| 日志输出 (console.log) | — | ✅ |
+| 状态枚举值 (如 stock_status) | — | ✅ |
+
+**注意**: 状态枚举值在底层使用英文（如 `"pending"`, `"rented"`），但在渲染时必须映射为中文显示（如 `"待支付"`, `"在租"`）。
+
+---
+
+
+---
+
+### 3.25 维修服务页组（weapp + PC 后台）（#1942）
+
+> 完整流程见 `docs/cases/repair-service.md`（RS-01~RS-10）。页面组：
+> - 用户（weapp）：创建维修单（描述/照片，提交后展示 **6 位唯一编码** 并提示写物流单）| 选维修师（师傅档案列表）| 报价接受/支付（虚拟商品）| 寄出填单 | 加价响应（继续补差价/停止）| 评价（评分/留言/拍照）
+> - 师傅（weapp 工作台）：报价（修理费+物流费预估，受控模式预估 3 段）| 加价（新总价+到此为止修理费）| 完成修理
+> - 网点员工（weapp）：分段发运（实填本段物流费）| 待发回清单 | 发回（末段实填 → 触发结算）
+> - PC 后台：维修服务全量列表 + 评价（评分/留言/照片）展示
+
+
+---
+
+### 3.26 乐器丢失与恢复入口（员工 weapp + PC 后台）（instrument-loss.md）
+
+> **丢失**：乐器管理 → 乐器行「丢失」→ Modal：描述* + 责任方（单选：用户/物流公司/平台/网点）+ **用户责任比例**（0-100%，按责任方给默认，可改）+ 赔偿金额 + （系统展示计算出的 用户承担金额/应付/退款 预览）→ 提交后乐器 `stock_status='lost'`、有租约则租约中止并结算
+> **恢复**：乐器管理 → `lost` 筛选 → 「恢复」→ Modal：是否有损坏（是/否）+ 描述 + 照片 → 分支 A（结算前）取消结算恢复 / 分支 B（结算后）恢复+损坏走定损
+
+
+---
+
+### 3.27 PC 端侧边栏菜单与权限（Imported from AGENTS.md, 2026-04-17）
+
+#### 菜单层级
+
+**1. 仪表盘 (Dashboard)**
+- **路由**: `/`
+- **权限**: 所有已登录用户
+- **说明**: 系统首页
+
+**2. 乐器管理**
+- **路由**: 一级菜单
+- **权限**: 所有已登录用户
+- **子菜单**:
+  - 乐器列表 (`/instruments/list`)
+  - 分类设置 (`/instruments/categories`)
+  - 属性管理 (`/instruments/properties`)
+
+**3. 库存监控** ⭐
+- **路由**: 一级菜单
+- **权限**: site_manager, admin, owner
+- **子菜单**:
+  - 库存调拨 (`/inventory/transfer`)
+  - 租金设定 (`/inventory/rent-setting`)
+
+**4. 组织管理**
+- **路由**: 一级菜单
+- **权限**: 所有已登录用户
+- **子菜单**:
+  - 网点管理 (`/organization/sites`)
+  - 人员管理 (`/staff`)
+
+**5. 系统管理**
+- **路由**: 一级菜单
+- **权限**: 商户管理员（含 sys_perm bit 26 可看权限管理）
+- **子菜单**:
+  - 商户管理 (`/merchants`) — sys_perm bit 5
+    - 创建/编辑表单新增**商户类型**下拉选择（全权商户/受控商户）
+    - 选择"受控商户"时条件显示中转地址、中转电话、中转联系人字段
+    - 创建表单新增**跳过邮箱验证** Checkbox，勾选后管理员直接激活无需确认邮件
+    - 勾选"跳过邮箱验证"且创建成功时，弹窗显示管理员初始密码
+  - 操作日志 (`/system/audit-logs`) — sys_perm bit 5
+  - 权限管理 (`/system/permissions`) — sys_perm bit 26（商户管理员）
+  - 客户端管理 (`/system/clients`) — sys_perm bit 0
+  - 租户管理 (`/system/tenants`) — sys_perm bit 6
+
+
+#### 权限控制汇总 (v2.2 — 10 cus_perm + sys_perm 25-26)
+
+> 完整权限-人员矩阵和菜单-权限映射参见 [`docs/spec/permissions.md`](../permissions.md)。
+> 以下为本 UI 文档特化的菜单可见性规则概览。
+
+**菜单可见性 = sys_perm + cus_perm + businessRole 组合判断**：
+- 组合菜单（网点管理/人员管理/角色配置）：需 sys_perm 授权 **且** cus_perm 含有任一业务权限
+- 纯业务菜单（乐器/库存/维修/财务）：仅需对应 cus_perm 代码
+- 纯管理菜单（商户/客户端）：仅需对应 sys_perm 位码
+
+角色可见菜单详见 [`docs/spec/permissions.md` §四](../permissions.md#四角色-权限分配矩阵)，各菜单项所需权限详见 [`docs/spec/permissions.md` §五](../permissions.md#五菜单-权限映射)。
+
+
+#### 右上角用户信息
+
+**显示格式**: 👤 **{name}** (**{role}**)
+
+**数据来源**（优先级）:
+1. JWT token payload（优先）
+   - name: name, username, preferred_username, displayName, nickName, nickname
+   - email: email, mail
+   - role: role, roles, authorities
+2. localStorage fallback (`user_info`)
+
+**面包屑导航**:
+- TuneLoop: 可点击，返回首页
+- 乐器管理: 可点击，返回首页（在相关页面）
+
+
+#### 个人中心页面
+
+**路由**: `/user/profile`  
+**组件**: `frontend-pc/src/pages/UserProfile.jsx`  
+**权限**: 所有已登录用户可见
+
+**页面布局**:
+
+```
+┌──────────────────────────────────────┐
+│  个人中心                              │
+├──────────────────────────────────────┤
+│  基本信息                              │
+│  ┌──────────────────────────────────┐│
+│  │ 用户名: xxx                       ││
+│  │ 姓名: xxx                        ││
+│  │ 邮箱: xxx@example.com             ││
+│  │ 角色: site_admin                  ││
+│  └──────────────────────────────────┘│
+├──────────────────────────────────────┤
+│  账户安全                              │
+│  ┌──────────────────────────────────┐│
+│  │ [修改密码]                         ││
+│  │ [通过邮件重置密码]（有邮箱时可用）    ││
+│  │ 邮箱未配置时重置密码按钮灰显（带提示） ││
+│  └──────────────────────────────────┘│
+├──────────────────────────────────────┤
+│  关联信息                              │
+│  ┌──────────────────────────────────┐│
+│  │ 关联网点: xxx                      ││
+│  │ 网点 ID: xxx                      ││
+│  └──────────────────────────────────┘│
+└──────────────────────────────────────┘
+```
+
+**操作流程**:
+1. 用户点击「通过邮件重置密码」按钮
+2. 弹出确认框："系统将向您的邮箱 xxx 发送密码重置邮件，邮件中的链接 24 小时内有效"
+3. 用户确认后调用 `POST /api/user/reset-password`
+4. 后端频率限制：每用户每 30 分钟最多 3 次
+5. 后端调用 beaconiam 发送重置邮件
+6. 用户在 beaconiam 页面设置新密码
+7. 返回成功/失败 Toast 提示
+
+**账户安全按钮**:
+- 「修改密码」: 始终显示，跳转 `/user/change-password`
+- 「通过邮件重置密码」: 邮箱已配置时可用；未配置时按钮灰显 + 提示"请先配置邮箱后再使用密码重置功能"
+
+---
+
+
+#### 修改密码页面
+
+**路由**: `/user/change-password`  
+**组件**: `frontend-pc/src/pages/ChangePassword.jsx`  
+**权限**: 所有已登录用户可见
+
+**两种模式**:
+
+1. **普通模式**（从个人中心进入）：
+   - 保留侧边栏和顶栏
+   - 显示"取消"按钮返回到上一页
+   
+2. **首次登录强制改密模式**（`?first_login=1`）：
+   - 全屏锁定态：无侧边栏、无顶栏、无返回按钮
+   - 顶部显示黄色 Alert 提示："首次登录需修改密码"
+   - 修改成功后自动跳转首页
+   - 前端路由守卫拦截所有导航（防止用户直接改 URL 逃离）
+
+**页面布局**（首次登录模式）:
+
+```
+┌──────────────────────────────────────────┐
+│  ⚠ 首次登录需修改密码                      │
+│  系统要求您在首次登录时设置新密码            │
+│                                           │
+│  新密码        [················] 👁       │
+│  确认新密码    [················] 👁       │
+│                                           │
+│  密码要求：8 位 + 大小写字母 + 数字          │
+│                                           │
+│              [确认修改]                    │
+└──────────────────────────────────────────┘
+```
+
+**密码规则校验**（前后端双重）:
+- 长度 ≥ 8
+- 至少 1 个大写字母
+- 至少 1 个小写字母
+- 至少 1 个数字
+
+---
+
+
+#### 用户创建/编辑
+
+> cases/cases.md §0.2 要求："用户搜索与创建功能直接内嵌在表单中，不再使用弹窗对话框"。
+> 创建使用面板替换模式：点击按钮 → 列表面板**替换**为创建表单 → 提交成功自动翻转回列表。
+> 编辑使用独立路由：点击行「编辑」→ 导航到 `/staff/:id/edit`
+
+**组件**:
+- 列表+创建：`frontend-pc/src/pages/StaffManagement.jsx`
+- 编辑：`frontend-pc/src/pages/StaffEdit.jsx`
+- 密码重置：`frontend-pc/src/pages/StaffResetPassword.jsx`
+
+**位置**: 人员管理页中，使用 `viewMode` 控制（'list' | 'create'）
+
+**交互模式**：
+
+```
+┌─────────────────────────────────────────────────┐
+│  点击「创建用户」→ viewMode='create'             │
+│  ───────────────────────                         │
+│  搜索 Tab │ 创建 Tab                             │
+│  ───────────────────────                         │
+│  输入任意文本 → 300ms debounce → 调 staffApi     │
+│  .list({name})                                   │
+│                                                  │
+│  ↓ 有结果                                       │
+│  显示用户列表 [姓名 手机 邮箱] [状态Tag]         │
+│                                                  │
+│  ↓ 无结果                                       │
+│  "未找到匹配用户 → 创建新用户"（可点击切到创建） │
+│                                                  │
+│  切换到创建 Tab → 显示创建表单：                   │
+│   姓名、用户名、邮箱、手机                        │
+│   密码设置：自动生成 / 手动设置                   │
+│   首次登录强制修改密码 ✓                          │
+│   归属网点、角色                                  │
+│   [创建用户] [取消] → setViewMode('list')        │
+├─────────────────────────────────────────────────┤
+│  点击行「编辑」→ navigate('/staff/:id/edit')      │
+│  独立页面：/staff/:id/edit                        │
+│  通过 navigate state 传递用户数据                 │
+│  编辑表单：                                      │
+│   姓名、邮箱（改邮箱需确认）、手机                │
+│   归属网点、角色                                  │
+│   [保存] [取消] → navigate('/staff')             │
+└─────────────────────────────────────────────────┘
+```
+
+**密码设置区域（创建和密码重置页）**:
+
+```
+┌──────────────────────────────────────────┐
+│ 密码设置                                  │
+│ ○ 自动生成密码                            │
+│ ● 手动设置密码  [················] 👁     │
+│   要求：8 位 + 大写字母 + 小写字母 + 数字   │
+│                                          │
+│ ‥ 首次登录时强制修改密码                   │
+└──────────────────────────────────────────┘
+```
+
+
+#### 密码重置（独立页面）
+
+**路由**: `/staff/:id/reset-password`  
+**组件**: `frontend-pc/src/pages/StaffResetPassword.jsx`  
+**入口**: 编辑列表中点击用户行「重设密码」按钮
+
+**交互流程**:
+1. 进入页面显示用户信息（姓名、邮箱、手机号）
+2. 密码设置：自动生成（默认）/ 手动设置（Radio 切换）
+3. 手动模式显示密码输入框（8位+大写+小写+数字）
+4. Checkbox：首次登录时强制修改密码（默认启用）
+5. 点击「确认重置」→ 调 `staffApi.resetPassword(userId, redirectUrl)` → 成功导航回列表
+
+**批量重置**：多选用户后点击顶部「重设密码」→ 保持原有逻辑不变（不跳转路由）
+
+**创建成功后流程**:
+- 自动生成密码 → 弹出密码展示 Modal（仅展示一次，含复制按钮）
+- 手动设置密码 → 直接创建成功（无 Modal）
+- 提交成功后自动 `setViewMode('list')` → 回到成员列表
+
+**编辑成功后流程**:
+- 邮箱变更 → 触发 IAM 邮箱变更确认流程
+- 提交成功后自动 `setViewMode('list')` → 回到成员列表
+
+
+#### 权限判断逻辑 (v2.2 — 10码位图驱动)
+
+> 参见 [`docs/spec/permissions.md` §七](../permissions.md#七权限检查流程)
+
+**核心文件**:
+- `frontend-pc/src/config/menuPermissions.js` — 菜单权限规则定义 (含 bits 25-26)
+- `frontend-pc/src/App.jsx` — 菜单结构 + 权限过滤
+- `frontend-pc/src/hooks/usePermission.js` — hasCusPerm / hasSysPerm 钩子
+- `frontend-pc/src/services/api.js` — permissionConfigApi + adminApi
+- `backend/services/permission_registry.go` — 10 cus_perm 码定义
+
+
+---
+
+## 四、原子组件设计 (Atomic Design)
+
+### 4.1 基础组件清单
+
+| 组件名称 | 用途 | 支持平台 |
+|----------|------|----------|
+| `AssetCard` | 资产卡片展示 | 小程序/PC |
+| `OwnershipProgressBar` | 租转售进度条 | 小程序/PC |
+| `BrandProvider` | 白标化主题注入 | PC |
+| `ShadowUserBadge` | 影子用户标识 | PC |
+| `PricingMatrixGrid` | 定价矩阵网格 | PC |
+| `AssetTimeline` | 资产流转时间轴 | PC |
+| `AssetsMap` | 资产分布地图 | PC |
+
+---
+
+### 4.2 AssetCard 组件 (跨平台)
+
+**小程序实现**:
+```html
+<!-- components/AssetCard/index.wxml -->
+<view class="asset-card {{className}}">
+  <image class="card-cover" src="{{coverImage}}" mode="aspectFill" />
+  <view class="card-info">
+    <text class="card-title">{{title}}</text>
+    <view class="card-meta">
+      <text class="level-tag level-{{level}}">{{levelName}}</text>
+      <text class="price">¥{{monthlyRent}}/月</text>
+    </view>
+    <view class="card-status">
+      <text class="status-dot status-{{status}}"></text>
+      <text class="status-text">{{statusText}}</text>
+    </view>
+  </view>
+</view>
+```
+
+**PC 端实现**:
+```tsx
+// components/AssetCard/index.tsx
+import { Card } from 'antd';
+
+interface AssetCardProps {
+  title: string;
+  coverImage: string;
+  level: 'entry' | 'professional' | 'master';
+  levelName: string;
+  monthlyRent: number;
+  status: 'available' | 'renting' | 'maintenance';
+  statusText: string;
+  onClick?: () => void;
+}
+
+const AssetCard: React.FC<AssetCardProps> = (props) => {
+  const { title, coverImage, level, levelName, monthlyRent, status, statusText, onClick } = props;
+
+  return (
+    <Card 
+      className="asset-card" 
+      hoverable 
+      onClick={onClick}
+      cover={<img alt={title} src={coverImage} />}
+    >
+      <Card.Meta
+        title={title}
+        description={
+          <div>
+            <Tag className={`level-tag level-${level}`}>{levelName}</Tag>
+            <div className="price">¥{monthlyRent}/月</div>
+            <div className="status">
+              <span className={`status-dot status-${status}`}></span>
+              <span>{statusText}</span>
+            </div>
+          </div>
+        }
+      />
+    </Card>
+  );
+};
+```
+
+**共享样式**:
+```css
+/* 跨平台共享样式 */
+.asset-card {
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.asset-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.level-tag {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.level-entry { background: #E0F2FE; color: #0891B2; }
+.level-professional { background: #FEF3C7; color: #D97706; }
+.level-master { background: #F3E8FF; color: #7C3AED; }
+
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+
+.status-available { background: var(--status-online); }
+.status-renting { background: var(--progress-rent); }
+.status-maintenance { background: var(--status-maintenance); }
+```
+
+---
+
+### 4.3 OwnershipProgressBar 组件
+
+**小程序实现**:
+```html
+<!-- components/OwnershipProgressBar/index.wxml -->
+<view class="ownership-progress">
+  <view class="progress-ring" style="--progress: {{progress}}%">
+    <text class="progress-text">{{accumulated}}/{{total}} 个月</text>
+  </view>
+  <view class="progress-info">
+    <text class="progress-message">{{message}}</text>
+    <text wx:if="{{!transferEligible}}" class="countdown">
+      预计 {{remaining}} 个月后获得所有权
+    </text>
+    <button 
+      wx:if="{{transferEligible}}" 
+      class="cert-btn"
+      bindtap="viewCertificate"
+    >
+      查看电子证书
+    </button>
+  </view>
+</view>
+```
+
+**PC 端实现**:
+```tsx
+// components/OwnershipProgressBar/index.tsx
+import { Progress, Button } from 'antd';
+
+interface OwnershipProgressBarProps {
+  accumulated: number;
+  total: number;
+  remaining: number;
+  transferEligible: boolean;
+  onViewCertificate?: () => void;
+}
+
+const OwnershipProgressBar: React.FC<OwnershipProgressBarProps> = (props) => {
+  const { accumulated, total, remaining, transferEligible, onViewCertificate } = props;
+  const progress = (accumulated / total) * 100;
+  
+  const message = transferEligible
+    ? '🎉 恭喜！您已获得永久所有权'
+    : `🎁 距离永久拥有仅剩 ${remaining} 个月`;
+
+  return (
+    <div className="ownership-progress-bar">
+      <Progress
+        type="circle"
+        percent={progress}
+        format={(percent) => `${accumulated}/${total} 个月`}
+        strokeColor={
+          transferEligible ? '#10B981' : '#3B82F6'
+        }
+        width={120}
+      />
+      
+      <div className="progress-info">
+        <div className="progress-message">{message}</div>
+        {!transferEligible && (
+          <div className="countdown">
+            预计 {remaining} 个月后获得所有权
+          </div>
+        )}
+        {transferEligible && (
+          <Button type="primary" onClick={onViewCertificate}>
+            查看电子证书
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+};
+```
+
+---
+
+## 五、Features.md 覆盖率验证
+
+| 功能模块 | 功能点 | 小程序 | PC端 | 覆盖率 |
+|----------|--------|--------|------|--------|
+| **注册登录** | 微信快捷登录 | ✅ | ✅ | 100% |
+| **乐器租赁** | 分类列表/详情/阶梯定价/租期折扣 | ✅ | ✅ | 100% |
+| **订单支付** | 免押金/首期汇总/协议签署 | ✅ | ✅ | 100% |
+| **维保服务** | 在线报修/工单追踪/服务包查询 | ✅ | ✅ | 100% |
+| **个人中心** | 租约管理/收藏/地址 | ✅ | - | 100% |
+| **租转售** | 进度条/电子证书 | ✅ | ✅ | 100% |
+| **商家管理** | 设备台账/库存监控/所有权监控 | - | ✅ | 100% |
+| **租赁管理** | 租约台账/逾期预警 | - | ✅ | 100% |
+| **维保调度** | 工单管理/报价中心 | - | ✅ | 100% |
+| **财务结算** | 佣金明细/流水报表 | - | ✅ | 100% |
+| **平台治理** | 商家准入/RBAC/定价矩阵/押金监管 | - | ✅ | 100% |
+| **资产审计** | 流转轨迹/统计大屏 | - | ✅ | 100% |
+| **增强功能** | LBS网点地图/服务包对比/免押开关 | ✅ | - | 100% |
+| **管理增强** | 调拨申请/全网资产地图/Timeline | - | ✅ | 100% |
+| **技术增强** | 白标化BrandProvider/影子用户标识 | ✅ | ✅ | 100% |
+
+**总体覆盖率: 100%**
+
+---
+
+## 六、技术实现要点
+
+### 6.1 Lin-IAM 白标化适配
+
+**前端实现**:
+```typescript
+// hooks/useBrandConfig.ts
+import { useEffect, useState } from 'react';
+import { getBrandConfig } from '@/api/common';
+
+interface BrandConfig {
+  primary_color: string;
+  logo_url: string;
+  brand_name: string;
+  support_phone: string;
+}
+
+export const useBrandConfig = (clientId: string) => {
+  const [config, setConfig] = useState<BrandConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const { data } = await getBrandConfig(clientId);
+        setConfig(data);
+        // 注入CSS变量
+        document.documentElement.style.setProperty('--brand-primary', data.primary_color);
+      } catch (error) {
+        console.error('加载品牌配置失败:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadConfig();
+  }, [clientId]);
+
+  return { brandConfig: config, loading };
+};
+```
+
+**小程序实现**:
+```javascript
+// utils/brand.js
+export const loadBrandConfig = (clientId) => {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE}/api/common/brand-config`,
+      data: { client_id: clientId },
+      success: (res) => {
+        const config = res.data.data;
+        // 存储到全局
+        getApp().globalData.brandConfig = config;
+        resolve(config);
+      },
+      fail: reject,
+    });
+  });
+};
+```
+
+---
+
+### 6.2 原子组件库搭建
+
+**项目结构**:
+```
+components/
+├── AssetCard/                    # 资产卡片
+│   ├── index.tsx                 # PC端
+│   ├── index.wxml                # 小程序
+│   ├── index.wxss
+│   └── index.js
+├── OwnershipProgressBar/         # 租转售进度条
+│   ├── index.tsx
+│   ├── index.wxml
+│   └── index.wxss
+├── BrandProvider/                # 白标化提供者
+│   └── index.tsx
+├── ShadowUserBadge/              # 影子用户标识
+│   └── index.tsx
+├── PricingMatrixGrid/            # 定价矩阵网格
+│   └── index.tsx
+├── AssetTimeline/                # 资产时间轴
+│   └── index.tsx
+└── AssetsMap/                    # 资产地图
+    └── index.tsx
+```
+
+**发布方案**:
+- 小程序: 作为项目本地组件
+- PC端: 可独立发布为 `@tuneloop/ui` npm包
+
+---
+
+### 6.3 性能优化
+
+| 优化项 | 小程序 | PC端 |
+|--------|--------|------|
+| 图片懒加载 | ✅ 使用 `lazy-load` | ✅ 使用 `loading="lazy"` |
+| 组件按需加载 | ✅ 分包加载 | ✅ React.lazy + Suspense |
+| 数据分页 | ✅ `scroll-view` + `onReachBottom` | ✅ Table pagination |
+| 缓存策略 | ✅ `wx.setStorage` | ✅ react-query/SWR |
+| 骨架屏 | ✅ 页面级骨架屏 | ✅ 组件级 Skeleton |
+
+---
+
+## 七、版本记录
+
+| 版本 | 日期 | 变更内容 |
+|------|------|----------|
+| v1.0 | 2026-03-20 | 初始版本 |
+| v2.0 | 2026-03-21 | 整合客户反馈：LBS网点地图、服务包对比、免押开关、白标化、影子用户标识、资产流转Timeline、全网资产地图 |
+
+---
+
+
+---
+
+## 附录 A: 页面路由清单
+
+| 页面 | 路由 | 权限 |
+|------|------|------|
+| 登录回调 | `/callback` | 公开 |
+| 仪表盘 | `/dashboard` | 需要登录 |
+| 乐器列表 | `/instruments/list` | 需要登录 |
+| 新增乐器 | `/instruments/new/edit` | OWNER |
+| 编辑乐器 | `/instruments/:id/edit` | OWNER |
+| 乐器详情 | `/instruments/detail/:id` | 需要登录 |
+| 乐器分类 | `/instruments/categories` | 需要登录 |
+| 属性管理 | `/instruments/properties` | 需要登录 |
+| 订单列表 | `/orders` | 需要登录 |
+| 维修工单 | `/maintenance` | 需要登录 | ⚠️ 已废弃（#1888 R6，清理见 #1886） |
+| 维修师傅管理 | `/maintenance/workers` | MANAGER | ⚠️ 已废弃（改由网点管理-成员管理） |
+| 维修会话 | `/maintenance/sessions` | MANAGER/技师 | ⚠️ 已废弃（#1886 移除） |
+| 库存调拨 | `/inventory/transfer` | 需要登录 |
+| 库存管理&租金设定 | `/inventory/rent-setting` | MANAGER |
+| 租赁台账 | `/leases` | 需要登录 |
+| 押金流水 | `/deposits` | 需要登录 |
+| 财务配置 | `/finance` | ADMIN |
+| 网点管理 | `/sites` | 需要登录 |
+| 客户管理 | `/clients` | 需要登录 |
+| 权限管理 | `/permissions` | ADMIN |
+| 租户管理 | `/tenants` | ADMIN |
+| 用户租赁列表 | `/user/rentals` | 用户本人 |
+| 乐器浏览 | `/instruments` | 需要登录 |
+| 乐器详情 | `/instruments/:id` | 需要登录 |
+| 订单支付 | `/orders/:id/payment` | 用户本人 |
+| 电子合同 | `/user/contracts/:id` | 用户本人 |
+| 归还流程 | `/user/rentals/:id/return` | 用户本人 |
+| 操作日志 | `/system/audit-logs` | tenant_view (sys_perm bit 5) |
+| 库管工作台 | `/warehouse` | MANAGER |
+| 申诉处理 | `/appeals` | MANAGER |
+| 用户申诉 | `/user/appeals` | 用户本人 |
+| 会员级别管理 | `/system/membership-levels` | `membership:manage` |
+| 返点配置 | `/system/rebate-config` | `rebate:manage` |
+| 系统折扣政策 | `/system/promo-plans` | `promo:manage` |
+| 商户折扣政策 | `/merchant/promo-plans` | `promo:manage` |
+| 逾期告警 | `/overdue-alerts` | `instrument:read` |
+| 定价策略 | `/pricing/config` | `instrument:price_config` |
+| 租金设定 | `/inventory/rent-setting` | `instrument:price` |
