@@ -120,9 +120,9 @@ Cleanup is handled by `services/media_cleanup.go` scheduler which runs periodica
 | Directory | Purpose | Governed by |
 |-----------|---------|-------------|
 | `uploads/media/` | Unified media (rich-text content images, avatars, id photos, instrument media) | `media_assets` registry + `media_cleanup.go` GC |
-| `uploads/media/face_captures/{userID}/{batchID}/` | 实名核身自拍素材（图片 + 可选视频），人工审核证据，长期保存 | `media_assets` registry（source_type=face_capture，source_id=batch_id，GC 豁免） |
-| `uploads/batch/` | Batch-import ZIP extraction temp (`{sessionID}/`) | `media_cleanup.go` GC (expired session dirs) |
-| `uploads/photos/` | Legacy outbound photo mechanism (`{tenant}/{sn}/` with manifest.yaml + ZIP archive) | Historical — registered for attribution only, not refactored |
+| `uploads/media/face_captures/{userID}/{batchID}/` | 实名核身自拍素材（图片 + 可选视频），人工审核证据，长期保存 | **经 `MediaStorage` 写入**（key=`face_captures/...` → OSS 私有桶；#1995）；`media_assets` registry（source_type=face_capture，GC 豁免） |
+| `uploads/batch/`（key=`batch/{sessionID}/...`） | Batch-import ZIP extraction temp (`{sessionID}/`) | **经 `MediaStorage` 写入/清理**（`DeletePrefix`；#1995），不再直写 `./uploads/batch` |
+| `uploads/photos/{tenant}/{sn}/` | Legacy outbound photo mechanism (manifest + per-batch photos) | **遗留本地机制**（未改造）：zip 导出经 `MediaStorage` 落 key `photos/{tenant}/{sn}/batch_*.zip`（#1995）；photodir/latest symlink 仍为本地 |
 
 ### Storage Backend (write modes, #1914)
 

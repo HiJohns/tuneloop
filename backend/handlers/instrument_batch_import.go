@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"archive/zip"
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -325,6 +326,8 @@ func PreviewBatchImport(c *gin.Context) {
 // UploadBatchMedia handles ZIP media upload and matches images to instruments
 // POST /api/instruments/batch-import/media
 func UploadBatchMedia(c *gin.Context) {
+	ctx := c.Request.Context()
+	storage := services.NewMediaStorage()
 	sessionID := c.PostForm("session_id")
 	session, exists := importSessions[sessionID]
 	if !exists {
@@ -384,24 +387,22 @@ func UploadBatchMedia(c *gin.Context) {
 			}
 
 			imgFileName := fmt.Sprintf("%s_%d%s", uuid.New().String()[:8], time.Now().UnixNano(), filepath.Ext(baseName))
-			imgPath := filepath.Join("/uploads/batch", sessionID, imgFileName)
+			// #1995：导入暂存图经 MediaStorage 抽象（key=batch/{sessionID}/{file}），
+			// 不再直写 ./uploads/batch。
+			imgKey := "batch/" + sessionID + "/" + imgFileName
 
-			destPath := filepath.Join(".", "uploads", "batch", sessionID)
-			os.MkdirAll(destPath, 0755)
-
-			destFile, err := os.Create(filepath.Join(destPath, imgFileName))
-			if err != nil {
+			if err := storage.Upload(ctx, imgKey, rc, contentTypeForKey(imgKey)); err != nil {
 				rc.Close()
+				log.Printf("[BatchImport] stage image %s failed: %v", imgKey, err)
 				continue
 			}
-
-			written, err := io.Copy(destFile, rc)
 			rc.Close()
-			destFile.Close()
 
-			if err == nil && written > 0 {
-				imageMap[sn] = append(imageMap[sn], imgPath)
+			imgPath, uerr := storage.GetURL(ctx, imgKey)
+			if uerr != nil || imgPath == "" {
+				imgPath = "/uploads/media/" + imgKey
 			}
+			imageMap[sn] = append(imageMap[sn], imgPath)
 		} else {
 			unmatchedFiles = append(unmatchedFiles, baseName)
 		}
@@ -688,8 +689,10 @@ func ExecuteBatchImport(c *gin.Context) {
 
 	delete(importSessions, req.SessionID)
 
-	cleanupDir := filepath.Join(".", "uploads", "batch", req.SessionID)
-	os.RemoveAll(cleanupDir)
+	// #1995：经 MediaStorage 抽象清理导入暂存（key 前缀 batch/{session}/）。
+	if err := services.NewMediaStorage().DeletePrefix(c.Request.Context(), "batch/"+req.SessionID+"/"); err != nil {
+		log.Printf("[BatchImport] cleanup staging failed: %v", err)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
@@ -904,8 +907,9 @@ func init() {
 			for id, session := range importSessions {
 				if now.Sub(session.CreatedAt) > 30*time.Minute {
 					delete(importSessions, id)
-					cleanupDir := filepath.Join(".", "uploads", "batch", id)
-					os.RemoveAll(cleanupDir)
+					if err := services.NewMediaStorage().DeletePrefix(context.Background(), "batch/"+id+"/"); err != nil {
+						log.Printf("[BatchImport] cleanup expired staging failed: %v", err)
+					}
 				}
 			}
 		}

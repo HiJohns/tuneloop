@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -97,13 +98,11 @@ func (h *FaceCaptureHandler) SubmitFaceCapture(c *gin.Context) {
 	batchID := appendBatchID
 	if !isAppend {
 		batchID = uuid.New().String()
-		dir := filepath.Join("./uploads/media", "face_captures", localUser.ID, batchID)
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			log.Printf("[FaceCapture] mkdir failed for %s: %v", dir, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to store selfie"})
-			return
-		}
 	}
+
+	// #1995：经 MediaStorage 抽象写入（face_captures/ 前缀 → OSS 私有桶；
+	// 本地模式等价路径）。不再绕抽象直写 ./uploads/media。
+	storage := services.NewMediaStorage()
 
 	// 保存图片（有 image 时）。
 	imageKey := ""
@@ -111,43 +110,26 @@ func (h *FaceCaptureHandler) SubmitFaceCapture(c *gin.Context) {
 		defer imageFile.Close()
 		imageExt := strings.ToLower(filepath.Ext(imageHeader.Filename))
 		imageKey = "face_captures/" + localUser.ID + "/" + batchID + "/selfie" + imageExt
-		imageDst, err := os.Create(filepath.Join("./uploads/media", imageKey))
-		if err != nil {
-			log.Printf("[FaceCapture] create image failed: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to store selfie"})
-			return
-		}
-		if _, err := io.Copy(imageDst, imageFile); err != nil {
-			imageDst.Close()
+		if err := storage.Upload(ctx, imageKey, imageFile, contentTypeForKey(imageKey)); err != nil {
 			log.Printf("[FaceCapture] save image failed: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to store selfie"})
 			return
 		}
-		imageDst.Close()
 	}
 
-	// 可选视频。
+	// 可选视频：本地临时文件转码 → 经抽象上传 → 清理临时文件（OSS 无目录语义）。
 	videoKey := ""
+	videoSize := int64(0)
 	if videoErr == nil {
 		defer videoFile.Close()
 		videoExt := strings.ToLower(filepath.Ext(videoHeader.Filename))
 		if videoExt == ".mp4" || videoExt == ".mov" || videoExt == ".webm" {
-			videoKey = "face_captures/" + localUser.ID + "/" + batchID + "/selfie" + videoExt
-			videoDst, err := os.Create(filepath.Join("./uploads/media", videoKey))
-			if err == nil {
-				if _, err := io.Copy(videoDst, videoFile); err == nil {
-					videoDst.Close()
-					// #1822: 服务端压码率——低分辨率(480p)用 ~800kbps 足够，
-					// 4.9s 视频可压到 ~0.5MB；失败非致命，保留原文件。
-					transcodeFaceVideo(filepath.Join("./uploads/media", videoKey))
-				} else {
-					videoDst.Close()
-					log.Printf("[FaceCapture] save video failed: %v", err)
-					videoKey = ""
-				}
+			key, size, err := storeFaceVideo(ctx, storage, localUser.ID, batchID, videoExt, videoFile)
+			if err != nil {
+				log.Printf("[FaceCapture] save video failed: %v", err)
 			} else {
-				log.Printf("[FaceCapture] create video failed: %v", err)
-				videoKey = ""
+				videoKey = key
+				videoSize = size
 			}
 		}
 	}
@@ -190,10 +172,6 @@ func (h *FaceCaptureHandler) SubmitFaceCapture(c *gin.Context) {
 		}
 	}
 	if videoKey != "" {
-		videoSize := int64(0)
-		if fi, err := os.Stat(filepath.Join("./uploads/media", videoKey)); err == nil {
-			videoSize = fi.Size()
-		}
 		if err := services.NewMediaRegistry().RegisterAsset(ctx, videoKey, services.SourceTypeFaceCapture, batchID, videoSize, "video"); err != nil {
 			log.Printf("[FaceCapture] register video asset failed: %v", err)
 		}
@@ -247,6 +225,44 @@ func (h *FaceCaptureHandler) GetFaceCaptureStatus(c *gin.Context) {
 
 // transcodeFaceVideo re-encodes the just-uploaded liveness video to a capped
 // bitrate H.264 MP4 (audio dropped — liveness clips need no sound). weapp
+// storeFaceVideo 将上传视频写入本地临时文件，转码（best-effort，#1822）后经
+// MediaStorage 抽象上传，返回 (key, size)；临时文件始终清理（#1995）。
+func storeFaceVideo(ctx context.Context, storage services.MediaStorage, userID, batchID, ext string, src io.Reader) (string, int64, error) {
+	if err := os.MkdirAll("tmp", 0755); err != nil {
+		return "", 0, fmt.Errorf("create tmp dir: %w", err)
+	}
+	tmp, err := os.CreateTemp("tmp", "face-video-*"+ext)
+	if err != nil {
+		return "", 0, fmt.Errorf("create temp video: %w", err)
+	}
+	tmpPath := tmp.Name()
+	defer os.Remove(tmpPath)
+	if _, err := io.Copy(tmp, src); err != nil {
+		tmp.Close()
+		return "", 0, fmt.Errorf("save temp video: %w", err)
+	}
+	tmp.Close()
+
+	// 转码原地重写 tmpPath（失败非致命，保留原文件）。
+	transcodeFaceVideo(tmpPath)
+
+	f, err := os.Open(tmpPath)
+	if err != nil {
+		return "", 0, fmt.Errorf("open temp video: %w", err)
+	}
+	defer f.Close()
+	fi, err := f.Stat()
+	if err != nil {
+		return "", 0, fmt.Errorf("stat temp video: %w", err)
+	}
+
+	key := "face_captures/" + userID + "/" + batchID + "/selfie" + ext
+	if err := storage.Upload(ctx, key, f, contentTypeForKey(key)); err != nil {
+		return "", 0, fmt.Errorf("upload video: %w", err)
+	}
+	return key, fi.Size(), nil
+}
+
 // <Camera resolution=low> outputs 480p at a wasteful ~4.8Mbps VBR; 800kbps is
 // visually sufficient at 480p and shrinks a 5s clip to ~0.5MB.
 //

@@ -211,17 +211,18 @@ func UploadInstrumentPhotos(c *gin.Context) {
 		return
 	}
 
-	// Create ZIP archive
-	zipPath := filepath.Join(photoBaseDir, fmt.Sprintf("batch_%s.zip", timestamp))
-	zipFile, err := os.Create(zipPath)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    50007,
-			"message": "failed to create zip file: " + err.Error(),
-		})
+	// Create ZIP archive in a temp file (#1995: 经 MediaStorage 落库，不直写 uploads/photos)
+	if err := os.MkdirAll("tmp", 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50007, "message": "failed to prepare temp dir: " + err.Error()})
 		return
 	}
-	defer zipFile.Close()
+	zipFile, err := os.CreateTemp("tmp", "photos-*.zip")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50007, "message": "failed to create zip file: " + err.Error()})
+		return
+	}
+	zipTmpPath := zipFile.Name()
+	defer os.Remove(zipTmpPath)
 
 	zipWriter := zip.NewWriter(zipFile)
 	defer zipWriter.Close()
@@ -281,6 +282,34 @@ func UploadInstrumentPhotos(c *gin.Context) {
 		}
 	}
 
+	// 收尾 zip 并经 MediaStorage 上传/取 URL（#1995）。
+	if err := zipWriter.Close(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50007, "message": "failed to finalize zip: " + err.Error()})
+		return
+	}
+	if err := zipFile.Close(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50007, "message": "failed to finalize zip: " + err.Error()})
+		return
+	}
+	storage := services.NewMediaStorage()
+	ctx := c.Request.Context()
+	zipKey := fmt.Sprintf("photos/%s/%s/batch_%s.zip", tenantID, instrumentSN, timestamp)
+	zf, err := os.Open(zipTmpPath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50007, "message": "failed to reopen zip: " + err.Error()})
+		return
+	}
+	if err := storage.Upload(ctx, zipKey, zf, "application/zip"); err != nil {
+		zf.Close()
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50007, "message": "failed to store zip: " + err.Error()})
+		return
+	}
+	zf.Close()
+	zipURL, uerr := storage.GetURL(ctx, zipKey)
+	if uerr != nil || zipURL == "" {
+		zipURL = "/uploads/media/" + zipKey
+	}
+
 	// Use photo storage service to update latest
 	photoService := services.NewPhotoStorageService()
 
@@ -289,7 +318,7 @@ func UploadInstrumentPhotos(c *gin.Context) {
 		ID:           batchID,
 		InstrumentID: instrumentID,
 		BatchType:    batchType,
-		StoragePath:  zipPath,
+		StoragePath:  zipURL,
 		OperatorID:   middleware.GetUserID(c.Request.Context()),
 		CreatedAt:    time.Now(),
 	}
@@ -317,7 +346,7 @@ func UploadInstrumentPhotos(c *gin.Context) {
 			BatchID:      batchID,
 			InstrumentID: instrumentID,
 			BatchType:    batchType,
-			StoragePath:  zipPath,
+			StoragePath:  zipURL,
 			PhotoCount:   len(files),
 			CreatedAt:    photoBatch.CreatedAt,
 		},

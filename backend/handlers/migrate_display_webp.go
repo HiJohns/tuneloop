@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"bytes"
+	"context"
 	"log"
 	"os"
 	"path/filepath"
@@ -15,6 +17,8 @@ import (
 func MigrateDisplayImagesToWebP(dryRun bool) (int, error) {
 	db := database.GetDB()
 	uploadDir := "./uploads/media"
+	ctx := context.Background()
+	storage := services.NewMediaStorage()
 
 	var media []models.InstrumentMedia
 	if err := db.Where("file_type = ?", "image").Find(&media).Error; err != nil {
@@ -26,9 +30,7 @@ func MigrateDisplayImagesToWebP(dryRun bool) (int, error) {
 	for _, m := range media {
 		baseKey := strings.TrimSuffix(m.StorageKey, filepath.Ext(m.StorageKey))
 		displayKey := baseKey + "_display.webp"
-		dstPath := filepath.Join(uploadDir, displayKey)
-
-		if _, err := os.Stat(dstPath); err == nil {
+		if _, ok, err := storage.Stat(ctx, displayKey); err == nil && ok {
 			skipped++
 			continue
 		}
@@ -45,8 +47,8 @@ func MigrateDisplayImagesToWebP(dryRun bool) (int, error) {
 			continue
 		}
 
-		if err := os.WriteFile(dstPath, webpData, 0644); err != nil {
-			log.Printf("[MigrateWebP] Failed to write %s: %v", dstPath, err)
+		if err := storage.Upload(ctx, displayKey, bytes.NewReader(webpData), "image/webp"); err != nil {
+			log.Printf("[MigrateWebP] Failed to write %s: %v", displayKey, err)
 			continue
 		}
 		count++

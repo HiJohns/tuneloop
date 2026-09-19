@@ -230,6 +230,17 @@ ssh cadenza "OSS_ENDPOINT=https://oss-cn-beijing.aliyuncs.com OSS_BUCKET=tuneloo
 | P5 | `GetURL` 切读开关 + nginx `/uploads/*` 未命中重定向兜底 | ✅ 已实现（#1993） |
 | P6 | 观察期 → 停本地写 / `gc-media` 适配 / 更新 `docs/topics/media/media_directory.md` | ⏳ |
 
+### 5.4 绕抽象直写改造（#1995）
+
+原 4 处绕过 `MediaStorage` 直写本地，已改为经抽象（本地模式行为等价）：
+
+| 位置 | 改造 |
+|------|------|
+| `face_capture.go` | 图片/视频经 `MediaStorage.Upload`（key `face_captures/...` → 私有桶）；视频保留**本地临时文件转码**后上传并清理（`storeFaceVideo`） |
+| `instrument_batch_import.go` | 导入暂存图经 `Upload`（key `batch/{session}/...`）+ `GetURL`；清理改 `DeletePrefix`（替换 `os.RemoveAll`） |
+| `instrument_photo.go` | 导出 zip 写临时文件 → `Upload`（key `photos/{tenant}/{sn}/batch_*.zip`）→ `GetURL` → 删临时；遗留 photos 目录/latest symlink 不动 |
+| `migrate_display_webp.go` / `migrate_banner_webp.go` | webp 变体经 `Upload`（源读取保持本地，变体落抽象）；存在性检查改 `Stat` |
+
 ### 5.3 P5 切换读（#1993）
 
 - **读开关即 `STORAGE_MODE`**（#1992 同族）：`dual`/`oss` 读走 OSS（`GetURL`/`Stat` 委托 OSS），`local` 读本地；**一键回退** = env 改回 `local`。

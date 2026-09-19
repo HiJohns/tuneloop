@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"bytes"
+	"context"
 	"log"
 	"os"
 	"path/filepath"
@@ -21,6 +23,8 @@ var bannerImageExts = []string{".jpg", ".jpeg", ".png"}
 func MigrateBannerImagesToWebP(dryRun bool) (int, error) {
 	db := database.GetDB()
 	uploadDir := "./uploads/media"
+	ctx := context.Background()
+	storage := services.NewMediaStorage()
 
 	var banners []models.Banner
 	if err := db.Find(&banners).Error; err != nil {
@@ -52,11 +56,10 @@ func MigrateBannerImagesToWebP(dryRun bool) (int, error) {
 		}
 
 		webpKey := strings.TrimSuffix(key, ext) + ".webp"
-		dstPath := filepath.Join(uploadDir, webpKey)
 		newURL := "/uploads/media/" + webpKey
 
-		_, webpExists := os.Stat(dstPath)
-		if webpExists == nil {
+		_, webpExists, statErr := storage.Stat(ctx, webpKey)
+		if statErr == nil && webpExists {
 			// WebP already on disk — just update DB reference
 			if !dryRun {
 				if err := db.Model(&banner).Update("image_url", newURL).Error; err != nil {
@@ -87,8 +90,8 @@ func MigrateBannerImagesToWebP(dryRun bool) (int, error) {
 			continue
 		}
 
-		if err := os.WriteFile(dstPath, webpData, 0644); err != nil {
-			log.Printf("[MigrateBannerWebP] Failed to write %s: %v", dstPath, err)
+		if err := storage.Upload(ctx, webpKey, bytes.NewReader(webpData), "image/webp"); err != nil {
+			log.Printf("[MigrateBannerWebP] Failed to write %s: %v", webpKey, err)
 			continue
 		}
 
