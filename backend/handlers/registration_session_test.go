@@ -347,7 +347,7 @@ func TestPrepayMembershipWithCoupon_OREZ(t *testing.T) {
 	assert.Equal(t, "completed", session.Status)
 
 	// Registration gift points credited.
-	assert.Equal(t, models.Cents(9900), user.PromoPoints, "registration gift points in cents (#1757)")
+	assert.Equal(t, models.Cents(9900), pointsBalance(t, db, user.ID), "registration gift points in cents (#1757)")
 }
 
 // TestPrepayMembership_RecordUserIDReferencesReservedLocalUser verifies
@@ -504,7 +504,7 @@ func TestPaymentCallback_RegistrationComplete(t *testing.T) {
 	require.NoError(t, db.Where("iam_sub = ?", reservedIAMSub).First(&user).Error, "callback completes the reserved user (#1688)")
 	assert.Equal(t, "13800139000", user.Phone)
 	assert.Equal(t, "openid-register-001", user.WxOpenid, "bound via exchange_token (IAM mock openid)")
-	assert.Equal(t, models.Cents(9900), user.PromoPoints, "registration gift points in cents (#1757)")
+	assert.Equal(t, models.Cents(9900), pointsBalance(t, db, user.ID), "registration gift points in cents (#1757)")
 
 	var session models.RegistrationSession
 	require.NoError(t, db.Where("id = ?", s.ID).First(&session).Error)

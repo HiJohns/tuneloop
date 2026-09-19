@@ -447,7 +447,13 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 			}
 		}
 		// #1757: wallet balance is cents; request is yuan (legacy client).
-		if models.FromYuan(req.GiftPointsUsed) > userWallet.PromoPoints {
+		// #1983 阶段 2：余额 = 未过期批次 SUM（users.promo_points 快照已废弃）。
+		walletBalance, berr := services.GetUserPointsBalance(db, userWallet.ID)
+		if berr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to compute points balance"})
+			return
+		}
+		if models.FromYuan(req.GiftPointsUsed) > walletBalance {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "insufficient gift points"})
 			return
 		}
@@ -582,23 +588,29 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 
 	// Deduct gift points from wallet (inside transaction). #1757: wallet
 	// balance is cents; the request value is yuan (legacy client) → convert.
+	// #1983 阶段 2：改为按 FIFO 扣减批次（余额唯一真源），不再写 users.promo_points 快照。
 	if req.GiftPointsUsed > 0 {
 		giftUsedCents := models.FromYuan(req.GiftPointsUsed)
-		updates := map[string]interface{}{
-			"updated_at": time.Now(),
-		}
-		updates["promo_points"] = gorm.Expr("promo_points - ?", giftUsedCents)
-		if err := tx.Model(&models.User{}).Where("id = ?", userID).Updates(updates).Error; err != nil {
+
+		// Pre-generate the transaction id: FIFO 留痕以该 id 作为 transaction_id（与支付回调口径一致）。
+		txID := uuid.New().String()
+		consumed, cerr := services.ConsumePointsFIFO(tx, userID, giftUsedCents, txID)
+		if cerr != nil {
 			tx.Rollback()
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to deduct points"})
 			return
 		}
+		if consumed < giftUsedCents {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "insufficient gift points"})
+			return
+		}
 
-		// Create points_transaction record
-		newPromo := userWallet.PromoPoints - giftUsedCents
+		// 扣减后余额（同事务内 SUM，供流水展示）。
+		newPromo, _ := services.GetUserPointsBalance(tx, userID)
 
 		pt := models.PointsTransaction{
-			ID:                uuid.New().String(),
+			ID:                txID,
 			UserID:            userID,
 			TenantID:          effectiveTenantID,
 			Type:              "order_deduct",
@@ -1461,7 +1473,10 @@ func (h *UserRentalHandler) CalculateRental(c *gin.Context) {
 	giftPointsBalance := float64(0)
 	prepaidPointsBalance := float64(0)
 	if localUser.ID != "" {
-		giftPointsBalance = float64(localUser.PromoPoints)
+		// #1983 阶段 2：余额 = 未过期批次 SUM（users.promo_points 快照已废弃）。
+		if bal, berr := services.GetUserPointsBalance(db, localUser.ID); berr == nil {
+			giftPointsBalance = float64(bal)
+		}
 		prepaidPointsBalance = localUser.PrepaidPoints.ToYuan()
 	}
 

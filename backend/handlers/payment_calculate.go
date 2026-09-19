@@ -104,8 +104,14 @@ func getWalletInfo(db *gorm.DB, userID, tenantID string, amount float64) (*Walle
 		}
 	}
 
+	// #1983 阶段 2：钱包余额 = 未过期批次 SUM（users.promo_points 快照已废弃）。
+	balance, err := services.GetUserPointsBalance(db, user.ID)
+	if err != nil {
+		return nil, err
+	}
+
 	return &WalletInfo{
-		PromoPoints:   float64(user.PromoPoints),
+		PromoPoints:   float64(balance),
 		MaxGiftRatio:  maxGiftRatio,
 		MaxGiftAmount: math.Floor(amount * maxGiftRatio * 100 / 100),
 	}, nil

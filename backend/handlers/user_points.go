@@ -40,11 +40,18 @@ func (h *UserPointsHandler) GetBalance(c *gin.Context) {
 		maxPayRatio = policy.PayRatio
 	}
 
+	// #1983 阶段 2：余额 = 未过期批次 SUM（users.promo_points 快照已废弃）。
+	promoBalance, err := services.GetUserPointsBalance(db, localUser.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to compute points balance"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
 			"prepaid_points": localUser.PrepaidPoints,
-			"promo_points":   localUser.PromoPoints,
+			"promo_points":   promoBalance,
 			"max_pay_ratio":  maxPayRatio,
 		},
 	})

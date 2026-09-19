@@ -34,18 +34,21 @@ func (h *UserOnboardingHandler) GetOnboardingStatus(c *gin.Context) {
 	}
 
 	var user models.User
-	if err := db.Select("id, name, onboarding_completed, promo_points").
+	if err := db.Select("id, name, onboarding_completed").
 		Where("id = ?", userID).First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
 		return
 	}
+
+	// #1983 阶段 2：余额 = 未过期批次 SUM（users.promo_points 快照已废弃）。
+	promoBalance, _ := services.GetUserPointsBalance(db, user.ID)
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
 			"name":                 user.Name,
 			"onboarding_completed": user.OnboardingCompleted,
-			"promo_points":         user.PromoPoints,
+			"promo_points":         promoBalance,
 		},
 	})
 }

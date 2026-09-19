@@ -412,13 +412,7 @@ func deductPointsFromRecord(tx *gorm.DB, record *models.OrderPaymentRecord, now 
 	if giftUsedCents <= 0 {
 		return nil
 	}
-	if err := tx.Model(&models.User{}).Where("iam_sub = ?", record.UserID).
-		Updates(map[string]interface{}{
-			"promo_points": gorm.Expr("GREATEST(promo_points - ?, 0)", giftUsedCents),
-			"updated_at":   now,
-		}).Error; err != nil {
-		return fmt.Errorf("deduct user points: %w", err)
-	}
+	// #1983 阶段 2：不再扣减 users.promo_points 快照；余额 = 批次 SUM（下方 FIFO 扣减为准）。
 	if record.OrderID != nil {
 		updates := map[string]interface{}{
 			"gift_points_used": giftUsedCents,

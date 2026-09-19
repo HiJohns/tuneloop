@@ -13,6 +13,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 )
 
 // UserManagementHandler manages platform-wide registered users (#1545).
@@ -79,9 +80,15 @@ func (h *UserManagementHandler) List(c *gin.Context) {
 		}
 	}
 
+	userIDs := make([]string, 0, len(users))
+	for _, u := range users {
+		userIDs = append(userIDs, u.ID)
+	}
+	pointsByUser := sumPointsByUser(db, userIDs)
+
 	list := make([]gin.H, 0, len(users))
 	for _, u := range users {
-		list = append(list, userSummary(u, levelNames))
+		list = append(list, userSummary(u, levelNames, pointsByUser[u.ID]))
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -109,11 +116,10 @@ func (h *UserManagementHandler) Get(c *gin.Context) {
 // PUT /admin/user-management/:id
 func (h *UserManagementHandler) Update(c *gin.Context) {
 	var req struct {
-		MembershipLevelID *int     `json:"membership_level_id"`
-		PromoPoints       *float64 `json:"promo_points"`
-		Status            *string  `json:"status"`
-		IdPhotoFront      *string  `json:"id_photo_front"`
-		IdPhotoBack       *string  `json:"id_photo_back"`
+		MembershipLevelID *int    `json:"membership_level_id"`
+		Status            *string `json:"status"`
+		IdPhotoFront      *string `json:"id_photo_front"`
+		IdPhotoBack       *string `json:"id_photo_back"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
@@ -131,10 +137,8 @@ func (h *UserManagementHandler) Update(c *gin.Context) {
 	if req.MembershipLevelID != nil {
 		updates["membership_level_id"] = *req.MembershipLevelID
 	}
-	if req.PromoPoints != nil {
-		// #1757: admin edits in cents (1 点 = 1 分) — stored as-is.
-		updates["promo_points"] = *req.PromoPoints
-	}
+	// #1983 阶段 2：管理员直接改 promo_points 已移除；人工加赠乐币改由
+	// 「加赠乐币」批次入口承接（#1982）。
 	if req.Status != nil {
 		if *req.Status != "active" && *req.Status != "disabled" {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "status must be active or disabled"})
@@ -198,11 +202,17 @@ func (h *UserManagementHandler) Export(c *gin.Context) {
 	c.Header("Content-Type", "text/csv")
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=users_%d.csv", time.Now().Unix()))
 
+	exportUserIDs := make([]string, 0, len(users))
+	for _, u := range users {
+		exportUserIDs = append(exportUserIDs, u.ID)
+	}
+	exportPoints := sumPointsByUser(db, exportUserIDs)
+
 	w := csv.NewWriter(c.Writer)
 	defer w.Flush()
 	w.Write([]string{"nickname", "username", "wx_openid", "phone", "level", "points", "registered_at", "last_active", "status"})
 	for _, u := range users {
-		s := userSummary(u, exportLevelNames)
+		s := userSummary(u, exportLevelNames, exportPoints[u.ID])
 		w.Write([]string{
 			fmt.Sprintf("%v", s["nickname"]),
 			fmt.Sprintf("%v", s["username"]),
@@ -217,7 +227,27 @@ func (h *UserManagementHandler) Export(c *gin.Context) {
 	}
 }
 
-func userSummary(u models.User, levelNames map[int]string) gin.H {
+// sumPointsByUser 批量聚合用户乐币余额（未过期批次 remaining 之和，#1983）。
+func sumPointsByUser(db *gorm.DB, userIDs []string) map[string]models.Cents {
+	out := make(map[string]models.Cents, len(userIDs))
+	if len(userIDs) == 0 {
+		return out
+	}
+	var rows []struct {
+		UserID string
+		Total  int64
+	}
+	db.Model(&models.PointBatch{}).
+		Where("user_id IN ? AND remaining_cents > 0 AND (expires_at IS NULL OR expires_at >= ?)", userIDs, time.Now()).
+		Select("user_id, COALESCE(SUM(remaining_cents), 0) AS total").
+		Group("user_id").Scan(&rows)
+	for _, r := range rows {
+		out[r.UserID] = models.Cents(r.Total)
+	}
+	return out
+}
+
+func userSummary(u models.User, levelNames map[int]string, points models.Cents) gin.H {
 	levelName := ""
 	if u.MembershipLevelID != nil {
 		levelName = levelNames[*u.MembershipLevelID]
@@ -230,7 +260,7 @@ func userSummary(u models.User, levelNames map[int]string) gin.H {
 		"phone":               u.Phone,
 		"level":               levelName,
 		"membership_level_id": u.MembershipLevelID,
-		"points":              u.PromoPoints,
+		"points":              points,
 		"registered_at":       u.CreatedAt,
 		"last_active":         u.UpdatedAt,
 		"status":              u.Status,
@@ -245,7 +275,8 @@ func userDetail(u models.User, db *gorm.DB) gin.H {
 			levelNames[*u.MembershipLevelID] = lv.Name
 		}
 	}
-	s := userSummary(u, levelNames)
+	points, _ := services.GetUserPointsBalance(db, u.ID)
+	s := userSummary(u, levelNames, points)
 	s["name"] = u.Name
 	s["email"] = u.Email
 	s["nickname"] = u.Nickname

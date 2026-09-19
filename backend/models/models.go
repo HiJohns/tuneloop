@@ -30,8 +30,8 @@ type User struct {
 	IsProfileCompleted   bool       `gorm:"default:false" json:"is_profile_completed"`
 	MembershipLevelID    *int       `gorm:"type:int" json:"membership_level_id"`
 	TotalSpending        Cents      `gorm:"type:bigint;default:0" json:"total_spending"`
-	PrepaidPoints        Cents      `gorm:"type:bigint;default:0" json:"-"`            // deprecated (#1531)
-	PromoPoints          Cents      `gorm:"type:bigint;default:0" json:"promo_points"` // #1757: cents (1 点 = 1 分)
+	PrepaidPoints        Cents      `gorm:"type:bigint;default:0" json:"-"` // deprecated (#1531)
+	// PromoPoints removed in #1983 (stage 2): points balance = SUM(point_batches.remaining_cents).
 	OnboardingCompleted  bool       `gorm:"default:false" json:"onboarding_completed"`
 	IdPhotoFront         *string    `gorm:"type:varchar(500)" json:"id_photo_front"`
 	IdPhotoBack          *string    `gorm:"type:varchar(500)" json:"id_photo_back"`

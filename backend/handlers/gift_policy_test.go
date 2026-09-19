@@ -141,8 +141,8 @@ func TestGiftPolicyAffectsPaymentCalculate(t *testing.T) {
 		OrgID:    "00000000-0000-4000-8000-000000000001",
 		Username: "giftuser", Status: "active",
 		MembershipLevelID: intPtr(1),
-		PromoPoints:       models.Cents(1000),
 	}).Error)
+	seedPointsBatch(t, db, userID, models.Cents(1000)) // #1983: 余额来自批次
 	require.NoError(t, db.Create(&models.GiftPolicy{
 		LevelID: 1, PayRatio: 0.5, ReferralRatio: 0, ReferralRegPoints: 10, IsActive: true,
 	}).Error)

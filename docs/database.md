@@ -53,7 +53,35 @@
 
 **核身五态派生**（`id_verify_status`，非列存储，派生函数输出）：`none` / `uploaded` / `pending_review` / `verified` / `rejected`（判定优先级见 docs/cases/id-photos.md C6）
 
-### 2.1.1 face_capture_batches - 核身自拍采集批次表（#1789 T1）
+> **`users.promo_points` 已删除（#1983 阶段 2，迁移 `20260918001`）**：乐币余额不再存列，改由 `point_batches` 未过期批次合计实时派生（`SUM(remaining_cents)`，FIFO 消费先到期先扣）。
+
+### 2.1.1 point_batches - 乐币批次表（#1947 Sub-D / #1983）
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| user_id | UUID | NOT NULL, INDEX | 所属用户 |
+| source_type | VARCHAR(20) | NOT NULL, INDEX | `signup`/`referral`/`fission`/`purchase`/`activity`/`migration`/`manual` |
+| source_ref | VARCHAR(64) | | 来源引用（如 `registration`/`referral_reg`/`stage2_sync`） |
+| amount_cents | BIGINT | NOT NULL | 批次面额（分） |
+| remaining_cents | BIGINT | NOT NULL | 剩余可用（分），余额 = 未过期批次之和 |
+| acquired_at | TIMESTAMPTZ | NOT NULL | 获取时间 |
+| expires_at | TIMESTAMPTZ | INDEX | 到期时间（获取+有效期归一化到次月首日 00:00 北京时间；NULL=不过期） |
+| expired_cents | BIGINT | NOT NULL DEFAULT 0 | 已过期清零金额（分） |
+| expired_at | TIMESTAMPTZ | | 过期时间 |
+| created_at / updated_at | TIMESTAMPTZ | | 时间戳 |
+
+### 2.1.2 point_batch_consumptions - 批次扣减留痕（#1947 Sub-D）
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| transaction_id | UUID | NOT NULL, INDEX | 对应 `points_transactions.id` 或支付记录 ID（消费事务标识） |
+| batch_id | UUID | NOT NULL, INDEX | 被扣减批次 |
+| amount_cents | BIGINT | NOT NULL | 本次扣减额（分）；退款恢复时按逆序回减 |
+| consumed_at | TIMESTAMPTZ | NOT NULL | 扣减时间 |
+
+### 2.1.3 face_capture_batches - 核身自拍采集批次表（#1789 T1）
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|

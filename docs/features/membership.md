@@ -102,7 +102,8 @@
 |------|------|------|
 | `membership_level_id` | integer | FK → membership_levels.id |
 | `total_spending` | decimal | 消费金额总计（跨商户累计） |
-| `promo_points` | decimal | 促销点数 |
+
+> `users.promo_points` 已于 #1983 阶段 2 删除；乐币余额由 `point_batches` 未过期批次合计派生（见 §2.4a / `docs/features.md §5.2`）。
 
 ### 1.7 乐器表（`instruments`）新增字段
 
@@ -224,9 +225,9 @@
 ### 2.4a 返点发放规则
 
 - **发放时机**：订单状态变为 `completed`（消费完成后）时发放（详见 #1542 loyalty 赠点自动发放）。
-- **存入字段**：`users.promo_points`
+- **存入**：新建 `point_batches` 批次（余额 = 未过期批次 `remaining_cents` 合计；`users.promo_points` 已删除）
 - **发放比例**：按用户当前 `membership_level_id` 对应的 `rebate_config.rent_ratio` × 实际支付月租金
-- **订单取消/提前终止**：按实际租赁天数比例追回已发放返点（从 `promo_points` 中扣除）
+- **订单取消/提前终止**：按实际租赁天数比例追回已发放返点（按 FIFO 从批次扣减）
 - **返点不计入 total_spending**（避免循环升级）
 - **乐器禁用返点**（`instrument_promo_overrides.enabled=false`）时，该乐器订单不产生返点
 
@@ -280,7 +281,7 @@
 |------|------|
 | 查看会员级别 | 显示当前级别名称和徽章，距下一级别所需消费金额进度条 |
 | 查看累计消费 | `total_spending` 为**全平台累计**；本商户累计通过 `SUM(orders.total_amount WHERE tenant_id=当前商户)` 实时计算，不单独存储字段 |
-| 查看点数余额 | 显示 `promo_points` 及有效期 |
+| 查看点数余额 | 显示可用乐币（未过期批次合计）及最近到期日 |
 | 查看订单价格明细 | 订单详情页展示 `pricing_breakdown`：原价 → 各项折扣 → 最终价格 |
 | 下单时查看价格计算 | 购物车/结算页逐行展示折扣计算过程（见 §2.2） |
 | 使用促销点数抵扣 | 下单时选择使用点数 |

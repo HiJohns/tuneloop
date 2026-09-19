@@ -145,10 +145,8 @@ func grantRegistrationRewards(db *gorm.DB, user *models.User, form *registerForm
 		}
 	}
 	if giftPoints > 0 {
-		// #1757: promo_points in cents (1 点 = 1 分).
-		giftPointsCents := models.FromYuan(giftPoints)
-		db.Model(user).Update("promo_points", gorm.Expr("promo_points + ?", giftPointsCents))
-		// #1947 Sub-D: 建乐币批次（仅建账，快照已在上行维护）
+		giftPointsCents := models.FromYuan(giftPoints) // cents (1 点 = 1 分)
+		// #1947 Sub-D / #1983: 建乐币批次（批次 SUM 为余额唯一真源）
 		if _, berr := services.CreatePointsBatch(db, user.ID, services.PointBatchSourceSignup, "registration", giftPointsCents); berr != nil {
 			log.Printf("[register helper] create signup points batch failed: %v", berr)
 		}
@@ -175,11 +173,7 @@ func grantRegistrationRewards(db *gorm.DB, user *models.User, form *registerForm
 			})
 			if policy := services.GetGiftPolicyByLevel(db, levelIDOrZero(referrer.MembershipLevelID)); policy != nil && policy.ReferralRegPoints > 0 {
 				regCents := models.FromYuan(policy.ReferralRegPoints)
-				db.Model(&models.User{}).Where("id = ?", referrer.ID).Updates(map[string]interface{}{
-					"promo_points": gorm.Expr("promo_points + ?", regCents),
-					"updated_at":   time.Now(),
-				})
-				// #1947 Sub-D: 建推荐奖励批次（仅建账）
+				// #1947 Sub-D / #1983: 建推荐奖励批次（批次 SUM 为余额唯一真源）
 				if _, berr := services.CreatePointsBatch(db, referrer.ID, services.PointBatchSourceReferral, "referral_reg", regCents); berr != nil {
 					log.Printf("[register helper] create referral points batch failed: %v", berr)
 				}

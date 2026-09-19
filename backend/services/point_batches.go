@@ -257,10 +257,8 @@ func ExpireDueBatches(db *gorm.DB) (int, models.Cents, error) {
 			}).Error; err != nil {
 				return err
 			}
-			if err := tx.Model(&models.User{}).Where("id = ?", fresh.UserID).
-				Update("promo_points", gorm.Expr("GREATEST(promo_points - ?, 0)", exp)).Error; err != nil {
-				return err
-			}
+			// #1983 阶段 2：不再同步扣减 users.promo_points 快照；批次 remaining 已清零，
+			// 余额 SUM(未过期 remaining) 自然减少。
 			if err := tx.Where("id = ?", fresh.UserID).First(&u).Error; err != nil {
 				return err
 			}
@@ -369,11 +367,11 @@ func RemindExpiringBatches(db *gorm.DB) (int, error) {
 	return count, nil
 }
 
-// ReconcilePoints 对账：返回 (users.promo_points 快照, SUM(未过期 remaining))。
-// 供测试与排障；两者应相等。
-func ReconcilePoints(db *gorm.DB, userID string) (models.Cents, models.Cents, error) {
+// GetUserPointsBalance 返回用户可用乐币余额 = 未过期批次 remaining 之和。
+// #1983 阶段 2：批次 SUM 是余额唯一真源（users.promo_points 快照已废弃）。
+func GetUserPointsBalance(db *gorm.DB, userID string) (models.Cents, error) {
 	if db == nil || userID == "" {
-		return 0, 0, nil
+		return 0, nil
 	}
 	var sum struct {
 		Total int64
@@ -382,11 +380,7 @@ func ReconcilePoints(db *gorm.DB, userID string) (models.Cents, models.Cents, er
 		Where("user_id = ? AND remaining_cents > 0 AND (expires_at IS NULL OR expires_at >= ?)", userID, time.Now()).
 		Select("COALESCE(SUM(remaining_cents), 0) AS total").
 		Scan(&sum).Error; err != nil {
-		return 0, 0, err
+		return 0, err
 	}
-	var u models.User
-	if err := db.Where("id = ?", userID).First(&u).Error; err != nil {
-		return 0, 0, err
-	}
-	return u.PromoPoints, models.Cents(sum.Total), nil
+	return models.Cents(sum.Total), nil
 }

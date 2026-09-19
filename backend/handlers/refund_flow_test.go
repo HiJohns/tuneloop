@@ -45,7 +45,7 @@ func refundFlowSeed(t *testing.T, tenantID, orgID, userID string) (string, strin
 	db := testfixtures.SetupTestDB(t)
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
-		Username: "refunduser", Status: "active", PromoPoints: models.Cents(2000),
+		Username: "refunduser", Status: "active",
 	}).Error)
 	inst := models.Instrument{
 		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID,

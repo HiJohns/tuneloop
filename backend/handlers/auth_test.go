@@ -469,7 +469,8 @@ func TestPostRegister_NoPassword_WxBind_FullFlow(t *testing.T) {
 	require.NotEmpty(t, local.RefCode, "ref_code derived from user id")
 
 	// Registration gift points credited (#1533). #1757: cents (99 元 = 9900 分).
-	require.Equal(t, models.Cents(9900), local.PromoPoints, "registration gift points in cents")
+	// #1983: balance = SUM(point_batches) instead of the removed snapshot.
+	require.Equal(t, models.Cents(9900), pointsBalance(t, db, local.ID), "registration gift points in cents")
 	var pt models.PointsTransaction
 	require.NoError(t, db.Where("user_id = ? AND type = ?", local.ID, "registration").First(&pt).Error)
 	require.Equal(t, models.FromYuan(99.0), pt.Amount)

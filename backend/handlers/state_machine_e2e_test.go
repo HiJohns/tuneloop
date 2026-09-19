@@ -796,7 +796,6 @@ func TestExecuteRefund_NoSelfRebate(t *testing.T) {
 		OrgID:             "00000000-0000-0000-0000-000000000000",
 		Username:          "loyalty_user",
 		MembershipLevelID: &levelID,
-		PromoPoints:       0,
 		Status:            "active",
 	}).Error)
 
@@ -834,9 +833,7 @@ func TestExecuteRefund_NoSelfRebate(t *testing.T) {
 	require.NoError(t, err)
 	tx.Commit()
 
-	var user models.User
-	require.NoError(t, db.First(&user, "id = ?", userID).Error)
-	require.Equal(t, models.Cents(0), user.PromoPoints, "self-rebate 已取消（不再返点给自己）")
+	require.Equal(t, models.Cents(0), pointsBalance(t, db, userID), "self-rebate 已取消（不再返点给自己）")
 
 	var rebateCount int64
 	db.Model(&models.PointsTransaction{}).

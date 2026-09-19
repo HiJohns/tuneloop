@@ -740,6 +740,9 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 		}
 	}
 
+	// #1983 阶段 2：余额 = 未过期批次 SUM（users.promo_points 快照已废弃）。
+	promoBalance, _ := services.GetUserPointsBalance(db, user.ID)
+
 	result := gin.H{
 		"id":                    user.ID,
 		"username":              user.Username,
@@ -760,7 +763,7 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 		"site_id":               nil,
 		"membership_level_id":   user.MembershipLevelID,
 		"total_spending":        user.TotalSpending,
-		"promo_points":          user.PromoPoints,
+		"promo_points":          promoBalance,
 		"id_photo_front":        h.resolveIdPhotoURL(ctx, user.IdPhotoFront),
 		"id_photo_back":         h.resolveIdPhotoURL(ctx, user.IdPhotoBack),
 		"id_photo_other":        h.resolveIdPhotoURL(ctx, user.IdPhotoOther),

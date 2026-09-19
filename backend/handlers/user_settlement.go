@@ -189,17 +189,7 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		} else {
 			log.Printf("[Settlement] rent payment record not found for points restore (order %s)", orderID)
 		}
-		var user models.User
-		if err := tx.Where("id = ?", userID).First(&user).Error; err == nil {
-			if err := tx.Model(&user).Updates(map[string]interface{}{
-				"promo_points": gorm.Expr("promo_points + ?", models.FromYuan(result.GiftPointsRefunded)),
-				"updated_at":   time.Now(),
-			}).Error; err != nil {
-				tx.Rollback()
-				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to refund gift points"})
-				return
-			}
-		}
+		// #1983 阶段 2：不再写 users.promo_points 快照（上一步已按批次恢复）
 	}
 
 	// Cash refund via WeChat Pay (if cash was paid on this order)
@@ -411,12 +401,7 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 					log.Printf("[Settlement] restore points batches failed: %v", rerr)
 				}
 			}
-			if err := tx.Model(&models.User{}).Where("id = ?", order.UserID).Updates(map[string]interface{}{
-				"promo_points": gorm.Expr("promo_points + ?", models.FromYuan(result.GiftPointsRefunded)),
-				"updated_at":   time.Now(),
-			}).Error; err != nil {
-				return nil, fmt.Errorf("failed to refund gift points: %w", err)
-			}
+			// #1983 阶段 2：不再写 users.promo_points 快照（上方已按批次恢复）
 		}
 	}
 
@@ -613,29 +598,21 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 			if refRatio > 0 {
 				refPoints := math.Floor(result.RentPayable * refRatio)
 				if refPoints > 0 {
-					// #1757: promo_points cents — yuan-computed points ×100.
-					refCents := models.FromYuan(refPoints)
-					if err := tx.Model(&models.User{}).Where("id = ?", referrer.ID).Updates(map[string]interface{}{
-						"promo_points": gorm.Expr("promo_points + ?", refCents),
-						"updated_at":   time.Now(),
-					}).Error; err != nil {
-						log.Printf("[executeRefund] referral points credit failed for %s: %v", referrer.ID, err)
-					} else {
-						// #1945：补齐 Sub-D 未接入的裂变发放点（建批次）
-						if _, berr := services.CreatePointsBatch(tx, referrer.ID, services.PointBatchSourceFission, "referral_spend", refCents); berr != nil {
-							log.Printf("[executeRefund] create fission points batch failed: %v", berr)
-						}
-						tx.Create(&models.PointsTransaction{
-							ID:          uuid.New().String(),
-							UserID:      referrer.ID,
-							TenantID:    order.TenantID,
-							Type:        "referral",
-							Amount:      refCents,
-							OrderID:     &order.ID,
-							Description: fmt.Sprintf("介绍人返赠点: 被介绍人订单租金 ¥%.2f × %.2f%%", result.RentPayable, refRatio*100),
-							CreatedAt:   time.Now(),
-						})
+					refCents := models.FromYuan(refPoints) // #1757: cents — yuan-computed points ×100
+					// #1945 / #1983: 裂变返佣建批次（批次 SUM 为余额唯一真源）
+					if _, berr := services.CreatePointsBatch(tx, referrer.ID, services.PointBatchSourceFission, "referral_spend", refCents); berr != nil {
+						log.Printf("[executeRefund] create fission points batch failed: %v", berr)
 					}
+					tx.Create(&models.PointsTransaction{
+						ID:          uuid.New().String(),
+						UserID:      referrer.ID,
+						TenantID:    order.TenantID,
+						Type:        "referral",
+						Amount:      refCents,
+						OrderID:     &order.ID,
+						Description: fmt.Sprintf("介绍人返赠点: 被介绍人订单租金 ¥%.2f × %.2f%%", result.RentPayable, refRatio*100),
+						CreatedAt:   time.Now(),
+					})
 				}
 			}
 		}

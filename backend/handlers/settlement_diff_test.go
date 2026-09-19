@@ -28,8 +28,7 @@ func TestRefundDiff_PointsOverCap(t *testing.T) {
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
 		Username: "diffover", Status: "active", MembershipLevelID: intPtr(1),
-		PromoPoints: models.Cents(2000),
-	}).Error)
+			}).Error)
 
 	// R0 = 3000 (cash 2000 + gift 1000, deposit 500 excluded from rent formula)
 	// Actual rent R1 = 2800 (28 days × 100).
@@ -84,8 +83,7 @@ func TestRefundDiff_PointsWithinCap(t *testing.T) {
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
 		Username: "diffwithin", Status: "active", MembershipLevelID: intPtr(1),
-		PromoPoints: models.Cents(2000),
-	}).Error)
+			}).Error)
 
 	returnedAt := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
 	order := models.Order{
@@ -130,7 +128,7 @@ func TestRefundDiff_TotalSpendingC1(t *testing.T) {
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
 		Username: "diffspend", Status: "active", MembershipLevelID: intPtr(1),
-		PromoPoints: models.Cents(2000), TotalSpending: 0,
+		TotalSpending: 0,
 	}).Error)
 
 	returnedAt := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
@@ -174,8 +172,7 @@ func TestRefundDiff_RebatePoints(t *testing.T) {
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
 		Username: "diffrebate", Status: "active", MembershipLevelID: intPtr(1),
-		PromoPoints: 0,
-	}).Error)
+			}).Error)
 
 	returnedAt := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
 	order := models.Order{
@@ -220,8 +217,7 @@ func TestConfirmSettlement_ClosesOrder(t *testing.T) {
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
 		Username: "diffclose", Status: "active", MembershipLevelID: intPtr(1),
-		PromoPoints: models.Cents(2000),
-	}).Error)
+			}).Error)
 
 	returnedAt := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
 	order := models.Order{
@@ -263,7 +259,7 @@ func TestPaymentCallback_NoDoubleCount(t *testing.T) {
 
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
-		Username: "diffnodd", Status: "active", PromoPoints: models.Cents(1000),
+		Username: "diffnodd", Status: "active",
 	}).Error)
 	order := models.Order{
 		TenantID: tenantID, OrgID: orgID, UserID: userID,

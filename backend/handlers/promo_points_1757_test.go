@@ -33,8 +33,9 @@ func TestRegister_GiftPointsCents(t *testing.T) {
 	// /users/me which returns promo_points from the model (cents).
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
-		Username: "gift-cents", Status: "active", PromoPoints: models.Cents(9900),
+		Username: "gift-cents", Status: "active",
 	}).Error)
+	seedPointsBatch(t, db, userID, models.Cents(9900)) // #1983: balance from batch
 
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
@@ -72,8 +73,9 @@ func TestWalletInfo_PromoPointsCents(t *testing.T) {
 	userID := uuid.New().String()
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
-		Username: "wallet-cents", Status: "active", PromoPoints: models.Cents(20000),
+		Username: "wallet-cents", Status: "active",
 	}).Error)
+	seedPointsBatch(t, db, userID, models.Cents(20000)) // #1983: balance from batch
 
 	order := models.Order{
 		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID, UserID: userID,

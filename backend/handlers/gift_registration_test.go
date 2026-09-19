@@ -44,10 +44,10 @@ func TestGiftRegistration(t *testing.T) {
 		OrgID:             "00000000-0000-0000-0000-000000000001",
 		Username:          "referrer",
 		MembershipLevelID: intPtr(1),
-		PromoPoints:       models.FromYuan(100), // #1757: cents (100 元)
 		Status:            "active",
 	}
 	require.NoError(t, db.Create(&referrer).Error)
+	seedPointsBatch(t, db, referrerID, models.FromYuan(100)) // #1983: 100 元 batch
 	require.NoError(t, db.Model(&referrer).Update("ref_code", "abc12345").Error)
 
 	require.NoError(t, db.Create(&models.GiftPolicy{
@@ -97,10 +97,10 @@ func TestGiftRegistration(t *testing.T) {
 		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 		require.Equal(t, 20000, resp.Code)
 
-		// New user: promo_points 0 + 99 元 = 9900 分 (cents, #1757).
+		// New user: 99 元 = 9900 分 (cents, #1757); #1983 balance from batch SUM.
 		var newUser models.User
 		require.NoError(t, db.Where("iam_sub = ?", newUserID).First(&newUser).Error)
-		require.Equal(t, models.Cents(9900), newUser.PromoPoints, "registration gift 9900 cents")
+		require.Equal(t, models.Cents(9900), pointsBalance(t, db, newUser.ID), "registration gift 9900 cents")
 
 		// Registration PointsTransaction.
 		var regTx int64
@@ -109,10 +109,10 @@ func TestGiftRegistration(t *testing.T) {
 			Count(&regTx).Error)
 		require.Equal(t, int64(1), regTx, "registration transaction recorded")
 
-		// Referrer: 10000 + 50 元 = 15000 分 (cents, #1757).
+		// Referrer: 10000 + 50 元 = 15000 分 (cents, #1757); #1983 batch SUM.
 		var refUser models.User
 		require.NoError(t, db.Where("id = ?", referrerID).First(&refUser).Error)
-		require.Equal(t, models.Cents(15000), refUser.PromoPoints, "referral bonus 5000 cents credited")
+		require.Equal(t, models.Cents(15000), pointsBalance(t, db, refUser.ID), "referral bonus 5000 cents credited")
 
 		// Referral PointsTransaction.
 		var refTx int64
@@ -164,12 +164,12 @@ func TestGiftRegistration(t *testing.T) {
 		// New user: registration gift 99.
 		var newUser models.User
 		require.NoError(t, db.Where("iam_sub = ?", newUserID).First(&newUser).Error)
-		require.Equal(t, models.Cents(9900), newUser.PromoPoints, "registration gift 9900 cents without ref")
+		require.Equal(t, models.Cents(9900), pointsBalance(t, db, newUser.ID), "registration gift 9900 cents without ref")
 
 		// Referrer unchanged (no new referral bonus for this user).
 		var refUser models.User
 		require.NoError(t, db.Where("id = ?", referrerID).First(&refUser).Error)
-		require.Equal(t, models.Cents(15000), refUser.PromoPoints, "referrer promo unchanged (no ref passed)")
+		require.Equal(t, models.Cents(15000), pointsBalance(t, db, refUser.ID), "referrer promo unchanged (no ref passed)")
 	})
 }
 

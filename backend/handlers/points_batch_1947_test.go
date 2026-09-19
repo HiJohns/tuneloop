@@ -34,9 +34,7 @@ func TestPointsBatch_RegistrationGrant(t *testing.T) {
 	require.Equal(t, models.Cents(9900), b.RemainingCents)
 	require.NotNil(t, b.ExpiresAt, "普通批次有到期日")
 
-	var u models.User
-	require.NoError(t, db.Where("id = ?", user.ID).First(&u).Error)
-	require.Equal(t, models.Cents(9900), u.PromoPoints, "快照同步")
+	require.Equal(t, models.Cents(9900), pointsBalance(t, db, user.ID), "批次 SUM = 入会赠点")
 }
 
 func TestPointsBatch_DeductOnPayment(t *testing.T) {
@@ -48,7 +46,6 @@ func TestPointsBatch_DeductOnPayment(t *testing.T) {
 		ID: uuid.New().String(), IAMSub: iamSub,
 		TenantID: tenantID, OrgID: tenantID,
 		Username: "pb-pay", Status: "active", Name: "支付扣点用户",
-		PromoPoints: 500,
 	}
 	require.NoError(t, db.Create(&user).Error)
 
@@ -75,11 +72,7 @@ func TestPointsBatch_DeductOnPayment(t *testing.T) {
 	db.Model(&models.PointBatchConsumption{}).Where("transaction_id = ?", rec.ID).Count(&consCount)
 	require.Equal(t, int64(1), consCount, "扣减留痕")
 
-	var u models.User
-	require.NoError(t, db.Where("id = ?", user.ID).First(&u).Error)
-	require.Equal(t, models.Cents(300), u.PromoPoints, "快照同步扣减")
-
-	snapshot, batchSum, err := services.ReconcilePoints(db, user.ID)
+	batchSum, err := services.GetUserPointsBalance(db, user.ID)
 	require.NoError(t, err)
-	require.Equal(t, snapshot, batchSum, "快照 == SUM(未过期 remaining)")
+	require.Equal(t, models.Cents(300), batchSum, "FIFO 后批次 SUM = 300")
 }

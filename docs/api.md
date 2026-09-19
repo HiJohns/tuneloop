@@ -3112,6 +3112,8 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 > **#1757 单位契约**：`promo_points` / `points_transactions.amount` 均为**分**（1 点 = 1 分）。注册乐币 99 元 → `promo_points = 9900`；前端显示「9900 点」。支付抵扣（`gift_used`）、推荐奖励、裂变返佣全链路分运算。乐币规则比例（`pay_ratio` / `referral_ratio`）为 0~1 小数，不受单位影响；`referral_reg_points` 为乐币数（元）。
 >
 > **#1945 乐币规则**：原「退款返点给自己」已取消（`refund_ratio` 字段废弃）。级别配置见 `gift_policies`（`pay_ratio` / `referral_ratio` / `referral_reg_points`）；全局参数 `GET/PUT /admin/point-settings`（`pay_ratio_max` / `point_batch_validity_months` / `point_expiry_reminder_days`）。
+>
+> **#1983 余额真源**：`promo_points` 数据源为 `SUM(point_batches.remaining_cents WHERE 未过期)`（FIFO 消费）；`users.promo_points` 快照列已删除（迁移 `20260918001`）。响应字段名与分单位**不变**。
 
 **接口**: `GET /api/user/points/balance`
 

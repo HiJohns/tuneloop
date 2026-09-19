@@ -32,6 +32,10 @@ func setupPointBatchTestDB(t *testing.T) {
 		require.NoError(t, db.Migrator().CreateTable(m))
 	}
 	db.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS iam_sub VARCHAR(255) NOT NULL DEFAULT ''")
+	// #1983: models.User.PromoPoints removed; migration 20260917010's legacy
+	// backfill still reads users.promo_points, so the test schema keeps the
+	// column for that historical migration test.
+	db.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS promo_points bigint NOT NULL DEFAULT 0")
 }
 
 func mkPointBatchUser(t *testing.T, promo models.Cents) (*gorm.DB, string, string) {
@@ -41,8 +45,11 @@ func mkPointBatchUser(t *testing.T, promo models.Cents) (*gorm.DB, string, strin
 	userID := uuid.New().String()
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: tenantID,
-		Username: "pb-" + userID[:8], Status: "active", Name: "批次用户", PromoPoints: promo,
+		Username: "pb-" + userID[:8], Status: "active", Name: "批次用户",
 	}).Error)
+	if promo != 0 {
+		require.NoError(t, db.Exec("UPDATE users SET promo_points = ? WHERE id = ?", promo, userID).Error)
+	}
 	return db, userID, tenantID
 }
 
@@ -139,9 +146,10 @@ func TestPointBatch_ExpireDueBatches(t *testing.T) {
 	require.Equal(t, models.Cents(150), b.ExpiredCents)
 	require.NotNil(t, b.ExpiredAt)
 
-	var u models.User
-	require.NoError(t, db.Where("id = ?", userID).First(&u).Error)
-	require.Equal(t, models.Cents(0), u.PromoPoints, "快照同步扣减")
+	// #1983: 不再有快照；余额由批次 SUM 反映（过期批次 remaining 清零 → 0）。
+	balance, err := GetUserPointsBalance(db, userID)
+	require.NoError(t, err)
+	require.Equal(t, models.Cents(0), balance, "过期后批次 SUM = 0")
 
 	var expiredTx int64
 	db.Model(&models.PointsTransaction{}).
@@ -154,9 +162,9 @@ func TestPointBatch_ExpireDueBatches(t *testing.T) {
 		Where("user_id = ? AND type = ?", userID, "points_expired").Count(&expiredNotif)
 	require.Equal(t, int64(1), expiredNotif, "合并过期通知")
 
-	snapshot, batchSum, err := ReconcilePoints(db, userID)
+	batchSum, err := GetUserPointsBalance(db, userID)
 	require.NoError(t, err)
-	require.Equal(t, snapshot, batchSum, "快照 == SUM(未过期 remaining)")
+	require.Equal(t, models.Cents(0), batchSum, "过期后无可用批次")
 }
 
 func TestPointBatch_RemindExpiringBatches(t *testing.T) {
