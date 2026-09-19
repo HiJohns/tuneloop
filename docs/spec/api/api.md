@@ -5945,20 +5945,22 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 {
   "code": 20000,
   "data": [
-    { "id": 1, "name": "初级会员", "min_spending": 0, "discount_rate": 1.0, "sort_order": 1 },
-    { "id": 2, "name": "中级会员", "min_spending": 5000, "discount_rate": 0.95, "sort_order": 2 }
+    { "id": 1, "name": "级别名称", "min_amount": 0, "discount_rate": 1.0, "sort_order": 1 },
+    { "id": 2, "name": "级别名称", "min_amount": 500000, "discount_rate": 0.95, "sort_order": 2 }
   ]
 }
 ```
+
+> **说明**: 级别名称（`name`）和门槛金额（`min_amount`）由管理员在后台配置，此处仅为示例结构。
 
 **接口**: `POST /api/admin/membership-levels` — 创建会员级别
 
 **请求 Body**:
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| name | string | 级别名称 |
+| name | string | 级别名称（由管理员定义） |
 | discount_rate | decimal | 折扣率 (0.0–1.0) |
-| min_spending | decimal | 升级所需累计消费 |
+| min_amount | decimal | 升级所需累计消费（单位：元，后端转分存储） |
 | sort_order | int | 排序号 |
 
 **接口**: `PUT /api/admin/membership-levels/:id` — 更新会员级别

@@ -319,7 +319,7 @@ export default function Profile() {
               </View>
               {user?.membership_level_id && (
                 <Text style={{ fontSize: 12, color: '#b45309', marginTop: 2 }}>
-                  {['', '初级会员', '中级会员', '高级会员'][user?.membership_level_id] || `Level ${user?.membership_level_id}`}
+                  {user?.membership_level_name || `Level ${user?.membership_level_id}`}
                 </Text>
               )}
               {!isStaff && (
