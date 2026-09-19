@@ -14,6 +14,8 @@ backend/tuneloop-backend
 backend/main
 backend/migrate
 backend/handlers.test
+backend/service/tuneloop
+backend/service/migrate
 
 # Frontend build output
 frontend-pc/dist/
@@ -63,3 +65,11 @@ oss-accounts.md
 
 # Local opencode 实体副本同步脚本（Windows 本机专用）
 scripts/sync-opencode.sh
+
+# 平台/本机专属配置（禁止提交；平台差异走本机未提交文件）
+Makefile.local
+.env.local
+**/.env.local
+
+# 平台原生依赖（历史遗留仍被跟踪，已用 git rm --cached 移出索引）
+frontend-pc/node_modules/

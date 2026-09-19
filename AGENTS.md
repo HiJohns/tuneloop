@@ -789,6 +789,12 @@ pending_ship → shipping → inspecting → quoted → pending_payment → pend
 - 反例（2026-09-19 停机事故）：`gh issue comment 1984 --body "…`make release`…"` → bash 执行了 `make release`，**意外部署预生产**并因快照库缺列导致 `tuneloop-pre` 崩溃循环 ~8h（NRestarts≈5714）。事故记录见 #1986。
 - 发布类命令（`make release` / `deploy.sh` / `weapp-upload-*`）只能由用户显式请求后执行，绝不允许作为命令替换的副作用发生。
 
+**严禁**：提交**平台专属 / 本机专属**文件（会与其它平台的同名产物**互相覆盖**）。
+- **共享文件只放跨平台内容**：Windows 专属的 Makefile 目标（`tunnel-ssh`/`mount-sshfs`/`check-uploads`/`ensure-junction` 等）、`NODE22_PATH`、`include backend/.env` / `include frontend-mobile/.env.local` 一律**本机化**——放入**未提交**的 `Makefile.local`（已 gitignore），不得写进共享 `Makefile`。
+- **禁止提交**：平台原生依赖与产物（`node_modules/**`，含 `@esbuild/*`、`@rollup/*` 等平台包与 `.bin` shim）、编译二进制（`backend/service/tuneloop`、`backend/migrate` 等）、本机脚本/密钥（`scripts/sync-opencode.sh`、`oss-accounts.md`、`*.key`）、本机环境覆盖（`.env.local`）。
+- **提交前自检**：`git status` / `git diff --cached --stat` 若出现上述路径（或任何 `node_modules/`、ELF/EXE 二进制、`.env*` 本机文件）→ **停止**，加入 `.gitignore` 并用 `git rm --cached` 移出索引（保留本地文件）。
+- 反例（2026-09-19 #1970 合并）：main 的 Windows 版 `Makefile`（`NODE22_PATH` + `include frontend-mobile/.env.local` + `cmd //c`/sshfs 目标）与 Linux 构建服务器冲突；`frontend-pc/node_modules`（**36,845** 文件）、`backend/service/tuneloop`（36MB ELF）、`backend/migrate`（26MB ELF）被提交，跨平台/跨机构互相覆盖。
+
 ---
 
 ## 🖥️ 生产服务器访问 (Production Server Access)
