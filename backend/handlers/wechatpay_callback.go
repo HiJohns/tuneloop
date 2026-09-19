@@ -436,6 +436,12 @@ func deductPointsFromRecord(tx *gorm.DB, record *models.OrderPaymentRecord, now 
 	if localUserID == "" {
 		return fmt.Errorf("local user not found for iam_sub %s", record.UserID)
 	}
+	// #1947 Sub-D: 按 FIFO 扣减乐币批次并留痕（transaction = 本支付记录 ID）
+	if consumed, cerr := services.ConsumePointsFIFO(tx, localUserID, models.Cents(giftUsedCents), record.ID); cerr != nil {
+		return fmt.Errorf("consume points batches: %w", cerr)
+	} else if consumed != models.Cents(giftUsedCents) {
+		log.Printf("[PointsBatch] FIFO consumed %.2f != gift_used %.2f for record %s (legacy/admin-adjusted balance?)", float64(consumed), giftUsedCents, record.ID)
+	}
 	pt := models.PointsTransaction{
 		ID:          uuid.New().String(),
 		UserID:      localUserID,

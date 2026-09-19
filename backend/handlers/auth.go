@@ -438,6 +438,10 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 				if giftPoints > 0 {
 					giftPointsCents := models.FromYuan(giftPoints)
 					h.db.Model(&newUser).Update("promo_points", gorm.Expr("promo_points + ?", giftPointsCents))
+					// #1947 Sub-D: 建乐币批次（仅建账，快照已在上行维护）
+					if _, berr := services.CreatePointsBatch(h.db, newUser.ID, services.PointBatchSourceSignup, "registration", giftPointsCents); berr != nil {
+						log.Printf("[Register] create signup points batch failed: %v", berr)
+					}
 					h.db.Create(&models.PointsTransaction{
 						ID:          uuid.New().String(),
 						UserID:      newUser.ID,
@@ -465,6 +469,10 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 									"promo_points": gorm.Expr("promo_points + ?", models.FromYuan(ratios.ReferralRegPoints)),
 									"updated_at":   time.Now(),
 								})
+								// #1947 Sub-D: 建推荐奖励批次（仅建账）
+								if _, berr := services.CreatePointsBatch(h.db, referrer.ID, services.PointBatchSourceReferral, "referral_reg", models.FromYuan(ratios.ReferralRegPoints)); berr != nil {
+									log.Printf("[Register] create referral points batch failed: %v", berr)
+								}
 								h.db.Create(&models.PointsTransaction{
 									ID:          uuid.New().String(),
 									UserID:      referrer.ID,

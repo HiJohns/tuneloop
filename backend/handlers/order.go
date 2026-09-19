@@ -1709,6 +1709,13 @@ func refundOrderPoints(db *gorm.DB, order *models.Order) {
 			Update("prepaid_points", gorm.Expr("prepaid_points + ?", order.PrepaidPointsUsed))
 	}
 	if order.GiftPointsUsed > 0 {
+		// #1947 Sub-D: 按消费逆序恢复原批次（transaction = 该订单 rent 支付记录 ID）
+		var refundPayRec models.OrderPaymentRecord
+		if err := db.Where("order_id = ? AND order_type = ? AND status = ?", order.ID, "rent", "paid").First(&refundPayRec).Error; err == nil && refundPayRec.ID != "" {
+			if _, rerr := services.RestorePointsByTransaction(db, order.UserID, refundPayRec.ID, order.GiftPointsUsed); rerr != nil {
+				log.Printf("[Order] restore points batches failed: %v", rerr)
+			}
+		}
 		db.Model(&models.User{}).Where("id = ?", order.UserID).
 			Update("promo_points", gorm.Expr("promo_points + ?", order.GiftPointsUsed))
 	}

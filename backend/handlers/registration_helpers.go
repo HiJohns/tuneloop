@@ -148,6 +148,10 @@ func grantRegistrationRewards(db *gorm.DB, user *models.User, form *registerForm
 		// #1757: promo_points in cents (1 点 = 1 分).
 		giftPointsCents := models.FromYuan(giftPoints)
 		db.Model(user).Update("promo_points", gorm.Expr("promo_points + ?", giftPointsCents))
+		// #1947 Sub-D: 建乐币批次（仅建账，快照已在上行维护）
+		if _, berr := services.CreatePointsBatch(db, user.ID, services.PointBatchSourceSignup, "registration", giftPointsCents); berr != nil {
+			log.Printf("[register helper] create signup points batch failed: %v", berr)
+		}
 		db.Create(&models.PointsTransaction{
 			ID:          uuid.New().String(),
 			UserID:      user.ID,
@@ -176,6 +180,10 @@ func grantRegistrationRewards(db *gorm.DB, user *models.User, form *registerForm
 						"promo_points": gorm.Expr("promo_points + ?", regCents),
 						"updated_at":   time.Now(),
 					})
+					// #1947 Sub-D: 建推荐奖励批次（仅建账）
+					if _, berr := services.CreatePointsBatch(db, referrer.ID, services.PointBatchSourceReferral, "referral_reg", regCents); berr != nil {
+						log.Printf("[register helper] create referral points batch failed: %v", berr)
+					}
 					db.Create(&models.PointsTransaction{
 						ID:          uuid.New().String(),
 						UserID:      referrer.ID,

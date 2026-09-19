@@ -62,6 +62,8 @@ var allTestModels = []interface{}{
 	&models.User{},
 	&models.UserInstrument{},
 	&models.Warning{},
+	&models.PointBatch{},            // #1947 Sub-D
+	&models.PointBatchConsumption{}, // #1947 Sub-D
 }
 
 func TestMain(m *testing.M) {

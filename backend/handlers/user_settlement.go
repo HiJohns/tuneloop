@@ -180,6 +180,15 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 	}
 
 	if result.GiftPointsRefunded > 0 {
+		// #1947 Sub-D: 按消费逆序恢复原批次（transaction = 该订单 rent 支付记录 ID）
+		var refundPayRec models.OrderPaymentRecord
+		if err := tx.Where("order_id = ? AND order_type = ? AND status = ?", orderID, "rent", "paid").First(&refundPayRec).Error; err == nil && refundPayRec.ID != "" {
+			if _, rerr := services.RestorePointsByTransaction(tx, userID, refundPayRec.ID, models.FromYuan(result.GiftPointsRefunded)); rerr != nil {
+				log.Printf("[Settlement] restore points batches failed: %v", rerr)
+			}
+		} else {
+			log.Printf("[Settlement] rent payment record not found for points restore (order %s)", orderID)
+		}
 		var user models.User
 		if err := tx.Where("id = ?", userID).First(&user).Error; err == nil {
 			if err := tx.Model(&user).Updates(map[string]interface{}{
@@ -395,6 +404,13 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 
 		// Refund gift points (over cap portion) to promo_points
 		if result.GiftPointsRefunded > 0 {
+			// #1947 Sub-D: 按消费逆序恢复原批次（transaction = 该订单 rent 支付记录 ID）
+			var refundPayRec models.OrderPaymentRecord
+			if err := tx.Where("order_id = ? AND order_type = ? AND status = ?", order.ID, "rent", "paid").First(&refundPayRec).Error; err == nil && refundPayRec.ID != "" {
+				if _, rerr := services.RestorePointsByTransaction(tx, order.UserID, refundPayRec.ID, models.FromYuan(result.GiftPointsRefunded)); rerr != nil {
+					log.Printf("[Settlement] restore points batches failed: %v", rerr)
+				}
+			}
 			if err := tx.Model(&models.User{}).Where("id = ?", order.UserID).Updates(map[string]interface{}{
 				"promo_points": gorm.Expr("promo_points + ?", models.FromYuan(result.GiftPointsRefunded)),
 				"updated_at":   time.Now(),

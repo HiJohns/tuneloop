@@ -665,6 +665,31 @@ type PointsTransaction struct {
 	CreatedAt           time.Time `json:"created_at"`
 }
 
+// PointBatch 乐币批次（#1947 Sub-D）：发放建批次，按 FIFO 消费；expires_at NULL=不过期。
+type PointBatch struct {
+	ID             string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID         string     `gorm:"type:uuid;not null;index" json:"user_id"`
+	SourceType     string     `gorm:"type:varchar(20);not null;index" json:"source_type"` // signup|referral|fission|purchase|activity|migration
+	SourceRef      string     `gorm:"type:varchar(64)" json:"source_ref"`
+	AmountCents    Cents      `gorm:"type:bigint;not null" json:"amount_cents"`
+	RemainingCents Cents      `gorm:"type:bigint;not null" json:"remaining_cents"`
+	AcquiredAt     time.Time  `gorm:"type:timestamptz;not null" json:"acquired_at"`
+	ExpiresAt      *time.Time `gorm:"type:timestamptz;index" json:"expires_at"` // NULL=不过期
+	ExpiredCents   Cents      `gorm:"type:bigint;not null;default:0" json:"expired_cents"`
+	ExpiredAt      *time.Time `gorm:"type:timestamptz" json:"expired_at"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+}
+
+// PointBatchConsumption 批次扣减留痕（#1947 Sub-D）：一次消费可跨多批次。
+type PointBatchConsumption struct {
+	ID            string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TransactionID string    `gorm:"type:uuid;not null;index" json:"transaction_id"`
+	BatchID       string    `gorm:"type:uuid;not null;index" json:"batch_id"`
+	AmountCents   Cents     `gorm:"type:bigint;not null" json:"amount_cents"`
+	ConsumedAt    time.Time `gorm:"type:timestamptz;not null" json:"consumed_at"`
+}
+
 // Label represents a normalized tag/label for instruments
 type Label struct {
 	ID             string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`

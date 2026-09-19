@@ -1254,6 +1254,11 @@ func main() {
 	overdueDeductionScheduler.Start()
 	defer overdueDeductionScheduler.Stop()
 
+	// #1947 Sub-D: 乐币批次每日清扫（过期失效 + 到期提醒）
+	pointBatchScheduler := services.NewPointBatchScheduler()
+	pointBatchScheduler.Start()
+	defer pointBatchScheduler.Stop()
+
 	go handlers.StartPaymentScheduler(db)
 	go handlers.StartInitReservationCleanupScheduler(db)
 	go handlers.StartReservedOrderScheduler()
