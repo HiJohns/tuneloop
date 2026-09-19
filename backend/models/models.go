@@ -669,7 +669,7 @@ type PointsTransaction struct {
 type PointBatch struct {
 	ID             string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	UserID         string     `gorm:"type:uuid;not null;index" json:"user_id"`
-	SourceType     string     `gorm:"type:varchar(20);not null;index" json:"source_type"` // signup|referral|fission|purchase|activity|migration
+	SourceType     string     `gorm:"type:varchar(20);not null;index" json:"source_type"` // signup|referral|fission|purchase|activity|migration|manual
 	SourceRef      string     `gorm:"type:varchar(64)" json:"source_ref"`
 	AmountCents    Cents      `gorm:"type:bigint;not null" json:"amount_cents"`
 	RemainingCents Cents      `gorm:"type:bigint;not null" json:"remaining_cents"`

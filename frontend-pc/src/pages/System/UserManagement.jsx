@@ -38,6 +38,9 @@ export default function UserManagement() {
   const [detail, setDetail] = useState(null)
   const [idCardForm] = Form.useForm()
   const [form] = Form.useForm()
+  const [grantVisible, setGrantVisible] = useState(false)
+  const [grantForm] = Form.useForm()
+  const [granting, setGranting] = useState(false)
   // Module 2: face batches (read-only, review via face-review queue #1813)
   const [batches, setBatches] = useState([])
 
@@ -95,7 +98,6 @@ export default function UserManagement() {
     setCurrent(record)
     form.setFieldsValue({
       membership_level_id: record.membership_level_id,
-      promo_points: record.points != null ? record.points / 100 : undefined,
       status: record.status === 'active',
     })
     setIdPhotos({ front: '', back: '', other: '' })
@@ -108,7 +110,6 @@ export default function UserManagement() {
     try {
       const resp = await api.put(`/admin/user-management/${current.id}`, {
         membership_level_id: values.membership_level_id,
-        promo_points: values.promo_points != null ? Math.round(values.promo_points * 100) : undefined,
         status: values.status ? 'active' : 'disabled',
       })
       if (resp?.code === 20000) {
@@ -121,6 +122,29 @@ export default function UserManagement() {
     } catch (err) {
       message.error('保存失败: ' + (err.message || ''))
     }
+  }
+
+  const handleGrant = async () => {
+    const values = await grantForm.validateFields()
+    setGranting(true)
+    try {
+      const resp = await api.post(`/admin/user-management/${current.id}/points-grant`, {
+        amount: values.amount,
+        reason: values.reason?.trim(),
+      })
+      if (resp?.code === 20000) {
+        message.success('加赠成功')
+        setGrantVisible(false)
+        grantForm.resetFields()
+        fetchList()
+        loadDetail(current.id)
+      } else {
+        message.error(resp?.message || '加赠失败')
+      }
+    } catch (err) {
+      message.error('加赠失败: ' + (err.message || ''))
+    }
+    setGranting(false)
   }
 
   // ---- Module 1: ID card info ----
@@ -234,8 +258,11 @@ export default function UserManagement() {
           <Form.Item label="当前等级" name="membership_level_id">
             <InputNumber min={0} style={{ width: '100%' }} placeholder="等级 ID（见会员级别管理）" />
           </Form.Item>
-          <Form.Item label="当前乐币（点，1点=1元）" name="promo_points">
-            <InputNumber min={0} precision={0} style={{ width: '100%' }} />
+          <Form.Item label="当前乐币（点，1点=1元）">
+            <Space>
+              <Text strong>{current?.points != null ? current.points / 100 : '-'}</Text>
+              <Button size="small" onClick={() => { grantForm.resetFields(); setGrantVisible(true) }}>加赠乐币</Button>
+            </Space>
           </Form.Item>
           <Form.Item label="禁用/可用" name="status" valuePropName="checked">
             <Switch checkedChildren="可用" unCheckedChildren="禁用" />
@@ -376,6 +403,28 @@ export default function UserManagement() {
               },
             ]}
           />
+        </Form>
+      </Modal>
+
+      {/* #1982: 管理员加赠乐币（批次入口，替代原直接编辑） */}
+      <Modal
+        title={`加赠乐币${current ? ` · ${current.username || current.nickname || ''}` : ''}`}
+        open={grantVisible}
+        onOk={handleGrant}
+        confirmLoading={granting}
+        okText="加赠乐币"
+        cancelText="取消"
+        onCancel={() => setGrantVisible(false)}
+        destroyOnClose
+      >
+        <Form form={grantForm} layout="vertical">
+          <Form.Item label="加赠数量（点，1点=1元）" name="amount" rules={[{ required: true, message: '请输入加赠数量' }]}>
+            <InputNumber min={0.01} precision={2} style={{ width: '100%' }} placeholder="如 10" />
+          </Form.Item>
+          <Form.Item label="加赠原因" name="reason" rules={[{ required: true, message: '请输入加赠原因' }]}>
+            <Input.TextArea rows={3} maxLength={200} placeholder="用于台账留痕，如：客服补偿" />
+          </Form.Item>
+          <Alert type="info" showIcon message="加赠将新增一条乐币批次，有效期按全局规则（默认获取后 2 年，次月首日到期）。" />
         </Form>
       </Modal>
     </div>

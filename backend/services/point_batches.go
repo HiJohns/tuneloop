@@ -21,6 +21,7 @@ const (
 	PointBatchSourcePurchase  = "purchase"
 	PointBatchSourceActivity  = "activity"
 	PointBatchSourceMigration = "migration"
+	PointBatchSourceManual    = "manual" // #1982: 管理员人工加赠
 )
 
 // PointBatchValidity 乐币批次有效期。默认 2 年，包级可配置（#1939 配置化准则）——

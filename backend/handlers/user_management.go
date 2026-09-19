@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -309,3 +311,78 @@ func resolveStorageKey(ctx context.Context, key *string) string {
 }
 
 var _ = middleware.GetTenantID
+
+// GrantPoints adds a manual points batch (admin gift) for a user (#1982).
+// POST /admin/user-management/:id/points-grant
+// Body: {amount: <元>, reason: <必填>}
+// 加赠进入 point_batches 台账（source=manual），受统一有效期政策约束；
+// 操作人/原因写入 points_transactions 留痕。批次 SUM 为余额唯一真源（#1983）。
+func (h *UserManagementHandler) GrantPoints(c *gin.Context) {
+	var req struct {
+		Amount float64 `json:"amount"` // yuan
+		Reason string  `json:"reason"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
+		return
+	}
+	req.Reason = strings.TrimSpace(req.Reason)
+	if req.Reason == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "reason is required"})
+		return
+	}
+	amountCents := models.FromYuan(req.Amount)
+	if amountCents <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "amount must be positive"})
+		return
+	}
+
+	db := h.platformDB(c)
+	var user models.User
+	if err := db.Where("id = ?", c.Param("id")).First(&user).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		return
+	}
+
+	operator := middleware.GetUserID(c.Request.Context())
+	sourceRef := req.Reason
+	if len(sourceRef) > 64 {
+		sourceRef = sourceRef[:64] // point_batches.source_ref is varchar(64)
+	}
+
+	var batch *models.PointBatch
+	var balance models.Cents
+	err := db.Transaction(func(tx *gorm.DB) error {
+		b, berr := services.CreatePointsBatch(tx, user.ID, services.PointBatchSourceManual, sourceRef, amountCents)
+		if berr != nil {
+			return berr
+		}
+		batch = b
+		bal, berr := services.GetUserPointsBalance(tx, user.ID)
+		if berr != nil {
+			return berr
+		}
+		balance = bal
+		return tx.Create(&models.PointsTransaction{
+			ID:                uuid.New().String(),
+			UserID:            user.ID,
+			TenantID:          user.TenantID,
+			Type:              "manual_grant",
+			Amount:            amountCents,
+			BalanceAfterPromo: float64(bal),
+			Description:       fmt.Sprintf("管理员加赠乐币: %s（操作人: %s）", req.Reason, operator),
+			CreatedAt:         time.Now(),
+		}).Error
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to grant points: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
+		"batch_id":     batch.ID,
+		"amount_cents": amountCents,
+		"expires_at":   batch.ExpiresAt,
+		"balance":      balance,
+	}})
+}

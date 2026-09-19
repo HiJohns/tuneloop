@@ -456,6 +456,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.GET("/admin/user-management/export", middleware.RequireSysPerm(middleware.SysPermTenantList), userManagementHandler.Export)
 		authRequired.GET("/admin/user-management/:id", middleware.RequireSysPerm(middleware.SysPermTenantView), userManagementHandler.Get)
 		authRequired.PUT("/admin/user-management/:id", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), userManagementHandler.Update)
+		authRequired.POST("/admin/user-management/:id/points-grant", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), userManagementHandler.GrantPoints)
 		authRequired.POST("/admin/user-management/:id/id-photo", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), userOnboardingHandler.AdminUploadIDPhoto)
 		authRequired.DELETE("/admin/user-management/:id/id-photo", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), userOnboardingHandler.AdminDeleteIdPhoto)
 		// #1810: 详情对话框实名核身区块（模块 1 身份证信息采集/拒绝采用）。

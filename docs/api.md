@@ -3572,6 +3572,37 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ---
 
+### 8.11.4 管理员加赠乐币（#1982）
+
+**接口**: `POST /api/admin/user-management/:id/points-grant`
+
+**说明**: 管理员人工加赠乐币——新增一条 `point_batches` 批次（`source_type=manual`），受统一有效期政策约束（获取+有效期归一化到次月首日 00:00 北京时间）；操作人与原因写入 `points_transactions`（`type=manual_grant`）留痕。**替代**原直接编辑 `users.promo_points`（该列已随 #1983 删除）。
+
+**权限**: `sys_perm.tenant_update`
+
+**请求 Body**:
+```json
+{ "amount": 12.5, "reason": "客服补偿" }
+```
+> `amount` 单位为**元**（服务端 ×100 转分落库）；`reason` 必填，用于台账留痕。
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "batch_id": "uuid",
+    "amount_cents": 1250,
+    "expires_at": "2028-10-01T00:00:00+08:00",
+    "balance": 1250
+  }
+}
+```
+
+**错误**: `40002` amount≤0 / reason 空；`40400` 用户不存在；`403` 无权限。
+
+---
+
 ### 8.12 租金计算（v3 阶梯累加）
 
 **接口**: `POST /api/rental/calculate`
