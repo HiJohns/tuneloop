@@ -784,6 +784,11 @@ pending_ship → shipping → inspecting → quoted → pending_payment → pend
 - 违反判定：`if err != nil { log.Printf(...); /* 无 return */ }` 且后续代码路径可达 HTTP 200 → **红线违规**。
 - 反例：#1637 注册时 WxBind 返回 409 被静默吞掉，用户注册成功但微信未绑定，换端登录收到 `wx_user_not_found`。
 
+**严禁**：在 shell **双引号字符串内使用反引号 `` ` `` 或 `$()`**（命令替换会在“只想传文本”时**真实执行命令**）。
+- 所有 Issue/Comment 正文、commit message、多行文本一律使用 **`--body-file <文件>`** 或 heredoc `<<'EOF'`（单引号 heredoc 不展开），**禁止** `--body "…`cmd`…"` 内联。
+- 反例（2026-09-19 停机事故）：`gh issue comment 1984 --body "…`make release`…"` → bash 执行了 `make release`，**意外部署预生产**并因快照库缺列导致 `tuneloop-pre` 崩溃循环 ~8h（NRestarts≈5714）。事故记录见 #1986。
+- 发布类命令（`make release` / `deploy.sh` / `weapp-upload-*`）只能由用户显式请求后执行，绝不允许作为命令替换的副作用发生。
+
 ---
 
 ## 🖥️ 生产服务器访问 (Production Server Access)
