@@ -69,9 +69,12 @@ func resolveSelfieURL(ctx context.Context, key string) string {
 	if strings.HasPrefix(key, "http://") || strings.HasPrefix(key, "https://") {
 		return key
 	}
-	url, err := services.NewMediaStorage().GetURL(ctx, key)
+	// 先归一化（兼容历史脏值 /uploads/media//uploads/media/...，#1807/#1814），
+	// 再经 MediaStorage（OSS 私有前缀 → 签名 URL；本地 → 相对路径）。
+	clean := normalizeMediaKey(key)
+	url, err := services.NewMediaStorage().GetURL(ctx, clean)
 	if err != nil || url == "" {
-		return mediaURLPrefix + normalizeMediaKey(key)
+		return mediaURLPrefix + clean
 	}
 	return url
 }
