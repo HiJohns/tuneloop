@@ -5500,28 +5500,35 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 
 **接口**: `GET /api/admin/membership-levels` — 列出所有会员级别
 
-**响应**:
+> **金额单位契约（#1987）**：所有金额字段的**请求输入为「元」**，后端调用 `models.FromYuan()` / `models.ToCentsPtr()` 转换后以**分**存库；`GET` 响应返回的是**分**（`models.Cents`，如 `min_amount: 1000000` = 10000 元）。Create 与 Update handler 行为一致。
+
+**响应**（`min_amount` 为分）:
 ```json
 {
   "code": 20000,
   "data": [
-    { "id": 1, "name": "初级会员", "min_spending": 0, "discount_rate": 1.0, "sort_order": 1 },
-    { "id": 2, "name": "中级会员", "min_spending": 5000, "discount_rate": 0.95, "sort_order": 2 }
+    { "id": 1, "name": "乐手", "min_amount": 0 },
+    { "id": 2, "name": "首席", "min_amount": 1000000 }
   ]
 }
 ```
 
 **接口**: `POST /api/admin/membership-levels` — 创建会员级别
 
-**请求 Body**:
+**请求 Body**（`min_amount` 输入为**元**）:
 | 字段 | 类型 | 说明 |
 |------|------|------|
+| id | int | 级别 ID |
 | name | string | 级别名称 |
-| discount_rate | decimal | 折扣率 (0.0–1.0) |
-| min_spending | decimal | 升级所需累计消费 |
-| sort_order | int | 排序号 |
+| min_amount | number | 升级所需累计消费（**元**，后端转分存储） |
 
 **接口**: `PUT /api/admin/membership-levels/:id` — 更新会员级别
+
+**请求 Body**（可选字段，`min_amount` 输入为**元**）:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| name | string | 级别名称（可选） |
+| min_amount | number | 升级所需累计消费（**元**，后端转分存储；可选） |
 
 **接口**: `DELETE /api/admin/membership-levels/:id` — 删除会员级别
 

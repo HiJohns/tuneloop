@@ -620,7 +620,8 @@ func UpdateInstrument(c *gin.Context) {
 	}
 
 	if req.Deposit != nil && *req.Deposit > 0 {
-		updates["deposit"] = *req.Deposit
+		// #1987: request is yuan, stored as cents — mirror Create handler.
+		updates["deposit"] = models.ToCentsPtr(req.Deposit)
 	}
 
 	if req.CategoryID != nil && *req.CategoryID != "" {
@@ -672,10 +673,12 @@ func UpdateInstrument(c *gin.Context) {
 		updates["pricing"] = string(pricingJSON)
 	}
 	if req.BaseDailyRate != nil && *req.BaseDailyRate > 0 {
-		updates["base_daily_rate"] = *req.BaseDailyRate
+		// #1987: request is yuan, stored as cents — mirror Create handler.
+		updates["base_daily_rate"] = models.ToCentsPtr(req.BaseDailyRate)
 	}
 	if req.TotalPrice != nil && *req.TotalPrice > 0 {
-		updates["total_price"] = *req.TotalPrice
+		// #1987: request is yuan, stored as cents — mirror Create handler.
+		updates["total_price"] = models.ToCentsPtr(req.TotalPrice)
 	}
 
 	// Step 3: 确保 tenant_id 不为空

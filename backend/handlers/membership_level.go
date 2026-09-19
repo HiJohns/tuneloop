@@ -62,7 +62,8 @@ func UpdateMembershipLevel(c *gin.Context) {
 		updates["name"] = *req.Name
 	}
 	if req.MinAmount != nil {
-		updates["min_amount"] = *req.MinAmount
+		// #1987: request is yuan, stored as cents — mirror Create handler.
+		updates["min_amount"] = models.FromYuan(*req.MinAmount)
 	}
 	if err := db.Model(&models.MembershipLevel{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": err.Error()})

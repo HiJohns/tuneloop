@@ -195,10 +195,12 @@ func (h *LeaseHandler) UpdateLease(c *gin.Context) {
 		updates["end_date"] = req.EndDate
 	}
 	if req.MonthlyRent > 0 {
-		updates["monthly_rent"] = req.MonthlyRent
+		// #1987: request is yuan, stored as cents — mirror Create handler.
+		updates["monthly_rent"] = models.FromYuan(req.MonthlyRent)
 	}
 	if req.DepositAmount > 0 {
-		updates["deposit_amount"] = req.DepositAmount
+		// #1987: request is yuan, stored as cents — mirror Create handler.
+		updates["deposit_amount"] = models.FromYuan(req.DepositAmount)
 	}
 	if req.Status != "" {
 		updates["status"] = req.Status
