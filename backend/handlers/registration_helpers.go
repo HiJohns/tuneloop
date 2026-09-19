@@ -173,27 +173,25 @@ func grantRegistrationRewards(db *gorm.DB, user *models.User, form *registerForm
 				RefCode:    form.Ref,
 				Status:     "registered",
 			})
-			if referrer.MembershipLevelID != nil {
-				if ratios := services.GetGiftRatios(*referrer.MembershipLevelID); ratios != nil && ratios.ReferralRegPoints > 0 {
-					regCents := models.FromYuan(ratios.ReferralRegPoints)
-					db.Model(&models.User{}).Where("id = ?", referrer.ID).Updates(map[string]interface{}{
-						"promo_points": gorm.Expr("promo_points + ?", regCents),
-						"updated_at":   time.Now(),
-					})
-					// #1947 Sub-D: 建推荐奖励批次（仅建账）
-					if _, berr := services.CreatePointsBatch(db, referrer.ID, services.PointBatchSourceReferral, "referral_reg", regCents); berr != nil {
-						log.Printf("[register helper] create referral points batch failed: %v", berr)
-					}
-					db.Create(&models.PointsTransaction{
-						ID:          uuid.New().String(),
-						UserID:      referrer.ID,
-						TenantID:    referrer.TenantID,
-						Type:        "referral_reg",
-						Amount:      regCents,
-						Description: fmt.Sprintf("介绍新用户注册奖励 %s", user.Username),
-						CreatedAt:   time.Now(),
-					})
+			if policy := services.GetGiftPolicyByLevel(db, levelIDOrZero(referrer.MembershipLevelID)); policy != nil && policy.ReferralRegPoints > 0 {
+				regCents := models.FromYuan(policy.ReferralRegPoints)
+				db.Model(&models.User{}).Where("id = ?", referrer.ID).Updates(map[string]interface{}{
+					"promo_points": gorm.Expr("promo_points + ?", regCents),
+					"updated_at":   time.Now(),
+				})
+				// #1947 Sub-D: 建推荐奖励批次（仅建账）
+				if _, berr := services.CreatePointsBatch(db, referrer.ID, services.PointBatchSourceReferral, "referral_reg", regCents); berr != nil {
+					log.Printf("[register helper] create referral points batch failed: %v", berr)
 				}
+				db.Create(&models.PointsTransaction{
+					ID:          uuid.New().String(),
+					UserID:      referrer.ID,
+					TenantID:    referrer.TenantID,
+					Type:        "referral_reg",
+					Amount:      regCents,
+					Description: fmt.Sprintf("介绍新用户注册奖励 %s", user.Username),
+					CreatedAt:   time.Now(),
+				})
 			}
 		}
 	}

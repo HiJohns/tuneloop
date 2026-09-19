@@ -462,27 +462,27 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 							Status:     "registered",
 						})
 						// Referrer registration bonus (#1534): credit
-						// referral_reg_points per the referrer's membership level.
-						if referrer.MembershipLevelID != nil {
-							if ratios := services.GetGiftRatios(*referrer.MembershipLevelID); ratios != nil && ratios.ReferralRegPoints > 0 {
-								h.db.Model(&models.User{}).Where("id = ?", referrer.ID).Updates(map[string]interface{}{
-									"promo_points": gorm.Expr("promo_points + ?", models.FromYuan(ratios.ReferralRegPoints)),
-									"updated_at":   time.Now(),
-								})
-								// #1947 Sub-D: 建推荐奖励批次（仅建账）
-								if _, berr := services.CreatePointsBatch(h.db, referrer.ID, services.PointBatchSourceReferral, "referral_reg", models.FromYuan(ratios.ReferralRegPoints)); berr != nil {
-									log.Printf("[Register] create referral points batch failed: %v", berr)
-								}
-								h.db.Create(&models.PointsTransaction{
-									ID:          uuid.New().String(),
-									UserID:      referrer.ID,
-									TenantID:    referrer.TenantID,
-									Type:        "referral_reg",
-									Amount:      models.FromYuan(ratios.ReferralRegPoints),
-									Description: fmt.Sprintf("介绍新用户注册奖励 %s", newUser.Username),
-									CreatedAt:   time.Now(),
-								})
+						// gift_policies.referral_reg_points (#1945: 由
+						// membership_gift_ratios 迁入) per the referrer's level.
+						if policy := services.GetGiftPolicyByLevel(h.db, levelIDOrZero(referrer.MembershipLevelID)); policy != nil && policy.ReferralRegPoints > 0 {
+							regCents := models.FromYuan(policy.ReferralRegPoints)
+							h.db.Model(&models.User{}).Where("id = ?", referrer.ID).Updates(map[string]interface{}{
+								"promo_points": gorm.Expr("promo_points + ?", regCents),
+								"updated_at":   time.Now(),
+							})
+							// #1947 Sub-D: 建推荐奖励批次（仅建账）
+							if _, berr := services.CreatePointsBatch(h.db, referrer.ID, services.PointBatchSourceReferral, "referral_reg", regCents); berr != nil {
+								log.Printf("[Register] create referral points batch failed: %v", berr)
 							}
+							h.db.Create(&models.PointsTransaction{
+								ID:          uuid.New().String(),
+								UserID:      referrer.ID,
+								TenantID:    referrer.TenantID,
+								Type:        "referral_reg",
+								Amount:      regCents,
+								Description: fmt.Sprintf("介绍新用户注册奖励 %s", newUser.Username),
+								CreatedAt:   time.Now(),
+							})
 						}
 					}
 				}

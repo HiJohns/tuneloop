@@ -23,7 +23,7 @@ func TestRefundDiff_PointsOverCap(t *testing.T) {
 	// User at level 1 with policy pay_ratio=0.3 → A1 = floor(2800×0.3)=840
 	require.NoError(t, db.Create(&models.MembershipLevel{ID: 1, Name: "初级", MinAmount: 0}).Error)
 	require.NoError(t, db.Create(&models.GiftPolicy{
-		LevelID: 1, PayRatio: 0.3, RefundRatio: 0.1, IsActive: true,
+		LevelID: 1, PayRatio: 0.3, ReferralRatio: 0, IsActive: true,
 	}).Error)
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
@@ -79,7 +79,7 @@ func TestRefundDiff_PointsWithinCap(t *testing.T) {
 	// pay_ratio = 0.5 → A1 = floor(2800×0.5) = 1400 ≥ A0=500
 	require.NoError(t, db.Create(&models.MembershipLevel{ID: 1, Name: "初级", MinAmount: 0}).Error)
 	require.NoError(t, db.Create(&models.GiftPolicy{
-		LevelID: 1, PayRatio: 0.5, RefundRatio: 0.1, IsActive: true,
+		LevelID: 1, PayRatio: 0.5, ReferralRatio: 0, IsActive: true,
 	}).Error)
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
@@ -125,7 +125,7 @@ func TestRefundDiff_TotalSpendingC1(t *testing.T) {
 
 	require.NoError(t, db.Create(&models.MembershipLevel{ID: 1, Name: "初级", MinAmount: 0}).Error)
 	require.NoError(t, db.Create(&models.GiftPolicy{
-		LevelID: 1, PayRatio: 0.3, RefundRatio: 0.1, IsActive: true,
+		LevelID: 1, PayRatio: 0.3, ReferralRatio: 0, IsActive: true,
 	}).Error)
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
@@ -169,7 +169,7 @@ func TestRefundDiff_RebatePoints(t *testing.T) {
 	// refund_ratio = 0.1 → A2 = floor(1960 × 0.1) = 196
 	require.NoError(t, db.Create(&models.MembershipLevel{ID: 1, Name: "初级", MinAmount: 0}).Error)
 	require.NoError(t, db.Create(&models.GiftPolicy{
-		LevelID: 1, PayRatio: 0.3, RefundRatio: 0.1, IsActive: true,
+		LevelID: 1, PayRatio: 0.3, ReferralRatio: 0, IsActive: true,
 	}).Error)
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
@@ -215,7 +215,7 @@ func TestConfirmSettlement_ClosesOrder(t *testing.T) {
 
 	require.NoError(t, db.Create(&models.MembershipLevel{ID: 1, Name: "初级", MinAmount: 0}).Error)
 	require.NoError(t, db.Create(&models.GiftPolicy{
-		LevelID: 1, PayRatio: 0.3, RefundRatio: 0.1, IsActive: true,
+		LevelID: 1, PayRatio: 0.3, ReferralRatio: 0, IsActive: true,
 	}).Error)
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,

@@ -995,10 +995,10 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		// Snapshot applicable gift policy (#1900: replaces legacy points_policies)
 		if policy := services.GetGiftPolicyByLevel(database.GetDB().WithContext(c.Request.Context()), levelIDOrZero(userWallet.MembershipLevelID)); policy != nil {
 			snap, err := json.Marshal(map[string]interface{}{
-				"source":       "gift_policies",
-				"level_id":     policy.LevelID,
-				"pay_ratio":    policy.PayRatio,
-				"refund_ratio": policy.RefundRatio,
+				"source":         "gift_policies",
+				"level_id":       policy.LevelID,
+				"pay_ratio":      policy.PayRatio,
+				"referral_ratio": policy.ReferralRatio,
 			})
 			if err == nil {
 				snapStr := string(snap)

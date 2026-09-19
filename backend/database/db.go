@@ -524,8 +524,9 @@ func validateDatabaseSchema(db *gorm.DB) error {
 		&models.InstrumentPromoOverride{}, // #1863: 乐器促销覆盖（20260910001 migration）
 		&models.ConfirmationSession{},
 		&models.Label{},
-		&models.PointBatch{},            // #1947 Sub-D: 乐币批次（20260917006 migration）
+		&models.PointBatch{},            // #1947 Sub-D: 乐币批次（20260917010 migration）
 		&models.PointBatchConsumption{}, // #1947 Sub-D: 批次扣减留痕
+		&models.GiftPolicy{},            // #1945 Sub-B: 乐币规则（20260917011 变更列）
 	}
 
 	for _, m := range modelsToValidate {

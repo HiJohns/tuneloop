@@ -14,13 +14,14 @@ type MembershipLevel struct {
 // rebate points = floor(cash_paid C1 × refund_ratio). level_id=0 is the
 // default fallback row for unconfigured levels.
 type GiftPolicy struct {
-	ID          string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	LevelID     int       `gorm:"not null;uniqueIndex" json:"level_id"`
-	PayRatio    float64   `gorm:"type:decimal(5,4);not null;default:0.3" json:"pay_ratio"`
-	RefundRatio float64   `gorm:"type:decimal(5,4);not null;default:0" json:"refund_ratio"`
-	IsActive    bool      `gorm:"not null;default:true" json:"is_active"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID                string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	LevelID           int       `gorm:"not null;uniqueIndex" json:"level_id"`
+	PayRatio          float64   `gorm:"type:decimal(5,4);not null;default:0.3" json:"pay_ratio"`
+	ReferralRatio     float64   `gorm:"type:decimal(5,4);not null;default:0" json:"referral_ratio"`        // #1945：裂变比例（按推荐人级别）
+	ReferralRegPoints float64   `gorm:"type:decimal(10,2);not null;default:10" json:"referral_reg_points"` // #1945：邀请奖乐币（按级别）
+	IsActive          bool      `gorm:"not null;default:true" json:"is_active"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
 }
 
 func (GiftPolicy) TableName() string { return "gift_policies" }

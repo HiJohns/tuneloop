@@ -2,15 +2,33 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
+
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
+
+// #1945：全局抵扣上限（pay_ratio）由 system_settings 配置，默认 100%。
+const keyPayRatioMax = "pay_ratio_max"
+
+// getFloatSetting 读取 system_settings 数值，缺失/非法时返回 def。
+func getFloatSetting(db *gorm.DB, key string, def float64) float64 {
+	var s models.SystemSetting
+	if err := db.Where("setting_key = ?", key).First(&s).Error; err == nil {
+		if v, err := strconv.ParseFloat(s.SettingValue, 64); err == nil {
+			return v
+		}
+	}
+	return def
+}
 
 // ListGiftPolicies lists gift policies for all membership levels,
 // including placeholder rows for levels without a policy (#1605, L-05).
 // level_id=0 is the default fallback row.
+// #1945: exposes referral_ratio / referral_reg_points; refund_ratio removed.
 func ListGiftPolicies(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
@@ -37,38 +55,40 @@ func ListGiftPolicies(c *gin.Context) {
 		byLevel[p.LevelID] = p
 	}
 
-	result := make([]gin.H, 0, len(levels)+1)
-	// Default row first (level_id=0)
+	// #1900: levels without their own row run on the level-0 fallback at
+	// runtime; surface the effective values (plus is_fallback).
 	def, hasDef := byLevel[0]
+	fallbackPay, fallbackReferral, fallbackRegPoints, fallbackActive := 0.0, 0.0, 0.0, false
+	if hasDef {
+		fallbackPay, fallbackReferral, fallbackRegPoints, fallbackActive = def.PayRatio, def.ReferralRatio, def.ReferralRegPoints, def.IsActive
+	}
+
+	result := make([]gin.H, 0, len(levels)+1)
 	if hasDef {
 		result = append(result, gin.H{
-			"level_id":     0,
-			"name":         "默认（未设置级别）",
-			"pay_ratio":    def.PayRatio,
-			"refund_ratio": def.RefundRatio,
-			"is_active":    def.IsActive,
-			"is_fallback":  false,
+			"level_id":            0,
+			"name":                "默认（未设置级别）",
+			"pay_ratio":           def.PayRatio,
+			"referral_ratio":      def.ReferralRatio,
+			"referral_reg_points": def.ReferralRegPoints,
+			"is_active":           def.IsActive,
+			"is_fallback":         false,
 		})
-	}
-	// #1900: levels without their own row run on the level-0 fallback at
-	// runtime; surface the effective values (plus is_fallback) so the admin
-	// table matches actual behavior instead of showing 0/停用.
-	fallbackPay, fallbackRefund, fallbackActive := 0.0, 0.0, false
-	if hasDef {
-		fallbackPay, fallbackRefund, fallbackActive = def.PayRatio, def.RefundRatio, def.IsActive
 	}
 	for _, lv := range levels {
 		entry := gin.H{
-			"level_id":     lv.LevelID,
-			"name":         lv.Name,
-			"pay_ratio":    fallbackPay,
-			"refund_ratio": fallbackRefund,
-			"is_active":    fallbackActive,
-			"is_fallback":  true,
+			"level_id":            lv.LevelID,
+			"name":                lv.Name,
+			"pay_ratio":           fallbackPay,
+			"referral_ratio":      fallbackReferral,
+			"referral_reg_points": fallbackRegPoints,
+			"is_active":           fallbackActive,
+			"is_fallback":         true,
 		}
 		if p, ok := byLevel[lv.LevelID]; ok {
 			entry["pay_ratio"] = p.PayRatio
-			entry["refund_ratio"] = p.RefundRatio
+			entry["referral_ratio"] = p.ReferralRatio
+			entry["referral_reg_points"] = p.ReferralRegPoints
 			entry["is_active"] = p.IsActive
 			entry["is_fallback"] = false
 		}
@@ -78,14 +98,17 @@ func ListGiftPolicies(c *gin.Context) {
 }
 
 // UpdateGiftPolicy updates the gift policy for a membership level (#1605, L-05).
-// Body: {pay_ratio?, refund_ratio?, is_active?}
+// Body: {level_id, pay_ratio?, referral_ratio?, referral_reg_points?, is_active?}
+// #1945: pay_ratio 上限改为可配置（system_settings.pay_ratio_max，默认 1.0）；
+// 新增 referral_ratio（0~1.0）与 referral_reg_points（>=0）；移除 refund_ratio。
 func UpdateGiftPolicy(c *gin.Context) {
 	var req struct {
 		// #1944 Sub-A：level_id=0 是合法兜底行（binding:required 会把 0 当缺省拒绝）
-		LevelID     int      `json:"level_id"`
-		PayRatio    *float64 `json:"pay_ratio"`
-		RefundRatio *float64 `json:"refund_ratio"`
-		IsActive    *bool    `json:"is_active"`
+		LevelID           int      `json:"level_id"`
+		PayRatio          *float64 `json:"pay_ratio"`
+		ReferralRatio     *float64 `json:"referral_ratio"`
+		ReferralRegPoints *float64 `json:"referral_reg_points"`
+		IsActive          *bool    `json:"is_active"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
@@ -100,14 +123,28 @@ func UpdateGiftPolicy(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
 
-	// Validate ratio bounds. #1900: business ceilings — 100% would allow
-	// zero-pay rentals (pay_ratio) and unbounded point inflation (refund_ratio).
-	if req.PayRatio != nil && (*req.PayRatio < 0 || *req.PayRatio > 0.5) {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "pay_ratio 必须在 0~0.5 之间（赠点最多抵扣应付金额的 50%）"})
+	// #1945：抵扣上限可配置（默认 100%），并夹取到 [0,1]。
+	payRatioMax := getFloatSetting(db, keyPayRatioMax, 1.0)
+	if payRatioMax < 0 {
+		payRatioMax = 0
+	}
+	if payRatioMax > 1 {
+		payRatioMax = 1
+	}
+
+	if req.PayRatio != nil && (*req.PayRatio < 0 || *req.PayRatio > payRatioMax) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "pay_ratio 必须在 0~" + strconv.FormatFloat(payRatioMax, 'f', -1, 64) + " 之间（赠点最多抵扣应付金额的 " + strconv.FormatFloat(payRatioMax*100, 'f', -1, 64) + "%）",
+		})
 		return
 	}
-	if req.RefundRatio != nil && (*req.RefundRatio < 0 || *req.RefundRatio > 0.2) {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "refund_ratio 必须在 0~0.2 之间（返点最多为实付现金的 20%）"})
+	if req.ReferralRatio != nil && (*req.ReferralRatio < 0 || *req.ReferralRatio > 1.0) {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "referral_ratio 必须在 0~1.0 之间"})
+		return
+	}
+	if req.ReferralRegPoints != nil && (*req.ReferralRegPoints < 0 || *req.ReferralRegPoints > 100000) {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "referral_reg_points 必须在 0~100000 之间"})
 		return
 	}
 
@@ -126,8 +163,11 @@ func UpdateGiftPolicy(c *gin.Context) {
 	if req.PayRatio != nil {
 		updates["pay_ratio"] = *req.PayRatio
 	}
-	if req.RefundRatio != nil {
-		updates["refund_ratio"] = *req.RefundRatio
+	if req.ReferralRatio != nil {
+		updates["referral_ratio"] = *req.ReferralRatio
+	}
+	if req.ReferralRegPoints != nil {
+		updates["referral_reg_points"] = *req.ReferralRegPoints
 	}
 	if req.IsActive != nil {
 		updates["is_active"] = *req.IsActive

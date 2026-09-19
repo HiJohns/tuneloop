@@ -317,8 +317,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		membershipAdmin.DELETE("/admin/membership-levels/:id", middleware.RequireCusPerm("membership:manage"), handlers.DeleteMembershipLevel)
 		membershipAdmin.GET("/admin/membership-levels/:id/benefits", middleware.RequireCusPerm("membership:manage"), handlers.ListLevelBenefits)
 		membershipAdmin.PUT("/admin/membership-levels/:id/benefits", middleware.RequireCusPerm("membership:manage"), handlers.UpdateLevelBenefits)
-		membershipAdmin.GET("/admin/gift-ratios", middleware.RequireCusPerm("rebate:manage"), handlers.GetGiftRatios)
-		membershipAdmin.PUT("/admin/gift-ratios", middleware.RequireCusPerm("rebate:manage"), handlers.UpdateGiftRatios)
 		membershipAdmin.GET("/admin/gift-policies", middleware.RequireCusPerm("rebate:manage"), handlers.ListGiftPolicies)
 		membershipAdmin.PUT("/admin/gift-policies", middleware.RequireCusPerm("rebate:manage"), handlers.UpdateGiftPolicy)
 		membershipAdmin.POST("/admin/discount-policies", middleware.RequireCusPerm("rebate:manage"), handlers.CreateDiscountPolicy)

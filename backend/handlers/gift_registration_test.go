@@ -50,10 +50,11 @@ func TestGiftRegistration(t *testing.T) {
 	require.NoError(t, db.Create(&referrer).Error)
 	require.NoError(t, db.Model(&referrer).Update("ref_code", "abc12345").Error)
 
-	require.NoError(t, db.Create(&models.MembershipGiftRatio{
+	require.NoError(t, db.Create(&models.GiftPolicy{
 		ID:                uuid.New().String(),
 		LevelID:           1,
-		SelfSpendRatio:    0.1,
+		PayRatio:          0.3,
+		ReferralRatio:     0,
 		ReferralRegPoints: 50,
 		IsActive:          true,
 		CreatedAt:         time.Now(),

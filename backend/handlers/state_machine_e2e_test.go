@@ -44,6 +44,11 @@ func setupE2ETestEnv(t *testing.T) (*gin.Engine, string, string, string, string)
 	require.NoError(t, db.Migrator().AutoMigrate(&models.User{}))
 	require.NoError(t, db.Migrator().CreateTable(&models.DamageReport{}))
 	require.NoError(t, db.Migrator().CreateTable(&models.MembershipGiftRatio{}))
+	// #1945: executeRefund reads gift_policies — ensure table + clear rows
+	if !db.Migrator().HasTable(&models.GiftPolicy{}) {
+		require.NoError(t, db.Migrator().CreateTable(&models.GiftPolicy{}))
+	}
+	require.NoError(t, db.Exec("DELETE FROM gift_policies").Error)
 	// iam_sub is excluded from migration (-:migration tag); add manually
 	if !db.Migrator().HasColumn(&models.User{}, "iam_sub") {
 		require.NoError(t, db.Exec(`ALTER TABLE users ADD COLUMN iam_sub varchar(255)`).Error)
@@ -775,10 +780,9 @@ func TestScenarioA_RejectDamageVariant(t *testing.T) {
 	})
 }
 
-// TestExecuteRefund_LoyaltyPoints verifies #1542: on order completion,
-// the user receives loyalty gift points = rent × self_spend_ratio of
-// their membership level.
-func TestExecuteRefund_LoyaltyPoints(t *testing.T) {
+// TestExecuteRefund_NoSelfRebate verifies #1945 Sub-B: 取消"退款返点给自己"——
+// 订单完成后不再发放 self-rebate（refund_rebate 不再产生）。
+func TestExecuteRefund_NoSelfRebate(t *testing.T) {
 	// Reset tables via setup
 	setupE2ETestEnv(t)
 	db := database.GetDB()
@@ -796,12 +800,14 @@ func TestExecuteRefund_LoyaltyPoints(t *testing.T) {
 		Status:            "active",
 	}).Error)
 
-	// Level 2 ratio: 5%
-	require.NoError(t, db.Create(&models.MembershipGiftRatio{
-		ID:             "00000000-0000-0000-0000-00000000aa02",
-		LevelID:        levelID,
-		SelfSpendRatio: 0.05,
-		IsActive:       true,
+	// #1945: 旧 self-spend 配置已弃用；即便存在 gift policy 也不再返点给本人
+	require.NoError(t, db.Create(&models.GiftPolicy{
+		ID:                "00000000-0000-0000-0000-00000000aa02",
+		LevelID:           levelID,
+		PayRatio:          0.3,
+		ReferralRatio:     0,
+		ReferralRegPoints: 10,
+		IsActive:          true,
 	}).Error)
 
 	now := time.Now()
@@ -828,13 +834,12 @@ func TestExecuteRefund_LoyaltyPoints(t *testing.T) {
 	require.NoError(t, err)
 	tx.Commit()
 
-	// Loyalty points = 3000 × 5% = 150 (分契约: 15000 分)
 	var user models.User
 	require.NoError(t, db.First(&user, "id = ?", userID).Error)
-	require.Equal(t, models.Cents(15000), user.PromoPoints, "loyalty points = 3000 × 5%")
+	require.Equal(t, models.Cents(0), user.PromoPoints, "self-rebate 已取消（不再返点给自己）")
 
-	// Points transaction recorded
-	var pt models.PointsTransaction
-	require.NoError(t, db.Where("user_id = ? AND type = ?", userID, "refund_rebate").First(&pt).Error)
-	require.Equal(t, models.Cents(15000), pt.Amount) // P3: 分
+	var rebateCount int64
+	db.Model(&models.PointsTransaction{}).
+		Where("user_id = ? AND type = ?", userID, "refund_rebate").Count(&rebateCount)
+	require.Equal(t, int64(0), rebateCount, "refund_rebate 不再产生")
 }

@@ -600,67 +600,15 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 		return nil, fmt.Errorf("failed to update total spending: %w", err)
 	}
 
-	// Rebate gift points (L-06): A2 = floor(C1 × refund_ratio) credited on
-	// refund completion. refund_ratio from the user's level gift policy;
-	// legacy fallback: membership_gift_ratios.SelfSpendRatio on RentPayable.
-	// #1901: test coupons (gross, non-production) compute A2 on the full rent.
+	// #1945 Sub-B：取消"退款返点给自己"（refund_rebate 不再产生）。
 	var orderUser models.User
 	if err := tx.Where("id = ?", order.UserID).First(&orderUser).Error; err == nil {
-		rebatePoints := 0.0
-		rebateDesc := ""
-		rebateBase := result.CashBasis
-		rebateBaseLabel := "实付现金"
-		if couponCountsAsPaid(tx, order) {
-			rebateBase = result.RentPayable
-			rebateBaseLabel = "测试优惠码按全额租金"
-		}
-		if policy := services.GetGiftPolicyByLevel(tx, levelIDOrZero(orderUser.MembershipLevelID)); policy != nil && policy.RefundRatio > 0 {
-			rebatePoints = math.Floor(rebateBase * policy.RefundRatio)
-			rebateDesc = fmt.Sprintf("退款返赠点: %s ¥%.2f × %.2f%%", rebateBaseLabel, rebateBase, policy.RefundRatio*100)
-		}
-		if rebatePoints <= 0 {
-			var selfRatio float64
-			if orderUser.MembershipLevelID != nil {
-				if ratios := services.GetGiftRatios(*orderUser.MembershipLevelID); ratios != nil {
-					selfRatio = ratios.SelfSpendRatio
-				}
-			}
-			if selfRatio > 0 {
-				rebatePoints = math.Floor(result.RentPayable * selfRatio)
-				rebateDesc = fmt.Sprintf("消费返赠点: 租金 ¥%.2f × %.2f%%", result.RentPayable, selfRatio*100)
-			}
-		}
-		if rebatePoints > 0 {
-			// #1757: promo_points in cents — rebatePoints computed in yuan
-			// (CashBasis × ratio) must be converted to cents on write.
-			rebateCents := models.FromYuan(rebatePoints)
-			if err := tx.Model(&models.User{}).Where("id = ?", order.UserID).Updates(map[string]interface{}{
-				"promo_points": gorm.Expr("promo_points + ?", rebateCents),
-				"updated_at":   time.Now(),
-			}).Error; err != nil {
-				log.Printf("[executeRefund] rebate points credit failed for %s: %v", order.UserID, err)
-			} else {
-				tx.Create(&models.PointsTransaction{
-					ID:          uuid.New().String(),
-					UserID:      order.UserID,
-					TenantID:    order.TenantID,
-					Type:        "refund_rebate",
-					Amount:      rebateCents,
-					OrderID:     &order.ID,
-					Description: rebateDesc,
-					CreatedAt:   time.Now(),
-				})
-			}
-		}
-
 		// Referral commission (#1542 + #1535): referrer gets gift points
 		// proportional to the referred user's rent × referrer-level ratio.
 		if referrer := services.FindReferrer(order.UserID); referrer != nil {
-			var refRatio float64
-			if referrer.MembershipLevelID != nil {
-				if ratios := services.GetGiftRatios(*referrer.MembershipLevelID); ratios != nil {
-					refRatio = ratios.ReferralSpendRatio
-				}
+			refRatio := 0.0
+			if policy := services.GetGiftPolicyByLevel(tx, levelIDOrZero(referrer.MembershipLevelID)); policy != nil {
+				refRatio = policy.ReferralRatio
 			}
 			if refRatio > 0 {
 				refPoints := math.Floor(result.RentPayable * refRatio)
@@ -673,6 +621,10 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 					}).Error; err != nil {
 						log.Printf("[executeRefund] referral points credit failed for %s: %v", referrer.ID, err)
 					} else {
+						// #1945：补齐 Sub-D 未接入的裂变发放点（建批次）
+						if _, berr := services.CreatePointsBatch(tx, referrer.ID, services.PointBatchSourceFission, "referral_spend", refCents); berr != nil {
+							log.Printf("[executeRefund] create fission points batch failed: %v", berr)
+						}
 						tx.Create(&models.PointsTransaction{
 							ID:          uuid.New().String(),
 							UserID:      referrer.ID,

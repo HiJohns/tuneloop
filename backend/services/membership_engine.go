@@ -126,20 +126,6 @@ func aggregateUserSpending(userID string, db *gorm.DB) models.Cents {
 	return total
 }
 
-// GetGiftRatios returns the membership gift ratio config for a level,
-// or nil if none is configured/active (#1536, #1542).
-func GetGiftRatios(levelID int) *models.MembershipGiftRatio {
-	if levelID <= 0 {
-		return nil
-	}
-	db := database.GetDB()
-	var r models.MembershipGiftRatio
-	if err := db.Where("level_id = ? AND is_active = ?", levelID, true).First(&r).Error; err != nil {
-		return nil
-	}
-	return &r
-}
-
 // GetGiftPolicyByLevel returns the gift policy for a membership level,
 // falling back to the default row (level_id=0) when the level has no
 // active policy (#1605, L-05). Returns nil only when even the default
