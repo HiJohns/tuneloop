@@ -345,10 +345,15 @@ func (h *UserManagementHandler) GrantPoints(c *gin.Context) {
 	}
 
 	operator := middleware.GetUserID(c.Request.Context())
-	sourceRef := req.Reason
-	if len(sourceRef) > 64 {
-		sourceRef = sourceRef[:64] // point_batches.source_ref is varchar(64)
+	// #1982 audit fix: truncate by runes, not bytes. PostgreSQL varchar(64)
+	// counts characters; byte-slicing multibyte text (Chinese) splits a rune
+	// → invalid UTF-8 → SQLSTATE 22021. Full reason is kept in the ledger
+	// description (varchar 500); source_ref only carries the short note.
+	sourceRefRunes := []rune(req.Reason)
+	if len(sourceRefRunes) > 64 {
+		sourceRefRunes = sourceRefRunes[:64]
 	}
+	sourceRef := string(sourceRefRunes)
 
 	var batch *models.PointBatch
 	var balance models.Cents

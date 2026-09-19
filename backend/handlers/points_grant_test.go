@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
@@ -114,4 +115,35 @@ func TestGrantPoints_Validation(t *testing.T) {
 	var count int64
 	db.Model(&models.PointBatch{}).Where("user_id = ?", userID).Count(&count)
 	require.Equal(t, int64(0), count, "无有效加赠不产生批次")
+}
+
+// #1982 audit fix: reason with multibyte text > 64 bytes must not crash
+// (byte-slicing used to produce invalid UTF-8 → SQLSTATE 22021 → 500).
+func TestGrantPoints_LongChineseReasonRuneSafe(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	tenantID := "00000000-0000-4000-8000-0000000000c1"
+	userID := "00000000-0000-4000-8000-0000000000c2"
+	require.NoError(t, db.Create(&models.User{
+		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: tenantID,
+		Username: "grantee3", Status: "active",
+	}).Error)
+
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.POST("/api/admin/user-management/:id/points-grant", NewUserManagementHandler().GrantPoints)
+
+	longReason := strings.Repeat("长", 70) // 70 runes = 210 bytes > 64 bytes
+	body, _ := json.Marshal(map[string]interface{}{"amount": 1, "reason": longReason})
+	w := doGrant(t, r, userID, string(body))
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var b models.PointBatch
+	require.NoError(t, db.Where("user_id = ?", userID).First(&b).Error)
+	require.True(t, utf8.ValidString(b.SourceRef), "source_ref 必须是合法 UTF-8")
+	require.Equal(t, 64, utf8.RuneCountInString(b.SourceRef), "按 rune 截断到 64 字符")
+
+	// 完整原因保留在流水描述（varchar 500）中。
+	var pt models.PointsTransaction
+	require.NoError(t, db.Where("user_id = ? AND type = ?", userID, "manual_grant").First(&pt).Error)
+	require.True(t, strings.Contains(pt.Description, longReason), "描述保留完整原因")
 }

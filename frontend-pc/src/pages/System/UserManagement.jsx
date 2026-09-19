@@ -412,7 +412,7 @@ export default function UserManagement() {
         open={grantVisible}
         onOk={handleGrant}
         confirmLoading={granting}
-        okText="加赠乐币"
+        okText={granting ? '处理中...' : '加赠乐币'}
         cancelText="取消"
         onCancel={() => setGrantVisible(false)}
         destroyOnClose
