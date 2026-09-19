@@ -1247,10 +1247,14 @@ type Banner struct {
 // InvoiceApplication represents a customer's invoice request grouped by merchant.
 // One application = one merchant's set of orders from a single submission.
 type InvoiceApplication struct {
-	ID          string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	UserID      string     `gorm:"type:uuid;not null;index" json:"user_id"`
-	TenantID    string     `gorm:"type:uuid;not null;index" json:"tenant_id"`
-	Status      string     `gorm:"type:varchar(20);not null;default:'pending'" json:"status"` // pending | replied
+	ID       string `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID   string `gorm:"type:uuid;not null;index" json:"user_id"`
+	TenantID string `gorm:"type:uuid;not null;index" json:"tenant_id"`
+	Status   string `gorm:"type:varchar(20);not null;default:'pending'" json:"status"` // pending | replied
+	// #1941 发票信息（按商户分组，每个分组=一张发票）
+	InvoiceType string     `gorm:"type:varchar(20);not null;default:'普通'" json:"invoice_type"` // 普通 | 专用
+	Title       string     `gorm:"type:varchar(255);not null;default:''" json:"title"`         // 发票抬头
+	TaxNumber   string     `gorm:"type:varchar(50)" json:"tax_number"`                         // 税号（个人抬头可空）
 	TotalAmount Cents      `gorm:"type:bigint;not null;default:0" json:"total_amount"`
 	OrderCount  int        `gorm:"not null;default:0" json:"order_count"`
 	Reply       *string    `gorm:"type:text" json:"reply"`

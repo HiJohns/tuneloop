@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, Button, ScrollView } from '@tarojs/components'
+import { View, Text, Button, ScrollView, Input } from '@tarojs/components'
 import { apiFetch } from '../services/api'
-import { env, dialog } from '../platform'
+import { env, dialog, getInputValue } from '../platform'
 import { formatBeijingDate } from '../utils/format'
 
 function formatCents(cents) {
@@ -17,6 +17,7 @@ export default function Invoice() {
   const [selected, setSelected] = useState({}) // { orderId: true }
   const [confirming, setConfirming] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [formByTenant, setFormByTenant] = useState({}) // #1941: { [tenant_id]: { invoice_type, title, tax_number } }
 
   const loadData = async () => {
     setLoading(true)
@@ -65,20 +66,54 @@ export default function Invoice() {
     return Object.values(map)
   }, [selectedOrders])
 
+  // #1941 发票信息表单（按商户分组：每个分组=一张发票）
+  const emptyForm = { invoice_type: '普通', title: '', tax_number: '' }
+  const getForm = (tenantId) => formByTenant[tenantId] || emptyForm
+  const setFormField = (tenantId, key, value) => {
+    setFormByTenant(prev => {
+      const cur = prev[tenantId] || emptyForm
+      return { ...prev, [tenantId]: { ...cur, [key]: value } }
+    })
+  }
+  const TAX_RE = /^(?:[0-9A-Za-z]{15}|[0-9A-Za-z]{18}|[0-9A-Za-z]{20})$/
+  const validateAndBuildGroups = () => {
+    const groups = []
+    for (const g of merchantGroups) {
+      const f = getForm(g.tenant_id)
+      const name = g.merchant_name || '商户'
+      const title = (f.title || '').trim()
+      const tax = (f.tax_number || '').replace(/\s/g, '')
+      if (!title) return { error: `${name}：请填写发票抬头` }
+      if (title.length > 255) return { error: `${name}：发票抬头过长` }
+      if (f.invoice_type === '专用' && !tax) return { error: `${name}：专用发票需填写税号` }
+      if (tax && !TAX_RE.test(tax)) return { error: `${name}：税号格式不正确` }
+      groups.push({
+        tenant_id: g.tenant_id,
+        order_ids: g.orders.map(o => o.order_id),
+        invoice_type: f.invoice_type || '普通',
+        title,
+        tax_number: tax,
+      })
+    }
+    return { groups }
+  }
+
   const handleSubmit = async () => {
     if (selectedOrders.length === 0) {
       Taro.showToast({ title: '请先选择订单', icon: 'none' })
       return
     }
+    // #1941 按分组校验发票信息（每个分组=一张发票）
+    const built = validateAndBuildGroups()
+    if (built.error) {
+      Taro.showToast({ title: built.error, icon: 'none' })
+      return
+    }
     setSubmitting(true)
     try {
-      const groups = merchantGroups.map(g => ({
-        tenant_id: g.tenant_id,
-        order_ids: g.orders.map(o => o.order_id),
-      }))
       const resp = await apiFetch(`${env.apiBaseUrl}/user/invoices`, {
         method: 'POST',
-        body: JSON.stringify({ groups }),
+        body: JSON.stringify({ groups: built.groups }),
       })
       const data = await resp.json()
       if (data.code === 20000) {
@@ -121,7 +156,9 @@ export default function Invoice() {
             <Text style={{ fontSize: 18, fontWeight: '700', marginLeft: 8 }}>确认申请</Text>
           </View>
 
-          {merchantGroups.map(g => (
+          {merchantGroups.map(g => {
+            const f = getForm(g.tenant_id)
+            return (
             <View key={g.tenant_id} style={{ background: '#fff', borderRadius: 12, padding: 16, marginBottom: 12 }}>
               <Text style={{ fontSize: 16, fontWeight: '700', marginBottom: 8 }}>{g.merchant_name || '未知商户'}</Text>
               <Text style={{ fontSize: 13, color: '#666', marginBottom: 4 }}>{g.orders.length} 笔订单</Text>
@@ -135,8 +172,47 @@ export default function Invoice() {
                 <Text style={{ fontSize: 14, fontWeight: '700' }}>小计</Text>
                 <Text style={{ fontSize: 14, fontWeight: '700' }}>¥{formatCents(g.total)}</Text>
               </View>
+
+              {/* #1941 发票信息（每个分组=一张发票） */}
+              <View style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #e4e4e7' }}>
+                <View style={{ marginBottom: 6 }}>
+                  <Text style={{ fontSize: 13, color: '#71717a' }}>发票类型</Text>
+                </View>
+                <View style={{ display: 'flex', marginBottom: 12 }}>
+                  {['普通', '专用'].map(t => (
+                    <View
+                      key={t}
+                      onClick={() => setFormField(g.tenant_id, 'invoice_type', t)}
+                      style={{ padding: '6px 16px', marginRight: 8, borderRadius: 16, border: f.invoice_type === t ? '1px solid #D97706' : '1px solid #d4d4d8', background: f.invoice_type === t ? '#FEF3C7' : '#fff' }}
+                    >
+                      <Text style={{ fontSize: 13, color: f.invoice_type === t ? '#D97706' : '#52525b' }}>{t}发票</Text>
+                    </View>
+                  ))}
+                </View>
+                <View style={{ marginBottom: 6 }}>
+                  <Text style={{ fontSize: 13, color: '#71717a' }}>发票抬头</Text>
+                  <Text style={{ fontSize: 13, color: '#dc2626' }}> *</Text>
+                </View>
+                <Input
+                  value={f.title}
+                  onInput={e => setFormField(g.tenant_id, 'title', getInputValue(e))}
+                  placeholder="请输入发票抬头（个人或单位名称）"
+                  style={{ width: '100%', boxSizing: 'border-box', height: 40, padding: '0 12px', background: '#f9fafb', borderRadius: 8, fontSize: 14, marginBottom: 12 }}
+                />
+                <View style={{ marginBottom: 6 }}>
+                  <Text style={{ fontSize: 13, color: '#71717a' }}>税号</Text>
+                  <Text style={{ fontSize: 13, color: f.invoice_type === '专用' ? '#dc2626' : '#a1a1aa' }}>{f.invoice_type === '专用' ? ' *' : '（选填）'}</Text>
+                </View>
+                <Input
+                  value={f.tax_number}
+                  onInput={e => setFormField(g.tenant_id, 'tax_number', getInputValue(e))}
+                  placeholder={f.invoice_type === '专用' ? '专用发票必填' : '个人抬头可不填'}
+                  style={{ width: '100%', boxSizing: 'border-box', height: 40, padding: '0 12px', background: '#f9fafb', borderRadius: 8, fontSize: 14 }}
+                />
+              </View>
             </View>
-          ))}
+            )
+          })}
 
           <View style={{ background: '#fff', borderRadius: 12, padding: 16, marginBottom: 16 }}>
             <View style={{ display: 'flex', justifyContent: 'space-between' }}>

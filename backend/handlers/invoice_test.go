@@ -49,6 +49,7 @@ func setupInvoiceTestData(t *testing.T, tenantID, iamSub, localID, orgID string)
 		LeaseTerm:    30,
 		MonthlyRent:  500000,
 		Status:       models.OrderStatusCompleted,
+		OrderNo:      "INVTEST-" + uuid.New().String()[:8], // #1965 uniqueIndex：直插需显式唯一
 	}
 	require.NoError(t, db.Create(&order1).Error)
 
@@ -68,6 +69,7 @@ func setupInvoiceTestData(t *testing.T, tenantID, iamSub, localID, orgID string)
 		LeaseTerm:    30,
 		MonthlyRent:  300000,
 		Status:       models.OrderStatusInLease,
+		OrderNo:      "INVTEST-" + uuid.New().String()[:8], // #1965 uniqueIndex：直插需显式唯一
 	}
 	require.NoError(t, db.Create(&order2).Error)
 
@@ -162,7 +164,13 @@ func TestInvoice_Submit(t *testing.T) {
 
 	body, _ := json.Marshal(map[string]interface{}{
 		"groups": []map[string]interface{}{
-			{"tenant_id": tenantID, "order_ids": []string{completedOrderID}},
+			{
+				"tenant_id":    tenantID,
+				"order_ids":    []string{completedOrderID},
+				"invoice_type": "专用",
+				"title":        "云租吧科技有限公司",
+				"tax_number":   "91110108MA01ABCD2X",
+			},
 		},
 	})
 	req := httptest.NewRequest("POST", "/api/user/invoices", bytes.NewReader(body))
@@ -195,6 +203,105 @@ func TestInvoice_Submit(t *testing.T) {
 	var notifCount int64
 	db.Model(&models.Notification{}).Where("type = ? AND ref_id = ?", "invoice", resp.Data.Applications[0].ID).Count(&notifCount)
 	require.Equal(t, int64(1), notifCount)
+
+	// #1941 三字段落库
+	var saved models.InvoiceApplication
+	require.NoError(t, db.Where("id = ?", resp.Data.Applications[0].ID).First(&saved).Error)
+	require.Equal(t, "专用", saved.InvoiceType)
+	require.Equal(t, "云租吧科技有限公司", saved.Title)
+	require.Equal(t, "91110108MA01ABCD2X", saved.TaxNumber)
+
+	// #1941 详情下发三字段
+	req2 := httptest.NewRequest("GET", "/api/user/invoices/"+resp.Data.Applications[0].ID, nil)
+	w2 := httptest.NewRecorder()
+	router.ServeHTTP(w2, req2)
+	require.Equal(t, 200, w2.Code)
+	var detail struct {
+		Code int `json:"code"`
+		Data struct {
+			InvoiceType string `json:"invoice_type"`
+			Title       string `json:"title"`
+			TaxNumber   string `json:"tax_number"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w2.Body.Bytes(), &detail))
+	require.Equal(t, "专用", detail.Data.InvoiceType)
+	require.Equal(t, "云租吧科技有限公司", detail.Data.Title)
+	require.Equal(t, "91110108MA01ABCD2X", detail.Data.TaxNumber)
+}
+
+// #1941 发票信息校验：普通+抬头(无税号) 落库；专用缺税号/税号格式/缺抬头 拒绝
+func TestInvoice_SubmitInvoiceInfoValidation(t *testing.T) {
+	cases := []struct {
+		name        string
+		tenantID    string
+		localID     string
+		orgID       string
+		iamSub      string
+		invoiceType string
+		title       string
+		taxNumber   string
+		wantCode    int
+	}{
+		{"个人抬头(普通无税号)", "00000000-0000-0000-0000-000000000601", "00000000-0000-0000-0000-000000000602", "00000000-0000-0000-0000-000000000603", "00000000-0000-0000-0000-000000000605", "普通", "张三", "", 20000},
+		{"缺抬头", "00000000-0000-0000-0000-000000000611", "00000000-0000-0000-0000-000000000612", "00000000-0000-0000-0000-000000000613", "00000000-0000-0000-0000-000000000615", "普通", "   ", "", 40002},
+		{"专用缺税号", "00000000-0000-0000-0000-000000000621", "00000000-0000-0000-0000-000000000622", "00000000-0000-0000-0000-000000000623", "00000000-0000-0000-0000-000000000625", "专用", "某某公司", "", 40002},
+		{"税号格式错误", "00000000-0000-0000-0000-000000000631", "00000000-0000-0000-0000-000000000632", "00000000-0000-0000-0000-000000000633", "00000000-0000-0000-0000-000000000635", "普通", "某某公司", "123", 40002},
+		{"非法类型", "00000000-0000-0000-0000-000000000641", "00000000-0000-0000-0000-000000000642", "00000000-0000-0000-0000-000000000643", "00000000-0000-0000-0000-000000000645", "电子发票", "某某公司", "", 40002},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			db := database.GetDB()
+			merchant := models.Merchant{
+				ID:       uuid.New().String(),
+				TenantID: tc.tenantID,
+				OrgID:    tc.tenantID,
+				Name:     "测试商户",
+				AdminUID: uuid.New().String(),
+				Status:   "active",
+			}
+			require.NoError(t, db.Create(&merchant).Error)
+
+			completedOrderID, _ := setupInvoiceTestData(t, tc.tenantID, tc.iamSub, tc.localID, tc.orgID)
+			router := invoiceRouter(tc.tenantID, tc.iamSub, tc.orgID)
+
+			body, _ := json.Marshal(map[string]interface{}{
+				"groups": []map[string]interface{}{
+					{
+						"tenant_id":    tc.tenantID,
+						"order_ids":    []string{completedOrderID},
+						"invoice_type": tc.invoiceType,
+						"title":        tc.title,
+						"tax_number":   tc.taxNumber,
+					},
+				},
+			})
+			req := httptest.NewRequest("POST", "/api/user/invoices", bytes.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+
+			if tc.wantCode == 20000 {
+				require.Equal(t, 200, w.Code)
+			} else {
+				require.Equal(t, 400, w.Code)
+			}
+			var resp struct {
+				Code int `json:"code"`
+			}
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+			require.Equal(t, tc.wantCode, resp.Code)
+
+			if tc.wantCode == 20000 {
+				var saved models.InvoiceApplication
+				require.NoError(t, db.Where("user_id = ? AND tenant_id = ?", tc.localID, tc.tenantID).First(&saved).Error)
+				require.Equal(t, tc.invoiceType, saved.InvoiceType)
+				require.Equal(t, tc.title, saved.Title)
+				require.Equal(t, "", saved.TaxNumber)
+			}
+		})
+	}
 }
 
 func TestInvoice_SubmitValidation(t *testing.T) {

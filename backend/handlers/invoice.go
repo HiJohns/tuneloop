@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -27,14 +30,14 @@ func (h *InvoiceHandler) ListEligible(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 
 	type eligibleOrder struct {
-		OrderID       string `json:"order_id"`
-		SN            string `json:"sn"`
-		CreatedAt     string `json:"created_at"`
-		TenantID      string `json:"tenant_id"`
-		MerchantName  string `json:"merchant_name"`
-		ActualCents   int64  `json:"actual_rent_cents"`
-		OverdueCents  int64  `json:"overdue_cents"`
-		TotalCents    int64  `json:"total_cents"`
+		OrderID      string `json:"order_id"`
+		SN           string `json:"sn"`
+		CreatedAt    string `json:"created_at"`
+		TenantID     string `json:"tenant_id"`
+		MerchantName string `json:"merchant_name"`
+		ActualCents  int64  `json:"actual_rent_cents"`
+		OverdueCents int64  `json:"overdue_cents"`
+		TotalCents   int64  `json:"total_cents"`
 	}
 
 	// #1819: orders/invoice_applications store LOCAL users.id, not the IAM sub.
@@ -121,10 +124,43 @@ func (h *InvoiceHandler) ListEligible(c *gin.Context) {
 type invoiceSubmitGroup struct {
 	TenantID string   `json:"tenant_id" binding:"required"`
 	OrderIDs []string `json:"order_ids" binding:"required,min=1"`
+	// #1941 发票信息（每个分组=一张发票）
+	InvoiceType string `json:"invoice_type"`
+	Title       string `json:"title"`
+	TaxNumber   string `json:"tax_number"`
 }
 
 type invoiceSubmitRequest struct {
 	Groups []invoiceSubmitGroup `json:"groups" binding:"required,min=1"`
+}
+
+// #1941 税号宽松校验：去空格后 15/18/20 位字母数字；空字符串放行（个人抬头）
+var invoiceTaxNumberRe = regexp.MustCompile(`^[0-9A-Za-z]{15}$|^[0-9A-Za-z]{18}$|^[0-9A-Za-z]{20}$`)
+
+// normalizeInvoiceInfo 校验并规范化发票信息；返回 (类型, 抬头, 税号, error)
+func normalizeInvoiceInfo(invoiceType, title, taxNumber string) (string, string, string, error) {
+	invType := strings.TrimSpace(invoiceType)
+	if invType == "" {
+		invType = "普通"
+	}
+	if invType != "普通" && invType != "专用" {
+		return "", "", "", fmt.Errorf("发票类型不正确")
+	}
+	title = strings.TrimSpace(title)
+	if title == "" {
+		return "", "", "", fmt.Errorf("请填写发票抬头")
+	}
+	if utf8.RuneCountInString(title) > 255 {
+		return "", "", "", fmt.Errorf("发票抬头过长（不超过 255 字）")
+	}
+	tax := strings.ReplaceAll(strings.TrimSpace(taxNumber), " ", "")
+	if tax != "" && !invoiceTaxNumberRe.MatchString(tax) {
+		return "", "", "", fmt.Errorf("税号格式不正确（应为 15/18/20 位字母数字）")
+	}
+	if invType == "专用" && tax == "" {
+		return "", "", "", fmt.Errorf("专用发票需填写税号")
+	}
+	return invType, title, tax, nil
 }
 
 // POST /user/invoices — submit invoice applications grouped by merchant
@@ -162,6 +198,12 @@ func (h *InvoiceHandler) Submit(c *gin.Context) {
 				continue
 			}
 
+			// #1941 校验发票信息（类型/抬头/税号）
+			invType, invTitle, invTax, verr := normalizeInvoiceInfo(group.InvoiceType, group.Title, group.TaxNumber)
+			if verr != nil {
+				return verr
+			}
+
 			// Verify all orders belong to current user + are completed + not yet applied
 			// #1819: user_id = local users.id (not IAM sub)
 			var orders []models.Order
@@ -188,14 +230,17 @@ func (h *InvoiceHandler) Submit(c *gin.Context) {
 
 			// Create application — UserID = local users.id (matches orders.user_id dimension)
 			app := models.InvoiceApplication{
-				ID:         uuid.New().String(),
-				UserID:     localID,
-				TenantID:   group.TenantID,
-				Status:     "pending",
+				ID:          uuid.New().String(),
+				UserID:      localID,
+				TenantID:    group.TenantID,
+				Status:      "pending",
+				InvoiceType: invType,
+				Title:       invTitle,
+				TaxNumber:   invTax,
 				TotalAmount: models.Cents(totalCents),
-				OrderCount: len(orders),
-				CreatedAt:  time.Now(),
-				UpdatedAt:  time.Now(),
+				OrderCount:  len(orders),
+				CreatedAt:   time.Now(),
+				UpdatedAt:   time.Now(),
 			}
 			if err := tx.Create(&app).Error; err != nil {
 				return fmt.Errorf("创建申请失败: %w", err)
@@ -270,7 +315,7 @@ func (h *InvoiceHandler) ListApplications(c *gin.Context) {
 
 	type appResponse struct {
 		models.InvoiceApplication
-		MerchantName string         `json:"merchant_name"`
+		MerchantName string        `json:"merchant_name"`
 		Orders       []orderDetail `json:"orders"`
 	}
 
@@ -382,6 +427,9 @@ func (h *InvoiceHandler) GetApplication(c *gin.Context) {
 			"user_id":       app.UserID,
 			"tenant_id":     app.TenantID,
 			"status":        app.Status,
+			"invoice_type":  app.InvoiceType,
+			"title":         app.Title,
+			"tax_number":    app.TaxNumber,
 			"total_amount":  app.TotalAmount,
 			"order_count":   app.OrderCount,
 			"reply":         app.Reply,

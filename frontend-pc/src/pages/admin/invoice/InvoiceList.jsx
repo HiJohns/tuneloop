@@ -147,6 +147,9 @@ export default function InvoiceList() {
               <Descriptions.Item label="订单数">{current.order_count}</Descriptions.Item>
               <Descriptions.Item label="开票金额"><span style={{ fontWeight: 700, color: '#D97706' }}>{formatCents(current.total_amount)}</span></Descriptions.Item>
               <Descriptions.Item label="状态"><Tag color={statusConfig[current.status]?.color}>{statusConfig[current.status]?.text}</Tag></Descriptions.Item>
+              <Descriptions.Item label="发票类型">{current.invoice_type || '普通'}</Descriptions.Item>
+              <Descriptions.Item label="发票抬头">{current.title || '-'}</Descriptions.Item>
+              <Descriptions.Item label="税号">{current.tax_number || '-'}</Descriptions.Item>
               <Descriptions.Item label="回复时间">{current.replied_at ? formatBeijingDateTimeShort(current.replied_at) : "-"}</Descriptions.Item>
               {current.reply && (
                 <Descriptions.Item label="回复内容" span={2}>{current.reply}</Descriptions.Item>
