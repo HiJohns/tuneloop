@@ -2,6 +2,43 @@
 
 > 本文件是 `docs/` 设计文档体系的结构性索引。它只描述体系的**目标结构**——每份文档的长期角色与权威归属，不承载文档管理的过程与当前状态信息。文档生命周期与治理规则见治理 Issue（`documentation-governance.md` 已迁移为 GitHub Issue，本文档不再保留其本地副本）。
 
+## 新增文档落位规则
+
+新增文档时按以下规则确定目标位置：
+
+| 分类 | 角色 | 职责 | 目标目录 |
+|------|------|------|---------|
+| 横切规范 | as-built | 跨全业务域的设计真相 | `spec/`（大文档 ui/api/database 各建子目录，小文档 features/permissions 留根） |
+| 域聚合索引 | 域导航 | 单一业务域全维度索引 | `domains/`（聚合文档降级为域索引，指向横切/用例对应章节） |
+| 结构化用例 | cases | AI 消费的逐步行为 | `cases/`（YAML front-matter + 步骤表） |
+| 集成/专题 | 专题 | 单一外部系统或架构专题 | `topics/`（按主题子目录 wechat/media/iam，frontpage 留根） |
+| 运维/交付 | 运维 | 发布与运维规则 | `ops/` |
+| 工具链绑定 | 绑定 | 变更/操作日志与英文镜像 | `docs/` 根（blog.md / en/，不可迁移） |
+| 归档 | 历史 | 已闭环的调查/报告 | `archive/`（reports/audit/plans 三区） |
+
+**归档规则**：
+
+| 类别 | 判定依据 | 判定动作 |
+|------|---------|---------|
+| 项目设计信息 | 其内容是否已被现行规范文档吸收 | 全部被吸收 → 归档；部分被吸收 → 保留未吸收部分，登记补迁 |
+| 调查报告类 | 对应 GitHub Issue 是否已闭环 | Issue 已 done/closed → 归档；未闭环 → 保留并关联 Issue |
+| 审计记录与产物 | Issue 已闭环 + 内容已被现行规范取代 | → `archive/audit/` |
+| Issue 执行计划 | 对应 Issue 已闭环 | → `archive/plans/` |
+
+**非 docs/ 资产归类**：
+
+| 文档 | 归类 | 依据 |
+|------|------|------|
+| `AGENTS.md`、根 `README.md` | 原位保留 | 核心规约/项目门面 |
+| `prompts/*`、`.opencode/commands/check-flow.md` | 原位保留 | 全局镜像工具链资产 |
+| `frontend-mobile/README.md`、`project.md` | 原位保留 | 脚手架默认模板 |
+| `audit_reject_233.md`、`audit_reject_233_v2.md`、`audit_report_234.md` | → `archive/audit/` | 已闭环的审计记录 |
+| `backend/docs/api_response_format.md` | → `archive/audit/` | 审计产物，已被现行规范覆盖 |
+| `plans/260.md`、`plans/263.md` | → `archive/plans/` | 已闭环 Issue 执行计划 |
+| `.opencode_temp/*`、`.tmp_*` | 保持不动 | 工具链临时产物，不纳入治理 |
+
+> 详细设计见 Issue #1970（`tmp/issue1970.md` §1 文档分类体系 + §3 归档规则）。
+
 ## 目标目录树
 
 > 目标结构一览（纵向树状）。文件物理落地随治理 Issue §5 迁移计划逐步执行，本地图所示为其**最终目标形态**。

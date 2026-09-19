@@ -60,3 +60,6 @@ releases/
 
 # OSS 账号密钥（#1914 — 严禁提交）
 oss-accounts.md
+
+# Local opencode 实体副本同步脚本（Windows 本机专用）
+scripts/sync-opencode.sh
