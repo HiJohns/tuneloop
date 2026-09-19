@@ -699,6 +699,7 @@ tenants (1) ---> (N) clients
 | orders | INDEX | user_id |
 | orders | INDEX | instrument_id |
 | orders | INDEX | status |
+| orders | UNIQUE INDEX（部分） | order_no（`WHERE order_no IS NOT NULL AND order_no <> ''`；#1965/#1981） |
 | sites | INDEX | tenant_id |
 | sites | INDEX | parent_id |
 | sites | INDEX | manager_id |

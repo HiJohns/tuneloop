@@ -40,3 +40,22 @@ func TestGenerateOrderNo(t *testing.T) {
 	assert.NotEqual(t, order.OrderNo, order2.OrderNo, "序号递增")
 	assert.Equal(t, "YL"+now.Format("20060102")+"-002", order2.OrderNo)
 }
+
+// #1981 regression: direct Order inserts with the zero-value OrderNo ("") must
+// not conflict. The model no longer carries a gorm uniqueIndex tag, so the test
+// schema (AutoMigrate) has no full unique index; the partial index is migration-owned.
+func TestOrder_EmptyOrderNo_NoConflict(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	tenantID := uuid.New().String()
+	require.NoError(t, db.Create(&models.User{ID: "11111111-1111-4111-8111-1111111111aa", IAMSub: "11111111-1111-4111-8111-1111111111aa", TenantID: tenantID, OrgID: tenantID, Username: "u2", Name: "n2", Status: "active"}).Error)
+	require.NoError(t, db.Create(&models.Instrument{ID: "22222222-2222-4222-8222-2222222222bb", TenantID: tenantID, SN: "SN-EMPTY-NO", StockStatus: "available"}).Error)
+
+	for i := 0; i < 3; i++ {
+		require.NoError(t, db.Create(&models.Order{
+			ID: uuid.New().String(), TenantID: tenantID, OrgID: tenantID,
+			UserID: "11111111-1111-4111-8111-1111111111aa",
+			InstrumentID: "22222222-2222-4222-8222-2222222222bb",
+			Status: "reserved",
+		}).Error, "第 %d 条空串 OrderNo 直插不应冲突", i+1)
+	}
+}

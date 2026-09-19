@@ -225,7 +225,7 @@ type Order struct {
 	ShippingFee          Cents  `gorm:"type:bigint;default:0" json:"shipping_fee"`
 	AccumulatedMonths    int    `gorm:"default:0" json:"accumulated_months"`
 	// #1965 业务订单号：`YL<YYYYMMDD>-<NNN>`（当日第 N 单），唯一索引
-	OrderNo                 string     `gorm:"type:varchar(24);uniqueIndex" json:"order_no"`
+	OrderNo                 string     `gorm:"type:varchar(24)" json:"order_no"` // #1981: uniqueness enforced by migration partial index (WHERE order_no IS NOT NULL AND order_no <> ''), not AutoMigrate
 	Status                  string     `gorm:"type:varchar(40);default:'reserved';index" json:"status"`
 	StartDate               *string    `gorm:"type:date" json:"start_date"`
 	EndDate                 *string    `gorm:"type:date" json:"end_date"`
