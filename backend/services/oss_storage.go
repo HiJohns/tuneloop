@@ -212,6 +212,21 @@ func (s *OSSStorage) Delete(ctx context.Context, key string) error {
 	return nil
 }
 
+// Stat returns the object size and existence via a prefix listing with an
+// exact-key match (OSS has no cheap HeadObject in this SDK seam).
+func (s *OSSStorage) Stat(ctx context.Context, key string) (int64, bool, error) {
+	res, err := s.target(key).ListObjects(oss.Prefix(key), oss.MaxKeys(1))
+	if err != nil {
+		return 0, false, fmt.Errorf("stat %s: %w", key, err)
+	}
+	for _, o := range res.Objects {
+		if o.Key == key {
+			return o.Size, true, nil
+		}
+	}
+	return 0, false, nil
+}
+
 func (s *OSSStorage) DeletePrefix(ctx context.Context, prefix string) error {
 	b := s.target(prefix)
 	marker := ""

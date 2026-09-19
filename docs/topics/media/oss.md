@@ -226,9 +226,30 @@ ssh cadenza "OSS_ENDPOINT=https://oss-cn-beijing.aliyuncs.com OSS_BUCKET=tuneloo
 | P1 | `OSSStorage` 实现（凭证链、分片、幂等删除、私有签名）+ 单测 | ✅ 完成（`5b7051e4`）；元数据 IP 修正（`.200`，2026-09-17） |
 | P2 | env 配置与缺项回退 + 冒烟 | 🔶 实现✅；冒烟✅（预生产桶 + **生产桶实例角色均 ALL PASS**）；**.env 落地待运维** |
 | P3 | 双写开关（OSS 写失败显式报错，可配置阻断） | ⏳ |
-| P4 | CLI `--migrate-media-oss`（dry-run 先行、幂等、断点续传、失败清单） | ⏳ |
+| P4 | CLI `--migrate-media-oss`（dry-run 先行、幂等、断点续传、失败清单） | ✅ 已实现（#1991） |
 | P5 | `GetURL` 切读开关 + nginx `/uploads/*` 未命中重定向兜底 | ⏳ |
 | P6 | 观察期 → 停本地写 / `gc-media` 适配 / 更新 `docs/topics/media/media_directory.md` | ⏳ |
+
+### 5.1 P4 回填 CLI 用法（#1991）
+
+```bash
+# 预检（不写 OSS）：扫描 + 幂等判定 + 对账报告
+./service/tuneloop --migrate-media-oss --dry-run
+
+# 真实回填（并发 4；失败清单落 tmp/oss_backfill_failures.jsonl）
+./service/tuneloop --migrate-media-oss --oss-concurrency 4
+
+# 断点续跑（仅重跑失败清单内的 key）
+./service/tuneloop --migrate-media-oss --oss-resume tmp/oss_backfill_failures.jsonl
+
+# 覆盖 size 不一致对象（默认报错跳过）
+./service/tuneloop --migrate-media-oss --oss-overwrite
+```
+- 扫描 `uploads/media/**`（key=相对路径，含 `_display.webp`/`_thumb.jpg` 变体）+ `uploads/batch/**`（key=`batch/...` 导入暂存）；
+- **幂等判据 = size 一致**（ETag 因分片不稳定不作主判据）；上传后再次 `Stat` 校验；
+- **私有前缀**：`face_captures/**` 经 `MediaStorage` 路由到私有桶（`OSS_PRIVATE_BUCKET`）；
+- **对账**：报告含 `media_assets` 引用但本地缺失的 key 清单 + 未引用（orphan）计数；
+- ⚠️ 真实回填依赖 #1990 部署（ECS 角色凭证生效）。
 
 ## 6. 关键约束（迁移红线）
 

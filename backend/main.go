@@ -877,6 +877,10 @@ func main() {
 	migrateJSONBCents := flag.Bool("migrate-jsonb-cents", false, "Convert yuan amounts inside JSONB columns to cents (#1727), then exit")
 	migrateJSONBCentsReverse := flag.Bool("migrate-jsonb-cents-reverse", false, "Reverse JSONB cents conversion back to yuan (rollback), then exit")
 	gcMedia := flag.Bool("gc-media", false, "Garbage-collect orphan media files (unreferenced assets + batch-import dirs), then exit")
+	migrateMediaOSS := flag.Bool("migrate-media-oss", false, "Backfill local media to OSS via MediaStorage (#1914 P4), then exit")
+	ossConcurrency := flag.Int("oss-concurrency", 4, "Backfill concurrency (default 4)")
+	ossResume := flag.String("oss-resume", "", "Only process keys listed in this failure list (JSONL)")
+	ossOverwrite := flag.Bool("oss-overwrite", false, "Overwrite OSS objects whose size differs (default: error+skip)")
 	previewWebP := flag.Bool("preview-display-webp", false, "Preview how many display images would be converted, then exit")
 	requeueSecondDoc := flag.Bool("requeue-second-doc", false, "Requeue second-document review batches for legacy users with untyped second docs (#1921), then exit")
 	dryRunFlag := flag.Bool("dry-run", false, "Dry-run mode")
@@ -1056,6 +1060,21 @@ func main() {
 			fmt.Printf("DRY RUN: %d orphan media files would be deleted\n", count)
 		} else {
 			fmt.Printf("Media GC complete: %d orphan media files deleted\n", count)
+		}
+		os.Exit(0)
+	}
+
+	// #1914 P4: 历史媒体回填 OSS（幂等；--dry-run 先行）
+	if *migrateMediaOSS {
+		err := handlers.MigrateMediaOSS(handlers.MediaOSSBackfillOptions{
+			DryRun:      *dryRunFlag,
+			Concurrency: *ossConcurrency,
+			ResumeFile:  *ossResume,
+			Overwrite:   *ossOverwrite,
+		})
+		if err != nil {
+			fmt.Printf("FATAL: media OSS backfill failed: %v\n", err)
+			os.Exit(1)
 		}
 		os.Exit(0)
 	}

@@ -19,6 +19,9 @@ type MediaStorage interface {
 	DeletePrefix(ctx context.Context, prefix string) error
 	Copy(ctx context.Context, srcKey string, dstKey string) error
 	Rename(ctx context.Context, srcKey string, dstKey string) error
+	// Stat returns the object size in bytes and whether it exists
+	// (#1914 P4: idempotent backfill size comparison).
+	Stat(ctx context.Context, key string) (int64, bool, error)
 }
 
 type LocalStorage struct {
@@ -82,6 +85,18 @@ func (s *LocalStorage) Rename(ctx context.Context, srcKey string, dstKey string)
 
 func (s *LocalStorage) GetURL(ctx context.Context, key string) (string, error) {
 	return fmt.Sprintf("/uploads/media/%s", key), nil
+}
+
+// Stat returns the file size and existence for a local storage key.
+func (s *LocalStorage) Stat(ctx context.Context, key string) (int64, bool, error) {
+	fi, err := os.Stat(s.fullPath(key))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return 0, false, nil
+		}
+		return 0, false, fmt.Errorf("stat %s: %w", key, err)
+	}
+	return fi.Size(), true, nil
 }
 
 func (s *LocalStorage) Delete(ctx context.Context, key string) error {
