@@ -59,15 +59,21 @@ func userHasCoreIDInfo(u *models.User) bool {
 	return u.RealName != nil && *u.RealName != "" && u.IdCardNo != nil && *u.IdCardNo != ""
 }
 
-// resolveSelfieURL 组装自拍素材访问 URL（统一归一化，防历史双前缀脏值 404，#1807）。
-func resolveSelfieURL(key string) string {
+// resolveSelfieURL 组装核身素材（自拍/证件照）访问 URL。
+// #1993：统一经 MediaStorage.GetURL——OSS 模式下私有前缀（face_captures/）返回
+// 签名 URL，本地模式返回 /uploads/media/<key>；防历史双前缀脏值 404（#1807）。
+func resolveSelfieURL(ctx context.Context, key string) string {
 	if key == "" {
 		return ""
 	}
 	if strings.HasPrefix(key, "http://") || strings.HasPrefix(key, "https://") {
 		return key
 	}
-	return mediaURLPrefix + normalizeMediaKey(key)
+	url, err := services.NewMediaStorage().GetURL(ctx, key)
+	if err != nil || url == "" {
+		return mediaURLPrefix + normalizeMediaKey(key)
+	}
+	return url
 }
 
 // Queue handles GET /admin/face-review/queue.
@@ -129,20 +135,20 @@ func (h *FaceReviewHandler) Queue(c *gin.Context) {
 		}
 		// 证件照三张（隐私边界：仅审核用，不返回身份证号）。
 		if user.IdPhotoFront != nil {
-			item.IDPhotos = append(item.IDPhotos, resolveSelfieURL(*user.IdPhotoFront))
+			item.IDPhotos = append(item.IDPhotos, resolveSelfieURL(c.Request.Context(), *user.IdPhotoFront))
 		}
 		if user.IdPhotoBack != nil {
-			item.IDPhotos = append(item.IDPhotos, resolveSelfieURL(*user.IdPhotoBack))
+			item.IDPhotos = append(item.IDPhotos, resolveSelfieURL(c.Request.Context(), *user.IdPhotoBack))
 		}
 		if user.IdPhotoOther != nil {
-			item.IDPhotos = append(item.IDPhotos, resolveSelfieURL(*user.IdPhotoOther))
+			item.IDPhotos = append(item.IDPhotos, resolveSelfieURL(c.Request.Context(), *user.IdPhotoOther))
 		}
 		// 自拍素材（media_assets source_id=batch_id，#1790 M5 关联键）。
 		var assets []models.MediaAsset
 		db.Where("source_id = ? AND source_type = ?", b.ID, "face_capture").
 			Order("created_at ASC").Find(&assets)
 		for _, a := range assets {
-			item.SelfieURLs = append(item.SelfieURLs, resolveSelfieURL(a.StorageKey))
+			item.SelfieURLs = append(item.SelfieURLs, resolveSelfieURL(c.Request.Context(), a.StorageKey))
 		}
 		items = append(items, item)
 	}
@@ -202,7 +208,7 @@ func (h *FaceReviewHandler) UserBatches(c *gin.Context) {
 		db.Where("source_id = ? AND source_type = ?", b.ID, "face_capture").
 			Order("created_at ASC").Find(&assets)
 		for _, a := range assets {
-			item.SelfieURLs = append(item.SelfieURLs, resolveSelfieURL(a.StorageKey))
+			item.SelfieURLs = append(item.SelfieURLs, resolveSelfieURL(c.Request.Context(), a.StorageKey))
 		}
 		items = append(items, item)
 	}

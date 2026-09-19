@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -45,7 +46,7 @@ func (f *fakeBucket) CopyObject(src, dst string, options ...oss.Option) (oss.Cop
 	return oss.CopyObjectResult{}, nil
 }
 func (f *fakeBucket) SignURL(key string, method oss.HTTPMethod, expiredInSec int64, options ...oss.Option) (string, error) {
-	return "", errors.New("not needed")
+	return fmt.Sprintf("https://signed.example.com/%s?signature=fake&ttl=%d", key, expiredInSec), nil
 }
 
 func (f *fakeBucket) InitiateMultipartUpload(key string, options ...oss.Option) (oss.InitiateMultipartUploadResult, error) {
@@ -139,6 +140,14 @@ func TestGetURLComposition(t *testing.T) {
 	s2, _, _ := newTestOSS(true)
 	assert.True(t, s2.isPrivate("face_captures/u/v.jpg"))
 	assert.False(t, s2.isPrivate("media/x.jpg"))
+
+	// #1993: private key → signed URL (TTL from config, never the public path).
+	su, err := s2.GetURL(context.Background(), "face_captures/u/v.jpg")
+	require.NoError(t, err)
+	assert.Contains(t, su, "face_captures/u/v.jpg")
+	assert.Contains(t, su, "signature=fake")
+	assert.Contains(t, su, "ttl=900")
+	assert.NotContains(t, su, "tuneloop-media.oss", "私有不得返回公开 bucket URL")
 }
 
 // LocalStorage path untouched — GetURL keeps the /uploads/media prefix.

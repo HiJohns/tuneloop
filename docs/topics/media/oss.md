@@ -227,8 +227,17 @@ ssh cadenza "OSS_ENDPOINT=https://oss-cn-beijing.aliyuncs.com OSS_BUCKET=tuneloo
 | P2 | env 配置与缺项回退 + 冒烟 | 🔶 实现✅；冒烟✅（预生产桶 + **生产桶实例角色均 ALL PASS**）；**.env 落地待运维** |
 | P3 | 双写开关（OSS 写失败显式报错，可配置阻断） | ✅ 已实现（#1992） |
 | P4 | CLI `--migrate-media-oss`（dry-run 先行、幂等、断点续传、失败清单） | ✅ 已实现（#1991） |
-| P5 | `GetURL` 切读开关 + nginx `/uploads/*` 未命中重定向兜底 | ⏳ |
+| P5 | `GetURL` 切读开关 + nginx `/uploads/*` 未命中重定向兜底 | ✅ 已实现（#1993） |
 | P6 | 观察期 → 停本地写 / `gc-media` 适配 / 更新 `docs/topics/media/media_directory.md` | ⏳ |
+
+### 5.3 P5 切换读（#1993）
+
+- **读开关即 `STORAGE_MODE`**（#1992 同族）：`dual`/`oss` 读走 OSS（`GetURL`/`Stat` 委托 OSS），`local` 读本地；**一键回退** = env 改回 `local`。
+- **`GetURL` 三态**：公开 → `{CDN_PREFIX}/<key>`（缺省 bucket 直连域）；**私有（`face_captures/`）→ 预签名 URL**（ECS 角色 STS，TTL `OSS_SIGNED_URL_TTL` 默认 900s）；本地模式 → `/uploads/media/<key>`。
+- **私有读消费面**：`resolveSelfieURL`（face_review.go）已改为经 `GetURL` 下发（自拍 + 证件照）——OSS 模式返回签名 URL，本地模式返回相对路径。
+- **nginx 兼容层**（`docs/deploy/nginx-uploads.conf`）：`/uploads/media/` 本地未命中 → `@oss_media_fallback` 302 到 `https://<OSS_MEDIA_DOMAIN>/$1`（历史相对 URL 无需改库）。**生产配置变更需授权**。
+- **前端**：`photoSrc` 已对相对路径补 origin、绝对 URL 透传 → OSS 绝对 URL 零改动；weapp `downloadFile` 白名单见 `docs/topics/wechat/weapp.md`。
+- **回退演练**：`STORAGE_MODE=local` + nginx 移除 fallback（或改回 `try_files $uri =404`）→ 全站恢复本地读。
 
 ### 5.2 P3 双写开关（#1992）
 

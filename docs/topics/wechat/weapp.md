@@ -170,10 +170,16 @@ Tuneloop 后端代理 → IAM 解密 → 更新用户 phone
 | 类型 | 域名 |
 |------|------|
 | request 合法域名 | `https://wx.cadenzayueqi.com` |
-| uploadFile 合法域名 | `https://wx.cadenzayueqi.com` (或 OSS 域名) |
-| downloadFile 合法域名 | OSS 域名 (如有) |
+| uploadFile 合法域名 | `https://wx.cadenzayueqi.com`（上传仍走后端；OSS 直传未启用） |
+| downloadFile 合法域名 | OSS 域 / 自定义域（#1914 P5 起必配） |
 
-> 所有域名必须 HTTPS
+> 所有域名必须 HTTPS。
+>
+> **#1914 OSS 切换后（P5）downloadFile 白名单**（生产 / 预生产各配一组）：
+> - 直连：`https://tuneloop-media.oss-cn-beijing.aliyuncs.com`、`https://tuneloop-media-sec.oss-cn-beijing.aliyuncs.com`
+> - 或 CNAME（推荐，见 #1990）：`https://img.cadenzayueqi.com`、`https://imgsec.cadenzayueqi.com`（预生产 `preimg*`）
+>
+> 未配置前：weapp 无法读取 OSS 资源（H5/PC 不受影响）。私有素材为**签名 URL**（域名同私有桶/CNAME）。
 
 ### 隐私协议
 
