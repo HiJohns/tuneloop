@@ -1,28 +1,48 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
+	"time"
 
 	"tuneloop-backend/database"
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
-// #1945：全局抵扣上限（pay_ratio）由 system_settings 配置，默认 100%。
-const keyPayRatioMax = "pay_ratio_max"
+// globalTenantID system_settings 中承载全局配置的租户（与 UpsertGlobalSetting 一致）。
+const globalTenantID = "00000000-0000-0000-0000-000000000000"
 
-// getFloatSetting 读取 system_settings 数值，缺失/非法时返回 def。
-func getFloatSetting(db *gorm.DB, key string, def float64) float64 {
-	var s models.SystemSetting
-	if err := db.Where("setting_key = ?", key).First(&s).Error; err == nil {
-		if v, err := strconv.ParseFloat(s.SettingValue, 64); err == nil {
-			return v
-		}
+// globalSettingsDB 返回已清除租户作用域的 DB，用于读写全局（nil UUID）配置。
+// registerTenantCallbacks 的 addTenantScope 会注入真实 tenant_id，导致全局查询永假。
+func globalSettingsDB(ctx context.Context) *gorm.DB {
+	return database.GetDB().WithContext(database.SetTenantID(ctx, ""))
+}
+
+// getFloatSetting 读取全局 system_settings 数值，缺失/非法时返回 def。
+func getFloatSetting(ctx context.Context, key string, def float64) float64 {
+	return services.GetGlobalFloatSetting(globalSettingsDB(ctx), key, def)
+}
+
+// upsertGlobalSetting 幂等写入全局（nil UUID）配置。
+func upsertGlobalSetting(ctx context.Context, key, value string) error {
+	setting := models.SystemSetting{
+		TenantID:     globalTenantID,
+		SettingKey:   key,
+		SettingValue: value,
+		UpdatedBy:    middleware.GetUserID(ctx),
+		UpdatedAt:    time.Now(),
 	}
-	return def
+	return globalSettingsDB(ctx).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "tenant_id"}, {Name: "setting_key"}},
+		DoUpdates: clause.AssignmentColumns([]string{"setting_value", "updated_by", "updated_at"}),
+	}).Create(&setting).Error
 }
 
 // ListGiftPolicies lists gift policies for all membership levels,
@@ -124,7 +144,7 @@ func UpdateGiftPolicy(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 
 	// #1945：抵扣上限可配置（默认 100%），并夹取到 [0,1]。
-	payRatioMax := getFloatSetting(db, keyPayRatioMax, 1.0)
+	payRatioMax := getFloatSetting(ctx, services.SettingPayRatioMax, 1.0)
 	if payRatioMax < 0 {
 		payRatioMax = 0
 	}
@@ -176,5 +196,68 @@ func UpdateGiftPolicy(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": err.Error()})
 		return
 	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "updated"})
+}
+
+// GetPointSettings 读取「乐币规则」全局参数（#1945 Sub-B §四）。
+// GET /api/admin/point-settings
+func GetPointSettings(c *gin.Context) {
+	ctx := c.Request.Context()
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
+		"pay_ratio_max":               getFloatSetting(ctx, services.SettingPayRatioMax, 1.0),
+		"point_batch_validity_months": getFloatSetting(ctx, services.SettingPointBatchValidityMonths, 24),
+		"point_expiry_reminder_days":  getFloatSetting(ctx, services.SettingPointExpiryReminderDays, 30),
+	}})
+}
+
+// UpdatePointSettings 更新「乐币规则」全局参数（#1945 Sub-B §四）。
+// PUT /api/admin/point-settings
+// Body: {pay_ratio_max?, point_batch_validity_months?, point_expiry_reminder_days?}
+func UpdatePointSettings(c *gin.Context) {
+	var req struct {
+		PayRatioMax              *float64 `json:"pay_ratio_max"`
+		PointBatchValidityMonths *float64 `json:"point_batch_validity_months"`
+		PointExpiryReminderDays  *float64 `json:"point_expiry_reminder_days"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
+		return
+	}
+	if req.PayRatioMax != nil && (*req.PayRatioMax < 0 || *req.PayRatioMax > 1) {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "pay_ratio_max 必须在 0~1 之间"})
+		return
+	}
+	if req.PointBatchValidityMonths != nil && (*req.PointBatchValidityMonths < 1 || *req.PointBatchValidityMonths > 120) {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "point_batch_validity_months 必须在 1~120 之间"})
+		return
+	}
+	if req.PointExpiryReminderDays != nil && (*req.PointExpiryReminderDays < 0 || *req.PointExpiryReminderDays > 365) {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "point_expiry_reminder_days 必须在 0~365 之间"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	if req.PayRatioMax != nil {
+		if err := upsertGlobalSetting(ctx, services.SettingPayRatioMax, strconv.FormatFloat(*req.PayRatioMax, 'f', -1, 64)); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": err.Error()})
+			return
+		}
+	}
+	if req.PointBatchValidityMonths != nil {
+		if err := upsertGlobalSetting(ctx, services.SettingPointBatchValidityMonths, strconv.FormatFloat(*req.PointBatchValidityMonths, 'f', -1, 64)); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": err.Error()})
+			return
+		}
+	}
+	if req.PointExpiryReminderDays != nil {
+		if err := upsertGlobalSetting(ctx, services.SettingPointExpiryReminderDays, strconv.FormatFloat(*req.PointExpiryReminderDays, 'f', -1, 64)); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": err.Error()})
+			return
+		}
+	}
+
+	// 立即生效：应用到运行时（无需重启）。
+	services.ApplyPointBatchSettingsFromDB(globalSettingsDB(ctx))
+
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "updated"})
 }

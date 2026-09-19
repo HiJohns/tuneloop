@@ -284,7 +284,7 @@ steps:
         gate: "订单状态 = completed（已完成/done）"
         reach: "订单详情 → 费用信息/收支明细"
         controls: [费用信息区, 合同快照展开]
-        displays: [实际租期, 实际租金, 赠点抵扣, 现金实付, 退款明细, 退款合计, 返点赠点]
+        displays: [实际租期, 实际租金, 乐币抵扣, 现金实付, 退款明细, 退款合计]
         ops: []
     api: {method: GET, path: /orders/:id, params: []}
 ---
@@ -311,7 +311,7 @@ steps:
 ## 关键规则
 - 物流费：发货时员工填写（#1541），下单时不显示（#1570）
 - 结算：`R = Ra + De - Dd - O - Re`（§2.7）
-- **赠点抵扣（初次付款+续费通用）**：付款总额 `R0 = C0 + A0`，其中 `A0`（赠点抵扣）≤ `floor(R0 × 会员级别赠点使用比例)`，`C0`（现金）为微信实付。比例由赠点策略配置（L-05）
+- **乐币抵扣（初次付款+续费通用）**：付款总额 `R0 = C0 + A0`，其中 `A0`（乐币抵扣）≤ `floor(R0 × 会员级别抵扣比例)`，`C0`（现金）为微信实付。比例由乐币规则配置（L-05）
 - **退款差额**：退款时按调整后应付 `R1` 与当前级别使用比例重算赠点上限 `A1`；`A1 < A0` 时退 `A0−A1` 到赠点账户、退 `C0−C1` 到微信（详见 L-06）
 - **累计花销口径**：`total_spending` 按 `C1`（实付现金）累计，不含赠点面值——避免赠点循环放大（详见 L-06）
 
@@ -375,7 +375,7 @@ steps:
 ## 关键规则
 - 实际天数 = CalculateDays(start_date, returned_at)
 - 退款 = Ra + De - Re（无逾期/损坏时）
-- **赠点差额与返点**：按 L-06 差额结算执行（A1 重算、C1 累计、A2 返点、完成通知）
+- **乐币差额**：按 L-06 差额结算执行（A1 重算、C1 累计、完成通知）
 
 ---
 id: L-03
@@ -436,7 +436,7 @@ steps:
 ## 关键规则
 - 逾期费一次性收取（不再每日扣款，#1492）
 - 极端欠费线下处理，不挂账
-- **赠点差额与返点**：按 L-06 差额结算执行（A1 重算、C1 累计、A2 返点、完成通知）
+- **乐币差额**：按 L-06 差额结算执行（A1 重算、C1 累计、完成通知）
 
 ---
 id: L-04
@@ -688,22 +688,24 @@ steps:
 
 id: L-05
 domain: lease
-flow: 赠点策略配置
+flow: 乐币规则配置
 steps:
   - seq: 1
-    action: 打开赠点策略管理页
+    action: 打开乐币规则管理页
     frontend:
       - platform: [pc]
         page: /system/gift-policies
         role: [namespace_admin]
-        gate: "sys_perm 赠点策略权限位（或 rebate:manage）"
-        reach: "系统管理 → 赠点策略"
-        controls: [会员级别列表, 赠点使用比例输入, 退款返点比例输入, 启用开关, 保存按钮]
-        displays: [级别名称, 当前使用比例, 当前返点比例, 生效状态]
+        gate: "sys_perm 乐币规则权限位（或 rebate:manage）"
+        reach: "系统管理 → 乐币规则"
+        controls: [会员级别列表, 抵扣比例输入, 裂变比例输入, 邀请奖输入, 启用开关, 保存按钮, 全局参数卡片]
+        displays: [级别名称, 当前抵扣比例, 当前裂变比例, 当前邀请奖, 生效状态, 全局参数]
         ops:
           - {type: api, method: GET, path: /admin/gift-policies}
           - {type: api, method: PUT, path: /admin/gift-policies/:level_id}
-    api: {method: PUT, path: /admin/gift-policies/:level_id, params: [pay_ratio, refund_ratio, is_active]}
+          - {type: api, method: GET, path: /admin/point-settings}
+          - {type: api, method: PUT, path: /admin/point-settings}
+    api: {method: PUT, path: /admin/gift-policies, params: [level_id, pay_ratio, referral_ratio, referral_reg_points, is_active]}
   - seq: 2
     action: 修改某级别比例并保存
     frontend:
@@ -711,12 +713,12 @@ steps:
         page: /system/gift-policies
         role: [namespace_admin]
         gate: ""
-        reach: "赠点策略页 → 编辑行 → 保存"
+        reach: "乐币规则页 → 编辑行 → 保存"
         controls: [比例输入, 保存按钮]
         displays: [保存成功提示]
         ops:
           - {type: api, method: PUT, path: /admin/gift-policies/:level_id}
-    api: {method: PUT, path: /admin/gift-policies/:level_id, params: [pay_ratio, refund_ratio, is_active]}
+    api: {method: PUT, path: /admin/gift-policies, params: [level_id, pay_ratio, referral_ratio, referral_reg_points, is_active]}
   - seq: 3
     action: 支付页按新比例生效（顾客）
     frontend:
@@ -726,51 +728,74 @@ steps:
         gate: ""
         reach: "支付页加载 → 按用户当前级别取比例"
         controls: [点数抵扣滑块]
-        displays: [赠点可用上限=floor(应付总额×级别pay_ratio)]
+        displays: [乐币可用上限=floor(应付总额×级别pay_ratio)]
         ops:
           - {type: api, method: GET, path: /pay/calculate}
     api: {method: GET, path: /pay/calculate, params: [order_id, order_type]}
+  - seq: 4
+    action: 修改全局参数并即时生效
+    frontend:
+      - platform: [pc]
+        page: /system/gift-policies
+        role: [namespace_admin]
+        gate: "rebate:manage"
+        reach: "乐币规则页 → 全局参数卡片 → 保存全局参数"
+        controls: [抵扣上限输入, 乐币有效期输入, 到期提醒提前量输入, 保存按钮]
+        displays: [保存成功提示]
+        ops:
+          - {type: api, method: PUT, path: /admin/point-settings}
+    api: {method: PUT, path: /admin/point-settings, params: [pay_ratio_max, point_batch_validity_months, point_expiry_reminder_days]}
 ---
 
-# L-05 赠点策略配置
+# L-05 乐币规则配置
 
 ## 前置条件
 - namespace_admin 登录 PC
 - `membership_levels` 表有数据（级别主数据）
 
 ## 流程
-1. 系统管理 → 赠点策略 → 列表展示各会员级别两行配置：
-   - `pay_ratio`（赠点使用比例）：初次付款/续费时，赠点抵扣 ≤ floor(应付总额 × pay_ratio)
-   - `refund_ratio`（退款返点比例）：退款完成后，按实付现金 C1 × refund_ratio 发放返点赠点
-2. 编辑某级别 → 保存 → PUT /admin/gift-policies/:level_id
-3. 支付页与结算页即时按用户当前级别取最新比例
+1. 系统管理 → 乐币规则 → 列表展示各会员级别配置：
+   - `pay_ratio`（抵扣比例）：初次付款/续费时，乐币抵扣 ≤ floor(应付总额 × pay_ratio)
+   - `referral_ratio`（裂变比例）：被推荐人产生租金时，推荐人返佣 = floor(租金 × referral_ratio)
+   - `referral_reg_points`（邀请奖）：被推荐人注册成功后发放给推荐人的乐币数
+2. 全局参数卡片：抵扣上限 `pay_ratio_max`、乐币有效期 `point_batch_validity_months`、到期提醒提前量 `point_expiry_reminder_days` → 保存 → PUT /admin/point-settings（即时生效）
+3. 编辑某级别 → 保存 → PUT /admin/gift-policies（`level_id=0` 兜底行可编辑）
+4. 支付页与结算页即时按用户当前级别取最新比例
 
 ## 关键规则
-- **一套策略，两处消费**：pay_ratio 管支付抵扣（L-01 seq2），refund_ratio 管退款返点（L-06 seq4）
-- **分会员级别独立设置**：默认级别兜底（level_id=0 或 is_default 行）
-- 归并旧体系：`points_policies.max_pay_ratio` 与 `membership_gift_ratios.SelfSpendRatio` 迁移至本策略，旧表废弃
+- **一套规则，三处消费**：pay_ratio 管支付抵扣（L-01 seq2），referral_ratio 管裂变返佣（M-04），referral_reg_points 管邀请奖（注册时）
+- **全局上限约束**：级别 pay_ratio ≤ `pay_ratio_max`（默认 1.0，硬上限 1.0）
+- **不再有"退款返点给自己"**（`refund_ratio` 随 #1945 移除，L-06 同步）
+- **分会员级别独立设置**：默认级别兜底（level_id=0）
+- 归并旧体系：`points_policies.max_pay_ratio` 与 `membership_gift_ratios` 迁移至本策略，旧表退役
 - 修改后仅影响**新发生的支付/退款**，历史订单快照不变
-- **#1757 单位契约**：赠点账户（`users.promo_points`）与交易记录（`points_transactions.amount`）为**分**（1 点 = 1 分）；比例（pay_ratio/refund_ratio）为 0~1 小数，基数分运算（抵扣 = floor(应付分 × pay_ratio)；返点 = floor(实付现金分 × refund_ratio)）
+- **#1757 单位契约**：乐币账户（批次 `remaining_cents` 合计）与交易记录（`points_transactions.amount`）为**分**（1 点 = 1 分）；比例（pay_ratio/referral_ratio）为 0~1 小数，基数分运算（抵扣 = floor(应付分 × pay_ratio)；返佣 = floor(租金分 × referral_ratio)）
 
 ## 数据模型
 ```sql
 gift_policies
 ├── id (uuid)
 ├── level_id (int, unique, FK → membership_levels)  -- 0 = 默认兜底
-├── pay_ratio (decimal)      -- 赠点使用比例 0.00~1.00
-├── refund_ratio (decimal)   -- 退款返点比例 0.00~1.00
+├── pay_ratio (decimal)              -- 抵扣比例 0.00~1.00
+├── referral_ratio (decimal)         -- 裂变比例 0.00~1.00
+├── referral_reg_points (decimal)    -- 邀请奖乐币（flat）
 ├── is_active (bool)
 ├── created_at / updated_at
+
+system_settings（全局参数，tenant_id = nil UUID）
+├── pay_ratio_max                    -- 抵扣上限，默认 1.0
+├── point_batch_validity_months      -- 乐币有效期（月），默认 24
+├── point_expiry_reminder_days       -- 到期提醒提前量（天），默认 30
 ```
 
 ## 验收
-- `go test` 覆盖：PUT 更新 → GET 回读 → /pay/calculate 按新比例返回 max_gift_amount；退款后返点按新 refund_ratio 发放
+- `go test` 覆盖：PUT 更新 → GET 回读 → /pay/calculate 按新比例返回 max_gift_amount；全局参数（pay_ratio_max/有效期/提醒）越界与即时生效
 - checklist-verify.py：L-05 displays 与 PC GiftPolicies 页面交叉验证
 
 ---
 id: L-06
 domain: lease
-flow: 退款差额结算与返点
+flow: 退款差额结算
 steps:
   - seq: 1
     action: 员工触发退款
@@ -781,23 +806,19 @@ steps:
         gate: "订单状态 = deposit_refunding"
         reach: "通知链接 → 订单详情 → 退款按钮"
         controls: [退款按钮, 差额预览区]
-        displays: [应付差额预览(R1, A1, 退赠点, 退现金)]
+        displays: [应付差额预览(R1, A1, 退乐币, 退现金)]
         ops:
           - {type: api, method: POST, path: /orders/:id/refund}
     api: {method: POST, path: /orders/:id/refund, params: []}
   - seq: 2
     action: 系统差额结算（内部）
     frontend: []
-    api: {method: POST, path: /orders/:id/refund, params: [], internal: "A1=floor(R1×pay_ratio); 退赠点=A0−A1; 退现金=C0−C1; C1=R1−A1"}
+    api: {method: POST, path: /orders/:id/refund, params: [], internal: "A1=floor(R1×pay_ratio); 退乐币=A0−A1; 退现金=C0−C1; C1=R1−A1"}
   - seq: 3
     action: 关单并累计花销（内部）
     frontend: []
     api: {method: POST, path: /orders/:id/refund, params: [], internal: "order.status=completed; total_spending+=C1"}
   - seq: 4
-    action: 发放退款返点（内部）
-    frontend: []
-    api: {method: POST, path: /orders/:id/refund, params: [], internal: "A2=floor(C1×refund_ratio); promo_points+=A2; points_transactions(type=refund_rebate)"}
-  - seq: 5
     action: 完成通知客户（顾客）
     frontend:
       - platform: [weapp, h5]
@@ -806,38 +827,37 @@ steps:
         gate: ""
         reach: "消息列表 → 订单完成通知"
         controls: [完整收据展示区, 会员中心按钮/链接]
-        displays: [订单完成标题, 感谢语, 标准收据(含乐器SN), 退赠点, 退现金, 返点赠点A2, 会员中心入口]
+        displays: [订单完成标题, 感谢语, 标准收据(含乐器SN), 退乐币, 退现金, 会员中心入口]
         ops:
           - {type: api, method: GET, path: /notifications/:id}
           - {type: navigate, target: /membership}
     api: {method: GET, path: /notifications/:id, params: []}
 ---
 
-# L-06 退款差额结算与返点
+# L-06 退款差额结算
 
 ## 前置条件
 - 订单处于 deposit_refunding（员工已点退款触发）
 
 ## 流程
 1. 员工触发退款 → `POST /orders/:id/refund`
-2. **差额结算**：按调整后应付租金 `R1` 与当前级别赠点使用比例算 `A1 = floor(R1 × pay_ratio)`：
-   - 若 `A1 < A0`：退 `A0−A1` 回赠点账户，退 `C0−C1` 回微信（`C1 = R1 − A1`）
-   - 若 `A1 ≥ A0`：赠点不退，退现金 `C0 − C1`（`C1 = R1 − A0`，赠点保持 A0）
-   - 校验：`退赠点 + 退现金 = R0 − R1`（总差额守恒）
+2. **差额结算**：按调整后应付租金 `R1` 与当前级别抵扣比例算 `A1 = floor(R1 × pay_ratio)`：
+   - 若 `A1 < A0`：退 `A0−A1` 回原批次（保留原到期日），退 `C0−C1` 回微信（`C1 = R1 − A1`）
+   - 若 `A1 ≥ A0`：乐币不退，退现金 `C0 − C1`（`C1 = R1 − A0`，乐币保持 A0）
+   - 校验：`退乐币 + 退现金 = R0 − R1`（总差额守恒）
 3. **关单**：订单状态 → `completed`（已完成/done）；`total_spending += C1`（实付现金口径）
-4. **返点**：`A2 = floor(C1 × refund_ratio)` 发放到赠点账户 + 流水
-5. **通知**：发送订单完成通知——完整收据 + 感谢语 + 赠点到账（A0−A1 退回 + A2 返点）+ 会员中心链接
+4. **通知**：发送订单完成通知——完整收据 + 感谢语 + 乐币退回（A0−A1）+ 会员中心链接
 
 ## 关键规则
-- **累计花销口径 = C1**：仅实付现金累计 total_spending，不含赠点面值（防赠点循环放大；行业惯例：航司里程/信用卡积分/电商成长值均按实付）
-- **返点基数 = C1**：与累计花销口径统一
+- **累计花销口径 = C1**：仅实付现金累计 total_spending，不含乐币面值（防乐币循环放大；行业惯例：航司里程/信用卡积分/电商成长值均按实付）
+- **不再发放退款返点**（#1945 取消"退款返点给自己"，`refund_ratio`/`refund_rebate` 已移除）
 - 支付快照必须存 `pay_ratio`（修复：PointsPolicySnapshot 此前仅存 scope_type/scope_id，cap_rate 恒为 0）
-- 支付回调使用赠点后必须同步扣减 `cash_paid`（防结算双计）
+- 支付回调使用乐币后必须同步扣减 `cash_paid`（防结算双计）
 - `ConfirmSettlement` 手动确认路径同样置 `completed` 并走同一差额结算
 
 ## 验收
-- `go test` 覆盖：A1<A0 分账退返 / A1≥A0 仅退现金 / total_spending=C1 / A2 返点入账 / 完成通知含收据+会员中心链接
-- checklist-verify.py：L-06 seq1/5 的 displays 与 OrderDetail/MessageDetail JSX 交叉验证
+- `go test` 覆盖：A1<A0 分账退回 / A1≥A0 仅退现金 / total_spending=C1 / 无 refund_rebate 产生 / 完成通知含收据+会员中心链接
+- checklist-verify.py：L-06 seq1/4 的 displays 与 OrderDetail/MessageDetail JSX 交叉验证
 
 ---
 id: L-07

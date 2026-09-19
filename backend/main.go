@@ -319,6 +319,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		membershipAdmin.PUT("/admin/membership-levels/:id/benefits", middleware.RequireCusPerm("membership:manage"), handlers.UpdateLevelBenefits)
 		membershipAdmin.GET("/admin/gift-policies", middleware.RequireCusPerm("rebate:manage"), handlers.ListGiftPolicies)
 		membershipAdmin.PUT("/admin/gift-policies", middleware.RequireCusPerm("rebate:manage"), handlers.UpdateGiftPolicy)
+		membershipAdmin.GET("/admin/point-settings", middleware.RequireCusPerm("rebate:manage"), handlers.GetPointSettings)
+		membershipAdmin.PUT("/admin/point-settings", middleware.RequireCusPerm("rebate:manage"), handlers.UpdatePointSettings)
 		membershipAdmin.POST("/admin/discount-policies", middleware.RequireCusPerm("rebate:manage"), handlers.CreateDiscountPolicy)
 		membershipAdmin.GET("/admin/discount-policies", middleware.RequireCusPerm("rebate:manage"), handlers.ListDiscountPolicies)
 		membershipAdmin.POST("/admin/discount-codes", middleware.RequireCusPerm("rebate:manage"), handlers.CreateDiscountCode)
@@ -1251,6 +1253,9 @@ func main() {
 	overdueDeductionScheduler := services.NewOverdueDeductionScheduler()
 	overdueDeductionScheduler.Start()
 	defer overdueDeductionScheduler.Stop()
+
+	// #1945 Sub-B: 应用「乐币规则」全局参数（乐币有效期 / 到期提醒提前量）
+	services.ApplyPointBatchSettingsFromDB(db)
 
 	// #1947 Sub-D: 乐币批次每日清扫（过期失效 + 到期提醒）
 	pointBatchScheduler := services.NewPointBatchScheduler()

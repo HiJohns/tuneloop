@@ -3239,7 +3239,7 @@ cd frontend-pc && npm run build  # 应该成功
 
 ### 3.34 PC 返点配置 (`/system/rebate-config`)
 
-> ⚠️ **已废弃（#1899 方案 A）**：页面/菜单/路由与后端接口已移除（表数据保留）；返点统一到「赠点策略」。
+> ⚠️ **已废弃（#1899 方案 A）**：页面/菜单/路由与后端接口已移除（表数据保留）；返点统一到「乐币规则」。
 
 
 **组件**: `frontend-pc/src/pages/System/RebateConfigPage.jsx`
@@ -3255,7 +3255,7 @@ cd frontend-pc && npm run build  # 应该成功
 
 ### 3.35 PC 折扣政策管理 (`/system/promo-plans` / `/merchant/promo-plans`)
 
-> ⚠️ **已废弃（#1899 方案 A）**：页面/菜单/路由与后端接口已移除（表数据保留）；返点统一到「赠点策略」。
+> ⚠️ **已废弃（#1899 方案 A）**：页面/菜单/路由与后端接口已移除（表数据保留）；返点统一到「乐币规则」。
 
 
 **组件**: `frontend-pc/src/pages/System/PromoPlanManagePage.jsx`（两个 scope 共用同一组件）
@@ -3380,10 +3380,12 @@ cd frontend-pc && npm run build  # 应该成功
 
 ---
 
-### 3.39 赠点策略 v2（`/system/gift-policies`）（#1939）
+### 3.39 乐币规则（`/system/gift-policies`，菜单原「赠点策略」）（#1939 / #1945）
 
-> 表格列变更：会员级别 | 赠点使用比例（`pay_ratio`，手册值 100%）| **裂变奖励比例（`referral_ratio`，乐手 2%/首席 5%/演奏家 8%）** | 状态 | 操作
-> 编辑 Modal：pay_ratio（0~1.0，手册值=全额抵扣，**可调**）+ referral_ratio（0~1.0，**可调**）+ 启用开关；~~退款返点比例~~（`refund_ratio` 字段废弃，已移除）
+> 菜单/面包屑名称：**乐币规则**（原「赠点策略」，#1945 合并）。
+> 全局参数卡片（`GET/PUT /admin/point-settings`，`rebate:manage`）：抵扣上限 `pay_ratio_max`（0~1.0，默认 1.0）| 乐币有效期 `point_batch_validity_months`（1~120 月，默认 24）| 到期提醒提前量 `point_expiry_reminder_days`（0~365 天，默认 30）；保存后即时生效。
+> 表格列：会员级别 | 抵扣比例（`pay_ratio`，手册值 100%）| 裂变比例（`referral_ratio`，乐手 2%/首席 5%/演奏家 8%）| 邀请奖（`referral_reg_points`，默认 10）| 状态 | 操作
+> 编辑 Modal：pay_ratio（0 ~ `pay_ratio_max`，手册值=全额抵扣）、referral_ratio（0~1.0）、referral_reg_points（0~100000）+ 启用开关；~~退款返点比例~~（`refund_ratio` 字段废弃，已移除）
 > 保存失败必须 `message.error` 透出（`level_id=0` 兜底行可编辑）
 
 ### 3.40 发票申请表单（移动端 `Invoice.jsx`）（#1941）

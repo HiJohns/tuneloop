@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -34,6 +35,57 @@ func SetPointBatchValidity(validity time.Duration) {
 	if validity > 0 {
 		PointBatchValidity = validity
 	}
+}
+
+// SetPointBatchReminderLead 覆盖到期提醒提前量（配置化入口；<=0 时回退默认 30 天）。
+func SetPointBatchReminderLead(lead time.Duration) {
+	if lead > 0 {
+		PointBatchReminderLead = lead
+	}
+}
+
+// 全局「乐币规则」参数在 system_settings 中的键（#1945 Sub-B §四）。
+const (
+	SettingPayRatioMax              = "pay_ratio_max"                // 抵扣比例上限（默认 1.0）
+	SettingPointBatchValidityMonths = "point_batch_validity_months"  // 乐币有效期（月，默认 24）
+	SettingPointExpiryReminderDays  = "point_expiry_reminder_days"   // 到期提醒提前量（天，默认 30）
+)
+
+// GetGlobalFloatSetting 读取全局租户（nil UUID）下的 system_settings 数值，缺失/非法返回 def。
+// 注意：调用方应传入已清除租户作用域的 DB（见 ApplyPointBatchSettingsFromDB）。
+func GetGlobalFloatSetting(db *gorm.DB, key string, def float64) float64 {
+	if db == nil {
+		return def
+	}
+	var s models.SystemSetting
+	if err := db.Where("tenant_id = ? AND setting_key = ?", "00000000-0000-0000-0000-000000000000", key).
+		First(&s).Error; err == nil {
+		if v, perr := strconv.ParseFloat(s.SettingValue, 64); perr == nil {
+			return v
+		}
+	}
+	return def
+}
+
+// ApplyPointBatchSettings 将「乐币规则」全局参数应用到运行时（启动与配置更新时调用）。
+// validityMonths<=0 回退默认；reminderDays<=0 回退默认。
+func ApplyPointBatchSettings(validityMonths, reminderDays int) {
+	if validityMonths > 0 {
+		SetPointBatchValidity(time.Duration(validityMonths) * 30 * 24 * time.Hour)
+	}
+	if reminderDays > 0 {
+		SetPointBatchReminderLead(time.Duration(reminderDays) * 24 * time.Hour)
+	}
+}
+
+// ApplyPointBatchSettingsFromDB 从 system_settings 读取全局参数并应用（缺失取默认）。
+func ApplyPointBatchSettingsFromDB(db *gorm.DB) {
+	if db == nil {
+		return
+	}
+	validityMonths := GetGlobalFloatSetting(db, SettingPointBatchValidityMonths, 24)
+	reminderDays := GetGlobalFloatSetting(db, SettingPointExpiryReminderDays, 30)
+	ApplyPointBatchSettings(int(validityMonths), int(reminderDays))
 }
 
 // pointBatchLocation 归一化/清扫使用的时区（北京时间）。

@@ -26,6 +26,8 @@ func giftPolicyRouter(actor testutil.TestActor) *gin.Engine {
 	})
 	router.GET("/api/admin/gift-policies", ListGiftPolicies)
 	router.PUT("/api/admin/gift-policies", UpdateGiftPolicy)
+	router.GET("/api/admin/point-settings", GetPointSettings)
+	router.PUT("/api/admin/point-settings", UpdatePointSettings)
 	return router
 }
 

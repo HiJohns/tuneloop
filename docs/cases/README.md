@@ -95,7 +95,7 @@ steps:               # 步骤列表
 | L-02 提前归还 | ✅ TestLeaseEarlyReturn | ✅ lease.md | done |
 | L-03 超期归还 | ✅ TestInspectReturn_OverdueFee | ✅ lease.md | done |
 | L-04 定损申诉（退款三路径） | ⚠️ 部分覆盖，待补退款闭环 | ✅ lease.md | wip |
-| L-05 赠点策略配置 | ⬜ 待建 | ✅ lease.md | todo |
+| L-05 乐币规则配置 | ⬜ 待建 | ✅ lease.md | todo |
 | L-06 退款差额结算与返点 | ⬜ 待建 | ✅ lease.md | todo |
 | L-07 订单详情页行为（跨端标准） | ⬜ 待建 | ✅ lease.md | todo |
 | L-08 员工工作台（跨端入口） | ⬜ 待建 | ✅ lease.md | todo |

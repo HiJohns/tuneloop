@@ -8,11 +8,12 @@ type MembershipLevel struct {
 	MinAmount Cents  `gorm:"type:bigint;not null" json:"min_amount"`
 }
 
-// GiftPolicy defines per-membership-level gift point rules (#1605, L-05).
-// pay_ratio: gift points may cover up to floor(payable × pay_ratio) at
-// payment time (initial rent + renewal). refund_ratio: on refund completion,
-// rebate points = floor(cash_paid C1 × refund_ratio). level_id=0 is the
-// default fallback row for unconfigured levels.
+// GiftPolicy defines per-membership-level point ("乐币") rules (#1605, L-05 / #1945).
+// pay_ratio: points may cover up to floor(payable × pay_ratio) at payment time
+// (initial rent + renewal). referral_ratio: referrer rebate = floor(rent × ratio)
+// on referee spend. referral_reg_points: flat points credited to the referrer
+// when a referee registers. level_id=0 is the default fallback row for
+// unconfigured levels. (refund_ratio removed by #1945: self-rebate cancelled.)
 type GiftPolicy struct {
 	ID                string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	LevelID           int       `gorm:"not null;uniqueIndex" json:"level_id"`

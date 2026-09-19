@@ -167,25 +167,31 @@
 
 详细设计见 `docs/features/membership.md`。
 
-### 5.2 赠点策略（Gift Policies）
+### 5.2 乐币规则（Gift Policies）
 
 > **用户可见命名（#1922）**：移动端/PC 界面统一展示为「**乐币**」（此前展示为「积分」）；内部字段名（`promo_points`、`gift_points_refunded` 等）与后端接口**不变**。
 
-赠点策略是平台统一管理的点数规则配置，由 namespace_admin 在 PC「系统管理 → 赠点策略」维护，**分会员级别独立设置**（默认级别兜底）。
+乐币规则是平台统一管理的点数规则配置，由 namespace_admin 在 PC「系统管理 → 乐币规则」维护（原「赠点策略」，#1945 合并），**分会员级别独立设置**（`level_id=0` 默认行兜底）。
 
-**两项比例**：
+**三项级别配置**（`gift_policies`）：
 | 配置 | 说明 | 消费点 |
 |------|------|--------|
-| `pay_ratio` | 赠点使用比例：初次付款/续费时，赠点抵扣 ≤ floor(应付总额 × pay_ratio) | 支付页抵扣上限 |
-| `refund_ratio` | 退款返点比例：退款完成后按实付现金 C1 × refund_ratio 发放返点赠点 | 退款完成时发放 |
+| `pay_ratio` | 抵扣比例：初次付款/续费时，乐币抵扣 ≤ floor(应付总额 × pay_ratio)，且 ≤ 全局抵扣上限 | 支付页抵扣上限 |
+| `referral_ratio` | 裂变比例：被推荐人产生租金时，推荐人返佣 = floor(租金 × 推荐人级别 referral_ratio) | 被推荐人付款时发放 |
+| `referral_reg_points` | 邀请奖：被推荐人注册成功后，发放给推荐人的乐币数（flat） | 注册完成时发放 |
+
+**全局参数**（`system_settings`，PC「乐币规则」页全局参数卡片，`rebate:manage`，即时生效）：
+| 配置键 | 默认 | 说明 |
+|--------|------|------|
+| `pay_ratio_max` | `1.0` | 抵扣上限，级别 `pay_ratio` 校验不得超过此值（硬上限 1.0） |
+| `point_batch_validity_months` | `24` | 乐币有效期（月）；发放批次按 `获取 + 有效期` 归一化到次月首日 00:00（北京时间）后到期失效 |
+| `point_expiry_reminder_days` | `30` | 到期提醒提前量（天） |
 
 **退款差额结算规则**（付款 `R0 = C0 + A0` → 退款按调整后 `R1` 重算）：
 - `A1 = floor(R1 × 当前级别 pay_ratio)`
-- `A1 < A0`：退 `A0−A1` 回赠点账户，退 `C0−C1` 回微信（`C1 = R1 − A1`）
-- 累计花销 `total_spending` 按 **C1（实付现金）** 累计，不含赠点面值（行业惯例：航司里程/信用卡积分均按实付；防赠点循环放大）
-- 返点 `A2 = floor(C1 × refund_ratio)` 与累计同口径
-
-旧体系 `points_policies.max_pay_ratio` 与 `membership_gift_ratios.SelfSpendRatio` 并入本策略。
+- `A1 < A0`：退 `A0−A1` 回乐币账户（原批次按消费逆序恢复，保留原到期日），退 `C0−C1` 回微信（`C1 = R1 − A1`）
+- 累计花销 `total_spending` 按 **C1（实付现金）** 累计，不含乐币面值（行业惯例：航司里程/信用卡积分均按实付；防乐币循环放大）
+- **不再发放"退款返点给自己"**（`refund_ratio` 随 #1945 移除；旧 `points_policies.max_pay_ratio` 与 `membership_gift_ratios` 并入本策略）
 
 ---
 
@@ -232,7 +238,7 @@
 
 **逾期费收取**：逾期费在**归还验收时统一收取**（`InspectReturn` 计算，`overdue_daily_fee` 或默认 1.5× 日租金），从押金扣除。不再有每日 01:00 自动扣款（`OverdueDeductionScheduler` 仅做 `expired` 状态转移），不产生 `overdue_charges` 挂账。详见 `docs/cases.md §2.5`。
 
-**订单完成结算**：订单进入 `completed` 状态时（good 验收自动、damaged 接受/申诉后员工点退款、损坏赔偿支付回调），执行差额结算：按调整后应付 R1 与用户当前级别赠点策略重算赠点上限 A1，超 A1 的赠点退回 promo_points，剩余现金（C0−C1）走微信原路退款；关单后 `total_spending += C1`（实付现金口径），并按 C1 × refund_ratio 发放返点赠点（A2），最后发送完成通知（标准收据 + 感谢 + 赠点到账 + 会员中心链接）。`DepositRefundScheduler` 仅作 `deposit_refunding` 超时兜底。详见 `docs/cases.md §2.7` 与 `docs/cases/lease.md L-06`。
+**订单完成结算**：订单进入 `completed` 状态时（good 验收自动、damaged 接受/申诉后员工点退款、损坏赔偿支付回调），执行差额结算：按调整后应付 R1 与用户当前级别乐币规则重算抵扣上限 A1，超 A1 的乐币退回原批次（保留原到期日），剩余现金（C0−C1）走微信原路退款；关单后 `total_spending += C1`（实付现金口径）；**不再发放退款返点**（#1945 取消"返点给自己"）。最后发送完成通知（标准收据 + 感谢 + 会员中心链接）。`DepositRefundScheduler` 仅作 `deposit_refunding` 超时兜底。详见 `docs/cases.md §2.7` 与 `docs/cases/lease.md L-06`。
 
 ---
 

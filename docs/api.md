@@ -3109,7 +3109,9 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ### 8.11 点数钱包
 
-> **#1757 赠点单位契约**：`promo_points` / `points_transactions.amount` 均为**分**（1 点 = 1 分）。注册赠点 99 元 → `promo_points = 9900`；前端显示「9900 点」。支付抵扣（`gift_used`）、退款返点、推荐奖励全链路分运算。策略配置（`pay_ratio` / `refund_ratio`）为比例，不受单位影响。
+> **#1757 单位契约**：`promo_points` / `points_transactions.amount` 均为**分**（1 点 = 1 分）。注册乐币 99 元 → `promo_points = 9900`；前端显示「9900 点」。支付抵扣（`gift_used`）、推荐奖励、裂变返佣全链路分运算。乐币规则比例（`pay_ratio` / `referral_ratio`）为 0~1 小数，不受单位影响；`referral_reg_points` 为乐币数（元）。
+>
+> **#1945 乐币规则**：原「退款返点给自己」已取消（`refund_ratio` 字段废弃）。级别配置见 `gift_policies`（`pay_ratio` / `referral_ratio` / `referral_reg_points`）；全局参数 `GET/PUT /admin/point-settings`（`pay_ratio_max` / `point_batch_validity_months` / `point_expiry_reminder_days`）。
 
 **接口**: `GET /api/user/points/balance`
 
@@ -5537,7 +5539,7 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 
 ### 12.6 返点配置
 
-> ⚠️ **已废弃（#1899 方案 A）**：本模块已从 PC 菜单/路由与后端移除，表数据保留。返点统一由「赠点策略」（`gift_policies`：pay_ratio 使用上限 + refund_ratio 返还比例）承担，见 §12.8 相关章节。
+> ⚠️ **已废弃（#1899 方案 A）**：本模块已从 PC 菜单/路由与后端移除，表数据保留。返点/乐币规则统一由「乐币规则」（`gift_policies`：pay_ratio 抵扣比例 + referral_ratio 裂变比例 + referral_reg_points 邀请奖）承担，见 §12.8 相关章节。
 
 
 **权限码**: `rebate:manage`
@@ -5580,7 +5582,7 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 
 ### 12.7 折扣政策管理
 
-> ⚠️ **已废弃（#1899 方案 A）**：本模块已从 PC 菜单/路由与后端移除，表数据保留。返点统一由「赠点策略」（`gift_policies`：pay_ratio 使用上限 + refund_ratio 返还比例）承担，见 §12.8 相关章节。
+> ⚠️ **已废弃（#1899 方案 A）**：本模块已从 PC 菜单/路由与后端移除，表数据保留。返点/乐币规则统一由「乐币规则」（`gift_policies`：pay_ratio 抵扣比例 + referral_ratio 裂变比例 + referral_reg_points 邀请奖）承担，见 §12.8 相关章节。
 
 
 **权限码**: `promo:manage`
