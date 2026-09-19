@@ -9,39 +9,52 @@ import (
 	"gorm.io/gorm"
 )
 
-// PointBatchScheduler 乐币批次每日清扫（#1947 Sub-D）：
-// 过期失效（ExpireDueBatches）→ 到期提醒（RemindExpiringBatches）。
+// PointBatchScheduler 乐币批次每日清扫（#1947 Sub-D / B 条裁定）：
+// 每日**北京时间 00:00**执行——过期失效（ExpireDueBatches，按用户合并通知）
+// → 到期提醒（RemindExpiringBatches）。
 type PointBatchScheduler struct {
-	db     *gorm.DB
-	ticker *time.Ticker
-	done   chan bool
+	db   *gorm.DB
+	stop chan struct{}
 }
 
 func NewPointBatchScheduler() *PointBatchScheduler {
 	return &PointBatchScheduler{
 		db:   database.GetDB(),
-		done: make(chan bool),
+		stop: make(chan struct{}),
 	}
+}
+
+// nextBeijingMidnight 返回下一个北京时间零点。
+func nextBeijingMidnight(now time.Time) time.Time {
+	n := now.In(pointBatchLocation)
+	y, m, d := n.Date()
+	return time.Date(y, m, d+1, 0, 0, 0, 0, pointBatchLocation)
 }
 
 func (s *PointBatchScheduler) Start() {
-	s.ticker = time.NewTicker(24 * time.Hour)
 	go func() {
-		// Run immediately on start, then daily.
+		// 启动即补扫一次，随后对齐到北京时间每日零点。
 		s.run()
-
-		for range s.ticker.C {
-			s.run()
+		for {
+			timer := time.NewTimer(time.Until(nextBeijingMidnight(time.Now())))
+			select {
+			case <-timer.C:
+				s.run()
+			case <-s.stop:
+				timer.Stop()
+				return
+			}
 		}
 	}()
-	log.Println("[PointBatchScheduler] started")
+	log.Println("[PointBatchScheduler] started (daily @ 00:00 Asia/Shanghai)")
 }
 
 func (s *PointBatchScheduler) Stop() {
-	if s.ticker != nil {
-		s.ticker.Stop()
+	select {
+	case <-s.stop:
+	default:
+		close(s.stop)
 	}
-	s.done <- true
 	log.Println("[PointBatchScheduler] stopped")
 }
 

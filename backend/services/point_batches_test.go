@@ -148,6 +148,12 @@ func TestPointBatch_ExpireDueBatches(t *testing.T) {
 		Where("user_id = ? AND tenant_id = ? AND type = ?", userID, tenantID, "expired").Count(&expiredTx)
 	require.Equal(t, int64(1), expiredTx, "过期留痕交易")
 
+	// B 裁定：按用户合并一条过期通知
+	var expiredNotif int64
+	db.Model(&models.Notification{}).
+		Where("user_id = ? AND type = ?", userID, "points_expired").Count(&expiredNotif)
+	require.Equal(t, int64(1), expiredNotif, "合并过期通知")
+
 	snapshot, batchSum, err := ReconcilePoints(db, userID)
 	require.NoError(t, err)
 	require.Equal(t, snapshot, batchSum, "快照 == SUM(未过期 remaining)")
@@ -178,16 +184,27 @@ func TestCreatePointsBatch_Validity(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, normal)
 	require.NotNil(t, normal.ExpiresAt, "普通批次有到期日")
-	require.WithinDuration(t, time.Now().Add(PointBatchValidity), *normal.ExpiresAt, time.Minute)
+	require.Equal(t, 1, normal.ExpiresAt.Day(), "归一化到次月首日")
+	require.Equal(t, 0, normal.ExpiresAt.Hour(), "零点")
+	require.Equal(t, 0, normal.ExpiresAt.In(pointBatchLocation).Hour())
 
 	mig, err := CreatePointsBatch(db, userID, PointBatchSourceMigration, "legacy", 5000)
 	require.NoError(t, err)
-	require.Nil(t, mig.ExpiresAt, "迁移批次不过期")
+	require.NotNil(t, mig.ExpiresAt, "迁移批次同样归一化（D 裁定 now+2y）")
+	require.Equal(t, 1, mig.ExpiresAt.Day())
 
 	// 非正数不建批次
 	none, err := CreatePointsBatch(db, userID, PointBatchSourceSignup, "", 0)
 	require.NoError(t, err)
 	require.Nil(t, none)
+}
+
+// TestNormalizeBatchExpiry_NextMonthFirst：2026-09-10 获取、2 年期 → 2028-10-01 00:00（北京）。
+func TestNormalizeBatchExpiry_NextMonthFirst(t *testing.T) {
+	acquired := time.Date(2026, 9, 10, 15, 30, 0, 0, pointBatchLocation)
+	got := normalizeBatchExpiry(acquired)
+	want := time.Date(2028, 10, 1, 0, 0, 0, 0, pointBatchLocation)
+	require.True(t, got.Equal(want), "got %s want %s", got.Format(time.RFC3339), want.Format(time.RFC3339))
 }
 
 // TestPointBatch_MigrationSQL 直接执行迁移 up 文件，验证存量余额 → migration 批次（幂等）。
@@ -218,7 +235,8 @@ func TestPointBatch_MigrationSQL(t *testing.T) {
 	require.NoError(t, db.Where("user_id = ? AND source_type = ?", userID, PointBatchSourceMigration).First(&b).Error)
 	require.Equal(t, models.Cents(250), b.AmountCents)
 	require.Equal(t, models.Cents(250), b.RemainingCents)
-	require.Nil(t, b.ExpiresAt)
+	require.NotNil(t, b.ExpiresAt, "D 裁定：迁移批次 now+2y（归一化，不再 NULL）")
+	require.Equal(t, 1, b.ExpiresAt.In(pointBatchLocation).Day(), "归一化到次月首日")
 
 	// down 迁移：移除两表
 	downBytes, err := os.ReadFile("../database/migrations/20260917010_point_batches.down.sql")

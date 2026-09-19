@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"tuneloop-backend/models"
 )
@@ -35,18 +36,31 @@ func SetPointBatchValidity(validity time.Duration) {
 	}
 }
 
+// pointBatchLocation 归一化/清扫使用的时区（北京时间）。
+var pointBatchLocation = func() *time.Location {
+	if loc, err := time.LoadLocation("Asia/Shanghai"); err == nil {
+		return loc
+	}
+	return time.FixedZone("CST", 8*3600)
+}()
+
+// normalizeBatchExpiry 归一化到期时间：acquired_at + 有效期 之后的「次月首日 00:00（北京时间）」。
+// 例：2026-09-10 获取、有效期 2 年 → 2028-09-10 → 2028-10-01 00:00 CST。
+// 归一化对任意有效期长度均生效（便于凌晨统一清扫 + 合并通知）。
+func normalizeBatchExpiry(acquired time.Time) time.Time {
+	t := acquired.In(pointBatchLocation).Add(PointBatchValidity)
+	y, m, _ := t.Date()
+	return time.Date(y, m+1, 1, 0, 0, 0, 0, pointBatchLocation)
+}
+
 // CreatePointsBatch 建批次（仅建账，不同步 users.promo_points 快照）。
-// sourceType=migration 时 expires_at=NULL（不过期）；其余 = acquired_at + PointBatchValidity。
+// expires_at 统一按 normalizeBatchExpiry 归一化（含 migration 批次）。
 func CreatePointsBatch(tx *gorm.DB, userID, sourceType, sourceRef string, amountCents models.Cents) (*models.PointBatch, error) {
 	if tx == nil || userID == "" || amountCents <= 0 {
 		return nil, nil
 	}
 	now := time.Now()
-	var expiresAt *time.Time
-	if sourceType != PointBatchSourceMigration {
-		e := now.Add(PointBatchValidity)
-		expiresAt = &e
-	}
+	expiresAt := normalizeBatchExpiry(now)
 	b := models.PointBatch{
 		ID:             uuid.New().String(),
 		UserID:         userID,
@@ -55,7 +69,7 @@ func CreatePointsBatch(tx *gorm.DB, userID, sourceType, sourceRef string, amount
 		AmountCents:    amountCents,
 		RemainingCents: amountCents,
 		AcquiredAt:     now,
-		ExpiresAt:      expiresAt,
+		ExpiresAt:      &expiresAt,
 		CreatedAt:      now,
 		UpdatedAt:      now,
 	}
@@ -72,7 +86,8 @@ func ConsumePointsFIFO(tx *gorm.DB, userID string, amountCents models.Cents, tra
 		return 0, nil
 	}
 	var batches []models.PointBatch
-	if err := tx.Where("user_id = ? AND remaining_cents > 0", userID).
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("user_id = ? AND remaining_cents > 0", userID).
 		Order("expires_at ASC NULLS LAST, acquired_at ASC, id ASC").
 		Find(&batches).Error; err != nil {
 		return 0, err
@@ -117,7 +132,8 @@ func RestorePointsByTransaction(tx *gorm.DB, userID, transactionID string, amoun
 		return 0, nil
 	}
 	var cons []models.PointBatchConsumption
-	if err := tx.Where("transaction_id = ? AND amount_cents > 0", transactionID).
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("transaction_id = ? AND amount_cents > 0", transactionID).
 		Order("consumed_at DESC, id DESC").Find(&cons).Error; err != nil {
 		return 0, err
 	}
@@ -164,10 +180,17 @@ func ExpireDueBatches(db *gorm.DB) (int, models.Cents, error) {
 	}
 	count := 0
 	var total models.Cents
+	expiredByUser := map[string]models.Cents{}
+	tenantByUser := map[string]string{}
+	orgByUser := map[string]string{}
 	for _, b := range batches {
+		var batchExp models.Cents
+		var u models.User
 		err := db.Transaction(func(tx *gorm.DB) error {
+			batchExp = 0
 			var fresh models.PointBatch
-			if err := tx.Where("id = ?", b.ID).First(&fresh).Error; err != nil {
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+				Where("id = ?", b.ID).First(&fresh).Error; err != nil {
 				return err
 			}
 			if fresh.RemainingCents <= 0 {
@@ -186,7 +209,6 @@ func ExpireDueBatches(db *gorm.DB) (int, models.Cents, error) {
 				Update("promo_points", gorm.Expr("GREATEST(promo_points - ?, 0)", exp)).Error; err != nil {
 				return err
 			}
-			var u models.User
 			if err := tx.Where("id = ?", fresh.UserID).First(&u).Error; err != nil {
 				return err
 			}
@@ -202,14 +224,46 @@ func ExpireDueBatches(db *gorm.DB) (int, models.Cents, error) {
 			if err := tx.Create(&pt).Error; err != nil {
 				return err
 			}
-			total += exp
+			batchExp = exp
 			return nil
 		})
 		if err != nil {
 			log.Printf("[PointBatches] expire batch %s failed: %v", b.ID, err)
 			continue
 		}
+		if batchExp <= 0 {
+			continue
+		}
 		count++
+		total += batchExp
+		expiredByUser[b.UserID] += batchExp
+		tenantByUser[b.UserID] = u.TenantID
+		orgByUser[b.UserID] = u.OrgID
+	}
+
+	// 按用户合并一条过期通知（B 条裁定：凌晨统一清扫后，同一用户只发一条汇总）
+	for userID, exp := range expiredByUser {
+		if exp <= 0 {
+			continue
+		}
+		notif := models.Notification{
+			ID:         uuid.New().String(),
+			TenantID:   tenantByUser[userID],
+			OrgID:      orgByUser[userID],
+			UserID:     userID,
+			Type:       "points_expired",
+			Title:      "乐币已过期",
+			Content:    fmt.Sprintf("您有 %.2f 乐币因到期未使用已失效", float64(exp)/100),
+			RefID:      userID,
+			RefType:    "user",
+			ActionType: "points_expired",
+			Status:     "unread",
+			CreatedAt:  now,
+			UpdatedAt:  now,
+		}
+		if err := db.Create(&notif).Error; err != nil {
+			log.Printf("[PointBatches] expired notification for user %s failed: %v", userID, err)
+		}
 	}
 	return count, total, nil
 }

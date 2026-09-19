@@ -27,10 +27,12 @@ CREATE TABLE IF NOT EXISTS point_batch_consumptions (
 CREATE INDEX IF NOT EXISTS idx_point_batch_consumptions_tx ON point_batch_consumptions(transaction_id);
 CREATE INDEX IF NOT EXISTS idx_point_batch_consumptions_batch ON point_batch_consumptions(batch_id);
 
--- 存量迁移（幂等）：promo_points>0 且尚无 migration 批次的用户，各建一条不过期批次。
--- 口径（#1947 裁定）：expires_at=NULL（不追溯），余额快照 → 迁移批次。
+-- 存量迁移（幂等）：promo_points>0 且尚无 migration 批次的用户，各建一条批次。
+-- 口径（#1947 裁定 D）：expires_at = now + 2 年，且归一化为「次月首日 00:00（北京时间）」。
 INSERT INTO point_batches (user_id, source_type, source_ref, amount_cents, remaining_cents, acquired_at, expires_at, created_at, updated_at)
-SELECT u.id, 'migration', 'legacy', u.promo_points, u.promo_points, now(), NULL, now(), now()
+SELECT u.id, 'migration', 'legacy', u.promo_points, u.promo_points, now(),
+       (date_trunc('month', (now() AT TIME ZONE 'Asia/Shanghai') + interval '2 years') + interval '1 month') AT TIME ZONE 'Asia/Shanghai',
+       now(), now()
 FROM users u
 WHERE u.promo_points > 0
   AND NOT EXISTS (
