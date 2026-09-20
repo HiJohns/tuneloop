@@ -214,6 +214,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 
 - **数据层一致性**：`GetVisibleOrgIDs`（`iam.go`）对上述两者返回 `nil`（全量可见）；本放行使**门控层**与数据层口径一致（此前仅门控层漏放行 → 40305，preweb 仪表盘/库存页报错）。
 - **不削弱隔离**：`customer` / `merchant_admin` / `site_admin` / `site_member` / `repair_technician` 仍按下方位图严格校验。
+- **前端一致性（#2008）**：前端 `ProtectedRoute` 与菜单亦按 `businessRole ∈ {system_admin, platform_staff}` 判定放行（`frontend-pc/src/config/menuPermissions.js:isSystemLevelRole`），与后端口径统一；system_admin 菜单仍为**治理集**（`getNamespaceAdminMenuKeys`，含 `/appeals`），不展示商户/网点经营菜单。
 - `RequireSysPerm` 的 `sys_perm==0` 直通与 `RequireCusPerm` 的 `cus_perm==0` 直通（兼容旧 token）保持不变。
 
 ---

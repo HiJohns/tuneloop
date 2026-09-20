@@ -374,6 +374,8 @@ function MainLayout() {
     label: '交易管理',
     children: [
       { key: '/orders', label: '订单管理', permission: { cusPermCodes: ['order:read'] } },
+      { key: '/lease/ledger', label: '租赁台账', permission: { cusPermCodes: ['instrument:read'] } },
+      { key: '/admin/billing', label: '账单报表', permission: { cusPermCodes: ['order:read'] } },
       { key: '/repair/requests', label: '报修列表', permission: { cusPermCodes: ['instrument:price_config', 'instrument:read'] } },
       { key: '/technician-profiles', label: '师傅档案', permission: { cusPermCodes: ['instrument:read'] } },
       { key: '/warehouse', label: '库管工作台', permission: { cusPermCodes: ['instrument:read', 'instrument:update'] } },

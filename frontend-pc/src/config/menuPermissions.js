@@ -66,8 +66,17 @@ function isNamespaceAdmin(roles) {
   return Array.isArray(roles) && (roles.includes('namespace_admin') || roles.includes('sys_admin'))
 }
 
+// #2008: 系统级角色判定（与后端 middleware.isSystemLevelRole 对齐）——
+// system_admin / platform_staff 对 cus_perm 门控路由全量放行。
+function isSystemLevelRole(userInfo) {
+  const br = userInfo && userInfo.businessRole
+  return br === 'system_admin' || br === 'platform_staff'
+}
+
 function getNamespaceAdminMenuKeys() {
-  return ['/', '/merchants', '/system/audit-logs', '/instruments/categories', '/instruments/properties',
+  // system_admin 的「治理菜单」（不灌入经营菜单）；#2008 增补 /appeals（治理视图「待处理申诉」入口）
+  return ['/', '/merchants', '/system/audit-logs', '/appeals',
+    '/instruments/categories', '/instruments/properties',
     '/system/banners', '/system/content-edit', '/system/membership-levels', '/system/membership-handbook']
 }
 
@@ -75,5 +84,6 @@ export {
   SysPermBits,
   checkPermission,
   isNamespaceAdmin,
+  isSystemLevelRole,
   getNamespaceAdminMenuKeys,
 }

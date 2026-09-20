@@ -1,7 +1,6 @@
-import { Navigate, useLocation } from 'react-router-dom'
 import { Spin } from 'antd'
 import { useState, useEffect } from 'react'
-import { checkPermission, isNamespaceAdmin, getNamespaceAdminMenuKeys } from '../config/menuPermissions'
+import { checkPermission, isSystemLevelRole } from '../config/menuPermissions'
 
 const getIAMUrl = () => window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
 const CLIENT_ID = () => window.APP_CONFIG?.pc?.iamClientId
@@ -87,7 +86,6 @@ function redirectToLogin(reason = 'redirect_to_login') {
 }
 
 export function ProtectedRoute({ children, requiredRoles = [], requiredPermission = null }) {
-  const location = useLocation()
   const [token, setToken] = useState(null)
   const [checking, setChecking] = useState(true)
 
@@ -138,9 +136,10 @@ export function ProtectedRoute({ children, requiredRoles = [], requiredPermissio
 
   // Check bit-based permissions (new #414 behavior)
   if (requiredPermission) {
-    // Namespace admin bypass (consistent with menu: getNamespaceAdminMenuKeys)
+    // #2008: 系统级角色（system_admin / platform_staff）全放行，与后端 #1964 对齐
+    // （原「namespace_admin 白名单路径」机制被此统一判定取代）。
     const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}')
-    if (isNamespaceAdmin(userInfo.roles) && getNamespaceAdminMenuKeys().includes(location.pathname)) {
+    if (isSystemLevelRole(userInfo)) {
       return children
     }
 
