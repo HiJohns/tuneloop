@@ -285,7 +285,7 @@ export default function InstrumentStock() {
         <div className="mb-4 p-3 bg-blue-50 rounded">
           <Space>
             <span>当前筛选: 状态 = {statusParam}</span>
-            <Button type="link" size="small" onClick={() => window.location.href = '/site/stock'}>清除筛选</Button>
+            <Button type="link" size="small" onClick={() => navigate('/site/stock', { replace: true })}>清除筛选</Button>
           </Space>
         </div>
       )}
@@ -293,7 +293,7 @@ export default function InstrumentStock() {
         <div className="mb-4 p-3 bg-orange-50 rounded">
           <Space>
             <span>当前筛选: 逾期未归还</span>
-            <Button type="link" size="small" onClick={() => window.location.href = '/site/stock'}>清除筛选</Button>
+            <Button type="link" size="small" onClick={() => navigate('/site/stock', { replace: true })}>清除筛选</Button>
           </Space>
         </div>
       )}

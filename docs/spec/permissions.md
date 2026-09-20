@@ -202,6 +202,20 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | repair:complete | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | repair:accept | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
+### 4.3 系统级角色对 cus_perm 门控路由的放行（#1964）
+
+> `RequireCusPerm` / `RequireAnyCusPerm`（`backend/middleware/permissions.go`）在检查
+> cus_perm 位图**之前**，对**系统级角色**直接放行：
+
+| 业务角色 | 判定（`GetBusinessRole`） | 放行理由 |
+|----------|--------------------------|---------|
+| `system_admin` | `role=NAMESPACE_ADMIN` 或 `tid==""` 或 `functional_roles` 含 `namespace_admin` | 走 sys_perm 语义，cus_perm 位图不含商户/网点/员工权限位 |
+| `platform_staff` | `oid == PLATFORM_ROOT_ORG_ID`（配置时，`#1795 T6`） | 同上（全平台可见） |
+
+- **数据层一致性**：`GetVisibleOrgIDs`（`iam.go`）对上述两者返回 `nil`（全量可见）；本放行使**门控层**与数据层口径一致（此前仅门控层漏放行 → 40305，preweb 仪表盘/库存页报错）。
+- **不削弱隔离**：`customer` / `merchant_admin` / `site_admin` / `site_member` / `repair_technician` 仍按下方位图严格校验。
+- `RequireSysPerm` 的 `sys_perm==0` 直通与 `RequireCusPerm` 的 `cus_perm==0` 直通（兼容旧 token）保持不变。
+
 ---
 
 ## 五、菜单-权限映射

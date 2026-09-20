@@ -1,11 +1,23 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"sync"
 
 	"github.com/gin-gonic/gin"
 )
+
+// isSystemLevelRole 判定请求身份是否为系统级角色（系统管理员/平台员工）——
+// 这类角色走 sys_perm 语义，对 cus_perm 门控路由全量放行（#1964）。
+func isSystemLevelRole(ctx context.Context) bool {
+	switch GetBusinessRole(ctx) {
+	case BusinessRoleSystemAdmin, BusinessRolePlatformStaff:
+		return true
+	default:
+		return false
+	}
+}
 
 // SysPerm bit codes (0-29, 6 groups × 5 bits CRUDL, defined by BeaconIAM v1.0)
 const (
@@ -145,6 +157,14 @@ func RequireSysPerm(bit int) gin.HandlerFunc {
 // If the bit is -1 (mock mode), the permission check is skipped (pass-through).
 func RequireCusPerm(name string) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// #1964: 系统管理员/平台员工是 sys_perm 类角色，其 cus_perm 位图不含
+		// 商户/网点/员工角色的权限位 → 会被误拒 40305。数据层 GetVisibleOrgIDs
+		// 已对两者返回全量可见；此处门控层同步放行（customer/商户/网点/员工
+		// 仍按下方位图严格校验，不回退既有隔离）。
+		if isSystemLevelRole(c.Request.Context()) {
+			c.Next()
+			return
+		}
 		bit := PermissionRegistry.GetCusPermBit(name)
 		if bit < 0 {
 			c.Next()
@@ -174,6 +194,11 @@ func RequireCusPerm(name string) gin.HandlerFunc {
 // every code resolves to an unknown bit the check passes through.
 func RequireAnyCusPerm(names ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// #1964: 同 RequireCusPerm —— 系统管理员/平台员工全量放行。
+		if isSystemLevelRole(c.Request.Context()) {
+			c.Next()
+			return
+		}
 		hasKnownBit := false
 		matched := false
 		cusPerm := GetCusPerm(c.Request.Context())
