@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { Table, Tag, Button, Card, Typography, Space, Modal, Descriptions, Steps, message, Select, Upload, Input, Tooltip } from 'antd';
-import { TruckOutlined, CheckCircleOutlined, EyeOutlined, CameraOutlined, QrcodeOutlined } from '@ant-design/icons';
+import { Table, Tag, Button, Card, Typography, Space, Modal, Descriptions, Steps, message, Select, Upload, Input, Tooltip, DatePicker } from 'antd';
+import { TruckOutlined, CheckCircleOutlined, EyeOutlined, CameraOutlined, QrcodeOutlined, DownloadOutlined } from '@ant-design/icons';
 import { api } from '../services/api';
 import { formatBeijingDateTimeShort } from '../utils/date';
 // import QrScanner from 'qr-scanner';  // Temporarily disabled - install dependency to enable
 
 const { Title } = Typography;
+const { RangePicker } = DatePicker;
 
 export default function WarehouseManagement() {
   const [orders, setOrders] = useState([]);
@@ -14,6 +15,15 @@ export default function WarehouseManagement() {
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
   const [keyword, setKeyword] = useState('');
+  // #2004: 导出全部订单（对账用）——日期范围，留空则导出全部。
+  const [exportRange, setExportRange] = useState([]);
+
+  const handleExportAll = () => {
+    const params = new URLSearchParams({ format: 'csv' });
+    if (exportRange[0]) params.set('start', exportRange[0].format('YYYY-MM-DD'));
+    if (exportRange[1]) params.set('end', exportRange[1].format('YYYY-MM-DD'));
+    window.open(`/api/admin/billing/report?${params.toString()}`);
+  };
 
   useEffect(() => {
     fetchOrders();
@@ -333,6 +343,8 @@ export default function WarehouseManagement() {
             />
         <Input.Search placeholder="订单号 / SN / 客户姓名 / 电话" style={{ width: 260, marginLeft: 8 }} allowClear onSearch={(v) => setKeyword(v)} />
             <Button onClick={fetchOrders}>刷新</Button>
+            <RangePicker value={exportRange} onChange={setExportRange} style={{ marginLeft: 8 }} />
+            <Button icon={<DownloadOutlined />} onClick={handleExportAll}>导出全部订单</Button>
           </Space>
         </div>
 

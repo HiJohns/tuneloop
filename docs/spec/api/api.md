@@ -4044,6 +4044,25 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ---
 
+### 8.14.1 账单报表与订单导出（#1999）
+
+**接口**: `GET /api/admin/billing/report`
+
+**说明**: 财务对账用订单账单。订单状态排除 `reserved`/`cancelled`；商户管理员限本租户，系统管理员/平台员工全量。PC「交易管理 → 库管工作台」的「导出全部订单」按钮调用 `?format=csv`。
+
+**查询参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| page / page_size | int | 分页（默认 1 / 20，上限 100；`format=csv` 时忽略分页=导出全部） |
+| start / end | `YYYY-MM-DD` | 创建时间范围（`end` 含当日） |
+| format | string | `csv` = 导出 CSV |
+
+**响应**（JSON）: `data.summary`（`total_orders` / `total_cash_paid` / `total_prepaid_used` / `total_gift_used` / `total_refund`）+ `data.list`（订单行：`order_id` / `created_at` / `user_name` / `instrument_name` / `cash_paid` / `prepaid_used` / `gift_used` / `deposit` / `status`）+ `total` / `page` / `page_size`。
+
+> **单位**：`orders` 金额列为**分**（`models.Cents`，#1757）。本接口输出统一为**元**（两位小数）——见 #1999 S1（`Cents.ToYuan()`，CSV 与 summary 一致）。导出字段将对齐对账需求（订单号/业务单号/微信单号/物流费/退款/续费/逾期费等）。
+
+---
+
 ### 8.15 发票申请（#1786）
 
 > 顾客侧。申请状态机：`pending`（待开票）→ `replied`（已开票）。一次申请 = 按商户分组的订单集合。
