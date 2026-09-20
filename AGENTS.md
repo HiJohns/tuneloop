@@ -416,14 +416,17 @@ tuneloop/
 src/pages/
 ├── Home.jsx                    ← 唯一业务逻辑 (两端共用)
 ├── home/
-│   └── index.tsx               ← 薄壳: export { default } from '../../Home'
+│   └── index.tsx               ← 薄壳: export { default } from '../Home'
 ├── Profile.jsx                 ← 唯一业务逻辑
 ├── profile/
-│   └── index.tsx               ← 薄壳: export { default } from '../../Profile'
+│   └── index.tsx               ← 薄壳: export { default } from '../Profile'
 ...
 
 app.config.ts                   ← Taro 页面注册 (指向 .tsx 薄壳)
 ```
+
+> **页面注册一致性（#1989）**：`app.config.ts` 的 `h5Pages` 每个条目必须存在对应 `src/pages/<kebab>/index.tsx` 薄壳（`weappPages` ↔ `pages-weapp/<p>/index.tsx` 同理）；**新增页面时两端注册 + 薄壳 + 路由必须同一提交内完成**，否则 `npm run build:h5` 直接失败（`Module not found: pages/<kebab>/index`）。H5 构建验收以 `npm run build:h5` **实际退出码**为准（不得仅凭「H5 构建 ✅」的口头声明）。
+
 ---
 
 ## Build & Development Commands
