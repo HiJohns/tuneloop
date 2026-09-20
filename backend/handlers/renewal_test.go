@@ -117,7 +117,9 @@ func TestRenewal_Overdue_MinDaysValidation(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(w2.Body.Bytes(), &resp))
 	require.Equal(t, 20000, resp.Code)
-	require.Equal(t, 5, resp.Data.MinAdditionalDays, "min_additional_days = today - endDate inclusive = 5")
+	// #1997: 逾期 N 天只需续 N 天（end_date → 昨天含终点日）；此处 endDate=今天-4
+	// → overdueDays=4 → min=4（原实现用 CalculateDays(endDate, today) 多算 1 天）。
+	require.Equal(t, 4, resp.Data.MinAdditionalDays, "min_additional_days = overdue days = 4 (no off-by-one)")
 	require.Zero(t, resp.Data.OverdueBalance, "no overdue balance in renewal")
 	require.Zero(t, resp.Data.OverdueDailyRate, "no overdue daily rate in renewal")
 	require.Equal(t, resp.Data.TotalAmount, resp.Data.RenewalCost, "total = renewal cost only (no overdue fee)")

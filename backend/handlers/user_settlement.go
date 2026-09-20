@@ -769,6 +769,29 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		actualDays = 1
 	}
 
+	// #1997 Bug② 兜底加固：pricing_breakdown.tier_segments 未随续期扩展
+	// （存量快照/续期写入前的数据）时，Σsegment.Days < rent_days(coverDays)，
+	// 而下方 #1743 兜底按 Σsegments 计费 → 少计续期天数 → 续期费被整笔退回。
+	// 以 rent_days 为权威覆盖天数补齐尾部段（沿用末段费率），确保已消费天数
+	// 据实计费。段级模型（#1836）正常时不走此路径。
+	if coverDays > 0 && len(tierSegments) > 0 {
+		covered := 0
+		for _, seg := range tierSegments {
+			covered += seg.Days
+		}
+		if covered < coverDays {
+			last := tierSegments[len(tierSegments)-1]
+			gap := coverDays - covered
+			tierSegments = append(tierSegments, services.TierSegment{
+				Tier:     last.Tier,
+				Days:     gap,
+				Rate:     last.Rate,
+				Discount: last.Discount,
+				Subtotal: last.Rate * last.Discount * float64(gap),
+			})
+		}
+	}
+
 	if len(tierSegments) > 0 {
 		cursor := 1
 		for _, seg := range tierSegments {

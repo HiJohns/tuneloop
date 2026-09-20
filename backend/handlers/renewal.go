@@ -180,13 +180,10 @@ func CalculateRenewal(c *gin.Context) {
 
 	// Minimum renewal days: when overdue, renewal must cover at least the
 	// overdue period so the new end date stays after today (continuous).
-	minAdditionalDays := 0
-	if today.After(endDate) {
-		minAdditionalDays = services.CalculateDays(endDate, today)
-		if minAdditionalDays < 0 {
-			minAdditionalDays = 0
-		}
-	}
+	// #1997: = 逾期天数（与 OverdueDays 同口径，end_date → 昨天含终点日），
+	// 使 new_end_date = end_date + N ≥ 今天。此前用 CalculateDays(endDate, today)
+	// 会多算 1 天（逾期 N 天强制续 N+1，费用亦按 N+1 计）。
+	minAdditionalDays := overdueDays
 	if req.AdditionalDays < minAdditionalDays {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
@@ -273,10 +270,11 @@ func ConfirmRenewal(c *gin.Context) {
 	baseRate, pricingTiers, cumDisc := loadRenewalPricing(db, order)
 
 	// Minimum renewal days: must cover the overdue period (continuous).
+	// #1997: 与 CalculateRenewal 一致 —— min = 逾期天数（不再 +1）。
 	if today.After(endDate) {
-		minAdditionalDays := services.CalculateDays(endDate, today)
-		if minAdditionalDays < 0 {
-			minAdditionalDays = 0
+		minAdditionalDays := services.CalculateDays(endDate, today.AddDate(0, 0, -1))
+		if minAdditionalDays < 1 {
+			minAdditionalDays = 1
 		}
 		if req.AdditionalDays < minAdditionalDays {
 			c.JSON(http.StatusBadRequest, gin.H{
