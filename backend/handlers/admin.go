@@ -37,18 +37,44 @@ func (h *DashboardHandler) GetDashboardStats(c *gin.Context) {
 	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	todayStr := now.Format("2006-01-02")
 
+	// #2006 QA 返工：聚合查询失败必须返回 500，不得静默返回 0（HTTP 200）。
+	// aggErr 记录首个聚合错误；countQ 在出错后不再执行后续查询。
+	var aggErr error
+	countQ := func(q *gorm.DB) int64 {
+		var n int64
+		if aggErr == nil {
+			if err := q.Count(&n).Error; err != nil {
+				aggErr = err
+			}
+		}
+		return n
+	}
+	failAgg := func() {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to aggregate dashboard stats: " + aggErr.Error(),
+		})
+	}
+
 	switch role {
 	case middleware.BusinessRoleSystemAdmin, middleware.BusinessRolePlatformStaff:
 		// ---- 治理支（平台级，不做 tenant/org 过滤）----
-		var merchantsCount, tenantsCount, usersCount, pendingFaceReview, pendingAppeals int64
-		db.Model(&models.Merchant{}).Count(&merchantsCount)
-		db.Model(&models.Tenant{}).Count(&tenantsCount)
-		db.Model(&models.User{}).Count(&usersCount)
-		db.Model(&models.FaceCaptureBatch{}).Where("status = ?", "pending").Count(&pendingFaceReview)
-		db.Model(&models.Appeal{}).Where("status = ?", "pending").Count(&pendingAppeals)
+		merchantsCount := countQ(db.Model(&models.Merchant{}))
+		tenantsCount := countQ(db.Model(&models.Tenant{}))
+		usersCount := countQ(db.Model(&models.User{}))
+		pendingFaceReview := countQ(db.Model(&models.FaceCaptureBatch{}).Where("status = ?", "pending"))
+		pendingAppeals := countQ(db.Model(&models.Appeal{}).Where("status = ?", "pending"))
 
 		var merchants []models.Merchant
-		db.Order("created_at DESC").Limit(10).Find(&merchants)
+		if aggErr == nil {
+			if err := db.Order("created_at DESC").Limit(10).Find(&merchants).Error; err != nil {
+				aggErr = err
+			}
+		}
+		if aggErr != nil {
+			failAgg()
+			return
+		}
 		recentMerchants := make([]gin.H, 0, len(merchants))
 		for _, m := range merchants {
 			recentMerchants = append(recentMerchants, gin.H{
@@ -92,9 +118,7 @@ func (h *DashboardHandler) GetDashboardStats(c *gin.Context) {
 			if stockStatus != "" {
 				q = q.Where("stock_status = ?", stockStatus)
 			}
-			var n int64
-			q.Count(&n)
-			return n
+			return countQ(q)
 		}
 		totalAssets := countInstruments("")
 		rentedAssets := countInstruments("rented")
@@ -107,16 +131,13 @@ func (h *DashboardHandler) GetDashboardStats(c *gin.Context) {
 			if extra != "" {
 				q = q.Where(extra, args...)
 			}
-			var n int64
-			q.Count(&n)
-			return n
+			return countQ(q)
 		}
 		activeLeases := countLeases("")
 		expiringToday := countLeases("end_date = ?", todayStr)
 		overdue := countLeases("end_date < ?", todayStr)
 
-		var newOrdersToday int64
-		scope(db.Model(&models.Order{})).Where("created_at >= ?", todayStart).Count(&newOrdersToday)
+		newOrdersToday := countQ(scope(db.Model(&models.Order{})).Where("created_at >= ?", todayStart))
 
 		// 收入趋势（近 6 个月；completed 订单 cash_paid 汇总，分→元）
 		type revRow struct {
@@ -124,13 +145,21 @@ func (h *DashboardHandler) GetDashboardStats(c *gin.Context) {
 			RevenueCents int64
 		}
 		var revRows []revRow
-		scope(db.Model(&models.Order{})).
-			Select("to_char(date_trunc('month', created_at), 'YYYY-MM') as month, COALESCE(SUM(cash_paid),0)::bigint as revenue_cents").
-			Where("status = ?", "completed").
-			Where("created_at >= ?", now.AddDate(0, -5, 0)).
-			Group("to_char(date_trunc('month', created_at), 'YYYY-MM')").
-			Order("1").
-			Scan(&revRows)
+		if aggErr == nil {
+			if err := scope(db.Model(&models.Order{})).
+				Select("to_char(date_trunc('month', created_at), 'YYYY-MM') as month, COALESCE(SUM(cash_paid),0)::bigint as revenue_cents").
+				Where("status = ?", "completed").
+				Where("created_at >= ?", now.AddDate(0, -5, 0)).
+				Group("to_char(date_trunc('month', created_at), 'YYYY-MM')").
+				Order("1").
+				Scan(&revRows).Error; err != nil {
+				aggErr = err
+			}
+		}
+		if aggErr != nil {
+			failAgg()
+			return
+		}
 		revenueTrend := make([]gin.H, 0, len(revRows))
 		for _, r := range revRows {
 			revenueTrend = append(revenueTrend, gin.H{

@@ -157,3 +157,17 @@ func TestDashboardStats_2005_CustomerForbidden(t *testing.T) {
 	code, _ := callDashboardStats(t, "USER", "", "")
 	require.Equal(t, http.StatusForbidden, code)
 }
+
+// #2006 QA 返工：聚合查询失败必须 500，不得静默返回 0（HTTP 200）。
+// 注入方式：删除 merchants 表 → 治理支首个聚合失败。
+func TestDashboardStats_2005_AggregationErrorReturns500(t *testing.T) {
+	cleanup := setupMockIAMAndDB(t)
+	defer cleanup()
+	db := database.GetDB()
+	require.NoError(t, db.AutoMigrate(&models.Merchant{}))
+	require.NoError(t, db.Migrator().DropTable(&models.Merchant{}))
+	t.Cleanup(func() { _ = db.AutoMigrate(&models.Merchant{}) })
+
+	code, _ := callDashboardStats(t, "NAMESPACE_ADMIN", "", "")
+	require.Equal(t, http.StatusInternalServerError, code, "聚合失败必须 500，不得静默 0")
+}
