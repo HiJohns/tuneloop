@@ -4048,7 +4048,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 **接口**: `GET /api/admin/billing/report`
 
-**说明**: 财务对账用订单账单。订单状态排除 `reserved`/`cancelled`；商户管理员限本租户，系统管理员/平台员工全量。PC「交易管理 → 库管工作台」的「导出全部订单」按钮调用 `?format=csv`。
+**说明**: 财务对账用订单账单。订单状态排除 `reserved`/`cancelled`；权限范围：**商户管理员**限本租户、**系统管理员**全量；**平台员工（platform_staff）当前被 40300 拒绝**（如需放行须另立 Issue 扩白名单，不在本接口范围）。PC「交易管理 → 库管工作台」的「导出全部订单」按钮调用 `?format=csv`。
 
 **查询参数**:
 | 参数 | 类型 | 说明 |

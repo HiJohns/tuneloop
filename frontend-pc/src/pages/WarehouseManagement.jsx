@@ -19,9 +19,11 @@ export default function WarehouseManagement() {
   const [exportRange, setExportRange] = useState([]);
 
   const handleExportAll = () => {
+    // antd RangePicker 清空时 onChange 回调参数为 null；统一归一为数组，避免取下标崩溃。
+    const range = exportRange || [];
     const params = new URLSearchParams({ format: 'csv' });
-    if (exportRange[0]) params.set('start', exportRange[0].format('YYYY-MM-DD'));
-    if (exportRange[1]) params.set('end', exportRange[1].format('YYYY-MM-DD'));
+    if (range[0]) params.set('start', range[0].format('YYYY-MM-DD'));
+    if (range[1]) params.set('end', range[1].format('YYYY-MM-DD'));
     window.open(`/api/admin/billing/report?${params.toString()}`);
   };
 
@@ -343,7 +345,7 @@ export default function WarehouseManagement() {
             />
         <Input.Search placeholder="订单号 / SN / 客户姓名 / 电话" style={{ width: 260, marginLeft: 8 }} allowClear onSearch={(v) => setKeyword(v)} />
             <Button onClick={fetchOrders}>刷新</Button>
-            <RangePicker value={exportRange} onChange={setExportRange} style={{ marginLeft: 8 }} />
+            <RangePicker value={exportRange} onChange={(dates) => setExportRange(dates || [])} style={{ marginLeft: 8 }} />
             <Button icon={<DownloadOutlined />} onClick={handleExportAll}>导出全部订单</Button>
           </Space>
         </div>
