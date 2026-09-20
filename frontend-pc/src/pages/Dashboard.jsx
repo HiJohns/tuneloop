@@ -1,199 +1,51 @@
 import { useState, useEffect } from 'react'
-import { Table, Tag, Space, Form, Select, Statistic, Row, Col, Drawer, Timeline, Button, Badge, Spin, Card, message } from 'antd'
-import { EyeOutlined, EditOutlined, ShoppingOutlined, BarChartOutlined } from '@ant-design/icons'
+import { Card, Row, Col, Statistic, Table, Spin, Empty, Button, Space } from 'antd'
+import {
+  ShopOutlined, TeamOutlined, UserOutlined, IdcardOutlined, AlertOutlined,
+  ShoppingOutlined, ToolOutlined, ReloadOutlined,
+  AuditOutlined, InboxOutlined, ContainerOutlined,
+} from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
-import { inventoryApi, sitesApi, ordersApi, leaseApi } from '../services/api'
 import { LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Legend, Tooltip } from 'recharts'
+import { api } from '../services/api'
+import { formatBeijingDateTimeShort } from '../utils/date'
 
-const statusColors = {
-  "在租": "green",
-  "待租": "blue",
-  "维修中": "orange",
-  "available": "blue",
-  "rented": "green",
-  "maintenance": "orange",
-}
+// #2005 S2: 仪表盘按角色分层——
+//   system_admin / platform_staff → 平台治理视图（商户/用户/审核，无经营 KPI）
+//   merchant_admin / site_admin / site_member → 经营仪表盘（数据源 GET /admin/dashboard/stats，后端按作用域）
+const STATUS_LABEL = { available: '可租', rented: '在租', maintenance: '维修中' }
+const STATUS_COLOR = { available: '#1890ff', rented: '#52c41a', maintenance: '#faad14' }
 
-const levelColors = {
-  "入门级": "default",
-  "专业级": "blue",
-  "大师级": "gold",
+const SCOPE_LABEL = {
+  merchant_admin: '商户资产总数',
+  site_admin: '本网点资产总数',
+  site_member: '本网点资产总数',
 }
 
 export default function Dashboard() {
-  const [form] = Form.useForm()
-  const [selectedSite, setSelectedSite] = useState(null)
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [selectedAsset, setSelectedAsset] = useState(null)
-  const [statusFilter, setStatusFilter] = useState(null)
-  const [sites, setSites] = useState([])
+  const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [assets, setAssets] = useState([])
-  const [leasesData, setLeasesData] = useState([])
-  const [today, setToday] = useState('')
-  const [totalAssets, setTotalAssets] = useState(0)
-  const [activeRentals, setActiveRentals] = useState(0)
-  const [todaysNewOrders, setTodaysNewOrders] = useState(0)
+  const [error, setError] = useState(false)
   const navigate = useNavigate()
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
+  const load = async () => {
     setLoading(true)
+    setError(false)
     try {
-      // #1857: 业务日期=北京日历日（与后端 time.Local=Asia/Shanghai 对齐）；
-      // UTC toISOString 在北京 00:00–07:59 时段会取到前一天，导致今日订单/逾期统计错位
-      const todayStr = new Date(Date.now() + 8 * 3600000).toISOString().split('T')[0]
-      setToday(todayStr)
-      const results = await Promise.allSettled([
-        inventoryApi.list(),
-        sitesApi.list(),
-        leaseApi.list(),
-        ordersApi.list({ start_date: todayStr, end_date: todayStr }),
-      ])
-      const [inventoryRes, sitesRes, leasesRes, ordersRes] = results
-      const inventoryData = inventoryRes.status === 'fulfilled' ? (inventoryRes.value?.data?.list || []) : []
-      const sitesData = sitesRes.status === 'fulfilled' ? (sitesRes.value?.data?.list || []) : []
-      const leasesList = leasesRes.status === 'fulfilled' ? (leasesRes.value?.data?.list || []) : []
-      const ordersResponse = ordersRes.status === 'fulfilled' ? (ordersRes.value?.data?.list || []) : []
-      
-      // #1971：资产总数口径按角色区分——网点级账号（tid≠oid）只计本网点
-      const userInfo0 = JSON.parse(localStorage.getItem('user_info') || '{}')
-      const isSiteLevel = userInfo0.tid && userInfo0.oid && userInfo0.tid !== userInfo0.oid
-      const scopedAssets = isSiteLevel
-        ? inventoryData.filter(a => (a.current_site_id || a.site_id) === userInfo0.oid)
-        : inventoryData
-      setAssets(scopedAssets)
-      setLeasesData(leasesList) // Fix: add leases to state
-      setTotalAssets(scopedAssets.length)
-      setSites(sitesData.map(s => ({
-        value: s.id,
-        label: s.name,
-      })))
-      
-      if (leasesList.length > 0) {
-        const activeLeases = leasesList.filter(l => l.status === 'active')
-        setActiveRentals(activeLeases.length)
+      const resp = await api.get('/admin/dashboard/stats')
+      if (resp.code === 20000 && resp.data) {
+        setData(resp.data)
+      } else {
+        setError(true)
       }
-      
-      setTodaysNewOrders(ordersResponse.length)
-    } catch (error) {
-      console.error('Failed to load data:', error)
-      message.error('仪表盘数据加载失败，请刷新重试')
+    } catch (e) {
+      setError(true)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleCardClick = (filterType) => {
-    if (filterType === '在租') {
-      navigate('/site/stock?status=rented')
-    } else if (filterType === '维修中') {
-      navigate('/site/stock?status=maintenance')
-    } else if (filterType === '逾期') {
-      // #1971：指向 #1966 修复后的逾期告警页（原 ?overdue=true 依赖缺失字段恒空）
-      navigate('/overdue-alerts')
-    } else if (filterType === 'total-assets') {
-      navigate('/site/stock')
-    } else if (filterType === 'active-rentals') {
-      navigate('/site/stock?status=rented')
-    } else if (filterType === 'new-orders') {
-      // #1971：带上当日筛选（与卡片口径一致），订单页支持 query 预置
-      const d = new Date(Date.now() + 8 * 3600000).toISOString().split('T')[0]
-      navigate(`/orders?start_date=${d}&end_date=${d}`)
-    }
-  }
-
-  const filteredAssets = selectedSite
-    ? assets.filter(a => a.siteId === selectedSite)
-    : assets
-
-  const displayedAssets = statusFilter
-    ? filteredAssets.filter(a => a.status === statusFilter)
-    : filteredAssets
-
-  // Fix 1: 在租资产数量（替代在租资产总额）
-  const rentedAssetCount = filteredAssets.filter(a => 
-    a.status === "rented" || a.stock_status === "rented"
-  ).length
-
-  // Fix 2 & 3: 从 leaseApi 获取到期和逾期租约
-  const expiringToday = leasesData.filter(lease => 
-    lease.end_date === today && lease.status === 'active'
-  ).length
-
-  const overdueAssets = leasesData.filter(lease => 
-    lease.end_date < today && lease.status === 'active'
-  ).length
-
-  const handleRowClick = (record) => {
-    setSelectedAsset(record)
-    setDrawerOpen(true)
-  }
-
-  const columns = [
-    {
-      title: '资产ID',
-      dataIndex: 'id',
-      key: 'id',
-      fixed: 'left',
-      width: 120,
-    },
-    {
-      title: '乐器名称',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status) => {
-        const statusMap = {
-          "在租": { color: 'green', text: '在线' },
-          "rented": { color: 'green', text: '在租' },
-          "待租": { color: 'blue', text: '在线' },
-          "available": { color: 'blue', text: '待租' },
-          "维修中": { color: 'orange', text: '维修中' },
-          "maintenance": { color: 'orange', text: '维修中' }
-        }
-        const info = statusMap[status] || { color: 'default', text: status }
-        return <Tag color={info.color}>{info.text}</Tag>
-      }
-    },
-    {
-      title: '类别',
-      dataIndex: 'category_name',
-      key: 'category_name',
-    },
-    {
-      title: '级别',
-      dataIndex: 'level_name',
-      key: 'level_name',
-      render: (level) => (
-        <Tag color={levelColors[level] || 'default'}>{level}</Tag>
-      )
-    },
-    {
-      title: '所属网点',
-      dataIndex: 'site',
-      key: 'site',
-    },
-    {
-      title: '操作',
-      key: 'action',
-      fixed: 'right',
-      width: 120,
-      render: (_, record) => (
-        <Space>
-          <Button type="link" icon={<EyeOutlined />} onClick={() => handleRowClick(record)}>详情</Button>
-          <Button type="link" icon={<EditOutlined />}>编辑</Button>
-        </Space>
-      )
-    }
-  ]
+  useEffect(() => { load() }, [])
 
   if (loading) {
     return (
@@ -203,218 +55,203 @@ export default function Dashboard() {
     )
   }
 
+  if (error || !data) {
+    return (
+      <div style={{ padding: 40, textAlign: 'center' }}>
+        <Empty description="仪表盘数据加载失败" />
+        <Button type="primary" icon={<ReloadOutlined />} onClick={load} style={{ marginTop: 16 }}>
+          重试
+        </Button>
+      </div>
+    )
+  }
+
+  const role = data.role
+  if (role === 'system_admin' || role === 'platform_staff') {
+    return <GovernanceView data={data} navigate={navigate} />
+  }
+  return <OpsDashboard data={data} role={role} navigate={navigate} />
+}
+
+// ---------------- 平台治理视图（system_admin / platform_staff） ----------------
+function GovernanceView({ data, navigate }) {
+  const shortcuts = [
+    { label: '商户管理', icon: <ShopOutlined />, to: '/merchants' },
+    { label: '用户管理', icon: <UserOutlined />, to: '/system/user-management' },
+    { label: '实名审核队列', icon: <IdcardOutlined />, to: '/face-review' },
+    { label: '申诉处理', icon: <InboxOutlined />, to: '/appeals' },
+    { label: '操作日志', icon: <AuditOutlined />, to: '/system/audit-logs' },
+  ]
+  const columns = [
+    { title: '商户', dataIndex: 'name', key: 'name', render: v => v || '-' },
+    { title: '租户 ID', dataIndex: 'tenant_id', key: 'tenant_id', render: v => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{v ? `${v.slice(0, 8)}…` : '-'}</span> },
+    { title: '创建时间', dataIndex: 'created_at', key: 'created_at', render: v => (v ? formatBeijingDateTimeShort(v) : '-') },
+  ]
+
   return (
     <div>
       <Row gutter={16} className="mb-6">
-        <Col span={8}>
-          <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('在租')}>
-            <Statistic
-              title="在租资产数量"
-              value={rentedAssetCount}
-              precision={0}
-              valueStyle={{ color: '#3f8600' }}
-            />
+        <Col span={6}>
+          <Card style={{ cursor: 'pointer' }} onClick={() => navigate('/merchants')}>
+            <Statistic title="商户总数" value={data.merchants_count || 0} prefix={<ShopOutlined />} valueStyle={{ color: '#1890ff' }} />
           </Card>
         </Col>
-        <Col span={8}>
+        <Col span={6}>
           <Card>
-            <Statistic
-              title="今日到期租约"
-              value={expiringToday}
-              valueStyle={{ color: '#cf1322' }}
-              prefix={<Badge status="error" />}
-            />
+            <Statistic title="租户总数" value={data.tenants_count || 0} prefix={<ContainerOutlined />} />
           </Card>
         </Col>
-        <Col span={8}>
-          <Card
-            style={{ 
-              cursor: 'pointer',
-              borderColor: '#ff4d4f',
-              background: '#fff1f0',
-              transition: 'all 0.3s'
-            }}
-            onClick={() => handleCardClick('逾期')}
-          >
-            <Statistic
-              title="逾期未归还"
-              value={overdueAssets}
-              valueStyle={{ 
-                color: '#faad14',
-                fontWeight: 'bold'
-              }}
-              prefix={<Badge status="warning" />}
-            />
+        <Col span={6}>
+          <Card style={{ cursor: 'pointer' }} onClick={() => navigate('/system/user-management')}>
+            <Statistic title="用户总数" value={data.users_count || 0} prefix={<TeamOutlined />} valueStyle={{ color: '#722ed1' }} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card style={{ cursor: 'pointer' }} onClick={() => navigate('/face-review')}>
+            <Statistic title="待实名审核" value={data.pending_face_review || 0} prefix={<IdcardOutlined />} valueStyle={{ color: '#fa8c16' }} />
           </Card>
         </Col>
       </Row>
 
       <Row gutter={16} className="mb-6">
         <Col span={8}>
-          <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('total-assets')}>
-            <Statistic
-              title={(() => {
-                const u = JSON.parse(localStorage.getItem('user_info') || '{}')
-                return u.tid && u.oid && u.tid !== u.oid ? '本网点资产' : '租户资产总数'
-              })()}
-              value={totalAssets}
-              precision={0}
-              valueStyle={{ color: '#1890ff' }}
-            />
+          <Card style={{ cursor: 'pointer' }} onClick={() => navigate('/appeals')}>
+            <Statistic title="待处理申诉" value={data.pending_appeals || 0} prefix={<AlertOutlined />} valueStyle={{ color: '#cf1322' }} />
           </Card>
         </Col>
-        <Col span={8}>
-          <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('active-rentals')}>
-            <Statistic
-              title="生效租约"
-              value={activeRentals}
-              prefix={<ShoppingOutlined />}
-              valueStyle={{ color: '#52c41a' }}
-            />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('new-orders')}>
-            <Statistic
-              title="今日新订单"
-              value={todaysNewOrders}
-              prefix={<BarChartOutlined />}
-              valueStyle={{ color: '#722ed1' }}
-            />
+        <Col span={16}>
+          <Card title="快捷入口">
+            <Space wrap>
+              {shortcuts.map(s => (
+                <Button key={s.to} icon={s.icon} onClick={() => navigate(s.to)}>{s.label}</Button>
+              ))}
+            </Space>
           </Card>
         </Col>
       </Row>
 
-      <Row gutter={16} className="mb-6">
-        <Col span={12}>
-          <Card title="收入趋势" style={{ height: '300px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={[
-                { month: '1月', revenue: 4000 },
-                { month: '2月', revenue: 3000 },
-                { month: '3月', revenue: 5000 },
-                { month: '4月', revenue: 4500 },
-                { month: '5月', revenue: 6000 },
-                { month: '6月', revenue: 5500 },
-              ]}>
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="revenue" stroke="#1890ff" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card title="资产状态分布" style={{ height: '300px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={[
-                    { name: '可租', value: assets.filter(a => a.stock_status === 'available').length },
-                    { name: '在租', value: assets.filter(a => a.stock_status === 'rented').length },
-                    { name: '维修中', value: assets.filter(a => a.stock_status === 'maintenance').length },
-                  ]}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={40}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  <Cell key="available" fill="#1890ff" />
-                  <Cell key="rented" fill="#52c41a" />
-                  <Cell key="repairing" fill="#faad14" />
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </Card>
-        </Col>
-      </Row>
-
-      <Row gutter={16} className="mb-6">
-        <Col span={12}>
-          <Card title="可租资产" variant="borderless" style={{ background: '#fff1f0' }}>
-            <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#52c41a' }}>
-              {assets.filter(a => a.stock_status === 'available').length}
-            </div>
-            <div style={{ marginTop: '8px', color: '#595959' }}>
-              可租
-            </div>
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card title="逾期未归还" variant="borderless" style={{ background: '#fff7e6' }}>
-            <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#faad14' }}>
-              {leasesData.filter(lease => 
-                lease.end_date < today && lease.status === 'active'
-              ).length}
-            </div>
-            <div style={{ marginTop: '8px', color: '#595959' }}>
-              已逾期
-            </div>
-          </Card>
-        </Col>
-      </Row>
-
-      {statusFilter && (
-        <div className="mb-4">
-          <Space>
-            <span>当前过滤: 状态 = {statusFilter}</span>
-            <Button onClick={() => setStatusFilter(null)} size="small">清除过滤</Button>
-          </Space>
-        </div>
-      )}
-
-      <Form form={form} layout="inline" className="mb-4">
-        <Form.Item label="网点筛选" name="site">
-          <Select
-            placeholder="请选择网点"
-            allowClear
-            style={{ width: 200 }}
-            options={sites}
-            onChange={(value) => setSelectedSite(value)}
-          />
-        </Form.Item>
-      </Form>
-
-      <h3 style={{ marginBottom: '16px', fontWeight: 'bold' }}>资产明细</h3>
-      <Table 
-        columns={columns} 
-        dataSource={displayedAssets || []} 
-        rowKey="id"
-        pagination={{ total: displayedAssets.length, pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
-        scroll={{ x: 1000 }}
-        onRow={(record) => ({
-          onClick: () => handleRowClick(record),
-          style: { cursor: 'pointer' }
-        })}
-      />
-
-      <Drawer
-        title="资产详情"
-        placement="right"
-        width={500}
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-      >
-        {selectedAsset && (
-          <div>
-            <p><strong>资产ID:</strong> {selectedAsset.id}</p>
-            <p><strong>名称:</strong> {selectedAsset.name}</p>
-            <p><strong>级别:</strong> <Tag color={levelColors[selectedAsset.level]}>{selectedAsset.level}</Tag></p>
-            <p><strong>状态:</strong> <Tag color={statusColors[selectedAsset.status]}>{selectedAsset.status}</Tag></p>
-            <p><strong>估值:</strong> ¥{(selectedAsset.value || 0).toLocaleString()}</p>
-            <p><strong>网点:</strong> {selectedAsset.site}</p>
-            {selectedAsset.leaseEnd && (
-              <p><strong>到期日:</strong> {selectedAsset.leaseEnd}</p>
-            )}
-          </div>
-        )}
-      </Drawer>
+      <Card title="最近商户">
+        <Table
+          columns={columns}
+          dataSource={data.recent_merchants || []}
+          rowKey="id"
+          pagination={false}
+          size="small"
+          locale={{ emptyText: '暂无商户' }}
+        />
+      </Card>
     </div>
   )
 }
 
+// ---------------- 经营仪表盘（merchant_admin / site_admin / site_member） ----------------
+function OpsDashboard({ data, role, navigate }) {
+  const dist = data.status_distribution || []
+  const trend = (data.revenue_trend || []).map(r => ({ month: r.month, revenue: r.revenue }))
+  const assetTitle = SCOPE_LABEL[role] || '资产总数'
+
+  return (
+    <div>
+      <Row gutter={16} className="mb-6">
+        <Col span={8}>
+          <Card style={{ cursor: 'pointer' }} onClick={() => navigate('/site/stock?status=rented')}>
+            <Statistic title="在租资产数量" value={data.rented_assets || 0} valueStyle={{ color: '#52c41a' }} />
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card style={{ cursor: 'pointer' }} onClick={() => navigate('/lease/ledger?filter=expiring')}>
+            <Statistic title="今日到期租约" value={data.expiring_today || 0} prefix={<ToolOutlined />} valueStyle={{ color: '#cf1322' }} />
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card
+            style={{ cursor: 'pointer', borderColor: '#ff4d4f', background: '#fff1f0' }}
+            onClick={() => navigate('/overdue-alerts')}
+          >
+            <Statistic title="逾期未归还" value={data.overdue || 0} prefix={<AlertOutlined />} valueStyle={{ color: '#faad14', fontWeight: 'bold' }} />
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={16} className="mb-6">
+        <Col span={8}>
+          <Card style={{ cursor: 'pointer' }} onClick={() => navigate('/instruments/list')}>
+            <Statistic title={assetTitle} value={data.total_assets || 0} prefix={<ShoppingOutlined />} valueStyle={{ color: '#1890ff' }} />
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card style={{ cursor: 'pointer' }} onClick={() => navigate('/lease/ledger?filter=active')}>
+            <Statistic title="生效租约" value={data.active_leases || 0} prefix={<ShoppingOutlined />} valueStyle={{ color: '#52c41a' }} />
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card style={{ cursor: 'pointer' }} onClick={() => navigate(`/orders?start_date=${new Date(Date.now() + 8 * 3600000).toISOString().split('T')[0]}&end_date=${new Date(Date.now() + 8 * 3600000).toISOString().split('T')[0]}`)}>
+            <Statistic title="今日新订单" value={data.new_orders_today || 0} valueStyle={{ color: '#722ed1' }} />
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={16} className="mb-6">
+        <Col span={8}>
+          <Card style={{ cursor: 'pointer' }} onClick={() => navigate('/site/stock?status=available')}>
+            <Statistic title="可租资产" value={data.available_assets || 0} valueStyle={{ color: '#52c41a' }} />
+          </Card>
+        </Col>
+        <Col span={16}>
+          <Card title="收入趋势（近 6 个月）" style={{ cursor: 'pointer' }} onClick={() => navigate('/admin/billing')}>
+            {trend.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={trend}>
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip formatter={(v) => `¥${Number(v).toFixed(2)}`} />
+                  <Line type="monotone" dataKey="revenue" stroke="#1890ff" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <Empty description="暂无收入数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            )}
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={16} className="mb-6">
+        <Col span={24}>
+          <Card title="资产状态分布">
+            {dist.some(d => d.value > 0) ? (
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie
+                    data={dist.map(d => ({ ...d, name: STATUS_LABEL[d.name] || d.name }))}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={90}
+                    paddingAngle={5}
+                    dataKey="value"
+                    onClick={(entry) => {
+                      const raw = Object.keys(STATUS_LABEL).find(k => STATUS_LABEL[k] === entry.name) || entry.name
+                      navigate(`/site/stock?status=${raw}`)
+                    }}
+                  >
+                    {dist.map(d => (
+                      <Cell key={d.name} fill={STATUS_COLOR[d.name] || '#d9d9d9'} style={{ cursor: 'pointer' }} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(v, n) => [`${v} 件`, n]} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <Empty description="暂无资产数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            )}
+          </Card>
+        </Col>
+      </Row>
+
+      <div style={{ color: '#8c8c8c', fontSize: 12 }}>
+        单位：元（金额）；数据作用域由当前账号角色决定。
+      </div>
+    </div>
+  )
+}
