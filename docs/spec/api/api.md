@@ -4063,6 +4063,32 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ---
 
+### 8.14.2 仪表盘统计（角色分层，#2005 S1）
+
+**接口**: `GET /api/admin/dashboard/stats`
+
+**说明**: 按 `GetBusinessRole` **分层**返回；`data.role` 标识分支。
+
+| 角色 | 分支 | 作用域 |
+|------|------|--------|
+| `system_admin` / `platform_staff` | 平台治理 | 全平台（不加 tenant/org 过滤） |
+| `merchant_admin` | 经营 | `tenant_id = tid`；tid 为空 → 40300 |
+| `site_admin` / `site_member` | 经营 | `org_id = oid`；oid 为空 → 40300 |
+| 其他（customer / repair_technician） | — | **40300**（防空作用域全量泄漏） |
+
+**治理支响应**（system_admin / platform_staff）：`merchants_count` / `tenants_count` / `users_count` / `pending_face_review`（`face_capture_batches.status='pending'`）/ `pending_appeals`（`appeals.status='pending'`）/ `recent_merchants[]`（近 10，`{id,name,tenant_id,created_at}`）。
+
+**经营支响应**（merchant_admin / site_admin / site_member）：
+`total_assets` / `rented_assets` / `available_assets` / `maintenance_assets`（`instruments.stock_status`）、
+`active_leases` / `expiring_today` / `overdue`（**租约源 = `lease_sessions`**：`status='active'`；`expiring_today`=`end_date=今天`；`overdue`=`end_date<今天`）、
+`new_orders_today`（`orders.created_at >= 今日 0 点`）、
+`status_distribution[]`（`{name,value}`，available/rented/maintenance）、
+`revenue_trend[]`（`{month:"YYYY-MM", revenue:元}`，近 6 个月 `orders.status='completed'` 的 `cash_paid` 汇总，分→元）。
+
+> **口径**：金额遵循 #1757（DB 存分，接口输出元）。租约指标以 `lease_sessions` 为准（`models.Lease`/`leases` 表为空属遗留）；`instruments.stock_status` 与租约数可能不同步，如实分别返回（数据一致性议题另议）。
+
+---
+
 ### 8.15 发票申请（#1786）
 
 > 顾客侧。申请状态机：`pending`（待开票）→ `replied`（已开票）。一次申请 = 按商户分组的订单集合。
