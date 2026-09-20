@@ -1,8 +1,16 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { formatCents } from '../utils/money'
 import { Table, Button, Input, Select, Space, Tag, Card, Modal, Form, InputNumber, message, Spin, Empty } from 'antd'
 import { PlusOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons'
 import { leaseApi } from '../services/api'
+
+// #2005 S4: 业务日期（北京时间，与 Dashboard 卡片口径一致）
+const bjDateStr = (offsetDays = 0) =>
+  new Date(Date.now() + 8 * 3600000 + offsetDays * 86400000).toISOString().split('T')[0]
+
+// 仪表盘联动筛选：?filter=expiring|active|overdue
+const FILTER_LABEL = { expiring: '今日到期', overdue: '逾期未归还', active: '生效中' }
 
 const statusOptions = [
   { label: '全部状态', value: '' },
@@ -12,18 +20,23 @@ const statusOptions = [
 ]
 
 export default function LeaseLedger() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const filterParam = searchParams.get('filter') || '' // #2005 S4: expiring|active|overdue
   const [leases, setLeases] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 })
-  const [filters, setFilters] = useState({ status: '', keyword: '' })
+  const [filters, setFilters] = useState({
+    status: ['expiring', 'active', 'overdue'].includes(filterParam) ? 'active' : '',
+    keyword: '',
+  })
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form] = Form.useForm()
 
   useEffect(() => {
     loadLeases()
-  }, [pagination.current, pagination.pageSize, filters.status])
+  }, [pagination.current, pagination.pageSize, filters.status, filterParam])
 
   const loadLeases = async () => {
     try {
@@ -33,7 +46,12 @@ export default function LeaseLedger() {
         page: pagination.current,
         pageSize: pagination.pageSize,
       }
-      if (filters.status) {
+      if (filterParam) {
+        // #2005 S4: 仪表盘卡片联动——生效中 + 日期口径（expiring=今日到期；overdue=严格早于今天）
+        params.status = 'active'
+        if (filterParam === 'expiring') params.end_date_eq = bjDateStr(0)
+        if (filterParam === 'overdue') params.end_date = bjDateStr(-1)
+      } else if (filters.status) {
         params.status = filters.status
       }
       
@@ -226,6 +244,24 @@ export default function LeaseLedger() {
             刷新
           </Button>
         </div>
+
+        {filterParam && (
+          <div className="mb-4">
+            <Space>
+              <Tag color="blue">当前筛选: {FILTER_LABEL[filterParam] || filterParam}</Tag>
+              <Button
+                size="small"
+                onClick={() => {
+                  setSearchParams({})
+                  setFilters(prev => ({ ...prev, status: '' }))
+                  setPagination(prev => ({ ...prev, current: 1 }))
+                }}
+              >
+                清除筛选
+              </Button>
+            </Space>
+          </div>
+        )}
 
         <Table
           columns={columns}

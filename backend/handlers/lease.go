@@ -32,7 +32,8 @@ func (h *LeaseHandler) ListLeases(c *gin.Context) {
 	status := c.Query("status")
 	userID := c.Query("user_id")
 	startDate := c.Query("start_date")
-	endDate := c.Query("end_date")
+	endDate := c.Query("end_date")      // <= endDate（范围上界）
+	endDateEq := c.Query("end_date_eq") // #2005 S4: 精确日期等值（如“今日到期”）
 
 	if page < 1 {
 		page = 1
@@ -56,6 +57,9 @@ func (h *LeaseHandler) ListLeases(c *gin.Context) {
 	}
 	if endDate != "" {
 		query = query.Where("end_date <= ?", endDate)
+	}
+	if endDateEq != "" {
+		query = query.Where("end_date = ?", endDateEq)
 	}
 
 	var total int64

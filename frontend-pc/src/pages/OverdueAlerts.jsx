@@ -82,9 +82,13 @@ export default function OverdueAlerts() {
     <div className="p-6">
       <Card>
         <div className="flex justify-between items-center mb-6">
-          <Space>
-            <WarningOutlined className="text-red-500 text-xl" />
-            <Title level={2} style={{ margin: 0 }}>逾期告警</Title>
+          <Space direction="vertical" size={0}>
+            <Space>
+              <WarningOutlined className="text-red-500 text-xl" />
+              <Title level={2} style={{ margin: 0 }}>逾期告警</Title>
+            </Space>
+            {/* #2005 S4: 与「警告管理」(/system/warnings) 职责区分 */}
+            <span className="text-gray-500 text-sm">本页展示「租约逾期」（应还未还）；系统级告警请见「警告管理」。</span>
           </Space>
           <Space>
             <Select
