@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatCents, yuanToCents } from '../utils/money'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Input, Button, ScrollView, Image } from '@tarojs/components'
@@ -117,7 +118,7 @@ export default function InstrumentLossManage() {
     if (!desc.trim()) { dialog.alert('请填写丢失描述'); return }
     const r = parseInt(ratio || '0', 10)
     if (isNaN(r) || r < 0 || r > 100) { dialog.alert('责任比例须为 0-100'); return }
-    const comp = Math.round((parseFloat(compYuan) || 0) * 100)
+    const comp = yuanToCents(parseFloat(compYuan) || 0)
     const burdenRaw = parseFloat(burdenYuan)
     setBusy(true)
     try {
@@ -127,7 +128,7 @@ export default function InstrumentLossManage() {
         body: JSON.stringify({
           description: desc.trim(), responsible_party: party, user_ratio: r,
           compensation_cents: comp,
-          ...(burdenRaw > 0 ? { user_burden_cents: Math.round(burdenRaw * 100) } : {}),
+          ...(burdenRaw > 0 ? { user_burden_cents: yuanToCents(burdenRaw) } : {}),
         }),
       })
       const result = await resp.json()
@@ -287,7 +288,7 @@ export default function InstrumentLossManage() {
                 </Text>
               </View>
               <Text style={{ fontSize: 11, color: '#71717A' }}>
-                赔偿 ¥{((r2.compensation_cents || 0) / 100).toFixed(2)} · 承担 ¥{((r2.user_burden_cents || 0) / 100).toFixed(2)}
+                赔偿 ¥{formatCents((r2.compensation_cents || 0))} · 承担 ¥{formatCents((r2.user_burden_cents || 0))}
               </Text>
               <Text style={{ fontSize: 11, color: '#A1A1AA' }}>
                 {r2.created_at ? formatBeijingDate(r2.created_at) : '-'} {r2.reverse_note ? ` · ${r2.reverse_note}` : ''}

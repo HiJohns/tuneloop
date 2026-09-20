@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatCents } from '../utils/money'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Textarea, Image, Button } from '@tarojs/components'
@@ -44,7 +45,7 @@ const inputStyle = {
   border: '1px solid #E4E4E7', borderRadius: 8, padding: '0 10px', fontSize: 13,
 }
 const labelStyle = { fontSize: 12, color: '#71717A' }
-const yuan = (cents) => `¥${((cents || 0) / 100).toFixed(2)}`
+const yuan = (cents) => `¥${formatCents((cents || 0))}`
 
 export default function RepairServiceDetail() {
   const navigate = useNavigate()

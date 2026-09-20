@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatCents, yuanToCents as toCents } from '../utils/money'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Input, Button, ScrollView } from '@tarojs/components'
@@ -18,7 +19,7 @@ const svcStatusLabels = {
 const svcAmount = (rr) => {
   const cents = rr.adjusted_quote_cents != null ? rr.adjusted_quote_cents
     : (rr.quote_repair_cents || 0) + (rr.quote_logistics_cents || 0)
-  return `¥${(cents / 100).toFixed(2)}`
+  return `¥${formatCents(cents)}`
 }
 
 const cardStyle = {
@@ -66,7 +67,7 @@ export default function StaffRepairServices() {
   const yuanToCents = (v) => {
     const n = parseFloat(v)
     if (isNaN(n) || n < 0) return -1
-    return Math.round(n * 100)
+    return toCents(n)
   }
 
   const fetchLists = async () => {
@@ -126,8 +127,8 @@ export default function StaffRepairServices() {
       if (result.code === 20000) {
         const d = result.data || {}
         const parts = []
-        if (d.refund_cents != null) parts.push(`退款 ¥${(d.refund_cents / 100).toFixed(2)}`)
-        if (d.shortfall_cents != null) parts.push(`待补缴 ¥${(d.shortfall_cents / 100).toFixed(2)}`)
+        if (d.refund_cents != null) parts.push(`退款 ¥${formatCents(d.refund_cents)}`)
+        if (d.shortfall_cents != null) parts.push(`待补缴 ¥${formatCents(d.shortfall_cents)}`)
         dialog.alert(parts.length ? `发回并结算完成（${parts.join('，')}）` : '发回并结算完成')
         setExpanded('')
         fetchLists()

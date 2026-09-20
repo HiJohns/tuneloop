@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom'
+import { formatCents } from '../utils/money'
 import Taro from '@tarojs/taro'
 import { CheckCircle } from 'lucide-react'
 import { View, Text, Button } from '@tarojs/components'
@@ -34,15 +35,15 @@ export default function PaymentComplete() {
         <View className="text-sm" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <View className="flex justify-between">
             <Text className="text-gray-500">支付金额</Text>
-            <Text className="font-medium text-red-500">¥{(Number(state.paymentAmount || 0) / 100).toFixed(2)}</Text>
+            <Text className="font-medium text-red-500">¥{formatCents(Number(state.paymentAmount || 0))}</Text>
           </View>
           <View className="flex justify-between">
             <Text className="text-gray-500">定损金额</Text>
-            <Text>¥{(Number(state.damageAmount || 0) / 100).toFixed(2)}</Text>
+            <Text>¥{formatCents(Number(state.damageAmount || 0))}</Text>
           </View>
           <View className="flex justify-between">
             <Text className="text-gray-500">押金抵扣</Text>
-            <Text>¥{(Number(state.deposit || 0) / 100).toFixed(2)}</Text>
+            <Text>¥{formatCents(Number(state.deposit || 0))}</Text>
           </View>
           <View className="border-t" />
           <View className="flex justify-between">

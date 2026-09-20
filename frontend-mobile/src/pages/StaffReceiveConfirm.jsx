@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatCents } from '../utils/money'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components'
@@ -99,7 +100,7 @@ export default function StaffReceiveConfirm() {
         } else {
           const sa = result.data?.shortfall_amount || 0
           if (sa > 0) {
-            dialog.alert(`已发起结算，待顾客补缴 ¥${(sa / 100).toFixed(2)}，补缴完成后订单自动完成`)
+            dialog.alert(`已发起结算，待顾客补缴 ¥${formatCents(sa)}，补缴完成后订单自动完成`)
           } else {
             dialog.alert('接收确认成功')
           }

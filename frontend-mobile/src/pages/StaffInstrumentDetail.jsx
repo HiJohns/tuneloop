@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatCents } from '../utils/money'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Button, ScrollView, Input, Textarea, Image } from '@tarojs/components'
@@ -296,19 +297,19 @@ export default function StaffInstrumentDetail() {
           <View className="text-sm" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <View className="flex justify-between">
               <Text className="text-zinc-500 font-medium">日租金</Text>
-              <Text className="font-black">¥{((pricingInfo.daily_rent || instrument.base_daily_rate || 0 || 0) / 100).toFixed(2)}</Text>
+              <Text className="font-black">¥{formatCents((pricingInfo.daily_rent || instrument.base_daily_rate || 0 || 0))}</Text>
             </View>
             <View className="flex justify-between">
               <Text className="text-zinc-500 font-medium">押金</Text>
-              <Text className="font-black">¥{((pricingInfo.deposit || 0 || 0) / 100).toFixed(2)}</Text>
+              <Text className="font-black">¥{formatCents((pricingInfo.deposit || 0 || 0))}</Text>
             </View>
             <View className="flex justify-between">
               <Text className="text-zinc-500 font-medium">物流费</Text>
-              <Text className="font-black">¥{((pricingInfo.shipping_fee || 0 || 0) / 100).toFixed(2)}</Text>
+              <Text className="font-black">¥{formatCents((pricingInfo.shipping_fee || 0 || 0))}</Text>
             </View>
             <View className="flex justify-between">
               <Text className="text-zinc-500 font-medium">逾期日费</Text>
-              <Text className="font-black">¥{((pricingInfo.overdue_daily_fee || pricingInfo.daily_rent || 0 || 0) / 100).toFixed(2)}</Text>
+              <Text className="font-black">¥{formatCents((pricingInfo.overdue_daily_fee || pricingInfo.daily_rent || 0 || 0))}</Text>
             </View>
           </View>
         </View>

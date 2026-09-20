@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatCents } from '../utils/money'
 import Taro from '@tarojs/taro'
 import { View, Text } from '@tarojs/components'
 import { useSearchParams, useNavigate } from 'react-router-dom'
@@ -41,7 +42,7 @@ export default function ReturnSettlement() {
     else setLoading(false)
   }, [])
 
-  const num = (v) => (v != null ? (Number(v) / 100).toFixed(2) : '0.00')
+  const num = (v) => (v != null ? formatCents(Number(v)) : '0.00')
   const s = settlement || {}
 
   // #1764: fee_items 逐项方向化——服务端输出 {item, direction, amount}（分），

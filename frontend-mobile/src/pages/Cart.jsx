@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
+import { formatCents } from '../utils/money'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { useNavigate } from 'react-router-dom'
@@ -427,12 +428,12 @@ export default function Cart() {
                             <View className="text-right mt-2" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                               {pricing.tiers.map((t, i) => (
                                 <Text key={i} className="block text-zinc-500">
-                                  {t.days}天 × ¥{((t.rate || 0) / 100).toFixed(2)}/天 = ¥{((t.fee || 0) / 100).toFixed(2)}
+                                  {t.days}天 × ¥{formatCents((t.rate || 0))}/天 = ¥{formatCents((t.fee || 0))}
                                 </Text>
                               ))}
-                              <Text className="block text-zinc-500">租金合计 ¥{pricing.rent.toFixed(0)}</Text>
-                              <Text className="block text-zinc-500">押金 ¥{pricing.deposit.toFixed(0)}</Text>
-                              <Text className="block font-bold text-black pt-0.5">总金额 ¥{itemSubtotal.toFixed(0)}</Text>
+                              <Text className="block text-zinc-500">租金合计 ¥{formatCents(pricing.rent)}</Text>
+                              <Text className="block text-zinc-500">押金 ¥{formatCents(pricing.deposit)}</Text>
+                              <Text className="block font-bold text-black pt-0.5">总金额 ¥{formatCents(itemSubtotal)}</Text>
                             </View>
                           </View>
                         </View>
@@ -449,7 +450,7 @@ export default function Cart() {
                     <View className="text-right flex-shrink-0 ml-3">
                       <Text className="text-zinc-400 font-bold block mb-0.5">网点小计</Text>
                       <Text className="text-black font-black text-lg tracking-tight">
-                        ¥{groupSubtotal.toFixed(0)}
+                        ¥{formatCents(groupSubtotal)}
                       </Text>
                     </View>
                   </View>
@@ -463,7 +464,7 @@ export default function Cart() {
       <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 pb-6 flex justify-between items-center z-50 shadow-2xl flex-shrink-0">
         <View>
           <Text className="text-sm text-zinc-400">合计总额</Text>
-          <Text className="text-xl font-black text-black tracking-wide">¥{grandTotal.toFixed(0)}</Text>
+          <Text className="text-xl font-black text-black tracking-wide">¥{formatCents(grandTotal)}</Text>
         </View>
         <Button
           className={grandTotal <= 0

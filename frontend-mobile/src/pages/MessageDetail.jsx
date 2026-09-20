@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatCents } from '../utils/money'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { notificationApi, appealsApi } from '../services/api'
@@ -90,10 +91,10 @@ export default function MessageDetail() {
   const handleAccept = async () => {
     const ok = await dialog.confirm(
       shortfall > 0
-        ? `定损金额 ¥${(damageAmount / 100).toFixed(2)}，实际租期租金 ¥${(actualRent / 100).toFixed(2)}，需补缴 ¥${(shortfall / 100).toFixed(2)}`
+        ? `定损金额 ¥${formatCents(damageAmount)}，实际租期租金 ¥${formatCents(actualRent)}，需补缴 ¥${formatCents(shortfall)}`
         : refund > 0
-          ? `定损金额 ¥${(damageAmount / 100).toFixed(2)}，应退 ¥${(refund / 100).toFixed(2)}，将退还差额 ¥${(Math.max(0, refund - damageAmount) / 100).toFixed(2)}`
-          : `定损金额 ¥${(damageAmount / 100).toFixed(2)}，无额外补缴或退还`
+          ? `定损金额 ¥${formatCents(damageAmount)}，应退 ¥${formatCents(refund)}，将退还差额 ¥${formatCents(Math.max(0, refund - damageAmount))}`
+          : `定损金额 ¥${formatCents(damageAmount)}，无额外补缴或退还`
     )
     if (!ok) return
     setAccepting(true)
@@ -256,7 +257,7 @@ export default function MessageDetail() {
                 <View className="flex justify-between">
                   <Text className="text-gray-500">定损金额</Text>
                   <Text className="font-medium">
-                    ¥{((damageReport.damage_amount || 0) / 100).toFixed(2)}
+                    ¥{formatCents((damageReport.damage_amount || 0))}
                   </Text>
                 </View>
                 {damageReport.damage_description && (
@@ -280,7 +281,7 @@ export default function MessageDetail() {
                 {/* #1859: 免押金单显示「免押金」语义（deposit=0 但 deposit_waived 时展示金额易误读） */}
                 <View className="flex justify-between">
                   <Text className="text-gray-500">押金</Text>
-                  <Text className="font-medium">{order.deposit_waived ? '免押金' : `¥${((order.deposit || 0) / 100).toFixed(2)}`}</Text>
+                  <Text className="font-medium">{order.deposit_waived ? '免押金' : `¥${formatCents((order.deposit || 0))}`}</Text>
                 </View>
                 {/* #1859: 结算方向行（定损上下文）。ref.damage 由 #1858 后端挂载
                     （与订单详情 damage 对象同源）；未部署时优雅降级不渲染。 */}
@@ -293,7 +294,7 @@ export default function MessageDetail() {
                     return (
                       <View className="flex justify-between">
                         <Text className="text-gray-500">结算方向</Text>
-                        <Text className="font-medium" style={{ color: '#dc2626' }}>需补缴 ¥{(shortfall / 100).toFixed(2)}</Text>
+                        <Text className="font-medium" style={{ color: '#dc2626' }}>需补缴 ¥{formatCents(shortfall)}</Text>
                       </View>
                     )
                   }
@@ -301,7 +302,7 @@ export default function MessageDetail() {
                     return (
                       <View className="flex justify-between">
                         <Text className="text-gray-500">结算方向</Text>
-                        <Text className="font-medium" style={{ color: '#16a34a' }}>应退 ¥{(refund / 100).toFixed(2)}</Text>
+                        <Text className="font-medium" style={{ color: '#16a34a' }}>应退 ¥{formatCents(refund)}</Text>
                       </View>
                     )
                   }
@@ -338,7 +339,7 @@ export default function MessageDetail() {
               onClick={handlePayment}
               className="w-full mt-6 py-2.5 bg-brand-primary text-white rounded-lg text-sm font-medium"
             >
-              支付 ¥{(Math.max(0, damageAmount - deposit) / 100).toFixed(2)}
+              支付 ¥{formatCents(Math.max(0, damageAmount - deposit))}
             </Button>
           )}
 
@@ -427,22 +428,22 @@ export default function MessageDetail() {
             <View className="mt-4 rounded-xl bg-zinc-50 p-3">
               <View className="text-xs text-zinc-400 font-bold mb-2">结算明细（服务端计算）</View>
               {actionData.breakdown?.rent !== undefined && (
-                <Row label="租金" value={`¥${(Number(actionData.breakdown.rent) / 100).toFixed(2)}`} />
+                <Row label="租金" value={`¥${formatCents(Number(actionData.breakdown.rent))}`} />
               )}
               {Number(actionData.breakdown?.shipping_fee) > 0 && (
-                <Row label="物流费" value={`¥${(Number(actionData.breakdown.shipping_fee) / 100).toFixed(2)}`} />
+                <Row label="物流费" value={`¥${formatCents(Number(actionData.breakdown.shipping_fee))}`} />
               )}
               {Number(actionData.breakdown?.overdue_fee) > 0 && (
-                <Row label="逾期费" value={`¥${(Number(actionData.breakdown.overdue_fee) / 100).toFixed(2)}`} />
+                <Row label="逾期费" value={`¥${formatCents(Number(actionData.breakdown.overdue_fee))}`} />
               )}
               {Number(actionData.breakdown?.damage_amount) > 0 && (
-                <Row label="损坏赔偿" value={`¥${(Number(actionData.breakdown.damage_amount) / 100).toFixed(2)}`} />
+                <Row label="损坏赔偿" value={`¥${formatCents(Number(actionData.breakdown.damage_amount))}`} />
               )}
               {actionData.breakdown?.paid_total !== undefined && (
-                <Row label="已付总额" value={`¥${(Number(actionData.breakdown.paid_total) / 100).toFixed(2)}`} />
+                <Row label="已付总额" value={`¥${formatCents(Number(actionData.breakdown.paid_total))}`} />
               )}
               <View className="border-t border-zinc-200 mt-2 pt-2">
-                <Row label="需补缴" value={`¥${(Number(actionData.shortfall_amount) / 100).toFixed(2)}`} color="#dc2626" bold />
+                <Row label="需补缴" value={`¥${formatCents(Number(actionData.shortfall_amount))}`} color="#dc2626" bold />
               </View>
             </View>
             <Button

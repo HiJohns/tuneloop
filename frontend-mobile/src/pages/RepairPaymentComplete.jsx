@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom'
+import { formatCents } from '../utils/money'
 import Taro from '@tarojs/taro'
 import { View, Text, Button } from '@tarojs/components'
 import { dialog, env, toWeappRoute } from '../platform'
@@ -24,7 +25,7 @@ export default function RepairPaymentComplete() {
         </View>
         <Text className="text-2xl font-black text-black tracking-wide mb-2">支付完成！</Text>
         {state.amount != null && (
-          <Text className="text-lg text-zinc-500 mb-8">支付金额：<Text className="text-red-500 font-bold">¥{((state.amount || 0) / 100).toFixed(2)}</Text></Text>
+          <Text className="text-lg text-zinc-500 mb-8">支付金额：<Text className="text-red-500 font-bold">¥{formatCents((state.amount || 0))}</Text></Text>
         )}
         <View className="w-full max-w-sm px-4" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <Button onClick={() => nav(`/repair-request?request_id=${state.requestId}`)}

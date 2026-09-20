@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatCents } from '../utils/money'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Button, Image } from '@tarojs/components'
 import Taro from '@tarojs/taro'
@@ -166,22 +167,22 @@ export default function ReceiveConfirm() {
             <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <View className="flex justify-between text-sm">
                 <Text className="text-zinc-500 font-medium">租金小计</Text>
-                <Text className="text-black font-black">¥{(subtotal / 100).toFixed(2)}</Text>
+                <Text className="text-black font-black">¥{formatCents(subtotal)}</Text>
               </View>
               <View className="flex justify-between text-sm">
                 <Text className="text-zinc-500 font-medium">押金</Text>
-                <Text className="text-black font-black">¥{(deposit / 100).toFixed(2)}</Text>
+                <Text className="text-black font-black">¥{formatCents(deposit)}</Text>
               </View>
               {shipping > 0 && (
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-500 font-medium">物流费</Text>
-                  <Text className="text-black font-black">¥{(shipping / 100).toFixed(2)}</Text>
+                  <Text className="text-black font-black">¥{formatCents(shipping)}</Text>
                 </View>
               )}
               <View className="border-t border-zinc-100 pt-2 mt-1">
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-700 font-bold">合计</Text>
-                  <Text className="text-green-600 font-black text-base">¥{(total / 100).toFixed(2)}</Text>
+                  <Text className="text-green-600 font-black text-base">¥{formatCents(total)}</Text>
                 </View>
               </View>
             </View>

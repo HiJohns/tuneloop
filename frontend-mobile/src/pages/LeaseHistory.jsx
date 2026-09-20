@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { formatBeijingDate } from '../utils/format'
+import { formatCents } from '../utils/money'
 import { calculateDays } from '../utils/daycalc'
 import { ArrowLeft, Package, History, Clock } from 'lucide-react'
 
@@ -137,7 +138,7 @@ export default function LeaseHistory() {
                     )
                   })()}
                   <Text className="text-sm font-medium mt-1">
-                    总计: ¥{((order.monthly_rent || 0) * (order.lease_term || 1) + (order.deposit || 0)).toFixed(0)}
+                    总计: ¥{formatCents((order.monthly_rent || 0) * (order.lease_term || 1) + (order.deposit || 0))}
                   </Text>
                 </View>
               ))}

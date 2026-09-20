@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatCents } from '../utils/money'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Button, Input } from '@tarojs/components'
@@ -165,10 +166,10 @@ export default function MyRepairs() {
     if (s.status === 'pending_payment') return '待接受报价并支付'
     if (s.status === 'adjust_pending') {
       const diff = (s.adjusted_quote_cents || 0) - (s.quote_repair_cents || 0)
-      return `待决定：继续需补差价 ¥${(Math.max(0, diff) / 100).toFixed(2)}`
+      return `待决定：继续需补差价 ¥${formatCents(Math.max(0, diff))}`
     }
     if (s.status === 'closed') {
-      if (s.pending_shortfall_cents > 0) return `待补缴 ¥${(s.pending_shortfall_cents / 100).toFixed(2)}`
+      if (s.pending_shortfall_cents > 0) return `待补缴 ¥${formatCents(s.pending_shortfall_cents)}`
       return s.reviewed ? '' : '待评价'
     }
     return ''
@@ -345,7 +346,7 @@ export default function MyRepairs() {
                     {r.quote_amount != null && (
                     <View className="flex justify-between items-center">
                       <Text className="text-xs text-zinc-400">报价</Text>
-                      <Text className="text-xs text-zinc-600">¥{((r.quote_amount || 0) / 100).toFixed(2)}</Text>
+                      <Text className="text-xs text-zinc-600">¥{formatCents((r.quote_amount || 0))}</Text>
                     </View>
                     )}
                   </View>

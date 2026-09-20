@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatCents } from '../../utils/money'
 import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Input, Button, Image } from '@tarojs/components'
 import { apiFetch, resolveErrorMessage } from '../../services/api'
@@ -174,17 +175,17 @@ export default function Renewal() {
               const tierRate = (t.rate * (t.discount || 1)).toFixed(2)
               return (
               <View key={i} style={{ display: 'flex', justifyContent: 'space-between', paddingVertical: 4 }}>
-                <Text style={{ fontSize: 12, color: '#71717a' }}>第{t.tier}阶 {t.days}天 · ¥{((tierRate || 0) / 100).toFixed(2)}/天</Text>
-                <Text style={{ fontSize: 12, fontWeight: '500' }}>¥{(Number(t.subtotal || 0) / 100).toFixed(2)}</Text>
+                <Text style={{ fontSize: 12, color: '#71717a' }}>第{t.tier}阶 {t.days}天 · ¥{formatCents((tierRate || 0))}/天</Text>
+                <Text style={{ fontSize: 12, fontWeight: '500' }}>¥{formatCents(Number(t.subtotal || 0))}</Text>
               </View>
             )})}
             <View style={{ display: 'flex', justifyContent: 'space-between', paddingVertical: 4, borderTop: '1px solid #f3f4f6', marginTop: 4 }}>
               <Text style={{ fontSize: 12, color: '#71717a' }}>续期费</Text>
-              <Text style={{ fontSize: 12, fontWeight: '500' }}>¥{(Number(calcResult.renewal_cost || 0) / 100).toFixed(2)}</Text>
+              <Text style={{ fontSize: 12, fontWeight: '500' }}>¥{formatCents(Number(calcResult.renewal_cost || 0))}</Text>
             </View>
             <View style={{ display: 'flex', justifyContent: 'space-between', paddingVertical: 8, borderTop: '1px solid #e5e7eb', marginTop: 4 }}>
               <Text style={{ fontSize: 14, fontWeight: '700' }}>合计</Text>
-              <Text style={{ fontSize: 14, fontWeight: '700' }}>¥{(Number(calcResult.total_amount || 0) / 100).toFixed(2)}</Text>
+              <Text style={{ fontSize: 14, fontWeight: '700' }}>¥{formatCents(Number(calcResult.total_amount || 0))}</Text>
             </View>
             <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 8 }}>新到期日: {formatBeijingDate(calcResult.new_end_date)}</Text>
             {calcResult.renewal_cost <= 0 && (
@@ -195,7 +196,7 @@ export default function Renewal() {
 
         <View onClick={submitting ? undefined : handleSubmit}
           style={submitting ? { ...btnStyle('#9ca3af') } : btnStyle('#000')}>
-          <Text>{submitting ? '处理中...' : `确认续期 ¥${((calcResult?.total_amount || 0) / 100).toFixed(2)}`}</Text>
+          <Text>{submitting ? '处理中...' : `确认续期 ¥${formatCents((calcResult?.total_amount || 0))}`}</Text>
         </View>
         </View>
       </ScrollView>

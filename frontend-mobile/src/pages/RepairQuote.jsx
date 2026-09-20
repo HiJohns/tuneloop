@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatCents } from '../utils/money'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Button, Input } from '@tarojs/components'
@@ -86,32 +87,32 @@ export default function RepairQuote() {
             <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <View className="flex justify-between">
                 <Text className="text-xs text-zinc-500">材料费</Text>
-                <Text className="text-xs text-zinc-700">¥{((materialFee || 0) / 100).toFixed(2)}</Text>
+                <Text className="text-xs text-zinc-700">¥{formatCents((materialFee || 0))}</Text>
               </View>
               <View className="flex justify-between">
                 <Text className="text-xs text-zinc-500">服务费</Text>
-                <Text className="text-xs text-zinc-700">¥{((serviceFee || 0) / 100).toFixed(2)}</Text>
+                <Text className="text-xs text-zinc-700">¥{formatCents((serviceFee || 0))}</Text>
               </View>
               <View className="flex justify-between">
                 <Text className="text-xs text-zinc-500">物流费 (C段)</Text>
-                <Text className="text-xs text-zinc-700">¥{((logisticsFee || 0) / 100).toFixed(2)}</Text>
+                <Text className="text-xs text-zinc-700">¥{formatCents((logisticsFee || 0))}</Text>
               </View>
               {isControlled && (
                 <>
                   <View className="flex justify-between">
                     <Text className="text-xs text-zinc-500">中转服务费</Text>
-                    <Text className="text-xs text-zinc-700">¥{((transitServiceFee || 0) / 100).toFixed(2)}</Text>
+                    <Text className="text-xs text-zinc-700">¥{formatCents((transitServiceFee || 0))}</Text>
                   </View>
                   <View className="flex justify-between">
                     <Text className="text-xs text-zinc-500">中转物流费 (B+D段)</Text>
-                    <Text className="text-xs text-zinc-700">¥{((transitLogisticsFee || 0) / 100).toFixed(2)}</Text>
+                    <Text className="text-xs text-zinc-700">¥{formatCents((transitLogisticsFee || 0))}</Text>
                   </View>
                 </>
               )}
               <View className="border-t border-zinc-200 pt-2 mt-2">
                 <View className="flex justify-between">
                   <Text className="text-sm font-bold text-black">合计</Text>
-                  <Text className="text-sm font-bold text-red-600">¥{((total || 0) / 100).toFixed(2)}</Text>
+                  <Text className="text-sm font-bold text-red-600">¥{formatCents((total || 0))}</Text>
                 </View>
               </View>
               {acceptedQuote.duration && (

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { formatCents } from '../utils/money'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView, Input, Picker, Checkbox } from '@tarojs/components'
 import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, guarantorsApi, getCartKey , resolveErrorMessage } from '../services/api'
@@ -573,14 +574,14 @@ function SingleCheckout({ id, nav }) {
           <View style={{ fontSize: 14 }}>
             <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <Text style={{ color: '#a1a1aa' }}>租金 ({days}天)</Text>
-              <Text style={{ fontWeight: '500', flexShrink: 0, marginLeft: 'auto', whiteSpace: 'nowrap' }}>¥{(totalRent / 100).toFixed(2)}</Text>
+              <Text style={{ fontWeight: '500', flexShrink: 0, marginLeft: 'auto', whiteSpace: 'nowrap' }}>¥{formatCents(totalRent)}</Text>
             </View>
             {pricingV2?.tiers?.length > 0 && (
               <View style={{ fontSize: 12, color: '#a1a1aa', paddingLeft: 8, paddingBottom: 4, borderBottom: '1px dashed #d4d4d8' }}>
                 {pricingV2.tiers.map((t, i) => {
                   const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
                   const range = t.days_max > 0 ? `${prevMax + 1}-${t.days_max}天` : `${prevMax + 1}天以上`
-                  return <Text key={i} style={{ marginRight: 12 }}>{range}: ¥{(Number(t.daily_rate) / 100).toFixed(2)}/天</Text>
+                  return <Text key={i} style={{ marginRight: 12 }}>{range}: ¥{formatCents(Number(t.daily_rate))}/天</Text>
                 })}
               </View>
             )}
@@ -588,14 +589,14 @@ function SingleCheckout({ id, nav }) {
               <Text style={{ color: '#a1a1aa' }}>押金</Text>
               <Text style={{ fontWeight: '500', flexShrink: 0, marginLeft: 'auto', whiteSpace: 'nowrap' }}>
                 {depositWaived ? <Text>¥0<Text style={{ fontSize: 10, color: '#16a34a', marginLeft: 4 }}>(免押金)</Text></Text>
-                  : <>¥{((deposit || 0) / 100).toFixed(2)}{deposit === 0 ? <Text style={{ fontSize: 10, color: '#a1a1aa', marginLeft: 4 }}>(日租金×倍率)</Text> : null}</>}
+                  : <>¥{formatCents((deposit || 0))}{deposit === 0 ? <Text style={{ fontSize: 10, color: '#a1a1aa', marginLeft: 4 }}>(日租金×倍率)</Text> : null}</>}
               </Text>
             </View>
             <View style={{ borderTop: '1px solid #d4d4d8', paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontWeight: '700', fontSize: 16, marginBottom: 4 }}>
               <Text style={{ color: '#18181b' }}>合计</Text>
-              <Text style={{ color: '#915F38', flexShrink: 0, marginLeft: 'auto', whiteSpace: 'nowrap' }}>¥{(totalAmount / 100).toFixed(2)}</Text>
+              <Text style={{ color: '#915F38', flexShrink: 0, marginLeft: 'auto', whiteSpace: 'nowrap' }}>¥{formatCents(totalAmount)}</Text>
             </View>
-            <Text style={{ fontSize: 10, color: '#a1a1aa', textAlign: 'right' }}>租金 ¥{(totalRent / 100).toFixed(2)} + 押金 ¥{((effectiveDeposit || 0) / 100).toFixed(2)}</Text>
+            <Text style={{ fontSize: 10, color: '#a1a1aa', textAlign: 'right' }}>租金 ¥{formatCents(totalRent)} + 押金 ¥{formatCents((effectiveDeposit || 0))}</Text>
             {/* #1732: 物流费提醒——0 押金（含免押金）快递到付，已付押金从押金扣除 */}
             <Text style={{ fontSize: 13, color: '#ef4444', fontWeight: 500, marginTop: 8, lineHeight: '18px', display: 'block' }}>
               {effectiveDeposit === 0
@@ -718,7 +719,7 @@ function SingleCheckout({ id, nav }) {
       <View style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', borderTop: '1px solid #f4f4f5', padding: 16 }}>
         <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <Text style={{ fontSize: 14, color: '#a1a1aa' }}>应付总额</Text>
-          <Text style={{ fontSize: 20, fontWeight: '900', color: '#915F38' }}>¥{(totalAmount / 100).toFixed(2)}</Text>
+          <Text style={{ fontSize: 20, fontWeight: '900', color: '#915F38' }}>¥{formatCents(totalAmount)}</Text>
         </View>
         <Button
           onClick={handleSubmit}
@@ -1007,7 +1008,7 @@ function BatchCheckout({ nav }) {
           <View style={{ textAlign: 'center' }}>
             <Text style={{ fontSize: 12, color: '#a1a1aa', fontWeight: '700', letterSpacing: '0.1em' }}>TOTAL PAYABLE</Text>
             <Text style={{ color: '#C21838', fontSize: 36, fontWeight: '900', letterSpacing: '-0.025em' }}>
-              ¥{(grandTotal / 100).toFixed(2)}
+              ¥{formatCents(grandTotal)}
             </Text>
           </View>
 
@@ -1047,16 +1048,16 @@ function BatchCheckout({ nav }) {
                           <Text style={{ fontSize: 10, color: '#a1a1aa' }}>{item.category_name || ''}</Text>
                         </View>
                         <Text style={{ fontSize: 10, color: '#6b7280', flexShrink: 0, marginLeft: 8 }}>
-                          {item.rent_qty || 1}天 · ¥{((p.rent || 0) / 100).toFixed(2)}
+                          {item.rent_qty || 1}天 · ¥{formatCents((p.rent || 0))}
                         </Text>
                       </View>
                     )
                   })}
                   <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4, paddingTop: 4, borderTop: '1px solid rgba(228,228,231,0.6)' }}>
                     <Text style={{ fontSize: 10, color: '#a1a1aa' }}>
-                      {depositWaived ? '免押金' : `押金 ¥${((groupDeposit || 0) / 100).toFixed(2)}`}
+                      {depositWaived ? '免押金' : `押金 ¥${formatCents((groupDeposit || 0))}`}
                     </Text>
-                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#27272a' }}>小计 ¥{((groupSubtotal || 0) / 100).toFixed(2)}</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#27272a' }}>小计 ¥{formatCents((groupSubtotal || 0))}</Text>
                   </View>
                 </View>
               )
@@ -1280,7 +1281,7 @@ function BatchCheckout({ nav }) {
           disabled={submitting}
           style={{ width: '100%', margin: 0, backgroundColor: submitting ? 'rgba(185,142,95,0.5)' : '#B98E5F', color: '#fff', fontWeight: '800', fontSize: 16, height: 48, borderRadius: 999, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', letterSpacing: '0.05em' }}
         >
-          {submitting ? '处理中...' : `确认支付 ¥${(grandTotal / 100).toFixed(2)}`}
+          {submitting ? '处理中...' : `确认支付 ¥${formatCents(grandTotal)}`}
         </Button>
       </View>
     </View>

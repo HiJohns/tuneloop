@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatCents } from '../utils/money'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Button, ScrollView, Image } from '@tarojs/components'
 import { apiFetch, getToken , resolveErrorMessage } from '../services/api'
@@ -247,11 +248,11 @@ export default function MyLeases() {
                   )}
                   <View className="flex items-center gap-2">
                     <Text className="text-zinc-400 font-medium">总金额:</Text>
-                    <Text className="text-black font-black">¥{(((getActualRent(order) || 0) + (order.deposit || 0) + (order.shipping_fee || 0)) / 100).toFixed(2)}</Text>
+                    <Text className="text-black font-black">¥{formatCents(((getActualRent(order) || 0) + (order.deposit || 0) + (order.shipping_fee || 0)))}</Text>
                   </View>
                   {/* #1918: 总额含运费时标注口径，避免与"租金+押金"记忆不符 */}
                   {order.shipping_fee > 0 && (
-                    <Text className="text-zinc-400 text-xs">含运费 ¥{(order.shipping_fee / 100).toFixed(2)}</Text>
+                    <Text className="text-zinc-400 text-xs">含运费 ¥{formatCents(order.shipping_fee)}</Text>
                   )}
                 </View>
                   </View>

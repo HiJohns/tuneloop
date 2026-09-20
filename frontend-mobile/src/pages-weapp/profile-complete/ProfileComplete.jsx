@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { formatCents } from '../../utils/money'
 import Taro from '@tarojs/taro'
 import { View, Text, Input, Picker, Image } from '@tarojs/components'
 import { storage, session, env, request, wxLogin } from '../../platform'
@@ -321,7 +322,7 @@ export default function ProfileComplete() {
       </View>
       {(resumeSid || sessionAmount > 0) && (
         <Text style={{ fontSize: 12, color: '#a1a1aa', textAlign: 'center', display: 'block', marginBottom: 8 }}>
-          会员费 ¥{(Number(sessionAmount) / 100).toFixed(2)}{resumeSid ? '（已创建支付会话）' : ''}
+          会员费 ¥{formatCents(Number(sessionAmount))}{resumeSid ? '（已创建支付会话）' : ''}
         </Text>
       )}
       {mode !== 'member' && (

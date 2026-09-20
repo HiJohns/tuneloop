@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatCents } from '../utils/money'
 import Taro from '@tarojs/taro'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
@@ -295,8 +296,8 @@ export default function OrderDetail() {
     const rf = Number(damage.refund || 0)
     const ok = await dialog.confirm(
       amt > rf
-        ? `定损金额 ¥${(amt / 100).toFixed(2)}，应退 ¥${(rf / 100).toFixed(2)}，需补缴 ¥${((amt - rf) / 100).toFixed(2)}`
-        : `定损金额 ¥${(amt / 100).toFixed(2)}，应退 ¥${(rf / 100).toFixed(2)}，将退还差额 ¥${((rf - amt) / 100).toFixed(2)}`
+        ? `定损金额 ¥${formatCents(amt)}，应退 ¥${formatCents(rf)}，需补缴 ¥${formatCents((amt - rf))}`
+        : `定损金额 ¥${formatCents(amt)}，应退 ¥${formatCents(rf)}，将退还差额 ¥${formatCents((rf - amt))}`
     )
     if (!ok) return
     setActionLoading(true)
@@ -469,8 +470,8 @@ export default function OrderDetail() {
             <View>
               <Text className="text-sm font-black text-red-700">租约已超期</Text>
               <Text className="text-xs text-red-600 mt-1">
-                超期 {overdueDaysCalc} 天 · 累计逾期费 ¥{((overdueFee || 0) / 100).toFixed(2)}
-                <Text className="block mt-0.5">（¥{(Number(dailyRate) / 100).toFixed(2)}/天）</Text>
+                超期 {overdueDaysCalc} 天 · 累计逾期费 ¥{formatCents((overdueFee || 0))}
+                <Text className="block mt-0.5">（¥{formatCents(Number(dailyRate))}/天）</Text>
               </Text>
             </View>
           </View>
@@ -550,96 +551,96 @@ export default function OrderDetail() {
               <Text className="text-xs font-bold text-zinc-400 mt-3">实付部分</Text>
               <View className="flex justify-between text-sm">
                 <Text className="text-zinc-500 font-medium">
-                  合同租金 ¥{(Number(order.fee_detail.paid_block?.contract_rent?.amount) / 100).toFixed(2)}
+                  合同租金 ¥{formatCents(Number(order.fee_detail.paid_block?.contract_rent?.amount))}
                   {order.fee_detail.paid_block?.contract_rent?.date ? `（${formatBeijingDate(order.fee_detail.paid_block.contract_rent.date)}）` : ''}
                 </Text>
               </View>
               {(order.fee_detail.paid_block?.contract_rent?.tiers || []).map((t, i) => (
                 <View key={`ct-${i}`} className="flex justify-between text-sm pl-3">
-                  <Text className="text-zinc-400">第{t.tier}阶梯 ¥{(Number(t.rate) / 100).toFixed(2)}/天 × {t.days}天</Text>
-                  <Text className="text-zinc-500 flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(t.subtotal) / 100).toFixed(2)}</Text>
+                  <Text className="text-zinc-400">第{t.tier}阶梯 ¥{formatCents(Number(t.rate))}/天 × {t.days}天</Text>
+                  <Text className="text-zinc-500 flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(t.subtotal))}</Text>
                 </View>
               ))}
               {Number(order.fee_detail.paid_block?.contract_rent?.discount_amount) > 0 && (
                 <View className="flex justify-between text-sm pl-3">
                   <Text className="text-zinc-400">优惠券抵扣</Text>
-                  <Text className="text-green-600 flex-shrink-0 ml-auto whitespace-nowrap">−¥{(Number(order.fee_detail.paid_block.contract_rent.discount_amount) / 100).toFixed(2)}</Text>
+                  <Text className="text-green-600 flex-shrink-0 ml-auto whitespace-nowrap">−¥{formatCents(Number(order.fee_detail.paid_block.contract_rent.discount_amount))}</Text>
                 </View>
               )}
               <View className="flex justify-between text-sm">
                 <Text className="text-zinc-500 font-medium">
                   {Number(order.fee_detail.paid_block?.deposit?.amount) === 0 ? '押金：免押金' : '押金'}
                 </Text>
-                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_detail.paid_block?.deposit?.amount) / 100).toFixed(2)}</Text>
+                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(order.fee_detail.paid_block?.deposit?.amount))}</Text>
               </View>
               {(order.fee_detail.paid_block?.renewals || []).map((r, i) => (
                 <View key={`ren-${i}`}>
                   <View className="flex justify-between text-sm">
-                    <Text className="text-zinc-500 font-medium">续费 ¥{(Number(r.amount) / 100).toFixed(2)}</Text>
+                    <Text className="text-zinc-500 font-medium">续费 ¥{formatCents(Number(r.amount))}</Text>
                   </View>
                   {(r.tiers || []).map((t, j) => (
                     <View key={`rt-${j}`} className="flex justify-between text-sm pl-3">
-                      <Text className="text-zinc-400">第{t.tier}阶梯 ¥{(Number(t.rate) / 100).toFixed(2)}/天 × {t.days}天</Text>
-                      <Text className="text-zinc-500 flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(t.subtotal) / 100).toFixed(2)}</Text>
+                      <Text className="text-zinc-400">第{t.tier}阶梯 ¥{formatCents(Number(t.rate))}/天 × {t.days}天</Text>
+                      <Text className="text-zinc-500 flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(t.subtotal))}</Text>
                     </View>
                   ))}
                   {Number(r.discount_amount) > 0 && (
                     <View className="flex justify-between text-sm pl-3">
                       <Text className="text-zinc-400">优惠券抵扣</Text>
-                      <Text className="text-green-600 flex-shrink-0 ml-auto whitespace-nowrap">−¥{(Number(r.discount_amount) / 100).toFixed(2)}</Text>
+                      <Text className="text-green-600 flex-shrink-0 ml-auto whitespace-nowrap">−¥{formatCents(Number(r.discount_amount))}</Text>
                     </View>
                   )}
                 </View>
               ))}
               <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
                 <Text className="text-zinc-500 font-medium">合计实付</Text>
-                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_detail.paid_block?.subtotal || 0) / 100).toFixed(2)}</Text>
+                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(order.fee_detail.paid_block?.subtotal || 0))}</Text>
               </View>
 
               {/* ② 应付段 */}
               <Text className="text-xs font-bold text-zinc-400 mt-3">应付部分</Text>
               <View className="flex justify-between text-sm">
                 <Text className="text-zinc-500 font-medium">实际租金</Text>
-                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_detail.payable_block?.actual_rent?.amount) / 100).toFixed(2)}</Text>
+                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(order.fee_detail.payable_block?.actual_rent?.amount))}</Text>
               </View>
               {(order.fee_detail.payable_block?.actual_rent?.tiers || []).map((t, i) => (
                 <View key={`pr-${i}`} className="flex justify-between text-sm pl-3">
-                  <Text className="text-zinc-400">第{t.tier}阶梯 ¥{(Number(t.rate) / 100).toFixed(2)}/天 × {t.days}天</Text>
-                  <Text className="text-zinc-500 flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(t.subtotal) / 100).toFixed(2)}</Text>
+                  <Text className="text-zinc-400">第{t.tier}阶梯 ¥{formatCents(Number(t.rate))}/天 × {t.days}天</Text>
+                  <Text className="text-zinc-500 flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(t.subtotal))}</Text>
                 </View>
               ))}
               {Number(order.fee_detail.payable_block?.discount_amount) > 0 && (
                 <View className="flex justify-between text-sm pl-3">
                   <Text className="text-zinc-400">优惠券抵扣</Text>
-                  <Text className="text-green-600 flex-shrink-0 ml-auto whitespace-nowrap">−¥{(Number(order.fee_detail.payable_block.discount_amount) / 100).toFixed(2)}</Text>
+                  <Text className="text-green-600 flex-shrink-0 ml-auto whitespace-nowrap">−¥{formatCents(Number(order.fee_detail.payable_block.discount_amount))}</Text>
                 </View>
               )}
               {Number(order.fee_detail.payable_block?.overdue_fee?.amount) > 0 && (
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-500 font-medium">逾期费{Number(order.fee_detail.payable_block.overdue_fee.days) > 0 ? `（${order.fee_detail.payable_block.overdue_fee.days}天）` : ''}</Text>
-                  <Text className="text-red-500 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_detail.payable_block.overdue_fee.amount) / 100).toFixed(2)}</Text>
+                  <Text className="text-red-500 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(order.fee_detail.payable_block.overdue_fee.amount))}</Text>
                 </View>
               )}
               {/* #1934: 受控商户中转单 → 物流费为多段加和单一项（logistics_fee_total），覆盖段级 shipping_fee 展示 */}
               {Number(order.logistics_fee_total) > 0 ? (
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-500 font-medium">物流费（含各段）</Text>
-                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.logistics_fee_total) / 100).toFixed(2)}</Text>
+                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(order.logistics_fee_total))}</Text>
                 </View>
               ) : Number(order.fee_detail.payable_block?.shipping_fee?.amount) > 0 ? (
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-500 font-medium">物流费</Text>
-                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_detail.payable_block.shipping_fee.amount) / 100).toFixed(2)}</Text>
+                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(order.fee_detail.payable_block.shipping_fee.amount))}</Text>
                 </View>
               ) : null}
               <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
                 <Text className="text-zinc-500 font-medium">实际应付</Text>
-                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_detail.payable_block?.subtotal || 0) / 100).toFixed(2)}</Text>
+                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(order.fee_detail.payable_block?.subtotal || 0))}</Text>
               </View>
               {order.fee_detail.segment_model && Number(order.fee_detail.discounted_due) > 0 && (
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-500 font-medium">（折后）应付</Text>
-                  <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_detail.discounted_due) / 100).toFixed(2)}</Text>
+                  <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(order.fee_detail.discounted_due))}</Text>
                 </View>
               )}
 
@@ -650,7 +651,7 @@ export default function OrderDetail() {
                   <View className="flex justify-between text-sm">
                     <Text className="text-zinc-500 font-medium">{order.fee_detail.net_block.direction === 'refund' ? '应退款' : '应补缴'}</Text>
                     <Text className={`font-black flex-shrink-0 ml-auto whitespace-nowrap ${order.fee_detail.net_block.direction === 'refund' ? 'text-green-600' : 'text-red-500'}`}>
-                      ¥{(Math.abs(Number(order.fee_detail.net_block.amount)) / 100).toFixed(2)}
+                      ¥{formatCents(Math.abs(Number(order.fee_detail.net_block.amount)))}
                     </Text>
                   </View>
                 </>
@@ -673,14 +674,14 @@ export default function OrderDetail() {
                     <Text className="text-zinc-500 font-medium">{isWaived ? '优惠券抵扣' : formatPayMethod(pr.method)}</Text>
                     <Text className="text-zinc-400 text-xs flex-shrink-0 ml-auto mr-2">{pr.created_at ? String(pr.created_at).slice(5, 16) : ''}</Text>
                     <Text className={`font-black flex-shrink-0 whitespace-nowrap ${isWaived ? 'text-green-600' : 'text-black'}`}>
-                      {isWaived ? `-¥${(couponDiscount / 100).toFixed(2)}` : `¥${(Number(pr.amount) / 100).toFixed(2)}`}
+                      {isWaived ? `-¥${formatCents(couponDiscount)}` : `¥${formatCents(Number(pr.amount))}`}
                     </Text>
                   </View>
                 )
               })}
               <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
                 <Text className="text-zinc-500 font-medium">实付合计</Text>
-                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(order.payment_records.filter(p => p.method !== 'waived').reduce((s, p) => s + Number(p.amount || 0), 0) / 100).toFixed(2)}</Text>
+                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(order.payment_records.filter(p => p.method !== 'waived').reduce((s, p) => s + Number(p.amount || 0), 0))}</Text>
               </View>
             </>
           )}
@@ -711,24 +712,24 @@ export default function OrderDetail() {
               {settlement.cash_refundable > 0 && (
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-500 font-medium">现金退款</Text>
-                  <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{((settlement.cash_refundable || 0) / 100).toFixed(2)}</Text>
+                  <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents((settlement.cash_refundable || 0))}</Text>
                 </View>
               )}
               {settlement.prepaid_refunded > 0 && (
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-500 font-medium">退回预付点</Text>
-                  <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{((settlement.prepaid_refunded || 0) / 100).toFixed(2)}</Text>
+                  <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents((settlement.prepaid_refunded || 0))}</Text>
                 </View>
               )}
               {settlement.gift_points_refunded > 0 && (
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-500 font-medium">赠送乐币退还</Text>
-                  <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{((settlement.gift_points_refunded || 0) / 100).toFixed(2)}</Text>
+                  <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents((settlement.gift_points_refunded || 0))}</Text>
                 </View>
               )}
               <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
                 <Text className="text-zinc-500 font-medium">退款合计</Text>
-                <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{((Number(settlement.cash_refundable) + Number(settlement.prepaid_refunded) + Number(settlement.gift_points_refunded)) / 100).toFixed(2)}</Text>
+                <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents((Number(settlement.cash_refundable) + Number(settlement.prepaid_refunded) + Number(settlement.gift_points_refunded)))}</Text>
               </View>
             </>
           )}
@@ -746,7 +747,7 @@ export default function OrderDetail() {
               {Number(order.damage.actual_rent_amount) > 0 && (
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-500 font-medium">实际租金</Text>
-                  <Text className="text-zinc-900 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.damage.actual_rent_amount) / 100).toFixed(2)}</Text>
+                  <Text className="text-zinc-900 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(order.damage.actual_rent_amount))}</Text>
                 </View>
               )}
               <View className="flex justify-between text-sm">
@@ -756,18 +757,18 @@ export default function OrderDetail() {
                   {order.damage.status === 'pending' && <Text className="text-zinc-400 font-normal">（等待回应中）</Text>}
                   {order.damage.status === 'appealed' && <Text className="text-zinc-400 font-normal">（申诉中）</Text>}
                 </Text>
-                <Text className="text-red-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.damage.damage_amount) / 100).toFixed(2)}</Text>
+                <Text className="text-red-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(order.damage.damage_amount))}</Text>
               </View>
               {Number(order.damage.refund) > 0 && (
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-500 font-medium">退款</Text>
-                  <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.damage.refund) / 100).toFixed(2)}</Text>
+                  <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(order.damage.refund))}</Text>
                 </View>
               )}
               {Number(order.damage.shortfall) > 0 && (
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-500 font-medium">应补缴</Text>
-                  <Text className="text-red-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.damage.shortfall) / 100).toFixed(2)}</Text>
+                  <Text className="text-red-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(order.damage.shortfall))}</Text>
                 </View>
               )}
             </View>
@@ -817,7 +818,7 @@ export default function OrderDetail() {
                       <View className="text-xs text-zinc-400 pl-2 pb-1 border-b border-dashed">
                         {rows.map((r, i) => (
                           <Text key={i} className="block">
-                            {r.range}: ¥{(Number(r.rate || 0) / 100).toFixed(2)}/天 × {r.segDays}天 = ¥{(Number(r.segAmount || 0) / 100).toFixed(2)}
+                            {r.range}: ¥{formatCents(Number(r.rate || 0))}/天 × {r.segDays}天 = ¥{formatCents(Number(r.segAmount || 0))}
                           </Text>
                         ))}
                       </View>
@@ -826,21 +827,21 @@ export default function OrderDetail() {
                   {order.pricing_breakdown.total_amount && (
                     <View className="flex justify-between text-sm">
                       <Text className="text-zinc-500 font-medium">合同总额</Text>
-                      <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{((order.pricing_breakdown.total_amount || 0) / 100).toFixed(2)}</Text>
+                      <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents((order.pricing_breakdown.total_amount || 0))}</Text>
                     </View>
                   )}
                   {deposit > 0 && !order.deposit_waived && (
                     <>
                     <View className="flex justify-between text-sm">
                       <Text className="text-zinc-500 font-medium">押金</Text>
-                      <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{((deposit || 0) / 100).toFixed(2)}</Text>
+                      <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents((deposit || 0))}</Text>
                     </View>
                     {order.pricing_breakdown.deposit_method && (
                       <Text className="text-zinc-400 text-right -mt-1">
                         {order.pricing_breakdown.deposit_method === 'total_price'
-                          ? `原价 ¥${((order.pricing_breakdown.total_price || 0 || 0) / 100).toFixed(2)} × ${order.pricing_breakdown.deposit_ratio || 0}`
+                          ? `原价 ¥${formatCents((order.pricing_breakdown.total_price || 0 || 0))} × ${order.pricing_breakdown.deposit_ratio || 0}`
                           : (order.pricing_breakdown.deposit_multiplier > 0
-                              ? `日租金 ¥${((order.pricing_breakdown.base_daily_rent || 0 || 0) / 100).toFixed(2)} × ${order.pricing_breakdown.deposit_multiplier}`
+                              ? `日租金 ¥${formatCents((order.pricing_breakdown.base_daily_rent || 0 || 0))} × ${order.pricing_breakdown.deposit_multiplier}`
                               : '')}
                       </Text>
                     )}
@@ -856,12 +857,12 @@ export default function OrderDetail() {
                   {showShippingFee && Number(order.logistics_fee_total) > 0 ? (
                     <View className="flex justify-between text-sm">
                       <Text className="text-zinc-500 font-medium">物流费（各段合计）</Text>
-                      <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.logistics_fee_total) / 100).toFixed(2)}</Text>
+                      <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(order.logistics_fee_total))}</Text>
                     </View>
                   ) : showShippingFee && pbShippingFee > 0 ? (
                     <View className="flex justify-between text-sm">
                       <Text className="text-zinc-500 font-medium">物流费</Text>
-                      <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(pbShippingFee / 100).toFixed(2)}</Text>
+                      <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(pbShippingFee)}</Text>
                     </View>
                   ) : null}
                 </View>
@@ -927,12 +928,12 @@ export default function OrderDetail() {
             <>
             <View className="flex justify-between text-sm">
               <Text className="text-zinc-500 font-medium">需补缴</Text>
-              <Text className="text-red-500 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{((settlement.payable_shortfall || 0) / 100).toFixed(2)}</Text>
+              <Text className="text-red-500 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents((settlement.payable_shortfall || 0))}</Text>
             </View>
             {/* #1920: 小胶囊改全宽主按钮，文案带金额，真机可读可点 */}
             <View className="w-full py-3 bg-red-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 mt-2"
               onClick={() => navigate(`/payment?type=payment_shortfall&id=${orderId}`)}>
-              去补缴 ¥{((settlement.payable_shortfall || 0) / 100).toFixed(2)}
+              去补缴 ¥{formatCents((settlement.payable_shortfall || 0))}
             </View>
             </>
             )}
@@ -959,14 +960,14 @@ export default function OrderDetail() {
                       <Text className="text-zinc-500 font-medium">{isWaived ? '优惠券抵扣' : formatPayMethod(pr.method)}</Text>
                       <Text className="text-zinc-400 text-xs flex-shrink-0 ml-auto mr-2">{pr.created_at ? String(pr.created_at).slice(5, 16) : ''}</Text>
                       <Text className={`font-black flex-shrink-0 whitespace-nowrap ${isWaived ? 'text-green-600' : 'text-black'}`}>
-                        {isWaived ? `-¥${(couponDiscount / 100).toFixed(2)}` : `¥${(Number(pr.amount) / 100).toFixed(2)}`}
+                        {isWaived ? `-¥${formatCents(couponDiscount)}` : `¥${formatCents(Number(pr.amount))}`}
                       </Text>
                     </View>
                   )
                 })}
                 <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
                   <Text className="text-zinc-500 font-medium">支付合计</Text>
-                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(order.payment_records.filter(p => p.method !== 'waived').reduce((s, p) => s + Number(p.amount || 0), 0) / 100).toFixed(2)}</Text>
+                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(order.payment_records.filter(p => p.method !== 'waived').reduce((s, p) => s + Number(p.amount || 0), 0))}</Text>
                 </View>
               </>
             )}
@@ -977,12 +978,12 @@ export default function OrderDetail() {
                   <View key={rf.id} className="flex justify-between text-sm">
                     <Text className="text-zinc-500 font-medium">{rf.method === 'prepaid' ? '退回预付点' : rf.method === 'cash_withdrawal' ? '退回现金' : '退款'}</Text>
                     <Text className="text-zinc-400 text-xs flex-shrink-0 ml-auto mr-2">{rf.created_at ? String(rf.created_at).slice(5, 16) : ''}</Text>
-                    <Text className="text-green-600 font-black flex-shrink-0 whitespace-nowrap">-¥{(Number(rf.amount) / 100).toFixed(2)}</Text>
+                    <Text className="text-green-600 font-black flex-shrink-0 whitespace-nowrap">-¥{formatCents(Number(rf.amount))}</Text>
                   </View>
                 ))}
                 <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
                   <Text className="text-zinc-500 font-medium">退款合计</Text>
-                  <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">-¥{(order.refund_records.filter(rf => Number(rf.amount) > 0).reduce((s, r) => s + Number(r.amount || 0), 0) / 100).toFixed(2)}</Text>
+                  <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">-¥{formatCents(order.refund_records.filter(rf => Number(rf.amount) > 0).reduce((s, r) => s + Number(r.amount || 0), 0))}</Text>
                 </View>
               </>
             )}
@@ -992,7 +993,7 @@ export default function OrderDetail() {
               return (
                 <View className="flex justify-between text-sm border-t border-zinc-100 pt-2 mt-2">
                   <Text className="text-zinc-900 font-bold">净支出</Text>
-                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Math.max(0, paid - refunded) / 100).toFixed(2)}</Text>
+                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Math.max(0, paid - refunded))}</Text>
                 </View>
               )
             })()}
@@ -1052,7 +1053,7 @@ export default function OrderDetail() {
           <Text className="text-base font-black text-black mb-3">定损信息</Text>
           <View className="flex justify-between text-sm mb-1">
             <Text className="text-zinc-500 font-medium">定损金额</Text>
-            <Text className="text-red-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.damage.damage_amount) / 100).toFixed(2)}</Text>
+            <Text className="text-red-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(order.damage.damage_amount))}</Text>
           </View>
           <View className="flex justify-between text-sm mb-1">
             <Text className="text-zinc-500 font-medium">定损说明</Text>
@@ -1090,7 +1091,7 @@ export default function OrderDetail() {
                   onClick={() => navigate(`/payment?type=damage&id=${orderId}`)}
                   className="mt-2 w-full py-3 bg-sky-500 text-white rounded-2xl font-black text-sm text-center cursor-pointer"
                 >
-                  去支付 ¥{(order.damage.shortfall / 100).toFixed(2)}
+                  去支付 ¥{formatCents(order.damage.shortfall)}
                 </View>
               )}
             </View>

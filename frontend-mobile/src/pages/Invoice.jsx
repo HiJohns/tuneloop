@@ -4,10 +4,7 @@ import { View, Text, Button, ScrollView, Input } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { env, dialog, getInputValue } from '../platform'
 import { formatBeijingDate } from '../utils/format'
-
-function formatCents(cents) {
-  return (cents / 100).toFixed(2)
-}
+import { formatCents } from '../utils/money'
 
 export default function Invoice() {
   const [tab, setTab] = useState('eligible') // 'eligible' | 'applied'

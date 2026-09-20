@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { formatCents } from '../../utils/money'
 import Taro, { useDidShow, useLoad } from '@tarojs/taro'
 import { View, Text, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, resolveLogin, resolveErrorMessage } from '../../services/api'
@@ -179,7 +180,7 @@ export default function Payment() {
         // 租期/维修等支付页跳转不带 amount URL 参数（pAmount=0），用 data.amount。
         const base = data?.amount || pAmount || 0
         const discounted = Math.round(base * 10 / 1000) // 1%
-        setAppliedCoupon({ code, hint: '已应用，优惠后金额 ¥' + (discounted / 100).toFixed(2) })
+        setAppliedCoupon({ code, hint: '已应用，优惠后金额 ¥' + formatCents(discounted) })
         setCouponAmount(discounted)
       } else {
         Taro.showToast({ title: '优惠码无效', icon: 'none' })
@@ -481,7 +482,7 @@ export default function Payment() {
               {renderDetailsBlock(data.details, data.type)}
               {data.type === 'rent' && data.details.pricing_breakdown && (
                 <View style={{ borderTop: '1px solid #f4f4f5', marginTop: 8, paddingTop: 8 }}>
-                  <Row label="合计" value={`¥${(Number(data.amount) / 100).toFixed(2)}`} bold />
+                  <Row label="合计" value={`¥${formatCents(Number(data.amount))}`} bold />
                 </View>
               )}
               {/* #1773: 物流费提醒——0 押金快递到付，已付押金从押金扣除 */}
@@ -502,30 +503,30 @@ export default function Payment() {
                 <>
                   <Text style={{ fontSize: 12, color: '#a1a1aa', fontWeight: '700', marginTop: 8, marginBottom: 4 }}>原支付明细</Text>
                   {data.details.total_paid !== undefined && (
-                    <Row label="原支付总额" value={`¥${(Number(data.details.total_paid) / 100).toFixed(2)}`} />
+                    <Row label="原支付总额" value={`¥${formatCents(Number(data.details.total_paid))}`} />
                   )}
                   {data.details.cash_paid !== undefined && Number(data.details.cash_paid) > 0 && (
-                    <Row label="  现金" value={`¥${(Number(data.details.cash_paid) / 100).toFixed(2)}`} />
+                    <Row label="  现金" value={`¥${formatCents(Number(data.details.cash_paid))}`} />
                   )}
                   {data.details.prepaid_used !== undefined && Number(data.details.prepaid_used) > 0 && (
-                    <Row label="  预付点" value={`¥${(Number(data.details.prepaid_used) / 100).toFixed(2)}`} />
+                    <Row label="  预付点" value={`¥${formatCents(Number(data.details.prepaid_used))}`} />
                   )}
                   {data.details.gift_used !== undefined && Number(data.details.gift_used) > 0 && (
-                    <Row label="  赠点" value={`¥${(Number(data.details.gift_used) / 100).toFixed(2)}`} />
+                    <Row label="  赠点" value={`¥${formatCents(Number(data.details.gift_used))}`} />
                   )}
                   <Text style={{ fontSize: 12, color: '#a1a1aa', fontWeight: '700', marginTop: 12, marginBottom: 4 }}>退款明细（原路退回）</Text>
                 </>
               )}
               {data.details?.cash_refundable !== undefined && Number(data.details.cash_refundable) > 0 && (
-                <Row label="退现金（微信原路）" value={`¥${(Number(data.details.cash_refundable) / 100).toFixed(2)}`} />
+                <Row label="退现金（微信原路）" value={`¥${formatCents(Number(data.details.cash_refundable))}`} />
               )}
               {data.details?.prepaid_refunded !== undefined && Number(data.details.prepaid_refunded) > 0 && (
-                <Row label="退回预付点" value={`+¥${(Number(data.details.prepaid_refunded) / 100).toFixed(2)}`} color="#16a34a" />
+                <Row label="退回预付点" value={`+¥${formatCents(Number(data.details.prepaid_refunded))}`} color="#16a34a" />
               )}
               {data.details?.gift_refunded !== undefined && Number(data.details.gift_refunded) > 0 && (
-                <Row label="退回赠点" value={`+¥${(Number(data.details.gift_refunded) / 100).toFixed(2)}`} color="#16a34a" />
+                <Row label="退回赠点" value={`+¥${formatCents(Number(data.details.gift_refunded))}`} color="#16a34a" />
               )}
-              <Row label="退款金额" value={`¥${(Number(data.amount) / 100).toFixed(2)}`} bold />
+              <Row label="退款金额" value={`¥${formatCents(Number(data.amount))}`} bold />
             </View>
           )}
         </View>
@@ -536,7 +537,7 @@ export default function Payment() {
             <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>点数使用</Text>
 
             <View style={{ marginBottom: 4 }}>
-              <Row label="赠点余额" value={`¥${(Number(maxGift) / 100).toFixed(2)}`} />
+              <Row label="赠点余额" value={`¥${formatCents(Number(maxGift))}`} />
               <View style={{ display: 'flex', alignItems: 'center', marginTop: 4 }}>
                 <Text style={{ fontSize: 13, color: '#71717a', width: 72 }}>使用</Text>
                 <View style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -553,7 +554,7 @@ export default function Payment() {
             </Text>
 
             <View style={{ borderTop: '1px solid #e4e4e7', paddingTop: 8 }}>
-              <Row label="现金差额" value={`¥${(Number(cashAmount) / 100).toFixed(2)}`} bold />
+              <Row label="现金差额" value={`¥${formatCents(Number(cashAmount))}`} bold />
             </View>
           </View>
         )}
@@ -607,7 +608,7 @@ export default function Payment() {
               <Text style={{ fontSize: 12, color: '#16a34a', marginTop: 8, display: 'block' }}>{appliedCoupon.hint}</Text>
             )}
             {appliedCoupon && (
-              <Row label="优惠后金额" value={`¥${(Number(couponAmount) / 100).toFixed(2)}`} bold />
+              <Row label="优惠后金额" value={`¥${formatCents(Number(couponAmount))}`} bold />
             )}
           </View>
         )}
@@ -621,7 +622,7 @@ export default function Payment() {
         {isRefund ? (
           <View style={{ display: 'flex', flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
-              <Button style={btnStyle('#B98E5F')} onClick={handleRefund}>确认退款 ¥{(Number(cashAmount) / 100).toFixed(2)}</Button>
+              <Button style={btnStyle('#B98E5F')} onClick={handleRefund}>确认退款 ¥{formatCents(Number(cashAmount))}</Button>
             </View>
           </View>
         ) : pType === 'appeal' ? (
@@ -632,7 +633,7 @@ export default function Payment() {
           <View style={{ display: 'flex', flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
               <Button style={btnStyle('#B98E5F')} onClick={doRealPay} disabled={isPaying}>
-                {isPaying ? '处理中...' : `微信支付 ¥${(Number(cashAmount) / 100).toFixed(2)}`}
+                {isPaying ? '处理中...' : `微信支付 ¥${formatCents(Number(cashAmount))}`}
               </Button>
             </View>
           </View>
@@ -640,7 +641,7 @@ export default function Payment() {
           <View style={{ display: 'flex', flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
               <Button style={btnStyle(cashAmount > 0 ? '#B98E5F' : '#16a34a')} onClick={() => handlePay(cashAmount)} disabled={isPaying}>
-                {isPaying ? '处理中...' : `发起支付 ¥${(Number(cashAmount) / 100).toFixed(2)}`}
+                {isPaying ? '处理中...' : `发起支付 ¥${formatCents(Number(cashAmount))}`}
               </Button>
             </View>
           </View>
@@ -682,10 +683,10 @@ function renderDetailsBlock(details, type) {
     return (
       <View>
         {items.map((item, i) => (
-          <Row key={i} label={item.label} value={`¥${(Number(item.amount || 0) / 100).toFixed(2)}`} />
+          <Row key={i} label={item.label} value={`¥${formatCents(Number(item.amount || 0))}`} />
         ))}
         <View style={{ borderTop: '1px solid #f4f4f5', marginTop: 8, paddingTop: 8 }}>
-          <Row label="合计" value={`¥${(items.reduce((s, it) => s + Number(it.amount || 0), 0) / 100).toFixed(2)}`} bold />
+          <Row label="合计" value={`¥${formatCents(items.reduce((s, it) => s + Number(it.amount || 0), 0))}`} bold />
         </View>
       </View>
     )
@@ -699,15 +700,15 @@ function renderDetailsBlock(details, type) {
           <Text style={{ fontSize: 13, fontWeight: '600', color: '#52525b', marginBottom: 4 }}>阶梯定价</Text>
           {pb.tier_segments.map((seg, i) => (
             <View key={i} style={{ paddingLeft: 16, paddingRight: 36 }}>
-              <Row label={`第${seg.tier}阶 ${seg.days}天`} value={`¥${(Number(seg.days * seg.rate) / 100).toFixed(2)}`} valueSize={11} />
+              <Row label={`第${seg.tier}阶 ${seg.days}天`} value={`¥${formatCents(Number(seg.days * seg.rate))}`} valueSize={11} />
               {seg.discount < 1.0 && (
-                <Row label="  折扣" value={`-¥${(Number(seg.days * seg.rate - seg.subtotal) / 100).toFixed(2)}`} color="#16a34a" valueSize={11} />
+                <Row label="  折扣" value={`-¥${formatCents(Number(seg.days * seg.rate - seg.subtotal))}`} color="#16a34a" valueSize={11} />
               )}
             </View>
           ))}
-          <Row label="租金小计" value={`¥${(Number(pb.total_amount || 0) / 100).toFixed(2)}`} bold />
-          {details.deposit > 0 && <Row label="押金" value={`¥${(Number(details.deposit) / 100).toFixed(2)}`} />}
-          {details.shipping_fee > 0 && <Row label="物流费" value={`¥${(Number(details.shipping_fee) / 100).toFixed(2)}`} />}
+          <Row label="租金小计" value={`¥${formatCents(Number(pb.total_amount || 0))}`} bold />
+          {details.deposit > 0 && <Row label="押金" value={`¥${formatCents(Number(details.deposit))}`} />}
+          {details.shipping_fee > 0 && <Row label="物流费" value={`¥${formatCents(Number(details.shipping_fee))}`} />}
         </View>
       )
     }
@@ -718,17 +719,17 @@ function renderDetailsBlock(details, type) {
       <View>
         {type === 'requote' && oldQ && (
           <View style={{ opacity: 0.5, marginBottom: 4 }}>
-            <Row label="原报价（材料费）" value={`¥${(Number(oldQ.material_fee || 0) / 100).toFixed(2)}`} />
-            <Row label="原报价（服务费）" value={`¥${(Number(oldQ.service_fee || 0) / 100).toFixed(2)}`} />
-            <Row label="原报价（物流费）" value={`¥${(Number(oldQ.logistics_fee || 0) / 100).toFixed(2)}`} />
-            <Row label="原报价合计" value={`¥${(Number(oldQ.total || 0) / 100).toFixed(2)}`} bold />
+            <Row label="原报价（材料费）" value={`¥${formatCents(Number(oldQ.material_fee || 0))}`} />
+            <Row label="原报价（服务费）" value={`¥${formatCents(Number(oldQ.service_fee || 0))}`} />
+            <Row label="原报价（物流费）" value={`¥${formatCents(Number(oldQ.logistics_fee || 0))}`} />
+            <Row label="原报价合计" value={`¥${formatCents(Number(oldQ.total || 0))}`} bold />
           </View>
         )}
-        <Row label="材料费" value={`¥${(Number(details.material_fee || 0) / 100).toFixed(2)}`} />
-        <Row label="服务费" value={`¥${(Number(details.service_fee || 0) / 100).toFixed(2)}`} />
-        <Row label="物流费" value={`¥${(Number(details.logistics_fee || 0) / 100).toFixed(2)}`} />
+        <Row label="材料费" value={`¥${formatCents(Number(details.material_fee || 0))}`} />
+        <Row label="服务费" value={`¥${formatCents(Number(details.service_fee || 0))}`} />
+        <Row label="物流费" value={`¥${formatCents(Number(details.logistics_fee || 0))}`} />
         {type === 'requote' && oldQ && (
-          <Row label="需补付" value={`+¥${(Math.max(0, Number(details.total || 0)) / 100).toFixed(2)}`} bold color="#dc2626" />
+          <Row label="需补付" value={`+¥${formatCents(Math.max(0, Number(details.total || 0)))}`} bold color="#dc2626" />
         )}
       </View>
     )
@@ -738,15 +739,15 @@ function renderDetailsBlock(details, type) {
     return (
       <View>
         <View style={{ opacity: 0.5 }}>
-          <Row label="租金小计" value={`¥${(Number(pb.rent_subtotal || 0) / 100).toFixed(2)}`} />
-          <Row label="押金" value={`¥${(Number(pb.deposit || 0) / 100).toFixed(2)}`} />
-          <Row label="物流费" value={`¥${(Number(pb.shipping_fee || 0) / 100).toFixed(2)}`} />
-          <Row label="已付合计" value={`¥${(Number(pb.paid_total || 0) / 100).toFixed(2)}`} bold />
+          <Row label="租金小计" value={`¥${formatCents(Number(pb.rent_subtotal || 0))}`} />
+          <Row label="押金" value={`¥${formatCents(Number(pb.deposit || 0))}`} />
+          <Row label="物流费" value={`¥${formatCents(Number(pb.shipping_fee || 0))}`} />
+          <Row label="已付合计" value={`¥${formatCents(Number(pb.paid_total || 0))}`} bold />
         </View>
         <View style={{ borderTop: '1px solid #f4f4f5', paddingTop: 8, marginTop: 4 }}>
-          <Row label="损失评估" value={`¥${(Number(details.damage_amount || 0) / 100).toFixed(2)}`} />
-          <Row label="押金抵扣" value={`-¥${(Number(details.deposit_deduction || 0) / 100).toFixed(2)}`} />
-          <Row label="需补付" value={`¥${(Number(details.pay_amount || 0) / 100).toFixed(2)}`} bold color="#dc2626" />
+          <Row label="损失评估" value={`¥${formatCents(Number(details.damage_amount || 0))}`} />
+          <Row label="押金抵扣" value={`-¥${formatCents(Number(details.deposit_deduction || 0))}`} />
+          <Row label="需补付" value={`¥${formatCents(Number(details.pay_amount || 0))}`} bold color="#dc2626" />
         </View>
       </View>
     )
@@ -757,15 +758,15 @@ function renderDetailsBlock(details, type) {
     return (
       <View>
         <Row label="实际租期" value={`${Number(details.actual_rent_days || 0)} 天`} />
-        <Row label="实际租金" value={`¥${(Number(details.actual_rent_amount || 0) / 100).toFixed(2)}`} />
+        <Row label="实际租金" value={`¥${formatCents(Number(details.actual_rent_amount || 0))}`} />
         {Number(details.damage_deducted || 0) > 0 && (
-          <Row label="损坏扣款" value={`-¥${(Number(details.damage_deducted) / 100).toFixed(2)}`} color="#dc2626" />
+          <Row label="损坏扣款" value={`-¥${formatCents(Number(details.damage_deducted))}`} color="#dc2626" />
         )}
         {Number(details.overdue_fee || 0) > 0 && (
-          <Row label="逾期费用" value={`-¥${(Number(details.overdue_fee) / 100).toFixed(2)}`} color="#dc2626" />
+          <Row label="逾期费用" value={`-¥${formatCents(Number(details.overdue_fee))}`} color="#dc2626" />
         )}
         <View style={{ borderTop: '1px solid #f4f4f5', paddingTop: 8, marginTop: 4 }}>
-          <Row label="退款金额" value={`¥${(Number(details.cash_refundable || 0) / 100).toFixed(2)}`} bold color="#3b82f6" />
+          <Row label="退款金额" value={`¥${formatCents(Number(details.cash_refundable || 0))}`} bold color="#3b82f6" />
         </View>
       </View>
     )
@@ -776,9 +777,9 @@ function renderDetailsBlock(details, type) {
     return (
       <View>
         <Row label="续期天数" value={`${days} 天`} />
-        <Row label="续期费" value={`¥${(Number(details.renewal_cost || 0) / 100).toFixed(2)}`} />
+        <Row label="续期费" value={`¥${formatCents(Number(details.renewal_cost || 0))}`} />
         <View style={{ borderTop: '1px solid #f4f4f5', paddingTop: 8, marginTop: 4 }}>
-          <Row label="合计" value={`¥${(Number(details.total || 0) / 100).toFixed(2)}`} bold />
+          <Row label="合计" value={`¥${formatCents(Number(details.total || 0))}`} bold />
         </View>
       </View>
     )
@@ -787,19 +788,19 @@ function renderDetailsBlock(details, type) {
     // #1748 L-04C 流程 3: 补缴支付确认页明细（服务端 calculate）。
     return (
       <View>
-        <Row label="实际租金" value={`¥${(Number(details.rent || 0) / 100).toFixed(2)}`} />
+        <Row label="实际租金" value={`¥${formatCents(Number(details.rent || 0))}`} />
         {Number(details.shipping_fee || 0) > 0 && (
-          <Row label="物流费" value={`¥${(Number(details.shipping_fee) / 100).toFixed(2)}`} />
+          <Row label="物流费" value={`¥${formatCents(Number(details.shipping_fee))}`} />
         )}
         {Number(details.overdue_fee || 0) > 0 && (
-          <Row label="逾期费" value={`¥${(Number(details.overdue_fee) / 100).toFixed(2)}`} />
+          <Row label="逾期费" value={`¥${formatCents(Number(details.overdue_fee))}`} />
         )}
         {Number(details.damage_amount || 0) > 0 && (
-          <Row label="损坏赔偿" value={`¥${(Number(details.damage_amount) / 100).toFixed(2)}`} />
+          <Row label="损坏赔偿" value={`¥${formatCents(Number(details.damage_amount))}`} />
         )}
-        <Row label="已付总额" value={`¥${(Number(details.paid_total || 0) / 100).toFixed(2)}`} />
+        <Row label="已付总额" value={`¥${formatCents(Number(details.paid_total || 0))}`} />
         <View style={{ borderTop: '1px solid #f4f4f5', paddingTop: 8, marginTop: 4 }}>
-          <Row label="需补缴" value={`¥${(Number(details.shortfall_amount || 0) / 100).toFixed(2)}`} bold color="#dc2626" />
+          <Row label="需补缴" value={`¥${formatCents(Number(details.shortfall_amount || 0))}`} bold color="#dc2626" />
         </View>
       </View>
     )

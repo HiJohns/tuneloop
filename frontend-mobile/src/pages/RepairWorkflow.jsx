@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatCents } from '../utils/money'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { Button, Image, ScrollView, Text, Textarea, View } from '@tarojs/components'
@@ -188,7 +189,7 @@ export default function RepairWorkflow() {
             <View style={{ display: 'flex', flexDirection: 'column', gap: 4 }} className="text-sm">
               {damage.lease_id && <Text className="text-zinc-500">来源订单: <Text className="text-black">{damage.lease_id.slice(0, 8)}</Text></Text>}
               {damage.status && <Text className="text-zinc-500">状态: <Text className="text-black">{damageStatusLabels[damage.status] || damage.status}</Text></Text>}
-              {damage.damage_amount != null && <Text className="text-zinc-500">赔偿金额: <Text className="text-black">¥{(damage.damage_amount / 100).toFixed(2)}</Text></Text>}
+              {damage.damage_amount != null && <Text className="text-zinc-500">赔偿金额: <Text className="text-black">¥{formatCents(damage.damage_amount)}</Text></Text>}
               {damage.damage_description && <Text className="text-zinc-500">损坏描述: <Text className="text-black">{damage.damage_description}</Text></Text>}
               {damage.notes && <Text className="text-zinc-500">员工评语: <Text className="text-black">{damage.notes}</Text></Text>}
             </View>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatCents } from '../../utils/money'
 import Taro from '@tarojs/taro'
 import { View, Text, Input, ScrollView, Image } from '@tarojs/components'
 import { apiFetch } from '../../services/api'
@@ -65,7 +66,7 @@ export default function Search() {
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#000' }}>{item.category_name}</Text>
               <Text style={{ fontSize: 12, color: '#71717a', marginTop: 4 }}>SN: {item.sn}</Text>
               <Text style={{ fontSize: 12, color: '#71717a' }}>{item.level_name}</Text>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#C21838', marginTop: 8 }}>{((item.daily_rate_cents || 0) / 100).toFixed(2)}/日</Text>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#C21838', marginTop: 8 }}>{formatCents((item.daily_rate_cents || 0))}/日</Text>
             </View>
           </View>
         ))}

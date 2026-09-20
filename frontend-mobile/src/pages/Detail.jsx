@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { formatCents } from '../utils/money'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { instrumentsApi, getToken, apiFetch, redirectToLogin, getCartKey } from '../services/api'
 import { ArrowLeft, Shield, Clock, AlertCircle, MapPin, Bell, CheckCircle, X, ShoppingCart } from 'lucide-react'
@@ -288,7 +289,7 @@ export default function Detail() {
               </View>
               <View className="flex-shrink-0 whitespace-nowrap text-right">
                 <Text className="text-base tracking-tight">
-                  押金 ¥{((deposit || 0) / 100).toFixed(2)} <Text className="text-zinc-400 font-normal">❯</Text>
+                  押金 ¥{formatCents((deposit || 0))} <Text className="text-zinc-400 font-normal">❯</Text>
                 </Text>
               </View>
             </View>
@@ -299,7 +300,7 @@ export default function Detail() {
                 </View>
               )}
               <Text className="text-base tracking-tight">
-                日租 ¥{(Number(dailyRent || 0) / 100).toFixed(2)}/日
+                日租 ¥{formatCents(Number(dailyRent || 0))}/日
               </Text>
             </View>
             <View className="border-t border-zinc-100 pt-3 flex justify-between items-center text-xs text-zinc-500 font-bold">
@@ -368,7 +369,7 @@ export default function Detail() {
                 return (
                   <View key={i} className="flex justify-between text-sm">
                     <Text className="text-zinc-500">{range}</Text>
-                    <Text className="font-bold text-black">¥{((Math.round(t.daily_rate) || 0) / 100).toFixed(2)}/天</Text>
+                    <Text className="font-bold text-black">¥{formatCents((Math.round(t.daily_rate) || 0))}/天</Text>
                   </View>
                 )
               })}
@@ -377,13 +378,13 @@ export default function Detail() {
                   {pricingV2.deposit > 0 && (
                     <View className="flex justify-between text-sm">
                       <Text className="text-zinc-500">押金</Text>
-                      <Text className="text-black">¥{((pricingV2.deposit || 0) / 100).toFixed(2)}</Text>
+                      <Text className="text-black">¥{formatCents((pricingV2.deposit || 0))}</Text>
                     </View>
                   )}
                   {pricingV2.shipping_fee > 0 && (
                     <View className="flex justify-between text-sm">
                       <Text className="text-zinc-500">物流费</Text>
-                      <Text className="font-bold text-black">¥{((pricingV2.shipping_fee || 0) / 100).toFixed(2)}</Text>
+                      <Text className="font-bold text-black">¥{formatCents((pricingV2.shipping_fee || 0))}</Text>
                     </View>
                   )}
                 </View>
@@ -396,7 +397,7 @@ export default function Detail() {
               </View>
               <View className="border-t border-zinc-100 pt-2 mt-1">
                 <Text className="text-xs text-orange-600 font-medium">
-                  ⚠️ 逾期后每日自动扣款 ¥{((overdueDailyFee || 0) / 100).toFixed(2)}/日；押金归还质检通过后退还
+                  ⚠️ 逾期后每日自动扣款 ¥{formatCents((overdueDailyFee || 0))}/日；押金归还质检通过后退还
                 </Text>
               </View>
             </View>

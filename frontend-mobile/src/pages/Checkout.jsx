@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { formatCents } from '../utils/money'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, getCartKey , resolveErrorMessage, guarantorsApi } from '../services/api'
@@ -449,14 +450,14 @@ function SingleCheckout({ id, navigate }) {
             <View>
               <View className="flex justify-between items-center mb-2">
                 <Text className="text-zinc-400">租金 ({days}天)</Text>
-                <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{(totalRent / 100).toFixed(2)}</Text>
+                <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(totalRent)}</Text>
               </View>
               <View className="flex justify-between items-center">
                 <Text className="text-zinc-400">押金</Text>
                 {depositWaived ? (
                   <Text className="text-green-600 font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥0（免押金）</Text>
                 ) : (
-                  <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{((deposit || 0) / 100).toFixed(2)}{deposit === 0 ? <Text className="text-zinc-400 ml-1">(日租金×倍率)</Text> : null}</Text>
+                  <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents((deposit || 0))}{deposit === 0 ? <Text className="text-zinc-400 ml-1">(日租金×倍率)</Text> : null}</Text>
                 )}
               </View>
             </View>
@@ -474,7 +475,7 @@ function SingleCheckout({ id, navigate }) {
                     return (
                       <View key={i} className="flex justify-between text-xs mb-1">
                         <Text className="text-zinc-400">{range}</Text>
-                        <Text className="text-zinc-600 font-medium">¥{(Number(t.daily_rate) / 100).toFixed(2)}/天</Text>
+                        <Text className="text-zinc-600 font-medium">¥{formatCents(Number(t.daily_rate))}/天</Text>
                       </View>
                     )
                   })}
@@ -510,9 +511,9 @@ function SingleCheckout({ id, navigate }) {
             {/* 合计 */}
             <View className="border-t pt-3 mt-3 flex justify-between items-center">
               <Text className="font-black text-zinc-900 text-base">合计</Text>
-              <Text className="text-brand-primary font-black text-lg flex-shrink-0 ml-auto whitespace-nowrap">¥{(totalAmount / 100).toFixed(2)}</Text>
+              <Text className="text-brand-primary font-black text-lg flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(totalAmount)}</Text>
             </View>
-            <Text className="text-zinc-400 text-right mt-1">租金 ¥{(totalRent / 100).toFixed(2)} + 押金 ¥{((deposit || 0) / 100).toFixed(2)}</Text>
+            <Text className="text-zinc-400 text-right mt-1">租金 ¥{formatCents(totalRent)} + 押金 ¥{formatCents((deposit || 0))}</Text>
             {effectiveDeposit === 0 ? (
               // #1732: 0 押金订单（乐器本身 0 押金或免押金）→ 快递到付文案
               <Text className="block text-red-500 font-medium mt-2 leading-relaxed">尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时我们将选择快递到付且保价，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！</Text>
@@ -775,7 +776,7 @@ function SingleCheckout({ id, navigate }) {
       <View className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 safe-area-pb">
         <View className="flex items-center justify-between mb-2">
           <Text className="text-sm text-zinc-400">应付总额</Text>
-          <Text className="text-xl font-black" style={{ color: '#915F38' }}>¥{(totalAmount / 100).toFixed(2)}</Text>
+          <Text className="text-xl font-black" style={{ color: '#915F38' }}>¥{formatCents(totalAmount)}</Text>
         </View>
         <Button
           onClick={handleSubmit}
@@ -1061,7 +1062,7 @@ function BatchCheckout({ navigate }) {
           <View className="text-center">
             <Text className="text-xs text-zinc-400 font-bold tracking-widest block uppercase">TOTAL PAYABLE</Text>
             <Text className="text-4xl font-black tracking-tight block">
-              ¥{(grandTotal / 100).toFixed(2)}
+              ¥{formatCents(grandTotal)}
             </Text>
           </View>
 
@@ -1100,16 +1101,16 @@ function BatchCheckout({ navigate }) {
                           <Text className="text-zinc-400">{item.category_name || ''}</Text>
                         </View>
                         <Text className="text-zinc-500 flex-shrink-0 ml-2">
-                          {item.rent_qty || 30}天 · ¥{((p.rent || 0) / 100).toFixed(2)}
+                          {item.rent_qty || 30}天 · ¥{formatCents((p.rent || 0))}
                         </Text>
                       </View>
                     )
                   })}
                   <View className="flex justify-between items-center mt-1 pt-1 border-t" style={{ borderColor: 'rgba(228,228,231,0.6)' }}>
                     <Text className="text-zinc-400">
-                      {depositWaived ? '免押金' : `押金 ¥${((groupDeposit || 0) / 100).toFixed(2)}`}
+                      {depositWaived ? '免押金' : `押金 ¥${formatCents((groupDeposit || 0))}`}
                     </Text>
-                    <Text className="text-sm font-bold text-zinc-800">小计 ¥{((groupSubtotal || 0) / 100).toFixed(2)}</Text>
+                    <Text className="text-sm font-bold text-zinc-800">小计 ¥{formatCents((groupSubtotal || 0))}</Text>
                   </View>
                 </View>
               )
@@ -1336,7 +1337,7 @@ function BatchCheckout({ navigate }) {
           onClick={handleSubmit}
           disabled={submitting}
         >
-          {submitting ? '处理中...' : `确认支付 ¥${(grandTotal / 100).toFixed(2)}`}
+          {submitting ? '处理中...' : `确认支付 ¥${formatCents(grandTotal)}`}
         </Button>
       </View>
     </View>

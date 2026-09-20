@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { formatCents } from '../utils/money'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Video } from '@tarojs/components'
 import { apiFetch, getCartKey, getToken, resolveLogin } from '../services/api'
@@ -270,12 +271,12 @@ export default function Detail() {
                   </View>
                 )}
                 <Text style={{ color: '#C21838', fontSize: 16, letterSpacing: '-0.025em', whiteSpace: 'nowrap' }}>
-                  日租 ¥{(Number(dailyRent || 0) / 100).toFixed(2)}/日
+                  日租 ¥{formatCents(Number(dailyRent || 0))}/日
                 </Text>
               </View>
               <View style={{ flexShrink: 0, whiteSpace: 'nowrap', textAlign: 'right', marginLeft: 8 }}>
                 <Text style={{ color: '#C21838', fontSize: 16, letterSpacing: '-0.025em' }}>
-                  押金 ¥{((deposit || 0) / 100).toFixed(2)} <Text style={{ color: '#a1a1aa', fontWeight: '400' }}>❯</Text>
+                  押金 ¥{formatCents((deposit || 0))} <Text style={{ color: '#a1a1aa', fontWeight: '400' }}>❯</Text>
                 </Text>
               </View>
             </View>
@@ -338,7 +339,7 @@ export default function Detail() {
                 return (
                   <View key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                     <Text style={{ color: '#71717a', fontSize: 14 }}>{range}</Text>
-                    <Text style={{ fontWeight: '700', color: '#000', fontSize: 14 }}>¥{((Math.round(t.daily_rate) || 0) / 100).toFixed(2)}/天</Text>
+                    <Text style={{ fontWeight: '700', color: '#000', fontSize: 14 }}>¥{formatCents((Math.round(t.daily_rate) || 0))}/天</Text>
                   </View>
                 )
               })}
@@ -347,13 +348,13 @@ export default function Detail() {
                   {pricingV2.deposit > 0 && (
                     <View style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                       <Text style={{ color: '#71717a', fontSize: 14 }}>押金</Text>
-                      <Text style={{ color: '#000', fontSize: 14 }}>¥{((pricingV2.deposit || 0) / 100).toFixed(2)}</Text>
+                      <Text style={{ color: '#000', fontSize: 14 }}>¥{formatCents((pricingV2.deposit || 0))}</Text>
                     </View>
                   )}
                   {pricingV2.shipping_fee > 0 && (
                     <View style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                       <Text style={{ color: '#71717a', fontSize: 14 }}>物流费</Text>
-                      <Text style={{ fontWeight: '700', color: '#000', fontSize: 14 }}>¥{((pricingV2.shipping_fee || 0) / 100).toFixed(2)}</Text>
+                      <Text style={{ fontWeight: '700', color: '#000', fontSize: 14 }}>¥{formatCents((pricingV2.shipping_fee || 0))}</Text>
                     </View>
                   )}
                 </View>
@@ -366,7 +367,7 @@ export default function Detail() {
               </View>
               <View style={{ borderTop: '1px solid #f4f4f5', paddingTop: 8, marginTop: 4 }}>
                 <Text style={{ fontSize: 12, color: '#ea580c', fontWeight: '500' }}>
-                  ⚠️ 逾期后每日自动扣款 ¥{((overdueDailyFee || 0) / 100).toFixed(2)}/日；押金归还质检通过后退还
+                  ⚠️ 逾期后每日自动扣款 ¥{formatCents((overdueDailyFee || 0))}/日；押金归还质检通过后退还
                 </Text>
               </View>
             </View>

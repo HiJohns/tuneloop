@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatCents, yuanToCents as toCents } from '../utils/money'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Input, Button, ScrollView } from '@tarojs/components'
@@ -19,7 +20,7 @@ const svcStatusLabels = {
 const svcAmount = (rr) => {
   const cents = rr.adjusted_quote_cents != null ? rr.adjusted_quote_cents
     : (rr.quote_repair_cents || 0) + (rr.quote_logistics_cents || 0)
-  return `¥${(cents / 100).toFixed(2)}`
+  return `¥${formatCents(cents)}`
 }
 const svcTodo = (rr) => ({
   pending_quote: '等待用户接受报价',
@@ -78,7 +79,7 @@ export default function TechRepairWorkbench() {
   const yuanToCents = (v) => {
     const n = parseFloat(v)
     if (isNaN(n) || n < 0) return -1
-    return Math.round(n * 100)
+    return toCents(n)
   }
 
   const fetchLists = async () => {
@@ -150,7 +151,7 @@ export default function TechRepairWorkbench() {
       const result = await res.json()
       if (result.code === 20000) {
         const d = result.data || {}
-        dialog.alert(`加价申请已提交，用户确认后补差价 ¥${((d.payable_cents || 0) / 100).toFixed(2)}`)
+        dialog.alert(`加价申请已提交，用户确认后补差价 ¥${formatCents((d.payable_cents || 0))}`)
         setExpanded('')
         fetchLists()
       } else {
