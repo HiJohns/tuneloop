@@ -338,8 +338,74 @@ func BootstrapDatabase(db *gorm.DB) error {
 		return fmt.Errorf("database schema validation failed: %w", err)
 	}
 
+	// #1986：迁移记录 ↔ 实表工件交叉校验（记录已应用但工件缺失 → fail-fast）。
+	if err := verifyMigrationArtifacts(db); err != nil {
+		return fmt.Errorf("migration artifact verification failed: %w", err)
+	}
+	fmt.Println("✓ Migration artifact verification passed")
+
 	fmt.Println("✓ Database bootstrap completed successfully")
 	return nil
+}
+
+// migrationArtifact 断言：当 schema_migrations 版本 ≥ Version 时，Table 必须存在
+// （Column 非空时还要求该列存在）。用于捕获「迁移记录已应用但实表工件缺失」的快照
+// 库不一致（#1986/#1913；如预生产 orders.order_no 曾缺失）。
+type migrationArtifact struct {
+	Version uint
+	Table   string
+	Column  string
+	Desc    string
+}
+
+// defaultMigrationArtifacts 关键工件清单；新增迁移时必须同步登记（AGENTS.md 迁移纪律）。
+var defaultMigrationArtifacts = []migrationArtifact{
+	{20260917007, "orders", "order_no", "业务订单号列"},
+	{20260917008, "technician_profiles", "", "维修师傅档案表"},
+	{20260917009, "invoice_applications", "invoice_type", "发票类型列"},
+	{20260917009, "invoice_applications", "title", "发票抬头列"},
+	{20260917009, "invoice_applications", "tax_number", "税号列"},
+	{20260917010, "point_batches", "", "乐币批次表"},
+	{20260917010, "point_batch_consumptions", "", "批次扣减留痕表"},
+	{20260917011, "gift_policies", "referral_ratio", "裂变比例列"},
+	{20260917011, "gift_policies", "referral_reg_points", "邀请奖乐币列"},
+}
+
+// verifyArtifacts 纯逻辑（便于单测）：对 version ≥ a.Version 的工件断言存在。
+func verifyArtifacts(db *gorm.DB, version uint, arts []migrationArtifact) error {
+	for _, a := range arts {
+		if version < a.Version {
+			continue
+		}
+		if a.Column != "" {
+			var n int64
+			if err := db.Raw(`SELECT COUNT(*) FROM information_schema.columns WHERE table_name = ? AND column_name = ?`, a.Table, a.Column).Scan(&n).Error; err != nil {
+				return fmt.Errorf("check column %s.%s: %w", a.Table, a.Column, err)
+			}
+			if n == 0 {
+				return fmt.Errorf("migration %d recorded applied but column %s.%s is missing (%s) — snapshot/schema drift, replay the migration artifacts", a.Version, a.Table, a.Column, a.Desc)
+			}
+			continue
+		}
+		var n int64
+		if err := db.Raw(`SELECT COUNT(*) FROM information_schema.tables WHERE table_name = ?`, a.Table).Scan(&n).Error; err != nil {
+			return fmt.Errorf("check table %s: %w", a.Table, err)
+		}
+		if n == 0 {
+			return fmt.Errorf("migration %d recorded applied but table %s is missing (%s) — snapshot/schema drift, replay the migration artifacts", a.Version, a.Table, a.Desc)
+		}
+	}
+	return nil
+}
+
+// verifyMigrationArtifacts 读取当前迁移版本并校验关键工件（版本不可读时不阻塞启动）。
+func verifyMigrationArtifacts(db *gorm.DB) error {
+	version, _, _, err := CheckMigrationsStatus(db)
+	if err != nil {
+		fmt.Printf("Warning: cannot read migration status for artifact check: %v\n", err)
+		return nil
+	}
+	return verifyArtifacts(db, version, defaultMigrationArtifacts)
 }
 
 // modelTableName returns the table name for a given model struct.
