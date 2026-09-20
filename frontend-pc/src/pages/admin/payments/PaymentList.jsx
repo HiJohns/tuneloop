@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatCents } from '../../../utils/money'
 import { Card, Table, Tag, Select, Button, message, DatePicker, Input, Space } from 'antd'
 import { DownloadOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons'
 import { api } from '../../../services/api'
@@ -78,7 +79,7 @@ export default function PaymentList() {
     { title: '商户订单号', dataIndex: 'out_trade_no', width: 180, ellipsis: true },
     { title: '微信交易号', dataIndex: 'transaction_id', width: 180, ellipsis: true },
     { title: '类别', dataIndex: 'order_type', width: 100, render: (v) => typeOptions.find(o => o.value === v)?.label || v },
-    { title: '金额', dataIndex: 'amount', width: 100, render: (v) => v != null ? `¥${Number(v).toFixed(2)}` : '-' },
+    { title: '金额', dataIndex: 'amount', width: 100, render: (v) => v != null ? `¥${formatCents(v)}` : '-' },
     { title: '方式', dataIndex: 'method', width: 100, render: (v) => methodOptions.find(o => o.value === v)?.label || v || '-' },
     { title: '状态', dataIndex: 'status', width: 90, render: (v) => {
       const cfg = statusConfig[v] || { text: v, color: 'default' }
@@ -88,7 +89,7 @@ export default function PaymentList() {
       if (!r.refunds?.length) return <span style={{ color: '#999' }}>无</span>
       return r.refunds.map((ref, i) => (
         <div key={i} style={{ fontSize: 12, marginBottom: 2 }}>
-          退款 ¥{Number(ref.amount).toFixed(2)} <Tag color={ref.status === 'refunded' ? 'green' : ref.status === 'failed' ? 'red' : 'blue'}>{ref.status}</Tag>
+          退款 ¥{formatCents(ref.amount)} <Tag color={ref.status === 'refunded' ? 'green' : ref.status === 'failed' ? 'red' : 'blue'}>{ref.status}</Tag>
         </div>
       ))
     }},

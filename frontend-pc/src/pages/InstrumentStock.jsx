@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import { formatCents, yuanToCents } from '../utils/money'
 import { Table, Tag, Button, Space, Spin, Modal, Form, Input, InputNumber, Select, Radio, Upload, Descriptions, Image, message } from 'antd'
 import { EyeOutlined, EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined } from '@ant-design/icons'
 import { useSearchParams, useNavigate } from 'react-router-dom'
@@ -196,8 +197,8 @@ export default function InstrumentStock() {
         description: v.description,
         responsible_party: v.responsible_party,
         user_ratio: v.user_ratio ?? 0,
-        compensation_cents: Math.round((v.compensation_yuan || 0) * 100),
-        ...(v.user_burden_yuan != null ? { user_burden_cents: Math.round(v.user_burden_yuan * 100) } : {}),
+        compensation_cents: yuanToCents(v.compensation_yuan || 0),
+        ...(v.user_burden_yuan != null ? { user_burden_cents: yuanToCents(v.user_burden_yuan) } : {}),
       })
       if (resp.code === 20000) {
         message.success('丢失登记完成')
@@ -220,7 +221,7 @@ export default function InstrumentStock() {
       if (resp.code === 20000) {
         const d = resp.data || {}
         message.success(d.reversal === 'refunded'
-          ? `恢复成功，冲正退款 ¥${((d.refund_cents || 0) / 100).toFixed(2)}`
+          ? `恢复成功，冲正退款 ¥${formatCents(d.refund_cents || 0)}`
           : d.reversal === 'held_pending_assessment' ? '恢复成功（有损坏，赔偿暂扣待定损）' : '恢复成功')
         setRestoreTarget(null)
         loadData()
@@ -247,8 +248,8 @@ export default function InstrumentStock() {
     { title: '订单', dataIndex: 'order_id', render: v => v ? <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{v.slice(0, 8)}…</span> : '-' },
     { title: '责任方', dataIndex: 'responsible_party', render: v => ({ user: '用户', logistics: '物流公司', platform: '平台', site: '网点' }[v] || v) },
     { title: '责任比例', dataIndex: 'user_ratio', render: v => `${v}%` },
-    { title: '赔偿', dataIndex: 'compensation_cents', align: 'right', render: v => v ? `¥${(v / 100).toFixed(2)}` : '-' },
-    { title: '用户承担', dataIndex: 'user_burden_cents', align: 'right', render: v => `¥${((v || 0) / 100).toFixed(2)}` },
+    { title: '赔偿', dataIndex: 'compensation_cents', align: 'right', render: v => v ? `¥${formatCents(v)}` : '-' },
+    { title: '用户承担', dataIndex: 'user_burden_cents', align: 'right', render: v => `¥${formatCents(v || 0)}` },
     {
       title: '状态', key: 'state',
       render: (_, r) => r.restored_at
@@ -371,8 +372,8 @@ export default function InstrumentStock() {
             <Descriptions.Item label="关联订单" span={2}><span style={{ fontFamily: 'monospace' }}>{lossDetail.order_id || '-'}</span></Descriptions.Item>
             <Descriptions.Item label="责任方">{({ user: '用户', logistics: '物流公司', platform: '平台', site: '网点' })[lossDetail.responsible_party] || lossDetail.responsible_party}</Descriptions.Item>
             <Descriptions.Item label="责任比例">{lossDetail.user_ratio}%</Descriptions.Item>
-            <Descriptions.Item label="赔偿金额">¥{((lossDetail.compensation_cents || 0) / 100).toFixed(2)}</Descriptions.Item>
-            <Descriptions.Item label="用户承担">¥{((lossDetail.user_burden_cents || 0) / 100).toFixed(2)}</Descriptions.Item>
+            <Descriptions.Item label="赔偿金额">¥{formatCents(lossDetail.compensation_cents || 0)}</Descriptions.Item>
+            <Descriptions.Item label="用户承担">¥{formatCents(lossDetail.user_burden_cents || 0)}</Descriptions.Item>
             <Descriptions.Item label="找回/结算" span={2}>
               {lossDetail.restored_at
                 ? `已恢复上架${lossDetail.restored_damaged ? '（有损坏）' : '（无损坏）'}`

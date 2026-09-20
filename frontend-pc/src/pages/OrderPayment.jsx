@@ -4,6 +4,7 @@ import { Card, Button, Space, Descriptions, message, Modal, Form, Input, Radio }
 import { ArrowLeftOutlined, CheckCircleOutlined, CreditCardOutlined } from '@ant-design/icons'
 import { api } from '../services/api'
 import { formatBeijingDate } from '../utils/date'
+import { formatCents } from '../utils/money'
 
 const { TextArea } = Input
 
@@ -80,9 +81,9 @@ export default function OrderPayment() {
           <Descriptions.Item label="租赁开始">{formatBeijingDate(order.start_date)}</Descriptions.Item>
           <Descriptions.Item label="租赁结束">{formatBeijingDate(order.end_date)}</Descriptions.Item>
           <Descriptions.Item label="天数">{order.lease_term} 天</Descriptions.Item>
-          <Descriptions.Item label="月租金">¥{order.monthly_rent}</Descriptions.Item>
+          <Descriptions.Item label="月租金">¥{formatCents(order.monthly_rent)}</Descriptions.Item>
           <Descriptions.Item label="押金">
-            {order.deposit_waived ? <span className="text-green-600 font-semibold">免押金</span> : `¥${order.deposit}`}
+            {order.deposit_waived ? <span className="text-green-600 font-semibold">免押金</span> : `¥${formatCents(order.deposit)}`}
           </Descriptions.Item>
           {order.deposit_waived && (
             <Descriptions.Item label="担保人">
@@ -99,7 +100,7 @@ export default function OrderPayment() {
           )}
           <Descriptions.Item label="总计">
             <span className="text-2xl font-bold text-blue-600">
-              ¥{order.total_amount || order.monthly_rent}
+              ¥{formatCents(order.total_amount || order.monthly_rent)}
             </span>
           </Descriptions.Item>
         </Descriptions>

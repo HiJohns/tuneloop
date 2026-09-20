@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatCents, toYuan } from '../../../utils/money'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Card, Descriptions, Tag, Image, Row, Col, Button, Space, Divider, Tabs, Table, Spin, Empty, message, Popconfirm, Input, InputNumber, Form, Select, TreeSelect, Switch } from 'antd'
 import { ArrowLeftOutlined, DeleteOutlined, EditOutlined, DollarOutlined, UserOutlined, EnvironmentOutlined, CalendarOutlined, TruckOutlined } from '@ant-design/icons'
@@ -437,8 +438,8 @@ export default function InstrumentDetail() {
                        ...prev,
                        // #1755: pricing-v2 returns cents — /100 for the
                        // yuan editing/display; submit keeps yuan semantics.
-                       base_daily_rate: pricingV2?.base_daily_rate != null ? Number(pricingV2.base_daily_rate) / 100 : '',
-                       deposit: pricingV2?.deposit != null ? Number(pricingV2.deposit) / 100 : '',
+                       base_daily_rate: pricingV2?.base_daily_rate != null ? toYuan(pricingV2.base_daily_rate) : '',
+                       deposit: pricingV2?.deposit != null ? toYuan(pricingV2.deposit) : '',
                        overdue_daily_fee: overdueDailyFee || '',
                     }))
                   }} />}
@@ -489,8 +490,8 @@ export default function InstrumentDetail() {
                   ) : (
                   <Descriptions column={2} bordered size="small">
                     {/* #1755: pricing-v2 cents → display yuan (/100) */}
-                    <Descriptions.Item label="标准日租">¥{pricingV2?.base_daily_rate != null ? Number(pricingV2.base_daily_rate) / 100 : '-'}/天</Descriptions.Item>
-                    <Descriptions.Item label="押金">¥{pricingV2?.deposit != null ? Number(pricingV2.deposit) / 100 : '-'}</Descriptions.Item>
+                    <Descriptions.Item label="标准日租">¥{pricingV2?.base_daily_rate != null ? formatCents(pricingV2.base_daily_rate) : '-'}/天</Descriptions.Item>
+                    <Descriptions.Item label="押金">¥{pricingV2?.deposit != null ? formatCents(pricingV2.deposit) : '-'}</Descriptions.Item>
                     <Descriptions.Item label="押金模式">{pricingV2?.deposit_mode || 'ratio'}</Descriptions.Item>
                     <Descriptions.Item label="逾期日费">¥{overdueDailyFee || '-'}</Descriptions.Item>
                   </Descriptions>
@@ -505,7 +506,7 @@ export default function InstrumentDetail() {
                       size="small"
                       columns={[
                         { title: '天数上限', dataIndex: 'days_max', render: v => v < 0 ? '无上限' : `${v}天` },
-                        { title: '日租金', dataIndex: 'daily_rate', render: v => `¥${(Number(v) / 100).toFixed(2)}` }, // #1755: cents → yuan
+                        { title: '日租金', dataIndex: 'daily_rate', render: v => `¥${formatCents(v)}` }, // #1755: cents → yuan
                       ]}
                     />
                   </Card>
@@ -770,8 +771,8 @@ export default function InstrumentDetail() {
                       </Descriptions.Item>
                     </Descriptions>
                     <div className="text-sm text-gray-500 space-y-1 mt-2">
-                      <p>月租金: ¥{leaseData.order?.monthly_rent || 0}</p>
-                      <p>押金: ¥{leaseData.order?.deposit || 0}</p>
+                      <p>月租金: ¥{formatCents(leaseData.order?.monthly_rent || 0)}</p>
+                      <p>押金: ¥{formatCents(leaseData.order?.deposit || 0)}</p>
                     </div>
                   </Card>
                 </Col>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { formatCents } from '../utils/money'
 import { Table, Tag, Button, Card, Typography, Space, Modal, Descriptions, message } from 'antd';
 import { FileTextOutlined, EyeOutlined, UndoOutlined } from '@ant-design/icons';
 import { api } from '../services/api';
@@ -156,8 +157,8 @@ export default function UserRental() {
             <Descriptions.Item label="乐器">{selectedRental.instrument_name || '-'}</Descriptions.Item>
             <Descriptions.Item label="租赁开始">{formatBeijingDate(selectedRental.start_date)}</Descriptions.Item>
             <Descriptions.Item label="租赁结束">{formatBeijingDate(selectedRental.end_date)}</Descriptions.Item>
-            <Descriptions.Item label="月租金">¥{selectedRental.monthly_rent || '-'}</Descriptions.Item>
-            <Descriptions.Item label="押金">¥{selectedRental.deposit || '-'}</Descriptions.Item>
+            <Descriptions.Item label="月租金">{selectedRental.monthly_rent != null ? `¥${formatCents(selectedRental.monthly_rent)}` : '-'}</Descriptions.Item>
+            <Descriptions.Item label="押金">{selectedRental.deposit != null ? `¥${formatCents(selectedRental.deposit)}` : '-'}</Descriptions.Item>
             <Descriptions.Item label="状态">
               <Tag color={getStatusConfig(selectedRental.status).color}>
                 {getStatusConfig(selectedRental.status).text}

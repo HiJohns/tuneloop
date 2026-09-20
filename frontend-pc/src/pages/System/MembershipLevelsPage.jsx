@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, Table, Button, Space, Modal, Form, Input, InputNumber, message } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SettingOutlined } from '@ant-design/icons';
 import { api } from '../../services/api';
+import { formatCents, toYuan } from '../../utils/money';
 
 export default function MembershipLevelsPage() {
   const [levels, setLevels] = useState([]);
@@ -75,13 +76,13 @@ export default function MembershipLevelsPage() {
   const columns = [
     { title: '级别 ID', dataIndex: 'id', width: 100 },
     { title: '名称', dataIndex: 'name' },
-    { title: '最低消费金额', dataIndex: 'min_amount', render: v => `¥${v}` },
+    { title: '最低消费金额', dataIndex: 'min_amount', render: v => `¥${formatCents(v)}` },
     {
       title: '操作', width: 260,
       render: (_, r) => (
         <Space>
           <Button size="small" icon={<SettingOutlined />} onClick={() => openBenefits(r)}>权益</Button>
-          <Button size="small" icon={<EditOutlined />} onClick={() => { setEditing(r); form.setFieldsValue(r); setModalVisible(true); }}>编辑</Button>
+          <Button size="small" icon={<EditOutlined />} onClick={() => { setEditing(r); form.setFieldsValue({ ...r, min_amount: toYuan(r.min_amount) }); setModalVisible(true); }}>编辑</Button>
           <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(r.id)}>删除</Button>
         </Space>
       ),

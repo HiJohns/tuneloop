@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatCents } from '../../../utils/money'
 import { Card, Table, Tag, Spin, Select, Tabs, Modal, Descriptions, Image, Rate, Empty } from 'antd'
 import { api } from '../../../services/api'
 import { formatBeijingDate, formatBeijingDateTimeShort } from '../../../utils/date'
@@ -39,7 +40,7 @@ const svcStatusColors = {
   shipping: 'geekblue', repairing: 'purple', adjust_pending: 'gold',
   done_repair: 'lime', closed: 'green',
 }
-const yuan = (cents) => (cents == null ? '-' : `¥${(Number(cents) / 100).toFixed(2)}`)
+const yuan = (cents) => (cents == null ? '-' : `¥${formatCents(cents)}`)
 
 export default function MerchantRepairList() {
   return (
@@ -72,7 +73,7 @@ function WarrantyList() {
     { title: '乐器', dataIndex: 'user_instrument_id', key: 'instrument', render: (_, r) => r.sn || '-' },
     { title: '状态', dataIndex: 'status', key: 'status', render: s => <Tag color={statusColors[s]}>{statusLabels[s] || s}</Tag> },
     { title: '网点', dataIndex: 'site_id', key: 'site', render: (_, r) => r.site_name || '-' },
-    { title: '报价', dataIndex: 'quote_amount', key: 'quote', render: v => v ? `¥${(Number(v) / 100).toFixed(2)}` : '-' },
+    { title: '报价', dataIndex: 'quote_amount', key: 'quote', render: v => v ? `¥${formatCents(v)}` : '-' },
   ]
 
   return (

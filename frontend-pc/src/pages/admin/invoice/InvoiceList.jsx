@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatCents as formatCentsRaw } from '../../../utils/money'
 import { Card, Table, Tag, Button, message, Modal, Input, Upload, Space, Descriptions } from 'antd'
 import { EyeOutlined, UploadOutlined } from '@ant-design/icons'
 import { api } from '../../../services/api'
@@ -10,7 +11,7 @@ const statusConfig = {
 }
 
 function formatCents(cents) {
-  return cents != null ? `¥${(cents / 100).toFixed(2)}` : '-'
+  return cents != null ? `¥${formatCentsRaw(cents)}` : '-'
 }
 
 export default function InvoiceList() {

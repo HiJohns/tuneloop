@@ -4,6 +4,7 @@ import { Card, Button, Space, Descriptions, Tag, message } from 'antd'
 import { ArrowLeftOutlined, DownloadOutlined, FileTextOutlined } from '@ant-design/icons'
 import { api } from '../services/api'
 import { formatBeijingDate } from '../utils/date'
+import { formatCents } from '../utils/money'
 
 export default function ContractView() {
   const { id } = useParams()
@@ -19,7 +20,7 @@ export default function ContractView() {
     setLoading(true)
     try {
       const data = await api.get(`/user/contracts/${id}`)
-      setContract(data)
+      setContract(data?.data || null)
     } catch (error) {
       console.error('Failed to fetch contract:', error)
       message.error('加载合同失败')
@@ -81,8 +82,8 @@ export default function ContractView() {
           <Descriptions.Item label="品牌型号">{contract.brand} {contract.model}</Descriptions.Item>
           <Descriptions.Item label="租赁开始">{formatBeijingDate(contract.start_date)}</Descriptions.Item>
           <Descriptions.Item label="租赁结束">{formatBeijingDate(contract.end_date)}</Descriptions.Item>
-          <Descriptions.Item label="月租金">¥{contract.monthly_rent}</Descriptions.Item>
-          <Descriptions.Item label="押金">¥{contract.deposit}</Descriptions.Item>
+          <Descriptions.Item label="月租金">¥{formatCents(contract.monthly_rent)}</Descriptions.Item>
+          <Descriptions.Item label="押金">¥{formatCents(contract.deposit)}</Descriptions.Item>
           <Descriptions.Item label="合同状态" span={2}>
             <Tag color={contract.status === 'active' ? 'green' : 'default'}>
               {contract.status === 'active' ? '生效中' : '已完成'}
