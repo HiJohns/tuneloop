@@ -227,6 +227,36 @@ func (s *OSSStorage) Stat(ctx context.Context, key string) (int64, bool, error) 
 	return 0, false, nil
 }
 
+// List enumerates objects under prefix on the routed bucket (#1914 P6).
+// Note: prefix routing mirrors target(); listing "" covers the public bucket
+// only (private face_captures/ material is GC-exempt by compliance).
+func (s *OSSStorage) List(ctx context.Context, prefix string) ([]MediaObject, error) {
+	b := s.target(prefix)
+	var out []MediaObject
+	marker := ""
+	for {
+		opts := []oss.Option{oss.MaxKeys(1000)}
+		if prefix != "" {
+			opts = append(opts, oss.Prefix(prefix))
+		}
+		if marker != "" {
+			opts = append(opts, oss.Marker(marker))
+		}
+		res, err := b.ListObjects(opts...)
+		if err != nil {
+			return nil, fmt.Errorf("list %q: %w", prefix, err)
+		}
+		for _, o := range res.Objects {
+			out = append(out, MediaObject{Key: o.Key, Size: o.Size, LastModified: o.LastModified})
+		}
+		if !res.IsTruncated {
+			break
+		}
+		marker = res.NextMarker
+	}
+	return out, nil
+}
+
 func (s *OSSStorage) DeletePrefix(ctx context.Context, prefix string) error {
 	b := s.target(prefix)
 	marker := ""

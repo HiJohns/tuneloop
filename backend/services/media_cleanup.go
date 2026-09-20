@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -166,11 +165,12 @@ func (s *MediaCleanupService) GCOrphans(dryRun bool) (int, error) {
 	if err != nil {
 		return deleted, err
 	}
-	onDisk, err := s.listMediaFiles()
+	objs, err := storage.List(ctx, "")
 	if err != nil {
 		return deleted, err
 	}
-	for _, f := range onDisk {
+	for _, obj := range objs {
+		f := obj.Key
 		// #1790 T2 R2 H3: face_captures/ 目录（生物特征合规数据）即使注册
 		// 异常也保留——跳过目录扫描，防止物理删除。
 		if strings.HasPrefix(f, "face_captures/") {
@@ -196,7 +196,7 @@ func (s *MediaCleanupService) GCOrphans(dryRun bool) (int, error) {
 	}
 
 	// 3. Batch-import session directories older than the grace period.
-	if err := s.gcBatchDirs(grace, dryRun); err != nil {
+	if err := s.gcBatchPrefixes(storage, ctx, grace, dryRun); err != nil {
 		return deleted, err
 	}
 
@@ -243,60 +243,38 @@ func (s *MediaCleanupService) isDerivedVariant(key string, registered map[string
 	return false
 }
 
-// listMediaFiles returns all file paths under uploads/media/ relative to the
-// base directory (storage keys).
-func (s *MediaCleanupService) listMediaFiles() ([]string, error) {
-	base := filepath.Join(".", "uploads", "media")
-	var files []string
-	err := filepath.Walk(base, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-		rel, err := filepath.Rel(base, path)
-		if err != nil {
-			return err
-		}
-		files = append(files, filepath.ToSlash(rel))
-		return nil
-	})
+// gcBatchPrefixes removes batch-import staging batch/{sessionID}/ whose newest
+// object is older than grace days (backend-agnostic via List/DeletePrefix).
+func (s *MediaCleanupService) gcBatchPrefixes(storage MediaStorage, ctx context.Context, grace int, dryRun bool) error {
+	objs, err := storage.List(ctx, "batch/")
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to walk %s: %w", base, err)
-	}
-	return files, nil
-}
-
-// gcBatchDirs removes uploads/batch/{sessionID} directories older than grace days.
-func (s *MediaCleanupService) gcBatchDirs(grace int, dryRun bool) error {
-	base := filepath.Join(".", "uploads", "batch")
-	entries, err := os.ReadDir(base)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return fmt.Errorf("failed to read %s: %w", base, err)
+		return err
 	}
 	cutoff := time.Now().AddDate(0, 0, -grace)
-	for _, e := range entries {
-		if !e.IsDir() {
+	newest := map[string]time.Time{}
+	for _, o := range objs {
+		rest := strings.TrimPrefix(o.Key, "batch/")
+		sid := rest
+		if i := strings.Index(rest, "/"); i >= 0 {
+			sid = rest[:i]
+		}
+		if sid == "" {
 			continue
 		}
-		info, err := e.Info()
-		if err != nil || info.ModTime().After(cutoff) {
+		if t, ok := newest[sid]; !ok || o.LastModified.After(t) {
+			newest[sid] = o.LastModified
+		}
+	}
+	for sid, t := range newest {
+		if t.After(cutoff) {
 			continue
 		}
-		dir := filepath.Join(base, e.Name())
 		if dryRun {
-			log.Printf("[MediaCleanupService] DRY RUN would delete batch dir %s", dir)
+			log.Printf("[MediaCleanupService] DRY RUN would delete batch staging batch/%s/", sid)
 			continue
 		}
-		if err := os.RemoveAll(dir); err != nil {
-			log.Printf("[MediaCleanupService] delete batch dir %s failed: %v", dir, err)
+		if err := storage.DeletePrefix(ctx, "batch/"+sid+"/"); err != nil {
+			log.Printf("[MediaCleanupService] delete batch staging %s failed: %v", sid, err)
 		}
 	}
 	return nil

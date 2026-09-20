@@ -228,7 +228,14 @@ ssh cadenza "OSS_ENDPOINT=https://oss-cn-beijing.aliyuncs.com OSS_BUCKET=tuneloo
 | P3 | 双写开关（OSS 写失败显式报错，可配置阻断） | ✅ 已实现（#1992） |
 | P4 | CLI `--migrate-media-oss`（dry-run 先行、幂等、断点续传、失败清单） | ✅ 已实现（#1991） |
 | P5 | `GetURL` 切读开关 + nginx `/uploads/*` 未命中重定向兜底 | ✅ 已实现（#1993） |
-| P6 | 观察期 → 停本地写 / `gc-media` 适配 / 更新 `docs/topics/media/media_directory.md` | ⏳ |
+| P6 | 观察期 → 停本地写 / `gc-media` 适配 / 更新 `docs/topics/media/media_directory.md` | ✅ 代码就绪（#1994）；停写/观察期为用户运维项 |
+
+### 5.5 P6 收尾（#1994）
+
+- **`gc-media` OSS 适配**：`MediaStorage` 新增 `List(ctx, prefix)`（Local=文件遍历；OSS=`ListObjects` 分页；`DualStorage` 委托 OSS）；`MediaCleanupService.GCOrphans` 目录清扫改为 **`List` 枚举 + `DeletePrefix` 删除**（后端无关），`batch/{session}/` 暂存按 **对象 LastModified** 判定 grace。face_captures/ 仍**合规豁免**。
+- **停本地写（运维）**：观察期（自 P5 上线 ≥30 天）无异常后，将 `STORAGE_MODE` 切 `oss`（停本地双写，仅 OSS）；**保留本地目录为冷备**（不删盘）。回退 = 切回 `dual`/`local`。
+- **观察期门禁**：`journalctl` 媒体相关错误 + `media_assets` 引用抽样 + 前端反馈，报告贴 #1994。
+- **验证**：`gc-media --dry-run` 与真实执行一致；引用中对象 0 误删。
 
 ### 5.4 绕抽象直写改造（#1995）
 

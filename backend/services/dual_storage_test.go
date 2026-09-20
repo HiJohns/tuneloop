@@ -70,6 +70,17 @@ func (f *fakeBackend) Rename(ctx context.Context, src, dst string) error {
 	}
 	return f.Delete(ctx, src)
 }
+func (f *fakeBackend) List(_ context.Context, prefix string) ([]MediaObject, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var out []MediaObject
+	for k, b := range f.objects {
+		if prefix == "" || strings.HasPrefix(k, prefix) {
+			out = append(out, MediaObject{Key: k, Size: int64(len(b))})
+		}
+	}
+	return out, nil
+}
 func (f *fakeBackend) Stat(_ context.Context, key string) (int64, bool, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()

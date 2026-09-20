@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -17,6 +19,7 @@ import (
 type fakeBucket struct {
 	putKeys   []string
 	multipart *fakeMultipart
+	objects   []oss.ObjectProperties
 }
 
 type fakeMultipart struct {
@@ -37,7 +40,7 @@ func (f *fakeBucket) GetObject(key string, options ...oss.Option) (io.ReadCloser
 
 func (f *fakeBucket) DeleteObject(key string, options ...oss.Option) error { return nil }
 func (f *fakeBucket) ListObjects(options ...oss.Option) (oss.ListObjectsResult, error) {
-	return oss.ListObjectsResult{}, nil
+	return oss.ListObjectsResult{Objects: f.objects}, nil
 }
 func (f *fakeBucket) DeleteObjects(keys []string, options ...oss.Option) (oss.DeleteObjectsResult, error) {
 	return oss.DeleteObjectsResult{}, nil
@@ -209,3 +212,44 @@ func (r *noSeekReader) Read(p []byte) (int, error) {
 }
 
 var _ = oss.HTTPGet
+
+// #1994: backend-agnostic listing (gc-media orphan sweep).
+func TestLocalStorageList(t *testing.T) {
+	old, _ := os.Getwd()
+	require.NoError(t, os.Chdir(t.TempDir()))
+	t.Cleanup(func() { _ = os.Chdir(old) })
+
+	require.NoError(t, os.MkdirAll(filepath.Join("uploads", "media", "sub"), 0755))
+	require.NoError(t, os.WriteFile(filepath.Join("uploads", "media", "a.jpg"), []byte("aaa"), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join("uploads", "media", "sub", "b.jpg"), []byte("bb"), 0644))
+
+	ls := NewLocalStorage()
+	all, err := ls.List(context.Background(), "")
+	require.NoError(t, err)
+	require.Len(t, all, 2)
+	keys := map[string]int64{}
+	for _, o := range all {
+		keys[o.Key] = o.Size
+	}
+	require.Equal(t, int64(3), keys["a.jpg"])
+	require.Equal(t, int64(2), keys["sub/b.jpg"])
+	require.False(t, all[0].LastModified.IsZero())
+
+	onlySub, err := ls.List(context.Background(), "sub")
+	require.NoError(t, err)
+	require.Len(t, onlySub, 1)
+	require.Equal(t, "sub/b.jpg", onlySub[0].Key)
+}
+
+func TestOSSStorageList(t *testing.T) {
+	s, pub, _ := newTestOSS(false)
+	pub.objects = []oss.ObjectProperties{
+		{Key: "instruments/a.jpg", Size: 10},
+		{Key: "batch/s1/x.jpg", Size: 20},
+	}
+	got, err := s.List(context.Background(), "")
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+	require.Equal(t, int64(10), got[0].Size)
+	require.Equal(t, "batch/s1/x.jpg", got[1].Key)
+}

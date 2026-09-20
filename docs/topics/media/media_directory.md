@@ -138,6 +138,7 @@ Cleanup is handled by `services/media_cleanup.go` scheduler which runs periodica
 - **敏感素材**：`face_captures/**` 经 `MediaStorage` 路由到**私有桶**（`OSS_PRIVATE_BUCKET`），仅签名 URL 可读（#1993）。
 - **URL 规则（`GetURL`）**：公开 → `{OSS_CDN_PREFIX}/<key>`（缺省 bucket 直连域）；**私有（`face_captures/`）→ 预签名 URL**（TTL `OSS_SIGNED_URL_TTL`，默认 900s）；本地模式 → `/uploads/media/<key>`。前端 `photoSrc` 对相对路径补 origin、绝对 URL 透传。
 - **历史相对 URL 兼容**：nginx `/uploads/media/` 未命中 302 到 OSS（`docs/deploy/nginx-uploads.conf`，无需改库）。
+- **GC / 孤儿清扫**：`gc-media`（`--gc-media`）经 `MediaStorage.List` 枚举（Local 遍历 / OSS `ListObjects`）+ `DeletePrefix` 删除，后端无关；`batch/{session}/` 暂存按对象 `LastModified` 判定 grace；`face_captures/` 合规豁免。
 - 回填历史数据见 `--migrate-media-oss`（`docs/topics/media/oss.md §5.1`）。
 
 ## Image Hierarchy

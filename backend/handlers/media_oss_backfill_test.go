@@ -6,10 +6,13 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"tuneloop-backend/services"
 )
 
 // fakeMediaStorage 内存实现 MediaStorage（#1914 P4 回填单测）。
@@ -39,6 +42,17 @@ func (f *fakeMediaStorage) Upload(_ context.Context, key string, r io.Reader, _ 
 	return nil
 }
 
+func (f *fakeMediaStorage) List(_ context.Context, prefix string) ([]services.MediaObject, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var out []services.MediaObject
+	for k, b := range f.objects {
+		if prefix == "" || strings.HasPrefix(k, prefix) {
+			out = append(out, services.MediaObject{Key: k, Size: int64(len(b))})
+		}
+	}
+	return out, nil
+}
 func (f *fakeMediaStorage) Stat(_ context.Context, key string) (int64, bool, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()

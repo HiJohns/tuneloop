@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,6 +24,16 @@ type MediaStorage interface {
 	// Stat returns the object size in bytes and whether it exists
 	// (#1914 P4: idempotent backfill size comparison).
 	Stat(ctx context.Context, key string) (int64, bool, error)
+	// List enumerates objects under prefix (empty = all), backend-agnostic
+	// (#1914 P6: gc-media orphan sweep over OSS).
+	List(ctx context.Context, prefix string) ([]MediaObject, error)
+}
+
+// MediaObject is a backend-agnostic listing entry (LocalStorage file or OSS object).
+type MediaObject struct {
+	Key          string
+	Size         int64
+	LastModified time.Time
 }
 
 type LocalStorage struct {
@@ -86,6 +97,37 @@ func (s *LocalStorage) Rename(ctx context.Context, srcKey string, dstKey string)
 
 func (s *LocalStorage) GetURL(ctx context.Context, key string) (string, error) {
 	return fmt.Sprintf("/uploads/media/%s", key), nil
+}
+
+// List walks the local media tree under prefix (empty = whole tree).
+func (s *LocalStorage) List(ctx context.Context, prefix string) ([]MediaObject, error) {
+	base := s.fullPath(prefix)
+	var out []MediaObject
+	err := filepath.Walk(base, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			if os.IsNotExist(err) {
+				return nil
+			}
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		rel, rerr := filepath.Rel(s.basePath, path)
+		if rerr != nil {
+			return rerr
+		}
+		out = append(out, MediaObject{
+			Key:          filepath.ToSlash(rel),
+			Size:         info.Size(),
+			LastModified: info.ModTime(),
+		})
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list %s: %w", prefix, err)
+	}
+	return out, nil
 }
 
 // Stat returns the file size and existence for a local storage key.

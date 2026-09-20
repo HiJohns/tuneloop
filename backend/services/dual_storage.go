@@ -125,6 +125,11 @@ func (s *DualStorage) Stat(ctx context.Context, key string) (int64, bool, error)
 	return s.primary.Stat(ctx, key)
 }
 
+// List delegates to the primary (OSS) side (authoritative read side).
+func (s *DualStorage) List(ctx context.Context, prefix string) ([]MediaObject, error) {
+	return s.primary.List(ctx, prefix)
+}
+
 func (s *DualStorage) Delete(ctx context.Context, key string) error {
 	return s.both(key, func(m MediaStorage) error { return m.Delete(ctx, key) })
 }
