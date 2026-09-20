@@ -46,6 +46,7 @@ var allTestModels = []interface{}{
 	&models.OrderStatusHistory{},
 	&models.PaymentSession{},
 	&models.OrderPaymentRecord{},
+	&models.OrderRefundRecord{},
 	&models.Property{},
 	&models.PropertyOption{},
 	&models.RepairRequest{},

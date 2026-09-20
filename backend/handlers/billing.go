@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/csv"
 	"log"
-	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -42,22 +41,22 @@ func GetBillingReport(c *gin.Context) {
 
 	// Build base query
 	baseQuery := db.Model(&struct{}{}).Table("orders").
-		Where("status NOT IN ?", []string{"reserved", "cancelled"})
+		Where("orders.status NOT IN ?", []string{"reserved", "cancelled"})
 
 	if startStr != "" {
 		if startTime, err := time.Parse("2006-01-02", startStr); err == nil {
-			baseQuery = baseQuery.Where("created_at >= ?", startTime)
+			baseQuery = baseQuery.Where("orders.created_at >= ?", startTime)
 		}
 	}
 	if endStr != "" {
 		if endTime, err := time.Parse("2006-01-02", endStr); err == nil {
-			baseQuery = baseQuery.Where("created_at < ?", endTime.Add(24*time.Hour))
+			baseQuery = baseQuery.Where("orders.created_at < ?", endTime.Add(24*time.Hour))
 		}
 	}
 
 	// Permission scoping
 	if businessRole == middleware.BusinessRoleMerchantAdmin {
-		baseQuery = baseQuery.Where("tenant_id = ?", tenantID)
+		baseQuery = baseQuery.Where("orders.tenant_id = ?", tenantID)
 	} else if businessRole != middleware.BusinessRoleSystemAdmin {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
 		return
@@ -69,11 +68,13 @@ func GetBillingReport(c *gin.Context) {
 
 	// Compute summary
 	var summary struct {
-		TotalCashPaid float64 `gorm:"column:total_cash"`
-		TotalPrepaid  float64 `gorm:"column:total_prepaid"`
-		TotalGift     float64 `gorm:"column:total_gift"`
+		TotalCashPaid models.Cents `gorm:"column:total_cash"`
+		TotalPrepaid  models.Cents `gorm:"column:total_prepaid"`
+		TotalGift     models.Cents `gorm:"column:total_gift"`
 	}
-	baseQuery.Select("COALESCE(SUM(cash_paid),0) as total_cash, COALESCE(SUM(prepaid_points_used),0) as total_prepaid, COALESCE(SUM(gift_points_used),0) as total_gift").
+	// ::bigint 必须保留：Postgres SUM(bigint) 返回 numeric，驱动以文本回传，
+	// 会被 models.Cents.Scan 当作「元」再 ×100（#1999 S1 分→元修复）。
+	baseQuery.Select("COALESCE(SUM(orders.cash_paid),0)::bigint as total_cash, COALESCE(SUM(orders.prepaid_points_used),0)::bigint as total_prepaid, COALESCE(SUM(orders.gift_points_used),0)::bigint as total_gift").
 		Scan(&summary)
 
 	// Compute refund total
@@ -93,21 +94,28 @@ func GetBillingReport(c *gin.Context) {
 	if businessRole == middleware.BusinessRoleMerchantAdmin {
 		refundQuery = refundQuery.Where("pr.tenant_id = ?", tenantID)
 	}
-	var totalRefund float64
-	refundQuery.Select("COALESCE(SUM(rr.amount),0)").Scan(&totalRefund)
+	var totalRefund models.Cents
+	refundQuery.Select("COALESCE(SUM(rr.amount),0)::bigint").Scan(&totalRefund)
 
-	// Fetch order list
+	// Fetch order list. 金额字段一律以 models.Cents（分）扫描，输出时经 Cents.ToYuan() 转元
+	// （#1999 S1 / #1757：DB 存分，导出/展示为元，两位小数）。
 	type OrderRow struct {
-		OrderID        string  `json:"order_id"`
-		CreatedAt      string  `json:"created_at"`
-		InstrumentName string  `json:"instrument_name"`
-		UserName       string  `json:"user_name"`
-		CashPaid       float64 `json:"cash_paid"`
-		PrepaidUsed    float64 `json:"prepaid_used"`
-		GiftUsed       float64 `json:"gift_used"`
-		RefundAmount   float64 `json:"refund_amount"`
-		Deposit        float64 `json:"deposit"`
-		Status         string  `json:"status"`
+		OrderID         string
+		OrderNo         string
+		OutTradeNo      *string
+		CreatedAt       string
+		InstrumentName  string
+		UserName        string
+		CashPaid        models.Cents
+		PrepaidUsed     models.Cents
+		GiftUsed        models.Cents
+		Deposit         models.Cents
+		ShippingFee     models.Cents
+		RenewalAmount   models.Cents
+		OverdueAmount   models.Cents
+		RefundAmount    models.Cents
+		DepositRefunded bool
+		Status          string
 	}
 
 	var rows []OrderRow
@@ -116,13 +124,27 @@ func GetBillingReport(c *gin.Context) {
 
 	listQuery := baseQuery.Select(`
 		orders.id as order_id,
+		orders.order_no,
+		(SELECT pr.out_trade_no FROM order_payment_records pr
+			WHERE pr.order_id = orders.id AND pr.type = 'payment'
+			ORDER BY pr.created_at DESC LIMIT 1) as out_trade_no,
 		orders.created_at,
-		COALESCE(instruments.sn, instruments.name, '') as instrument_name,
+		COALESCE(instruments.sn, '') as instrument_name,
 		COALESCE(users.name, '') as user_name,
 		orders.cash_paid,
 		orders.prepaid_points_used as prepaid_used,
 		orders.gift_points_used as gift_used,
 		orders.deposit,
+		orders.shipping_fee,
+		(SELECT COALESCE(SUM(pr.amount),0)::bigint FROM order_payment_records pr
+			WHERE pr.order_id = orders.id AND pr.order_type = 'renewal'
+				AND pr.type = 'payment' AND pr.status = 'paid') as renewal_amount,
+		(SELECT COALESCE(SUM(dr.overdue_fee),0)::bigint FROM damage_reports dr
+			WHERE dr.lease_id = orders.id) as overdue_amount,
+		(SELECT COALESCE(SUM(rr.amount),0)::bigint FROM order_refund_records rr
+			JOIN order_payment_records pr2 ON pr2.id = rr.payment_record_id
+			WHERE pr2.order_id = orders.id AND rr.status = 'refunded') as refund_amount,
+		orders.deposit_refunded,
 		orders.status`).
 		Joins("LEFT JOIN instruments ON instruments.id = orders.instrument_id").
 		Joins("LEFT JOIN users ON users.id = orders.user_id").
@@ -142,17 +164,38 @@ func GetBillingReport(c *gin.Context) {
 		c.Header("Content-Type", "text/csv")
 		c.Header("Content-Disposition", "attachment; filename=billing_report.csv")
 		writer := csv.NewWriter(c.Writer)
-		writer.Write([]string{"订单号", "时间", "用户", "乐器", "实付", "预付点抵扣", "赠点抵扣", "押金", "状态"})
+		writer.Write([]string{
+			"订单号", "订单ID", "微信支付单号", "时间", "用户", "乐器",
+			"实付", "预付点抵扣", "赠点抵扣", "押金", "物流费", "续费", "逾期费", "退款", "押金已退", "状态",
+		})
+		yuan := func(c models.Cents) string {
+			return strconv.FormatFloat(c.ToYuan(), 'f', 2, 64)
+		}
 		for _, r := range rows {
+			orderNo := r.OrderNo
+			if orderNo == "" {
+				orderNo = r.OrderID
+			}
+			outTradeNo := ""
+			if r.OutTradeNo != nil {
+				outTradeNo = *r.OutTradeNo
+			}
 			writer.Write([]string{
+				orderNo,
 				r.OrderID,
-				r.CreatedAt[:10],
+				outTradeNo,
+				firstN(r.CreatedAt, 10),
 				r.UserName,
 				r.InstrumentName,
-				strconv.FormatFloat(r.CashPaid, 'f', 2, 64),
-				strconv.FormatFloat(r.PrepaidUsed, 'f', 2, 64),
-				strconv.FormatFloat(r.GiftUsed, 'f', 2, 64),
-				strconv.FormatFloat(r.Deposit, 'f', 2, 64),
+				yuan(r.CashPaid),
+				yuan(r.PrepaidUsed),
+				yuan(r.GiftUsed),
+				yuan(r.Deposit),
+				yuan(r.ShippingFee),
+				yuan(r.RenewalAmount),
+				yuan(r.OverdueAmount),
+				yuan(r.RefundAmount),
+				strconv.FormatBool(r.DepositRefunded),
 				r.Status,
 			})
 		}
@@ -160,22 +203,56 @@ func GetBillingReport(c *gin.Context) {
 		return
 	}
 
+	jsonRows := make([]gin.H, 0, len(rows))
+	for _, r := range rows {
+		outTradeNo := ""
+		if r.OutTradeNo != nil {
+			outTradeNo = *r.OutTradeNo
+		}
+		jsonRows = append(jsonRows, gin.H{
+			"order_id":         r.OrderID,
+			"order_no":         r.OrderNo,
+			"out_trade_no":     outTradeNo,
+			"created_at":       r.CreatedAt,
+			"instrument_name":  r.InstrumentName,
+			"user_name":        r.UserName,
+			"cash_paid":        r.CashPaid.ToYuan(),
+			"prepaid_used":     r.PrepaidUsed.ToYuan(),
+			"gift_used":        r.GiftUsed.ToYuan(),
+			"deposit":          r.Deposit.ToYuan(),
+			"shipping_fee":     r.ShippingFee.ToYuan(),
+			"renewal_amount":   r.RenewalAmount.ToYuan(),
+			"overdue_amount":   r.OverdueAmount.ToYuan(),
+			"refund_amount":    r.RefundAmount.ToYuan(),
+			"deposit_refunded": r.DepositRefunded,
+			"status":           r.Status,
+		})
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
 			"summary": gin.H{
 				"total_orders":       total,
-				"total_cash_paid":    math.Round(summary.TotalCashPaid*100) / 100,
-				"total_prepaid_used": math.Round(summary.TotalPrepaid*100) / 100,
-				"total_gift_used":    math.Round(summary.TotalGift*100) / 100,
-				"total_refund":       math.Round(totalRefund*100) / 100,
+				"total_cash_paid":    summary.TotalCashPaid.ToYuan(),
+				"total_prepaid_used": summary.TotalPrepaid.ToYuan(),
+				"total_gift_used":    summary.TotalGift.ToYuan(),
+				"total_refund":       totalRefund.ToYuan(),
 			},
-			"list":      rows,
+			"list":      jsonRows,
 			"total":     total,
 			"page":      page,
 			"page_size": pageSize,
 		},
 	})
+}
+
+// firstN 返回 s 的前 n 个字符；s 短于 n 时原样返回（避免切片越界 panic）。
+func firstN(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n]
 }
 
 // GetSettlementConfig returns the settlement config for a merchant.

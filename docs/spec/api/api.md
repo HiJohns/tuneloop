@@ -4057,9 +4057,9 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 | start / end | `YYYY-MM-DD` | 创建时间范围（`end` 含当日） |
 | format | string | `csv` = 导出 CSV |
 
-**响应**（JSON）: `data.summary`（`total_orders` / `total_cash_paid` / `total_prepaid_used` / `total_gift_used` / `total_refund`）+ `data.list`（订单行：`order_id` / `created_at` / `user_name` / `instrument_name` / `cash_paid` / `prepaid_used` / `gift_used` / `deposit` / `status`）+ `total` / `page` / `page_size`。
+**响应**（JSON）: `data.summary`（`total_orders` / `total_cash_paid` / `total_prepaid_used` / `total_gift_used` / `total_refund`）+ `data.list`（订单行：`order_id` / `order_no` / `out_trade_no` / `created_at` / `user_name` / `instrument_name` / `cash_paid` / `prepaid_used` / `gift_used` / `deposit` / `shipping_fee` / `renewal_amount` / `overdue_amount` / `refund_amount` / `deposit_refunded` / `status`）+ `total` / `page` / `page_size`。
 
-> **单位**：`orders` 金额列为**分**（`models.Cents`，#1757）。本接口输出统一为**元**（两位小数）——见 #1999 S1（`Cents.ToYuan()`，CSV 与 summary 一致）。导出字段将对齐对账需求（订单号/业务单号/微信单号/物流费/退款/续费/逾期费等）。
+> **单位**（#1999 S1）：`orders` 等金额列 DB 存**分**（`models.Cents`，#1757），本接口 **JSON 与 CSV 统一输出元**（两位小数，经 `Cents.ToYuan()`）。聚合列 SQL 需 `::bigint`（Postgres `SUM(bigint)` 返回 numeric，否则被 `Cents.Scan` 误当元再 ×100）。CSV 列：订单号/订单ID/微信支付单号/时间/用户/乐器/实付/预付点抵扣/赠点抵扣/押金/物流费/续费/逾期费/退款/押金已退/状态。
 
 ---
 
