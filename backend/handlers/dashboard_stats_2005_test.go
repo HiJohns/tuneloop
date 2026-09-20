@@ -100,16 +100,27 @@ func TestDashboardStats_2005_MerchantScope(t *testing.T) {
 	tid := uuid.New().String()
 	otherTid := uuid.New().String()
 
+	// #2009 口径统一：租约指标取自 orders（in_lease / expired），不再用 lease_sessions
+	todayStr := time.Now().Format("2006-01-02")
 	seedScope := func(tenant string) {
 		require.NoError(t, db.Create(&models.Instrument{TenantID: tenant, OrgID: &tenant, SN: "A-" + uuid.New().String()[:8], StockStatus: "rented"}).Error)
 		require.NoError(t, db.Create(&models.Instrument{TenantID: tenant, OrgID: &tenant, SN: "B-" + uuid.New().String()[:8], StockStatus: "available"}).Error)
-		for _, ed := range []time.Time{time.Now(), time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 3)} {
-			require.NoError(t, db.Create(&models.LeaseSession{
-				TenantID: tenant, OrgID: &tenant,
-				OrderID: uuid.New().String(), UserID: uuid.New().String(), InstrumentID: uuid.New().String(),
-				StartDate: time.Now().AddDate(0, 0, -5), EndDate: ed, Status: "active",
+		// 3 条在租（今天/昨天/未来到期）+ 1 条逾期
+		for _, ed := range []string{todayStr, time.Now().AddDate(0, 0, -1).Format("2006-01-02"), time.Now().AddDate(0, 0, 3).Format("2006-01-02")} {
+			end := ed
+			require.NoError(t, db.Create(&models.Order{
+				TenantID: tenant, OrgID: tenant, UserID: uuid.New().String(), InstrumentID: uuid.New().String(),
+				Level: "standard", LeaseTerm: 1, MonthlyRent: models.FromYuan(100),
+				Status: models.OrderStatusInLease, EndDate: &end, CashPaid: models.FromYuan(100),
+				CreatedAt: time.Now().AddDate(0, 0, -10), UpdatedAt: time.Now(),
 			}).Error)
 		}
+		require.NoError(t, db.Create(&models.Order{
+			TenantID: tenant, OrgID: tenant, UserID: uuid.New().String(), InstrumentID: uuid.New().String(),
+			Level: "standard", LeaseTerm: 1, MonthlyRent: models.FromYuan(100),
+			Status: models.OrderStatusExpired, CreatedAt: time.Now().AddDate(0, 0, -10), UpdatedAt: time.Now(),
+		}).Error)
+		// 1 条今日完成（今日新订单 + 收入）
 		require.NoError(t, db.Create(&models.Order{
 			TenantID: tenant, OrgID: tenant, UserID: uuid.New().String(), InstrumentID: uuid.New().String(),
 			Level: "standard", LeaseTerm: 1, MonthlyRent: models.FromYuan(100),
@@ -125,9 +136,9 @@ func TestDashboardStats_2005_MerchantScope(t *testing.T) {
 	require.Equal(t, 2, asInt(t, data, "total_assets"))
 	require.Equal(t, 1, asInt(t, data, "rented_assets"))
 	require.Equal(t, 1, asInt(t, data, "available_assets"))
-	require.Equal(t, 3, asInt(t, data, "active_leases"))
-	require.Equal(t, 1, asInt(t, data, "expiring_today"))
-	require.Equal(t, 1, asInt(t, data, "overdue"))
+	require.Equal(t, 3, asInt(t, data, "active_leases"), "in_lease 订单")
+	require.Equal(t, 1, asInt(t, data, "expiring_today"), "in_lease 且 end_date=今天")
+	require.Equal(t, 1, asInt(t, data, "overdue"), "expired 订单")
 	require.Equal(t, 1, asInt(t, data, "new_orders_today"))
 }
 

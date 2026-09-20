@@ -159,7 +159,7 @@ function OpsDashboard({ data, role, navigate }) {
           </Card>
         </Col>
         <Col span={8}>
-          <Card style={{ cursor: 'pointer' }} onClick={() => navigate('/lease/ledger?filter=expiring')}>
+          <Card style={{ cursor: 'pointer' }} onClick={() => navigate(`/orders?status=in_lease&lease_end_date_eq=${new Date(Date.now() + 8 * 3600000).toISOString().split('T')[0]}`)}>
             <Statistic title="今日到期租约" value={data.expiring_today || 0} prefix={<ToolOutlined />} valueStyle={{ color: '#cf1322' }} />
           </Card>
         </Col>
@@ -180,7 +180,7 @@ function OpsDashboard({ data, role, navigate }) {
           </Card>
         </Col>
         <Col span={8}>
-          <Card style={{ cursor: 'pointer' }} onClick={() => navigate('/lease/ledger?filter=active')}>
+          <Card style={{ cursor: 'pointer' }} onClick={() => navigate('/orders?status=in_lease')}>
             <Statistic title="生效租约" value={data.active_leases || 0} prefix={<ShoppingOutlined />} valueStyle={{ color: '#52c41a' }} />
           </Card>
         </Col>

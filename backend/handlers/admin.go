@@ -125,17 +125,18 @@ func (h *DashboardHandler) GetDashboardStats(c *gin.Context) {
 		availableAssets := countInstruments("available")
 		maintenanceAssets := countInstruments("maintenance")
 
-		// 租约：以 lease_sessions 为准（#2005 S1 口径决策）
-		countLeases := func(extra string, args ...interface{}) int64 {
-			q := scope(db.Model(&models.LeaseSession{})).Where("status = ?", "active")
+		// 租约：以 orders 为准（#2005 口径统一=orders，与「逾期告警」#1966 一致）
+		//   生效租约 = status 'in_lease'；今日到期 = 'in_lease' 且 end_date=今天；逾期 = 'expired'
+		countOrdersByStatus := func(status string, extra string, args ...interface{}) int64 {
+			q := scope(db.Model(&models.Order{})).Where("status = ?", status)
 			if extra != "" {
 				q = q.Where(extra, args...)
 			}
 			return countQ(q)
 		}
-		activeLeases := countLeases("")
-		expiringToday := countLeases("end_date = ?", todayStr)
-		overdue := countLeases("end_date < ?", todayStr)
+		activeLeases := countOrdersByStatus(models.OrderStatusInLease, "")
+		expiringToday := countOrdersByStatus(models.OrderStatusInLease, "end_date = ?", todayStr)
+		overdue := countOrdersByStatus(models.OrderStatusExpired, "")
 
 		newOrdersToday := countQ(scope(db.Model(&models.Order{})).Where("created_at >= ?", todayStart))
 

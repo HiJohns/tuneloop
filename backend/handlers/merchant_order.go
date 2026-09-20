@@ -50,6 +50,10 @@ func ListMerchantOrders(c *gin.Context) {
 	if endDate := c.Query("end_date"); endDate != "" {
 		q = q.Where("orders.created_at < ?", endDate+" 23:59:59.999999")
 	}
+	// #2009: 租约到期日精确筛选（仪表盘「今日到期租约」联动；区别于上面的 created_at 范围）
+	if leaseEndDateEq := c.Query("lease_end_date_eq"); leaseEndDateEq != "" {
+		q = q.Where("orders.end_date = ?", leaseEndDateEq)
+	}
 
 	// Pagination
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))

@@ -4080,12 +4080,12 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 **经营支响应**（merchant_admin / site_admin / site_member）：
 `total_assets` / `rented_assets` / `available_assets` / `maintenance_assets`（`instruments.stock_status`）、
-`active_leases` / `expiring_today` / `overdue`（**租约源 = `lease_sessions`**：`status='active'`；`expiring_today`=`end_date=今天`；`overdue`=`end_date<今天`）、
+`active_leases` / `expiring_today` / `overdue`（**租约源 = `orders`（口径统一，与「逾期告警」#1966 一致）**：`active_leases`=`status='in_lease'`；`expiring_today`=`in_lease` 且 `end_date=今天`；`overdue`=`status='expired'`）、
 `new_orders_today`（`orders.created_at >= 今日 0 点`）、
 `status_distribution[]`（`{name,value}`，available/rented/maintenance）、
 `revenue_trend[]`（`{month:"YYYY-MM", revenue:元}`，近 6 个月 `orders.status='completed'` 的 `cash_paid` 汇总，分→元）。
 
-> **口径**：金额遵循 #1757（DB 存分，接口输出元）。租约指标以 `lease_sessions` 为准（`models.Lease`/`leases` 表为空属遗留）；`instruments.stock_status` 与租约数可能不同步，如实分别返回（数据一致性议题另议）。
+> **口径**：金额遵循 #1757（DB 存分，接口输出元）。**租约指标统一以 `orders` 为准**（与逾期告警页 #1966 同源）；`leases`（`models.Lease`）表仅 PC 手动台账、`lease_sessions` 存在陈旧/孤儿（见 #2005 口径裁决），均**不作为**仪表盘来源。资产以 `instruments.stock_status` 如实统计。
 
 ---
 

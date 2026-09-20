@@ -36,7 +36,9 @@ export default function OrderManagement() {
   const [loading, setLoading] = useState(true)
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
-  const [statusFilter, setStatusFilter] = useState('')
+  // #2009: 支持 /orders?status=&lease_end_date_eq= 预置（仪表盘「生效租约/今日到期」联动）
+  const [statusFilter, setStatusFilter] = useState(() => new URLSearchParams(window.location.search).get('status') || '')
+  const [leaseEndDateEq] = useState(() => new URLSearchParams(window.location.search).get('lease_end_date_eq') || '')
   const [snSearch, setSnSearch] = useState('')
   // #1971：支持 /orders?start_date=&end_date= 预置（仪表盘「今日新订单」联动）
   const [dateRange, setDateRange] = useState(() => {
@@ -57,6 +59,7 @@ export default function OrderManagement() {
     try {
       const params = { page, pageSize: 20 }
       if (statusFilter) params.status = statusFilter
+      if (leaseEndDateEq) params.lease_end_date_eq = leaseEndDateEq
       if (snSearch) params.sn = snSearch
       if (dateRange && dateRange[0] && dateRange[1]) {
         params.start_date = dateRange[0].format('YYYY-MM-DD')
