@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatCents } from '../utils/money'
 import { Table, Button, Input, Select, Space, Tag, Card, Modal, Form, InputNumber, message, Spin, Empty } from 'antd'
 import { PlusOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons'
 import { depositApi } from '../services/api'
@@ -112,7 +113,7 @@ export default function DepositFlow() {
       key: 'amount',
       width: 120,
       align: 'right',
-      render: (value) => `¥${(value || 0).toLocaleString()}`,
+      render: (value) => `¥${formatCents(value)}`,
     },
     {
       title: '类型',

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatCents } from '../utils/money'
 import { Table, Button, Input, Select, Space, Tag, Card, Modal, Form, InputNumber, message, Spin, Empty } from 'antd'
 import { PlusOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons'
 import { leaseApi } from '../services/api'
@@ -130,7 +131,7 @@ export default function LeaseLedger() {
       key: 'monthly_rent',
       width: 100,
       align: 'right',
-      render: (value) => `¥${(value || 0).toLocaleString()}`,
+      render: (value) => `¥${formatCents(value)}`,
     },
     {
       title: '押金',
@@ -138,7 +139,7 @@ export default function LeaseLedger() {
       key: 'deposit_amount',
       width: 100,
       align: 'right',
-      render: (value) => `¥${(value || 0).toLocaleString()}`,
+      render: (value) => `¥${formatCents(value)}`,
     },
     {
       title: '状态',

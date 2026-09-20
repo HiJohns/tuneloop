@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { formatCents, yuanToCents } from '../utils/money'
 import { Table, Tag, Button, Card, Typography, Space, Modal, Descriptions, message, Input, Select, InputNumber, Radio } from 'antd';
 import { EyeOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import { api } from '../services/api';
@@ -93,15 +94,16 @@ export default function AppealManagement() {
     }
   };
 
+  // 金额一律在「分」域比较（后端 order.deposit / damage_amount 为分；adjust_amount 输入为元）(#2000)
   const deposit = selected?.order?.deposit || 0;
   const damageAmount = selected?.damage_report?.damage_amount || 0;
-  const finalAmount = decision === 'adjust' ? (adjustAmount || 0) : (decision === 'confirm' ? damageAmount : 0);
+  const finalAmount = decision === 'adjust' ? yuanToCents(adjustAmount || 0) : (decision === 'confirm' ? damageAmount : 0);
 
   const getResultPreview = () => {
     if (decision === 'no_damage') return '订单关闭，押金全额退还';
-    if (finalAmount < deposit) return `押金退还 ¥${(deposit - finalAmount).toFixed(2)}`;
+    if (finalAmount < deposit) return `押金退还 ¥${formatCents(deposit - finalAmount)}`;
     if (finalAmount === deposit) return '押金全额扣除，订单关闭';
-    return `押金全额扣除 + 需补缴 ¥${(finalAmount - deposit).toFixed(2)}`;
+    return `押金全额扣除 + 需补缴 ¥${formatCents(finalAmount - deposit)}`;
   };
 
   const columns = [
@@ -245,7 +247,7 @@ export default function AppealManagement() {
                       {decisionOptions.find(d => d.value === selected.appeal.resolution)?.label || selected.appeal.resolution}
                     </Descriptions.Item>
                     <Descriptions.Item label="最终金额">
-                      {selected.appeal.final_amount != null ? `¥${selected.appeal.final_amount.toFixed(2)}` : '-'}
+                      {selected.appeal.final_amount != null ? `¥${formatCents(selected.appeal.final_amount)}` : '-'}
                     </Descriptions.Item>
                     <Descriptions.Item label="仲裁说明" span={2}>
                       {selected.appeal.manager_comment || '-'}
@@ -269,7 +271,7 @@ export default function AppealManagement() {
                   <Descriptions.Item label="用户">{selected.user_name || '-'}</Descriptions.Item>
                   <Descriptions.Item label="定损金额">
                     {selected.damage_report.damage_amount != null
-                      ? `¥${selected.damage_report.damage_amount.toFixed(2)}`
+                      ? `¥${formatCents(selected.damage_report.damage_amount)}`
                       : '-'}
                   </Descriptions.Item>
                   <Descriptions.Item label="定损描述" span={2}>
@@ -280,7 +282,7 @@ export default function AppealManagement() {
                   </Descriptions.Item>
                   <Descriptions.Item label="已扣押金">
                     {selected.damage_report.deposit_deducted > 0
-                      ? `¥${selected.damage_report.deposit_deducted.toFixed(2)}`
+                      ? `¥${formatCents(selected.damage_report.deposit_deducted)}`
                       : '-'}
                   </Descriptions.Item>
                 </Descriptions>
@@ -297,8 +299,8 @@ export default function AppealManagement() {
                   <Descriptions.Item label="订单状态">
                     <Tag>{selected.order.status}</Tag>
                   </Descriptions.Item>
-                  <Descriptions.Item label="押金">¥{selected.order.deposit?.toFixed(2)}</Descriptions.Item>
-                  <Descriptions.Item label="月租">¥{selected.order.monthly_rent?.toFixed(2)}</Descriptions.Item>
+                  <Descriptions.Item label="押金">¥{formatCents(selected.order.deposit)}</Descriptions.Item>
+                  <Descriptions.Item label="月租">¥{formatCents(selected.order.monthly_rent)}</Descriptions.Item>
                 </Descriptions>
               </Card>
             )}
@@ -318,8 +320,8 @@ export default function AppealManagement() {
                   {decision === 'adjust' && (
                     <div>
                       <div className="flex items-center gap-3 mb-2 text-sm text-gray-500">
-                        <span>当前定损: ¥{damageAmount?.toFixed(2)}</span>
-                        <span>押金: ¥{deposit?.toFixed(2)}</span>
+                        <span>当前定损: ¥{formatCents(damageAmount)}</span>
+                        <span>押金: ¥{formatCents(deposit)}</span>
                       </div>
                       <InputNumber
                         min={0}
