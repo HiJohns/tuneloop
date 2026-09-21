@@ -21,7 +21,6 @@ var allTables = []interface{}{
 	&models.SiteMember{},
 	&models.Instrument{},
 	&models.Order{},
-	&models.LeaseSession{},
 	&models.Notification{},
 	&models.UserAddress{},
 	&models.Merchant{},

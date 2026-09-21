@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tuneloop-backend/database"
-	"tuneloop-backend/models"
 )
 
 // #2010 S2: buildOrderDeliveryAddress 契约（字符串直存；对象 JSON 文本；空值 nil）
@@ -48,12 +47,7 @@ func TestGetOrder_DeliveryAddressFromOrders_2010S2(t *testing.T) {
 	require.NoError(t, db.Exec(`INSERT INTO orders (id, tenant_id, org_id, user_id, instrument_id, level, lease_term, monthly_rent, deposit, status, shipping_fee, delivery_address, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, 'standard', 1, 0, 100000, 'in_lease', 0, ?, now(), now())`,
 		orderID, tenantID, tenantID, userID, instID, addr).Error)
-	// 刻意不创建 lease_sessions 行：地址必须来自 orders.delivery_address
-	if db.Migrator().HasTable(&models.LeaseSession{}) {
-		var cnt int64
-		db.Table("lease_sessions").Where("order_id = ?", orderID).Count(&cnt)
-		require.Zero(t, cnt, "本用例不创建 lease_sessions 行（验证读源已切换）")
-	}
+	// #2010 S4: lease_sessions 已废弃；地址读自 orders.delivery_address
 
 	router := setupTestRouter(t, tenantID, userID)
 	router.GET("/orders/:id", GetOrder)

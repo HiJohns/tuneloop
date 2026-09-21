@@ -90,12 +90,12 @@ func TestDashboardStats_2005_Governance(t *testing.T) {
 	require.True(t, found, "recent_merchants 应包含新建商户")
 }
 
-// #2005 S1: merchant_admin 按 tenant_id 作用域；租约源 = lease_sessions
+// #2005 S1: merchant_admin 按 tenant_id 作用域；租约源 = orders（#2009 口径统一）
 func TestDashboardStats_2005_MerchantScope(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.Instrument{}, &models.LeaseSession{}, &models.Order{}))
+	require.NoError(t, db.AutoMigrate(&models.Instrument{}, &models.Order{}))
 
 	tid := uuid.New().String()
 	otherTid := uuid.New().String()

@@ -33,7 +33,6 @@ func TestIntegration_Scenario1_RentalClosedLoop(t *testing.T) {
 	// Setup tables for integration test
 	_ = db.Migrator().DropTable(&models.Instrument{})
 	_ = db.Migrator().DropTable(&models.Order{})
-	_ = db.Migrator().DropTable(&models.LeaseSession{})
 	_ = db.Migrator().DropTable(&models.ElectronicContract{})
 
 	_ = db.Migrator().DropTable(&models.Appeal{})
@@ -45,9 +44,6 @@ func TestIntegration_Scenario1_RentalClosedLoop(t *testing.T) {
 	}
 	if err := db.Migrator().CreateTable(&models.Order{}); err != nil {
 		t.Fatalf("failed to create orders table: %v", err)
-	}
-	if err := db.Migrator().CreateTable(&models.LeaseSession{}); err != nil {
-		t.Fatalf("failed to create lease_sessions table: %v", err)
 	}
 	if err := db.Migrator().CreateTable(&models.ElectronicContract{}); err != nil {
 		t.Fatalf("failed to create electronic_contracts table: %v", err)

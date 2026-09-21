@@ -34,7 +34,6 @@ func setupWeappStaffTables(t *testing.T) *gorm.DB {
 		&models.Settlement{},
 		&models.OrderPaymentRecord{},
 		&models.OrderRefundRecord{},
-		&models.LeaseSession{},
 		&models.SiteMember{},
 		&models.User{},
 		&models.Merchant{},

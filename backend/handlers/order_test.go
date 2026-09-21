@@ -470,7 +470,6 @@ func TestGuestCreateOrder_TenantDerivedFromInstrument(t *testing.T) {
 		gInstrumentID, gTenantID, gOrgID, now, now)
 
 	defer func() {
-		db.Exec(`DELETE FROM lease_sessions WHERE tenant_id = ?`, gTenantID)
 		db.Exec(`DELETE FROM orders WHERE tenant_id = ?`, gTenantID)
 		db.Exec(`DELETE FROM instruments WHERE id = ?`, gInstrumentID)
 		db.Exec(`DELETE FROM users WHERE id = ?`, gUserID)
@@ -580,7 +579,6 @@ func TestGuestBatchCreateOrder(t *testing.T) {
 		id2, gTenantID, gOrgID, now, now)
 
 	defer func() {
-		db.Exec(`DELETE FROM lease_sessions WHERE tenant_id = ?`, gTenantID)
 		db.Exec(`DELETE FROM orders WHERE tenant_id = ?`, gTenantID)
 		db.Exec(`DELETE FROM instruments WHERE id IN (?, ?)`, id1, id2)
 		db.Exec(`DELETE FROM users WHERE id = ?`, gUserID)

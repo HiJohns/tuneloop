@@ -35,7 +35,6 @@ var allTestModels = []interface{}{
 	&models.InventoryTransfer{},
 	&models.Settlement{},
 	&models.InvoiceApplication{},
-	&models.LeaseSession{},
 	&models.MaintenanceSession{},
 	&models.MaintenanceSessionRecord{},
 	&models.MaintenanceWorker{},

@@ -24,7 +24,7 @@ func NewDashboardHandler(db *gorm.DB) *DashboardHandler {
 //
 // 分层：system_admin/platform_staff → 平台治理指标；merchant_admin → 本商户经营指标
 // (tenant_id)；site_admin/site_member → 本网点经营指标 (org_id)。
-// 口径：资产=instruments.stock_status；租约=lease_sessions（真实租约源，Lease 表为空属遗留）；
+// 口径：资产=instruments.stock_status；租约=orders（status in_lease/expired，与 #1966 一致）；
 // 订单=orders（今日新订单；收入趋势=completed 的 cash_paid）。金额遵循 #1757 分契约输出元。
 func (h *DashboardHandler) GetDashboardStats(c *gin.Context) {
 	ctx := c.Request.Context()

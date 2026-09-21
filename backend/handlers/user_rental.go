@@ -42,13 +42,6 @@ func buildOrderDeliveryAddress(v interface{}) *string {
 	return &out
 }
 
-func strVal(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
-}
-
 func NewUserRentalHandler() *UserRentalHandler {
 	return &UserRentalHandler{}
 }
@@ -650,37 +643,6 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		}
 	}
 
-	// Create lease session
-	var deliveryAddressJSON string
-	if req.DeliveryAddress != nil {
-		if b, err := json.Marshal(req.DeliveryAddress); err == nil && string(b) != "\"\"" {
-			deliveryAddressJSON = string(b)
-		}
-	}
-	var deliveryAddrPtr *string
-	if deliveryAddressJSON != "" {
-		deliveryAddrPtr = &deliveryAddressJSON
-	}
-	leaseSession := models.LeaseSession{
-		ID:              uuid.New().String(),
-		TenantID:        effectiveTenantID,
-		OrgID:           stringPtr(effectiveOrgID),
-		OrderID:         order.ID,
-		UserID:          userID,
-		InstrumentID:    req.InstrumentID,
-		StartDate:       startDate,
-		EndDate:         endDate,
-		Status:          "active",
-		DeliveryAddress: deliveryAddrPtr,
-		CreatedAt:       time.Now(),
-		UpdatedAt:       time.Now(),
-	}
-	if err := tx.Create(&leaseSession).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create lease session"})
-		return
-	}
-
 	// Create electronic contract
 	contract := models.ElectronicContract{
 		ID:             uuid.New().String(),
@@ -717,7 +679,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		"order_id":    order.ID,
 		"amount":      totalAmount,
 		"deposit":     deposit,
-		"lease_id":    leaseSession.ID,
+		"lease_id":    order.ID, // #2010 S4: session 已废弃；lease_id 语义=order.ID
 		"contract_id": contract.ID,
 		"payment_url": "https://pay.example.com/" + order.ID,
 	}
@@ -732,7 +694,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 			Where("order_id = ? AND direction = ?", order.ID, models.ForwardingDirectionOutbound).
 			Count(&outboundCount)
 		if outboundCount == 0 {
-			createForwardingSession(c, dbCommitted, instrument.TenantID, strVal(leaseSession.OrgID), leaseSession.ID, order.ID, leaseSession.InstrumentID, models.ForwardingDirectionOutbound)
+			createForwardingSession(c, dbCommitted, instrument.TenantID, order.OrgID, order.ID, order.ID, order.InstrumentID, models.ForwardingDirectionOutbound)
 		}
 	}
 
@@ -882,18 +844,6 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		}
 	} else {
 		merchantConfigJSON = config.Config
-	}
-
-	// Serialize shared delivery address for all items
-	var deliveryAddressJSON string
-	if req.DeliveryAddress != nil {
-		if b, err := json.Marshal(req.DeliveryAddress); err == nil && string(b) != "\"\"" {
-			deliveryAddressJSON = string(b)
-		}
-	}
-	var deliveryAddrPtr *string
-	if deliveryAddressJSON != "" {
-		deliveryAddrPtr = &deliveryAddressJSON
 	}
 
 	// Process all orders in a single transaction
@@ -1088,27 +1038,6 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 					return
 				}
 			}
-		}
-
-		// Create lease session
-		leaseSession := models.LeaseSession{
-			ID:              uuid.New().String(),
-			TenantID:        effectiveTenantID,
-			OrgID:           stringPtr(effectiveOrgID),
-			OrderID:         order.ID,
-			UserID:          userID,
-			InstrumentID:    item.InstrumentID,
-			StartDate:       startDate,
-			EndDate:         endDate,
-			Status:          "active",
-			DeliveryAddress: deliveryAddrPtr,
-			CreatedAt:       time.Now(),
-			UpdatedAt:       time.Now(),
-		}
-		if err := tx.Create(&leaseSession).Error; err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create lease session for " + item.InstrumentID})
-			return
 		}
 
 		// Create electronic contract

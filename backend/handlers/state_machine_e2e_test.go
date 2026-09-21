@@ -30,10 +30,9 @@ func setupE2ETestEnv(t *testing.T) (*gin.Engine, string, string, string, string)
 	}
 	database.SetDB(db)
 
-	_ = db.Migrator().DropTable(&models.Instrument{}, &models.Order{}, &models.LeaseSession{}, &models.OrderStatusHistory{}, &models.Notification{}, &models.OrderPaymentRecord{}, &models.Settlement{}, &models.OrderRefundRecord{}, &models.PointsTransaction{}, &models.User{}, &models.DamageReport{}, &models.MembershipGiftRatio{})
+	_ = db.Migrator().DropTable(&models.Instrument{}, &models.Order{}, &models.OrderStatusHistory{}, &models.Notification{}, &models.OrderPaymentRecord{}, &models.Settlement{}, &models.OrderRefundRecord{}, &models.PointsTransaction{}, &models.User{}, &models.DamageReport{}, &models.MembershipGiftRatio{})
 	require.NoError(t, db.Migrator().CreateTable(&models.Instrument{}))
 	require.NoError(t, db.Migrator().CreateTable(&models.Order{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.LeaseSession{}))
 	require.NoError(t, db.Migrator().CreateTable(&models.OrderStatusHistory{}))
 
 	require.NoError(t, db.Migrator().CreateTable(&models.Notification{}))
@@ -102,15 +101,6 @@ func createTestOrder(t *testing.T, db *gorm.DB, tenantID, orgID, userID, instrum
 		Deposit:      models.FromYuan(500),
 	})
 
-	db.Create(&models.LeaseSession{
-		ID:           uuid.New().String(),
-		TenantID:     tenantID,
-		OrgID:        stringPtr(orgID),
-		OrderID:      orderID,
-		UserID:       userID,
-		InstrumentID: instrumentID,
-		Status:       models.LeaseStatusActive,
-	})
 	return orderID
 }
 
@@ -382,7 +372,7 @@ func TestInspectReturn_OverdueFee(t *testing.T) {
 		LeaseTerm:        20,
 		Status:           models.OrderStatusReturning,
 		Deposit:          models.FromYuan(500),
-		PricingBreakdown:  strPtr(`{"base_daily_rent":100000}`),
+		PricingBreakdown: strPtr(`{"base_daily_rent":100000}`),
 	}).Error)
 	require.NoError(t, db.Model(&models.Instrument{}).Where("id = ?", instrumentID).Update("pricing", pricing).Error)
 
@@ -442,7 +432,7 @@ func TestInspectReturn_NoOverdue(t *testing.T) {
 		LeaseTerm:        15,
 		Status:           models.OrderStatusReturning,
 		Deposit:          models.FromYuan(500),
-		PricingBreakdown:  strPtr(`{"base_daily_rent":100000}`),
+		PricingBreakdown: strPtr(`{"base_daily_rent":100000}`),
 	}).Error)
 
 	reqBody := map[string]interface{}{

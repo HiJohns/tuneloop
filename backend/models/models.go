@@ -818,25 +818,6 @@ type RepairRecord struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 
-// LeaseSession 租赁会话表
-type LeaseSession struct {
-	ID              string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID        string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrgID           *string    `gorm:"type:uuid;index" json:"org_id"`
-	OrderID         string     `gorm:"type:uuid;not null;index" json:"order_id"`
-	UserID          string     `gorm:"type:uuid;not null;index" json:"user_id"`
-	InstrumentID    string     `gorm:"type:uuid;not null" json:"instrument_id"`
-	StartDate       time.Time  `gorm:"type:date" json:"start_date"`
-	EndDate         time.Time  `gorm:"type:date" json:"end_date"`
-	ActualEndDate   *time.Time `gorm:"type:date" json:"actual_end_date,omitempty"`
-	Status          string     `gorm:"type:varchar(20);default:'active';index" json:"status"`
-	DeliveryAddress *string    `gorm:"type:jsonb" json:"delivery_address,omitempty"`
-	ReturnMethod    string     `gorm:"type:varchar(20)" json:"return_method"`
-	ReturnTracking  string     `gorm:"type:varchar(100)" json:"return_tracking"`
-	CreatedAt       time.Time  `json:"created_at"`
-	UpdatedAt       time.Time  `json:"updated_at"`
-}
-
 // ForwardingSession 转发会话表
 type ForwardingSession struct {
 	ID               string `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`

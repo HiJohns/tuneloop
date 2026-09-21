@@ -23,7 +23,6 @@ func setupUserRentalTables(t *testing.T, db *gorm.DB) error {
 	tables := []interface{}{
 		&models.Instrument{},
 		&models.Order{},
-		&models.LeaseSession{},
 		&models.ElectronicContract{},
 	}
 	for _, table := range tables {
