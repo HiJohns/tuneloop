@@ -11,6 +11,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 	"tuneloop-backend/services/wechatpay"
 
 	"github.com/gin-gonic/gin"
@@ -369,14 +370,13 @@ func PrepayOrder(c *gin.Context) {
 		// at registration) — the weapp Payment.jsx no longer sends open_id
 		// (#1678), so mini-program rent payments must resolve it server-side.
 		// PC keeps the Native (QR) fallback when no openid exists.
-		if req.OpenID == "" {
-			if userID != "" {
-				var localUser models.User
-				// middleware.GetUserID returns the IAM sub; the local cache
-				// links it via iam_sub, not id (prod incident 2026-08-18).
-				if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil && localUser.WxOpenid != "" {
-					req.OpenID = localUser.WxOpenid
-				}
+		// #2016 S2: openid 权威源 = beaconiam 绑定表（本地 users.wx_openid 缓存列已废弃）。
+		// middleware.GetUserID returns the IAM sub → 直接按 IAM sub 解析。
+		if req.OpenID == "" && userID != "" {
+			if oid, rErr := services.NewIAMClient().ResolveUserOpenid(userID); rErr != nil {
+				log.Printf("[PrepayOrder] resolve openid failed: user=%s err=%v", userID, rErr)
+			} else if oid != "" {
+				req.OpenID = oid
 			}
 		}
 		if req.OpenID == "" {
@@ -479,12 +479,13 @@ func PrepayOrder(c *gin.Context) {
 		// #1719: backfill openid from the local users cache — same as the
 		// rent/repair/damage branch (the weapp Payment.jsx no longer sends
 		// open_id per #1678), otherwise renewal payment fails with 400.
-		if req.OpenID == "" {
-			if userID != "" {
-				var localUser models.User
-				if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil && localUser.WxOpenid != "" {
-					req.OpenID = localUser.WxOpenid
-				}
+		// #2016 S2: openid 权威源 = beaconiam 绑定表（本地 users.wx_openid 缓存列已废弃）。
+		// middleware.GetUserID returns the IAM sub → 直接按 IAM sub 解析。
+		if req.OpenID == "" && userID != "" {
+			if oid, rErr := services.NewIAMClient().ResolveUserOpenid(userID); rErr != nil {
+				log.Printf("[PrepayOrder] resolve openid failed: user=%s err=%v", userID, rErr)
+			} else if oid != "" {
+				req.OpenID = oid
 			}
 		}
 		if req.OpenID == "" {

@@ -204,7 +204,6 @@ export default function UserManagement() {
         </Button>
       ),
     },
-    { title: '微信号', dataIndex: 'wx_openid', key: 'wx_openid', render: v => v ? <Text ellipsis style={{ maxWidth: 120 }}>{v}</Text> : '-' },
     { title: '电话', dataIndex: 'phone', key: 'phone', render: v => v || '-' },
     { title: '当前等级', dataIndex: 'level', key: 'level', render: v => v || '-' },
     { title: '当前乐币', dataIndex: 'points', key: 'points', render: v => v != null ? v / 100 : '-' },

@@ -316,11 +316,32 @@ func (r *recordingJSAPIClient) VerifyPaymentCallback(context.Context, []byte, st
 
 // TestPrepayRent_OpenIDBackfillFromLocalUser verifies #1684: rent prepay
 // without open_id backfills it from the local users cache (wx_openid) so the
-// weapp payment reaches the JSAPI branch (prepay_id) instead of silently
-// falling into the PC-only Native QR branch.
-func TestPrepayRent_OpenIDBackfillFromLocalUser(t *testing.T) {
+// TestPrepayRent_OpenIDResolvedFromBindings (#2016 S2, formerly
+// ..._OpenIDBackfillFromLocalUser): the JWT sub is the IAM user UUID
+// (differs from local users.id); prepay must resolve the openid server-side
+// from beaconiam wx_user_bindings (the local users.wx_openid cache column is
+// deprecated) so the weapp payment reaches the JSAPI branch instead of
+// silently falling into the PC-only Native QR branch (prod incident 2026-08-18).
+func TestPrepayRent_OpenIDResolvedFromBindings(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
+	_ = db
+
+	// Mock beaconiam: client token + internal openid resolution by IAM sub.
+	iamSub := "11111111-2222-4333-8444-555555555555"
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/auth/token", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"access_token": "mock-token", "expires_in": 3600, "token_type": "Bearer"})
+	})
+	mux.HandleFunc("/api/v1/internal/users/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		assert.Contains(t, r.URL.Path, iamSub, "resolution must use the IAM sub from the JWT")
+		_ = json.NewEncoder(w).Encode(map[string]string{"openid": "rent_openid_from_bindings_001"})
+	})
+	iamSrv := httptest.NewServer(mux)
+	defer iamSrv.Close()
+	services.SetIAMInternalURLForTesting(iamSrv.URL)
 
 	rec := &recordingJSAPIClient{}
 	wechatpay.ResetGlobalForTesting()
@@ -334,24 +355,7 @@ func TestPrepayRent_OpenIDBackfillFromLocalUser(t *testing.T) {
 		testfixtures.SetupWechatPayMock(t)
 	})
 
-	user := models.User{
-		ID:       uuid.New().String(),
-		IAMSub:   "11111111-2222-4333-8444-555555555555",
-		TenantID: "00000000-0000-0000-0000-000000000000",
-		OrgID:    "00000000-0000-0000-0000-000000000000",
-		Name:     "RentUser",
-		Phone:    "13800138001",
-		Role:     "USER",
-		Status:   "active",
-		WxOpenid: "rent_openid_from_local_001",
-	}
-	require.NoError(t, db.Create(&user).Error)
-
-	// Production shape: the JWT sub is the IAM user UUID (user.IAMSub), which
-	// differs from the local users.id. Inject the IAM sub so the backfill query
-	// must match via iam_sub (regression guard for the prod incident 2026-08-18
-	// where id= matched nothing and rent prepay fell back to Native QR).
-	customer := testutil.MakeCustomer("", user.IAMSub)
+	customer := testutil.MakeCustomer("", iamSub)
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
 		ctx := customer.InjectContext(c.Request.Context())
@@ -371,8 +375,8 @@ func TestPrepayRent_OpenIDBackfillFromLocalUser(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	require.Equal(t, http.StatusOK, w.Code, "prepay: %s", w.Body.String())
-	assert.Equal(t, "rent_openid_from_local_001", rec.lastParams.OpenID,
-		"openid must be backfilled from local users.wx_openid (#1684)")
+	assert.Equal(t, "rent_openid_from_bindings_001", rec.lastParams.OpenID,
+		"openid must be resolved from beaconiam wx_user_bindings (#2016 S2)")
 }
 
 // TestPrepayRent_WeappNoOpenID_Rejects guards the 2026-09-06 pre-prod

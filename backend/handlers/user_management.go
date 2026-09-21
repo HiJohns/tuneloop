@@ -53,8 +53,9 @@ func (h *UserManagementHandler) List(c *gin.Context) {
 	q := db.Model(&models.User{})
 	if search != "" {
 		like := "%" + search + "%"
-		q = q.Where("nickname ILIKE ? OR name ILIKE ? OR username ILIKE ? OR phone ILIKE ? OR wx_openid ILIKE ?",
-			like, like, like, like, like)
+		// #2016 S2: wx_openid 列已废弃（陈旧值），不再作为搜索条件
+		q = q.Where("nickname ILIKE ? OR name ILIKE ? OR username ILIKE ? OR phone ILIKE ?",
+			like, like, like, like)
 	}
 
 	var total int64
@@ -176,8 +177,9 @@ func (h *UserManagementHandler) Export(c *gin.Context) {
 	q := db.Model(&models.User{})
 	if search != "" {
 		like := "%" + search + "%"
-		q = q.Where("nickname ILIKE ? OR name ILIKE ? OR username ILIKE ? OR phone ILIKE ? OR wx_openid ILIKE ?",
-			like, like, like, like, like)
+		// #2016 S2: wx_openid 列已废弃（陈旧值），不再作为搜索条件
+		q = q.Where("nickname ILIKE ? OR name ILIKE ? OR username ILIKE ? OR phone ILIKE ?",
+			like, like, like, like)
 	}
 
 	var users []models.User
@@ -212,13 +214,12 @@ func (h *UserManagementHandler) Export(c *gin.Context) {
 
 	w := csv.NewWriter(c.Writer)
 	defer w.Flush()
-	w.Write([]string{"nickname", "username", "wx_openid", "phone", "level", "points", "registered_at", "last_active", "status"})
+	w.Write([]string{"nickname", "username", "phone", "level", "points", "registered_at", "last_active", "status"})
 	for _, u := range users {
 		s := userSummary(u, exportLevelNames, exportPoints[u.ID])
 		w.Write([]string{
 			fmt.Sprintf("%v", s["nickname"]),
 			fmt.Sprintf("%v", s["username"]),
-			fmt.Sprintf("%v", s["wx_openid"]),
 			fmt.Sprintf("%v", s["phone"]),
 			fmt.Sprintf("%v", s["level"]),
 			fmt.Sprintf("%v", s["points"]),
@@ -258,7 +259,6 @@ func userSummary(u models.User, levelNames map[int]string, points models.Cents) 
 		"id":                  u.ID,
 		"nickname":            u.Nickname,
 		"username":            u.Username,
-		"wx_openid":           u.WxOpenid,
 		"phone":               u.Phone,
 		"level":               levelName,
 		"membership_level_id": u.MembershipLevelID,
