@@ -369,6 +369,7 @@ var defaultMigrationArtifacts = []migrationArtifact{
 	{20260917010, "point_batch_consumptions", "", "批次扣减留痕表"},
 	{20260917011, "gift_policies", "referral_ratio", "裂变比例列"},
 	{20260917011, "gift_policies", "referral_reg_points", "邀请奖乐币列"},
+	{20260921001, "orders", "delivery_address", "收货地址列（并入 orders，#2010 S1）"},
 }
 
 // verifyArtifacts 纯逻辑（便于单测）：对 version ≥ a.Version 的工件断言存在。
