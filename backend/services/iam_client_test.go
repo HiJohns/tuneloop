@@ -233,3 +233,38 @@ func TestGetUserAuthState_UserNotFound_ReturnsSentinel(t *testing.T) {
 	require.Error(t, err)
 	require.ErrorIs(t, err, ErrUserNotFound, "404 must map to the ErrUserNotFound sentinel")
 }
+
+// #2016 S1: ResolveUserOpenid —— 绑定命中返回 openid；未绑定（404）返回空串且不报错。
+func TestResolveUserOpenid_BoundAndUnbound(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/auth/token", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"access_token": "mock-token",
+			"expires_in":   3600,
+			"token_type":   "Bearer",
+		})
+	})
+	mux.HandleFunc("/api/v1/internal/users/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if strings.HasSuffix(r.URL.Path, "/bound-user/wx-openid") {
+			_ = json.NewEncoder(w).Encode(map[string]string{"openid": "op-123"})
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "wx_binding_not_found"})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	SetIAMInternalURLForTesting(srv.URL)
+
+	client := NewIAMClientWithCredentials("test-ns", "test-secret")
+
+	openid, err := client.ResolveUserOpenid("bound-user")
+	require.NoError(t, err)
+	require.Equal(t, "op-123", openid)
+
+	empty, err := client.ResolveUserOpenid("unbound-user")
+	require.NoError(t, err, "404 must be treated as no-binding, not an error")
+	require.Equal(t, "", empty)
+}

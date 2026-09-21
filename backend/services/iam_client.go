@@ -396,15 +396,15 @@ type OrgRelation struct {
 
 // User represents an IAM user
 type User struct {
-	ID               string `json:"id"`
-	Name             string `json:"name"`
-	Username         string `json:"username"`
-	Email            string `json:"email"`
-	Phone            string `json:"phone"`
-	Status           string `json:"status"`
-	OrgID            string `json:"org_id"`
-	Role             string `json:"role"`
-	TokenVersion     int64  `json:"token_version"` // #1735: bumped on password change / deactivate — JWTs with iat before this are revoked
+	ID               string        `json:"id"`
+	Name             string        `json:"name"`
+	Username         string        `json:"username"`
+	Email            string        `json:"email"`
+	Phone            string        `json:"phone"`
+	Status           string        `json:"status"`
+	OrgID            string        `json:"org_id"`
+	Role             string        `json:"role"`
+	TokenVersion     int64         `json:"token_version"` // #1735: bumped on password change / deactivate — JWTs with iat before this are revoked
 	EmailSentAt      *time.Time    `json:"email_sent_at,omitempty"`
 	EmailConfirmedAt *time.Time    `json:"email_confirmed_at,omitempty"`
 	Organizations    []OrgRelation `json:"organizations,omitempty"`
@@ -931,6 +931,30 @@ func (c *IAMClient) CreateUserWithToken(token string, req *CreateUserRequest) (*
 
 	log.Printf("[IAMClient] Created user with user token: user_id=%s, status=%s", result.Data.UserID, result.Data.Status)
 	return &result.Data, nil
+}
+
+// ResolveUserOpenid 按用户解析其绑定的微信 openid（#2016 S1）。
+// 权威源为 beaconiam `wx_user_bindings`（替代已废弃的单值缓存列 users.wx_openid）。
+// identifier = beaconiam 用户 id（即 IAM sub）或 username/phone；未绑定返回 ("", nil)。
+func (c *IAMClient) ResolveUserOpenid(identifier string) (string, error) {
+	path := fmt.Sprintf("/api/v1/internal/users/%s/wx-openid", strings.TrimSpace(identifier))
+	respBody, statusCode, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return "", fmt.Errorf("ResolveUserOpenid request failed: %w", err)
+	}
+	if statusCode == http.StatusNotFound {
+		return "", nil // 该用户无微信绑定
+	}
+	if statusCode != http.StatusOK {
+		return "", fmt.Errorf("ResolveUserOpenid returned status %d: %s", statusCode, string(respBody))
+	}
+	var result struct {
+		Openid string `json:"openid"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return "", fmt.Errorf("failed to parse ResolveUserOpenid response: %w", err)
+	}
+	return result.Openid, nil
 }
 
 type UpdateUserRequest struct {
