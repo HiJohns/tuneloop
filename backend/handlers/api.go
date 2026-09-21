@@ -206,12 +206,9 @@ func GetInstrumentByID(c *gin.Context) {
 				instrumentMap["booker_phone"] = user.Phone
 				instrumentMap["booker_email"] = user.Email
 			}
-			// Try to get delivery address from lease_sessions
-			var leaseSession struct {
-				DeliveryAddress string
-			}
-			if err := db.Table("lease_sessions").Select("delivery_address").Where("order_id = ?", order.ID).First(&leaseSession).Error; err == nil {
-				instrumentMap["delivery_address"] = leaseSession.DeliveryAddress
+			// #2010 S2: 收货地址取自 orders.delivery_address
+			if order.DeliveryAddress != nil {
+				instrumentMap["delivery_address"] = *order.DeliveryAddress
 			}
 		}
 	}

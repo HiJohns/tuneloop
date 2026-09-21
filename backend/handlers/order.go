@@ -440,15 +440,10 @@ func GetOrder(c *gin.Context) {
 		}
 	}
 
-	// Fetch delivery address from lease_session (JSONB: string value stored
-	// with quotes — #>> '{}' unwraps it; plain text passes through)
+	// #2010 S2: 收货地址并入 orders.delivery_address（TEXT，创建时写入；PayOrder 可更新）
 	deliveryAddress := ""
-	var leaseSession struct{ DeliveryAddress string }
-	if err := db.Raw(`SELECT COALESCE(
-			CASE WHEN jsonb_typeof(delivery_address) = 'string' THEN delivery_address #>> '{}'
-			     ELSE delivery_address::text END, '') as delivery_address
-		FROM lease_sessions WHERE order_id = ? LIMIT 1`, orderID).Scan(&leaseSession).Error; err == nil {
-		deliveryAddress = leaseSession.DeliveryAddress
+	if order.DeliveryAddress != nil {
+		deliveryAddress = *order.DeliveryAddress
 	}
 
 	// Fetch instrument info
@@ -794,9 +789,9 @@ func PayOrder(c *gin.Context) {
 		return
 	}
 
-	// Update delivery_address if provided
+	// Update delivery_address if provided（#2010 S2: 写入 orders.delivery_address）
 	if req.DeliveryAddress != "" {
-		if err := db.Table("lease_sessions").Where("order_id = ?", orderID).Update("delivery_address", req.DeliveryAddress).Error; err != nil {
+		if err := db.Model(&models.Order{}).Where("id = ?", orderID).Update("delivery_address", req.DeliveryAddress).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"code":    50000,
 				"message": "failed to update delivery address: " + err.Error(),

@@ -226,6 +226,7 @@ type Order struct {
 	AccumulatedMonths    int    `gorm:"default:0" json:"accumulated_months"`
 	// #1965 业务订单号：`YL<YYYYMMDD>-<NNN>`（当日第 N 单），唯一索引
 	OrderNo                 string     `gorm:"type:varchar(24)" json:"order_no"` // #1981: uniqueness enforced by migration partial index (WHERE order_no IS NOT NULL AND order_no <> ''), not AutoMigrate
+	DeliveryAddress         *string    `gorm:"type:text" json:"delivery_address,omitempty"` // #2010 S2: 收货地址并入 orders（原 lease_sessions.delivery_address）
 	Status                  string     `gorm:"type:varchar(40);default:'reserved';index" json:"status"`
 	StartDate               *string    `gorm:"type:date" json:"start_date"`
 	EndDate                 *string    `gorm:"type:date" json:"end_date"`

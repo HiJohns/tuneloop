@@ -23,6 +23,26 @@ import (
 
 type UserRentalHandler struct{}
 
+// buildOrderDeliveryAddress 把下单请求的 delivery_address（interface{}）转为 orders.delivery_address
+// （TEXT）存储值：#2010 S2 —— 字符串直存原值；其他结构存紧凑 JSON 文本；空值返回 nil。
+func buildOrderDeliveryAddress(v interface{}) *string {
+	if v == nil {
+		return nil
+	}
+	if s, ok := v.(string); ok {
+		if s == "" {
+			return nil
+		}
+		return &s
+	}
+	b, err := json.Marshal(v)
+	if err != nil || string(b) == "null" || string(b) == "\"\"" {
+		return nil
+	}
+	out := string(b)
+	return &out
+}
+
 func strVal(s *string) string {
 	if s == nil {
 		return ""
@@ -466,6 +486,9 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	}
 
 	// Create order
+	// #2010 S2: 收货地址并入 orders（TEXT）——字符串直存原值，对象/结构存 JSON 文本，
+	// 与 GetOrder 原 lease_sessions 解包口径保真（string → 原值；object → JSON 文本）。
+	orderDeliveryAddress := buildOrderDeliveryAddress(req.DeliveryAddress)
 	startDateStr := req.StartDate
 	endDateStr := req.EndDate
 	order := models.Order{
@@ -481,6 +504,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		DepositWaived:        req.DepositWaived,
 		RecommendationLetter: req.RecommendationLetter,
 		ShippingFee:          models.FromYuan(shippingFee),
+		DeliveryAddress:      orderDeliveryAddress,
 		Status:               models.OrderStatusReserved, // Must pay via WeChat Pay before status becomes paid
 		StartDate:            &startDateStr,
 		EndDate:              &endDateStr,
@@ -994,6 +1018,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			DepositWaived:        req.DepositWaived,
 			RecommendationLetter: req.RecommendationLetter,
 			ShippingFee:          models.FromYuan(shippingFee),
+			DeliveryAddress:      buildOrderDeliveryAddress(req.DeliveryAddress), // #2010 S2
 			CashPaid:             models.FromYuan(orderAmount),
 			Status:               models.OrderStatusReserved,
 			StartDate:            &startDateStr,
