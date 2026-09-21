@@ -46,12 +46,10 @@ import PaymentList from './pages/admin/payments/PaymentList'
 import BillingDashboard from './pages/admin/billing/BillingDashboard'
 import WarehouseManagement from './pages/WarehouseManagement'
 import LogoutPage from './pages/LogoutPage'
-import UserRental from './pages/UserRental'
 import InstrumentListUser from './pages/InstrumentListUser'
 import InstrumentDetailUser from './pages/InstrumentDetailUser'
 import OrderPayment from './pages/OrderPayment'
 import ContractView from './pages/ContractView'
-import ReturnProcess from './pages/ReturnProcess'
 import CategoryList from './pages/admin/category/List'
 import CategoryForm from './pages/admin/category/Form'
 import InstrumentList from './pages/admin/instrument/List'
@@ -734,7 +732,6 @@ function onMenuClick(e) {
               <Route path="/merchant/invoices" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['order:read'] }}><InvoiceList /></ProtectedRoute>} />
               <Route path="/admin/payments" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read'] }}><PaymentList /></ProtectedRoute>} />
               <Route path="/admin/billing" element={<ProtectedRoute><BillingDashboard /></ProtectedRoute>} />
-             <Route path="/user/rentals" element={<ProtectedRoute><UserRental /></ProtectedRoute>} />
             <Route path="/user/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
             <Route path="/user/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
             <Route path="/instruments" element={<ProtectedRoute><InstrumentListUser /></ProtectedRoute>} />
@@ -742,7 +739,6 @@ function onMenuClick(e) {
             <Route path="/orders/:id/payment" element={<ProtectedRoute><OrderPayment /></ProtectedRoute>} />
             <Route path="/orders" element={<ProtectedRoute><OrderManagement /></ProtectedRoute>} />
             <Route path="/user/contracts/:id" element={<ProtectedRoute><ContractView /></ProtectedRoute>} />
-            <Route path="/user/rentals/:id/return" element={<ProtectedRoute><ReturnProcess /></ProtectedRoute>} />
           
             <Route path="/instruments/categories" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['category:manage'] }}><CategoryList /></ProtectedRoute>} />
             <Route path="/instruments/categories/:id" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />

@@ -39,7 +39,7 @@ export default function OrderPayment() {
         delivery_address: values.delivery_address
       })
       message.success('支付成功！')
-      navigate('/user/rentals')
+      navigate('/orders')
     } catch (error) {
       console.error('Payment failed:', error)
       message.error('支付失败')
