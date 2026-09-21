@@ -84,8 +84,6 @@ func TestIntegration_Scenario1_RentalClosedLoop(t *testing.T) {
 	router.GET("/api/user/instruments", userRentalHandler.ListInstruments)
 	router.GET("/api/user/instruments/:id", userRentalHandler.GetInstrument)
 	router.POST("/api/user/orders", userRentalHandler.CreateOrder)
-	router.GET("/api/user/rentals", userRentalHandler.ListRentals)
-	router.POST("/api/user/rentals/:id/return", userRentalHandler.ReturnRental)
 	router.GET("/api/user/contracts/:id", userRentalHandler.GetContract)
 	router.GET("/api/warehouse/orders", warehouseHandler.ListOrders)
 
@@ -129,21 +127,6 @@ func TestIntegration_Scenario1_RentalClosedLoop(t *testing.T) {
 	assert.NotEmpty(t, orderResponse.Data["order_id"])
 	assert.NotEmpty(t, orderResponse.Data["lease_id"])
 
-	// Step 4: List rentals - GET /api/user/rentals
-	req = httptest.NewRequest("GET", "/api/user/rentals", nil)
-	w = httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	var rentalsResponse struct {
-		Code int `json:"code"`
-		Data struct {
-			List []map[string]interface{} `json:"list"`
-		} `json:"data"`
-	}
-	err = json.Unmarshal(w.Body.Bytes(), &rentalsResponse)
-	require.NoError(t, err)
-	assert.Equal(t, 20000, rentalsResponse.Code)
-	assert.Greater(t, len(rentalsResponse.Data.List), 0)
 }
 
 // IntegrationTest04_Scenario2_WarehouseProcess tests warehouse workflow

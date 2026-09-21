@@ -285,10 +285,6 @@ func (h *InstrumentLossHandler) Register(c *gin.Context) {
 			if err := tx.Model(&models.Order{}).Where("id = ?", order.ID).Updates(updates).Error; err != nil {
 				return err
 			}
-			if err := tx.Model(&models.LeaseSession{}).Where("order_id = ?", order.ID).
-				Update("status", models.LeaseStatusCancelled).Error; err != nil {
-				return err
-			}
 			uid := order.UserID
 			if err := tx.Create(&models.OrderStatusHistory{
 				ID: uuid.New().String(), TenantID: order.TenantID, OrgID: &order.OrgID,

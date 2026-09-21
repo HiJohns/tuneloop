@@ -122,13 +122,6 @@ func TestInstrumentLoss_InLease_Settlement(t *testing.T) {
 	instID, orderID := mkLossInstrument(t, f, models.StockStatusRented, true,
 		models.OrderStatusInLease, start, end, 10, 5100)
 
-	// 会话
-	require.NoError(t, f.db.Create(&models.LeaseSession{
-		ID: uuid.New().String(), TenantID: f.tenantID, OrderID: orderID,
-		UserID: f.customerSub, InstrumentID: instID,
-		Status: models.LeaseStatusActive,
-	}).Error)
-
 	code, resp := lossPost(t, f, "/instruments/"+instID+"/lost", gin.H{
 		"description": "乐器丢失", "responsible_party": "user", "user_ratio": 100,
 		"compensation_cents": models.FromYuan(5000),
@@ -150,9 +143,6 @@ func TestInstrumentLoss_InLease_Settlement(t *testing.T) {
 	require.NoError(t, f.db.First(&order, "id = ?", orderID).Error)
 	assert.Equal(t, models.OrderStatusCancelled, order.Status)
 	assert.True(t, order.DepositRefunded, "结算已结清 → 押金口径处置完成")
-	var sess models.LeaseSession
-	require.NoError(t, f.db.Where("order_id = ?", orderID).First(&sess).Error)
-	assert.Equal(t, models.LeaseStatusCancelled, sess.Status)
 }
 
 // LS-03a 场景①：去程丢失（shipped，未签收）→ 租金 0，全退。

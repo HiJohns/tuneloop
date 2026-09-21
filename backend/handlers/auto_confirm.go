@@ -77,12 +77,6 @@ func (s *AutoConfirmService) process() {
 			ChangedAt:  now,
 		})
 
-		// Update LeaseSession start time
-		s.db.Model(&models.LeaseSession{}).Where("order_id = ?", order.ID).Updates(map[string]interface{}{
-			"start_date": now,
-			"status":     models.LeaseStatusActive,
-		})
-
 		log.Printf("[AutoConfirm] Auto-confirmed order %s (shipped -> in_lease)", order.ID)
 	}
 }

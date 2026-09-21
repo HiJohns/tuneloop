@@ -9,15 +9,15 @@ import (
 	"testing"
 	"time"
 
-	"tuneloop-backend/handlers/testfixtures"
-	"tuneloop-backend/testutil"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/testutil"
 )
 
 // setupRefundNotifyTables prepares the tables needed by the refund-receipt
@@ -565,7 +565,7 @@ func TestRequiredPhotos_Missing(t *testing.T) {
 
 	instrument := models.Instrument{
 		TenantID: tenantID, OrgID: &orgID,
-		SN: "PHOTO-REQ-" + time.Now().Format("150405"),
+		SN:            "PHOTO-REQ-" + time.Now().Format("150405"),
 		BaseDailyRate: models.ToCentsPtr(float64Ptr(100)),
 		StockStatus:   "rented",
 	}
@@ -578,7 +578,6 @@ func TestRequiredPhotos_Missing(t *testing.T) {
 	}
 	require.NoError(t, db.Create(&order).Error)
 
-	customer := testutil.MakeCustomer("", userID)
 	staff := testutil.MakeSiteMember(tenantID, orgID, userID)
 
 	// 1) ConfirmDelivery 无照片 → 400
@@ -596,26 +595,4 @@ func TestRequiredPhotos_Missing(t *testing.T) {
 	staffRouter.ServeHTTP(w, req)
 	require.Equal(t, http.StatusBadRequest, w.Code, "ConfirmDelivery without photos must 400")
 
-	// 2) ReturnRental 无照片 → 400
-	ls := models.LeaseSession{
-		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID: userID,
-		InstrumentID: instrument.ID, OrderID: order.ID, Status: "in_lease",
-		StartDate: time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC), EndDate: time.Date(2026, 8, 30, 0, 0, 0, 0, time.UTC),
-	}
-	require.NoError(t, db.Create(&ls).Error)
-	userRouter := gin.New()
-	userRouter.Use(func(c *gin.Context) {
-		ctx := customer.InjectContext(c.Request.Context())
-		c.Request = c.Request.WithContext(ctx)
-		c.Next()
-	})
-	userRouter.POST("/api/user/rentals/:id/return", (&UserRentalHandler{}).ReturnRental)
-	body2, _ := json.Marshal(map[string]interface{}{
-		"return_method": "express", "return_tracking": "SF123456",
-	})
-	req2 := httptest.NewRequest("POST", "/api/user/rentals/"+ls.ID+"/return", bytes.NewBuffer(body2))
-	req2.Header.Set("Content-Type", "application/json")
-	w2 := httptest.NewRecorder()
-	userRouter.ServeHTTP(w2, req2)
-	require.Equal(t, http.StatusBadRequest, w2.Code, "ReturnRental without photos must 400")
 }

@@ -700,13 +700,6 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		return
 	}
 
-	// Update LeaseSession to completed (good condition only)
-	if req.Condition == "good" {
-		if err := db.Model(&models.LeaseSession{}).Where("order_id = ?", orderID).Update("status", models.LeaseStatusCompleted).Error; err != nil {
-			log.Printf("[InspectReturn] Failed to update lease session: %v", err)
-		}
-	}
-
 	// Execute final settlement + refund (#1530): good condition completes
 	// the order, so compute actual rent and refund the difference.
 	notificationContent := ""
