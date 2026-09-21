@@ -169,15 +169,15 @@ func TestReportWechatShipping_OpenIDPriority(t *testing.T) {
 	tenantID := uuid.New().String()
 
 	cases := []struct {
-		name         string
-		recordOpenID string
-		cacheOpenID  string
-		want         string
+		name           string
+		recordOpenID   string
+		bindingsOpenID string
+		want           string
 	}{
-		// record.OpenID present → authoritative, cache ignored.
-		{"record openid wins over cache", "opjhZ3-record-openid", "opjhZ3-cache-openid", "opjhZ3-record-openid"},
-		// record.OpenID empty → fall back to users.wx_openid cache.
-		{"record empty falls back to cache", "", "opjhZ3-cache-openid", "opjhZ3-cache-openid"},
+		// record.OpenID present → authoritative, bindings not consulted.
+		{"record openid wins over bindings", "opjhZ3-record-openid", "opjhZ3-bindings-openid", "opjhZ3-record-openid"},
+		// record.OpenID empty → resolve from beaconiam wx_user_bindings (#2016 S3).
+		{"record empty resolves from bindings", "", "opjhZ3-bindings-openid", "opjhZ3-bindings-openid"},
 	}
 
 	for _, tc := range cases {
@@ -192,7 +192,6 @@ func TestReportWechatShipping_OpenIDPriority(t *testing.T) {
 
 			if err := db.Create(&models.User{
 				ID: userID, TenantID: tenantID, OrgID: tenantID, IAMSub: userID,
-				WxOpenid: tc.cacheOpenID,
 			}).Error; err != nil {
 				t.Fatalf("create user: %v", err)
 			}
@@ -231,6 +230,20 @@ func TestReportWechatShipping_OpenIDPriority(t *testing.T) {
 				w.Write([]byte(`{"errcode":0,"errmsg":"ok"}`))
 			}))
 			defer ts.Close()
+
+			// #2016 S3: openid resolution goes to beaconiam wx_user_bindings.
+			iamMux := http.NewServeMux()
+			iamMux.HandleFunc("/api/v1/auth/token", func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{"access_token": "mock-token", "expires_in": 3600, "token_type": "Bearer"})
+			})
+			iamMux.HandleFunc("/api/v1/internal/users/", func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(map[string]string{"openid": tc.bindingsOpenID})
+			})
+			iamSrv := httptest.NewServer(iamMux)
+			defer iamSrv.Close()
+			services.SetIAMInternalURLForTesting(iamSrv.URL)
 
 			services.SetWxAPIBaseURLForTesting(ts.URL)
 			defer services.SetWxAPIBaseURLForTesting("https://api.weixin.qq.com")

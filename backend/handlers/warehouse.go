@@ -991,20 +991,21 @@ func loadOverdueDailyRate(db *gorm.DB, instrumentID string, order models.Order) 
 	return math.Round(baseRate*1.5*100) / 100
 }
 
-// openidOfUser returns the customer's WeChat openid from the local users cache
-// (empty string when not a mini-program customer). Accepts either the local
-// users.id (order.UserID) or the IAM sub — tried in that order.
+// openidOfUser returns the customer's WeChat openid from the authoritative
+// beaconiam binding table (#2016 S3: the local users.wx_openid cache column is
+// deprecated). Accepts either the local users.id (order.UserID) or the IAM sub
+// — the local row is used only to map id → iam_sub. Returns "" when unbound.
 func openidOfUser(db *gorm.DB, userID string) string {
 	var u models.User
-	if err := db.Select("wx_openid").Where("id = ?", userID).First(&u).Error; err == nil {
-		if u.WxOpenid != "" {
-			return u.WxOpenid
-		}
+	if err := db.Select("iam_sub").Where("id = ? OR iam_sub = ?", userID, userID).First(&u).Error; err != nil || u.IAMSub == "" {
+		return ""
 	}
-	if err := db.Select("wx_openid").Where("iam_sub = ?", userID).First(&u).Error; err == nil {
-		return u.WxOpenid
+	oid, err := services.NewIAMClient().ResolveUserOpenid(u.IAMSub)
+	if err != nil {
+		log.Printf("[openidOfUser] resolve failed: user=%s err=%v", userID, err)
+		return ""
 	}
-	return ""
+	return oid
 }
 
 // reportWechatShipping reports physical-goods shipment to WeChat (#1693):

@@ -33,7 +33,7 @@ func TestRenewal_Confirm_OpenIDBackfilled(t *testing.T) {
 	orgID := "00000000-0000-0000-0000-00000000d103"
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
-		Username: "rn-openid-ok", WxOpenid: "mock-openid-123", Status: "active",
+		Username: "rn-openid-ok", Status: "active",
 	}).Error)
 
 	_, orderID := setupRenewalOrder(t, tenantID, userID, orgID, 0)

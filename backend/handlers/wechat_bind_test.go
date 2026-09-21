@@ -244,10 +244,7 @@ func TestConfirmBind_Success(t *testing.T) {
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	require.Equal(t, 20000, resp.Code)
 
-	// Local cache must now carry the real openid.
-	var updated models.User
-	require.NoError(t, db.First(&updated, "id = ?", user.ID).Error)
-	require.Equal(t, "oa7cSxREALOPENID", updated.WxOpenid)
+	// #2016 S3: 绑定落 beaconiam wx_user_bindings（本地 users.wx_openid 列已废弃）
 
 	// Token consumed: second confirm with same token must fail.
 	w = httptest.NewRecorder()

@@ -187,7 +187,7 @@ func TestConfirmDelivery_ThenRenewal_ChainsCorrectly(t *testing.T) {
 
 	require.NoError(t, database.GetDB().Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
-		Username: "dlv-renew", WxOpenid: "mock-openid-dlv", Status: "active",
+		Username: "dlv-renew", Status: "active",
 	}).Error)
 
 	pb := `{"base_daily_rent":1000,"rent_days":1,"pricing_tiers":[{"days_max":30,"daily_rate":1000,"discount_percent":0}]}`

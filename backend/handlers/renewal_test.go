@@ -184,7 +184,7 @@ func TestRenewal_CouponSnapshot(t *testing.T) {
 	// return 40002 未绑定微信).
 	require.NoError(t, database.GetDB().Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
-		Username: "rn-coupon", WxOpenid: "mock-openid-coupon", Status: "active",
+		Username: "rn-coupon", Status: "active",
 	}).Error)
 	_, orderID := setupRenewalOrder(t, tenantID, userID, orgID, 0)
 

@@ -411,7 +411,6 @@ func TestPrepayRent_WeappNoOpenID_Rejects(t *testing.T) {
 		Phone:    "13800138002",
 		Role:     "USER",
 		Status:   "active",
-		WxOpenid: "",
 	}
 	require.NoError(t, db.Create(&user).Error)
 
@@ -478,7 +477,6 @@ func TestPrepayRent_NoOpenID_PCNativeFallback(t *testing.T) {
 		Phone:    "13800138003",
 		Role:     "USER",
 		Status:   "active",
-		WxOpenid: "",
 	}
 	require.NoError(t, db.Create(&user).Error)
 
@@ -700,7 +698,6 @@ func TestPrepayRentWithCoupon_ENO(t *testing.T) {
 		Phone:    "13800138010",
 		Role:     "USER",
 		Status:   "active",
-		WxOpenid: "rent_eno_openid_001",
 	}
 	require.NoError(t, db.Create(&user).Error)
 

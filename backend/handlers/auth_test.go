@@ -465,7 +465,7 @@ func TestPostRegister_NoPassword_WxBind_FullFlow(t *testing.T) {
 	require.Equal(t, "USER", local.Role)
 	require.True(t, local.IsProfileCompleted, "registration collects all onboarding fields (#1597)")
 	require.True(t, local.OnboardingCompleted)
-	require.Equal(t, "openid-nopass-001", local.WxOpenid, "wx_code must bind the openid (#1597)")
+	// #2016 S3: openid 绑定落 beaconiam wx_user_bindings（本地缓存列已废弃）
 	require.NotEmpty(t, local.RefCode, "ref_code derived from user id")
 
 	// Registration gift points credited (#1533). #1757: cents (99 元 = 9900 分).

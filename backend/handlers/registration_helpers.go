@@ -117,7 +117,6 @@ func syncLocalUserAndRewards(db *gorm.DB, iamUserID, tenantID, orgID, openid str
 		Status:              "active",
 		IsProfileCompleted:  true,
 		OnboardingCompleted: true,
-		WxOpenid:            openid,
 	}
 	if err := db.Create(&newUser).Error; err != nil {
 		log.Printf("[register helper] failed to create local user for iam_sub %s: %v", iamUserID, err)
@@ -205,7 +204,6 @@ func activateReservedLocalUser(db *gorm.DB, session *models.RegistrationSession,
 	}
 	db.Model(&user).Updates(map[string]interface{}{
 		"status":               "active",
-		"wx_openid":            openid,
 		"onboarding_completed": true,
 		"updated_at":           time.Now(),
 	})

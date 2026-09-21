@@ -51,7 +51,6 @@ func TestPrepayCoupon_ENO_Permille10(t *testing.T) {
 		Name:     "ENOUser",
 		Role:     "USER",
 		Status:   "active",
-		WxOpenid: "eno_openid_001",
 	}
 	require.NoError(t, db.Create(&user).Error)
 
@@ -65,9 +64,9 @@ func TestPrepayCoupon_ENO_Permille10(t *testing.T) {
 	router.POST("/api/pay/prepay", PrepayOrder)
 
 	body, _ := json.Marshal(map[string]interface{}{
-		"order_type": "membership",
-		"amount":     99.0, // ¥99 = 9900 分
-		"open_id":    "eno-openid",
+		"order_type":  "membership",
+		"amount":      99.0, // ¥99 = 9900 分
+		"open_id":     "eno-openid",
 		"coupon_code": "ENO",
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/pay/prepay", bytes.NewReader(body))
@@ -116,7 +115,6 @@ func TestPrepayCoupon_InvalidPermille_40002(t *testing.T) {
 		Name:     "BadCouponUser",
 		Role:     "USER",
 		Status:   "active",
-		WxOpenid: "bad_openid_001",
 	}
 	require.NoError(t, db.Create(&user).Error)
 
@@ -130,9 +128,9 @@ func TestPrepayCoupon_InvalidPermille_40002(t *testing.T) {
 	router.POST("/api/pay/prepay", PrepayOrder)
 
 	body, _ := json.Marshal(map[string]interface{}{
-		"order_type": "membership",
-		"amount":     99.0,
-		"open_id":    "bad-openid",
+		"order_type":  "membership",
+		"amount":      99.0,
+		"open_id":     "bad-openid",
 		"coupon_code": "BADHI",
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/pay/prepay", bytes.NewReader(body))

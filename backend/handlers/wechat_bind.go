@@ -187,8 +187,7 @@ func (h *WechatBindHandler) ConfirmBind(c *gin.Context) {
 		return
 	}
 
-	// Update local user
-	db.Model(&models.User{}).Where("id = ?", userID).Update("wx_openid", req.WxOpenid)
+	// #2016 S3: 本地 users.wx_openid 缓存列已废弃（IAM 绑定表为唯一来源）
 
 	// Mark token as bound (triggers PC polling success)
 	bindTokensMu.Lock()
@@ -216,8 +215,7 @@ func (h *WechatBindHandler) Unbind(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "unbind failed: " + err.Error()})
 		return
 	}
-
-	db.Model(&user).Update("wx_openid", "")
+	// #2016 S3: 本地 users.wx_openid 缓存列已废弃（IAM 绑定表为唯一来源）
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "unbind success"})
 }
 

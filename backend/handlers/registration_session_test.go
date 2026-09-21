@@ -503,7 +503,6 @@ func TestPaymentCallback_RegistrationComplete(t *testing.T) {
 	var user models.User
 	require.NoError(t, db.Where("iam_sub = ?", reservedIAMSub).First(&user).Error, "callback completes the reserved user (#1688)")
 	assert.Equal(t, "13800139000", user.Phone)
-	assert.Equal(t, "openid-register-001", user.WxOpenid, "bound via exchange_token (IAM mock openid)")
 	assert.Equal(t, models.Cents(9900), pointsBalance(t, db, user.ID), "registration gift points in cents (#1757)")
 
 	var session models.RegistrationSession
@@ -597,7 +596,6 @@ func TestPaymentCallback_SessionFlow_RealCallback(t *testing.T) {
 	var user models.User
 	require.NoError(t, db.Where("iam_sub = ?", reservedIAMSub).First(&user).Error, "callback completes the reserved user (#1688)")
 	assert.Equal(t, "13800139000", user.Phone)
-	assert.Equal(t, "openid-register-001", user.WxOpenid, "bound via exchange_token (IAM mock openid)")
 
 	// Session completed.
 	var session models.RegistrationSession

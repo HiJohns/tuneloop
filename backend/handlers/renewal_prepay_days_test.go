@@ -56,7 +56,6 @@ func TestPrepayRenewal_BackfillsDaysFromConfirmRecord(t *testing.T) {
 		Name:     "RenewalPayer",
 		Role:     "USER",
 		Status:   "active",
-		WxOpenid: "renewal_openid_001",
 	}
 	require.NoError(t, db.Create(&user).Error)
 
@@ -141,7 +140,6 @@ func TestPrepayRenewal_NoConfirmRecord_Rejected(t *testing.T) {
 		Name:     "RenewalPayer",
 		Role:     "USER",
 		Status:   "active",
-		WxOpenid: "renewal_openid_002",
 	}
 	require.NoError(t, db.Create(&user).Error)
 

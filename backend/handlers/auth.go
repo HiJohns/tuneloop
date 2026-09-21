@@ -204,7 +204,6 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 				Name:     claims.Name,
 				Role:     "USER",
 				Status:   "active",
-				WxOpenid: tokenResp.WxOpenid,
 			}
 			if createErr := h.db.Create(&newUser).Error; createErr != nil {
 				log.Printf("[Auth] Failed to create local user for iam_sub %s: %v", claims.UserID, createErr)
@@ -362,9 +361,9 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 	// it (40163). wx_code is the fallback (H5 / expired token paths).
 	// #1637 red-line fix: a WxBind failure MUST abort with the error surfaced
 	// to the frontend — never log-and-continue (silent error swallowing).
-	var boundOpenid string
 	if req.ExchangeToken != "" || req.WxCode != "" {
-		bindResult, bindErr := h.iamService.WxBind(req.ExchangeToken, req.WxCode, createResp.UserID)
+		// #2016 S3: 绑定结果落 beaconiam wx_user_bindings（本地缓存列已废弃）
+		_, bindErr := h.iamService.WxBind(req.ExchangeToken, req.WxCode, createResp.UserID)
 		if bindErr != nil {
 			log.Printf("[Register] WxBind failed for user %s: %v", createResp.UserID, bindErr)
 			// Roll back the freshly created user so re-registration with the
@@ -379,7 +378,6 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 			})
 			return
 		}
-		boundOpenid = bindResult.WxOpenid
 	}
 
 	// Login to get JWT via password grant
@@ -417,7 +415,6 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 				Status:              "active",
 				IsProfileCompleted:  true,
 				OnboardingCompleted: true, // registration collects all onboarding fields (#1597)
-				WxOpenid:            boundOpenid,
 			}
 			if createErr := h.db.Create(&newUser).Error; createErr != nil {
 				log.Printf("[Register] Failed to create local user for iam_sub %s: %v", claims.UserID, createErr)
@@ -664,7 +661,6 @@ func (h *AuthHandler) WxLogin(c *gin.Context) {
 					Role:     "USER",
 					Status:   "active",
 					IsShadow: true,
-					WxOpenid: tokenResp.WxOpenid,
 				}
 				if err := h.db.Create(&localUser).Error; err != nil {
 					log.Printf("[WxLogin] Channel 3: failed to create local user %s: %v", claims.UserID, err)

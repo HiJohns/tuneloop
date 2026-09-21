@@ -53,7 +53,7 @@ func setupRenewalOrderZeroSnapshot(t *testing.T, tenantID, userID, orgID string)
 		StartDate:        &startDate,
 		EndDate:          &endDate,
 		LeaseTerm:        30,
-		MonthlyRent:      0,  // CV-08: monthly_rent=0
+		MonthlyRent:      0, // CV-08: monthly_rent=0
 		Status:           models.OrderStatusInLease,
 		PricingBreakdown: &pricingBreakdown,
 	}
@@ -120,7 +120,7 @@ func TestRenewal_Confirm_AmountCents(t *testing.T) {
 	orgID := "00000000-0000-0000-0000-00000000e203"
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
-		Username: "cv08-confirm", WxOpenid: "mock-openid-cv08", Status: "active",
+		Username: "cv08-confirm", Status: "active",
 	}).Error)
 
 	_, orderID := setupRenewalOrderZeroSnapshot(t, tenantID, userID, orgID)
