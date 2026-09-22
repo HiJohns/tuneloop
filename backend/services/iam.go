@@ -82,13 +82,25 @@ type TokenResponse struct {
 }
 
 // WxAccount is one account bound to a WeChat openid (beaconiam multi-binding).
+// WxContext is one selectable login context (#2027 S1, B1): type "org" or
+// "customer".
+type WxContext struct {
+	Type    string `json:"type"`
+	OrgID   string `json:"org_id,omitempty"`
+	OrgName string `json:"org_name,omitempty"`
+	Role    string `json:"role,omitempty"`
+	Label   string `json:"label"`
+}
+
 type WxAccount struct {
-	UserID   string `json:"user_id"`
-	Name     string `json:"name"`
-	Nickname string `json:"nickname"`
-	Role     string `json:"role"`
-	OrgID    string `json:"org_id"`
-	TenantID string `json:"tenant_id"`
+	UserID     string      `json:"user_id"`
+	Name       string      `json:"name"`
+	Nickname   string      `json:"nickname"`
+	Role       string      `json:"role"`
+	OrgID      string      `json:"org_id"`
+	TenantID   string      `json:"tenant_id"`
+	Contexts   []WxContext `json:"contexts"`
+	IsCustomer bool        `json:"is_customer"`
 }
 
 // WxAccountsResult is the response from IAM GET /api/v1/auth/wx-accounts.
@@ -461,6 +473,55 @@ func (s *IAMService) WxAccounts(code string) (*WxAccountsResult, error) {
 		return nil, fmt.Errorf("failed to parse wx-accounts response: %w", err)
 	}
 	return &result, nil
+}
+
+// WxSelectOutcome is the response from IAM POST /api/v1/auth/wx-login-select.
+// It either carries tokens (context resolved) or asks the client to choose a
+// context (needs_context_selection) — #2027 S1 (B1).
+type WxSelectOutcome struct {
+	NeedsContextSelection bool        `json:"needs_context_selection"`
+	UserID                string      `json:"user_id"`
+	Contexts              []WxContext `json:"contexts"`
+	AccessToken           string      `json:"access_token"`
+	RefreshToken          string      `json:"refresh_token"`
+	ExpiresIn             int         `json:"expires_in"`
+	TokenType             string      `json:"token_type"`
+	WxOpenID              string      `json:"wx_openid"`
+}
+
+// WxLoginSelectContext signs a token for a chosen login context (B1). context
+// is "customer" or an org id; empty means "use the default / ask me".
+func (s *IAMService) WxLoginSelectContext(exchangeToken, context string) (*WxSelectOutcome, error) {
+	payload := map[string]string{
+		"exchange_token": exchangeToken,
+		"client_id":      s.clientID,
+	}
+	if context != "" {
+		payload["context"] = context
+	}
+
+	jsonPayload, _ := json.Marshal(payload)
+	resp, err := s.httpClient.Post(
+		fmt.Sprintf("%s/api/v1/auth/wx-login-select", s.baseURL),
+		"application/json",
+		bytes.NewBuffer(jsonPayload),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call IAM wx-login-select endpoint: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("[IAM DEBUG] WxLoginSelectContext non-200 status=%d body=%s", resp.StatusCode, string(body))
+		return nil, newIAMAPIError(resp.StatusCode, body)
+	}
+
+	var out WxSelectOutcome
+	if err := json.Unmarshal(body, &out); err != nil {
+		return nil, fmt.Errorf("failed to parse wx-login-select response: %w", err)
+	}
+	return &out, nil
 }
 
 // WxLoginSelect logs in a specific user bound to the openid (multi-account

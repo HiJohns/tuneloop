@@ -744,9 +744,15 @@ func (h *AuthHandler) WxAccounts(c *gin.Context) {
 	}
 	log.Printf("[WxAccounts] openid=%s accounts=%d", result.OpenID, len(result.Accounts))
 
-	// is_customer: no org/tenant binding (tuneloop-side judgment, not from IAM)
+	// #2027 S1 (B1): contexts + is_customer come from IAM (customer is a role on
+	// the root-org member relation). Fall back to the org/tenant heuristic only
+	// when IAM did not supply them (older IAM builds).
 	accounts := make([]map[string]interface{}, 0, len(result.Accounts))
 	for _, a := range result.Accounts {
+		isCustomer := a.IsCustomer
+		if len(a.Contexts) == 0 {
+			isCustomer = a.OrgID == "" && a.TenantID == ""
+		}
 		acc := map[string]interface{}{
 			"user_id":     a.UserID,
 			"name":        a.Name,
@@ -754,9 +760,10 @@ func (h *AuthHandler) WxAccounts(c *gin.Context) {
 			"role":        a.Role,
 			"org_id":      a.OrgID,
 			"tenant_id":   a.TenantID,
-			"is_customer": a.OrgID == "" && a.TenantID == "",
+			"is_customer": isCustomer,
+			"contexts":    a.Contexts,
 		}
-		if !acc["is_customer"].(bool) {
+		if !isCustomer {
 			// Staff accounts: enrich with merchant/site display names so the
 			// account list can show 「商户名-网点名」 (docs/cases/account-select.md).
 			var merchantName, siteName string
@@ -803,17 +810,51 @@ func wxAuthErrorMessage(err error) (int, string) {
 	return http.StatusInternalServerError, "微信登录失败，请稍后重试"
 }
 
-// WxLoginSelect logs in a specific account chosen from the multi-account list.
+// WxLoginSelect signs in a chosen login identity (#2027 S1, B1).
+// New callers pass `context` ("customer" or an org id); legacy callers pass
+// `user_id` (multi-account selection). When the context is ambiguous the IAM
+// responds with needs_context_selection, which is passed through to the client.
 func (h *AuthHandler) WxLoginSelect(c *gin.Context) {
 	var req struct {
 		ExchangeToken string `json:"exchange_token" binding:"required"`
-		UserID        string `json:"user_id" binding:"required"`
+		UserID        string `json:"user_id"`
+		Context       string `json:"context"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
-			"message": "missing required parameters: exchange_token, user_id",
+			"message": "missing required parameter: exchange_token",
 		})
+		return
+	}
+	if req.UserID == "" && req.Context == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "user_id or context is required",
+		})
+		return
+	}
+
+	// Context-based selection (B1) takes precedence over legacy user_id.
+	if req.Context != "" {
+		outcome, err := h.iamService.WxLoginSelectContext(req.ExchangeToken, req.Context)
+		if err != nil {
+			status, msg := wxAuthErrorMessage(err)
+			c.JSON(status, gin.H{"code": 50000, "message": msg})
+			return
+		}
+		if outcome.NeedsContextSelection {
+			c.JSON(http.StatusOK, gin.H{
+				"code": 20000,
+				"data": gin.H{
+					"needs_context_selection": true,
+					"user_id":                 outcome.UserID,
+					"contexts":                outcome.Contexts,
+				},
+			})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": outcome})
 		return
 	}
 

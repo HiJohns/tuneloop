@@ -160,15 +160,30 @@ export async function resolveLogin(source = 'profile') {
     const result = await resp.json()
     if (result.code !== 20000 || !result.data) return false
     const { accounts = [], exchange_token } = result.data
-    const customers = accounts.filter(a => a.is_customer)
+    // #2027 S1 (B1): flatten to loginable contexts (org + customer). Falls back
+    // to account-level fields when IAM did not supply contexts (older builds).
+    const contexts = []
+    accounts.forEach(a => {
+      if (Array.isArray(a.contexts) && a.contexts.length > 0) {
+        a.contexts.forEach(ct => contexts.push({ ...ct, user_id: a.user_id }))
+      } else {
+        contexts.push({
+          type: a.is_customer ? 'customer' : 'org',
+          org_id: a.org_id || '',
+          label: a.is_customer ? '顾客' : (a.nickname || a.name || '员工'),
+          user_id: a.user_id,
+        })
+      }
+    })
+    const customerCtx = contexts.find(c => c.type === 'customer')
 
     if (source === 'checkout') {
-      if (customers.length > 0) {
-        // Direct login as the customer and return to the target page
+      if (customerCtx) {
+        // Direct login as the customer context and return to the target page
         const loginResp = await platformRequest(`${env.apiBaseUrl}/auth/wx-login-select`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ exchange_token, user_id: customers[0].user_id }),
+          body: JSON.stringify({ exchange_token, context: 'customer', user_id: customerCtx.user_id }),
         })
         const loginResult = await loginResp.json()
         if (loginResult.code === 20000 && storeLoginToken(loginResult.data)) {
@@ -191,7 +206,7 @@ export async function resolveLogin(source = 'profile') {
     }
 
     // source='profile'
-    if (accounts.length === 0) {
+    if (contexts.length === 0) {
       // Keep the exchange_token for the registration flow (#1644): the
       // WeChat code is single-use and consumed by wx-accounts above, so
       // wx-bind during register must use the exchange_token instead.
@@ -217,11 +232,16 @@ export async function resolveLogin(source = 'profile') {
       navigation.navigateTo('/pages-weapp/profile-complete/index')
       return false
     }
-    if (accounts.length === 1) {
+    if (contexts.length === 1) {
+      const only = contexts[0]
       const loginResp = await platformRequest(`${env.apiBaseUrl}/auth/wx-login-select`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ exchange_token, user_id: accounts[0].user_id }),
+        body: JSON.stringify({
+          exchange_token,
+          context: only.type === 'customer' ? 'customer' : only.org_id,
+          user_id: only.user_id,
+        }),
       })
       const loginResult = await loginResp.json()
       if (loginResult.code === 20000 && storeLoginToken(loginResult.data)) {

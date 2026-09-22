@@ -30,6 +30,32 @@ export default function AccountSelect() {
   // 用户名密码登录入口仅员工场景显示（#1639 审计 Bug 3）
   const hasStaff = accounts.some(a => !a.is_customer)
 
+  // #2027 S1 (B1): flatten to loginable contexts (org + customer). Legacy IAM
+  // responses without contexts fall back to one context per account.
+  const contextItems = []
+  accounts.forEach(a => {
+    if (Array.isArray(a.contexts) && a.contexts.length > 0) {
+      a.contexts.forEach((ct, i) => contextItems.push({
+        key: `${a.user_id}-${ct.type}-${ct.org_id || i}`,
+        user_id: a.user_id,
+        context: ct.type === 'customer' ? 'customer' : ct.org_id,
+        type: ct.type,
+        label: ct.label || (ct.type === 'customer' ? '顾客' : ct.org_name),
+        account: a,
+      }))
+    } else {
+      contextItems.push({
+        key: `${a.user_id}-legacy`,
+        user_id: a.user_id,
+        context: a.is_customer ? 'customer' : (a.org_id || ''),
+        type: a.is_customer ? 'customer' : 'org',
+        label: a.is_customer ? '顾客' : ([a.merchant_name, a.site_name].filter(Boolean).join('-') || a.nickname || a.name || '员工账户'),
+        account: a,
+      })
+    }
+  })
+  const greetingName = accounts[0]?.name || accounts[0]?.nickname || ''
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -53,14 +79,17 @@ export default function AccountSelect() {
     load()
   }, [])
 
-  const handleAccountLogin = async (acc) => {
-    setLoggingIn(acc.user_id)
+  const handleContextLogin = async (item) => {
+    setLoggingIn(item.key)
     try {
       const exchangeToken = session.getItem('wx_login_token') || ''
+      const body = { exchange_token: exchangeToken, context: item.context }
+      // Legacy multi-account IAM resolves by user_id; harmless when context is set.
+      if (item.user_id) body.user_id = item.user_id
       const res = await request(`${env.apiBaseUrl}/auth/wx-login-select`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ exchange_token: exchangeToken, user_id: acc.user_id }),
+        body: JSON.stringify(body),
       })
       const result = await res.json()
       if (result.code === 20000 && result.data?.access_token) {
@@ -133,27 +162,25 @@ export default function AccountSelect() {
 
   return (
     <View style={{ minHeight: '100vh', backgroundColor: '#fafafa', padding: 24, boxSizing: 'border-box' }}>
-      <Text style={{ fontSize: 20, fontWeight: '900', color: '#000', display: 'block', marginBottom: 4 }}>选择登录账户</Text>
-      <Text style={{ fontSize: 13, color: '#a1a1aa', display: 'block', marginBottom: 20 }}>该微信关联了 {accounts.length} 个账户</Text>
+      <Text style={{ fontSize: 20, fontWeight: '900', color: '#000', display: 'block', marginBottom: 4 }}>{greetingName ? `欢迎 ${greetingName}` : '选择登录身份'}</Text>
+      <Text style={{ fontSize: 13, color: '#a1a1aa', display: 'block', marginBottom: 20 }}>该微信关联了 {contextItems.length} 个身份</Text>
 
-      {accounts.map(acc => (
-        <View key={acc.user_id} onClick={() => !loggingIn && handleAccountLogin(acc)}
+      {contextItems.map(item => (
+        <View key={item.key} onClick={() => !loggingIn && handleContextLogin(item)}
           style={{ backgroundColor: '#fff', borderRadius: 12, padding: '14px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
           <View style={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
-            <View style={{ width: 36, height: 36, borderRadius: 999, backgroundColor: acc.is_customer ? '#FDEBD0' : '#E3EAF3', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 12, flexShrink: 0 }}>
-              <Text style={{ fontSize: 16 }}>{acc.is_customer ? '👤' : '💼'}</Text>
+            <View style={{ width: 36, height: 36, borderRadius: 999, backgroundColor: item.type === 'customer' ? '#FDEBD0' : '#E3EAF3', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 12, flexShrink: 0 }}>
+              <Text style={{ fontSize: 16 }}>{item.type === 'customer' ? '👤' : '💼'}</Text>
             </View>
             <View style={{ minWidth: 0 }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: '#18181b', display: 'block' }} numberOfLines={1}>{acc.nickname || acc.name || '未命名账户'}</Text>
-              {!acc.is_customer && (
-                <Text style={{ fontSize: 12, color: '#a1a1aa', display: 'block', marginTop: 2 }}>
-                  {[acc.merchant_name, acc.site_name].filter(Boolean).join('-') || '员工账户'}
-                </Text>
-              )}
+              <Text style={{ fontSize: 15, fontWeight: '700', color: '#18181b', display: 'block' }} numberOfLines={1}>{item.label}</Text>
+              <Text style={{ fontSize: 12, color: '#a1a1aa', display: 'block', marginTop: 2 }}>
+                {item.type === 'customer' ? '顾客身份' : '员工身份'}
+              </Text>
             </View>
           </View>
           <View style={{ backgroundColor: '#915F38', borderRadius: 999, padding: '6px 14px', flexShrink: 0 }}>
-            <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>{loggingIn === acc.user_id ? '登录中...' : '登录'}</Text>
+            <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>{loggingIn === item.key ? '登录中...' : '登录'}</Text>
           </View>
         </View>
       ))}
@@ -162,8 +189,8 @@ export default function AccountSelect() {
         <View onClick={goRegister}
           style={{ backgroundColor: '#fff', borderRadius: 12, padding: '14px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
           <View>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: '#18181b', display: 'block' }}>注册为会员</Text>
-            <Text style={{ fontSize: 12, color: '#a1a1aa', display: 'block', marginTop: 2 }}>使用微信注册新会员账户</Text>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: '#18181b', display: 'block' }}>注册为顾客</Text>
+            <Text style={{ fontSize: 12, color: '#a1a1aa', display: 'block', marginTop: 2 }}>使用微信注册顾客身份</Text>
           </View>
           <Text style={{ color: '#915F38', fontSize: 16 }}>›</Text>
         </View>
