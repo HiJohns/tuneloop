@@ -91,6 +91,13 @@ func activateReservedUser(iamService *services.IAMService, session *models.Regis
 		}
 		openid = bindResult.WxOpenid
 	}
+
+	// #2031 B（B1）: weapp 两阶段注册建户 = 顾客意图 → 授予 customer 零权限角色
+	// （附着于根组织 member 关系；无组织创建；tid 保持空）。失败显式返回，
+	// 不静默吞错（红线 #1637）。
+	if err := iamClient.GrantCustomerRole(userID); err != nil {
+		return "", "", fmt.Errorf("grant customer role for %s: %w", userID, err)
+	}
 	return userID, openid, nil
 }
 

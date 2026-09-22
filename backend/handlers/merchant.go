@@ -643,6 +643,39 @@ func (h *MerchantHandler) DeleteMerchant(c *gin.Context) {
 		return
 	}
 
+	// #2031 C（D4）：级联解除商户及其下属网点的成员 relation。
+	// 用户记录保留（可重新加回）；失败显式返回，不静默吞错。
+	iamClient := services.NewIAMClient()
+	unbind := func(userID, orgID string) error {
+		var u models.User
+		if err := db.Where("id = ?", userID).First(&u).Error; err != nil || u.IAMSub == "" {
+			return nil // 无 IAM 映射：仅清理本地 relation
+		}
+		return iamClient.UnbindUserFromOrganization(u.IAMSub, orgID, u.IAMSub)
+	}
+	var merchantMembers []models.MerchantMember
+	db.Where("tenant_id = ?", tenantID).Find(&merchantMembers)
+	for _, m := range merchantMembers {
+		if err := unbind(m.UserID, merchant.OrgID); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "级联解除商户成员失败：" + err.Error()})
+			return
+		}
+	}
+	var siteMembers []models.SiteMember
+	db.Where("tenant_id = ?", tenantID).Find(&siteMembers)
+	for _, m := range siteMembers {
+		var site models.Site
+		if err := db.Where("id = ?", m.SiteID).First(&site).Error; err != nil || site.OrgID == "" {
+			continue
+		}
+		if err := unbind(m.UserID, site.OrgID); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "级联解除网点成员失败：" + err.Error()})
+			return
+		}
+	}
+	db.Where("tenant_id = ?", tenantID).Delete(&models.MerchantMember{})
+	db.Where("tenant_id = ?", tenantID).Delete(&models.SiteMember{})
+
 	// Soft delete by setting status to inactive
 	merchant.Status = "inactive"
 	result = db.Save(&merchant)
