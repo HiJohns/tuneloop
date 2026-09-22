@@ -19,6 +19,11 @@ import (
 	"gorm.io/gorm"
 )
 
+// errAlreadyRegistered is returned when adding a member whose phone/email
+// already belongs to an account. #2025 D2 / #2028 Step 2（一人一号）：不允许
+// 管理员把该身份挂接到既有账户（防误绑），改由本人登录后自助加入。
+const errAlreadyRegistered = "该手机号/邮箱已在本平台注册，不能由管理员直接添加；请让本人登录后自助加入（作为员工加入 / 注册为顾客）"
+
 type addMemberUser struct {
 	Username string `json:"username"`
 	Name     string `json:"name"`
@@ -101,36 +106,13 @@ func addMembersCore(c *gin.Context, db *gorm.DB, site models.Site, tenantID, sit
 			if err != nil {
 				var conflictErr *services.UsernameConflictError
 				if errors.As(err, &conflictErr) {
-					var memberCount int64
-					db.Model(&models.SiteMember{}).
-						Where("user_id = ? AND tenant_id = ?", conflictErr.UserID, tenantID).
-						Count(&memberCount)
-
-					type siteInfo struct {
-						SiteName string `json:"site_name"`
-						Role     string `json:"role"`
-					}
-					var sites []siteInfo
-					db.Table("site_members").
-						Select("sites.name AS site_name, site_members.role").
-						Joins("JOIN sites ON sites.id = site_members.site_id").
-						Where("site_members.user_id = ? AND site_members.tenant_id = ?", conflictErr.UserID, tenantID).
-						Scan(&sites)
-
+					// #2025 D2 / #2028 Step 2（一人一号）：该手机号/邮箱已有账户。
+					// 不允许管理员从冲突清单里挑一个既有用户代为挂接（误绑风险），
+					// 也不做静默复用。由本人登录后自助加入（作为员工加入 / 注册为顾客）。
 					return res, &addMemberFail{http.StatusConflict, gin.H{
-						"code": 40901,
-						"data": gin.H{
-							"conflicts": []gin.H{{
-								"user_id":       conflictErr.UserID,
-								"name":          conflictErr.Name,
-								"email":         conflictErr.Email,
-								"phone":         conflictErr.Phone,
-								"username":      conflictErr.Username,
-								"same_merchant": memberCount > 0,
-								"orgs":          sites,
-								"error":         conflictErr.Error(),
-							}},
-						},
+						"code":    40902,
+						"message": errAlreadyRegistered,
+						"data":    gin.H{"registered": true},
 					}}
 				}
 				log.Printf("[AddMember] Failed to create user %s: %v", nu.Email, err)
@@ -142,52 +124,13 @@ func addMembersCore(c *gin.Context, db *gorm.DB, site models.Site, tenantID, sit
 			}
 
 			if userResult.Conflict {
-				log.Printf("[AddMember] User already exists in IAM: %s, proceeding with binding", userResult.UserID)
-
-				var existingLocal models.User
-				if err := db.Where("iam_sub = ?", userResult.UserID).First(&existingLocal).Error; err != nil {
-					existingUser := userResult.ExistingUsers[0]
-					localUser := models.User{
-						ID:       userResult.UserID,
-						IAMSub:   userResult.UserID,
-						TenantID: tenantID,
-						OrgID:    site.OrgID,
-						Name:     existingUser.Name,
-						Email:    existingUser.Email,
-						Phone:    nu.Phone,
-						Role:     "site_member",
-						Status:   "active",
-					}
-					if err := db.Create(&localUser).Error; err != nil {
-						log.Printf("[AddMember] Failed to create local user for existing IAM user %s: %v", userResult.UserID, err)
-					}
-				} else {
-					existingUser := userResult.ExistingUsers[0]
-					updates := map[string]interface{}{
-						"deleted_at": nil,
-						"name":       existingUser.Name,
-						"email":      existingUser.Email,
-						"status":     "active",
-					}
-					if existingLocal.Phone == "" {
-						updates["phone"] = nu.Phone
-					}
-					if err := db.Model(&models.User{}).
-						Where("id = ? AND tenant_id = ?", existingLocal.ID, tenantID).
-						Updates(updates).Error; err != nil {
-						log.Printf("[AddMember] Failed to restore local user cache %s: %v", existingLocal.ID, err)
-					}
-				}
-
-				role := nu.Role
-				if role == "" {
-					role = "site_member"
-				}
-				usersToProcess = append(usersToProcess, map[string]interface{}{
-					"user_id": userResult.UserID,
-					"role":    role,
-				})
-				continue
+				// #2025 D2 / #2028 Step 2：既有账户不得由管理员挂接（一人一号）。
+				// 原实现会直接用冲突用户 + 绑定本地缓存，属「管理员代挂」，已移除。
+				return res, &addMemberFail{http.StatusConflict, gin.H{
+					"code":    40902,
+					"message": errAlreadyRegistered,
+					"data":    gin.H{"registered": true},
+				}}
 			}
 
 			if input.SkipActivation && createReq.Password != "" {

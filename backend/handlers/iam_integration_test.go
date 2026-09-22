@@ -723,7 +723,7 @@ func queryIAMUserOrgRelation(userID, orgID string) (*dualRoleResult, error) {
 	return &dualRoleResult{Role: fields[0], FunctionalRoles: fields[1]}, nil
 }
 
-func TestAddMember_UsernameConflictWithDifferentEmail_Returns409(t *testing.T) {
+func TestAddMember_ExistingAccount_Returns40902_NoAttach(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
@@ -777,37 +777,24 @@ func TestAddMember_UsernameConflictWithDifferentEmail_Returns409(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	require.Equal(t, http.StatusConflict, w.Code, "username conflict with different email must return 409")
+	require.Equal(t, http.StatusConflict, w.Code, "identifier already registered must return 409")
 	var resp struct {
-		Code int `json:"code"`
-		Data struct {
-			Conflicts []struct {
-				UserID       string `json:"user_id"`
-				Name         string `json:"name"`
-				Email        string `json:"email"`
-				Phone        string `json:"phone"`
-				Username     string `json:"username"`
-				SameMerchant bool   `json:"same_merchant"`
-				Orgs         []struct {
-					SiteName string `json:"site_name"`
-					Role     string `json:"role"`
-				} `json:"orgs"`
-			} `json:"conflicts"`
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+		Data    struct {
+			Registered bool `json:"registered"`
 		} `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	require.Equal(t, 40901, resp.Code)
-	require.Len(t, resp.Data.Conflicts, 1)
-	c := resp.Data.Conflicts[0]
-	require.Equal(t, "u-lisi-1", c.UserID)
-	require.Equal(t, "李四", c.Name)
-	require.Equal(t, "nanjing_head@tuneloop.com", c.Email)
-	require.Equal(t, "lisi", c.Username)
-	require.False(t, c.SameMerchant, "user has no site membership in this tenant")
-	require.Empty(t, c.Orgs)
+	// #2028 Step 2（一人一号）：不允许管理员挂接既有账户，返回明确指引；
+	// 不再返回可挂接的 conflicts 清单。
+	require.Equal(t, 40902, resp.Code)
+	require.True(t, resp.Data.Registered)
+	require.NotEmpty(t, resp.Message)
+	require.NotContains(t, w.Body.String(), "conflicts")
 }
 
-func TestAddMember_UsernameConflict_SameMerchant_ReturnsOrgs(t *testing.T) {
+func TestAddMember_ExistingAccount_SameMerchant_Returns40902_NoAttach(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
@@ -878,27 +865,17 @@ func TestAddMember_UsernameConflict_SameMerchant_ReturnsOrgs(t *testing.T) {
 
 	require.Equal(t, http.StatusConflict, w.Code)
 	var resp struct {
-		Code int `json:"code"`
-		Data struct {
-			Conflicts []struct {
-				UserID       string `json:"user_id"`
-				Phone        string `json:"phone"`
-				SameMerchant bool   `json:"same_merchant"`
-				Orgs         []struct {
-					SiteName string `json:"site_name"`
-					Role     string `json:"role"`
-				} `json:"orgs"`
-			} `json:"conflicts"`
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+		Data    struct {
+			Registered bool `json:"registered"`
 		} `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	require.Equal(t, 40901, resp.Code)
-	require.Len(t, resp.Data.Conflicts, 1)
-	c := resp.Data.Conflicts[0]
-	require.Equal(t, "6e493294-a257-47c2-8dd1-39999d9493cc", c.UserID)
-	require.Equal(t, "342989", c.Phone)
-	require.True(t, c.SameMerchant, "user is a member of another site in this tenant")
-	require.Len(t, c.Orgs, 1)
-	require.Equal(t, "测试商户", c.Orgs[0].SiteName)
-	require.Equal(t, "site_member", c.Orgs[0].Role)
+	// #2028 Step 2：同商户已有成员身份也不例外——不走管理员挂接，
+	// 由本人自助加入（一人一号）。
+	require.Equal(t, 40902, resp.Code)
+	require.True(t, resp.Data.Registered)
+	require.NotEmpty(t, resp.Message)
+	require.NotContains(t, w.Body.String(), "conflicts")
 }
