@@ -215,7 +215,7 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	if len(conflicts) > 0 {
 		c.JSON(http.StatusConflict, gin.H{
 			"code":    40900,
-			"message": "user with same phone, email, or username already exists",
+			"message": "该手机号/邮箱/用户名已在本平台注册，不能由管理员直接添加；请让本人登录后自助加入（作为员工加入 / 注册为顾客）",
 			"data":    conflicts,
 		})
 		return
@@ -568,7 +568,7 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 	if len(conflicts) > 0 {
 		c.JSON(http.StatusConflict, gin.H{
 			"code":    40900,
-			"message": "user with same phone, email, or username already exists",
+			"message": "该手机号/邮箱/用户名已在本平台注册，不能由管理员直接添加；请让本人登录后自助加入（作为员工加入 / 注册为顾客）",
 			"data":    conflicts,
 		})
 		return

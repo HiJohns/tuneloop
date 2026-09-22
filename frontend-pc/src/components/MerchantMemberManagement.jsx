@@ -179,6 +179,12 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
           if (data.role_errors?.length > 0) {
             message.warning('用户创建成功，但部分角色权限分配失败。');
           }
+        } else if (response.code === 40902) {
+          // #2031：既有账户不允许管理员挂接（一人一号）→ 引导本人自助加入
+          Modal.info({
+            title: '该手机号/邮箱已注册',
+            content: response.message || '该手机号/邮箱已在本平台注册，请让本人登录后自助加入（作为员工加入 / 注册为顾客）。',
+          });
         } else if (response.code === 40901) {
           const c = response.data?.conflicts?.[0];
           if (!c) {
