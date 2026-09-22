@@ -970,19 +970,6 @@ func (c *IAMClient) GrantCustomerRole(userID string) error {
 	return nil
 }
 
-// RevokeCustomerRole 撤销顾客身份（#2031 A，D4：撤身份 ≠ 删用户）。
-func (c *IAMClient) RevokeCustomerRole(userID string) error {
-	path := fmt.Sprintf("/api/v1/users/%s/customer-role", strings.TrimSpace(userID))
-	respBody, statusCode, err := c.doRequest("DELETE", path, nil)
-	if err != nil {
-		return fmt.Errorf("RevokeCustomerRole request failed: %w", err)
-	}
-	if statusCode != http.StatusOK {
-		return fmt.Errorf("RevokeCustomerRole returned status %d: %s", statusCode, string(respBody))
-	}
-	return nil
-}
-
 type UpdateUserRequest struct {
 	Nickname    *string `json:"nickname,omitempty"`
 	Name        string  `json:"name,omitempty"`

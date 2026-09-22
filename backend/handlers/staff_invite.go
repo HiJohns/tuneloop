@@ -59,13 +59,18 @@ func CreateSiteInvite(c *gin.Context) {
 		ttl = time.Duration(req.ExpiresIn) * time.Hour
 	}
 
+	var createdBy *string
+	if uid := middleware.GetUserID(ctx); uid != "" {
+		createdBy = &uid
+	}
+
 	invite := models.StaffInvite{
 		TenantID:  tenantID,
 		OrgID:     site.OrgID,
 		SiteID:    siteID,
 		Role:      normalizeRole(req.Role),
 		Code:      newInviteCode(),
-		CreatedBy: middleware.GetUserID(ctx),
+		CreatedBy: createdBy,
 		ExpiresAt: time.Now().Add(ttl),
 		Status:    "pending",
 	}

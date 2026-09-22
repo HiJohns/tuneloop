@@ -7,28 +7,28 @@ import (
 )
 
 type User struct {
-	ID                   string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	IAMSub               string     `gorm:"type:varchar(255);not null;-:migration" json:"iam_sub"`
-	TenantID             string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrgID                string     `gorm:"type:uuid;index;not null" json:"org_id"`
-	Username             string     `gorm:"type:varchar(255)" json:"username"`
-	Nickname             string     `gorm:"type:varchar(64)" json:"nickname"`
-	Name                 string     `gorm:"type:varchar(255)" json:"name"`
-	Phone                string     `gorm:"type:varchar(50)" json:"phone"`
-	Email                string     `gorm:"type:varchar(255)" json:"email"`
-	CreditScore          int        `gorm:"default:600" json:"credit_score"`
-	DepositMode          string     `gorm:"type:varchar(20);default:'standard'" json:"deposit_mode"` // 已弃用，仅用于兼容旧数据，勿写入新值
-	IsShadow             bool       `gorm:"default:true" json:"is_shadow"`
-	IsSystemAdmin        bool       `gorm:"default:false" json:"is_system_admin"`
-	Status               string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
-	Position             string     `gorm:"type:varchar(100)" json:"position"`
-	Role                 string     `gorm:"type:varchar(50)" json:"role"`
-	ForcePasswordChange  bool       `gorm:"default:false" json:"force_password_change"`
-	AvatarURL            string     `gorm:"type:varchar(500)" json:"avatar"`
-	IsProfileCompleted   bool       `gorm:"default:false" json:"is_profile_completed"`
-	MembershipLevelID    *int       `gorm:"type:int" json:"membership_level_id"`
-	TotalSpending        Cents      `gorm:"type:bigint;default:0" json:"total_spending"`
-	PrepaidPoints        Cents      `gorm:"type:bigint;default:0" json:"-"` // deprecated (#1531)
+	ID                  string `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	IAMSub              string `gorm:"type:varchar(255);not null;-:migration" json:"iam_sub"`
+	TenantID            string `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID               string `gorm:"type:uuid;index;not null" json:"org_id"`
+	Username            string `gorm:"type:varchar(255)" json:"username"`
+	Nickname            string `gorm:"type:varchar(64)" json:"nickname"`
+	Name                string `gorm:"type:varchar(255)" json:"name"`
+	Phone               string `gorm:"type:varchar(50)" json:"phone"`
+	Email               string `gorm:"type:varchar(255)" json:"email"`
+	CreditScore         int    `gorm:"default:600" json:"credit_score"`
+	DepositMode         string `gorm:"type:varchar(20);default:'standard'" json:"deposit_mode"` // 已弃用，仅用于兼容旧数据，勿写入新值
+	IsShadow            bool   `gorm:"default:true" json:"is_shadow"`
+	IsSystemAdmin       bool   `gorm:"default:false" json:"is_system_admin"`
+	Status              string `gorm:"type:varchar(20);default:'pending'" json:"status"`
+	Position            string `gorm:"type:varchar(100)" json:"position"`
+	Role                string `gorm:"type:varchar(50)" json:"role"`
+	ForcePasswordChange bool   `gorm:"default:false" json:"force_password_change"`
+	AvatarURL           string `gorm:"type:varchar(500)" json:"avatar"`
+	IsProfileCompleted  bool   `gorm:"default:false" json:"is_profile_completed"`
+	MembershipLevelID   *int   `gorm:"type:int" json:"membership_level_id"`
+	TotalSpending       Cents  `gorm:"type:bigint;default:0" json:"total_spending"`
+	PrepaidPoints       Cents  `gorm:"type:bigint;default:0" json:"-"` // deprecated (#1531)
 	// PromoPoints removed in #1983 (stage 2): points balance = SUM(point_batches.remaining_cents).
 	OnboardingCompleted  bool       `gorm:"default:false" json:"onboarding_completed"`
 	IdPhotoFront         *string    `gorm:"type:varchar(500)" json:"id_photo_front"`
@@ -223,7 +223,7 @@ type Order struct {
 	ShippingFee          Cents  `gorm:"type:bigint;default:0" json:"shipping_fee"`
 	AccumulatedMonths    int    `gorm:"default:0" json:"accumulated_months"`
 	// #1965 业务订单号：`YL<YYYYMMDD>-<NNN>`（当日第 N 单），唯一索引
-	OrderNo                 string     `gorm:"type:varchar(24)" json:"order_no"` // #1981: uniqueness enforced by migration partial index (WHERE order_no IS NOT NULL AND order_no <> ''), not AutoMigrate
+	OrderNo                 string     `gorm:"type:varchar(24)" json:"order_no"`            // #1981: uniqueness enforced by migration partial index (WHERE order_no IS NOT NULL AND order_no <> ''), not AutoMigrate
 	DeliveryAddress         *string    `gorm:"type:text" json:"delivery_address,omitempty"` // #2010 S2: 收货地址并入 orders（原 lease_sessions.delivery_address）
 	Status                  string     `gorm:"type:varchar(40);default:'reserved';index" json:"status"`
 	StartDate               *string    `gorm:"type:date" json:"start_date"`
@@ -1002,10 +1002,10 @@ type StaffInvite struct {
 	SiteID     string     `gorm:"type:uuid;index" json:"site_id"`
 	Role       string     `gorm:"type:varchar(20);not null" json:"role"`
 	Code       string     `gorm:"type:varchar(32);not null;uniqueIndex" json:"code"`
-	CreatedBy  string     `gorm:"type:uuid" json:"created_by"`
+	CreatedBy  *string    `gorm:"type:uuid" json:"created_by,omitempty"`
 	ExpiresAt  time.Time  `json:"expires_at"`
 	Status     string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
-	AcceptedBy string     `gorm:"type:uuid" json:"accepted_by"`
+	AcceptedBy *string    `gorm:"type:uuid" json:"accepted_by,omitempty"`
 	AcceptedAt *time.Time `json:"accepted_at"`
 	CreatedAt  time.Time  `json:"created_at"`
 	UpdatedAt  time.Time  `json:"updated_at"`
