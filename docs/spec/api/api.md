@@ -217,6 +217,23 @@
 - 授予 / 撤销顾客角色（调 `MarkUserAsCustomer` / `RemoveCustomerRole`）；Admin 权限（仅 tuneloop 内部调用）
 - namespace 解析：优先 body `namespace_id`，否则取用户既有 relation 所属 namespace
 
+#### 邀请制自助加入（#2031，一人一号）
+
+| 端点 | 组 | 说明 |
+|------|----|------|
+| `POST /api/sites/:id/invites` | 管理员 | 签发邀请码（默认 7 天，可 `expires_in_hours`）→ `{id, code, role, site_id, site_name, expires_at}` |
+| `GET /api/sites/:id/invites` | 管理员 | 待接受邀请列表 |
+| `POST /api/user/accept-invite` | `userOptionalAuth` | **本人**用码接受 `{code}` → IAM `BindUserToOrganization(本人 IAMSub, org, role)` + 本地 `site_members`；码一次性、限时 |
+
+- **一人一号**：绑定对象恒为**调用者自己**的 IAMSub，无管理员代挂
+- 表：`staff_invites`（migration `20260922001`）
+
+#### 删除语义（D4）
+
+- **网点移除成员**：IAM `BindUser action=unbind`（单 relation）
+- **商户删除**：级联解绑商户 + 下属网点成员 relation（用户记录保留）
+- **标记删除**：beaconiam `DELETE /api/v1/users/:id`（`DeactivateUser`）——status→inactive + 停用全部 relation + 吊销 token；用户记录保留，可重新加回
+
 ---
 
 ### 2.3 Token 刷新
