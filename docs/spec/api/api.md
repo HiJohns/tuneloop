@@ -200,7 +200,22 @@
 
 #### 添加成员复用（D2）
 
-- 手机号已注册 → 不再 409：按 **D2 管理员信任制**直接**复用既有用户 + 新增 relation**（一人一记录）；当前无 SMS provider，不引入短信验证（将来接入可升级）
+- 手机号/邮箱已有账户 → **不允许管理员挂接**（一人一号，防误绑）：返回 `40902`
+  `{ "code": 40902, "message": "该手机号/邮箱已在本平台注册，不能由管理员直接添加；请让本人登录后自助加入（作为员工加入 / 注册为顾客）", "data": { "registered": true } }`
+- 身份追加**仅限本人自助**（见下）
+
+#### `POST /api/user/register-as-customer`（本人自助获得顾客身份，#2031 A）
+
+- **组**：`userOptionalAuth`（顾客上下文可调用）
+- **约束**：仅本人（取 JWT 用户）；**禁止管理员代挂**（一人一号）
+- **转发**：beaconiam `POST /api/v1/users/:id/customer-role`（Admin 权限，内部调用）
+- **响应**：`{ code: 20000, data: { is_customer: true } }`
+- 身份以 `customer` 零权限职能角色写入用户根组织 `member` 关系（**无组织创建**，D1 tid 保持空）
+
+#### `POST | DELETE /api/v1/users/:id/customer-role`（beaconiam，#2031 A）
+
+- 授予 / 撤销顾客角色（调 `MarkUserAsCustomer` / `RemoveCustomerRole`）；Admin 权限（仅 tuneloop 内部调用）
+- namespace 解析：优先 body `namespace_id`，否则取用户既有 relation 所属 namespace
 
 ---
 

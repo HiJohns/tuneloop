@@ -681,6 +681,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			userOptionalAuth.Use(middleware.AuditLogger(auditWriter))
 			{
 				userOptionalAuth.POST("/user/orders", userRentalHandler.CreateOrder)
+				// #2031 A: 本人自助获得顾客身份（禁止管理员代挂；无组织创建）
+				userOptionalAuth.POST("/user/register-as-customer", handlers.RegisterAsCustomer)
 				userOptionalAuth.POST("/user/orders/batch", userRentalHandler.BatchCreateOrder)
 				userOptionalAuth.POST("/rental/calculate", userRentalHandler.CalculateRental)
 				userOptionalAuth.GET("/user/contracts", userRentalHandler.ListContracts)
