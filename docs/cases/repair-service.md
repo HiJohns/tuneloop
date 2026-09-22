@@ -174,7 +174,7 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 报修，并存
 > **登录上下文（强制，实现前必读）**：
 > - **顾客（USER）**：JWT **无** `tid`/`oid` → 端点必须注册在 **`userOptionalAuth`**（`OptionalIAMInterceptor`），
 >   且**不得**用 JWT 推导租户/网点（从**资源或参数**推导：如 repair 单的 `tenant_id/site_id`、`site_id` 查询参数）；
->   否则空 `tid` 触发 40104（#833 教训）。**（#2025 D1 确认：顾客加入顾客组织后 `tid` 仍保持空，本规则不变）**
+>   否则空 `tid` 触发 40104（#833 教训）。**（#2025 D1 / #2027 B1 确认：顾客身份为 `customer` 零权限角色、载体为 `member` 关系，`tid` 保持空，本规则不变）**
 > - **员工 / 师傅**：JWT **有** `tid`/`oid` → 端点注册在 **`authRequired`**（`IAMInterceptor`），
 >   **必须**以 JWT `oid`/`tid` 做作用域与归属校验（`repairServiceStaffAllowed`，#688 教训）。
 > - 同一资源两种上下文分别开端点（如顾客 `/api/user/repair-services/:id` vs 员工 `/api/repair-services/:id/...`），不复用。
