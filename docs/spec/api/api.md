@@ -156,26 +156,40 @@
 #### `GET /api/auth/wx-accounts`（分流/上下文列表）
 
 **参数**: `code`（wx.login 临时码）
-**响应 data**:
+**响应 data**（beaconiam `wx-accounts` 返回 `accounts[]`，每个账户内嵌 `contexts[]` + `is_customer`——tuneloop 平铺给前端）:
 ```json
 {
   "user": { "id": "uuid", "name": "林维训" },
   "contexts": [
-    { "org_id": "", "org_name": "", "label": "顾客" },
-    { "org_id": "site-uuid", "org_name": "新街口店", "label": "新街口琴行 · 新街口店" }
+    { "type": "customer", "label": "顾客" },
+    { "type": "org", "org_id": "site-uuid", "org_name": "新街口店", "role": "ADMIN", "label": "新街口店" }
   ],
+  "is_customer": true,
   "has_pending_registration": false
 }
 ```
 - 0 上下文 → `has_pending_registration` 决定「继续完成注册」/「注册为顾客」
-- **顾客上下文派生（B1）**：非组织上下文——当用户持有 `customer` 职能角色（附着于其根组织 `member` 关系）时输出 `{org_id:"", label:"顾客"}`；签发时 tid 保持空
+- **顾客上下文派生（B1）**：非组织上下文——当用户持有 `customer` 职能角色（附着于其根组织 `member` 关系）时输出 `{type:"customer", label:"顾客"}`；签发时 tid 保持空
 - 1 上下文 → 前端可直接 `wx-login-select`
 - ≥2 上下文 → 进入 `/account-select` 组织上下文选择页
 
 #### `POST /api/auth/wx-login-select`（按上下文签发）
 
-**Body**: `{ code, context }`（context = `org_id`；顾客为空串/`customer`）
-**响应**: 同 2.2（access_token / refresh_token / …）
+**tuneloop 端点**：`POST /api/auth/wx-login-select`
+**Body**: `{ exchange_token, context }`（或兼容期 `user_id`）
+- `context = "customer"` → 顾客上下文
+- `context = <org_id>` → 组织上下文
+- `context` 缺省且上下文 ≥2 → 返回 `{ needs_context_selection: true, contexts: [...] }`（**不再静默签发空权限 token**）
+- `user_id`（兼容期）→ 按账户选择（存量多户）
+
+**beaconiam 端点**：`POST /api/v1/auth/wx-login-select`（tuneloop 转发）
+**Body**: `{ exchange_token|code, client_id, user_id?, context? }`
+- `context="customer"` → 专用签发：`tid`/`oid` **空**、`role=USER`、`fn_roles=["customer"]`（D1）
+- `context=<org_id>` → 校验 active relation → `fillOrgContext`（`tid`=根组织）
+- `context` 缺省：单一上下文直接签发；≥2 → `{needs_context_selection:true, user_id, contexts}`
+- `user_id` 且 openid 绑定多个 user → `{multi_account:true, accounts}`（存量兼容）
+
+**响应**: 同 2.2（access_token / refresh_token / expires_in / token_type / wx_openid / context / contexts）
 - **D1**：顾客上下文签发的 JWT `tid` 保持空（隔离体系零改动；`/api/user*` 走 userOptionalAuth，从 instrument/order 反推租户）
 - 员工/商户上下文：JWT `oid`/`tid`/role 按所选 relation
 
