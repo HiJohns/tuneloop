@@ -277,7 +277,8 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
         return (
           <Space>
             <Popconfirm
-              title="确认移除此负责人？"
+              title="移除该成员的商户身份？"
+              description="将解除其在商户及下属网点的全部身份，账户保留，可重新加入。"
               onConfirm={() => handleRemoveMember(record.user_id)}
               disabled={isLastAdmin}
             >

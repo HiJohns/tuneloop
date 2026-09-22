@@ -321,7 +321,8 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
       render: (_, record) => (
         <Space>
           <Popconfirm
-            title="确认移除此成员？"
+            title="移除该成员的本网点员工身份？"
+            description="仅解除其本网点的员工身份，账户保留，可重新加入。"
             onConfirm={() => handleRemoveMember(record.user_id)}
           >
             <Button type="link" danger icon={<DeleteOutlined />}>移除</Button>
