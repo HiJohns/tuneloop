@@ -3956,6 +3956,20 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ---
 
+### 8.11.4a 标记删除用户（#2028 Step 4 / #2025 D4）
+
+**接口**: `POST /api/admin/user-management/:id/mark-deleted`
+
+**说明**: **解除全部关联 + 标记**（用户记录保留、可重新加回）。IAM 为权威——tuneloop 转发 beaconiam `DELETE /api/v1/users/:id`（`DeactivateUser`：`status→inactive` + **停用全部 `user_org_relations`** + 吊销 token），随后同步本地缓存（`users.status=inactive`，清除 `site_members`/`merchant_members`）。
+
+**权限**: `sys_perm.tenant_update`
+
+**响应**: `{ "code": 20000, "data": { "user_id": "...", "status": "inactive" } }`
+
+> 与「禁用/可用」的区别：禁用仅标记；标记删除**额外解除全部组织关联**。均保留用户记录（非 `purge` 彻底删除）。
+
+---
+
 ### 8.11.4 管理员加赠乐币（#1982）
 
 **接口**: `POST /api/admin/user-management/:id/points-grant`

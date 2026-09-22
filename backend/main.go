@@ -457,6 +457,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.GET("/admin/user-management/:id", middleware.RequireSysPerm(middleware.SysPermTenantView), userManagementHandler.Get)
 		authRequired.PUT("/admin/user-management/:id", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), userManagementHandler.Update)
 		authRequired.POST("/admin/user-management/:id/points-grant", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), userManagementHandler.GrantPoints)
+		// #2028 Step 4 / D4：标记删除（解除全部关联，用户记录保留可加回）
+		authRequired.POST("/admin/user-management/:id/mark-deleted", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), userManagementHandler.MarkDeleted)
 		authRequired.POST("/admin/user-management/:id/id-photo", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), userOnboardingHandler.AdminUploadIDPhoto)
 		authRequired.DELETE("/admin/user-management/:id/id-photo", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), userOnboardingHandler.AdminDeleteIdPhoto)
 		// #1810: 详情对话框实名核身区块（模块 1 身份证信息采集/拒绝采用）。

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -317,6 +318,32 @@ var _ = middleware.GetTenantID
 // Body: {amount: <元>, reason: <必填>}
 // 加赠进入 point_batches 台账（source=manual），受统一有效期政策约束；
 // 操作人/原因写入 points_transactions 留痕。批次 SUM 为余额唯一真源（#1983）。
+// MarkDeleted handles POST /admin/user-management/:id/mark-deleted
+// (#2028 Step 4 / #2025 D4). 解除全部关联 + 标记；用户记录保留、可重新加回。
+// IAM 为权威：beaconiam DeactivateUser（status→inactive + 停用全部 relation + 吊销 token）。
+func (h *UserManagementHandler) MarkDeleted(c *gin.Context) {
+	db := h.platformDB(c)
+	var user models.User
+	if err := db.Where("id = ?", c.Param("id")).First(&user).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "用户不存在"})
+		return
+	}
+	if user.IAMSub == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": "该用户未与 IAM 同步，无法标记删除"})
+		return
+	}
+	if err := services.NewIAMClient().DeleteUser(user.IAMSub); err != nil {
+		log.Printf("[MarkDeleted] IAM deactivate failed user=%s: %v", user.ID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "标记删除失败：" + err.Error()})
+		return
+	}
+	// 本地缓存同步（IAM 为权威）：标记 + 解除组织关联
+	db.Model(&models.User{}).Where("id = ?", user.ID).Update("status", "inactive")
+	db.Where("user_id = ?", user.ID).Delete(&models.SiteMember{})
+	db.Where("user_id = ?", user.ID).Delete(&models.MerchantMember{})
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"user_id": user.ID, "status": "inactive"}})
+}
+
 func (h *UserManagementHandler) GrantPoints(c *gin.Context) {
 	var req struct {
 		Amount float64 `json:"amount"` // yuan

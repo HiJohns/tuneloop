@@ -148,6 +148,26 @@ export default function UserManagement() {
   }
 
   // ---- Module 1: ID card info ----
+  const handleMarkDeleted = async () => {
+    if (!current) return
+    Modal.confirm({
+      title: '标记删除该用户？',
+      content: '将解除其全部组织关联并标记为不可用（账户记录保留，可重新加回）。此操作会使其立即无法登录。',
+      okText: '确认标记删除',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        const resp = await api.post(`/admin/user-management/${current.id}/mark-deleted`)
+        if (resp.code === 20000) {
+          message.success('已标记删除（账户保留，可重新加回）')
+          setDetailVisible(false)
+          fetchList()
+        } else {
+          message.error(resp.message || '标记删除失败')
+        }
+      },
+    })
+  }
+
   const handleSaveIdCard = async () => {
     const values = await idCardForm.validateFields()
     try {
@@ -265,6 +285,13 @@ export default function UserManagement() {
           </Form.Item>
           <Form.Item label="禁用/可用" name="status" valuePropName="checked">
             <Switch checkedChildren="可用" unCheckedChildren="禁用" />
+          </Form.Item>
+          {/* #2028 Step 4 / D4：标记删除——解除全部关联（记录保留，可重新加回） */}
+          <Form.Item label="标记删除">
+            <Space>
+              <Button danger onClick={handleMarkDeleted} disabled={!current}>标记删除（解除全部关联）</Button>
+              <Typography.Text type="secondary">账户保留，可重新加回；不等于彻底删除</Typography.Text>
+            </Space>
           </Form.Item>
           {current && (
             <Form.Item label="身份证照片">
