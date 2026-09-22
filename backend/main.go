@@ -472,6 +472,9 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			siteRequired.GET("/sites/tree", siteHandler.GetSiteTree)
 			siteRequired.GET("/sites/:id/members", siteMemberHandler.ListMembers)
 			siteRequired.POST("/sites/:id/members", siteMemberHandler.AddMember)
+			// #2031 邀请制自助加入：管理员只发邀请码，本人登录后接受（一人一号）
+			siteRequired.POST("/sites/:id/invites", handlers.CreateSiteInvite)
+			siteRequired.GET("/sites/:id/invites", handlers.ListSiteInvites)
 			siteRequired.PUT("/sites/:id/members/:uid", siteMemberHandler.UpdateMemberRole)
 			siteRequired.DELETE("/sites/:id/members/:uid", siteMemberHandler.RemoveMember)
 			// Staff/User management routes (Issue #333)
@@ -683,6 +686,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/user/orders", userRentalHandler.CreateOrder)
 				// #2031 A: 本人自助获得顾客身份（禁止管理员代挂；无组织创建）
 				userOptionalAuth.POST("/user/register-as-customer", handlers.RegisterAsCustomer)
+				// #2031 邀请制自助加入：本人用邀请码把员工身份加到自己的账户
+				userOptionalAuth.POST("/user/accept-invite", handlers.AcceptInvite)
 				userOptionalAuth.POST("/user/orders/batch", userRentalHandler.BatchCreateOrder)
 				userOptionalAuth.POST("/rental/calculate", userRentalHandler.CalculateRental)
 				userOptionalAuth.GET("/user/contracts", userRentalHandler.ListContracts)

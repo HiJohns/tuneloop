@@ -991,6 +991,26 @@ type SiteMember struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// StaffInvite is a single-use invite code that lets a person join an org as
+// staff under their OWN account (#2031 邀请制自助加入). The admin only issues
+// the code; the invitee redeems it while logged in, so no admin代挂 and no SMS
+// are required (一人一号).
+type StaffInvite struct {
+	ID         string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID   string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID      string     `gorm:"type:uuid;not null" json:"org_id"`
+	SiteID     string     `gorm:"type:uuid;index" json:"site_id"`
+	Role       string     `gorm:"type:varchar(20);not null" json:"role"`
+	Code       string     `gorm:"type:varchar(32);not null;uniqueIndex" json:"code"`
+	CreatedBy  string     `gorm:"type:uuid" json:"created_by"`
+	ExpiresAt  time.Time  `json:"expires_at"`
+	Status     string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
+	AcceptedBy string     `gorm:"type:uuid" json:"accepted_by"`
+	AcceptedAt *time.Time `json:"accepted_at"`
+	CreatedAt  time.Time  `json:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at"`
+}
+
 // MerchantMember is the merchant-level counterpart of SiteMember.
 // IAM binding org for a merchant is its own tenant_id.
 type MerchantMember struct {
