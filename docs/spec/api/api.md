@@ -146,6 +146,49 @@
 
 ---
 
+### 2.2a 微信多身份登录与组织上下文（#2025 / #2026 身份模型）
+
+> **模型**：一人一记录 + 顾客组织 + 多组织 relation。微信登录返回**组织上下文列表**，选择上下文后按其 relation 签发 JWT。
+> 裁定见 `docs/topics/iam/iam-notes.md` 身份模型章节（D1 顾客上下文 tid 保持空 / D2 验证码确认复用 / D3 再登录激活原户 / D4 标记删除+解除关联）。
+
+**绑定权威源**：`wx_user_bindings`（openid ↔ user_id）；`users.wx_openid` 已废弃（#2019）。解绑必须删除绑定行（#2020）。
+
+#### `GET /api/auth/wx-accounts`（分流/上下文列表）
+
+**参数**: `code`（wx.login 临时码）
+**响应 data**:
+```json
+{
+  "user": { "id": "uuid", "name": "林维训" },
+  "contexts": [
+    { "org_id": "", "org_name": "", "label": "顾客" },
+    { "org_id": "site-uuid", "org_name": "新街口店", "label": "新街口琴行 · 新街口店" }
+  ],
+  "has_pending_registration": false
+}
+```
+- 0 上下文 → `has_pending_registration` 决定「继续完成注册」/「注册为顾客」
+- 1 上下文 → 前端可直接 `wx-login-select`
+- ≥2 上下文 → 进入 `/account-select` 组织上下文选择页
+
+#### `POST /api/auth/wx-login-select`（按上下文签发）
+
+**Body**: `{ code, context }`（context = `org_id`；顾客为空串/`customer`）
+**响应**: 同 2.2（access_token / refresh_token / …）
+- **D1**：顾客上下文签发的 JWT `tid` 保持空（隔离体系零改动；`/api/user*` 走 userOptionalAuth，从 instrument/order 反推租户）
+- 员工/商户上下文：JWT `oid`/`tid`/role 按所选 relation
+
+#### `POST /api/users/me/wechat-unbind`（解绑，D4/#2020）
+
+- 删除该用户对应的 `wx_user_bindings` 行（beaconiam `UpdateUser` 空 `wx_openid` 分支由 no-op 改为 DELETE）
+- 解绑后 `wx-accounts` 不再返回该上下文
+
+#### 添加成员复用（D2）
+
+- 手机号已注册 → 不再 409：`POST` 发送验证码 → 用户确认 → **复用既有用户 + 新增 relation**（一人一记录）
+
+---
+
 ### 2.3 Token 刷新
 
 **接口**: `POST /api/auth/refresh`

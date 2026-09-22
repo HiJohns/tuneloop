@@ -18,29 +18,61 @@ Tuneloop 的 `IAMClaims` 结构体中同时有 `Oid` 和 `Gid`。`Gid` 在 IAM J
 - 当前 tuneloop 发送 query param `?role=ADMIN` 作为过渡
 - 等 beaconiam 部署 JSON body 支持后，tuneloop 需切回 JSON body
 
+## 身份模型：一人一记录 + 顾客组织 + 组织上下文（#2025 / #2026）
+
+> **权威口径**：本节为 S0（#2026）裁定后的身份模型基线，S1–S3（#2027/#2028/#2029）向此看齐。
+> IAM 侧权威文档（`beaconiam/README.md`）的同步由 S1 在 beaconiam 仓库完成（`docs/topics/iam/iam.md` 为 symlink，禁止本地改写）。
+
+### 六原则
+
+1. **一人一记录**：一个自然人 = 一条 `users` 记录（不再为同一人建多户）
+2. **微信号 ↔ 用户 = 一对多（绑定表）**：`wx_user_bindings`（openid, user_id）为**唯一权威来源**；`users.wx_openid` 已废弃删除（#2019）。同一 openid 可绑定多个历史账户（兼容期），新流程按一人一记录收敛
+3. **多身份 = 多组织 relation**：顾客/网点员工/商户管理员/维修师傅均为「用户 ↔ 组织」的 `user_org_relations`，同一用户可有多个
+4. **顾客组织**：每个 namespace 下存在「顾客组织」，注册即加入（bootstrap 幂等）
+5. **组织上下文切换**：微信登录返回 `contexts[]{org_id, org_name, label}`；选择某上下文 → 按其 relation 签发 JWT；「切换账户」= 切换组织上下文
+6. **删除 = 解除关联/标记删除**：网点删 relation、商户级联、系统管理员标记删除（记录保留、可重新加回）
+
+### 四个裁定（用户已批准）
+
+| # | 裁定 | 内容 |
+|---|------|------|
+| **D1** | 顾客上下文 JWT **tid 保持空** | 顾客加入顾客组织仅用于身份归属/切换展示，**不改变数据隔离模型**（#688/#833/#1579 地基不动）；顾客仍以 `oid`/`tid` 空、从 instrument/order 反推租户的方式工作，`/api/user*` 保持 userOptionalAuth |
+| **D2** | 手机号已注册时添加成员 → **验证码确认归属** | 不再 409；向该手机号发验证码，确认后**复用用户 + 新增 relation**；防误绑/恶意绑定。同一系统内既有用户绑定仍即时生效（O-02） |
+| **D3** | 被标记删除用户再次微信登录 → **重新激活原户** | 保留业务数据归属，避免归属再分裂（不新建户） |
+| **D4** | 删除 = **标记删除 + 解除关联** | relation 删除（网点）/商户级联/系统管理员标记删除；用户记录保留、可重新加回 |
+| （衔接） | 解绑微信 → **删除绑定行**（#2020） | `wx_user_bindings` 为权威源，解绑必须落在此表 |
+
+### 关键约定
+
+- **切换账户页展示**：`组织名 + 角色标签`（顾客 / 海淀店员工），顶部 greeting「欢迎 {name}」；不再展示「账户昵称」语义（一人一记录）
+- **顾客标签**：无组织标签者显示「顾客」；有组织者显示 `{org_name} + {角色标签}`（角色映射 site_admin/member→员工，merchant_admin→商户管理员，repair_technician→维修师傅）
+- **兼容期**：存量多户（同一 openid 多 user）在 #2029 合并前保持双形态可用；`wx-accounts` 返回旧形态时前端需兼容
+
 ## 微信小程序登录流程
 
-> 完整架构说明见 `docs/topics/wechat/weapp.md`。
+> 完整架构说明见 `docs/topics/wechat/weapp.md`（#2016 起以 `wx_user_bindings` 为绑定权威源）。
 
 ```
-wx.login() → code → POST /api/wx/login → BeaconIAM
+wx.login() → code → POST /api/auth/wx-accounts → BeaconIAM
                                               ↓
                                   jscode2session → openid
                                               ↓
-                                   查 users.wx_openid
+                            查 wx_user_bindings WHERE openid
                                   /               \
-                              不存在             存在
+                              无绑定           有 1..N 绑定
                                 ↓                 ↓
-                          创建用户(USER)        返回 JWT
-                          随机名 wx_xxxx
-                                ↓
-                           返回 JWT
+                        查注册会话/引导注册    返回 contexts[]
+                                              （组织名+标签）
+                                                    ↓
+                                        选择上下文 → wx-login-select
+                                        → 按 relation 签发 JWT
 ```
 
 **关键点**:
 - Tuneloop 仅做代理转发，不直接处理 wx code
-- IAM `users` 表新增 `wx_openid` 字段，唯一索引（NULL 排除）
-- 首次登录自动创建 `USER` 角色用户，随机名 `wx_{8chars}`
+- **绑定关系唯一权威源 = `wx_user_bindings`**（`users.wx_openid` 已废弃，#2019 删除本地列）
+- 一人一记录：新流程不再为同一 openid 新建第二个用户
+- 顾客上下文 `tid` 保持空（D1）
 - 下单时检测信息完整性，缺 phone/email 则跳转注册补全页
 - 详情见 `docs/topics/wechat/weapp.md`
 

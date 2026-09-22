@@ -93,6 +93,13 @@ steps:
 4. 前端存储 token → 重定向到会员费支付页（`/payment?type=membership`）
 5. 会员费支付完成后 → 会员等级激活（`applySideEffects`）→ 进入首页
 
+## 身份模型（#2025 / #2026）
+
+- **注册即加入顾客组织**：建户成功后自动创建「用户 ↔ 顾客组织」relation（幂等）；这是顾客身份的**唯一**归属，会员费/等级是叠加其上的产品状态
+- **一人一记录**：手机号已注册时不再另建账户（详见 D2 / 「添加成员复用」）；同一人可由任一既有入口（顾客/员工）复用同一 `users` 记录
+- **顾客上下文 `tid` 空（D1）**：注册得到的顾客 JWT 不带 `tid`/`oid`，顾客端点走 `userOptionalAuth`（隔离体系零改动）
+- **H5 注册保留直接建户**（`POST /api/auth/register`）现状；weapp 两阶段会话制见 P-05
+
 ## H5 vs weapp 注册差异
 
 | 维度 | H5 注册 | weapp 注册 (ProfileComplete) |

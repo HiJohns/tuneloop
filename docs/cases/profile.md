@@ -128,7 +128,12 @@ steps:
 ## 接口契约
 - `GET /users/me`（GetCurrentUser）须返回：
   - `site_id` / `site_name`：主网点（site_members JOIN sites，已有）
-  - `tenant_name`：商户名（merchants 表按 tenant_id 查 name，**待补充**）
+  - `tenant_name`：商户名（merchants 表按 tenant_id 查 name）
+  - `contexts[]`：全部组织上下文（#2025 身份模型）——`{org_id, org_name, label}`，供「切换账户」展示
+
+## 身份模型衔接（#2025）
+- 员工个人中心的 `商户名 · 网点名` 标签是**多组织上下文展示**的特例；拥有 ≥2 上下文时显示「切换账户」入口（见 `docs/cases/account-select.md`）
+- 顾客上下文 `tid` 为空（D1）；展示「顾客」标签
 
 ## 验收
 - [ ] 员工个人中心昵称后显示「商户名 · 网点名」小字标签

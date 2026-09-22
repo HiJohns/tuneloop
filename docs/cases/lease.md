@@ -963,7 +963,7 @@ steps:
 - 无优惠码时 amount = 续期计算总额
 
 ## 验收
-- prepay order_type=renewal：无 open_id 时后端按 iam_sub 回填 wx_openid（不再 400）
+- prepay order_type=renewal：无 open_id 时后端按 iam_sub 解析微信绑定（`wx_user_bindings`，经 `ResolveUserOpenid`；`users.wx_openid` 已废弃 #2019）回填（不再 400）
 - OREZ → amount=0 走 waive 记账（applyRenewalSideEffects）；ENO → 1% 走真实 JSAPI
 
 ---

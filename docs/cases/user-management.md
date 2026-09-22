@@ -12,7 +12,7 @@ steps:
         gate: "拥有 sys_perm bit[16]（平台管理员）"
         reach: "系统管理 → 用户管理"
         controls: [搜索框, 导出CSV按钮, 列表表格, 昵称列（可点击）]
-        displays: [昵称, 微信号, 电话, 当前等级, 当前积分（点）, 注册时间, 最新活动, 状态]
+        displays: [昵称, 微信绑定, 电话, 当前等级, 当前积分（点）, 注册时间, 最新活动, 状态]
         ops:
           - {type: api, method: GET, path: /admin/user-management}
           - {type: interact}
@@ -76,8 +76,9 @@ steps:
 
 ## 关键规则
 - 禁用用户对所有认证接口生效（EnsureLocalUser 统一入口）
-- 列表字段：nickname（第一列，可点击）, wx_openid, phone, level(会员等级名), points(显示点=分/100), registered_at, last_active(取 UpdatedAt), status
-- 搜索覆盖 nickname/name/username/phone/wx_openid
+- 列表字段：nickname（第一列，可点击）, 微信绑定（`wx_user_bindings`，已废弃 `users.wx_openid` —— #2019）, phone, level(会员等级名), points(显示点=分/100), registered_at, last_active(取 UpdatedAt), status
+- 搜索覆盖 nickname/name/username/phone/微信绑定 openid（经 `wx_user_bindings` 关联；不再直查 `users.wx_openid`）
+- **用户列表（#2025 D4）**：平台级全量用户；提供**标记删除**（解除全部关联，用户记录保留、可重新加回）；既有「顾客列表（不可删）」保留
 - **tenant scoping 豁免**：List/Get/Update/Export/AdminUploadIDPhoto/AdminDeleteIdPhoto 使用清空 TenantIDKey 的 context（platformDB）——用户管理是平台级功能，必须显示全部注册用户（含空租户顾客 tenant_id=00000000，否则新注册会员不显示）
 - 证件照 URL：resolveStorageKey 防双前缀（key 已含 /uploads/media/ 或 http(s):// 直接返回；历史数据 front/back 误存完整 URL）
 - 详情 Modal 展示：身份证正反面（可替换/删除）+ 其他证件照（readOnly + 类型标签 id_photo_other_type）

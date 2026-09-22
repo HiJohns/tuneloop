@@ -1275,11 +1275,10 @@ sequenceDiagram
     end
 
     rect rgb(255, 248, 240)
-        Note over API, IAM: 绑定落库
+        Note over API, IAM: 绑定落库（#2016：绑定表为唯一权威源）
         API->>API: token status → bound
         API->>IAM: PATCH /api/v1/users/{user_id}<br/>{wx_openid}
-        IAM-->>API: OK
-        API->>API: 更新本地 users.wx_openid
+        IAM->>IAM: upsert wx_user_bindings (openid, user_id)
     end
 
     API-->>Staff: 绑定成功
@@ -1314,7 +1313,8 @@ sequenceDiagram
 2. **OAuth 授权**：确认页首次访问无 `code` 参数时，302 重定向到 `https://open.weixin.qq.com/connect/oauth2/authorize`，scope 为 `snsapi_base`（静默授权，无需用户确认即可获取 openid）
 3. **token 一次性**：确认后立即标记 bound 并清除，不可重放
 4. **轮询频率**：PC 端每 2 秒轮询一次，5 分钟超时自动关闭弹窗
-5. **多点绑定**：后绑定的微信号覆盖前一次（IAM 侧 `wx_openid` 写入即覆盖）
+5. **绑定语义（#2016/#2025 一人一记录）**：绑定关系唯一权威源 = `wx_user_bindings`（openid ↔ user_id）；`users.wx_openid`（旧缓存列）已废弃。同一微信号在兼容期内可存在多条历史绑定（存量多户），新流程按一人一记录收敛（不再为同一人新建第二户）
+6. **解绑（#2020，D4 衔接）**：`POST /api/users/me/wechat-unbind` 必须**删除该用户对应的 `wx_user_bindings` 行**（beaconiam `UpdateUser` 空 `wx_openid` 分支由 no-op 改为 DELETE）；解绑后 `wx-accounts` 不再返回该账户
 
 ## 4.2 人员管理
 
@@ -1338,6 +1338,7 @@ URL为/staff
 - 系统���查邮箱/电话唯一性
 - 如有冲突，弹出选择对话框列出已有用户
 - 可选择"继续创建"或"选择已有用户"
+- **手机号已注册（#2025 D2 裁定）**：不再报 409 冲突错误；系统向该手机号发送验证码，归属确认后**复用既有用户 + 新增组织 relation**（一人一记录），无需另建账户
 创建成功，对话框关闭，列表刷新
 
 ### 4.2.3 编辑用户
