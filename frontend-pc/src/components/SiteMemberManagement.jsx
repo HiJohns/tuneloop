@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Table, Button, Space, message, Tag, Popconfirm, Modal, Input, Select, Checkbox, Typography, Alert } from 'antd';
-import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, SearchOutlined, UserAddOutlined } from '@ant-design/icons';
 import api from '../services/api';
 import { formatBeijingDate } from '../utils/date';
 import { adminApi } from '../services/api';
@@ -33,6 +33,9 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [inviteVisible, setInviteVisible] = useState(false);
+  const [invite, setInvite] = useState(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [adding, setAdding] = useState(false);
   const [availableRoles, setAvailableRoles] = useState([]);
@@ -339,7 +342,53 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
         }}>
           添加成员
         </Button>
+        {/* #2031: 邀请加入——管理员只发码，本人登录后自助加入（一人一号） */}
+        <Button icon={<UserAddOutlined />} loading={inviteLoading} onClick={async () => {
+          setInviteLoading(true);
+          try {
+            const resp = await api.post(`${membersBase}/${siteId}/invites`, { role: 'site_member' });
+            if (resp.code === 20100) {
+              setInvite(resp.data);
+              setInviteVisible(true);
+            } else {
+              message.error(resp.message || '生成邀请码失败');
+            }
+          } catch (e) {
+            message.error('生成邀请码失败');
+          }
+          setInviteLoading(false);
+        }}>
+          邀请加入
+        </Button>
       </div>
+
+      <Modal
+        title="邀请加入"
+        open={inviteVisible}
+        onCancel={() => setInviteVisible(false)}
+        footer={null}
+        width={460}
+      >
+        {invite && (
+          <div>
+            <Alert
+              type="info"
+              showIcon
+              message="邀请码（7 天有效，一次性）"
+              description="请把邀请码发给本人。本人在小程序「我的 → 加入网点」输入邀请码即可加入；管理员不代挂（一人一号）。"
+              style={{ marginBottom: 16 }}
+            />
+            <div style={{ textAlign: 'center', margin: '8px 0 16px' }}>
+              <Typography.Title level={2} copyable style={{ letterSpacing: 6, margin: 0 }}>
+                {invite.code}
+              </Typography.Title>
+            </div>
+            <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+              网点：{invite.site_name}　角色：{ROLE_NAMES[invite.role] || invite.role}
+            </Typography.Paragraph>
+          </div>
+        )}
+      </Modal>
 
       <Modal
         title="添加成员"
