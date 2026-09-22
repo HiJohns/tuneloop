@@ -27,8 +27,8 @@ Tuneloop 的 `IAMClaims` 结构体中同时有 `Oid` 和 `Gid`。`Gid` 在 IAM J
 
 1. **一人一记录**：一个自然人 = 一条 `users` 记录（不再为同一人建多户）
 2. **微信号 ↔ 用户 = 一对多（绑定表）**：`wx_user_bindings`（openid, user_id）为**唯一权威来源**；`users.wx_openid` 已废弃删除（#2019）。同一 openid 可绑定多个历史账户（兼容期），新流程按一人一记录收敛
-3. **多身份 = 多组织 relation**：顾客/网点员工/商户管理员/维修师傅均为「用户 ↔ 组织」的 `user_org_relations`，同一用户可有多个
-4. **顾客身份 = 零权限职能角色（B1,#2027）**：`customer` 职能角色附着在用户「顶层组织 member 关系」的 `functional_roles` 上；bootstrap 为每个 namespace 播种 `customer` 角色模板（零权限）；**不建独立顾客组织**（顶层组织是租户根，全员 member，不能当顾客组织）
+3. **多身份**：员工/商户管理员/维修师傅 = 「用户 ↔ 组织」的 `user_org_relations`；**顾客 = 根组织（namespace primary org，即顶层组织）member 关系上的 `customer` 职能角色**（B1，**非独立组织**）。同一用户可同时具备
+4. **顾客身份 = 零权限职能角色（B1,#2027）**：`customer` 职能角色附着在用户「**根组织**（namespace primary org）member 关系」的 `functional_roles` 上；bootstrap 为每个 namespace 播种 `customer` 角色模板（零权限）；**不建独立顾客组织**（根组织全员 member，不能当顾客组织）
 5. **组织上下文切换**：微信登录返回 `contexts[]{org_id, org_name, label}`；选择某上下文 → 按其 relation 签发 JWT；「切换账户」= 切换组织上下文
 6. **删除 = 解除关联/标记删除**：网点删 relation、商户级联、系统管理员标记删除（记录保留、可重新加回）
 
@@ -38,7 +38,7 @@ Tuneloop 的 `IAMClaims` 结构体中同时有 `Oid` 和 `Gid`。`Gid` 在 IAM J
 |---|------|------|
 | **D1** | 顾客上下文 JWT **tid 保持空** | 顾客身份（`customer` 角色）仅用于身份归属/切换展示，**不改变数据隔离模型**（#688/#833/#1579 地基不动）；顾客仍以 `oid`/`tid` 空、从 instrument/order 反推租户的方式工作，`/api/user*` 保持 userOptionalAuth |
 | **D2** | 手机号已注册时添加成员 → **管理员信任制（无验证，直接复用）** | 不再 409；按管理员录入的标识直接**复用用户 + 新增 relation**（一人一记录）。当前无 SMS provider（beaconiam 仅 SMTP），**不引入短信验证**；将来接入 SMS 后可升级为验证码确认制。同一系统内既有用户绑定即时生效（O-02） |
-| **B1** | 顾客身份用**角色**而非组织 | `customer` 职能角色（零权限）附着在既有顶层组织 `member` 关系上。因载体关系是 `member`（`wxAccountPayload` 显式跳过）→ **D1 自动满足、隔离零改动**。授予：会员注册 / 「注册为顾客」；**管理员建户不给**。撤销 = 移除角色（D4） |
+| **B1** | 顾客身份用**角色**而非组织 | `customer` 职能角色（零权限）附着在既有**根组织** `member` 关系上。因载体关系是 `member`（`wxAccountPayload` 显式跳过）→ **D1 自动满足、隔离零改动**。授予：会员注册 / 「注册为顾客」；**管理员建户不给**。撤销 = 移除角色（D4） |
 | **D3** | 被标记删除用户再次微信登录 → **重新激活原户** | 保留业务数据归属，避免归属再分裂（不新建户） |
 | **D4** | 删除 = **标记删除 + 解除关联** | relation 删除（网点）/商户级联/系统管理员标记删除；用户记录保留、可重新加回 |
 | （衔接） | 解绑微信 → **删除绑定行**（#2020） | `wx_user_bindings` 为权威源，解绑必须落在此表 |
@@ -46,7 +46,7 @@ Tuneloop 的 `IAMClaims` 结构体中同时有 `Oid` 和 `Gid`。`Gid` 在 IAM J
 ### 关键约定
 
 - **切换账户页展示**：`组织名 + 角色标签`（顾客 / 海淀店员工），顶部 greeting「欢迎 {name}」；不再展示「账户昵称」语义（一人一记录）
-- **顾客标签**：无组织标签者显示「顾客」；有组织者显示 `{org_name} + {角色标签}`（角色映射 site_admin/member→员工，merchant_admin→商户管理员，repair_technician→维修师傅）
+- **顾客标签**：持有 `customer` 角色者显示「顾客」；组织上下文显示 `{org_name} + {角色标签}`（site_admin/member→员工，merchant_admin→商户管理员，repair_technician→维修师傅）
 - **兼容期**：存量多户（同一 openid 多 user）在 #2029 合并前保持双形态可用；`wx-accounts` 返回旧形态时前端需兼容
 
 ## 微信小程序登录流程

@@ -168,6 +168,7 @@
 }
 ```
 - 0 上下文 → `has_pending_registration` 决定「继续完成注册」/「注册为顾客」
+- **顾客上下文派生（B1）**：非组织上下文——当用户持有 `customer` 职能角色（附着于其根组织 `member` 关系）时输出 `{org_id:"", label:"顾客"}`；签发时 tid 保持空
 - 1 上下文 → 前端可直接 `wx-login-select`
 - ≥2 上下文 → 进入 `/account-select` 组织上下文选择页
 
