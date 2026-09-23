@@ -1036,6 +1036,87 @@ GET /api/confirmation-sessions/:id
 
 ---
 
+### 5.5.1 创建乐器
+
+**接口**: `POST /api/instruments`
+
+**权限**: `instrument:create`（main.go:389）
+
+**请求体**（`CreateInstrumentRequest`，仅 `category_id` 必填）:
+```json
+{
+  "category_id": "cat-001",
+  "level_id": "lvl-professional",
+  "sn": "SN20260701-001",
+  "site_id": "site-001",
+  "status": "active",
+  "description": "专业级立式钢琴...",
+  "base_daily_rate": 45,
+  "total_price": 5000,
+  "deposit": 300,
+  "pricing": {
+    "daily_rent": 45,
+    "deposit": 300,
+    "overdue_daily_fee": 45
+  },
+  "video": "",
+  "poster": "",
+  "images": [],
+  "specifications": [{"key": "material", "value": "实木"}],
+  "properties": {"品牌": ["雅马哈"], "型号": ["U1"]}
+}
+```
+
+**金额单位（#2045 契约，对齐 #1750/#1755/#1987）**:
+
+| 请求字段 | 单位 | 后端处理 |
+|---------|------|---------|
+| `base_daily_rate` | **元** | `ToCentsPtr` ×100 存分（instrument.go:416-418） |
+| `total_price` | **元** | `ToCentsPtr` ×100 存分（instrument.go:419-421） |
+| `deposit` | **元** | 仅 `> 0` 时 `ToCentsPtr` 落 `instruments.deposit` 列（instrument.go:424-426）；0/缺省 → 列保持默认，回退 `deposit_mode` 配置（**不支持 0 押金**） |
+| `pricing` | **元** | 整体 JSON 序列化存 `instruments.pricing` JSONB（instrument.go:401-411） |
+
+**成功响应**:
+```json
+{ "code": 20100, "data": { "id": "instr-uuid", "sn": "SN20260701-001" } }
+```
+
+**错误响应**:
+```json
+{ "code": 40002, "message": "category_id is required" }
+{ "code": 40005, "message": "invalid pricing format: ..." }
+{ "code": 50000, "message": "failed to create instrument: ..." }
+```
+
+---
+
+### 5.5.2 更新乐器
+
+**接口**: `PUT /api/instruments/:id`
+
+**权限**: `instrument:update`（main.go:371）
+
+**请求体**（`UpdateInstrumentRequest`，partial update）：**指针字段区分「未传（nil，不更新）」与「显式清空（空串/0，需谨慎）」**。字段同 `POST` 减去 `category_id` 必填约束。`pricing` / `base_daily_rate` / `total_price` / `deposit` 的处理：
+- `pricing`：传入即**无条件覆盖**整个 JSONB（instrument.go:671-674）——必须携带完整 pricing 对象，仅改部分键会导致其余键丢失。
+- `base_daily_rate` / `total_price`：传入且 `> 0` 时按 **元** `ToCentsPtr` 转分更新（instrument.go:677-681）。
+- `deposit`：仅 `> 0` 时更新 `instruments.deposit` 列（instrument.go:622-624）。
+- `properties`：传入即删除重建乐器属性关联（instrument.go:733-743）。
+
+**成功响应**:
+```json
+{ "code": 20000, "data": { "id": "instr-uuid", "sn": "SN20260701-001" } }
+```
+
+**错误响应**:
+```json
+{ "code": 50001, "message": "instrument is missing tenant_id" }
+{ "code": 50000, "message": "failed to update instrument: ..." }
+```
+
+**⚠️ 乐器金额单位契约（#2045）**：**请求（POST/PUT）输入均为元**、后端 `ToCentsPtr` 转分存库；**GET 读取**（`GET /api/instruments/:id`）顶层 `base_daily_rate` / `total_price` 返回**分**（api.go:156-157），顶层**无 `deposit` 字段**（押金仅在 `pricing` JSONB 内，元语义）；`pricing` JSONB（L829 契约矩阵）为**元**语义。**前端展示/回填必须走共用函数 `toYuan` 分→元，禁止内联 `/100`**（frontend-pc/src/utils/money.js）。全链路：DB 分 ⇄ GET 分 → toYuan(元) → PUT 元 → ToCentsPtr(分)。
+
+---
+
 ### 5.6 阶梯定价方案
 
 **接口**: `GET /api/instruments/:id/pricing`
