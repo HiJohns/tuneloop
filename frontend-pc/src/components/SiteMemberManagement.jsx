@@ -251,20 +251,33 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
     {
       title: '角色',
       key: 'role',
-      render: (_, record) => (
-        <Select
-          value={roleToCode(record.role)}
-          onChange={(val) => handleUpdateRole(record.user_id, val)}
-          size="small"
-          style={{ width: 140 }}
-        >
-          {availableRoles.map(r => (
-            <Select.Option key={r.code} value={r.code}>
-              {r.name}
-            </Select.Option>
-          ))}
-        </Select>
-      ),
+      render: (_, record) => {
+        // #2034: 展示全部角色；主角色用 Select 可切换，其余以 Tag 呈现
+        const primary = roleToCode(record.role)
+        const all = (Array.isArray(record.roles) && record.roles.length > 0)
+          ? record.roles.map(roleToCode)
+          : [primary]
+        const extras = all.filter(r => r && r !== primary)
+        return (
+          <Space size={4} wrap>
+            <Select
+              value={primary}
+              onChange={(val) => handleUpdateRole(record.user_id, val)}
+              size="small"
+              style={{ width: 140 }}
+            >
+              {availableRoles.map(r => (
+                <Select.Option key={r.code} value={r.code}>
+                  {r.name}
+                </Select.Option>
+              ))}
+            </Select>
+            {extras.map(r => (
+              <Tag key={r} color={ROLE_COLORS[r] || 'default'}>{ROLE_NAMES[r] || r}</Tag>
+            ))}
+          </Space>
+        )
+      },
     },
     {
       title: '加入时间',

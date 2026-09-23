@@ -36,11 +36,12 @@ func (h *SiteMemberHandler) ListMembers(c *gin.Context) {
 		UserName  string    `json:"user_name"`
 		UserEmail string    `json:"user_email"`
 		Role      string    `json:"role"`
+		Roles     []string  `json:"roles"` // #2034 多重角色
 		CreatedAt time.Time `json:"created_at"`
 	}
 
 	db.Table("site_members").
-		Select("site_members.user_id, users.name as user_name, users.email as user_email, site_members.role, site_members.created_at").
+		Select("site_members.user_id, users.name as user_name, users.email as user_email, site_members.role, site_members.roles, site_members.created_at").
 		Joins("JOIN users ON users.id = site_members.user_id").
 		Where("site_members.site_id = ? AND site_members.tenant_id = ?", siteID, tenantID).
 		Scan(&members)
