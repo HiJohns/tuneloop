@@ -63,6 +63,15 @@ export default function Messages() {
   }
 
   const handleClick = (notif) => {
+    // #2041: 实名认证相关通知 → 跳「我的」（待提交订单入口在此，可继续提交）
+    if (notif.type === 'id_verify') {
+      if (env.isMiniProgram) {
+        Taro.switchTab({ url: '/pages-weapp/profile/index' })
+      } else {
+        navigate('/profile')
+      }
+      return
+    }
     if (env.isMiniProgram) {
       Taro.navigateTo({ url: `/pages-weapp/message-detail/index?id=${notif.id}` })
     } else {
