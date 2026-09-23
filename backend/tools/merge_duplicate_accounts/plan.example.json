@@ -1,5 +1,7 @@
 {
-  "_comment": "dry-run: IAM_DSN=... TUNELOOP_DSN=... go run ./tools/merge_duplicate_accounts -plan plan.json",
+  "_comment": "IAM_DSN=... TUNELOOP_DSN=... go run ./tools/merge_duplicate_accounts -plan plan.json  (加 -apply 执行)",
+  "transfer_relations": true,
+  "grant_customer": true,
   "groups": [
     {
       "openid": "<openid-1>",
@@ -8,7 +10,6 @@
     }
   ],
   "repoint": [
-    { "table": "orders", "column": "user_id" },
-    { "table": "notifications", "column": "user_id" }
+    { "table": "orders", "column": "user_id" }
   ]
 }
