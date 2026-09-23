@@ -7,7 +7,8 @@ import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { api, sitesApi, instrumentsApi, staffApi, propertiesApi } from '../../../services/api'
+import { api, sitesApi, instrumentsApi, staffApi, propertiesApi, getToken } from '../../../services/api'
+import { toYuan } from '../../../utils/money'
 import { checkPermission } from '../../../config/menuPermissions'
 
 const { Option } = Select
@@ -520,8 +521,8 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
           video: instrumentData.video,
           poster: instrumentData.poster,
           status: instrumentData.status || 'active',
-          base_daily_rate: instrumentData.base_daily_rate,
-          total_price: instrumentData.total_price,
+          base_daily_rate: toYuan(instrumentData.base_daily_rate),
+          total_price: toYuan(instrumentData.total_price),
         })
 
         if (instrumentData.video) {
@@ -976,6 +977,15 @@ const loadCategoryChildren = async (node) => {
         }
       }
       
+      // 解析既有 pricing（编辑模式）用于押金空值兜底（#2045：不支持 0 押金，防 JSONB 覆盖丢键）
+      const existingPricingData = (initialData || loadedData)?.pricing
+      const existingDeposit = (() => {
+        if (!existingPricingData) return undefined
+        const parsed = typeof existingPricingData === 'string' ? JSON.parse(existingPricingData) : existingPricingData
+        const arr = Array.isArray(parsed) ? parsed : [parsed]
+        return arr[0]?.deposit
+      })()
+
       // Prepare form data - add sn, category_id, site_id, level_id, properties
       const formData = {
         sn: values.sn,
@@ -987,7 +997,7 @@ const loadCategoryChildren = async (node) => {
         total_price: values.total_price || 0,
         pricing: {
           daily_rent: values.base_daily_rate || 0,
-          deposit: values.deposit || undefined,
+          deposit: Number(values.deposit) > 0 ? values.deposit : (existingDeposit ?? undefined),
           overdue_daily_fee: values.overdue_daily_fee || values.base_daily_rate || 0,
         },
         images: images,
@@ -1021,6 +1031,7 @@ const loadCategoryChildren = async (node) => {
         method,
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getToken()}`,
         },
         body: JSON.stringify(formData)
       })
