@@ -295,9 +295,17 @@ function SingleCheckout({ id, nav }) {
         }
       } else {
         if (resp.code === 40310) {
-          // #2040: 身份前置未满足 → 引导完成实名
-          const go = await dialog.confirm((resp.message || '请先完成实名认证') + '，是否前往完成实名认证？')
-          if (go) Taro.navigateTo({ url: '/pages-weapp/profile/edit/index' })
+          // #2040/#2041: 缓存订单 → 引导实名（通知回跳继续提交）
+          const go = await dialog.confirm((resp.message || '请先完成实名认证') + '，订单已为您暂存，是否前往完成实名认证？')
+          if (go) {
+            try {
+              await apiFetch(`${env.apiBaseUrl}/user/pending-orders`, {
+                method: 'POST',
+                body: JSON.stringify({ payload: body }),
+              })
+            } catch { /* 缓存失败不阻断引导 */ }
+            Taro.navigateTo({ url: '/pages-weapp/profile/edit/index' })
+          }
         } else {
           dialog.alert('下单失败: ' + (resolveErrorMessage(resp, '未知错误')))
         }
@@ -964,9 +972,17 @@ function BatchCheckout({ nav }) {
         }
       } else {
         if (orderResp.code === 40310) {
-          // #2040: 身份前置未满足 → 引导完成实名
-          const go = await dialog.confirm((orderResp.message || '请先完成实名认证') + '，是否前往完成实名认证？')
-          if (go) Taro.navigateTo({ url: '/pages-weapp/profile/edit/index' })
+          // #2040/#2041: 缓存订单 → 引导实名（通知回跳继续提交）
+          const go = await dialog.confirm((orderResp.message || '请先完成实名认证') + '，订单已为您暂存，是否前往完成实名认证？')
+          if (go) {
+            try {
+              await apiFetch(`${env.apiBaseUrl}/user/pending-orders`, {
+                method: 'POST',
+                body: JSON.stringify({ payload: body }),
+              })
+            } catch { /* 缓存失败不阻断引导 */ }
+            Taro.navigateTo({ url: '/pages-weapp/profile/edit/index' })
+          }
         } else {
           dialog.alert('下单失败: ' + (resolveErrorMessage(orderResp, '未知错误')))
         }

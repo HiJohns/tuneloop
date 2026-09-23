@@ -370,9 +370,17 @@ function SingleCheckout({ id, navigate }) {
           navigate('/success', { replace: true })
         }
       } else if (resp.code === 40310) {
-        // #2040: 身份前置未满足 → 引导完成实名（S3 将改为缓存订单）
-        const go = await dialog.confirm((resp.message || '请先完成实名认证') + '，是否前往完成实名认证？')
-        if (go) navigate('/profile/edit')
+        // #2040/#2041: 身份前置未满足 → 缓存订单 → 引导完成实名 → 通知回跳继续提交
+        const go = await dialog.confirm((resp.message || '请先完成实名认证') + '，订单已为您暂存，是否前往完成实名认证？')
+        if (go) {
+          try {
+            await apiFetch(`${env.apiBaseUrl}/user/pending-orders`, {
+              method: 'POST',
+              body: JSON.stringify({ payload: body }),
+            })
+          } catch { /* 缓存失败不阻断引导 */ }
+          navigate('/profile/edit')
+        }
       } else {
         dialog.alert('下单失败: ' + (resolveErrorMessage(resp, '未知错误')))
       }
@@ -1033,9 +1041,17 @@ function BatchCheckout({ navigate }) {
             dialog.alert('下单成功，但未生成订单')
           }
         } else if (orderResp.code === 40310) {
-          // #2040: 身份前置未满足 → 引导完成实名
-          const go = await dialog.confirm((orderResp.message || '请先完成实名认证') + '，是否前往完成实名认证？')
-          if (go) navigate('/profile/edit')
+          // #2040/#2041: 缓存订单 → 引导实名（通知回跳继续提交）
+          const go = await dialog.confirm((orderResp.message || '请先完成实名认证') + '，订单已为您暂存，是否前往完成实名认证？')
+          if (go) {
+            try {
+              await apiFetch(`${env.apiBaseUrl}/user/pending-orders`, {
+                method: 'POST',
+                body: JSON.stringify({ payload: body }),
+              })
+            } catch { /* 缓存失败不阻断引导 */ }
+            navigate('/profile/edit')
+          }
         } else {
           dialog.alert('下单失败: ' + (resolveErrorMessage(orderResp, '未知错误')))
         }
