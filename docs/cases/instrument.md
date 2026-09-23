@@ -65,6 +65,36 @@ steps:
       - {method: DELETE, path: /instruments/:id/media/key/:storage_key}
 ---
 
+# I-00 统一乐器管理页（乐器列表 × 库存监控 合并，#2043）
+
+> 用户裁定：原「乐器列表」(`/instruments/list`) 与「库存监控」(`/site/stock`) **合并为一个菜单项「乐器管理」**；两旧路径保留为**入口别名**。
+
+## 入口与链接保全
+- 主入口：`/instruments/list` 与 `/site/stock`（**别名，同页**）；**透传 `?status=`**
+- Dashboard 关联（不得破坏）：`/site/stock?status=rented` / `?status=available` / `?status=<raw>`
+- 详情：`/site/stock/:id` 与 `/instruments/detail/:id` 收敛为**统一详情页**（旧路径重定向兼容）
+
+## 列表列
+图片 / **识别码(sn)** / 分类 / 分级 / 网点 / 状态 / **估值（按权限显示）** / 加入时间 / 操作
+
+## 操作（按 cusPerm 门控，无权限**不渲染**）
+| 操作 | 所需权限 |
+|------|---------|
+| 详情 / 编辑 | `instrument:read` / `instrument:update` |
+| 丢失 / 恢复 | `instrument:update` |
+| 删除 / 批量删除 | `instrument:delete` |
+| 批量设价 | `RequireRole(ADMIN/OWNER/site_admin)` |
+| 导出 / 批量导入 | `instrument:read` / `instrument:create` |
+
+## 状态范围按角色
+- 员工默认可见：**可用 / 在租 / 维护**
+- 管理员增量可见：**下架 / 已出售 / 丢失**
+
+## 字段可见性
+- **估值**：管理员 / 商户管理员可见；员工隐藏
+
+---
+
 # I-01 乐器录入
 
 ## 前置条件

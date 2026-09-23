@@ -124,6 +124,19 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | `order:manage` | `order:update` + `order:cancel` | 拆为两个 |
 | `order:pay` / `order:pickup` / `order:return` | `order:update` | 归入订单编辑 |
 
+### 3.2.1 乐器管理页 操作-权限矩阵（#2043）
+
+| 操作 | 所需权限 | 备注 |
+|------|---------|------|
+| 查看列表/详情 | `instrument:read` | + 数据范围（本网点/商户） |
+| 编辑（含动态属性） | `instrument:update` | |
+| 丢失 / 恢复 | `instrument:update` | 原库存监控页动作并入 |
+| 删除 / 批量删除 | `instrument:delete` | |
+| 批量设价 | `RequireRole(ADMIN/OWNER/site_admin)` | 管理员专属 |
+| 导出 / 批量导入 | `instrument:read` / `instrument:create` | |
+| 字段「估值」可见 | 管理员 / 商户管理员 | 员工隐藏 |
+| 状态范围可见增量（下架/已出售/丢失） | 管理员 | 员工默认 可用/在租/维护 |
+
 ### 3.3 权限域分组
 
 | 权限域 | cus_perm 数量 | 权限代码 |

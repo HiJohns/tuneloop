@@ -914,6 +914,12 @@ GET /api/confirmation-sessions/:id
 
 ---
 
+### 5.4.0 乐器列表查询与字段（#2043）
+
+- **`GET /api/instruments`**：`?status=` 取值 `available|rented|maintenance|lost|delisted|sold`（可多值/逗号分隔）；分页 `page`/`page_size`
+- **返回字段（关键）**：`sn`（**识别码**，前端「识别码」列）、`site_name`（所属网点）、`category_name`、`level_name`、`stock_status`(=`status`)、`images`/`thumbnail`、`base_daily_rate`（前端「估值」语义）
+- ⚠️ 该接口**不返回 `name`**：列表「名称」列应显示**识别码(sn)**（#2043 合并页据此对齐）
+
 ### 5.4 乐器列表
 
 **接口**: `GET /api/instruments`
