@@ -192,6 +192,27 @@ export default function InstrumentStock() {
     }
   }
 
+  // #2043: 导出 CSV（字段选择模态留在乐器档案管理页；此处按当前状态过滤直接导出）
+  const handleExport = async () => {
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
+      const params = new URLSearchParams()
+      if (statusParam) params.set('status', statusParam)
+      const resp = await fetch(`${API_BASE_URL}/instruments/export?${params.toString()}`)
+      if (!resp.ok) throw new Error('导出失败')
+      const blob = await resp.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `instruments_export_${new Date().toISOString().split('T')[0]}.csv`
+      a.click()
+      window.URL.revokeObjectURL(url)
+      message.success('导出成功')
+    } catch (e) {
+      message.error(e.message || '导出失败')
+    }
+  }
+
   // #2043: 批量删除（需 instrument:delete；工具栏按钮门控）
   const batchDelete = async () => {
     if (selectedRowKeys.length === 0) {
@@ -342,6 +363,12 @@ export default function InstrumentStock() {
         <PermissionGate code="instrument:create">
           {view === 'stock' && (
             <Button onClick={() => navigate('/instruments/list')}>乐器档案管理</Button>
+          )}
+        </PermissionGate>
+        {/* #2043: 导出 CSV（需 instrument:read） */}
+        <PermissionGate code="instrument:read">
+          {view === 'stock' && (
+            <Button onClick={handleExport}>导出 CSV</Button>
           )}
         </PermissionGate>
         {/* #2043: 批量导入（需 instrument:create） */}
