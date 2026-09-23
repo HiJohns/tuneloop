@@ -826,7 +826,7 @@ GET /api/confirmation-sessions/:id
 }
 ```
 
-> **金额单位契约矩阵（#1750/#1755）**：`base_daily_rate`（分）、`daily_rate_cents`（分，权威展示字段）、`pricing` JSONB（元语义，历史写入可能为分——勿用于金额计算）、`pricing-v2`（**分**，#1755 迁移：base_daily_rate/tiers.daily_rate/deposit/shipping_fee 均为分）、`search` 的 `daily_rate_cents`（分）。前端展示价格一律消费分字段 `/100`。
+> **金额单位契约矩阵（#1750/#1755/#2047）**：`base_daily_rate`（分）、`daily_rate_cents`（分，权威展示字段）、`pricing` JSONB（元语义，历史写入可能为分——勿用于金额计算）、`pricing-v2`（**分**，#1755 迁移：base_daily_rate/tiers.daily_rate/deposit/shipping_fee 均为分）、`search` 的 `daily_rate_cents`（分）。**写请求（POST/PUT）输入均为元**：单条 `PUT /instruments/:id` 与批量 `PUT /instruments/batch-pricing` 的 `base_daily_rate` 均为**元**，后端 `ToCentsPtr` ×100 转分存库。前端展示价格一律消费分字段 `/100`。
 
 ### 5.1.2 乐器详情
 

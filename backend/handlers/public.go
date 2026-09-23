@@ -430,22 +430,15 @@ func GetPublicInstrumentPricingV2(c *gin.Context) {
 		return
 	}
 
-	// Fallback: extract base_daily_rate from JSONB pricing field (object format).
-	// Legacy array format is no longer produced (#1487).
-	// #1743 统一解析：pricing JSONB 为元语义；元 → Cents(分) 必须 ×100，
-	// 直接 ToCentsPtr 会把元值当分存（100 倍错误）。
-	if instrument.BaseDailyRate == nil {
-		pf := services.ParseInstrumentPricing(instrument.Pricing)
-		if pf.DailyRent > 0 {
-			dailyRentCents := models.FromYuan(pf.DailyRent)
-			instrument.BaseDailyRate = &dailyRentCents
-		}
-	}
-
-	if instrument.BaseDailyRate == nil || *instrument.BaseDailyRate <= 0 {
+	// #2047: 统一用 resolveDailyRateCents 单点解析（>0 才认定）。
+	// ≤0 时回退 pricing JSONB daily_rent（元语义），语义与列表端对齐。
+	rate := resolveDailyRateCents(instrument)
+	if rate <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "instrument has no base daily rate configured"})
 		return
 	}
+	rateCents := models.Cents(rate)
+	instrument.BaseDailyRate = &rateCents
 
 	var config models.MerchantPricingConfig
 	if err := db.Where("tenant_id = ?", instrument.TenantID).First(&config).Error; err != nil {

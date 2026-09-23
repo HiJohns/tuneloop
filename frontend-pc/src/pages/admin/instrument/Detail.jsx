@@ -475,9 +475,14 @@ export default function InstrumentDetail() {
                             if (res.code === 20000) {
                               message.success('价格已更新')
                               setEditingPricing(false)
-                              // Refresh pricingV2
-                              const r = await pricingApi.getInstrumentPricingV2(id)
-                              if (r.code === 20000) setPricingV2(r.data)
+                              // #2047: 刷新 pricingV2 独立于保存 try/catch——保存成功即成功，
+                              // 刷新失败只告警，不再弹出误导性的「保存失败」。
+                              try {
+                                const r = await pricingApi.getInstrumentPricingV2(id)
+                                if (r.code === 20000) setPricingV2(r.data)
+                              } catch (e) {
+                                console.warn('[pricing refresh] failed', e)
+                              }
                             } else {
                               message.error(res.message || '保存失败')
                             }

@@ -201,8 +201,8 @@ func BatchSetInstrumentPricing(c *gin.Context) {
 
 	for _, item := range req.Items {
 		updates := map[string]interface{}{}
-		if item.BaseDailyRate != nil {
-			updates["base_daily_rate"] = *item.BaseDailyRate
+		if item.BaseDailyRate != nil && *item.BaseDailyRate > 0 {
+			updates["base_daily_rate"] = models.ToCentsPtr(item.BaseDailyRate)
 		}
 		if item.Overrides != nil {
 			ovJSON, err := json.Marshal(item.Overrides)
@@ -270,13 +270,18 @@ func GetInstrumentPricingV2(c *gin.Context) {
 		return
 	}
 
-	if instrument.BaseDailyRate == nil || *instrument.BaseDailyRate <= 0 {
+	// #2047: 统一用 resolveDailyRateCents 单点解析（>0 才认定）。
+	// ≤0 时回退 pricing JSONB daily_rent（元语义），语义与列表端对齐。
+	rate := resolveDailyRateCents(instrument)
+	if rate <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40004,
 			"message": "instrument has no base daily rate configured",
 		})
 		return
 	}
+	rateCents := models.Cents(rate)
+	instrument.BaseDailyRate = &rateCents
 
 	// Fetch merchant pricing config
 	var config models.MerchantPricingConfig
