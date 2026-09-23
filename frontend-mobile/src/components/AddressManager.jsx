@@ -64,7 +64,9 @@ export default function AddressManager({ user }) {
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('确认删除此地址？')) return
+    // #2022: weapp 无全局 confirm → 统一走平台 dialog.confirm（跨端）
+    const ok = await dialog.confirm('确认删除此地址？')
+    if (!ok) return
     try {
       const res = await addressesApi.delete(id)
       if (res.code === 20000) fetchAddresses()
