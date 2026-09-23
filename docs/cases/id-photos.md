@@ -249,6 +249,12 @@ ALTER TABLE users ADD COLUMN face_verified_at TIMESTAMPTZ;  -- #1787 人脸识�
 
 ## 关键规则
 
+### 审核提示（#2044）
+
+- 注册页（H5 `Register.jsx` / weapp `ProfileComplete.jsx`）证件上传区下方必须展示提示：
+  「已上传的证件照将由平台员工**人工审核**（约 1-2 个工作日），审核结果会通过**系统消息**通知您」
+- 目的：避免用户上传后不知需审核/不知何时完成实名
+
 ### 上传规则
 - 仅接受 JPEG、PNG、WebP
 - 单张 ≤ 5MB

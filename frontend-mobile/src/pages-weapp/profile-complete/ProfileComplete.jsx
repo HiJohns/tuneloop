@@ -297,6 +297,11 @@ export default function ProfileComplete() {
       <Text style={{ fontSize: 12, color: '#a16207', width: '100%', marginBottom: 8, lineHeight: '18px' }}>
         （学生证/教职工证/工作证等；类型由平台审核时指定，可用于免押金等政策）
       </Text>
+      {/* #2044: 审核提示（上传后用户不知会送审） */}
+      <Text style={{ fontSize: 12, color: '#71717a', width: '100%', marginBottom: 24, lineHeight: '18px' }}>
+        已上传的证件照将由平台员工人工审核（约 1-2 个工作日），审核结果会通过系统消息通知您。
+      </Text>
+
       <View style={{ display: 'flex', width: '100%', marginBottom: 24 }}>
         <IdPhotoUploader ref={idPhotoOtherRef} side="other" defer sessionUpload={{ sessionId: resumeSid || undefined }} leftAligned onSelect={() => setOtherPicked(true)} onClear={() => setOtherPicked(false)} />
       </View>

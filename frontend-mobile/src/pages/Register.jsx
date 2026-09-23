@@ -200,6 +200,13 @@ export default function Register() {
           </View>
         </View>
 
+        {/* #2044: 审核提示 */}
+        <View className="mb-4">
+          <Text className="text-xs text-zinc-500 leading-relaxed">
+            已上传的证件照将由平台员工人工审核（约 1-2 个工作日），审核结果会通过系统消息通知您。
+          </Text>
+        </View>
+
         {/* #1923: 协议同意（必选） */}
         <View className="flex items-start gap-2 mb-3 px-1">
           <View onClick={() => setAgreed(v => !v)}
