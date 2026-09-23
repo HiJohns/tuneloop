@@ -4,6 +4,7 @@ import { Table, Tag, Button, Space, Spin, Modal, Form, Input, InputNumber, Selec
 import { EyeOutlined, EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined } from '@ant-design/icons'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { inventoryApi, lossApi, api } from '../services/api'
+import PermissionGate from '../components/PermissionGate'
 
 const statusColors = {
   "在租": "green",
@@ -70,19 +71,13 @@ export default function InstrumentStock() {
       }
     },
     {
-      title: 'SN',
+      title: '识别码',
       dataIndex: 'sn',
       key: 'sn',
       width: 160,
       render: (sn, record) => (
         <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{sn || record.id?.slice(0, 8) || '-'}</span>
       )
-    },
-    {
-      title: '乐器名称',
-      dataIndex: 'name',
-      key: 'name',
-      width: 180,
     },
     {
       title: '分类',
@@ -124,14 +119,14 @@ export default function InstrumentStock() {
     },
     {
       title: '所属网点',
-      dataIndex: 'site',
-      key: 'site',
+      dataIndex: 'site_name',
+      key: 'site_name',
       width: 150,
     },
     {
       title: '估值',
-      dataIndex: 'value',
-      key: 'value',
+      dataIndex: 'base_daily_rate',
+      key: 'base_daily_rate',
       width: 120,
       align: 'right',
       render: (value) => value ? `¥${value.toLocaleString()}` : '-'
@@ -144,15 +139,20 @@ export default function InstrumentStock() {
         <Space>
           <Button type="link" size="small" icon={<EyeOutlined />}
             onClick={(e) => { e.stopPropagation(); navigate(`/site/stock/${record.id}`) }}>详情</Button>
-          <Button type="link" size="small" icon={<EditOutlined />}
-            onClick={(e) => { e.stopPropagation(); navigate(`/instruments/list/edit/${record.id}`) }}>编辑</Button>
-          {record.status === 'lost' ? (
-            <Button type="link" size="small" icon={<RollbackOutlined />}
-              onClick={(e) => { e.stopPropagation(); openRestoreModal(record) }}>恢复</Button>
-          ) : (
-            <Button type="link" size="small" danger icon={<WarningOutlined />}
-              onClick={(e) => { e.stopPropagation(); openLostModal(record) }}>丢失</Button>
-          )}
+          {/* #2043: 编辑/丢失/恢复 需 instrument:update（无权限不渲染） */}
+          <PermissionGate code="instrument:update">
+            <Button type="link" size="small" icon={<EditOutlined />}
+              onClick={(e) => { e.stopPropagation(); navigate(`/instruments/list/edit/${record.id}`) }}>编辑</Button>
+          </PermissionGate>
+          <PermissionGate code="instrument:update">
+            {record.status === 'lost' ? (
+              <Button type="link" size="small" icon={<RollbackOutlined />}
+                onClick={(e) => { e.stopPropagation(); openRestoreModal(record) }}>恢复</Button>
+            ) : (
+              <Button type="link" size="small" danger icon={<WarningOutlined />}
+                onClick={(e) => { e.stopPropagation(); openLostModal(record) }}>丢失</Button>
+            )}
+          </PermissionGate>
         </Space>
       )
     }
