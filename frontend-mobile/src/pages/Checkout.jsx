@@ -11,7 +11,7 @@ import { formatBeijingDate } from '../utils/format'
 import regions from '../data/regions.json'
 import IdPhotoUploader from '../components/IdPhotoUploader'
 import VerifyWarningBar from '../components/VerifyWarningBar'
-import { fetchWaiverEligibility, waiverReasonText, downloadLetterTemplate, uploadLetterPhoto } from '../utils/depositWaiver'
+import { fetchWaiverEligibility, waiverReasonText, showWaiverIneligible, downloadLetterTemplate, uploadLetterPhoto } from '../utils/depositWaiver'
 
 function parseImages(images) {
   if (!images) return []
@@ -311,7 +311,7 @@ function SingleCheckout({ id, navigate }) {
     // #1867: eligibility + recommendation letter gates
     if (depositWaived) {
       if (waiver && !waiver.eligible) {
-        dialog.alert(waiverReasonText(waiver.reasons))
+        showWaiverIneligible(waiver.reasons, navigate)
         return
       }
       if (!letterUrl) {
@@ -967,7 +967,7 @@ function BatchCheckout({ navigate }) {
     // #1867: eligibility + recommendation letter gates
     if (depositWaived) {
       if (waiver && !waiver.eligible) {
-        dialog.alert(waiverReasonText(waiver.reasons))
+        showWaiverIneligible(waiver.reasons, navigate)
         return
       }
       if (!letterUrl) {

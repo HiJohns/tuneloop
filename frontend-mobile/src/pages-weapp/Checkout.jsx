@@ -5,7 +5,7 @@ import { View, Text, Image, Button, ScrollView, Input, Picker, Checkbox } from '
 import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, guarantorsApi, getCartKey , resolveErrorMessage } from '../services/api'
 import dayjs from 'dayjs'
 import { dialog, env, session, storage, eventBus } from '../platform'
-import { fetchWaiverEligibility, waiverReasonText, downloadLetterTemplate, uploadLetterPhoto } from '../utils/depositWaiver'
+import { fetchWaiverEligibility, waiverReasonText, showWaiverIneligible, downloadLetterTemplate, uploadLetterPhoto } from '../utils/depositWaiver'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
 import { formatBeijingDate } from '../utils/format'
 import regions from '../data/regions.json'
@@ -231,7 +231,7 @@ function SingleCheckout({ id, nav }) {
     // #1867: eligibility + recommendation letter gates
     if (depositWaived) {
       if (waiver && !waiver.eligible) {
-        dialog.alert(waiverReasonText(waiver.reasons))
+        showWaiverIneligible(waiver.reasons)
         return
       }
       if (!letterUrl) {
@@ -438,7 +438,7 @@ function SingleCheckout({ id, nav }) {
         {/* Deposit-free application (#1557) + #1867 eligibility gate */}
         <View style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12 }}>
           <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} onClick={() => {
-            if (waiver && !waiver.eligible) { dialog.alert(waiverReasonText(waiver.reasons)); return }
+            if (waiver && !waiver.eligible) { showWaiverIneligible(waiver.reasons); return }
             setDepositWaived(!depositWaived)
           }}>
             <Text style={{ fontWeight: '900', color: '#000' }}>申请免押金</Text>
@@ -891,7 +891,7 @@ function BatchCheckout({ nav }) {
     // #1867: eligibility + recommendation letter gates
     if (depositWaived) {
       if (waiver && !waiver.eligible) {
-        dialog.alert(waiverReasonText(waiver.reasons))
+        showWaiverIneligible(waiver.reasons)
         return
       }
       if (!letterUrl) {
@@ -1070,7 +1070,7 @@ function BatchCheckout({ nav }) {
 
           <View style={{ width: '100%', borderTop: '1px dashed #e4e4e7', paddingTop: 16, marginTop: 16 }}>
             <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }} onClick={() => {
-              if (waiver && !waiver.eligible) { dialog.alert(waiverReasonText(waiver.reasons)); return }
+              if (waiver && !waiver.eligible) { showWaiverIneligible(waiver.reasons); return }
               setDepositWaived(!depositWaived)
             }}>
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#6b7280' }}>申请免押金</Text>

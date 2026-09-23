@@ -34,6 +34,31 @@ export function waiverReasonText(reasons) {
   return reasons.map(r => REASON_COPY[r] || r).join('；')
 }
 
+// #2021: 免押不合格且原因含「未实名」时，引导本人完成实名认证（不再只有「确定」）
+export function isVerifyGateReason(reasons) {
+  return Array.isArray(reasons) && reasons.includes('face_not_verified')
+}
+
+export function goCompleteVerify(navigate) {
+  if (env.isMiniProgram) {
+    Taro.navigateTo({ url: '/pages-weapp/profile/edit/index' })
+  } else if (navigate) {
+    navigate('/profile/edit')
+  }
+}
+
+// 统一不合格提示：未实名 → 确认后跳实名；其余 → 普通提示
+export async function showWaiverIneligible(reasons, navigate) {
+  const text = waiverReasonText(reasons)
+  if (isVerifyGateReason(reasons)) {
+    const go = await dialog.confirm(`${text}，是否前往完成实名认证？`)
+    if (go) goCompleteVerify(navigate)
+    return
+  }
+  dialog.alert(text)
+}
+
+
 // Template PDF ships with the mobile static build (public/), served at the
 // mobile origin — same origin derivation as content image normalization.
 export function waiverTemplateUrl(baseUrl) {
