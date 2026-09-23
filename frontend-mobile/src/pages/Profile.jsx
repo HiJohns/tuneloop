@@ -15,6 +15,55 @@ function Badge({ count }) {
   )
 }
 
+function PendingOrdersModal({ visible, onClose, navigate }) {
+  const [list, setList] = useState([])
+  const [loading, setLoading] = useState(false)
+  useEffect(() => {
+    if (!visible) return
+    setLoading(true)
+    apiFetch(`${env.apiBaseUrl}/user/pending-orders`)
+      .then(r => r.json())
+      .then(res => { if (res.code === 20000) setList(res.data?.list || []) })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [visible])
+  const remove = async (id) => {
+    try {
+      await apiFetch(`${env.apiBaseUrl}/user/pending-orders/${id}`, { method: 'DELETE' })
+      setList(prev => prev.filter(x => x.id !== id))
+    } catch {}
+  }
+  if (!visible) return null
+  return (
+    <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.45)' }}>
+      <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 20, width: '88%', boxSizing: 'border-box', maxHeight: '70vh', overflow: 'auto' }}>
+        <Text style={{ fontSize: 17, fontWeight: '900', color: '#18181b', display: 'block', marginBottom: 12 }}>待提交订单</Text>
+        {loading ? (
+          <Text style={{ fontSize: 13, color: '#a1a1aa' }}>加载中...</Text>
+        ) : list.length === 0 ? (
+          <Text style={{ fontSize: 13, color: '#a1a1aa' }}>暂无待提交订单</Text>
+        ) : list.map(item => (
+          <View key={item.id} style={{ border: '1px solid #f4f4f5', borderRadius: 10, padding: 10, marginBottom: 8 }}>
+            <Text style={{ fontSize: 13, color: '#18181b', display: 'block' }}>乐器：{item.payload?.instrument_id || '—'}</Text>
+            <Text style={{ fontSize: 11, color: '#a1a1aa', display: 'block', marginTop: 2 }}>{item.created_at ? String(item.created_at).slice(0, 16).replace('T', ' ') : ''}</Text>
+            <View style={{ display: 'flex', flexDirection: 'row', marginTop: 8, gap: 8 }}>
+              <View onClick={() => { remove(item.id); onClose(); navigate('/profile/edit') }} style={{ flex: 1, height: 32, borderRadius: 16, backgroundColor: '#915F38', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>完成实名后提交</Text>
+              </View>
+              <View onClick={() => remove(item.id)} style={{ height: 32, paddingLeft: 12, paddingRight: 12, borderRadius: 16, backgroundColor: '#f4f4f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: '#71717a', fontSize: 12 }}>放弃</Text>
+              </View>
+            </View>
+          </View>
+        ))}
+        <View onClick={onClose} style={{ width: '100%', height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 4 }}>
+          <Text style={{ color: '#a1a1aa', fontSize: 14 }}>关闭</Text>
+        </View>
+      </View>
+    </View>
+  )
+}
+
 function JoinSiteModal({ visible, onClose }) {
   const [code, setCode] = useState('')
   const [joining, setJoining] = useState(false)
@@ -148,6 +197,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true)
   const [showEdit, setShowEdit] = useState(false)
   const [showJoin, setShowJoin] = useState(false)
+  const [showPending, setShowPending] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [orderCounts, setOrderCounts] = useState({ reserved: 0, in_lease: 0, returning: 0, completed: 0 })
   const [appVersion, setAppVersion] = useState('')
@@ -388,6 +438,14 @@ export default function Profile() {
             <Text className="text-zinc-300 text-lg">›</Text>
           </View>
 
+          {/* 5.6 待提交订单（#2041 未实名拦截后缓存） */}
+          <View className="flex justify-between items-center py-3.5" onClick={() => setShowPending(true)}>
+            <View className="flex items-center">
+              <Text className="text-base font-bold text-zinc-800">待提交订单</Text>
+            </View>
+            <Text className="text-zinc-300 text-lg">›</Text>
+          </View>
+
           {/* 6. 商务合作 */}
           <View className="flex justify-between items-center py-3.5" onClick={() => nav('/content?key=cooperation')}>
             <View className="flex items-center gap-2">
@@ -432,6 +490,7 @@ export default function Profile() {
       />
 
       <JoinSiteModal visible={showJoin} onClose={() => setShowJoin(false)} />
+      <PendingOrdersModal visible={showPending} onClose={() => setShowPending(false)} navigate={nav} />
 
       <EditProfileModal
         visible={showEdit}
