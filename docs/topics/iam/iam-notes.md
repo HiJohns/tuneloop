@@ -23,6 +23,12 @@ Tuneloop 的 `IAMClaims` 结构体中同时有 `Oid` 和 `Gid`。`Gid` 在 IAM J
 > **权威口径**：本节为 S0（#2026）裁定后的身份模型基线，S1–S3（#2027/#2028/#2029）向此看齐。
 > IAM 侧权威文档（`beaconiam/README.md`）的同步由 S1 在 beaconiam 仓库完成（`docs/topics/iam/iam.md` 为 symlink，禁止本地改写）。
 
+### relation 角色语义（#2030）
+
+- `user_org_relations.role` 的合法值：`OWNER/ADMIN/STAFF/WORKER/member`（见 beaconiam README `:63/:145`）
+- **`member` = 零权限影子**：`permission_calc` 与 `wxAccountPayload` 均显式跳过 → 不产生 org 权限、不给 JWT 带 `tid`/`oid`
+- **`USER` 不是合法的 relation 角色**（那是 `users.role` 的值）。历史上有 5 处 relation 创建点默认写 `USER`（register 绑定既有 email / `BindUser` 默认 / confirmation 会话 / batch import / `CreateUser` 带 org），导致顾客 JWT `tid` 非空并可能获得 namespace 主组织权限 → #2030 已统一为 `member`，并加数据迁移（`20260922_user_relation_role_member`）+ 受影响用户补挂 `customer` 角色
+
 ### 六原则
 
 1. **一人一记录**：一个自然人 = 一条 `users` 记录（不再为同一人建多户）
