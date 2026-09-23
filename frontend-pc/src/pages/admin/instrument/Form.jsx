@@ -109,6 +109,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
     failedFiles: []
   })
   const [categoryTree, setCategoryTree] = useState([])
+  const [categoryNameById, setCategoryNameById] = useState({}) // #2043: 兜底显示分类名（避免 UUID）
   const [siteTree, setSiteTree] = useState([])
   const [properties, setProperties] = useState([])
   const [categoryLoading, setCategoryLoading] = useState(false)
@@ -337,6 +338,14 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
     }
   }, [loadedData, properties])
 
+  // #2043: 分类树就绪后重设 category_id —— 修复「首次打开显示 UUID、选中后正常」的时序问题
+  //（值先于 treeData 就绪时 TreeSelect 用原始 value 渲染；树加载后重设触发重解析）
+  useEffect(() => {
+    if (loadedData?.category_id && categoryTree.length > 0) {
+      form.setFieldsValue({ category_id: loadedData.category_id })
+    }
+  }, [categoryTree, loadedData, form])
+
   const fetchCategoryTree = async () => {
     try {
       console.log('[DEBUG] Fetching categories...')
@@ -389,6 +398,10 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       
       console.log('[DEBUG] Final category tree:', JSON.stringify(tree))
       setCategoryTree(tree)
+      // #2043: 记录 id→name，供 TreeSelect 兜底解析（分类不在树中时不显示 UUID）
+      const nameMap = {}
+      data.forEach(c => { nameMap[c.id] = c.name })
+      setCategoryNameById(nameMap)
     } catch (err) {
       console.error('Failed to fetch categories:', err)
     } finally {
@@ -1152,7 +1165,19 @@ const loadCategoryChildren = async (node) => {
                 rules={[{ required: true, message: '请选择分类' }]}
               >
                 <TreeSelect
-                  treeData={categoryTree}
+                  treeData={(() => {
+                    // #2043: 当前分类不在树中时补一个仅用于显示分类名的节点（避免展示 UUID）
+                    const cid = loadedData?.category_id
+                    if (!cid) return categoryTree
+                    const stack = [...categoryTree]
+                    while (stack.length) {
+                      const n = stack.pop()
+                      if (n.value === cid) return categoryTree
+                      if (n.children) stack.push(...n.children)
+                    }
+                    const label = categoryNameById[cid] || loadedData?.category_name || '未知分类'
+                    return [{ key: cid, title: label, value: cid }, ...categoryTree]
+                  })()}
                   placeholder="请选择分类"
                   treeDefaultExpandAll
                   fieldNames={{ title: 'title', value: 'value', children: 'children' }}
