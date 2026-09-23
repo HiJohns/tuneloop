@@ -362,8 +362,9 @@ function MainLayout() {
     children: [
       { key: '/instruments/categories', label: '分类设置', permission: { cusPermCodes: ['category:manage'] } },
       { key: '/instruments/properties', label: '属性管理', permission: { cusPermCodes: ['attribute:manage'] } },
-      { key: '/instruments/list', label: '乐器列表', permission: { cusPermCodes: ['instrument:create', 'instrument:read', 'instrument:update', 'instrument:delete'] } },
-      { key: '/site/stock', label: '库存监控', permission: { cusPermCodes: ['instrument:read'] } },
+      // #2043: 「乐器列表」与「库存监控」合并为一项「乐器管理」（/site/stock 为合并页；
+      // /instruments/list 仍可用作乐器档案管理入口）
+      { key: '/site/stock', label: '乐器管理', permission: { cusPermCodes: ['instrument:read'] } },
     ]
   },
   {
@@ -490,7 +491,7 @@ function onMenuClick(e) {
     '/system/membership-handbook': { title: '会员手册编辑', parent: '策略配置' },
     '/orders': { title: '订单管理', parent: '交易管理' },
     '/instruments/list': { title: '乐器列表', parent: '商品管理' },
-    '/site/stock': { title: '库存监控', parent: '商品管理' },
+    '/site/stock': { title: '乐器管理', parent: '商品管理' },
     '/warehouse': { title: '库管工作台', parent: '交易管理' },
     '/transit-center': { title: '中转中心', parent: '交易管理' },
     '/overdue-alerts': { title: '逾期告警', parent: '交易管理' },

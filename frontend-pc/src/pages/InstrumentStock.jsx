@@ -338,6 +338,12 @@ export default function InstrumentStock() {
         <Button icon={<WarningOutlined />} onClick={() => switchView(view === 'stock' ? 'loss' : 'stock')}>
           {view === 'stock' ? '丢失台账' : '返回库存'}
         </Button>
+        {/* #2043: 乐器档案管理入口（导出/设价等在既有管理页；需 instrument:create） */}
+        <PermissionGate code="instrument:create">
+          {view === 'stock' && (
+            <Button onClick={() => navigate('/instruments/list')}>乐器档案管理</Button>
+          )}
+        </PermissionGate>
         {/* #2043: 批量导入（需 instrument:create） */}
         <PermissionGate code="instrument:create">
           {view === 'stock' && (
@@ -355,7 +361,7 @@ export default function InstrumentStock() {
       </Space>
       {view === 'stock' && (
         <div className="text-xs text-gray-500 mb-3">
-          按状态查看乐器（待租 / 在租 / 维修中 / 已丢失）；乐器档案的新增与编辑请用「乐器列表」。
+          按状态查看乐器（待租 / 在租 / 维修中 / 已丢失）；乐器档案的导出/定价等管理功能见「乐器档案管理」。
         </div>
       )}
       {statusParam && (
