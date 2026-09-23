@@ -4,6 +4,8 @@ import { View, Text, Input } from '@tarojs/components'
 import { request, wxLogin as wxLoginCode, storage, session, env, eventBus, getInputValue } from '../../platform'
 import { resolveErrorMessage } from '../../services/api'
 
+const ROLE_LABELS = { site_member: '员工', site_admin: '网点管理员', repair_technician: '维修师傅', merchant_admin: '商户管理员', worker: '员工', OWNER: '负责人', ADMIN: '管理员' }
+
 const TAB_PAGES = ['/pages-weapp/home/index', '/pages-weapp/my-leases/index', '/pages-weapp/profile/index']
 
 function navigatePostAuth(url) {
@@ -37,6 +39,7 @@ export default function AccountSelect() {
     if (Array.isArray(a.contexts) && a.contexts.length > 0) {
       a.contexts.forEach((ct, i) => contextItems.push({
         key: `${a.user_id}-${ct.type}-${ct.org_id || i}`,
+        functional_roles: ct.functional_roles || [],
         user_id: a.user_id,
         context: ct.type === 'customer' ? 'customer' : ct.org_id,
         type: ct.type,
@@ -175,7 +178,9 @@ export default function AccountSelect() {
             <View style={{ minWidth: 0 }}>
               <Text style={{ fontSize: 15, fontWeight: '700', color: '#18181b', display: 'block' }} numberOfLines={1}>{item.label}</Text>
               <Text style={{ fontSize: 12, color: '#a1a1aa', display: 'block', marginTop: 2 }}>
-                {item.type === 'customer' ? '顾客身份' : '员工身份'}
+                {item.type === 'customer'
+                  ? '顾客身份'
+                  : ((item.functional_roles || []).map(r => ROLE_LABELS[r] || r).join('·') || '员工身份')}
               </Text>
             </View>
           </View>

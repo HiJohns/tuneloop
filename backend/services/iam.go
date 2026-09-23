@@ -85,11 +85,12 @@ type TokenResponse struct {
 // WxContext is one selectable login context (#2027 S1, B1): type "org" or
 // "customer".
 type WxContext struct {
-	Type    string `json:"type"`
-	OrgID   string `json:"org_id,omitempty"`
-	OrgName string `json:"org_name,omitempty"`
-	Role    string `json:"role,omitempty"`
-	Label   string `json:"label"`
+	Type            string   `json:"type"`
+	OrgID           string   `json:"org_id,omitempty"`
+	OrgName         string   `json:"org_name,omitempty"`
+	Role            string   `json:"role,omitempty"`
+	FunctionalRoles []string `json:"functional_roles,omitempty"`
+	Label           string   `json:"label"`
 }
 
 type WxAccount struct {
