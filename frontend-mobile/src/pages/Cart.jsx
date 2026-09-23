@@ -305,7 +305,7 @@ export default function Cart() {
   }
 
   return (
-    <View style={{ backgroundColor: "#FDFBF7" }} className="container h-screen w-screen overflow-hidden flex flex-col relative antialiased">
+    <View style={{ backgroundColor: "#FDFBF7", height: '100vh', overflow: 'hidden' }} className="container h-screen w-screen overflow-hidden flex flex-col relative antialiased">
       <View
         className="w-full pb-2 px-4 flex justify-between items-center bg-white border-b border-zinc-100 flex-shrink-0"
         style={{ paddingTop: env.isMiniProgram ? getStatusBarHeight() + 8 : 12 }}
@@ -315,7 +315,8 @@ export default function Cart() {
         <View className="w-6"></View>
       </View>
 
-      <ScrollView className="w-full flex-1 pb-24" scrollY showScrollbar={false}>
+      <ScrollView className="w-full flex-1 pb-24" scrollY showScrollbar={false}
+        style={{ flex: '1 1 0%', minHeight: 0, height: '100%' }}>
         {cartItems.length === 0 ? (
           <View className="w-full flex flex-col items-center justify-center pt-24 px-6" style={{ gap: 16 }}>
             <View className="w-48 h-48 bg-transparent flex items-center justify-center relative">
