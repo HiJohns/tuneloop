@@ -25,6 +25,7 @@ export default function InstrumentStock() {
   const navigate = useNavigate()
   const [assets, setAssets] = useState([])
   const [loading, setLoading] = useState(true)
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]) // #2043 批量操作
 
   useEffect(() => {
     loadData()
@@ -191,6 +192,35 @@ export default function InstrumentStock() {
     }
   }
 
+  // #2043: 批量删除（需 instrument:delete；工具栏按钮门控）
+  const batchDelete = async () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('请先选择要删除的乐器')
+      return
+    }
+    Modal.confirm({
+      title: '批量删除确认',
+      content: `确定要删除选中的 ${selectedRowKeys.length} 个乐器吗？此操作不可恢复！`,
+      okText: '确定删除',
+      cancelText: '取消',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          const result = await api.delete('/instruments/batch', { ids: selectedRowKeys })
+          if (result.code === 20000) {
+            message.success(`已成功删除 ${(result.deleted || []).length} 个乐器`)
+            setSelectedRowKeys([])
+            loadData()
+          } else {
+            message.error(result.message || '批量删除失败')
+          }
+        } catch (e) {
+          message.error('批量删除失败')
+        }
+      },
+    })
+  }
+
   // ===== #1948 丢失登记 / 恢复 / 台账 =====
   const [view, setView] = useState('stock') // stock | loss
   const [lossRows, setLossRows] = useState([])
@@ -308,6 +338,14 @@ export default function InstrumentStock() {
         <Button icon={<WarningOutlined />} onClick={() => switchView(view === 'stock' ? 'loss' : 'stock')}>
           {view === 'stock' ? '丢失台账' : '返回库存'}
         </Button>
+        {/* #2043: 批量删除（仅选中后出现；需 instrument:delete） */}
+        <PermissionGate code="instrument:delete">
+          {view === 'stock' && selectedRowKeys.length > 0 && (
+            <Button danger icon={<DeleteOutlined />} onClick={batchDelete}>
+              删除所选（{selectedRowKeys.length}）
+            </Button>
+          )}
+        </PermissionGate>
       </Space>
       {view === 'stock' && (
         <div className="text-xs text-gray-500 mb-3">
@@ -335,6 +373,7 @@ export default function InstrumentStock() {
           columns={columns}
           dataSource={filteredAssets || []}
           rowKey="id"
+          rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
           pagination={{ total: filteredAssets.length, pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
           onRow={(record) => ({
             onClick: () => navigate(`/site/stock/${record.id}`),
