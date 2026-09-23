@@ -4,6 +4,7 @@ import { View, Text, Input, Button, Picker } from '@tarojs/components'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, getToken, resolveErrorMessage } from '../../../services/api'
 import { env, dialog, getInputValue, wxLogin as wxLoginCode } from '../../../platform'
+import AddressManager from '../../../components/AddressManager'
 import { formatBeijingDateTimeShort } from '../../../utils/format'
 import { parseJWT } from '../../../platform/init'
 import IdPhotoUploader from '../../../components/IdPhotoUploader'
@@ -260,6 +261,9 @@ export default function EditProfile() {
           {saving ? '保存中...' : '保存'}
         </Button>
       </View>
+
+      {/* #2022: 收货地址管理（由会员中心迁入） */}
+      <AddressManager user={{ name, phone }} />
     </View>
   )
 }
