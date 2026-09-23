@@ -338,6 +338,12 @@ export default function InstrumentStock() {
         <Button icon={<WarningOutlined />} onClick={() => switchView(view === 'stock' ? 'loss' : 'stock')}>
           {view === 'stock' ? '丢失台账' : '返回库存'}
         </Button>
+        {/* #2043: 批量导入（需 instrument:create） */}
+        <PermissionGate code="instrument:create">
+          {view === 'stock' && (
+            <Button onClick={() => navigate('/instruments/batch-import')}>批量导入</Button>
+          )}
+        </PermissionGate>
         {/* #2043: 批量删除（仅选中后出现；需 instrument:delete） */}
         <PermissionGate code="instrument:delete">
           {view === 'stock' && selectedRowKeys.length > 0 && (
