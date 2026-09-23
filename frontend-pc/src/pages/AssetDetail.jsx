@@ -75,7 +75,7 @@ export default function AssetDetail() {
       <Card className="mb-6 shadow-sm">
         <div className="flex gap-6">
           <div className="flex-1">
-            <h2 className="text-2xl font-bold mb-4">{asset.name}</h2>
+            <h2 className="text-2xl font-bold mb-4">{asset.sn || asset.id?.slice(0, 8) || '—'}</h2>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <span className="text-gray-500 text-sm">资产ID</span>
@@ -83,11 +83,11 @@ export default function AssetDetail() {
               </div>
               <div>
                 <span className="text-gray-500 text-sm">类别</span>
-                <p className="font-medium">{asset.category}</p>
+                <p className="font-medium">{asset.category_name || '—'}</p>
               </div>
               <div>
                 <span className="text-gray-500 text-sm">级别</span>
-                <p><Tag color={levelColors[asset.level]}>{asset.level}</Tag></p>
+                <p><Tag color={levelColors[asset.level_name]}>{asset.level_name || '—'}</Tag></p>
               </div>
               <div>
                 <span className="text-gray-500 text-sm">状态</span>
@@ -95,11 +95,11 @@ export default function AssetDetail() {
               </div>
               <div>
                 <span className="text-gray-500 text-sm">所属网点</span>
-                <p className="font-medium">{asset.site}</p>
+                <p className="font-medium">{asset.site_name || '—'}</p>
               </div>
               <div>
                 <span className="text-gray-500 text-sm">估值</span>
-                <p className="font-bold text-lg">¥{(asset.value || 0).toLocaleString()}</p>
+                <p className="font-bold text-lg">¥{(asset.base_daily_rate || 0).toLocaleString()}</p>
               </div>
               {asset.leaseEnd && (
                 <div>
