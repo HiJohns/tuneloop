@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"time"
@@ -203,9 +204,15 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 	}
 
 	// Update member roles（#2035：role=主，roles=全集）
+	// map 更新不经 serializer，需显式序列化为 jsonb（否则 pq 按 record 传参报 42804）
+	rolesJSON, jsonErr := json.Marshal(allRoles)
+	if jsonErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to encode roles"})
+		return
+	}
 	result := db.Model(&models.SiteMember{}).
 		Where("tenant_id = ? AND site_id = ? AND user_id = ?", tenantID, siteID, userID).
-		Updates(map[string]interface{}{"role": primaryRole, "roles": allRoles})
+		Updates(map[string]interface{}{"role": primaryRole, "roles": gorm.Expr("?::jsonb", string(rolesJSON))})
 
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
