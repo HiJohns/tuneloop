@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { formatCents, yuanToCents } from '../utils/money'
-import { Table, Tag, Button, Space, Spin, Modal, Form, Input, InputNumber, Select, Radio, Upload, Descriptions, Image, message } from 'antd'
-import { EyeOutlined, EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined } from '@ant-design/icons'
+import { Table, Tag, Button, Space, Spin, Modal, Form, Input, InputNumber, Select, Radio, Upload, Descriptions, Image, message, Popconfirm } from 'antd'
+import { EyeOutlined, EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { inventoryApi, lossApi, api } from '../services/api'
 import PermissionGate from '../components/PermissionGate'
@@ -164,10 +164,32 @@ export default function InstrumentStock() {
                 onClick={(e) => { e.stopPropagation(); openLostModal(record) }}>丢失</Button>
             )}
           </PermissionGate>
+          <PermissionGate code="instrument:delete">
+            <Popconfirm title="确认删除该乐器？" okButtonProps={{ danger: true }}
+              onConfirm={(e) => { e?.stopPropagation?.(); handleDeleteInstrument(record.id) }}>
+              <Button type="link" size="small" danger icon={<DeleteOutlined />}
+                onClick={(e) => e.stopPropagation()}>删除</Button>
+            </Popconfirm>
+          </PermissionGate>
         </Space>
       )
     }
   ]
+
+  // #2043: 行级删除（需 instrument:delete；无权限按钮不渲染）
+  const handleDeleteInstrument = async (id) => {
+    try {
+      const res = await api.delete(`/instruments/${id}`)
+      if (res.code === 20000) {
+        message.success('已删除')
+        loadData()
+      } else {
+        message.error(res.message || '删除失败')
+      }
+    } catch (e) {
+      message.error('删除失败')
+    }
+  }
 
   // ===== #1948 丢失登记 / 恢复 / 台账 =====
   const [view, setView] = useState('stock') // stock | loss
