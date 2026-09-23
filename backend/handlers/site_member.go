@@ -131,7 +131,8 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 	}
 
 	var input struct {
-		Role string `json:"role" binding:"required"`
+		Role  string   `json:"role"`
+		Roles []string `json:"roles"` // #2035 多角色（可选）
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -142,6 +143,27 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 		return
 	}
 
+	// #2035: 归一化角色集合（role 为主，roles 为全集）；去重，主角色置首
+	seen := map[string]bool{}
+	allRoles := make([]string, 0, len(input.Roles)+1)
+	addRole := func(r string) {
+		if n := normalizeRole(r); n != "" && !seen[n] {
+			seen[n] = true
+			allRoles = append(allRoles, n)
+		}
+	}
+	if input.Role != "" {
+		addRole(input.Role)
+	}
+	for _, r := range input.Roles {
+		addRole(r)
+	}
+	if len(allRoles) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "role or roles is required"})
+		return
+	}
+	primaryRole := allRoles[0]
+
 	// Update IAM binding to match new role
 	var site models.Site
 	if err := db.Where("id = ?", siteID).First(&site).Error; err == nil && site.OrgID != "" {
@@ -149,12 +171,10 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 		userToken := services.ExtractUserToken(c)
 		var iamUser models.User
 		if err := database.GetDB().Where("id = ?", userID).First(&iamUser).Error; err == nil && iamUser.IAMSub != "" {
-			normalizedRole := normalizeRole(input.Role)
-			iamRole := toIAMRole(normalizedRole)
-			templateCode := normalizedRole
+			iamRole := toIAMRole(primaryRole)
 
 			// Update org role in IAM
-			if normalizedRole == "site_admin" {
+			if primaryRole == "site_admin" {
 				if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, iamUser.IAMSub, site.OrgID, iamRole, middleware.GetUserID(c.Request.Context())); bindErr != nil {
 					log.Printf("[UpdateMemberRole] BindUser failed for %s: %v", iamUser.IAMSub, bindErr)
 				}
@@ -163,16 +183,17 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 					log.Printf("[UpdateMemberRole] UpdateRole failed for %s: %v", iamUser.IAMSub, demoteErr)
 				}
 			}
-			// Set cus_perm based on role template
-			// Reassign role template
+			// #2035: 为集合中每个角色分配对应模板（IAM functional_roles 全集）
 			nsID := middleware.GetNamespaceID(c.Request.Context())
 			if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
 				for _, t := range templates {
-					if t.Code == templateCode {
-						if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, iamUser.IAMSub, site.OrgID, t.Code); err != nil {
-							log.Printf("[UpdateMemberRole] AssignRoleTemplate failed: %v", err)
+					for _, rc := range allRoles {
+						if t.Code == rc {
+							if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, iamUser.IAMSub, site.OrgID, t.Code); err != nil {
+								log.Printf("[UpdateMemberRole] AssignRoleTemplate failed code=%s: %v", t.Code, err)
+							}
+							break
 						}
-						break
 					}
 				}
 			} else {
@@ -181,11 +202,10 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 		}
 	}
 
-	// Update member role
-	// #2034: 同时更新 Roles（多重角色集）；此处为「切换主角色」，集合同步为单元素
+	// Update member roles（#2035：role=主，roles=全集）
 	result := db.Model(&models.SiteMember{}).
 		Where("tenant_id = ? AND site_id = ? AND user_id = ?", tenantID, siteID, userID).
-		Updates(map[string]interface{}{"role": input.Role, "roles": []string{input.Role}})
+		Updates(map[string]interface{}{"role": primaryRole, "roles": allRoles})
 
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

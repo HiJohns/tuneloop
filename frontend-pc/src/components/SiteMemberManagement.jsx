@@ -1,16 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Space, message, Tag, Popconfirm, Modal, Input, Select, Checkbox, Typography, Alert } from 'antd';
+import { Table, Button, Space, message, Popconfirm, Modal, Input, Select, Checkbox, Typography, Alert } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined, UserAddOutlined } from '@ant-design/icons';
 import api from '../services/api';
 import { formatBeijingDate } from '../utils/date';
 import { adminApi } from '../services/api';
 
-const ROLE_COLORS = {
-  owner: 'red', merchant_admin: 'red',
-  admin: 'blue', site_admin: 'blue',
-  staff: 'green', site_member: 'green',
-  repair_technician: 'purple',
-};
 const ROLE_NAMES = {
   admin: '网点管理员',
   site_admin: '网点管理员',
@@ -84,9 +78,15 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
     }
   };
 
-  const handleUpdateRole = async (userId, newRole) => {
+  // #2035: 多角色提交（role=主，roles=全集）
+  const handleUpdateRole = async (userId, roles) => {
+    const list = Array.isArray(roles) ? roles.filter(Boolean) : [roles].filter(Boolean)
+    if (list.length === 0) {
+      message.warning('至少保留一个角色')
+      return
+    }
     try {
-      const resp = await api.put(`${membersBase}/${siteId}/members/${userId}`, { role: newRole });
+      const resp = await api.put(`${membersBase}/${siteId}/members/${userId}`, { role: list[0], roles: list });
       if (resp.code === 20000) {
         message.success('角色已更新');
         fetchMembers();
@@ -252,30 +252,25 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
       title: '角色',
       key: 'role',
       render: (_, record) => {
-        // #2034: 展示全部角色；主角色用 Select 可切换，其余以 Tag 呈现
-        const primary = roleToCode(record.role)
+        // #2035: 多选编辑；roles 全集优先，回退主 role
         const all = (Array.isArray(record.roles) && record.roles.length > 0)
           ? record.roles.map(roleToCode)
-          : [primary]
-        const extras = all.filter(r => r && r !== primary)
+          : [roleToCode(record.role)].filter(Boolean)
         return (
-          <Space size={4} wrap>
-            <Select
-              value={primary}
-              onChange={(val) => handleUpdateRole(record.user_id, val)}
-              size="small"
-              style={{ width: 140 }}
-            >
-              {availableRoles.map(r => (
-                <Select.Option key={r.code} value={r.code}>
-                  {r.name}
-                </Select.Option>
-              ))}
-            </Select>
-            {extras.map(r => (
-              <Tag key={r} color={ROLE_COLORS[r] || 'default'}>{ROLE_NAMES[r] || r}</Tag>
+          <Select
+            mode="multiple"
+            value={all}
+            onChange={(vals) => handleUpdateRole(record.user_id, vals)}
+            size="small"
+            style={{ minWidth: 200 }}
+            placeholder="选择角色"
+          >
+            {availableRoles.map(r => (
+              <Select.Option key={r.code} value={r.code}>
+                {r.name}
+              </Select.Option>
             ))}
-          </Space>
+          </Select>
         )
       },
     },

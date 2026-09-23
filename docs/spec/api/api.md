@@ -217,6 +217,14 @@
 - 授予 / 撤销顾客角色（调 `MarkUserAsCustomer` / `RemoveCustomerRole`）；Admin 权限（仅 tuneloop 内部调用）
 - namespace 解析：优先 body `namespace_id`，否则取用户既有 relation 所属 namespace
 
+#### 网点成员角色（#2035 多角色）
+
+**`PUT /api/sites/:id/members/:uid`**
+
+Body：`{ role: "<主角色>", roles: ["<角色>", ...] }`（`roles` 可选；缺省时 `roles=[role]`；仅传 `role` 的**旧调用行为不变**）
+- 主角色 `role` = `roles[0]`；本地 `site_members.roles` 存全集；IAM 逐角色分配模板，`functional_roles` 为全集
+- 响应：成功 `20000`；`role_errors`（若有）随响应透出
+
 #### 邀请制自助加入（#2031，一人一号）
 
 | 端点 | 组 | 说明 |

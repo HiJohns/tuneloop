@@ -23,6 +23,12 @@ Tuneloop 的 `IAMClaims` 结构体中同时有 `Oid` 和 `Gid`。`Gid` 在 IAM J
 > **权威口径**：本节为 S0（#2026）裁定后的身份模型基线，S1–S3（#2027/#2028/#2029）向此看齐。
 > IAM 侧权威文档（`beaconiam/README.md`）的同步由 S1 在 beaconiam 仓库完成（`docs/topics/iam/iam.md` 为 symlink，禁止本地改写）。
 
+### 一店多角色（#2034/#2035）
+
+- 一人在同一网点可具**多个角色**：本地由 `site_members.roles`（jsonb）承载，`role` 为主角色；IAM 侧由 `user_org_relations.functional_roles`（数组）承载（**IAM 原生支持，无需改 beaconiam**）
+- 读取统一走 `SiteMember.EffectiveRoles()`（`roles` 优先，回退 `[role]`）
+- 编辑：`PUT /sites/:id/members/:uid { role, roles[] }`
+
 ### relation 角色语义（#2030）
 
 - `user_org_relations.role` 的合法值：`OWNER/ADMIN/STAFF/WORKER/member`（见 beaconiam README `:63/:145`）
