@@ -169,6 +169,26 @@ async function refreshAccessToken() {
   throw new Error('Invalid refresh response')
 }
 
+// #2046: 导出/模板下载专用 blob 请求 —— 对齐 auditLogApi.export 行为（getToken+Bearer，
+// 纯函数，不新增滑窗续期/401 重放）。返回 Blob；!ok 时抛「导出失败」。
+async function fetchBlob(endpoint, { params, method = 'GET', body } = {}) {
+  const qs = params
+    ? '?' + new URLSearchParams(
+        Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+      ).toString()
+    : ''
+  const headers = {}
+  const token = getToken()
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  const resp = await fetch(`${API_BASE_URL}${endpoint}${qs}`, {
+    method,
+    headers,
+    ...(body !== undefined && { body: typeof body === 'string' ? body : JSON.stringify(body) }),
+  })
+  if (!resp.ok) throw new Error('导出失败')
+  return await resp.blob()
+}
+
 async function request(endpoint, options = {}, retryCount = 0) {
   const method = options.method || 'GET'
   Logger.api(endpoint, method, { timestamp: new Date().toISOString() })
@@ -629,4 +649,4 @@ export const platformStaffApi = {
   disable: (id) => api.delete(`/admin/platform-staff/${id}`),
 }
 
-export { getToken, request }
+export { getToken, request, fetchBlob }

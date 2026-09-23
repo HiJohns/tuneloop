@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Table, Input, Button, Space, Modal, Form, InputNumber, Switch, message, Tag, Typography, Collapse, Image, Divider, Alert } from 'antd'
 import { DownloadOutlined, IdcardOutlined, ScanOutlined, CheckCircleOutlined } from '@ant-design/icons'
-import { api, faceReviewApi } from '../../services/api'
+import { api, faceReviewApi, fetchBlob } from '../../services/api'
 import IdPhotoDisplay from '../../components/IdPhotoDisplay'
 import { formatBeijingDate, formatBeijingDateTimeShort } from '../../utils/date'
 
@@ -60,11 +60,19 @@ export default function UserManagement() {
 
   useEffect(() => { fetchList(1) }, [])
 
-  const handleExport = () => {
-    // eslint-disable-next-line no-undef
-    const params = new URLSearchParams()
-    if (search) params.set('search', search)
-    window.open(`/api/admin/user-management/export?${params.toString()}`)
+  const handleExport = async () => {
+    try {
+      const blob = await fetchBlob('/admin/user-management/export', { params: { search } })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `users_${new Date().toISOString().split('T')[0]}.csv`
+      link.click()
+      window.URL.revokeObjectURL(url)
+      message.success('导出成功')
+    } catch (error) {
+      message.error(error.message || '导出失败')
+    }
   }
 
   const loadDetail = (userId) => {

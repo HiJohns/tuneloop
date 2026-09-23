@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Table, Tag, Button, Card, Typography, Space, Modal, Descriptions, Steps, message, Select, Upload, Input, Tooltip, DatePicker } from 'antd';
 import { TruckOutlined, CheckCircleOutlined, EyeOutlined, CameraOutlined, QrcodeOutlined, DownloadOutlined } from '@ant-design/icons';
-import { api } from '../services/api';
+import { api, fetchBlob } from '../services/api';
 import { formatBeijingDateTimeShort } from '../utils/date';
 // import QrScanner from 'qr-scanner';  // Temporarily disabled - install dependency to enable
 
@@ -18,13 +18,24 @@ export default function WarehouseManagement() {
   // #2004: 导出全部订单（对账用）——日期范围，留空则导出全部。
   const [exportRange, setExportRange] = useState([]);
 
-  const handleExportAll = () => {
+  const handleExportAll = async () => {
     // antd RangePicker 清空时 onChange 回调参数为 null；统一归一为数组，避免取下标崩溃。
     const range = exportRange || [];
-    const params = new URLSearchParams({ format: 'csv' });
-    if (range[0]) params.set('start', range[0].format('YYYY-MM-DD'));
-    if (range[1]) params.set('end', range[1].format('YYYY-MM-DD'));
-    window.open(`/api/admin/billing/report?${params.toString()}`);
+    try {
+      const params = { format: 'csv' };
+      if (range[0]) params.start = range[0].format('YYYY-MM-DD');
+      if (range[1]) params.end = range[1].format('YYYY-MM-DD');
+      const blob = await fetchBlob('/admin/billing/report', { params });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'billing_report.csv';
+      link.click();
+      window.URL.revokeObjectURL(url);
+      message.success('导出成功');
+    } catch (error) {
+      message.error(error.message || '导出失败');
+    }
   };
 
   useEffect(() => {

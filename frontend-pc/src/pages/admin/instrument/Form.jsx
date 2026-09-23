@@ -7,7 +7,7 @@ import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { api, sitesApi, instrumentsApi, staffApi, propertiesApi, getToken } from '../../../services/api'
+import { api, sitesApi, instrumentsApi, staffApi, propertiesApi } from '../../../services/api'
 import { toYuan } from '../../../utils/money'
 import { checkPermission } from '../../../config/menuPermissions'
 
@@ -1022,25 +1022,16 @@ const loadCategoryChildren = async (node) => {
       console.log('[DEBUG] Request body (formData):', JSON.stringify(formData, null, 2))
       console.log('[DEBUG] ==== LAUNCHING REQUEST ====')
       
-      // Submit to API
+      // Submit to API — #2046: 走 request() 生命周期（滑窗续期/401 重放），
+      // endpoint 为相对路径（request() 内拼 API_BASE_URL，防 /api/api 重复）
       const editData = initialData || loadedData
-      const url = editData ? `${API_BASE_URL}/instruments/${editData.id}` : `${API_BASE_URL}/instruments`
-      const method = editData ? 'PUT' : 'POST'
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify(formData)
-      })
-      
-      console.log('[DEBUG] Response status:', response.status)
-      
-      if (!response.ok) throw new Error('提交失败')
-      
-      const result = await response.json()
+      const endpoint = editData ? `/instruments/${editData.id}` : '/instruments'
+
+      const result = editData
+        ? await api.put(endpoint, formData)
+        : await api.post(endpoint, formData)
+
+      console.log('[DEBUG] Response code:', result?.code)
       if (result.code === 20000 || result.code === 20100) {
         // Bind uploaded media files to the instrument
         const instrumentId = initialData?.id || editData?.id || result.data?.id
@@ -1062,17 +1053,13 @@ const loadCategoryChildren = async (node) => {
           }
         }
 
-        // Upload cover image after instrument creation
+        // Upload cover image after instrument creation — #2046: api.uploadFile 走 request()
+        // 生命周期（原 api.defaults 死代码导致 TypeError、封面上传必失败）
         if (coverFile && instrumentId) {
           try {
             const coverFormData = new FormData()
             coverFormData.append('file', coverFile)
-            const coverResp = await fetch(`${API_BASE_URL}/instruments/${instrumentId}/cover-image`, {
-              method: 'POST',
-              headers: { Authorization: api.defaults.headers.common['Authorization'] || '' },
-              body: coverFormData,
-            })
-            const coverResult = await coverResp.json()
+            const coverResult = await api.uploadFile(`/instruments/${instrumentId}/cover-image`, coverFormData)
             if (coverResult.code === 20000) {
               message.success('封面图已上传')
             } else {

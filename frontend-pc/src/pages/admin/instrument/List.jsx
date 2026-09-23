@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Table, Button, Input, Space, Tag, Image, message, Popconfirm, Select, Modal, Form, InputNumber, Checkbox } from 'antd'
 import { Row, Col } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, ImportOutlined, ExportOutlined, CloseCircleFilled } from '@ant-design/icons'
-import { api, instrumentsApi } from '../../../services/api'
+import { api, instrumentsApi, fetchBlob } from '../../../services/api'
 import { formatBeijingDate } from '../../../utils/date'
 import { resolveErrorMessage } from '../../../services/errorMessages'
 import InstrumentForm from './Form'
@@ -31,8 +31,7 @@ export default function InstrumentList() {
   const [batchPriceModalVisible, setBatchPriceModalVisible] = useState(false)
   const [batchPriceForm] = Form.useForm()
   const [expandedRowKeys, setExpandedRowKeys] = useState([])
-  const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
-  
+
   const [pagination, setPagination] = useState({
     page: Number(searchParams.get('page')) || 1,
     pageSize: Number(searchParams.get('pageSize')) || 20,
@@ -407,14 +406,7 @@ export default function InstrumentList() {
   // Import/Export handlers
   const downloadTemplate = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/instruments/batch-import/template`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      })
-      if (!response.ok) throw new Error('下载模板失败')
-      const blob = await response.blob()
+      const blob = await fetchBlob('/instruments/batch-import/template')
       const link = document.createElement('a')
       link.href = URL.createObjectURL(blob)
       link.download = 'instruments_import_template.csv'
@@ -436,24 +428,17 @@ export default function InstrumentList() {
     }
     
     try {
-      const params = new URLSearchParams({
-        fields: selectedExportFields.join(',')
+      const blob = await fetchBlob('/instruments/export', {
+        params: { fields: selectedExportFields.join(',') },
       })
-      
-      const response = await fetch(`${API_BASE_URL}/instruments/export?${params}`, {
-        method: 'GET'
-      })
-      
-      if (!response.ok) throw new Error('导出失败')
-      
-      const blob = await response.blob()
+
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `instruments_export_${new Date().toISOString().split('T')[0]}.csv`
+      link.download = `instruments_export_${new Date().toISOString().split('T')[0]}.xlsx`
       link.click()
       window.URL.revokeObjectURL(url)
-      
+
       setExportFieldModalVisible(false)
       message.success('导出成功')
     } catch (error) {

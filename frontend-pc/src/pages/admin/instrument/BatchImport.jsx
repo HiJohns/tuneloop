@@ -1,17 +1,21 @@
 import { useState, useRef } from 'react'
 import { Steps, Button, Upload, message, Card, Table, Alert, Progress, Typography, Space, Tag, Tooltip, Input, Modal, Breadcrumb, Image, Select } from 'antd'
 import { UploadOutlined, CheckCircleOutlined, WarningOutlined, CloseCircleOutlined, EditOutlined, SwapOutlined, HomeOutlined, SettingOutlined } from '@ant-design/icons'
-import { instrumentsApi, propertiesApi, api, request } from '../../../services/api'
+import { instrumentsApi, propertiesApi, api, request, fetchBlob } from '../../../services/api'
 import { useNavigate } from 'react-router-dom'
 
 const { Title, Text } = Typography
-const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
 
-function downloadTemplate() {
-  const a = document.createElement('a')
-  a.href = `${API_BASE_URL}/instruments/batch-import/template`
-  a.download = '乐器导入模板.csv'
-  a.click()
+async function downloadTemplate() {
+  try {
+    const blob = await fetchBlob('/instruments/batch-import/template')
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = '乐器导入模板.csv'
+    a.click()
+  } catch (error) {
+    message.error(error.message || '下载模板失败')
+  }
 }
 
 export default function BatchImport() {

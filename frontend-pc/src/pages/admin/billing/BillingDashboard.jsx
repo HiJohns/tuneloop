@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Card, Table, Tag, Row, Col, DatePicker, Button, message, Space, Statistic } from 'antd'
 import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons'
 import { formatBeijingDate } from '../../../utils/date'
-import api from '../../../services/api'
+import api, { fetchBlob } from '../../../services/api'
 
 const { RangePicker } = DatePicker
 
@@ -53,11 +53,22 @@ export default function BillingDashboard() {
 
   useEffect(() => { fetchReport() }, [page, pageSize])
 
-  const handleExport = () => {
-    const params = new URLSearchParams({ format: 'csv' })
-    if (dateRange[0]) params.set('start', dateRange[0].format('YYYY-MM-DD'))
-    if (dateRange[1]) params.set('end', dateRange[1].format('YYYY-MM-DD'))
-    window.open(`/api/admin/billing/report?${params.toString()}`)
+  const handleExport = async () => {
+    try {
+      const params = { format: 'csv' }
+      if (dateRange[0]) params.start = dateRange[0].format('YYYY-MM-DD')
+      if (dateRange[1]) params.end = dateRange[1].format('YYYY-MM-DD')
+      const blob = await fetchBlob('/admin/billing/report', { params })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'billing_report.csv'
+      link.click()
+      window.URL.revokeObjectURL(url)
+      message.success('导出成功')
+    } catch (error) {
+      message.error(error.message || '导出失败')
+    }
   }
 
   return (

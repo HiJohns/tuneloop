@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { formatCents } from '../../../utils/money'
 import { Card, Table, Tag, Select, Button, message, DatePicker, Input, Space } from 'antd'
 import { DownloadOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons'
-import { api } from '../../../services/api'
+import { api, fetchBlob } from '../../../services/api'
 import { formatBeijingDate, formatBeijingDateTimeShort } from '../../../utils/date'
 
 const { RangePicker } = DatePicker
@@ -55,11 +55,17 @@ export default function PaymentList() {
 
   const handleExport = async () => {
     try {
-      const query = new URLSearchParams(filters).toString()
+      const blob = await fetchBlob('/admin/payments/export', { params: filters })
+      const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
-      link.href = `/api/admin/payments/export?${query}`
+      link.href = url
+      link.download = `payments_${new Date().toISOString().split('T')[0]}.csv`
       link.click()
-    } catch { message.error('导出失败') }
+      window.URL.revokeObjectURL(url)
+      message.success('导出成功')
+    } catch (error) {
+      message.error(error.message || '导出失败')
+    }
   }
 
   const handleQuery = async (outTradeNo) => {
