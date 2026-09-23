@@ -214,9 +214,10 @@ func (h *RoleManageHandler) DeleteRole(c *gin.Context) {
 	}
 
 	var memberCount int64
+	// #2034: 多重角色——主 role 或 roles 数组包含该角色均视为「正在使用」
 	h.db.Model(&struct{}{}).Table("site_members").
 		Joins("JOIN sites ON sites.id = site_members.site_id").
-		Where("sites.tenant_id = ? AND site_members.role = ?", tenantID, role.Code).
+		Where("sites.tenant_id = ? AND (site_members.role = ? OR site_members.roles @> jsonb_build_array(?::text))", tenantID, role.Code, role.Code).
 		Count(&memberCount)
 	if memberCount > 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": "role is assigned to members, reassign them first"})

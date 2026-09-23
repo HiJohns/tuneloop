@@ -23,17 +23,23 @@ func GetMyRoles(c *gin.Context) {
 		return
 	}
 
+	// #2034: roles 为多重角色全集的并集（roles 列优先，回退主 role）
+	var members []models.SiteMember
+	db.Where("user_id = ?", localUser.ID).Find(&members)
 	var roles []string
-	db.Table("site_members").Where("user_id = ?", localUser.ID).Pluck("role", &roles)
+	for _, m := range members {
+		roles = append(roles, m.EffectiveRoles()...)
+	}
 
 	type siteRole struct {
-		SiteID   string `json:"site_id"`
-		Role     string `json:"role"`
-		SiteType string `json:"site_type"` // #1937: 中转工作台入口按站点类型判断（transit）
+		SiteID   string   `json:"site_id"`
+		Role     string   `json:"role"`
+		Roles    []string `json:"roles"`     // #2034 多重角色
+		SiteType string   `json:"site_type"` // #1937: 中转工作台入口按站点类型判断（transit）
 	}
 	var sites []siteRole
 	db.Table("site_members sm").
-		Select("sm.site_id, sm.role, s.type AS site_type").
+		Select("sm.site_id, sm.role, sm.roles, s.type AS site_type").
 		Joins("LEFT JOIN sites s ON s.id = sm.site_id").
 		Where("sm.user_id = ?", localUser.ID).Find(&sites)
 

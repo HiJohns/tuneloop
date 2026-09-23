@@ -196,7 +196,8 @@ func (h *PermissionManageHandler) SetUserRole(c *gin.Context) {
 	}
 
 	tenantID := middleware.GetTenantID(c.Request.Context())
-	if err := h.db.Exec("UPDATE site_members SET role = ? FROM sites WHERE site_members.site_id = sites.id AND sites.tenant_id = ? AND site_members.user_id = ?", req.RoleCode, tenantID, userID).Error; err != nil {
+	// #2034: 同步多重角色列（此处设置单一角色 → 集合为单元素）
+	if err := h.db.Exec("UPDATE site_members SET role = ?, roles = jsonb_build_array(?::text) FROM sites WHERE site_members.site_id = sites.id AND sites.tenant_id = ? AND site_members.user_id = ?", req.RoleCode, req.RoleCode, tenantID, userID).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update local cache: " + err.Error()})
 		return
 	}
