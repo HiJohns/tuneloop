@@ -12,11 +12,12 @@ const VerifyWarningBar = ({ status = '', navigate }) => {
   if (status === 'verified' || status === 'pending_review') return null
   if (!status || status === 'none' || status === 'uploaded' || status === 'rejected') {
     const isRejected = status === 'rejected'
+    // #2040: 文案对齐**阻断语义**（未实名/审核中/驳回均无法下单，#40310）
     const text = isRejected
-      ? '实名核身审核未通过，请重新采集'
+      ? '实名核身审核未通过，请重新采集后下单'
       : status === 'uploaded'
-        ? '请完成自拍核身，以免影响发货'
-        : '请先完成实名核身，以免影响发货'
+        ? '实名认证审核中，审核通过后才能下单'
+        : '请先完成实名认证与证件上传后才能下单'
     const goVerify = () => {
       if (env.isMiniProgram) {
         Taro.navigateTo({ url: '/pages-weapp/profile/edit/index' })
