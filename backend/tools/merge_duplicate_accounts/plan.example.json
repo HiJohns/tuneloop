@@ -1,0 +1,14 @@
+{
+  "_comment": "dry-run: IAM_DSN=... TUNELOOP_DSN=... go run ./tools/merge_duplicate_accounts -plan plan.json",
+  "groups": [
+    {
+      "openid": "<openid-1>",
+      "keep": "<kept-user-id>",
+      "remove": ["<removed-user-id>", "<removed-user-id>"]
+    }
+  ],
+  "repoint": [
+    { "table": "orders", "column": "user_id" },
+    { "table": "notifications", "column": "user_id" }
+  ]
+}
