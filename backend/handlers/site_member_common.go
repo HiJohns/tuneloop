@@ -225,6 +225,7 @@ func addMembersCore(c *gin.Context, db *gorm.DB, site models.Site, tenantID, sit
 			SiteID:   siteID,
 			UserID:   userID,
 			Role:     role,
+			Roles:    []string{normalizedRole}, // #2034 多重角色（集）
 		}
 
 		result := db.Create(&member)

@@ -170,6 +170,7 @@ func AcceptInvite(c *gin.Context) {
 			SiteID:   invite.SiteID,
 			UserID:   user.ID,
 			Role:     invite.Role,
+			Roles:    []string{invite.Role}, // #2034
 		}).Error; err != nil {
 			log.Printf("[AcceptInvite] local site_member create failed user=%s site=%s: %v", user.ID, invite.SiteID, err)
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "加入失败，请稍后重试"})

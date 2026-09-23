@@ -552,7 +552,8 @@ func (h *RepairHandler) ListAcceptanceRepairs(c *gin.Context) {
 // siteMembership is one site_members row for an operator (#1882).
 type siteMembership struct {
 	SiteID string
-	Role   string
+	Role   string   // 主角色（兼容）
+	Roles  []string // #2034 多重角色全集
 }
 
 // resolveOperatorSiteMemberships returns all site memberships for the operator
@@ -572,7 +573,8 @@ func resolveOperatorSiteMemberships(db *gorm.DB, userID string) []siteMembership
 	}
 	out := make([]siteMembership, 0, len(members))
 	for _, m := range members {
-		out = append(out, siteMembership{SiteID: m.SiteID, Role: m.Role})
+		// #2034: 承载多重角色（Roles 优先，回退主 Role）
+		out = append(out, siteMembership{SiteID: m.SiteID, Role: m.Role, Roles: m.EffectiveRoles()})
 	}
 	return out
 }
@@ -583,9 +585,15 @@ func hasSiteRole(memberships []siteMembership, siteID string, roles ...string) b
 		if m.SiteID != siteID {
 			continue
 		}
+		effective := m.Roles
+		if len(effective) == 0 && m.Role != "" {
+			effective = []string{m.Role}
+		}
 		for _, r := range roles {
-			if m.Role == r {
-				return true
+			for _, er := range effective {
+				if er == r {
+					return true
+				}
 			}
 		}
 	}
