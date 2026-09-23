@@ -181,9 +181,10 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 	}
 
 	// Update member role
+	// #2034: 同时更新 Roles（多重角色集）；此处为「切换主角色」，集合同步为单元素
 	result := db.Model(&models.SiteMember{}).
 		Where("tenant_id = ? AND site_id = ? AND user_id = ?", tenantID, siteID, userID).
-		Update("role", input.Role)
+		Updates(map[string]interface{}{"role": input.Role, "roles": []string{input.Role}})
 
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
