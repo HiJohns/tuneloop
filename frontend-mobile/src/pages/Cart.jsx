@@ -287,6 +287,19 @@ export default function Cart() {
     eventBus.emit('cartUpdated')
   }
 
+  // #2042: 批量删除所选商品
+  const handleBatchDelete = async () => {
+    const ids = [...selected]
+    if (ids.length === 0) return
+    const ok = await dialog.confirm(`确认删除选中的 ${ids.length} 件商品？`)
+    if (!ok) return
+    const updated = cartItems.filter(item => !selected.has(getItemId(item)))
+    setCartItems(updated)
+    storage.setJSON(getCartKey(), { items: updated })
+    setSelected(new Set())
+    eventBus.emit('cartUpdated')
+  }
+
   const handleCheckout = () => {
     const token = getToken()
     if (!token) {
@@ -312,7 +325,12 @@ export default function Cart() {
       >
         <Text className="text-xl font-bold text-black" onClick={() => nav(-1)}>❮</Text>
         <Text className="text-lg font-black text-black">购物车</Text>
-        <View className="w-6"></View>
+        {/* #2042: 批量删除（有选择时显示） */}
+        {selected.size > 0 ? (
+          <Text className="text-sm text-red-500 font-bold" onClick={handleBatchDelete}>删除所选({selected.size})</Text>
+        ) : (
+          <View className="w-6"></View>
+        )}
       </View>
 
       <ScrollView className="w-full flex-1 pb-24" scrollY showScrollbar={false}

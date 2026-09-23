@@ -1,3 +1,8 @@
+# C-00 购物车滚动与批量删除（#2042）
+
+- **可滚动**：列表区 `ScrollView scrollY` 需在 weapp 下具备**确定高度**——容器 `h-screen overflow-hidden flex flex-col`，ScrollView 显式 `flex: '1 1 0%'` + `minHeight: 0`（#1514：weapp `flex-basis` 不重置、子元素需 `minHeight:0` 才可收缩）→ 修复「只有一屏不可下滑」
+- **批量删除**：复用既有选择集 `selected`（Set<itemId>）；头部在有选择时显示「删除所选(N)」→ `dialog.confirm` → 过滤移除并写回本地购物车 + `eventBus.emit('cartUpdated')`
+
 ---
 id: C-01
 domain: cart
