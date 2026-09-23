@@ -294,7 +294,13 @@ function SingleCheckout({ id, nav }) {
           Taro.redirectTo({ url: '/pages-weapp/success/index' })
         }
       } else {
-        dialog.alert('下单失败: ' + (resolveErrorMessage(resp, '未知错误')))
+        if (resp.code === 40310) {
+          // #2040: 身份前置未满足 → 引导完成实名
+          const go = await dialog.confirm((resp.message || '请先完成实名认证') + '，是否前往完成实名认证？')
+          if (go) Taro.navigateTo({ url: '/pages-weapp/profile/edit/index' })
+        } else {
+          dialog.alert('下单失败: ' + (resolveErrorMessage(resp, '未知错误')))
+        }
       }
     } catch (err) {
       dialog.alert('下单失败: ' + (err?.message || '网络错误'))
@@ -957,7 +963,13 @@ function BatchCheckout({ nav }) {
           dialog.alert('下单成功，但未生成订单')
         }
       } else {
-        dialog.alert('下单失败: ' + (resolveErrorMessage(orderResp, '未知错误')))
+        if (orderResp.code === 40310) {
+          // #2040: 身份前置未满足 → 引导完成实名
+          const go = await dialog.confirm((orderResp.message || '请先完成实名认证') + '，是否前往完成实名认证？')
+          if (go) Taro.navigateTo({ url: '/pages-weapp/profile/edit/index' })
+        } else {
+          dialog.alert('下单失败: ' + (resolveErrorMessage(orderResp, '未知错误')))
+        }
       }
     } catch (err) {
       dialog.alert('下单失败: ' + (err?.message || '网络错误'))

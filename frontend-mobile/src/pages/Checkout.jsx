@@ -369,6 +369,10 @@ function SingleCheckout({ id, navigate }) {
         } else {
           navigate('/success', { replace: true })
         }
+      } else if (resp.code === 40310) {
+        // #2040: 身份前置未满足 → 引导完成实名（S3 将改为缓存订单）
+        const go = await dialog.confirm((resp.message || '请先完成实名认证') + '，是否前往完成实名认证？')
+        if (go) navigate('/profile/edit')
       } else {
         dialog.alert('下单失败: ' + (resolveErrorMessage(resp, '未知错误')))
       }
@@ -1028,6 +1032,10 @@ function BatchCheckout({ navigate }) {
           } else {
             dialog.alert('下单成功，但未生成订单')
           }
+        } else if (orderResp.code === 40310) {
+          // #2040: 身份前置未满足 → 引导完成实名
+          const go = await dialog.confirm((orderResp.message || '请先完成实名认证') + '，是否前往完成实名认证？')
+          if (go) navigate('/profile/edit')
         } else {
           dialog.alert('下单失败: ' + (resolveErrorMessage(orderResp, '未知错误')))
         }

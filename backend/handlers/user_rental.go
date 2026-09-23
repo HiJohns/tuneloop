@@ -264,6 +264,11 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	// score threshold and a recommendation letter. Fail fast before the
 	// transaction/row-lock; the guarantor ownership check keeps its
 	// original position inside the flow.
+	// #2040: 下单前置——身份证照 + 已实名（员工审核放行）方可下单
+	if !requireIdentityForOrder(c, db, userID) {
+		return
+	}
+
 	if req.DepositWaived {
 		if bizCode, msg := checkDepositWaiverEligibility(db, userID); bizCode != 0 {
 			c.JSON(http.StatusForbidden, gin.H{"code": bizCode, "message": msg})
@@ -766,6 +771,11 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 	// score threshold and a recommendation letter. Runs before the guarantor
 	// ownership check so the more fundamental eligibility failure surfaces
 	// first; EnsureLocalUser has already guaranteed the local user row.
+	// #2040: 下单前置——身份证照 + 已实名（员工审核放行）方可下单
+	if !requireIdentityForOrder(c, db, userID) {
+		return
+	}
+
 	if req.DepositWaived {
 		if bizCode, msg := checkDepositWaiverEligibility(db, userID); bizCode != 0 {
 			c.JSON(http.StatusForbidden, gin.H{"code": bizCode, "message": msg})
