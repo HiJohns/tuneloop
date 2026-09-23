@@ -1026,6 +1026,18 @@ type StaffInvite struct {
 	UpdatedAt  time.Time  `json:"updated_at"`
 }
 
+// PendingOrder 缓存未实名用户被拦截时的下单表单，实名通过后可回跳继续提交
+// （#2037/#2041）。一个用户可缓存多条（上限由 handler 控制）。
+type PendingOrder struct {
+	ID        string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID  string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	UserID    string    `gorm:"type:uuid;index;not null" json:"user_id"`
+	Payload   string    `gorm:"type:jsonb;not null" json:"payload"`               // 下单表单（JSON）
+	Status    string    `gorm:"type:varchar(20);default:'pending'" json:"status"` // pending/submitted/abandoned
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 // MerchantMember is the merchant-level counterpart of SiteMember.
 // IAM binding org for a merchant is its own tenant_id.
 type MerchantMember struct {

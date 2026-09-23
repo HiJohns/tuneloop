@@ -690,6 +690,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/user/register-as-customer", handlers.RegisterAsCustomer)
 				// #2031 邀请制自助加入：本人用邀请码把员工身份加到自己的账户
 				userOptionalAuth.POST("/user/accept-invite", handlers.AcceptInvite)
+				// #2041 待提交订单缓存（未实名被拦截 → 缓存 → 实名通过后回跳继续提交）
+				userOptionalAuth.POST("/user/pending-orders", handlers.CreatePendingOrder)
+				userOptionalAuth.GET("/user/pending-orders", handlers.ListPendingOrders)
+				userOptionalAuth.DELETE("/user/pending-orders/:id", handlers.DeletePendingOrder)
 				userOptionalAuth.POST("/user/orders/batch", userRentalHandler.BatchCreateOrder)
 				userOptionalAuth.POST("/rental/calculate", userRentalHandler.CalculateRental)
 				userOptionalAuth.GET("/user/contracts", userRentalHandler.ListContracts)
