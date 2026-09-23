@@ -26,6 +26,8 @@ export default function InstrumentStock() {
   const [assets, setAssets] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedRowKeys, setSelectedRowKeys] = useState([]) // #2043 批量操作
+  const [priceModalVisible, setPriceModalVisible] = useState(false) // #2043 批量设价
+  const [priceForm] = Form.useForm()
 
   useEffect(() => {
     loadData()
@@ -192,6 +194,30 @@ export default function InstrumentStock() {
     }
   }
 
+  // #2043: 批量设价（服务端 RequireRole(ADMIN/OWNER/site_admin) 兜底）
+  const handleBatchPrice = async () => {
+    try {
+      const values = await priceForm.validateFields()
+      const res = await api.put('/instruments/batch/price', {
+        ids: selectedRowKeys,
+        price_type: values.price_type,
+        amount: values.amount,
+        operator: values.operator,
+      })
+      if (res.code === 20000) {
+        message.success(`已修改 ${selectedRowKeys.length} 个乐器价格`)
+        setPriceModalVisible(false)
+        priceForm.resetFields()
+        setSelectedRowKeys([])
+        loadData()
+      } else {
+        message.error(res.message || '批量修改价格失败')
+      }
+    } catch (e) {
+      if (!e?.errorFields) message.error(e?.message || '批量修改价格失败')
+    }
+  }
+
   // #2043: 导出 CSV（字段选择模态留在乐器档案管理页；此处按当前状态过滤直接导出）
   const handleExport = async () => {
     try {
@@ -354,6 +380,36 @@ export default function InstrumentStock() {
 
   return (
     <div className="p-6">
+      {/* #2043: 批量设价模态 */}
+      <Modal
+        title="批量修改价格"
+        open={priceModalVisible}
+        onOk={handleBatchPrice}
+        onCancel={() => setPriceModalVisible(false)}
+        width={500}
+      >
+        <Form form={priceForm} layout="vertical">
+          <Form.Item name="price_type" label="价格类型" rules={[{ required: true, message: '请选择价格类型' }]}>
+            <Select placeholder="请选择价格类型">
+              <Select.Option value="daily_rate">日租金</Select.Option>
+              <Select.Option value="weekly_rate">周租金</Select.Option>
+              <Select.Option value="monthly_rate">月租金</Select.Option>
+              <Select.Option value="deposit">押金</Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="operator" label="操作" rules={[{ required: true, message: '请选择操作' }]}>
+            <Select placeholder="请选择操作">
+              <Select.Option value="set">设置为</Select.Option>
+              <Select.Option value="increase">增加</Select.Option>
+              <Select.Option value="decrease">减少</Select.Option>
+              <Select.Option value="multiply">乘以</Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="amount" label="金额（元）" rules={[{ required: true, message: '请输入金额' }]}>
+            <InputNumber style={{ width: '100%' }} min={0} />
+          </Form.Item>
+        </Form>
+      </Modal>
       <Space style={{ marginBottom: 8 }}>
         <h2 className="text-xl font-bold" style={{ margin: 0 }}>{view === 'stock' ? '库存监控' : '丢失台账'}</h2>
         <Button icon={<WarningOutlined />} onClick={() => switchView(view === 'stock' ? 'loss' : 'stock')}>
@@ -375,6 +431,12 @@ export default function InstrumentStock() {
         <PermissionGate code="instrument:create">
           {view === 'stock' && (
             <Button onClick={() => navigate('/instruments/batch-import')}>批量导入</Button>
+          )}
+        </PermissionGate>
+        {/* #2043: 批量设价（仅选中后出现；服务端 RequireRole 兜底） */}
+        <PermissionGate code="instrument:update">
+          {view === 'stock' && selectedRowKeys.length > 0 && (
+            <Button onClick={() => { priceForm.resetFields(); setPriceModalVisible(true) }}>批量设价（{selectedRowKeys.length}）</Button>
           )}
         </PermissionGate>
         {/* #2043: 批量删除（仅选中后出现；需 instrument:delete） */}
