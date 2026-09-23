@@ -980,15 +980,30 @@ type Merchant struct {
 
 // SiteMember represents the many-to-many relationship between users and sites
 type SiteMember struct {
-	ID        string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID  string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	SiteID    string    `gorm:"type:uuid;not null;index:idx_site_members_unique" json:"site_id"`
-	UserID    string    `gorm:"type:uuid;not null;index:idx_site_members_unique" json:"user_id"`
+	ID       string `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID string `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	SiteID   string `gorm:"type:uuid;not null;index:idx_site_members_unique" json:"site_id"`
+	UserID   string `gorm:"type:uuid;not null;index:idx_site_members_unique" json:"user_id"`
+	// Role is the primary role (backward compatible). Roles (#2034) carries the
+	// full set — a user may hold several roles in one site (e.g. 员工+维修师傅).
 	Role      string    `gorm:"type:varchar(20);default:'Staff'" json:"role"`
+	Roles     []string  `gorm:"type:jsonb;serializer:json" json:"roles"`
 	Status    string    `gorm:"type:varchar(20);default:'active'" json:"status"`
 	IamTaskID string    `gorm:"type:varchar(255)" json:"iam_task_id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// EffectiveRoles returns the full role set, falling back to the primary Role
+// for rows written before the multi-role column existed (#2034).
+func (s SiteMember) EffectiveRoles() []string {
+	if len(s.Roles) > 0 {
+		return s.Roles
+	}
+	if s.Role != "" {
+		return []string{s.Role}
+	}
+	return nil
 }
 
 // StaffInvite is a single-use invite code that lets a person join an org as

@@ -1,0 +1,1 @@
+ALTER TABLE site_members DROP COLUMN IF EXISTS roles;
