@@ -1061,7 +1061,8 @@ func ensureSiteMember(db *gorm.DB, userID string, iamOrgID string, iamRole strin
 	if existingRole != "" {
 		siteRole := mapIAMRoleToSiteRole(iamRole)
 		if existingRole != siteRole {
-			db.Model(&models.SiteMember{}).Where("user_id = ? AND site_id = ?", userID, site.ID).Update("role", siteRole)
+			db.Model(&models.SiteMember{}).Where("user_id = ? AND site_id = ?", userID, site.ID).
+				Updates(map[string]interface{}{"role": siteRole, "roles": []string{siteRole}}) // #2034
 			log.Printf("[IAMProxy] SyncUsers: corrected site_member role for user %s site %s: %s -> %s", userID, site.ID, existingRole, siteRole)
 			return true
 		}
@@ -1073,6 +1074,7 @@ func ensureSiteMember(db *gorm.DB, userID string, iamOrgID string, iamRole strin
 		SiteID:    site.ID,
 		UserID:    userID,
 		Role:      mapIAMRoleToSiteRole(iamRole),
+		Roles:     []string{mapIAMRoleToSiteRole(iamRole)}, // #2034
 		Status:    "active",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
