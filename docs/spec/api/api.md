@@ -1042,14 +1042,13 @@ GET /api/confirmation-sessions/:id
 
 **权限**: `instrument:create`（main.go:389）
 
-**请求体**（`CreateInstrumentRequest`，仅 `category_id` 必填）:
+**请求体**（`CreateInstrumentRequest`）：`category_id`（`binding:"required"`，instrument.go:23）+ `level_id`（业务校验必填，instrument.go:258-265）**双必填**；实测预生产 214/214 条乐器双字段均非空。其余字段可选。`status` 字段**创建端不读**（固定 `available`，instrument.go:336），无需传。
 ```json
 {
   "category_id": "cat-001",
   "level_id": "lvl-professional",
   "sn": "SN20260701-001",
   "site_id": "site-001",
-  "status": "active",
   "description": "专业级立式钢琴...",
   "base_daily_rate": 45,
   "total_price": 5000,
@@ -1083,8 +1082,10 @@ GET /api/confirmation-sessions/:id
 
 **错误响应**:
 ```json
-{ "code": 40002, "message": "category_id is required" }
+{ "code": 40001, "message": "Key: 'CreateInstrumentRequest.CategoryID' Error:Field validation for 'CategoryID' failed on the 'required' tag" }
+{ "code": 40001, "message": "level_id is required" }
 { "code": 40005, "message": "invalid pricing format: ..." }
+{ "code": 40901, "message": "识别码已存在" }
 { "code": 50000, "message": "failed to create instrument: ..." }
 ```
 
