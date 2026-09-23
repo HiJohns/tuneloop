@@ -198,6 +198,12 @@ export default function EditProfile() {
             <IdPhotoUploader side="other" initialUrl={idPhotoOther}
               onChange={(u) => { setIdPhotoOther(u); if (u) setIdPhotoOtherVerified(false) }} leftAligned />
           </View>
+          {/* #2039: 第二证件以身份证正反面为前提（后端强制；此处前置提示） */}
+          {(!idPhotoFront || !idPhotoBack) && (
+            <Text style={{ fontSize: 12, color: '#a16207', marginTop: 6, display: 'block' }}>
+              请先上传身份证正反面，再上传第二证件
+            </Text>
+          )}
         </View>
         {/* 实名认证区块 (#1787) */}
         <View style={{ marginBottom: 20 }}>

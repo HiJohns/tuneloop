@@ -106,6 +106,21 @@ func (h *UserOnboardingHandler) UploadIDPhoto(c *gin.Context) {
 		return
 	}
 
+	// #2039: 第二证件（other）以身份证正反面已上传为前提（后端权威，防绕过）
+	if side == "other" {
+		var u models.User
+		if err := db.Select("id_photo_front, id_photo_back").First(&u, "id = ?", userID).Error; err == nil {
+			if u.IdPhotoFront == nil || *u.IdPhotoFront == "" || u.IdPhotoBack == nil || *u.IdPhotoBack == "" {
+				c.JSON(http.StatusForbidden, gin.H{
+					"code":    40902,
+					"message": "请先上传身份证正反面，再提交第二证件",
+					"data":    gin.H{"reasons": []string{"no_id_photo"}},
+				})
+				return
+			}
+		}
+	}
+
 	c.Request.ParseMultipartForm(10 << 20)
 	file, err := c.FormFile("file")
 	if err != nil {
