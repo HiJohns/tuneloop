@@ -5,6 +5,7 @@ import { EyeOutlined, EditOutlined, WarningOutlined, RollbackOutlined, FileTextO
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { inventoryApi, lossApi, api } from '../services/api'
 import PermissionGate from '../components/PermissionGate'
+import { usePermission } from '../hooks/usePermission'
 
 const statusColors = {
   "在租": "green",
@@ -43,6 +44,10 @@ export default function InstrumentStock() {
     }
   }
 
+  // #2043: 管理员级可见性代理（删除权限=管理级）；用于状态范围与敏感字段
+  const { hasCusPerm } = usePermission()
+  const isManagerLike = hasCusPerm('instrument:delete')
+
   const filteredAssets = useMemo(() => {
     let result = assets
     
@@ -55,8 +60,13 @@ export default function InstrumentStock() {
       result = result.filter(a => a.leaseEnd && a.leaseEnd < today && (a.status === '在租' || a.status === 'rented'))
     }
     
+    // #2043: 非管理级（员工）不显示 下架/已售出/丢失（管理员增量）
+    if (!isManagerLike) {
+      result = result.filter(a => !['lost', 'archived', 'sold'].includes(a.status))
+    }
+
     return result
-  }, [assets, statusParam, overdueParam])
+  }, [assets, statusParam, overdueParam, isManagerLike])
   
   const columns = [
     {
@@ -123,14 +133,15 @@ export default function InstrumentStock() {
       key: 'site_name',
       width: 150,
     },
-    {
+    // #2043: 估值 = 敏感字段，仅管理员/商户管理员可见
+    ...(isManagerLike ? [{
       title: '估值',
       dataIndex: 'base_daily_rate',
       key: 'base_daily_rate',
       width: 120,
       align: 'right',
       render: (value) => value ? `¥${value.toLocaleString()}` : '-'
-    },
+    }] : []),
     {
       title: '操作',
       key: 'action',
