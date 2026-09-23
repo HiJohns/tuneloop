@@ -236,6 +236,23 @@ Body：`{ role: "<主角色>", roles: ["<角色>", ...] }`（`roles` 可选；�
 - **一人一号**：绑定对象恒为**调用者自己**的 IAMSub，无管理员代挂
 - 表：`staff_invites`（migration `20260922001`）
 
+#### 身份前置与待提交订单契约（#2037 / #2039 / #2040 / #2041）
+
+**证件上传**（`POST /api/user/id-photo`、admin 版）：`side=other` 时若 `id_photo_front`/`id_photo_back` 缺失 → `40902` + `data.reasons=["no_id_photo"]`（message：请先上传身份证正反面）
+
+**创建订单**（`POST /api/user/orders`、`/user/orders/batch`）：新增前置校验 →
+- 缺证件照 / `face_verified=false` → `40310 need_identity`，`data.reasons: ["no_id_photo" | "not_verified"]`
+- 免押叠加校验仍为 `40301`（两个错误码并存，40310 先于 40301）
+
+**待提交订单 `pending_orders`**（`userOptionalAuth`，仅本人）
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/user/pending-orders` | 写/更新缓存（body=下单表单 payload）；每用户上限 5，超出替换最旧 |
+| GET | `/api/user/pending-orders` | 本人 pending 列表（含 payload） |
+| DELETE | `/api/user/pending-orders/:id` | 放弃（status→abandoned） |
+
+状态：`pending → submitted`（提交成功） / `pending → abandoned`（用户放弃）
+
 #### 删除语义（D4）
 
 - **网点移除成员**：IAM `BindUser action=unbind`（单 relation）
