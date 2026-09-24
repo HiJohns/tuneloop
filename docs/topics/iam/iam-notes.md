@@ -153,3 +153,12 @@ CreateMerchant → CreateUser(CallbackURL)  ← CreateOrg(CallbackURL)
 - refresh 端点拒绝非 active 用户
 - **refresh token 吊销校验（#488，已修复）**：refresh grant 同样校验 refresh token 自身的 `iat(秒) < token_version/1000` → 401 `token revoked`——改密后旧 refresh token 不再能换新 token，吊销机制在协议层闭环。秒级对称比较与 tuneloop 侧 40107 判定完全一致；`token_version=0`（从未 bump 的 legacy 用户）跳过校验。
   - 部署状态：beaconiam main `82566fb`（待随 #487 一并部署预生产后实测，验证清单见 tuneloop#1736）
+
+### 标记删除账户再登录自助恢复（#2033 / D3，2026-09-24）
+
+- **语义**：tuneloop `POST /admin/user-management/:id/mark-deleted` 经 IAM `DELETE /api/v1/users/:id`（`DeactivateUser`）软删——`users.status=inactive` + 停用全部 relation + 吊销 token。**被标记删除的用户再次微信登录时，beaconiam 自动恢复原户**（`status=active` + 按快照重启用 relation），避免注册路径分裂出新户导致业务数据归属丢失。
+- **留痕列（beaconiam）**：`users.deactivated_reason='mark_deleted'` + `users.deactivated_relation_ids`（停用时 active relation ID 快照）。仅按快照恢复，**不复活**管理员此前手动移除的成员关系。
+- **保守边界**：`status=deleted` → 维持 404 `wx_user_not_found`（#484 不变，走全新注册）；`inactive` 且**无** `mark_deleted` 留痕（管理员禁用/历史数据）→ 维持 403 `account not active`（不误激活）。
+- **前端提示**：`wx-accounts`/多户选择返回 `reactivatable: true`，可用于「重新激活」提示。
+- **tuneloop 本地缓存**：`users` 以 `iam_sub` 关联，恢复登录后自然续用；JWT 由恢复后的 relation 重新签发（授权走 JWT claims，不依赖本地缓存）。
+- 迁移版本：beaconiam `20260924_mark_deleted_reactivation`。

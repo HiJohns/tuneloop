@@ -79,6 +79,13 @@ sequenceDiagram
   - `site_id` = 关联网点 ID
   - `role` = 网点角色（`site_member`）
 
+## 标记删除与自助恢复（#2033 / D3）
+
+- `POST /admin/user-management/:id/mark-deleted` = **软删**：IAM `status=inactive` + 停用 relation + 吊销 token（留痕 `deactivated_reason='mark_deleted'` + relation ID 快照）。
+- **再登录自助恢复**：被标记删除的用户再次微信登录 → beaconiam 自动恢复原户（`status=active` + 按快照重启用 relation），数据归属不变。
+- 不可恢复：`status=deleted`（404，走全新注册）；`inactive` 无留痕（403，管理员禁用）。
+- 运维含义：误标记删除可让用户重新登录自助回滚；如需彻底不可登录，应走禁用（非 mark-deleted）或 purge。
+
 ## 常见缺失模式与症状
 
 | 缺失环节 | 症状 |

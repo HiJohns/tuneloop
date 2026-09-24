@@ -160,13 +160,13 @@ export default function UserManagement() {
     if (!current) return
     Modal.confirm({
       title: '标记删除该用户？',
-      content: '将解除其全部组织关联并标记为不可用（账户记录保留，可重新加回）。此操作会使其立即无法登录。',
+      content: '将解除其全部组织关联并标记为不可用（账户记录保留，可重新加回）。此操作会使其立即无法登录；该用户再次微信登录时将自动恢复原户与关联。',
       okText: '确认标记删除',
       okButtonProps: { danger: true },
       onOk: async () => {
         const resp = await api.post(`/admin/user-management/${current.id}/mark-deleted`)
         if (resp.code === 20000) {
-          message.success('已标记删除（账户保留，可重新加回）')
+          message.success('已标记删除（账户保留，用户再次登录将自动恢复）')
           setDetailVisible(false)
           fetchList()
         } else {
