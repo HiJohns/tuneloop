@@ -15,7 +15,3 @@ export function isStaffRole(token = getToken()) {
   const hasStaffRole = !!claims.role && claims.role !== 'USER' && claims.role !== 'GUEST'
   return hasOrg || hasTenant || hasStaffRole
 }
-
-export function isCustomerRole(token = getToken()) {
-  return !isStaffRole(token)
-}
