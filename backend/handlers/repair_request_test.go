@@ -32,7 +32,6 @@ func setupRepairRequestTables(t *testing.T, db *gorm.DB) error {
 	return nil
 }
 
-
 func TestGetRepairRequest(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	config := database.LoadConfig()
@@ -158,6 +157,7 @@ func TestListRepairRequest(t *testing.T) {
 		&models.UserInstrument{},
 		&models.Site{},
 		&models.Tenant{},
+		&models.User{},
 	}
 	for _, table := range tables {
 		_ = db.Migrator().DropTable(table)
@@ -165,6 +165,8 @@ func TestListRepairRequest(t *testing.T) {
 			t.Fatalf("failed to create table: %v", err)
 		}
 	}
+	// #2056: iam_sub 带 -:migration 标签，CreateTable 不建列，手动补（镜像 setupMockIAMAndDB）
+	db.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS iam_sub VARCHAR(255) NOT NULL DEFAULT ''")
 
 	tenantID := uuid.New().String()
 	orgID := uuid.New().String()
@@ -211,6 +213,9 @@ func TestListRepairRequest(t *testing.T) {
 	router.Use(func(c *gin.Context) {
 		ctx := c.Request.Context()
 		ctx = context.WithValue(ctx, middleware.ContextKeyTenantID, tenantID)
+		// #2056: 未注入 role/user_id 会走员工分支（resolveOperatorSiteMemberships→空集）恒失败
+		ctx = context.WithValue(ctx, middleware.ContextKeyRole, "USER")
+		ctx = context.WithValue(ctx, middleware.ContextKeyUserID, "test-customer-id")
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -241,5 +246,30 @@ func TestListRepairRequest(t *testing.T) {
 		assert.Equal(t, "V-1", item["model"])
 		assert.Equal(t, "测试网点", item["site_name"])
 		assert.Equal(t, "测试商户", item["merchant_name"])
+	}
+
+	// #2056 负向断言：员工分支按网点隔离——无站点归属的员工必须看到空集（不得回退全量）。
+	// 注：USER 分支是**身份域**（仅按 user_id 过滤，跨租户仍属本人），故隔离性须在员工分支验证。
+	other := gin.New()
+	other.Use(func(c *gin.Context) {
+		ctx := c.Request.Context()
+		ctx = context.WithValue(ctx, middleware.ContextKeyTenantID, uuid.New().String())
+		ctx = context.WithValue(ctx, middleware.ContextKeyRole, "STAFF")
+		ctx = context.WithValue(ctx, middleware.ContextKeyUserID, uuid.New().String())
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	other.GET("/api/repair-requests", handler.List)
+	w2 := httptest.NewRecorder()
+	other.ServeHTTP(w2, httptest.NewRequest("GET", "/api/repair-requests", nil))
+	assert.Equal(t, http.StatusOK, w2.Code)
+	var resp2 struct {
+		Code int                    `json:"code"`
+		Data map[string]interface{} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w2.Body.Bytes(), &resp2))
+	assert.Equal(t, 20000, resp2.Code)
+	if l2, ok2 := resp2.Data["list"].([]interface{}); ok2 {
+		assert.Len(t, l2, 0, "无站点归属的员工不得看到任何报修")
 	}
 }
