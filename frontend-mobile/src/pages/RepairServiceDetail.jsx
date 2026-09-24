@@ -324,7 +324,7 @@ export default function RepairServiceDetail() {
           {photos.length > 0 && (
             <View style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {photos.map((p, i) => (
-                <Image key={i} src={p} mode="aspectFill" style={{ width: 72, height: 72, borderRadius: 8 }} />
+                <Image key={i} src={photoSrc(p)} mode="aspectFill" style={{ width: 72, height: 72, borderRadius: 8 }} />
               ))}
             </View>
           )}
@@ -554,7 +554,7 @@ export default function RepairServiceDetail() {
                 {reviewPhotosParsed.length > 0 && (
                   <View style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {reviewPhotosParsed.map((p, i) => (
-                      <Image key={i} src={p} mode="aspectFill" style={{ width: 72, height: 72, borderRadius: 8 }} />
+                      <Image key={i} src={photoSrc(p)} mode="aspectFill" style={{ width: 72, height: 72, borderRadius: 8 }} />
                     ))}
                   </View>
                 )}
