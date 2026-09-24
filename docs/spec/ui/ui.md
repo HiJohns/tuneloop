@@ -2841,7 +2841,7 @@ const handleSyncUsersFromIAM = async () => {
 > - PC 后台：维修服务全量列表 + 评价（评分/留言/照片）展示
 >
 > **#2050 角色互斥（入口门控，强制）**：
-> - **顾客（`role` 为空或 `USER`）**：维修入口 → `/tech-list`（师傅列表/维修服务）；`/my-repairs` **仅渲染「维修服务」内容**（`?tab=service`，乐器报修 Tab 隐藏）；**不得**出现「内部报修/乐器报修」入口
+> - **顾客（`role` 为空或 `USER`）**：维修入口 → `/tech-list`（师傅列表/维修服务）；`/my-repairs` **仅渲染「维修服务」内容**（`?tab=service`，乐器报修 Tab 隐藏）；**不得**出现「内部报修/乐器报修」**创建**入口；但保留**只读**「历史报修」区（v3 legacy 存量/在途单，仅查看跟进，无创建）
 > - **员工（`role ≠ USER`）**：维修入口 → `/my-repairs`（内部报修/网点视角）；**不得**出现「维修服务（选师傅）」入口（直接访问 `/tech-list` → 重定向回 `/my-repairs`）
 > - 底部导航「维修」Tab（`Home`/`MyLeases`/`Profile`/`StaffOrders`/`MyRepairs`，H5 + weapp 各自实现）均按上述分流；维修服务与内部报修**不互链**
 > - 判定统一走 `frontend-mobile/src/utils/role.js` 的 `isStaffRole()`（员工 = `oid`/`tid` 非空 **或** 员工角色非 `USER`/非 `GUEST`；顾客 = 其余。顾客组织方案已废弃，故 `oid/tid` 非空即员工；`/tech-list`、`/my-repairs` 等入口均以此为准）

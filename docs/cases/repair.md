@@ -2,7 +2,7 @@
 id: R-01
 domain: repair
 flow: 客户报修（v3 主流程）
-visibility: 仅员工可见（#2050 角色互斥：顾客入口 = 维修服务，见 repair-service.md）
+visibility: 仅员工可见（创建入口已废弃，由接收/归还定损「有损坏」自动置乐器 repair_status=repair_pending 驱动，师傅工作台处理）；顾客侧**保留只读历史/在途单**（#2050）
 ---
 steps:
   - seq: 1

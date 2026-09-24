@@ -104,9 +104,20 @@ export default function MyRepairs() {
     setServicesLoaded(true)
   }
 
-  // #2050：顾客只加载维修服务，员工只加载内部报修（互不拉取对方数据）
+  // #2050：顾客侧历史报修（v3 legacy，type != 'service'）——只读，跟进存量/在途单
+  const fetchLegacyRepairs = async () => {
+    try {
+      const res = await apiFetch(`${baseUrl}/repair-requests`)
+      const result = await res.json()
+      if (result.code === 20000) {
+        setRepairRequests((result.data?.list || []).filter(r => r.type !== 'service'))
+      }
+    } catch {}
+  }
+
+  // #2050：顾客=维修服务 + 只读历史报修；员工=内部报修（互不拉取对方数据）
   useEffect(() => {
-    if (isCustomer) fetchMyServices()
+    if (isCustomer) { fetchMyServices(); fetchLegacyRepairs() }
     else fetchRepairs()
   }, [])
 
@@ -245,6 +256,24 @@ export default function MyRepairs() {
           })
         )}
       </View>
+      {/* #2050 顾客侧历史报修（v3 legacy，只读）：创建入口已废弃，存量/在途单仍可查看跟进 */}
+      {isCustomer && repairRequests.length > 0 && (
+        <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>历史报修（{repairRequests.length}）</Text>
+          {repairRequests.map(r => (
+            <View key={r.id} className="border border-zinc-100 rounded-xl p-3" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}
+              onClick={() => nav(`/repair-request?request_id=${r.id}`)}>
+              <View className="flex justify-between items-center">
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>{r.instrument_sn || '#' + (r.id || '').slice(0, 8)}</Text>
+                <Text style={{ fontSize: 12, color: '#A1A1AA' }}>{statusLabels[r.status] || r.status}</Text>
+              </View>
+              <Text style={{ fontSize: 11, color: '#A1A1AA' }}>
+                {r.created_at ? formatBeijingDate(r.created_at) : '-'}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
     </View>
   )
 
