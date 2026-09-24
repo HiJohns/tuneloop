@@ -362,7 +362,7 @@ export default function Profile() {
               </View>
               <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12, opacity: 0.5 }}>
                 <View style={{ fontSize: 24, marginBottom: 4 }}>🔒</View>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>已完成</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>维修中</Text>
               </View>
             </>
           ) : isStaff ? (
@@ -406,11 +406,11 @@ export default function Profile() {
                 </View>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>服务中</Text>
               </View>
-              <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => goMyLeasesStatus('completed')}>
+              <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => nav('/pages-weapp/my-repairs/index')}>
                 <View style={{ fontSize: 24, marginBottom: 4 }}>
-                  ✖️
+                  🔧
                 </View>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>已完成</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>维修中</Text>
               </View>
             </>
           )}

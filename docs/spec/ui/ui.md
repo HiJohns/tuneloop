@@ -669,7 +669,8 @@ setInterval(() => {
 **金刚区（快捷入口）**（#2053）:
 - 顾客：`待付款` → `/my-leases?status=reserved`；`服务中` → `/my-leases?status=in_lease`；`维修中` → `/my-repairs`（列表含进行中 + 已完成筛选）
 - 员工：`乐器管理` → `/staff/instruments`；`接收` → `/staff/receiving`；`发货` → `/staff/shipping`（中转网点成员另显示 `中转工作台`）
-- **历史可达性**：承租历史经 `MyLeases`「已完成」Tab；维修历史经 `/my-repairs`「已完成」筛选（会员中心为静态权益页，不承载历史）
+- **历史可达性**：会员中心「历史记录」区（`租赁历史` → `/my-leases?status=completed`；`维修历史` → `/my-repairs?tab=service`，#2053）；承租历史亦经 `MyLeases`「已完成」Tab，维修历史亦经 `/my-repairs`「已完成」筛选
+- **双端一致性（#2053 整改）**：H5 `pages/Profile.jsx` 与 weapp `pages-weapp/Profile.jsx` 各自实现，**两侧金刚区一致**（待付款 / 服务中 / 维修中）；weapp 顾客第三按钮 → `nav('/pages-weapp/my-repairs/index')`，访客灰态第三标签同为「维修中」
 
 **订单详情页**（顾客，`/order/:id`）:
 

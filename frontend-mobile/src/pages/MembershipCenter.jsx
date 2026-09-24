@@ -210,7 +210,20 @@ export default function MembershipCenter() {
 
 
 
-        {/* Promo QR code */}
+        {/* 历史记录（#2053 裁定：顾客历史在会员中心查看） */}
+      <View className="mx-4 mt-4 bg-white rounded-2xl shadow-sm p-4">
+        <Text className="text-sm font-bold text-zinc-800 mb-2">历史记录</Text>
+        <View className="flex justify-between items-center py-3 border-b border-zinc-50" onClick={() => nav('/my-leases?status=completed')}>
+          <Text className="text-sm text-zinc-600">租赁历史</Text>
+          <Text className="text-sm text-zinc-300">❯</Text>
+        </View>
+        <View className="flex justify-between items-center py-3" onClick={() => nav('/my-repairs?tab=service')}>
+          <Text className="text-sm text-zinc-600">维修历史</Text>
+          <Text className="text-sm text-zinc-300">❯</Text>
+        </View>
+      </View>
+
+      {/* Promo QR code */}
       <View className="mx-4 mt-4 bg-white rounded-2xl shadow-sm p-4">
         <View className="items-center">
           <Button onClick={handleGetPromo}
