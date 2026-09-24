@@ -118,9 +118,18 @@ func ListSiteInvites(c *gin.Context) {
 func AcceptInvite(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
-	localUserID := middleware.GetUserID(ctx)
-	if localUserID == "" {
+	if middleware.GetUserID(ctx) == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "请先登录"})
+		return
+	}
+	// #2052/#1742：JWT sub 是 IAM 侧 id，须解析为本地 users.id 再与 invitee_user_id 比对
+	localUserID, err := middleware.LocalUserID(ctx, db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "账户解析失败，请稍后重试"})
+		return
+	}
+	if localUserID == "" {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "用户不存在"})
 		return
 	}
 
@@ -333,9 +342,18 @@ func SendStaffInvite(c *gin.Context) {
 func AcceptInvitation(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
-	localUserID := middleware.GetUserID(ctx)
-	if localUserID == "" {
+	if middleware.GetUserID(ctx) == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "请先登录"})
+		return
+	}
+	// #2052/#1742：JWT sub 是 IAM 侧 id，须解析为本地 users.id 再与 invitee_user_id 比对
+	localUserID, err := middleware.LocalUserID(ctx, db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "账户解析失败，请稍后重试"})
+		return
+	}
+	if localUserID == "" {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "用户不存在"})
 		return
 	}
 
@@ -376,9 +394,18 @@ func AcceptInvitation(c *gin.Context) {
 func RejectInvitation(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
-	localUserID := middleware.GetUserID(ctx)
-	if localUserID == "" {
+	if middleware.GetUserID(ctx) == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "请先登录"})
+		return
+	}
+	// #2052/#1742：JWT sub 是 IAM 侧 id，须解析为本地 users.id 再与 invitee_user_id 比对
+	localUserID, err := middleware.LocalUserID(ctx, db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "账户解析失败，请稍后重试"})
+		return
+	}
+	if localUserID == "" {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "用户不存在"})
 		return
 	}
 

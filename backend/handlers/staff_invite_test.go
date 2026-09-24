@@ -28,6 +28,11 @@ func TestAcceptInvite_Guards(t *testing.T) {
 	require.NoError(t, db.AutoMigrate(&models.StaffInvite{}))
 
 	userID := uuid.New().String()
+	// #2052: JWT sub ≠ 本地 users.id —— 必须能解析（iam_sub 反查）
+	require.NoError(t, db.Create(&models.User{
+		ID: uuid.New().String(), IAMSub: userID,
+		TenantID: uuid.New().String(), OrgID: uuid.New().String(), Status: "active",
+	}).Error)
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
 		ctx := context.WithValue(c.Request.Context(), middleware.ContextKeyUserID, userID)
@@ -110,8 +115,17 @@ func TestInvitation_Guards(t *testing.T) {
 	db := database.GetDB()
 	require.NoError(t, db.AutoMigrate(&models.StaffInvite{}))
 
-	inviteeID := uuid.New().String()
-	otherID := uuid.New().String()
+	// #2052: 主动构造 sub ≠ 本地 users.id 的形态（防止 fixture 同值掩盖 sub/key 混用）
+	inviteeSub, inviteeLocal := uuid.New().String(), uuid.New().String()
+	otherSub, otherLocal := uuid.New().String(), uuid.New().String()
+	require.NoError(t, db.Create(&models.User{
+		ID: inviteeLocal, IAMSub: inviteeSub,
+		TenantID: uuid.New().String(), OrgID: uuid.New().String(), Status: "active",
+	}).Error)
+	require.NoError(t, db.Create(&models.User{
+		ID: otherLocal, IAMSub: otherSub,
+		TenantID: uuid.New().String(), OrgID: uuid.New().String(), Status: "active",
+	}).Error)
 
 	newRouter := func(uid string) *gin.Engine {
 		r := gin.New()
@@ -130,7 +144,7 @@ func TestInvitation_Guards(t *testing.T) {
 		inv := models.StaffInvite{
 			ID: uuid.New().String(), TenantID: uuid.New().String(), OrgID: uuid.New().String(),
 			SiteID: uuid.New().String(), Role: "site_member", Code: uuid.New().String()[:16],
-			Status: status, ExpiresAt: time.Now().Add(ttl), InviteeUserID: &inviteeID,
+			Status: status, ExpiresAt: time.Now().Add(ttl), InviteeUserID: &inviteeLocal,
 		}
 		require.NoError(t, db.Create(&inv).Error)
 		return inv
@@ -143,24 +157,29 @@ func TestInvitation_Guards(t *testing.T) {
 		return w
 	}
 
-	t.Run("非被邀请人 → 403", func(t *testing.T) {
+	t.Run("非被邀请人（其他本地用户）→ 403", func(t *testing.T) {
 		inv := mkInvite("pending", time.Hour)
-		assert.Equal(t, http.StatusForbidden, post(newRouter(otherID), inv.ID, "accept").Code)
+		assert.Equal(t, http.StatusForbidden, post(newRouter(otherSub), inv.ID, "accept").Code)
 	})
 
 	t.Run("已处理 → 409", func(t *testing.T) {
 		inv := mkInvite("accepted", time.Hour)
-		assert.Equal(t, http.StatusConflict, post(newRouter(inviteeID), inv.ID, "accept").Code)
+		assert.Equal(t, http.StatusConflict, post(newRouter(inviteeSub), inv.ID, "accept").Code)
 	})
 
 	t.Run("过期 → 410", func(t *testing.T) {
 		inv := mkInvite("pending", -time.Hour)
-		assert.Equal(t, http.StatusGone, post(newRouter(inviteeID), inv.ID, "accept").Code)
+		assert.Equal(t, http.StatusGone, post(newRouter(inviteeSub), inv.ID, "accept").Code)
 	})
 
-	t.Run("拒绝 → 200 且 status=rejected", func(t *testing.T) {
+	t.Run("sub 无本地用户 → 404", func(t *testing.T) {
 		inv := mkInvite("pending", time.Hour)
-		w := post(newRouter(inviteeID), inv.ID, "reject")
+		assert.Equal(t, http.StatusNotFound, post(newRouter(uuid.New().String()), inv.ID, "accept").Code)
+	})
+
+	t.Run("拒绝（sub≠users.id 解析成功）→ 200 且 status=rejected", func(t *testing.T) {
+		inv := mkInvite("pending", time.Hour)
+		w := post(newRouter(inviteeSub), inv.ID, "reject")
 		assert.Equal(t, http.StatusOK, w.Code)
 		var stored models.StaffInvite
 		require.NoError(t, db.Where("id = ?", inv.ID).First(&stored).Error)
