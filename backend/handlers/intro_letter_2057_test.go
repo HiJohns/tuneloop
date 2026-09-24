@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"encoding/json"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -139,4 +140,40 @@ func TestIntroLetter_2057_ReviewerStudentWithLetterApproved(t *testing.T) {
 	assert.True(t, u.IdPhotoOtherVerified)
 	require.NotNil(t, u.IdPhotoOtherType)
 	assert.Equal(t, "student", *u.IdPhotoOtherType)
+}
+
+// #2057 审计 H1 回归：GET /users/me 必须返回 intro_letter_url（EditProfile 预填依赖）
+// 及第二证件认证态（同函数既有缺口，审计顺带补齐）。
+func TestGetCurrentUser_ReturnsIntroLetter_2057(t *testing.T) {
+	db, tenantID, userID := setupIdPhotoTestDB(t)
+	key := "media/intro_letter_abc.webp"
+	require.NoError(t, db.Model(&models.User{}).Where("id = ?", userID).
+		Updates(map[string]interface{}{
+			"is_shadow":               false,
+			"intro_letter_url":        key,
+			"id_photo_other_type":     "student",
+			"id_photo_other_verified": true,
+		}).Error)
+
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		ctx := testutil.MakeCustomer(tenantID, userID).InjectContext(c.Request.Context())
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	router.GET("/api/users/me", (&UserStaffHandler{}).GetCurrentUser)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, httptest.NewRequest("GET", "/api/users/me", nil))
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var resp struct {
+		Code int                    `json:"code"`
+		Data map[string]interface{} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+	assert.Equal(t, key, resp.Data["intro_letter_url"])
+	assert.Equal(t, "student", resp.Data["id_photo_other_type"])
+	assert.Equal(t, true, resp.Data["id_photo_other_verified"])
 }

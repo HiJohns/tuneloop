@@ -762,12 +762,16 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 		"id_photo_back":         h.resolveIdPhotoURL(ctx, user.IdPhotoBack),
 		"id_photo_other":        h.resolveIdPhotoURL(ctx, user.IdPhotoOther),
 		"id_photo_other_type":   user.IdPhotoOtherType, // #1807: 第三证件类型
-		"real_name":             user.RealName,
-		"id_card_no":            maskIdCardNo(user.IdCardNo),
-		"face_verified":         user.FaceVerified,
-		"face_verified_at":      user.FaceVerifiedAt,
-		"face_verify_method":    user.FaceVerifyMethod,
-		"id_verify_status":      deriveIdVerifyStatus(db, &user), // #1789 T1: 五态派生
+		// #2057 审计 H1（修复）：前端 EditProfile 预填依赖，须返回；
+		// 返回原始存储键（与提交载荷一致）；审核端展示另行经 resolveSelfieURL 解析。
+		"intro_letter_url":        user.IntroLetterURL,
+		"id_photo_other_verified": user.IdPhotoOtherVerified, // #1924: 第二证件认证态（审计顺带补齐）
+		"real_name":               user.RealName,
+		"id_card_no":              maskIdCardNo(user.IdCardNo),
+		"face_verified":           user.FaceVerified,
+		"face_verified_at":        user.FaceVerifiedAt,
+		"face_verify_method":      user.FaceVerifyMethod,
+		"id_verify_status":        deriveIdVerifyStatus(db, &user), // #1789 T1: 五态派生
 	}
 
 	// Resolve membership level name
