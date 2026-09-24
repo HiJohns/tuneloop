@@ -5,6 +5,7 @@ import { View, Text, Button, ScrollView, Image } from '@tarojs/components'
 import { apiFetch, getToken , resolveErrorMessage } from '../services/api'
 import { env, dialog } from '../platform'
 import { formatBeijingDate } from '../utils/format'
+import { isStaffRole } from '../utils/role'
 import { Package } from 'lucide-react'
 import BottomNav from '../components/BottomNav'
 
@@ -339,7 +340,7 @@ export default function MyLeases() {
         tabs={[
           { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
           { key: 'rent', icon: '🪕', label: '租赁', onClick: () => navigate(isStaff ? '/staff/orders' : '/my-leases') },
-          { key: 'service', icon: '🛠️', label: '维修', onClick: () => navigate(isStaff ? '/my-repairs' : '/tech-list') },
+          { key: 'service', icon: '🛠️', label: '维修', onClick: () => navigate(isStaffRole() ? '/my-repairs' : '/tech-list') },
           { key: 'profile', icon: '👤', label: '我的', onClick: () => navigate('/profile') },
         ]}
       />

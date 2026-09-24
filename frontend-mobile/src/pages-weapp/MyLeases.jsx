@@ -5,6 +5,7 @@ import { View, Text, Button, ScrollView, Image, Picker } from '@tarojs/component
 import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
 import { env } from '../platform'
 import { formatBeijingDate } from '../utils/format'
+import { isStaffRole } from '../utils/role'
 import BottomNav from '../components-weapp/BottomNav'
 
 const FILTERS = [
@@ -326,7 +327,7 @@ export default function MyLeases() {
         tabs={[
           { key: 'home', icon: '🏪', label: '首页', onClick: () => Taro.switchTab({ url: '/pages-weapp/home/index' }) },
           { key: 'rent', icon: '🪕', label: '租赁', onClick: () => Taro.switchTab({ url: '/pages-weapp/my-leases/index' }) },
-          { key: 'service', icon: '🛠️', label: '维修', onClick: () => nav(isStaff ? '/pages-weapp/my-repairs/index' : '/pages-weapp/tech-list/index') },
+          { key: 'service', icon: '🛠️', label: '维修', onClick: () => nav(isStaffRole() ? '/pages-weapp/my-repairs/index' : '/pages-weapp/tech-list/index') },
           { key: 'profile', icon: '👤', label: '我的', onClick: () => Taro.switchTab({ url: '/pages-weapp/profile/index' }) },
         ]}
       />
