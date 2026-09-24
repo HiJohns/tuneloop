@@ -20,7 +20,6 @@ import FaceVerify from './pages/FaceVerify'
 import AccountSelect from './pages/account-select'
 import ReceiveConfirm from './pages/ReceiveConfirm'
 import ReturnConfirm from './pages/ReturnConfirm'
-import MyService from './pages/MyService'
 import MyLeases from './pages/MyLeases'
 import LeaseHistory from './pages/LeaseHistory'
 import Messages from './pages/Messages'
@@ -48,7 +47,6 @@ import InstrumentLossManage from './pages/InstrumentLossManage'
 import TechDetail from './pages/TechDetail'
 import TechList from './pages/TechList'
 import RepairWorkflow from './pages/RepairWorkflow'
-import CreateRepairRequest from './pages/CreateRepairRequest'
 import RepairRequestDetail from './pages/RepairRequestDetail'
 import ReceivingRepairScan from './pages/ReceivingRepairScan'
 import RepairQuote from './pages/RepairQuote'
@@ -228,7 +226,6 @@ function App() {
         <Route path="/receive" element={<ProtectedRoute><ReceiveConfirm /></ProtectedRoute>} />
         <Route path="/return/:orderId" element={<ProtectedRoute><ReturnConfirm /></ProtectedRoute>} />
         <Route path="/return" element={<ProtectedRoute><ReturnConfirm /></ProtectedRoute>} />
-        <Route path="/service" element={<ProtectedRoute><MyService /></ProtectedRoute>} />
         <Route path="/my-leases" element={<ProtectedRoute><MyLeases /></ProtectedRoute>} />
         <Route path="/lease-history" element={<ProtectedRoute><LeaseHistory /></ProtectedRoute>} />
         <Route path="/my-contracts" element={<ProtectedRoute><MyContracts /></ProtectedRoute>} />
@@ -256,7 +253,6 @@ function App() {
         <Route path="/instrument-loss-manage" element={<ProtectedRoute><InstrumentLossManage /></ProtectedRoute>} />
         <Route path="/tech-detail" element={<ProtectedRoute><TechDetail /></ProtectedRoute>} />
         <Route path="/tech-list" element={<ProtectedRoute><TechList /></ProtectedRoute>} />
-        <Route path="/create-repair" element={<ProtectedRoute><CreateRepairRequest /></ProtectedRoute>} />
         <Route path="/repair" element={<ProtectedRoute><RepairWorkflow /></ProtectedRoute>} />
         <Route path="/repair-request" element={<ProtectedRoute><RepairRequestDetail /></ProtectedRoute>} />
         <Route path="/repair-quote" element={<ProtectedRoute><RepairQuote /></ProtectedRoute>} />

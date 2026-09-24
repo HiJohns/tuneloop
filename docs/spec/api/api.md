@@ -3059,27 +3059,12 @@ POST /api/warehouse/orders/:id/assess-damage
 
 > 权限组：`userOptionalAuth`（顾客无组织绑定）。**目标契约（#1880）**：以下顾客写操作须校验属主 `req.user_id == caller`；详情按「报修人本人 / 该单站点成员」可见并脱敏；创建须校验 `user_instrument` 属主。
 
-#### 7.12.1 创建报修单
-**接口**: `POST /api/repair-requests`
-**权限**: userOptionalAuth（**目标**：登录顾客；匿名拒绝）
-**请求**:
-```json
-{
-  "user_instrument_id": "uuid（与 sn 二选一）",
-  "sn": "CVZ-01",
-  "instrument_type": "小提琴", "brand": "Yamaha", "model": "V3",
-  "site_id": "uuid（必填）",
-  "merchant_type": "full | controlled（默认 full）",
-  "transit_site_id": "uuid（受控时）",
-  "description": "琴颈开裂",
-  "photos": ["/uploads/media/x.webp"],
-  "video_url": "/uploads/media/v.mp4",
-  "tracking_company": "", "tracking_number": ""
-}
-```
-**响应**: `data` = RepairRequest 全模型（字段见 §7.12.2 列表项 + `photos` 为 JSONB 字符串）
-**说明**: 无 `tenant_id`（顾客）时由 `site_id` 反查 `tenant_id/org_id`
-**错误**: 40002 参数/站点无效 / 50000 创建失败
+#### 7.12.1 创建报修单（**已废弃 #2055**）
+**状态**: **端点已删除**（`POST /api/repair-requests` 及前端 `/create-repair` 页面一并移除）。
+**原因**: 顾客手选「商户-网点」的 v3 创建流程废弃。新设计：
+- 顾客 → 选维修师 → 创建**维修服务单**（`POST /api/user/repair-services`，`repair_requests.type='service'` + `technician_id`）
+- 员工/维修师侧「乐器维修」由接收/归还**定损有损坏**自动置 `instrument.repair_status='repair_pending'` 驱动（`assessment.go` / `warehouse.go`），**不建报修单**
+**保留**: 读取路径 `GET /api/repair-requests`（顾客只读历史 + 员工网点视图）及在途单操作端点（pay/records/requote/tracking）不受影响。
 
 #### 7.12.2 报修列表
 **接口**: `GET /api/repair-requests`

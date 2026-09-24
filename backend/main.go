@@ -785,7 +785,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/notifications/:id", handlers.GetNotificationDetail)
 				userOptionalAuth.POST("/notifications/:id/read", handlers.MarkNotificationRead)
 				userOptionalAuth.GET("/user-instruments/lookup", repairReqHandler.UserInstrumentLookup)
-				userOptionalAuth.POST("/repair-requests", repairReqHandler.Create)
 				userOptionalAuth.GET("/site-members/me", handlers.GetMyRoles)
 				userOptionalAuth.POST("/repair-appeals", handlers.CreateAppeal)
 				userOptionalAuth.POST("/appeals", appealHandler.SubmitAppeal)

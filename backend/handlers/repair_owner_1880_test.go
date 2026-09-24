@@ -68,7 +68,6 @@ func setup1880Fixture(t *testing.T) (*gin.Engine, *gorm.DB, fixture1880) {
 	router.POST("/repair-requests/:id/requote-reject", h.RejectRequote)
 	router.POST("/repair-requests/:id/records", h.AddRecord)
 	router.GET("/repair-requests/:id", h.Get)
-	router.POST("/repair-requests", h.Create)
 	return router, db, f
 }
 
@@ -191,29 +190,6 @@ func Test1880_Owner_Allowed(t *testing.T) {
 }
 
 // C: create validates user_instrument ownership and requires authentication.
-func Test1880_Create_OwnershipAndAuth(t *testing.T) {
-	router, db, f := setup1880Fixture(t)
-
-	// foreign user_instrument → 40003
-	foreignUI := models.UserInstrument{
-		ID: uuid.New().String(), UserID: f.otherSub, SN: "OWN-1",
-	}
-	require.NoError(t, db.Create(&foreignUI).Error)
-
-	owner := testutil.MakeCustomer(f.tenantID, f.ownerSub)
-	httpStatus, resp := do1880(t, router, http.MethodPost, "/repair-requests", &owner, map[string]string{
-		"user_instrument_id": foreignUI.ID, "site_id": f.siteA, "description": "x",
-	})
-	require.Equal(t, http.StatusBadRequest, httpStatus)
-	assert.Equal(t, 40003, code1880(resp))
-
-	// anonymous → 40100
-	httpStatus2, resp2 := do1880(t, router, http.MethodPost, "/repair-requests", nil, map[string]string{
-		"sn": "OWN-1", "site_id": f.siteA,
-	})
-	require.Equal(t, http.StatusUnauthorized, httpStatus2)
-	assert.Equal(t, 40100, code1880(resp2))
-}
 
 // D: detail visibility and controlled-PII desensitization.
 func Test1880_Get_VisibilityAndPII(t *testing.T) {

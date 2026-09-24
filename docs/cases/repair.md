@@ -6,18 +6,9 @@ visibility: 仅员工可见（创建入口已废弃，由接收/归还定损「�
 ---
 steps:
   - seq: 1
-    action: 创建报修单
-    frontend:
-      - platform: [weapp, h5]
-        page: /create-repair
-        role: [customer]
-        gate: "已登录"
-        reach: "我的 → 报修 → 创建报修"
-        controls: [识别码输入(500ms防抖), SN, 类型, 品牌, 型号, 商户选择, 照片上传]
-        displays: [SN 回填信息, 商户/网点选项]
-        ops:
-          - {type: api, method: POST, path: /repair-requests}
-    api: {method: POST, path: /repair-requests, params: [sn, instrument_type, brand, model, merchant_id]}
+    action: 创建报修单（已废弃 #2055）
+    status: deprecated
+    note: "顾客手选「商户-网点」的创建流程已删除（页面 `/create-repair` + 端点 `POST /repair-requests`）。新路径：顾客选维修师 → 创建维修服务单（见 repair-service.md）；员工/维修师侧「乐器维修」由接收/归还定损「有损坏」自动置 `instrument.repair_status='repair_pending'` 驱动。顾客仅保留只读历史/在途单。"
   - seq: 2
     action: 查看报价并接受
     frontend:

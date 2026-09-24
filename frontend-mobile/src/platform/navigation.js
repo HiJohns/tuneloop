@@ -34,7 +34,6 @@ const ROUTE_MAP = [
   { match: '/receive-confirm', type: 'navigateTo', url: '/pages-weapp/receive-confirm/index' },
   { match: '/return-confirm', type: 'navigateTo', url: '/pages-weapp/return-confirm/index' },
   { match: '/content',     type: 'navigateTo', url: '/pages-weapp/content/index' },
-  { match: '/create-repair', type: 'navigateTo', url: '/pages-weapp/create-repair/index' },
   { match: '/repair',      type: 'navigateTo', url: '/pages-weapp/repair/index' },
   { match: '/repair-request', type: 'navigateTo', url: '/pages-weapp/repair-request/index' },
   { match: '/repair-quote', type: 'navigateTo', url: '/pages-weapp/repair-quote/index' },

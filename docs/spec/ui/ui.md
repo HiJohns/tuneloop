@@ -178,7 +178,7 @@
 | `RepairScan.jsx` | `/staff/repair-scan` | 转出中转处理（#1888 勘误：原「维修扫码」描述不符实际） |
 | `MyRepairs.jsx` | `/my-repairs` | 维修中心（扫码入口+维修列表） |
 | `RepairWorkflow.jsx` | `/repair` | 维修工作流（多面板） |
-| `CreateRepairRequest.jsx` | `/create-repair` | 创建报修单 |
+| `CreateRepairRequest.jsx` | `/create-repair` | **已删除（#2055）** |
 | `RepairRequestDetail.jsx` | `/repair-request/:id` | 报修详情 |
 | `ReturnConfirm.jsx` | `/return/:orderId` | 归还确认 |
 | `ShippingInterface.jsx` | `/staff/shipping` | 发货界面 |
@@ -987,7 +987,7 @@ API 来源：
 | `/my-repairs` | 我的报修列表 + 创建入口 | 本网点报修列表 + 待发回填物流 | 我的维修 + 待维修列表 |
 | `/repair` | ❌ 不可达 | **验收面板**（已修复 · 本站点 · 非本单维修人） | 维修面板（开始/记录/完成/接手） |
 | `/repair-request` | 报修详情 + 接受/拒绝报价 + 支付 + 评价/申诉 | 本单站点：收发货/过程记录 | 本单站点：报价/维修/过程记录 |
-| `/create-repair` | ✅ | — | — |
+| `/create-repair` | **已删除（#2055）** | — | — |
 | `/receiving-repair-scan` | ❌ | 收货识别 | — |
 | `/staff/repair-scan` | ❌ | 转出中转处理 | — |
 | `/repair-quote` | ✅（接受报价后跳支付） | — | — |
@@ -1007,7 +1007,7 @@ API 来源：
 #### 2.9.1 维修中心 `/my-repairs`
 
 **角色视图**（顶部 tab 由角色生成）：
-- 顾客：我的报修列表（`repair_requests by user_id`）+ 「创建报修」按钮
+- 顾客：我的维修服务（`user/repair-services`）+ 只读「历史报修」区（本人 `repair_requests`，仅查看/跟进，**无创建**——创建已废弃 #2055）
 - 网点员工：本网点报修列表 + 「填物流发回」动作（`return_pending`）+ **待验收乐器列表**（本站点 `repair_completed`，`repair/acceptance`，「去验收」→ `/repair?instrument_id=`，#1892）
 - 维修师傅：我的维修（`repair/mine`）+ 待维修列表（`repair/pending`，按站点过滤）
 
@@ -1050,12 +1050,11 @@ API 来源：
 - 跨端控件（Taro Textarea/Input + `platform.uploadFile` + weapp `Taro.chooseImage/chooseMedia`）
 - 记录列表：正文 / 照片网格（可预览）/ 操作人 + 时间分行显示
 
-#### 2.9.4 创建报修单 `/create-repair`（顾客）
+#### 2.9.4 创建报修单 `/create-repair`（**已删除 #2055**）
 
-- 识别码输入（500ms 防抖）→ 回填 SN/类型/品牌/型号
-- 选择商户/网点（全权=网点；合作=中转网点）
-- 照片/视频上传（H5 input / weapp `Taro.chooseImage`/`chooseMedia`）
-- 提交 → `POST /repair-requests`（须登录且引用本人 `user_instrument`）
+- **状态**：页面 + H5 路由 + weapp 薄壳 + `app.config.ts` 注册 + `navigation.js` 映射 + 端点 `POST /repair-requests` **已全部删除**。
+- **原因**：顾客手选「商户-网点」的 v3 创建流程废弃。新路径：顾客 → 维修师列表 `/tech-list` → 维修师详情 → 创建维修服务单（`repair-service-create?technician_id=`，`POST /user/repair-services`）。
+- **保留**：`GET /repair-requests`（顾客只读历史「历史报修」区 + 员工网点报修列表）与在途单操作端点。
 
 #### 2.9.5 扫码工作页（员工）
 
