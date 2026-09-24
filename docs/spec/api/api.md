@@ -3197,7 +3197,7 @@ POST /api/warehouse/orders/:id/assess-damage
 
 #### 7.15.1 创建维修服务单（用户）
 **接口**: `POST /api/user/repair-services`
-**请求**: 描述 + 照片（≤6，走 /upload）——不填识别码
+**请求**: `{description, photos[], video?, user_instrument_id?, technician_id}`——描述必填、照片 ≤6、**试奏视频可选 ≤1 段**（#2060：`video` 为 `/upload` 视频分支返回的 file_key → 落 `repair_requests.video_url`，≤500 字符，大小受 `video_max_size` 约束）；不填识别码
 **响应**: 返回 `repair_code`（6 位唯一编码，数字+大写字母，冲突重试）
 **说明**: 分配 6 位编码并展示「请将该编码写在物流单信息栏」
 **目标契约（#1942）**: 用户本人

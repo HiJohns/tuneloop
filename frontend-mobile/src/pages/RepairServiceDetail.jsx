@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react'
 import { formatCents } from '../utils/money'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
-import { View, Text, Textarea, Image, Button } from '@tarojs/components'
+import { View, Text, Textarea, Image, Video, Button } from '@tarojs/components'
 import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
 import { dialog, env, getInputValue, toWeappRoute, uploadFile as uploadFileApi } from '../platform'
 import { formatBeijingDate } from '../utils/format'
+import { photoSrc } from '../utils/media'
 
 // #1955 阶段3a：维修服务详情枢纽页（RS-02~RS-09 用户侧动作）
 // 状态驱动：选维修师 → 接受报价并支付 → 寄出 → 加价响应 → 待发回 → 评价
@@ -327,6 +328,14 @@ export default function RepairServiceDetail() {
               ))}
             </View>
           )}
+          {/* #2060: 试奏视频（有则播放） */}
+          {rr.video_url ? (
+            <View style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <Text style={{ fontSize: 12, color: '#71717A' }}>试奏视频</Text>
+              <Video src={photoSrc(rr.video_url)} controls
+                style={{ width: '100%', height: 200, borderRadius: 8, backgroundColor: '#000000' }} />
+            </View>
+          ) : null}
           <Text style={{ fontSize: 11, color: '#A1A1AA' }}>
             创建于 {rr.created_at ? formatBeijingDate(rr.created_at) : '-'}
           </Text>

@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
-import { View, Text, Textarea, Image, Button } from '@tarojs/components'
+import { View, Text, Textarea, Image, Video, Button } from '@tarojs/components'
 import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
 import { dialog, env, getInputValue, toWeappRoute, uploadFile as uploadFileApi } from '../platform'
 
-// #1955 阶段3a RS-01：创建维修服务单（描述 + 照片 ≤6，不填识别码）
+// #1955 阶段3a RS-01：创建维修服务单（描述 + 照片 ≤6 + 试奏视频可选 ≤1 段，#2060，不填识别码）
 // 提交后展示 6 位编码（repair_code），提示用户写在物流单信息栏。
 
 const MAX_PHOTOS = 6
@@ -21,6 +21,7 @@ export default function RepairServiceCreate() {
   }
   const [description, setDescription] = useState('')
   const [photos, setPhotos] = useState([])
+  const [videoFile, setVideoFile] = useState(null) // #2060: 试奏视频（本地文件/临时路径，提交时才上传）
   const [submitting, setSubmitting] = useState(false)
   const [created, setCreated] = useState(null) // {id, repair_code}
   // #1977 T3：创建页**师傅锁定**（从师傅详情页带入 technician_id）——双源读取
@@ -72,6 +73,23 @@ export default function RepairServiceCreate() {
     }
   }
 
+  // #2060: 试奏视频（可选，≤1 段）——weapp chooseMedia / H5 文件选择
+  const addVideoWeapp = async () => {
+    try {
+      const res = await Taro.chooseMedia({ count: 1, mediaType: ['video'], maxDuration: 60, sourceType: ['camera', 'album'] })
+      const f = res.tempFiles?.[0]?.tempFilePath
+      if (f) setVideoFile(f)
+    } catch (err) {
+      console.error('choose video failed:', err)
+    }
+  }
+  const addVideoH5 = (e) => {
+    const f = e.target.files?.[0]
+    if (f) setVideoFile(f)
+    e.target.value = ''
+  }
+  const removeVideo = () => setVideoFile(null)
+
   const uploadOne = async (file) => {
     // #1924：/api/upload 在严格鉴权组，必须带 token
     const authHeaders = { Authorization: 'Bearer ' + (getToken() || '') }
@@ -97,15 +115,24 @@ export default function RepairServiceCreate() {
     try {
       const keys = []
       for (const f of photos) keys.push(await uploadOne(f))
+      // #2060: 试奏视频可选——有则上传取 file_key 一并提交
+      let videoKey = ''
+      if (videoFile) videoKey = await uploadOne(videoFile)
       const resp = await apiFetch(`${baseUrl}/user/repair-services`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: description.trim(), photos: keys, technician_id: selectedId }),
+        body: JSON.stringify({
+          description: description.trim(),
+          photos: keys,
+          ...(videoKey ? { video: videoKey } : {}),
+          technician_id: selectedId,
+        }),
       })
       const result = await resp.json()
       if (result.code === 20000) {
         setCreated(result.data || {})
         setPhotos([])
+        setVideoFile(null) // #2060
         setDescription('')
       } else {
         dialog.alert(resolveErrorMessage(result))
@@ -223,6 +250,32 @@ export default function RepairServiceCreate() {
               </View>
             ))}
           </View>
+        </View>
+
+        {/* #2060: 试奏视频（可选，≤1 段） */}
+        <View style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>试奏视频（可选，1 段）</Text>
+          {videoFile ? (
+            <View style={{ position: 'relative', borderRadius: 8, overflow: 'hidden' }}>
+              <Video src={env.isMiniProgram ? videoFile : URL.createObjectURL(videoFile)} controls
+                style={{ width: '100%', height: 180, backgroundColor: '#000000' }} />
+              <View onClick={removeVideo}
+                style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 12, color: '#FFFFFF' }}>✕</Text>
+              </View>
+            </View>
+          ) : (env.isMiniProgram ? (
+            <View onClick={addVideoWeapp}
+              style={{ width: '100%', height: 56, borderRadius: 10, border: '1px dashed #D4D4D8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 13, color: '#A1A1AA' }}>＋ 录制/选择试奏视频（≤60s）</Text>
+            </View>
+          ) : (
+            <View style={{ width: '100%', height: 56, borderRadius: 10, border: '1px dashed #D4D4D8', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+              <Text style={{ fontSize: 13, color: '#A1A1AA' }}>＋ 选择试奏视频</Text>
+              <input type="file" accept="video/*" className="hidden"
+                style={{ position: 'absolute', inset: 0, opacity: 0 }} onChange={addVideoH5} />
+            </View>
+          ))}
         </View>
 
         <Button disabled={submitting} onClick={submit}

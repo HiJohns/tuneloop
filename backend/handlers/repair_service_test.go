@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -673,4 +674,36 @@ func TestRepairService_ShortfallPrepay(t *testing.T) {
 	require.NoError(t, f.db.Model(&models.RepairRequestRecord{}).
 		Where("repair_request_id = ? AND record_type = ?", id, "shortfall_paid").Count(&tlCount).Error)
 	assert.Equal(t, int64(1), tlCount)
+}
+
+// #2060: 创建维修服务单可选试奏视频（video file_key → repair_requests.video_url）
+func TestRepairService_CreateVideo2060(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	customer := testutil.MakeCustomer("", f.customerSub)
+
+	// 带视频 → video_url 落库
+	code, resp := svcPost(t, f, customer, "/user/repair-services", map[string]interface{}{
+		"description": "琴键异响", "photos": []string{"p/1.jpg"},
+		"video": "videos/take1.mp4", "technician_id": f.techID,
+	})
+	require.Equal(t, http.StatusOK, code, resp)
+	var rr models.RepairRequest
+	require.NoError(t, f.db.First(&rr, "id = ?", svcData(t, resp)["id"].(string)).Error)
+	assert.Equal(t, "videos/take1.mp4", rr.VideoURL)
+
+	// 不带视频 → 空
+	_, resp2 := svcPost(t, f, customer, "/user/repair-services", map[string]interface{}{
+		"description": "无视频", "photos": []string{"p/2.jpg"}, "technician_id": f.techID,
+	})
+	var rr2 models.RepairRequest
+	require.NoError(t, f.db.First(&rr2, "id = ?", svcData(t, resp2)["id"].(string)).Error)
+	assert.Equal(t, "", rr2.VideoURL)
+
+	// 超长（>500）→ 40002
+	code3, resp3 := svcPost(t, f, customer, "/user/repair-services", map[string]interface{}{
+		"description": "超长", "photos": []string{"p/3.jpg"},
+		"video": strings.Repeat("x", 501), "technician_id": f.techID,
+	})
+	assert.Equal(t, http.StatusBadRequest, code3)
+	assert.Equal(t, float64(40002), resp3["code"])
 }

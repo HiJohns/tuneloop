@@ -178,6 +178,7 @@ func (h *RepairServiceHandler) Create(c *gin.Context) {
 	var body struct {
 		Description      string   `json:"description"`
 		Photos           []string `json:"photos"`
+		Video            string   `json:"video"` // #2060: 试奏视频 file_key（可选，≤1 段）
 		UserInstrumentID string   `json:"user_instrument_id"`
 		TechnicianID     string   `json:"technician_id"`
 	}
@@ -194,6 +195,11 @@ func (h *RepairServiceHandler) Create(c *gin.Context) {
 	}
 	if strings.TrimSpace(body.Description) == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "description is required"})
+		return
+	}
+	// #2060: 试奏视频可选；仅做长度校验（与 photos 的宽松口径一致，不做存在性强校验）
+	if len(strings.TrimSpace(body.Video)) > 500 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "video 链接过长（≤500）"})
 		return
 	}
 	if body.UserInstrumentID != "" {
@@ -214,6 +220,7 @@ func (h *RepairServiceHandler) Create(c *gin.Context) {
 		Type:             repairServiceTypeVal,
 		RepairCode:       &code,
 		Description:      body.Description,
+		VideoURL:         strings.TrimSpace(body.Video), // #2060: 可选试奏视频
 		CreatedAt:        now,
 		UpdatedAt:        now,
 	}

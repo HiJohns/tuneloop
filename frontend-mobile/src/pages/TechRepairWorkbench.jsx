@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react'
 import { formatCents, yuanToCents as toCents } from '../utils/money'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
-import { View, Text, Input, Button, ScrollView } from '@tarojs/components'
+import { View, Text, Input, Video, Button, ScrollView } from '@tarojs/components'
 import { apiFetch, resolveErrorMessage } from '../services/api'
 import { dialog, env, getInputValue, toWeappRoute } from '../platform'
 import { formatBeijingDate } from '../utils/format'
+import { photoSrc } from '../utils/media'
 
 // #1956 阶段3b：师傅工作台（RS-API-2 scope=mine）
 //   待报价（pending_quote）→ 报价（修理费 + 物流费预估）
@@ -197,6 +198,10 @@ export default function TechRepairWorkbench() {
         <Text style={{ fontSize: 12, color: '#52525B' }} numberOfLines={2}>
           {rr.description || '（无描述）'}
         </Text>
+        {/* #2060: 试奏视频（有则播放） */}
+        {rr.video_url ? (
+          <Video src={photoSrc(rr.video_url)} controls style={{ width: '100%', height: 160, borderRadius: 8, backgroundColor: '#000000' }} />
+        ) : null}
         <Text style={{ fontSize: 11, color: '#71717A' }}>金额 {svcAmount(rr)} · {svcTodo(rr)}</Text>
         <Button onClick={() => toggle(rr.id, 'quote')} style={btnSecondaryStyle}>
           {isOpen ? '收起' : '填写报价'}
@@ -235,6 +240,10 @@ export default function TechRepairWorkbench() {
         <Text style={{ fontSize: 12, color: '#52525B' }} numberOfLines={2}>
           {rr.description || '（无描述）'}
         </Text>
+        {/* #2060: 试奏视频（有则播放） */}
+        {rr.video_url ? (
+          <Video src={photoSrc(rr.video_url)} controls style={{ width: '100%', height: 160, borderRadius: 8, backgroundColor: '#000000' }} />
+        ) : null}
         <Text style={{ fontSize: 11, color: '#A1A1AA' }}>
           金额 {svcAmount(rr)} · {svcTodo(rr)} · 更新于 {rr.updated_at ? formatBeijingDate(rr.updated_at) : '-'}
         </Text>
@@ -312,6 +321,10 @@ export default function TechRepairWorkbench() {
               <Text style={{ fontSize: 12, color: '#52525B' }} numberOfLines={2}>
                 {rr.description || '（无描述）'}
               </Text>
+              {/* #2060: 试奏视频（有则播放） */}
+              {rr.video_url ? (
+                <Video src={photoSrc(rr.video_url)} controls style={{ width: '100%', height: 160, borderRadius: 8, backgroundColor: '#000000' }} />
+              ) : null}
               <Text style={{ fontSize: 11, color: '#71717A' }}>金额 {svcAmount(rr)}</Text>
             </View>
           ))}
