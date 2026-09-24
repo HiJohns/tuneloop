@@ -268,6 +268,9 @@ ssh cadenza "OSS_ENDPOINT=https://oss-cn-beijing.aliyuncs.com OSS_BUCKET=tuneloo
 | `oss` | 仅 OSS | OSS | P6 停本地写后 |
 
 - **`DualStorage`**（`services/dual_storage.go`）：组合 OSS（primary）+ LocalStorage（冷备），**不改任何调用方**（工厂层切换）；上传先 spool 到项目 `tmp/` 再分别写两侧（大文件单次读取）。
+- ⚠️ **reader 归属契约（#2061，2026-09-25 事故沉淀）**：`MediaStorage.Upload` 的入参 reader **可能被实现关闭**——阿里云 OSS Go SDK 的 `PutObject`/`UploadPart` 对 `io.ReadCloser` 会 `defer Close()`。因此 DualStorage **不得**把 spool 的 `*os.File` 直接交付两翼，必须传 **非 Closer 视图**：`io.NewSectionReader(f, 0, size)`（实现 Reader+Seeker、非 Closer → 既不被 SDK 关闭，又保留 `OSSStorage` 的 Seeker 尺寸探测与 multipart 分片路径），本地冷备另取一个 SectionReader 重放。
+  - 历史缺陷：直接交付 `*os.File` → OSS 上传后 spool 被关闭 → 本地冷备 `Seek` 报 `rewind spool: file already closed` → **dual 模式下所有上传返回错误**（预生产实测 4201/4201 失败；OSS 对象实际已写入，本地冷备从未落盘）。
+  - 回归守护：`services/dual_storage_test.go` `TestDualStorage_2061_PrimaryClosesReader`（模拟 primary 关闭入参 reader）。
 - **失败策略**：OSS 写失败**默认阻断**（显式 error，禁静默）；`OSS_FAIL_SOFT=true` 降级为 WARN + 失败清单 `tmp/oss_write_failures.log`；本地冷备写失败仅 WARN。
 - **缺配置回退**：`dual/oss` 但 `OSS_ENDPOINT/OSS_BUCKET` 缺失或凭证不可用 → WARN + 回退 `local`（保持 dev 可跑）。
 - `Delete/DeletePrefix/Copy/Rename` 两侧同步（汇总错误，互不掩盖）；`Stat` 委托 OSS（读侧权威）。

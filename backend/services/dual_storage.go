@@ -79,11 +79,20 @@ func (s *DualStorage) Upload(ctx context.Context, key string, reader io.Reader, 
 		os.Remove(f.Name())
 	}()
 
-	// OSS first: default abort must not leave a local half-state.
-	if _, err := f.Seek(0, io.SeekStart); err != nil {
-		return fmt.Errorf("rewind spool: %w", err)
+	st, err := f.Stat()
+	if err != nil {
+		return fmt.Errorf("stat spool: %w", err)
 	}
-	if err := s.primary.Upload(ctx, key, f, contentType); err != nil {
+	size := st.Size()
+
+	// #2061: 必须交付**非 Closer** 的视图。OSS Go SDK 对 io.ReadCloser 入参
+	// 会 defer Close()（PutObject/UploadPart）——直接交出 spool 的 *os.File 会
+	// 在首次上传结束时被关闭，导致本地冷备重读失败
+	// （历史缺陷：rewind spool: file already closed，dual 模式所有上传报错）。
+	// io.NewSectionReader 实现 Reader+Seeker 但**不是** Closer：既不会被 SDK
+	// 关闭，又保留 OSSStorage 的 Seeker 尺寸探测与 multipart 分片路径。
+	// OSS first: default abort must not leave a local half-state.
+	if err := s.primary.Upload(ctx, key, io.NewSectionReader(f, 0, size), contentType); err != nil {
 		if !s.failSoft {
 			return fmt.Errorf("oss upload %s: %w", key, err)
 		}
@@ -91,11 +100,8 @@ func (s *DualStorage) Upload(ctx context.Context, key string, reader io.Reader, 
 		log.Printf("[DualStorage] OSS upload failed (soft) key=%s: %v", key, err)
 	}
 
-	// Local cold backup: failure only warns.
-	if _, err := f.Seek(0, io.SeekStart); err != nil {
-		return fmt.Errorf("rewind spool: %w", err)
-	}
-	if err := s.local.Upload(ctx, key, f, contentType); err != nil {
+	// Local cold backup: failure only warns. 每次用独立 SectionReader（可重放）。
+	if err := s.local.Upload(ctx, key, io.NewSectionReader(f, 0, size), contentType); err != nil {
 		log.Printf("[DualStorage] local backup write failed key=%s: %v", key, err)
 	}
 	return nil

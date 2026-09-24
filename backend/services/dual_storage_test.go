@@ -183,3 +183,35 @@ func TestNewMediaStorage_ModeSelection(t *testing.T) {
 	_, isLocal = NewMediaStorage().(*LocalStorage)
 	require.True(t, isLocal, "dual 缺配置回退本地")
 }
+
+// closingBackend 模拟阿里云 OSS Go SDK 行为：对入参 io.ReadCloser 在上传结束后
+// 执行 Close（PutObject/UploadPart 的 defer rc.Close()）。#2061 历史缺陷：
+// DualStorage 直接把 spool 的 *os.File 交给 primary，被 SDK 关闭后本地冷备
+// 重读失败（rewind spool: file already closed），dual 模式所有上传报错。
+type closingBackend struct{ *fakeBackend }
+
+func (b *closingBackend) Upload(_ context.Context, key string, r io.Reader, _ string) error {
+	data, err := io.ReadAll(r)
+	if rc, ok := r.(io.Closer); ok {
+		_ = rc.Close() // 模拟 SDK：上传后关闭入参
+	}
+	if err != nil {
+		return err
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.objects[key] = data
+	return nil
+}
+
+// TestDualStorage_2061_PrimaryClosesReader 回归：primary 关闭入参 reader 时，
+// DualStorage.Upload 仍须成功且本地冷备写入完整内容（修复前此处返回 rewind spool 错误）。
+func TestDualStorage_2061_PrimaryClosesReader(t *testing.T) {
+	primary := &closingBackend{fakeBackend: newFakeBackend()}
+	local := newFakeBackend()
+	s := NewDualStorage(primary, local)
+
+	require.NoError(t, s.Upload(context.Background(), "close.jpg", strings.NewReader("payload-2061"), "image/jpeg"))
+	require.Equal(t, "payload-2061", string(primary.objects["close.jpg"]), "OSS 侧写入")
+	require.Equal(t, "payload-2061", string(local.objects["close.jpg"]), "本地冷备写入（旧实现因 spool 被关闭而失败）")
+}
