@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, notificationApi , resolveErrorMessage } from '../services/api'
 import { env, storage, toWeappRoute, getInputValue } from '../platform'
-import { parseJWT, getAppConfig } from '../platform/init'
+import { getAppConfig } from '../platform/init'
+import { isStaffRole } from '../utils/role'
 import BottomNav from '../components/BottomNav'
 
 function Badge({ count }) {
@@ -260,8 +261,7 @@ export default function Profile() {
 
   const displayName = user?.nickname || user?.name || user?.username || '路人'
   const token = getToken()
-  const claims = token ? parseJWT(token) : {}
-  const isStaff = claims.role === 'STAFF'
+  const isStaff = isStaffRole(token)
 
   useEffect(() => {
     const fetchCounts = async () => {
@@ -500,7 +500,7 @@ export default function Profile() {
         tabs={[
           { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
           { key: 'rent', icon: '🪕', label: '租赁', onClick: () => token && navigate(isStaff ? '/staff/orders' : '/my-leases') },
-          { key: 'service', icon: '🛠️', label: '维修', onClick: () => token && navigate('/tech-list') },
+          { key: 'service', icon: '🛠️', label: '维修', onClick: () => token && navigate(isStaff ? '/my-repairs' : '/tech-list') },
           { key: 'profile', icon: '👤', label: '我的', onClick: () => {} },
         ]}
         badges={{ profile: isStaff ? 0 : unreadCount }}

@@ -2,6 +2,8 @@
 id: R-01
 domain: repair
 flow: 客户报修（v3 主流程）
+visibility: 仅员工可见（#2050 角色互斥：顾客入口 = 维修服务，见 repair-service.md）
+---
 steps:
   - seq: 1
     action: 创建报修单

@@ -4,10 +4,11 @@ import Taro from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Button } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { dialog, env, toWeappRoute } from '../platform'
+import { isStaffRole } from '../utils/role'
 
 // #1976 T2 维修 Tab 首屏 = 师傅列表（样式参照乐器列表）
-// 右上角『我的维修』：无活跃会话置灰（可点）/ 有活跃会话点亮+个数 → 现存维修页
-// v3「乐器报修」并存入口保留（RS-10，现存维修页内含双 Tab）
+// 右上角『我的维修』→ /my-repairs?tab=service（顾客的维修服务单）
+// #2050 角色互斥：本页仅顾客可见（员工进入则跳 /my-repairs）；已移除「乐器报修」入口（内部报修仅员工）
 
 function parseExperience(v) {
   if (!v) return []
@@ -24,12 +25,15 @@ export default function TechList() {
     if (!route) { dialog.alert('该功能请在 H5 端使用'); return }
     return Taro.navigateTo({ url: route.url })
   }
+  // #2050 角色互斥：员工不得进入维修服务（师傅列表）→ 引导回内部报修
+  const isStaff = isStaffRole()
   const [techs, setTechs] = useState([])
   const [activeCount, setActiveCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const baseUrl = env.apiBaseUrl
 
   useEffect(() => {
+    if (isStaff) { nav('/my-repairs'); return }
     const load = async () => {
       try {
         const res = await apiFetch(`${baseUrl}/common/repair-technicians`)
@@ -50,6 +54,8 @@ export default function TechList() {
     }
     load()
   }, [])
+
+  if (isStaff) return null
 
   return (
     <View style={{ backgroundColor: '#FDFBF7', display: 'flex', flexDirection: 'column', height: '100vh' }}>
@@ -108,18 +114,6 @@ export default function TechList() {
               </View>
             )
           })}
-
-          {/* v3「乐器报修」并存入口（RS-10；现存维修页内含「乐器报修 / 维修服务」双 Tab） */}
-          <View
-            onClick={() => nav('/my-repairs')}
-            style={{ marginTop: 8, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-          >
-            <View style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>乐器报修</Text>
-              <Text style={{ fontSize: 11, color: '#A1A1AA' }}>已租乐器的报修工单（v3，与维修服务并存）</Text>
-            </View>
-            <Text style={{ fontSize: 18, color: '#D4D4D8' }}>›</Text>
-          </View>
         </View>
       </ScrollView>
     </View>

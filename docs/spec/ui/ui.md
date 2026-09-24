@@ -2839,6 +2839,12 @@ const handleSyncUsersFromIAM = async () => {
 > - 师傅（weapp 工作台）：报价（修理费+物流费预估，受控模式预估 3 段）| 加价（新总价+到此为止修理费）| 完成修理
 > - 网点员工（weapp）：分段发运（实填本段物流费）| 待发回清单 | 发回（末段实填 → 触发结算）
 > - PC 后台：维修服务全量列表 + 评价（评分/留言/照片）展示
+>
+> **#2050 角色互斥（入口门控，强制）**：
+> - **顾客（`role` 为空或 `USER`）**：维修入口 → `/tech-list`（师傅列表/维修服务）；`/my-repairs` **仅渲染「维修服务」内容**（`?tab=service`，乐器报修 Tab 隐藏）；**不得**出现「内部报修/乐器报修」入口
+> - **员工（`role ≠ USER`）**：维修入口 → `/my-repairs`（内部报修/网点视角）；**不得**出现「维修服务（选师傅）」入口（直接访问 `/tech-list` → 重定向回 `/my-repairs`）
+> - 底部导航「维修」Tab（`Home`/`MyLeases`/`Profile`/`StaffOrders`/`MyRepairs`，H5 + weapp 各自实现）均按上述分流；维修服务与内部报修**不互链**
+> - 判定统一走 `frontend-mobile/src/utils/role.js` 的 `isStaffRole()`（`role===''||'USER'` → 顾客，对齐后端 `middleware.GetBusinessRole`；**oid/tid 不参与判定**，见 #1700）
 
 
 ---

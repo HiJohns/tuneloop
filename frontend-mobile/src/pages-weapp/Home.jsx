@@ -4,6 +4,7 @@ import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, getCartKey, redirectToLogin, resolveLogin } from '../services/api'
 import { env, dialog, getWindowSize, storage, session } from '../platform'
 import { getMinTierDailyRateYuan } from '../utils/pricing'
+import { isStaffRole } from '../utils/role'
 import BottomNav from '../components-weapp/BottomNav'
 
 const IMG_BASE = env.apiBaseUrl.replace(/\/api$/, '')
@@ -478,10 +479,11 @@ export default function Home() {
           { key: 'home', icon: '🏪', label: '首页', onClick: () => switchTab('/pages-weapp/home/index') },
           ...(isPureTech ? [] : [{ key: 'rent', icon: '🪕', label: '租赁', onClick: () => switchTab('/pages-weapp/my-leases/index') }]),
           { key: 'service', icon: '🛠️', label: '维修', onClick: () => {
+            const url = isStaffRole() ? '/pages-weapp/my-repairs/index' : '/pages-weapp/tech-list/index'
             if (Taro.getCurrentPages().length >= 9) {
-              Taro.reLaunch({ url: '/pages-weapp/my-repairs/index' })
+              Taro.reLaunch({ url })
             } else {
-              Taro.navigateTo({ url: '/pages-weapp/my-repairs/index' })
+              Taro.navigateTo({ url })
             }
           } },
           { key: 'profile', icon: '👤', label: '我的', onClick: () => switchTab('/pages-weapp/profile/index') },

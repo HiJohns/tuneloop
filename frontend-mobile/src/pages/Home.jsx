@@ -4,6 +4,7 @@ import { View, Text, Image, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken, getCartKey, redirectToLogin } from '../services/api'
 import { env, getWindowSize, storage, session } from '../platform'
 import { getMinTierDailyRateYuan } from '../utils/pricing'
+import { isStaffRole } from '../utils/role'
 import BottomNav from '../components/BottomNav'
 
 const INSTRUMENT_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
@@ -392,7 +393,7 @@ export default function Home() {
           tabs={[
             { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
             ...(isPureTech ? [] : [{ key: 'rent', icon: '🪕', label: '租赁', onClick: navigateToList }]),
-            { key: 'service', icon: '🛠️', label: '维修', onClick: () => { const url = tenant ? `/tech-list?tenant=${tenant}` : '/tech-list'; navigate(url) } },
+            { key: 'service', icon: '🛠️', label: '维修', onClick: () => { const base = isStaffRole() ? '/my-repairs' : '/tech-list'; const url = tenant ? `${base}?tenant=${tenant}` : base; navigate(url) } },
             { key: 'profile', icon: '👤', label: '我的', onClick: () => { const url = tenant ? `/profile?tenant=${tenant}` : '/profile'; navigate(url) } },
           ]}
         />

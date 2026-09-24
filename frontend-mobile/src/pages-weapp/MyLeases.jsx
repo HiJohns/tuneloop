@@ -326,7 +326,7 @@ export default function MyLeases() {
         tabs={[
           { key: 'home', icon: '🏪', label: '首页', onClick: () => Taro.switchTab({ url: '/pages-weapp/home/index' }) },
           { key: 'rent', icon: '🪕', label: '租赁', onClick: () => Taro.switchTab({ url: '/pages-weapp/my-leases/index' }) },
-          { key: 'service', icon: '🛠️', label: '维修', onClick: () => nav('/pages-weapp/my-repairs/index') },
+          { key: 'service', icon: '🛠️', label: '维修', onClick: () => nav(isStaff ? '/pages-weapp/my-repairs/index' : '/pages-weapp/tech-list/index') },
           { key: 'profile', icon: '👤', label: '我的', onClick: () => Taro.switchTab({ url: '/pages-weapp/profile/index' }) },
         ]}
       />

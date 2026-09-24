@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { formatCents } from '../utils/money'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Button, Input } from '@tarojs/components'
 import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
 import { dialog, env, getInputValue, toWeappRoute } from '../platform'
+import { isStaffRole } from '../utils/role'
 import BottomNav from '../components/BottomNav'
 import BottomNavWeapp from '../components-weapp/BottomNav'
 import { formatBeijingDate, repairStatusLabel } from '../utils/format'
@@ -19,6 +20,11 @@ const statusLabels = {
 
 export default function MyRepairs() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  // #2050 维修区角色互斥：员工=内部报修，顾客=维修服务（含 oid/tid 非空的顾客仍是顾客）
+  const token = getToken()
+  const isStaff = isStaffRole(token)
+  const isCustomer = !isStaff
   // Cross-end navigation (issue-1673): weapp has no react-router short paths;
   // central toWeappRoute maps H5 paths → /pages-weapp/... page urls.
   const nav = (to) => {
@@ -39,21 +45,11 @@ export default function MyRepairs() {
   const [shippingBack, setShippingBack] = useState(false)
   const [showSiteRepairs, setShowSiteRepairs] = useState(true)
   const [showPending, setShowPending] = useState(true)
-  // #1957 入口区分：乐器报修（v3）/ 维修服务（RS-10）
-  const [svcTab, setSvcTab] = useState('legacy')
+  // #1957 入口区分：乐器报修（v3）/ 维修服务（RS-10）；#2050 顾客锁定「维修服务」
+  const [svcTab, setSvcTab] = useState((!isStaff || searchParams.get('tab') === 'service') ? 'service' : 'legacy')
   const [myServices, setMyServices] = useState([])
   const [servicesLoaded, setServicesLoaded] = useState(false)
   const baseUrl = env.apiBaseUrl
-
-  // Check if user is customer (no staff claims)
-  const token = getToken()
-  const isCustomer = (() => {
-    if (!token) return true
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]))
-      return payload?.role === 'USER' || !payload?.role
-    } catch { return true }
-  })()
 
   const fetchRepairs = async () => {
     setLoading(true)
@@ -70,20 +66,13 @@ export default function MyRepairs() {
 
       const fetches = []
 
-      // All roles: fetch repair requests
-      if (isCustomer) {
-        fetches.push(apiFetch(`${baseUrl}/repair-requests`).then(r => r.json()).then(r => {
-          if (r.code === 20000) setRepairRequests(r.data?.list || [])
-        }))
-      } else {
-        // Staff/tech: fetch my repairs + pending
-        fetches.push(apiFetch(`${baseUrl}/repair/mine`).then(r => r.json()).then(r => {
-          if (r.code === 20000) setMyRepairs(r.data?.list || [])
-        }))
-        fetches.push(apiFetch(`${baseUrl}/repair/pending`).then(r => r.json()).then(r => {
-          if (r.code === 20000) setPendingRepairs(r.data?.list || [])
-        }))
-      }
+      // Staff/tech: fetch my repairs + pending
+      fetches.push(apiFetch(`${baseUrl}/repair/mine`).then(r => r.json()).then(r => {
+        if (r.code === 20000) setMyRepairs(r.data?.list || [])
+      }))
+      fetches.push(apiFetch(`${baseUrl}/repair/pending`).then(r => r.json()).then(r => {
+        if (r.code === 20000) setPendingRepairs(r.data?.list || [])
+      }))
 
       // Staff: also fetch site repair requests
       if (hasSiteRole || isPureTech) {
@@ -105,7 +94,21 @@ export default function MyRepairs() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchRepairs() }, [])
+  // #1957：维修服务（type='service'）我的单（顾客视角，只读摘要；完整流程见阶段3a）
+  const fetchMyServices = async () => {
+    try {
+      const res = await apiFetch(`${baseUrl}/user/repair-services`)
+      const result = await res.json()
+      if (result.code === 20000) setMyServices(result.data?.list || [])
+    } catch {}
+    setServicesLoaded(true)
+  }
+
+  // #2050：顾客只加载维修服务，员工只加载内部报修（互不拉取对方数据）
+  useEffect(() => {
+    if (isCustomer) fetchMyServices()
+    else fetchRepairs()
+  }, [])
 
   const hasSiteRole = roles.some(r => ['site_admin', 'site_member'].includes(r))
   const isPureTech = roles.includes('repair_technician') && !hasSiteRole
@@ -143,16 +146,6 @@ export default function MyRepairs() {
       else { dialog.alert(resolveErrorMessage(result)) }
     } catch {}
     setShippingBack(false)
-  }
-
-  // #1957：维修服务（type='service'）我的单（顾客视角，只读摘要；完整流程见阶段3a）
-  const fetchMyServices = async () => {
-    try {
-      const res = await apiFetch(`${baseUrl}/user/repair-services`)
-      const result = await res.json()
-      if (result.code === 20000) setMyServices(result.data?.list || [])
-    } catch {}
-    setServicesLoaded(true)
   }
 
   const svcStatusLabels = {
@@ -257,11 +250,12 @@ export default function MyRepairs() {
     <View style={{ backgroundColor: "#FDFBF7" }} className="flex flex-col h-screen">
       {!env.isMiniProgram && (
       <View className="bg-white px-4 py-3 border-b border-zinc-100">
-        <Text className="text-lg font-black text-black">{isCustomer ? '我的报修' : isPureTech ? '维修工作台' : '报修管理'}</Text>
+        <Text className="text-lg font-black text-black">{isCustomer ? '我的维修' : isPureTech ? '维修工作台' : '报修管理'}</Text>
       </View>
       )}
 
-      {/* #1957 RS-10 入口区分：乐器报修（v3）/ 维修服务 */}
+      {/* #1957 RS-10 入口区分：乐器报修（v3）/ 维修服务；#2050 顾客锁定「维修服务」（内部报修仅员工） */}
+      {isStaff && (
       <View style={{ display: 'flex', gap: 8, backgroundColor: '#FFFFFF', padding: '10px 16px 0' }}>
         {[
           { key: 'legacy', label: '乐器报修' },
@@ -277,6 +271,7 @@ export default function MyRepairs() {
           </View>
         ))}
       </View>
+      )}
 
       {svcTab === 'service' ? (
       <ScrollView scrollY className="flex-1 min-h-0 overflow-y-auto">
@@ -303,60 +298,6 @@ export default function MyRepairs() {
             </Button>
           )}
         </View>
-        )}
-
-        {/* Customer: My repair requests + create button */}
-        {isCustomer && (
-          <>
-          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <View><Text className="text-sm font-bold text-black">我的报修 ({repairRequests.length})</Text></View>
-            {loading ? (
-              <View><Text className="text-xs text-zinc-400">加载中...</Text></View>
-            ) : repairRequests.length === 0 ? (
-              <View><Text className="text-xs text-zinc-400">暂无报修记录</Text></View>
-            ) : (
-              <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {repairRequests.map(r => (
-                  <View key={r.id} className="border border-zinc-100 rounded-xl p-3" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}
-                    onClick={() => nav(`/repair-request?request_id=${r.id}`)}>
-                    <View className="flex justify-between items-center">
-                      <Text className="text-sm font-bold text-black">{r.created_at ? formatBeijingDate(r.created_at) : '#' + r.id?.slice(0, 8)}</Text>
-                      <Text className="text-xs text-zinc-400">{statusLabels[r.status] || r.status}</Text>
-                    </View>
-                    <View className="flex justify-between items-center">
-                      <Text className="text-xs text-zinc-400">识别码</Text>
-                      <Text className="text-xs text-zinc-600">{r.instrument_sn || '-'}</Text>
-                    </View>
-                    <View className="flex justify-between items-center">
-                      <Text className="text-xs text-zinc-400">类别</Text>
-                      <Text className="text-xs text-zinc-600">{r.instrument_type || '-'}</Text>
-                    </View>
-                    <View className="flex justify-between items-center">
-                      <Text className="text-xs text-zinc-400">品牌/型号</Text>
-                      <Text className="text-xs text-zinc-600">{r.brand && r.model ? `${r.brand} ${r.model}` : r.brand || r.model || '-'}</Text>
-                    </View>
-                    <View className="flex justify-between items-center">
-                      <Text className="text-xs text-zinc-400">商户</Text>
-                      <Text className="text-xs text-zinc-600">{r.merchant_name || '-'}</Text>
-                    </View>
-                    <View className="flex justify-between items-center">
-                      <Text className="text-xs text-zinc-400">网点</Text>
-                      <Text className="text-xs text-zinc-600">{r.site_name || '-'}</Text>
-                    </View>
-                    {r.quote_amount != null && (
-                    <View className="flex justify-between items-center">
-                      <Text className="text-xs text-zinc-400">报价</Text>
-                      <Text className="text-xs text-zinc-600">¥{formatCents((r.quote_amount || 0))}</Text>
-                    </View>
-                    )}
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-          <Button onClick={() => nav('/create-repair')}
-            className="fixed bottom-20 right-4 w-14 h-14 bg-black text-white rounded-full text-2xl font-bold shadow-lg flex items-center justify-center z-50">+</Button>
-          </>
         )}
 
         {/* Pure repair technician: My repairs + pending_assessment/repairing requests */}
@@ -525,7 +466,7 @@ export default function MyRepairs() {
           tabs={[
             { key: 'home', icon: '🏪', label: '首页', onClick: () => Taro.switchTab({ url: '/pages-weapp/home/index' }) },
             ...(isPureTech ? [] : [{ key: 'rent', icon: '🪕', label: '租赁', onClick: () => Taro.switchTab({ url: '/pages-weapp/my-leases/index' }) }]),
-            { key: 'service', icon: '🛠️', label: '维修', onClick: () => Taro.redirectTo({ url: '/pages-weapp/tech-list/index' }) },
+            { key: 'service', icon: '🛠️', label: '维修', onClick: () => Taro.redirectTo({ url: isStaff ? '/pages-weapp/my-repairs/index' : '/pages-weapp/tech-list/index' }) },
             { key: 'profile', icon: '👤', label: '我的', onClick: () => Taro.switchTab({ url: '/pages-weapp/profile/index' }) },
           ]}
         />
@@ -535,7 +476,7 @@ export default function MyRepairs() {
         tabs={[
           { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
           ...(isPureTech ? [] : [{ key: 'rent', icon: '🪕', label: '租赁', onClick: () => navigate('/my-leases') }]),
-          { key: 'service', icon: '🛠️', label: '维修', onClick: () => navigate('/tech-list') },
+          { key: 'service', icon: '🛠️', label: '维修', onClick: () => navigate(isStaff ? '/my-repairs' : '/tech-list') },
           { key: 'profile', icon: '👤', label: '我的', onClick: () => navigate('/profile') },
         ]}
       />
