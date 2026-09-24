@@ -43,6 +43,7 @@ type faceReviewItem struct {
 	HasSecondDoc    bool     `json:"has_second_doc"`              // #1924: 用户已提交第二证件
 	OtherVerified   bool     `json:"id_photo_other_verified"`     // #1924: 第二证件认证态
 	OtherType       string   `json:"id_photo_other_type"`         // #1924: 审核员指定类型（未定时为空）
+	IntroLetterURL  string   `json:"intro_letter_url"`            // #2057 裁定3: 学生证介绍信（已传时返回可访问 URL）
 	FaceVerified    bool     `json:"face_verified"`               // #1924: 身份证实名是否已认证
 	IDInfoCollected bool     `json:"id_info_collected"`           // #1822: 实名信息已采录
 	RealName        string   `json:"real_name,omitempty"`         // #1822: 已采录时展示姓名
@@ -98,7 +99,7 @@ func (h *FaceReviewHandler) Queue(c *gin.Context) {
 	items := make([]faceReviewItem, 0, len(batches))
 	for _, b := range batches {
 		var user models.User
-		if err := db.Select("id, name, id_photo_front, id_photo_back, id_photo_other, real_name, id_card_no, id_card_expire, id_card_authority, id_card_address, id_photo_other_verified, id_photo_other_type, face_verified").
+		if err := db.Select("id, name, id_photo_front, id_photo_back, id_photo_other, real_name, id_card_no, id_card_expire, id_card_authority, id_card_address, id_photo_other_verified, id_photo_other_type, intro_letter_url, face_verified").
 			Where("id = ?", b.UserID).First(&user).Error; err != nil {
 			continue // 用户不存在（可能已删除）跳过
 		}
@@ -111,6 +112,12 @@ func (h *FaceReviewHandler) Queue(c *gin.Context) {
 			HasSecondDoc:  user.IdPhotoOther != nil && *user.IdPhotoOther != "",
 			OtherVerified: user.IdPhotoOtherVerified,
 			FaceVerified:  user.FaceVerified,
+		}
+		if user.IdPhotoOtherType != nil {
+			item.OtherType = *user.IdPhotoOtherType // #2057: 用户自报/审核指定类型
+		}
+		if user.IntroLetterURL != nil && *user.IntroLetterURL != "" {
+			item.IntroLetterURL = resolveSelfieURL(c.Request.Context(), *user.IntroLetterURL) // #2057
 		}
 		// #1822: 实名信息采集状态（已采录时展示脱敏摘要，审核员无需重复抄录）。
 		if userHasCoreIDInfo(&user) {
@@ -266,7 +273,7 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 	// - 未采录：员工必须填写 5 项实名信息（按证件照抄录，防顾客手输伪造）
 	// 目标用户（#1924：审核涉及第二证件状态）。
 	var targetUser models.User
-	targetUserFound := db.Select("id, tenant_id, real_name, id_card_no, id_photo_other, id_photo_other_type, face_verified").
+	targetUserFound := db.Select("id, tenant_id, real_name, id_card_no, id_photo_other, id_photo_other_type, intro_letter_url, face_verified").
 		Where("id = ?", batch.UserID).First(&targetUser).Error == nil
 	secondDocPresent := targetUserFound && targetUser.IdPhotoOther != nil && *targetUser.IdPhotoOther != ""
 
@@ -294,6 +301,19 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "second_doc_type 必填且需为 student/teacher/work/other"})
 				return
 			}
+		}
+	}
+
+	// #2057 裁定3: 员工指定 student 作为第二证件时，用户必须已提交介绍信，
+	// 否则不允许通过（应走既有 reject/通知链路要求补传）。
+	if req.Action == "approve" && req.SecondDocType == "student" {
+		if !(targetUserFound && targetUser.IntroLetterURL != nil && *targetUser.IntroLetterURL != "") {
+			c.JSON(http.StatusConflict, gin.H{
+				"code":    40912,
+				"message": "学生证作为第二证件需介绍信，请驳回并要求补传",
+				"data":    gin.H{"reasons": []string{"no_intro_letter"}},
+			})
+			return
 		}
 	}
 

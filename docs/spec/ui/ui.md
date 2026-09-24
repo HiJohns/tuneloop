@@ -766,7 +766,8 @@ API 来源：
 | 正面 | `front` | `GET /users/me → id_photo_front` | 一行（~48%） | 即时上传/替换/删除 |
 | 反面 | `back` | `id_photo_back` | 一行（~48%） | 同上 |
 | 其他证件 | `other` | `id_photo_other` | 单独一行（下方） | 即时上传/替换/删除 |
-| 证件类型 | `id_photo_other_type` | `GET /users/me → id_photo_other_type` | 第三证件下方 | Picker 选择：学生证/教职工证/教师证/工作证/其他 |
+| 证件类型 | `id_photo_other_type` | `GET /users/me → id_photo_other_type` | 第三证件上方 | Picker 选择：学生证/教职工证/工作证/其他（用户自报，审核端可修正） |
+| 介绍信 | `intro_letter_url` | `GET /users/me → intro_letter_url` | 类型=学生证时显示（第三证件上方） | `IntroLetterUploader`（`POST /upload` content_image）；**学生证必传**，未传时阻止第二证件上传（提示「学生证作为第二证件需先上传介绍信」） |
 
 **实名认证区块**（#1787/#1807：实名信息由员工审核填写）:
 

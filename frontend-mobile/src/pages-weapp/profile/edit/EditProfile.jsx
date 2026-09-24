@@ -8,11 +8,19 @@ import AddressManager from '../../../components/AddressManager'
 import { formatBeijingDateTimeShort } from '../../../utils/format'
 import { parseJWT } from '../../../platform/init'
 import IdPhotoUploader from '../../../components/IdPhotoUploader'
+import IntroLetterUploader from '../../../components/IntroLetterUploader'
 
 const ID_TYPE_OPTIONS = ['学生证', '教职工证', '教师证', '工作证', '其他']
 
 // #1924: 审核员指定的类型码 → 展示名（兼容存量中文值）。
 const SECOND_DOC_LABELS = { student: '学生证', teacher: '教职工证', work: '工作证', other: '其他' }
+// #2057 裁定3: 第二证件类型由用户自报（student 必需介绍信）。
+const SECOND_DOC_OPTIONS = [
+  { code: 'student', label: '学生证' },
+  { code: 'teacher', label: '教职工证' },
+  { code: 'work', label: '工作证' },
+  { code: 'other', label: '其他' },
+]
 
 export default function EditProfile() {
   const [name, setName] = useState('')
@@ -24,6 +32,8 @@ export default function EditProfile() {
   const [idPhotoOther, setIdPhotoOther] = useState('')
   const [idPhotoOtherType, setIdPhotoOtherType] = useState('') // #1924: 审核员指定（只读展示）
   const [idPhotoOtherVerified, setIdPhotoOtherVerified] = useState(false) // #1924: 第二证件审核态
+  const [secondDocType, setSecondDocType] = useState('') // #2057: 第二证件类型（自报）
+  const [introLetterKey, setIntroLetterKey] = useState('') // #2057: 介绍信存储键
   const [realName, setRealName] = useState('')
   const [idCardNo, setIdCardNo] = useState('')
   const [faceVerified, setFaceVerified] = useState(false)
@@ -74,6 +84,8 @@ export default function EditProfile() {
           setIdPhotoOther(result.data.id_photo_other || '')
           setIdPhotoOtherType(result.data.id_photo_other_type || '') // #1924: 审核员指定（只读）
           setIdPhotoOtherVerified(result.data.id_photo_other_verified || false) // #1924
+          setSecondDocType(result.data.id_photo_other_type || '') // #2057: 预填已存类型
+          setIntroLetterKey(result.data.intro_letter_url || '') // #2057: 预填介绍信
           setRealName(result.data.real_name || '')
           setIdCardNo(result.data.id_card_no || '')
           setFaceVerified(result.data.face_verified || false)
@@ -149,6 +161,13 @@ export default function EditProfile() {
     setBindingWx(false)
   }
 
+  // #2057 裁定3: 第二证件上传前置——须先选类型；student 必传介绍信。
+  const gateSecondDoc = () => {
+    if (!secondDocType) return '请先选择第二证件类型'
+    if (secondDocType === 'student' && !introLetterKey) return '学生证作为第二证件需先上传介绍信'
+    return null
+  }
+
   return (
     <View style={{ height: '100vh', backgroundColor: '#f4f4f5', display: 'flex', flexDirection: 'column' }}>
       <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 12, padding: 16 }}>
@@ -187,8 +206,26 @@ export default function EditProfile() {
               <IdPhotoUploader side="back" initialUrl={idPhotoBack} onChange={setIdPhotoBack} />
             </View>
           </View>
-          {/* #1924: 第二证件可选；类型由平台审核时指定；展示认证状态 */}
-          <Text style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>第二证件照（可选，类型由平台审核指定）</Text>
+          {/* #2057 裁定3: 第二证件可选；类型由用户自报（平台审核时可修正）；student 必传介绍信 */}
+          <Text style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>第二证件照（可选，请选择证件类型）</Text>
+          <View style={{ marginBottom: 10 }}>
+            <Picker mode="selector" range={SECOND_DOC_OPTIONS.map(o => o.label)}
+              value={Math.max(0, SECOND_DOC_OPTIONS.findIndex(o => o.code === secondDocType))}
+              onChange={e => setSecondDocType(SECOND_DOC_OPTIONS[e.detail.value]?.code || '')}>
+              <View style={{ border: '1px solid #d4d4d8', borderRadius: 8, height: 40, display: 'flex', alignItems: 'center', paddingLeft: 12, paddingRight: 12, boxSizing: 'border-box', fontSize: 14, color: secondDocType ? '#000' : '#9ca3af' }}>
+                {SECOND_DOC_LABELS[secondDocType] || '请选择证件类型'}
+              </View>
+            </Picker>
+          </View>
+          {secondDocType === 'student' && (
+            <View style={{ marginBottom: 10 }}>
+              <Text style={{ fontSize: 13, color: '#6b7280', marginBottom: 6, display: 'block' }}>
+                介绍信（学生证必传）
+              </Text>
+              <IntroLetterUploader initialKey={introLetterKey}
+                onChange={(k) => setIntroLetterKey(k)} leftAligned />
+            </View>
+          )}
           {idPhotoOther ? (
             <Text style={{ fontSize: 12, marginBottom: 8, color: idPhotoOtherVerified ? '#16a34a' : '#a16207' }}>
               {idPhotoOtherVerified ? `✅ 已认证（${SECOND_DOC_LABELS[idPhotoOtherType] || idPhotoOtherType || '已指定类型'}）` : '⏳ 已提交，待平台审核（审核后指定类型）'}
@@ -196,6 +233,8 @@ export default function EditProfile() {
           ) : null}
           <View>
             <IdPhotoUploader side="other" initialUrl={idPhotoOther}
+              extraFields={{ second_doc_type: secondDocType, intro_letter_url: introLetterKey }}
+              beforeUpload={gateSecondDoc}
               onChange={(u) => { setIdPhotoOther(u); if (u) setIdPhotoOtherVerified(false) }} leftAligned />
           </View>
           {/* #2039: 第二证件以身份证正反面为前提（后端强制；此处前置提示） */}

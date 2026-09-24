@@ -324,6 +324,24 @@ func (h *RegistrationSessionHandler) UploadSessionIDPhoto(c *gin.Context) {
 		return
 	}
 
+	// #2057 裁定3: 第二证件类型自报 + student 必传介绍信（注册会话版）
+	secondDocType := c.PostForm("second_doc_type")
+	introLetterKey := c.PostForm("intro_letter_url")
+	if side == "other" {
+		if secondDocType != "" && !validSecondDocType(secondDocType) {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "second_doc_type 需为 student/teacher/work/other"})
+			return
+		}
+		if secondDocType == "student" && introLetterKey == "" {
+			c.JSON(http.StatusForbidden, gin.H{
+				"code":    40902,
+				"message": "学生证作为第二证件时需上传介绍信",
+				"data":    gin.H{"reasons": []string{"no_intro_letter"}},
+			})
+			return
+		}
+	}
+
 	c.Request.ParseMultipartForm(10 << 20)
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -368,6 +386,15 @@ func (h *RegistrationSessionHandler) UploadSessionIDPhoto(c *gin.Context) {
 		form.IDPhotos = map[string]string{}
 	}
 	form.IDPhotos[side] = filename
+	// #2057 裁定3: 自报类型/介绍信随 form_data 落地（类型在注册完成时仍由审核端权威决定，沿用既有不变量）
+	if side == "other" {
+		if secondDocType != "" {
+			form.IdPhotoOtherType = secondDocType
+		}
+		if secondDocType == "student" {
+			form.IntroLetterURL = introLetterKey
+		}
+	}
 
 	if err := h.db.Model(&session).Update("form_data", marshalForm(form)).Error; err != nil {
 		log.Printf("session form_data update failed: %v", err)

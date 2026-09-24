@@ -27,6 +27,7 @@ type registerForm struct {
 	Address          map[string]interface{} `json:"address"`
 	IDPhotos         map[string]string      `json:"id_photos"`
 	IdPhotoOtherType string                 `json:"id_photo_other_type"` // #1807: 第三证件类型
+	IntroLetterURL   string                 `json:"intro_letter_url"`    // #2057 裁定3: 学生证介绍信
 }
 
 // createIAMUserWithBind creates the IAM user and binds the WeChat identity
@@ -125,6 +126,10 @@ func syncLocalUserAndRewards(db *gorm.DB, iamUserID, tenantID, orgID, openid str
 		IsProfileCompleted:  true,
 		OnboardingCompleted: true,
 	}
+	if form.IntroLetterURL != "" {
+		il := form.IntroLetterURL
+		newUser.IntroLetterURL = &il
+	}
 	if err := db.Create(&newUser).Error; err != nil {
 		log.Printf("[register helper] failed to create local user for iam_sub %s: %v", iamUserID, err)
 		return nil
@@ -209,11 +214,16 @@ func activateReservedLocalUser(db *gorm.DB, session *models.RegistrationSession,
 		log.Printf("[register helper] reserved local user %s not found: %v", *session.LocalUserID, err)
 		return nil
 	}
-	db.Model(&user).Updates(map[string]interface{}{
+	updates := map[string]interface{}{
 		"status":               "active",
 		"onboarding_completed": true,
 		"updated_at":           time.Now(),
-	})
+	}
+	// #2057 裁定3: 介绍信（学生证第二证件）随注册落地
+	if form.IntroLetterURL != "" {
+		updates["intro_letter_url"] = form.IntroLetterURL
+	}
+	db.Model(&user).Updates(updates)
 	grantRegistrationRewards(db, &user, form)
 	return &user
 }

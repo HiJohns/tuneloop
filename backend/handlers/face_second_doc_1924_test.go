@@ -57,6 +57,9 @@ func postReview(t *testing.T, router *gin.Engine, batchID string, body map[strin
 func TestFaceReview_SecondDoc_ApproveAssignsType(t *testing.T) {
 	userID, batchID, db := setupSecondDocFixture(t, "second_doc", true)
 	router := faceReviewRouter(t, uuid.New().String())
+	// #2057 裁定3：员工指定 student 时必须有介绍信（新规则），夹具补齐。
+	require.NoError(t, db.Model(&models.User{}).Where("id = ?", userID).
+		Update("intro_letter_url", "id_photos/intro.jpg").Error)
 
 	w := postReview(t, router, batchID, map[string]interface{}{
 		"action": "approve", "second_doc_type": "student",

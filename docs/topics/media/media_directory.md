@@ -95,6 +95,9 @@ Frontend                           Backend
     │                                   │  media_registry.RegisterAsset(source_type=content_image)
     │   ←── { file_key, url } ──────────┘
     │
+    │   #2057 裁定3：学生证介绍信复用本端点（source_type=content_image，
+    │   无新增 batch_type）；file_key 作为 users.intro_letter_url。
+    │
     ├── POST /api/instruments/:id/media ──→  CreateInstrumentMedia
     │   { batch_type, is_display, files }   │  validate batch_type
     │                                        │  create InstrumentMedia records

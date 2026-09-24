@@ -35,6 +35,7 @@ type User struct {
 	IdPhotoBack          *string    `gorm:"type:varchar(500)" json:"id_photo_back"`
 	IdPhotoOther         *string    `gorm:"type:varchar(500)" json:"id_photo_other"`
 	IdPhotoOtherType     *string    `gorm:"type:varchar(50)" json:"id_photo_other_type"`  // #1807: 第三证件类型（student/teacher/work/other）
+	IntroLetterURL       *string    `gorm:"type:varchar(500)" json:"intro_letter_url"`    // #2057 裁定3: 学生证作为第二证件时的介绍信
 	IdPhotoOtherVerified bool       `gorm:"default:false" json:"id_photo_other_verified"` // #1924: 第二证件审核通过（类型由审核员指定）
 	RealName             *string    `gorm:"type:varchar(64)" json:"real_name"`
 	IdCardNo             *string    `gorm:"type:varchar(18)" json:"id_card_no"`

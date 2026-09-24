@@ -121,6 +121,27 @@ func (h *UserOnboardingHandler) UploadIDPhoto(c *gin.Context) {
 		}
 	}
 
+	// #2057 裁定3: 第二证件类型由用户自报（student/teacher/work/other）；
+	// 选 student 时必须提供介绍信（后端权威，防绕过）。
+	secondDocType := ""
+	introLetterKey := ""
+	if side == "other" {
+		secondDocType = c.PostForm("second_doc_type")
+		introLetterKey = c.PostForm("intro_letter_url")
+		if secondDocType != "" && !validSecondDocType(secondDocType) {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "second_doc_type 需为 student/teacher/work/other"})
+			return
+		}
+		if secondDocType == "student" && introLetterKey == "" {
+			c.JSON(http.StatusForbidden, gin.H{
+				"code":    40902,
+				"message": "学生证作为第二证件时需上传介绍信",
+				"data":    gin.H{"reasons": []string{"no_intro_letter"}},
+			})
+			return
+		}
+	}
+
 	c.Request.ParseMultipartForm(10 << 20)
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -208,8 +229,19 @@ func (h *UserOnboardingHandler) UploadIDPhoto(c *gin.Context) {
 	// 审核队列将无记录、免押金卡死无信号，且 Count 失败可致重复批次。任一
 	// 失败必须显式 5xx（对齐同函数照片持久化的 50004 模式）。
 	if side == "other" {
+		// #2057 裁定3: 自报类型落 id_photo_other_type（审核端可覆盖 = 修正权）；
+		// 介绍信仅 student 情形写入，非 student 清空，保证与本次提交一致。
+		docUpdates := map[string]interface{}{"id_photo_other_verified": false}
+		if secondDocType != "" {
+			docUpdates["id_photo_other_type"] = secondDocType
+		}
+		if secondDocType == "student" {
+			docUpdates["intro_letter_url"] = introLetterKey
+		} else {
+			docUpdates["intro_letter_url"] = ""
+		}
 		if err := db.Model(&models.User{}).Where("id = ?", userID).
-			Update("id_photo_other_verified", false).Error; err != nil {
+			Updates(docUpdates).Error; err != nil {
 			log.Printf("[IDPhoto] reset second-doc verification failed: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50004, "message": "failed to submit second document"})
 			return

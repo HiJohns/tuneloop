@@ -174,6 +174,9 @@ func TestUploadIDPhoto_SecondDocTriggersReview(t *testing.T) {
 	// 用户已有「已认证」第二证件状态 —— 上传新照必须重置。
 	require.NoError(t, db.Model(&models.User{}).Where("id = ?", userID).
 		Update("id_photo_other_verified", true).Error)
+	// 夹具补齐 #2039 前置：第二证件以身份证正反面为前提，否则 40902 no_id_photo。
+	require.NoError(t, db.Model(&models.User{}).Where("id = ?", userID).
+		Updates(map[string]interface{}{"id_photo_front": "front.jpg", "id_photo_back": "back.jpg"}).Error)
 
 	actor := testutil.MakeCustomer(tenantID, userID)
 	router := idPhotoRouter(actor)

@@ -13,7 +13,7 @@ import { View, Text, Image } from '@tarojs/components'
 import { dialog, uploadFile, env, storage, session } from '../platform'
 import { resolveErrorMessage } from '../services/api'
 
-const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl = '', onChange, onSelect, onClear, defer = false, sessionUpload, leftAligned = false }, ref) {
+const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl = '', onChange, onSelect, onClear, defer = false, sessionUpload, leftAligned = false, extraFields = {}, beforeUpload }, ref) {
   const [url, setUrl] = useState(initialUrl || '')
   const [uploading, setUploading] = useState(false)
   const [pendingFile, setPendingFile] = useState(null)
@@ -53,7 +53,7 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
       if (env.isMiniProgram) {
         resp = await uploadFile(uploadUrl, fileOrPath, {
           name: 'file',
-          formData: { side },
+          formData: { side, ...extraFields },
           headers: useSession ? {} : { Authorization: 'Bearer ' + getToken() },
         })
         if (!resp.ok) throw new Error('upload failed')
@@ -73,6 +73,7 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
           const fd = new FormData()
           fd.append('file', fileOrPath)
           fd.append('side', side)
+          Object.entries(extraFields).forEach(([k, v]) => fd.append(k, v == null ? '' : v))
           const fetchResp = await fetch(uploadUrl, { method: 'POST', body: fd, headers })
           const json = await fetchResp.json()
           if (json.code === 20000 && json.data?.url) {
@@ -98,6 +99,16 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
 
   // Defer mode: keep the file locally until uploadPending() is called.
   const handleSelect = (fileOrPath) => {
+    // #2057: 第二证件存在前置条件（先选类型；student 必传介绍信）——
+    // 返回错误文案时中断上传，避免服务端 40902。
+    if (beforeUpload) {
+      const msg = beforeUpload(fileOrPath)
+      if (msg) {
+        if (env.isMiniProgram) Taro.showToast({ title: msg, icon: 'none' })
+        else dialog.alert(msg)
+        return
+      }
+    }
     if (defer) {
       setPendingFile(fileOrPath)
       setUrl(env.isMiniProgram ? fileOrPath : URL.createObjectURL(fileOrPath))
@@ -128,7 +139,7 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
         if (env.isMiniProgram) {
           const resp = await uploadFile(uploadUrl, pendingFile, {
             name: 'file',
-            formData: { side },
+            formData: { side, ...extraFields },
             headers: useSession ? {} : { Authorization: 'Bearer ' + getToken() },
           })
           if (!resp.ok) throw new Error('upload failed')
@@ -142,6 +153,7 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
         const fd = new FormData()
         fd.append('file', pendingFile)
         fd.append('side', side)
+        Object.entries(extraFields).forEach(([k, v]) => fd.append(k, v == null ? '' : v))
         const headers = useSession ? {} : { Authorization: 'Bearer ' + getToken() }
         const fetchResp = await fetch(uploadUrl, { method: 'POST', body: fd, headers })
         const json = await fetchResp.json()

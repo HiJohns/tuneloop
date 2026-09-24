@@ -244,6 +244,8 @@ Body：`{ role: "<主角色>", roles: ["<角色>", ...] }`（`roles` 可选；�
 
 **证件上传**（`POST /api/user/id-photo`、admin 版）：`side=other` 时若 `id_photo_front`/`id_photo_back` 缺失 → `40902` + `data.reasons=["no_id_photo"]`（message：请先上传身份证正反面）
 
+**审核端（#2057 裁定3）**: `POST /api/admin/face-review/:batchId` 指定 `second_doc_type=student` 而用户 `intro_letter_url` 为空 → 返回 `40912` + `data.reasons=["no_intro_letter"]`（提示员工驳回并要求补传）；其余类型不受限。审核队列条目新增 `intro_letter_url`（可访问 URL）。
+
 **创建订单**（`POST /api/user/orders`、`/user/orders/batch`）：新增前置校验 →
 - 缺证件照 / `face_verified=false` → `40310 need_identity`，`data.reasons: ["no_id_photo" | "not_verified"]`
 - 免押叠加校验仍为 `40301`（两个错误码并存，40310 先于 40301）
@@ -3779,6 +3781,11 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 **请求参数**: `file` (image/jpeg, image/png, image/webp, max 5MB), `side` (front|back|other)
 
+**#2057 裁定3（`side=other` 第二证件）**: 另需表单字段
+- `second_doc_type`（student|teacher|work|other，用户自报；审核端可修正）
+- `intro_letter_url`（介绍信存储键，经 `POST /api/upload` 取得）
+- 校验：`second_doc_type=student` 且 `intro_letter_url` 为空 → `40902` + `data.reasons=["no_intro_letter"]`（message：学生证作为第二证件时需上传介绍信）；非 student 情形传入的介绍信被忽略（列清空）
+
 **响应**:
 ```json
 {
@@ -3899,6 +3906,8 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 **说明**: 注册阶段上传身份证照片（会话级匿名端点，无需认证）
 
 **请求参数**: `file` (image), `side` (front|back|other)
+
+**#2057 裁定3（`side=other`）**: 同 `POST /api/user/id-photo`——`second_doc_type`（用户自报）+ `intro_letter_url`；`student` 缺介绍信 → `40902` + `reasons=["no_intro_letter"]`。自报类型随注册会话 form_data 落地，注册完成时**不写** `users.id_photo_other_type`（该列仍由审核端权威指定）。
 
 **响应**:
 ```json

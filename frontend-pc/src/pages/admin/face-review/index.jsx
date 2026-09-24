@@ -221,7 +221,7 @@ export default function FaceReviewPage() {
             size="small"
             type="primary"
             icon={<CheckCircleOutlined />}
-            onClick={() => { setApproving(record); setRealName(''); setIdCardNo(''); setIdCardExpire(''); setIdCardAuthority(''); setIdCardAddress('') }}
+            onClick={() => { setApproving(record); setSecondDocType(record.id_photo_other_type || ''); setRealName(''); setIdCardNo(''); setIdCardExpire(''); setIdCardAuthority(''); setIdCardAddress('') }}
           >
             通过
           </Button>
@@ -329,7 +329,8 @@ export default function FaceReviewPage() {
         {approving?.has_second_doc && (
           <div style={{ marginTop: 16 }}>
             <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
-              第二证件类型（审核人指定）：{approving.id_photo_other_verified ? '（当前已认证，可修改类型）' : '（当前未认证）'}
+              第二证件类型（用户自报{approving?.id_photo_other_type ? `：${approving.id_photo_other_type}` : '：未选择'}；审核人可修正）
+              {approving.id_photo_other_verified ? '（当前已认证，可修改类型）' : '（当前未认证）'}
             </Text>
             <Select
               value={secondDocType || undefined}
@@ -338,6 +339,15 @@ export default function FaceReviewPage() {
               placeholder="选择第二证件类型"
               style={{ width: 220 }}
             />
+            {/* #2057 裁定3: 学生证介绍信（用户已传时展示，供审核核对） */}
+            {approving?.intro_letter_url && (
+              <div style={{ marginTop: 12 }}>
+                <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>介绍信：</Text>
+                <Image src={approving.intro_letter_url} width={80} height={80}
+                  style={{ objectFit: 'cover', borderRadius: 4 }}
+                  preview={{ src: approving.intro_letter_url }} />
+              </div>
+            )}
           </div>
         )}
       </Modal>
