@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/mail"
 	"strings"
-	"time"
 
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -13,7 +12,6 @@ import (
 	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 // #1910: UI-managed SMTP configuration (阿里云 DirectMail with a legacy
@@ -84,16 +82,10 @@ func UpdateSMTPConfig(c *gin.Context) {
 		return
 	}
 
-	details := "SMTP 配置已更新"
-	db.Create(&models.AuditLog{
-		ID:         uuid.New().String(),
-		TenantID:   middleware.GetTenantID(ctx),
-		UserID:     middleware.GetUserID(ctx),
-		Action:     "update_smtp_config",
-		ResourceID: services.SMTPConfigKey,
-		Details:    &details,
-		CreatedAt:  time.Now(),
-	})
+	// #2062: 平台级配置 → 审计租户用平台租户（全零 uuid，与 SaveSMTPConfigRecord 同源）；
+	// middleware.GetTenantID 对系统管理员为 "" → 非法 uuid，写入仍会静默失败。
+	writeAuditLog(db, services.WarningConfigTenantID, middleware.GetUserID(ctx),
+		"update_smtp_config", "", services.SMTPConfigKey, map[string]interface{}{"event": "update"})
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "saved"})
 }
 
@@ -124,15 +116,8 @@ func TestSMTPConfig(c *gin.Context) {
 		return
 	}
 	ctx := c.Request.Context()
-	details := "SMTP 测试发送成功（通道: " + channel + "）"
-	database.GetDB().WithContext(ctx).Create(&models.AuditLog{
-		ID:         uuid.New().String(),
-		TenantID:   middleware.GetTenantID(ctx),
-		UserID:     middleware.GetUserID(ctx),
-		Action:     "test_smtp_config",
-		ResourceID: services.SMTPConfigKey,
-		Details:    &details,
-		CreatedAt:  time.Now(),
-	})
+	// #2062: 同上传——平台级审计租户用全零 uuid
+	writeAuditLog(database.GetDB().WithContext(ctx), services.WarningConfigTenantID, middleware.GetUserID(ctx),
+		"test_smtp_config", "", services.SMTPConfigKey, map[string]interface{}{"event": "test_send", "channel": channel})
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"channel": channel}})
 }

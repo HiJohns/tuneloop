@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -28,24 +27,9 @@ type TechnicianProfileHandler struct{}
 // writeTechProfileAudit #2059: 档案变更审计留痕。
 // fire-and-forget：写入失败仅记日志，**不阻断业务主流程**（对齐 face_review/smtp_config 既有容错口径）。
 func writeTechProfileAudit(ctx context.Context, db *gorm.DB, action, resourceID string, details map[string]interface{}) {
-	b, err := json.Marshal(details)
-	if err != nil {
-		log.Printf("[TechnicianProfile] audit details marshal failed action=%s: %v", action, err)
-		return
-	}
-	d := string(b) // audit_logs.details 为 jsonb，必须写入合法 JSON 文本
-	if err := db.Create(&models.AuditLog{
-		ID:           uuid.New().String(),
-		TenantID:     middleware.GetTenantID(ctx),
-		UserID:       middleware.GetUserID(ctx),
-		Action:       action,
-		ResourceType: "technician_profile",
-		ResourceID:   resourceID,
-		Details:      &d,
-		CreatedAt:    time.Now(),
-	}).Error; err != nil {
-		log.Printf("[TechnicianProfile] audit log write failed action=%s resource=%s: %v", action, resourceID, err)
-	}
+	// #2062: 收敛到统一 writeAuditLog（jsonb 合法 JSON 保证 + 容错口径单点维护）
+	writeAuditLog(db, middleware.GetTenantID(ctx), middleware.GetUserID(ctx),
+		action, "technician_profile", resourceID, details)
 }
 
 func NewTechnicianProfileHandler() *TechnicianProfileHandler { return &TechnicianProfileHandler{} }

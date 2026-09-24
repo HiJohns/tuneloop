@@ -991,16 +991,9 @@ func ReturnOrder(c *gin.Context) {
 		return
 	}
 
-	// Record audit log
-	detailStr := fmt.Sprintf("customer initiated return (courier=%s tracking=%s)", req.CourierCompany, req.TrackingNumber)
-	db.Create(&models.AuditLog{
-		ID:         uuid.New().String(),
-		TenantID:   order.TenantID,
-		UserID:     userID,
-		Action:     "return_order",
-		ResourceID: orderID,
-		Details:    &detailStr,
-		CreatedAt:  time.Now(),
+	// Record audit log（#2062：经统一 helper 写合法 JSON，失败不阻断）
+	writeAuditLog(db, order.TenantID, userID, "return_order", "", orderID, map[string]interface{}{
+		"event": "return", "courier": req.CourierCompany, "tracking": req.TrackingNumber,
 	})
 
 	history := models.OrderStatusHistory{

@@ -9,7 +9,6 @@ import (
 	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 // POST /api/instruments/:id/scrap - Scrap an instrument (admin only)
@@ -41,17 +40,8 @@ func ScrapInstrument(c *gin.Context) {
 		return
 	}
 
-	// Record audit log
-	detailStr := "乐器已报废（scrap）"
-	db.Create(&models.AuditLog{
-		ID:         uuid.New().String(),
-		TenantID:   tenantID,
-		UserID:     userID,
-		Action:     "scrap_instrument",
-		ResourceID: instrumentID,
-		Details:    &detailStr,
-		CreatedAt:  time.Now(),
-	})
+	// Record audit log（#2062：经统一 helper 写合法 JSON，失败不阻断）
+	writeAuditLog(db, tenantID, userID, "scrap_instrument", "", instrumentID, map[string]interface{}{"event": "scrap"})
 
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
