@@ -49,9 +49,19 @@ func technicianNameByUserID(db *gorm.DB, userID string) string {
 	return ""
 }
 
-// technicianThumbURL 由原图 URL 推导缩略图 URL（#2049，`{base}_thumb.jpg`）；空/无扩展名 → ""。
+// technicianThumbURL 由原图 URL 推导缩略图 URL（#2049，`{base}_thumb.jpg`）。
+// 仅**本管线**命名的 `technician_{id}.webp` 才有 `_thumb.jpg` 变体；存量旧 `/upload` 键
+// （`{UnixNano}_{hex}.webp`）没有缩略图 → 返回 ""（前端回退原图，避免裂图）。
+// 空 / 无扩展名 / 非 technician_ 前缀 → ""。
 func technicianThumbURL(photo string) string {
 	if photo == "" {
+		return ""
+	}
+	base := photo
+	if slash := strings.LastIndex(photo, "/"); slash >= 0 {
+		base = photo[slash+1:]
+	}
+	if !strings.HasPrefix(base, "technician_") {
 		return ""
 	}
 	dot := strings.LastIndex(photo, ".")
@@ -199,6 +209,7 @@ func (h *TechnicianProfileHandler) SetStatus(c *gin.Context) {
 // 师傅照片走统一媒体管线（docs/topics/media/media_directory.md）：
 //   - 原图 → technician_{profileID}.webp（≤800，WebP，详情/大图用）
 //   - 缩略图 → technician_{profileID}_thumb.jpg（128，列表用）
+//
 // 两者登记 media_assets（source_type=technician）；photo 字段存原图 URL。
 func (h *TechnicianProfileHandler) UploadPhoto(c *gin.Context) {
 	ctx := c.Request.Context()
