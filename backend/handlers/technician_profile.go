@@ -1,13 +1,17 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -45,6 +49,18 @@ func technicianNameByUserID(db *gorm.DB, userID string) string {
 	return ""
 }
 
+// technicianThumbURL 由原图 URL 推导缩略图 URL（#2049，`{base}_thumb.jpg`）；空/无扩展名 → ""。
+func technicianThumbURL(photo string) string {
+	if photo == "" {
+		return ""
+	}
+	dot := strings.LastIndex(photo, ".")
+	if dot < 0 {
+		return ""
+	}
+	return photo[:dot] + "_thumb.jpg"
+}
+
 // List GET /api/technician-profiles（管理端，租户范围）
 func (h *TechnicianProfileHandler) List(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -68,7 +84,7 @@ func (h *TechnicianProfileHandler) List(c *gin.Context) {
 		list = append(list, gin.H{
 			"id": p.ID, "user_id": p.UserID, "tenant_id": p.TenantID,
 			"name":  technicianNameByUserID(db, p.UserID),
-			"photo": p.Photo, "bio": p.Bio, "experience": p.Experience,
+			"photo": p.Photo, "photo_thumb": technicianThumbURL(p.Photo), "bio": p.Bio, "experience": p.Experience,
 			"status": p.Status, "created_at": p.CreatedAt, "updated_at": p.UpdatedAt,
 		})
 	}
@@ -179,6 +195,75 @@ func (h *TechnicianProfileHandler) SetStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": p.ID, "status": body.Status}})
 }
 
+// UploadPhoto POST /api/technician-profiles/:id/photo（管理端，#2049）
+// 师傅照片走统一媒体管线（docs/topics/media/media_directory.md）：
+//   - 原图 → technician_{profileID}.webp（≤800，WebP，详情/大图用）
+//   - 缩略图 → technician_{profileID}_thumb.jpg（128，列表用）
+// 两者登记 media_assets（source_type=technician）；photo 字段存原图 URL。
+func (h *TechnicianProfileHandler) UploadPhoto(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	tid := middleware.GetTenantID(ctx)
+	if tid == "" {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
+		return
+	}
+	var p models.TechnicianProfile
+	if err := db.Where("id = ? AND tenant_id = ?", c.Param("id"), tid).First(&p).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "technician profile not found"})
+		return
+	}
+	file, _, err := c.Request.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "file required"})
+		return
+	}
+	defer file.Close()
+	fileData, err := io.ReadAll(file)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to read file"})
+		return
+	}
+	displayData, err := services.GenerateThumbnailWebP(fileData, 800, 800)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to process image"})
+		return
+	}
+	thumbData, err := services.GenerateThumbnail(fileData, 128)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to process thumbnail"})
+		return
+	}
+	storage := services.NewMediaStorage()
+	displayKey := "technician_" + p.ID + ".webp"
+	thumbKey := "technician_" + p.ID + "_thumb.jpg"
+	if err := storage.Upload(ctx, displayKey, bytes.NewReader(displayData), "image/webp"); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to upload photo"})
+		return
+	}
+	if err := storage.Upload(ctx, thumbKey, bytes.NewReader(thumbData), "image/jpeg"); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to upload thumbnail"})
+		return
+	}
+	registry := services.NewMediaRegistry()
+	if err := registry.RegisterAsset(ctx, displayKey, services.SourceTypeTechnician, p.ID, int64(len(displayData)), "image"); err != nil {
+		log.Printf("[MediaRegistry] register technician photo %s failed: %v", displayKey, err)
+	}
+	if err := registry.RegisterAsset(ctx, thumbKey, services.SourceTypeTechnician, p.ID, int64(len(thumbData)), "image"); err != nil {
+		log.Printf("[MediaRegistry] register technician thumb %s failed: %v", thumbKey, err)
+	}
+	photoURL := "/uploads/media/" + displayKey
+	if err := db.Model(&models.TechnicianProfile{}).Where("id = ?", p.ID).
+		Updates(map[string]interface{}{"photo": photoURL, "updated_at": db.NowFunc()}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to save photo"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
+		"photo": photoURL,
+		"thumb": "/uploads/media/" + thumbKey,
+	}})
+}
+
 // PublicList GET /api/common/repair-technicians（RS-API-1 重写，顾客上下文）
 // 数据源 = technician_profiles(status='active')（**直属商户，去 site 维度**）；
 // 顾客 JWT 无 tid/oid → 不按 JWT 过滤（公共口径，同 /common/sites/nearby）。
@@ -197,6 +282,7 @@ func (h *TechnicianProfileHandler) PublicList(c *gin.Context) {
 			"technician_id": p.UserID, // 与 Create(锁定) / select-technician 口径一致（users.id）
 			"name":          technicianNameByUserID(db, p.UserID),
 			"avatar":        p.Photo,
+			"avatar_thumb":  technicianThumbURL(p.Photo),
 			"bio":           p.Bio,
 			"experience":    p.Experience,
 			"tenant_id":     p.TenantID,
@@ -219,6 +305,7 @@ func (h *TechnicianProfileHandler) PublicGet(c *gin.Context) {
 		"technician_id": p.UserID,
 		"name":          technicianNameByUserID(db, p.UserID),
 		"avatar":        p.Photo,
+		"avatar_thumb":  technicianThumbURL(p.Photo),
 		"bio":           p.Bio,
 		"experience":    p.Experience,
 		"tenant_id":     p.TenantID,

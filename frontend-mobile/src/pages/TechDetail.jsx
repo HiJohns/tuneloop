@@ -4,6 +4,7 @@ import Taro from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Button } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { dialog, env, toWeappRoute } from '../platform'
+import RichContent from '../components/RichContent'
 
 // #1977 T3 师傅详情页（样式参照乐器详情页）：
 // 照片 + 姓名 + 完整介绍 + 专长年限列表；底部固定「创建维修订单」→ 创建页（师傅锁定）
@@ -94,7 +95,7 @@ export default function TechDetail() {
               {/* 详细介绍 */}
               <View style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 14, marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>详细介绍</Text>
-                <Text style={{ fontSize: 13, color: '#3F3F46' }}>{tech.bio || '暂无介绍'}</Text>
+                {tech.bio ? <RichContent html={tech.bio} /> : <Text style={{ fontSize: 13, color: '#3F3F46' }}>暂无介绍</Text>}
               </View>
             </>
           )}

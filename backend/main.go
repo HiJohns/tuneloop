@@ -398,6 +398,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/technician-profiles", middleware.RequireCusPerm("instrument:update"), technicianProfileHandler.Create)
 		authRequired.PUT("/technician-profiles/:id", middleware.RequireCusPerm("instrument:update"), technicianProfileHandler.Update)
 		authRequired.PUT("/technician-profiles/:id/status", middleware.RequireCusPerm("instrument:update"), technicianProfileHandler.SetStatus)
+		// #2049 师傅照片（媒体管线：原图 WebP + _thumb.jpg 缩略图）
+		authRequired.POST("/technician-profiles/:id/photo", middleware.RequireCusPerm("instrument:update"), technicianProfileHandler.UploadPhoto)
 		authRequired.DELETE("/instruments/:id", middleware.RequireCusPerm("instrument:delete"), handlers.DeleteInstrument)
 		// #1798: batch delete (static path registered before :id param — httprouter static-first)
 		authRequired.DELETE("/instruments/batch", middleware.RequireCusPerm("instrument:delete"), handlers.BatchDeleteInstruments)

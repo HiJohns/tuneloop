@@ -50,3 +50,17 @@ export const splitRichTextImages = (html) => {
   }
   return segments.length > 0 ? segments : [{ type: 'html', content: html }]
 }
+
+// #2049 富文本 → 纯文本摘要（列表卡片用）：去标签 + 解实体 + 折叠空白。
+export const htmlToPlainText = (html) => {
+  if (!html) return ''
+  return String(html)
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/\s+/g, ' ')
+    .trim()
+}

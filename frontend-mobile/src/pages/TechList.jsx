@@ -5,6 +5,7 @@ import { View, Text, Image, ScrollView, Button } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { dialog, env, toWeappRoute } from '../platform'
 import { isStaffRole } from '../utils/role'
+import { htmlToPlainText } from '../utils/content'
 
 // #1976 T2 维修 Tab 首屏 = 师傅列表（样式参照乐器列表）
 // 右上角『我的维修』→ /my-repairs?tab=service（顾客的维修服务单）
@@ -87,6 +88,8 @@ export default function TechList() {
           ) : techs.map(t => {
             const exp = parseExperience(t.experience)
             const summary = exp.slice(0, 2).map(e => `${e.craft} ${e.years} 年`).join(' · ')
+            const bioText = htmlToPlainText(t.bio) // #2049 bio 为富文本 → 列表取纯文本摘要
+            const avatar = t.avatar_thumb || t.avatar // #2049 列表用缩略图，无则回退原图
             return (
               <View
                 key={t.technician_id}
@@ -96,8 +99,8 @@ export default function TechList() {
                   backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12, marginBottom: 10,
                 }}
               >
-                {t.avatar ? (
-                  <Image src={t.avatar} mode="aspectFill" style={{ width: 64, height: 64, borderRadius: 32 }} />
+                {avatar ? (
+                  <Image src={avatar} mode="aspectFill" style={{ width: 64, height: 64, borderRadius: 32 }} />
                 ) : (
                   <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#F4F4F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Text style={{ fontSize: 20, color: '#A1A1AA' }}>师</Text>
@@ -106,8 +109,8 @@ export default function TechList() {
                 <View style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
                   <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#18181B' }}>{t.name || '维修师'}</Text>
                   {summary ? <Text style={{ fontSize: 12, color: '#71717A' }}>{summary}</Text> : null}
-                  {t.bio ? (
-                    <Text style={{ fontSize: 11, color: '#A1A1AA' }} numberOfLines={1}>{t.bio}</Text>
+                  {bioText ? (
+                    <Text style={{ fontSize: 11, color: '#A1A1AA' }} numberOfLines={1}>{bioText}</Text>
                   ) : null}
                 </View>
                 <Text style={{ fontSize: 18, color: '#D4D4D8' }}>›</Text>

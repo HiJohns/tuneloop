@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import { Card, Table, Tag, Button, Space, Modal, Form, Input, InputNumber, Select, Upload, Image, message, Popconfirm } from 'antd'
 import { PlusOutlined, EditOutlined, UploadOutlined } from '@ant-design/icons'
-import { technicianApi, api, staffApi } from '../../services/api'
+import ReactQuill from 'react-quill'
+import 'react-quill/dist/quill.snow.css'
+import { technicianApi, staffApi } from '../../services/api'
 import { formatBeijingDateTimeShort } from '../../utils/date'
-
 // #1974 T4 师傅档案维护页（直属商户）：照片/介绍/专长年限 + 新增/编辑/停用
-// 注意：照片上传必须走 api.uploadFile（FormData），不可用 api.post（#1967 教训）
-
-const { TextArea } = Input
+// #2049：照片改走媒体管线端点 `/technician-profiles/:id/photo`（原图+缩略图）；
+//        简介 bio 为富文本（react-quill，前端渲染 RichContent/富文本）。
+// 注意：照片上传必须走 api.uploadFile / technicianApi.uploadPhoto（FormData），不可用 api.post（#1967 教训）
 
 function parseExperience(v) {
   if (!v) return []
@@ -23,6 +24,7 @@ export default function TechnicianProfiles() {
   const [editing, setEditing] = useState(null) // null=新增
   const [submitting, setSubmitting] = useState(false)
   const [photoUrl, setPhotoUrl] = useState('')
+  const [pendingPhoto, setPendingPhoto] = useState(null) // #2049 待上传文件（保存时走媒体管线）
   const [form] = Form.useForm()
 
   const fetchList = async () => {
@@ -39,6 +41,7 @@ export default function TechnicianProfiles() {
   const openCreate = async () => {
     setEditing(null)
     setPhotoUrl('')
+    setPendingPhoto(null)
     form.resetFields()
     form.setFieldsValue({ experience: [{ craft: '', years: undefined }] })
     setModalOpen(true)
@@ -52,6 +55,7 @@ export default function TechnicianProfiles() {
   const openEdit = (row) => {
     setEditing(row)
     setPhotoUrl(row.photo || '')
+    setPendingPhoto(null)
     form.setFieldsValue({
       user_id: row.user_id,
       bio: row.bio,
@@ -60,17 +64,10 @@ export default function TechnicianProfiles() {
     setModalOpen(true)
   }
 
+  // #2049：暂存所选文件（本地预览），保存时经 `/technician-profiles/:id/photo` 走媒体管线
   const uploadPhoto = async (file) => {
-    const fd = new FormData()
-    fd.append('file', file)
-    try {
-      const resp = await api.uploadFile('/upload', fd)
-      if (resp.code === 20000) {
-        const url = resp.data?.url || resp.data?.file_key
-        setPhotoUrl(url)
-        message.success('照片上传成功')
-      } else message.error(resp.message || '上传失败')
-    } catch (e) { message.error(e.message || '上传失败') }
+    setPendingPhoto(file)
+    setPhotoUrl(URL.createObjectURL(file))
     return false
   }
 
@@ -80,16 +77,27 @@ export default function TechnicianProfiles() {
       .filter(e => e && e.craft)
       .map(e => ({ craft: e.craft, years: Number(e.years) || 0 }))
     setSubmitting(true)
+    // #2049：先保存档案（bio/experience），再经媒体管线上传照片（需 profile id）
+    const savePhoto = async (id) => {
+      if (!pendingPhoto || !id) return
+      const fd = new FormData()
+      fd.append('file', pendingPhoto)
+      const up = await technicianApi.uploadPhoto(id, fd)
+      if (up.code !== 20000) message.error(up.message || '照片上传失败')
+    }
     try {
       let resp
       if (editing) {
-        resp = await technicianApi.update(editing.id, { photo: photoUrl, bio: v.bio || '', experience })
+        resp = await technicianApi.update(editing.id, { bio: v.bio || '', experience })
+        if (resp.code === 20000) await savePhoto(editing.id)
       } else {
-        resp = await technicianApi.create({ user_id: v.user_id, photo: photoUrl, bio: v.bio || '', experience })
+        resp = await technicianApi.create({ user_id: v.user_id, bio: v.bio || '', experience })
+        if (resp.code === 20000) await savePhoto(resp.data?.id)
       }
       if (resp.code === 20000) {
         message.success(editing ? '已更新' : '已新增')
         setModalOpen(false)
+        setPendingPhoto(null)
         fetchList()
       } else message.error(resp.message || '保存失败')
     } catch (e) { message.error(e.message || '保存失败') }
@@ -105,8 +113,8 @@ export default function TechnicianProfiles() {
 
   const columns = [
     {
-      title: '照片', dataIndex: 'photo', width: 80,
-      render: v => v ? <Image src={v} width={48} height={48} style={{ objectFit: 'cover', borderRadius: 6 }} /> : '-',
+      title: '照片', dataIndex: 'photo_thumb', width: 80,
+      render: (v, r) => (v || r.photo) ? <Image src={v || r.photo} width={48} height={48} style={{ objectFit: 'cover', borderRadius: 6 }} /> : '-',
     },
     { title: '姓名', dataIndex: 'name', width: 120, render: (v, r) => v || r.user_id?.slice(0, 8) || '-' },
     {
@@ -174,7 +182,7 @@ export default function TechnicianProfiles() {
             </Space>
           </Form.Item>
           <Form.Item name="bio" label="详细介绍">
-            <TextArea rows={3} placeholder="如：钢琴维修 12 年 · 小提琴维修 8 年，擅长音色调整" maxLength={500} />
+            <ReactQuill theme="snow" style={{ background: '#fff' }} placeholder="如：钢琴维修 12 年 · 小提琴维修 8 年，擅长音色调整" />
           </Form.Item>
           <Form.Item label="专长与年限">
             <Form.List name="experience">

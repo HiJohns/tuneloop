@@ -31,8 +31,8 @@ instrument_media
 media_assets
 ├── id                  UUID (PK)
 ├── storage_key         VARCHAR(500) (NOT NULL, UNIQUE) — physical file key (relative to uploads/media)
-├── source_type         VARCHAR(30)  — "content_image", "avatar", "id_photo", "instrument_media"
-├── source_id           VARCHAR(100) — reference entity (setting_key / user_id / instrument_id …)
+├── source_type         VARCHAR(30)  — "content_image", "avatar", "id_photo", "instrument_media", "technician"
+├── source_id           VARCHAR(100) — reference entity (setting_key / user_id / instrument_id / technician_profile_id …)
 ├── is_referenced       BOOLEAN      — still referenced by any content?
 ├── ref_count           INT          — reference count (increment on reuse)
 ├── file_size           BIGINT
@@ -42,6 +42,12 @@ media_assets
 ```
 
 `instrument_media` remains the authoritative source for business media (source_type=`instrument_media`); `media_assets` is a unified index used only for orphan detection and physical-file sweep — it never makes deletion decisions for business media.
+
+**#2049 师傅档案照片**（`technician_profiles.photo`，`POST /api/technician-profiles/:id/photo`）走同一媒体管线：
+- 原图 `technician_{profileID}.webp`（长边 ≤800，WebP Q80）→ 详情/大图
+- 缩略图 `technician_{profileID}_thumb.jpg`（128px）→ 师傅列表
+- 两者登记 `media_assets`（`source_type='technician'`, `source_id=profileID`）；`photo` 字段存原图 URL（`/uploads/media/technician_*.webp`）
+- 无照片 → 前端人像占位符（`师`）
 
 ### Two-tier linking
 

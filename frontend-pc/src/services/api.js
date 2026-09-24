@@ -456,6 +456,8 @@ export const technicianApi = {
   create: (data) => api.post('/technician-profiles', data),
   update: (id, data) => api.put(`/technician-profiles/${id}`, data),
   setStatus: (id, status) => api.put(`/technician-profiles/${id}/status`, { status }),
+  // #2049 师傅照片：走媒体管线（原图 WebP + _thumb.jpg 缩略图）
+  uploadPhoto: (id, formData) => request(`/technician-profiles/${id}/photo`, { method: 'POST', body: formData }),
 }
 
 export const lossApi = {
