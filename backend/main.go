@@ -477,6 +477,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			// #2031 邀请制自助加入：管理员只发邀请码，本人登录后接受（一人一号）
 			siteRequired.POST("/sites/:id/invites", handlers.CreateSiteInvite)
 			siteRequired.GET("/sites/:id/invites", handlers.ListSiteInvites)
+			siteRequired.POST("/sites/:id/invites/send", handlers.SendStaffInvite)
 			siteRequired.PUT("/sites/:id/members/:uid", siteMemberHandler.UpdateMemberRole)
 			siteRequired.DELETE("/sites/:id/members/:uid", siteMemberHandler.RemoveMember)
 			// Staff/User management routes (Issue #333)
@@ -690,6 +691,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/user/register-as-customer", handlers.RegisterAsCustomer)
 				// #2031 邀请制自助加入：本人用邀请码把员工身份加到自己的账户
 				userOptionalAuth.POST("/user/accept-invite", handlers.AcceptInvite)
+				userOptionalAuth.POST("/user/invitations/:id/accept", handlers.AcceptInvitation)
+				userOptionalAuth.POST("/user/invitations/:id/reject", handlers.RejectInvitation)
 				// #2041 待提交订单缓存（未实名被拦截 → 缓存 → 实名通过后回跳继续提交）
 				userOptionalAuth.POST("/user/pending-orders", handlers.CreatePendingOrder)
 				userOptionalAuth.GET("/user/pending-orders", handlers.ListPendingOrders)

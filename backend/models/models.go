@@ -1014,7 +1014,9 @@ type StaffInvite struct {
 	ID         string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	TenantID   string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
 	OrgID      string     `gorm:"type:uuid;not null" json:"org_id"`
-	SiteID     string     `gorm:"type:uuid;index" json:"site_id"`
+	SiteID    string     `gorm:"type:uuid;index" json:"site_id"`
+	// InviteeUserID 被邀请人（既有用户）本地 ID；#2052 邀请通知据此校验「接受人=被邀请人」
+	InviteeUserID *string `gorm:"type:uuid;index" json:"invitee_user_id,omitempty"`
 	Role       string     `gorm:"type:varchar(20);not null" json:"role"`
 	Code       string     `gorm:"type:varchar(32);not null;uniqueIndex" json:"code"`
 	CreatedBy  *string    `gorm:"type:uuid" json:"created_by,omitempty"`

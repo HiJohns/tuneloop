@@ -23,9 +23,6 @@ export default function StaffManagement() {
   const [autoGenerate, setAutoGenerate] = useState(true)
   const [lockedSiteId, setLockedSiteId] = useState(null)
 
-  const [conflictModalVisible, setConflictModalVisible] = useState(false)
-  const [conflictUsers, setConflictUsers] = useState([])
-  const [currentNewUser, setCurrentNewUser] = useState(null)
   const [userRole, setUserRole] = useState('')
   const [editModalVisible, setEditModalVisible] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
@@ -140,9 +137,32 @@ export default function StaffManagement() {
     try {
       const checkResult = await staffApi.checkUserExists(values.phone, values.email, values.username)
       if (checkResult.code === 20000 && checkResult.data?.exists) {
-        setConflictUsers(checkResult.data.users || [])
-        setCurrentNewUser(values)
-        setConflictModalVisible(true)
+        // #2052：撞库 → 不再硬报冲突，改为向既有账户发送「加入邀请通知」，
+        // 由被邀请人本人在「系统消息」接受/拒绝（一人一号，禁止管理员代挂）。
+        const users = checkResult.data.users || []
+        const who = users[0]?.name || users[0]?.phone || users[0]?.email || ''
+        const identifier = values.phone || values.email || ''
+        const invite = await staffApi.sendStaffInvite(values.site_id, {
+          identifier,
+          role: values.role || 'site_member',
+        })
+        if (invite.code === 20100) {
+          Modal.info({
+            title: '已发送邀请通知',
+            width: 480,
+            content: (
+              <div>
+                <p>该手机号/邮箱已有账户{who ? `（${who}）` : ''}。</p>
+                <p>已向其发送<b>邀请通知</b>，请其打开「系统消息」选择<b>接受</b>或<b>拒绝</b>。</p>
+                <p style={{ fontSize: 12, color: '#999' }}>接受后即绑定为本人账户成员，无需管理员代为创建。</p>
+              </div>
+            ),
+          })
+          setViewMode('list')
+          createUserForm.resetFields()
+        } else {
+          message.error(invite.message || '发送邀请失败')
+        }
         return
       }
 
@@ -190,33 +210,6 @@ export default function StaffManagement() {
     } catch (error) {
       message.error('创建用户失败: ' + error.message)
     }
-  }
-
-  const handleContinueCreate = async () => {
-    try {
-      const result = await staffApi.createUser(currentNewUser)
-      if (result.code === 20000) {
-        message.success('创建用户成功')
-        setConflictModalVisible(false)
-        createUserForm.resetFields()
-        fetchStaffList()
-      } else if (result.code === 40900) {
-        const users = result.data || []
-        const names = users.map(u => `${u.name}(${u.phone})`).join(', ')
-        message.error(`创建用户失败：姓名、手机号或邮箱与以下用户冲突: ${names}`)
-        setCurrentNewUser(null)
-        return
-      }
-    } catch (error) {
-      message.error('创建用户失败: ' + error.message)
-    } finally {
-      setCurrentNewUser(null)
-    }
-  }
-
-  const handleCancelCreate = () => {
-    setConflictModalVisible(false)
-    setCurrentNewUser(null)
   }
 
   const handleEditUser = (record) => {
@@ -639,30 +632,7 @@ export default function StaffManagement() {
       </Card>
       )}
 
-      {/* 冲突选择对话框 */}
-      <Modal
-        title="用户已存在"
-        visible={conflictModalVisible}
-        onCancel={() => setConflictModalVisible(false)}
-        footer={[
-          <Button key="cancel" onClick={() => setConflictModalVisible(false)}>
-            取消
-          </Button>,
-          <Button key="continue" type="primary" onClick={handleContinueCreate}>
-            继续创建
-          </Button>
-        ]}
-      >
-        <p>发现以下用户已存在：</p>
-        <ul>
-          {conflictUsers.map(user => (
-            <li key={user.id}>
-              {user.name} ({user.email || user.phone})
-            </li>
-          ))}
-        </ul>
-        <p>是否继续创建新用户？</p>
-      </Modal>
+      {/* #2052：原「用户已存在」冲突选择对话框已移除 —— 改为发送邀请通知 */}
 
       <Modal
         title="编辑用户"

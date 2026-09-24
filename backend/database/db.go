@@ -373,6 +373,7 @@ var defaultMigrationArtifacts = []migrationArtifact{
 	{20260922001, "staff_invites", "", "员工邀请码表（#2031 邀请制自助加入）"},
 	{20260922002, "site_members", "roles", "网点成员多重角色列（#2034）"},
 	{20260923001, "pending_orders", "", "待提交订单缓存表（#2041）"},
+	{20260924001, "staff_invites", "invitee_user_id", "邀请通知被邀请人列（#2052）"},
 }
 
 // verifyArtifacts 纯逻辑（便于单测）：对 version ≥ a.Version 的工件断言存在。

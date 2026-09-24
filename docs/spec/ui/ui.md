@@ -2725,6 +2725,8 @@ const handleSyncUsersFromIAM = async () => {
   - **绑定现有用户**：展示只读用户名/姓名/邮箱/手机 + 角色下拉；提交 `user_ids`
   - 提交后续：成功（20000/20100）关闭 + 重置 + 刷新列表 + `onRefresh`；有 `role_errors` → `message.warning`；`bind_errors` → 显示错误并刷新；`skip_activation` 且有 `initial_passwords` → `Modal.success` **一次性**展示（`copyable`）；`40901` 冲突按「同商户不同网点 → 确认后加入 / 已是本网点 → 提示 / 与商户无关 → 提示联系商户管理员」处理
 - 角色仅 `site_admin`/`site_member`；**IAM 同步**（bind 先行，失败不写本地缓存）；错误一律 `message.error` 透出（禁止静默）
+- **#2052 创建员工（`StaffManagement.jsx`）**：弹窗默认显示**创建表单**（`createTab='create'`，搜索为次 Tab）；表单提交若 `GET /users/check` 命中既有账户 → **不再弹冲突选择框**，改为 `POST /sites/:id/invites/send` 发送**加入邀请通知** → `Modal.info` 提示「已发送邀请，请其在『系统消息』接受/拒绝」
+- **#2052 消息页**：`staff_invite` 通知卡片渲染**接受 / 拒绝**按钮（`POST /user/invitations/:id/accept|reject`），点击卡片本身不跳转
 
 **权限/角色**
 - 页面与全部端点：平台管理员（`sys_perm bit5`）

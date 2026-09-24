@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
-import { notificationApi } from '../services/api'
+import { notificationApi, apiFetch } from '../services/api'
 import { dialog, env, storage } from '../platform'
 import { formatBeijingDateTimeShort } from '../utils/format'
 import { ArrowLeft, Bell } from 'lucide-react'
@@ -13,12 +13,14 @@ const typeConfig = {
   payment: { bgColor: '#dbeafe', textColor: '#2563eb', label: '支付通知' },
   order: { bgColor: '#f4f4f5', textColor: '#52525b', label: '系统通知' },
   invoice: { bgColor: '#f3e8ff', textColor: '#9333ea', label: '发票通知' },
+  staff_invite: { bgColor: '#eef2ff', textColor: '#4338ca', label: '加入邀请' },
 }
 
 export default function Messages() {
   const navigate = useNavigate()
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
+  const [inviteBusy, setInviteBusy] = useState('') // #2052
 
   const fetchNotifications = async () => {
     try {
@@ -62,8 +64,28 @@ export default function Messages() {
     }
   }
 
+  // #2052: 接受/拒绝加入邀请（notif.ref_id = 邀请 id）
+  const respondInvite = async (notif, action) => {
+    if (inviteBusy) return
+    setInviteBusy(notif.id)
+    try {
+      const resp = await apiFetch(`${env.apiBaseUrl}/user/invitations/${notif.ref_id}/${action}`, { method: 'POST' })
+      const result = await resp.json()
+      if (result.code === 20000) {
+        markRead(notif.id)
+        dialog.toast(action === 'accept' ? '已接受邀请，已加入该网点' : '已拒绝邀请')
+      } else {
+        dialog.alert(result.message || '操作失败')
+      }
+    } catch (e) {
+      dialog.alert(e?.message || '网络错误')
+    }
+    setInviteBusy('')
+  }
+
   const handleClick = (notif) => {
-    // #2041: 实名认证相关通知 → 直达「待提交订单」列表（可继续提交）
+    // #2052: 加入邀请由卡片内「接受/拒绝」按钮处理，点击卡片本身不跳转
+    if (notif.type === 'staff_invite') return    // #2041: 实名认证相关通知 → 直达「待提交订单」列表（可继续提交）
     if (notif.type === 'id_verify') {
       try { storage.setItem('open_pending_modal', '1') } catch { /* 标记失败不影响跳转 */ }
       if (env.isMiniProgram) {
@@ -135,6 +157,18 @@ export default function Messages() {
                     <Text style={{ fontWeight: '500', fontSize: 14, marginTop: 4 }}>{notif.title}</Text>
                     <Text style={{ color: '#71717a', fontSize: 14, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{notif.content}</Text>
                     <Text style={{ color: '#a1a1aa', fontSize: 12, marginTop: 8 }}>{formatBeijingDateTimeShort(notif.created_at)}</Text>
+                    {notif.type === 'staff_invite' && (
+                      <View style={{ display: 'flex', flexDirection: 'row', gap: 8, marginTop: 10 }}>
+                        <View onClick={(e) => { if (e?.stopPropagation) e.stopPropagation(); respondInvite(notif, 'accept') }}
+                          style={{ flex: 1, height: 34, borderRadius: 17, backgroundColor: '#915F38', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>{inviteBusy === notif.id ? '处理中...' : '接受'}</Text>
+                        </View>
+                        <View onClick={(e) => { if (e?.stopPropagation) e.stopPropagation(); respondInvite(notif, 'reject') }}
+                          style={{ height: 34, paddingLeft: 18, paddingRight: 18, borderRadius: 17, backgroundColor: '#F4F4F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Text style={{ color: '#71717A', fontSize: 13 }}>拒绝</Text>
+                        </View>
+                      </View>
+                    )}
                   </View>
                 )
               })}

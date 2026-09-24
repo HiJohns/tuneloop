@@ -444,6 +444,8 @@ export const staffApi = {
     return api.get(`/users/check${qs ? '?' + qs : ''}`)
   },
   batchDelete: (ids) => api.delete('/users/batch', { ids }),
+  // #2052：对既有用户发送加入邀请（不发码，被邀请人在「系统消息」接受/拒绝）
+  sendStaffInvite: (siteId, data) => api.post(`/sites/${siteId}/invites/send`, data),
   resetPassword: (userIds, redirectUrl) => api.post('/users/reset-password', { user_ids: userIds, redirect_url: redirectUrl }),
   activateUser: (id) => api.post(`/users/${id}/activate`),
 }

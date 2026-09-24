@@ -102,3 +102,68 @@ func TestAcceptInvite_Guards(t *testing.T) {
 		assert.Nil(t, stored.AcceptedBy)
 	})
 }
+
+// #2052 邀请通知守卫：非被邀请人 403 / 已处理 409 / 过期 410 / 拒绝落 status=rejected。
+func TestInvitation_Guards(t *testing.T) {
+	cleanup := setupMockIAMAndDB(t)
+	defer cleanup()
+	db := database.GetDB()
+	require.NoError(t, db.AutoMigrate(&models.StaffInvite{}))
+
+	inviteeID := uuid.New().String()
+	otherID := uuid.New().String()
+
+	newRouter := func(uid string) *gin.Engine {
+		r := gin.New()
+		r.Use(func(c *gin.Context) {
+			ctx := context.WithValue(c.Request.Context(), middleware.ContextKeyUserID, uid)
+			ctx = context.WithValue(ctx, middleware.ContextKeyTenantID, uuid.New().String())
+			c.Request = c.Request.WithContext(ctx)
+			c.Next()
+		})
+		r.POST("/api/user/invitations/:id/accept", AcceptInvitation)
+		r.POST("/api/user/invitations/:id/reject", RejectInvitation)
+		return r
+	}
+
+	mkInvite := func(status string, ttl time.Duration) models.StaffInvite {
+		inv := models.StaffInvite{
+			ID: uuid.New().String(), TenantID: uuid.New().String(), OrgID: uuid.New().String(),
+			SiteID: uuid.New().String(), Role: "site_member", Code: uuid.New().String()[:16],
+			Status: status, ExpiresAt: time.Now().Add(ttl), InviteeUserID: &inviteeID,
+		}
+		require.NoError(t, db.Create(&inv).Error)
+		return inv
+	}
+
+	post := func(r *gin.Engine, id, action string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest("POST", "/api/user/invitations/"+id+"/"+action, nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		return w
+	}
+
+	t.Run("非被邀请人 → 403", func(t *testing.T) {
+		inv := mkInvite("pending", time.Hour)
+		assert.Equal(t, http.StatusForbidden, post(newRouter(otherID), inv.ID, "accept").Code)
+	})
+
+	t.Run("已处理 → 409", func(t *testing.T) {
+		inv := mkInvite("accepted", time.Hour)
+		assert.Equal(t, http.StatusConflict, post(newRouter(inviteeID), inv.ID, "accept").Code)
+	})
+
+	t.Run("过期 → 410", func(t *testing.T) {
+		inv := mkInvite("pending", -time.Hour)
+		assert.Equal(t, http.StatusGone, post(newRouter(inviteeID), inv.ID, "accept").Code)
+	})
+
+	t.Run("拒绝 → 200 且 status=rejected", func(t *testing.T) {
+		inv := mkInvite("pending", time.Hour)
+		w := post(newRouter(inviteeID), inv.ID, "reject")
+		assert.Equal(t, http.StatusOK, w.Code)
+		var stored models.StaffInvite
+		require.NoError(t, db.Where("id = ?", inv.ID).First(&stored).Error)
+		assert.Equal(t, "rejected", stored.Status)
+	})
+}
