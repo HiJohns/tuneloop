@@ -15,7 +15,7 @@ function Badge({ count }) {
   )
 }
 
-function PendingOrdersModal({ visible, onClose, navigate }) {
+function PendingOrdersModal({ visible, onClose, navigate, user }) {
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(false)
   useEffect(() => {
@@ -34,6 +34,8 @@ function PendingOrdersModal({ visible, onClose, navigate }) {
     } catch {}
   }
   if (!visible) return null
+  // #2041: 已实名 → 「继续提交」直接回跳结算页回填续提；未实名 → 引导去实名
+  const idVerified = ['verified', 'pending_review'].includes(user?.id_verify_status)
   return (
     <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.45)' }}>
       <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 20, width: '88%', boxSizing: 'border-box', maxHeight: '70vh', overflow: 'auto' }}>
@@ -47,8 +49,15 @@ function PendingOrdersModal({ visible, onClose, navigate }) {
             <Text style={{ fontSize: 13, color: '#18181b', display: 'block' }}>乐器：{item.payload?.instrument_id || '—'}</Text>
             <Text style={{ fontSize: 11, color: '#a1a1aa', display: 'block', marginTop: 2 }}>{item.created_at ? String(item.created_at).slice(0, 16).replace('T', ' ') : ''}</Text>
             <View style={{ display: 'flex', flexDirection: 'row', marginTop: 8, gap: 8 }}>
-              <View onClick={() => { remove(item.id); onClose(); navigate('/profile/edit') }} style={{ flex: 1, height: 32, borderRadius: 16, backgroundColor: '#915F38', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>完成实名后提交</Text>
+              <View onClick={() => {
+                onClose()
+                if (idVerified && item.payload?.instrument_id) {
+                  navigate(`/checkout?id=${item.payload.instrument_id}&resume_pending=${item.id}`)
+                } else {
+                  navigate('/profile/edit')
+                }
+              }} style={{ flex: 1, height: 32, borderRadius: 16, backgroundColor: '#915F38', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{idVerified ? '继续提交' : '完成实名后提交'}</Text>
               </View>
               <View onClick={() => remove(item.id)} style={{ height: 32, paddingLeft: 12, paddingRight: 12, borderRadius: 16, backgroundColor: '#f4f4f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Text style={{ color: '#71717a', fontSize: 12 }}>放弃</Text>
@@ -223,6 +232,13 @@ export default function Profile() {
         console.error('Failed to fetch user:', err)
       }
       setLoading(false)
+      // #2041: 实名认证通知直达待提交订单列表
+      try {
+        if (storage.getItem('open_pending_modal') === '1') {
+          storage.removeItem('open_pending_modal')
+          setShowPending(true)
+        }
+      } catch { /* 读取失败不影响页面 */ }
     }
     fetchUser()
   }, [])
@@ -490,7 +506,7 @@ export default function Profile() {
       />
 
       <JoinSiteModal visible={showJoin} onClose={() => setShowJoin(false)} />
-      <PendingOrdersModal visible={showPending} onClose={() => setShowPending(false)} navigate={nav} />
+      <PendingOrdersModal visible={showPending} onClose={() => setShowPending(false)} navigate={nav} user={user} />
 
       <EditProfileModal
         visible={showEdit}

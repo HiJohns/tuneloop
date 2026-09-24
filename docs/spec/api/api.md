@@ -251,6 +251,14 @@ Body：`{ role: "<主角色>", roles: ["<角色>", ...] }`（`roles` 可选；�
 | GET | `/api/user/pending-orders` | 本人 pending 列表（含 payload） |
 | DELETE | `/api/user/pending-orders/:id` | 放弃（status→abandoned） |
 
+- POST 请求体：`{ "payload": <下单表单对象> }`（与 `POST /api/orders` 的 body 一致）；响应 `20100 { data: { id } }`
+- 列表项含 `payload`、`created_at`，用于前端回填续提
+
+**续提（回跳结算，前端契约）**：`GET /checkout?id=<instrument_id>&resume_pending=<pending_id>`
+- 结算页按 `resume_pending` 拉取 `GET /api/user/pending-orders` 取回 payload，回填 `rent_days` / `discount_code`
+- **可租校验**：乐器 `stock_status !== 'available'`（已被他人租出）→ 提示「暂存订单已失效」并 `DELETE` 该 pending
+- 提交成功后 `DELETE` 该 pending（status→submitted 侧清理）
+
 状态：`pending → submitted`（提交成功） / `pending → abandoned`（用户放弃）
 
 #### 删除语义（D4）

@@ -60,7 +60,7 @@ function getItemPricing(item) {
   return { dailyRent, deposit, rent, shippingFee }
 }
 
-function SingleCheckout({ id, navigate }) {
+function SingleCheckout({ id, navigate, resumePending }) {
   const [instrument, setInstrument] = useState(null)
   const [pricingV2, setPricingV2] = useState(null)
   const [addresses, setAddresses] = useState([])
@@ -153,6 +153,31 @@ function SingleCheckout({ id, navigate }) {
     }
     loadData()
   }, [id])
+
+  // #2041: 回跳续提（?resume_pending=<id>）——先校验乐器仍可租，已被租出则清理暂存并提示失效；可租则回填续航天数/优惠码
+  useEffect(() => {
+    if (!resumePending || !instrument) return
+    let cancelled = false
+    const resume = async () => {
+      if (instrument.stock_status !== 'available') {
+        try { await apiFetch(`${env.apiBaseUrl}/user/pending-orders/${resumePending}`, { method: 'DELETE' }) } catch { /* 清理失败不阻断提示 */ }
+        if (cancelled) return
+        await dialog.alert('该乐器已被租出，暂存的待提交订单已失效')
+        if (!cancelled) navigate(-1)
+        return
+      }
+      try {
+        const pr = await apiFetch(`${env.apiBaseUrl}/user/pending-orders`)
+        const prj = await pr.json()
+        const cached = (prj.data?.list || []).find(x => String(x.id) === String(resumePending))
+        if (cancelled || !cached?.payload) return
+        if (cached.payload.rent_days) setDays(Number(cached.payload.rent_days) || 30)
+        if (cached.payload.discount_code) setDiscountCode(cached.payload.discount_code)
+      } catch { /* 回填失败不阻断结算 */ }
+    }
+    resume()
+    return () => { cancelled = true }
+  }, [instrument, resumePending])
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -362,6 +387,10 @@ function SingleCheckout({ id, navigate }) {
 
       const resp = await ordersApi.create(body)
       if (resp.code === 20000 || resp.code === 20100) {
+        // #2041: 续提成功 → 清理暂存的待提交订单
+        if (resumePending) {
+          apiFetch(`${env.apiBaseUrl}/user/pending-orders/${resumePending}`, { method: 'DELETE' }).catch(() => {})
+        }
         const orderId = resp.data?.order_id
         if (orderId) {
           // Keep /checkout in history so payment back button returns here (#1629)
@@ -1373,8 +1402,10 @@ export default function Checkout() {
   const navigate = useNavigate()
   // 跨端统一 query 约定（#1674）：单乐器直达结算 ?id=
   const id = searchParams.get('id') || ''
+  // #2041: 待提交订单回跳续提（?resume_pending=<id>）
+  const resumePending = searchParams.get('resume_pending') || ''
   if (id) {
-    return <SingleCheckout id={id} navigate={navigate} />
+    return <SingleCheckout id={id} navigate={navigate} resumePending={resumePending} />
   }
   return <BatchCheckout navigate={navigate} />
 }

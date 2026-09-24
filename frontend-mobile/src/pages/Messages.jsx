@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { notificationApi } from '../services/api'
-import { dialog, env } from '../platform'
+import { dialog, env, storage } from '../platform'
 import { formatBeijingDateTimeShort } from '../utils/format'
 import { ArrowLeft, Bell } from 'lucide-react'
 import { View, Text, ScrollView } from '@tarojs/components'
@@ -63,8 +63,9 @@ export default function Messages() {
   }
 
   const handleClick = (notif) => {
-    // #2041: 实名认证相关通知 → 跳「我的」（待提交订单入口在此，可继续提交）
+    // #2041: 实名认证相关通知 → 直达「待提交订单」列表（可继续提交）
     if (notif.type === 'id_verify') {
+      try { storage.setItem('open_pending_modal', '1') } catch { /* 标记失败不影响跳转 */ }
       if (env.isMiniProgram) {
         Taro.switchTab({ url: '/pages-weapp/profile/index' })
       } else {
