@@ -14,7 +14,7 @@ export default function StaffManagement() {
   const [searchParams, setSearchParams] = useState({ name: '', siteId: null })
   const [siteTree, setSiteTree] = useState([])
   const [viewMode, setViewMode] = useState('list') // 'list' | 'create'
-  const [createTab, setCreateTab] = useState('search')
+  const [createTab, setCreateTab] = useState('create')
   const [searchKeyword, setSearchKeyword] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [searchLoading, setSearchLoading] = useState(false)
