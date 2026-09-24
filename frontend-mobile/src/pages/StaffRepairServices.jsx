@@ -22,6 +22,13 @@ const svcAmount = (rr) => {
   return `¥${formatCents(cents)}`
 }
 
+// #2053: 状态筛选（进行中 / 已完成）
+const MAIN_TABS = [
+  { key: 'active', label: '进行中' },
+  { key: 'completed', label: '已完成' },
+]
+const COMPLETED_STATUSES = ['closed']
+
 const cardStyle = {
   display: 'flex', flexDirection: 'column', gap: 6,
   backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12, marginBottom: 10,
@@ -55,6 +62,7 @@ export default function StaffRepairServices() {
   const [pendingDispatch, setPendingDispatch] = useState([])
   const [inProgress, setInProgress] = useState([])
   const [allList, setAllList] = useState([])
+  const [mainTab, setMainTab] = useState('active')
   const [expanded, setExpanded] = useState('') // `${id}:dispatch` | `${id}:leg`
   const [submitting, setSubmitting] = useState(false)
   // 表单态
@@ -221,6 +229,8 @@ export default function StaffRepairServices() {
     )
   }
 
+  const completedList = allList.filter(rr => COMPLETED_STATUSES.includes(rr.status))
+
   return (
     <View style={{ backgroundColor: '#FDFBF7', display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <View style={{ backgroundColor: '#FFFFFF', padding: '12px 16px', borderBottom: '1px solid #F4F4F5', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -228,9 +238,25 @@ export default function StaffRepairServices() {
         <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#18181B' }}>维修服务 · 网点工作台</Text>
       </View>
 
+      <View style={{ backgroundColor: '#FFFFFF', padding: '0 16px 10px', display: 'flex', gap: 8 }}>
+        {MAIN_TABS.map(tab => (
+          <View key={tab.key} onClick={() => setMainTab(tab.key)}
+            style={{
+              padding: '6px 14px', borderRadius: 16,
+              backgroundColor: mainTab === tab.key ? '#171717' : '#F4F4F5',
+            }}>
+            <Text style={{
+              fontSize: 13, fontWeight: 'bold',
+              color: mainTab === tab.key ? '#FFFFFF' : '#71717A',
+            }}>{tab.label}</Text>
+          </View>
+        ))}
+      </View>
+
       <ScrollView scrollY className="flex-1 min-h-0 overflow-y-auto"
         style={{ flex: 1, minHeight: 0 }}>
         <View style={{ padding: '12px 16px 96px', boxSizing: 'border-box' }}>
+          {mainTab === 'active' ? (<>
           <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>待发回（{pendingDispatch.length}）</Text>
             <Text onClick={fetchLists} style={{ fontSize: 12, color: '#71717A' }}>刷新</Text>
@@ -267,6 +293,26 @@ export default function StaffRepairServices() {
               <Text style={{ fontSize: 11, color: '#71717A' }}>金额 {svcAmount(rr)}</Text>
             </View>
           ))}
+          </>) : (<>
+          <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>已完成（{completedList.length}）</Text>
+            <Text onClick={fetchLists} style={{ fontSize: 12, color: '#71717A' }}>刷新</Text>
+          </View>
+          {loading ? (
+            <Text style={{ fontSize: 12, color: '#A1A1AA' }}>加载中...</Text>
+          ) : completedList.length === 0 ? (
+            <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无已完成维修单</Text>
+          ) : completedList.map(rr => (
+            <View key={rr.id} style={cardStyle}>
+              <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>编码 {rr.repair_code || '-'}</Text>
+                <Text style={{ fontSize: 12, color: '#A1A1AA' }}>{svcStatusLabels[rr.status] || rr.status}</Text>
+              </View>
+              <Text style={{ fontSize: 12, color: '#52525B' }} numberOfLines={2}>{rr.description || '（无描述）'}</Text>
+              <Text style={{ fontSize: 11, color: '#71717A' }}>金额 {svcAmount(rr)}</Text>
+            </View>
+          ))}
+          </>)}
         </View>
       </ScrollView>
     </View>

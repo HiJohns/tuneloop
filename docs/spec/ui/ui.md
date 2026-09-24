@@ -666,6 +666,11 @@ setInterval(() => {
 - 显示押金退还状态
 - 点击 → 跳转 `/order/:id`
 
+**金刚区（快捷入口）**（#2053）:
+- 顾客：`待付款` → `/my-leases?status=reserved`；`服务中` → `/my-leases?status=in_lease`；`维修中` → `/my-repairs`（列表含进行中 + 已完成筛选）
+- 员工：`乐器管理` → `/staff/instruments`；`接收` → `/staff/receiving`；`发货` → `/staff/shipping`（中转网点成员另显示 `中转工作台`）
+- **历史可达性**：承租历史经 `MyLeases`「已完成」Tab；维修历史经 `/my-repairs`「已完成」筛选（会员中心为静态权益页，不承载历史）
+
 **订单详情页**（顾客，`/order/:id`）:
 
 | 状态 | 按钮 | 行为 |

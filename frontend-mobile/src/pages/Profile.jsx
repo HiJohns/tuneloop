@@ -197,6 +197,7 @@ export default function Profile() {
       '/setting': 'setting',
       '/profile/edit': 'profile/edit',
       '/content': 'content',
+      '/my-repairs': 'my-repairs',
     }[path]
     if (!page) { navigate(to); return }
     const url = `/pages-weapp/${page}/index${query ? '?' + query : ''}`
@@ -386,11 +387,11 @@ export default function Profile() {
                 </View>
                 <Text className="text-xs font-bold text-zinc-700">服务中</Text>
               </View>
-              <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={() => navigate('/my-leases?status=completed')}>
+              <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={() => nav('/my-repairs')}>
                 <View className="text-2xl mb-1">
-                  ✖️
+                  🔧
                 </View>
-                <Text className="text-xs font-bold text-zinc-700">已完成</Text>
+                <Text className="text-xs font-bold text-zinc-700">维修中</Text>
               </View>
             </>
           )}
