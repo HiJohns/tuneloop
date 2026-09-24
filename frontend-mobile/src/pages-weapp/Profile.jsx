@@ -104,7 +104,43 @@ export default function Profile() {
   // Refresh user data every time the page becomes visible (e.g. returning
   // from the profile edit page) — #1588. The eventBus subscription stays
   // mounted once via useEffect.
+  // #2041/#2053 整改：weapp「待提交订单」入口 + 续提（与 H5 PendingOrdersModal 语义一致）
+  const [showPending, setShowPending] = useState(false)
+  const [pendingList, setPendingList] = useState([])
+  const [pendingLoading, setPendingLoading] = useState(false)
+  const idVerified = ['verified', 'pending_review'].includes(user?.id_verify_status)
+  const openPending = () => {
+    setShowPending(true)
+    setPendingLoading(true)
+    apiFetch(`${env.apiBaseUrl}/user/pending-orders`)
+      .then(r => r.json())
+      .then(res => { if (res.code === 20000) setPendingList(res.data?.list || []) })
+      .catch(() => {})
+      .finally(() => setPendingLoading(false))
+  }
+  const removePending = async (id) => {
+    try {
+      await apiFetch(`${env.apiBaseUrl}/user/pending-orders/${id}`, { method: 'DELETE' })
+      setPendingList(prev => prev.filter(x => x.id !== id))
+    } catch { /* 取消失败不阻断 */ }
+  }
+  const continuePending = (item) => {
+    setShowPending(false)
+    if (idVerified && item.payload?.instrument_id) {
+      Taro.navigateTo({ url: `/pages-weapp/checkout/index?id=${item.payload.instrument_id}&resume_pending=${item.id}` })
+    } else {
+      nav('/pages-weapp/profile/edit/index')
+    }
+  }
+
   useDidShow(() => {
+    // #2041: 实名通知点击后置位 → 直达「待提交订单」（读后即清，幂等）
+    try {
+      if (storage.getItem('open_pending_modal') === '1') {
+        storage.removeItem('open_pending_modal')
+        openPending()
+      }
+    } catch { /* 标记读取失败不影响页面 */ }
     const fetchUser = async () => {
       // #1903: guest state has no token — skip the protected call (#1620 stale UI)
       if (!getToken()) { setUser(null); setLoading(false); return }
@@ -471,6 +507,14 @@ export default function Profile() {
               <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>
           )}
+          {/* 5.6 待提交订单（#2041/#2053 整改） */}
+          <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={openPending}>
+            <View style={{ display: 'flex', alignItems: 'center' }}>
+              <Text style={{ fontSize: 18, marginRight: 8 }}>📝</Text>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>待提交订单</Text>
+            </View>
+            <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
+          </View>
           {/* 6. 商务合作（全员） */}
           <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/content/index?key=cooperation')}>
             <View style={{ display: 'flex', alignItems: 'center' }}>
@@ -507,6 +551,36 @@ export default function Profile() {
             内边距才能让版本号浮在导航上方可见（菜单加长后曾遮挡） */}
         <View style={{ height: 120 }} />
       </ScrollView>
+
+      {/* 待提交订单弹层（#2041/#2053 整改） */}
+      {showPending && (
+        <View style={{ position: 'fixed', left: 0, right: 0, top: 0, bottom: 0, zIndex: 50, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end' }}
+          onClick={() => setShowPending(false)}>
+          <View style={{ backgroundColor: '#fff', width: '100%', maxHeight: '70vh', borderRadius: '16px 16px 0 0', padding: 16, overflow: 'scroll' }}
+            onClick={e => e.stopPropagation()}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: '#18181b', display: 'block', marginBottom: 12 }}>待提交订单</Text>
+            {pendingLoading ? (
+              <Text style={{ fontSize: 13, color: '#a1a1aa' }}>加载中...</Text>
+            ) : pendingList.length === 0 ? (
+              <Text style={{ fontSize: 13, color: '#a1a1aa' }}>暂无待提交订单</Text>
+            ) : pendingList.map(item => (
+              <View key={item.id} style={{ borderBottom: '1px solid #f4f4f5', paddingTop: 10, paddingBottom: 10 }}>
+                <Text style={{ fontSize: 13, color: '#18181b', display: 'block' }}>乐器：{item.payload?.instrument_id || '—'}</Text>
+                <View style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  <View onClick={() => removePending(item.id)}
+                    style={{ flex: 1, height: 32, borderRadius: 16, backgroundColor: '#f4f4f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ color: '#3f3f46', fontSize: 12, fontWeight: '700' }}>取消</Text>
+                  </View>
+                  <View onClick={() => continuePending(item)}
+                    style={{ flex: 1, height: 32, borderRadius: 16, backgroundColor: '#915F38', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{idVerified ? '继续提交' : '完成实名后提交'}</Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
 
       {/* 5. 底部固定导航栏 */}
       <BottomNav

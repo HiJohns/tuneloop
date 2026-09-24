@@ -1408,6 +1408,8 @@ API 来源：
 > 1. **证件上传页**（个人资料）：未上传身份证正反面时，第二证件上传入口禁用/提示「请先上传身份证正反面」
 > 2. **Checkout 下单被拦**：命中 `40310` → 确认弹窗「订单已为您暂存，完成实名认证后可继续提交」→ 写入待提交订单 → 跳 `/profile/edit`
 > 3. **系统消息 / 我的**：实名通过通知条目附「继续提交订单」入口；「我的」提供「待提交订单」列表（可多条，重新打开继续提交）
+>    - **双端一致性（#2041 整改 / #2053 整改）**：H5（`pages/Profile.jsx` 的 `PendingOrdersModal`）与 weapp（`pages-weapp/Profile.jsx` 独立实现）**均**有「待提交订单」菜单 + 弹层；实名通知点击置 `storage.open_pending_modal=1` → 落到「我的」时由 `useDidShow`/`useEffect` 读取并直达列表（读后即清）。
+>    - 续提跳转：已实名 → `checkout?id=<instrument_id>&resume_pending=<pending_id>`（weapp 用 `/pages-weapp/checkout/index`）；未实名 → 个人资料编辑页。
 
 ### 2.22.1 注册页证件审核提示（#2044）
 
