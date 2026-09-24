@@ -5,7 +5,7 @@ import ReactQuill from 'react-quill'
 import 'react-quill/dist/quill.snow.css'
 import { technicianApi, staffApi } from '../../services/api'
 import { formatBeijingDateTimeShort } from '../../utils/date'
-// #1974 T4 师傅档案维护页（直属商户）：照片/介绍/专长年限 + 新增/编辑/停用
+// #1974 T4 维修师档案维护页（直属商户）：照片/介绍/专长年限 + 新增/编辑/停用
 // #2049：照片改走媒体管线端点 `/technician-profiles/:id/photo`（原图+缩略图）；
 //        简介 bio 为富文本（react-quill，前端渲染 RichContent/富文本）。
 // 注意：照片上传必须走 api.uploadFile / technicianApi.uploadPhoto（FormData），不可用 api.post（#1967 教训）
@@ -45,7 +45,7 @@ export default function TechnicianProfiles() {
     form.resetFields()
     form.setFieldsValue({ experience: [{ craft: '', years: undefined }] })
     setModalOpen(true)
-    // 可选：拉取员工列表（取姓名用于选择关联师傅）
+    // 可选：拉取员工列表（取姓名用于选择关联维修师）
     try {
       const resp = await staffApi.list({ page: 1, pageSize: 200 })
       if (resp.code === 20000) setUsers(resp.data?.list || [])
@@ -144,13 +144,13 @@ export default function TechnicianProfiles() {
 
   return (
     <Card
-      title="师傅档案"
-      extra={<Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>新增师傅</Button>}
+      title="维修师档案"
+      extra={<Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>新增维修师</Button>}
     >
       <Table rowKey="id" loading={loading} dataSource={list} columns={columns} />
 
       <Modal
-        title={editing ? '编辑师傅档案' : '新增师傅档案'}
+        title={editing ? '编辑维修师档案' : '新增维修师档案'}
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
         onOk={submit}
@@ -160,7 +160,7 @@ export default function TechnicianProfiles() {
       >
         <Form form={form} layout="vertical">
           {!editing && (
-            <Form.Item name="user_id" label="关联师傅（用户）" rules={[{ required: true, message: '请选择或填写师傅 user_id' }]}>
+            <Form.Item name="user_id" label="关联维修师（用户）" rules={[{ required: true, message: '请选择或填写维修师 user_id' }]}>
               {users.length > 0 ? (
                 <Select
                   showSearch
@@ -169,7 +169,7 @@ export default function TechnicianProfiles() {
                   options={users.map(u => ({ value: u.id, label: `${u.name || u.username || u.id.slice(0, 8)}（${u.id.slice(0, 8)}）` }))}
                 />
               ) : (
-                <Input placeholder="师傅 user_id（UUID）" />
+                <Input placeholder="维修师 user_id（UUID）" />
               )}
             </Form.Item>
           )}

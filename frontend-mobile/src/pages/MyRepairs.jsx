@@ -166,7 +166,7 @@ export default function MyRepairs() {
   }
   // RS-12：分状态分组 + 待办提示（金额/标志来自列表接口 reviewed/pending_shortfall_cents）
   const svcTodo = (s) => {
-    if (s.status === 'pending_quote') return s.technician_id ? '等待师傅报价' : '待选择维修师'
+    if (s.status === 'pending_quote') return s.technician_id ? '等待维修师报价' : '待选择维修师'
     if (s.status === 'pending_payment') return '待接受报价并支付'
     if (s.status === 'adjust_pending') {
       const diff = (s.adjusted_quote_cents || 0) - (s.quote_repair_cents || 0)
@@ -193,11 +193,11 @@ export default function MyRepairs() {
     <View style={{ display: 'flex', flexDirection: 'column' }}>
       {!isCustomer && roles.includes('repair_technician') && (
         <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>师傅工作台</Text>
+          <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>维修师工作台</Text>
           <Text style={{ fontSize: 12, color: '#71717A' }}>待报价 · 报价 · 加价发起 · 完成修理</Text>
           <Button onClick={() => nav('/tech-repair-workbench')}
             style={{ width: '100%', margin: 0, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#171717', color: '#FFFFFF', borderRadius: 8, fontSize: 14, fontWeight: 'bold' }}>
-            进入师傅工作台
+            进入维修师工作台
           </Button>
         </View>
       )}
@@ -281,15 +281,15 @@ export default function MyRepairs() {
     <View style={{ backgroundColor: "#FDFBF7" }} className="flex flex-col h-screen">
       {!env.isMiniProgram && (
       <View className="bg-white px-4 py-3 border-b border-zinc-100">
-        <Text className="text-lg font-black text-black">{isCustomer ? '我的维修' : isPureTech ? '维修工作台' : '报修管理'}</Text>
+        <Text className="text-lg font-black text-black">{isCustomer ? '我的维修服务' : isPureTech ? '维修工作台' : '报修单管理'}</Text>
       </View>
       )}
 
-      {/* #1957 RS-10 入口区分：乐器报修（v3）/ 维修服务；#2050 顾客锁定「维修服务」（内部报修仅员工） */}
+      {/* #1957 RS-10 入口区分：报修单（v3 legacy）/ 维修服务；#2050 顾客锁定「维修服务」（报修单仅员工） */}
       {isStaff && (
       <View style={{ display: 'flex', gap: 8, backgroundColor: '#FFFFFF', padding: '10px 16px 0' }}>
         {[
-          { key: 'legacy', label: '乐器报修' },
+          { key: 'legacy', label: '报修单' },
           { key: 'service', label: '维修服务' },
         ].map(t => (
           <View key={t.key} onClick={() => (t.key === 'service' ? openServiceTab() : setSvcTab('legacy'))}
@@ -357,7 +357,7 @@ export default function MyRepairs() {
             )}
           </View>
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <View><Text className="text-sm font-bold text-black">质检/维修中报修 ({repairRequests.length})</Text></View>
+            <View><Text className="text-sm font-bold text-black">质检/维修中乐器 ({repairRequests.length})</Text></View>
             {repairRequests.length === 0 ? (
               <View><Text className="text-xs text-zinc-400">暂无</Text></View>
             ) : (

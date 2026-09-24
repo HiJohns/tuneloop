@@ -1,8 +1,8 @@
 ---
 id: R-01
 domain: repair
-flow: 客户报修（v3 主流程）
-visibility: 仅员工可见（创建入口已废弃，由接收/归还定损「有损坏」自动置乐器 repair_status=repair_pending 驱动，师傅工作台处理）；顾客侧**保留只读历史/在途单**（#2050）
+flow: 报修单（v3 legacy，创建已废弃 #2055）
+visibility: 仅员工可见（创建入口已废弃，由接收/归还定损「有损坏」自动置乐器 repair_status=repair_pending 驱动，维修师工作台处理）；顾客侧**保留只读历史/在途单**（#2050）
 ---
 steps:
   - seq: 1
@@ -110,10 +110,10 @@ steps:
 # R-02 维修报价调整
 
 ## 前置条件
-- 维修中师傅重新报价（仅一次）
+- 维修中维修师重新报价（仅一次）
 
 ## 流程
-1. 师傅 requote → 通知顾客
+1. 维修师 requote → 通知顾客
 2. 顾客接受 → 补差款 → 维修继续
 3. 拒绝 → 回退结算 → return_pending
 

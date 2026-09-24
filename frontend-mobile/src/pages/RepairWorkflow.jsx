@@ -142,7 +142,7 @@ export default function RepairWorkflow() {
   if (myRoles !== null && !myRoles.some(r => ['site_admin', 'site_member', 'repair_technician'].includes(r))) {
     return (
       <View className="h-screen bg-zinc-50 flex items-center justify-center p-4">
-        <Text className="text-zinc-500 text-sm">无权访问：维修工作台仅对网点员工与维修师傅开放</Text>
+        <Text className="text-zinc-500 text-sm">无权访问：维修工作台仅对网点员工与维修师开放</Text>
       </View>
     )
   }
@@ -317,7 +317,7 @@ export default function RepairWorkflow() {
 
         {status === 'repair_in_progress' && !isMyJob && (
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
-            <Text className="text-sm text-zinc-600">此乐器由 {instrument.repair_worker_name || '其他师傅'} 负责处理中</Text>
+            <Text className="text-sm text-zinc-600">此乐器由 {instrument.repair_worker_name || '其他维修师'} 负责处理中</Text>
             <Button onClick={handleTakeover} disabled={actionLoading || submittingRecord}
               className="w-full mt-3 py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
               {actionLoading ? '处理中...' : '接手'}

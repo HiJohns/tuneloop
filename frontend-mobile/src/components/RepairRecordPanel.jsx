@@ -8,12 +8,12 @@ import { parsePhotos, photoSrc } from '../utils/media'
 
 const RECORD_TYPE_LABELS = {
   created: '报修单已创建',
-  quote_submitted: '师傅提交报价',
+  quote_submitted: '维修师提交报价',
   quote_accepted: '接受报价',
   paid: '支付完成',
   shipped: '已发货',
   received: '已收货',
-  requoted: '师傅重新报价',
+  requoted: '维修师重新报价',
   requote_rejected: '拒绝重新报价',
   progress: '维修进展',
   completed: '维修完成',

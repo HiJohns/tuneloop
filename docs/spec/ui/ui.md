@@ -1009,19 +1009,19 @@ API 来源：
 **角色视图**（顶部 tab 由角色生成）：
 - 顾客：我的维修服务（`user/repair-services`）+ 只读「历史报修」区（本人 `repair_requests`，仅查看/跟进，**无创建**——创建已废弃 #2055）
 - 网点员工：本网点报修列表 + 「填物流发回」动作（`return_pending`）+ **待验收乐器列表**（本站点 `repair_completed`，`repair/acceptance`，「去验收」→ `/repair?instrument_id=`，#1892）
-- 维修师傅：我的维修（`repair/mine`）+ 待维修列表（`repair/pending`，按站点过滤）
+- 维修师：我的维修（`repair/mine`）+ 待维修列表（`repair/pending`，按站点过滤）
 
 **交互**：
 - 列表项点击 → `/repair-request?request_id=` 或 `/repair?instrument_id=`（`nav()` 跨端封装）
 - 「填物流发回」异步按钮须 loading/disabled（防重复提交）
-- 扫码入口：员工/师傅视图提供扫码按钮 → `/receiving-repair-scan` 或 `/repair?instrument_id=`
+- 扫码入口：员工/维修师视图提供扫码按钮 → `/receiving-repair-scan` 或 `/repair?instrument_id=`
 - 列表项文本分行：SN / 状态各自 `<View>` 包裹（ui.md:110）
 
-**底部导航**：纯维修师傅（无 `site_member`）隐藏「租赁」tab（H5 + weapp 一致）。
+**底部导航**：纯维修师（无 `site_member`）隐藏「租赁」tab（H5 + weapp 一致）。
 
 #### 2.9.2 维修工作台 `/repair`（共享页，按状态×角色裁剪）
 
-| repair_status | 员工（本站点） | 师傅（本单负责人） | 其他师傅 |
+| repair_status | 员工（本站点） | 维修师（本单负责人） | 其他维修师 |
 |---|---|---|---|
 | `repair_pending` | 开始维修 | 开始维修 | 开始维修（谁点谁负责） |
 | `repair_in_progress` | 信息视图 | 添加记录 + 维修完成 | 显示负责人 + 接手（同站点，R4） |
@@ -1038,11 +1038,11 @@ API 来源：
 **可见性**：报修人本人 / 该单站点（`site_id`、`transit_site_id`、`controlled_site_id`）成员；其余 404（防探测）。受控情形对站点成员脱敏报修人联系信息（§双向脱敏）。
 
 **阶段面板**（按状态 + 站点归属）：
-- 待估价：报价列表（R7 隔离）+ 师傅报价表单（技师，本单受控网点）
+- 待估价：报价列表（R7 隔离）+ 维修师报价表单（技师，本单受控网点）
 - 待付款：支付入口（顾客）；价格明细（分 → /100）
 - 待发送：填物流（顾客）
 - 已发货/转入中：网点/中转网点收货（含拆箱拍照）
-- 维修中：师傅过程记录（**技师/员工可见输入表单**）+ 完成维修；重新报价（仅一次）
+- 维修中：维修师过程记录（**技师/员工可见输入表单**）+ 完成维修；重新报价（仅一次）
 - 待发回：员工填发回物流
 - 已发回：顾客确认收货 → 评价/申诉
 
@@ -2834,27 +2834,27 @@ const handleSyncUsersFromIAM = async () => {
 ### 3.25 维修服务页组（weapp + PC 后台）（#1942）
 
 > 完整流程见 `docs/cases/repair-service.md`（RS-01~RS-10）。页面组：
-> - 用户（weapp）：创建维修单（描述/照片，提交后展示 **6 位唯一编码** 并提示写物流单）| 选维修师（师傅档案列表）| 报价接受/支付（虚拟商品）| 寄出填单 | 加价响应（继续补差价/停止）| 评价（评分/留言/拍照）
-> - 师傅（weapp 工作台）：报价（修理费+物流费预估，受控模式预估 3 段）| 加价（新总价+到此为止修理费）| 完成修理
+> - 用户（weapp）：创建维修单（描述/照片，提交后展示 **6 位唯一编码** 并提示写物流单）| 选维修师（维修师列表）| 报价接受/支付（虚拟商品）| 寄出填单 | 加价响应（继续补差价/停止）| 评价（评分/留言/拍照）
+> - 维修师（weapp 工作台）：报价（修理费+物流费预估，受控模式预估 3 段）| 加价（新总价+到此为止修理费）| 完成修理
 > - 网点员工（weapp）：分段发运（实填本段物流费）| 待发回清单 | 发回（末段实填 → 触发结算）
 > - PC 后台：维修服务全量列表 + 评价（评分/留言/照片）展示
 >
 > **#2050 角色互斥（入口门控，强制）**：
-> - **顾客（`role` 为空或 `USER`）**：维修入口 → `/tech-list`（师傅列表/维修服务）；`/my-repairs` **仅渲染「维修服务」内容**（`?tab=service`，乐器报修 Tab 隐藏）；**不得**出现「内部报修/乐器报修」**创建**入口；但保留**只读**「历史报修」区（v3 legacy 存量/在途单，仅查看跟进，无创建）
-> - **员工（`role ≠ USER`）**：维修入口 → `/my-repairs`（内部报修/网点视角）；**不得**出现「维修服务（选师傅）」入口（直接访问 `/tech-list` → 重定向回 `/my-repairs`）
+> - **顾客（`role` 为空或 `USER`）**：维修入口 → `/tech-list`（维修师列表/维修服务）；`/my-repairs` **仅渲染「维修服务」内容**（`?tab=service`，乐器报修 Tab 隐藏）；**不得**出现「内部报修/乐器报修」**创建**入口；但保留**只读**「历史报修」区（v3 legacy 存量/在途单，仅查看跟进，无创建）
+> - **员工（`role ≠ USER`）**：维修入口 → `/my-repairs`（内部报修/网点视角）；**不得**出现「维修服务（选维修师）」入口（直接访问 `/tech-list` → 重定向回 `/my-repairs`）
 > - 底部导航「维修」Tab（`Home`/`MyLeases`/`Profile`/`StaffOrders`/`MyRepairs`，H5 + weapp 各自实现）均按上述分流；维修服务与内部报修**不互链**
 > - 判定统一走 `frontend-mobile/src/utils/role.js` 的 `isStaffRole()`（员工 = `oid`/`tid` 非空 **或** 员工角色非 `USER`/非 `GUEST`；顾客 = 其余。顾客组织方案已废弃，故 `oid/tid` 非空即员工；`/tech-list`、`/my-repairs` 等入口均以此为准）
 >
 > **#2051 首屏与下单路径**：
-> - **首屏 = 师傅列表**（`/tech-list`）：每项 = 照片（无 → 人像占位符「师」）+ 姓名 + 简介摘要（`bio`）+ 专长/年限（`experience` 前 2 条）；点项 → `/tech-detail?technician_id=…`
-> - 师傅详情「创建维修订单」→ `repair-service-create?technician_id=…`
-> - **创建页（`repair-service-create`）**：`technician_id` 存在 → **锁定卡**（照片 + `维修师：{name || '未选定'}` + 「已锁定，无需选择商户/网点」）；**缺失** → **师傅选择器**（同列表接口，选中即锁定）。提交无师傅 → `请选择维修师` 停留本页
+> - **首屏 = 维修师列表**（`/tech-list`）：每项 = 照片（无 → 人像占位符「师」）+ 姓名 + 简介摘要（`bio`）+ 专长/年限（`experience` 前 2 条）；点项 → `/tech-detail?technician_id=…`
+> - 维修师详情「创建维修订单」→ `repair-service-create?technician_id=…`
+> - **创建页（`repair-service-create`）**：`technician_id` 存在 → **锁定卡**（照片 + `维修师：{name || '未选定'}` + 「已锁定，无需选择商户/网点」）；**缺失** → **维修师选择器**（同列表接口，选中即锁定）。提交无维修师 → `请选择维修师` 停留本页
 > - 创建成功页主按钮 = 「查看维修单」（不再出现「下一步：选择维修师」绕路）
 >
-> **#2049 师傅档案（PC `System/TechnicianProfiles.jsx`）**：
+> **#2049 维修师档案（PC `System/TechnicianProfiles.jsx`）**：
 > - **照片**：本地选择后预览，保存时经 `POST /technician-profiles/:id/photo` 走媒体管线（原图 WebP + `_thumb.jpg`）；列表列用 `photo_thumb`（48px），无照片显示 `-`/占位符
 > - **简介 `bio`**：`react-quill` 富文本编辑器（HTML 存储）；移动端 `TechDetail` 用共享 `<RichContent html={bio} />` 渲染（#1907 红线，禁裸 `RichText`），`TechList` 列表摘要用 `htmlToPlainText(bio)`
-> - 师傅列表/详情：无照片 → 人像占位符「师」（列表优先 `avatar_thumb`，详情用 `avatar` 原图）
+> - 维修师列表/详情：无照片 → 人像占位符「师」（列表优先 `avatar_thumb`，详情用 `avatar` 原图）
 
 
 ---

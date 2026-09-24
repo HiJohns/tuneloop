@@ -428,7 +428,7 @@ export default function StaffInstrumentDetail() {
               )}
               {instrument.stock_status === 'maintenance' && has('order:update') && (
                 <Button onClick={() => env.isMiniProgram ? dialog.alert('维修功能请在 H5 端使用') : navigate(`/repair?instrument_id=${id}`)} className="flex-1 py-3 bg-purple-600 text-white rounded-2xl font-black flex items-center justify-center gap-2">
-                  <Wrench size={18} />报修
+                  <Wrench size={18} />送修
                 </Button>
               )}
               {(instrument.stock_status === 'returned' || instrument.stock_status === 'assessed') && has('order:update') && (

@@ -2717,7 +2717,7 @@ POST /api/warehouse/orders/:id/assess-damage
     "progress_updates": [
       {
         "status": "已接单",
-        "description": "师傅已确认接单",
+        "description": "维修师已确认接单",
         "updated_at": "2026-03-22T10:00:00Z"
       },
       {
@@ -2825,7 +2825,7 @@ POST /api/warehouse/orders/:id/assess-damage
 ```json
 {
   "status": "processing",
-  "notes": "已分配师傅"
+  "notes": "已分配维修师"
 }
 ```
 
@@ -2915,7 +2915,7 @@ POST /api/warehouse/orders/:id/assess-damage
 
 **接口**: `GET /api/repair/pending`
 
-**说明**: 返回当前租户下所有 `repair_status=repair_pending` 的乐器，供维修师傅浏览和接手。按 `updated_at DESC` 排序。
+**说明**: 返回当前租户下所有 `repair_status=repair_pending` 的乐器，供维修师浏览和接手。按 `updated_at DESC` 排序。
 
 **权限**: 需认证（员工/管理员）
 
@@ -2984,14 +2984,14 @@ POST /api/warehouse/orders/:id/assess-damage
 
 **说明**:
 - `records`: 该乐器所有维修记录，按 `created_at ASC` 排序
-- `worker_name`: 维修师傅展示名（#1873）——`worker_id` 存储的是 IAM sub，按 `users.iam_sub` 批量解析，名字回退链 `name → username → phone`；无匹配用户时为空字符串
+- `worker_name`: 维修师展示名（#1873）——`worker_id` 存储的是 IAM sub，按 `users.iam_sub` 批量解析，名字回退链 `name → username → phone`；无匹配用户时为空字符串
 - `damage`: 最近一条 `damage_report`（按 `created_at DESC` 取第一条），无定损时为 `null`
 - `damage.damage_amount`: 单位为分（int64），前端需除以 100 显示元
 - `damage.status`: 定损报告状态（`pending`/`completed`/`agreed`/`appealed`/`cancelled`/`resolved`）
 
 ---
 
-### 7.11 租赁乐器维修动作端点（员工/师傅）
+### 7.11 租赁乐器维修动作端点（员工/维修师）
 
 > 权限组：`repairRequired`（authRequired + `instrument:maintain`）。`#1882` 计划接入 `repair:start/complete/accept` 及站点/角色校验（目标契约见下）。
 
@@ -3010,7 +3010,7 @@ POST /api/warehouse/orders/:id/assess-damage
 #### 7.11.3 接手
 **接口**: `POST /api/repair/:id/takeover`
 **说明**: `repair_pending`/`repair_in_progress` 下，任意用户接管为负责人。
-**目标契约（#1882 R4）**: 仅同站点师傅可接手（操作员站点 ∩ 乐器 `current_site_id`）
+**目标契约（#1882 R4）**: 仅同站点维修师可接手（操作员站点 ∩ 乐器 `current_site_id`）
 **错误**: 40001 / 40400 / 40002 状态不符 / 50000
 
 #### 7.11.4 改派负责人
@@ -3094,7 +3094,7 @@ POST /api/warehouse/orders/:id/assess-damage
 
 ### 7.13 客户报修 v3 — 报价与接受
 
-#### 7.13.1 提交报价（师傅）
+#### 7.13.1 提交报价（维修师）
 **接口**: `POST /api/repair-requests/:id/quotes`
 **请求**（金额单位：**元**，落库转分）: `{"material_fee": 100, "service_fee": 50, "logistics_fee": 20, "duration": "3天", "comment": "..."}`
 **响应**: `data` = RepairQuote（`material_fee/service_fee/logistics_fee` 为**分**；`quote_no`；`is_renegotiation`；`status`）
@@ -3160,7 +3160,7 @@ POST /api/warehouse/orders/:id/assess-damage
 **目标契约（#1881）**: 仅该单站点（受控网点）成员/技师
 **错误**: 40400 / 40002 状态不符
 
-#### 7.14.7 重新报价（师傅，仅一次）
+#### 7.14.7 重新报价（维修师，仅一次）
 **接口**: `POST /api/repair-requests/:id/requote`
 **请求**（单位：**元**）: 同 §7.13.1
 **响应**: `data` = RepairQuote（`is_renegotiation=true`）
@@ -3191,9 +3191,9 @@ POST /api/warehouse/orders/:id/assess-damage
 
 ### 7.15 维修服务（#1942，type='service' 分支）
 
-> 维修从「已出租乐器的报修工单」重构为「可独立购买的服务商品」：用户选维修师、可咨询、不绑租赁乐器。与 v3 报修（§7.12-7.14）并存，入口区分「乐器报修」/「维修服务」。
+> 维修从「已出租乐器的报修工单」重构为「可独立购买的服务商品」：用户选维修师、可咨询、不绑租赁乐器。与 v3 报修（§7.12-7.14）并存，入口区分「报修单」（存量，创建已废弃 #2055）/「维修服务」（本分支）。
 
-#### 7.15.1 创建维修单（用户）
+#### 7.15.1 创建维修服务单（用户）
 **接口**: `POST /api/user/repair-services`
 **请求**: 描述 + 照片（≤6，走 /upload）——不填识别码
 **响应**: 返回 `repair_code`（6 位唯一编码，数字+大写字母，冲突重试）
@@ -3201,23 +3201,23 @@ POST /api/warehouse/orders/:id/assess-damage
 **目标契约（#1942）**: 用户本人
 **错误**: 40002 / 50000
 
-#### 7.15.2 维修单列表（我的）
+#### 7.15.2 维修服务单列表（我的）
 **接口**: `GET /api/user/repair-services`
-**说明**: 当前用户维修单列表
+**说明**: 当前用户维修服务单列表
 **目标契约（#1942）**: 用户本人
 
-#### 7.15.3 维修单详情
+#### 7.15.3 维修服务单详情
 **接口**: `GET /api/user/repair-services/:id`
-**说明**: 当前用户维修单详情
+**说明**: 当前用户维修服务单详情
 **目标契约（#1942）**: 用户本人
 
 #### 7.15.4 选择维修师（用户）
 **接口**: `POST /api/user/repair-services/:id/select-technician`
 **请求**: `{technician_id}`
-**说明**: 用户选择维修师（师傅基础档案：姓名/网点/专长）
+**说明**: 用户选择维修师（`technician_profiles` 基础档案：姓名/照片/简介/专长）
 **目标契约（#1942）**: 用户本人
 
-#### 7.15.5 师傅报价（师傅）
+#### 7.15.5 报价（维修师）
 **接口**: `POST /api/repair-services/:id/quote`
 **请求**: 修理费 + 物流费预估（`quote_repair_cents` / `quote_logistics_cents`）
 **说明**: 直连 1 段受管物流；受控组合 3 段受管物流
@@ -3240,10 +3240,10 @@ POST /api/warehouse/orders/:id/assess-damage
 **说明**: 每段发运经手员工实填本段物流费，落库 `repair_logistics_fees`；末段触发结算
 **目标契约（#1942）**: 经手网点/中转员工（repairReqRequired 组）
 
-#### 7.15.9 加价申请（师傅）
+#### 7.15.9 加价申请（维修师）
 **接口**: `POST /api/repair-services/:id/adjust`
 **请求**: 新修理费 + 到此为止修理费（二者同填）
-**说明**: 师傅发现与描述不符需加钱，提交加价申请，状态 `adjust_pending`
+**说明**: 维修师发现与描述不符需加钱，提交加价申请，状态 `adjust_pending`
 **目标契约（#1942）**: 该单维修师（repairReqRequired 组）
 
 #### 7.15.10 加价响应（用户）
@@ -3252,9 +3252,9 @@ POST /api/warehouse/orders/:id/assess-damage
 **说明**: 继续 → 立即补差价；不继续 → 乐器待发回
 **目标契约（#1942）**: 用户本人
 
-#### 7.15.11 完成修理（师傅）
+#### 7.15.11 完成修理（维修师）
 **接口**: `POST /api/repair-services/:id/done-repair`
-**说明**: 师傅点完成 → 乐器待发回，状态 `done_repair`
+**说明**: 维修师点完成 → 乐器待发回，状态 `done_repair`
 **目标契约（#1942）**: 该单维修师（repairReqRequired 组）
 
 #### 7.15.12 网点发回（员工）
@@ -3265,7 +3265,7 @@ POST /api/warehouse/orders/:id/assess-damage
 
 #### 7.15.13 待发回列表（网点）
 **接口**: `GET /api/repair-services/pending-dispatch`
-**说明**: 待发回维修单列表（repairReqRequired 组）
+**说明**: 待发回维修服务单列表（repairReqRequired 组）
 **目标契约（#1942）**: 网点员工
 
 #### 7.15.14 评价（用户）
@@ -4811,7 +4811,7 @@ POST /api/appeals/:id/agree
 
 ---
 
-### 9.12 分配师傅
+### 9.12 分配维修师
 
 **接口**: `PUT /api/merchant/maintenance/:id/assign`
 

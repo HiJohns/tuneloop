@@ -30,7 +30,7 @@ export default function RepairPaymentComplete() {
         <View className="w-full max-w-sm px-4" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <Button onClick={() => nav(`/repair-request?request_id=${state.requestId}`)}
             className="w-full py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
-            查看报修单
+            查看维修服务单
           </Button>
           <Button onClick={() => nav('/my-repairs')}
             className="w-full py-3 border border-zinc-300 rounded-xl font-bold text-sm text-zinc-600 text-center">

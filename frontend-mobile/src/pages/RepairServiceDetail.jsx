@@ -18,9 +18,9 @@ const svcStatusLabels = {
 }
 // RS-12：时间线类型 → 展示文案（与后端 appendRepairServiceTimeline 的 record_type 对应）
 const timelineLabels = {
-  created: '创建维修单', technician_selected: '选择维修师', quoted: '师傅报价',
+  created: '创建维修单', technician_selected: '选择维修师', quoted: '维修师报价',
   quote_accepted: '接受报价', paid: '支付成功', shipped: '乐器寄出',
-  adjust_requested: '师傅发起加价', adjust_accepted: '同意加价',
+  adjust_requested: '维修师发起加价', adjust_accepted: '同意加价',
   adjust_paid: '补差价到账', adjust_declined: '拒绝加价', leg_fee: '分段物流费登记',
   repair_completed: '完成修理', settled: '发回结算', reviewed: '提交评价',
   shortfall_paid: '补缴到账',
@@ -425,7 +425,7 @@ export default function RepairServiceDetail() {
         {/* RS-03 接受报价并支付 */}
         {rr.status === 'pending_payment' && (
           <View style={cardStyle}>
-            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>师傅报价</Text>
+            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>维修师报价</Text>
             <View style={{ display: 'flex', justifyContent: 'space-between' }}>
               <Text style={labelStyle}>修理费</Text>
               <Text style={{ fontSize: 12, color: '#18181B' }}>{yuan(rr.quote_repair_cents)}</Text>
@@ -472,7 +472,7 @@ export default function RepairServiceDetail() {
         {/* RS-06 加价响应 */}
         {rr.status === 'adjust_pending' && (
           <View style={cardStyle}>
-            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>师傅发起加价</Text>
+            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>维修师发起加价</Text>
             <View style={{ display: 'flex', justifyContent: 'space-between' }}>
               <Text style={labelStyle}>新修理费总价</Text>
               <Text style={{ fontSize: 12, color: '#18181B' }}>{yuan(rr.adjusted_quote_cents)}</Text>

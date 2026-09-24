@@ -22,9 +22,9 @@ const statusColors = {
 // #1952 阶段4：维修服务（type='service'）状态（RS-API 契约）
 // RS-API-4：时间线类型 → 展示文案（与后端 record_type 对应）
 const svcTimelineLabels = {
-  created: '创建维修单', technician_selected: '选择维修师', quoted: '师傅报价',
+  created: '创建维修单', technician_selected: '选择维修师', quoted: '维修师报价',
   quote_accepted: '接受报价', paid: '支付成功', shipped: '乐器寄出',
-  adjust_requested: '师傅发起加价', adjust_accepted: '同意加价',
+  adjust_requested: '维修师发起加价', adjust_accepted: '同意加价',
   adjust_paid: '补差价到账', adjust_declined: '拒绝加价', leg_fee: '分段物流费登记',
   repair_completed: '完成修理', settled: '发回结算', reviewed: '提交评价',
   shortfall_paid: '补缴到账',
