@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -22,6 +24,29 @@ import (
 // 管理端 CRUD（PC）+ 顾客侧列表/详情（RS-API-1/8）+ 活跃会话计数（RS-API-9）。
 
 type TechnicianProfileHandler struct{}
+
+// writeTechProfileAudit #2059: 档案变更审计留痕。
+// fire-and-forget：写入失败仅记日志，**不阻断业务主流程**（对齐 face_review/smtp_config 既有容错口径）。
+func writeTechProfileAudit(ctx context.Context, db *gorm.DB, action, resourceID string, details map[string]interface{}) {
+	b, err := json.Marshal(details)
+	if err != nil {
+		log.Printf("[TechnicianProfile] audit details marshal failed action=%s: %v", action, err)
+		return
+	}
+	d := string(b) // audit_logs.details 为 jsonb，必须写入合法 JSON 文本
+	if err := db.Create(&models.AuditLog{
+		ID:           uuid.New().String(),
+		TenantID:     middleware.GetTenantID(ctx),
+		UserID:       middleware.GetUserID(ctx),
+		Action:       action,
+		ResourceType: "technician_profile",
+		ResourceID:   resourceID,
+		Details:      &d,
+		CreatedAt:    time.Now(),
+	}).Error; err != nil {
+		log.Printf("[TechnicianProfile] audit log write failed action=%s resource=%s: %v", action, resourceID, err)
+	}
+}
 
 func NewTechnicianProfileHandler() *TechnicianProfileHandler { return &TechnicianProfileHandler{} }
 
@@ -141,6 +166,7 @@ func (h *TechnicianProfileHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create technician profile"})
 		return
 	}
+	writeTechProfileAudit(ctx, db, "create_technician_profile", p.ID, map[string]interface{}{"event": "create", "name": u.Name})
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": p.ID}})
 }
 
@@ -177,6 +203,17 @@ func (h *TechnicianProfileHandler) Update(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update technician profile"})
 		return
 	}
+	changed := make([]string, 0, 3)
+	if body.Photo != nil {
+		changed = append(changed, "photo")
+	}
+	if body.Bio != nil {
+		changed = append(changed, "bio")
+	}
+	if body.Experience != nil {
+		changed = append(changed, "experience")
+	}
+	writeTechProfileAudit(ctx, db, "update_technician_profile", p.ID, map[string]interface{}{"event": "update", "changed": changed})
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "updated"})
 }
 
@@ -202,6 +239,7 @@ func (h *TechnicianProfileHandler) SetStatus(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update status"})
 		return
 	}
+	writeTechProfileAudit(ctx, db, "set_technician_profile_status", p.ID, map[string]interface{}{"event": "set_status", "status": body.Status})
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": p.ID, "status": body.Status}})
 }
 
@@ -269,6 +307,7 @@ func (h *TechnicianProfileHandler) UploadPhoto(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to save photo"})
 		return
 	}
+	writeTechProfileAudit(ctx, db, "upload_technician_profile_photo", p.ID, map[string]interface{}{"event": "upload_photo", "photo": displayKey})
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
 		"photo": photoURL,
 		"thumb": "/uploads/media/" + thumbKey,

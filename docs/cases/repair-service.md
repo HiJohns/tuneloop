@@ -256,3 +256,4 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 报修，并存
   - `user_id`（维修师，FK users）/ `tenant_id`（直属商户）/ `photo`（个人照片 URL）/ `bio`（详细介绍 text）/ `experience` jsonb（`[{craft, years}]` 专长与年限）/ `status`（active/inactive）/ `created_at/updated_at`
 - **物流段执行方不变**：受控/中转模式下的分段发运仍由**网点/中转员工**执行（维修师不离开商户，但其不承担网点职能）
 - **入口**：维修师列表（RS-02）仅列 `status='active'` 的档案；管理员在 PC 维护维修师档案（新增/编辑/停用）→ 实现 Issue
+- **审计留痕（#2059）**：档案的 4 个变更端点（新增 / 编辑 / 停用启用 / 上传照片）均写 `audit_logs`（`resource_type=technician_profile`；`action` = `create_technician_profile` / `update_technician_profile` / `set_technician_profile_status` / `upload_technician_profile_photo`）；只读端点（列表/详情/活跃计数）不记；审计写入失败仅记日志、**不阻断业务**（`details` 为 jsonb，须合法 JSON）
