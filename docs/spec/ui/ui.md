@@ -2845,6 +2845,12 @@ const handleSyncUsersFromIAM = async () => {
 > - **员工（`role ≠ USER`）**：维修入口 → `/my-repairs`（内部报修/网点视角）；**不得**出现「维修服务（选师傅）」入口（直接访问 `/tech-list` → 重定向回 `/my-repairs`）
 > - 底部导航「维修」Tab（`Home`/`MyLeases`/`Profile`/`StaffOrders`/`MyRepairs`，H5 + weapp 各自实现）均按上述分流；维修服务与内部报修**不互链**
 > - 判定统一走 `frontend-mobile/src/utils/role.js` 的 `isStaffRole()`（`role===''||'USER'` → 顾客，对齐后端 `middleware.GetBusinessRole`；**oid/tid 不参与判定**，见 #1700）
+>
+> **#2051 首屏与下单路径**：
+> - **首屏 = 师傅列表**（`/tech-list`）：每项 = 照片（无 → 人像占位符「师」）+ 姓名 + 简介摘要（`bio`）+ 专长/年限（`experience` 前 2 条）；点项 → `/tech-detail?technician_id=…`
+> - 师傅详情「创建维修订单」→ `repair-service-create?technician_id=…`
+> - **创建页（`repair-service-create`）**：`technician_id` 存在 → **锁定卡**（照片 + `维修师：{name || '未选定'}` + 「已锁定，无需选择商户/网点」）；**缺失** → **师傅选择器**（同列表接口，选中即锁定）。提交无师傅 → `请选择维修师` 停留本页
+> - 创建成功页主按钮 = 「查看维修单」（不再出现「下一步：选择维修师」绕路）
 
 
 ---

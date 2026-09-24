@@ -24,21 +24,35 @@ export default function RepairServiceCreate() {
   const [submitting, setSubmitting] = useState(false)
   const [created, setCreated] = useState(null) // {id, repair_code}
   // #1977 T3：创建页**师傅锁定**（从师傅详情页带入 technician_id）——双源读取
-  const technicianId = (() => {
+  const paramTechnicianId = (() => {
     if (env.isMiniProgram) {
       const p2 = Taro.getCurrentInstance()?.router?.params || {}
       return p2.technician_id || ''
     }
     return new URLSearchParams(window.location.search).get('technician_id') || ''
   })()
+  // #2051 Step 2：有 technician_id → 锁定卡；无 → 师傅选择器（选中后视为已锁定，不再退回死路）
+  const [selectedId, setSelectedId] = useState(paramTechnicianId)
   const [tech, setTech] = useState(null)
+  const [techList, setTechList] = useState([])
+  const [techLoading, setTechLoading] = useState(false)
   useEffect(() => {
-    if (!technicianId) return
-    apiFetch(`${env.apiBaseUrl}/common/repair-technicians/${technicianId}`)
+    if (!selectedId) { setTech(null); return }
+    apiFetch(`${env.apiBaseUrl}/common/repair-technicians/${selectedId}`)
       .then(r => r.json())
       .then(r => { if (r.code === 20000) setTech(r.data || {}) })
       .catch(() => {})
-  }, [technicianId])
+  }, [selectedId])
+  // 无参数进入 → 拉取师傅列表供选择（复用 /common/repair-technicians）
+  useEffect(() => {
+    if (paramTechnicianId) return
+    setTechLoading(true)
+    apiFetch(`${env.apiBaseUrl}/common/repair-technicians`)
+      .then(r => r.json())
+      .then(r => { if (r.code === 20000) setTechList(r.data?.list || []) })
+      .catch(() => {})
+      .finally(() => setTechLoading(false))
+  }, [paramTechnicianId])
   const baseUrl = env.apiBaseUrl
 
   const goBack = () => nav(-1)
@@ -76,7 +90,7 @@ export default function RepairServiceCreate() {
   }
 
   const submit = async () => {
-    if (!technicianId) { dialog.alert('请先选择维修师'); nav('/my-repairs'); return }
+    if (!selectedId) { dialog.alert('请选择维修师'); return }
     if (!description.trim()) { dialog.alert('请填写问题描述'); return }
     if (photos.length === 0) { dialog.alert('请至少上传一张照片'); return }
     setSubmitting(true)
@@ -86,7 +100,7 @@ export default function RepairServiceCreate() {
       const resp = await apiFetch(`${baseUrl}/user/repair-services`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: description.trim(), photos: keys, technician_id: technicianId }),
+        body: JSON.stringify({ description: description.trim(), photos: keys, technician_id: selectedId }),
       })
       const result = await resp.json()
       if (result.code === 20000) {
@@ -121,7 +135,7 @@ export default function RepairServiceCreate() {
           </View>
           <Button onClick={() => nav(`/repair-service-detail?order_id=${created.id}`)}
             style={{ width: '100%', margin: 0, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#171717', color: '#FFFFFF', borderRadius: 10, fontSize: 15, fontWeight: 'bold' }}>
-            下一步：选择维修师
+            查看维修单
           </Button>
           <Button onClick={() => nav('/my-repairs')}
             style={{ width: '100%', margin: 0, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F4F4F5', color: '#3F3F46', borderRadius: 10, fontSize: 13, fontWeight: 'bold' }}>
@@ -140,20 +154,43 @@ export default function RepairServiceCreate() {
       </View>
 
       <View style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {/* #1977 T3：师傅锁定（只读；无需再选商户/网点） */}
-        <View style={{ display: 'flex', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12 }}>
-          {tech?.avatar ? (
-            <Image src={tech.avatar} mode="aspectFill" style={{ width: 44, height: 44, borderRadius: 22 }} />
-          ) : (
-            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#F4F4F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 16, color: '#A1A1AA' }}>师</Text>
+        {/* #1977 T3 / #2051：有 technician_id → 锁定卡（只读）；无 → 师傅选择器 */}
+        {selectedId ? (
+          <View style={{ display: 'flex', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12 }}>
+            {tech?.avatar ? (
+              <Image src={tech.avatar} mode="aspectFill" style={{ width: 44, height: 44, borderRadius: 22 }} />
+            ) : (
+              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#F4F4F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 16, color: '#A1A1AA' }}>师</Text>
+              </View>
+            )}
+            <View style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>维修师：{tech?.name || '未选定'}</Text>
+              <Text style={{ fontSize: 11, color: '#71717A' }}>已锁定，无需选择商户/网点</Text>
             </View>
-          )}
-          <View style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>维修师：{tech?.name || '已锁定'}</Text>
-            <Text style={{ fontSize: 11, color: '#71717A' }}>已锁定，无需选择商户/网点</Text>
           </View>
-        </View>
+        ) : (
+          <View style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>选择维修师 *</Text>
+            {techLoading ? (
+              <Text style={{ fontSize: 12, color: '#A1A1AA' }}>加载中...</Text>
+            ) : techList.length === 0 ? (
+              <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无维修师</Text>
+            ) : techList.map(t => (
+              <View key={t.technician_id} onClick={() => setSelectedId(t.technician_id)}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px solid #F4F4F5', borderRadius: 10, padding: 10 }}>
+                {t.avatar ? (
+                  <Image src={t.avatar} mode="aspectFill" style={{ width: 40, height: 40, borderRadius: 20 }} />
+                ) : (
+                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4F4F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ fontSize: 15, color: '#A1A1AA' }}>师</Text>
+                  </View>
+                )}
+                <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#18181B' }}>{t.name || '维修师'}</Text>
+              </View>
+            ))}
+          </View>
+        )}
         <View style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>问题描述 *</Text>
           <Textarea style={{ width: '100%', boxSizing: 'border-box', minHeight: 100, backgroundColor: '#FFFFFF', border: '1px solid #E4E4E7', borderRadius: 10, padding: 10, fontSize: 13 }}
