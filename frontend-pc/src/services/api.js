@@ -429,6 +429,11 @@ export const iamApi = {
   syncUsers: () => api.post('/iam/users/sync'),
 }
 
+// #2065 人员管理三视图（角色感知：merchant/site/system）
+export const personnelApi = {
+  list: (params) => api.get('/admin/personnel', { params }),
+}
+
 export const staffApi = {
   list: (params) => api.get('/staff', { params }),
   getMe: () => api.get('/users/me'),

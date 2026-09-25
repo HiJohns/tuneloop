@@ -2382,6 +2382,18 @@ const handleSyncUsersFromIAM = async () => {
 - 权限 Checkbox：按域分组
 - 权限列表自动过滤为当前管理员持有的权限子集
 
+#### 人员管理三视图（#2065）
+
+**组件**: `frontend-pc/src/pages/StaffManagement.jsx`（数据源 `GET /admin/personnel`）
+
+| businessRole | 列表范围 | 列 |
+|---|---|---|
+| merchant_admin | 本商户全员（含维修师傅） | 姓名/邮箱/手机号/**所属网点**/职位/状态/操作 |
+| site_admin / site_member | 仅本网点成员（不含师傅） | 同上但**隐藏「所属网点」列**（既有 `isSiteLevel` 按 `site_name` 键过滤） |
+| system_admin | 平台员工 + 中转网点成员 | 同商户管理员；平台员工显示「平台」、中转网点成员显示网点名 |
+
+职位列取 `position`（缺失时回退 role 映射；师傅显示「维修师傅」）。
+
 #### 网点管理员角色分配
 
 **组件**: `frontend-pc/src/components/SiteMemberManagement.jsx`

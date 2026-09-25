@@ -5729,6 +5729,26 @@ GET /api/admin/dashboard/near-transfers
 
 ### 10.18 人员管理
 
+#### 10.18.0 人员列表（三视图，角色感知，#2065）
+
+**接口**: `GET /api/admin/personnel`
+
+**权限**: `sys_perm bit 16 (user:list)`（路由守卫）+ 业务角色分流：
+
+| businessRole | 可见范围 |
+|---|---|
+| merchant_admin | 本商户全员 = 各网点成员 ∪ **维修师傅**（直属商户，不挂网点；site_name=「直属商户」、position=「维修师傅」） |
+| site_admin | **仅本网点成员**（`site_members.site_id = JWT oid`，不含维修师傅） |
+| system_admin | **平台员工**（根组织 users，role∈staff/namespace_admin/sys_admin）∪ **中转网点成员**（`sites.type='transit'`）；平台员工无网点归属时 site_name=「平台」 |
+| 其他（customer 等） | `40303` |
+
+**Query**: `page`（默认 1）、`page_size`（默认 20，≤100）、`search`（name/phone/email ILIKE）
+
+**响应行**: `{id, user_id, name, phone, email, position, role, status, iam_sub, site_id, site_name, is_technician}`
+（一行一人；多网点归属时 `site_name` 逗号聚合；`id`/`user_id` 同值，兼容既有行操作）
+
+**隔离**: 商户/网点视图均有 tenant/org WHERE 强制（#688 纪律）；跨商户/跨网点不可见。
+
 #### 10.18.1 创建用户
 
 **接口**: `POST /api/users`

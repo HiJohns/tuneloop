@@ -117,6 +117,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	faceCaptureHandler := &handlers.FaceCaptureHandler{}
 	faceReviewHandler := &handlers.FaceReviewHandler{}
 	platformStaffHandler := &handlers.PlatformStaffHandler{}
+	personnelHandler := handlers.NewPersonnelHandler() // #2065
 	userSettlementHandler := handlers.NewUserSettlementHandler()
 	userPointsHandler := handlers.NewUserPointsHandler()
 	guarantorHandler := handlers.NewGuarantorHandler(nil) // nil → use env TENCENTCLOUD config
@@ -381,6 +382,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		// #1810: 详情对话框人脸模块按用户查批次（含历史驳回/通过）。
 		authRequired.GET("/admin/face-review/user/:userId", middleware.RequireSysPerm(middleware.SysPermUserUpdate), faceReviewHandler.UserBatches)
 		// #1795 T6: 平台员工管理（user 类 sys_perm，非 TenantCreate 类）
+		authRequired.GET("/admin/personnel", middleware.RequireSysPerm(middleware.SysPermUserList), personnelHandler.List) // #2065 人员管理三视图
 		authRequired.GET("/admin/platform-staff", middleware.RequireSysPerm(middleware.SysPermUserList), platformStaffHandler.List)
 		authRequired.POST("/admin/platform-staff", middleware.RequireSysPerm(middleware.SysPermUserCreate), platformStaffHandler.Create)
 		authRequired.DELETE("/admin/platform-staff/:id", middleware.RequireSysPerm(middleware.SysPermUserUpdate), platformStaffHandler.Disable)

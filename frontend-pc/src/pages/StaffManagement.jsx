@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, Table, Button, Modal, Form, Input, Select, message, Spin, Space, Popconfirm, Tag, Alert, Tabs, Radio, Checkbox } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined, SendOutlined, MailOutlined, ReloadOutlined } from '@ant-design/icons'
-import { staffApi, sitesApi } from '../services/api'
+import { staffApi, sitesApi, personnelApi } from '../services/api'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 const { Option } = Select
@@ -66,6 +66,8 @@ export default function StaffManagement() {
     fetchStaffList()
   }, [pagination.current, pagination.pageSize, searchParams])
 
+  // #2065: 人员管理三视图——数据源按角色感知（merchant/site/system）；
+  // 列裁剪沿用文件既有 isSiteLevel 逻辑（按 site_name 键过滤，覆盖 site_member）
   const fetchStaffList = async () => {
     setLoading(true)
     try {
@@ -74,7 +76,7 @@ export default function StaffManagement() {
         page_size: pagination.pageSize,
         ...searchParams
       }
-      const result = await staffApi.list(params)
+      const result = await personnelApi.list(params)
       if (result.code === 20000) {
         const list = result.data?.list || []
         setStaffList(list)
@@ -312,20 +314,21 @@ export default function StaffManagement() {
       width: 120
     },
     {
-      title: '归属网点',
+      title: '所属网点',
       dataIndex: 'site_name',
       key: 'site_name',
       width: 150,
       render: (siteName) => siteName || '-'
     },
     {
-      title: '角色',
-      dataIndex: 'role',
-      key: 'role',
-      width: 100,
-      render: (role) => {
-        const roleMap = { 'site_admin': '管理员', 'site_member': '成员', 'repair_technician': '维修师傅' }
-        return roleMap[role] || role || '-'
+      title: '职位',
+      dataIndex: 'position',
+      key: 'position',
+      width: 120,
+      render: (position, record) => {
+        if (position) return position
+        const roleMap = { 'site_admin': '管理员', 'site_member': '成员', 'STAFF': '成员', 'repair_technician': '维修师傅', 'WORKER': '员工' }
+        return record.is_technician ? '维修师傅' : (roleMap[record.role] || record.role || '-')
       }
     },
     {
