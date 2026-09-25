@@ -5769,6 +5769,8 @@ GET /api/admin/dashboard/near-transfers
 **响应行**: `{id, user_id, name, phone, email, position, role, status, iam_sub, site_id, site_name, is_technician, bio, avatar}`（#2073 增 `bio`/`avatar`）
 （一行一人；多网点归属时 `site_name` 逗号聚合；`id`/`user_id` 同值，兼容既有行操作）
 
+**排序**（#2072）：按 `users.created_at DESC`（**新建用户置顶**；此前无 ORDER BY，行序不稳定致新建用户不在当前页）。
+
 **隔离**: 商户/网点视图均有 tenant/org WHERE 强制（#688 纪律）；跨商户/跨网点不可见。
 
 #### 10.18.1 创建用户

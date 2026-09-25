@@ -137,6 +137,14 @@ export default function StaffManagement() {
     })
   }
 
+  // #2072: 创建表单状态全量重置（表单字段 + 类型 + 照片预览）；四出口统一调用
+  const resetCreateState = () => {
+    createUserForm.resetFields()
+    setUserType('site_staff')
+    setCreatePhotoFile(null)
+    setCreatePhotoUrl('')
+  }
+
   const handleCreateUser = async (values) => {
     try {
       const checkResult = await staffApi.checkUserExists(values.phone, values.email, values.username)
@@ -162,8 +170,8 @@ export default function StaffManagement() {
               </div>
             ),
           })
+          resetCreateState() // #2072
           setViewMode('list')
-          createUserForm.resetFields()
         } else {
           message.error(invite.message || '发送邀请失败')
         }
@@ -213,10 +221,8 @@ export default function StaffManagement() {
             message.warning('照片上传失败，可在后续编辑中重试')
           }
         }
-        setCreatePhotoFile(null)
-        setCreatePhotoUrl('')
+        resetCreateState() // #2072
         setViewMode('list')
-        createUserForm.resetFields()
         fetchStaffList()
       } else if (result.code === 40900) {
         const users = result.data || []
@@ -446,7 +452,7 @@ export default function StaffManagement() {
             <Button 
               type="primary" 
               icon={<PlusOutlined />}
-              onClick={() => setViewMode('create')}
+              onClick={() => { resetCreateState(); setViewMode('create') }} // #2072: 进入即重置
             >
               创建用户
             </Button>
@@ -454,12 +460,13 @@ export default function StaffManagement() {
         }
       >
         <Form
+          name="staff-search" /* #2072: 命名空间化字段 id，避免与创建表单同名 id 致浏览器自动填充 */
           layout="inline"
           className="mb-4"
           onFinish={handleSearch}
         >
           <Form.Item name="name">
-            <Input placeholder="搜索姓名" prefix={<SearchOutlined />} />
+            <Input placeholder="搜索姓名" prefix={<SearchOutlined />} autoComplete="off" />
           </Form.Item>
           <Form.Item name="siteId">
             <Select 
@@ -540,7 +547,7 @@ export default function StaffManagement() {
       <Card 
         title="创建用户" 
         extra={
-          <Button onClick={() => { setViewMode('list'); createUserForm.resetFields() }}>
+          <Button onClick={() => { resetCreateState(); setViewMode('list') }}>
             返回列表
           </Button>
         }
@@ -549,6 +556,7 @@ export default function StaffManagement() {
       >
         {/* #2068: 去「搜索用户」Tab（死 Tab：state 从未写入）；直接展示创建表单 */}
         <Form
+          name="staff-create" /* #2072: 命名空间化字段 id */
           form={createUserForm}
           layout="vertical"
           onFinish={handleCreateUser}
@@ -633,7 +641,7 @@ export default function StaffManagement() {
           </Form.Item>
           <Space>
             <Button type="primary" htmlType="submit">创建用户</Button>
-            <Button onClick={() => { setViewMode('list'); createUserForm.resetFields() }}>取消</Button>
+            <Button onClick={() => { resetCreateState(); setViewMode('list') }}>取消</Button>
           </Space>
         </Form>
 

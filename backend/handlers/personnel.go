@@ -172,6 +172,8 @@ func personnelMerchantView(db *gorm.DB, tid, keyword, siteFilter string, directO
 		like := "%" + keyword + "%"
 		q = q.Where("name ILIKE ? OR phone ILIKE ? OR email ILIKE ?", like, like, like)
 	}
+	// #2072: 新建置顶（此前无 ORDER BY，行序不稳定致新建用户不在当前页）
+	q = q.Order("created_at DESC")
 	if err := q.Find(&users).Error; err != nil {
 		return nil
 	}
@@ -200,6 +202,8 @@ func personnelSiteView(db *gorm.DB, siteID, keyword string) []personnelRow {
 		like := "%" + keyword + "%"
 		q = q.Where("name ILIKE ? OR phone ILIKE ? OR email ILIKE ?", like, like, like)
 	}
+	// #2072: 新建置顶
+	q = q.Order("created_at DESC")
 	if err := q.Find(&users).Error; err != nil {
 		return nil
 	}
@@ -220,6 +224,7 @@ func personnelSystemView(db *gorm.DB, rootOrgID, keyword string) []personnelRow 
 		like := "%" + keyword + "%"
 		q = q.Where("name ILIKE ? OR phone ILIKE ? OR email ILIKE ?", like, like, like)
 	}
+	q = q.Order("created_at DESC") // #2072: 新建置顶
 	if err := q.Find(&staff).Error; err != nil {
 		return nil
 	}
@@ -250,6 +255,7 @@ func personnelSystemView(db *gorm.DB, rootOrgID, keyword string) []personnelRow 
 			like := "%" + keyword + "%"
 			mq = mq.Where("name ILIKE ? OR phone ILIKE ? OR email ILIKE ?", like, like, like)
 		}
+		mq = mq.Order("created_at DESC") // #2072: 新建置顶
 		if err := mq.Find(&members).Error; err != nil {
 			return nil
 		}

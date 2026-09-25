@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"testing"
 
+	"tuneloop-backend/database"
 	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/models"
 	"tuneloop-backend/testutil"
@@ -259,4 +260,23 @@ func TestPersonnel2067_MembershipAnchorAndDirect(t *testing.T) {
 	assert.Contains(t, m3, "直属员工", "direct 优先：同时带 site_id 不得返回空集")
 	assert.Contains(t, m3, "维修张师傅")
 	assert.NotContains(t, m3, "网点A成员")
+}
+
+// #2072 回归：列表按 created_at DESC（新建用户置顶）
+func TestPersonnel2072_NewestFirst(t *testing.T) {
+	r, f := setupPersonnel2065(t)
+	db := database.GetDB()
+	newID := uuid.New().String()
+	require.NoError(t, db.Create(&models.User{
+		ID: newID, IAMSub: newID, TenantID: f.tid, OrgID: f.tid,
+		Username: "new-" + newID[:8], Name: "最新成员", Status: "active",
+	}).Error)
+	require.NoError(t, db.Create(&models.SiteMember{
+		TenantID: f.tid, SiteID: f.siteA, UserID: newID, Role: "STAFF", Status: "active",
+	}).Error)
+
+	code, rows := personnelList2065Q(t, r, "actor=merchant")
+	require.Equal(t, http.StatusOK, code)
+	require.NotEmpty(t, rows)
+	assert.Equal(t, "最新成员", rows[0]["name"], "新建用户须排首位")
 }
