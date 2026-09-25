@@ -279,10 +279,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/confirmation-sessions/:id/confirm", confirmationHandler.Confirm)
 		authRequired.POST("/confirmation-sessions/:id/reject", confirmationHandler.Reject)
 
-		// File upload — requires authentication (#1681: OptionalIAMInterceptor
-		// now passes anonymous requests through; upload must stay protected)
-		authRequired.POST("/upload", handlers.HandleUpload)
-
 		// SMS callback (no auth required)
 		api.GET("/confirmation/callback/sms", confirmationHandler.SMSCallback)
 
@@ -691,6 +687,11 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			userOptionalAuth.Use(middleware.NoCache())
 			userOptionalAuth.Use(middleware.AuditLogger(auditWriter))
 			{
+				// #2075: /upload 移至顾客可达组——原在 authRequired，顾客上下文（D1，tid="")
+				// 的 JWT 会被 40104 拒绝，导致维修服务单/归还等顾客照片上传永远失败。
+				// 匿名防护不变：HandleUpload 内显式校验 GetUserID（Optional 拦截器对无 token
+				// 请求不注入 claims）。
+				userOptionalAuth.POST("/upload", handlers.HandleUpload)
 				userOptionalAuth.POST("/user/orders", userRentalHandler.CreateOrder)
 				// #2031 A: 本人自助获得顾客身份（禁止管理员代挂；无组织创建）
 				userOptionalAuth.POST("/user/register-as-customer", handlers.RegisterAsCustomer)

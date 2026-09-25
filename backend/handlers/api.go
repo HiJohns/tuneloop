@@ -1037,6 +1037,12 @@ func GetSites(c *gin.Context) {
 }
 
 func HandleUpload(c *gin.Context) {
+	// #2075: 路由在 userOptionalAuth 组（顾客上下文 tid="" 也可上传）；
+	// 匿名请求（Optional 拦截器不注入 claims → GetUserID 为空）仍拒绝 —— #1681 保护不变
+	if middleware.GetUserID(c.Request.Context()) == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "请先登录后再上传文件"})
+		return
+	}
 	c.Request.ParseMultipartForm(100 << 20)
 	file, err := c.FormFile("file")
 	if err != nil {

@@ -155,3 +155,14 @@ func TestPersonnel2073_ReturnsBioAndAvatar(t *testing.T) {
 		break
 	}
 }
+
+// #2075 回归：/upload 移至 userOptionalAuth 后，匿名请求仍须 401（#1681 保护不变）
+func TestUpload2075_AnonymousRejected(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.POST("/upload", HandleUpload) // 无任何鉴权中间件（模拟 Optional 放行匿名）
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/upload", nil)
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusUnauthorized, w.Code, "匿名上传必须 401")
+}
