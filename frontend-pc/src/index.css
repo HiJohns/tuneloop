@@ -61,3 +61,8 @@
 .ant-modal-body::-webkit-scrollbar-thumb:active {
   background-color: rgba(0, 0, 0, 0.4);
 }
+
+/* #2070: ReactQuill 默认编辑区过矮（仅一行）——统一最小高度（创建师徒表单 + 维修师档案页同根修复） */
+.ql-editor {
+  min-height: 140px;
+}

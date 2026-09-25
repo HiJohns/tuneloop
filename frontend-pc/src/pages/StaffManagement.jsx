@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Card, Table, Button, Modal, Form, Input, Select, message, Spin, Space, Popconfirm, Tag, Alert, Radio, Checkbox } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined, SendOutlined, MailOutlined, ReloadOutlined } from '@ant-design/icons'
 import ReactQuill from 'react-quill'
+import PhotoUploader from '../components/PhotoUploader'
 import 'react-quill/dist/quill.snow.css'
 import { staffApi, sitesApi, personnelApi, technicianApi } from '../services/api'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -17,7 +18,8 @@ export default function StaffManagement() {
   const [siteTree, setSiteTree] = useState([])
   const [viewMode, setViewMode] = useState('list') // 'list' | 'create'
   const [userType, setUserType] = useState('site_staff') // #2068: 用户类型
-  const [technicianPhoto, setTechnicianPhoto] = useState(null) // #2068: 师傅照片（创建后上传）
+  const [technicianPhotoFile, setTechnicianPhotoFile] = useState(null) // #2070: 师傅照片文件（创建后上传）
+  const [technicianPhotoUrl, setTechnicianPhotoUrl] = useState('') // #2070: 本地预览 URL（选择即预览）
   const [createUserForm] = Form.useForm()
   const [autoGenerate, setAutoGenerate] = useState(true)
   const [lockedSiteId, setLockedSiteId] = useState(null)
@@ -202,16 +204,17 @@ export default function StaffManagement() {
           message.success('创建用户成功')
         }
         // #2068: 维修师傅照片（创建后经媒体管线上传；失败可事后在档案页补传）
-        if (values.user_type === 'repair_technician' && result.data?.technician_profile_id && technicianPhoto) {
+        if (values.user_type === 'repair_technician' && result.data?.technician_profile_id && technicianPhotoFile) {
           try {
             const fd = new FormData()
-            fd.append('file', technicianPhoto)
+            fd.append('file', technicianPhotoFile)
             await technicianApi.uploadPhoto(result.data.technician_profile_id, fd)
           } catch (e) {
             message.warning('照片上传失败，可在「维修师档案」页补传')
           }
         }
-        setTechnicianPhoto(null)
+        setTechnicianPhotoFile(null)
+        setTechnicianPhotoUrl('')
         setViewMode('list')
         createUserForm.resetFields()
         fetchStaffList()
@@ -614,17 +617,15 @@ export default function StaffManagement() {
           {/* 维修师傅：富文本简介 + 照片（创建后经媒体管线上传） */}
           {userType === 'repair_technician' && (
             <>
-              <Form.Item name="position" label="职位">
-                <Input placeholder="如：钢琴维修 / 小提琴维修" />
-              </Form.Item>
+              {/* #2070: 去掉「职位」（师傅职位即「维修师傅」，后端 assemblePersonnel 自动回退） */}
               <Form.Item name="bio" label="简介（富文本）">
                 <ReactQuill theme="snow" placeholder="专长与年限，如「钢琴维修 12 年 · 小提琴维修 8 年」" style={{ background: '#fff' }} />
               </Form.Item>
               <Form.Item label="个人照片">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={e => setTechnicianPhoto(e.target.files?.[0] || null)}
+                {/* #2070: 复用共享照片控件（选择即预览） */}
+                <PhotoUploader
+                  photoUrl={technicianPhotoUrl}
+                  onSelect={(f) => { setTechnicianPhotoFile(f); setTechnicianPhotoUrl(URL.createObjectURL(f)) }}
                 />
                 <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
                   照片将在创建成功后上传（原图+缩略图）；也可稍后在「维修师档案」页补传。

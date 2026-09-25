@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Card, Table, Tag, Button, Space, Modal, Form, Input, InputNumber, Select, Upload, Image, message, Popconfirm } from 'antd'
-import { PlusOutlined, EditOutlined, UploadOutlined } from '@ant-design/icons'
+import { Card, Table, Tag, Button, Space, Modal, Form, Input, InputNumber, Select, Image, message, Popconfirm } from 'antd'
+import { PlusOutlined, EditOutlined } from '@ant-design/icons'
 import ReactQuill from 'react-quill'
+import PhotoUploader from '../../components/PhotoUploader'
 import 'react-quill/dist/quill.snow.css'
 import { technicianApi, staffApi } from '../../services/api'
 import { formatBeijingDateTimeShort } from '../../utils/date'
@@ -174,12 +175,8 @@ export default function TechnicianProfiles() {
             </Form.Item>
           )}
           <Form.Item label="个人照片">
-            <Space>
-              {photoUrl ? <Image src={photoUrl} width={72} height={72} style={{ objectFit: 'cover', borderRadius: 6 }} /> : null}
-              <Upload beforeUpload={uploadPhoto} showUploadList={false} accept="image/*">
-                <Button icon={<UploadOutlined />}>上传照片</Button>
-              </Upload>
-            </Space>
+            {/* #2070: 照片控件抽为共享组件（选择即预览 / 编辑回显） */}
+            <PhotoUploader photoUrl={photoUrl} onSelect={uploadPhoto} />
           </Form.Item>
           <Form.Item name="bio" label="详细介绍">
             <ReactQuill theme="snow" style={{ background: '#fff' }} placeholder="如：钢琴维修 12 年 · 小提琴维修 8 年，擅长音色调整" />

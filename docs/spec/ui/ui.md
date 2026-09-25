@@ -2398,6 +2398,10 @@ const handleSyncUsersFromIAM = async () => {
   - 维修师傅：职位 + **简介（react-quill 富文本）** + **个人照片**（创建成功后经 `POST /technician-profiles/:id/photo` 媒体管线上传；失败提示可在「维修师档案」页补传）
   - 商户直属员工：职位
 - **唯一性冲突**：提交前 `GET /users/check`；命中既有账户 → **自动发送「加入邀请通知」（#2052）**并由被邀请人自助接受/拒绝（不硬报冲突、不代挂）
+- **#2070 细化**：
+  - 照片统一用**共享控件 `components/PhotoUploader.jsx`**（抽自「维修师档案」页）：**选择即预览**（本地 objectURL）、**编辑场景回显现有图**；禁止再用裸 `input[type=file]`（「维修师档案」页亦已改用该组件）
+  - **维修师傅类型无「职位」字段**（师傅职位即「维修师傅」；后端 `assemblePersonnel` 在 position 为空时自动回退）
+  - 富文本简介高度：全局 CSS `.ql-editor { min-height: 140px }`（创建师徒表单与「维修师档案」页同根修复）
 
 #### 账户管理（#2064）
 
