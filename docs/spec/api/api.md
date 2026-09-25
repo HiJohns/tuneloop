@@ -5747,12 +5747,12 @@ GET /api/admin/dashboard/near-transfers
 
 | businessRole | 可见范围 |
 |---|---|
-| merchant_admin | 本商户全员 = 各网点成员 ∪ **维修师傅**（直属商户，不挂网点；site_name=「直属商户」、position=「维修师傅」） |
+| merchant_admin | 本商户全员 = 各网点成员 ∪ **商户直属员工**（`merchant_members`）∪ **维修师傅**（`technician_profiles`）；直属/师傅行 site_name=「直属商户」、师傅 position=「维修师傅」。**归属锚定 membership**：由 `site_members→sites.tenant_id` / `merchant_members.tenant_id` / `technician_profiles.tenant_id` 决定，users 按 id 取回（**不按 `users.tenant_id` 过滤**——本地缓存该列不可靠） |
 | site_admin | **仅本网点成员**（`site_members.site_id = JWT oid`，不含维修师傅） |
 | system_admin | **平台员工**（根组织 users，role∈staff/namespace_admin/sys_admin）∪ **中转网点成员**（`sites.type='transit'`）；平台员工无网点归属时 site_name=「平台」 |
 | 其他（customer 等） | `40303` |
 
-**Query**: `page`（默认 1）、`page_size`（默认 20，≤100）、`name`（姓名 ILIKE；页面搜索表单参数）、`site_id`（**merchant 视图**按网点过滤成员，师傅不属网点故排除）、`search`（name/phone/email ILIKE，通用口径；name 优先）
+**Query**: `page`（默认 1）、`page_size`（默认 20，≤100）、`name`（姓名 ILIKE；页面搜索表单参数）、`site_id`（**merchant 视图**按网点过滤成员，师傅/直属员工不属网点故排除）、`direct`（**merchant 视图**：`true`=只看直属员工（`merchant_members`）+ 维修师傅；与 `site_id` 同传时 **direct 优先**）、`search`（name/phone/email ILIKE，通用口径；name 优先）
 
 **响应行**: `{id, user_id, name, phone, email, position, role, status, iam_sub, site_id, site_name, is_technician}`
 （一行一人；多网点归属时 `site_name` 逗号聚合；`id`/`user_id` 同值，兼容既有行操作）

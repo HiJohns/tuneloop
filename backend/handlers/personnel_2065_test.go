@@ -33,6 +33,8 @@ type personnel2065Fixture struct {
 	transitMember      string
 	customerOnly       string
 	otherTenantUser    string
+	zeroTenantMember   string // #2067: users.tenant_id 全零但 membership 在商户内（林维训形态）
+	directMember       string // #2067: 商户直属员工（merchant_members）
 }
 
 func setupPersonnel2065(t *testing.T) (*gin.Engine, personnel2065Fixture) {
@@ -41,22 +43,24 @@ func setupPersonnel2065(t *testing.T) (*gin.Engine, personnel2065Fixture) {
 	db := testfixtures.SetupTestDB(t)
 
 	f := personnel2065Fixture{
-		tid:             uuid.New().String(),
-		oid:             uuid.New().String(),
-		otherTid:        uuid.New().String(),
-		rootOrg:         uuid.New().String(),
-		siteA:           uuid.New().String(),
-		siteB:           uuid.New().String(),
-		transitSite:     uuid.New().String(),
-		merchantAdmin:   uuid.New().String(),
-		siteAdminAcct:   uuid.New().String(),
-		siteMemberA:     uuid.New().String(),
-		siteMemberB:     uuid.New().String(),
-		technician:      uuid.New().String(),
-		platformStaff:   uuid.New().String(),
-		transitMember:   uuid.New().String(),
-		customerOnly:    uuid.New().String(),
-		otherTenantUser: uuid.New().String(),
+		tid:              uuid.New().String(),
+		oid:              uuid.New().String(),
+		otherTid:         uuid.New().String(),
+		rootOrg:          uuid.New().String(),
+		siteA:            uuid.New().String(),
+		siteB:            uuid.New().String(),
+		transitSite:      uuid.New().String(),
+		merchantAdmin:    uuid.New().String(),
+		siteAdminAcct:    uuid.New().String(),
+		siteMemberA:      uuid.New().String(),
+		siteMemberB:      uuid.New().String(),
+		technician:       uuid.New().String(),
+		platformStaff:    uuid.New().String(),
+		transitMember:    uuid.New().String(),
+		customerOnly:     uuid.New().String(),
+		otherTenantUser:  uuid.New().String(),
+		zeroTenantMember: uuid.New().String(),
+		directMember:     uuid.New().String(),
 	}
 
 	mkUser := func(id, tid, oid, name, role string) {
@@ -73,6 +77,9 @@ func setupPersonnel2065(t *testing.T) (*gin.Engine, personnel2065Fixture) {
 	mkUser(f.transitMember, f.tid, f.transitSite, "中转成员", "member")
 	mkUser(f.customerOnly, f.tid, f.tid, "纯顾客", "USER")
 	mkUser(f.otherTenantUser, f.otherTid, f.otherTid, "他商户成员", "member")
+	// #2067: 本地 users 行租户号不可靠（全零）但 site_members 归属本商户
+	mkUser(f.zeroTenantMember, "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "零租户成员", "member")
+	mkUser(f.directMember, f.tid, f.tid, "直属员工", "member")
 
 	// 网点（含一个中转网点，归属根组织）
 	require.NoError(t, db.Create(&models.Site{ID: f.siteA, TenantID: f.tid, OrgID: f.tid, Name: "网点A", Type: "normal"}).Error)
@@ -82,6 +89,10 @@ func setupPersonnel2065(t *testing.T) (*gin.Engine, personnel2065Fixture) {
 	// 成员关系
 	require.NoError(t, db.Create(&models.SiteMember{TenantID: f.tid, SiteID: f.siteA, UserID: f.siteMemberA, Role: "STAFF", Roles: []string{"STAFF"}, Status: "active"}).Error)
 	require.NoError(t, db.Create(&models.SiteMember{TenantID: f.tid, SiteID: f.siteB, UserID: f.siteMemberB, Role: "STAFF", Roles: []string{"STAFF"}, Status: "active"}).Error)
+	// #2067: 零租户用户的网点成员身份（归属由 sites.tenant_id 决定）
+	require.NoError(t, db.Create(&models.SiteMember{TenantID: f.tid, SiteID: f.siteA, UserID: f.zeroTenantMember, Role: "STAFF", Roles: []string{"STAFF"}, Status: "active"}).Error)
+	// #2067: 商户直属员工
+	require.NoError(t, db.Create(&models.MerchantMember{TenantID: f.tid, MerchantID: uuid.New().String(), UserID: f.directMember, Role: "site_member", Status: "active"}).Error)
 	require.NoError(t, db.Create(&models.SiteMember{TenantID: f.rootOrg, SiteID: f.transitSite, UserID: f.transitMember, Role: "STAFF", Roles: []string{"STAFF"}, Status: "active"}).Error)
 	require.NoError(t, db.Create(&models.SiteMember{TenantID: f.otherTid, SiteID: uuid.New().String(), UserID: f.otherTenantUser, Role: "STAFF", Roles: []string{"STAFF"}, Status: "active"}).Error)
 
@@ -218,4 +229,34 @@ func TestPersonnel2065_MerchantSearchAndSiteFilter(t *testing.T) {
 	assert.NotContains(t, m, "网点B成员", "其他网点成员排除")
 	assert.NotContains(t, m, "维修张师傅", "指定网点时师傅（直属商户）排除")
 	assert.NotContains(t, m, "纯顾客")
+}
+
+// #2067 回归：membership 锚定（users.tenant 不可靠不得漏人）+ 只看直属筛选
+func TestPersonnel2067_MembershipAnchorAndDirect(t *testing.T) {
+	r, _ := setupPersonnel2065(t)
+
+	// 商户视图：零租户用户（membership 在商户内）必须可见——修复前因 users.tenant 过滤而漏
+	code, rows := personnelList2065Q(t, r, "actor=merchant")
+	require.Equal(t, http.StatusOK, code)
+	m := names2065(rows)
+	assert.Contains(t, m, "零租户成员", "membership 锚定：users.tenant_id 不可靠")
+	assert.Contains(t, m, "直属员工", "商户直属员工须可见")
+	assert.Contains(t, m, "维修张师傅")
+
+	// direct=true → 仅直属员工 + 师傅（排除网点成员）
+	code2, rows2 := personnelList2065Q(t, r, "actor=merchant&direct=true")
+	require.Equal(t, http.StatusOK, code2)
+	m2 := names2065(rows2)
+	assert.Contains(t, m2, "直属员工")
+	assert.Contains(t, m2, "维修张师傅")
+	assert.NotContains(t, m2, "网点A成员", "直属筛选排除网点成员")
+	assert.NotContains(t, m2, "零租户成员")
+
+	// direct 优先：同时带 site_id 仍按直属（不返回空集）
+	code3, rows3 := personnelList2065Q(t, r, "actor=merchant&direct=true&site_id=00000000-0000-0000-0000-000000000001")
+	require.Equal(t, http.StatusOK, code3)
+	m3 := names2065(rows3)
+	assert.Contains(t, m3, "直属员工", "direct 优先：同时带 site_id 不得返回空集")
+	assert.Contains(t, m3, "维修张师傅")
+	assert.NotContains(t, m3, "网点A成员")
 }

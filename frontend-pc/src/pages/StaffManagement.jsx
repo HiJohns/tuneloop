@@ -121,7 +121,8 @@ export default function StaffManagement() {
   const handleSearch = (values) => {
     setSearchParams({
       name: values.name || '',
-      site_id: values.siteId || null
+      site_id: values.siteId || null,
+      ...(values.direct ? { direct: 'true' } : {}) // #2067: 只看直属员工
     })
     setPagination({ ...pagination, current: 1 })
   }
@@ -470,6 +471,12 @@ export default function StaffManagement() {
               ))}
             </Select>
           </Form.Item>
+          {/* #2067: 只看直属员工（商户直属+维修师傅）；仅商户管理员可见 */}
+          {isMerchantAdmin && (
+            <Form.Item name="direct" valuePropName="checked">
+              <Checkbox>只看直属员工（含维修师傅）</Checkbox>
+            </Form.Item>
+          )}
           <Form.Item>
             <Button type="primary" htmlType="submit">
               搜索

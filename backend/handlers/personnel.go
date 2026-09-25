@@ -52,6 +52,7 @@ func (h *PersonnelHandler) List(c *gin.Context) {
 		keyword = strings.TrimSpace(c.Query("search"))
 	}
 	siteFilter := strings.TrimSpace(c.Query("site_id"))
+	directOnly := c.Query("direct") == "true" // #2067: 只看直属员工（商户直属+师傅）
 
 	var rows []personnelRow
 	switch businessRole {
@@ -60,7 +61,7 @@ func (h *PersonnelHandler) List(c *gin.Context) {
 			c.JSON(http.StatusForbidden, gin.H{"code": 40303, "message": "access denied"})
 			return
 		}
-		rows = personnelMerchantView(db, tid, keyword, siteFilter)
+		rows = personnelMerchantView(db, tid, keyword, siteFilter, directOnly)
 	case middleware.BusinessRoleSiteAdmin:
 		if oid == "" {
 			c.JSON(http.StatusForbidden, gin.H{"code": 40303, "message": "access denied"})
@@ -107,9 +108,64 @@ type siteMembershipRow struct {
 }
 
 // personnelMerchantView 本商户全员：tenant 下所有网点成员 ∪ 维修师傅。
-func personnelMerchantView(db *gorm.DB, tid, keyword, siteFilter string) []personnelRow {
+// personnelMerchantView 本商户全员。**membership 为权威**（#2067）：
+// 归属由 site_members.sites.tenant_id / merchant_members.tenant_id / technician_profiles.tenant_id 决定，
+// users 行按 id 取回（local users.tenant_id 不可靠，如商户管理员自身行为全零 uuid）。
+func personnelMerchantView(db *gorm.DB, tid, keyword, siteFilter string, directOnly bool) []personnelRow {
+	if directOnly {
+		siteFilter = "" // #2067: direct 优先（页面可能同时带网点选择）
+	}
+	// 1) 网点成员（非 direct、且未指定网点/指定网点过滤）
+	var sms []siteMembershipRow
+	if !directOnly {
+		smq := db.Table("site_members AS sm").
+			Select("sm.user_id, sm.site_id, s.name AS site_name, sm.role").
+			Joins("JOIN sites s ON s.id = sm.site_id").
+			Where("s.tenant_id = ? AND sm.status = 'active'", tid)
+		if siteFilter != "" {
+			smq = smq.Where("sm.site_id = ?", siteFilter)
+		}
+		smq.Scan(&sms)
+	}
+	// 2) 直属员工（merchant_members）；指定网点时不列直属
+	mmRoles := map[string]string{}
+	if siteFilter == "" {
+		var mms []struct {
+			UserID string
+			Role   string
+		}
+		db.Table("merchant_members").Select("user_id, role").
+			Where("tenant_id = ? AND status = 'active'", tid).Scan(&mms)
+		for _, m := range mms {
+			mmRoles[m.UserID] = m.Role
+		}
+	}
+	// 3) 维修师傅（直属商户）；指定网点时排除（不属网点）
+	var techIDs []string
+	if siteFilter == "" {
+		db.Model(&models.TechnicianProfile{}).Where("tenant_id = ?", tid).Pluck("user_id", &techIDs)
+	}
+
+	// 4) 汇总 user ids（membership 权威）→ 按 id 取 users
+	idSet := map[string]bool{}
+	for _, m := range sms {
+		idSet[m.UserID] = true
+	}
+	for id := range mmRoles {
+		idSet[id] = true
+	}
+	for _, id := range techIDs {
+		idSet[id] = true
+	}
+	if len(idSet) == 0 {
+		return nil
+	}
+	ids := make([]string, 0, len(idSet))
+	for id := range idSet {
+		ids = append(ids, id)
+	}
 	var users []models.User
-	q := db.Where("tenant_id = ? AND deleted_at IS NULL", tid)
+	q := db.Where("id IN ? AND deleted_at IS NULL", ids)
 	if keyword != "" {
 		like := "%" + keyword + "%"
 		q = q.Where("name ILIKE ? OR phone ILIKE ? OR email ILIKE ?", like, like, like)
@@ -117,21 +173,7 @@ func personnelMerchantView(db *gorm.DB, tid, keyword, siteFilter string) []perso
 	if err := q.Find(&users).Error; err != nil {
 		return nil
 	}
-	var sms []siteMembershipRow
-	smq := db.Table("site_members AS sm").
-		Select("sm.user_id, sm.site_id, s.name AS site_name, sm.role").
-		Joins("JOIN sites s ON s.id = sm.site_id").
-		Where("s.tenant_id = ? AND sm.status = 'active'", tid)
-	if siteFilter != "" {
-		smq = smq.Where("sm.site_id = ?", siteFilter)
-	}
-	smq.Scan(&sms)
-	// #2065 审计 H1：指定网点时仅列该网点成员（师傅直属商户、不属任何网点 → 排除）
-	var techIDs []string
-	if siteFilter == "" {
-		db.Model(&models.TechnicianProfile{}).Where("tenant_id = ?", tid).Pluck("user_id", &techIDs)
-	}
-	return assemblePersonnel(users, sms, techIDs)
+	return assemblePersonnel(users, sms, techIDs, mmRoles)
 }
 
 // personnelSiteView 仅本网点成员（不含维修师傅）。
@@ -159,7 +201,7 @@ func personnelSiteView(db *gorm.DB, siteID, keyword string) []personnelRow {
 	if err := q.Find(&users).Error; err != nil {
 		return nil
 	}
-	return assemblePersonnel(users, sms, nil)
+	return assemblePersonnel(users, sms, nil, nil)
 }
 
 // personnelSystemView 平台员工（根组织 users，与 platform_staff.go 同源）∪ 中转网点成员。
@@ -246,7 +288,7 @@ func personnelSystemView(db *gorm.DB, rootOrgID, keyword string) []personnelRow 
 }
 
 // assemblePersonnel 将用户 × 网点归属 × 师傅身份组装为一行一人（聚合网点名）。
-func assemblePersonnel(users []models.User, sms []siteMembershipRow, techIDs []string) []personnelRow {
+func assemblePersonnel(users []models.User, sms []siteMembershipRow, techIDs []string, mmRoles map[string]string) []personnelRow {
 	byUser := map[string][]siteMembershipRow{}
 	for _, m := range sms {
 		byUser[m.UserID] = append(byUser[m.UserID], m)
@@ -260,7 +302,11 @@ func assemblePersonnel(users []models.User, sms []siteMembershipRow, techIDs []s
 	for _, u := range users {
 		memberships := byUser[u.ID]
 		isTech := techSet[u.ID]
-		if len(memberships) == 0 && !isTech {
+		mmRole, isDirect := "", false
+		if mmRoles != nil {
+			mmRole, isDirect = mmRoles[u.ID]
+		}
+		if len(memberships) == 0 && !isTech && !isDirect {
 			continue // 非员工（纯顾客）不进入人员管理视图
 		}
 		siteNames := make([]string, 0, len(memberships))
@@ -287,6 +333,14 @@ func assemblePersonnel(users []models.User, sms []siteMembershipRow, techIDs []s
 			}
 			if position == "" {
 				position = "维修师傅"
+			}
+		} else if isDirect {
+			// #2067: 商户直属员工（merchant_members，无网点）
+			if siteName == "" {
+				siteName = "直属商户"
+			}
+			if position == "" {
+				position = mmRole
 			}
 		}
 		role := u.Role
