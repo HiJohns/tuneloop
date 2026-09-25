@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, getCartKey, redirectToLogin, resolveLogin } from '../services/api'
@@ -188,6 +188,23 @@ export default function Home() {
   const baseUrl = env.apiBaseUrl
   const imageBaseUrl = baseUrl.replace(/\/api$/, '')
   const normalizedBannerIdx = currentBanner < 0 ? banners.length - 1 : currentBanner >= banners.length ? 0 : currentBanner
+
+  const bannerBottom = useMemo(() => {
+    if (banners.length === 0) return menuTop + 100 + stickyMenuHeight
+    const bw = getWindowSize().width
+    const bh = getWindowSize().height
+    const ratio = banners[normalizedBannerIdx]?.aspect_ratio
+    if (ratio) {
+      const isWide = ratio >= bw / bh
+      const b = isWide ? bw / ratio : bh
+      // 非宽高图满屏时（极个别海报），保底对齐探测：图底不能低过列表留白起点（防压底部导航）
+      return isWide ? b : Math.min(b, menuTop + 100 + stickyMenuHeight)
+    }
+    return menuTop + 100 + stickyMenuHeight
+  }, [banners, normalizedBannerIdx, menuTop, stickyMenuHeight])
+
+  // 菜单跟手行程：从 banner 底滚到吸顶停靠位（menuTop）的距离，即 spacer 高。
+  const menuTravel = Math.max(0, bannerBottom - menuTop)
   const cartItemCount = (() => {
     try {
       const d = storage.getJSON(getCartKey(), {items: []})
@@ -393,12 +410,10 @@ export default function Home() {
         </View>
       </View>
 
-      {/* Menu — fixed, follows scroll (top = m+148 - min(s,148)), stops at m.
+      {/* Menu — fixed, follows scroll (top = bannerBottom - min(s, menuTravel)), stops at m.
           List viewport (clip container) starts at m+h, so the menu region
           m..m+h is never overlapped by list cards. */}
-        <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10002, backgroundColor: 'transparent', top: menuTop + 100 + stickyMenuHeight - menuScroll, height: stickyMenuHeight, overflow: 'hidden' }}>
-          <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} subMenuCat={subMenuCat} onSetSubMenuCat={setSubMenuCat} windowWidth={navBar.windowWidth} />
-        </View>
+        <HomeMenu menuTravel={menuTravel} menuTop={menuTop} bannerBottom={bannerBottom} menuScroll={menuScroll} stickyMenuHeight={stickyMenuHeight} categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} subMenuCat={subMenuCat} onSetSubMenuCat={setSubMenuCat} windowWidth={navBar.windowWidth} />
 
       {/* B: clip container — fixed, wraps ScrollView + BottomNav */}
       <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, top: contentTop, bottom: 0 }}>
@@ -418,10 +433,10 @@ export default function Home() {
               if (blurVisible) setBlurVisible(false)
             }
 
-            // Menu: follow scroll (capped at 100+48 so it stops at menuTop).
+            // Menu: follow scroll (capped at menuTravel so it stops at menuTop).
             // Sync immediately — list viewport clips at m+h so cards can never
             // enter the menu region; no swap animation needed.
-            const ms = Math.min(newY, 100 + stickyMenuHeight)
+            const ms = Math.min(newY, menuTravel)
             if (ms !== menuScrollRef.current) { menuScrollRef.current = ms; setMenuScroll(ms) }
 
             // Search, dots: debounced after scroll stops
@@ -431,7 +446,7 @@ export default function Home() {
             if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
             }, 500)
           }}>
-          <View style={{ height: `${100 + stickyMenuHeight}px` }}></View>
+          <View style={{ height: `${menuTravel}px` }}></View>
 
         <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 80 }}>
         {loading ? (
@@ -573,3 +588,12 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
     </View>
   )
 }
+
+const HomeMenu = memo(function HomeMenu({ menuTravel, menuTop, bannerBottom, menuScroll, stickyMenuHeight, categories, selectedCategory, onCategoryChange, catOffsetX, setCatOffsetX, scrolled, subMenuCat, onSetSubMenuCat, windowWidth }) {
+  const top = menuTravel === 0 ? `${menuTop}px` : `${Math.max(0, bannerBottom - menuScroll)}px`
+  return (
+    <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10002, backgroundColor: 'transparent', top, height: stickyMenuHeight, overflow: 'hidden' }}>
+      <MenuContent categories={categories} selectedCategory={selectedCategory} onCategoryChange={onCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} subMenuCat={subMenuCat} onSetSubMenuCat={onSetSubMenuCat} windowWidth={windowWidth} />
+    </View>
+  )
+})

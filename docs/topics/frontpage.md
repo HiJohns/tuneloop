@@ -67,40 +67,54 @@
 - ScrollView 上显式 `pointer-events: auto` 恢复触摸接收
 - BottomNav 放在 B 层内部作为 flex 子元素，确保不被列表遮挡
 
-### 2.2 菜单双层方案
+### 2.2 菜单跟手吸附（#2066）
 
-**问题**：菜单需要初始在列表上方（~240px），随列表滚动，碰到搜索条底部（62px）时粘住。但 B 层 `overflow:hidden` 会裁掉到达 sticky 位置的菜单。
+**问题**：菜单初始位于 banner 底部下方，随列表滚动上移，滚到 `menuTop`（搜索条下方）后停住不再移动。旧实现把停止阈值硬编码为 `100 + stickyMenuHeight`（=148px 的猜测值），与真实 banner 底（由 `aspect_ratio` 推导）不一致，导致：
+- banner 实际比 148px 高时，菜单在 banner 内就停住，出现"菜单悬在 banner 中间 + 下方留白割裂"
+- banner 比 148px 矮时，菜单在 banner 底部就停住，永远到不了搜索条下方
+- 菜单在 B 层（`overflow:hidden`）内被裁切，滚动到裁切线就消失
 
-**方案**：双层菜单——自然菜单 + 粘连菜单，在不同滚动阶段切换。
+**方案**：菜单改为 B 层**外**的 `position:fixed` 单层，跟手位移量由真实 banner 底推导，且不随列表滚动做条件渲染切换。
 
 ```
-scrollY < 150：自然菜单可见（B 层内，opacity-0 时隐藏）
-scrollY ≥ 150：粘连菜单接管（B 层外，fixed top-62px z-10001）
+menuTravel = max(0, bannerBottom - menuTop)      // 菜单跟手总行程
+menuScroll = min(scrollY, menuTravel)             // 已滚位移，上限即行程
+top = menuTravel === 0 ? menuTop                  // banner 不足一屏：直接停靠
+                        : max(0, bannerBottom - menuScroll)   // 跟手：贴 banner 底上移，到顶停 menuTop
 ```
 
 **实现**：
 
 ```jsx
-// 状态：menuStuck = scrollY >= 150
-const menuStuck = scrollY >= 150
+// bannerBottom：由当前 banner 的 aspect_ratio 推导实际底边，依赖变化才重算
+const bannerBottom = useMemo(() => {
+  if (banners.length === 0) return menuTop + 100 + stickyMenuHeight
+  const ratio = banners[normalizedBannerIdx]?.aspect_ratio
+  if (ratio) {
+    const b = getWindowSize().width / ratio
+    return ratio >= bw / bh ? b : Math.min(b, menuTop + 100 + stickyMenuHeight)
+  }
+  return menuTop + 100 + stickyMenuHeight
+}, [banners, normalizedBannerIdx, menuTop, stickyMenuHeight])
 
-// 粘连菜单：B 层外，z-10001 > 搜索条 z-10000，不被遮盖
-{menuStuck && (
-  <View className="fixed left-0 right-0 z-[10001] bg-transparent"
-    style={{ top: '62px' }}>
-    <MenuContent ... />
-  </View>
-)}
+// 跟手行程 = banner 底到停靠位的距离，同时充当 ScrollView 内占位 spacer 高度
+const menuTravel = Math.max(0, bannerBottom - menuTop)
 
-// 自然菜单：B 层内，menuStuck 时 opacity-0 不可见
-<View className={menuStuck ? 'opacity-0' : 'bg-transparent'}>
-  <MenuContent ... scrolled={true} />
-</View>
+// onScroll：位移上限 = 行程（不再用硬编码 100+48）
+const ms = Math.min(newY, menuTravel)
+if (ms !== menuScrollRef.current) { menuScrollRef.current = ms; setMenuScroll(ms) }
+
+// B 层外固定菜单（memo 子组件 HomeMenu），z-10002 > 搜索条 z-10000
+<HomeMenu menuTravel={menuTravel} menuTop={menuTop} bannerBottom={bannerBottom}
+          menuScroll={menuScroll} stickyMenuHeight={stickyMenuHeight} ... />
 ```
 
 **关键点**：
-- 粘连菜单阈值设为 150（而非 178），早于 B 层裁切自然菜单的时机（~146px），避免裁切间隙
-- 自然菜单用 `opacity-0` 而非条件渲染（`{!menuStuck && ...}`），避免 DOM 增减导致内容高度突变和 `scrollY` 反弹闪烁
+- 菜单 `top` 在 B 层**外**（`position:fixed`），不受 B 层 `overflow:hidden` 裁切
+- 行程由真实 `bannerBottom` 推导，消除 148px 硬编码猜测；banner 兜底（无图/无 ratio）时 `menuTravel === 100 + stickyMenuHeight`，与旧行为逐值等价
+- 滚动阈值与 spacer 高度**共用 `menuTravel`**，保证"菜单停住"与"列表留白结束"同刻发生，不会出现菜单已停但仍有空白（或反之）的错位
+- 菜单包成 `memo` 子组件 `HomeMenu`：滚动中 `menuScroll` 每帧变化，仅该子树重渲染，Banner/列表大块不参与
+- 不使用条件渲染或双层 `opacity` 切换（`{menuStuck && ...}` 会引发 ScrollView 内容高度突变与回弹，见 4.3）
 
 ### 2.3 E 层统一磨砂背板
 
@@ -204,6 +218,12 @@ B 层设置 `pointer-events:none` 后，其子元素也会失去触摸事件。�
 
 Taro 的 ScrollView 组件内部使用 CSS sticky 时，定位基准是 ScrollView 自身视口而非外层容器。当 ScrollView 在一个 offset 不为 0 的容器内时，需计算偏移量。
 
+### 4.6 不要硬编码滚动阈值（#2066）
+
+菜单跟手行程必须由**真实 banner 底**（`bannerBottom`，由 `aspect_ratio` 推导）减去停靠位 `menuTop` 得出，不能写死 `100 + stickyMenuHeight`（148px 猜测值）。硬编码值只在"banner 底恰好等于该猜测值"时正确：高 banner 会让菜单悬在 banner 中间，矮 banner 会让菜单提前停住。
+
+同理，滚动位移上限（`Math.min(newY, ...)`）与 ScrollView 内占位 spacer 高度必须**引用同一个 `menuTravel`**，否则会出现"菜单已停但列表仍有空白"或"空白已结束菜单还在动"的错位。
+
 ---
 
 ## 五、文件结构
@@ -214,6 +234,11 @@ frontend-mobile/src/pages/Home.jsx
 ├── parseImages()       # 图片解析工具
 ├── getDailyRate()      # 日租金计算（daily_rate_cents 基准日租，分）
 ├── MenuContent()       # 菜单条子组件（支持触摸滑动）
+└── Home()              # 首页主组件
+
+frontend-mobile/src/pages-weapp/Home.jsx
+├── MenuContent()       # 菜单条子组件（支持触摸滑动）
+├── HomeMenu()          # 固定跟手菜单（memo，滚动中仅此子树重渲染，#2066）
 └── Home()              # 首页主组件
 ```
 
