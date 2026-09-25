@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Textarea, Image, Video, Button } from '@tarojs/components'
-import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
+import { apiFetch, getToken, redirectToLogin, resolveErrorMessage } from '../services/api'
 import { dialog, env, getInputValue, toWeappRoute, uploadFile as uploadFileApi } from '../platform'
 
 // #1955 阶段3a RS-01：创建维修服务单（描述 + 照片 ≤6 + 试奏视频可选 ≤1 段，#2060，不填识别码）
@@ -19,6 +19,13 @@ export default function RepairServiceCreate() {
     if (!route) { dialog.alert('该功能请在 H5 端使用'); return }
     return Taro.navigateTo({ url: route.url })
   }
+  // #2075: 创建页登录门禁——未登录/无 token 时引导登录（照片上传 /api/upload 在严格鉴权组，晚失败不如早拦截）
+  useEffect(() => {
+    if (!getToken()) {
+      dialog.alert('请先登录后再提交维修服务单')
+      redirectToLogin()
+    }
+  }, [])
   const [description, setDescription] = useState('')
   const [photos, setPhotos] = useState([])
   const [videoFile, setVideoFile] = useState(null) // #2060: 试奏视频（本地文件/临时路径，提交时才上传）
@@ -95,6 +102,7 @@ export default function RepairServiceCreate() {
     const authHeaders = { Authorization: 'Bearer ' + (getToken() || '') }
     if (env.isMiniProgram) {
       const resp = await uploadFileApi(`${baseUrl}/upload`, file, { headers: authHeaders })
+      if (resp.statusCode === 401) throw new Error('登录态已失效，请重新登录后再试') // #2075
       const r = JSON.parse(resp.data)
       if (r.code === 20000) return r.data.file_key
       throw new Error(r.message || 'upload failed')
@@ -102,6 +110,7 @@ export default function RepairServiceCreate() {
     const fd = new FormData()
     fd.append('file', file)
     const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', headers: authHeaders, body: fd })
+    if (resp.status === 401) throw new Error('登录态已失效，请重新登录后再试') // #2075
     const r = await resp.json()
     if (r.code === 20000) return r.data.file_key
     throw new Error(resolveErrorMessage(r, 'upload failed'))
