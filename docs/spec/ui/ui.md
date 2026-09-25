@@ -2382,6 +2382,14 @@ const handleSyncUsersFromIAM = async () => {
 - 权限 Checkbox：按域分组
 - 权限列表自动过滤为当前管理员持有的权限子集
 
+#### 账户管理（#2064）
+
+**位置**: 平台管理 → 「账户管理」（`/system/user-management`，原「用户管理」改名）
+
+**权限**: 菜单与路由 `sysPermBits:[6]`（tenant:list）→ 仅 system/namespace admin 可见；商户/网点管理员**不再出现该入口**（修复此前「菜单可见但接口 40303」的错配）。
+
+**筛选**: `全部 / 顾客 / 员工+管理员`（Radio 按钮组，传 `personnel_type`）；用途 = 全命名空间查找账户并关停（保留标记删除/积分授予操作）。
+
 #### 人员管理三视图（#2065）
 
 **组件**: `frontend-pc/src/pages/StaffManagement.jsx`（数据源 `GET /admin/personnel`）

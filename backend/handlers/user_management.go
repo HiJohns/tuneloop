@@ -58,6 +58,17 @@ func (h *UserManagementHandler) List(c *gin.Context) {
 		q = q.Where("nickname ILIKE ? OR name ILIKE ? OR username ILIKE ? OR phone ILIKE ?",
 			like, like, like, like)
 	}
+	// #2064: 账户管理筛选（全部/顾客/员工+管理员）——员工判定 = 存在任一成员身份
+	if pt := c.Query("personnel_type"); pt == "customer" || pt == "staff" {
+		staffExists := "EXISTS (SELECT 1 FROM site_members sm WHERE sm.user_id = users.id)" +
+			" OR EXISTS (SELECT 1 FROM merchant_members mm WHERE mm.user_id = users.id)" +
+			" OR EXISTS (SELECT 1 FROM technician_profiles tp WHERE tp.user_id = users.id)"
+		if pt == "staff" {
+			q = q.Where(staffExists)
+		} else {
+			q = q.Where("NOT (" + staffExists + ")")
+		}
+	}
 
 	var total int64
 	q.Count(&total)

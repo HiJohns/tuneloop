@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Table, Input, Button, Space, Modal, Form, InputNumber, Switch, message, Tag, Typography, Collapse, Image, Divider, Alert } from 'antd'
+import { Table, Input, Button, Space, Modal, Form, InputNumber, Switch, message, Tag, Typography, Collapse, Image, Divider, Alert, Radio } from 'antd'
 import { DownloadOutlined, IdcardOutlined, ScanOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import { api, faceReviewApi, fetchBlob } from '../../services/api'
 import IdPhotoDisplay from '../../components/IdPhotoDisplay'
@@ -31,6 +31,8 @@ export default function UserManagement() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [search, setSearch] = useState('')
+  // #2064: 账户管理筛选（all/customer/staff）
+  const [personnelType, setPersonnelType] = useState('all')
   const [loading, setLoading] = useState(false)
   const [detailVisible, setDetailVisible] = useState(false)
   const [current, setCurrent] = useState(null)
@@ -44,10 +46,12 @@ export default function UserManagement() {
   // Module 2: face batches (read-only, review via face-review queue #1813)
   const [batches, setBatches] = useState([])
 
-  const fetchList = async (p = page, ps = pageSize, s = search) => {
+  const fetchList = async (p = page, ps = pageSize, s = search, pt = personnelType) => {
     setLoading(true)
     try {
-      const resp = await api.get('/admin/user-management', { params: { page: p, pageSize: ps, search: s } })
+      const params = { page: p, pageSize: ps, search: s }
+      if (pt && pt !== 'all') params.personnel_type = pt
+      const resp = await api.get('/admin/user-management', { params })
       if (resp?.code === 20000) {
         setList(resp.data.list || [])
         setTotal(resp.data.total || 0)
@@ -249,12 +253,19 @@ export default function UserManagement() {
 
   return (
     <div>
-      <Space style={{ marginBottom: 16 }}>
+      <Space style={{ marginBottom: 16 }} wrap>
+        <Radio.Group
+          value={personnelType}
+          onChange={(e) => { setPersonnelType(e.target.value); setPage(1); fetchList(1, pageSize, search, e.target.value) }}
+          optionType="button"
+          buttonStyle="solid"
+          options={[ { label: '全部', value: 'all' }, { label: '顾客', value: 'customer' }, { label: '员工+管理员', value: 'staff' } ]}
+        />
         <Input.Search
           placeholder="搜索 昵称/电话/微信号"
           allowClear
           style={{ width: 280 }}
-          onSearch={(v) => { setSearch(v); fetchList(1, pageSize, v) }}
+          onSearch={(v) => { setSearch(v); fetchList(1, pageSize, v, personnelType) }}
         />
         <Button icon={<DownloadOutlined />} onClick={handleExport}>导出 CSV</Button>
       </Space>

@@ -340,8 +340,8 @@ function MainLayout() {
     icon: <SettingOutlined />,
     label: '平台管理',
     children: [
-      { key: '/merchants', label: '商户管理', permission: { sysPermBits: [5] } },
-      { key: '/system/user-management', label: '用户管理', permission: { sysPermBits: [16] } },
+      { key: '/merchants', label: '商户管理', permission: { sysPermBits: [6] } },
+      { key: '/system/user-management', label: '账户管理', permission: { sysPermBits: [6] } }, // #2064: 平台级账户管理（全部人员查找+关停），仅 system/namespace admin
       { key: '/face-review', label: '实名审核队列', permission: { sysPermBits: [18] } }, // #1793 T5
       { key: '/platform-staff', label: '平台员工管理', permission: { sysPermBits: [5] } }, // #1795 T6
       { key: '/organization/sites', label: '网点管理', permission: { sysPermBits: [10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true } },
@@ -505,7 +505,7 @@ function onMenuClick(e) {
     '/merchants/:id': { title: '商户详情', parent: '商户管理' },
     '/merchants/new': { title: '创建商户', parent: '商户管理' },
     '/system/audit-logs': { title: '操作日志', parent: '系统设置' },
-    '/system/user-management': { title: '用户管理', parent: '平台管理' },
+    '/system/user-management': { title: '账户管理', parent: '平台管理' },
     '/system/permissions': { title: '权限管理', parent: '平台管理' },
     '/system/warnings': { title: '警告管理', parent: '平台管理' },
     '/system/warning-settings': { title: '警告配置', parent: '平台管理' },
@@ -697,11 +697,11 @@ function onMenuClick(e) {
             <Route path="/organization/iam-sync" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true }}><IAMSyncPage /></ProtectedRoute>} />
             <Route path="/organization/sites/:id/new" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
             <Route path="/organization/sites/:id" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
-            <Route path="/merchants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><MerchantManagement /></ProtectedRoute>} />
+            <Route path="/merchants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [6] }}><MerchantManagement /></ProtectedRoute>} />
             <Route path="/merchants/:id" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><MerchantManagement /></ProtectedRoute>} />
             <Route path="/merchants/new" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><MerchantManagement /></ProtectedRoute>} />
             <Route path="/system/audit-logs" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['audit_log:read'] }}><AuditLogPage /></ProtectedRoute>} />
-            <Route path="/system/user-management" element={<ProtectedRoute requiredPermission={{ sysPermBits: [16] }}><UserManagement /></ProtectedRoute>} />
+            <Route path="/system/user-management" element={<ProtectedRoute requiredPermission={{ sysPermBits: [6] }}><UserManagement /></ProtectedRoute>} />
             <Route path="/face-review" element={<ProtectedRoute requiredPermission={{ sysPermBits: [18] }}><FaceReviewPage /></ProtectedRoute>} /> {/* #1793 T5 */}
             <Route path="/platform-staff" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><PlatformStaffPage /></ProtectedRoute>} /> {/* #1795 T6 */}
             <Route path="/staff" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15], cusPermCodes: ['instrument:create', 'instrument:read'], requireAllGroups: true }}><StaffManagement /></ProtectedRoute>} />

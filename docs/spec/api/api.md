@@ -4075,6 +4075,16 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ---
 
+### 8.11.4 账户管理列表（#2064）
+
+**接口**: `GET /api/admin/user-management`
+
+**权限**: `sys_perm bit 6 (tenant:list)`（平台级，仅 system/namespace admin；商户/网点管理员不可见不可调）
+
+**Query**: `page`、`pageSize`（≤100）、`search`（昵称/姓名/用户名/电话 ILIKE）、`personnel_type`（`all`(缺省) | `customer` | `staff`）
+
+**说明**: 全命名空间人员查找（顾客 + 各商户员工/管理员），用于查找账户并直接关停（mark-deleted）。`staff` 判定 = 存在任一成员身份：`site_members` ∪ `merchant_members` ∪ `technician_profiles`；`customer` = 取反。前端页名「账户管理」，提供 全部/顾客/员工+管理员 三档筛选。
+
 ### 8.11.4a 标记删除用户（#2028 Step 4 / #2025 D4）
 
 **接口**: `POST /api/admin/user-management/:id/mark-deleted`

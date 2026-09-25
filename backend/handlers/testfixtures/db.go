@@ -19,6 +19,7 @@ var allTables = []interface{}{
 	&models.Category{},
 	&models.Site{},
 	&models.SiteMember{},
+	&models.MerchantMember{}, // #2064: 账户管理 personnel_type 员工判定依赖
 	&models.Instrument{},
 	&models.Order{},
 	&models.Notification{},
