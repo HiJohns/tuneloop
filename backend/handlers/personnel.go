@@ -45,7 +45,13 @@ func (h *PersonnelHandler) List(c *gin.Context) {
 	businessRole := middleware.GetBusinessRole(ctx)
 	tid := middleware.GetTenantID(ctx)
 	oid := middleware.GetOrgID(ctx)
-	search := strings.TrimSpace(c.Query("search"))
+	// #2065 审计 H1：页面既有搜索表单发送 name/site_id（旧 /staff 契约），必须消费；
+	// search 保留作通用口径（name 优先）。
+	keyword := strings.TrimSpace(c.Query("name"))
+	if keyword == "" {
+		keyword = strings.TrimSpace(c.Query("search"))
+	}
+	siteFilter := strings.TrimSpace(c.Query("site_id"))
 
 	var rows []personnelRow
 	switch businessRole {
@@ -54,19 +60,19 @@ func (h *PersonnelHandler) List(c *gin.Context) {
 			c.JSON(http.StatusForbidden, gin.H{"code": 40303, "message": "access denied"})
 			return
 		}
-		rows = personnelMerchantView(db, tid, search)
+		rows = personnelMerchantView(db, tid, keyword, siteFilter)
 	case middleware.BusinessRoleSiteAdmin:
 		if oid == "" {
 			c.JSON(http.StatusForbidden, gin.H{"code": 40303, "message": "access denied"})
 			return
 		}
-		rows = personnelSiteView(db, oid, search)
+		rows = personnelSiteView(db, oid, keyword)
 	case middleware.BusinessRoleSystemAdmin:
 		if oid == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "operator has no organization"})
 			return
 		}
-		rows = personnelSystemView(db, oid, search)
+		rows = personnelSystemView(db, oid, keyword)
 	default:
 		c.JSON(http.StatusForbidden, gin.H{"code": 40303, "message": "access denied"})
 		return
@@ -101,29 +107,35 @@ type siteMembershipRow struct {
 }
 
 // personnelMerchantView 本商户全员：tenant 下所有网点成员 ∪ 维修师傅。
-func personnelMerchantView(db *gorm.DB, tid, search string) []personnelRow {
+func personnelMerchantView(db *gorm.DB, tid, keyword, siteFilter string) []personnelRow {
 	var users []models.User
 	q := db.Where("tenant_id = ? AND deleted_at IS NULL", tid)
-	if search != "" {
-		like := "%" + search + "%"
+	if keyword != "" {
+		like := "%" + keyword + "%"
 		q = q.Where("name ILIKE ? OR phone ILIKE ? OR email ILIKE ?", like, like, like)
 	}
 	if err := q.Find(&users).Error; err != nil {
 		return nil
 	}
 	var sms []siteMembershipRow
-	db.Table("site_members AS sm").
+	smq := db.Table("site_members AS sm").
 		Select("sm.user_id, sm.site_id, s.name AS site_name, sm.role").
 		Joins("JOIN sites s ON s.id = sm.site_id").
-		Where("s.tenant_id = ? AND sm.status = 'active'", tid).
-		Scan(&sms)
+		Where("s.tenant_id = ? AND sm.status = 'active'", tid)
+	if siteFilter != "" {
+		smq = smq.Where("sm.site_id = ?", siteFilter)
+	}
+	smq.Scan(&sms)
+	// #2065 审计 H1：指定网点时仅列该网点成员（师傅直属商户、不属任何网点 → 排除）
 	var techIDs []string
-	db.Model(&models.TechnicianProfile{}).Where("tenant_id = ?", tid).Pluck("user_id", &techIDs)
+	if siteFilter == "" {
+		db.Model(&models.TechnicianProfile{}).Where("tenant_id = ?", tid).Pluck("user_id", &techIDs)
+	}
 	return assemblePersonnel(users, sms, techIDs)
 }
 
 // personnelSiteView 仅本网点成员（不含维修师傅）。
-func personnelSiteView(db *gorm.DB, siteID, search string) []personnelRow {
+func personnelSiteView(db *gorm.DB, siteID, keyword string) []personnelRow {
 	var sms []siteMembershipRow
 	db.Table("site_members AS sm").
 		Select("sm.user_id, sm.site_id, s.name AS site_name, sm.role").
@@ -140,8 +152,8 @@ func personnelSiteView(db *gorm.DB, siteID, search string) []personnelRow {
 	}
 	var users []models.User
 	q := db.Where("id IN ? AND deleted_at IS NULL", ids)
-	if search != "" {
-		like := "%" + search + "%"
+	if keyword != "" {
+		like := "%" + keyword + "%"
 		q = q.Where("name ILIKE ? OR phone ILIKE ? OR email ILIKE ?", like, like, like)
 	}
 	if err := q.Find(&users).Error; err != nil {
@@ -152,7 +164,7 @@ func personnelSiteView(db *gorm.DB, siteID, search string) []personnelRow {
 
 // personnelSystemView 平台员工（根组织 users，与 platform_staff.go 同源）∪ 中转网点成员。
 // 注意：平台员工通常无 site_members 记录，不能走 assemblePersonnel 的「无归属即过滤」逻辑。
-func personnelSystemView(db *gorm.DB, rootOrgID, search string) []personnelRow {
+func personnelSystemView(db *gorm.DB, rootOrgID, keyword string) []personnelRow {
 	rows := []personnelRow{}
 	seen := map[string]int{}
 
@@ -160,8 +172,8 @@ func personnelSystemView(db *gorm.DB, rootOrgID, search string) []personnelRow {
 	var staff []models.User
 	q := db.Where("org_id = ? AND LOWER(role) IN ? AND deleted_at IS NULL",
 		rootOrgID, []string{"staff", "namespace_admin", "sys_admin"})
-	if search != "" {
-		like := "%" + search + "%"
+	if keyword != "" {
+		like := "%" + keyword + "%"
 		q = q.Where("name ILIKE ? OR phone ILIKE ? OR email ILIKE ?", like, like, like)
 	}
 	if err := q.Find(&staff).Error; err != nil {
@@ -190,8 +202,8 @@ func personnelSystemView(db *gorm.DB, rootOrgID, search string) []personnelRow {
 	if len(ids) > 0 {
 		var members []models.User
 		mq := db.Where("id IN ? AND deleted_at IS NULL", ids)
-		if search != "" {
-			like := "%" + search + "%"
+		if keyword != "" {
+			like := "%" + keyword + "%"
 			mq = mq.Where("name ILIKE ? OR phone ILIKE ? OR email ILIKE ?", like, like, like)
 		}
 		if err := mq.Find(&members).Error; err != nil {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"tuneloop-backend/handlers/testfixtures"
@@ -114,9 +115,13 @@ func actorOf(f personnel2065Fixture, c *gin.Context) testutil.TestActor {
 }
 
 func personnelList2065(t *testing.T, r *gin.Engine, actor string) (int, []map[string]interface{}) {
+	return personnelList2065Q(t, r, "actor="+actor)
+}
+
+func personnelList2065Q(t *testing.T, r *gin.Engine, query string) (int, []map[string]interface{}) {
 	t.Helper()
 	w := httptest.NewRecorder()
-	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/admin/personnel?actor="+actor, nil))
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/admin/personnel?"+query, nil))
 	var resp struct {
 		Code int                    `json:"code"`
 		Data map[string]interface{} `json:"data"`
@@ -191,4 +196,26 @@ func TestPersonnel2065_CustomerDenied(t *testing.T) {
 	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/admin/personnel", nil))
 	assert.Equal(t, http.StatusForbidden, w.Code)
 	assert.Contains(t, w.Body.String(), "40303")
+}
+
+// #2065 审计 H1 回归：页面既有搜索表单参数（name/site_id）必须生效
+func TestPersonnel2065_MerchantSearchAndSiteFilter(t *testing.T) {
+	r, f := setupPersonnel2065(t)
+
+	// name 过滤：仅「网点A成员」命中
+	code, rows := personnelList2065Q(t, r, "actor=merchant&name="+url.QueryEscape("网点A成员"))
+	require.Equal(t, http.StatusOK, code)
+	m := names2065(rows)
+	assert.Contains(t, m, "网点A成员")
+	assert.NotContains(t, m, "网点B成员")
+	assert.NotContains(t, m, "维修张师傅")
+
+	// site_id 过滤：仅该网点成员（师傅不属网点 → 排除）
+	code, rows = personnelList2065Q(t, r, "actor=merchant&site_id="+f.siteA)
+	require.Equal(t, http.StatusOK, code)
+	m = names2065(rows)
+	assert.Contains(t, m, "网点A成员")
+	assert.NotContains(t, m, "网点B成员", "其他网点成员排除")
+	assert.NotContains(t, m, "维修张师傅", "指定网点时师傅（直属商户）排除")
+	assert.NotContains(t, m, "纯顾客")
 }
