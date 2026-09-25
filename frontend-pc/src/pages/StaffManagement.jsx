@@ -20,6 +20,7 @@ export default function StaffManagement() {
   const [userType, setUserType] = useState('site_staff') // #2068: 用户类型
   const [createPhotoFile, setCreatePhotoFile] = useState(null) // #2073: 创建照片文件（头像，创建后上传）
   const [createPhotoUrl, setCreatePhotoUrl] = useState('') // #2073: 本地预览 URL（选择即预览）
+  const [createFormKey, setCreateFormKey] = useState(0) // #2074: 创建表单重挂载 key（清空 ReactQuill 等非受控残留）
   const [createUserForm] = Form.useForm()
   const [autoGenerate, setAutoGenerate] = useState(true)
   const [lockedSiteId, setLockedSiteId] = useState(null)
@@ -143,6 +144,7 @@ export default function StaffManagement() {
     setUserType('site_staff')
     setCreatePhotoFile(null)
     setCreatePhotoUrl('')
+    setCreateFormKey(k => k + 1) // #2074: 强制重挂载（ReactQuill 忽略 value=undefined，仅 resetFields 清不掉编辑器）
   }
 
   const handleCreateUser = async (values) => {
@@ -556,6 +558,7 @@ export default function StaffManagement() {
       >
         {/* #2068: 去「搜索用户」Tab（死 Tab：state 从未写入）；直接展示创建表单 */}
         <Form
+          key={createFormKey}
           name="staff-create" /* #2072: 命名空间化字段 id */
           form={createUserForm}
           layout="vertical"
