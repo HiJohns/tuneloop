@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
-import { Layout, Menu, Breadcrumb, Spin } from 'antd'
+import { Layout, Menu, Breadcrumb, Spin, Modal } from 'antd'
 import { Tabs } from 'antd'
 import {
   ShoppingOutlined,
@@ -124,6 +124,7 @@ function MainLayout() {
   const isFirstLogin = location.pathname === '/user/change-password' && searchParams.get('first_login') === '1'
 
   const [sessionError, setSessionError] = useState(null)
+  const [aboutOpen, setAboutOpen] = useState(false) // #2069: 关于/版本
 
   // #1714: clear auth state, then either redirect straight to IAM (cold
   // start, direct=true) or stay on the page with a session-expired overlay
@@ -646,14 +647,17 @@ function onMenuClick(e) {
             <Breadcrumb items={breadcrumbItems} className="text-sm text-gray-500" />
           </div>
           <div className="flex items-center gap-4">
-            {window.APP_CONFIG?.version && window.APP_CONFIG.version !== 'dev' && (
-              <span className="text-xs text-gray-400">
-                v{window.APP_CONFIG.version}
-                {window.APP_CONFIG?.build && window.APP_CONFIG.build !== 'dev'
-                  ? ` (build ${window.APP_CONFIG.build})`
-                  : import.meta.env.VITE_APP_VERSION ? ` (build ${import.meta.env.VITE_APP_VERSION})` : ''}
-              </span>
-            )}
+            {/* #2069: 关于/版本入口（点击查看后台版本与环境） */}
+            <span
+              className="text-xs text-gray-400 cursor-pointer hover:text-gray-600"
+              onClick={() => setAboutOpen(true)}
+              title="关于"
+            >
+              关于
+              {window.APP_CONFIG?.version && window.APP_CONFIG.version !== 'dev'
+                ? ` · v${window.APP_CONFIG.version}`
+                : ''}
+            </span>
             <div>
               {userInfo ? (
                 <div className="flex items-center gap-2">
@@ -758,6 +762,33 @@ function onMenuClick(e) {
         </Content>
       </Layout>
     </Layout>
+    {/* #2069: 关于 Modal（版本/构建/环境，数据源 /api/config） */}
+    <Modal
+      title="关于"
+      open={aboutOpen}
+      onCancel={() => setAboutOpen(false)}
+      footer={null}
+      width={360}
+    >
+      {(() => {
+        const host = window.location.host || ''
+        const env = host.includes('localhost') || host.includes('127.0.0.1')
+          ? '开发'
+          : host.includes('preweb') ? '预生产'
+          : host.includes('cadenzayueqi.com') ? '生产'
+          : '未知'
+        const version = window.APP_CONFIG?.version || '未知'
+        const build = window.APP_CONFIG?.build || import.meta.env.VITE_APP_VERSION || '-'
+        return (
+          <div className="text-sm text-gray-700 flex flex-col gap-2">
+            <div>后台版本：<span className="font-medium">v{version}</span></div>
+            <div>构建：<span className="font-mono text-xs">{build}</span></div>
+            <div>环境：<span className="font-medium">{env}</span></div>
+            <div className="text-xs text-gray-400">TuneLoop 运营后台</div>
+          </div>
+        )
+      })()}
+    </Modal>
     {showExpiryWarning && (
       <div
         onClick={handleExtendSession}

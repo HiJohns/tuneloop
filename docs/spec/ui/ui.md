@@ -1454,6 +1454,12 @@ API 来源：
 
 ## 三、PC 端（商家管理端 & 平台运营端）
 
+### 3.0 关于/版本（#2069）
+
+- **入口**：Header 右上角「关于 · v{version}」文字（可点击）→ About Modal
+- **内容**：后台版本（`GET /api/config` 的 `version`）、构建短码（`config.build`，回退 `VITE_APP_VERSION`）、环境（按 `location.host` 判定：`localhost`→开发 / `preweb`→预生产 / `cadenzayueqi.com`→生产）
+- **数据源**：启动时 `App` 已拉取 `/config` 存 `window.APP_CONFIG`（无需新增请求）
+
 ### 3.1 技术栈
 - **框架**: React 18 + TypeScript
 - **UI 库**: Ant Design 5.x
