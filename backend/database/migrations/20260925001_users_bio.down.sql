@@ -1,0 +1,2 @@
+-- #2073 down
+ALTER TABLE users DROP COLUMN IF EXISTS bio;

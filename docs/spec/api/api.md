@@ -4075,6 +4075,18 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ---
 
+### 8.11.3b 管理员为用户上传头像（#2073）
+
+**接口**: `POST /api/admin/users/:id/avatar`
+
+**权限**: `sys_perm bit 18 (user:update)`
+
+**请求**: `multipart/form-data` `file`（JPEG/PNG/WebP）
+
+**说明**: 处理链同 `POST /api/users/me/avatar`（256×256 WebP → MediaStorage → `media_assets(source_type=avatar)`），存储键 `avatar_{users.id}.webp`，落 `users.avatar_url`；**租户隔离**（非平台级上下文仅能操作本租户用户，越权 40300）。
+
+**响应**: `{code:20000, data:{avatar:"/uploads/media/avatar_<id>.webp"}}`
+
 ### 8.11.4 账户管理列表（#2064）
 
 **接口**: `GET /api/admin/user-management`
@@ -5754,7 +5766,7 @@ GET /api/admin/dashboard/near-transfers
 
 **Query**: `page`（默认 1）、`page_size`（默认 20，≤100）、`name`（姓名 ILIKE；页面搜索表单参数）、`site_id`（**merchant 视图**按网点过滤成员，师傅/直属员工不属网点故排除）、`direct`（**merchant 视图**：`true`=只看直属员工（`merchant_members`）+ 维修师傅；与 `site_id` 同传时 **direct 优先**）、`search`（name/phone/email ILIKE，通用口径；name 优先）
 
-**响应行**: `{id, user_id, name, phone, email, position, role, status, iam_sub, site_id, site_name, is_technician}`
+**响应行**: `{id, user_id, name, phone, email, position, role, status, iam_sub, site_id, site_name, is_technician, bio, avatar}`（#2073 增 `bio`/`avatar`）
 （一行一人；多网点归属时 `site_name` 逗号聚合；`id`/`user_id` 同值，兼容既有行操作）
 
 **隔离**: 商户/网点视图均有 tenant/org WHERE 强制（#688 纪律）；跨商户/跨网点不可见。
@@ -5790,7 +5802,7 @@ GET /api/admin/dashboard/near-transfers
 | email | string | 否 | 邮箱（改选填） |
 | username | string | 否 | 用户名（不传时自动使用 email 前缀） |
 | **user_type** | string | 否 | **#2068**：`site_staff`(缺省) \| `repair_technician` \| `merchant_direct`；决定归属与是否一并建档案/关系 |
-| **bio** | string | 否 | **#2068**：维修师傅简介（富文本 HTML，落 `technician_profiles.bio`） |
+| **bio** | string | 否 | **#2068/#2073**：简介（富文本 HTML）——**全类型**落 `users.bio`；`repair_technician` 另**双写** `technician_profiles.bio` |
 
 **#2068 用户类型与合并创建（单事务）**：
 

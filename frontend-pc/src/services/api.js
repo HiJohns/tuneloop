@@ -435,6 +435,8 @@ export const personnelApi = {
 }
 
 export const staffApi = {
+  // #2073: 管理员为目标用户上传头像（multipart；使用 request 传 FormData，勿用 api.post —— #1967 教训）
+  uploadUserAvatar: (id, formData) => request(`/admin/users/${id}/avatar`, { method: 'POST', body: formData }),
   list: (params) => api.get('/staff', { params }),
   getMe: () => api.get('/users/me'),
   createUser: (data) => api.post('/users', data),

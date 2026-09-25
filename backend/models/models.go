@@ -36,6 +36,7 @@ type User struct {
 	IdPhotoOther         *string    `gorm:"type:varchar(500)" json:"id_photo_other"`
 	IdPhotoOtherType     *string    `gorm:"type:varchar(50)" json:"id_photo_other_type"`  // #1807: 第三证件类型（student/teacher/work/other）
 	IntroLetterURL       *string    `gorm:"type:varchar(500)" json:"intro_letter_url"`    // #2057 裁定3: 学生证作为第二证件时的介绍信
+	Bio                  string     `gorm:"type:text" json:"bio"`                         // #2073: 全员富文本简介
 	IdPhotoOtherVerified bool       `gorm:"default:false" json:"id_photo_other_verified"` // #1924: 第二证件审核通过（类型由审核员指定）
 	RealName             *string    `gorm:"type:varchar(64)" json:"real_name"`
 	IdCardNo             *string    `gorm:"type:varchar(18)" json:"id_card_no"`
@@ -1012,21 +1013,21 @@ func (s SiteMember) EffectiveRoles() []string {
 // the code; the invitee redeems it while logged in, so no admin代挂 and no SMS
 // are required (一人一号).
 type StaffInvite struct {
-	ID         string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID   string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrgID      string     `gorm:"type:uuid;not null" json:"org_id"`
-	SiteID    string     `gorm:"type:uuid;index" json:"site_id"`
+	ID       string `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID string `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID    string `gorm:"type:uuid;not null" json:"org_id"`
+	SiteID   string `gorm:"type:uuid;index" json:"site_id"`
 	// InviteeUserID 被邀请人（既有用户）本地 ID；#2052 邀请通知据此校验「接受人=被邀请人」
-	InviteeUserID *string `gorm:"type:uuid;index" json:"invitee_user_id,omitempty"`
-	Role       string     `gorm:"type:varchar(20);not null" json:"role"`
-	Code       string     `gorm:"type:varchar(32);not null;uniqueIndex" json:"code"`
-	CreatedBy  *string    `gorm:"type:uuid" json:"created_by,omitempty"`
-	ExpiresAt  time.Time  `json:"expires_at"`
-	Status     string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
-	AcceptedBy *string    `gorm:"type:uuid" json:"accepted_by,omitempty"`
-	AcceptedAt *time.Time `json:"accepted_at"`
-	CreatedAt  time.Time  `json:"created_at"`
-	UpdatedAt  time.Time  `json:"updated_at"`
+	InviteeUserID *string    `gorm:"type:uuid;index" json:"invitee_user_id,omitempty"`
+	Role          string     `gorm:"type:varchar(20);not null" json:"role"`
+	Code          string     `gorm:"type:varchar(32);not null;uniqueIndex" json:"code"`
+	CreatedBy     *string    `gorm:"type:uuid" json:"created_by,omitempty"`
+	ExpiresAt     time.Time  `json:"expires_at"`
+	Status        string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
+	AcceptedBy    *string    `gorm:"type:uuid" json:"accepted_by,omitempty"`
+	AcceptedAt    *time.Time `json:"accepted_at"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
 }
 
 // PendingOrder 缓存未实名用户被拦截时的下单表单，实名通过后可回跳继续提交

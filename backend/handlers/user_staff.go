@@ -247,6 +247,7 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		Phone:     req.Phone,
 		Email:     req.Email,
 		Position:  req.Position,
+		Bio:       req.Bio, // #2073: 全员富文本简介（repair_technician 另行双写 profile.bio）
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}

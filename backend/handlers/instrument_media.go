@@ -820,3 +820,58 @@ func UploadUserAvatar(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"avatar": avatarURL}})
 }
+
+// AdminUploadUserAvatar #2073: POST /api/admin/users/:id/avatar
+// 管理员为既有用户（如刚创建的人员）上传头像；处理链与 UploadUserAvatar 一致
+// （256×256 WebP → MediaStorage → MediaRegistry），仅归属列改为本地 users.id 且加租户隔离。
+func AdminUploadUserAvatar(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	targetID := c.Param("id")
+	if targetID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "user id required"})
+		return
+	}
+	var target models.User
+	if err := db.Select("id, tenant_id").Where("id = ?", targetID).First(&target).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		return
+	}
+	// 租户隔离（#688）：非平台级上下文仅能操作本租户用户
+	if tid := middleware.GetTenantID(ctx); tid != "" && target.TenantID != tid {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
+		return
+	}
+
+	file, _, err := c.Request.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "file required"})
+		return
+	}
+	defer file.Close()
+	fileData, err := io.ReadAll(file)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to read file"})
+		return
+	}
+	avatarData, err := services.GenerateThumbnailWebP(fileData, 256, 256)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to process image"})
+		return
+	}
+	storage := services.NewMediaStorage()
+	avatarKey := "avatar_" + target.ID + ".webp"
+	if err := storage.Upload(ctx, avatarKey, bytes.NewReader(avatarData), "image/webp"); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to upload avatar"})
+		return
+	}
+	if err := services.NewMediaRegistry().RegisterAsset(ctx, avatarKey, services.SourceTypeAvatar, target.ID, int64(len(avatarData)), "image"); err != nil {
+		log.Printf("[MediaRegistry] register admin avatar %s failed: %v", avatarKey, err)
+	}
+	avatarURL := "/uploads/media/" + avatarKey
+	if err := db.Model(&models.User{}).Where("id = ?", target.ID).Update("avatar_url", avatarURL).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to save avatar"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"avatar": avatarURL}})
+}

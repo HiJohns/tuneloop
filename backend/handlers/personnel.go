@@ -36,6 +36,8 @@ type personnelRow struct {
 	SiteID       string `json:"site_id"`
 	SiteName     string `json:"site_name"`
 	IsTechnician bool   `json:"is_technician"`
+	Bio          string `json:"bio"`    // #2073: 全员富文本简介
+	Avatar       string `json:"avatar"` // #2073: 头像（users.avatar_url）
 }
 
 // List GET /api/admin/personnel
@@ -226,7 +228,7 @@ func personnelSystemView(db *gorm.DB, rootOrgID, keyword string) []personnelRow 
 		rows = append(rows, personnelRow{
 			ID: u.ID, UserID: u.ID, Name: u.Name, Phone: u.Phone, Email: u.Email,
 			Position: u.Position, Role: u.Role, Status: u.Status, IAMSub: u.IAMSub,
-			SiteName: "平台",
+			SiteName: "平台", Bio: u.Bio, Avatar: u.AvatarURL,
 		})
 	}
 
@@ -271,7 +273,7 @@ func personnelSystemView(db *gorm.DB, rootOrgID, keyword string) []personnelRow 
 			row := personnelRow{
 				ID: u.ID, UserID: u.ID, Name: u.Name, Phone: u.Phone, Email: u.Email,
 				Position: u.Position, Role: u.Role, Status: u.Status, IAMSub: u.IAMSub,
-				SiteName: strings.Join(siteNames, ", "),
+				SiteName: strings.Join(siteNames, ", "), Bio: u.Bio, Avatar: u.AvatarURL,
 			}
 			if len(roleNames) > 0 {
 				row.Role = strings.Join(roleNames, ",")
@@ -355,6 +357,7 @@ func assemblePersonnel(users []models.User, sms []siteMembershipRow, techIDs []s
 			ID: u.ID, UserID: u.ID, Name: u.Name, Phone: u.Phone, Email: u.Email,
 			Position: position, Role: role, Status: u.Status, IAMSub: u.IAMSub,
 			SiteID: siteID, SiteName: siteName, IsTechnician: isTech,
+			Bio: u.Bio, Avatar: u.AvatarURL,
 		})
 	}
 	return rows

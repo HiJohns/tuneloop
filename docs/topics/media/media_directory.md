@@ -32,6 +32,8 @@ media_assets
 ├── id                  UUID (PK)
 ├── storage_key         VARCHAR(500) (NOT NULL, UNIQUE) — physical file key (relative to uploads/media)
 ├── source_type         VARCHAR(30)  — "content_image", "avatar", "id_photo", "instrument_media", "technician"
+│   └── avatar 键约定：`avatar_{owner}.webp`（256²WebP）；owner=本人 iam_sub（`POST /users/me/avatar`）
+│       或 本地 users.id（管理员端点 `POST /admin/users/:id/avatar`，#2073）
 ├── source_id           VARCHAR(100) — reference entity (setting_key / user_id / instrument_id / technician_profile_id …)
 ├── is_referenced       BOOLEAN      — still referenced by any content?
 ├── ref_count           INT          — reference count (increment on reuse)

@@ -4,7 +4,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutli
 import ReactQuill from 'react-quill'
 import PhotoUploader from '../components/PhotoUploader'
 import 'react-quill/dist/quill.snow.css'
-import { staffApi, sitesApi, personnelApi, technicianApi } from '../services/api'
+import { staffApi, sitesApi, personnelApi } from '../services/api'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 const { Option } = Select
@@ -18,8 +18,8 @@ export default function StaffManagement() {
   const [siteTree, setSiteTree] = useState([])
   const [viewMode, setViewMode] = useState('list') // 'list' | 'create'
   const [userType, setUserType] = useState('site_staff') // #2068: 用户类型
-  const [technicianPhotoFile, setTechnicianPhotoFile] = useState(null) // #2070: 师傅照片文件（创建后上传）
-  const [technicianPhotoUrl, setTechnicianPhotoUrl] = useState('') // #2070: 本地预览 URL（选择即预览）
+  const [createPhotoFile, setCreatePhotoFile] = useState(null) // #2073: 创建照片文件（头像，创建后上传）
+  const [createPhotoUrl, setCreatePhotoUrl] = useState('') // #2073: 本地预览 URL（选择即预览）
   const [createUserForm] = Form.useForm()
   const [autoGenerate, setAutoGenerate] = useState(true)
   const [lockedSiteId, setLockedSiteId] = useState(null)
@@ -203,18 +203,18 @@ export default function StaffManagement() {
         } else {
           message.success('创建用户成功')
         }
-        // #2068: 维修师傅照片（创建后经媒体管线上传；失败可事后在档案页补传）
-        if (values.user_type === 'repair_technician' && result.data?.technician_profile_id && technicianPhotoFile) {
+        // #2073: 全类型照片 → 头像（创建后经管理员媒体管线上传）
+        if (result.data?.id && createPhotoFile) {
           try {
             const fd = new FormData()
-            fd.append('file', technicianPhotoFile)
-            await technicianApi.uploadPhoto(result.data.technician_profile_id, fd)
+            fd.append('file', createPhotoFile)
+            await staffApi.uploadUserAvatar(result.data.id, fd)
           } catch (e) {
-            message.warning('照片上传失败，可在「维修师档案」页补传')
+            message.warning('照片上传失败，可在后续编辑中重试')
           }
         }
-        setTechnicianPhotoFile(null)
-        setTechnicianPhotoUrl('')
+        setCreatePhotoFile(null)
+        setCreatePhotoUrl('')
         setViewMode('list')
         createUserForm.resetFields()
         fetchStaffList()
@@ -614,25 +614,19 @@ export default function StaffManagement() {
             </Form.Item>
           )}
 
-          {/* 维修师傅：富文本简介 + 照片（创建后经媒体管线上传） */}
-          {userType === 'repair_technician' && (
-            <>
-              {/* #2070: 去掉「职位」（师傅职位即「维修师傅」，后端 assemblePersonnel 自动回退） */}
-              <Form.Item name="bio" label="简介（富文本）">
-                <ReactQuill theme="snow" placeholder="专长与年限，如「钢琴维修 12 年 · 小提琴维修 8 年」" style={{ background: '#fff' }} />
-              </Form.Item>
-              <Form.Item label="个人照片">
-                {/* #2070: 复用共享照片控件（选择即预览） */}
-                <PhotoUploader
-                  photoUrl={technicianPhotoUrl}
-                  onSelect={(f) => { setTechnicianPhotoFile(f); setTechnicianPhotoUrl(URL.createObjectURL(f)) }}
-                />
-                <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
-                  照片将在创建成功后上传（原图+缩略图）；也可稍后在「维修师档案」页补传。
-                </div>
-              </Form.Item>
-            </>
-          )}
+          {/* #2073: 简介（富文本）与照片对**所有类型**开放（照片=头像，创建后经媒体管线上传） */}
+          <Form.Item name="bio" label="简介（富文本）">
+            <ReactQuill theme="snow" placeholder="如：钢琴维修 12 年 · 小提琴维修 8 年" style={{ background: '#fff' }} />
+          </Form.Item>
+          <Form.Item label="照片（头像）">
+            <PhotoUploader
+              photoUrl={createPhotoUrl}
+              onSelect={(f) => { setCreatePhotoFile(f); setCreatePhotoUrl(URL.createObjectURL(f)) }}
+            />
+            <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
+              照片将在创建成功后上传；也可稍后在用户编辑中更换。
+            </div>
+          </Form.Item>
 
           <Form.Item name="force_password_change" valuePropName="checked" initialValue={true}>
             <Checkbox>首次登录时强制修改密码</Checkbox>

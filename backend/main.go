@@ -456,6 +456,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.DELETE("/admin/merchants/:id/members/:uid", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantMemberHandler.RemoveMember)
 
 		// Platform user management (#1545): list/detail/edit/export users
+		authRequired.POST("/admin/users/:id/avatar", middleware.RequireSysPerm(middleware.SysPermUserUpdate), handlers.AdminUploadUserAvatar) // #2073 管理员为用户上传头像
 		authRequired.GET("/admin/user-management", middleware.RequireSysPerm(middleware.SysPermTenantList), userManagementHandler.List)
 		authRequired.GET("/admin/user-management/export", middleware.RequireSysPerm(middleware.SysPermTenantList), userManagementHandler.Export)
 		authRequired.GET("/admin/user-management/:id", middleware.RequireSysPerm(middleware.SysPermTenantView), userManagementHandler.Get)
