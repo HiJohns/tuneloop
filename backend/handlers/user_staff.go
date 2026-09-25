@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"log"
 	"math/big"
@@ -160,10 +161,26 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		Password            string    `json:"password"`
 		AutoGenerate        bool      `json:"auto_generate"`
 		ForcePasswordChange bool      `json:"force_password_change"`
+		// #2068: 用户类型与师傅简介。user_type 缺省 site_staff（保持既有行为）；
+		// repair_technician → 直属商户（建师傅档案）；merchant_direct → 商户直属员工。
+		UserType string `json:"user_type"`
+		Bio      string `json:"bio"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid request body: " + err.Error()})
+		return
+	}
+
+	// #2068: 用户类型（缺省 site_staff 保持既有行为）
+	userType := req.UserType
+	if userType == "" {
+		userType = "site_staff"
+	}
+	switch userType {
+	case "site_staff", "repair_technician", "merchant_direct":
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid user_type, must be one of: site_staff, repair_technician, merchant_direct"})
 		return
 	}
 
@@ -235,7 +252,14 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	}
 
 	var orgID string
-	if req.SiteID != uuid.Nil {
+	if userType != "site_staff" {
+		// #2068: 维修师傅/商户直属员工 直属商户（不挂网点）→ 绑定商户根组织（tenant），忽略网点归属
+		orgID = tenantID
+		if req.SiteID != uuid.Nil {
+			req.SiteID = uuid.Nil
+		}
+	}
+	if userType == "site_staff" && req.SiteID != uuid.Nil {
 		siteIDStr := req.SiteID.String()
 
 		var site models.Site
@@ -247,12 +271,17 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		if orgID == "" {
 			orgID = tenantID
 		}
+	}
+	// #2068: 统一回填 OrgID（非 site_staff 路径此前只设 orgID 未赋 user.OrgID → uuid 列空串报错）
+	if orgID != "" {
 		user.OrgID = orgID
 	}
 
 	// Resolve role with first-user default
 	resolvedRole := req.Role
-	if resolvedRole == "" {
+	if userType == "repair_technician" {
+		resolvedRole = "repair_technician"
+	} else if resolvedRole == "" {
 		if req.SiteID != uuid.Nil {
 			var memberCount int64
 			db.Model(&models.SiteMember{}).Where("site_id = ? AND tenant_id = ?", req.SiteID.String(), tenantID).Count(&memberCount)
@@ -359,26 +388,57 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		}
 	}
 
-	if err := db.Create(&user).Error; err != nil {
+	// #2068: 本地落库（用户 + 归属记录）单事务，避免半态；失败回滚 IAM 侧
+	var technicianProfileID string
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&user).Error; err != nil {
+			return err
+		}
+		// 网点员工：建 site_members（既有语义；事务内错误即回滚，消除原先 warn-only 半态）
+		if userType == "site_staff" && req.SiteID != uuid.Nil {
+			siteMember := models.SiteMember{
+				TenantID: tenantID,
+				SiteID:   req.SiteID.String(),
+				UserID:   user.ID,
+				Role:     resolvedRole,
+			}
+			if err := tx.Create(&siteMember).Error; err != nil {
+				return err
+			}
+		}
+		// 维修师傅：建 technician_profiles（直属商户，不挂网点）
+		if userType == "repair_technician" {
+			tp := models.TechnicianProfile{
+				ID: uuid.New().String(), UserID: user.ID, TenantID: tenantID,
+				Bio: req.Bio, Status: "active",
+			}
+			if err := tx.Create(&tp).Error; err != nil {
+				return err
+			}
+			technicianProfileID = tp.ID
+		}
+		// 商户直属员工：建 merchant_members
+		if userType == "merchant_direct" {
+			var merch models.Merchant
+			if err := tx.Where("tenant_id = ?", tenantID).Order("created_at ASC").First(&merch).Error; err != nil {
+				return errors.New("merchant not found for tenant")
+			}
+			mm := models.MerchantMember{
+				TenantID: tenantID, MerchantID: merch.ID, UserID: user.ID,
+				Role: "site_member", Status: "active",
+			}
+			if err := tx.Create(&mm).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
 		if orgID != "" && user.IAMSub != "" {
 			iamClient.UnbindUserFromOrganization(user.IAMSub, orgID, "")
 			iamClient.DeleteUser(user.IAMSub)
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create user: " + err.Error()})
 		return
-	}
-
-	// Create site_member record if site_id was provided
-	if req.SiteID != uuid.Nil {
-		siteMember := models.SiteMember{
-			TenantID: tenantID,
-			SiteID:   req.SiteID.String(),
-			UserID:   user.ID,
-			Role:     resolvedRole,
-		}
-		if err := db.Create(&siteMember).Error; err != nil {
-			log.Printf("[WARN] Failed to create site_member for user %s: %v", user.ID, err)
-		}
 	}
 
 	respData := gin.H{
@@ -393,6 +453,9 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	}
 	if initialPassword != "" {
 		respData["initial_password"] = initialPassword
+	}
+	if technicianProfileID != "" {
+		respData["technician_profile_id"] = technicianProfileID // #2068: 供前端创建后上传照片
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -1363,7 +1426,7 @@ func (h *UserStaffHandler) WxBindCurrentUser(c *gin.Context) {
 		Code string `json:"code" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "code is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid request body: " + err.Error()})
 		return
 	}
 

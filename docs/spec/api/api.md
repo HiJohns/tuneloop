@@ -5789,6 +5789,19 @@ GET /api/admin/dashboard/near-transfers
 | phone | string | 是 | 手机号 |
 | email | string | 否 | 邮箱（改选填） |
 | username | string | 否 | 用户名（不传时自动使用 email 前缀） |
+| **user_type** | string | 否 | **#2068**：`site_staff`(缺省) \| `repair_technician` \| `merchant_direct`；决定归属与是否一并建档案/关系 |
+| **bio** | string | 否 | **#2068**：维修师傅简介（富文本 HTML，落 `technician_profiles.bio`） |
+
+**#2068 用户类型与合并创建（单事务）**：
+
+| user_type | 归属 | 同事务创建 |
+|-----------|------|-----------|
+| `site_staff`（缺省，既有行为） | 网点（`site_id` 必填） | `site_members` |
+| `repair_technician` | **直属商户**（绑定商户根组织，忽略 `site_id`） | `technician_profiles`（含 `bio`；响应返回 `technician_profile_id` 供照片上传） |
+| `merchant_direct` | **直属商户** | `merchant_members` |
+
+- 本地落库（users + 归属记录）**单事务**；失败回滚 IAM 侧（Unbind + DeleteUser），消除「建了用户但档案失败」半态
+- **唯一性冲突**（phone/email/username）：`409 40900` + `data:[{id,name,phone,email,...}]`（candidates）；前端据此前置提示/发送邀请通知（#2052）
 | position | string | 否 | 职位 |
 | site_id | string | 否 | 归属网点 ID |
 | role | string | 否 | 角色：site_member / site_admin / repair_technician |

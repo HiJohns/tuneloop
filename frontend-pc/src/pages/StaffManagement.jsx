@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Card, Table, Button, Modal, Form, Input, Select, message, Spin, Space, Popconfirm, Tag, Alert, Tabs, Radio, Checkbox } from 'antd'
+import { Card, Table, Button, Modal, Form, Input, Select, message, Spin, Space, Popconfirm, Tag, Alert, Radio, Checkbox } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined, SendOutlined, MailOutlined, ReloadOutlined } from '@ant-design/icons'
-import { staffApi, sitesApi, personnelApi } from '../services/api'
+import ReactQuill from 'react-quill'
+import 'react-quill/dist/quill.snow.css'
+import { staffApi, sitesApi, personnelApi, technicianApi } from '../services/api'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 const { Option } = Select
@@ -14,11 +16,8 @@ export default function StaffManagement() {
   const [searchParams, setSearchParams] = useState({ name: '', siteId: null })
   const [siteTree, setSiteTree] = useState([])
   const [viewMode, setViewMode] = useState('list') // 'list' | 'create'
-  const [createTab, setCreateTab] = useState('create')
-  const [searchKeyword, setSearchKeyword] = useState('')
-  const [searchResults, setSearchResults] = useState([])
-  const [searchLoading, setSearchLoading] = useState(false)
-  const [debounceTimeout, setDebounceTimeout] = useState(null)
+  const [userType, setUserType] = useState('site_staff') // #2068: 用户类型
+  const [technicianPhoto, setTechnicianPhoto] = useState(null) // #2068: 师傅照片（创建后上传）
   const [createUserForm] = Form.useForm()
   const [autoGenerate, setAutoGenerate] = useState(true)
   const [lockedSiteId, setLockedSiteId] = useState(null)
@@ -201,6 +200,17 @@ export default function StaffManagement() {
         } else {
           message.success('创建用户成功')
         }
+        // #2068: 维修师傅照片（创建后经媒体管线上传；失败可事后在档案页补传）
+        if (values.user_type === 'repair_technician' && result.data?.technician_profile_id && technicianPhoto) {
+          try {
+            const fd = new FormData()
+            fd.append('file', technicianPhoto)
+            await technicianApi.uploadPhoto(result.data.technician_profile_id, fd)
+          } catch (e) {
+            message.warning('照片上传失败，可在「维修师档案」页补传')
+          }
+        }
+        setTechnicianPhoto(null)
         setViewMode('list')
         createUserForm.resetFields()
         fetchStaffList()
@@ -527,111 +537,104 @@ export default function StaffManagement() {
         className="mb-4" 
         size="small"
       >
-        <Tabs 
-          activeKey={createTab} 
-          onChange={setCreateTab}
-          items={[
-            {
-              key: 'search',
-              label: '搜索用户',
-              children: (
-                <div className="mb-3">
-                  <Input.Search
-                    placeholder="输入用户名/邮箱/手机搜索"
-                    value={searchKeyword}
-                    onChange={e => handleSearchInput(e.target.value)}
-                    loading={searchLoading}
-                    enterButton
-                  />
-                  {searchKeyword.trim() && !searchLoading && (
-                    <div className="mt-2" style={{ maxHeight: 240, overflow: 'auto' }}>
-                      {searchResults.length > 0 ? (
-                        searchResults.map(u => (
-                          <div
-                            key={u.id}
-                            className="flex items-center justify-between p-2 hover:bg-gray-50 rounded cursor-pointer"
-                          >
-                            <div>
-                              <span className="font-medium">{u.name}</span>
-                              <span className="text-gray-400 ml-2">{u.phone}</span>
-                              {u.email && <span className="text-gray-400 ml-2">{u.email}</span>}
-                            </div>
-                            <Tag color={u.iam_sub ? 'green' : 'orange'}>{u.iam_sub ? '已注册' : '未激活'}</Tag>
-                          </div>
-                        ))
-                      ) : (
-                        <div
-                          className="text-center py-4 text-blue-500 cursor-pointer hover:text-blue-700"
-                          onClick={() => setCreateTab('create')}
-                        >
-                          未找到匹配用户 → 创建新用户
-                        </div>
-                      )}
-                    </div>
-                  )}
+        {/* #2068: 去「搜索用户」Tab（死 Tab：state 从未写入）；直接展示创建表单 */}
+        <Form
+          form={createUserForm}
+          layout="vertical"
+          onFinish={handleCreateUser}
+        >
+          {/* #2068: 用户类型置首（不同类型后续可扩展字段） */}
+          <Form.Item name="user_type" label="用户类型" initialValue="site_staff" rules={[{ required: true }]}>
+            <Radio.Group onChange={e => setUserType(e.target.value)}>
+              <Radio value="site_staff">网点员工</Radio>
+              <Radio value="repair_technician">维修师傅</Radio>
+              <Radio value="merchant_direct">商户直属员工</Radio>
+            </Radio.Group>
+          </Form.Item>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
+              <Input placeholder="姓名" />
+            </Form.Item>
+            <Form.Item name="username" label="用户名">
+              <Input placeholder="用户名" />
+            </Form.Item>
+            <Form.Item name="email" label="邮箱">
+              <Input placeholder="邮箱（选填）" />
+            </Form.Item>
+            <Form.Item name="phone" label="手机号" rules={[{ required: true, message: '请输入手机号' }]}>
+              <Input placeholder="手机号" />
+            </Form.Item>
+            <Form.Item name="auto_generate" label="密码设置" initialValue={true}>
+              <Radio.Group onChange={e => setAutoGenerate(e.target.value)}>
+                <Radio value={true}>自动生成</Radio>
+                <Radio value={false}>手动设置</Radio>
+              </Radio.Group>
+            </Form.Item>
+            {!autoGenerate && (
+              <Form.Item name="password" label="密码">
+                <Input.Password placeholder="8位+大写+小写+数字" />
+              </Form.Item>
+            )}
+          </div>
+
+          {/* 网点员工：归属网点 + 角色 */}
+          {userType === 'site_staff' && (
+            <>
+              <Form.Item name="site_id" label="归属网点" rules={[{ required: true }]}>
+                <Select placeholder="选择网点" disabled={!!lockedSiteId}>
+                  {siteOptions.map(o => (
+                    <Option key={o.key} value={o.value}>{o.label}</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item name="role" label="角色" initialValue="site_member">
+                <Select>
+                  <Option value="site_admin">管理员</Option>
+                  <Option value="site_member">成员</Option>
+                </Select>
+              </Form.Item>
+            </>
+          )}
+
+          {/* 商户直属员工：职位 */}
+          {userType === 'merchant_direct' && (
+            <Form.Item name="position" label="职位">
+              <Input placeholder="如：客服 / 运营" />
+            </Form.Item>
+          )}
+
+          {/* 维修师傅：富文本简介 + 照片（创建后经媒体管线上传） */}
+          {userType === 'repair_technician' && (
+            <>
+              <Form.Item name="position" label="职位">
+                <Input placeholder="如：钢琴维修 / 小提琴维修" />
+              </Form.Item>
+              <Form.Item name="bio" label="简介（富文本）">
+                <ReactQuill theme="snow" placeholder="专长与年限，如「钢琴维修 12 年 · 小提琴维修 8 年」" style={{ background: '#fff' }} />
+              </Form.Item>
+              <Form.Item label="个人照片">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={e => setTechnicianPhoto(e.target.files?.[0] || null)}
+                />
+                <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
+                  照片将在创建成功后上传（原图+缩略图）；也可稍后在「维修师档案」页补传。
                 </div>
-              ),
-            },
-            {
-              key: 'create',
-              label: '创建用户',
-              children: (
-                <Form
-                  form={createUserForm}
-                  layout="vertical"
-                  onFinish={handleCreateUser}
-                >
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
-                      <Input placeholder="姓名" />
-                    </Form.Item>
-                    <Form.Item name="username" label="用户名">
-                      <Input placeholder="用户名" />
-                    </Form.Item>
-                    <Form.Item name="email" label="邮箱">
-                      <Input placeholder="邮箱（选填）" />
-                    </Form.Item>
-                    <Form.Item name="phone" label="手机号" rules={[{ required: true, message: '请输入手机号' }]}>
-                      <Input placeholder="手机号" />
-                    </Form.Item>
-                    <Form.Item name="auto_generate" label="密码设置" initialValue={true}>
-                      <Radio.Group onChange={e => setAutoGenerate(e.target.value)}>
-                        <Radio value={true}>自动生成</Radio>
-                        <Radio value={false}>手动设置</Radio>
-                      </Radio.Group>
-                    </Form.Item>
-                    {!autoGenerate && (
-                      <Form.Item name="password" label="密码">
-                        <Input.Password placeholder="8位+大写+小写+数字" />
-                      </Form.Item>
-                    )}
-                  </div>
-                  <Form.Item name="force_password_change" valuePropName="checked" initialValue={true}>
-                    <Checkbox>首次登录时强制修改密码</Checkbox>
-                  </Form.Item>
-                  <Form.Item name="site_id" label="归属网点" rules={[{ required: true }]}>
-                    <Select placeholder="选择网点" disabled={!!lockedSiteId}>
-                      {siteOptions.map(o => (
-                        <Option key={o.key} value={o.value}>{o.label}</Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                  <Form.Item name="role" label="角色" initialValue="site_member">
-                    <Select>
-                      <Option value="site_admin">管理员</Option>
-                      <Option value="site_member">成员</Option>
-                      <Option value="repair_technician">维修师傅</Option>
-                    </Select>
-                  </Form.Item>
-                  <Space>
-                    <Button type="primary" htmlType="submit">创建用户</Button>
-                    <Button onClick={() => { setViewMode('list'); createUserForm.resetFields() }}>取消</Button>
-                  </Space>
-                </Form>
-              ),
-            },
-          ]}
-        />
+              </Form.Item>
+            </>
+          )}
+
+          <Form.Item name="force_password_change" valuePropName="checked" initialValue={true}>
+            <Checkbox>首次登录时强制修改密码</Checkbox>
+          </Form.Item>
+          <Space>
+            <Button type="primary" htmlType="submit">创建用户</Button>
+            <Button onClick={() => { setViewMode('list'); createUserForm.resetFields() }}>取消</Button>
+          </Space>
+        </Form>
+
       </Card>
       )}
 
