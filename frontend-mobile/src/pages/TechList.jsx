@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { photoSrc } from '../utils/media'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Button } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
@@ -100,7 +101,7 @@ export default function TechList() {
                 }}
               >
                 {avatar ? (
-                  <Image src={avatar} mode="aspectFill" style={{ width: 64, height: 64, borderRadius: 32 }} />
+                  <Image src={photoSrc(avatar)} mode="aspectFill" style={{ width: 64, height: 64, borderRadius: 32 }} />
                 ) : (
                   <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#F4F4F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Text style={{ fontSize: 20, color: '#A1A1AA' }}>师</Text>

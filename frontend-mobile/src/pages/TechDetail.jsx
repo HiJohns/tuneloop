@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { photoSrc } from '../utils/media'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Button } from '@tarojs/components'
 import { apiFetch } from '../services/api'
@@ -70,7 +71,7 @@ export default function TechDetail() {
               {/* 头部：照片 + 姓名 */}
               <View style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
                 {tech.avatar ? (
-                  <Image src={tech.avatar} mode="aspectFill" style={{ width: 96, height: 96, borderRadius: 48 }} />
+                  <Image src={photoSrc(tech.avatar)} mode="aspectFill" style={{ width: 96, height: 96, borderRadius: 48 }} />
                 ) : (
                   <View style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: '#F4F4F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Text style={{ fontSize: 28, color: '#A1A1AA' }}>师</Text>

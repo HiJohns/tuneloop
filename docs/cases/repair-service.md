@@ -87,6 +87,8 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 报修，并存
   - 受控组合：3 段受管物流（中转→受控、受控→中转、中转→用户）；**用户→中转段用户自担**
 - **调用 / 获取**
   - `GET /api/common/repair-technicians` → 维修师列表（**商户直属**，档案字段；去 site 维度）　**【RS-API-1 修订】**
+    - **照片回退（#2076）**：`avatar`/`avatar_thumb` 优先 `technician_profiles.photo`；为**空时回退 `users.avatar_url`**（#2073 创建师徒照片落头像）；头像无缩略图变体 → `avatar_thumb` 用原图
+    - **前端渲染（#1876 约定）**：列表/详情 `Image src` 必须经 `photoSrc()` 补全 origin（weapp 不支持相对路径，静默失败）
   - `GET /api/common/repair-technicians/:id` → 维修师详情　**【RS-API-8，新增】**
   - `GET /api/common/repair-technicians/active-session-count`（维修师本人）→ `{count}`（『我的维修』点亮/计数）　**【RS-API-9，新增】**
   - `GET /api/repair-services?scope=mine&status=pending_quote` → 待报价列表　**【RS-API-2】**

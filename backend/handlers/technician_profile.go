@@ -310,13 +310,34 @@ func (h *TechnicianProfileHandler) PublicList(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list technicians"})
 		return
 	}
+	// #2076: 批量取 users.avatar_url —— 档案照为空时回退头像（#2073 创建照片=头像），
+	// 否则新建师傅在列表无图可显示。批量查询防 N+1。
+	avatarByUser := map[string]string{}
+	userIDs := make([]string, 0, len(rows))
+	for _, p := range rows {
+		userIDs = append(userIDs, p.UserID)
+	}
+	if len(userIDs) > 0 {
+		var us []models.User
+		db.Select("id, avatar_url").Where("id IN ?", userIDs).Find(&us)
+		for _, u := range us {
+			avatarByUser[u.ID] = u.AvatarURL
+		}
+	}
 	list := make([]gin.H, 0, len(rows))
 	for _, p := range rows {
+		// 展示图：优先档案照，回退头像；缩略图仅对 technician_ 键有效（否则用展示图本身）
+		photo := p.Photo
+		thumb := technicianThumbURL(p.Photo)
+		if photo == "" {
+			photo = avatarByUser[p.UserID]
+			thumb = photo // 头像无缩略图变体 → 原图当缩略图（Image 缩放显示）
+		}
 		list = append(list, gin.H{
 			"technician_id": p.UserID, // 与 Create(锁定) / select-technician 口径一致（users.id）
 			"name":          technicianNameByUserID(db, p.UserID),
-			"avatar":        p.Photo,
-			"avatar_thumb":  technicianThumbURL(p.Photo),
+			"avatar":        photo,
+			"avatar_thumb":  thumb,
 			"bio":           p.Bio,
 			"experience":    p.Experience,
 			"tenant_id":     p.TenantID,
