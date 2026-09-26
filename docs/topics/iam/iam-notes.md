@@ -60,6 +60,9 @@ Tuneloop 的 `IAMClaims` 结构体中同时有 `Oid` 和 `Gid`。`Gid` 在 IAM J
 - **切换账户页展示**：`组织名 + 角色标签`（顾客 / 海淀店员工），顶部 greeting「欢迎 {name}」；不再展示「账户昵称」语义（一人一记录）
 - **顾客标签**：持有 `customer` 角色者显示「顾客」；组织上下文显示 `{org_name} + {角色标签}`（site_admin/member→员工，merchant_admin→商户管理员，repair_technician→维修师傅）
 - **兼容期**：存量多户（同一 openid 多 user）在 #2029 合并前保持双形态可用；`wx-accounts` 返回旧形态时前端需兼容
+- **上下文切换后的个人中心显示（#2077）**：
+  - 「用户名密码登录」入口判定 = 关联账户存在**非顾客上下文**（`contextItems.some(type !== 'customer')`）；**不可用 `!is_customer`**——B1 后自服务注册用户一律带 `customer` 角色，「顾客+员工」双身份账号会被误隐藏
+  - 员工上下文切换后若 `GET /users/me` 返回 **fallback 最小 shape**（主查询 `iam_sub` 与回退 `id` 双双未命中，HTTP 200 但无 `name`）→ 前端 Profile 显示「路人」。Phase 1（#2077）已在 `GetCurrentUser` 加临时诊断日志（记录 JWT `sub` = `userID` 与命中路径），待复现后定位 `sub` 口径失配并做 Phase 2 修复
 
 ## 微信小程序登录流程
 

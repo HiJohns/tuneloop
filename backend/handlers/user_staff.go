@@ -773,6 +773,10 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 	if err := db.Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&user).Error; err != nil {
 		// Fallback: try querying by local id (for users whose iam_sub doesn't match JWT sub)
 		if err2 := db.Where("id = ? AND deleted_at IS NULL", userID).First(&user).Error; err2 != nil {
+			// #2077 Phase 1 诊断（临时）：员工上下文切换后 /users/me 落此分支 → 前端 Profile「路人」。
+			// 记录 JWT sub（userID）与两条查询的失败原因，复现后据此定位 sub 口径失配。
+			log.Printf("[GetCurrentUser][#2077-diag] minimal-shape fallback: userID=%q iam_sub_err=%v id_err=%v role=%q tid=%q oid=%q",
+				userID, err, err2, middleware.GetRole(ctx), middleware.GetTenantID(ctx), middleware.GetOrgID(ctx))
 			result := gin.H{
 				"id":            userID,
 				"role":          middleware.GetRole(ctx),
@@ -796,6 +800,10 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 				"data":    result,
 			})
 			return
+		} else {
+			// #2077 Phase 1 诊断（临时）：主查询（iam_sub）未命中但本地 id 命中。
+			log.Printf("[GetCurrentUser][#2077-diag] iam_sub miss, local id hit: userID=%q iam_sub_err=%v tid=%q oid=%q",
+				userID, err, middleware.GetTenantID(ctx), middleware.GetOrgID(ctx))
 		}
 	}
 

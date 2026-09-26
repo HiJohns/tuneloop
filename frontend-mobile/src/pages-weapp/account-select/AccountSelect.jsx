@@ -29,8 +29,6 @@ export default function AccountSelect() {
   const [pwdLoggingIn, setPwdLoggingIn] = useState(false)
 
   const hasCustomer = accounts.some(a => a.is_customer)
-  // 用户名密码登录入口仅员工场景显示（#1639 审计 Bug 3）
-  const hasStaff = accounts.some(a => !a.is_customer)
 
   // #2027 S1 (B1): flatten to loginable contexts (org + customer). Legacy IAM
   // responses without contexts fall back to one context per account.
@@ -57,6 +55,11 @@ export default function AccountSelect() {
       })
     }
   })
+  // 用户名密码登录入口仅员工场景显示（#1639 审计 Bug 3）
+  // #2077：判定改为「存在非顾客上下文」——B1 后自服务注册用户一律带 customer 角色，
+  // 旧口径 `!is_customer` 会让「顾客+员工」双身份账号误隐藏入口。
+  // legacy 分支（无 contexts）的 type 已被映射为 'org'，同样被覆盖。
+  const hasStaff = contextItems.some(it => it.type !== 'customer') || accounts.some(a => !a.is_customer)
   const greetingName = accounts[0]?.name || accounts[0]?.nickname || ''
 
   useEffect(() => {
