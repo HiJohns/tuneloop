@@ -4,7 +4,6 @@ import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, getCartKey, redirectToLogin, resolveLogin } from '../services/api'
 import { env, dialog, getWindowSize, storage, session } from '../platform'
 import { getMinTierDailyRateYuan } from '../utils/pricing'
-import { isStaffRole } from '../utils/role'
 import BottomNav from '../components-weapp/BottomNav'
 
 const IMG_BASE = env.apiBaseUrl.replace(/\/api$/, '')
@@ -122,17 +121,6 @@ export default function Home() {
   const instance = Taro.getCurrentInstance()
   const routerParams = instance.router?.params || {}
   const [tenant, setTenant] = useState(routerParams.tenant || null)
-  // #1884: pure repair technicians (no site role) must not see the Rental tab
-  const [myRoles, setMyRoles] = useState([])
-  const isPureTech = myRoles.includes('repair_technician') && !myRoles.some(r => ['site_admin', 'site_member'].includes(r))
-
-  useEffect(() => {
-    if (!getToken()) return
-    apiFetch(`${env.apiBaseUrl}/site-members/me`)
-      .then(r => r.json())
-      .then(res => { if (res.code === 20000) setMyRoles(res.data?.roles || []) })
-      .catch(() => {})
-  }, [])
   const categoryFromUrl = routerParams.category_id || null
 
   const [categories, setCategories] = useState([])
@@ -282,13 +270,6 @@ export default function Home() {
     // snapshot — stock_status (租赁中) would be stale. Refresh here.
     fetchInstruments().catch(() => {})
   })
-
-  const switchTab = (url) => {
-    try {
-      Taro.setStorageSync('tab_params', { tenant: tenant || '' })
-    } catch {}
-    Taro.switchTab({ url })
-  }
 
   useEffect(() => {
     if (!banners.length) return
@@ -488,22 +469,7 @@ export default function Home() {
           </Text>
         )}
       </View>
-      <BottomNav
-        active="home"
-        tabs={[
-          { key: 'home', icon: '🏪', label: '首页', onClick: () => switchTab('/pages-weapp/home/index') },
-          ...(isPureTech ? [] : [{ key: 'rent', icon: '🪕', label: '租赁', onClick: () => switchTab('/pages-weapp/my-leases/index') }]),
-          { key: 'service', icon: '🛠️', label: '维修', onClick: () => {
-            const url = isStaffRole() ? '/pages-weapp/my-repairs/index' : '/pages-weapp/tech-list/index'
-            if (Taro.getCurrentPages().length >= 9) {
-              Taro.reLaunch({ url })
-            } else {
-              Taro.navigateTo({ url })
-            }
-          } },
-          { key: 'profile', icon: '👤', label: '我的', onClick: () => switchTab('/pages-weapp/profile/index') },
-        ]}
-      />
+      <BottomNav active="home" tenant={tenant} />
     </View>
     </View>
   )

@@ -492,25 +492,9 @@ export default function MyRepairs() {
       )}
 
       {env.isMiniProgram ? (
-        <BottomNavWeapp
-          active="service"
-          tabs={[
-            { key: 'home', icon: '🏪', label: '首页', onClick: () => Taro.switchTab({ url: '/pages-weapp/home/index' }) },
-            ...(isPureTech ? [] : [{ key: 'rent', icon: '🪕', label: '租赁', onClick: () => Taro.switchTab({ url: '/pages-weapp/my-leases/index' }) }]),
-            { key: 'service', icon: '🛠️', label: '维修', onClick: () => Taro.redirectTo({ url: isStaff ? '/pages-weapp/my-repairs/index' : '/pages-weapp/tech-list/index' }) },
-            { key: 'profile', icon: '👤', label: '我的', onClick: () => Taro.switchTab({ url: '/pages-weapp/profile/index' }) },
-          ]}
-        />
+        <BottomNavWeapp active="service" />
       ) : (
-      <BottomNav
-        active="service"
-        tabs={[
-          { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
-          ...(isPureTech ? [] : [{ key: 'rent', icon: '🪕', label: '租赁', onClick: () => navigate('/my-leases') }]),
-          { key: 'service', icon: '🛠️', label: '维修', onClick: () => navigate(isStaff ? '/my-repairs' : '/tech-list') },
-          { key: 'profile', icon: '👤', label: '我的', onClick: () => navigate('/profile') },
-        ]}
-      />
+      <BottomNav active="service" navigate={navigate} />
       )}
     </View>
   )

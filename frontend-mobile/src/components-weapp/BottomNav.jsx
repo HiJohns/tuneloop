@@ -1,6 +1,55 @@
+// 统一底部导航（#2083）：tabs 由本组件按当前账户角色构造，各页只传 active/badges。
+// 角色来源 GET /site-members/me（= 网点角色 ∪ JWT fn_roles）；纯维修师傅隐藏「租赁」
+//（#1884）。此前各页自行拼装 tabs 导致显隐口径不一致（Profile 漏过滤的事故根因）。
+import { useEffect, useState } from 'react'
+import Taro from '@tarojs/taro'
 import { View, Text } from '@tarojs/components'
+import { apiFetch, getToken } from '../services/api'
+import { env } from '../platform'
+import { isStaffRole, isPureTechnician } from '../utils/role'
 
-export default function BottomNav({ tabs = [], active = '', badges = {} }) {
+export default function BottomNav({ active = '', badges = {}, tenant }) {
+  const [roles, setRoles] = useState(null)
+
+  useEffect(() => {
+    if (!getToken()) return
+    let cancelled = false
+    apiFetch(`${env.apiBaseUrl}/site-members/me`)
+      .then(r => r.json())
+      .then(res => { if (!cancelled && res.code === 20000) setRoles(res.data?.roles || []) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
+  const isStaff = isStaffRole()
+  const isPureTech = roles ? isPureTechnician(roles) : false
+
+  // 兼容 Home 的 tenant 透传（原 switchTab helper 行为）：显式传入 tenant 时暂存
+  // tab_params 供租赁页读取；未传（其它页）不动 tab_params。
+  const goTab = (url) => {
+    if (tenant !== undefined) {
+      try { Taro.setStorageSync('tab_params', { tenant: tenant || '' }) } catch {}
+    }
+    Taro.switchTab({ url })
+  }
+
+  const goService = () => {
+    if (active === 'service') return
+    const url = isStaff ? '/pages-weapp/my-repairs/index' : '/pages-weapp/tech-list/index'
+    if (Taro.getCurrentPages().length >= 9) {
+      Taro.reLaunch({ url })
+    } else {
+      Taro.navigateTo({ url })
+    }
+  }
+
+  const tabs = [
+    { key: 'home', icon: '🏪', label: '首页', onClick: () => goTab('/pages-weapp/home/index') },
+    ...(isPureTech ? [] : [{ key: 'rent', icon: '🪕', label: '租赁', onClick: () => goTab('/pages-weapp/my-leases/index') }]),
+    { key: 'service', icon: '🛠️', label: '维修', onClick: goService },
+    { key: 'profile', icon: '👤', label: '我的', onClick: () => goTab('/pages-weapp/profile/index') },
+  ]
+
   return (
     <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#5A3B24', borderTop: '1px solid #4E321E', paddingTop: 8, paddingBottom: 8, display: 'flex', justifyContent: 'space-around', alignItems: 'center', zIndex: 50 }}>
       {tabs.map((tab, i) => {

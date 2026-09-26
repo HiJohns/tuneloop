@@ -4,7 +4,6 @@ import { View, Text, Image, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken, getCartKey, redirectToLogin } from '../services/api'
 import { env, getWindowSize, storage, session } from '../platform'
 import { getMinTierDailyRateYuan } from '../utils/pricing'
-import { isStaffRole } from '../utils/role'
 import BottomNav from '../components/BottomNav'
 
 const INSTRUMENT_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
@@ -99,18 +98,6 @@ export default function Home() {
   const catTouchStartRef = useRef({ x: 0, offset: 0 })
   const bannerTouchStartXRef = useRef(0)
   const lastSwipeRef = useRef(0)
-
-  // #1884: pure repair technicians (no site role) must not see the Rental tab
-  const [myRoles, setMyRoles] = useState([])
-  const isPureTech = myRoles.includes('repair_technician') && !myRoles.some(r => ['site_admin', 'site_member'].includes(r))
-
-  useEffect(() => {
-    if (!getToken()) return
-    apiFetch(`${env.apiBaseUrl}/site-members/me`)
-      .then(r => r.json())
-      .then(res => { if (res.code === 20000) setMyRoles(res.data?.roles || []) })
-      .catch(() => {})
-  }, [])
 
   const baseUrl = env.apiBaseUrl
   const imageBaseUrl = baseUrl.replace(/\/api$/, '')
@@ -210,19 +197,6 @@ export default function Home() {
 
   const navigateToCategory = (catId) => {
     const url = tenant ? `/instruments?category_id=${catId}&tenant=${tenant}` : `/instruments?category_id=${catId}`
-    navigate(url)
-  }
-
-  const navigateToList = () => {
-    const token = getToken()
-    let isStaff = false
-    try {
-      if (token) {
-        const payload = JSON.parse(atob(token.split('.')[1]))
-        isStaff = payload?.role && payload.role !== 'USER'
-      }
-    } catch {}
-    const url = isStaff ? '/staff/orders' : '/my-leases'
     navigate(url)
   }
 
@@ -388,15 +362,7 @@ export default function Home() {
         </View>
         </ScrollView>
         <View>
-        <BottomNav
-          active="home"
-          tabs={[
-            { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
-            ...(isPureTech ? [] : [{ key: 'rent', icon: '🪕', label: '租赁', onClick: navigateToList }]),
-            { key: 'service', icon: '🛠️', label: '维修', onClick: () => { const base = isStaffRole() ? '/my-repairs' : '/tech-list'; const url = tenant ? `${base}?tenant=${tenant}` : base; navigate(url) } },
-            { key: 'profile', icon: '👤', label: '我的', onClick: () => { const url = tenant ? `/profile?tenant=${tenant}` : '/profile'; navigate(url) } },
-          ]}
-        />
+        <BottomNav active="home" tenant={tenant} navigate={navigate} />
         </View>
       </View>
 

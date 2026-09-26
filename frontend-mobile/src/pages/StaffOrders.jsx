@@ -6,7 +6,6 @@ import { warehouseApi, apiFetch, getToken } from '../services/api'
 import { dialog, env, scanQRCode } from '../platform'
 import { formatBeijingDate } from '../utils/format'
 import { calculateDays } from '../utils/daycalc'
-import { isStaffRole } from '../utils/role'
 import { Package, Search, Scan } from 'lucide-react'
 import BottomNav from '../components/BottomNav'
 import BottomNavWeapp from '../components-weapp/BottomNav'
@@ -73,13 +72,6 @@ export default function StaffOrders() {
   const baseUrl = env.apiBaseUrl
 
   const token = getToken()
-  const isStaff = (() => {
-    try {
-      if (!token) return false
-      const payload = JSON.parse(atob(token.split('.')[1]))
-      return payload?.role && payload.role !== 'USER'
-    } catch { return false }
-  })()
 
   const fetchOrders = useCallback(async (pageNum = 1, append = false) => {
     if (!append) setLoading(true)
@@ -277,25 +269,9 @@ export default function StaffOrders() {
       </ScrollView>
 
       {env.isMiniProgram ? (
-        <BottomNavWeapp
-          active="rent"
-          tabs={[
-            { key: 'home', icon: '🏪', label: '首页', onClick: () => Taro.switchTab({ url: '/pages-weapp/home/index' }) },
-            { key: 'rent', icon: '🪕', label: '租赁', onClick: () => Taro.switchTab({ url: '/pages-weapp/my-leases/index' }) },
-            { key: 'service', icon: '🛠️', label: '维修', onClick: () => Taro.redirectTo({ url: isStaffRole() ? '/pages-weapp/my-repairs/index' : '/pages-weapp/tech-list/index' }) },
-            { key: 'profile', icon: '👤', label: '我的', onClick: () => Taro.switchTab({ url: '/pages-weapp/profile/index' }) },
-          ]}
-        />
+        <BottomNavWeapp active="rent" />
       ) : (
-        <BottomNav
-          active="rent"
-          tabs={[
-            { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
-            { key: 'rent', icon: '🪕', label: '租赁', onClick: () => navigate(isStaff ? '/staff/orders' : '/my-leases') },
-            { key: 'service', icon: '🛠️', label: '维修', onClick: () => navigate(isStaffRole() ? '/my-repairs' : '/tech-list') },
-            { key: 'profile', icon: '👤', label: '我的', onClick: () => navigate('/profile') },
-          ]}
-        />
+        <BottomNav active="rent" navigate={navigate} />
       )}
     </View>
   )

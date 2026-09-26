@@ -4,7 +4,6 @@ import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, notificationApi, resolveLogin , resolveErrorMessage } from '../services/api'
 import { env, storage, session, eventBus, wxLogin } from '../platform'
 import { parseJWT } from '../platform/init'
-import { isStaffRole } from '../utils/role'
 import BottomNav from '../components-weapp/BottomNav'
 import ErrorBoundary from '../components-weapp/ErrorBoundary'
 
@@ -592,16 +591,7 @@ export default function Profile() {
       )}
 
       {/* 5. 底部固定导航栏 */}
-      <BottomNav
-        active="profile"
-        tabs={[
-          { key: 'home', icon: '🏪', label: '首页', onClick: () => Taro.switchTab({ url: '/pages-weapp/home/index' }) },
-          { key: 'rent', icon: '🪕', label: '租赁', onClick: () => Taro.switchTab({ url: '/pages-weapp/my-leases/index' }) },
-          { key: 'service', icon: '🛠️', label: '维修', onClick: () => nav(isStaffRole() ? '/pages-weapp/my-repairs/index' : '/pages-weapp/tech-list/index') },
-          { key: 'profile', icon: '👤', label: '我的', onClick: () => {} },
-        ]}
-        badges={{ profile: isStaff ? 0 : unreadCount }}
-      />
+      <BottomNav active="profile" badges={{ profile: isStaff ? 0 : unreadCount }} />
 
       <EditProfileModal
         visible={showEdit}

@@ -496,16 +496,7 @@ export default function Profile() {
       </ScrollView>
 
       {/* 5. 底部固定导航栏 */}
-      <BottomNav
-        active="profile"
-        tabs={[
-          { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
-          { key: 'rent', icon: '🪕', label: '租赁', onClick: () => token && navigate(isStaff ? '/staff/orders' : '/my-leases') },
-          { key: 'service', icon: '🛠️', label: '维修', onClick: () => token && navigate(isStaff ? '/my-repairs' : '/tech-list') },
-          { key: 'profile', icon: '👤', label: '我的', onClick: () => {} },
-        ]}
-        badges={{ profile: isStaff ? 0 : unreadCount }}
-      />
+      <BottomNav active="profile" badges={{ profile: isStaff ? 0 : unreadCount }} navigate={navigate} />
 
       <JoinSiteModal visible={showJoin} onClose={() => setShowJoin(false)} />
       <PendingOrdersModal visible={showPending} onClose={() => setShowPending(false)} navigate={nav} user={user} />

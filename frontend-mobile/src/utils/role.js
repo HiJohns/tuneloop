@@ -15,3 +15,10 @@ export function isStaffRole(token = getToken()) {
   const hasStaffRole = !!claims.role && claims.role !== 'USER' && claims.role !== 'GUEST'
   return hasOrg || hasTenant || hasStaffRole
 }
+
+// #2083: 纯维修师傅（repair_technician 且无网点角色）——#1884 租赁 Tab 互斥、
+// 维修工作台入口等按此统一判定。roles 来自 GET /site-members/me
+//（v1.0.19 起 = 网点角色 ∪ JWT fn_roles，故直属商户师傅（无 site_members 行）也含 repair_technician）。
+export function isPureTechnician(roles = []) {
+  return roles.includes('repair_technician') && !roles.some(r => ['site_admin', 'site_member'].includes(r))
+}
