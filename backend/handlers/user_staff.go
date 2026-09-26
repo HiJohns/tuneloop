@@ -767,16 +767,15 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 		return
 	}
 
-	db := database.GetDB().WithContext(ctx)
+	// #2078 (Phase 2): identity lookup must be tenant-scope-immune —
+	// self-registered users carry tenant_id=zero-UUID while a staff-context
+	// JWT claims the org tenant; addTenantScope would filter the row out.
+	db := database.GetDB().WithContext(database.IdentityCtx(ctx))
 
 	var user models.User
 	if err := db.Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&user).Error; err != nil {
 		// Fallback: try querying by local id (for users whose iam_sub doesn't match JWT sub)
 		if err2 := db.Where("id = ? AND deleted_at IS NULL", userID).First(&user).Error; err2 != nil {
-			// #2077 Phase 1 诊断（临时）：员工上下文切换后 /users/me 落此分支 → 前端 Profile「路人」。
-			// 记录 JWT sub（userID）与两条查询的失败原因，复现后据此定位 sub 口径失配。
-			log.Printf("[GetCurrentUser][#2077-diag] minimal-shape fallback: userID=%q iam_sub_err=%v id_err=%v role=%q tid=%q oid=%q",
-				userID, err, err2, middleware.GetRole(ctx), middleware.GetTenantID(ctx), middleware.GetOrgID(ctx))
 			result := gin.H{
 				"id":            userID,
 				"role":          middleware.GetRole(ctx),
@@ -800,10 +799,6 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 				"data":    result,
 			})
 			return
-		} else {
-			// #2077 Phase 1 诊断（临时）：主查询（iam_sub）未命中但本地 id 命中。
-			log.Printf("[GetCurrentUser][#2077-diag] iam_sub miss, local id hit: userID=%q iam_sub_err=%v tid=%q oid=%q",
-				userID, err, middleware.GetTenantID(ctx), middleware.GetOrgID(ctx))
 		}
 	}
 
@@ -991,7 +986,7 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": err.Error()})
 		return
 	}
-	db := database.GetDB().WithContext(ctx)
+	db := database.GetDB().WithContext(database.IdentityCtx(ctx))
 
 	// 当前用户现值（#1807：identityChanged 需与现值比较——顾客保存资料时
 	// 会原样提交已上传的 id_photo_front/back，仅"值变化"才算身份信息变更，

@@ -169,6 +169,19 @@ func SetTenantID(ctx context.Context, tenantID string) context.Context {
 	return context.WithValue(ctx, TenantIDKey, tenantID)
 }
 
+// IdentityCtx returns a copy of ctx with an empty tenant claim so the tenant
+// scoping callbacks (addTenantScope) skip the tenant_id filter.
+//
+// Use ONLY for identity-keyed self lookups (GET/PUT /users/me): the query is
+// keyed by the globally-unique iam_sub from a validated JWT, while the local
+// users row of a self-registered user carries tenant_id=zero-UUID. Under a
+// staff-context JWT (tid=<org tenant>) the auto-scope would filter the row
+// out — GET fell back to the minimal shape (『路人』) and PUT silently wrote
+// 0 rows (#2077 Phase 2 / #2078).
+func IdentityCtx(ctx context.Context) context.Context {
+	return context.WithValue(ctx, TenantIDKey, "")
+}
+
 func SetOrgID(ctx context.Context, orgID string) context.Context {
 	return context.WithValue(ctx, OrgIDKey, orgID)
 }
