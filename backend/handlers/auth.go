@@ -263,10 +263,26 @@ func (h *AuthHandler) PostLogin(c *gin.Context) {
 
 	tokenResp, err := h.iamService.IAMLogin(req.Identifier, req.Password)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"code":    40001,
-			"message": "IAM login failed: " + err.Error(),
-		})
+		// #2080: distinguish credential/account failures from real parameter
+		// errors — the old blanket 40001 rendered as 『请求参数有误』 and misled
+		// users typing a case-mismatched or wrong password.
+		var loginErr *services.IAMLoginError
+		if errors.As(err, &loginErr) {
+			log.Printf("[Login] IAM login failed identifier=%q status=%d code=%q", req.Identifier, loginErr.Status, loginErr.Code)
+			switch loginErr.Status {
+			case http.StatusUnauthorized:
+				c.JSON(http.StatusUnauthorized, gin.H{"code": 40006, "message": "用户名或密码错误"})
+			case http.StatusForbidden:
+				c.JSON(http.StatusForbidden, gin.H{"code": 40007, "message": "账号未激活，请联系管理员"})
+			case http.StatusGone:
+				c.JSON(http.StatusGone, gin.H{"code": 40008, "message": "服务已停用，请联系管理员"})
+			default:
+				c.JSON(http.StatusBadGateway, gin.H{"code": 50001, "message": "登录服务暂不可用，请稍后重试"})
+			}
+			return
+		}
+		log.Printf("[Login] IAM login transport error identifier=%q err=%v", req.Identifier, err)
+		c.JSON(http.StatusBadGateway, gin.H{"code": 50001, "message": "登录服务暂不可用，请稍后重试"})
 		return
 	}
 

@@ -320,6 +320,23 @@ func (s *IAMService) CreateGuestToken() (*TokenResponse, error) {
 }
 
 // IAMLogin proxies email/password login to beaconiam via OAuth password grant
+// IAMLoginError carries the upstream HTTP status and OAuth error code from
+// beaconiam's token endpoint (e.g. "invalid credentials", "account not
+// active") so callers can surface an accurate message instead of a generic
+// parameter-error code (#2080).
+type IAMLoginError struct {
+	Status int
+	Code   string
+	Body   string
+}
+
+func (e *IAMLoginError) Error() string {
+	if e.Code != "" {
+		return fmt.Sprintf("IAM login returned status %d: %s", e.Status, e.Code)
+	}
+	return fmt.Sprintf("IAM login returned status %d: %s", e.Status, e.Body)
+}
+
 func (s *IAMService) IAMLogin(identifier, password string) (*TokenResponse, error) {
 	payload := map[string]string{
 		"grant_type":    "password",
@@ -340,7 +357,11 @@ func (s *IAMService) IAMLogin(identifier, password string) (*TokenResponse, erro
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("IAM login returned status: %d, body: %s", resp.StatusCode, string(body))
+		var oauthErr struct {
+			Error string `json:"error"`
+		}
+		_ = json.Unmarshal(body, &oauthErr)
+		return nil, &IAMLoginError{Status: resp.StatusCode, Code: oauthErr.Error, Body: strings.TrimSpace(string(body))}
 	}
 	var tokenResp TokenResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {

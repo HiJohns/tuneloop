@@ -10,6 +10,9 @@ export const ERROR_CODE_MAP = {
   40003: '操作不符合当前业务规则',
   40004: '数据已存在，请勿重复操作',
   40005: '当前状态不允许此操作',
+  40006: '用户名或密码错误', // #2080
+  40007: '账号未激活，请联系管理员', // #2080
+  40008: '服务已停用，请联系管理员', // #2080
   40100: '登录状态异常，请重新登录',
   40101: '登录已过期，请重新登录',
   40102: '登录已过期，请重新登录',
@@ -29,6 +32,8 @@ export const ERROR_CODE_MAP = {
 
 // L1: 高频后端 message → 具体中文
 export const ERROR_MESSAGE_MAP = {
+  'invalid credentials': '用户名或密码错误', // #2080
+  'account not active': '账号未激活，请联系管理员', // #2080
   'user id verification required': '用户未完成实名核身，请联系平台运营完成审核', // #1792/#1796
   'instrument id is required': '缺少乐器信息',
   'instrument not found': '未找到乐器',
