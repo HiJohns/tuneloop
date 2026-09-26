@@ -1104,9 +1104,13 @@ func CancelOrderByCustomer(c *gin.Context) {
 	}
 
 	// Verify ownership: resolve local user from IAM sub
+	// #2079: identity-keyed lookup must be tenant-scope-immune (#2078 family) —
+	// a staff-context JWT carries the org tenant while self-registered users
+	// have tenant_id=zero-UUID; the scoped query missed the row and the
+	// ownership check 403'd even for the order owner's own staff identity.
 	userID := middleware.GetUserID(ctx)
 	var localUser models.User
-	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+	if err := database.GetDB().WithContext(database.IdentityCtx(ctx)).Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
 		userID = localUser.ID
 	}
 	if order.UserID != userID {
