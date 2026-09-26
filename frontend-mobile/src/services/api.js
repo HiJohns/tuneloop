@@ -266,6 +266,7 @@ export function degradeToGuest() {
   storage.removeItem('user_sys_perm')
   storage.removeItem('user_cus_perm')
   storage.removeItem('user_cus_perm_ext')
+  storage.removeItem('login_contexts') // #2081: 会话失效后不残留上一账号的身份列表
   session.removeItem('token')
   cookie.remove('token')
   session.setItem('logged_out_due_expiry', '1')

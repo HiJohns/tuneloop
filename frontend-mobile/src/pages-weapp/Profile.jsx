@@ -194,6 +194,14 @@ export default function Profile() {
   // isStaff 统一判定（#1639 / #1700）：对齐后端 GetBusinessRole——role == 'USER'
   // （含 oid/tid 非空的顾客）→ 顾客；仅非 USER 角色才视为员工
   const isStaff = !!claims.role && claims.role !== 'USER'
+  // #2081: 一人多角——经身份选择页登录时落盘的可登录上下文列表；>1 即显示「切换身份」
+  // （此前仅当前上下文为员工时才显示，双身份账号以顾客上下文登录时无从切换）
+  let multiContextCount = 0
+  try {
+    const parsedContexts = JSON.parse(storage.getItem('login_contexts') || 'null')
+    if (Array.isArray(parsedContexts)) multiContextCount = parsedContexts.length
+  } catch {}
+  const hasMultipleContexts = multiContextCount > 1
   const isGuest = claims.role === 'GUEST' || (!token && user === null)
   const hasGuestToken = claims.role === 'GUEST'
   // Two-phase registration (#1663): a pending registration session means the
@@ -286,6 +294,7 @@ export default function Profile() {
     storage.removeItem('token')
     storage.removeItem('token_expiry')
     storage.removeItem('refresh_token')
+    storage.removeItem('login_contexts') // #2081: 避免下一个账号继承上一账号的身份列表
     // Clear UI state immediately so the page does not keep showing the
     // previous account after logout (#1620).
     setUser(null)
@@ -369,12 +378,12 @@ export default function Profile() {
                 >
                   退出登录
                 </View>
-                {isStaff && (
+                {(hasMultipleContexts || isStaff) && (
                   <View
                     style={{ marginLeft: 8, backgroundColor: 'rgba(255,255,255,0.8)', border: '1px solid #f4f4f5', color: '#92400e', fontSize: 12, fontWeight: '700', padding: '0 16px', height: 32, borderRadius: 999, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' }}
                     onClick={handleSwitchAccount}
                   >
-                    切换账户
+                    切换身份
                   </View>
                 )}
               </View>

@@ -104,6 +104,13 @@ export default function AccountSelect() {
           storage.setItem('token_expiry', (new Date().getTime() + result.data.expires_in * 1000).toString())
         }
         if (result.data.refresh_token) storage.setItem('refresh_token', result.data.refresh_token)
+        // #2081: 一人多角——记住本次账号的可登录上下文，个人中心据此显示「切换身份」入口
+        // （多身份账号登录必经本页选上下文，故此处落盘可覆盖全部多身份会话；退出登录时清除）
+        try {
+          storage.setItem('login_contexts', JSON.stringify(
+            contextItems.map(it => ({ type: it.type, label: it.label }))
+          ))
+        } catch {}
         session.removeItem('wx_login_token')
         eventBus.emit('loginSuccess')
         const postAuth = session.getItem('post_auth_redirect')

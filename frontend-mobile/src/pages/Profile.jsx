@@ -301,6 +301,7 @@ export default function Profile() {
     storage.removeItem('token')
     storage.removeItem('token_expiry')
     storage.removeItem('refresh_token')
+    storage.removeItem('login_contexts') // #2081
     navigate('/')
   }
 

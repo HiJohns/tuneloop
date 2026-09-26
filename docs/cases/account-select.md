@@ -147,17 +147,17 @@ steps:
           - {type: navigate, target: "/profile-complete?session_id=:id", gate: "点击「继续完成注册」→ 恢复表单"}
     api: {method: GET, path: /auth/registration-sessions/me, params: [code]}
   - seq: 7
-    action: 会员中心切换账户
+    action: 会员中心切换身份
     frontend:
       - platform: [weapp]
         page: /profile
-        role: [staff]
-        gate: "员工账户（有 oid/tid）"
-        reach: "会员中心 → 退出登录 + 切换账户"
-        controls: [退出登录, 切换账户]
+        role: [staff, customer]
+        gate: "当前上下文为员工（有 oid/tid）或账号存在多个可登录上下文（#2081：一人多角，经身份选择页登录时落盘 login_contexts，>1 即显示）"
+        reach: "会员中心 → 退出登录 + 切换身份"
+        controls: [退出登录, 切换身份]
         displays: []
         ops:
-          - {type: navigate, target: /account-select, gate: "点击「切换账户」"}
+          - {type: navigate, target: /account-select, gate: "点击「切换身份」"}
     api: {}
   - seq: 8
     action: 购物车合并去重
