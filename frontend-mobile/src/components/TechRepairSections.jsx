@@ -55,6 +55,7 @@ export default function TechRepairSections() {
   const [loading, setLoading] = useState(true)
   const [pendingQuotes, setPendingQuotes] = useState([])
   const [pendingPay, setPendingPay] = useState([]) // #2088：已报价·待付款（pending_payment）
+  const [pendingReturn, setPendingReturn] = useState([]) // #2091：待发回（done_repair）
   const [working, setWorking] = useState([])
   const [doneList, setDoneList] = useState([])
   const [expanded, setExpanded] = useState('') // `${id}:quote|adjust`
@@ -77,18 +78,21 @@ export default function TechRepairSections() {
   const fetchLists = async () => {
     setLoading(true)
     try {
-      const [qRes, pRes, wRes, dRes] = await Promise.all([
+      const [qRes, pRes, wRes, rRes, dRes] = await Promise.all([
         apiFetch(`${baseUrl}/repair-services?scope=mine&status=pending_quote`),
         apiFetch(`${baseUrl}/repair-services?scope=mine&status=pending_payment`), // #2088：已报价·待付款
         apiFetch(`${baseUrl}/repair-services?scope=mine&status=paid,shipping,repairing,adjust_pending`),
+        apiFetch(`${baseUrl}/repair-services?scope=mine&status=done_repair`), // #2091：待发回
         apiFetch(`${baseUrl}/repair-services?scope=mine&status=closed`),
       ])
       const q = await qRes.json()
       const p = await pRes.json()
       const w = await wRes.json()
+      const r = await rRes.json()
       setPendingQuotes(q.code === 20000 ? (q.data?.list || []) : [])
       setPendingPay(p.code === 20000 ? (p.data?.list || []) : [])
       setWorking(w.code === 20000 ? (w.data?.list || []) : [])
+      setPendingReturn(r.code === 20000 ? (r.data?.list || []) : [])
       setDoneList(dRes.code === 20000 ? (dRes.data?.list || []) : [])
     } catch (e) {
       dialog.alert(resolveErrorMessage(e))
@@ -316,6 +320,26 @@ export default function TechRepairSections() {
           {!loading && working.length === 0 ? (
             <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无维修中维修单</Text>
           ) : working.map(renderWorkCard)}
+
+          {/* #2091：待发回（师傅完修 → 网点发回结算前；只读，发回与结算为网点职责） */}
+          <View style={{ marginTop: 14, marginBottom: 8 }}>
+            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>待发回（{pendingReturn.length}）</Text>
+          </View>
+          {!loading && pendingReturn.length === 0 ? (
+            <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无待发回维修单</Text>
+          ) : pendingReturn.map(rr => (
+            <View key={rr.id} style={cardStyle}>
+              <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>编码 {rr.repair_code || '-'}</Text>
+                <Text style={{ fontSize: 12, color: '#A1A1AA' }}>{svcStatusLabels[rr.status] || rr.status}</Text>
+              </View>
+              <Text style={{ fontSize: 12, color: '#52525B' }} numberOfLines={2}>{rr.description || '（无描述）'}</Text>
+              {rr.video_url ? (
+                <Video src={photoSrc(rr.video_url)} controls style={{ width: '100%', height: 160, borderRadius: 8, backgroundColor: '#000000' }} />
+              ) : null}
+              <Text style={{ fontSize: 11, color: '#A1A1AA' }}>金额 {svcAmount(rr)} · {svcTodo(rr)}</Text>
+            </View>
+          ))}
 
           <View style={{ marginTop: 14, marginBottom: 8 }}>
             <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>已完成（{doneList.length}）</Text>
