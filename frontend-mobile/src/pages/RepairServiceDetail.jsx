@@ -132,19 +132,29 @@ export default function RepairServiceDetail() {
         body: JSON.stringify({ order_id: orderId, order_type: 'repair', amount: payableCents / 100 }),
       })
       const result = await res.json()
-      if (result.code !== 20000 || !result.data) {
-        dialog.alert(resolveErrorMessage(result))
+      // #2092：prepay 响应为双层 data（{code, data:{success, data:{app_id,time_stamp,...}}}），
+      // 与 Payment.jsx 约定一致：参数在 result.data.data。
+      const prepay = result.data?.data
+      if (result.code !== 20000 || !prepay) {
+        dialog.alert(resolveErrorMessage(result, '无法获取支付参数，请稍后重试'))
         setBusy(false)
         return
       }
       if (env.isMiniProgram) {
+        // 有金额的真实支付必须有 prepay_id；缺失禁止假成功（2026-09-06 incident 口径）。
+        // H5 路径为 Native 指引（data.data 仅 code_url），不在此守卫范围。
+        if (!prepay.prepay_id) {
+          dialog.alert('无法获取支付参数，请稍后重试')
+          setBusy(false)
+          return
+        }
         Taro.requestPayment({
-          appId: result.data.app_id,
-          timeStamp: result.data.time_stamp,
-          nonceStr: result.data.nonce_str,
-          package: result.data.package,
-          signType: result.data.sign_type,
-          paySign: result.data.pay_sign,
+          appId: prepay.app_id || 'wxcb44a1be70e356ed',
+          timeStamp: prepay.time_stamp,
+          nonceStr: prepay.nonce_str,
+          package: prepay.package,
+          signType: prepay.sign_type,
+          paySign: prepay.pay_sign,
           success: () => {
             Taro.showToast({ title: '支付成功', icon: 'success' })
             loadDetail()
