@@ -28,11 +28,12 @@
 | `repair-service.md` | 维修服务改版 | RS-01~ | #1942 |
 | `instrument-loss.md` | 乐器丢失与找回 | IL-01~ | #1939 派生（用户定义 2026-09-17） |
 | `invoice.md` | 发票申请 v2 | INV-01~ | #1941 |
+| `navigation.md` | 底部导航（角色×显隐与跳转） | NAV-01 | #2083（#1884/#2050/#2082） |
 
 ## 用例编号规范
 
 - 格式：`{域前缀}-{序号}`（L-01, R-02, O-03...）
-- 域前缀：B(ootstrapping) / I(nstrument) / L(ease) / R(epair) / O(rganization) / T(ransit) / C(art) / P(rofile&user) / M(embership) / RS(epair-service) / IL(instrument-loss) / INV(invoice) / CAT(egory)
+- 域前缀：B(ootstrapping) / I(nstrument) / L(ease) / R(epair) / O(rganization) / T(ransit) / C(art) / P(rofile&user) / M(embership) / RS(epair-service) / IL(instrument-loss) / INV(invoice) / CAT(egory) / NAV(avigation)
 
 ## YAML 前置块规范（AI 消费格式）
 
