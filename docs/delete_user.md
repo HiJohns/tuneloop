@@ -32,7 +32,7 @@ ssh cadenza "docker exec $C psql -U beaconiam_user -d beaconiam_pre_snapshot -c 
 SELECT id, username, name, nickname, phone, email, status FROM users
 WHERE name ILIKE '%<关键词>%' OR username ILIKE '%<关键词>%' OR phone LIKE '%<关键词>%' OR email ILIKE '%<关键词>%';\""
 
-# 2.2 微信号反查（若知道 openid；切换账户页看到的账户即来自这张表）
+# 2.2 微信号反查（若知道 openid；身份切换页看到的账户即来自这张表）
 ssh cadenza "docker exec $C psql -U beaconiam_user -d beaconiam_pre_snapshot -c \"
 SELECT b.user_id, u.username, u.name, u.phone FROM wx_user_bindings b JOIN users u ON u.id=b.user_id WHERE b.openid='<openid>';\""
 
@@ -105,7 +105,7 @@ SELECT (SELECT count(*) FROM users WHERE id='<IAM_USER_ID>') AS u,
 # 期望：0 / 0 / 0
 
 # ② 该微信登录 → wx-accounts 不再返回该账户（0 或仅剩其他合法绑定）
-#    （小程序「切换账户」页同步确认）
+#    （小程序「切换身份」页同步确认）
 
 # ③ 重新注册走通：微信进入注册页 → 全新注册成功（新 user_id）→ 登录正常
 ```
