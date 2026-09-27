@@ -1,3 +1,3 @@
 export default {
-  navigationBarTitleText: '报修详情',
+  navigationBarTitleText: '维修工单详情',
 }

@@ -48,7 +48,7 @@ export default function MerchantRepairList() {
       <Tabs
         defaultActiveKey="warranty"
         items={[
-          { key: 'warranty', label: '乐器报修', children: <WarrantyList /> },
+          { key: 'warranty', label: '维修工单', children: <WarrantyList /> },
           { key: 'service', label: '维修服务', children: <ServiceList /> },
         ]}
       />

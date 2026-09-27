@@ -10,7 +10,7 @@ const { RangePicker } = DatePicker
 const typeOptions = [
   { value: '', label: '全部类别' },
   { value: 'rent', label: '租赁支付' },
-  { value: 'repair', label: '报修支付' },
+  { value: 'repair', label: '维修工单支付' },
   { value: 'points', label: '点数购买' },
   { value: 'damage', label: '定损赔偿' },
 ]

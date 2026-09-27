@@ -256,7 +256,7 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 		// 加价补差价 → repairing（**不得**用 incurred 覆盖 adjusted_quote_cents：
 		// 后者是「加价后新修理费总价」，结算基准，RS-06/RS-08 审计 F2）；
 		// 补缴到账（RS-API-7）→ 保持 closed + 幂等关闭 pending 补缴记录。
-		// v3 报修（warranty）保持原行为 pending_ship。
+		// v3 维修工单（warranty）保持原行为 pending_ship。
 		if record.OrderID != nil {
 			var rr models.RepairRequest
 			if err := tx.First(&rr, "id = ?", *record.OrderID).Error; err == nil && rr.Type == repairServiceTypeVal {

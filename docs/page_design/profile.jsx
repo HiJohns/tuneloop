@@ -43,7 +43,7 @@ const ProfilePage = () => {
           </View>
           <View className="flex-1 flex items-center justify-center space-x-2 py-1 active:opacity-70" onClick={navigateToRepairs}>
             <Text className="text-xl">🔸</Text>
-            <Text className="text-base font-bold text-zinc-800">报修订单</Text>
+            <Text className="text-base font-bold text-zinc-800">维修工单</Text>
             <Text className="text-zinc-300 text-xs">❯</Text>
           </View>
         </View>

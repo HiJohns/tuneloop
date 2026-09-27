@@ -867,7 +867,7 @@ tenants (1) ---> (N) clients
 
 ### 2.31 user_instruments - 客户自有乐器表
 
-**说明**: 顾客自有乐器（客户报修入口，SN 查自有乐器）。
+**说明**: 顾客自有乐器（客户维修工单入口，SN 查自有乐器）。
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -885,16 +885,16 @@ tenants (1) ---> (N) clients
 
 ---
 
-### 2.32 repair_requests - 报修单表
+### 2.32 repair_requests - 维修工单表
 
-**说明**: 客户报修单（v3 主流程 + 维修服务分支 type='service'）。
+**说明**: 客户维修工单单（v3 主流程 + 维修服务分支 type='service'）。
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
 | id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
 | tenant_id | UUID | INDEX | 租户 ID |
 | site_id | UUID | INDEX | 网点 ID |
-| user_id | varchar(255) | NOT NULL, INDEX | 报修人 |
+| user_id | varchar(255) | NOT NULL, INDEX | 顾客 |
 | user_instrument_id | UUID | INDEX | 自有乐器（warranty 分支） |
 | status | varchar(20) | DEFAULT 'pending_ship' | 状态（见 §3.3 枚举） |
 | merchant_type | varchar(10) | DEFAULT 'full' | v3: full / controlled |
@@ -916,7 +916,7 @@ tenants (1) ---> (N) clients
 | return_company | varchar(100) | | 发回物流公司 |
 | return_tracking_number | varchar(100) | | 发回物流单号 |
 | worker_id | varchar(255) | | 维修师傅 |
-| type | varchar(20) | DEFAULT 'warranty', INDEX | #1942: warranty（报修）/ service（维修服务） |
+| type | varchar(20) | DEFAULT 'warranty', INDEX | #1942: warranty（维修工单）/ service（维修服务） |
 | repair_code | varchar(6) | UNIQUE | #1942: 6 位唯一编码（service 分支） |
 | technician_id | UUID | INDEX | #1942: 师傅指派 |
 | quote_repair_cents | bigint | | #1942: 报价修理费（分） |
@@ -936,12 +936,12 @@ tenants (1) ---> (N) clients
 
 ### 2.33 repair_quotes - 报价单表
 
-**说明**: 报修报价单（v3 多师傅竞价）。
+**说明**: 维修工单报价单（v3 多师傅竞价）。
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
 | id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
-| repair_request_id | UUID | NOT NULL, INDEX, FK → repair_requests.id | 报修单 ID |
+| repair_request_id | UUID | NOT NULL, INDEX, FK → repair_requests.id | 维修工单 ID |
 | site_id | UUID | INDEX | 报价网点 |
 | worker_id | varchar(255) | NOT NULL | 报价师傅 |
 | quote_no | varchar(30) | UNIQUE | 报价单号 |
@@ -958,12 +958,12 @@ tenants (1) ---> (N) clients
 
 ### 2.34 repair_transit_orders - 中转单表
 
-**说明**: 报修中转单（v3 受控路径转入/转出）。
+**说明**: 维修工单中转单（v3 受控路径转入/转出）。
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
 | id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
-| repair_request_id | UUID | INDEX, FK → repair_requests.id | 报修单 ID |
+| repair_request_id | UUID | INDEX, FK → repair_requests.id | 维修工单 ID |
 | transit_site_id | UUID | NOT NULL, INDEX | 中转网点 |
 | controlled_site_id | UUID | INDEX | 受控网点 |
 | direction | varchar(10) | | v3: in / out |
@@ -980,14 +980,14 @@ tenants (1) ---> (N) clients
 
 ---
 
-### 2.35 repair_request_records - 报修日志表
+### 2.35 repair_request_records - 维修工单日志表
 
-**说明**: 报修日志（v3 承载重新协商时间线）。
+**说明**: 维修工单日志（v3 承载重新协商时间线）。
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
 | id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
-| repair_request_id | UUID | NOT NULL, INDEX, FK → repair_requests.id | 报修单 ID |
+| repair_request_id | UUID | NOT NULL, INDEX, FK → repair_requests.id | 维修工单 ID |
 | worker_id | varchar(255) | | 操作人 |
 | comment | text | | 内容 |
 | photos | jsonb | DEFAULT '[]' | 照片 |
@@ -1027,9 +1027,9 @@ tenants (1) ---> (N) clients
 
 ---
 
-### 2.38 报修单状态枚举（v3 + 维修服务）
+### 2.38 维修工单状态枚举（v3 + 维修服务）
 
-**报修单（warranty）状态**:
+**维修工单（warranty）状态**:
 ```
 pending_assessment(待估价) → pending_payment(待付款) → pending_ship(待发送)
   → shipping(已发货) → repairing(维修中) → return_pending(待发回) → returned(已发回) → closed(已关闭)

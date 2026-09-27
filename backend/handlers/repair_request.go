@@ -620,7 +620,7 @@ func (h *RepairRequestHandler) TransitProcess(c *gin.Context) {
 	// Notify technicians at all controlled sites associated with this transit site
 	var routes []models.TransitRoute
 	if err := db.Where("transit_site_id = ?", req.TransitSiteID).Find(&routes).Error; err == nil {
-		title := "有新报修单待报价"
+		title := "有新维修工单待报价"
 		content := "中转网点已处理完成，请查看并提交报价。"
 		for _, route := range routes {
 			services.NotifyTechniciansOfSite(db, req.TenantID, route.ControlledSiteID, "new_repair", title, content, req.ID, "repair_request")
@@ -882,7 +882,7 @@ func (h *RepairRequestHandler) ReturnShipping(c *gin.Context) {
 	var customerUser models.User
 	if err := database.GetDB().Where("iam_sub = ?", req.UserID).First(&customerUser).Error; err == nil {
 		title := "乐器已发回"
-		content := "您的报修乐器已发回，请注意查收。"
+		content := "您的送修乐器已发回，请注意查收。"
 		services.Notify(db, req.TenantID, customerUser.ID, "returned", title, content, req.ID, "repair_request")
 	}
 

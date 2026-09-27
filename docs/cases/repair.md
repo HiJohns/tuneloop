@@ -1,12 +1,12 @@
 ---
 id: R-01
 domain: repair
-flow: 报修单（v3 legacy，创建已废弃 #2055）
+flow: 维修工单（v3 legacy，创建已废弃 #2055）
 visibility: 仅员工可见（创建入口已废弃，由接收/归还定损「有损坏」自动置乐器 repair_status=repair_pending 驱动，维修师工作台处理）；顾客侧**保留只读历史/在途单**（#2050）
 ---
 steps:
   - seq: 1
-    action: 创建报修单（已废弃 #2055）
+    action: 创建维修工单（已废弃 #2055）
     status: deprecated
     note: "顾客手选「商户-网点」的创建流程已删除（页面 `/create-repair` + 端点 `POST /repair-requests`）。新路径：顾客选维修师 → 创建维修服务单（见 repair-service.md）；员工/维修师侧「乐器维修」由接收/归还定损「有损坏」自动置 `instrument.repair_status='repair_pending'` 驱动。顾客仅保留只读历史/在途单。"
   - seq: 2
@@ -16,7 +16,7 @@ steps:
         page: /repair-request/:id
         role: [customer]
         gate: "状态 = pending_assessment"
-        reach: "报修单 → 报价列表"
+        reach: "维修工单 → 报价列表"
         controls: [报价卡片, 接受报价按钮]
         displays: [材料费, 服务费, 物流费, 工期, 评论]
         ops:
@@ -64,7 +64,7 @@ steps:
     api: {method: POST, path: /repair-requests/:id/confirm-receipt, params: []}
 ---
 
-# R-01 客户报修（v3）
+# R-01 客户维修工单（v3）
 
 ## 前置条件
 
@@ -72,7 +72,7 @@ steps:
 - 顾客已登录，自有乐器
 
 ## 流程
-1. 创建报修（SN 防抖回填 → 唯一性 → 选商户）
+1. 创建维修工单（SN 防抖回填 → 唯一性 → 选商户）
 2. 待估价：查看报价（受控仅见单号）→ 择一接受
 3. 待付款：支付（材料+服务+物流）
 4. 待发送：填物流 → 网点收货 → 维修中
@@ -84,7 +84,7 @@ steps:
 - 报价单跨网点互不可见
 
 ## 验收
-- `go test -run TestCreateRepairRequest|TestGetRepairRequest|TestListRepairRequest ./handlers/ -v`（v3 报修单；原 `TestIntegration_Scenario3_MaintenanceProcess` 随遗留维保模块于 #1886 移除）
+- `go test -run TestCreateRepairRequest|TestGetRepairRequest|TestListRepairRequest ./handlers/ -v`（v3 维修工单；原 `TestIntegration_Scenario3_MaintenanceProcess` 随遗留维保模块于 #1886 移除）
 
 ---
 id: R-02
@@ -98,7 +98,7 @@ steps:
         page: /repair-request/:id
         role: [customer]
         gate: "状态 = repairing 且存在 requote"
-        reach: "通知 → 报修单"
+        reach: "通知 → 维修工单"
         controls: [新报价卡片, 接受按钮, 拒绝按钮(待前端接入)]
         displays: [原报价, 新报价, 差额, 材料/服务/物流费对比]
         ops:

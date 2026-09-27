@@ -46,7 +46,7 @@
 
 ### 1.3 色彩与光感原则（员工端通用）
 
-> 源自 #968 #960 个人中心和首页迭代。作为除首页和乐器详情页之外（员工订单列表/详情、报修、网点管理等）的总体 UI 设计指导。
+> 源自 #968 #960 个人中心和首页迭代。作为除首页和乐器详情页之外（员工订单列表/详情、维修工单、网点管理等）的总体 UI 设计指导。
 
 - **全站主背景**：放弃纯白或死板灰色，采用高明度暖色（如 `bg-[#915F38]` 太妃糖棕 或 `bg-[#FDFBF7]` 浅杏色），营造乐器温润木质感。
 - **高阶渐变应用**：页面头部使用暖色→白色纵向线性渐变（如 `bg-gradient-to-b from-[#FDF4E7] to-white`），利用色彩暗示视觉自然流动。
@@ -101,8 +101,8 @@
 │   ├── list/                       # 订单列表
 │   └── detail/                     # 订单详情
 ├── maintenance/
-│   ├── apply/                      # 报修申请
-│   └── progress/                   # 报修进度
+│   ├── apply/                      # 维修工单申请
+│   └── progress/                   # 维修工单进度
 ├── site/
 │   └── detail/                     # 【新增】网点实境
 ├── certificate/
@@ -179,7 +179,7 @@
 | `MyRepairs.jsx` | `/my-repairs` | 维修中心（扫码入口+维修列表） |
 | `RepairWorkflow.jsx` | `/repair` | 维修工作流（多面板） |
 | `CreateRepairRequest.jsx` | `/create-repair` | **已删除（#2055）** |
-| `RepairRequestDetail.jsx` | `/repair-request/:id` | 报修详情 |
+| `RepairRequestDetail.jsx` | `/repair-request/:id` | 维修工单详情 |
 | `ReturnConfirm.jsx` | `/return/:orderId` | 归还确认 |
 | `ShippingInterface.jsx` | `/staff/shipping` | 发货界面 |
 | `SiteDetail.jsx` | `/site/:id` | 网点详情 |
@@ -351,7 +351,7 @@ setInterval(() => {
     </view>
     <view class="action-item" bindtap="navigateToMaintenance">
       <icon type="repair" />
-      <text>报修服务</text>
+      <text>维修服务</text>
     </view>
     <view class="action-item" bindtap="contactCustomerService">
       <icon type="service" />
@@ -994,9 +994,9 @@ API 来源：
 
 | 页面 | 顾客 USER | 网点员工 site_member/admin | 维修师傅 repair_technician |
 |------|:---:|:---:|:---:|
-| `/my-repairs` | 我的报修列表 + 创建入口 | 本网点报修列表 + 待发回填物流 | 我的维修 + 待维修列表 |
+| `/my-repairs` | 我的维修工单列表 + 创建入口 | 本网点维修工单列表 + 待发回填物流 | 我的维修 + 待维修列表 |
 | `/repair` | ❌ 不可达 | **验收面板**（已修复 · 本站点 · 非本单维修人） | 维修面板（开始/记录/完成/接手） |
-| `/repair-request` | 报修详情 + 接受/拒绝报价 + 支付 + 评价/申诉 | 本单站点：收发货/过程记录 | 本单站点：报价/维修/过程记录 |
+| `/repair-request` | 维修工单详情 + 接受/拒绝报价 + 支付 + 评价/申诉 | 本单站点：收发货/过程记录 | 本单站点：报价/维修/过程记录 |
 | `/create-repair` | **已删除（#2055）** | — | — |
 | `/receiving-repair-scan` | ❌ | 收货识别 | — |
 | `/staff/repair-scan` | ❌ | 转出中转处理 | — |
@@ -1010,15 +1010,15 @@ API 来源：
 - **R4** 接手仅限同站点（操作员站点 ∩ 乐器 current_site_id）
 - **R5** 改派负责人仅 `site_admin`
 - **R6** 遗留维保（maintenance）模块废弃（前端 4 页/路由移除，表数据保留）
-- **R7** 报价可见性：报修人本人 / 报价所属站点成员；无归属返回空集
+- **R7** 报价可见性：顾客本人 / 报价所属站点成员；无归属返回空集
 
 **通用要求**：错误反馈一律 `dialog.alert`（weapp 无全局 alert）；时间按 §1.6；照片经 `photoSrc` 补 origin + 点击 `previewImage`；异步按钮须 loading/disabled 防重；跨端控件用 Taro 组件（禁原生 `<textarea>/<input>`）。
 
 #### 2.9.1 维修中心 `/my-repairs`
 
 **角色视图**（顶部 tab 由角色生成）：
-- 顾客：我的维修服务（`user/repair-services`）+ 只读「历史报修」区（本人 `repair_requests`，仅查看/跟进，**无创建**——创建已废弃 #2055）
-- 网点员工：本网点报修列表 + 「填物流发回」动作（`return_pending`）+ **待验收乐器列表**（本站点 `repair_completed`，`repair/acceptance`，「去验收」→ `/repair?instrument_id=`，#1892）
+- 顾客：我的维修服务（`user/repair-services`）+ 只读「历史维修工单」区（本人 `repair_requests`，仅查看/跟进，**无创建**——创建已废弃 #2055）
+- 网点员工：本网点维修工单列表 + 「填物流发回」动作（`return_pending`）+ **待验收乐器列表**（本站点 `repair_completed`，`repair/acceptance`，「去验收」→ `/repair?instrument_id=`，#1892）
 - 维修师：我的维修（`repair/mine`）+ 待维修列表（`repair/pending`，按站点过滤）
 
 **交互**：
@@ -1046,9 +1046,9 @@ API 来源：
 - 面板展示：乐器信息 / 定损信息 / 维修记录（`时间 · 提交人` + 照片网格）
 - loading：每个操作按钮独立 loading（`处理中...`），互斥禁用
 
-#### 2.9.3 报修详情 `/repair-request`
+#### 2.9.3 维修工单详情 `/repair-request`
 
-**可见性**：报修人本人 / 该单站点（`site_id`、`transit_site_id`、`controlled_site_id`）成员；其余 404（防探测）。受控情形对站点成员脱敏报修人联系信息（§双向脱敏）。
+**可见性**：顾客本人 / 该单站点（`site_id`、`transit_site_id`、`controlled_site_id`）成员；其余 404（防探测）。受控情形对站点成员脱敏顾客联系信息（§双向脱敏）。
 
 **阶段面板**（按状态 + 站点归属）：
 - 待估价：报价列表（R7 隔离）+ 维修师报价表单（技师，本单受控网点）
@@ -1063,15 +1063,15 @@ API 来源：
 - 跨端控件（Taro Textarea/Input + `platform.uploadFile` + weapp `Taro.chooseImage/chooseMedia`）
 - 记录列表：正文 / 照片网格（可预览）/ 操作人 + 时间分行显示
 
-#### 2.9.4 创建报修单 `/create-repair`（**已删除 #2055**）
+#### 2.9.4 创建维修工单 `/create-repair`（**已删除 #2055**）
 
 - **状态**：页面 + H5 路由 + weapp 薄壳 + `app.config.ts` 注册 + `navigation.js` 映射 + 端点 `POST /repair-requests` **已全部删除**。
 - **原因**：顾客手选「商户-网点」的 v3 创建流程废弃。新路径：顾客 → 维修师列表 `/tech-list` → 维修师详情 → 创建维修服务单（`repair-service-create?technician_id=`，`POST /user/repair-services`）。
-- **保留**：`GET /repair-requests`（顾客只读历史「历史报修」区 + 员工网点报修列表）与在途单操作端点。
+- **保留**：`GET /repair-requests`（顾客只读历史「历史维修工单」区 + 员工网点维修工单列表）与在途单操作端点。
 
 #### 2.9.5 扫码工作页（员工）
 
-- **收货识别 `/receiving-repair-scan`**：输入/扫描乐器识别码 → 匹配报修单（显示状态/受控）→ 拆箱拍照 → 确认收货（`transit_in` 场景）
+- **收货识别 `/receiving-repair-scan`**：输入/扫描乐器识别码 → 匹配维修工单（显示状态/受控）→ 拆箱拍照 → 确认收货（`transit_in` 场景）
 - **转出中转处理 `/staff/repair-scan`**：输入返回运单号 → 匹配转出单 → 拆箱拍照 → 提交转出（`transit_out` 场景）
 - 两页均需**站点员工角色**（非员工显示无权提示）；入口：`/my-repairs` 员工视图扫码按钮
 - **文档勘误**：ui.md 历史路由表把 `/staff/repair-scan` 标注为「维修扫码」，实际为「转出中转处理」（本节为准）
@@ -1083,7 +1083,7 @@ API 来源：
 
 #### 2.9.7 支付完成 `/repair-payment-complete`（顾客）
 
-- 展示支付金额；提供返回报修详情入口
+- 展示支付金额；提供返回维修工单详情入口
 
 ---
 
@@ -2897,9 +2897,9 @@ const handleSyncUsersFromIAM = async () => {
 > - PC 后台：维修服务全量列表 + 评价（评分/留言/照片）展示
 >
 > **#2050 角色互斥（入口门控，强制）**：
-> - **顾客（`role` 为空或 `USER`）**：维修入口 → `/tech-list`（维修师列表/维修服务）；`/my-repairs` **仅渲染「维修服务」内容**（`?tab=service`，乐器报修 Tab 隐藏）；**不得**出现「内部报修/乐器报修」**创建**入口；但保留**只读**「历史报修」区（v3 legacy 存量/在途单，仅查看跟进，无创建）
-> - **员工（`role ≠ USER`）**：维修入口 → `/my-repairs`（内部报修/网点视角）；**不得**出现「维修服务（选维修师）」入口（直接访问 `/tech-list` → 重定向回 `/my-repairs`）
-> - 底部导航「维修」Tab（`Home`/`MyLeases`/`Profile`/`StaffOrders`/`MyRepairs`，H5 + weapp 各自实现）均按上述分流；维修服务与内部报修**不互链**
+> - **顾客（`role` 为空或 `USER`）**：维修入口 → `/tech-list`（维修师列表/维修服务）；`/my-repairs` **仅渲染「维修服务」内容**（`?tab=service`，维修工单 Tab 隐藏）；**不得**出现「内部维修工单/维修工单」**创建**入口；但保留**只读**「历史维修工单」区（v3 legacy 存量/在途单，仅查看跟进，无创建）
+> - **员工（`role ≠ USER`）**：维修入口 → `/my-repairs`（内部维修工单/网点视角）；**不得**出现「维修服务（选维修师）」入口（直接访问 `/tech-list` → 重定向回 `/my-repairs`）
+> - 底部导航「维修」Tab（`Home`/`MyLeases`/`Profile`/`StaffOrders`/`MyRepairs`，H5 + weapp 各自实现）均按上述分流；维修服务与内部维修工单**不互链**
 > - 判定统一走 `frontend-mobile/src/utils/role.js` 的 `isStaffRole()`（员工 = `oid`/`tid` 非空 **或** 员工角色非 `USER`/非 `GUEST`；顾客 = 其余。顾客组织方案已废弃，故 `oid/tid` 非空即员工；`/tech-list`、`/my-repairs` 等入口均以此为准）
 >
 > **#2051 首屏与下单路径**：
@@ -3399,7 +3399,7 @@ const OwnershipProgressBar: React.FC<OwnershipProgressBarProps> = (props) => {
 | **注册登录** | 微信快捷登录 | ✅ | ✅ | 100% |
 | **乐器租赁** | 分类列表/详情/阶梯定价/租期折扣 | ✅ | ✅ | 100% |
 | **订单支付** | 免押金/首期汇总/协议签署 | ✅ | ✅ | 100% |
-| **维保服务** | 在线报修/工单追踪/服务包查询 | ✅ | ✅ | 100% |
+| **维保服务** | 在线维修/工单追踪/服务包查询 | ✅ | ✅ | 100% |
 | **个人中心** | 租约管理/收藏/地址 | ✅ | - | 100% |
 | **租转售** | 进度条/电子证书 | ✅ | ✅ | 100% |
 | **商家管理** | 设备台账/库存监控/所有权监控 | - | ✅ | 100% |

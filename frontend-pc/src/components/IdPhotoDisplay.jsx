@@ -9,7 +9,7 @@ import { api } from '../services/api'
 //   initialUrl: 初始照片 URL
 //   uploadEndpoint: 上传端点（如 /admin/user-management/:id/id-photo）
 //   deleteEndpoint: 删除端点（如 /admin/user-management/:id/id-photo）
-//   readOnly: 只读模式（业务场景查看，如订单/报修详情）
+//   readOnly: 只读模式（业务场景查看，如订单/维修工单详情）
 export default function IdPhotoDisplay({ side, label: labelOverride = '', initialUrl = '', uploadEndpoint, deleteEndpoint, readOnly = false }) {
   const [url, setUrl] = useState(initialUrl || '')
   const [uploading, setUploading] = useState(false)

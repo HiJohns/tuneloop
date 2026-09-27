@@ -111,7 +111,7 @@ steps:
         page: /repair-request
         role: [site_admin, site_member, repair_technician]
         gate: ""
-        reach: "报修/租赁详情 → 员工操作面板 → 查看用户身份证"
+        reach: "维修工单/租赁详情 → 员工操作面板 → 查看用户身份证"
         controls: [正面缩略图, 反面缩略图, 点击放大查看]
         displays: [身份证正面图, 身份证反面图]
         ops:
@@ -208,7 +208,7 @@ steps:
 注册页 (H5/weapp)                   编辑资料 (H5/weapp)
 引导页 (H5 onboarding)          ←   编辑资料 (PC 管理员)
 编辑资料 (H5/weapp)                 发货/收货 (PC 员工)
-用户管理 (PC 管理员)                 报修详情 (移动端员工)
+用户管理 (PC 管理员)                 维修工单详情 (移动端员工)
 ```
 
 ## 数据模型变更

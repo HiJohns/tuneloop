@@ -21,7 +21,7 @@ const statusLabels = {
 export default function MyRepairs() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  // #2050 维修区角色互斥：员工=内部报修，顾客=维修服务（含 oid/tid 非空的顾客仍是顾客）
+  // #2050 维修区角色互斥：员工=内部维修工单，顾客=维修服务（含 oid/tid 非空的顾客仍是顾客）
   const token = getToken()
   const isStaff = isStaffRole(token)
   const isCustomer = !isStaff
@@ -45,7 +45,7 @@ export default function MyRepairs() {
   const [shippingBack, setShippingBack] = useState(false)
   const [showSiteRepairs, setShowSiteRepairs] = useState(true)
   const [showPending, setShowPending] = useState(true)
-  // #1957 入口区分：乐器报修（v3）/ 维修服务（RS-10）；#2050 顾客锁定「维修服务」
+  // #1957 入口区分：维修工单（v3）/ 维修服务（RS-10）；#2050 顾客锁定「维修服务」
   const [svcTab, setSvcTab] = useState((!isStaff || searchParams.get('tab') === 'service') ? 'service' : 'legacy')
   const [myServices, setMyServices] = useState([])
   const [servicesLoaded, setServicesLoaded] = useState(false)
@@ -104,7 +104,7 @@ export default function MyRepairs() {
     setServicesLoaded(true)
   }
 
-  // #2050：顾客侧历史报修（v3 legacy，type != 'service'）——只读，跟进存量/在途单
+  // #2050：顾客侧历史维修工单（v3 legacy，type != 'service'）——只读，跟进存量/在途单
   const fetchLegacyRepairs = async () => {
     try {
       const res = await apiFetch(`${baseUrl}/repair-requests`)
@@ -115,7 +115,7 @@ export default function MyRepairs() {
     } catch {}
   }
 
-  // #2050：顾客=维修服务 + 只读历史报修；员工=内部报修（互不拉取对方数据）
+  // #2050：顾客=维修服务 + 只读历史维修工单；员工=内部维修工单（互不拉取对方数据）
   useEffect(() => {
     if (isCustomer) { fetchMyServices(); fetchLegacyRepairs() }
     else fetchRepairs()
@@ -256,10 +256,10 @@ export default function MyRepairs() {
           })
         )}
       </View>
-      {/* #2050 顾客侧历史报修（v3 legacy，只读）：创建入口已废弃，存量/在途单仍可查看跟进 */}
+      {/* #2050 顾客侧历史维修工单（v3 legacy，只读）：创建入口已废弃，存量/在途单仍可查看跟进 */}
       {isCustomer && repairRequests.length > 0 && (
         <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>历史报修（{repairRequests.length}）</Text>
+          <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>历史维修工单（{repairRequests.length}）</Text>
           {repairRequests.map(r => (
             <View key={r.id} className="border border-zinc-100 rounded-xl p-3" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}
               onClick={() => nav(`/repair-request?request_id=${r.id}`)}>
@@ -281,15 +281,15 @@ export default function MyRepairs() {
     <View style={{ backgroundColor: "#FDFBF7" }} className="flex flex-col h-screen">
       {!env.isMiniProgram && (
       <View className="bg-white px-4 py-3 border-b border-zinc-100">
-        <Text className="text-lg font-black text-black">{isCustomer ? '我的维修服务' : isPureTech ? '维修工作台' : '报修单管理'}</Text>
+        <Text className="text-lg font-black text-black">{isCustomer ? '我的维修服务' : isPureTech ? '维修工作台' : '维修工单管理'}</Text>
       </View>
       )}
 
-      {/* #1957 RS-10 入口区分：报修单（v3 legacy）/ 维修服务；#2050 顾客锁定「维修服务」（报修单仅员工） */}
+      {/* #1957 RS-10 入口区分：维修工单（v3 legacy）/ 维修服务；#2050 顾客锁定「维修服务」（维修工单仅员工） */}
       {isStaff && (
       <View style={{ display: 'flex', gap: 8, backgroundColor: '#FFFFFF', padding: '10px 16px 0' }}>
         {[
-          { key: 'legacy', label: '报修单' },
+          { key: 'legacy', label: '维修工单' },
           { key: 'service', label: '维修服务' },
         ].map(t => (
           <View key={t.key} onClick={() => (t.key === 'service' ? openServiceTab() : setSvcTab('legacy'))}
@@ -402,13 +402,13 @@ export default function MyRepairs() {
           <>
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <View className="flex justify-between items-center" onClick={() => setShowSiteRepairs(v => !v)}>
-              <Text className="text-sm font-bold text-black">报修单（本网点全部）({repairRequests.length})</Text>
+              <Text className="text-sm font-bold text-black">维修工单（本网点全部）({repairRequests.length})</Text>
               <Text className="text-xs text-zinc-400">{showSiteRepairs ? '▾' : '▸'}</Text>
             </View>
             {showSiteRepairs && (loading ? (
               <View><Text className="text-xs text-zinc-400">加载中...</Text></View>
             ) : repairRequests.length === 0 ? (
-              <View><Text className="text-xs text-zinc-400">暂无报修</Text></View>
+              <View><Text className="text-xs text-zinc-400">暂无维修工单</Text></View>
             ) : (
               <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {repairRequests.map(r => (
@@ -431,7 +431,7 @@ export default function MyRepairs() {
                       <Text className="text-xs text-zinc-600">{r.brand && r.model ? `${r.brand} ${r.model}` : r.brand || r.model || '-'}</Text>
                     </View>
                     <View className="flex justify-between items-center">
-                      <Text className="text-xs text-zinc-400">报修人</Text>
+                      <Text className="text-xs text-zinc-400">顾客</Text>
                       <Text className="text-xs text-zinc-600">{r.reporter_name || '-'}</Text>
                     </View>
                     {r.status === 'return_pending' && (

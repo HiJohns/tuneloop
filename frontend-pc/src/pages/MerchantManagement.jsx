@@ -336,7 +336,7 @@ const MerchantManagement = () => {
             <Form.Item
               name="transit_address"
               label="中转地址（可选）"
-              tooltip="零售订单收寄件地址展示用（可选）；报修中转请配置「中转网点 + 路由」"
+              tooltip="零售订单收寄件地址展示用（可选）；维修工单中转请配置「中转网点 + 路由」"
             >
               <Input placeholder="输入中转地址（可选）" />
             </Form.Item>

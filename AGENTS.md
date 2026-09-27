@@ -720,18 +720,18 @@ Usage:
 
 ---
 
-## Repair Request Tables（报修表字段说明）
+## Repair Request Tables（维修工单表字段说明）
 
-> 来源：#1110 — 客户报修流程数据模型。
+> 来源：#1110 — 客户维修工单流程数据模型。
 
 ### 表结构
 
 | 表 | 说明 | 关键字段 |
 |----|------|---------|
 | `user_instruments` | 用户自有乐器 | id, user_id, sn, instrument_type, brand, model |
-| `repair_requests` | 报修单 | id, tenant_id, site_id, user_id, user_instrument_id, status(11个状态), description, quote_amount, inspection_fee, shipping_fee, tracking_number, return_tracking_number, worker_id |
-| `repair_request_records` | 报修日志 | id, repair_request_id, worker_id, comment, photos, record_type |
-| `appeals` | 申诉（定损/报修通用） | id, tenant_id, site_id, category, object_type, object_id, appellant_id, description, images, status |
+| `repair_requests` | 维修工单 | id, tenant_id, site_id, user_id, user_instrument_id, status(11个状态), description, quote_amount, inspection_fee, shipping_fee, tracking_number, return_tracking_number, worker_id |
+| `repair_request_records` | 维修工单日志 | id, repair_request_id, worker_id, comment, photos, record_type |
+| `appeals` | 申诉（定损/维修工单通用） | id, tenant_id, site_id, category, object_type, object_id, appellant_id, description, images, status |
 
 ### 状态枚举
 
@@ -749,10 +749,10 @@ pending_ship → shipping → inspecting → quoted → pending_payment → pend
 
 | 页面 | 顾客 (USER) | 网点员工 (site_member/admin) | 维修师傅 (repair_technician) | 商户管理员 (merchant_admin) |
 |------|:---|:---|:---|:---|
-| `/my-repairs` | 我的报修列表 (repair_requests by user_id) + 创建按钮 | 本网点报修列表 + 待发回填物流 | 我的维修 (my repairs) + 质检中/维修中报修单列表 | — (PC端) |
+| `/my-repairs` | 我的维修工单列表 (repair_requests by user_id) + 创建按钮 | 本网点维修工单列表 + 待发回填物流 | 我的维修 (my repairs) + 质检中/维修中维修工单列表 | — (PC端) |
 | `/repair` | ❌ | 验收面板（已修复乐器→通过/不通过） | 维修面板 + 接手 | — |
-| `/repair-request` | 报修详情 + 确认/拒绝报价 + 支付 + 评价 | 查看报修详情 + 发回物流 | 质检+报价面板 / 维修中完成面板 | — |
-| `/create-repair` | 创建报修单（SN防抖+表单+网点选择） | — | — | — |
+| `/repair-request` | 维修工单详情 + 确认/拒绝报价 + 支付 + 评价 | 查看维修工单详情 + 发回物流 | 质检+报价面板 / 维修中完成面板 | — |
+| `/create-repair` | 创建维修工单（SN防抖+表单+网点选择） | — | — | — |
 | `/receiving-repair-scan` | — | 收货智能匹配 | — | — |
 
 ### 底部导航 tab 差异

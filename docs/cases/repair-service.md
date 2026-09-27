@@ -3,7 +3,7 @@ id: RS-00
 domain: repair-service
 flow: 维修服务改版总纲（#1942）
 source: 用户需求 2026-09-17（维修是单项服务，类似一件商品；可选维修师；可咨询）
-related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 报修，并存）"
+related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，并存）"
 ---
 
 # RS-00 维修服务总纲
@@ -12,9 +12,9 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 报修，并存
 
 | 概念 | 底层 | **统一术语** | 停用叫法 |
 |------|------|-------------|---------|
-| 顾客选维修师创建的单 | `repair_requests.type='service'` + `technician_id` | **维修服务单** | 报修单 / 乐器报修 / 我的维修 |
-| 维修师承接的维修（定损驱动） | `instruments.repair_status`（`repair_pending`→`repair_in_progress`→`repair_completed`） | **乐器维修** | 报修 |
-| v3 存量单（商户-网点维度，创建已废弃 #2055） | `repair_requests.type=''` | 顾客侧只读=**历史报修**；员工处理界面=**报修单** | 乐器报修 |
+| 顾客选维修师创建的单 | `repair_requests.type='service'` + `technician_id` | **维修服务单** | 维修工单 / 维修工单 / 我的维修 |
+| 维修师承接的维修（定损驱动） | `instruments.repair_status`（`repair_pending`→`repair_in_progress`→`repair_completed`） | **乐器维修** | 维修工单 |
+| v3 存量单（商户-网点维度，创建已废弃 #2055） | `repair_requests.type=''` | 顾客侧只读=**历史维修工单**；员工处理界面=**维修工单** | 维修工单 |
 | 承接人 | `technician_profiles` | **维修师** | 师傅（指代承接人时；IAM 角色标签 `repair_technician` 仍作「维修师傅」） |
 
 ### 两条独立链路（**无外键关联**，禁止混用统计/串联）
@@ -25,19 +25,19 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 报修，并存
 | 员工/维修师「乐器维修」 | 系统（接收/归还**定损有损坏**自动置位，`assessment.go`/`warehouse.go`） | `instruments.repair_status` + `repair_worker_id` | 维修师 `/my-repairs`（`/repair/pending` → 接单）/ `/tech-repair-workbench` |
 
 
-> **#2050 角色互斥**：维修服务（本流程）**仅顾客可见**；员工入口已收敛为乐器维修/报修单（`docs/cases/repair.md`），双方不互链。判定见 `frontend-mobile/src/utils/role.js`。
+> **#2050 角色互斥**：维修服务（本流程）**仅顾客可见**；员工入口已收敛为乐器维修/维修工单（`docs/cases/repair.md`），双方不互链。判定见 `frontend-mobile/src/utils/role.js`。
 
 > **#2051 下单路径（首屏=维修师列表）**：顾客维修入口 → **维修师列表**（`/tech-list`：照片/占位符 + 姓名 + 简介摘要 + 专长）→ 点维修师 → 维修师详情（`/tech-detail`）→「创建维修订单」→ `repair-service-create?technician_id=…` → 创建页**锁定该维修师**（只读卡）。**创建维修单不再作为首屏主入口**（`MyRepairs` 顾客区按钮改为「选择维修师」→ `/tech-list`）。
 > **`repair-service-create` 参数规则**：有 `technician_id`（weapp router param / H5 query 双源）→ 渲染锁定卡（`维修师：{name || '未选定'}`）；**无** → 渲染**维修师选择器**（`/common/repair-technicians`），选中后视为锁定。提交时无维修师 → `请选择维修师` 并停留本页（**不再退回** 列表）。
 
 > **#2049 维修师档案字段**：`technician_profiles` = 照片（媒体管线：原图 `technician_{id}.webp` + 缩略图 `technician_{id}_thumb.jpg`）+ 富文本简介 `bio`（HTML，移动端 `RichContent` 渲染）+ 专长/年限 `experience`。存量**不迁移**，支持 PC 编辑补录；无照片 → 人像占位符。
 
-> **定位变化**：维修从「已出租乐器的报修工单流程」重构为「**可独立购买的服务商品**」——用户选择维修师、可咨询、不绑定租赁乐器。
-> **并存策略**：既有 v3 报修（已租琴报修）流程保留，入口区分「报修单」与「维修服务」；存量 pending 单继续走 v3。
+> **定位变化**：维修从「已出租乐器的维修工单流程」重构为「**可独立购买的服务商品**」——用户选择维修师、可咨询、不绑定租赁乐器。
+> **并存策略**：既有 v3 维修工单（已租琴维修）流程保留，入口区分「维修工单」与「维修服务」；存量 pending 单继续走 v3。
 
-## 与 v3 报修的差异
+## 与 v3 维修工单的差异
 
-| 维度 | v3 报修（repair.md） | 维修服务（本文件） |
+| 维度 | v3 维修工单（repair.md） | 维修服务（本文件） |
 |------|---------------------|-------------------|
 | 对象 | 已出租的乐器（租赁订单关联） | 任意乐器（无需租赁关系） |
 | 商业形态 | 工单（定损/赔偿/结算） | 服务商品（报价→支付→履约） |
@@ -236,9 +236,9 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 报修，并存
 > **新增端点归属**：RS-API-1/2/3 属**阶段3 前置后端补丁**（阶段2 实现时未覆盖的数据获取面），
 > 在阶段3 首个执行单元中一并实现（3 文件：`handlers/repair_service.go` + `main.go` + 测试）。
 
-## RS-10 与 v3 报修的并存与迁移
+## RS-10 与 v3 维修工单的并存与迁移
 
-- 入口区分：小程序「维修」Tab → 「报修单」（v3 存量，仅员工）/「维修服务」（本文件）
+- 入口区分：小程序「维修」Tab → 「维修工单」（v3 存量，仅员工）/「维修服务」（本文件）
 - 存量 v3 pending 单：继续走 v3 流程至完结，不迁移
 - 状态机独立：`repair_requests(type='service')` 或新表（实现阶段定，倾向扩展 type）
 

@@ -287,9 +287,9 @@ export default function RepairRequestDetail() {
     setActionLoading(false)
   }
 
-  if (!requestId) return <View className="h-screen flex items-center justify-center"><Text>请选择报修单</Text></View>
+  if (!requestId) return <View className="h-screen flex items-center justify-center"><Text>请选择维修工单</Text></View>
   if (loading) return <View className="h-screen flex items-center justify-center"><Text className="text-zinc-400">加载中...</Text></View>
-  if (!request) return <View className="h-screen flex items-center justify-center"><Text className="text-zinc-400">报修单不存在</Text></View>
+  if (!request) return <View className="h-screen flex items-center justify-center"><Text className="text-zinc-400">维修工单不存在</Text></View>
 
   const status = request.status
 
@@ -297,13 +297,13 @@ export default function RepairRequestDetail() {
     <View style={{ backgroundColor: "#FDFBF7" }} className="flex flex-col h-screen">
       <View className="bg-white px-4 py-3 border-b border-zinc-100 flex items-center gap-2">
         <Text className="text-lg mr-2" onClick={goBack}>{'<'}</Text>
-        <Text className="text-lg font-bold flex-1">报修详情</Text>
+        <Text className="text-lg font-bold flex-1">维修工单详情</Text>
       </View>
 
       <ScrollView scrollY className="flex-1 px-4 min-h-0">
         {/* Request info */}
         <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
-          <View><Text className="text-sm font-bold text-black">报修信息</Text></View>
+          <View><Text className="text-sm font-bold text-black">维修工单信息</Text></View>
           <View className="mt-3" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <View className="flex justify-between items-center">
               <Text className="text-xs text-zinc-400">识别码</Text>
@@ -331,7 +331,7 @@ export default function RepairRequestDetail() {
             </View>
             {isCustomer && (
             <View className="flex justify-between items-center">
-              <Text className="text-xs text-zinc-400">报修人</Text>
+              <Text className="text-xs text-zinc-400">顾客</Text>
               <Text className="text-xs text-zinc-600">{request.reporter_name || '-'}</Text>
             </View>
             )}

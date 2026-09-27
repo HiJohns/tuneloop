@@ -60,7 +60,7 @@ export default function RepairQuote() {
   }
 
   if (loading) return <View className="h-screen flex items-center justify-center"><Text className="text-zinc-400">加载中...</Text></View>
-  if (!request) return <View className="h-screen flex items-center justify-center"><Text className="text-zinc-400">报修单不存在</Text></View>
+  if (!request) return <View className="h-screen flex items-center justify-center"><Text className="text-zinc-400">维修工单不存在</Text></View>
 
   const status = request.status
   const isControlled = request.merchant_type === 'controlled'

@@ -10,7 +10,7 @@ import { htmlToPlainText } from '../utils/content'
 
 // #1976 T2 维修 Tab 首屏 = 师傅列表（样式参照乐器列表）
 // 右上角『我的维修』→ /my-repairs?tab=service（顾客的维修服务单）
-// #2050 角色互斥：本页仅顾客可见（员工进入则跳 /my-repairs）；已移除「乐器报修」入口（内部报修仅员工）
+// #2050 角色互斥：本页仅顾客可见（员工进入则跳 /my-repairs）；已移除「维修工单」入口（内部维修工单仅员工）
 
 function parseExperience(v) {
   if (!v) return []
@@ -27,7 +27,7 @@ export default function TechList() {
     if (!route) { dialog.alert('该功能请在 H5 端使用'); return }
     return Taro.navigateTo({ url: route.url })
   }
-  // #2050 角色互斥：员工不得进入维修服务（师傅列表）→ 引导回内部报修
+  // #2050 角色互斥：员工不得进入维修服务（师傅列表）→ 引导回内部维修工单
   const isStaff = isStaffRole()
   const [techs, setTechs] = useState([])
   const [activeCount, setActiveCount] = useState(0)

@@ -14,7 +14,7 @@
 | `instrument.md` | 乐器管理 | I-01~ | cases.md §1 |
 | `lease.md` | 租赁闭环 | L-01~L-08 | cases.md §2 |
 | `lease-repair.md` | 租赁乐器维修 | R-03 | cases.md §3 + #1888 |
-| `repair.md` | 客户报修 v3 | R-01~R-02 | cases.md §3 + docs/domains/repair.md |
+| `repair.md` | 客户维修工单 v3 | R-01~R-02 | cases.md §3 + docs/domains/repair.md |
 | `organization.md` | 组织管理 | O-01~ | cases.md §4 |
 | `transit.md` | 中转工作流 | T-01~ | cases.md §5 |
 | `cart.md` | 购物车 | C-01~ | #1665 教训沉淀（数据刷新/下单移除/跨端导航） |

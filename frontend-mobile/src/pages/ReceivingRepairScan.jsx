@@ -51,7 +51,7 @@ export default function ReceivingRepairScan() {
           return
         }
       }
-      dialog.alert('未找到匹配的待收货报修单')
+      dialog.alert('未找到匹配的待收货维修工单')
     } catch {}
     setSearching(false)
   }
@@ -63,7 +63,7 @@ export default function ReceivingRepairScan() {
       const resp = await apiFetch(`${baseUrl}/repair-requests/${request.id}/receive`, { method: 'POST' })
       const r = await resp.json()
       if (r.code === 20000) {
-        dialog.alert('收货成功，报修单进入维修状态')
+        dialog.alert('收货成功，维修工单进入维修状态')
         nav(`/repair-request?request_id=${request.id}`)
       } else {
         dialog.alert(resolveErrorMessage(r, '操作失败'))
@@ -161,7 +161,7 @@ export default function ReceivingRepairScan() {
 
       {request && (
         <View className="bg-white rounded-2xl shadow-sm p-4">
-          <Text className="text-sm font-bold text-green-700 mb-2">匹配到报修单</Text>
+          <Text className="text-sm font-bold text-green-700 mb-2">匹配到维修工单</Text>
           <View className="mb-3" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <Text className="text-xs text-zinc-500">乐器：{request.instrument_type} {request.brand}</Text>
             <Text className="text-xs text-zinc-500">描述：{request.description}</Text>

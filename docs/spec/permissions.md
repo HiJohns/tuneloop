@@ -246,7 +246,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 经营策略 | 租金设定 | /inventory/rent-setting | cusPerm: instrument:price |
 | 经营策略 | 定价策略 | /pricing/config | cusPerm: instrument:price_config |
 | 经营策略 | 系统折扣政策 | /system/promo-plans | cusPerm: promo:manage |
-| 经营策略 | 报修设置 | /repair/settings | cusPerm: instrument:price_config |
+| 经营策略 | 维修工单设置 | /repair/settings | cusPerm: instrument:price_config |
 | 经营策略 | 返点配置 | /system/rebate-config | cusPerm: rebate:manage |
 | 经营策略 | 会员级别管理 | /system/membership-levels | cusPerm: membership:manage |
 | 运营管理 | 订单管理 | /orders | cusPerm: order:read |

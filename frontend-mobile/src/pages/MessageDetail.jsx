@@ -181,7 +181,7 @@ export default function MessageDetail() {
   const handleRepairAction = () => {
     // weapp repair module not built yet (#1559) — guide to H5 for now
     if (env.isMiniProgram) {
-      dialog.toast('请在网页端查看报修详情')
+      dialog.toast('请在网页端查看维修工单详情')
       return
     }
     navigate(`/repair-request?id=${ref?.repair_request_id || notification?.ref_id || ''}`)

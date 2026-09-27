@@ -7,7 +7,7 @@ import { formatBeijingDateTimeShort } from '../utils/format'
 import { parsePhotos, photoSrc } from '../utils/media'
 
 const RECORD_TYPE_LABELS = {
-  created: '报修单已创建',
+  created: '维修工单已创建',
   quote_submitted: '维修师提交报价',
   quote_accepted: '接受报价',
   paid: '支付完成',

@@ -166,7 +166,7 @@ func loadRepairPayment(db *gorm.DB, id, ptype string, resp *PaymentCalculateResp
 		return
 	}
 	if ptype == "requote" {
-		resp.Title = "报修增补差价"
+		resp.Title = "维修工单增补差价"
 		newTotal := quote.MaterialFee + quote.ServiceFee + quote.LogisticsFee
 		paid := models.Cents(0)
 		if req.PaidAmount != nil {
@@ -190,7 +190,7 @@ func loadRepairPayment(db *gorm.DB, id, ptype string, resp *PaymentCalculateResp
 			}
 		}
 	} else {
-		resp.Title = "报修支付"
+		resp.Title = "维修工单支付"
 		// #1758: cents contract (previously ToYuan → yuan).
 		resp.Amount = float64(quote.MaterialFee + quote.ServiceFee + quote.LogisticsFee)
 		resp.Details = map[string]interface{}{}

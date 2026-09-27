@@ -37,15 +37,15 @@ export default function RepairConfigPage() {
   if (loading) return <Spin style={{ display: 'flex', justifyContent: 'center', marginTop: 100 }} />
 
   return (
-    <Card title="报修设置" extra={<Button type="primary" loading={saving} onClick={handleSave}>保存配置</Button>}>
+    <Card title="维修工单设置" extra={<Button type="primary" loading={saving} onClick={handleSave}>保存配置</Button>}>
       <Form layout="vertical" style={{ maxWidth: 400 }}>
         <Form.Item label="检查费（元）" tooltip="用户拒绝报价时收取的检查费用">
           <InputNumber min={0} precision={2} value={inspectionFee} onChange={setInspectionFee} style={{ width: '100%' }} addonAfter="元" />
         </Form.Item>
-        <Form.Item label="报修物流费默认值（元）" tooltip="商户级默认，网点可覆盖">
+        <Form.Item label="维修工单物流费默认值（元）" tooltip="商户级默认，网点可覆盖">
           <InputNumber min={0} precision={2} value={shippingFee} onChange={setShippingFee} style={{ width: '100%' }} addonAfter="元" />
         </Form.Item>
-        <Form.Item label="报修允许使用赠点">
+        <Form.Item label="维修工单允许使用赠点">
           <Switch checked={giftPointsEnabled} onChange={setGiftPointsEnabled} />
         </Form.Item>
       </Form>

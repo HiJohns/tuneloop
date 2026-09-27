@@ -270,6 +270,6 @@ func TestListRepairRequest(t *testing.T) {
 	require.NoError(t, json.Unmarshal(w2.Body.Bytes(), &resp2))
 	assert.Equal(t, 20000, resp2.Code)
 	if l2, ok2 := resp2.Data["list"].([]interface{}); ok2 {
-		assert.Len(t, l2, 0, "无站点归属的员工不得看到任何报修")
+		assert.Len(t, l2, 0, "无站点归属的员工不得看到任何维修工单")
 	}
 }

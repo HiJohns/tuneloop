@@ -92,7 +92,7 @@ func SubmitQuote(c *gin.Context) {
 		var customerUser models.User
 		if err := database.GetDB().Where("iam_sub = ?", reqModel.UserID).First(&customerUser).Error; err == nil {
 			title := "收到新报价"
-			content := "您的报修单收到一份新报价，请查看并确认。"
+			content := "您的维修工单收到一份新报价，请查看并确认。"
 			services.Notify(db, reqModel.TenantID, customerUser.ID, "quote", title, content, repairRequestID, "repair_request")
 		}
 	}
@@ -310,7 +310,7 @@ func AcceptQuote(c *gin.Context) {
 	if err := db.Where("id = ?", repairRequestID).First(&reqModel).Error; err == nil {
 		if quote.SiteID != "" {
 			title := "报价已被接受"
-			content := "您的报价已被报修人接受，报修单进入待付款状态。"
+			content := "您的报价已被顾客接受，维修工单进入待付款状态。"
 			services.NotifyTechniciansOfSite(db, reqModel.TenantID, quote.SiteID, "quote_accepted", title, content, repairRequestID, "repair_request")
 		}
 	}

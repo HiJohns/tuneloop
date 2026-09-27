@@ -39,7 +39,7 @@
 
 | # | 产品 | 用途 | 是否需要额外申请 |
 |---|------|------|:---:|
-| 1 | JSAPI 支付 | 小程序内：租赁支付、报修支付、买点 | ✅ |
+| 1 | JSAPI 支付 | 小程序内：租赁支付、维修工单支付、买点 | ✅ |
 | 2 | H5 支付 | 移动端 H5：租赁支付 | ✅ |
 | 3 | Native 支付 | PC 端扫码 | ✅ |
 | 4 | **委托代扣** | 逾期自动扣款 | ✅ 需额外签约（人工审核） |
@@ -64,7 +64,7 @@ WECHAT_PAY_PRIVATE_KEY_PATH=  # 商户私钥路径 (apiclient_key.pem)
 
 ## 三、架构总图
 
-### 3.1 小程序支付流程（JSAPI — 租赁/报修/买点）
+### 3.1 小程序支付流程（JSAPI — 租赁/维修/买点）
 
 ```
 [用户] → 点击"支付"按钮
@@ -252,12 +252,12 @@ CREATE TABLE order_refund_records (
 | # | 对接点 | 支付场景 | 方式 | 备注 |
 |---|--------|----------|------|------|
 | 1 | 租赁费用 | 小程序内 / H5 / PC | JSAPI / H5 / Native | 三端均可触发 |
-| 2 | 报修费用 | 小程序内 | JSAPI | 仅小程序 |
+| 2 | 维修费用 | 小程序内 | JSAPI | 仅小程序 |
 | 3 | 逾期扣款 | 后台自动 | 委托代扣 | 需用户签约（远期） |
 | 4 | 会员入会费 | 小程序内 | JSAPI | 注册引导 |
 | 5 | 押金退款 | 后台自动 | 退款 API | 原路退回 |
 | 6 | 结算退款 | 后台自动 | 退款 API | 原路退回 |
-| 7 | 报修增补差价 | 小程序内 | JSAPI | renegotiation quote |
+| 7 | 维修工单增补差价 | 小程序内 | JSAPI | renegotiation quote |
 | 8 | **定损赔偿** | 小程序内 | JSAPI | 押金不足覆盖时，用户支付差额；申诉调整后再次触发 |
 
 ### 5.8 定损赔偿支付流程（对接点 #8）
@@ -352,7 +352,7 @@ WECHAT_PAY_PRIVATE_KEY_PATH=      # 商户私钥文件路径（apiclient_key.pem
 | 筛选项 | 类型 | 可选值 |
 |--------|------|------|
 | 时间范围 | date range | 开始日期 ~ 结束日期 |
-| 支付类别 | multi-select | 租赁支付 / 报修支付 / 退款 / 逾期扣款 |
+| 支付类别 | multi-select | 租赁支付 / 维修工单支付 / 退款 / 逾期扣款 |
 | 支付方式 | select | 全部 / JSAPI / H5 / Native / 模拟（测试） |
 | 支付状态 | select | 全部 / 待支付 / 已支付 / 退款中 / 已退款 / 失败 |
 | 商户订单号 | text input | out_trade_no 精确搜索 |
@@ -364,7 +364,7 @@ WECHAT_PAY_PRIVATE_KEY_PATH=      # 商户私钥文件路径（apiclient_key.pem
 | 时间 | `created_at` | 支付发起时间 |
 | 商户订单号 | `out_trade_no` | 可点击跳转订单详情 |
 | 微信交易号 | `transaction_id` | 回调后填入 |
-| 类别 | `order_type` | 租赁 / 报修 / 点数 |
+| 类别 | `order_type` | 租赁 / 维修 / 点数 |
 | 金额 | `amount` | ¥ |
 | 方式 | `method` | JSAPI / Native / mock |
 | 状态 | `status` | 颜色标签 |
@@ -437,8 +437,8 @@ wx.requestPayment 失败回调:
 - [ ] 支付回调 → 更新订单状态
 - [ ] `order_payment_records` 建表
 
-### Phase 2 — 报修 + 入会费（1 周）
-- [ ] 2. 报修费用支付
+### Phase 2 — 维修 + 入会费（1 周）
+- [ ] 2. 维修费用支付
 - [ ] 3. 会员入会费支付（注册后引导）
 - [ ] `POST /api/pay/prepay` 支持 `order_type=membership`
 
@@ -487,7 +487,7 @@ curl -X POST -H "Content-Type: application/json" -d '{}' "https://api.weixin.qq.
 - 虚拟商品（logistics_type=3）：无 tracking_no/express_company，**不调用 notify_confirm_receive**
 - 线上服务类若不发货，微信 2 天自动结算（不可依赖，必须主动上报）
 - 上报位置：支付回调 `applySideEffects`（wechatpay_callback.go:192）各 case 成功后
-- repair（报修）需业务确认归类（维修费支付无商家发货动作，倾向虚拟商品）
+- repair（维修）需业务确认归类（维修费支付无商家发货动作，倾向虚拟商品）
 
 ### Phase 6 补充：发货信息上报红线（2026-08-20 预生产日志沉淀）
 

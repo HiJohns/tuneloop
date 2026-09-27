@@ -2606,7 +2606,7 @@ POST /api/warehouse/orders/:id/assess-damage
 
 ## 七、维保服务模块
 
-> ⚠️ **遗留维保模块（废弃公告）**：§7.1-§7.7 与 §9.13-§9.15 为旧的维保工单（maintenance ticket/worker/session）体系，**已决定废弃（#1888 R6，清理见 #1886）**。以下契约与实现存在多处偏差（枚举大小写/字段名/响应层级，明细见 #1886），仅存档参考，勿用于新开发。租赁乐器维修见 §7.9-§7.11，客户报修 v3 见 §7.12-§7.14。
+> ⚠️ **遗留维保模块（废弃公告）**：§7.1-§7.7 与 §9.13-§9.15 为旧的维保工单（maintenance ticket/worker/session）体系，**已决定废弃（#1888 R6，清理见 #1886）**。以下契约与实现存在多处偏差（枚举大小写/字段名/响应层级，明细见 #1886），仅存档参考，勿用于新开发。租赁乐器维修见 §7.9-§7.11，客户维修工单 v3 见 §7.12-§7.14。
 
 ### 7.1 查询服务包覆盖项
 
@@ -2633,7 +2633,7 @@ POST /api/warehouse/orders/:id/assess-damage
 
 ---
 
-### 7.2 提交报修工单
+### 7.2 提交维修工单
 
 **接口**: `POST /api/maintenance`
 
@@ -2736,7 +2736,7 @@ POST /api/warehouse/orders/:id/assess-damage
 
 ---
 
-### 7.5 取消报修
+### 7.5 取消维修工单
 
 **接口**: `PUT /api/maintenance/:id/cancel`
 
@@ -2844,11 +2844,11 @@ POST /api/warehouse/orders/:id/assess-damage
 
 ---
 
-### 7.8 报修记录（维修进度）
+### 7.8 维修工单记录（维修进度）
 
 **接口**: `GET /api/repair-requests/:id/records`
 
-**说明**: 查询报修单的所有维修进度记录（含初始创建记录和后续追加的进度记录）。创建报修单时自动生成 `record_type=created` 的初始记录。
+**说明**: 查询维修工单的所有维修进度记录（含初始创建记录和后续追加的进度记录）。创建维修工单时自动生成 `record_type=created` 的初始记录。
 
 **响应**:
 ```json
@@ -2861,7 +2861,7 @@ POST /api/warehouse/orders/:id/assess-damage
         "repair_request_id": "uuid",
         "worker_id": "uuid",
         "worker_name": "李四",
-        "comment": "报修单已创建",
+        "comment": "维修工单已创建",
         "photos": "[\"photo_key.jpg\"]",
         "record_type": "created",
         "created_at": "2026-07-04T05:01:58Z"
@@ -3057,44 +3057,44 @@ POST /api/warehouse/orders/:id/assess-damage
 
 ---
 
-### 7.12 客户报修 v3 — 报修单与记录
+### 7.12 客户维修工单 v3 — 维修工单与记录
 
-> 权限组：`userOptionalAuth`（顾客无组织绑定）。**目标契约（#1880）**：以下顾客写操作须校验属主 `req.user_id == caller`；详情按「报修人本人 / 该单站点成员」可见并脱敏；创建须校验 `user_instrument` 属主。
+> 权限组：`userOptionalAuth`（顾客无组织绑定）。**目标契约（#1880）**：以下顾客写操作须校验属主 `req.user_id == caller`；详情按「顾客本人 / 该单站点成员」可见并脱敏；创建须校验 `user_instrument` 属主。
 
-#### 7.12.1 创建报修单（**已废弃 #2055**）
+#### 7.12.1 创建维修工单（**已废弃 #2055**）
 **状态**: **端点已删除**（`POST /api/repair-requests` 及前端 `/create-repair` 页面一并移除）。
 **原因**: 顾客手选「商户-网点」的 v3 创建流程废弃。新设计：
 - 顾客 → 选维修师 → 创建**维修服务单**（`POST /api/user/repair-services`，`repair_requests.type='service'` + `technician_id`）
-- 员工/维修师侧「乐器维修」由接收/归还**定损有损坏**自动置 `instrument.repair_status='repair_pending'` 驱动（`assessment.go` / `warehouse.go`），**不建报修单**
+- 员工/维修师侧「乐器维修」由接收/归还**定损有损坏**自动置 `instrument.repair_status='repair_pending'` 驱动（`assessment.go` / `warehouse.go`），**不建维修工单**
 **保留**: 读取路径 `GET /api/repair-requests`（顾客只读历史 + 员工网点视图）及在途单操作端点（pay/records/requote/tracking）不受影响。
 
-#### 7.12.2 报修列表
+#### 7.12.2 维修工单列表
 **接口**: `GET /api/repair-requests`
 **Query**: `status`（可选，逗号分隔多状态）
-**说明**: USER → 本人报修单；员工 → 本网点（目标契约 #1881：无站点归属返回空集，不回退全量；merchant_admin 按商户范围）；每项含 `instrument_sn/instrument_type/brand/model/site_name/merchant_name/reporter_name` 等派生字段
+**说明**: USER → 本人维修工单；员工 → 本网点（目标契约 #1881：无站点归属返回空集，不回退全量；merchant_admin 按商户范围）；每项含 `instrument_sn/instrument_type/brand/model/site_name/merchant_name/reporter_name` 等派生字段
 **错误**: 无显式错误码（查询错误当前被忽略，恒 20000 —— 待修 #1881 一并治理）
 
-#### 7.12.3 报修详情
+#### 7.12.3 维修工单详情
 **接口**: `GET /api/repair-requests/:id`
-**说明**: 返回报修单 + 派生字段，并含 `reporter_phone/reporter_address/reporter_postal_code`（PII）、`transit_site_*`（受控）
-**目标契约（#1880）**: 报修人本人 / 该单站点成员可见，否则 404；受控情形对站点成员脱敏 PII
+**说明**: 返回维修工单 + 派生字段，并含 `reporter_phone/reporter_address/reporter_postal_code`（PII）、`transit_site_*`（受控）
+**目标契约（#1880）**: 顾客本人 / 该单站点成员可见，否则 404；受控情形对站点成员脱敏 PII
 **错误**: 40001 / 40400
 
-#### 7.12.4 添加报修记录
+#### 7.12.4 添加维修工单记录
 **接口**: `POST /api/repair-requests/:id/records`
 **请求**: `{"comment": "...", "photos": ["key"], "video_url": "key"}`（三者至少一项）
 **响应**: `data` = RepairRequestRecord（`id/repair_request_id/worker_id/comment/photos/record_type/created_at`）
-**目标契约（#1880/#1884）**: 报修人本人或该单站点成员可写；技师/员工过程记录入口（#1884）
+**目标契约（#1880/#1884）**: 顾客本人或该单站点成员可写；技师/员工过程记录入口（#1884）
 **错误**: 40002 参数/三者全空 / 40400 / 50000
 
-#### 7.12.5 报修记录列表
+#### 7.12.5 维修工单记录列表
 **接口**: `GET /api/repair-requests/:id/records`
 **响应**: `{records: [{id, repair_request_id, worker_id, worker_name, comment, photos, record_type, created_at}]}`（`photos` JSONB 字符串；`worker_name` 按 IAM sub 解析）
 **错误**: 50000
 
 ---
 
-### 7.13 客户报修 v3 — 报价与接受
+### 7.13 客户维修工单 v3 — 报价与接受
 
 #### 7.13.1 提交报价（维修师）
 **接口**: `POST /api/repair-requests/:id/quotes`
@@ -3112,27 +3112,27 @@ POST /api/warehouse/orders/:id/assess-damage
 
 #### 7.13.3 接受报价（顾客）
 **接口**: `POST /api/repair-requests/:id/quotes/:qid/accept`
-**说明**: quote → accepted，报修单 → `pending_payment`
-**目标契约（#1880）**: 仅报修人本人可接受
+**说明**: quote → accepted，维修工单 → `pending_payment`
+**目标契约（#1880）**: 仅顾客本人可接受
 **错误**: 40001 / 40400 quote not found / 40002 quote 非 pending / 50000
 
 ---
 
-### 7.14 客户报修 v3 — 支付与物流流转
+### 7.14 客户维修工单 v3 — 支付与物流流转
 
 #### 7.14.1 支付
 **接口**: `POST /api/repair-requests/:id/pay`
 **说明**: `pending_payment` → 创建支付记录（调试期返回 `payment_required`）
 **响应**: `{"payment_required": true, "amount": 6000.0, "out_trade_no": "..."}`
 **⚠️ 单位异常**: `amount` 为**元**（`amount.ToYuan()`），与全系统「分为单位」约定不一致（#1887 标注；建议后续统一为分）
-**目标契约（#1880）**: 仅报修人本人可支付
+**目标契约（#1880）**: 仅顾客本人可支付
 **错误**: 40001 / 40400 / 40004 非 pending_payment / 40002 无已接受报价或金额非正 / 50000
 
 #### 7.14.2 填写寄送物流（顾客）
 **接口**: `PUT /api/repair-requests/:id/tracking`
 **请求**: `{"tracking_company": "顺丰", "tracking_number": "SF..."}`（number 必填）
 **说明**: 仅 `pending_ship` 可更新 → `shipping`
-**目标契约（#1880）**: 仅报修人本人
+**目标契约（#1880）**: 仅顾客本人
 **错误**: 40002 / 40400 / 40003 状态不符
 
 #### 7.14.3 网点确认收货
@@ -3154,9 +3154,9 @@ POST /api/warehouse/orders/:id/assess-damage
 **请求**: `{"direction": "in|out", "transit_order_number": "...", "unpack_photos": ["key"], "repack_company": "...", "repack_tracking_number": "...", "note": "..."}`
 **说明**: 按 direction 操作转入/转出 transit order（状态/照片/重装单号）
 **目标契约（#1881）**: 仅该 transit order 的 `site_id` 成员
-**错误**: 40400 报修单/transit order not found / 40002
+**错误**: 40400 维修工单/transit order not found / 40002
 
-#### 7.14.6 维修完成（客户报修）
+#### 7.14.6 维修完成（客户维修工单）
 **接口**: `POST /api/repair-requests/:id/complete`
 **说明**: `repairing` → `return_pending`
 **目标契约（#1881）**: 仅该单站点（受控网点）成员/技师
@@ -3171,9 +3171,9 @@ POST /api/warehouse/orders/:id/assess-damage
 
 #### 7.14.8 拒绝重新报价（顾客）
 **接口**: `POST /api/repair-requests/:id/requote-reject`
-**说明**: 回退结算：`refund = (材料+服务) - 检查费`（分），报修单 → `return_pending`
+**说明**: 回退结算：`refund = (材料+服务) - 检查费`（分），维修工单 → `return_pending`
 **响应**: `{"refund": 0, "retained_fees": 5000}`（分）
-**目标契约（#1880）**: 仅报修人本人（资金操作）
+**目标契约（#1880）**: 仅顾客本人（资金操作）
 **错误**: 40400 / 40002 非 repairing 或无可回滚报价 / 50000
 
 #### 7.14.9 填写发回物流（员工）
@@ -3186,14 +3186,14 @@ POST /api/warehouse/orders/:id/assess-damage
 #### 7.14.10 确认收货（顾客）
 **接口**: `POST /api/repair-requests/:id/confirm-receipt`
 **说明**: `returned` → `closed`
-**目标契约（#1880）**: 仅报修人本人
+**目标契约（#1880）**: 仅顾客本人
 **错误**: 40400 / 40002 非 returned / 50000
 
 ---
 
 ### 7.15 维修服务（#1942，type='service' 分支）
 
-> 维修从「已出租乐器的报修工单」重构为「可独立购买的服务商品」：用户选维修师、可咨询、不绑租赁乐器。与 v3 报修（§7.12-7.14）并存，入口区分「报修单」（存量，创建已废弃 #2055）/「维修服务」（本分支）。
+> 维修从「已出租乐器的维修工单」重构为「可独立购买的服务商品」：用户选维修师、可咨询、不绑租赁乐器。与 v3 维修工单（§7.12-7.14）并存，入口区分「维修工单」（存量，创建已废弃 #2055）/「维修服务」（本分支）。
 
 #### 7.15.1 创建维修服务单（用户）
 **接口**: `POST /api/user/repair-services`
@@ -3677,7 +3677,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | type | string | rent / repair / requote / damage / refund / deposit-refund / renewal / payment_shortfall |
-| id | uuid | 订单/报修/定损/结算/补缴记录 ID |
+| id | uuid | 订单/维修工单/定损/结算/补缴记录 ID |
 
 **响应 data**:
 | 字段 | 类型 | 说明 |
@@ -4502,7 +4502,7 @@ POST /api/appeals/:id/agree
 | 接口 | 说明 |
 |------|------|
 | `GET /api/notifications`、`GET /api/notifications/:id`、`POST /api/notifications/:id/read`、`POST /api/notifications/mark-all-read` | 系统消息列表/详情/已读（handler 按 user_id 过滤）。详情响应 `data.ref` 在 `ref_type=damage_report` 时额外挂载 `ref.damage`（#1858，字段与订单详情 `damage` 对象同源：damage_amount/refund/shortfall/actual_rent_amount/paid_total/status 等，金额全部分）——消息详情据此展示结算方向并决定同意后分流 |
-| `POST /api/repair-appeals` | 顾客报修申诉（列表/关闭/审核等仍为员工接口） |
+| `POST /api/repair-appeals` | 顾客维修工单申诉（列表/关闭/审核等仍为员工接口） |
 | `POST /api/appeals`、`POST /api/appeals/:id/agree` | 顾客定损申诉/同意 |
 | `GET /api/orders/by-instrument-sn` | 乐器详情页"当前租赁中"（顾客/员工共用） |
 | `GET /api/common/sites/:id`、`GET /api/common/sites/nearby` | 网点详情/附近网点（游客/顾客/员工） |
