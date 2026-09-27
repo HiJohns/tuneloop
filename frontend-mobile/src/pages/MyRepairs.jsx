@@ -7,6 +7,7 @@ import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
 import { dialog, env, getInputValue, toWeappRoute } from '../platform'
 import { isStaffRole } from '../utils/role'
 import BottomNav from '../components/BottomNav'
+import TechRepairSections from '../components/TechRepairSections'
 import BottomNavWeapp from '../components-weapp/BottomNav'
 import { formatBeijingDate, repairStatusLabel } from '../utils/format'
 
@@ -192,16 +193,13 @@ export default function MyRepairs() {
   const serviceSection = (
     <View style={{ display: 'flex', flexDirection: 'column' }}>
       {!isCustomer && roles.includes('repair_technician') && (
-        <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>维修师工作台</Text>
-          <Text style={{ fontSize: 12, color: '#71717A' }}>待报价 · 报价 · 加价发起 · 完成修理</Text>
-          <Button onClick={() => nav('/tech-repair-workbench')}
-            style={{ width: '100%', margin: 0, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#171717', color: '#FFFFFF', borderRadius: 8, fontSize: 14, fontWeight: 'bold' }}>
-            进入维修师工作台
-          </Button>
+        <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
+          <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B', marginBottom: 8, display: 'block' }}>维修师工作台</Text>
+          {/* #2084：工作台内容内联（省一跳）；独立页 /tech-repair-workbench 保留（RS-02 深链） */}
+          <TechRepairSections />
         </View>
       )}
-      {!isCustomer && (
+      {hasSiteRole && (
         <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>网点维修服务工作台</Text>
           <Text style={{ fontSize: 12, color: '#71717A' }}>待发回清单 · 分段物流费实填 · 发回并结算</Text>

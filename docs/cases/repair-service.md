@@ -71,6 +71,7 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 - **右上角『我的维修』链接**（维修师视角）：
   - **无活跃维修会话 → 置灰（仍可点击）**；**有活跃会话 → 点亮并显示个数**
   - 点击进入「**我的维修**」= **现存维修页（维修师工作台，TechRepairWorkbench）**，查看自己的维修会话
+  - **#2084 内联收敛**：工作台区块抽取为共享组件 `TechRepairSections`——① `MyRepairs`「维修服务」Tab 对师傅**直接内联渲染**（待报价/维修中/已完成 + 报价/加价/完成，省一跳）；② 独立页 `/tech-repair-workbench` 保留（本深链不回归）
   - **入口判定（#2082）**：`GET /site-members/me` 的 `roles` = 网点角色 ∪ **JWT `fn_roles`**（过滤顾客角色）；#1974 T1 后维修师傅**直属商户、可无 site_members 行**，不能仅凭网点角色判定 → 否则师傅工作台入口被隐藏（令狐七案例）
 - 咨询能力 → #1943（holdon）
 
@@ -239,6 +240,7 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 ## RS-10 与 v3 维修工单的并存与迁移
 
 - 入口区分：小程序「维修」Tab → 「维修工单」（v3 存量，仅员工）/「维修服务」（本文件）
+- **#2084 门禁**：「网点维修服务工作台」卡片仅 **site 角色**（`roles` 含 `site_admin`/`site_member`）可见；纯维修师仅见内联的维修师工作台区块
 - 存量 v3 pending 单：继续走 v3 流程至完结，不迁移
 - 状态机独立：`repair_requests(type='service')` 或新表（实现阶段定，倾向扩展 type）
 
