@@ -717,3 +717,37 @@ func TestRepairService_CreateVideo2060(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, code3)
 	assert.Equal(t, float64(40002), resp3["code"])
 }
+
+// TestRepairService_Notifications_2090：创建→师傅、报价/加价→顾客 三类通知（#2090）
+func TestRepairService_Notifications_2090(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	customer := testutil.MakeCustomer("", f.customerSub)
+	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
+
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "通知验证", "technician_id": f.techID})
+	require.Equal(t, float64(20000), resp["code"])
+	id := svcData(t, resp)["id"].(string)
+
+	// 创建 → 通知锁定师傅
+	var n models.Notification
+	require.NoError(t, f.db.Where("ref_id = ? AND action_type = ?", id, "repair_svc_quote").First(&n).Error, "创建后应通知师傅")
+	assert.Equal(t, "有新维修单待报价", n.Title)
+	assert.Equal(t, f.techID, n.UserID, "收件人=锁定的维修师（本地 users.id）")
+
+	// 报价 → 通知顾客（重置主键：GORM First 会把 struct 已有 PK 叠加为查询条件）
+	n = models.Notification{}
+	_, resp = svcPost(t, f, staff, "/repair-services/"+id+"/quote", gin.H{"quote_repair_cents": 20000, "quote_logistics_cents": 5000})
+	require.Equal(t, float64(20000), resp["code"])
+	require.NoError(t, f.db.Where("ref_id = ? AND action_type = ?", id, "repair_svc_review").First(&n).Error, "报价后应通知顾客")
+	assert.Equal(t, "您的维修单已报价", n.Title)
+
+	// 加价 → 通知顾客（需先支付并进入 shipping）
+	n = models.Notification{}
+	svcPost(t, f, customer, "/user/repair-services/"+id+"/accept", nil)
+	svcPay(t, f, id, 25000)
+	svcPost(t, f, customer, "/user/repair-services/"+id+"/ship", gin.H{"tracking_number": "SFN"})
+	_, resp = svcPost(t, f, staff, "/repair-services/"+id+"/adjust", gin.H{"new_quote_cents": 30000, "incurred_cents": 5000})
+	require.Equal(t, float64(20000), resp["code"])
+	require.NoError(t, f.db.Where("ref_id = ? AND action_type = ?", id, "repair_svc_adjust").First(&n).Error, "加价后应通知顾客")
+	assert.Equal(t, "维修单有新的加价申请", n.Title)
+}

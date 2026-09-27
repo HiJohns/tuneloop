@@ -12,6 +12,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 	"tuneloop-backend/services/wechatpay"
 
 	"github.com/gin-gonic/gin"
@@ -281,6 +282,11 @@ func (h *RepairServiceHandler) Create(c *gin.Context) {
 		return
 	}
 	appendRepairServiceTimeline(db, rr.ID, userID, "created", "创建维修服务单")
+	// #2090：通知锁定的维修师（有新单待报价）；tenant_id 为 not null uuid，空值不发
+	if rr.TenantID != "" && rr.TechnicianID != nil && *rr.TechnicianID != "" {
+		services.Notify(db, rr.TenantID, *rr.TechnicianID, "repair", "有新维修单待报价",
+			fmt.Sprintf("顾客提交了维修服务单（%s），请及时报价。", code), rr.ID, "repair_service", "repair_svc_quote")
+	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
 		"id":          rr.ID,
 		"repair_code": code,
@@ -555,6 +561,19 @@ func (h *RepairServiceHandler) Quote(c *gin.Context) {
 	}
 	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "quoted",
 		fmt.Sprintf("报价：修理费 %d 分，料钱 %d 分，物流预估 %d 分", body.QuoteRepairCents, body.QuoteMaterialCents, body.QuoteLogisticsCents))
+	// #2090：通知顾客（报价已提交，请查看并支付）
+	if rr.TenantID != "" {
+		customerID := localUserIDBySub(db, rr.UserID)
+		if customerID == "" {
+			customerID = rr.UserID
+		}
+		codeStr := ""
+		if rr.RepairCode != nil {
+			codeStr = *rr.RepairCode
+		}
+		services.Notify(db, rr.TenantID, customerID, "repair", "您的维修单已报价",
+			fmt.Sprintf("维修单（%s）已报价，请查看并确认支付。", codeStr), rr.ID, "repair_service", "repair_svc_review")
+	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
 		"id":      rr.ID,
 		"status":  models.RepairReqStatusPendingPay,
@@ -742,6 +761,19 @@ func (h *RepairServiceHandler) Adjust(c *gin.Context) {
 	}
 	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "adjust_requested",
 		fmt.Sprintf("发起加价：新总价 %d 分，到此为止 %d 分", body.NewQuoteCents, body.IncurredCents))
+	// #2090：通知顾客（加价待确认）
+	if rr.TenantID != "" {
+		customerID := localUserIDBySub(db, rr.UserID)
+		if customerID == "" {
+			customerID = rr.UserID
+		}
+		codeStr := ""
+		if rr.RepairCode != nil {
+			codeStr = *rr.RepairCode
+		}
+		services.Notify(db, rr.TenantID, customerID, "repair", "维修单有新的加价申请",
+			fmt.Sprintf("维修单（%s）有新的加价申请，请查看并确认。", codeStr), rr.ID, "repair_service", "repair_svc_adjust")
+	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
 		"id": rr.ID, "status": models.RepairReqStatusAdjustPending,
 		"payable_cents": diff, "incurred_cents": body.IncurredCents,

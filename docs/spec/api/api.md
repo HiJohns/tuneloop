@@ -3200,6 +3200,7 @@ POST /api/warehouse/orders/:id/assess-damage
 **请求**: `{description, photos[], video?, user_instrument_id?, technician_id}`——描述必填、照片 ≤6、**试奏视频可选 ≤1 段**（#2060：`video` 为 `/upload` 视频分支返回的 file_key → 落 `repair_requests.video_url`，≤500 字符，大小受 `video_max_size` 约束）；不填识别码
 **响应**: 返回 `repair_code`（6 位唯一编码，数字+大写字母，冲突重试）
 **说明**: 分配 6 位编码并展示「请将该编码写在物流单信息栏」
+**副作用（#2090）**: 通知锁定的维修师（`action_type=repair_svc_quote`，`ref_id`=本单 ID）
 **目标契约（#1942）**: 用户本人
 **错误**: 40002 / 50000
 
@@ -3223,6 +3224,7 @@ POST /api/warehouse/orders/:id/assess-damage
 **接口**: `POST /api/repair-services/:id/quote`
 **请求**: 修理费 + 料钱 + 物流费预估（`quote_repair_cents` / `quote_material_cents` / `quote_logistics_cents`；料钱 #2085，可空=0，不参与加价补差）
 **说明**: 直连 1 段受管物流；受控组合 3 段受管物流
+**副作用（#2090）**: 通知顾客（`action_type=repair_svc_review`，`ref_id`=本单 ID）
 **目标契约（#1942）**: 该单维修师（repairReqRequired 组）
 
 #### 7.15.6 用户接受报价（用户）
@@ -3246,6 +3248,7 @@ POST /api/warehouse/orders/:id/assess-damage
 **接口**: `POST /api/repair-services/:id/adjust`
 **请求**: 新修理费 + 到此为止修理费（二者同填）
 **说明**: 维修师发现与描述不符需加钱，提交加价申请，状态 `adjust_pending`
+**副作用（#2090）**: 通知顾客（`action_type=repair_svc_adjust`，`ref_id`=本单 ID）
 **目标契约（#1942）**: 该单维修师（repairReqRequired 组）
 
 #### 7.15.10 加价响应（用户）

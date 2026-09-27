@@ -159,6 +159,25 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
   - 读取（本人/员工）：`GET /api/user/repair-services/:id` → `{repair, logistics_fees[], review?}`
 - 展示：PC 后台维修管理页可见评分/留言/照片
 
+## RS-14 通知（#2090）
+
+> 新服务流的三处通知（此前 RS 流程完全无通知）。均带操作按钮，点击直达对应页面。
+
+| 触发 | 收件人 | 标题 | action_type | 按钮 → 跳转 |
+|------|--------|------|-------------|-------------|
+| 创建维修单（`POST /user/repair-services`） | **锁定的维修师**（`rr.TechnicianID`＝本地 users.id） | 有新维修单待报价 | `repair_svc_quote` | 进入维修工作台（`/my-repairs?tab=service`） |
+| 提交报价（`POST /repair-services/:id/quote`） | **顾客**（`localUserIDBySub(rr.UserID)`） | 您的维修单已报价 | `repair_svc_review` | 查看报价（`/repair-service-detail?order_id=…`） |
+| 加价申请（`POST /repair-services/:id/adjust`） | **顾客** | 维修单有新的加价申请 | `repair_svc_adjust` | 查看加价并确认（同详情页） |
+
+- 通知经 `services.Notify` 创建（`type='repair'`、`ref_type='repair_service'`、`ref_id`＝维修单 ID）；`tenant_id` 为空时跳过不发（not null uuid）
+- 前端 `MessageDetail.jsx` 按 `action_type` 渲染按钮；两端导航（weapp `Taro.navigateTo` 完整路由 / H5 `navigate`）
+- 通知失败不阻断主流程（`Notify` 内部 log）
+
+### 验收（真机）
+- [ ] 创建 → 师傅收到「有新维修单待报价」→ 按钮进工作台
+- [ ] 报价 → 顾客收到「您的维修单已报价」→ 按钮打开详情看报价
+- [ ] 加价 → 顾客收到「维修单有新的加价申请」→ 按钮打开详情确认
+
 ## RS-11 状态机（权威，用户 2026-09-17 明确：维修单须如订单一般有自身状态机）
 
 > **状态集**：`pending_quote` → `pending_payment` → `paid` → `shipping` → `repairing` → `done_repair` → `closed`；加价分支 `adjust_pending`。

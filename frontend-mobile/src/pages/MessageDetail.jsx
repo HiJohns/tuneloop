@@ -15,6 +15,7 @@ const typeConfig = {
   payment: { bg: 'bg-blue-100', text: 'text-blue-600', label: '支付通知' },
   order: { bg: 'bg-gray-100', text: 'text-gray-600', label: '系统通知' },
   invoice: { bg: 'bg-purple-100', text: 'text-purple-600', label: '发票通知' },
+  repair: { bg: 'bg-amber-100', text: 'text-amber-600', label: '维修通知' }, // #2090
 }
 
 // 结算明细行（payment_shortfall 通知等结构化展示）。#1838 补漏：41c1ea92
@@ -185,6 +186,25 @@ export default function MessageDetail() {
       return
     }
     navigate(`/repair-request?id=${ref?.repair_request_id || notification?.ref_id || ''}`)
+  }
+
+  // #2090：维修服务通知跳转——workbench（师傅）/ detail（顾客报价·加价）；参数用 order_id（#1674）
+  const handleRepairServiceAction = (target) => {
+    const id = notification?.ref_id || ''
+    if (!id) return
+    if (env.isMiniProgram) {
+      if (target === 'workbench') {
+        Taro.navigateTo({ url: '/pages-weapp/my-repairs/index?tab=service' })
+      } else {
+        Taro.navigateTo({ url: `/pages-weapp/repair-service-detail/index?order_id=${id}` })
+      }
+      return
+    }
+    if (target === 'workbench') {
+      navigate('/my-repairs?tab=service')
+    } else {
+      navigate(`/repair-service-detail?order_id=${id}`)
+    }
   }
 
   const handleViewInvoice = async (fileUrl) => {
@@ -364,6 +384,24 @@ export default function MessageDetail() {
               className="w-full mt-6 py-2.5 bg-brand-primary text-white rounded-lg text-sm font-medium"
             >
               查看详情 / 确认新报价
+            </Button>
+          )}
+
+          {/* #2090：维修服务通知（创建→师傅工作台 / 报价·加价→顾客详情） */}
+          {notification.action_type === 'repair_svc_quote' && (
+            <Button
+              onClick={() => handleRepairServiceAction('workbench')}
+              className="w-full mt-6 py-2.5 bg-brand-primary text-white rounded-lg text-sm font-medium"
+            >
+              进入维修工作台
+            </Button>
+          )}
+          {(notification.action_type === 'repair_svc_review' || notification.action_type === 'repair_svc_adjust') && (
+            <Button
+              onClick={() => handleRepairServiceAction('detail')}
+              className="w-full mt-6 py-2.5 bg-brand-primary text-white rounded-lg text-sm font-medium"
+            >
+              {notification.action_type === 'repair_svc_adjust' ? '查看加价并确认' : '查看报价'}
             </Button>
           )}
 

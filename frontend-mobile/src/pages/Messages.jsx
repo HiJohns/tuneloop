@@ -13,6 +13,7 @@ const typeConfig = {
   payment: { bgColor: '#dbeafe', textColor: '#2563eb', label: '支付通知' },
   order: { bgColor: '#f4f4f5', textColor: '#52525b', label: '系统通知' },
   invoice: { bgColor: '#f3e8ff', textColor: '#9333ea', label: '发票通知' },
+  repair: { bgColor: '#fef3c7', textColor: '#d97706', label: '维修通知' }, // #2090
   staff_invite: { bgColor: '#eef2ff', textColor: '#4338ca', label: '加入邀请' },
 }
 
