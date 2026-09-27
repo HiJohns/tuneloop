@@ -15,14 +15,22 @@ const MAX_PHOTOS = 6
 const svcStatusLabels = {
   pending_quote: '待报价', pending_payment: '待付款', paid: '已支付·待寄出',
   shipping: '寄送中', repairing: '维修中', adjust_pending: '加价待确认',
-  done_repair: '待发回', closed: '已结算',
+  done_repair: '待发回', closed: '已结算', cancelled: '已取消',
 }
+// #2093：拒绝报价理由（与后端 repairQuoteDeclineReasons 枚举一致）
+const DECLINE_REASONS = [
+  { code: 'too_expensive', label: '太贵了' },
+  { code: 'found_other', label: '已找别人修了' },
+  { code: 'solved', label: '问题已解决' },
+  { code: 'other', label: '其他' },
+]
 // RS-12：时间线类型 → 展示文案（与后端 appendRepairServiceTimeline 的 record_type 对应）
 const timelineLabels = {
   created: '创建维修单', technician_selected: '选择维修师', quoted: '维修师报价',
   quote_accepted: '接受报价', paid: '支付成功', shipped: '乐器寄出',
   adjust_requested: '维修师发起加价', adjust_accepted: '同意加价',
   adjust_paid: '补差价到账', adjust_declined: '拒绝加价', leg_fee: '分段物流费登记',
+  quote_declined: '拒绝报价',
   repair_completed: '完成修理', settled: '发回结算', reviewed: '提交评价',
   shortfall_paid: '补缴到账',
 }
@@ -65,6 +73,11 @@ export default function RepairServiceDetail() {
   const [technicians, setTechnicians] = useState([])
   const [techLoaded, setTechLoaded] = useState(false)
   const [busy, setBusy] = useState(false)
+  // #2093：拒绝报价弹层
+  const [showDecline, setShowDecline] = useState(false)
+  const [declineReason, setDeclineReason] = useState('')
+  const [declineNote, setDeclineNote] = useState('')
+  const [declining, setDeclining] = useState(false)
   // 寄出表单
   const [shipCompany, setShipCompany] = useState('')
   const [shipNumber, setShipNumber] = useState('')
@@ -190,6 +203,28 @@ export default function RepairServiceDetail() {
       dialog.alert(resolveErrorMessage(result))
     } catch (e) { dialog.alert(resolveErrorMessage(e)) }
     setBusy(false)
+  }
+
+  // #2093：提交拒绝报价 → 终态 cancelled
+  const submitDecline = async () => {
+    if (!declineReason) return
+    setDeclining(true)
+    try {
+      const res = await apiFetch(`${baseUrl}/user/repair-services/${orderId}/quote/decline`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: declineReason, note: declineNote.trim() }),
+      })
+      const result = await res.json()
+      if (result.code === 20000) {
+        setShowDecline(false)
+        dialog.alert('已拒绝报价，维修服务已关闭')
+        loadDetail()
+      } else {
+        dialog.alert(resolveErrorMessage(result))
+      }
+    } catch (e) { dialog.alert(resolveErrorMessage(e)) }
+    setDeclining(false)
   }
 
   const submitShip = async () => {
@@ -470,9 +505,15 @@ export default function RepairServiceDetail() {
               <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#D97706' }}>{yuan(quoteTotal)}</Text>
             </View>
             {rr.quote_status === 'pending' && (
-              <Button disabled={busy} onClick={acceptQuote} style={btnPrimaryStyle}>
-                接受报价并支付 {yuan(quoteTotal)}
-              </Button>
+              <>
+                <Button disabled={busy} onClick={acceptQuote} style={btnPrimaryStyle}>
+                  接受报价并支付 {yuan(quoteTotal)}
+                </Button>
+                {/* #2093：拒绝报价（理由选择） */}
+                <Button disabled={busy} onClick={() => { setDeclineReason(''); setDeclineNote(''); setShowDecline(true) }} style={btnSecondaryStyle}>
+                  拒绝报价
+                </Button>
+              </>
             )}
           </View>
         )}
@@ -650,6 +691,33 @@ export default function RepairServiceDetail() {
           </View>
         )}
       </View>
+
+      {/* #2093 拒绝报价弹层（自绘；weapp 安全：View/Text/Textarea） */}
+      {showDecline && (
+        <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px', boxSizing: 'border-box' }}>
+          <View style={{ width: '100%', backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#18181B' }}>拒绝报价</Text>
+            <Text style={labelStyle}>请选择拒绝原因</Text>
+            {DECLINE_REASONS.map(opt => (
+              <View key={opt.code} onClick={() => setDeclineReason(opt.code)}
+                style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 10, paddingBottom: 10, paddingLeft: 12, paddingRight: 12, border: declineReason === opt.code ? '1px solid #915F38' : '1px solid #E4E4E7', borderRadius: 8, backgroundColor: declineReason === opt.code ? '#FDF6F0' : '#FFFFFF' }}>
+                <View style={{ width: 16, height: 16, borderRadius: 999, boxSizing: 'border-box', border: declineReason === opt.code ? '5px solid #915F38' : '1px solid #D4D4D8' }} />
+                <Text style={{ fontSize: 13, color: '#3F3F46' }}>{opt.label}</Text>
+              </View>
+            ))}
+            <Text style={labelStyle}>备注（可选，≤200 字）</Text>
+            <Textarea value={declineNote} maxlength={200} onInput={e => setDeclineNote(getInputValue(e))} placeholder="补充说明（可选）"
+              style={{ width: '100%', boxSizing: 'border-box', minHeight: 60, backgroundColor: '#FFFFFF', border: '1px solid #E4E4E7', borderRadius: 8, padding: 10, fontSize: 13 }} />
+            <View style={{ display: 'flex', flexDirection: 'row', gap: 8 }}>
+              <Button disabled={declining} onClick={() => setShowDecline(false)} style={{ ...btnSecondaryStyle, flex: 1 }}>取消</Button>
+              <Button disabled={declining || !declineReason} onClick={submitDecline}
+                style={{ ...btnPrimaryStyle, flex: 1, opacity: (declining || !declineReason) ? 0.5 : 1 }}>
+                {declining ? '处理中...' : '确认拒绝报价'}
+              </Button>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   )
 }

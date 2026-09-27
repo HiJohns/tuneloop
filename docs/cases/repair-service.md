@@ -104,6 +104,10 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
   - `POST /api/user/repair-services/:id/accept` → `{id, payable_cents}`（金额服务端重算）
   - `POST /api/pay/prepay {order_type:"repair", order_id:<维修单id>}`（现有；服务端按状态重算金额，客户端金额不可信）→ JSAPI 参数
   - 回调：虚拟商品路径（无物流上报收货确认）
+- **拒绝报价（#2093）**：报价卡「拒绝报价」→ 理由选择（**太贵了 / 已找别人修了 / 问题已解决 / 其他**，备注可选 ≤200 字）
+  - `POST /api/user/repair-services/:id/quote/decline {reason, note?}` → 终态 **`cancelled`**（此阶段无支付 → **无退款**；顾客可另建新单）
+  - 理由枚举：`too_expensive` / `found_other` / `solved` / `other`；落 `quote_decline_reason` + `quote_decline_note`；时间线「拒绝报价」
+  - 通知师傅「报价被拒绝」（含理由，`repair_svc_declined`，见 RS-14）
 
 ## RS-04 用户寄出（用户，weapp）
 
@@ -168,6 +172,7 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 | 创建维修单（`POST /user/repair-services`） | **锁定的维修师**（`rr.TechnicianID`＝本地 users.id） | 有新维修单待报价 | `repair_svc_quote` | 进入维修工作台（`/my-repairs?tab=service`） |
 | 提交报价（`POST /repair-services/:id/quote`） | **顾客**（`localUserIDBySub(rr.UserID)`） | 您的维修单已报价 | `repair_svc_review` | 查看报价（`/repair-service-detail?order_id=…`） |
 | 加价申请（`POST /repair-services/:id/adjust`） | **顾客** | 维修单有新的加价申请 | `repair_svc_adjust` | 查看加价并确认（同详情页） |
+| 拒绝报价（`POST /user/repair-services/:id/quote/decline`） | **师傅** | 报价被拒绝 | `repair_svc_declined` | 查看维修单（详情页，已取消态） |
 
 - 通知经 `services.Notify` 创建（`type='repair'`、`ref_type='repair_service'`、`ref_id`＝维修单 ID）；`tenant_id` 为空时跳过不发（not null uuid）
 - 前端 `MessageDetail.jsx` 按 `action_type` 渲染按钮；两端导航（weapp `Taro.navigateTo` 完整路由 / H5 `navigate`）
@@ -180,7 +185,7 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 
 ## RS-11 状态机（权威，用户 2026-09-17 明确：维修单须如订单一般有自身状态机）
 
-> **状态集**：`pending_quote` → `pending_payment` → `paid` → `shipping` → `repairing` → `done_repair` → `closed`；加价分支 `adjust_pending`。
+> **状态集**：`pending_quote` → `pending_payment` → `paid` → `shipping` → `repairing` → `done_repair` → `closed`；加价分支 `adjust_pending`；**拒绝分支 `pending_payment` → `cancelled`（终态，#2093，无支付无退款；不进师傅工作台）**。
 
 | # | 起始状态 | 动作 | 触发者 | 守卫 | 结束状态 |
 |---|---------|------|--------|------|---------|
@@ -210,7 +215,7 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 5. 编码/描述/照片/**视频（试奏，可播放，#2060）**/寄件网点地址
 
 ### 分状态列表（不再扁平）
-- **用户**「我的维修服务」：按状态分组（进行中 / 待我处理 / 已完成）+ 状态筛选；每项含编码、状态、关键金额、待办提示（如「待补差价 ¥100」/「待支付」/「待评价」）
+- **用户**「我的维修服务」：按状态分组（进行中 / 待我处理 / 已完成）+ 状态筛选；每项含编码、状态、关键金额、待办提示（如「待补差价 ¥100」/「待支付」/「待评价」）；拒绝报价后为「**已取消**」（终态，#2093）
 - **维修师**工作台：待报价 / **已报价·待付款**（`pending_payment`，#2088）/ 维修中（含 `adjust_pending`）/ **待发回**（`done_repair`，#2091，只读「待网点发回结算」）/ 已完成（自己相关）
 - **员工**工作台：状态筛选（#2053）——「进行中」含待发回 / 进行中（分段实填）；「已完成」为本网点 `closed` 历史单
 - **平台（PC）**：状态筛选（已有）+ 详情时间线（增强）

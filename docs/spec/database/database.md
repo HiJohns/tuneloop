@@ -922,6 +922,8 @@ tenants (1) ---> (N) clients
 | quote_repair_cents | bigint | | #1942: 报价修理费（分） |
 | quote_logistics_cents | bigint | | #1942: 报价物流费预估（分） |
 | quote_material_cents | bigint | | #2085: 报价料钱（分） |
+| quote_decline_reason | varchar(30) | | #2093: 拒绝报价理由（枚举 code） |
+| quote_decline_note | text | | #2093: 拒绝报价备注（≤200 字） |
 | quote_status | varchar(20) | DEFAULT '' | #1942: 报价状态 |
 | adjusted_quote_cents | bigint | | #1942: 加价后新总价（分） |
 | incurred_repair_cents | bigint | | #1942: 到此为止修理费（分） |

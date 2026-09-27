@@ -396,12 +396,13 @@ export default function MessageDetail() {
               进入维修工作台
             </Button>
           )}
-          {(notification.action_type === 'repair_svc_review' || notification.action_type === 'repair_svc_adjust') && (
+          {(notification.action_type === 'repair_svc_review' || notification.action_type === 'repair_svc_adjust' || notification.action_type === 'repair_svc_declined') && (
             <Button
               onClick={() => handleRepairServiceAction('detail')}
               className="w-full mt-6 py-2.5 bg-brand-primary text-white rounded-lg text-sm font-medium"
             >
-              {notification.action_type === 'repair_svc_adjust' ? '查看加价并确认' : '查看报价'}
+              {notification.action_type === 'repair_svc_adjust' ? '查看加价并确认'
+                : notification.action_type === 'repair_svc_declined' ? '查看维修单' : '查看报价'}
             </Button>
           )}
 

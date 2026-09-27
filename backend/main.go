@@ -770,6 +770,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/user/repair-services/:id", repairServiceHandler.Get)
 				userOptionalAuth.POST("/user/repair-services/:id/select-technician", repairServiceHandler.SelectTechnician)
 				userOptionalAuth.POST("/user/repair-services/:id/accept", repairServiceHandler.AcceptQuote)
+				userOptionalAuth.POST("/user/repair-services/:id/quote/decline", repairServiceHandler.DeclineQuote) // #2093
 				userOptionalAuth.POST("/user/repair-services/:id/ship", repairServiceHandler.Ship)
 				userOptionalAuth.POST("/user/repair-services/:id/adjust/accept", repairServiceHandler.AdjustAccept)
 				userOptionalAuth.POST("/user/repair-services/:id/adjust/decline", repairServiceHandler.AdjustDecline)

@@ -3273,7 +3273,15 @@ POST /api/warehouse/orders/:id/assess-damage
 **说明**: 待发回维修服务单列表（repairReqRequired 组）
 **目标契约（#1942）**: 网点员工
 
-#### 7.15.14 评价（用户）
+#### 7.15.14 拒绝报价（用户，#2093）
+**接口**: `POST /api/user/repair-services/:id/quote/decline`
+**请求**: `{reason, note?}`——reason ∈ `too_expensive` / `found_other` / `solved` / `other`；note ≤200 字
+**说明**: 仅 `pending_payment` + `quote_status=pending` 可拒；终态 `cancelled`（无支付无退款）
+**副作用（#2090/#2093）**: 通知师傅「报价被拒绝」（`action_type=repair_svc_declined`）
+**目标契约（#1942）**: 用户本人
+**错误**: 40002（非法理由/超长）/ 40300（非本人）/ 40900（非待付款态）
+
+#### 7.15.15 评价（用户）
 **接口**: `POST /api/user/repair-services/:id/review`
 **请求**: 评分（1-5）+ 留言 + 照片（≤6，走 /upload）
 **说明**: 结算完成（发回）后推送「维修完成」通知含评价邀请；PC 后台维修管理页可见

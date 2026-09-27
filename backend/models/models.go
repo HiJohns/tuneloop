@@ -578,6 +578,7 @@ const (
 	RepairReqStatusPaid          = "paid"
 	RepairReqStatusAdjustPending = "adjust_pending"
 	RepairReqStatusDoneRepair    = "done_repair"
+	RepairReqStatusCancelled     = "cancelled" // #2093：顾客拒绝报价（终态）
 )
 
 // RepairRequest represents a customer repair request.
@@ -614,6 +615,8 @@ type RepairRequest struct {
 	QuoteRepairCents    *Cents     `gorm:"type:bigint" json:"quote_repair_cents"`          // 报价：修理费
 	QuoteLogisticsCents *Cents     `gorm:"type:bigint" json:"quote_logistics_cents"`       // 报价：物流费预估
 	QuoteMaterialCents  *Cents     `gorm:"type:bigint" json:"quote_material_cents"`        // #2085 报价：料钱
+	QuoteDeclineReason  *string    `gorm:"type:varchar(30)" json:"quote_decline_reason"`   // #2093 拒绝报价理由（枚举 code）
+	QuoteDeclineNote    *string    `gorm:"type:text" json:"quote_decline_note"`            // #2093 拒绝报价备注
 	QuoteStatus         string     `gorm:"type:varchar(20);default:''" json:"quote_status"`
 	AdjustedQuoteCents  *Cents     `gorm:"type:bigint" json:"adjusted_quote_cents"`  // 加价后新总价
 	IncurredRepairCents *Cents     `gorm:"type:bigint" json:"incurred_repair_cents"` // 到此为止修理费

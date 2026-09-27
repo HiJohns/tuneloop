@@ -92,6 +92,7 @@ func setupRepairServiceFixture(t *testing.T) svcFixture {
 	r.POST("/user/repair-services/:id/ship", h.Ship)
 	r.POST("/user/repair-services/:id/adjust/accept", h.AdjustAccept)
 	r.POST("/user/repair-services/:id/adjust/decline", h.AdjustDecline)
+	r.POST("/user/repair-services/:id/quote/decline", h.DeclineQuote) // #2093
 	r.POST("/user/repair-services/:id/review", h.Review)
 	r.POST("/repair-services/:id/quote", h.Quote)
 	r.POST("/repair-services/:id/legs", h.AddLegFee)
@@ -738,6 +739,49 @@ func TestLocalUserIDBySub_ZeroTenantUnderStaffScope_2090(t *testing.T) {
 	scoped := f.db.WithContext(database.SetTenantID(context.Background(), f.tenantID))
 	got := localUserIDBySub(scoped, f.customerSub)
 	assert.Equal(t, f.customerID, got, "零租户顾客在员工上下文中必须可解析（否则通知收件人回落 IAM sub）")
+}
+
+// TestRepairService_DeclineQuote_2093：拒绝报价 → 终态 cancelled + 理由落库 + 师傅通知 + 非法态防护
+func TestRepairService_DeclineQuote_2093(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	customer := testutil.MakeCustomer("", f.customerSub)
+	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
+
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "拒绝验证", "technician_id": f.techID})
+	require.Equal(t, float64(20000), resp["code"])
+	id := svcData(t, resp)["id"].(string)
+
+	// 报价 → pending_payment
+	_, resp = svcPost(t, f, staff, "/repair-services/"+id+"/quote", gin.H{"quote_repair_cents": 20000, "quote_logistics_cents": 5000})
+	require.Equal(t, float64(20000), resp["code"])
+
+	// 非法理由 → 40002（不落库）
+	_, resp = svcPost(t, f, customer, "/user/repair-services/"+id+"/quote/decline", gin.H{"reason": "bogus"})
+	assert.Equal(t, float64(40002), resp["code"])
+
+	// 拒绝 → 20000 + 终态
+	_, resp = svcPost(t, f, customer, "/user/repair-services/"+id+"/quote/decline", gin.H{"reason": "too_expensive", "note": "预算不足"})
+	require.Equal(t, float64(20000), resp["code"])
+	assert.Equal(t, "cancelled", svcData(t, resp)["status"])
+
+	var stored models.RepairRequest
+	require.NoError(t, f.db.First(&stored, "id = ?", id).Error)
+	assert.Equal(t, models.RepairReqStatusCancelled, stored.Status)
+	assert.Equal(t, "declined", stored.QuoteStatus)
+	require.NotNil(t, stored.QuoteDeclineReason)
+	assert.Equal(t, "too_expensive", *stored.QuoteDeclineReason)
+	require.NotNil(t, stored.QuoteDeclineNote)
+	assert.Equal(t, "预算不足", *stored.QuoteDeclineNote)
+
+	// 师傅通知（含理由）
+	var n models.Notification
+	require.NoError(t, f.db.Where("ref_id = ? AND action_type = ?", id, "repair_svc_declined").First(&n).Error, "拒绝后应通知师傅")
+	assert.Equal(t, "报价被拒绝", n.Title)
+	assert.Equal(t, f.techID, n.UserID)
+
+	// 重复拒绝（终态）→ 409
+	_, resp = svcPost(t, f, customer, "/user/repair-services/"+id+"/quote/decline", gin.H{"reason": "solved"})
+	assert.Equal(t, float64(40900), resp["code"])
 }
 
 // TestRepairService_Notifications_2090：创建→师傅、报价/加价→顾客 三类通知（#2090）

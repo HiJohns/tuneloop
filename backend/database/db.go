@@ -390,6 +390,8 @@ var defaultMigrationArtifacts = []migrationArtifact{
 	{20260924002, "users", "intro_letter_url", "介绍信列（#2057 裁定3）"},
 	{20260925001, "users", "bio", "全员富文本简介列（#2073）"},
 	{20260927001, "repair_requests", "quote_material_cents", "维修报价料钱列（#2085）"},
+	{20260928001, "repair_requests", "quote_decline_reason", "拒绝报价理由列（#2093）"},
+	{20260928001, "repair_requests", "quote_decline_note", "拒绝报价备注列（#2093）"},
 }
 
 // verifyArtifacts 纯逻辑（便于单测）：对 version ≥ a.Version 的工件断言存在。

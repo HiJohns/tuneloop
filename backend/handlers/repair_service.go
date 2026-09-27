@@ -619,6 +619,84 @@ func (h *RepairServiceHandler) AcceptQuote(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": rr.ID, "payable_cents": amount}})
 }
 
+// repairQuoteDeclineReasons 拒绝理由枚举 → 中文（#2093；前端同枚举）
+var repairQuoteDeclineReasons = map[string]string{
+	"too_expensive": "太贵了",
+	"found_other":   "已找别人修了",
+	"solved":        "问题已解决",
+	"other":         "其他",
+}
+
+// DeclineQuote POST /api/user/repair-services/:id/quote/decline （用户拒绝报价，终态 cancelled）
+// #2093：仅 pending_payment + quote_status=pending 可拒；无支付发生 → 无退款；通知师傅。
+func (h *RepairServiceHandler) DeclineQuote(c *gin.Context) {
+	var body struct {
+		Reason string `json:"reason"`
+		Note   string `json:"note"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request"})
+		return
+	}
+	reasonLabel, ok := repairQuoteDeclineReasons[body.Reason]
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid decline reason"})
+		return
+	}
+	if len([]rune(body.Note)) > 200 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "note too long (max 200)"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	rr, okLoad := loadRepairService(db, c.Param("id"))
+	if !okLoad {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "repair service not found"})
+		return
+	}
+	if rr.UserID != middleware.GetUserID(ctx) {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
+		return
+	}
+	if rr.Status != models.RepairReqStatusPendingPay || rr.QuoteStatus != "pending" {
+		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "no pending quote to decline"})
+		return
+	}
+
+	updates := map[string]interface{}{
+		"status":               models.RepairReqStatusCancelled,
+		"quote_status":         "declined",
+		"quote_decline_reason": body.Reason,
+		"updated_at":           time.Now(),
+	}
+	if body.Note != "" {
+		updates["quote_decline_note"] = body.Note
+	}
+	if err := db.Model(&models.RepairRequest{}).Where("id = ?", rr.ID).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to decline quote"})
+		return
+	}
+
+	comment := "用户拒绝报价：" + reasonLabel
+	if body.Note != "" {
+		comment += "（" + body.Note + "）"
+	}
+	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "quote_declined", comment)
+
+	// #2090/#2093：通知师傅（报价被拒绝，含理由）
+	if rr.TenantID != "" && rr.TechnicianID != nil && *rr.TechnicianID != "" {
+		codeStr := ""
+		if rr.RepairCode != nil {
+			codeStr = *rr.RepairCode
+		}
+		services.Notify(db, rr.TenantID, *rr.TechnicianID, "repair", "报价被拒绝",
+			fmt.Sprintf("维修单（%s）的报价被顾客拒绝（%s），服务已关闭。", codeStr, reasonLabel), rr.ID, "repair_service", "repair_svc_declined")
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": rr.ID, "status": models.RepairReqStatusCancelled}})
+}
+
 // Ship POST /api/user/repair-services/:id/ship （用户寄出，填写物流单号）
 func (h *RepairServiceHandler) Ship(c *gin.Context) {
 	var body struct {
