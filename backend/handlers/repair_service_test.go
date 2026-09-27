@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"tuneloop-backend/database"
 	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services/wechatpay"
@@ -27,7 +29,8 @@ type svcFixture struct {
 	tenantID, orgID, siteID string
 	otherTenantID           string
 	otherSiteID             string
-	customerSub, techID     string
+	customerSub, customerID string // #2090：本地 id ≠ iam_sub（自注册顾客形态）
+	techID                  string
 	otherStaffSub           string
 	router                  *gin.Engine
 	db                      *gorm.DB
@@ -45,9 +48,17 @@ func setupRepairServiceFixture(t *testing.T) svcFixture {
 	require.NoError(t, db.Create(&models.Site{ID: otherSiteID, TenantID: otherTenantID, OrgID: orgID, Name: "S2"}).Error)
 
 	customerSub := uuid.New().String()
+	customerID := uuid.New().String() // #2090：本地 id ≠ iam_sub
 	techID := uuid.New().String()
 	otherStaffSub := uuid.New().String()
-	for _, u := range []string{customerSub, techID, otherStaffSub} {
+	// #2090 回归：自注册顾客形态（tenant_id=零UUID + 本地 id ≠ iam_sub）——
+	// 复现「员工上下文身份键查询被 addTenantScope 过滤」场景（#2078 实测数据形态）
+	require.NoError(t, db.Create(&models.User{
+		ID: customerID, IAMSub: customerSub,
+		TenantID: "00000000-0000-0000-0000-000000000000", OrgID: "00000000-0000-0000-0000-000000000000",
+		Username: "u-" + customerSub[:8], Name: "顾客", Status: "active",
+	}).Error)
+	for _, u := range []string{techID, otherStaffSub} {
 		require.NoError(t, db.Create(&models.User{
 			ID: u, IAMSub: u, TenantID: tenantID, OrgID: orgID,
 			Username: "u-" + u[:8], Name: "用户", Status: "active",
@@ -96,7 +107,7 @@ func setupRepairServiceFixture(t *testing.T) svcFixture {
 
 	return svcFixture{tenantID: tenantID, orgID: orgID, siteID: siteID,
 		otherTenantID: otherTenantID, otherSiteID: otherSiteID,
-		customerSub: customerSub, techID: techID, otherStaffSub: otherStaffSub,
+		customerSub: customerSub, customerID: customerID, techID: techID, otherStaffSub: otherStaffSub,
 		router: r, db: db}
 }
 
@@ -718,6 +729,17 @@ func TestRepairService_CreateVideo2060(t *testing.T) {
 	assert.Equal(t, float64(40002), resp3["code"])
 }
 
+// TestLocalUserIDBySub_ZeroTenantUnderStaffScope_2090：员工上下文（带 database.TenantIDKey）
+// 查询零租户自注册顾客必须命中（免租户作用域）——#2090 审计修复的定向回归。
+// 说明：InjectContext 仅注入 middleware 键，handler 级测试默认不激活 GORM 租户回调；
+// 本测试显式构造带键上下文，真实触发 addTenantScope。
+func TestLocalUserIDBySub_ZeroTenantUnderStaffScope_2090(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	scoped := f.db.WithContext(database.SetTenantID(context.Background(), f.tenantID))
+	got := localUserIDBySub(scoped, f.customerSub)
+	assert.Equal(t, f.customerID, got, "零租户顾客在员工上下文中必须可解析（否则通知收件人回落 IAM sub）")
+}
+
 // TestRepairService_Notifications_2090：创建→师傅、报价/加价→顾客 三类通知（#2090）
 func TestRepairService_Notifications_2090(t *testing.T) {
 	f := setupRepairServiceFixture(t)
@@ -740,6 +762,7 @@ func TestRepairService_Notifications_2090(t *testing.T) {
 	require.Equal(t, float64(20000), resp["code"])
 	require.NoError(t, f.db.Where("ref_id = ? AND action_type = ?", id, "repair_svc_review").First(&n).Error, "报价后应通知顾客")
 	assert.Equal(t, "您的维修单已报价", n.Title)
+	assert.Equal(t, f.customerID, n.UserID, "顾客通知收件人=本地 users.id（#2090 审计修复：免租户作用域身份解析）")
 
 	// 加价 → 通知顾客（需先支付并进入 shipping）
 	n = models.Notification{}
@@ -750,4 +773,5 @@ func TestRepairService_Notifications_2090(t *testing.T) {
 	require.Equal(t, float64(20000), resp["code"])
 	require.NoError(t, f.db.Where("ref_id = ? AND action_type = ?", id, "repair_svc_adjust").First(&n).Error, "加价后应通知顾客")
 	assert.Equal(t, "维修单有新的加价申请", n.Title)
+	assert.Equal(t, f.customerID, n.UserID, "加价通知收件人=本地 users.id")
 }

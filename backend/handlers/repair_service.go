@@ -144,7 +144,14 @@ func resolveTechnicianSite(db *gorm.DB, technicianID string) (string, string, bo
 
 func localUserIDBySub(db *gorm.DB, sub string) string {
 	var u models.User
-	if err := db.Select("id").Where("iam_sub = ?", sub).First(&u).Error; err == nil {
+	// #2090（#2078/#2079 同族）：身份键（iam_sub）查询必须免租户作用域——
+	// 自注册用户本地行 tenant_id=零UUID，员工上下文中会被 addTenantScope 过滤；
+	// 过滤后回落 IAM sub 会与消息列表（按本地 users.id 查询）口径不一致。
+	ctx := db.Statement.Context
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := db.WithContext(database.IdentityCtx(ctx)).Select("id").Where("iam_sub = ?", sub).First(&u).Error; err == nil {
 		return u.ID
 	}
 	return ""
