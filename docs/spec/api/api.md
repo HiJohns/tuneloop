@@ -3221,7 +3221,7 @@ POST /api/warehouse/orders/:id/assess-damage
 
 #### 7.15.5 报价（维修师）
 **接口**: `POST /api/repair-services/:id/quote`
-**请求**: 修理费 + 物流费预估（`quote_repair_cents` / `quote_logistics_cents`）
+**请求**: 修理费 + 料钱 + 物流费预估（`quote_repair_cents` / `quote_material_cents` / `quote_logistics_cents`；料钱 #2085，可空=0，不参与加价补差）
 **说明**: 直连 1 段受管物流；受控组合 3 段受管物流
 **目标契约（#1942）**: 该单维修师（repairReqRequired 组）
 

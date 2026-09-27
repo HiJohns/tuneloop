@@ -298,7 +298,7 @@ export default function RepairServiceDetail() {
   const reviewPhotosParsed = detail.review && detail.review.photos
     ? (Array.isArray(detail.review.photos) ? detail.review.photos : (() => { try { return JSON.parse(detail.review.photos || '[]') } catch { return [] } })())
     : []
-  const quoteTotal = (rr.quote_repair_cents || 0) + (rr.quote_logistics_cents || 0)
+  const quoteTotal = (rr.quote_repair_cents || 0) + (rr.quote_material_cents || 0) + (rr.quote_logistics_cents || 0) // #2085 含料钱
   const adjustDiff = rr.adjusted_quote_cents != null && rr.quote_repair_cents != null
     ? Math.max(0, rr.adjusted_quote_cents - rr.quote_repair_cents) : null
 
@@ -348,6 +348,12 @@ export default function RepairServiceDetail() {
             <Text style={labelStyle}>报价修理费</Text>
             <Text style={{ fontSize: 12, color: '#18181B' }}>{yuan(rr.quote_repair_cents)}</Text>
           </View>
+          {rr.quote_material_cents != null && (
+            <View style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Text style={labelStyle}>料钱</Text>
+              <Text style={{ fontSize: 12, color: '#18181B' }}>{yuan(rr.quote_material_cents)}</Text>
+            </View>
+          )}
           <View style={{ display: 'flex', justifyContent: 'space-between' }}>
             <Text style={labelStyle}>物流费预估</Text>
             <Text style={{ fontSize: 12, color: '#18181B' }}>{yuan(rr.quote_logistics_cents)}</Text>
@@ -439,6 +445,12 @@ export default function RepairServiceDetail() {
               <Text style={labelStyle}>修理费</Text>
               <Text style={{ fontSize: 12, color: '#18181B' }}>{yuan(rr.quote_repair_cents)}</Text>
             </View>
+            {rr.quote_material_cents != null && (
+              <View style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Text style={labelStyle}>料钱</Text>
+                <Text style={{ fontSize: 12, color: '#18181B' }}>{yuan(rr.quote_material_cents)}</Text>
+              </View>
+            )}
             <View style={{ display: 'flex', justifyContent: 'space-between' }}>
               <Text style={labelStyle}>物流费预估</Text>
               <Text style={{ fontSize: 12, color: '#18181B' }}>{yuan(rr.quote_logistics_cents)}</Text>

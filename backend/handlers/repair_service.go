@@ -77,7 +77,21 @@ func repairServicePaymentAmount(rr *models.RepairRequest) (models.Cents, string)
 	if rr.QuoteLogisticsCents != nil {
 		amount += *rr.QuoteLogisticsCents
 	}
+	amount += repairServiceMaterialCents(rr) // #2085：料钱
 	return amount, ""
+}
+
+// repairServiceMaterialCents 报价料钱（nil → 0，#2085）
+func repairServiceMaterialCents(rr *models.RepairRequest) models.Cents {
+	if rr.QuoteMaterialCents == nil {
+		return 0
+	}
+	return *rr.QuoteMaterialCents
+}
+
+// repairServiceActualCents 结算实际应付 = 修理费基准 + 料钱 + Σ物流段实填（#2085）
+func repairServiceActualCents(rr *models.RepairRequest, legsTotal models.Cents) models.Cents {
+	return repairServiceRepairOnly(rr) + repairServiceMaterialCents(rr) + legsTotal
 }
 
 // repairServiceRepairOnly 结算用修理费基准（RS-08）：
@@ -491,8 +505,9 @@ func (h *RepairServiceHandler) Quote(c *gin.Context) {
 	var body struct {
 		QuoteRepairCents    int64 `json:"quote_repair_cents"`
 		QuoteLogisticsCents int64 `json:"quote_logistics_cents"`
+		QuoteMaterialCents  int64 `json:"quote_material_cents"` // #2085 料钱
 	}
-	if err := c.ShouldBindJSON(&body); err != nil || body.QuoteRepairCents < 0 {
+	if err := c.ShouldBindJSON(&body); err != nil || body.QuoteRepairCents < 0 || body.QuoteMaterialCents < 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid quote"})
 		return
 	}
@@ -521,6 +536,7 @@ func (h *RepairServiceHandler) Quote(c *gin.Context) {
 	updates := map[string]interface{}{
 		"quote_repair_cents":    models.Cents(body.QuoteRepairCents),
 		"quote_logistics_cents": models.Cents(body.QuoteLogisticsCents),
+		"quote_material_cents":  models.Cents(body.QuoteMaterialCents), // #2085
 		"quote_status":          "pending",
 		"status":                models.RepairReqStatusPendingPay,
 		"updated_at":            now,
@@ -538,11 +554,11 @@ func (h *RepairServiceHandler) Quote(c *gin.Context) {
 		return
 	}
 	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "quoted",
-		fmt.Sprintf("报价：修理费 %d 分，物流预估 %d 分", body.QuoteRepairCents, body.QuoteLogisticsCents))
+		fmt.Sprintf("报价：修理费 %d 分，料钱 %d 分，物流预估 %d 分", body.QuoteRepairCents, body.QuoteMaterialCents, body.QuoteLogisticsCents))
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
 		"id":      rr.ID,
 		"status":  models.RepairReqStatusPendingPay,
-		"payable": body.QuoteRepairCents + body.QuoteLogisticsCents,
+		"payable": body.QuoteRepairCents + body.QuoteMaterialCents + body.QuoteLogisticsCents,
 	}})
 }
 
@@ -859,7 +875,7 @@ func (h *RepairServiceHandler) Dispatch(c *gin.Context) {
 	}
 	now := time.Now()
 
-	// 实际应付 = 修理费基准 + Σ各段实填物流费（含本次末段费）
+	// 实际应付 = 修理费基准 + 料钱 + Σ各段实填物流费（含本次末段费）（#2085）
 	// 注意：SUM(numeric) 经 lib/pq 返回 float64，models.Cents.Scan(float64) 会按
 	// 「元」再 ×100（cents.go）→ 必须先落 int64 再转换，否则金额放大 100 倍。
 	var legsTotalInt int64
@@ -872,7 +888,7 @@ func (h *RepairServiceHandler) Dispatch(c *gin.Context) {
 		Where("order_id = ? AND order_type = ? AND type = ? AND status = ?", rr.ID, "repair", "payment", "paid").
 		Select("COALESCE(SUM(amount), 0)").Scan(&prepaidInt)
 	prepaid := models.Cents(prepaidInt)
-	actual := repairServiceRepairOnly(rr) + legsTotal
+	actual := repairServiceActualCents(rr, legsTotal)
 
 	result := gin.H{"id": rr.ID, "status": models.RepairReqStatusClosed,
 		"actual_cents": actual, "prepaid_cents": prepaid}

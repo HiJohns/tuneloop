@@ -613,6 +613,7 @@ type RepairRequest struct {
 	TechnicianID        *string    `gorm:"type:uuid;index" json:"technician_id"`           // 师傅指派
 	QuoteRepairCents    *Cents     `gorm:"type:bigint" json:"quote_repair_cents"`          // 报价：修理费
 	QuoteLogisticsCents *Cents     `gorm:"type:bigint" json:"quote_logistics_cents"`       // 报价：物流费预估
+	QuoteMaterialCents  *Cents     `gorm:"type:bigint" json:"quote_material_cents"`        // #2085 报价：料钱
 	QuoteStatus         string     `gorm:"type:varchar(20);default:''" json:"quote_status"`
 	AdjustedQuoteCents  *Cents     `gorm:"type:bigint" json:"adjusted_quote_cents"`  // 加价后新总价
 	IncurredRepairCents *Cents     `gorm:"type:bigint" json:"incurred_repair_cents"` // 到此为止修理费

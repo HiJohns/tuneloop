@@ -20,7 +20,7 @@ const svcStatusLabels = {
 // RS-12：每项金额与待办提示
 const svcAmount = (rr) => {
   const cents = rr.adjusted_quote_cents != null ? rr.adjusted_quote_cents
-    : (rr.quote_repair_cents || 0) + (rr.quote_logistics_cents || 0)
+    : (rr.quote_repair_cents || 0) + (rr.quote_material_cents || 0) + (rr.quote_logistics_cents || 0) // #2085 含料钱
   return `¥${formatCents(cents)}`
 }
 const svcTodo = (rr) => ({
@@ -71,6 +71,7 @@ export default function TechRepairWorkbench() {
   const [submitting, setSubmitting] = useState(false)
   // 报价表单（元）
   const [repairYuan, setRepairYuan] = useState('')
+  const [materialYuan, setMaterialYuan] = useState('') // #2085 料钱
   const [logiYuan, setLogiYuan] = useState('')
   // 加价表单（元）
   const [newQuoteYuan, setNewQuoteYuan] = useState('')
@@ -106,21 +107,23 @@ export default function TechRepairWorkbench() {
 
   const toggle = (id, mode) => {
     if (expanded === `${id}:${mode}`) { setExpanded(''); return }
-    setRepairYuan(''); setLogiYuan(''); setNewQuoteYuan(''); setIncurredYuan('')
+    setRepairYuan(''); setMaterialYuan(''); setLogiYuan(''); setNewQuoteYuan(''); setIncurredYuan('')
     setExpanded(`${id}:${mode}`)
   }
 
   const submitQuote = async (id) => {
     const repairCents = yuanToCents(repairYuan)
+    const materialCents = yuanToCents(materialYuan === '' ? '0' : materialYuan) // #2085 料钱（可空=0）
     const logiCents = yuanToCents(logiYuan === '' ? '0' : logiYuan)
     if (repairCents <= 0) { dialog.alert('请填写正确的修理费'); return }
+    if (materialCents < 0) { dialog.alert('请填写正确的料钱'); return }
     if (logiCents < 0) { dialog.alert('请填写正确的物流费预估'); return }
     setSubmitting(true)
     try {
       const res = await apiFetch(`${baseUrl}/repair-services/${id}/quote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quote_repair_cents: repairCents, quote_logistics_cents: logiCents }),
+        body: JSON.stringify({ quote_repair_cents: repairCents, quote_material_cents: materialCents, quote_logistics_cents: logiCents }),
       })
       const result = await res.json()
       if (result.code === 20000) {
@@ -211,6 +214,9 @@ export default function TechRepairWorkbench() {
             <Text style={labelStyle}>修理费（元）</Text>
             <Input style={inputStyle} type="digit" value={repairYuan}
               onInput={e => setRepairYuan(getInputValue(e))} placeholder="如 200" />
+            <Text style={labelStyle}>料钱（元；材料/配件费，可空）</Text>
+            <Input style={inputStyle} type="digit" value={materialYuan}
+              onInput={e => setMaterialYuan(getInputValue(e))} placeholder="如 30" />
             <Text style={labelStyle}>物流费预估（元；受控组合为 3 段受管物流的预估合计）</Text>
             <Input style={inputStyle} type="digit" value={logiYuan}
               onInput={e => setLogiYuan(getInputValue(e))} placeholder="如 50" />

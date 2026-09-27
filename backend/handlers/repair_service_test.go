@@ -143,6 +143,7 @@ func svcPay(t *testing.T, f svcFixture, repairID string, amountCents int64) {
 func TestRepairService_AmountsUnit(t *testing.T) {
 	repair := models.FromYuan(200)   // 20000 分
 	logistics := models.FromYuan(50) // 5000 分
+	material := models.FromYuan(30)  // #2085 料钱 3000 分
 	rr := &models.RepairRequest{
 		Status:              models.RepairReqStatusPendingPay,
 		QuoteRepairCents:    &repair,
@@ -150,9 +151,18 @@ func TestRepairService_AmountsUnit(t *testing.T) {
 	}
 	got, msg := repairServicePaymentAmount(rr)
 	assert.Empty(t, msg)
-	assert.Equal(t, models.Cents(25000), got, "初付 = 报价修理费 + 物流费预估")
+	assert.Equal(t, models.Cents(25000), got, "初付 = 报价修理费 + 物流费预估（无料钱）")
 
-	// 加价：new_quote 30000, incurred 5000 → 补差 = 30000-20000 = 10000（非全额）
+	// #2085：料钱计入初付与结算 actual
+	rr.QuoteMaterialCents = &material
+	got, msg = repairServicePaymentAmount(rr)
+	assert.Empty(t, msg)
+	assert.Equal(t, models.Cents(28000), got, "初付 = 修理费 + 料钱 + 物流费预估")
+	assert.Equal(t, models.Cents(3000), repairServiceMaterialCents(rr), "料钱独立可读")
+	assert.Equal(t, models.Cents(25000), repairServiceActualCents(rr, models.FromYuan(20)),
+		"结算 actual = 修理费基准 + 料钱 + Σ物流段实填")
+
+	// 加价：new_quote 30000, incurred 5000 → 补差 = 30000-20000 = 10000（非全额；料钱不参与补差）
 	newQuote := models.FromYuan(300)
 	incurred := models.FromYuan(50)
 	rr.Status = models.RepairReqStatusAdjustPending
@@ -160,7 +170,7 @@ func TestRepairService_AmountsUnit(t *testing.T) {
 	rr.IncurredRepairCents = &incurred
 	got, msg = repairServicePaymentAmount(rr)
 	assert.Empty(t, msg)
-	assert.Equal(t, models.Cents(10000), got, "补差 = 新总价 − 原报价修理费")
+	assert.Equal(t, models.Cents(10000), got, "补差 = 新总价 − 原报价修理费（料钱不参与）")
 
 	// 结算基准：已加价 → 新总价；拒绝 → incurred；无加价 → 原报价
 	rr.Status = models.RepairReqStatusRepairing

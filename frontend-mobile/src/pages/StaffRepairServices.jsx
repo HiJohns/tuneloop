@@ -18,7 +18,7 @@ const svcStatusLabels = {
 }
 const svcAmount = (rr) => {
   const cents = rr.adjusted_quote_cents != null ? rr.adjusted_quote_cents
-    : (rr.quote_repair_cents || 0) + (rr.quote_logistics_cents || 0)
+    : (rr.quote_repair_cents || 0) + (rr.quote_material_cents || 0) + (rr.quote_logistics_cents || 0) // #2085 含料钱
   return `¥${formatCents(cents)}`
 }
 
