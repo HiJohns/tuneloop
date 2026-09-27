@@ -32,7 +32,7 @@ const timelineLabels = {
   adjust_paid: '补差价到账', adjust_declined: '拒绝加价', leg_fee: '分段物流费登记',
   quote_declined: '拒绝报价',
   repair_completed: '完成修理', settled: '发回结算', reviewed: '提交评价',
-  shortfall_paid: '补缴到账',
+  shortfall_paid: '补缴到账', payment_timeout: '支付超时关闭', // #2094
 }
 const cardStyle = {
   backgroundColor: '#FFFFFF', borderRadius: 12, padding: 14, marginBottom: 12,
@@ -340,6 +340,8 @@ export default function RepairServiceDetail() {
   const site = detail.site
   const cc = detail.merchant // 商户地址（无 site 的新单寄件地址来源）
   const photos = Array.isArray(rr.photos) ? rr.photos : (() => { try { return JSON.parse(rr.photos || '[]') } catch { return [] } })()
+  // #2094：真结算判定——closed 且时间线含 settled（发回结算）；未含则为超时/异常关闭 → 不显示评价
+  const hasSettledTimeline = (detail.timeline || []).some(t => t.record_type === 'settled')
   const reviewPhotosParsed = detail.review && detail.review.photos
     ? (Array.isArray(detail.review.photos) ? detail.review.photos : (() => { try { return JSON.parse(detail.review.photos || '[]') } catch { return [] } })())
     : []
@@ -607,7 +609,15 @@ export default function RepairServiceDetail() {
           </View>
         )}
 
-        {rr.status === 'closed' && (
+        {rr.status === 'cancelled' && (
+          <View style={cardStyle}>
+            {/* #2094：未支付超时取消/拒绝取消 → 关闭信息卡（不得出现评价表单） */}
+            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#A1A1AA' }}>服务已关闭</Text>
+            <Text style={labelStyle}>该维修服务未完成支付，已自动关闭；如有需要可重新发起维修。</Text>
+          </View>
+        )}
+
+        {rr.status === 'closed' && hasSettledTimeline && (
           <View style={cardStyle}>
             {detail.review && detail.review.id ? (
               <>

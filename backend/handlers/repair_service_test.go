@@ -784,6 +784,71 @@ func TestRepairService_DeclineQuote_2093(t *testing.T) {
 	assert.Equal(t, float64(40900), resp["code"])
 }
 
+// stubTimeoutQueryClient：QueryOrder 返回「未支付」——驱动 #2094 超时关闭分支
+type stubTimeoutQueryClient struct{}
+
+func (stubTimeoutQueryClient) CreateJSAPIOrder(_ context.Context, p wechatpay.JSAPIParams) (*wechatpay.JSAPIResult, error) {
+	return &wechatpay.JSAPIResult{PrepayID: "stub_timeout_prepay", Package: "prepay_id=stub_timeout_prepay", TimeStamp: "1750000000", NonceStr: "n", SignType: "RSA", Sign: "s"}, nil
+}
+func (stubTimeoutQueryClient) CreateNativeOrder(context.Context, wechatpay.NativeParams) (*wechatpay.NativeResult, error) {
+	return &wechatpay.NativeResult{CodeURL: "stub"}, nil
+}
+func (stubTimeoutQueryClient) CreateH5Order(context.Context, wechatpay.H5Params) (*wechatpay.H5Result, error) {
+	return &wechatpay.H5Result{}, nil
+}
+func (stubTimeoutQueryClient) QueryOrder(context.Context, string) (*wechatpay.QueryResult, error) {
+	return &wechatpay.QueryResult{TradeState: "NOTPAY"}, nil // 未支付 → 超时关闭分支
+}
+func (stubTimeoutQueryClient) CloseOrder(context.Context, string) error { return nil }
+func (stubTimeoutQueryClient) Refund(context.Context, wechatpay.RefundParams) (*wechatpay.RefundResult, error) {
+	return &wechatpay.RefundResult{}, nil
+}
+func (stubTimeoutQueryClient) QueryRefund(context.Context, string) (*wechatpay.RefundResult, error) {
+	return &wechatpay.RefundResult{}, nil
+}
+func (stubTimeoutQueryClient) VerifyPaymentCallback(context.Context, []byte, string, string, string, string) (*wechatpay.CallbackResult, error) {
+	return &wechatpay.CallbackResult{}, nil
+}
+
+// TestRepairService_PaymentTimeout_Cancels_2094：未支付超时 → cancelled（非 closed）+ timeline payment_timeout
+func TestRepairService_PaymentTimeout_Cancels_2094(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	customer := testutil.MakeCustomer("", f.customerSub)
+	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
+
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "超时取消验证", "technician_id": f.techID})
+	require.Equal(t, float64(20000), resp["code"])
+	id := svcData(t, resp)["id"].(string)
+
+	_, resp = svcPost(t, f, staff, "/repair-services/"+id+"/quote", gin.H{"quote_repair_cents": 20000, "quote_logistics_cents": 5000})
+	require.Equal(t, float64(20000), resp["code"])
+	_, resp = svcPost(t, f, customer, "/user/repair-services/"+id+"/accept", nil)
+	require.Equal(t, float64(20000), resp["code"])
+
+	// 手工造一条超时 pending 支付记录（created_at 回拨 31 分钟，越过 30 分钟 cutoff）
+	outTradeNo := "timeout_out_" + id[:8]
+	created := time.Now().Add(-31 * time.Minute)
+	rec := models.OrderPaymentRecord{
+		ID: uuid.New().String(), TenantID: f.tenantID, UserID: f.customerSub,
+		OrderID: &id, OrderType: "repair", Amount: models.Cents(25000),
+		Type: "payment", Status: "pending", OutTradeNo: &outTradeNo,
+		CreatedAt: created, UpdatedAt: created,
+	}
+	require.NoError(t, f.db.Create(&rec).Error)
+
+	// 注入 stub（QueryOrder=NOTPAY → 超时关闭分支）；结束恢复全局
+	wechatpay.SetClientForTesting(stubTimeoutQueryClient{}, &wechatpay.Config{})
+	defer wechatpay.ResetGlobalForTesting()
+	processPendingRecord(f.db, &rec)
+
+	var stored models.RepairRequest
+	require.NoError(t, f.db.First(&stored, "id = ?", id).Error)
+	assert.Equal(t, models.RepairReqStatusCancelled, stored.Status, "超时未支付应为 cancelled（非 closed）")
+
+	var tl models.RepairRequestRecord
+	require.NoError(t, f.db.Where("repair_request_id = ? AND record_type = ?", id, "payment_timeout").First(&tl).Error, "应写超时关闭时间线")
+}
+
 // TestRepairService_Notifications_2090：创建→师傅、报价/加价→顾客 三类通知（#2090）
 func TestRepairService_Notifications_2090(t *testing.T) {
 	f := setupRepairServiceFixture(t)

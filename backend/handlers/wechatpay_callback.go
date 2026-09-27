@@ -549,9 +549,14 @@ func processPendingRecord(db *gorm.DB, rec *models.OrderPaymentRecord) {
 		}
 	case "repair":
 		if rec.OrderID != nil {
+			// #2094：未支付超时为「已取消」（与 Order/Lease 超时取消一致），
+			// 不得误置 closed（已结算态，会令用户在评价卡成谜）；
+			// 并写时间线告知用户关闭原因（此前更新无任何记录可循）。
 			db.Model(&models.RepairRequest{}).Where("id = ?", *rec.OrderID).
 				Where("status = ?", models.RepairReqStatusPendingPay).
-				Update("status", models.RepairReqStatusClosed)
+				Update("status", models.RepairReqStatusCancelled)
+			appendRepairServiceTimeline(db, *rec.OrderID, "system", "payment_timeout",
+				"支付超时，服务自动关闭")
 		}
 	case "damage":
 		if rec.OrderID != nil {

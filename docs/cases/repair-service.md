@@ -185,7 +185,7 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 
 ## RS-11 状态机（权威，用户 2026-09-17 明确：维修单须如订单一般有自身状态机）
 
-> **状态集**：`pending_quote` → `pending_payment` → `paid` → `shipping` → `repairing` → `done_repair` → `closed`；加价分支 `adjust_pending`；**拒绝分支 `pending_payment` → `cancelled`（终态，#2093，无支付无退款；不进师傅工作台）**。
+> **状态集**：`pending_quote` → `pending_payment` → `paid` → `shipping` → `repairing` → `done_repair` → `closed`；加价分支 `adjust_pending`；**拒绝分支 `pending_payment` → `cancelled`（终态，#2093，无支付无退款；不进师傅工作台）**。**超时分支：`pending_payment` 超时未支付（PaymentScheduler 30 分钟）→ `cancelled`（终态，#2094，时间线 `payment_timeout`；此前误置 `closed` 已修）**。
 
 | # | 起始状态 | 动作 | 触发者 | 守卫 | 结束状态 |
 |---|---------|------|--------|------|---------|
@@ -217,6 +217,7 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 ### 分状态列表（不再扁平）
 - **用户**「我的维修服务」：按状态分组（进行中 / 待我处理 / 已完成）+ 状态筛选；每项含编码、状态、关键金额、待办提示（如「待补差价 ¥100」/「待支付」/「待评价」）；拒绝报价后为「**已取消**」（终态，#2093）
 - **维修师**工作台：待报价 / **已报价·待付款**（`pending_payment`，#2088）/ 维修中（含 `adjust_pending`）/ **待发回**（`done_repair`，#2091，只读「待网点发回结算」）/ 已完成（自己相关）
+- **用户详情页评价卡**：仅「真结算」态显示评价表单——`closed` **且时间线含 `settled`**；未支付超时（`cancelled`，#2094）或 `closed` 无 `settled`（存量异常）→ 显示关闭信息卡（无评价表单）
 - **员工**工作台：状态筛选（#2053）——「进行中」含待发回 / 进行中（分段实填）；「已完成」为本网点 `closed` 历史单
 - **平台（PC）**：状态筛选（已有）+ 详情时间线（增强）
 
