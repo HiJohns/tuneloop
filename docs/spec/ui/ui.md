@@ -669,6 +669,8 @@ setInterval(() => {
 **金刚区（快捷入口）**（#2053）:
 - 顾客：`待付款` → `/my-leases?status=reserved`；`服务中` → `/my-leases?status=in_lease`；`维修中` → `/my-repairs`（列表含进行中 + 已完成筛选）
 - 员工：`乐器管理` → `/staff/instruments`；`接收` → `/staff/receiving`；`发货` → `/staff/shipping`（中转网点成员另显示 `中转工作台`）
+- **纯维修师**（`isPureTechnician`＝`repair_technician` 且无 site 角色，#2089）：`待报价`（角标=待报价数 → `/my-repairs?tab=service`）/ `维修中`（同目标）/ `已完成`（同目标）/ `系统通知` → `/messages`
+- **员工兼师傅**（site 角色 + `repair_technician`，#2089）：员工项 + `待报价`（第 5 项，角标同上）；参数判定 roles 来自 `GET /site-members/me`（= 网点角色 ∪ JWT `fn_roles`，#2082）
 - **历史可达性**：会员中心「历史记录」区（`租赁历史` → `/my-leases?status=completed`；`维修历史` → `/my-repairs?tab=service`，#2053）；承租历史亦经 `MyLeases`「已完成」Tab，维修历史亦经 `/my-repairs`「已完成」筛选
 - **双端一致性（#2053 整改）**：H5 `pages/Profile.jsx` 与 weapp `pages-weapp/Profile.jsx` 各自实现，**两侧金刚区一致**（待付款 / 服务中 / 维修中）；weapp 顾客第三按钮 → `nav('/pages-weapp/my-repairs/index')`，访客灰态第三标签同为「维修中」
 

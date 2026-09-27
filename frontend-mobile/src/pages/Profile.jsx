@@ -213,6 +213,8 @@ export default function Profile() {
   const [orderCounts, setOrderCounts] = useState({ reserved: 0, in_lease: 0, returning: 0, completed: 0 })
   const [appVersion, setAppVersion] = useState('')
   const [transitMember, setTransitMember] = useState(false) // #1937: 中转网点成员身份
+  const [myRoles, setMyRoles] = useState([]) // #2089: /site-members/me roles（网点角色 ∪ fn_roles）
+  const [pendingQuoteCount, setPendingQuoteCount] = useState(0) // #2089: 师傅「待报价」角标
 
   const baseUrl = env.apiBaseUrl
 
@@ -262,6 +264,10 @@ export default function Profile() {
   const displayName = user?.nickname || user?.name || user?.username || '路人'
   const token = getToken()
   const isStaff = isStaffRole(token)
+  // #2089：金刚区角色判定（纯维修师 / 员工兼师傅）
+  const isTech = myRoles.includes('repair_technician')
+  const hasSiteRole = myRoles.some(r => ['site_admin', 'site_member'].includes(r))
+  const isPureTech = isTech && !hasSiteRole
 
   useEffect(() => {
     const fetchCounts = async () => {
@@ -285,6 +291,16 @@ export default function Profile() {
         if (result.code === 20000) {
           const sites = result.data?.sites || []
           setTransitMember(sites.some(s => s.site_type === 'transit'))
+          // #2089：金刚区按角色适配（roles = 网点角色 ∪ JWT fn_roles，#2082）
+          const roles = result.data?.roles || []
+          setMyRoles(roles)
+          if (roles.includes('repair_technician')) {
+            try {
+              const cntRes = await apiFetch(`${baseUrl}/repair-services?scope=mine&status=pending_quote`)
+              const cntJson = await cntRes.json()
+              if (cntJson.code === 20000) setPendingQuoteCount(cntJson.data?.total ?? (cntJson.data?.list || []).length)
+            } catch {}
+          }
         }
       } catch {}
     }
@@ -350,19 +366,57 @@ export default function Profile() {
         </View>
 
         {/* 2. 金刚过滤区 — 员工 vs 顾客 */}
-        <View className={`mx-4 bg-white rounded-2xl shadow-sm mt-3 p-4 grid ${isStaff && transitMember ? 'grid-cols-4' : 'grid-cols-3'} gap-2 text-center`}>
+        <View className={`mx-4 bg-white rounded-2xl shadow-sm mt-3 p-4 grid ${isPureTech || (isStaff && transitMember) ? 'grid-cols-4' : 'grid-cols-3'} gap-2 text-center`}>
           {isStaff ? (
             <>
+              {isPureTech ? (
+                <>
+                  {/* #2089 纯维修师：待报价（角标）/ 维修中 / 已完成 / 系统通知 */}
+              <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={() => navigate('/my-repairs?tab=service')}>
+                <View className="text-2xl mb-1 relative">
+                  📝
+                  {pendingQuoteCount > 0 && <Badge count={pendingQuoteCount} />}
+                </View>
+                <Text className="text-xs font-bold text-zinc-700">待报价</Text>
+              </View>
+              <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={() => navigate('/my-repairs?tab=service')}>
+                <View className="text-2xl mb-1">
+                  🛠️
+                </View>
+                <Text className="text-xs font-bold text-zinc-700">维修中</Text>
+              </View>
+              <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={() => navigate('/my-repairs?tab=service')}>
+                <View className="text-2xl mb-1">
+                  ✅
+                </View>
+                <Text className="text-xs font-bold text-zinc-700">已完成</Text>
+              </View>
+              <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={() => navigate('/messages')}>
+                <View className="text-2xl mb-1">
+                  🔔
+                </View>
+                <Text className="text-xs font-bold text-zinc-700">系统通知</Text>
+              </View>
+                </>
+              ) : (
+                <>
+                  {/* 网点员工（现状）+ #2089 员工兼师傅加「待报价」 */}
               <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={() => navigate('/staff/instruments')}>
-                <View className="text-2xl mb-1">🎸</View>
+                <View className="text-2xl mb-1">
+                  🎸
+                </View>
                 <Text className="text-xs font-bold text-zinc-700">乐器管理</Text>
               </View>
               <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={() => navigate('/staff/receiving')}>
-                <View className="text-2xl mb-1">📥</View>
+                <View className="text-2xl mb-1">
+                  📥
+                </View>
                 <Text className="text-xs font-bold text-zinc-700">接收</Text>
               </View>
               <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={() => navigate('/staff/shipping')}>
-                <View className="text-2xl mb-1">📤</View>
+                <View className="text-2xl mb-1">
+                  📤
+                </View>
                 <Text className="text-xs font-bold text-zinc-700">发货</Text>
               </View>
               {transitMember && (
@@ -370,6 +424,17 @@ export default function Profile() {
                   <View className="text-2xl mb-1">🚚</View>
                   <Text className="text-xs font-bold text-zinc-700">中转工作台</Text>
                 </View>
+              )}
+              {isTech && (
+              <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={() => navigate('/my-repairs?tab=service')}>
+                <View className="text-2xl mb-1 relative">
+                  📝
+                  {pendingQuoteCount > 0 && <Badge count={pendingQuoteCount} />}
+                </View>
+                <Text className="text-xs font-bold text-zinc-700">待报价</Text>
+              </View>
+              )}
+                </>
               )}
             </>
           ) : (

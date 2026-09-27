@@ -96,6 +96,8 @@ export default function Profile() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [orderCounts, setOrderCounts] = useState({ reserved: 0, in_lease: 0, returning: 0, completed: 0 })
   const [transitMember, setTransitMember] = useState(false) // #1937: 中转网点成员身份
+  const [myRoles, setMyRoles] = useState([]) // #2089: /site-members/me roles（网点角色 ∪ fn_roles）
+  const [pendingQuoteCount, setPendingQuoteCount] = useState(0) // #2089: 师傅「待报价」角标
 
   const baseUrl = env.apiBaseUrl
   const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? baseUrl.replace(/\/api$/, '') + url : url
@@ -193,6 +195,10 @@ export default function Profile() {
   // isStaff 统一判定（#1639 / #1700）：对齐后端 GetBusinessRole——role == 'USER'
   // （含 oid/tid 非空的顾客）→ 顾客；仅非 USER 角色才视为员工
   const isStaff = !!claims.role && claims.role !== 'USER'
+  // #2089：金刚区角色判定（纯维修师 / 员工兼师傅）
+  const isTech = myRoles.includes('repair_technician')
+  const hasSiteRole = myRoles.some(r => ['site_admin', 'site_member'].includes(r))
+  const isPureTech = isTech && !hasSiteRole
   // #2081: 一人多角——经身份选择页登录时落盘的可登录上下文列表；>1 即显示「切换身份」
   // （此前仅当前上下文为员工时才显示，双身份账号以顾客上下文登录时无从切换）
   let multiContextCount = 0
@@ -283,6 +289,16 @@ export default function Profile() {
         if (result.code === 20000) {
           const sites = result.data?.sites || []
           setTransitMember(sites.some(s => s.site_type === 'transit'))
+          // #2089：金刚区按角色适配（roles = 网点角色 ∪ JWT fn_roles，#2082）
+          const roles = result.data?.roles || []
+          setMyRoles(roles)
+          if (roles.includes('repair_technician')) {
+            try {
+              const cntRes = await apiFetch(`${baseUrl}/repair-services?scope=mine&status=pending_quote`)
+              const cntJson = await cntRes.json()
+              if (cntJson.code === 20000) setPendingQuoteCount(cntJson.data?.total ?? (cntJson.data?.list || []).length)
+            } catch {}
+          }
         }
       } catch {}
     }
@@ -411,27 +427,78 @@ export default function Profile() {
             </>
           ) : isStaff ? (
             <>
+              {isPureTech ? (
+                <>
+                  {/* #2089 纯维修师：待报价（角标）/ 维修中 / 已完成 / 系统通知 */}
+              <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => nav('/pages-weapp/my-repairs/index?tab=service')}>
+                <View style={{ fontSize: 24, marginBottom: 4, position: 'relative' }}>
+                  📝
+                  {pendingQuoteCount > 0 && <Badge count={pendingQuoteCount} />}
+                </View>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>待报价</Text>
+              </View>
+              <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => nav('/pages-weapp/my-repairs/index?tab=service')}>
+                <View style={{ fontSize: 24, marginBottom: 4, position: 'relative' }}>
+                  🛠️
+                </View>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>维修中</Text>
+              </View>
+              <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => nav('/pages-weapp/my-repairs/index?tab=service')}>
+                <View style={{ fontSize: 24, marginBottom: 4, position: 'relative' }}>
+                  ✅
+                </View>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>已完成</Text>
+              </View>
+              <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => nav('/pages-weapp/messages/index')}>
+                <View style={{ fontSize: 24, marginBottom: 4, position: 'relative' }}>
+                  🔔
+                </View>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>系统通知</Text>
+              </View>
+                </>
+              ) : (
+                <>
+                  {/* 网点员工（现状四项）+ #2089 员工兼师傅加「待报价」 */}
               <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => nav('/pages-weapp/staff-orders/index')}>
-                <View style={{ fontSize: 24, marginBottom: 4 }}>📋</View>
+                <View style={{ fontSize: 24, marginBottom: 4, position: 'relative' }}>
+                  📋
+                </View>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>订单管理</Text>
               </View>
               <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => nav('/pages-weapp/staff-instruments/index')}>
-                <View style={{ fontSize: 24, marginBottom: 4 }}>🎸</View>
+                <View style={{ fontSize: 24, marginBottom: 4, position: 'relative' }}>
+                  🎸
+                </View>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>乐器管理</Text>
               </View>
               <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => nav('/pages-weapp/receiving-interface/index')}>
-                <View style={{ fontSize: 24, marginBottom: 4 }}>📥</View>
+                <View style={{ fontSize: 24, marginBottom: 4, position: 'relative' }}>
+                  📥
+                </View>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>接收</Text>
               </View>
               <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => nav('/pages-weapp/shipping-interface/index')}>
-                <View style={{ fontSize: 24, marginBottom: 4 }}>📤</View>
+                <View style={{ fontSize: 24, marginBottom: 4, position: 'relative' }}>
+                  📤
+                </View>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>发货</Text>
               </View>
+              {isTech && (
+              <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => nav('/pages-weapp/my-repairs/index?tab=service')}>
+                <View style={{ fontSize: 24, marginBottom: 4, position: 'relative' }}>
+                  📝
+                  {pendingQuoteCount > 0 && <Badge count={pendingQuoteCount} />}
+                </View>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>待报价</Text>
+              </View>
+              )}
               {transitMember && (
                 <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => nav('/pages-weapp/transit-workbench/index')}>
                   <View style={{ fontSize: 24, marginBottom: 4 }}>🚚</View>
                   <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>中转工作台</Text>
                 </View>
+              )}
+                </>
               )}
             </>
           ) : (

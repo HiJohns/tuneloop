@@ -1080,6 +1080,7 @@ steps:
 3. 订单管理 → 订单列表（GET /merchant/orders，本网点订单）
 
 ## 关键规则
+- **#2089 金刚区按角色适配**：纯维修师（`isPureTechnician`）显示「待报价（角标）/ 维修中 / 已完成 / 系统通知」；员工兼师傅（site 角色 + `repair_technician`）员工项 + 「待报价」；纯员工保持现状（roles 来自 `GET /site-members/me` = 网点角色 ∪ `fn_roles`，#2082）
 - H5 与 weapp 员工工作台入口一致（#1609 调查：weapp Profile 缺员工工作台）
 - 员工订单列表在 weapp 需注册 staff-orders 页（#1611）
 - 乐器管理在 weapp 需注册 staff-instruments 页（#1612）
