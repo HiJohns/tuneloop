@@ -96,6 +96,10 @@ const FaceCaptureUploader = ({ initialStatus = '', onSubmitSuccess }) => {
           if (!videoResp.ok) throw new Error('video upload failed')
           const videoJson = JSON.parse(videoResp.data)
           if (videoJson.code !== 20000) throw new Error(resolveErrorMessage(videoJson, '视频上传失败'))
+          // #2105：视频保存失败不再静默（仅照片已提交）
+          if (videoJson.data?.video_saved === false) {
+            Taro.showToast({ title: '视频保存失败，仅照片已提交，请稍后重试', icon: 'none', duration: 3000 })
+          }
         }
       } else {
         // H5：FormData 一次带 image + 可选 video。
@@ -109,6 +113,10 @@ const FaceCaptureUploader = ({ initialStatus = '', onSubmitSuccess }) => {
         })
         const json = await fetchResp.json()
         if (json.code !== 20000) throw new Error(resolveErrorMessage(json, '提交失败'))
+        // #2105：视频保存失败不再静默（仅照片已提交）
+        if (json.data?.video_saved === false) {
+          Taro.showToast({ title: '视频保存失败，仅照片已提交，请稍后重试', icon: 'none', duration: 3000 })
+        }
       }
       setImagePath('')
       setVideoPath('')

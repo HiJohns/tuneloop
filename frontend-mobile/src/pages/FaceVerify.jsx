@@ -199,6 +199,10 @@ export default function FaceVerify() {
       if (!vidResp.ok) throw new Error('视频上传失败')
       const vidJson = JSON.parse(vidResp.data)
       if (vidJson.code !== 20000) throw new Error(resolveErrorMessage(vidJson, '视频上传失败'))
+      // #2105：视频保存失败不再静默——仅照片已提交，提示用户稍后重试
+      if (vidJson.data?.video_saved === false) {
+        Taro.showToast({ title: '视频保存失败，仅照片已提交，请稍后重试', icon: 'none', duration: 3000 })
+      }
     } catch (err) {
       clearStallWatchdog()
       // audit #1821 Bug2/3：任何失败（硬超时/停滞/服务端错误）一律 throw——

@@ -148,6 +148,9 @@ case "$SERVICE" in
         ;;
 esac
 
+# #2105: 运行目录属主保障（服务以 deploy 用户运行；曾因 root:root tmp/ 静默丢人脸视频）
+install -d -o deploy -g deploy -m 755 "$TARGET_DIR/tmp"
+
 # #1929: 启动前守卫 —— unit 未配置 StartLimit 时提示热循环风险（仅 WARN，不阻断）
 if ! systemctl cat "$SYSTEMD_UNIT" 2>/dev/null | grep -q "StartLimitBurst"; then
     echo "WARN: $SYSTEMD_UNIT 未配置 StartLimitBurst —— 启动失败时可能触发热循环（#1913/#1929）。建议执行："

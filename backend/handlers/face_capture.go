@@ -28,8 +28,9 @@ type FaceCaptureHandler struct{}
 
 // faceCaptureResponse 提交成功后的响应。
 type faceCaptureResponse struct {
-	BatchID string `json:"batch_id"`
-	Status  string `json:"status"`
+	BatchID    string `json:"batch_id"`
+	Status     string `json:"status"`
+	VideoSaved bool   `json:"video_saved"` // #2105：视频保存失败不再静默（false → 前端提示）
 }
 
 // SubmitFaceCapture handles POST /user/face-capture.
@@ -118,8 +119,11 @@ func (h *FaceCaptureHandler) SubmitFaceCapture(c *gin.Context) {
 	}
 
 	// 可选视频：本地临时文件转码 → 经抽象上传 → 清理临时文件（OSS 无目录语义）。
+	// #2105：保存失败/格式不支持不再静默——响应 video_saved=false（前端提示），
+	// 仅照片仍可提交（视频为可选佐证，不阻断实名主流程）。
 	videoKey := ""
 	videoSize := int64(0)
+	videoSaved := true
 	if videoErr == nil {
 		defer videoFile.Close()
 		videoExt := strings.ToLower(filepath.Ext(videoHeader.Filename))
@@ -127,10 +131,14 @@ func (h *FaceCaptureHandler) SubmitFaceCapture(c *gin.Context) {
 			key, size, err := storeFaceVideo(ctx, storage, localUser.ID, batchID, videoExt, videoFile)
 			if err != nil {
 				log.Printf("[FaceCapture] save video failed: %v", err)
+				videoSaved = false
 			} else {
 				videoKey = key
 				videoSize = size
 			}
+		} else {
+			log.Printf("[FaceCapture] unsupported video ext %q, dropped", videoExt)
+			videoSaved = false
 		}
 	}
 
@@ -179,7 +187,7 @@ func (h *FaceCaptureHandler) SubmitFaceCapture(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": faceCaptureResponse{BatchID: batchID, Status: status},
+		"data": faceCaptureResponse{BatchID: batchID, Status: status, VideoSaved: videoSaved},
 	})
 }
 
@@ -228,10 +236,14 @@ func (h *FaceCaptureHandler) GetFaceCaptureStatus(c *gin.Context) {
 // storeFaceVideo 将上传视频写入本地临时文件，转码（best-effort，#1822）后经
 // MediaStorage 抽象上传，返回 (key, size)；临时文件始终清理（#1995）。
 func storeFaceVideo(ctx context.Context, storage services.MediaStorage, userID, batchID, ext string, src io.Reader) (string, int64, error) {
-	if err := os.MkdirAll("tmp", 0755); err != nil {
+	// #2105：使用系统临时目录的独立子目录（绝对路径）——不再依赖
+	// WorkingDirectory 相对路径与部署目录属主（曾致 tmp/ root:root 不可写时静默丢视频）。
+	tmpDir, err := os.MkdirTemp("", "face-video-")
+	if err != nil {
 		return "", 0, fmt.Errorf("create tmp dir: %w", err)
 	}
-	tmp, err := os.CreateTemp("tmp", "face-video-*"+ext)
+	defer os.RemoveAll(tmpDir)
+	tmp, err := os.CreateTemp(tmpDir, "face-video-*"+ext)
 	if err != nil {
 		return "", 0, fmt.Errorf("create temp video: %w", err)
 	}

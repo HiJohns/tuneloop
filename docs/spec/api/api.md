@@ -3959,9 +3959,11 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 ```json
 {
   "code": 20000,
-  "data": { "batch_id": "uuid", "status": "pending_review" }
+  "data": { "batch_id": "uuid", "status": "pending_review", "video_saved": true }
 }
 ```
+
+**说明（#2105）**: `video_saved` = 视频是否成功保存（仅当请求携带 `video` 时有意义；格式不支持或保存失败 → `false`，**接口仍 200**、批次照常创建但仅含照片）。前端据此提示「视频保存失败，仅照片已提交」——失败不再静默。
 
 **存储**: `media_assets`（source_type=`face_capture`，source_id=batch_id，`uploads/media/face_captures/{userID}/{batchID}/`）——生物特征合规数据，**GC 豁免**（禁止按 180 天回收，见 docs/topics/media/media_directory.md）。
 

@@ -1556,6 +1556,7 @@ checkRule() - 权限位过滤
    - ③ 其余 → switchTab 个人中心
 3. 轮询超时（>20s）/ 异常 / 请求永不返回 → **35s 保险丝兜底必达出口**：modal「注册处理中，请稍后返回首页刷新」→ 2s 后回首页；redirectTo 失败也 fallback switchTab——任何路径不得滞留「处理中」按钮（#1845 修复：支付成功卡死只能杀进程）
 4. 人脸核身：FaceVerify 页以 `id_photo_front/back/other` 任一存在即放行采样（学生证即可）；提交 `face-capture` → 员工 `face_review` approve → `face_verified=true`
+   - **#2105 视频失败口径**：提交响应 `video_saved=false`（视频格式不支持/保存失败）→ 前端 toast「视频保存失败，仅照片已提交，请稍后重试」；批次照常 pending 但仅含照片（不再静默）
    - ⚠️ 开放问题（见 #1845 评论）：无身份证号学生经 face_review 批准时后端现要求员工填 5 项实名（real_name/id_card_no/…）——**学生证无身份证号，批准路径待产品确认口径**（录学号 / 允许 id_card_no 空置仅核姓名）
 
 **关键规则**：
