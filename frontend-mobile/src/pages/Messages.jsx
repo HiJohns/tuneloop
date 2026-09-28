@@ -90,12 +90,18 @@ export default function Messages() {
     if (notif.type === 'id_verify') {
       try { storage.setItem('open_pending_modal', '1') } catch { /* 标记失败不影响跳转 */ }
       if (env.isMiniProgram) {
-        Taro.switchTab({ url: '/pages-weapp/profile/index' })
+        // #2102：switchTab 失败兜底 reLaunch（防静默无响应/页面异常）
+        Taro.switchTab({
+          url: '/pages-weapp/profile/index',
+          fail: () => Taro.reLaunch({ url: '/pages-weapp/profile/index' }),
+        })
       } else {
         navigate('/profile')
       }
       return
     }
+    // #2102：缺 id 的通知不跳详情（防 404 详情页灰屏）
+    if (!notif.id) return
     if (env.isMiniProgram) {
       Taro.navigateTo({ url: `/pages-weapp/message-detail/index?id=${notif.id}` })
     } else {

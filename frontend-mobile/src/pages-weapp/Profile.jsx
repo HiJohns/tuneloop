@@ -635,7 +635,7 @@ export default function Profile() {
       {showPending && (
         <View style={{ position: 'fixed', left: 0, right: 0, top: 0, bottom: 0, zIndex: 50, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end' }}
           onClick={() => setShowPending(false)}>
-          <View style={{ backgroundColor: '#fff', width: '100%', maxHeight: '70vh', borderRadius: '16px 16px 0 0', padding: 16, overflow: 'scroll' }}
+          <View style={{ backgroundColor: '#fff', width: '100%', minHeight: 120, maxHeight: '70vh', borderRadius: '16px 16px 0 0', padding: 16, overflow: 'scroll' }}
             onClick={e => e.stopPropagation()}>
             <Text style={{ fontSize: 15, fontWeight: '700', color: '#18181b', display: 'block', marginBottom: 12 }}>待提交订单</Text>
             {pendingLoading ? (

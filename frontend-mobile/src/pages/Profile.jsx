@@ -39,7 +39,7 @@ function PendingOrdersModal({ visible, onClose, navigate, user }) {
   const idVerified = ['verified', 'pending_review'].includes(user?.id_verify_status)
   return (
     <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.45)' }}>
-      <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 20, width: '88%', boxSizing: 'border-box', maxHeight: '70vh', overflow: 'auto' }}>
+      <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 20, width: '88%', boxSizing: 'border-box', minHeight: 120, maxHeight: '70vh', overflow: 'auto' }}>
         <Text style={{ fontSize: 17, fontWeight: '900', color: '#18181b', display: 'block', marginBottom: 12 }}>待提交订单</Text>
         {loading ? (
           <Text style={{ fontSize: 13, color: '#a1a1aa' }}>加载中...</Text>
