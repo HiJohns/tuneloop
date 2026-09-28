@@ -27,7 +27,7 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 
 > **#2050 角色互斥**：维修服务（本流程）**仅顾客可见**；员工入口已收敛为乐器维修/维修工单（`docs/cases/repair.md`），双方不互链。判定见 `frontend-mobile/src/utils/role.js`。
 
-> **#2051 下单路径（首屏=维修师列表）**：顾客维修入口 → **维修师列表**（`/tech-list`：照片/占位符 + 姓名 + 简介摘要 + 专长）→ 点维修师 → 维修师详情（`/tech-detail`）→「创建维修订单」→ `repair-service-create?technician_id=…` → 创建页**锁定该维修师**（只读卡）。**创建维修单不再作为首屏主入口**（`MyRepairs` 顾客区按钮改为「选择维修师」→ `/tech-list`）。
+> **#2051 下单路径（首屏=维修师列表）**：顾客维修入口 → **维修师列表**（`/tech-list`：照片/占位符 + 姓名 + 简介摘要 + 专长）→ 点维修师 → 维修师详情（`/tech-detail`）→「创建维修订单」→ `repair-service-create?technician_id=…` → 创建页**锁定该维修师**（只读卡）。**创建维修单不再作为首屏主入口**。顾客唯一创建入口 = 底部「维修」tab → `/tech-list`（NAV-01）；`MyRepairs` 顾客区原「选择维修师」过渡按钮已移除（#2107，与同一 tab 目的地重复）。
 > **`repair-service-create` 参数规则**：有 `technician_id`（weapp router param / H5 query 双源）→ 渲染锁定卡（`维修师：{name || '未选定'}`）；**无** → 渲染**维修师选择器**（`/common/repair-technicians`），选中后视为锁定。提交时无维修师 → `请选择维修师` 并停留本页（**不再退回** 列表）。
 
 > **#2049 维修师档案字段**：`technician_profiles` = 照片（媒体管线：原图 `technician_{id}.webp` + 缩略图 `technician_{id}_thumb.jpg`）+ 富文本简介 `bio`（HTML，移动端 `RichContent` 渲染）+ 专长/年限 `experience`。存量**不迁移**，支持 PC 编辑补录；无照片 → 人像占位符。
