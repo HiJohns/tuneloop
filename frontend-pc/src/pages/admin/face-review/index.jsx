@@ -78,6 +78,11 @@ export default function FaceReviewPage() {
       message.warning('请指定第二证件类型（学生证/教职工证/工作证/其他）')
       return
     }
+    // #2104/#2057 裁定3：学生证作为第二证件必须已有介绍信，否则引导驳回补传
+    if (needsSecondType && secondDocType === 'student' && !approving?.intro_letter_url) {
+      message.warning('学生证作为第二证件需介绍信，请驳回并要求补传')
+      return
+    }
     setSubmitting(true)
     try {
       const payload = { action: 'approve' }
@@ -267,7 +272,11 @@ export default function FaceReviewPage() {
         onCancel={() => { setApproving(null); setSecondDocType('') }}
         okText="确认通过"
         cancelText="取消"
-        okButtonProps={{ loading: submitting }}
+        okButtonProps={{
+          loading: submitting,
+          // #2104：学生证缺介绍信时禁用「通过」（须走驳回补传），避免无效重试
+          disabled: secondDocType === 'student' && approving?.has_second_doc && !approving?.intro_letter_url,
+        }}
       >
         {approving && (approving.id_info_collected || approving.kind === 'second_doc') ? (
           // #1822: 已采录态——用户详情已维护实名信息，本弹窗只做证/人核验，
@@ -346,6 +355,12 @@ export default function FaceReviewPage() {
                 <Image src={approving.intro_letter_url} width={80} height={80}
                   style={{ objectFit: 'cover', borderRadius: 4 }}
                   preview={{ src: approving.intro_letter_url }} />
+              </div>
+            )}
+            {/* #2104: 学生证缺介绍信 → 前置引导（禁用通过，请走驳回补传） */}
+            {secondDocType === 'student' && !approving?.intro_letter_url && (
+              <div style={{ marginTop: 12 }}>
+                <Text type="danger">学生证作为第二证件需介绍信，请驳回并要求补传</Text>
               </div>
             )}
           </div>

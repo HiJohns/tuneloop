@@ -190,7 +190,7 @@ steps:
     api:
       - {method: GET, path: /admin/face-review/queue, params: []}
       - {method: POST, path: /admin/face-review/:batchId, params: [action], gate: "approve 必填 real_name+id_card_no+id_card_expire+id_card_authority+id_card_address（宽松校验：非空即可）；reject 必填 reason"}
-    rule: "#1807: 实名信息（真实姓名/身份证号/有效期/签发机关/住址 5 项）由员工根据身份证照核对填写，approve 时一并落库（face_verified=true, method=manual, id_card_expire 支持 YYYY-MM-DD 或「长期」）；字段边界：审核队列不返回身份证号明文，仅证件照供核对；驳回附原因顾客重新采集"
+    rule: "#1807: 实名信息（真实姓名/身份证号/有效期/签发机关/住址 5 项）由员工根据身份证照核对填写，approve 时一并落库（face_verified=true, method=manual, id_card_expire 支持 YYYY-MM-DD 或「长期」）；字段边界：审核队列不返回身份证号明文，仅证件照供核对；驳回附原因顾客重新采集；**#2104 第二证件引导**：第二证件类型选「学生证」且用户无介绍信（intro_letter_url 空）→ 弹窗内联提示「学生证作为第二证件需介绍信，请驳回并要求补传」并**禁用通过**（服务端 40912 为兜底）；**错误信息全局透传**：未知 code 的后端 message 不得被通用 fallback（「数据冲突，请刷新后重试」）遮蔽"
 ---
 
 # P-04 身份证照片全流程管理
