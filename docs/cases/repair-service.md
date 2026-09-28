@@ -104,7 +104,7 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
   - `POST /api/user/repair-services/:id/accept` → `{id, payable_cents}`（金额服务端重算）
   - `POST /api/pay/prepay {order_type:"repair", order_id:<维修单id>}`（现有；服务端按状态重算金额，客户端金额不可信）→ JSAPI 参数
   - 回调：虚拟商品路径（无物流上报收货确认）
-- **支付走标准支付页（#2096）**：accept → 跳支付确认页（明细分项渲染 + 优惠码 waive/percent + 确认拉起），不再直拉微信支付；`/pay/calculate type=repair_service` 返回 items+total（服务端权威）。不支付超时 → cancelled（#2094）
+- **支付走标准支付页（#2096）**：accept → 跳支付确认页（明细分项渲染 + 优惠码 waive/percent + 确认拉起），不再直拉微信支付；`/pay/calculate type=repair_service` 返回 items+total（服务端权威）。**不支付超时 → 订单保持待支付**（#2097，不自动取消，可稍后继续支付）
   - **结算折扣口径**：`Dispatch actual` 扣除已支付 records 的 `coupon_discount` 合计——否则优惠码在「多退少补」中被吞（白用）(#1853 逐笔折扣)
 - **拒绝报价（#2093）**：报价卡「拒绝报价」→ 理由选择（**太贵了 / 已找别人修了 / 问题已解决 / 其他**，备注可选 ≤200 字）
   - `POST /api/user/repair-services/:id/quote/decline {reason, note?}` → 终态 **`cancelled`**（此阶段无支付 → **无退款**；顾客可另建新单）
@@ -187,7 +187,7 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 
 ## RS-11 状态机（权威，用户 2026-09-17 明确：维修单须如订单一般有自身状态机）
 
-> **状态集**：`pending_quote` → `pending_payment` → `paid` → `shipping` → `repairing` → `done_repair` → `closed`；加价分支 `adjust_pending`；**拒绝分支 `pending_payment` → `cancelled`（终态，#2093，无支付无退款；不进师傅工作台）**。**超时分支：`pending_payment` 超时未支付（PaymentScheduler 30 分钟）→ `cancelled`（终态，#2094，时间线 `payment_timeout`；此前误置 `closed` 已修）**。
+> **状态集**：`pending_quote` → `pending_payment` → `paid` → `shipping` → `repairing` → `done_repair` → `closed`；加价分支 `adjust_pending`；**拒绝分支 `pending_payment` → `cancelled`（终态，#2093，无支付无退款；不进师傅工作台）**。**支付超时：不自动取消（#2097 撤回越界行为）——订单保持 `pending_payment` 可续付；PaymentScheduler 仅关闭微信侧订单+支付记录**。
 
 | # | 起始状态 | 动作 | 触发者 | 守卫 | 结束状态 |
 |---|---------|------|--------|------|---------|
@@ -205,7 +205,7 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 | 12 | `closed` | 评价 | 用户 | `settled_at`/closed；一人一评 | `closed`（不变） |
 | 13 | `closed` | 补缴支付（少补场景） | 用户+系统回调 | 存在 pending `order_type='repair'` 补缴记录 | `closed`（不变） |
 
-**未实现（已知缺口，勿在实现中臆造）**：超时取消 / 用户主动取消 / 平台强制终止 —— 如需要请先补计划。
+**未实现（已知缺口，勿在实现中臆造）**：超时取消 / 用户主动取消 / 平台强制终止 —— 如需要请先补计划。（#2097：PaymentScheduler 对维修单支付超时**刻意不触碰订单状态**，保持 `pending_payment` 可续付）
 
 ## RS-12 维修单详情与分状态列表（用户 2026-09-17 明确为阶段3 必备）
 
@@ -219,7 +219,7 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 ### 分状态列表（不再扁平）
 - **用户**「我的维修服务」：按状态分组（进行中 / 待我处理 / 已完成）+ 状态筛选；每项含编码、状态、关键金额、待办提示（如「待补差价 ¥100」/「待支付」/「待评价」）；拒绝报价后为「**已取消**」（终态，#2093）
 - **维修师**工作台：待报价 / **已报价·待付款**（`pending_payment`，#2088）/ 维修中（含 `adjust_pending`）/ **待发回**（`done_repair`，#2091，只读「待网点发回结算」）/ 已完成（自己相关）
-- **用户详情页评价卡**：仅「真结算」态显示评价表单——`closed` **且时间线含 `settled`**；未支付超时（`cancelled`，#2094）或 `closed` 无 `settled`（存量异常）→ 显示关闭信息卡（无评价表单）
+- **用户详情页评价卡**：仅「真结算」态显示评价表单——`closed` **且时间线含 `settled`**；拒绝报价取消（`cancelled`，#2093）或 `closed` 无 `settled`（存量异常）→ 显示关闭信息卡（无评价表单）
 - **员工**工作台：状态筛选（#2053）——「进行中」含待发回 / 进行中（分段实填）；「已完成」为本网点 `closed` 历史单
 - **平台（PC）**：状态筛选（已有）+ 详情时间线（增强）
 

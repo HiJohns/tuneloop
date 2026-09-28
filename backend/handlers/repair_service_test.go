@@ -858,13 +858,14 @@ func (stubTimeoutQueryClient) VerifyPaymentCallback(context.Context, []byte, str
 	return &wechatpay.CallbackResult{}, nil
 }
 
-// TestRepairService_PaymentTimeout_Cancels_2094：未支付超时 → cancelled（非 closed）+ timeline payment_timeout
-func TestRepairService_PaymentTimeout_Cancels_2094(t *testing.T) {
+// TestRepairService_PaymentTimeout_PreservesPending_2097：支付超时**不**取消维修单——
+// 订单保持 pending_payment（可稍后支付）、支付记录 closed、无 payment_timeout 时间线（#2097）
+func TestRepairService_PaymentTimeout_PreservesPending_2097(t *testing.T) {
 	f := setupRepairServiceFixture(t)
 	customer := testutil.MakeCustomer("", f.customerSub)
 	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
 
-	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "超时取消验证", "technician_id": f.techID})
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "超时保留验证", "technician_id": f.techID})
 	require.Equal(t, float64(20000), resp["code"])
 	id := svcData(t, resp)["id"].(string)
 
@@ -873,7 +874,7 @@ func TestRepairService_PaymentTimeout_Cancels_2094(t *testing.T) {
 	_, resp = svcPost(t, f, customer, "/user/repair-services/"+id+"/accept", nil)
 	require.Equal(t, float64(20000), resp["code"])
 
-	// 手工造一条超时 pending 支付记录（created_at 回拨 31 分钟，越过 30 分钟 cutoff）
+	// 超时 pending 支付记录（created_at 回拨 31 分钟，越过 30 分钟 cutoff）
 	outTradeNo := "timeout_out_" + id[:8]
 	created := time.Now().Add(-31 * time.Minute)
 	rec := models.OrderPaymentRecord{
@@ -884,17 +885,26 @@ func TestRepairService_PaymentTimeout_Cancels_2094(t *testing.T) {
 	}
 	require.NoError(t, f.db.Create(&rec).Error)
 
-	// 注入 stub（QueryOrder=NOTPAY → 超时关闭分支）；结束恢复全局
+	// 注入 stub（QueryOrder=NOTPAY → 超时分支）；结束恢复全局
 	wechatpay.SetClientForTesting(stubTimeoutQueryClient{}, &wechatpay.Config{})
 	defer wechatpay.ResetGlobalForTesting()
 	processPendingRecord(f.db, &rec)
 
+	// 维修单：保持待支付（不得 cancelled/closed）——用例 line208「超时取消=未实现」
 	var stored models.RepairRequest
 	require.NoError(t, f.db.First(&stored, "id = ?", id).Error)
-	assert.Equal(t, models.RepairReqStatusCancelled, stored.Status, "超时未支付应为 cancelled（非 closed）")
+	assert.Equal(t, models.RepairReqStatusPendingPay, stored.Status, "超时后维修单应保持 pending_payment")
 
-	var tl models.RepairRequestRecord
-	require.NoError(t, f.db.Where("repair_request_id = ? AND record_type = ?", id, "payment_timeout").First(&tl).Error, "应写超时关闭时间线")
+	// 支付记录：已关闭（避免调度器反复查询）
+	var recAfter models.OrderPaymentRecord
+	require.NoError(t, f.db.First(&recAfter, "id = ?", rec.ID).Error)
+	assert.Equal(t, "closed", recAfter.Status)
+
+	// 无 payment_timeout 时间线
+	var cnt int64
+	f.db.Model(&models.RepairRequestRecord{}).
+		Where("repair_request_id = ? AND record_type = ?", id, "payment_timeout").Count(&cnt)
+	assert.Equal(t, int64(0), cnt, "不应写超时关闭时间线")
 }
 
 // TestRepairService_Notifications_2090：创建→师傅、报价/加价→顾客 三类通知（#2090）
