@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { formatCents, yuanToCents } from '../utils/money'
 import { Table, Tag, Button, Space, Spin, Modal, Form, Input, InputNumber, Select, Radio, Upload, Descriptions, Image, message, Popconfirm } from 'antd'
-import { EyeOutlined, EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined, DeleteOutlined } from '@ant-design/icons'
+import { EyeOutlined, EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { inventoryApi, lossApi, api } from '../services/api'
 import PermissionGate from '../components/PermissionGate'
@@ -415,10 +415,10 @@ export default function InstrumentStock() {
         <Button icon={<WarningOutlined />} onClick={() => switchView(view === 'stock' ? 'loss' : 'stock')}>
           {view === 'stock' ? '丢失台账' : '返回库存'}
         </Button>
-        {/* #2043: 乐器档案管理入口（导出/设价等在既有管理页；需 instrument:create） */}
+        {/* #2101/I-00：档案管理入口并入本页——新增乐器（instrument:create） */}
         <PermissionGate code="instrument:create">
           {view === 'stock' && (
-            <Button onClick={() => navigate('/instruments/list')}>乐器档案管理</Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/instruments/list/add')}>新增乐器</Button>
           )}
         </PermissionGate>
         {/* #2043: 导出 CSV（需 instrument:read） */}

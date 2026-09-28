@@ -52,7 +52,6 @@ import OrderPayment from './pages/OrderPayment'
 import ContractView from './pages/ContractView'
 import CategoryList from './pages/admin/category/List'
 import CategoryForm from './pages/admin/category/Form'
-import InstrumentList from './pages/admin/instrument/List'
 import InstrumentForm from './pages/admin/instrument/Form'
 import InstrumentDetail from './pages/admin/instrument/Detail'
 import BatchImport from './pages/admin/instrument/BatchImport'
@@ -451,7 +450,8 @@ function onMenuClick(e) {
 
   const selectedKeys = location.pathname.startsWith('/merchants')
     ? ['/merchants']
-    : [location.pathname]
+    // #2101：/instruments/list 为 /site/stock 别名 → 菜单高亮映射到合并页项
+    : [location.pathname === '/instruments/list' ? '/site/stock' : location.pathname]
   let openKeys = []
   if (['/instruments/categories', '/instruments/properties', '/instruments/list', '/site/stock'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['product']
   else if (['/inventory/rent-setting', '/pricing/config', '/repair/settings', '/system/gift-policies', '/system/membership-levels', '/system/membership-handbook', '/system/banners'].includes(location.pathname)) openKeys = ['strategy']
@@ -491,7 +491,7 @@ function onMenuClick(e) {
     '/system/membership-levels': { title: '会员级别管理', parent: '策略配置' },
     '/system/membership-handbook': { title: '会员手册编辑', parent: '策略配置' },
     '/orders': { title: '订单管理', parent: '交易管理' },
-    '/instruments/list': { title: '乐器列表', parent: '商品管理' },
+    '/instruments/list': { title: '乐器管理', parent: '商品管理' },
     '/site/stock': { title: '乐器管理', parent: '商品管理' },
     '/warehouse': { title: '库管工作台', parent: '交易管理' },
     '/transit-center': { title: '中转中心', parent: '交易管理' },
@@ -540,14 +540,14 @@ function onMenuClick(e) {
     pageTitle = '乐器详情'
     breadcrumbItems.push(
       { title: <a href="#" onClick={(e) => { e.preventDefault(); navigate('/'); }}>乐器管理</a> },
-      { title: <a href="#" onClick={(e) => { e.preventDefault(); goInstrumentList(); }}>乐器列表</a> },
+      { title: <a href="#" onClick={(e) => { e.preventDefault(); goInstrumentList(); }}>乐器管理</a> },
       { title: '乐器详情' }
     )
   } else if (location.pathname.match(/^\/instruments\/[^/]+\/edit$/)) {
     pageTitle = '编辑乐器'
     breadcrumbItems.push(
       { title: <a href="#" onClick={(e) => { e.preventDefault(); navigate('/'); }}>乐器管理</a> },
-      { title: <a href="#" onClick={(e) => { e.preventDefault(); goInstrumentList(); }}>乐器列表</a> },
+      { title: <a href="#" onClick={(e) => { e.preventDefault(); goInstrumentList(); }}>乐器管理</a> },
       { title: '编辑乐器' }
     )
   } else if (location.pathname.match(/^\/instruments\/[^/]+$/) && location.pathname !== '/instruments/list') {
@@ -749,7 +749,8 @@ function onMenuClick(e) {
             <Route path="/instruments/categories/:id" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
             <Route path="/instruments/categories/:id/edit" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
             <Route path="/instruments/categories/new" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
-            <Route path="/instruments/list" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:create', 'instrument:read', 'instrument:update', 'instrument:delete'] }}><InstrumentList /></ProtectedRoute>} />
+            {/* #2101/I-00：/instruments/list 与 /site/stock 为同页别名（合并页 InstrumentStock） */}
+            <Route path="/instruments/list" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:create', 'instrument:read', 'instrument:update', 'instrument:delete'] }}><InstrumentStock /></ProtectedRoute>} />
              <Route path="/instruments/list/add" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
              <Route path="/instruments/list/edit/:id" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
               <Route path="/instruments/detail/:id" element={<ProtectedRoute><InstrumentDetail /></ProtectedRoute>} />
