@@ -281,8 +281,8 @@ export default function Profile() {
   }, [baseUrl, isStaff])
 
   // #1937: 中转网点成员 → 个人中心展示「中转工作台」入口（/site-members/me 返回 site_type）
-  useEffect(() => {
-    const fetchMySites = async () => {
+  // #2095: tab 页 switchTab 回前台不重新 mount → useDidShow 重取（roles/待报价角标同步）
+  const refreshStaffData = async () => {
       try {
         const resp = await apiFetch(`${baseUrl}/site-members/me`)
         const result = await resp.json()
@@ -300,10 +300,14 @@ export default function Profile() {
             } catch {}
           }
         }
-      } catch {}
-    }
-    if (isStaff) fetchMySites()
+        } catch {}
+  }
+  useEffect(() => {
+    if (isStaff) refreshStaffData()
   }, [baseUrl, isStaff])
+  useDidShow(() => {
+    if (isStaff) refreshStaffData()
+  })
 
   const handleLogout = () => {
     storage.removeItem('token')
