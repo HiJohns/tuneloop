@@ -160,15 +160,15 @@ export default function UserManagement() {
   }
 
   // ---- Module 1: ID card info ----
-  const handleMarkDeleted = async () => {
-    if (!current) return
+  const handleMarkDeleted = async (user = current) => {
+    if (!user) return
     Modal.confirm({
       title: '标记删除该用户？',
       content: '将解除其全部组织关联并标记为不可用（账户记录保留，可重新加回）。此操作会使其立即无法登录；该用户再次微信登录时将自动恢复原户与关联。',
       okText: '确认标记删除',
       okButtonProps: { danger: true },
       onOk: async () => {
-        const resp = await api.post(`/admin/user-management/${current.id}/mark-deleted`)
+        const resp = await api.post(`/admin/user-management/${user.id}/mark-deleted`)
         if (resp.code === 20000) {
           message.success('已标记删除（账户保留，用户再次登录将自动恢复）')
           setDetailVisible(false)
@@ -245,11 +245,23 @@ export default function UserManagement() {
       ? <Tag color="red">已禁用</Tag>
       : v === 'active'
         ? <Tag color="green">可用</Tag>
-        : <Tag>{v || '未知'}</Tag> },
+        : v === 'deleted'
+          ? <Tag color="orange">已删除</Tag>
+          : v === 'init'
+            ? <Tag color="gold">待激活</Tag>
+            : <Tag>{v || '未知'}</Tag> },
+    { title: '操作', key: 'actions', width: 150, render: (_, r) => (
+      <Space size={0}>
+        <Button type="link" size="small" style={{ padding: 0 }} onClick={() => openDetail(r)}>详情</Button>
+        <Button danger type="text" size="small" style={{ padding: 0 }} onClick={() => handleMarkDeleted(r)}>标记删除</Button>
+      </Space>
+    ) },
   ]
 
   const idCardStatusTag = idCardStatus(detail)
   const verifyStatus = detail?.id_verify_status || 'none'
+  // #2108: 员工（#2064 口径）不展示顾客专属资料区块（身份证照/第二证件照/介绍信/实名核身）
+  const isStaffUser = detail?.personnel_type === 'staff'
 
   return (
     <div>
@@ -312,7 +324,7 @@ export default function UserManagement() {
               <Typography.Text type="secondary">账户保留，可重新加回；不等于彻底删除</Typography.Text>
             </Space>
           </Form.Item>
-          {current && (
+          {current && !isStaffUser && (
             <Form.Item label="身份证照片">
               <div style={{ display: 'flex', gap: 24 }}>
                 <IdPhotoDisplay
@@ -330,8 +342,8 @@ export default function UserManagement() {
               </div>
             </Form.Item>
           )}
-          {current && (
-            <Form.Item label={`其他证件照片${idPhotos.otherType ? `（${idPhotos.otherType}）` : ''}`}>
+          {current && !isStaffUser && (
+            <Form.Item label={`其他证件照片${idPhotos.otherType ? `（${idPhotos.otherType}）` : '（类型未定：由审核员在实名审核时指定）'}`}>
               <div style={{ display: 'flex', gap: 24 }}>
                 <IdPhotoDisplay
                   side="other"
@@ -345,9 +357,15 @@ export default function UserManagement() {
             </Form.Item>
           )}
 
+          {current && !isStaffUser && detail?.intro_letter_url && (
+            <Form.Item label="介绍信（学生作为第二证件需上传）">
+              <Image src={detail.intro_letter_url} width={220} style={{ borderRadius: 6 }} />
+            </Form.Item>
+          )}
+
           {/* #1810: 实名核身区块 */}
-          <Divider plain style={{ margin: '16px 0' }}>实名核身</Divider>
-          <Collapse
+          {!isStaffUser && <Divider plain style={{ margin: '16px 0' }}>实名核身</Divider>}
+          {!isStaffUser && <Collapse
             defaultActiveKey={[]}
             items={[
               {
@@ -447,7 +465,7 @@ export default function UserManagement() {
                 ),
               },
             ]}
-          />
+          />}
         </Form>
       </Modal>
 

@@ -314,7 +314,25 @@ func userDetail(u models.User, db *gorm.DB) gin.H {
 	s["face_verify_method"] = u.FaceVerifyMethod
 	s["face_verified_at"] = u.FaceVerifiedAt
 	s["id_verify_status"] = deriveIdVerifyStatus(db, &u)
+	// #2108: 介绍信（URL 化，与证件照同口径）；人员类型（#2064 staffExists 口径
+	// ——任一成员身份=员工），供前端隐藏顾客专属资料区块。
+	s["intro_letter_url"] = resolveStorageKey(db.Statement.Context, u.IntroLetterURL)
+	s["personnel_type"] = isStaffPerson(db, u.ID)
 	return s
+}
+
+// isStaffPerson 复用 #2064 List 的员工判定（site_members/merchant_members/
+// technician_profiles 任一成员身份），供 Get 详情与前端区块门控。
+func isStaffPerson(db *gorm.DB, userID string) string {
+	var isStaff bool
+	db.Raw("SELECT EXISTS (SELECT 1 FROM site_members sm WHERE sm.user_id = ?)"+
+		" OR EXISTS (SELECT 1 FROM merchant_members mm WHERE mm.user_id = ?)"+
+		" OR EXISTS (SELECT 1 FROM technician_profiles tp WHERE tp.user_id = ?)",
+		userID, userID, userID).Scan(&isStaff)
+	if isStaff {
+		return "staff"
+	}
+	return "customer"
 }
 
 // resolveStorageKey converts a stored media storage key into an accessible URL.
