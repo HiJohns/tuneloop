@@ -858,6 +858,44 @@ func (stubTimeoutQueryClient) VerifyPaymentCallback(context.Context, []byte, str
 	return &wechatpay.CallbackResult{}, nil
 }
 
+// TestRepairRequestList_ExcludesService_2098：v3 列表（/repair-requests）不得漏入
+// service 单；v3 类型行正常返回（#2098）
+func TestRepairRequestList_ExcludesService_2098(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	customer := testutil.MakeCustomer("", f.customerSub)
+
+	// 造一条 service 单
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "service单", "technician_id": f.techID})
+	require.Equal(t, float64(20000), resp["code"])
+
+	// 造一条 v3 类型行（warranty，直属该顾客）
+	v3 := models.RepairRequest{
+		ID: uuid.New().String(), TenantID: f.tenantID, UserID: f.customerSub, Type: "warranty",
+		Status: models.RepairReqStatusPendingShip, Description: "v3存量",
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}
+	require.NoError(t, f.db.Omit("site_id", "user_instrument_id", "accepted_quote_id").Create(&v3).Error)
+
+	// 直接调用 v3 List（httptest，不依赖路由注册）
+	h := NewRepairRequestHandler()
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/repair-requests", nil)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req.WithContext(customer.InjectContext(req.Context()))
+	h.List(c)
+
+	var body struct {
+		Code int `json:"code"`
+		Data struct {
+			List []map[string]interface{} `json:"list"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	require.Equal(t, 20000, body.Code)
+	require.Len(t, body.Data.List, 1, "仅 v3 行应返回")
+	assert.Equal(t, v3.ID, body.Data.List[0]["id"], "service 单不得漏入 v3 列表")
+}
+
 // TestRepairService_PaymentTimeout_PreservesPending_2097：支付超时**不**取消维修单——
 // 订单保持 pending_payment（可稍后支付）、支付记录 closed、无 payment_timeout 时间线（#2097）
 func TestRepairService_PaymentTimeout_PreservesPending_2097(t *testing.T) {

@@ -14,7 +14,7 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 |------|------|-------------|---------|
 | 顾客选维修师创建的单 | `repair_requests.type='service'` + `technician_id` | **维修服务单** | 维修工单 / 维修工单 / 我的维修 |
 | 维修师承接的维修（定损驱动） | `instruments.repair_status`（`repair_pending`→`repair_in_progress`→`repair_completed`） | **乐器维修** | 维修工单 |
-| v3 存量单（商户-网点维度，创建已废弃 #2055） | `repair_requests.type=''` | 顾客侧只读=**历史维修工单**；员工处理界面=**维修工单** | 维修工单 |
+| v3 存量单（商户-网点维度，创建已废弃 #2055） | `repair_requests.type <> 'service'`（含 `''`/`warranty`） | 顾客侧只读=**历史维修工单**；员工处理界面=**维修工单**（列表过滤 #2098，service 单不得漏入） | 维修工单 |
 | 承接人 | `technician_profiles` | **维修师** | 师傅（指代承接人时；IAM 角色标签 `repair_technician` 仍作「维修师傅」） |
 
 ### 两条独立链路（**无外键关联**，禁止混用统计/串联）

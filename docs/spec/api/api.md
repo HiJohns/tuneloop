@@ -3071,7 +3071,7 @@ POST /api/warehouse/orders/:id/assess-damage
 #### 7.12.2 维修工单列表
 **接口**: `GET /api/repair-requests`
 **Query**: `status`（可选，逗号分隔多状态）
-**说明**: USER → 本人维修工单；员工 → 本网点（目标契约 #1881：无站点归属返回空集，不回退全量；merchant_admin 按商户范围）；每项含 `instrument_sn/instrument_type/brand/model/site_name/merchant_name/reporter_name` 等派生字段
+**说明**: USER → 本人维修工单；员工 → 本网点（目标契约 #1881：无站点归属返回空集，不回退全量；merchant_admin 按商户范围）；**仅 v3 legacy（`type <> 'service'`，#2098）**；每项含 `instrument_sn/instrument_type/brand/model/site_name/merchant_name/reporter_name` 等派生字段
 **错误**: 无显式错误码（查询错误当前被忽略，恒 20000 —— 待修 #1881 一并治理）
 
 #### 7.12.3 维修工单详情

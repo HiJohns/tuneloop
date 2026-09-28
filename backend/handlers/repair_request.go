@@ -33,6 +33,9 @@ func (h *RepairRequestHandler) List(c *gin.Context) {
 
 	var requests []models.RepairRequest
 	query := db.Model(&models.RepairRequest{})
+	// #2098：历史维修工单 = v3 legacy（type != 'service'）——service 单属新服务流，
+	// 不得漏入 v3 列表（曾致 service 单出现在「历史维修工单」并被点开 v3 详情）
+	query = query.Where("type <> ?", repairServiceTypeVal)
 
 	// Status filter (comma-separated)
 	if statusParam := c.Query("status"); statusParam != "" {
