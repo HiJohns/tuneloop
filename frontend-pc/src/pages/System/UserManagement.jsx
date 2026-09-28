@@ -324,7 +324,7 @@ export default function UserManagement() {
               <Typography.Text type="secondary">账户保留，可重新加回；不等于彻底删除</Typography.Text>
             </Space>
           </Form.Item>
-          {current && !isStaffUser && (
+          {detail && current && !isStaffUser && (
             <Form.Item label="身份证照片">
               <div style={{ display: 'flex', gap: 24 }}>
                 <IdPhotoDisplay
@@ -342,7 +342,7 @@ export default function UserManagement() {
               </div>
             </Form.Item>
           )}
-          {current && !isStaffUser && (
+          {detail && current && !isStaffUser && (
             <Form.Item label={`其他证件照片${idPhotos.otherType ? `（${idPhotos.otherType}）` : '（类型未定：由审核员在实名审核时指定）'}`}>
               <div style={{ display: 'flex', gap: 24 }}>
                 <IdPhotoDisplay

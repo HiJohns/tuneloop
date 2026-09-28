@@ -325,10 +325,13 @@ func userDetail(u models.User, db *gorm.DB) gin.H {
 // technician_profiles 任一成员身份），供 Get 详情与前端区块门控。
 func isStaffPerson(db *gorm.DB, userID string) string {
 	var isStaff bool
-	db.Raw("SELECT EXISTS (SELECT 1 FROM site_members sm WHERE sm.user_id = ?)"+
+	if err := db.Raw("SELECT EXISTS (SELECT 1 FROM site_members sm WHERE sm.user_id = ?)"+
 		" OR EXISTS (SELECT 1 FROM merchant_members mm WHERE mm.user_id = ?)"+
 		" OR EXISTS (SELECT 1 FROM technician_profiles tp WHERE tp.user_id = ?)",
-		userID, userID, userID).Scan(&isStaff)
+		userID, userID, userID).Scan(&isStaff).Error; err != nil {
+		// #2108 审计观察：判定失败不得静默按 customer 处理——至少留痕（保守回落 false）
+		log.Printf("[UserManagement] personnel type check failed for %s: %v", userID, err)
+	}
 	if isStaff {
 		return "staff"
 	}

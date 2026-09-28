@@ -4114,6 +4114,16 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 **说明**: 全命名空间人员查找（顾客 + 各商户员工/管理员），用于查找账户并直接关停（mark-deleted）。`staff` 判定 = 存在任一成员身份：`site_members` ∪ `merchant_members` ∪ `technician_profiles`；`customer` = 取反。前端页名「账户管理」，提供 全部/顾客/员工+管理员 三档筛选。
 
+### 8.11.4b 用户详情（Get，#2108）
+
+**接口**: `GET /api/admin/user-management/:id`
+
+**权限**: `sys_perm.tenant_view`（平台级）
+
+**说明**: `userDetail` 全量字段。**#2108 新增**：
+- `intro_letter_url`：介绍信访问 URL（`resolveStorageKey` 同证件照口径；空值=未上传）
+- `personnel_type`：`staff` | `customer` —— 复用 §8.11.4 的 `staff` 判定（`site_members` ∪ `merchant_members` ∪ `technician_profiles` 任一成员身份）。前端据此**对员工隐藏顾客专属资料区块**（身份证照片/其他证件照片/介绍信/实名核身）。
+
 ### 8.11.4a 标记删除用户（#2028 Step 4 / #2025 D4）
 
 **接口**: `POST /api/admin/user-management/:id/mark-deleted`
