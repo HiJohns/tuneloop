@@ -54,6 +54,14 @@ func PrepayOrder(c *gin.Context) {
 		return
 	}
 
+	// #2096 修复（审计 P0）：标准支付页以 `type=repair_service` 跳转（与
+	// /pay/calculate 的 type 同源），prepay 的规范 order_type 为 "repair"
+	// （#1942 金额权威/状态门/侧效应均注册在 repair 分支）。入口统一规范化，
+	// 覆盖 weapp/H5/未来入口，避免 invalid order_type 400 阻断支付主链路。
+	if req.OrderType == "repair_service" {
+		req.OrderType = "repair"
+	}
+
 	validTypes := map[string]bool{"rent": true, "repair": true, "damage": true, "renewal": true, "membership": true, "payment_shortfall": true, "loss": true}
 	if !validTypes[req.OrderType] {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid order_type, must be rent/repair/damage/renewal/membership/payment_shortfall/loss"})

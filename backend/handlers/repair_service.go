@@ -1009,7 +1009,7 @@ func (h *RepairServiceHandler) Dispatch(c *gin.Context) {
 	// 顾客已享的优惠码折扣在「多退少补」中吞掉（白用）。
 	var couponDiscountInt int64
 	db.Model(&models.OrderPaymentRecord{}).
-		Where("order_id = ? AND order_type = ? AND status = ?", rr.ID, "repair", "paid").
+		Where("order_id = ? AND order_type = ? AND type = ? AND status = ?", rr.ID, "repair", "payment", "paid").
 		Select("COALESCE(SUM(coupon_discount), 0)").Scan(&couponDiscountInt)
 	actual := repairServiceActualCents(rr, legsTotal) - models.Cents(couponDiscountInt)
 
