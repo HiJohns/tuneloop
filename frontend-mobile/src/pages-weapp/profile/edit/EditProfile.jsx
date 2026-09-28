@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import Taro from '@tarojs/taro'
+import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Input, Button, Picker } from '@tarojs/components'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, getToken, resolveErrorMessage } from '../../../services/api'
@@ -67,8 +67,9 @@ export default function EditProfile() {
   // role == 'USER'（含 oid/tid 非空的顾客）→ 顾客；仅非 USER 角色才视为员工
   const isStaff = !!claims.role && claims.role !== 'USER'
 
-  useEffect(() => {
-    const fetchUser = async () => {
+  // #2103：fetchUser 提升为组件级——挂载 + useDidShow（人脸核验返回后即时刷新
+  // 「审核中」状态，无需退出重进；#2095 同款 tab/回前台刷新模式）
+  const fetchUser = async () => {
       try {
         const resp = await apiFetch(`${baseUrl}/users/me`)
         const result = await resp.json()
@@ -95,9 +96,13 @@ export default function EditProfile() {
       } catch (e) {
         // Silently ignore fetch errors on mount
       }
-    }
+  }
+  useEffect(() => {
     fetchUser()
   }, [])
+  useDidShow(() => {
+    fetchUser()
+  })
 
   const handleSave = async () => {
     setSaving(true)
@@ -256,8 +261,8 @@ export default function EditProfile() {
             </View>
           ) : idVerifyStatus === 'pending_review' ? (
             <View style={{ padding: 12, backgroundColor: '#fefce8', borderRadius: 8, borderWidth: 1, borderColor: '#fde68a' }}>
-              <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600' }}>⚠️ 实名认证审核中</Text>
-              <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>已提交人脸采样，平台员工审核通过后即完成实名认证（预计 1-2 个工作日）。</Text>
+              <Text style={{ fontSize: 13, color: '#dc2626', fontWeight: '700', display: 'block' }}>⚠️ 实名认证审核中</Text>
+              <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4, display: 'block' }}>已提交人脸采样，平台员工审核通过后即完成实名认证（预计 1-2 个工作日）。</Text>
             </View>
           ) : (
             <View>
@@ -265,26 +270,26 @@ export default function EditProfile() {
               <View style={{ padding: 12, backgroundColor: '#fefce8', borderRadius: 8, borderWidth: 1, borderColor: '#fde68a' }}>
                 {idVerifyStatus === 'none' ? (
                   <>
-                    <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600' }}>⚠️ 尚未完成实名认证</Text>
-                    <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>请先上传身份证照片</Text>
-                    <View onClick={goIdPhotoSection} style={{ marginTop: 8, padding: 4 }}>
-                      <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600', textDecorationLine: 'underline' }}>去上传身份证 ›</Text>
+                    <Text style={{ fontSize: 13, color: '#dc2626', fontWeight: '700', display: 'block' }}>⚠️ 尚未完成实名认证</Text>
+                    <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4, display: 'block' }}>请先上传身份证照片</Text>
+                    <View onClick={goIdPhotoSection} style={{ marginTop: 8, width: '100%', height: 36, backgroundColor: '#fde68a', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}>
+                      <Text style={{ fontSize: 13, color: '#92400e', fontWeight: '700' }}>去上传身份证 👉</Text>
                     </View>
                   </>
                 ) : idVerifyStatus === 'rejected' ? (
                   <>
-                    <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600' }}>⚠️ 审核未通过</Text>
-                    <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>请重新发起人脸识别</Text>
-                    <View onClick={goFaceVerify} style={{ marginTop: 8, padding: 4 }}>
-                      <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600', textDecorationLine: 'underline' }}>发起人脸识别 ›</Text>
+                    <Text style={{ fontSize: 13, color: '#dc2626', fontWeight: '700', display: 'block' }}>⚠️ 审核未通过</Text>
+                    <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4, display: 'block' }}>请重新发起人脸识别</Text>
+                    <View onClick={goFaceVerify} style={{ marginTop: 8, width: '100%', height: 36, backgroundColor: '#fde68a', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}>
+                      <Text style={{ fontSize: 13, color: '#92400e', fontWeight: '700' }}>发起人脸识别 👉</Text>
                     </View>
                   </>
                 ) : (
                   <>
-                    <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600' }}>⚠️ 已上传身份证照片</Text>
-                    <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>请完成人脸识别</Text>
-                    <View onClick={goFaceVerify} style={{ marginTop: 8, padding: 4 }}>
-                      <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600', textDecorationLine: 'underline' }}>发起人脸识别 ›</Text>
+                    <Text style={{ fontSize: 13, color: '#dc2626', fontWeight: '700', display: 'block' }}>⚠️ 已上传身份证照片</Text>
+                    <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4, display: 'block' }}>请完成人脸识别</Text>
+                    <View onClick={goFaceVerify} style={{ marginTop: 8, width: '100%', height: 36, backgroundColor: '#fde68a', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}>
+                      <Text style={{ fontSize: 13, color: '#92400e', fontWeight: '700' }}>发起人脸识别 👉</Text>
                     </View>
                   </>
                 )}
