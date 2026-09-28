@@ -294,11 +294,14 @@ export default function RepairRequestDetail() {
   const status = request.status
 
   return (
-    <View style={{ backgroundColor: "#FDFBF7" }} className="flex flex-col h-screen">
+    <View style={{ backgroundColor: "#FDFBF7", maxWidth: 480, margin: '0 auto' }} className="flex flex-col h-screen">
+      {/* #2099/#1511：weapp 用原生导航栏（pages-weapp/repair-request 已设标题），手写条仅 H5 */}
+      {!env.isMiniProgram && (
       <View className="bg-white px-4 py-3 border-b border-zinc-100 flex items-center gap-2">
         <Text className="text-lg mr-2" onClick={goBack}>{'<'}</Text>
         <Text className="text-lg font-bold flex-1">维修工单详情</Text>
       </View>
+      )}
 
       <ScrollView scrollY className="flex-1 px-4 min-h-0">
         {/* Request info */}
