@@ -196,7 +196,15 @@ export default function RepairServiceDetail() {
       if (result.code === 20000) {
         const payable = result.data?.payable_cents || 0
         setBusy(false)
-        if (payable > 0) return payNow(payable)
+        if (payable > 0) {
+          // #2096：跳标准支付页（明细 + 优惠码 + 确认）——不再直拉微信支付
+          if (env.isMiniProgram) {
+            Taro.navigateTo({ url: `/pages-weapp/payment/index?type=repair_service&order_id=${orderId}` })
+          } else {
+            dialog.alert('请在微信小程序内完成支付')
+          }
+          return
+        }
         loadDetail()
         return
       }

@@ -104,6 +104,8 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
   - `POST /api/user/repair-services/:id/accept` → `{id, payable_cents}`（金额服务端重算）
   - `POST /api/pay/prepay {order_type:"repair", order_id:<维修单id>}`（现有；服务端按状态重算金额，客户端金额不可信）→ JSAPI 参数
   - 回调：虚拟商品路径（无物流上报收货确认）
+- **支付走标准支付页（#2096）**：accept → 跳支付确认页（明细分项渲染 + 优惠码 waive/percent + 确认拉起），不再直拉微信支付；`/pay/calculate type=repair_service` 返回 items+total（服务端权威）。不支付超时 → cancelled（#2094）
+  - **结算折扣口径**：`Dispatch actual` 扣除已支付 records 的 `coupon_discount` 合计——否则优惠码在「多退少补」中被吞（白用）(#1853 逐笔折扣)
 - **拒绝报价（#2093）**：报价卡「拒绝报价」→ 理由选择（**太贵了 / 已找别人修了 / 问题已解决 / 其他**，备注可选 ≤200 字）
   - `POST /api/user/repair-services/:id/quote/decline {reason, note?}` → 终态 **`cancelled`**（此阶段无支付 → **无退款**；顾客可另建新单）
   - 理由枚举：`too_expensive` / `found_other` / `solved` / `other`；落 `quote_decline_reason` + `quote_decline_note`；时间线「拒绝报价」

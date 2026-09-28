@@ -741,6 +741,54 @@ func TestLocalUserIDBySub_ZeroTenantUnderStaffScope_2090(t *testing.T) {
 	assert.Equal(t, f.customerID, got, "零租户顾客在员工上下文中必须可解析（否则通知收件人回落 IAM sub）")
 }
 
+// TestRepairService_CouponDispatchDeduction_2096：waive/percent 支付 → 结算
+// actual 扣除已支付 record 的 coupon_discount（优惠折扣不被「多退少补」吞掉）
+func TestRepairService_CouponDispatchDeduction_2096(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	customer := testutil.MakeCustomer("", f.customerSub)
+	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
+
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "折扣结算", "technician_id": f.techID})
+	require.Equal(t, float64(20000), resp["code"])
+	id := svcData(t, resp)["id"].(string)
+
+	_, resp = svcPost(t, f, staff, "/repair-services/"+id+"/quote", gin.H{"quote_repair_cents": 20000, "quote_logistics_cents": 0})
+	require.Equal(t, float64(20000), resp["code"])
+	_, resp = svcPost(t, f, customer, "/user/repair-services/"+id+"/accept", nil)
+	require.Equal(t, float64(20000), resp["code"])
+
+	// 顾客打 96 折实付 19200（原价 20000），折扣 800 分模拟 #1853 落库
+	outTradeNo := "coupon_out_" + id[:8]
+	rec := models.OrderPaymentRecord{
+		ID: uuid.New().String(), TenantID: f.tenantID, UserID: f.customerSub,
+		OrderID: &id, OrderType: "repair", Amount: models.Cents(19200),
+		Type: "payment", Status: "paid", OutTradeNo: &outTradeNo,
+		CouponCode: strPtr("ENO"), CouponDiscount: models.Cents(800),
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}
+	require.NoError(t, f.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&rec).Error; err != nil {
+			return err
+		}
+		return applySideEffects(tx, &rec, time.Now())
+	}))
+
+	// 寄出 → 师傅完成 → 网点结算（legs=0）
+	_, resp = svcPost(t, f, customer, "/user/repair-services/"+id+"/ship", gin.H{"tracking_number": "SF2"})
+	require.Equal(t, float64(20000), resp["code"])
+	_, resp = svcPost(t, f, staff, "/repair-services/"+id+"/complete", nil)
+	require.Equal(t, float64(20000), resp["code"])
+	_, resp = svcPost(t, f, staff, "/repair-services/"+id+"/dispatch", gin.H{"tracking_number": "SF999", "logistics_fee_cents": 0})
+	require.Equal(t, float64(20000), resp["code"])
+
+	sd := svcData(t, resp)
+	// 修复前（吞折扣）：actual = 20000 → 补缴 800（白用）；修复后：actual = 20000−800 = 19200 ⇒ 无补缴
+	assert.Equal(t, float64(19200), sd["actual_cents"], "结算 actual 应扣除优惠折扣 800 分")
+	assert.Equal(t, float64(19200), sd["prepaid_cents"])
+	_, hasShortfall := sd["shortfall_cents"]
+	assert.False(t, hasShortfall, "折扣计入后不应出现补缴（修复前会补缴 800 分）")
+}
+
 // TestRepairService_DeclineQuote_2093：拒绝报价 → 终态 cancelled + 理由落库 + 师傅通知 + 非法态防护
 func TestRepairService_DeclineQuote_2093(t *testing.T) {
 	f := setupRepairServiceFixture(t)

@@ -3273,6 +3273,12 @@ POST /api/warehouse/orders/:id/assess-damage
 **说明**: 待发回维修服务单列表（repairReqRequired 组）
 **目标契约（#1942）**: 网点员工
 
+#### 7.15.13a 支付明细查询（用户，#2096）
+**接口**: `POST /api/pay/calculate {type:"repair_service", id:<维修单id>}`
+**响应**: `{title:"维修服务支付", amount, details:{items:[修理费/料钱/物流费/加价补差], total}}`（金额分；repairServicePaymentAmount 服务端权威）
+**说明**: 供标准支付页渲染明细与优惠码；coupon 走 prepay 通用分支（waive/percent）
+**目标契约（#1942）**: 用户本人
+
 #### 7.15.14 拒绝报价（用户，#2093）
 **接口**: `POST /api/user/repair-services/:id/quote/decline`
 **请求**: `{reason, note?}`——reason ∈ `too_expensive` / `found_other` / `solved` / `other`；note ≤200 字

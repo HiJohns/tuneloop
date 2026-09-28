@@ -1005,7 +1005,13 @@ func (h *RepairServiceHandler) Dispatch(c *gin.Context) {
 		Where("order_id = ? AND order_type = ? AND type = ? AND status = ?", rr.ID, "repair", "payment", "paid").
 		Select("COALESCE(SUM(amount), 0)").Scan(&prepaidInt)
 	prepaid := models.Cents(prepaidInt)
-	actual := repairServiceActualCents(rr, legsTotal)
+	// #2096：优惠折扣不计入结算 actual——否则结算按原价口径会把
+	// 顾客已享的优惠码折扣在「多退少补」中吞掉（白用）。
+	var couponDiscountInt int64
+	db.Model(&models.OrderPaymentRecord{}).
+		Where("order_id = ? AND order_type = ? AND status = ?", rr.ID, "repair", "paid").
+		Select("COALESCE(SUM(coupon_discount), 0)").Scan(&couponDiscountInt)
+	actual := repairServiceActualCents(rr, legsTotal) - models.Cents(couponDiscountInt)
 
 	result := gin.H{"id": rr.ID, "status": models.RepairReqStatusClosed,
 		"actual_cents": actual, "prepaid_cents": prepaid}

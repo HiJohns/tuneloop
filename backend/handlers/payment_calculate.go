@@ -58,6 +58,10 @@ func CalculatePayment(c *gin.Context) {
 	switch req.Type {
 	case "rent":
 		loadRentPayment(db, userID, req.ID, &resp)
+	case "repair_service":
+		// #2096: 服务流维修单（repair_services，type='service'）— 报价明细 +
+		// 当前应付（repairServicePaymentAmount 权威），供标准支付页渲染明细/优惠码
+		loadRepairServicePayment(db, userID, req.ID, &resp)
 	case "repair", "requote":
 		loadRepairPayment(db, req.ID, req.Type, &resp)
 	case "damage":
@@ -150,6 +154,49 @@ func loadRentPayment(db *gorm.DB, userID, id string, resp *PaymentCalculateRespo
 			"shipping_fee":      float64(order.ShippingFee),
 			"total":             resp.Amount,
 		}
+	}
+}
+
+// loadRepairServicePayment 服务流维修单（#2096）：明细 items + 当前应付（服务端权威）。
+// 供标准支付页（Payment.jsx repair_service 分支）渲染明细与优惠码确认。
+func loadRepairServicePayment(db *gorm.DB, userID, id string, resp *PaymentCalculateResponse) {
+	var req models.RepairRequest
+	if err := db.Where("id = ? AND type = ?", id, repairServiceTypeVal).First(&req).Error; err != nil {
+		return
+	}
+	if req.UserID != userID {
+		return // 非本人详情不回显（403 语义由支付动作端点承担）
+	}
+	amount, msg := repairServicePaymentAmount(&req)
+	if msg != "" {
+		return // prepay 同款守卫：不可支付态让支付页以错误呈现
+	}
+	resp.Title = "维修服务支付"
+	resp.Amount = float64(amount)
+	repair := models.FromYuan(0)
+	var materials, logistics models.Cents
+	if req.QuoteRepairCents != nil {
+		repair = *req.QuoteRepairCents
+	}
+	if req.QuoteMaterialCents != nil {
+		materials = *req.QuoteMaterialCents
+	}
+	if req.QuoteLogisticsCents != nil {
+		logistics = *req.QuoteLogisticsCents
+	}
+	items := []map[string]interface{}{
+		{"label": "修理费", "amount": float64(repair)},
+	}
+	if materials > 0 {
+		items = append(items, map[string]interface{}{"label": "料钱", "amount": float64(materials)})
+	}
+	items = append(items, map[string]interface{}{"label": "物流费预估", "amount": float64(logistics)})
+	if req.Status == models.RepairReqStatusAdjustPending {
+		items = append(items, map[string]interface{}{"label": "加价补差", "amount": float64(amount)})
+	}
+	resp.Details = map[string]interface{}{
+		"items": items,
+		"total": float64(amount),
 	}
 }
 

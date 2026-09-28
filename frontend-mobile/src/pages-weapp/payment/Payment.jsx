@@ -677,6 +677,18 @@ function Row({ label, value, color, bold, valueSize }) {
 }
 
 function renderDetailsBlock(details, type) {
+  // #2096：服务流维修单预付明细（calculate 返回 items + total）
+  if (type === 'repair_service') {
+    const svcItems = details?.items || []
+    return (
+      <div>
+        {svcItems.map((it, i) => (
+          <Row key={i} label={it.label} value={`¥${formatCents(Number(it.amount || 0))}`} />
+        ))}
+        <Row label="合计" value={`¥${formatCents(Number(details?.total || 0))}`} bold />
+      </div>
+    )
+  }
   if (type === 'membership') {
     // Standard receipt format (#1575): item rows + total.
     const items = details?.items || []
