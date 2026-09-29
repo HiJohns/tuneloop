@@ -794,6 +794,10 @@ func (h *AuthHandler) WxAccounts(c *gin.Context) {
 		}
 		accounts = append(accounts, acc)
 	}
+	// #2109-diag 临时诊断：记录转发给前端的账户载荷（定位后移除）
+	if b, err := json.Marshal(accounts); err == nil {
+		log.Printf("[WxAccounts] forwarded=%s", string(b))
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
