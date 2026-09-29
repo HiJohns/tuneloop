@@ -218,7 +218,7 @@ export default function InstrumentStock() {
     }
   }
 
-  // #2043: 导出 CSV（字段选择模态留在乐器档案管理页；此处按当前状态过滤直接导出）
+  // #2043/#2101: 导出 CSV（档案管理页已并入本页；按当前状态过滤直接导出）
   const handleExport = async () => {
     try {
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
@@ -450,7 +450,7 @@ export default function InstrumentStock() {
       </Space>
       {view === 'stock' && (
         <div className="text-xs text-gray-500 mb-3">
-          按状态查看乐器（待租 / 在租 / 维修中 / 已丢失）；乐器档案的导出/定价等管理功能见「乐器档案管理」。
+          按状态查看乐器（待租 / 在租 / 维修中 / 已丢失）；导出/定价/删除等管理功能已并入本页工具栏。
         </div>
       )}
       {statusParam && (

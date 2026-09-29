@@ -362,8 +362,8 @@ function MainLayout() {
     children: [
       { key: '/instruments/categories', label: '分类设置', permission: { cusPermCodes: ['category:manage'] } },
       { key: '/instruments/properties', label: '属性管理', permission: { cusPermCodes: ['attribute:manage'] } },
-      // #2043: 「乐器列表」与「库存监控」合并为一项「乐器管理」（/site/stock 为合并页；
-      // /instruments/list 仍可用作乐器档案管理入口）
+      // #2043/#2101: 「乐器列表」与「库存监控」合并为一项「乐器管理」；
+      // /instruments/list 与 /site/stock 为同页别名（合并页），档案管理入口已并入
       { key: '/site/stock', label: '乐器管理', permission: { cusPermCodes: ['instrument:read'] } },
     ]
   },
