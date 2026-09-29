@@ -3875,7 +3875,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 **接口**: `POST /api/user/face-verify/token`
 
-**说明**: 获取腾讯云慧眼人脸核身 Token（需 real_name + id_card_no）
+**说明**: 获取腾讯云人脸核身 Token（需 real_name + id_card_no）。**#2109**：`FACE_VERIFY_PROVIDER=eid` 时返回 E证通 EidToken（前端以 `startEid` 跳官方「eID 数字身份」小程序核身）；`faceid` 时为慧眼 BizToken。**成功即落库** `users.real_name/id_card_no`（token 签发前置校验 18 位证号，非法 40002）
 
 **请求 Body**:
 ```json
@@ -3899,7 +3899,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 **接口**: `POST /api/user/face-verify/result`
 
-**说明**: 轮询腾讯云慧眼核身结果，通过后标记用户为已实名
+**说明**: 查询核身结果；**`passed=true` 落库** `users.face_verified=true + face_verified_at + face_verify_method=tencent`（eid/faceid 通用标记）；`passed=false` 不改动。E证通结果解析当前为宽松探测（`Text.ErrCode==0 && Text=='验证通过'`），真实联调后按响应收紧
 
 **请求 Body**:
 ```json

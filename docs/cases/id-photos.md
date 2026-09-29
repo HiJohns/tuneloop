@@ -262,6 +262,14 @@ ALTER TABLE users ADD COLUMN face_verified_at TIMESTAMPTZ;  -- #1787 人脸识�
 - **动作 CTA**：去上传身份证 / 发起人脸识别 → 实心按钮（`#fde68a` 底、`#92400e` 粗体、全宽 36 高）+ 文案尾部 `👉`
 - **返回即刷新**：`EditProfile` 以 `useDidShow` + 挂载双触发重取（人脸核验页返回后即呈「审核中」，无需退出重进；#2095 同款模式）
 
+### 自动核身（E证通，weapp，#2109）
+
+- **入口**：weapp `FaceVerify` 页「微信自动核身（腾讯云）」区块（仅小程序端；H5 不显示，走人工通道）
+- **流程**：填 姓名+身份证号（已有实名信息自动预填）→ 点「发起微信核身」→ `POST /user/face-verify/token` 取 EidToken → `startEid`（**必须按钮点击**）跳「eID 数字身份」小程序（AppID `wx0e2cb0b052a91c92`）→ 完成回调 → `POST /user/face-verify/result` → `passed=true` → 状态即时「已认证」
+- **失败/取消**：toast 提示，可重试；服务端未配置（40012）→ 隐藏自动区块，人工通道兜底
+- **前置**：微信后台 request 合法域名含 `eid.faceid.qq.com`；调试用微信开发者工具「预览」模式（勿用真机调试）
+- **后端环境**：`TENCENTCLOUD_SECRET_ID/KEY` + `EID_MERCHANT_ID` + `FACE_VERIFY_PROVIDER=eid`
+
 ### 上传规则
 - 仅接受 JPEG、PNG、WebP
 - 单张 ≤ 5MB

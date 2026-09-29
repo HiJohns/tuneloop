@@ -4,12 +4,14 @@
 // H5：保留卡片式 FaceCaptureUploader（下期统一）。
 import { useState, useEffect, useRef } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, Camera, Image } from '@tarojs/components'
+import { View, Text, Camera, Image, Input, Button } from '@tarojs/components'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, resolveErrorMessage } from '../services/api'
 import { env, dialog, uploadFile, storage, getCameraContext } from '../platform'
 import { session } from '../platform'
 import FaceCaptureUploader from '../components/FaceCaptureUploader'
+// #2109: E证通小程序 SDK（weapp 自动核身；顶层无 wx 访问，H5 打包安全）
+import { startEid } from '../mp_ecard_sdk/main'
 
 const ACTION_PROMPTS = ['请眨眨眼', '请左右转头', '请张嘴', '请微笑']
 
@@ -23,6 +25,11 @@ export default function FaceVerify() {
   const [countdown, setCountdown] = useState(0)
   const [blinkVisible, setBlinkVisible] = useState(false)
   const [uploadError, setUploadError] = useState('')
+  // #2109: 自动核身（E证通）
+  const [autoName, setAutoName] = useState('')
+  const [autoIdCard, setAutoIdCard] = useState('')
+  const [autoSubmitting, setAutoSubmitting] = useState(false)
+  const [autoAvailable, setAutoAvailable] = useState(true)
   const [actionPrompt, setActionPrompt] = useState('')
   const photoPathRef = useRef('')
   const videoPathRef = useRef('')
@@ -56,6 +63,9 @@ export default function FaceVerify() {
       if (r.code === 20000) {
         setStatus(r.data.id_verify_status || '')
         setHasIdPhoto(!!(r.data.id_photo_front || r.data.id_photo_back || r.data.id_photo_other))
+        // #2109: 预填自动核身姓名/证号（已有则带出，可修改）
+        if (r.data.real_name) setAutoName(prev => prev || r.data.real_name)
+        if (r.data.id_card_no) setAutoIdCard(prev => prev || r.data.id_card_no)
       }
     } catch {
       dialog.toast('加载失败，请重试')
@@ -210,6 +220,60 @@ export default function FaceVerify() {
       // doUpload 依据 stallHandledRef 不重复弹窗、不 finishSubmit）。
       // 旧代码停滞时静默 return 会令 doUpload 误以为成功 → finishSubmit 假成功。
       throw err
+    }
+  }
+
+  // #2109: 微信自动核身（E证通）——按钮点击 → 取 EidToken → startEid 跳转
+  // 官方 eID 数字身份小程序 → 回调拉结果 → 服务端落库 face_verified=true
+  const handleAutoVerify = async () => {
+    const name = autoName.trim()
+    const idCard = autoIdCard.trim().toUpperCase()
+    if (!name || !idCard) { dialog.toast('请填写真实姓名与身份证号'); return }
+    if (!/^\d{17}[\dX]$/.test(idCard)) { dialog.toast('身份证号格式不正确（18 位，末位可为 X）'); return }
+    setAutoSubmitting(true)
+    try {
+      const resp = await apiFetch(`${baseUrl}/user/face-verify/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, id_card_no: idCard }),
+      })
+      const r = await resp.json()
+      if (r.code === 40012) {
+        // 服务端未配置自动核身（FACE_VERIFY_PROVIDER/密钥）→ 隐藏自动区块，人工通道兜底
+        setAutoAvailable(false)
+        dialog.toast('自动核身暂未开通，请使用下方人工通道')
+        return
+      }
+      if (r.code !== 20000) throw new Error(resolveErrorMessage(r, '发起核身失败'))
+      const eidToken = r.data?.biz_token
+      if (!eidToken) throw new Error('发起核身失败')
+      startEid({
+        data: { token: eidToken },
+        verifyDoneCallback: async (res) => {
+          if (!res || !res.verifyDone) { dialog.toast('核身未完成，可重新发起'); return }
+          try {
+            const rr = await apiFetch(`${baseUrl}/user/face-verify/result`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ biz_token: res.token || eidToken }),
+            })
+            const rj = await rr.json()
+            if (rj.code === 20000 && rj.data?.passed) {
+              setStatus('verified')
+              dialog.toast('核身通过，实名认证已完成')
+            } else {
+              dialog.toast('核验未通过，可重新发起或使用人工通道')
+            }
+          } catch {
+            dialog.toast('结果查询失败，请稍后重试')
+          }
+        },
+        cancelCallback: () => dialog.toast('已取消核身'),
+      })
+    } catch (e) {
+      dialog.toast(e.message || '发起核身失败')
+    } finally {
+      setAutoSubmitting(false)
     }
   }
 
@@ -644,6 +708,37 @@ export default function FaceVerify() {
                 请完成以下人脸采样。提交后由平台员工依据身份证照核对填写实名信息（真实姓名、身份证号等），审核通过即完成实名认证。
               </Text>
             </View>
+            {/* #2109: 微信自动核身（E证通）——按钮点击直跳官方小程序核验 */}
+            {env.isMiniProgram && autoAvailable && (
+              <View style={{ padding: 12, backgroundColor: '#f0fdf4', borderRadius: 8, borderWidth: 1, borderColor: '#bbf7d0', marginBottom: 12 }}>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: '#166534', display: 'block' }}>微信自动核身（腾讯云）</Text>
+                <Text style={{ fontSize: 12, color: '#15803d', marginTop: 4, display: 'block' }}>
+                  填写真实姓名与身份证号，跳转微信官方核验，通过后自动完成实名认证（无需等待人工审核）。
+                </Text>
+                <Input
+                  style={{ height: 40, backgroundColor: '#fff', borderRadius: 8, paddingLeft: 12, paddingRight: 12, marginTop: 8, fontSize: 13, boxSizing: 'border-box' }}
+                  value={autoName}
+                  onInput={e => setAutoName(e.detail?.value ?? e.target?.value ?? '')}
+                  placeholder="真实姓名（与身份证一致）"
+                />
+                <Input
+                  style={{ height: 40, backgroundColor: '#fff', borderRadius: 8, paddingLeft: 12, paddingRight: 12, marginTop: 8, fontSize: 13, boxSizing: 'border-box' }}
+                  value={autoIdCard}
+                  onInput={e => setAutoIdCard(e.detail?.value ?? e.target?.value ?? '')}
+                  placeholder="身份证号（18 位）"
+                />
+                <Button
+                  onClick={handleAutoVerify}
+                  disabled={autoSubmitting || !autoName.trim() || !autoIdCard.trim()}
+                  style={{ width: '100%', margin: 0, marginTop: 10, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#16a34a', color: '#fff', borderRadius: 8, fontSize: 14, fontWeight: '700', boxSizing: 'border-box' }}
+                >
+                  {autoSubmitting ? '处理中...' : '发起微信核身'}
+                </Button>
+                <Text style={{ fontSize: 11, color: '#4d7c0f', marginTop: 6, display: 'block' }}>
+                  核验完成后自动返回本页；如未通过可重试或改用下方人工通道。
+                </Text>
+              </View>
+            )}
             <FaceCaptureUploader
               initialStatus={status}
               onSubmitSuccess={() => {

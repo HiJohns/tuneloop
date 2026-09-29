@@ -77,3 +77,6 @@ frontend-pc/node_modules/
 # 本机密钥/凭据文件（禁止提交；#1794 客户密钥临时文件）
 secrets.txt
 ocr.zip
+
+# E证通 SDK 源包（提交解压后的 src/mp_ecard_sdk/**，不提交 zip）
+cloud-mp-ecard-sdk-*.zip
