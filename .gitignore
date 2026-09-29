@@ -73,3 +73,7 @@ Makefile.local
 
 # 平台原生依赖（历史遗留仍被跟踪，已用 git rm --cached 移出索引）
 frontend-pc/node_modules/
+
+# 本机密钥/凭据文件（禁止提交；#1794 客户密钥临时文件）
+secrets.txt
+ocr.zip
