@@ -3688,6 +3688,8 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 **接口**: `POST /api/pay/calculate`
 
+**参数约束（#2110）**: 除 `membership` 外各类型 **`id` 必填且须为合法 UUID**（否则 40002，避免 Postgres uuid 转换 22P02）。
+
 **说明**: 支付确认页数据（金额 + 钱包信息 + 明细）。**响应 `amount` 及明细金额均为分**（#1728 P3 / #1758 契约，前端 /100 显示；prepay 提交时再 /100 转元）。
 
 **请求 Body**:
@@ -3708,6 +3710,8 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 ### 8.11.2 创建预付支付
 
 **接口**: `POST /api/pay/prepay`
+
+**参数约束（#2110）**: `order_type ∈ {rent, repair, damage, payment_shortfall, loss}` 时 **`order_id` 必填**（空值 → 40002）；此前空 id 会走通用分支生成与订单脱钩的孤儿支付记录。`repair_service` 为 `repair` 的入口别名（服务端规范化）。
 
 **说明**: 创建预付支付记录。支持赠点抵扣，抵扣后仅支付现金差额。
 

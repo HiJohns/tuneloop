@@ -104,7 +104,9 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
   - `POST /api/user/repair-services/:id/accept` → `{id, payable_cents}`（金额服务端重算）
   - `POST /api/pay/prepay {order_type:"repair", order_id:<维修单id>}`（现有；服务端按状态重算金额，客户端金额不可信）→ JSAPI 参数
   - 回调：虚拟商品路径（无物流上报收货确认）
-- **支付走标准支付页（#2096）**：accept → 跳支付确认页（明细分项渲染 + 优惠码 waive/percent + 确认拉起），不再直拉微信支付；`/pay/calculate type=repair_service` 返回 items+total（服务端权威）。**不支付超时 → 订单保持待支付**（#2097，不自动取消，可稍后继续支付）
+- **支付跳转参数（#2110）**：维修服务→标准支付页统一使用 `order_id`（支付页 `id || order_id` 双源兼容）；`/pay/prepay`（repair 类）与 `/pay/calculate` 强制校验订单 id，缺省报 40002。
+
+**支付走标准支付页（#2096）**：accept → 跳支付确认页（明细分项渲染 + 优惠码 waive/percent + 确认拉起），不再直拉微信支付；`/pay/calculate type=repair_service` 返回 items+total（服务端权威）。**不支付超时 → 订单保持待支付**（#2097，不自动取消，可稍后继续支付）
   - **结算折扣口径**：`Dispatch actual` 扣除已支付 records 的 `coupon_discount` 合计——否则优惠码在「多退少补」中被吞（白用）(#1853 逐笔折扣)
 - **拒绝报价（#2093）**：报价卡「拒绝报价」→ 理由选择（**太贵了 / 已找别人修了 / 问题已解决 / 其他**，备注可选 ≤200 字）
   - `POST /api/user/repair-services/:id/quote/decline {reason, note?}` → 终态 **`cancelled`**（此阶段无支付 → **无退款**；顾客可另建新单）

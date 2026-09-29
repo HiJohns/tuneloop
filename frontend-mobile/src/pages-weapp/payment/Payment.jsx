@@ -20,7 +20,8 @@ export default function Payment() {
   // re-render and re-fetch instead of a false "parameters missing" error.
   const [paramState, setParamState] = useState({
     type: params.type || '',
-    id: params.id || '',
+    // #2110: 订单参数双源兼容——维修服务跳转使用 order_id（其余调用方用 id）
+    id: params.id || params.order_id || '',
     amount: params.amount || '',
     session_id: params.session_id || '',
   })
@@ -37,7 +38,7 @@ export default function Payment() {
     if (options && options.type) {
       setParamState({
         type: options.type,
-        id: options.id || '',
+        id: options.id || options.order_id || '',
         amount: options.amount || '',
         session_id: options.session_id || '',
       })
@@ -46,10 +47,11 @@ export default function Payment() {
   useDidShow(() => {
     const cur = Taro.getCurrentInstance().router?.params || {}
     if (cur.type) {
+      const curId = cur.id || cur.order_id || ''
       setParamState((prev) =>
-        prev.type === cur.type && prev.id === (cur.id || '')
+        prev.type === cur.type && prev.id === curId
           ? prev
-          : { type: cur.type, id: cur.id || '', amount: cur.amount || '', session_id: cur.session_id || '' }
+          : { type: cur.type, id: curId, amount: cur.amount || '', session_id: cur.session_id || '' }
       )
     }
   })

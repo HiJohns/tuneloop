@@ -115,6 +115,16 @@ func PrepayOrder(c *gin.Context) {
 		}
 	}
 
+	// #2110: 订单类支付必须携带 order_id——空 id 会跳过订单分支走通用流程，
+	// 生成与订单脱钩的孤儿支付记录（且 0 元 waived 直接"成功"）。
+	switch req.OrderType {
+	case "rent", "repair", "damage", "payment_shortfall", "loss":
+		if effectiveOrderID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "order_id is required for " + req.OrderType})
+			return
+		}
+	}
+
 	// Last-resort: never persist an empty string into a uuid column
 	if tenantID == "" {
 		tenantID = "00000000-0000-0000-0000-000000000000"

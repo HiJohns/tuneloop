@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"github.com/google/uuid"
 	"log"
 	"math"
 	"net/http"
@@ -45,6 +46,16 @@ func CalculatePayment(c *gin.Context) {
 	userID := middleware.GetUserID(ctx)
 	tenantID := middleware.GetTenantID(ctx)
 	db := database.GetDB().WithContext(ctx)
+
+	// #2110: 本端点各类型均需订单 id——空/非法 uuid 会在查询时空转 22P02，
+	// 统一前置校验并给出可读 40002（前端据此提示"支付数据不存在"）。
+	switch req.Type {
+	case "rent", "repair_service", "repair", "requote", "damage", "refund", "deposit-refund", "renewal", "payment_shortfall":
+		if _, err := uuid.Parse(req.ID); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "id is required and must be a valid uuid"})
+			return
+		}
+	}
 
 	var resp PaymentCalculateResponse
 	resp.Type = req.Type
