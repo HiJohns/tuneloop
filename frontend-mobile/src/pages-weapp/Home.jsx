@@ -111,13 +111,15 @@ function InstrumentCard({ instrument, onClick }) {
 }
 
 export default function Home() {
-  const nav = (url) => {
+  // #2066：useCallback 稳定引用——供 memo 子组件（HomeBannerLayer/HomeInstrumentList）
+  // 在滚动帧间跳过重渲染（props 引用不变）
+  const nav = useCallback((url) => {
     if (Taro.getCurrentPages().length >= 9) {
       Taro.reLaunch({ url })
     } else {
       Taro.navigateTo({ url })
     }
-  }
+  }, [])
   const instance = Taro.getCurrentInstance()
   const routerParams = instance.router?.params || {}
   const [tenant, setTenant] = useState(routerParams.tenant || null)
@@ -289,77 +291,7 @@ export default function Home() {
 
   return (
     <View style={{ height: '100vh', width: '100vw', position: 'relative' }}>
-      {/* Z=0: Carousel — original visible on top, blur replaces on scroll */}
-      <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, backgroundColor: banners.length === 0 ? '#915F38' : 'transparent' }}>
-        {/* Original carousel */}
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: scrolled ? 0 : 1, transition: 'opacity 0.3s' }}>
-        {banners.length > 0 && (
-          <View style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            {/* Image track: 220px clipped */}
-            <View style={{ flex: 1 }}>
-              <View style={{ display: 'flex', flexDirection: 'row', height: '100%', width: `${(banners.length + 2) * 100}%`, transform: `translateX(-${(currentBanner + 1) * (100 / (banners.length + 2))}%)`, transition: jumpReset ? 'none' : 'transform 0.5s ease-in-out' }}
-                onTransitionEnd={() => {
-                  if (currentBanner === -1) {
-                    setJumpReset(true)
-                    setCurrentBanner(banners.length - 1)
-                    setTimeout(() => setJumpReset(false), 50)
-                  } else if (currentBanner === banners.length) {
-                    setJumpReset(true)
-                    setCurrentBanner(0)
-                    setTimeout(() => setJumpReset(false), 50)
-                  }
-                }}>
-                {banners.length > 0 && (
-                  <View key="clone-last" style={{ height: '100%', width: `${100 / (banners.length + 2)}%`, backgroundColor: banners[banners.length - 1].bg_color || '#915F38' }}>
-                    <BannerImage src={banners[banners.length - 1].image_url} aspectRatio={banners[banners.length - 1].aspect_ratio} />
-                  </View>
-                )}
-                {banners.map((item, i) => (
-                  <View key={i} style={{ height: '100%', width: `${100 / (banners.length + 2)}%`, backgroundColor: item.bg_color || '#915F38' }} onClick={() => item.link_url && nav(item.link_url)}>
-                    <BannerImage src={item.image_url} aspectRatio={item.aspect_ratio} />
-                    {item.title ? (
-                      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.4)', paddingLeft: 16, paddingRight: 16, paddingTop: 8, paddingBottom: 8 }}>
-                        <Text style={{ color: '#fff', fontSize: 14 }}>{item.title}</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                ))}
-                {banners.length > 0 && (
-                  <View key="clone-first" style={{ height: '100%', width: `${100 / (banners.length + 2)}%`, backgroundColor: banners[0].bg_color || '#915F38' }}>
-                    <BannerImage src={banners[0].image_url} aspectRatio={banners[0].aspect_ratio} />
-                  </View>
-                )}
-              </View>
-            </View>
-          </View>
-        )}
-        {banners.length === 0 && (
-          <View style={{ width: '100%', height: '100%', backgroundColor: '#915F38' }} />
-        )}
-      </View>
-
-      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: scrolled ? 1 : 0, transition: 'opacity 0.3s', backgroundColor: banners.length > 0 ? (banners[normalizedBannerIdx]?.bg_color || '#915F38') : 'transparent' }}>
-        {banners.length > 0 && (
-            <BannerImage src={blurUrl(banners[normalizedBannerIdx]?.image_url)} aspectRatio={banners[normalizedBannerIdx]?.aspect_ratio} />
-        )}
-      </View>
-    </View>
-
-      {/* Carousel dots — fade on scroll */}
-        <View style={{ position: 'absolute', left: 0, right: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', bottom: 8, opacity: scrolled ? 0 : 1 }}>
-          <View style={{ display: 'flex', alignItems: 'center' }}>
-            {(banners.length > 0 ? banners : Array.from({ length: 3 })).map((_, i) => {
-              const r = currentBanner < 0 ? banners.length - 1 : currentBanner >= banners.length ? 0 : currentBanner
-              return <View key={i} style={{
-                width: i === r ? 12 : 6,
-                height: 6,
-                borderRadius: 999,
-                backgroundColor: i === r ? '#fff' : 'rgba(255,255,255,0.4)',
-                marginLeft: i > 0 ? 6 : 0
-              }} />
-            })}
-          </View>
-        </View>
+      <HomeBannerLayer banners={banners} currentBanner={currentBanner} jumpReset={jumpReset} scrolled={scrolled} normalizedBannerIdx={normalizedBannerIdx} setCurrentBanner={setCurrentBanner} setJumpReset={setJumpReset} nav={nav} />
 
       {/* Swipe layer — always present (no DOM reflow). z-index drops to 0
           when scrolled so underlying menu receives taps (#1540). */}
@@ -430,32 +362,7 @@ export default function Home() {
           <View style={{ height: `${menuTravel}px` }}></View>
 
         <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 80 }}>
-        {loading ? (
-          Array(3).fill(0).map((_, i) => (
-            <View key={i} style={{ backgroundColor: '#fff', borderRadius: 16, padding: 12, display: 'flex', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', marginBottom: 16 }}>
-              <View style={{ width: 80, height: 80, backgroundColor: '#e4e4e7', borderRadius: 12, flexShrink: 0 }}>
-                <View style={{ width: 80, height: 80, backgroundColor: '#d4d4d8', borderRadius: 12 }} />
-              </View>
-              <View style={{ flex: '1 1 0%', marginLeft: 12 }}>
-                <View style={{ height: 20, backgroundColor: '#e4e4e7', borderRadius: 4, width: '75%', marginBottom: 8 }} />
-                <View style={{ height: 16, backgroundColor: '#e4e4e7', borderRadius: 4, width: '50%' }} />
-              </View>
-            </View>
-          ))
-        ) : instruments.length > 0 ? (
-          instruments.map(instrument => (
-            <InstrumentCard
-              key={instrument.id}
-              instrument={instrument}
-              onClick={() => { const url = tenant ? `/pages-weapp/detail/index?id=${instrument.id}&tenant=${tenant}` : `/pages-weapp/detail/index?id=${instrument.id}`; nav(url) }}
-            />
-          ))
-        ) : (
-          <View style={{ textAlign: 'center', paddingTop: 64, paddingBottom: 64, color: 'rgba(255,255,255,0.6)' }}>
-            <Text style={{ fontSize: 48, marginBottom: 16 }}>🎵</Text>
-            <Text style={{ fontSize: 18 }}>暂无乐器</Text>
-          </View>
-        )}
+        <HomeInstrumentList loading={loading} instruments={instruments} tenant={tenant} nav={nav} />
         </View>
         {/* Bottom spacer: ensures ScrollView content exceeds viewport
             so native scroll doesn't reset when list reloads short (#1540). */}
@@ -561,5 +468,119 @@ const HomeMenu = memo(function HomeMenu({ menuTravel, menuTop, bannerBottom, men
     <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10002, backgroundColor: 'transparent', top, height: stickyMenuHeight, overflow: 'hidden' }}>
       <MenuContent categories={categories} selectedCategory={selectedCategory} onCategoryChange={onCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} subMenuCat={subMenuCat} onSetSubMenuCat={onSetSubMenuCat} windowWidth={windowWidth} />
     </View>
+  )
+})
+
+// #2066：Banner 层 memo——滚动帧（menuScroll 高频 setState）跳过该大子树重渲染
+const HomeBannerLayer = memo(function HomeBannerLayer({ banners, currentBanner, jumpReset, scrolled, normalizedBannerIdx, setCurrentBanner, setJumpReset, nav }) {
+  return (
+    <>
+      {/* Z=0: Carousel — original visible on top, blur replaces on scroll */}
+      <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, backgroundColor: banners.length === 0 ? '#915F38' : 'transparent' }}>
+        {/* Original carousel */}
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: scrolled ? 0 : 1, transition: 'opacity 0.3s' }}>
+        {banners.length > 0 && (
+          <View style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            {/* Image track: 220px clipped */}
+            <View style={{ flex: 1 }}>
+              <View style={{ display: 'flex', flexDirection: 'row', height: '100%', width: `${(banners.length + 2) * 100}%`, transform: `translateX(-${(currentBanner + 1) * (100 / (banners.length + 2))}%)`, transition: jumpReset ? 'none' : 'transform 0.5s ease-in-out' }}
+                onTransitionEnd={() => {
+                  if (currentBanner === -1) {
+                    setJumpReset(true)
+                    setCurrentBanner(banners.length - 1)
+                    setTimeout(() => setJumpReset(false), 50)
+                  } else if (currentBanner === banners.length) {
+                    setJumpReset(true)
+                    setCurrentBanner(0)
+                    setTimeout(() => setJumpReset(false), 50)
+                  }
+                }}>
+                {banners.length > 0 && (
+                  <View key="clone-last" style={{ height: '100%', width: `${100 / (banners.length + 2)}%`, backgroundColor: banners[banners.length - 1].bg_color || '#915F38' }}>
+                    <BannerImage src={banners[banners.length - 1].image_url} aspectRatio={banners[banners.length - 1].aspect_ratio} />
+                  </View>
+                )}
+                {banners.map((item, i) => (
+                  <View key={i} style={{ height: '100%', width: `${100 / (banners.length + 2)}%`, backgroundColor: item.bg_color || '#915F38' }} onClick={() => item.link_url && nav(item.link_url)}>
+                    <BannerImage src={item.image_url} aspectRatio={item.aspect_ratio} />
+                    {item.title ? (
+                      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.4)', paddingLeft: 16, paddingRight: 16, paddingTop: 8, paddingBottom: 8 }}>
+                        <Text style={{ color: '#fff', fontSize: 14 }}>{item.title}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                ))}
+                {banners.length > 0 && (
+                  <View key="clone-first" style={{ height: '100%', width: `${100 / (banners.length + 2)}%`, backgroundColor: banners[0].bg_color || '#915F38' }}>
+                    <BannerImage src={banners[0].image_url} aspectRatio={banners[0].aspect_ratio} />
+                  </View>
+                )}
+              </View>
+            </View>
+          </View>
+        )}
+        {banners.length === 0 && (
+          <View style={{ width: '100%', height: '100%', backgroundColor: '#915F38' }} />
+        )}
+      </View>
+
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: scrolled ? 1 : 0, transition: 'opacity 0.3s', backgroundColor: banners.length > 0 ? (banners[normalizedBannerIdx]?.bg_color || '#915F38') : 'transparent' }}>
+        {banners.length > 0 && (
+            <BannerImage src={blurUrl(banners[normalizedBannerIdx]?.image_url)} aspectRatio={banners[normalizedBannerIdx]?.aspect_ratio} />
+        )}
+      </View>
+    </View>
+
+      {/* Carousel dots — fade on scroll */}
+        <View style={{ position: 'absolute', left: 0, right: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', bottom: 8, opacity: scrolled ? 0 : 1 }}>
+          <View style={{ display: 'flex', alignItems: 'center' }}>
+            {(banners.length > 0 ? banners : Array.from({ length: 3 })).map((_, i) => {
+              const r = currentBanner < 0 ? banners.length - 1 : currentBanner >= banners.length ? 0 : currentBanner
+              return <View key={i} style={{
+                width: i === r ? 12 : 6,
+                height: 6,
+                borderRadius: 999,
+                backgroundColor: i === r ? '#fff' : 'rgba(255,255,255,0.4)',
+                marginLeft: i > 0 ? 6 : 0
+              }} />
+            })}
+          </View>
+        </View>
+
+    </>
+  )
+})
+
+// #2066：乐器列表 memo——滚动帧跳过 InstrumentCard 列表重渲染
+const HomeInstrumentList = memo(function HomeInstrumentList({ loading, instruments, tenant, nav }) {
+  return (
+    <>
+        {loading ? (
+          Array(3).fill(0).map((_, i) => (
+            <View key={i} style={{ backgroundColor: '#fff', borderRadius: 16, padding: 12, display: 'flex', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', marginBottom: 16 }}>
+              <View style={{ width: 80, height: 80, backgroundColor: '#e4e4e7', borderRadius: 12, flexShrink: 0 }}>
+                <View style={{ width: 80, height: 80, backgroundColor: '#d4d4d8', borderRadius: 12 }} />
+              </View>
+              <View style={{ flex: '1 1 0%', marginLeft: 12 }}>
+                <View style={{ height: 20, backgroundColor: '#e4e4e7', borderRadius: 4, width: '75%', marginBottom: 8 }} />
+                <View style={{ height: 16, backgroundColor: '#e4e4e7', borderRadius: 4, width: '50%' }} />
+              </View>
+            </View>
+          ))
+        ) : instruments.length > 0 ? (
+          instruments.map(instrument => (
+            <InstrumentCard
+              key={instrument.id}
+              instrument={instrument}
+              onClick={() => { const url = tenant ? `/pages-weapp/detail/index?id=${instrument.id}&tenant=${tenant}` : `/pages-weapp/detail/index?id=${instrument.id}`; nav(url) }}
+            />
+          ))
+        ) : (
+          <View style={{ textAlign: 'center', paddingTop: 64, paddingBottom: 64, color: 'rgba(255,255,255,0.6)' }}>
+            <Text style={{ fontSize: 48, marginBottom: 16 }}>🎵</Text>
+            <Text style={{ fontSize: 18 }}>暂无乐器</Text>
+          </View>
+        )}
+    </>
   )
 })
