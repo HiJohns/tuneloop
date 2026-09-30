@@ -1,4 +1,5 @@
 import { storage, session, cookie, request as platformRequest, dialog, navigation, env, wxLogin as wxLoginCode, eventBus } from '../platform'
+import { isContextDrift } from '../utils/sessionContext'
 
 export { resolveErrorMessage, ERROR_CODE_MAP, ERROR_MESSAGE_MAP } from './errorMessages'
 export const publicRoutes = ['/', '/instrument', '/content', '/cart', '/success', '/callback']
@@ -140,7 +141,9 @@ function storeLoginToken(data) {
   if (data.expires_in) {
     storage.setItem('token_expiry', (new Date().getTime() + data.expires_in * 1000).toString())
   }
+  // #2111: set-or-clear（防陈旧跨上下文 refresh token）
   if (data.refresh_token) storage.setItem('refresh_token', data.refresh_token)
+  else storage.removeItem('refresh_token')
   cachePermissions(parseJWT(data.access_token))
   eventBus.emit('loginSuccess')
   return true
@@ -267,6 +270,7 @@ export function degradeToGuest() {
   storage.removeItem('user_cus_perm')
   storage.removeItem('user_cus_perm_ext')
   storage.removeItem('login_contexts') // #2081: 会话失效后不残留上一账号的身份列表
+  storage.removeItem('login_context') // #2111: 清除所选上下文记录（防跨会话误判漂移）
   session.removeItem('token')
   cookie.remove('token')
   session.setItem('logged_out_due_expiry', '1')
@@ -348,6 +352,16 @@ async function refreshAccessToken() {
   if (data.code === 20000 && data.data?.access_token) {
     storage.setItem('token', data.data.access_token)
     if (data.data.refresh_token) storage.setItem('refresh_token', data.data.refresh_token)
+    // #2111: 刷新后上下文一致性校验——漂移即清会话并引导重登（杜绝静默换身份）
+    const lc = storage.getJSON('login_context')
+    if (lc && isContextDrift(lc, parseJWT(data.data.access_token))) {
+      storage.removeItem('token')
+      storage.removeItem('token_expiry')
+      storage.removeItem('refresh_token')
+      storage.removeItem('login_context')
+      storage.removeItem('login_contexts')
+      throw new Error('身份已变化，请重新登录')
+    }
     return data.data.access_token
   }
   throw new Error('Invalid refresh response')

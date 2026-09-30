@@ -314,6 +314,7 @@ export default function Profile() {
     storage.removeItem('token_expiry')
     storage.removeItem('refresh_token')
     storage.removeItem('login_contexts') // #2081: 避免下一个账号继承上一账号的身份列表
+    storage.removeItem('login_context') // #2111: 清除所选上下文记录
     // Clear UI state immediately so the page does not keep showing the
     // previous account after logout (#1620).
     setUser(null)

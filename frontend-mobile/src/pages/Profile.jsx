@@ -318,6 +318,7 @@ export default function Profile() {
     storage.removeItem('token_expiry')
     storage.removeItem('refresh_token')
     storage.removeItem('login_contexts') // #2081
+    storage.removeItem('login_context') // #2111: 清除所选上下文记录
     navigate('/')
   }
 

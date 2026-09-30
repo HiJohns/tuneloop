@@ -3,6 +3,7 @@ import Taro from '@tarojs/taro'
 import { View, Text, Input } from '@tarojs/components'
 import { request, wxLogin as wxLoginCode, storage, session, env, eventBus, getInputValue } from '../../platform'
 import { resolveErrorMessage } from '../../services/api'
+import { parseJWT } from '../../platform/init'
 
 const ROLE_LABELS = { site_member: '员工', site_admin: '网点管理员', repair_technician: '维修师傅', merchant_admin: '商户管理员', worker: '员工', OWNER: '负责人', ADMIN: '管理员' }
 
@@ -104,6 +105,11 @@ export default function AccountSelect() {
           storage.setItem('token_expiry', (new Date().getTime() + result.data.expires_in * 1000).toString())
         }
         if (result.data.refresh_token) storage.setItem('refresh_token', result.data.refresh_token)
+        else storage.removeItem('refresh_token') // #2111: set-or-clear
+        // #2111: 记录本次所选上下文（刷新后一致性校验基准）
+        try {
+          storage.setItem('login_context', JSON.stringify({ type: item.type, context: item.context || '' }))
+        } catch {}
         // #2081: 一人多角——记住本次账号的可登录上下文，个人中心据此显示「切换身份」入口
         // （多身份账号登录必经本页选上下文，故此处落盘可覆盖全部多身份会话；退出登录时清除）
         try {
@@ -147,6 +153,13 @@ export default function AccountSelect() {
         if (result.data.expires_in) {
           storage.setItem('token_expiry', (new Date().getTime() + result.data.expires_in * 1000).toString())
         }
+        // #2111: 账密登录同步 refresh_token（set-or-clear），并按令牌记录所选上下文
+        if (result.data.refresh_token) storage.setItem('refresh_token', result.data.refresh_token)
+        else storage.removeItem('refresh_token')
+        try {
+          const claims = parseJWT(result.data.access_token)
+          storage.setItem('login_context', JSON.stringify({ type: claims.oid ? 'org' : 'customer', context: claims.oid || '' }))
+        } catch { storage.removeItem('login_context') }
         session.removeItem('wx_login_token')
         eventBus.emit('loginSuccess')
         const postAuth = session.getItem('post_auth_redirect')

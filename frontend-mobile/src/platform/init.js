@@ -13,7 +13,10 @@ export function storeToken(accessToken, expiresIn = 3600, refreshToken) {
   const expiry = new Date().getTime() + (expiresIn * 1000)
   storage.setItem('token', accessToken)
   storage.setItem('token_expiry', expiry.toString())
+  // #2111: refresh_token set-or-clear——登录响应缺失时必须清除旧值，
+  // 防陈旧/跨上下文 refresh token 继续用于刷新（静默换身份）
   if (refreshToken) storage.setItem('refresh_token', refreshToken)
+  else storage.removeItem('refresh_token')
 }
 
 export function parseJWT(token) {

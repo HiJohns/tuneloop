@@ -244,6 +244,14 @@ steps:
 - 会话状态机幂等：pending → paid → completed；completed 只执行一次建户；回调可重复到达
 - exchange_token 过期（#1648）：前端清除旧 token 重试走新 wx.login code
 
+## 会话上下文防护（#2111）
+
+> 背景：beaconiam 的 refresh token 不携带登录上下文（刷新时 `resolveUserOrg` 重建默认 org 上下文）→ 顾客会话刷新后可能静默变成员工上下文。前端防护（根因见 beaconiam#490）：
+
+- **refresh_token set-or-clear**：所有登录路径（账密 / wx-login-select / OAuth 回调 / 静默）响应**缺失 refresh_token 时必须清除旧值**——杜绝陈旧/跨上下文 refresh token 被继续用于刷新
+- **所选上下文记录**：登录成功后写 `login_context = {type:'customer'|'org', context:'<org_id>'}`；登出与会话失效清理时一并删除
+- **刷新后漂移检测**：refresh 成功后比对 `login_context` 与新令牌 claims（`utils/sessionContext.js isContextDrift`）——顾客期望无 `oid` 且 `role=USER`；组织期望 `oid` 一致。**漂移即清会话并提示「身份已变化，请重新登录」**（不静默换 UI）
+
 ## 会员中心（Profile）
 - 仅单一上下文（无员工身份）→ 只有「退出登录」
 - 当前上下文为员工 **或** 账号可登录上下文 >1（经身份选择页登录落盘 `login_contexts`，#2081）→ 「退出登录」+「切换身份」→ 账户列表页（组织上下文选择）
