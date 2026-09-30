@@ -485,8 +485,6 @@ func (s *IAMService) WxAccounts(code string) (*WxAccountsResult, error) {
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
-	// #2109-diag 临时诊断（account-select 身份缺失）：记录 IAM 原始响应，定位后移除
-	log.Printf("[IAM DEBUG] WxAccounts raw body=%s", string(body))
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("[IAM DEBUG] WxAccounts non-200 status=%d body=%s", resp.StatusCode, string(body))
 		return nil, newIAMAPIError(resp.StatusCode, body)
