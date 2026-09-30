@@ -262,7 +262,7 @@ export default function EditProfile() {
           ) : idVerifyStatus === 'pending_review' ? (
             <View style={{ padding: 12, backgroundColor: '#fefce8', borderRadius: 8, borderWidth: 1, borderColor: '#fde68a' }}>
               <Text style={{ fontSize: 13, color: '#dc2626', fontWeight: '700', display: 'block' }}>⚠️ 实名认证审核中</Text>
-              <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4, display: 'block' }}>已提交人脸采样，平台员工审核通过后即完成实名认证（预计 1-2 个工作日）。</Text>
+              <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4, display: 'block' }}>已提交人脸采样，平台员工审核通过后即完成实名认证（人工审核约需 1-2 个工作日；如页面提供微信自动核身，完成后即时生效）。</Text>
             </View>
           ) : (
             <View>

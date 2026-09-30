@@ -299,7 +299,7 @@ export default function ProfileComplete() {
       </Text>
       {/* #2044: 审核提示（上传后用户不知会送审） */}
       <Text style={{ fontSize: 12, color: '#71717a', width: '100%', marginBottom: 24, lineHeight: '18px' }}>
-        已上传的证件照将由平台员工人工审核（约 1-2 个工作日），审核结果会通过系统消息通知您。
+        实名信息将由平台审核；完成微信核身的可即时生效，人工审核约需 1-2 个工作日，结果将通过系统消息通知您。
       </Text>
 
       <View style={{ display: 'flex', width: '100%', marginBottom: 24 }}>
