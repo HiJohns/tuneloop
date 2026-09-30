@@ -2,7 +2,8 @@ const path = require('path')
 
 const config = {
   projectName: 'tuneloop-mobile',
-  cache: { enable: true },
+  // #2109: 持久化缓存曾提供过期编译产物（app.js 陈旧致多期体验版混合旧代码）——禁用
+  cache: { enable: false },
   date: '2026-6-11',
   designWidth: 750,
   deviceRatio: {
@@ -24,9 +25,8 @@ const config = {
   framework: 'react',
   compiler: 'webpack5',
   mini: {
-    cache: {
-      type: 'filesystem',
-    },
+    // #2109: webpack5 filesystem 缓存曾提供过期模块（app.tsx 改动不生效）——禁用
+    // cache: { type: 'filesystem' },
     webpackChain(chain) {
       chain.resolve.alias
         .set('react-router-dom', path.resolve(__dirname, '../src/stubs/react-router-dom.js'))
