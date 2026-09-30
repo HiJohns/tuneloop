@@ -334,10 +334,12 @@ export default function RepairServiceDetail() {
   if (!detail || !rr.id) {
     return (
       <View style={{ backgroundColor: '#FDFBF7', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        {!env.isMiniProgram && (
         <View style={{ backgroundColor: '#FFFFFF', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
           <Text onClick={() => nav(-1)} style={{ fontSize: 20, color: '#18181B', padding: '0 6px' }}>‹</Text>
           <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#18181B' }}>维修服务详情</Text>
         </View>
+        )}
         <View style={{ padding: 24, display: 'flex', justifyContent: 'center' }}>
           <Text style={{ fontSize: 13, color: '#A1A1AA' }}>维修单不存在或已删除</Text>
         </View>
@@ -359,10 +361,12 @@ export default function RepairServiceDetail() {
 
   return (
     <View style={{ backgroundColor: '#FDFBF7', minHeight: '100vh' }}>
+      {!env.isMiniProgram && (
       <View style={{ backgroundColor: '#FFFFFF', padding: '12px 16px', borderBottom: '1px solid #F4F4F5', display: 'flex', alignItems: 'center', gap: 8 }}>
         <Text onClick={() => nav(-1)} style={{ fontSize: 20, color: '#18181B', padding: '0 6px' }}>‹</Text>
         <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#18181B' }}>维修服务详情</Text>
       </View>
+      )}
 
       <View style={{ padding: 16, display: 'flex', flexDirection: 'column' }}>
         {/* 基础信息 */}
@@ -514,6 +518,20 @@ export default function RepairServiceDetail() {
               <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>合计应付</Text>
               <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#D97706' }}>{yuan(quoteTotal)}</Text>
             </View>
+            {rr.quote_status === 'accepted' && (
+              <>
+                {/* #2113: 已接受未支付——恢复支付入口（此前该状态无任何按钮，死路） */}
+                <Button disabled={busy} onClick={() => {
+                  if (env.isMiniProgram) {
+                    Taro.navigateTo({ url: `/pages-weapp/payment/index?type=repair_service&order_id=${orderId}` })
+                  } else {
+                    dialog.alert('请在微信小程序内完成支付')
+                  }
+                }} style={btnPrimaryStyle}>
+                  去支付 {yuan(quoteTotal)}
+                </Button>
+              </>
+            )}
             {rr.quote_status === 'pending' && (
               <>
                 <Button disabled={busy} onClick={acceptQuote} style={btnPrimaryStyle}>
