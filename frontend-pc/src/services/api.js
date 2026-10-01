@@ -660,4 +660,31 @@ export const platformStaffApi = {
   disable: (id) => api.delete(`/admin/platform-staff/${id}`),
 }
 
+// #2114 邀请与成员管理（各级管各级）
+export const invitesApi = {
+  // 当前商户管理员所属商户上下文（直属成员管理用）
+  myMerchant: () => api.get('/admin/my-merchant'),
+  // 商户维度邀请管理列表
+  list: (params = {}) => api.get('/admin/invites', { params }),
+  // 待审批徽标数
+  pendingCount: () => api.get('/admin/invites/pending-count'),
+  // 商户管理员审批申请
+  approve: (id) => api.post(`/admin/invites/${id}/approve`),
+  reject: (id, reason) => api.post(`/admin/invites/${id}/reject`, { reason }),
+  // 商户直属 / 商户成员邀请
+  inviteToMerchant: (merchantId, data) => api.post(`/admin/merchants/${merchantId}/invites`, data),
+  // 平台直属邀请
+  invitePlatformStaff: (data) => api.post('/admin/platform-staff/invites', data),
+  // 网点管理员为（P2/P3）非本商户成员提交加入申请
+  applySiteMembership: (siteId, data) => api.post(`/sites/${siteId}/members/apply`, data),
+}
+
+// #2114 PC 消息中心（复用既有 notifications 端点）
+export const notificationsApi = {
+  list: () => api.get('/notifications'),
+  unreadCount: () => api.get('/notifications/unread-count'),
+  markAllRead: () => api.post('/notifications/mark-all-read'),
+  markRead: (id) => api.post(`/notifications/${id}/read`),
+}
+
 export { getToken, request, fetchBlob }

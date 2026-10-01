@@ -29,6 +29,9 @@ import SiteManagement from './pages/SiteManagement'
 import StaffManagement from './pages/StaffManagement'
 import StaffEdit from './pages/StaffEdit'
 import StaffResetPassword from './pages/StaffResetPassword'
+import InviteManagement from './pages/InviteManagement'
+import DirectMemberManagement from './pages/DirectMemberManagement'
+import NotificationCenter from './components/NotificationCenter'
 import PermissionManage from './pages/admin/PermissionManage'
 import AssetDetail from './pages/AssetDetail'
 import ClientManagement from './pages/ClientManagement'
@@ -647,6 +650,8 @@ function onMenuClick(e) {
             <Breadcrumb items={breadcrumbItems} className="text-sm text-gray-500" />
           </div>
           <div className="flex items-center gap-4">
+            {/* #2114 PC 消息中心（顶栏铃铛 + 未读徽标 + 动作直达） */}
+            <NotificationCenter />
             {/* #2069: 关于/版本入口（点击查看后台版本与环境） */}
             <span
               className="text-xs text-gray-400 cursor-pointer hover:text-gray-600"
@@ -711,6 +716,8 @@ function onMenuClick(e) {
             <Route path="/staff" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15], cusPermCodes: ['instrument:create', 'instrument:read'], requireAllGroups: true }}><StaffManagement /></ProtectedRoute>} />
             <Route path="/staff/:id/edit" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15] }}><StaffEdit /></ProtectedRoute>} />
             <Route path="/staff/:id/reset-password" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15] }}><StaffResetPassword /></ProtectedRoute>} />
+            <Route path="/staff/invites" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['member:invite'] }}><InviteManagement /></ProtectedRoute>} /> {/* #2114 */}
+            <Route path="/staff/direct" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15], cusPermCodes: ['member:invite'] }}><DirectMemberManagement /></ProtectedRoute>} /> {/* #2114 */}
             <Route path="/appeals" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['appeal:read'] }}><AppealManagement /></ProtectedRoute>} />
             <Route path="/workorders" element={<ProtectedRoute><WorkOrderList /></ProtectedRoute>} />
             <Route path="/repair/settings" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price_config'] }}><RepairConfigPage /></ProtectedRoute>} />

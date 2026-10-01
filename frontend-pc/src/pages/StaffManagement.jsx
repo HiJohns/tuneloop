@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Card, Table, Button, Modal, Form, Input, Select, message, Spin, Space, Popconfirm, Tag, Alert, Radio, Checkbox } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined, SendOutlined, MailOutlined, ReloadOutlined } from '@ant-design/icons'
+import { Card, Table, Button, Modal, Form, Input, Select, message, Spin, Space, Popconfirm, Tag, Alert, Radio, Checkbox, Badge } from 'antd'
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined, SendOutlined, MailOutlined, ReloadOutlined, TeamOutlined } from '@ant-design/icons'
 import ReactQuill from 'react-quill'
 import PhotoUploader from '../components/PhotoUploader'
 import 'react-quill/dist/quill.snow.css'
-import { staffApi, sitesApi, personnelApi } from '../services/api'
+import { staffApi, sitesApi, personnelApi, invitesApi } from '../services/api'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 const { Option } = Select
@@ -30,6 +30,7 @@ export default function StaffManagement() {
   const [editingUser, setEditingUser] = useState(null)
   const [editForm] = Form.useForm()
   const [isMerchantAdmin, setIsMerchantAdmin] = useState(false)
+  const [invitePending, setInvitePending] = useState(0) // #2114 待审批徽标
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
   const [batchLoading, setBatchLoading] = useState(false)
   const location = useLocation()
@@ -62,6 +63,10 @@ export default function StaffManagement() {
   useEffect(() => {
     fetchStaffList()
     fetchSiteTree()
+    // #2114: 待审批徽标（无权限时静默忽略）
+    invitesApi.pendingCount().then(res => {
+      if (res.code === 20000) setInvitePending(res.data?.count || 0)
+    }).catch(() => {})
   }, [location])
 
   useEffect(() => {
@@ -265,6 +270,53 @@ export default function StaffManagement() {
     }
   }
 
+  // #2114 §8.4: 补齐原先未定义的处理函数（原删除/激活/重设密码按钮会抛 ReferenceError）
+  const handleDeleteUser = async (record) => {
+    try {
+      const res = await staffApi.batchDelete([record.id])
+      if (res.code === 20000) {
+        message.success('用户已删除')
+        fetchStaffList()
+      } else {
+        message.error(res.message || '删除失败')
+      }
+    } catch (err) {
+      message.error('删除失败: ' + (err.message || ''))
+    }
+  }
+
+  const handleActivateUser = async (record) => {
+    try {
+      const res = await staffApi.activateUser(record.id)
+      if (res.code === 20000) {
+        message.success('用户已激活')
+        fetchStaffList()
+      } else {
+        message.error(res.message || '激活失败')
+      }
+    } catch (err) {
+      message.error('激活失败: ' + (err.message || ''))
+    }
+  }
+
+  const handleResetPassword = async (userIds) => {
+    if (!userIds || userIds.length === 0) {
+      message.warning('请先选择要重设密码的用户')
+      return
+    }
+    try {
+      const res = await staffApi.resetPassword(userIds)
+      if (res.code === 20000) {
+        message.success(`已发送重设密码邮件（${userIds.length} 个用户）`)
+        setSelectedRowKeys([])
+      } else {
+        message.error(res.message || '重设密码失败')
+      }
+    } catch (err) {
+      message.error('重设密码失败: ' + (err.message || ''))
+    }
+  }
+
   const handleBatchDelete = () => {
     if (selectedRowKeys.length === 0) {
       message.warning('请先选择要删除的用户')
@@ -445,6 +497,19 @@ export default function StaffManagement() {
         title="人员管理" 
         extra={
           <Space>
+            {/* #2114: 邀请管理 + 直属成员管理入口（商户管理员 / 系统管理员） */}
+            {(isMerchantAdmin || businessRole === 'system_admin') && (
+              <>
+                <Badge count={invitePending} size="small">
+                  <Button icon={<TeamOutlined />} onClick={() => navigate('/staff/invites')}>
+                    邀请管理
+                  </Button>
+                </Badge>
+                <Button icon={<TeamOutlined />} onClick={() => navigate('/staff/direct')}>
+                  直属成员管理
+                </Button>
+              </>
+            )}
             <Button
               icon={<UploadOutlined />}
               onClick={() => navigate('/staff/bulk-import')}

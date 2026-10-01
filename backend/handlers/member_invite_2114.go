@@ -143,6 +143,24 @@ func ApplySiteMembership(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"code": 20100, "data": gin.H{"invite_id": inv.ID, "status": inv.Status}})
 }
 
+// GetMyMerchant GET /api/admin/my-merchant（#2114）
+// 当前商户管理员所属商户上下文（直属成员管理页邀请/创建用）。
+func GetMyMerchant(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	orgID := middleware.GetOrgID(ctx)
+	tenantID := middleware.GetTenantID(ctx)
+
+	var m models.Merchant
+	if err := db.Where("org_id = ? OR tenant_id = ?", orgID, tenantID).First(&m).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "未找到商户上下文"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
+		"id": m.ID, "name": m.Name, "org_id": m.OrgID,
+	}})
+}
+
 // ListMerchantInvites GET /api/admin/invites（#2114）— 邀请管理列表（商户维度）。
 func ListMerchantInvites(c *gin.Context) {
 	ctx := c.Request.Context()

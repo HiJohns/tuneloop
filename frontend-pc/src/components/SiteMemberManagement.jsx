@@ -3,7 +3,7 @@ import { Table, Button, Space, message, Popconfirm, Modal, Input, Select, Checkb
 import { PlusOutlined, DeleteOutlined, SearchOutlined, UserAddOutlined } from '@ant-design/icons';
 import api from '../services/api';
 import { formatBeijingDate } from '../utils/date';
-import { adminApi } from '../services/api';
+import { adminApi, invitesApi } from '../services/api';
 
 const ROLE_NAMES = {
   admin: '网点管理员',
@@ -152,6 +152,30 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
     return username.trim() && name.trim() && email.trim() && phone.trim();
   };
 
+  // #2114 P2/P3：网点管理员无权限直接添加非本商户成员 → 引导提交加入申请（商户管理员审批）。
+  const promptApply = (payload) => {
+    Modal.confirm({
+      title: '需要商户管理员同意',
+      content: '您没有权限邀请该用户，需商户管理员同意。是否提出加入申请？',
+      okText: '提出申请',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          const resp = await invitesApi.applySiteMembership(siteId, payload);
+          if (resp.code === 20100) {
+            message.success('申请已提交，等待商户管理员审批');
+            setModalVisible(false);
+            resetForm();
+          } else {
+            message.error(resp.message || '提交申请失败');
+          }
+        } catch (e) {
+          message.error('提交申请失败');
+        }
+      },
+    });
+  };
+
   const handleSubmit = async () => {
     setAdding(true);
     try {
@@ -168,6 +192,8 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
           if (response.data?.role_errors?.length > 0) {
             message.warning('绑定成功，但部分角色权限分配失败。');
           }
+        } else if (response.code === 40311) {
+          promptApply({ identifier: existingUser.phone || existingUser.email, role: selectedRole });
         } else {
           message.error(response.message || '绑定失败');
         }
@@ -216,6 +242,9 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
           if (data.role_errors?.length > 0) {
             message.warning('用户创建成功，但部分角色权限分配失败。');
           }
+        } else if (response.code === 40311) {
+          // #2114 P2/P3：无权限直接添加非本商户成员 → 提交加入申请
+          promptApply({ identifier: phone.trim() || email.trim(), role: selectedRole });
         } else if (response.code === 40902) {
           // #2031：既有账户不允许管理员挂接（一人一号）→ 引导本人自助加入
           Modal.info({

@@ -3584,3 +3584,40 @@ components/
 | 逾期告警 | `/overdue-alerts` | `instrument:read` |
 | 定价策略 | `/pricing/config` | `instrument:price_config` |
 | 租金设定 | `/inventory/rent-setting` | `instrument:price` |
+
+---
+
+### 3.28 PC 邀请与直属成员管理 + 消息中心（#2114）
+
+> 落地「各级管各级」成员管理模型（网点 / 商户 / 平台各管本级）。阶段 1 地基 beaconiam#491，阶段 2 业务层 #2114。
+> 领域契约见 [`docs/cases/organization.md`](../cases/organization.md) O-02/O-04/O-05；API 见 [`docs/spec/api/api.md`](../api/api.md) §邀请与成员申请。
+
+#### 3.28.1 人员管理入口（`/staff`）
+- 卡片右上新增两个入口（`isMerchantAdmin || businessRole === 'system_admin'` 时显示）：
+  - **邀请管理**：带**待审批徽标**（`GET /api/admin/invites/pending-count`），点击进入 `/staff/invites`
+  - **直属成员管理**：点击进入 `/staff/direct`
+- 入口的显示判断复用 `StaffManagement.jsx` 的 `isMerchantAdmin`（`user_info.tid === oid`）与 `user_business_role`。
+
+#### 3.28.2 邀请管理子页（`/staff/invites`，组件 `InviteManagement.jsx`）
+- **路由**：`/staff/invites`；**权限**：`member:invite`（商户管理员；系统级角色放行）
+- **列表列**：提交网点（`site_name`，商户级显示「商户直属」，平台级显示「平台」）/ 对象（姓名 + 手机/邮箱）/ 类型·职位 / 时间 / 状态 / 操作
+- **状态**：`pending_approval` 待审批（橙）/ `pending` 等待中（蓝）/ `accepted` 已接受（绿）/ `rejected` 已拒绝（红）/ `expired` 已过期 / `cancelled` 已取消
+- **操作**：仅 `pending_approval` 行显示「同意 / 拒绝」；同意 → `POST /api/admin/invites/:id/approve`（转 `pending` 并发邀请通知）；拒绝 → 弹窗填写原因 → `POST /api/admin/invites/:id/reject`
+- 顶部按状态筛选 + 刷新。
+
+#### 3.28.3 直属成员管理子页（`/staff/direct`，组件 `DirectMemberManagement.jsx`）
+- **路由**：`/staff/direct`；**权限**：`member:invite` 或 `user_view`（系统级角色放行）
+- **商户管理员**：顶部展示本人所属商户（`GET /api/admin/my-merchant`）；列表为「只看直属员工」（`GET /api/admin/personnel?direct=true`）；「邀请直属员工」→ `POST /api/admin/merchants/:id/invites {identifier, kind:'merchant_staff'}`；「创建员工」跳 `/staff`
+- **平台管理员**：展示「邀请平台员工」→ `POST /api/admin/platform-staff/invites {identifier}`
+- 邀请均需对方已注册（手机号/邮箱）；待对方在移动端「我的 → 系统消息」接受后生效。
+
+#### 3.28.4 网点成员管理 P2/P3 申请弹窗（`SiteMemberManagement.jsx`）
+- 网点管理员在「添加成员」提交后，若后端返回 `40311`（`data.need_apply=true`，因目标非本商户成员），弹出确认框：「您没有权限邀请该用户，需商户管理员同意。是否提出加入申请？」
+- 确认 → `POST /api/sites/:id/members/apply {identifier, role}` → 建 `pending_approval` 并通知商户管理员。
+- 覆盖 `existing`（P2 已注册）与 `new_users`（P3 未注册）两条分支。
+
+#### 3.28.5 PC 消息中心（`NotificationCenter.jsx`，顶栏铃铛）
+- **位置**：PC 顶栏「关于」左侧；**铃铛 + 未读徽标**（`GET /api/notifications/unread-count`，每 60 秒轮询）
+- **下拉列表**（`GET /api/notifications`）：类型标签（邀请申请 / 申请被拒 / 加入邀请）+ 标题 + 内容 + 未读高亮；「全部已读」（`POST /api/notifications/mark-all-read`）
+- **动作直达**：点击项 `POST /api/notifications/:id/read` 标记已读；`action_type=invite_manage` → 跳 `/staff/invites`；`staff_invite`（被邀请人）提示在移动端「我的 → 系统消息」处理。
+- 复用既有 `notifications` 表与端点，未引入新表。

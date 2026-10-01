@@ -454,6 +454,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.DELETE("/admin/merchants/:id/members/:uid", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantMemberHandler.RemoveMember)
 
 		// #2114 邀请与成员管理层级：申请 / 审批 / 直接邀请（member:invite）
+		authRequired.GET("/admin/my-merchant", middleware.RequireCusPerm("member:invite"), handlers.GetMyMerchant)
 		authRequired.GET("/admin/invites", middleware.RequireCusPerm("member:invite"), handlers.ListMerchantInvites)
 		authRequired.GET("/admin/invites/pending-count", middleware.RequireCusPerm("member:invite"), handlers.MerchantInvitesPendingCount)
 		authRequired.POST("/admin/invites/:id/approve", middleware.RequireCusPerm("member:invite"), handlers.ApproveInvite)

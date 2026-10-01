@@ -86,6 +86,32 @@ sequenceDiagram
 - 不可恢复：`status=deleted`（404，走全新注册）；`inactive` 无留痕（403，管理员禁用）。
 - 运维含义：误标记删除可让用户重新登录自助回滚；如需彻底不可登录，应走禁用（非 mark-deleted）或 purge。
 
+## 邀请加入与 P3 自注册建号（#2114）
+
+> 各级管各级：网点管理员不能直接创建/挂接非本商户成员；须经商户管理员审批后由**被邀请人本人**接受时建号（一人一号，禁止管理员代挂）。领域契约见 [organization.md](../cases/organization.md) O-02/O-04/O-05。
+
+### 三条加入链路
+
+| 链路 | 场景 | 结果 |
+|------|------|------|
+| **P1** | 目标已是本商户成员 | 网点管理员直接 `bind(C, role)`（beaconiam#491 bind 改角色），本地 `site_members`，通知本人 |
+| **P2** | 已注册、非本商户成员 | 网点管理员提交申请（`40311 need_apply` → `POST /sites/:id/members/apply`）→ 商户管理员审批 → 发邀请 → 本人接受 |
+| **P3** | 未注册 | 同上；`invitee_identifier` 存手机/邮箱；**本人接受时自注册建号** |
+
+### P3 接受时建号与关系建立
+
+1. 被邀请人在移动端「我的 → 系统消息」点接受（`POST /api/user/invitations/:id/accept`，`userOptionalAuth`）
+2. 若尚未注册：按邀请的 `invitee_identifier`（手机/邮箱）自注册建号（微信优先）→ IAM `users` + 根组织 `member` 关系（A:member）
+3. 建立商户关系 `bind(B, member)`（A 关系由级联保障）
+4. 建立网点关系 `bind(C, role)` + `AssignRoleTemplate`（防止 #2032「有绑定无职能角色」缺口）
+5. 置邀请 `accepted` + 通知网点管理员
+
+### 完整性要求（P3 建号后须满足）
+
+- [ ] IAM `users` 有记录；`user_org_relations` 含 A:member / B:member / C:{role} 三段（member 为零权限枚举角色）
+- [ ] 本地 `users`（`iam_sub` 一致）+ `site_members`（网点关联）落库
+- [ ] assign 失败**不标记 accepted**（可重试）+ accept 幂等（已 bind 跳过，仅补 assign）；失败不静默吞错（红线）
+
 ## 常见缺失模式与症状
 
 | 缺失环节 | 症状 |

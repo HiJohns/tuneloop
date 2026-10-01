@@ -90,3 +90,36 @@ steps:
 ## 验收
 - `go test ./handlers/ -count=1` 回归通过
 - PC `npm run build` 通过
+
+---
+
+# P-07 邀请与直属成员管理（#2114）
+
+> 阶段 2 业务层（各级管各级）。领域契约见 [organization.md](./organization.md) O-02/O-04/O-05；UI 见 [ui.md §3.28](../spec/ui/ui.md)。
+
+## 前置条件
+- 商户管理员（`member:invite`）或系统管理员（system_admin）已登录 PC
+- 待邀请对象已在本平台注册（手机号/邮箱可定位到账户）
+
+## 流程
+1. **邀请管理**（人员管理 → 邀请管理，`/staff/invites`）
+   - 网点管理员为非本商户成员（P2 已注册 / P3 未注册）提交加入申请 → `POST /api/sites/:id/members/apply`
+   - 商户管理员在列表看到 `pending_approval` → **同意**（`POST /api/admin/invites/:id/approve`，转 `pending` 并发邀请）或 **拒绝**（`POST /api/admin/invites/:id/reject`，带原因）
+   - 邀请有效期 72h；被邀请人接受时（移动端「我的 → 系统消息」）自注册/绑定 → `accepted`
+2. **直属成员管理**（人员管理 → 直属成员管理，`/staff/direct`）
+   - 商户管理员：`GET /api/admin/my-merchant` 取本商户 → 「邀请直属员工」`POST /api/admin/merchants/:id/invites {kind:'merchant_staff'}`；「创建员工」跳 `/staff`
+   - 平台管理员：「邀请平台员工」`POST /api/admin/platform-staff/invites`
+3. **消息中心**（PC 顶栏铃铛）：未读徽标 + 列表 + 动作直达（`invite_manage` → `/staff/invites`）
+
+## 关键规则
+- **各级管各级**：网点管理员只能直接添加「已是本商户成员」的用户（P1）；其余一律走申请审批（P2/P3 返回 `40311 need_apply`）。商户管理员 / 系统管理员 / 平台员工不受限；中转网点（`type=transit`）豁免（#1938）。
+- **审批 = 邀请**：同一枚权限 `member:invite`；`merchant_admin` 模板默认含。
+- **`member` 为平凡角色**：仅用于枚举，不参与门禁；判定「是否 B 成员」以 IAM 上 B 关系 active 为准（member 或 staff 均算）。
+- **邀请有效期 72h**；先支持单人（一人一行）。
+- **P3 自注册**：被邀请人接受时自注册建号（见 [account-lifecycle.md](../ops/account-lifecycle.md)）。
+- 前端入口：人员管理「邀请管理」(待审批徽标) + 「直属成员管理」，仅 `merchant_admin`/`system_admin` 可见。
+
+## 验收
+- `go build .` + `go test ./handlers/ -run TestMemberInvite2114` 通过
+- PC `npm run build`（vite build）通过；ESLint 无新增 `no-undef`
+- 端到端：网点管理员申请 → 商户管理员审批 → 被邀请人接受（自注册）→ 关系正确（A:member / B:member / C:role）
