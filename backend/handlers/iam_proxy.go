@@ -909,6 +909,12 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 
 	// Upsert each user
 	for _, user := range users {
+		// #2114：跳过 IAM 侧非 active 用户（已标记删除/停用）——不复活已删除账户。
+		if user.Status != "" && user.Status != "active" {
+			skipped++
+			details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": user.OrgID, "result": "skipped_inactive"})
+			continue
+		}
 		// Determine matched org and role from user_org_relations (via include_orgs=true)
 		// Prefer child orgs over the merchant org itself (the merchant org has no site).
 		matchedOrgID := ""
