@@ -38,6 +38,19 @@ func localUserIDOrNil(c *gin.Context, db *gorm.DB) *string {
 	return nil
 }
 
+// isTenantMember 判断用户是否已是本商户成员（任意网点成员 或 商户成员行）。
+// #2114：网点管理员只能直接添加已是本商户成员的用户（P1）。
+func isTenantMember(db *gorm.DB, tenantID, userID string) bool {
+	var n int64
+	db.Model(&models.SiteMember{}).Where("tenant_id = ? AND user_id = ?", tenantID, userID).Count(&n)
+	if n > 0 {
+		return true
+	}
+	var m int64
+	db.Model(&models.MerchantMember{}).Where("tenant_id = ? AND user_id = ?", tenantID, userID).Count(&m)
+	return m > 0
+}
+
 // ApplySiteMembership POST /api/sites/:id/members/apply（#2114）
 // 网点管理员为**非本商户成员**（P2 已注册 / P3 未注册）提交加入申请，交商户管理员审批。
 func ApplySiteMembership(c *gin.Context) {
@@ -329,5 +342,62 @@ func InviteToMerchant(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{"code": 20100, "data": gin.H{
 		"invite_id": inv.ID, "code": inv.Code, "kind": kind, "role": role, "status": inv.Status,
+	}})
+}
+
+// InvitePlatformStaff POST /api/admin/platform-staff/invites（#2114）
+// 平台管理员（system_admin）直接邀请既有用户成为平台直属成员。
+func InvitePlatformStaff(c *gin.Context) {
+	if !requireSystemAdmin(c) {
+		return
+	}
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	rootOrgID := middleware.GetOrgID(ctx)
+	if rootOrgID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": "无法解析平台根组织"})
+		return
+	}
+	var req struct {
+		Identifier string `json:"identifier"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || strings.TrimSpace(req.Identifier) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "缺少被邀请人手机号/邮箱"})
+		return
+	}
+
+	tenantID := middleware.GetTenantID(ctx)
+	if tenantID == "" {
+		tenantID = "00000000-0000-0000-0000-000000000000" // 平台级：无租户，使用零 UUID 满足非空约束
+	}
+
+	invitee := findUserByIdentifier(db, req.Identifier)
+	inv := models.StaffInvite{
+		TenantID:          tenantID,
+		OrgID:             rootOrgID,
+		SiteID:            nil,
+		Kind:              "platform_staff",
+		Role:              "site_member", // 结构角色 STAFF（O5 复用现有角色）
+		Status:            "pending",
+		Code:              newInviteCode(),
+		ExpiresAt:         time.Now().Add(inviteTTL2114),
+		CreatedBy:         localUserIDOrNil(c, db),
+		InviteeIdentifier: req.Identifier,
+	}
+	if invitee != nil {
+		inv.InviteeUserID = &invitee.ID
+		inv.InviteeName = invitee.Name
+	}
+	if err := db.Create(&inv).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "邀请失败"})
+		return
+	}
+	if invitee != nil {
+		services.Notify(db, tenantID, invitee.ID, "staff_invite", "平台邀请",
+			"邀请你加入平台，是否接受？", inv.ID, "staff_invite", "staff_invite")
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"code": 20100, "data": gin.H{
+		"invite_id": inv.ID, "code": inv.Code, "status": inv.Status,
 	}})
 }

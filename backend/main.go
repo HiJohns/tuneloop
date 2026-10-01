@@ -382,6 +382,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.GET("/admin/platform-staff", middleware.RequireSysPerm(middleware.SysPermUserList), platformStaffHandler.List)
 		authRequired.POST("/admin/platform-staff", middleware.RequireSysPerm(middleware.SysPermUserCreate), platformStaffHandler.Create)
 		authRequired.DELETE("/admin/platform-staff/:id", middleware.RequireSysPerm(middleware.SysPermUserUpdate), platformStaffHandler.Disable)
+		// #2114 平台直属成员邀请（handler 内 requireSystemAdmin 二次校验）
+		authRequired.POST("/admin/platform-staff/invites", handlers.InvitePlatformStaff)
 
 		// Instrument CRUD
 		authRequired.POST("/instruments", middleware.RequireCusPerm("instrument:create"), handlers.CreateInstrument)

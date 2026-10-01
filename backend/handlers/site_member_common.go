@@ -74,6 +74,26 @@ func addMembersCore(c *gin.Context, db *gorm.DB, site models.Site, tenantID, sit
 	userToken := services.ExtractUserToken(c)
 	operatorID := middleware.GetUserID(c.Request.Context())
 
+	// #2114 P1/P2/P3 门控：网点级角色不得直接添加「非本商户成员」（P2 已注册 / P3 未注册），
+	// 需经商户管理员审批（提交邀请申请）。商户管理员 / 系统管理员 / 平台员工不受限。
+	callerRole := middleware.GetBusinessRole(c.Request.Context())
+	adminLevel := callerRole == middleware.BusinessRoleMerchantAdmin ||
+		callerRole == middleware.BusinessRoleSystemAdmin ||
+		callerRole == middleware.BusinessRolePlatformStaff ||
+		site.Type == "transit" // #1938 中转网点为管理侧维护，不适用 #2114 门控
+	needApplyFail := func() *addMemberFail {
+		return &addMemberFail{http.StatusForbidden, gin.H{
+			"code":    40311,
+			"message": "您没有权限邀请该用户，需商户管理员同意，是否提出申请？",
+			"data":    gin.H{"need_apply": true},
+		}}
+	}
+
+	// P3：网点级角色不得直接创建新账户加入网点（须由商户管理员创建/邀请）
+	if len(input.NewUsers) > 0 && !adminLevel {
+		return res, needApplyFail()
+	}
+
 	// Process new_users: create or get users first, then add to processing list
 	if len(input.NewUsers) > 0 {
 		for _, nu := range input.NewUsers {
@@ -182,6 +202,11 @@ func addMembersCore(c *gin.Context, db *gorm.DB, site models.Site, tenantID, sit
 			Count(&count)
 		if count > 0 {
 			continue
+		}
+
+		// #2114 P1：网点级角色只能直接添加「已是本商户成员」的用户（P2/P3 → 申请）
+		if !adminLevel && !isTenantMember(db, tenantID, userID) {
+			return res, needApplyFail()
 		}
 
 		normalizedRole := normalizeRole(role)
