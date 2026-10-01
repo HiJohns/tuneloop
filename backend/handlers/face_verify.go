@@ -65,7 +65,7 @@ func (h *FaceVerifyHandler) Token(c *gin.Context) {
 	// Persist real name and id_card_no to the user record.
 	db := database.GetDB().WithContext(ctx)
 	updates := map[string]interface{}{
-		"real_name": req.Name,
+		"real_name":  req.Name,
 		"id_card_no": req.IdCardNo,
 		"updated_at": time.Now(),
 	}
@@ -121,10 +121,10 @@ func (h *FaceVerifyHandler) Result(c *gin.Context) {
 		db := database.GetDB().WithContext(ctx)
 		now := time.Now()
 		if err := db.Model(&models.User{}).Where("iam_sub = ?", userID).Updates(map[string]interface{}{
-			"face_verified":       true,
-			"face_verified_at":    now,
-			"face_verify_method":  "tencent", // #1807 阶段1: 自动核身来源标记（eid/faceid 通用）
-			"updated_at":          now,
+			"face_verified":      true,
+			"face_verified_at":   now,
+			"face_verify_method": "tencent", // #1807 阶段1: 自动核身来源标记（eid/faceid 通用）
+			"updated_at":         now,
 		}).Error; err != nil {
 			log.Printf("[FaceVerify] persist verification failed for %s: %v", userID, err)
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50004, "message": "failed to save verification result"})

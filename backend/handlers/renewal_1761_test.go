@@ -83,8 +83,8 @@ func TestRenewal_TierStartsWithTier1_AndCentsPricing(t *testing.T) {
 	var resp struct {
 		Code int `json:"code"`
 		Data struct {
-			DailyRate    float64 `json:"daily_rate"`
-			RenewalCost  float64 `json:"renewal_cost"`
+			DailyRate     float64 `json:"daily_rate"`
+			RenewalCost   float64 `json:"renewal_cost"`
 			TierBreakdown []struct {
 				Tier     int     `json:"tier"`
 				Days     int     `json:"days"`

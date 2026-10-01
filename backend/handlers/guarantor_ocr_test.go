@@ -217,10 +217,10 @@ func TestGuarantor_Create_MissingIDPhoto(t *testing.T) {
 
 	// Missing id_photo_front — binding:"required" should reject
 	body, _ := json.Marshal(map[string]string{
-		"name":           "王五",
-		"phone":          "13700137000",
-		"id_card_no":     "110101199001011234",
-		"id_photo_back":  "/uploads/media/back.jpg",
+		"name":             "王五",
+		"phone":            "13700137000",
+		"id_card_no":       "110101199001011234",
+		"id_photo_back":    "/uploads/media/back.jpg",
 		"other_cert_photo": "/uploads/media/other.jpg",
 	})
 	w := httptest.NewRecorder()

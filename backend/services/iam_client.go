@@ -380,6 +380,7 @@ type Organization struct {
 	Name        string  `json:"name"`
 	ParentID    *string `json:"parent_id"`
 	NamespaceID string  `json:"namespace_id"`
+	IsPrimary   bool    `json:"is_primary"`
 	Status      string  `json:"status"`
 	Description string  `json:"description"`
 	CreatedAt   string  `json:"created_at"`
@@ -781,6 +782,57 @@ func (c *IAMClient) GetUser(userID string) (*User, error) {
 		return result.Data, nil
 	}
 	return nil, fmt.Errorf("GetUser: user %s not found in response", userID)
+}
+
+// GetUserOrgIDs (#2114) returns the IAM-authoritative ACTIVE organization ids
+// of a user. beaconiam's GET /users/:id already filters is_active=true, so the
+// returned list only contains active relations ("是否 B 成员" 判定的权威来源）。
+// Response shapes tolerated: {organizations:[...]}, {user:{organizations}}, {data:{organizations}}.
+func (c *IAMClient) GetUserOrgIDs(userID string) ([]string, error) {
+	path := fmt.Sprintf("/api/v1/users/%s", userID)
+	respBody, statusCode, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("GetUserOrgIDs request failed: %w", err)
+	}
+	if statusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("GetUserOrgIDs returned status %d: %w", statusCode, ErrUserNotFound)
+	}
+	if statusCode != http.StatusOK {
+		return nil, fmt.Errorf("GetUserOrgIDs returned status %d: %s", statusCode, string(respBody))
+	}
+	type orgItem struct {
+		ID       string `json:"id"`
+		IsActive *bool  `json:"is_active"`
+	}
+	var result struct {
+		Organizations []orgItem `json:"organizations"`
+		User          struct {
+			Organizations []orgItem `json:"organizations"`
+		} `json:"user"`
+		Data struct {
+			Organizations []orgItem `json:"organizations"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse GetUserOrgIDs response: %w", err)
+	}
+	orgs := result.Organizations
+	if len(orgs) == 0 {
+		orgs = result.User.Organizations
+	}
+	if len(orgs) == 0 {
+		orgs = result.Data.Organizations
+	}
+	ids := make([]string, 0, len(orgs))
+	for _, o := range orgs {
+		if o.IsActive != nil && !*o.IsActive {
+			continue
+		}
+		if o.ID != "" {
+			ids = append(ids, o.ID)
+		}
+	}
+	return ids, nil
 }
 
 // GetUserAuthState (#1735) returns the IAM-authoritative subject validity

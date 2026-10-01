@@ -330,16 +330,16 @@ func TestSettlement_CouponRefundRatio(t *testing.T) {
 
 	order := models.Order{
 		TenantID: tenantID, OrgID: orgID, UserID: userID,
-		InstrumentID: uuid.New().String(),
-		StartDate:    str1743Ptr("2026-08-01"),
-		EndDate:      str1743Ptr("2026-08-20"), // 租期 20 天，原价租金 1000（无押金无物流）
-		LeaseTerm:    20,
-		Status:       models.OrderStatusReturned,
-		ReturnedAt:   timePtr1743(time.Date(2026, 8, 10, 12, 0, 0, 0, time.UTC)), // 实际 10 天
-		Deposit:      0,
-		CashPaid:     models.FromYuan(10), // ENO 1% → 实付 10
-		CouponCode:   str1743Ptr("ENO"),
-		CouponDiscount: models.FromYuan(990), // 原价 1000 − 实付 10
+		InstrumentID:     uuid.New().String(),
+		StartDate:        str1743Ptr("2026-08-01"),
+		EndDate:          str1743Ptr("2026-08-20"), // 租期 20 天，原价租金 1000（无押金无物流）
+		LeaseTerm:        20,
+		Status:           models.OrderStatusReturned,
+		ReturnedAt:       timePtr1743(time.Date(2026, 8, 10, 12, 0, 0, 0, time.UTC)), // 实际 10 天
+		Deposit:          0,
+		CashPaid:         models.FromYuan(10), // ENO 1% → 实付 10
+		CouponCode:       str1743Ptr("ENO"),
+		CouponDiscount:   models.FromYuan(990), // 原价 1000 − 实付 10
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":5000,"rent_days":20,"pricing_tiers":[{"days_max":20,"discount_percent":0,"daily_rate":5000}],"tier_segments":[{"tier":1,"days":20,"rate":5000,"discount":1,"subtotal":100000}],"total_amount":100000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)

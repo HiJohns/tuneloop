@@ -86,4 +86,3 @@ func TestResolveBaseDailyRentCents(t *testing.T) {
 		t.Errorf("indeterminate: got %v want 50", got)
 	}
 }
-

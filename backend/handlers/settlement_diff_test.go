@@ -28,7 +28,7 @@ func TestRefundDiff_PointsOverCap(t *testing.T) {
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
 		Username: "diffover", Status: "active", MembershipLevelID: intPtr(1),
-			}).Error)
+	}).Error)
 
 	// R0 = 3000 (cash 2000 + gift 1000, deposit 500 excluded from rent formula)
 	// Actual rent R1 = 2800 (28 days × 100).
@@ -83,7 +83,7 @@ func TestRefundDiff_PointsWithinCap(t *testing.T) {
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
 		Username: "diffwithin", Status: "active", MembershipLevelID: intPtr(1),
-			}).Error)
+	}).Error)
 
 	returnedAt := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
 	order := models.Order{
@@ -172,7 +172,7 @@ func TestRefundDiff_RebatePoints(t *testing.T) {
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
 		Username: "diffrebate", Status: "active", MembershipLevelID: intPtr(1),
-			}).Error)
+	}).Error)
 
 	returnedAt := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
 	order := models.Order{
@@ -217,7 +217,7 @@ func TestConfirmSettlement_ClosesOrder(t *testing.T) {
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
 		Username: "diffclose", Status: "active", MembershipLevelID: intPtr(1),
-			}).Error)
+	}).Error)
 
 	returnedAt := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
 	order := models.Order{

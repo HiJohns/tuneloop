@@ -185,6 +185,33 @@ func addMembersCore(c *gin.Context, db *gorm.DB, site models.Site, tenantID, sit
 		}
 	}
 
+	// #2114 P1 门控辅助：判定「是否本商户成员」以 IAM 关系为权威（计划 §2.2；本地表仅展示缓存）。
+	// 祖先链（C→…→B，排除平台根 is_primary）整链只解析一次，避免循环内重复 IAM 调用。
+	var ancestorOrgs map[string]bool
+	var ancestorErr error
+	loadAncestors := func() (map[string]bool, error) {
+		if ancestorOrgs == nil && ancestorErr == nil {
+			ancestorOrgs, ancestorErr = siteAncestorOrgs(iamClient, site.OrgID)
+		}
+		return ancestorOrgs, ancestorErr
+	}
+	p1IsTenantMember := func(userID string) (bool, error) {
+		userOrgs, err := iamClient.GetUserOrgIDs(resolveIAMSub(db, userID))
+		if err != nil {
+			return false, err
+		}
+		ancestors, err := loadAncestors()
+		if err != nil {
+			return false, err
+		}
+		for _, o := range userOrgs {
+			if ancestors[o] {
+				return true, nil
+			}
+		}
+		return false, nil
+	}
+
 	for _, userEntry := range usersToProcess {
 		userID, ok := userEntry["user_id"].(string)
 		if !ok || userID == "" {
@@ -204,9 +231,21 @@ func addMembersCore(c *gin.Context, db *gorm.DB, site models.Site, tenantID, sit
 			continue
 		}
 
-		// #2114 P1：网点级角色只能直接添加「已是本商户成员」的用户（P2/P3 → 申请）
-		if !adminLevel && !isTenantMember(db, tenantID, userID) {
-			return res, needApplyFail()
+		// #2114 P1：网点级角色只能直接添加「已是本商户成员」的用户（P2/P3 → 申请）。
+		// 判定以 IAM B 关系 active 为权威（计划 §2.2；本地表仅展示缓存）。
+		// IAM 校验失败 → 显式 500（不静默吞错、不静默回退本地缓存）。
+		if !adminLevel {
+			isMember, err := p1IsTenantMember(userID)
+			if err != nil {
+				log.Printf("[AddMember] IAM membership check failed for user %s: %v", userID, err)
+				return res, &addMemberFail{http.StatusInternalServerError, gin.H{
+					"code":    50000,
+					"message": "无法校验成员关系，请重试",
+				}}
+			}
+			if !isMember {
+				return res, needApplyFail()
+			}
 		}
 
 		normalizedRole := normalizeRole(role)

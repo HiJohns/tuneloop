@@ -53,9 +53,9 @@ func TestOrder_EmptyOrderNo_NoConflict(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		require.NoError(t, db.Create(&models.Order{
 			ID: uuid.New().String(), TenantID: tenantID, OrgID: tenantID,
-			UserID: "11111111-1111-4111-8111-1111111111aa",
+			UserID:       "11111111-1111-4111-8111-1111111111aa",
 			InstrumentID: "22222222-2222-4222-8222-2222222222bb",
-			Status: "reserved",
+			Status:       "reserved",
 		}).Error, "第 %d 条空串 OrderNo 直插不应冲突", i+1)
 	}
 }

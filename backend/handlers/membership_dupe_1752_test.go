@@ -94,13 +94,13 @@ func TestPrepayMembership_ActivatedLevel_40002(t *testing.T) {
 
 	levelID := 1
 	user := models.User{
-		ID:       uuid.New().String(),
-		IAMSub:   "6d1e2c3a-0000-4000-8000-0000000000f2",
-		TenantID: "00000000-0000-0000-0000-000000000000",
-		OrgID:    "00000000-0000-0000-0000-000000000000",
-		Name:     "ActivatedMember",
-		Role:     "USER",
-		Status:   "active",
+		ID:                uuid.New().String(),
+		IAMSub:            "6d1e2c3a-0000-4000-8000-0000000000f2",
+		TenantID:          "00000000-0000-0000-0000-000000000000",
+		OrgID:             "00000000-0000-0000-0000-000000000000",
+		Name:              "ActivatedMember",
+		Role:              "USER",
+		Status:            "active",
 		MembershipLevelID: &levelID,
 	}
 	require.NoError(t, db.Create(&user).Error)

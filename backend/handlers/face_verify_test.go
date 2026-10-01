@@ -255,5 +255,3 @@ func TestUpdateCurrentUser_IdCardNoAcceptance(t *testing.T) {
 	// Should NOT get 400 (validation error); 409 from IAM is acceptable
 	require.NotEqual(t, http.StatusBadRequest, w.Code)
 }
-
-

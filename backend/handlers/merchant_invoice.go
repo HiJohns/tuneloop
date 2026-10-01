@@ -62,8 +62,8 @@ func (h *MerchantInvoiceHandler) ListApplications(c *gin.Context) {
 
 	type appResp struct {
 		models.InvoiceApplication
-		CustomerName string         `json:"customer_name"`
-		Orders       []orderDetail  `json:"orders"`
+		CustomerName string        `json:"customer_name"`
+		Orders       []orderDetail `json:"orders"`
 	}
 
 	var result []appResp
@@ -128,9 +128,9 @@ func (h *MerchantInvoiceHandler) Reply(c *gin.Context) {
 
 	now := time.Now()
 	updates := map[string]interface{}{
-		"status":      "replied",
-		"replied_at":  now,
-		"updated_at":  now,
+		"status":     "replied",
+		"replied_at": now,
+		"updated_at": now,
 	}
 	if req.Reply != "" {
 		updates["reply"] = req.Reply

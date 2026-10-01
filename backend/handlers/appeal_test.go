@@ -8,16 +8,16 @@ import (
 	"testing"
 	"time"
 
-	"tuneloop-backend/handlers/testfixtures"
-	"tuneloop-backend/testutil"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/testutil"
 )
 
 func setupAppealTables(t *testing.T, db *gorm.DB) error {
@@ -120,13 +120,13 @@ func TestAgreeDamage_CustomerNoTenant(t *testing.T) {
 		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID, UserID: userID,
 		InstrumentID: instrumentID,
 		StartDate:    strPtr("2026-08-01"), EndDate: strPtr("2026-08-30"),
-		LeaseTerm:     30,
-		Status:        models.OrderStatusPendingDamageResponse,
-		DeliveredAt:   &deliveredAt,
-		ReturnedAt:    &returnedAt,
-		Deposit:       models.FromYuan(500),
-		CashPaid:      models.FromYuan(3500), // 租金 3000 + 押金 500
-		ShippingFee:   0,
+		LeaseTerm:        30,
+		Status:           models.OrderStatusPendingDamageResponse,
+		DeliveredAt:      &deliveredAt,
+		ReturnedAt:       &returnedAt,
+		Deposit:          models.FromYuan(500),
+		CashPaid:         models.FromYuan(3500), // 租金 3000 + 押金 500
+		ShippingFee:      0,
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)

@@ -38,9 +38,11 @@ func localUserIDOrNil(c *gin.Context, db *gorm.DB) *string {
 	return nil
 }
 
-// isTenantMember 判断用户是否已是本商户成员（网点成员 / 商户成员 / 维修师傅任一）。
-// #2114：网点管理员只能直接添加已是本商户成员的用户（P1）。
-func isTenantMember(db *gorm.DB, tenantID, userID string) bool {
+// hasLocalTenantMembership 检查本地缓存表（site_members / merchant_members /
+// technician_profiles）是否仍有该用户的成员行。**仅用于本地缓存行的软删决策**
+// （§8.1：users 软删交叉污染）——不用于「是否本商户成员」业务判定（那以
+// isIAMTenantMember 的 IAM 关系为准，计划 §2.2）。
+func hasLocalTenantMembership(db *gorm.DB, tenantID, userID string) bool {
 	var n int64
 	db.Model(&models.SiteMember{}).Where("tenant_id = ? AND user_id = ?", tenantID, userID).Count(&n)
 	if n > 0 {
@@ -52,6 +54,29 @@ func isTenantMember(db *gorm.DB, tenantID, userID string) bool {
 	}
 	db.Model(&models.TechnicianProfile{}).Where("tenant_id = ? AND user_id = ?", tenantID, userID).Count(&n)
 	return n > 0
+}
+
+// siteAncestorOrgs 返回网点组织（C）自身的祖先组织集合：{C, …, 商户根 B}，
+// **排除** namespace 平台根（is_primary，所有用户级联持有 A:member，参与交集会全员命中）。
+// #2114：判定「是否本商户成员」以 IAM 关系为准（计划 §2.2），本地表仅展示缓存。
+func siteAncestorOrgs(iamClient *services.IAMClient, siteOrgID string) (map[string]bool, error) {
+	out := map[string]bool{}
+	cur := siteOrgID
+	for i := 0; i < 16 && cur != ""; i++ {
+		org, err := iamClient.GetOrganization(cur)
+		if err != nil {
+			return nil, err
+		}
+		if org.IsPrimary {
+			break
+		}
+		out[cur] = true
+		if org.ParentID == nil || *org.ParentID == "" {
+			break
+		}
+		cur = *org.ParentID
+	}
+	return out, nil
 }
 
 // resolveIAMSub 将本地 users.id 解析为 IAM sub（#2114：管理员代建用户 local id == IAM id，

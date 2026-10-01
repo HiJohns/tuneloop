@@ -289,7 +289,7 @@ func (h *SiteMemberHandler) RemoveMember(c *gin.Context) {
 
 	// #2114 各级管各级：仅当该用户在本商户「无任何成员身份」（网点/商户/师傅）
 	// 时才软删缓存 users 行，避免网点解绑误删仍有商户身份的用户的 users 行。
-	if !isTenantMember(db, tenantID, userID) {
+	if !hasLocalTenantMembership(db, tenantID, userID) {
 		now := time.Now()
 		if err := db.Model(&models.User{}).
 			Where("id = ? AND tenant_id = ?", userID, tenantID).
