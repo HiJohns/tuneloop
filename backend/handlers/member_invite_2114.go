@@ -38,7 +38,7 @@ func localUserIDOrNil(c *gin.Context, db *gorm.DB) *string {
 	return nil
 }
 
-// isTenantMember 判断用户是否已是本商户成员（任意网点成员 或 商户成员行）。
+// isTenantMember 判断用户是否已是本商户成员（网点成员 / 商户成员 / 维修师傅任一）。
 // #2114：网点管理员只能直接添加已是本商户成员的用户（P1）。
 func isTenantMember(db *gorm.DB, tenantID, userID string) bool {
 	var n int64
@@ -46,9 +46,22 @@ func isTenantMember(db *gorm.DB, tenantID, userID string) bool {
 	if n > 0 {
 		return true
 	}
-	var m int64
-	db.Model(&models.MerchantMember{}).Where("tenant_id = ? AND user_id = ?", tenantID, userID).Count(&m)
-	return m > 0
+	db.Model(&models.MerchantMember{}).Where("tenant_id = ? AND user_id = ?", tenantID, userID).Count(&n)
+	if n > 0 {
+		return true
+	}
+	db.Model(&models.TechnicianProfile{}).Where("tenant_id = ? AND user_id = ?", tenantID, userID).Count(&n)
+	return n > 0
+}
+
+// resolveIAMSub 将本地 users.id 解析为 IAM sub（#2114：管理员代建用户 local id == IAM id，
+// 自注册用户不同）。查不到时兜底返回原值。
+func resolveIAMSub(db *gorm.DB, localUserID string) string {
+	var u models.User
+	if err := db.Select("iam_sub").Where("id = ?", localUserID).First(&u).Error; err == nil && u.IAMSub != "" {
+		return u.IAMSub
+	}
+	return localUserID
 }
 
 // ApplySiteMembership POST /api/sites/:id/members/apply（#2114）

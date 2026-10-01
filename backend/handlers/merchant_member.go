@@ -499,11 +499,18 @@ func (h *MerchantMemberHandler) RemoveMember(c *gin.Context) {
 		}
 	}
 
-	iamClient := services.NewIAMClient()
-	operatorID := middleware.GetUserID(c.Request.Context())
-	memberToken := services.ExtractUserToken(c)
-	if err := iamClient.UnbindUserFromOrganizationWithToken(memberToken, userID, tenantID, operatorID); err != nil {
-		log.Printf("[MerchantRemoveMember] IAM UnbindUser failed for user %s from org %s: %v", userID, tenantID, err)
+	// #2114：解绑商户关系用 merchant.OrgID（≠ tenant_id，实测二者不同），
+	// 传 IAM sub（非本地 id），失败显式返回（不静默）。绑定侧同样用 merchant.OrgID。
+	var merchant models.Merchant
+	if err := db.Where("id = ? AND tenant_id = ?", merchantID, tenantID).First(&merchant).Error; err == nil && merchant.OrgID != "" {
+		iamClient := services.NewIAMClient()
+		operatorID := middleware.GetUserID(c.Request.Context())
+		memberToken := services.ExtractUserToken(c)
+		iamSub := resolveIAMSub(db, userID)
+		if err := iamClient.UnbindUserFromOrganizationWithToken(memberToken, iamSub, merchant.OrgID, operatorID); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "解除成员失败（IAM）：" + err.Error()})
+			return
+		}
 	}
 
 	result := db.Where("tenant_id = ? AND merchant_id = ? AND user_id = ?", tenantID, merchantID, userID).
@@ -525,13 +532,8 @@ func (h *MerchantMemberHandler) RemoveMember(c *gin.Context) {
 		return
 	}
 
-	// Local cache hygiene: if the user has no remaining merchant memberships
-	// in this tenant, soft-delete the cached users row.
-	var remaining int64
-	db.Model(&models.MerchantMember{}).
-		Where("tenant_id = ? AND user_id = ?", tenantID, userID).
-		Count(&remaining)
-	if remaining == 0 {
+	// #2114：仅当该用户在本商户「无任何成员身份」（网点/商户/师傅）时才软删缓存 users 行。
+	if !isTenantMember(db, tenantID, userID) {
 		now := time.Now()
 		if err := db.Model(&models.User{}).
 			Where("id = ? AND tenant_id = ?", userID, tenantID).

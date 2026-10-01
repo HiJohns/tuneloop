@@ -260,8 +260,11 @@ func (h *SiteMemberHandler) RemoveMember(c *gin.Context) {
 		iamClient := services.NewIAMClient()
 		operatorID := middleware.GetUserID(c.Request.Context())
 		memberToken := services.ExtractUserToken(c)
-		if err := iamClient.UnbindUserFromOrganizationWithToken(memberToken, userID, site.OrgID, operatorID); err != nil {
-			log.Printf("[RemoveMember] IAM UnbindUser failed for user %s from org %s: %v", userID, site.OrgID, err)
+		// #2114：解绑传 IAM sub（而非本地 users.id）；失败显式返回（不静默吞错）
+		iamSub := resolveIAMSub(db, userID)
+		if err := iamClient.UnbindUserFromOrganizationWithToken(memberToken, iamSub, site.OrgID, operatorID); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "解除成员失败（IAM）：" + err.Error()})
+			return
 		}
 	}
 
@@ -284,14 +287,9 @@ func (h *SiteMemberHandler) RemoveMember(c *gin.Context) {
 		return
 	}
 
-	// Local cache hygiene: if the user has no remaining site memberships in
-	// this tenant, soft-delete the cached users row so stale data (e.g. an
-	// outdated email) is not reused when the member is re-added later.
-	var remaining int64
-	db.Model(&models.SiteMember{}).
-		Where("tenant_id = ? AND user_id = ?", tenantID, userID).
-		Count(&remaining)
-	if remaining == 0 {
+	// #2114 各级管各级：仅当该用户在本商户「无任何成员身份」（网点/商户/师傅）
+	// 时才软删缓存 users 行，避免网点解绑误删仍有商户身份的用户的 users 行。
+	if !isTenantMember(db, tenantID, userID) {
 		now := time.Now()
 		if err := db.Model(&models.User{}).
 			Where("id = ? AND tenant_id = ?", userID, tenantID).
