@@ -20,6 +20,7 @@ var allTables = []interface{}{
 	&models.Site{},
 	&models.SiteMember{},
 	&models.MerchantMember{}, // #2064: 账户管理 personnel_type 员工判定依赖
+	&models.StaffInvite{},    // #2114: 邀请与成员管理测试
 	&models.Instrument{},
 	&models.Order{},
 	&models.Notification{},

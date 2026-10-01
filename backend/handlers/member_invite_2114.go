@@ -138,7 +138,7 @@ func ApplySiteMembership(c *gin.Context) {
 	content := fmt.Sprintf("网点「%s」申请邀请 %s 加入（角色：%s）", site.Name, req.Identifier, inv.Role)
 	actionData := fmt.Sprintf(`{"invite_id":%q}`, inv.ID)
 	services.NotifyMerchantAdmins(db, tenantID, "invite_application", "新的成员邀请申请",
-		content, inv.ID, "staff_invite", "open_invite_management", &actionData)
+		content, inv.ID, "staff_invite", "invite_manage", &actionData)
 
 	c.JSON(http.StatusCreated, gin.H{"code": 20100, "data": gin.H{"invite_id": inv.ID, "status": inv.Status}})
 }
