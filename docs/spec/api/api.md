@@ -240,6 +240,26 @@ Body：`{ role: "<主角色>", roles: ["<角色>", ...] }`（`roles` 可选；�
 - **#2052 通知邀请**（不发码）：由管理员对既有账户发起，被邀请人在「系统消息」（`type=staff_invite`，`ref_id=邀请id`）点「接受/拒绝」。接受时再次校验身份归属，防止他人顶替
 - 表：`staff_invites`（migration `20260922001`；#2052 增列 `invitee_user_id`，migration `20260924001`）
 
+#### 邀请与成员申请（#2114，各级管各级）
+
+> **前置**：beaconiam#491（各级解绑 / customer 挂载 / bind 改角色 / 删用户收紧 / 登录上下文统一）。
+
+| 端点 | 组 | 说明 |
+|------|----|------|
+| `POST /api/sites/:id/members/apply` | `site_admin` | 网点管理员为**非本商户成员**（P2/P3）提交加入申请 `{identifier, role, note}` → 20100；已是本商户成员应改用直接添加 |
+| `GET /api/admin/invites?status=&site_id=` | `member:invite` | 邀请管理列表（提交网点 / 对象 / 邮件 / 职位 / 时间 / 状态） |
+| `GET /api/admin/invites/pending-count` | `member:invite` | 待审批数（人员管理徽标） |
+| `POST /api/admin/invites/:id/approve` | `member:invite` | 商户管理员同意 → 发邀请（P3 在被邀请人接受时**自注册**建号） |
+| `POST /api/admin/invites/:id/reject` | `member:invite` | 商户管理员拒绝（带原因）→ 通知申请人 |
+| `POST /api/admin/merchants/:id/invites` | `member:invite` | 直接邀请加入商户 / 商户直属员工 |
+| `POST /api/admin/platform-staff/invites` | `system_admin` | 平台直属成员邀请 |
+
+- **状态机**：`pending_approval →(商户同意) pending →(被邀请人接受) accepted`；`rejected`（商户或被邀请人）；`expired`（72h）；`cancelled`
+- **权限**：`member:invite`（cus_perm bit 30，商户管理员默认，可授予商户直属 staff）；申请提交为网点管理员
+- **各级管各级**：网点解绑仅解绑本级；商户「开除」= 解绑商户级并级联解绑其全部网点；删除用户仅系统管理员
+- **P3 未注册**：接受邀请时自注册建号，再建立 `A:member(+customer)` / `B:member` / `C:{role}`
+- 表：`staff_invites`（#2114 增列 `kind`、`invitee_identifier`、`requested_by`、`approved_by`、`reject_reason`、`status` 增 `pending_approval/expired/cancelled`）
+
 #### 身份前置与待提交订单契约（#2037 / #2039 / #2040 / #2041）
 
 **证件上传**（`POST /api/user/id-photo`、admin 版）：`side=other` 时若 `id_photo_front`/`id_photo_back` 缺失 → `40902` + `data.reasons=["no_id_photo"]`（message：请先上传身份证正反面）

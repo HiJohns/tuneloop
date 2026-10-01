@@ -71,7 +71,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 
 ### 3.1 权限码定义
 
-> 来源: `backend/services/permission_registry.go`，30 个业务权限（bits 0-29）
+> 来源: `backend/services/permission_registry.go`，31 个业务权限（bits 0-30）
 
 | Bit | 代码 | Name | 域 | 说明 |
 |-----|------|------|-----|------|
@@ -105,6 +105,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 27 | `repair:start` | 开始维修 | 维修 | 启动维修流程/指派师傅 |
 | 28 | `repair:complete` | 完成维修 | 维修 | 标记维修完成 |
 | 29 | `repair:accept` | 验收维修 | 维修 | 验收维修结果 |
+| 30 | `member:invite` | 邀请成员 | 成员 | 邀请非本商户成员加入商户 + 审批网点提交的邀请申请（#2114；商户管理员默认，可授予商户直属 staff） |
 
 ### 3.2 旧码→新码迁移映射
 
@@ -159,7 +160,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 角色 | 功能角色代码 | cus_perm 数量 | 分配的权限 |
 |------|------------|-------------|----------|
 | 命名空间管理员 | namespace_admin | 7 | category:manage, attribute:manage, banner:manage, rebate:manage, promo:manage, points:manage, membership:manage |
-| 商户管理员 | merchant_admin | 20 | 乐器 CRUD+price+price_config+maintain, 媒体 3, 订单 CRUD, 申诉 3, audit_log, promo:manage, points:manage |
+| 商户管理员 | merchant_admin | 21 | 乐器 CRUD+price+price_config+maintain, 媒体 3, 订单 CRUD, 申诉 3, audit_log, promo:manage, points:manage, **member:invite（#2114）** |
 | 网点管理员 | site_admin | 18 | 乐器 CRUD+price+maintain, 媒体 3, 订单 3 (无 create), appeal:read/handle, audit_log, promo:override, points:manage |
 | 网点员工 | site_member | 11 | 乐器 CRUD+maintain, 媒体 upload/delete, 订单 3 (无 cancel), audit_log |
 | 维修工程师 | repair_technician | 2 | instrument:read, instrument:maintain |
