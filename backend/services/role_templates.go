@@ -37,6 +37,7 @@ var AllRoleTemplates = map[string]RoleTemplate{
 			"appeal:create", "appeal:read", "appeal:handle",
 			"audit_log:read",
 			"promo:manage", "points:manage",
+			"member:invite", // #2114 邀请非本商户成员加入 + 审批网点申请
 		},
 		Description: "商户级管理权限，全部业务权限",
 	},

@@ -73,7 +73,7 @@ func TestAcceptInvite_Guards(t *testing.T) {
 		code := randCode("exp")
 		inv := models.StaffInvite{
 			ID: uuid.New().String(), TenantID: uuid.New().String(), OrgID: uuid.New().String(),
-			SiteID: uuid.New().String(), Role: "site_member", Code: code,
+			SiteID: strPtr2114(uuid.New().String()), Role: "site_member", Code: code,
 			Status: "pending", ExpiresAt: time.Now().Add(-time.Hour),
 		}
 		require.NoError(t, db.Create(&inv).Error)
@@ -84,7 +84,7 @@ func TestAcceptInvite_Guards(t *testing.T) {
 		code := randCode("used")
 		inv := models.StaffInvite{
 			ID: uuid.New().String(), TenantID: uuid.New().String(), OrgID: uuid.New().String(),
-			SiteID: uuid.New().String(), Role: "site_member", Code: code,
+			SiteID: strPtr2114(uuid.New().String()), Role: "site_member", Code: code,
 			Status: "accepted", ExpiresAt: time.Now().Add(time.Hour),
 		}
 		require.NoError(t, db.Create(&inv).Error)
@@ -97,7 +97,7 @@ func TestAcceptInvite_Guards(t *testing.T) {
 		code := randCode("nil")
 		inv := models.StaffInvite{
 			ID: uuid.New().String(), TenantID: uuid.New().String(), OrgID: uuid.New().String(),
-			SiteID: uuid.New().String(), Role: "site_member", Code: code,
+			SiteID: strPtr2114(uuid.New().String()), Role: "site_member", Code: code,
 			Status: "pending", ExpiresAt: time.Now().Add(time.Hour),
 		}
 		require.NoError(t, db.Create(&inv).Error)
@@ -143,7 +143,7 @@ func TestInvitation_Guards(t *testing.T) {
 	mkInvite := func(status string, ttl time.Duration) models.StaffInvite {
 		inv := models.StaffInvite{
 			ID: uuid.New().String(), TenantID: uuid.New().String(), OrgID: uuid.New().String(),
-			SiteID: uuid.New().String(), Role: "site_member", Code: uuid.New().String()[:16],
+			SiteID: strPtr2114(uuid.New().String()), Role: "site_member", Code: uuid.New().String()[:16],
 			Status: status, ExpiresAt: time.Now().Add(ttl), InviteeUserID: &inviteeLocal,
 		}
 		require.NoError(t, db.Create(&inv).Error)
@@ -186,3 +186,5 @@ func TestInvitation_Guards(t *testing.T) {
 		assert.Equal(t, "rejected", stored.Status)
 	})
 }
+
+func strPtr2114(s string) *string { return &s }

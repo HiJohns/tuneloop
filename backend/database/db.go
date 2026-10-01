@@ -392,6 +392,11 @@ var defaultMigrationArtifacts = []migrationArtifact{
 	{20260927001, "repair_requests", "quote_material_cents", "维修报价料钱列（#2085）"},
 	{20260928001, "repair_requests", "quote_decline_reason", "拒绝报价理由列（#2093）"},
 	{20260928001, "repair_requests", "quote_decline_note", "拒绝报价备注列（#2093）"},
+	{20261001001, "staff_invites", "kind", "邀请类型列（#2114）"},
+	{20261001001, "staff_invites", "requested_by", "邀请申请发起人列（#2114）"},
+	{20261001001, "staff_invites", "approved_by", "邀请申请审批人列（#2114）"},
+	{20261001001, "staff_invites", "reject_reason", "拒绝原因列（#2114）"},
+	{20261001001, "staff_invites", "invitee_identifier", "未注册被邀请人标识列（#2114）"},
 }
 
 // verifyArtifacts 纯逻辑（便于单测）：对 version ≥ a.Version 的工件断言存在。

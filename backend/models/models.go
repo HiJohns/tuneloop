@@ -1020,18 +1020,31 @@ type StaffInvite struct {
 	ID       string `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	TenantID string `gorm:"type:uuid;index;not null" json:"tenant_id"`
 	OrgID    string `gorm:"type:uuid;not null" json:"org_id"`
-	SiteID   string `gorm:"type:uuid;index" json:"site_id"`
+	// SiteID 网点范围；商户/平台级邀请为 NULL（#2114）
+	SiteID *string `gorm:"type:uuid;index" json:"site_id,omitempty"`
+	// Kind 邀请类型：site_member | merchant_member | merchant_staff | platform_staff（#2114）
+	Kind string `gorm:"type:varchar(20);default:'site_member'" json:"kind"`
 	// InviteeUserID 被邀请人（既有用户）本地 ID；#2052 邀请通知据此校验「接受人=被邀请人」
-	InviteeUserID *string    `gorm:"type:uuid;index" json:"invitee_user_id,omitempty"`
-	Role          string     `gorm:"type:varchar(20);not null" json:"role"`
-	Code          string     `gorm:"type:varchar(32);not null;uniqueIndex" json:"code"`
-	CreatedBy     *string    `gorm:"type:uuid" json:"created_by,omitempty"`
-	ExpiresAt     time.Time  `json:"expires_at"`
-	Status        string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
-	AcceptedBy    *string    `gorm:"type:uuid" json:"accepted_by,omitempty"`
-	AcceptedAt    *time.Time `json:"accepted_at"`
-	CreatedAt     time.Time  `json:"created_at"`
-	UpdatedAt     time.Time  `json:"updated_at"`
+	InviteeUserID *string `gorm:"type:uuid;index" json:"invitee_user_id,omitempty"`
+	// InviteeIdentifier 未注册被邀请人（P3）的手机/邮箱（#2114）
+	InviteeIdentifier string  `gorm:"type:varchar(255)" json:"invitee_identifier,omitempty"`
+	InviteeName       string  `gorm:"type:varchar(255)" json:"invitee_name,omitempty"`
+	Role              string  `gorm:"type:varchar(20);not null" json:"role"`
+	Code              string  `gorm:"type:varchar(32);not null;uniqueIndex" json:"code"`
+	CreatedBy         *string `gorm:"type:uuid" json:"created_by,omitempty"`
+	// RequestedBy 网点管理员提交申请的人（#2114，status=pending_approval）
+	RequestedBy *string `gorm:"type:uuid;index" json:"requested_by,omitempty"`
+	RequestNote string  `gorm:"type:text" json:"request_note,omitempty"`
+	// ApprovedBy/ApprovedAt 商户管理员审批留痕（#2114）
+	ApprovedBy   *string    `gorm:"type:uuid" json:"approved_by,omitempty"`
+	ApprovedAt   *time.Time `json:"approved_at,omitempty"`
+	RejectReason string     `gorm:"type:text" json:"reject_reason,omitempty"`
+	ExpiresAt    time.Time  `json:"expires_at"`
+	Status       string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
+	AcceptedBy   *string    `gorm:"type:uuid" json:"accepted_by,omitempty"`
+	AcceptedAt   *time.Time `json:"accepted_at"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
 }
 
 // PendingOrder 缓存未实名用户被拦截时的下单表单，实名通过后可回跳继续提交

@@ -117,6 +117,7 @@ func getTuneLoopPermissions() []PermissionDef {
 		{Code: "repair:start", Name: "开始维修", BitCode: 27},
 		{Code: "repair:complete", Name: "完成维修", BitCode: 28},
 		{Code: "repair:accept", Name: "验收维修", BitCode: 29},
+		{Code: "member:invite", Name: "邀请成员", BitCode: 30},
 	}
 }
 

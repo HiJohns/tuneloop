@@ -451,6 +451,13 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.PUT("/admin/merchants/:id/members/:uid", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantMemberHandler.UpdateMemberRole)
 		authRequired.DELETE("/admin/merchants/:id/members/:uid", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantMemberHandler.RemoveMember)
 
+		// #2114 邀请与成员管理层级：申请 / 审批 / 直接邀请（member:invite）
+		authRequired.GET("/admin/invites", middleware.RequireCusPerm("member:invite"), handlers.ListMerchantInvites)
+		authRequired.GET("/admin/invites/pending-count", middleware.RequireCusPerm("member:invite"), handlers.MerchantInvitesPendingCount)
+		authRequired.POST("/admin/invites/:id/approve", middleware.RequireCusPerm("member:invite"), handlers.ApproveInvite)
+		authRequired.POST("/admin/invites/:id/reject", middleware.RequireCusPerm("member:invite"), handlers.RejectInvite)
+		authRequired.POST("/admin/merchants/:id/invites", middleware.RequireCusPerm("member:invite"), handlers.InviteToMerchant)
+
 		// Platform user management (#1545): list/detail/edit/export users
 		authRequired.POST("/admin/users/:id/avatar", middleware.RequireSysPerm(middleware.SysPermUserUpdate), handlers.AdminUploadUserAvatar) // #2073 管理员为用户上传头像
 		authRequired.GET("/admin/user-management", middleware.RequireSysPerm(middleware.SysPermTenantList), userManagementHandler.List)
@@ -475,6 +482,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			siteRequired.GET("/sites/tree", siteHandler.GetSiteTree)
 			siteRequired.GET("/sites/:id/members", siteMemberHandler.ListMembers)
 			siteRequired.POST("/sites/:id/members", siteMemberHandler.AddMember)
+			// #2114 网点申请非本商户成员加入（P2 已注册 / P3 未注册）→ 交商户管理员审批
+			siteRequired.POST("/sites/:id/members/apply", handlers.ApplySiteMembership)
 			// #2031 邀请制自助加入：管理员只发邀请码，本人登录后接受（一人一号）
 			siteRequired.POST("/sites/:id/invites", handlers.CreateSiteInvite)
 			siteRequired.GET("/sites/:id/invites", handlers.ListSiteInvites)

@@ -70,7 +70,7 @@ func CreateSiteInvite(c *gin.Context) {
 	invite := models.StaffInvite{
 		TenantID:  tenantID,
 		OrgID:     site.OrgID,
-		SiteID:    siteID,
+		SiteID:    &siteID,
 		Role:      normalizeRole(req.Role),
 		Code:      newInviteCode(),
 		CreatedBy: createdBy,
@@ -170,7 +170,7 @@ func AcceptInvite(c *gin.Context) {
 	db.Model(&models.SiteMember{}).
 		Where("tenant_id = ? AND site_id = ? AND user_id = ?", invite.TenantID, invite.SiteID, user.ID).
 		Count(&existing)
-	if existing == 0 && invite.SiteID != "" {
+	if existing == 0 && invite.SiteID != nil {
 		iamRole := toIAMRole(invite.Role)
 		if err := services.NewIAMClient().BindUserToOrganization(user.IAMSub, invite.OrgID, iamRole, user.IAMSub); err != nil {
 			log.Printf("[AcceptInvite] IAM bind failed user=%s org=%s: %v", user.ID, invite.OrgID, err)
@@ -179,12 +179,12 @@ func AcceptInvite(c *gin.Context) {
 		}
 		if err := db.Create(&models.SiteMember{
 			TenantID: invite.TenantID,
-			SiteID:   invite.SiteID,
+			SiteID:   *invite.SiteID,
 			UserID:   user.ID,
 			Role:     invite.Role,
 			Roles:    []string{invite.Role}, // #2034
 		}).Error; err != nil {
-			log.Printf("[AcceptInvite] local site_member create failed user=%s site=%s: %v", user.ID, invite.SiteID, err)
+			log.Printf("[AcceptInvite] local site_member create failed user=%s site=%s: %v", user.ID, strOrEmpty(invite.SiteID), err)
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "加入失败，请稍后重试"})
 			return
 		}
@@ -210,7 +210,7 @@ func bindInvitee(db *gorm.DB, invite *models.StaffInvite, user *models.User) err
 	db.Model(&models.SiteMember{}).
 		Where("tenant_id = ? AND site_id = ? AND user_id = ?", invite.TenantID, invite.SiteID, user.ID).
 		Count(&existing)
-	if existing > 0 || invite.SiteID == "" {
+	if existing > 0 || invite.SiteID == nil {
 		return nil // 已是成员 → 幂等
 	}
 	iamRole := toIAMRole(invite.Role)
@@ -219,7 +219,7 @@ func bindInvitee(db *gorm.DB, invite *models.StaffInvite, user *models.User) err
 	}
 	if err := db.Create(&models.SiteMember{
 		TenantID: invite.TenantID,
-		SiteID:   invite.SiteID,
+		SiteID:   *invite.SiteID,
 		UserID:   user.ID,
 		Role:     invite.Role,
 		Roles:    []string{invite.Role}, // #2034
@@ -309,7 +309,7 @@ func SendStaffInvite(c *gin.Context) {
 	invite := models.StaffInvite{
 		TenantID:      tenantID,
 		OrgID:         site.OrgID,
-		SiteID:        siteID,
+		SiteID:        &siteID,
 		InviteeUserID: &invitee.ID,
 		Role:          role,
 		Code:          newInviteCode(),
@@ -372,7 +372,7 @@ func AcceptInvitation(c *gin.Context) {
 		return
 	}
 	if err := bindInvitee(db, invite, &user); err != nil {
-		log.Printf("[AcceptInvitation] bind failed user=%s site=%s: %v", user.ID, invite.SiteID, err)
+		log.Printf("[AcceptInvitation] bind failed user=%s site=%s: %v", user.ID, strOrEmpty(invite.SiteID), err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "加入失败，请稍后重试"})
 		return
 	}
@@ -416,4 +416,12 @@ func RejectInvitation(c *gin.Context) {
 
 	db.Model(&models.StaffInvite{}).Where("id = ?", invite.ID).Update("status", "rejected")
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"status": "rejected"}})
+}
+
+// strOrEmpty 安全打印可空 site_id（#2114：商户/平台级邀请 site_id 为 NULL）
+func strOrEmpty(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
