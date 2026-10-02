@@ -195,6 +195,12 @@ export default function Profile() {
   // isStaff 统一判定（#1639 / #1700）：对齐后端 GetBusinessRole——role == 'USER'
   // （含 oid/tid 非空的顾客）→ 顾客；仅非 USER 角色才视为员工
   const isStaff = !!claims.role && claims.role !== 'USER'
+  // #2117: 头部身份徽标角色标签（管理员 > 维修师傅 > 员工）；顾客上下文显式标「顾客」
+  const roleBadge = isStaff
+    ? (myRoles.includes('site_admin') ? '管理员'
+      : myRoles.includes('repair_technician') ? '维修师傅'
+        : myRoles.includes('site_member') ? '员工' : '员工')
+    : '顾客'
   // #2089：金刚区角色判定（纯维修师 / 员工兼师傅）
   const isTech = myRoles.includes('repair_technician')
   const hasSiteRole = myRoles.some(r => ['site_admin', 'site_member'].includes(r))
@@ -377,15 +383,22 @@ export default function Profile() {
               <>
               <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
                 <Text style={{ fontSize: 24, fontWeight: '900', color: '#000', letterSpacing: '0.025em' }}>{displayName}</Text>
-                {isStaff && (user?.tenant_name || user?.site_name) && (
-                  <Text style={{ fontSize: 11, color: '#71717a', marginLeft: 8, backgroundColor: '#f4f4f5', padding: '2px 8px', borderRadius: 999, overflow: 'hidden', maxWidth: 180 }}>
-                    {[user?.tenant_name, user?.site_name].filter(Boolean).join(' · ')}
+                {(isStaff || hasMultipleContexts) && (
+                  <Text style={{
+                    fontSize: 11, marginLeft: 8, padding: '2px 8px', borderRadius: 999,
+                    overflow: 'hidden', maxWidth: 220,
+                    color: isStaff ? '#1e3a8a' : '#71717a',
+                    backgroundColor: isStaff ? '#e0e7ff' : '#f4f4f5',
+                  }}>
+                    {isStaff
+                      ? [[user?.site_name || user?.tenant_name], [roleBadge]].flat().filter(Boolean).join(' · ')
+                      : '顾客'}
                   </Text>
                 )}
               </View>
               {user?.membership_level_id && (
-                <Text style={{ fontSize: 12, color: '#b45309', marginTop: 2 }}>
-                  {user?.membership_level_name || `Level ${user?.membership_level_id}`}
+                <Text style={{ fontSize: isStaff ? 10 : 12, color: isStaff ? '#a1a1aa' : '#b45309', marginTop: 2 }}>
+                  {isStaff ? `${user?.membership_level_name || '会员'}（个人会员，非网点身份）` : (user?.membership_level_name || `Level ${user?.membership_level_id}`)}
                 </Text>
               )}
               {!isStaff && (

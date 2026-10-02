@@ -889,8 +889,14 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 
 	// Merchant (tenant) name for staff org context (P-02): shown as a small
 	// tag next to the nickname in the profile page.
+	// #2117: 员工上下文以 JWT tid 为准——零租户自注册户（user.TenantID=00000000）
+	// 切换到员工上下文后按本地 tenant_id 永远查不到商户名，身份徽标缺失。
+	tenantForMerchant := user.TenantID
+	if jwtTid := middleware.GetTenantID(ctx); jwtTid != "" && jwtTid != user.TenantID {
+		tenantForMerchant = jwtTid
+	}
 	var merchantName string
-	if err := db.Table("merchants").Select("name").Where("tenant_id = ?", user.TenantID).Scan(&merchantName).Error; err == nil && merchantName != "" {
+	if err := db.Table("merchants").Select("name").Where("tenant_id = ?", tenantForMerchant).Scan(&merchantName).Error; err == nil && merchantName != "" {
 		result["tenant_name"] = merchantName
 	}
 
