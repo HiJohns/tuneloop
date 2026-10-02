@@ -650,6 +650,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			repairReqRequired.POST("/repair-services/:id/quote", middleware.RequireAnyCusPerm("repair:accept", "instrument:maintain"), repairServiceHandler.Quote)
 			repairReqRequired.POST("/repair-services/:id/legs", repairServiceHandler.AddLegFee)
 			repairReqRequired.POST("/repair-services/:id/adjust", middleware.RequireAnyCusPerm("repair:accept", "instrument:maintain"), repairServiceHandler.Adjust)
+			repairReqRequired.POST("/repair-services/:id/receive", middleware.RequireAnyCusPerm("repair:complete", "instrument:maintain"), repairServiceHandler.Receive) // #2116 收货确认
+			repairReqRequired.POST("/repair-services/:id/start", middleware.RequireAnyCusPerm("repair:complete", "instrument:maintain"), repairServiceHandler.Start)     // #2116 开始维修
 			repairReqRequired.POST("/repair-services/:id/complete", middleware.RequireAnyCusPerm("repair:complete", "instrument:maintain"), repairServiceHandler.Complete)
 			repairReqRequired.POST("/repair-services/:id/dispatch", repairServiceHandler.Dispatch)
 			repairReqRequired.GET("/repair-services/pending-dispatch", repairServiceHandler.ListPendingDispatch)

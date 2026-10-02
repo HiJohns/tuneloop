@@ -97,6 +97,8 @@ func setupRepairServiceFixture(t *testing.T) svcFixture {
 	r.POST("/repair-services/:id/quote", h.Quote)
 	r.POST("/repair-services/:id/legs", h.AddLegFee)
 	r.POST("/repair-services/:id/adjust", h.Adjust)
+	r.POST("/repair-services/:id/receive", h.Receive) // #2116
+	r.POST("/repair-services/:id/start", h.Start)     // #2116
 	r.POST("/repair-services/:id/complete", h.Complete)
 	r.POST("/repair-services/:id/dispatch", h.Dispatch)
 	r.GET("/repair-services", h.ListTasks)

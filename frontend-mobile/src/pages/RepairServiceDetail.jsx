@@ -14,7 +14,7 @@ import { photoSrc } from '../utils/media'
 const MAX_PHOTOS = 6
 const svcStatusLabels = {
   pending_quote: '待报价', pending_payment: '待付款', paid: '已支付·待寄出',
-  shipping: '寄送中', repairing: '维修中', adjust_pending: '加价待确认',
+  shipping: '寄送中', pending_repair: '待维修', repairing: '维修中', adjust_pending: '加价待确认',
   done_repair: '待发回', closed: '已结算', cancelled: '已取消',
 }
 // #2093：拒绝报价理由（与后端 repairQuoteDeclineReasons 枚举一致）
@@ -595,16 +595,18 @@ export default function RepairServiceDetail() {
         )}
 
         {/* 进行中提示 */}
-        {(rr.status === 'shipping' || rr.status === 'repairing') && (
+        {(rr.status === 'shipping' || rr.status === 'pending_repair' || rr.status === 'repairing') && (
           <View style={cardStyle}>
             <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>
-              {rr.status === 'shipping' ? '乐器寄送中' : '维修进行中'}
+              {rr.status === 'shipping' ? '乐器寄送中' : rr.status === 'pending_repair' ? '网点已收货' : '维修进行中'}
             </Text>
             {rr.tracking_number ? (
               <Text style={labelStyle}>寄出物流：{rr.tracking_company || '-'} {rr.tracking_number}</Text>
             ) : null}
             <Text style={labelStyle}>
-              {rr.status === 'shipping' ? '等待维修师收货' : '维修完成后将由网点安排发回'}
+              {rr.status === 'shipping' ? '等待网点/维修师收货确认'
+                : rr.status === 'pending_repair' ? '网点已代收货，待维修师确认后开始维修'
+                : '维修完成后将由网点安排发回'}
             </Text>
           </View>
         )}

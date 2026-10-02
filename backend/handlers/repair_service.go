@@ -733,7 +733,112 @@ func (h *RepairServiceHandler) Ship(c *gin.Context) {
 		return
 	}
 	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "shipped", "用户寄出 "+body.TrackingNumber)
+	code := ""
+	if rr.RepairCode != nil {
+		code = *rr.RepairCode
+	}
+	if rr.TechnicianID != nil {
+		services.Notify(db, rr.TenantID, *rr.TechnicianID, "repair", "顾客已寄出",
+			"维修单（"+code+"）顾客已寄出乐器，请留意收货并拍照确认。", rr.ID, "repair_service", "repair_svc_receive")
+	}
+	actionData := fmt.Sprintf(`{"repair_id":%q}`, rr.ID)
+	services.NotifyMerchantAdmins(db, rr.TenantID, "repair", "顾客已寄出",
+		"维修单（"+code+"）顾客已寄出乐器，请留意收货。", rr.ID, "repair_service", "info", &actionData)
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": rr.ID, "status": models.RepairReqStatusShipping}})
+}
+
+// Receive POST /api/repair-services/:id/receive （#2116 收货确认：拍照留档）
+// 双路径：维修师本人收货 → repairing；商户直属员工代收 → pending_repair（待师傅「开始维修」）。
+func (h *RepairServiceHandler) Receive(c *gin.Context) {
+	var body struct {
+		Photos []string `json:"photos"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || len(body.Photos) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "请先拍照留档"})
+		return
+	}
+	if len(body.Photos) > 9 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "收货照片最多 9 张"})
+		return
+	}
+	ctx := c.Request.Context()
+	if !isRepairStaffRole(middleware.GetRole(ctx)) {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
+		return
+	}
+	db := database.GetDB().WithContext(ctx)
+	rr, ok := loadRepairService(db, c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "repair service not found"})
+		return
+	}
+	if rr.Status != models.RepairReqStatusShipping {
+		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "当前状态不可收货确认"})
+		return
+	}
+	uid := middleware.GetUserID(ctx)
+	isTech := rr.TechnicianID != nil && *rr.TechnicianID == uid
+	newStatus := models.RepairReqStatusPendingRepair
+	timelineType := "received_by_staff"
+	timelineMsg := "网点员工代收货（拍照留档），待维修师开始维修"
+	if isTech {
+		newStatus = models.RepairReqStatusRepairing
+		timelineType = "received_by_tech"
+		timelineMsg = "维修师确认收货（拍照留档）"
+	} else if !repairServiceStaffAllowed(rr, ctx) {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
+		return
+	}
+	photosJSON, _ := json.Marshal(body.Photos)
+	now := time.Now()
+	if err := db.Model(&models.RepairRequest{}).Where("id = ?", rr.ID).
+		Updates(map[string]interface{}{
+			"status":         newStatus,
+			"receive_photos": string(photosJSON),
+			"received_by":    uid,
+			"received_at":    now,
+			"updated_at":     now,
+		}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to record receive"})
+		return
+	}
+	appendRepairServiceTimeline(db, rr.ID, uid, timelineType, timelineMsg)
+	if !isTech && rr.TechnicianID != nil {
+		code := ""
+		if rr.RepairCode != nil {
+			code = *rr.RepairCode
+		}
+		services.Notify(db, rr.TenantID, *rr.TechnicianID, "repair", "网点已代收货",
+			"维修单（"+code+"）乐器已由网点代收，请打开维修单点击「开始维修」。", rr.ID, "repair_service", "repair_svc_start")
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": rr.ID, "status": newStatus}})
+}
+
+// Start POST /api/repair-services/:id/start （#2116：代收后维修师本人开始维修）
+func (h *RepairServiceHandler) Start(c *gin.Context) {
+	ctx := c.Request.Context()
+	uid := middleware.GetUserID(ctx)
+	db := database.GetDB().WithContext(ctx)
+	rr, ok := loadRepairService(db, c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "repair service not found"})
+		return
+	}
+	if rr.Status != models.RepairReqStatusPendingRepair {
+		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "仅待维修状态可开始维修"})
+		return
+	}
+	if rr.TechnicianID == nil || *rr.TechnicianID != uid {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "仅维修师本人可开始维修"})
+		return
+	}
+	if err := db.Model(&models.RepairRequest{}).Where("id = ?", rr.ID).
+		Updates(map[string]interface{}{"status": models.RepairReqStatusRepairing, "updated_at": time.Now()}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to start repair"})
+		return
+	}
+	appendRepairServiceTimeline(db, rr.ID, uid, "repair_started", "维修师开始维修")
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": rr.ID, "status": models.RepairReqStatusRepairing}})
 }
 
 // AddLegFee POST /api/repair-services/:id/legs （员工实填某段物流费）
@@ -763,7 +868,7 @@ func (h *RepairServiceHandler) AddLegFee(c *gin.Context) {
 		return
 	}
 	switch rr.Status {
-	case models.RepairReqStatusShipping, models.RepairReqStatusRepairing, models.RepairReqStatusDoneRepair, models.RepairReqStatusPaid:
+	case models.RepairReqStatusShipping, models.RepairReqStatusPendingRepair, models.RepairReqStatusRepairing, models.RepairReqStatusDoneRepair, models.RepairReqStatusPaid:
 	default:
 		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "leg fee not allowed in current status"})
 		return
@@ -816,10 +921,10 @@ func (h *RepairServiceHandler) Adjust(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
 		return
 	}
-	// 乐器已寄出（shipping）或维修中（repairing）均可发起加价——计划未设「开始维修」
-	// 端点，首次加价发生在师傅收货时（RS-06 主流程 7），故 shipping 必须可加价。
+	// 乐器已寄出（shipping）/ 已代收待维修（pending_repair）/ 维修中（repairing）均可发起加价
+	// （RS-06 主流程 7；#2116 增补 pending_repair——代收后师傅开修前也可能发现加价点）。
 	switch rr.Status {
-	case models.RepairReqStatusShipping, models.RepairReqStatusRepairing:
+	case models.RepairReqStatusShipping, models.RepairReqStatusPendingRepair, models.RepairReqStatusRepairing:
 	default:
 		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "adjustment is only allowed while shipping or repairing"})
 		return
@@ -946,7 +1051,7 @@ func (h *RepairServiceHandler) Complete(c *gin.Context) {
 		return
 	}
 	switch rr.Status {
-	case models.RepairReqStatusPaid, models.RepairReqStatusShipping, models.RepairReqStatusRepairing:
+	case models.RepairReqStatusRepairing: // #2116：收货后才可完成修理（shipping 直达完成已关闭）
 	default:
 		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "repair cannot be completed in current status"})
 		return
@@ -957,6 +1062,12 @@ func (h *RepairServiceHandler) Complete(c *gin.Context) {
 		return
 	}
 	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "repair_completed", "师傅完成修理")
+	code := ""
+	if rr.RepairCode != nil {
+		code = *rr.RepairCode
+	}
+	services.Notify(db, rr.TenantID, rr.UserID, "repair", "维修完成",
+		"您的维修单（"+code+"）已完成修理，待网点发回结算。", rr.ID, "repair_service", "info")
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": rr.ID, "status": models.RepairReqStatusDoneRepair}})
 }
 
@@ -1132,6 +1243,8 @@ func (h *RepairServiceHandler) Dispatch(c *gin.Context) {
 		settleNote += fmt.Sprintf("，补缴 %v 分", v)
 	}
 	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "settled", settleNote)
+	services.Notify(db, rr.TenantID, rr.UserID, "repair", "维修单已发回",
+		"您的维修单已发回（运单号 "+body.TrackingNumber+"）。"+settleNote, rr.ID, "repair_service", "info")
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": result})
 }
 

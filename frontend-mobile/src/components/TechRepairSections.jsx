@@ -4,14 +4,15 @@
 import { useState, useEffect } from 'react'
 import { formatCents, yuanToCents as toCents } from '../utils/money'
 import { View, Text, Input, Video, Button } from '@tarojs/components'
-import { apiFetch, resolveErrorMessage } from '../services/api'
-import { dialog, env, getInputValue } from '../platform'
+import { apiFetch, resolveErrorMessage, getToken } from '../services/api'
+import Taro from '@tarojs/taro'
+import { dialog, env, getInputValue, uploadFile as uploadFileApi } from '../platform'
 import { formatBeijingDate } from '../utils/format'
 import { photoSrc } from '../utils/media'
 
 const svcStatusLabels = {
   pending_quote: '待报价', pending_payment: '待付款', paid: '已支付·待寄出',
-  shipping: '寄送中', repairing: '维修中', adjust_pending: '加价待确认',
+  shipping: '寄送中', pending_repair: '待维修', repairing: '维修中', adjust_pending: '加价待确认',
   done_repair: '待发回', closed: '已结算',
 }
 // RS-12：每项金额与待办提示
@@ -25,6 +26,7 @@ const svcTodo = (rr) => ({
   pending_payment: '等待用户支付',
   paid: '已支付，等待寄出',
   shipping: '寄送中，等待收货',
+  pending_repair: '已代收，待您开始维修',
   repairing: '维修进行中',
   adjust_pending: '加价待用户确认',
   done_repair: '待网点发回结算',
@@ -164,6 +166,65 @@ export default function TechRepairSections() {
     setSubmitting(false)
   }
 
+  // #2116：收货确认（拍照留档）——师傅本人→repairing；员工代收→pending_repair（服务端按身份判定）
+  const submitReceive = async (id) => {
+    if (!env.isMiniProgram) {
+      dialog.alert('收货拍照请在小程序中操作')
+      return
+    }
+    setSubmitting(true)
+    try {
+      const choose = await Taro.chooseImage({ count: 9, sizeType: ['compressed'], sourceType: ['camera', 'album'] })
+      const paths = choose.tempFilePaths || []
+      if (!paths.length) { setSubmitting(false); return }
+      const authHeaders = { Authorization: 'Bearer ' + (getToken() || '') }
+      const keys = []
+      for (const p of paths) {
+        const resp = await uploadFileApi(`${baseUrl}/upload`, p, { headers: authHeaders })
+        if (resp.statusCode === 401) throw new Error('登录态已失效，请重新登录')
+        const r = JSON.parse(resp.data)
+        if (r.code !== 20000) throw new Error(r.message || '上传失败')
+        keys.push(r.data.file_key)
+      }
+      const res = await apiFetch(`${baseUrl}/repair-services/${id}/receive`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photos: keys }),
+      })
+      const result = await res.json()
+      if (result.code === 20000) {
+        dialog.alert(result.data?.status === 'repairing' ? '已确认收货，开始维修' : '已代收货，等待维修师开始维修')
+        fetchLists()
+      } else {
+        dialog.alert(resolveErrorMessage(result))
+      }
+    } catch (e) {
+      dialog.alert(resolveErrorMessage(e))
+    }
+    setSubmitting(false)
+  }
+
+  // #2116：代收后师傅本人开始维修（pending_repair → repairing）
+  const submitStart = async (id) => {
+    setSubmitting(true)
+    try {
+      const res = await apiFetch(`${baseUrl}/repair-services/${id}/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      const result = await res.json()
+      if (result.code === 20000) {
+        dialog.alert('已开始维修')
+        fetchLists()
+      } else {
+        dialog.alert(resolveErrorMessage(result))
+      }
+    } catch (e) {
+      dialog.alert(resolveErrorMessage(e))
+    }
+    setSubmitting(false)
+  }
+
   const submitComplete = async (id) => {
     setSubmitting(true)
     try {
@@ -229,7 +290,7 @@ export default function TechRepairSections() {
 
   const renderWorkCard = (rr) => {
     const isOpen = expanded === `${rr.id}:adjust`
-    const canAdjust = rr.status === 'shipping' || rr.status === 'repairing'
+    const canAdjust = rr.status === 'shipping' || rr.status === 'pending_repair' || rr.status === 'repairing'
     return (
       <View key={rr.id} style={cardStyle}>
         <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -269,7 +330,20 @@ export default function TechRepairSections() {
             </Button>
           </View>
         )}
-        {rr.status !== 'adjust_pending' && (
+        {/* #2116：收货环节——shipping 拍照收货 / pending_repair 开始维修 / repairing 才可完工 */}
+        {rr.status === 'shipping' && (
+          <Button disabled={submitting} onClick={() => submitReceive(rr.id)}
+            style={{ ...btnPrimaryStyle, opacity: submitting ? 0.5 : 1 }}>
+            确认收货（拍照留档）
+          </Button>
+        )}
+        {rr.status === 'pending_repair' && (
+          <Button disabled={submitting} onClick={() => submitStart(rr.id)}
+            style={{ ...btnPrimaryStyle, opacity: submitting ? 0.5 : 1 }}>
+            开始维修
+          </Button>
+        )}
+        {rr.status === 'repairing' && (
           <Button disabled={submitting} onClick={() => submitComplete(rr.id)}
             style={{ ...btnPrimaryStyle, opacity: submitting ? 0.5 : 1 }}>
             完成修理

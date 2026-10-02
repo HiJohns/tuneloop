@@ -190,7 +190,7 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 
 ## RS-11 状态机（权威，用户 2026-09-17 明确：维修单须如订单一般有自身状态机）
 
-> **状态集**：`pending_quote` → `pending_payment` → `paid` → `shipping` → `repairing` → `done_repair` → `closed`；加价分支 `adjust_pending`；**拒绝分支 `pending_payment` → `cancelled`（终态，#2093，无支付无退款；不进师傅工作台）**。**支付超时：不自动取消（#2097 撤回越界行为）——订单保持 `pending_payment` 可续付；PaymentScheduler 仅关闭微信侧订单+支付记录**。
+> **状态集**：`pending_quote` → `pending_payment` → `paid` → `shipping` →（收货：师傅直收 `repairing` / 员工代收 `pending_repair` → 师傅开始维修 `repairing`）→ `done_repair` → `closed`（#2116）；加价分支 `adjust_pending`；**拒绝分支 `pending_payment` → `cancelled`（终态，#2093，无支付无退款；不进师傅工作台）**。**支付超时：不自动取消（#2097 撤回越界行为）——订单保持 `pending_payment` 可续付；PaymentScheduler 仅关闭微信侧订单+支付记录**。
 
 | # | 起始状态 | 动作 | 触发者 | 守卫 | 结束状态 |
 |---|---------|------|--------|------|---------|
@@ -203,7 +203,10 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 | 7 | `shipping` / `repairing` | 发起加价（新总价 + 到此为止） | 维修师/员工 | `incurred ≤ new_quote`；`quote_status=pending` | `adjust_pending` |
 | 8 | `adjust_pending` | 继续并补差价 | 用户+系统回调 | 补差 = `new_quote − quote_repair`；回调置 `quote_status=accepted` | `repairing` |
 | 9 | `adjust_pending` | 不继续 | 用户 | `quote_status=declined` | `done_repair` |
-| 10 | `paid` / `shipping` / `repairing` | 完成修理 | 维修师/员工 | 归属匹配 | `done_repair` |
+| 6a | `shipping` | 确认收货（拍照留档） | **维修师本人** | 照片≥1；`TechnicianID==caller` | `repairing` |
+| 6b | `shipping` | 代收货（拍照留档） | 商户直属员工 | 照片≥1；归属匹配且非师傅本人 | `pending_repair` |
+| 6c | `pending_repair` | 开始维修 | **维修师本人** | `TechnicianID==caller` | `repairing` |
+| 10 | `repairing` | 完成修理 | 维修师/员工 | **收货后才可完成**（#2116：`shipping` 直达完成已关闭，防跳步） | `done_repair` |
 | 11 | `done_repair` | 发回 + 结算 | 员工 | 归属匹配；退款先行（失败 502 不闭单可重试） | `closed` |
 | 12 | `closed` | 评价 | 用户 | `settled_at`/closed；一人一评 | `closed`（不变） |
 | 13 | `closed` | 补缴支付（少补场景） | 用户+系统回调 | 存在 pending `order_type='repair'` 补缴记录 | `closed`（不变） |
@@ -255,9 +258,13 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 | — | `POST /api/pay/prepay` | 顾客（无 oid） | userOptionalAuth | 支付（`order_type=repair`，服务端重算；租户从 repair 单推导） |
 | RS-API-3 | `GET /api/user/repair-services/:id`　**扩展** | 顾客（无 oid）+ 员工（有 oid） | userOptionalAuth | 详情 + `site`（寄件地址/联系人）；员工可见性按 JWT 归属 |
 | — | `POST /api/user/repair-services/:id/ship` | 顾客（无 oid） | userOptionalAuth | 寄出 |
+| #2116 | `POST /api/repair-services/:id/receive {photos[]}` | 维修师本人 / 商户直属员工（有 oid） | authRequired | 收货确认（拍照留档写时间线）：师傅→`repairing`；员工→`pending_repair` |
+| #2116 | `POST /api/repair-services/:id/start` | 维修师本人 | authRequired | `pending_repair`→`repairing` |
 | — | `POST /api/repair-services/:id/legs` | 员工（有 oid） | authRequired | 分段实填物流费 |
 | — | `POST /api/repair-services/:id/adjust` | 维修师（有 oid） | authRequired | 加价申请（双字段） |
 | — | `POST /api/user/repair-services/:id/adjust/accept\|decline` | 顾客（无 oid） | userOptionalAuth | 加价响应 |
+
+**通知链（#2116 补齐）**：寄出→师傅+网点员工「待收货」；员工代收→师傅「请开始维修」；完成修理→顾客「维修完成，待发回」；发回结算→顾客「已发回+运单号+结算结果」。（原有：报价→师傅 / 已报价→顾客 / 拒单→师傅 / 加价→顾客）
 | — | `POST /api/repair-services/:id/complete` | 维修师（有 oid） | authRequired | 完成修理 |
 | — | `POST /api/repair-services/:id/dispatch` | 员工（有 oid） | authRequired | 末段发回 + 结算 |
 | — | `POST /api/user/repair-services/:id/review` | 顾客（无 oid） | userOptionalAuth | 评价 |

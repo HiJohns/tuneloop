@@ -577,6 +577,7 @@ const (
 	RepairReqStatusPendingQuote  = "pending_quote"
 	RepairReqStatusPaid          = "paid"
 	RepairReqStatusAdjustPending = "adjust_pending"
+	RepairReqStatusPendingRepair = "pending_repair" // #2116：员工代收货后、师傅开始维修前
 	RepairReqStatusDoneRepair    = "done_repair"
 	RepairReqStatusCancelled     = "cancelled" // #2093：顾客拒绝报价（终态）
 )
@@ -607,6 +608,9 @@ type RepairRequest struct {
 	TrackingNumber       string     `gorm:"type:varchar(100)" json:"tracking_number"`
 	ReturnCompany        string     `gorm:"type:varchar(100)" json:"return_company"`
 	ReturnTrackingNumber string     `gorm:"type:varchar(100)" json:"return_tracking_number"`
+	ReceivePhotos        string     `gorm:"type:jsonb;default:'[]'" json:"receive_photos"` // #2116: 收货拍照留档
+	ReceivedBy           *string    `gorm:"type:uuid" json:"received_by"`                  // #2116: 收货人（师傅本人/代收员工）
+	ReceivedAt           *time.Time `json:"received_at"`                                   // #2116: 收货时间
 	WorkerID             *string    `gorm:"type:varchar(255)" json:"worker_id"`
 	// #1942 维修服务（单项服务商品）：type='service' 分支字段
 	Type                string     `gorm:"type:varchar(20);default:'warranty';index" json:"type"`

@@ -3,17 +3,17 @@ import { formatCents, yuanToCents as toCents } from '../utils/money'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Input, Button, ScrollView } from '@tarojs/components'
-import { apiFetch, resolveErrorMessage } from '../services/api'
-import { dialog, env, getInputValue, toWeappRoute } from '../platform'
+import { apiFetch, resolveErrorMessage, getToken } from '../services/api'
+import { dialog, env, getInputValue, toWeappRoute, uploadFile as uploadFileApi } from '../platform'
 import { formatBeijingDate } from '../utils/format'
 
 // #1957 阶段3c：网点员工维修服务工作台（RS-API-2 scope=site）
 //   待发回（done_repair）→ 发回 + 结算（dispatch）
-//   进行中（paid/shipping/repairing）→ 分段物流费实填（legs）
+//   进行中（paid/shipping/pending_repair/repairing）→ 代收货（shipping，#2116）+ 分段物流费实填（legs）
 
 const svcStatusLabels = {
   pending_quote: '待报价', pending_payment: '待付款', paid: '已支付·待寄出',
-  shipping: '寄送中', repairing: '维修中', adjust_pending: '加价待确认',
+  shipping: '寄送中', pending_repair: '待维修', repairing: '维修中', adjust_pending: '加价待确认',
   done_repair: '待发回', closed: '已结算',
 }
 const svcAmount = (rr) => {
@@ -83,7 +83,7 @@ export default function StaffRepairServices() {
     try {
       const [doneRes, activeRes, allRes] = await Promise.all([
         apiFetch(`${baseUrl}/repair-services?scope=site&status=done_repair`),
-        apiFetch(`${baseUrl}/repair-services?scope=site&status=paid,shipping,repairing`),
+        apiFetch(`${baseUrl}/repair-services?scope=site&status=paid,shipping,pending_repair,repairing`),
         apiFetch(`${baseUrl}/repair-services?scope=site`),
       ])
       const done = await doneRes.json()
@@ -114,6 +114,44 @@ export default function StaffRepairServices() {
         }
       } catch {}
     }
+  }
+
+  // #2116：员工代收货——拍照留档后 shipping → pending_repair，师傅打开单子「开始维修」
+  const submitReceive = async (id) => {
+    if (!env.isMiniProgram) {
+      dialog.alert('收货拍照请在小程序中操作')
+      return
+    }
+    setSubmitting(true)
+    try {
+      const choose = await Taro.chooseImage({ count: 9, sizeType: ['compressed'], sourceType: ['camera', 'album'] })
+      const paths = choose.tempFilePaths || []
+      if (!paths.length) { setSubmitting(false); return }
+      const authHeaders = { Authorization: 'Bearer ' + (getToken() || '') }
+      const keys = []
+      for (const p of paths) {
+        const resp = await uploadFileApi(`${baseUrl}/upload`, p, { headers: authHeaders })
+        if (resp.statusCode === 401) throw new Error('登录态已失效，请重新登录')
+        const r = JSON.parse(resp.data)
+        if (r.code !== 20000) throw new Error(r.message || '上传失败')
+        keys.push(r.data.file_key)
+      }
+      const res = await apiFetch(`${baseUrl}/repair-services/${id}/receive`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photos: keys }),
+      })
+      const result = await res.json()
+      if (result.code === 20000) {
+        dialog.alert('已代收货，已通知维修师开始维修')
+        fetchLists()
+      } else {
+        dialog.alert(resolveErrorMessage(result))
+      }
+    } catch (e) {
+      dialog.alert(resolveErrorMessage(e))
+    }
+    setSubmitting(false)
   }
 
   const submitDispatch = async (id) => {
@@ -195,6 +233,12 @@ export default function StaffRepairServices() {
         {mode === 'dispatch' ? (
           <Button onClick={() => toggle(rr.id, 'dispatch')} style={btnSecondaryStyle}>
             {isOpen ? '收起' : '发回并结算'}
+          </Button>
+        ) : rr.status === 'shipping' ? (
+          // #2116：顾客已寄出 → 员工代收货（拍照留档→pending_repair，师傅随后「开始维修」）
+          <Button disabled={submitting} onClick={() => submitReceive(rr.id)}
+            style={{ ...btnPrimaryStyle, opacity: submitting ? 0.5 : 1 }}>
+            代收货（拍照留档）
           </Button>
         ) : (
           <Button onClick={() => toggle(rr.id, 'leg')} style={btnSecondaryStyle}>
