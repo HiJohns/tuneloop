@@ -355,11 +355,20 @@ export default function Payment() {
 
   // #1753: 支付成功后跳转。已登录 membership → 个人中心；其他 → 成功页；
   // 跳转失败 fallback 首页（不静默停留支付页）。
+  // #2115: repair_service 不走通用成功页——该页按租赁订单查询（维修服务单必显示
+  // 「订单未标记已支付」），redirectTo 维修单详情（redirectTo 同时收敛导航栈）。
   const afterPaySuccess = (orderIdForSuccess) => {
     setTimeout(() => {
       if (pType === 'membership') {
         Taro.switchTab({
           url: '/pages-weapp/profile/index',
+          fail: () => Taro.switchTab({ url: '/pages-weapp/home/index' }),
+        })
+        return
+      }
+      if (pType === 'repair_service') {
+        Taro.redirectTo({
+          url: `/pages-weapp/repair-service-detail/index?order_id=${orderIdForSuccess}`,
           fail: () => Taro.switchTab({ url: '/pages-weapp/home/index' }),
         })
         return
@@ -682,13 +691,14 @@ function renderDetailsBlock(details, type) {
   // #2096：服务流维修单预付明细（calculate 返回 items + total）
   if (type === 'repair_service') {
     const svcItems = details?.items || []
+    // #2115: 必须用 Taro 组件——裸 <div> 在 weapp 不渲染，明细块曾整块静默消失
     return (
-      <div>
+      <View>
         {svcItems.map((it, i) => (
           <Row key={i} label={it.label} value={`¥${formatCents(Number(it.amount || 0))}`} />
         ))}
         <Row label="合计" value={`¥${formatCents(Number(details?.total || 0))}`} bold />
-      </div>
+      </View>
     )
   }
   if (type === 'membership') {

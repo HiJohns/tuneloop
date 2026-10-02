@@ -19,6 +19,14 @@ export default function RepairServiceCreate() {
     if (!route) { dialog.alert('该功能请在 H5 端使用'); return }
     return Taro.navigateTo({ url: route.url })
   }
+  // #2115: 替换式跳转——创建成功页出栈时不得再把创建页留在导航栈里
+  //（否则查看维修单/支付全程后需逐层回退，#2115 用户实测回退四步）。
+  const navReplace = (to) => {
+    if (!env.isMiniProgram) return navigate(to, { replace: true })
+    const route = toWeappRoute(to)
+    if (!route) { dialog.alert('该功能请在 H5 端使用'); return }
+    return Taro.redirectTo({ url: route.url })
+  }
   // #2075: 创建页登录门禁——未登录/无 token 时引导登录（照片上传 /api/upload 在严格鉴权组，晚失败不如早拦截）
   // #2112: 弹窗后直跳个人中心（原登录跳转会先压栈 account-select，登录成功仍需逐层退出，体验繁琐）
   useEffect(() => {
@@ -180,11 +188,11 @@ export default function RepairServiceCreate() {
               请将该编码写在物流单信息栏，作为唯一标记
             </Text>
           </View>
-          <Button onClick={() => nav(`/repair-service-detail?order_id=${created.id}`)}
+          <Button onClick={() => navReplace(`/repair-service-detail?order_id=${created.id}`)}
             style={{ width: '100%', margin: 0, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#171717', color: '#FFFFFF', borderRadius: 10, fontSize: 15, fontWeight: 'bold' }}>
             查看维修单
           </Button>
-          <Button onClick={() => nav('/my-repairs')}
+          <Button onClick={() => navReplace('/my-repairs')}
             style={{ width: '100%', margin: 0, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F4F4F5', color: '#3F3F46', borderRadius: 10, fontSize: 13, fontWeight: 'bold' }}>
             返回维修列表
           </Button>
