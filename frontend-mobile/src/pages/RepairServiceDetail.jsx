@@ -473,8 +473,18 @@ export default function RepairServiceDetail() {
               <Text style={{ fontSize: 12, color: '#18181B' }}>{yuan(f.amount_cents)}</Text>
             </View>
           ))}
-          {detail.payments && (
+          {detail.payments && (() => {
+            const couponTotal = (detail.payments.records || [])
+              .filter(r => r.status === 'paid')
+              .reduce((acc, r) => acc + Number(r.coupon_discount_cents || 0), 0)
+            return (
             <>
+              {couponTotal > 0 && (
+                <View style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text style={labelStyle}>优惠码抵扣</Text>
+                  <Text style={{ fontSize: 12, color: '#16A34A' }}>−{yuan(couponTotal)}</Text>
+                </View>
+              )}
               <View style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>已付合计</Text>
                 <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>{yuan(detail.payments.made_cents)}</Text>
@@ -492,7 +502,8 @@ export default function RepairServiceDetail() {
                 </View>
               )}
             </>
-          )}
+            )
+          })()}
         </View>
 
         {/* RS-12 物流明细 */}
@@ -760,7 +771,9 @@ export default function RepairServiceDetail() {
               ) : null}
               <View style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                 {rp.map((p, i) => (
-                  <Image key={i} src={photoSrc(p)} style={{ width: 96, height: 96, borderRadius: 6, backgroundColor: '#f4f4f5' }} />
+                  <Image key={i} src={photoSrc(p)} mode="aspectFill"
+                    onClick={() => Taro.previewImage({ urls: rp.map(x => photoSrc(x)), current: photoSrc(p) })}
+                    style={{ width: 96, height: 96, borderRadius: 6, backgroundColor: '#f4f4f5' }} />
                 ))}
               </View>
             </View>
@@ -800,6 +813,7 @@ export default function RepairServiceDetail() {
                 <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#3F3F46' }}>
                     {timelineLabels[t.record_type] || t.record_type}
+                    {t.operator ? ` · ${t.operator}` : ''}
                   </Text>
                   <Text style={{ fontSize: 11, color: '#A1A1AA' }}>
                     {t.created_at ? formatBeijingDate(t.created_at) : '-'}

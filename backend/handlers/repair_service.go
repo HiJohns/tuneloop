@@ -211,6 +211,43 @@ func isAssignedTechnician(rr *models.RepairRequest, uid string, db *gorm.DB) boo
 	return false
 }
 
+// resolveUserNamesByAnyID（#2120）：按 id/iam_sub 双键批量解析用户名
+// （ListTasks 行与详情时间线操作者共用；豁免租户作用域——零租户顾客行 #2078 同族）。
+func resolveUserNamesByAnyID(db *gorm.DB, ids []string) map[string]string {
+	nameByUser := map[string]string{}
+	clean := make([]string, 0, len(ids))
+	seen := map[string]bool{}
+	for _, id := range ids {
+		if id == "" || id == "system" || seen[id] {
+			continue
+		}
+		seen[id] = true
+		clean = append(clean, id)
+	}
+	if len(clean) == 0 {
+		return nameByUser
+	}
+	var us []models.User
+	if err := db.WithContext(database.IdentityCtx(context.Background())).
+		Where("id IN ? OR iam_sub IN ?", clean, clean).
+		Select("id, iam_sub, name, nickname, username").Find(&us).Error; err == nil {
+		for _, u := range us {
+			n := u.Name
+			if n == "" {
+				n = u.Nickname
+			}
+			if n == "" {
+				n = u.Username
+			}
+			nameByUser[u.ID] = n
+			if u.IAMSub != "" {
+				nameByUser[u.IAMSub] = n
+			}
+		}
+	}
+	return nameByUser
+}
+
 // Create POST /api/user/repair-services
 func (h *RepairServiceHandler) Create(c *gin.Context) {
 	var body struct {
@@ -434,17 +471,38 @@ func (h *RepairServiceHandler) Get(c *gin.Context) {
 	// RS-API-4：状态时间线（RS-12 详情规格）
 	var timeline []models.RepairRequestRecord
 	db.Where("repair_request_id = ?", rr.ID).Order("created_at ASC, id ASC").Find(&timeline)
-	data["timeline"] = timeline
+	// #2120：时间线操作者名（worker_id 双键解析；system 直显）
+	workerIDs := make([]string, 0, len(timeline))
+	for _, t := range timeline {
+		workerIDs = append(workerIDs, t.WorkerID)
+	}
+	opNames := resolveUserNamesByAnyID(db, workerIDs)
+	tl := make([]map[string]interface{}, 0, len(timeline))
+	for _, t := range timeline {
+		b, _ := json.Marshal(t)
+		var m map[string]interface{}
+		_ = json.Unmarshal(b, &m)
+		op := "系统"
+		if t.WorkerID != "" && t.WorkerID != "system" {
+			if n := opNames[t.WorkerID]; n != "" {
+				op = n
+			}
+		}
+		m["operator"] = op
+		tl = append(tl, m)
+	}
+	data["timeline"] = tl
 	// RS-API-5：支付/结算汇总（已付 / 待补缴 / 退款 + 明细）
 	var recs []models.OrderPaymentRecord
 	db.Where("order_id = ? AND order_type = ?", rr.ID, "repair").Order("created_at ASC").Find(&recs)
 	type svcPaymentItem struct {
-		ID        string    `json:"id"`
-		Kind      string    `json:"kind"` // payment | refund
-		Status    string    `json:"status"`
-		Amount    int64     `json:"amount_cents"`
-		Method    string    `json:"method,omitempty"`
-		CreatedAt time.Time `json:"created_at"`
+		ID             string    `json:"id"`
+		Kind           string    `json:"kind"` // payment | refund
+		Status         string    `json:"status"`
+		Amount         int64     `json:"amount_cents"`
+		CouponDiscount int64     `json:"coupon_discount_cents"` // #2120：优惠码抵扣（对照订单详情标准）
+		Method         string    `json:"method,omitempty"`
+		CreatedAt      time.Time `json:"created_at"`
 	}
 	items := []svcPaymentItem{}
 	payIDs := make([]string, 0, len(recs))
@@ -455,7 +513,7 @@ func (h *RepairServiceHandler) Get(c *gin.Context) {
 			m = *r.Method
 		}
 		items = append(items, svcPaymentItem{ID: r.ID, Kind: "payment", Status: r.Status,
-			Amount: int64(r.Amount), Method: m, CreatedAt: r.CreatedAt})
+			Amount: int64(r.Amount), CouponDiscount: int64(r.CouponDiscount), Method: m, CreatedAt: r.CreatedAt})
 		payIDs = append(payIDs, r.ID)
 		if r.Status == "paid" {
 			madeCents += int64(r.Amount)
@@ -1396,30 +1454,7 @@ func (h *RepairServiceHandler) ListTasks(c *gin.Context) {
 			userIDs = append(userIDs, rr.UserID)
 		}
 	}
-	nameByUser := map[string]string{}
-	if len(userIDs) > 0 {
-		var us []models.User
-		// #2117/#2078 同族：顾客本地行 tenant_id=00000000，员工上下文的租户作用域
-		// 会把名字查询过滤空 → 身份键查询用 IdentityCtx 豁免。
-		if err := db.WithContext(database.IdentityCtx(context.Background())).
-			Where("id IN ? OR iam_sub IN ?", userIDs, userIDs).
-			Select("id, iam_sub, name, nickname, username").Find(&us).Error; err == nil {
-			for _, u := range us {
-				n := u.Name
-				if n == "" {
-					n = u.Nickname
-				}
-				if n == "" {
-					n = u.Username
-				}
-				// rr.UserID 可能存本地 id 也可能存 IAM sub（#2090 形态）→ 双键映射
-				nameByUser[u.ID] = n
-				if u.IAMSub != "" {
-					nameByUser[u.IAMSub] = n
-				}
-			}
-		}
-	}
+	nameByUser := resolveUserNamesByAnyID(db, userIDs)
 	rows := make([]gin.H, 0, len(list))
 	for _, rr := range list {
 		b, _ := json.Marshal(rr)

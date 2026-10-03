@@ -547,6 +547,7 @@ func TestRepairService_Timeline(t *testing.T) {
 		Data struct {
 			Timeline []struct {
 				RecordType string `json:"record_type"`
+				Operator   string `json:"operator"` // #2120: 操作者名
 			} `json:"timeline"`
 		} `json:"data"`
 	}
@@ -561,6 +562,11 @@ func TestRepairService_Timeline(t *testing.T) {
 	require.Len(t, got, len(wantOrder), "时间线条目数：got=%v", got)
 	for i, want := range wantOrder {
 		require.Equal(t, want, got[i], "时间线第 %d 项", i+1)
+	}
+	// #2120：操作者名回填（created 记录 = 顾客；system 记录直显 系统）
+	assert.Equal(t, "顾客", out.Data.Timeline[0].Operator, "created 记录操作者应为顾客名")
+	for _, t2 := range out.Data.Timeline {
+		assert.NotEmpty(t, t2.Operator, "每条时间线都应有操作者名")
 	}
 }
 
