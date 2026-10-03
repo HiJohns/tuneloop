@@ -488,10 +488,17 @@ export default function MessageDetail() {
             <Button
               onClick={() => {
                 const orderId = actionData.order_id || notification.ref_id || ''
+                // #2122：维修服务单补缴 → 支付页按 repair_service 载入（明细=物流费补缴）；
+                // 租赁/订单补缴沿用 payment_shortfall
+                const isRepair = actionData.order_type === 'repair_service' || notification.ref_type === 'repair'
                 if (env.isMiniProgram) {
-                  Taro.redirectTo({ url: `/pages-weapp/payment/index?type=payment_shortfall&id=${orderId}` })
+                  Taro.redirectTo({ url: isRepair
+                    ? `/pages-weapp/payment/index?type=repair_service&order_id=${orderId}`
+                    : `/pages-weapp/payment/index?type=payment_shortfall&id=${orderId}` })
                 } else {
-                  navigate(`/payment?type=payment_shortfall&id=${orderId}`)
+                  navigate(isRepair
+                    ? `/payment?type=repair_service&order_id=${orderId}`
+                    : `/payment?type=payment_shortfall&id=${orderId}`)
                 }
               }}
               className="w-full mt-6 py-2.5 bg-brand-primary text-white rounded-lg text-sm font-medium"

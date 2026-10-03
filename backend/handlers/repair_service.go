@@ -1367,8 +1367,42 @@ func (h *RepairServiceHandler) Dispatch(c *gin.Context) {
 		settleNote += fmt.Sprintf("，补缴 %s 元", yuanCents(int64(v.(models.Cents))))
 	}
 	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "settled", settleNote)
-	services.Notify(db, rr.TenantID, rr.UserID, "repair", "维修单已发回",
-		"您的维修单已发回（运单号 "+body.TrackingNumber+"）。"+settleNote, rr.ID, "repair_service", "info")
+	// #2122：实际物流费 > 预估（已付不足）→ 生成可缴费补缴通知（镜像租赁 payment_shortfall，
+	// 消息详情「去补缴」→ 支付确认页显示「物流费补缴」）；否则普通发回通知。
+	if actual > prepaid {
+		diff := actual - prepaid
+		ad := map[string]interface{}{
+			"shortfall_amount": int64(diff),
+			"order_id":         rr.ID,
+			"order_type":       "repair_service",
+			"label":            "物流费补缴",
+		}
+		adJSON, _ := json.Marshal(ad)
+		notifOrg := rr.SiteID // 服务单无独立 org 维度，沿用 site（空则零 UUID）
+		if notifOrg == "" {
+			notifOrg = "00000000-0000-0000-0000-000000000000"
+		}
+		notif := models.Notification{
+			TenantID:   rr.TenantID,
+			OrgID:      notifOrg,
+			UserID:     rr.UserID,
+			Type:       "payment_shortfall",
+			Title:      "维修单需补缴物流费",
+			Content:    fmt.Sprintf("维修单已发回（运单号 %s）。实际物流费超出已付，需补缴 ¥%s，补缴完成后订单自动结算。", body.TrackingNumber, yuanCents(int64(diff))),
+			RefID:      rr.ID,
+			RefType:    "repair",
+			ActionType: "payment_shortfall",
+			ActionData: strPtr(string(adJSON)),
+			Status:     "unread",
+			CreatedAt:  now,
+		}
+		if err := db.Create(&notif).Error; err != nil {
+			log.Printf("[RepairService.Dispatch] failed to create shortfall notification for %s: %v", rr.ID, err)
+		}
+	} else {
+		services.Notify(db, rr.TenantID, rr.UserID, "repair", "维修单已发回",
+			"您的维修单已发回（运单号 "+body.TrackingNumber+"）。"+settleNote, rr.ID, "repair_service", "info")
+	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": result})
 }
 

@@ -273,3 +273,28 @@ func TestReceive2116_TechnicianAssignedByLocalID(t *testing.T) {
 	require.NoError(t, f.db.Where("id = ?", rr.ID).First(&got).Error)
 	assert.Equal(t, models.RepairReqStatusRepairing, got.Status, "路径 1：师傅直收直接进入维修中")
 }
+
+// TestDispatch2122_ShortfallNotification：实际物流费 > 已付 → 生成可缴费补缴通知（#2122）。
+func TestDispatch2122_ShortfallNotification(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	customer := testutil.MakeCustomer("", f.customerSub)
+	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
+
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "补缴通知", "technician_id": f.techID})
+	id := svcData(t, resp)["id"].(string)
+	svcPost(t, f, customer, "/user/repair-services/"+id+"/select-technician", gin.H{"technician_id": f.techID})
+	svcPost(t, f, staff, "/repair-services/"+id+"/quote", gin.H{"quote_repair_cents": 1000, "quote_logistics_cents": 0})
+	svcPost(t, f, customer, "/user/repair-services/"+id+"/accept", nil)
+	svcPay(t, f, id, 1000)
+	svcPost(t, f, customer, "/user/repair-services/"+id+"/ship", gin.H{"tracking_number": "SF-2122"})
+	svcReceive2116(t, f, id)
+	svcPost(t, f, staff, "/repair-services/"+id+"/complete", nil)
+	_, resp = svcPost(t, f, staff, "/repair-services/"+id+"/dispatch", gin.H{"tracking_number": "SF-2122B", "logistics_fee_cents": 12000})
+	require.Equal(t, float64(20000), resp["code"], resp)
+
+	var n models.Notification
+	require.NoError(t, f.db.Where("user_id = ? AND type = ?", f.customerSub, "payment_shortfall").First(&n).Error,
+		"应生成补缴通知")
+	assert.Equal(t, "payment_shortfall", n.ActionType)
+	assert.Contains(t, *n.ActionData, "repair_service", "action_data 应带 order_type=repair_service")
+}

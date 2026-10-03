@@ -178,6 +178,21 @@ func loadRepairServicePayment(db *gorm.DB, userID, id string, resp *PaymentCalcu
 	if req.UserID != userID {
 		return // 非本人详情不回显（403 语义由支付动作端点承担）
 	}
+	// #2122：结算后待补缴（实际物流费 > 预估）→ 支付页展示「物流费补缴」按补缴记录额支付
+	if req.Status == models.RepairReqStatusClosed {
+		var rec models.OrderPaymentRecord
+		if err := db.Where("order_id = ? AND order_type = ? AND type = ? AND status = ? AND method = ?",
+			req.ID, "repair", "payment", "pending", "shortfall").Order("created_at DESC").First(&rec).Error; err == nil {
+			resp.Title = "物流费补缴"
+			resp.Amount = float64(rec.Amount)
+			resp.Details = map[string]interface{}{
+				"items": []map[string]interface{}{{"label": "物流费补缴", "amount": float64(rec.Amount)}},
+				"total": float64(rec.Amount),
+			}
+			return
+		}
+		return // closed 且无待补缴 → 不可支付
+	}
 	amount, msg := repairServicePaymentAmount(&req)
 	if msg != "" {
 		return // prepay 同款守卫：不可支付态让支付页以错误呈现
