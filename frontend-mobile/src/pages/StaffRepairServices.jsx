@@ -217,11 +217,17 @@ export default function StaffRepairServices() {
     setSubmitting(false)
   }
 
+  // #2119: 行点击 → 维修单详情（留痕/存档图在详情页查看）
+  const openDetail = (id) => {
+    if (env.isMiniProgram) Taro.navigateTo({ url: `/pages-weapp/repair-service-detail/index?order_id=${id}` })
+    else navigate(`/repair-service-detail?order_id=${id}`)
+  }
+
   const renderCard = (rr, mode) => {
     const isOpen = expanded === `${rr.id}:${mode}`
     return (
       <View key={rr.id} style={cardStyle}>
-        <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <View onClick={() => openDetail(rr.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>
             编码 {rr.repair_code || '-'}
           </Text>

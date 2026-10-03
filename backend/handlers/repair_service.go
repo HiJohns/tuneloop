@@ -195,6 +195,22 @@ func repairServiceStaffAllowed(rr *models.RepairRequest, ctx context.Context) bo
 	return true
 }
 
+// isAssignedTechnician（#2118 修订）：technician_id 可能存本地 users.id 或 IAM sub
+// （#2090 双形态，66771F 实测）——双键匹配，与 ListTasks scope=mine 口径一致。
+func isAssignedTechnician(rr *models.RepairRequest, uid string, db *gorm.DB) bool {
+	if rr.TechnicianID == nil || *rr.TechnicianID == "" {
+		return false
+	}
+	if *rr.TechnicianID == uid {
+		return true
+	}
+	var u models.User
+	if err := db.Select("id").Where("iam_sub = ?", uid).First(&u).Error; err == nil {
+		return *rr.TechnicianID == u.ID
+	}
+	return false
+}
+
 // Create POST /api/user/repair-services
 func (h *RepairServiceHandler) Create(c *gin.Context) {
 	var body struct {
@@ -777,7 +793,7 @@ func (h *RepairServiceHandler) Receive(c *gin.Context) {
 		return
 	}
 	uid := middleware.GetUserID(ctx)
-	isTech := rr.TechnicianID != nil && *rr.TechnicianID == uid
+	isTech := isAssignedTechnician(rr, uid, db)
 	newStatus := models.RepairReqStatusPendingRepair
 	timelineType := "received_by_staff"
 	timelineMsg := "网点员工代收货（拍照留档），待维修师开始维修"
@@ -828,7 +844,7 @@ func (h *RepairServiceHandler) Start(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "仅待维修状态可开始维修"})
 		return
 	}
-	if rr.TechnicianID == nil || *rr.TechnicianID != uid {
+	if !isAssignedTechnician(rr, uid, db) {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "仅维修师本人可开始维修"})
 		return
 	}

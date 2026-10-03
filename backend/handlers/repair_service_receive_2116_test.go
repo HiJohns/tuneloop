@@ -221,3 +221,55 @@ func svcLastID(t *testing.T, f svcFixture) string {
 	require.NotEmpty(t, ids)
 	return ids[0]
 }
+
+// TestStart2116_TechnicianAssignedByLocalID（#2118 修订）：technician_id 存本地
+// users.id（IAM sub 不同，#2090 形态）时 Start 不得 403——与 ListTasks 双键口径一致。
+func TestStart2116_TechnicianAssignedByLocalID(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	// 技术员：本地 id ≠ IAM sub（管理员代建例外形态）
+	localID := uuid.NewString()
+	techSub := uuid.NewString()
+	require.NoError(t, f.db.Create(&models.User{
+		ID: localID, IAMSub: techSub, TenantID: f.tenantID, OrgID: f.orgID,
+		Username: "u-" + localID[:8], Name: "双键师傅", Status: "active",
+	}).Error)
+	rr := models.RepairRequest{
+		ID: uuid.NewString(), TenantID: f.tenantID, UserID: f.customerID, Type: "service",
+		Status: models.RepairReqStatusPendingRepair, TechnicianID: &localID,
+		SiteID: f.siteID, UserInstrumentID: uuid.NewString(), Description: "双键", Photos: "[]", ReceivePhotos: "[]",
+	}
+	require.NoError(t, f.db.Create(&rr).Error)
+
+	tech := testutil.TestActor{TenantID: f.tenantID, OrgID: f.siteID, UserID: techSub, Role: "repair_technician"}
+	_, resp := svcPost(t, f, tech, "/repair-services/"+rr.ID+"/start", nil)
+	assert.Equal(t, 20000, bodyCode2116(t, resp), "本地 id 指派的师傅应可开始维修")
+
+	var got models.RepairRequest
+	require.NoError(t, f.db.Where("id = ?", rr.ID).First(&got).Error)
+	assert.Equal(t, models.RepairReqStatusRepairing, got.Status)
+}
+
+// TestReceive2116_TechnicianAssignedByLocalID：同口径覆盖收货路径 1。
+func TestReceive2116_TechnicianAssignedByLocalID(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	localID := uuid.NewString()
+	techSub := uuid.NewString()
+	require.NoError(t, f.db.Create(&models.User{
+		ID: localID, IAMSub: techSub, TenantID: f.tenantID, OrgID: f.orgID,
+		Username: "u-" + localID[:8], Name: "双键师傅", Status: "active",
+	}).Error)
+	rr := models.RepairRequest{
+		ID: uuid.NewString(), TenantID: f.tenantID, UserID: f.customerID, Type: "service",
+		Status: models.RepairReqStatusShipping, TechnicianID: &localID,
+		SiteID: f.siteID, UserInstrumentID: uuid.NewString(), Description: "双键收货", Photos: "[]", ReceivePhotos: "[]",
+	}
+	require.NoError(t, f.db.Create(&rr).Error)
+
+	tech := testutil.TestActor{TenantID: f.tenantID, OrgID: f.siteID, UserID: techSub, Role: "repair_technician"}
+	_, resp := receive2116(t, f, tech, rr.ID, []string{"p.jpg"})
+	assert.Equal(t, 20000, bodyCode2116(t, resp), "本地 id 指派的师傅应可直收")
+
+	var got models.RepairRequest
+	require.NoError(t, f.db.Where("id = ?", rr.ID).First(&got).Error)
+	assert.Equal(t, models.RepairReqStatusRepairing, got.Status, "路径 1：师傅直收直接进入维修中")
+}

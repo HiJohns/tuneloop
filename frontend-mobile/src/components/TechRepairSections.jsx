@@ -255,6 +255,12 @@ export default function TechRepairSections() {
     setSubmitting(false)
   }
 
+  // #2119: 行点击 → 维修单详情（RS-API-3 员工可读；留痕/存档图/加价入口在详情页）
+  const openDetail = (id) => {
+    if (env.isMiniProgram) Taro.navigateTo({ url: `/pages-weapp/repair-service-detail/index?order_id=${id}` })
+    else window.location.assign(`/repair-service-detail?order_id=${id}`)
+  }
+
   // #2116 修订：瘦身行——编号/提交人/时间/状态 + 最多一个按钮；媒体与表单收进展开区
   const renderRow = (rr, opts = {}) => {
     return (
@@ -287,6 +293,7 @@ export default function TechRepairSections() {
     let photos = []
     try { photos = Array.isArray(rr.photos) ? rr.photos : JSON.parse(rr.photos || '[]') } catch { photos = [] }
     return renderRow(rr, {
+      onInfoTap: () => openDetail(rr.id),
       button: { label: isOpen ? '收起' : '填写报价', onClick: () => toggle(rr.id, 'quote'), secondary: true },
       panel: !isOpen ? null : (
         <View style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 4, borderTop: '1px solid #f4f4f5' }}>
@@ -323,6 +330,7 @@ export default function TechRepairSections() {
     if (rr.status === 'shipping') {
       const isOpen = expanded === `${rr.id}:receive`
       return renderRow(rr, {
+        onInfoTap: () => openDetail(rr.id),
         hint: '等待收货',
         button: { label: isOpen ? '收起' : '收货确认（拍照留档）', onClick: () => toggle(rr.id, 'receive'), secondary: true },
         panel: !isOpen ? null : (
@@ -339,6 +347,7 @@ export default function TechRepairSections() {
     }
     if (rr.status === 'pending_repair') {
       return renderRow(rr, {
+        onInfoTap: () => openDetail(rr.id),
         hint: '已代收，待开始维修',
         button: { label: '开始维修', onClick: () => submitStart(rr.id) },
       })
@@ -346,7 +355,7 @@ export default function TechRepairSections() {
     const isOpen = expanded === `${rr.id}:adjust`
     return renderRow(rr, {
       hint: rr.status === 'adjust_pending' ? '加价待用户确认，暂不能完工' : undefined,
-      onInfoTap: rr.status === 'repairing' ? () => toggle(rr.id, 'adjust') : undefined,
+      onInfoTap: () => openDetail(rr.id),
       button: rr.status === 'repairing' ? { label: '完成修理', onClick: () => submitComplete(rr.id) } : null,
       panel: isOpen && rr.status === 'repairing' ? (
         <View style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 4, borderTop: '1px solid #f4f4f5' }}>
@@ -384,7 +393,7 @@ export default function TechRepairSections() {
           </View>
           {!loading && pendingPay.length === 0 ? (
             <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无待付款维修单</Text>
-          ) : pendingPay.map(rr => renderRow(rr, { hint: svcTodo(rr) }))}
+          ) : pendingPay.map(rr => renderRow(rr, { onInfoTap: () => openDetail(rr.id), hint: svcTodo(rr) }))}
 
           {/* #2116 修订：已寄出·待收货（shipping 独立分组） */}
           <View style={{ marginTop: 14, marginBottom: 8 }}>
@@ -407,14 +416,14 @@ export default function TechRepairSections() {
           </View>
           {!loading && pendingReturn.length === 0 ? (
             <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无待发回维修单</Text>
-          ) : pendingReturn.map(rr => renderRow(rr, { hint: svcTodo(rr) }))}
+          ) : pendingReturn.map(rr => renderRow(rr, { onInfoTap: () => openDetail(rr.id), hint: svcTodo(rr) }))}
 
           <View style={{ marginTop: 14, marginBottom: 8 }}>
             <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>已完成（{doneList.length}）</Text>
           </View>
           {!loading && doneList.length === 0 ? (
             <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无已完成维修单</Text>
-          ) : doneList.map(rr => renderRow(rr, { hint: '已结算' }))}
+          ) : doneList.map(rr => renderRow(rr, { onInfoTap: () => openDetail(rr.id), hint: '已结算' }))}
     </View>
   )
 }

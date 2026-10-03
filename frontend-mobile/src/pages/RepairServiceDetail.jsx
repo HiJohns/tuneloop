@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Textarea, Image, Video, Button, Input } from '@tarojs/components'
 import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
-import { dialog, env, getInputValue, toWeappRoute, uploadFile as uploadFileApi } from '../platform'
+import { dialog, env, getInputValue, toWeappRoute, uploadFile as uploadFileApi, parseJWT } from '../platform'
 import { formatBeijingDate } from '../utils/format'
 import { photoSrc } from '../utils/media'
 
@@ -31,6 +31,7 @@ const timelineLabels = {
   adjust_requested: '维修师发起加价', adjust_accepted: '同意加价',
   adjust_paid: '补差价到账', adjust_declined: '拒绝加价', leg_fee: '分段物流费登记',
   quote_declined: '拒绝报价',
+  received_by_tech: '维修师收货', received_by_staff: '网点代收货', repair_started: '开始维修', // #2116
   repair_completed: '完成修理', settled: '发回结算', reviewed: '提交评价',
   shortfall_paid: '补缴到账', payment_timeout: '支付超时关闭', // #2094
 }
@@ -70,6 +71,11 @@ export default function RepairServiceDetail() {
     .get('order_id') || ''
   const [detail, setDetail] = useState(null) // {repair, logistics_fees, review?, site?}
   const [loading, setLoading] = useState(true)
+  // #2119: 技师/员工加价（详情页入口）
+  const [showAdj, setShowAdj] = useState(false)
+  const [adjYuan, setAdjYuan] = useState('')
+  const [adjIncurredYuan, setAdjIncurredYuan] = useState('')
+  const [adjBusy, setAdjBusy] = useState(false)
   const [technicians, setTechnicians] = useState([])
   const [techLoaded, setTechLoaded] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -86,6 +92,9 @@ export default function RepairServiceDetail() {
   const [reviewMsg, setReviewMsg] = useState('')
   const [reviewPhotos, setReviewPhotos] = useState([])
   const baseUrl = env.apiBaseUrl
+  // #2119: 员工/技师视图判定（JWT role 非 USER）
+  const isStaffView = (() => { try { const t = getToken(); return !!t && (parseJWT(t)?.role || '') !== 'USER' && (parseJWT(t)?.role || '') !== '' } catch { return false } })()
+
 
   const loadDetail = async () => {
     if (!orderId) { setLoading(false); return }
@@ -98,6 +107,34 @@ export default function RepairServiceDetail() {
       dialog.alert(resolveErrorMessage(e))
     }
     setLoading(false)
+  }
+
+  // #2119: 加价提交（收货后维修中；服务端守卫权威）
+  const submitAdjust = async () => {
+    const toC = (v) => { const n = parseFloat(v); return isNaN(n) || n < 0 ? -1 : Math.round(n * 100) }
+    const newQ = toC(adjYuan)
+    const incurred = adjIncurredYuan === '' ? 0 : toC(adjIncurredYuan)
+    if (newQ <= 0) { dialog.alert('请填写正确的新修理费总价'); return }
+    if (incurred < 0) { dialog.alert('请填写正确的到此为止修理费'); return }
+    setAdjBusy(true)
+    try {
+      const res = await apiFetch(`${baseUrl}/repair-services/${orderId}/adjust`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ new_quote_cents: newQ, incurred_cents: incurred }),
+      })
+      const result = await res.json()
+      if (result.code === 20000) {
+        dialog.alert('加价申请已提交，等待用户确认')
+        setShowAdj(false)
+        loadDetail()
+      } else {
+        dialog.alert(resolveErrorMessage(result))
+      }
+    } catch (e) {
+      dialog.alert(resolveErrorMessage(e))
+    }
+    setAdjBusy(false)
   }
 
   useEffect(() => { loadDetail() }, [])
@@ -705,6 +742,50 @@ export default function RepairServiceDetail() {
                   {busy ? '处理中...' : '提交评价'}
                 </Button>
               </>
+            )}
+          </View>
+        )}
+
+        {/* #2119: 收货存档照（收货环节拍照留档） */}
+        {(() => {
+          let rp = []
+          try { rp = Array.isArray(rr.receive_photos) ? rr.receive_photos : JSON.parse(rr.receive_photos || '[]') } catch { rp = [] }
+          if (rp.length === 0) return null
+          return (
+            <View style={cardStyle}>
+              <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>收货存档照</Text>
+              {rr.received_at ? (
+                <Text style={{ fontSize: 11, color: '#A1A1AA' }}>收货时间：{formatBeijingDate(rr.received_at)}</Text>
+              ) : null}
+              <View style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                {rp.map((p, i) => (
+                  <Image key={i} src={photoSrc(p)} style={{ width: 96, height: 96, borderRadius: 6, backgroundColor: '#f4f4f5' }} />
+                ))}
+              </View>
+            </View>
+          )
+        })()}
+
+        {/* #2119: 技师/员工加价入口（收货后维修中） */}
+        {isStaffView && rr.status === 'repairing' && (
+          <View style={cardStyle}>
+            <View onClick={() => setShowAdj(!showAdj)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>发起加价</Text>
+              <Text style={{ fontSize: 12, color: '#71717A' }}>{showAdj ? '收起' : '展开'}</Text>
+            </View>
+            {showAdj && (
+              <View style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 4 }}>
+                <Text style={labelStyle}>新修理费总价（元）</Text>
+                <Input style={inputStyle} type="digit" value={adjYuan}
+                  onInput={e => setAdjYuan(getInputValue(e))} placeholder="如 300" />
+                <Text style={labelStyle}>到此为止修理费（元，用户不继续时按此结算）</Text>
+                <Input style={inputStyle} type="digit" value={adjIncurredYuan}
+                  onInput={e => setAdjIncurredYuan(getInputValue(e))} placeholder="如 50" />
+                <Button disabled={adjBusy} onClick={submitAdjust}
+                  style={{ width: '100%', margin: 0, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#171717', color: '#FFFFFF', borderRadius: 10, fontSize: 14, fontWeight: 'bold', opacity: adjBusy ? 0.5 : 1 }}>
+                  {adjBusy ? '处理中...' : '提交加价申请'}
+                </Button>
+              </View>
             )}
           </View>
         )}
