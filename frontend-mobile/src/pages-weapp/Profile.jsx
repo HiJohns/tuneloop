@@ -381,12 +381,13 @@ export default function Profile() {
               </View>
             ) : (
               <>
-              <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+              {/* #2117 修订：名字与「店·职位」徽标**分行**（并排有时挤成两行，观感差） */}
+              <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                 <Text style={{ fontSize: 24, fontWeight: '900', color: '#000', letterSpacing: '0.025em' }}>{displayName}</Text>
                 {(isStaff || hasMultipleContexts) && (
                   <Text style={{
-                    fontSize: 11, marginLeft: 8, padding: '2px 8px', borderRadius: 999,
-                    overflow: 'hidden', maxWidth: 220,
+                    fontSize: 11, marginTop: 6, padding: '2px 8px', borderRadius: 999,
+                    overflow: 'hidden', maxWidth: 260,
                     color: isStaff ? '#1e3a8a' : '#71717a',
                     backgroundColor: isStaff ? '#e0e7ff' : '#f4f4f5',
                   }}>
