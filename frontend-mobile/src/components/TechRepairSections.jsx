@@ -3,12 +3,13 @@
 // 自包含（挂载即拉 scope=mine 三查询）；仅用 @tarojs/components + platform + services/api（跨端）。
 import { useState, useEffect } from 'react'
 import { formatCents, yuanToCents as toCents } from '../utils/money'
-import { View, Text, Input, Video, Button } from '@tarojs/components'
+import { View, Text, Input, Video, Button, Image } from '@tarojs/components'
 import { apiFetch, resolveErrorMessage, getToken } from '../services/api'
 import Taro from '@tarojs/taro'
 import { dialog, env, getInputValue, uploadFile as uploadFileApi } from '../platform'
 import { formatBeijingDate } from '../utils/format'
 import { photoSrc } from '../utils/media'
+import ImageUploader from './ImageUploader'
 
 const svcStatusLabels = {
   pending_quote: '待报价', pending_payment: '待付款', paid: '已支付·待寄出',
@@ -58,6 +59,8 @@ export default function TechRepairSections() {
   const [pendingQuotes, setPendingQuotes] = useState([])
   const [pendingPay, setPendingPay] = useState([]) // #2088：已报价·待付款（pending_payment）
   const [pendingReturn, setPendingReturn] = useState([]) // #2091：待发回（done_repair）
+  const [shipped, setShipped] = useState([]) // #2116 修订：已寄出·待收货（shipping 独立分组）
+  const [receiveFiles, setReceiveFiles] = useState([]) // #2116 修订：收货照片（多张累计统一提交）
   const [working, setWorking] = useState([])
   const [doneList, setDoneList] = useState([])
   const [expanded, setExpanded] = useState('') // `${id}:quote|adjust`
@@ -80,19 +83,22 @@ export default function TechRepairSections() {
   const fetchLists = async () => {
     setLoading(true)
     try {
-      const [qRes, pRes, wRes, rRes, dRes] = await Promise.all([
+      const [qRes, pRes, sRes, wRes, rRes, dRes] = await Promise.all([
         apiFetch(`${baseUrl}/repair-services?scope=mine&status=pending_quote`),
         apiFetch(`${baseUrl}/repair-services?scope=mine&status=pending_payment`), // #2088：已报价·待付款
-        apiFetch(`${baseUrl}/repair-services?scope=mine&status=paid,shipping,repairing,adjust_pending`),
+        apiFetch(`${baseUrl}/repair-services?scope=mine&status=shipping`), // #2116 修订：已寄出独立分组
+        apiFetch(`${baseUrl}/repair-services?scope=mine&status=pending_repair,repairing,adjust_pending`),
         apiFetch(`${baseUrl}/repair-services?scope=mine&status=done_repair`), // #2091：待发回
         apiFetch(`${baseUrl}/repair-services?scope=mine&status=closed`),
       ])
       const q = await qRes.json()
       const p = await pRes.json()
+      const sv = await sRes.json()
       const w = await wRes.json()
       const r = await rRes.json()
       setPendingQuotes(q.code === 20000 ? (q.data?.list || []) : [])
       setPendingPay(p.code === 20000 ? (p.data?.list || []) : [])
+      setShipped(sv.code === 20000 ? (sv.data?.list || []) : [])
       setWorking(w.code === 20000 ? (w.data?.list || []) : [])
       setPendingReturn(r.code === 20000 ? (r.data?.list || []) : [])
       setDoneList(dRes.code === 20000 ? (dRes.data?.list || []) : [])
@@ -106,7 +112,7 @@ export default function TechRepairSections() {
 
   const toggle = (id, mode) => {
     if (expanded === `${id}:${mode}`) { setExpanded(''); return }
-    setRepairYuan(''); setMaterialYuan(''); setLogiYuan(''); setNewQuoteYuan(''); setIncurredYuan('')
+    setRepairYuan(''); setMaterialYuan(''); setLogiYuan(''); setNewQuoteYuan(''); setIncurredYuan(''); setReceiveFiles([])
     setExpanded(`${id}:${mode}`)
   }
 
@@ -166,21 +172,22 @@ export default function TechRepairSections() {
     setSubmitting(false)
   }
 
-  // #2116：收货确认（拍照留档）——师傅本人→repairing；员工代收→pending_repair（服务端按身份判定）
+  // #2116 修订：多张拍照统一提交——ImageUploader 累计后一键上传+收货（参照租赁收货环节）
   const submitReceive = async (id) => {
     if (!env.isMiniProgram) {
       dialog.alert('收货拍照请在小程序中操作')
       return
     }
+    if (receiveFiles.length === 0) {
+      dialog.alert('请先拍照留档')
+      return
+    }
     setSubmitting(true)
     try {
-      const choose = await Taro.chooseImage({ count: 9, sizeType: ['compressed'], sourceType: ['camera', 'album'] })
-      const paths = choose.tempFilePaths || []
-      if (!paths.length) { setSubmitting(false); return }
       const authHeaders = { Authorization: 'Bearer ' + (getToken() || '') }
       const keys = []
-      for (const p of paths) {
-        const resp = await uploadFileApi(`${baseUrl}/upload`, p, { headers: authHeaders })
+      for (const f of receiveFiles) {
+        const resp = await uploadFileApi(`${baseUrl}/upload`, f, { headers: authHeaders })
         if (resp.statusCode === 401) throw new Error('登录态已失效，请重新登录')
         const r = JSON.parse(resp.data)
         if (r.code !== 20000) throw new Error(r.message || '上传失败')
@@ -194,6 +201,8 @@ export default function TechRepairSections() {
       const result = await res.json()
       if (result.code === 20000) {
         dialog.alert(result.data?.status === 'repairing' ? '已确认收货，开始维修' : '已代收货，等待维修师开始维修')
+        setExpanded('')
+        setReceiveFiles([])
         fetchLists()
       } else {
         dialog.alert(resolveErrorMessage(result))
@@ -246,114 +255,115 @@ export default function TechRepairSections() {
     setSubmitting(false)
   }
 
-  const renderQuoteCard = (rr) => {
-    const isOpen = expanded === `${rr.id}:quote`
+  // #2116 修订：瘦身行——编号/提交人/时间/状态 + 最多一个按钮；媒体与表单收进展开区
+  const renderRow = (rr, opts = {}) => {
     return (
       <View key={rr.id} style={cardStyle}>
-        <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <View
+          onClick={opts.onInfoTap}
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+        >
           <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>
             编码 {rr.repair_code || '-'}
           </Text>
-          <Text style={{ fontSize: 12, color: '#A1A1AA' }}>待报价</Text>
+          <Text style={{ fontSize: 12, color: '#A1A1AA' }}>{svcStatusLabels[rr.status] || rr.status}</Text>
         </View>
-        <Text style={{ fontSize: 12, color: '#52525B' }} numberOfLines={2}>
-          {rr.description || '（无描述）'}
+        <Text style={{ fontSize: 11, color: '#A1A1AA' }}>
+          提交人 {rr.user_name || '-'} · {rr.created_at ? formatBeijingDate(rr.created_at) : '-'}{opts.hint ? ` · ${opts.hint}` : ''}
         </Text>
-        {/* #2060: 试奏视频（有则播放） */}
-        {rr.video_url ? (
-          <Video src={photoSrc(rr.video_url)} controls style={{ width: '100%', height: 160, borderRadius: 8, backgroundColor: '#000000' }} />
-        ) : null}
-        <Text style={{ fontSize: 11, color: '#71717A' }}>金额 {svcAmount(rr)} · {svcTodo(rr)}</Text>
-        <Button onClick={() => toggle(rr.id, 'quote')} style={btnSecondaryStyle}>
-          {isOpen ? '收起' : '填写报价'}
-        </Button>
-        {isOpen && (
-          <View style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 4 }}>
-            <Text style={labelStyle}>修理费（元）</Text>
-            <Input style={inputStyle} type="digit" value={repairYuan}
-              onInput={e => setRepairYuan(getInputValue(e))} placeholder="如 200" />
-            <Text style={labelStyle}>料钱（元；材料/配件费，可空）</Text>
-            <Input style={inputStyle} type="digit" value={materialYuan}
-              onInput={e => setMaterialYuan(getInputValue(e))} placeholder="如 30" />
-            <Text style={labelStyle}>物流费预估（元；受控组合为 3 段受管物流的预估合计）</Text>
-            <Input style={inputStyle} type="digit" value={logiYuan}
-              onInput={e => setLogiYuan(getInputValue(e))} placeholder="如 50" />
-            <Button disabled={submitting} onClick={() => submitQuote(rr.id)}
-              style={{ ...btnPrimaryStyle, opacity: submitting ? 0.5 : 1 }}>
-              {submitting ? '处理中...' : '提交报价'}
-            </Button>
-          </View>
+        {opts.button && (
+          <Button disabled={submitting} onClick={opts.button.onClick}
+            style={{ ...(opts.button.secondary ? btnSecondaryStyle : btnPrimaryStyle), opacity: submitting ? 0.5 : 1 }}>
+            {opts.button.label}
+          </Button>
         )}
+        {opts.panel || null}
       </View>
     )
   }
 
-  const renderWorkCard = (rr) => {
-    const isOpen = expanded === `${rr.id}:adjust`
-    const canAdjust = rr.status === 'shipping' || rr.status === 'pending_repair' || rr.status === 'repairing'
-    return (
-      <View key={rr.id} style={cardStyle}>
-        <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>
-            编码 {rr.repair_code || '-'}
-          </Text>
-          <Text style={{ fontSize: 12, color: '#A1A1AA' }}>
-            {svcStatusLabels[rr.status] || rr.status}
-          </Text>
-        </View>
-        <Text style={{ fontSize: 12, color: '#52525B' }} numberOfLines={2}>
-          {rr.description || '（无描述）'}
-        </Text>
-        {/* #2060: 试奏视频（有则播放） */}
-        {rr.video_url ? (
-          <Video src={photoSrc(rr.video_url)} controls style={{ width: '100%', height: 160, borderRadius: 8, backgroundColor: '#000000' }} />
-        ) : null}
-        <Text style={{ fontSize: 11, color: '#A1A1AA' }}>
-          金额 {svcAmount(rr)} · {svcTodo(rr)} · 更新于 {rr.updated_at ? formatBeijingDate(rr.updated_at) : '-'}
-        </Text>
-        {canAdjust && (
-          <Button onClick={() => toggle(rr.id, 'adjust')} style={btnSecondaryStyle}>
-            {isOpen ? '收起' : '发起加价'}
+  const renderQuoteCard = (rr) => {
+    const isOpen = expanded === `${rr.id}:quote`
+    let photos = []
+    try { photos = Array.isArray(rr.photos) ? rr.photos : JSON.parse(rr.photos || '[]') } catch { photos = [] }
+    return renderRow(rr, {
+      button: { label: isOpen ? '收起' : '填写报价', onClick: () => toggle(rr.id, 'quote'), secondary: true },
+      panel: !isOpen ? null : (
+        <View style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 4, borderTop: '1px solid #f4f4f5' }}>
+          <Text style={{ fontSize: 12, color: '#52525B' }}>{rr.description || '（无描述）'}</Text>
+          {photos.length > 0 && (
+            <View style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              {photos.map((p, i) => (
+                <Image key={i} src={photoSrc(p)} style={{ width: 72, height: 72, borderRadius: 6, backgroundColor: '#f4f4f5' }} />
+              ))}
+            </View>
+          )}
+          {rr.video_url ? (
+            <Video src={photoSrc(rr.video_url)} controls style={{ width: '100%', height: 160, borderRadius: 8, backgroundColor: '#000000' }} />
+          ) : null}
+          <Text style={labelStyle}>修理费（元）</Text>
+          <Input style={inputStyle} type="digit" value={repairYuan}
+            onInput={e => setRepairYuan(getInputValue(e))} placeholder="如 200" />
+          <Text style={labelStyle}>料钱（元；材料/配件费，可空）</Text>
+          <Input style={inputStyle} type="digit" value={materialYuan}
+            onInput={e => setMaterialYuan(getInputValue(e))} placeholder="如 30" />
+          <Text style={labelStyle}>物流费预估（元）</Text>
+          <Input style={inputStyle} type="digit" value={logiYuan}
+            onInput={e => setLogiYuan(getInputValue(e))} placeholder="如 50" />
+          <Button disabled={submitting} onClick={() => submitQuote(rr.id)}
+            style={{ ...btnPrimaryStyle, opacity: submitting ? 0.5 : 1 }}>
+            {submitting ? '处理中...' : '提交报价'}
           </Button>
-        )}
-        {isOpen && (
-          <View style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 4 }}>
-            <Text style={labelStyle}>新修理费总价（元）</Text>
-            <Input style={inputStyle} type="digit" value={newQuoteYuan}
-              onInput={e => setNewQuoteYuan(getInputValue(e))} placeholder="如 300" />
-            <Text style={labelStyle}>到此为止修理费（元，用户不继续时按此结算）</Text>
-            <Input style={inputStyle} type="digit" value={incurredYuan}
-              onInput={e => setIncurredYuan(getInputValue(e))} placeholder="如 50" />
-            <Button disabled={submitting} onClick={() => submitAdjust(rr.id)}
-              style={{ ...btnPrimaryStyle, opacity: submitting ? 0.5 : 1 }}>
-              {submitting ? '处理中...' : '提交加价申请'}
+        </View>
+      ),
+    })
+  }
+
+  const renderWorkCard = (rr) => {
+    if (rr.status === 'shipping') {
+      const isOpen = expanded === `${rr.id}:receive`
+      return renderRow(rr, {
+        hint: '等待收货',
+        button: { label: isOpen ? '收起' : '收货确认（拍照留档）', onClick: () => toggle(rr.id, 'receive'), secondary: true },
+        panel: !isOpen ? null : (
+          <View style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 4, borderTop: '1px solid #f4f4f5' }}>
+            <Text style={labelStyle}>收货拍照（可拍多张，至少 1 张后统一提交）</Text>
+            <ImageUploader maxImages={9} onChange={(files) => setReceiveFiles(files)} />
+            <Button disabled={submitting || receiveFiles.length === 0} onClick={() => submitReceive(rr.id)}
+              style={{ ...btnPrimaryStyle, opacity: (submitting || receiveFiles.length === 0) ? 0.5 : 1 }}>
+              {submitting ? '处理中...' : `提交收货（${receiveFiles.length} 张）`}
             </Button>
           </View>
-        )}
-        {/* #2116：收货环节——shipping 拍照收货 / pending_repair 开始维修 / repairing 才可完工 */}
-        {rr.status === 'shipping' && (
-          <Button disabled={submitting} onClick={() => submitReceive(rr.id)}
+        ),
+      })
+    }
+    if (rr.status === 'pending_repair') {
+      return renderRow(rr, {
+        hint: '已代收，待开始维修',
+        button: { label: '开始维修', onClick: () => submitStart(rr.id) },
+      })
+    }
+    const isOpen = expanded === `${rr.id}:adjust`
+    return renderRow(rr, {
+      hint: rr.status === 'adjust_pending' ? '加价待用户确认，暂不能完工' : undefined,
+      onInfoTap: rr.status === 'repairing' ? () => toggle(rr.id, 'adjust') : undefined,
+      button: rr.status === 'repairing' ? { label: '完成修理', onClick: () => submitComplete(rr.id) } : null,
+      panel: isOpen && rr.status === 'repairing' ? (
+        <View style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 4, borderTop: '1px solid #f4f4f5' }}>
+          <Text style={labelStyle}>发起加价（收货后维修中方可发起）</Text>
+          <Text style={labelStyle}>新修理费总价（元）</Text>
+          <Input style={inputStyle} type="digit" value={newQuoteYuan}
+            onInput={e => setNewQuoteYuan(getInputValue(e))} placeholder="如 300" />
+          <Text style={labelStyle}>到此为止修理费（元，用户不继续时按此结算）</Text>
+          <Input style={inputStyle} type="digit" value={incurredYuan}
+            onInput={e => setIncurredYuan(getInputValue(e))} placeholder="如 50" />
+          <Button disabled={submitting} onClick={() => submitAdjust(rr.id)}
             style={{ ...btnPrimaryStyle, opacity: submitting ? 0.5 : 1 }}>
-            确认收货（拍照留档）
+            {submitting ? '处理中...' : '提交加价申请'}
           </Button>
-        )}
-        {rr.status === 'pending_repair' && (
-          <Button disabled={submitting} onClick={() => submitStart(rr.id)}
-            style={{ ...btnPrimaryStyle, opacity: submitting ? 0.5 : 1 }}>
-            开始维修
-          </Button>
-        )}
-        {rr.status === 'repairing' && (
-          <Button disabled={submitting} onClick={() => submitComplete(rr.id)}
-            style={{ ...btnPrimaryStyle, opacity: submitting ? 0.5 : 1 }}>
-            完成修理
-          </Button>
-        )}
-        {rr.status === 'adjust_pending' && (
-          <Text style={{ fontSize: 12, color: '#D97706' }}>加价待用户确认，暂不能完工</Text>
-        )}
-      </View>
-    )
+        </View>
+      ) : null,
+    })
   }
 
   return (
@@ -374,19 +384,15 @@ export default function TechRepairSections() {
           </View>
           {!loading && pendingPay.length === 0 ? (
             <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无待付款维修单</Text>
-          ) : pendingPay.map(rr => (
-            <View key={rr.id} style={cardStyle}>
-              <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>编码 {rr.repair_code || '-'}</Text>
-                <Text style={{ fontSize: 12, color: '#A1A1AA' }}>{svcStatusLabels[rr.status] || rr.status}</Text>
-              </View>
-              <Text style={{ fontSize: 12, color: '#52525B' }} numberOfLines={2}>{rr.description || '（无描述）'}</Text>
-              {rr.video_url ? (
-                <Video src={photoSrc(rr.video_url)} controls style={{ width: '100%', height: 160, borderRadius: 8, backgroundColor: '#000000' }} />
-              ) : null}
-              <Text style={{ fontSize: 11, color: '#A1A1AA' }}>金额 {svcAmount(rr)} · {svcTodo(rr)}</Text>
-            </View>
-          ))}
+          ) : pendingPay.map(rr => renderRow(rr, { hint: svcTodo(rr) }))}
+
+          {/* #2116 修订：已寄出·待收货（shipping 独立分组） */}
+          <View style={{ marginTop: 14, marginBottom: 8 }}>
+            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>已寄出·待收货（{shipped.length}）</Text>
+          </View>
+          {!loading && shipped.length === 0 ? (
+            <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无待收货维修单</Text>
+          ) : shipped.map(renderWorkCard)}
 
           <View style={{ marginTop: 14, marginBottom: 8 }}>
             <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>维修中（{working.length}）</Text>
@@ -401,43 +407,14 @@ export default function TechRepairSections() {
           </View>
           {!loading && pendingReturn.length === 0 ? (
             <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无待发回维修单</Text>
-          ) : pendingReturn.map(rr => (
-            <View key={rr.id} style={cardStyle}>
-              <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>编码 {rr.repair_code || '-'}</Text>
-                <Text style={{ fontSize: 12, color: '#A1A1AA' }}>{svcStatusLabels[rr.status] || rr.status}</Text>
-              </View>
-              <Text style={{ fontSize: 12, color: '#52525B' }} numberOfLines={2}>{rr.description || '（无描述）'}</Text>
-              {rr.video_url ? (
-                <Video src={photoSrc(rr.video_url)} controls style={{ width: '100%', height: 160, borderRadius: 8, backgroundColor: '#000000' }} />
-              ) : null}
-              <Text style={{ fontSize: 11, color: '#A1A1AA' }}>金额 {svcAmount(rr)} · {svcTodo(rr)}</Text>
-            </View>
-          ))}
+          ) : pendingReturn.map(rr => renderRow(rr, { hint: svcTodo(rr) }))}
 
           <View style={{ marginTop: 14, marginBottom: 8 }}>
             <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>已完成（{doneList.length}）</Text>
           </View>
           {!loading && doneList.length === 0 ? (
             <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无已完成维修单</Text>
-          ) : doneList.map(rr => (
-            <View key={rr.id} style={cardStyle}>
-              <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>
-                  编码 {rr.repair_code || '-'}
-                </Text>
-                <Text style={{ fontSize: 12, color: '#A1A1AA' }}>已结算</Text>
-              </View>
-              <Text style={{ fontSize: 12, color: '#52525B' }} numberOfLines={2}>
-                {rr.description || '（无描述）'}
-              </Text>
-              {/* #2060: 试奏视频（有则播放） */}
-              {rr.video_url ? (
-                <Video src={photoSrc(rr.video_url)} controls style={{ width: '100%', height: 160, borderRadius: 8, backgroundColor: '#000000' }} />
-              ) : null}
-              <Text style={{ fontSize: 11, color: '#71717A' }}>金额 {svcAmount(rr)}</Text>
-            </View>
-          ))}
+          ) : doneList.map(rr => renderRow(rr, { hint: '已结算' }))}
     </View>
   )
 }

@@ -5,6 +5,7 @@ import Taro from '@tarojs/taro'
 import { View, Text, Input, Button, ScrollView } from '@tarojs/components'
 import { apiFetch, resolveErrorMessage, getToken } from '../services/api'
 import { dialog, env, getInputValue, toWeappRoute, uploadFile as uploadFileApi } from '../platform'
+import ImageUploader from '../components/ImageUploader'
 import { formatBeijingDate } from '../utils/format'
 
 // #1957 阶段3c：网点员工维修服务工作台（RS-API-2 scope=site）
@@ -65,6 +66,7 @@ export default function StaffRepairServices() {
   const [mainTab, setMainTab] = useState('active')
   const [expanded, setExpanded] = useState('') // `${id}:dispatch` | `${id}:leg`
   const [submitting, setSubmitting] = useState(false)
+  const [receiveFiles, setReceiveFiles] = useState([]) // #2116 修订：代收货照片
   // 表单态
   const [trackingCompany, setTrackingCompany] = useState('')
   const [trackingNumber, setTrackingNumber] = useState('')
@@ -102,7 +104,7 @@ export default function StaffRepairServices() {
 
   const toggle = async (id, mode) => {
     if (expanded === `${id}:${mode}`) { setExpanded(''); return }
-    setTrackingCompany(''); setTrackingNumber(''); setFeeYuan(''); setNextLeg(1)
+    setTrackingCompany(''); setTrackingNumber(''); setFeeYuan(''); setNextLeg(1); setReceiveFiles([])
     setExpanded(`${id}:${mode}`)
     if (mode === 'leg') {
       // 取已有分段数 → 下一leg序号（RS-API-3 staff 可读）
@@ -116,21 +118,22 @@ export default function StaffRepairServices() {
     }
   }
 
-  // #2116：员工代收货——拍照留档后 shipping → pending_repair，师傅打开单子「开始维修」
+  // #2116 修订：员工代收货——多张拍照统一提交（shipping → pending_repair）
   const submitReceive = async (id) => {
     if (!env.isMiniProgram) {
       dialog.alert('收货拍照请在小程序中操作')
       return
     }
+    if (receiveFiles.length === 0) {
+      dialog.alert('请先拍照留档')
+      return
+    }
     setSubmitting(true)
     try {
-      const choose = await Taro.chooseImage({ count: 9, sizeType: ['compressed'], sourceType: ['camera', 'album'] })
-      const paths = choose.tempFilePaths || []
-      if (!paths.length) { setSubmitting(false); return }
       const authHeaders = { Authorization: 'Bearer ' + (getToken() || '') }
       const keys = []
-      for (const p of paths) {
-        const resp = await uploadFileApi(`${baseUrl}/upload`, p, { headers: authHeaders })
+      for (const f of receiveFiles) {
+        const resp = await uploadFileApi(`${baseUrl}/upload`, f, { headers: authHeaders })
         if (resp.statusCode === 401) throw new Error('登录态已失效，请重新登录')
         const r = JSON.parse(resp.data)
         if (r.code !== 20000) throw new Error(r.message || '上传失败')
@@ -144,6 +147,8 @@ export default function StaffRepairServices() {
       const result = await res.json()
       if (result.code === 20000) {
         dialog.alert('已代收货，已通知维修师开始维修')
+        setExpanded('')
+        setReceiveFiles([])
         fetchLists()
       } else {
         dialog.alert(resolveErrorMessage(result))
@@ -235,17 +240,27 @@ export default function StaffRepairServices() {
             {isOpen ? '收起' : '发回并结算'}
           </Button>
         ) : rr.status === 'shipping' ? (
-          // #2116：顾客已寄出 → 员工代收货（拍照留档→pending_repair，师傅随后「开始维修」）
-          <Button disabled={submitting} onClick={() => submitReceive(rr.id)}
-            style={{ ...btnPrimaryStyle, opacity: submitting ? 0.5 : 1 }}>
-            代收货（拍照留档）
+          // #2116 修订：顾客已寄出 → 员工代收货（ImageUploader 多张累计，统一提交）
+          <Button disabled={submitting} onClick={() => toggle(rr.id, 'receive')}
+            style={{ ...btnSecondaryStyle }}>
+            {expanded === `${rr.id}:receive` ? '收起' : '代收货（拍照留档）'}
           </Button>
         ) : (
           <Button onClick={() => toggle(rr.id, 'leg')} style={btnSecondaryStyle}>
             {isOpen ? '收起' : '实填本段物流费'}
           </Button>
         )}
-        {isOpen && (
+        {isOpen && mode === 'receive' && (
+          <View style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 4, borderTop: '1px solid #f4f4f5' }}>
+            <Text style={labelStyle}>代收货拍照（可拍多张，至少 1 张后统一提交）</Text>
+            <ImageUploader maxImages={9} onChange={(files) => setReceiveFiles(files)} />
+            <Button disabled={submitting || receiveFiles.length === 0} onClick={() => submitReceive(rr.id)}
+              style={{ ...btnPrimaryStyle, opacity: (submitting || receiveFiles.length === 0) ? 0.5 : 1 }}>
+              {submitting ? '处理中...' : `提交代收（${receiveFiles.length} 张）`}
+            </Button>
+          </View>
+        )}
+        {isOpen && mode !== 'receive' && (
           <View style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 4 }}>
             {mode === 'dispatch' ? (
               <>

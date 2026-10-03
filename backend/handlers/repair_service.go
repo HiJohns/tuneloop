@@ -921,10 +921,10 @@ func (h *RepairServiceHandler) Adjust(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
 		return
 	}
-	// 乐器已寄出（shipping）/ 已代收待维修（pending_repair）/ 维修中（repairing）均可发起加价
-	// （RS-06 主流程 7；#2116 增补 pending_repair——代收后师傅开修前也可能发现加价点）。
+	// #2116 修订（用户裁定）：加价只能在**收货之后维修中**发起——
+	// 原口径 shipping 可加价是收货环节缺失时期的过渡（发现加价点的前提是已实物收货开修）。
 	switch rr.Status {
-	case models.RepairReqStatusShipping, models.RepairReqStatusPendingRepair, models.RepairReqStatusRepairing:
+	case models.RepairReqStatusRepairing:
 	default:
 		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "adjustment is only allowed while shipping or repairing"})
 		return
@@ -1373,5 +1373,44 @@ func (h *RepairServiceHandler) ListTasks(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list tasks"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": list, "total": len(list)}})
+	// #2116 修订：工作台瘦身行需要「提交人」——批量回填 user_name（additive 字段）
+	userIDs := make([]string, 0, len(list))
+	for _, rr := range list {
+		if rr.UserID != "" {
+			userIDs = append(userIDs, rr.UserID)
+		}
+	}
+	nameByUser := map[string]string{}
+	if len(userIDs) > 0 {
+		var us []models.User
+		// #2117/#2078 同族：顾客本地行 tenant_id=00000000，员工上下文的租户作用域
+		// 会把名字查询过滤空 → 身份键查询用 IdentityCtx 豁免。
+		if err := db.WithContext(database.IdentityCtx(context.Background())).
+			Where("id IN ? OR iam_sub IN ?", userIDs, userIDs).
+			Select("id, iam_sub, name, nickname, username").Find(&us).Error; err == nil {
+			for _, u := range us {
+				n := u.Name
+				if n == "" {
+					n = u.Nickname
+				}
+				if n == "" {
+					n = u.Username
+				}
+				// rr.UserID 可能存本地 id 也可能存 IAM sub（#2090 形态）→ 双键映射
+				nameByUser[u.ID] = n
+				if u.IAMSub != "" {
+					nameByUser[u.IAMSub] = n
+				}
+			}
+		}
+	}
+	rows := make([]gin.H, 0, len(list))
+	for _, rr := range list {
+		b, _ := json.Marshal(rr)
+		var m map[string]interface{}
+		_ = json.Unmarshal(b, &m)
+		m["user_name"] = nameByUser[rr.UserID]
+		rows = append(rows, m)
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": rows, "total": len(rows)}})
 }

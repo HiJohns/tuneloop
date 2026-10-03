@@ -2,11 +2,14 @@ package handlers
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"tuneloop-backend/models"
 	"tuneloop-backend/testutil"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -168,4 +171,53 @@ func TestReceive2116_PhotosPersistedAsJSON(t *testing.T) {
 	var photos []string
 	require.NoError(t, json.Unmarshal([]byte(got.ReceivePhotos), &photos))
 	assert.ElementsMatch(t, []string{"a.jpg", "b.jpg"}, photos)
+}
+
+// TestAdjust2116_RejectedWhileShipping：收货前（shipping）不可加价（#2116 修订）。
+func TestAdjust2116_RejectedWhileShipping(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	customer := testutil.MakeCustomer("", f.customerSub)
+	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
+
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "加价-未收货", "technician_id": f.techID})
+	id := svcData(t, resp)["id"].(string)
+	svcPost(t, f, customer, "/user/repair-services/"+id+"/select-technician", gin.H{"technician_id": f.techID})
+	svcPost(t, f, staff, "/repair-services/"+id+"/quote", gin.H{"quote_repair_cents": 20000, "quote_logistics_cents": 5000})
+	svcPost(t, f, customer, "/user/repair-services/"+id+"/accept", nil)
+	svcPay(t, f, id, 25000)
+	svcPost(t, f, customer, "/user/repair-services/"+id+"/ship", gin.H{"tracking_number": "SF-X"})
+
+	_, resp = svcPost(t, f, staff, "/repair-services/"+id+"/adjust", gin.H{"new_quote_cents": 30000, "incurred_cents": 5000})
+	assert.Equal(t, float64(40900), resp["code"], "收货前不可加价")
+}
+
+// TestListTasks2116_IncludesSubmitterName：工作台瘦身行需要提交人（#2116 修订）。
+func TestListTasks2116_IncludesSubmitterName(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	customer := testutil.MakeCustomer("", f.customerSub)
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "名单", "technician_id": f.techID})
+	svcData(t, resp)
+	svcPost(t, f, customer, "/user/repair-services/"+svcLastID(t, f)+"/select-technician", gin.H{"technician_id": f.techID})
+
+	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
+	req := httptest.NewRequest(http.MethodGet, "/repair-services?scope=site", nil)
+	w := httptest.NewRecorder()
+	f.router.ServeHTTP(w, req.WithContext(staff.InjectContext(req.Context())))
+	require.Equal(t, http.StatusOK, w.Code)
+	var out struct {
+		Data struct {
+			List []map[string]interface{} `json:"list"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &out))
+	require.GreaterOrEqual(t, len(out.Data.List), 1)
+	assert.NotEmpty(t, out.Data.List[0]["user_name"], "列表行应带提交人姓名")
+}
+
+func svcLastID(t *testing.T, f svcFixture) string {
+	t.Helper()
+	var ids []string
+	f.db.Model(&models.RepairRequest{}).Where("type = ?", "service").Order("created_at DESC").Limit(1).Pluck("id", &ids)
+	require.NotEmpty(t, ids)
+	return ids[0]
 }

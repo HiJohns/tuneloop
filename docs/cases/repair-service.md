@@ -200,7 +200,7 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 | 4 | `pending_payment` | 接受报价 | 用户 | `quote_status=pending` → `accepted` | `pending_payment`（不变） |
 | 5 | `pending_payment` | 支付（初付，服务端重算） | 用户+系统回调 | prepay 仅允许 `pending_payment`/`adjust_pending` | `paid` |
 | 6 | `paid` | 寄出（运单号） | 用户 | 详情须展示寄件网点地址 | `shipping` |
-| 7 | `shipping` / `repairing` | 发起加价（新总价 + 到此为止） | 维修师/员工 | `incurred ≤ new_quote`；`quote_status=pending` | `adjust_pending` |
+| 7 | `repairing` | 发起加价（新总价 + 到此为止） | 维修师/员工 | **收货之后维修中才可加价**（#2116 修订：原 shipping 可加价系收货环节缺失时期的过渡口径）；`incurred ≤ new_quote`；`quote_status=pending` | `adjust_pending` |
 | 8 | `adjust_pending` | 继续并补差价 | 用户+系统回调 | 补差 = `new_quote − quote_repair`；回调置 `quote_status=accepted` | `repairing` |
 | 9 | `adjust_pending` | 不继续 | 用户 | `quote_status=declined` | `done_repair` |
 | 6a | `shipping` | 确认收货（拍照留档） | **维修师本人** | 照片≥1；`TechnicianID==caller` | `repairing` |

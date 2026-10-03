@@ -138,6 +138,14 @@ func svcData(t *testing.T, resp map[string]interface{}) map[string]interface{} {
 	return d
 }
 
+// svcReceive2116 按 #2116 新状态机推进：shipping →（师傅本人收货）→ repairing。
+func svcReceive2116(t *testing.T, f svcFixture, id string) {
+	t.Helper()
+	tech := testutil.TestActor{TenantID: f.tenantID, OrgID: f.siteID, UserID: f.techID, Role: "repair_technician"}
+	_, resp := svcPost(t, f, tech, "/repair-services/"+id+"/receive", map[string]interface{}{"photos": []string{"r1.jpg"}})
+	require.Equal(t, float64(20000), resp["code"], resp)
+}
+
 // svcPay 模拟微信支付回调（applySideEffects），落一条 paid 支付记录。
 func svcPay(t *testing.T, f svcFixture, repairID string, amountCents int64) {
 	t.Helper()
@@ -225,6 +233,7 @@ func TestRepairService_HappyPathSettlementRefund(t *testing.T) {
 
 	_, resp = svcPost(t, f, customer, "/user/repair-services/"+id+"/ship", gin.H{"tracking_number": "SF123"})
 	require.Equal(t, float64(20000), resp["code"])
+	svcReceive2116(t, f, id) // #2116: 收货后才能完工
 
 	// 契约：完工端点为 /complete
 	_, resp = svcPost(t, f, staff, "/repair-services/"+id+"/complete", nil)
@@ -262,6 +271,7 @@ func TestRepairService_AdjustAcceptPaysDifference(t *testing.T) {
 	svcPost(t, f, customer, "/user/repair-services/"+id+"/accept", nil)
 	svcPay(t, f, id, 25000)
 	svcPost(t, f, customer, "/user/repair-services/"+id+"/ship", gin.H{"tracking_number": "SF1"})
+	svcReceive2116(t, f, id) // #2116: 加价须在收货后维修中
 
 	// 师傅加价：新总价 30000、到此为止 5000（双字段契约）
 	_, resp = svcPost(t, f, staff, "/repair-services/"+id+"/adjust", gin.H{
@@ -307,6 +317,7 @@ func TestRepairService_AdjustDeclineSettlement(t *testing.T) {
 	svcPost(t, f, customer, "/user/repair-services/"+id+"/accept", nil)
 	svcPay(t, f, id, 25000)
 	svcPost(t, f, customer, "/user/repair-services/"+id+"/ship", gin.H{"tracking_number": "SF1"})
+	svcReceive2116(t, f, id) // #2116: 加价须在收货后维修中
 	svcPost(t, f, staff, "/repair-services/"+id+"/adjust", gin.H{"new_quote_cents": 30000, "incurred_cents": 5000})
 
 	_, resp = svcPost(t, f, customer, "/user/repair-services/"+id+"/adjust/decline", nil)
@@ -338,6 +349,8 @@ func TestRepairService_SettlementShortfall(t *testing.T) {
 	svcPost(t, f, staff, "/repair-services/"+id+"/quote", gin.H{"quote_repair_cents": 1000, "quote_logistics_cents": 0})
 	svcPost(t, f, customer, "/user/repair-services/"+id+"/accept", nil)
 	svcPay(t, f, id, 1000)
+	svcPost(t, f, customer, "/user/repair-services/"+id+"/ship", gin.H{"tracking_number": "SF-S"}) // #2116
+	svcReceive2116(t, f, id)
 
 	_, resp = svcPost(t, f, staff, "/repair-services/"+id+"/complete", nil)
 	require.Equal(t, float64(20000), resp["code"])
@@ -517,6 +530,7 @@ func TestRepairService_Timeline(t *testing.T) {
 	svcPost(t, f, customer, "/user/repair-services/"+id+"/accept", nil)
 	svcPay(t, f, id, 25000)
 	svcPost(t, f, customer, "/user/repair-services/"+id+"/ship", gin.H{"tracking_number": "SF-TL"})
+	svcReceive2116(t, f, id) // #2116: 加价须在收货后维修中
 	svcPost(t, f, staff, "/repair-services/"+id+"/adjust", gin.H{"new_quote_cents": 30000, "incurred_cents": 5000})
 	svcPost(t, f, customer, "/user/repair-services/"+id+"/adjust/accept", nil)
 	svcPay(t, f, id, 10000)
@@ -538,7 +552,7 @@ func TestRepairService_Timeline(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &out))
 	wantOrder := []string{"created", "technician_selected", "quoted", "quote_accepted", "paid",
-		"shipped", "adjust_requested", "adjust_accepted", "adjust_paid", "leg_fee",
+		"shipped", "received_by_tech", "adjust_requested", "adjust_accepted", "adjust_paid", "leg_fee",
 		"repair_completed", "settled", "reviewed"}
 	got := make([]string, 0, len(out.Data.Timeline))
 	for _, t2 := range out.Data.Timeline {
@@ -562,6 +576,8 @@ func TestRepairService_PaymentsSummary(t *testing.T) {
 	svcPost(t, f, staff, "/repair-services/"+id+"/quote", gin.H{"quote_repair_cents": 1000, "quote_logistics_cents": 0})
 	svcPost(t, f, customer, "/user/repair-services/"+id+"/accept", nil)
 	svcPay(t, f, id, 1000)
+	svcPost(t, f, customer, "/user/repair-services/"+id+"/ship", gin.H{"tracking_number": "SF-PS"}) // #2116
+	svcReceive2116(t, f, id)
 	svcPost(t, f, staff, "/repair-services/"+id+"/complete", nil)
 	// 实际物流 12000 > 已付 1000 → 补缴 11000
 	svcPost(t, f, staff, "/repair-services/"+id+"/dispatch", gin.H{"tracking_number": "SF-PS", "logistics_fee_cents": 12000})
@@ -636,6 +652,8 @@ func TestRepairService_ShortfallPrepay(t *testing.T) {
 	svcPost(t, f, staff, "/repair-services/"+id+"/quote", gin.H{"quote_repair_cents": 1000, "quote_logistics_cents": 0})
 	svcPost(t, f, customer, "/user/repair-services/"+id+"/accept", nil)
 	svcPay(t, f, id, 1000)
+	svcPost(t, f, customer, "/user/repair-services/"+id+"/ship", gin.H{"tracking_number": "SF-SP"}) // #2116
+	svcReceive2116(t, f, id)
 	svcPost(t, f, staff, "/repair-services/"+id+"/complete", nil)
 	svcPost(t, f, staff, "/repair-services/"+id+"/dispatch", gin.H{"tracking_number": "SF-SP", "logistics_fee_cents": 12000})
 
@@ -778,6 +796,7 @@ func TestRepairService_CouponDispatchDeduction_2096(t *testing.T) {
 	// 寄出 → 师傅完成 → 网点结算（legs=0）
 	_, resp = svcPost(t, f, customer, "/user/repair-services/"+id+"/ship", gin.H{"tracking_number": "SF2"})
 	require.Equal(t, float64(20000), resp["code"])
+	svcReceive2116(t, f, id) // #2116: 收货后才能完工
 	_, resp = svcPost(t, f, staff, "/repair-services/"+id+"/complete", nil)
 	require.Equal(t, float64(20000), resp["code"])
 	_, resp = svcPost(t, f, staff, "/repair-services/"+id+"/dispatch", gin.H{"tracking_number": "SF999", "logistics_fee_cents": 0})
@@ -976,6 +995,7 @@ func TestRepairService_Notifications_2090(t *testing.T) {
 	svcPost(t, f, customer, "/user/repair-services/"+id+"/accept", nil)
 	svcPay(t, f, id, 25000)
 	svcPost(t, f, customer, "/user/repair-services/"+id+"/ship", gin.H{"tracking_number": "SFN"})
+	svcReceive2116(t, f, id) // #2116: 加价须在收货后维修中
 	_, resp = svcPost(t, f, staff, "/repair-services/"+id+"/adjust", gin.H{"new_quote_cents": 30000, "incurred_cents": 5000})
 	require.Equal(t, float64(20000), resp["code"])
 	require.NoError(t, f.db.Where("ref_id = ? AND action_type = ?", id, "repair_svc_adjust").First(&n).Error, "加价后应通知顾客")
