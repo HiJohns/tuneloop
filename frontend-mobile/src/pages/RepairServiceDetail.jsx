@@ -8,6 +8,7 @@ import { dialog, env, getInputValue, toWeappRoute, uploadFile as uploadFileApi }
 import { parseJWT } from '../platform/init'
 import { formatBeijingDate } from '../utils/format'
 import { photoSrc } from '../utils/media'
+import ImageUploader from '../components/ImageUploader'
 
 // #1955 阶段3a：维修服务详情枢纽页（RS-02~RS-09 用户侧动作）
 // 状态驱动：选维修师 → 接受报价并支付 → 寄出 → 加价响应 → 待发回 → 评价
@@ -74,6 +75,8 @@ export default function RepairServiceDetail() {
   const [loading, setLoading] = useState(true)
   // #2119: 技师/员工加价（详情页入口）
   const [showAdj, setShowAdj] = useState(false)
+  const [receiveFiles, setReceiveFiles] = useState([]) // #2121: 详情页收货拍照（多张）
+  const [actBusy, setActBusy] = useState(false)
   const [adjYuan, setAdjYuan] = useState('')
   const [adjIncurredYuan, setAdjIncurredYuan] = useState('')
   const [adjBusy, setAdjBusy] = useState(false)
@@ -108,6 +111,60 @@ export default function RepairServiceDetail() {
       dialog.alert(resolveErrorMessage(e))
     }
     setLoading(false)
+  }
+
+  // #2121: 详情页可执行操作（收货/开始维修/完成修理）——服务端守卫权威
+  const doReceive = async () => {
+    if (receiveFiles.length === 0) { dialog.alert('请先拍照留档'); return }
+    setActBusy(true)
+    try {
+      const authHeaders = { Authorization: 'Bearer ' + (getToken() || '') }
+      const keys = []
+      for (const f of receiveFiles) {
+        const resp = await uploadFileApi(`${baseUrl}/upload`, f, { headers: authHeaders })
+        if (resp.statusCode === 401) throw new Error('登录态已失效，请重新登录')
+        const r = JSON.parse(resp.data)
+        if (r.code !== 20000) throw new Error(r.message || '上传失败')
+        keys.push(r.data.file_key)
+      }
+      const res = await apiFetch(`${baseUrl}/repair-services/${orderId}/receive`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photos: keys }),
+      })
+      const result = await res.json()
+      if (result.code === 20000) {
+        dialog.alert(result.data?.status === 'repairing' ? '已确认收货，开始维修' : '已代收货，等待维修师开始维修')
+        setReceiveFiles([])
+        loadDetail()
+      } else { dialog.alert(resolveErrorMessage(result)) }
+    } catch (e) { dialog.alert(resolveErrorMessage(e)) }
+    setActBusy(false)
+  }
+
+  const doStart = async () => {
+    setActBusy(true)
+    try {
+      const res = await apiFetch(`${baseUrl}/repair-services/${orderId}/start`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+      })
+      const result = await res.json()
+      if (result.code === 20000) { dialog.alert('已开始维修'); loadDetail() }
+      else { dialog.alert(resolveErrorMessage(result)) }
+    } catch (e) { dialog.alert(resolveErrorMessage(e)) }
+    setActBusy(false)
+  }
+
+  const doComplete = async () => {
+    setActBusy(true)
+    try {
+      const res = await apiFetch(`${baseUrl}/repair-services/${orderId}/complete`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+      })
+      const result = await res.json()
+      if (result.code === 20000) { dialog.alert('已完工，等待网点发回'); loadDetail() }
+      else { dialog.alert(resolveErrorMessage(result)) }
+    } catch (e) { dialog.alert(resolveErrorMessage(e)) }
+    setActBusy(false)
   }
 
   // #2119: 加价提交（收货后维修中；服务端守卫权威）
@@ -421,7 +478,9 @@ export default function RepairServiceDetail() {
           {photos.length > 0 && (
             <View style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {photos.map((p, i) => (
-                <Image key={i} src={photoSrc(p)} mode="aspectFill" style={{ width: 72, height: 72, borderRadius: 8 }} />
+                <Image key={i} src={photoSrc(p)} mode="aspectFill"
+                onClick={() => Taro.previewImage({ urls: photos.map(x => photoSrc(x)), current: photoSrc(p) })}
+                style={{ width: 72, height: 72, borderRadius: 8 }} />
               ))}
             </View>
           )}
@@ -507,7 +566,7 @@ export default function RepairServiceDetail() {
         </View>
 
         {/* RS-12 物流明细 */}
-        {((rr.tracking_number || rr.return_tracking_number || (detail.logistics_fees || []).length > 0) && (
+        {((rr.status === 'shipping' || rr.return_tracking_number) && (
           <View style={cardStyle}>
             <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>物流明细</Text>
             {rr.tracking_number && (
@@ -644,18 +703,16 @@ export default function RepairServiceDetail() {
         )}
 
         {/* 进行中提示 */}
-        {(rr.status === 'shipping' || rr.status === 'pending_repair' || rr.status === 'repairing') && (
+        {(rr.status === 'shipping' || rr.status === 'repairing') && (
           <View style={cardStyle}>
             <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>
-              {rr.status === 'shipping' ? '乐器寄送中' : rr.status === 'pending_repair' ? '网点已收货' : '维修进行中'}
+              {rr.status === 'shipping' ? '乐器寄送中' : '维修进行中'}
             </Text>
             {rr.tracking_number ? (
               <Text style={labelStyle}>寄出物流：{rr.tracking_company || '-'} {rr.tracking_number}</Text>
             ) : null}
             <Text style={labelStyle}>
-              {rr.status === 'shipping' ? '等待网点/维修师收货确认'
-                : rr.status === 'pending_repair' ? '网点已代收货，待维修师确认后开始维修'
-                : '维修完成后将由网点安排发回'}
+              {rr.status === 'shipping' ? '等待网点/维修师收货确认' : '维修完成后将由网点安排发回'}
             </Text>
           </View>
         )}
@@ -780,26 +837,51 @@ export default function RepairServiceDetail() {
           )
         })()}
 
-        {/* #2119: 技师/员工加价入口（收货后维修中） */}
-        {isStaffView && rr.status === 'repairing' && (
+        {/* #2121: 状态×角色「可执行操作」卡（服务端守卫权威） */}
+        {isStaffView && ['shipping', 'pending_repair', 'repairing'].includes(rr.status) && (
           <View style={cardStyle}>
-            <View onClick={() => setShowAdj(!showAdj)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>发起加价</Text>
-              <Text style={{ fontSize: 12, color: '#71717A' }}>{showAdj ? '收起' : '展开'}</Text>
-            </View>
-            {showAdj && (
-              <View style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 4 }}>
-                <Text style={labelStyle}>新修理费总价（元）</Text>
-                <Input style={inputStyle} type="digit" value={adjYuan}
-                  onInput={e => setAdjYuan(getInputValue(e))} placeholder="如 300" />
-                <Text style={labelStyle}>到此为止修理费（元，用户不继续时按此结算）</Text>
-                <Input style={inputStyle} type="digit" value={adjIncurredYuan}
-                  onInput={e => setAdjIncurredYuan(getInputValue(e))} placeholder="如 50" />
-                <Button disabled={adjBusy} onClick={submitAdjust}
-                  style={{ width: '100%', margin: 0, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#171717', color: '#FFFFFF', borderRadius: 10, fontSize: 14, fontWeight: 'bold', opacity: adjBusy ? 0.5 : 1 }}>
-                  {adjBusy ? '处理中...' : '提交加价申请'}
+            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>可执行操作</Text>
+            {rr.status === 'shipping' && (
+              <>
+                <Text style={labelStyle}>收货拍照（可拍多张，至少 1 张后统一提交）</Text>
+                <ImageUploader maxImages={9} onChange={(files) => setReceiveFiles(files)} />
+                <Button disabled={actBusy || receiveFiles.length === 0} onClick={doReceive}
+                  style={{ width: '100%', margin: 0, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#171717', color: '#FFFFFF', borderRadius: 10, fontSize: 14, fontWeight: 'bold', opacity: (actBusy || receiveFiles.length === 0) ? 0.5 : 1 }}>
+                  {actBusy ? '处理中...' : `确认收货（${receiveFiles.length} 张）`}
                 </Button>
-              </View>
+              </>
+            )}
+            {rr.status === 'pending_repair' && (
+              <Button disabled={actBusy} onClick={doStart}
+                style={{ width: '100%', margin: 0, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#171717', color: '#FFFFFF', borderRadius: 10, fontSize: 14, fontWeight: 'bold', opacity: actBusy ? 0.5 : 1 }}>
+                {actBusy ? '处理中...' : '开始维修'}
+              </Button>
+            )}
+            {rr.status === 'repairing' && (
+              <>
+                <Button disabled={actBusy} onClick={doComplete}
+                  style={{ width: '100%', margin: 0, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#171717', color: '#FFFFFF', borderRadius: 10, fontSize: 14, fontWeight: 'bold', opacity: actBusy ? 0.5 : 1 }}>
+                  {actBusy ? '处理中...' : '完成修理'}
+                </Button>
+                <View onClick={() => setShowAdj(!showAdj)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 4 }}>
+                  <Text style={{ fontSize: 12, color: '#3F3F46', fontWeight: 'bold' }}>发起加价</Text>
+                  <Text style={{ fontSize: 12, color: '#71717A' }}>{showAdj ? '收起' : '展开'}</Text>
+                </View>
+                {showAdj && (
+                  <View style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 4 }}>
+                    <Text style={labelStyle}>新修理费总价（元）</Text>
+                    <Input style={inputStyle} type="digit" value={adjYuan}
+                      onInput={e => setAdjYuan(getInputValue(e))} placeholder="如 300" />
+                    <Text style={labelStyle}>到此为止修理费（元，用户不继续时按此结算）</Text>
+                    <Input style={inputStyle} type="digit" value={adjIncurredYuan}
+                      onInput={e => setAdjIncurredYuan(getInputValue(e))} placeholder="如 50" />
+                    <Button disabled={adjBusy} onClick={submitAdjust}
+                      style={{ width: '100%', margin: 0, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#171717', color: '#FFFFFF', borderRadius: 10, fontSize: 14, fontWeight: 'bold', opacity: adjBusy ? 0.5 : 1 }}>
+                      {adjBusy ? '处理中...' : '提交加价申请'}
+                    </Button>
+                  </View>
+                )}
+              </>
             )}
           </View>
         )}
