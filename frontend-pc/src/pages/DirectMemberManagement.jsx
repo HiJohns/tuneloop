@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Card, Table, Button, Space, message, Modal, Input, Form, Alert, Typography } from 'antd'
 import { PlusOutlined, UserAddOutlined, ReloadOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
-import { invitesApi, personnelApi } from '../services/api'
+import { invitesApi, personnelApi, staffApi } from '../services/api'
 import { formatBeijingDate } from '../utils/date'
 
 // #2114 直属成员管理（子页）：
@@ -29,6 +29,10 @@ export default function DirectMemberManagement() {
   const [inviteKind, setInviteKind] = useState('merchant_staff')
   const [inviteForm] = Form.useForm()
   const [inviting, setInviting] = useState(false)
+  // #2122：创建维修师（user_type=repair_technician → 直属商户，建师傅档案）
+  const [techOpen, setTechOpen] = useState(false)
+  const [techForm] = Form.useForm()
+  const [creating, setCreating] = useState(false)
 
   const fetchList = useCallback(async () => {
     setLoading(true)
@@ -89,6 +93,49 @@ export default function DirectMemberManagement() {
     }
   }
 
+  const handleCreateTech = async () => {
+    try {
+      const values = await techForm.validateFields()
+      setCreating(true)
+      const resp = await staffApi.createUser({
+        user_type: 'repair_technician',
+        name: values.name,
+        username: values.username,
+        email: values.email,
+        phone: values.phone,
+        position: values.position,
+        auto_generate: true,
+        force_password_change: true,
+      })
+      if (resp.code === 20000) {
+        const pwd = resp.data?.initial_password
+        if (pwd) {
+          Modal.info({
+            title: '维修师创建成功',
+            content: (
+              <div>
+                <p>初始密码（仅展示一次，请告知本人）：</p>
+                <Typography.Text copyable code style={{ fontSize: 16 }}>{pwd}</Typography.Text>
+              </div>
+            ),
+          })
+        } else {
+          message.success('维修师已创建')
+        }
+        setTechOpen(false)
+        techForm.resetFields()
+        fetchList()
+      } else {
+        message.error(resp.message || '创建失败')
+      }
+    } catch (err) {
+      if (err?.errorFields) return
+      message.error('创建失败: ' + (err.message || ''))
+    } finally {
+      setCreating(false)
+    }
+  }
+
   const columns = [
     { title: '姓名', dataIndex: 'name', key: 'name', width: 140 },
     { title: '邮箱', dataIndex: 'email', key: 'email', ellipsis: true },
@@ -130,7 +177,12 @@ export default function DirectMemberManagement() {
                 邀请平台员工
               </Button>
             )}
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/staff')}>
+            {isMerchantAdmin && (
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => { techForm.resetFields(); setTechOpen(true) }}>
+                创建维修师
+              </Button>
+            )}
+            <Button icon={<PlusOutlined />} onClick={() => navigate('/staff')}>
               创建员工
             </Button>
           </Space>
@@ -183,6 +235,43 @@ export default function DirectMemberManagement() {
             rules={[{ required: true, message: '请输入被邀请人的手机号或邮箱' }]}
           >
             <Input placeholder="手机号或邮箱" autoComplete="off" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* #2122：创建维修师（直属商户，建师傅档案） */}
+      <Modal
+        title="创建维修师（直属商户）"
+        open={techOpen}
+        onCancel={() => setTechOpen(false)}
+        onOk={handleCreateTech}
+        okText="创建"
+        okButtonProps={{ loading: creating }}
+        cancelText="取消"
+        destroyOnClose
+      >
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message="维修师直属商户（不挂靠网点）"
+          description="创建后即成为本商户直属维修师；网点人员管理不再创建维修师。"
+        />
+        <Form form={techForm} layout="vertical">
+          <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
+            <Input placeholder="姓名" />
+          </Form.Item>
+          <Form.Item name="phone" label="手机号" rules={[{ required: true, message: '请输入手机号' }]}>
+            <Input placeholder="手机号" />
+          </Form.Item>
+          <Form.Item name="email" label="邮箱">
+            <Input placeholder="邮箱（选填）" />
+          </Form.Item>
+          <Form.Item name="username" label="用户名">
+            <Input placeholder="用户名（选填）" autoComplete="off" />
+          </Form.Item>
+          <Form.Item name="position" label="职位/专长">
+            <Input placeholder="如 钢琴维修" />
           </Form.Item>
         </Form>
       </Modal>

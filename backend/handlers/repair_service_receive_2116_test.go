@@ -298,3 +298,45 @@ func TestDispatch2122_ShortfallNotification(t *testing.T) {
 	assert.Equal(t, "payment_shortfall", n.ActionType)
 	assert.Contains(t, *n.ActionData, "repair_service", "action_data 应带 order_type=repair_service")
 }
+
+// TestSelectTechnician2122_NoSiteMerchantOnly：选师只回填商户租户，不再挂靠网点（#2122）。
+func TestSelectTechnician2122_NoSiteMerchantOnly(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	customer := testutil.MakeCustomer("", f.customerSub)
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "直属商户", "technician_id": f.techID})
+	id := svcData(t, resp)["id"].(string)
+	_, resp = svcPost(t, f, customer, "/user/repair-services/"+id+"/select-technician", gin.H{"technician_id": f.techID})
+	require.Equal(t, 20000, bodyCode2116(t, resp), resp)
+
+	var rr models.RepairRequest
+	require.NoError(t, f.db.Where("id = ?", id).First(&rr).Error)
+	assert.Equal(t, f.tenantID, rr.TenantID, "应回填商户租户")
+	assert.Empty(t, rr.SiteID, "不应再挂靠网点（site_id 空）")
+}
+
+// TestListTasks2122_SiteStaffInvisible：网点账号 scope=site 看不到维修服务；商户层级可见（#2122）。
+func TestListTasks2122_SiteStaffInvisible(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	customer := testutil.MakeCustomer("", f.customerSub)
+	_, resp := svcPost(t, f, customer, "/user/repair-services", gin.H{"description": "可见性", "technician_id": f.techID})
+	require.Equal(t, 20000, bodyCode2116(t, resp), resp)
+
+	list := func(actor testutil.TestActor) int {
+		req := httptest.NewRequest(http.MethodGet, "/repair-services?scope=site", nil)
+		w := httptest.NewRecorder()
+		f.router.ServeHTTP(w, req.WithContext(actor.InjectContext(req.Context())))
+		var out struct {
+			Data struct {
+				Total int `json:"total"`
+			} `json:"data"`
+		}
+		_ = json.Unmarshal(w.Body.Bytes(), &out)
+		return out.Data.Total
+	}
+	// 网点账号（oid=网点组织）→ 0
+	siteStaff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
+	assert.Equal(t, 0, list(siteStaff), "网点账号不应看到维修服务")
+	// 商户层级（oid=商户组织）→ 可见
+	merchant := testutil.TestActor{TenantID: f.tenantID, OrgID: f.orgID, UserID: uuid.NewString(), Role: "STAFF"}
+	assert.GreaterOrEqual(t, list(merchant), 1, "商户层级应可见")
+}

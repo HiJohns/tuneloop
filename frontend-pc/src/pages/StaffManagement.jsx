@@ -633,7 +633,6 @@ export default function StaffManagement() {
           <Form.Item name="user_type" label="用户类型" initialValue="site_staff" rules={[{ required: true }]}>
             <Radio.Group onChange={e => setUserType(e.target.value)}>
               <Radio value="site_staff">网点员工</Radio>
-              <Radio value="repair_technician">维修师傅</Radio>
               <Radio value="merchant_direct">商户直属员工</Radio>
             </Radio.Group>
           </Form.Item>

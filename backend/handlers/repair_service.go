@@ -127,19 +127,22 @@ func isRepairStaffRole(role string) bool {
 	return false
 }
 
-// resolveTechnicianSite 由维修师（本地用户 id 或 IAM sub）解析其所属网点/租户。
-func resolveTechnicianSite(db *gorm.DB, technicianID string) (string, string, bool) {
-	var sm models.SiteMember
-	if err := db.Where("user_id = ? AND status = ?", technicianID, "active").First(&sm).Error; err != nil {
-		var u models.User
-		if err := db.Where("iam_sub = ?", technicianID).First(&u).Error; err != nil {
-			return "", "", false
-		}
-		if err := db.Where("user_id = ? AND status = ?", u.ID, "active").First(&sm).Error; err != nil {
-			return "", "", false
-		}
+// resolveTechnicianTenant（#2122）：维修师直属商户——解析其**商户租户**（不再解析站点）。
+// users（双键）→ tenant_id；回退 site_members.tenant_id / technician_profiles.tenant_id（存量兼容）。
+func resolveTechnicianTenant(db *gorm.DB, technicianID string) (string, bool) {
+	var u models.User
+	if err := db.Where("id = ? OR iam_sub = ?", technicianID, technicianID).First(&u).Error; err == nil && u.TenantID != "" && u.TenantID != "00000000-0000-0000-0000-000000000000" {
+		return u.TenantID, true
 	}
-	return sm.SiteID, sm.TenantID, true
+	var tp models.TechnicianProfile
+	if err := db.Where("user_id = ?", technicianID).First(&tp).Error; err == nil && tp.TenantID != "" {
+		return tp.TenantID, true
+	}
+	var sm models.SiteMember
+	if err := db.Where("user_id = ? AND status = ?", technicianID, "active").First(&sm).Error; err == nil && sm.TenantID != "" {
+		return sm.TenantID, true
+	}
+	return "", false
 }
 
 func localUserIDBySub(db *gorm.DB, sub string) string {
@@ -617,7 +620,8 @@ func (h *RepairServiceHandler) SelectTechnician(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "technician can only be selected before quoting"})
 		return
 	}
-	siteID, tenantID, ok := resolveTechnicianSite(db, body.TechnicianID)
+	// #2122：维修师直属商户 → 只回填商户租户，**不再挂靠网点**（清空 site_id）
+	tenantID, ok := resolveTechnicianTenant(db, body.TechnicianID)
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "technician not found"})
 		return
@@ -626,7 +630,7 @@ func (h *RepairServiceHandler) SelectTechnician(c *gin.Context) {
 	if err := db.Model(&models.RepairRequest{}).Where("id = ?", rr.ID).
 		Updates(map[string]interface{}{
 			"technician_id": tid,
-			"site_id":       siteID,
+			"site_id":       nil,
 			"tenant_id":     tenantID,
 			"updated_at":    time.Now(),
 		}).Error; err != nil {
@@ -634,7 +638,7 @@ func (h *RepairServiceHandler) SelectTechnician(c *gin.Context) {
 		return
 	}
 	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "technician_selected", "选择维修师")
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": rr.ID, "site_id": siteID}})
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": rr.ID}})
 }
 
 // Quote POST /api/repair-services/:id/quote （师傅/员工）
@@ -1505,7 +1509,15 @@ func (h *RepairServiceHandler) ListTasks(c *gin.Context) {
 		}
 		query = query.Where("technician_id = ?", me)
 	case "site":
-		// #1974 T1：服务单可能无 site（师傅直属商户）→ 网点账号也可见本租户的无 site 单
+		// #2122：维修服务仅商户层级可见——网点账号（oid 非任何商户组织）不涉及维修服务
+		oid := middleware.GetOrgID(ctx)
+		var merchantOrgCount int64
+		db.Model(&models.Merchant{}).Where("org_id = ?", oid).Count(&merchantOrgCount)
+		if oid == "" || merchantOrgCount == 0 {
+			c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": []interface{}{}, "total": 0}})
+			return
+		}
+		// #1974 T1：服务单可能无 site（师傅直属商户）→ 商户账号可见本租户的无 site 单
 		if orgID := middleware.GetOrgID(ctx); orgID != "" {
 			query = query.Where("(site_id = ? OR site_id IS NULL)", orgID)
 			if tid := middleware.GetTenantID(ctx); tid != "" {

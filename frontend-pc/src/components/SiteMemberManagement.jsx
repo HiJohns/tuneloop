@@ -13,7 +13,7 @@ const ROLE_NAMES = {
   repair_technician: '维修师傅',
 };
 
-const SITE_ROLES = ['site_admin', 'site_member', 'repair_technician'];
+const SITE_ROLES = ['site_admin', 'site_member']; // #2122：维修师直属商户，网点不再创建/管理维修师
 
 const roleToCode = (role) => {
   if (!role) return 'site_member'
