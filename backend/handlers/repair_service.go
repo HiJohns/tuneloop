@@ -197,6 +197,11 @@ func repairServiceStaffAllowed(rr *models.RepairRequest, ctx context.Context) bo
 
 // isAssignedTechnician（#2118 修订）：technician_id 可能存本地 users.id 或 IAM sub
 // （#2090 双形态，66771F 实测）——双键匹配，与 ListTasks scope=mine 口径一致。
+// yuanCents 分→元字符串（保留两位，时间线展示用；#2122）
+func yuanCents(cents int64) string {
+	return fmt.Sprintf("%.2f", float64(cents)/100)
+}
+
 func isAssignedTechnician(rr *models.RepairRequest, uid string, db *gorm.DB) bool {
 	if rr.TechnicianID == nil || *rr.TechnicianID == "" {
 		return false
@@ -456,7 +461,9 @@ func (h *RepairServiceHandler) Get(c *gin.Context) {
 				"phone":        site.Phone,
 			}
 		}
-	} else if rr.TenantID != "" {
+	}
+	// #2122：商户始终返回（新模型：维修师直属商户 → 寄件主地址=商户，不再依赖 site）
+	if rr.TenantID != "" {
 		var m models.Merchant
 		if err := db.Where("tenant_id = ?", rr.TenantID).Order("created_at ASC").First(&m).Error; err == nil {
 			data["merchant"] = gin.H{
@@ -467,6 +474,49 @@ func (h *RepairServiceHandler) Get(c *gin.Context) {
 				"phone":        m.ContactPhone,
 			}
 		}
+	}
+	// #2122：指派维修师名（寄件面板「收件人」）+ 顾客收件信息（寄回面板目的地）
+	if rr.TechnicianID != nil && *rr.TechnicianID != "" {
+		names := resolveUserNamesByAnyID(db, []string{*rr.TechnicianID})
+		if n := names[*rr.TechnicianID]; n != "" {
+			data["technician"] = gin.H{"id": *rr.TechnicianID, "name": n}
+		}
+	}
+	if rr.UserID != "" {
+		custName := ""
+		custPhone := ""
+		if names := resolveUserNamesByAnyID(db, []string{rr.UserID}); names[rr.UserID] != "" {
+			custName = names[rr.UserID]
+		}
+		var cu models.User
+		cdb := db.WithContext(database.IdentityCtx(context.Background()))
+		if err := cdb.Where("id = ? OR iam_sub = ?", rr.UserID, rr.UserID).First(&cu).Error; err == nil {
+			if custName == "" {
+				custName = cu.Name
+			}
+			custPhone = cu.Phone
+		}
+		custAddr := ""
+		if cu.ID != "" {
+			var addr models.UserAddress
+			if err := cdb.Where("user_id = ?", cu.ID).Order("is_default DESC, created_at DESC").First(&addr).Error; err == nil {
+				parts := []string{addr.Province, addr.City, addr.District, addr.Detail}
+				nonEmpty := make([]string, 0, len(parts))
+				for _, pp := range parts {
+					if pp != "" {
+						nonEmpty = append(nonEmpty, pp)
+					}
+				}
+				custAddr = strings.Join(nonEmpty, "")
+				if addr.RecipientName != "" && custName == "" {
+					custName = addr.RecipientName
+				}
+				if addr.Phone != "" {
+					custPhone = addr.Phone
+				}
+			}
+		}
+		data["customer"] = gin.H{"name": custName, "phone": custPhone, "address": custAddr}
 	}
 	// RS-API-4：状态时间线（RS-12 详情规格）
 	var timeline []models.RepairRequestRecord
@@ -641,7 +691,7 @@ func (h *RepairServiceHandler) Quote(c *gin.Context) {
 		return
 	}
 	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "quoted",
-		fmt.Sprintf("报价：修理费 %d 分，料钱 %d 分，物流预估 %d 分", body.QuoteRepairCents, body.QuoteMaterialCents, body.QuoteLogisticsCents))
+		fmt.Sprintf("报价：修理费 %s 元，料钱 %s 元，物流预估 %s 元", yuanCents(body.QuoteRepairCents), yuanCents(body.QuoteMaterialCents), yuanCents(body.QuoteLogisticsCents)))
 	// #2090：通知顾客（报价已提交，请查看并支付）
 	if rr.TenantID != "" {
 		customerID := localUserIDBySub(db, rr.UserID)
@@ -961,7 +1011,7 @@ func (h *RepairServiceHandler) AddLegFee(c *gin.Context) {
 		return
 	}
 	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "leg_fee",
-		fmt.Sprintf("第 %d 段物流费 %d 分", body.Leg, body.LogisticsFeeCents))
+		fmt.Sprintf("第 %d 段物流费 %s 元", body.Leg, yuanCents(body.LogisticsFeeCents)))
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": fee.ID}})
 }
 
@@ -1024,7 +1074,7 @@ func (h *RepairServiceHandler) Adjust(c *gin.Context) {
 		diff = 0
 	}
 	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "adjust_requested",
-		fmt.Sprintf("发起加价：新总价 %d 分，到此为止 %d 分", body.NewQuoteCents, body.IncurredCents))
+		fmt.Sprintf("发起加价：新总价 %s 元，到此为止 %s 元", yuanCents(body.NewQuoteCents), yuanCents(body.IncurredCents)))
 	// #2090：通知顾客（加价待确认）
 	if rr.TenantID != "" {
 		customerID := localUserIDBySub(db, rr.UserID)
@@ -1309,12 +1359,12 @@ func (h *RepairServiceHandler) Dispatch(c *gin.Context) {
 	if actual > prepaid {
 		result["shortfall_cents"] = actual - prepaid
 	}
-	settleNote := fmt.Sprintf("发回结算：应收 %d 分，已付 %d 分", actual, prepaid)
+	settleNote := fmt.Sprintf("发回结算：应收 %s 元，已付 %s 元", yuanCents(int64(actual)), yuanCents(int64(prepaid)))
 	if v, ok := result["refund_cents"]; ok {
-		settleNote += fmt.Sprintf("，退 %v 分", v)
+		settleNote += fmt.Sprintf("，退 %s 元", yuanCents(int64(v.(models.Cents))))
 	}
 	if v, ok := result["shortfall_cents"]; ok {
-		settleNote += fmt.Sprintf("，补缴 %v 分", v)
+		settleNote += fmt.Sprintf("，补缴 %s 元", yuanCents(int64(v.(models.Cents))))
 	}
 	appendRepairServiceTimeline(db, rr.ID, middleware.GetUserID(ctx), "settled", settleNote)
 	services.Notify(db, rr.TenantID, rr.UserID, "repair", "维修单已发回",

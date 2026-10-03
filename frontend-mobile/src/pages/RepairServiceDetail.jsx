@@ -77,6 +77,11 @@ export default function RepairServiceDetail() {
   const [showAdj, setShowAdj] = useState(false)
   const [receiveFiles, setReceiveFiles] = useState([]) // #2121: 详情页收货拍照（多张）
   const [actBusy, setActBusy] = useState(false)
+  // #2122: 寄回物流（done_repair）
+  const [retCompany, setRetCompany] = useState('')
+  const [retNumber, setRetNumber] = useState('')
+  const [retFeeYuan, setRetFeeYuan] = useState('')
+  const [retFeeEditing, setRetFeeEditing] = useState(false)
   const [adjYuan, setAdjYuan] = useState('')
   const [adjIncurredYuan, setAdjIncurredYuan] = useState('')
   const [adjBusy, setAdjBusy] = useState(false)
@@ -111,6 +116,24 @@ export default function RepairServiceDetail() {
       dialog.alert(resolveErrorMessage(e))
     }
     setLoading(false)
+  }
+
+  // #2122: 寄回并结算（done_repair；技师/员工）——物流费可编辑为实际
+  const doDispatch = async () => {
+    if (!retNumber.trim()) { dialog.alert('请填写物流单号'); return }
+    const fee = retFeeYuan === '' ? 0 : Math.round(parseFloat(retFeeYuan) * 100)
+    if (isNaN(fee) || fee < 0) { dialog.alert('请填写正确的物流费'); return }
+    setActBusy(true)
+    try {
+      const res = await apiFetch(`${baseUrl}/repair-services/${orderId}/dispatch`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tracking_company: retCompany, tracking_number: retNumber.trim(), logistics_fee_cents: fee }),
+      })
+      const result = await res.json()
+      if (result.code === 20000) { dialog.alert('已发回并结算'); loadDetail() }
+      else { dialog.alert(resolveErrorMessage(result)) }
+    } catch (e) { dialog.alert(resolveErrorMessage(e)) }
+    setActBusy(false)
   }
 
   // #2121: 详情页可执行操作（收货/开始维修/完成修理）——服务端守卫权威
@@ -196,6 +219,12 @@ export default function RepairServiceDetail() {
   }
 
   useEffect(() => { loadDetail() }, [])
+  // #2122: 寄回物流费默认按预估（物流费预估分→元），可编辑为实际
+  useEffect(() => {
+    if (detail?.repair && retFeeYuan === '') {
+      setRetFeeYuan(((detail.repair.quote_logistics_cents || 0) / 100).toFixed(2))
+    }
+  }, [detail])
 
   const loadTechnicians = async () => {
     if (techLoaded) return
@@ -565,22 +594,6 @@ export default function RepairServiceDetail() {
           })()}
         </View>
 
-        {/* RS-12 物流明细 */}
-        {((rr.status === 'shipping' || rr.return_tracking_number) && (
-          <View style={cardStyle}>
-            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>物流明细</Text>
-            {rr.tracking_number && (
-              <Text style={labelStyle}>寄出：{rr.tracking_company || '-'} {rr.tracking_number}</Text>
-            )}
-            {(detail.logistics_fees || []).map(f => (
-              <Text key={f.id} style={labelStyle}>第 {f.leg} 段实填运费：{yuan(f.amount_cents)}（{f.created_at ? formatBeijingDate(f.created_at) : '-'}）</Text>
-            ))}
-            {rr.return_tracking_number && (
-              <Text style={labelStyle}>发回：{rr.return_company || '-'} {rr.return_tracking_number}</Text>
-            )}
-          </View>
-        ))}
-
         {/* RS-02 选维修师 */}
         {rr.status === 'pending_quote' && !rr.technician_id && (
           <View style={cardStyle}>
@@ -658,13 +671,16 @@ export default function RepairServiceDetail() {
         {rr.status === 'paid' && (
           <View style={cardStyle}>
             <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>寄出乐器</Text>
-            {/* #1974 T1：寄件地址 = 历史单取网点 site / 新单（师傅直属商户）取 merchant */}
-            {(site || cc) && (
+            {/* #2122：维修师直属商户 → 收件信息 = 商户地址/电话 + 指派维修师名 */}
+            {(cc || site) && (
               <View style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Text style={labelStyle}>寄件地址：{(site || cc).name}</Text>
-                {(site || cc).address ? <Text style={labelStyle}>{(site || cc).address}</Text> : null}
-                {(site || cc).contact_name || (site || cc).phone ? (
-                  <Text style={labelStyle}>联系人：{(site || cc).contact_name || '-'} {(site || cc).phone || ''}</Text>
+                <Text style={labelStyle}>收件地址：{(cc || site).name}</Text>
+                {(cc || site).address ? <Text style={labelStyle}>{(cc || site).address}</Text> : null}
+                {(cc || site).phone || (cc || site).contact_name ? (
+                  <Text style={labelStyle}>联系电话：{(cc || site).phone || (cc || site).contact_name}</Text>
+                ) : null}
+                {detail.technician?.name ? (
+                  <Text style={labelStyle}>收件人（维修师）：{detail.technician.name}</Text>
                 ) : null}
               </View>
             )}
@@ -838,7 +854,7 @@ export default function RepairServiceDetail() {
         })()}
 
         {/* #2121: 状态×角色「可执行操作」卡（服务端守卫权威） */}
-        {isStaffView && ['shipping', 'pending_repair', 'repairing'].includes(rr.status) && (
+        {isStaffView && ['shipping', 'pending_repair', 'repairing', 'done_repair'].includes(rr.status) && (
           <View style={cardStyle}>
             <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>可执行操作</Text>
             {rr.status === 'shipping' && (
@@ -856,6 +872,33 @@ export default function RepairServiceDetail() {
                 style={{ width: '100%', margin: 0, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#171717', color: '#FFFFFF', borderRadius: 10, fontSize: 14, fontWeight: 'bold', opacity: actBusy ? 0.5 : 1 }}>
                 {actBusy ? '处理中...' : '开始维修'}
               </Button>
+            )}
+            {rr.status === 'done_repair' && (
+              <>
+                <Text style={labelStyle}>寄回物流（顾客收件信息）</Text>
+                {detail.customer ? (
+                  <View style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Text style={labelStyle}>收件人：{detail.customer.name || '-'} {detail.customer.phone || ''}</Text>
+                    {detail.customer.address ? <Text style={labelStyle}>{detail.customer.address}</Text> : null}
+                  </View>
+                ) : null}
+                <Text style={labelStyle}>物流公司</Text>
+                <Input style={inputStyle} value={retCompany} onInput={e => setRetCompany(getInputValue(e))} placeholder="如 顺丰速运" />
+                <Text style={labelStyle}>物流单号（必填）</Text>
+                <Input style={inputStyle} value={retNumber} onInput={e => setRetNumber(getInputValue(e))} placeholder="运单号" />
+                <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={labelStyle}>物流费（元）{retFeeEditing ? '· 实际' : '· 预估'}</Text>
+                  <Text onClick={() => setRetFeeEditing(!retFeeEditing)} style={{ fontSize: 12, color: '#2563EB', fontWeight: 'bold' }}>
+                    {retFeeEditing ? '取消编辑' : '编辑'}
+                  </Text>
+                </View>
+                <Input style={inputStyle} type="digit" value={retFeeYuan} disabled={!retFeeEditing}
+                  onInput={e => setRetFeeYuan(getInputValue(e))} placeholder="按预估" />
+                <Button disabled={actBusy} onClick={doDispatch}
+                  style={{ width: '100%', margin: 0, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#171717', color: '#FFFFFF', borderRadius: 10, fontSize: 14, fontWeight: 'bold', opacity: actBusy ? 0.5 : 1 }}>
+                  {actBusy ? '处理中...' : '确认发回并结算'}
+                </Button>
+              </>
             )}
             {rr.status === 'repairing' && (
               <>
