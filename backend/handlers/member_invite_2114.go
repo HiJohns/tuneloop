@@ -89,6 +89,26 @@ func resolveIAMSub(db *gorm.DB, localUserID string) string {
 	return localUserID
 }
 
+// hasPendingInvite（#2114 审计修复）：同 (tenant, site, 对象) 是否已有待处理邀请/申请。
+// siteID 空串表示商户/平台级（site_id IS NULL）。
+func hasPendingInvite(db *gorm.DB, tenantID, siteID, identifier string, inviteeUserID *string) bool {
+	q := db.Model(&models.StaffInvite{}).
+		Where("tenant_id = ? AND status IN ?", tenantID, []string{"pending_approval", "pending"})
+	if siteID == "" {
+		q = q.Where("site_id IS NULL")
+	} else {
+		q = q.Where("site_id = ?", siteID)
+	}
+	if inviteeUserID != nil && *inviteeUserID != "" {
+		q = q.Where("invitee_user_id = ? OR invitee_identifier = ?", *inviteeUserID, identifier)
+	} else {
+		q = q.Where("invitee_identifier = ?", identifier)
+	}
+	var n int64
+	q.Count(&n)
+	return n > 0
+}
+
 // ApplySiteMembership POST /api/sites/:id/members/apply（#2114）
 // 网点管理员为**非本商户成员**（P2 已注册 / P3 未注册）提交加入申请，交商户管理员审批。
 func ApplySiteMembership(c *gin.Context) {
@@ -370,6 +390,15 @@ func InviteToMerchant(c *gin.Context) {
 	}
 
 	invitee := findUserByIdentifier(db, req.Identifier)
+	// #2114 审计修复：直邀也须去重（此前无查重，重复邀请同一人）
+	var inviteeID *string
+	if invitee != nil {
+		inviteeID = &invitee.ID
+	}
+	if hasPendingInvite(db, tenantID, "", req.Identifier, inviteeID) {
+		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "该用户已有待处理的邀请"})
+		return
+	}
 
 	inv := models.StaffInvite{
 		TenantID:          tenantID,
@@ -428,6 +457,15 @@ func InvitePlatformStaff(c *gin.Context) {
 	}
 
 	invitee := findUserByIdentifier(db, req.Identifier)
+	// #2114 审计修复：平台直邀去重
+	var inviteeID *string
+	if invitee != nil {
+		inviteeID = &invitee.ID
+	}
+	if hasPendingInvite(db, tenantID, "", req.Identifier, inviteeID) {
+		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "该用户已有待处理的邀请"})
+		return
+	}
 	inv := models.StaffInvite{
 		TenantID:          tenantID,
 		OrgID:             rootOrgID,

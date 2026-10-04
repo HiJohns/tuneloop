@@ -145,3 +145,17 @@ func TestMemberInvite2114_DirectMerchantInvite(t *testing.T) {
 	require.NoError(t, db.Where("tenant_id = ? AND kind = ?", tid, "merchant_staff").First(&inv).Error)
 	assert.Nil(t, inv.SiteID, "商户级邀请 site_id 应为 NULL")
 }
+
+// #2114 审计修复：直邀去重——同对象 pending 重复邀请 → 409（此前无查重）。
+func TestMemberInvite2114_DirectInviteDuplicateRejected(t *testing.T) {
+	r, _, _, merchantID := setupMemberInvite2114(t)
+
+	code, resp := doJSON(t, r, http.MethodPost, "/api/admin/merchants/"+merchantID+"/invites",
+		`{"identifier":"dup@example.com","kind":"merchant_staff"}`)
+	require.Equal(t, http.StatusCreated, code, resp)
+
+	code, resp = doJSON(t, r, http.MethodPost, "/api/admin/merchants/"+merchantID+"/invites",
+		`{"identifier":"dup@example.com","kind":"merchant_staff"}`)
+	assert.Equal(t, http.StatusConflict, code, resp)
+	assert.Equal(t, float64(40900), resp["code"])
+}
