@@ -484,7 +484,8 @@ func (h *RepairServiceHandler) Get(c *gin.Context) {
 	// #2122：商户始终返回（新模型：维修师直属商户 → 寄件主地址=商户，不再依赖 site）
 	if rr.TenantID != "" {
 		var m models.Merchant
-		if err := db.Where("tenant_id = ?", rr.TenantID).Order("created_at ASC").First(&m).Error; err == nil {
+		// #2125：容错——部分商户/技师数据的 tenant 值实为其 org_id（06A3E5 实测）
+		if err := db.Where("tenant_id = ? OR org_id = ?", rr.TenantID, rr.TenantID).Order("created_at ASC").First(&m).Error; err == nil {
 			data["merchant"] = gin.H{
 				"id":           m.ID,
 				"name":         m.Name,

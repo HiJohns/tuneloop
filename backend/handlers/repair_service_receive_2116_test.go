@@ -340,3 +340,31 @@ func TestListTasks2122_SiteStaffInvisible(t *testing.T) {
 	merchant := testutil.TestActor{TenantID: f.tenantID, OrgID: f.orgID, UserID: uuid.NewString(), Role: "STAFF"}
 	assert.GreaterOrEqual(t, list(merchant), 1, "商户层级应可见")
 }
+
+// TestGet2125_MerchantFallbackByOrgID：订单 tenant_id 存的是商户 org_id 时，
+// 详情仍应返回 merchant（寄出面板目标地址/电话来源）——旧实现按 tenant_id 查不到 → 缺失。
+func TestGet2125_MerchantFallbackByOrgID(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	rr := models.RepairRequest{
+		ID: uuid.NewString(), TenantID: f.orgID, // ← 商户 org_id（非 merchants.tenant_id）
+		UserID: f.customerSub, Type: "service", Status: models.RepairReqStatusPendingQuote,
+		TechnicianID: &f.techID, SiteID: f.siteID, UserInstrumentID: uuid.NewString(),
+		Description: "商户解析容错", Photos: "[]", ReceivePhotos: "[]",
+	}
+	require.NoError(t, f.db.Create(&rr).Error)
+
+	customer := testutil.MakeCustomer("", f.customerSub)
+	req := httptest.NewRequest(http.MethodGet, "/user/repair-services/"+rr.ID, nil)
+	w := httptest.NewRecorder()
+	f.router.ServeHTTP(w, req.WithContext(customer.InjectContext(req.Context())))
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var out struct {
+		Data struct {
+			Merchant map[string]interface{} `json:"merchant"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &out))
+	require.NotNil(t, out.Data.Merchant, "tenant_id 存 org_id 时也应解析到商户")
+	assert.Equal(t, "测试商户", out.Data.Merchant["name"])
+}

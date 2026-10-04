@@ -620,21 +620,8 @@ export default function RepairServiceDetail() {
         {/* RS-03 接受报价并支付 */}
         {rr.status === 'pending_payment' && (
           <View style={cardStyle}>
-            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>维修师报价</Text>
-            <View style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Text style={labelStyle}>修理费</Text>
-              <Text style={{ fontSize: 12, color: '#18181B' }}>{yuan(rr.quote_repair_cents)}</Text>
-            </View>
-            {rr.quote_material_cents != null && (
-              <View style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Text style={labelStyle}>料钱</Text>
-                <Text style={{ fontSize: 12, color: '#18181B' }}>{yuan(rr.quote_material_cents)}</Text>
-              </View>
-            )}
-            <View style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Text style={labelStyle}>物流费预估</Text>
-              <Text style={{ fontSize: 12, color: '#18181B' }}>{yuan(rr.quote_logistics_cents)}</Text>
-            </View>
+            {/* #2125：报价明细统一以 RS-12「费用明细」为准，此处仅保留合计与支付动作，避免重复面板 */}
+            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>待支付</Text>
             <View style={{ display: 'flex', justifyContent: 'space-between' }}>
               <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>合计应付</Text>
               <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#D97706' }}>{yuan(quoteTotal)}</Text>
