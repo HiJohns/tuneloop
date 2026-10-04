@@ -1,29 +1,33 @@
 import { useState, useRef } from 'react'
 import Taro from '@tarojs/taro'
-import { Upload, X } from 'lucide-react'
+import { View, Image, Text } from '@tarojs/components'
 import { dialog, env } from '../platform'
 
+// #2122 修复：原实现用原生 HTML（div/img/button）→ weapp 整块不渲染、无添加按钮
+//（#归还页 同类坑）。改为 Taro 组件（View/Image/Text），跨端可用；接口不变
+//（onChange(files)，file = weapp 临时路径 / H5 File）。
 export default function ImageUploader({ onChange, maxImages = 5 }) {
   const [images, setImages] = useState([])
   const fileInputRef = useRef(null)
 
+  const emit = (updated) => {
+    setImages(updated)
+    if (onChange) onChange(updated.map(i => i.file))
+  }
+
   const handleFileSelect = async (e) => {
-    const files = Array.from(e.target.files)
+    const files = Array.from(e.target.files || [])
     if (images.length + files.length > maxImages) {
       dialog.alert(`最多上传 ${maxImages} 张图片`)
       return
     }
-
     const newImages = files.map(file => ({
       file,
       preview: URL.createObjectURL(file),
       name: file.name,
-      capturedAt: new Date().toISOString()
+      capturedAt: new Date().toISOString(),
     }))
-    
-    const updated = [...images, ...newImages]
-    setImages(updated)
-    if (onChange) onChange(updated.map(i => i.file))
+    emit([...images, ...newImages])
   }
 
   const handleWeappPick = async () => {
@@ -38,11 +42,9 @@ export default function ImageUploader({ onChange, maxImages = 5 }) {
         file: path,
         preview: path,
         name: `weapp_${Date.now()}_${i}.jpg`,
-        capturedAt: new Date().toISOString()
+        capturedAt: new Date().toISOString(),
       }))
-      const updated = [...images, ...newImages]
-      setImages(updated)
-      if (onChange) onChange(updated.map(i => i.file))
+      emit([...images, ...newImages])
     } catch (err) {
       console.error('Failed to choose image:', err)
     }
@@ -53,9 +55,7 @@ export default function ImageUploader({ onChange, maxImages = 5 }) {
     if (imgToRemove?.preview && !env.isMiniProgram) {
       URL.revokeObjectURL(imgToRemove.preview)
     }
-    const updated = images.filter((_, i) => i !== index)
-    setImages(updated)
-    if (onChange) onChange(updated.map(i => i.file))
+    emit(images.filter((_, i) => i !== index))
   }
 
   const onPickClick = () => {
@@ -67,34 +67,31 @@ export default function ImageUploader({ onChange, maxImages = 5 }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div className="flex flex-wrap gap-2">
+    <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <View style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {images.map((img, index) => (
-          <div key={index} className="relative">
-            <img 
-              src={img.preview} 
-              alt={img.name}
-              className="w-20 h-20 object-cover rounded-lg"
-            />
-            <button
+          <View key={index} style={{ position: 'relative', width: 80, height: 80 }}>
+            <Image src={img.preview} mode="aspectFill"
+              style={{ width: 80, height: 80, borderRadius: 8, backgroundColor: '#f4f4f5' }} />
+            <View
               onClick={() => removeImage(index)}
-              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+              style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', backgroundColor: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              <X size={12} />
-            </button>
-          </div>
+              <Text style={{ color: '#FFFFFF', fontSize: 12, lineHeight: '20px' }}>×</Text>
+            </View>
+          </View>
         ))}
-        
+
         {images.length < maxImages && (
-          <button
+          <View
             onClick={onPickClick}
-            className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400"
+            style={{ width: 80, height: 80, borderWidth: 2, borderStyle: 'dashed', borderColor: '#d4d4d8', borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
           >
-            <Upload size={20} />
-            <span className="text-xs mt-1">添加照片</span>
-          </button>
+            <Text style={{ fontSize: 22, color: '#a1a1aa', lineHeight: '26px' }}>＋</Text>
+            <Text style={{ fontSize: 11, color: '#a1a1aa', marginTop: 2 }}>添加照片</Text>
+          </View>
         )}
-      </div>
+      </View>
 
       {!env.isMiniProgram && (
         <input
@@ -107,9 +104,9 @@ export default function ImageUploader({ onChange, maxImages = 5 }) {
         />
       )}
 
-      <p className="text-gray-400 text-xs">
+      <Text style={{ fontSize: 11, color: '#a1a1aa' }}>
         最多上传 {maxImages} 张图片，支持 JPG、PNG 格式
-      </p>
-    </div>
+      </Text>
+    </View>
   )
 }
