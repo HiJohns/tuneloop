@@ -767,11 +767,17 @@ export default function RepairServiceDetail() {
           </View>
         )}
 
-        {rr.status === 'closed' && hasSettledTimeline && (
+        {rr.status === 'closed' && hasSettledTimeline && isStaffView && !detail.review && (
+          <View style={cardStyle}>
+            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>待顾客评价</Text>
+            <Text style={labelStyle}>维修服务已完成结算，等待顾客评价。</Text>
+          </View>
+        )}
+        {rr.status === 'closed' && hasSettledTimeline && (!isStaffView || detail.review) && (
           <View style={cardStyle}>
             {detail.review && detail.review.id ? (
               <>
-                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>我的评价</Text>
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>{isStaffView ? '顾客评价' : '我的评价'}</Text>
                 <Text style={{ fontSize: 13, color: '#D97706' }}>{'★'.repeat(detail.review.rating || 0)}</Text>
                 {detail.review.message ? <Text style={{ fontSize: 12, color: '#3F3F46' }}>{detail.review.message}</Text> : null}
                 {reviewPhotosParsed.length > 0 && (
