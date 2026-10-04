@@ -200,6 +200,22 @@ func repairServiceStaffAllowed(rr *models.RepairRequest, ctx context.Context) bo
 
 // isAssignedTechnician（#2118 修订）：technician_id 可能存本地 users.id 或 IAM sub
 // （#2090 双形态，66771F 实测）——双键匹配，与 ListTasks scope=mine 口径一致。
+// resolveLocalUserIDAny（#2124）：任意身份键（本地 id / IAM sub）→ **本地 users.id**。
+// 消息列表（GetNotifications）按本地 id 查询（#1742 口径）——通知 user_id 必须落本地 id，
+// 否则顾客永远看不到（#2090 双形态实测：rr.UserID 存 IAM sub）。
+func resolveLocalUserIDAny(db *gorm.DB, anyID string) string {
+	if anyID == "" || anyID == "system" {
+		return anyID
+	}
+	var u models.User
+	if err := db.WithContext(database.IdentityCtx(context.Background())).
+		Where("id = ? OR iam_sub = ?", anyID, anyID).
+		Select("id").First(&u).Error; err == nil && u.ID != "" {
+		return u.ID
+	}
+	return anyID
+}
+
 // yuanCents 分→元字符串（保留两位，时间线展示用；#2122）
 func yuanCents(cents int64) string {
 	return fmt.Sprintf("%.2f", float64(cents)/100)
@@ -1194,7 +1210,7 @@ func (h *RepairServiceHandler) Complete(c *gin.Context) {
 	if rr.RepairCode != nil {
 		code = *rr.RepairCode
 	}
-	services.Notify(db, rr.TenantID, rr.UserID, "repair", "维修完成",
+	services.Notify(db, rr.TenantID, resolveLocalUserIDAny(db, rr.UserID), "repair", "维修完成",
 		"您的维修单（"+code+"）已完成修理，待网点发回结算。", rr.ID, "repair_service", "info")
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": rr.ID, "status": models.RepairReqStatusDoneRepair}})
 }
@@ -1389,7 +1405,7 @@ func (h *RepairServiceHandler) Dispatch(c *gin.Context) {
 		notif := models.Notification{
 			TenantID:   rr.TenantID,
 			OrgID:      notifOrg,
-			UserID:     rr.UserID,
+			UserID:     resolveLocalUserIDAny(db, rr.UserID), // #2124：本地 id（消息列表口径）
 			Type:       "payment_shortfall",
 			Title:      "维修单需补缴物流费",
 			Content:    fmt.Sprintf("维修单已发回（运单号 %s）。实际物流费超出已付，需补缴 ¥%s，补缴完成后订单自动结算。", body.TrackingNumber, yuanCents(int64(diff))),
@@ -1404,7 +1420,7 @@ func (h *RepairServiceHandler) Dispatch(c *gin.Context) {
 			log.Printf("[RepairService.Dispatch] failed to create shortfall notification for %s: %v", rr.ID, err)
 		}
 	} else {
-		services.Notify(db, rr.TenantID, rr.UserID, "repair", "维修单已发回",
+		services.Notify(db, rr.TenantID, resolveLocalUserIDAny(db, rr.UserID), "repair", "维修单已发回",
 			"您的维修单已发回（运单号 "+body.TrackingNumber+"）。"+settleNote, rr.ID, "repair_service", "info")
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": result})

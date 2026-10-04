@@ -752,9 +752,10 @@ export default function RepairServiceDetail() {
               </Text>
             </View>
             <Text style={labelStyle}>实际费用超出预付部分，未支付将影响会员升级</Text>
-            <Button disabled={busy} onClick={() => payNow(detail.payments.pending_shortfall_cents)}
+            {/* #2124：进支付确认页（明细=物流费补缴），不直接拉起支付 */}
+            <Button disabled={busy} onClick={() => nav('/payment?type=repair_service&order_id=' + orderId)}
               style={btnPrimaryStyle}>
-              支付补缴 {yuan(detail.payments.pending_shortfall_cents)}
+              去补缴 {yuan(detail.payments.pending_shortfall_cents)}
             </Button>
           </View>
         )}

@@ -293,8 +293,8 @@ func TestDispatch2122_ShortfallNotification(t *testing.T) {
 	require.Equal(t, float64(20000), resp["code"], resp)
 
 	var n models.Notification
-	require.NoError(t, f.db.Where("user_id = ? AND type = ?", f.customerSub, "payment_shortfall").First(&n).Error,
-		"应生成补缴通知")
+	require.NoError(t, f.db.Where("user_id = ? AND type = ?", f.customerID, "payment_shortfall").First(&n).Error,
+		"应生成补缴通知且 user_id=本地 id（消息列表口径，#2124）")
 	assert.Equal(t, "payment_shortfall", n.ActionType)
 	assert.Contains(t, *n.ActionData, "repair_service", "action_data 应带 order_type=repair_service")
 }
