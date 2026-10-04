@@ -9,7 +9,6 @@ const ROUTE_MAP = [
   { match: '/profile',     type: 'switchTab',  url: '/pages-weapp/profile/index' },
   { match: '/my-leases',   type: 'switchTab',  url: '/pages-weapp/my-leases/index' },
   { match: '/my-repairs',  type: 'navigateTo', url: '/pages-weapp/my-repairs/index' },
-  { match: '/staff-repair-services', type: 'navigateTo', url: '/pages-weapp/staff-repair-services/index' },
   { match: '/tech-repair-workbench', type: 'navigateTo', url: '/pages-weapp/tech-repair-workbench/index' },
   { match: '/repair-service-create', type: 'navigateTo', url: '/pages-weapp/repair-service-create/index' },
   { match: '/repair-service-detail', type: 'navigateTo', url: '/pages-weapp/repair-service-detail/index' },

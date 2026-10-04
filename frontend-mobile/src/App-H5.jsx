@@ -39,7 +39,6 @@ import SiteDetail from './pages/SiteDetail'
 import MyContracts from './pages/MyContracts'
 import StaffOrders from './pages/StaffOrders'
 import MyRepairs from './pages/MyRepairs'
-import StaffRepairServices from './pages/StaffRepairServices'
 import TechRepairWorkbench from './pages/TechRepairWorkbench'
 import RepairServiceCreate from './pages/RepairServiceCreate'
 import RepairServiceDetail from './pages/RepairServiceDetail'
@@ -246,7 +245,6 @@ function App() {
         <Route path="/staff/orders" element={<ProtectedRoute><StaffOrders /></ProtectedRoute>} />
         <Route path="/staff/orders/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
         <Route path="/my-repairs" element={<ProtectedRoute><MyRepairs /></ProtectedRoute>} />
-        <Route path="/staff-repair-services" element={<ProtectedRoute><StaffRepairServices /></ProtectedRoute>} />
         <Route path="/tech-repair-workbench" element={<ProtectedRoute><TechRepairWorkbench /></ProtectedRoute>} />
         <Route path="/repair-service-create" element={<ProtectedRoute><RepairServiceCreate /></ProtectedRoute>} />
         <Route path="/repair-service-detail" element={<ProtectedRoute><RepairServiceDetail /></ProtectedRoute>} />

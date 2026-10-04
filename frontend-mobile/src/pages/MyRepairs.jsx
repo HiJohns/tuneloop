@@ -43,7 +43,6 @@ export default function MyRepairs() {
   const [repairRequests, setRepairRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [roles, setRoles] = useState([])
-  const [hasSiteAttachment, setHasSiteAttachment] = useState(false) // #2122
   const [shippingBack, setShippingBack] = useState(false)
   const [showSiteRepairs, setShowSiteRepairs] = useState(true)
   const [showPending, setShowPending] = useState(true)
@@ -62,9 +61,6 @@ export default function MyRepairs() {
       const role = await roleRes.json()
       const roles = role.code === 20000 ? (role.data?.roles || []) : []
       setRoles(roles)
-      // #2122：网点脱离维修服务——有无物理网点归属用于区分 网点员工(=有 site) / 商户直属员工(=无 site)
-      const sites = role.code === 20000 ? (role.data?.sites || []) : []
-      setHasSiteAttachment(Array.isArray(sites) && sites.length > 0)
 
       const hasSiteRole = roles.some(r => ['site_admin', 'site_member'].includes(r))
       const isPureTech = roles.includes('repair_technician') && !hasSiteRole
@@ -201,16 +197,6 @@ export default function MyRepairs() {
           <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B', marginBottom: 8, display: 'block' }}>维修师工作台</Text>
           {/* #2084：工作台内容内联（省一跳）；独立页 /tech-repair-workbench 保留（RS-02 深链） */}
           <TechRepairSections />
-        </View>
-      )}
-      {!isCustomer && !hasSiteAttachment && (
-        <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>维修服务工作台（商户直属）</Text>
-          <Text style={{ fontSize: 12, color: '#71717A' }}>待发回清单 · 分段物流费实填 · 发回并结算</Text>
-          <Button onClick={() => nav('/staff-repair-services')}
-            style={{ width: '100%', margin: 0, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#171717', color: '#FFFFFF', borderRadius: 8, fontSize: 14, fontWeight: 'bold' }}>
-            进入工作台
-          </Button>
         </View>
       )}
       <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
