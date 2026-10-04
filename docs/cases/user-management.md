@@ -108,6 +108,7 @@ steps:
    - 邀请有效期 72h；被邀请人接受时（移动端「我的 → 系统消息」）自注册/绑定 → `accepted`
 2. **直属成员管理**（人员管理 → 直属成员管理，`/staff/direct`）
    - 商户管理员：`GET /api/admin/my-merchant` 取本商户 → 「邀请直属员工」`POST /api/admin/merchants/:id/invites {kind:'merchant_staff'}`；「创建员工」跳 `/staff`
+   - **创建维修师**（#2122）：商户管理员在直属成员管理 →「创建维修师」→ `POST /api/users {user_type:'repair_technician'}`（**直属商户**，建师傅档案，不挂靠网点）；网点人员管理不再创建维修师
    - 平台管理员：「邀请平台员工」`POST /api/admin/platform-staff/invites`
 3. **消息中心**（PC 顶栏铃铛）：未读徽标 + 列表 + 动作直达（`invite_manage` → `/staff/invites`）
 

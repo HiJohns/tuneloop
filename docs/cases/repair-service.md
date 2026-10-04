@@ -250,9 +250,9 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 | # | 端点 | 角色（登录上下文） | 路由组 | 用途 / 返回 |
 |---|------|------------------|--------|------------|
 | — | `POST /api/user/repair-services` | 顾客（无 oid） | userOptionalAuth | 创建 → `{id, repair_code}` |
-| RS-API-1 | `GET /api/common/repair-technicians[?site_id=]`　**新增** | 顾客（无 oid） | userOptionalAuth | 可选维修师列表 → `{list:[{technician_id,name,avatar,site_id,site_name,site_address}]}`（**不得**依赖 JWT 租户；按入参/公共口径） |
-| — | `POST /api/user/repair-services/:id/select-technician` | 顾客（无 oid） | userOptionalAuth | 选师 → `{id, site_id}`（归属校验按 `repair.user_id`） |
-| RS-API-2 | `GET /api/repair-services?scope=mine\|site&status=<csv>`　**新增** | 维修师/员工（**有 oid**） | authRequired | 任务列表（scope=mine 指派给我；scope=site 用 JWT `oid`→`tid` 回退） |
+| RS-API-1 | `GET /api/common/repair-technicians`　**新增** | 顾客（无 oid） | userOptionalAuth | 可选维修师列表 → `{list:[{technician_id,name,avatar,avatar_thumb,bio,experience,tenant_id}]}`（**维修师直属商户，无 site 维度**；**不得**依赖 JWT 租户；按公共口径） |
+| — | `POST /api/user/repair-services/:id/select-technician` | 顾客（无 oid） | userOptionalAuth | 选师 → `{id}`（**维修师直属商户，不再挂载网点**；归属校验按 `repair.user_id`） |
+| RS-API-2 | `GET /api/repair-services?scope=mine\|site&status=<csv>`　**新增** | 维修师/员工（**有 oid**） | authRequired | 任务列表（scope=mine 指派给我；scope=site **仅商户层级**——`#2122` 商户组织闸门，网点账号返回空） |
 | — | `POST /api/repair-services/:id/quote` | 维修师（有 oid） | authRequired | 报价（归属校验 `repairServiceStaffAllowed`） |
 | — | `POST /api/user/repair-services/:id/accept` | 顾客（无 oid） | userOptionalAuth | 接受报价 → `{payable_cents}` |
 | — | `POST /api/pay/prepay` | 顾客（无 oid） | userOptionalAuth | 支付（`order_type=repair`，服务端重算；租户从 repair 单推导） |
