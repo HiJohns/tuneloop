@@ -530,12 +530,12 @@ export default function RepairServiceDetail() {
         <View style={cardStyle}>
           <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>费用明细</Text>
           <View style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <Text style={labelStyle}>报价修理费</Text>
+            <Text style={labelStyle}>修理费</Text>
             <Text style={{ fontSize: 12, color: '#18181B' }}>{yuan(rr.quote_repair_cents)}</Text>
           </View>
           {rr.quote_material_cents != null && (
             <View style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Text style={labelStyle}>料钱</Text>
+              <Text style={labelStyle}>物料费</Text>
               <Text style={{ fontSize: 12, color: '#18181B' }}>{yuan(rr.quote_material_cents)}</Text>
             </View>
           )}
@@ -555,12 +555,21 @@ export default function RepairServiceDetail() {
               <Text style={{ fontSize: 12, color: '#18181B' }}>{yuan(rr.incurred_repair_cents)}</Text>
             </View>
           )}
-          {(detail.logistics_fees || []).map(f => (
-            <View key={f.id} style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Text style={labelStyle}>第 {f.leg} 段物流（实填）</Text>
-              <Text style={{ fontSize: 12, color: '#18181B' }}>{yuan(f.amount_cents)}</Text>
-            </View>
-          ))}
+          {/* #2126：分段实填以「物流费校正」呈现相对预估的差额（预估已单列，避免双列重复计） */}
+          {(() => {
+            const legsTotal = (detail.logistics_fees || []).reduce((acc, f) => acc + Number(f.amount_cents || 0), 0)
+            if (legsTotal <= 0) return null
+            const delta = legsTotal - Number(rr.quote_logistics_cents || 0)
+            const sign = delta > 0 ? '+' : delta < 0 ? '−' : ''
+            return (
+              <View style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Text style={labelStyle}>物流费校正</Text>
+                <Text style={{ fontSize: 12, color: delta > 0 ? '#D97706' : delta < 0 ? '#16A34A' : '#18181B' }}>
+                  {sign}{yuan(Math.abs(delta))}
+                </Text>
+              </View>
+            )
+          })()}
           {detail.payments && (() => {
             const couponTotal = (detail.payments.records || [])
               .filter(r => r.status === 'paid')
