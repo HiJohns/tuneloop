@@ -282,6 +282,8 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	resolvedRole := req.Role
 	if userType == "repair_technician" {
 		resolvedRole = "repair_technician"
+	} else if userType == "merchant_direct" {
+		resolvedRole = "merchant_staff" // #2129：商户直属员工专用角色（含 repair:read）
 	} else if resolvedRole == "" {
 		if req.SiteID != uuid.Nil {
 			var memberCount int64
@@ -296,9 +298,9 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		}
 	}
 
-	validRoles := map[string]bool{"site_member": true, "site_admin": true, "repair_technician": true}
+	validRoles := map[string]bool{"site_member": true, "site_admin": true, "repair_technician": true, "merchant_staff": true}
 	if !validRoles[resolvedRole] {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid role, must be one of: site_member, site_admin, repair_technician"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid role, must be one of: site_member, site_admin, repair_technician, merchant_staff"})
 		return
 	}
 

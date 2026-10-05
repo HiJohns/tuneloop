@@ -412,3 +412,45 @@ func TestListTasks2128_TimeWindow(t *testing.T) {
 	assert.True(t, ids[newID], "1 天前应命中")
 	assert.False(t, ids[oldID], "40 天前不应命中（>30 天窗）")
 }
+
+// TestListMerchantRepairServices2129：PC 服务单列表——授权范围=商户组织（网点账号空）、
+// 相关人脱敏、时间窗/分页参数（#2129）。
+func TestListMerchantRepairServices2129(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	rr := models.RepairRequest{
+		ID: uuid.NewString(), TenantID: f.tenantID, UserID: f.customerSub, Type: "service",
+		Status: models.RepairReqStatusClosed, TechnicianID: &f.techID,
+		UserInstrumentID: uuid.NewString(), Description: "PC 列表", Photos: "[]", ReceivePhotos: "[]",
+	}
+	require.NoError(t, f.db.Omit("site_id").Create(&rr).Error)
+
+	r := gin.New()
+	r.GET("/api/admin/repair-services", ListMerchantRepairServices)
+
+	call := func(actor testutil.TestActor) (int, map[string]interface{}) {
+		req := httptest.NewRequest(http.MethodGet, "/api/admin/repair-services?page=1&page_size=20", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req.WithContext(actor.InjectContext(req.Context())))
+		var resp map[string]interface{}
+		_ = json.Unmarshal(w.Body.Bytes(), &resp)
+		return w.Code, resp
+	}
+
+	// 商户层级（oid=商户组织）→ 可见，相关人脱敏
+	merchant := testutil.TestActor{TenantID: f.tenantID, OrgID: f.orgID, UserID: uuid.NewString(), Role: "STAFF"}
+	code, resp := call(merchant)
+	require.Equal(t, http.StatusOK, code, resp)
+	data := resp["data"].(map[string]interface{})
+	require.GreaterOrEqual(t, int(data["total"].(float64)), 1, "商户层级应可见本商户服务单")
+	rows := data["list"].([]interface{})
+	require.GreaterOrEqual(t, len(rows), 1)
+	row := rows[0].(map[string]interface{})
+	assert.Equal(t, "顾**", row["customer_name"], "顾客姓名应脱敏")
+	assert.Equal(t, "用户", row["technician_name"], "维修师名可见（fixture 用户名）")
+
+	// 网点账号（oid=网点组织）→ 授权范围外，空
+	site := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
+	_, resp2 := call(site)
+	data2 := resp2["data"].(map[string]interface{})
+	assert.Equal(t, float64(0), data2["total"], "网点账号不应看到商户服务单（授权范围）")
+}

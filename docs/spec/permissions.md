@@ -211,10 +211,13 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | promo:override | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
 | points:manage | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
 | membership:manage | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| repair:read | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| repair:read | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
 | repair:start | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | repair:complete | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | repair:accept | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+
+> **#2129 角色模板新增**：`merchant_staff`（**商户直属员工**，不挂靠网点）——cus_perm = 网点员工集合 **+ `repair:read`**；用于区分商户直属与网点员工（前端据此对 `site_staff` 隐藏维修服务入口）。
+> **授权范围原则**：维修服务单**关联商户组织**——可见性由组织范围决定（网点员工 oid=网点组织，天然不可见）；`repair:read` 仅作操作谓词。
 
 ### 4.3 系统级角色对 cus_perm 门控路由的放行（#1964）
 

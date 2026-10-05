@@ -31,6 +31,7 @@ var AllRoleTemplates = map[string]RoleTemplate{
 		CusPermCodes: []string{
 			"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:price", "instrument:price_config",
 			"instrument:maintain",
+			"repair:read", // #2129：PC 服务单列表（商户管理员）
 			"repair:start", "repair:complete", "repair:accept",
 			"instrument:media_upload", "instrument:media_display", "instrument:media_delete",
 			"order:create", "order:read", "order:update", "order:cancel",
@@ -59,6 +60,12 @@ var AllRoleTemplates = map[string]RoleTemplate{
 		SysPermBits:  []int{},
 		CusPermCodes: []string{"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:maintain", "repair:start", "repair:complete", "repair:accept", "instrument:media_upload", "instrument:media_delete", "order:create", "order:read", "order:update", "audit_log:read"},
 		Description:  "网点员工基础权限",
+	},
+	"merchant_staff": {
+		Name:         "商户直属员工",
+		SysPermBits:  []int{},
+		CusPermCodes: []string{"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:maintain", "repair:read", "repair:start", "repair:complete", "repair:accept", "instrument:media_upload", "instrument:media_delete", "order:create", "order:read", "order:update", "audit_log:read"},
+		Description:  "商户直属员工（不挂靠网点；含看维修服务单 repair:read，#2129）",
 	},
 	"repair_technician": {
 		Name:         "维修师傅",

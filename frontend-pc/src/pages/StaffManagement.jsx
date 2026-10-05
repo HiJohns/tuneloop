@@ -401,7 +401,7 @@ export default function StaffManagement() {
       width: 120,
       render: (position, record) => {
         if (position) return position
-        const roleMap = { 'site_admin': '管理员', 'site_member': '成员', 'STAFF': '成员', 'repair_technician': '维修师傅', 'WORKER': '员工' }
+        const roleMap = { 'site_admin': '管理员', 'site_member': '成员', 'merchant_staff': '商户直属员工', 'STAFF': '成员', 'repair_technician': '维修师傅', 'WORKER': '员工' }
         return record.is_technician ? '维修师傅' : (roleMap[record.role] || record.role || '-')
       }
     },

@@ -25,6 +25,7 @@ const ROLE_LABEL = {
   site_admin: '网点管理员',
   site_member: '网点员工',
   member: '商户成员',
+  merchant_staff: '商户直属员工',
   repair_technician: '维修师傅',
 }
 

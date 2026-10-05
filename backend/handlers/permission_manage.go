@@ -227,6 +227,8 @@ func toIAMRole(tuneloopCode string) string {
 		return "STAFF"
 	case "repair_technician":
 		return "repair_technician"
+	case "merchant_staff":
+		return "STAFF" // #2129：商户直属员工 → 商户组织 STAFF 关系
 	default:
 		return tuneloopCode
 	}

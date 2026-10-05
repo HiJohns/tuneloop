@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
+import dayjs from 'dayjs'
 import { formatCents } from '../../../utils/money'
-import { Card, Table, Tag, Spin, Select, Tabs, Modal, Descriptions, Image, Rate, Empty } from 'antd'
+import { Card, Table, Tag, Spin, Select, Tabs, Modal, Descriptions, Image, Rate, Empty, DatePicker, Space } from 'antd'
 import { api } from '../../../services/api'
 import { formatBeijingDate, formatBeijingDateTimeShort } from '../../../utils/date'
+import { checkPermission, isSystemLevelRole } from '../../../config/menuPermissions'
 
 const statusLabels = {
   pending_assessment: '待估价', transit_processing: '中转处理中',
@@ -42,16 +44,28 @@ const svcStatusColors = {
 }
 const yuan = (cents) => (cents == null ? '-' : `¥${formatCents(cents)}`)
 
+// #2129：服务单 Tab 需 `repair:read`（商户管理员/直属员工）；网点员工无该权限 → Tab 直接隐藏
+function canReadRepairServices() {
+  try {
+    const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}')
+    if (isSystemLevelRole(userInfo)) return true
+    const sysPerm = parseInt(localStorage.getItem('user_sys_perm') || '0')
+    const cusPerm = parseInt(localStorage.getItem('user_cus_perm') || '0')
+    const mapping = JSON.parse(localStorage.getItem('permission_mapping') || '{}')
+    return checkPermission({ cusPermCodes: ['repair:read'] }, sysPerm, cusPerm, mapping)
+  } catch {
+    return false
+  }
+}
+
 export default function MerchantRepairList() {
+  const items = [{ key: 'warranty', label: '维修工单', children: <WarrantyList /> }]
+  if (canReadRepairServices()) {
+    items.push({ key: 'service', label: '服务单', children: <ServiceList /> })
+  }
   return (
     <Card title="维修管理">
-      <Tabs
-        defaultActiveKey="warranty"
-        items={[
-          { key: 'warranty', label: '维修工单', children: <WarrantyList /> },
-          { key: 'service', label: '维修服务', children: <ServiceList /> },
-        ]}
-      />
+      <Tabs defaultActiveKey="warranty" items={items} />
     </Card>
   )
 }
@@ -89,19 +103,30 @@ function WarrantyList() {
 // #1952：维修服务（type='service'）列表 + 详情（报价/加价/分段物流/结算/评价）
 function ServiceList() {
   const [list, setList] = useState([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  // #2129：时间范围由前端控制（当前默认近 30 天；后端仅接受 start/end 区间）
+  const [range, setRange] = useState([dayjs().subtract(30, 'day').startOf('day'), dayjs().endOf('day')])
   const [detail, setDetail] = useState(null) // {repair, logistics_fees, review?, site?}
   const [detailLoading, setDetailLoading] = useState(false)
 
   useEffect(() => {
     setLoading(true)
-    // RS-API-2：scope=site（员工上下文 JWT oid，商户/平台管理员回退 tid）
-    const params = statusFilter ? `?scope=site&status=${statusFilter}` : '?scope=site'
-    api.get(`/repair-services${params}`).then(r => {
-      if (r.code === 20000) setList(r.data?.list || [])
+    // #2129：PC 服务单列表——授权范围=商户组织（网点账号后端自然为空）+ start/end + 分页
+    const params = { page, page_size: pageSize }
+    if (statusFilter) params.status = statusFilter
+    if (range && range[0]) params.start = range[0].toISOString()
+    if (range && range[1]) params.end = range[1].toISOString()
+    api.get('/admin/repair-services', { params }).then(r => {
+      if (r.code === 20000) {
+        setList(r.data?.list || [])
+        setTotal(r.data?.total || 0)
+      }
     }).finally(() => setLoading(false))
-  }, [statusFilter])
+  }, [statusFilter, page, pageSize, range])
 
   const openDetail = (id) => {
     setDetailLoading(true)
@@ -113,13 +138,13 @@ function ServiceList() {
 
   const columns = [
     { title: '维修编码', dataIndex: 'repair_code', key: 'repair_code', render: v => v || '-' },
-    { title: '描述', dataIndex: 'description', key: 'description', ellipsis: true, render: v => v || '-' },
     { title: '状态', dataIndex: 'status', key: 'status', render: s => <Tag color={svcStatusColors[s]}>{svcStatusLabels[s] || s}</Tag> },
-    { title: '修理费', dataIndex: 'quote_repair_cents', key: 'quote_repair', render: v => yuan(v) },
-    {
-      title: '加价后', dataIndex: 'adjusted_quote_cents', key: 'adjusted',
-      render: v => (v == null ? '-' : yuan(v)),
-    },
+    { title: '顾客', dataIndex: 'customer_name', key: 'customer_name', render: (v, r) => `${v || '-'}${r.customer_phone ? ` ${r.customer_phone}` : ''}` }, // 已脱敏
+    { title: '维修师', dataIndex: 'technician_name', key: 'technician_name', render: v => v || '-' },
+    { title: '报价合计', dataIndex: 'quote_total_cents', key: 'quote_total', render: v => yuan(v) },
+    { title: '已付', dataIndex: 'paid_cents', key: 'paid_cents', render: v => yuan(v) },
+    { title: '待补缴', dataIndex: 'shortfall_cents', key: 'shortfall_cents', render: v => (v > 0 ? yuan(v) : '-') },
+    { title: '创建时间', dataIndex: 'created_at', key: 'created_at', render: v => v ? formatBeijingDateTimeShort(v) : '-' },
     { title: '更新时间', dataIndex: 'updated_at', key: 'updated_at', render: v => v ? formatBeijingDateTimeShort(v) : '-' },
     { title: '操作', key: 'action', render: (_, r) => <a onClick={() => openDetail(r.id)}>详情</a> },
   ]
@@ -131,10 +156,31 @@ function ServiceList() {
 
   return (
     <>
-      <Select value={statusFilter} onChange={setStatusFilter} allowClear placeholder="全部状态" style={{ width: 140, marginBottom: 12 }}>
-        {Object.entries(svcStatusLabels).map(([k, v]) => <Select.Option key={k} value={k}>{v}</Select.Option>)}
-      </Select>
-      {loading ? <Spin /> : <Table rowKey="id" dataSource={list} columns={columns} />}
+      <Space style={{ marginBottom: 12 }}>
+        <Select value={statusFilter} onChange={(v) => { setPage(1); setStatusFilter(v) }} allowClear placeholder="全部状态" style={{ width: 140 }}>
+          {Object.entries(svcStatusLabels).map(([k, v]) => <Select.Option key={k} value={k}>{v}</Select.Option>)}
+        </Select>
+        {/* #2129：默认近 30 天；未来扩展筛选只改前端 */}
+        <DatePicker.RangePicker
+          value={range}
+          onChange={(v) => { setPage(1); setRange(v) }}
+          showTime={{ format: 'HH:mm' }}
+          format="YYYY-MM-DD HH:mm"
+          allowClear={false}
+        />
+      </Space>
+      {loading ? <Spin /> : (
+        <Table
+          rowKey="id"
+          dataSource={list}
+          columns={columns}
+          pagination={{
+            current: page, pageSize, total, showSizeChanger: true,
+            showTotal: (t) => `共 ${t} 条`,
+            onChange: (p, s) => { setPage(p); setPageSize(s) },
+          }}
+        />
+      )}
       <Modal
         title={`维修服务详情${rr.repair_code ? ` · ${rr.repair_code}` : ''}`}
         open={!!detail}

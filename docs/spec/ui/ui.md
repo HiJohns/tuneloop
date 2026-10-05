@@ -3584,6 +3584,7 @@ components/
 | 逾期告警 | `/overdue-alerts` | `instrument:read` |
 | 定价策略 | `/pricing/config` | `instrument:price_config` |
 | 租金设定 | `/inventory/rent-setting` | `instrument:price` |
+| 维修管理-服务单 Tab | `/repair/requests` | `repair:read`（商户管理员/商户直属员工；网点员工 Tab 隐藏，#2129） |
 
 ---
 
@@ -3621,3 +3622,10 @@ components/
 - **下拉列表**（`GET /api/notifications`）：类型标签（邀请申请 / 申请被拒 / 加入邀请）+ 标题 + 内容 + 未读高亮；「全部已读」（`POST /api/notifications/mark-all-read`）
 - **动作直达**：点击项 `POST /api/notifications/:id/read` 标记已读；`action_type=invite_manage` → 跳 `/staff/invites`；`staff_invite`（被邀请人）提示在移动端「我的 → 系统消息」处理。
 - 复用既有 `notifications` 表与端点，未引入新表。
+
+
+### 3.29 维修管理「服务单」Tab（#2129）
+
+- **路由**：`/repair/requests` → Tab「服务单」（仅 cus_perm `repair:read` 者可见；**网点员工隐藏**）
+- **数据源**：`GET /api/admin/repair-services`（**授权范围=商户组织**，网点账号后端返回空）
+- **交互**：状态筛选 + 起止时间（默认近 30 天，前端控制）+ 分页；列：编码/状态/顾客(脱敏)/维修师/报价合计/已付/待补缴/创建时间/更新时间/详情

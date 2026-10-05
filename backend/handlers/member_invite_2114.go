@@ -381,10 +381,10 @@ func InviteToMerchant(c *gin.Context) {
 	}
 
 	kind := req.Kind
-	role := "member" // O5 复用现有角色
+	role := "member"
 	switch kind {
 	case "merchant_staff":
-		role = "site_member"
+		role = "merchant_staff" // #2129：直属员工专用角色（含 repair:read）
 	default:
 		kind = "merchant_member"
 	}

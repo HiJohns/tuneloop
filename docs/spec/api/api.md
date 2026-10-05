@@ -3235,6 +3235,13 @@ POST /api/warehouse/orders/:id/assess-damage
 **说明**: 技师（scope=mine 指派给我）/员工（scope=site **仅商户层级**，#2122 商户组织闸门，网点账号返回空）任务列表；**时间范围由前端传入**（当前默认近 30 天，#2128）
 **目标契约（#1942）**: 维修师/员工本人
 
+#### 7.15.2c 商户维修服务单列表（PC 后台，#2129）
+**接口**: `GET /api/admin/repair-services`
+**门控**: `authRequired` + cus_perm `repair:read`
+**授权范围**: **商户组织**（`oid`→`merchants.org_id`；网点账号无匹配商户 → 空列表）
+**参数**: `start`/`end`（ISO8601，可选；`updated_at ∈ [start,end)`，前端默认近 30 天）、`page`/`page_size`（默认 1/20，≤100）、`status`（csv，可选）
+**返回**: `{list:[{id, repair_code, status, customer_name(脱敏), customer_phone(脱敏), technician_name, quote_total_cents, paid_cents, shortfall_cents, created_at, updated_at}], total, page, page_size}`
+
 #### 7.15.3 维修服务单详情
 **接口**: `GET /api/user/repair-services/:id`
 **说明**: 当前用户维修服务单详情

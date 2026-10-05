@@ -14,6 +14,7 @@ const ROLE_NAMES = {
   merchant_admin: '商户管理员',
   site_admin: '网点管理员',
   site_member: '网点员工',
+  merchant_staff: '商户直属员工',
   repair_technician: '维修师傅',
 };
 
