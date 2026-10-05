@@ -1,0 +1,36 @@
+# #2131 拨测与告警配置（config-as-code）
+alerting:
+  email:
+    from: "${SMTP_USER}"
+    host: "${SMTP_HOST}"
+    port: ${SMTP_PORT}
+    username: "${SMTP_USER}"
+    password: "${SMTP_PASSWORD}"
+alert:
+  default:
+    enabled: true
+    failure-threshold: 3
+    success-threshold: 2
+    send-on-resolved: true
+
+endpoints:
+  - name: PC-API-prod
+    url: https://web.cadenzayueqi.com/api/config
+    interval: 60s
+    conditions: [ "[STATUS] == 200", "[BODY].code == 20000" ]
+  - name: Mobile-API-prod
+    url: https://wx.cadenzayueqi.com/api/config
+    interval: 60s
+    conditions: [ "[STATUS] == 200", "[BODY].code == 20000" ]
+  - name: PC-API-pre
+    url: https://preweb.cadenzayueqi.com/api/config
+    interval: 60s
+    conditions: [ "[STATUS] == 200", "[BODY].code == 20000" ]
+  - name: Mobile-API-pre
+    url: https://prewx.cadenzayueqi.com/api/config
+    interval: 60s
+    conditions: [ "[STATUS] == 200", "[BODY].code == 20000" ]
+  - name: postgres-5432
+    url: tcp://127.0.0.1:5432
+    interval: 60s
+    conditions: [ "[CONNECTED] == true" ]
