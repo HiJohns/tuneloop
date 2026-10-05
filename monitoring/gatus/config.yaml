@@ -31,6 +31,7 @@ endpoints:
     interval: 60s
     conditions: [ "[STATUS] == 200", "[BODY].code == 20000" ]
   - name: postgres-5432
-    url: tcp://127.0.0.1:5432
+    # gatus 需接入 postgres 所在 docker 网络（tuneloop_default）后按容器名探测
+    url: tcp://9a91df0605de_tuneloop-postgres:5432
     interval: 60s
     conditions: [ "[CONNECTED] == true" ]
