@@ -82,14 +82,16 @@ export default function TechRepairSections() {
 
   const fetchLists = async () => {
     setLoading(true)
+    // #2128：列表范围由前端控制——当前默认最近 30 天（API 支持 start/end，扩展筛选只改前端）
+    const startISO = encodeURIComponent(new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString())
     try {
       const [qRes, pRes, sRes, wRes, rRes, dRes] = await Promise.all([
-        apiFetch(`${baseUrl}/repair-services?scope=mine&status=pending_quote`),
-        apiFetch(`${baseUrl}/repair-services?scope=mine&status=pending_payment`), // #2088：已报价·待付款
-        apiFetch(`${baseUrl}/repair-services?scope=mine&status=shipping`), // #2116 修订：已寄出独立分组
-        apiFetch(`${baseUrl}/repair-services?scope=mine&status=pending_repair,repairing,adjust_pending`),
-        apiFetch(`${baseUrl}/repair-services?scope=mine&status=done_repair`), // #2091：待发回
-        apiFetch(`${baseUrl}/repair-services?scope=mine&status=closed`),
+        apiFetch(`${baseUrl}/repair-services?scope=mine&start=${startISO}&status=pending_quote`),
+        apiFetch(`${baseUrl}/repair-services?scope=mine&start=${startISO}&status=pending_payment`), // #2088：已报价·待付款
+        apiFetch(`${baseUrl}/repair-services?scope=mine&start=${startISO}&status=shipping`), // #2116 修订：已寄出独立分组
+        apiFetch(`${baseUrl}/repair-services?scope=mine&start=${startISO}&status=pending_repair,repairing,adjust_pending`),
+        apiFetch(`${baseUrl}/repair-services?scope=mine&start=${startISO}&status=done_repair`), // #2091：待发回
+        apiFetch(`${baseUrl}/repair-services?scope=mine&start=${startISO}&status=closed`),
       ])
       const q = await qRes.json()
       const p = await pRes.json()
@@ -377,6 +379,8 @@ export default function TechRepairSections() {
 
   return (
     <View>
+      {/* #2128：列表范围声明（各分组统一「最近 30 天」，避免"总数 vs 可见数"歧义） */}
+      <Text style={{ fontSize: 11, color: '#A1A1AA', marginBottom: 6, display: 'block' }}>列表范围：最近 30 天</Text>
           <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>待报价（{pendingQuotes.length}）</Text>
             <Text onClick={fetchLists} style={{ fontSize: 12, color: '#71717A' }}>刷新</Text>

@@ -203,6 +203,16 @@ func repairServiceStaffAllowed(rr *models.RepairRequest, ctx context.Context) bo
 // resolveLocalUserIDAny（#2124）：任意身份键（本地 id / IAM sub）→ **本地 users.id**。
 // 消息列表（GetNotifications）按本地 id 查询（#1742 口径）——通知 user_id 必须落本地 id，
 // 否则顾客永远看不到（#2090 双形态实测：rr.UserID 存 IAM sub）。
+// parseTimeParam（#2128）：解析 ISO8601 时间参数（兼容带/不带毫秒与 Z/偏移）。
+func parseTimeParam(v string) (time.Time, bool) {
+	for _, layout := range []string{time.RFC3339Nano, time.RFC3339, "2006-01-02", "2006-01-02 15:04:05"} {
+		if t, err := time.Parse(layout, v); err == nil {
+			return t, true
+		}
+	}
+	return time.Time{}, false
+}
+
 func resolveLocalUserIDAny(db *gorm.DB, anyID string) string {
 	if anyID == "" || anyID == "system" {
 		return anyID
@@ -1553,6 +1563,18 @@ func (h *RepairServiceHandler) ListTasks(c *gin.Context) {
 	}
 	if statusParam := c.Query("status"); statusParam != "" {
 		query = query.Where("status IN ?", strings.Split(statusParam, ","))
+	}
+	// #2128：可选时间区间（ISO8601；由前端控制显示范围，默认近 30 天）——
+	// updated_at ∈ [start, end)（含 start、不含 end）
+	if startParam := c.Query("start"); startParam != "" {
+		if t, ok := parseTimeParam(startParam); ok {
+			query = query.Where("updated_at >= ?", t)
+		}
+	}
+	if endParam := c.Query("end"); endParam != "" {
+		if t, ok := parseTimeParam(endParam); ok {
+			query = query.Where("updated_at < ?", t)
+		}
 	}
 	var list []models.RepairRequest
 	if err := query.Order("updated_at DESC").Limit(200).Find(&list).Error; err != nil {

@@ -187,7 +187,8 @@ export default function MyRepairs() {
 
   const openServiceTab = () => {
     setSvcTab('service')
-    if (!servicesLoaded) fetchMyServices()
+    // #2128：「我的维修服务」为顾客专属数据源——员工/技师不得拉取
+    if (isCustomer && !servicesLoaded) fetchMyServices()
   }
 
   const serviceSection = (
@@ -199,6 +200,8 @@ export default function MyRepairs() {
           <TechRepairSections />
         </View>
       )}
+      {/* #2128：「我的维修服务」= 顾客专属面板（员工/技师不显示，避免空列表误导） */}
+      {isCustomer && (
       <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>我的维修服务 ({myServices.length})</Text>
         {!servicesLoaded ? (
@@ -238,6 +241,7 @@ export default function MyRepairs() {
           })
         )}
       </View>
+      )}
       {/* #2050 顾客侧历史维修工单（v3 legacy，只读）：创建入口已废弃，存量/在途单仍可查看跟进 */}
       {isCustomer && repairRequests.length > 0 && (
         <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

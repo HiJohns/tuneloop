@@ -223,6 +223,11 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 5. 编码/描述/照片/**视频（试奏，可播放，#2060）**/寄件网点地址
 
 ### 分状态列表（不再扁平）
+
+> **#2128 角色×面板矩阵与时间窗**：
+> - **顾客**「我的维修服务」= **顾客专属**（数据源 `/user/repair-services` 按本人 user_id；员工/技师**不显示**该面板）
+> - **技师/员工**任务列表（`scope=mine|site`）**默认近 30 天**：由前端传 `start = now-30d`（`end` 省略=至今）；后端仅做通用区间过滤——扩展筛选只改前端
+> - 技师工作台分组：待报价 / 已报价·待付款 / 已寄出·待收货 / 维修中（含 adjust_pending）/ 待发回 / **已完成（已结算）**——各分组同一时间窗
 - **用户**「我的维修服务」：按状态分组（进行中 / 待我处理 / 已完成）+ 状态筛选；每项含编码、状态、关键金额、待办提示（如「待补差价 ¥100」/「待支付」/「待评价」）；拒绝报价后为「**已取消**」（终态，#2093）
 - **维修师**工作台：待报价 / **已报价·待付款**（`pending_payment`，#2088）/ 维修中（含 `adjust_pending`）/ **待发回**（`done_repair`，#2091，只读「待网点发回结算」）/ 已完成（自己相关）
 - **用户详情页评价卡**：仅「真结算」态显示评价表单——`closed` **且时间线含 `settled`**；拒绝报价取消（`cancelled`，#2093）或 `closed` 无 `settled`（存量异常）→ 显示关闭信息卡（无评价表单）
@@ -252,7 +257,7 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 | — | `POST /api/user/repair-services` | 顾客（无 oid） | userOptionalAuth | 创建 → `{id, repair_code}` |
 | RS-API-1 | `GET /api/common/repair-technicians`　**新增** | 顾客（无 oid） | userOptionalAuth | 可选维修师列表 → `{list:[{technician_id,name,avatar,avatar_thumb,bio,experience,tenant_id}]}`（**维修师直属商户，无 site 维度**；**不得**依赖 JWT 租户；按公共口径） |
 | — | `POST /api/user/repair-services/:id/select-technician` | 顾客（无 oid） | userOptionalAuth | 选师 → `{id}`（**维修师直属商户，不再挂载网点**；归属校验按 `repair.user_id`） |
-| RS-API-2 | `GET /api/repair-services?scope=mine\|site&status=<csv>`　**新增** | 维修师/员工（**有 oid**） | authRequired | 任务列表（scope=mine 指派给我；scope=site **仅商户层级**——`#2122` 商户组织闸门，网点账号返回空） |
+| RS-API-2 | `GET /api/repair-services?scope=mine\|site&status=<csv>&start=&end=`　**新增** | 维修师/员工（**有 oid**） | authRequired | 任务列表（scope=mine 指派给我；scope=site **仅商户层级**——`#2122` 商户组织闸门，网点账号返回空）；`#2128` 增可选时间区间 `start`/`end`（ISO8601，`updated_at ∈ [start,end)`，**由前端控制显示范围**，当前默认近 30 天） |
 | — | `POST /api/repair-services/:id/quote` | 维修师（有 oid） | authRequired | 报价（归属校验 `repairServiceStaffAllowed`） |
 | — | `POST /api/user/repair-services/:id/accept` | 顾客（无 oid） | userOptionalAuth | 接受报价 → `{payable_cents}` |
 | — | `POST /api/pay/prepay` | 顾客（无 oid） | userOptionalAuth | 支付（`order_type=repair`，服务端重算；租户从 repair 单推导） |

@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
+	"time"
 
 	"tuneloop-backend/models"
 	"tuneloop-backend/testutil"
@@ -367,4 +369,46 @@ func TestGet2125_MerchantFallbackByOrgID(t *testing.T) {
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &out))
 	require.NotNil(t, out.Data.Merchant, "tenant_id 存 org_id 时也应解析到商户")
 	assert.Equal(t, "测试商户", out.Data.Merchant["name"])
+}
+
+// TestListTasks2128_TimeWindow：start/end 区间过滤（updated_at ∈ [start, end)；#2128）。
+func TestListTasks2128_TimeWindow(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	mk := func(daysAgo int, label string) string {
+		rr := models.RepairRequest{
+			ID: uuid.NewString(), TenantID: f.tenantID, UserID: f.customerSub, Type: "service",
+			Status: models.RepairReqStatusClosed, TechnicianID: &f.techID,
+			UserInstrumentID: uuid.NewString(), Description: label, Photos: "[]", ReceivePhotos: "[]",
+		}
+		require.NoError(t, f.db.Omit("site_id").Create(&rr).Error) // 商户单无 site（#2122 形态）
+		require.NoError(t, f.db.Model(&models.RepairRequest{}).Where("id = ?", rr.ID).
+			UpdateColumn("updated_at", time.Now().AddDate(0, 0, -daysAgo)).Error)
+		return rr.ID
+	}
+	oldID := mk(40, "老")
+	midID := mk(10, "中")
+	newID := mk(1, "新")
+
+	merchant := testutil.TestActor{TenantID: f.tenantID, OrgID: f.orgID, UserID: uuid.NewString(), Role: "STAFF"}
+	start := url.QueryEscape(time.Now().AddDate(0, 0, -30).UTC().Format(time.RFC3339))
+	req := httptest.NewRequest(http.MethodGet, "/repair-services?scope=site&start="+start, nil)
+	w := httptest.NewRecorder()
+	f.router.ServeHTTP(w, req.WithContext(merchant.InjectContext(req.Context())))
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var out struct {
+		Data struct {
+			List []map[string]interface{} `json:"list"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &out))
+	ids := map[string]bool{}
+	for _, r := range out.Data.List {
+		if id, ok := r["id"].(string); ok {
+			ids[id] = true
+		}
+	}
+	assert.True(t, ids[midID], "10 天前应命中")
+	assert.True(t, ids[newID], "1 天前应命中")
+	assert.False(t, ids[oldID], "40 天前不应命中（>30 天窗）")
 }
