@@ -61,6 +61,7 @@ export default function TechRepairSections() {
   const [pendingReturn, setPendingReturn] = useState([]) // #2091：待发回（done_repair）
   const [shipped, setShipped] = useState([]) // #2116 修订：已寄出·待收货（shipping 独立分组）
   const [receiveFiles, setReceiveFiles] = useState([]) // #2116 修订：收货照片（多张累计统一提交）
+  const [fetchError, setFetchError] = useState(false) // #2130：列表拉取失败（区别于"无数据"）
   const [working, setWorking] = useState([])
   const [doneList, setDoneList] = useState([])
   const [expanded, setExpanded] = useState('') // `${id}:quote|adjust`
@@ -104,7 +105,10 @@ export default function TechRepairSections() {
       setWorking(w.code === 20000 ? (w.data?.list || []) : [])
       setPendingReturn(r.code === 20000 ? (r.data?.list || []) : [])
       setDoneList(dRes.code === 20000 ? (dRes.data?.list || []) : [])
+      setFetchError(false) // #2130：任一成功响应即视为拉取成功
     } catch (e) {
+      // #2130：拉取失败不再静默置空——置错误态，由面板内错误卡+重试呈现
+      setFetchError(true)
       dialog.alert(resolveErrorMessage(e))
     }
     setLoading(false)
@@ -375,6 +379,23 @@ export default function TechRepairSections() {
         </View>
       ) : null,
     })
+  }
+
+  // #2130：拉取失败 → 错误卡 + 重试（替代误导性的全 0 分组）
+  if (fetchError) {
+    return (
+      <View>
+        <Text style={{ fontSize: 11, color: '#A1A1AA', marginBottom: 6, display: 'block' }}>列表范围：最近 30 天</Text>
+        <View style={cardStyle}>
+          <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#B91C1C' }}>列表拉取失败</Text>
+          <Text style={labelStyle}>网络异常或登录态失效，请检查网络后重试。</Text>
+          <Button disabled={loading} onClick={fetchLists}
+            style={{ ...btnPrimaryStyle, opacity: loading ? 0.5 : 1 }}>
+            {loading ? '重试中...' : '重试'}
+          </Button>
+        </View>
+      </View>
+    )
   }
 
   return (
