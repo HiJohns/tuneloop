@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, notificationApi, resolveLogin , resolveErrorMessage } from '../services/api'
-import { env, storage, session, eventBus, wxLogin } from '../platform'
+import { env, storage, session, eventBus, wxLogin, dialog } from '../platform'
 import { parseJWT } from '../platform/init'
 import BottomNav from '../components-weapp/BottomNav'
 import ErrorBoundary from '../components-weapp/ErrorBoundary'
@@ -321,6 +321,7 @@ export default function Profile() {
     storage.removeItem('refresh_token')
     storage.removeItem('login_contexts') // #2081: 避免下一个账号继承上一账号的身份列表
     storage.removeItem('login_context') // #2111: 清除所选上下文记录
+    session.removeItem('wx_accounts_prefetched') // #2118: 清除登录预取（防跨会话误用）
     // Clear UI state immediately so the page does not keep showing the
     // previous account after logout (#1620).
     setUser(null)
@@ -338,12 +339,18 @@ export default function Profile() {
   const handleGuestLogin = async () => {
     if (loginBusy) return
     setLoginBusy(true)
+    // #2118：点击即给加载反馈 + 总超时兜底（此前点击后无反馈，卡顿被感知为"死机"）
+    Taro.showLoading({ title: '登录中...', mask: true })
     try {
-      const ok = await resolveLogin('profile')
+      const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('login_timeout')), 12000))
+      const ok = await Promise.race([resolveLogin('profile'), timeout])
       if (ok) {
         Taro.reLaunch({ url: '/pages-weapp/profile/index' })
       }
+    } catch (e) {
+      dialog.alert(e && e.message === 'login_timeout' ? '登录超时，请重试' : '登录失败，请重试')
     } finally {
+      Taro.hideLoading()
       setTimeout(() => setLoginBusy(false), 800)
     }
   }
@@ -376,7 +383,7 @@ export default function Profile() {
             </View>
             <View style={{ marginLeft: 16 }}>
             {isGuest ? (
-              <View style={{ backgroundColor: '#915F38', padding: '10px 24px', borderRadius: 999 }} onClick={handleGuestLogin}>
+              <View style={{ backgroundColor: '#915F38', padding: '10px 24px', borderRadius: 999, opacity: loginBusy ? 0.6 : 1 }} onClick={handleGuestLogin}>
                 <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{hasGuestToken ? '👋 轻触绑定手机' : (pendingSession ? '✏️ 继续完成注册' : (wechatQueryDone ? (wechatHasAccount ? '👉 登录' : '👉 注册为会员') : '👉 登录'))}</Text>
               </View>
             ) : (

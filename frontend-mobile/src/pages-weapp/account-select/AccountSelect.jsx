@@ -66,6 +66,22 @@ export default function AccountSelect() {
   useEffect(() => {
     const load = async () => {
       try {
+        // #2118：优先消费 resolveLogin 的预取结果——避免退出后紧接的第二次 wx.login 被节流
+        //（该二次 login 是"约 1 分钟才进入选择页"的根因；预取命中即无 wx.login）
+        try {
+          const raw = session.getItem('wx_accounts_prefetched')
+          if (raw) {
+            const pf = JSON.parse(raw)
+            if (pf && Array.isArray(pf.accounts) && Date.now() - (pf.ts || 0) < 120000) {
+              setAccounts(pf.accounts || [])
+              session.setItem('wx_login_token', pf.exchange_token || '')
+              session.removeItem('wx_accounts_prefetched')
+              setLoading(false)
+              return
+            }
+            session.removeItem('wx_accounts_prefetched')
+          }
+        } catch { /* 预取解析失败 → 回退自取 */ }
         const code = await wxLoginCode()
         if (!code) { Taro.showToast({ title: '登录状态失效，请重试', icon: 'none' }); setLoading(false); return }
         const res = await request(`${env.apiBaseUrl}/auth/wx-accounts?code=${encodeURIComponent(code)}`)

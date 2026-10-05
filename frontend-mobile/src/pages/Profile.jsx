@@ -3,7 +3,7 @@ import Taro from '@tarojs/taro'
 import { useNavigate } from 'react-router-dom'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, notificationApi , resolveErrorMessage } from '../services/api'
-import { env, storage, toWeappRoute, getInputValue } from '../platform'
+import { env, storage, session, toWeappRoute, getInputValue } from '../platform'
 import { getAppConfig } from '../platform/init'
 import { isStaffRole } from '../utils/role'
 import BottomNav from '../components/BottomNav'
@@ -318,6 +318,7 @@ export default function Profile() {
     storage.removeItem('token_expiry')
     storage.removeItem('refresh_token')
     storage.removeItem('login_contexts') // #2081
+    session.removeItem('wx_accounts_prefetched') // #2118
     storage.removeItem('login_context') // #2111: 清除所选上下文记录
     navigate('/')
   }

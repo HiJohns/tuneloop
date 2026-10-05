@@ -154,15 +154,37 @@ function storeLoginToken(data) {
 // N → account-select page. source='checkout' (购物车提交/立即租赁):
 // customer account exists → direct login; otherwise → register prompt modal.
 // Only meaningful inside the WeChat mini-program (weapp).
+// #2118：登录阶段耗时诊断（滚动保留最近 8 条，写入 session 供真机排障，不弹 UI）
+function recordLoginDiag(phase, ms, ok) {
+  try {
+    let arr = []
+    try { arr = JSON.parse(session.getItem('login_diag') || '[]') } catch { arr = [] }
+    if (!Array.isArray(arr)) arr = []
+    arr.push({ phase, ms, ok, ts: Date.now() })
+    if (arr.length > 8) arr = arr.slice(arr.length - 8)
+    session.setItem('login_diag', JSON.stringify(arr))
+  } catch { /* 诊断失败忽略 */ }
+}
+
 export async function resolveLogin(source = 'profile') {
   if (!env.isMiniProgram) return false
   try {
+    // #2118：阶段耗时诊断（仅保留最近若干条，无 UI 打扰；真机排障用）
+    const tLogin = Date.now()
     const code = await wxLoginCode()
+    recordLoginDiag('wx.login', Date.now() - tLogin, !!code)
     if (!code) return false
+    const tAcc = Date.now()
     const resp = await platformRequest(`${env.apiBaseUrl}/auth/wx-accounts?code=${encodeURIComponent(code)}`)
     const result = await resp.json()
+    recordLoginDiag('wx-accounts', Date.now() - tAcc, result.code === 20000)
     if (result.code !== 20000 || !result.data) return false
     const { accounts = [], exchange_token } = result.data
+    // #2118：预取结果供 account-select 直接渲染——消除「退出后紧接的第二次 wx.login」
+    //（微信端对紧接的 wx.login 可能节流，导致选择页 ~1 分钟才就绪）
+    try {
+      session.setItem('wx_accounts_prefetched', JSON.stringify({ accounts, exchange_token, ts: Date.now() }))
+    } catch { /* 预取失败不影响主流程（account-select 会回退自取） */ }
     // #2027 S1 (B1): flatten to loginable contexts (org + customer). Falls back
     // to account-level fields when IAM did not supply contexts (older builds).
     const contexts = []
@@ -271,6 +293,7 @@ export function degradeToGuest() {
   storage.removeItem('user_cus_perm_ext')
   storage.removeItem('login_contexts') // #2081: 会话失效后不残留上一账号的身份列表
   storage.removeItem('login_context') // #2111: 清除所选上下文记录（防跨会话误判漂移）
+  session.removeItem('wx_accounts_prefetched') // #2118: 清除登录预取
   session.removeItem('token')
   cookie.remove('token')
   session.setItem('logged_out_due_expiry', '1')
@@ -360,6 +383,7 @@ async function refreshAccessToken() {
       storage.removeItem('refresh_token')
       storage.removeItem('login_context')
       storage.removeItem('login_contexts')
+      session.removeItem('wx_accounts_prefetched') // #2118
       throw new Error('身份已变化，请重新登录')
     }
     return data.data.access_token

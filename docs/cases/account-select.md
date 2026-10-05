@@ -283,3 +283,15 @@ steps:
 ---
 
 *Last updated: 2026-08-13*
+
+---
+
+## 登录预取与点击兜底（#2118）
+
+> 症状：退出登录后点「登录」约 1 分钟才进入账户选择页。
+
+- **根因**：`AccountSelect` 挂载时**二次 `wx.login`**（`resolveLogin` 已做过一次）——退出后紧接的第二次 wx.login 被微信端节流，页面停在 loading（该窗口内无服务端请求）。
+- **修复**：
+  1. **预取**：`resolveLogin` 拿到 `wx-accounts` 结果后写入 `session('wx_accounts_prefetched')`（含 `accounts/exchange_token/ts`，TTL 2 分钟）；`AccountSelect` 挂载**优先消费预取**直接渲染，命中即**无二次 wx.login**；缺失/过期才回退自取。预取键在退出登录/会话失效/上下文漂移时清除。
+  2. **点击兜底**：`handleGuestLogin` 点击即 `showLoading('登录中...')`，**总超时 12s**（Promise.race）→「登录超时，请重试」；`loginBusy` 期间按钮置灰。
+  3. **诊断**：`resolveLogin` 记录阶段耗时（`wx.login`/`wx-accounts`）到 `session('login_diag')`（滚动保留 8 条），供真机排障。
