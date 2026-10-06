@@ -87,6 +87,30 @@ func TestRepairService_LeafOrgTenantScope_2134(t *testing.T) {
 	assert.Contains(t, svcListIDs2134(t, sresp), rr.ID, "scope=site 应可见本商户叶组织行")
 }
 
+// #2134 修订2（实测回归）：卡丹萨形态——staff 的 tid=oid=**叶组织**（顶级组织，
+// ResolveRootOrg 返回自身），而服务单行落**商户父租户**（merchants.tenant_id）。
+// 可见集合必须包含 merchants(org_id=oid).tenant_id，否则工作台恒 0。
+func TestRepairService_MerchantParentTenantScope_2134(t *testing.T) {
+	f := setupRepairServiceFixture(t)
+	rr := models.RepairRequest{
+		ID: uuid.NewString(), TenantID: f.tenantID, UserID: f.customerID, Type: "service",
+		Status: models.RepairReqStatusClosed, TechnicianID: &f.techID, SiteID: "",
+		Description: "商户父租户口径", Photos: "[]", ReceivePhotos: "[]",
+	}
+	require.NoError(t, f.db.Omit("site_id", "user_instrument_id").Create(&rr).Error)
+	// 卡丹萨形态：tid=oid=叶组织（无根追溯），行落在 merchants(org_id=叶组织).tenant_id
+	tech := testutil.TestActor{TenantID: f.orgID, OrgID: f.orgID, UserID: f.techID, Role: "repair_technician"}
+
+	// ① 详情可见
+	code, resp := svcDoScoped(t, f, tech, http.MethodGet, "/user/repair-services/"+rr.ID, nil)
+	require.Equal(t, http.StatusOK, code, resp)
+	assert.Equal(t, float64(20000), resp["code"], resp)
+
+	// ② scope=mine 可见（修复前：IN(叶组织) 不含父租户 → 0）
+	_, lresp := svcDoScoped(t, f, tech, http.MethodGet, "/repair-services?scope=mine&status=closed", nil)
+	assert.Contains(t, svcListIDs2134(t, lresp), rr.ID, "staff(tid=oid=叶组织) 应可见本商户父租户行")
+}
+
 // #2134：隔离——同技师但属其它租户的行不得跨租户可见。
 func TestRepairService_LeafOrgScope_Isolation_2134(t *testing.T) {
 	f := setupRepairServiceFixture(t)

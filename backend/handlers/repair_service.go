@@ -170,20 +170,34 @@ func localUserIDBySub(db *gorm.DB, sub string) string {
 
 // repairServiceTenantScope（#2134）：维修服务单的 staff 商户范围口径。
 //
-// 根因：写入链把「叶组织 id」写进 tenant_id（例：商户「卡丹萨」org=bd6bfa4b），
-// 而 IAMInterceptor 会把 JWT 的 tid/oid 向上追溯为「根租户」（3cfa99da）用于 GORM
-// 自动租户范围（addTenantScope）→ staff 上下文按根租户过滤时漏掉这些行（#2134）。
-// 因此 staff 读改为显式 {tid, oid} 集合（oid=用户自身组织，不引入跨商户泄漏）。
-// 返回 nil 表示无组织信息（顾客上下文）——不追加显式过滤（自动范围本身也不生效）。
+// 实测拓扑（预生产）：组织均为**顶级组织**（parent_id=NULL），beaconiam 对所选组织
+// 签发 tid = ResolveRootOrg(org) = 组织自身 → staff 的 tid=oid=本组织（如卡丹萨
+// bd6bfa4b）。而服务单 tenant 有两种历史/现行形态：
+//
+//	① 叶组织 id（写入链旧行为：technician_profiles.tenant_id=bd6bfa4b）
+//	② 本商户所属租户（merchants.org_id=bd6bfa4b → tenant_id=3cfa99da，规范化后）
+//
+// 因此可见集合 = {tid, oid} ∪ {merchants(org_id=oid).tenant_id}——涵盖两种形态，
+// 且不引入跨商户泄漏（都是「本组织/本商户」维度）。
+// 返回空集表示无组织信息（顾客上下文）——不追加显式过滤。
 func repairServiceTenantScope(ctx context.Context) []string {
 	tid := middleware.GetTenantID(ctx)
 	oid := middleware.GetOrgID(ctx)
-	scopes := make([]string, 0, 2)
+	scopes := make([]string, 0, 3)
 	if tid != "" {
 		scopes = append(scopes, tid)
 	}
 	if oid != "" && oid != tid {
 		scopes = append(scopes, oid)
+	}
+	// #2134 修订2：本组织所属商户的租户（卡丹萨形态：tid=oid=叶组织，服务单落父租户）
+	if oid != "" {
+		var m models.Merchant
+		if err := database.GetDB().WithContext(database.IdentityCtx(ctx)).Select("tenant_id").
+			Where("org_id = ?", oid).First(&m).Error; err == nil && m.TenantID != "" &&
+			m.TenantID != tid && m.TenantID != oid {
+			scopes = append(scopes, m.TenantID)
+		}
 	}
 	return scopes
 }
@@ -1593,10 +1607,11 @@ func (h *RepairServiceHandler) ListTasks(c *gin.Context) {
 		query = db.WithContext(database.IdentityCtx(ctx)).Where("tenant_id IN ?", scopes)
 	}
 	query = query.Model(&models.RepairRequest{}).Where("type = ?", repairServiceTypeVal)
+	me := ""
 	switch scope {
 	case "mine":
 		// 指派给我的（technician_id 存本地 users.id；兼容直接存 IAM sub 的历史行）
-		me := localUserIDBySub(db, middleware.GetUserID(ctx))
+		me = localUserIDBySub(db, middleware.GetUserID(ctx))
 		if me == "" {
 			me = middleware.GetUserID(ctx)
 		}
@@ -1649,6 +1664,9 @@ func (h *RepairServiceHandler) ListTasks(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list tasks"})
 		return
 	}
+	// TEMP-DIAG #2134：定位「工作台全 0」——输出上下文与命中行数（确认后移除）
+	log.Printf("[RepairService.ListTasks][diag] scope=%s role=%q tid=%q oid=%q me=%q scopes=%v rows=%d",
+		scope, middleware.GetRole(ctx), middleware.GetTenantID(ctx), middleware.GetOrgID(ctx), me, scopes, len(list))
 	// #2116 修订：工作台瘦身行需要「提交人」——批量回填 user_name（additive 字段）
 	userIDs := make([]string, 0, len(list))
 	for _, rr := range list {
