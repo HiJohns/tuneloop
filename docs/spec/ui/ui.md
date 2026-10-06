@@ -1350,7 +1350,8 @@ API 来源：
 **功能**:
 - `BottomNav` 新增 `badges` prop: `{ tabKey: number }`
 - 有未读时在图标右上角显示红圈数字（>99 显示 `99+`）
-- Profile.jsx 在页面加载时获取未读数，传给 BottomNav 的 profile Tab
+- Profile.jsx 在页面加载、每次页面显示（weapp `useDidShow`）、以及收到事件总线 `unreadSync` 时获取未读数，传给 BottomNav 的 profile Tab
+- `markRead` / `markAllRead`（消息中心）与打开详情自动已读（MessageDetail）成功后经 `eventBus.emit('unreadSync')` 即时同步未读角标（H5/weapp 双端）
 - 跳转消息列表后未读清零
 
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { notificationApi, apiFetch } from '../services/api'
-import { dialog, env, storage } from '../platform'
+import { dialog, env, storage, eventBus } from '../platform'
 import { formatBeijingDateTimeShort } from '../utils/format'
 import { ArrowLeft, Bell } from 'lucide-react'
 import { View, Text, ScrollView } from '@tarojs/components'
@@ -50,6 +50,7 @@ export default function Messages() {
     try {
       await notificationApi.markRead(id)
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, status: 'read' } : n))
+      eventBus.emit('unreadSync') // #2135：通知个人中心等订阅方刷新未读数
     } catch (err) {
       console.error('Failed to mark read:', err)
     }
@@ -59,6 +60,7 @@ export default function Messages() {
     try {
       await notificationApi.markAllRead()
       setNotifications(prev => prev.map(n => ({ ...n, status: 'read' })))
+      eventBus.emit('unreadSync') // #2135：立即同步个人中心未读角标
       dialog.toast('已全部标记为已读')
     } catch (err) {
       console.error('Failed to mark all read:', err)

@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Taro from '@tarojs/taro'
 import { useNavigate } from 'react-router-dom'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, notificationApi , resolveErrorMessage } from '../services/api'
-import { env, storage, session, toWeappRoute, getInputValue } from '../platform'
+import { env, storage, session, toWeappRoute, getInputValue, eventBus } from '../platform'
 import { getAppConfig } from '../platform/init'
 import { isStaffRole } from '../utils/role'
 import BottomNav from '../components/BottomNav'
@@ -247,19 +247,25 @@ export default function Profile() {
     fetchUser()
   }, [])
 
+  // #2135: 未读数提升为组件作用域，供挂载/轮询/事件总线（unreadSync）共用
+  const fetchUnread = useCallback(async () => {
+    // #1903: guest state must not poll the backend
+    if (!getToken()) { setUnreadCount(0); return }
+    try {
+      const resp = await notificationApi.unreadCount()
+      setUnreadCount(resp?.data?.count ?? 0)
+    } catch {}
+  }, [])
+
   useEffect(() => {
-    const fetchUnread = async () => {
-      // #1903: guest state must not poll the backend
-      if (!getToken()) { setUnreadCount(0); return }
-      try {
-        const resp = await notificationApi.unreadCount()
-        setUnreadCount(resp?.data?.count ?? 0)
-      } catch {}
-    }
     fetchUnread()
     const interval = setInterval(fetchUnread, 30000)
-    return () => clearInterval(interval)
-  }, [])
+    eventBus.on('unreadSync', fetchUnread)
+    return () => {
+      clearInterval(interval)
+      eventBus.off('unreadSync', fetchUnread)
+    }
+  }, [fetchUnread])
 
   const displayName = user?.nickname || user?.name || user?.username || '路人'
   const token = getToken()

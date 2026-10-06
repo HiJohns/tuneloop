@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, notificationApi, resolveLogin , resolveErrorMessage } from '../services/api'
@@ -102,6 +102,16 @@ export default function Profile() {
   const baseUrl = env.apiBaseUrl
   const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? baseUrl.replace(/\/api$/, '') + url : url
 
+  // #2135: 未读数提升为组件作用域，供挂载/轮询/事件总线（unreadSync）/useDidShow 共用
+  const fetchUnread = useCallback(async () => {
+    // #1903: guest state must not poll the backend
+    if (!getToken()) { setUnreadCount(0); return }
+    try {
+      const resp = await notificationApi.unreadCount()
+      setUnreadCount(resp?.data?.count ?? 0)
+    } catch {}
+  }, [])
+
   // Refresh user data every time the page becomes visible (e.g. returning
   // from the profile edit page) — #1588. The eventBus subscription stays
   // mounted once via useEffect.
@@ -157,6 +167,7 @@ export default function Profile() {
       setLoading(false)
     }
     fetchUser()
+    fetchUnread() // #2135：页面每次显示刷新未读角标（覆盖新通知到达场景）
   })
 
   useEffect(() => {
@@ -176,18 +187,14 @@ export default function Profile() {
   }, [baseUrl])
 
   useEffect(() => {
-    const fetchUnread = async () => {
-      // #1903: guest state must not poll the backend
-      if (!getToken()) { setUnreadCount(0); return }
-      try {
-        const resp = await notificationApi.unreadCount()
-        setUnreadCount(resp?.data?.count ?? 0)
-      } catch {}
-    }
     fetchUnread()
     const interval = setInterval(fetchUnread, 30000)
-    return () => clearInterval(interval)
-  }, [])
+    eventBus.on('unreadSync', fetchUnread)
+    return () => {
+      clearInterval(interval)
+      eventBus.off('unreadSync', fetchUnread)
+    }
+  }, [fetchUnread])
 
   const displayName = user?.nickname || user?.name || user?.username || '路人'
   const token = getToken()
