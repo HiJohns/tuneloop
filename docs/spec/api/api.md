@@ -43,9 +43,9 @@
 - 分页参数为 `page`（页码，默认 `1`）与 `pageSize` / `page_size`（每页数量）。
 - 历史原因存在**两种拼写**：`pageSize`（驼峰）与 `page_size`（下划线）。**以各端点文档为准**；**同一端点的所有调用方必须使用该端点约定的同一拼写**，不得混用（混用会导致后端静默忽略参数、回退默认值）。
 - 单页数量上限 **100**；越界值按 **clamp 到 100** 处理；`pageSize < 1` 时取该端点默认值。
-  > 注：部分端点当前越界时回退默认值（历史缺陷），将按本契约对齐为 clamp。
+  > 注：部分端点当前越界时回退默认值、部分端点当前无上限（历史缺陷），均将按本契约对齐为 clamp 到 100。
 
-#### 1.5.2 分页端点（返回 `{ list, total, page, pageSize }`）
+#### 1.5.2 分页端点（返回 `{ list, total, page, pageSize }`，`pageSize` / `page_size` 依端点）
 
 | 端点 | 处理器 | 参数拼写 | 默认页大小 |
 |---|---|---|---|
@@ -58,7 +58,7 @@
 
 > 分页端点必须返回 `total`（筛选后的总数），供前端渲染分页控件 / 计算 `hasMore`。
 
-#### 1.5.3 全量端点（一次返回全部，无 `total`）
+#### 1.5.3 全量端点（不参与翻页：不读取 `page` / `pageSize`，一次返回全部）
 
 | 端点 | 处理器 |
 |---|---|
@@ -69,6 +69,8 @@
 | `GET /technician-profiles` | `List` |
 | `GET /system/tenants` | `GetTenants` |
 | `GET /system/clients` | `GetClients` |
+
+> 注：`total` 是否出现**不作为**分页 / 全量的判别依据——部分全量端点（如 `PublicList`、`technician_profile.List`）仍返回 `total = list 长度`；判别标准是**是否读取 `page` / `pageSize`**。
 
 #### 1.5.4 need-all 消费指引
 
