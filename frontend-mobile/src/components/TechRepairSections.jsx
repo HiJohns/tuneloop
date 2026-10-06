@@ -271,10 +271,9 @@ export default function TechRepairSections() {
   // #2116 修订：瘦身行——编号/提交人/时间/状态 + 最多一个按钮；媒体与表单收进展开区
   const renderRow = (rr, opts = {}) => {
     return (
-      <View key={rr.id} style={cardStyle}>
-        <View
-          onClick={opts.onInfoTap}
-          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+      // #2145：整卡可点进详情；内部按钮/面板 stopPropagation 防误触导航
+      <View key={rr.id} style={cardStyle} onClick={opts.onInfoTap}>
+        <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
         >
           <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>
             编码 {rr.repair_code || '-'}
@@ -285,12 +284,13 @@ export default function TechRepairSections() {
           提交人 {rr.user_name || '-'} · {rr.created_at ? formatBeijingDate(rr.created_at) : '-'}{opts.hint ? ` · ${opts.hint}` : ''}
         </Text>
         {opts.button && (
-          <Button disabled={submitting} onClick={opts.button.onClick}
+          <Button disabled={submitting}
+            onClick={(e) => { e.stopPropagation(); opts.button.onClick(e) }}
             style={{ ...(opts.button.secondary ? btnSecondaryStyle : btnPrimaryStyle), opacity: submitting ? 0.5 : 1 }}>
             {opts.button.label}
           </Button>
         )}
-        {opts.panel || null}
+        {opts.panel ? <View onClick={(e) => e.stopPropagation()}>{opts.panel}</View> : null}
       </View>
     )
   }
