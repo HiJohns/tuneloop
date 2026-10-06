@@ -34,10 +34,45 @@
 - DB 存储为 `timestamptz`（迁移 `20260824002_timestamptz`：存量北京数值 → 正确 UTC）；业务时区 = Asia/Shanghai（Go 启动时显式 `time.Local`）
 - 前端一律本地化显示（`new Date()` / dayjs 自动按设备时区解析 Z 后缀），禁止按 UTC 字符串直接展示
 
-### 1.5 分页参数
-所有列表接口支持:
-- `page`: 页码 (默认: 1)
-- `pageSize`: 每页数量 (默认: 20, 最大: 100)
+### 1.5 分页契约
+
+> 定义「集合端点是否分页」的统一约定，以及分页 / 全量两种消费模式的边界。各列表端点**按此契约**实现；新增集合端点必须归类为「分页端点」或「全量端点」之一。
+
+#### 1.5.1 命名约定
+
+- 分页参数为 `page`（页码，默认 `1`）与 `pageSize` / `page_size`（每页数量）。
+- 历史原因存在**两种拼写**：`pageSize`（驼峰）与 `page_size`（下划线）。**以各端点文档为准**；**同一端点的所有调用方必须使用该端点约定的同一拼写**，不得混用（混用会导致后端静默忽略参数、回退默认值）。
+- 单页数量上限 **100**；越界值按 **clamp 到 100** 处理；`pageSize < 1` 时取该端点默认值。
+  > 注：部分端点当前越界时回退默认值（历史缺陷），将按本契约对齐为 clamp。
+
+#### 1.5.2 分页端点（返回 `{ list, total, page, pageSize }`）
+
+| 端点 | 处理器 | 参数拼写 | 默认页大小 |
+|---|---|---|---|
+| `GET /instruments` | `GetInstruments` | `pageSize` | 20 |
+| `GET /merchants` | `ListMerchants` | `pageSize` | 20 |
+| `GET /admin/audit-logs` | `ListAuditLogs` | `pageSize` | 20 |
+| `GET /merchant/leases` | `ListLeases` | `pageSize` | 10 |
+| `GET /staff` | `ListStaff` | `page_size` | 20 |
+| `GET /orders` | `GetOrders` | `page_size` | 10 |
+
+> 分页端点必须返回 `total`（筛选后的总数），供前端渲染分页控件 / 计算 `hasMore`。
+
+#### 1.5.3 全量端点（一次返回全部，无 `total`）
+
+| 端点 | 处理器 |
+|---|---|
+| `GET /transit-orders` | `ListTransitOrders` |
+| `GET /common/repair-technicians` | `PublicList` |
+| `GET /user/invoices/eligible` | `ListEligible` |
+| `GET /repair-requests` | `List` |
+| `GET /technician-profiles` | `List` |
+| `GET /system/tenants` | `GetTenants` |
+| `GET /system/clients` | `GetClients` |
+
+#### 1.5.4 need-all 消费指引
+
+「需要全部记录」的场景（下拉选项、批量编辑器等）**不得**对**分页端点**传入超大 `pageSize` 来「凑全量」——应改用**全量端点**或新增专用 options 接口。分页端点只服务「翻页浏览」消费模式。
 
 ### 1.6 权限模型 (v2.1)
 
