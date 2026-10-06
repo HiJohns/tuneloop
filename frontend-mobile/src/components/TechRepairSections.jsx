@@ -99,12 +99,14 @@ export default function TechRepairSections() {
       const sv = await sRes.json()
       const w = await wRes.json()
       const r = await rRes.json()
+      const d = await dRes.json() // #2134 修订3：缺失的解析——已完成组从未读过响应体（恒 0 的真根因）
       setPendingQuotes(q.code === 20000 ? (q.data?.list || []) : [])
       setPendingPay(p.code === 20000 ? (p.data?.list || []) : [])
       setShipped(sv.code === 20000 ? (sv.data?.list || []) : [])
       setWorking(w.code === 20000 ? (w.data?.list || []) : [])
       setPendingReturn(r.code === 20000 ? (r.data?.list || []) : [])
-      setDoneList(dRes.code === 20000 ? (dRes.data?.list || []) : [])
+      setDoneList(d.code === 20000 ? (d.data?.list || []) : [])
+      console.log('[2134-diag] closed: http=' + dRes.status + ' code=' + d.code + ' list=' + (d.data?.list?.length ?? 'NO_LIST') + ' type=' + typeof d) // TEMP-DIAG #2134（确认后移除）
       setFetchError(false) // #2130：任一成功响应即视为拉取成功
     } catch (e) {
       // #2130：拉取失败不再静默置空——置错误态，由面板内错误卡+重试呈现
