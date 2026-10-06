@@ -8,6 +8,7 @@ import { dialog, env, getInputValue, toWeappRoute } from '../platform'
 import { isStaffRole } from '../utils/role'
 import BottomNav from '../components/BottomNav'
 import TechRepairSections from '../components/TechRepairSections'
+import SegmentedTabs from '../components/SegmentedTabs' // #2150 统一分段控制器
 import BottomNavWeapp from '../components-weapp/BottomNav'
 import { formatBeijingDate, repairStatusLabel } from '../utils/format'
 
@@ -273,20 +274,12 @@ export default function MyRepairs() {
 
       {/* #1957 RS-10 入口区分：维修工单（v3 legacy）/ 维修服务；#2050 顾客锁定「维修服务」（维修工单仅员工） */}
       {isStaff && (
-      <View style={{ display: 'flex', gap: 8, backgroundColor: '#FFFFFF', padding: '10px 16px 0' }}>
-        {[
-          { key: 'legacy', label: '维修工单' },
-          { key: 'service', label: '维修服务' },
-        ].map(t => (
-          <View key={t.key} onClick={() => (t.key === 'service' ? openServiceTab() : setSvcTab('legacy'))}
-            style={{
-              flex: 1, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: 8,
-              backgroundColor: svcTab === t.key ? '#171717' : '#F4F4F5',
-            }}>
-            <Text style={{ fontSize: 13, fontWeight: 'bold', color: svcTab === t.key ? '#FFFFFF' : '#52525B' }}>{t.label}</Text>
-          </View>
-        ))}
+      <View style={{ backgroundColor: '#FFFFFF', padding: '10px 16px 0' }}>
+        <SegmentedTabs
+          options={[{ key: 'legacy', label: '维修工单' }, { key: 'service', label: '维修服务' }]}
+          value={svcTab}
+          onChange={(k) => (k === 'service' ? openServiceTab() : setSvcTab('legacy'))}
+        />
       </View>
       )}
 
