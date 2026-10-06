@@ -106,7 +106,6 @@ export default function TechRepairSections() {
       setWorking(w.code === 20000 ? (w.data?.list || []) : [])
       setPendingReturn(r.code === 20000 ? (r.data?.list || []) : [])
       setDoneList(d.code === 20000 ? (d.data?.list || []) : [])
-      console.log('[2134-diag] closed: http=' + dRes.status + ' code=' + d.code + ' list=' + (d.data?.list?.length ?? 'NO_LIST') + ' type=' + typeof d) // TEMP-DIAG #2134（确认后移除）
       setFetchError(false) // #2130：任一成功响应即视为拉取成功
     } catch (e) {
       // #2130：拉取失败不再静默置空——置错误态，由面板内错误卡+重试呈现
@@ -450,7 +449,7 @@ export default function TechRepairSections() {
           </View>
           {!loading && doneList.length === 0 ? (
             <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无已完成维修单</Text>
-          ) : doneList.map(rr => renderRow(rr, { onInfoTap: () => openDetail(rr.id), hint: '已结算' }))}
+          ) : doneList.map(rr => renderRow(rr, { onInfoTap: () => openDetail(rr.id) }))}
     </View>
   )
 }
