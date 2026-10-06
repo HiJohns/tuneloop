@@ -38,6 +38,7 @@ func (h *WarehouseHandler) ListOrders(c *gin.Context) {
 	siteID := c.Query("site_id")
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+	pageSize = clampPageSize(pageSize, 20, maxPageSize)
 
 	db := database.GetDB().WithContext(ctx)
 

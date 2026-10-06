@@ -71,6 +71,7 @@ func (h *UserPointsHandler) ListTransactions(c *gin.Context) {
 	txType := c.Query("type")
 	page := parseInt(c.DefaultQuery("page", "1"), 1)
 	pageSize := parseInt(c.DefaultQuery("page_size", "20"), 20)
+	pageSize = clampPageSize(pageSize, 20, maxPageSize)
 
 	query := db.Where("user_id = ?", localUser.ID)
 	if txType != "" {

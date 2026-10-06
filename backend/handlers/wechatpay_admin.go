@@ -23,6 +23,7 @@ func ListPayments(c *gin.Context) {
 
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	pageSize = clampPageSize(pageSize, 20, maxPageSize)
 	orderType := c.Query("order_type")
 	method := c.Query("method")
 	status := c.Query("status")

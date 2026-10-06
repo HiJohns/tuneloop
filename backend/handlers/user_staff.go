@@ -45,6 +45,7 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 	if ps, err := strconv.Atoi(c.DefaultQuery("page_size", "20")); err == nil && ps > 0 {
 		pageSize = ps
 	}
+	pageSize = clampPageSize(pageSize, 20, maxPageSize)
 	offset := (page - 1) * pageSize
 
 	// Build query

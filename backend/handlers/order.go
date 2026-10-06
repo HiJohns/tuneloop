@@ -36,6 +36,7 @@ func GetOrders(c *gin.Context) {
 	if ps, err := strconv.Atoi(c.DefaultQuery("page_size", "10")); err == nil && ps > 0 {
 		pageSize = ps
 	}
+	pageSize = clampPageSize(pageSize, 10, maxPageSize)
 
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
@@ -1615,9 +1616,7 @@ func GetOrderLogs(c *gin.Context) {
 	if page < 1 {
 		page = 1
 	}
-	if pageSize < 1 {
-		pageSize = 15
-	}
+	pageSize = clampPageSize(pageSize, 15, maxPageSize)
 	start := (page - 1) * pageSize
 	if start > total {
 		start = total

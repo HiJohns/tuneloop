@@ -79,9 +79,7 @@ func ListMerchantRepairServices(c *gin.Context) {
 		page = 1
 	}
 	ps, err := strconv.Atoi(c.DefaultQuery("page_size", "20"))
-	if err != nil || ps < 1 || ps > 100 {
-		ps = 20
-	}
+	ps = clampPageSize(ps, 20, maxPageSize)
 
 	var list []models.RepairRequest
 	if err := q.Order("updated_at DESC").Offset((page - 1) * ps).Limit(ps).Find(&list).Error; err != nil {

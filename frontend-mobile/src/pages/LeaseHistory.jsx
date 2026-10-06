@@ -7,6 +7,8 @@ import { formatCents } from '../utils/money'
 import { calculateDays } from '../utils/daycalc'
 import { ArrowLeft, Package, History, Clock } from 'lucide-react'
 
+const PAGE_SIZE = 20
+
 const STATUS_LABELS = {
   pending: '待付款', paid: '待发货', shipped: '已发货', in_lease: '租赁中',
   returning: '归还中', returned: '已归还', completed: '已完成',
@@ -50,7 +52,7 @@ export default function LeaseHistory() {
     if (!append) setLoading(true)
     else setLoadingMore(true)
     try {
-      const resp = await apiFetch(`/api/orders?page=${pageNum}&pageSize=20`)
+      const resp = await apiFetch(`/api/orders?page=${pageNum}&page_size=${PAGE_SIZE}`)
       const result = await resp.json()
       if (result.code === 20000) {
         const list = result.data?.list || []
@@ -60,8 +62,8 @@ export default function LeaseHistory() {
           setOrders(list)
         }
         const total = result.data?.total || 0
-        append && setHasMore(pageNum * 20 < total)
-        !append && setHasMore(list.length === 20)
+        append && setHasMore(pageNum * PAGE_SIZE < total)
+        !append && setHasMore(list.length === PAGE_SIZE)
       }
     } catch (err) {
       console.error('Failed to fetch orders:', err)

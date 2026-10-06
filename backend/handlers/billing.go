@@ -35,9 +35,7 @@ func GetBillingReport(c *gin.Context) {
 	if page < 1 {
 		page = 1
 	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 20
-	}
+	pageSize = clampPageSize(pageSize, 20, maxPageSize)
 
 	// Build base query
 	baseQuery := db.Model(&struct{}{}).Table("orders").

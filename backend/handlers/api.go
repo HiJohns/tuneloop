@@ -379,9 +379,7 @@ func GetInstruments(c *gin.Context) {
 	if page < 1 {
 		page = 1
 	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 20
-	}
+	pageSize = clampPageSize(pageSize, 20, maxPageSize)
 
 	offset := (page - 1) * pageSize
 
@@ -1264,6 +1262,7 @@ func GetOverdueLeases(c *gin.Context) {
 
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	pageSize = clampPageSize(pageSize, 10, maxPageSize)
 
 	db := database.GetDB()
 	query := db.Table("orders").

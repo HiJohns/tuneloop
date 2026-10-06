@@ -38,9 +38,7 @@ func (h *LeaseHandler) ListLeases(c *gin.Context) {
 	if page < 1 {
 		page = 1
 	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
-	}
+	pageSize = clampPageSize(pageSize, 10, maxPageSize)
 
 	offset := (page - 1) * pageSize
 
@@ -285,9 +283,7 @@ func (h *DepositHandler) ListDeposits(c *gin.Context) {
 	if page < 1 {
 		page = 1
 	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
-	}
+	pageSize = clampPageSize(pageSize, 10, maxPageSize)
 
 	offset := (page - 1) * pageSize
 

@@ -56,6 +56,7 @@ func (h *SiteHandler) ListSites(c *gin.Context) {
 
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+	pageSize = clampPageSize(pageSize, 20, maxPageSize)
 
 	offset := (page - 1) * pageSize
 	query.WithContext(c.Request.Context()).Offset(offset).Limit(pageSize).Find(&sites)

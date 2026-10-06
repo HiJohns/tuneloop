@@ -208,9 +208,7 @@ func (h *DashboardHandler) GetNearTransfers(c *gin.Context) {
 	if page < 1 {
 		page = 1
 	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
-	}
+	pageSize = clampPageSize(pageSize, 10, maxPageSize)
 
 	var transfers []interface{}
 	// For now, return empty list as we don't have near transfer data yet

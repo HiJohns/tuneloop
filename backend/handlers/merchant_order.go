@@ -61,9 +61,7 @@ func ListMerchantOrders(c *gin.Context) {
 	if page < 1 {
 		page = 1
 	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 20
-	}
+	pageSize = clampPageSize(pageSize, 20, maxPageSize)
 	offset := (page - 1) * pageSize
 
 	var total int64

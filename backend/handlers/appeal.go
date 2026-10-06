@@ -28,6 +28,7 @@ func (h *AppealHandler) ListAppeals(c *gin.Context) {
 	status := c.Query("status")
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+	pageSize = clampPageSize(pageSize, 20, maxPageSize)
 
 	db := database.GetDB().WithContext(ctx)
 

@@ -43,6 +43,7 @@ func (h *MerchantHandler) ListMerchants(c *gin.Context) {
 
 	page := parseInt(c.DefaultQuery("page", "1"), 1)
 	pageSize := parseInt(c.DefaultQuery("pageSize", "20"), 20)
+	pageSize = clampPageSize(pageSize, 20, maxPageSize)
 	offset := (page - 1) * pageSize
 
 	query.Order("created_at DESC").Offset(offset).Limit(pageSize).Find(&merchants)
