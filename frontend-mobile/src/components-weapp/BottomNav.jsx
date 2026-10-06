@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text } from '@tarojs/components'
+import { Home, Music, Wrench, User } from 'lucide-react' // #2151 统一图标（weapp 构建别名 → stubs）
 import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
 import { isStaffRole, isPureTechnician } from '../utils/role'
@@ -44,28 +45,29 @@ export default function BottomNav({ active = '', badges = {}, tenant }) {
   }
 
   const tabs = [
-    { key: 'home', icon: '🏪', label: '首页', onClick: () => goTab('/pages-weapp/home/index') },
-    ...(isPureTech ? [] : [{ key: 'rent', icon: '🪕', label: '租赁', onClick: () => goTab('/pages-weapp/my-leases/index') }]),
-    { key: 'service', icon: '🛠️', label: '维修', onClick: goService },
-    { key: 'profile', icon: '👤', label: '我的', onClick: () => goTab('/pages-weapp/profile/index') },
+    { key: 'home', Icon: Home, label: '首页', onClick: () => goTab('/pages-weapp/home/index') },
+    ...(isPureTech ? [] : [{ key: 'rent', Icon: Music, label: '租赁', onClick: () => goTab('/pages-weapp/my-leases/index') }]),
+    { key: 'service', Icon: Wrench, label: '维修', onClick: goService },
+    { key: 'profile', Icon: User, label: '我的', onClick: () => goTab('/pages-weapp/profile/index') },
   ]
 
   return (
-    <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#5A3B24', borderTop: '1px solid #4E321E', paddingTop: 8, paddingBottom: 8, display: 'flex', justifyContent: 'space-around', alignItems: 'center', zIndex: 50 }}>
+    <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#FFFFFF', borderTop: '1px solid #E4E4E7', paddingTop: 6, paddingBottom: 6, display: 'flex', justifyContent: 'space-around', alignItems: 'center', zIndex: 50 }}>
       {tabs.map((tab, i) => {
         const isActive = active === tab.key
         const badge = badges[tab.key]
+        const color = isActive ? '#915F38' : '#A1A1AA' // #2151 选中品牌色/未选灰
         return (
           <View key={tab.key || i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', flex: 1, paddingTop: 6, paddingBottom: 6 }} onClick={tab.onClick}>
-            <View style={{ fontSize: 28, marginBottom: 2, position: 'relative' }}>
-              {tab.icon}
+            <View style={{ position: 'relative', marginBottom: 2 }}>
+              <tab.Icon size={22} color={color} />
               {badge > 0 && (
-                <View style={{ position: 'absolute', top: -4, right: -8, backgroundColor: '#FF2A55', color: '#fff', fontSize: 9, fontWeight: '900', minWidth: 16, height: 16, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: 2, paddingRight: 2, border: '1px solid #5A3B24' }}>
+                <View style={{ position: 'absolute', top: -4, right: -8, backgroundColor: '#FF2A55', color: '#fff', fontSize: 9, fontWeight: '900', minWidth: 16, height: 16, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: 2, paddingRight: 2, border: '1px solid #FFFFFF' }}>
                   {badge > 99 ? '99+' : badge}
                 </View>
               )}
             </View>
-            <Text style={{ fontSize: 10, fontWeight: '700', color: isActive ? '#fff' : 'rgba(255,255,255,0.4)' }}>{tab.label}</Text>
+            <Text style={{ fontSize: 10, fontWeight: '700', color }}>{tab.label}</Text>
           </View>
         )
       })}

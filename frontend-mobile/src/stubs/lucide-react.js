@@ -40,11 +40,15 @@ const icons = {
   AlertTriangle: '⚠',
   Key: '🔑',
   Image: '🖼',
+  Home: '🏠', // #2151 底部导航
+  Music: '🪕', // #2151 底部导航（租赁）
 }
 
 function createIcon(name) {
-  const IconComponent = ({ size, className, ...props }) => (
-    <Text style={{ fontSize: size || 20 }} className={className} {...props}>
+  // #2151：合并 size/color/style（此前 style 直接覆盖会丢 fontSize）
+  const IconComponent = ({ size, className, color, style, ...props }) => (
+    <Text className={className} {...props}
+      style={{ fontSize: size || 20, ...(color ? { color } : {}), ...(style || {}) }}>
       {icons[name] || '?'}
     </Text>
   )
@@ -91,3 +95,5 @@ export const ClipboardList = createIcon('ClipboardList')
 export const AlertTriangle = createIcon('AlertTriangle')
 export const Key = createIcon('Key')
 export const Image = createIcon('Image')
+export const Home = createIcon('Home') // #2151
+export const Music = createIcon('Music') // #2151
