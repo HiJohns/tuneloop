@@ -360,7 +360,7 @@ func GetPublicCategories(c *gin.Context) {
 	tenantID := c.Query("tenant")
 
 	var categories []models.Category
-	query := db.Model(&models.Category{}).Where("visible = ? AND sort > 0", true)
+	query := db.Model(&models.Category{}).Where("visible = ?", true)
 	if tenantID != "" {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
@@ -372,11 +372,18 @@ func GetPublicCategories(c *gin.Context) {
 		return
 	}
 
-	// Note (#1645): category display is driven ONLY by category.visible/sort
+	// Note (#1645): category display is driven ONLY by category.visible
 	// (maintained via the PC category admin page). The legacy home_menu_config
 	// system setting is deprecated and must NOT override it — a stale
 	// visible_ids entry would both mask admin hide/sort changes and filter
 	// out sub-categories.
+	//
+	// Note (#2133): visibility is decided by `visible` ALONE. `sort` is a pure
+	// ordering value and is deliberately NOT part of the filter — any integer
+	// (0 and negatives included) is a legitimate order position. The old
+	// `sort > 0` predicate encoded a sentinel convention (hide-by-zero) which
+	// coupled ordering to visibility and made sort=0 indistinguishable from
+	// "hidden".
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,

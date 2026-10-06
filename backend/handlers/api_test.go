@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -253,4 +254,178 @@ func TestGetPublicCategories_IgnoresHomeMenuConfig(t *testing.T) {
 	require.Equal(t, catB, resp.Data.List[3].ID, "sort ASC: 分类B (sort=2) last")
 	// Sub-category (sort=1) must be within the leading sort=1 group.
 	require.Contains(t, ids[:3], subCat, "sub-category (sort=1) within leading group")
+}
+
+// #2133: visibility is decided by `visible` ALONE. sort is a pure ordering
+// value, so sort=0 (the DB column default) is a legitimate position and must
+// no longer be filtered out — the old `sort > 0` predicate made a
+// default-valued row indistinguishable from "hidden".
+func TestGetPublicCategories_SortZeroIsVisible(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+
+	tenantID := uuid.New().String()
+	_, _, _ = setupTestData(t, db, tenantID)
+	defer cleanupTestData(db, tenantID)
+
+	// sortZero is visible with sort=0; sortNeg is visible with a negative sort;
+	// hidden is invisible despite carrying a high, perfectly valid sort.
+	sortZero := uuid.New().String()
+	sortNeg := uuid.New().String()
+	hidden := uuid.New().String()
+	for _, c := range []struct {
+		id      string
+		name    string
+		visible bool
+		sort    int
+	}{
+		{sortZero, "排序值零", true, 0},
+		{sortNeg, "排序值为负", true, -5},
+		{hidden, "已隐藏", false, 5},
+	} {
+		res := db.Exec(`INSERT INTO categories (id, tenant_id, name, level, visible, sort, created_at)
+			VALUES (?, ?, ?, 1, ?, ?, NOW())`,
+			c.id, tenantID, c.name, c.visible, c.sort)
+		require.NoError(t, res.Error)
+	}
+
+	router := setupTestRouter(t, tenantID, uuid.New().String())
+	router.GET("/public/categories", GetPublicCategories)
+
+	req := httptest.NewRequest("GET", "/public/categories?tenant="+tenantID, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			List []struct {
+				ID       string `json:"id"`
+				Name     string `json:"name"`
+				ParentID string `json:"parent_id"`
+				Sort     int    `json:"sort"`
+				Visible  bool   `json:"visible"`
+			} `json:"list"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+
+	ids := make([]string, 0, len(resp.Data.List))
+	for _, c := range resp.Data.List {
+		ids = append(ids, c.ID)
+	}
+
+	// #2133 core assertion: visible=true + sort=0 must be returned.
+	require.Contains(t, ids, sortZero, "visible=true with sort=0 must be returned (sort=0 is a valid order position)")
+	// Negative sort is likewise a legitimate order value.
+	require.Contains(t, ids, sortNeg, "visible=true with negative sort must be returned")
+	// visible=false hides a row regardless of how high its sort is.
+	require.NotContains(t, ids, hidden, "visible=false must be filtered out regardless of sort")
+}
+
+// #2133: `binding:"required"` on Sort made sort=0 unrepresentable, which forced
+// the old hide-by-sort-zero sentinel convention. Removing the tag lets sort=0
+// (and negatives) round-trip through the sort endpoint.
+func TestUpdateCategorySort_AcceptsZeroAndNegative(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+
+	tenantID := uuid.New().String()
+	_, _, _ = setupTestData(t, db, tenantID)
+	defer cleanupTestData(db, tenantID)
+
+	catZero := uuid.New().String()
+	catNeg := uuid.New().String()
+	for id := range map[string]struct{}{catZero: {}, catNeg: {}} {
+		res := db.Exec(`INSERT INTO categories (id, tenant_id, name, level, visible, sort, created_at)
+			VALUES (?, ?, ?, 1, true, 99, NOW())`, id, tenantID, "分类"+id[:8])
+		require.NoError(t, res.Error)
+	}
+
+	router := setupTestRouter(t, tenantID, uuid.New().String())
+	router.PUT("/categories/sort", UpdateCategorySort)
+
+	body, err := json.Marshal(map[string]interface{}{
+		"items": []map[string]interface{}{
+			{"id": catZero, "sort": 0},
+			{"id": catNeg, "sort": -3},
+		},
+	})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest("PUT", "/categories/sort", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code, "sort=0 and negative sort must be accepted (no binding:\"required\" on Sort)")
+
+	var resp struct {
+		Code int `json:"code"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+
+	var stored []struct {
+		ID   string
+		Sort int
+	}
+	require.NoError(t, db.Raw(`SELECT id, sort FROM categories WHERE id IN (?, ?)`, catZero, catNeg).Scan(&stored).Error)
+	require.Len(t, stored, 2)
+	for _, s := range stored {
+		if s.ID == catZero {
+			require.Equal(t, 0, s.Sort, "sort=0 must persist verbatim")
+		} else {
+			require.Equal(t, -3, s.Sort, "negative sort must persist verbatim")
+		}
+	}
+}
+
+// #2133: UpdateCategory must support partial updates. The hide button sends
+// only {visible:false}; the previous unconditional map write blanked name/icon
+// to their zero values on every such call.
+func TestUpdateCategory_PartialUpdatePreservesOtherFields(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+
+	tenantID := uuid.New().String()
+	_, _, _ = setupTestData(t, db, tenantID)
+	defer cleanupTestData(db, tenantID)
+
+	catID := uuid.New().String()
+	res := db.Exec(`INSERT INTO categories (id, tenant_id, name, icon, level, visible, sort, created_at)
+		VALUES (?, ?, '原名', '🎹', 1, true, 3, NOW())`, catID, tenantID)
+	require.NoError(t, res.Error)
+
+	router := setupTestRouter(t, tenantID, uuid.New().String())
+	router.PUT("/categories/:id", UpdateCategory)
+
+	req := httptest.NewRequest("PUT", "/categories/"+catID, bytes.NewReader([]byte(`{"visible":false}`)))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var stored struct {
+		Name     string `json:"name"`
+		Icon     string `json:"icon"`
+		Visible  bool   `json:"visible"`
+		Sort     int    `json:"sort"`
+		ParentID *string `json:"parent_id"`
+	}
+	require.NoError(t, db.Raw(`SELECT name, icon, visible, sort, parent_id FROM categories WHERE id = ?`, catID).Scan(&stored).Error)
+
+	require.False(t, stored.Visible, "visible must be flipped to false")
+	require.Equal(t, "原名", stored.Name, "absent name must keep its stored value")
+	require.Equal(t, "🎹", stored.Icon, "absent icon must keep its stored value")
+	require.Equal(t, 3, stored.Sort, "absent sort must keep its stored value (no sort>0 guard)")
+
+	// Explicit sort=0 must also be writable (previously guarded out).
+	req2 := httptest.NewRequest("PUT", "/categories/"+catID, bytes.NewReader([]byte(`{"sort":0}`)))
+	req2.Header.Set("Content-Type", "application/json")
+	w2 := httptest.NewRecorder()
+	router.ServeHTTP(w2, req2)
+	require.Equal(t, http.StatusOK, w2.Code, "explicit sort=0 must be accepted")
+	require.NoError(t, db.Raw(`SELECT sort FROM categories WHERE id = ?`, catID).Scan(&stored).Error)
+	require.Equal(t, 0, stored.Sort, "explicit sort=0 must persist")
 }

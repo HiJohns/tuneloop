@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Card, Select, List, Button, Modal, Form, Input, InputNumber, Switch, message, Spin, Empty, Space, Popconfirm, Tooltip } from 'antd'
+import { Card, Select, List, Button, Modal, Form, Input, Switch, message, Spin, Empty, Space, Popconfirm, Tooltip } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, AppstoreOutlined, MenuOutlined, UpOutlined, DownOutlined, EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { api, categoriesApi } from '../../../services/api'
+import { isHidden, bySort, visibleOrdered, assignPayload } from './categoryLogic'
 
 const { Option } = Select
 
@@ -18,7 +19,8 @@ function SortableItem({ category, onEdit, onDelete, onSortUp, onSortDown, onHide
     cursor: 'grab',
   }
 
-  const hidden = (category.sort || 0) <= 0
+  // #2133: 可见性只看 visible，不看 sort。
+  const hidden = isHidden(category)
 
   return (
     <div ref={setNodeRef} style={style} className="flex items-center justify-between p-3 bg-white border-b hover:bg-gray-50">
@@ -73,8 +75,7 @@ export default function CategoryList() {
     if (selectedParentId) {
       const parent = level1Categories.find(c => c.id === selectedParentId)
       if (parent && parent.sub_categories) {
-        const sorted = [...parent.sub_categories].sort((a, b) => (a.sort || 0) - (b.sort || 0))
-        setSubCategories(sorted)
+        setSubCategories(bySort(parent.sub_categories))
       } else {
         setSubCategories([])
       }
@@ -111,10 +112,8 @@ export default function CategoryList() {
     newSubCategories.splice(newIndex, 0, removed)
     setSubCategories(newSubCategories)
 
-    const sortUpdates = newSubCategories.map((cat, index) => ({
-      id: cat.id,
-      sort: index + 1,
-    }))
+    // #2133: 拖拽后用共享的连续重编号算法，隐藏项排到可见块之后
+    const sortUpdates = assignPayload(newSubCategories)
 
     setSavingSort(true)
     try {
@@ -125,61 +124,67 @@ export default function CategoryList() {
       message.error('Failed to update sort: ' + err.message)
       const parent = level1Categories.find(c => c.id === selectedParentId)
       if (parent && parent.sub_categories) {
-        setSubCategories([...parent.sub_categories].sort((a, b) => (a.sort || 0) - (b.sort || 0)))
+        setSubCategories(bySort(parent.sub_categories))
       }
     } finally {
       setSavingSort(false)
     }
   }
 
-  const sortSingle = async (updates) => {
-    const items = Array.isArray(updates) ? updates : [updates]
+  // 提交一次全量重编号载荷并刷新，避免本地乐观更新与服务端结果不一致
+  const sortSingle = async (payload) => {
+    if (payload.length === 0) return
+    setSavingSort(true)
     try {
-      await api.put('/categories/sort', { items: items.map(({ cat, sort }) => ({ id: cat.id, sort })) })
-      items.forEach(({ cat, sort }) => { cat.sort = sort })
-      const updated = [...level1Categories].sort((a, b) => (a.sort || 0) - (b.sort || 0))
-      setLevel1Categories(updated)
-      for (const p of updated) {
-        for (const { cat } of items) {
-          const idx = (p.sub_categories || []).findIndex(s => s.id === cat.id)
-          if (idx >= 0) {
-            p.sub_categories[idx].sort = cat.sort
-            setSubCategories([...p.sub_categories].sort((a, b) => (a.sort || 0) - (b.sort || 0)))
-            break
-          }
-        }
-      }
-      message.success('已更新')
-    } catch (err) { message.error('更新失败: ' + err.message) }
+      await api.put('/categories/sort', { items: payload })
+      message.success('排序已更新')
+      await fetchCategories()
+    } catch (err) {
+      message.error('更新失败: ' + err.message)
+    } finally {
+      setSavingSort(false)
+    }
   }
 
-  const handleHide = (cat) => sortSingle({ cat, sort: (cat.sort || 0) <= 0 ? 1 : 0 })
-
-  const handleSortUp = (cat, list) => {
-    const sorted = [...list].filter(c => (c.sort || 0) > 0).sort((a, b) => (a.sort || 0) - (b.sort || 0))
-    const idx = sorted.findIndex(c => c.id === cat.id)
-    if (idx <= 0) return
-    const newList = [...sorted]
-    const [moved] = newList.splice(idx, 1)
-    newList.splice(idx - 1, 0, moved)
-    sortSingle(newList.map((c, i) => ({ cat: c, sort: i + 1 })))
+// #2133: 隐藏是纯 visible 切换，绝不改写 sort。
+  // 若继续用 sort=0 作隐藏哨兵，sort 就又被迫承载两种语义。
+  const handleHide = async (cat) => {
+    const willShow = isHidden(cat)
+    try {
+      await categoriesApi.update(cat.id, { visible: willShow })
+      message.success(willShow ? '已在首页显示' : '已从首页隐藏')
+      await fetchCategories()
+    } catch (err) {
+      message.error('更新失败: ' + err.message)
+    }
   }
 
-  const handleSortDown = (cat, list) => {
-    const sorted = [...list].filter(c => (c.sort || 0) > 0).sort((a, b) => (a.sort || 0) - (b.sort || 0))
-    const idx = sorted.findIndex(c => c.id === cat.id)
-    if (idx < 0 || idx >= sorted.length - 1) return
-    const newList = [...sorted]
-    const [moved] = newList.splice(idx, 1)
-    newList.splice(idx + 1, 0, moved)
-    sortSingle(newList.map((c, i) => ({ cat: c, sort: i + 1 })))
+  // 上移/下移：先在「可见序列」内换位，再交由 assignPayload 全量重编号。
+  // 与拖拽路径共用同一算法 —— 此前拖拽排全量、上下移只排可见项，两条路径
+  // 对隐藏项的处理互相矛盾。
+  const moveVisible = (cat, list, delta) => {
+    const visible = visibleOrdered(list)
+    const idx = visible.findIndex(c => c.id === cat.id)
+    const target = idx + delta
+    if (idx < 0 || target < 0 || target >= visible.length) return
+    const moved = [...visible]
+    const [item] = moved.splice(idx, 1)
+    moved.splice(target, 0, item)
+
+    // 隐藏项保持相对次序，由 assignPayload 追加到可见块之后
+    const hiddenItems = bySort(list.filter(c => isHidden(c)))
+    sortSingle(assignPayload([...moved, ...hiddenItems]))
   }
+
+  const handleSortUp = (cat, list) => moveVisible(cat, list, -1)
+
+  const handleSortDown = (cat, list) => moveVisible(cat, list, 1)
 
   const handleCreateTopLevel = () => {
     setEditingCategory(null)
     setFormMode('create')
     form.resetFields()
-    form.setFieldsValue({ visible: true, sort: 1 })
+    form.setFieldsValue({ visible: true })
     setModalVisible(true)
   }
 
@@ -197,7 +202,6 @@ export default function CategoryList() {
     form.resetFields()
     form.setFieldsValue({ 
       visible: true,
-      sort: 1,
       icon: parentIcon
     })
     setModalVisible(true)
@@ -272,6 +276,11 @@ export default function CategoryList() {
     return parent ? parent.name : ''
   }
 
+  // #2133: 可见序列与下标在回调外一次算好。
+  // 此前 renderItem 内对每一项都重新 filter+sort 全列表，等价逻辑存在两份。
+  const visibleLevel1 = visibleOrdered(level1Categories)
+  const visibleSubs = visibleOrdered(subCategories)
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -297,9 +306,8 @@ export default function CategoryList() {
                 size="small"
                 dataSource={level1Categories}
                 renderItem={(cat) => {
-                   const visible = [...level1Categories].filter(c => (c.sort || 0) > 0).sort((a, b) => (a.sort || 0) - (b.sort || 0))
-                   const idx = visible.findIndex(c => c.id === cat.id)
-                   const hidden = (cat.sort || 0) <= 0
+                   const idx = visibleLevel1.findIndex(c => c.id === cat.id)
+                   const hidden = isHidden(cat)
                    return (
                    <List.Item
                      className={`cursor-pointer ${selectedParentId === cat.id ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
@@ -307,7 +315,7 @@ export default function CategoryList() {
                      extra={
                        <Space size="small">
                          <Tooltip title="首页上移"><Button size="small" icon={<UpOutlined />} disabled={idx <= 0 || hidden} onClick={(e) => { e.stopPropagation(); handleSortUp(cat, level1Categories) }} /></Tooltip>
-                         <Tooltip title="首页下移"><Button size="small" icon={<DownOutlined />} disabled={idx >= visible.length - 1 || hidden} onClick={(e) => { e.stopPropagation(); handleSortDown(cat, level1Categories) }} /></Tooltip>
+                         <Tooltip title="首页下移"><Button size="small" icon={<DownOutlined />} disabled={idx >= visibleLevel1.length - 1 || hidden} onClick={(e) => { e.stopPropagation(); handleSortDown(cat, level1Categories) }} /></Tooltip>
                          {hidden
                           ? <Tooltip title="首页显示"><Button size="small" icon={<EyeOutlined />} onClick={(e) => { e.stopPropagation(); handleHide(cat) }} /></Tooltip>
                           : <Tooltip title="从首页隐藏"><Button size="small" icon={<EyeInvisibleOutlined />} onClick={(e) => { e.stopPropagation(); handleHide(cat) }} /></Tooltip>}
@@ -352,11 +360,10 @@ export default function CategoryList() {
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={subCategories.map(c => c.id)} strategy={verticalListSortingStrategy}>
                   <div className="border rounded">
-                    {subCategories.map((category, idx) => {
-                       const visibleList = subCategories.filter(c => (c.sort || 0) > 0)
-                       const visIdx = visibleList.findIndex(c => c.id === category.id)
+                    {subCategories.map((category) => {
+                       const visIdx = visibleSubs.findIndex(c => c.id === category.id)
                        return (
-                       <SortableItem key={category.id} category={category} onEdit={handleEdit} onDelete={handleDelete} onSortUp={handleSortUp} onSortDown={handleSortDown} onHide={handleHide} list={subCategories} idx={visIdx} total={visibleList.length} />
+                       <SortableItem key={category.id} category={category} onEdit={handleEdit} onDelete={handleDelete} onSortUp={handleSortUp} onSortDown={handleSortDown} onHide={handleHide} list={subCategories} idx={visIdx} total={visibleSubs.length} />
                      )})}
                   </div>
                 </SortableContext>
@@ -390,10 +397,8 @@ export default function CategoryList() {
             <Input placeholder="例如 🎹" />
           </Form.Item>
 
-          <Form.Item name="sort" label="排序值" extra="数字越小越靠前；设为 0 或负数可隐藏该分类">
-            <InputNumber min={0} max={999} style={{ width: 120 }} />
-          </Form.Item>
-
+          {/* #2133: sort 输入框已移除 —— 新建时后端按同级 max+1 自动分配，
+              调整次序统一用 ↑↓ / 拖拽；sort 不再兼任「隐藏」开关。 */}
           {formMode === 'edit' && (
             <Form.Item name="visible" label="可见性" valuePropName="checked">
               <Switch checkedChildren="可见" unCheckedChildren="隐藏" />

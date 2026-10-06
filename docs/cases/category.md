@@ -1,5 +1,5 @@
 ---
-id: C-01
+id: CAT-01
 domain: category
 flow: 分类管理（PC 维护 → 小程序首页展示）
 steps:
@@ -54,8 +54,8 @@ steps:
         controls: [隐藏按钮, 显示按钮]
         displays: []
         ops:
-          - {type: api, method: PUT, path: /categories/:id, params: [sort <= 0]}
-    api: {method: PUT, path: /categories/:id, params: [sort]}
+          - {type: api, method: PUT, path: /categories/:id, params: [visible]}
+    api: {method: PUT, path: /categories/:id, params: [visible]}
   - seq: 5
     action: 小程序首页分类展示
     frontend:
@@ -65,7 +65,7 @@ steps:
         gate: ""
         reach: "打开首页 → GET /public/categories"
         controls: [顶级分类菜单]
-        displays: [可见顶级分类（visible=true 且 sort>0，按 sort ASC）]
+        displays: [可见顶级分类（visible=true，按 sort ASC，created_at ASC 兜底）]
         ops:
           - {type: api, method: GET, path: /public/categories}
     api: {method: GET, path: /public/categories, params: [tenant（可选）]}
@@ -78,12 +78,12 @@ steps:
         gate: "顶级分类存在子分类"
         reach: "点击顶级分类 → 展开子分类菜单"
         controls: [子分类菜单项]
-        displays: [子分类（parent_id 匹配，visible/sort 过滤，按 sort ASC）]
+        displays: [子分类（parent_id 匹配，按 sort ASC）]
         ops:
           - {type: interact}
 ---
 
-# C-01 分类管理
+# CAT-01 分类管理
 
 ## 前置条件
 - PC 端角色为 namespace_admin / tenant_admin，拥有 `category:manage` 权限（分类为平台级共享资源）
@@ -93,23 +93,23 @@ steps:
 1. 分类管理页展示分类树（顶级 + 子分类，parent_id 关联）
 2. 新建/编辑/删除分类（name、parent_id、visible、sort）
 3. 排序：`PUT /categories/sort`，sort 值越小越靠前
-4. 隐藏：编辑分类 sort 设为 <=0（或 visible=false）→ 首页不显示
-5. 小程序首页 `GET /public/categories`：返回 `visible=true AND sort>0` 的分类（顶级+子分类），按 `sort ASC, created_at ASC`
+4. 隐藏：编辑分类 visible 开关置 false → 首页不显示
+5. 小程序首页 `GET /public/categories`：返回 `visible=true` 的分类（顶级+子分类），按 `sort ASC, created_at ASC`
 6. 点击顶级分类 → 前端从返回列表 filter `parent_id === cat.id` 展示子分类
 
 ## 关键规则
 - **分类展示的唯一数据源是 `category.visible/sort` 字段**（PC 管理员通过分类管理页维护）
 - `home_menu_config`（system_settings）为废弃残留，**不参与**分类展示过滤/排序（#1645）
-- 隐藏 = sort<=0 或 visible=false；两者任一满足即不显示
-- 子分类同样受 visible/sort 过滤
+- 可见性唯一由 `category.visible` 决定；`sort` 仅表示展示次序，允许任意整数（含 0 与负数），不参与显隐判读
+- 子分类同样仅受 visible 过滤
 
 ## 验收（对应 API 测试）
 - `go test -run TestGetPublicCategories ./handlers/ -v`
 - 断言点：
-  - visible=true 且 sort>0 的分类返回，按 sort ASC
-  - sort<=0 或 visible=false 的分类不返回
+  - visible=true 的分类返回（含 sort=0），按 sort ASC
+  - visible=false 的分类不返回（无论 sort 取何值）
   - home_menu_config 存在时不影响结果（#1645 修复后）
 
 ---
 
-*Last updated: 2026-08-13*
+*Last updated: 2026-10-06（#2133：visible 成为可见性唯一判据，sort 回归纯次序语义）*

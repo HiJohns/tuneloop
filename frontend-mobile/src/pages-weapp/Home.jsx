@@ -169,7 +169,7 @@ export default function Home() {
 
   const topCategories = categories.filter(c => !c.parent_id).map(cat => ({
     ...cat,
-    sub_categories: categories.filter(c => c.parent_id === cat.id).sort((a, b) => (a.sort || 0) - (b.sort || 0))
+    sub_categories: categories.filter(c => c.parent_id === cat.id).sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
   }))
   const catTouchStartRef = useRef({ x: 0, offset: 0 })
   const bannerTouchStartXRef = useRef(0)

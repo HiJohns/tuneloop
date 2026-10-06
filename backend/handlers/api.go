@@ -799,6 +799,22 @@ func GetCategoryByID(c *gin.Context) {
 	})
 }
 
+// nextCategorySort returns the next order position (max+1) within the given
+// parent scope. parentID nil or empty means the top level. Shared by level 1
+// and level 2 so both levels behave identically (#2133).
+func nextCategorySort(db *gorm.DB, parentID *string) int {
+	q := db.Model(&models.Category{})
+	if parentID != nil && *parentID != "" {
+		q = q.Where("parent_id = ?", *parentID)
+	} else {
+		q = q.Where("parent_id IS NULL OR parent_id = ''")
+	}
+
+	var maxSort int
+	q.Select("COALESCE(MAX(sort), 0)").Scan(&maxSort)
+	return maxSort + 1
+}
+
 // CreateCategory creates a new category
 func CreateCategory(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -839,22 +855,17 @@ func CreateCategory(c *gin.Context) {
 		Name:     req.Name,
 		Icon:     req.Icon,
 		Visible:  req.Visible,
-		Sort:     req.Sort,
 		ParentID: req.ParentID,
 	}
 
-	// Auto-calculate level based on parent_id
+	// #2133: level is derived from parent_id; sort is auto-assigned as
+	// max+1 within the same parent scope for BOTH levels, so new categories
+	// always append to the end of their sibling list regardless of level.
+	category.Level = 1
 	if req.ParentID != nil && *req.ParentID != "" {
 		category.Level = 2
-		// Auto-set sort to max+1 for level 2 categories
-		var maxSort int
-		unscopedDB.Model(&models.Category{}).
-			Where("parent_id = ?", *req.ParentID).
-			Select("COALESCE(MAX(sort), 0)").Scan(&maxSort)
-		category.Sort = maxSort + 1
-	} else {
-		category.Level = 1
 	}
+	category.Sort = nextCategorySort(unscopedDB, req.ParentID)
 
 	if err := db.Create(&category).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -877,12 +888,14 @@ func UpdateCategory(c *gin.Context) {
 	unscopedDB := database.GetDB()
 	categoryID := c.Param("id")
 
+	// #2133: every field is a pointer so that "absent" is distinguishable from
+	// an explicit zero value. This lets partial updates work — e.g. the hide
+	// button sends only {visible: false} without wiping name/icon.
 	var req struct {
-		Name     string  `json:"name"`
-		Icon     string  `json:"icon"`
-		Level    int     `json:"level"`
-		Visible  bool    `json:"visible"`
-		Sort     int     `json:"sort"`
+		Name     *string `json:"name"`
+		Icon     *string `json:"icon"`
+		Visible  *bool   `json:"visible"`
+		Sort     *int    `json:"sort"`
 		ParentID *string `json:"parent_id"`
 	}
 
@@ -894,48 +907,9 @@ func UpdateCategory(c *gin.Context) {
 		return
 	}
 
-	// Check name uniqueness (platform-wide, exclude self)
-	var existingCategory models.Category
-	if err := unscopedDB.Where("name = ? AND id != ?", req.Name, categoryID).First(&existingCategory).Error; err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    40002,
-			"message": "分类名称已存在",
-		})
-		return
-	}
-
-	// Build update map
-	updates := map[string]interface{}{
-		"name":    req.Name,
-		"icon":    req.Icon,
-		"visible": req.Visible,
-	}
-
-	// Only update parent_id/level when explicitly provided in request
-	if req.ParentID != nil {
-		updates["parent_id"] = req.ParentID
-		if *req.ParentID != "" {
-			updates["level"] = 2
-		} else {
-			updates["level"] = 1
-		}
-	}
-
-	if req.Sort > 0 {
-		updates["sort"] = req.Sort
-	}
-
-	if err := unscopedDB.Model(&models.Category{}).Where("id = ?", categoryID).Updates(updates).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    50000,
-			"message": "Failed to update category",
-		})
-		return
-	}
-
-	// Fetch updated category
-	var category models.Category
-	if err := unscopedDB.Where("id = ?", categoryID).First(&category).Error; err != nil {
+	// Load the full record first; absent fields keep their stored values.
+	var target models.Category
+	if err := unscopedDB.Where("id = ?", categoryID).First(&target).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"code":    40400,
 			"message": "Category not found",
@@ -943,9 +917,60 @@ func UpdateCategory(c *gin.Context) {
 		return
 	}
 
+	// Check name uniqueness (platform-wide, exclude self) only when a name was
+	// actually provided — otherwise an absent name would falsely collide.
+	if req.Name != nil {
+		var existingCategory models.Category
+		if err := unscopedDB.Where("name = ? AND id != ?", *req.Name, categoryID).First(&existingCategory).Error; err == nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40002,
+				"message": "分类名称已存在",
+			})
+			return
+		}
+		target.Name = *req.Name
+	}
+
+	if req.Icon != nil {
+		target.Icon = *req.Icon
+	}
+
+	if req.Visible != nil {
+		target.Visible = *req.Visible
+	}
+
+	// sort is a pure ordering value (#2133): any integer is legal, including 0
+	// and negatives. No `> 0` sentinel guard here.
+	if req.Sort != nil {
+		target.Sort = *req.Sort
+	}
+
+	// parent_id drives level — level is a derived field, never taken from the
+	// request body.
+	if req.ParentID != nil {
+		// Empty string means "promote to top level" -> clear parent_id (NULL).
+		if *req.ParentID == "" {
+			target.ParentID = nil
+			target.Level = 1
+		} else {
+			target.ParentID = req.ParentID
+			target.Level = 2
+		}
+	}
+
+	// Save the whole record: GORM's Updates(struct) skips zero values, which
+	// would make it impossible to explicitly clear icon or set sort to 0.
+	if err := unscopedDB.Save(&target).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "Failed to update category",
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
-		"data":    category,
+		"data":    target,
 		"message": "Category updated successfully",
 	})
 }
@@ -998,8 +1023,11 @@ func UpdateCategorySort(c *gin.Context) {
 
 	var req struct {
 		Items []struct {
-			ID   string `json:"id" binding:"required"`
-			Sort int    `json:"sort" binding:"required"`
+			ID string `json:"id" binding:"required"`
+			// #2133: no `binding:"required"` on Sort — `required` rejects the
+			// zero value, but sort is a pure ordering value where 0 (and
+			// negatives) are legitimate positions.
+			Sort int `json:"sort"`
 		} `json:"items" binding:"required"`
 	}
 

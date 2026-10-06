@@ -73,7 +73,9 @@ type Category struct {
 	Icon      string    `json:"icon"`
 	ParentID  *string   `gorm:"type:uuid" json:"parent_id"`
 	Level     int       `gorm:"default:1" json:"level"`
-	Sort      int       `gorm:"default:1" json:"sort"`
+	// #2133: tag aligned with the actual DB column default (integer DEFAULT 0).
+	// sort is a pure ordering value and takes no part in visibility.
+	Sort      int       `gorm:"default:0" json:"sort"`
 	Visible   bool      `gorm:"default:true" json:"visible"`
 	CreatedAt time.Time `json:"created_at"`
 }
