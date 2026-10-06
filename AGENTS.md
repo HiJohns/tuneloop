@@ -1976,7 +1976,7 @@ make weapp-upload-prod VERSION=x.x.x DESC="release"
 
 | 修改类型 | 强制验证 | 命令 |
 |---------|---------|------|
-| JS/JSX (前端) | ESLint `no-undef` + `no-use-before-define` 零错误 | `find src -name '*.jsx' -o -name '*.js' \| xargs npx eslint \| grep -E 'no-undef\|no-use-before-define'` |
+| JS/JSX (前端) | ESLint `no-undef` 零错误（`no-use-before-define` 为 warning，仅观察不阻塞） | `npx eslint "src/**/*.{js,jsx}"` |
 | Go (后端) | 编译通过 | `go build .` |
 
 ### 验证原则

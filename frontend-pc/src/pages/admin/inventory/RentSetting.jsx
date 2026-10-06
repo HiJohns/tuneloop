@@ -217,7 +217,7 @@ export default function InventoryRentSetting() {
           onChange={(val) => handleRentChange(record.id, 'daily_rent', val)}
           style={{ width: '100%' }}
           formatter={(val) => `¥ ${val}`}
-          parser={(val) => val.replace(/\¥\s?/g, '')}
+          parser={(val) => val.replace(/¥\s?/g, '')}
         />
       ),
     },
@@ -229,7 +229,7 @@ export default function InventoryRentSetting() {
         <InputNumber min={0} precision={2} value={value}
           onChange={(val) => handleRentChange(record.id, 'deposit', val)}
           style={{ width: '100%' }}
-          formatter={(val) => `¥ ${val}`} parser={(val) => val.replace(/\¥\s?/g, '')}
+          formatter={(val) => `¥ ${val}`} parser={(val) => val.replace(/¥\s?/g, '')}
         />
       ),
     },
@@ -239,7 +239,7 @@ export default function InventoryRentSetting() {
         <InputNumber min={0} precision={2} value={value}
           onChange={(val) => handleRentChange(record.id, 'overdue_daily_fee', val)}
           style={{ width: '100%' }}
-          formatter={(val) => `¥ ${val}`} parser={(val) => val.replace(/\¥\s?/g, '')}
+          formatter={(val) => `¥ ${val}`} parser={(val) => val.replace(/¥\s?/g, '')}
         />
       ),
     },
@@ -263,7 +263,7 @@ export default function InventoryRentSetting() {
             item.id === record.id ? { ...item, base_daily_rate: val } : item
           ))}
           style={{ width: '100%' }}
-          formatter={(val) => `¥ ${val}`} parser={(val) => val.replace(/\¥\s?/g, '')}
+          formatter={(val) => `¥ ${val}`} parser={(val) => val.replace(/¥\s?/g, '')}
         />
       ),
     },
@@ -342,7 +342,7 @@ export default function InventoryRentSetting() {
                 <InputNumber
                   min={0} precision={2} value={batchBaseRate}
                   onChange={setBatchBaseRate}
-                  formatter={(val) => `¥ ${val}`} parser={(val) => val.replace(/\¥\s?/g, '')}
+                  formatter={(val) => `¥ ${val}`} parser={(val) => val.replace(/¥\s?/g, '')}
                 />
                 <Button onClick={() => {
                   if (batchBaseRate > 0) {

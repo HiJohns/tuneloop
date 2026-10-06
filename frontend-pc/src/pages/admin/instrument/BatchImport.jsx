@@ -203,7 +203,7 @@ export default function BatchImport() {
           </Card>
         )
 
-      case 1:
+      case 1: {
         const aliasResolutions = propertyResolutions.filter(r => r.status === 'alias')
         const pendingResolutions = propertyResolutions.filter(r => r.status === 'pending')
         const newResolutions = propertyResolutions.filter(r => r.status === 'new')
@@ -336,6 +336,7 @@ export default function BatchImport() {
             </div>
           </>
         )
+      }
 
       case 2:
         return (

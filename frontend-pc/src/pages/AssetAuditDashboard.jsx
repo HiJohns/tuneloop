@@ -85,7 +85,7 @@ export default function AssetAuditDashboard() {
           showIcon
           className="mb-4"
           action={
-            <Button onClick={fetchDashboard} type="primary">
+            <Button onClick={fetchDashboardStats} type="primary">
               重试
             </Button>
           }

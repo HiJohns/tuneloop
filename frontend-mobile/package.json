@@ -9,7 +9,9 @@
     "dev:weapp": "taro build --type weapp --watch",
     "build:weapp": "taro build --type weapp",
     "dev:h5": "taro build --type h5 --watch",
-    "build:h5": "taro build --type h5"
+    "build:h5": "taro build --type h5",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@tarojs/components": "4.2.0",
@@ -27,6 +29,7 @@
   },
   "devDependencies": {
     "@babel/preset-react": "^7.29.7",
+    "@eslint/js": "^8.55.0",
     "@tarojs/cli": "4.2.0",
     "@tarojs/plugin-framework-react": "4.2.0",
     "@tarojs/plugin-platform-h5": "4.2.0",
@@ -38,7 +41,11 @@
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.16",
     "babel-preset-taro": "4.2.0",
+    "eslint": "^8.55.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^13.24.0",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.3.5",
     "vite": "^5.0.0",

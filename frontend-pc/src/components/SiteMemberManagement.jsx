@@ -386,7 +386,7 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
               </Typography.Title>
             </div>
             <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-              网点：{invite.site_name}　角色：{ROLE_NAMES[invite.role] || invite.role}
+              网点：{invite.site_name} 角色：{ROLE_NAMES[invite.role] || invite.role}
             </Typography.Paragraph>
           </div>
         )}

@@ -5,7 +5,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 
 export default [
   {
-    ignores: ["dist/**", "node_modules/**", "**/*.test.js", "**/*.test.jsx"],
+    ignores: ["dist/**", "dist-weapp/**", "node_modules/**", "**/*.test.js", "**/*.test.jsx"],
   },
   {
     files: ["**/*.{js,jsx}"],
@@ -13,7 +13,7 @@ export default [
       ecmaVersion: "latest",
       sourceType: "module",
       parserOptions: { ecmaFeatures: { jsx: true } },
-      globals: { ...globals.browser, ...globals.node },
+      globals: { ...globals.browser, ...globals.node, wx: "readonly", BarcodeDetector: "readonly" },
     },
     plugins: { react, "react-hooks": reactHooks },
     rules: {

@@ -335,7 +335,7 @@ function Row({ label, value, color, bold, valueSize }) {
   return (
     <div className="flex justify-between py-1">
       <span className="text-zinc-500">{label}</span>
-      <span  style={{ fontWeight: bold ? 700 : 500, color: color || '#000', fontSize: valueSize , fontSize: 13}}>
+      <span  style={{ fontWeight: bold ? 700 : 500, color: color || '#000', fontSize: valueSize }}>
         {value}
       </span>
     </div>
