@@ -4,7 +4,7 @@
 # UI 仅绑 127.0.0.1（访问：ssh -L 8080:127.0.0.1:8080 / -L 8090:127.0.0.1:8090 cadenza）
 services:
   gatus:
-    image: ghcr.io/gatus-dev/gatus:latest
+    image: twinproduction/gatus:latest
     container_name: gatus
     restart: unless-stopped
     ports:
@@ -12,7 +12,14 @@ services:
     volumes:
       - ./gatus:/config
     environment:
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
       - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - ALERT_TO=${ALERT_TO}
+    networks:
+      - default
+      - tuneloop_default
   beszel-hub:
     image: henrygd/beszel
     container_name: beszel-hub
@@ -31,4 +38,11 @@ services:
       - /:/host:ro
     environment:
       KEY: ${BESZEL_AGENT_KEY}
+      TOKEN: ${BESZEL_AGENT_TOKEN}
+      HUB_URL: http://127.0.0.1:8090
       # #2129 形态：本机即被监控机
+
+networks:
+  # 接入 tuneloop 项目网络，使 gatus 可按容器名探测 postgres（#2131）
+  tuneloop_default:
+    external: true

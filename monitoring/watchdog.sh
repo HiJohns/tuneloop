@@ -5,7 +5,7 @@ set -u
 DIR="$(cd "$(dirname "$0")" && pwd)"
 . "$DIR/.env"
 STATE="$DIR/.watchdog.state"
-[ -f "$STATE" ] && . "$STATE" 2>/dev/null || LAST_FATAL=""
+[ -f "$STATE" ] && . "$STATE" 2>/dev/null || LAST_FATAL_ALERT=""
 NOW=$(date +%s)
 UNIT="${WATCH_UNIT:-tuneloop-pre}"
 HITS=$(journalctl -u "$UNIT" --since "2 min ago" --no-pager 2>/dev/null | grep -ciE "FATAL|panic" || true)
@@ -36,7 +36,7 @@ import sys, os, smtplib
 from email.mime.text import MIMEText
 msg = MIMEText("服务器磁盘告警：" + (sys.argv[1] or ""), "plain", "utf-8")
 msg["Subject"] = Header("[HIGH] 磁盘使用率", "utf-8"); msg["From"] = os.environ["SMTP_USER"]; msg["To"] = os.environ.get("ALERT_TO", "linwx1978@gmail.com")
-s = smtplib.SMTP_SSL(os.environ["SMTP_HOST"], int(os.environ["SMTP_PORT"], 465), timeout=20)
+s = smtplib.SMTP_SSL(os.environ.get("SMTP_HOST", "smtp.qq.com"), int(os.environ.get("SMTP_PORT", "465")), timeout=20)
 s.login(os.environ["SMTP_USER"], os.environ["SMTP_PASSWORD"]); s.sendmail(msg["From"], [msg["To"]], msg.as_string()); s.quit()
 PYEOF
   echo "LAST_DISK_ALERT=$NOW" >> "$STATE"

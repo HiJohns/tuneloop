@@ -1,37 +1,55 @@
 # #2131 拨测与告警配置（config-as-code）
+# 邮件走 QQ SMTP（465 隐式 SSL；gomail 对 465 自动 SSL）。
+# 环境变量由 docker-compose.yml 注入：SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASSWORD/ALERT_TO。
+# Gatus 要求：即使配置 default-alert，每个 endpoint 仍须显式声明 alerts: - type: email。
 alerting:
   email:
     from: "${SMTP_USER}"
-    host: "${SMTP_HOST}"
-    port: ${SMTP_PORT}
     username: "${SMTP_USER}"
     password: "${SMTP_PASSWORD}"
-alert:
-  default:
-    enabled: true
-    failure-threshold: 3
-    success-threshold: 2
-    send-on-resolved: true
+    host: "${SMTP_HOST}"
+    port: ${SMTP_PORT}
+    to: "${ALERT_TO}"
+    default-alert:
+      enabled: true
+      failure-threshold: 3
+      success-threshold: 2
+      send-on-resolved: true
+
+# sqlite 持久化：保留拨测历史 + 跨重启保留"已触发告警"状态（否则重启丢失 resolved 通知）
+storage:
+  type: sqlite
+  path: /config/data.db
 
 endpoints:
   - name: PC-API-prod
     url: https://web.cadenzayueqi.com/api/config
     interval: 60s
     conditions: [ "[STATUS] == 200", "[BODY].code == 20000" ]
+    alerts:
+      - type: email
   - name: Mobile-API-prod
     url: https://wx.cadenzayueqi.com/api/config
     interval: 60s
     conditions: [ "[STATUS] == 200", "[BODY].code == 20000" ]
+    alerts:
+      - type: email
   - name: PC-API-pre
     url: https://preweb.cadenzayueqi.com/api/config
     interval: 60s
     conditions: [ "[STATUS] == 200", "[BODY].code == 20000" ]
+    alerts:
+      - type: email
   - name: Mobile-API-pre
     url: https://prewx.cadenzayueqi.com/api/config
     interval: 60s
     conditions: [ "[STATUS] == 200", "[BODY].code == 20000" ]
+    alerts:
+      - type: email
   - name: postgres-5432
     # gatus 需接入 postgres 所在 docker 网络（tuneloop_default）后按容器名探测
     url: tcp://9a91df0605de_tuneloop-postgres:5432
     interval: 60s
     conditions: [ "[CONNECTED] == true" ]
+    alerts:
+      - type: email
