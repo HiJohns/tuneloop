@@ -286,18 +286,26 @@ export default function TechRepairSections() {
 
   // #2116 修订：瘦身行——编号/提交人/时间/状态 + 最多一个按钮；媒体与表单收进展开区
   const renderRow = (rr, opts = {}) => {
+    // #2146：状态圆角胶囊（已结算=浅绿，其余=浅灰）+ 行尾箭头
+    const isDone = rr.status === 'closed'
+    const statusBg = isDone ? '#DCFCE7' : '#F4F4F5'
+    const statusFg = isDone ? '#16A34A' : '#52525B'
     return (
       // #2145：整卡可点进详情；内部按钮/面板 stopPropagation 防误触导航
       <View key={rr.id} style={cardStyle} onClick={opts.onInfoTap}>
-        <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-        >
+        <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>
             编码 {rr.repair_code || '-'}
           </Text>
-          <Text style={{ fontSize: 12, color: '#A1A1AA' }}>{svcStatusLabels[rr.status] || rr.status}</Text>
+          <View style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <View style={{ backgroundColor: statusBg, borderRadius: 999, paddingLeft: 8, paddingRight: 8, paddingTop: 2, paddingBottom: 2 }}>
+              <Text style={{ fontSize: 11, fontWeight: 'bold', color: statusFg }}>{svcStatusLabels[rr.status] || rr.status}</Text>
+            </View>
+            <Text style={{ fontSize: 14, color: '#A1A1AA' }}>›</Text>
+          </View>
         </View>
         <Text style={{ fontSize: 11, color: '#A1A1AA' }}>
-          提交人 {rr.user_name || '-'} · {rr.created_at ? formatBeijingDate(rr.created_at) : '-'}{opts.hint ? ` · ${opts.hint}` : ''}
+          提交人：{rr.user_name || '-'} · {rr.created_at ? formatBeijingDate(rr.created_at) : '-'}{opts.hint ? ` · ${opts.hint}` : ''}
         </Text>
         {opts.button && (
           <Button disabled={submitting}
