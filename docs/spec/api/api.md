@@ -3233,6 +3233,7 @@ POST /api/warehouse/orders/:id/assess-damage
 **接口**: `GET /api/repair-services`
 **参数**: `scope=mine|site`、`status=<csv>`、**`start`/`end`**（ISO8601，可选；`updated_at ∈ [start,end)`）
 **说明**: 技师（scope=mine 指派给我）/员工（scope=site **仅商户层级**，#2122 商户组织闸门，网点账号返回空）任务列表；**时间范围由前端传入**（当前默认近 30 天，#2128）
+**租户口径（#2134）**: staff 上下文范围 = **商户组织**；查询过滤为 `tenant_id ∈ {tid, oid}`（`tid`=根租户、`oid`=用户自身组织），兼容历史「本商户数据 tenant_id=org_id 混用」（#2125）写入的叶组织行；单行读（详情/操作）同口径，`repairServiceStaffAllowed` 亦接受 `{tid, oid}`。写入侧（创建/选师）按 `merchants(org_id→tenant_id)` 规范化为根租户。
 **目标契约（#1942）**: 维修师/员工本人
 
 #### 7.15.2c 商户维修服务单列表（PC 后台，#2129）
