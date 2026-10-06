@@ -822,12 +822,13 @@ func CreateCategory(c *gin.Context) {
 	unscopedDB := database.GetDB()
 	tenantID := middleware.GetTenantID(ctx)
 
+	// #2133: `level` is derived from parent_id and `sort` is auto-assigned by
+	// nextCategorySort — both are intentionally absent from the request body so
+	// no caller can believe they are honoured here.
 	var req struct {
 		Name     string  `json:"name" binding:"required"`
 		Icon     string  `json:"icon"`
-		Level    int     `json:"level"`
 		Visible  bool    `json:"visible"`
-		Sort     int     `json:"sort"`
 		ParentID *string `json:"parent_id"`
 	}
 
