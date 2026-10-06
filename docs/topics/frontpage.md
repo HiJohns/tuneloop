@@ -279,4 +279,30 @@ const menuStuck = scrollY >= (NEW_SPACER + 4)
 
 ---
 
+## 七、首页乐器列表分页（无限滚动，#2139）
+
+首页乐器列表默认每页 50 条；上划触底**自动加载下一页**（无限滚动），而非一次性取全部。
+
+**取数**
+- `fetchInstruments(page, append)`：`page>1` 时 `setInstruments(prev => [...prev, ...list])`，否则替换；**按 `id` 去重**。
+- `hasMore = page * 50 < total`（`total` 取 `/public/instruments` 响应的 `data.total`）。
+- 独立 `loadingMore` 状态（不复用初始骨架屏 `loading`）。
+- 客户端 `archived/lost` 过滤作用于**累积数组**。
+- 切分类 / 切租户 → 重置 `page=1` 并替换。
+
+**触底检测（跨端差异）**
+- 复用两端已有的 `ScrollView.onScroll`（H5 读 `e.detail ?? e.target`；weapp 读 `e.detail`）。
+- 判断 `scrollTop + viewport ≥ scrollHeight − 垫片 − 300`：
+  - **weapp**：列表末尾有 **2000px 底部 spacer**（见 §4.3），故 `scrollHeight` 需减 2000。
+  - **H5**：无 spacer，不减。
+- **不用** `useReachBottom`（列表在嵌套 `ScrollView` 内）；**不用** `onScrollToLower`（`taro-shim.js` 把 `ScrollView` 映射为 `div`，H5 下该 prop 失效）。
+
+**footer（加载中 / 已全部加载）**
+- 固定高度 40px + `opacity` 切换；**禁止 `&&` 条件渲染**（滚动路径中 DOM 插删会引发回弹，见 §4.3）。
+- 置于列表后、2000px spacer 前。
+
+**约束**：无原生 HTML 标签；不新增 weapp 样式禁区类；`lineHeight` 用字符串。
+
+---
+
 *适用于：需要背景层 + 滚动内容层 + 透明覆盖层的复杂列表页面。核心思想：Z 轴分解 + overflow:hidden 裁剪 + pointer-events 穿透 + 双层菜单切换。*

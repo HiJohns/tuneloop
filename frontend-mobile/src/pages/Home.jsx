@@ -6,6 +6,8 @@ import { env, getWindowSize, storage, session } from '../platform'
 import { getMinTierDailyRateYuan } from '../utils/pricing'
 import BottomNav from '../components/BottomNav'
 
+const PAGE_SIZE = 50
+
 const INSTRUMENT_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect fill="#f0f0f0" width="96" height="96"/><text x="48" y="54" text-anchor="middle" fill="#ccc" font-size="24">🎸</text></svg>'
 )
@@ -83,7 +85,13 @@ export default function Home() {
   const [categories, setCategories] = useState([])
   const [instruments, setInstruments] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState(categoryFromUrl)
+  const pageRef = useRef(1)
+  const hasMoreRef = useRef(true)
+  const loadingMoreRef = useRef(false)
+  const viewportHeight = getWindowSize().height - 142
   const [banners, setBanners] = useState([])
   const [currentBanner, setCurrentBanner] = useState(0)
   const [jumpReset, setJumpReset] = useState(false)
@@ -128,18 +136,38 @@ export default function Home() {
     } catch {}
   }, [baseUrl, tenant])
 
-  const fetchInstruments = useCallback(async () => {
+  const fetchInstruments = useCallback(async (pageNum = 1, append = false) => {
     try {
-      let url = `${baseUrl}/public/instruments?page=1&pageSize=50`
+      if (append) setLoadingMore(true)
+      let url = `${baseUrl}/public/instruments?page=${pageNum}&pageSize=${PAGE_SIZE}`
       if (selectedCategory) url += `&category_id=${selectedCategory}`
       if (tenant) url += `&tenant=${tenant}`
       const res = await apiFetch(url)
       const result = await res.json()
       if (result.code === 20000) {
-        setInstruments((result.data?.list || []).filter(i => i.stock_status !== 'archived' && i.stock_status !== 'lost'))
+        const list = (result.data?.list || []).filter(i => i.stock_status !== 'archived' && i.stock_status !== 'lost')
+        setInstruments(prev => {
+          if (!append) return list
+          const seen = new Set(prev.map(i => i.id))
+          return [...prev, ...list.filter(i => !seen.has(i.id))]
+        })
+        pageRef.current = pageNum
+        const total = result.data?.total || 0
+        const more = pageNum * PAGE_SIZE < total
+        hasMoreRef.current = more
+        setHasMore(more)
       }
     } catch {}
+    finally {
+      if (append) setLoadingMore(false)
+    }
   }, [baseUrl, tenant, selectedCategory])
+
+  const loadMore = useCallback(() => {
+    if (!hasMoreRef.current || loadingMoreRef.current) return
+    loadingMoreRef.current = true
+    fetchInstruments(pageRef.current + 1, true).finally(() => { loadingMoreRef.current = false })
+  }, [fetchInstruments])
 
   const fetchBanners = useCallback(async () => {
     try {
@@ -329,7 +357,12 @@ export default function Home() {
        <View className="fixed left-0 right-0 flex flex-col" style={{ top: '142px', bottom: 0, overflow: 'hidden' , zIndex: 100}}>
         <ScrollView className="flex-1 overflow-y-auto bg-transparent"
           scrollY scrollWithAnimation enhanced showScrollbar={false}
-          onScroll={e => setScrollY(e.detail?.scrollTop ?? e.target?.scrollTop ?? 0)}>
+          onScroll={e => {
+            const top = e.detail?.scrollTop ?? e.target?.scrollTop ?? 0
+            setScrollY(top)
+            const sh = e.detail?.scrollHeight ?? e.target?.scrollHeight ?? 0
+            if (sh > 0 && top + viewportHeight >= sh - 300) loadMore()
+          }}>
           <View style={{ height: '140px' }}></View>
 
         <View>
@@ -359,6 +392,12 @@ export default function Home() {
             </View>
           )}
           </View>
+        </View>
+        {/* Footer: fixed height + opacity (no && conditional — #1540 anti-rebound) */}
+        <View className="flex items-center justify-center" style={{ height: '40px', opacity: (instruments.length > 0 && (loadingMore || !hasMore)) ? 1 : 0 }}>
+          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>
+            {loadingMore ? '加载中…' : '已全部加载'}
+          </Text>
         </View>
         </ScrollView>
         <View>

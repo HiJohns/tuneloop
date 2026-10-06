@@ -307,6 +307,8 @@ setInterval(() => {
 ### 2.2 首页 (`/pages/index`)
 
 > **实际实现**：已从原设计重构为五层 Z 轴架构，详见 [`docs/topics/frontpage.md`](../../topics/frontpage.md)。
+>
+> **乐器列表分页（#2139）**：每页 50 条 + 上划触底无限滚动（`hasMore = page*50 < total`），详见 `frontpage.md` §七。
 
 **布局结构**:
 ```html

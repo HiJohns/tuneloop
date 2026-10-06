@@ -6,6 +6,8 @@ import { env, dialog, getWindowSize, storage, session } from '../platform'
 import { getMinTierDailyRateYuan } from '../utils/pricing'
 import BottomNav from '../components-weapp/BottomNav'
 
+const PAGE_SIZE = 50
+
 const IMG_BASE = env.apiBaseUrl.replace(/\/api$/, '')
 const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? IMG_BASE + url : url
 const blurUrl = (url) => {
@@ -128,7 +130,12 @@ export default function Home() {
   const [categories, setCategories] = useState([])
   const [instruments, setInstruments] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState(categoryFromUrl)
+  const pageRef = useRef(1)
+  const hasMoreRef = useRef(true)
+  const loadingMoreRef = useRef(false)
   const [banners, setBanners] = useState([])
   const [currentBanner, setCurrentBanner] = useState(0)
   const [jumpReset, setJumpReset] = useState(false)
@@ -166,6 +173,7 @@ export default function Home() {
   const menuTop = navBar.menuTop + navBar.menuHeight + 8
   const stickyMenuHeight = 48 // MenuContent: outer padding 4×2 + item padding 10×2 + text 18 + border 2
   const contentTop = menuTop + stickyMenuHeight
+  const viewportHeight = useMemo(() => getWindowSize().height - contentTop, [contentTop])
 
   const topCategories = categories.filter(c => !c.parent_id).map(cat => ({
     ...cat,
@@ -223,18 +231,38 @@ export default function Home() {
     } catch {}
   }, [baseUrl, tenant])
 
-  const fetchInstruments = useCallback(async () => {
+  const fetchInstruments = useCallback(async (pageNum = 1, append = false) => {
     try {
-      let url = `${baseUrl}/public/instruments?page=1&pageSize=50`
+      if (append) setLoadingMore(true)
+      let url = `${baseUrl}/public/instruments?page=${pageNum}&pageSize=${PAGE_SIZE}`
       if (selectedCategory) url += `&category_id=${selectedCategory}`
       if (tenant) url += `&tenant=${tenant}`
       const res = await apiFetch(url)
       const result = await res.json()
       if (result.code === 20000) {
-        setInstruments((result.data?.list || []).filter(i => i.stock_status !== 'archived' && i.stock_status !== 'lost'))
+        const list = (result.data?.list || []).filter(i => i.stock_status !== 'archived' && i.stock_status !== 'lost')
+        setInstruments(prev => {
+          if (!append) return list
+          const seen = new Set(prev.map(i => i.id))
+          return [...prev, ...list.filter(i => !seen.has(i.id))]
+        })
+        pageRef.current = pageNum
+        const total = result.data?.total || 0
+        const more = pageNum * PAGE_SIZE < total
+        hasMoreRef.current = more
+        setHasMore(more)
       }
     } catch {}
+    finally {
+      if (append) setLoadingMore(false)
+    }
   }, [baseUrl, tenant, selectedCategory])
+
+  const loadMore = useCallback(() => {
+    if (!hasMoreRef.current || loadingMoreRef.current) return
+    loadingMoreRef.current = true
+    fetchInstruments(pageRef.current + 1, true).finally(() => { loadingMoreRef.current = false })
+  }, [fetchInstruments])
 
   const fetchBanners = useCallback(async () => {
     try {
@@ -358,11 +386,22 @@ export default function Home() {
             const ns = scrollYRef.current > 50
             if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
             }, 500)
+
+            // Infinite scroll (#2139): near list end (excluding the 2000px bottom
+            // spacer) → load next page.
+            const sh = e.detail?.scrollHeight ?? 0
+            if (sh > 0 && newY + viewportHeight >= sh - 2000 - 300) loadMore()
           }}>
           <View style={{ height: `${menuTravel}px` }}></View>
 
         <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 80 }}>
         <HomeInstrumentList loading={loading} instruments={instruments} tenant={tenant} nav={nav} />
+        </View>
+        {/* Footer: fixed height + opacity (no && conditional — #1540 anti-rebound) */}
+        <View style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: (instruments.length > 0 && (loadingMore || !hasMore)) ? 1 : 0 }}>
+          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>
+            {loadingMore ? '加载中…' : '已全部加载'}
+          </Text>
         </View>
         {/* Bottom spacer: ensures ScrollView content exceeds viewport
             so native scroll doesn't reset when list reloads short (#1540). */}
