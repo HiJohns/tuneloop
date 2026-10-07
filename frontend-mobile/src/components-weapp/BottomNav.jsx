@@ -52,17 +52,17 @@ export default function BottomNav({ active = '', badges = {}, tenant }) {
   ]
 
   return (
-    <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#FFFFFF', borderTop: '1px solid #E4E4E7', paddingTop: 6, paddingBottom: 6, display: 'flex', justifyContent: 'space-around', alignItems: 'center', zIndex: 50 }}>
+    <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#5A3B24', borderTop: '1px solid #4E321E', paddingTop: 6, paddingBottom: 6, display: 'flex', justifyContent: 'space-around', alignItems: 'center', zIndex: 50 }}>
       {tabs.map((tab, i) => {
         const isActive = active === tab.key
         const badge = badges[tab.key]
-        const color = isActive ? '#915F38' : '#A1A1AA' // #2151 选中品牌色/未选灰
+        const color = isActive ? '#FFFFFF' : 'rgba(255,255,255,0.4)' // 复原原褐色主题配色（#2151 还原）
         return (
           <View key={tab.key || i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', flex: 1, paddingTop: 6, paddingBottom: 6 }} onClick={tab.onClick}>
             <View style={{ position: 'relative', marginBottom: 2 }}>
               <tab.Icon size={22} color={color} />
               {badge > 0 && (
-                <View style={{ position: 'absolute', top: -4, right: -8, backgroundColor: '#FF2A55', color: '#fff', fontSize: 9, fontWeight: '900', minWidth: 16, height: 16, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: 2, paddingRight: 2, border: '1px solid #FFFFFF' }}>
+                <View style={{ position: 'absolute', top: -4, right: -8, backgroundColor: '#FF2A55', color: '#fff', fontSize: 9, fontWeight: '900', minWidth: 16, height: 16, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: 2, paddingRight: 2, border: '1px solid #5A3B24' }}>
                   {badge > 99 ? '99+' : badge}
                 </View>
               )}

@@ -36,19 +36,19 @@ export default function BottomNav({ active = '', badges = {}, tenant = '', navig
 
   return (
     <View className="absolute bottom-0 left-0 right-0 py-2 flex justify-around items-center z-50 shadow-2xl"
-      style={{ backgroundColor: '#FFFFFF', borderTop: '1px solid #E4E4E7' }}
+      style={{ backgroundColor: '#5A3B24', borderTop: '1px solid #4E321E' }}
     >
       {tabs.map((tab, i) => {
         const isActive = active === tab.key
         const badge = badges[tab.key]
-        const color = isActive ? '#915F38' : '#A1A1AA' // #2151 选中品牌色/未选灰
+        const color = isActive ? '#FFFFFF' : 'rgba(255,255,255,0.4)' // 复原原褐色主题配色（#2151 还原）
         return (
           <View key={tab.key || i} className="flex flex-col items-center justify-center relative flex-1 py-1.5" onClick={tab.onClick}>
             <View className="relative" style={{ marginBottom: 2 }}>
               <tab.Icon size={22} color={color} />
               {badge > 0 && (
                 <View className="absolute -top-1 -right-2 text-white font-black h-4 rounded-full flex items-center justify-center px-1"
-                  style={{ backgroundColor: '#FF2A55', border: '1px solid #FFFFFF' }}
+                  style={{ backgroundColor: '#FF2A55', border: '1px solid #5A3B24' }}
                 >
                   {badge > 99 ? '99+' : badge}
                 </View>

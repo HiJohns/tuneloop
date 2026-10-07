@@ -13,10 +13,10 @@ export default function SegmentedTabs({ options = [], value, onChange, style }) 
             style={{
               flex: 1, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
               borderRadius: 8,
-              backgroundColor: active ? '#FFFFFF' : 'transparent',
+              backgroundColor: active ? '#171717' : 'transparent',
               boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
             }}>
-            <Text style={{ fontSize: 13, fontWeight: 'bold', color: active ? '#915F38' : '#71717A' }}>{t.label}</Text>
+            <Text style={{ fontSize: 13, fontWeight: 'bold', color: active ? '#FFFFFF' : '#52525B' }}>{t.label}</Text>
           </View>
         )
       })}
