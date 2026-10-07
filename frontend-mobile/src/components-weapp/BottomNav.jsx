@@ -36,12 +36,9 @@ export default function BottomNav({ active = '', badges = {}, tenant }) {
 
   const goService = () => {
     if (active === 'service') return
-    const url = isStaff ? '/pages-weapp/my-repairs/index' : '/pages-weapp/tech-list/index'
-    if (Taro.getCurrentPages().length >= 9) {
-      Taro.reLaunch({ url })
-    } else {
-      Taro.navigateTo({ url })
-    }
+    // 维修入口页注册为 tabBar 页 → switchTab（无滑入动画，与租赁一致）
+    const url = isStaff ? '/pages-weapp/tech-repair-workbench/index' : '/pages-weapp/tech-list/index'
+    Taro.switchTab({ url })
   }
 
   const tabs = [

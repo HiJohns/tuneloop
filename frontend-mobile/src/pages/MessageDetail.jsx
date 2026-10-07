@@ -195,7 +195,7 @@ export default function MessageDetail() {
     if (!id) return
     if (env.isMiniProgram) {
       if (target === 'workbench') {
-        Taro.navigateTo({ url: '/pages-weapp/my-repairs/index?tab=service' })
+        Taro.switchTab({ url: '/pages-weapp/tech-repair-workbench/index' })
       } else {
         Taro.navigateTo({ url: `/pages-weapp/repair-service-detail/index?order_id=${id}` })
       }

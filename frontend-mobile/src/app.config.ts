@@ -114,6 +114,8 @@ const tabBar = isWeapp ? {
   list: [
     { pagePath: 'pages-weapp/home/index', text: '首页' },
     { pagePath: 'pages-weapp/my-leases/index', text: '租赁' },
+    { pagePath: 'pages-weapp/tech-list/index', text: '维修' },
+    { pagePath: 'pages-weapp/tech-repair-workbench/index', text: '工作台' },
     { pagePath: 'pages-weapp/profile/index', text: '我的' },
   ],
 } : undefined
