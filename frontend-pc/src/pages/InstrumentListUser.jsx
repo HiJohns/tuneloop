@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Card, Button, Space, Tag, Image, message, Select, Input } from 'antd'
+import { Card, Button, Space, Tag, Image, message, Select, Input, Pagination } from 'antd'
 import { ShoppingCartOutlined, FilterOutlined, EyeOutlined } from '@ant-design/icons'
 import { api } from '../services/api'
 
@@ -11,6 +11,10 @@ export default function InstrumentListUser() {
   const navigate = useNavigate()
   const [instruments, setInstruments] = useState([])
   const [loading, setLoading] = useState(false)
+  // #2152：服务端分页
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [total, setTotal] = useState(0)
   const [categories, setCategories] = useState([])
   const [sites, setSites] = useState([])
   const [levels, setLevels] = useState([])
@@ -25,14 +29,14 @@ export default function InstrumentListUser() {
   useEffect(() => {
     fetchInstruments()
     fetchFilters()
-  }, [categoryFilter, siteFilter, levelFilter, sortBy, searchText])
+  }, [page, pageSize, categoryFilter, siteFilter, levelFilter, sortBy, searchText])
 
   const fetchInstruments = async () => {
     setLoading(true)
     try {
       const params = {
-        page: 1,
-        pageSize: 20,
+        page,
+        pageSize,
         sort: sortBy
       }
       if (categoryFilter) params.category_id = categoryFilter
@@ -42,6 +46,7 @@ export default function InstrumentListUser() {
       
       const data = await api.get('/user/instruments', { params })
       setInstruments(data?.data?.list || [])
+      setTotal(data?.data?.total || 0) // #2152
     } catch (error) {
       console.error('Failed to fetch instruments:', error)
       message.error('加载乐器失败')
@@ -85,7 +90,7 @@ export default function InstrumentListUser() {
           <Search
             placeholder="搜索乐器名称/品牌"
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(e) => { setSearchText(e.target.value); setPage(1) }}
             style={{ width: 250 }}
             allowClear
           />
@@ -93,7 +98,7 @@ export default function InstrumentListUser() {
           <Select
             placeholder="选择类别"
             value={categoryFilter}
-            onChange={setCategoryFilter}
+            onChange={(v) => { setCategoryFilter(v); setPage(1) }}
             allowClear
             style={{ width: 150 }}
             suffixIcon={<FilterOutlined />}
@@ -106,7 +111,7 @@ export default function InstrumentListUser() {
           <Select
             placeholder="选择网点"
             value={siteFilter}
-            onChange={setSiteFilter}
+            onChange={(v) => { setSiteFilter(v); setPage(1) }}
             allowClear
             style={{ width: 150 }}
           >
@@ -118,7 +123,7 @@ export default function InstrumentListUser() {
           <Select
             placeholder="选择级别"
             value={levelFilter}
-            onChange={setLevelFilter}
+            onChange={(v) => { setLevelFilter(v); setPage(1) }}
             allowClear
             style={{ width: 120 }}
           >
@@ -130,7 +135,7 @@ export default function InstrumentListUser() {
           <Select
             placeholder="排序方式"
             value={sortBy}
-            onChange={setSortBy}
+            onChange={(v) => { setSortBy(v); setPage(1) }}
             style={{ width: 120 }}
           >
             <Option value="price">按价格</Option>
@@ -226,6 +231,20 @@ export default function InstrumentListUser() {
           </Card>
         ))}
       </div>
+
+      {/* #2152：服务端分页 */}
+      {total > 0 && (
+        <div className="flex justify-center mt-6">
+          <Pagination
+            current={page}
+            pageSize={pageSize}
+            total={total}
+            showSizeChanger
+            showTotal={(t) => `共 ${t} 条`}
+            onChange={(p, ps) => { setPage(p); setPageSize(ps) }}
+          />
+        </div>
+      )}
 
       {/* Empty State */}
       {instruments.length === 0 && !loading && (
