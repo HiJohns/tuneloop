@@ -32,6 +32,10 @@ const ROLE_LABEL = {
 export default function InviteManagement() {
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(false)
+  // #2157：服务端分页
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [total, setTotal] = useState(0)
   const [status, setStatus] = useState(undefined)
   const [rejectTarget, setRejectTarget] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
@@ -40,9 +44,10 @@ export default function InviteManagement() {
   const fetchList = useCallback(async () => {
     setLoading(true)
     try {
-      const resp = await invitesApi.list(status ? { status } : {})
+      const resp = await invitesApi.list({ ...(status ? { status } : {}), page, page_size: pageSize })
       if (resp.code === 20000) {
         setList(resp.data?.invites || [])
+        setTotal(resp.data?.total || 0)
       } else {
         message.error(resp.message || '加载邀请列表失败')
       }
@@ -51,7 +56,7 @@ export default function InviteManagement() {
     } finally {
       setLoading(false)
     }
-  }, [status])
+  }, [status, page, pageSize])
 
   useEffect(() => {
     fetchList()
@@ -181,7 +186,7 @@ export default function InviteManagement() {
               allowClear
               style={{ width: 140 }}
               value={status}
-              onChange={setStatus}
+              onChange={(v) => { setStatus(v); setPage(1); }}
               options={[
                 { value: 'pending_approval', label: '待审批' },
                 { value: 'pending', label: '等待中' },
@@ -198,7 +203,11 @@ export default function InviteManagement() {
           dataSource={list}
           loading={loading}
           rowKey="id"
-          pagination={{ pageSize: 10, showTotal: (t) => `共 ${t} 条` }}
+          pagination={{
+            current: page, pageSize, total, showSizeChanger: true,
+            showTotal: (t) => `共 ${t} 条`,
+            onChange: (p, ps) => { setPage(p); setPageSize(ps); },
+          }}
           locale={{ emptyText: '暂无邀请记录' }}
         />
       </Card>

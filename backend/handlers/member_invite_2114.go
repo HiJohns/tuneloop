@@ -219,8 +219,13 @@ func ListMerchantInvites(c *gin.Context) {
 	if s := c.Query("site_id"); s != "" {
 		q = q.Where("site_id = ?", s)
 	}
+	// #2157：服务端分页（page/page_size + total）
+	page := parseInt(c.DefaultQuery("page", "1"), 1)
+	pageSize := clampPageSize(parseInt(c.DefaultQuery("page_size", "20"), 20), 20, maxPageSize)
+	var total int64
+	q.Count(&total)
 	var invites []models.StaffInvite
-	if err := q.Order("created_at DESC").Limit(200).Find(&invites).Error; err != nil {
+	if err := q.Order("created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&invites).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "查询失败"})
 		return
 	}
@@ -254,7 +259,7 @@ func ListMerchantInvites(c *gin.Context) {
 			"created_at":         inv.CreatedAt,
 		})
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"invites": out}})
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"invites": out, "total": total, "page": page, "page_size": pageSize}})
 }
 
 // MerchantInvitesPendingCount GET /api/admin/invites/pending-count（#2114）— 待审批数。
