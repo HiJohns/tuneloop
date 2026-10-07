@@ -1,3 +1,3 @@
 export default {
-  navigationBarTitleText: '维修师',
+  navigationBarTitleText: '维修',
 }

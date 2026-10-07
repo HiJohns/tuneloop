@@ -7,6 +7,8 @@ import { apiFetch, getToken } from '../services/api'
 import { dialog, env, toWeappRoute } from '../platform'
 import { isStaffRole } from '../utils/role'
 import { htmlToPlainText } from '../utils/content'
+import BottomNav from '../components/BottomNav'
+import BottomNavWeapp from '../components-weapp/BottomNav'
 
 // #1976 T2 维修 Tab 首屏 = 师傅列表（样式参照乐器列表）
 // 右上角『我的维修』→ /my-repairs?tab=service（顾客的维修服务单）
@@ -63,15 +65,15 @@ export default function TechList() {
     <View style={{ backgroundColor: '#FDFBF7', display: 'flex', flexDirection: 'column', height: '100vh' }}>
       {/* 头部：标题 + 『我的维修』 */}
       <View style={{ backgroundColor: '#FFFFFF', padding: '12px 16px', borderBottom: '1px solid #F4F4F5', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#18181B' }}>维修师</Text>
+        <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#18181B' }}>维修</Text>
         <View
           onClick={() => nav('/my-repairs')}
           style={{
             display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 16,
-            backgroundColor: activeCount > 0 ? '#171717' : '#F4F4F5',
+            backgroundColor: '#915F38', // 页面主色调（棕）——替换灰色（避免“像被禁用”）
           }}
         >
-          <Text style={{ fontSize: 13, fontWeight: 'bold', color: activeCount > 0 ? '#FFFFFF' : '#A1A1AA' }}>
+          <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#FFFFFF' }}>
             我的维修
           </Text>
           {activeCount > 0 && (
@@ -120,6 +122,12 @@ export default function TechList() {
           })}
         </View>
       </ScrollView>
+
+      {env.isMiniProgram ? (
+        <BottomNavWeapp active="service" />
+      ) : (
+        <BottomNav active="service" navigate={navigate} />
+      )}
     </View>
   )
 }
