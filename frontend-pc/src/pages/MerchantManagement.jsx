@@ -11,6 +11,10 @@ const MerchantManagement = () => {
   const { id } = useParams();
   const location = useLocation();
   const [merchants, setMerchants] = useState([]);
+  // #2154：服务端分页
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [editingMerchant, setEditingMerchant] = useState(null);
   const [merchantType, setMerchantType] = useState('full');
@@ -25,7 +29,7 @@ const MerchantManagement = () => {
 
   useEffect(() => {
     fetchMerchants();
-  }, []);
+  }, [page, pageSize]);
 
   // Sync URL → state (detail or create form)
   useEffect(() => {
@@ -60,8 +64,9 @@ const MerchantManagement = () => {
   const fetchMerchants = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/merchants');
+      const response = await api.get('/merchants', { params: { page, pageSize } });
       setMerchants(response.data.list || []);
+      setTotal(response.data.total || 0); // #2154
     } catch (error) {
       message.error('获取商户列表失败');
       console.error('Fetch error:', error);
@@ -384,7 +389,11 @@ const MerchantManagement = () => {
           dataSource={merchants}
           loading={loading}
           rowKey="id"
-          pagination={{ defaultPageSize: 20 }}
+          pagination={{
+            current: page, pageSize, total, showSizeChanger: true,
+            showTotal: (t) => `共 ${t} 条`,
+            onChange: (p, ps) => { setPage(p); setPageSize(ps); },
+          }}
           onRow={(record) => ({
             onClick: () => { setSelectedMerchant(record); navigate('/merchants/' + record.id); },
             style: { cursor: 'pointer' },
