@@ -988,6 +988,7 @@ GET /api/confirmation-sessions/:id
 ### 5.4.0 乐器列表查询与字段（#2043）
 
 - **`GET /api/instruments`**：`?status=` 取值 `available|rented|maintenance|lost|delisted|sold`（可多值/逗号分隔）；分页 `page`/`page_size`
+- **实际参数（#2140 校正）**：`page`/`pageSize`（服务端分页，pageSize ≤100）、`sn`（模糊）、`category_id`（含后代）、`level_id`、`stock_status`（等值）、**`exclude_status`（csv，`stock_status NOT IN`）**、`sort`（`sort_order`(默认) / `created_at` / `-created_at`）
 - **返回字段（关键）**：`sn`（**识别码**，前端「识别码」列）、`site_name`（所属网点）、`category_name`、`level_name`、`stock_status`(=`status`)、`images`/`thumbnail`、`base_daily_rate`（前端「估值」语义）
 - ⚠️ 该接口**不返回 `name`**：列表「名称」列应显示**识别码(sn)**（#2043 合并页据此对齐）
 
@@ -995,16 +996,17 @@ GET /api/confirmation-sessions/:id
 
 **接口**: `GET /api/instruments`
 
-**请求参数**:
+**请求参数**（#2140 校正为实际实现）:
 | 参数 | 类型 | 说明 |
 |------|------|------|
-| category_id | string | 分类 ID |
-| brand | string | 品牌 |
-| level | string | 级别: entry, professional, master |
-| min_price | int | 最低租金 |
-| max_price | int | 最高租金 |
-| sort_by | string | 排序: price_asc, price_desc, popular |
-| site_id | string | 网点 ID (筛选有库存) |
+| page | int | 页码（默认 1） |
+| pageSize | int | 每页条数（1-100，默认 20） |
+| sn | string | 识别码模糊匹配（ILIKE） |
+| category_id | string | 分类 ID（含全部后代分类） |
+| level_id | string | 级别 ID |
+| stock_status | string | 库存状态等值筛选 |
+| exclude_status | string | 排除状态（csv）→ `stock_status NOT IN`；#2140 角色状态范围服务端实现 |
+| sort | string | `sort_order`(默认) / `created_at` / `-created_at` |
 
 **响应**:
 ```json
@@ -3270,6 +3272,7 @@ POST /api/warehouse/orders/:id/assess-damage
 **接口**: `GET /api/repair-services`
 **参数**: `scope=mine|site`、`status=<csv>`、**`start`/`end`**（ISO8601，可选；`updated_at ∈ [start,end)`）
 **说明**: 技师（scope=mine 指派给我）/员工（scope=site **仅商户层级**，#2122 商户组织闸门，网点账号返回空）任务列表；**时间范围由前端传入**（当前默认近 30 天，#2128）
+**租户口径（#2134）**: staff 上下文范围 = **商户组织**；查询过滤为 `tenant_id ∈ {tid, oid}`（`tid`=根租户、`oid`=用户自身组织），兼容历史「本商户数据 tenant_id=org_id 混用」（#2125）写入的叶组织行；单行读（详情/操作）同口径，`repairServiceStaffAllowed` 亦接受 `{tid, oid}`。写入侧（创建/选师）按 `merchants(org_id→tenant_id)` 规范化为根租户。
 **目标契约（#1942）**: 维修师/员工本人
 
 #### 7.15.2c 商户维修服务单列表（PC 后台，#2129）

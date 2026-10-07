@@ -1,7 +1,7 @@
 // #2084：维修师工作台区块（待报价/维修中/已完成 + 报价/加价/完成）共享组件。
 // 用于：① MyRepairs「维修服务」Tab 内联（省一跳）② 独立页 /tech-repair-workbench（RS-02 深链）。
 // 自包含（挂载即拉 scope=mine 三查询）；仅用 @tarojs/components + platform + services/api（跨端）。
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { formatCents, yuanToCents as toCents } from '../utils/money'
 import { View, Text, Input, Video, Button, Image } from '@tarojs/components'
 import { apiFetch, resolveErrorMessage, getToken } from '../services/api'
@@ -64,6 +64,8 @@ export default function TechRepairSections() {
   const [fetchError, setFetchError] = useState(false) // #2130：列表拉取失败（区别于"无数据"）
   const [working, setWorking] = useState([])
   const [doneList, setDoneList] = useState([])
+  const [activeGroup, setActiveGroup] = useState('pending_quote') // #2148：状态网格看板选中组
+  const userPickedRef = useRef(false) // #2148：用户手动点选后不再自动切换
   const [expanded, setExpanded] = useState('') // `${id}:quote|adjust`
   const [submitting, setSubmitting] = useState(false)
   // 报价表单（元）
@@ -99,13 +101,28 @@ export default function TechRepairSections() {
       const sv = await sRes.json()
       const w = await wRes.json()
       const r = await rRes.json()
-      setPendingQuotes(q.code === 20000 ? (q.data?.list || []) : [])
-      setPendingPay(p.code === 20000 ? (p.data?.list || []) : [])
-      setShipped(sv.code === 20000 ? (sv.data?.list || []) : [])
-      setWorking(w.code === 20000 ? (w.data?.list || []) : [])
-      setPendingReturn(r.code === 20000 ? (r.data?.list || []) : [])
-      setDoneList(dRes.code === 20000 ? (dRes.data?.list || []) : [])
+      const d = await dRes.json() // #2134 修订3：缺失的解析——已完成组从未读过响应体（恒 0 的真根因）
+      const qItems = q.code === 20000 ? (q.data?.list || []) : []
+      const pItems = p.code === 20000 ? (p.data?.list || []) : []
+      const svItems = sv.code === 20000 ? (sv.data?.list || []) : []
+      const wItems = w.code === 20000 ? (w.data?.list || []) : []
+      const rItems = r.code === 20000 ? (r.data?.list || []) : []
+      const dItems = d.code === 20000 ? (d.data?.list || []) : []
+      setPendingQuotes(qItems)
+      setPendingPay(pItems)
+      setShipped(svItems)
+      setWorking(wItems)
+      setPendingReturn(rItems)
+      setDoneList(dItems)
       setFetchError(false) // #2130：任一成功响应即视为拉取成功
+      // #2148：首次加载后默认选中第一个非空组（用户手动点选后不再自动切换）
+      if (!userPickedRef.current) {
+        const firstNonEmpty = [
+          ['pending_quote', qItems], ['pending_payment', pItems], ['shipping', svItems],
+          ['working', wItems], ['pending_return', rItems], ['done', dItems],
+        ].find(([, items]) => items.length > 0)
+        setActiveGroup(firstNonEmpty ? firstNonEmpty[0] : 'pending_quote')
+      }
     } catch (e) {
       // #2130：拉取失败不再静默置空——置错误态，由面板内错误卡+重试呈现
       setFetchError(true)
@@ -269,27 +286,35 @@ export default function TechRepairSections() {
 
   // #2116 修订：瘦身行——编号/提交人/时间/状态 + 最多一个按钮；媒体与表单收进展开区
   const renderRow = (rr, opts = {}) => {
+    // #2146：状态圆角胶囊（已结算=浅绿，其余=浅灰）+ 行尾箭头
+    const isDone = rr.status === 'closed'
+    const statusBg = isDone ? '#DCFCE7' : '#F4F4F5'
+    const statusFg = isDone ? '#16A34A' : '#52525B'
     return (
-      <View key={rr.id} style={cardStyle}>
-        <View
-          onClick={opts.onInfoTap}
-          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-        >
+      // #2145：整卡可点进详情；内部按钮/面板 stopPropagation 防误触导航
+      <View key={rr.id} style={cardStyle} onClick={opts.onInfoTap}>
+        <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>
             编码 {rr.repair_code || '-'}
           </Text>
-          <Text style={{ fontSize: 12, color: '#A1A1AA' }}>{svcStatusLabels[rr.status] || rr.status}</Text>
+          <View style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <View style={{ backgroundColor: statusBg, borderRadius: 999, paddingLeft: 8, paddingRight: 8, paddingTop: 2, paddingBottom: 2 }}>
+              <Text style={{ fontSize: 11, fontWeight: 'bold', color: statusFg }}>{svcStatusLabels[rr.status] || rr.status}</Text>
+            </View>
+            <Text style={{ fontSize: 14, color: '#A1A1AA' }}>›</Text>
+          </View>
         </View>
         <Text style={{ fontSize: 11, color: '#A1A1AA' }}>
-          提交人 {rr.user_name || '-'} · {rr.created_at ? formatBeijingDate(rr.created_at) : '-'}{opts.hint ? ` · ${opts.hint}` : ''}
+          提交人：{rr.user_name || '-'} · {rr.created_at ? formatBeijingDate(rr.created_at) : '-'}{opts.hint ? ` · ${opts.hint}` : ''}
         </Text>
         {opts.button && (
-          <Button disabled={submitting} onClick={opts.button.onClick}
+          <Button disabled={submitting}
+            onClick={(e) => { e.stopPropagation(); opts.button.onClick(e) }}
             style={{ ...(opts.button.secondary ? btnSecondaryStyle : btnPrimaryStyle), opacity: submitting ? 0.5 : 1 }}>
             {opts.button.label}
           </Button>
         )}
-        {opts.panel || null}
+        {opts.panel ? <View onClick={(e) => e.stopPropagation()}>{opts.panel}</View> : null}
       </View>
     )
   }
@@ -398,57 +423,44 @@ export default function TechRepairSections() {
     )
   }
 
+  // #2148：状态网格看板（六 chip 含计数）+ 仅渲染选中组
+  const groupDefs = [
+    { key: 'pending_quote', label: '待报价', items: pendingQuotes, empty: '暂无待报价维修单', render: renderQuoteCard },
+    { key: 'pending_payment', label: '已报价·待付款', items: pendingPay, empty: '暂无待付款维修单', render: (rr) => renderRow(rr, { onInfoTap: () => openDetail(rr.id), hint: svcTodo(rr) }) },
+    { key: 'shipping', label: '已寄出·待收货', items: shipped, empty: '暂无待收货维修单', render: renderWorkCard },
+    { key: 'working', label: '维修中', items: working, empty: '暂无维修中维修单', render: renderWorkCard },
+    { key: 'pending_return', label: '待发回', items: pendingReturn, empty: '暂无待发回维修单', render: (rr) => renderRow(rr, { onInfoTap: () => openDetail(rr.id), hint: svcTodo(rr) }) },
+    { key: 'done', label: '已完成', items: doneList, empty: '暂无已完成维修单', render: (rr) => renderRow(rr, { onInfoTap: () => openDetail(rr.id) }) },
+  ]
+  const activeDef = groupDefs.find(g => g.key === activeGroup) || groupDefs[0]
+
   return (
     <View>
-      {/* #2128：列表范围声明（各分组统一「最近 30 天」，避免"总数 vs 可见数"歧义） */}
-      <Text style={{ fontSize: 11, color: '#A1A1AA', marginBottom: 6, display: 'block' }}>列表范围：最近 30 天</Text>
-          <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>待报价（{pendingQuotes.length}）</Text>
-            <Text onClick={fetchLists} style={{ fontSize: 12, color: '#71717A' }}>刷新</Text>
-          </View>
-          {loading ? (
-            <Text style={{ fontSize: 12, color: '#A1A1AA' }}>加载中...</Text>
-          ) : pendingQuotes.length === 0 ? (
-            <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无待报价维修单</Text>
-          ) : pendingQuotes.map(renderQuoteCard)}
-
-          {/* #2088：已报价·待付款（报价提交后单据保留可见，等待用户支付） */}
-          <View style={{ marginTop: 14, marginBottom: 8 }}>
-            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>已报价·待付款（{pendingPay.length}）</Text>
-          </View>
-          {!loading && pendingPay.length === 0 ? (
-            <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无待付款维修单</Text>
-          ) : pendingPay.map(rr => renderRow(rr, { onInfoTap: () => openDetail(rr.id), hint: svcTodo(rr) }))}
-
-          {/* #2116 修订：已寄出·待收货（shipping 独立分组） */}
-          <View style={{ marginTop: 14, marginBottom: 8 }}>
-            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>已寄出·待收货（{shipped.length}）</Text>
-          </View>
-          {!loading && shipped.length === 0 ? (
-            <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无待收货维修单</Text>
-          ) : shipped.map(renderWorkCard)}
-
-          <View style={{ marginTop: 14, marginBottom: 8 }}>
-            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>维修中（{working.length}）</Text>
-          </View>
-          {!loading && working.length === 0 ? (
-            <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无维修中维修单</Text>
-          ) : working.map(renderWorkCard)}
-
-          {/* #2091：待发回（师傅完修 → 网点发回结算前；只读，发回与结算为网点职责） */}
-          <View style={{ marginTop: 14, marginBottom: 8 }}>
-            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>待发回（{pendingReturn.length}）</Text>
-          </View>
-          {!loading && pendingReturn.length === 0 ? (
-            <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无待发回维修单</Text>
-          ) : pendingReturn.map(rr => renderRow(rr, { onInfoTap: () => openDetail(rr.id), hint: svcTodo(rr) }))}
-
-          <View style={{ marginTop: 14, marginBottom: 8 }}>
-            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>已完成（{doneList.length}）</Text>
-          </View>
-          {!loading && doneList.length === 0 ? (
-            <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无已完成维修单</Text>
-          ) : doneList.map(rr => renderRow(rr, { onInfoTap: () => openDetail(rr.id), hint: '已结算' }))}
+      {/* #2128 列表范围声明 + #2148 状态网格看板（flex-wrap，避免 weapp 横向 ScrollView 陷阱） */}
+      <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <Text style={{ fontSize: 11, color: '#A1A1AA' }}>列表范围：最近 30 天</Text>
+        <Text onClick={fetchLists} style={{ fontSize: 12, color: '#71717A' }}>刷新</Text>
+      </View>
+      <View style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+        {groupDefs.map(g => {
+          const active = g.key === activeGroup
+          const n = g.items.length
+          return (
+            <View key={g.key} onClick={() => { userPickedRef.current = true; setActiveGroup(g.key) }}
+              style={{ width: '31%', boxSizing: 'border-box', paddingTop: 8, paddingBottom: 8, borderRadius: 10,
+                backgroundColor: active ? '#171717' : '#F4F4F5',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: active ? '#FFFFFF' : (n > 0 ? '#18181B' : '#A1A1AA') }}>{g.label}</Text>
+              <Text style={{ fontSize: 16, fontWeight: '900', marginTop: 2, color: active ? '#FFFFFF' : (n > 0 ? '#915F38' : '#C4C4C8') }}>{n}</Text>
+            </View>
+          )
+        })}
+      </View>
+      {loading ? (
+        <Text style={{ fontSize: 12, color: '#A1A1AA' }}>加载中...</Text>
+      ) : activeDef.items.length === 0 ? (
+        <Text style={{ fontSize: 12, color: '#A1A1AA' }}>{activeDef.empty}</Text>
+      ) : activeDef.items.map(activeDef.render)}
     </View>
   )
 }

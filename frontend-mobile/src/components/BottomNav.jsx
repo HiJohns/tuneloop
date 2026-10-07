@@ -4,6 +4,7 @@
 // 纯维修师傅隐藏「租赁」（#1884）。
 import { useEffect, useState } from 'react'
 import { View, Text } from '@tarojs/components'
+import { Home, Music, Wrench, User } from 'lucide-react' // #2151 统一图标（weapp 走 stubs 别名）
 import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
 import { isStaffRole, isPureTechnician } from '../utils/role'
@@ -27,32 +28,33 @@ export default function BottomNav({ active = '', badges = {}, tenant = '', navig
   const withTenant = (url) => (tenant ? `${url}${url.includes('?') ? '&' : '?'}tenant=${tenant}` : url)
 
   const tabs = [
-    { key: 'home', icon: '🏪', label: '首页', onClick: () => go('/') },
-    ...(isPureTech ? [] : [{ key: 'rent', icon: '🪕', label: '租赁', onClick: () => go(isStaff ? '/staff/orders' : '/my-leases') }]),
-    { key: 'service', icon: '🛠️', label: '维修', onClick: () => go(withTenant(isStaff ? '/my-repairs' : '/tech-list')) },
-    { key: 'profile', icon: '👤', label: '我的', onClick: () => go(withTenant('/profile')) },
+    { key: 'home', Icon: Home, label: '首页', onClick: () => go('/') },
+    ...(isPureTech ? [] : [{ key: 'rent', Icon: Music, label: '租赁', onClick: () => go(isStaff ? '/staff/orders' : '/my-leases') }]),
+    { key: 'service', Icon: Wrench, label: '维修', onClick: () => go(withTenant(isStaff ? '/my-repairs' : '/tech-list')) },
+    { key: 'profile', Icon: User, label: '我的', onClick: () => go(withTenant('/profile')) },
   ]
 
   return (
     <View className="absolute bottom-0 left-0 right-0 py-2 flex justify-around items-center z-50 shadow-2xl"
-      style={{ backgroundColor: '#5A3B24', borderTop: '1px solid #4E321E' }}
+      style={{ backgroundColor: '#FFFFFF', borderTop: '1px solid #E4E4E7' }}
     >
       {tabs.map((tab, i) => {
         const isActive = active === tab.key
         const badge = badges[tab.key]
+        const color = isActive ? '#915F38' : '#A1A1AA' // #2151 选中品牌色/未选灰
         return (
           <View key={tab.key || i} className="flex flex-col items-center justify-center relative flex-1 py-1.5" onClick={tab.onClick}>
-            <View className="text-3xl mb-0.5 relative">
-              {tab.icon}
+            <View className="relative" style={{ marginBottom: 2 }}>
+              <tab.Icon size={22} color={color} />
               {badge > 0 && (
                 <View className="absolute -top-1 -right-2 text-white font-black h-4 rounded-full flex items-center justify-center px-1"
-                  style={{ border: '1px solid #5A3B24' }}
+                  style={{ backgroundColor: '#FF2A55', border: '1px solid #FFFFFF' }}
                 >
                   {badge > 99 ? '99+' : badge}
                 </View>
               )}
             </View>
-            <Text className={`font-bold ${isActive ? 'text-white' : ''}`} style={!isActive ? { color: 'rgba(255,255,255,0.4)' } : undefined}>{tab.label}</Text>
+            <Text className="font-bold" style={{ color }}>{tab.label}</Text>
           </View>
         )
       })}

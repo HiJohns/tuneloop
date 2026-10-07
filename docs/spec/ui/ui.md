@@ -1352,7 +1352,8 @@ API 来源：
 **功能**:
 - `BottomNav` 新增 `badges` prop: `{ tabKey: number }`
 - 有未读时在图标右上角显示红圈数字（>99 显示 `99+`）
-- Profile.jsx 在页面加载时获取未读数，传给 BottomNav 的 profile Tab
+- Profile.jsx 在页面加载、每次页面显示（weapp `useDidShow`）、以及收到事件总线 `unreadSync` 时获取未读数，传给 BottomNav 的 profile Tab
+- `markRead` / `markAllRead`（消息中心）与打开详情自动已读（MessageDetail）成功后经 `eventBus.emit('unreadSync')` 即时同步未读角标（H5/weapp 双端）
 - 跳转消息列表后未读清零
 
 
@@ -1448,7 +1449,8 @@ API 来源：
 - **列表列**：图片 / 识别码 / 分类 / 分级 / 网点 / 状态 / 估值（按权限显示）/ 加入时间 / 操作
 - **操作门控**：按 cusPerm **不渲染**无权限按钮
   - `update`：编辑 / 丢失 / 恢复；`delete`：删除 / 批量删除；`RequireRole`：批量设价
-- **状态范围按角色**：员工默认 可用/在租/维护；管理员增量 下架/已出售/丢失
+- **状态范围按角色（服务端）**：员工默认 可用/在租/维护；管理员增量 下架/已出售/丢失——实现为服务端 `exclude_status=lost,archived,sold`（非管理员），客户端不再过滤
+- **服务端分页（#2140）**：Table 改服务端 `page`/`pageSize`，`total` 取后端 `data.total`；状态筛选服务端化（`?status=` → 查询 `stock_status`）；移除 `pageSize:200` 硬编码与客户端 `filteredAssets` 过滤
 - **字段可见性**：估值 → 管理员/商户管理员可见，员工隐藏
 - **详情/编辑**：统一「资产卡片」组件（两旧详情路径收敛，兼容重定向）
 
@@ -2898,7 +2900,7 @@ const handleSyncUsersFromIAM = async () => {
 > - 用户（weapp）：创建维修单（描述/照片，提交后展示 **6 位唯一编码** 并提示写物流单）| 选维修师（维修师列表）| 报价接受/支付（虚拟商品）| 寄出填单 | 加价响应（继续补差价/停止）| 评价（评分/留言/拍照）
 > - **#2096 标准支付页**：accept → 跳支付确认页（`type=repair_service` 明细分项渲染 + 优惠码 waive/percent）→ 拉起微信支付；结算 actual 扣除已支付 coupon_discount（折扣不被吞）
 > - **#2093 拒绝报价**：报价卡双按钮（接受报价并支付 / 拒绝报价）；拒绝弹层 = 理由单选（太贵了 / 已找别人修了 / 问题已解决 / 其他）+ 备注（可选 ≤200）→ 终态「已取消」
-> - 维修师（weapp 工作台，#2084 共享组件 `TechRepairSections`：MyRepairs 维修服务 Tab 内联 + 独立页 `/tech-repair-workbench` 复用；**五区块：待报价 / 已报价·待付款（#2088）/ 维修中 / 待发回（#2091）/ 已完成**）：报价（修理费+料钱+物流费预估，受控模式预估 3 段；料钱 #2085）| 加价（新总价+到此为止修理费；料钱不参与补差）| 完成修理
+> - 维修师（weapp 工作台，#2084 共享组件 `TechRepairSections`：MyRepairs 维修服务 Tab 内联 + 独立页 `/tech-repair-workbench` 复用；**#2148 状态网格看板：顶部 flex-wrap 六 chip（含计数）——待报价 / 已报价·待付款（#2088）/ 已寄出·待收货（#2116）/ 维修中 / 待发回（#2091）/ 已完成；默认选中首个非空组，用户点选后不再自动切换；下方仅渲染选中组列表**）：报价（修理费+料钱+物流费预估，受控模式预估 3 段；料钱 #2085）| 加价（新总价+到此为止修理费；料钱不参与补差）| 完成修理
 > - 网点员工（weapp）：分段发运（实填本段物流费）| 待发回清单 | 发回（末段实填 → 触发结算）；「网点维修服务工作台」卡片仅 site 角色可见（#2084）
 > - **#2094 评价卡判定**：评价表单仅在 `closed` 且时间线含 `settled`（真结算）时显示；未支付超时置 `cancelled`（PaymentScheduler，时间线 `payment_timeout`）→ 详情显示「服务已关闭」信息卡（无误出的评价）
 > - **#2090 通知**：新服务流三处通知（创建→师傅 / 报价·加价→顾客）在消息中心渲染操作按钮：`repair_svc_quote`→「进入维修工作台」；`repair_svc_review`→「查看报价」；`repair_svc_adjust`→「查看加价并确认」（跳 `/repair-service-detail?order_id=…`）

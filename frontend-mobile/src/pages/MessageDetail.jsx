@@ -3,7 +3,7 @@ import { formatCents } from '../utils/money'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { notificationApi, appealsApi } from '../services/api'
-import { dialog, env } from '../platform'
+import { dialog, env, eventBus } from '../platform'
 import { formatBeijingDateTimeShort } from '../utils/format'
 import { ArrowLeft, Bell } from 'lucide-react'
 import { View, Text, Button, Textarea } from '@tarojs/components'
@@ -51,6 +51,7 @@ export default function MessageDetail() {
 
           if (data.notification.status === 'unread') {
             await notificationApi.markRead(id)
+            eventBus.emit('unreadSync') // #2135：打开详情即已读 → 同步未读角标
           }
         }
       } catch (err) {
