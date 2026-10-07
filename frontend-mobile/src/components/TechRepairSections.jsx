@@ -457,9 +457,9 @@ export default function TechRepairSections() {
         })}
       </View>
       {loading ? (
-        <Text style={{ fontSize: 12, color: '#A1A1AA' }}>加载中...</Text>
+        <Text style={{ fontSize: 12, color: '#A1A1AA', paddingLeft: 12, display: 'block' }}>加载中...</Text>
       ) : activeDef.items.length === 0 ? (
-        <Text style={{ fontSize: 12, color: '#A1A1AA' }}>{activeDef.empty}</Text>
+        <Text style={{ fontSize: 12, color: '#A1A1AA', paddingLeft: 12, display: 'block' }}>{activeDef.empty}</Text>
       ) : activeDef.items.map(activeDef.render)}
     </View>
   )
