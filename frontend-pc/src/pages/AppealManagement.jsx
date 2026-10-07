@@ -27,6 +27,10 @@ const decisionOptions = [
 
 export default function AppealManagement() {
   const [appeals, setAppeals] = useState([]);
+  // #2155：服务端分页
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState(null);
   const [detailVisible, setDetailVisible] = useState(false);
@@ -39,15 +43,16 @@ export default function AppealManagement() {
 
   useEffect(() => {
     fetchAppeals();
-  }, [statusFilter]);
+  }, [statusFilter, page, pageSize]);
 
   const fetchAppeals = async () => {
     setLoading(true);
     try {
-      const params = {};
+      const params = { page, pageSize };
       if (statusFilter) params.status = statusFilter;
       const resp = await api.get('/appeals', { params });
       setAppeals(resp?.data?.list || []);
+      setTotal(resp?.data?.total || 0); // #2155
     } catch (error) {
       message.error('获取申诉列表失败');
     } finally {
@@ -191,7 +196,7 @@ export default function AppealManagement() {
           <Space>
             <Select
               value={statusFilter}
-              onChange={setStatusFilter}
+              onChange={(v) => { setStatusFilter(v); setPage(1); }}
               options={statusOptions}
               style={{ width: 120 }}
             />
@@ -207,8 +212,9 @@ export default function AppealManagement() {
           loading={loading}
           rowKey="id"
           pagination={{
-            showSizeChanger: true,
-            showTotal: (total) => `共 ${total} 条`,
+            current: page, pageSize, total, showSizeChanger: true,
+            showTotal: (t) => `共 ${t} 条`,
+            onChange: (p, ps) => { setPage(p); setPageSize(ps); },
           }}
           scroll={{ x: 1000 }}
         />
