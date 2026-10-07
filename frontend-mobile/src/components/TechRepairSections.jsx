@@ -10,6 +10,7 @@ import { dialog, env, getInputValue, uploadFile as uploadFileApi } from '../plat
 import { formatBeijingDate } from '../utils/format'
 import { photoSrc } from '../utils/media'
 import ImageUploader from './ImageUploader'
+import SegmentedTabs from './SegmentedTabs'
 
 const svcStatusLabels = {
   pending_quote: '待报价', pending_payment: '待付款', paid: '已支付·待寄出',
@@ -66,6 +67,9 @@ export default function TechRepairSections() {
   const [doneList, setDoneList] = useState([])
   const [activeGroup, setActiveGroup] = useState('pending_quote') // #2148：状态网格看板选中组
   const userPickedRef = useRef(false) // #2148：用户手动点选后不再自动切换
+  // 排序：提交时间(created_at)/最后更新时间(updated_at) × 逆序(desc)/正序(asc)；默认提交时间逆序
+  const [sortField, setSortField] = useState('created_at')
+  const [sortDir, setSortDir] = useState('desc')
   const [expanded, setExpanded] = useState('') // `${id}:quote|adjust`
   const [submitting, setSubmitting] = useState(false)
   // 报价表单（元）
@@ -87,14 +91,15 @@ export default function TechRepairSections() {
     setLoading(true)
     // #2128：列表范围由前端控制——当前默认最近 30 天（API 支持 start/end，扩展筛选只改前端）
     const startISO = encodeURIComponent(new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString())
+    const sortParam = sortDir === 'desc' ? `-${sortField}` : sortField // 例：-created_at
     try {
       const [qRes, pRes, sRes, wRes, rRes, dRes] = await Promise.all([
-        apiFetch(`${baseUrl}/repair-services?scope=mine&start=${startISO}&status=pending_quote`),
-        apiFetch(`${baseUrl}/repair-services?scope=mine&start=${startISO}&status=pending_payment`), // #2088：已报价·待付款
-        apiFetch(`${baseUrl}/repair-services?scope=mine&start=${startISO}&status=shipping`), // #2116 修订：已寄出独立分组
-        apiFetch(`${baseUrl}/repair-services?scope=mine&start=${startISO}&status=pending_repair,repairing,adjust_pending`),
-        apiFetch(`${baseUrl}/repair-services?scope=mine&start=${startISO}&status=done_repair`), // #2091：待发回
-        apiFetch(`${baseUrl}/repair-services?scope=mine&start=${startISO}&status=closed`),
+        apiFetch(`${baseUrl}/repair-services?scope=mine&start=${startISO}&status=pending_quote&sort=${sortParam}`),
+        apiFetch(`${baseUrl}/repair-services?scope=mine&start=${startISO}&status=pending_payment&sort=${sortParam}`), // #2088：已报价·待付款
+        apiFetch(`${baseUrl}/repair-services?scope=mine&start=${startISO}&status=shipping&sort=${sortParam}`), // #2116 修订：已寄出独立分组
+        apiFetch(`${baseUrl}/repair-services?scope=mine&start=${startISO}&status=pending_repair,repairing,adjust_pending&sort=${sortParam}`),
+        apiFetch(`${baseUrl}/repair-services?scope=mine&start=${startISO}&status=done_repair&sort=${sortParam}`), // #2091：待发回
+        apiFetch(`${baseUrl}/repair-services?scope=mine&start=${startISO}&status=closed&sort=${sortParam}`),
       ])
       const q = await qRes.json()
       const p = await pRes.json()
@@ -131,7 +136,7 @@ export default function TechRepairSections() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchLists() }, [])
+  useEffect(() => { fetchLists() }, [sortField, sortDir])
 
   const toggle = (id, mode) => {
     if (expanded === `${id}:${mode}`) { setExpanded(''); return }
@@ -440,6 +445,19 @@ export default function TechRepairSections() {
       <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <Text style={{ fontSize: 11, color: '#A1A1AA' }}>列表范围：最近 30 天</Text>
         <Text onClick={fetchLists} style={{ fontSize: 12, color: '#71717A' }}>刷新</Text>
+      </View>
+      {/* 排序：提交时间/最后更新时间 × 逆序/正序（默认提交时间逆序） */}
+      <View style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <SegmentedTabs
+          options={[{ key: 'created_at', label: '提交时间' }, { key: 'updated_at', label: '最后更新' }]}
+          value={sortField}
+          onChange={(k) => setSortField(k)}
+          style={{ flex: 1 }}
+        />
+        <View onClick={() => setSortDir(d => (d === 'desc' ? 'asc' : 'desc'))}
+          style={{ paddingTop: 6, paddingBottom: 6, paddingLeft: 10, paddingRight: 10, borderRadius: 8, backgroundColor: '#F4F4F5' }}>
+          <Text style={{ fontSize: 12, color: '#52525B' }}>{sortDir === 'desc' ? '↓ 逆序' : '↑ 正序'}</Text>
+        </View>
       </View>
       <View style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
         {groupDefs.map(g => {

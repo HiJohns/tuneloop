@@ -1658,8 +1658,18 @@ func (h *RepairServiceHandler) ListTasks(c *gin.Context) {
 			query = query.Where("updated_at < ?", t)
 		}
 	}
+	// 排序：提交时间/最后更新时间 × 正/逆序（默认提交时间逆序）
+	orderClause := "created_at DESC"
+	switch c.DefaultQuery("sort", "-created_at") {
+	case "created_at":
+		orderClause = "created_at ASC"
+	case "updated_at":
+		orderClause = "updated_at ASC"
+	case "-updated_at":
+		orderClause = "updated_at DESC"
+	}
 	var list []models.RepairRequest
-	if err := query.Order("updated_at DESC").Limit(200).Find(&list).Error; err != nil {
+	if err := query.Order(orderClause).Limit(200).Find(&list).Error; err != nil {
 		log.Printf("[RepairService.ListTasks] query failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list tasks"})
 		return
