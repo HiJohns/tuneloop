@@ -11,6 +11,10 @@ const { RangePicker } = DatePicker;
 export default function WarehouseManagement() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
+  // #2156：服务端分页
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
@@ -40,12 +44,12 @@ export default function WarehouseManagement() {
 
   useEffect(() => {
     fetchOrders();
-  }, [statusFilter, keyword]);
+  }, [statusFilter, keyword, page, pageSize]);
 
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const params = {};
+      const params = { page, pageSize };
       if (statusFilter) {
         params.status = statusFilter;
       }
@@ -54,6 +58,7 @@ export default function WarehouseManagement() {
       }
       const data = await api.get('/warehouse/orders', { params });
       setOrders(data?.data?.list || []);
+      setTotal(data?.data?.total || 0); // #2156
     } catch (error) {
       console.error('Failed to fetch orders:', error);
       message.error('获取订单列表失败');
@@ -344,7 +349,7 @@ export default function WarehouseManagement() {
             <Select
               placeholder="筛选状态"
               value={statusFilter}
-              onChange={setStatusFilter}
+              onChange={(v) => { setStatusFilter(v); setPage(1); }}
               allowClear
               style={{ width: 120 }}
               options={[
@@ -354,7 +359,7 @@ export default function WarehouseManagement() {
                 { label: '归还申请', value: 'returning' }
               ]}
             />
-        <Input.Search placeholder="订单号 / SN / 客户姓名 / 电话" style={{ width: 260, marginLeft: 8 }} allowClear onSearch={(v) => setKeyword(v)} />
+        <Input.Search placeholder="订单号 / SN / 客户姓名 / 电话" style={{ width: 260, marginLeft: 8 }} allowClear onSearch={(v) => { setKeyword(v); setPage(1); }} />
             <Button onClick={fetchOrders}>刷新</Button>
             <RangePicker value={exportRange} onChange={(dates) => setExportRange(dates || [])} style={{ marginLeft: 8 }} />
             <Button icon={<DownloadOutlined />} onClick={handleExportAll}>导出全部订单</Button>
@@ -367,8 +372,9 @@ export default function WarehouseManagement() {
           loading={loading}
           rowKey="id"
           pagination={{
-            showSizeChanger: true,
-            showTotal: (total) => `共 ${total} 条`
+            current: page, pageSize, total, showSizeChanger: true,
+            showTotal: (t) => `共 ${t} 条`,
+            onChange: (p, ps) => { setPage(p); setPageSize(ps); },
           }}
         />
       </Card>
