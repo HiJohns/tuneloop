@@ -34,18 +34,25 @@ export default function DirectMemberManagement() {
   const [techOpen, setTechOpen] = useState(false)
   const [techForm] = Form.useForm()
   const [creating, setCreating] = useState(false)
+  // #2153：服务端分页
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [total, setTotal] = useState(0)
 
   const fetchList = useCallback(async () => {
     setLoading(true)
     try {
-      const resp = await personnelApi.list({ direct: 'true', page: 1, page_size: 100 })
-      if (resp.code === 20000) setList(resp.data?.list || [])
+      const resp = await personnelApi.list({ direct: 'true', page, page_size: pageSize })
+      if (resp.code === 20000) {
+        setList(resp.data?.list || [])
+        setTotal(resp.data?.total || 0)
+      }
     } catch (err) {
       message.error('加载直属员工失败: ' + (err.message || ''))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [page, pageSize])
 
   useEffect(() => {
     fetchList()
@@ -203,7 +210,11 @@ export default function DirectMemberManagement() {
           dataSource={list}
           loading={loading}
           rowKey="id"
-          pagination={{ pageSize: 10, showTotal: (t) => `共 ${t} 条` }}
+          pagination={{
+            current: page, pageSize, total, showSizeChanger: true,
+            showTotal: (t) => `共 ${t} 条`,
+            onChange: (p, ps) => { setPage(p); setPageSize(ps) },
+          }}
           locale={{ emptyText: '暂无直属员工' }}
         />
       </Card>
