@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { formatCents, yuanToCents } from '../utils/money'
 import { Table, Tag, Button, Space, Spin, Modal, Form, Input, InputNumber, Select, Radio, Upload, Descriptions, Image, message, Popconfirm } from 'antd'
 import { EyeOutlined, EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
@@ -21,25 +21,31 @@ const statusColors = {
 export default function InstrumentStock() {
   const [searchParams] = useSearchParams()
   const statusParam = searchParams.get('status')
-  const overdueParam = searchParams.get('overdue')
   const navigate = useNavigate()
   const [assets, setAssets] = useState([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1) // #2140：服务端分页
+  const [pageSize, setPageSize] = useState(20)
+  const [total, setTotal] = useState(0)
   const [selectedRowKeys, setSelectedRowKeys] = useState([]) // #2043 批量操作
   const [priceModalVisible, setPriceModalVisible] = useState(false) // #2043 批量设价
   const [priceForm] = Form.useForm()
 
-  useEffect(() => {
-    loadData()
-  }, [])
+  // #2043: 管理员级可见性代理（删除权限=管理级）
+  const { hasCusPerm } = usePermission()
+  const isManagerLike = hasCusPerm('instrument:delete')
 
   const loadData = async () => {
     setLoading(true)
     try {
-      // #1973：与「乐器列表」同源（GET /instruments）；此处为**库存状态视图**，
-      // 显式分页避免静默只取默认第一页（导致与列表页集合不一致的观感）
-      const response = await inventoryApi.list({ page: 1, pageSize: 200 })
+      // #2140：真分页——服务端 page/pageSize + 状态筛选服务端化；
+      // 非管理级状态范围（隐藏 下架/已售出/丢失）转服务端 exclude_status
+      const params = { page, pageSize }
+      if (statusParam) params.stock_status = statusParam
+      if (!isManagerLike) params.exclude_status = 'lost,archived,sold'
+      const response = await inventoryApi.list(params)
       setAssets(response?.data?.list || [])
+      setTotal(response?.data?.total || 0)
     } catch (error) {
       console.error('Failed to load inventory:', error)
     } finally {
@@ -47,29 +53,9 @@ export default function InstrumentStock() {
     }
   }
 
-  // #2043: 管理员级可见性代理（删除权限=管理级）；用于状态范围与敏感字段
-  const { hasCusPerm } = usePermission()
-  const isManagerLike = hasCusPerm('instrument:delete')
-
-  const filteredAssets = useMemo(() => {
-    let result = assets
-    
-    if (statusParam) {
-      result = result.filter(a => a.status === statusParam)
-    }
-    
-    if (overdueParam === 'true') {
-      const today = new Date().toISOString().split('T')[0]
-      result = result.filter(a => a.leaseEnd && a.leaseEnd < today && (a.status === '在租' || a.status === 'rented'))
-    }
-    
-    // #2043: 非管理级（员工）不显示 下架/已售出/丢失（管理员增量）
-    if (!isManagerLike) {
-      result = result.filter(a => !['lost', 'archived', 'sold'].includes(a.status))
-    }
-
-    return result
-  }, [assets, statusParam, overdueParam, isManagerLike])
+  useEffect(() => {
+    loadData()
+  }, [page, pageSize, statusParam, isManagerLike])
   
   const columns = [
     {
@@ -461,21 +447,17 @@ export default function InstrumentStock() {
           </Space>
         </div>
       )}
-      {overdueParam === 'true' && (
-        <div className="mb-4 p-3 bg-orange-50 rounded">
-          <Space>
-            <span>当前筛选: 逾期未归还</span>
-            <Button type="link" size="small" onClick={() => navigate('/site/stock', { replace: true })}>清除筛选</Button>
-          </Space>
-        </div>
-      )}
       {view === 'stock' ? (
         <Table
           columns={columns}
-          dataSource={filteredAssets || []}
+          dataSource={assets || []}
           rowKey="id"
           rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
-          pagination={{ total: filteredAssets.length, pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
+          pagination={{
+            current: page, pageSize, total, showSizeChanger: true,
+            showTotal: (t) => `共 ${t} 条`,
+            onChange: (p, ps) => { setPage(p); setPageSize(ps) },
+          }}
           onRow={(record) => ({
             onClick: () => navigate(`/site/stock/${record.id}`),
             style: { cursor: 'pointer' }

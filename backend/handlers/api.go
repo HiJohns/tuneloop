@@ -414,6 +414,10 @@ func GetInstruments(c *gin.Context) {
 	if stockStatus := c.Query("stock_status"); stockStatus != "" {
 		query = query.Where("stock_status = ?", stockStatus)
 	}
+	// #2140：附加可选排除状态（csv）——服务端角色状态范围（非管理员排除 lost/archived/sold）
+	if excludeStatus := c.Query("exclude_status"); excludeStatus != "" {
+		query = query.Where("stock_status NOT IN ?", strings.Split(excludeStatus, ","))
+	}
 
 	sortParam := c.DefaultQuery("sort", "sort_order")
 	orderClause := "sort_order ASC, created_at DESC"

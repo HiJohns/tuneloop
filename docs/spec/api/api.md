@@ -951,6 +951,7 @@ GET /api/confirmation-sessions/:id
 ### 5.4.0 乐器列表查询与字段（#2043）
 
 - **`GET /api/instruments`**：`?status=` 取值 `available|rented|maintenance|lost|delisted|sold`（可多值/逗号分隔）；分页 `page`/`page_size`
+- **实际参数（#2140 校正）**：`page`/`pageSize`（服务端分页，pageSize ≤100）、`sn`（模糊）、`category_id`（含后代）、`level_id`、`stock_status`（等值）、**`exclude_status`（csv，`stock_status NOT IN`）**、`sort`（`sort_order`(默认) / `created_at` / `-created_at`）
 - **返回字段（关键）**：`sn`（**识别码**，前端「识别码」列）、`site_name`（所属网点）、`category_name`、`level_name`、`stock_status`(=`status`)、`images`/`thumbnail`、`base_daily_rate`（前端「估值」语义）
 - ⚠️ 该接口**不返回 `name`**：列表「名称」列应显示**识别码(sn)**（#2043 合并页据此对齐）
 
@@ -958,16 +959,17 @@ GET /api/confirmation-sessions/:id
 
 **接口**: `GET /api/instruments`
 
-**请求参数**:
+**请求参数**（#2140 校正为实际实现）:
 | 参数 | 类型 | 说明 |
 |------|------|------|
-| category_id | string | 分类 ID |
-| brand | string | 品牌 |
-| level | string | 级别: entry, professional, master |
-| min_price | int | 最低租金 |
-| max_price | int | 最高租金 |
-| sort_by | string | 排序: price_asc, price_desc, popular |
-| site_id | string | 网点 ID (筛选有库存) |
+| page | int | 页码（默认 1） |
+| pageSize | int | 每页条数（1-100，默认 20） |
+| sn | string | 识别码模糊匹配（ILIKE） |
+| category_id | string | 分类 ID（含全部后代分类） |
+| level_id | string | 级别 ID |
+| stock_status | string | 库存状态等值筛选 |
+| exclude_status | string | 排除状态（csv）→ `stock_status NOT IN`；#2140 角色状态范围服务端实现 |
+| sort | string | `sort_order`(默认) / `created_at` / `-created_at` |
 
 **响应**:
 ```json
