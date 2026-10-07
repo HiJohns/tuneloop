@@ -476,7 +476,17 @@ func (h *RepairServiceHandler) ListMine(c *gin.Context) {
 	if statusParam := c.Query("status"); statusParam != "" {
 		query = query.Where("status IN ?", strings.Split(statusParam, ","))
 	}
-	if err := query.Order("created_at DESC").Find(&list).Error; err != nil {
+	// 排序：提交时间/最后更新时间 × 正/逆序（默认提交时间逆序）
+	orderClause := "created_at DESC"
+	switch c.DefaultQuery("sort", "-created_at") {
+	case "created_at":
+		orderClause = "created_at ASC"
+	case "updated_at":
+		orderClause = "updated_at ASC"
+	case "-updated_at":
+		orderClause = "updated_at DESC"
+	}
+	if err := query.Order(orderClause).Find(&list).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list repair services"})
 		return
 	}

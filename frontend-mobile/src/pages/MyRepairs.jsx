@@ -51,6 +51,9 @@ export default function MyRepairs() {
   const [svcTab, setSvcTab] = useState((!isStaff || searchParams.get('tab') === 'service') ? 'service' : 'legacy')
   const [myServices, setMyServices] = useState([])
   const [servicesLoaded, setServicesLoaded] = useState(false)
+  // 排序：创建时间(created_at)/最后更新时间(updated_at) × 逆序/正序；默认创建时间逆序
+  const [sortField, setSortField] = useState('created_at')
+  const [sortDir, setSortDir] = useState('desc')
   const baseUrl = env.apiBaseUrl
 
   const fetchRepairs = async () => {
@@ -99,7 +102,8 @@ export default function MyRepairs() {
   // #1957：维修服务（type='service'）我的单（顾客视角，只读摘要；完整流程见阶段3a）
   const fetchMyServices = async () => {
     try {
-      const res = await apiFetch(`${baseUrl}/user/repair-services`)
+      const sortParam = sortDir === 'desc' ? `-${sortField}` : sortField
+      const res = await apiFetch(`${baseUrl}/user/repair-services?sort=${sortParam}`)
       const result = await res.json()
       if (result.code === 20000) setMyServices(result.data?.list || [])
     } catch {}
@@ -121,7 +125,7 @@ export default function MyRepairs() {
   useEffect(() => {
     if (isCustomer) { fetchMyServices(); fetchLegacyRepairs() }
     else fetchRepairs()
-  }, [])
+  }, [sortField, sortDir])
 
   const hasSiteRole = roles.some(r => ['site_admin', 'site_member'].includes(r))
   const isPureTech = roles.includes('repair_technician') && !hasSiteRole
@@ -205,6 +209,19 @@ export default function MyRepairs() {
       {isCustomer && (
       <View className="bg-white rounded-2xl shadow-sm p-4 mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>我的维修服务 ({myServices.length})</Text>
+        {/* 排序：创建时间/最后更新时间 × 逆序/正序（默认创建时间逆序） */}
+        <View style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <SegmentedTabs
+            options={[{ key: 'created_at', label: '创建时间' }, { key: 'updated_at', label: '最后更新' }]}
+            value={sortField}
+            onChange={(k) => setSortField(k)}
+            style={{ flex: 1 }}
+          />
+          <View onClick={() => setSortDir(d => (d === 'desc' ? 'asc' : 'desc'))}
+            style={{ paddingTop: 6, paddingBottom: 6, paddingLeft: 10, paddingRight: 10, borderRadius: 8, backgroundColor: '#F4F4F5' }}>
+            <Text style={{ fontSize: 12, color: '#52525B' }}>{sortDir === 'desc' ? '↓ 逆序' : '↑ 正序'}</Text>
+          </View>
+        </View>
         {!servicesLoaded ? (
           <Text style={{ fontSize: 12, color: '#A1A1AA' }}>加载中...</Text>
         ) : myServices.length === 0 ? (
