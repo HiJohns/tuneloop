@@ -9,18 +9,23 @@ const { Option } = Select
 export default function TenantManagement() {
   const [tenants, setTenants] = useState([])
   const [loading, setLoading] = useState(false)
+  // #2160：服务端分页
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [total, setTotal] = useState(0)
   const [modalVisible, setModalVisible] = useState(false)
   const [form] = Form.useForm()
 
   useEffect(() => {
     fetchTenants()
-  }, [])
+  }, [page, pageSize])
 
   const fetchTenants = async () => {
     try {
       setLoading(true)
-      const response = await api.get('/system/tenants')
-      setTenants(response.data || [])
+      const response = await api.get('/system/tenants', { params: { page, page_size: pageSize } })
+      setTenants(response.data?.list || [])
+      setTotal(response.data?.total || 0)
       setLoading(false)
     } catch (error) {
       console.error('Failed to fetch tenants:', error)
@@ -86,7 +91,11 @@ export default function TenantManagement() {
         dataSource={tenants || []}
         rowKey="id"
         loading={loading}
-        pagination={{ pageSize: 10 }}
+        pagination={{
+          current: page, pageSize, total, showSizeChanger: true,
+          showTotal: (t) => `共 ${t} 条`,
+          onChange: (p, ps) => { setPage(p); setPageSize(ps) },
+        }}
       />
 
       <Modal

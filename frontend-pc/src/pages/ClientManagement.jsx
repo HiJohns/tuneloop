@@ -8,19 +8,24 @@ const IAM_API_URL = import.meta.env.VITE_BEACONIAM_INTERNAL_URL || 'http://local
 export default function ClientManagement() {
   const [clients, setClients] = useState([])
   const [loading, setLoading] = useState(false)
+  // #2159：服务端分页
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [total, setTotal] = useState(0)
   const [modalVisible, setModalVisible] = useState(false)
   const [editingClient, setEditingClient] = useState(null)
   const [form] = Form.useForm()
 
   useEffect(() => {
     fetchClients()
-  }, [])
+  }, [page, pageSize])
 
   const fetchClients = async () => {
     try {
       setLoading(true)
-      const response = await api.get('/system/clients')
-      setClients(response.data || [])
+      const response = await api.get('/system/clients', { params: { page, page_size: pageSize } })
+      setClients(response.data?.list || [])
+      setTotal(response.data?.total || 0)
       setLoading(false)
     } catch (error) {
       console.error('Failed to fetch clients:', error)
@@ -121,7 +126,11 @@ export default function ClientManagement() {
         dataSource={clients || [] || []}
         rowKey="id"
         loading={loading}
-        pagination={{ pageSize: 10 }}
+        pagination={{
+          current: page, pageSize, total, showSizeChanger: true,
+          showTotal: (t) => `共 ${t} 条`,
+          onChange: (p, ps) => { setPage(p); setPageSize(ps) },
+        }}
       />
 
       <Modal
