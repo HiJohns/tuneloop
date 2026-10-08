@@ -47,9 +47,13 @@ export default function InstrumentLossManage() {
     if (!route) { dialog.alert('该功能请在 H5 端使用'); return }
     return Taro.navigateTo({ url: route.url })
   }
-  const [instruments, setInstruments] = useState([])
+  const [lostItems, setLostItems] = useState([])
+  const [managedItems, setManagedItems] = useState([])
   const [records, setRecords] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
   const [expanded, setExpanded] = useState('') // `${id}:lost|restore`
   const [busy, setBusy] = useState(false)
   // 丢失表单
@@ -64,25 +68,49 @@ export default function InstrumentLossManage() {
   const [restorePhotos, setRestorePhotos] = useState([])
   const baseUrl = env.apiBaseUrl
 
-  const fetchAll = async () => {
-    setLoading(true)
+  const PAGE_SIZE = 20
+
+  // #2158: 「在管乐器」服务端真分页（触底加载）；「丢失中」/「台账」体量小，单次取回
+  const fetchManaged = async (pageNum = 1, append = false) => {
+    if (append) setLoadingMore(true)
+    else setLoading(true)
     try {
-      const [iRes, rRes] = await Promise.all([
-        apiFetch(`${baseUrl}/instruments?page=1&pageSize=100`),
-        apiFetch(`${baseUrl}/instrument-loss`),
-      ])
-      const i = await iRes.json()
-      const r = await rRes.json()
-      if (i.code === 20000) setInstruments(i.data?.list || [])
-      if (r.code === 20000) setRecords(r.data?.list || [])
+      const res = await apiFetch(`${baseUrl}/instruments?exclude_status=lost,archived&page=${pageNum}&pageSize=${PAGE_SIZE}`)
+      const d = await res.json()
+      if (d.code === 20000) {
+        const list = d.data?.list || []
+        setManagedItems(prev => (append ? [...prev, ...list] : list))
+        const total = d.data?.total ?? 0
+        setHasMore(pageNum * PAGE_SIZE < total)
+      }
     } catch (e) { dialog.alert(resolveErrorMessage(e)) }
     setLoading(false)
+    setLoadingMore(false)
+  }
+
+  const fetchAux = async () => {
+    try {
+      const [lRes, rRes] = await Promise.all([
+        apiFetch(`${baseUrl}/instruments?stock_status=lost&page=1&pageSize=100`),
+        apiFetch(`${baseUrl}/instrument-loss`),
+      ])
+      const l = await lRes.json()
+      const r = await rRes.json()
+      if (l.code === 20000) setLostItems(l.data?.list || [])
+      if (r.code === 20000) setRecords(r.data?.list || [])
+    } catch (e) { dialog.alert(resolveErrorMessage(e)) }
+  }
+
+  const fetchAll = () => {
+    setPage(1)
+    setHasMore(true)
+    fetchAux()
+    fetchManaged(1, false)
   }
 
   useEffect(() => { fetchAll() }, [])
 
-  const lostItems = instruments.filter(i2 => i2.stock_status === 'lost')
-  const managedItems = instruments.filter(i2 => i2.stock_status !== 'lost' && i2.stock_status !== 'archived')
+  useEffect(() => { if (page > 1) fetchManaged(page, true) }, [page])
 
   const uploadOne = async (file) => {
     const authHeaders = { Authorization: 'Bearer ' + (getToken() || '') }
@@ -231,7 +259,8 @@ export default function InstrumentLossManage() {
         <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#18181B' }}>乐器丢失 / 恢复</Text>
       </View>
 
-      <ScrollView scrollY style={{ flex: 1, minHeight: 0 }}>
+      <ScrollView scrollY style={{ flex: 1, minHeight: 0 }}
+        onScrollToLower={() => { if (hasMore && !loadingMore && !loading) setPage(p => p + 1) }}>
         <View style={{ padding: '12px 16px 96px', boxSizing: 'border-box' }}>
           <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>丢失中（{lostItems.length}）</Text>
@@ -271,6 +300,12 @@ export default function InstrumentLossManage() {
               {expanded === `${inst.id}:lost` && renderLostForm(inst)}
             </View>
           ))}
+          {loadingMore && (
+            <Text style={{ display: 'block', textAlign: 'center', fontSize: 12, color: '#A1A1AA', padding: '8px 0' }}>加载更多...</Text>
+          )}
+          {!hasMore && managedItems.length > 0 && (
+            <Text style={{ display: 'block', textAlign: 'center', fontSize: 12, color: '#C4C4C8', padding: '8px 0' }}>没有更多了</Text>
+          )}
 
           <View style={{ marginTop: 14, marginBottom: 8 }}>
             <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>丢失台账（{records.length}）</Text>
