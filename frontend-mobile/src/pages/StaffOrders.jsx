@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
-import { warehouseApi, apiFetch, getToken } from '../services/api'
+import { apiFetch } from '../services/api'
 import { dialog, env, scanQRCode } from '../platform'
 import { formatBeijingDate } from '../utils/format'
 import { calculateDays } from '../utils/daycalc'
@@ -71,18 +71,15 @@ export default function StaffOrders() {
   const [searchInput, setSearchInput] = useState('')
   const baseUrl = env.apiBaseUrl
 
-  const token = getToken()
-
   const fetchOrders = useCallback(async (pageNum = 1, append = false) => {
     if (!append) setLoading(true)
     else setLoadingMore(true)
     try {
       const params = { page: pageNum, pageSize: 20 }
-      const statusKey = subFilter || mainTab
       if (subFilter) {
         params.status = subFilter
       }
-      const resp = await fetch(`${baseUrl}/warehouse/orders?page=${params.page}&pageSize=${params.pageSize}${params.status ? '&status=' + params.status : ''}`)
+      const resp = await apiFetch(`${baseUrl}/warehouse/orders?page=${params.page}&pageSize=${params.pageSize}${params.status ? '&status=' + params.status : ''}`)
       const result = await resp.json()
       let list = []
       if (result.code === 20000) {

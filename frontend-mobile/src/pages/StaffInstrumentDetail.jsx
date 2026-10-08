@@ -72,7 +72,7 @@ export default function StaffInstrumentDetail() {
           const inst = result.data
           if (inst.sn && inst.stock_status === 'rented') {
             try {
-              const orderResp = await fetch(`${baseUrl}/orders/by-instrument-sn?sn=${encodeURIComponent(inst.sn)}`)
+              const orderResp = await apiFetch(`${baseUrl}/orders/by-instrument-sn?sn=${encodeURIComponent(inst.sn)}`)
               const orderResult = await orderResp.json()
               if (orderResult.code === 20000 && orderResult.data) {
                 setActiveOrder(orderResult.data)

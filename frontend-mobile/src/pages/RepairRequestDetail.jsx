@@ -216,7 +216,7 @@ export default function RepairRequestDetail() {
     }
     const fd = new FormData()
     fd.append('file', file)
-    const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', body: fd })
+    const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', headers: { Authorization: 'Bearer ' + (getToken() || '') }, body: fd })
     const r = await resp.json()
     if (r.code === 20000) return r.data.file_key
     throw new Error(resolveErrorMessage(r, 'upload failed'))

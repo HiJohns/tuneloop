@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Button, Image, Input } from '@tarojs/components'
-import { apiFetch, resolveErrorMessage } from '../services/api'
+import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
 import { dialog, env, getInputValue, toWeappRoute, uploadFile as uploadFileApi } from '../platform'
 import { photoSrc } from '../utils/media'
 
@@ -68,7 +68,7 @@ export default function RepairScan() {
       } else {
         const fd = new FormData()
         fd.append('file', file)
-        const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', body: fd })
+        const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', headers: { Authorization: 'Bearer ' + (getToken() || '') }, body: fd })
         const r = await resp.json()
         if (r.code === 20000) key = r.data.file_key
       }
