@@ -60,9 +60,19 @@ func (h *PlatformStaffHandler) List(c *gin.Context) {
 	// 平台员工 = 本地 users 缓存中 org_id = 根组织、且 role 为 staff 的成员
 	// （#1795 T6.1/T6.2；另含系统管理员）。本地缓存里顾客/测试账号的 org_id
 	// 也可能落在根组织（注册默认），必须靠 role 区分，否则"把所有用户都返回"。
+	// #2162: 服务端分页 + total
+	q := db.Model(&models.User{}).Where("org_id = ? AND LOWER(role) IN ?", rootOrgID, []string{"staff", "namespace_admin", "sys_admin"})
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		log.Printf("[PlatformStaff] count failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to count platform staff"})
+		return
+	}
+	page := parseInt(c.DefaultQuery("page", "1"), 1)
+	pageSize := clampPageSize(parseInt(c.DefaultQuery("page_size", "20"), 20), 20, maxPageSize)
+
 	var users []models.User
-	if err := db.Where("org_id = ? AND LOWER(role) IN ?", rootOrgID, []string{"staff", "namespace_admin", "sys_admin"}).
-		Order("created_at DESC").Find(&users).Error; err != nil {
+	if err := q.Order("created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&users).Error; err != nil {
 		log.Printf("[PlatformStaff] list failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list platform staff"})
 		return
@@ -99,7 +109,7 @@ func (h *PlatformStaffHandler) List(c *gin.Context) {
 			PendingCount: pendingCounts[u.ID],
 		})
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": list, "total": len(list)}})
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": list, "total": total, "page": page, "page_size": pageSize}})
 }
 
 // Create handles POST /admin/platform-staff.

@@ -658,7 +658,10 @@ export const faceReviewApi = {
 
 // #1795 T6: 平台员工管理
 export const platformStaffApi = {
-  list: () => api.get('/admin/platform-staff'),
+  list: (params = {}) => {
+    const query = new URLSearchParams(params).toString()
+    return api.get(`/admin/platform-staff${query ? '?' + query : ''}`)
+  },
   create: (data) => api.post('/admin/platform-staff', data),
   disable: (id) => api.delete(`/admin/platform-staff/${id}`),
 }

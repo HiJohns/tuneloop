@@ -9,6 +9,9 @@ import { platformStaffApi } from '../../../services/api'
 export default function PlatformStaffPage() {
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [total, setTotal] = useState(0)
   const [createVisible, setCreateVisible] = useState(false)
   const [creating, setCreating] = useState(false)
   const [autoGenerate, setAutoGenerate] = useState(true)
@@ -17,9 +20,10 @@ export default function PlatformStaffPage() {
   const fetchList = useCallback(async () => {
     setLoading(true)
     try {
-      const resp = await platformStaffApi.list()
+      const resp = await platformStaffApi.list({ page, page_size: pageSize })
       if (resp.code === 20000) {
         setList(resp.data?.list || [])
+        setTotal(resp.data?.total || 0)
       } else {
         message.error(resp.message || '加载平台员工失败')
       }
@@ -28,7 +32,7 @@ export default function PlatformStaffPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [page, pageSize])
 
   useEffect(() => { fetchList() }, [fetchList])
 
@@ -136,7 +140,11 @@ export default function PlatformStaffPage() {
         columns={columns}
         dataSource={list}
         loading={loading}
-        pagination={{ pageSize: 10 }}
+        pagination={{
+          current: page, pageSize, total, showSizeChanger: true,
+          showTotal: (t) => `共 ${t} 条`,
+          onChange: (p, ps) => { setPage(p); setPageSize(ps) },
+        }}
         locale={{ emptyText: '暂无平台员工（顶级组织下尚无 staff 成员）' }}
       />
       <Modal
