@@ -73,7 +73,8 @@ steps:
 - 个人中心金刚区按角色适配（#2089）：纯师傅 = 待报价（角标）/ 维修中 / 已完成 / 系统通知；员工兼师傅 = 员工项 + 待报价；详见 `docs/spec/ui/ui.md`「金刚区」
 
 ## 消息通知点击（#2102）
-- `id_verify` 通知 → 设 `open_pending_modal` 标记 → weapp `switchTab('/pages-weapp/profile/index')`（**fail → `reLaunch` 兜底**，防静默无响应）；H5 `navigate('/profile')` → 个人中心自动弹「待提交订单」层
+- 所有通知（含 `id_verify`）点击 → 消息详情页（H5 `/message-detail?id=`，weapp `message-detail/index?id=`）（#2178）；`id_verify` 不再跳 Profile / 不再置 `open_pending_modal`
+- （历史）`id_verify` 通知曾经置 `open_pending_modal` 并跳 Profile 弹「待提交订单」（#2102 / #2174），已由 #2178 改为消息详情
 - 「待提交订单」层（weapp 底部 sheet / H5 居中模态）：**minHeight 120**（防 iOS 极端情况遮罩可见而内容塌缩成灰屏）
 - 其余类型通知 → 详情页；**缺 `id` 的通知不跳转**（防 404 详情灰屏）
 
