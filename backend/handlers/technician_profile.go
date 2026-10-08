@@ -89,12 +89,18 @@ func (h *TechnicianProfileHandler) List(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
 		return
 	}
-	query := db.Where("tenant_id = ?", tid)
+	query := db.Model(&models.TechnicianProfile{}).Where("tenant_id = ?", tid)
 	if st := c.Query("status"); st != "" {
 		query = query.Where("status = ?", st)
 	}
+	// #2169: 服务端分页 + total
+	var total int64
+	query.Count(&total)
+	page := parseInt(c.DefaultQuery("page", "1"), 1)
+	pageSize := clampPageSize(parseInt(c.DefaultQuery("page_size", "20"), 20), 20, maxPageSize)
+
 	var rows []models.TechnicianProfile
-	if err := query.Order("created_at DESC").Find(&rows).Error; err != nil {
+	if err := query.Order("created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&rows).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list technician profiles"})
 		return
 	}
@@ -107,7 +113,7 @@ func (h *TechnicianProfileHandler) List(c *gin.Context) {
 			"status": p.Status, "created_at": p.CreatedAt, "updated_at": p.UpdatedAt,
 		})
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": list, "total": len(list)}})
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": list, "total": total, "page": page, "page_size": pageSize}})
 }
 
 // Create POST /api/technician-profiles（管理端）

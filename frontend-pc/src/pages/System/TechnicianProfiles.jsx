@@ -20,6 +20,9 @@ function parseExperience(v) {
 export default function TechnicianProfiles() {
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [total, setTotal] = useState(0)
   const [users, setUsers] = useState([])
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState(null) // null=新增
@@ -31,13 +34,16 @@ export default function TechnicianProfiles() {
   const fetchList = async () => {
     setLoading(true)
     try {
-      const resp = await technicianApi.list()
-      if (resp.code === 20000) setList(resp.data?.list || [])
+      const resp = await technicianApi.list({ page, page_size: pageSize })
+      if (resp.code === 20000) {
+        setList(resp.data?.list || [])
+        setTotal(resp.data?.total || 0)
+      }
       else message.error(resp.message || '加载失败')
     } finally { setLoading(false) }
   }
 
-  useEffect(() => { fetchList() }, [])
+  useEffect(() => { fetchList() }, [page, pageSize])
 
   const openCreate = async () => {
     setEditing(null)
@@ -148,7 +154,13 @@ export default function TechnicianProfiles() {
       title="维修师档案"
       extra={<Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>新增维修师</Button>}
     >
-      <Table rowKey="id" loading={loading} dataSource={list} columns={columns} />
+      <Table rowKey="id" loading={loading} dataSource={list} columns={columns}
+        pagination={{
+          current: page, pageSize, total, showSizeChanger: true,
+          showTotal: (t) => `共 ${t} 条`,
+          onChange: (p, ps) => { setPage(p); setPageSize(ps) },
+        }}
+      />
 
       <Modal
         title={editing ? '编辑维修师档案' : '新增维修师档案'}
