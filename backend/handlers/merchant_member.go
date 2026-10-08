@@ -33,6 +33,16 @@ func (h *MerchantMemberHandler) ListMembers(c *gin.Context) {
 		return
 	}
 
+	// #2164: 服务端分页 + total
+	page := parseInt(c.DefaultQuery("page", "1"), 1)
+	pageSize := clampPageSize(parseInt(c.DefaultQuery("page_size", "20"), 20), 20, maxPageSize)
+
+	var total int64
+	db.Table("merchant_members").
+		Joins("JOIN users ON users.id = merchant_members.user_id").
+		Where("merchant_members.merchant_id = ? AND merchant_members.tenant_id = ? AND merchant_members.role = ?", merchantID, tenantID, "merchant_admin").
+		Count(&total)
+
 	var members []struct {
 		UserID    string    `json:"user_id"`
 		UserName  string    `json:"user_name"`
@@ -45,12 +55,17 @@ func (h *MerchantMemberHandler) ListMembers(c *gin.Context) {
 		Select("merchant_members.user_id, users.name as user_name, users.email as user_email, merchant_members.role, merchant_members.created_at").
 		Joins("JOIN users ON users.id = merchant_members.user_id").
 		Where("merchant_members.merchant_id = ? AND merchant_members.tenant_id = ? AND merchant_members.role = ?", merchantID, tenantID, "merchant_admin").
+		Order("merchant_members.created_at DESC").
+		Offset((page - 1) * pageSize).Limit(pageSize).
 		Scan(&members)
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"list": members,
+			"list":      members,
+			"total":     total,
+			"page":      page,
+			"page_size": pageSize,
 		},
 	})
 }

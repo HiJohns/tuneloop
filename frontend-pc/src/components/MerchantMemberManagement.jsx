@@ -23,6 +23,9 @@ const ROLE_NAMES = {
 const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [adding, setAdding] = useState(false);
@@ -42,14 +45,15 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
     if (merchantId) {
       fetchMembers();
     }
-  }, [merchantId]);
+  }, [merchantId, page, pageSize]);
 
   const fetchMembers = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/admin/merchants/${merchantId}/members`);
+      const response = await api.get(`/admin/merchants/${merchantId}/members`, { params: { page, page_size: pageSize } });
       if (response && response.code === 20000) {
         setMembers(response.data?.list || []);
+        setTotal(response.data?.total || 0);
       }
     } catch (error) {
       message.error('获取负责人列表失败');
@@ -414,7 +418,11 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
         dataSource={filteredMembers}
         loading={loading}
         rowKey="user_id"
-        pagination={{ pageSize: 10 }}
+        pagination={{
+          current: page, pageSize, total, showSizeChanger: true,
+          showTotal: (t) => `共 ${t} 条`,
+          onChange: (p, ps) => { setPage(p); setPageSize(ps) },
+        }}
         locale={{ emptyText: '暂无成员' }}
       />
     </div>
