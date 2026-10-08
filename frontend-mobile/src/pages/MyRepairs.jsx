@@ -51,6 +51,9 @@ export default function MyRepairs() {
   const [svcTab, setSvcTab] = useState((!isStaff || searchParams.get('tab') === 'service') ? 'service' : 'legacy')
   const [myServices, setMyServices] = useState([])
   const [servicesLoaded, setServicesLoaded] = useState(false)
+  const [svcPage, setSvcPage] = useState(1)
+  const [svcHasMore, setSvcHasMore] = useState(true)
+  const [svcLoadingMore, setSvcLoadingMore] = useState(false)
   // 排序：创建时间(created_at)/最后更新时间(updated_at) × 逆序/正序；默认创建时间逆序
   const [sortField, setSortField] = useState('created_at')
   const [sortDir, setSortDir] = useState('desc')
@@ -100,14 +103,20 @@ export default function MyRepairs() {
   }
 
   // #1957：维修服务（type='service'）我的单（顾客视角，只读摘要；完整流程见阶段3a）
-  const fetchMyServices = async () => {
+  const fetchMyServices = async (pageNum = 1, append = false) => {
+    if (append) setSvcLoadingMore(true)
     try {
       const sortParam = sortDir === 'desc' ? `-${sortField}` : sortField
-      const res = await apiFetch(`${baseUrl}/user/repair-services?sort=${sortParam}`)
+      const res = await apiFetch(`${baseUrl}/user/repair-services?sort=${sortParam}&page=${pageNum}&page_size=20`)
       const result = await res.json()
-      if (result.code === 20000) setMyServices(result.data?.list || [])
+      if (result.code === 20000) {
+        const list = result.data?.list || []
+        setMyServices(prev => (append ? [...prev, ...list] : list))
+        setSvcHasMore(pageNum * 20 < (result.data?.total || 0))
+      }
     } catch {}
     setServicesLoaded(true)
+    setSvcLoadingMore(false)
   }
 
   // #2050：顾客侧历史维修工单（v3 legacy，type != 'service'）——只读，跟进存量/在途单
@@ -123,9 +132,13 @@ export default function MyRepairs() {
 
   // #2050：顾客=维修服务 + 只读历史维修工单；员工=内部维修工单（互不拉取对方数据）
   useEffect(() => {
-    if (isCustomer) { fetchMyServices(); fetchLegacyRepairs() }
+    setSvcPage(1)
+    setSvcHasMore(true)
+    if (isCustomer) { fetchMyServices(1, false); fetchLegacyRepairs() }
     else fetchRepairs()
   }, [sortField, sortDir])
+
+  useEffect(() => { if (svcPage > 1) fetchMyServices(svcPage, true) }, [svcPage])
 
   const hasSiteRole = roles.some(r => ['site_admin', 'site_member'].includes(r))
   const isPureTech = roles.includes('repair_technician') && !hasSiteRole
@@ -301,9 +314,11 @@ export default function MyRepairs() {
       )}
 
       {svcTab === 'service' ? (
-      <ScrollView scrollY className="flex-1 min-h-0 overflow-y-auto">
+      <ScrollView scrollY className="flex-1 min-h-0 overflow-y-auto"
+        onScrollToLower={() => { if (svcHasMore && !svcLoadingMore && !loading) setSvcPage(p => p + 1) }}>
         <View style={{ padding: '0 16px 96px', boxSizing: 'border-box' }}>
           {serviceSection}
+          {svcLoadingMore && <View><Text style={{ fontSize: 12, color: '#A1A1AA', textAlign: 'center', paddingTop: 12 }}>加载更多...</Text></View>}
         </View>
       </ScrollView>
       ) : (

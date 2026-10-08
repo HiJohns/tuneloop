@@ -471,7 +471,7 @@ func (h *RepairServiceHandler) ListMine(c *gin.Context) {
 		return
 	}
 	var list []models.RepairRequest
-	query := db.Where("user_id = ? AND type = ?", userID, repairServiceTypeVal)
+	query := db.Model(&models.RepairRequest{}).Where("user_id = ? AND type = ?", userID, repairServiceTypeVal)
 	// RS-API-6：状态过滤（逗号分隔），供分状态列表/分组
 	if statusParam := c.Query("status"); statusParam != "" {
 		query = query.Where("status IN ?", strings.Split(statusParam, ","))
@@ -486,7 +486,12 @@ func (h *RepairServiceHandler) ListMine(c *gin.Context) {
 	case "-updated_at":
 		orderClause = "updated_at DESC"
 	}
-	if err := query.Order(orderClause).Find(&list).Error; err != nil {
+	// #2170: 服务端分页 + total
+	var total int64
+	query.Count(&total)
+	page := parseInt(c.DefaultQuery("page", "1"), 1)
+	pageSize := clampPageSize(parseInt(c.DefaultQuery("page_size", "20"), 20), 20, maxPageSize)
+	if err := query.Order(orderClause).Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list repair services"})
 		return
 	}
@@ -529,7 +534,7 @@ func (h *RepairServiceHandler) ListMine(c *gin.Context) {
 		m["pending_shortfall_cents"] = shortfallMap[rr.ID]
 		out = append(out, m)
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": out, "total": len(out)}})
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": out, "total": total, "page": page, "page_size": pageSize}})
 }
 
 // Get GET /api/user/repair-services/:id （顾客本人或员工）
