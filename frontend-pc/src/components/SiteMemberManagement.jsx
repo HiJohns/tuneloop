@@ -27,6 +27,9 @@ const roleToCode = (role) => {
 const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles = null }) => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
   const [inviteVisible, setInviteVisible] = useState(false);
   const [invite, setInvite] = useState(null);
@@ -51,7 +54,7 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
       fetchMembers();
       fetchRoles();
     }
-  }, [siteId]);
+  }, [siteId, page, pageSize]);
 
   const fetchRoles = async () => {
     // #1938: 调用方注入静态角色时优先使用（中转中心仅 site_admin/site_member）
@@ -68,9 +71,10 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
   const fetchMembers = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`${membersBase}/${siteId}/members`);
+      const response = await api.get(`${membersBase}/${siteId}/members`, { params: { page, page_size: pageSize } });
       if (response && response.code === 20000) {
         setMembers(response.data?.list || []);
+        setTotal(response.data?.total || 0);
       }
     } catch (error) {
       message.error('获取成员列表失败');
@@ -500,7 +504,11 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
         dataSource={filteredMembers}
         loading={loading}
         rowKey="user_id"
-        pagination={{ pageSize: 10 }}
+        pagination={{
+          current: page, pageSize, total, showSizeChanger: true,
+          showTotal: (t) => `共 ${t} 条`,
+          onChange: (p, ps) => { setPage(p); setPageSize(ps) },
+        }}
         locale={{ emptyText: '暂无成员' }}
       />
     </div>

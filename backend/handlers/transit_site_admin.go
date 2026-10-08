@@ -182,15 +182,27 @@ func ListTransitSiteMembers(c *gin.Context) {
 		Role      string    `json:"role"`
 		CreatedAt time.Time `json:"created_at"`
 	}
+	// #2165: 服务端分页 + total
+	page := parseInt(c.DefaultQuery("page", "1"), 1)
+	pageSize := clampPageSize(parseInt(c.DefaultQuery("page_size", "20"), 20), 20, maxPageSize)
+
+	var total int64
+	db.Table("site_members").
+		Joins("JOIN users ON users.id = site_members.user_id").
+		Where("site_members.site_id = ?", siteID).
+		Count(&total)
+
 	if err := db.Table("site_members").
 		Select("site_members.user_id, users.name as user_name, users.email as user_email, site_members.role, site_members.created_at").
 		Joins("JOIN users ON users.id = site_members.user_id").
 		Where("site_members.site_id = ?", siteID).
+		Order("site_members.created_at DESC").
+		Offset((page - 1) * pageSize).Limit(pageSize).
 		Scan(&members).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list members"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": members}})
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": members, "total": total, "page": page, "page_size": pageSize}})
 }
 
 // assignTransitRoleTemplate best-effort assigns the role template that feeds
