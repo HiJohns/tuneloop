@@ -4,9 +4,14 @@ import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
 import { formatBeijingDateTimeShort } from '../utils/format'
 
+const PAGE_SIZE = 20
+
 export default function UserWarnings() {
   const [warnings, setWarnings] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
   const baseUrl = env.apiBaseUrl
 
   const token = getToken()
@@ -15,12 +20,27 @@ export default function UserWarnings() {
     try { const p = JSON.parse(atob(token.split('.')[1])); return p?.role && p.role !== 'USER' } catch { return false }
   })()
 
+  const fetchPage = async (pageNum = 1, append = false) => {
+    if (append) setLoadingMore(true)
+    else setLoading(true)
+    try {
+      const r = await apiFetch(`${baseUrl}/warnings?status=open&page=${pageNum}&page_size=${PAGE_SIZE}`).then(res => res.json())
+      if (r.code === 20000) {
+        const list = r.data?.list || []
+        setWarnings(prev => (append ? [...prev, ...list] : list))
+        setHasMore(pageNum * PAGE_SIZE < (r.data?.total || 0))
+      }
+    } catch {}
+    setLoading(false)
+    setLoadingMore(false)
+  }
+
   useEffect(() => {
     if (!isStaff) { setLoading(false); return }
-    apiFetch(`${baseUrl}/warnings?status=open`).then(r => r.json()).then(r => {
-      if (r.code === 20000) setWarnings(r.data?.list || [])
-    }).catch(() => {}).finally(() => setLoading(false))
+    fetchPage(1, false)
   }, [])
+
+  useEffect(() => { if (page > 1) fetchPage(page, true) }, [page])
 
   if (!isStaff) return (
     <View className="h-screen flex items-center justify-center">
@@ -33,7 +53,8 @@ export default function UserWarnings() {
       <View className="bg-white px-4 py-3 border-b border-zinc-100">
         <Text className="text-lg font-bold">警告（{warnings.length}）</Text>
       </View>
-      <ScrollView scrollY className="flex-1 px-4 min-h-0">
+      <ScrollView scrollY className="flex-1 px-4 min-h-0"
+        onScrollToLower={() => { if (hasMore && !loadingMore && !loading) setPage(p => p + 1) }}>
         {loading ? (
           <Text className="text-center py-8 text-zinc-400">加载中...</Text>
         ) : warnings.length === 0 ? (
@@ -50,6 +71,7 @@ export default function UserWarnings() {
             {w.description && <Text className="text-xs text-zinc-500 mt-1">{w.description}</Text>}
           </View>
         ))}
+        {loadingMore && <Text className="block text-center text-xs text-zinc-400 py-3">加载更多...</Text>}
       </ScrollView>
     </View>
   )
