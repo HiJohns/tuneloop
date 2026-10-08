@@ -24,6 +24,9 @@ export default function FaceReviewPage() {
   const filterUserId = searchParams.get('user_id') || ''
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [total, setTotal] = useState(0)
   const [reviewing, setReviewing] = useState(null) // 当前驳回的 batch
   const [rejectReason, setRejectReason] = useState('')
   // #1807/#1822: 通过弹窗两态——未采录时员工录入 5 项实名信息（根据证件照核对）；
@@ -41,10 +44,11 @@ export default function FaceReviewPage() {
   const fetchQueue = useCallback(async () => {
     setLoading(true)
     try {
-      const params = filterUserId ? { user_id: filterUserId } : {}
+      const params = { page, page_size: pageSize, ...(filterUserId ? { user_id: filterUserId } : {}) }
       const resp = await faceReviewApi.queue(params)
       if (resp.code === 20000) {
         setList(resp.data?.list || [])
+        setTotal(resp.data?.total || 0)
       } else {
         message.error(resp.message || '加载审核队列失败')
       }
@@ -53,7 +57,7 @@ export default function FaceReviewPage() {
     } finally {
       setLoading(false)
     }
-  }, [filterUserId])
+  }, [filterUserId, page, pageSize])
 
   useEffect(() => { fetchQueue() }, [fetchQueue])
 
@@ -262,7 +266,11 @@ export default function FaceReviewPage() {
         columns={columns}
         dataSource={list}
         loading={loading}
-        pagination={{ pageSize: 10 }}
+        pagination={{
+          current: page, pageSize, total, showSizeChanger: true,
+          showTotal: (t) => `共 ${t} 条`,
+          onChange: (p, ps) => { setPage(p); setPageSize(ps) },
+        }}
         locale={{ emptyText: '暂无待审核批次' }}
       />
       <Modal
