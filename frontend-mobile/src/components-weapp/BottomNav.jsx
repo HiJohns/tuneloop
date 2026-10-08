@@ -37,9 +37,13 @@ export default function BottomNav({ active = '', badges = {}, tenant }) {
 
   const goService = () => {
     if (active === 'service') return
-    // 维修入口页注册为 tabBar 页 → switchTab（无滑入动画，与租赁一致）
-    const url = isStaff ? '/pages-weapp/tech-repair-workbench/index' : '/pages-weapp/tech-list/index'
-    Taro.switchTab({ url })
+    // #2176: 恢复大调整前行为——员工端「维修」→ 维修页 my-repairs；顾客 → tech-list
+    const url = isStaff ? '/pages-weapp/my-repairs/index' : '/pages-weapp/tech-list/index'
+    if (Taro.getCurrentPages().length >= 9) {
+      Taro.reLaunch({ url })
+    } else {
+      Taro.navigateTo({ url })
+    }
   }
 
   const tabs = [
