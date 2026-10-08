@@ -535,12 +535,25 @@ export default function Profile() {
             </>
           ) : (
             <>
+              {/* #2177 顾客金刚区：租赁记录 / 维修记录 / 待支付 / 服务中 */}
+              <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => goMyLeasesStatus('')}>
+                <View style={{ fontSize: 24, marginBottom: 4 }}>
+                  📋
+                </View>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>租赁记录</Text>
+              </View>
+              <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => nav('/pages-weapp/my-repairs/index')}>
+                <View style={{ fontSize: 24, marginBottom: 4 }}>
+                  🔧
+                </View>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>维修记录</Text>
+              </View>
               <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => goMyLeasesStatus('reserved')}>
                 <View style={{ fontSize: 24, marginBottom: 4, position: 'relative' }}>
                   📥
                   {orderCounts.reserved > 0 && <Badge count={orderCounts.reserved} />}
                 </View>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>待付款</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>待支付</Text>
               </View>
               <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => goMyLeasesStatus('in_lease')}>
                 <View style={{ fontSize: 24, marginBottom: 4, position: 'relative' }}>
@@ -548,12 +561,6 @@ export default function Profile() {
                   {orderCounts.in_lease > 0 && <Badge count={orderCounts.in_lease} />}
                 </View>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>服务中</Text>
-              </View>
-              <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => nav('/pages-weapp/my-repairs/index')}>
-                <View style={{ fontSize: 24, marginBottom: 4 }}>
-                  🔧
-                </View>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>维修中</Text>
               </View>
             </>
           )}
@@ -602,15 +609,6 @@ export default function Profile() {
                 {unreadCount > 0 && <Text style={{ fontSize: 12, color: '#FF2A55', fontWeight: '700', marginRight: 4 }}>{unreadCount}条未读</Text>}
                 <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
               </View>
-            </View>
-          )}
-          {/* #2175: 我的租赁（顾客）——租赁降为二级页，入口移至个人中心 */}
-          {!isStaff && !isGuest && (
-            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => goMyLeasesStatus('')}>
-              <View style={{ display: 'flex', alignItems: 'center' }}>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>我的租赁</Text>
-              </View>
-              <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>
           )}
           {/* 5. 申请发票（顾客） */}

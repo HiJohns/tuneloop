@@ -374,7 +374,7 @@ export default function Profile() {
         </View>
 
         {/* 2. 金刚过滤区 — 员工 vs 顾客 */}
-        <View className={`mx-4 bg-white rounded-2xl shadow-sm mt-3 p-4 grid ${isPureTech || (isStaff && transitMember) ? 'grid-cols-4' : 'grid-cols-3'} gap-2 text-center`}>
+        <View className={`mx-4 bg-white rounded-2xl shadow-sm mt-3 p-4 grid ${isPureTech || (isStaff && transitMember) || !isStaff ? 'grid-cols-4' : 'grid-cols-3'} gap-2 text-center`}>
           {isStaff ? (
             <>
               {isPureTech ? (
@@ -447,12 +447,25 @@ export default function Profile() {
             </>
           ) : (
             <>
+              {/* #2177 顾客金刚区：租赁记录 / 维修记录 / 待支付 / 服务中 */}
+              <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={() => navigate('/my-leases')}>
+                <View className="text-2xl mb-1">
+                  📋
+                </View>
+                <Text className="text-xs font-bold text-zinc-700">租赁记录</Text>
+              </View>
+              <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={() => nav('/my-repairs')}>
+                <View className="text-2xl mb-1">
+                  🔧
+                </View>
+                <Text className="text-xs font-bold text-zinc-700">维修记录</Text>
+              </View>
               <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={() => navigate('/my-leases?status=reserved')}>
                 <View className="text-2xl mb-1 relative">
                   📥
                   {orderCounts.reserved > 0 && <Badge count={orderCounts.reserved} />}
                 </View>
-                <Text className="text-xs font-bold text-zinc-700">待付款</Text>
+                <Text className="text-xs font-bold text-zinc-700">待支付</Text>
               </View>
               <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={() => navigate('/my-leases?status=in_lease')}>
                 <View className="text-2xl mb-1 relative">
@@ -460,12 +473,6 @@ export default function Profile() {
                   {orderCounts.in_lease > 0 && <Badge count={orderCounts.in_lease} />}
                 </View>
                 <Text className="text-xs font-bold text-zinc-700">服务中</Text>
-              </View>
-              <View className="flex flex-col items-center justify-center py-1 rounded-xl" onClick={() => nav('/my-repairs')}>
-                <View className="text-2xl mb-1">
-                  🔧
-                </View>
-                <Text className="text-xs font-bold text-zinc-700">维修中</Text>
               </View>
             </>
           )}
@@ -511,15 +518,6 @@ export default function Profile() {
               <Text className="text-sm text-zinc-300">❯</Text>
             </View>
           </View>
-          {/* #2175: 我的租赁（顾客）——租赁降为二级页，入口移至个人中心 */}
-          {!isStaff && (
-          <View className="flex justify-between items-center py-3.5" onClick={() => nav('/my-leases')}>
-            <View className="flex items-center">
-              <Text className="text-base font-bold text-zinc-800">我的租赁</Text>
-            </View>
-            <Text className="text-zinc-300 text-lg">›</Text>
-          </View>
-          )}
           {/* 5. 申请发票（仅顾客） */}
           {!isStaff && (
           <View className="flex justify-between items-center py-3.5" onClick={() => nav('/content?key=invoice')}>
