@@ -74,13 +74,22 @@ function WarrantyList() {
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [total, setTotal] = useState(0)
 
   useEffect(() => {
-    const params = statusFilter ? `?status=${statusFilter}` : ''
-    api.get(`/merchant/repair-requests${params}`).then(r => {
-      if (r.code === 20000) setRequests(r.data?.list || [])
+    const q = new URLSearchParams()
+    if (statusFilter) q.set('status', statusFilter)
+    q.set('page', page)
+    q.set('page_size', pageSize)
+    api.get(`/merchant/repair-requests?${q}`).then(r => {
+      if (r.code === 20000) {
+        setRequests(r.data?.list || [])
+        setTotal(r.data?.total || 0)
+      }
     }).finally(() => setLoading(false))
-  }, [statusFilter])
+  }, [statusFilter, page, pageSize])
 
   const columns = [
     { title: '创建时间', dataIndex: 'created_at', key: 'created_at', render: v => v ? formatBeijingDate(v) : '-' },
@@ -92,10 +101,16 @@ function WarrantyList() {
 
   return (
     <>
-      <Select value={statusFilter} onChange={setStatusFilter} allowClear placeholder="全部状态" style={{ width: 140, marginBottom: 12 }}>
+      <Select value={statusFilter} onChange={v => { setStatusFilter(v); setPage(1) }} allowClear placeholder="全部状态" style={{ width: 140, marginBottom: 12 }}>
         {Object.entries(statusLabels).map(([k, v]) => <Select.Option key={k} value={k}>{v}</Select.Option>)}
       </Select>
-      {loading ? <Spin /> : <Table rowKey="id" dataSource={requests} columns={columns} />}
+      {loading ? <Spin /> : <Table rowKey="id" dataSource={requests} columns={columns}
+        pagination={{
+          current: page, pageSize, total, showSizeChanger: true,
+          showTotal: (t) => `共 ${t} 条`,
+          onChange: (p, ps) => { setPage(p); setPageSize(ps) },
+        }}
+      />}
     </>
   )
 }

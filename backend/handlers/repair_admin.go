@@ -21,15 +21,21 @@ func ListMerchantRepairRequests(c *gin.Context) {
 	status := c.Query("status")
 	siteID := c.Query("site_id")
 
-	var requests []models.RepairRequest
-	query := db.Where("tenant_id = ?", tenantID)
+	query := db.Model(&models.RepairRequest{}).Where("tenant_id = ?", tenantID)
 	if status != "" {
 		query = query.Where("status = ?", status)
 	}
 	if siteID != "" {
 		query = query.Where("site_id = ?", siteID)
 	}
-	query.Order("created_at DESC").Find(&requests)
+	// #2168: 服务端分页 + total
+	var total int64
+	query.Count(&total)
+	page := parseInt(c.DefaultQuery("page", "1"), 1)
+	pageSize := clampPageSize(parseInt(c.DefaultQuery("page_size", "20"), 20), 20, maxPageSize)
+
+	var requests []models.RepairRequest
+	query.Order("created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&requests)
 
 	// #1879: resolve display identifiers (instrument SN + site name)
 	uiIDs := make([]string, 0, len(requests))
@@ -69,7 +75,7 @@ func ListMerchantRepairRequests(c *gin.Context) {
 		result[i] = merchantRepairItem{RepairRequest: r, SN: snMap[r.UserInstrumentID], SiteName: siteNameMap[r.SiteID]}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": result}})
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": result, "total": total, "page": page, "page_size": pageSize}})
 }
 
 // ListAppeals returns appeals for the current user or admin.
