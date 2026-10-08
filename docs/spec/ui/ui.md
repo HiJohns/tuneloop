@@ -1033,8 +1033,9 @@ API 来源：
 
 **底部导航（#2083 统一约定）**：
 - **tabs 一律由 `components/BottomNav.jsx`（H5）/ `components-weapp/BottomNav.jsx`（weapp）按当前账户角色构造**，页面只传 `active` / `badges`（H5 另传 `navigate`；weapp Home 另传 `tenant` 以透传 `tab_params`）。**禁止页面自行拼 `tabs` 数组**（#2083 事故根因：各页显隐口径漂移，Profile 漏过滤导致纯师傅仍见租赁）。
-- 判定统一 `utils/role.js` 的 `isPureTechnician(roles)`（roles 来自 `GET /site-members/me` = 网点角色 ∪ JWT `fn_roles`）：纯维修师（无 `site_admin`/`site_member`）隐藏「租赁」tab（H5 + weapp 一致，#1884）。
-- 导航语义统一：首页/租赁/我的用 tab 切换（weapp `switchTab`）；维修 tab 员工 → `my-repairs`、顾客 → `tech-list`（weapp 以 `navigateTo`，栈深 ≥9 时 `reLaunch`；同一 tab 重复点击 no-op）。
+- 判定统一 `utils/role.js` 的 `isPureTechnician(roles)`（roles 来自 `GET /site-members/me` = 网点角色 ∪ JWT `fn_roles`）：纯维修师（无 `site_admin`/`site_member`）隐藏「商城」tab（H5 + weapp 一致，#1884；#2175 由原「租赁」tab 更名）。
+- 导航语义统一：首页/商城/我的用 tab 切换（weapp `switchTab`）；维修 tab 员工 → `my-repairs`、顾客 → `tech-list`（weapp 以 `navigateTo`，栈深 ≥9 时 `reLaunch`；同一 tab 重复点击 no-op）。
+- **#2175 调整**：底条「租赁」tab 改为「商城」（`/mall` 占位页「建设中，敬请期待」，图标 `assets/mall.png`）；「我的租赁」`/my-leases` 由 tab 降为**二级页**（weapp `navigateTo`），顾客入口 = 个人中心菜单「我的租赁」，员工入口 = 金刚区「订单管理」；页头带 `←` 返回。
 
 #### 2.9.2 维修工作台 `/repair`（共享页，按状态×角色裁剪）
 

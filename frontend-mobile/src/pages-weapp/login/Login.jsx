@@ -4,7 +4,7 @@ import { View, Text, Button, Input } from '@tarojs/components'
 import { wxLogin, storage, session, env, request, eventBus } from '../../platform'
 import { resolveErrorMessage } from '../../services/api'
 
-const TAB_PAGES = ['/pages-weapp/home/index', '/pages-weapp/my-leases/index', '/pages-weapp/profile/index']
+const TAB_PAGES = ['/pages-weapp/home/index', '/pages-weapp/mall/index', '/pages-weapp/profile/index']
 
 // redirectTo cannot target tabBar pages; use switchTab for those.
 function navigatePostAuth(url) {

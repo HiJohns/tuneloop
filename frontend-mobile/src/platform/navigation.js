@@ -7,7 +7,8 @@
 const ROUTE_MAP = [
   { match: '/',            type: 'switchTab',  url: '/pages-weapp/home/index' },
   { match: '/profile',     type: 'switchTab',  url: '/pages-weapp/profile/index' },
-  { match: '/my-leases',   type: 'switchTab',  url: '/pages-weapp/my-leases/index' },
+  { match: '/mall',        type: 'switchTab',  url: '/pages-weapp/mall/index' },
+  { match: '/my-leases',   type: 'navigateTo', url: '/pages-weapp/my-leases/index' },
   { match: '/my-repairs',  type: 'navigateTo', url: '/pages-weapp/my-repairs/index' },
   { match: '/tech-repair-workbench', type: 'switchTab', url: '/pages-weapp/tech-repair-workbench/index' },
   { match: '/repair-service-create', type: 'navigateTo', url: '/pages-weapp/repair-service-create/index' },

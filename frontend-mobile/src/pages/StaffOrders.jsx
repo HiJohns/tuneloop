@@ -266,9 +266,9 @@ export default function StaffOrders() {
       </ScrollView>
 
       {env.isMiniProgram ? (
-        <BottomNavWeapp active="rent" />
+        <BottomNavWeapp active="profile" />
       ) : (
-        <BottomNav active="rent" navigate={navigate} />
+        <BottomNav active="profile" navigate={navigate} />
       )}
     </View>
   )

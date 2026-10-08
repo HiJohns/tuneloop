@@ -5,7 +5,6 @@ import { View, Text, Button, ScrollView, Image, Picker } from '@tarojs/component
 import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
 import { env } from '../platform'
 import { formatBeijingDate } from '../utils/format'
-import BottomNav from '../components-weapp/BottomNav'
 
 const FILTERS = [
   { key: '', label: '全部订单' },
@@ -78,12 +77,7 @@ export default function MyLeases() {
 
   useDidShow(() => {
     setRefreshKey(k => k + 1)
-    // switchTab cannot carry query params; consume status persisted by
-    // Profile's order-status entries (tab_params.status).
-    try {
-      const tp = Taro.getStorageSync('tab_params')
-      if (tp?.status) setSelectedFilter(tp.status)
-    } catch {}
+    // #2175: 二级页（navigateTo）——status 由 router.params 传入（见 initStatus）
   })
 
   const baseUrl = env.apiBaseUrl
@@ -320,8 +314,6 @@ export default function MyLeases() {
         )}
         </View>
       </ScrollView>
-
-      <BottomNav active="rent" />
     </View>
   )
 }

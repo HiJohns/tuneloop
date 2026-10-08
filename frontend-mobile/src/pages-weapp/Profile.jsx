@@ -363,10 +363,8 @@ export default function Profile() {
   }
 
   const goMyLeasesStatus = (status) => {
-    try {
-      Taro.setStorageSync('tab_params', { status })
-    } catch {}
-    Taro.switchTab({ url: '/pages-weapp/my-leases/index' })
+    // #2175: 租赁页降为二级页（navigateTo，可带 query）；不再用 switchTab/tab_params
+    Taro.navigateTo({ url: `/pages-weapp/my-leases/index${status ? '?status=' + status : ''}` })
   }
 
   if (loading) {
@@ -604,6 +602,15 @@ export default function Profile() {
                 {unreadCount > 0 && <Text style={{ fontSize: 12, color: '#FF2A55', fontWeight: '700', marginRight: 4 }}>{unreadCount}条未读</Text>}
                 <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
               </View>
+            </View>
+          )}
+          {/* #2175: 我的租赁（顾客）——租赁降为二级页，入口移至个人中心 */}
+          {!isStaff && !isGuest && (
+            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => goMyLeasesStatus('')}>
+              <View style={{ display: 'flex', alignItems: 'center' }}>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>我的租赁</Text>
+              </View>
+              <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>
           )}
           {/* 5. 申请发票（顾客） */}

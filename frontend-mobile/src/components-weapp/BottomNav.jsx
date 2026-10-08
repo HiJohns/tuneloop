@@ -3,8 +3,9 @@
 //（#1884）。此前各页自行拼装 tabs 导致显隐口径不一致（Profile 漏过滤的事故根因）。
 import { useEffect, useState } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text } from '@tarojs/components'
-import { Home, Music, Wrench, User } from 'lucide-react' // #2151 统一图标（weapp 构建别名 → stubs）
+import { View, Text, Image } from '@tarojs/components'
+import { Home, Wrench, User } from 'lucide-react' // #2151 统一图标（weapp 构建别名 → stubs）
+import mallPng from '../assets/mall.png' // #2175 商城 tab 图标
 import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
 import { isStaffRole, isPureTechnician } from '../utils/role'
@@ -43,7 +44,7 @@ export default function BottomNav({ active = '', badges = {}, tenant }) {
 
   const tabs = [
     { key: 'home', Icon: Home, label: '首页', onClick: () => goTab('/pages-weapp/home/index') },
-    ...(isPureTech ? [] : [{ key: 'rent', Icon: Music, label: '租赁', onClick: () => goTab('/pages-weapp/my-leases/index') }]),
+    ...(isPureTech ? [] : [{ key: 'mall', img: mallPng, label: '商城', onClick: () => goTab('/pages-weapp/mall/index') }]),
     { key: 'service', Icon: Wrench, label: '维修', onClick: goService },
     { key: 'profile', Icon: User, label: '我的', onClick: () => goTab('/pages-weapp/profile/index') },
   ]
@@ -57,7 +58,9 @@ export default function BottomNav({ active = '', badges = {}, tenant }) {
         return (
           <View key={tab.key || i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', flex: 1, paddingTop: 6, paddingBottom: 6 }} onClick={tab.onClick}>
             <View style={{ position: 'relative', marginBottom: 2 }}>
-              <tab.Icon size={22} color={color} />
+              {tab.img
+                ? <Image src={tab.img} style={{ width: 22, height: 22, opacity: isActive ? 1 : 0.55 }} />
+                : <tab.Icon size={22} color={color} />}
               {badge > 0 && (
                 <View style={{ position: 'absolute', top: -4, right: -8, backgroundColor: '#FF2A55', color: '#fff', fontSize: 9, fontWeight: '900', minWidth: 16, height: 16, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: 2, paddingRight: 2, border: '1px solid #5A3B24' }}>
                   {badge > 99 ? '99+' : badge}

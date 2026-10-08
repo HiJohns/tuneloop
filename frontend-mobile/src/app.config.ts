@@ -6,6 +6,7 @@ const weappPages = [
   'pages-weapp/checkout/index',
   'pages-weapp/success/index',
   'pages-weapp/my-leases/index',
+  'pages-weapp/mall/index',
   'pages-weapp/profile/index',
   'pages-weapp/login/index',
   'pages-weapp/profile-complete/index',
@@ -65,6 +66,7 @@ const h5Pages = [
   'pages/messages/index',
   'pages/my-contracts/index',
   'pages/my-leases/index',
+  'pages/mall/index',
   'pages/my-repairs/index',
   'pages/order-detail/index',
   'pages/payment-complete/index',
@@ -101,11 +103,8 @@ const h5Pages = [
   'pages/about/index',
 ]
 
-// Native tabBar semantics (switchTab) without native UI: custom:true hides
-// the system tabBar and renders src/custom-tab-bar (empty shell) instead.
-// my-repairs is registered as a navigateTo page (not a tab) — bottom-nav
-// tabs stay 3 (home / my-leases / profile), my-repairs reachable from the
-// repair entry (#1677). H5 side uses react-router + its own BottomNav.
+// #2175: 底条「租赁」改为「商城」（tabBar 页）；「我的租赁」降为个人中心二级页
+// （navigateTo，不再是 tab）。custom:true 隐藏系统 tabBar，由 src 的 BottomNav 渲染。
 const tabBar = isWeapp ? {
   custom: true,
   color: '#8a8a8a',
@@ -113,7 +112,7 @@ const tabBar = isWeapp ? {
   backgroundColor: '#5A3B24',
   list: [
     { pagePath: 'pages-weapp/home/index', text: '首页' },
-    { pagePath: 'pages-weapp/my-leases/index', text: '租赁' },
+    { pagePath: 'pages-weapp/mall/index', text: '商城' },
     { pagePath: 'pages-weapp/tech-list/index', text: '维修' },
     { pagePath: 'pages-weapp/tech-repair-workbench/index', text: '工作台' },
     { pagePath: 'pages-weapp/profile/index', text: '我的' },

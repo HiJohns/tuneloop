@@ -6,7 +6,6 @@ import { apiFetch, getToken , resolveErrorMessage } from '../services/api'
 import { env, dialog } from '../platform'
 import { formatBeijingDate } from '../utils/format'
 import { Package } from 'lucide-react'
-import BottomNav from '../components/BottomNav'
 
 const MAIN_TABS = [
   { key: 'active', label: '进行中' },
@@ -151,7 +150,10 @@ export default function MyLeases() {
   return (
     <View className="flex flex-col h-screen">
       <View className=" px-4 pt-4 pb-4" style={{ backgroundImage: 'linear-gradient(to bottom, #FDF4E7, #FFFFFF)' }}>
-        <Text className="text-lg font-black text-black">我的租约 v11</Text>
+        <View className="flex items-center gap-1">
+          <Text onClick={() => navigate(-1)} className="text-2xl font-black text-black" style={{ lineHeight: '1', paddingRight: 2 }}>‹</Text>
+          <Text className="text-lg font-black text-black">我的租赁</Text>
+        </View>
       </View>
 
       {/* Main Tabs */}
@@ -333,8 +335,6 @@ export default function MyLeases() {
         )}
         </View>
       </ScrollView>
-
-      <BottomNav active="rent" navigate={navigate} />
     </View>
   )
 }

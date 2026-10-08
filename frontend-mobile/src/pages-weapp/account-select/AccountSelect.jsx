@@ -7,7 +7,7 @@ import { parseJWT } from '../../platform/init'
 
 const ROLE_LABELS = { site_member: '员工', site_admin: '网点管理员', repair_technician: '维修师傅', merchant_admin: '商户管理员', worker: '员工', OWNER: '负责人', ADMIN: '管理员' }
 
-const TAB_PAGES = ['/pages-weapp/home/index', '/pages-weapp/my-leases/index', '/pages-weapp/profile/index']
+const TAB_PAGES = ['/pages-weapp/home/index', '/pages-weapp/mall/index', '/pages-weapp/profile/index']
 
 function navigatePostAuth(url) {
   if (TAB_PAGES.includes(url)) {

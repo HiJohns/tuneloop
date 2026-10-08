@@ -511,6 +511,15 @@ export default function Profile() {
               <Text className="text-sm text-zinc-300">❯</Text>
             </View>
           </View>
+          {/* #2175: 我的租赁（顾客）——租赁降为二级页，入口移至个人中心 */}
+          {!isStaff && (
+          <View className="flex justify-between items-center py-3.5" onClick={() => nav('/my-leases')}>
+            <View className="flex items-center">
+              <Text className="text-base font-bold text-zinc-800">我的租赁</Text>
+            </View>
+            <Text className="text-zinc-300 text-lg">›</Text>
+          </View>
+          )}
           {/* 5. 申请发票（仅顾客） */}
           {!isStaff && (
           <View className="flex justify-between items-center py-3.5" onClick={() => nav('/content?key=invoice')}>
