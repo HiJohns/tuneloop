@@ -616,14 +616,6 @@ export default function Profile() {
               <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>
           )}
-          {/* 5.6 待提交订单（#2041/#2053 整改） */}
-          <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={openPending}>
-            <View style={{ display: 'flex', alignItems: 'center' }}>
-              <Text style={{ fontSize: 18, marginRight: 8 }}>📝</Text>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>待提交订单</Text>
-            </View>
-            <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
-          </View>
           {/* 6. 商务合作（全员） */}
           <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/content/index?key=cooperation')}>
             <View style={{ display: 'flex', alignItems: 'center' }}>

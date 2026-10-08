@@ -529,14 +529,6 @@ export default function Profile() {
             <Text className="text-zinc-300 text-lg">›</Text>
           </View>
 
-          {/* 5.6 待提交订单（#2041 未实名拦截后缓存） */}
-          <View className="flex justify-between items-center py-3.5" onClick={() => setShowPending(true)}>
-            <View className="flex items-center">
-              <Text className="text-base font-bold text-zinc-800">待提交订单</Text>
-            </View>
-            <Text className="text-zinc-300 text-lg">›</Text>
-          </View>
-
           {/* 6. 商务合作 */}
           <View className="flex justify-between items-center py-3.5" onClick={() => nav('/content?key=cooperation')}>
             <View className="flex items-center gap-2">
