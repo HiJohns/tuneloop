@@ -138,7 +138,7 @@ export default function StaffOrders() {
         <Text className="text-lg font-black text-black">订单管理</Text>
       </View>
 
-      <ScrollView scrollY className="flex-1 px-4 min-h-0 overflow-y-auto"
+      <ScrollView scrollY className="flex-1 min-h-0 overflow-y-auto"
         onScrollToLower={() => {
           if (!loadingMore && hasMore) {
             setLoadingMore(true)
@@ -148,6 +148,8 @@ export default function StaffOrders() {
         lowerThreshold={50}
         enableBackToTop
       >
+      {/* #2179: 水平内边距移入 ScrollView 内部普通 View（weapp ScrollView 的 padding 不约束子元素宽度，AGENTS §#1514） */}
+      <View style={{ paddingLeft: 16, paddingRight: 16, paddingBottom: 96, boxSizing: 'border-box' }}>
       <View className="bg-white mt-3 rounded-2xl shadow-sm p-4">
         <View className="flex gap-2 mb-3">
           {MAIN_TABS.map(tab => (
@@ -262,6 +264,7 @@ export default function StaffOrders() {
             {loadingMore && <View className="text-center py-4 text-zinc-400 font-medium">加载中...</View>}
           </>
         )}
+      </View>
       </View>
       </ScrollView>
 
