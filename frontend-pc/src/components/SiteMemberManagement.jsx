@@ -60,8 +60,8 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
       return;
     }
     try {
-      const resp = await adminApi.listRoles();
-      if (resp.code === 20000) setAvailableRoles((resp.data || []).filter(r => SITE_ROLES.includes(r.code)));
+      const resp = await adminApi.listRoles({ page_size: 100 });
+      if (resp.code === 20000) setAvailableRoles((resp.data?.list || []).filter(r => SITE_ROLES.includes(r.code)));
     } catch { /* non-critical */ }
   };
 

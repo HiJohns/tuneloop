@@ -50,6 +50,22 @@ func (h *PermissionManageHandler) ListUsers(c *gin.Context) {
 		Codes    sql.NullString `gorm:"column:cus_perm_codes"`
 	}
 
+	// #2161: 服务端分页 + 响应形态 {list,total}（原为裸数组）
+	page := parseInt(c.DefaultQuery("page", "1"), 1)
+	pageSize := clampPageSize(parseInt(c.DefaultQuery("page_size", "20"), 20), 20, maxPageSize)
+
+	var total int64
+	if err := h.db.Raw(`
+		SELECT COUNT(*)
+		FROM site_members sm
+		JOIN users u ON u.iam_sub = sm.user_id::text
+		JOIN sites s ON s.id = sm.site_id
+		WHERE s.tenant_id = ?
+	`, tenantID).Scan(&total).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to count users: " + err.Error()})
+		return
+	}
+
 	var rows []MemberRow
 	err := h.db.Raw(`
 		SELECT sm.user_id, u.name, sm.site_id, s.name as site_name, sm.role, sm.cus_perm_codes
@@ -58,7 +74,8 @@ func (h *PermissionManageHandler) ListUsers(c *gin.Context) {
 		JOIN sites s ON s.id = sm.site_id
 		WHERE s.tenant_id = ?
 		ORDER BY s.name, u.name
-	`, tenantID).Scan(&rows).Error
+		LIMIT ? OFFSET ?
+	`, tenantID, pageSize, (page-1)*pageSize).Scan(&rows).Error
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list users: " + err.Error()})
 		return
@@ -82,7 +99,10 @@ func (h *PermissionManageHandler) ListUsers(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": result})
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{"list": result, "total": total, "page": page, "page_size": pageSize},
+	})
 }
 
 type setUserPermReq struct {

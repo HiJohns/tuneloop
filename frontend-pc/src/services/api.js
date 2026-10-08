@@ -503,7 +503,10 @@ export const adminApi = {
   },
   setUserPermissions: (userId, cusPermCodes) => api.put(`/admin/users/${userId}/permissions`, { cus_perm_codes: cusPermCodes }),
   setUserRole: (userId, roleCode) => api.put(`/admin/users/${userId}/roles`, { role_code: roleCode }),
-  listRoles: () => api.get('/admin/roles'),
+  listRoles: (params = {}) => {
+    const query = new URLSearchParams(params).toString()
+    return api.get(`/admin/roles${query ? '?' + query : ''}`)
+  },
   createRole: (data) => api.post('/admin/roles', data),
   updateRole: (id, data) => api.put(`/admin/roles/${id}`, data),
   deleteRole: (id) => api.delete(`/admin/roles/${id}`),

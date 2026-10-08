@@ -71,15 +71,21 @@ function MemberPermissions() {
   const [loading, setLoading] = useState(true)
   const [editModal, setEditModal] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [total, setTotal] = useState(0)
 
   const fetchMembers = useCallback(async () => {
     setLoading(true)
     try {
-      const resp = await adminApi.listUsers()
-      if (resp.code === 20000) setMembers(resp.data || [])
+      const resp = await adminApi.listUsers({ page, page_size: pageSize })
+      if (resp.code === 20000) {
+        setMembers(resp.data?.list || [])
+        setTotal(resp.data?.total || 0)
+      }
     } catch { message.error('加载成员列表失败') }
     setLoading(false)
-  }, [])
+  }, [page, pageSize])
 
   useEffect(() => { fetchMembers() }, [fetchMembers])
 
@@ -114,7 +120,11 @@ function MemberPermissions() {
           dataSource={members}
           rowKey="user_id"
           loading={loading}
-          pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }}
+          pagination={{
+            current: page, pageSize, total, showSizeChanger: true,
+            showTotal: (t) => `共 ${t} 条`,
+            onChange: (p, ps) => { setPage(p); setPageSize(ps) },
+          }}
         />
       </Card>
       {editModal && (
@@ -153,8 +163,8 @@ function MemberPermissionEditModal({ member, visible, onClose, onSave, saving })
     if (!visible) return
     setRoleCode(member.role_code || 'site_member')
     setCusPermCodes(member.cus_perm_codes || [])
-    adminApi.listRoles().then(resp => {
-      if (resp.code === 20000) setRoles(resp.data || [])
+    adminApi.listRoles({ page_size: 100 }).then(resp => {
+      if (resp.code === 20000) setRoles(resp.data?.list || [])
     })
   }, [visible, member])
 
@@ -210,15 +220,21 @@ function RoleManagement() {
   const [editModal, setEditModal] = useState(null)
   const [creating, setCreating] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [total, setTotal] = useState(0)
 
   const fetchRoles = useCallback(async () => {
     setLoading(true)
     try {
-      const resp = await adminApi.listRoles()
-      if (resp.code === 20000) setRoles(resp.data || [])
+      const resp = await adminApi.listRoles({ page, page_size: pageSize })
+      if (resp.code === 20000) {
+        setRoles(resp.data?.list || [])
+        setTotal(resp.data?.total || 0)
+      }
     } catch { message.error('加载角色列表失败') }
     setLoading(false)
-  }, [])
+  }, [page, pageSize])
 
   useEffect(() => { fetchRoles() }, [fetchRoles])
 
@@ -268,7 +284,11 @@ function RoleManagement() {
           dataSource={roles}
           rowKey={r => r.id || r.code}
           loading={loading}
-          pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }}
+          pagination={{
+            current: page, pageSize, total, showSizeChanger: true,
+            showTotal: (t) => `共 ${t} 条`,
+            onChange: (p, ps) => { setPage(p); setPageSize(ps) },
+          }}
         />
       </Card>
       <RoleFormModal

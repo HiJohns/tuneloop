@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"sort"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
@@ -86,8 +87,26 @@ func (h *RoleManageHandler) ListRoles(c *gin.Context) {
 	for _, r := range roleMap {
 		result = append(result, r)
 	}
+	sort.Slice(result, func(i, j int) bool { return result[i].Code < result[j].Code })
 
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": result})
+	// #2161: 服务端分页 + 响应形态 {list,total}（原为裸数组）
+	page := parseInt(c.DefaultQuery("page", "1"), 1)
+	pageSize := clampPageSize(parseInt(c.DefaultQuery("page_size", "20"), 20), 20, maxPageSize)
+	total := len(result)
+	start := (page - 1) * pageSize
+	if start > total {
+		start = total
+	}
+	end := start + pageSize
+	if end > total {
+		end = total
+	}
+	paged := result[start:end]
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{"list": paged, "total": total, "page": page, "page_size": pageSize},
+	})
 }
 
 type createRoleReq struct {
