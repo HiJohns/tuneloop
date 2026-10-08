@@ -28,9 +28,15 @@ func ListWarnings(c *gin.Context) {
 		query = query.Where("site_id = ?", siteID)
 	}
 
+	// #2167: 服务端分页 + total
+	var total int64
+	query.Count(&total)
+	page := parseInt(c.DefaultQuery("page", "1"), 1)
+	pageSize := clampPageSize(parseInt(c.DefaultQuery("page_size", "20"), 20), 20, maxPageSize)
+
 	var warnings []models.Warning
-	query.Order("level DESC, created_at DESC").Find(&warnings)
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": warnings}})
+	query.Order("level DESC, created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&warnings)
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": warnings, "total": total, "page": page, "page_size": pageSize}})
 }
 
 // GetWarning returns a single warning by ID.
