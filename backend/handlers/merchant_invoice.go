@@ -31,13 +31,22 @@ func (h *MerchantInvoiceHandler) ListApplications(c *gin.Context) {
 	}
 
 	statusFilter := c.Query("status")
-	query := db.Where("tenant_id = ?", tenantID)
+	query := db.Model(&models.InvoiceApplication{}).Where("tenant_id = ?", tenantID)
 	if statusFilter != "" {
 		query = query.Where("status = ?", statusFilter)
 	}
 
+	// #2166: 服务端分页 + total
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "查询失败"})
+		return
+	}
+	page := parseInt(c.DefaultQuery("page", "1"), 1)
+	pageSize := clampPageSize(parseInt(c.DefaultQuery("page_size", "20"), 20), 20, maxPageSize)
+
 	var apps []models.InvoiceApplication
-	if err := query.Order("created_at DESC").Find(&apps).Error; err != nil {
+	if err := query.Order("created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&apps).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "查询失败"})
 		return
 	}
@@ -87,7 +96,7 @@ func (h *MerchantInvoiceHandler) ListApplications(c *gin.Context) {
 		result = append(result, ar)
 	}
 
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": result})
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": result, "total": total, "page": page, "page_size": pageSize}})
 }
 
 // POST /merchant/invoices/:id/reply — reply with invoice file

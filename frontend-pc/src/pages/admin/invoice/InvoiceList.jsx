@@ -17,6 +17,9 @@ function formatCents(cents) {
 export default function InvoiceList() {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [total, setTotal] = useState(0)
   const [detailVisible, setDetailVisible] = useState(false)
   const [replyVisible, setReplyVisible] = useState(false)
   const [current, setCurrent] = useState(null)
@@ -24,13 +27,14 @@ export default function InvoiceList() {
   const [replyFileUrl, setReplyFileUrl] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => { fetchData() }, [page, pageSize])
 
   const fetchData = async () => {
     setLoading(true)
     try {
-      const resp = await api.get('/merchant/invoices')
-      setData(resp?.data || [])
+      const resp = await api.get('/merchant/invoices', { params: { page, page_size: pageSize } })
+      setData(resp?.data?.list || [])
+      setTotal(resp?.data?.total || 0)
     } catch { message.error('获取失败') }
     setLoading(false)
   }
@@ -128,7 +132,11 @@ export default function InvoiceList() {
           dataSource={data}
           rowKey="id"
           loading={loading}
-          pagination={{ pageSize: 20 }}
+          pagination={{
+            current: page, pageSize, total, showSizeChanger: true,
+            showTotal: (t) => `共 ${t} 条`,
+            onChange: (p, ps) => { setPage(p); setPageSize(ps) },
+          }}
         />
       </Card>
 
