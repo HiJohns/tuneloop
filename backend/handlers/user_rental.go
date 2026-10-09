@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"sort"
 	"strconv"
@@ -1336,7 +1337,7 @@ func (h *UserRentalHandler) CalculateRental(c *gin.Context) {
 		"member_discount_amount":  memberDiscountAmount,
 		"deposit":                 deposit,
 		"shipping_fee":            shippingFee,
-		"gift_points_max":         giftPointsMax,
+		"gift_points_max":         math.Floor(giftPointsMax / 100),
 		"prepaid_points_max":      prepaidPointsMax,
 		"gift_points_used":        0,
 		"prepaid_points_used":     0,

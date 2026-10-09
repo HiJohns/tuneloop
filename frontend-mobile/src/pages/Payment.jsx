@@ -73,7 +73,7 @@ export default function Payment() {
   const displayAmount = appliedCoupon ? couponAmount : data.amount
   const cashAmount = isRefund
     ? data.amount
-    : Math.max(0, displayAmount - giftUsed)
+    : Math.max(0, displayAmount - giftUsed * 100)
 
   return (
     <div className="min-h-screen" style={{ paddingBottom: 100, backgroundColor: '#FDFBF7' }}>
@@ -147,9 +147,9 @@ export default function Payment() {
             <div className="flex items-center mt-1">
               <span className="text-xs text-zinc-500">使用</span>
               <div className="flex-1 flex items-center gap-2">
-                <input type="number" min={0} max={Math.min(maxGift, data.amount)} step={1}
+                <input type="number" min={0} max={Math.floor(Math.min(maxGift, data.amount) / 100)} step={1}
                   value={giftUsed}
-                  onChange={e => setGiftUsed(clampPoints(e.target.value, Math.min(maxGift, data.amount)))}
+                  onChange={e => setGiftUsed(clampPoints(e.target.value, Math.floor(Math.min(maxGift, data.amount) / 100)))}
                   className="flex-1 border border-zinc-200 rounded-lg px-2 py-1 text-right"
                 />
               </div>
@@ -309,7 +309,7 @@ export default function Payment() {
           // (server FromYuan) — sending cents as yuan overcharged 100×
           // (7d5cadd7: ¥0.04 charged as ¥3.01).
           amount: (appliedCoupon ? data.amount : cashAmount) / 100,
-          gift_used: appliedCoupon ? 0 : giftUsed / 100,
+          gift_used: appliedCoupon ? 0 : giftUsed,
           ...(appliedCoupon ? { coupon_code: appliedCoupon.code } : {}),
         }),
       })

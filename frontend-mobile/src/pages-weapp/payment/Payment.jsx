@@ -156,7 +156,7 @@ export default function Payment() {
 
   const cashAmount = isRefund
     ? data.amount
-    : Math.max(0, displayAmount - giftUsed)
+    : Math.max(0, displayAmount - giftUsed * 100)
 
   const applyCoupon = () => {
     const tryApply = () => {
@@ -325,7 +325,7 @@ export default function Payment() {
       amount: payAmount / 100,
       open_id: '',
       // gift_used likewise cents → yuan (server FromYuan).
-      gift_used: appliedCoupon ? 0 : (pType === 'membership' ? 0 : giftUsed / 100),
+      gift_used: appliedCoupon ? 0 : (pType === 'membership' ? 0 : giftUsed),
     }
     if (pType === 'membership' && pSessionId) {
       body.session_id = pSessionId
@@ -553,7 +553,7 @@ export default function Payment() {
                 <Text style={{ fontSize: 13, color: '#71717a', width: 72 }}>使用</Text>
                 <View style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
                   <Input type="number" value={String(giftUsed || '')}
-                    onInput={e => setGiftUsed(clampPoints(e.detail.value, Math.min(maxGift, data.amount)))}
+                    onInput={e => setGiftUsed(clampPoints(e.detail.value, Math.floor(Math.min(maxGift, data.amount) / 100)))}
                     style={{ flex: 1, border: '1px solid #e4e4e7', borderRadius: 8, padding: '6px 10px', fontSize: 13, textAlign: 'right' }}
                   />
                 </View>
