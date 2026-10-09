@@ -67,13 +67,28 @@ export const request = (url, options = {}) => {
   })
 }
 
+// #2183: 取可用 token（weapp session 委托 storage；storage 未过期 → 回退）。
+// 不 import services/api（api 依赖 platform，会循环依赖）。
+function authToken() {
+  const token = storage.getItem('token')
+  const expiry = storage.getItem('token_expiry')
+  if (token && expiry && new Date().getTime() <= parseInt(expiry)) return token
+  return session.getItem('token') || null
+}
+
 export const uploadFile = (url, filePath, options = {}) => {
+  // #2183: 统一注入 Authorization（有 token 时；auth:false 可显式跳过）
+  const header = { ...(options.headers || {}) }
+  if (options.auth !== false) {
+    const token = authToken()
+    if (token) header.Authorization = `Bearer ${token}`
+  }
   const task = Taro.uploadFile({
     url,
     filePath,
     name: options.name || 'file',
     formData: options.formData || {},
-    header: options.headers || {},
+    header,
   })
   // 暴露底层 task（调用方可在停滞看门狗中 task.abort()）。
   if (typeof options.onStart === 'function' && task) {

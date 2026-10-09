@@ -59,6 +59,15 @@ export const request = (url, options = {}) => {
     .finally(() => clearTimeout(timeoutId))
 }
 
+// #2183: 取可用 token（storage 未过期 → 回退 session）。
+// 不 import services/api（api 依赖 platform，会循环依赖）。
+function authToken() {
+  const token = storage.getItem('token')
+  const expiry = storage.getItem('token_expiry')
+  if (token && expiry && new Date().getTime() <= parseInt(expiry)) return token
+  return session.getItem('token') || null
+}
+
 export const uploadFile = (url, file, options = {}) => {
   const fd = new FormData()
   fd.append(options.name || 'file', file)
@@ -67,8 +76,14 @@ export const uploadFile = (url, file, options = {}) => {
       fd.append(k, v)
     }
   }
-  const { formData, name, ...rest } = options
-  return fetch(url, { method: 'POST', body: fd, headers: rest.headers, ...rest })
+  const { formData, name, auth, headers: callerHeaders, ...rest } = options
+  // #2183: 统一注入 Authorization（有 token 时；auth:false 可显式跳过）
+  const headers = { ...(callerHeaders || {}) }
+  if (auth !== false) {
+    const token = authToken()
+    if (token) headers.Authorization = `Bearer ${token}`
+  }
+  return fetch(url, { method: 'POST', body: fd, ...rest, headers })
 }
 
 export const dialog = {
