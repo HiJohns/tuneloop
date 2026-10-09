@@ -3714,6 +3714,8 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 > **#1945 乐币规则**：原「退款返点给自己」已取消（`refund_ratio` 字段废弃）。级别配置见 `gift_policies`（`pay_ratio` / `referral_ratio` / `referral_reg_points`）；全局参数 `GET/PUT /admin/point-settings`（`pay_ratio_max` / `point_batch_validity_months` / `point_expiry_reminder_days`）。
 >
 > **#1983 余额真源**：`promo_points` 数据源为 `SUM(point_batches.remaining_cents WHERE 未过期)`（FIFO 消费）；`users.promo_points` 快照列已删除（迁移 `20260918001`）。响应字段名与分单位**不变**。
+>
+> **#2180 使用单位**：乐币**最小使用单位为元（整数）**。`POST /api/rental/calculate` 的 `gift_points_max` 返回**元**（`math.Floor(cents / 100)`，向下取整）；支付页输入以元为单位（`clampPoints` 用 `parseInt` 取整），`gift_used`（prepay 请求）为元，后端 `FromYuan` 转分存储。余额展示字段（`promo_points` / `prepaid_points` / `gift_points_used` / `gift_points_refunded` 等）仍为分，前端 `/100` 或 `formatCents` 转元。
 
 **接口**: `GET /api/user/points/balance`
 
@@ -4281,7 +4283,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 }
 ```
 
-> 赠点上限 = `min(用户赠点余额, 总支付额 × PointsPolicy.MaxPayRatio)`。现金 = 总支付额 − 赠点。
+> 赠点上限 = `min(用户赠点余额, 总支付额 × PointsPolicy.MaxPayRatio)`。现金 = 总支付额 − 赠点。**`gift_points_max` 返回元（整数，向下取整，#2180）；其余金额字段（`total_rent`/`deposit`/`shipping_fee`/`cash_to_pay`）为分。**
 
 ---
 
