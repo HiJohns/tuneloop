@@ -169,6 +169,21 @@ async function refreshAccessToken() {
   throw new Error('Invalid refresh response')
 }
 
+// #2181: 供非 request() 通道（如带进度的 XHR 上传）获取"新鲜" token——
+// 复用 request() 的滑窗续期判断，避免各自实现。
+export async function ensureFreshToken() {
+  let token = getToken()
+  if (token && isTokenExpiringSoon(token)) {
+    try {
+      await refreshAccessToken()
+      token = getToken()
+    } catch (e) {
+      Logger.warn('AUTH', 'ensureFreshToken refresh failed:', e.message)
+    }
+  }
+  return token
+}
+
 // #2046: 导出/模板下载专用 blob 请求 —— 对齐 auditLogApi.export 行为（getToken+Bearer，
 // 纯函数，不新增滑窗续期/401 重放）。返回 Blob；!ok 时抛「导出失败」。
 async function fetchBlob(endpoint, { params, method = 'GET', body } = {}) {

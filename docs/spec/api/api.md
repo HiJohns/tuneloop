@@ -142,6 +142,8 @@
 2. 用户登录后，IAM 回调业务系统: `/api/auth/callback?code=xxx&state=xxx`
 3. 业务系统用 code 换取 JWT token
 
+> **Cookie（#2181）**：回调成功时同时下发会话 cookie——`token`（access，maxAge=`expires_in`，非 HttpOnly，供 JS/上传通道读取）+ `refresh_token`（HttpOnly，30 天）；域按 `Host` 判定（含 `cadenzayueqi.com` → `.cadenzayueqi.com`，含 `linxdeep.com` → `.linxdeep.com`，否则 host-only）。
+
 ---
 
 ### 2.2 微信小程序登录
@@ -354,6 +356,8 @@ Body：`{ role: "<主角色>", roles: ["<角色>", ...] }`（`roles` 可选；�
   }
 }
 ```
+
+> **Cookie（#2181）**：刷新成功同样**续期** `token` / `refresh_token` cookie（与 §2.1 回调一致），使 cookie 生命周期与 token 同步——修复旧实现下 cookie 到期后依赖 cookie 的请求（如上传）恒 401 的问题。
 
 ---
 

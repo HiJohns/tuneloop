@@ -211,11 +211,25 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		}
 	}
 
-	// Set access_token and refresh_token cookies
-	// PC 端会话时长设置为 1 小时 (3600 秒)
+	// #2181: 统一设置/续期 PC 会话 cookie
+	setAuthCookies(c, tokenResp)
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": tokenResp,
+	})
+}
+
+// setAuthCookies 统一设置/续期 PC 会话 cookie（#2181）。
+// 域按 Host 判定（cadenzayueqi.com / linxdeep.com 子域共享）；
+// token maxAge = expires_in（<=0 回退 900s），refresh_token 30 天 httpOnly。
+// 由 OAuth 回调、Token 刷新、账密登录共同调用，保证 cookie 生命周期与 token 同步。
+func setAuthCookies(c *gin.Context, tokenResp *services.TokenResponse) {
+	if tokenResp == nil || tokenResp.AccessToken == "" {
+		return
+	}
 	c.SetSameSite(http.SameSiteLaxMode)
 
-	// Set cookie domain for subdomain sharing
 	cookieDomain := ""
 	if c.Request.Host != "" {
 		if strings.Contains(c.Request.Host, "cadenzayueqi.com") {
@@ -225,26 +239,12 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		}
 	}
 
-	if cookieDomain != "" {
-		maxAge := tokenResp.ExpiresIn
-		if maxAge <= 0 {
-			maxAge = 900
-		}
-		c.SetCookie("token", tokenResp.AccessToken, maxAge, "/", cookieDomain, false, false)
-		c.SetCookie("refresh_token", tokenResp.RefreshToken, 2592000, "/", cookieDomain, false, true)
-	} else {
-		maxAge := tokenResp.ExpiresIn
-		if maxAge <= 0 {
-			maxAge = 900
-		}
-		c.SetCookie("token", tokenResp.AccessToken, maxAge, "/", "", false, false)
-		c.SetCookie("refresh_token", tokenResp.RefreshToken, 2592000, "/", "", false, true)
+	maxAge := tokenResp.ExpiresIn
+	if maxAge <= 0 {
+		maxAge = 900
 	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"code": 20000,
-		"data": tokenResp,
-	})
+	c.SetCookie("token", tokenResp.AccessToken, maxAge, "/", cookieDomain, false, false)
+	c.SetCookie("refresh_token", tokenResp.RefreshToken, 2592000, "/", cookieDomain, false, true)
 }
 
 func (h *AuthHandler) PostLogin(c *gin.Context) {
@@ -285,6 +285,9 @@ func (h *AuthHandler) PostLogin(c *gin.Context) {
 		c.JSON(http.StatusBadGateway, gin.H{"code": 50001, "message": "登录服务暂不可用，请稍后重试"})
 		return
 	}
+
+	// #2181: 账密登录同样设置会话 cookie（与 OAuth 回调一致）
+	setAuthCookies(c, tokenResp)
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
@@ -505,6 +508,9 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 			membershipFee = v
 		}
 	}
+
+	// #2181: 注册自动登录同样设置会话 cookie（与 OAuth 回调一致）
+	setAuthCookies(c, tokenResp)
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
@@ -1021,6 +1027,9 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		})
 		return
 	}
+
+	// #2181: 续期 cookie，使 cookie 生命周期与 token 同步
+	setAuthCookies(c, tokenResp)
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,

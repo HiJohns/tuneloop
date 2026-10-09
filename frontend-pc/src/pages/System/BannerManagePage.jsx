@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { Table, Card, Button, Space, Modal, Form, Input, Upload, Image, Popconfirm, message, ColorPicker } from 'antd';
 import { PlusOutlined, UploadOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { bannerApi } from '../../services/api';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+import { antdUploadProps } from '../../utils/upload';
 
 export default function BannerManagePage() {
   const [banners, setBanners] = useState([]);
@@ -179,20 +178,14 @@ export default function BannerManagePage() {
         <Form form={form} layout="vertical">
           <Form.Item label="图片" extra="支持上传或输入图片URL">
             <Upload
-              action={`${API_BASE_URL}/upload`}
-              name="file"
               showUploadList={false}
-              onChange={(info) => {
-                if (info.file.status === 'done') {
-                  const resp = info.file.response;
-                  if (resp?.data?.url) {
-                    form.setFieldsValue({ image_url: resp.data.url });
-                    message.success('上传成功');
-                  }
-                } else if (info.file.status === 'error') {
-                  message.error('上传失败');
-                }
-              }}
+              {...antdUploadProps(
+                (result) => {
+                  form.setFieldsValue({ image_url: result.url });
+                  message.success('上传成功');
+                },
+                { onError: (e) => message.error(e.message || '上传失败') }
+              )}
             >
               <Button icon={<UploadOutlined />}>上传图片</Button>
             </Upload>

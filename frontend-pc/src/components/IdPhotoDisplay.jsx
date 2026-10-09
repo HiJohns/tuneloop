@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Upload, Button, message, Image } from 'antd'
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import { api } from '../services/api'
+import { uploadToApi } from '../utils/upload'
 
 // IdPhotoDisplay — PC 端身份证查看/替换/删除组件 (#1599)
 // Props:
@@ -19,31 +20,19 @@ export default function IdPhotoDisplay({ side, label: labelOverride = '', initia
     setUrl(initialUrl || '')
   }, [initialUrl])
 
-  const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token')
-
-  const authFetch = async (url, options = {}) => {
-    const headers = { ...(options.headers || {}) }
-    const token = getToken()
-    if (token) headers.Authorization = `Bearer ${token}`
-    return fetch(url, { ...options, headers })
-  }
-
   const handleUpload = async (options) => {
     setUploading(true)
-    const formData = new FormData()
-    formData.append('file', options.file)
-    formData.append('side', side)
     try {
-      const resp = await authFetch(uploadEndpoint, { method: 'POST', body: formData })
-      const json = await resp.json()
-      if (json.code === 20000 && json.data?.url) {
-        setUrl(json.data.url)
+      // #2181: 走统一上传入口（request() 鉴权生命周期）
+      const result = await uploadToApi(options.file, { endpoint: uploadEndpoint, formData: { side } })
+      if (result.url) {
+        setUrl(result.url)
         message.success(`${label}照片已更新`)
       } else {
-        message.error(json.message || '上传失败')
+        message.error('上传失败')
       }
-    } catch {
-      message.error('上传失败')
+    } catch (e) {
+      message.error(e.message || '上传失败')
     } finally {
       setUploading(false)
       if (options.onSuccess) options.onSuccess()
@@ -52,16 +41,15 @@ export default function IdPhotoDisplay({ side, label: labelOverride = '', initia
 
   const handleDelete = async () => {
     try {
-      const resp = await authFetch(`${deleteEndpoint}?side=${side}`, { method: 'DELETE' })
-      const json = await resp.json()
-      if (json.code === 20000) {
+      const json = await api.delete(`${deleteEndpoint}?side=${side}`)
+      if (json?.code === 20000) {
         setUrl('')
         message.success(`${label}照片已删除`)
       } else {
-        message.error(json.message || '删除失败')
+        message.error(json?.message || '删除失败')
       }
-    } catch {
-      message.error('删除失败')
+    } catch (e) {
+      message.error(e.message || '删除失败')
     }
   }
 

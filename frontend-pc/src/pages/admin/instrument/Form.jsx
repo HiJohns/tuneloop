@@ -9,6 +9,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { api, sitesApi, instrumentsApi, staffApi, propertiesApi } from '../../../services/api'
 import { toYuan } from '../../../utils/money'
+import { uploadToApi, antdUploadProps } from '../../../utils/upload'
 import { checkPermission } from '../../../config/menuPermissions'
 
 const { Option } = Select
@@ -141,7 +142,6 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   const [totalPrice, setTotalPrice] = useState(null)
   const snCheckTimer = useRef(null)
   const lastKeyPressTime = useRef(0)
-  const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
 
   // 权限检查 - 用于条件渲染"管理"链接
   const [canManageCategories, setCanManageCategories] = useState(false)
@@ -710,37 +710,9 @@ const loadCategoryChildren = async (node) => {
     return false // Prevent automatic upload, handle manually
   }
 
-  const uploadFileWithProgress = (file, onProgress) => {
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest()
-      
-      // Progress tracking
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percent = Math.round((event.loaded / event.total) * 100)
-          onProgress(percent)
-        }
-      }
-      
-      xhr.onload = () => {
-        if (xhr.status === 200) {
-          const result = JSON.parse(xhr.responseText)
-          const url = result.data?.url || result.url
-          const fileKey = result.data?.file_key || ''
-          resolve({ url, fileKey })
-        } else {
-          reject(new Error('Upload failed'))
-        }
-      }
-      
-      xhr.onerror = () => reject(new Error('Network error'))
-      
-      xhr.open('POST', `${API_BASE_URL}/upload`)
-      const formData = new FormData()
-      formData.append('file', file.originFileObj || file)
-      xhr.send(formData)
-    })
-  }
+  // #2181: 走统一上传入口（request() 鉴权生命周期 + 进度回调）
+  const uploadFileWithProgress = (file, onProgress) =>
+    uploadToApi(file.originFileObj || file, { onProgress })
 
   const handleUploadChange = ({ fileList: newFileList }) => {
     console.log('[DEBUG] handleUploadChange called with fileList:', newFileList)
@@ -1404,7 +1376,6 @@ const loadCategoryChildren = async (node) => {
               fileList={fileList}
               onChange={handleUploadChange}
               beforeUpload={beforeUpload}
-              action={`${API_BASE_URL}/upload`}
               multiple
               accept="image/*"
               showUploadList={false}
@@ -1470,13 +1441,10 @@ const loadCategoryChildren = async (node) => {
             maxCount={1}
             accept="image/*"
             showUploadList={false}
-            action={`${API_BASE_URL}/upload`}
-            onChange={(info) => {
-              if (info.file.status === 'done') {
-                const url = info.file.response?.data?.url || info.file.response?.url || ''
-                form.setFieldsValue({ poster: url })
-              }
-            }}
+            {...antdUploadProps(
+              (result) => form.setFieldsValue({ poster: result.url }),
+              { onError: (e) => message.error(e.message || '上传失败') }
+            )}
           >
             {form.getFieldValue('poster') ? (
               <div className="relative">
