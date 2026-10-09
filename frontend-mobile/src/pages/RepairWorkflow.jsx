@@ -3,7 +3,7 @@ import { formatCents } from '../utils/money'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { Button, Image, ScrollView, Text, Textarea, View } from '@tarojs/components'
-import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
+import { apiFetch, getToken, resolveErrorMessage, resolveUploadError } from '../services/api'
 import { dialog, env, getInputValue, uploadFile, previewImage } from '../platform'
 import { formatBeijingDateTimeShort, repairStatusLabel } from '../utils/format'
 import { parsePhotos, photoSrc } from '../utils/media'
@@ -288,6 +288,8 @@ export default function RepairWorkflow() {
                 for (const file of capturedPhotos) {
                   const uploadResp = await uploadFile(`${baseUrl}/upload`, file)
                   const uploadResult = env.isMiniProgram ? JSON.parse(uploadResp.data || '{}') : await uploadResp.json()
+                  const authErr = resolveUploadError(uploadResp, uploadResult)
+                  if (authErr) throw new Error(authErr)
                   if (uploadResult.code === 20000 && uploadResult.data?.url) photoUrls.push(uploadResult.data.url)
                 }
                 const resp = await apiFetch(`${baseUrl}/repair/${instrumentId}/records`, {

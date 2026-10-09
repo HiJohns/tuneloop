@@ -334,6 +334,20 @@ export function getToken() {
   return null
 }
 
+// #2184: 上传通道认证失效归一化（统一 401/认证码 → 文案，消除各调用点内联重复）。
+// resp: platform.uploadFile 返回值（H5 Response 含 .status；weapp { ok, status, data }）
+// data: 已解析的响应体（可选）
+// 返回统一错误消息；非认证错误返回 null（调用方回退 resolveErrorMessage）。
+const UPLOAD_AUTH_CODES = [40100, 40104, 40105, 40106, 40107]
+export function resolveUploadError(resp, data) {
+  const status = resp?.status
+  const code = data?.code
+  if (status === 401 || UPLOAD_AUTH_CODES.includes(code)) {
+    return '登录态已失效，请重新登录'
+  }
+  return null
+}
+
 export function getCartKey() {
   const token = getToken()
   if (!token) return 'cart'

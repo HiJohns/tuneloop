@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components'
-import { apiFetch , resolveErrorMessage } from '../services/api'
+import { apiFetch, resolveErrorMessage, resolveUploadError } from '../services/api'
 import { formatDeliveryAddress, formatBeijingDateTimeShort } from '../utils/format'
 import { ArrowLeft, Camera, Scan } from 'lucide-react'
 import { dialog, env, uploadFile, scanQRCode, navigation, getInputValue } from '../platform'
@@ -126,6 +126,8 @@ export default function ShippingInterface() {
       for (const file of photos) {
         const resp = await uploadFile(`${baseUrl}/upload`, file)
         const result = env.isMiniProgram ? JSON.parse(resp.data || '{}') : await resp.json()
+        const authErr = resolveUploadError(resp, result)
+        if (authErr) throw new Error(authErr)
         if (result.code === 20000 && result.data?.url) {
           photoUrls.push(result.data.url)
         }

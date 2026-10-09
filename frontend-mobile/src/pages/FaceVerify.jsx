@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Camera, Image, Input, Button } from '@tarojs/components'
 import { useNavigate } from 'react-router-dom'
-import { apiFetch, resolveErrorMessage } from '../services/api'
+import { apiFetch, resolveErrorMessage, resolveUploadError } from '../services/api'
 import { env, dialog, uploadFile, getCameraContext } from '../platform'
 import FaceCaptureUploader from '../components/FaceCaptureUploader'
 // #2109: E证通小程序 SDK（weapp 自动核身；顶层无 wx 访问，H5 打包安全）
@@ -170,6 +170,8 @@ export default function FaceVerify() {
       uploadTaskRef.current = null
       if (!imgResp.ok) throw new Error('照片上传失败')
       const imgJson = JSON.parse(imgResp.data)
+      const authErr = resolveUploadError(imgResp, imgJson)
+      if (authErr) throw new Error(authErr)
       if (imgJson.code !== 20000) throw new Error(resolveErrorMessage(imgJson, '提交失败'))
       const batchId = imgJson.data?.batch_id || ''
       lastBatchIdRef.current = batchId
@@ -201,6 +203,8 @@ export default function FaceVerify() {
       uploadTaskRef.current = null
       if (!vidResp.ok) throw new Error('视频上传失败')
       const vidJson = JSON.parse(vidResp.data)
+      const authErr = resolveUploadError(vidResp, vidJson)
+      if (authErr) throw new Error(authErr)
       if (vidJson.code !== 20000) throw new Error(resolveErrorMessage(vidJson, '视频上传失败'))
       // #2105：视频保存失败不再静默——仅照片已提交，提示用户稍后重试
       if (vidJson.data?.video_saved === false) {

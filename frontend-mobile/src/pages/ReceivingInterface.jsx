@@ -3,7 +3,7 @@ import { formatCents } from '../utils/money'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components'
-import { apiFetch , resolveErrorMessage } from '../services/api'
+import { apiFetch, resolveErrorMessage, resolveUploadError } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, Camera, Scan, AlertTriangle, User, MapPin } from 'lucide-react'
 import { dialog, env, uploadFile, navigation, getInputValue } from '../platform'
@@ -117,6 +117,8 @@ export default function ReceivingInterface() {
       for (const file of capturedPhotos) {
         const uploadResp = await uploadFile(`${baseUrl}/upload`, file)
         const uploadResult = env.isMiniProgram ? JSON.parse(uploadResp.data || '{}') : await uploadResp.json()
+        const authErr = resolveUploadError(uploadResp, uploadResult)
+        if (authErr) throw new Error(authErr)
         if (uploadResult.code === 20000 && uploadResult.data?.url) photoUrls.push(uploadResult.data.url)
       }
       const dmgAmt = hasDamage ? (parseFloat(damageAmount) || 0) : 0

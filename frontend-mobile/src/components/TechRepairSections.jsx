@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { formatCents, yuanToCents as toCents } from '../utils/money'
 import { View, Text, Input, Video, Button, Image } from '@tarojs/components'
-import { apiFetch, resolveErrorMessage } from '../services/api'
+import { apiFetch, resolveErrorMessage, resolveUploadError } from '../services/api'
 import Taro from '@tarojs/taro'
 import { dialog, env, getInputValue, uploadFile as uploadFileApi } from '../platform'
 import { formatBeijingDate } from '../utils/format'
@@ -215,8 +215,9 @@ export default function TechRepairSections() {
       const keys = []
       for (const f of receiveFiles) {
         const resp = await uploadFileApi(`${baseUrl}/upload`, f)
-        if (resp.status === 401) throw new Error('登录态已失效，请重新登录')
         const r = JSON.parse(resp.data)
+        const authErr = resolveUploadError(resp, r)
+        if (authErr) throw new Error(authErr)
         if (r.code !== 20000) throw new Error(r.message || '上传失败')
         keys.push(r.data.file_key)
       }

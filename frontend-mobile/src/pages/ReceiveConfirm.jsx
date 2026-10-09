@@ -3,7 +3,7 @@ import { formatCents } from '../utils/money'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Button, Image } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { apiFetch , resolveErrorMessage } from '../services/api'
+import { apiFetch, resolveErrorMessage, resolveUploadError } from '../services/api'
 import { ArrowLeft, Camera } from 'lucide-react'
 import { calculateDays } from '../utils/daycalc'
 import { dialog, env, uploadFile, toWeappRoute } from '../platform'
@@ -82,6 +82,8 @@ export default function ReceiveConfirm() {
       for (const file of photoFiles) {
         const upResp = await uploadFile(`${baseUrl}/upload`, file)
         const upResult = env.isMiniProgram ? JSON.parse(upResp.data || '{}') : await upResp.json()
+        const authErr = resolveUploadError(upResp, upResult)
+        if (authErr) throw new Error(authErr)
         if (upResult.code === 20000 && upResult.data?.url) {
           photoUrls.push(upResult.data.url)
         }

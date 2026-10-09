@@ -5,7 +5,7 @@ import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components'
 import { ArrowLeft, CheckCircle, Camera, AlertTriangle, Image as ImageIcon } from 'lucide-react'
 import ImageUploader from '../components/ImageUploader'
-import { apiFetch , resolveErrorMessage } from '../services/api'
+import { apiFetch, resolveErrorMessage, resolveUploadError } from '../services/api'
 import { dialog, env, uploadFile, getInputValue } from '../platform'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
@@ -70,6 +70,8 @@ export default function StaffReceiveConfirm() {
       for (const file of photoFiles) {
         const uploadResp = await uploadFile(`${baseUrl}/upload`, file)
         const uploadResult = env.isMiniProgram ? JSON.parse(uploadResp.data || '{}') : await uploadResp.json()
+        const authErr = resolveUploadError(uploadResp, uploadResult)
+        if (authErr) throw new Error(authErr)
         if (uploadResult.code === 20000 && uploadResult.data?.url) { photoUrls.push(uploadResult.data.url) }
       }
       const dmgAmt = hasDamage ? (parseFloat(damageAmount) || 0) : 0

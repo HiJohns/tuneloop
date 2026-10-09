@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { formatCents } from '../../utils/money'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, ScrollView, Image, Button } from '@tarojs/components'
-import { apiFetch, getToken, resolveErrorMessage } from '../../services/api'
+import { apiFetch, getToken, resolveErrorMessage, resolveUploadError } from '../../services/api'
 import { env, uploadFile } from '../../platform'
 import { formatDeliveryAddress, formatBeijingDate, formatBeijingDateTimeShort, formatPayMethod } from '../../utils/format'
 import LeaseInfo from '../../components/LeaseInfo'
@@ -190,6 +190,8 @@ export default function OrderDetail() {
     for (const file of files) {
       const upResp = await uploadFile(`${baseUrl}/upload`, file)
       const upResult = upResp.json ? await upResp.json() : JSON.parse(upResp.data || '{}')
+      const authErr = resolveUploadError(upResp, upResult)
+      if (authErr) throw new Error(authErr)
       if (upResult.code === 20000 && upResult.data?.url) urls.push(upResult.data.url)
     }
     return urls

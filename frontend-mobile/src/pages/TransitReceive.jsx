@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Image, Text, View, Button } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { apiFetch, resolveErrorMessage } from '../services/api'
+import { apiFetch, resolveErrorMessage, resolveUploadError } from '../services/api'
 import { dialog, env, uploadFile as uploadFileApi, toWeappRoute } from '../platform'
 
 const MAX_PHOTOS = 6
@@ -40,8 +40,9 @@ export default function TransitReceive() {
   const uploadFile = async (file) => {
     // #2184: 统一走 platform.uploadFile（自动注入 Authorization）
     const resp = await uploadFileApi(`${baseUrl}/upload`, file)
-    if (resp.status === 401) throw new Error('登录态已失效，请重新登录')
     const r = env.isMiniProgram ? JSON.parse(resp.data) : await resp.json()
+    const authErr = resolveUploadError(resp, r)
+    if (authErr) throw new Error(authErr)
     if (r.code === 20000) return r.data.file_key
     throw new Error(resolveErrorMessage(r, 'upload failed'))
   }

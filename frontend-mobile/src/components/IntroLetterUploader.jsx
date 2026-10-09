@@ -8,7 +8,7 @@ import { useState, useRef } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Image } from '@tarojs/components'
 import { dialog, uploadFile, env } from '../platform'
-import { resolveErrorMessage } from '../services/api'
+import { resolveErrorMessage, resolveUploadError } from '../services/api'
 
 export default function IntroLetterUploader({ initialKey = '', onChange, leftAligned = false }) {
   const [url, setUrl] = useState('')
@@ -29,6 +29,8 @@ export default function IntroLetterUploader({ initialKey = '', onChange, leftAli
       const resp = await uploadFile(`${base}/upload`, fileOrPath, { name: 'file' })
       if (!resp.ok) throw new Error('介绍信上传失败')
       const json = env.isMiniProgram ? JSON.parse(resp.data) : await resp.json()
+      const authErr = resolveUploadError(resp, json)
+      if (authErr) throw new Error(authErr)
       if (json.code === 20000 && json.data?.file_key) {
         setUrl(json.data.url || '')
         if (onChange) onChange(json.data.file_key, json.data.url || '')

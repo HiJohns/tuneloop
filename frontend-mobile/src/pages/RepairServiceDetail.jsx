@@ -3,7 +3,7 @@ import { formatCents } from '../utils/money'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Textarea, Image, Video, Button, Input } from '@tarojs/components'
-import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
+import { apiFetch, getToken, resolveErrorMessage, resolveUploadError } from '../services/api'
 import { dialog, env, getInputValue, toWeappRoute, uploadFile as uploadFileApi } from '../platform'
 import { parseJWT } from '../platform/init'
 import { formatBeijingDate } from '../utils/format'
@@ -144,8 +144,9 @@ export default function RepairServiceDetail() {
       const keys = []
       for (const f of receiveFiles) {
         const resp = await uploadFileApi(`${baseUrl}/upload`, f)
-        if (resp.status === 401) throw new Error('登录态已失效，请重新登录')
         const r = JSON.parse(resp.data)
+        const authErr = resolveUploadError(resp, r)
+        if (authErr) throw new Error(authErr)
         if (r.code !== 20000) throw new Error(r.message || '上传失败')
         keys.push(r.data.file_key)
       }
@@ -414,8 +415,9 @@ export default function RepairServiceDetail() {
   const uploadOne = async (file) => {
     // #2184: 统一走 platform.uploadFile（自动注入 Authorization）
     const resp = await uploadFileApi(`${baseUrl}/upload`, file)
-    if (resp.status === 401) throw new Error('登录态已失效，请重新登录')
     const r = env.isMiniProgram ? JSON.parse(resp.data) : await resp.json()
+    const authErr = resolveUploadError(resp, r)
+    if (authErr) throw new Error(authErr)
     if (r.code === 20000) return r.data.file_key
     throw new Error(resolveErrorMessage(r, 'upload failed'))
   }

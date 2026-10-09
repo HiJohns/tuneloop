@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Button, ScrollView, Input, Image } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { ArrowLeft, CheckCircle, Camera, Truck } from 'lucide-react'
-import { getToken, redirectToLogin, apiFetch, resolveErrorMessage } from '../services/api'
+import { getToken, redirectToLogin, apiFetch, resolveErrorMessage, resolveUploadError } from '../services/api'
 import { dialog, env, uploadFile, getInputValue, toWeappRoute } from '../platform'
 import { formatBeijingDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
@@ -74,6 +74,8 @@ export default function ReturnConfirm() {
       for (const file of photoFiles) {
         const upResp = await uploadFile(`${baseUrl}/upload`, file)
         const upResult = env.isMiniProgram ? JSON.parse(upResp.data || '{}') : await upResp.json()
+        const authErr = resolveUploadError(upResp, upResult)
+        if (authErr) throw new Error(authErr)
         if (upResult.code === 20000 && upResult.data?.url) {
           photoUrls.push(upResult.data.url)
         }

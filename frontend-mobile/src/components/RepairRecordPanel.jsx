@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Button, Image, Textarea } from '@tarojs/components'
-import { apiFetch, resolveErrorMessage } from '../services/api'
+import { apiFetch, resolveErrorMessage, resolveUploadError } from '../services/api'
 import { dialog, env, getInputValue, uploadFile, previewImage } from '../platform'
 import { formatBeijingDateTimeShort } from '../utils/format'
 import { parsePhotos, photoSrc } from '../utils/media'
@@ -69,6 +69,8 @@ export default function RepairRecordPanel({ instrumentId, records, onRecordAdded
       const uploadOne = async (file) => {
         const resp = await uploadFile(`${baseUrl}/upload`, file)
         const parsed = env.isMiniProgram ? JSON.parse(resp.data || '{}') : await resp.json()
+        const authErr = resolveUploadError(resp, parsed)
+        if (authErr) throw new Error(authErr)
         if (parsed.code === 20000 && parsed.data?.file_key) return parsed.data.file_key
         throw new Error(resolveErrorMessage(parsed, 'upload failed'))
       }

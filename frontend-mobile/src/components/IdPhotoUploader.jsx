@@ -11,7 +11,7 @@ import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from 're
 import Taro from '@tarojs/taro'
 import { View, Text, Image } from '@tarojs/components'
 import { dialog, uploadFile, env, storage, session } from '../platform'
-import { resolveErrorMessage } from '../services/api'
+import { resolveErrorMessage, resolveUploadError } from '../services/api'
 
 const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl = '', onChange, onSelect, onClear, defer = false, sessionUpload, leftAligned = false, extraFields = {}, beforeUpload }, ref) {
   const [url, setUrl] = useState(initialUrl || '')
@@ -54,6 +54,8 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
       })
       if (!resp.ok) throw new Error('upload failed')
       const json = env.isMiniProgram ? JSON.parse(resp.data) : await resp.json()
+      const authErr = resolveUploadError(resp, json)
+      if (authErr) throw new Error(authErr)
       if (json.code === 20000 && json.data?.url) {
         setUrl(json.data.url)
         if (onChange) onChange(json.data.url)
@@ -121,6 +123,8 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
         })
         if (!resp.ok) throw new Error('upload failed')
         const json = env.isMiniProgram ? JSON.parse(resp.data) : await resp.json()
+        const authErr = resolveUploadError(resp, json)
+        if (authErr) throw new Error(authErr)
         if (json.code === 20000) {
           setPendingFile(null)
           return json.data?.url || side // session upload returns no url
