@@ -41,10 +41,9 @@ bash scripts/h5-weapp-parity.sh > docs/topics/h5-weapp-parity.md   # 重新生�
 
 ---
 
-# 机械快照（自动生成）
 # H5 ↔ weapp 一致性机械快照（自动生成）
 
-- 生成时间: 2026-10-09 01:45:06
+- 生成时间: 2026-10-09 19:30:59
 - 源: `frontend-mobile/src`
 - 说明: 本文件由 `scripts/h5-weapp-parity.sh` 生成（只读侦察），**请勿手改**。
 
@@ -56,16 +55,20 @@ bash scripts/h5-weapp-parity.sh > docs/topics/h5-weapp-parity.md   # 重新生�
 - App-H5 路由: 62 条 | ROUTE_MAP: 39 条
 - **H5 路由无 weapp 映射（首段）**（14，候选：H5-only / 页面内显式跳转 / 遗漏，需人工判定）: /about, /account-select, /callback, /face-verify, /lease-history, /my-contracts, /receive, /register, /renewal, /return, /search, /setting, /site, /success
 
-## 2. 双实现清单（pages/*.jsx ∩ pages-weapp/*.jsx，漂移风险最高）
+## 2. 双实现清单（pages/X.jsx ↔ pages-weapp/**/X.jsx，漂移风险最高）
 
-| 页面 | H5 行数 | weapp 行数 | 行差 |
-|------|--------:|----------:|-----:|
-| Checkout.jsx | 1411 | 1327 | 84 |
-| Detail.jsx | 590 | 569 | 21 |
-| Home.jsx | 496 | 625 | 129 |
-| MyLeases.jsx | 340 | 319 | 21 |
-| Profile.jsx | 584 | 704 | 120 |
-| Success.jsx | 32 | 86 | 54 |
+| 页面 | H5 行数 | weapp 行数 | weapp 路径 | 行差 |
+|------|--------:|----------:|------------|-----:|
+| Checkout.jsx | 1411 | 1327 | pages-weapp/Checkout.jsx | 84 |
+| Detail.jsx | 590 | 569 | pages-weapp/Detail.jsx | 21 |
+| Home.jsx | 496 | 625 | pages-weapp/Home.jsx | 129 |
+| MyLeases.jsx | 340 | 319 | pages-weapp/MyLeases.jsx | 21 |
+| Profile.jsx | 584 | 704 | pages-weapp/Profile.jsx | 120 |
+| Success.jsx | 32 | 86 | pages-weapp/Success.jsx | 54 |
+| OrderDetail.jsx | 1210 | 1158 | pages-weapp/order-detail/OrderDetail.jsx | 52 |
+| Payment.jsx | 461 | 837 | pages-weapp/payment/Payment.jsx | 376 |
+| Renewal.jsx | 192 | 205 | pages-weapp/renewal/Renewal.jsx | 13 |
+| Search.jsx | 86 | 79 | pages-weapp/search/Search.jsx | 7 |
 
 ## 3. 两端行为分叉点（env.isMiniProgram / isWeapp）
 

@@ -46,13 +46,19 @@ print(f"- **H5 路由无 weapp 映射（首段）**（{len(missing)}，候选：
 PY
 
 # ---------- 2. 双实现清单 ----------
-hdr "2. 双实现清单（pages/*.jsx ∩ pages-weapp/*.jsx，漂移风险最高）"
-common="$(comm -12 <(ls "$SRC"/pages/*.jsx 2>/dev/null | xargs -n1 basename | sort) <(ls "$SRC"/pages-weapp/*.jsx 2>/dev/null | xargs -n1 basename | sort))"
+hdr "2. 双实现清单（pages/X.jsx ↔ pages-weapp/**/X.jsx，漂移风险最高）"
+common=""
+for wf in "$SRC"/pages-weapp/*.jsx "$SRC"/pages-weapp/*/*.jsx; do
+  [ -f "$wf" ] || continue
+  b=$(basename "$wf")
+  [ -f "$SRC/pages/$b" ] && common="$common $wf|$b"
+done
 if [ -z "$common" ]; then echo "- 无"; else
-  printf "| 页面 | H5 行数 | weapp 行数 | 行差 |\n|------|--------:|----------:|-----:|\n"
-  for f in $common; do
-    a=$(wc -l < "$SRC/pages/$f"); b=$(wc -l < "$SRC/pages-weapp/$f")
-    printf "| %s | %s | %s | %s |\n" "$f" "$a" "$b" "$((a>b?a-b:b-a))"
+  printf "| 页面 | H5 行数 | weapp 行数 | weapp 路径 | 行差 |\n|------|--------:|----------:|------------|-----:|\n"
+  for pair in $common; do
+    wf="${pair%%|*}"; b="${pair##*|}"
+    a=$(wc -l < "$SRC/pages/$b"); c=$(wc -l < "$wf")
+    printf "| %s | %s | %s | %s | %s |\n" "$b" "$a" "$c" "${wf#"$SRC/"}" "$((a>c?a-c:c-a))"
   done
 fi
 
