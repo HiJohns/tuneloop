@@ -22,7 +22,6 @@ import ReceiveConfirm from './pages/ReceiveConfirm'
 import ReturnConfirm from './pages/ReturnConfirm'
 import MyLeases from './pages/MyLeases'
 import Mall from './pages/Mall'
-import LeaseHistory from './pages/LeaseHistory'
 import Messages from './pages/Messages'
 import MessageDetail from './pages/MessageDetail'
 import PaymentComplete from './pages/PaymentComplete'
@@ -36,8 +35,6 @@ import ShippingInterface from './pages/ShippingInterface'
 import Search from './pages/Search'
 import ReceivingInterface from './pages/ReceivingInterface'
 import Cart from './pages/Cart'
-import SiteDetail from './pages/SiteDetail'
-import MyContracts from './pages/MyContracts'
 import StaffOrders from './pages/StaffOrders'
 import MyRepairs from './pages/MyRepairs'
 import TechRepairWorkbench from './pages/TechRepairWorkbench'
@@ -228,8 +225,6 @@ function App() {
         <Route path="/return" element={<ProtectedRoute><ReturnConfirm /></ProtectedRoute>} />
         <Route path="/my-leases" element={<ProtectedRoute><MyLeases /></ProtectedRoute>} />
         <Route path="/mall" element={<ProtectedRoute requireAuth={false}><Mall /></ProtectedRoute>} />
-        <Route path="/lease-history" element={<ProtectedRoute><LeaseHistory /></ProtectedRoute>} />
-        <Route path="/my-contracts" element={<ProtectedRoute><MyContracts /></ProtectedRoute>} />
         <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
         <Route path="/messages/:id" element={<ProtectedRoute><MessageDetail /></ProtectedRoute>} />
         <Route path="/message-detail" element={<ProtectedRoute><MessageDetail /></ProtectedRoute>} />
@@ -261,7 +256,6 @@ function App() {
         <Route path="/staff/repair-scan" element={<ProtectedRoute><RepairScan /></ProtectedRoute>} />
         <Route path="/order/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
         <Route path="/cart" element={<ProtectedRoute requireAuth={false}><Cart /></ProtectedRoute>} />
-        <Route path="/site" element={<ProtectedRoute requireAuth={false}><SiteDetail /></ProtectedRoute>} />
         <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
         <Route path="/return-settlement/:orderId" element={<ProtectedRoute><ReturnSettlement /></ProtectedRoute>} />
         <Route path="/return-settlement" element={<ProtectedRoute><ReturnSettlement /></ProtectedRoute>} />
