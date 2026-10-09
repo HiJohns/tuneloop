@@ -21,6 +21,9 @@ This file contains instructions and guidelines for AI coding agents working in t
 - `docs/topics/wechat/wechat-login.md` - 微信小程序登录架构（三通道登录、注册流程、身份合并、安全审计）
 - `docs/topics/media/media_directory.md` - 媒体存储架构（instrument_media 表结构、batch_type 全集、目录体系）
 - `docs/topics/wechat/wechat-pay-integration.md` - 微信支付集成架构（对接点、手动配置清单、.env 设计、测试模式、核查体系、失败处置）
+- `docs/cases/h5-weapp-differences.md` - **H5（`wx.cadenzayueqi.com`）与微信小程序「可被接受的功能实现差异」权威清单**
+
+> **强制同步要求（H5 ↔ weapp）**：实现/调试/评审任何涉及 H5 与 weapp 差异的改动时，若发现某处差异**未被 `docs/cases/h5-weapp-differences.md` 覆盖**，**必须先更新该文档**（补登"可接受差异"条目，或判定为"真分歧"并建收敛 Issue 关联 #2172），**再**继续实现。禁止静默引入两端差异。机械快照见 `scripts/h5-weapp-parity.sh` + `docs/topics/h5-weapp-parity.md`。
 
 ## 分支策略（main / develop，#1694）
 
