@@ -51,9 +51,9 @@
 | 项 | 描述 | 关联 |
 |----|------|------|
 | C1 | H5 支付能力缺口（现状「暂不支持」→ 走 Native 二维码） | #2185 |
-| C2 | `user-warnings` 仅 H5 有（weapp 无，判定为 PC 后台功能） | 见 #2172 D2 收敛项 |
+| C2 | ~~`user-warnings` 仅 H5 有（weapp 无）~~ **已决**：判定为 PC 后台功能，H5 端已移除（weapp 本无） | #2186 已清理 |
 | C3 | 双实现页漂移（Home/Profile/Checkout/MyLeases/Detail/Success） | 见 D1 收敛 Issue |
-| C4 | H5-only 功能是否补到 weapp（lease-history/my-contracts/site-detail/transit-workflow/staff-order-detail） | 见 D3 审核 Issue |
+| C4 | ~~H5-only 功能是否补到 weapp~~ **已决**：`lease-history`/`my-contracts`/`site-detail`/`transit-workflow` 确认为孤儿 → H5 移除（#2187–#2190）；`staff-order-detail` → 向 weapp 看齐（#2191） | #2187–#2191 |
 
 ## 5. 维护
 

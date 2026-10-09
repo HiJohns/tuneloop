@@ -163,11 +163,11 @@
 | `Checkout.jsx` | `/checkout/:instrumentId` | 确认订单 |
 | `Home.jsx` | `/` | 首页 |
 | `Detail.jsx` | `/instrument/:id` | 乐器详情 |
-| `LeaseHistory.jsx` | `/leases` | 租赁历史 |
+| ~~`LeaseHistory.jsx`~~ | ~~`/leases`~~ | 已移除（#2187 孤儿页清理） |
 | ~~`MaintenanceProgress.jsx`~~ | ~~`/staff/maintenance/:id`~~ | 已移除（#1886 遗留维保废弃） |
 | `MessageDetail.jsx` | `/messages/:id` | 消息详情 |
 | `Messages.jsx` | `/messages` | 消息列表 |
-| `MyContracts.jsx` | `/contracts` | 我的合同 |
+| ~~`MyContracts.jsx`~~ | ~~`/contracts`~~ | 已移除（#2188 孤儿页清理） |
 | `MyLeases.jsx` | `/my-leases` | 我的租赁 |
 | `MyService.jsx` | `/my-service` | 我的售后 |
 | `OrderDetail.jsx` | `/order/:id` | 订单详情 |
@@ -182,7 +182,7 @@
 | `RepairRequestDetail.jsx` | `/repair-request/:id` | 维修工单详情 |
 | `ReturnConfirm.jsx` | `/return/:orderId` | 归还确认 |
 | `ShippingInterface.jsx` | `/staff/shipping` | 发货界面 |
-| `SiteDetail.jsx` | `/site/:id` | 网点详情 |
+| ~~`SiteDetail.jsx`~~ | ~~`/site/:id`~~ | 已移除（#2189 孤儿页清理） |
 | `StaffInstrumentDetail.jsx` | `/staff/instrument/:id` | 员工乐器详情 |
 | `StaffInstrumentForm.jsx` | `/staff/instrument/new` | 员工乐器表单 |
 | `StaffInstruments.jsx` | `/staff/instruments` | 员工乐器管理 |

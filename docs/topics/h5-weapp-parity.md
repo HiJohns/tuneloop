@@ -43,17 +43,17 @@ bash scripts/h5-weapp-parity.sh > docs/topics/h5-weapp-parity.md   # 重新生�
 
 # H5 ↔ weapp 一致性机械快照（自动生成）
 
-- 生成时间: 2026-10-09 19:30:59
+- 生成时间: 2026-10-09 22:56:00
 - 源: `frontend-mobile/src`
 - 说明: 本文件由 `scripts/h5-weapp-parity.sh` 生成（只读侦察），**请勿手改**。
 
 ## 1. 登记对称性（h5Pages ↔ weappPages ↔ App-H5 路由 ↔ ROUTE_MAP）
 
-- weappPages: 52 条目 | h5Pages: 45 条目
+- weappPages: 52 条目 | h5Pages: 40 条目
 - **weapp 有 / H5 无**（13）: account-select, bind, content, invoice, login, payment, profile-complete, profile/edit, renewal, repair-payment-complete, return-settlement, search, setting
-- **H5 有 / weapp 无**（6）: lease-history, my-contracts, site-detail, staff-order-detail, transit-workflow, user-warnings
-- App-H5 路由: 62 条 | ROUTE_MAP: 39 条
-- **H5 路由无 weapp 映射（首段）**（14，候选：H5-only / 页面内显式跳转 / 遗漏，需人工判定）: /about, /account-select, /callback, /face-verify, /lease-history, /my-contracts, /receive, /register, /renewal, /return, /search, /setting, /site, /success
+- **H5 有 / weapp 无**（1）: staff-order-detail
+- App-H5 路由: 59 条 | ROUTE_MAP: 39 条
+- **H5 路由无 weapp 映射（首段）**（11，候选：H5-only / 页面内显式跳转 / 遗漏，需人工判定）: /about, /account-select, /callback, /face-verify, /receive, /register, /renewal, /return, /search, /setting, /success
 
 ## 2. 双实现清单（pages/X.jsx ↔ pages-weapp/**/X.jsx，漂移风险最高）
 
@@ -123,7 +123,6 @@ bash scripts/h5-weapp-parity.sh > docs/topics/h5-weapp-parity.md   # 重新生�
 | StaffOrders.jsx | 4 | 1 | 3 | 2 | 0 | 18 |
 | Search.jsx | 4 | 0 | 2 | 1 | 0 | 8 |
 | Renewal.jsx | 4 | 2 | 3 | 2 | 0 | 8 |
-| TransitWorkflow.jsx | 3 | 5 | 2 | 1 | 0 | 12 |
 
 ## 7. weapp 样式禁区命中（#1831：硬禁区=必删类；软禁区=禁新增）
 
