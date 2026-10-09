@@ -3,7 +3,7 @@ import { formatCents, yuanToCents } from '../utils/money'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Input, Button, ScrollView, Image } from '@tarojs/components'
-import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
+import { apiFetch, resolveErrorMessage } from '../services/api'
 import { dialog, env, getInputValue, toWeappRoute, uploadFile as uploadFileApi } from '../platform'
 import { formatBeijingDate } from '../utils/format'
 
@@ -113,17 +113,10 @@ export default function InstrumentLossManage() {
   useEffect(() => { if (page > 1) fetchManaged(page, true) }, [page])
 
   const uploadOne = async (file) => {
-    const authHeaders = { Authorization: 'Bearer ' + (getToken() || '') }
-    if (env.isMiniProgram) {
-      const resp = await uploadFileApi(`${baseUrl}/upload`, file, { headers: authHeaders })
-      const r = JSON.parse(resp.data)
-      if (r.code === 20000) return r.data.file_key
-      throw new Error(r.message || 'upload failed')
-    }
-    const fd = new FormData()
-    fd.append('file', file)
-    const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', headers: authHeaders, body: fd })
-    const r = await resp.json()
+    // #2184: 统一走 platform.uploadFile（自动注入 Authorization）
+    const resp = await uploadFileApi(`${baseUrl}/upload`, file)
+    if (resp.status === 401) throw new Error('登录态已失效，请重新登录')
+    const r = env.isMiniProgram ? JSON.parse(resp.data) : await resp.json()
     if (r.code === 20000) return r.data.file_key
     throw new Error(resolveErrorMessage(r, 'upload failed'))
   }

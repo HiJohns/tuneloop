@@ -188,9 +188,7 @@ export default function OrderDetail() {
   const uploadPhotos = async (files) => {
     const urls = []
     for (const file of files) {
-      const upResp = await uploadFile(`${baseUrl}/upload`, file, {
-        headers: { Authorization: 'Bearer ' + getToken() },
-      })
+      const upResp = await uploadFile(`${baseUrl}/upload`, file)
       const upResult = upResp.json ? await upResp.json() : JSON.parse(upResp.data || '{}')
       if (upResult.code === 20000 && upResult.data?.url) urls.push(upResult.data.url)
     }

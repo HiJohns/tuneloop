@@ -6,7 +6,7 @@ import Taro from '@tarojs/taro'
 import { apiFetch , resolveErrorMessage } from '../services/api'
 import { ArrowLeft, Camera } from 'lucide-react'
 import { calculateDays } from '../utils/daycalc'
-import { dialog, env, storage, session, uploadFile, toWeappRoute } from '../platform'
+import { dialog, env, uploadFile, toWeappRoute } from '../platform'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
 
@@ -78,12 +78,9 @@ export default function ReceiveConfirm() {
     if (!orderId) { dialog.alert('订单不存在'); return }
     setSubmitting(true)
     try {
-      const token = storage.getItem('token') || session.getItem('token')
       const photoUrls = []
       for (const file of photoFiles) {
-        const upResp = await uploadFile(`${baseUrl}/upload`, file, {
-          headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-        })
+        const upResp = await uploadFile(`${baseUrl}/upload`, file)
         const upResult = env.isMiniProgram ? JSON.parse(upResp.data || '{}') : await upResp.json()
         if (upResult.code === 20000 && upResult.data?.url) {
           photoUrls.push(upResult.data.url)

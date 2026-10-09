@@ -7,8 +7,7 @@ import Taro from '@tarojs/taro'
 import { View, Text, Camera, Image, Input, Button } from '@tarojs/components'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, resolveErrorMessage } from '../services/api'
-import { env, dialog, uploadFile, storage, getCameraContext } from '../platform'
-import { session } from '../platform'
+import { env, dialog, uploadFile, getCameraContext } from '../platform'
 import FaceCaptureUploader from '../components/FaceCaptureUploader'
 // #2109: E证通小程序 SDK（weapp 自动核身；顶层无 wx 访问，H5 打包安全）
 import { startEid } from '../mp_ecard_sdk/main'
@@ -89,8 +88,6 @@ export default function FaceVerify() {
     Taro.navigateBack()
   }
 
-  const getToken = () => storage.getItem('token') || session.getItem('token')
-
   // Camera error handler
   const handleCameraError = (e) => {
     setCameraErr(e.detail?.errMsg || '摄像头授权失败，请在小程序设置中允许使用摄像头')
@@ -160,12 +157,10 @@ export default function FaceVerify() {
 
   const uploadImagePart = async () => {
     startUploadPart('image')
-    const headers = { Authorization: 'Bearer ' + getToken() }
     try {
       const imgResp = await wrapUploadTimeout(
         uploadFile(`${baseUrl}/user/face-capture`, photoPathRef.current, {
           name: 'image',
-          headers,
           onProgress: onUploadProgress,
           onStart: (t) => { uploadTaskRef.current = t },
         }),
@@ -192,13 +187,11 @@ export default function FaceVerify() {
 
   const uploadVideoPart = async (batchId) => {
     startUploadPart('video')
-    const headers = { Authorization: 'Bearer ' + getToken() }
     try {
       const vidResp = await wrapUploadTimeout(
         uploadFile(`${baseUrl}/user/face-capture`, videoPathRef.current, {
           name: 'video',
           formData: { batch_id: batchId },
-          headers,
           onProgress: onUploadProgress,
           onStart: (t) => { uploadTaskRef.current = t },
         }),

@@ -141,11 +141,10 @@ export default function RepairServiceDetail() {
     if (receiveFiles.length === 0) { dialog.alert('请先拍照留档'); return }
     setActBusy(true)
     try {
-      const authHeaders = { Authorization: 'Bearer ' + (getToken() || '') }
       const keys = []
       for (const f of receiveFiles) {
-        const resp = await uploadFileApi(`${baseUrl}/upload`, f, { headers: authHeaders })
-        if (resp.statusCode === 401) throw new Error('登录态已失效，请重新登录')
+        const resp = await uploadFileApi(`${baseUrl}/upload`, f)
+        if (resp.status === 401) throw new Error('登录态已失效，请重新登录')
         const r = JSON.parse(resp.data)
         if (r.code !== 20000) throw new Error(r.message || '上传失败')
         keys.push(r.data.file_key)
@@ -413,17 +412,10 @@ export default function RepairServiceDetail() {
   }
 
   const uploadOne = async (file) => {
-    const authHeaders = { Authorization: 'Bearer ' + (getToken() || '') }
-    if (env.isMiniProgram) {
-      const resp = await uploadFileApi(`${baseUrl}/upload`, file, { headers: authHeaders })
-      const r = JSON.parse(resp.data)
-      if (r.code === 20000) return r.data.file_key
-      throw new Error(r.message || 'upload failed')
-    }
-    const fd = new FormData()
-    fd.append('file', file)
-    const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', headers: authHeaders, body: fd })
-    const r = await resp.json()
+    // #2184: 统一走 platform.uploadFile（自动注入 Authorization）
+    const resp = await uploadFileApi(`${baseUrl}/upload`, file)
+    if (resp.status === 401) throw new Error('登录态已失效，请重新登录')
+    const r = env.isMiniProgram ? JSON.parse(resp.data) : await resp.json()
     if (r.code === 20000) return r.data.file_key
     throw new Error(resolveErrorMessage(r, 'upload failed'))
   }

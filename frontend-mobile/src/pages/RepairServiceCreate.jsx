@@ -117,20 +117,10 @@ export default function RepairServiceCreate() {
   const removeVideo = () => setVideoFile(null)
 
   const uploadOne = async (file) => {
-    // #1924：/api/upload 在严格鉴权组，必须带 token
-    const authHeaders = { Authorization: 'Bearer ' + (getToken() || '') }
-    if (env.isMiniProgram) {
-      const resp = await uploadFileApi(`${baseUrl}/upload`, file, { headers: authHeaders })
-      if (resp.statusCode === 401) throw new Error('登录态已失效，请重新登录后再试') // #2075
-      const r = JSON.parse(resp.data)
-      if (r.code === 20000) return r.data.file_key
-      throw new Error(r.message || 'upload failed')
-    }
-    const fd = new FormData()
-    fd.append('file', file)
-    const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', headers: authHeaders, body: fd })
-    if (resp.status === 401) throw new Error('登录态已失效，请重新登录后再试') // #2075
-    const r = await resp.json()
+    // #2184: 统一走 platform.uploadFile（自动注入 Authorization）
+    const resp = await uploadFileApi(`${baseUrl}/upload`, file)
+    if (resp.status === 401) throw new Error('登录态已失效，请重新登录') // #2075
+    const r = env.isMiniProgram ? JSON.parse(resp.data) : await resp.json()
     if (r.code === 20000) return r.data.file_key
     throw new Error(resolveErrorMessage(r, 'upload failed'))
   }

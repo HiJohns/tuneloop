@@ -6,7 +6,7 @@ import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components
 import { ArrowLeft, CheckCircle, Camera, AlertTriangle, Image as ImageIcon } from 'lucide-react'
 import ImageUploader from '../components/ImageUploader'
 import { apiFetch , resolveErrorMessage } from '../services/api'
-import { dialog, env, storage, session, uploadFile, getInputValue } from '../platform'
+import { dialog, env, uploadFile, getInputValue } from '../platform'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
 
@@ -65,13 +65,10 @@ export default function StaffReceiveConfirm() {
 
   const handleConfirmReceive = async () => {
     setSubmitting(true)
-    const token = storage.getItem('token') || session.getItem('token')
     try {
       const photoUrls = []
       for (const file of photoFiles) {
-        const uploadResp = await uploadFile(`${baseUrl}/upload`, file, {
-          headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-        })
+        const uploadResp = await uploadFile(`${baseUrl}/upload`, file)
         const uploadResult = env.isMiniProgram ? JSON.parse(uploadResp.data || '{}') : await uploadResp.json()
         if (uploadResult.code === 20000 && uploadResult.data?.url) { photoUrls.push(uploadResult.data.url) }
       }

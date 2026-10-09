@@ -80,7 +80,6 @@ const FaceCaptureUploader = ({ initialStatus = '', onSubmitSuccess }) => {
         // 先传 image（创建批次拿 batch_id），再传 video（带 batch_id 追加）。
         const resp = await uploadFile(`${base}/user/face-capture`, imagePath, {
           name: 'image',
-          headers,
         })
         if (!resp.ok) throw new Error('upload failed')
         const json = JSON.parse(resp.data)
@@ -91,7 +90,6 @@ const FaceCaptureUploader = ({ initialStatus = '', onSubmitSuccess }) => {
           const videoResp = await uploadFile(`${base}/user/face-capture`, videoPath, {
             name: 'video',
             formData: { batch_id: batchId },
-            headers,
           })
           if (!videoResp.ok) throw new Error('video upload failed')
           const videoJson = JSON.parse(videoResp.data)

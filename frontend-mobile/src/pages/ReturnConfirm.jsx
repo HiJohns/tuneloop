@@ -72,9 +72,7 @@ export default function ReturnConfirm() {
       if (!token) { redirectToLogin(); return }
       const photoUrls = []
       for (const file of photoFiles) {
-        const upResp = await uploadFile(`${baseUrl}/upload`, file, {
-          headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-        })
+        const upResp = await uploadFile(`${baseUrl}/upload`, file)
         const upResult = env.isMiniProgram ? JSON.parse(upResp.data || '{}') : await upResp.json()
         if (upResult.code === 20000 && upResult.data?.url) {
           photoUrls.push(upResult.data.url)

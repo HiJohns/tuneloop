@@ -208,16 +208,10 @@ export default function RepairRequestDetail() {
   }
 
   const uploadFile = async (file) => {
-    if (env.isMiniProgram) {
-      const resp = await uploadFileApi(`${baseUrl}/upload`, file)
-      const r = JSON.parse(resp.data)
-      if (r.code === 20000) return r.data.file_key
-      throw new Error(r.message || 'upload failed')
-    }
-    const fd = new FormData()
-    fd.append('file', file)
-    const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', headers: { Authorization: 'Bearer ' + (getToken() || '') }, body: fd })
-    const r = await resp.json()
+    // #2184: 统一走 platform.uploadFile（自动注入 Authorization）
+    const resp = await uploadFileApi(`${baseUrl}/upload`, file)
+    if (resp.status === 401) throw new Error('登录态已失效，请重新登录')
+    const r = env.isMiniProgram ? JSON.parse(resp.data) : await resp.json()
     if (r.code === 20000) return r.data.file_key
     throw new Error(resolveErrorMessage(r, 'upload failed'))
   }

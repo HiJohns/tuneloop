@@ -5,7 +5,7 @@ import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components
 import { apiFetch , resolveErrorMessage } from '../services/api'
 import { formatDeliveryAddress, formatBeijingDateTimeShort } from '../utils/format'
 import { ArrowLeft, Camera, Scan } from 'lucide-react'
-import { dialog, env, storage, session, uploadFile, scanQRCode, navigation, getInputValue } from '../platform'
+import { dialog, env, uploadFile, scanQRCode, navigation, getInputValue } from '../platform'
 import InstrumentInfo from '../components/InstrumentInfo'
 import StaffIdPhotoViewer from '../components/StaffIdPhotoViewer'
 
@@ -120,14 +120,11 @@ export default function ShippingInterface() {
     if (!canSubmit || !orderId) return
 
     setSubmitting(true)
-    const token = storage.getItem('token') || session.getItem('token')
 
     try {
       const photoUrls = []
       for (const file of photos) {
-        const resp = await uploadFile(`${baseUrl}/upload`, file, {
-          headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-        })
+        const resp = await uploadFile(`${baseUrl}/upload`, file)
         const result = env.isMiniProgram ? JSON.parse(resp.data || '{}') : await resp.json()
         if (result.code === 20000 && result.data?.url) {
           photoUrls.push(result.data.url)

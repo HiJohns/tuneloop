@@ -6,7 +6,7 @@ import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components
 import { apiFetch , resolveErrorMessage } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, Camera, Scan, AlertTriangle, User, MapPin } from 'lucide-react'
-import { dialog, env, storage, session, uploadFile, navigation, getInputValue } from '../platform'
+import { dialog, env, uploadFile, navigation, getInputValue } from '../platform'
 import InstrumentInfo from '../components/InstrumentInfo'
 import StaffIdPhotoViewer from '../components/StaffIdPhotoViewer'
 
@@ -112,13 +112,10 @@ export default function ReceivingInterface() {
     if (!currentItem) return
     if (!orderID) { dialog.alert('未找到该乐器的活跃订单'); return }
     setSubmitting(true)
-    const token = storage.getItem('token') || session.getItem('token')
     try {
       const photoUrls = []
       for (const file of capturedPhotos) {
-        const uploadResp = await uploadFile(`${baseUrl}/upload`, file, {
-          headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-        })
+        const uploadResp = await uploadFile(`${baseUrl}/upload`, file)
         const uploadResult = env.isMiniProgram ? JSON.parse(uploadResp.data || '{}') : await uploadResp.json()
         if (uploadResult.code === 20000 && uploadResult.data?.url) photoUrls.push(uploadResult.data.url)
       }

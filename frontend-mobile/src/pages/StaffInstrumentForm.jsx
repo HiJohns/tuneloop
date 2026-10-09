@@ -4,7 +4,7 @@ import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
 import { ArrowLeft, Upload, X } from 'lucide-react'
 import { apiFetch, resolveErrorMessage } from '../services/api'
-import { dialog, env, storage, uploadFile, getInputValue } from '../platform'
+import { dialog, env, uploadFile, getInputValue } from '../platform'
 import OptionSheet from '../components/OptionSheet'
 
 const BASE_URL = env.apiBaseUrl
@@ -112,7 +112,6 @@ export default function StaffInstrumentForm() {
     const file = e.target.files?.[0]
     if (!file) return
     const resp = await uploadFile(`${BASE_URL}/upload`, file, {
-      headers: { Authorization: storage.getItem('token') ? `Bearer ${storage.getItem('token')}` : '' },
     })
     const result = await resp.json()
     if (result?.data?.url) {
@@ -127,8 +126,7 @@ export default function StaffInstrumentForm() {
       const filePath = res.tempFilePaths?.[0]
       if (!filePath) return
       const resp = await uploadFile(`${BASE_URL}/upload`, filePath, {
-        headers: { Authorization: storage.getItem('token') ? `Bearer ${storage.getItem('token')}` : '' },
-      })
+        })
       const result = await resp.json()
       if (result?.data?.url) {
         setForm(prev => ({ ...prev, poster: result.data.url }))
@@ -151,8 +149,7 @@ export default function StaffInstrumentForm() {
       if (files.length > 0) {
         const uploaded = await Promise.all(files.map(async (file) => {
           const resp = await uploadFile(`${BASE_URL}/upload`, file, {
-            headers: { Authorization: storage.getItem('token') ? `Bearer ${storage.getItem('token')}` : '' },
-          })
+                })
           const result = await resp.json()
           const url = result?.data?.url || ''
           const key = result?.data?.file_key || ''

@@ -2,7 +2,7 @@
 // recommendation-letter template download and photo upload. Used by the
 // H5 (pages/Checkout.jsx) and weapp (pages-weapp/Checkout.jsx) checkouts.
 import Taro from '@tarojs/taro'
-import { apiFetch, getToken } from '../services/api'
+import { apiFetch } from '../services/api'
 import { dialog, env, uploadFile } from '../platform'
 
 // GET /user/deposit-waiver/eligibility → { eligible, reasons[], ... }.
@@ -96,7 +96,6 @@ export async function uploadLetterPhoto(baseUrl, fileOrPath) {
   try {
     const res = await uploadFile(`${baseUrl}/upload`, fileOrPath, {
       name: 'file',
-      headers: { Authorization: 'Bearer ' + getToken() },
     })
     let body = res
     if (!env.isMiniProgram) body = await res.json()

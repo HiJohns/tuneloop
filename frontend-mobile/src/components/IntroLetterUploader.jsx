@@ -7,15 +7,13 @@
 import { useState, useRef } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Image } from '@tarojs/components'
-import { dialog, uploadFile, env, storage, session } from '../platform'
+import { dialog, uploadFile, env } from '../platform'
 import { resolveErrorMessage } from '../services/api'
 
 export default function IntroLetterUploader({ initialKey = '', onChange, leftAligned = false }) {
   const [url, setUrl] = useState('')
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef(null)
-
-  const getToken = () => storage.getItem('token') || session.getItem('token')
 
   const resolveImageUrl = (u) => {
     if (!u || !u.startsWith('/')) return u
@@ -28,18 +26,9 @@ export default function IntroLetterUploader({ initialKey = '', onChange, leftAli
     setUploading(true)
     try {
       const base = env.apiBaseUrl || '/api'
-      const headers = { Authorization: 'Bearer ' + getToken() }
-      let json
-      if (env.isMiniProgram) {
-        const resp = await uploadFile(`${base}/upload`, fileOrPath, { name: 'file', headers })
-        if (!resp.ok) throw new Error('upload failed')
-        json = JSON.parse(resp.data)
-      } else {
-        const fd = new FormData()
-        fd.append('file', fileOrPath)
-        const fetchResp = await fetch(`${base}/upload`, { method: 'POST', body: fd, headers })
-        json = await fetchResp.json()
-      }
+      const resp = await uploadFile(`${base}/upload`, fileOrPath, { name: 'file' })
+      if (!resp.ok) throw new Error('介绍信上传失败')
+      const json = env.isMiniProgram ? JSON.parse(resp.data) : await resp.json()
       if (json.code === 20000 && json.data?.file_key) {
         setUrl(json.data.url || '')
         if (onChange) onChange(json.data.file_key, json.data.url || '')

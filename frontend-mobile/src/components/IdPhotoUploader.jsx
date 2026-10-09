@@ -46,45 +46,22 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
       const uploadUrl = useSession
         ? `${base}/auth/registration-sessions/${sessionUpload.sessionId}/id-photo`
         : `${base}/user/id-photo`
-      const formDataExtra = useSession ? {} : {}
-      if (useSession) formDataExtra.session_id = sessionUpload.sessionId
-
-      let resp
-      if (env.isMiniProgram) {
-        resp = await uploadFile(uploadUrl, fileOrPath, {
-          name: 'file',
-          formData: { side, ...extraFields },
-          headers: useSession ? {} : { Authorization: 'Bearer ' + getToken() },
-        })
-        if (!resp.ok) throw new Error('upload failed')
-        const json = JSON.parse(resp.data)
-        if (json.code === 20000 && json.data?.url) {
-          setUrl(json.data.url)
-          if (onChange) onChange(json.data.url)
-        } else if (json.code === 20000) {
-          // Session upload returns no url (file stored server-side by key)
-          if (onChange) onChange(side) // signal success with side name
-        } else {
-          throw new Error(resolveErrorMessage(json, 'upload failed'))
-        }
+      // #2184: 统一走 platform.uploadFile；会话上传为匿名 public 端点 → auth:false，用户上传自动注入 token
+      const resp = await uploadFile(uploadUrl, fileOrPath, {
+        name: 'file',
+        formData: { side, ...extraFields },
+        auth: !useSession,
+      })
+      if (!resp.ok) throw new Error('upload failed')
+      const json = env.isMiniProgram ? JSON.parse(resp.data) : await resp.json()
+      if (json.code === 20000 && json.data?.url) {
+        setUrl(json.data.url)
+        if (onChange) onChange(json.data.url)
+      } else if (json.code === 20000) {
+        // Session upload returns no url (file stored server-side by key)
+        if (onChange) onChange(side) // signal success with side name
       } else {
-        const headers = useSession ? {} : { Authorization: 'Bearer ' + getToken() }
-        if (fileOrPath instanceof File) {
-          const fd = new FormData()
-          fd.append('file', fileOrPath)
-          fd.append('side', side)
-          Object.entries(extraFields).forEach(([k, v]) => fd.append(k, v == null ? '' : v))
-          const fetchResp = await fetch(uploadUrl, { method: 'POST', body: fd, headers })
-          const json = await fetchResp.json()
-          if (json.code === 20000 && json.data?.url) {
-            setUrl(json.data.url)
-            if (onChange) onChange(json.data.url)
-          } else if (json.code === 20000) {
-            if (onChange) onChange(side)
-          } else {
-            throw new Error(resolveErrorMessage(json, 'upload failed'))
-          }
-        }
+        throw new Error(resolveErrorMessage(json, 'upload failed'))
       }
     } catch (err) {
       if (env.isMiniProgram) {
@@ -136,27 +113,14 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
           ? `${base}/auth/registration-sessions/${useSession}/id-photo`
           : `${base}/user/id-photo`
 
-        if (env.isMiniProgram) {
-          const resp = await uploadFile(uploadUrl, pendingFile, {
-            name: 'file',
-            formData: { side, ...extraFields },
-            headers: useSession ? {} : { Authorization: 'Bearer ' + getToken() },
-          })
-          if (!resp.ok) throw new Error('upload failed')
-          const json = JSON.parse(resp.data)
-          if (json.code === 20000) {
-            setPendingFile(null)
-            return json.data?.url || side // session upload returns no url
-          }
-          throw new Error(resolveErrorMessage(json, 'upload failed'))
-        }
-        const fd = new FormData()
-        fd.append('file', pendingFile)
-        fd.append('side', side)
-        Object.entries(extraFields).forEach(([k, v]) => fd.append(k, v == null ? '' : v))
-        const headers = useSession ? {} : { Authorization: 'Bearer ' + getToken() }
-        const fetchResp = await fetch(uploadUrl, { method: 'POST', body: fd, headers })
-        const json = await fetchResp.json()
+        // #2184: 统一走 platform.uploadFile；会话上传匿名 auth:false，用户上传自动注入 token
+        const resp = await uploadFile(uploadUrl, pendingFile, {
+          name: 'file',
+          formData: { side, ...extraFields },
+          auth: !useSession,
+        })
+        if (!resp.ok) throw new Error('upload failed')
+        const json = env.isMiniProgram ? JSON.parse(resp.data) : await resp.json()
         if (json.code === 20000) {
           setPendingFile(null)
           return json.data?.url || side // session upload returns no url

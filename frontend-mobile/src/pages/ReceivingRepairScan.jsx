@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import Taro from '@tarojs/taro'
 import { useNavigate } from 'react-router-dom'
 import { Button, Image, Input, Text, View } from '@tarojs/components'
-import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
+import { apiFetch, resolveErrorMessage } from '../services/api'
 import { dialog, env, getInputValue, toWeappRoute, uploadFile as uploadFileApi } from '../platform'
 import { photoSrc } from '../utils/media'
 
@@ -103,19 +103,9 @@ export default function ReceivingRepairScan() {
   const handlePhotoUpload = async (file) => {
     if (!file) return
     try {
-      let key
-      if (env.isMiniProgram) {
-        const resp = await uploadFileApi(`${baseUrl}/upload`, file)
-        const r = JSON.parse(resp.data)
-        if (r.code === 20000) key = r.data.file_key
-      } else {
-        const fd = new FormData()
-        fd.append('file', file)
-        const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', headers: { Authorization: 'Bearer ' + (getToken() || '') }, body: fd })
-        const r = await resp.json()
-        if (r.code === 20000) key = r.data.file_key
-      }
-      if (key) setUnpackPhotos(p => [...p, key])
+      const resp = await uploadFileApi(`${baseUrl}/upload`, file)
+      const r = env.isMiniProgram ? JSON.parse(resp.data) : await resp.json()
+      if (r.code === 20000) setUnpackPhotos(p => [...p, r.data.file_key])
     } catch {}
   }
 

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Button, Image, Textarea } from '@tarojs/components'
-import { apiFetch, resolveErrorMessage, getToken } from '../services/api'
+import { apiFetch, resolveErrorMessage } from '../services/api'
 import { dialog, env, getInputValue, uploadFile, previewImage } from '../platform'
 import { formatBeijingDateTimeShort } from '../utils/format'
 import { parsePhotos, photoSrc } from '../utils/media'
@@ -66,11 +66,8 @@ export default function RepairRecordPanel({ instrumentId, records, onRecordAdded
     if (!comment && photoFiles.length === 0 && !videoFile) { dialog.alert('请输入评论、拍照或选择视频'); return }
     setSubmitting(true)
     try {
-      const token = getToken()
       const uploadOne = async (file) => {
-        const resp = await uploadFile(`${baseUrl}/upload`, file, {
-          headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-        })
+        const resp = await uploadFile(`${baseUrl}/upload`, file)
         const parsed = env.isMiniProgram ? JSON.parse(resp.data || '{}') : await resp.json()
         if (parsed.code === 20000 && parsed.data?.file_key) return parsed.data.file_key
         throw new Error(resolveErrorMessage(parsed, 'upload failed'))
