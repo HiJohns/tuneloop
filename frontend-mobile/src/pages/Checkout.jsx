@@ -261,7 +261,7 @@ function SingleCheckout({ id, navigate, resumePending }) {
 
   const handleSaveGuarantor = async () => {
     if (!newGuarantor.name.trim() || !newGuarantor.phone.trim()) {
-      dialog.alert('请填写担保人姓名和联系电话')
+      dialog.alert('请填写担保人姓名和电话')
       return
     }
     if (!newGuarantor.id_card_no.trim() || newGuarantor.id_card_no.trim().length !== 18) {
@@ -329,8 +329,9 @@ function SingleCheckout({ id, navigate, resumePending }) {
   }
 
   const handleSubmit = async () => {
+    if (!getToken()) { dialog.alert('请先登录才能下单'); return }
     if (depositWaived && selectedGuarantorIds.length < 2) {
-      dialog.alert('免押金订单需提供至少 2 位担保人，请选择或新增担保人')
+      dialog.alert('免押金订单需至少选择 2 位担保人')
       return
     }
     // #1867: eligibility + recommendation letter gates
@@ -952,11 +953,11 @@ function BatchCheckout({ navigate }) {
 
   const handleSaveGuarantor = async () => {
     if (!newGuarantor.name.trim() || !newGuarantor.phone.trim()) {
-      dialog.alert('请填写担保人姓名和联系电话')
+      dialog.alert('请填写担保人姓名和电话')
       return
     }
-    if (!newGuarantor.company.trim() || !newGuarantor.title.trim()) {
-      dialog.alert('请填写工作单位和职务')
+    if (!newGuarantor.id_card_no.trim() || newGuarantor.id_card_no.trim().length !== 18) {
+      dialog.alert('请填写18位身份证号')
       return
     }
     setSavingGuarantor(true)
@@ -1000,9 +1001,10 @@ function BatchCheckout({ navigate }) {
   }
 
   const handleSubmit = async () => {
+    if (!getToken()) { dialog.alert('请先登录才能下单'); return }
     if (cartItems.length === 0) return
     if (depositWaived && selectedGuarantorIds.length < 2) {
-      dialog.alert('免押金订单需提供至少 2 位担保人，请选择或新增担保人')
+      dialog.alert('免押金订单需至少选择 2 位担保人')
       return
     }
     // #1867: eligibility + recommendation letter gates
