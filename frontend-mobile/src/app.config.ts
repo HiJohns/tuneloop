@@ -64,6 +64,7 @@ const h5Pages = [
   'pages/message-detail/index',
   'pages/messages/index',
   'pages/my-leases/index',
+  'pages/invoice/index',
   'pages/mall/index',
   'pages/my-repairs/index',
   'pages/order-detail/index',

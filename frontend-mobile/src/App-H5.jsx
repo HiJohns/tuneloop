@@ -22,6 +22,7 @@ import ReceiveConfirm from './pages/ReceiveConfirm'
 import ReturnConfirm from './pages/ReturnConfirm'
 import MyLeases from './pages/MyLeases'
 import Mall from './pages/Mall'
+import Invoice from './pages/Invoice'
 import Messages from './pages/Messages'
 import MessageDetail from './pages/MessageDetail'
 import PaymentComplete from './pages/PaymentComplete'
@@ -224,6 +225,7 @@ function App() {
         <Route path="/return/:orderId" element={<ProtectedRoute><ReturnConfirm /></ProtectedRoute>} />
         <Route path="/return" element={<ProtectedRoute><ReturnConfirm /></ProtectedRoute>} />
         <Route path="/my-leases" element={<ProtectedRoute><MyLeases /></ProtectedRoute>} />
+        <Route path="/invoice" element={<ProtectedRoute><Invoice /></ProtectedRoute>} />
         <Route path="/mall" element={<ProtectedRoute requireAuth={false}><Mall /></ProtectedRoute>} />
         <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
         <Route path="/messages/:id" element={<ProtectedRoute><MessageDetail /></ProtectedRoute>} />

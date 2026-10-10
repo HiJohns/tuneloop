@@ -5,6 +5,7 @@ import { apiFetch, getToken, notificationApi, resolveLogin , resolveErrorMessage
 import { env, storage, session, eventBus, wxLogin, dialog } from '../platform'
 import { parseJWT } from '../platform/init'
 import BottomNav from '../components-weapp/BottomNav'
+import JoinSiteModal from '../components/JoinSiteModal'
 import ErrorBoundary from '../components-weapp/ErrorBoundary'
 
 function Badge({ count }) {
@@ -93,6 +94,7 @@ export default function Profile() {
   // register/login flows (several stacked modal windows).
   const [loginBusy, setLoginBusy] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
+  const [showJoin, setShowJoin] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [orderCounts, setOrderCounts] = useState({ reserved: 0, in_lease: 0, returning: 0, completed: 0 })
   const [transitMember, setTransitMember] = useState(false) // #1937: 中转网点成员身份
@@ -621,6 +623,15 @@ export default function Profile() {
               <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>
           )}
+          {/* #2193: 加入网点（邀请制自助加入）——对齐 H5 */}
+          {!isStaff && !isGuest && (
+            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => setShowJoin(true)}>
+              <View style={{ display: 'flex', alignItems: 'center' }}>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>加入网点</Text>
+              </View>
+              <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
+            </View>
+          )}
           {/* 6. 商务合作（全员） */}
           <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/content/index?key=cooperation')}>
             <View style={{ display: 'flex', alignItems: 'center' }}>
@@ -698,6 +709,7 @@ export default function Profile() {
         onClose={() => setShowEdit(false)}
         onSave={(updated) => { setUser({ ...user, ...updated }); setShowEdit(false) }}
       />
+      <JoinSiteModal visible={showJoin} onClose={() => setShowJoin(false)} />
     </View>
     </ErrorBoundary>
   )
