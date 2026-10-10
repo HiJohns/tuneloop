@@ -74,16 +74,16 @@ export default function Renewal() {
       // 改用 apiFetch（platformRequest 跨端适配 + 自动带 Authorization）。
       const resp = await apiFetch(`${baseUrl}/orders/${orderId}/renewal/confirm`, {
         method: 'POST',
-        body: JSON.stringify({ additional_days: days, open_id: '' }),
+        body: JSON.stringify({ additional_days: days }),
       })
       const result = await resp.json()
       if (result.code === 20000 && result.data?.success) {
         navigate(`/payment?type=renewal&id=${orderId}&amount=${calcResult.total_amount}`, { replace: true })
       } else {
-        dialog.alert(resolveErrorMessage(result.data, '创建续期失败'))
+        dialog.alert('续期失败：' + resolveErrorMessage(result, '请稍后重试'))
       }
     } catch (err) {
-      dialog.alert('网络错误')
+      dialog.alert('网络错误：' + resolveErrorMessage(err, '网络异常，请重试'))
     } finally {
       setSubmitting(false)
     }
