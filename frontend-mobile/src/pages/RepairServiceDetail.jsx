@@ -258,6 +258,11 @@ export default function RepairServiceDetail() {
 
   // 支付：prepay（服务端重算金额）→ weapp 拉起微信支付；H5 引导小程序
   const payNow = async (payableCents) => {
+    // #2185: H5（非微信手机浏览器）统一走标准支付页（Native 扫码二维码），不再直连 prepay
+    if (!env.isMiniProgram) {
+      nav(`/payment?type=repair_service&id=${orderId}`)
+      return
+    }
     setBusy(true)
     try {
       const res = await apiFetch(`${baseUrl}/pay/prepay`, {
@@ -279,7 +284,7 @@ export default function RepairServiceDetail() {
       }
       if (env.isMiniProgram) {
         // 有金额的真实支付必须有 prepay_id；缺失禁止假成功（2026-09-06 incident 口径）。
-        // H5 路径为 Native 指引（data.data 仅 code_url），不在此守卫范围。
+        // （H5 已在上方提前跳「标准支付页」；此守卫仅作用于 weapp JSAPI。）
         if (!prepay.prepay_id) {
           dialog.alert('无法获取支付参数，请稍后重试')
           setBusy(false)
@@ -301,7 +306,8 @@ export default function RepairServiceDetail() {
           },
         })
       } else {
-        dialog.alert('已创建支付单，请在微信小程序内完成支付')
+        // 兜底：非小程序（H5 已在上方提前跳「标准支付页」）——统一到标准支付页
+        nav(`/payment?type=repair_service&id=${orderId}`)
       }
     } catch (e) {
       dialog.alert(resolveErrorMessage(e))
@@ -325,7 +331,8 @@ export default function RepairServiceDetail() {
           if (env.isMiniProgram) {
             Taro.navigateTo({ url: `/pages-weapp/payment/index?type=repair_service&order_id=${orderId}` })
           } else {
-            dialog.alert('请在微信小程序内完成支付')
+            // #2185: H5 统一到标准支付页（Native 扫码）；注意 H5 端参数名为 id
+            nav(`/payment?type=repair_service&id=${orderId}`)
           }
           return
         }
@@ -743,7 +750,7 @@ export default function RepairServiceDetail() {
             </View>
             <Text style={labelStyle}>实际费用超出预付部分，未支付将影响会员升级</Text>
             {/* #2124：进支付确认页（明细=物流费补缴），不直接拉起支付 */}
-            <Button disabled={busy} onClick={() => nav('/payment?type=repair_service&order_id=' + orderId)}
+            <Button disabled={busy} onClick={() => nav('/payment?type=repair_service&id=' + orderId)}
               style={btnPrimaryStyle}>
               去补缴 {yuan(detail.payments.pending_shortfall_cents)}
             </Button>

@@ -3,6 +3,7 @@ import { formatCents } from '../utils/money'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { apiFetch , resolveErrorMessage } from '../services/api'
 import { env, dialog } from '../platform'
+import QRCode from 'qrcode'
 
 const baseUrl = env.apiBaseUrl
 
@@ -25,6 +26,8 @@ export default function Payment() {
   const [couponCode, setCouponCode] = useState('')
   const [appliedCoupon, setAppliedCoupon] = useState(null)
   const [couponAmount, setCouponAmount] = useState(0)
+  // #2185: H5（非微信手机浏览器）Native 扫码支付——prepay 返回 code_url 后展示二维码并轮询查单
+  const [qrPay, setQrPay] = useState(null)
 
   useEffect(() => {
     if (!pType) return
@@ -242,6 +245,13 @@ export default function Payment() {
           </button>
         )}
       </div>
+      {qrPay && (
+        <PayQrOverlay
+          pay={qrPay}
+          onClose={() => setQrPay(null)}
+          onPaid={() => { setQrPay(null); dialog.alert('支付成功'); afterPaySuccess(pId) }}
+        />
+      )}
     </div>
   )
 
@@ -315,7 +325,18 @@ export default function Payment() {
       })
       const result = await resp.json()
       if (result.code === 20000) {
-        dialog.alert('支付失败: 暂不支持H5支付')
+        // #2185: H5 Native 扫码——prepay 返回 code_url 则展示二维码 + 轮询查单；
+        // 缺 code_url 说明未创建支付（禁止假成功，与 weapp 守卫口径一致）。
+        const pd = result.data?.data
+        if (pd?.code_url) {
+          setQrPay({
+            code_url: pd.code_url,
+            out_trade_no: pd.out_trade_no,
+            amount: (appliedCoupon ? data.amount : cashAmount),
+          })
+        } else {
+          dialog.alert('支付失败: ' + (resolveErrorMessage(result) || '无法获取支付参数，请稍后重试'))
+        }
       } else {
         dialog.alert('支付失败: ' + resolveErrorMessage(result))
       }
@@ -329,6 +350,54 @@ export default function Payment() {
     navigate(-1)
   }
 
+}
+
+// #2185: H5（非微信手机浏览器）Native 扫码支付浮层——code_url 生成二维码 + 轮询 /pay/query 判定成功
+function PayQrOverlay({ pay, onClose, onPaid }) {
+  const [img, setImg] = useState('')
+  useEffect(() => {
+    let cancelled = false
+    QRCode.toDataURL(pay.code_url, { width: 220, margin: 1 }, (err, url) => {
+      if (!cancelled && !err) setImg(url)
+    })
+    return () => { cancelled = true }
+  }, [pay.code_url])
+
+  useEffect(() => {
+    let stopped = false
+    let timer = null
+    const tick = async () => {
+      try {
+        const resp = await apiFetch(`${baseUrl}/pay/query`, {
+          method: 'POST',
+          body: JSON.stringify({ out_trade_no: pay.out_trade_no }),
+        })
+        const r = await resp.json()
+        if (!stopped && r.code === 20000 && r.data?.paid) {
+          stopped = true
+          if (timer) clearInterval(timer)
+          onPaid()
+        }
+      } catch { /* 查单失败静默，交由下一次轮询或取消 */ }
+    }
+    timer = setInterval(tick, 3000)
+    tick()
+    return () => { stopped = true; if (timer) clearInterval(timer) }
+  }, [pay.out_trade_no])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+      <div className="bg-white rounded-2xl p-6 flex flex-col items-center" style={{ width: 300 }}>
+        <div className="text-base font-bold text-black mb-1">微信扫码支付</div>
+        <div className="text-sm text-zinc-500 mb-3">¥{formatCents(Number(pay.amount))}</div>
+        {img
+          ? <img src={img} alt="支付二维码" style={{ width: 220, height: 220 }} />
+          : <div className="text-zinc-400 text-sm flex items-center justify-center" style={{ width: 220, height: 220 }}>生成中...</div>}
+        <div className="text-xs text-zinc-400 mt-3 text-center">请用微信「扫一扫」；同一手机可长按二维码识别</div>
+        <button className="mt-4 text-sm text-zinc-500" onClick={onClose} style={{ background: 'none', border: 'none' }}>取消支付</button>
+      </div>
+    </div>
+  )
 }
 
 function Row({ label, value, color, bold, valueSize }) {
