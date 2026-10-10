@@ -292,7 +292,7 @@ export default function MyLeases() {
                       )}
                       {showStaffReceive && (
                         <Button
-                          onClick={(e) => { e.stopPropagation(); navigate(`/order/${order.id}`) }}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/staff/receiving?order_id=${order.id}`) }}
                           className="flex-1 min-w-0 py-2.5 bg-rose-700 text-white rounded-xl font-black text-sm"
                         >
                           接收
