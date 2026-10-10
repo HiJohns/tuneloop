@@ -61,7 +61,7 @@ function getItemPricing(item) {
   return { dailyRent, deposit, rent, shippingFee: item.shipping_fee || pricing[0]?.shipping_fee || 0 }
 }
 
-function SingleCheckout({ id, nav }) {
+function SingleCheckout({ id, nav, resumePending = '' }) {
   const [instrument, setInstrument] = useState(null)
   const [pricingV2, setPricingV2] = useState(null)
   const [addresses, setAddresses] = useState([])
@@ -161,6 +161,34 @@ function SingleCheckout({ id, nav }) {
     }
     loadData()
   }, [id])
+
+  // #2201: 补 #2041 续提——消费 resume_pending（校验乐器可租 / 失效清理+提示 / 可租回填天数）
+  useEffect(() => {
+    if (!resumePending || !instrument) return
+    let cancelled = false
+    const resume = async () => {
+      if (instrument.stock_status !== 'available') {
+        try { await apiFetch(`${env.apiBaseUrl}/user/pending-orders/${resumePending}`, { method: 'DELETE' }) } catch { /* 清理失败不阻断提示 */ }
+        if (cancelled) return
+        await Taro.showModal({ title: '订单已失效', content: '该乐器已被租出，暂存的待提交订单已失效', showCancel: false })
+        if (!cancelled) Taro.navigateBack()
+        return
+      }
+      try {
+        const pr = await apiFetch(`${env.apiBaseUrl}/user/pending-orders`)
+        const prj = await pr.json()
+        const cached = (prj.data?.list || []).find(x => String(x.id) === String(resumePending))
+        if (cancelled || !cached?.payload) return
+        if (cached.payload.rent_days) {
+          const d = Number(cached.payload.rent_days) || 30
+          setDays(d)
+          setDaysInputText(String(d))
+        }
+      } catch { /* 回填失败不阻断结算 */ }
+    }
+    resume()
+    return () => { cancelled = true }
+  }, [instrument, resumePending])
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -287,6 +315,10 @@ function SingleCheckout({ id, nav }) {
       const resp = await ordersApi.create(body)
       if (resp.code === 20000 || resp.code === 20100) {
         eventBus.emit('cartUpdated')
+        // #2201: 续提成功 → 清理暂存的待提交订单
+        if (resumePending) {
+          apiFetch(`${env.apiBaseUrl}/user/pending-orders/${resumePending}`, { method: 'DELETE' }).catch(() => {})
+        }
         const orderId = resp.data?.order_id
         if (orderId) {
           Taro.redirectTo({ url: `/pages-weapp/payment/index?type=rent&id=${orderId}` })
@@ -1318,10 +1350,10 @@ function BatchCheckout({ nav }) {
 
 export default function Checkout() {
   const instance = Taro.getCurrentInstance()
-  const { id } = instance.router?.params || {}
+  const { id, resume_pending } = instance.router?.params || {}
   const nav = (url) => { Taro.navigateTo({ url }) }
   if (id) {
-    return <SingleCheckout id={id} nav={nav} />
+    return <SingleCheckout id={id} nav={nav} resumePending={resume_pending || ''} />
   }
   return <BatchCheckout nav={nav} />
 }
