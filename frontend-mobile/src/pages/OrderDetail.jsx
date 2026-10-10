@@ -373,7 +373,7 @@ export default function OrderDetail() {
         )}
         <View className="text-center text-gray-400 py-12">
           <Package size={48} className="mx-auto mb-3 opacity-50" />
-          <Text>订单未找到</Text>
+          <Text>订单不存在</Text>
         </View>
       </View>
     )

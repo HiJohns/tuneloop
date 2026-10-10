@@ -186,7 +186,7 @@
 | `StaffInstrumentDetail.jsx` | `/staff/instrument/:id` | 员工乐器详情 |
 | `StaffInstrumentForm.jsx` | `/staff/instrument/new` | 员工乐器表单 |
 | `StaffInstruments.jsx` | `/staff/instruments` | 员工乐器管理 |
-| `StaffOrderDetail.jsx` | `/staff/orders/:id` | 员工订单详情 |
+| ~~`StaffOrderDetail.jsx`~~ | `/staff/orders/:id` | 已移除死壳（#2191）；该路由由 `OrderDetail.jsx` 承载 |
 | `StaffOrders.jsx` | `/staff/orders` | 员工订单管理 |
 | `StaffReceiveConfirm.jsx` | `/staff/receiving/:orderId` | 员工收货确认 |
 | `Success.jsx` | `/success` | 成功页 |

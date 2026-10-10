@@ -91,7 +91,6 @@ const h5Pages = [
   'pages/staff-instrument-detail/index',
   'pages/staff-instrument-form/index',
   'pages/staff-instruments/index',
-  'pages/staff-order-detail/index',
   'pages/staff-orders/index',
   'pages/staff-receive-confirm/index',
   'pages/face-verify/index',
