@@ -39,13 +39,14 @@ func (h *ReferralHandler) GetPromoQR(c *gin.Context) {
 	if wxURL == "" {
 		wxURL = "http://localhost:5553"
 	}
-	h5URL := wxURL + "/?ref=" + user.RefCode + "&open=profile-complete"
+	// #2203: 推广落地改首页（不再强制进注册页）——邀请码由落地页捕获存本地，注册时消费
+	h5URL := wxURL + "/?ref=" + user.RefCode
 
 	var wxacodeBase64 *string
 	accessToken, tokenErr := services.GetWxAccessToken()
 	if tokenErr == nil {
 		scene := "ref=" + user.RefCode
-		imgData, err := services.GetWxacodeUnlimited(accessToken, scene, "pages-weapp/profile-complete/index", services.GetWxEnvVersion())
+		imgData, err := services.GetWxacodeUnlimited(accessToken, scene, "pages-weapp/home/index", services.GetWxEnvVersion())
 		if err == nil {
 			b64 := base64.StdEncoding.EncodeToString(imgData)
 			wxacodeBase64 = &b64
@@ -69,7 +70,8 @@ func (h *ReferralHandler) LandingPage(c *gin.Context) {
 	if wxURL == "" {
 		wxURL = "http://localhost:5553"
 	}
-	redirect := wxURL + "/?ref=" + ref + "&open=profile-complete"
+	// #2203: 落首页（邀请码由首页捕获）；不再带 open=profile-complete
+	redirect := wxURL + "/?ref=" + ref
 	c.Redirect(http.StatusFound, redirect)
 }
 

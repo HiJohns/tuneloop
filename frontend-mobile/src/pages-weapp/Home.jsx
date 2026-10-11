@@ -295,6 +295,24 @@ export default function Home() {
       const tp = Taro.getStorageSync('tab_params')
       if (tp?.tenant && !routerParams.tenant) setTenant(tp.tenant)
     } catch {}
+    // #2203: 推广二维码落地首页——捕获邀请码（scene=ref=<code> / ref），存本地供注册消费。
+    // scene 经 getEnterOptionsSync（tabBar 页扫码入口）优先，兜底 launch/router。
+    try {
+      const enter = (Taro.getEnterOptionsSync && Taro.getEnterOptionsSync()) || {}
+      const launch = (Taro.getLaunchOptionsSync && Taro.getLaunchOptionsSync()) || {}
+      const eq = enter.query || {}
+      const lq = launch.query || {}
+      let code = routerParams.ref || eq.ref || lq.ref || ''
+      const scene = routerParams.scene || eq.scene || lq.scene || ''
+      if (!code && scene) {
+        const decoded = decodeURIComponent(scene)
+        if (decoded.startsWith('ref=')) code = decoded.slice(4)
+      }
+      if (code) {
+        storage.setItem('ref_code', code)
+        storage.setItem('ref_code_ts', String(Date.now()))
+      }
+    } catch { /* 捕获失败不影响首页 */ }
     // Returning to the home tab (e.g. after checkout/payment) does NOT
     // remount the page, so the instrument list keeps its pre-payment
     // snapshot — stock_status (租赁中) would be stale. Refresh here.
