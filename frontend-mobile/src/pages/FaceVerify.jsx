@@ -88,6 +88,15 @@ export default function FaceVerify() {
     Taro.navigateBack()
   }
 
+  // #2202: 逃生通道 - 前往「我的」页登出
+  const goToProfile = () => {
+    if (env.isMiniProgram) {
+      Taro.switchTab({ url: '/pages-weapp/profile/index' })
+    } else {
+      navigate('/profile')
+    }
+  }
+
   // Camera error handler
   const handleCameraError = (e) => {
     setCameraErr(e.detail?.errMsg || '摄像头授权失败，请在小程序设置中允许使用摄像头')
@@ -548,6 +557,10 @@ export default function FaceVerify() {
           <>
             {/* Status bar (top) */}
             <View style={{ width: '100%', paddingLeft: 16, paddingRight: 16, zIndex: 10 }}>{renderStatusBar()}</View>
+            {/* #2202: 逃生入口 */}
+            <View style={{ width: '100%', paddingLeft: 16, paddingRight: 16, paddingTop: 8, zIndex: 10 }}>
+              <Text onClick={goToProfile} style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', textAlign: 'center' }}>暂不实名认证？前往退出登录</Text>
+            </View>
 
             {/* Compact camera stage (~1/4 screen area) */}
             <View style={{ marginTop: 20, width: 232, height: 320, borderRadius: 20, overflow: 'hidden', position: 'relative', backgroundColor: '#000' }}>
@@ -698,6 +711,10 @@ export default function FaceVerify() {
       <View style={{ margin: 16, backgroundColor: '#fff', borderRadius: 12, padding: 16 }}>
         <Text style={{ fontSize: 14, fontWeight: '700', color: '#111', marginBottom: 8 }}>实名认证</Text>
         {renderStatusBar()}
+        {/* #2202: 逃生入口 */}
+        <View onClick={goToProfile} style={{ padding: 12, backgroundColor: '#f4f4f5', borderRadius: 8, marginBottom: 12, display: 'flex', alignItems: 'center' }}>
+          <Text style={{ fontSize: 12, color: '#71717a' }}>暂不实名认证？前往退出登录</Text>
+        </View>
         {!loading && status !== 'verified' && hasIdPhoto && status !== 'pending_review' && (
           <View>
             <View style={{ padding: 12, backgroundColor: '#f4f4f5', borderRadius: 8, marginBottom: 12 }}>
@@ -706,7 +723,8 @@ export default function FaceVerify() {
               </Text>
             </View>
             {/* #2109: 微信自动核身（E证通）——按钮点击直跳官方小程序核验 */}
-            {env.isMiniProgram && autoAvailable && (
+            {/* #2202: 自动核身入口本期不启用（#2109 未实装，此区块在 H5 分支内条件恒 false） */}
+            {false && env.isMiniProgram && autoAvailable && (
               <View style={{ padding: 12, backgroundColor: '#f0fdf4', borderRadius: 8, borderWidth: 1, borderColor: '#bbf7d0', marginBottom: 12 }}>
                 <Text style={{ fontSize: 13, fontWeight: '700', color: '#166534', display: 'block' }}>微信自动核身（腾讯云）</Text>
                 <Text style={{ fontSize: 12, color: '#15803d', marginTop: 4, display: 'block' }}>

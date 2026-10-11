@@ -37,7 +37,20 @@ func CheckIdentityForOrder(db *gorm.DB, userID string) (int, string, []string) {
 	if len(reasons) == 1 && reasons[0] == "no_id_photo" {
 		msg = "请先上传身份证正反面照片"
 	}
+	// #2202: pending_review 期间（已提交自拍+视频待审核）提示审核中
+	if len(reasons) == 1 && reasons[0] == "not_verified" && hasPendingFaceBatch(db, userID) {
+		msg = "实名认证审核中，请等待审核通过后再下单"
+	}
 	return BIZNeedIdentity, msg, reasons
+}
+
+// hasPendingFaceBatch checks if user has a pending FaceCaptureBatch (#2202).
+func hasPendingFaceBatch(db *gorm.DB, userID string) bool {
+	var count int64
+	db.Model(&models.FaceCaptureBatch{}).
+		Where("user_id = ? AND status = ?", userID, "pending").
+		Count(&count)
+	return count > 0
 }
 
 // requireIdentityForOrder writes the 40310 response and returns false when the

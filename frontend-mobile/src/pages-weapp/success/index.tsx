@@ -1,2 +1,6 @@
+import { useIdentityGuard } from '../../hooks/useIdentityGuard'
 import Success from '../Success'
-export default Success
+export default function SuccessWithGuard() {
+  useIdentityGuard()
+  return <Success />
+}

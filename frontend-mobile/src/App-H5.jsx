@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { message } from 'antd'
-import { getToken, initPermissionMapping, publicRoutes, request } from './services/api'
+import { getToken, initPermissionMapping, publicRoutes, request, apiFetch } from './services/api'
 import { storage, session, navigation, env } from './platform'
 import { initializeApp, storeToken, parseJWT, cachePermissions, getWXConfig, showLoginReason, setInitDeps } from './platform/init'
 
@@ -61,6 +61,41 @@ import Register from './pages/Register'
 function ProtectedRoute({ children, requireAuth = true }) {
   const token = getToken()
   const location = navigation.getCurrentPath()
+  const [idBlocked, setIdBlocked] = useState(false)
+
+  useEffect(() => {
+    // #2202: 仅 requireAuth + 有 token + 非豁免页时异步检查核身状态
+    if (!requireAuth || !token) return
+    if (location.startsWith('/profile') || location.startsWith('/face-verify')) return
+    const payload = parseJWT(token)
+    if (!(payload?.role === 'USER' && !payload?.oid && !payload?.tid)) return
+
+    const raw = storage.getItem('identity_verify_cache')
+    if (raw) {
+      try {
+        const { status, ts } = JSON.parse(raw)
+        if (Date.now() - ts < 5 * 60 * 1000) {
+          if (['none', 'uploaded', 'rejected'].includes(status)) setIdBlocked(true)
+          return
+        }
+      } catch {}
+    }
+
+    apiFetch('/users/me')
+      .then(r => r.json())
+      .then(data => {
+        if (data.code === 20000 && data.data?.id_verify_status) {
+          storage.setItem('identity_verify_cache', JSON.stringify({ status: data.data.id_verify_status, ts: Date.now() }))
+          if (['none', 'uploaded', 'rejected'].includes(data.data.id_verify_status)) setIdBlocked(true)
+        }
+      })
+      .catch(() => {})
+  }, [requireAuth, token, location])
+
+  if (idBlocked) {
+    navigation.redirect('/face-verify')
+    return null
+  }
 
   if (!requireAuth) {
     session.removeItem('guest_degradation')

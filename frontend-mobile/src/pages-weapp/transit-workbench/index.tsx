@@ -1,2 +1,6 @@
+import { useIdentityGuard } from '../../hooks/useIdentityGuard'
 import TransitPage from '../../pages/TransitWorkbench'
-export default TransitPage
+export default function TransitPageWithGuard() {
+  useIdentityGuard()
+  return <TransitPage />
+}

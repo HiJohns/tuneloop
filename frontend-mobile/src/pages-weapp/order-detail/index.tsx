@@ -1,2 +1,6 @@
+import { useIdentityGuard } from '../../hooks/useIdentityGuard'
 import OrderDetail from './OrderDetail'
-export default OrderDetail
+export default function OrderDetailWithGuard() {
+  useIdentityGuard()
+  return <OrderDetail />
+}

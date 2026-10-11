@@ -1,2 +1,6 @@
+import { useIdentityGuard } from '../../hooks/useIdentityGuard'
 import ProfileComplete from './ProfileComplete'
-export default ProfileComplete
+export default function ProfileCompleteWithGuard() {
+  useIdentityGuard()
+  return <ProfileComplete />
+}

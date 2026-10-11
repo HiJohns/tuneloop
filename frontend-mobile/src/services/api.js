@@ -300,7 +300,7 @@ export function degradeToGuest() {
   navigation.redirect('/')
 }
 
-function parseJWT(token) {
+export function parseJWT(token) {
   if (!token || !token.includes('.')) return {}
   try {
     return JSON.parse(atob(token.split('.')[1]))
@@ -477,6 +477,12 @@ export async function request(endpoint, options = {}) {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Request failed' }))
+    // #2202: 核身受限（40310）→ 写缓存并拉回核身页
+    if (error.code === 40310) {
+      storage.setItem('identity_verify_cache', JSON.stringify({ status: 'uploaded', ts: Date.now() }))
+      navigation.redirect(env.isMiniProgram ? '/pages-weapp/face-verify/index' : '/face-verify')
+      return []
+    }
     throw new Error(error.message || error.code || 'Request failed')
   }
 
@@ -539,6 +545,16 @@ export async function apiFetch(url, options = {}) {
     } catch {}
     degradeToGuest()
     throw new Error('Unauthorized')
+  }
+
+  // #2202: 403 核身受限 → 拉回核身页
+  if (response.status === 403) {
+    const body403 = await response.clone().json().catch(() => null)
+    if (body403?.code === 40310) {
+      storage.setItem('identity_verify_cache', JSON.stringify({ status: 'uploaded', ts: Date.now() }))
+      navigation.redirect(env.isMiniProgram ? '/pages-weapp/face-verify/index' : '/face-verify')
+      return response
+    }
   }
 
   return response
