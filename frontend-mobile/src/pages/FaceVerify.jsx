@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom'
 import { apiFetch, resolveErrorMessage, resolveUploadError } from '../services/api'
 import { env, dialog, uploadFile, getCameraContext } from '../platform'
 import FaceCaptureUploader from '../components/FaceCaptureUploader'
+import { setIdentityVerifyCache } from '../hooks/useIdentityGuard'
 // #2109: E证通小程序 SDK（weapp 自动核身；顶层无 wx 访问，H5 打包安全）
 import { startEid } from '../mp_ecard_sdk/main'
 
@@ -287,6 +288,7 @@ export default function FaceVerify() {
     clearStallWatchdog()
     setStatus('pending_review')
     setUploadProgress(null)
+    setIdentityVerifyCache('pending_review')
     dialog.toast(toastText || '提交成功，等待审核')
     setTimeout(() => {
       if (env.isMiniProgram) { Taro.navigateBack() } else { navigate('/profile/edit') }
