@@ -171,7 +171,7 @@ export default function Login() {
       </View>
 
       {/* Developer mode toggle */}
-      <Text style={{ fontSize: 10, color: '#d4d4d8', marginTop: 32 }} onClick={handleVersionTap}>版本 v1.0.0</Text>
+      <Text style={{ fontSize: 10, color: '#d4d4d8', marginTop: 32 }} onClick={handleVersionTap}>版本 v{env.version || 'dev'}</Text>
       {showDevMode && (
         <View style={{ marginTop: 12, width: '100%' }}>
           <Button onClick={() => { storage.removeItem('token'); storage.removeItem('token_expiry'); Taro.navigateBack() }}
