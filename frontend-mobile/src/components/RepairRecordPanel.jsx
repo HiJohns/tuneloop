@@ -5,22 +5,24 @@ import { apiFetch, resolveErrorMessage, resolveUploadError } from '../services/a
 import { dialog, env, getInputValue, uploadFile, previewImage } from '../platform'
 import { formatBeijingDateTimeShort } from '../utils/format'
 import { parsePhotos, photoSrc } from '../utils/media'
+import { t } from '../i18n'
+
 
 const RECORD_TYPE_LABELS = {
-  created: '维修工单已创建',
-  quote_submitted: '维修师提交报价',
-  quote_accepted: '接受报价',
-  paid: '支付完成',
-  shipped: '已发货',
-  received: '已收货',
-  requoted: '维修师重新报价',
-  requote_rejected: '拒绝重新报价',
-  progress: '维修进展',
-  completed: '维修完成',
-  return_shipped: '已发还',
-  receipt_confirmed: '确认收货',
-  transit_processed: '中转处理',
-  transit_relayed: '中转转发',
+  created: t('维修工单已创建'),
+  quote_submitted: t('维修师提交报价'),
+  quote_accepted: t('接受报价'),
+  paid: t('支付完成'),
+  shipped: t('已发货'),
+  received: t('已收货'),
+  requoted: t('维修师重新报价'),
+  requote_rejected: t('拒绝重新报价'),
+  progress: t('维修进展'),
+  completed: t('维修完成'),
+  return_shipped: t('已发还'),
+  receipt_confirmed: t('确认收货'),
+  transit_processed: t('中转处理'),
+  transit_relayed: t('中转转发'),
 }
 
 export default function RepairRecordPanel({ instrumentId, records, onRecordAdded, baseUrl: customUrl, hideForm }) {

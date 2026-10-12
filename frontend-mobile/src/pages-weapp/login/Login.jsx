@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Button, Input, Checkbox } from '@tarojs/components'
-import { wxLogin, storage, session, env, request, eventBus } from '../../platform'
+import {dialog, wxLogin, storage, session, env, request, eventBus } from '../../platform'
 import { resolveErrorMessage } from '../../services/api'
+import { t } from '../../i18n'
+
+
 
 const TAB_PAGES = ['/pages-weapp/home/index', '/pages-weapp/mall/index', '/pages-weapp/profile/index']
 
@@ -80,9 +83,9 @@ async function handleIAMLogin(identifier, password) {
       }
       return
     }
-    Taro.showToast({ title: resolveErrorMessage(result, '登录失败 [L1]'), icon: 'none' })
+    dialog.toast(resolveErrorMessage(result, '登录失败 [L1]'))
   } catch (err) {
-    Taro.showToast({ title: '网络错误 ' + (err.message || ''), icon: 'none' })
+    dialog.toast(t('网络错误 ') + (err.message || ''))
   }
   Taro.hideLoading()
 }
@@ -110,7 +113,7 @@ export default function Login() {
   // #2206: 协议同意校验（模块级函数无法访问组件 state，在组件内校验）
   const handleWxLoginClick = () => {
     if (!agreed) {
-      Taro.showToast({ title: '请阅读并同意《租用服务协议》与《个人信息保护政策》', icon: 'none' })
+      dialog.toast('请阅读并同意《租用服务协议》与《个人信息保护政策》')
       return
     }
     handleWxLogin()
@@ -118,7 +121,7 @@ export default function Login() {
 
   const handleIAMLoginClick = () => {
     if (!agreed) {
-      Taro.showToast({ title: '请阅读并同意《租用服务协议》与《个人信息保护政策》', icon: 'none' })
+      dialog.toast('请阅读并同意《租用服务协议》与《个人信息保护政策》')
       return
     }
     handleIAMLogin(identifier, password)

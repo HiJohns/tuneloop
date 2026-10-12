@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 // ui.md §1.6 日期与时间显示规范（强制）：北京时间（UTC+8）+ 中文格式，
 // 禁止 MM-DD / YYYY-MM-DD 等连字符格式出现在用户可见展示。
 // 当年省略年份；跨年保留年份。「当年」判定同样基于北京时间。
@@ -61,10 +62,10 @@ export function formatDeliveryAddress(raw) {
 // #1756: payment method codes → user-facing labels. Unknown values fall
 // back to the raw code so no information is hidden.
 export const PAY_METHOD_LABEL = {
-  jsapi: '微信支付',
-  native: '扫码支付',
-  waived: '优惠码免付',
-  mock: '测试支付',
+  jsapi: t('微信支付'),
+  native: t('扫码支付'),
+  waived: t('优惠码免付'),
+  mock: t('测试支付'),
 }
 
 export function formatPayMethod(method) {
@@ -76,9 +77,9 @@ export function formatPayMethod(method) {
 // acceptance state (repair_completed) is labelled 待验收 so it cannot be
 // confused with the damage-assessment status shown elsewhere.
 const REPAIR_STATUS_LABEL = {
-  repair_pending: '待维修',
-  repair_in_progress: '维修中',
-  repair_completed: '待验收',
+  repair_pending: t('待维修'),
+  repair_in_progress: t('维修中'),
+  repair_completed: t('待验收'),
 }
 
 export function repairStatusLabel(status) {

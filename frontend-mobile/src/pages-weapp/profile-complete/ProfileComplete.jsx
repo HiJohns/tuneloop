@@ -2,10 +2,13 @@ import { useState, useEffect, useRef } from 'react'
 import { formatCents } from '../../utils/money'
 import Taro from '@tarojs/taro'
 import { View, Text, Input, Picker, Image, Checkbox } from '@tarojs/components'
-import { storage, session, env, request, wxLogin } from '../../platform'
+import {dialog, storage, session, env, request, wxLogin } from '../../platform'
 import { apiFetch , resolveErrorMessage } from '../../services/api'
 import IdPhotoUploader from '../../components/IdPhotoUploader'
 import regions from '../../data/regions.json'
+import { t } from '../../i18n'
+
+
 
 export default function ProfileComplete() {
   const [name, setName] = useState('')
@@ -106,15 +109,15 @@ export default function ProfileComplete() {
   }
 
   const handleRegister = async () => {
-    if (!name.trim()) { Taro.showToast({ title: '请输入姓名', icon: 'none' }); return }
-    if (!phone.trim()) { Taro.showToast({ title: '请输入手机号', icon: 'none' }); return }
-    if (!agreed) { Taro.showToast({ title: '请阅读并同意《租用服务协议》与《个人信息保护政策》', icon: 'none' }); return }
+    if (!name.trim()) { dialog.toast('请输入姓名'); return }
+    if (!phone.trim()) { dialog.toast('请输入手机号'); return }
+    if (!agreed) { dialog.toast('请阅读并同意《租用服务协议》与《个人信息保护政策》'); return }
     // #1924: 身份证正反面必填（取消学生证豁免）；第二证件可选，类型由平台
     // 审核时指定（顾客提交时保持「未定」）。
     const frontReady = uploadedSides.front || !!idPhotoFrontRef.current?.hasFile()
     const backReady = uploadedSides.back || !!idPhotoBackRef.current?.hasFile()
     if (!frontReady || !backReady) {
-      Taro.showToast({ title: '请先上传身份证正反面照片', icon: 'none' })
+      dialog.toast('请先上传身份证正反面照片')
       return
     }
     setSaving(true)
@@ -161,7 +164,7 @@ export default function ProfileComplete() {
           // 走 user/id-photo 端点（两阶段注册用户未创建 → 401 上传失败）。
           setResumeSid(sid)
         } else {
-          Taro.showToast({ title: resolveErrorMessage(result, '提交失败, 请重试'), icon: 'none', duration: 3000 })
+          dialog.toast(resolveErrorMessage(result, '提交失败, 请重试'), { duration: 3000 })
           setSaving(false)
           return
         }
@@ -188,10 +191,10 @@ export default function ProfileComplete() {
       }
       if (failedSides.length > 0) {
         const { confirm } = await Taro.showModal({
-          title: '证件照上传失败',
+          title: t('证件照上传失败'),
           content: `${failedSides.join('、')}上传失败，可在注册后于『编辑资料』补传。`,
-          confirmText: '继续支付',
-          cancelText: '重试',
+          confirmText: t('继续支付'),
+          cancelText: t('重试'),
         })
         if (!confirm) {
           setSaving(false)
@@ -200,7 +203,7 @@ export default function ProfileComplete() {
       }
       Taro.redirectTo({ url: `/pages-weapp/payment/index?type=membership&session_id=${sid}&amount=${amount}` })
     } catch (err) {
-      Taro.showToast({ title: '网络错误, 请重试', icon: 'none' })
+      dialog.toast('网络错误, 请重试')
     }
     setSaving(false)
   }

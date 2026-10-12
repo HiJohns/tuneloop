@@ -11,6 +11,8 @@ import TechRepairSections from '../components/TechRepairSections'
 import SegmentedTabs from '../components/SegmentedTabs' // #2150 统一分段控制器
 import BottomNavWeapp from '../components-weapp/BottomNav'
 import { formatBeijingDate, repairStatusLabel } from '../utils/format'
+import { t } from '../i18n'
+
 
 const statusLabels = {
   pending_assessment: '待评估', transit_processing: '中转处理中',
@@ -152,10 +154,10 @@ export default function MyRepairs() {
     let company = ''
     let number = ''
     if (env.isMiniProgram) {
-      const res = await Taro.showModal({ title: '发回物流', editable: true, placeholderText: '输入物流公司' })
+      const res = await Taro.showModal({ title: t('发回物流'), editable: true, placeholderText: t('输入物流公司') })
       if (!res.confirm) return
       company = res.content || ''
-      const res2 = await Taro.showModal({ title: '发回物流', editable: true, placeholderText: '输入物流单号' })
+      const res2 = await Taro.showModal({ title: t('发回物流'), editable: true, placeholderText: t('输入物流单号') })
       if (!res2.confirm) return
       number = res2.content || ''
     } else {

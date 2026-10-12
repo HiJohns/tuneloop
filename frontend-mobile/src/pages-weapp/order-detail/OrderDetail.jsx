@@ -3,10 +3,13 @@ import { formatCents } from '../../utils/money'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, ScrollView, Image, Button } from '@tarojs/components'
 import { apiFetch, getToken, resolveErrorMessage, resolveUploadError } from '../../services/api'
-import { env, uploadFile } from '../../platform'
+import {dialog, env, uploadFile } from '../../platform'
 import { formatDeliveryAddress, formatBeijingDate, formatBeijingDateTimeShort, formatPayMethod } from '../../utils/format'
 import LeaseInfo from '../../components/LeaseInfo'
 import VerifyWarningBar from '../../components/VerifyWarningBar'
+import { t } from '../../i18n'
+
+
 
 const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? `${env.apiBaseUrl.replace(/\/api$/, '')}${url}` : url
 
@@ -36,19 +39,19 @@ const STATUS = {
 }
 
 const EVENT_LABELS = {
-  created: '下单', paid: '已付款', pending_shipment: '待发货',
-  shipped: '已发货', in_transit: '运输中', delivered: '已收货',
-  in_lease: '租赁中', returning: '归还中', returned: '已归还',
-  completed: '已完成', cancelled: '已取消', expired: '已超期',
-  renewed: '已续期', settlement_confirmed: '结算确认',
-  pickup_confirmed: '已提货', damage_assessed: '定损完成', return_inspected: '验货完成',
+  created: t('下单'), paid: t('已付款'), pending_shipment: t('待发货'),
+  shipped: t('已发货'), in_transit: t('运输中'), delivered: t('已收货'),
+  in_lease: t('租赁中'), returning: t('归还中'), returned: t('已归还'),
+  completed: t('已完成'), cancelled: t('已取消'), expired: t('已超期'),
+  renewed: t('已续期'), settlement_confirmed: t('结算确认'),
+  pickup_confirmed: t('已提货'), damage_assessed: t('定损完成'), return_inspected: t('验货完成'),
   // 状态机事件（order_status_history StatusTo 并入动态时以状态码为 event，
   // 缺映射会原样输出 deposit_refunding 等英文码）
-  reserved: '未支付',
-  deposit_refunding: '押金退款中',
-  damage_appealing: '定损申诉',
-  pending_damage_response: '待回应定损',
-  transferred: '已过户',
+  reserved: t('未支付'),
+  deposit_refunding: t('押金退款中'),
+  damage_appealing: t('定损申诉'),
+  pending_damage_response: t('待回应定损'),
+  transferred: t('已过户'),
 }
 
 const baseUrl = env.apiBaseUrl
@@ -158,31 +161,25 @@ export default function OrderDetail() {
   }
 
   const handleCancel = async () => {
-    Taro.showModal({
-      title: '取消订单',
-      content: '确认取消该订单？取消后不可恢复。',
-      success: async (res) => {
-        if (!res.confirm) return
-        setActionLoading(true)
-        try {
-          const resp = await apiFetch(`${baseUrl}/orders/${id}/cancel-by-user`, { method: 'POST' })
-          const result = await resp.json()
-          if (result.code === 20000) {
-            if (result.data?.refund_amount > 0) {
-              // paid/pending_shipment: full original payment refunded — go to refund page
-              Taro.redirectTo({ url: `/pages-weapp/payment/index?type=refund&id=${id}` })
-            } else {
-              setOrder(prev => ({ ...prev, status: 'cancelled' }))
-            }
-          } else {
-            Taro.showModal({ title: '取消失败', content: resolveErrorMessage(result, '请稍后重试'), showCancel: false })
-          }
-        } catch (err) {
-          Taro.showModal({ title: '取消失败', content: resolveErrorMessage(err, '网络异常，请重试'), showCancel: false })
+    if (!(await dialog.confirm('确认取消该订单？取消后不可恢复。', { title: '取消订单' }))) return
+    setActionLoading(true)
+    try {
+      const resp = await apiFetch(`${baseUrl}/orders/${id}/cancel-by-user`, { method: 'POST' })
+      const result = await resp.json()
+      if (result.code === 20000) {
+        if (result.data?.refund_amount > 0) {
+          // paid/pending_shipment: full original payment refunded — go to refund page
+          Taro.redirectTo({ url: `/pages-weapp/payment/index?type=refund&id=${id}` })
+        } else {
+          setOrder(prev => ({ ...prev, status: 'cancelled' }))
         }
-        setActionLoading(false)
+      } else {
+        dialog.alert(resolveErrorMessage(result, '请稍后重试'), { title: t('取消失败') })
       }
-    })
+    } catch (err) {
+      dialog.alert(resolveErrorMessage(err, '网络异常，请重试'), { title: t('取消失败') })
+    }
+    setActionLoading(false)
   }
 
   const uploadPhotos = async (files) => {
@@ -199,7 +196,7 @@ export default function OrderDetail() {
 
   const handleConfirmReceipt = async () => {
     if (!id) {
-      Taro.showToast({ title: '订单不存在', icon: 'none' })
+      dialog.toast('订单不存在')
       return
     }
     setActionLoading(true)
@@ -211,13 +208,13 @@ export default function OrderDetail() {
       })
       const result = await resp.json()
       if (result.code === 20000) {
-        Taro.showToast({ title: '确认收货成功', icon: 'success' })
+        dialog.toast('确认收货成功', { icon: 'success' })
         setTimeout(() => Taro.navigateBack(), 800)
       } else {
-        Taro.showModal({ title: '操作失败', content: resolveErrorMessage(result, '请稍后重试'), showCancel: false })
+        dialog.alert(resolveErrorMessage(result, '请稍后重试'), { title: t('操作失败') })
       }
     } catch (err) {
-      Taro.showModal({ title: '操作失败', content: resolveErrorMessage(err, '网络异常，请重试'), showCancel: false })
+      dialog.alert(resolveErrorMessage(err, '网络异常，请重试'), { title: t('操作失败') })
     }
     setActionLoading(false)
   }
@@ -228,57 +225,45 @@ export default function OrderDetail() {
     Taro.navigateTo({ url: `/pages-weapp/return-confirm/index?order_id=${id}&instrument=${instrument?.id || ''}` })
   }
 
-  const handleStaffRefund = () => {
-    Taro.showModal({
-      title: '确认执行退款',
-      content: '将按结算差额退回现金与赠点。',
-      success: async (res) => {
-        if (!res.confirm) return
-        setActionLoading(true)
-        try {
-          const resp = await apiFetch(`${baseUrl}/orders/${id}/refund`, {
-            method: 'POST',
-          })
-          const result = await resp.json()
-          if (result.code === 20000) {
-            Taro.showToast({ title: '退款成功', icon: 'success' })
-            setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/payment/index?type=refund&id=${id}` }), 800)
-          } else {
-            Taro.showModal({ title: '退款失败', content: resolveErrorMessage(result, '请稍后重试'), showCancel: false })
-          }
-        } catch (err) {
-          Taro.showModal({ title: '退款失败', content: resolveErrorMessage(err, '网络异常，请重试'), showCancel: false })
-        }
-        setActionLoading(false)
-      },
-    })
+  const handleStaffRefund = async () => {
+    if (!(await dialog.confirm('将按结算差额退回现金与赠点。', { title: '确认执行退款' }))) return
+    setActionLoading(true)
+    try {
+      const resp = await apiFetch(`${baseUrl}/orders/${id}/refund`, {
+        method: 'POST',
+      })
+      const result = await resp.json()
+      if (result.code === 20000) {
+        dialog.toast('退款成功', { icon: 'success' })
+        setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/payment/index?type=refund&id=${id}` }), 800)
+      } else {
+        dialog.alert(resolveErrorMessage(result, '请稍后重试'), { title: t('退款失败') })
+      }
+    } catch (err) {
+      dialog.alert(resolveErrorMessage(err, '网络异常，请重试'), { title: t('退款失败') })
+    }
+    setActionLoading(false)
   }
 
   const handleStaffCancel = async () => {
-    Taro.showModal({
-      title: '确认取消订单',
-      content: '取消后不可恢复，已付款将原路退回。',
-      success: async (res) => {
-        if (!res.confirm) return
-        setActionLoading(true)
-        try {
-          const resp = await apiFetch(`${baseUrl}/warehouse/orders/${id}/staff-cancel`, {
-            method: 'POST',
-            body: JSON.stringify({ reason: '担保人不符合要求' }),
-          })
-          const result = await resp.json()
-          if (result.code === 20000) {
-            Taro.showToast({ title: '订单已取消', icon: 'success' })
-            setTimeout(() => Taro.navigateBack(), 800)
-          } else {
-            Taro.showModal({ title: '取消失败', content: resolveErrorMessage(result, '请稍后重试'), showCancel: false })
-          }
-        } catch (err) {
-          Taro.showModal({ title: '取消失败', content: resolveErrorMessage(err, '网络异常，请重试'), showCancel: false })
-        }
-        setActionLoading(false)
-      },
-    })
+    if (!(await dialog.confirm('取消后不可恢复，已付款将原路退回。', { title: '确认取消订单' }))) return
+    setActionLoading(true)
+    try {
+      const resp = await apiFetch(`${baseUrl}/warehouse/orders/${id}/staff-cancel`, {
+        method: 'POST',
+        body: JSON.stringify({ reason: t('担保人不符合要求') }),
+      })
+      const result = await resp.json()
+      if (result.code === 20000) {
+        dialog.toast('订单已取消', { icon: 'success' })
+        setTimeout(() => Taro.navigateBack(), 800)
+      } else {
+        dialog.alert(resolveErrorMessage(result, '请稍后重试'), { title: t('取消失败') })
+      }
+    } catch (err) {
+      dialog.alert(resolveErrorMessage(err, '网络异常，请重试'), { title: t('取消失败') })
+    }
+    setActionLoading(false)
   }
 
   // 定损接受/拒绝（#1707）：复用通知详情页的 appealsApi.agree + 申诉流程
@@ -288,7 +273,7 @@ export default function OrderDetail() {
     const rf = Number(damage.refund || 0)
     const ok = await new Promise(resolve => {
       Taro.showModal({
-        title: '确认接受定损',
+        title: t('确认接受定损'),
         content: amt > rf
           ? `定损金额 ¥${formatCents(amt)}，应退 ¥${formatCents(rf)}，需补缴 ¥${formatCents((amt - rf))}`
           : `定损金额 ¥${formatCents(amt)}，应退 ¥${formatCents(rf)}，将退还差额 ¥${formatCents((rf - amt))}`,
@@ -302,13 +287,13 @@ export default function OrderDetail() {
       const resp = await apiFetch(`${baseUrl}/appeals/${damage.report_id}/agree`, { method: 'POST' })
       const result = await resp.json()
       if (result.code === 20000) {
-        Taro.showToast({ title: '已接受定损', icon: 'success' })
+        dialog.toast('已接受定损', { icon: 'success' })
         setTimeout(() => Taro.navigateBack(), 800)
       } else {
-        Taro.showModal({ title: '操作失败', content: resolveErrorMessage(result, '请稍后重试'), showCancel: false })
+        dialog.alert(resolveErrorMessage(result, '请稍后重试'), { title: t('操作失败') })
       }
     } catch (err) {
-      Taro.showModal({ title: '操作失败', content: resolveErrorMessage(err, '网络异常，请重试'), showCancel: false })
+      dialog.alert(resolveErrorMessage(err, '网络异常，请重试'), { title: t('操作失败') })
     }
     setActionLoading(false)
   }
@@ -316,9 +301,9 @@ export default function OrderDetail() {
   const handleDamageReject = async (damage) => {
     const reason = await new Promise(resolve => {
       Taro.showModal({
-        title: '拒绝定损',
+        title: t('拒绝定损'),
         editable: true,
-        placeholderText: '请输入申诉原因',
+        placeholderText: t('请输入申诉原因'),
         success: res => resolve(res.confirm ? (res.content || '') : ''),
         fail: () => resolve(''),
       })
@@ -336,13 +321,13 @@ export default function OrderDetail() {
       })
       const result = await resp.json()
       if (result.code === 20000) {
-        Taro.showToast({ title: '已提交申诉', icon: 'success' })
+        dialog.toast('已提交申诉', { icon: 'success' })
         setTimeout(() => Taro.navigateBack(), 800)
       } else {
-        Taro.showModal({ title: '申诉失败', content: resolveErrorMessage(result, '请稍后重试'), showCancel: false })
+        dialog.alert(resolveErrorMessage(result, '请稍后重试'), { title: t('申诉失败') })
       }
     } catch (err) {
-      Taro.showModal({ title: '申诉失败', content: resolveErrorMessage(err, '网络异常，请重试'), showCancel: false })
+      dialog.alert(resolveErrorMessage(err, '网络异常，请重试'), { title: t('申诉失败') })
     }
     setActionLoading(false)
   }

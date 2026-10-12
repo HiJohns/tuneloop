@@ -12,6 +12,8 @@ import Taro from '@tarojs/taro'
 import { View, Text, Image } from '@tarojs/components'
 import { dialog, uploadFile, env, storage, session } from '../platform'
 import { resolveErrorMessage, resolveUploadError } from '../services/api'
+import { t } from '../i18n'
+
 
 const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl = '', onChange, onSelect, onClear, defer = false, sessionUpload, leftAligned = false, extraFields = {}, beforeUpload }, ref) {
   const [url, setUrl] = useState(initialUrl || '')
@@ -67,7 +69,7 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
       }
     } catch (err) {
       if (env.isMiniProgram) {
-        Taro.showToast({ title: '证件照上传失败', icon: 'none' })
+        dialog.toast('证件照上传失败')
       } else {
         dialog.alert('证件照上传失败')
       }
@@ -83,7 +85,7 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
     if (beforeUpload) {
       const msg = beforeUpload(fileOrPath)
       if (msg) {
-        if (env.isMiniProgram) Taro.showToast({ title: msg, icon: 'none' })
+        if (env.isMiniProgram) dialog.toast(msg)
         else dialog.alert(msg)
         return
       }
@@ -132,7 +134,7 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
         throw new Error(resolveErrorMessage(json, 'upload failed'))
       } catch (err) {
         if (env.isMiniProgram) {
-          Taro.showToast({ title: '证件照上传失败', icon: 'none' })
+          dialog.toast('证件照上传失败')
         } else {
           dialog.alert('证件照上传失败')
         }

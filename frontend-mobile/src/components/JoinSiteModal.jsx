@@ -2,7 +2,9 @@ import { useState } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Input } from '@tarojs/components'
 import { apiFetch, resolveErrorMessage } from '../services/api'
-import { env, getInputValue } from '../platform'
+import { dialog, env, getInputValue } from '../platform'
+import { t } from '../i18n'
+
 
 // #2193: 加入网点（邀请码）——共享组件，H5(Profile) 与 weapp(pages-weapp/Profile) 复用，
 // 避免两端各写一份漂移。
@@ -11,7 +13,7 @@ export default function JoinSiteModal({ visible, onClose }) {
   const [joining, setJoining] = useState(false)
   if (!visible) return null
   const submit = async () => {
-    if (!code.trim()) { Taro.showToast({ title: '请输入邀请码', icon: 'none' }); return }
+    if (!code.trim()) { dialog.toast('请输入邀请码'); return }
     setJoining(true)
     try {
       const resp = await apiFetch(`${env.apiBaseUrl}/user/accept-invite`, {
@@ -20,14 +22,14 @@ export default function JoinSiteModal({ visible, onClose }) {
       })
       const result = await resp.json()
       if (result.code === 20000) {
-        Taro.showToast({ title: '加入成功', icon: 'success' })
+        dialog.toast('加入成功', { icon: 'success' })
         setCode('')
         onClose()
       } else {
-        Taro.showToast({ title: resolveErrorMessage(result, '加入失败'), icon: 'none' })
+        dialog.toast(resolveErrorMessage(result, '加入失败'))
       }
     } catch {
-      Taro.showToast({ title: '网络错误，请重试', icon: 'none' })
+      dialog.toast('网络错误，请重试')
     }
     setJoining(false)
   }

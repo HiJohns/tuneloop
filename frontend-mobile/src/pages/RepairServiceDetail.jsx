@@ -9,6 +9,8 @@ import { parseJWT } from '../platform/init'
 import { formatBeijingDate } from '../utils/format'
 import { photoSrc } from '../utils/media'
 import ImageUploader from '../components/ImageUploader'
+import { t } from '../i18n'
+
 
 // #1955 阶段3a：维修服务详情枢纽页（RS-02~RS-09 用户侧动作）
 // 状态驱动：选维修师 → 接受报价并支付 → 寄出 → 加价响应 → 待发回 → 评价
@@ -298,7 +300,7 @@ export default function RepairServiceDetail() {
           signType: prepay.sign_type,
           paySign: prepay.pay_sign,
           success: () => {
-            Taro.showToast({ title: '支付成功', icon: 'success' })
+            dialog.toast('支付成功', { icon: 'success' })
             loadDetail()
           },
           fail: (err) => {

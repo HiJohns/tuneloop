@@ -5,6 +5,8 @@ import { apiFetch } from '../services/api'
 import { env, dialog, getInputValue } from '../platform'
 import { formatBeijingDate } from '../utils/format'
 import { formatCents } from '../utils/money'
+import { t } from '../i18n'
+
 
 export default function Invoice() {
   const [tab, setTab] = useState('eligible') // 'eligible' | 'applied'
@@ -97,13 +99,13 @@ export default function Invoice() {
 
   const handleSubmit = async () => {
     if (selectedOrders.length === 0) {
-      Taro.showToast({ title: '请先选择订单', icon: 'none' })
+      dialog.toast('请先选择订单')
       return
     }
     // #1941 按分组校验发票信息（每个分组=一张发票）
     const built = validateAndBuildGroups()
     if (built.error) {
-      Taro.showToast({ title: built.error, icon: 'none' })
+      dialog.toast(built.error)
       return
     }
     setSubmitting(true)
@@ -114,15 +116,15 @@ export default function Invoice() {
       })
       const data = await resp.json()
       if (data.code === 20000) {
-        Taro.showToast({ title: '申请已提交', icon: 'success' })
+        dialog.toast('申请已提交', { icon: 'success' })
         setSelected({})
         setConfirming(false)
         setTab('applied')
       } else {
-        Taro.showToast({ title: data.message || '提交失败', icon: 'none' })
+        dialog.toast(data.message || '提交失败')
       }
     } catch (e) {
-      Taro.showToast({ title: '提交失败', icon: 'none' })
+      dialog.toast('提交失败')
     }
     setSubmitting(false)
   }
@@ -134,7 +136,7 @@ export default function Invoice() {
         const res = await Taro.downloadFile({ url: fileUrl })
         Taro.openDocument({ filePath: res.tempFilePath, showMenu: true })
       } catch (e) {
-        Taro.showToast({ title: '打开失败', icon: 'none' })
+        dialog.toast('打开失败')
       }
     } else {
       window.open(fileUrl)

@@ -3,6 +3,8 @@ import { View, Text } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
 import { formatBeijingDateTimeShort } from '../utils/format'
+import { t } from '../i18n'
+
 
 const LIFECYCLE_ORDER = [
   'created', 'paid', 'pending_shipment', 'shipped', 'in_transit',
@@ -12,30 +14,30 @@ const LIFECYCLE_ORDER = [
 ]
 
 const EVENT_LABELS = {
-  created: '下单',
-  paid: '已付款',
-  pending_shipment: '待发货',
-  shipped: '已发货',
-  in_transit: '运输中',
-  delivered: '已收货',
-  in_lease: '租赁中',
-  returning: '归还中',
-  returned: '已归还',
-  completed: '已完成',
-  cancelled: '已取消',
-  expired: '已超期',
-  settlement_confirmed: '结算确认',
-  renewed: '已续期',
-  pickup_confirmed: '已提货',
-  damage_assessed: '定损完成',
-  return_inspected: '验货完成',
+  created: t('下单'),
+  paid: t('已付款'),
+  pending_shipment: t('待发货'),
+  shipped: t('已发货'),
+  in_transit: t('运输中'),
+  delivered: t('已收货'),
+  in_lease: t('租赁中'),
+  returning: t('归还中'),
+  returned: t('已归还'),
+  completed: t('已完成'),
+  cancelled: t('已取消'),
+  expired: t('已超期'),
+  settlement_confirmed: t('结算确认'),
+  renewed: t('已续期'),
+  pickup_confirmed: t('已提货'),
+  damage_assessed: t('定损完成'),
+  return_inspected: t('验货完成'),
   // 状态机事件（order_status_history StatusTo 并入动态时以状态码为 event，
   // 缺映射会原样输出 deposit_refunding 等英文码）
-  reserved: '未支付',
-  deposit_refunding: '押金退款中',
-  damage_appealing: '定损申诉',
-  pending_damage_response: '待回应定损',
-  transferred: '已过户',
+  reserved: t('未支付'),
+  deposit_refunding: t('押金退款中'),
+  damage_appealing: t('定损申诉'),
+  pending_damage_response: t('待回应定损'),
+  transferred: t('已过户'),
 }
 
 export default function OrderTimeline({ orderId, status }) {

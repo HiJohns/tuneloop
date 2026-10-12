@@ -35,7 +35,7 @@ export default function ImageUploader({ onChange, maxImages = 5 }) {
       const res = await Taro.chooseImage({ count: maxImages - images.length, sizeType: ['compressed'], sourceType: ['camera', 'album'] })
       const paths = res.tempFilePaths || []
       if (images.length + paths.length > maxImages) {
-        Taro.showToast({ title: `最多上传 ${maxImages} 张图片`, icon: 'none' })
+        dialog.toast(`最多上传 ${maxImages} 张图片`)
         return
       }
       const newImages = paths.map((path, i) => ({

@@ -3,9 +3,11 @@ import { formatCents } from '../utils/money'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Video } from '@tarojs/components'
 import { apiFetch, getCartKey, getToken, resolveLogin } from '../services/api'
-import { env, getWindowSize, previewImage, session, storage } from '../platform'
+import { dialog, env, getWindowSize, previewImage, session, storage } from '../platform'
 import { formatBeijingDate, formatBeijingDateTimeShort } from '../utils/format'
 import { calculateDays } from '../utils/daycalc'
+import { t } from '../i18n'
+
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -79,7 +81,7 @@ export default function Detail() {
     // #1657: guard against tapping add-to-cart before instrument/pricing data
     // loads — otherwise the snapshot gets empty cover_image/name/daily_rent.
     if (!instrument?.id || !pricingV2) {
-      Taro.showToast({ title: '乐器信息加载中，请稍候', icon: 'none' })
+      dialog.toast('乐器信息加载中，请稍候')
       return
     }
     try {
