@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { formatCents } from '../../utils/money'
 import Taro from '@tarojs/taro'
-import { View, Text, Input, Picker, Image } from '@tarojs/components'
+import { View, Text, Input, Picker, Image, Checkbox } from '@tarojs/components'
 import { storage, session, env, request, wxLogin } from '../../platform'
 import { apiFetch , resolveErrorMessage } from '../../services/api'
 import IdPhotoUploader from '../../components/IdPhotoUploader'
@@ -108,7 +108,7 @@ export default function ProfileComplete() {
   const handleRegister = async () => {
     if (!name.trim()) { Taro.showToast({ title: '请输入姓名', icon: 'none' }); return }
     if (!phone.trim()) { Taro.showToast({ title: '请输入手机号', icon: 'none' }); return }
-    if (!agreed) { Taro.showToast({ title: '请先阅读并同意协议', icon: 'none' }); return }
+    if (!agreed) { Taro.showToast({ title: '请阅读并同意《租用服务协议》与《个人信息保护政策》', icon: 'none' }); return }
     // #1924: 身份证正反面必填（取消学生证豁免）；第二证件可选，类型由平台
     // 审核时指定（顾客提交时保持「未定」）。
     const frontReady = uploadedSides.front || !!idPhotoFrontRef.current?.hasFile()
@@ -306,19 +306,13 @@ export default function ProfileComplete() {
         <IdPhotoUploader ref={idPhotoOtherRef} side="other" defer sessionUpload={{ sessionId: resumeSid || undefined }} leftAligned onSelect={() => setOtherPicked(true)} onClear={() => setOtherPicked(false)} />
       </View>
 
-      {/* #1923: 协议同意（必选） */}
-      <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12, width: '100%' }}>
-        <View onClick={() => setAgreed(v => !v)}
-          style={{ width: 18, height: 18, borderRadius: 4, borderWidth: agreed ? 0 : 1, borderStyle: 'solid', borderColor: '#d4d4d8', backgroundColor: agreed ? '#915F38' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 8, marginTop: 2, flexShrink: 0 }}>
-          {agreed ? <Text style={{ color: '#fff', fontSize: 12, lineHeight: '18px' }}>✓</Text> : null}
-        </View>
-        <View style={{ flex: 1, display: 'flex', flexDirection: 'row', flexWrap: 'wrap' }}>
-          <Text style={{ fontSize: 12, color: '#71717a' }}>如果继续支付保费，代表已接受并同意</Text>
-          <Text style={{ fontSize: 12, color: '#915F38', fontWeight: '700' }} onClick={() => Taro.navigateTo({ url: '/pages-weapp/content/index?key=rental_agreement' })}>《租用服务协议》</Text>
-          <Text style={{ fontSize: 12, color: '#71717a' }}>与</Text>
-          <Text style={{ fontSize: 12, color: '#915F38', fontWeight: '700' }} onClick={() => Taro.navigateTo({ url: '/pages-weapp/content/index?key=privacy_policy' })}>《个人信息保护政策》</Text>
-          <Text style={{ fontSize: 12, color: '#71717a' }}>内容</Text>
-        </View>
+      {/* #2209: 协议同意（必选，向 #2206 登录页收敛） */}
+      <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', marginBottom: 12, width: '100%' }}>
+        <Checkbox checked={agreed} onChange={() => setAgreed(!agreed)} />
+        <Text style={{ fontSize: 12, color: '#a1a1aa' }}>我已阅读并同意</Text>
+        <Text style={{ fontSize: 12, color: '#915F38' }} onClick={() => Taro.navigateTo({ url: '/pages-weapp/content/index?key=rental_agreement' })}>《租用服务协议》</Text>
+        <Text style={{ fontSize: 12, color: '#a1a1aa' }}>与</Text>
+        <Text style={{ fontSize: 12, color: '#915F38' }} onClick={() => Taro.navigateTo({ url: '/pages-weapp/content/index?key=privacy_policy' })}>《个人信息保护政策》</Text>
       </View>
 
       <View onClick={handleRegister}
