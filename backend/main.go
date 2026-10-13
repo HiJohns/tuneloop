@@ -122,6 +122,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	userPointsHandler := handlers.NewUserPointsHandler()
 	guarantorHandler := handlers.NewGuarantorHandler(nil) // nil → use env TENCENTCLOUD config
 	bannerHandler := handlers.NewBannerHandler()
+	mallImageHandler := handlers.NewMallImageHandler()
 	invoiceHandler := handlers.NewInvoiceHandler()
 	merchantInvoiceHandler := handlers.NewMerchantInvoiceHandler()
 
@@ -249,6 +250,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		publicGroup.GET("/public/sites", handlers.GetPublicSites)
 		publicGroup.GET("/public/instruments/lookup", handlers.LookupInstrumentBySN)
 		publicGroup.GET("/public/banners", bannerHandler.GetPublicBanners)
+		publicGroup.GET("/public/mall-images", mallImageHandler.GetPublicMallImages)
 		publicGroup.GET("/public/merchants", handlers.ListPublicMerchants)
 		publicGroup.GET("/public/settings/:key", handlers.GetPublicSetting)
 		publicGroup.GET("/public/instruments/search", handlers.SearchInstruments)
@@ -305,6 +307,14 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		bannerAdmin.POST("/admin/banners", bannerHandler.CreateBanner)
 		bannerAdmin.PUT("/admin/banners/:id", bannerHandler.UpdateBanner)
 		bannerAdmin.DELETE("/admin/banners/:id", bannerHandler.DeleteBanner)
+
+		// Mall images — namespace_admin only (mall_image:manage cus_perm, #2210)
+		mallImageAdmin := authRequired.Group("")
+		mallImageAdmin.Use(middleware.RequireCusPerm("mall_image:manage"))
+		mallImageAdmin.GET("/admin/mall-images", mallImageHandler.ListMallImages)
+		mallImageAdmin.POST("/admin/mall-images", mallImageHandler.CreateMallImage)
+		mallImageAdmin.PUT("/admin/mall-images/:id", mallImageHandler.UpdateMallImage)
+		mallImageAdmin.DELETE("/admin/mall-images/:id", mallImageHandler.DeleteMallImage)
 
 		// Membership management (system admin)
 		membershipAdmin := authRequired.Group("")

@@ -1055,7 +1055,8 @@ API 来源：
 - **tabs 一律由 `components/BottomNav.jsx`（H5）/ `components-weapp/BottomNav.jsx`（weapp）按当前账户角色构造**，页面只传 `active` / `badges`（H5 另传 `navigate`；weapp Home 另传 `tenant` 以透传 `tab_params`）。**禁止页面自行拼 `tabs` 数组**（#2083 事故根因：各页显隐口径漂移，Profile 漏过滤导致纯师傅仍见租赁）。
 - 判定统一 `utils/role.js` 的 `isPureTechnician(roles)`（roles 来自 `GET /site-members/me` = 网点角色 ∪ JWT `fn_roles`）：纯维修师（无 `site_admin`/`site_member`）隐藏「商城」tab（H5 + weapp 一致，#1884；#2175 由原「租赁」tab 更名）。
 - 导航语义统一：首页/商城/我的用 tab 切换（weapp `switchTab`）；维修 tab 员工 → `my-repairs`、顾客 → `tech-list`（weapp 以 `navigateTo`，栈深 ≥9 时 `reLaunch`；同一 tab 重复点击 no-op）。
-- **#2175 调整**：底条「租赁」tab 改为「商城」（`/mall` 占位页「建设中，敬请期待」，图标 `assets/mall.png`）；「我的租赁」`/my-leases` 由 tab 降为**二级页**（weapp `navigateTo`），顾客入口 = 个人中心菜单「我的租赁」，员工入口 = 金刚区「订单管理」；页头带 `←` 返回。
+- **#2175 调整**：底条「租赁」tab 改为「商城」（`/mall`，图标 `assets/mall.png`）；「我的租赁」`/my-leases` 由 tab 降为**二级页**（weapp `navigateTo`），顾客入口 = 个人中心菜单「我的租赁」，员工入口 = 金刚区「订单管理」；页头带 `←` 返回。
+- **#2210 商城页内容**：`/mall` 读取 `GET /public/mall-images`（平台级全站配置，`mall_images` 表，与租户无关）竖排**无缝**展示图片列表（weapp `<Image mode="widthFix">`）；点击 `link_url` 非空则跳转、为空则**不跳转**（仅 `previewImage` 大图预览）；列表为空回退「建设中，敬请期待」；tabBar 页经 `useDidShow` 刷新，避免返回/切回后陈旧。
 - **#2176 回退**：底条「维修」员工端目标恢复为**维修页 `my-repairs`**（`navigateTo`，栈深 ≥9 `reLaunch`）；`tech-repair-workbench`（独立工作台）为**二级页**（`navigateTo`），**不再**注册为 tabBar 页（回退 `5b063d7c` 的导航偏离）。
 
 #### 2.9.2 维修工作台 `/repair`（共享页，按状态×角色裁剪）
@@ -3000,6 +3001,7 @@ const handleSyncUsersFromIAM = async () => {
   - 权限管理 (`/system/permissions`) — sys_perm bit 26（商户管理员）
   - 客户端管理 (`/system/clients`) — sys_perm bit 0
   - 租户管理 (`/system/tenants`) — sys_perm bit 6
+  - 内容管理 (`/system/banners`) — cus_perm `banner:manage`：轮播图管理；同页下方「商城页图片管理」Card（cus_perm `mall_image:manage`，平台级全站配置、与租户无关，图片建议 750×400px）
 
 
 #### 权限控制汇总 (v2.2 — 10 cus_perm + sys_perm 25-26)
