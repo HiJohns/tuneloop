@@ -104,7 +104,7 @@ func (h *MallImageHandler) UpdateMallImage(c *gin.Context) {
 		ImageURL  string `json:"image_url"`
 		LinkURL   string `json:"link_url"`
 		Title     string `json:"title"`
-		SortOrder int    `json:"sort_order"`
+		SortOrder *int   `json:"sort_order"`
 		Status    string `json:"status"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -124,7 +124,10 @@ func (h *MallImageHandler) UpdateMallImage(c *gin.Context) {
 	if req.Title != "" {
 		updates["title"] = req.Title
 	}
-	updates["sort_order"] = req.SortOrder
+	// #2210 R-1: 仅显式携带 sort_order 时写入，避免状态启停/编辑（不含该字段）把排序重置为 0。
+	if req.SortOrder != nil {
+		updates["sort_order"] = *req.SortOrder
+	}
 	if req.Status != "" {
 		updates["status"] = req.Status
 	}
