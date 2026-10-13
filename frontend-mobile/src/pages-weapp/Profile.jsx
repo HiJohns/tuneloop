@@ -100,9 +100,20 @@ export default function Profile() {
   const [transitMember, setTransitMember] = useState(false) // #1937: 中转网点成员身份
   const [myRoles, setMyRoles] = useState([]) // #2089: /site-members/me roles（网点角色 ∪ fn_roles）
   const [pendingQuoteCount, setPendingQuoteCount] = useState(0) // #2089: 师傅「待报价」角标
+  const [pendingInvites, setPendingInvites] = useState([]) // #2216: 我的待接受定向邀请（无则不显示入口）
 
   const baseUrl = env.apiBaseUrl
   const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? baseUrl.replace(/\/api$/, '') + url : url
+
+  // #2216: 「加入网点」入口仅在存在对我的 pending 定向邀请时显示。
+  const fetchPendingInvites = useCallback(async () => {
+    if (!getToken()) { setPendingInvites([]); return }
+    try {
+      const resp = await apiFetch(`${baseUrl}/user/invitations/pending`)
+      const result = await resp.json()
+      if (result.code === 20000) setPendingInvites(result.data?.list || [])
+    } catch { setPendingInvites([]) }
+  }, [baseUrl])
 
   // #2135: 未读数提升为组件作用域，供挂载/轮询/事件总线（unreadSync）/useDidShow 共用
   const fetchUnread = useCallback(async () => {
@@ -319,9 +330,11 @@ export default function Profile() {
   }
   useEffect(() => {
     if (isStaff) refreshStaffData()
+    fetchPendingInvites()
   }, [baseUrl, isStaff])
   useDidShow(() => {
     if (isStaff) refreshStaffData()
+    fetchPendingInvites()
   })
 
   const handleLogout = () => {
@@ -623,10 +636,11 @@ export default function Profile() {
               <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>
           )}
-          {/* #2193: 加入网点（邀请制自助加入）——对齐 H5 */}
-          {!isStaff && !isGuest && (
+          {/* #2216: 加入网点（定向邀请）——仅存在对我的 pending 邀请时显示；对齐 H5 */}
+          {pendingInvites.length > 0 && (
             <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => setShowJoin(true)}>
               <View style={{ display: 'flex', alignItems: 'center' }}>
+                <Text style={{ fontSize: 18, marginRight: 8 }}>🤝</Text>
                 <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>加入网点</Text>
               </View>
               <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
@@ -709,7 +723,7 @@ export default function Profile() {
         onClose={() => setShowEdit(false)}
         onSave={(updated) => { setUser({ ...user, ...updated }); setShowEdit(false) }}
       />
-      <JoinSiteModal visible={showJoin} onClose={() => setShowJoin(false)} />
+      <JoinSiteModal visible={showJoin} onClose={() => setShowJoin(false)} onAccepted={() => { setShowJoin(false); fetchPendingInvites(); if (isStaff) refreshStaffData() }} />
     </View>
     </ErrorBoundary>
   )
