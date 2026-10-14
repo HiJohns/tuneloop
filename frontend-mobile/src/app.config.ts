@@ -51,6 +51,7 @@ const weappPages = [
   'pages-weapp/tech-detail/index',
   'pages-weapp/tech-list/index',
   'pages-weapp/invoice/index',
+  'pages-weapp/invoice-confirm/index',
   'pages-weapp/face-verify/index',
   'pages-weapp/about/index',
 ]
@@ -65,6 +66,7 @@ const h5Pages = [
   'pages/messages/index',
   'pages/my-leases/index',
   'pages/invoice/index',
+  'pages/invoice-confirm/index',
   'pages/mall/index',
   'pages/my-repairs/index',
   'pages/order-detail/index',
