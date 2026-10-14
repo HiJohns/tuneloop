@@ -41,6 +41,7 @@ const ROUTE_MAP = [
   { match: '/repair-payment-complete', type: 'navigateTo', url: '/pages-weapp/repair-payment-complete/index' },
   { match: '/invoice', type: 'navigateTo', url: '/pages-weapp/invoice/index' },
   { match: '/invoice-confirm', type: 'navigateTo', url: '/pages-weapp/invoice-confirm/index' },
+  { match: '/repair-service-complete', type: 'navigateTo', url: '/pages-weapp/repair-service-complete/index' },
   { match: '/receiving-repair-scan', type: 'navigateTo', url: '/pages-weapp/receiving-repair-scan/index' },
   { match: '/repair-scan', type: 'navigateTo', url: '/pages-weapp/repair-scan/index' },
   { match: '/transit-workbench', type: 'navigateTo', url: '/pages-weapp/transit-workbench/index' },
