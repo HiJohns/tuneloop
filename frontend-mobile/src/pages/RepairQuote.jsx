@@ -74,10 +74,13 @@ export default function RepairQuote() {
 
   return (
     <View style={{ backgroundColor: "#FDFBF7" }} className="flex flex-col h-screen">
+      {/* 页首仅 H5（weapp 用原生导航栏，#2220） */}
+      {!env.isMiniProgram && (
       <View className="bg-white px-4 py-3 border-b border-zinc-100 flex items-center gap-2">
         <Text className="text-lg mr-2" onClick={goBack}>{'<'}</Text>
         <Text className="text-lg font-bold flex-1">维修报价</Text>
       </View>
+      )}
 
       <ScrollView scrollY className="flex-1 px-4 min-h-0">
         {/* Fee breakdown */}

@@ -55,10 +55,13 @@ export default function TechDetail() {
 
   return (
     <View style={{ backgroundColor: '#FDFBF7', display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      {/* 页首仅 H5（weapp 用原生导航栏，#2220） */}
+      {!env.isMiniProgram && (
       <View style={{ backgroundColor: '#FFFFFF', padding: '12px 16px', borderBottom: '1px solid #F4F4F5', display: 'flex', alignItems: 'center', gap: 8 }}>
         <Text onClick={() => nav(-1)} style={{ fontSize: 20, color: '#18181B', padding: '0 6px' }}>‹</Text>
         <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#18181B' }}>维修师</Text>
       </View>
+      )}
 
       <ScrollView scrollY style={{ flex: 1, minHeight: 0 }}>
         <View style={{ padding: '12px 16px 120px', boxSizing: 'border-box' }}>

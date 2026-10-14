@@ -1,3 +1,3 @@
 export default {
-  navigationBarTitleText: '维修扫码',
+  navigationBarTitleText: '转出中转处理',
 }

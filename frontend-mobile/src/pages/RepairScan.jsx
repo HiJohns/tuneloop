@@ -113,10 +113,13 @@ export default function RepairScan() {
 
   return (
     <View style={{ backgroundColor: "#FDFBF7" }} className="flex flex-col h-screen p-4">
+      {/* 页首仅 H5（weapp 用原生导航栏，#2220） */}
+      {!env.isMiniProgram && (
       <View className="flex items-center mb-4">
         <Text className="text-lg mr-2" onClick={() => nav(-1)}>{'<'}</Text>
         <Text className="text-lg font-bold flex-1">转出中转处理</Text>
       </View>
+      )}
 
       <View className="bg-white rounded-2xl shadow-sm p-4 mb-4">
         <Text className="text-sm font-bold text-black mb-2">输入返回运单号</Text>

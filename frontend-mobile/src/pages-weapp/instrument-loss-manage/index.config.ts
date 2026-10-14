@@ -1,3 +1,3 @@
 export default {
-  navigationBarTitleText: '乐器丢失管理',
+  navigationBarTitleText: '乐器丢失 / 恢复',
 }
