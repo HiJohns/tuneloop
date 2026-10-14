@@ -294,6 +294,19 @@ tuneloop/
 | **⚠️ pages-weapp 文件被 H5 薄壳引用时** | 必须本地 `npm run dev:h5` 手动验证该页所有 Input/Textarea 可输入。来源：#1589 EditProfile.jsx（weapp 独有）被 H5 薄壳引用后在 H5 下所有输入框失效 |
 | **⚠️ 共享 .jsx 禁止裸 `navigate('/xxx')`（H5 短路径）** | weapp 端 Taro 兼容层把 `navigate(p)` 实现为 `Taro.navigateTo('/pages'+p+'/index')`，但 weapp 构建只注册 `pages-weapp/xxx/index` → 跳转静默失败（无报错无提示）。必须跨端适配：H5 用 `navigate(path)`，weapp 用完整 `Taro.navigateTo({url:'/pages-weapp/<page>/index'})`（tabBar 页用 `switchTab`，返回用 `navigateBack`）。参照：Cart.jsx `nav()` 封装（commit `b81388b8`）、StaffInstruments.jsx:125 条件分支。来源：#1665 去结算无反应、#1673 系统性清理 |
 
+### 前端多步流程：独立页面原则（强制）
+
+> **来源**: #2217 — 多步流程实现不一致（`Invoice.jsx` 的 `confirming`、`RepairServiceCreate.jsx` 的 `created` 用页内 state 切换步骤视图）。
+
+**同一业务的多步骤**（选择 → 确认 → 提交 → 成功 等），**每一步必须是独立页面/路由**（H5：`react-router` 路由；weapp：独立页面 + 薄壳），**禁止用页内 state 在同一路由内切换步骤视图**。
+
+**理由**：
+1. 两端返回语义一致（原生返回＝上一步）；
+2. weapp 页面不得自绘页首/回退按钮（依赖原生导航栏，见 `docs/spec/ui/ui.md` L136）；
+3. 与既有流程一致（`/return`、`/return-settlement`、`/receive`、`/payment`、`/success`、`/payment-complete`）。
+
+**例外**：非「步骤」的 UI 状态（tab 切换、弹窗开合、加载/成功提示态）不受此限。
+
 ### ⚠️ weapp 样式禁区规则（#1831 沉淀）
 
 > **原理**：`frontend-mobile/postcss.config.mjs` 的 wxsCompat 对含 `[`（任意值）或残留 `\` 的 Tailwind 规则**直接删除**，含 `:`/`/` 的规则在 stage2 被清理（原生小程序无伪类/透明度体系）。此类样式在微信端**静默失效**——无报错、无提示，源代码看起来正确但产物无对应规则。
