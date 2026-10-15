@@ -23,6 +23,7 @@ import ReturnConfirm from './pages/ReturnConfirm'
 import MyLeases from './pages/MyLeases'
 import Mall from './pages/Mall'
 import Invoice from './pages/Invoice'
+import InvoiceConfirm from './pages/InvoiceConfirm'
 import Messages from './pages/Messages'
 import MessageDetail from './pages/MessageDetail'
 import PaymentComplete from './pages/PaymentComplete'
@@ -40,6 +41,7 @@ import StaffOrders from './pages/StaffOrders'
 import MyRepairs from './pages/MyRepairs'
 import TechRepairWorkbench from './pages/TechRepairWorkbench'
 import RepairServiceCreate from './pages/RepairServiceCreate'
+import RepairServiceComplete from './pages/RepairServiceComplete'
 import RepairServiceDetail from './pages/RepairServiceDetail'
 import InstrumentLossManage from './pages/InstrumentLossManage'
 import TechDetail from './pages/TechDetail'
@@ -261,6 +263,7 @@ function App() {
         <Route path="/return" element={<ProtectedRoute><ReturnConfirm /></ProtectedRoute>} />
         <Route path="/my-leases" element={<ProtectedRoute><MyLeases /></ProtectedRoute>} />
         <Route path="/invoice" element={<ProtectedRoute><Invoice /></ProtectedRoute>} />
+        <Route path="/invoice-confirm" element={<ProtectedRoute><InvoiceConfirm /></ProtectedRoute>} />
         <Route path="/mall" element={<ProtectedRoute requireAuth={false}><Mall /></ProtectedRoute>} />
         <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
         <Route path="/messages/:id" element={<ProtectedRoute><MessageDetail /></ProtectedRoute>} />
@@ -281,6 +284,7 @@ function App() {
         <Route path="/my-repairs" element={<ProtectedRoute><MyRepairs /></ProtectedRoute>} />
         <Route path="/tech-repair-workbench" element={<ProtectedRoute><TechRepairWorkbench /></ProtectedRoute>} />
         <Route path="/repair-service-create" element={<ProtectedRoute><RepairServiceCreate /></ProtectedRoute>} />
+        <Route path="/repair-service-complete" element={<ProtectedRoute><RepairServiceComplete /></ProtectedRoute>} />
         <Route path="/repair-service-detail" element={<ProtectedRoute><RepairServiceDetail /></ProtectedRoute>} />
         <Route path="/instrument-loss-manage" element={<ProtectedRoute><InstrumentLossManage /></ProtectedRoute>} />
         <Route path="/tech-detail" element={<ProtectedRoute><TechDetail /></ProtectedRoute>} />

@@ -1,3 +1,3 @@
 export default {
-  navigationBarTitleText: '收货扫码',
+  navigationBarTitleText: '收货识别',
 }
