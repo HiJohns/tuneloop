@@ -3,8 +3,10 @@ import { formatCents } from '../utils/money'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Button, ScrollView, Image, Picker } from '@tarojs/components'
 import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
-import { env } from '../platform'
+import { dialog, env } from '../platform'
 import { formatBeijingDate } from '../utils/format'
+import { t } from '../i18n'
+
 
 const FILTERS = [
   { key: '', label: '全部订单' },
@@ -21,12 +23,12 @@ const FILTERS = [
 ]
 
 const STATUS_LABELS = {
-  reserved: '未支付', paid: '待发货', pending_shipment: '待发货',
-  shipped: '已发货', in_lease: '租赁中',
-  returning: '归还中', returned: '已归还', completed: '已完成',
-  cancelled: '已取消', expired: '超期', transferred: '已过户',
-  damage_appealing: '定损申诉', pending_damage_response: '待回应定损',
-  deposit_refunding: '押金退款中',
+  reserved: t('未支付'), paid: t('待发货'), pending_shipment: t('待发货'),
+  shipped: t('已发货'), in_lease: t('租赁中'),
+  returning: t('归还中'), returned: t('已归还'), completed: t('已完成'),
+  cancelled: t('已取消'), expired: t('超期'), transferred: t('已过户'),
+  damage_appealing: t('定损申诉'), pending_damage_response: t('待回应定损'),
+  deposit_refunding: t('押金退款中'),
 }
 
 const STATUS_COLORS = {
@@ -123,29 +125,23 @@ export default function MyLeases() {
     fetchOrders()
   }, [page, baseUrl, selectedFilter, refreshKey])
 
-  const handleCancelFromList = (orderId, status) => {
-    Taro.showModal({
-      title: '取消订单',
-      content: '确认取消该订单？取消后不可恢复。',
-      success: async (res) => {
-        if (!res.confirm) return
-        try {
-          const resp = await apiFetch(`${baseUrl}/orders/${orderId}/cancel-by-user`, { method: 'POST' })
-          const result = await resp.json()
-          if (result.code === 20000) {
-            if (result.data?.refund_amount > 0) {
-              Taro.redirectTo({ url: `/pages-weapp/payment/index?type=refund&id=${orderId}` })
-            } else {
-              setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'cancelled' } : o))
-            }
-          } else {
-            Taro.showModal({ title: '取消失败', content: resolveErrorMessage(result, '请稍后重试'), showCancel: false })
-          }
-        } catch (err) {
-          Taro.showModal({ title: '取消失败', content: resolveErrorMessage(err, '网络异常，请重试'), showCancel: false })
+  const handleCancelFromList = async (orderId, status) => {
+    if (!(await dialog.confirm('确认取消该订单？取消后不可恢复。', { title: '取消订单' }))) return
+    try {
+      const resp = await apiFetch(`${baseUrl}/orders/${orderId}/cancel-by-user`, { method: 'POST' })
+      const result = await resp.json()
+      if (result.code === 20000) {
+        if (result.data?.refund_amount > 0) {
+          Taro.redirectTo({ url: `/pages-weapp/payment/index?type=refund&id=${orderId}` })
+        } else {
+          setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'cancelled' } : o))
         }
-      },
-    })
+      } else {
+        dialog.alert(resolveErrorMessage(result, '请稍后重试'), { title: t('取消失败') })
+      }
+    } catch (err) {
+      dialog.alert(resolveErrorMessage(err, '网络异常，请重试'), { title: t('取消失败') })
+    }
   }
 
   return (

@@ -157,3 +157,62 @@ func TestBanner_CRUD(t *testing.T) {
 	assert.Equal(t, 20000, listResp.Code)
 	assert.Equal(t, 0, len(listResp.Data.List))
 }
+
+// TestBanner_PartialUpdatePreservesSortOrder 覆盖 #2215：
+// 状态启停（仅 {status}）不得把 sort_order 重置为 0；显式 {sort_order} 仍须生效。
+func TestBanner_PartialUpdatePreservesSortOrder(t *testing.T) {
+	router, _, _ := setupBannerRouter(t)
+	if router == nil {
+		return
+	}
+
+	// 创建 sort_order=5
+	createBody := map[string]interface{}{
+		"image_url":  "http://example.com/banner-sort.jpg",
+		"sort_order": 5,
+		"status":     "active",
+	}
+	jsonBody, _ := json.Marshal(createBody)
+	req := httptest.NewRequest("POST", "/api/admin/banners", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusCreated, w.Code)
+	var createResp struct {
+		Data map[string]interface{} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &createResp))
+	bannerID := createResp.Data["id"].(string)
+
+	readSortOrder := func() float64 {
+		r := httptest.NewRequest("GET", "/api/admin/banners", nil)
+		ww := httptest.NewRecorder()
+		router.ServeHTTP(ww, r)
+		var resp struct {
+			Data struct {
+				List []map[string]interface{} `json:"list"`
+			} `json:"data"`
+		}
+		require.NoError(t, json.Unmarshal(ww.Body.Bytes(), &resp))
+		require.Equal(t, 1, len(resp.Data.List))
+		return resp.Data.List[0]["sort_order"].(float64)
+	}
+
+	// 部分更新：仅 status（模拟 PC 状态启停）→ sort_order 必须保持 5
+	partial, _ := json.Marshal(map[string]interface{}{"status": "inactive"})
+	req = httptest.NewRequest("PUT", "/api/admin/banners/"+bannerID, bytes.NewBuffer(partial))
+	req.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, float64(5), readSortOrder(), "partial update must preserve sort_order")
+
+	// 显式 sort_order 更新仍生效
+	explicit, _ := json.Marshal(map[string]interface{}{"sort_order": 9})
+	req = httptest.NewRequest("PUT", "/api/admin/banners/"+bannerID, bytes.NewBuffer(explicit))
+	req.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, float64(9), readSortOrder(), "explicit sort_order update must apply")
+}

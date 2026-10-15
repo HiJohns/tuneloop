@@ -9,11 +9,14 @@ import { formatBeijingDateTimeShort } from '../../../utils/format'
 import { parseJWT } from '../../../platform/init'
 import IdPhotoUploader from '../../../components/IdPhotoUploader'
 import IntroLetterUploader from '../../../components/IntroLetterUploader'
+import { t } from '../../../i18n'
+
+
 
 const ID_TYPE_OPTIONS = ['学生证', '教职工证', '教师证', '工作证', '其他']
 
 // #1924: 审核员指定的类型码 → 展示名（兼容存量中文值）。
-const SECOND_DOC_LABELS = { student: '学生证', teacher: '教职工证', work: '工作证', other: '其他' }
+const SECOND_DOC_LABELS = { student: t('学生证'), teacher: t('教职工证'), work: t('工作证'), other: t('其他') }
 // #2057 裁定3: 第二证件类型由用户自报（student 必需介绍信）。
 const SECOND_DOC_OPTIONS = [
   { code: 'student', label: '学生证' },
@@ -125,7 +128,7 @@ export default function EditProfile() {
       if (result.code === 20000) {
         // H5 (Vite) has no Taro runtime — use platform dialog/navigation
         if (env.isMiniProgram) {
-          Taro.showToast({ title: '保存成功', icon: 'success' })
+          dialog.toast('保存成功', { icon: 'success' })
           // eslint-disable-next-line no-undef
           setTimeout(() => Taro.navigateBack(), 800)
         } else {

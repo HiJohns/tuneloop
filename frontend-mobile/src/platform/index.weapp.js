@@ -1,4 +1,6 @@
 import Taro from '@tarojs/taro'
+// #2214: 集中拦截——dialog 文案统一经 t()（覆盖全部 dialog.* 调用点）
+import { t } from '../i18n'
 
 export const storage = {
   getItem: (key) => {
@@ -115,20 +117,20 @@ export const uploadFile = (url, filePath, options = {}) => {
 export const previewImage = (args) => Taro.previewImage(args)
 
 export const dialog = {
-  alert: (msg) => {
-    Taro.showModal({ title: '提示', content: msg, showCancel: false })
+  alert: (msg, opts = {}) => {
+    Taro.showModal({ title: t(opts.title || '提示'), content: t(msg), showCancel: false })
   },
-  confirm: (msg) => {
+  confirm: (msg, opts = {}) => {
     return new Promise((resolve) => {
       Taro.showModal({
-        title: '提示',
-        content: msg,
+        title: t(opts.title || '提示'),
+        content: t(msg),
         success: (res) => resolve(res.confirm),
       })
     })
   },
-  toast: (msg) => {
-    Taro.showToast({ title: msg, icon: 'none', duration: 2000 })
+  toast: (msg, opts = {}) => {
+    Taro.showToast({ title: t(msg), icon: opts.icon || 'none', duration: opts.duration || 2000 })
   },
 }
 

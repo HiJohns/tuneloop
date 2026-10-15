@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, Button, Input } from '@tarojs/components'
-import { wxLogin, storage, session, env, request, eventBus } from '../../platform'
+import { View, Text, Button, Input, Checkbox } from '@tarojs/components'
+import {dialog, wxLogin, storage, session, env, request, eventBus } from '../../platform'
 import { resolveErrorMessage } from '../../services/api'
+import { t } from '../../i18n'
+
+
 
 const TAB_PAGES = ['/pages-weapp/home/index', '/pages-weapp/mall/index', '/pages-weapp/profile/index']
 
@@ -80,9 +83,9 @@ async function handleIAMLogin(identifier, password) {
       }
       return
     }
-    Taro.showToast({ title: resolveErrorMessage(result, '登录失败 [L1]'), icon: 'none' })
+    dialog.toast(resolveErrorMessage(result, '登录失败 [L1]'))
   } catch (err) {
-    Taro.showToast({ title: '网络错误 ' + (err.message || ''), icon: 'none' })
+    dialog.toast(t('网络错误 ') + (err.message || ''))
   }
   Taro.hideLoading()
 }
@@ -94,6 +97,7 @@ function handleGuestBrowse() {
 export default function Login() {
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
+  const [agreed, setAgreed] = useState(false) // #2206: 协议同意
   const [tapCount, setTapCount] = useState(0)
   const [showDevMode, setShowDevMode] = useState(false)
 
@@ -106,6 +110,23 @@ export default function Login() {
     }
   }
 
+  // #2206: 协议同意校验（模块级函数无法访问组件 state，在组件内校验）
+  const handleWxLoginClick = () => {
+    if (!agreed) {
+      dialog.toast('请阅读并同意《租用服务协议》与《个人信息保护政策》')
+      return
+    }
+    handleWxLogin()
+  }
+
+  const handleIAMLoginClick = () => {
+    if (!agreed) {
+      dialog.toast('请阅读并同意《租用服务协议》与《个人信息保护政策》')
+      return
+    }
+    handleIAMLogin(identifier, password)
+  }
+
   return (
     <View style={{ height: '100vh', width: '100vw', backgroundColor: '#fafafa' }}>
       <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', paddingLeft: 32, paddingRight: 32, boxSizing: 'border-box' }}>
@@ -113,7 +134,7 @@ export default function Login() {
 
       {/* Channel 1: WeChat one-click */}
       <View style={{ width: '100%', paddingLeft: 0, paddingRight: 0 }}>
-        <Button onClick={handleWxLogin}
+        <Button onClick={handleWxLoginClick}
           style={{ margin: 0, width: '100%', backgroundColor: '#07c160', color: '#fff', borderRadius: 24, fontSize: 16, fontWeight: '700', marginBottom: 16, paddingTop: 12, paddingBottom: 12, border: 'none', boxSizing: 'border-box' }}>
           <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>📱 微信用户一键登录</Text>
         </Button>
@@ -132,7 +153,7 @@ export default function Login() {
           style={{ margin: 0, width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12 }} />
         <Input placeholder="密码" password value={password} onInput={e => setPassword(e.detail.value)}
           style={{ margin: 0, width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 16 }} />
-        <Button onClick={() => handleIAMLogin(identifier, password)}
+         <Button onClick={handleIAMLoginClick}
           style={{ margin: 0, width: '100%', height: 44, backgroundColor: '#915F38', color: '#fff', borderRadius: 22, fontSize: 14, fontWeight: '700', lineHeight: '44px', boxSizing: 'border-box' }}>
           登录
         </Button>
@@ -143,16 +164,17 @@ export default function Login() {
         <Text style={{ fontSize: 14, color: '#71717a' }} onClick={handleGuestBrowse}>👀 随便看看</Text>
       </View>
 
-      {/* #1923: 未登录也可查看协议 */}
-      <View style={{ marginTop: 20, display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ fontSize: 12, color: '#a1a1aa' }}>注册/登录即代表同意</Text>
+      {/* #2206: 协议同意（必选） */}
+      <View style={{ marginTop: 20, display: 'flex', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
+        <Checkbox checked={agreed} onChange={() => setAgreed(!agreed)} />
+        <Text style={{ fontSize: 12, color: '#a1a1aa' }}>我已阅读并同意</Text>
         <Text style={{ fontSize: 12, color: '#915F38' }} onClick={() => Taro.navigateTo({ url: '/pages-weapp/content/index?key=rental_agreement' })}>《租用服务协议》</Text>
         <Text style={{ fontSize: 12, color: '#a1a1aa' }}>与</Text>
         <Text style={{ fontSize: 12, color: '#915F38' }} onClick={() => Taro.navigateTo({ url: '/pages-weapp/content/index?key=privacy_policy' })}>《个人信息保护政策》</Text>
       </View>
 
       {/* Developer mode toggle */}
-      <Text style={{ fontSize: 10, color: '#d4d4d8', marginTop: 32 }} onClick={handleVersionTap}>版本 v1.0.0</Text>
+      <Text style={{ fontSize: 10, color: '#d4d4d8', marginTop: 32 }} onClick={handleVersionTap}>版本 v{env.version || 'dev'}</Text>
       {showDevMode && (
         <View style={{ marginTop: 12, width: '100%' }}>
           <Button onClick={() => { storage.removeItem('token'); storage.removeItem('token_expiry'); Taro.navigateBack() }}

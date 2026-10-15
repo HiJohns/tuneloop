@@ -7,6 +7,8 @@ import { apiFetch, getToken, resolveErrorMessage, resolveUploadError } from '../
 import { dialog, env, getInputValue, uploadFile, previewImage } from '../platform'
 import { formatBeijingDateTimeShort, repairStatusLabel } from '../utils/format'
 import { parsePhotos, photoSrc } from '../utils/media'
+import { t } from '../i18n'
+
 
 const damageStatusLabels = {
   pending: '待确认', completed: '已完成', agreed: '已确认', appealed: '申诉中', cancelled: '已撤销', resolved: '已解决',
@@ -339,7 +341,7 @@ export default function RepairWorkflow() {
                 if (actionLoading) return
                 let reason = ''
                 if (env.isMiniProgram) {
-                  const res = await Taro.showModal({ title: '验收不通过', editable: true, placeholderText: '请输入不通过原因' })
+                  const res = await Taro.showModal({ title: t('验收不通过'), editable: true, placeholderText: t('请输入不通过原因') })
                   reason = res.confirm ? (res.content || '') : ''
                 } else {
                   reason = prompt('请输入不通过原因')

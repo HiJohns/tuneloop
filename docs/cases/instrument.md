@@ -65,13 +65,13 @@ steps:
       - {method: DELETE, path: /instruments/:id/media/key/:storage_key}
 ---
 
-# I-00 统一乐器管理页（乐器列表 × 库存监控 合并，#2043）
+# I-00 乐器管理入口（乐器列表 + 库存监控，两独立页）
 
-> 用户裁定：原「乐器列表」(`/instruments/list`) 与「库存监控」(`/site/stock`) **合并为一个菜单项「乐器管理」**；两旧路径保留为**入口别名**。
+> **#2212 撤销 #2043/#2101 的错误合并**：恢复两个独立菜单项与页面——「**乐器列表**」`/instruments/list` 与「**库存监控**」`/site/stock`（原「乐器列表」页 `List.jsx` 已在 #2101 被误删，#2212 恢复）。
 
 ## 入口与链接保全
-- 主入口：`/instruments/list` 与 `/site/stock`（**别名，同页**；#2101 字面落地——两路径同挂合并页 `InstrumentStock`，档案管理独立页已删除）；**透传 `?status=`**
-- 管理能力并入合并页工具栏：**新增乐器**（instrument:create → `/instruments/list/add`）/ 批量导入 / 导出 / 批量设价 / 批量删除；菜单高亮对 `/instruments/list` 映射至 `/site/stock`
+- 主入口：`/instruments/list`（渲染 `List.jsx`，乐器档案管理）与 `/site/stock`（渲染 `InstrumentStock.jsx`，**透传 `?status=`**）
+- 「乐器列表」工具栏：新增乐器（instrument:create → `/instruments/list/add`）/ 编辑 / 删除 / 导入 / 导出 / 批量设价 / 排序
 - Dashboard 关联（不得破坏）：`/site/stock?status=rented` / `?status=available` / `?status=<raw>`
 - 详情：`/site/stock/:id` 与 `/instruments/detail/:id` 收敛为**统一详情页**（旧路径重定向兼容）
 

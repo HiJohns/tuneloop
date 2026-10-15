@@ -429,6 +429,14 @@ export const bannerApi = {
   delete: (id) => api.delete(`/admin/banners/${id}`),
 }
 
+// #2210: 商城页图片管理（平台级全站配置，mall_image:manage）
+export const mallImageApi = {
+  list: () => api.get('/admin/mall-images'),
+  create: (data) => api.post('/admin/mall-images', data),
+  update: (id, data) => api.put(`/admin/mall-images/${id}`, data),
+  delete: (id) => api.delete(`/admin/mall-images/${id}`),
+}
+
 export const sitesApi = {
   list: () => api.get('/common/sites'),
   nearby: (params) => api.get(`/common/sites/nearby?lat=${params.lat}&lng=${params.lng}`),

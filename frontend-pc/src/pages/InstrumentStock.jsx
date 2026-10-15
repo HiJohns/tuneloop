@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { formatCents, yuanToCents } from '../utils/money'
 import { Table, Tag, Button, Space, Spin, Modal, Form, Input, InputNumber, Select, Radio, Upload, Descriptions, Image, message, Popconfirm } from 'antd'
-import { EyeOutlined, EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
+import { EyeOutlined, EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { inventoryApi, lossApi, api } from '../services/api'
 import PermissionGate from '../components/PermissionGate'
@@ -401,12 +401,6 @@ export default function InstrumentStock() {
         <Button icon={<WarningOutlined />} onClick={() => switchView(view === 'stock' ? 'loss' : 'stock')}>
           {view === 'stock' ? '丢失台账' : '返回库存'}
         </Button>
-        {/* #2101/I-00：档案管理入口并入本页——新增乐器（instrument:create） */}
-        <PermissionGate code="instrument:create">
-          {view === 'stock' && (
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/instruments/list/add')}>新增乐器</Button>
-          )}
-        </PermissionGate>
         {/* #2043: 导出 CSV（需 instrument:read） */}
         <PermissionGate code="instrument:read">
           {view === 'stock' && (
@@ -436,7 +430,7 @@ export default function InstrumentStock() {
       </Space>
       {view === 'stock' && (
         <div className="text-xs text-gray-500 mb-3">
-          按状态查看乐器（待租 / 在租 / 维修中 / 已丢失）；导出/定价/删除等管理功能已并入本页工具栏。
+          按状态查看乐器（待租 / 在租 / 维修中 / 已丢失）；乐器档案的新增与编辑请用「乐器列表」。
         </div>
       )}
       {statusParam && (

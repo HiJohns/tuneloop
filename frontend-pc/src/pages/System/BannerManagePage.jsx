@@ -3,6 +3,7 @@ import { Table, Card, Button, Space, Modal, Form, Input, Upload, Image, Popconfi
 import { PlusOutlined, UploadOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { bannerApi } from '../../services/api';
 import { antdUploadProps } from '../../utils/upload';
+import MallImageManageCard from './MallImageManageCard';
 
 export default function BannerManagePage() {
   const [banners, setBanners] = useState([]);
@@ -159,6 +160,7 @@ export default function BannerManagePage() {
   ];
 
   return (
+    <>
     <Card title="轮播图管理" extra={<Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>新增轮播图</Button>}>
       <Table
         dataSource={banners}
@@ -205,5 +207,7 @@ export default function BannerManagePage() {
         </Form>
       </Modal>
     </Card>
+    <MallImageManageCard />
+    </>
   );
 }

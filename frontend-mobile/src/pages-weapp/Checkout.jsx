@@ -10,6 +10,8 @@ import { calculateDays, calculateEndDate } from '../utils/daycalc'
 import { formatBeijingDate } from '../utils/format'
 import regions from '../data/regions.json'
 import IdPhotoUploader from '../components/IdPhotoUploader'
+import { t } from '../i18n'
+
 
 const IMG_BASE = env.apiBaseUrl.replace(/\/api$/, '')
 const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? IMG_BASE + url : url
@@ -170,7 +172,7 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
       if (instrument.stock_status !== 'available') {
         try { await apiFetch(`${env.apiBaseUrl}/user/pending-orders/${resumePending}`, { method: 'DELETE' }) } catch { /* 清理失败不阻断提示 */ }
         if (cancelled) return
-        await Taro.showModal({ title: '订单已失效', content: '该乐器已被租出，暂存的待提交订单已失效', showCancel: false })
+        await dialog.alert(t('该乐器已被租出，暂存的待提交订单已失效'), { title: t('订单已失效') })
         if (!cancelled) Taro.navigateBack()
         return
       }
@@ -387,7 +389,7 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
         setGPhotoBack('')
         setGPhotoOther('')
         setShowAddGuarantor(false)
-        Taro.showToast({ title: '担保人已保存', icon: 'success' })
+        dialog.toast('担保人已保存', { icon: 'success' })
       } else {
         dialog.alert('保存失败: ' + (resolveErrorMessage(resp, '未知错误')))
       }
@@ -1039,7 +1041,7 @@ function BatchCheckout({ nav }) {
         setSelectedGuarantorIds(prev => [...prev, saved.id])
         setNewGuarantor({ name: '', phone: '', company: '', title: '', address: '' })
         setShowAddGuarantor(false)
-        Taro.showToast({ title: '担保人已保存', icon: 'success' })
+        dialog.toast('担保人已保存', { icon: 'success' })
       } else {
         dialog.alert('保存失败: ' + (resolveErrorMessage(resp, '未知错误')))
       }

@@ -9,6 +9,8 @@ import RepairRecordPanel from '../components/RepairRecordPanel'
 import StaffIdPhotoViewer from '../components/StaffIdPhotoViewer'
 import { formatBeijingDateTimeShort } from '../utils/format'
 import { photoSrc } from '../utils/media'
+import { t } from '../i18n'
+
 
 export default function RepairRequestDetail() {
   const navigate = useNavigate()
@@ -152,7 +154,7 @@ export default function RepairRequestDetail() {
     try {
       let reason = ''
       if (env.isMiniProgram) {
-        const res = await Taro.showModal({ title: '申诉', editable: true, placeholderText: '请输入申诉原因' })
+        const res = await Taro.showModal({ title: t('申诉'), editable: true, placeholderText: t('请输入申诉原因') })
         reason = res.confirm ? (res.content || '') : ''
       } else {
         reason = prompt('请输入申诉原因')

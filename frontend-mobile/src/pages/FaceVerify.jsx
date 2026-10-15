@@ -12,6 +12,8 @@ import FaceCaptureUploader from '../components/FaceCaptureUploader'
 import { setIdentityVerifyCache } from '../hooks/useIdentityGuard'
 // #2109: E证通小程序 SDK（weapp 自动核身；顶层无 wx 访问，H5 打包安全）
 import { startEid } from '../mp_ecard_sdk/main'
+import { t } from '../i18n'
+
 
 const ACTION_PROMPTS = ['请眨眨眼', '请左右转头', '请张嘴', '请微笑']
 
@@ -218,7 +220,7 @@ export default function FaceVerify() {
       if (vidJson.code !== 20000) throw new Error(resolveErrorMessage(vidJson, '视频上传失败'))
       // #2105：视频保存失败不再静默——仅照片已提交，提示用户稍后重试
       if (vidJson.data?.video_saved === false) {
-        Taro.showToast({ title: '视频保存失败，仅照片已提交，请稍后重试', icon: 'none', duration: 3000 })
+        dialog.toast('视频保存失败，仅照片已提交，请稍后重试', { duration: 3000 })
       }
     } catch (err) {
       clearStallWatchdog()
@@ -300,10 +302,10 @@ export default function FaceVerify() {
   function askVideoFail(batchId, err) {
     setUploadProgress(null)
     Taro.showModal({
-      title: '视频上传未完成',
+      title: t('视频上传未完成'),
       content: `照片已提交成功，但动态视频上传失败${err && err.message ? '：' + err.message : ''}。您可重试视频（网络较慢时可能需要几分钟），或仅提交当前照片进入审核。`,
-      confirmText: '重试视频',
-      cancelText: '仅提交照片',
+      confirmText: t('重试视频'),
+      cancelText: t('仅提交照片'),
       success: async (r) => {
         if (!r.confirm) {
           finishSubmit('已提交照片，等待审核（未含视频）')
@@ -403,10 +405,10 @@ export default function FaceVerify() {
         videoPathRef.current = ''
         setPhase('idle')
         Taro.showModal({
-          title: '未获取到视频',
-          content: '当前设备未能录制视频（电脑版微信通常不支持录像）。实名认证需要动态视频，请改用手机微信完成；如需继续请仅提交照片（不推荐）。',
-          confirmText: '仅提交照片',
-          cancelText: '知道了',
+          title: t('未获取到视频'),
+          content: t('当前设备未能录制视频（电脑版微信通常不支持录像）。实名认证需要动态视频，请改用手机微信完成；如需继续请仅提交照片（不推荐）。'),
+          confirmText: t('仅提交照片'),
+          cancelText: t('知道了'),
           success: (r) => {
             if (r.confirm) doUpload()
           },
@@ -455,11 +457,7 @@ export default function FaceVerify() {
       },
       fail: (err) => {
         // #1821: 开始录像失败要给反馈（桌面微信常不支持），不再静默卡住。
-        Taro.showModal({
-          title: '无法开始录像',
-          content: '当前设备不支持视频录制，实名认证需要动态视频。请改用手机微信操作。',
-          showCancel: false,
-        })
+        dialog.alert(t('当前设备不支持视频录制，实名认证需要动态视频。请改用手机微信操作。'), { title: t('无法开始录像') })
         setPhase('photo_done')
       },
     })

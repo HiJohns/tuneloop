@@ -9,6 +9,8 @@ import { calculateDays } from '../utils/daycalc'
 import { Package, Search, Scan } from 'lucide-react'
 import BottomNav from '../components/BottomNav'
 import BottomNavWeapp from '../components-weapp/BottomNav'
+import { t } from '../i18n'
+
 
 const MAIN_TABS = [
   { key: 'active', label: '进行中' },
@@ -35,12 +37,12 @@ const SUB_FILTERS = {
 const allStatusKeys = ['reserved', 'paid', 'pending_shipment', 'in_transit', 'shipped', 'in_lease', 'expired', 'returning', 'returned', 'completed', 'cancelled', 'transferred']
 
 const STATUS_LABELS = {
-  reserved: '未支付', paid: '待发货', pending_shipment: '待发货',
-  in_transit: '运输中', shipped: '已发货', in_lease: '租赁中',
-  returning: '归还中', returned: '已归还', completed: '已完成',
-  cancelled: '已取消', expired: '超期', transferred: '已过户',
-  damage_appealing: '定损申诉', pending_damage_response: '待回应定损',
-  deposit_refunding: '押金退款中',
+  reserved: t('未支付'), paid: t('待发货'), pending_shipment: t('待发货'),
+  in_transit: t('运输中'), shipped: t('已发货'), in_lease: t('租赁中'),
+  returning: t('归还中'), returned: t('已归还'), completed: t('已完成'),
+  cancelled: t('已取消'), expired: t('超期'), transferred: t('已过户'),
+  damage_appealing: t('定损申诉'), pending_damage_response: t('待回应定损'),
+  deposit_refunding: t('押金退款中'),
 }
 
 const STATUS_COLORS = {

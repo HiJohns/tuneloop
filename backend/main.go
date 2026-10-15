@@ -122,6 +122,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	userPointsHandler := handlers.NewUserPointsHandler()
 	guarantorHandler := handlers.NewGuarantorHandler(nil) // nil → use env TENCENTCLOUD config
 	bannerHandler := handlers.NewBannerHandler()
+	mallImageHandler := handlers.NewMallImageHandler()
 	invoiceHandler := handlers.NewInvoiceHandler()
 	merchantInvoiceHandler := handlers.NewMerchantInvoiceHandler()
 
@@ -249,6 +250,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		publicGroup.GET("/public/sites", handlers.GetPublicSites)
 		publicGroup.GET("/public/instruments/lookup", handlers.LookupInstrumentBySN)
 		publicGroup.GET("/public/banners", bannerHandler.GetPublicBanners)
+		publicGroup.GET("/public/mall-images", mallImageHandler.GetPublicMallImages)
 		publicGroup.GET("/public/merchants", handlers.ListPublicMerchants)
 		publicGroup.GET("/public/settings/:key", handlers.GetPublicSetting)
 		publicGroup.GET("/public/instruments/search", handlers.SearchInstruments)
@@ -305,6 +307,14 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		bannerAdmin.POST("/admin/banners", bannerHandler.CreateBanner)
 		bannerAdmin.PUT("/admin/banners/:id", bannerHandler.UpdateBanner)
 		bannerAdmin.DELETE("/admin/banners/:id", bannerHandler.DeleteBanner)
+
+		// Mall images — namespace_admin only (mall_image:manage cus_perm, #2210)
+		mallImageAdmin := authRequired.Group("")
+		mallImageAdmin.Use(middleware.RequireCusPerm("mall_image:manage"))
+		mallImageAdmin.GET("/admin/mall-images", mallImageHandler.ListMallImages)
+		mallImageAdmin.POST("/admin/mall-images", mallImageHandler.CreateMallImage)
+		mallImageAdmin.PUT("/admin/mall-images/:id", mallImageHandler.UpdateMallImage)
+		mallImageAdmin.DELETE("/admin/mall-images/:id", mallImageHandler.DeleteMallImage)
 
 		// Membership management (system admin)
 		membershipAdmin := authRequired.Group("")
@@ -490,7 +500,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			// #2114 网点申请非本商户成员加入（P2 已注册 / P3 未注册）→ 交商户管理员审批
 			siteRequired.POST("/sites/:id/members/apply", middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), handlers.ApplySiteMembership)
 			// #2031 邀请制自助加入：管理员只发邀请码，本人登录后接受（一人一号）
-			siteRequired.POST("/sites/:id/invites", middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), handlers.CreateSiteInvite)
+			// #2216: 匿名邀请码创建已下线（只认定向邀请，见 /user/invitations/pending）。
 			siteRequired.GET("/sites/:id/invites", middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), handlers.ListSiteInvites)
 			siteRequired.POST("/sites/:id/invites/send", middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), handlers.SendStaffInvite)
 			siteRequired.PUT("/sites/:id/members/:uid", middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), siteMemberHandler.UpdateMemberRole)
@@ -713,6 +723,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/user/register-as-customer", handlers.RegisterAsCustomer)
 				// #2031 邀请制自助加入：本人用邀请码把员工身份加到自己的账户
 				userOptionalAuth.POST("/user/accept-invite", handlers.AcceptInvite)
+				userOptionalAuth.GET("/user/invitations/pending", handlers.ListMyPendingInvitations)
 				userOptionalAuth.POST("/user/invitations/:id/accept", handlers.AcceptInvitation)
 				userOptionalAuth.POST("/user/invitations/:id/reject", handlers.RejectInvitation)
 				// #2041 待提交订单缓存（未实名被拦截 → 缓存 → 实名通过后回跳继续提交）

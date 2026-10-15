@@ -4,6 +4,8 @@ import Taro from '@tarojs/taro'
 import { View, Text, Textarea, Image, Video, Button } from '@tarojs/components'
 import { apiFetch, getToken, resolveErrorMessage, resolveUploadError } from '../services/api'
 import { dialog, env, getInputValue, toWeappRoute, uploadFile as uploadFileApi } from '../platform'
+import { t } from '../i18n'
+
 
 // #1955 阶段3a RS-01：创建维修服务单（描述 + 照片 ≤6 + 试奏视频可选 ≤1 段，#2060，不填识别码）
 // 提交后展示 6 位编码（repair_code），提示用户写在物流单信息栏。
@@ -33,8 +35,8 @@ export default function RepairServiceCreate() {
     if (!getToken()) {
       if (env.isMiniProgram) {
         Taro.showModal({
-          title: '提示',
-          content: '请先登录后再提交维修服务单',
+          title: t('提示'),
+          content: t('请先登录后再提交维修服务单'),
           showCancel: false,
           success: () => Taro.switchTab({ url: '/pages-weapp/profile/index' }),
           fail: () => Taro.switchTab({ url: '/pages-weapp/profile/index' }),

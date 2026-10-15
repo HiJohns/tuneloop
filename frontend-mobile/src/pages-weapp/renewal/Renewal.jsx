@@ -3,8 +3,11 @@ import { formatCents } from '../../utils/money'
 import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Input, Button, Image } from '@tarojs/components'
 import { apiFetch, resolveErrorMessage } from '../../services/api'
-import { env } from '../../platform'
+import {dialog, env } from '../../platform'
 import { formatBeijingDate } from '../../utils/format'
+import { t } from '../../i18n'
+
+
 
 export default function Renewal() {
   const params = Taro.getCurrentInstance()?.router?.params || {}
@@ -78,10 +81,10 @@ export default function Renewal() {
           url: `/pages-weapp/payment/index?type=renewal&id=${orderId}&amount=${calcResult.total_amount}`,
         })
       } else {
-        Taro.showModal({ title: '续期失败', content: resolveErrorMessage(result, '请稍后重试'), showCancel: false })
+        dialog.alert(resolveErrorMessage(result, '请稍后重试'), { title: t('续期失败') })
       }
     } catch (err) {
-      Taro.showModal({ title: '网络错误', content: resolveErrorMessage(err, '网络异常，请重试'), showCancel: false })
+      dialog.alert(resolveErrorMessage(err, '网络异常，请重试'), { title: t('网络错误') })
     } finally {
       setSubmitting(false)
     }

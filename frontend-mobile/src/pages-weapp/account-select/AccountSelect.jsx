@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Input } from '@tarojs/components'
-import { request, wxLogin as wxLoginCode, storage, session, env, eventBus, getInputValue } from '../../platform'
+import {dialog, request, wxLogin as wxLoginCode, storage, session, env, eventBus, getInputValue } from '../../platform'
 import { resolveErrorMessage } from '../../services/api'
 import { parseJWT } from '../../platform/init'
+import { t } from '../../i18n'
 
-const ROLE_LABELS = { site_member: '员工', site_admin: '网点管理员', repair_technician: '维修师傅', merchant_admin: '商户管理员', worker: '员工', OWNER: '负责人', ADMIN: '管理员' }
+
+
+const ROLE_LABELS = { site_member: t('员工'), site_admin: t('网点管理员'), repair_technician: t('维修师傅'), merchant_admin: t('商户管理员'), worker: t('员工'), OWNER: t('负责人'), ADMIN: t('管理员') }
 
 const TAB_PAGES = ['/pages-weapp/home/index', '/pages-weapp/mall/index', '/pages-weapp/profile/index']
 
@@ -83,7 +86,7 @@ export default function AccountSelect() {
           }
         } catch { /* 预取解析失败 → 回退自取 */ }
         const code = await wxLoginCode()
-        if (!code) { Taro.showToast({ title: '登录状态失效，请重试', icon: 'none' }); setLoading(false); return }
+        if (!code) { dialog.toast('登录状态失效，请重试'); setLoading(false); return }
         const res = await request(`${env.apiBaseUrl}/auth/wx-accounts?code=${encodeURIComponent(code)}`)
         const result = await res.json()
         if (result.code === 20000 && result.data) {
@@ -92,10 +95,10 @@ export default function AccountSelect() {
           // (WeChat code is single-use, consumed by wx-accounts above)
           session.setItem('wx_login_token', result.data.exchange_token || '')
         } else {
-          Taro.showToast({ title: resolveErrorMessage(result, '获取账户失败'), icon: 'none' })
+          dialog.toast(resolveErrorMessage(result, '获取账户失败'))
         }
       } catch {
-        Taro.showToast({ title: '网络错误，请重试', icon: 'none' })
+        dialog.toast('网络错误，请重试')
       }
       setLoading(false)
     }
@@ -144,16 +147,16 @@ export default function AccountSelect() {
         }
         return
       }
-      Taro.showToast({ title: resolveErrorMessage(result, '登录失败，请重试'), icon: 'none' })
+      dialog.toast(resolveErrorMessage(result, '登录失败，请重试'))
     } catch {
-      Taro.showToast({ title: '网络错误，请重试', icon: 'none' })
+      dialog.toast('网络错误，请重试')
     }
     setLoggingIn('')
   }
 
   const handlePwdLogin = async () => {
     if (!identifier.trim() || !password) {
-      Taro.showToast({ title: '请输入账号和密码', icon: 'none' })
+      dialog.toast('请输入账号和密码')
       return
     }
     setPwdLoggingIn(true)
@@ -187,9 +190,9 @@ export default function AccountSelect() {
         }
         return
       }
-      Taro.showToast({ title: resolveErrorMessage(result, '登录失败，请重试'), icon: 'none' })
+      dialog.toast(resolveErrorMessage(result, '登录失败，请重试'))
     } catch {
-      Taro.showToast({ title: '网络错误，请重试', icon: 'none' })
+      dialog.toast('网络错误，请重试')
     }
     setPwdLoggingIn(false)
   }

@@ -169,8 +169,22 @@ export default function Profile() {
   const [transitMember, setTransitMember] = useState(false) // #1937: 中转网点成员身份
   const [myRoles, setMyRoles] = useState([]) // #2089: /site-members/me roles（网点角色 ∪ fn_roles）
   const [pendingQuoteCount, setPendingQuoteCount] = useState(0) // #2089: 师傅「待报价」角标
+  const [pendingInvites, setPendingInvites] = useState([]) // #2216: 我的待接受定向邀请（无则不显示入口）
+  const [refreshKey, setRefreshKey] = useState(0) // #2216: 接受邀请后重取身份
 
   const baseUrl = env.apiBaseUrl
+
+  // #2216: 「加入网点」入口仅在存在对我的 pending 定向邀请时显示。
+  const fetchPendingInvites = useCallback(async () => {
+    if (!getToken()) { setPendingInvites([]); return }
+    try {
+      const resp = await apiFetch(`${baseUrl}/user/invitations/pending`)
+      const result = await resp.json()
+      if (result.code === 20000) setPendingInvites(result.data?.list || [])
+    } catch { setPendingInvites([]) }
+  }, [baseUrl])
+
+  useEffect(() => { fetchPendingInvites() }, [fetchPendingInvites])
 
   useEffect(() => {
     // #1692: frontend package version (1.0.<git short hash>, injected at
@@ -265,7 +279,7 @@ export default function Profile() {
       } catch {}
     }
     if (isStaff) fetchMySites()
-  }, [baseUrl, isStaff])
+  }, [baseUrl, isStaff, refreshKey])
 
   const navTransitWorkbench = () => {
     if (!env.isMiniProgram) return navigate('/transit-workbench')
@@ -489,13 +503,16 @@ export default function Profile() {
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
           )}
-          {/* 5.5 加入网点（#2031 邀请制自助加入） */}
+          {/* 5.5 加入网点（#2216：仅定向受邀时显示，一键接受） */}
+          {pendingInvites.length > 0 && (
           <View className="flex justify-between items-center py-3.5" onClick={() => setShowJoin(true)}>
-            <View className="flex items-center">
+            <View className="flex items-center gap-2">
+              <Text className="text-lg">🤝</Text>
               <Text className="text-base font-bold text-zinc-800">加入网点</Text>
             </View>
             <Text className="text-zinc-300 text-lg">›</Text>
           </View>
+          )}
 
           {/* 6. 商务合作 */}
           <View className="flex justify-between items-center py-3.5" onClick={() => nav('/content?key=cooperation')}>
@@ -531,7 +548,7 @@ export default function Profile() {
       {/* 5. 底部固定导航栏 */}
       <BottomNav active="profile" badges={{ profile: isStaff ? 0 : unreadCount }} navigate={navigate} />
 
-      <JoinSiteModal visible={showJoin} onClose={() => setShowJoin(false)} />
+      <JoinSiteModal visible={showJoin} onClose={() => setShowJoin(false)} onAccepted={() => { setShowJoin(false); fetchPendingInvites(); setRefreshKey(k => k + 1) }} />
       <PendingOrdersModal visible={showPending} onClose={() => setShowPending(false)} navigate={nav} user={user} />
 
       <EditProfileModal

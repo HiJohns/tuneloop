@@ -100,6 +100,32 @@ func TestGetAllValidRoleTemplateCodes(t *testing.T) {
 	}
 }
 
+func TestMallImageManagePermission(t *testing.T) {
+	// #2210: mall_image:manage 须授予平台管理员模板，否则权限位无效。
+	for _, code := range []string{"namespace_admin", "sys_admin"} {
+		tmpl, ok := GetRoleTemplate(code)
+		if !ok {
+			t.Fatalf("role template %q not found", code)
+		}
+		found := false
+		for _, c := range tmpl.CusPermCodes {
+			if c == "mall_image:manage" {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("role %q CusPermCodes missing mall_image:manage (#2210): %v", code, tmpl.CusPermCodes)
+		}
+	}
+
+	// 注册表 BitCode 必须为 31（现网最大 member:invite=30）。
+	r := NewPermissionRegistry()
+	if bit := r.GetCusPermBit("mall_image:manage"); bit != 31 {
+		t.Errorf("GetCusPermBit('mall_image:manage') = %d, want 31", bit)
+	}
+}
+
 func TestGetBusinessRole(t *testing.T) {
 	tests := []struct {
 		roleTemplate string

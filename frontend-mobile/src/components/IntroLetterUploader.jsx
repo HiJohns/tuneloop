@@ -9,6 +9,8 @@ import Taro from '@tarojs/taro'
 import { View, Text, Image } from '@tarojs/components'
 import { dialog, uploadFile, env } from '../platform'
 import { resolveErrorMessage, resolveUploadError } from '../services/api'
+import { t } from '../i18n'
+
 
 export default function IntroLetterUploader({ initialKey = '', onChange, leftAligned = false }) {
   const [url, setUrl] = useState('')
@@ -38,7 +40,7 @@ export default function IntroLetterUploader({ initialKey = '', onChange, leftAli
         throw new Error(resolveErrorMessage(json, '介绍信上传失败'))
       }
     } catch (err) {
-      if (env.isMiniProgram) Taro.showToast({ title: '介绍信上传失败', icon: 'none' })
+      if (env.isMiniProgram) dialog.toast('介绍信上传失败')
       else dialog.alert('介绍信上传失败')
     } finally {
       setUploading(false)

@@ -7,6 +7,8 @@ import { useNavigate } from 'react-router-dom'
 import QRCode from 'qrcode'
 import RichContent from '../components/RichContent'
 import '../utils/text-encoder'
+import { t } from '../i18n'
+
 
 
 // 会员规则与权益手册 — backend-editable rich text (#1830 增量); the static
@@ -89,7 +91,7 @@ export default function MembershipCenter() {
       console.log('[QR DEBUG] canvas query result:', JSON.stringify(res))
       if (!res || !res[0] || !res[0].node) {
         console.log('[QR DEBUG] canvas not found, res=', res)
-        Taro.showToast({ title: '二维码生成失败', icon: 'none' })
+        dialog.toast('二维码生成失败')
         return
       }
       const canvas = res[0].node
@@ -98,12 +100,12 @@ export default function MembershipCenter() {
       canvas.width = 256
       canvas.height = 256
       QRCode.toCanvas(canvas, url, { width: 256, margin: 1 }, (err) => {
-        if (err) { console.log('[QR DEBUG] QRCode.toCanvas error:', err); Taro.showToast({ title: '二维码生成失败', icon: 'none' }); return }
+        if (err) { console.log('[QR DEBUG] QRCode.toCanvas error:', err); dialog.toast('二维码生成失败'); return }
         console.log('[QR DEBUG] QRCode.toCanvas ok, exporting temp file...')
         Taro.canvasToTempFilePath({
           canvas,
           success: (r) => { console.log('[QR DEBUG] canvasToTempFilePath ok, path=', r.tempFilePath); setQrSrc(r.tempFilePath); setShowQR(true) },
-          fail: (e) => { console.log('[QR DEBUG] canvasToTempFilePath fail:', JSON.stringify(e)); Taro.showToast({ title: '二维码生成失败', icon: 'none' }) },
+          fail: (e) => { console.log('[QR DEBUG] canvasToTempFilePath fail:', JSON.stringify(e)); dialog.toast('二维码生成失败') },
         })
       })
     })

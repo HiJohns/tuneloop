@@ -400,6 +400,7 @@ var defaultMigrationArtifacts = []migrationArtifact{
 	{20261002001, "repair_requests", "receive_photos", "收货拍照留档列（#2116）"},
 	{20261002001, "repair_requests", "received_by", "收货人列（#2116）"},
 	{20261002001, "repair_requests", "received_at", "收货时间列（#2116）"},
+	{20261012001, "mall_images", "", "商城图片表（#2210）"},
 }
 
 // verifyArtifacts 纯逻辑（便于单测）：对 version ≥ a.Version 的工件断言存在。
@@ -617,6 +618,7 @@ func validateDatabaseSchema(db *gorm.DB) error {
 		&models.RepairTransitOrder{},
 		&models.Warning{},
 		&models.Banner{},
+		&models.MallImage{}, // #2210: 商城页图片表（20261012001 migration，平台级）
 		&models.InvoiceApplication{},
 		&models.MembershipLevelBenefit{},  // #1830: 会员权益行（20260907001 migration）
 		&models.InstrumentPromoOverride{}, // #1863: 乐器促销覆盖（20260910001 migration）

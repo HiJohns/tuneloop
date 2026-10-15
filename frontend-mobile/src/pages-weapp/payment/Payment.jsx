@@ -3,7 +3,10 @@ import { formatCents } from '../../utils/money'
 import Taro, { useDidShow, useLoad } from '@tarojs/taro'
 import { View, Text, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, resolveLogin, resolveErrorMessage } from '../../services/api'
-import { env, session, storage, wxLogin } from '../../platform'
+import {dialog, env, session, storage, wxLogin } from '../../platform'
+import { t } from '../../i18n'
+
+
 
 const baseUrl = env.apiBaseUrl
 
@@ -173,7 +176,7 @@ export default function Payment() {
         appliedBefore: !!appliedCoupon,
         ts: Date.now(),
       })
-      if (!code) { Taro.showToast({ title: '请输入优惠码', icon: 'none' }); return }
+      if (!code) { dialog.toast('请输入优惠码'); return }
       if (code === 'OREZ') {
         setAppliedCoupon({ code, hint: '已应用，全额免除' })
         setCouponAmount(0)
@@ -185,7 +188,7 @@ export default function Payment() {
         setAppliedCoupon({ code, hint: '已应用，优惠后金额 ¥' + formatCents(discounted) })
         setCouponAmount(discounted)
       } else {
-        Taro.showToast({ title: '优惠码无效', icon: 'none' })
+        dialog.toast('优惠码无效')
       }
     }
     // Fast typing + immediate tap: the last input event may still be in
@@ -233,7 +236,7 @@ export default function Payment() {
       }
       session.removeItem('pending_registration_session')
       if (completed) {
-        Taro.showToast({ title: '注册成功，正在登录...', icon: 'none', duration: 1500 })
+        dialog.toast('注册成功，正在登录...', { duration: 1500 })
         // #1807: 直接用新账户 user_id 登录（需要 exchange_token——调 wx-accounts 获取）。
         let loggedIn = false
         if (newUserId) {
@@ -286,12 +289,12 @@ export default function Payment() {
           exit('/pages-weapp/home/index')
         }
       } else {
-        Taro.showModal({ title: '注册处理中', content: '会员费已支付，账户正在创建，请稍后返回首页刷新。', showCancel: false })
+        dialog.alert(t('会员费已支付，账户正在创建，请稍后返回首页刷新。'), { title: t('注册处理中') })
         setTimeout(() => exit('/pages-weapp/home/index'), 2000)
       }
     } catch (e) {
       console.warn('[payment] finishMembershipFlow failed', e)
-      Taro.showToast({ title: '注册处理中，请稍后在首页查看', icon: 'none' })
+      dialog.toast('注册处理中，请稍后在首页查看')
       exit('/pages-weapp/home/index')
     }
   }
@@ -397,16 +400,16 @@ export default function Payment() {
       paySign: payData.data.pay_sign,
       success: () => {
         if (pType === 'membership' && pSessionId) {
-          Taro.showToast({ title: '支付成功，注册处理中', icon: 'none', duration: 1500 })
+          dialog.toast('支付成功，注册处理中', { duration: 1500 })
           startMembershipFlow()
         } else {
-          Taro.showToast({ title: pType === 'membership' ? '会员已激活，赠点已到账' : '支付成功', icon: 'success' })
+          dialog.toast(pType === 'membership' ? '会员已激活，赠点已到账' : t('支付成功'), { icon: 'success' })
           afterPaySuccess(pId)
         }
       },
       fail: (err) => {
         setIsPaying(false)
-        Taro.showModal({ title: '支付失败', content: err.errMsg || '请重试', showCancel: false })
+        dialog.alert(err.errMsg || '请重试', { title: t('支付失败') })
       },
     })
   }
@@ -423,23 +426,23 @@ export default function Payment() {
           const result = await doPrepay()
           if (result.code === 20000) {
             if (pType === 'membership' && pSessionId) {
-              Taro.showToast({ title: '会员已激活，赠点已到账', icon: 'success' })
+              dialog.toast('会员已激活，赠点已到账', { icon: 'success' })
               startMembershipFlow()
             } else {
-              Taro.showToast({ title: '支付成功', icon: 'success' })
+              dialog.toast('支付成功', { icon: 'success' })
               afterPaySuccess(pId)
             }
           } else {
             setIsPaying(false)
-            Taro.showModal({ title: '支付失败', content: resolveErrorMessage(result, '请稍后重试'), showCancel: false })
+            dialog.alert(resolveErrorMessage(result, '请稍后重试'), { title: t('支付失败') })
           }
         } catch (err) {
           setIsPaying(false)
-          Taro.showModal({ title: '支付失败', content: resolveErrorMessage(err, '网络异常，请重试'), showCancel: false })
+          dialog.alert(resolveErrorMessage(err, '网络异常，请重试'), { title: t('支付失败') })
         }
         return
       }
-      Taro.showToast({ title: pType === 'membership' ? '会员已激活，赠点已到账' : '支付成功', icon: 'success' })
+      dialog.toast(pType === 'membership' ? '会员已激活，赠点已到账' : t('支付成功'), { icon: 'success' })
       afterPaySuccess(pId)
       return
     }
@@ -459,25 +462,25 @@ export default function Payment() {
           // #18xx: 后端误降级 Native（应已被后端 weapp 守卫拦截）——weapp
           // 无法扫码，绝不能当作成功。
           setIsPaying(false)
-          Taro.showModal({ title: '支付失败', content: '无法发起微信支付，请退出后重新进入再试', showCancel: false })
+          dialog.alert(t('无法发起微信支付，请退出后重新进入再试'), { title: t('支付失败') })
         } else {
           // 有金额的真实支付必须返回 prepay_id；无 prepay_id = 支付未创建，
           // 禁止走 waive 假成功路径（2026-09-06 预生产 incident 教训）。
           setIsPaying(false)
-          Taro.showModal({ title: '支付失败', content: '无法获取支付参数，请稍后重试', showCancel: false })
+          dialog.alert(t('无法获取支付参数，请稍后重试'), { title: t('支付失败') })
         }
       } else {
         setIsPaying(false)
-        Taro.showModal({ title: '支付失败', content: resolveErrorMessage(result, '请稍后重试'), showCancel: false })
+        dialog.alert(resolveErrorMessage(result, '请稍后重试'), { title: t('支付失败') })
       }
     } catch (err) {
       setIsPaying(false)
-      Taro.showModal({ title: '支付失败', content: resolveErrorMessage(err, '网络异常，请重试'), showCancel: false })
+      dialog.alert(resolveErrorMessage(err, '网络异常，请重试'), { title: t('支付失败') })
     }
   }
 
   const handleRefund = async () => {
-    Taro.showToast({ title: '退款申请已提交', icon: 'success' })
+    dialog.toast('退款申请已提交', { icon: 'success' })
     setTimeout(() => Taro.navigateBack(), 2000)
   }
 

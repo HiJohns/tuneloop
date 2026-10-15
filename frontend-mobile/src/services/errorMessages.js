@@ -1,3 +1,6 @@
+// #2214: 集中拦截——三层回退出口统一经 t()（覆盖全部 resolveErrorMessage 调用点）
+import { t } from '../i18n'
+
 // 后端错误消息统一解析器（#1675）
 // 后端 message 是机器可读稳定标识（英文），前端在此集中翻译为用户友好中文。
 // 三层回退：L1 message 精确匹配 → L2 code 家族映射 → L3 调用点 fallback。
@@ -89,9 +92,9 @@ export const ERROR_MESSAGE_MAP = {
 
 // 解析器（唯一出口）
 export function resolveErrorMessage(result, fallback = '操作失败，请重试') {
-  if (!result) return fallback
+  if (!result) return t(fallback)
   const { code, message } = result
-  if (message && ERROR_MESSAGE_MAP[message]) return ERROR_MESSAGE_MAP[message]
-  if (code && ERROR_CODE_MAP[code]) return ERROR_CODE_MAP[code]
-  return fallback
+  if (message && ERROR_MESSAGE_MAP[message]) return t(ERROR_MESSAGE_MAP[message])
+  if (code && ERROR_CODE_MAP[code]) return t(ERROR_CODE_MAP[code])
+  return t(fallback)
 }

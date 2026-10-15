@@ -26,73 +26,94 @@ func newInviteCode() string {
 	return hex.EncodeToString(b) // 16 hex chars
 }
 
-// CreateSiteInvite POST /api/sites/:id/invites — 管理员签发邀请码（#2031 邀请制自助加入）。
-// 管理员只发码；成员身份由本人登录后接受，从而满足一人一号 + 禁止管理员代挂。
-func CreateSiteInvite(c *gin.Context) {
-	siteID := c.Param("id")
+// ListMyPendingInvitations GET /api/user/invitations/pending — 我的待接受「定向」邀请（#2216）。
+// 匹配口径与 member_invite_2114 一致：invitee_user_id = 我，或（invitee_user_id IS NULL
+// 且 invitee_identifier ∈ {我的手机, 我的邮箱}）。不含邀请码；未登录/解析失败返回空列表。
+func ListMyPendingInvitations(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
-	tenantID := middleware.GetTenantID(ctx)
 
-	if !hasSiteAccess(db, tenantID, siteID, c) {
+	emptyList := gin.H{"code": 20000, "data": gin.H{"list": []gin.H{}}}
+
+	if middleware.GetUserID(ctx) == "" {
+		c.JSON(http.StatusOK, emptyList)
+		return
+	}
+	localUserID, err := middleware.LocalUserID(ctx, db)
+	if err != nil || localUserID == "" {
+		c.JSON(http.StatusOK, emptyList)
+		return
+	}
+	var me models.User
+	if err := db.Select("id", "phone", "email").Where("id = ?", localUserID).First(&me).Error; err != nil {
+		c.JSON(http.StatusOK, emptyList)
 		return
 	}
 
-	var req struct {
-		Role      string `json:"role"`
-		ExpiresIn int    `json:"expires_in_hours"`
-	}
-	_ = c.ShouldBindJSON(&req)
-	if req.Role == "" {
-		req.Role = "site_member"
+	identifiers := []string{}
+	for _, v := range []string{me.Phone, me.Email} {
+		if strings.TrimSpace(v) != "" {
+			identifiers = append(identifiers, v)
+		}
 	}
 
-	var site models.Site
-	if err := db.Where("id = ? AND tenant_id = ?", siteID, tenantID).First(&site).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "网点不存在"})
-		return
-	}
-	if site.OrgID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": "网点未绑定组织，无法邀请"})
-		return
+	q := db.Model(&models.StaffInvite{}).
+		Where("status = ? AND expires_at > ?", "pending", time.Now())
+	if len(identifiers) > 0 {
+		q = q.Where("invitee_user_id = ? OR (invitee_user_id IS NULL AND invitee_identifier IN ?)", localUserID, identifiers)
+	} else {
+		q = q.Where("invitee_user_id = ?", localUserID)
 	}
 
-	ttl := inviteTTL
-	if req.ExpiresIn > 0 {
-		ttl = time.Duration(req.ExpiresIn) * time.Hour
-	}
-
-	var createdBy *string
-	if uid := middleware.GetUserID(ctx); uid != "" {
-		createdBy = &uid
-	}
-
-	invite := models.StaffInvite{
-		TenantID:  tenantID,
-		OrgID:     site.OrgID,
-		SiteID:    &siteID,
-		Role:      normalizeRole(req.Role),
-		Code:      newInviteCode(),
-		CreatedBy: createdBy,
-		ExpiresAt: time.Now().Add(ttl),
-		Status:    "pending",
-	}
-	if err := db.Create(&invite).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "生成邀请码失败"})
+	var invites []models.StaffInvite
+	if err := q.Order("created_at DESC").Find(&invites).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "查询失败"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"code": 20100,
-		"data": gin.H{
-			"id":         invite.ID,
-			"code":       invite.Code,
-			"role":       invite.Role,
-			"site_id":    siteID,
-			"site_name":  site.Name,
-			"expires_at": invite.ExpiresAt,
-		},
-	})
+	roleLabel := map[string]string{
+		"site_member":     "网点员工",
+		"merchant_member": "商户成员",
+		"merchant_staff":  "商户员工",
+		"platform_staff":  "平台员工",
+	}
+	siteNames := map[string]string{}
+	out := make([]gin.H, 0, len(invites))
+	for _, inv := range invites {
+		name := ""
+		if inv.SiteID != nil {
+			if n, ok := siteNames[*inv.SiteID]; ok {
+				name = n
+			} else {
+				var s models.Site
+				if err := db.Select("name").First(&s, "id = ?", *inv.SiteID).Error; err == nil {
+					name = s.Name
+					siteNames[*inv.SiteID] = s.Name
+				}
+			}
+		} else {
+			// 商户/平台级（site_id 为 NULL）：按 OrgID 解析商户名。
+			var mrec models.Merchant
+			if err := db.Select("name").First(&mrec, "org_id = ?", inv.OrgID).Error; err == nil {
+				name = mrec.Name
+			}
+		}
+		label := roleLabel[inv.Role]
+		if label == "" {
+			label = inv.Role
+		}
+		out = append(out, gin.H{
+			"id":         inv.ID,
+			"kind":       inv.Kind,
+			"site_id":    inv.SiteID,
+			"name":       name,
+			"role":       inv.Role,
+			"role_label": label,
+			"created_at": inv.CreatedAt,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": out}})
 }
 
 // ListSiteInvites GET /api/sites/:id/invites — 待接受邀请列表（管理员）。
@@ -236,7 +257,16 @@ func loadInvitationForUser(db *gorm.DB, id, localUserID string, c *gin.Context) 
 		c.JSON(http.StatusNotFound, gin.H{"code": 40404, "message": "邀请不存在"})
 		return nil, false
 	}
-	if invite.InviteeUserID == nil || *invite.InviteeUserID != localUserID {
+	// #2216: 匹配口径与「我的待接受邀请」查询/ member_invite_2114 一致——
+	// 指向我（invitee_user_id）或（未认领且 identifier ∈ {我的手机, 我的邮箱}）。
+	match := invite.InviteeUserID != nil && *invite.InviteeUserID == localUserID
+	if !match && invite.InviteeUserID == nil && invite.InviteeIdentifier != "" {
+		var me models.User
+		if err := db.Select("phone", "email").Where("id = ?", localUserID).First(&me).Error; err == nil {
+			match = invite.InviteeIdentifier == me.Phone || (me.Email != "" && invite.InviteeIdentifier == me.Email)
+		}
+	}
+	if !match {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "无权处理该邀请"})
 		return nil, false
 	}
@@ -360,6 +390,11 @@ func AcceptInvitation(c *gin.Context) {
 	invite, ok := loadInvitationForUser(db, c.Param("id"), localUserID, c)
 	if !ok {
 		return
+	}
+
+	// #2216: identifier 定向邀请在接受时认领（invitee_user_id ← 本人），与一键接受口径一致。
+	if invite.InviteeUserID == nil {
+		db.Model(&models.StaffInvite{}).Where("id = ?", invite.ID).Update("invitee_user_id", localUserID)
 	}
 
 	var user models.User

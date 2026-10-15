@@ -7,9 +7,11 @@
 import { useState, useRef } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Image } from '@tarojs/components'
-import { uploadFile, env } from '../platform'
+import { dialog, uploadFile, env } from '../platform'
 import { resolveErrorMessage } from '../services/api'
 import { storage, session } from '../platform'
+import { t } from '../i18n'
+
 
 const FaceCaptureUploader = ({ initialStatus = '', onSubmitSuccess }) => {
   const [imagePath, setImagePath] = useState('')
@@ -96,7 +98,7 @@ const FaceCaptureUploader = ({ initialStatus = '', onSubmitSuccess }) => {
           if (videoJson.code !== 20000) throw new Error(resolveErrorMessage(videoJson, '视频上传失败'))
           // #2105：视频保存失败不再静默（仅照片已提交）
           if (videoJson.data?.video_saved === false) {
-            Taro.showToast({ title: '视频保存失败，仅照片已提交，请稍后重试', icon: 'none', duration: 3000 })
+            dialog.toast('视频保存失败，仅照片已提交，请稍后重试', { duration: 3000 })
           }
         }
       } else {
@@ -113,7 +115,7 @@ const FaceCaptureUploader = ({ initialStatus = '', onSubmitSuccess }) => {
         if (json.code !== 20000) throw new Error(resolveErrorMessage(json, '提交失败'))
         // #2105：视频保存失败不再静默（仅照片已提交）
         if (json.data?.video_saved === false) {
-          Taro.showToast({ title: '视频保存失败，仅照片已提交，请稍后重试', icon: 'none', duration: 3000 })
+          dialog.toast('视频保存失败，仅照片已提交，请稍后重试', { duration: 3000 })
         }
       }
       setImagePath('')

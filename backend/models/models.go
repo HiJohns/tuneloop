@@ -1323,6 +1323,19 @@ type Banner struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// MallImage 商城页图片（#2210）：平台级全站配置，与租户无关
+// （读 = 公开 status='active'；写 = namespace_admin `mall_image:manage`）。
+type MallImage struct {
+	ID        string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	ImageURL  string    `gorm:"type:varchar(500);not null" json:"image_url"`
+	LinkURL   string    `gorm:"type:varchar(500)" json:"link_url"`
+	Title     string    `gorm:"type:varchar(200)" json:"title"`
+	SortOrder int       `gorm:"default:0;index" json:"sort_order"`
+	Status    string    `gorm:"type:varchar(20);default:'active'" json:"status"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 // InvoiceApplication represents a customer's invoice request grouped by merchant.
 // One application = one merchant's set of orders from a single submission.
 type InvoiceApplication struct {

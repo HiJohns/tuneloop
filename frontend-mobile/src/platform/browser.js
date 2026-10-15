@@ -1,3 +1,6 @@
+// #2214: 集中拦截——dialog 文案统一经 t()（覆盖全部 dialog.* 调用点）
+import { t } from '../i18n'
+
 export const storage = {
   getItem: (key) => localStorage.getItem(key),
   setItem: (key, value) => localStorage.setItem(key, value),
@@ -86,10 +89,14 @@ export const uploadFile = (url, file, options = {}) => {
   return fetch(url, { method: 'POST', body: fd, ...rest, headers })
 }
 
+// #2214: 收敛 Taro.showToast/showModal 的归宿。opts 保真原 Taro 语义：
+//   alert/confirm: { title }（H5 无独立标题栏 → 前置换行模拟）；toast: { icon, duration }（H5 忽略）。
+const withTitle = (msg, title) => (title ? `${title}\n\n${msg}` : msg)
+
 export const dialog = {
-  alert: (msg) => window.alert(msg),
-  confirm: (msg) => window.confirm(msg),
-  toast: (msg) => window.alert(msg),
+  alert: (msg, opts = {}) => window.alert(t(withTitle(msg, opts.title))),
+  confirm: (msg, opts = {}) => window.confirm(t(withTitle(msg, opts.title))),
+  toast: (msg) => window.alert(t(msg)),
 }
 
 // H5: native <input> fires React synthetic event with e.target.value.
