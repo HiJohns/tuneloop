@@ -261,6 +261,11 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 			req.SiteID = uuid.Nil
 		}
 	}
+	if userType == "site_staff" && req.SiteID == uuid.Nil {
+		// #2228 P2 同族：site_staff 缺 site_id 此前落入 uuid 空串 22P02——显式 40001
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "site_id is required for site_staff"})
+		return
+	}
 	if userType == "site_staff" && req.SiteID != uuid.Nil {
 		siteIDStr := req.SiteID.String()
 
@@ -345,6 +350,13 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	if hasPassword {
 		createReq.SkipActivation = true
 		createReq.ForcePasswordChange = req.ForcePasswordChange
+	}
+
+	// #2228 P2：邀请模式（既未自动生成也未显式指定密码）——邮箱是邀请邮件的投递
+	// 通道（IAM 生成 /confirm 链接），必填；手机必填由请求绑定保证（Q3）。
+	if !hasPassword && req.Email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "邀请模式需填写邮箱（邀请邮件投递通道）"})
+		return
 	}
 
 	iamResp, err := iamClient.CreateUser(createReq)
