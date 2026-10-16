@@ -51,8 +51,9 @@ func TestGetMyRoles_IncludesSites(t *testing.T) {
 		Data struct {
 			Roles []string `json:"roles"`
 			Sites []struct {
-				SiteID string `json:"site_id"`
-				Role   string `json:"role"`
+				SiteID string   `json:"site_id"`
+				Role   string   `json:"role"`
+				Roles  []string `json:"roles"`
 			} `json:"sites"`
 		} `json:"data"`
 	}
@@ -62,9 +63,14 @@ func TestGetMyRoles_IncludesSites(t *testing.T) {
 	assert.ElementsMatch(t, []string{"site_member", "repair_technician"}, resp.Data.Roles)
 	require.Len(t, resp.Data.Sites, 2)
 	siteMap := map[string]string{}
+	siteRoles := map[string][]string{}
 	for _, s := range resp.Data.Sites {
 		siteMap[s.SiteID] = s.Role
+		siteRoles[s.SiteID] = s.Roles
 	}
 	assert.Equal(t, "site_member", siteMap[siteA])
 	assert.Equal(t, "repair_technician", siteMap[siteB])
+	// #2227: 每站点 roles 全集经 serializer 正确反序列化（此前缺 tag → schema 解析失败）
+	assert.ElementsMatch(t, []string{"site_member"}, siteRoles[siteA])
+	assert.ElementsMatch(t, []string{"repair_technician"}, siteRoles[siteB])
 }

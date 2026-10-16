@@ -149,6 +149,7 @@ export default function Home() {
   const menuScrollRef = useRef(0)
   const scrollTimerRef = useRef(null)
   const blurTimerRef = useRef(null)
+  const correctTimerRef = useRef(null)
 
   // Custom navigation bar layout (weapp only): align search bar with the
   // native capsule button and push content below the status bar.
@@ -175,10 +176,12 @@ export default function Home() {
   const contentTop = menuTop + stickyMenuHeight
   const viewportHeight = useMemo(() => getWindowSize().height - contentTop, [contentTop])
 
-  const topCategories = categories.filter(c => !c.parent_id).map(cat => ({
+  // Stable reference (#2223): keep this array memoized, otherwise every render
+  // creates a new array and breaks the HomeMenu/MenuContent memo chain.
+  const topCategories = useMemo(() => categories.filter(c => !c.parent_id).map(cat => ({
     ...cat,
     sub_categories: categories.filter(c => c.parent_id === cat.id).sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
-  }))
+  })), [categories])
   const catTouchStartRef = useRef({ x: 0, offset: 0 })
   const bannerTouchStartXRef = useRef(0)
   const lastSwipeRef = useRef(0)
@@ -288,6 +291,13 @@ export default function Home() {
     fetchBanners()
   }, [fetchCategories, fetchInstruments, fetchBanners])
 
+  // Unmount cleanup (#2223): clear all pending scroll debounce timers.
+  useEffect(() => () => {
+    if (correctTimerRef.current) clearTimeout(correctTimerRef.current)
+    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
+    if (blurTimerRef.current) clearTimeout(blurTimerRef.current)
+  }, [])
+
   // switchTab cannot carry query params; restore tenant persisted by the
   // previous tab page (e.g. share-landing from Profile/MyLeases).
   useDidShow(() => {
@@ -331,9 +341,10 @@ export default function Home() {
     return () => clearInterval(timer)
   }, [banners.length])
 
-  const handleCategoryChange = (catId) => {
+  // Stable callback (#2223): memoized so it does not break the MenuContent memo.
+  const handleCategoryChange = useCallback((catId) => {
     setSelectedCategory(catId)
-  }
+  }, [])
 
   return (
     <View style={{ height: '100vh', width: '100vw', position: 'relative' }}>
@@ -376,7 +387,7 @@ export default function Home() {
 
       {/* B: clip container — fixed, wraps ScrollView + BottomNav */}
       <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, top: contentTop, bottom: 0 }}>
-        <ScrollView style={{ height: '100%', backgroundColor: 'transparent' }}
+        <ScrollView id="home-scroll" style={{ height: '100%', backgroundColor: 'transparent' }}
           scrollY showScrollbar={false}
           onScroll={e => {
             const newY = e.detail?.scrollTop ?? 0
@@ -397,6 +408,20 @@ export default function Home() {
             // enter the menu region; no swap animation needed.
             const ms = Math.min(newY, menuTravel)
             if (ms !== menuScrollRef.current) { menuScrollRef.current = ms; setMenuScroll(ms) }
+
+            // Scroll-end correction (#2223): the final sampled event can be
+            // coalesced/lost (fast fling back to top, list reset) leaving
+            // menuScroll stuck mid-way with no further events. Re-read the real
+            // scrollTop after settle and clamp with the same formula.
+            if (correctTimerRef.current) clearTimeout(correctTimerRef.current)
+            correctTimerRef.current = setTimeout(() => {
+              Taro.createSelectorQuery().select('#home-scroll').scrollOffset(res => {
+                const oy = res?.scrollTop
+                const realY = typeof oy === 'number' ? oy : scrollYRef.current
+                const cs = Math.min(realY, menuTravel)
+                if (cs !== menuScrollRef.current) { menuScrollRef.current = cs; setMenuScroll(cs) }
+              }).exec()
+            }, 120)
 
             // Search, dots: debounced after scroll stops
             if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
@@ -439,7 +464,8 @@ export default function Home() {
   )
 }
 
-function MenuContent({ categories, selectedCategory, onCategoryChange, catOffsetX, setCatOffsetX, scrolled, subMenuCat, onSetSubMenuCat, windowWidth = 375 }) {
+// #2223：memo 化——滚动帧仅更新 HomeMenu 外层 top，跳过整排分类 Text 的重渲染
+const MenuContent = memo(function MenuContent({ categories, selectedCategory, onCategoryChange, catOffsetX, setCatOffsetX, scrolled, subMenuCat, onSetSubMenuCat, windowWidth = 375 }) {
   const items = [{ id: null, name: '全部', sub_categories: [] }, ...(categories || [])]
   const localTouchRef = useRef({ x: 0, offset: 0, dragged: false })
 
@@ -517,7 +543,7 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
       </View>
     </View>
   )
-}
+})
 
 const HomeMenu = memo(function HomeMenu({ menuTravel, menuTop, bannerBottom, menuScroll, stickyMenuHeight, categories, selectedCategory, onCategoryChange, catOffsetX, setCatOffsetX, scrolled, subMenuCat, onSetSubMenuCat, windowWidth }) {
   const top = menuTravel === 0 ? `${menuTop}px` : `${Math.max(0, bannerBottom - menuScroll)}px`

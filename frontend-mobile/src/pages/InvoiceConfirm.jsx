@@ -16,6 +16,8 @@ export default function InvoiceConfirm() {
     try { r = Taro.getCurrentInstance()?.router?.params?.order_ids || '' } catch {}
     return (q || r).split(',').map(s => s.trim()).filter(Boolean)
   }, [searchParams])
+  // #2225: 用稳定的字符串键做 effect 依赖，避免 searchParams 对象身份抖动导致无限 load()
+  const orderIdsKey = orderIds.join(',')
   const [eligible, setEligible] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -26,6 +28,8 @@ export default function InvoiceConfirm() {
     const route = toWeappRoute(to)
     if (!route) { dialog.alert('该功能请在 H5 端使用'); return }
     if (route.type === 'switchTab') return Taro.switchTab({ url: route.url })
+    // #2225: weapp 分支需支持 replace——否则提交成功后的跳转会压栈，破坏「独立页面」语义
+    if (opts?.replace) return Taro.redirectTo({ url: route.url })
     return Taro.navigateTo({ url: route.url })
   }
 
@@ -43,7 +47,7 @@ export default function InvoiceConfirm() {
       setLoading(false)
     }
     load()
-  }, [orderIds])
+  }, [orderIdsKey])
 
   const merchantGroups = useMemo(() => {
     const map = {}

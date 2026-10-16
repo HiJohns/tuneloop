@@ -116,6 +116,12 @@ func TestCreateUser2068_TechnicianMergedAndConflict(t *testing.T) {
 	require.NoError(t, db.Model(&models.TechnicianProfile{}).Where("user_id = ?", d3["id"]).Count(&n).Error)
 	assert.EqualValues(t, 0, n)
 
+	// 3.1) #2227 回归：site_staff 落库的 site_members.roles 必须非 NULL（roles 列为 NOT NULL）
+	var sm models.SiteMember
+	require.NoError(t, db.First(&sm, "user_id = ?", d3["id"]).Error)
+	require.NotEmpty(t, sm.Roles, "site_members.roles 不得为 NULL/空（#2227）")
+	assert.Equal(t, []string{sm.Role}, sm.Roles, "Roles 应等于主角色集合")
+
 	// 4) 非法 user_type → 40001
 	code4, _ := doCreate2068(t, r, map[string]interface{}{"name": "x", "phone": "13900000003", "user_type": "bogus"})
 	assert.Equal(t, http.StatusBadRequest, code4)

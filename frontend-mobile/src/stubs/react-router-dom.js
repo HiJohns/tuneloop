@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import Taro from '@tarojs/taro'
 
 const STATE_KEY = '__nav_state__'
@@ -38,10 +38,19 @@ export function useParams() {
 
 export function useSearchParams() {
   const [params] = useState(readInitialParams)
-  const searchStr = Object.entries(params)
-    .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
-    .join('&')
-  return [new URLSearchParams(searchStr)]
+  // #2225: searchStr 与 URLSearchParams 必须按 params 记忆化——否则每次渲染都
+  // 返回新的 URLSearchParams 实例，任何把 searchParams 对象放入 useMemo/useEffect
+  // 依赖的页面（如 InvoiceConfirm）都会因身份抖动无限触发 effect。
+  const searchStr = useMemo(() =>
+    Object.entries(params)
+      .map(([k, v]) => `${k}=${encodeURIComponent(String(v ?? ''))}`)
+      .join('&')
+  , [params])
+  const usp = useMemo(() => new URLSearchParams(searchStr), [searchStr])
+  // #2225: weapp 无「修改当前页 URL query」的原生等价物；返回稳定 no-op，
+  // 使 `const [searchParams, setSearchParams] = useSearchParams()` 在 weapp 不报错。
+  const setSearchParams = useCallback(() => {}, [])
+  return [usp, setSearchParams]
 }
 
 export function useLocation() {

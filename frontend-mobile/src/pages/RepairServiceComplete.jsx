@@ -8,16 +8,20 @@ import { dialog, env, toWeappRoute } from '../platform'
 export default function RepairServiceComplete() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  // #2225: 双源读取（H5 searchParams + weapp Taro params）。依赖用稳定的字符串
+  // 原语 idParam/codeParam，而非 searchParams 对象——避免身份抖动导致 useMemo 无谓重算。
+  const idParam = searchParams.get('id') || ''
+  const codeParam = searchParams.get('code') || ''
   const { id, code } = useMemo(() => {
-    let rid = searchParams.get('id') || ''
-    let rcode = searchParams.get('code') || ''
+    let rid = idParam
+    let rcode = codeParam
     try {
       const p = Taro.getCurrentInstance()?.router?.params || {}
       if (!rid) rid = p.id || ''
       if (!rcode) rcode = p.code || ''
     } catch {}
     return { id: rid, code: rcode }
-  }, [searchParams])
+  }, [idParam, codeParam])
 
   const navReplace = (to) => {
     if (!env.isMiniProgram) return navigate(to, { replace: true })

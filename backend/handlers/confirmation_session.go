@@ -380,6 +380,7 @@ func (h *ConfirmationSessionHandler) executeAction(session *models.ConfirmationS
 			SiteID:    session.ActionTargetID,
 			UserID:    session.UserID,
 			Role:      role,
+			Roles:     []string{role}, // #2034 多重角色（集）
 			TenantID:  session.TenantID,
 			CreatedAt: time.Now(),
 		}

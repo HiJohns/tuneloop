@@ -444,6 +444,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 			UserID:   managerUUID.String(),
 			TenantID: tenantID,
 			Role:     "manager",
+			Roles:    []string{"manager"}, // #2034 多重角色（集）
 		}
 		if err := db.Create(&siteMember).Error; err != nil {
 			log.Printf("[CreateSite] Failed to add manager as site member: %v", err)

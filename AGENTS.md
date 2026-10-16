@@ -56,7 +56,8 @@ develop（开发累积，随时可部署 dev 验证）
 - [ ] 迁移完整性：`database/migrations/` 的 up/down 成对，且**不少于** DB `schema_migrations` 已应用版本（#1913 停机根因）
 
 **② 合并**
-- [ ] `git checkout main && git merge develop && git push`（无分叉为 ff；有分叉用 `--no-ff`）
+- [ ] `git fetch origin` 后**以 `origin/develop` 为准**（本地 develop 可能过期）：`git log origin/develop..main` 应为空、`git log main..origin/develop` 即本版待发内容；确认无误再合并（2026-10-15 教训：本地 develop 落后 4 提交导致首轮发布漏合 #2218/#2219/#2220，补发 v1.0.62）
+- [ ] `git checkout main && git merge origin/develop && git push`（无分叉为 ff；有分叉用 `--no-ff`）
 
 **③ 版本 + 服务端构建（在 main 上）**
 - [ ] bump `VERSION`（服务器语义化，**必须高于线上**）
