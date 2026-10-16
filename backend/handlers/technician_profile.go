@@ -311,7 +311,11 @@ func (h *TechnicianProfileHandler) PublicList(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
 	var rows []models.TechnicianProfile
-	if err := db.Where("status = ?", "active").Order("created_at ASC").Find(&rows).Error; err != nil {
+	// #2228（Q7）：仅暴露**已激活用户**的师傅档案——邀请预建（status=init）的维修师
+	// 在接受/激活前不得出现在顾客侧列表。
+	if err := db.Joins("JOIN users ON users.id = technician_profiles.user_id").
+		Where("technician_profiles.status = ? AND users.status = ?", "active", "active").
+		Order("technician_profiles.created_at ASC").Find(&rows).Error; err != nil {
 		log.Printf("[TechnicianProfile.PublicList] query failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list technicians"})
 		return
@@ -358,6 +362,12 @@ func (h *TechnicianProfileHandler) PublicGet(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
 	var p models.TechnicianProfile
+	// #2228（Q7）：未激活（init/pending）用户等同不可见 → 404
+	var cnt int64
+	if err := db.Model(&models.User{}).Where("id = ? AND status = ?", c.Param("id"), "active").Count(&cnt).Error; err != nil || cnt == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "technician not found"})
+		return
+	}
 	if err := db.Where("user_id = ? AND status = ?", c.Param("id"), "active").First(&p).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "technician not found"})
 		return

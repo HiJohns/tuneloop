@@ -3295,6 +3295,14 @@ POST /api/warehouse/orders/:id/assess-damage
 **说明**: 询价阶段（`pending_quote`）把维修单转派给**本商户其他在册维修师**（`technician_profiles status=active`）；线下已与顾客沟通同意（系统不留痕）；**主状态不变**（仅归属变更）；写时间线 `reassigned` + `audit_logs(action=reassign_repair_service, details={reason, from_technician_id, to_technician_id})`；通知原/新师傅（`repair_svc_reassign`）
 **错误**: `40002`（缺 reason / 目标==当前师傅）、`40300`（非本商户网点管理员）、`40003`（目标非本商户在册维修师）、`40900`（非 `pending_quote`）、`40400`（单不存在）
 
+#### 7.15.2e IAM 事件回调（HMAC，无 JWT，#2228 P1）
+**接口**: `POST /api/iam/callback`
+**签名**: `X-IAM-Signature: sha256=<HMAC-SHA256(body, ns.callback_secret)>`；`X-IAM-Event-ID`（幂等，5 分钟去重缓存）
+**事件**:
+- `user.registered`（既有）：本地补建用户（零 UUID 租户形态）
+- `user.org_bound`（既有）：同步本地 org/role
+- `user.activated`（**#2228 新增**）：受邀人经 IAM 邮件邀请激活（`/confirm` → `status=active`）后，完成本侧邀请绑定——本地用户补建兜底 + 其全部 pending 定向邀请执行 `bindInvitee`（组织关系 + **职能角色模板**（#2032））并标记邀请 `accepted`；失败返回 500 触发 IAM 重试（全链路幂等）
+
 #### 7.15.3 维修服务单详情
 **接口**: `GET /api/user/repair-services/:id`
 **说明**: 当前用户维修服务单详情
