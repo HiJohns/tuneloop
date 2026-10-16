@@ -927,11 +927,14 @@ API 来源：
 | ✏️ 个人资料 | `!isGuest` / 全员 | `/pages-weapp/profile/edit/index` / `/profile/edit` |
 | ✉️ 系统通知 | `!isGuest` / 全员 | `/pages-weapp/messages/index` / `/messages` |
 | 🧾 申请发票 | `!isStaff && !isGuest` / 顾客 | `/pages-weapp/invoice/index` / `/content?key=invoice` |
+| 🤝 加入商户 | **仅存在对我的 pending 定向邀请**（`pendingInvites.length > 0`；请求失败一律隐藏，#2216） | 打开 `JoinSiteModal`（列待接受邀请 → 一键接受，无需输入码） |
 | 💼 商务合作 | 全员 | `/pages-weapp/content/index?key=cooperation` / `/content?key=cooperation` |
 | 📞 联系我们 | 全员 | `/pages-weapp/content/index?key=contact_us` / `/content?key=contact_us` |
 | ℹ️ 关于 | 全员 | `/pages-weapp/about/index` / `/about` |
 
 > 「编辑资料」为常显通用入口（姓名/昵称/手机/邮箱/证件照管理，见 §2.6.2）。不得因实名认证完成而隐藏通用编辑入口（#1817）。
+>
+> **「加入商户」文案与条目展示（#2222）**：受邀人收到的是**商户**的邀请（注明网点）——入口/弹窗标题为「加入商户」；**网点级受邀条目**展示「商户名（网点名）· 角色」（`merchant_name` 由 `GET /user/invitations/pending` 下发；缺失时回退网点名）。显隐门控、🤝 图标、一键接受机制不变（#2216）。
 
 #### 2.6.4a 个人中心「切换身份」按钮（weapp，头部，与「退出登录」并列）
 

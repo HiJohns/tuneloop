@@ -77,43 +77,91 @@ func ListMyPendingInvitations(c *gin.Context) {
 		"merchant_staff":  "商户员工",
 		"platform_staff":  "平台员工",
 	}
-	siteNames := map[string]string{}
+	type siteMeta struct{ name, orgID, tenantID string }
+	siteCache := map[string]siteMeta{}
+	siteMetaOf := func(id string) siteMeta {
+		if s, ok := siteCache[id]; ok {
+			return s
+		}
+		var s models.Site
+		meta := siteMeta{}
+		if err := db.Select("name", "org_id", "tenant_id").First(&s, "id = ?", id).Error; err == nil {
+			meta = siteMeta{name: s.Name, orgID: s.OrgID, tenantID: s.TenantID}
+		}
+		siteCache[id] = meta
+		return meta
+	}
+	merchantCache := map[string]string{}
+	merchantNameOf := func(orgID string) string {
+		if orgID == "" {
+			return ""
+		}
+		if n, ok := merchantCache[orgID]; ok {
+			return n
+		}
+		var mrec models.Merchant
+		name := ""
+		if err := db.Select("name").First(&mrec, "org_id = ?", orgID).Error; err == nil {
+			name = mrec.Name
+		}
+		merchantCache[orgID] = name
+		return name
+	}
 	out := make([]gin.H, 0, len(invites))
 	for _, inv := range invites {
 		name := ""
+		merchantName := ""
 		if inv.SiteID != nil {
-			if n, ok := siteNames[*inv.SiteID]; ok {
-				name = n
-			} else {
-				var s models.Site
-				if err := db.Select("name").First(&s, "id = ?", *inv.SiteID).Error; err == nil {
-					name = s.Name
-					siteNames[*inv.SiteID] = s.Name
-				}
-			}
+			meta := siteMetaOf(*inv.SiteID)
+			name = meta.name
+			// #2222 D2：网点级邀请补商户名（前端展示「商户名（网点名）· 角色」）
+			merchantName = resolveMerchantNameForSite(db, meta.orgID, meta.tenantID)
 		} else {
 			// 商户/平台级（site_id 为 NULL）：按 OrgID 解析商户名。
-			var mrec models.Merchant
-			if err := db.Select("name").First(&mrec, "org_id = ?", inv.OrgID).Error; err == nil {
-				name = mrec.Name
-			}
+			merchantName = merchantNameOf(inv.OrgID)
+			name = merchantName
 		}
 		label := roleLabel[inv.Role]
 		if label == "" {
 			label = inv.Role
 		}
 		out = append(out, gin.H{
-			"id":         inv.ID,
-			"kind":       inv.Kind,
-			"site_id":    inv.SiteID,
-			"name":       name,
-			"role":       inv.Role,
-			"role_label": label,
-			"created_at": inv.CreatedAt,
+			"id":            inv.ID,
+			"kind":          inv.Kind,
+			"site_id":       inv.SiteID,
+			"name":          name,
+			"merchant_name": merchantName,
+			"role":          inv.Role,
+			"role_label":    label,
+			"created_at":    inv.CreatedAt,
 		})
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": out}})
+}
+
+// resolveMerchantNameForSite（#2222 D2）：网点 → 商户名解析（展示用，非授权）。
+// 实测数据形态为 **site.tenant_id = merchants.org_id**（卡丹萨：site tenant=bfce=cadenza org），
+// 依次回退 org_id=site.tenant → tenant_id=site.tenant → org_id=site.org；
+// 全部未命中返回 ""（前端回退仅展示网点名）。
+func resolveMerchantNameForSite(db *gorm.DB, siteOrgID, siteTenantID string) string {
+	try := func(where, val string) string {
+		if val == "" {
+			return ""
+		}
+		var m models.Merchant
+		if err := db.Select("name").First(&m, where, val).Error; err == nil {
+			return m.Name
+		}
+		return ""
+	}
+	if n := try("org_id = ?", siteTenantID); n != "" {
+		return n
+	}
+	if n := try("tenant_id = ?", siteTenantID); n != "" {
+		return n
+	}
+	return try("org_id = ?", siteOrgID)
 }
 
 // ListSiteInvites GET /api/sites/:id/invites — 待接受邀请列表（管理员）。

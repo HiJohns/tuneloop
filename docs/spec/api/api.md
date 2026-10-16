@@ -271,7 +271,7 @@ Body：`{ role: "<主角色>", roles: ["<角色>", ...] }`（`roles` 可选；�
 | `GET /api/sites/:id/invites` | 管理员 | 待接受邀请列表 |
 | `POST /api/user/accept-invite` | `userOptionalAuth` | （**遗留**：#2216 起匿名邀请码已下线，无移动端入口，保留接口兼容）**本人**用码接受 `{code}` → IAM `BindUserToOrganization(本人 IAMSub, org, role)` + 本地 `site_members`；码一次性、限时 |
 | `POST /api/sites/:id/invites/send` | 管理员 | **#2052 邀请通知**：对既有用户（按 `identifier` 手机/邮箱定位）发起加入邀请，body `{identifier, role}` → 20100 `{invite_id, invitee_name, site_id, role}`；已是本网点成员 → `40900`；无此账户 → `40404`。同时写入 `staff_invite` 系统通知 |
-| `GET /api/user/invitations/pending` | `userOptionalAuth` | **#2216**：我的待接受**定向**邀请（匹配 `invitee_user_id = 我`，或未认领时 `invitee_identifier ∈ {我的手机, 我的邮箱}`）；**不含邀请码**；未登录返回空列表 |
+| `GET /api/user/invitations/pending` | `userOptionalAuth` | **#2216**：我的待接受**定向**邀请（匹配 `invitee_user_id = 我`，或未认领时 `invitee_identifier ∈ {我的手机, 我的邮箱}`）；**不含邀请码**；未登录返回空列表。**#2222**：响应新增 `merchant_name`——网点级邀请解析商户名（展示「商户名（网点名）· 角色」），商户/平台级等于 `name`（向后兼容，缺失回退网点名） |
 | `POST /api/user/invitations/:id/accept` | `userOptionalAuth` | **#2052**：被邀请人本人接受 → 校验「处理人 = `invitee_user_id`」（#2216 起同时接受未认领的 `invitee_identifier` 匹配并在接受时**认领**，否则 `40300`）→ 复用绑定逻辑（IAM + `site_members`）；幂等 |
 | `POST /api/user/invitations/:id/reject` | `userOptionalAuth` | **#2052**：被邀请人本人拒绝 → `status=rejected` |
 
