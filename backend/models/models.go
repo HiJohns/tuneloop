@@ -3,6 +3,7 @@ package models
 import (
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"gorm.io/gorm"
 	"time"
 )
 
@@ -999,11 +1000,24 @@ type SiteMember struct {
 	// Role is the primary role (backward compatible). Roles (#2034) carries the
 	// full set — a user may hold several roles in one site (e.g. 员工+维修师傅).
 	Role      string    `gorm:"type:varchar(20);default:'Staff'" json:"role"`
-	Roles     []string  `gorm:"type:jsonb;serializer:json" json:"roles"`
+	Roles     []string  `gorm:"type:jsonb;serializer:json;not null;default:'[]'" json:"roles"`
 	Status    string    `gorm:"type:varchar(20);default:'active'" json:"status"`
 	IamTaskID string    `gorm:"type:varchar(255)" json:"iam_task_id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// BeforeCreate 保证 Roles 非 nil（#2034 roles 列为 NOT NULL）：
+// 未显式设置时从主 Role 派生，避免 GORM 将 nil 切片序列化为 SQL NULL。
+func (m *SiteMember) BeforeCreate(tx *gorm.DB) error {
+	if len(m.Roles) == 0 {
+		if m.Role != "" {
+			m.Roles = []string{m.Role}
+		} else {
+			m.Roles = []string{}
+		}
+	}
+	return nil
 }
 
 // EffectiveRoles returns the full role set, falling back to the primary Role

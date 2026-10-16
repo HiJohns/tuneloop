@@ -37,7 +37,7 @@ func (h *SiteMemberHandler) ListMembers(c *gin.Context) {
 		UserName  string    `json:"user_name"`
 		UserEmail string    `json:"user_email"`
 		Role      string    `json:"role"`
-		Roles     []string  `json:"roles"` // #2034 多重角色
+		Roles     []string  `gorm:"serializer:json" json:"roles"` // #2034 多重角色
 		CreatedAt time.Time `json:"created_at"`
 	}
 

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -47,14 +48,17 @@ func GetMyRoles(c *gin.Context) {
 	type siteRole struct {
 		SiteID   string   `json:"site_id"`
 		Role     string   `json:"role"`
-		Roles    []string `json:"roles"`     // #2034 多重角色
-		SiteType string   `json:"site_type"` // #1937: 中转工作台入口按站点类型判断（transit）
+		Roles    []string `gorm:"serializer:json" json:"roles"` // #2034 多重角色
+		SiteType string   `json:"site_type"`                    // #1937: 中转工作台入口按站点类型判断（transit）
 	}
 	var sites []siteRole
-	db.Table("site_members sm").
+	if err := db.Table("site_members sm").
 		Select("sm.site_id, sm.role, sm.roles, s.type AS site_type").
 		Joins("LEFT JOIN sites s ON s.id = sm.site_id").
-		Where("sm.user_id = ?", localUser.ID).Find(&sites)
+		Where("sm.user_id = ?", localUser.ID).Find(&sites).Error; err != nil {
+		// 不静默吞错（仍返回 200，避免破坏前端站点门控）
+		log.Printf("[GetMyRoles] load sites failed user=%s: %v", localUser.ID, err)
+	}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"roles": uniqueStrings(roles), "sites": sites}})
 }

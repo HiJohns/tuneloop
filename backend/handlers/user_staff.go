@@ -405,6 +405,7 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 				SiteID:   req.SiteID.String(),
 				UserID:   user.ID,
 				Role:     resolvedRole,
+				Roles:    []string{resolvedRole}, // #2034 多重角色（集）
 			}
 			if err := tx.Create(&siteMember).Error; err != nil {
 				return err
