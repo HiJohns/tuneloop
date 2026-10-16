@@ -757,6 +757,166 @@ func (h *RepairServiceHandler) SelectTechnician(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": rr.ID}})
 }
 
+// siteAdminMerchantTenants（#2229）：操作者以 site_admin 身份所属站点对应的「商户（规范化
+// tenant）」集合。用于「该单商户的网点管理员」转派授权，以及商户维修服务列表的可见性扩展。
+func siteAdminMerchantTenants(db *gorm.DB, operatorSub string) map[string]bool {
+	out := map[string]bool{}
+	for _, m := range resolveOperatorSiteMemberships(db, operatorSub) {
+		roles := m.Roles
+		if len(roles) == 0 && m.Role != "" {
+			roles = []string{m.Role}
+		}
+		isAdmin := false
+		for _, r := range roles {
+			if r == "site_admin" {
+				isAdmin = true
+				break
+			}
+		}
+		if !isAdmin {
+			continue
+		}
+		var site models.Site
+		if err := db.WithContext(database.IdentityCtx(context.Background())).
+			Select("tenant_id", "org_id").Where("id = ?", m.SiteID).First(&site).Error; err != nil {
+			continue
+		}
+		if t := normalizeRepairTenant(db, site.TenantID); t != "" {
+			out[t] = true
+		}
+		if t := normalizeRepairTenant(db, site.OrgID); t != "" {
+			out[t] = true
+		}
+	}
+	return out
+}
+
+// Reassign POST /api/repair-services/:id/reassign（#2229）——网点管理员在询价阶段把维修单
+// 转派给本商户其他维修师。规则见 docs/cases/repair-service.md RS-15：
+// 线下已取得顾客同意（系统不留痕）；本端点**必填原因**并留痕（时间线 + audit_logs）；
+// 仅 pending_quote 可转派，主状态不变（仅归属变更）。
+func (h *RepairServiceHandler) Reassign(c *gin.Context) {
+	var body struct {
+		TechnicianID string `json:"technician_id" binding:"required"`
+		Reason       string `json:"reason"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "technician_id is required"})
+		return
+	}
+	reason := strings.TrimSpace(body.Reason)
+	if reason == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "reason is required"})
+		return
+	}
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	// 按 id + type 载入（授权在下方显式判定：#2229 网点管理员的 {tid, oid} 可能都不等于
+	// 叶组织口径的 tenant_id，沿用 staff 作用域读取会误 404）
+	var rr models.RepairRequest
+	if err := db.WithContext(database.IdentityCtx(ctx)).
+		Where("id = ? AND type = ?", c.Param("id"), repairServiceTypeVal).First(&rr).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "repair service not found"})
+		return
+	}
+	if rr.Status != models.RepairReqStatusPendingQuote {
+		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "仅待报价的维修单可转派"})
+		return
+	}
+
+	// 操作者：该单商户的网点管理员（#2229）
+	operatorSub := middleware.GetUserID(ctx)
+	orderTenant := normalizeRepairTenant(db, rr.TenantID)
+	if orderTenant == "" || !siteAdminMerchantTenants(db, operatorSub)[orderTenant] {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "only the merchant's site_admin can reassign"})
+		return
+	}
+
+	// 目标：本商户在册维修师（active 档案，见 RS-13）
+	targetTenant, found := resolveTechnicianTenant(db, body.TechnicianID)
+	if !found || normalizeRepairTenant(db, targetTenant) != orderTenant {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "technician is not in this merchant"})
+		return
+	}
+	targetLocal := localUserIDBySub(db, body.TechnicianID)
+	if targetLocal == "" {
+		targetLocal = body.TechnicianID
+	}
+	var tpCount int64
+	db.WithContext(database.IdentityCtx(ctx)).Model(&models.TechnicianProfile{}).
+		Where("user_id = ? AND status = ?", targetLocal, "active").Count(&tpCount)
+	if tpCount == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "target is not an active technician"})
+		return
+	}
+	if isAssignedTechnician(&rr, body.TechnicianID, db) {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "technician is already assigned"})
+		return
+	}
+
+	fromTech := ""
+	if rr.TechnicianID != nil {
+		fromTech = *rr.TechnicianID
+	}
+	names := resolveUserNamesByAnyID(db, []string{fromTech, body.TechnicianID})
+	fromName := names[fromTech]
+	if fromName == "" {
+		fromName = fromTech
+	}
+	toName := names[body.TechnicianID]
+	if toName == "" {
+		toName = body.TechnicianID
+	}
+
+	// 归属变更（同 SelectTechnician 口径：tenant 重规范化 + 无 site 维度）；主状态不变
+	if err := db.WithContext(database.IdentityCtx(ctx)).Model(&models.RepairRequest{}).
+		Where("id = ?", rr.ID).Updates(map[string]interface{}{
+		"technician_id": body.TechnicianID,
+		"site_id":       nil,
+		"tenant_id":     orderTenant,
+		"updated_at":    time.Now(),
+	}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to reassign"})
+		return
+	}
+
+	// 留痕（#2229 必填原因）：时间线 + 审计
+	appendRepairServiceTimeline(db, rr.ID, operatorSub, "reassigned",
+		fmt.Sprintf("转派：%s → %s；原因：%s", fromName, toName, reason))
+	writeAuditLog(db, rr.TenantID, resolveLocalUserIDAny(db, operatorSub),
+		"reassign_repair_service", "repair_service", rr.ID, map[string]interface{}{
+			"reason":             reason,
+			"from_technician_id": fromTech,
+			"to_technician_id":   body.TechnicianID,
+		})
+
+	// 通知（#2090：user_id 必须落本地 id）：原师傅 + 新师傅
+	codeStr := ""
+	if rr.RepairCode != nil {
+		codeStr = *rr.RepairCode
+	}
+	if codeStr == "" {
+		codeStr = rr.ID
+	}
+	if rr.TenantID != "" {
+		if fromTech != "" && fromTech != body.TechnicianID {
+			services.Notify(db, rr.TenantID, resolveLocalUserIDAny(db, fromTech), "repair",
+				"维修单已转派",
+				fmt.Sprintf("维修单（%s）已转派给其他维修师；原因：%s", codeStr, reason),
+				rr.ID, "repair_service", "repair_svc_reassign")
+		}
+		services.Notify(db, rr.TenantID, resolveLocalUserIDAny(db, body.TechnicianID), "repair",
+			"收到转派维修单",
+			fmt.Sprintf("有一张维修单（%s）转派给您，请及时报价。", codeStr),
+			rr.ID, "repair_service", "repair_svc_reassign")
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
+		"id": rr.ID, "technician_id": body.TechnicianID, "status": rr.Status,
+	}})
+}
+
 // Quote POST /api/repair-services/:id/quote （师傅/员工）
 func (h *RepairServiceHandler) Quote(c *gin.Context) {
 	var body struct {

@@ -3281,12 +3281,19 @@ POST /api/warehouse/orders/:id/assess-damage
 **租户口径（#2134）**: staff 上下文范围 = **商户组织**；查询过滤为 `tenant_id ∈ {tid, oid}`（`tid`=根租户、`oid`=用户自身组织），兼容历史「本商户数据 tenant_id=org_id 混用」（#2125）写入的叶组织行；单行读（详情/操作）同口径，`repairServiceStaffAllowed` 亦接受 `{tid, oid}`。写入侧（创建/选师）按 `merchants(org_id→tenant_id)` 规范化为根租户。
 **目标契约（#1942）**: 维修师/员工本人
 
-#### 7.15.2c 商户维修服务单列表（PC 后台，#2129）
+#### 7.15.2c 商户维修服务单列表（PC 后台，#2129 / #2229）
 **接口**: `GET /api/admin/repair-services`
 **门控**: `authRequired` + cus_perm `repair:read`
-**授权范围**: **商户组织**（`oid`→`merchants.org_id`；网点账号无匹配商户 → 空列表）
+**授权范围**: **商户组织**（`oid`→`merchants.org_id`）；**#2229：本商户网点管理员**（`site_admin`，站点归属该商户）亦可见；其余（如网点普通员工/他商户）→ 空列表
 **参数**: `start`/`end`（ISO8601，可选；`updated_at ∈ [start,end)`，前端默认近 30 天）、`page`/`page_size`（默认 1/20，≤100）、`status`（csv，可选）
-**返回**: `{list:[{id, repair_code, status, customer_name(脱敏), customer_phone(脱敏), technician_name, quote_total_cents, paid_cents, shortfall_cents, created_at, updated_at}], total, page, page_size}`
+**返回**: `{list:[{id, repair_code, status, customer_name, customer_phone, technician_name, quote_total_cents, paid_cents, shortfall_cents, created_at, updated_at}], total, page, page_size}`
+**#2229**: 顾客信息为**完整值**（不脱敏——脱敏属"受控商户"口径，当前不适用）
+
+#### 7.15.2d 转派维修服务单（网点管理员，#2229）
+**接口**: `POST /api/repair-services/:id/reassign`
+**请求**: `{technician_id, reason}`（`reason` **必填**，写入时间线与审计）
+**说明**: 询价阶段（`pending_quote`）把维修单转派给**本商户其他在册维修师**（`technician_profiles status=active`）；线下已与顾客沟通同意（系统不留痕）；**主状态不变**（仅归属变更）；写时间线 `reassigned` + `audit_logs(action=reassign_repair_service, details={reason, from_technician_id, to_technician_id})`；通知原/新师傅（`repair_svc_reassign`）
+**错误**: `40002`（缺 reason / 目标==当前师傅）、`40300`（非本商户网点管理员）、`40003`（目标非本商户在册维修师）、`40900`（非 `pending_quote`）、`40400`（单不存在）
 
 #### 7.15.3 维修服务单详情
 **接口**: `GET /api/user/repair-services/:id`

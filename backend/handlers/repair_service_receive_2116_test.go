@@ -414,7 +414,8 @@ func TestListTasks2128_TimeWindow(t *testing.T) {
 }
 
 // TestListMerchantRepairServices2129：PC 服务单列表——授权范围=商户组织（网点账号空）、
-// 相关人脱敏、时间窗/分页参数（#2129）。
+// 时间窗/分页参数（#2129）。#2229：顾客信息**不再脱敏**（受控商户口径不适用），
+// 且本商户网点管理员（site_admin）可见（见 reassign_2229_test.go）。
 func TestListMerchantRepairServices2129(t *testing.T) {
 	f := setupRepairServiceFixture(t)
 	rr := models.RepairRequest{
@@ -436,7 +437,7 @@ func TestListMerchantRepairServices2129(t *testing.T) {
 		return w.Code, resp
 	}
 
-	// 商户层级（oid=商户组织）→ 可见，相关人脱敏
+	// 商户层级（oid=商户组织）→ 可见；#2229：顾客信息完整（脱敏已按产品裁定移除）
 	merchant := testutil.TestActor{TenantID: f.tenantID, OrgID: f.orgID, UserID: uuid.NewString(), Role: "STAFF"}
 	code, resp := call(merchant)
 	require.Equal(t, http.StatusOK, code, resp)
@@ -445,7 +446,7 @@ func TestListMerchantRepairServices2129(t *testing.T) {
 	rows := data["list"].([]interface{})
 	require.GreaterOrEqual(t, len(rows), 1)
 	row := rows[0].(map[string]interface{})
-	assert.Equal(t, "顾**", row["customer_name"], "顾客姓名应脱敏")
+	assert.Equal(t, "顾客", row["customer_name"], "#2229：顾客姓名完整可见（不脱敏）")
 	assert.Equal(t, "用户", row["technician_name"], "维修师名可见（fixture 用户名）")
 
 	// 网点账号（oid=网点组织）→ 授权范围外，空

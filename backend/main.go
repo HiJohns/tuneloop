@@ -666,6 +666,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			repairReqRequired.POST("/repair-services/:id/complete", middleware.RequireAnyCusPerm("repair:complete", "instrument:maintain"), repairServiceHandler.Complete)
 			repairReqRequired.POST("/repair-services/:id/dispatch", repairServiceHandler.Dispatch)
 			repairReqRequired.GET("/repair-services/pending-dispatch", repairServiceHandler.ListPendingDispatch)
+			// #2229：网点管理员在询价阶段转派给本商户其他维修师（原因必填，留痕时间线+审计）
+			repairReqRequired.POST("/repair-services/:id/reassign", repairServiceHandler.Reassign)
 			// #1954 RS-API-2：师傅/员工任务列表（员工上下文，JWT oid 作用域）
 			repairReqRequired.GET("/repair-services", repairServiceHandler.ListTasks)
 

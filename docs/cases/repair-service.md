@@ -259,6 +259,7 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 | — | `POST /api/user/repair-services/:id/select-technician` | 顾客（无 oid） | userOptionalAuth | 选师 → `{id}`（**维修师直属商户，不再挂载网点**；归属校验按 `repair.user_id`） |
 | RS-API-2 | `GET /api/repair-services?scope=mine\|site&status=<csv>&start=&end=`　**新增** | 维修师/员工（**有 oid**） | authRequired | 任务列表（scope=mine 指派给我；scope=site **仅商户层级**——`#2122` 商户组织闸门，网点账号返回空）；`#2128` 增可选时间区间 `start`/`end`（ISO8601，`updated_at ∈ [start,end)`，**由前端控制显示范围**，当前默认近 30 天） |
 | — | `POST /api/repair-services/:id/quote` | 维修师（有 oid） | authRequired | 报价（归属校验 `repairServiceStaffAllowed`） |
+| #2229 | `POST /api/repair-services/:id/reassign {technician_id, reason}`　**新增** | **网点管理员**（有 oid） | authRequired | 询价阶段转派（仅 `pending_quote`；**原因必填**；写时间线 `reassigned` + `audit_logs(reassign_repair_service)`；通知原/新师傅；**主状态不变**，仅归属变更；见 RS-15） |
 | — | `POST /api/user/repair-services/:id/accept` | 顾客（无 oid） | userOptionalAuth | 接受报价 → `{payable_cents}` |
 | — | `POST /api/pay/prepay` | 顾客（无 oid） | userOptionalAuth | 支付（`order_type=repair`，服务端重算；租户从 repair 单推导） |
 | RS-API-3 | `GET /api/user/repair-services/:id`　**扩展** | 顾客（无 oid）+ 员工（有 oid） | userOptionalAuth | 详情 + `site`（寄件地址/联系人）；员工可见性按 JWT 归属 |
@@ -323,4 +324,4 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 **可见性口径（2026-10-16 产品澄清，原 G4 系误解）**
 - **当前不支持"受控商户"维修**（用户信息对商户不可见的脱敏，是**受控商户**流程的设计）
 - 现状口径：**维修师信息对用户可见；用户信息对商户亦可见**（双向可见）
-- 因此"线下联系顾客"无权限障碍；`#2129` 列表现行的 `maskPhone2129`/`maskName2129` 与目标口径不符，**需评估移除**（属实现评审项）
+- 因此"线下联系顾客"无权限障碍；`#2129` 列的 `maskPhone2129`/`maskName2129` 脱敏**已移除**（#2229：商户/网点管理员所见为**完整值**）

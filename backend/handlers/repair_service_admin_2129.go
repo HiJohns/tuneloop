@@ -3,6 +3,8 @@ package handlers
 // #2129：PC 后台「维修服务单」列表——**授权范围 = 商户组织**（维修单关联商户组织；
 // 网点账号 oid=网点组织 → 查不到商户 → 天然不可见，不依赖 cus_perm）。
 // cus_perm `repair:read` 作为操作谓词由路由中间件叠加。
+// #2229：**本商户网点管理员**（site_admin 成员的站点归属该商户）亦可见——转派询价要求
+// 的前置可见性（受控商户脱敏口径不适用：当前维修师信息对用户可见、用户信息对商户亦可见）。
 
 import (
 	"net/http"
@@ -16,38 +18,39 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// maskPhone2129 手机脱敏：138****1234（#2129；服务端脱敏）
-func maskPhone2129(p string) string {
-	if len(p) < 7 {
-		return p
-	}
-	return p[:3] + "****" + p[len(p)-4:]
-}
-
-// maskName2129 姓名脱敏：张**（保留首字）
-func maskName2129(n string) string {
-	if n == "" {
-		return ""
-	}
-	r := []rune(n)
-	if len(r) <= 1 {
-		return n
-	}
-	return string(r[0]) + "**"
-}
-
-// ListMerchantRepairServices GET /api/admin/repair-services（#2129）
+// ListMerchantRepairServices GET /api/admin/repair-services（#2129 / #2229）
 func ListMerchantRepairServices(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
 	oid := middleware.GetOrgID(ctx)
 	tid := middleware.GetTenantID(ctx)
 
-	// 授权范围：**商户组织**（维修单关联商户组织；网点账号 oid=网点组织 → 无匹配商户 → 空列表）。
-	// 注意：**不得**回退按 tid 匹配——网点账号的 tid 同为商户租户，回退会破坏授权范围隔离。
-	_ = tid
+	// 授权范围（#2129/#2229）：先按商户组织（oid）解析；解析不到且调用者为**本商户网点
+	// 管理员**时，按站点归属解析其商户。**不得**盲目回退按 tid 匹配——否则任意同租户
+	// 员工都能看到全商户（破坏 #2129 授权范围隔离）。
 	var merchant models.Merchant
-	if err := db.Where("org_id = ?", oid).First(&merchant).Error; err != nil {
+	found := false
+	if oid != "" {
+		if err := db.WithContext(database.IdentityCtx(ctx)).
+			Where("org_id = ?", oid).First(&merchant).Error; err == nil {
+			found = true
+		}
+	}
+	if !found && tid != "" {
+		adminTenants := siteAdminMerchantTenants(db, middleware.GetUserID(ctx))
+		if len(adminTenants) > 0 {
+			var m models.Merchant
+			if err := db.WithContext(database.IdentityCtx(ctx)).
+				Where("tenant_id = ? OR org_id = ?", tid, tid).First(&m).Error; err == nil {
+				if adminTenants[normalizeRepairTenant(db, m.TenantID)] ||
+					adminTenants[normalizeRepairTenant(db, m.OrgID)] {
+					merchant = m
+					found = true
+				}
+			}
+		}
+	}
+	if !found {
 		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": []interface{}{}, "total": 0}})
 		return
 	}
@@ -161,8 +164,8 @@ func ListMerchantRepairServices(c *gin.Context) {
 			"id":                rr.ID,
 			"repair_code":       rr.RepairCode,
 			"status":            rr.Status,
-			"customer_name":     maskName2129(names[rr.UserID]),
-			"customer_phone":    maskPhone2129(phones[rr.UserID]),
+			"customer_name":     names[rr.UserID],
+			"customer_phone":    phones[rr.UserID],
 			"technician_name":   techName,
 			"quote_total_cents": quoteTotal,
 			"paid_cents":        paidByOrder[rr.ID],
