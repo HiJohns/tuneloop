@@ -12,6 +12,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -266,6 +267,11 @@ func TestListMyPendingInvitations(t *testing.T) {
 func TestAcceptInvitation_IdentifierClaim(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
+	// #2228 P1：商户级邀请接受**现在会绑定组织关系 + 补授角色模板**（#2032/#2228 修复），
+	// 需挂 mock IAM（bind + namespaces/role-templates + users 端点）。
+	srv := newMockIAMServer(nil, nil)
+	defer srv.Close()
+	services.SetIAMInternalURLForTesting(srv.URL)
 	db := database.GetDB()
 	require.NoError(t, db.AutoMigrate(&models.StaffInvite{}, &models.User{}, &models.SiteMember{}))
 
@@ -275,8 +281,8 @@ func TestAcceptInvitation_IdentifierClaim(t *testing.T) {
 		TenantID: uuid.New().String(), OrgID: uuid.New().String(), Status: "active",
 	}).Error)
 
-	// SiteID=nil（#2114 商户/平台级邀请）：bindInvitee 提前返回、不触 IAM —— 聚焦验证
-	// identifier 匹配通过 loader + 接受时认领 invitee_user_id。
+	// SiteID=nil（#2114 商户/平台级邀请）；#2228 P1 修复后接受即绑定 org（mock IAM 应答），
+	// 本用例聚焦：identifier 匹配通过 loader + 接受时认领 invitee_user_id。
 	inv := models.StaffInvite{
 		ID: uuid.New().String(), TenantID: uuid.New().String(), OrgID: uuid.New().String(),
 		SiteID: nil, Role: "merchant_member", Code: uuid.New().String()[:16],

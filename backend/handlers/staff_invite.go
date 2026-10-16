@@ -226,28 +226,102 @@ func AcceptInvite(c *gin.Context) {
 
 // bindInvitee 将 user 绑定到 invite 对应网点（IAM BindUserToOrganization + 本地 site_members），幂等。
 // 本人账户绑定（一人一号），管理员不得代挂（#2031/#2052）。
-func bindInvitee(db *gorm.DB, invite *models.StaffInvite, user *models.User) error {
+// inviteBindOpts（#2228 P1）：邀请绑定可选上下文。
+//   - nsID：命名空间 id（为空则用 IAM client 配置解析）；
+//   - userToken：接受人本人令牌（系统消息接受路径）——回调路径无 token 时走
+//     客户端凭据变体（ListRoleTemplates + AssignRoleTemplateToUser）。
+type inviteBindOpts struct {
+	nsID      string
+	userToken string
+}
+
+// bindInvitee 完成邀请的「组织绑定 + 职能角色模板（#2032）」，幂等。
+//   - 网点级邀请（SiteID 非空）→ IAM bind + site_members 行（已存在则跳过建行）；
+//   - 商户/平台级邀请（SiteID 为空，#2228 P1 修复）→ IAM bind 到 invite.OrgID
+//     （原实现提前 return **不绑定任何关系**，与「接受即完成组织绑定」矛盾）；
+//   - 两个路径均补授职能角色模板，消除「能登录但无权限」半成品（#2032）。
+func bindInvitee(db *gorm.DB, invite *models.StaffInvite, user *models.User, opts inviteBindOpts) error {
+	if user.IAMSub == "" {
+		return fmt.Errorf("user %s has no iam_sub", user.ID)
+	}
+	iamClient := services.NewIAMClient()
+	iamRole := toIAMRole(invite.Role)
+
+	if invite.SiteID == nil {
+		// 商户/平台级：接受即绑定到邀请组织（幂等由 IAM 侧 bind 语义保证）
+		if invite.OrgID != "" {
+			if err := iamClient.BindUserToOrganization(user.IAMSub, invite.OrgID, iamRole, user.IAMSub); err != nil {
+				return fmt.Errorf("iam bind (merchant): %w", err)
+			}
+		}
+		return assignInviteRoleTemplate(iamClient, invite, user, opts)
+	}
+
 	var existing int64
 	db.Model(&models.SiteMember{}).
 		Where("tenant_id = ? AND site_id = ? AND user_id = ?", invite.TenantID, invite.SiteID, user.ID).
 		Count(&existing)
-	if existing > 0 || invite.SiteID == nil {
-		return nil // 已是成员 → 幂等
+	if existing == 0 {
+		if err := iamClient.BindUserToOrganization(user.IAMSub, invite.OrgID, iamRole, user.IAMSub); err != nil {
+			return fmt.Errorf("iam bind: %w", err)
+		}
+		if err := db.Create(&models.SiteMember{
+			TenantID: invite.TenantID,
+			SiteID:   *invite.SiteID,
+			UserID:   user.ID,
+			Role:     invite.Role,
+			Roles:    []string{invite.Role}, // #2034
+		}).Error; err != nil {
+			return fmt.Errorf("site_member create: %w", err)
+		}
 	}
-	iamRole := toIAMRole(invite.Role)
-	if err := services.NewIAMClient().BindUserToOrganization(user.IAMSub, invite.OrgID, iamRole, user.IAMSub); err != nil {
-		return fmt.Errorf("iam bind: %w", err)
+	return assignInviteRoleTemplate(iamClient, invite, user, opts)
+}
+
+// assignInviteRoleTemplate（#2032 / #2228 P1）：受邀人接受/激活后补授职能角色模板。
+// 模板不存在（如 merchant_member 零权限影子）→ 跳过（返回 nil）；
+// 模板列表/赋值失败 → 返回错误（不静默吞错——避免「有绑定无权限」的半成品）。
+func assignInviteRoleTemplate(iamClient *services.IAMClient, invite *models.StaffInvite, user *models.User, opts inviteBindOpts) error {
+	code := normalizeRole(invite.Role)
+	nsID := opts.nsID
+	if nsID == "" {
+		if id, err := iamClient.GetNamespaceID(); err == nil {
+			nsID = id
+		}
 	}
-	if err := db.Create(&models.SiteMember{
-		TenantID: invite.TenantID,
-		SiteID:   *invite.SiteID,
-		UserID:   user.ID,
-		Role:     invite.Role,
-		Roles:    []string{invite.Role}, // #2034
-	}).Error; err != nil {
-		return fmt.Errorf("site_member create: %w", err)
+	templates, err := iamClient.ListRoleTemplates(nsID)
+	if err != nil {
+		return fmt.Errorf("list role templates: %w", err)
+	}
+	tmplID := ""
+	for _, t := range templates {
+		if t.Code == code {
+			tmplID = t.ID
+			break
+		}
+	}
+	if tmplID == "" {
+		return nil // 无对应模板（零权限影子角色）——跳过
+	}
+	if opts.userToken != "" {
+		if err := iamClient.AssignRoleTemplateToUserWithToken(opts.userToken, user.IAMSub, invite.OrgID, code); err != nil {
+			return fmt.Errorf("assign role template (token): %w", err)
+		}
+		return nil
+	}
+	if err := iamClient.AssignRoleTemplateToUser(user.IAMSub, tmplID); err != nil {
+		return fmt.Errorf("assign role template: %w", err)
 	}
 	return nil
+}
+
+// bearerTokenOf 提取请求头中的 Bearer 令牌（#2228：接受路径补授角色模板用本人令牌）。
+func bearerTokenOf(c *gin.Context) string {
+	h := c.GetHeader("Authorization")
+	if strings.HasPrefix(h, "Bearer ") {
+		return strings.TrimPrefix(h, "Bearer ")
+	}
+	return ""
 }
 
 // loadInvitationForUser 加载邀请并校验「处理人 = 被邀请人」+ 状态/有效期（#2052）。
@@ -406,7 +480,10 @@ func AcceptInvitation(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": "账户未与 IAM 同步，请重新登录后再试"})
 		return
 	}
-	if err := bindInvitee(db, invite, &user); err != nil {
+	if err := bindInvitee(db, invite, &user, inviteBindOpts{
+		nsID:      middleware.GetNamespaceID(ctx),
+		userToken: bearerTokenOf(c),
+	}); err != nil {
 		log.Printf("[AcceptInvitation] bind failed user=%s site=%s: %v", user.ID, strOrEmpty(invite.SiteID), err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "加入失败，请稍后重试"})
 		return

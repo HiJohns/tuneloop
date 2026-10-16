@@ -286,6 +286,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 
 		// IAM confirmation callback (no auth required, IAM redirects here)
 		api.GET("/iam/confirmation-callback", confirmationHandler.IAMConfirmationCallback)
+		// IAM 事件回调（HMAC 签名，无 JWT）——#2228 P1：user.activated 完成邀请绑定
+		api.POST("/iam/callback", handlers.HandleIAMCallback)
 
 		// Category reads — any authenticated user
 		authRequired.GET("/categories", handlers.GetCategories)
