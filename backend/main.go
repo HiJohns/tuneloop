@@ -848,6 +848,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/users/me/wechat-bind", bindHandler.GenBindToken)
 				userOptionalAuth.GET("/users/me/wechat-bind/:token", bindHandler.PollBindToken)
 				userOptionalAuth.POST("/users/me/wx-bind", staffHandler.WxBindCurrentUser)
+				// #2228 P3：一微信一账户——冲突提示合并后，本人确认执行合并（X→Y）
+				userOptionalAuth.POST("/users/me/wx-merge", staffHandler.WxMergeCurrentUser)
 				userOptionalAuth.POST("/users/me/wechat-unbind", bindHandler.Unbind)
 			}
 

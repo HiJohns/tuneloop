@@ -281,6 +281,15 @@ Body：`{ role: "<主角色>", roles: ["<角色>", ...] }`（`roles` 可选；�
 - **#2052 通知邀请**（不发码）：由管理员对既有账户发起，被邀请人在「系统消息」（`type=staff_invite`，`ref_id=邀请id`）点「接受/拒绝」。接受时再次校验身份归属，防止他人顶替
 - 表：`staff_invites`（migration `20260922001`；#2052 增列 `invitee_user_id`，migration `20260924001`）
 
+#### 微信绑定冲突与账户合并（#2228 P3；IAM 契约见 beaconiam #492）
+
+| 端点 | 组 | 说明 |
+|------|----|------|
+| `POST /api/users/me/wx-bind` | `userOptionalAuth` | 绑定微信 `{code}`；**#2228**：该微信已绑定其他存活账户时**不静默多绑定**——返回 `20000 + data:{needs_merge:true, existing_user_id, target_user_id, openid}`（前端提示「将合并」） |
+| `POST /api/users/me/wx-merge` | `userOptionalAuth` | **#2228 新增**：本人确认后合并 `{to_user_id, openid}`——`from` 恒为**当前登录用户**（透传本人令牌；IAM 以 `claims.sub` 鉴权）；IAM 事务完成「关系迁移 + 密码随迁 + from→obsolete」；成功 `20000 {merged:true}`；失败 `40900`（如实返回，不静默）。合并后当前会话应登出，重登后可见「切换身份」 |
+
+> 注册链路（`/auth/register` 内嵌 wx-bind）遇 `needs_merge` → 回滚并报错（不得静默成功）。
+
 #### 邀请与成员申请（#2114，各级管各级）
 
 > **前置**：beaconiam#491（各级解绑 / customer 挂载 / bind 改角色 / 删用户收紧 / 登录上下文统一）。
