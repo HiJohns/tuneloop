@@ -53,3 +53,35 @@ endpoints:
     conditions: [ "[CONNECTED] == true" ]
     alerts:
       - type: email
+
+  # --- #2226 TLS 证书到期预警（6 域名 web/wx/iam/preweb/prewx/preiam 共用一张 LE 证书；<30 天告警）---
+  - name: TLS-cert-prod
+    group: TLS
+    url: https://web.cadenzayueqi.com
+    interval: 12h
+    conditions:
+      - "[CERTIFICATE_EXPIRATION] > 720h"
+    alerts:
+      - type: email
+  - name: TLS-cert-pre
+    group: TLS
+    url: https://preweb.cadenzayueqi.com
+    interval: 12h
+    conditions:
+      - "[CERTIFICATE_EXPIRATION] > 720h"
+    alerts:
+      - type: email
+
+  # --- IAM 可用性（登录/签发依赖；此前未纳入拨测，#2226）---
+  - name: IAM-prod
+    url: https://iam.cadenzayueqi.com/api/v1/auth/public-key.pem
+    interval: 60s
+    conditions: [ "[STATUS] == 200" ]
+    alerts:
+      - type: email
+  - name: IAM-pre
+    url: https://preiam.cadenzayueqi.com/api/v1/auth/public-key.pem
+    interval: 60s
+    conditions: [ "[STATUS] == 200" ]
+    alerts:
+      - type: email
