@@ -84,17 +84,31 @@ func HandleIAMCallback(c *gin.Context) {
 	switch event.Action {
 	case "user.registered":
 		handleUserRegistered(payload, c)
+		evictIdempotentOnFailure(c, eventID)
 		return
 	case "user.org_bound":
 		handleUserOrgBound(payload, c)
+		evictIdempotentOnFailure(c, eventID)
 		return
 	case "user.activated":
 		// #2228 P1：IAM 邮件邀请激活（/confirm → status=active）——完成本侧邀请绑定
 		handleUserActivated(payload, c)
+		evictIdempotentOnFailure(c, eventID)
 		return
 	default:
 		log.Printf("[IAMCallback] unknown action: %s (ignored)", event.Action)
 		c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "unknown action, ignored"})
+	}
+}
+
+// evictIdempotentOnFailure（#2228 审计修复）：处理以 5xx 结束时驱逐幂等标记。
+// 否则 IAM 以同一 Event-ID 在 31s 退避窗口内重试（< 5min TTL）会被缓存吞成
+// 200 "already processed" → 处理结果永久丢失（如 user.activated 的邀请绑定）。
+// 仅 5xx（可重试失败）驱逐；确定性 4xx（输入非法）重试无意义，保留标记以
+// 终止 IAM 重试循环（重试得到 200 already processed，无副作用）。
+func evictIdempotentOnFailure(c *gin.Context, eventID string) {
+	if eventID != "" && c.Writer.Status() >= http.StatusInternalServerError {
+		idempotentCache.Delete(eventID)
 	}
 }
 
@@ -103,7 +117,8 @@ func HandleIAMCallback(c *gin.Context) {
 //  2. 该用户所有 pending 定向邀请的绑定（bindInvitee：组织关系 + 职能角色模板 #2032），
 //     并标记邀请 accepted（激活即接受——邮件链路本人操作）。
 //
-// 失败返回 500 让 IAM 重试（回调带事件幂等；bindInvitee/标记均幂等）。
+// 失败返回 500 让 IAM 重试（bindInvitee/标记均幂等；失败路径同时驱逐幂等标记，
+// 保证同 Event-ID 重试真正重新处理——#2228 审计修复）。
 func handleUserActivated(payload map[string]interface{}, c *gin.Context) {
 	userID, _ := payload["user_id"].(string) // IAM sub
 	if userID == "" {
