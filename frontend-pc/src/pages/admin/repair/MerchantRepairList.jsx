@@ -211,9 +211,12 @@ function ServiceList() {
   ]
 
   // 详情：评价展示（评分/留言/照片预览）—— #1952 验收项
+  // #白屏修复：JSX 在渲染期即求值（即使 Modal 未打开），detail 初值 null——一律安全解引用
   const review = detail?.review
   const fees = detail?.logistics_fees || []
   const rr = detail?.repair || {}
+  const timeline = detail?.timeline || []
+  const payments = detail?.payments
 
   return (
     <>
@@ -283,7 +286,7 @@ function ServiceList() {
                 },
                 {
                   key: 'timeline', label: '状态时间线',
-                  children: (detail.timeline || []).length === 0 ? '-' : (detail.timeline || []).map(t => (
+                  children: timeline.length === 0 ? '-' : timeline.map(t => (
                     <div key={t.id}>
                       [{t.created_at ? formatBeijingDateTimeShort(t.created_at) : '-'}]{' '}
                       {svcTimelineLabels[t.record_type] || t.record_type}
@@ -293,10 +296,10 @@ function ServiceList() {
                 },
                 {
                   key: 'payments', label: '支付汇总',
-                  children: detail.payments
-                    ? `已付 ${yuan(detail.payments.made_cents)}` +
-                      (detail.payments.refund_cents > 0 ? ` ｜ 已退 ${yuan(detail.payments.refund_cents)}` : '') +
-                      (detail.payments.pending_shortfall_cents > 0 ? ` ｜ 待补缴 ${yuan(detail.payments.pending_shortfall_cents)}` : '')
+                  children: payments
+                    ? `已付 ${yuan(payments.made_cents)}` +
+                      (payments.refund_cents > 0 ? ` ｜ 已退 ${yuan(payments.refund_cents)}` : '') +
+                      (payments.pending_shortfall_cents > 0 ? ` ｜ 待补缴 ${yuan(payments.pending_shortfall_cents)}` : '')
                     : '-',
                 },
               ]}
