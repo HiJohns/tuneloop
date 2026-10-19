@@ -271,7 +271,7 @@ Body：`{ role: "<主角色>", roles: ["<角色>", ...] }`（`roles` 可选；�
 | `GET /api/sites/:id/invites` | 管理员 | 待接受邀请列表 |
 | `POST /api/user/accept-invite` | `userOptionalAuth` | （**遗留**：#2216 起匿名邀请码已下线，无移动端入口，保留接口兼容）**本人**用码接受 `{code}` → IAM `BindUserToOrganization(本人 IAMSub, org, role)` + 本地 `site_members`；码一次性、限时 |
 | `POST /api/sites/:id/invites/send` | 管理员 | **#2052 邀请通知**：对既有用户（按 `identifier` 手机/邮箱定位）发起加入邀请，body `{identifier, role}` → 20100 `{invite_id, invitee_name, site_id, role}`；已是本网点成员 → `40900`；无此账户 → `40404`。同时写入 `staff_invite` 系统通知 |
-| `GET /api/user/invitations/pending` | `userOptionalAuth` | **#2216**：我的待接受**定向**邀请（匹配 `invitee_user_id = 我`，或未认领时 `invitee_identifier ∈ {我的手机, 我的邮箱}`）；**不含邀请码**；未登录返回空列表 |
+| `GET /api/user/invitations/pending` | `userOptionalAuth` | **#2216**：我的待接受**定向**邀请（匹配 `invitee_user_id = 我`，或未认领时 `invitee_identifier ∈ {我的手机, 我的邮箱}`）；**不含邀请码**；未登录返回空列表。**#2222**：响应新增 `merchant_name`——网点级邀请解析商户名（展示「商户名（网点名）· 角色」），商户/平台级等于 `name`（向后兼容，缺失回退网点名） |
 | `POST /api/user/invitations/:id/accept` | `userOptionalAuth` | **#2052**：被邀请人本人接受 → 校验「处理人 = `invitee_user_id`」（#2216 起同时接受未认领的 `invitee_identifier` 匹配并在接受时**认领**，否则 `40300`）→ 复用绑定逻辑（IAM + `site_members`）；幂等 |
 | `POST /api/user/invitations/:id/reject` | `userOptionalAuth` | **#2052**：被邀请人本人拒绝 → `status=rejected` |
 
@@ -280,6 +280,15 @@ Body：`{ role: "<主角色>", roles: ["<角色>", ...] }`（`roles` 可选；�
 - **一人一号**：绑定对象恒为**调用者自己**的 IAMSub，无管理员代挂
 - **#2052 通知邀请**（不发码）：由管理员对既有账户发起，被邀请人在「系统消息」（`type=staff_invite`，`ref_id=邀请id`）点「接受/拒绝」。接受时再次校验身份归属，防止他人顶替
 - 表：`staff_invites`（migration `20260922001`；#2052 增列 `invitee_user_id`，migration `20260924001`）
+
+#### 微信绑定冲突与账户合并（#2228 P3；IAM 契约见 beaconiam #492）
+
+| 端点 | 组 | 说明 |
+|------|----|------|
+| `POST /api/users/me/wx-bind` | `userOptionalAuth` | 绑定微信 `{code}`；**#2228**：该微信已绑定其他存活账户时**不静默多绑定**——返回 `20000 + data:{needs_merge:true, existing_user_id, target_user_id, openid}`（前端提示「将合并」） |
+| `POST /api/users/me/wx-merge` | `userOptionalAuth` | **#2228 新增**：本人确认后合并 `{to_user_id, openid}`——`from` 恒为**当前登录用户**（透传本人令牌；IAM 以 `claims.sub` 鉴权）；IAM 事务完成「关系迁移 + 密码随迁 + from→obsolete」；成功 `20000 {merged:true}`；失败 `40900`（如实返回，不静默）。合并后当前会话应登出，重登后可见「切换身份」 |
+
+> 注册链路（`/auth/register` 内嵌 wx-bind）遇 `needs_merge` → 回滚并报错（不得静默成功）。
 
 #### 邀请与成员申请（#2114，各级管各级）
 
@@ -3281,12 +3290,27 @@ POST /api/warehouse/orders/:id/assess-damage
 **租户口径（#2134）**: staff 上下文范围 = **商户组织**；查询过滤为 `tenant_id ∈ {tid, oid}`（`tid`=根租户、`oid`=用户自身组织），兼容历史「本商户数据 tenant_id=org_id 混用」（#2125）写入的叶组织行；单行读（详情/操作）同口径，`repairServiceStaffAllowed` 亦接受 `{tid, oid}`。写入侧（创建/选师）按 `merchants(org_id→tenant_id)` 规范化为根租户。
 **目标契约（#1942）**: 维修师/员工本人
 
-#### 7.15.2c 商户维修服务单列表（PC 后台，#2129）
+#### 7.15.2c 商户维修服务单列表（PC 后台，#2129 / #2229）
 **接口**: `GET /api/admin/repair-services`
 **门控**: `authRequired` + cus_perm `repair:read`
-**授权范围**: **商户组织**（`oid`→`merchants.org_id`；网点账号无匹配商户 → 空列表）
+**授权范围**: **商户组织**（`oid`→`merchants.org_id`）；**#2229：本商户网点管理员**（`site_admin`，站点归属该商户）亦可见；其余（如网点普通员工/他商户）→ 空列表
 **参数**: `start`/`end`（ISO8601，可选；`updated_at ∈ [start,end)`，前端默认近 30 天）、`page`/`page_size`（默认 1/20，≤100）、`status`（csv，可选）
-**返回**: `{list:[{id, repair_code, status, customer_name(脱敏), customer_phone(脱敏), technician_name, quote_total_cents, paid_cents, shortfall_cents, created_at, updated_at}], total, page, page_size}`
+**返回**: `{list:[{id, repair_code, status, customer_name, customer_phone, technician_name, quote_total_cents, paid_cents, shortfall_cents, created_at, updated_at}], total, page, page_size}`
+**#2229**: 顾客信息为**完整值**（不脱敏——脱敏属"受控商户"口径，当前不适用）
+
+#### 7.15.2d 转派维修服务单（网点管理员，#2229）
+**接口**: `POST /api/repair-services/:id/reassign`
+**请求**: `{technician_id, reason}`（`reason` **必填**，写入时间线与审计）
+**说明**: 询价阶段（`pending_quote`）把维修单转派给**本商户其他在册维修师**（`technician_profiles status=active`）；线下已与顾客沟通同意（系统不留痕）；**主状态不变**（仅归属变更）；写时间线 `reassigned` + `audit_logs(action=reassign_repair_service, details={reason, from_technician_id, to_technician_id})`；通知原/新师傅（`repair_svc_reassign`）
+**错误**: `40002`（缺 reason / 目标==当前师傅）、`40300`（非本商户网点管理员）、`40003`（目标非本商户在册维修师）、`40900`（非 `pending_quote`）、`40400`（单不存在）
+
+#### 7.15.2e IAM 事件回调（HMAC，无 JWT，#2228 P1）
+**接口**: `POST /api/iam/callback`
+**签名**: `X-IAM-Signature: sha256=<HMAC-SHA256(body, ns.callback_secret)>`；`X-IAM-Event-ID`（幂等，5 分钟去重缓存）
+**事件**:
+- `user.registered`（既有）：本地补建用户（零 UUID 租户形态）
+- `user.org_bound`（既有）：同步本地 org/role
+- `user.activated`（**#2228 新增**）：受邀人经 IAM 邮件邀请激活（`/confirm` → `status=active`）后，完成本侧邀请绑定——本地用户补建兜底 + 其全部 pending 定向邀请执行 `bindInvitee`（组织关系 + **职能角色模板**（#2032））并标记邀请 `accepted`；失败返回 500 触发 IAM 重试（全链路幂等）
 
 #### 7.15.3 维修服务单详情
 **接口**: `GET /api/user/repair-services/:id`

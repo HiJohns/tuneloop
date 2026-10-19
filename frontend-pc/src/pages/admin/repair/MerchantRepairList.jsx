@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import dayjs from 'dayjs'
 import { formatCents } from '../../../utils/money'
-import { Card, Table, Tag, Spin, Select, Tabs, Modal, Descriptions, Image, Rate, Empty, DatePicker, Space } from 'antd'
+import { Card, Table, Tag, Spin, Select, Tabs, Modal, Descriptions, Image, Rate, Empty, DatePicker, Space, Input, message } from 'antd'
 import { api } from '../../../services/api'
 import { formatBeijingDate, formatBeijingDateTimeShort } from '../../../utils/date'
 import { checkPermission, isSystemLevelRole } from '../../../config/menuPermissions'
@@ -24,7 +24,7 @@ const statusColors = {
 // #1952 阶段4：维修服务（type='service'）状态（RS-API 契约）
 // RS-API-4：时间线类型 → 展示文案（与后端 record_type 对应）
 const svcTimelineLabels = {
-  created: '创建维修单', technician_selected: '选择维修师', quoted: '维修师报价',
+  created: '创建维修单', technician_selected: '选择维修师', reassigned: '转派', quoted: '维修师报价',
   quote_accepted: '接受报价', paid: '支付成功', shipped: '乐器寄出',
   adjust_requested: '维修师发起加价', adjust_accepted: '同意加价',
   adjust_paid: '补差价到账', adjust_declined: '拒绝加价', leg_fee: '分段物流费登记',
@@ -44,7 +44,7 @@ const svcStatusColors = {
 }
 const yuan = (cents) => (cents == null ? '-' : `¥${formatCents(cents)}`)
 
-// #2129：服务单 Tab 需 `repair:read`（商户管理员/直属员工）；网点员工无该权限 → Tab 直接隐藏
+// #2129：服务单 Tab 需 `repair:read`（商户管理员/直属员工；#2229 起网点管理员同有该权限）；其余网点员工无 → Tab 隐藏
 function canReadRepairServices() {
   try {
     const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}')
@@ -101,7 +101,8 @@ function WarrantyList() {
 
   return (
     <>
-      <Select value={statusFilter} onChange={v => { setStatusFilter(v); setPage(1) }} allowClear placeholder="全部状态" style={{ width: 140, marginBottom: 12 }}>
+      <Select value={statusFilter} onChange={v => { setStatusFilter(v); setPage(1) }} placeholder="全部" style={{ width: 140, marginBottom: 12 }}>
+        <Select.Option value="">全部</Select.Option>
         {Object.entries(statusLabels).map(([k, v]) => <Select.Option key={k} value={k}>{v}</Select.Option>)}
       </Select>
       {loading ? <Spin /> : <Table rowKey="id" dataSource={requests} columns={columns}
@@ -127,6 +128,47 @@ function ServiceList() {
   const [range, setRange] = useState([dayjs().subtract(30, 'day').startOf('day'), dayjs().endOf('day')])
   const [detail, setDetail] = useState(null) // {repair, logistics_fees, review?, site?}
   const [detailLoading, setDetailLoading] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
+  // #2229：网点管理员在询价阶段转派（原因必填；线下已与顾客沟通同意——系统不留痕）
+  const businessRole = localStorage.getItem('user_business_role') || ''
+  const isSiteAdmin = businessRole === 'site_admin'
+  const [reassignRow, setReassignRow] = useState(null)
+  const [reassignTechs, setReassignTechs] = useState([])
+  const [reassignTechID, setReassignTechID] = useState('')
+  const [reassignReason, setReassignReason] = useState('')
+  const [reassigning, setReassigning] = useState(false)
+
+  const openReassign = (row) => {
+    setReassignRow(row)
+    setReassignTechID('')
+    setReassignReason('')
+    // 目标列表：本商户在册维修师（active 档案）
+    api.get('/technician-profiles', { params: { status: 'active', page: 1, page_size: 200 } }).then(r => {
+      if (r.code === 20000) setReassignTechs(r.data?.list || [])
+    })
+  }
+
+  const submitReassign = async () => {
+    if (!reassignTechID) { message.warning('请选择目标维修师'); return }
+    if (!reassignReason.trim()) { message.warning('请填写转派原因（必填）'); return }
+    setReassigning(true)
+    try {
+      const r = await api.post(`/repair-services/${reassignRow.id}/reassign`, {
+        technician_id: reassignTechID, reason: reassignReason.trim(),
+      })
+      if (r.code === 20000) {
+        message.success('已转派，等待新维修师报价')
+        setReassignRow(null)
+        setRefreshKey(k => k + 1)
+      } else {
+        message.error(r.message || '转派失败')
+      }
+    } catch (e) {
+      message.error('转派失败')
+    } finally {
+      setReassigning(false)
+    }
+  }
 
   useEffect(() => {
     setLoading(true)
@@ -141,7 +183,7 @@ function ServiceList() {
         setTotal(r.data?.total || 0)
       }
     }).finally(() => setLoading(false))
-  }, [statusFilter, page, pageSize, range])
+  }, [statusFilter, page, pageSize, range, refreshKey])
 
   const openDetail = (id) => {
     setDetailLoading(true)
@@ -154,25 +196,34 @@ function ServiceList() {
   const columns = [
     { title: '维修编码', dataIndex: 'repair_code', key: 'repair_code', render: v => v || '-' },
     { title: '状态', dataIndex: 'status', key: 'status', render: s => <Tag color={svcStatusColors[s]}>{svcStatusLabels[s] || s}</Tag> },
-    { title: '顾客', dataIndex: 'customer_name', key: 'customer_name', render: (v, r) => `${v || '-'}${r.customer_phone ? ` ${r.customer_phone}` : ''}` }, // 已脱敏
+    { title: '顾客', dataIndex: 'customer_name', key: 'customer_name', render: (v, r) => `${v || '-'}${r.customer_phone ? ` ${r.customer_phone}` : ''}` }, // #2229：完整可见（受控商户口径不适用）
     { title: '维修师', dataIndex: 'technician_name', key: 'technician_name', render: v => v || '-' },
     { title: '报价合计', dataIndex: 'quote_total_cents', key: 'quote_total', render: v => yuan(v) },
     { title: '已付', dataIndex: 'paid_cents', key: 'paid_cents', render: v => yuan(v) },
     { title: '待补缴', dataIndex: 'shortfall_cents', key: 'shortfall_cents', render: v => (v > 0 ? yuan(v) : '-') },
     { title: '创建时间', dataIndex: 'created_at', key: 'created_at', render: v => v ? formatBeijingDateTimeShort(v) : '-' },
     { title: '更新时间', dataIndex: 'updated_at', key: 'updated_at', render: v => v ? formatBeijingDateTimeShort(v) : '-' },
-    { title: '操作', key: 'action', render: (_, r) => <a onClick={() => openDetail(r.id)}>详情</a> },
+    { title: '操作', key: 'action', render: (_, r) => (
+      <Space size={8}>
+        <a onClick={() => openDetail(r.id)}>详情</a>
+        {isSiteAdmin && r.status === 'pending_quote' && <a onClick={() => openReassign(r)}>转派</a>}
+      </Space>
+    ) },
   ]
 
   // 详情：评价展示（评分/留言/照片预览）—— #1952 验收项
+  // #白屏修复：JSX 在渲染期即求值（即使 Modal 未打开），detail 初值 null——一律安全解引用
   const review = detail?.review
   const fees = detail?.logistics_fees || []
   const rr = detail?.repair || {}
+  const timeline = detail?.timeline || []
+  const payments = detail?.payments
 
   return (
     <>
       <Space style={{ marginBottom: 12 }}>
-        <Select value={statusFilter} onChange={(v) => { setPage(1); setStatusFilter(v) }} allowClear placeholder="全部状态" style={{ width: 140 }}>
+        <Select value={statusFilter} onChange={(v) => { setPage(1); setStatusFilter(v) }} placeholder="全部" style={{ width: 140 }}>
+          <Select.Option value="">全部</Select.Option>
           {Object.entries(svcStatusLabels).map(([k, v]) => <Select.Option key={k} value={k}>{v}</Select.Option>)}
         </Select>
         {/* #2129：默认近 30 天；未来扩展筛选只改前端 */}
@@ -237,7 +288,7 @@ function ServiceList() {
                 },
                 {
                   key: 'timeline', label: '状态时间线',
-                  children: (detail.timeline || []).length === 0 ? '-' : (detail.timeline || []).map(t => (
+                  children: timeline.length === 0 ? '-' : timeline.map(t => (
                     <div key={t.id}>
                       [{t.created_at ? formatBeijingDateTimeShort(t.created_at) : '-'}]{' '}
                       {svcTimelineLabels[t.record_type] || t.record_type}
@@ -247,10 +298,10 @@ function ServiceList() {
                 },
                 {
                   key: 'payments', label: '支付汇总',
-                  children: detail.payments
-                    ? `已付 ${yuan(detail.payments.made_cents)}` +
-                      (detail.payments.refund_cents > 0 ? ` ｜ 已退 ${yuan(detail.payments.refund_cents)}` : '') +
-                      (detail.payments.pending_shortfall_cents > 0 ? ` ｜ 待补缴 ${yuan(detail.payments.pending_shortfall_cents)}` : '')
+                  children: payments
+                    ? `已付 ${yuan(payments.made_cents)}` +
+                      (payments.refund_cents > 0 ? ` ｜ 已退 ${yuan(payments.refund_cents)}` : '') +
+                      (payments.pending_shortfall_cents > 0 ? ` ｜ 待补缴 ${yuan(payments.pending_shortfall_cents)}` : '')
                     : '-',
                 },
               ]}
@@ -278,6 +329,36 @@ function ServiceList() {
             </div>
           </>
         )}
+      </Modal>
+      {/* #2229：转派（网点管理员·询价阶段·原因必填留痕） */}
+      <Modal
+        title={`转派维修单${reassignRow?.repair_code ? ` · ${reassignRow.repair_code}` : ''}`}
+        open={!!reassignRow}
+        onCancel={() => setReassignRow(null)}
+        onOk={submitReassign}
+        okText="确认转派"
+        confirmLoading={reassigning}
+        width={480}
+      >
+        <div style={{ marginBottom: 8 }}>当前维修师：{reassignRow?.technician_name || '-'}</div>
+        <Select
+          value={reassignTechID || undefined}
+          onChange={setReassignTechID}
+          placeholder="选择目标维修师（本商户在册）"
+          style={{ width: '100%', marginBottom: 12 }}
+          options={reassignTechs.map(t => ({ value: t.user_id, label: t.name || t.user_id }))}
+        />
+        <Input.TextArea
+          value={reassignReason}
+          onChange={e => setReassignReason(e.target.value)}
+          placeholder="转派原因（必填，将记入时间线与审计）"
+          rows={3}
+          maxLength={200}
+          showCount
+        />
+        <div style={{ color: '#999', fontSize: 12, marginTop: 8 }}>
+          请先与顾客线下沟通并确认同意后，再执行转派（线下沟通系统不留痕）。
+        </div>
       </Modal>
     </>
   )

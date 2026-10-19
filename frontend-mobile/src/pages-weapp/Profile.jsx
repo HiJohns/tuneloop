@@ -613,6 +613,16 @@ export default function Profile() {
               <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>
           )}
+          {/* 3.1 证件照管理（#2239） */}
+          {!isGuest && (
+            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/profile/edit/index?section=id-photo')}>
+              <View style={{ display: 'flex', alignItems: 'center' }}>
+                <Text style={{ fontSize: 18, marginRight: 8 }}>🪪</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>证件照管理</Text>
+              </View>
+              <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
+            </View>
+          )}
           {/* 4. 系统通知（非游客） */}
           {!isGuest && (
             <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/messages/index')}>
@@ -636,12 +646,12 @@ export default function Profile() {
               <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>
           )}
-          {/* #2216: 加入网点（定向邀请）——仅存在对我的 pending 邀请时显示；对齐 H5 */}
+          {/* #2216 机制 / #2222 文案: 加入商户（定向邀请）——仅存在对我的 pending 邀请时显示；对齐 H5 */}
           {pendingInvites.length > 0 && (
             <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => setShowJoin(true)}>
               <View style={{ display: 'flex', alignItems: 'center' }}>
                 <Text style={{ fontSize: 18, marginRight: 8 }}>🤝</Text>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>加入网点</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>加入商户</Text>
               </View>
               <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>

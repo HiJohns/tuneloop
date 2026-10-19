@@ -112,24 +112,20 @@ export default function DirectMemberManagement() {
         email: values.email,
         phone: values.phone,
         position: values.position,
-        auto_generate: true,
-        force_password_change: true,
       })
       if (resp.code === 20000) {
-        const pwd = resp.data?.initial_password
-        if (pwd) {
-          Modal.info({
-            title: '维修师创建成功',
-            content: (
-              <div>
-                <p>初始密码（仅展示一次，请告知本人）：</p>
-                <Typography.Text copyable code style={{ fontSize: 16 }}>{pwd}</Typography.Text>
-              </div>
-            ),
-          })
-        } else {
-          message.success('维修师已创建')
-        }
+        // #2228 P2：邀请制——不再下发初始密码；激活前顾客侧不可见（Q7）
+        Modal.info({
+          title: '已创建并发送邀请',
+          width: 480,
+          content: (
+            <div>
+              <p>已为该维修师预建账户，<b>邀请邮件</b>已发送至 {values.email}。</p>
+              <p>请其查收邮件 → 点击链接完成激活并<b>设置密码</b>；亦可从「系统消息」查看邀请。</p>
+              <p style={{ fontSize: 12, color: '#999' }}>激活前该账户不可登录，且不会出现在顾客侧维修师列表。</p>
+            </div>
+          ),
+        })
         setTechOpen(false)
         techForm.resetFields()
         fetchList()
@@ -276,8 +272,8 @@ export default function DirectMemberManagement() {
           <Form.Item name="phone" label="手机号" rules={[{ required: true, message: '请输入手机号' }]}>
             <Input placeholder="手机号" />
           </Form.Item>
-          <Form.Item name="email" label="邮箱">
-            <Input placeholder="邮箱（选填）" />
+          <Form.Item name="email" label="邮箱" rules={[{ required: true, message: '请输入邮箱（邀请邮件投递通道）' }]}>
+            <Input placeholder="邮箱（邀请邮件将发送至此）" />
           </Form.Item>
           <Form.Item name="username" label="用户名">
             <Input placeholder="用户名（选填）" autoComplete="off" />

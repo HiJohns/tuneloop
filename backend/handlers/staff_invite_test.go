@@ -12,6 +12,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -225,6 +226,25 @@ func TestListMyPendingInvitations(t *testing.T) {
 	byUser := mk("pending", time.Hour, &myLocal, "")  // 可见
 	byPhone := mk("pending", time.Hour, nil, myPhone) // 可见（identifier=我的手机）
 	byEmail := mk("pending", time.Hour, nil, myEmail) // 可见（identifier=我的邮箱）
+
+	// #2222 D2：网点级邀请补 merchant_name（实测形态 site.tenant_id = merchants.org_id）
+	merchantOrg := uuid.New().String()
+	realSiteID := uuid.New().String()
+	require.NoError(t, db.Create(&models.Merchant{
+		TenantID: uuid.New().String(), OrgID: merchantOrg, Name: "示例商户铭牌",
+		Address: "x", ContactName: "c", ContactPhone: "13800000000", Status: "active",
+		AdminUID: uuid.New().String(),
+	}).Error)
+	require.NoError(t, db.Create(&models.Site{
+		ID: realSiteID, TenantID: merchantOrg, OrgID: uuid.New().String(), Name: "示例网点名",
+	}).Error)
+	bySiteLocal := myLocal
+	invSite := models.StaffInvite{
+		ID: uuid.New().String(), TenantID: uuid.New().String(), OrgID: uuid.New().String(),
+		SiteID: &realSiteID, Role: "site_member", Code: uuid.New().String()[:16],
+		Status: "pending", ExpiresAt: time.Now().Add(time.Hour), InviteeUserID: &bySiteLocal,
+	}
+	require.NoError(t, db.Create(&invSite).Error)
 	mk("pending", time.Hour, &otherLocal, "")         // 他人 → 不可见
 	mk("pending", time.Hour, nil, "13999999999")      // 他人 identifier → 不可见
 	mk("accepted", time.Hour, &myLocal, "")           // 已处理 → 不可见
@@ -251,21 +271,32 @@ func TestListMyPendingInvitations(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	assert.Equal(t, 20000, resp.Code)
-	require.Equal(t, 3, len(resp.Data.List))
+	require.Equal(t, 4, len(resp.Data.List))
 	got := map[string]bool{}
 	for _, it := range resp.Data.List {
 		got[it["id"].(string)] = true
 		assert.NotContains(t, it, "code", "邀请码不得下发")
+		if it["id"].(string) == invSite.ID {
+			assert.Equal(t, "示例商户铭牌", it["merchant_name"], "#2222 D2：网点级邀请应解析商户名")
+			assert.Equal(t, "示例网点名", it["name"], "name 仍为网点名")
+			assert.NotEmpty(t, it["site_id"])
+		}
 	}
 	assert.True(t, got[byUser.ID])
 	assert.True(t, got[byPhone.ID])
 	assert.True(t, got[byEmail.ID])
+	assert.True(t, got[invSite.ID])
 }
 
 // #2216: identifier 定向邀请（未认领）可由 identifier 本人接受，并在接受时认领 invitee_user_id。
 func TestAcceptInvitation_IdentifierClaim(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
+	// #2228 P1：商户级邀请接受**现在会绑定组织关系 + 补授角色模板**（#2032/#2228 修复），
+	// 需挂 mock IAM（bind + namespaces/role-templates + users 端点）。
+	srv := newMockIAMServer(nil, nil)
+	defer srv.Close()
+	services.SetIAMInternalURLForTesting(srv.URL)
 	db := database.GetDB()
 	require.NoError(t, db.AutoMigrate(&models.StaffInvite{}, &models.User{}, &models.SiteMember{}))
 
@@ -275,8 +306,8 @@ func TestAcceptInvitation_IdentifierClaim(t *testing.T) {
 		TenantID: uuid.New().String(), OrgID: uuid.New().String(), Status: "active",
 	}).Error)
 
-	// SiteID=nil（#2114 商户/平台级邀请）：bindInvitee 提前返回、不触 IAM —— 聚焦验证
-	// identifier 匹配通过 loader + 接受时认领 invitee_user_id。
+	// SiteID=nil（#2114 商户/平台级邀请）；#2228 P1 修复后接受即绑定 org（mock IAM 应答），
+	// 本用例聚焦：identifier 匹配通过 loader + 接受时认领 invitee_user_id。
 	inv := models.StaffInvite{
 		ID: uuid.New().String(), TenantID: uuid.New().String(), OrgID: uuid.New().String(),
 		SiteID: nil, Role: "merchant_member", Code: uuid.New().String()[:16],

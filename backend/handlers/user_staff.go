@@ -261,6 +261,11 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 			req.SiteID = uuid.Nil
 		}
 	}
+	if userType == "site_staff" && req.SiteID == uuid.Nil {
+		// #2228 P2 同族：site_staff 缺 site_id 此前落入 uuid 空串 22P02——显式 40001
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "site_id is required for site_staff"})
+		return
+	}
 	if userType == "site_staff" && req.SiteID != uuid.Nil {
 		siteIDStr := req.SiteID.String()
 
@@ -345,6 +350,13 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	if hasPassword {
 		createReq.SkipActivation = true
 		createReq.ForcePasswordChange = req.ForcePasswordChange
+	}
+
+	// #2228 P2：邀请模式（既未自动生成也未显式指定密码）——邮箱是邀请邮件的投递
+	// 通道（IAM 生成 /confirm 链接），必填；手机必填由请求绑定保证（Q3）。
+	if !hasPassword && req.Email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "邀请模式需填写邮箱（邀请邮件投递通道）"})
+		return
 	}
 
 	iamResp, err := iamClient.CreateUser(createReq)
@@ -1455,6 +1467,21 @@ func (h *UserStaffHandler) WxBindCurrentUser(c *gin.Context) {
 	iamService := services.NewIAMService()
 	result, err := iamService.WxBind("", req.Code, userID)
 	if err != nil {
+		// #2228 P3：该微信已绑定其他存活账户 → 向前端透传 needs_merge（用户确认后合并）
+		var nmErr *services.WxNeedsMergeError
+		if errors.As(err, &nmErr) {
+			c.JSON(http.StatusOK, gin.H{
+				"code":    20000,
+				"message": "needs_merge",
+				"data": gin.H{
+					"needs_merge":      true,
+					"existing_user_id": nmErr.ExistingUserID,
+					"target_user_id":   nmErr.TargetUserID,
+					"openid":           nmErr.OpenID,
+				},
+			})
+			return
+		}
 		log.Printf("[WxBindCurrentUser] bind failed for user %s: %v", userID, err)
 		c.JSON(http.StatusConflict, gin.H{
 			"code":    40900,
@@ -1469,5 +1496,44 @@ func (h *UserStaffHandler) WxBindCurrentUser(c *gin.Context) {
 		"data": gin.H{
 			"wx_openid": result.WxOpenid,
 		},
+	})
+}
+
+// WxMergeCurrentUser（#2228 P3）：本人确认「将合并」后，把当前账户 X 合并到该微信
+// 已绑定的账户 Y（IAM 侧完成关系迁移/密码随迁/X→obsolete）。鉴权：本人令牌透传
+// （IAM 校验 claims.sub == from_user_id）；iam_sub = JWT sub。
+func (h *UserStaffHandler) WxMergeCurrentUser(c *gin.Context) {
+	var req struct {
+		ToUserID string `json:"to_user_id" binding:"required"`
+		OpenID   string `json:"openid" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid request body: " + err.Error()})
+		return
+	}
+	ctx := c.Request.Context()
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "unauthorized"})
+		return
+	}
+	if userID == req.ToUserID {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "cannot merge an account into itself"})
+		return
+	}
+	userToken := services.ExtractUserToken(c)
+	if userToken == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "unauthorized"})
+		return
+	}
+	if err := services.NewIAMService().WxMerge(userToken, userID, req.ToUserID, req.OpenID); err != nil {
+		log.Printf("[WxMergeCurrentUser] merge failed for user %s -> %s: %v", userID, req.ToUserID, err)
+		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "账户合并失败: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "merged",
+		"data":    gin.H{"merged": true, "to_user_id": req.ToUserID},
 	})
 }

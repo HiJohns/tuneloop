@@ -88,7 +88,23 @@ export default function FaceVerify() {
 
   const goBack = () => {
     if (!env.isMiniProgram) return navigate('/profile/edit')
-    Taro.navigateBack()
+    // #2238：本页常经 redirectTo（身份守卫/Payment replace）进入，栈内可能无上级页；
+    // 直接 navigateBack 会触发微信框架错误（_WeixinJSCore.invokeHandler2 is not a function），
+    // 且返回被守卫页会立即再次重定向（回弹）。无上级页时回「我的」（守卫豁免页）。
+    const stack = (Taro.getCurrentPages && Taro.getCurrentPages()) || []
+    if (stack.length > 1) {
+      Taro.navigateBack()
+      return
+    }
+    // reLaunch（而非 switchTab）：本页可能由 redirectTo 进入且栈内无上级页，
+    // 直接切 tab 在部分微信客户端会触发框架层错误；reLaunch 重置栈更稳。
+    Taro.reLaunch({ url: '/pages-weapp/profile/index' }).catch(() => {})
+  }
+
+  // #2239：「去上传身份证」直达「编辑资料 → 证件照」区块（不再只回退）
+  const goUploadId = () => {
+    if (!env.isMiniProgram) return navigate('/profile/edit?section=id-photo')
+    Taro.navigateTo({ url: '/pages-weapp/profile/edit/index?section=id-photo' }).catch(() => {})
   }
 
   // #2202: 逃生通道 - 前往「我的」页登出
@@ -484,7 +500,7 @@ export default function FaceVerify() {
         <View style={{ padding: 12, backgroundColor: '#fefce8', borderRadius: 8, borderWidth: 1, borderColor: '#fde68a', marginBottom: 12 }}>
           <Text style={{ fontSize: 13, color: '#b45309', fontWeight: '600' }}>⚠️ 请先上传身份证或学生证照片</Text>
           <Text style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>人脸识别前需先上传身份证件照（学生可上传学生证）。</Text>
-          <View onClick={goBack} style={{ marginTop: 8 }}>
+          <View onClick={goUploadId} style={{ marginTop: 8 }}>
             <Text style={{ fontSize: 13, color: '#d97706', fontWeight: '600', textDecorationLine: 'underline' }}>去上传身份证 ›</Text>
           </View>
         </View>

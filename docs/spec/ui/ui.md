@@ -785,6 +785,10 @@ API 来源：
 
 **已认证用户修改姓名/身份证号** → 由员工在审核流程维护；信息变更后后端重置 `face_verified=false`（需重新核身）
 
+**绑定微信与账户合并（#2228 P3）**：`绑定微信账户` 按钮（`POST /users/me/wx-bind`）。若该微信**已绑定其他账户** → 弹窗「发现您已使用此微信号注册有账户，将合并：当前账户的组织关系与密码将迁移至该微信账户，当前账户作废并需重新登录」：
+- **拒绝** → 放弃绑定（当前账户不变）；
+- **同意** → `POST /users/me/wx-merge`（本人令牌）→ 成功 toast「账户已合并，请重新登录」+ **自动登出**（清会话回首页）；重登（微信）后可见「切换身份」（多上下文时）。
+
 #### 2.6.2a 实名核身自拍采集（#1787，编辑资料页内）
 
 **五态状态机**: `none` / `uploaded` / `pending_review` / `verified` / `rejected`（派生见 docs/cases/id-photos.md）
@@ -921,13 +925,19 @@ API 来源：
 | 📄 平台规则 | `!isGuest` / 全员 | `/pages-weapp/setting/index` / `/setting` |
 | 👑 会员中心 | `!isStaff && !isGuest` / 顾客 | `/pages-weapp/membership/index` / `/membership` |
 | ✏️ 个人资料 | `!isGuest` / 全员 | `/pages-weapp/profile/edit/index` / `/profile/edit` |
+| 🪪 证件照管理 | `!isGuest` / 全员 | `/pages-weapp/profile/edit/index?section=id-photo` / `/profile/edit?section=id-photo`（定位到证件照区块） |
 | ✉️ 系统通知 | `!isGuest` / 全员 | `/pages-weapp/messages/index` / `/messages` |
 | 🧾 申请发票 | `!isStaff && !isGuest` / 顾客 | `/pages-weapp/invoice/index` / `/content?key=invoice` |
+| 🤝 加入商户 | **仅存在对我的 pending 定向邀请**（`pendingInvites.length > 0`；请求失败一律隐藏，#2216） | 打开 `JoinSiteModal`（列待接受邀请 → 一键接受，无需输入码） |
 | 💼 商务合作 | 全员 | `/pages-weapp/content/index?key=cooperation` / `/content?key=cooperation` |
 | 📞 联系我们 | 全员 | `/pages-weapp/content/index?key=contact_us` / `/content?key=contact_us` |
 | ℹ️ 关于 | 全员 | `/pages-weapp/about/index` / `/about` |
 
 > 「编辑资料」为常显通用入口（姓名/昵称/手机/邮箱/证件照管理，见 §2.6.2）。不得因实名认证完成而隐藏通用编辑入口（#1817）。
+>
+> **证件照上传直达（#2239）**：人脸识别页「去上传身份证」不再仅回退，而是跳转「编辑资料 → 证件照」区块（`?section=id-photo` 自动滚动定位）；个人中心新增「🪪 证件照管理」入口，解决现有用户无独立上传入口的问题。
+>
+> **「加入商户」文案与条目展示（#2222）**：受邀人收到的是**商户**的邀请（注明网点）——入口/弹窗标题为「加入商户」；**网点级受邀条目**展示「商户名（网点名）· 角色」（`merchant_name` 由 `GET /user/invitations/pending` 下发；缺失时回退网点名）。显隐门控、🤝 图标、一键接受机制不变（#2216）。
 
 #### 2.6.4a 个人中心「切换身份」按钮（weapp，头部，与「退出登录」并列）
 
@@ -1076,7 +1086,7 @@ API 来源：
 
 #### 2.9.3 维修工单详情 `/repair-request`
 
-**可见性**：顾客本人 / 该单站点（`site_id`、`transit_site_id`、`controlled_site_id`）成员；其余 404（防探测）。受控情形对站点成员脱敏顾客联系信息（§双向脱敏）。
+**可见性**：顾客本人 / 该单站点（`site_id`、`transit_site_id`、`controlled_site_id`）成员；其余 404（防探测）。受控情形对站点成员脱敏顾客联系信息（§双向脱敏）。**#2229 注**：受控商户维修**当前不支持**，故 PC 商户/网点管理员服务单列表所见顾客信息为**完整值**（不脱敏）；维修师信息对用户、用户信息对商户**双向可见**。
 
 **阶段面板**（按状态 + 站点归属）：
 - 待估价：报价列表（R7 隔离）+ 维修师报价表单（技师，本单受控网点）
@@ -2928,7 +2938,7 @@ const handleSyncUsersFromIAM = async () => {
 > - 网点员工（weapp）：分段发运（实填本段物流费）| 待发回清单 | 发回（末段实填 → 触发结算）；「网点维修服务工作台」卡片仅 site 角色可见（#2084）
 > - **#2094 评价卡判定**：评价表单仅在 `closed` 且时间线含 `settled`（真结算）时显示；未支付超时置 `cancelled`（PaymentScheduler，时间线 `payment_timeout`）→ 详情显示「服务已关闭」信息卡（无误出的评价）
 > - **#2090 通知**：新服务流三处通知（创建→师傅 / 报价·加价→顾客）在消息中心渲染操作按钮：`repair_svc_quote`→「进入维修工作台」；`repair_svc_review`→「查看报价」；`repair_svc_adjust`→「查看加价并确认」（跳 `/repair-service-detail?order_id=…`）
-> - PC 后台：维修服务全量列表 + 评价（评分/留言/照片）展示
+> - PC 后台：维修服务全量列表 + 评价（评分/留言/照片）展示；**#2229：网点管理员**（`site_admin`）在「待报价」行可**转派**给本商户其他在册维修师（弹窗：目标师傅下拉 + **原因必填**；提示「先线下与顾客沟通同意」；转派留痕时间线/审计）；#2229 顾客信息完整展示（不脱敏——受控商户口径不适用）
 >
 > **#2050 角色互斥（入口门控，强制）**：
 > - **顾客（`role` 为空或 `USER`）**：维修入口 → `/tech-list`（维修师列表/维修服务）；`/my-repairs` **仅渲染「维修服务」内容**（`?tab=service`，维修工单 Tab 隐藏）；**不得**出现「内部维修工单/维修工单」**创建**入口；但保留**只读**「历史维修工单」区（v3 legacy 存量/在途单，仅查看跟进，无创建）
