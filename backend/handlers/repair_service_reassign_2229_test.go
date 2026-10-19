@@ -205,4 +205,16 @@ func TestListMerchantRepairServices_2229_SiteAdminVisibilityAndUnmask(t *testing
 	f.router.ServeHTTP(w3, req3.WithContext(adminCtx))
 	require.Equal(t, http.StatusOK, w3.Code)
 	assert.Contains(t, w3.Body.String(), rrID)
+
+	// 4) #2237 回归（生产实测形态）：JWT tenant=商户**组织**（tid 可为商户 org），而服务单
+	//    数据存于商户 tenant → 自动租户范围不得叠加覆盖显式 tenant IN (tenant, org)。
+	//    缺陷版：自动范围 tenant=org 与显式范围求交 → 0 行（列表恒空）。
+	req4 := httptest.NewRequest(http.MethodGet, "/admin/repair-services?page=1&page_size=20", nil)
+	orgCtx := testutil.TestActor{TenantID: f.orgID, OrgID: f.orgID, UserID: uuid.NewString(), Role: "merchant_admin"}.InjectContext(req4.Context())
+	orgCtx = database.SetTenantID(orgCtx, f.orgID)
+	orgCtx = database.SetOrgID(orgCtx, f.orgID)
+	w4 := httptest.NewRecorder()
+	f.router.ServeHTTP(w4, req4.WithContext(orgCtx))
+	require.Equal(t, http.StatusOK, w4.Code)
+	assert.Contains(t, w4.Body.String(), rrID, "tid=商户 org 时仍应可见（自动租户范围不得覆盖显式 scope）")
 }

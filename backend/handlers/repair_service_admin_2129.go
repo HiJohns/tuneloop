@@ -57,7 +57,10 @@ func ListMerchantRepairServices(c *gin.Context) {
 	// 服务单 tenant_id 可能存商户 tenant 或 org id（#2125 形态）→ 双值范围
 	scopeIDs := uniqueStrings([]string{merchant.TenantID, merchant.OrgID})
 
-	q := db.Model(&models.RepairRequest{}).
+	// #2237：显式 scope 已限定为本商户 tenant/org 双值，必须用 IdentityCtx 关闭
+	// GORM 自动租户范围——否则当 JWT tid=商户**组织**时会叠加 tenant_id=<org>，
+	// 与显式 IN (tenant, org) 求交 → 列表恒空（生产实测：服务单存于商户 tenant）。
+	q := db.WithContext(database.IdentityCtx(ctx)).Model(&models.RepairRequest{}).
 		Where("type = ?", repairServiceTypeVal).
 		Where("tenant_id IN ?", scopeIDs)
 	if s := c.Query("status"); s != "" {
