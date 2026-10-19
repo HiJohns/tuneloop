@@ -88,7 +88,15 @@ export default function FaceVerify() {
 
   const goBack = () => {
     if (!env.isMiniProgram) return navigate('/profile/edit')
-    Taro.navigateBack()
+    // #2238：本页常经 redirectTo（身份守卫/Payment replace）进入，栈内可能无上级页；
+    // 直接 navigateBack 会触发微信框架错误（_WeixinJSCore.invokeHandler2 is not a function），
+    // 且返回被守卫页会立即再次重定向（回弹）。无上级页时回「我的」（守卫豁免页）。
+    const stack = (Taro.getCurrentPages && Taro.getCurrentPages()) || []
+    if (stack.length > 1) {
+      Taro.navigateBack()
+      return
+    }
+    Taro.switchTab({ url: '/pages-weapp/profile/index' })
   }
 
   // #2202: 逃生通道 - 前往「我的」页登出
