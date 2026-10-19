@@ -100,6 +100,19 @@ export default function EditProfile() {
         // Silently ignore fetch errors on mount
       }
   }
+  // #2239：从「证件照管理」/人脸识别页带 ?section=id-photo 直达 → 自动滚动到证件照区块
+  const sectionParam = (() => {
+    try {
+      if (env.isMiniProgram) return Taro.getCurrentInstance()?.router?.params?.section || ''
+      return new URLSearchParams(window.location.search).get('section') || ''
+    } catch { return '' }
+  })()
+  useEffect(() => {
+    if (sectionParam !== 'id-photo') return undefined
+    const t = setTimeout(() => goIdPhotoSection(), 400)
+    return () => clearTimeout(t)
+  }, [sectionParam])
+
   useEffect(() => {
     fetchUser()
   }, [])
