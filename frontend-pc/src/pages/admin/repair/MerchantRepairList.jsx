@@ -101,7 +101,8 @@ function WarrantyList() {
 
   return (
     <>
-      <Select value={statusFilter} onChange={v => { setStatusFilter(v); setPage(1) }} allowClear placeholder="全部状态" style={{ width: 140, marginBottom: 12 }}>
+      <Select value={statusFilter} onChange={v => { setStatusFilter(v); setPage(1) }} placeholder="全部" style={{ width: 140, marginBottom: 12 }}>
+        <Select.Option value="">全部</Select.Option>
         {Object.entries(statusLabels).map(([k, v]) => <Select.Option key={k} value={k}>{v}</Select.Option>)}
       </Select>
       {loading ? <Spin /> : <Table rowKey="id" dataSource={requests} columns={columns}
@@ -221,7 +222,8 @@ function ServiceList() {
   return (
     <>
       <Space style={{ marginBottom: 12 }}>
-        <Select value={statusFilter} onChange={(v) => { setPage(1); setStatusFilter(v) }} allowClear placeholder="全部状态" style={{ width: 140 }}>
+        <Select value={statusFilter} onChange={(v) => { setPage(1); setStatusFilter(v) }} placeholder="全部" style={{ width: 140 }}>
+          <Select.Option value="">全部</Select.Option>
           {Object.entries(svcStatusLabels).map(([k, v]) => <Select.Option key={k} value={k}>{v}</Select.Option>)}
         </Select>
         {/* #2129：默认近 30 天；未来扩展筛选只改前端 */}
