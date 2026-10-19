@@ -259,6 +259,7 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 | — | `POST /api/user/repair-services/:id/select-technician` | 顾客（无 oid） | userOptionalAuth | 选师 → `{id}`（**维修师直属商户，不再挂载网点**；归属校验按 `repair.user_id`） |
 | RS-API-2 | `GET /api/repair-services?scope=mine\|site&status=<csv>&start=&end=`　**新增** | 维修师/员工（**有 oid**） | authRequired | 任务列表（scope=mine 指派给我；scope=site **仅商户层级**——`#2122` 商户组织闸门，网点账号返回空）；`#2128` 增可选时间区间 `start`/`end`（ISO8601，`updated_at ∈ [start,end)`，**由前端控制显示范围**，当前默认近 30 天） |
 | — | `POST /api/repair-services/:id/quote` | 维修师（有 oid） | authRequired | 报价（归属校验 `repairServiceStaffAllowed`） |
+| #2229 | `POST /api/repair-services/:id/reassign {technician_id, reason}`　**新增** | **网点管理员**（有 oid） | authRequired | 询价阶段转派（仅 `pending_quote`；**原因必填**；写时间线 `reassigned` + `audit_logs(reassign_repair_service)`；通知原/新师傅；**主状态不变**，仅归属变更；见 RS-15） |
 | — | `POST /api/user/repair-services/:id/accept` | 顾客（无 oid） | userOptionalAuth | 接受报价 → `{payable_cents}` |
 | — | `POST /api/pay/prepay` | 顾客（无 oid） | userOptionalAuth | 支付（`order_type=repair`，服务端重算；租户从 repair 单推导） |
 | RS-API-3 | `GET /api/user/repair-services/:id`　**扩展** | 顾客（无 oid）+ 员工（有 oid） | userOptionalAuth | 详情 + `site`（寄件地址/联系人）；员工可见性按 JWT 归属 |
@@ -292,7 +293,8 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 |------|------|
 | 用户（weapp） | 浏览维修师列表/详情 → 创建（维修师锁定）/寄出/支付/加价响应/评价 |
 | 维修师（weapp，**直属商户**） | 报价 / 加价 / 完成修理；**『我的维修』**（活跃会话计数） |
-| 网点员工（weapp + PC） | 分段发运/实填运费 / 触发结算（物流段仍由网点/中转执行） |
+| 网点员工（weapp + PC） | 分段发运/实填运费 / 触发结算（物流段仍由网点/中转执行）；**网点管理员可转派询价要求给其他维修师（必填原因，见 RS-15）** |
+| 商户管理员（PC） | **查看本商户维修服务单（含报价明细）**（`GET /api/admin/repair-services`，#2129）；「维修工单列表」`/repair/requests`；**顾客信息可见**（⚠️ 现 #2129 实现为脱敏——该脱敏属"**受控商户**"设计，**暂不支持受控商户**，需评估移除） |
 | 平台管理员（PC） | 全量查看 + 评价审核视角 |
 
 ## RS-13 维修师档案与归属（2026-09-18 设计变更）
@@ -304,3 +306,22 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 - **物流段执行方不变**：受控/中转模式下的分段发运仍由**网点/中转员工**执行（维修师不离开商户，但其不承担网点职能）
 - **入口**：维修师列表（RS-02）仅列 `status='active'` 的档案；管理员在 PC 维护维修师档案（新增/编辑/停用）→ 实现 Issue
 - **审计留痕（#2059）**：档案的 4 个变更端点（新增 / 编辑 / 停用启用 / 上传照片）均写 `audit_logs`（`resource_type=technician_profile`；`action` = `create_technician_profile` / `update_technician_profile` / `set_technician_profile_status` / `upload_technician_profile_photo`）；只读端点（列表/详情/活跃计数）不记；审计写入失败仅记日志、**不阻断业务**（`details` 为 jsonb，须合法 JSON）
+
+## RS-15 维修单转派（网点管理员 → 其他维修师，2026-10-16 裁定）
+
+**场景**：某维修师业务饱满 / 无法承接 → **网点管理员线下联系顾客**推荐其他师傅（**纯线下沟通，系统不留痕**）→ 顾客同意后，管理员在系统内**转派**该维修单给其他维修师（**此步留痕：必填转派原因**）→ 新维修师**报价** → 顾客**同意** → 合约建立（同 RS-03）。
+
+**规则**
+- **触发时机**：维修单处于**询价要求阶段**（待报价 `pending_quote`；顾客尚未接受任何报价）——转派后原师傅不再持有该单
+- **操作者**：**网点管理员**（`site_admin`）；目标须为**本商户维修师**（跨网点是否允许 → 实现评审：跨网点可能改变寄件地址/物流段，需评估）
+- **留痕（必填）**：转派写**时间线** + `audit_logs`（**原因必填**；记录 原师傅 / 新师傅 / 操作人 / 时间）
+- **状态**：**主状态不变**（仍 `pending_quote`，仅归属变更）；通知原师傅、新师傅；顾客侧在新师傅报价时正常确认（RS-03）
+- **与 v3 工单转派区分**：`POST /repair/:id/reassign`（#1882 R5：仅 site_admin、仅 `instrument.repair_in_progress`、目标须**同网点**）为**租赁乐器维修**链路；本用例针对**维修服务单（RS 链路）**的询价阶段
+
+**API（新增，提案）**
+- `POST /api/repair-services/:id/reassign {technician_id, reason}` → 校验：操作者为该单商户的网点管理员 + 目标为本商户维修师 + 状态为 `pending_quote` → 写时间线/审计 + 通知（原/新师傅）
+
+**可见性口径（2026-10-16 产品澄清，原 G4 系误解）**
+- **当前不支持"受控商户"维修**（用户信息对商户不可见的脱敏，是**受控商户**流程的设计）
+- 现状口径：**维修师信息对用户可见；用户信息对商户亦可见**（双向可见）
+- 因此"线下联系顾客"无权限障碍；`#2129` 列的 `maskPhone2129`/`maskName2129` 脱敏**已移除**（#2229：商户/网点管理员所见为**完整值**）

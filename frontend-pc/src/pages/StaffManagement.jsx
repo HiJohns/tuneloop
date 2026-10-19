@@ -22,7 +22,6 @@ export default function StaffManagement() {
   const [createPhotoUrl, setCreatePhotoUrl] = useState('') // #2073: 本地预览 URL（选择即预览）
   const [createFormKey, setCreateFormKey] = useState(0) // #2074: 创建表单重挂载 key（清空 ReactQuill 等非受控残留）
   const [createUserForm] = Form.useForm()
-  const [autoGenerate, setAutoGenerate] = useState(true)
   const [lockedSiteId, setLockedSiteId] = useState(null)
 
   const [userRole, setUserRole] = useState('')
@@ -187,37 +186,19 @@ export default function StaffManagement() {
 
       const result = await staffApi.createUser(values)
       if (result.code === 20000) {
-        const initialPwd = result.data?.initial_password
-        if (initialPwd) {
-          Modal.info({
-            title: '用户创建成功',
-            width: 480,
-            content: (
-              <div>
-                <p>以下为该用户的初始密码，仅展示一次，请妥善保存并告知用户：</p>
-                <div style={{
-                  padding: '12px 16px',
-                  background: '#f5f5f5',
-                  borderRadius: 4,
-                  fontFamily: 'monospace',
-                  fontSize: 18,
-                  textAlign: 'center',
-                  margin: '12px 0',
-                  userSelect: 'all',
-                }}>
-                  {initialPwd}
-                </div>
-                <p style={{ fontSize: 12, color: '#999' }}>关闭后将无法再次查看。用户首次登录后建议立即修改密码。</p>
-              </div>
-            ),
-            onOk() {
-              navigator.clipboard?.writeText(initialPwd)
-            },
-            okText: '复制并关闭',
-          })
-        } else {
-          message.success('创建用户成功')
-        }
+        // #2228 P2：邀请制——不再下发初始密码。账户预建（待激活），受邀人查收邮件
+        // → 点击链接激活并自设密码（或从「系统消息」查看邀请）。
+        Modal.info({
+          title: '已创建并发送邀请',
+          width: 480,
+          content: (
+            <div>
+              <p>已为该员工预建账户，<b>邀请邮件</b>已发送至 {values.email}。</p>
+              <p>请其查收邮件 → 点击链接完成激活并<b>设置密码</b>；亦可从「系统消息」查看邀请。</p>
+              <p style={{ fontSize: 12, color: '#999' }}>激活/接受前该账户不可登录；维修师在激活前不会出现在顾客侧。</p>
+            </div>
+          ),
+        })
         // #2073: 全类型照片 → 头像（创建后经管理员媒体管线上传）
         if (result.data?.id && createPhotoFile) {
           try {
@@ -644,23 +625,12 @@ export default function StaffManagement() {
             <Form.Item name="username" label="用户名">
               <Input placeholder="用户名" />
             </Form.Item>
-            <Form.Item name="email" label="邮箱">
-              <Input placeholder="邮箱（选填）" />
+            <Form.Item name="email" label="邮箱" rules={[{ required: true, message: '请输入邮箱（邀请邮件投递通道）' }]}>
+              <Input placeholder="邮箱（邀请邮件将发送至此）" />
             </Form.Item>
             <Form.Item name="phone" label="手机号" rules={[{ required: true, message: '请输入手机号' }]}>
               <Input placeholder="手机号" />
             </Form.Item>
-            <Form.Item name="auto_generate" label="密码设置" initialValue={true}>
-              <Radio.Group onChange={e => setAutoGenerate(e.target.value)}>
-                <Radio value={true}>自动生成</Radio>
-                <Radio value={false}>手动设置</Radio>
-              </Radio.Group>
-            </Form.Item>
-            {!autoGenerate && (
-              <Form.Item name="password" label="密码">
-                <Input.Password placeholder="8位+大写+小写+数字" />
-              </Form.Item>
-            )}
           </div>
 
           {/* 网点员工：归属网点 + 角色 */}
@@ -703,11 +673,9 @@ export default function StaffManagement() {
             </div>
           </Form.Item>
 
-          <Form.Item name="force_password_change" valuePropName="checked" initialValue={true}>
-            <Checkbox>首次登录时强制修改密码</Checkbox>
-          </Form.Item>
+          {/* #2228 P2：邀请制——密码由受邀人激活时自设，无需管理员设置/强制改密 */}
           <Space>
-            <Button type="primary" htmlType="submit">创建用户</Button>
+            <Button type="primary" htmlType="submit">创建并发送邀请</Button>
             <Button onClick={() => { resetCreateState(); setViewMode('list') }}>取消</Button>
           </Space>
         </Form>

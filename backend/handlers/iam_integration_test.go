@@ -375,6 +375,28 @@ func newMockIAMServer(orgHandler, userHandler http.HandlerFunc) *httptest.Server
 	}
 	if userHandler != nil {
 		mux.HandleFunc("/api/v1/users/", userHandler)
+	} else {
+		// #2228：默认用户端点（角色模板赋值等）——成功应答
+		mux.HandleFunc("/api/v1/users/", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{"code": 20000, "message": "success"})
+		})
+	}
+	if orgHandler == nil {
+		// #2228：命名空间解析 + 角色模板列表（邀请接受补授职能角色模板）
+		mux.HandleFunc("/api/v1/namespaces/", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			if strings.Contains(r.URL.Path, "/role-templates") {
+				json.NewEncoder(w).Encode([]map[string]string{
+					{"id": "tmpl-2228-site-member", "code": "site_member"},
+					{"id": "tmpl-2228-site-admin", "code": "site_admin"},
+					{"id": "tmpl-2228-repair-tech", "code": "repair_technician"},
+					{"id": "tmpl-2228-merchant-staff", "code": "merchant_staff"},
+				})
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]interface{}{"id": "mock-ns-2228"})
+		})
 	}
 	return httptest.NewServer(mux)
 }

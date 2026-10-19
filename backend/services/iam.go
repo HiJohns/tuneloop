@@ -616,11 +616,68 @@ func (s *IAMService) WxBind(exchangeToken, code, userID string) (*WxBindResult, 
 		return nil, newIAMAPIError(resp.StatusCode, body)
 	}
 
+	// #2228 P3：一微信一账户——该 openid 已绑定其他存活账户时 IAM 返回 needs_merge
+	// （200），不得按绑定成功处理；以类型化错误上抛，由调用方提示用户「将合并」。
+	var probe struct {
+		NeedsMerge     bool   `json:"needs_merge"`
+		ExistingUserID string `json:"existing_user_id"`
+		TargetUserID   string `json:"target_user_id"`
+		OpenID         string `json:"openid"`
+	}
+	if err := json.Unmarshal(body, &probe); err == nil && probe.NeedsMerge {
+		return nil, &WxNeedsMergeError{
+			ExistingUserID: probe.ExistingUserID,
+			TargetUserID:   probe.TargetUserID,
+			OpenID:         probe.OpenID,
+		}
+	}
+
 	var result WxBindResult
 	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, fmt.Errorf("failed to parse wx-bind response: %w", err)
 	}
 	return &result, nil
+}
+
+// WxNeedsMergeError（#2228 P3）：该微信号已绑定其他存活账户，需用户确认后合并。
+type WxNeedsMergeError struct {
+	ExistingUserID string // 该微信当前绑定的账户（保留方 Y）
+	TargetUserID   string // 本次尝试绑定的账户（待合并方 X）
+	OpenID         string
+}
+
+func (e *WxNeedsMergeError) Error() string {
+	return "this wechat account is already bound to another account (needs merge)"
+}
+
+// WxMerge（#2228 P3）：用户确认后合并账户（X→Y）。IAM 以调用者令牌鉴权（必须为 X 本人），
+// 故透传用户 access token；关系迁移/密码随迁/obsolete 均由 IAM 事务完成。
+func (s *IAMService) WxMerge(userToken, fromUserID, toUserID, openid string) error {
+	payload := map[string]string{
+		"from_user_id": fromUserID,
+		"to_user_id":   toUserID,
+		"openid":       openid,
+	}
+	jsonPayload, _ := json.Marshal(payload)
+	req, err := http.NewRequest(http.MethodPost,
+		fmt.Sprintf("%s/api/v1/auth/wx-merge", s.baseURL), bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return fmt.Errorf("failed to build wx-merge request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+userToken)
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to call IAM wx-merge endpoint: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("[IAM DEBUG] WxMerge non-200 status=%d body=%s", resp.StatusCode, string(body))
+		return newIAMAPIError(resp.StatusCode, body)
+	}
+	return nil
 }
 
 func (s *IAMService) GetPublicKeyInfo() (*PublicKeyResponse, error) {

@@ -503,12 +503,12 @@ export default function Profile() {
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
           )}
-          {/* 5.5 加入网点（#2216：仅定向受邀时显示，一键接受） */}
+          {/* 5.5 加入商户（#2216 机制 / #2222 文案；仅定向受邀时显示，一键接受） */}
           {pendingInvites.length > 0 && (
           <View className="flex justify-between items-center py-3.5" onClick={() => setShowJoin(true)}>
             <View className="flex items-center gap-2">
               <Text className="text-lg">🤝</Text>
-              <Text className="text-base font-bold text-zinc-800">加入网点</Text>
+              <Text className="text-base font-bold text-zinc-800">加入商户</Text>
             </View>
             <Text className="text-zinc-300 text-lg">›</Text>
           </View>

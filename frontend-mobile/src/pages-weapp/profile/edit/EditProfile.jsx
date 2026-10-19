@@ -3,7 +3,7 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Input, Button, Picker } from '@tarojs/components'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, getToken, resolveErrorMessage } from '../../../services/api'
-import { env, dialog, getInputValue, wxLogin as wxLoginCode } from '../../../platform'
+import { env, dialog, getInputValue, wxLogin as wxLoginCode, storage, session } from '../../../platform'
 import AddressManager from '../../../components/AddressManager'
 import { formatBeijingDateTimeShort } from '../../../utils/format'
 import { parseJWT } from '../../../platform/init'
@@ -158,6 +158,36 @@ export default function EditProfile() {
         body: JSON.stringify({ code }),
       })
       const result = await resp.json()
+      if (result.code === 20000 && result.data?.needs_merge) {
+        // #2228 P3：一微信一账户——该微信已绑定其他账户，提示「将合并」（拒绝=放弃绑定）
+        const ok = await dialog.confirm('发现您已使用此微信号注册有账户，将合并：当前账户的组织关系与密码将迁移至该微信账户，当前账户作废并需重新登录。是否继续？')
+        if (!ok) {
+          dialog.toast('已放弃绑定该微信号')
+          setBindingWx(false)
+          return
+        }
+        const mergeResp = await apiFetch(`${baseUrl}/users/me/wx-merge`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to_user_id: result.data.existing_user_id, openid: result.data.openid }),
+        })
+        const mergeResult = await mergeResp.json()
+        if (mergeResult.code === 20000) {
+          dialog.toast('账户已合并，请重新登录')
+          // 自动登出（当前账户已 obsolete）：清会话后回首页，重登（微信）后可见「切换身份」
+          storage.removeItem('token')
+          storage.removeItem('token_expiry')
+          storage.removeItem('refresh_token')
+          storage.removeItem('login_contexts')
+          storage.removeItem('login_context')
+          session.removeItem('wx_accounts_prefetched')
+          setTimeout(() => Taro.reLaunch({ url: '/pages-weapp/home/index' }), 900)
+        } else {
+          dialog.toast(resolveErrorMessage(mergeResult, '账户合并失败'))
+        }
+        setBindingWx(false)
+        return
+      }
       if (result.code === 20000) {
         dialog.toast('微信绑定成功')
       } else {

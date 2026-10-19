@@ -57,7 +57,7 @@ export function useIdentityGuard() {
       return
     }
 
-    apiFetch('/users/me')
+    apiFetch(`${env.apiBaseUrl}/users/me`)
       .then(r => r.json())
       .then(data => {
         if (data.code === 20000 && data.data?.id_verify_status) {

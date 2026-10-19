@@ -295,3 +295,12 @@ steps:
   1. **预取**：`resolveLogin` 拿到 `wx-accounts` 结果后写入 `session('wx_accounts_prefetched')`（含 `accounts/exchange_token/ts`，TTL 2 分钟）；`AccountSelect` 挂载**优先消费预取**直接渲染，命中即**无二次 wx.login**；缺失/过期才回退自取。预取键在退出登录/会话失效/上下文漂移时清除。
   2. **点击兜底**：`handleGuestLogin` 点击即 `showLoading('登录中...')`，**总超时 12s**（Promise.race）→「登录超时，请重试」；`loginBusy` 期间按钮置灰。
   3. **诊断**：`resolveLogin` 记录阶段耗时（`wx.login`/`wx-accounts`）到 `session('login_diag')`（滚动保留 8 条），供真机排障。
+
+---
+
+## 微信绑定冲突 → 账户合并（2026-10-16 裁定；权威定义见 `organization.md` O-06）
+
+- 用户名/密码登录后绑定微信时，若该微信**已绑定另一账户 Y**：
+  - **拒绝** → 放弃绑定（当前账户不变）
+  - **同意** → 合并：当前账户 X 的**组织绑定改挂到 Y** + X 标记 **`obsolete`** + **密码随迁** + **自动登出**；重新登录后可见「**切换身份**」（＝现有身份切换，`login_contexts`）
+- 与本文档既有「一微信多账户**分流/切换**」的关系：**新模型收敛为「一微信一账户」**，冲突走**合并**而非并存；存量"一 openid 多账户"需迁移/清理（生产当前为 0）

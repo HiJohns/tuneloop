@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"tuneloop-backend/database"
 	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/models"
 	"tuneloop-backend/testutil"
@@ -220,4 +221,35 @@ func TestTechnicianProfile_ActiveSessionCount(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(w2.Body.Bytes(), &resp2))
 	assert.Equal(t, 40100, resp2.Code)
+}
+
+// #2228（Q7）：邀请预建（status=init）的维修师在接受/激活前不得出现在顾客侧
+// （列表过滤 + 详情 404）。
+func TestTechnicianProfile_PublicList_HidesUnactivatedUser_2228(t *testing.T) {
+	f := setupTPFixture(t)
+	admin := testutil.TestActor{TenantID: f.tenantID, OrgID: f.siteID, UserID: f.adminSub, Role: "ADMIN"}
+	code, _ := tpDo(t, f, http.MethodPost, "/technician-profiles", gin.H{"user_id": f.techID, "photo": "p.jpg"}, admin)
+	require.Equal(t, http.StatusOK, code, "已激活师傅档案创建（对照）")
+
+	// 未激活用户 + active 档案（邀请预建形态）
+	initUser := uuid.New().String()
+	db := database.GetDB()
+	require.NoError(t, db.Create(&models.User{
+		ID: initUser, IAMSub: initUser, TenantID: f.tenantID, OrgID: f.tenantID,
+		Username: "init-" + initUser[:6], Name: "未激活师傅", Status: "init",
+	}).Error)
+	require.NoError(t, db.Create(&models.TechnicianProfile{
+		UserID: initUser, TenantID: f.tenantID, Photo: "i.jpg", Bio: "待激活",
+		Experience: "[]", Status: "active",
+	}).Error)
+
+	customer := testutil.TestActor{TenantID: "", OrgID: "", UserID: uuid.New().String(), Role: "USER"}
+	code, resp := tpDo(t, f, http.MethodGet, "/common/repair-technicians", nil, customer)
+	require.Equal(t, http.StatusOK, code)
+	list := resp["data"].(map[string]interface{})["list"].([]interface{})
+	require.Len(t, list, 1, "未激活用户档案不得出现在顾客侧列表")
+	assert.Equal(t, f.techID, list[0].(map[string]interface{})["technician_id"])
+
+	code, _ = tpDo(t, f, http.MethodGet, "/common/repair-technicians/"+initUser, nil, customer)
+	assert.Equal(t, http.StatusNotFound, code, "未激活用户详情应 404")
 }

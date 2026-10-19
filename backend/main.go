@@ -286,6 +286,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 
 		// IAM confirmation callback (no auth required, IAM redirects here)
 		api.GET("/iam/confirmation-callback", confirmationHandler.IAMConfirmationCallback)
+		// IAM 事件回调（HMAC 签名，无 JWT）——#2228 P1：user.activated 完成邀请绑定
+		api.POST("/iam/callback", handlers.HandleIAMCallback)
 
 		// Category reads — any authenticated user
 		authRequired.GET("/categories", handlers.GetCategories)
@@ -666,6 +668,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			repairReqRequired.POST("/repair-services/:id/complete", middleware.RequireAnyCusPerm("repair:complete", "instrument:maintain"), repairServiceHandler.Complete)
 			repairReqRequired.POST("/repair-services/:id/dispatch", repairServiceHandler.Dispatch)
 			repairReqRequired.GET("/repair-services/pending-dispatch", repairServiceHandler.ListPendingDispatch)
+			// #2229：网点管理员在询价阶段转派给本商户其他维修师（原因必填，留痕时间线+审计）
+			repairReqRequired.POST("/repair-services/:id/reassign", repairServiceHandler.Reassign)
 			// #1954 RS-API-2：师傅/员工任务列表（员工上下文，JWT oid 作用域）
 			repairReqRequired.GET("/repair-services", repairServiceHandler.ListTasks)
 
@@ -844,6 +848,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/users/me/wechat-bind", bindHandler.GenBindToken)
 				userOptionalAuth.GET("/users/me/wechat-bind/:token", bindHandler.PollBindToken)
 				userOptionalAuth.POST("/users/me/wx-bind", staffHandler.WxBindCurrentUser)
+				// #2228 P3：一微信一账户——冲突提示合并后，本人确认执行合并（X→Y）
+				userOptionalAuth.POST("/users/me/wx-merge", staffHandler.WxMergeCurrentUser)
 				userOptionalAuth.POST("/users/me/wechat-unbind", bindHandler.Unbind)
 			}
 

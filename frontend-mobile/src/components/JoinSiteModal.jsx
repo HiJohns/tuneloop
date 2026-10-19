@@ -3,7 +3,8 @@ import { View, Text } from '@tarojs/components'
 import { dialog, env } from '../platform'
 import { apiFetch, resolveErrorMessage } from '../services/api'
 
-// #2216: 加入网点（定向邀请）——共享组件，H5(Profile) 与 weapp(pages-weapp/Profile) 复用。
+// #2216: 加入商户（定向邀请）——共享组件，H5(Profile) 与 weapp(pages-weapp/Profile) 复用。
+// #2222：入口/弹窗文案改「加入商户」；网点级受邀条目展示「商户名（网点名）· 角色」。
 // 仅列出「对我的 pending 定向邀请」，一键接受（复用 /user/invitations/:id/accept）。
 // 匿名邀请码方式已下线。
 export default function JoinSiteModal({ visible, onClose, onAccepted }) {
@@ -56,8 +57,8 @@ export default function JoinSiteModal({ visible, onClose, onAccepted }) {
   return (
     <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.45)' }}>
       <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 20, width: '85%', boxSizing: 'border-box' }}>
-        <Text style={{ fontSize: 17, fontWeight: '900', color: '#18181b', display: 'block', marginBottom: 8 }}>加入网点</Text>
-        <Text style={{ fontSize: 12, color: '#71717a', display: 'block', marginBottom: 14 }}>管理员邀请你加入以下网点，确认后员工身份将加到你的当前账户</Text>
+        <Text style={{ fontSize: 17, fontWeight: '900', color: '#18181b', display: 'block', marginBottom: 8 }}>加入商户</Text>
+        <Text style={{ fontSize: 12, color: '#71717a', display: 'block', marginBottom: 14 }}>商户邀请你加入其网点，确认后员工身份将加到你的当前账户</Text>
 
         {loading ? (
           <Text style={{ fontSize: 14, color: '#a1a1aa', display: 'block', textAlign: 'center', padding: '16px 0' }}>加载中...</Text>
@@ -67,8 +68,8 @@ export default function JoinSiteModal({ visible, onClose, onAccepted }) {
           invites.map(invite => (
             <View key={invite.id} style={{ border: '1px solid #e4e4e7', borderRadius: 10, padding: 12, marginBottom: 10, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={{ fontSize: 15, fontWeight: '700', color: '#18181b', display: 'block' }}>{invite.name || '商户'}</Text>
-                <Text style={{ fontSize: 12, color: '#71717a', display: 'block', marginTop: 2 }}>{invite.role_label || invite.role}</Text>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#18181b', display: 'block' }}>{invite.site_id ? (invite.merchant_name || invite.name || '商户') : (invite.name || '商户')}</Text>
+                <Text style={{ fontSize: 12, color: '#71717a', display: 'block', marginTop: 2 }}>{invite.site_id ? `${invite.name ? invite.name + ' · ' : ''}${invite.role_label || invite.role}` : (invite.role_label || invite.role)}</Text>
               </View>
               <View
                 onClick={acceptingId ? undefined : () => accept(invite)}
