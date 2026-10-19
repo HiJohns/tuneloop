@@ -96,7 +96,9 @@ export default function FaceVerify() {
       Taro.navigateBack()
       return
     }
-    Taro.switchTab({ url: '/pages-weapp/profile/index' })
+    // reLaunch（而非 switchTab）：本页可能由 redirectTo 进入且栈内无上级页，
+    // 直接切 tab 在部分微信客户端会触发框架层错误；reLaunch 重置栈更稳。
+    Taro.reLaunch({ url: '/pages-weapp/profile/index' }).catch(() => {})
   }
 
   // #2202: 逃生通道 - 前往「我的」页登出
