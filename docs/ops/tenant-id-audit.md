@@ -259,3 +259,59 @@
 - 正面：prepay/renewal 从订单推导；settlement 全部用 order.TenantID
 
 > 状态：A3-2 完成；A3-3（instruments/inventory/media）、A3-4（repair）、A3-5（其余）待做。
+
+## A3-3 instruments / inventory / media 域
+
+| 文件 | 模式 | 判定 |
+|---|---|---|
+| `instrument.go` / `instrument_media.go` / `inventory.go` / `api.go` / `instrument_scrap.go` | S2/S4 | 乐器已锚商户 org，`tenant_id=tid` 对商户管理员可用；写入用 tid（S4） |
+| **`instrument_batch_import.go`** | **S6/S2** | 属性/选项查询 `WHERE tenant_id=tid` 命中**平台级表**（实测 properties=`3cfa99da`/零 UUID）→ 商户管理员（org）**查不到平台属性**（疑似批量导入下拉为空） |
+| `instrument_loss.go` | ✅ | 写入用 `inst/order.TenantID`（数据归属） |
+| `instrument_promo_override.go` | S4 | 覆盖配置写 `tid` → 应商户 org |
+| `public.go` | S2/S6 | 覆盖查询用 `merchant.OrgID`（✅）；`system_settings` 按 tenant 读写（平台级，S6） |
+
+## A3-4 repair 域
+
+| 文件 | 模式 | 判定 |
+|---|---|---|
+| **`repair_service.go`** | **S2** | L586 `WHERE tenant_id=? OR org_id=? ORDER BY created_at LIMIT 1` **任取商户**（共享 tenant 必错）；IdentityCtx 12 处；`tenant_id IN ?` 范围 |
+| `repair_service_admin_2129.go` | **S3** | #2134 双值过滤 → #2248 |
+| `repair_request.go` | ✅/S2 | 写入 `req.TenantID`（数据归属 ✅）；列表按 tid（S2） |
+| `repair_admin.go` | S2/S4 | 列表 tid；写入 tid |
+| `repair_config.go` | **S6/S2** | 配置存 `system_settings` 按 tenant → 共享 tenant 的商户**共用同一份配置** |
+
+## A3-5 其余域
+
+| 文件 | 模式 | 判定 |
+|---|---|---|
+| `appeal.go` | S2/S4 | 全链路 `id=? AND tenant_id=tid`；写入 tid |
+| `merchant.go` / `site.go` | S2 | 商户/网点列表按 `merchant/site.tenant_id=tid`；网点写入 tid（S4） |
+| `pricing.go` / `merchant_rebate.go` / `points_policy.go` | **S6/S2** | 商户配置按 tenant 存取 → 共享 tenant 时**跨商户共用配置** |
+| `forwarding_session.go` / `transit_site_admin.go` / `transit_order.go` | S2/S4 | 中转单按 tid 过滤/写入 |
+| `property.go` / `label.go` | S6 | 平台级资源写入**操作者 tenant** → properties 出现 `3cfa99da` 与零 UUID 混杂 |
+| `settings.go` / `role_manage.go` / `permission_manage.go` / `audit_log.go` / `banner.go` / `wechatpay_admin.go` / `webhook_config.go` / `smtp_config.go` / `system.go` | S6/平台级 | 已显式清空 tenant 或仅记录；保留但纳入 P4 字段清理 |
+| `gift_policies.go` / `face_review.go` | S5/S6 | 显式清空 tenant 绕行（合法例外，P3 统一机制） |
+| `auto_confirm.go` / `reserved_order_scheduler.go` / `logistics_monitor.go` | ✅ | 由数据行（order）驱动 tenant（数据归属） |
+| `quote.go` / `repair.go` / `instrument_import.go` / `bulk_import.go` / `user_onboarding.go` / `registration_*` / `pending_order.go` | S4/S2 | 写入用上下文 tenant 或用户缓存（S1 邻接） |
+| `iam_callback.go` | ✅ | 补建用户写零 UUID（明确占位语义） |
+
+## A4 services / frontend / docs
+
+- **services**：`iam_bootstrap.go`(10)、`email.go`(10)、`webhook.go`(8)、`point_batches.go`(5) 等按 tenant 循环/查询 → 与 P2/P3 一并处理（非本阶段改造）
+- **frontend 26 处**：`tenant_id` 仅在少数请求/展示 payload 中 → 随 API 口径调整同步
+- **docs 216 处**：集中更新 `api.md`（租户口径）、`cases/organization.md`、`user-management.md`（归属锚）→ P5
+
+## A3/A4 总结：必修清单（按优先级）
+
+| 优先级 | 位置 | 问题 | 关联 |
+|---|---|---|---|
+| P0 | `user_staff.go:445` | 共享 tenant 下任取商户 | #2247 |
+| P0 | `repair_service.go:586` | 同上（OR tenant/org + LIMIT 1） | #2248 |
+| P0 | `iam_proxy.go:619` | `users.tenant_id` 过滤 → 静默 0 行更新（S1） | 新 Issue |
+| P1 | `merchant_members` 数据锚（共享 tenant）≠ 代码（商户 org） | 成员/角色校验可能失败 | 新 Issue |
+| P1 | `technician_profiles` 混用 | 商户管理员不可见 | #2247 |
+| P1 | `#2134` 双值过滤 | 跨商户重叠 | #2248 |
+| P1 | `instrument_batch_import` / `pricing` / `repair_config` / `settings` | 平台/商户配置按 tenant → 共享/查空 | P2 数据核对 |
+| P2 | S4 写入（`TenantID: tid`）全域 | 改数据归属 | P3 |
+
+> 覆盖率：`docs/ops/tenant-id-audit-files.csv` 中全部 backend handler 文件已归类（详细 40 个 + 同类归组 40 个）；无未分类文件。
