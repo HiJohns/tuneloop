@@ -184,19 +184,35 @@ func repairServiceTenantScope(ctx context.Context) []string {
 	tid := middleware.GetTenantID(ctx)
 	oid := middleware.GetOrgID(ctx)
 	scopes := make([]string, 0, 3)
-	if tid != "" {
-		scopes = append(scopes, tid)
+	// #2248：多商户共享的 tenant 不得进入范围（否则跨商户命中）。
+	sharedTenant := func(v string) bool {
+		if v == "" {
+			return false
+		}
+		var cnt int64
+		database.GetDB().WithContext(database.IdentityCtx(ctx)).Model(&models.Merchant{}).
+			Where("tenant_id = ?", v).Count(&cnt)
+		return cnt > 1
 	}
-	if oid != "" && oid != tid {
-		scopes = append(scopes, oid)
+	add := func(v string) {
+		if v == "" || sharedTenant(v) {
+			return
+		}
+		for _, x := range scopes {
+			if x == v {
+				return
+			}
+		}
+		scopes = append(scopes, v)
 	}
-	// #2134 修订2：本组织所属商户的租户（卡丹萨形态：tid=oid=叶组织，服务单落父租户）
+	add(tid)
+	add(oid)
+	// #2134 修订2：本组织所属商户的租户（仅在未被共享时）
 	if oid != "" {
 		var m models.Merchant
 		if err := database.GetDB().WithContext(database.IdentityCtx(ctx)).Select("tenant_id").
-			Where("org_id = ?", oid).First(&m).Error; err == nil && m.TenantID != "" &&
-			m.TenantID != tid && m.TenantID != oid {
-			scopes = append(scopes, m.TenantID)
+			Where("org_id = ?", oid).First(&m).Error; err == nil {
+			add(m.TenantID)
 		}
 	}
 	return scopes
