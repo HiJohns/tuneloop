@@ -361,6 +361,11 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 
 	iamResp, err := iamClient.CreateUser(createReq)
 	if err != nil {
+		// #2243：IAM 409（已注册）→ 业务冲突 409 + 明确文案；不得统一 500
+		if errors.Is(err, services.ErrIAMUserExists) {
+			c.JSON(http.StatusConflict, gin.H{"code": 40910, "message": "该手机号/邮箱/用户名已在平台注册，请让本人登录后自助加入（作为员工加入 / 注册为顾客）"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM user creation failed: " + err.Error()})
 		return
 	}
@@ -521,6 +526,11 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 	}
 	iamResp, err := iamClient.CreateUser(createReq)
 	if err != nil {
+		// #2243：IAM 409（已注册）→ 业务冲突 409 + 明确文案；不得统一 500
+		if errors.Is(err, services.ErrIAMUserExists) {
+			c.JSON(http.StatusConflict, gin.H{"code": 40910, "message": "该手机号/邮箱/用户名已在平台注册，请让本人登录后自助加入（作为员工加入 / 注册为顾客）"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM user creation failed: " + err.Error()})
 		return
 	}
