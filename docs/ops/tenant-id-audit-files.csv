@@ -1,0 +1,1313 @@
+﻿layer,file,refs
+backend,backend/handlers/repair_service.go,51
+backend,backend/handlers/order_test.go,44
+backend,backend/handlers/instrument_create_test.go,33
+backend,backend/handlers/instrument_batch_import_test.go,28
+backend,backend/handlers/refund_appeal_notify_test.go:		TenantID,16
+backend,backend/handlers/state_machine_e2e_test.go:		TenantID,15
+backend,backend/handlers/confirmation_session_test.go,13
+backend,backend/handlers/merchant_setup_test.go:		TenantID,13
+backend,backend/handlers/iam_integration_test.go:		TenantID,12
+backend,backend/handlers/site_test.go,12
+backend,backend/handlers/merchant_member.go,12
+backend,backend/handlers/forwarding_session_1934_test.go,11
+backend,backend/handlers/invoice_test.go:		TenantID,11
+backend,backend/handlers/user_rental.go,11
+backend,backend/database/db.go,11
+backend,backend/handlers/iam_integration_test.go,10
+backend,backend/handlers/invoice.go,10
+backend,backend/handlers/repair_service_tenant_2134_test.go,9
+backend,backend/handlers/order.go,9
+backend,backend/handlers/instrument_media.go:	if err ,9
+backend,backend/handlers/iam_proxy_test.go,9
+backend,backend/handlers/forwarding_session.go:	tenantID ,8
+backend,backend/handlers/auth.go,8
+backend,backend/handlers/user_settlement_test.go:		TenantID,8
+backend,backend/handlers/warehouse_test.go,8
+backend,backend/handlers/lease.go:	tenantID ,8
+backend,backend/handlers/member_invite_2114.go:	tenantID ,8
+backend,backend/handlers/iam_proxy.go,7
+backend,"backend/handlers/settlement_diff_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",7
+backend,"backend/handlers/settlement_diff_test.go:		TenantID: tenantID, OrgID: orgID, UserID",7
+backend,backend/handlers/instrument.go:	tenantID ,7
+backend,backend/handlers/instrument_batch_import.go,7
+backend,backend/handlers/merchant_setup_test.go,7
+backend,backend/handlers/forwarding_session.go:	if err ,7
+backend,backend/handlers/membership_flow_test.go:		TenantID,7
+backend,backend/handlers/staff_invite.go,7
+backend,backend/handlers/site_member.go,7
+backend,backend/handlers/instrument_media.go:	tenantID ,7
+backend,backend/handlers/user_staff.go:	tenantID ,7
+backend,backend/middleware/iam.go,6
+backend,backend/handlers/confirmation_session_test.go:			TenantID,6
+backend,"backend/handlers/repair_service_receive_2116_test.go:	tech := testutil.TestActor{TenantID: f.tenantID, OrgID: f.siteID, UserID: f.techID, Role",6
+backend,"backend/handlers/settlement_diff_test.go:		ID: order.InstrumentID, TenantID: tenantID, OrgID",6
+backend,"backend/handlers/settlement_1836_test.go:			TenantID: tenantID, OrgID: orgID, UserID: userID, InstrumentID",6
+backend,"backend/handlers/forwarding_session_1934_test.go:	tenantID, orgID, _ ",6
+backend,backend/handlers/inventory_test.go,6
+backend,backend/handlers/property.go:	tenantID ,6
+backend,backend/handlers/merchant.go,6
+backend,"backend/handlers/settlement_1743_test.go:		TenantID: tenantID, OrgID: orgID, UserID",6
+backend,"backend/handlers/settlement_1743_test.go:		ID: order.InstrumentID, TenantID: tenantID, OrgID",6
+backend,backend/handlers/warehouse.go:	if err ,6
+backend,backend/handlers/warehouse.go:		TenantID,6
+backend,backend/handlers/order.go:	tenantID ,6
+backend,backend/handlers/appeal.go:	if err ,6
+backend,backend/handlers/repair_config.go:	if err ,6
+backend,backend/handlers/public.go,6
+backend,"backend/handlers/second_doc_requeue_1921_test.go:		TenantID: uuid.New().String(), OrgID",6
+backend,backend/handlers/personnel.go,6
+backend,"backend/handlers/staff_invite_test.go:		TenantID: uuid.New().String(), OrgID: uuid.New().String(), Status",6
+backend,backend/handlers/api.go:	tenantID ,6
+backend,backend/handlers/user_rental.go:			TenantID,6
+backend,backend/handlers/user_staff.go:		if err ,6
+backend,backend/handlers/user_staff.go,6
+backend,backend/handlers/user_staff.go:	if err ,6
+backend,backend/handlers/member_invite_2114.go,6
+backend,backend/handlers/instrument_update_test.go,6
+backend,backend/handlers/iam_proxy.go:	tenantID ,5
+backend,"backend/handlers/appeal_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID",5
+backend,"backend/handlers/settlement_1836_test.go:			ID: instID, TenantID: tenantID, OrgID",5
+backend,"backend/handlers/settlement_1836_test.go:			TenantID: tenantID, UserID: userID, OrderID",5
+backend,backend/handlers/merchant.go:	tenantID ,5
+backend,backend/handlers/wechatpay_prepay.go,5
+backend,backend/handlers/site.go:	tenantID ,5
+backend,backend/handlers/user_rental_test.go:		TenantID,5
+backend,"backend/handlers/shortfall_1746_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",5
+backend,backend/handlers/instrument_batch_delete_test.go:		TenantID,5
+backend,"backend/handlers/settlement_1743_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",5
+backend,backend/handlers/registration_session_test.go:		TenantID,5
+backend,backend/handlers/technician_profile.go:	tid ,5
+backend,backend/handlers/appeal.go:		TenantID,5
+backend,backend/handlers/repair_config.go:	tenantID ,5
+backend,backend/handlers/api_test.go,5
+backend,backend/handlers/refund_appeal_notify_test.go,5
+backend,backend/handlers/instrument_create_test.go:		ctx ,5
+backend,backend/handlers/inspect_return_shortfall_test.go:		TenantID,5
+backend,backend/handlers/label.go:	tenantID ,5
+backend,backend/handlers/label.go:	if err ,5
+backend,backend/handlers/repair_request.go,5
+backend,backend/handlers/repair_service_admin_2129.go,5
+backend,backend/handlers/auth_test.go:		TenantID,5
+backend,backend/handlers/staff_invite_test.go,5
+backend,"backend/handlers/staff_invite_test.go:			ID: uuid.New().String(), TenantID: uuid.New().String(), OrgID",5
+backend,backend/handlers/api.go,5
+backend,"backend/handlers/promo_override_1863_test.go:		ID: instID, TenantID: tenantID, OrgID",5
+backend,backend/handlers/user_rental.go:	tenantID ,5
+backend,backend/handlers/instrument_import_test.go,5
+backend,backend/handlers/member_invite_2114.go:	if err ,5
+backend,"backend/handlers/merchant_member_test.go:		ID: uuid.New().String(), IAMSub: uuid.New().String(), TenantID",5
+backend,backend/services/media_cleanup_test.go,5
+backend,backend/testutil/role_factory.go:		TenantID,4
+backend,"backend/models/models.go:	TenantID   string    `gorm:""type:uuid;index;not null"" json",4
+backend,backend/handlers/overdue_scheduler_test.go:		TenantID,4
+backend,backend/handlers/repair_service_receive_2116_test.go,4
+backend,backend/handlers/delivery_confirm_test.go:		TenantID,4
+backend,"backend/handlers/technician_profile_test.go:	admin := testutil.TestActor{TenantID: f.tenantID, OrgID: f.siteID, UserID: f.adminSub, Role",4
+backend,backend/handlers/site_test.go:		ctx ,4
+backend,backend/handlers/repair_service_reassign_2229_test.go,4
+backend,"backend/handlers/merchant_order_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID",4
+backend,backend/handlers/face_review_1791_test.go,4
+backend,backend/handlers/user_rental_test.go,4
+backend,backend/handlers/renewal_1761_test.go:		TenantID,4
+backend,"backend/handlers/shortfall_1746_test.go:		TenantID: tenantID, OrgID: orgID, UserID",4
+backend,"backend/handlers/shortfall_1746_test.go:		ID: order.InstrumentID, TenantID: tenantID, OrgID",4
+backend,backend/handlers/repair_service_test.go,4
+backend,backend/handlers/billing.go,4
+backend,backend/handlers/warehouse.go:	tenantID ,4
+backend,backend/handlers/face_review.go,4
+backend,backend/handlers/technician_profile.go:	if err ,4
+backend,backend/handlers/appeal.go:	tenantID ,4
+backend,backend/handlers/repair_service.go:	if err ,4
+backend,backend/handlers/confirmation_session.go:	tenantID ,4
+backend,backend/handlers/confirmation_session.go:	if err ,4
+backend,backend/handlers/site_member.go:	tenantID ,4
+backend,backend/handlers/role_manage.go:	tenantID ,4
+backend,"backend/handlers/deposit_waiver_1867_test.go:	tenantID, orgID, _ ",4
+backend,backend/handlers/weapp_staff_flow_test.go:		TenantID,4
+backend,backend/handlers/repair_request_test.go:		TenantID,4
+backend,"backend/handlers/repair_records_1873_test.go:	tenantID, orgID, _ ",4
+backend,"backend/handlers/repair_records_1873_test.go:		ID: instID, TenantID: tenantID, OrgID",4
+backend,backend/handlers/instrument_media.go,4
+backend,backend/handlers/member_invite_2114_test.go,4
+backend,backend/handlers/merchant_member.go:	tenantID ,4
+backend,backend/handlers/gift_policies.go,4
+backend,"backend/handlers/promo_override_1863_test.go:	tenantID, orgID, userID ",4
+backend,"backend/handlers/lease.go:		c.JSON(http.StatusUnauthorized, gin.H{""code"": 40100, ""message""",4
+backend,backend/handlers/lease.go:	if err ,4
+backend,backend/handlers/user_rental_1762_test.go:		TenantID,4
+backend,backend/handlers/pricing.go:	tenantID ,4
+backend,backend/handlers/pricing.go:	if err ,4
+backend,backend/services/webhook_1909_test.go,4
+backend,backend/services/email.go,4
+backend,backend/services/webhook.go,4
+backend,backend/testutil/role_factory.go,3
+backend,backend/models/damage_appeal_test.go:		TenantID,3
+backend,backend/models/maintenance_test.go:		TenantID,3
+backend,"backend/models/models.go:	TenantID  string    `gorm:""type:uuid;index;not null"" json",3
+backend,"backend/models/models.go:	TenantID       string    `gorm:""type:uuid;index;not null"" json",3
+backend,"backend/models/models.go:	TenantID string `gorm:""type:uuid;index;not null"" json",3
+backend,"backend/models/models.go:	TenantID     string    `gorm:""type:uuid;index;not null"" json",3
+backend,backend/scripts/init_test_data.go:			TenantID,3
+backend,backend/handlers/iam_proxy.go:		if err ,3
+backend,"backend/handlers/repair_service_receive_2116_test.go:		ID: uuid.NewString(), TenantID: f.tenantID, UserID: f.customerID, Type",3
+backend,"backend/handlers/repair_service_receive_2116_test.go:	merchant := testutil.TestActor{TenantID: f.tenantID, OrgID: f.orgID, UserID: uuid.NewString(), Role",3
+backend,"backend/handlers/appeal_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID, UserID",3
+backend,"backend/handlers/appeal_test.go:		ID: damageID, TenantID: tenantID, OrgID: orgID, LeaseID",3
+backend,"backend/handlers/settlement_1836_test.go:		ID: instID, TenantID: tenantID, OrgID",3
+backend,backend/handlers/renewal_prepay_days_test.go:		TenantID,3
+backend,backend/handlers/integration_test.go:		TenantID,3
+backend,backend/handlers/integration_test.go,3
+backend,backend/handlers/user_management.go,3
+backend,backend/handlers/property.go,3
+backend,backend/handlers/merchant.go:	result ,3
+backend,backend/handlers/instrument.go,3
+backend,backend/handlers/instrument.go:	if err ,3
+backend,backend/handlers/instrument_batch_import.go:	tenantID ,3
+backend,"backend/handlers/payment_records_waived_1856_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID",3
+backend,backend/handlers/renewal_1802_test.go:		TenantID,3
+backend,backend/handlers/merchant_order_test.go,3
+backend,backend/handlers/user_staff_test.go,3
+backend,"backend/handlers/face_review_1791_test.go:		TenantID: uuid.New().String(), OrgID",3
+backend,backend/handlers/smtp_config.go,3
+backend,backend/handlers/cents_migration_test.go,3
+backend,backend/handlers/settlement_flow_test.go:		TenantID,3
+backend,"backend/handlers/repair_service_test.go:		ID: uuid.New().String(), TenantID: f.tenantID, UserID",3
+backend,"backend/handlers/repair_service_test.go:	otherStaff := testutil.TestActor{TenantID: f.otherTenantID, OrgID: f.otherSiteID, UserID: f.otherStaffSub, Role",3
+backend,"backend/handlers/settlement_1763_test.go:		TenantID: tenantID, OrgID: orgID, UserID",3
+backend,"backend/handlers/settlement_1763_test.go:		ID: order.InstrumentID, TenantID: tenantID, OrgID",3
+backend,backend/handlers/order.go:		TenantID,3
+backend,backend/handlers/merchant_invoice.go:	tenantID ,3
+backend,backend/handlers/webhook_config.go:	tenantID ,3
+backend,backend/handlers/invoice_test.go,3
+backend,backend/handlers/appeal.go:			TenantID,3
+backend,backend/handlers/instrument_props_1896_test.go,3
+backend,backend/handlers/api_test.go:		res ,3
+backend,"backend/handlers/repair_1866_test.go:		ID: instID, TenantID: tenantID, OrgID",3
+backend,backend/handlers/role_manage.go:	if err ,3
+backend,backend/handlers/membership_dupe_1752_test.go:		TenantID,3
+backend,backend/handlers/public.go:	if err ,3
+backend,"backend/handlers/points_grant_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",3
+backend,backend/handlers/repair_request.go:			TenantID,3
+backend,backend/handlers/repair_request_test.go,3
+backend,backend/handlers/settlement_calculation_1738_test.go:	router ,3
+backend,backend/handlers/merchant_member.go:	if err ,3
+backend,backend/handlers/permission_manage.go:	tenantID ,3
+backend,backend/handlers/api.go:		if err ,3
+backend,"backend/handlers/promo_override_1863_test.go:		TenantID: tenantID, InstrumentID: instID, OverrideType",3
+backend,"backend/handlers/promo_override_1863_test.go:	tenantID, orgID, _ ",3
+backend,backend/handlers/user_rental.go:	if err ,3
+backend,backend/handlers/user_rental.go:		TenantID,3
+backend,backend/handlers/user_rental_1762_test.go,3
+backend,backend/handlers/member_invite_2114.go:		TenantID,3
+backend,backend/handlers/merchant_member_test.go,3
+backend,"backend/handlers/merchant_member_test.go:		TenantID: tenantID, MerchantID: merchant.ID, UserID: user.ID, Role",3
+backend,"backend/handlers/face_verify_1789_test.go:		TenantID: uuid.New().String(), OrgID",3
+backend,"backend/handlers/repair_detail_1868_test.go:		ID: instID, TenantID: tenantID, OrgID",3
+backend,"backend/services/collection_reminder_scheduler_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",3
+backend,"backend/services/collection_reminder_scheduler_test.go:		ID: orderID, TenantID: tenantID, OrgID: orgID, UserID",3
+backend,backend/services/deposit_refund_scheduler.go:		TenantID,3
+backend,backend/services/audit_query.go,3
+backend,backend/services/iam_bootstrap.go:				TenantID,3
+backend,backend/database/db.go:	tenantID ,3
+backend,"backend/models/models.go:	TenantID          string    `gorm:""type:uuid;index;not null"" json",2
+backend,"backend/models/models.go:	TenantID         string    `gorm:""type:uuid;index;not null"" json",2
+backend,"backend/models/models.go:	TenantID         string     `gorm:""type:uuid;index;not null"" json",2
+backend,backend/scripts/init_test_data.go:		TenantID,2
+backend,backend/middleware/iam.go:		tenantID ,2
+backend,backend/middleware/iam.go:		ctx ,2
+backend,backend/service/instrument_test.go:				rows ,2
+backend,backend/handlers/iam_proxy.go:		TenantID,2
+backend,backend/handlers/iam_proxy.go:				TenantID,2
+backend,backend/handlers/instrument_loss.go:	tid ,2
+backend,"backend/handlers/repair_service_receive_2116_test.go:	staff := testutil.TestActor{TenantID: f.tenantID, OrgID: f.siteID, UserID: uuid.NewString(), Role",2
+backend,"backend/handlers/repair_service_receive_2116_test.go:		ID: staff.UserID, IAMSub: staff.UserID, TenantID: f.tenantID, OrgID",2
+backend,"backend/handlers/repair_service_receive_2116_test.go:		ID: localID, IAMSub: techSub, TenantID: f.tenantID, OrgID",2
+backend,"backend/handlers/repair_service_receive_2116_test.go:	tech := testutil.TestActor{TenantID: f.tenantID, OrgID: f.siteID, UserID: techSub, Role",2
+backend,backend/handlers/appeal_test.go,2
+backend,"backend/handlers/appeal_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",2
+backend,"backend/handlers/appeal_test.go:		ID: instID, TenantID: tenantID, OrgID",2
+backend,"backend/handlers/settlement_1836_test.go:				TenantID: tenantID, UserID: userID, OrderID",2
+backend,"backend/handlers/settlement_1836_test.go:		TenantID: tenantID, OrgID: orgID, UserID: userID, InstrumentID",2
+backend,"backend/handlers/forwarding_session_1934_test.go:		actor := testutil.TestActor{TenantID: tenantID, OrgID: orgID, UserID: uuid.New().String(), Role",2
+backend,backend/handlers/inventory_test.go:		ctx ,2
+backend,backend/handlers/coupon_permille_1751_test.go:		TenantID,2
+backend,backend/handlers/cus_perm_test.go:		ctx ,2
+backend,backend/handlers/user_onboarding.go:	ctx ,2
+backend,"backend/handlers/settlement_1803_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",2
+backend,"backend/handlers/settlement_1803_test.go:		ID: instrumentID, TenantID: tenantID, OrgID",2
+backend,"backend/handlers/settlement_1803_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID, UserID",2
+backend,"backend/handlers/settlement_1803_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID",2
+backend,backend/handlers/property.go:		TenantID,2
+backend,backend/handlers/property.go:				TenantID,2
+backend,backend/handlers/instrument_crud_test.go:		TenantID,2
+backend,"backend/handlers/merchant.go:			""tenant_id""",2
+backend,backend/handlers/instrument.go:		if err ,2
+backend,"backend/handlers/technician_profile_test.go:	customer := testutil.TestActor{TenantID: """", OrgID: """", UserID: uuid.New().String(), Role",2
+backend,backend/handlers/instrument_batch_import.go:				TenantID,2
+backend,backend/handlers/testfixtures/db.go,2
+backend,"backend/handlers/payment_records_waived_1856_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",2
+backend,"backend/handlers/payment_records_waived_1856_test.go:		ID: instrumentID, TenantID: tenantID, OrgID",2
+backend,"backend/handlers/payment_records_waived_1856_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID, UserID",2
+backend,"backend/handlers/repair_service_tenant_2134_test.go:	tech := testutil.TestActor{TenantID: f.tenantID, OrgID: f.orgID, UserID: f.techID, Role",2
+backend,backend/handlers/staff_invite.go:	if n ,2
+backend,backend/handlers/staff_invite.go:	tenantID ,2
+backend,backend/handlers/staff_invite.go:			TenantID,2
+backend,backend/handlers/activity_log.go,2
+backend,backend/handlers/auth.go:			tenantID ,2
+backend,backend/handlers/auth.go:				TenantID,2
+backend,backend/handlers/site.go:	query ,2
+backend,backend/handlers/site.go:				TenantID,2
+backend,backend/handlers/site.go:		TenantID,2
+backend,"backend/handlers/settlement_1764_test.go:		TenantID: tenantID, OrgID: orgID, UserID",2
+backend,"backend/handlers/settlement_1764_test.go:		ID: order.InstrumentID, TenantID: tenantID, OrgID",2
+backend,backend/handlers/settlement_1764_test.go,2
+backend,"backend/handlers/settlement_1764_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",2
+backend,"backend/handlers/settlement_1764_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID, UserID",2
+backend,"backend/handlers/face_review_1791_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID",2
+backend,backend/handlers/settings.go:	tenantID ,2
+backend,backend/handlers/settings.go:	if err ,2
+backend,backend/handlers/points_policy.go:	tenantID ,2
+backend,backend/handlers/prepay_coupon_snapshot_test.go:		TenantID,2
+backend,"backend/handlers/shortfall_1746_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID",2
+backend,backend/handlers/shortfall_1746_test.go:		TenantID,2
+backend,backend/handlers/shortfall_1746_test.go,2
+backend,"backend/handlers/settlement_1743_test.go:		ID: orderID, TenantID: tenantID, OrgID: orgID, UserID",2
+backend,"backend/handlers/settlement_1743_test.go:		ID: instrumentID, TenantID: tenantID, OrgID",2
+backend,backend/handlers/settlement_flow_test.go,2
+backend,backend/handlers/user_me_tenant_name_2117_test.go,2
+backend,"backend/handlers/user_me_tenant_name_2117_test.go:		Updates(map[string]interface{}{""tenant_id""",2
+backend,"backend/handlers/user_me_tenant_name_2117_test.go:		ID: uuid.NewString(), TenantID: staffTenant, OrgID",2
+backend,backend/handlers/billing.go:	tenantID ,2
+backend,backend/handlers/warehouse.go,2
+backend,backend/handlers/warehouse.go:				TenantID,2
+backend,backend/handlers/order.go:	if err ,2
+backend,backend/handlers/order.go:				TenantID,2
+backend,backend/handlers/instrument_batch_import_test.go:		TenantID,2
+backend,backend/handlers/merchant_invoice.go:	if err ,2
+backend,backend/handlers/merchant_invoice.go,2
+backend,"backend/handlers/merchant_invoice.go:			""tenant_id""",2
+backend,"backend/handlers/iam_callback_2228_test.go:		TenantID: uuid.New().String(), OrgID: uuid.New().String(), Status",2
+backend,"backend/handlers/iam_callback_2228_test.go:	require.NoError(t, db.Create(&models.Site{ID: siteID, TenantID: uuid.New().String(), OrgID: orgID, Name",2
+backend,"backend/handlers/iam_callback_2228_test.go:		ID: uuid.New().String(), TenantID: uuid.New().String(), OrgID",2
+backend,"backend/handlers/platform_staff_1897_test.go:	tenantID, orgID, _ ",2
+backend,backend/handlers/instrument_photo.go:	tenantID ,2
+backend,"backend/handlers/points_batch_1947_test.go:		TenantID: tenantID, OrgID",2
+backend,backend/handlers/technician_profile.go,2
+backend,backend/handlers/appeal.go:	// #1724,2
+backend,backend/handlers/appeal.go,2
+backend,backend/handlers/repair_service.go:		if err ,2
+backend,backend/handlers/repair_service.go:			TenantID,2
+backend,"backend/handlers/staff_refund_1860_test.go:		ID: instID, TenantID: tenantID, OrgID",2
+backend,"backend/handlers/staff_refund_1860_test.go:		ID: orderID, TenantID: tenantID, OrgID",2
+backend,backend/handlers/invoice.go:			MerchantName,2
+backend,backend/handlers/invoice.go:				TenantID,2
+backend,backend/handlers/face_verify_test.go,2
+backend,backend/handlers/face_verify_test.go:		TenantID,2
+backend,backend/handlers/api_test.go:	res ,2
+backend,backend/handlers/admin.go,2
+backend,backend/handlers/admin.go:	tenantID ,2
+backend,"backend/handlers/order_no_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID",2
+backend,"backend/handlers/instrument_sort_1797_test.go:			ID: uuid.New().String(), TenantID: tenantID, OrgID",2
+backend,backend/handlers/settlement_1918_test.go:		TenantID,2
+backend,"backend/handlers/repair_1866_test.go:	tenantID, orgID, userID ",2
+backend,"backend/handlers/repair_1866_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",2
+backend,"backend/handlers/repair_1866_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID, UserID",2
+backend,"backend/handlers/repair_1866_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID",2
+backend,"backend/handlers/repair_1866_test.go:		ID: damageID, TenantID: tenantID, OrgID: orgID, LeaseID",2
+backend,backend/handlers/user_address_test.go,2
+backend,"backend/handlers/refund_appeal_notify_test.go:		ID: siteID.String(), TenantID: tenantID, OrgID: orgID, Name",2
+backend,backend/handlers/user_management_idcard.go:			TenantID,2
+backend,backend/handlers/user_management_idcard.go,2
+backend,backend/handlers/instrument_create_test.go:	err ,2
+backend,backend/handlers/gift_registration_test.go:		TenantID,2
+backend,backend/handlers/inventory.go:			if err ,2
+backend,backend/handlers/user_settlement.go:			TenantID,2
+backend,backend/handlers/user_settlement.go:				TenantID,2
+backend,backend/handlers/instrument_promo_override.go:	tenantID ,2
+backend,backend/handlers/iam_callback.go,2
+backend,"backend/handlers/refund_flow_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID",2
+backend,backend/handlers/inspect_return_shortfall_test.go,2
+backend,backend/handlers/inspect_return_1801_test.go:			TenantID,2
+backend,backend/handlers/inspect_return_1801_test.go:		TenantID,2
+backend,backend/handlers/quote.go,2
+backend,"backend/handlers/weapp_staff_orders_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID",2
+backend,backend/handlers/public.go:	tenantID ,2
+backend,"backend/handlers/payment_calculate_1758_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",2
+backend,"backend/handlers/payment_calculate_1758_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID, UserID",2
+backend,backend/handlers/payment_calculate_1758_test.go,2
+backend,backend/handlers/renewal_1781_test.go:		TenantID,2
+backend,backend/handlers/transit_order.go:	tenantID ,2
+backend,backend/handlers/transit_order.go:				TenantID,2
+backend,backend/handlers/renewal_settlement_1997_test.go:		TenantID,2
+backend,"backend/handlers/renewal_settlement_1997_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID",2
+backend,backend/handlers/weapp_staff_flow_test.go:			TenantID,2
+backend,"backend/handlers/repair_records_1873_test.go:		ID: localID, IAMSub: iamSub, TenantID: tenantID, OrgID",2
+backend,backend/handlers/merchant_rebate.go:	tenantID ,2
+backend,backend/handlers/merchant_rebate.go:	if err ,2
+backend,backend/handlers/instrument_media.go:			if err ,2
+backend,backend/handlers/instrument_media.go:		TenantID,2
+backend,backend/handlers/wechatpay_admin.go:	tenantID ,2
+backend,backend/handlers/wechatpay_admin.go:	query ,2
+backend,"backend/handlers/instrument_restore_1767_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID",2
+backend,backend/handlers/instrument_restore_1767_test.go:		ctx ,2
+backend,"backend/handlers/promo_points_1757_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",2
+backend,backend/handlers/promo_points_1757_test.go,2
+backend,"backend/handlers/settlement_calculation_1738_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID",2
+backend,"backend/handlers/renewal_1760_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",2
+backend,backend/handlers/renewal.go,2
+backend,"backend/handlers/auth_test.go:			""tenant_id""",2
+backend,"backend/handlers/staff_invite_test.go:		ID: uuid.New().String(), TenantID: uuid.New().String(), OrgID",2
+backend,backend/handlers/iam_proxy_test.go:		ctx ,2
+backend,backend/handlers/notification_test.go,2
+backend,"backend/handlers/notification_test.go:		TenantID: notifyTenantUUID, OrgID: notifyTenantUUID, UserID: localID, Type",2
+backend,"backend/handlers/notification_test.go:		TenantID: notifyTenantUUID, OrgID: notifyTenantUUID, UserID: uuid.New().String(), Type",2
+backend,backend/handlers/instrument_price_contract_test.go:		TenantID,2
+backend,backend/handlers/instrument_import.go:	tenantID ,2
+backend,"backend/handlers/fee_summary_1756_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",2
+backend,"backend/handlers/fee_summary_1756_test.go:		ID: instrumentID, TenantID: tenantID, OrgID",2
+backend,"backend/handlers/fee_summary_1756_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID, UserID",2
+backend,"backend/handlers/fee_summary_1756_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID",2
+backend,backend/handlers/order_test.go:		ctx ,2
+backend,backend/handlers/order_test.go:	gTenantID ,2
+backend,backend/handlers/permission_manage.go,2
+backend,backend/handlers/api.go:	if err ,2
+backend,backend/handlers/user_rental.go:	effectiveTenantID ,2
+backend,backend/handlers/bulk_import.go:	tenantID ,2
+backend,"backend/handlers/dashboard_stats_2005_test.go:			TenantID: tenant, OrgID: tenant, UserID: uuid.New().String(), InstrumentID",2
+backend,backend/handlers/renewal_test.go:		TenantID,2
+backend,backend/handlers/instrument_import_test.go:			// #1928,2
+backend,backend/handlers/lease.go:	query ,2
+backend,backend/handlers/lease.go:		TenantID,2
+backend,backend/handlers/lease_early_return_test.go:		TenantID,2
+backend,"backend/handlers/pricing.go:		c.JSON(http.StatusUnauthorized, gin.H{""code"": 40100, ""message""",2
+backend,backend/handlers/merchant_member_test.go:		ctx ,2
+backend,"backend/handlers/repair_detail_1868_test.go:	tenantID, orgID, _ ",2
+backend,backend/handlers/audit_log.go:		TenantID,2
+backend,backend/services/rent_calculator_test.go:		TenantID,2
+backend,backend/services/email.go:	err ,2
+backend,backend/services/email.go:		if err ,2
+backend,backend/services/email.go:			TenantID,2
+backend,"backend/services/collection_reminder_scheduler_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID",2
+backend,backend/services/iam_bootstrap.go:						TenantID,2
+backend,backend/services/iam_bootstrap.go:	if err ,2
+backend,backend/services/bulk_import_accounts.go,2
+backend,backend/services/notification.go:			TenantID,2
+backend,backend/services/point_batches.go:			TenantID,2
+backend,backend/services/collection_reminder_scheduler.go,2
+backend,backend/database/db.go:		if field ,2
+backend,"backend/models/models.go:	TenantID            string `gorm:""type:uuid;index;not null"" json",1
+backend,"backend/models/models.go:	TenantID     string  `gorm:""type:uuid;index;not null"" json",1
+backend,"backend/models/models.go:	TenantID             string `gorm:""type:uuid;index;not null"" json",1
+backend,"backend/models/models.go:	TenantID      string  `gorm:""type:uuid;index"" json",1
+backend,"backend/models/models.go:	TenantID       string    `gorm:""type:uuid;index:idx_payment_sessions_tenant;not null"" json",1
+backend,"backend/models/models.go:	TenantID       string     `gorm:""type:uuid;index:idx_payment_tenant;not null"" json",1
+backend,"backend/models/models.go:	TenantID        string    `gorm:""type:uuid;not null"" json",1
+backend,"backend/models/models.go:	TenantID           string     `gorm:""type:uuid;index;not null"" json",1
+backend,"backend/models/models.go:	TenantID     string    `gorm:""type:uuid;index"" json",1
+backend,"backend/models/models.go:	TenantID    string     `gorm:""type:uuid;index;not null"" json",1
+backend,"backend/models/models.go:	TenantID      string    `gorm:""type:uuid;index;not null"" json",1
+backend,"backend/models/models.go:	TenantID        string    `gorm:""type:uuid;index;not null"" json",1
+backend,"backend/models/models.go:	TenantID             string     `gorm:""type:uuid;index"" json",1
+backend,"backend/models/models.go:	TenantID            string    `gorm:""type:uuid;not null;index"" json",1
+backend,"backend/models/models.go:	TenantID  string     `gorm:""type:uuid;index;not null"" json",1
+backend,"backend/models/models.go:	TenantID            string     `gorm:""type:uuid;index;not null"" json",1
+backend,"backend/models/models.go:	TenantID         string `gorm:""type:uuid;index;not null"" json",1
+backend,"backend/models/models.go:	TenantID          string     `gorm:""type:uuid;index;not null"" json",1
+backend,"backend/models/models.go:	TenantID           string    `gorm:""type:uuid;index;not null"" json",1
+backend,backend/models/models.go,1
+backend,"backend/models/models.go:	TenantID     string         `gorm:""type:uuid;not null;index:idx_mm_tenant"" json",1
+backend,"backend/models/models.go:	TenantID       string     `gorm:""type:uuid;index;not null"" json",1
+backend,"backend/models/models.go:	TenantID      string         `gorm:""type:uuid;not null;uniqueIndex:idx_tenant_code"" json",1
+backend,"backend/models/models.go:	TenantID   string    `gorm:""type:uuid;uniqueIndex;not null"" json",1
+backend,"backend/models/models.go:	TenantID     string    `gorm:""type:uuid;index;not null;uniqueIndex:idx_setting_tenant_key"" json",1
+backend,"backend/models/models.go:	TenantID  string    `gorm:""type:uuid;index"" json",1
+backend,"backend/models/models.go:	TenantID string `gorm:""type:uuid;not null;index"" json",1
+backend,"backend/models/models.go:	TenantID          string     `gorm:""type:uuid;index"" json",1
+backend,"backend/models/membership.go:	TenantID     string    `gorm:""type:uuid;not null;index"" json",1
+backend,"backend/models/audit_log.go:	TenantID     string    `gorm:""type:uuid;index;not null"" json",1
+backend,backend/scripts/migrate_photo_batches.go:				TenantID,1
+backend,"backend/scripts/migrate_photo_batches.go:	fmt.Println(""Note: tenant_id fields need manual update. Run",1
+backend,backend/scripts/migrate_media_keys.go,1
+backend,backend/middleware/audit_logger.go:		tenantID ,1
+backend,backend/middleware/audit_logger.go:			TenantID,1
+backend,"backend/middleware/iam.go:		log.Printf(""[IAM DEBUG] Token validated, claims",1
+backend,"backend/middleware/iam.go:		log.Printf(""[IAM DEBUG] OptionalIAMInterceptor",1
+backend,"backend/middleware/iam.go:	if tid, ok ",1
+backend,backend/middleware/iam.go:	tenantID ,1
+backend,backend/middleware/iam.go:		TenantID,1
+backend,backend/middleware/iam.go:	tid ,1
+backend,backend/middleware/permissions_1964_test.go,1
+backend,"backend/tools/merge_duplicate_accounts/main.go:				if _, err ",1
+backend,backend/service/instrument.go,1
+backend,backend/service/instrument.go:		dupQuery ,1
+backend,backend/service/instrument.go:	query ,1
+backend,backend/service/instrument.go:		if err ,1
+backend,backend/service/instrument.go:	if err ,1
+backend,backend/service/instrument.go:			TenantID,1
+backend,backend/handlers/iam_proxy.go:	tid ,1
+backend,backend/handlers/iam_proxy.go:	query ,1
+backend,backend/handlers/personnel_2065_test.go:	zeroTenantMember   string // #2067,1
+backend,"backend/handlers/personnel_2065_test.go:			ID: id, IAMSub: id, TenantID: tid, OrgID: oid, Username: ""u-"" + id[:8], Name: name, Role: role, Status",1
+backend,"backend/handlers/personnel_2065_test.go:	require.NoError(t, db.Create(&models.Site{ID: f.siteA, TenantID: f.tid, OrgID: f.tid, Name: ""网点A"", Type",1
+backend,"backend/handlers/personnel_2065_test.go:	require.NoError(t, db.Create(&models.Site{ID: f.siteB, TenantID: f.tid, OrgID: f.tid, Name: ""网点B"", Type",1
+backend,"backend/handlers/personnel_2065_test.go:	require.NoError(t, db.Create(&models.Site{ID: f.transitSite, TenantID: f.rootOrg, OrgID: f.rootOrg, Name: ""中转网点"", Type",1
+backend,"backend/handlers/personnel_2065_test.go:	require.NoError(t, db.Create(&models.SiteMember{TenantID: f.tid, SiteID: f.siteA, UserID: f.siteMemberA, Role: ""STAFF"", Roles: []string{""STAFF""}, Status",1
+backend,"backend/handlers/personnel_2065_test.go:	require.NoError(t, db.Create(&models.SiteMember{TenantID: f.tid, SiteID: f.siteB, UserID: f.siteMemberB, Role: ""STAFF"", Roles: []string{""STAFF""}, Status",1
+backend,backend/handlers/personnel_2065_test.go:	// #2067,1
+backend,"backend/handlers/personnel_2065_test.go:	require.NoError(t, db.Create(&models.SiteMember{TenantID: f.tid, SiteID: f.siteA, UserID: f.zeroTenantMember, Role: ""STAFF"", Roles: []string{""STAFF""}, Status",1
+backend,"backend/handlers/personnel_2065_test.go:	require.NoError(t, db.Create(&models.MerchantMember{TenantID: f.tid, MerchantID: uuid.New().String(), UserID: f.directMember, Role: ""site_member"", Status",1
+backend,"backend/handlers/personnel_2065_test.go:	require.NoError(t, db.Create(&models.SiteMember{TenantID: f.rootOrg, SiteID: f.transitSite, UserID: f.transitMember, Role: ""STAFF"", Roles: []string{""STAFF""}, Status",1
+backend,"backend/handlers/personnel_2065_test.go:	require.NoError(t, db.Create(&models.SiteMember{TenantID: f.otherTid, SiteID: uuid.New().String(), UserID: f.otherTenantUser, Role: ""STAFF"", Roles: []string{""STAFF""}, Status",1
+backend,"backend/handlers/personnel_2065_test.go:		ID: uuid.New().String(), UserID: f.technician, TenantID: f.tid, Status",1
+backend,"backend/handlers/personnel_2065_test.go:		return testutil.TestActor{TenantID: f.tid, OrgID: f.tid, UserID: f.merchantAdmin, Role",1
+backend,"backend/handlers/personnel_2065_test.go:		return testutil.TestActor{TenantID: f.tid, OrgID: f.siteA, UserID: f.siteAdminAcct, Role",1
+backend,"backend/handlers/personnel_2065_test.go:		return testutil.TestActor{TenantID: """", OrgID: f.rootOrg, UserID: f.platformStaff, Role",1
+backend,"backend/handlers/personnel_2065_test.go:		return testutil.TestActor{TenantID: f.tid, OrgID: f.tid, UserID: f.customerOnly, Role",1
+backend,backend/handlers/personnel_2065_test.go,1
+backend,"backend/handlers/personnel_2065_test.go:		ID: newID, IAMSub: newID, TenantID: f.tid, OrgID",1
+backend,"backend/handlers/personnel_2065_test.go:		TenantID: f.tid, SiteID: f.siteA, UserID: newID, Role: ""STAFF"", Status",1
+backend,backend/handlers/confirmation_session_test.go:		ctx ,1
+backend,backend/handlers/confirmation_session_test.go:		TenantID,1
+backend,backend/handlers/instrument_loss.go,1
+backend,"backend/handlers/instrument_loss.go:		ID: uuid.New().String(), TenantID: inst.TenantID, InstrumentID",1
+backend,"backend/handlers/instrument_loss.go:				ID: uuid.New().String(), TenantID: order.TenantID, PaymentRecordID",1
+backend,"backend/handlers/instrument_loss.go:				ID: uuid.New().String(), TenantID: order.TenantID, OrgID",1
+backend,"backend/handlers/instrument_loss.go:					ID: uuid.New().String(), TenantID: order.TenantID, UserID",1
+backend,backend/handlers/instrument_loss.go:	query ,1
+backend,"backend/handlers/repair_service_receive_2116_test.go:	other := testutil.TestActor{TenantID: f.tenantID, OrgID: f.siteID, UserID: uuid.NewString(), Role",1
+backend,"backend/handlers/repair_service_receive_2116_test.go:		ID: uuid.NewString(), TenantID",1
+backend,"backend/handlers/repair_service_receive_2116_test.go:			ID: uuid.NewString(), TenantID: f.tenantID, UserID: f.customerSub, Type",1
+backend,"backend/handlers/repair_service_receive_2116_test.go:		ID: uuid.NewString(), TenantID: f.tenantID, UserID: f.customerSub, Type",1
+backend,backend/handlers/appeal_test.go:		TenantID,1
+backend,"backend/handlers/appeal_test.go:		ID: instrumentID, TenantID: tenantID, OrgID",1
+backend,backend/handlers/user.go:	TenantID    string `json,1
+backend,"backend/handlers/user.go:	TenantID string `json:""tenant_id"" binding",1
+backend,backend/handlers/user.go:			TenantID,1
+backend,"backend/handlers/settlement_1836_test.go:		TenantID: tenantID, UserID: userID, OrderID",1
+backend,"backend/handlers/settlement_1836_test.go:				ID: instID, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/settlement_1836_test.go:				TenantID: tenantID, OrgID: orgID, UserID: userID, InstrumentID",1
+backend,"backend/handlers/settlement_1836_test.go:				TenantID: tenantID, OrgID: orgID, LeaseID: o.ID, InstrumentID: instID, UserID",1
+backend,backend/handlers/forwarding_session_1934_test.go:		TenantID,1
+backend,backend/handlers/registration_session.go:		TenantID,1
+backend,backend/handlers/pending_order.go:		TenantID,1
+backend,"backend/handlers/staff_create_invite_2228_test.go:		ID: operatorID, IAMSub: operatorID, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/staff_create_invite_2228_test.go:	require.NoError(t, db.Create(&models.Site{ID: siteID, TenantID: tenantID, OrgID: tenantID, Name",1
+backend,"backend/handlers/staff_create_invite_2228_test.go:			testutil.TestActor{TenantID: tenantID, OrgID: tenantID, UserID: operatorID, Role",1
+backend,backend/handlers/order_delivery_address_2010_test.go,1
+backend,backend/handlers/user_onboarding.go,1
+backend,"backend/handlers/settlement_1803_test.go:	tenantID, orgID, userID ",1
+backend,"backend/handlers/face_second_doc_1924_test.go:		TenantID: uuid.New().String(), OrgID",1
+backend,backend/handlers/repair_admin.go:	tenantID ,1
+backend,backend/handlers/repair_admin.go:	query ,1
+backend,backend/handlers/repair_admin.go:		tenantID ,1
+backend,backend/handlers/repair_admin.go,1
+backend,backend/handlers/repair_admin.go:		TenantID,1
+backend,backend/handlers/prepay_repair_service_2096_test.go:		TenantID,1
+backend,"backend/handlers/prepay_repair_service_2096_test.go:		ID: uuid.New().String(), TenantID: user.TenantID, UserID",1
+backend,backend/handlers/user_management.go:	ctx ,1
+backend,backend/handlers/user_management.go:			TenantID,1
+backend,backend/handlers/property.go:			TenantID,1
+backend,"backend/handlers/pending_order_test.go:		u := models.User{ID: id, TenantID: tenantID, OrgID: tenantID, IAMSub: id, Name: ""U"", Status",1
+backend,backend/handlers/pending_order_test.go,1
+backend,"backend/handlers/instrument_crud_test.go:	tenantID, orgID, userID ",1
+backend,backend/handlers/merchant.go:	query ,1
+backend,backend/handlers/merchant.go:		TenantID,1
+backend,backend/handlers/merchant.go:			TenantID,1
+backend,backend/handlers/merchant.go:	if err ,1
+backend,backend/handlers/instrument.go:		effectiveTenantID ,1
+backend,backend/handlers/instrument.go:					TenantID,1
+backend,backend/handlers/instrument.go:				TenantID,1
+backend,"backend/handlers/instrument.go:				""message""",1
+backend,backend/handlers/instrument.go:		TenantID,1
+backend,"backend/handlers/instrument.go:	log.Printf(""[DEBUG CreateInstrument] Before DB Create",1
+backend,backend/handlers/instrument.go:	// Step 3,1
+backend,"backend/handlers/instrument.go:			""message""",1
+backend,backend/handlers/instrument.go:	err ,1
+backend,backend/handlers/instrument.go:	groupQuery ,1
+backend,"backend/handlers/delivery_confirm_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/delivery_confirm_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID",1
+backend,"backend/handlers/technician_profile_test.go:	require.NoError(t, db.Create(&models.Site{ID: siteID, TenantID: tenantID, OrgID: tenantID, Name",1
+backend,"backend/handlers/technician_profile_test.go:			ID: u, IAMSub: u, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/technician_profile_test.go:	other := testutil.TestActor{TenantID: uuid.New().String(), OrgID: uuid.New().String(), UserID: uuid.New().String(), Role",1
+backend,"backend/handlers/technician_profile_test.go:	require.NoError(t, db.Create(&models.User{ID: techID, IAMSub: techID, TenantID: tenantID, OrgID: tenantID, Username: ""t1"", Name: ""师傅A"", Status",1
+backend,"backend/handlers/technician_profile_test.go:	require.NoError(t, db.Create(&models.User{ID: otherTech, IAMSub: otherTech, TenantID: tenantID, OrgID: tenantID, Username: ""t2"", Name: ""师傅B"", Status",1
+backend,"backend/handlers/technician_profile_test.go:			SiteID: uuid.New().String(), Type: ""service"", TechnicianID: &techID, TenantID: tenantID, Status",1
+backend,"backend/handlers/technician_profile_test.go:		SiteID: uuid.New().String(), Type: ""service"", TechnicianID: &otherTech, TenantID: tenantID, Status",1
+backend,"backend/handlers/technician_profile_test.go:	me := testutil.TestActor{TenantID: tenantID, OrgID: tenantID, UserID: techID, Role",1
+backend,"backend/handlers/technician_profile_test.go:		ID: initUser, IAMSub: initUser, TenantID: f.tenantID, OrgID",1
+backend,"backend/handlers/technician_profile_test.go:		UserID: initUser, TenantID: f.tenantID, Photo: ""i.jpg"", Bio",1
+backend,"backend/handlers/site_member_hook_2227_test.go:	tenantID, orgID, _ ",1
+backend,"backend/handlers/site_member_hook_2227_test.go:	require.NoError(t, db.Create(&models.Site{ID: siteID, TenantID: tenantID, OrgID: orgID, Name",1
+backend,"backend/handlers/site_member_hook_2227_test.go:		ID: uuid.New().String(), TenantID: tenantID, SiteID: siteID, UserID: userA, Role",1
+backend,"backend/handlers/site_member_hook_2227_test.go:		ID: uuid.New().String(), TenantID: tenantID, SiteID: siteID, UserID",1
+backend,backend/handlers/setup.go:		TenantID,1
+backend,backend/handlers/instrument_batch_import.go:		TenantID,1
+backend,backend/handlers/instrument_batch_import.go:				if err ,1
+backend,backend/handlers/instrument_batch_import.go:	err ,1
+backend,"backend/handlers/forwarding_session.go:		""tenant_id""",1
+backend,backend/handlers/forwarding_session.go:	query ,1
+backend,"backend/handlers/repair_service_reassign_2229_test.go:		ID: tech2Sub, IAMSub: tech2Sub, TenantID: f.tenantID, OrgID",1
+backend,"backend/handlers/repair_service_reassign_2229_test.go:		UserID: tech2Sub, TenantID: f.tenantID, Photo: ""t2.jpg"", Bio",1
+backend,"backend/handlers/repair_service_reassign_2229_test.go:		ID: siteAdminLocalID, IAMSub: siteAdminSub, TenantID: f.tenantID, OrgID",1
+backend,"backend/handlers/repair_service_reassign_2229_test.go:		TenantID: f.tenantID, SiteID: f.siteID, UserID: siteAdminLocalID, Role: ""site_admin"", Status",1
+backend,"backend/handlers/repair_service_reassign_2229_test.go:		ID: plainUserID, IAMSub: plainUserID, TenantID: f.tenantID, OrgID",1
+backend,"backend/handlers/repair_service_reassign_2229_test.go:		ID: techOtherSub, IAMSub: techOtherSub, TenantID: f.otherTenantID, OrgID",1
+backend,"backend/handlers/repair_service_reassign_2229_test.go:		UserID: techOtherSub, TenantID: f.otherTenantID, Photo: ""to.jpg"", Bio",1
+backend,"backend/handlers/repair_service_reassign_2229_test.go:		ID: uuid.NewString(), TenantID: f.tenantID, UserID: customerID, Type",1
+backend,"backend/handlers/repair_service_reassign_2229_test.go:	return testutil.TestActor{TenantID: f.tenantID, OrgID: f.orgID, UserID: sub, Role",1
+backend,"backend/handlers/repair_service_reassign_2229_test.go:	code, _ = svcPost(t, f, testutil.TestActor{TenantID: f.tenantID, OrgID: f.orgID, UserID: f.techID, Role",1
+backend,"backend/handlers/repair_service_reassign_2229_test.go:		ID: custID, IAMSub: custID, TenantID",1
+backend,"backend/handlers/repair_service_reassign_2229_test.go:	ctx := testutil.TestActor{TenantID: f.tenantID, OrgID: f.siteID, UserID: siteAdmin, Role",1
+backend,"backend/handlers/repair_service_reassign_2229_test.go:	memberCtx := testutil.TestActor{TenantID: f.tenantID, OrgID: f.siteID, UserID: f.techID, Role",1
+backend,"backend/handlers/repair_service_reassign_2229_test.go:	adminCtx := testutil.TestActor{TenantID: f.tenantID, OrgID: f.orgID, UserID: uuid.NewString(), Role",1
+backend,"backend/handlers/repair_service_reassign_2229_test.go:	orgCtx := testutil.TestActor{TenantID: f.orgID, OrgID: f.orgID, UserID: uuid.NewString(), Role",1
+backend,"backend/handlers/repair_service_tenant_2134_test.go:		ID: uuid.NewString(), TenantID: f.orgID, UserID: f.customerID, Type",1
+backend,"backend/handlers/repair_service_tenant_2134_test.go:		ID: uuid.NewString(), TenantID: f.tenantID, UserID: f.customerID, Type",1
+backend,"backend/handlers/repair_service_tenant_2134_test.go:	tech := testutil.TestActor{TenantID: f.orgID, OrgID: f.orgID, UserID: f.techID, Role",1
+backend,"backend/handlers/repair_service_tenant_2134_test.go:		ID: uuid.NewString(), TenantID: f.otherTenantID, UserID: f.customerID, Type",1
+backend,backend/handlers/staff_invite.go:		if err ,1
+backend,"backend/handlers/staff_invite.go:			meta = siteMeta{name: s.Name, orgID: s.OrgID, tenantID",1
+backend,backend/handlers/staff_invite.go:	if err ,1
+backend,backend/handlers/staff_invite.go:		TenantID,1
+backend,backend/handlers/wechatpay_callback.go:		TenantID,1
+backend,backend/handlers/site_member_common.go:				TenantID,1
+backend,backend/handlers/site_member_common.go,1
+backend,backend/handlers/site_member_common.go:			TenantID,1
+backend,backend/handlers/activity_log.go:	tenantID ,1
+backend,backend/handlers/activity_log.go:	if err ,1
+backend,"backend/handlers/merchant_order_test.go:			ID: uuid.New().String(), TenantID: tenantID, OrgID",1
+backend,backend/handlers/system.go:	tenantID ,1
+backend,backend/handlers/system.go:	q ,1
+backend,backend/handlers/payment_calculate.go:	tenantID ,1
+backend,backend/handlers/transit_site_admin.go,1
+backend,backend/handlers/transit_site_admin.go:	tenantID ,1
+backend,backend/handlers/transit_site_admin.go:		TenantID,1
+backend,"backend/handlers/transit_site_admin.go:	res, fail ",1
+backend,"backend/handlers/staff_create_iam_conflict_2243_test.go:		ID: operatorID, IAMSub: operatorID, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/staff_create_iam_conflict_2243_test.go:	require.NoError(t, db.Create(&models.Site{ID: siteID, TenantID: tenantID, OrgID: tenantID, Name",1
+backend,"backend/handlers/staff_create_iam_conflict_2243_test.go:			testutil.TestActor{TenantID: tenantID, OrgID: tenantID, UserID: operatorID, Role",1
+backend,backend/handlers/user_staff_test.go:		TenantID,1
+backend,backend/handlers/auth.go:						TenantID,1
+backend,backend/handlers/auth.go:								TenantID,1
+backend,backend/handlers/auth.go:				tenantID ,1
+backend,backend/handlers/auth.go:					TenantID,1
+backend,"backend/handlers/auth.go:			""tenant_id""",1
+backend,"backend/handlers/damage_notify_detail_1858_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/damage_notify_detail_1858_test.go:		ID: instrumentID, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/damage_notify_detail_1858_test.go:		ID: orderID, TenantID: tenantID, OrgID: orgID, UserID",1
+backend,"backend/handlers/damage_notify_detail_1858_test.go:			ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID",1
+backend,"backend/handlers/damage_notify_detail_1858_test.go:		ID: damageID, TenantID: tenantID, OrgID: orgID, LeaseID",1
+backend,"backend/handlers/damage_notify_detail_1858_test.go:		ID: notifID, TenantID: tenantID, OrgID: orgID, UserID",1
+backend,backend/handlers/wechatpay_prepay.go:	tenantID ,1
+backend,backend/handlers/wechatpay_prepay.go:		if err ,1
+backend,backend/handlers/wechatpay_prepay.go:			if err ,1
+backend,backend/handlers/wechatpay_prepay.go:		TenantID,1
+backend,backend/handlers/site.go:			TenantID,1
+backend,backend/handlers/site.go:	result ,1
+backend,backend/handlers/site.go,1
+backend,"backend/handlers/settlement_1764_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID",1
+backend,"backend/handlers/face_review_1791_test.go:		TenantID: ""00000000-0000-0000-0000-000000000000"", OrgID",1
+backend,"backend/handlers/face_review_1791_test.go:		TenantID: tenantID, OrgID",1
+backend,backend/handlers/face_review_1791_test.go:		ctx ,1
+backend,backend/handlers/billing_2003_test.go:		ctx ,1
+backend,backend/handlers/billing_2003_test.go:		TenantID,1
+backend,"backend/handlers/billing_2003_test.go:		ID: paymentID, TenantID: tenantID, UserID",1
+backend,"backend/handlers/billing_2003_test.go:		ID: uuid.New().String(), TenantID: tenantID, UserID",1
+backend,"backend/handlers/billing_2003_test.go:		ID: uuid.New().String(), TenantID",1
+backend,"backend/handlers/billing_2003_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID",1
+backend,"backend/handlers/instrument_loss_test.go:			ID: u, IAMSub: u, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/instrument_loss_test.go:	staff := testutil.TestActor{TenantID: tenantID, OrgID: siteID, UserID: staffSub, Role",1
+backend,"backend/handlers/instrument_loss_test.go:		ID: instID, TenantID: f.tenantID, OrgID",1
+backend,"backend/handlers/instrument_loss_test.go:			ID: orderID, TenantID: f.tenantID, OrgID: f.siteID, UserID",1
+backend,"backend/handlers/instrument_loss_test.go:			ID: uuid.New().String(), TenantID: f.tenantID, UserID",1
+backend,"backend/handlers/instrument_loss_test.go:		ID: uuid.New().String(), TenantID: f.tenantID, OrderID",1
+backend,backend/handlers/settings.go,1
+backend,backend/handlers/settings.go:	db ,1
+backend,backend/handlers/settings.go:	// Atomic upsert,1
+backend,backend/handlers/settings.go:		TenantID,1
+backend,"backend/handlers/settings.go:		Columns:   []clause.Column{{Name: ""tenant_id""}, {Name",1
+backend,backend/handlers/settings.go:	result ,1
+backend,backend/handlers/settings.go:			TenantID,1
+backend,backend/handlers/auto_confirm.go:			TenantID,1
+backend,backend/handlers/smtp_config.go:	if err ,1
+backend,"backend/handlers/my_roles_1884_test.go:	tenantID, orgID, _ ",1
+backend,"backend/handlers/my_roles_1884_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/my_roles_1884_test.go:	require.NoError(t, db.Create(&models.Site{ID: siteA, TenantID: tenantID, OrgID: orgID, Name",1
+backend,"backend/handlers/my_roles_1884_test.go:	require.NoError(t, db.Create(&models.Site{ID: siteB, TenantID: tenantID, OrgID: orgID, Name",1
+backend,"backend/handlers/my_roles_1884_test.go:	require.NoError(t, db.Create(&models.SiteMember{TenantID: tenantID, SiteID: siteA, UserID: userID, Role: ""site_member"", Status",1
+backend,"backend/handlers/my_roles_1884_test.go:	require.NoError(t, db.Create(&models.SiteMember{TenantID: tenantID, SiteID: siteB, UserID: userID, Role: ""repair_technician"", Status",1
+backend,"backend/handlers/transit_site_admin_test.go:	tenantID, _, _ ",1
+backend,"backend/handlers/transit_site_admin_test.go:		actor := testutil.TestActor{TenantID: tenantID, UserID: uuid.New().String(), Role",1
+backend,backend/handlers/transit_site_admin_test.go:		TenantID,1
+backend,backend/handlers/transit_site_admin_test.go,1
+backend,"backend/handlers/transit_site_admin_test.go:	controlledSite := models.Site{ID: uuid.New().String(), TenantID: tenantID, OrgID: tenantID, Name: ""受控网点A"", Type: ""store"", Status: ""active"", CreatedAt: time.Now(), UpdatedAt",1
+backend,"backend/handlers/transit_site_admin_test.go:	otherSite := models.Site{ID: uuid.New().String(), TenantID: tenantID, OrgID: tenantID, Name: ""普通网点"", Type: ""store"", Status: ""active"", CreatedAt: time.Now(), UpdatedAt",1
+backend,"backend/handlers/transit_site_admin_test.go:	otherMember := models.SiteMember{ID: uuid.New().String(), SiteID: otherSite.ID, UserID: otherUser, TenantID: tenantID, Role",1
+backend,backend/handlers/prepay_coupon_snapshot_test.go,1
+backend,"backend/handlers/shortfall_1746_test.go:		ID: orderID, TenantID: tenantID, OrgID: orgID, UserID",1
+backend,"backend/handlers/shortfall_1746_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID",1
+backend,"backend/handlers/instrument_batch_delete_test.go:	tenantID, orgID, userID ",1
+backend,backend/handlers/settlement_1743_test.go,1
+backend,"backend/handlers/settlement_1743_test.go:		ID: orderID, TenantID: tenantID, OrgID: tenantID, UserID",1
+backend,"backend/handlers/settlement_1743_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID: &tenantID, UserID: userID, OrderType",1
+backend,backend/handlers/settlement_1743_test.go:		TenantID,1
+backend,"backend/handlers/repair_auth_1882_test.go:	tenantID, orgID, _ ",1
+backend,"backend/handlers/repair_auth_1882_test.go:	require.NoError(t, db.Create(&models.Site{ID: siteA, TenantID: tenantID, OrgID: orgID, Name",1
+backend,"backend/handlers/repair_auth_1882_test.go:	require.NoError(t, db.Create(&models.Site{ID: siteB, TenantID: tenantID, OrgID: orgID, Name",1
+backend,"backend/handlers/repair_auth_1882_test.go:			ID: sub, IAMSub: sub, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/repair_auth_1882_test.go:			TenantID: tenantID, SiteID: siteID, UserID: sub, Role: role, Status",1
+backend,"backend/handlers/repair_auth_1882_test.go:		ID: id, TenantID: f.tenantID, OrgID",1
+backend,"backend/handlers/repair_service_test.go:	tenantID, orgID, _ ",1
+backend,"backend/handlers/repair_service_test.go:	otherTenantID, _, _ ",1
+backend,"backend/handlers/repair_service_test.go:	require.NoError(t, db.Create(&models.Site{ID: siteID, TenantID: tenantID, OrgID: orgID, Name",1
+backend,"backend/handlers/repair_service_test.go:	require.NoError(t, db.Create(&models.Site{ID: otherSiteID, TenantID: otherTenantID, OrgID: orgID, Name",1
+backend,"backend/handlers/repair_service_test.go:		TenantID: ""00000000-0000-0000-0000-000000000000"", OrgID",1
+backend,"backend/handlers/repair_service_test.go:			ID: u, IAMSub: u, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/repair_service_test.go:		TenantID: tenantID, SiteID: siteID, UserID: techID, Role: ""repair_technician"", Status",1
+backend,"backend/handlers/repair_service_test.go:		TenantID: tenantID, OrgID: orgID, Name: ""测试商户"", Address",1
+backend,"backend/handlers/repair_service_test.go:		UserID: techID, TenantID: tenantID, Photo: ""p.jpg"", Bio",1
+backend,"backend/handlers/repair_service_test.go:		TenantID: otherTenantID, SiteID: otherSiteID, UserID: otherStaffSub, Role: ""site_member"", Status",1
+backend,"backend/handlers/repair_service_test.go:		otherTenantID: otherTenantID, otherSiteID",1
+backend,"backend/handlers/repair_service_test.go:	tech := testutil.TestActor{TenantID: f.tenantID, OrgID: f.siteID, UserID: f.techID, Role",1
+backend,backend/handlers/repair_service_test.go:	scoped ,1
+backend,"backend/handlers/repair_service_test.go:		ID: uuid.New().String(), TenantID: f.tenantID, UserID: f.customerSub, Type",1
+backend,"backend/handlers/user_me_tenant_name_2117_test.go:		actor := testutil.TestActor{TenantID: staffTenant, OrgID: uuid.NewString(), UserID: userID, Role",1
+backend,"backend/handlers/user_me_tenant_name_2117_test.go:		actor := testutil.TestActor{TenantID: tenantID, OrgID: """", UserID: userID, Role",1
+backend,"backend/handlers/account_mgmt_2064_test.go:			ID: id, IAMSub: id, TenantID: tid, OrgID: org, Username: ""u-"" + id[:8], Name: ""n-"" + id[:4], Role: role, Status",1
+backend,"backend/handlers/account_mgmt_2064_test.go:	require.NoError(t, db.Create(&models.Site{ID: siteID, TenantID: tid, OrgID: tid, Name: ""S"", Type",1
+backend,"backend/handlers/account_mgmt_2064_test.go:	require.NoError(t, db.Create(&models.SiteMember{TenantID: tid, SiteID: siteID, UserID: memberID, Role: ""STAFF"", Status",1
+backend,"backend/handlers/account_mgmt_2064_test.go:	require.NoError(t, db.Create(&models.TechnicianProfile{ID: uuid.New().String(), UserID: techID, TenantID: tid, Status",1
+backend,"backend/handlers/account_mgmt_2064_test.go:			testutil.TestActor{TenantID: """", OrgID: org, UserID: adminID, Role",1
+backend,"backend/handlers/account_mgmt_2064_test.go:			actor = testutil.TestActor{TenantID: uuid.New().String(), OrgID: uuid.New().String(), UserID: uuid.New().String(), Role",1
+backend,"backend/handlers/account_mgmt_2064_test.go:			actor = testutil.TestActor{TenantID: """", OrgID: root, UserID: uuid.New().String(), Role",1
+backend,backend/handlers/billing.go:	if err ,1
+backend,backend/handlers/billing.go:	found ,1
+backend,backend/handlers/billing.go:		TenantID,1
+backend,backend/handlers/guarantor_ocr_test.go,1
+backend,backend/handlers/guarantor_ocr_test.go:		TenantID,1
+backend,backend/handlers/warehouse.go:			TenantID,1
+backend,"backend/handlers/create_user_2068_test.go:		ID: operatorID, IAMSub: operatorID, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/create_user_2068_test.go:	require.NoError(t, db.Create(&models.Site{ID: siteID, TenantID: tenantID, OrgID: tenantID, Name: ""S2068"", Type",1
+backend,"backend/handlers/create_user_2068_test.go:			testutil.TestActor{TenantID: tenantID, OrgID: tenantID, UserID: operatorID, Role",1
+backend,backend/handlers/create_user_2068_test.go,1
+backend,backend/handlers/update_current_user_test.go:		TenantID,1
+backend,backend/handlers/update_current_user_test.go,1
+backend,"backend/handlers/order.go:		""tenant_id""",1
+backend,"backend/handlers/order.go:		log.Printf(""[GetOrder] merchant lookup failed for tenant=%s",1
+backend,backend/handlers/order.go:			TenantID,1
+backend,backend/handlers/order.go:		if err ,1
+backend,"backend/handlers/instrument_batch_import_test.go:		ID: siteID, TenantID: tenantID, OrgID: orgID, Name",1
+backend,backend/handlers/mall_image_test.go,1
+backend,"backend/handlers/repair_request_auth_1881_test.go:	tenantID, orgID, _ ",1
+backend,"backend/handlers/repair_request_auth_1881_test.go:		require.NoError(t, db.Create(&models.Site{ID: s, TenantID: tenantID, OrgID: orgID, Name: ""S-"" + s[",1
+backend,"backend/handlers/repair_request_auth_1881_test.go:			ID: sub, IAMSub: sub, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/repair_request_auth_1881_test.go:			require.NoError(t, db.Create(&models.SiteMember{TenantID: tenantID, SiteID: siteID, UserID: sub, Role: role, Status",1
+backend,"backend/handlers/repair_request_auth_1881_test.go:		ID: id, TenantID: f.tenantID, SiteID: f.siteA, UserID",1
+backend,backend/handlers/registration_helpers.go:		TenantID,1
+backend,backend/handlers/registration_helpers.go:			TenantID,1
+backend,backend/handlers/registration_helpers.go:					TenantID,1
+backend,backend/handlers/point_settings_test.go,1
+backend,backend/handlers/merchant_invoice.go:	query ,1
+backend,backend/handlers/merchant_invoice.go:		TenantID,1
+backend,"backend/handlers/webhook_config.go:		""tenant_id""",1
+backend,"backend/handlers/repair_acceptance_1892_test.go:		ID: uuid.New().String(), TenantID: f.tenantID, OrgID",1
+backend,"backend/handlers/repair_acceptance_1892_test.go:		ID: sub, IAMSub: sub, TenantID: f.tenantID, OrgID",1
+backend,backend/handlers/prepay_order_id_2110_test.go:		TenantID,1
+backend,"backend/handlers/platform_staff_1897_test.go:			ID: sub, IAMSub: sub, TenantID: tenantID, OrgID",1
+backend,backend/handlers/instrument_photo.go:	// Create directory structure,1
+backend,"backend/handlers/instrument_photo.go:		""tenant_id""",1
+backend,"backend/handlers/points_batch_1947_test.go:		ID: uuid.New().String(), TenantID: tenantID, UserID",1
+backend,"backend/handlers/invoice_test.go:				""tenant_id""",1
+backend,backend/handlers/invoice_test.go:				TenantID string `json,1
+backend,backend/handlers/invoice_test.go:				TenantID,1
+backend,"backend/handlers/invoice_test.go:						""tenant_id""",1
+backend,"backend/handlers/invoice_test.go:			{""tenant_id"": tenantID, ""order_ids""",1
+backend,backend/handlers/invoice_test.go:	otherTenantID ,1
+backend,backend/handlers/invoice_test.go:	router ,1
+backend,backend/handlers/face_review.go:	ctx ,1
+backend,backend/handlers/face_review.go:	targetUserFound ,1
+backend,backend/handlers/face_review.go:		TenantID,1
+backend,backend/handlers/technician_profile.go:	query ,1
+backend,"backend/handlers/technician_profile.go:			""id"": p.ID, ""user_id"": p.UserID, ""tenant_id""",1
+backend,"backend/handlers/technician_profile.go:		ID: uuid.New().String(), UserID: body.UserID, TenantID",1
+backend,"backend/handlers/technician_profile.go:			""tenant_id""",1
+backend,"backend/handlers/technician_profile.go:		""tenant_id""",1
+backend,"backend/handlers/settlement_1855_test.go:		ID: instID, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/settlement_1855_test.go:		TenantID: tenantID, OrgID: orgID, UserID: userID, InstrumentID",1
+backend,"backend/handlers/settlement_1855_test.go:		TenantID: tenantID, UserID: userID, OrderID",1
+backend,"backend/handlers/settlement_1855_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID, LeaseID",1
+backend,"backend/handlers/settlement_1855_test.go:			TenantID: tenantID, OrgID: &orgID, UserID: userID, OrderID",1
+backend,backend/handlers/repair_service.go:	tid ,1
+backend,"backend/handlers/repair_service.go:			""tenant_id""",1
+backend,backend/handlers/repair_service.go:		if t ,1
+backend,backend/handlers/repair_service.go:	orderTenant ,1
+backend,"backend/handlers/repair_service.go:		""tenant_id""",1
+backend,backend/handlers/repair_service.go:				TenantID,1
+backend,backend/handlers/repair_service.go:	} else if tenantID ,1
+backend,"backend/handlers/staff_refund_1860_test.go:		ID: siteRowID, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/staff_refund_1860_test.go:		TenantID: tenantID, UserID: userID, OrderID",1
+backend,backend/handlers/invoice.go:		TenantID     string `json,1
+backend,backend/handlers/invoice.go:	merchantMap ,1
+backend,backend/handlers/invoice.go:			TenantID,1
+backend,"backend/handlers/invoice.go:	TenantID string   `json:""tenant_id"" binding",1
+backend,backend/handlers/invoice.go:		TenantID   string `json,1
+backend,backend/handlers/invoice.go:			if err ,1
+backend,backend/handlers/invoice.go:					TenantID,1
+backend,backend/handlers/invoice.go:					OrgID,1
+backend,"backend/handlers/invoice.go:			""tenant_id""",1
+backend,backend/handlers/repair_config.go,1
+backend,backend/handlers/repair_config.go:			TenantID,1
+backend,backend/handlers/repair_config.go:		if err ,1
+backend,"backend/handlers/repair_config.go:		db.Create(&models.SystemSetting{TenantID: tenantID, SettingKey: key, SettingValue",1
+backend,"backend/handlers/repair_config.go:		db.Create(&models.SystemSetting{TenantID: systemTenantID, SettingKey: keyRepairCheckFee, SettingValue",1
+backend,"backend/handlers/instrument_props_1896_test.go:		ID: instID, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/instrument_props_1896_test.go:			ID: uuid.New().String(), TenantID: tenantID, Name",1
+backend,"backend/handlers/instrument_props_1896_test.go:		ID: uuid.New().String(), TenantID",1
+backend,"backend/handlers/admin.go:				""tenant_id""",1
+backend,"backend/handlers/admin.go:		c.JSON(http.StatusUnauthorized, gin.H{""code"": 40100, ""message""",1
+backend,"backend/handlers/order_no_test.go:	require.NoError(t, db.Create(&models.User{ID: ""11111111-1111-4111-8111-111111111111"", IAMSub: ""11111111-1111-4111-8111-111111111111"", TenantID: tenantID, OrgID: tenantID, Username: ""u"", Name: ""n"", Status",1
+backend,"backend/handlers/order_no_test.go:	require.NoError(t, db.Create(&models.Instrument{ID: ""22222222-2222-4222-8222-222222222222"", TenantID: tenantID, SN: ""SN-ORDNO"", StockStatus",1
+backend,"backend/handlers/order_no_test.go:	require.NoError(t, db.Create(&models.User{ID: ""11111111-1111-4111-8111-1111111111aa"", IAMSub: ""11111111-1111-4111-8111-1111111111aa"", TenantID: tenantID, OrgID: tenantID, Username: ""u2"", Name: ""n2"", Status",1
+backend,"backend/handlers/order_no_test.go:	require.NoError(t, db.Create(&models.Instrument{ID: ""22222222-2222-4222-8222-2222222222bb"", TenantID: tenantID, SN: ""SN-EMPTY-NO"", StockStatus",1
+backend,"backend/handlers/order_no_test.go:			ID: uuid.New().String(), TenantID: tenantID, OrgID",1
+backend,"backend/handlers/instrument_sort_1797_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID",1
+backend,backend/handlers/instrument_sort_1797_test.go:		ctx ,1
+backend,backend/handlers/instrument_sort_1797_test.go,1
+backend,backend/handlers/confirmation_session.go:		TenantID,1
+backend,backend/handlers/confirmation_session.go:			TenantID,1
+backend,"backend/handlers/all_users_bio_2073_test.go:		ID: operatorID, IAMSub: operatorID, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/all_users_bio_2073_test.go:	require.NoError(t, db.Create(&models.Site{ID: siteID, TenantID: tenantID, OrgID: tenantID, Name: ""S2073"", Type",1
+backend,"backend/handlers/all_users_bio_2073_test.go:			testutil.TestActor{TenantID: tenantID, OrgID: tenantID, UserID: operatorID, Role",1
+backend,"backend/handlers/all_users_bio_2073_test.go:			ID: u.id, IAMSub: u.id, TenantID: u.tid, OrgID: u.tid, Username: ""u-"" + u.id[:8], Status",1
+backend,"backend/handlers/all_users_bio_2073_test.go:	r := mkRouter(testutil.TestActor{TenantID: tenantID, OrgID: tenantID, UserID: uuid.New().String(), Role",1
+backend,"backend/handlers/all_users_bio_2073_test.go:	r2 := mkRouter(testutil.TestActor{TenantID: otherTid, OrgID: otherTid, UserID: uuid.New().String(), Role",1
+backend,"backend/handlers/repair_1866_test.go:	tenantID, orgID, _ ",1
+backend,"backend/handlers/repair_1866_test.go:		ID: damageID, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/repair_1866_test.go:	tenantA, orgA, _ ",1
+backend,"backend/handlers/repair_1866_test.go:	tenantB, orgB, _ ",1
+backend,"backend/handlers/repair_1866_test.go:		ID: instA, TenantID: tenantA, OrgID",1
+backend,"backend/handlers/repair_1866_test.go:		ID: instB, TenantID: tenantB, OrgID",1
+backend,"backend/handlers/repair_1866_test.go:		ID: uuid.New().String(), TenantID: tenantA, OrgID",1
+backend,backend/handlers/repair_1866_test.go:				TenantID string `json,1
+backend,"backend/handlers/repair_1866_test.go:	assert.Equal(t, tenantA, resp.Data.List[0].TenantID, ""T4",1
+backend,backend/handlers/repair.go:		tenantID ,1
+backend,backend/handlers/repair.go:				TenantID,1
+backend,"backend/handlers/refund_appeal_notify_test.go:		{ID: uuid.New().String(), TenantID: tenantID, SiteID: siteID.String(), UserID: staffAdmin, Role: ""site_admin"", Status",1
+backend,"backend/handlers/refund_appeal_notify_test.go:		{ID: uuid.New().String(), TenantID: tenantID, SiteID: siteID.String(), UserID: staffMember, Role: ""site_member"", Status",1
+backend,"backend/handlers/refund_appeal_notify_test.go:		ID: uuid.New().String(), TenantID: tenantID, SiteID",1
+backend,"backend/handlers/refund_appeal_notify_test.go:		TenantID: tenantID, OrgID",1
+backend,"backend/handlers/refund_appeal_notify_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID, UserID",1
+backend,backend/handlers/site_member.go:	result ,1
+backend,"backend/handlers/technician_public_avatar_2076_test.go:		ID: userNoProfilePhoto, IAMSub: userNoProfilePhoto, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/technician_public_avatar_2076_test.go:		ID: userWithProfilePhoto, IAMSub: userWithProfilePhoto, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/technician_public_avatar_2076_test.go:		ID: uuid.New().String(), UserID: userNoProfilePhoto, TenantID: tenantID, Photo: """", Status",1
+backend,"backend/handlers/technician_public_avatar_2076_test.go:		ID: uuid.New().String(), UserID: userWithProfilePhoto, TenantID",1
+backend,"backend/handlers/role_manage.go:	TenantID      string         `gorm:""type:uuid;not null"" json",1
+backend,backend/handlers/role_manage.go:		TenantID,1
+backend,"backend/handlers/role_manage.go:		Where(""sites.tenant_id = ? AND (site_members.role = ? OR site_members.roles @> jsonb_build_array(?:",1
+backend,"backend/handlers/membership_dupe_1752_test.go:		ID: uuid.New().String(), TenantID: user.TenantID, OrgID",1
+backend,"backend/handlers/audit_jsonb_2062_test.go:		ID: uuid.New().String(), TenantID: uuid.New().String(), UserID",1
+backend,"backend/handlers/audit_jsonb_2062_test.go:		ID: instID, TenantID: tenantID, OrgID: &orgID, SN: ""SN-2062"", StockStatus",1
+backend,"backend/handlers/audit_jsonb_2062_test.go:		ID: orderID, TenantID: tenantID, OrgID: orgID, UserID",1
+backend,backend/handlers/audit_jsonb_2062_test.go,1
+backend,"backend/handlers/audit_jsonb_2062_test.go:	actor := testutil.TestActor{TenantID: """", UserID: uuid.New().String(), Role",1
+backend,backend/handlers/migrate_banner_webp_test.go:		TenantID,1
+backend,backend/handlers/inventory.go:		tid ,1
+backend,backend/handlers/inventory.go:		siteQuery ,1
+backend,backend/handlers/inventory.go:	tenantID ,1
+backend,backend/handlers/inventory.go,1
+backend,backend/handlers/user_settlement.go:		TenantID,1
+backend,backend/handlers/user_settlement.go:						TenantID,1
+backend,backend/handlers/instrument_promo_override.go:	if err ,1
+backend,backend/handlers/instrument_promo_override.go:	result ,1
+backend,backend/handlers/instrument_promo_override.go:			TenantID,1
+backend,backend/handlers/iam_callback.go:			TenantID,1
+backend,backend/handlers/iam_callback.go:		TenantID,1
+backend,"backend/handlers/wx_merge_2228_test.go:			testutil.TestActor{UserID: sub, TenantID: uuid.New().String(), OrgID",1
+backend,backend/handlers/gift_policy_test.go:		TenantID,1
+backend,backend/handlers/user_management_idcard_test.go:		TenantID,1
+backend,"backend/handlers/wechat_bind_test.go:	user := models.User{ID: ""6d1e2c3a-0000-4000-8000-000000000101"", IAMSub: ""iam-sub-0001"", TenantID: ""00000000-0000-0000-0000-000000000001"", OrgID: ""00000000-0000-0000-0000-000000000000"", Username",1
+backend,"backend/handlers/wechat_bind_test.go:	user := models.User{ID: ""6d1e2c3a-0000-4000-8000-000000000102"", IAMSub: ""iam-sub-0002"", TenantID: ""00000000-0000-0000-0000-000000000001"", OrgID: ""00000000-0000-0000-0000-000000000000"", Username",1
+backend,"backend/handlers/wechat_bind_test.go:	user := models.User{ID: ""6d1e2c3a-0000-4000-8000-000000000104"", IAMSub: ""iam-sub-0004"", TenantID: ""00000000-0000-0000-0000-000000000001"", OrgID: ""00000000-0000-0000-0000-000000000000"", Username",1
+backend,"backend/handlers/instrument_scope_1911_test.go:	tenantID, orgA, _ ",1
+backend,"backend/handlers/instrument_scope_1911_test.go:	require.NoError(t, db.Create(&models.Site{ID: siteA, TenantID: tenantID, OrgID: orgA, Name",1
+backend,"backend/handlers/instrument_scope_1911_test.go:	require.NoError(t, db.Create(&models.Site{ID: siteB, TenantID: tenantID, OrgID: orgB, Name",1
+backend,"backend/handlers/instrument_scope_1911_test.go:			ID: uuid.New().String(), TenantID: tenantID, OrgID",1
+backend,"backend/handlers/instrument_scope_1911_test.go:		ID: techID, IAMSub: techID, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/instrument_scope_1911_test.go:			TenantID: tenantID, SiteID: site, UserID",1
+backend,"backend/handlers/instrument_scope_1911_test.go:			TenantID: tenantID, OrgID: orgA, UserID",1
+backend,"backend/handlers/refund_flow_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",1
+backend,backend/handlers/refund_flow_test.go:		TenantID,1
+backend,backend/handlers/inspect_return_1801_test.go,1
+backend,"backend/handlers/inspect_return_1801_test.go:		ID: order.InstrumentID, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/deposit_waiver_1867_test.go:		ID: userID, IAMSub: iamSub, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/deposit_waiver_1867_test.go:		ID: instID, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/deposit_waiver_1867_test.go:	actor := testutil.TestActor{TenantID: tenantID, OrgID: orgID, UserID: iamSub, Role",1
+backend,"backend/handlers/weapp_staff_orders_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",1
+backend,backend/handlers/public.go:		instrTransitInfo ,1
+backend,backend/handlers/public.go:			if err ,1
+backend,"backend/handlers/public.go:			""tenant_id""",1
+backend,backend/handlers/public.go:	transitInfo ,1
+backend,backend/handlers/public.go:	tenantName ,1
+backend,"backend/handlers/public.go:		""tenant_id""",1
+backend,"backend/handlers/public.go:		db.Create(&models.SystemSetting{TenantID: tenantID, SettingKey: key, SettingValue",1
+backend,backend/handlers/renewal_1781_test.go,1
+backend,"backend/handlers/renewal_1781_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",1
+backend,backend/handlers/label.go:	query ,1
+backend,"backend/handlers/label.go:		""tenant_id""",1
+backend,"backend/handlers/repair_request.go:		if t, ok ",1
+backend,"backend/handlers/repair_request.go:			""tenant_id""",1
+backend,"backend/handlers/repair_request.go:		""tenant_id""",1
+backend,backend/handlers/repair_request.go:	tenantID ,1
+backend,backend/handlers/repair_request.go:		TenantID,1
+backend,backend/handlers/repair_request.go:		if err ,1
+backend,"backend/handlers/renewal_settlement_1997_test.go:		TenantID: tenantID, OrgID: &orgID, SN: ""1997c-"" + uuid.New().String()[",1
+backend,"backend/handlers/renewal_settlement_1997_test.go:		TenantID: tenantID, OrgID: orgID, UserID: userID, InstrumentID",1
+backend,backend/handlers/platform_staff_1795_test.go,1
+backend,backend/handlers/weapp_staff_flow_test.go,1
+backend,backend/handlers/repair_request_test.go:			TenantID,1
+backend,backend/handlers/reserved_order_scheduler.go:				TenantID,1
+backend,"backend/handlers/site_member_test.go:	site := models.Site{ID: uuid.New().String(), Name: ""Role Site"", TenantID: tenantID, OrgID: uuid.New().String(), Status",1
+backend,"backend/handlers/site_member_test.go:	user := models.User{ID: uuid.New().String(), TenantID: tenantID, OrgID: site.OrgID, Name: ""U"", Status",1
+backend,"backend/handlers/site_member_test.go:		ID: uuid.New().String(), TenantID: tenantID, SiteID: site.ID, UserID: user.ID, Role",1
+backend,backend/handlers/site_member_test.go:		ctx ,1
+backend,backend/handlers/banner.go:	tenantID ,1
+backend,backend/handlers/banner.go:		TenantID,1
+backend,backend/handlers/user_id_photos_test.go:		TenantID,1
+backend,"backend/handlers/repair_records_1873_test.go:		ID: uuid.New().String(), IAMSub: iamSub, TenantID: tenantID, OrgID",1
+backend,backend/handlers/banner_test.go,1
+backend,"backend/handlers/face_capture_1790_test.go:		TenantID: uuid.New().String(), OrgID",1
+backend,"backend/handlers/identity_gate_test.go:			ID: uuid.New().String(), TenantID: uuid.New().String(), OrgID",1
+backend,backend/handlers/instrument_media.go:			TenantID,1
+backend,backend/handlers/instrument_media.go:	if tid ,1
+backend,"backend/handlers/member_invite_2114_test.go:	tid, org, _ ",1
+backend,"backend/handlers/member_invite_2114_test.go:		ID: merchantID, TenantID: tid, OrgID: org, AdminUID: uuid.New().String(), Name: ""卡丹萨"", Status",1
+backend,"backend/handlers/member_invite_2114_test.go:		ID: siteID, TenantID: tid, OrgID: siteOrg, Name: ""西铁营店"", Type: ""normal"", Status",1
+backend,"backend/handlers/member_invite_2114_test.go:		ID: adminID, IAMSub: adminID, TenantID: tid, OrgID: org, Role: ""OWNER"", Name: ""商户管理员"", Status",1
+backend,"backend/handlers/member_invite_2114_test.go:			testutil.TestActor{TenantID: tid, OrgID: org, UserID: adminID, Role",1
+backend,backend/handlers/prepay_shortfall_test.go:		TenantID,1
+backend,"backend/handlers/prepay_shortfall_test.go:		ID: uuid.New().String(), TenantID: user.TenantID, OrgID",1
+backend,"backend/handlers/prepay_shortfall_test.go:		ID: uuid.New().String(), TenantID: user.TenantID, UserID: user.ID, OrderID",1
+backend,"backend/handlers/instrument_restore_1767_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/instrument_restore_1767_test.go:		ID: uuid.New().String(), TenantID",1
+backend,"backend/handlers/promo_points_1757_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID, UserID",1
+backend,"backend/handlers/settlement_calculation_1738_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",1
+backend,backend/handlers/personnel.go:	tid ,1
+backend,backend/handlers/renewal.go:	tenantID ,1
+backend,backend/handlers/renewal.go:		if err ,1
+backend,backend/handlers/renewal.go:		TenantID,1
+backend,backend/handlers/renewal.go:			TenantID,1
+backend,backend/handlers/repair_service_admin_2129.go:	tid ,1
+backend,backend/handlers/repair_service_admin_2129.go:	scopeIDs ,1
+backend,backend/handlers/merchant_member.go:						TenantID,1
+backend,backend/handlers/merchant_member.go:				TenantID,1
+backend,backend/handlers/merchant_member.go:			TenantID,1
+backend,backend/handlers/merchant_member.go:	result ,1
+backend,backend/handlers/auth_test.go,1
+backend,"backend/handlers/auth_test.go:			""nickname"": ""小张"", ""role"": ""USER"", ""org_id"": """", ""tenant_id""",1
+backend,"backend/handlers/auth_test.go:				""nickname"": ""小张"", ""role"": ""USER"", ""org_id"": """", ""tenant_id""",1
+backend,backend/handlers/auth_test.go:					TenantID     string `json,1
+backend,"backend/handlers/staff_invite_test.go:		TenantID: uuid.New().String(), OrgID: merchantOrg, Name",1
+backend,"backend/handlers/staff_invite_test.go:		ID: realSiteID, TenantID: merchantOrg, OrgID: uuid.New().String(), Name",1
+backend,"backend/handlers/org_management_test.go:	tenantID, orgID, userID ",1
+backend,backend/handlers/org_management_test.go:		TenantID,1
+backend,"backend/handlers/member_invite_2114_iam_test.go:		ID: siteID, Name: ""P1 Site"", TenantID: tenantID, OrgID: iamOrgC2114, Status",1
+backend,"backend/handlers/member_invite_2114_iam_test.go:		ID: userID, IAMSub: ""sub-"" + userID, TenantID: tenantID, OrgID",1
+backend,backend/handlers/member_invite_2114_iam_test.go,1
+backend,"backend/handlers/iam_proxy_test.go:				""tenant_id""",1
+backend,"backend/handlers/iam_proxy_test.go:					""tenant_id""",1
+backend,backend/handlers/iam_proxy_test.go:			TenantID,1
+backend,backend/handlers/iam_proxy_test.go:		TenantID,1
+backend,"backend/handlers/notification_test.go:			TenantID: notifyTenantUUID, OrgID: notifyTenantUUID, UserID: localID, Type",1
+backend,backend/handlers/merchant_order.go:	tenantID ,1
+backend,backend/handlers/merchant_order.go,1
+backend,"backend/handlers/warehouse_test.go:		ID: uuid.New().String(), TenantID: tenantID, UserID",1
+backend,"backend/handlers/warehouse_test.go:		ID: orderID, TenantID: tenantID, UserID: uuid.New().String(), OrgID",1
+backend,"backend/handlers/warehouse_test.go:				ID: userID, TenantID: tenantID, OrgID: tenantID, IAMSub",1
+backend,"backend/handlers/warehouse_test.go:				ID: orderID, TenantID: tenantID, UserID",1
+backend,"backend/handlers/warehouse_test.go:				OrderID: &orderIDCopy, UserID: userID, TenantID: tenantID, Status",1
+backend,"backend/handlers/pricing_helpers_test.go:		ID: ""00000000-0000-4000-8000-0000000000a3"", TenantID: tenantID, OrgID",1
+backend,"backend/handlers/pricing_helpers_test.go:	order := &models.Order{ID: ""00000000-0000-4000-8000-0000000000a4"", InstrumentID: inst.ID, TenantID",1
+backend,"backend/handlers/pricing_helpers_test.go:		ID: ""00000000-0000-4000-8000-0000000000a7"", TenantID: tenantID, OrgID",1
+backend,"backend/handlers/pricing_helpers_test.go:	order3 := &models.Order{ID: ""00000000-0000-4000-8000-0000000000a8"", InstrumentID: inst3.ID, TenantID",1
+backend,"backend/handlers/pricing_helpers_test.go:		ID: ""00000000-0000-4000-8000-0000000000a5"", TenantID: tenantID, OrgID",1
+backend,"backend/handlers/pricing_helpers_test.go:	order2 := &models.Order{ID: ""00000000-0000-4000-8000-0000000000a6"", InstrumentID: inst2.ID, TenantID",1
+backend,backend/handlers/instrument_scrap.go:	tenantID ,1
+backend,backend/handlers/instrument_scrap.go:	if err ,1
+backend,"backend/handlers/user_detail_2108_test.go:			ID: id, IAMSub: id, TenantID: tid, OrgID: tid, Username: ""u-"" + id[:8], Name: ""n-"" + id[:4], Role: ""USER"", Status",1
+backend,"backend/handlers/user_detail_2108_test.go:	require.NoError(t, db.Create(&models.Site{ID: siteID, TenantID: tid, OrgID: tid, Name: ""S"", Type",1
+backend,"backend/handlers/user_detail_2108_test.go:	require.NoError(t, db.Create(&models.SiteMember{TenantID: tid, SiteID: siteID, UserID: memberID, Role: ""STAFF"", Status",1
+backend,"backend/handlers/user_detail_2108_test.go:	require.NoError(t, db.Create(&models.TechnicianProfile{ID: uuid.New().String(), UserID: techID, TenantID: tid, Status",1
+backend,"backend/handlers/user_detail_2108_test.go:			testutil.TestActor{TenantID: """", OrgID: tid, UserID: adminID, Role",1
+backend,backend/handlers/order_test.go:		TenantID,1
+backend,backend/handlers/order_test.go:			TenantID,1
+backend,backend/handlers/permission_manage.go:	if err ,1
+backend,"backend/handlers/permission_manage.go:	if err := h.db.Exec(""UPDATE site_members SET role = ?, roles = jsonb_build_array(?:",1
+backend,backend/handlers/api.go:	transitInfo ,1
+backend,"backend/handlers/api.go:		""tenant_id""",1
+backend,"backend/handlers/api.go:			""tenant_id""",1
+backend,backend/handlers/api.go:	query ,1
+backend,backend/handlers/api.go:		TenantID,1
+backend,backend/handlers/logistics_monitor.go:			TenantID,1
+backend,backend/handlers/gift_policies.go:		TenantID,1
+backend,"backend/handlers/gift_policies.go:		Columns:   []clause.Column{{Name: ""tenant_id""}, {Name",1
+backend,"backend/handlers/repair_complete_1875_test.go:	tenantID, orgID, _ ",1
+backend,"backend/handlers/repair_complete_1875_test.go:		ID: instID, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/repair_site_1889_test.go:	tenantID, orgID, _ ",1
+backend,"backend/handlers/repair_site_1889_test.go:		ID: siteID, TenantID: tenantID, OrgID: orgID, Name",1
+backend,"backend/handlers/repair_site_1889_test.go:		ID: operatorSub, IAMSub: operatorSub, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/repair_site_1889_test.go:		TenantID: tenantID, SiteID: siteID, UserID",1
+backend,"backend/handlers/repair_site_1889_test.go:		ID: instrumentID, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/repair_site_1889_test.go:		ID: orderID, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/repair_site_1889_test.go:		ID: lonelySub, IAMSub: lonelySub, TenantID: f.tenantID, OrgID",1
+backend,backend/handlers/promo_override_1863_test.go,1
+backend,backend/handlers/user_rental.go:	query ,1
+backend,backend/handlers/user_rental.go:		PaymentDeadline,1
+backend,backend/handlers/user_rental.go:	if ti ,1
+backend,backend/handlers/user_rental.go:			PaymentDeadline,1
+backend,backend/handlers/user_staff.go:	query ,1
+backend,backend/handlers/user_staff.go:		TenantID,1
+backend,backend/handlers/user_staff.go:				TenantID,1
+backend,"backend/handlers/user_staff.go:				ID: uuid.New().String(), UserID: user.ID, TenantID",1
+backend,backend/handlers/user_staff.go:			if err ,1
+backend,"backend/handlers/user_staff.go:				TenantID: tenantID, MerchantID: merch.ID, UserID",1
+backend,backend/handlers/user_staff.go:				if err ,1
+backend,backend/handlers/user_staff.go:	// #2117,1
+backend,backend/handlers/user_staff.go:	tenantForMerchant ,1
+backend,backend/handlers/user_staff.go:	if jwtTid ,1
+backend,backend/handlers/user_staff.go:	scope ,1
+backend,backend/handlers/dashboard_stats_2005_test.go,1
+backend,"backend/handlers/dashboard_stats_2005_test.go:	require.NoError(t, db.Create(&models.Merchant{ID: uuid.New().String(), TenantID: tid, OrgID: tid, AdminUID: uuid.New().String(), Name",1
+backend,"backend/handlers/dashboard_stats_2005_test.go:		ID: uuid.New().String(), IAMSub: uuid.New().String(), TenantID: tid, OrgID",1
+backend,backend/handlers/dashboard_stats_2005_test.go:// #2005 S1,1
+backend,"backend/handlers/dashboard_stats_2005_test.go:		require.NoError(t, db.Create(&models.Instrument{TenantID: tenant, OrgID: &tenant, SN: ""A-"" + uuid.New().String()[:8], StockStatus",1
+backend,"backend/handlers/dashboard_stats_2005_test.go:		require.NoError(t, db.Create(&models.Instrument{TenantID: tenant, OrgID: &tenant, SN: ""B-"" + uuid.New().String()[:8], StockStatus",1
+backend,"backend/handlers/dashboard_stats_2005_test.go:				TenantID: tenant, OrgID: tenant, UserID: uuid.New().String(), InstrumentID",1
+backend,"backend/handlers/dashboard_stats_2005_test.go:	require.NoError(t, db.Create(&models.Instrument{TenantID: tid, OrgID: &oid, SN: ""S-"" + uuid.New().String()[:8], StockStatus",1
+backend,"backend/handlers/dashboard_stats_2005_test.go:	require.NoError(t, db.Create(&models.Instrument{TenantID: tid, OrgID: &otherOid, SN: ""X-"" + uuid.New().String()[:8], StockStatus",1
+backend,backend/handlers/renewal_test.go,1
+backend,"backend/handlers/renewal_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/technician_profile_audit_test.go:	admin := testutil.TestActor{TenantID: f.tenantID, OrgID: f.siteID, UserID: f.adminSub, Role",1
+backend,"backend/handlers/lease_early_return_test.go:	tenantID, orgID, userID ",1
+backend,backend/handlers/lease_early_return_test.go,1
+backend,backend/handlers/pricing.go:		TenantID,1
+backend,backend/handlers/pricing.go,1
+backend,backend/handlers/member_invite_2114.go:	q ,1
+backend,backend/handlers/merchant_member_test.go:		TenantID,1
+backend,"backend/handlers/merchant_member_test.go:	merchant := models.Merchant{ID: uuid.New().String(), Name: ""商户A"", TenantID: tenantID, OrgID: tenantID, AdminUID: uuid.New().String(), Status",1
+backend,"backend/handlers/merchant_member_test.go:	merchant := models.Merchant{ID: uuid.New().String(), Name: ""商户B"", TenantID: tenantID, OrgID: tenantID, AdminUID: uuid.New().String(), Status",1
+backend,"backend/handlers/merchant_member_test.go:	merchant := models.Merchant{ID: uuid.New().String(), Name: ""商户C"", TenantID: tenantID, OrgID: tenantID, AdminUID: uuid.New().String(), Status",1
+backend,"backend/handlers/merchant_member_test.go:	merchant := models.Merchant{ID: uuid.New().String(), Name: ""商户D"", TenantID: tenantID, OrgID: tenantID, AdminUID: uuid.New().String(), Status",1
+backend,"backend/handlers/merchant_member_test.go:		TenantID: tenantID, MerchantID: merchant.ID, UserID: admin.ID, Role",1
+backend,"backend/handlers/merchant_member_test.go:		TenantID: tenantID, MerchantID: merchant.ID, UserID: admin2.ID, Role",1
+backend,"backend/handlers/repair_owner_1880_test.go:	tenantID, orgID, _ ",1
+backend,"backend/handlers/repair_owner_1880_test.go:	require.NoError(t, db.Create(&models.Site{ID: siteA, TenantID: tenantID, OrgID: orgID, Name",1
+backend,"backend/handlers/repair_owner_1880_test.go:			ID: sub, IAMSub: sub, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/repair_owner_1880_test.go:			require.NoError(t, db.Create(&models.SiteMember{TenantID: tenantID, SiteID: siteID, UserID: sub, Role: role, Status",1
+backend,"backend/handlers/repair_owner_1880_test.go:		ID: uuid.New().String(), TenantID: f.tenantID, SiteID: f.siteA, UserID",1
+backend,backend/handlers/discount_code_flow_test.go:		TenantID,1
+backend,"backend/handlers/repair_detail_1868_test.go:	tenantID, orgID, userID ",1
+backend,"backend/handlers/repair_detail_1868_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",1
+backend,"backend/handlers/repair_detail_1868_test.go:	tenantA, _, _ ",1
+backend,"backend/handlers/repair_detail_1868_test.go:	tenantB, orgB, _ ",1
+backend,"backend/handlers/repair_detail_1868_test.go:		ID: instID, TenantID: tenantB, OrgID",1
+backend,backend/handlers/instrument_update_test.go:			tenantCtx ,1
+backend,backend/handlers/instrument_update_test.go:	tenantCtx ,1
+backend,backend/handlers/audit_helper.go:		TenantID,1
+backend,backend/handlers/audit_log.go,1
+backend,"backend/services/webhook_1909_test.go:		ID: uuid.New().String(), TenantID: tenantID, OrgID",1
+backend,backend/services/quote_scanner.go:		if err ,1
+backend,backend/services/collection_reminder_scheduler_test.go:			TenantID,1
+backend,"backend/services/collection_reminder_scheduler_test.go:		ID: adminID, IAMSub: adminID, TenantID: tenantID, OrgID",1
+backend,"backend/services/collection_reminder_scheduler_test.go:		ID: uuid.New().String(), TenantID: tenantID, SiteID: siteID, UserID",1
+backend,"backend/services/collection_reminder_scheduler_test.go:		ID: siteID, TenantID: tenantID, OrgID: orgID, Name",1
+backend,"backend/services/collection_reminder_scheduler_test.go:		ID: instrumentID, TenantID: tenantID, OrgID",1
+backend,backend/services/warning_notification.go:			TenantID,1
+backend,"backend/services/audit_query.go:	q := &AuditLogQuery{BusinessRole: businessRole, ActorID: userID, TenantID",1
+backend,backend/services/iam_bootstrap.go:				result ,1
+backend,backend/services/iam_bootstrap.go:			siteTenantID ,1
+backend,backend/services/iam_bootstrap.go,1
+backend,backend/services/bulk_import_accounts.go:			TenantID,1
+backend,backend/services/return_reminder_scheduler.go:			TenantID,1
+backend,backend/services/iam.go:	TenantID   string      `json,1
+backend,backend/services/iam.go:	TenantID    string   `json,1
+backend,backend/services/notification.go:		TenantID,1
+backend,backend/services/notification.go,1
+backend,backend/services/overdue_deduction_scheduler.go:			TenantID,1
+backend,backend/services/point_batches.go:	if err ,1
+backend,backend/services/point_batches.go:				TenantID,1
+backend,backend/services/point_batches.go,1
+backend,backend/services/audit_writer.go,1
+backend,backend/services/audit_writer.go:		TenantID,1
+backend,backend/services/membership_engine_test.go:		TenantID,1
+backend,"backend/services/membership_engine_test.go:			ID: ""00000000-0000-0000-0000-0000000000e1"", UserID: userID, TenantID",1
+backend,"backend/services/membership_engine_test.go:			ID: ""00000000-0000-0000-0000-0000000000e2"", UserID: userID, TenantID",1
+backend,"backend/services/membership_engine_test.go:		instrument := models.Instrument{ID: ""00000000-0000-0000-0000-0000000000f1"", TenantID: tenantID, SN",1
+backend,"backend/services/membership_engine_test.go:			ID: ""00000000-0000-0000-0000-0000000000f2"", UserID: userID, TenantID: tenantID, OrgID",1
+backend,"backend/services/membership_engine_test.go:			ID: ""00000000-0000-0000-0000-0000000000e3"", UserID: userID, TenantID: tenantID, OrgID",1
+backend,"backend/services/membership_engine_test.go:			ID: ""00000000-0000-0000-0000-0000000000e4"", TenantID: tenantID, PaymentRecordID",1
+backend,"backend/services/membership_engine_test.go:	user := models.User{ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID, MembershipLevelID",1
+backend,"backend/services/membership_engine_test.go:	instrument := models.Instrument{ID: ""00000000-0000-0000-0000-0000000001b1"", TenantID: tenantID, SN",1
+backend,"backend/services/membership_engine_test.go:			ID: id, UserID: userID, TenantID: tenantID, OrgID",1
+backend,"backend/services/membership_engine_test.go:		ID: ""00000000-0000-0000-0000-0000000001d2"", UserID: userID, TenantID",1
+backend,"backend/services/membership_engine_test.go:	user2 := models.User{ID: userID2, IAMSub: userID2, TenantID: tenantID, OrgID: orgID, MembershipLevelID",1
+backend,"backend/services/membership_engine_test.go:		ID: ""00000000-0000-0000-0000-0000000001e3"", UserID: userID2, TenantID: tenantID, OrgID",1
+backend,"backend/services/membership_engine_test.go:		ID: ""00000000-0000-0000-0000-0000000001d3"", UserID: userID2, TenantID: tenantID, OrgID",1
+backend,"backend/services/membership_engine_test.go:		ID: ""00000000-0000-0000-0000-0000000001d4"", TenantID: tenantID, OrgID: orgID, SiteID",1
+backend,"backend/services/point_batches_test.go:		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID",1
+backend,backend/services/point_batches_test.go,1
+backend,backend/services/rent_calculator.go,1
+backend,"backend/services/rent_calculator.go:	promoRates, promoPlans, err ",1
+backend,backend/services/webhook.go:	err ,1
+backend,backend/services/webhook.go:		if err ,1
+backend,backend/services/webhook.go:			TenantID,1
+backend,backend/services/webhook.go:		if tenantID ,1
+backend,backend/services/bulk_import_orgs.go,1
+backend,backend/services/bulk_import_orgs.go:				TenantID,1
+backend,"backend/database/db.go:	callback.Create().Before(""gorm:create"").Register(""tenant",1
+backend,"backend/database/db.go:	callback.Update().Before(""gorm:update"").Register(""tenant",1
+backend,"backend/database/db.go:				clause.Eq{Column: clause.Column{Table: db.Statement.Table, Name: ""tenant_id""}, Value",1
+backend,"backend/database/db.go:	if tid, ok ",1
+frontend,frontend-pc/src/pages/TenantManagement.jsx:62:      dataIndex,1
+frontend,frontend-pc/src/pages/TenantManagement.jsx:63:      key,1
+frontend,"frontend-pc/src/pages/Dashboard.jsx:87:    { title: '租户 ID', dataIndex: 'tenant_id', key: 'tenant_id', render: v => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{v ? `${v.slice(0, 8)}…` ",1
+frontend,frontend-pc/src/services/errorMessages.js:45:  'tenant_id not found',1
+frontend,"frontend-mobile/src/pages/InvoiceConfirm.jsx:55:      if (!map[o.tenant_id]) map[o.tenant_id] = { tenant_id: o.tenant_id, merchant_name: o.merchant_name, orders: [], total",1
+frontend,frontend-mobile/src/pages/InvoiceConfirm.jsx:56,1
+frontend,frontend-mobile/src/pages/InvoiceConfirm.jsx:57,1
+frontend,frontend-mobile/src/pages/InvoiceConfirm.jsx:76,1
+frontend,"frontend-mobile/src/pages/InvoiceConfirm.jsx:84:      groups.push({ tenant_id: g.tenant_id, order_ids: g.orders.map(o => o.order_id), invoice_type: f.invoice_type || '普通', title, tax_number",1
+frontend,frontend-mobile/src/pages/InvoiceConfirm.jsx:123,1
+frontend,"frontend-mobile/src/pages/InvoiceConfirm.jsx:125:              <View key={g.tenant_id} style={{ background: '#fff', borderRadius: 12, padding: 16, marginBottom",1
+frontend,"frontend-mobile/src/pages/InvoiceConfirm.jsx:142:                      <View key={tt} onClick={() => setFormField(g.tenant_id, 'invoice_type', tt)} style={{ padding: '6px 16px', marginRight: 8, borderRadius: 16, border: f.invoice_type === tt ? '1px solid #D97706' : '1px solid #d4d4d8', background: f.invoice_type === tt ? '#FEF3C7' ",1
+frontend,"frontend-mobile/src/pages/InvoiceConfirm.jsx:148:                  <Input value={f.title} onInput={e => setFormField(g.tenant_id, 'title', getInputValue(e))} placeholder=""请输入发票抬头（个人或单位名称）"" style={{ width: '100%', boxSizing: 'border-box', height: 40, padding: '0 12px', background: '#f9fafb', borderRadius: 8, fontSize: 14, marginBottom",1
+frontend,"frontend-mobile/src/pages/InvoiceConfirm.jsx:150:                  <Input value={f.tax_number} onInput={e => setFormField(g.tenant_id, 'tax_number', getInputValue(e))} placeholder={f.invoice_type === '专用' ? '专用发票必填' : '个人抬头可不填'} style={{ width: '100%', boxSizing: 'border-box', height: 40, padding: '0 12px', background: '#f9fafb', borderRadius: 8, fontSize",1
+frontend,frontend-mobile/src/pages/Detail.jsx:98:        tenant_id,1
+frontend,frontend-mobile/src/pages/Checkout.jsx:917,1
+frontend,frontend-mobile/src/pages/Checkout.jsx:920:          tenant_id,1
+frontend,"frontend-mobile/src/pages/Checkout.jsx:1135:                <View key={group.tenant_id || 'unknown'} className=""rounded-xl p-3"" style={{ backgroundColor",1
+frontend,frontend-mobile/src/pages/Cart.jsx:246,1
+frontend,frontend-mobile/src/pages/Cart.jsx:249:          tenant_id,1
+frontend,frontend-mobile/src/pages/Cart.jsx:361,1
+frontend,frontend-mobile/src/services/errorMessages.js:48:  'tenant_id not found',1
+frontend,frontend-mobile/src/pages-weapp/Detail.jsx:103:        tenant_id,1
+frontend,frontend-mobile/src/pages-weapp/Checkout.jsx:874,1
+frontend,frontend-mobile/src/pages-weapp/Checkout.jsx:878:          tenant_id,1
+frontend,"frontend-mobile/src/pages-weapp/Checkout.jsx:1088:                <View key={group.tenant_id || 'unknown'} style={{ backgroundColor: 'rgba(250,250,250,0.4)', borderRadius: 12, padding: 12, marginBottom",1
+docs,docs/ops/account-lifecycle.md:75,1
+docs,docs/ops/account-lifecycle.md:157,1
+docs,docs/topics/wechat/wechat-pay-integration.md:182,1
+docs,docs/topics/wechat/wechat-pay-integration.md:203,1
+docs,docs/topics/media/media_directory.md:12,1
+docs,docs/topics/media/media_directory.md:64,1
+docs,docs/topics/iam/iam-notes.md:65,1
+docs,docs/archive/reports/state-machine-gap-assessment.md:46:| G019 | 数据隔离缺失 | 🔴 高 | `backend/handlers/order.go,1
+docs,docs/archive/reports/state-machine-gap-assessment.md:47:| G020 | 数据隔离缺失 | 🔴 高 | `backend/handlers/warehouse.go,1
+docs,docs/archive/reports/state-machine-gap-assessment.md:55:| G028 | 数据隔离缺失 | 🟡 中 | `backend/handlers/public.go,1
+docs,docs/archive/reports/state-machine-gap-assessment.md:78:| G019 | 订单查询无 `tenant_id` | `AGENTS.md` §维度 4 | `order.go,1
+docs,docs/archive/reports/state-machine-gap-assessment.md:79:| G020 | `ListOrders` 无 `tenant_id` | `AGENTS.md` §维度 4 | `warehouse.go,1
+docs,docs/archive/reports/state-machine-gap-assessment.md:99:| G028 | 公开接口未隔离 | `cases.md` §1.3 | `public.go,1
+docs,docs/archive/reports/state-machine-gap-assessment.md:147,1
+docs,docs/archive/reports/state-machine-gap-assessment.md:148,1
+docs,docs/archive/reports/state-machine-gap-assessment.md:150,1
+docs,docs/archive/reports/backend_api_error_codes_report.md:29,1
+docs,docs/archive/reports/backend_api_error_codes_report.md:69,1
+docs,docs/archive/reports/backend_api_error_codes_report.md:135,1
+docs,docs/archive/reports/maintenance_closure_report.md:16,1
+docs,docs/archive/reports/maintenance_closure_report.md:73,1
+docs,docs/archive/reports/maintenance_closure_report.md:175,1
+docs,docs/archive/reports/maintenance_closure_report.md:245:- `tenant_id`,1
+docs,docs/archive/reports/maintenance_closure_report.md:273,1
+docs,docs/archive/reports/maintenance_closure_report.md:276,1
+docs,docs/archive/reports/SECURITY_CLOSURE_REPORT.md:71,1
+docs,docs/archive/reports/SECURITY_CLOSURE_REPORT.md:92,1
+docs,docs/archive/reports/SECURITY_CLOSURE_REPORT.md:97,1
+docs,docs/archive/reports/SECURITY_CLOSURE_REPORT.md:120,1
+docs,docs/archive/reports/SECURITY_CLOSURE_REPORT.md:256:5. **Database Isolation**,1
+docs,docs/archive/reports/SECURITY_CLOSURE_REPORT.md:258:6. **Dummy Data**,1
+docs,docs/archive/reports/SECURITY_CLOSURE_REPORT.md:305,1
+docs,docs/archive/reports/SECURITY_CLOSURE_REPORT.md:318,1
+docs,docs/archive/reports/SECURITY_CLOSURE_REPORT.md:319,1
+docs,docs/archive/reports/SECURITY_CLOSURE_REPORT.md:320,1
+docs,docs/archive/reports/SECURITY_CLOSURE_REPORT.md:321,1
+docs,docs/archive/reports/SECURITY_CLOSURE_REPORT.md:324,1
+docs,docs/archive/reports/SECURITY_CLOSURE_REPORT.md:325,1
+docs,docs/archive/reports/SECURITY_CLOSURE_REPORT.md:326,1
+docs,docs/archive/reports/SECURITY_CLOSURE_REPORT.md:327,1
+docs,docs/archive/reports/SECURITY_CLOSURE_REPORT.md:341,1
+docs,docs/archive/reports/SECURITY_CLOSURE_REPORT.md:398,1
+docs,docs/archive/reports/SECURITY_CLOSURE_REPORT.md:435,1
+docs,docs/archive/reports/SECURITY_CLOSURE_REPORT.md:436,1
+docs,docs/archive/reports/SECURITY_CLOSURE_REPORT.md:446,1
+docs,docs/archive/reports/SECURITY_CLOSURE_REPORT.md:448,1
+docs,docs/archive/reports/analysis-issue-688.md:32,1
+docs,docs/archive/reports/analysis-issue-688.md:46,1
+docs,"docs/archive/reports/analysis-issue-688.md:54:| 33 | `query := h.db.Table(""labels"").Where(""tenant_id = ?"", c.GetString(""tenant_id""))` | `tenantID := middleware.GetTenantID(c.Request.Context())` 然后 `query ",1
+docs,"docs/archive/reports/analysis-issue-688.md:55:| 68 | `""tenant_id"": c.GetString(""tenant_id""),` | `""tenant_id""",1
+docs,docs/archive/reports/analysis-issue-688.md:56,1
+docs,docs/archive/reports/analysis-issue-688.md:57,1
+docs,"docs/archive/reports/analysis-issue-688.md:58:| 141 | `tenantID := c.GetString(""tenant_id"")` | `tenantID ",1
+docs,docs/archive/reports/analysis-issue-688.md:67:    query ,1
+docs,docs/archive/reports/analysis-issue-688.md:77:    query ,1
+docs,docs/archive/reports/analysis-issue-688.md:86,1
+docs,"docs/archive/reports/analysis-issue-688.md:90:| 84 | GetLease | `tenantID := c.GetString(""tenant_id"")` | `tenantID ",1
+docs,"docs/archive/reports/analysis-issue-688.md:91:| 116 | CreateLease | `tenantID := c.GetString(""tenant_id"")` | `tenantID ",1
+docs,"docs/archive/reports/analysis-issue-688.md:92:| 164 | UpdateLease | `tenantID := c.GetString(""tenant_id"")` | `tenantID ",1
+docs,"docs/archive/reports/analysis-issue-688.md:93:| 219 | TerminateLease | `tenantID := c.GetString(""tenant_id"")` | `tenantID ",1
+docs,"docs/archive/reports/analysis-issue-688.md:94:| 327 | RenewLease | `tenantID := c.GetString(""tenant_id"")` | `tenantID ",1
+docs,"docs/archive/reports/analysis-issue-688.md:95:| 372 | GetLeasePayments | `tenantID := c.GetString(""tenant_id"")` | `tenantID ",1
+docs,docs/archive/reports/analysis-issue-688.md:101,1
+docs,"docs/archive/reports/analysis-issue-688.md:105:| 42 | `tenantID := c.GetString(""tenant_id"")` | `tenantID ",1
+docs,"docs/archive/reports/analysis-issue-688.md:108:| 106 | `tenantID := c.GetString(""tenant_id"")` | `tenantID ",1
+docs,docs/archive/reports/analysis-issue-688.md:116,1
+docs,"docs/archive/reports/analysis-issue-688.md:120:| 21 | `tenantID := c.GetString(""tenant_id"")` | `tenantID ",1
+docs,"docs/archive/reports/analysis-issue-688.md:121:| 72 | `tenantID := c.GetString(""tenant_id"")` | `tenantID ",1
+docs,docs/archive/reports/analysis-issue-688.md:127:tenantID ,1
+docs,docs/archive/reports/analysis-issue-688.md:129:if err ,1
+docs,docs/archive/reports/analysis-issue-688.md:135:if err ,1
+docs,docs/archive/reports/analysis-issue-688.md:144,1
+docs,docs/archive/reports/analysis-issue-688.md:178,1
+docs,docs/archive/reports/analysis-issue-688.md:179,1
+docs,docs/archive/reports/analysis-issue-688.md:215,1
+docs,docs/archive/reports/analysis-issue-688.md:219,1
+docs,docs/archive/reports/analysis-issue-688.md:243:    if err ,1
+docs,docs/archive/reports/analysis-issue-688.md:294:    query ,1
+docs,docs/archive/reports/analysis-issue-688.md:332,1
+docs,docs/archive/reports/analysis-issue-688.md:343,1
+docs,docs/archive/reports/analysis-issue-688.md:371,1
+docs,docs/archive/reports/analysis-issue-688.md:421,1
+docs,docs/archive/reports/analysis-issue-688.md:425,1
+docs,docs/archive/reports/analysis-issue-688.md:427,1
+docs,docs/archive/reports/analysis-issue-688.md:506:    query ,1
+docs,docs/archive/reports/analysis-issue-688.md:561,1
+docs,docs/archive/reports/analysis-issue-688.md:565,1
+docs,docs/archive/reports/analysis-issue-688.md:577,1
+docs,docs/archive/reports/analysis-issue-688.md:587,1
+docs,docs/archive/reports/analysis-issue-688.md:601,1
+docs,docs/archive/reports/analysis-issue-688.md:622:query ,1
+docs,docs/archive/reports/analysis-issue-688.md:641:query ,1
+docs,docs/archive/reports/analysis-issue-688.md:656,1
+docs,docs/archive/reports/analysis-issue-688.md:657:query ,1
+docs,docs/archive/reports/analysis-issue-688.md:686,1
+docs,docs/archive/reports/analysis-issue-688.md:687,1
+docs,docs/archive/reports/analysis-issue-688.md:704:| site_admin A 修改乐器状态（其他网点 ID） | PUT /api/instruments/,1
+docs,docs/archive/reports/analysis-issue-688.md:751,1
+docs,docs/archive/reports/analysis-issue-688.md:762,1
+docs,docs/archive/reports/analysis-issue-688.md:763,1
+docs,docs/archive/reports/TASK_COMPLETION_SUMMARY.md:9,1
+docs,docs/archive/reports/TASK_COMPLETION_SUMMARY.md:15,1
+docs,docs/spec/permissions.md:325,1
+docs,"docs/spec/api/api.md:385:    ""tenant_id""",1
+docs,"docs/spec/api/api.md:407:  ""tenant_id""",1
+docs,"docs/spec/api/api.md:919:        ""tenant_id""",1
+docs,docs/spec/api/api.md:938:**响应**,1
+docs,"docs/spec/api/api.md:1224:{ ""code"": 50001, ""message""",1
+docs,docs/spec/api/api.md:1611,1
+docs,docs/spec/api/api.md:1625:tenant_id,1
+docs,docs/spec/api/api.md:1680,1
+docs,docs/spec/api/api.md:2023,1
+docs,docs/spec/api/api.md:2067,1
+docs,"docs/spec/api/api.md:2211:    ""merchant_name""",1
+docs,"docs/spec/api/api.md:3006:        ""tenant_id""",1
+docs,docs/spec/api/api.md:3018:**说明**,1
+docs,docs/spec/api/api.md:3290:**租户口径（#2134）**,1
+docs,docs/spec/api/api.md:4458,1
+docs,docs/spec/api/api.md:4462,1
+docs,docs/spec/api/api.md:4478,1
+docs,"docs/spec/api/api.md:4493:      ""tenant_id""",1
+docs,docs/spec/api/api.md:4505,1
+docs,"docs/spec/api/api.md:4518:      ""tenant_id""",1
+docs,"docs/spec/api/api.md:4531:      { ""id"": ""uuid"", ""tenant_id"": ""uuid"", ""total_amount""",1
+docs,"docs/spec/api/api.md:4553:      ""tenant_id""",1
+docs,"docs/spec/api/api.md:4583:    ""tenant_id""",1
+docs,docs/spec/api/api.md:4650,1
+docs,docs/spec/api/api.md:5150,1
+docs,"docs/spec/api/api.md:5164:      ""tenant_id""",1
+docs,docs/spec/api/api.md:5209:**说明**,1
+docs,"docs/spec/api/api.md:5224:    ""tenant_id""",1
+docs,docs/spec/api/api.md:5900,1
+docs,"docs/spec/api/api.md:6219:        ""tenant_id""",1
+docs,"docs/spec/api/api.md:6381:        ""tenant_id""",1
+docs,docs/spec/api/api.md:6405,1
+docs,docs/spec/api/api.md:6846:- 从 JWT 提取,1
+docs,"docs/spec/ui/ui.md:964:    <view class=""group-header"">租户",1
+docs,docs/spec/ui/ui.md:994,1
+docs,docs/spec/database/database.md:19:- 租户隔离,1
+docs,docs/spec/database/database.md:32,1
+docs,docs/spec/database/database.md:112,1
+docs,docs/spec/database/database.md:132,1
+docs,docs/spec/database/database.md:142,1
+docs,docs/spec/database/database.md:150,1
+docs,docs/spec/database/database.md:161,1
+docs,docs/spec/database/database.md:180,1
+docs,docs/spec/database/database.md:206,1
+docs,docs/spec/database/database.md:207,1
+docs,docs/spec/database/database.md:278,1
+docs,docs/spec/database/database.md:292:tenant_id,1
+docs,docs/spec/database/database.md:308,1
+docs,docs/spec/database/database.md:324,1
+docs,docs/spec/database/database.md:356,1
+docs,docs/spec/database/database.md:376,1
+docs,docs/spec/database/database.md:387,1
+docs,docs/spec/database/database.md:419,1
+docs,docs/spec/database/database.md:435,1
+docs,docs/spec/database/database.md:449,1
+docs,docs/spec/database/database.md:465,1
+docs,docs/spec/database/database.md:492,1
+docs,docs/spec/database/database.md:509,1
+docs,docs/spec/database/database.md:542,1
+docs,docs/spec/database/database.md:569,1
+docs,docs/spec/database/database.md:587,1
+docs,docs/spec/database/database.md:603,1
+docs,docs/spec/database/database.md:646,1
+docs,docs/spec/database/database.md:660,1
+docs,docs/spec/database/database.md:694,1
+docs,docs/spec/database/database.md:696,1
+docs,docs/spec/database/database.md:697,1
+docs,docs/spec/database/database.md:702,1
+docs,docs/spec/database/database.md:707,1
+docs,docs/spec/database/database.md:710,1
+docs,docs/spec/database/database.md:723,1
+docs,docs/spec/database/database.md:752,1
+docs,docs/spec/database/database.md:772,1
+docs,docs/spec/database/database.md:840,1
+docs,docs/spec/database/database.md:848,1
+docs,docs/spec/database/database.md:895,1
+docs,docs/spec/database/database.md:1222,1
+docs,docs/spec/database/database.md:1243,1
+docs,docs/spec/database/database.md:1250:**约束**,1
+docs,docs/spec/database/database.md:1293,1
+docs,docs/cases/cases.md:546,1
+docs,docs/cases/cases.md:580,1
+docs,docs/cases/profile.md:100,1
+docs,docs/cases/profile.md:141,1
+docs,docs/cases/repair-service.md:65,1
+docs,docs/cases/repair-service.md:84,1
+docs,docs/cases/repair-service.md:182,1
+docs,docs/cases/repair-service.md:249,1
+docs,docs/cases/repair-service.md:258:| RS-API-1 | `GET /api/common/repair-technicians`　**新增** | 顾客（无 oid） | userOptionalAuth | 可选维修师列表 → `{list,1
+docs,docs/cases/repair-service.md:302,1
+docs,docs/cases/repair-service.md:305,1
+docs,docs/cases/user-management.md:82,1
+docs,docs/cases/organization.md:207,1
+docs,docs/cases/organization.md:212,1
+docs,docs/cases/invoice.md:19:3. 提交 `POST /user/invoices` → `{groups,1
+docs,docs/cases/lease.md:806,1
+docs,docs/en/backend_api_error_codes_report.md:29,1
+docs,docs/en/backend_api_error_codes_report.md:69,1
+docs,docs/en/backend_api_error_codes_report.md:135,1
+docs,docs/en/database.md:15:- Tenant isolation,1
+docs,docs/en/database.md:28,1
+docs,docs/en/database.md:44,1
+docs,docs/en/database.md:63,1
+docs,docs/en/database.md:89,1
+docs,docs/en/database.md:90,1
+docs,docs/en/database.md:120,1
+docs,docs/en/database.md:141,1
+docs,docs/en/database.md:161,1
+docs,docs/en/database.md:188,1
+docs,docs/en/database.md:201,1
+docs,docs/en/database.md:214,1
+docs,docs/page_design/cart.psx:9:      tenant_id,1
+docs,docs/page_design/cart.psx:68,1
