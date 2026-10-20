@@ -89,7 +89,15 @@ func (h *TechnicianProfileHandler) List(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
 		return
 	}
-	query := db.Model(&models.TechnicianProfile{}).Where("tenant_id = ?", tid)
+	// #2247：归属锚 = 商户 org（tenant 仅在未被共享时兼容）
+	opOrg := middleware.GetOrgID(ctx)
+	merchant, hasMerchant := resolveOperatorMerchant2247(db, opOrg, tid)
+	query := db.Model(&models.TechnicianProfile{})
+	if hasMerchant {
+		query = query.Where("tenant_id IN ?", merchantScopeIDs2247(db, merchant))
+	} else {
+		query = query.Where("tenant_id = ?", tid)
+	}
 	if st := c.Query("status"); st != "" {
 		query = query.Where("status = ?", st)
 	}
@@ -135,10 +143,26 @@ func (h *TechnicianProfileHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
 		return
 	}
+	// #2247：按 id 载入（归属由商户范围判定），并校验账号可用
+	idb := db.WithContext(database.IdentityCtx(ctx))
 	var u models.User
-	if err := db.Where("id = ? AND tenant_id = ?", body.UserID, tid).First(&u).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "user not found in this merchant"})
+	if err := idb.Where("id = ?", body.UserID).First(&u).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "user not found"})
 		return
+	}
+	if u.Status != "active" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "该用户账号不可用（未激活/已删除），不能关联为维修师"})
+		return
+	}
+	opOrg := middleware.GetOrgID(ctx)
+	merchant, hasMerchant := resolveOperatorMerchant2247(idb, opOrg, tid)
+	profileTenant := tid
+	if hasMerchant {
+		if u.TenantID != merchant.OrgID && u.OrgID != merchant.OrgID {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "user is not in this merchant"})
+			return
+		}
+		profileTenant = merchant.OrgID
 	}
 	var cnt int64
 	db.Model(&models.TechnicianProfile{}).Where("user_id = ? AND tenant_id = ?", body.UserID, tid).Count(&cnt)
@@ -147,7 +171,7 @@ func (h *TechnicianProfileHandler) Create(c *gin.Context) {
 		return
 	}
 	p := models.TechnicianProfile{
-		ID: uuid.New().String(), UserID: body.UserID, TenantID: tid,
+		ID: uuid.New().String(), UserID: body.UserID, TenantID: profileTenant,
 		Photo: body.Photo, Bio: body.Bio,
 		Experience: marshalExperience(body.Experience), Status: "active",
 	}

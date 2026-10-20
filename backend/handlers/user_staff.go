@@ -187,6 +187,22 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 
 	// Check uniqueness constraints (phone OR email OR username)
 	db := database.GetDB().WithContext(ctx)
+
+	// #2247：平台/系统管理员禁止创建商户员工/维修师（仅可创建商户管理员，#1718）；
+	// 商户/网点管理员按其商户 org 锚定。
+	iamClientEarly := services.NewIAMClient()
+	opOrgID := middleware.GetOrgID(ctx)
+	if isPlatformOrg2247(iamClientEarly, opOrgID) {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40310, "message": "平台管理员仅可创建商户管理员，不能直接创建商户员工/维修师"})
+		return
+	}
+	merchant, hasMerchant := resolveOperatorMerchant2247(db, opOrgID, tenantID)
+	merchantOrg := tenantID
+	if hasMerchant && merchant.OrgID != "" {
+		merchantOrg = merchant.OrgID
+	} else {
+		log.Printf("[CreateUser] #2247: cannot resolve merchant for org=%s tenant=%s (fallback to tenant)", opOrgID, tenantID)
+	}
 	var conflicts []gin.H
 
 	// Check username
@@ -242,7 +258,7 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	// Create user
 	user := models.User{
 		ID:        uuid.New().String(),
-		TenantID:  tenantID,
+		TenantID:  merchantOrg,
 		Username:  req.Username,
 		Name:      req.Name,
 		Phone:     req.Phone,
@@ -255,8 +271,8 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 
 	var orgID string
 	if userType != "site_staff" {
-		// #2068: 维修师傅/商户直属员工 直属商户（不挂网点）→ 绑定商户根组织（tenant），忽略网点归属
-		orgID = tenantID
+		// #2247：维修师傅/商户直属员工 绑定商户组织（org 锚），忽略网点归属
+		orgID = merchantOrg
 		if req.SiteID != uuid.Nil {
 			req.SiteID = uuid.Nil
 		}
@@ -431,7 +447,7 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		// 维修师傅：建 technician_profiles（直属商户，不挂网点）
 		if userType == "repair_technician" {
 			tp := models.TechnicianProfile{
-				ID: uuid.New().String(), UserID: user.ID, TenantID: tenantID,
+				ID: uuid.New().String(), UserID: user.ID, TenantID: merchantOrg,
 				Bio: req.Bio, Status: "active",
 			}
 			if err := tx.Create(&tp).Error; err != nil {
@@ -441,12 +457,12 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		}
 		// 商户直属员工：建 merchant_members
 		if userType == "merchant_direct" {
-			var merch models.Merchant
-			if err := tx.Where("tenant_id = ?", tenantID).Order("created_at ASC").First(&merch).Error; err != nil {
-				return errors.New("merchant not found for tenant")
+			merch := merchant
+			if !hasMerchant {
+				return errors.New("merchant not found for operator scope")
 			}
 			mm := models.MerchantMember{
-				TenantID: tenantID, MerchantID: merch.ID, UserID: user.ID,
+				TenantID: merchantOrg, MerchantID: merch.ID, UserID: user.ID,
 				Role: "site_member", Status: "active",
 			}
 			if err := tx.Create(&mm).Error; err != nil {
