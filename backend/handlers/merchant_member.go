@@ -119,10 +119,15 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 		return
 	}
 
+	// #2250：商户归属锚 = org；tenant_id 在多商户共享时不可用于定位商户
 	var merchant models.Merchant
-	if err := db.Where("id = ? AND tenant_id = ?", merchantID, tenantID).First(&merchant).Error; err != nil {
+	if err := db.Where("id = ? AND (org_id = ? OR tenant_id = ?)", merchantID, tenantID, tenantID).First(&merchant).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "Merchant not found"})
 		return
+	}
+	merchantAnchor := merchant.OrgID
+	if merchantAnchor == "" {
+		merchantAnchor = tenantID
 	}
 
 	iamClient := services.NewIAMClient()
@@ -299,7 +304,7 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 
 		var count int64
 		db.Model(&models.MerchantMember{}).
-			Where("tenant_id = ? AND merchant_id = ? AND user_id = ?", tenantID, merchantID, userID).
+			Where("merchant_id = ? AND user_id = ?", merchantID, userID).
 			Count(&count)
 		if count > 0 {
 			continue
@@ -348,7 +353,7 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 		}
 
 		member := models.MerchantMember{
-			TenantID:   tenantID,
+			TenantID:   merchantAnchor,
 			MerchantID: merchantID,
 			UserID:     userID,
 			Role:       role,
@@ -566,8 +571,9 @@ func (h *MerchantMemberHandler) RemoveMember(c *gin.Context) {
 // hasMerchantAccess checks the merchant belongs to the requesting tenant.
 func hasMerchantAccess(db *gorm.DB, tenantID, merchantID string, c *gin.Context) bool {
 	var count int64
+	// #2250：商户归属以 org 为准（tenant_id 可能为多商户共享值）
 	result := db.Model(&models.Merchant{}).
-		Where("id = ? AND tenant_id = ?", merchantID, tenantID).
+		Where("id = ? AND (tenant_id = ? OR org_id = ?)", merchantID, tenantID, tenantID).
 		Count(&count)
 
 	if result.Error != nil || count == 0 {
