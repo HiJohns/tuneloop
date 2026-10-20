@@ -128,3 +128,75 @@
 | P5 | 清理文档/前端/备份表 | 验收报告 |
 
 > 说明：本次仅产出审计基线，不做代码重构。
+
+## A1 隔离机制层审核结论（middleware / database）
+| 位置 | 机制 | 判定 | 结论 |
+|---|---|---|---|
+| `middleware/iam.go:272,372` | JWT claims → context `tenant_id`（`tid`，回退 `oid`） | **S2 高危** | `tid` 对商户账号 = 商户 org；对平台管理员 = 命名空间主组织；同一字段承载两种语义 |
+| `database/db.go` `addTenantScope` | Query/Delete 自动追加 `WHERE tenant_id = ctx` | **S5 高危** | 单值 tenant 无法表达商户维度；多商户共享 tenant 时会放大范围 |
+| `database/db.go` `setTenantIDFromContext` | Create/Update 自动填充 tenant/org | **S4 高危** | 写入用“操作者上下文”而非数据归属（维修师建档案例） |
+| `database.IdentityCtx` | 清空 tenant 以绕过自动范围 | **绕行信号** | 非测试使用 23 处（repair_service 12 / admin_2129 5 / user_staff 2 / db 2 / role 1 / order 1） |
+| `user_management.go` / `settings.go` / `gift_policies.go` / `role.go` / `face_review.go` | 显式清空 tenant 以查全量 | **S5/S6** | 平台级功能被迫绕开自动范围（注释自述“否则查询永假/被过滤”） |
+
+**A1 结论**：自动租户范围只能作为**粗筛**，不能承担商户隔离；归属必须由商户 org / membership 显式表达。`IdentityCtx` 的 23 处绕行是 P3 重构优先清单。
+
+## A2 模型层分类（51 个含 TenantID 的模型）
+分类：**P**=平台级共享（tenant 仅创建者元数据，S6）；**M**=商户级（应锚商户 org）；**N**=命名空间/审计级。
+
+| 模型 | 分类 | 有 OrgID | 判定 / 目标 |
+|---|:---:|:---:|---|
+| `Category` | **P** | — | AGENTS 明确：平台级共享（tenant 为创建者元数据） |
+| `Property` | **P** | — | AGENTS 明确：平台级共享（tenant 为创建者元数据） |
+| `PropertyOption` | **P** | — | AGENTS 明确：平台级共享（tenant 为创建者元数据） |
+| `Banner` | **P** | — | 平台级轮播（全站配置） |
+| `BrandConfig` | **P** | — | 品牌字典（平台级） |
+| `InstrumentPhotoSpec` | **P** | — | 拍照规范（平台级） |
+| `Label` | **P** | — | 已豁免/废弃模型（AGENTS 清单） |
+| `Role` | **P** | — | IAM 角色模板缓存（平台级） |
+| `SystemSetting` | **P** | — | 系统设置（平台级） |
+| `Client` | **P** | — | IAM 客户端配置（平台级） |
+| `Merchant` | **M** | ✓ | 自身即商户定义：`tenant_id` 为共享 tenant，商户身份 = `org_id` → S2 |
+| `Site` | **M** | ✓ | 商户网点：`tenant_id` 应=商户 org（历史混用） |
+| `SiteImage` | **M** | — | 商户级：应锚商户 org（审计目标） |
+| `SiteMember` | **M** | ✓ | 会员关系：归属应看 `site_id`→站点商户，而非 tenant |
+| `MerchantMember` | **M** | ✓ | 商户成员：`tenant_id` 应=商户 org（身份锚） |
+| `StaffInvite` | **M** | ✓ | 邀请：`tenant_id`/`org_id` 双写，接受时绑定商户 org |
+| `Technician` | **M** | ✓ | 商户级：应锚商户 org（审计目标） |
+| `TechnicianProfile` | **M** | — | **S4 实例**：写入用创建者 tid（#2247）→ 改为商户 org |
+| `MaintenanceWorker` | **M** | ✓ | 商户级：应锚商户 org（审计目标） |
+| `MerchantPricingConfig` | **M** | — | 商户级：应锚商户 org（审计目标） |
+| `MerchantSettlementConfig` | **M** | — | 商户级：应锚商户 org（审计目标） |
+| `Instrument` | **M** | ✓ | 商户级：应锚商户 org（审计目标） |
+| `InstrumentMedia` | **M** | ✓ | 商户级：应锚商户 org（审计目标） |
+| `InstrumentProperty` | **M** | — | 商户级：应锚商户 org（审计目标） |
+| `InstrumentLossRecord` | **M** | — | 商户级：应锚商户 org（审计目标） |
+| `InventoryTransfer` | **M** | ✓ | 商户级：应锚商户 org（审计目标） |
+| `OwnershipCertificate` | **M** | ✓ | 商户级：应锚商户 org（审计目标） |
+| `Order` | **M** | ✓ | 商户级：应锚商户 org（审计目标） |
+| `OrderStatusHistory` | **M** | ✓ | 商户级：应锚商户 org（审计目标） |
+| `PendingOrder` | **M** | — | 商户级：应锚商户 org（审计目标） |
+| `OrderPaymentRecord` | **M** | ✓ | 商户级：应锚商户 org（审计目标） |
+| `OrderRefundRecord` | **M** | — | 商户级：应锚商户 org（审计目标） |
+| `PaymentSession` | **M** | — | 商户级：应锚商户 org（审计目标） |
+| `SettlementCalculation` | **M** | — | 商户级：应锚商户 org（审计目标） |
+| `Lease` | **M** | — | 商户级：应锚商户 org（审计目标） |
+| `Deposit` | **M** | — | 商户级：应锚商户 org（审计目标） |
+| `RepairRequest` | **M** | — | **S2/S3 实例**：#2134 双值过滤跨商户（#2248）→ 商户 org |
+| `MaintenanceTicket` | **M** | ✓ | 商户级：应锚商户 org（审计目标） |
+| `MaintenanceSession` | **M** | ✓ | 商户级：应锚商户 org（审计目标） |
+| `MaintenanceSessionRecord` | **M** | — | 商户级：应锚商户 org（审计目标） |
+| `ForwardingSession` | **M** | ✓ | 商户级：应锚商户 org（审计目标） |
+| `ElectronicContract` | **M** | ✓ | 商户级：应锚商户 org（审计目标） |
+| `DamageReport` | **M** | ✓ | 商户级：应锚商户 org（审计目标） |
+| `Appeal` | **M** | ✓ | 商户级：应锚商户 org（审计目标） |
+| `InvoiceApplication` | **M** | — | 商户级：应锚商户 org（审计目标） |
+| `Notification` | **M** | ✓ | 按用户归属；tenant 仅粗筛 |
+| `PointsTransaction` | **M** | — | 商户级：应锚商户 org（审计目标） |
+| `ConfirmationSession` | **M** | ✓ | 商户级：应锚商户 org（审计目标） |
+| `InstrumentPromoOverride` | **M** | — | 商户级：应锚商户 org（审计目标） |
+| `User` | **N** | ✓ | **S1**：本地缓存，禁止用于归属判断（api.md:5900）→ 仅作展示缓存 |
+| `AuditLog` | **N** | ✓ | 审计：tenant/org 仅记录上下文，不参与隔离 |
+
+**A2 结论**：51 个模型中平台级 10、命名空间/审计级 2、商户级 39。商户级中 `User / Merchant / TechnicianProfile / RepairRequest / SiteMember / MerchantMember` 属 S1–S4 必修；其余为 P2 数据核对对象。
+
+> 状态：A1/A2 完成；A3（handlers 分域）、A4（services/前端/文档）待做。
