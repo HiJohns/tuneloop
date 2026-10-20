@@ -222,3 +222,40 @@
 - 正面样例：`user_rental.go` 从 instrument 推导归属（数据归属优先）
 
 > 状态：A3-1 完成；A3-2（orders/payments/settlements/invoices）、A3-3（instruments/inventory/media）、A3-4（repair）、A3-5（其余）待做。
+
+## A3-2 orders / payments / settlements / invoices 域审核结论
+
+### 数据锚实测（预生产，已核实）
+
+| 表 | 实际 tenant_id 值 | 锚类型 |
+|---|---|---|
+| `orders`（83 行） | `bd6bfa4b`（卡丹萨 org） | ✅ 商户 org |
+| `instruments`（218 行） | `bd6bfa4b` | ✅ 商户 org |
+| `merchant_members`（8 行） | `3cfa99da`（共享 tenant） | ❌ 与代码 `= tid(商户org)` 不匹配 |
+| `site_members`（7 行） | `bfce6c6d`（cadenza org）/ `bd6bfa4b`（卡丹萨 org） | ⚠️ 站点所属商户 org |
+| `technician_profiles`（4 行） | `3cfa99da` ×3 / `bd6bfa4b` ×1 | ❌ 混用（#2247） |
+
+**结论：同一系统内同时存在 3 种锚（商户 org / 共享 tenant / 站点商户 org），这就是 `tenant_id` 不可信的直接证据。**
+
+### 文件判定
+
+| 文件 | 命中模式 | 判定 | 说明 / 目标 |
+|---|---|---|---|
+| `order.go` | S2 | 列表按 `tenant_id = tid` 过滤；L711 商户名按 `order.tenant_id` 反查（无唯一性） | 订单已锚商户 org → 商户管理员可用；反查需按 org 精确 |
+| `invoice.go` | S2/S3 | `tenant_id IN ?` 分组 + 按 tenant 反查商户 | 订单 org 锚下可用，但分组/反查需改为 org |
+| `warehouse.go` | S2 | 订单操作 `id=? AND tenant_id=tid` | 商户 org 下可用；需补网点角色用例 |
+| `merchant_invoice.go` | S2/S4 | 列表/详情 `= tid`；写 `TenantID: tid`；商户反查按 tid | 改商户 org |
+| `billing.go` | S2/S4 | `orders.tenant_id = tid`；写 `TenantID: tid` | 读取改 org；写入取数据归属 |
+| `merchant_order.go` | S2 | `orders.tenant_id = tid` | 同上 |
+| `pending_order.go` | **S1 邻接** | 写入 `TenantID: u.TenantID`（用户缓存） | 用户缓存不可靠 → 改订单商户 org |
+| `user_settlement.go` | ✅ 正面 | 全部 `order.TenantID` | 数据归属优先（保持） |
+| `wechatpay_prepay.go` / `renewal.go` | ✅ 正面 | 顾客空 tid → **从 order 推导** | 保持，作为 P1 参照 |
+| `warehouse.go` 写入 | S4 | 记录 `TenantID: tid` | 改订单归属 |
+
+**A3-2 结论**
+- 订单/乐器数据已按**商户 org** 锚定，是现有最一致的部分
+- **高危**：`merchant_members` 数据锚（共享 tenant）与代码过滤（商户 org）不一致 → 成员列表/角色校验可能空/失败（建议独立验证 Issue）
+- 写路径仍存在 `TenantID: tid`（S4）与用户缓存（S1 邻接）
+- 正面：prepay/renewal 从订单推导；settlement 全部用 order.TenantID
+
+> 状态：A3-2 完成；A3-3（instruments/inventory/media）、A3-4（repair）、A3-5（其余）待做。
