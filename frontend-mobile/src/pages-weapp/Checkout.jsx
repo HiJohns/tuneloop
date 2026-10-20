@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { formatCents } from '../utils/money'
 import Taro from '@tarojs/taro'
-import { View, Text, Image, Button, ScrollView, Input, Picker, Checkbox } from '@tarojs/components'
+import { View, Text, Image, Button, ScrollView, Input, Picker } from '@tarojs/components'
 import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, guarantorsApi, getCartKey , resolveErrorMessage } from '../services/api'
 import dayjs from 'dayjs'
 import { dialog, env, session, storage, eventBus } from '../platform'

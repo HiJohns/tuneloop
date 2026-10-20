@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { formatCents } from '../../utils/money'
 import Taro from '@tarojs/taro'
-import { View, Text, Input, Picker, Image, Checkbox } from '@tarojs/components'
+import { View, Text, Input, Picker, Image } from '@tarojs/components'
 import {dialog, storage, session, env, request, wxLogin } from '../../platform'
 import { apiFetch , resolveErrorMessage } from '../../services/api'
 import IdPhotoUploader from '../../components/IdPhotoUploader'
@@ -311,7 +311,11 @@ export default function ProfileComplete() {
 
       {/* #2209: 协议同意（必选，向 #2206 登录页收敛） */}
       <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', marginBottom: 12, width: '100%' }}>
-        <Checkbox checked={agreed} onChange={() => setAgreed(!agreed)} />
+        {/* #2240: 自绘勾选框（Taro Checkbox 在 weapp 单独使用时无事件绑定，onChange 不触发） */}
+        <View onClick={() => setAgreed(v => !v)}
+          style={{ width: 18, height: 18, borderRadius: 4, border: agreed ? 'none' : '1px solid #d4d4d8', backgroundColor: agreed ? '#915F38' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          {agreed ? <Text style={{ color: '#fff', fontSize: 12, lineHeight: '18px' }}>✓</Text> : null}
+        </View>
         <Text style={{ fontSize: 12, color: '#a1a1aa' }}>我已阅读并同意</Text>
         <Text style={{ fontSize: 12, color: '#915F38' }} onClick={() => Taro.navigateTo({ url: '/pages-weapp/content/index?key=rental_agreement' })}>《租用服务协议》</Text>
         <Text style={{ fontSize: 12, color: '#a1a1aa' }}>与</Text>
