@@ -200,3 +200,25 @@
 **A2 结论**：51 个模型中平台级 10、命名空间/审计级 2、商户级 39。商户级中 `User / Merchant / TechnicianProfile / RepairRequest / SiteMember / MerchantMember` 属 S1–S4 必修；其余为 P2 数据核对对象。
 
 > 状态：A1/A2 完成；A3（handlers 分域）、A4（services/前端/文档）待做。
+
+## A3-1 users / auth 域审核结论
+
+| 文件 | 命中模式 | 判定 | 目标改法 |
+|---|---|---|---|
+| `user_staff.go` | S2/S4 | ListUsers/CreateUser 查重与写入均用 JWT `tid`；**L445 `WHERE tenant_id=? ORDER BY created_at LIMIT 1` 任取商户**（共享 tenant 时必错） | 解析商户 org 后使用；商户查找改由 `oid` 精确匹配；写入用数据归属 |
+| `user_rental.go` | 正面样例 / S7 | 游客/顾客从 **instrument 推导 tenant/org**（正确做法）；订单写入 `nilUUID` 仅顾客占位 | 作为 P1 参照模式；后续统一 nilUUID 语义 |
+| `member_invite_2114.go` | S2/S4 | 邀请/审批全链路 `site/merchant/invite.tenant_id = tid`，写入用 tid | 商户 org 锚定；邀请记录写入由目标商户推导 |
+| `merchant_member.go` | S2/S4 | 商户校验/成员写入均 `tenant_id = tid` | 同上；`merchant_id` 精确校验 |
+| `staff_invite.go` | S2/S4 | 列表/发送/接受用 JWT tid 或 invite.tenant；接受时写 `site_members.tenant_id = invite.TenantID` | 邀请归属改为商户 org（发送时落库） |
+| `site_member.go` | S2 | 全部按 `site_members.tenant_id = tid` 过滤 | 归属应由 `site_id → sites` + 商户 org 推导 |
+| `user_management.go` | 平台级豁免 | 显式清空 tenant 查全量（注释已说明） | 保留（S6 合法例外） |
+| `auth.go` | S4/S7 | 注册/推荐写入 `TenantID: tenantID`（上下文可能为空 → 零 UUID） | 注册流程明确零 UUID 语义；不用于归属 |
+| `iam_proxy.go` | **S1**/S2/S4 | **L619 `WHERE iam_sub=? AND tenant_id=?` 更新本地缓存**（iam-notes:65 的“路人”根因同类）；L760 `TenantID: userOrgID` 混写 | 移除 tenant 过滤（按 iam_sub 唯一）；org 写入 org 字段 |
+| `confirmation_session.go` | S2 | 会话创建/校验按 `tenant_id = tid` | 会话归属改商户 org / 用户 id |
+
+**A3-1 结论**
+- 最高危：`user_staff.go:445`（共享 tenant 下任取商户）、`iam_proxy.go:619`（S1 缓存过滤导致静默 0 行更新）
+- 共性：**写入一律用操作者 `tid`**（S4），商户身份未参与
+- 正面样例：`user_rental.go` 从 instrument 推导归属（数据归属优先）
+
+> 状态：A3-1 完成；A3-2（orders/payments/settlements/invoices）、A3-3（instruments/inventory/media）、A3-4（repair）、A3-5（其余）待做。
