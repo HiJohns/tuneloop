@@ -20,11 +20,16 @@ func GetSetting(c *gin.Context) {
 		return
 	}
 
-	tenantID := middleware.GetTenantID(c.Request.Context())
-	db := database.GetDB().WithContext(c.Request.Context())
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(database.IdentityCtx(ctx))
+	// #2251：商户上下文按商户 org 锚定；平台级设置统一用平台 tenant（nil UUID）
+	anchor := systemTenantID
+	if org, ok := resolveMerchantConfigAnchor(ctx); ok {
+		anchor = org
+	}
 
 	var setting models.SystemSetting
-	if err := db.Where("tenant_id = ? AND setting_key = ?", tenantID, key).First(&setting).Error; err != nil {
+	if err := db.Where("tenant_id = ? AND setting_key = ?", anchor, key).First(&setting).Error; err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"code": 20000,
 			"data": gin.H{"key": key, "value": ""},
@@ -130,15 +135,20 @@ func UpsertSetting(c *gin.Context) {
 		return
 	}
 
-	tenantID := middleware.GetTenantID(c.Request.Context())
-	userID := middleware.GetUserID(c.Request.Context())
-	db := database.GetDB().WithContext(c.Request.Context())
+	ctx := c.Request.Context()
+	userID := middleware.GetUserID(ctx)
+	db := database.GetDB().WithContext(database.IdentityCtx(ctx))
+	// #2251：商户上下文按商户 org 锚定；平台级设置统一用平台 tenant（nil UUID）
+	anchor := systemTenantID
+	if org, ok := resolveMerchantConfigAnchor(ctx); ok {
+		anchor = org
+	}
 
 	var setting models.SystemSetting
-	result := db.Where("tenant_id = ? AND setting_key = ?", tenantID, key).First(&setting)
+	result := db.Where("tenant_id = ? AND setting_key = ?", anchor, key).First(&setting)
 	if result.Error != nil {
 		setting = models.SystemSetting{
-			TenantID:     tenantID,
+			TenantID:     anchor,
 			SettingKey:   key,
 			SettingValue: req.Value,
 			UpdatedBy:    userID,

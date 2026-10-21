@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 
@@ -16,9 +15,9 @@ func GetMerchantRebateOptIn(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "tenant required"})
 		return
 	}
-	db := database.GetDB().WithContext(ctx)
-	var merchant models.Merchant
-	if err := db.Where("tenant_id = ?", tenantID).First(&merchant).Error; err != nil {
+	// #2251：按商户 org 解析（共享 tenant 下 tenant_id 无法定位唯一商户）
+	merchant, ok := resolveOperatorMerchantConfig(ctx)
+	if !ok {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "merchant not found"})
 		return
 	}
@@ -39,8 +38,14 @@ func UpdateMerchantRebateOptIn(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "tenant required"})
 		return
 	}
-	db := database.GetDB().WithContext(ctx)
-	if err := db.Model(&models.Merchant{}).Where("tenant_id = ?", tenantID).Update("rebate_opt_in", req.OptIn).Error; err != nil {
+	merchant, ok := resolveOperatorMerchantConfig(ctx)
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "merchant not found"})
+		return
+	}
+	// #2251：按商户主键更新（同一共享 tenant 只更新本商户）
+	db := merchantConfigDB(ctx)
+	if err := db.Model(&models.Merchant{}).Where("id = ?", merchant.ID).Update("rebate_opt_in", req.OptIn).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": err.Error()})
 		return
 	}

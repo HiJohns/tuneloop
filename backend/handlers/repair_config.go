@@ -3,7 +3,6 @@ package handlers
 import (
 	"net/http"
 	"tuneloop-backend/database"
-	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
@@ -26,11 +25,16 @@ func GetRepairSetting(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
-	tenantID := middleware.GetTenantID(ctx)
+	db := merchantConfigDB(ctx)
+	// #2251：维修设置按商户 org 锚定（共享 tenant 的商户不得共用配置）
+	anchor, ok := resolveMerchantConfigAnchor(ctx)
+	if !ok {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "merchant scope not found"})
+		return
+	}
 
 	var setting models.SystemSetting
-	if err := db.Where("tenant_id = ? AND setting_key = ?", tenantID, key).First(&setting).Error; err != nil {
+	if err := db.Where("tenant_id = ? AND setting_key = ?", anchor, key).First(&setting).Error; err != nil {
 		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"value": ""}})
 		return
 	}
@@ -50,15 +54,20 @@ func SetRepairSetting(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
-	tenantID := middleware.GetTenantID(ctx)
+	db := merchantConfigDB(ctx)
+	// #2251：维修设置按商户 org 锚定（共享 tenant 的商户不得共用配置）
+	anchor, ok := resolveMerchantConfigAnchor(ctx)
+	if !ok {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "merchant scope not found"})
+		return
+	}
 
 	var setting models.SystemSetting
-	if err := db.Where("tenant_id = ? AND setting_key = ?", tenantID, req.Key).First(&setting).Error; err == nil {
+	if err := db.Where("tenant_id = ? AND setting_key = ?", anchor, req.Key).First(&setting).Error; err == nil {
 		db.Model(&setting).Update("setting_value", req.Value)
 	} else {
 		db.Create(&models.SystemSetting{
-			TenantID:     tenantID,
+			TenantID:     anchor,
 			SettingKey:   req.Key,
 			SettingValue: req.Value,
 		})
@@ -70,15 +79,20 @@ func SetRepairSetting(c *gin.Context) {
 // GetRepairAllSettings returns all repair config values.
 func GetRepairAllSettings(c *gin.Context) {
 	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
-	tenantID := middleware.GetTenantID(ctx)
+	db := merchantConfigDB(ctx)
+	// #2251：维修设置按商户 org 锚定（共享 tenant 的商户不得共用配置）
+	anchor, ok := resolveMerchantConfigAnchor(ctx)
+	if !ok {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "merchant scope not found"})
+		return
+	}
 
 	keys := []string{keyRepairInspectionFee, keyRepairShippingFee, keyRepairGiftPointsEnabled}
 	settings := map[string]string{}
 
 	for _, k := range keys {
 		var s models.SystemSetting
-		if err := db.Where("tenant_id = ? AND setting_key = ?", tenantID, k).First(&s).Error; err == nil {
+		if err := db.Where("tenant_id = ? AND setting_key = ?", anchor, k).First(&s).Error; err == nil {
 			settings[k] = s.SettingValue
 		}
 	}
@@ -95,13 +109,17 @@ func GetSiteShippingFee(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
-
-	var setting models.SystemSetting
-	tenantID := middleware.GetTenantID(ctx)
+	db := merchantConfigDB(ctx)
+	// #2251：网点运费覆盖按商户 org 锚定（site id 全局唯一，key 已含 site）
+	anchor, ok := resolveMerchantConfigAnchor(ctx)
+	if !ok {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "merchant scope not found"})
+		return
+	}
 	key := "site_shipping_fee_" + siteID
 
-	if err := db.Where("tenant_id = ? AND setting_key = ?", tenantID, key).First(&setting).Error; err != nil {
+	var setting models.SystemSetting
+	if err := db.Where("tenant_id = ? AND setting_key = ?", anchor, key).First(&setting).Error; err != nil {
 		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"value": ""}})
 		return
 	}
@@ -126,15 +144,20 @@ func SetSiteShippingFee(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
-	tenantID := middleware.GetTenantID(ctx)
+	db := merchantConfigDB(ctx)
+	// #2251：网点运费覆盖按商户 org 锚定（site id 全局唯一，key 已含 site）
+	anchor, ok := resolveMerchantConfigAnchor(ctx)
+	if !ok {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "merchant scope not found"})
+		return
+	}
 	key := "site_shipping_fee_" + siteID
 
 	var setting models.SystemSetting
-	if err := db.Where("tenant_id = ? AND setting_key = ?", tenantID, key).First(&setting).Error; err == nil {
+	if err := db.Where("tenant_id = ? AND setting_key = ?", anchor, key).First(&setting).Error; err == nil {
 		db.Model(&setting).Update("setting_value", req.Value)
 	} else {
-		db.Create(&models.SystemSetting{TenantID: tenantID, SettingKey: key, SettingValue: req.Value})
+		db.Create(&models.SystemSetting{TenantID: anchor, SettingKey: key, SettingValue: req.Value})
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "saved"})
