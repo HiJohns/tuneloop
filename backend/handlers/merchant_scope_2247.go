@@ -13,16 +13,22 @@ import (
 )
 
 // resolveOperatorMerchant2247 由操作者 JWT org（优先）或 tenant 解析商户。
+//
+// 返工（#2247 审计观察项）：tenant 回退必须**确定性**——
+// 仅当 tenant 唯一归属一个商户时才解析；共享 tenant（多商户）不解析，
+// 禁止无序 First 绑定到「任意一个商户」（平台管理员会因此得到随机商户范围）。
 func resolveOperatorMerchant2247(db *gorm.DB, orgID, tenantID string) (models.Merchant, bool) {
 	var m models.Merchant
 	if orgID != "" {
-		if err := db.Where("org_id = ?", orgID).First(&m).Error; err == nil {
+		if err := db.Where("org_id = ?", orgID).First(&m).Error; err == nil && m.OrgID != "" {
 			return m, true
 		}
 	}
 	if tenantID != "" {
-		if err := db.Where("org_id = ? OR tenant_id = ?", tenantID, tenantID).First(&m).Error; err == nil {
-			return m, true
+		var merchants []models.Merchant
+		if err := db.Where("tenant_id = ?", tenantID).Limit(2).Find(&merchants).Error; err == nil &&
+			len(merchants) == 1 && merchants[0].OrgID != "" {
+			return merchants[0], true
 		}
 	}
 	return m, false

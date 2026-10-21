@@ -76,6 +76,14 @@
 
 「需要全部记录」的场景（下拉选项、批量编辑器等）**不得**对**分页端点**传入超大 `pageSize` 来「凑全量」——应改用**全量端点**或新增专用 options 接口。分页端点只服务「翻页浏览」消费模式。
 
+#### 1.5.5 维修师档案归属口径（#2247）
+
+- **归属锚**：`technician_profiles.tenant_id` = **商户 org**（`merchants.org_id`）。`merchants.tenant_id` 可能是多商户共享值，不作为档案归属。
+- **创建**（`POST /technician-profiles`）：目标用户必须存在、`status=active`、且属于本商户（`users.tenant_id` 或 `users.org_id` = 商户 org）；档案写入商户 org。
+- **列表**（`GET /technician-profiles`）：解析操作者商户 → `tenant_id = 商户 org`；仅当 operator tenant **唯一**归属一个商户时才作为兼容值追加（共享 tenant 不追加）。无法解析商户时按操作者自身 tenant 键读取（确定性回退，不任取商户）。
+- **平台管理员创建限制**：`POST /users` 对 `site_staff` / `repair_technician` / `merchant_direct` 返回 `403 / 40310`（平台侧仅能通过创建商户产生商户负责人，#1718）。
+- **历史回填**：迁移 `20261020001` 将档案 `tenant_id` 按 `users.tenant_id → merchants.org_id` 规范化（执行需授权）。
+
 ### 1.6 权限模型 (v2.1)
 
 权限控制基于 JWT 中的两层位图。

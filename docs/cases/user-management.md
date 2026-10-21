@@ -124,3 +124,32 @@ steps:
 - `go build .` + `go test ./handlers/ -run TestMemberInvite2114` 通过
 - PC `npm run build`（vite build）通过；ESLint 无新增 `no-undef`
 - 端到端：网点管理员申请 → 商户管理员审批 → 被邀请人接受（自注册）→ 关系正确（A:member / B:member / C:role）
+
+---
+
+# P-08 平台/商户创建员工与维修师档案归属（#2247）
+
+## 前置条件
+- 平台管理员（namespace_admin，IAM 组织 `is_primary=true`）或商户管理员（OWNER）已登录 PC
+- 目标账号已注册且 `status=active`
+
+## 流程
+1. **平台管理员创建用户**：`POST /api/users` 不接受商户员工/维修师类型（`site_staff` / `repair_technician` / `merchant_direct`）→ **403 / code 40310**。平台侧创建商户负责人的入口是「创建商户」（`POST /admin/merchants`）。
+2. **商户管理员创建员工/维修师**：`POST /api/users {user_type}`
+   - 用户 `users.tenant_id`、维修师档案 `technician_profiles.tenant_id`、直属成员 `merchant_members.tenant_id` 统一写**商户 org**
+   - 直属员工（`merchant_direct`）只挂本商户（不再按 tenant 任取第一个商户）
+3. **商户管理员关联已注册用户为维修师**：`POST /technician-profiles {user_id}`
+   - 目标账号必须存在、`status=active`、且属于本商户（`users.tenant_id` 或 `users.org_id` = 商户 org）；否则 400
+   - 档案 `tenant_id` = 商户 org
+
+## 关键规则
+- **归属锚 = 商户 org**（`merchants.org_id`）；`merchants.tenant_id` 可能是多商户共享值，**不得**用作档案/成员归属。
+- `GET /technician-profiles` 读取范围：解析操作者商户 → `tenant_id = 商户 org`；仅当 tenant **唯一**归属一个商户时才作为兼容值追加；共享 tenant 不参与（#2248 同口径）。
+- 无法解析商户的操作者（如平台管理员）→ 按自身 tenant 键读取（确定性回退，不再无序命中任意商户）。
+- IAM 组织绑定：员工/维修师绑定 `merchant.OrgID`（非 namespace tenant）。
+- 历史档案回填：`technician_profiles.tenant_id` 按 `users.tenant_id → merchants.org_id` 规范化（迁移 `20261020001`，执行需授权）。
+
+## 验收
+- 平台管理员创建维修师 → 403/40310；商户管理员创建 → 档案 tenant = 商户 org
+- 非本商户 / 非 active 用户关联维修师 → 400
+- 商户管理员列表可见本商户档案；其他商户不可见（含共享 tenant 场景）
