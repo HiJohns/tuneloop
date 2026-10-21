@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"crypto/rand"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -382,6 +383,11 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 			c.JSON(http.StatusConflict, gin.H{"code": 40910, "message": "该手机号/邮箱/用户名已在平台注册，请让本人登录后自助加入（作为员工加入 / 注册为顾客）"})
 			return
 		}
+		// #2243：非冲突类 IAM 4xx → 400 + 保留 IAM 原始 message（不再一律 500）
+		if errors.Is(err, services.ErrIAMInvalidRequest) {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40010, "message": "创建用户失败（IAM）：" + iamErrorMessage(err)})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM user creation failed: " + err.Error()})
 		return
 	}
@@ -545,6 +551,11 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 		// #2243：IAM 409（已注册）→ 业务冲突 409 + 明确文案；不得统一 500
 		if errors.Is(err, services.ErrIAMUserExists) {
 			c.JSON(http.StatusConflict, gin.H{"code": 40910, "message": "该手机号/邮箱/用户名已在平台注册，请让本人登录后自助加入（作为员工加入 / 注册为顾客）"})
+			return
+		}
+		// #2243：非冲突类 IAM 4xx → 400 + 保留 IAM 原始 message（不再一律 500）
+		if errors.Is(err, services.ErrIAMInvalidRequest) {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40010, "message": "创建用户失败（IAM）：" + iamErrorMessage(err)})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM user creation failed: " + err.Error()})
@@ -1562,4 +1573,23 @@ func (h *UserStaffHandler) WxMergeCurrentUser(c *gin.Context) {
 		"message": "merged",
 		"data":    gin.H{"merged": true, "to_user_id": req.ToUserID},
 	})
+}
+
+// iamErrorMessage（#2243）提取 IAM 4xx 响应中的可读 message：
+// 优先 json.message / json.error；无法解析时回退原始响应体（保留 IAM 原始文案）。
+func iamErrorMessage(err error) string {
+	raw := strings.TrimPrefix(err.Error(), services.ErrIAMInvalidRequest.Error()+": ")
+	var payload struct {
+		Message string `json:"message"`
+		Error   string `json:"error"`
+	}
+	if json.Unmarshal([]byte(raw), &payload) == nil {
+		if payload.Message != "" {
+			return payload.Message
+		}
+		if payload.Error != "" {
+			return payload.Error
+		}
+	}
+	return raw
 }

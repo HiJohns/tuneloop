@@ -68,3 +68,54 @@ func TestStaffCreateUser_IAMConflict_2243(t *testing.T) {
 	msg, _ := resp["message"].(string)
 	assert.Contains(t, msg, "已", "文案应说明已注册；实际=%q", msg)
 }
+
+// TestStaffCreateUser_IAMBadRequest_2243：非冲突类 IAM 4xx 必须映射为 HTTP 400
+// 并保留 IAM 原始 message（不再一律 500「服务器开小差」）。
+func TestStaffCreateUser_IAMBadRequest_2243(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+	tenantID := uuid.New().String()
+	operatorID := uuid.New().String()
+	require.NoError(t, db.Create(&models.User{
+		ID: operatorID, IAMSub: operatorID, TenantID: tenantID, OrgID: tenantID,
+		Username: "op2243b", Role: "admin", Status: "active",
+	}).Error)
+	siteID := uuid.New().String()
+	require.NoError(t, db.Create(&models.Site{ID: siteID, TenantID: tenantID, OrgID: tenantID, Name: "S2243b"}).Error)
+
+	writeJSON := func(w http.ResponseWriter, v interface{}) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(v)
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/auth/token", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, map[string]interface{}{"access_token": "t2243b", "expires_in": 7200, "token_type": "Bearer"})
+	})
+	mux.HandleFunc("/api/v1/users", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid phone format"})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Setenv("IAM_SECRET", testIAMSecret)
+
+	h := &UserStaffHandler{}
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Request = c.Request.WithContext(
+			testutil.TestActor{TenantID: tenantID, OrgID: tenantID, UserID: operatorID, Role: "ADMIN"}.InjectContext(c.Request.Context()))
+		c.Next()
+	})
+	r.POST("/users", h.CreateUser)
+
+	code, resp := doCreate2068(t, r, map[string]interface{}{
+		"name": "参数错误员工", "phone": "13000000001", "email": "badreq2243@example.com",
+		"site_id": siteID,
+	})
+	assert.Equal(t, http.StatusBadRequest, code, "IAM 4xx 应映射为 HTTP 400，实际=%v resp=%v", code, resp)
+	assert.Equal(t, float64(40010), resp["code"], "应返回 40010，实际=%v", resp["code"])
+	msg, _ := resp["message"].(string)
+	assert.Contains(t, msg, "invalid phone format", "必须保留 IAM 原始 message；实际=%q", msg)
+}
