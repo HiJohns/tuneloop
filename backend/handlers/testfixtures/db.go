@@ -72,6 +72,7 @@ var allTables = []interface{}{
 	&models.TransitRoute{},            // #1881: transit fan-out query
 	&models.InstrumentMedia{},         // #1889: InspectReturn writes return photos
 	&models.MaintenanceTicket{},       // #1886: legacy table retained (AutoMigrate kept; business refs removed)
+	&models.PendingOrder{},            // #2041/#2255: 待提交订单缓存表（归属测试）
 	&models.Coupon{},                  // #1901: test-coupon points basis (OREZ/ENO)
 	&models.RegistrationSession{},     // #1902: registration session flow tests
 	&models.Property{},                // #1902: instrument property flow tests

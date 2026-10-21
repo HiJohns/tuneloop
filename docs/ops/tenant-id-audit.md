@@ -405,7 +405,8 @@ bash scripts/tenant-audit-coverage.sh
 | 批次 | 内容 | 状态 | 验证 |
 |---|---|---|---|
 | B1 | **商户归属解析统一**：`resolveOperatorMerchantConfig`（#2251）改为复用 `resolveOperatorMerchant2247`（#2247）——单一实现（org 优先 → 唯一 tenant → 共享不解析） | ✅ 已完成 | `TestResolveMerchantOrg_Precedence_2255`（org 优先/唯一 tenant/共享拒绝/未知身份 4 例）+ #2247/#2251 原测试回归 |
-| B2 | 写入回调 `setTenantIDFromContext` → 数据归属推导（S4） | ⬜ 待批 | 计划：先补「隐藏依赖自动填充」的红绿夹具 |
+| B2a | **S4 写入数据归属（缓存表）**：`pending_order` 的 tenant 改为乐器所属商户 org（原用 `users.tenant_id` 缓存，顾客零租户/共享 tenant 均不可靠） | ✅ 已完成（`pending_order`） | 红绿：`TestCreatePendingOrder_TenantFromInstrument_2255`（父提交=零租户/共享 → 修复=商户 org）+ 无乐器回退平台零 UUID 负例 |
+| B2b | 写入回调 `setTenantIDFromContext` → 数据归属推导（S4，回调级） | ⬜ 待批 | 计划：先补「隐藏依赖自动填充」的红绿夹具 |
 | B3 | 读回调 `addTenantScope` 默认禁用 → 显式 scope helper；`IdentityCtx` 23 处收敛 | ⬜ 待批 | 计划：每批 `go test` 基线 diff + 共享 tenant 双商户夹具 |
 | B4 | A3-8 必修清单（P2/P3 批 25 文件）口径改造 | ⬜ 待批 | 逐文件清单见 §A3-8 |
 | B5 | 前端/services tenant payload 收敛（26/103 处） | ⬜ 待批 | 与 API 口径同步 |
