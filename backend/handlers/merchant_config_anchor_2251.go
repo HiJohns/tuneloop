@@ -19,31 +19,11 @@ import (
 // resolveOperatorMerchantConfig resolves the merchant that owns the
 // merchant-scoped config for the requesting operator.
 //
-// Resolution order:
-//  1. JWT org → merchants.org_id (merchant admins carry their merchant org)
-//  2. JWT tenant → merchants.tenant_id, only when exactly one merchant owns it
-//
-// A shared tenant (multiple merchants) is ambiguous and intentionally does NOT
-// resolve; callers must return an explicit error instead of sharing config.
+// #2255（P3 批次1）：与 #2247 的 resolveOperatorMerchant2247 共用同一实现，
+// 消除两套并行解析（org 优先 → 唯一 tenant → 共享 tenant 不解析）。
+// merchantConfigDB 清除自动 tenant scope，确保 org 分支不被 addTenantScope 叠加。
 func resolveOperatorMerchantConfig(ctx context.Context) (models.Merchant, bool) {
-	db := merchantConfigDB(ctx)
-	var m models.Merchant
-
-	orgID := middleware.GetOrgID(ctx)
-	tenantID := middleware.GetTenantID(ctx)
-	if orgID != "" {
-		if err := db.Where("org_id = ?", orgID).First(&m).Error; err == nil && m.OrgID != "" {
-			return m, true
-		}
-	}
-	if tenantID != "" {
-		var merchants []models.Merchant
-		if err := db.Where("tenant_id = ?", tenantID).Limit(2).Find(&merchants).Error; err == nil &&
-			len(merchants) == 1 && merchants[0].OrgID != "" {
-			return merchants[0], true
-		}
-	}
-	return models.Merchant{}, false
+	return resolveOperatorMerchant2247(merchantConfigDB(ctx), middleware.GetOrgID(ctx), middleware.GetTenantID(ctx))
 }
 
 // resolveMerchantConfigAnchor returns the merchant org used as the config key

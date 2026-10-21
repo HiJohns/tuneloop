@@ -367,9 +367,9 @@
 | ISO-10 | 平台管理员 | 创建商户员工/维修师 | 403 / code 40310 | ✅ `TestCreateUser_PlatformAdminRejected_2247` |
 | ISO-11 | 商户管理员 | 创建维修师 | `technician_profiles.tenant_id == 商户 org` | ✅ `TestCreateUser_MerchantAdminProfileAnchored_2247` |
 | ISO-12 | 商户管理员 | 关联非 active / 非本商户用户为维修师 | 400 | ✅ `TestTechnicianProfileCreate_InactiveUserRejected_2247` |
-| ISO-13 | 商户 A 管理员 | 跨商户维修服务单详情 / 转派 / 收货 / 结算 | 404 / 403；状态与金额不变 | ⬜ 随 #2248 后续（详情/操作 scope 统一）补 |
-| ISO-14 | 网点管理员 | 跨网点订单/乐器详情 | 404 / 403（仅本网点） | ⬜ 随 P1（`site_members.sites.tenant_id` 已锚）补矩阵 |
-| ISO-15 | 顾客（零租户） | 下单/支付/收货/我的订单 | 不因 tid 为空被拒；数据落商户 org | ⬜ 随 `userOptionalAuth` 路由清单补 |
+| ISO-13 | 商户 A 管理员 | 跨商户维修服务单详情 / 转派 / 收货 / 结算 | 404 / 403；状态与金额不变 | ✅ 列表隔离 `TestRepairService_LeafOrgScope_Isolation_2134`；转派跨商户目标 40003 `TestReassignRepairService_2229_Validation`；跨网点操作 403 `TestAcceptRepair_OtherSite_Forbidden` |
+| ISO-14 | 网点管理员 | 跨网点订单/乐器详情 | 404 / 403（仅本网点） | ⬜ 部分：跨租户乐器详情 404 `TestInstrumentDetail_RepairFields_CrossTenant404`（顾客态）；多站点可见性正向 `TestGetInstruments_MultiSiteTechnician`；**网点管理员跨网点订单/详情待补** |
+| ISO-15 | 顾客（零租户） | 下单/支付/收货/我的订单 | 不因 tid 为空被拒；数据落商户 org | ⬜ 部分：零租户顾客用例已有（订单取消 `TestCancelOrderByCustomer_StatusGuard`、提前归还 `TestLeaseEarlyReturn*`、申诉 `appeal_test`）；**下单/支付/收货全链路矩阵待补** |
 
 ## A6 覆盖率校验（可复跑）
 
@@ -397,3 +397,16 @@ bash scripts/tenant-audit-coverage.sh
 | **可保留** | `user_rental.go`（正面：从 instrument 推导）、`user_management.go`（平台级豁免）、`auth.go`（零 UUID 占位语义，P4 统一）、`order.go` / `merchant_order.go`（读取按订单 org 一致；反查优化归 P2）、`user_settlement.go` / `wechatpay_prepay.go` / `renewal.go`（正面：数据归属）、`instrument.go` / `instrument_media.go` / `inventory.go` / `api.go` / `instrument_scrap.go`（读取可保留；写入 S4 已并入 P3）、`instrument_loss.go`（数据归属）、`repair_request.go`（写入数据归属；列表 S2 归 P3）、`settings.go` / `role_manage.go` / `permission_manage.go` / `audit_log.go` / `banner.go` / `wechatpay_admin.go` / `webhook_config.go` / `smtp_config.go` / `system.go`（平台级显式清空 tenant）、`gift_policies.go` / `face_review.go`（合法例外）、`auto_confirm.go` / `reserved_order_scheduler.go` / `logistics_monitor.go`（数据驱动）、`quote.go` / `repair.go` / `instrument_import.go` / `bulk_import.go` / `user_onboarding.go` / `registration_*`（调用方锚；S1 邻接随 P3）、`iam_callback.go`（零 UUID 明确占位） |
 
 > 判定以本表逐项为准；同一文件若读取可保留、写入必修，已在该文件条目注明（如 `warehouse.go`、`instrument.go`）。
+
+## A7 P3 执行进度（分批，每批独立可回滚）
+
+> 依据 #2255 计划「分批提交、禁止与 bug fix 混提交」。批次状态供审计跟踪。
+
+| 批次 | 内容 | 状态 | 验证 |
+|---|---|---|---|
+| B1 | **商户归属解析统一**：`resolveOperatorMerchantConfig`（#2251）改为复用 `resolveOperatorMerchant2247`（#2247）——单一实现（org 优先 → 唯一 tenant → 共享不解析） | ✅ 已完成 | `TestResolveMerchantOrg_Precedence_2255`（org 优先/唯一 tenant/共享拒绝/未知身份 4 例）+ #2247/#2251 原测试回归 |
+| B2 | 写入回调 `setTenantIDFromContext` → 数据归属推导（S4） | ⬜ 待批 | 计划：先补「隐藏依赖自动填充」的红绿夹具 |
+| B3 | 读回调 `addTenantScope` 默认禁用 → 显式 scope helper；`IdentityCtx` 23 处收敛 | ⬜ 待批 | 计划：每批 `go test` 基线 diff + 共享 tenant 双商户夹具 |
+| B4 | A3-8 必修清单（P2/P3 批 25 文件）口径改造 | ⬜ 待批 | 逐文件清单见 §A3-8 |
+| B5 | 前端/services tenant payload 收敛（26/103 处） | ⬜ 待批 | 与 API 口径同步 |
+| B6 | 隔离矩阵补齐（ISO-14 网点管理员跨网点、ISO-15 顾客全链路） | ⬜ 部分（ISO-13 ✅） | 行级断言
