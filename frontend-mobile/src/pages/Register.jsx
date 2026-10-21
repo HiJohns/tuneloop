@@ -214,11 +214,9 @@ export default function Register() {
             {agreed ? <Text style={{ color: '#fff', fontSize: 12, lineHeight: '18px' }}>✓</Text> : null}
           </View>
           <View style={{ flex: 1, display: 'flex', flexDirection: 'row', flexWrap: 'wrap' }}>
-            <Text className="text-xs text-zinc-500">如果继续支付保费，代表已接受并同意</Text>
-            <Text className="text-xs text-blue-600 font-bold" onClick={() => navigate('/content?key=rental_agreement')}>《租用服务协议》</Text>
-            <Text className="text-xs text-zinc-500">与</Text>
-            <Text className="text-xs text-blue-600 font-bold" onClick={() => navigate('/content?key=privacy_policy')}>《个人信息保护政策》</Text>
-            <Text className="text-xs text-zinc-500">内容</Text>
+            <Text className="text-xs text-zinc-500">我已阅读并同意所有「</Text>
+            <Text className="text-xs text-blue-600 font-bold" onClick={() => navigate('/content?key=related_agreements')}>相关协议</Text>
+            <Text className="text-xs text-zinc-500">」</Text>
           </View>
         </View>
 
