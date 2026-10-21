@@ -164,24 +164,6 @@ func resolveMerchantNameForSite(db *gorm.DB, siteOrgID, siteTenantID string) str
 	return try("org_id = ?", siteOrgID)
 }
 
-// ListSiteInvites GET /api/sites/:id/invites — 待接受邀请列表（管理员）。
-func ListSiteInvites(c *gin.Context) {
-	siteID := c.Param("id")
-	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
-	tenantID := middleware.GetTenantID(ctx)
-
-	if !hasSiteAccess(db, tenantID, siteID, c) {
-		return
-	}
-
-	var invites []models.StaffInvite
-	db.Where("tenant_id = ? AND site_id = ? AND status = ? AND expires_at > ?", tenantID, siteID, "pending", time.Now()).
-		Order("created_at DESC").Find(&invites)
-
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"invites": invites}})
-}
-
 // AcceptInvite POST /api/user/accept-invite — 本人用邀请码加入（userOptionalAuth）。
 // 关系绑定到**调用者自己的账户**（一人一号），管理员不得代挂。
 func AcceptInvite(c *gin.Context) {
