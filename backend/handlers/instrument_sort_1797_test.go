@@ -110,7 +110,7 @@ func TestSortInstrument_Down_Exchange(t *testing.T) {
 	require.Equal(t, 1, second.SortOrder, "neighbor took the moved instrument's old order")
 }
 
-// TestSortInstrument_FirstUp_Boundary (#1797): 首位上移 → 40002「已在最前」。
+// TestSortInstrument_FirstUp_Boundary (#1797/#2241): 首位上移 → 40002 + 英文机器可读 message。
 func TestSortInstrument_FirstUp_Boundary(t *testing.T) {
 	tenantID, _, ids := setupSortGroup(t)
 	router := sortRouter(t, tenantID)
@@ -121,10 +121,10 @@ func TestSortInstrument_FirstUp_Boundary(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusBadRequest, w.Code, w.Body.String())
-	require.Contains(t, w.Body.String(), "已在最前")
+	require.Contains(t, w.Body.String(), "already first")
 }
 
-// TestSortInstrument_LastDown_Boundary (#1797): 末位下移 → 40002「已在最后」。
+// TestSortInstrument_LastDown_Boundary (#1797/#2241): 末位下移 → 40002 + 英文机器可读 message。
 func TestSortInstrument_LastDown_Boundary(t *testing.T) {
 	tenantID, _, ids := setupSortGroup(t)
 	router := sortRouter(t, tenantID)
@@ -135,7 +135,7 @@ func TestSortInstrument_LastDown_Boundary(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusBadRequest, w.Code, w.Body.String())
-	require.Contains(t, w.Body.String(), "已在最后")
+	require.Contains(t, w.Body.String(), "already last")
 }
 
 // TestSortInstrument_TenantIsolation (#1797): 其他租户的乐器 → 404（租户隔离）。
@@ -153,16 +153,17 @@ func TestSortInstrument_TenantIsolation(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, w.Code, w.Body.String())
 }
 
-// TestSortInstrument_ZeroZero_AssignAdjacent (#1797): 两个 sort_order 均为 0
-// 的记录交换时设为相邻序号（保证可重复操作）。
-func TestSortInstrument_ZeroZero_AssignAdjacent(t *testing.T) {
+// TestSortInstrument_ZeroGroup_Renumbered (#2241): 大量 sort_order=0 的组，
+// 移动后整组重排为 1..N（消除 0→1/2 值域跳变），且不产生跨组位移。
+func TestSortInstrument_ZeroGroup_Renumbered(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 	tenantID := uuid.New().String()
 	orgID := tenantID
 	categoryID := uuid.New().String()
+	otherCat := uuid.New().String()
 
 	var ids []string
-	for _, sn := range []string{"SN-ZZ-1", "SN-ZZ-2"} {
+	for _, sn := range []string{"SN-ZZ-1", "SN-ZZ-2", "SN-ZZ-3"} {
 		inst := models.Instrument{
 			ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID,
 			CategoryID: &categoryID, SN: sn, SortOrder: 0,
@@ -170,9 +171,16 @@ func TestSortInstrument_ZeroZero_AssignAdjacent(t *testing.T) {
 		require.NoError(t, db.Create(&inst).Error)
 		ids = append(ids, inst.ID)
 	}
-	router := sortRouter(t, tenantID)
+	// 异分类 0 值行：不得被本组重排影响。
+	other := models.Instrument{
+		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID,
+		CategoryID: &otherCat, SN: "SN-ZZ-OTHER", SortOrder: 0,
+	}
+	require.NoError(t, db.Create(&other).Error)
 
-	// 第 2 个上移（两者均为 0）→ 设为 2/1。
+	router := sortRouter(t, tenantID)
+	// 可见顺序（sort_order ASC, created_at DESC, id ASC）= ids[2], ids[1], ids[0]；
+	// 上移中间项 → 与 ids[2] 换位。
 	body, _ := json.Marshal(map[string]interface{}{"direction": "up"})
 	req := httptest.NewRequest("PUT", "/instruments/"+ids[1]+"/sort", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -180,19 +188,94 @@ func TestSortInstrument_ZeroZero_AssignAdjacent(t *testing.T) {
 	router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
 
-	var first, second models.Instrument
-	require.NoError(t, db.Where("id = ?", ids[0]).First(&first).Error)
-	require.NoError(t, db.Where("id = ?", ids[1]).First(&second).Error)
-	require.Equal(t, 2, first.SortOrder, "neighbor got moved instrument's old order (2)")
-	require.Equal(t, 1, second.SortOrder, "moved instrument now at front (1)")
-	// 再次上移（非 0/0 场景仍可交换）：ids[0]（sort_order=2）上移 → 与 ids[1]（1）交换。
-	body2, _ := json.Marshal(map[string]interface{}{"direction": "up"})
-	req2 := httptest.NewRequest("PUT", "/instruments/"+ids[0]+"/sort", bytes.NewReader(body2))
-	req2.Header.Set("Content-Type", "application/json")
-	w2 := httptest.NewRecorder()
-	router.ServeHTTP(w2, req2)
-	require.Equal(t, http.StatusOK, w2.Code, w2.Body.String())
-	var first2 models.Instrument
-	require.NoError(t, db.Where("id = ?", ids[0]).First(&first2).Error)
-	require.Equal(t, 1, first2.SortOrder, "repeatable: ids[0] moved to front (1)")
+	orders := map[string]int{}
+	var rows []models.Instrument
+	require.NoError(t, db.Where("category_id = ?", categoryID).Find(&rows).Error)
+	for _, r := range rows {
+		orders[r.ID] = r.SortOrder
+	}
+	require.Equal(t, 1, orders[ids[1]], "moved row should be first")
+	require.Equal(t, 2, orders[ids[2]], "neighbor moved down to 2")
+	require.Equal(t, 3, orders[ids[0]], "untouched row renumbered to 3 (no 0 left)")
+	for _, so := range orders {
+		require.NotZero(t, so, "no zero sort_order remains in group")
+	}
+
+	var otherAfter models.Instrument
+	require.NoError(t, db.Where("id = ?", other.ID).First(&otherAfter).Error)
+	require.Equal(t, 0, otherAfter.SortOrder, "other category must not be renumbered")
+}
+
+// TestSortInstrument_TopLevelAdmin_NoTenant (#2241): 顶层管理员（tid 空）在可见范围内
+// 可排序，不再 40400。
+func TestSortInstrument_TopLevelAdmin_NoTenant(t *testing.T) {
+	tenantID, categoryID, ids := setupSortGroup(t)
+	_ = categoryID
+	router := sortRouter(t, "")
+
+	body, _ := json.Marshal(map[string]interface{}{"direction": "up"})
+	req := httptest.NewRequest("PUT", "/instruments/"+ids[1]+"/sort", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	db := database.GetDB()
+	var moved models.Instrument
+	require.NoError(t, db.Where("id = ? AND tenant_id = ?", ids[1], tenantID).First(&moved).Error)
+	require.Equal(t, 1, moved.SortOrder)
+}
+
+// TestGetInstruments_DefaultGroupedOrder (#2241): 默认视图按分类分组
+// （category_id, sort_order, created_at DESC, id ASC），组内排序不再被其他分类的
+// 0 值记录打断。
+func TestGetInstruments_DefaultGroupedOrder(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	tenantID := uuid.New().String()
+	orgID := tenantID
+	catA, catB := uuid.New().String(), uuid.New().String()
+	if catA > catB {
+		catA, catB = catB, catA
+	}
+
+	mk := func(sn string, cat string, sort int) models.Instrument {
+		inst := models.Instrument{
+			ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID,
+			CategoryID: &cat, SN: sn, SortOrder: sort, StockStatus: "available",
+		}
+		require.NoError(t, db.Create(&inst).Error)
+		return inst
+	}
+	a1 := mk("SN-G-A1", catA, 5)
+	a2 := mk("SN-G-A2", catA, 1)
+	b1 := mk("SN-G-B1", catB, 1)
+
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		ctx := context.WithValue(c.Request.Context(), middleware.ContextKeyTenantID, tenantID)
+		c.Request = c.Request.WithContext(ctx)
+		c.Set("tenant_id", tenantID)
+		c.Next()
+	})
+	router.GET("/instruments", GetInstruments)
+
+	req := httptest.NewRequest("GET", "/instruments?page=1&pageSize=20", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var resp struct {
+		Data struct {
+			List []struct {
+				ID string `json:"id"`
+			} `json:"list"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	var got []string
+	for _, it := range resp.Data.List {
+		got = append(got, it.ID)
+	}
+	require.Equal(t, []string{a2.ID, a1.ID, b1.ID}, got,
+		"default order must group by category (A: sort 1,5 then B: sort 1), not global sort_order")
 }

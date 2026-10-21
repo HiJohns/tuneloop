@@ -1054,10 +1054,10 @@ GET /api/confirmation-sessions/:id
 }
 ```
 
-**排序说明（#1797）**：
-- 默认排序：`sort_order ASC, created_at DESC`（未排序存量数据 sort_order=0，退化为创建时间倒序）
+**排序说明（#1797 / #2241）**：
+- 默认排序（方案 A，分类内排序）：`category_id ASC, sort_order ASC, created_at DESC, id ASC`——先按分类分组，组内按 `sort_order`（存量 0 值退化为创建时间倒序）
 - `sort` 参数：`sort_order`（默认）/ `created_at` / `-created_at` / `+created_at`
-- 同分类（category_id）内可通过 `PUT /instruments/:id/sort` 调整顺序
+- 同分类（category_id）内可通过 `PUT /instruments/:id/sort` 调整顺序（组内换位 + 序号重排）
 
 ---
 
@@ -1075,11 +1075,11 @@ GET /api/confirmation-sessions/:id
 ```
 `direction`: `up`（上移）| `down`（下移）
 
-**逻辑**:
-- 同 `category_id` 组内（NULL 视作独立组）按 `sort_order ASC, created_at DESC` 取相邻记录，交换两者的 `sort_order`
-- 两个 `sort_order` 均为 0 时设为相邻序号（up → 2/1；down → 1/2），保证可重复操作
-- 边界：已在首位上移 / 已在末位下移 → `40002`「已在最前 / 已在最后」
-- 租户隔离：仅操作本租户乐器，其他租户 id → `40400`
+**逻辑（#2241 方案 A）**:
+- 同 `category_id` 组内（NULL 视作独立组）按**列表默认可见顺序**（`sort_order ASC, created_at DESC, id ASC`）定位当前记录与相邻记录，**组内换位**后把整组 `sort_order` 重排为 `1..N`（消除旧实现 0 → 1/2 的值域跳变与跨组位移）
+- 范围与列表同口径（tenant + 可见 org/site 范围）；顶层管理员（JWT `tid` 为空）在可见范围内同样可排序，不再 `40400`
+- 边界：已在首位上移 / 已在末位下移 → `40002` + **英文机器可读 message**：`already first` / `already last`（前端映射为 warning「已在最前 / 已在最后」）
+- 租户隔离：其他租户乐器 id → `40400`
 
 **成功响应**:
 ```json

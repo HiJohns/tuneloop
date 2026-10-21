@@ -418,7 +418,10 @@ func GetInstruments(c *gin.Context) {
 	}
 
 	sortParam := c.DefaultQuery("sort", "sort_order")
-	orderClause := "sort_order ASC, created_at DESC"
+	// #2241（方案 A）：默认视图按分类分组，组内按 sort_order 排序——
+	// 与 SortInstrument 的「分类内排序」语义一致（旧全局 sort_order 顺序会
+	// 使组内换位在其他组 0 值记录间“乱跳”）。
+	orderClause := "category_id ASC, sort_order ASC, created_at DESC, id ASC"
 	switch sortParam {
 	case "created_at", "+created_at":
 		orderClause = "created_at ASC"
