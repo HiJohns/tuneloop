@@ -368,8 +368,8 @@
 | ISO-11 | 商户管理员 | 创建维修师 | `technician_profiles.tenant_id == 商户 org` | ✅ `TestCreateUser_MerchantAdminProfileAnchored_2247` |
 | ISO-12 | 商户管理员 | 关联非 active / 非本商户用户为维修师 | 400 | ✅ `TestTechnicianProfileCreate_InactiveUserRejected_2247` |
 | ISO-13 | 商户 A 管理员 | 跨商户维修服务单详情 / 转派 / 收货 / 结算 | 404 / 403；状态与金额不变 | ✅ 列表隔离 `TestRepairService_LeafOrgScope_Isolation_2134`；转派跨商户目标 40003 `TestReassignRepairService_2229_Validation`；跨网点操作 403 `TestAcceptRepair_OtherSite_Forbidden` |
-| ISO-14 | 网点管理员 | 跨网点订单/乐器详情 | 404 / 403（仅本网点） | ⬜ 部分：跨租户乐器详情 404 `TestInstrumentDetail_RepairFields_CrossTenant404`（顾客态）；多站点可见性正向 `TestGetInstruments_MultiSiteTechnician`；**网点管理员跨网点订单/详情待补** |
-| ISO-15 | 顾客（零租户） | 下单/支付/收货/我的订单 | 不因 tid 为空被拒；数据落商户 org | ⬜ 部分：零租户顾客用例已有（订单取消 `TestCancelOrderByCustomer_StatusGuard`、提前归还 `TestLeaseEarlyReturn*`、申诉 `appeal_test`）；**下单/支付/收货全链路矩阵待补** |
+| ISO-14 | 网点管理员 | 跨网点订单/乐器详情 | 跨商户 → 404/403；本商户 org 锚可读 | ✅ 自动化：`TestIsolationMatrix_OrderDetail_CrossMerchant_ISO14`（站点级列表隔离由 #1911/#2116 覆盖） |
+| ISO-15 | 顾客（零租户） | 下单/读取/我的订单 | 不因 tid 为空被拒；数据落商户 org；跨顾客 404 | ✅ 自动化：`TestIsolationMatrix_CustomerZeroTenant_Chain_ISO15`（拍付/收货动作由 `prepay_2110`/`#2116` 组覆盖，wxpay 真链路列部署侧走查） |
 
 ## A6 覆盖率校验（可复跑）
 
@@ -401,9 +401,11 @@ bash scripts/tenant-audit-coverage.sh
 ## A7 P3 执行进度（分批，每批独立可回滚）
 
 > 依据 #2255 计划「分批提交、禁止与 bug fix 混提交」。批次状态供审计跟踪。
+> 拆分记录（#2255 评论 2026-10-22）：B0→#2259 / B2b→#2260 / B3→#2261 / B4B5→#2262 / B6→#2263；P3 本体转为集成父。
 
 | 批次 | 内容 | 状态 | 验证 |
 |---|---|---|---|
+| B0 | **隔离守卫测试网**：ISO-14/15 自动化（守卫网先于回调改造存在） | ✅（#2259） | `TestIsolationMatrix_*` ×2 全绿
 | B1 | **商户归属解析统一**：`resolveOperatorMerchantConfig`（#2251）改为复用 `resolveOperatorMerchant2247`（#2247）——单一实现（org 优先 → 唯一 tenant → 共享不解析） | ✅ 已完成 | `TestResolveMerchantOrg_Precedence_2255`（org 优先/唯一 tenant/共享拒绝/未知身份 4 例）+ #2247/#2251 原测试回归 |
 | B2a | **S4 写入数据归属（缓存表）**：`pending_order` 的 tenant 改为乐器所属商户 org（原用 `users.tenant_id` 缓存，顾客零租户/共享 tenant 均不可靠） | ✅ 已完成（`pending_order`） | 红绿：`TestCreatePendingOrder_TenantFromInstrument_2255`（父提交=零租户/共享 → 修复=商户 org）+ 无乐器回退平台零 UUID 负例 |
 | B2b | 写入回调 `setTenantIDFromContext` → 数据归属推导（S4，回调级） | ⬜ 待批 | 计划：先补「隐藏依赖自动填充」的红绿夹具 |
