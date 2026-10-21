@@ -218,9 +218,15 @@ func repairServiceTenantScope(ctx context.Context) []string {
 	return scopes
 }
 
-// normalizeRepairTenant（#2134）：把「叶组织 id」规范化为「根租户 id」。
-// merchants 表编码了 org_id → tenant_id 映射（本商户数据 tenant_id=org_id 混用，
-// 见 #2125）。查不到映射时原样返回，避免破坏既有正确数据。
+// normalizeRepairTenant（#2248 返工）：维修服务单归属统一解析为**商户 org**。
+//
+// 历史实现把叶组织 id 规范化为 merchants.tenant_id（根/共享 tenant）——多商户共享
+// 同一 tenant 时，写入落到共享值，而读取按商户 org 过滤 → 商户看不到自己的新单。
+// 现行规则：
+//   - 输入已是某商户 org → 原样返回（新写入的规范锚）；
+//   - 输入是**唯一**商户的 tenant → 返回该商户 org（兼容单租户历史数据）；
+//   - 输入是多商户共享 tenant → 返回 ""（歧义，调用方必须显式拒绝，不得回落共享值）；
+//   - 其它值（如网点组织）→ 原样返回（由调用方语义决定）。
 func normalizeRepairTenant(db *gorm.DB, tenantOrOrg string) string {
 	if tenantOrOrg == "" {
 		return ""
@@ -229,10 +235,23 @@ func normalizeRepairTenant(db *gorm.DB, tenantOrOrg string) string {
 	if db.Statement != nil && db.Statement.Context != nil {
 		ctx = db.Statement.Context
 	}
-	var m models.Merchant
-	if err := db.WithContext(database.IdentityCtx(ctx)).Select("tenant_id").
-		Where("org_id = ?", tenantOrOrg).First(&m).Error; err == nil && m.TenantID != "" {
-		return m.TenantID
+	scoped := db.WithContext(database.IdentityCtx(ctx))
+
+	// 已是商户 org → 保持
+	var byOrg models.Merchant
+	if err := scoped.Select("org_id").Where("org_id = ?", tenantOrOrg).First(&byOrg).Error; err == nil && byOrg.OrgID != "" {
+		return byOrg.OrgID
+	}
+
+	// 仅当 tenant 唯一归属一个商户时才映射；共享 tenant → 歧义
+	var merchants []models.Merchant
+	if err := scoped.Where("tenant_id = ?", tenantOrOrg).Limit(2).Find(&merchants).Error; err == nil {
+		if len(merchants) == 1 && merchants[0].OrgID != "" {
+			return merchants[0].OrgID
+		}
+		if len(merchants) > 1 {
+			return "" // 共享 tenant：不得作为商户锚
+		}
 	}
 	return tenantOrOrg
 }
@@ -438,8 +457,12 @@ func (h *RepairServiceHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "technician not found or inactive"})
 		return
 	}
-	// #2134：规范化叶组织→根租户（写入链曾把商户 org_id 存进 tenant_id）
+	// #2248：归属锚 = 商户 org（不得回落共享 tenant）
 	rr.TenantID = normalizeRepairTenant(db, profile.TenantID)
+	if rr.TenantID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "无法确定维修师所属商户（共享租户无法归属），请联系管理员"})
+		return
+	}
 	tid := body.TechnicianID
 	rr.TechnicianID = &tid
 	// 未选维修师时无网点/租户归属：uuid 列不可写空串，必须 Omit 以存 NULL
@@ -757,7 +780,11 @@ func (h *RepairServiceHandler) SelectTechnician(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "technician not found"})
 		return
 	}
-	tenantID = normalizeRepairTenant(db, tenantID) // #2134：叶组织→根租户
+	tenantID = normalizeRepairTenant(db, tenantID) // #2248：归属锚 = 商户 org
+	if tenantID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "无法确定维修师所属商户（共享租户无法归属），请联系管理员"})
+		return
+	}
 	tid := body.TechnicianID
 	if err := db.Model(&models.RepairRequest{}).Where("id = ?", rr.ID).
 		Updates(map[string]interface{}{
