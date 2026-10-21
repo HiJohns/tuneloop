@@ -111,7 +111,7 @@ export default function ProfileComplete() {
   const handleRegister = async () => {
     if (!name.trim()) { dialog.toast('请输入姓名'); return }
     if (!phone.trim()) { dialog.toast('请输入手机号'); return }
-    if (!agreed) { dialog.toast('请阅读并同意《租用服务协议》与《个人信息保护政策》'); return }
+    if (!agreed) { dialog.toast('请阅读并同意《相关协议》'); return }
     // #1924: 身份证正反面必填（取消学生证豁免）；第二证件可选，类型由平台
     // 审核时指定（顾客提交时保持「未定」）。
     const frontReady = uploadedSides.front || !!idPhotoFrontRef.current?.hasFile()

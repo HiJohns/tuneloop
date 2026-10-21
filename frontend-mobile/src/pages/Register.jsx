@@ -58,7 +58,7 @@ export default function Register() {
     if (!/^1[3-9]\d{9}$/.test(phone.trim())) { dialog.alert('手机号格式不正确'); return }
     if (!password) { dialog.alert('请输入密码'); return }
     if (password !== confirmPassword) { dialog.alert('两次输入的密码不一致'); return }
-    if (!agreed) { dialog.alert('请先阅读并同意《租用服务协议》与《个人信息保护政策》'); return }
+    if (!agreed) { dialog.alert('请先阅读并同意《相关协议》'); return }
     setSaving(true)
     try {
       const body = {

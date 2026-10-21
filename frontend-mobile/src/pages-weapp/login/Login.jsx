@@ -113,7 +113,7 @@ export default function Login() {
   // #2206: 协议同意校验（模块级函数无法访问组件 state，在组件内校验）
   const handleWxLoginClick = () => {
     if (!agreed) {
-      dialog.toast('请阅读并同意《租用服务协议》与《个人信息保护政策》')
+      dialog.toast('请阅读并同意《相关协议》')
       return
     }
     handleWxLogin()
@@ -121,7 +121,7 @@ export default function Login() {
 
   const handleIAMLoginClick = () => {
     if (!agreed) {
-      dialog.toast('请阅读并同意《租用服务协议》与《个人信息保护政策》')
+      dialog.toast('请阅读并同意《相关协议》')
       return
     }
     handleIAMLogin(identifier, password)
