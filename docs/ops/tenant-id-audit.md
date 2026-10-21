@@ -315,3 +315,85 @@
 | P2 | S4 写入（`TenantID: tid`）全域 | 改数据归属 | P3 |
 
 > 覆盖率：`docs/ops/tenant-id-audit-files.csv` 中全部 backend handler 文件已归类（详细 40 个 + 同类归组 40 个）；无未分类文件。
+
+## A3-6 补充判定（返工补全 15 个未判定文件）
+
+> 来源：#2246 审计（覆盖率实测 139 个 backend 文件中 15 个非测试源文件未判定）。判定口径同 §5。
+
+| 文件 | refs | 使用形态 | 模式 | 判定 / 目标改法 |
+|---|---:|---|---|---|
+| `backend/handlers/activity_log.go` | 2 | 乐器活动日志：orders / order_status_history / instrument_media 按 `tenant_id = tid` | S2 | **可保留**：三类数据均已锚商户 org，商户管理员 tid=org 一致 |
+| `backend/handlers/personnel.go` | 6 | 商户全员视图按 tid 聚合 `sites.tenant_id` / `merchant_members.tenant_id` / `technician_profiles.tenant_id`；平台分支按 `rootOrgID` 查中转网点 | S2 | **可保留**：三表均已锚商户 org；平台分支为平台语义 |
+| `backend/handlers/site_member_common.go` | 1 | 网点成员写入 `TenantID = tenantID`（JWT tid）；P1 成员判定用 `site_members.tenant_id` | S4 | **可保留（调用方锚）**：网点管理员 tid=商户 org；若出现共享 tenant JWT，需改 `site.TenantID`（记录备查） |
+| `backend/handlers/technician_profile.go` | 2 | List/Create 已按商户 org（#2247）；Get/Update/Delete 仍 `tenant_id = tid`；审计日志 tenant 为元数据 | S2（残留） | **部分可保留**：Get/Update/Delete 待与 List 同口径（目标 `merchantScopeIDs2247`），已登记为后续统一项 |
+| `backend/handlers/user_management_idcard.go` | 2 | 通知使用 `user.TenantID`（本地缓存） | S1 邻接 | **可保留（仅通知元数据）**：平台级审核操作；租户不参与权限判定 |
+| `backend/models/models.go` | 1 | 模型字段定义（TenantID/OrgID） | 元数据 | **可保留**：模型分类见 §A2（P 10 / N 2 / M 39） |
+| `backend/scripts/migrate_media_keys.go` | 1 | 一次性迁移工具输出 TenantID | 工具 | **可保留**：非运行时路径 |
+| `backend/services/audit_query.go` | 3 | 审计日志查询按 tenant 过滤（平台角色走全量） | S2 | **可保留**：`audit_logs.tenant_id` = 操作者 org |
+| `backend/services/audit_writer.go` | 1 | 审计写入 TenantID（调用方显式传入） | 元数据 | **可保留** |
+| `backend/services/bulk_import_accounts.go` | 2 | 批量建号：users/sites 查询与写入使用 `tenantID` 参数 | S4 | **可保留（调用方锚）**：调用方（bulk_import.go）传操作者 tid，商户管理员=org；平台导入为平台上下文 |
+| `backend/services/bulk_import_orgs.go` | 1 | 批量建组织：sites 查询与写入使用 `tenantID` 参数 | S4 | 同上 |
+| `backend/services/collection_reminder_scheduler.go` | 2 | 通知使用 `order.TenantID`（数据归属） | 数据 | **可保留**：订单已锚商户 org |
+| `backend/services/notification.go` | 1 | 通知按显式 `tenantID` 写入 / 查管理员 | 元数据 | **可保留**：显式传参，不读取操作者上下文 |
+| `backend/services/rent_calculator.go` | 1 | 促销计划匹配 `plan.ScopeID == tenantID`（tenant 来自订单/乐器） | 数据 | **可保留**：tenant 为数据归属（org 锚）；`scope_id` 语义同 #2251（商户 org） |
+| `backend/testutil/role_factory.go` | 3 | 测试夹具注入 JWT tenant/org/user/role | 夹具 | **可保留**：仅测试 |
+
+## A3-7 测试文件同组清单（59 个）
+
+> 分组规则：按被覆盖业务域归组；测试夹具（`TestActor` / `SiteMember` / `Merchant`，见 `testutil/role_factory.go`）统一视为「夹具组」，其 tenant/org 注入用于构造跨范围用例，不逐断言判定。以下文件均视为**已判定（同组）**。
+
+- **A. 订单 / 租赁 / 结算 / 财务（17）**：`merchant_order_test.go`、`order_delivery_address_2010_test.go`、`pending_order_test.go`、`user_rental_test.go`、`user_rental_1762_test.go`、`lease_early_return_test.go`、`renewal_test.go`、`renewal_1781_test.go`、`settlement_1743_test.go`、`settlement_1764_test.go`、`settlement_flow_test.go`、`shortfall_1746_test.go`、`payment_calculate_1758_test.go`、`prepay_coupon_snapshot_test.go`、`promo_points_1757_test.go`、`promo_override_1863_test.go`、`warehouse_test.go`
+- **B. 维修 / 乐器 / 库存 / 媒体（13）**：`repair_request_test.go`、`repair_service_test.go`、`repair_service_reassign_2229_test.go`、`repair_service_receive_2116_test.go`、`inspect_return_1801_test.go`、`inspect_return_shortfall_test.go`、`instrument_import_test.go`、`instrument_props_1896_test.go`、`instrument_sort_1797_test.go`、`instrument_update_test.go`、`inventory_test.go`、`mall_image_test.go`、`media_cleanup_test.go`
+- **C. 人员 / 商户 / 网点 / 邀请（13）**：`merchant_member_test.go`、`personnel_2065_test.go`、`member_invite_2114_test.go`、`member_invite_2114_iam_test.go`、`staff_invite_test.go`、`platform_staff_1795_test.go`、`transit_site_admin_test.go`、`create_user_2068_test.go`、`user_staff_test.go`、`update_current_user_test.go`、`user_address_test.go`、`user_me_tenant_name_2117_test.go`、`weapp_staff_flow_test.go`
+- **D. 会员 / 乐币 / 积分（2）**：`point_settings_test.go`、`point_batches_test.go`
+- **E. 识别 / 认证 / 权限（6）**：`face_verify_test.go`、`face_review_1791_test.go`、`auth_test.go`、`iam_proxy_test.go`、`permissions_1964_test.go`、`guarantor_ocr_test.go`
+- **F. 平台 / 系统 / 审计 / 内容（8）**：`api_test.go`、`appeal_test.go`、`audit_jsonb_2062_test.go`、`banner_test.go`、`cents_migration_test.go`、`dashboard_stats_2005_test.go`、`notification_test.go`、`webhook_1909_test.go`
+
+## A5 隔离测试矩阵（跨商户 / 跨网点 / 顾客）
+
+> 用途：P1/P3 执行 Issue 的回归对照组。状态：✅=已有测试；⬜=待补（随对应执行 Issue 落地）。
+
+| 用例 | 角色 | 场景 | 断言（行级） | 状态 / 落地 |
+|---|---|---|---|---|
+| ISO-01 | 商户 A 管理员 | 维修服务单列表（共享 tenant） | 仅见 A 单；B 单不可见 | ✅ `TestListMerchantRepairServices_SharedTenantNoLeak_2248` |
+| ISO-02 | 商户 A 管理员 | 新建维修服务单 → 列表 → 员工可操作 | `tenant_id == A.org`；A 列表可见；staffAllowed=true | ✅ `TestCreateRepairService_WriteAnchoredToMerchantOrg_2248` |
+| ISO-03 | 商户 B 管理员 | 删除 A 的直属成员 | 403；A 成员行保留；IAM 解绑未被调用 | ✅ `TestRemoveMember_SharedTenant_OrgAnchorAndIAMUnbind_2250` |
+| ISO-04 | 商户 A 管理员 | 删除本商户成员（共享 tenant） | 200；本地行删除；IAM 解绑调用 `org=A.org` | ✅ 同上 |
+| ISO-05 | 商户 A/B 管理员 | 定价配置读取/写入（共享 tenant） | 各自 `tenant_id == 本商户 org`；互不覆盖 | ✅ `TestMerchantPricingConfig_SharedTenantIsolation_2251` |
+| ISO-06 | 商户 A/B 管理员 | 维修设置（检查费/运费/赠点开关） | A 写入值 B 不可见 | ✅ `TestRepairSettings_SharedTenantIsolation_2251` |
+| ISO-07 | 商户 A/B 管理员 | 乐币策略列表/创建/跨商户更新 | scope_id=A.org；B 列表为空；B 改 A 策略 404 | ✅ `TestPointsPolicies_SharedTenantIsolation_2251` |
+| ISO-08 | 商户 A/B 管理员 | 返点开关读取/写入 | B 不读 A 写入；仅本商户行更新 | ✅ `TestMerchantRebate_SharedTenantIsolation_2251` |
+| ISO-09 | 商户 A/B 管理员 | 平台级 home_menu_config 写入/读取 | 存储于平台 tenant（nil UUID）；两端读取一致 | ✅ `TestHomeMenuConfig_PlatformLevel_2251` |
+| ISO-10 | 平台管理员 | 创建商户员工/维修师 | 403 / code 40310 | ✅ `TestCreateUser_PlatformAdminRejected_2247` |
+| ISO-11 | 商户管理员 | 创建维修师 | `technician_profiles.tenant_id == 商户 org` | ✅ `TestCreateUser_MerchantAdminProfileAnchored_2247` |
+| ISO-12 | 商户管理员 | 关联非 active / 非本商户用户为维修师 | 400 | ✅ `TestTechnicianProfileCreate_InactiveUserRejected_2247` |
+| ISO-13 | 商户 A 管理员 | 跨商户维修服务单详情 / 转派 / 收货 / 结算 | 404 / 403；状态与金额不变 | ⬜ 随 #2248 后续（详情/操作 scope 统一）补 |
+| ISO-14 | 网点管理员 | 跨网点订单/乐器详情 | 404 / 403（仅本网点） | ⬜ 随 P1（`site_members.sites.tenant_id` 已锚）补矩阵 |
+| ISO-15 | 顾客（零租户） | 下单/支付/收货/我的订单 | 不因 tid 为空被拒；数据落商户 org | ⬜ 随 `userOptionalAuth` 路由清单补 |
+
+## A6 覆盖率校验（可复跑）
+
+```bash
+bash scripts/tenant-audit-coverage.sh
+# 输出示例：backend files: 139 | covered: 139 | uncovered: 0
+```
+
+校验标准：`docs/ops/tenant-id-audit-files.csv` 中每个 backend `.go` 文件必须以文件名出现在本文档（§A1–A4 或 §A3-6/A3-7 分组清单）。未覆盖 → 脚本 exit 1 并列出文件。
+
+| 指标 | 数值 |
+|---|---|
+| CSV backend 文件总数 | 139 |
+| 已判定 | 139 |
+| 未判定 | 0 |
+| 测试文件同组映射 | 59 / 59 |
+
+## A3-8 显式判定归一表（必修 / 可保留）
+
+> 来源：#2246 审计意见「A3 表格判定栏以叙述为主，缺显式二选一」。本表对 A3-1~A3-5 全部文件给出显式归类；「必修」= 命中 S1–S4/S6 且目标改法已登记（括号内为落地 Issue / 批次）。
+
+| 判定 | 文件（目标改法落地） |
+|---|---|
+| **必修** | `user_staff.go`（#2247 已修）、`member_invite_2114.go`（P3）、`merchant_member.go`（#2250 已修）、`staff_invite.go`（P3）、`site_member.go`（P3）、`iam_proxy.go`（#2249 已修）、`confirmation_session.go`（P3）、`invoice.go`（P2）、`warehouse.go`（写入 S4，P3）、`merchant_invoice.go`（P2/P3）、`billing.go`（P2/P3）、`pending_order.go`（S1 邻接，P3）、`instrument_batch_import.go`（#2251 已修）、`instrument_promo_override.go`（P2/P3）、`public.go`（#2251 已修）、`repair_service.go`（#2248 已修）、`repair_service_admin_2129.go`（#2248 已修）、`repair_admin.go`（P3）、`repair_config.go`（#2251 已修）、`appeal.go`（P3）、`merchant.go` / `site.go`（P3）、`pricing.go` / `merchant_rebate.go` / `points_policy.go`（#2251 已修）、`forwarding_session.go` / `transit_site_admin.go` / `transit_order.go`（P3）、`property.go` / `label.go`（S6 写入，P3） |
+| **可保留** | `user_rental.go`（正面：从 instrument 推导）、`user_management.go`（平台级豁免）、`auth.go`（零 UUID 占位语义，P4 统一）、`order.go` / `merchant_order.go`（读取按订单 org 一致；反查优化归 P2）、`user_settlement.go` / `wechatpay_prepay.go` / `renewal.go`（正面：数据归属）、`instrument.go` / `instrument_media.go` / `inventory.go` / `api.go` / `instrument_scrap.go`（读取可保留；写入 S4 已并入 P3）、`instrument_loss.go`（数据归属）、`repair_request.go`（写入数据归属；列表 S2 归 P3）、`settings.go` / `role_manage.go` / `permission_manage.go` / `audit_log.go` / `banner.go` / `wechatpay_admin.go` / `webhook_config.go` / `smtp_config.go` / `system.go`（平台级显式清空 tenant）、`gift_policies.go` / `face_review.go`（合法例外）、`auto_confirm.go` / `reserved_order_scheduler.go` / `logistics_monitor.go`（数据驱动）、`quote.go` / `repair.go` / `instrument_import.go` / `bulk_import.go` / `user_onboarding.go` / `registration_*`（调用方锚；S1 邻接随 P3）、`iam_callback.go`（零 UUID 明确占位） |
+
+> 判定以本表逐项为准；同一文件若读取可保留、写入必修，已在该文件条目注明（如 `warehouse.go`、`instrument.go`）。
