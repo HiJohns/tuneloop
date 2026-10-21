@@ -54,8 +54,8 @@ func ListMerchantRepairServices(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": []interface{}{}, "total": 0}})
 		return
 	}
-	// 服务单 tenant_id 可能存商户 tenant 或 org id（#2125 形态）→ 双值范围
-	scopeIDs := uniqueStrings([]string{merchant.TenantID, merchant.OrgID})
+	// #2248：商户范围锚定 org；tenant 仅在未被多商户共享时兼容（防跨商户重叠）
+	scopeIDs := merchantScopeIDs2247(db, merchant)
 
 	// #2237：显式 scope 已限定为本商户 tenant/org 双值，必须用 IdentityCtx 关闭
 	// GORM 自动租户范围——否则当 JWT tid=商户**组织**时会叠加 tenant_id=<org>，

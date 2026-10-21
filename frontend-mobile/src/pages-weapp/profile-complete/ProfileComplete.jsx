@@ -111,7 +111,7 @@ export default function ProfileComplete() {
   const handleRegister = async () => {
     if (!name.trim()) { dialog.toast('请输入姓名'); return }
     if (!phone.trim()) { dialog.toast('请输入手机号'); return }
-    if (!agreed) { dialog.toast('请阅读并同意《租用服务协议》与《个人信息保护政策》'); return }
+    if (!agreed) { dialog.toast('请阅读并同意《相关协议》'); return }
     // #1924: 身份证正反面必填（取消学生证豁免）；第二证件可选，类型由平台
     // 审核时指定（顾客提交时保持「未定」）。
     const frontReady = uploadedSides.front || !!idPhotoFrontRef.current?.hasFile()
@@ -316,10 +316,9 @@ export default function ProfileComplete() {
           style={{ width: 18, height: 18, borderRadius: 4, border: agreed ? 'none' : '1px solid #d4d4d8', backgroundColor: agreed ? '#915F38' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           {agreed ? <Text style={{ color: '#fff', fontSize: 12, lineHeight: '18px' }}>✓</Text> : null}
         </View>
-        <Text style={{ fontSize: 12, color: '#a1a1aa' }}>我已阅读并同意</Text>
-        <Text style={{ fontSize: 12, color: '#915F38' }} onClick={() => Taro.navigateTo({ url: '/pages-weapp/content/index?key=rental_agreement' })}>《租用服务协议》</Text>
-        <Text style={{ fontSize: 12, color: '#a1a1aa' }}>与</Text>
-        <Text style={{ fontSize: 12, color: '#915F38' }} onClick={() => Taro.navigateTo({ url: '/pages-weapp/content/index?key=privacy_policy' })}>《个人信息保护政策》</Text>
+        <Text style={{ fontSize: 12, color: '#a1a1aa' }}>我已阅读并同意所有「</Text>
+        <Text style={{ fontSize: 12, color: '#915F38' }} onClick={() => Taro.navigateTo({ url: '/pages-weapp/content/index?key=related_agreements' })}>相关协议</Text>
+        <Text style={{ fontSize: 12, color: '#a1a1aa' }}>」</Text>
       </View>
 
       <View onClick={handleRegister}

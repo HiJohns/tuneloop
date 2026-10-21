@@ -12,6 +12,8 @@ export default function ContentPage() {
   // 跨端统一 query 约定（#1674）：跳转一律 ?key=
   const key = searchParams.get('key') || ''
   const [content, setContent] = useState('')
+  // #2258: 合并模式的分段内容 [{ key, html }]
+  const [sections, setSections] = useState([])
   const [loading, setLoading] = useState(true)
 
   // #1840: titles follow the canonical 10-item sequence; rental_notice
@@ -27,7 +29,11 @@ export default function ContentPage() {
     platform_rules: '平台规则文档',
     merchant_audit_requirements: '平台入驻审核要求与规范',
     merchant_agreement: '商家入驻协议',
+    related_agreements: '相关协议内容',
   }
+
+  // #2258: 合并阅读页 — 一个入口连续显示两项协议正文
+  const RELATED_AGREEMENT_KEYS = ['rental_agreement', 'privacy_policy']
 
   // #1686: default content when the backend has no record yet — the entry
   // must never feel like a dead page.
@@ -48,15 +54,33 @@ export default function ContentPage() {
   }
 
   useEffect(() => {
+    // #2258: 单段请求，失败时回退默认内容（不整页失败）
+    const fetchOne = async (k) => {
+      const res = await apiFetch(`${env.apiBaseUrl}/public/settings/${k}`)
+      const result = await res.json()
+      if (result.code === 20000) {
+        return result.data?.value || DEFAULT_CONTENT[k] || '暂无内容'
+      }
+      return '暂无内容'
+    }
     const fetchContent = async () => {
       try {
-        const res = await apiFetch(`${env.apiBaseUrl}/public/settings/${key}`)
-        const result = await res.json()
-        if (result.code === 20000) {
-          setContent(result.data?.value || DEFAULT_CONTENT[key] || '暂无内容')
+        if (key === 'related_agreements') {
+          const htmls = await Promise.all(RELATED_AGREEMENT_KEYS.map(fetchOne))
+          setSections(RELATED_AGREEMENT_KEYS.map((k, i) => ({ key: k, html: htmls[i] })))
+        } else {
+          const res = await apiFetch(`${env.apiBaseUrl}/public/settings/${key}`)
+          const result = await res.json()
+          if (result.code === 20000) {
+            setContent(result.data?.value || DEFAULT_CONTENT[key] || '暂无内容')
+          }
         }
       } catch {
         setContent('加载失败')
+      }
+      // #2258: weapp 走原生导航栏，动态设置标题（兼容单协议/合并两种）
+      if (env.isMiniProgram) {
+        Taro.setNavigationBarTitle({ title: titles[key] || '相关协议内容' })
       }
       setLoading(false)
     }
@@ -75,6 +99,15 @@ export default function ContentPage() {
       <View className="px-4 py-4">
         {loading ? (
           <Text className="text-zinc-400">加载中...</Text>
+        ) : key === 'related_agreements' ? (
+          sections.map((seg, i) => (
+            <View key={seg.key}>
+              {i > 0 && (
+                <View style={{ height: 1, backgroundColor: '#e4e4e7', marginTop: 24, marginBottom: 24 }} />
+              )}
+              <RichContent html={seg.html} />
+            </View>
+          ))
         ) : (
           <RichContent html={content} />
         )}

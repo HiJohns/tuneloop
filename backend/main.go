@@ -503,7 +503,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			siteRequired.POST("/sites/:id/members/apply", middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), handlers.ApplySiteMembership)
 			// #2031 邀请制自助加入：管理员只发邀请码，本人登录后接受（一人一号）
 			// #2216: 匿名邀请码创建已下线（只认定向邀请，见 /user/invitations/pending）。
-			siteRequired.GET("/sites/:id/invites", middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), handlers.ListSiteInvites)
 			siteRequired.POST("/sites/:id/invites/send", middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), handlers.SendStaffInvite)
 			siteRequired.PUT("/sites/:id/members/:uid", middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), siteMemberHandler.UpdateMemberRole)
 			siteRequired.DELETE("/sites/:id/members/:uid", middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), siteMemberHandler.RemoveMember)

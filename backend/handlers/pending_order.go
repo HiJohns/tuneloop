@@ -58,8 +58,25 @@ func CreatePendingOrder(c *gin.Context) {
 		}
 	}
 
+	// #2255（P3 批次2，S1/S4）：缓存订单归属 = **数据归属**（首个 item 的乐器租户
+	// = 商户 org），不再使用 users.tenant_id 缓存（顾客行零租户 / 历史共享 tenant
+	// 均不可靠）。无法解析乐器时使用平台零 UUID 占位（不猜测）。
+	anchor := "00000000-0000-0000-0000-000000000000"
+	var payload struct {
+		Items []struct {
+			InstrumentID string `json:"instrument_id"`
+		} `json:"items"`
+	}
+	if json.Unmarshal(req.Payload, &payload) == nil && len(payload.Items) > 0 && payload.Items[0].InstrumentID != "" {
+		var inst models.Instrument
+		if err := db.WithContext(database.IdentityCtx(ctx)).Select("tenant_id").
+			Where("id = ?", payload.Items[0].InstrumentID).First(&inst).Error; err == nil && inst.TenantID != "" {
+			anchor = inst.TenantID
+		}
+	}
+
 	po := models.PendingOrder{
-		TenantID: u.TenantID,
+		TenantID: anchor,
 		UserID:   u.ID,
 		Payload:  string(req.Payload),
 		Status:   "pending",

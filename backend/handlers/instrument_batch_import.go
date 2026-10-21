@@ -76,11 +76,11 @@ type PropertyResolutionReq struct {
 // DownloadCSVTemplate generates a CSV template with dynamic property columns
 // GET /api/instruments/import/template
 func DownloadCSVTemplate(c *gin.Context) {
-	tenantID := middleware.GetTenantID(c.Request.Context())
 	db := database.GetDB().WithContext(c.Request.Context())
 
 	var properties []models.Property
-	db.Where("tenant_id = ? AND status = ?", tenantID, "active").Find(&properties)
+	// #2251：属性为平台级共享资源，不得按操作者 tenant 过滤（否则商户管理员查空）
+	db.Where("status = ?", "active").Find(&properties)
 
 	headers := []string{"识别码*", "分类名称*", "网点名称*", "级别名称*", "描述", "原价", "日租金", "押金", "逾期租金"}
 
@@ -157,7 +157,8 @@ func PreviewBatchImport(c *gin.Context) {
 	db := database.GetDB().WithContext(c.Request.Context())
 
 	var properties []models.Property
-	db.Where("tenant_id = ? AND status = ?", tenantID, "active").Find(&properties)
+	// #2251：属性为平台级共享资源，不得按操作者 tenant 过滤（否则商户管理员查空）
+	db.Where("status = ?", "active").Find(&properties)
 	propNameMap := make(map[string]string)
 	for _, prop := range properties {
 		propNameMap[prop.Caption] = prop.Name
@@ -471,7 +472,8 @@ func ExecuteBatchImport(c *gin.Context) {
 	}
 
 	var properties []models.Property
-	db.Where("tenant_id = ? AND status = ?", session.TenantID, "active").Find(&properties)
+	// #2251：属性为平台级共享资源（同上），不按导入会话 tenant 过滤
+	db.Where("status = ?", "active").Find(&properties)
 	propByName := make(map[string]models.Property)
 	propByID := make(map[string]models.Property)
 	for _, p := range properties {

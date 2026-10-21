@@ -76,6 +76,14 @@
 
 「需要全部记录」的场景（下拉选项、批量编辑器等）**不得**对**分页端点**传入超大 `pageSize` 来「凑全量」——应改用**全量端点**或新增专用 options 接口。分页端点只服务「翻页浏览」消费模式。
 
+#### 1.5.5 维修师档案归属口径（#2247）
+
+- **归属锚**：`technician_profiles.tenant_id` = **商户 org**（`merchants.org_id`）。`merchants.tenant_id` 可能是多商户共享值，不作为档案归属。
+- **创建**（`POST /technician-profiles`）：目标用户必须存在、`status=active`、且属于本商户（`users.tenant_id` 或 `users.org_id` = 商户 org）；档案写入商户 org。
+- **列表**（`GET /technician-profiles`）：解析操作者商户 → `tenant_id = 商户 org`；仅当 operator tenant **唯一**归属一个商户时才作为兼容值追加（共享 tenant 不追加）。无法解析商户时按操作者自身 tenant 键读取（确定性回退，不任取商户）。
+- **平台管理员创建限制**：`POST /users` 对 `site_staff` / `repair_technician` / `merchant_direct` 返回 `403 / 40310`（平台侧仅能通过创建商户产生商户负责人，#1718）。
+- **历史回填**：迁移 `20261020001` 将档案 `tenant_id` 按 `users.tenant_id → merchants.org_id` 规范化（执行需授权）。
+
 ### 1.6 权限模型 (v2.1)
 
 权限控制基于 JWT 中的两层位图。
@@ -268,7 +276,6 @@ Body：`{ role: "<主角色>", roles: ["<角色>", ...] }`（`roles` 可选；�
 
 | 端点 | 组 | 说明 |
 |------|----|------|
-| `GET /api/sites/:id/invites` | 管理员 | 待接受邀请列表 |
 | `POST /api/user/accept-invite` | `userOptionalAuth` | （**遗留**：#2216 起匿名邀请码已下线，无移动端入口，保留接口兼容）**本人**用码接受 `{code}` → IAM `BindUserToOrganization(本人 IAMSub, org, role)` + 本地 `site_members`；码一次性、限时 |
 | `POST /api/sites/:id/invites/send` | 管理员 | **#2052 邀请通知**：对既有用户（按 `identifier` 手机/邮箱定位）发起加入邀请，body `{identifier, role}` → 20100 `{invite_id, invitee_name, site_id, role}`；已是本网点成员 → `40900`；无此账户 → `40404`。同时写入 `staff_invite` 系统通知 |
 | `GET /api/user/invitations/pending` | `userOptionalAuth` | **#2216**：我的待接受**定向**邀请（匹配 `invitee_user_id = 我`，或未认领时 `invitee_identifier ∈ {我的手机, 我的邮箱}`）；**不含邀请码**；未登录返回空列表。**#2222**：响应新增 `merchant_name`——网点级邀请解析商户名（展示「商户名（网点名）· 角色」），商户/平台级等于 `name`（向后兼容，缺失回退网点名） |
@@ -276,6 +283,7 @@ Body：`{ role: "<主角色>", roles: ["<角色>", ...] }`（`roles` 可选；�
 | `POST /api/user/invitations/:id/reject` | `userOptionalAuth` | **#2052**：被邀请人本人拒绝 → `status=rejected` |
 
 - **#2216**：**只认定向邀请**——移动端「加入网点」入口仅在有 pending 定向邀请时显示，一键接受；匿名邀请码签发端点 `POST /api/sites/:id/invites` 已下线（`CreateSiteInvite` 已移除）
+- **#2230**：孤儿端点 `GET /api/sites/:id/invites`（`ListSiteInvites`，前端无调用）已删除；待接受邀请列表统一走 `GET /api/user/invitations/pending` / `GET /api/admin/invites`
 
 - **一人一号**：绑定对象恒为**调用者自己**的 IAMSub，无管理员代挂
 - **#2052 通知邀请**（不发码）：由管理员对既有账户发起，被邀请人在「系统消息」（`type=staff_invite`，`ref_id=邀请id`）点「接受/拒绝」。接受时再次校验身份归属，防止他人顶替
@@ -1046,10 +1054,10 @@ GET /api/confirmation-sessions/:id
 }
 ```
 
-**排序说明（#1797）**：
-- 默认排序：`sort_order ASC, created_at DESC`（未排序存量数据 sort_order=0，退化为创建时间倒序）
+**排序说明（#1797 / #2241）**：
+- 默认排序（方案 A，分类内排序）：`category_id ASC, sort_order ASC, created_at DESC, id ASC`——先按分类分组，组内按 `sort_order`（存量 0 值退化为创建时间倒序）
 - `sort` 参数：`sort_order`（默认）/ `created_at` / `-created_at` / `+created_at`
-- 同分类（category_id）内可通过 `PUT /instruments/:id/sort` 调整顺序
+- 同分类（category_id）内可通过 `PUT /instruments/:id/sort` 调整顺序（组内换位 + 序号重排）
 
 ---
 
@@ -1067,11 +1075,11 @@ GET /api/confirmation-sessions/:id
 ```
 `direction`: `up`（上移）| `down`（下移）
 
-**逻辑**:
-- 同 `category_id` 组内（NULL 视作独立组）按 `sort_order ASC, created_at DESC` 取相邻记录，交换两者的 `sort_order`
-- 两个 `sort_order` 均为 0 时设为相邻序号（up → 2/1；down → 1/2），保证可重复操作
-- 边界：已在首位上移 / 已在末位下移 → `40002`「已在最前 / 已在最后」
-- 租户隔离：仅操作本租户乐器，其他租户 id → `40400`
+**逻辑（#2241 方案 A）**:
+- 同 `category_id` 组内（NULL 视作独立组）按**列表默认可见顺序**（`sort_order ASC, created_at DESC, id ASC`）定位当前记录与相邻记录，**组内换位**后把整组 `sort_order` 重排为 `1..N`（消除旧实现 0 → 1/2 的值域跳变与跨组位移）
+- 范围与列表同口径（tenant + 可见 org/site 范围）；顶层管理员（JWT `tid` 为空）在可见范围内同样可排序，不再 `40400`
+- 边界：已在首位上移 / 已在末位下移 → `40002` + **英文机器可读 message**：`already first` / `already last`（前端映射为 warning「已在最前 / 已在最后」）
+- 租户隔离：其他租户乐器 id → `40400`
 
 **成功响应**:
 ```json
@@ -3287,7 +3295,7 @@ POST /api/warehouse/orders/:id/assess-damage
 **接口**: `GET /api/repair-services`
 **参数**: `scope=mine|site`、`status=<csv>`、**`start`/`end`**（ISO8601，可选；`updated_at ∈ [start,end)`）
 **说明**: 技师（scope=mine 指派给我）/员工（scope=site **仅商户层级**，#2122 商户组织闸门，网点账号返回空）任务列表；**时间范围由前端传入**（当前默认近 30 天，#2128）
-**租户口径（#2134）**: staff 上下文范围 = **商户组织**；查询过滤为 `tenant_id ∈ {tid, oid}`（`tid`=根租户、`oid`=用户自身组织），兼容历史「本商户数据 tenant_id=org_id 混用」（#2125）写入的叶组织行；单行读（详情/操作）同口径，`repairServiceStaffAllowed` 亦接受 `{tid, oid}`。写入侧（创建/选师）按 `merchants(org_id→tenant_id)` 规范化为根租户。
+**租户口径（#2248，取代 #2134）**: 维修服务单归属统一锚定**商户 org**——写入（创建/选师）与读取（列表/详情/操作）均使用 `repair_requests.tenant_id = 商户 org`；多商户共享的 `merchants.tenant_id` **不进入** staff 可见范围，也不作为写入锚（共享 tenant 歧义时写入显式拒绝）。历史行先经 `site/technician` 推导回填为商户 org，无法推导的遗留行对任何商户不可见（安全方向）。
 **目标契约（#1942）**: 维修师/员工本人
 
 #### 7.15.2c 商户维修服务单列表（PC 后台，#2129 / #2229）

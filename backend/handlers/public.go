@@ -685,14 +685,14 @@ func LookupInstrumentBySN(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"instrument": nil}})
 }
 
-// GetHomeMenuConfig returns the home page category menu configuration for a tenant.
+// GetHomeMenuConfig returns the platform-level home page category menu configuration.
 func GetHomeMenuConfig(c *gin.Context) {
 	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
-	tenantID := middleware.GetTenantID(ctx)
+	// #2251：home_menu_config 为平台级系统设置，读取不使用操作者 tenant
+	db := database.GetDB().WithContext(database.IdentityCtx(ctx))
 
 	var setting models.SystemSetting
-	db.Where("tenant_id = ? AND setting_key = ?", tenantID, "home_menu_config").First(&setting)
+	db.Where("tenant_id = ? AND setting_key = ?", systemTenantID, "home_menu_config").First(&setting)
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"config": setting.SettingValue}})
 }
 
@@ -707,15 +707,16 @@ func SetHomeMenuConfig(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
-	tenantID := middleware.GetTenantID(ctx)
+	// #2251：home_menu_config 为平台级系统设置（tenant 仅记录写入者元数据）
+	db := database.GetDB().WithContext(database.IdentityCtx(ctx))
 	key := "home_menu_config"
+	userID := middleware.GetUserID(ctx)
 
 	var setting models.SystemSetting
-	if err := db.Where("tenant_id = ? AND setting_key = ?", tenantID, key).First(&setting).Error; err == nil {
-		db.Model(&setting).Update("setting_value", req.Config)
+	if err := db.Where("tenant_id = ? AND setting_key = ?", systemTenantID, key).First(&setting).Error; err == nil {
+		db.Model(&setting).Updates(map[string]interface{}{"setting_value": req.Config, "updated_by": userID})
 	} else {
-		db.Create(&models.SystemSetting{TenantID: tenantID, SettingKey: key, SettingValue: req.Config})
+		db.Create(&models.SystemSetting{TenantID: systemTenantID, SettingKey: key, SettingValue: req.Config, UpdatedBy: userID})
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "home menu config saved"})

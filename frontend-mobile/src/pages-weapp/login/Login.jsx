@@ -113,7 +113,7 @@ export default function Login() {
   // #2206: 协议同意校验（模块级函数无法访问组件 state，在组件内校验）
   const handleWxLoginClick = () => {
     if (!agreed) {
-      dialog.toast('请阅读并同意《租用服务协议》与《个人信息保护政策》')
+      dialog.toast('请阅读并同意《相关协议》')
       return
     }
     handleWxLogin()
@@ -121,7 +121,7 @@ export default function Login() {
 
   const handleIAMLoginClick = () => {
     if (!agreed) {
-      dialog.toast('请阅读并同意《租用服务协议》与《个人信息保护政策》')
+      dialog.toast('请阅读并同意《相关协议》')
       return
     }
     handleIAMLogin(identifier, password)
@@ -170,10 +170,9 @@ export default function Login() {
           style={{ width: 18, height: 18, borderRadius: 4, border: agreed ? 'none' : '1px solid #d4d4d8', backgroundColor: agreed ? '#915F38' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           {agreed ? <Text style={{ color: '#fff', fontSize: 12, lineHeight: '18px' }}>✓</Text> : null}
         </View>
-        <Text style={{ fontSize: 12, color: '#a1a1aa' }}>我已阅读并同意</Text>
-        <Text style={{ fontSize: 12, color: '#915F38' }} onClick={() => Taro.navigateTo({ url: '/pages-weapp/content/index?key=rental_agreement' })}>《租用服务协议》</Text>
-        <Text style={{ fontSize: 12, color: '#a1a1aa' }}>与</Text>
-        <Text style={{ fontSize: 12, color: '#915F38' }} onClick={() => Taro.navigateTo({ url: '/pages-weapp/content/index?key=privacy_policy' })}>《个人信息保护政策》</Text>
+        <Text style={{ fontSize: 12, color: '#a1a1aa' }}>我已阅读并同意所有「</Text>
+        <Text style={{ fontSize: 12, color: '#915F38' }} onClick={() => Taro.navigateTo({ url: '/pages-weapp/content/index?key=related_agreements' })}>相关协议</Text>
+        <Text style={{ fontSize: 12, color: '#a1a1aa' }}>」</Text>
       </View>
 
       {/* Developer mode toggle */}

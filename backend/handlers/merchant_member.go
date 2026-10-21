@@ -119,10 +119,15 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 		return
 	}
 
+	// #2250：商户归属锚 = org；tenant_id 在多商户共享时不可用于定位商户
 	var merchant models.Merchant
-	if err := db.Where("id = ? AND tenant_id = ?", merchantID, tenantID).First(&merchant).Error; err != nil {
+	if err := db.Where("id = ? AND (org_id = ? OR tenant_id = ?)", merchantID, tenantID, tenantID).First(&merchant).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "Merchant not found"})
 		return
+	}
+	merchantAnchor := merchant.OrgID
+	if merchantAnchor == "" {
+		merchantAnchor = tenantID
 	}
 
 	iamClient := services.NewIAMClient()
@@ -299,7 +304,7 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 
 		var count int64
 		db.Model(&models.MerchantMember{}).
-			Where("tenant_id = ? AND merchant_id = ? AND user_id = ?", tenantID, merchantID, userID).
+			Where("merchant_id = ? AND user_id = ?", merchantID, userID).
 			Count(&count)
 		if count > 0 {
 			continue
@@ -348,7 +353,7 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 		}
 
 		member := models.MerchantMember{
-			TenantID:   tenantID,
+			TenantID:   merchantAnchor,
 			MerchantID: merchantID,
 			UserID:     userID,
 			Role:       role,
@@ -403,10 +408,6 @@ func (h *MerchantMemberHandler) UpdateMemberRole(c *gin.Context) {
 	db := database.GetDB().WithContext(c.Request.Context())
 	tenantID := middleware.GetTenantID(c.Request.Context())
 
-	if !hasMerchantAccess(db, tenantID, merchantID, c) {
-		return
-	}
-
 	var input struct {
 		Role string `json:"role" binding:"required"`
 	}
@@ -415,6 +416,17 @@ func (h *MerchantMemberHandler) UpdateMemberRole(c *gin.Context) {
 			"code":    40001,
 			"message": "Invalid input: " + err.Error(),
 		})
+		return
+	}
+
+	// #2250（返工）：成员与 IAM 组织统一锚定商户 org（共享 tenant 不得当组织用）
+	merchant, ok := loadMerchantForAccess(db, tenantID, merchantID, c)
+	if !ok {
+		return
+	}
+	anchor := merchant.OrgID
+	if anchor == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "merchant org anchor is missing"})
 		return
 	}
 
@@ -427,33 +439,42 @@ func (h *MerchantMemberHandler) UpdateMemberRole(c *gin.Context) {
 		iamClient := services.NewIAMClient()
 		userToken := services.ExtractUserToken(c)
 
+		// #2250（返工）：IAM 调用失败必须显式返回（不得本地改角色而 IAM 漂移）
 		if normalizedRole == "merchant_admin" {
-			if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, iamUser.IAMSub, tenantID, iamRole, middleware.GetUserID(c.Request.Context())); bindErr != nil {
+			if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, iamUser.IAMSub, anchor, iamRole, middleware.GetUserID(c.Request.Context())); bindErr != nil {
 				log.Printf("[MerchantUpdateRole] BindUser failed for %s: %v", iamUser.IAMSub, bindErr)
+				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "更新成员角色失败（IAM）：" + bindErr.Error()})
+				return
 			}
 		} else {
-			if demoteErr := iamClient.UpdateUserRoleInOrgWithToken(userToken, tenantID, iamUser.IAMSub, iamRole); demoteErr != nil {
+			if demoteErr := iamClient.UpdateUserRoleInOrgWithToken(userToken, anchor, iamUser.IAMSub, iamRole); demoteErr != nil {
 				log.Printf("[MerchantUpdateRole] UpdateRole failed for %s: %v", iamUser.IAMSub, demoteErr)
+				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "更新成员角色失败（IAM）：" + demoteErr.Error()})
+				return
 			}
 		}
 
 		nsID := middleware.GetNamespaceID(c.Request.Context())
-		if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
-			for _, t := range templates {
-				if t.Code == templateCode {
-					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, iamUser.IAMSub, tenantID, t.Code); err != nil {
-						log.Printf("[MerchantUpdateRole] AssignRoleTemplate failed: %v", err)
-					}
-					break
-				}
-			}
-		} else {
+		templates, err := iamClient.ListRoleTemplates(nsID)
+		if err != nil {
 			log.Printf("[MerchantUpdateRole] ListRoleTemplates failed: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "更新成员角色失败（IAM 角色模板查询）：" + err.Error()})
+			return
+		}
+		for _, t := range templates {
+			if t.Code == templateCode {
+				if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, iamUser.IAMSub, anchor, t.Code); err != nil {
+					log.Printf("[MerchantUpdateRole] AssignRoleTemplate failed: %v", err)
+					c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "更新成员角色失败（IAM 角色模板分配）：" + err.Error()})
+					return
+				}
+				break
+			}
 		}
 	}
 
 	result := db.Model(&models.MerchantMember{}).
-		Where("tenant_id = ? AND merchant_id = ? AND user_id = ?", tenantID, merchantID, userID).
+		Where("tenant_id = ? AND merchant_id = ? AND user_id = ?", anchor, merchantID, userID).
 		Update("role", input.Role)
 
 	if result.Error != nil {
@@ -489,7 +510,14 @@ func (h *MerchantMemberHandler) RemoveMember(c *gin.Context) {
 	db := database.GetDB().WithContext(c.Request.Context())
 	tenantID := middleware.GetTenantID(c.Request.Context())
 
-	if !hasMerchantAccess(db, tenantID, merchantID, c) {
+	// #2250（返工）：成员行与 IAM 解绑统一锚定商户 org（与 AddMember/门控同口径）
+	merchant, ok := loadMerchantForAccess(db, tenantID, merchantID, c)
+	if !ok {
+		return
+	}
+	anchor := merchant.OrgID
+	if anchor == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "merchant org anchor is missing"})
 		return
 	}
 
@@ -498,7 +526,7 @@ func (h *MerchantMemberHandler) RemoveMember(c *gin.Context) {
 	// merchant_admin and it is the last one — server-side authority, the
 	// frontend disable is only UX.
 	var target models.MerchantMember
-	if err := db.Where("tenant_id = ? AND merchant_id = ? AND user_id = ?", tenantID, merchantID, userID).
+	if err := db.Where("tenant_id = ? AND merchant_id = ? AND user_id = ?", anchor, merchantID, userID).
 		First(&target).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "Member not found"})
 		return
@@ -506,7 +534,7 @@ func (h *MerchantMemberHandler) RemoveMember(c *gin.Context) {
 	if target.Role == "merchant_admin" {
 		var adminCount int64
 		db.Model(&models.MerchantMember{}).
-			Where("tenant_id = ? AND merchant_id = ? AND role = ?", tenantID, merchantID, "merchant_admin").
+			Where("tenant_id = ? AND merchant_id = ? AND role = ?", anchor, merchantID, "merchant_admin").
 			Count(&adminCount)
 		if adminCount <= 1 {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40009, "message": "不能删除最后一个负责人"})
@@ -516,19 +544,16 @@ func (h *MerchantMemberHandler) RemoveMember(c *gin.Context) {
 
 	// #2114：解绑商户关系用 merchant.OrgID（≠ tenant_id，实测二者不同），
 	// 传 IAM sub（非本地 id），失败显式返回（不静默）。绑定侧同样用 merchant.OrgID。
-	var merchant models.Merchant
-	if err := db.Where("id = ? AND tenant_id = ?", merchantID, tenantID).First(&merchant).Error; err == nil && merchant.OrgID != "" {
-		iamClient := services.NewIAMClient()
-		operatorID := middleware.GetUserID(c.Request.Context())
-		memberToken := services.ExtractUserToken(c)
-		iamSub := resolveIAMSub(db, userID)
-		if err := iamClient.UnbindUserFromOrganizationWithToken(memberToken, iamSub, merchant.OrgID, operatorID); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "解除成员失败（IAM）：" + err.Error()})
-			return
-		}
+	iamClient := services.NewIAMClient()
+	operatorID := middleware.GetUserID(c.Request.Context())
+	memberToken := services.ExtractUserToken(c)
+	iamSub := resolveIAMSub(db, userID)
+	if err := iamClient.UnbindUserFromOrganizationWithToken(memberToken, iamSub, anchor, operatorID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "解除成员失败（IAM）：" + err.Error()})
+		return
 	}
 
-	result := db.Where("tenant_id = ? AND merchant_id = ? AND user_id = ?", tenantID, merchantID, userID).
+	result := db.Where("tenant_id = ? AND merchant_id = ? AND user_id = ?", anchor, merchantID, userID).
 		Delete(&models.MerchantMember{})
 
 	if result.Error != nil {
@@ -548,10 +573,10 @@ func (h *MerchantMemberHandler) RemoveMember(c *gin.Context) {
 	}
 
 	// #2114：仅当该用户在本商户「无任何成员身份」（网点/商户/师傅）时才软删缓存 users 行。
-	if !hasLocalTenantMembership(db, tenantID, userID) {
+	if !hasLocalTenantMembership(db, anchor, userID) {
 		now := time.Now()
 		if err := db.Model(&models.User{}).
-			Where("id = ? AND tenant_id = ?", userID, tenantID).
+			Where("id = ? AND tenant_id = ?", userID, anchor).
 			Update("deleted_at", now).Error; err != nil {
 			log.Printf("[MerchantRemoveMember] Failed to soft-delete cached user %s: %v", userID, err)
 		}
@@ -566,8 +591,9 @@ func (h *MerchantMemberHandler) RemoveMember(c *gin.Context) {
 // hasMerchantAccess checks the merchant belongs to the requesting tenant.
 func hasMerchantAccess(db *gorm.DB, tenantID, merchantID string, c *gin.Context) bool {
 	var count int64
+	// #2250：商户归属以 org 为准（tenant_id 可能为多商户共享值）
 	result := db.Model(&models.Merchant{}).
-		Where("id = ? AND tenant_id = ?", merchantID, tenantID).
+		Where("id = ? AND (tenant_id = ? OR org_id = ?)", merchantID, tenantID, tenantID).
 		Count(&count)
 
 	if result.Error != nil || count == 0 {
@@ -578,4 +604,17 @@ func hasMerchantAccess(db *gorm.DB, tenantID, merchantID string, c *gin.Context)
 		return false
 	}
 	return true
+}
+
+// loadMerchantForAccess performs the same org-or-tenant access check as
+// hasMerchantAccess and returns the merchant row so callers can use the
+// merchant org as the single anchor (#2250). Writes the 403 response itself.
+func loadMerchantForAccess(db *gorm.DB, tenantID, merchantID string, c *gin.Context) (models.Merchant, bool) {
+	var merchant models.Merchant
+	if err := db.Where("id = ? AND (tenant_id = ? OR org_id = ?)", merchantID, tenantID, tenantID).
+		First(&merchant).Error; err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
+		return models.Merchant{}, false
+	}
+	return merchant, true
 }

@@ -27,6 +27,8 @@ export default function InstrumentList() {
   const [filterOptions, setFilterOptions] = useState({ categories: [], levels: [], statuses: [], sites: [] })
   const [levelFilter, setLevelFilter] = useState(searchParams.get('level_id') || '')
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'sort_order')
+  // #2241：组内首/末边界（后端告知后禁用对应方向按钮，避免重复无效点击）
+  const [sortBoundary, setSortBoundary] = useState({})
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
   const [batchPriceModalVisible, setBatchPriceModalVisible] = useState(false)
   const [batchPriceForm] = Form.useForm()
@@ -67,6 +69,7 @@ export default function InstrumentList() {
 
   const fetchInstruments = async (page = 1, pageSize = 20, overrideSort = null) => {
     setLoading(true)
+    setSortBoundary({})
     try {
       const params = { page, pageSize }
       const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}')
@@ -112,17 +115,28 @@ export default function InstrumentList() {
     fetchInstruments(1, pagination.pageSize)
   }
 
-  // #1797: 子分类内排序（行内上移/下移，非拖拽）。
+  // #1797/#2241: 分类内排序（行内上移/下移，非拖拽）。
+  // 移动成功后统一回到「默认组内视图」（表头 created_at 排序与 sort_order 无关，
+  // 若保持该视图会看起来“没反应”）。首/末边界为 warning 并禁用该方向。
   const sortInstrument = async (record, direction) => {
     try {
       const result = await instrumentsApi.sortInstrument(record.id, direction)
       if (result.code === 20000) {
         message.success(direction === 'up' ? '已上移' : '已下移')
-        fetchInstruments(pagination.page, pagination.pageSize)
+        setSortBy('sort_order')
+        fetchInstruments(pagination.page, pagination.pageSize, 'sort_order')
       } else {
         message.error(result.message || '排序失败')
       }
     } catch (error) {
+      if (error.message === '已在最前' || error.message === '已在最后') {
+        setSortBoundary((prev) => ({
+          ...prev,
+          [record.id]: { ...(prev[record.id] || {}), [direction]: true }
+        }))
+        message.warning(error.message)
+        return
+      }
       message.error(error.message || '排序失败')
     }
   }
@@ -225,15 +239,23 @@ export default function InstrumentList() {
               type="link"
               size="small"
               icon={<ArrowUpOutlined />}
-              title="上移"
-              onClick={() => sortInstrument(record, 'up')}
+              title={sortBoundary[record.id]?.up ? '已在最前' : '上移'}
+              disabled={Boolean(sortBoundary[record.id]?.up)}
+              onClick={(e) => {
+                e.stopPropagation()
+                sortInstrument(record, 'up')
+              }}
             />
             <Button
               type="link"
               size="small"
               icon={<ArrowDownOutlined />}
-              title="下移"
-              onClick={() => sortInstrument(record, 'down')}
+              title={sortBoundary[record.id]?.down ? '已在最后' : '下移'}
+              disabled={Boolean(sortBoundary[record.id]?.down)}
+              onClick={(e) => {
+                e.stopPropagation()
+                sortInstrument(record, 'down')
+              }}
             />
           </PermissionGate>
           <Button type="link" icon={<EyeOutlined />} onClick={() => navigate(`/instruments/detail/${record.id}`)}>

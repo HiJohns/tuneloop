@@ -581,7 +581,6 @@ func (h *IAMProxyHandler) UpdateIAMUser(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	tenantID := middleware.GetTenantID(ctx)
 
 	callbackURL := os.Getenv("EXTERNAL_WEB_URL")
 	if callbackURL == "" {
@@ -616,7 +615,14 @@ func (h *IAMProxyHandler) UpdateIAMUser(c *gin.Context) {
 		localUpdates["phone"] = req.Phone
 	}
 	if len(localUpdates) > 0 {
-		db.Model(&models.User{}).Where("iam_sub = ? AND tenant_id = ?", userID, tenantID).Updates(localUpdates)
+		// #2249（S1）：users.tenant_id 是本地缓存，不可用于过滤（iam_sub 全局唯一）。
+		// 原实现带 tenant_id 过滤时，零租户行在员工上下文下静默 0 行更新。
+		res := db.Model(&models.User{}).Where("iam_sub = ?", userID).Updates(localUpdates)
+		if res.Error != nil {
+			log.Printf("[UpdateIAMUser] local cache update failed for iam_sub=%s: %v", userID, res.Error)
+		} else if res.RowsAffected == 0 {
+			log.Printf("[UpdateIAMUser] local cache update affected 0 rows for iam_sub=%s (row missing or unchanged)", userID)
+		}
 	}
 
 	emailChanged := req.Email != ""

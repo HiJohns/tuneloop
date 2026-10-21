@@ -44,10 +44,16 @@ func GetMerchantPricingConfig(c *gin.Context) {
 		return
 	}
 
-	db := database.GetDB().WithContext(ctx)
+	// #2251：商户配置按商户 org 锚定（共享 tenant 的商户不得共用配置）
+	db := merchantConfigDB(ctx)
+	anchor, ok := resolveMerchantConfigAnchor(ctx)
+	if !ok {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "merchant scope not found"})
+		return
+	}
 
 	var config models.MerchantPricingConfig
-	if err := db.Where("tenant_id = ?", tenantID).First(&config).Error; err != nil {
+	if err := db.Where("tenant_id = ?", anchor).First(&config).Error; err != nil {
 		// Return default template config if merchant hasn't configured yet
 		var defaultTemplate models.PricingTemplate
 		if err := db.Where("is_system_default = ? AND is_active = ?", true, true).First(&defaultTemplate).Error; err != nil {
@@ -113,7 +119,12 @@ func UpdateMerchantPricingConfig(c *gin.Context) {
 	}
 
 	// Verify template exists
-	db := database.GetDB().WithContext(ctx)
+	db := merchantConfigDB(ctx)
+	anchor, ok := resolveMerchantConfigAnchor(ctx)
+	if !ok {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "merchant scope not found"})
+		return
+	}
 	var tmpl models.PricingTemplate
 	if err := db.Where("id = ? AND is_active = ?", req.TemplateID, true).First(&tmpl).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -134,8 +145,9 @@ func UpdateMerchantPricingConfig(c *gin.Context) {
 
 	userID := middleware.GetUserID(ctx)
 
+	// #2251：读写同一锚（商户 org）
 	var existing models.MerchantPricingConfig
-	if err := db.Where("tenant_id = ?", tenantID).First(&existing).Error; err == nil {
+	if err := db.Where("tenant_id = ?", anchor).First(&existing).Error; err == nil {
 		// Update existing config
 		if err := db.Model(&existing).Updates(map[string]interface{}{
 			"template_id": req.TemplateID,
@@ -157,7 +169,7 @@ func UpdateMerchantPricingConfig(c *gin.Context) {
 
 	// Create new config
 	config := models.MerchantPricingConfig{
-		TenantID:   tenantID,
+		TenantID:   anchor,
 		TemplateID: req.TemplateID,
 		Config:     string(configJSON),
 		UpdatedBy:  userID,
@@ -283,9 +295,9 @@ func GetInstrumentPricingV2(c *gin.Context) {
 	rateCents := models.Cents(rate)
 	instrument.BaseDailyRate = &rateCents
 
-	// Fetch merchant pricing config
+	// Fetch merchant pricing config（#2251：按乐器归属商户 org，而非操作者 tenant）
 	var config models.MerchantPricingConfig
-	if err := db.Where("tenant_id = ?", tenantID).First(&config).Error; err != nil {
+	if err := merchantConfigDB(ctx).Where("tenant_id = ?", instrument.TenantID).First(&config).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			config.Config = `{"deposit_mode":"ratio","deposit_ratio":0.3,"deposit_multiplier":7,"tiers":[{"days_max":30,"discount_percent":0},{"days_max":365,"discount_percent":20},{"days_max":-1,"discount_percent":40}]}`
 		} else {

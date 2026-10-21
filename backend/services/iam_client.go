@@ -45,6 +45,14 @@ func (c *clientTokenCache) reset() {
 // transient failures fail open.
 var ErrUserNotFound = errors.New("user not found")
 
+// ErrIAMUserExists（#2243）：IAM CreateUser 返回 409（手机号/邮箱/用户名已注册）。
+// 调用方应映射为业务冲突（409 + 明确文案），不得统一 500。
+var ErrIAMUserExists = errors.New("iam user already exists")
+
+// ErrIAMInvalidRequest（#2243）：IAM CreateUser 返回 4xx（非 409）——请求参数/业务校验
+// 失败。调用方应保留 IAM 原始 message 并映射为 HTTP 400（不再统一 500）。
+var ErrIAMInvalidRequest = errors.New("iam request rejected")
+
 // userAuthState (#1735): IAM-authoritative subject validity snapshot used by
 // the auth middleware (token_version + account status).
 type userAuthState struct {
@@ -918,7 +926,10 @@ func (c *IAMClient) CreateUser(req *CreateUserRequest) (*CreateUserResponse, err
 	}
 
 	if statusCode == http.StatusConflict {
-		return nil, fmt.Errorf("user already exists: %s", string(respBody))
+		return nil, fmt.Errorf("%w: %s", ErrIAMUserExists, string(respBody))
+	}
+	if statusCode >= http.StatusBadRequest && statusCode < http.StatusInternalServerError {
+		return nil, fmt.Errorf("%w: %s", ErrIAMInvalidRequest, string(respBody))
 	}
 	if statusCode != http.StatusOK && statusCode != http.StatusCreated {
 		return nil, fmt.Errorf("CreateUser returned status %d: %s", statusCode, string(respBody))
@@ -962,7 +973,10 @@ func (c *IAMClient) CreateUserWithToken(token string, req *CreateUserRequest) (*
 	}
 
 	if statusCode == http.StatusConflict {
-		return nil, fmt.Errorf("user already exists: %s", string(respBody))
+		return nil, fmt.Errorf("%w: %s", ErrIAMUserExists, string(respBody))
+	}
+	if statusCode >= http.StatusBadRequest && statusCode < http.StatusInternalServerError {
+		return nil, fmt.Errorf("%w: %s", ErrIAMInvalidRequest, string(respBody))
 	}
 	if statusCode != http.StatusOK && statusCode != http.StatusCreated {
 		return nil, fmt.Errorf("CreateUser returned status %d: %s", statusCode, string(respBody))

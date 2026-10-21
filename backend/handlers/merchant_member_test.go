@@ -49,6 +49,15 @@ func newMerchantMemberMockIAM(t *testing.T) *httptest.Server {
 		}
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	})
+	// AssignRoleTemplateToUserWithToken → POST /api/v1/users/{id}/roles
+	// （原实现吞错，mock 缺此端点也能通过；#2250 返工后 IAM 失败显式返回，需补齐）
+	mux.HandleFunc("/api/v1/users/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"code":    20000,
+			"message": "success",
+		})
+	})
 	mux.HandleFunc("/api/v1/organizations/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if r.Method == "POST" {

@@ -33,10 +33,15 @@ func ListPointsPolicies(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
 	query := db.Where("scope_type = ?", scopeType)
-	tenantID := middleware.GetTenantID(ctx)
 	orgID := middleware.GetOrgID(ctx)
-	if scopeType == "merchant" && tenantID != "" {
-		query = query.Where("scope_id = ?", tenantID)
+	if scopeType == "merchant" {
+		// #2251：商户策略按商户 org 锚定（共享 tenant 的商户不得共用策略）
+		anchor, ok := resolveMerchantConfigAnchor(ctx)
+		if !ok {
+			c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "merchant scope not found"})
+			return
+		}
+		query = query.Where("scope_id = ?", anchor)
 	}
 	if scopeType == "site" && orgID != "" {
 		query = query.Where("scope_id = ?", orgID)
@@ -66,15 +71,18 @@ func CreatePointsPolicy(c *gin.Context) {
 		return
 	}
 	ctx := c.Request.Context()
-	tenantID := middleware.GetTenantID(ctx)
 	orgID := middleware.GetOrgID(ctx)
-	if req.ScopeID == nil || *req.ScopeID == "" {
-		if scopeType == "merchant" && tenantID != "" {
-			req.ScopeID = &tenantID
+	if scopeType == "merchant" {
+		// #2251：商户策略强制锚定到本商户 org（不接受客户端传入的 scope_id）
+		anchor, ok := resolveMerchantConfigAnchor(ctx)
+		if !ok {
+			c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "merchant scope not found"})
+			return
 		}
-		if scopeType == "site" && orgID != "" {
-			req.ScopeID = &orgID
-		}
+		req.ScopeID = &anchor
+	}
+	if scopeType == "site" && (req.ScopeID == nil || *req.ScopeID == "") && orgID != "" {
+		req.ScopeID = &orgID
 	}
 	policy := models.PointsPolicy{
 		ScopeType:   scopeType,
@@ -108,6 +116,15 @@ func UpdatePointsPolicy(c *gin.Context) {
 	}
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
+	// #2251：商户/网点范围更新必须命中本商户锚（防按 id 跨商户改写）
+	if scopeType := scopeTypeFromPath(c.Request.URL.Path); scopeType == "merchant" {
+		anchor, ok := resolveMerchantConfigAnchor(ctx)
+		if !ok {
+			c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "merchant scope not found"})
+			return
+		}
+		db = db.Where("scope_type = ? AND scope_id = ?", "merchant", anchor)
+	}
 	updates := map[string]interface{}{}
 	if req.MaxPayRatio != nil {
 		updates["max_pay_ratio"] = *req.MaxPayRatio
@@ -118,8 +135,13 @@ func UpdatePointsPolicy(c *gin.Context) {
 	if req.IsActive != nil {
 		updates["is_active"] = *req.IsActive
 	}
-	if err := db.Model(&models.PointsPolicy{}).Where("id = ?", id).Updates(updates).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": err.Error()})
+	result := db.Model(&models.PointsPolicy{}).Where("id = ?", id).Updates(updates)
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": result.Error.Error()})
+		return
+	}
+	if result.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "policy not found"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "updated"})
