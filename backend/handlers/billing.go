@@ -262,12 +262,16 @@ func GetSettlementConfig(c *gin.Context) {
 		return
 	}
 
-	db := database.GetDB().WithContext(c.Request.Context())
+	// #2261（B3 域3 前置）：关闭自动租户范围 + 显式商户范围校验。
+	// 商户管理员仅可访问自己商户；无法解析商户（平台管理员）不限制。
+	db := database.GetDB().WithContext(database.IdentityCtx(c.Request.Context()))
 
-	// Resolve tenant_id from merchant record
 	var merchant models.Merchant
 	if err := db.Where("id = ?", merchantID).First(&merchant).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "merchant not found"})
+		return
+	}
+	if !settlementConfigAllowed(c, merchant) {
 		return
 	}
 
@@ -301,12 +305,16 @@ func UpsertSettlementConfig(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
+	// #2261（B3 域3 前置）：关闭自动租户范围 + 显式商户范围校验
+	db := database.GetDB().WithContext(database.IdentityCtx(ctx))
 
 	// Resolve merchant anchor：配置键 = 商户 org（#2260 数据归属）
 	var merchant models.Merchant
 	if err := db.Where("id = ?", merchantID).First(&merchant).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "merchant not found"})
+		return
+	}
+	if !settlementConfigAllowed(c, merchant) {
 		return
 	}
 	tenantID := merchant.OrgID
@@ -351,4 +359,18 @@ func UpsertSettlementConfig(c *gin.Context) {
 		merchantID, req.ReceiverType, req.ReceiverAccount, req.ProfitShareRatio, cfg.IsEnabled)
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": cfg})
+}
+
+
+// settlementConfigAllowed（#2261）：结算配置的显式商户范围校验。
+// 操作者可解析到商户时，仅允许本商户；无法解析（平台管理员）不限制。
+// 返回 false 时已写入 404 响应（不暴露他商户存在性）。
+func settlementConfigAllowed(c *gin.Context, merchant models.Merchant) bool {
+	if op, ok := resolveOperatorMerchantConfig(c.Request.Context()); ok {
+		if op.OrgID == "" || op.OrgID != merchant.OrgID {
+			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "merchant not found"})
+			return false
+		}
+	}
+	return true
 }
