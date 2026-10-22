@@ -27,8 +27,10 @@ export default function AgreementCheckbox({ agreed, onChange, style, onOpenConse
     eventBus.on(AGREEMENT_CONSENT_EVENT, applyResult)
     return () => eventBus.off(AGREEMENT_CONSENT_EVENT, applyResult)
   }, [applyResult])
-  // weapp：navigateBack 不重新挂载页面 → 页面显示时读取
-  Taro.useDidShow(() => {
+  // weapp：navigateBack 不重新挂载页面 → 页面显示时读取。
+  // H5（Vite/Taro shim）无 Taro.useDidShow → 使用空实现，避免整页崩溃。
+  const useDidShowSafe = typeof Taro.useDidShow === 'function' ? Taro.useDidShow : () => {}
+  useDidShowSafe(() => {
     if (env.isMiniProgram) applyResult()
   })
 
