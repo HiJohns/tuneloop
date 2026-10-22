@@ -548,10 +548,10 @@ export default function Payment() {
         {/* Points usage (only for non-refund, non-appeal) */}
         {!isRefund && pType !== 'appeal' && pType !== 'membership' && data.amount > 0 && maxGift > 0 && (
           <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>点数使用</Text>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>使用乐币</Text>
 
             <View style={{ marginBottom: 4 }}>
-              <Row label="赠点余额" value={`¥${formatCents(Number(maxGift))}`} />
+              <Row label="本次可用" value={`${Math.floor(Math.min(maxGift, data.amount) / 100)} 乐币`} />
               <View style={{ display: 'flex', alignItems: 'center', marginTop: 4 }}>
                 <Text style={{ fontSize: 13, color: '#71717a', width: 72 }}>使用</Text>
                 <View style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -560,11 +560,11 @@ export default function Payment() {
                     style={{ flex: 1, border: '1px solid #e4e4e7', borderRadius: 8, padding: '6px 10px', fontSize: 13, textAlign: 'right' }}
                   />
                 </View>
-                <Text style={{ fontSize: 13, color: '#71717a', marginLeft: 4 }}>点</Text>
+                <Text style={{ fontSize: 13, color: '#71717a', marginLeft: 4 }}>乐币</Text>
               </View>
             </View>
             <Text style={{ fontSize: 11, color: '#a1a1aa', textAlign: 'right', marginBottom: 8 }}>
-              赠点使用不得超过租金的 {Math.round((wallet.max_gift_ratio || 0.3) * 100)}%
+              乐币使用不得超过租金的 {Math.round((wallet.max_gift_ratio || 0.3) * 100)}%，不足1元的部分不能使用乐币。
             </Text>
 
             <View style={{ borderTop: '1px solid #e4e4e7', paddingTop: 8 }}>
