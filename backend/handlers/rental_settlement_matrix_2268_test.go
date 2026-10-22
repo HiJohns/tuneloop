@@ -300,9 +300,9 @@ var _ = json.Marshal
 // #2268 组合用例 A：租赁补缴支付回调必须入账（当前无 payment_shortfall case）。
 // 期望：补缴 200 到账后 cash_paid +200、settlement 完成；当前实现无副作用 → FAIL。
 func TestMatrix_RentalShortfallApplied_2268(t *testing.T) {
-	// #2268 已知缺陷（红）：applySideEffects 无 payment_shortfall 分支 →
-	// 补缴到账后 cash_paid 不变、settlement 卡 pending。修复后移除 skip。
-	t.Skip("known bug #2268: rental payment_shortfall has no side effects")
+	// #2268 已知缺陷（红）：payment_shortfall 分支已存在（wechatpay_callback.go:357-392），
+	// 但未累加 cash_paid、未触发 executeRefund/结算重算。修复后移除 skip。
+	t.Skip("known bug #2268: payment_shortfall case exists but omits cash_paid increment / executeRefund")
 	db := testfixtures.SetupTestDB(t)
 	org := uuid.NewString()
 	user := uuid.NewString()
@@ -337,9 +337,9 @@ func TestMatrix_RentalShortfallApplied_2268(t *testing.T) {
 // 前端 prepay 的 amount 已扣除乐币（cashAmount = displayAmount - gift*100），
 // 回调 deductPointsFromRecord 又减一次 → cash_paid 少记 gift。
 func TestMatrix_GiftPointsNotDoubleDeducted_2268(t *testing.T) {
-	// #2268 已知缺陷（红）：prepay amount 已扣乐币，回调再减一次 → cash_paid 少记。
-	// 修复后移除 skip。
-	t.Skip("known bug #2268: gift points deducted twice from cash_paid")
+	// #2268 已知缺陷（红）：rent 路径用 record.Amount 覆盖 cash_paid（不重复扣）；
+	// 风险在 renewal/damage/shortfall/loss 等不覆盖路径。修复后移除 skip。
+	t.Skip("known bug #2268: rent path overwrites cash_paid; risk is renewal/damage/shortfall/loss paths")
 	db := testfixtures.SetupTestDB(t)
 	org := uuid.NewString()
 	user := uuid.NewString()
