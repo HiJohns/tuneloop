@@ -303,3 +303,129 @@ func TestMatrix_GiftPointsNotDoubleDeducted_2268(t *testing.T) {
 		"cash_paid 已被 record.Amount（已扣乐币）覆盖，不得再减一次 gift；当前少记 ¥200")
 	assert.Equal(t, models.FromYuan(200), after.GiftPointsUsed)
 }
+
+// 返点场景 10：结算时给介绍人按「应收租金 × 推荐人等级比例」发返点；
+// 被介绍人 total_spending 按现金租金基数累加（CashBasis）。
+func TestMatrix_ReferralCommissionOnSettlement_2268(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	testfixtures.SetupWechatPayMock(t)
+
+	org := uuid.NewString()
+	level2 := 2
+	referrer := uuid.NewString()
+	referee := uuid.NewString()
+	require.NoError(t, db.Create(&models.User{
+		ID: referrer, IAMSub: referrer, TenantID: org, OrgID: org, Status: "active",
+		Name: "推荐人", MembershipLevelID: &level2,
+	}).Error)
+	require.NoError(t, db.Create(&models.User{
+		ID: referee, IAMSub: referee, TenantID: org, OrgID: org, Status: "active", Name: "被推荐人",
+	}).Error)
+	require.NoError(t, db.Create(&models.GiftPolicy{
+		LevelID: level2, PayRatio: 0.3, ReferralRatio: 0.05, ReferralRegPoints: 10, IsActive: true,
+	}).Error)
+	require.NoError(t, db.Create(&models.Referral{
+		ReferrerID: referrer, RefereeID: referee, RefCode: "REF2268", Status: "registered",
+	}).Error)
+
+	c := matrixCase{baseDaily: 100, days: 30, deposit: 500, discount: 1}
+	order := buildMatrixOrder(t, db, c)
+	// 订单归属被介绍人
+	require.NoError(t, db.Model(&models.Order{}).Where("id = ?", order.ID).Update("user_id", referee).Error)
+	order.UserID = referee
+	// 支付记录归属被介绍人（结算用）
+	require.NoError(t, db.Model(&models.OrderPaymentRecord{}).Where("order_id = ?", order.ID).Update("user_id", referee).Error)
+
+	_, err := executeRefund(db, order)
+	require.NoError(t, err)
+
+	// 介绍人返点 = floor(3000 × 0.05) = 150 元 = 15000 分
+	var batch models.PointBatch
+	require.NoError(t, db.Where("user_id = ? AND source_type = ?", referrer, services.PointBatchSourceFission).First(&batch).Error)
+	assert.Equal(t, models.FromYuan(150), batch.AmountCents, "介绍人返点金额")
+
+	var pt models.PointsTransaction
+	require.NoError(t, db.Where("user_id = ? AND type = ?", referrer, "referral").First(&pt).Error)
+	assert.Equal(t, models.FromYuan(150), pt.Amount)
+
+	// 消费额单位缺陷单列（见 TestMatrix_TotalSpendingUnit_2268）
+}
+
+// 返点场景 11（风险口径）：0 现金订单（全额乐币支付租金）仍按应收租金发介绍人返点，
+// 且 total_spending 因 CashBasis=0 回退到 RentPayable（等同全额计入消费）。
+func TestMatrix_ReferralOnZeroCashOrder_2268(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	testfixtures.SetupWechatPayMock(t)
+
+	org := uuid.NewString()
+	level2 := 2
+	referrer := uuid.NewString()
+	referee := uuid.NewString()
+	require.NoError(t, db.Create(&models.User{
+		ID: referrer, IAMSub: referrer, TenantID: org, OrgID: org, Status: "active",
+		Name: "推荐人", MembershipLevelID: &level2,
+	}).Error)
+	require.NoError(t, db.Create(&models.User{
+		ID: referee, IAMSub: referee, TenantID: org, OrgID: org, Status: "active", Name: "被推荐人",
+	}).Error)
+	require.NoError(t, db.Create(&models.GiftPolicy{
+		LevelID: level2, PayRatio: 1, ReferralRatio: 0.05, ReferralRegPoints: 10, IsActive: true,
+	}).Error)
+	require.NoError(t, db.Create(&models.Referral{
+		ReferrerID: referrer, RefereeID: referee, RefCode: "REF2268B", Status: "registered",
+	}).Error)
+
+	c := matrixCase{baseDaily: 100, days: 30, deposit: 500, discount: 1}
+	order := buildMatrixOrder(t, db, c)
+	order.UserID = referee
+	// 租金 3000 全部由乐币支付，仅现金押金 500 → cash_paid=500, gift=3000
+	require.NoError(t, db.Model(&models.Order{}).Where("id = ?", order.ID).Updates(map[string]interface{}{
+		"user_id": referee, "cash_paid": models.FromYuan(500), "gift_points_used": models.FromYuan(3000),
+	}).Error)
+	require.NoError(t, db.Model(&models.OrderPaymentRecord{}).Where("order_id = ?", order.ID).Updates(map[string]interface{}{
+		"user_id": referee, "amount": models.FromYuan(500),
+	}).Error)
+
+	_, err := executeRefund(db, order)
+	require.NoError(t, err)
+
+	// 0 现金订单仍按应收租金发返点（当前口径，记录风险）
+	var batch models.PointBatch
+	require.NoError(t, db.Where("user_id = ? AND source_type = ?", referrer, services.PointBatchSourceFission).First(&batch).Error)
+	assert.Equal(t, models.FromYuan(150), batch.AmountCents, "0 现金订单仍按应收租金发返点")
+}
+
+// #2268 已知缺陷（红）：total_spending 为 Cents 列，但 executeRefund 写入的是**元**
+// （spendingBasis=result.CashBasis 元）→ 前端 MembershipCenter /100 展示少 100 倍
+// （¥3000 显示 ¥30）；且当前无任何升级逻辑读取该字段。修复后移除 skip。
+func TestMatrix_TotalSpendingUnit_2268(t *testing.T) {
+	t.Skip("known bug #2268: total_spending stores yuan in a Cents column (100x understatement)")
+	db := testfixtures.SetupTestDB(t)
+	testfixtures.SetupWechatPayMock(t)
+	org := uuid.NewString()
+	referrer, referee := uuid.NewString(), uuid.NewString()
+	level2 := 2
+	require.NoError(t, db.Create(&models.User{
+		ID: referrer, IAMSub: referrer, TenantID: org, OrgID: org, Status: "active",
+		Name: "推荐人", MembershipLevelID: &level2,
+	}).Error)
+	require.NoError(t, db.Create(&models.User{
+		ID: referee, IAMSub: referee, TenantID: org, OrgID: org, Status: "active", Name: "被推荐人",
+	}).Error)
+	require.NoError(t, db.Create(&models.GiftPolicy{LevelID: level2, PayRatio: 0.3, ReferralRatio: 0.05, ReferralRegPoints: 10, IsActive: true}).Error)
+	require.NoError(t, db.Create(&models.Referral{ReferrerID: referrer, RefereeID: referee, RefCode: "REF2268U", Status: "registered"}).Error)
+
+	c := matrixCase{baseDaily: 100, days: 30, deposit: 500, discount: 1}
+	order := buildMatrixOrder(t, db, c)
+	order.UserID = referee
+	require.NoError(t, db.Model(&models.Order{}).Where("id = ?", order.ID).Update("user_id", referee).Error)
+	require.NoError(t, db.Model(&models.OrderPaymentRecord{}).Where("order_id = ?", order.ID).Update("user_id", referee).Error)
+
+	_, err := executeRefund(db, order)
+	require.NoError(t, err)
+
+	var after models.User
+	require.NoError(t, db.Where("id = ?", referee).First(&after).Error)
+	assert.Equal(t, models.FromYuan(3000), after.TotalSpending,
+		"total_spending 必须按分存储（当前写入元值 → 少 100 倍）")
+}
