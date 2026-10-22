@@ -323,17 +323,31 @@ func (h *SiteMemberHandler) RemoveMember(c *gin.Context) {
 
 // hasSiteAccess checks if user has access to site
 func hasSiteAccess(db *gorm.DB, tenantID, siteID string, c *gin.Context) bool {
-	var count int64
-	result := db.Model(&models.Site{}).
-		Where("id = ? AND tenant_id = ?", siteID, tenantID).
-		Count(&count)
-
-	if result.Error != nil || count == 0 {
+	deny := func() bool {
 		c.JSON(http.StatusNotFound, gin.H{
 			"code":    40400,
 			"message": "Site not found",
 		})
 		return false
+	}
+
+	// #2269：仅按共享 tenant 校验会放行跨商户网点；这里关闭自动租户范围，
+	// 显式校验 tenant + 站点所属商户 org（站点未锚定 org 的存量数据保持兼容）。
+	var site models.Site
+	idb := db.WithContext(database.IdentityCtx(c.Request.Context()))
+	if err := idb.Select("id, tenant_id, org_id").Where("id = ?", siteID).First(&site).Error; err != nil {
+		return deny()
+	}
+	if tenantID == "" || site.TenantID != tenantID {
+		return deny()
+	}
+	if site.OrgID != "" {
+		if op, ok := resolveOperatorMerchantConfig(c.Request.Context()); ok {
+			if op.OrgID == "" || op.OrgID != site.OrgID {
+				log.Printf("[site-access] denied site=%s org=%s op_org=%s", site.ID, site.OrgID, op.OrgID)
+				return deny()
+			}
+		}
 	}
 	return true
 }
