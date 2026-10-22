@@ -682,11 +682,11 @@ mobile,frontend-mobile/src/pages/Payment.jsx,132,退回赠点
 mobile,frontend-mobile/src/pages/Payment.jsx,135,赠点抵扣（按当前级别比例）
 mobile,frontend-mobile/src/pages/Payment.jsx,137,退款金额
 mobile,frontend-mobile/src/pages/Payment.jsx,138,退款完成后将按实付现金发放返点赠点，可在会员中心查看。
-mobile,frontend-mobile/src/pages/Payment.jsx,145,点数使用
-mobile,frontend-mobile/src/pages/Payment.jsx,149,赠点余额
+mobile,frontend-mobile/src/pages/Payment.jsx,145,使用乐币
+mobile,frontend-mobile/src/pages/Payment.jsx,149,本次可用
 mobile,frontend-mobile/src/pages/Payment.jsx,151,使用
-mobile,frontend-mobile/src/pages/Payment.jsx,159,点
-mobile,frontend-mobile/src/pages/Payment.jsx,161,赠点使用不得超过租金的
+mobile,frontend-mobile/src/pages/Payment.jsx,159,乐币
+mobile,frontend-mobile/src/pages/Payment.jsx,161,乐币使用不得超过租金的
 mobile,frontend-mobile/src/pages/Payment.jsx,168,现金差额
 mobile,frontend-mobile/src/pages/Payment.jsx,175,优惠码
 mobile,frontend-mobile/src/pages/Payment.jsx,181,输入优惠码（选填）
@@ -1868,11 +1868,11 @@ mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,535,退现金（微�
 mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,538,退回预付点
 mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,541,退回赠点
 mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,543,退款金额
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,551,点数使用
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,554,赠点余额
+mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,551,使用乐币
+mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,554,本次可用
 mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,556,使用
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,563,点
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,566,赠点使用不得超过租金的
+mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,563,乐币
+mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,566,乐币使用不得超过租金的
 mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,571,现金差额
 mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,579,退款说明
 mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,580,金额将在提交后原路退回至您的微信支付账户，预计 1-7 个工作日到账。

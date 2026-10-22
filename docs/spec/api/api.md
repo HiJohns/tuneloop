@@ -4143,6 +4143,40 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ---
 
+**接口**: `GET /api/admin/face-review/history`（#2242）
+
+**说明**: 实名审核历史（approved/rejected 批次 + 审批时实名快照），支持按**实名姓名**搜索。
+
+**权限**: 平台员工/系统管理员（`SysPermUserUpdate`），非 org 隔离（platformDB 豁免零租户）
+
+**参数**: `page`（默认 1）/ `page_size`（默认 20）/ `real_name`（模糊匹配 **审批快照姓名 ∪ `users.real_name`**）/ `user_id` / `action`（`approve`|`reject`）
+
+> 展示口径（#2242 审计修复）：`real_name` **以审批快照为准**（改名不影响历史）；仅旧审批无快照时回退 users 当前值。搜索同时覆盖快照姓名与当前实名。
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [{
+      "batch_id": "uuid", "user_id": "uuid", "user_name": "张三", "real_name": "张三",
+      "kind": "registration|second_doc", "result": "approve|reject",
+      "reject_reason": "…", "reviewed_by": "审核员名", "reviewed_at": "2026-10-22T10:00:00Z",
+      "submitted_at": "…", "id_card_no_masked": "****1234",
+      "id_card_expire": "2030-01-01", "id_card_authority": "…", "id_card_address": "…",
+      "second_doc_type": "student"
+    }],
+    "total": 1, "page": 1, "page_size": 20
+  }
+}
+```
+
+**留存口径（#2242）**: `POST /api/admin/face-review/:batchId` 的 `audit_logs.details` 增补审批快照
+（`batch_id/kind/real_name/id_card_no_masked/id_card_expire/id_card_authority/id_card_address/second_doc_type/reject_reason`）；
+证件号**仅后四位掩码**（`****1234`），历史响应与快照均**不含明文**。
+
+---
+
 **接口**: `POST /api/admin/face-review/:batchId`
 
 **说明**: 人工审核决定：通过或驳回

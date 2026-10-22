@@ -8,7 +8,25 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
+
+// resolveOverrideAnchor（#2260）：促销覆盖的归属 = **乐器商户 org**（数据归属）。
+// 可见范围按乐器 tenant（= 商户 org）过滤；操作者 tid 为空（平台管理员）时不加范围，
+// 避免历史 instrumentation 行（org_id 为 NULL）被 org-scope 误排除。
+// 返回 ("", false) → 404（跨商户不可见）。
+func resolveOverrideAnchor(c *gin.Context, db *gorm.DB, instrumentID string) (string, bool) {
+	tenantID := middleware.GetTenantID(c.Request.Context())
+	q := db.Model(&models.Instrument{}).Where("id = ?", instrumentID)
+	if tenantID != "" {
+		q = q.Where("tenant_id = ?", tenantID)
+	}
+	var inst models.Instrument
+	if err := q.Select("tenant_id").First(&inst).Error; err != nil || inst.TenantID == "" {
+		return "", false
+	}
+	return inst.TenantID, true
+}
 
 func GetInstrumentPromoOverrides(c *gin.Context) {
 	instrumentID := c.Param("id")
@@ -16,11 +34,14 @@ func GetInstrumentPromoOverrides(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid instrument id"})
 		return
 	}
-	ctx := c.Request.Context()
-	tenantID := middleware.GetTenantID(ctx)
-	db := database.GetDB().WithContext(ctx)
+	db := database.GetDB().WithContext(c.Request.Context())
+	anchor, ok := resolveOverrideAnchor(c, db, instrumentID)
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
+		return
+	}
 	var overrides []models.InstrumentPromoOverride
-	if err := db.Where("tenant_id = ? AND instrument_id = ?", tenantID, instrumentID).Find(&overrides).Error; err != nil {
+	if err := db.Where("tenant_id = ? AND instrument_id = ?", anchor, instrumentID).Find(&overrides).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": err.Error()})
 		return
 	}
@@ -46,15 +67,19 @@ func UpdateInstrumentPromoOverride(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "override_type must be discount, rebate, or rent_to_own"})
 		return
 	}
-	ctx := c.Request.Context()
-	tenantID := middleware.GetTenantID(ctx)
-	db := database.GetDB().WithContext(ctx)
+	db := database.GetDB().WithContext(c.Request.Context())
+	// #2260：归属 = 乐器商户 org（写入数据归属，不用操作者 tid）
+	anchor, ok := resolveOverrideAnchor(c, db, instrumentID)
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
+		return
+	}
 
 	var existing models.InstrumentPromoOverride
-	result := db.Where("tenant_id = ? AND instrument_id = ? AND override_type = ?", tenantID, instrumentID, req.OverrideType).First(&existing)
+	result := db.Where("tenant_id = ? AND instrument_id = ? AND override_type = ?", anchor, instrumentID, req.OverrideType).First(&existing)
 	if result.Error != nil {
 		override := models.InstrumentPromoOverride{
-			TenantID:     tenantID,
+			TenantID:     anchor,
 			InstrumentID: instrumentID,
 			OverrideType: req.OverrideType,
 		}

@@ -72,6 +72,10 @@ func TestPromoOverride_Upsert_RentToOwn_Disable(t *testing.T) {
 	admin := testutil.MakeSiteAdmin(tenantID, orgID, userID)
 
 	instID := uuid.New().String()
+	// #2260：归属锚改为「乐器商户 org」，夹具需先建乐器（旧夹具只插 override）
+	require.NoError(t, db.Create(&models.Instrument{
+		ID: instID, TenantID: tenantID, OrgID: &orgID, SN: "T2-PROMO", StockStatus: "available",
+	}).Error)
 	// Pre-create with enabled=true
 	require.NoError(t, db.Create(&models.InstrumentPromoOverride{
 		TenantID: tenantID, InstrumentID: instID, OverrideType: "rent_to_own",
@@ -220,6 +224,10 @@ func TestPromoOverride_ContentPreservedWhenOmitted(t *testing.T) {
 	admin := testutil.MakeSiteAdmin(tenantID, orgID, userID)
 
 	instID := uuid.New().String()
+	// #2260：归属锚改为「乐器商户 org」，夹具需先建乐器（旧夹具只插 override）
+	require.NoError(t, db.Create(&models.Instrument{
+		ID: instID, TenantID: tenantID, OrgID: &orgID, SN: "T3-PROMO", StockStatus: "available",
+	}).Error)
 	require.NoError(t, db.Create(&models.InstrumentPromoOverride{
 		TenantID: tenantID, InstrumentID: instID, OverrideType: "rent_to_own",
 		Enabled: boolPtr(true), Content: "自定义文案",

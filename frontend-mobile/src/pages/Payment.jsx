@@ -142,11 +142,11 @@ export default function Payment() {
 
       {!isRefund && pType !== 'appeal' && data.amount > 0 && maxGift > 0 && (
         <div className="bg-white mx-4 mt-4 rounded-2xl p-4 shadow-sm">
-          <div className="text-sm font-black text-black mb-3">点数使用</div>
+          <div className="text-sm font-black text-black mb-3">使用乐币</div>
 
           {maxGift > 0 && (
           <div className="mb-1">
-            <Row label="赠点余额" value={`¥${formatCents(Number(maxGift))}`} />
+            <Row label="本次可用" value={`${Math.floor(Math.min(maxGift, data.amount) / 100)} 乐币`} />
             <div className="flex items-center mt-1">
               <span className="text-xs text-zinc-500">使用</span>
               <div className="flex-1 flex items-center gap-2">
@@ -156,10 +156,10 @@ export default function Payment() {
                   className="flex-1 border border-zinc-200 rounded-lg px-2 py-1 text-right"
                 />
               </div>
-              <span className="text-xs text-zinc-500 ml-1">点</span>
+              <span className="text-xs text-zinc-500 ml-1">乐币</span>
             </div>
             <div className="text-zinc-400 text-right mb-2">
-              赠点使用不得超过租金的 {Math.round((wallet.max_gift_ratio || 0.3) * 100)}%
+              乐币使用不得超过租金的 {Math.round((wallet.max_gift_ratio || 0.3) * 100)}%，不足1元的部分不能使用乐币。
             </div>
           </div>
           )}

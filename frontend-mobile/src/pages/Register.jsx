@@ -6,6 +6,7 @@ import { dialog, env, storage, session, navigation } from '../platform'
 import { getWXConfig } from '../platform/init'
 import IdPhotoUploader from '../components/IdPhotoUploader'
 import regions from '../data/regions.json'
+import AgreementCheckbox from '../components/AgreementCheckbox'
 
 // Register — H5 用户注册页（P-03 / #1597）
 // 方案 C：IAM 管登录，tuneloop 管注册。POST /auth/register 复用 weapp 注册链路。
@@ -207,18 +208,14 @@ export default function Register() {
           </Text>
         </View>
 
-        {/* #1923: 协议同意（必选） */}
-        <View className="flex items-start gap-2 mb-3 px-1">
-          <View onClick={() => setAgreed(v => !v)}
-            style={{ width: 18, height: 18, borderRadius: 4, border: agreed ? 'none' : '1px solid #d4d4d8', backgroundColor: agreed ? '#915F38' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-            {agreed ? <Text style={{ color: '#fff', fontSize: 12, lineHeight: '18px' }}>✓</Text> : null}
-          </View>
-          <View style={{ flex: 1, display: 'flex', flexDirection: 'row', flexWrap: 'wrap' }}>
-            <Text className="text-xs text-zinc-500">我已阅读并同意所有「</Text>
-            <Text className="text-xs text-blue-600 font-bold" onClick={() => navigate('/content?key=related_agreements')}>相关协议</Text>
-            <Text className="text-xs text-zinc-500">」</Text>
-          </View>
-        </View>
+        {/* #1923/#2244: 协议同意（必选，显性阅读同意流） */}
+        <AgreementCheckbox
+          agreed={agreed}
+          onChange={setAgreed}
+          style={{ marginBottom: 12, paddingLeft: 4, paddingRight: 4 }}
+          onOpenConsent={() => navigate('/content?key=related_agreements&consent=1')}
+          onOpenRead={() => navigate('/content?key=related_agreements')}
+        />
 
         <Button className="w-full bg-blue-500 text-white py-4 rounded-xl text-lg font-medium"
           disabled={saving || !agreed} onClick={handleRegister}>

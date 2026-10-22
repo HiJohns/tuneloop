@@ -271,8 +271,9 @@ func GetSettlementConfig(c *gin.Context) {
 		return
 	}
 
+	// #2260：配置键 = 商户 org（数据归属；merchants.tenant_id 可能多商户共享）
 	var cfg models.MerchantSettlementConfig
-	if err := db.Where("tenant_id = ?", merchant.TenantID).First(&cfg).Error; err != nil {
+	if err := db.Where("tenant_id = ?", merchant.OrgID).First(&cfg).Error; err != nil {
 		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": nil})
 		return
 	}
@@ -302,13 +303,17 @@ func UpsertSettlementConfig(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
 
-	// Resolve tenant_id from merchant record
+	// Resolve merchant anchor：配置键 = 商户 org（#2260 数据归属）
 	var merchant models.Merchant
 	if err := db.Where("id = ?", merchantID).First(&merchant).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "merchant not found"})
 		return
 	}
-	tenantID := merchant.TenantID
+	tenantID := merchant.OrgID
+	if tenantID == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "merchant org anchor is missing"})
+		return
+	}
 
 	var existing models.MerchantSettlementConfig
 	found := db.Where("tenant_id = ?", tenantID).First(&existing).Error == nil

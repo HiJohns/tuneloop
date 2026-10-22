@@ -6,6 +6,7 @@ import {dialog, storage, session, env, request, wxLogin } from '../../platform'
 import { apiFetch , resolveErrorMessage } from '../../services/api'
 import IdPhotoUploader from '../../components/IdPhotoUploader'
 import regions from '../../data/regions.json'
+import AgreementCheckbox from '../../components/AgreementCheckbox'
 import { t } from '../../i18n'
 
 
@@ -309,17 +310,8 @@ export default function ProfileComplete() {
         <IdPhotoUploader ref={idPhotoOtherRef} side="other" defer sessionUpload={{ sessionId: resumeSid || undefined }} leftAligned onSelect={() => setOtherPicked(true)} onClear={() => setOtherPicked(false)} />
       </View>
 
-      {/* #2209: 协议同意（必选，向 #2206 登录页收敛） */}
-      <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', marginBottom: 12, width: '100%' }}>
-        {/* #2240: 自绘勾选框（Taro Checkbox 在 weapp 单独使用时无事件绑定，onChange 不触发） */}
-        <View onClick={() => setAgreed(v => !v)}
-          style={{ width: 18, height: 18, borderRadius: 4, border: agreed ? 'none' : '1px solid #d4d4d8', backgroundColor: agreed ? '#915F38' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          {agreed ? <Text style={{ color: '#fff', fontSize: 12, lineHeight: '18px' }}>✓</Text> : null}
-        </View>
-        <Text style={{ fontSize: 12, color: '#a1a1aa' }}>我已阅读并同意所有「</Text>
-        <Text style={{ fontSize: 12, color: '#915F38' }} onClick={() => Taro.navigateTo({ url: '/pages-weapp/content/index?key=related_agreements' })}>相关协议</Text>
-        <Text style={{ fontSize: 12, color: '#a1a1aa' }}>」</Text>
-      </View>
+      {/* #2209/#2244: 协议同意（必选，显性阅读同意流） */}
+      <AgreementCheckbox agreed={agreed} onChange={setAgreed} style={{ marginBottom: 12, width: '100%' }} />
 
       <View onClick={handleRegister}
         style={{ width: '100%', paddingTop: 13, paddingBottom: 13, backgroundColor: '#915F38', opacity: agreed ? 1 : 0.5, borderRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>

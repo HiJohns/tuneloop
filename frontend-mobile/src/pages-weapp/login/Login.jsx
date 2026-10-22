@@ -3,6 +3,7 @@ import Taro from '@tarojs/taro'
 import { View, Text, Button, Input } from '@tarojs/components'
 import {dialog, wxLogin, storage, session, env, request, eventBus } from '../../platform'
 import { resolveErrorMessage } from '../../services/api'
+import AgreementCheckbox from '../../components/AgreementCheckbox'
 import { t } from '../../i18n'
 
 
@@ -164,16 +165,8 @@ export default function Login() {
         <Text style={{ fontSize: 14, color: '#71717a' }} onClick={handleGuestBrowse}>👀 随便看看</Text>
       </View>
 
-      {/* #2206: 协议同意（必选） */}
-      <View style={{ marginTop: 20, display: 'flex', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
-        <View onClick={() => setAgreed(v => !v)}
-          style={{ width: 18, height: 18, borderRadius: 4, border: agreed ? 'none' : '1px solid #d4d4d8', backgroundColor: agreed ? '#915F38' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          {agreed ? <Text style={{ color: '#fff', fontSize: 12, lineHeight: '18px' }}>✓</Text> : null}
-        </View>
-        <Text style={{ fontSize: 12, color: '#a1a1aa' }}>我已阅读并同意所有「</Text>
-        <Text style={{ fontSize: 12, color: '#915F38' }} onClick={() => Taro.navigateTo({ url: '/pages-weapp/content/index?key=related_agreements' })}>相关协议</Text>
-        <Text style={{ fontSize: 12, color: '#a1a1aa' }}>」</Text>
-      </View>
+      {/* #2206/#2244: 协议同意（必选，显性阅读同意流） */}
+      <AgreementCheckbox agreed={agreed} onChange={setAgreed} style={{ marginTop: 20 }} />
 
       {/* Developer mode toggle */}
       <Text style={{ fontSize: 10, color: '#d4d4d8', marginTop: 32 }} onClick={handleVersionTap}>版本 v{env.version || 'dev'}</Text>

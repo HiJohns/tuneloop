@@ -408,8 +408,29 @@ bash scripts/tenant-audit-coverage.sh
 | B0 | **隔离守卫测试网**：ISO-14/15 自动化（守卫网先于回调改造存在） | ✅（#2259） | `TestIsolationMatrix_*` ×2 全绿
 | B1 | **商户归属解析统一**：`resolveOperatorMerchantConfig`（#2251）改为复用 `resolveOperatorMerchant2247`（#2247）——单一实现（org 优先 → 唯一 tenant → 共享不解析） | ✅ 已完成 | `TestResolveMerchantOrg_Precedence_2255`（org 优先/唯一 tenant/共享拒绝/未知身份 4 例）+ #2247/#2251 原测试回归 |
 | B2a | **S4 写入数据归属（缓存表）**：`pending_order` 的 tenant 改为乐器所属商户 org（原用 `users.tenant_id` 缓存，顾客零租户/共享 tenant 均不可靠） | ✅ 已完成（`pending_order`） | 红绿：`TestCreatePendingOrder_TenantFromInstrument_2255`（父提交=零租户/共享 → 修复=商户 org）+ 无乐器回退平台零 UUID 负例 |
-| B2b | 写入回调 `setTenantIDFromContext` → 数据归属推导（S4，回调级） | ⬜ 待批 | 计划：先补「隐藏依赖自动填充」的红绿夹具 |
-| B3 | 读回调 `addTenantScope` 默认禁用 → 显式 scope helper；`IdentityCtx` 23 处收敛 | ⬜ 待批 | 计划：每批 `go test` 基线 diff + 共享 tenant 双商户夹具 |
+| B2b | **S4 写入数据归属（逐点显式化）** | 🟡 部分（2 点）：乐器促销覆盖 → 乐器商户 org（+跨商户 404）；商户结算配置 → 商户 org（修 computePaymentDeadline 口径） | 红绿：`TestPromoOverride_WriteAnchoredToInstrumentOrg_2260` / `TestSettlementConfig_AnchoredToMerchantOrg_2260`（父提交红）；**回调判定**：`setTenantIDFromContext` 现状只在字段零值时填充 → 显式归属点改造后自动不介入（守卫式 no-op 成立） |
+### B2b S4 逐点判定表（2026-10-22）
+
+| S4 点 | 判定 | 证据/理由 |
+|---|---|---|
+| `pending_order.go` 创建缓存单 | ✅ 已修（B2a） | 顾客零租户/共享 tenant → 乐器商户 org（红绿 ×2） |
+| `instrument_promo_override.go` 读写 | ✅ 已修 | 操作者 tid → 乐器商户 org；平台管理员 uuid 空串 500 修复；跨商户 404（红绿） |
+| `billing.go` 结算配置 Get/Upsert | ✅ 已修 | 共享 `merchants.tenant_id` → 商户 org；修复 `computePaymentDeadline` 读不到配置（红绿） |
+| `warehouse.go` 7 处（状态历史/定损/媒体/通知） | ⚪ 不适用（门控等价） | 每个 handler 先以 `orders.tenant_id = 操作者 tid` 取单（warehouse.go:152/186/193…）→ 写入时 `tid` 恒等于 `order.TenantID`，改造无可观测差异（无法红绿，禁造假通过测试） |
+| `appeal.go` 8 处 | ⚪ 不适用（门控等价） | 同上：申诉单/订单经 tenant 门控加载 |
+| `quote/repair/instrument_import/bulk_import` 写入 | ⚪ 不适用（调用方锚） | 调用方传入的 tenant 即操作者商户 org（#2247/#2251 已统一解析），无独立偏差 |
+| `site.go` `CreateSite` 写入 | ⚠️ **待决策**（跟踪 Issue #2266） | 平台管理员（SysPermOrganizationCreate）创建网点时请求体**无目标商户**；锚只能取操作者 tid（平台/空）→ 数据归属不明 |
+| `repair_admin.go` `CreateAppeal` | ✅ 已修 | 归属 = 被申诉对象（repair_request/order/damage）的 tenant；`org_id/site_id` 空串改 Omit（同根 22P02）。红绿：父提交 500 → 修复 200/org 锚 + 未知对象→平台零 UUID |
+| `invoice.go` | ⚪ 已正确 | 写入取 `order.TenantID` / `group.TenantID`（数据归属） |
+| `merchant_invoice.go` | ⚪ 不适用 | 写入为**通知**元数据（target=申请用户；tenant 仅路由） |
+| `forwarding_sessions.go` / `label.go` | ⚪ 不适用 | 无 S4 写入点（grep `TenantID:` = 0） |
+| `transit_site_admin.go` | ⚪ 不适用 | 中转网点按 #1935 直辖平台顶层组织，tenant=org=平台租户（注释明确） |
+| `transit_order.go` | ⚪ 不适用 | 中转域操作行，锚 = 平台顶层组织（同 #1935）；未来若允许商户级操作需复核 |
+| `property.go` | ⚪ 不适用 | 平台级资源（P 表），tenant = 创建者元数据（设计如此） |
+| `confirmation_session.go` | ⚪ 不适用 | 会话归属 user_id，tenant 仅上下文元数据 |
+| `staff_invite.go` / `site_member.go` / `member_invite_2114.go` | ⚪ 不适用 | 写入前经 `hasSiteAccess`（sites.tenant_id = 操作者 tid）→ 与 site.TenantID 恒等 |
+| `repair_config.go` | ✅ 已修（#2251） | 维修设置锚商户 org / 平台 nil UUID |
+| B3 | 读回调逐域显式化（opt-in 等价迁移） | 🟡 批次1 ✅ 开关+观察；批次2 本地统计（9 表）✅ / 生产 24h 待部署；**批次3-域1（repair）就绪**：显式模式隔离守卫通过；其余域待推进 | `TestExplicitTenantScopeOnly_2261`、`TestRepairDomain_ExplicitScopeIsolation_2261` |
 | B4 | A3-8 必修清单（P2/P3 批 25 文件）口径改造 | ⬜ 待批 | 逐文件清单见 §A3-8 |
 | B5 | 前端/services tenant payload 收敛（26/103 处） | ⬜ 待批 | 与 API 口径同步 |
 | B6 | 隔离矩阵补齐（ISO-14 网点管理员跨网点、ISO-15 顾客全链路） | ⬜ 部分（ISO-13 ✅） | 行级断言

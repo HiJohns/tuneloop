@@ -4,7 +4,7 @@
 // 字段边界：仅展示审核所需（姓名 + 证件照 + 自拍），不展示身份证号明文
 import { useState, useCallback, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Table, Card, Button, Space, Tag, Image, Modal, Input, Select, message, Typography } from 'antd'
+import { Table, Card, Button, Space, Tag, Image, Modal, Input, Select, Tabs, message, Typography } from 'antd'
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { faceReviewApi } from '../../../services/api'
 import { formatBeijingDateTimeShort } from '../../../utils/date'
@@ -40,6 +40,16 @@ export default function FaceReviewPage() {
   const [idCardAuthority, setIdCardAuthority] = useState('')
   const [idCardAddress, setIdCardAddress] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  // #2242: 审核历史（队列 | 历史）
+  const [activeTab, setActiveTab] = useState('queue')
+  const [historyList, setHistoryList] = useState([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyPage, setHistoryPage] = useState(1)
+  const [historyPageSize, setHistoryPageSize] = useState(20)
+  const [historyTotal, setHistoryTotal] = useState(0)
+  const [historyName, setHistoryName] = useState('')
+  const [historyAction, setHistoryAction] = useState('')
+  const [historyDetail, setHistoryDetail] = useState(null)
 
   const fetchQueue = useCallback(async () => {
     setLoading(true)
@@ -60,6 +70,32 @@ export default function FaceReviewPage() {
   }, [filterUserId, page, pageSize])
 
   useEffect(() => { fetchQueue() }, [fetchQueue])
+
+  // #2242: 审核历史（服务端分页 + 实名姓名搜索）
+  const fetchHistory = useCallback(async () => {
+    setHistoryLoading(true)
+    try {
+      const params = { page: historyPage, page_size: historyPageSize }
+      if (historyName) params.real_name = historyName
+      if (historyAction) params.action = historyAction
+      if (filterUserId) params.user_id = filterUserId
+      const resp = await faceReviewApi.history(params)
+      if (resp.code === 20000) {
+        setHistoryList(resp.data?.list || [])
+        setHistoryTotal(resp.data?.total || 0)
+      } else {
+        message.error(resp.message || '加载审核历史失败')
+      }
+    } catch (error) {
+      message.error(error.message || '加载审核历史失败')
+    } finally {
+      setHistoryLoading(false)
+    }
+  }, [historyPage, historyPageSize, historyName, historyAction, filterUserId])
+
+  useEffect(() => {
+    if (activeTab === 'history') fetchHistory()
+  }, [activeTab, fetchHistory])
 
   // #1822: 已采录用户 approve 不带身份证字段（只读摘要核验，防覆盖已存实名信息）；
   // 未采录用户仍需员工录入完整 5 项（按证件照抄录，#1807）。
@@ -247,9 +283,63 @@ export default function FaceReviewPage() {
     },
   ]
 
+  // #2242: 历史列表列
+  const historyColumns = [
+    {
+      title: '审核时间',
+      dataIndex: 'reviewed_at',
+      key: 'reviewed_at',
+      width: 170,
+      render: (v) => (v ? formatBeijingDateTimeShort(v) : '-'),
+    },
+    {
+      title: '实名姓名 / 用户',
+      key: 'real_name',
+      render: (_, r) => (
+        <Space direction="vertical" size={0}>
+          <Text strong>{r.real_name || '-'}</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>{r.user_name || r.user_id}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: '批次',
+      dataIndex: 'kind',
+      key: 'kind',
+      width: 120,
+      render: (k) => (k === 'second_doc' ? <Tag color="blue">第二证件复审</Tag> : <Tag>注册核身</Tag>),
+    },
+    {
+      title: '结果',
+      dataIndex: 'result',
+      key: 'result',
+      width: 90,
+      render: (v) => (v === 'approve' ? <Tag color="green">通过</Tag> : <Tag color="red">驳回</Tag>),
+    },
+    {
+      title: '驳回原因',
+      dataIndex: 'reject_reason',
+      key: 'reject_reason',
+      render: (v) => v || '-',
+    },
+    {
+      title: '审核人',
+      dataIndex: 'reviewed_by',
+      key: 'reviewed_by',
+      width: 140,
+      render: (v) => v || '-',
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 100,
+      render: (_, r) => <Button type="link" size="small" onClick={() => setHistoryDetail(r)}>查看详情</Button>,
+    },
+  ]
+
   return (
     <Card
-      title="实名核身审核队列"
+      title="实名核身审核"
       extra={
         <Space>
           {filterUserId && (
@@ -261,17 +351,71 @@ export default function FaceReviewPage() {
         </Space>
       }
     >
-      <Table
-        rowKey="batch_id"
-        columns={columns}
-        dataSource={list}
-        loading={loading}
-        pagination={{
-          current: page, pageSize, total, showSizeChanger: true,
-          showTotal: (t) => `共 ${t} 条`,
-          onChange: (p, ps) => { setPage(p); setPageSize(ps) },
-        }}
-        locale={{ emptyText: '暂无待审核批次' }}
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        items={[
+          {
+            key: 'queue',
+            label: total ? `待审核（${total}）` : '待审核',
+            children: (
+              <Table
+                rowKey="batch_id"
+                columns={columns}
+                dataSource={list}
+                loading={loading}
+                pagination={{
+                  current: page, pageSize, total, showSizeChanger: true,
+                  showTotal: (t) => `共 ${t} 条`,
+                  onChange: (p, ps) => { setPage(p); setPageSize(ps) },
+                }}
+                locale={{ emptyText: '暂无待审核批次' }}
+              />
+            ),
+          },
+          {
+            key: 'history',
+            label: '审核历史',
+            children: (
+              <>
+                <Space style={{ marginBottom: 12 }} wrap>
+                  <Input.Search
+                    allowClear
+                    placeholder="按实名姓名搜索"
+                    style={{ width: 220 }}
+                    onSearch={(v) => { setHistoryPage(1); setHistoryName((v || '').trim()) }}
+                    onChange={(e) => {
+                      // #2242 审计修复：清空时立即重置并重查（allowClear 不触发 onSearch）
+                      if (!e.target.value) { setHistoryPage(1); setHistoryName('') }
+                    }}
+                  />
+                  <Select
+                    allowClear
+                    placeholder="结果"
+                    style={{ width: 120 }}
+                    value={historyAction || undefined}
+                    onChange={(v) => { setHistoryPage(1); setHistoryAction(v || '') }}
+                    options={[{ value: 'approve', label: '通过' }, { value: 'reject', label: '驳回' }]}
+                  />
+                  <Button size="small" onClick={fetchHistory}>刷新</Button>
+                </Space>
+                <Table
+                  rowKey="batch_id"
+                  size="small"
+                  columns={historyColumns}
+                  dataSource={historyList}
+                  loading={historyLoading}
+                  pagination={{
+                    current: historyPage, pageSize: historyPageSize, total: historyTotal,
+                    showSizeChanger: true, showTotal: (t) => `共 ${t} 条`,
+                    onChange: (p, ps) => { setHistoryPage(p); setHistoryPageSize(ps) },
+                  }}
+                  locale={{ emptyText: '暂无审核历史' }}
+                />
+              </>
+            ),
+          },
+        ]}
       />
       <Modal
         title="通过核身申请"
@@ -411,6 +555,34 @@ export default function FaceReviewPage() {
             autoPlay
             style={{ width: '100%', maxHeight: '70vh', borderRadius: 8, background: '#000' }}
           />
+        )}
+      </Modal>
+      {/* #2242: 历史详情（审批快照） */}
+      <Modal
+        title="审核详情"
+        open={!!historyDetail}
+        onCancel={() => setHistoryDetail(null)}
+        footer={null}
+        width={560}
+      >
+        {historyDetail && (
+          <Space direction="vertical" size={6} style={{ width: '100%' }}>
+            <Space><Text type="secondary" style={{ width: 110, display: 'inline-block' }}>审核结果</Text>
+              {historyDetail.result === 'approve' ? <Tag color="green">通过</Tag> : <Tag color="red">驳回</Tag>}</Space>
+            <Space><Text type="secondary" style={{ width: 110, display: 'inline-block' }}>实名姓名</Text><Text strong>{historyDetail.real_name || '-'}</Text></Space>
+            <Space><Text type="secondary" style={{ width: 110, display: 'inline-block' }}>身份证号</Text><Text strong>{historyDetail.id_card_no_masked || '-'}</Text></Space>
+            <Space><Text type="secondary" style={{ width: 110, display: 'inline-block' }}>有效期</Text><Text>{historyDetail.id_card_expire || '-'}</Text></Space>
+            <Space><Text type="secondary" style={{ width: 110, display: 'inline-block' }}>签发机关</Text><Text>{historyDetail.id_card_authority || '-'}</Text></Space>
+            <Space><Text type="secondary" style={{ width: 110, display: 'inline-block' }}>住址</Text><Text>{historyDetail.id_card_address || '-'}</Text></Space>
+            {historyDetail.second_doc_type && (
+              <Space><Text type="secondary" style={{ width: 110, display: 'inline-block' }}>第二证件</Text><Text>{historyDetail.second_doc_type}</Text></Space>
+            )}
+            {historyDetail.reject_reason && (
+              <Space><Text type="secondary" style={{ width: 110, display: 'inline-block' }}>驳回原因</Text><Text>{historyDetail.reject_reason}</Text></Space>
+            )}
+            <Space><Text type="secondary" style={{ width: 110, display: 'inline-block' }}>审核时间</Text><Text>{historyDetail.reviewed_at ? formatBeijingDateTimeShort(historyDetail.reviewed_at) : '-'}</Text></Space>
+            <Space><Text type="secondary" style={{ width: 110, display: 'inline-block' }}>审核人</Text><Text>{historyDetail.reviewed_by || '-'}</Text></Space>
+          </Space>
         )}
       </Modal>
     </Card>

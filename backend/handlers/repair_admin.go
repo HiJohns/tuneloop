@@ -120,9 +120,35 @@ func CreateAppeal(c *gin.Context) {
 
 	imagesJSON, _ := json.Marshal(req.Images)
 
+	// #2260（S4/S7）：申诉归属 = 被申诉对象的**数据归属**（商户 org）；
+	// 顾客（tid 空）创建时不得写空串（uuid 列会 22P02）；无法解析则用平台零 UUID 占位。
+	anchor := "00000000-0000-0000-0000-000000000000"
+	objOrg, objSite := "", ""
+	switch req.ObjectType {
+	case "repair_request":
+		var rr models.RepairRequest
+		if err := database.GetDB().WithContext(database.IdentityCtx(ctx)).Select("tenant_id, site_id").Where("id = ?", req.ObjectID).First(&rr).Error; err == nil && rr.TenantID != "" {
+			anchor = rr.TenantID
+			objSite = rr.SiteID
+		}
+	case "order":
+		var od models.Order
+		if err := database.GetDB().WithContext(database.IdentityCtx(ctx)).Select("tenant_id, org_id").Where("id = ?", req.ObjectID).First(&od).Error; err == nil && od.TenantID != "" {
+			anchor = od.TenantID
+			objOrg = od.OrgID
+		}
+	case "damage_report":
+		var dr models.DamageReport
+		if err := database.GetDB().WithContext(database.IdentityCtx(ctx)).Select("tenant_id").Where("id = ?", req.ObjectID).First(&dr).Error; err == nil && dr.TenantID != "" {
+			anchor = dr.TenantID
+		}
+	}
+
 	appeal := models.Appeal{
 		ID:          uuid.New().String(),
-		TenantID:    middleware.GetTenantID(ctx),
+		TenantID:    anchor,
+		OrgID:       objOrg,
+		SiteID:      objSite,
 		AppellantID: userID,
 		Category:    req.Category,
 		ObjectType:  req.ObjectType,
@@ -134,7 +160,19 @@ func CreateAppeal(c *gin.Context) {
 	}
 
 	db := database.GetDB().WithContext(ctx)
-	if err := db.Create(&appeal).Error; err != nil {
+	// org_id/site_id 为 uuid 列：空串会 22P02，空值需 Omit（同根修复）
+	create := db
+	var omit []string
+	if appeal.OrgID == "" {
+		omit = append(omit, "org_id")
+	}
+	if appeal.SiteID == "" {
+		omit = append(omit, "site_id")
+	}
+	if len(omit) > 0 {
+		create = create.Omit(omit...)
+	}
+	if err := create.Create(&appeal).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create"})
 		return
 	}
