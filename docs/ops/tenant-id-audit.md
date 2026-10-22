@@ -423,7 +423,10 @@ bash scripts/tenant-audit-coverage.sh
 | `repair_admin.go` `CreateAppeal` | ✅ 已修 | 归属 = 被申诉对象（repair_request/order/damage）的 tenant；`org_id/site_id` 空串改 Omit（同根 22P02）。红绿：父提交 500 → 修复 200/org 锚 + 未知对象→平台零 UUID |
 | `invoice.go` | ⚪ 已正确 | 写入取 `order.TenantID` / `group.TenantID`（数据归属） |
 | `merchant_invoice.go` | ⚪ 不适用 | 写入为**通知**元数据（target=申请用户；tenant 仅路由） |
-| `forwarding_sessions.go` / `label.go` | ⚪ 不适用 | 无 S4 写入点（grep `TenantID:` = 0） |
+| `merchant.go` | ⚪ 不适用（S2 读取归 P3） | 商户定义行 `merchant.go:354` 的 `tenant_id` = 创建者/平台共享 tenant（A2：Merchant 的 tenant 为共享值，身份 = `org_id = iamOrgID`）；`initSystemRoles`（:719）用新商户 tenant 建角色。本批 S4 不适用，列表读取按 tenant 的 S2 归 P3 |
+| `forwarding_session.go` | ⚪ 不适用（调用方数据锚） | `createForwardingSession`（:82）由调用方传 tenant：`user_rental.go:704` 传 `instrument.TenantID`；`merchant_id` 优先操作者 org、无 org 时回退该 tenant（:85-89）。写入值来自订单/乐器数据归属，非创建者上下文 |
+| `label.go` | ⚪ 不适用（P 表 / S6） | `label.go:75` 写入 `tenant_id = 操作者 tid`，但 Label 属 A2 的 **P（平台级）** 表，tenant 仅创建者元数据；按 tenant 做访问范围属 S6，归 P3/P5 统一，不属本批 S4 |
+| A3-8 其余必修（前批已修） | ✅ 已修（非本批） | `user_staff.go`(#2247)、`merchant_member.go`(#2250)、`iam_proxy.go`(#2249)、`repair_service.go`/`repair_service_admin_2129.go`(#2248)、`instrument_batch_import.go`/`public.go`/`pricing.go`/`merchant_rebate.go`/`points_policy.go`(#2251) |
 | `transit_site_admin.go` | ⚪ 不适用 | 中转网点按 #1935 直辖平台顶层组织，tenant=org=平台租户（注释明确） |
 | `transit_order.go` | ⚪ 不适用 | 中转域操作行，锚 = 平台顶层组织（同 #1935）；未来若允许商户级操作需复核 |
 | `property.go` | ⚪ 不适用 | 平台级资源（P 表），tenant = 创建者元数据（设计如此） |
