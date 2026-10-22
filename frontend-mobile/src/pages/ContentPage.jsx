@@ -144,7 +144,7 @@ export default function ContentPage() {
       </View>
       {/* #2244: 同意流底部操作区（15s 倒计时结束前「同意」不可点） */}
       {consentMode && (
-        <View style={{ position: 'fixed', left: 0, right: 0, bottom: 0, display: 'flex', gap: 12, paddingTop: 12, paddingLeft: 16, paddingRight: 16, paddingBottom: 20, backgroundColor: '#FDFBF7', borderTop: '1px solid #e4e4e7' }}>
+        <View style={{ position: 'fixed', left: 0, right: 0, bottom: 0, display: 'flex', gap: 12, paddingTop: 12, paddingLeft: 16, paddingRight: 16, paddingBottom: env.isMiniProgram ? 20 : 'calc(20px + env(safe-area-inset-bottom))', backgroundColor: '#FDFBF7', borderTop: '1px solid #e4e4e7' }}>
           <View
             onClick={() => finishConsent(false)}
             style={{ flex: 1, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 23, border: '1px solid #d4d4d8', backgroundColor: '#fff' }}

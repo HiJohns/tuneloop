@@ -13,7 +13,7 @@ export const AGREEMENT_CONSENT_EVENT = 'agreementConsentChanged'
 const CONSENT_URL_H5 = '/content?key=related_agreements&consent=1'
 const CONSENT_URL_WEAPP = '/pages-weapp/content/index?key=related_agreements&consent=1'
 
-export default function AgreementCheckbox({ agreed, onChange, style }) {
+export default function AgreementCheckbox({ agreed, onChange, style, onOpenConsent, onOpenRead }) {
   const applyResult = useCallback(() => {
     const result = storage.getItem(AGREEMENT_CONSENT_RESULT_KEY)
     if (!result) return
@@ -32,19 +32,29 @@ export default function AgreementCheckbox({ agreed, onChange, style }) {
     if (env.isMiniProgram) applyResult()
   })
 
+  // #2244 审计修复（Bug 1）：H5 必须走 SPA 路由（保留页面状态 + 返回时挂载回填确定），
+  // 由调用页传入 useNavigate 包装；weapp 保持 navigateTo。未传回调时降级为整页跳转。
   const openConsent = () => {
     if (env.isMiniProgram) {
       Taro.navigateTo({ url: CONSENT_URL_WEAPP })
-    } else {
-      navigation.redirect(CONSENT_URL_H5)
+      return
     }
+    if (onOpenConsent) {
+      onOpenConsent()
+      return
+    }
+    navigation.redirect(CONSENT_URL_H5)
   }
   const openPlainRead = () => {
     if (env.isMiniProgram) {
       Taro.navigateTo({ url: '/pages-weapp/content/index?key=related_agreements' })
-    } else {
-      navigation.redirect('/content?key=related_agreements')
+      return
     }
+    if (onOpenRead) {
+      onOpenRead()
+      return
+    }
+    navigation.redirect('/content?key=related_agreements')
   }
   const toggle = () => {
     if (agreed) {

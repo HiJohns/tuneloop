@@ -209,7 +209,13 @@ export default function Register() {
         </View>
 
         {/* #1923/#2244: 协议同意（必选，显性阅读同意流） */}
-        <AgreementCheckbox agreed={agreed} onChange={setAgreed} style={{ marginBottom: 12, paddingLeft: 4, paddingRight: 4 }} />
+        <AgreementCheckbox
+          agreed={agreed}
+          onChange={setAgreed}
+          style={{ marginBottom: 12, paddingLeft: 4, paddingRight: 4 }}
+          onOpenConsent={() => navigate('/content?key=related_agreements&consent=1')}
+          onOpenRead={() => navigate('/content?key=related_agreements')}
+        />
 
         <Button className="w-full bg-blue-500 text-white py-4 rounded-xl text-lg font-medium"
           disabled={saving || !agreed} onClick={handleRegister}>
