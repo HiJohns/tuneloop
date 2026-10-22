@@ -6,11 +6,13 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"tuneloop-backend/database"
 	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/models"
 	"tuneloop-backend/testutil"
@@ -39,13 +41,16 @@ func waPost(t *testing.T, r *gin.Engine, method, path string, actor testutil.Tes
 	return w.Code, resp
 }
 
-func TestPromoOverride_WriteAnchoredToInstrumentOrg_2260(t *testing.T) {
+// 生产可达身份 = site_admin（唯一持有 promo:override 的角色；tid=商户 org）。
+// 可观测缺陷：商户 B 的 site_admin 对商户 A 的乐器写覆盖 → 旧实现会在 B 名下
+// 留下不可见脏行（跨商户写入）；修复后 404 且不落行。
+func TestPromoOverride_CrossMerchantForbidden_2260(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
 
 	shared := uuid.NewString()
 	orgA, orgB := uuid.NewString(), uuid.NewString()
-	siteOrgA := uuid.NewString()
+	siteOrgA, siteOrgB := uuid.NewString(), uuid.NewString()
 	require.NoError(t, db.Create(&models.Merchant{
 		ID: uuid.NewString(), TenantID: shared, OrgID: orgA, Name: "WA-A",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
@@ -60,34 +65,52 @@ func TestPromoOverride_WriteAnchoredToInstrumentOrg_2260(t *testing.T) {
 	}).Error)
 
 	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Request = c.Request.WithContext(c.Request.Context())
+		c.Next()
+	})
 	r.GET("/instruments/:id/promo-overrides", GetInstrumentPromoOverrides)
 	r.PUT("/instruments/:id/promo-overrides", UpdateInstrumentPromoOverride)
 
-	// 平台管理员（tid 空）：旧实现在 uuid 列写入 '' → 500；修复后锚定乐器商户 org
-	platformAdmin := testutil.TestActor{TenantID: "", OrgID: "", UserID: uuid.NewString(), Role: "NAMESPACE_ADMIN"}
-	code, resp := waPost(t, r, http.MethodPut, "/instruments/"+instID+"/promo-overrides", platformAdmin,
-		map[string]interface{}{"override_type": "rent_to_own", "enabled": true, "content": "可租转售"})
-	require.Equal(t, http.StatusOK, code, "%v", resp)
+	call := func(actor testutil.TestActor, method string, body interface{}) (int, map[string]interface{}) {
+		var raw *bytes.Reader
+		if body != nil {
+			b, _ := json.Marshal(body)
+			raw = bytes.NewReader(b)
+		} else {
+			raw = bytes.NewReader(nil)
+		}
+		req := httptest.NewRequest(method, "/instruments/"+instID+"/promo-overrides", raw)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req.WithContext(actor.InjectContext(req.Context())))
+		var resp map[string]interface{}
+		_ = json.Unmarshal(w.Body.Bytes(), &resp)
+		return w.Code, resp
+	}
 
+	// 商户 B 的 site_admin（真实可达身份）→ 404，且不得在 B 名下留行
+	siteAdminB := testutil.MakeSiteAdmin(orgB, siteOrgB, uuid.NewString())
+	code, _ := call(siteAdminB, http.MethodPut, map[string]interface{}{"override_type": "rent_to_own", "enabled": true})
+	assert.Equal(t, http.StatusNotFound, code, "跨商户覆盖必须 404（旧实现会在 B 名下写脏行）")
+	var crossCnt int64
+	db.Model(&models.InstrumentPromoOverride{}).Where("instrument_id = ?", instID).Count(&crossCnt)
+	assert.Equal(t, int64(0), crossCnt, "越权请求不得留下任何覆盖行")
+
+	// 本商户 site_admin（同角色）→ 200，锚定乐器商户 org
+	siteAdminA := testutil.MakeSiteAdmin(orgA, siteOrgA, uuid.NewString())
+	code, resp := call(siteAdminA, http.MethodPut, map[string]interface{}{"override_type": "rent_to_own", "enabled": true, "content": "可租转售"})
+	require.Equal(t, http.StatusOK, code, "%v", resp)
 	var row models.InstrumentPromoOverride
 	require.NoError(t, db.Where("instrument_id = ? AND override_type = ?", instID, "rent_to_own").First(&row).Error)
-	assert.Equal(t, orgA, row.TenantID, "覆盖配置必须锚定乐器商户 org（数据归属）")
+	assert.Equal(t, orgA, row.TenantID, "覆盖配置锚定乐器商户 org")
 
-	// 读回（同锚）
-	code, resp = waPost(t, r, http.MethodGet, "/instruments/"+instID+"/promo-overrides", platformAdmin, nil)
+	// 读回
+	code, resp = call(siteAdminA, http.MethodGet, nil)
 	require.Equal(t, http.StatusOK, code, "%v", resp)
 	if list, ok := resp["data"].([]interface{}); ok {
 		assert.Len(t, list, 1)
 	}
-
-	// 跨商户：商户 B 管理员对 A 的乐器 → 404，且不得写入 B 名下
-	merchantBAdmin := testutil.TestActor{TenantID: orgB, OrgID: uuid.NewString(), UserID: uuid.NewString(), Role: "OWNER"}
-	code, _ = waPost(t, r, http.MethodPut, "/instruments/"+instID+"/promo-overrides", merchantBAdmin,
-		map[string]interface{}{"override_type": "rent_to_own", "enabled": true})
-	assert.Equal(t, http.StatusNotFound, code, "跨商户覆盖必须 404")
-	var crossCnt int64
-	db.Model(&models.InstrumentPromoOverride{}).Where("tenant_id = ? AND instrument_id = ?", orgB, instID).Count(&crossCnt)
-	assert.Equal(t, int64(0), crossCnt, "不得在他商户 org 下留下覆盖行")
 }
 
 func TestSettlementConfig_AnchoredToMerchantOrg_2260(t *testing.T) {
@@ -105,7 +128,8 @@ func TestSettlementConfig_AnchoredToMerchantOrg_2260(t *testing.T) {
 	r := gin.New()
 	r.GET("/admin/merchant/:id/settlement", GetSettlementConfig)
 	r.PUT("/admin/merchant/:id/settlement", UpsertSettlementConfig)
-	admin := testutil.TestActor{TenantID: orgA, OrgID: orgA, UserID: uuid.NewString(), Role: "OWNER"}
+	// 生产可达身份：该端点在 authRequired（平台管理员上下文 tid 为空，无租户过滤）
+	admin := testutil.TestActor{TenantID: "", OrgID: "", UserID: uuid.NewString(), Role: "NAMESPACE_ADMIN"}
 
 	code, resp := waPost(t, r, http.MethodPut, "/admin/merchant/"+merchantID+"/settlement", admin,
 		map[string]interface{}{
@@ -128,4 +152,95 @@ func TestSettlementConfig_AnchoredToMerchantOrg_2260(t *testing.T) {
 	// 读回
 	code, resp = waPost(t, r, http.MethodGet, "/admin/merchant/"+merchantID+"/settlement", admin, nil)
 	require.Equal(t, http.StatusOK, code, "%v", resp)
+}
+
+// #2260 审计修复（Bug 2）：证明测试夹具在显式注入 database 键后，
+// GORM 租户回调（addTenantScope）确实生效——TestActor 仅写 middleware key，
+// 不含 database 键，故默认不激活回调；本测试给出「机制可被激活」的证据。
+func TestTenantScopeCallback_ActiveWithDatabaseKeys_2260(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	orgA, orgB := uuid.NewString(), uuid.NewString()
+	require.NoError(t, db.Create(&models.Merchant{
+		ID: uuid.NewString(), TenantID: uuid.NewString(), OrgID: orgA, Name: "SC-A",
+		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
+	}).Error)
+	require.NoError(t, db.Create(&models.Merchant{
+		ID: uuid.NewString(), TenantID: uuid.NewString(), OrgID: orgB, Name: "SC-B",
+		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
+	}).Error)
+
+	base := context.Background()
+	unscopedDB := db.WithContext(database.IdentityCtx(base))
+	var all int64
+	require.NoError(t, unscopedDB.Model(&models.Merchant{}).Count(&all).Error)
+	require.Equal(t, int64(2), all)
+
+	// 注入 database 租户键（生产中间件会写）→ 回调加 tenant_id 过滤
+	scopedCtx := database.SetTenantID(base, uuid.NewString())
+	var filtered int64
+	require.NoError(t, db.WithContext(scopedCtx).Model(&models.Merchant{}).Count(&filtered).Error)
+	assert.Equal(t, int64(0), filtered, "租户键生效后查询必须被过滤（证明回调机制在测试链路可激活）")
+
+	// 控制组：清空租户键（IdentityCtx）→ 恢复全量
+	var restored int64
+	require.NoError(t, db.WithContext(database.IdentityCtx(scopedCtx)).Model(&models.Merchant{}).Count(&restored).Error)
+	assert.Equal(t, int64(2), restored)
+}
+
+// #2260：顾客（零租户）创建申诉——归属取被申诉对象（repair_request）的商户 org；
+// 无法解析时用平台零 UUID（不再写空串导致 500）。
+func TestCreateAppeal_AnchorFromObject_2260(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+	orgA := uuid.NewString()
+	require.NoError(t, db.Create(&models.Merchant{
+		ID: uuid.NewString(), TenantID: uuid.NewString(), OrgID: orgA, Name: "AP-A",
+		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
+	}).Error)
+	tech := uuid.NewString()
+	rrID := uuid.NewString()
+	require.NoError(t, db.Omit("site_id", "user_instrument_id").Create(&models.RepairRequest{
+		ID: rrID, TenantID: orgA, UserID: uuid.NewString(), Type: "service",
+		Status: models.RepairReqStatusQuoted, TechnicianID: &tech, Description: "申诉目标",
+		Photos: "[]", ReceivePhotos: "[]",
+	}).Error)
+
+	r := gin.New()
+	r.POST("/repair-appeals", CreateAppeal)
+
+	sub := uuid.NewString()
+	require.NoError(t, db.Create(&models.User{
+		ID: uuid.NewString(), IAMSub: sub, Name: "顾客AP", Phone: "13900005501", Status: "active",
+		TenantID: "00000000-0000-0000-0000-000000000000",
+		OrgID:    "00000000-0000-0000-0000-000000000000",
+	}).Error)
+	customer := testutil.TestActor{TenantID: "", OrgID: "", UserID: sub, Role: "USER"}
+
+	call := func(body map[string]interface{}) (int, map[string]interface{}) {
+		b, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, "/repair-appeals", bytes.NewReader(b))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req.WithContext(customer.InjectContext(req.Context())))
+		var resp map[string]interface{}
+		_ = json.Unmarshal(w.Body.Bytes(), &resp)
+		return w.Code, resp
+	}
+
+	code, resp := call(map[string]interface{}{
+		"category": "damage", "object_type": "repair_request", "object_id": rrID, "description": "有异议",
+	})
+	require.Equal(t, http.StatusOK, code, "%v", resp)
+	var appeal models.Appeal
+	require.NoError(t, db.Where("object_id = ?", rrID).First(&appeal).Error)
+	assert.Equal(t, orgA, appeal.TenantID, "申诉归属必须落被申诉对象的商户 org")
+
+	// 无法解析对象 → 平台零 UUID 占位（不再 500）
+	code, resp = call(map[string]interface{}{
+		"category": "other", "object_type": "repair_request", "object_id": uuid.NewString(), "description": "未知对象",
+	})
+	require.Equal(t, http.StatusOK, code, "%v", resp)
+	var unknown models.Appeal
+	require.NoError(t, db.Where("category = ?", "other").First(&unknown).Error)
+	assert.Equal(t, "00000000-0000-0000-0000-000000000000", unknown.TenantID)
 }

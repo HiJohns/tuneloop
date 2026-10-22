@@ -419,7 +419,17 @@ bash scripts/tenant-audit-coverage.sh
 | `warehouse.go` 7 处（状态历史/定损/媒体/通知） | ⚪ 不适用（门控等价） | 每个 handler 先以 `orders.tenant_id = 操作者 tid` 取单（warehouse.go:152/186/193…）→ 写入时 `tid` 恒等于 `order.TenantID`，改造无可观测差异（无法红绿，禁造假通过测试） |
 | `appeal.go` 8 处 | ⚪ 不适用（门控等价） | 同上：申诉单/订单经 tenant 门控加载 |
 | `quote/repair/instrument_import/bulk_import` 写入 | ⚪ 不适用（调用方锚） | 调用方传入的 tenant 即操作者商户 org（#2247/#2251 已统一解析），无独立偏差 |
-| `site.go` `CreateSite` 写入 | ⚠️ **待决策**（不擅自改） | 平台管理员（SysPermOrganizationCreate）创建网点时请求体**无目标商户**；锚只能取操作者 tid（平台/空）→ 数据归属不明。需产品/架构裁定「平台代建网点」的目标商户来源（新增 merchant_id 参数或限定仅商户管理员可建） |
+| `site.go` `CreateSite` 写入 | ⚠️ **待决策**（跟踪 Issue #2266） | 平台管理员（SysPermOrganizationCreate）创建网点时请求体**无目标商户**；锚只能取操作者 tid（平台/空）→ 数据归属不明 |
+| `repair_admin.go` `CreateAppeal` | ✅ 已修 | 归属 = 被申诉对象（repair_request/order/damage）的 tenant；`org_id/site_id` 空串改 Omit（同根 22P02）。红绿：父提交 500 → 修复 200/org 锚 + 未知对象→平台零 UUID |
+| `invoice.go` | ⚪ 已正确 | 写入取 `order.TenantID` / `group.TenantID`（数据归属） |
+| `merchant_invoice.go` | ⚪ 不适用 | 写入为**通知**元数据（target=申请用户；tenant 仅路由） |
+| `forwarding_sessions.go` / `label.go` | ⚪ 不适用 | 无 S4 写入点（grep `TenantID:` = 0） |
+| `transit_site_admin.go` | ⚪ 不适用 | 中转网点按 #1935 直辖平台顶层组织，tenant=org=平台租户（注释明确） |
+| `transit_order.go` | ⚪ 不适用 | 中转域操作行，锚 = 平台顶层组织（同 #1935）；未来若允许商户级操作需复核 |
+| `property.go` | ⚪ 不适用 | 平台级资源（P 表），tenant = 创建者元数据（设计如此） |
+| `confirmation_session.go` | ⚪ 不适用 | 会话归属 user_id，tenant 仅上下文元数据 |
+| `staff_invite.go` / `site_member.go` / `member_invite_2114.go` | ⚪ 不适用 | 写入前经 `hasSiteAccess`（sites.tenant_id = 操作者 tid）→ 与 site.TenantID 恒等 |
+| `repair_config.go` | ✅ 已修（#2251） | 维修设置锚商户 org / 平台 nil UUID |
 | B3 | 读回调 `addTenantScope` 默认禁用 → 显式 scope helper；`IdentityCtx` 23 处收敛 | ⬜ 待批 | 计划：每批 `go test` 基线 diff + 共享 tenant 双商户夹具 |
 | B4 | A3-8 必修清单（P2/P3 批 25 文件）口径改造 | ⬜ 待批 | 逐文件清单见 §A3-8 |
 | B5 | 前端/services tenant payload 收敛（26/103 处） | ⬜ 待批 | 与 API 口径同步 |
