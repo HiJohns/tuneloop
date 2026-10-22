@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"tuneloop-backend/database"
 	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/models"
 	"tuneloop-backend/testutil"
@@ -40,7 +41,8 @@ func TestSiteMembers_CrossMerchantDenied_2269(t *testing.T) {
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
 		actor := testutil.TestActor{TenantID: shared, OrgID: orgA, UserID: uuid.NewString(), Role: "OWNER"}
-		c.Request = c.Request.WithContext(actor.InjectContext(c.Request.Context()))
+		// B3 前置：显式模式（关闭自动租户范围）下同样必须隔离
+		c.Request = c.Request.WithContext(database.ExplicitTenantScopeOnly(actor.InjectContext(c.Request.Context())))
 		c.Next()
 	})
 	h := NewSiteMemberHandler()
