@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { notificationApi, apiFetch } from '../services/api'
-import { dialog, env, eventBus } from '../platform'
+import { dialog, env, eventBus, useDidShow } from '../platform'
 import { formatBeijingDateTimeShort } from '../utils/format'
 import { ArrowLeft, Bell } from 'lucide-react'
 import { View, Text, ScrollView } from '@tarojs/components'
@@ -42,7 +42,7 @@ export default function Messages() {
 
   // #1807: weapp 从详情页返回（navigateBack）时列表不重新挂载——
   // useDidShow 在页面每次显示时刷新，打开详情后返回未读标记才消失。
-  Taro.useDidShow(() => {
+  useDidShow(() => {
     if (env.isMiniProgram) fetchNotifications()
   })
 

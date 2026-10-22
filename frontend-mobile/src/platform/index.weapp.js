@@ -2,6 +2,9 @@ import Taro from '@tarojs/taro'
 // #2214: 集中拦截——dialog 文案统一经 t()（覆盖全部 dialog.* 调用点）
 import { t } from '../i18n'
 
+// #2267: weapp 复用原生页面显示钩子
+export const useDidShow = Taro.useDidShow
+
 export const storage = {
   getItem: (key) => {
     try { return Taro.getStorageSync(key) } catch { return null }

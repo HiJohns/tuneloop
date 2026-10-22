@@ -1,5 +1,27 @@
 // #2214: 集中拦截——dialog 文案统一经 t()（覆盖全部 dialog.* 调用点）
+import { useEffect, useRef } from 'react'
 import { t } from '../i18n'
+
+// #2267: H5 版 useDidShow — 首次挂载 + bfcache 返回 + 页面重新可见时执行。
+// weapp 侧直接复用 Taro.useDidShow（见 index.weapp.js）。
+export const useDidShow = (callback) => {
+  const callbackRef = useRef(callback)
+  callbackRef.current = callback
+  useEffect(() => {
+    let active = true
+    const run = () => { if (active) callbackRef.current?.() }
+    const onPageShow = (event) => { if (event?.persisted) run() }
+    const onVisibility = () => { if (document.visibilityState === 'visible') run() }
+    run()
+    window.addEventListener('pageshow', onPageShow)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      active = false
+      window.removeEventListener('pageshow', onPageShow)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [])
+}
 
 export const storage = {
   getItem: (key) => localStorage.getItem(key),

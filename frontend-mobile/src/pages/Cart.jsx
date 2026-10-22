@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { formatCents } from '../utils/money'
-import Taro, { useDidShow } from '@tarojs/taro'
+import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
-import { dialog, storage, eventBus, env, session, getStatusBarHeight } from '../platform'
+import { dialog, storage, eventBus, env, session, getStatusBarHeight, useDidShow } from '../platform'
 import { apiFetch, getCartKey, getToken, redirectToLogin } from '../services/api'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
