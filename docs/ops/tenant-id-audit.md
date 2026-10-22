@@ -409,7 +409,17 @@ bash scripts/tenant-audit-coverage.sh
 | B1 | **商户归属解析统一**：`resolveOperatorMerchantConfig`（#2251）改为复用 `resolveOperatorMerchant2247`（#2247）——单一实现（org 优先 → 唯一 tenant → 共享不解析） | ✅ 已完成 | `TestResolveMerchantOrg_Precedence_2255`（org 优先/唯一 tenant/共享拒绝/未知身份 4 例）+ #2247/#2251 原测试回归 |
 | B2a | **S4 写入数据归属（缓存表）**：`pending_order` 的 tenant 改为乐器所属商户 org（原用 `users.tenant_id` 缓存，顾客零租户/共享 tenant 均不可靠） | ✅ 已完成（`pending_order`） | 红绿：`TestCreatePendingOrder_TenantFromInstrument_2255`（父提交=零租户/共享 → 修复=商户 org）+ 无乐器回退平台零 UUID 负例 |
 | B2b | **S4 写入数据归属（逐点显式化）** | 🟡 部分（2 点）：乐器促销覆盖 → 乐器商户 org（+跨商户 404）；商户结算配置 → 商户 org（修 computePaymentDeadline 口径） | 红绿：`TestPromoOverride_WriteAnchoredToInstrumentOrg_2260` / `TestSettlementConfig_AnchoredToMerchantOrg_2260`（父提交红）；**回调判定**：`setTenantIDFromContext` 现状只在字段零值时填充 → 显式归属点改造后自动不介入（守卫式 no-op 成立） |
-| B2b-余 | 其余 S4 写入点（warehouse / appeal / merchant·site / quote·repair·bulk_import 等） | ⬜ 待批 | 同口径逐点红绿 |
+### B2b S4 逐点判定表（2026-10-22）
+
+| S4 点 | 判定 | 证据/理由 |
+|---|---|---|
+| `pending_order.go` 创建缓存单 | ✅ 已修（B2a） | 顾客零租户/共享 tenant → 乐器商户 org（红绿 ×2） |
+| `instrument_promo_override.go` 读写 | ✅ 已修 | 操作者 tid → 乐器商户 org；平台管理员 uuid 空串 500 修复；跨商户 404（红绿） |
+| `billing.go` 结算配置 Get/Upsert | ✅ 已修 | 共享 `merchants.tenant_id` → 商户 org；修复 `computePaymentDeadline` 读不到配置（红绿） |
+| `warehouse.go` 7 处（状态历史/定损/媒体/通知） | ⚪ 不适用（门控等价） | 每个 handler 先以 `orders.tenant_id = 操作者 tid` 取单（warehouse.go:152/186/193…）→ 写入时 `tid` 恒等于 `order.TenantID`，改造无可观测差异（无法红绿，禁造假通过测试） |
+| `appeal.go` 8 处 | ⚪ 不适用（门控等价） | 同上：申诉单/订单经 tenant 门控加载 |
+| `quote/repair/instrument_import/bulk_import` 写入 | ⚪ 不适用（调用方锚） | 调用方传入的 tenant 即操作者商户 org（#2247/#2251 已统一解析），无独立偏差 |
+| `site.go` `CreateSite` 写入 | ⚠️ **待决策**（不擅自改） | 平台管理员（SysPermOrganizationCreate）创建网点时请求体**无目标商户**；锚只能取操作者 tid（平台/空）→ 数据归属不明。需产品/架构裁定「平台代建网点」的目标商户来源（新增 merchant_id 参数或限定仅商户管理员可建） |
 | B3 | 读回调 `addTenantScope` 默认禁用 → 显式 scope helper；`IdentityCtx` 23 处收敛 | ⬜ 待批 | 计划：每批 `go test` 基线 diff + 共享 tenant 双商户夹具 |
 | B4 | A3-8 必修清单（P2/P3 批 25 文件）口径改造 | ⬜ 待批 | 逐文件清单见 §A3-8 |
 | B5 | 前端/services tenant payload 收敛（26/103 处） | ⬜ 待批 | 与 API 口径同步 |
