@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"os"
 	"reflect"
 	"regexp"
@@ -30,6 +31,10 @@ const (
 	UserIDKey   contextKey = "user_id"
 	RoleKey     contextKey = "role"
 	IsOwnerKey  contextKey = "is_owner"
+	// #2261（P3 B3）：显式租户范围模式标记——设置后 addTenantScope 不再自动注入
+	// tenant_id 过滤（调用方必须已显式按商户 org / membership 过滤）。
+	// 逐域迁移：先为该域补显式过滤，再在请求上下文打此标记。
+	ExplicitTenantScopeKey contextKey = "explicit_tenant_scope_only"
 )
 
 var dbInstance *gorm.DB
@@ -99,6 +104,10 @@ func addTenantScope(db *gorm.DB) {
 	if db.Statement.Error != nil || db.Statement.Context == nil {
 		return
 	}
+	// #2261（P3 B3）：显式模式——调用方已做商户 org/membership 过滤，跳过自动注入。
+	if IsExplicitTenantScopeOnly(db.Statement.Context) {
+		return
+	}
 
 	tenantID := GetTenantIDFromContext(db.Statement.Context)
 	if tenantID == "" {
@@ -110,8 +119,35 @@ func addTenantScope(db *gorm.DB) {
 			db.Statement.AddClause(clause.Where{Exprs: []clause.Expression{
 				clause.Eq{Column: clause.Column{Table: db.Statement.Table, Name: "tenant_id"}, Value: tenantID},
 			}})
+			observeAutoTenantScope(db.Statement.Table)
 		}
 	}
+}
+
+// #2261（P3 B3 观察期）：按表首次自动注入时记一条日志，用于枚举真实消费面。
+// no-op 行为：仅日志，不改变任何查询语义。
+var tenantScopeObservedTables sync.Map
+
+func observeAutoTenantScope(table string) {
+	if table == "" {
+		return
+	}
+	if _, loaded := tenantScopeObservedTables.LoadOrStore(table, struct{}{}); !loaded {
+		log.Printf("[TenantScope][observe] auto-scope injected for table=%s (add explicit scope, then set ExplicitTenantScopeOnly)", table)
+	}
+}
+
+// ExplicitTenantScopeOnly marks ctx so addTenantScope skips the automatic
+// tenant_id filter (#2261). Callers MUST already scope by merchant org /
+// membership; otherwise isolation would be lost.
+func ExplicitTenantScopeOnly(ctx context.Context) context.Context {
+	return context.WithValue(ctx, ExplicitTenantScopeKey, true)
+}
+
+// IsExplicitTenantScopeOnly reports whether ctx opted out of auto tenant scope.
+func IsExplicitTenantScopeOnly(ctx context.Context) bool {
+	v, _ := ctx.Value(ExplicitTenantScopeKey).(bool)
+	return v
 }
 
 type Config struct {
