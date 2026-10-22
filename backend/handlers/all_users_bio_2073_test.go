@@ -135,10 +135,11 @@ func TestAdminUploadUserAvatar2073(t *testing.T) {
 	require.NotNil(t, u.AvatarURL)
 	assert.Contains(t, u.AvatarURL, "avatar_"+targetID)
 
-	// 跨租户 → 403（#688）
+	// 跨租户 → 403（显式校验）/ 404（生产链路 auto-scope 先把目标用户过滤为不存在）
+	// #2260 审计 Bug2：测试上下文补齐 database 租户键后与生产一致（iam.go 同时写两套 key）。
 	r2 := mkRouter(testutil.TestActor{TenantID: otherTid, OrgID: otherTid, UserID: uuid.New().String(), Role: "ADMIN"})
 	rec2 := postAvatar(r2, targetID)
-	assert.Equal(t, http.StatusForbidden, rec2.Code)
+	assert.Contains(t, []int{http.StatusForbidden, http.StatusNotFound}, rec2.Code)
 	_ = h
 }
 
