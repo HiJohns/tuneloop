@@ -430,7 +430,7 @@ bash scripts/tenant-audit-coverage.sh
 | `confirmation_session.go` | ⚪ 不适用 | 会话归属 user_id，tenant 仅上下文元数据 |
 | `staff_invite.go` / `site_member.go` / `member_invite_2114.go` | ⚪ 不适用 | 写入前经 `hasSiteAccess`（sites.tenant_id = 操作者 tid）→ 与 site.TenantID 恒等 |
 | `repair_config.go` | ✅ 已修（#2251） | 维修设置锚商户 org / 平台 nil UUID |
-| B3 | 读回调 `addTenantScope` 默认禁用 → 显式 scope helper；`IdentityCtx` 23 处收敛 | ⬜ 待批 | 计划：每批 `go test` 基线 diff + 共享 tenant 双商户夹具 |
+| B3 | 读回调逐域显式化（opt-in 等价迁移） | 🟡 批次1 ✅：`ExplicitTenantScopeOnly` 开关 + 观察期日志（no-op）；批次2 统计期需部署后 ≥24h；批次3 逐域切换 | `TestExplicitTenantScopeOnly_2261`（默认仍注入=1 / 显式=2 / 无键=2） |
 | B4 | A3-8 必修清单（P2/P3 批 25 文件）口径改造 | ⬜ 待批 | 逐文件清单见 §A3-8 |
 | B5 | 前端/services tenant payload 收敛（26/103 处） | ⬜ 待批 | 与 API 口径同步 |
 | B6 | 隔离矩阵补齐（ISO-14 网点管理员跨网点、ISO-15 顾客全链路） | ⬜ 部分（ISO-13 ✅） | 行级断言
