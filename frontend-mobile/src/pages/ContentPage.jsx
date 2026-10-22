@@ -3,7 +3,8 @@ import Taro from '@tarojs/taro'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text } from '@tarojs/components'
 import { apiFetch } from '../services/api'
-import { env } from '../platform'
+import { env, eventBus, storage } from '../platform'
+import { AGREEMENT_CONSENT_EVENT, AGREEMENT_CONSENT_RESULT_KEY } from '../components/AgreementCheckbox'
 import RichContent from '../components/RichContent'
 
 export default function ContentPage() {
@@ -15,6 +16,9 @@ export default function ContentPage() {
   // #2258: 合并模式的分段内容 [{ key, html }]
   const [sections, setSections] = useState([])
   const [loading, setLoading] = useState(true)
+  // #2244：显性阅读同意流（方案 1：合并页复用）——&consent=1 时展示 15s 倒计时 + 同意/不同意
+  const consentMode = searchParams.get('consent') === '1' && key === 'related_agreements'
+  const [consentLeft, setConsentLeft] = useState(15)
 
   // #1840: titles follow the canonical 10-item sequence; rental_notice
   // removed (legacy key no longer reachable from any UI entry).
@@ -46,6 +50,32 @@ export default function ContentPage() {
   }
 
   const goBack = () => {
+    if (env.isMiniProgram) {
+      Taro.navigateBack()
+    } else if (navigate) {
+      navigate(-1)
+    }
+  }
+
+  // #2244: 15 秒倒计时（页面打开即开始；离开清理）
+  useEffect(() => {
+    if (!consentMode) return undefined
+    setConsentLeft(15)
+    const timer = setInterval(() => {
+      setConsentLeft((v) => {
+        if (v <= 1) {
+          clearInterval(timer)
+          return 0
+        }
+        return v - 1
+      })
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [consentMode])
+
+  const finishConsent = (agree) => {
+    storage.setItem(AGREEMENT_CONSENT_RESULT_KEY, agree ? 'agree' : 'disagree')
+    eventBus.emit(AGREEMENT_CONSENT_EVENT)
     if (env.isMiniProgram) {
       Taro.navigateBack()
     } else if (navigate) {
@@ -96,7 +126,7 @@ export default function ContentPage() {
           <Text className="text-lg font-black text-black">{titles[key] || '内容'}</Text>
         </View>
       )}
-      <View className="px-4 py-4">
+      <View className="px-4 py-4" style={consentMode ? { paddingBottom: 96 } : undefined}>
         {loading ? (
           <Text className="text-zinc-400">加载中...</Text>
         ) : key === 'related_agreements' ? (
@@ -112,6 +142,25 @@ export default function ContentPage() {
           <RichContent html={content} />
         )}
       </View>
+      {/* #2244: 同意流底部操作区（15s 倒计时结束前「同意」不可点） */}
+      {consentMode && (
+        <View style={{ position: 'fixed', left: 0, right: 0, bottom: 0, display: 'flex', gap: 12, paddingTop: 12, paddingLeft: 16, paddingRight: 16, paddingBottom: 20, backgroundColor: '#FDFBF7', borderTop: '1px solid #e4e4e7' }}>
+          <View
+            onClick={() => finishConsent(false)}
+            style={{ flex: 1, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 23, border: '1px solid #d4d4d8', backgroundColor: '#fff' }}
+          >
+            <Text style={{ fontSize: 15, color: '#71717a' }}>不同意</Text>
+          </View>
+          <View
+            onClick={() => { if (consentLeft > 0) return; finishConsent(true) }}
+            style={{ flex: 1, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 23, backgroundColor: '#915F38', opacity: consentLeft > 0 ? 0.45 : 1 }}
+          >
+            <Text style={{ fontSize: 15, color: '#fff', fontWeight: '700' }}>
+              {consentLeft > 0 ? `同意(${consentLeft})` : '同意'}
+            </Text>
+          </View>
+        </View>
+      )}
     </View>
   )
 }
