@@ -24,21 +24,27 @@ import (
 	"gorm.io/gorm"
 )
 
+type renewSpec struct {
+	Days int
+	Rate float64
+	Paid float64
+}
+
 type matrixCase struct {
-	name       string
-	baseDaily  float64
-	days       int
-	deposit    float64
-	shipping   float64 // 订单物流费（下单/发货时录入，从押金扣）
-	discount   float64 // 档位/优惠码折后率（1=无折扣）
-	renewDays  int     // 续租天数（0=未续租）
-	renewRate  float64 // 续租折后率（如 0.95）
-	renewPaid  float64 // 续租实付（元）
-	overdue    float64 // 定损报告中的逾期费
-	damage     float64 // 定损扣款（DepositDeducted）
-	expectRent float64
-	expectRef  float64
-	expectPay  float64
+	name        string
+	baseDaily   float64
+	days        int
+	deposit     float64
+	shipping    float64 // 订单物流费（下单/发货时录入，从押金扣）
+	addShipping float64 // 归还时追加物流费（AdditionalShippingFee）
+	discount    float64 // 档位/优惠码折后率（1=无折扣）
+	renewals    []renewSpec
+	actualDays  int     // >0 时模拟提前归还（实际租期天数）
+	overdue     float64 // 定损报告中的逾期费
+	damage      float64 // 定损扣款（DepositDeducted）
+	expectRent  float64
+	expectRef   float64
+	expectPay   float64
 }
 
 func buildMatrixOrder(t *testing.T, db *gorm.DB, c matrixCase) models.Order {
@@ -48,18 +54,26 @@ func buildMatrixOrder(t *testing.T, db *gorm.DB, c matrixCase) models.Order {
 		{DaysMax: 180, DiscountPercent: 5, DailyRate: c.baseDaily},
 		{DaysMax: -1, DiscountPercent: 50, DailyRate: c.baseDaily},
 	}
-	totalDays := c.days + c.renewDays
+	totalDays := c.days
+	for _, r := range c.renewals {
+		totalDays += r.Days
+	}
 	segs := []services.TierSegment{}
-	// 首段（合同）
 	segs = append(segs, services.TierSegment{
 		Tier: 1, Days: c.days, Rate: c.baseDaily, Discount: c.discount,
 		Subtotal: c.baseDaily * c.discount * float64(c.days),
 	})
-	if c.renewDays > 0 {
+	offset := c.days
+	for _, r := range c.renewals {
+		tier := 2
+		if offset >= 180 {
+			tier = 3
+		}
 		segs = append(segs, services.TierSegment{
-			Tier: 2, Days: c.renewDays, Rate: c.baseDaily, Discount: c.renewRate,
-			Subtotal: c.baseDaily * c.renewRate * float64(c.renewDays),
+			Tier: tier, Days: r.Days, Rate: c.baseDaily, Discount: r.Rate,
+			Subtotal: c.baseDaily * r.Rate * float64(r.Days),
 		})
+		offset += r.Days
 	}
 	rentTotal := float64(0)
 	for _, s := range segs {
@@ -87,10 +101,17 @@ func buildMatrixOrder(t *testing.T, db *gorm.DB, c matrixCase) models.Order {
 
 	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	end := start.AddDate(0, 0, totalDays-1)
-	ret := start.AddDate(0, 0, totalDays-1).Add(12 * time.Hour)
+	usedDays := totalDays
+	if c.actualDays > 0 && c.actualDays < totalDays {
+		usedDays = c.actualDays
+	}
+	ret := start.AddDate(0, 0, usedDays-1).Add(12 * time.Hour)
 
 	contractRent := c.baseDaily * c.discount * float64(c.days)
 	cash := contractRent + c.deposit + c.shipping
+	for _, r := range c.renewals {
+		cash += r.Paid
+	}
 	o := models.Order{
 		ID: uuid.NewString(), TenantID: uuid.NewString(), OrgID: uuid.NewString(),
 		UserID: uuid.NewString(), InstrumentID: uuid.NewString(),
@@ -110,22 +131,24 @@ func buildMatrixOrder(t *testing.T, db *gorm.DB, c matrixCase) models.Order {
 		Type: "payment", Status: "paid",
 	}).Error)
 
-	if c.renewDays > 0 {
-		d := c.renewDays
+	for _, r := range c.renewals {
+		d := r.Days
 		require.NoError(t, db.Create(&models.OrderPaymentRecord{
 			ID: uuid.NewString(), TenantID: o.TenantID, UserID: o.UserID,
-			OrderID: &o.ID, OrderType: "renewal", Amount: models.FromYuan(c.renewPaid),
+			OrderID: &o.ID, OrderType: "renewal", Amount: models.FromYuan(r.Paid),
 			Type: "payment", Status: "paid", Days: &d,
 		}).Error)
-		// 订单聚合与生产 renewal.go 一致：cash_paid += 续租实付
-		o.CashPaid = models.FromYuan(cash + c.renewPaid)
 	}
-	if c.overdue > 0 || c.damage > 0 {
+	if len(c.renewals) > 0 {
+		o.CashPaid = models.FromYuan(cash)
+	}
+	if c.overdue > 0 || c.damage > 0 || c.addShipping > 0 {
 		require.NoError(t, db.Create(&models.DamageReport{
 			ID: uuid.NewString(), TenantID: o.TenantID, OrgID: o.OrgID, LeaseID: o.ID,
 			InstrumentID: o.InstrumentID, UserID: o.UserID,
 			OverdueFee: models.FromYuan(c.overdue), DepositDeducted: models.FromYuan(c.damage),
-			Status: "completed",
+			AdditionalShippingFee: models.FromYuan(c.addShipping),
+			Status:                "completed",
 		}).Error)
 	}
 	return o
@@ -153,13 +176,13 @@ func TestRentalSettlementMatrix_2268(t *testing.T) {
 		{
 			name:      "4_续租一次（30+30，二档95折）",
 			baseDaily: 100, days: 30, deposit: 500, discount: 1,
-			renewDays: 30, renewRate: 0.95, renewPaid: 2850,
+			renewals:   []renewSpec{{Days: 30, Rate: 0.95, Paid: 2850}},
 			expectRent: 5850, expectRef: 500, expectPay: 0,
 		},
 		{
 			name:      "5_逾期后先续租再按时终结（逾期费=0，检查时录入）",
 			baseDaily: 100, days: 30, deposit: 500, discount: 1,
-			renewDays: 30, renewRate: 0.95, renewPaid: 2850,
+			renewals:   []renewSpec{{Days: 30, Rate: 0.95, Paid: 2850}},
 			expectRent: 5850, expectRef: 500, expectPay: 0,
 		},
 		{
@@ -197,6 +220,50 @@ func TestRentalSettlementMatrix_2268(t *testing.T) {
 			damage:     300,
 			expectRent: 3000, expectRef: 200, expectPay: 0,
 		},
+		{
+			name:      "12_多次续租（30+30+30）",
+			baseDaily: 100, days: 30, deposit: 500, discount: 1,
+			renewals:   []renewSpec{{Days: 30, Rate: 0.95, Paid: 2850}, {Days: 30, Rate: 0.95, Paid: 2850}},
+			expectRent: 8700, expectRef: 500, expectPay: 0,
+		},
+		{
+			name:      "13_续租后提前归还（用40/60天）",
+			baseDaily: 100, days: 30, deposit: 500, discount: 1,
+			renewals:   []renewSpec{{Days: 30, Rate: 0.95, Paid: 2850}},
+			actualDays: 40,
+			expectRent: 3950, expectRef: 2400, expectPay: 0,
+		},
+		{
+			name:      "14_追加物流费600致押金不足（补缴100）",
+			baseDaily: 100, days: 30, deposit: 500, shipping: 20, discount: 1,
+			addShipping: 600,
+			expectRent:  3000, expectRef: 0, expectPay: 100,
+		},
+		{
+			name:      "16_优惠码9折首段+续租按阶梯95折",
+			baseDaily: 100, days: 30, deposit: 500, discount: 0.9,
+			renewals:   []renewSpec{{Days: 30, Rate: 0.95, Paid: 2850}},
+			expectRent: 5550, expectRef: 500, expectPay: 0,
+		},
+		{
+			name:      "17_续租跨档（30+150，续租段5%）",
+			baseDaily: 100, days: 30, deposit: 500, discount: 1,
+			renewals:   []renewSpec{{Days: 150, Rate: 0.95, Paid: 14250}},
+			expectRent: 17250, expectRef: 500, expectPay: 0,
+		},
+		{
+			name:      "18_逾期+定损同时超押金（补缴200）",
+			baseDaily: 100, days: 30, deposit: 500, discount: 1,
+			overdue: 400, damage: 300,
+			expectRent: 3000, expectRef: 0, expectPay: 200,
+		},
+		{
+			name:      "19_逾期300+续租一次（退200）",
+			baseDaily: 100, days: 30, deposit: 500, discount: 1,
+			renewals:   []renewSpec{{Days: 30, Rate: 0.95, Paid: 2850}},
+			overdue:    300,
+			expectRent: 5850, expectRef: 200, expectPay: 0,
+		},
 	}
 
 	for _, c := range cases {
@@ -215,7 +282,7 @@ func TestRentalSettlementMatrix_2268(t *testing.T) {
 
 			// 守恒式：实收（含押金）− 应收（租金+逾期+定损+物流） = 退款 − 补缴
 			paid := order.CashPaid.ToYuan()
-			due := c.expectRent + c.overdue + c.damage + c.shipping
+			due := c.expectRent + c.overdue + c.damage + c.shipping + c.addShipping
 			lhs := round2(paid - due)
 			rhs := round2(res.CashRefundable - res.PayableShortfall)
 			assert.Equal(t, lhs, rhs, "守恒式：实收−应收 必须等于 退款−补缴")
