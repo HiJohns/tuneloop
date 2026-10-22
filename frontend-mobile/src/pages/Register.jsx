@@ -10,22 +10,35 @@ import AgreementCheckbox from '../components/AgreementCheckbox'
 
 // Register — H5 用户注册页（P-03 / #1597）
 // 方案 C：IAM 管登录，tuneloop 管注册。POST /auth/register 复用 weapp 注册链路。
+
+// #2244 审计返工：同意流会离开本路由，React Router 卸载组件导致本地表单丢失。
+// 草稿策略：普通字段写 sessionStorage（刷新可恢复）；密码仅保存在模块内存
+// （SPA 内跨路由保留，不落盘），注册成功后统一清除。
+const REGISTER_DRAFT_KEY = 'register_form_draft'
+let registerDraftMemory = null
+
+function loadRegisterDraft() {
+  if (registerDraftMemory) return registerDraftMemory
+  return storage.getJSON(REGISTER_DRAFT_KEY, {}) || {}
+}
+
 export default function Register() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const baseUrl = env.apiBaseUrl
 
-  const [name, setName] = useState('')
-  const [nickname, setNickname] = useState('')
-  const [phone, setPhone] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [province, setProvince] = useState('')
-  const [city, setCity] = useState('')
-  const [district, setDistrict] = useState('')
-  const [detail, setDetail] = useState('')
-  const [postalCode, setPostalCode] = useState('')
+  const [initialDraft] = useState(loadRegisterDraft)
+  const [name, setName] = useState(initialDraft.name || '')
+  const [nickname, setNickname] = useState(initialDraft.nickname || '')
+  const [phone, setPhone] = useState(initialDraft.phone || '')
+  const [email, setEmail] = useState(initialDraft.email || '')
+  const [password, setPassword] = useState(initialDraft.password || '')
+  const [confirmPassword, setConfirmPassword] = useState(initialDraft.confirmPassword || '')
+  const [province, setProvince] = useState(initialDraft.province || '')
+  const [city, setCity] = useState(initialDraft.city || '')
+  const [district, setDistrict] = useState(initialDraft.district || '')
+  const [detail, setDetail] = useState(initialDraft.detail || '')
+  const [postalCode, setPostalCode] = useState(initialDraft.postalCode || '')
   const [saving, setSaving] = useState(false)
   const [agreed, setAgreed] = useState(false) // #1923: 协议同意
   const idPhotoFrontRef = useRef(null)
@@ -39,6 +52,16 @@ export default function Register() {
     const scene = searchParams.get('scene')
     if (scene && scene.startsWith('ref=')) storage.setItem('ref_code', scene.slice(4))
   }, [])
+
+  // #2244：同意流返回后恢复表单（密码仅内存，不写 sessionStorage）
+  useEffect(() => {
+    registerDraftMemory = {
+      name, nickname, phone, email, password, confirmPassword,
+      province, city, district, detail, postalCode,
+    }
+    const { password: _pw, confirmPassword: _cpw, ...persisted } = registerDraftMemory
+    storage.setItem(REGISTER_DRAFT_KEY, JSON.stringify(persisted))
+  }, [name, nickname, phone, email, password, confirmPassword, province, city, district, detail, postalCode])
 
   const provinceNames = regions.map(r => r.name)
   const selectedProv = regions.find(r => r.name === province)
@@ -85,6 +108,9 @@ export default function Register() {
         storage.setItem('token', result.data.access_token)
         storage.setItem('token_expiry', (Date.now() + (result.data.expires_in || 3600) * 1000).toString())
         session.removeItem('post_auth_redirect')
+        // #2244: 注册成功，清除表单草稿（含内存中的密码）
+        registerDraftMemory = null
+        storage.removeItem(REGISTER_DRAFT_KEY)
 
         // 注册成功拿到 token 后上传待传身份证（defer 模式）
         try {
