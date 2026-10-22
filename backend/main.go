@@ -386,6 +386,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/admin/payments/:out_trade_no/query", handlers.QueryPaymentByTradeNo)
 		// #1791 T3: 实名核身人工审核队列（平台员工/系统管理员，SysPermUserUpdate）
 		authRequired.GET("/admin/face-review/queue", middleware.RequireSysPerm(middleware.SysPermUserUpdate), faceReviewHandler.Queue)
+		authRequired.GET("/admin/face-review/history", middleware.RequireSysPerm(middleware.SysPermUserUpdate), faceReviewHandler.History) // #2242 审核历史 + 姓名搜索
 		authRequired.POST("/admin/face-review/:batchId", middleware.RequireSysPerm(middleware.SysPermUserUpdate), faceReviewHandler.Review)
 		// #1810: 详情对话框人脸模块按用户查批次（含历史驳回/通过）。
 		authRequired.GET("/admin/face-review/user/:userId", middleware.RequireSysPerm(middleware.SysPermUserUpdate), faceReviewHandler.UserBatches)

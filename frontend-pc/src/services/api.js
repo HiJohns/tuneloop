@@ -674,6 +674,8 @@ export const invoiceApi = {
 // #1793 T5: 实名核身人工审核队列
 export const faceReviewApi = {
   queue: (params = {}) => api.get('/admin/face-review/queue', { params }),
+  // #2242: 审核历史（含审批时实名快照，姓名搜索）
+  history: (params = {}) => api.get('/admin/face-review/history', { params }),
   review: (batchId, data) => api.post(`/admin/face-review/${batchId}`, data),
   // #1810: 按用户查全部采集批次（详情对话框模块 2）
   userBatches: (userId) => api.get(`/admin/face-review/user/${userId}`),

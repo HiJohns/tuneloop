@@ -53,6 +53,14 @@ type faceReviewItem struct {
 	IDCardAddress   string   `json:"id_card_address,omitempty"`   // #1822: 已采录摘要
 }
 
+// maskIDCardNo（#2242）：证件号仅保留后四位（与队列展示同口径）。
+func maskIDCardNo(cardNo string) string {
+	if len(cardNo) > 4 {
+		return "****" + cardNo[len(cardNo)-4:]
+	}
+	return cardNo
+}
+
 // userHasCoreIDInfo 判断用户是否已采录核心实名信息（真实姓名 + 身份证号，#1822）。
 // 仅这两项被视为「采集完成」门槛：expire/authority/address 可后补（用户管理
 // id-card 入口维护），但姓名与号码缺失则无法做证/人核验。
@@ -136,12 +144,7 @@ func (h *FaceReviewHandler) Queue(c *gin.Context) {
 				item.RealName = *user.RealName
 			}
 			if user.IdCardNo != nil {
-				cardNo := *user.IdCardNo
-				if len(cardNo) > 4 {
-					item.IDCardNoMasked = "****" + cardNo[len(cardNo)-4:]
-				} else {
-					item.IDCardNoMasked = cardNo
-				}
+				item.IDCardNoMasked = maskIDCardNo(*user.IdCardNo)
 			}
 			if user.IdCardExpire != nil {
 				item.IDCardExpire = *user.IdCardExpire
@@ -283,7 +286,7 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 	// - 未采录：员工必须填写 5 项实名信息（按证件照抄录，防顾客手输伪造）
 	// 目标用户（#1924：审核涉及第二证件状态）。
 	var targetUser models.User
-	targetUserFound := db.Select("id, tenant_id, real_name, id_card_no, id_photo_other, id_photo_other_type, intro_letter_url, face_verified").
+	targetUserFound := db.Select("id, tenant_id, real_name, id_card_no, id_card_expire, id_card_authority, id_card_address, id_photo_other, id_photo_other_type, intro_letter_url, face_verified").
 		Where("id = ?", batch.UserID).First(&targetUser).Error == nil
 	secondDocPresent := targetUserFound && targetUser.IdPhotoOther != nil && *targetUser.IdPhotoOther != ""
 
@@ -397,12 +400,62 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 	// audit_logs 留痕（R2 M4）。平台员工审核为全租户操作（无 tenant 上下文），
 	// tenant_id 用 UUID 零值（列 not null + uuid 类型，空字符串触发 22P02）；
 	// details 为 jsonb 列，必须是合法 JSON。
+	// #2242：审批快照（历史留存）——记录当时核准的实名信息（证件号仅后四位），
+	// 供后台历史查询逐条核对；不改变字段边界（禁止明文证件号）。
+	snapshot := map[string]interface{}{
+		"method":   "manual",
+		"batch_id": batch.ID,
+		"kind":     batch.Kind,
+	}
+	name, idNo, expire, authority, addr := "", "", "", "", ""
+	if req.Action == "approve" && batch.Kind != "second_doc" && !collected {
+		name, idNo, expire, authority, addr = req.RealName, req.IdCardNo, req.IdCardExpire, req.IdCardAuthority, req.IdCardAddress
+	} else {
+		if targetUser.RealName != nil {
+			name = *targetUser.RealName
+		}
+		if targetUser.IdCardNo != nil {
+			idNo = *targetUser.IdCardNo
+		}
+		if targetUser.IdCardExpire != nil {
+			expire = *targetUser.IdCardExpire
+		}
+		if targetUser.IdCardAuthority != nil {
+			authority = *targetUser.IdCardAuthority
+		}
+		if targetUser.IdCardAddress != nil {
+			addr = *targetUser.IdCardAddress
+		}
+	}
+	if name != "" {
+		snapshot["real_name"] = name
+	}
+	if idNo != "" {
+		snapshot["id_card_no_masked"] = maskIDCardNo(idNo)
+	}
+	if expire != "" {
+		snapshot["id_card_expire"] = expire
+	}
+	if authority != "" {
+		snapshot["id_card_authority"] = authority
+	}
+	if addr != "" {
+		snapshot["id_card_address"] = addr
+	}
+	if req.Action == "approve" {
+		snapshot["result"] = "approved"
+		if req.SecondDocType != "" {
+			snapshot["second_doc_type"] = req.SecondDocType
+		}
+	} else {
+		snapshot["result"] = "rejected"
+		snapshot["reject_reason"] = req.Reason
+	}
 	action := "face_review_approve"
-	detailsJSON, _ := json.Marshal(map[string]string{"result": "approved", "method": "manual"})
 	if req.Action == "reject" {
 		action = "face_review_reject"
-		detailsJSON, _ = json.Marshal(map[string]string{"result": "rejected", "reason": req.Reason})
 	}
+	detailsJSON, _ := json.Marshal(snapshot)
 	detailStr := string(detailsJSON)
 	if err := tx.Create(&models.AuditLog{
 		ID:           uuid.New().String(),
@@ -443,4 +496,150 @@ func validSecondDocType(t string) bool {
 		return true
 	}
 	return false
+}
+
+// faceReviewHistoryItem（#2242）：实名审核历史行（含审批时留存快照）。
+type faceReviewHistoryItem struct {
+	BatchID         string `json:"batch_id"`
+	UserID          string `json:"user_id"`
+	UserName        string `json:"user_name"`
+	RealName        string `json:"real_name,omitempty"`
+	Kind            string `json:"kind"`
+	Result          string `json:"result"` // approve / reject
+	RejectReason    string `json:"reject_reason,omitempty"`
+	ReviewedBy      string `json:"reviewed_by,omitempty"`
+	ReviewedAt      string `json:"reviewed_at,omitempty"`
+	SubmittedAt     string `json:"submitted_at,omitempty"`
+	IDCardNoMasked  string `json:"id_card_no_masked,omitempty"`
+	IDCardExpire    string `json:"id_card_expire,omitempty"`
+	IDCardAuthority string `json:"id_card_authority,omitempty"`
+	IDCardAddress   string `json:"id_card_address,omitempty"`
+	SecondDocType   string `json:"second_doc_type,omitempty"`
+}
+
+// History GET /api/admin/face-review/history（#2242）——审核历史 + 按实名姓名搜索。
+// 数据源：face_capture_batches（approved/rejected）+ users（real_name 展示/搜索）
+// + audit_logs（审批快照，按 details.batch_id 匹配）。字段边界：证件号仅掩码。
+func (h *FaceReviewHandler) History(c *gin.Context) {
+	db := h.platformDB(c)
+
+	q := db.Model(&models.FaceCaptureBatch{}).Where("status IN ?", []string{"approved", "rejected"})
+	if uid := c.Query("user_id"); uid != "" {
+		q = q.Where("user_id = ?", uid)
+	}
+	switch c.Query("action") {
+	case "approve":
+		q = q.Where("status = ?", "approved")
+	case "reject":
+		q = q.Where("status = ?", "rejected")
+	}
+	if rn := strings.TrimSpace(c.Query("real_name")); rn != "" {
+		sub := db.Model(&models.User{}).Select("id").Where("real_name ILIKE ?", "%"+rn+"%")
+		q = q.Where("user_id IN (?)", sub)
+	}
+
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		log.Printf("[FaceReviewHistory] count failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to count history"})
+		return
+	}
+	page := parseInt(c.DefaultQuery("page", "1"), 1)
+	pageSize := clampPageSize(parseInt(c.DefaultQuery("page_size", "20"), 20), 20, maxPageSize)
+
+	var batches []models.FaceCaptureBatch
+	if err := q.Order("reviewed_at DESC NULLS LAST, submitted_at DESC").
+		Offset((page - 1) * pageSize).Limit(pageSize).Find(&batches).Error; err != nil {
+		log.Printf("[FaceReviewHistory] query failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to load history"})
+		return
+	}
+
+	userIDs := make([]string, 0, len(batches))
+	for _, b := range batches {
+		userIDs = append(userIDs, b.UserID)
+	}
+	usersByID := map[string]models.User{}
+	if len(userIDs) > 0 {
+		var users []models.User
+		db.Select("id, name, real_name").Where("id IN ?", userIDs).Find(&users)
+		for _, u := range users {
+			usersByID[u.ID] = u
+		}
+	}
+
+	// 审批快照：audit_logs（resource_id=user_id，details.batch_id 精确匹配；desc 取最新）
+	type snapshot struct {
+		RealName        string `json:"real_name"`
+		IDCardNoMasked  string `json:"id_card_no_masked"`
+		IDCardExpire    string `json:"id_card_expire"`
+		IDCardAuthority string `json:"id_card_authority"`
+		IDCardAddress   string `json:"id_card_address"`
+		SecondDocType   string `json:"second_doc_type"`
+		BatchID         string `json:"batch_id"`
+	}
+	snapByBatch := map[string]snapshot{}
+	if len(userIDs) > 0 {
+		var logs []models.AuditLog
+		db.Where("resource_type = ? AND resource_id IN ? AND action IN ?", "user", userIDs,
+			[]string{"face_review_approve", "face_review_reject"}).
+			Order("created_at DESC").Find(&logs)
+		for _, lg := range logs {
+			if lg.Details == nil {
+				continue
+			}
+			var snap snapshot
+			if json.Unmarshal([]byte(*lg.Details), &snap) != nil || snap.BatchID == "" {
+				continue
+			}
+			if _, ok := snapByBatch[snap.BatchID]; !ok {
+				snapByBatch[snap.BatchID] = snap
+			}
+		}
+	}
+
+	items := make([]faceReviewHistoryItem, 0, len(batches))
+	for _, b := range batches {
+		item := faceReviewHistoryItem{
+			BatchID:     b.ID,
+			UserID:      b.UserID,
+			Kind:        b.Kind,
+			SubmittedAt: b.SubmittedAt.Format(time.RFC3339),
+		}
+		if u, ok := usersByID[b.UserID]; ok {
+			item.UserName = u.Name
+			if u.RealName != nil {
+				item.RealName = *u.RealName
+			}
+		}
+		if b.Status == "approved" {
+			item.Result = "approve"
+		} else {
+			item.Result = "reject"
+			if b.RejectReason != nil {
+				item.RejectReason = *b.RejectReason
+			}
+		}
+		if b.ReviewedBy != nil {
+			item.ReviewedBy = *b.ReviewedBy
+		}
+		if b.ReviewedAt != nil {
+			item.ReviewedAt = b.ReviewedAt.Format(time.RFC3339)
+		}
+		if snap, ok := snapByBatch[b.ID]; ok {
+			item.IDCardNoMasked = snap.IDCardNoMasked
+			item.IDCardExpire = snap.IDCardExpire
+			item.IDCardAuthority = snap.IDCardAuthority
+			item.IDCardAddress = snap.IDCardAddress
+			item.SecondDocType = snap.SecondDocType
+			if item.RealName == "" {
+				item.RealName = snap.RealName
+			}
+		}
+		items = append(items, item)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
+		"list": items, "total": total, "page": page, "page_size": pageSize,
+	}})
 }
