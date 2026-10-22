@@ -384,6 +384,10 @@ export default function FaceReviewPage() {
                     placeholder="按实名姓名搜索"
                     style={{ width: 220 }}
                     onSearch={(v) => { setHistoryPage(1); setHistoryName((v || '').trim()) }}
+                    onChange={(e) => {
+                      // #2242 审计修复：清空时立即重置并重查（allowClear 不触发 onSearch）
+                      if (!e.target.value) { setHistoryPage(1); setHistoryName('') }
+                    }}
                   />
                   <Select
                     allowClear

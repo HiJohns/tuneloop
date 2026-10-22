@@ -4149,7 +4149,9 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 **权限**: 平台员工/系统管理员（`SysPermUserUpdate`），非 org 隔离（platformDB 豁免零租户）
 
-**参数**: `page`（默认 1）/ `page_size`（默认 20）/ `real_name`（模糊匹配 `users.real_name`）/ `user_id` / `action`（`approve`|`reject`）
+**参数**: `page`（默认 1）/ `page_size`（默认 20）/ `real_name`（模糊匹配 **审批快照姓名 ∪ `users.real_name`**）/ `user_id` / `action`（`approve`|`reject`）
+
+> 展示口径（#2242 审计修复）：`real_name` **以审批快照为准**（改名不影响历史）；仅旧审批无快照时回退 users 当前值。搜索同时覆盖快照姓名与当前实名。
 
 **响应**:
 ```json

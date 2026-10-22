@@ -534,8 +534,14 @@ func (h *FaceReviewHandler) History(c *gin.Context) {
 		q = q.Where("status = ?", "rejected")
 	}
 	if rn := strings.TrimSpace(c.Query("real_name")); rn != "" {
-		sub := db.Model(&models.User{}).Select("id").Where("real_name ILIKE ?", "%"+rn+"%")
-		q = q.Where("user_id IN (?)", sub)
+		// #2242 审计修复：搜索覆盖**审批快照姓名**（改名后仍可按当时姓名检索）
+		userSub := db.Model(&models.User{}).Select("id").Where("real_name ILIKE ?", "%"+rn+"%")
+		// resource_id 为 varchar，需显式转 uuid 与 batches.user_id 比较
+		snapSub := db.Table("audit_logs").Select("resource_id::uuid").
+			Where("resource_type = ? AND action IN ?", "user",
+				[]string{"face_review_approve", "face_review_reject"}).
+			Where("details->>'real_name' ILIKE ?", "%"+rn+"%")
+		q = q.Where("user_id IN (?) OR user_id IN (?)", userSub, snapSub)
 	}
 
 	var total int64
@@ -632,7 +638,9 @@ func (h *FaceReviewHandler) History(c *gin.Context) {
 			item.IDCardAuthority = snap.IDCardAuthority
 			item.IDCardAddress = snap.IDCardAddress
 			item.SecondDocType = snap.SecondDocType
-			if item.RealName == "" {
+			// #2242 审计修复：实名姓名以**审批快照**为准（后续改名不影响历史），
+			// 仅旧审批无快照时回退 users 当前值。
+			if snap.RealName != "" {
 				item.RealName = snap.RealName
 			}
 		}

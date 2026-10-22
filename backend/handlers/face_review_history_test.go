@@ -13,6 +13,7 @@ import (
 
 	"tuneloop-backend/database"
 	"tuneloop-backend/handlers/testfixtures"
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/testutil"
 
@@ -181,4 +182,67 @@ func TestFaceReviewHistory_RejectAndActionFilter_2242(t *testing.T) {
 func getTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	return database.GetDB()
+}
+
+// #2242 审计修复：改名后历史仍展示/可检索**审批快照姓名**（Bug 1/2 回归）。
+func TestFaceReviewHistory_SnapshotNameSurvivesRename_2242(t *testing.T) {
+	env, _ := newFrhEnv(t)
+
+	code, body := frhCall(t, env.router, http.MethodPost, "/admin/face-review/"+env.batchA, map[string]interface{}{
+		"action": "approve", "real_name": "张三",
+		"id_card_no": frhFullIDCard, "id_card_expire": "2030-01-01",
+		"id_card_authority": "北京市公安局", "id_card_address": "北京市朝阳区",
+	})
+	require.Equal(t, http.StatusOK, code, body)
+
+	// 模拟管理员在用户详情改名（审批之后）
+	conn := getTestDB(t)
+	newName := "李四"
+	require.NoError(t, conn.Model(&models.User{}).Where("id = ?", env.userA).Update("real_name", newName).Error)
+
+	var resp struct {
+		Data struct {
+			List  []map[string]interface{} `json:"list"`
+			Total int                      `json:"total"`
+		} `json:"data"`
+	}
+	code, body = frhCall(t, env.router, http.MethodGet, "/admin/face-review/history", nil)
+	require.Equal(t, http.StatusOK, code, body)
+	require.NoError(t, json.Unmarshal([]byte(body), &resp))
+	require.Equal(t, 1, resp.Data.Total)
+	assert.Equal(t, "张三", resp.Data.List[0]["real_name"], "历史必须展示审批快照姓名（改名不影响）")
+
+	// 按审批时姓名可检索；按新姓名不应命中该历史（快照优先）
+	code, body = frhCall(t, env.router, http.MethodGet, "/admin/face-review/history?real_name=%E5%BC%A0%E4%B8%89", nil)
+	require.Equal(t, http.StatusOK, code, body)
+	require.NoError(t, json.Unmarshal([]byte(body), &resp))
+	assert.Equal(t, 1, resp.Data.Total, "按审批时姓名『张三』应命中")
+
+	// 搜索口径 = 审批快照名 ∪ 当前实名（审计裁定：快照一并匹配；展示以快照为准）
+	code, body = frhCall(t, env.router, http.MethodGet, "/admin/face-review/history?real_name=%E6%9D%8E%E5%9B%9B", nil)
+	require.Equal(t, http.StatusOK, code, body)
+	require.NoError(t, json.Unmarshal([]byte(body), &resp))
+	assert.Equal(t, 1, resp.Data.Total, "按当前实名『李四』也可检索（快照优先展示仍为张三）")
+	assert.Equal(t, "张三", resp.Data.List[0]["real_name"])
+}
+
+// #2242 审计修复：权限负例（SysPerm 无 bit18 → 40303）。
+func TestFaceReviewHistory_RequiresSysPerm_2242(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+	_ = db
+
+	noPerm := testutil.TestActor{TenantID: "", OrgID: "", UserID: uuid.NewString(), Role: "NAMESPACE_ADMIN", SysPerm: 1 << 0}
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Request = c.Request.WithContext(noPerm.InjectContext(c.Request.Context()))
+		c.Next()
+	})
+	r.GET("/admin/face-review/history", middleware.RequireSysPerm(middleware.SysPermUserUpdate), (&FaceReviewHandler{}).History)
+
+	req := httptest.NewRequest(http.MethodGet, "/admin/face-review/history", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Contains(t, w.Body.String(), "40303")
 }
