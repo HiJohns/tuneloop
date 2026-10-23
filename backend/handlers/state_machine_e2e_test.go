@@ -24,10 +24,7 @@ import (
 func setupE2ETestEnv(t *testing.T) (*gin.Engine, string, string, string, string) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
-	// #1945: executeRefund reads gift_policies — ensure table + clear rows
-	if !db.Migrator().HasTable(&models.GiftPolicy{}) {
-		require.NoError(t, db.Migrator().CreateTable(&models.GiftPolicy{}))
-	}
+	// #1945: executeRefund reads gift_policies — clear rows (table via SetupTestDB)
 	require.NoError(t, db.Exec("DELETE FROM gift_policies").Error)
 	// iam_sub is excluded from migration (-:migration tag); add manually
 	if !db.Migrator().HasColumn(&models.User{}, "iam_sub") {

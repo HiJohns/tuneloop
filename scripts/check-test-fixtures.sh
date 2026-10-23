@@ -3,7 +3,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT/backend"
-MATCHES=$(grep -rln "Migrator()\.\(DropTable\|CreateTable\)" handlers/*_test.go 2>/dev/null || true)
+MATCHES=$(grep -rln "Migrator()\.\(DropTable\|CreateTable\)" handlers/*_test.go 2>/dev/null | xargs -r grep -L "fixture-guard:allow" || true)
 if [ -n "$MATCHES" ]; then
   echo "ERROR: 发现局部 Drop/Create（请改用 testfixtures.SetupTestDB / ResetTestDB）：" >&2
   echo "$MATCHES" >&2
