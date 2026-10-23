@@ -21,6 +21,7 @@ var allTables = []interface{}{
 	&models.Site{},
 	&models.Tenant{},
 	&models.Banner{},
+	&models.InvoiceApplication{},
 	&models.MaintenanceWorker{},
 	&models.SiteMember{},
 	&models.MerchantMember{}, // #2064: 账户管理 personnel_type 员工判定依赖
@@ -110,6 +111,12 @@ func SetupTestDB(t *testing.T) *gorm.DB {
 	for _, table := range allTables {
 		require.NoError(t, db.Migrator().CreateTable(table))
 	}
+	// #2262: invoice link table (created by SQL migration, no GORM model).
+	require.NoError(t, db.Exec(`CREATE TABLE IF NOT EXISTS invoice_application_orders (
+		application_id uuid NOT NULL,
+		order_id uuid NOT NULL,
+		UNIQUE (application_id, order_id)
+	)`).Error)
 	// iam_sub has -:migration tag and is excluded from CreateTable.
 	if !db.Migrator().HasColumn(&models.User{}, "iam_sub") {
 		require.NoError(t, db.Exec(`ALTER TABLE users ADD COLUMN iam_sub varchar(255)`).Error)

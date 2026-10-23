@@ -192,12 +192,9 @@ func ApplySiteMembership(c *gin.Context) {
 // 当前商户管理员所属商户上下文（直属成员管理页邀请/创建用）。
 func GetMyMerchant(c *gin.Context) {
 	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
-	orgID := middleware.GetOrgID(ctx)
-	tenantID := middleware.GetTenantID(ctx)
-
-	var m models.Merchant
-	if err := db.Where("org_id = ? OR tenant_id = ?", orgID, tenantID).First(&m).Error; err != nil {
+	// #2262 B4：商户身份锚 = 商户 org（org 优先解析，禁止 OR 回退到共享 tenant）
+	m, ok := resolveOperatorMerchantConfig(ctx)
+	if !ok {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "未找到商户上下文"})
 		return
 	}

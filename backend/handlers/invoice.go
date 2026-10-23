@@ -233,6 +233,17 @@ func (h *InvoiceHandler) Submit(c *gin.Context) {
 				return fmt.Errorf("部分订单不属于您或不符合开票条件")
 			}
 
+			// #2262 B4：归属一律由订单派生（禁止客户端指定他商户 tenant）
+			anchor := orders[0].TenantID
+			for _, o := range orders {
+				if o.TenantID != anchor {
+					return fmt.Errorf("跨商户订单不能合并开票")
+				}
+			}
+			if group.TenantID != "" && group.TenantID != anchor {
+				return fmt.Errorf("tenant_id 与订单归属不一致")
+			}
+
 			// Calculate total from settlements
 			var totalCents int64
 			for _, order := range orders {
@@ -250,7 +261,7 @@ func (h *InvoiceHandler) Submit(c *gin.Context) {
 			app := models.InvoiceApplication{
 				ID:          uuid.New().String(),
 				UserID:      localID,
-				TenantID:    group.TenantID,
+				TenantID:    anchor,
 				Status:      "pending",
 				InvoiceType: invType,
 				Title:       invTitle,
@@ -287,10 +298,10 @@ func (h *InvoiceHandler) Submit(c *gin.Context) {
 			// Create notification to merchant admins
 			// Find merchant admin user(s) — look up Merchant by tenant_id → AdminUID
 			var merchant models.Merchant
-			if err := tx.Where("tenant_id = ?", group.TenantID).First(&merchant).Error; err == nil && merchant.AdminUID != "" {
+			if err := tx.Where("org_id = ?", anchor).First(&merchant).Error; err == nil && merchant.AdminUID != "" {
 				notif := models.Notification{
-					TenantID:   group.TenantID,
-					OrgID:      group.TenantID,
+					TenantID:   anchor,
+					OrgID:      anchor,
 					UserID:     merchant.AdminUID,
 					Type:       "invoice",
 					Title:      "新的发票申请",
@@ -311,7 +322,7 @@ func (h *InvoiceHandler) Submit(c *gin.Context) {
 
 			results = append(results, applicationResult{
 				ID:         app.ID,
-				TenantID:   group.TenantID,
+				TenantID:   anchor,
 				TotalCents: totalCents,
 			})
 		}
