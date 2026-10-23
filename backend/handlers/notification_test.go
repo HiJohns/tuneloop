@@ -21,15 +21,7 @@ import (
 func setupNotificationTest(t *testing.T) *gin.Engine {
 	cleanup := setupMockIAMAndDB(t)
 	t.Cleanup(cleanup)
-	db := database.GetDB()
-	for _, m := range []interface{}{
-		&models.Notification{},
-		&models.User{},
-	} {
-		_ = db.Migrator().DropTable(m)
-		require.NoError(t, db.Migrator().CreateTable(m))
-	}
-	db.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS iam_sub VARCHAR(255) NOT NULL DEFAULT ''")
+	_ = database.GetDB() // 表由 setupMockIAMAndDB 负责（#2271）
 
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
