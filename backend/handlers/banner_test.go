@@ -16,6 +16,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/testutil"
 )
 
 func setupBannerTables(t *testing.T, db *gorm.DB) error {
@@ -39,7 +40,7 @@ func setupBannerRouter(t *testing.T) (*gin.Engine, string, string) {
 		t.Skip("test database not available")
 		return nil, "", ""
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 	if err := setupBannerTables(t, db); err != nil {
 		t.Fatalf("failed to setup tables: %v", err)
 	}

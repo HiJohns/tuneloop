@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
+	"tuneloop-backend/testutil"
 )
 
 func setupMigrateBannerWebPTest(t *testing.T) (string, func()) {
@@ -23,7 +24,7 @@ func setupMigrateBannerWebPTest(t *testing.T) (string, func()) {
 		t.Skip("test database not available")
 		return "", func() {}
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	// Clean banners table
 	_ = db.Migrator().DropTable(&models.Banner{})

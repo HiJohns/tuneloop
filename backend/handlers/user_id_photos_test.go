@@ -34,7 +34,7 @@ func setupIdPhotoTestDB(t *testing.T) (*gorm.DB, string, string) {
 		t.Skip("test database not available")
 		return nil, "", ""
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	_ = db.Migrator().DropTable(&models.User{})
 	require.NoError(t, db.Migrator().CreateTable(&models.User{}))

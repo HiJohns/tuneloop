@@ -28,7 +28,7 @@ func setupE2ETestEnv(t *testing.T) (*gin.Engine, string, string, string, string)
 		t.Skip("test database not available")
 		return nil, "", "", "", ""
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	_ = db.Migrator().DropTable(&models.Instrument{}, &models.Order{}, &models.OrderStatusHistory{}, &models.Notification{}, &models.OrderPaymentRecord{}, &models.Settlement{}, &models.OrderRefundRecord{}, &models.PointsTransaction{}, &models.User{}, &models.DamageReport{}, &models.MembershipGiftRatio{})
 	require.NoError(t, db.Migrator().CreateTable(&models.Instrument{}))

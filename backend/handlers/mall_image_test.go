@@ -16,6 +16,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/testutil"
 )
 
 func setupMallImageTables(t *testing.T, db *gorm.DB) error {
@@ -32,7 +33,7 @@ func setupMallImageRouter(t *testing.T) *gin.Engine {
 		t.Skip("test database not available")
 		return nil
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 	if err := setupMallImageTables(t, db); err != nil {
 		t.Fatalf("failed to setup tables: %v", err)
 	}

@@ -18,6 +18,7 @@ import (
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
+	"tuneloop-backend/testutil"
 )
 
 func TestIAMProxyHandler_CreateUser_Success(t *testing.T) {
@@ -381,7 +382,7 @@ func TestSyncOrganizations_SiteTenantID(t *testing.T) {
 		t.Skip("test database not available")
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	// Set up Site table
 	_ = db.Migrator().DropTable(&models.Site{})
@@ -527,7 +528,7 @@ func TestSyncUsers_ScopeFilter(t *testing.T) {
 		t.Skip("Test database not available, skipping:", err)
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	merchantOrgID := uuid.New().String()
 	childOrgID := uuid.New().String()
@@ -630,7 +631,7 @@ func TestSyncUsers_SiteMember(t *testing.T) {
 		t.Skip("Test database not available, skipping:", err)
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	merchantOrgID := uuid.New().String()
 	childOrgID := uuid.New().String()

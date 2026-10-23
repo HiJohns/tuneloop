@@ -15,6 +15,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/testutil"
 )
 
 func hasRequiredTables() bool {
@@ -41,7 +42,7 @@ func initTestDB(t *testing.T) {
 		t.Skip("test database not available")
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 }
 
 func TestSetup_GetSetupStatus(t *testing.T) {

@@ -20,6 +20,7 @@ import (
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
+	"tuneloop-backend/testutil"
 )
 
 func setupWarehouseTables(t *testing.T, db *gorm.DB) error {
@@ -44,7 +45,7 @@ func TestListWarehouseOrders(t *testing.T) {
 		t.Skip("test database not available")
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 	if err := setupWarehouseTables(t, db); err != nil {
 		t.Fatalf("failed to setup tables: %v", err)
 	}
@@ -91,7 +92,7 @@ func TestUpdateShipping(t *testing.T) {
 		t.Skip("test database not available")
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 	if err := setupWarehouseTables(t, db); err != nil {
 		t.Fatalf("failed to setup tables: %v", err)
 	}
@@ -156,7 +157,7 @@ func TestReportWechatShipping_OpenIDPriority(t *testing.T) {
 		t.Skip("test database not available")
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 	if err := setupWarehouseTables(t, db); err != nil {
 		t.Fatalf("failed to setup tables: %v", err)
 	}
@@ -283,7 +284,7 @@ func TestConfirmDelivery_InvalidUUID(t *testing.T) {
 		t.Skip("test database not available")
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 	if err := setupWarehouseTables(t, db); err != nil {
 		t.Fatalf("failed to setup tables: %v", err)
 	}

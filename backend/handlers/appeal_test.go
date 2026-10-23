@@ -42,7 +42,7 @@ func TestListAppeals(t *testing.T) {
 		t.Skip("test database not available")
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 	if err := setupAppealTables(t, db); err != nil {
 		t.Fatalf("failed to setup tables: %v", err)
 	}

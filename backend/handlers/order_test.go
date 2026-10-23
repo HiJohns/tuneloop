@@ -17,6 +17,7 @@ import (
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services/wechatpay"
+	"tuneloop-backend/testutil"
 
 	"gorm.io/gorm"
 )
@@ -72,7 +73,7 @@ func TestLeaseFlow_CompleteLifecycle(t *testing.T) {
 		t.Skip("Test database not available, skipping:", err)
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
 	_, instrumentID, userID := setupTestData(t, db, tenantID)
@@ -183,7 +184,7 @@ func TestLeaseFlow_CancelOrder(t *testing.T) {
 		t.Skip("Test database not available, skipping:", err)
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
 	_, instrumentID, userID := setupTestData(t, db, tenantID)
@@ -337,7 +338,7 @@ func TestLeaseFlow_InvalidStatusTransitions(t *testing.T) {
 		t.Skip("Test database not available, skipping:", err)
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
 	_, instrumentID, userID := setupTestData(t, db, tenantID)
@@ -381,7 +382,7 @@ func TestLeaseFlow_GetOrdersWithStatusFilter(t *testing.T) {
 		t.Skip("Test database not available, skipping:", err)
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
 	_, instrumentID, userID := setupTestData(t, db, tenantID)
@@ -453,7 +454,7 @@ func TestGuestCreateOrder_TenantDerivedFromInstrument(t *testing.T) {
 		t.Skip("Test database not available, skipping:", err)
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	gTenantID := uuid.New().String()
 	gOrgID := uuid.New().String()
@@ -517,7 +518,7 @@ func TestGuestCreateOrder_InstrumentNotFound(t *testing.T) {
 		t.Skip("Test database not available, skipping:", err)
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	gUserID := uuid.New().String()
 	now := time.Now()
@@ -557,7 +558,7 @@ func TestGuestBatchCreateOrder(t *testing.T) {
 		t.Skip("Test database not available, skipping:", err)
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	gTenantID := uuid.New().String()
 	gOrgID := uuid.New().String()
@@ -622,7 +623,7 @@ func TestLeaseFlow_CreateOrder_InstrumentNotAvailable(t *testing.T) {
 		t.Skip("Test database not available, skipping:", err)
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
 	_, instrumentID, userID := setupTestData(t, db, tenantID)
@@ -665,7 +666,7 @@ func TestGetOrderLogs_DedupAndOperator(t *testing.T) {
 		t.Skip("test database not available")
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
 	_, instID, userID := setupTestData(t, db, tenantID)
@@ -775,7 +776,7 @@ func TestGetOrder_DamagePanel(t *testing.T) {
 		t.Skip("test database not available")
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
 	_, instID, userID := setupTestData(t, db, tenantID)
@@ -857,7 +858,7 @@ func TestGetOrder_DamagePanel_FromDamageReport(t *testing.T) {
 		t.Skip("test database not available")
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
 	_, instID, userID := setupTestData(t, db, tenantID)

@@ -16,6 +16,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/testutil"
 )
 
 // IntegrationTest04_Scenario1_RentalClosedLoop tests full rental flow:
@@ -28,7 +29,7 @@ func TestIntegration_Scenario1_RentalClosedLoop(t *testing.T) {
 		t.Skip("test database not available")
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	// Setup tables for integration test
 	_ = db.Migrator().DropTable(&models.Instrument{})
@@ -134,7 +135,7 @@ func TestIntegration_Scenario2_WarehouseProcess(t *testing.T) {
 		t.Skip("test database not available")
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	_ = db.Migrator().DropTable(&models.Order{})
 	_ = db.Migrator().DropTable(&models.OrderStatusHistory{})
@@ -216,7 +217,7 @@ func TestIntegration_Scenario4_AppealProcess(t *testing.T) {
 		t.Skip("test database not available")
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	setupWarehouseTables(t, db)
 	tenantID := uuid.New().String()

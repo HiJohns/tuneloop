@@ -16,6 +16,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/testutil"
 )
 
 func setupRepairRequestTables(t *testing.T, db *gorm.DB) error {
@@ -40,7 +41,7 @@ func TestGetRepairRequest(t *testing.T) {
 		t.Skip("test database not available")
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	tables := []interface{}{
 		&models.RepairRequest{},
@@ -150,7 +151,7 @@ func TestListRepairRequest(t *testing.T) {
 		t.Skip("test database not available")
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	tables := []interface{}{
 		&models.RepairRequest{},

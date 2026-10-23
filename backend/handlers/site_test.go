@@ -15,6 +15,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/testutil"
 )
 
 func TestGetSiteTreeReturnsManager(t *testing.T) {
@@ -26,7 +27,7 @@ func TestGetSiteTreeReturnsManager(t *testing.T) {
 		t.Skip("Test database not available, skipping:", err)
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
 	now := time.Now()
@@ -108,7 +109,7 @@ func TestGetSiteTreeReturnsNullManagerWhenNoManager(t *testing.T) {
 		t.Skip("Test database not available, skipping:", err)
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
 	now := time.Now()
@@ -178,7 +179,7 @@ func TestGetSiteDetailReturnsManager(t *testing.T) {
 		t.Skip("Test database not available, skipping:", err)
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
 	now := time.Now()
@@ -252,7 +253,7 @@ func TestGetSiteDetailReturnsNullManagerWhenNoManager(t *testing.T) {
 		t.Skip("Test database not available, skipping:", err)
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
 	now := time.Now()
@@ -313,7 +314,7 @@ func TestTransitRoute_DBCreation(t *testing.T) {
 		t.Skip("Test database not available, skipping:", err)
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	controlledSiteID := uuid.New().String()
 	transitSiteID := uuid.New().String()

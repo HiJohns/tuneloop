@@ -5,6 +5,7 @@ package testutil
 import (
 	"testing"
 
+	"tuneloop-backend/database"
 	"tuneloop-backend/models"
 
 	"github.com/stretchr/testify/require"
@@ -70,4 +71,13 @@ func SeedSiteMember(t *testing.T, db *gorm.DB, siteID, userID, role string) mode
 	}
 	require.NoError(t, db.Create(&m).Error)
 	return m
+}
+
+// SetDB installs db as the global DB for the test and restores the previous
+// handle on cleanup (#2264: 防止 sqlmock / 各用例互相污染全局单例).
+func SetDB(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	prev := database.GetDB()
+	database.SetDB(db)
+	t.Cleanup(func() { database.SetDB(prev) })
 }

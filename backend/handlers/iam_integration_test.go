@@ -21,6 +21,7 @@ import (
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
+	"tuneloop-backend/testutil"
 )
 
 func skipIfNoIAM(t *testing.T) {
@@ -43,7 +44,7 @@ func setupIAMTestDB(t *testing.T) {
 		t.Skip("test database not available")
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 }
 
 func TestIAMIntegration_MerchantCreate(t *testing.T) {
@@ -330,7 +331,7 @@ func setupMockIAMAndDB(t *testing.T) func() {
 	if err != nil {
 		t.Skip("test database not available")
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	_ = db.Migrator().DropTable(&models.ConfirmationSession{})
 	_ = db.Migrator().DropTable(&models.SiteMember{})

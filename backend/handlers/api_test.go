@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"tuneloop-backend/database"
 	"tuneloop-backend/handlers/testfixtures"
+	"tuneloop-backend/testutil"
 )
 
 func TestGetInstruments_Thumbnail(t *testing.T) {
@@ -22,7 +23,7 @@ func TestGetInstruments_Thumbnail(t *testing.T) {
 		t.Skip("test database not available")
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
 	categoryID, _, userID := setupTestData(t, db, tenantID)
@@ -88,7 +89,7 @@ func TestGetInstrument_MediaDisplayStorageKey(t *testing.T) {
 		t.Skip("test database not available")
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
 	categoryID, _, userID := setupTestData(t, db, tenantID)
@@ -142,7 +143,7 @@ func TestDeleteSingleMedia_StructuredKey(t *testing.T) {
 		t.Skip("test database not available")
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	for _, tc := range []struct {
 		name       string
