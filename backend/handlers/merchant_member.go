@@ -29,7 +29,14 @@ func (h *MerchantMemberHandler) ListMembers(c *gin.Context) {
 	db := database.GetDB().WithContext(c.Request.Context())
 	tenantID := middleware.GetTenantID(c.Request.Context())
 
-	if !hasMerchantAccess(db, tenantID, merchantID, c) {
+	// #2274：读取锚 = 商户 org（与 #2250 写入锚一致）
+	merchant, ok := loadMerchantForAccess(db, tenantID, merchantID, c)
+	if !ok {
+		return
+	}
+	anchor := merchant.OrgID
+	if anchor == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "商户 org 缺失"})
 		return
 	}
 
@@ -37,10 +44,12 @@ func (h *MerchantMemberHandler) ListMembers(c *gin.Context) {
 	page := parseInt(c.DefaultQuery("page", "1"), 1)
 	pageSize := clampPageSize(parseInt(c.DefaultQuery("page_size", "20"), 20), 20, maxPageSize)
 
+	// #2274：显式锚查询 → 关闭自动租户范围（平台管理员 tid 为共享 tenant）
+	qdb := db.WithContext(database.IdentityCtx(c.Request.Context()))
 	var total int64
-	db.Table("merchant_members").
+	qdb.Table("merchant_members").
 		Joins("JOIN users ON users.id = merchant_members.user_id").
-		Where("merchant_members.merchant_id = ? AND merchant_members.tenant_id = ? AND merchant_members.role = ?", merchantID, tenantID, "merchant_admin").
+		Where("merchant_members.merchant_id = ? AND merchant_members.tenant_id = ? AND merchant_members.role = ?", merchantID, anchor, "merchant_admin").
 		Count(&total)
 
 	var members []struct {
@@ -51,10 +60,10 @@ func (h *MerchantMemberHandler) ListMembers(c *gin.Context) {
 		CreatedAt time.Time `json:"created_at"`
 	}
 
-	db.Table("merchant_members").
+	qdb.Table("merchant_members").
 		Select("merchant_members.user_id, users.name as user_name, users.email as user_email, merchant_members.role, merchant_members.created_at").
 		Joins("JOIN users ON users.id = merchant_members.user_id").
-		Where("merchant_members.merchant_id = ? AND merchant_members.tenant_id = ? AND merchant_members.role = ?", merchantID, tenantID, "merchant_admin").
+		Where("merchant_members.merchant_id = ? AND merchant_members.tenant_id = ? AND merchant_members.role = ?", merchantID, anchor, "merchant_admin").
 		Order("merchant_members.created_at DESC").
 		Offset((page - 1) * pageSize).Limit(pageSize).
 		Scan(&members)
@@ -119,15 +128,15 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 		return
 	}
 
-	// #2250：商户归属锚 = org；tenant_id 在多商户共享时不可用于定位商户
-	var merchant models.Merchant
-	if err := db.Where("id = ? AND (org_id = ? OR tenant_id = ?)", merchantID, tenantID, tenantID).First(&merchant).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "Merchant not found"})
+	// #2250/#2274：商户归属锚 = org（显式范围查询，避免共享 tenant 下 404）
+	merchant, ok := loadMerchantForAccess(db, tenantID, merchantID, c)
+	if !ok {
 		return
 	}
 	merchantAnchor := merchant.OrgID
 	if merchantAnchor == "" {
-		merchantAnchor = tenantID
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "商户 org 缺失"})
+		return
 	}
 
 	iamClient := services.NewIAMClient()
@@ -172,7 +181,7 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 				if errors.As(err, &conflictErr) {
 					var memberCount int64
 					db.Model(&models.MerchantMember{}).
-						Where("user_id = ? AND tenant_id = ?", conflictErr.UserID, tenantID).
+						Where("user_id = ? AND tenant_id = ?", conflictErr.UserID, merchantAnchor).
 						Count(&memberCount)
 
 					type merchantInfo struct {
@@ -183,7 +192,7 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 					db.Table("merchant_members").
 						Select("merchants.name AS merchant_name, merchant_members.role").
 						Joins("JOIN merchants ON merchants.id = merchant_members.merchant_id").
-						Where("merchant_members.user_id = ? AND merchant_members.tenant_id = ?", conflictErr.UserID, tenantID).
+						Where("merchant_members.user_id = ? AND merchant_members.tenant_id = ?", conflictErr.UserID, merchantAnchor).
 						Scan(&merchants)
 
 					c.JSON(http.StatusConflict, gin.H{
@@ -219,8 +228,8 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 					localUser := models.User{
 						ID:       userResult.UserID,
 						IAMSub:   userResult.UserID,
-						TenantID: tenantID,
-						OrgID:    tenantID,
+						TenantID: merchantAnchor,
+						OrgID:    merchantAnchor,
 						Name:     existingUser.Name,
 						Email:    existingUser.Email,
 						Phone:    nu.Phone,
@@ -269,8 +278,8 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 			localUser := models.User{
 				ID:       userResult.UserID,
 				IAMSub:   userResult.UserID,
-				TenantID: tenantID,
-				OrgID:    tenantID,
+				TenantID: merchantAnchor,
+				OrgID:    merchantAnchor,
 				Name:     nu.Name,
 				Email:    nu.Email,
 				Phone:    nu.Phone,
@@ -591,10 +600,16 @@ func (h *MerchantMemberHandler) RemoveMember(c *gin.Context) {
 // hasMerchantAccess checks the merchant belongs to the requesting tenant.
 func hasMerchantAccess(db *gorm.DB, tenantID, merchantID string, c *gin.Context) bool {
 	var count int64
+	idb := db.WithContext(database.IdentityCtx(c.Request.Context()))
 	// #2250：商户归属以 org 为准（tenant_id 可能为多商户共享值）
-	result := db.Model(&models.Merchant{}).
+	result := idb.Model(&models.Merchant{}).
 		Where("id = ? AND (tenant_id = ? OR org_id = ?)", merchantID, tenantID, tenantID).
 		Count(&count)
+
+	// #2274：平台管理员（命名空间主组织）按 id 放行；IAM 不可用时不放权
+	if (result.Error != nil || count == 0) && isPlatformOrg2247(services.NewIAMClient(), middleware.GetOrgID(c.Request.Context())) {
+		result = idb.Model(&models.Merchant{}).Where("id = ?", merchantID).Count(&count)
+	}
 
 	if result.Error != nil || count == 0 {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -611,8 +626,14 @@ func hasMerchantAccess(db *gorm.DB, tenantID, merchantID string, c *gin.Context)
 // merchant org as the single anchor (#2250). Writes the 403 response itself.
 func loadMerchantForAccess(db *gorm.DB, tenantID, merchantID string, c *gin.Context) (models.Merchant, bool) {
 	var merchant models.Merchant
-	if err := db.Where("id = ? AND (tenant_id = ? OR org_id = ?)", merchantID, tenantID, tenantID).
-		First(&merchant).Error; err != nil {
+	idb := db.WithContext(database.IdentityCtx(c.Request.Context()))
+	err := idb.Where("id = ? AND (tenant_id = ? OR org_id = ?)", merchantID, tenantID, tenantID).
+		First(&merchant).Error
+	// #2274：平台管理员按 id 放行；IAM 不可用时不放权
+	if err != nil && isPlatformOrg2247(services.NewIAMClient(), middleware.GetOrgID(c.Request.Context())) {
+		err = idb.Where("id = ?", merchantID).First(&merchant).Error
+	}
+	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
 		return models.Merchant{}, false
 	}
