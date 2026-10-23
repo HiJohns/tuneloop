@@ -7,7 +7,8 @@ import Taro from '@tarojs/taro'
 import { View, Text, Camera, Image, Input, Button } from '@tarojs/components'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, resolveErrorMessage, resolveUploadError } from '../services/api'
-import { env, dialog, uploadFile, getCameraContext, useDidShow } from '../platform'
+import { env, dialog, uploadFile, getCameraContext } from '../platform'
+import { getAppConfig } from '../platform/init'
 import FaceCaptureUploader from '../components/FaceCaptureUploader'
 import { setIdentityVerifyCache } from '../hooks/useIdentityGuard'
 // #2109: E证通小程序 SDK（weapp 自动核身；顶层无 wx 访问，H5 打包安全）
@@ -31,7 +32,10 @@ export default function FaceVerify() {
   const [autoName, setAutoName] = useState('')
   const [autoIdCard, setAutoIdCard] = useState('')
   const [autoSubmitting, setAutoSubmitting] = useState(false)
-  const [autoAvailable, setAutoAvailable] = useState(false) // #2272: 由 /config face_verify 决定
+  // #2272: 首帧同步用启动缓存；无缓存时先 loading，避免先渲染相机再切自动
+  const cachedFace = getAppConfig()?.face_verify
+  const [autoAvailable, setAutoAvailable] = useState(Boolean(env.isMiniProgram && cachedFace?.auto_enabled))
+  const [capabilityLoaded, setCapabilityLoaded] = useState(Boolean(cachedFace))
   const [actionPrompt, setActionPrompt] = useState('')
   const photoPathRef = useRef('')
   const videoPathRef = useRef('')
@@ -53,12 +57,13 @@ export default function FaceVerify() {
       const r = await resp.json()
       const fv = r?.data?.face_verify
       setAutoAvailable(Boolean(env.isMiniProgram && fv?.auto_enabled))
+      setCapabilityLoaded(true)
     } catch {
       setAutoAvailable(false)
+      setCapabilityLoaded(true)
     }
   }
   useEffect(() => { loadFaceCapability() }, [])
-  useDidShow(() => { loadFaceCapability() })
 
   // #1821: 桌面版微信（Mac/Windows）的 <camera> 仅支持拍照，录像不可用——
   // 之前在此环境下静默走了「录像失败→仅提交照片」，用户以为已上传视频。
@@ -547,6 +552,19 @@ export default function FaceVerify() {
           <View style={{ margin: 16, backgroundColor: '#fff', borderRadius: 12, padding: 16 }}>
             <Text style={{ fontSize: 14, fontWeight: '700', color: '#111', marginBottom: 8 }}>实名认证</Text>
             {renderStatusBar()}
+          </View>
+        </View>
+      )
+    }
+
+    // #2272：能力未加载前先 loading（不渲染相机/自动通道）
+    if (!capabilityLoaded) {
+      return (
+        <View style={{ minHeight: '100vh', backgroundColor: '#f4f4f5', padding: 16, boxSizing: 'border-box' }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 16 }}>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#111', marginBottom: 8, display: 'block' }}>实名认证</Text>
+            {renderStatusBar()}
+            <Text style={{ fontSize: 13, color: '#6b7280', marginTop: 12, display: 'block' }}>加载中…</Text>
           </View>
         </View>
       )

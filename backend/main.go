@@ -92,8 +92,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	//   FACE_VERIFY_PROVIDER=faceid   → 腾讯云慧眼 FaceID（站内插件核身）
 	// 仅当 TENCENTCLOUD_SECRET_ID/KEY 配置就绪时切换，否则一律人工审核。
 	var faceVerifyProvider tencentcloud.FaceVerifyProvider = tencentcloud.NullFaceProvider{}
-	if cfg := tencentcloud.LoadConfig(); cfg.Configured() {
-		switch os.Getenv("FACE_VERIFY_PROVIDER") {
+	// #2272 Minor：provider 选择与 capability 同源（eid 缺 merchant 时不得实例化 EidProvider）
+	if fvProvider, fvAuto := handlers.FaceVerifyCapability(); fvAuto {
+		cfg := tencentcloud.LoadConfig()
+		switch fvProvider {
 		case "eid":
 			faceVerifyProvider = tencentcloud.NewEidProvider(cfg)
 		case "faceid":
