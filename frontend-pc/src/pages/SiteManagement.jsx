@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, message, Spin, Empty, Space, Popconfirm, Tabs, Tag } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined, UserOutlined, EnvironmentOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { sitesApi } from '../services/api'
+import { sitesApi, api } from '../services/api'
 import Logger from '../utils/logger'
 import SiteMemberManagement from '../components/SiteMemberManagement'
  
@@ -58,6 +58,7 @@ export default function SiteManagement() {
   const [searchResults, setSearchResults] = useState([])
   const [conflictMessage, setConflictMessage] = useState('')
   const [isMerchantAdmin, setIsMerchantAdmin] = useState(false)
+  const [merchantOptions, setMerchantOptions] = useState([])
 
   useEffect(() => {
     // Load user role from localStorage
@@ -66,7 +67,14 @@ export default function SiteManagement() {
       try {
         const info = JSON.parse(userInfo)
         setUserRole(info.role || '')
-        setIsMerchantAdmin(info.tid && info.tid === info.oid)
+        const merchantAdmin = Boolean(info.tid && info.tid === info.oid)
+        setIsMerchantAdmin(merchantAdmin)
+        if (!merchantAdmin) {
+          // #2266：平台代建需选择目标商户（后端仍做越权校验）
+          api.get('/merchants?pageSize=100').then((res) => {
+            if (res?.code === 20000) setMerchantOptions(res.data?.list || [])
+          }).catch(() => {})
+        }
       } catch (e) {
         setUserRole('')
       }
@@ -242,6 +250,7 @@ export default function SiteManagement() {
         postal_code: values.postal_code || '',
         parent_id: editingSite?.parent_id,
         transit_site_id: values.transit_site_id || '',
+        merchant_id: values.merchant_id || '',
       }
       
       Logger.log('SITE', 'siteData:', siteData)
@@ -470,6 +479,23 @@ filterTreeNode={(node) => {
                 >
                   <Input placeholder="请输入网点名称" />
                 </Form.Item>
+
+                {!isMerchantAdmin && (
+                  <Form.Item
+                    name="merchant_id"
+                    label="目标商户"
+                    data-testid="site-form-merchant"
+                    extra="平台代建时必须选择目标商户；商户管理员无需填写"
+                  >
+                    <Select placeholder="请选择目标商户" allowClear showSearch optionFilterProp="children">
+                      {merchantOptions.map(m => (
+                        <Option key={m.id} value={m.id}>
+                          {m.name}{m.org_id ? `（${m.org_id.slice(0, 8)}…）` : ''}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                )}
 
                 <Form.Item
                   name="type"

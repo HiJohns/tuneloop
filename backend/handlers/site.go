@@ -224,6 +224,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		ManagerEmail    string  `json:"manager_email"`
 		ManagerPhone    string  `json:"manager_phone"`
 		TransitSiteID   string  `json:"transit_site_id"`
+		MerchantID      string  `json:"merchant_id"` // #2266: 平台代建时指定目标商户
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -234,9 +235,47 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		return
 	}
 
-	db := database.GetDB().WithContext(c.Request.Context())
-	tenantID := middleware.GetTenantID(c.Request.Context())
-	orgID := middleware.GetOrgID(c.Request.Context())
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	tenantID := middleware.GetTenantID(ctx)
+	orgID := middleware.GetOrgID(ctx)
+
+	iamClient := services.NewIAMClient()
+	userToken := services.ExtractUserToken(c)
+
+	// #2266：网点归属锚 = 目标商户 org（优先解析操作者商户；平台代建须指定 merchant_id）。
+	merchant, hasMerchant := resolveOperatorMerchant2247(merchantConfigDB(ctx), orgID, tenantID)
+	if !hasMerchant {
+		if req.MerchantID == "" || !isPlatformOrg2247(iamClient, orgID) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"code":    40301,
+				"message": "无商户归属：平台代建需指定 merchant_id",
+			})
+			return
+		}
+		if err := merchantConfigDB(ctx).Where("id = ? AND status = 'active'", req.MerchantID).First(&merchant).Error; err != nil || merchant.OrgID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40002,
+				"message": "merchant_id 无效或商户未激活",
+			})
+			return
+		}
+	} else if req.MerchantID != "" && req.MerchantID != merchant.ID {
+		c.JSON(http.StatusForbidden, gin.H{
+			"code":    40301,
+			"message": "无权为其他商户创建网点",
+		})
+		return
+	}
+	anchorOrgID := merchant.OrgID
+	if anchorOrgID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "商户 org 缺失，无法创建网点"})
+		return
+	}
+	if _, err := uuid.Parse(anchorOrgID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "商户 org 非法"})
+		return
+	}
 
 	var parentUUID *uuid.UUID
 	if req.ParentID != nil && *req.ParentID != "" {
@@ -264,9 +303,6 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		managerUUID = &uuidVal
 	}
 
-	iamClient := services.NewIAMClient()
-	userToken := services.ExtractUserToken(c)
-
 	// Resolve admin info for cascading bind (IAM #330)
 	var adminInfo *services.OrganizationAdmin
 	if req.ManagerID != nil && *req.ManagerID != "" {
@@ -290,7 +326,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 
 	iamReq := &services.CreateOrganizationRequest{
 		Name:             req.Name,
-		ParentID:         orgID,
+		ParentID:         anchorOrgID,
 		NamespaceID:      middleware.GetNamespaceID(c.Request.Context()),
 		Address:          req.Address,
 		NotificationLang: middleware.GetCulture(c),
@@ -318,7 +354,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 
 	siteOrgID := orgResp.OrgID
 	if siteOrgID == "" {
-		siteOrgID = orgID
+		siteOrgID = anchorOrgID
 	}
 
 	// Admin ID from IAM cascading bind response
@@ -361,7 +397,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 			localUser := models.User{
 				ID:       managerUUID.String(),
 				IAMSub:   adminID,
-				TenantID: tenantID,
+				TenantID: anchorOrgID,
 				OrgID:    siteOrgID,
 				Name:     req.ManagerName,
 				Role:     "site_admin",
@@ -378,7 +414,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 			localUser := models.User{
 				ID:       adminID,
 				IAMSub:   adminID,
-				TenantID: tenantID,
+				TenantID: anchorOrgID,
 				OrgID:    siteOrgID,
 				Name:     req.ManagerName,
 				Email:    req.ManagerEmail,
@@ -392,9 +428,8 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		}
 	}
 
-	// Controlled merchant: require transit_site_id
-	var merchant models.Merchant
-	if err := db.Where("org_id = ?", orgID).First(&merchant).Error; err == nil {
+	// Controlled merchant: require transit_site_id（merchant 已在 #2266 锚解析时载入）
+	{
 		if merchant.MerchantType == "controlled" && req.TransitSiteID == "" {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code":    40002,
@@ -416,7 +451,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 
 	site := models.Site{
 		Name:          req.Name,
-		TenantID:      tenantID,
+		TenantID:      anchorOrgID,
 		OrgID:         siteOrgID,
 		Address:       req.Address,
 		Type:          req.Type,
@@ -442,7 +477,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		siteMember := models.SiteMember{
 			SiteID:   site.ID,
 			UserID:   managerUUID.String(),
-			TenantID: tenantID,
+			TenantID: anchorOrgID,
 			Role:     "manager",
 			Roles:    []string{"manager"}, // #2034 多重角色（集）
 		}

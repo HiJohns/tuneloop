@@ -2413,6 +2413,17 @@ const handleSyncUsersFromIAM = async () => {
 
 ---
 
+#### 3.10.2.1 创建网点 - 目标商户选择（#2266）
+
+**位置**: `frontend-pc/src/pages/SiteManagement.jsx` 创建网点表单
+
+- **商户管理员**（`user_info.tid === user_info.oid`）：**不显示**「目标商户」字段，服务端按操作者解析本商户。
+- **平台/无商户解析的操作者**：显示「目标商户」`Select`（数据源 `GET /api/merchants?pageSize=100`），提交时透传 `merchant_id`。
+- 字段仅用于**平台代建**；商户管理员传入他人商户会被后端 **403** 拒绝。
+- 后端以该商户 `org_id` 作为 `sites.tenant_id` 与 IAM 新组织父级（锚模型见 #2266 / #2245）。
+
+---
+
 ### 3.10.3 权限管理页面设计（#660）
 
 

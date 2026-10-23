@@ -845,10 +845,15 @@ GET /api/confirmation-sessions/:id
   "phone": "010-87654321",
   "business_hours": "09:00-21:00",
   "manager_user_id": "user-002",
-  "transit_site_id": "site-003"
+  "transit_site_id": "site-003",
+  "merchant_id": "merchant-001"
 }
 ```
 
+> **注（#2266）**: 网点归属锚 = **目标商户 org**（`sites.tenant_id = merchants.org_id`），IAM 新组织父级同为此 org。
+> - 商户管理员：可省略 `merchant_id`，服务端按操作者解析本商户；若传入他人商户 → **403**。
+> - 平台管理员代建：**必须**传 `merchant_id`（可用 `GET /api/merchants` 列表），否则 **40301**；`merchant_id` 无效/商户 `org_id` 为空 → **40002**。
+>
 > **注**: `transit_site_id` 为受控商户（`merchant_type=controlled`）创建网点时的必填项。可选的中转网点通过 `GET /api/public/sites?type=transit` 获取（返回含 `address`）。
 
 **响应**:
