@@ -101,6 +101,9 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		}
 	}
 
+	fvProvider, fvAuto := handlers.FaceVerifyCapability()
+	log.Printf("[FaceVerify] provider=%s auto_enabled=%t configured=%t", fvProvider, fvAuto, tencentcloud.LoadConfig().Configured())
+
 	// New handlers for Issue #299 (Repair, Appeal, Warehouse, User Rental)
 	repairHandler := handlers.NewRepairHandler()
 	repairReqHandler := handlers.NewRepairRequestHandler()
@@ -142,6 +145,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			iamExternalURL = "http://localhost:5552"
 		}
 
+		faceProvider, faceAuto := handlers.FaceVerifyCapability()
+
 		// PC Web configuration — derived from IAM_NAMESPACE + "_web"
 		iamNamespace := os.Getenv("IAM_NAMESPACE")
 		iamPCClientID := ""
@@ -180,6 +185,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		c.JSON(http.StatusOK, gin.H{
 			"code": 20000,
 			"data": gin.H{
+				"face_verify": gin.H{"provider": faceProvider, "auto_enabled": faceAuto},
 				"pc": gin.H{
 					"iamExternalUrl": iamExternalURL,
 					"iamClientId":    iamPCClientID,
