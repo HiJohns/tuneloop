@@ -470,3 +470,33 @@ bash scripts/tenant-audit-coverage.sh
 | **`member_invite_2114.go`** | **需改**：`GetMyMerchant` OR 回退共享 tenant | ✅ 改 `resolveOperatorMerchantConfig`；`TestMyMerchant_SharedTenantOrgAnchor_2262` 红绿 |
 | `services/webhook.go` | **需改**：商户身份用共享 tenant 作键 | ✅ 改商户 org（双读单写）；`TestMerchantWebhook_SharedTenantIsolation_2262` / `TestMerchantTenantID_ReturnsMerchantOrg_2262` |
 | `frontend-mobile/src/pages/InvoiceConfirm.jsx` | 请求 payload 携带 `tenant_id` | ✅ 已移除 payload（分组展示保留） |
+
+## §A7-B3 路由 × 表 显式过滤清单（#2261 返工）
+
+> 审计返工后**只保留**以下已核查 + 有守卫的路由挂载 `middleware.ExplicitTenantScope()`；
+> 其余原批次路由已**回滚开关**（恢复自动租户范围），待逐路由清单与守卫补齐后再切。
+
+### 已切换（8 条）
+
+| 路由 | Handler | 触达表 | 显式过滤证据 | 守卫 |
+|---|---|---|---|---|
+| `GET /instruments` | `GetInstruments` | instruments | `resolveOperatorMerchant*` → `tenant_id IN (org, tenant)`（`instrument.go` 列表范围） | `TestOrdersInstrumentsDomain_ExplicitScopeIsolation_2261` |
+| `GET /technician-profiles` | `TechnicianProfileHandler.List` | technician_profiles, users | `tenant_id IN merchantScopeIDs2247`（`technician_profile.go:84+`） | `TestTechnicianProfilesDomain_ExplicitScopeIsolation_2261` |
+| `DELETE /instruments/:id` | `DeleteInstrument` | instruments, orders | `id = ? AND tenant_id = ?`（`instrument.go:950`） | `TestOrdersInstrumentsDelete_ExplicitScope_2261` |
+| `GET /orders/by-trade-no/:out_trade_no` | `GetOrdersByOutTradeNo` | payment_sessions, session_order_links, orders | `out_trade_no = ? AND tenant_id = ?`；orders 同（`order.go:1723/1749`） | `TestOrdersByTradeNo_ExplicitScopeIsolation_2261` |
+| `POST /orders/:id/cancel` | `CancelOrder` | orders, order_payment_records, refunds | `id = ? AND tenant_id = ?`（`order.go:1048`） | `TestOrdersInstrumentsDelete_ExplicitScope_2261` |
+| `GET /admin/repair-services` | `ListMerchantRepairServices` | repair_requests, merchants | 解析商户 org → `tenant_id IN merchantScopeIDs`（`repair_service_admin_2129.go:31-56`） | `TestRepairDomain_ExplicitScopeIsolation_2261` |
+| `PUT /merchant/sites/:id` | `UpdateSite` | sites | `id = ? AND tenant_id = ?`（`site.go:547`） | `TestMembershipDomain_SitesExplicitScope_2261` |
+| `GET /sites/:id/members` | `SiteMemberHandler.ListMembers` | sites, site_members, users | `hasSiteAccess`：`sites.id = ? AND sites.tenant_id = ?`（`site_member.go:325+`） | `TestMembershipDomain_SitesExplicitScope_2261` |
+
+### 已回滚（未切换，自动范围保留）
+
+原批次挂载但**未完成逐路由清单/守卫**的入口全部回滚，包括：
+
+- repair：`repairRequired` / `repairReqRequired` 两个路由组、`/config/repair*`、`/repair-appeals*`、`/merchant/repair-requests`、customer repair 路由；
+- orders/instruments：`/orders/:id`（detail）、`/orders/:id/admin-update`、`/orders/:id/pickup`、`/outbound-*`、`/assessment`、`/instruments/:id`（detail/update）、media 写删、pricing/activity/scrap/import/export/loss/restore、`/instrument-loss`；
+- membership：`/merchants*`、`/admin/merchants/*/members*`、`/merchant/sites`（Create）、`/sites/tree`、其余 site 成员写路由、technician-profiles 写路由。
+
+> 原因：关闭自动范围会同时影响 Query/Delete；上述入口存在未显式带 `tenant_id/org_id/user_id/父对象授权` 的查询（如支付会话反查），必须先补过滤 + 路由级守卫（on/off 等价）再切换。
+>
+> 回滚方式：移除对应路由/组的 `middleware.ExplicitTenantScope()`；行为恢复为自动租户范围（本轮不改 handler 业务逻辑）。

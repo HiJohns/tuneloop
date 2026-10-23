@@ -1040,10 +1040,12 @@ func CancelOrder(c *gin.Context) {
 	}
 
 	db := database.GetDB().WithContext(c.Request.Context())
+	// #2261 返工：显式模式下必须限定租户
+	tenantID := middleware.GetTenantID(c.Request.Context())
 
 	// Find order and check status
 	var order models.Order
-	if err := db.Where("id = ?", orderID).First(&order).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id = ?", orderID, tenantID).First(&order).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"code":    40400,
 			"message": "order not found",
@@ -1686,7 +1688,9 @@ func AdminUpdateOrder(c *gin.Context) {
 		return
 	}
 
-	if err := db.Model(&models.Order{}).Where("id = ?", orderID).Updates(updates).Error; err != nil {
+	// #2261 返工：显式模式更新必须限定租户
+	tenantID := middleware.GetTenantID(ctx)
+	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ?", orderID, tenantID).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "update failed: " + err.Error()})
 		return
 	}
@@ -1721,9 +1725,11 @@ func GetOrdersByOutTradeNo(c *gin.Context) {
 	}
 
 	db := database.GetDB().WithContext(ctx)
+	// #2261 返工：显式模式关闭自动范围后，必须显式限定租户
+	tenantID := middleware.GetTenantID(ctx)
 
 	var session models.PaymentSession
-	if err := db.Where("out_trade_no = ?", outTradeNo).First(&session).Error; err != nil {
+	if err := db.Where("out_trade_no = ? AND tenant_id = ?", outTradeNo, tenantID).First(&session).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "payment session not found"})
 		return
 	}
@@ -1747,7 +1753,7 @@ func GetOrdersByOutTradeNo(c *gin.Context) {
 	}
 
 	var orders []models.Order
-	if err := db.Where("id IN ?", orderIDs).Find(&orders).Error; err != nil {
+	if err := db.Where("id IN ? AND tenant_id = ?", orderIDs, tenantID).Find(&orders).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query orders"})
 		return
 	}
