@@ -21,6 +21,7 @@ var allTables = []interface{}{
 	&models.Site{},
 	&models.Tenant{},
 	&models.Banner{},
+	&models.MallImage{},
 	&models.InvoiceApplication{},
 	&models.MaintenanceWorker{},
 	&models.SiteMember{},

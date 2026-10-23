@@ -12,38 +12,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
-	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
-	"tuneloop-backend/models"
-	"tuneloop-backend/testutil"
 )
-
-func setupBannerTables(t *testing.T, db *gorm.DB) error {
-	tables := []interface{}{
-		&models.Banner{},
-	}
-	for _, table := range tables {
-		_ = db.Migrator().DropTable(table)
-		if err := db.Migrator().CreateTable(table); err != nil {
-			return err
-		}
-	}
-	return nil
-}
 
 func setupBannerRouter(t *testing.T) (*gin.Engine, string, string) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return nil, "", ""
-	}
-	testutil.SetDB(t, db)
-	if err := setupBannerTables(t, db); err != nil {
-		t.Fatalf("failed to setup tables: %v", err)
-	}
+	testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	userID := uuid.New().String()

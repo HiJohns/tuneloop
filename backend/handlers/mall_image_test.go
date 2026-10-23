@@ -12,31 +12,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
-	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
-	"tuneloop-backend/models"
-	"tuneloop-backend/testutil"
 )
-
-func setupMallImageTables(t *testing.T, db *gorm.DB) error {
-	table := &models.MallImage{}
-	_ = db.Migrator().DropTable(table)
-	return db.Migrator().CreateTable(table)
-}
 
 func setupMallImageRouter(t *testing.T) *gin.Engine {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return nil
-	}
-	testutil.SetDB(t, db)
-	if err := setupMallImageTables(t, db); err != nil {
-		t.Fatalf("failed to setup tables: %v", err)
-	}
+	testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	userID := uuid.New().String()
