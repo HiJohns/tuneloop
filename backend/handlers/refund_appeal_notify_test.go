@@ -13,7 +13,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
-	"tuneloop-backend/database"
 	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -23,28 +22,7 @@ import (
 // setupRefundNotifyTables prepares the tables needed by the refund-receipt
 // and appeal notification regression tests (#1602/#1603/#1604).
 func setupRefundNotifyTables(t *testing.T) *gorm.DB {
-	cleanup := setupMockIAMAndDB(t)
-	t.Cleanup(cleanup)
-	db := database.GetDB()
-	for _, m := range []interface{}{
-		&models.Instrument{},
-		&models.Order{},
-
-		&models.DamageReport{},
-		&models.Appeal{},
-		&models.Notification{},
-		&models.OrderStatusHistory{},
-		&models.Settlement{},
-		&models.OrderPaymentRecord{},
-		&models.OrderRefundRecord{},
-		&models.SiteMember{},
-		&models.User{},
-	} {
-		_ = db.Migrator().DropTable(m)
-		require.NoError(t, db.Migrator().CreateTable(m))
-	}
-	db.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS iam_sub VARCHAR(255) NOT NULL DEFAULT ''")
-	return db
+	return testfixtures.SetupTestDB(t)
 }
 
 // TestInspectReturn_Damaged_NotificationActionType verifies #1602: the

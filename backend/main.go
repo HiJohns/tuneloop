@@ -101,6 +101,9 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		}
 	}
 
+	fvProvider, fvAuto := handlers.FaceVerifyCapability()
+	log.Printf("[FaceVerify] provider=%s auto_enabled=%t configured=%t", fvProvider, fvAuto, tencentcloud.LoadConfig().Configured())
+
 	// New handlers for Issue #299 (Repair, Appeal, Warehouse, User Rental)
 	repairHandler := handlers.NewRepairHandler()
 	repairReqHandler := handlers.NewRepairRequestHandler()
@@ -142,6 +145,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			iamExternalURL = "http://localhost:5552"
 		}
 
+		faceProvider, faceAuto := handlers.FaceVerifyCapability()
+
 		// PC Web configuration — derived from IAM_NAMESPACE + "_web"
 		iamNamespace := os.Getenv("IAM_NAMESPACE")
 		iamPCClientID := ""
@@ -180,6 +185,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		c.JSON(http.StatusOK, gin.H{
 			"code": 20000,
 			"data": gin.H{
+				"face_verify": gin.H{"provider": faceProvider, "auto_enabled": faceAuto},
 				"pc": gin.H{
 					"iamExternalUrl": iamExternalURL,
 					"iamClientId":    iamPCClientID,
@@ -372,14 +378,14 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		sitePoints.POST("/site/points-policies", handlers.CreatePointsPolicy)
 		sitePoints.PUT("/site/points-policies/:id", handlers.UpdatePointsPolicy)
 
-		authRequired.GET("/instruments", middleware.RequireCusPerm("instrument:read"), handlers.GetInstruments)
-		authRequired.GET("/instruments/levels", handlers.GetInstrumentLevels)
-		authRequired.GET("/instruments/filter-options", handlers.GetInstrumentFilterOptions)
-		authRequired.GET("/instruments/check", handlers.CheckInstrumentSN)
-		authRequired.GET("/instruments/:id", middleware.RequireCusPerm("instrument:read"), handlers.GetInstrumentByID)
-		authRequired.PUT("/instruments/:id", middleware.RequireCusPerm("instrument:update"), handlers.UpdateInstrument)
+		authRequired.GET("/instruments", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:read"), handlers.GetInstruments)
+		authRequired.GET("/instruments/levels", middleware.ExplicitTenantScope(), handlers.GetInstrumentLevels)
+		authRequired.GET("/instruments/filter-options", middleware.ExplicitTenantScope(), handlers.GetInstrumentFilterOptions)
+		authRequired.GET("/instruments/check", middleware.ExplicitTenantScope(), handlers.CheckInstrumentSN)
+		authRequired.GET("/instruments/:id", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:read"), handlers.GetInstrumentByID)
+		authRequired.PUT("/instruments/:id", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:update"), handlers.UpdateInstrument)
 		// #1797: 子分类内排序（行内上移/下移）
-		authRequired.PUT("/instruments/:id/sort", middleware.RequireCusPerm("instrument:update"), handlers.SortInstrument)
+		authRequired.PUT("/instruments/:id/sort", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:update"), handlers.SortInstrument)
 		authRequired.GET("/reports/assessment/:order_id", handlers.HandleAssessmentReport(database.GetDB()))
 		authRequired.GET("/admin/payments", handlers.ListPayments)
 		authRequired.GET("/admin/payments/export", handlers.ExportPayments)
@@ -399,48 +405,48 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/admin/platform-staff/invites", handlers.InvitePlatformStaff)
 
 		// Instrument CRUD
-		authRequired.POST("/instruments", middleware.RequireCusPerm("instrument:create"), handlers.CreateInstrument)
+		authRequired.POST("/instruments", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:create"), handlers.CreateInstrument)
 		// #1948 乐器丢失与找回（员工/管理员，双入口之一；归属校验在 handler 内）
 		lossHandler := handlers.NewInstrumentLossHandler()
 		technicianProfileHandler := handlers.NewTechnicianProfileHandler()
-		authRequired.POST("/instruments/:id/lost", middleware.RequireCusPerm("instrument:update"), lossHandler.Register)
-		authRequired.POST("/instruments/:id/restore", middleware.RequireCusPerm("instrument:update"), lossHandler.Restore)
-		authRequired.GET("/instrument-loss", middleware.RequireCusPerm("instrument:read"), lossHandler.List)
+		authRequired.POST("/instruments/:id/lost", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:update"), lossHandler.Register)
+		authRequired.POST("/instruments/:id/restore", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:update"), lossHandler.Restore)
+		authRequired.GET("/instrument-loss", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:read"), lossHandler.List)
 		// #1974 T1 师傅档案维护（PC 管理端）
-		authRequired.GET("/technician-profiles", middleware.RequireCusPerm("instrument:read"), technicianProfileHandler.List)
-		authRequired.POST("/technician-profiles", middleware.RequireCusPerm("instrument:update"), technicianProfileHandler.Create)
-		authRequired.PUT("/technician-profiles/:id", middleware.RequireCusPerm("instrument:update"), technicianProfileHandler.Update)
-		authRequired.PUT("/technician-profiles/:id/status", middleware.RequireCusPerm("instrument:update"), technicianProfileHandler.SetStatus)
+		authRequired.GET("/technician-profiles", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:read"), technicianProfileHandler.List)
+		authRequired.POST("/technician-profiles", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:update"), technicianProfileHandler.Create)
+		authRequired.PUT("/technician-profiles/:id", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:update"), technicianProfileHandler.Update)
+		authRequired.PUT("/technician-profiles/:id/status", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:update"), technicianProfileHandler.SetStatus)
 		// #2049 师傅照片（媒体管线：原图 WebP + _thumb.jpg 缩略图）
-		authRequired.POST("/technician-profiles/:id/photo", middleware.RequireCusPerm("instrument:update"), technicianProfileHandler.UploadPhoto)
-		authRequired.DELETE("/instruments/:id", middleware.RequireCusPerm("instrument:delete"), handlers.DeleteInstrument)
+		authRequired.POST("/technician-profiles/:id/photo", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:update"), technicianProfileHandler.UploadPhoto)
+		authRequired.DELETE("/instruments/:id", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:delete"), handlers.DeleteInstrument)
 		// #1798: batch delete (static path registered before :id param — httprouter static-first)
-		authRequired.DELETE("/instruments/batch", middleware.RequireCusPerm("instrument:delete"), handlers.BatchDeleteInstruments)
-		authRequired.PUT("/instruments/:id/status", middleware.RequireDebugMode(), middleware.RequireCusPerm("instrument:update"), handlers.UpdateInstrumentStatus)
-		authRequired.PUT("/orders/:id/admin-update", middleware.RequireDebugMode(), handlers.AdminUpdateOrder)
-		authRequired.POST("/instruments/:id/photos/upload", handlers.UploadInstrumentPhotos)
-		authRequired.GET("/instruments/:id/photos/latest", handlers.GetLatestInstrumentPhotos)
-		authRequired.POST("/instruments/:id/media", middleware.RequireCusPerm("instrument:media_upload"), handlers.CreateInstrumentMedia)
-		authRequired.PUT("/instruments/:id/media/display", middleware.RequireCusPerm("instrument:media_display"), handlers.SetMediaDisplay)
-		authRequired.DELETE("/instruments/:id/media/:batch_id", middleware.RequireCusPerm("instrument:media_delete"), handlers.DeleteMediaBatch)
-		authRequired.DELETE("/instruments/:id/media/key/*storage_key", middleware.RequireCusPerm("instrument:media_delete"), handlers.DeleteSingleMedia)
-		authRequired.GET("/instruments/:id/media", handlers.GetInstrumentMedia)
-		authRequired.POST("/instruments/:id/display-image", middleware.RequireCusPerm("instrument:media_upload"), handlers.UploadDisplayImage)
-		authRequired.POST("/instruments/:id/cover-image", middleware.RequireCusPerm("instrument:media_upload"), handlers.UploadCoverImage)
-		authRequired.GET("/instruments/:id/activity-log", handlers.GetInstrumentActivityLog)
-		authRequired.GET("/instruments/:id/pricing", handlers.GetInstrumentPricing)
-		authRequired.POST("/instruments/import", handlers.ImportInstruments)
-		authRequired.GET("/instruments/export", handlers.ExportInstruments)
-		authRequired.GET("/instruments/import/template", handlers.DownloadCSVTemplate)
-		authRequired.GET("/instruments/batch-import/template", handlers.DownloadCSVTemplate)
-		authRequired.POST("/instruments/batch-import", handlers.ExecuteBatchImport)
-		authRequired.POST("/instruments/batch-import/preview", handlers.PreviewBatchImport)
-		authRequired.POST("/instruments/batch-import/media", handlers.UploadBatchMedia)
+		authRequired.DELETE("/instruments/batch", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:delete"), handlers.BatchDeleteInstruments)
+		authRequired.PUT("/instruments/:id/status", middleware.ExplicitTenantScope(), middleware.RequireDebugMode(), middleware.RequireCusPerm("instrument:update"), handlers.UpdateInstrumentStatus)
+		authRequired.PUT("/orders/:id/admin-update", middleware.ExplicitTenantScope(), middleware.RequireDebugMode(), handlers.AdminUpdateOrder)
+		authRequired.POST("/instruments/:id/photos/upload", middleware.ExplicitTenantScope(), handlers.UploadInstrumentPhotos)
+		authRequired.GET("/instruments/:id/photos/latest", middleware.ExplicitTenantScope(), handlers.GetLatestInstrumentPhotos)
+		authRequired.POST("/instruments/:id/media", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:media_upload"), handlers.CreateInstrumentMedia)
+		authRequired.PUT("/instruments/:id/media/display", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:media_display"), handlers.SetMediaDisplay)
+		authRequired.DELETE("/instruments/:id/media/:batch_id", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:media_delete"), handlers.DeleteMediaBatch)
+		authRequired.DELETE("/instruments/:id/media/key/*storage_key", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:media_delete"), handlers.DeleteSingleMedia)
+		authRequired.GET("/instruments/:id/media", middleware.ExplicitTenantScope(), handlers.GetInstrumentMedia)
+		authRequired.POST("/instruments/:id/display-image", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:media_upload"), handlers.UploadDisplayImage)
+		authRequired.POST("/instruments/:id/cover-image", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:media_upload"), handlers.UploadCoverImage)
+		authRequired.GET("/instruments/:id/activity-log", middleware.ExplicitTenantScope(), handlers.GetInstrumentActivityLog)
+		authRequired.GET("/instruments/:id/pricing", middleware.ExplicitTenantScope(), handlers.GetInstrumentPricing)
+		authRequired.POST("/instruments/import", middleware.ExplicitTenantScope(), handlers.ImportInstruments)
+		authRequired.GET("/instruments/export", middleware.ExplicitTenantScope(), handlers.ExportInstruments)
+		authRequired.GET("/instruments/import/template", middleware.ExplicitTenantScope(), handlers.DownloadCSVTemplate)
+		authRequired.GET("/instruments/batch-import/template", middleware.ExplicitTenantScope(), handlers.DownloadCSVTemplate)
+		authRequired.POST("/instruments/batch-import", middleware.ExplicitTenantScope(), handlers.ExecuteBatchImport)
+		authRequired.POST("/instruments/batch-import/preview", middleware.ExplicitTenantScope(), handlers.PreviewBatchImport)
+		authRequired.POST("/instruments/batch-import/media", middleware.ExplicitTenantScope(), handlers.UploadBatchMedia)
 		authRequired.GET("/overdue-leases", handlers.GetOverdueLeases)
-		authRequired.GET("/orders/by-trade-no/:out_trade_no", handlers.GetOrdersByOutTradeNo)
-		authRequired.POST("/orders/:id/pickup", middleware.RequireCusPerm("order:update"), handlers.PickupOrder)
-		authRequired.POST("/orders/:id/cancel", middleware.RequireCusPerm("order:cancel"), handlers.CancelOrder)
-		authRequired.GET("/merchant/orders", handlers.ListMerchantOrders)
+		authRequired.GET("/orders/by-trade-no/:out_trade_no", middleware.ExplicitTenantScope(), handlers.GetOrdersByOutTradeNo)
+		authRequired.POST("/orders/:id/pickup", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("order:update"), handlers.PickupOrder)
+		authRequired.POST("/orders/:id/cancel", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("order:cancel"), handlers.CancelOrder)
+		authRequired.GET("/merchant/orders", middleware.ExplicitTenantScope(), handlers.ListMerchantOrders)
 
 		// Forwarding session routes
 		authRequired.GET("/forwarding/sessions", handlers.ListForwardingSessions)
@@ -453,27 +459,27 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.PUT("/forwarding/sessions/:id/recover", handlers.RecoverForwardingSession)
 
 		// Scrap instrument
-		authRequired.POST("/instruments/:id/scrap", middleware.RequireCusPerm("instrument:update"), handlers.ScrapInstrument)
+		authRequired.POST("/instruments/:id/scrap", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:update"), handlers.ScrapInstrument)
 
 		// Merchant management routes (require tenant sys_perm + project_admin role)
-		authRequired.GET("/merchants", middleware.RequireSysPerm(middleware.SysPermTenantList), merchantHandler.ListMerchants)
-		authRequired.GET("/merchants/:id", middleware.RequireSysPerm(middleware.SysPermTenantView), merchantHandler.GetMerchant)
-		authRequired.POST("/merchants", middleware.RequireSysPerm(middleware.SysPermTenantCreate), merchantHandler.CreateMerchant)
-		authRequired.PUT("/merchants/:id", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantHandler.UpdateMerchant)
-		authRequired.DELETE("/merchants/:id", middleware.RequireSysPerm(middleware.SysPermTenantDelete), merchantHandler.DeleteMerchant)
-		authRequired.GET("/admin/merchants/:id/members", middleware.RequireSysPerm(middleware.SysPermTenantView), merchantMemberHandler.ListMembers)
-		authRequired.POST("/admin/merchants/:id/members", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantMemberHandler.AddMember)
-		authRequired.PUT("/admin/merchants/:id/members/:uid", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantMemberHandler.UpdateMemberRole)
-		authRequired.DELETE("/admin/merchants/:id/members/:uid", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantMemberHandler.RemoveMember)
+		authRequired.GET("/merchants", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantList), merchantHandler.ListMerchants)
+		authRequired.GET("/merchants/:id", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantView), merchantHandler.GetMerchant)
+		authRequired.POST("/merchants", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantCreate), merchantHandler.CreateMerchant)
+		authRequired.PUT("/merchants/:id", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantHandler.UpdateMerchant)
+		authRequired.DELETE("/merchants/:id", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantDelete), merchantHandler.DeleteMerchant)
+		authRequired.GET("/admin/merchants/:id/members", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantView), merchantMemberHandler.ListMembers)
+		authRequired.POST("/admin/merchants/:id/members", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantMemberHandler.AddMember)
+		authRequired.PUT("/admin/merchants/:id/members/:uid", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantMemberHandler.UpdateMemberRole)
+		authRequired.DELETE("/admin/merchants/:id/members/:uid", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantMemberHandler.RemoveMember)
 
 		// #2114 邀请与成员管理层级：申请 / 审批 / 直接邀请（member:invite）
 		authRequired.GET("/admin/my-merchant", middleware.RequireCusPerm("member:invite"), handlers.GetMyMerchant)
-		authRequired.GET("/admin/repair-services", middleware.RequireCusPerm("repair:read"), handlers.ListMerchantRepairServices) // #2129 PC 服务单列表
+		authRequired.GET("/admin/repair-services", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("repair:read"), handlers.ListMerchantRepairServices) // #2129 PC 服务单列表
 		authRequired.GET("/admin/invites", middleware.RequireCusPerm("member:invite"), handlers.ListMerchantInvites)
 		authRequired.GET("/admin/invites/pending-count", middleware.RequireCusPerm("member:invite"), handlers.MerchantInvitesPendingCount)
 		authRequired.POST("/admin/invites/:id/approve", middleware.RequireCusPerm("member:invite"), handlers.ApproveInvite)
 		authRequired.POST("/admin/invites/:id/reject", middleware.RequireCusPerm("member:invite"), handlers.RejectInvite)
-		authRequired.POST("/admin/merchants/:id/invites", middleware.RequireCusPerm("member:invite"), handlers.InviteToMerchant)
+		authRequired.POST("/admin/merchants/:id/invites", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("member:invite"), handlers.InviteToMerchant)
 
 		// Platform user management (#1545): list/detail/edit/export users
 		authRequired.POST("/admin/users/:id/avatar", middleware.RequireSysPerm(middleware.SysPermUserUpdate), handlers.AdminUploadUserAvatar) // #2073 管理员为用户上传头像
@@ -490,7 +496,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.PUT("/admin/user-management/:id/id-card", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), userManagementHandler.UpdateIdCard)
 		authRequired.POST("/admin/user-management/:id/id-photo/reject", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), userManagementHandler.RejectIdPhotos)
 
-		siteRequired := authRequired.Group("")
+		siteRequired := authRequired.Group("", middleware.ExplicitTenantScope())
 		{
 			siteRequired.GET("/common/sites", siteHandler.ListSites)
 			siteRequired.POST("/merchant/sites", middleware.RequireSysPerm(middleware.SysPermOrganizationCreate), siteHandler.CreateSite)
@@ -549,8 +555,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.GET("/pricing/templates", handlers.ListPricingTemplates)
 		authRequired.GET("/pricing/merchant-config", handlers.GetMerchantPricingConfig)
 		authRequired.PUT("/pricing/merchant-config", middleware.RequireRole("OWNER"), middleware.RequireCusPerm("instrument:price_config"), handlers.UpdateMerchantPricingConfig)
-		authRequired.GET("/instruments/:id/pricing-v2", handlers.GetInstrumentPricingV2)
-		authRequired.PUT("/instruments/batch-pricing", middleware.RequireRole("ADMIN", "OWNER", "site_admin"), handlers.BatchSetInstrumentPricing)
+		authRequired.GET("/instruments/:id/pricing-v2", middleware.ExplicitTenantScope(), handlers.GetInstrumentPricingV2)
+		authRequired.PUT("/instruments/batch-pricing", middleware.ExplicitTenantScope(), middleware.RequireRole("ADMIN", "OWNER", "site_admin"), handlers.BatchSetInstrumentPricing)
 
 		userRequired := authRequired.Group("")
 		{
@@ -569,13 +575,13 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		{
 			// Outbound confirmation routes for mini-program (must be before /orders/:id)
 			outboundHandler := handlers.NewOutboundHandler(database.GetDB())
-			authRequired.GET("/orders/:id/outbound-photos", outboundHandler.GetOutboundPhotos)
-			authRequired.POST("/orders/:id/outbound-confirm", outboundHandler.ConfirmOutbound)
+			authRequired.GET("/orders/:id/outbound-photos", middleware.ExplicitTenantScope(), outboundHandler.GetOutboundPhotos)
+			authRequired.POST("/orders/:id/outbound-confirm", middleware.ExplicitTenantScope(), outboundHandler.ConfirmOutbound)
 
 			// Assessment routes for damage comparison (must be before /orders/:id)
 			assessmentHandler := handlers.NewAssessmentHandler(database.GetDB())
-			authRequired.GET("/orders/:id/assessment", assessmentHandler.GetAssessmentData)
-			authRequired.POST("/orders/:id/assessment", assessmentHandler.SubmitAssessment)
+			authRequired.GET("/orders/:id/assessment", middleware.ExplicitTenantScope(), assessmentHandler.GetAssessmentData)
+			authRequired.POST("/orders/:id/assessment", middleware.ExplicitTenantScope(), assessmentHandler.SubmitAssessment)
 
 			// Label management routes for tag normalization
 			labelHandler := handlers.NewLabelHandler(database.GetDB())
@@ -588,7 +594,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			// New repair state machine API (flat, replacing ticket/session layers)
 			// #1882: repair:* permissions with legacy instrument:maintain fallback
 			// until IAM role-template bitmaps are resynced and users regranted.
-			repairRequired := maintRequired
+			repairRequired := maintRequired.Group("", middleware.ExplicitTenantScope())
 			repairRequired.POST("/repair/:id/start", middleware.RequireAnyCusPerm("repair:start", "instrument:maintain"), repairHandler.StartRepair)
 			repairRequired.POST("/repair/:id/complete", middleware.RequireAnyCusPerm("repair:complete", "instrument:maintain"), repairHandler.CompleteRepair)
 			repairRequired.POST("/repair/:id/takeover", repairHandler.TakeoverRepair)
@@ -651,7 +657,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			// authRequired quotes routes removed in v3 — moved to userOptionalAuth as nested /repair-requests/:id/quotes
 
 			// Repair request routes (Issue #1110)
-			repairReqRequired := authRequired
+			repairReqRequired := authRequired.Group("", middleware.ExplicitTenantScope())
 			repairReqRequired.PUT("/repair-requests/:id/return-shipping", repairReqHandler.ReturnShipping)
 			// v3 repair-request transit routes
 			repairReqRequired.POST("/repair-requests/:id/transit-process", repairReqHandler.TransitProcess)
@@ -674,12 +680,12 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			repairReqRequired.GET("/repair-services", repairServiceHandler.ListTasks)
 
 			// Repair config routes (Issue #1118) — merchant_admin only
-			authRequired.GET("/config/repair", middleware.RequireRole("OWNER"), handlers.GetRepairAllSettings)
-			authRequired.GET("/config/repair/single", middleware.RequireRole("OWNER"), handlers.GetRepairSetting)
-			authRequired.PUT("/config/repair/single", middleware.RequireRole("OWNER"), handlers.SetRepairSetting)
+			authRequired.GET("/config/repair", middleware.ExplicitTenantScope(), middleware.RequireRole("OWNER"), handlers.GetRepairAllSettings)
+			authRequired.GET("/config/repair/single", middleware.ExplicitTenantScope(), middleware.RequireRole("OWNER"), handlers.GetRepairSetting)
+			authRequired.PUT("/config/repair/single", middleware.ExplicitTenantScope(), middleware.RequireRole("OWNER"), handlers.SetRepairSetting)
 			// v3 system-level check_fee (namespace_admin should be used when permission framework in place)
-			authRequired.GET("/config/repair/check-fee", handlers.GetCheckFee)
-			authRequired.PUT("/config/repair/check-fee", handlers.SetCheckFee)
+			authRequired.GET("/config/repair/check-fee", middleware.ExplicitTenantScope(), handlers.GetCheckFee)
+			authRequired.PUT("/config/repair/check-fee", middleware.ExplicitTenantScope(), handlers.SetCheckFee)
 			// Home menu config (category visibility/sort for WeChat homepage)
 			authRequired.GET("/config/home-menu", handlers.GetHomeMenuConfig)
 			authRequired.PUT("/config/home-menu", handlers.SetHomeMenuConfig)
@@ -687,10 +693,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.PUT("/sites/:id/config/shipping-fee", handlers.SetSiteShippingFee)
 
 			// Repair appeal routes (Issues #1115, #1116, #1119)
-			authRequired.GET("/repair-appeals", handlers.ListAppeals)
-			authRequired.POST("/repair-appeals/:id/close", handlers.CloseAppeal)
-			authRequired.POST("/repair-appeals/:id/review", handlers.ReviewAppeal)
-			authRequired.POST("/repair-appeals/:id/forward", handlers.ForwardAppeal)
+			authRequired.GET("/repair-appeals", middleware.ExplicitTenantScope(), handlers.ListAppeals)
+			authRequired.POST("/repair-appeals/:id/close", middleware.ExplicitTenantScope(), handlers.CloseAppeal)
+			authRequired.POST("/repair-appeals/:id/review", middleware.ExplicitTenantScope(), handlers.ReviewAppeal)
+			authRequired.POST("/repair-appeals/:id/forward", middleware.ExplicitTenantScope(), handlers.ForwardAppeal)
 
 			// Issue #305: Appeal Processing Routes
 			authRequired.GET("/appeals", appealHandler.ListAppeals)
@@ -822,12 +828,12 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/notifications/:id/read", handlers.MarkNotificationRead)
 				userOptionalAuth.GET("/user-instruments/lookup", repairReqHandler.UserInstrumentLookup)
 				userOptionalAuth.GET("/site-members/me", handlers.GetMyRoles)
-				userOptionalAuth.POST("/repair-appeals", handlers.CreateAppeal)
+				userOptionalAuth.POST("/repair-appeals", middleware.ExplicitTenantScope(), handlers.CreateAppeal)
 				userOptionalAuth.POST("/appeals", appealHandler.SubmitAppeal)
 				userOptionalAuth.POST("/appeals/:id/agree", appealHandler.AgreeDamage)
-				userOptionalAuth.GET("/repair-requests", repairReqHandler.List)
-				userOptionalAuth.GET("/repair-requests/:id", repairReqHandler.Get)
-				userOptionalAuth.GET("/repair-requests/:id/records", repairReqHandler.ListRecords)
+				userOptionalAuth.GET("/repair-requests", middleware.ExplicitTenantScope(), repairReqHandler.List)
+				userOptionalAuth.GET("/repair-requests/:id", middleware.ExplicitTenantScope(), repairReqHandler.Get)
+				userOptionalAuth.GET("/repair-requests/:id/records", middleware.ExplicitTenantScope(), repairReqHandler.ListRecords)
 				userOptionalAuth.POST("/repair-requests/:id/records", repairReqHandler.AddRecord)
 				userOptionalAuth.POST("/repair-requests/:id/pay", repairReqHandler.PayRepairRequest)
 				userOptionalAuth.PUT("/repair-requests/:id/tracking", repairReqHandler.UpdateTracking)
@@ -854,7 +860,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			}
 
 			// #1879: merchant owner repair-request list (PC admin)
-			authRequired.GET("/merchant/repair-requests", middleware.RequireRole("OWNER"), handlers.ListMerchantRepairRequests)
+			authRequired.GET("/merchant/repair-requests", middleware.ExplicitTenantScope(), middleware.RequireRole("OWNER"), handlers.ListMerchantRepairRequests)
 
 			// Permission Management (merchant admin only, sys_perm bit 26)
 			permRequired := authRequired.Group("")

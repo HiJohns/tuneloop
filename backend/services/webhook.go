@@ -91,14 +91,22 @@ func sendWeComWebhook(webhookURL, content string) error {
 	return nil
 }
 
-// LoadMerchantWebhook reads a merchant tenant's robot config (URL decrypted).
-func LoadMerchantWebhook(db *gorm.DB, tenantID string) (WebhookConfig, error) {
+// LoadMerchantWebhook reads a merchant's robot config (URL decrypted).
+// #2262: key = 商户 org；存量配置保留只读回退到旧 tenant 键（双读单写）。
+func LoadMerchantWebhook(db *gorm.DB, merchantOrgID string) (WebhookConfig, error) {
 	var cfg WebhookConfig
-	if tenantID == "" {
+	if merchantOrgID == "" {
 		return cfg, nil
 	}
 	var s models.SystemSetting
-	err := db.Where("tenant_id = ? AND setting_key = ?", tenantID, MerchantWebhookKey).First(&s).Error
+	err := db.Where("tenant_id = ? AND setting_key = ?", merchantOrgID, MerchantWebhookKey).First(&s).Error
+	if err == gorm.ErrRecordNotFound {
+		// 旧键回退：商户 org → merchants.tenant_id
+		var m models.Merchant
+		if e := db.Where("org_id = ?", merchantOrgID).First(&m).Error; e == nil && m.TenantID != "" && m.TenantID != merchantOrgID {
+			err = db.Where("tenant_id = ? AND setting_key = ?", m.TenantID, MerchantWebhookKey).First(&s).Error
+		}
+	}
 	if err == gorm.ErrRecordNotFound || strings.TrimSpace(s.SettingValue) == "" {
 		return cfg, nil
 	}
@@ -160,7 +168,7 @@ func SaveMerchantWebhook(db *gorm.DB, tenantID string, cfg WebhookConfig) error 
 }
 
 // merchantTenantID resolves a warning's merchant reference (merchant id or
-// org id) to the merchant tenant.
+// org id) to the merchant org (config key, #2262).
 func merchantTenantID(db *gorm.DB, merchantRef string) string {
 	if merchantRef == "" {
 		return ""
@@ -169,7 +177,7 @@ func merchantTenantID(db *gorm.DB, merchantRef string) string {
 	if err := db.Where("id = ? OR org_id = ?", merchantRef, merchantRef).First(&m).Error; err != nil {
 		return ""
 	}
-	return m.TenantID
+	return m.OrgID
 }
 
 // resolveWebhookTarget picks the robot URL for a warning: the merchant's own

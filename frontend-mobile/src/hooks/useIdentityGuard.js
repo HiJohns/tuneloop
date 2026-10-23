@@ -1,7 +1,6 @@
 import { useEffect, useCallback } from 'react'
-import Taro, { useDidShow } from '@tarojs/taro'
 import { getToken, parseJWT, apiFetch } from '../services/api'
-import { storage, navigation, env } from '../platform'
+import { storage, navigation, env, useDidShow } from '../platform'
 
 const CACHE_KEY = 'identity_verify_cache'
 const CACHE_TTL = 5 * 60 * 1000

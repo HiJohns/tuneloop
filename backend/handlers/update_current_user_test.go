@@ -52,6 +52,7 @@ func setupUpdateCurrentUserTest(t *testing.T, iamStatus int) (*gorm.DB, http.Han
 	}))
 	t.Cleanup(iamSrv.Close)
 	services.SetIAMInternalURLForTesting(iamSrv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	db := database.GetDB()
 	db.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS iam_sub VARCHAR(255) NOT NULL DEFAULT ''")

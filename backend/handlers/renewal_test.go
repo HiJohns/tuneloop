@@ -170,8 +170,7 @@ func TestRenewal_CouponSnapshot(t *testing.T) {
 	testfixtures.SetupWechatPayMock(t)
 
 	db := database.GetDB()
-	_ = db.Migrator().DropTable(&models.Coupon{})
-	require.NoError(t, db.Migrator().CreateTable(&models.Coupon{}))
+	require.NoError(t, db.Where("code = ?", "ENO").Delete(&models.Coupon{}).Error)
 	require.NoError(t, db.Create(&models.Coupon{
 		ID: uuid.New().String(), Code: "ENO", Type: "percent", Value: 10, Active: true,
 	}).Error)
@@ -193,6 +192,7 @@ func TestRenewal_CouponSnapshot(t *testing.T) {
 	body, _ := json.Marshal(map[string]interface{}{
 		"additional_days": 5,
 		"coupon_code":     "ENO",
+		"open_id":         "wx-test-openid", // #2271: 自包含（服务端无法解析绑定）
 	})
 	req := httptest.NewRequest("POST", "/api/orders/"+orderID+"/renewal/confirm", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")

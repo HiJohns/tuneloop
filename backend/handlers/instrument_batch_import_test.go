@@ -15,6 +15,7 @@ import (
 	"gorm.io/gorm"
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
+	"tuneloop-backend/testutil"
 )
 
 func setupPropertyResolutionTest(t *testing.T) (*gorm.DB, string) {
@@ -24,7 +25,7 @@ func setupPropertyResolutionTest(t *testing.T) (*gorm.DB, string) {
 		t.Skip("Test database not available, skipping:", err)
 		return nil, ""
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	db.Exec("DELETE FROM instrument_properties")
 	db.Exec("DELETE FROM property_options")

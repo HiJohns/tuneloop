@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/testutil"
@@ -22,31 +23,8 @@ import (
 
 func setupE2ETestEnv(t *testing.T) (*gin.Engine, string, string, string, string) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return nil, "", "", "", ""
-	}
-	database.SetDB(db)
-
-	_ = db.Migrator().DropTable(&models.Instrument{}, &models.Order{}, &models.OrderStatusHistory{}, &models.Notification{}, &models.OrderPaymentRecord{}, &models.Settlement{}, &models.OrderRefundRecord{}, &models.PointsTransaction{}, &models.User{}, &models.DamageReport{}, &models.MembershipGiftRatio{})
-	require.NoError(t, db.Migrator().CreateTable(&models.Instrument{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.Order{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.OrderStatusHistory{}))
-
-	require.NoError(t, db.Migrator().CreateTable(&models.Notification{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.OrderPaymentRecord{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.Settlement{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.OrderRefundRecord{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.PointsTransaction{}))
-	require.NoError(t, db.Migrator().AutoMigrate(&models.User{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.DamageReport{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.MembershipGiftRatio{}))
-	// #1945: executeRefund reads gift_policies — ensure table + clear rows
-	if !db.Migrator().HasTable(&models.GiftPolicy{}) {
-		require.NoError(t, db.Migrator().CreateTable(&models.GiftPolicy{}))
-	}
+	db := testfixtures.SetupTestDB(t)
+	// #1945: executeRefund reads gift_policies — clear rows (table via SetupTestDB)
 	require.NoError(t, db.Exec("DELETE FROM gift_policies").Error)
 	// iam_sub is excluded from migration (-:migration tag); add manually
 	if !db.Migrator().HasColumn(&models.User{}, "iam_sub") {
@@ -65,6 +43,7 @@ func setupE2ETestEnv(t *testing.T) (*gin.Engine, string, string, string, string)
 		Pricing:     `[{"monthly_rent": 100.0, "deposit": 500.0}]`,
 	})
 
+	testutil.SeedVerifiedCustomer(t, db, tenantID, orgID, userID)
 	actor := testutil.MakeSiteMember(tenantID, orgID, userID)
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
@@ -79,6 +58,7 @@ func setupE2ETestEnv(t *testing.T) (*gin.Engine, string, string, string, string)
 	router.PUT("/api/warehouse/orders/:id/delivery", warehouseHandler.ConfirmDelivery)
 	router.PUT("/api/warehouse/orders/:id/return-inspect", warehouseHandler.InspectReturn)
 	router.POST("/api/orders/:id/pay", PayOrder)
+	router.POST("/api/orders/:id/cancel", CancelOrder)
 	router.POST("/api/orders/:id/return", ReturnOrder)
 	appealHandler := NewAppealHandler()
 	router.POST("/api/user/appeals/:id/agree", appealHandler.AgreeDamage)
@@ -139,6 +119,7 @@ func TestScenarioA_StandardClosedLoop(t *testing.T) {
 	t.Run("A5_ConfirmDelivery", func(t *testing.T) {
 		reqBody := map[string]interface{}{
 			"delivered_at": time.Now().UTC(),
+			"photos":       []string{"https://example.test/photo.jpg"},
 		}
 		jsonBody, _ := json.Marshal(reqBody)
 		req := httptest.NewRequest("PUT", "/api/warehouse/orders/"+orderID+"/delivery", bytes.NewBuffer(jsonBody))
@@ -167,6 +148,7 @@ func TestScenarioA_StandardClosedLoop(t *testing.T) {
 		reqBody := map[string]interface{}{
 			"instrument_sn": "SN-12345",
 			"scan_time":     time.Now().UTC(),
+			"photos":        []string{"https://example.test/photo.jpg"},
 			"condition":     "good",
 			"notes":         "完好归还",
 		}
@@ -260,6 +242,7 @@ func TestScenarioA_DamageVariant(t *testing.T) {
 		reqBody := map[string]interface{}{
 			"instrument_sn": "SN-12345",
 			"scan_time":     time.Now().UTC(),
+			"photos":        []string{"https://example.test/photo.jpg"},
 			"condition":     "damaged",
 			"notes":         "琴颈断裂",
 			"damage_amount": 200,
@@ -325,6 +308,7 @@ func stepShip(t *testing.T, router *gin.Engine, orderID string) {
 func stepDeliver(t *testing.T, router *gin.Engine, orderID string) {
 	reqBody := map[string]interface{}{
 		"delivered_at": time.Now().UTC(),
+		"photos":       []string{"https://example.test/photo.jpg"},
 	}
 	jsonBody, _ := json.Marshal(reqBody)
 	req := httptest.NewRequest("PUT", "/api/warehouse/orders/"+orderID+"/delivery", bytes.NewBuffer(jsonBody))
@@ -734,6 +718,7 @@ func TestScenarioA_RejectDamageVariant(t *testing.T) {
 		reqBody := map[string]interface{}{
 			"instrument_sn": "SN-REJECT",
 			"scan_time":     time.Now().UTC(),
+			"photos":        []string{"https://example.test/photo.jpg"},
 			"condition":     "damaged",
 			"notes":         "漆面划痕",
 			"damage_amount": 300,

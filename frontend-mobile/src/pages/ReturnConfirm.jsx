@@ -8,6 +8,7 @@ import { dialog, env, uploadFile, getInputValue, toWeappRoute } from '../platfor
 import { formatBeijingDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
 import OrderTimeline from '../components/OrderTimeline'
+import { t } from '../i18n'
 
 export default function ReturnConfirm() {
   const [searchParams] = useSearchParams()
@@ -228,7 +229,7 @@ export default function ReturnConfirm() {
         <Text className="text-base font-black text-black mb-3 flex items-center gap-2">
           <Truck size={18} />物流信息
         </Text>
-        <Text className="text-xs text-zinc-400 mb-3">请填写返程物流信息，用于归还乐器</Text>
+        <Text className="text-xs text-red-500 font-normal mb-3">{t('*请填写真实返程物流信息，用于归还乐器')}</Text>
         <View style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <View>
             <Text className="text-xs font-bold text-zinc-500 mb-1">承运公司</Text>
@@ -248,7 +249,7 @@ export default function ReturnConfirm() {
         <Text className="text-base font-black text-black mb-3 flex items-center gap-2">
           <Camera size={18} />拍照留档
         </Text>
-        <Text className="text-xs text-zinc-400 mb-3">请拍摄乐器当前状态照片作为归还留档</Text>
+        <Text className="text-xs text-red-500 font-normal leading-relaxed mb-3">{t('*请拍摄完整展示乐器当前面板、背板、侧板、琴头、琴颈等各部位状态的照片及视频作为归还留档')}</Text>
         <View className="flex flex-wrap gap-2">
           {photoFiles.map((file, i) => (
             <View key={i} className="relative">

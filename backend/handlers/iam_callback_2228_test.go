@@ -68,6 +68,7 @@ func TestIAMCallback_UserActivated_2228(t *testing.T) {
 	})
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	require.NoError(t, os.Setenv("IAM_CALLBACK_SECRET", "test-callback-secret-2228"))
 	defer os.Unsetenv("IAM_CALLBACK_SECRET")
@@ -160,6 +161,7 @@ func TestIAMCallback_FailedEvent_ReplayReprocessed_2228(t *testing.T) {
 	})
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	require.NoError(t, os.Setenv("IAM_CALLBACK_SECRET", "test-callback-secret-2228c"))
 	defer os.Unsetenv("IAM_CALLBACK_SECRET")
@@ -220,6 +222,7 @@ func TestIAMCallback_Activated_NoInvite_2228(t *testing.T) {
 	srv := newMockIAMServer(nil, nil)
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 	require.NoError(t, os.Setenv("IAM_CALLBACK_SECRET", "test-callback-secret-2228b"))
 	defer os.Unsetenv("IAM_CALLBACK_SECRET")
 

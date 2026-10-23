@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tuneloop-backend/database"
+	"tuneloop-backend/testutil"
 )
 
 // #2010 S2: buildOrderDeliveryAddress 契约（字符串直存；对象 JSON 文本；空值 nil）
@@ -36,7 +37,7 @@ func TestGetOrder_DeliveryAddressFromOrders_2010S2(t *testing.T) {
 		t.Skip("test database not available")
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
 	_, instID, userID := setupTestData(t, db, tenantID)

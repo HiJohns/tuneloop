@@ -109,9 +109,6 @@ func TestRenewal_Confirm_AmountCents(t *testing.T) {
 
 	db := database.GetDB()
 	// ConfirmRenewal creates order_payment_records — ensure table exists.
-	if !db.Migrator().HasTable(&models.OrderPaymentRecord{}) {
-		require.NoError(t, db.Migrator().CreateTable(&models.OrderPaymentRecord{}))
-	}
 	// Clean any stale records from prior test runs.
 	db.Exec("DELETE FROM order_payment_records WHERE tenant_id = ?", "00000000-0000-0000-0000-00000000e201")
 

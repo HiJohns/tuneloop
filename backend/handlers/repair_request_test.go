@@ -12,50 +12,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
-	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 )
 
-func setupRepairRequestTables(t *testing.T, db *gorm.DB) error {
-	tables := []interface{}{
-		&models.RepairRequest{},
-		&models.UserInstrument{},
-	}
-	for _, table := range tables {
-		_ = db.Migrator().DropTable(table)
-		if err := db.Migrator().CreateTable(table); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func TestGetRepairRequest(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	database.SetDB(db)
-
-	tables := []interface{}{
-		&models.RepairRequest{},
-		&models.UserInstrument{},
-		&models.Site{},
-		&models.Tenant{},
-		&models.User{},
-	}
-	for _, table := range tables {
-		_ = db.Migrator().DropTable(table)
-		if err := db.Migrator().CreateTable(table); err != nil {
-			t.Fatalf("failed to create table: %v", err)
-		}
-	}
-	db.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS iam_sub VARCHAR(255) NOT NULL DEFAULT ''")
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	orgID := uuid.New().String()
@@ -126,7 +90,7 @@ func TestGetRepairRequest(t *testing.T) {
 		Code int                    `json:"code"`
 		Data map[string]interface{} `json:"data"`
 	}
-	err = json.Unmarshal(w.Body.Bytes(), &resp)
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	require.NoError(t, err)
 	assert.Equal(t, 20000, resp.Code)
 
@@ -144,29 +108,7 @@ func TestGetRepairRequest(t *testing.T) {
 
 func TestListRepairRequest(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	database.SetDB(db)
-
-	tables := []interface{}{
-		&models.RepairRequest{},
-		&models.UserInstrument{},
-		&models.Site{},
-		&models.Tenant{},
-		&models.User{},
-	}
-	for _, table := range tables {
-		_ = db.Migrator().DropTable(table)
-		if err := db.Migrator().CreateTable(table); err != nil {
-			t.Fatalf("failed to create table: %v", err)
-		}
-	}
-	// #2056: iam_sub 带 -:migration 标签，CreateTable 不建列，手动补（镜像 setupMockIAMAndDB）
-	db.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS iam_sub VARCHAR(255) NOT NULL DEFAULT ''")
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	orgID := uuid.New().String()
@@ -230,7 +172,7 @@ func TestListRepairRequest(t *testing.T) {
 		Code int                    `json:"code"`
 		Data map[string]interface{} `json:"data"`
 	}
-	err = json.Unmarshal(w.Body.Bytes(), &resp)
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	require.NoError(t, err)
 	assert.Equal(t, 20000, resp.Code)
 

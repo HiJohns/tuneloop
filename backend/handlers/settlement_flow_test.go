@@ -71,6 +71,7 @@ func TestSettlementFlow(t *testing.T) {
 		PrepaidPoints: models.Cents(1000),
 		FaceVerified:  true,
 		IdPhotoFront:  strPtr("/uploads/media/id-front-test.jpg"),
+		IdPhotoBack:   strPtr("/uploads/media/id-back-test.jpg"), // #2264: 双面证件照才判 verified
 		Status:        "active",
 	}).Error)
 

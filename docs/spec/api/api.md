@@ -845,10 +845,15 @@ GET /api/confirmation-sessions/:id
   "phone": "010-87654321",
   "business_hours": "09:00-21:00",
   "manager_user_id": "user-002",
-  "transit_site_id": "site-003"
+  "transit_site_id": "site-003",
+  "merchant_id": "merchant-001"
 }
 ```
 
+> **注（#2266）**: 网点归属锚 = **目标商户 org**（`sites.tenant_id = merchants.org_id`），IAM 新组织父级同为此 org。
+> - 商户管理员：可省略 `merchant_id`，服务端按操作者解析本商户；若传入他人商户 → **403**。
+> - 平台管理员代建：**必须**传 `merchant_id`（可用 `GET /api/merchants` 列表），否则 **40301**；`merchant_id` 无效/商户 `org_id` 为空 → **40002**。
+>
 > **注**: `transit_site_id` 为受控商户（`merchant_type=controlled`）创建网点时的必填项。可选的中转网点通过 `GET /api/public/sites?type=transit` 获取（返回含 `address`）。
 
 **响应**:
@@ -4557,7 +4562,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 {
   "groups": [
     {
-      "tenant_id": "uuid",
+      "tenant_id": "uuid（可选，仅校验；不传则由订单派生）",
       "order_ids": ["uuid1", "uuid2"]
     }
   ]
@@ -4576,7 +4581,10 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 }
 ```
 
-**说明**: 逐组校验订单属于当前用户且 completed+未申请；创建 application → 标记订单 `invoice_applied=true` → 通知商户管理员（Notification type="invoice"）
+**说明**: 逐组校验订单属于当前用户且 completed+未申请；**归属一律由订单 `tenant_id` 派生**（#2262）：
+- 组内订单跨商户 → **400**（不能合并一张票）；
+- 传了 `tenant_id` 且与订单归属不一致 → **400**；不传 → 使用订单归属；
+- 创建 application 时写入派生值 → 标记订单 `invoice_applied=true` → 通知对应商户管理员（Notification type="invoice"）
 
 ---
 

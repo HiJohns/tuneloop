@@ -46,6 +46,7 @@ func mockIAM2247(t *testing.T, orgID string, primary bool) *httptest.Server {
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 	t.Setenv("IAM_SECRET", testIAMSecret)
 	return srv
 }

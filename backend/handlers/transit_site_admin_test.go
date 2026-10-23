@@ -34,6 +34,7 @@ func setup1935Test(t *testing.T) (*gin.Engine, string) {
 	services.SetIAMInternalURLForTesting(mockIAM.URL)
 	t.Cleanup(func() {
 		services.SetIAMInternalURLForTesting("")
+		t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 		mockIAM.Close()
 	})
 
@@ -332,6 +333,7 @@ func TestTransitSiteMemberRoleTemplateErrorReported(t *testing.T) {
 	services.SetIAMInternalURLForTesting(failIAM.URL)
 	t.Cleanup(func() {
 		services.SetIAMInternalURLForTesting("")
+		t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 		failIAM.Close()
 	})
 

@@ -13,38 +13,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
-	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 )
 
-func setupMerchantOrderTables(t *testing.T, db *gorm.DB) error {
-	tables := []interface{}{
-		&models.Order{},
-		&models.OrderStatusHistory{},
-	}
-	for _, table := range tables {
-		_ = db.Migrator().DropTable(table)
-		if err := db.Migrator().CreateTable(table); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func TestListMerchantOrders_StartDateFilter(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	database.SetDB(db)
-	if err := setupMerchantOrderTables(t, db); err != nil {
-		t.Fatalf("failed to setup tables: %v", err)
-	}
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	orgID := uuid.New().String()
@@ -96,7 +72,7 @@ func TestListMerchantOrders_StartDateFilter(t *testing.T) {
 			Total int64                    `json:"total"`
 		} `json:"data"`
 	}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
+	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
 	assert.Equal(t, 20000, response.Code)
 	// Only today's order should be returned (past order excluded)
@@ -105,16 +81,7 @@ func TestListMerchantOrders_StartDateFilter(t *testing.T) {
 
 func TestListMerchantOrders_EndDateIncludesFullDay(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	database.SetDB(db)
-	if err := setupMerchantOrderTables(t, db); err != nil {
-		t.Fatalf("failed to setup tables: %v", err)
-	}
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	orgID := uuid.New().String()
@@ -167,7 +134,7 @@ func TestListMerchantOrders_EndDateIncludesFullDay(t *testing.T) {
 			Total int64 `json:"total"`
 		} `json:"data"`
 	}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
+	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
 	assert.Equal(t, 20000, response.Code)
 	// Only today's late order should be returned (tomorrow order excluded)
@@ -176,16 +143,7 @@ func TestListMerchantOrders_EndDateIncludesFullDay(t *testing.T) {
 
 func TestListMerchantOrders_NoDateReturnsAll(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	database.SetDB(db)
-	if err := setupMerchantOrderTables(t, db); err != nil {
-		t.Fatalf("failed to setup tables: %v", err)
-	}
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	orgID := uuid.New().String()
@@ -222,7 +180,7 @@ func TestListMerchantOrders_NoDateReturnsAll(t *testing.T) {
 			Total int64 `json:"total"`
 		} `json:"data"`
 	}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
+	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
 	assert.Equal(t, 20000, response.Code)
 	assert.Equal(t, int64(5), response.Data.Total)

@@ -171,6 +171,7 @@ func TestDashboardStats_2005_CustomerForbidden(t *testing.T) {
 
 // #2006 QA 返工：聚合查询失败必须 500，不得静默返回 0（HTTP 200）。
 // 注入方式：删除 merchants 表 → 治理支首个聚合失败。
+// fixture-guard:allow 故障注入（模拟表缺失），非夹具残留。
 func TestDashboardStats_2005_AggregationErrorReturns500(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()

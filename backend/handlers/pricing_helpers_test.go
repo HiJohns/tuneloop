@@ -5,6 +5,7 @@ import (
 
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
+	"tuneloop-backend/testutil"
 )
 
 // #1734: base_daily_rent 单位归一测试——存量元残留 → ×100；新订单分 → 原样；
@@ -17,7 +18,7 @@ func TestResolveBaseDailyRentCents(t *testing.T) {
 		t.Skip("test database not available")
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	// 无乐器（order nil / instrument 不存在）→ 原样返回
 	if got := resolveBaseDailyRentCents(db, nil, 28); got != 28 {

@@ -83,6 +83,7 @@ func TestWxLogin_Channel3_NewUser_CreatesLocalCache(t *testing.T) {
 	srv := newWxLoginMockServer(t, userID, "TestUser")
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	router := gin.New()
 	router.POST("/api/auth/wx-login", NewAuthHandler(db).WxLogin)
@@ -155,6 +156,7 @@ func TestWxLogin_Channel3_ExistingLocalUser_IsNewFalse(t *testing.T) {
 	srv := newWxLoginMockServer(t, userID, "Existing")
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	router := gin.New()
 	router.POST("/api/auth/wx-login", NewAuthHandler(db).WxLogin)
@@ -290,6 +292,7 @@ func TestPostRegister_RefConsumption(t *testing.T) {
 	srv := newRegisterMockServer(t, newUserID, "NewUser")
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	router := gin.New()
 	router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)
@@ -333,6 +336,7 @@ func TestPostRegister_RefConsumption(t *testing.T) {
 		srv2 := newRegisterMockServer(t, otherUser, "OtherUser")
 		defer srv2.Close()
 		services.SetIAMInternalURLForTesting(srv2.URL)
+		t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 		w := register("test-wx-code-2", "")
 		require.Equal(t, http.StatusOK, w.Code)
@@ -350,6 +354,7 @@ func TestPostRegister_RefConsumption(t *testing.T) {
 		srv3 := newRegisterMockServer(t, h5User, "H5User")
 		defer srv3.Close()
 		services.SetIAMInternalURLForTesting(srv3.URL)
+		t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 		w := register("", "abc12345")
 		require.Equal(t, http.StatusOK, w.Code)
@@ -430,6 +435,7 @@ func TestPostRegister_NoPassword_WxBind_FullFlow(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	router := gin.New()
 	router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)
@@ -538,6 +544,7 @@ func TestWxAccounts_Handler(t *testing.T) {
 	srv := newWxAccountsMockServer(t, accounts)
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	router := gin.New()
 	router.GET("/api/auth/wx-accounts", NewAuthHandler(db).WxAccounts)
@@ -553,6 +560,7 @@ func TestWxAccounts_Handler(t *testing.T) {
 		emptySrv := newWxAccountsMockServer(t, []map[string]interface{}{})
 		defer emptySrv.Close()
 		services.SetIAMInternalURLForTesting(emptySrv.URL)
+		t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 		// Rebuild handler so IAMService picks up the new mock URL
 		router2 := gin.New()
@@ -585,6 +593,7 @@ func TestWxAccounts_Handler(t *testing.T) {
 		})
 		defer oneSrv.Close()
 		services.SetIAMInternalURLForTesting(oneSrv.URL)
+		t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 		// Rebuild handler so IAMService picks up the new mock URL
 		router3 := gin.New()
@@ -667,6 +676,7 @@ func TestWxLoginSelect_Handler(t *testing.T) {
 	srv := newWxLoginMockServer(t, userID, "SelectUser")
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	router := gin.New()
 	router.POST("/api/auth/wx-login-select", NewAuthHandler(db).WxLoginSelect)
@@ -721,6 +731,7 @@ func TestWxLoginSelect_FriendlyErrors(t *testing.T) {
 
 	selectRouter := func(srv *httptest.Server) *gin.Engine {
 		services.SetIAMInternalURLForTesting(srv.URL)
+		t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 		router := gin.New()
 		router.POST("/api/auth/wx-login-select", NewAuthHandler(db).WxLoginSelect)
 		return router
@@ -799,6 +810,7 @@ func TestPostRegister_PhoneExists_409(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	router := gin.New()
 	router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)
@@ -886,6 +898,7 @@ func TestPostRegister_WxBindFailure_Aborts(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	router := gin.New()
 	router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)
@@ -962,6 +975,7 @@ func TestPostRegister_ExchangeToken_Flow(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	router := gin.New()
 	router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)
@@ -1093,6 +1107,7 @@ func TestPostRegister_UsernameDerivedFromPhone(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	router := gin.New()
 	router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)
@@ -1149,6 +1164,7 @@ func TestWxBindCurrentUser(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	router := gin.New()
 	router.POST("/api/users/me/wx-bind", (&UserStaffHandler{}).WxBindCurrentUser)

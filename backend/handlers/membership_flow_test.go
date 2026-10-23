@@ -47,6 +47,7 @@ func TestMembershipFlow(t *testing.T) {
 	srv := newRegisterMockServer(t, newUserID, "MembershipUser")
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	registerBody, _ := json.Marshal(map[string]interface{}{
 		"agreed_terms": true,
@@ -342,6 +343,7 @@ func TestPrepayRent_OpenIDResolvedFromBindings(t *testing.T) {
 	iamSrv := httptest.NewServer(mux)
 	defer iamSrv.Close()
 	services.SetIAMInternalURLForTesting(iamSrv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	rec := &recordingJSAPIClient{}
 	wechatpay.ResetGlobalForTesting()

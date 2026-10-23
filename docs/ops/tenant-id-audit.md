@@ -370,6 +370,9 @@
 | ISO-13 | 商户 A 管理员 | 跨商户维修服务单详情 / 转派 / 收货 / 结算 | 404 / 403；状态与金额不变 | ✅ 列表隔离 `TestRepairService_LeafOrgScope_Isolation_2134`；转派跨商户目标 40003 `TestReassignRepairService_2229_Validation`；跨网点操作 403 `TestAcceptRepair_OtherSite_Forbidden` |
 | ISO-14 | 网点管理员 | 跨网点订单/乐器详情 | 跨商户 → 404/403；本商户 org 锚可读 | ✅ 自动化：`TestIsolationMatrix_OrderDetail_CrossMerchant_ISO14`（站点级列表隔离由 #1911/#2116 覆盖） |
 | ISO-15 | 顾客（零租户） | 下单/读取/我的订单 | 不因 tid 为空被拒；数据落商户 org；跨顾客 404 | ✅ 自动化：`TestIsolationMatrix_CustomerZeroTenant_Chain_ISO15`（拍付/收货动作由 `prepay_2110`/`#2116` 组覆盖，wxpay 真链路列部署侧走查） |
+| ISO-16 | 顾客 | 发票申请：伪造 `tenant_id=B`；跨商户订单合并 | 伪造 → 400 且无申请行；不传 → 落订单商户 org；跨商户合并 → 400 | ✅ `TestInvoiceSubmit_TenantDerivedFromOrders_2262` |
+| ISO-17 | 商户 A/B 管理员 | 共享 tenant 下各自 webhook 配置 | A/B 互不覆盖；旧 tenant 键只读回退可用 | ✅ `TestMerchantWebhook_SharedTenantIsolation_2262`、`TestMerchantTenantID_ReturnsMerchantOrg_2262` |
+| ISO-18 | 商户/网点管理员、顾客 | B3 显式模式下的 repair / orders-instruments / membership 路由 | 跨商户 404/空；本商户 200；on/off 等价 | ✅ `TestRepairDomain_ExplicitScopeIsolation_2261`、`TestOrdersInstrumentsDomain_ExplicitScopeIsolation_2261`、`TestMembershipDomain_SitesExplicitScope_2261`（#2261 `d96d385e`） |
 
 ## A6 覆盖率校验（可复跑）
 
@@ -423,14 +426,47 @@ bash scripts/tenant-audit-coverage.sh
 | `repair_admin.go` `CreateAppeal` | ✅ 已修 | 归属 = 被申诉对象（repair_request/order/damage）的 tenant；`org_id/site_id` 空串改 Omit（同根 22P02）。红绿：父提交 500 → 修复 200/org 锚 + 未知对象→平台零 UUID |
 | `invoice.go` | ⚪ 已正确 | 写入取 `order.TenantID` / `group.TenantID`（数据归属） |
 | `merchant_invoice.go` | ⚪ 不适用 | 写入为**通知**元数据（target=申请用户；tenant 仅路由） |
-| `forwarding_sessions.go` / `label.go` | ⚪ 不适用 | 无 S4 写入点（grep `TenantID:` = 0） |
+| `merchant.go` | ⚪ 不适用（S2 读取归 P3） | 商户定义行 `merchant.go:354` 的 `tenant_id` = 创建者/平台共享 tenant（A2：Merchant 的 tenant 为共享值，身份 = `org_id = iamOrgID`）；`initSystemRoles`（:719）用新商户 tenant 建角色。本批 S4 不适用，列表读取按 tenant 的 S2 归 P3 |
+| `forwarding_session.go` | ⚪ 不适用（调用方数据锚） | `createForwardingSession`（:82）由调用方传 tenant：`user_rental.go:704` 传 `instrument.TenantID`；`merchant_id` 优先操作者 org、无 org 时回退该 tenant（:85-89）。写入值来自订单/乐器数据归属，非创建者上下文 |
+| `label.go` | ⚪ 不适用（P 表 / S6） | `label.go:75` 写入 `tenant_id = 操作者 tid`，但 Label 属 A2 的 **P（平台级）** 表，tenant 仅创建者元数据；按 tenant 做访问范围属 S6，归 P3/P5 统一，不属本批 S4 |
+| A3-8 其余必修（前批已修） | ✅ 已修（非本批） | `user_staff.go`(#2247)、`merchant_member.go`(#2250)、`iam_proxy.go`(#2249)、`repair_service.go`/`repair_service_admin_2129.go`(#2248)、`instrument_batch_import.go`/`public.go`/`pricing.go`/`merchant_rebate.go`/`points_policy.go`(#2251) |
 | `transit_site_admin.go` | ⚪ 不适用 | 中转网点按 #1935 直辖平台顶层组织，tenant=org=平台租户（注释明确） |
 | `transit_order.go` | ⚪ 不适用 | 中转域操作行，锚 = 平台顶层组织（同 #1935）；未来若允许商户级操作需复核 |
 | `property.go` | ⚪ 不适用 | 平台级资源（P 表），tenant = 创建者元数据（设计如此） |
 | `confirmation_session.go` | ⚪ 不适用 | 会话归属 user_id，tenant 仅上下文元数据 |
 | `staff_invite.go` / `site_member.go` / `member_invite_2114.go` | ⚪ 不适用 | 写入前经 `hasSiteAccess`（sites.tenant_id = 操作者 tid）→ 与 site.TenantID 恒等 |
 | `repair_config.go` | ✅ 已修（#2251） | 维修设置锚商户 org / 平台 nil UUID |
-| B3 | 读回调逐域显式化（opt-in 等价迁移） | 🟡 批次1 ✅ 开关+观察；批次2 本地统计（9 表）✅ / 生产 24h 待部署；**批次3-域1（repair）/域2（orders·instruments）就绪**：显式模式隔离守卫通过；其余域待推进 | `TestExplicitTenantScopeOnly_2261`、`TestRepairDomain_ExplicitScopeIsolation_2261`、`TestOrdersInstrumentsDomain_ExplicitScopeIsolation_2261` |
-| B4 | A3-8 必修清单（P2/P3 批 25 文件）口径改造 | ⬜ 待批 | 逐文件清单见 §A3-8 |
-| B5 | 前端/services tenant payload 收敛（26/103 处） | ⬜ 待批 | 与 API 口径同步 |
-| B6 | 隔离矩阵补齐（ISO-14 网点管理员跨网点、ISO-15 顾客全链路） | ⬜ 部分（ISO-13 ✅） | 行级断言
+| B3 | 读回调逐域显式化（opt-in 等价迁移） | 🟡 批次1 ✅ 开关+观察；批次2 本地统计（9 表）✅ / 生产 24h 待部署；**批次3-域1（repair）/域2（orders·instruments）就绪**：显式模式隔离守卫通过；**域3（merchants/sites/site_members/technician_profiles）**：结算配置显式商户范围已补（`86774cf1`，红绿实证），technician_profiles 守卫已过（`8fa44810`）；sites/invoice_applications/instrument_media 本身即显式 tenant；#2269 判定有误已回滚（`e8a64aa4`）；**观察期实采（商户管理员受控流量）命中 12 表**：instruments/instrument_media/instrument_properties/sites/merchants/technician_profiles/users/orders/order_payment_records/order_status_history/properties/invoice_applications（真实口径：sites.tenant_id=商户 org、merchants.tenant_id=共享 tenant/org_id=商户 org） | `TestExplicitTenantScopeOnly_2261`、`TestRepairDomain_ExplicitScopeIsolation_2261`、`TestOrdersInstrumentsDomain_ExplicitScopeIsolation_2261`、`TestMembershipDomain_SitesExplicitScope_2261`、`TestTechnicianProfilesDomain_ExplicitScopeIsolation_2261`。**B3 三域已挂 `middleware.ExplicitTenantScope()`（`d96d385e`）**：repair 组 / orders+instruments 44 路由 / siteRequired+technician_profiles+merchants；全量 diff 无新增失败（15 vs 基线 21，修复 6 项）。预生产观察日志核对待部署后执行。 |
+| B4 | A3-8 必修清单（P2/P3 批 25 文件）口径改造 | 🟡 逐文件判定完成；本轮修 `invoice.go`（归属由订单派生）+ `member_invite_2114.go`（org 锚） | 见 §A7-B4 |
+| B5 | 前端/services tenant payload 收敛 | 🟡 盘点 88 行（63/21/4）→ `docs/ops/tenant-payload-audit-2262.md`；改 `webhook.go`（org 键 + 旧键只读回退）、`InvoiceConfirm` 移除 payload | 与 API 口径同步 |
+| B6 | 隔离矩阵补齐（ISO-14~18） | 🟡 自动化 ✅（ISO-16/17 随 #2262，ISO-18 随 #2261）；预生产走查待发布 | 行级断言
+
+
+## §A7-B4 逐文件判定（#2262）
+
+| 文件 | 判定 | 动作/证据 |
+|---|---|---|
+| `user_staff.go` | 已修 #2247 | 仅复核 |
+| `merchant_member.go` | 已修 #2250 | 仅复核 |
+| `iam_proxy.go` | 已修 #2249 | 仅复核 |
+| `instrument_batch_import.go` / `public.go` | 已修 #2251 | 仅复核 |
+| `repair_service.go` / `repair_service_admin_2129.go` | 已修 #2248 | 仅复核 |
+| `repair_config.go` / `pricing.go` / `merchant_rebate.go` / `points_policy.go` | 已修 #2251 | 仅复核 |
+| `pending_order.go` | 已修 B2a | 仅复核 |
+| `instrument_promo_override.go` | 已修 B2b | 仅复核 |
+| `billing.go` | 已修 B2b + `86774cf1` | 仅复核（#2261 显式范围） |
+| `repair_admin.go`（CreateAppeal） | 已修 B2b | 仅复核 |
+| `warehouse.go` | 写入经 `orders.tenant_id = tid` 门控 | 登记「等价」，不改 |
+| `appeal.go` | 申诉单/订单门控加载 | 登记「等价」，不改 |
+| `forwarding_session.go` | 调用方传 `instrument.TenantID` | 登记「调用方数据锚」，不改 |
+| `transit_site_admin.go` / `transit_order.go` | #1935 平台顶层组织 | 登记「平台域」，不改 |
+| `property.go` / `label.go` | P 表/S6 元数据 | 登记「P 表」，不改 |
+| `merchant.go` | 商户定义行 tenant=创建者/共享，身份=org | 登记「定义/读取」，不改 |
+| `confirmation_session.go` | `tenant_id = tid` 门控目标用户 | 登记「门控等价」，不改 |
+| `staff_invite.go` / `site_member.go` | 经 `hasSiteAccess`（`sites.tenant_id`） | 登记「门控等价」，不改 |
+| `site.go` | #2266（`87dabfe2`）锚=商户 org | 仅复核 |
+| `invoice.go` | **需改**：客户端可指定 tenant | ✅ 归属由订单派生；`TestInvoiceSubmit_TenantDerivedFromOrders_2262` 红绿 |
+| `merchant_invoice.go` | 按申请单 tenant 读 | 仅复核 |
+| **`member_invite_2114.go`** | **需改**：`GetMyMerchant` OR 回退共享 tenant | ✅ 改 `resolveOperatorMerchantConfig`；`TestMyMerchant_SharedTenantOrgAnchor_2262` 红绿 |
+| `services/webhook.go` | **需改**：商户身份用共享 tenant 作键 | ✅ 改商户 org（双读单写）；`TestMerchantWebhook_SharedTenantIsolation_2262` / `TestMerchantTenantID_ReturnsMerchantOrg_2262` |
+| `frontend-mobile/src/pages/InvoiceConfirm.jsx` | 请求 payload 携带 `tenant_id` | ✅ 已移除 payload（分组展示保留） |

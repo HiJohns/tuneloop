@@ -13,21 +13,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/models"
 )
 
 func setupMigrateBannerWebPTest(t *testing.T) (string, func()) {
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return "", func() {}
-	}
-	database.SetDB(db)
-
-	// Clean banners table
-	_ = db.Migrator().DropTable(&models.Banner{})
-	require.NoError(t, db.Migrator().CreateTable(&models.Banner{}))
+	testfixtures.SetupTestDB(t)
 
 	// Create temp upload dir
 	tmpDir := t.TempDir()
@@ -39,7 +30,6 @@ func setupMigrateBannerWebPTest(t *testing.T) (string, func()) {
 
 	cleanup := func() {
 		os.Chdir(origDir)
-		db.Migrator().DropTable(&models.Banner{})
 	}
 
 	require.NoError(t, os.Chdir(tmpDir))

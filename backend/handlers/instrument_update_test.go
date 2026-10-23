@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
+	"tuneloop-backend/testutil"
 )
 
 func TestUpdateInstrument(t *testing.T) {
@@ -186,7 +186,7 @@ func TestUpdateInstrument(t *testing.T) {
 			db, err := gorm.Open(dialector, &gorm.Config{})
 			assert.NoError(t, err)
 
-			database.SetDB(db)
+			testutil.SetDB(t, db)
 
 			if tt.setupDBMock != nil {
 				tt.setupDBMock(mock)
@@ -238,7 +238,7 @@ func TestUpdateInstrumentPricingField(t *testing.T) {
 	db, err := gorm.Open(dialector, &gorm.Config{})
 	assert.NoError(t, err)
 
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	rows := sqlmock.NewRows([]string{
 		"id", "tenant_id", "org_id", "category_id", "name", "brand", "level",

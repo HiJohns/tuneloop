@@ -15,6 +15,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/testutil"
 )
 
 func TestGetInventoryRentSetting(t *testing.T) {
@@ -26,7 +27,7 @@ func TestGetInventoryRentSetting(t *testing.T) {
 		t.Skip("Test database not available, skipping:", err)
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
 	now := time.Now()
@@ -99,7 +100,7 @@ func TestBatchUpdateRent(t *testing.T) {
 		t.Skip("Test database not available, skipping:", err)
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
 	now := time.Now()

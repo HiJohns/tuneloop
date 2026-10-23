@@ -13,53 +13,28 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/testutil"
 )
 
 // IntegrationTest04_Scenario1_RentalClosedLoop tests full rental flow:
 // Browse → CreateOrder → Pay → Contract → MyRentals → Return
 func TestIntegration_Scenario1_RentalClosedLoop(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	database.SetDB(db)
-
-	// Setup tables for integration test
-	_ = db.Migrator().DropTable(&models.Instrument{})
-	_ = db.Migrator().DropTable(&models.Order{})
-	_ = db.Migrator().DropTable(&models.ElectronicContract{})
-
-	_ = db.Migrator().DropTable(&models.Appeal{})
-	_ = db.Migrator().DropTable(&models.MaintenanceWorker{})
-	_ = db.Migrator().DropTable(&models.OrderStatusHistory{})
-
-	if err := db.Migrator().CreateTable(&models.Instrument{}); err != nil {
-		t.Fatalf("failed to create instruments table: %v", err)
-	}
-	if err := db.Migrator().CreateTable(&models.Order{}); err != nil {
-		t.Fatalf("failed to create orders table: %v", err)
-	}
-	if err := db.Migrator().CreateTable(&models.ElectronicContract{}); err != nil {
-		t.Fatalf("failed to create electronic_contracts table: %v", err)
-	}
-	if err := db.Migrator().CreateTable(&models.Appeal{}); err != nil {
-		t.Fatalf("failed to create appeals table: %v", err)
-	}
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	userID := uuid.New().String()
 	instrumentID := uuid.New().String()
+	testutil.SeedVerifiedCustomer(t, db, tenantID, tenantID, userID)
 
 	// Step 1: Create available instrument
 	instrument := models.Instrument{
 		ID:          instrumentID,
 		TenantID:    tenantID,
+		OrgID:       &tenantID,
 		StockStatus: "available",
 		Pricing:     `[{"daily_rent": 10.0, "weekly_rent": 70.0, "monthly_rent": 240.0, "deposit": 500.0}]`,
 	}
@@ -70,6 +45,7 @@ func TestIntegration_Scenario1_RentalClosedLoop(t *testing.T) {
 	router.Use(func(c *gin.Context) {
 		ctx := c.Request.Context()
 		ctx = context.WithValue(ctx, middleware.ContextKeyTenantID, tenantID)
+		ctx = context.WithValue(ctx, middleware.ContextKeyOrgID, tenantID)
 		ctx = context.WithValue(ctx, middleware.ContextKeyUserID, userID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
@@ -95,7 +71,7 @@ func TestIntegration_Scenario1_RentalClosedLoop(t *testing.T) {
 			List []map[string]interface{} `json:"list"`
 		} `json:"data"`
 	}
-	err = json.Unmarshal(w.Body.Bytes(), &instrResponse)
+	err := json.Unmarshal(w.Body.Bytes(), &instrResponse)
 	require.NoError(t, err)
 	assert.Equal(t, 20000, instrResponse.Code)
 	assert.Greater(t, len(instrResponse.Data.List), 0)
@@ -128,22 +104,7 @@ func TestIntegration_Scenario1_RentalClosedLoop(t *testing.T) {
 // IntegrationTest04_Scenario2_WarehouseProcess tests warehouse workflow
 func TestIntegration_Scenario2_WarehouseProcess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	database.SetDB(db)
-
-	_ = db.Migrator().DropTable(&models.Order{})
-	_ = db.Migrator().DropTable(&models.OrderStatusHistory{})
-	if err := db.Migrator().CreateTable(&models.Order{}); err != nil {
-		t.Fatalf("failed to create orders table: %v", err)
-	}
-	if err := db.Migrator().CreateTable(&models.OrderStatusHistory{}); err != nil {
-		t.Fatalf("failed to create order_status_history table: %v", err)
-	}
+	db := testfixtures.SetupTestDB(t)
 	tenantID := uuid.New().String()
 	userID := uuid.New().String()
 
@@ -151,6 +112,7 @@ func TestIntegration_Scenario2_WarehouseProcess(t *testing.T) {
 	router.Use(func(c *gin.Context) {
 		ctx := c.Request.Context()
 		ctx = context.WithValue(ctx, middleware.ContextKeyTenantID, tenantID)
+		ctx = context.WithValue(ctx, middleware.ContextKeyOrgID, tenantID)
 		ctx = context.WithValue(ctx, middleware.ContextKeyUserID, userID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
@@ -163,10 +125,14 @@ func TestIntegration_Scenario2_WarehouseProcess(t *testing.T) {
 	// Create test order
 	orderID := uuid.New().String()
 	order := models.Order{
-		ID:       orderID,
-		TenantID: tenantID,
-		UserID:   userID,
-		Status:   "paid",
+		ID:           orderID,
+		TenantID:     tenantID,
+		OrgID:        tenantID,
+		UserID:       userID,
+		InstrumentID: uuid.New().String(),
+		Level:        "standard",
+		LeaseTerm:    30,
+		Status:       "paid",
 	}
 	db.Create(&order)
 
@@ -182,7 +148,7 @@ func TestIntegration_Scenario2_WarehouseProcess(t *testing.T) {
 			List []map[string]interface{} `json:"list"`
 		} `json:"data"`
 	}
-	err = json.Unmarshal(w.Body.Bytes(), &ordersResponse)
+	err := json.Unmarshal(w.Body.Bytes(), &ordersResponse)
 	require.NoError(t, err)
 	assert.Equal(t, 20000, ordersResponse.Code)
 	assert.Greater(t, len(ordersResponse.Data.List), 0)
@@ -210,15 +176,7 @@ func TestIntegration_Scenario2_WarehouseProcess(t *testing.T) {
 // IntegrationTest04_Scenario4_AppealProcess tests appeal workflow
 func TestIntegration_Scenario4_AppealProcess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	database.SetDB(db)
-
-	setupWarehouseTables(t, db)
+	db := testfixtures.SetupTestDB(t)
 	tenantID := uuid.New().String()
 	userID := uuid.New().String()
 
@@ -226,6 +184,8 @@ func TestIntegration_Scenario4_AppealProcess(t *testing.T) {
 	router.Use(func(c *gin.Context) {
 		ctx := c.Request.Context()
 		ctx = context.WithValue(ctx, middleware.ContextKeyTenantID, tenantID)
+		ctx = context.WithValue(ctx, middleware.ContextKeyOrgID, tenantID)
+		ctx = context.WithValue(ctx, middleware.ContextKeyUserID, userID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -238,9 +198,22 @@ func TestIntegration_Scenario4_AppealProcess(t *testing.T) {
 	appealID := uuid.New().String()
 	drID := uuid.New().String()
 	appealReason := "Test damage appeal"
+	appealOrderID := uuid.New().String()
+	db.Create(&models.Order{
+		ID: appealOrderID, TenantID: tenantID, OrgID: tenantID, UserID: userID,
+		InstrumentID: uuid.New().String(), Level: "standard", LeaseTerm: 30, Status: "in_lease",
+	})
+	db.Create(&models.DamageReport{
+		ID: drID, TenantID: tenantID, OrgID: tenantID,
+		LeaseID: appealOrderID, InstrumentID: uuid.New().String(),
+		UserID: userID, Status: "pending",
+	})
 	appeal := models.Appeal{
 		ID:             appealID,
 		TenantID:       tenantID,
+		OrgID:          tenantID,
+		SiteID:         uuid.New().String(),
+		ObjectID:       uuid.New().String(),
 		Status:         "pending",
 		DamageReportID: &drID,
 		UserID:         &userID,
@@ -261,7 +234,7 @@ func TestIntegration_Scenario4_AppealProcess(t *testing.T) {
 			List []map[string]interface{} `json:"list"`
 		}
 	}
-	err = json.Unmarshal(w.Body.Bytes(), &listResponse)
+	err := json.Unmarshal(w.Body.Bytes(), &listResponse)
 	require.NoError(t, err)
 	assert.Equal(t, 20000, listResponse.Code)
 
@@ -278,8 +251,9 @@ func TestIntegration_Scenario4_AppealProcess(t *testing.T) {
 
 	// Step 3: Resolve appeal
 	reqBody := map[string]interface{}{
-		"resolution": "adjusted",
-		"notes":      "Adjusted to 80 USD",
+		"decision":      "adjust",
+		"adjust_amount": 80.0,
+		"comment":       "Adjusted to 80 USD",
 	}
 	jsonBody, _ := json.Marshal(reqBody)
 	req = httptest.NewRequest("PUT", "/api/appeals/"+appealID+"/resolve", bytes.NewBuffer(jsonBody))

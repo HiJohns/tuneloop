@@ -5,7 +5,7 @@
 import Taro from '@tarojs/taro'
 import { useEffect, useCallback } from 'react'
 import { Text, View } from '@tarojs/components'
-import { env, eventBus, navigation, storage } from '../platform'
+import { env, eventBus, navigation, storage, useDidShow } from '../platform'
 
 export const AGREEMENT_CONSENT_RESULT_KEY = 'agreement_consent_result'
 export const AGREEMENT_CONSENT_EVENT = 'agreementConsentChanged'
@@ -27,10 +27,8 @@ export default function AgreementCheckbox({ agreed, onChange, style, onOpenConse
     eventBus.on(AGREEMENT_CONSENT_EVENT, applyResult)
     return () => eventBus.off(AGREEMENT_CONSENT_EVENT, applyResult)
   }, [applyResult])
-  // weapp：navigateBack 不重新挂载页面 → 页面显示时读取。
-  // H5（Vite/Taro shim）无 Taro.useDidShow → 使用空实现，避免整页崩溃。
-  const useDidShowSafe = typeof Taro.useDidShow === 'function' ? Taro.useDidShow : () => {}
-  useDidShowSafe(() => {
+  // weapp：navigateBack 不重新挂载页面 → 页面显示时读取（#2267 统一走 platform）。
+  useDidShow(() => {
     if (env.isMiniProgram) applyResult()
   })
 

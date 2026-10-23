@@ -18,11 +18,13 @@ import (
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
+	"tuneloop-backend/testutil"
 )
 
 func TestIAMProxyHandler_CreateUser_Success(t *testing.T) {
 	// Set up test environment
 	services.SetIAMInternalURLForTesting("http://mock-iam-service")
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	// Create a mock IAM service that validates the request
 	mockIAM := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -64,6 +66,7 @@ func TestIAMProxyHandler_CreateUser_Success(t *testing.T) {
 
 	// Set the IAM URL for testing
 	services.SetIAMInternalURLForTesting(mockIAM.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	// Create test handler
 	handler := NewIAMProxyHandler()
@@ -172,6 +175,7 @@ func TestIAMProxyHandler_CreateUser_Validation(t *testing.T) {
 
 func TestIAMProxyHandler_LookupUser_Success(t *testing.T) {
 	services.SetIAMInternalURLForTesting("http://mock-iam-service")
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	// Mock IAM that returns 200 for existing users
 	mockIAM := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -191,6 +195,7 @@ func TestIAMProxyHandler_LookupUser_Success(t *testing.T) {
 	defer mockIAM.Close()
 
 	services.SetIAMInternalURLForTesting(mockIAM.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 	handler := NewIAMProxyHandler()
 
 	gin.SetMode(gin.TestMode)
@@ -212,6 +217,7 @@ func TestIAMProxyHandler_LookupUser_Success(t *testing.T) {
 }
 func TestIAMProxyHandler_LookupUser_NotFound(t *testing.T) {
 	services.SetIAMInternalURLForTesting("http://mock-iam-service")
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	// Mock IAM that returns 404
 	mockIAM := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -222,6 +228,7 @@ func TestIAMProxyHandler_LookupUser_NotFound(t *testing.T) {
 	defer mockIAM.Close()
 
 	services.SetIAMInternalURLForTesting(mockIAM.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 	handler := NewIAMProxyHandler()
 
 	gin.SetMode(gin.TestMode)
@@ -247,6 +254,7 @@ func TestIAMProxyHandler_LookupUser_NotFound(t *testing.T) {
 func TestIAMProxyHandler_Issue340_IntegrationFlow(t *testing.T) {
 	// Set placeholder IAM URL
 	services.SetIAMInternalURLForTesting("http://placeholder")
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	// Create mock IAM service
 	mockIAM := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -296,15 +304,18 @@ func TestIAMProxyHandler_Issue340_IntegrationFlow(t *testing.T) {
 	defer mockIAM.Close()
 
 	services.SetIAMInternalURLForTesting(mockIAM.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	// Test 1: Lookup non-existent user (should fail)
 	t.Run("LookupNonExistentUser", func(t *testing.T) {
 		services.SetIAMInternalURLForTesting(mockIAM.URL)
+		t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 		handler := NewIAMProxyHandler()
 
 		// Set IAM URL and create handler
 		services.SetIAMInternalURLForTesting(mockIAM.URL)
+		t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 		req := httptest.NewRequest("GET", "/api/iam/users/lookup?identifier=testuser_340_new@example.com", nil)
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
@@ -343,6 +354,7 @@ func TestIAMProxyHandler_Issue340_IntegrationFlow(t *testing.T) {
 	// Test 3: Lookup existing user (should succeed)
 	t.Run("LookupExistingUser", func(t *testing.T) {
 		services.SetIAMInternalURLForTesting(mockIAM.URL)
+		t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 		handler := NewIAMProxyHandler()
 
@@ -370,7 +382,7 @@ func TestSyncOrganizations_SiteTenantID(t *testing.T) {
 		t.Skip("test database not available")
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	// Set up Site table
 	_ = db.Migrator().DropTable(&models.Site{})
@@ -405,6 +417,7 @@ func TestSyncOrganizations_SiteTenantID(t *testing.T) {
 	}))
 	defer mockIAM.Close()
 	services.SetIAMInternalURLForTesting(mockIAM.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	t.Run("create site with correct tenant_id", func(t *testing.T) {
 		handler := NewIAMProxyHandler()
@@ -515,7 +528,7 @@ func TestSyncUsers_ScopeFilter(t *testing.T) {
 		t.Skip("Test database not available, skipping:", err)
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	merchantOrgID := uuid.New().String()
 	childOrgID := uuid.New().String()
@@ -562,6 +575,7 @@ func TestSyncUsers_ScopeFilter(t *testing.T) {
 	}))
 	defer mockIAM.Close()
 	services.SetIAMInternalURLForTesting(mockIAM.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	handler := NewIAMProxyHandler()
 	router := gin.New()
@@ -617,7 +631,7 @@ func TestSyncUsers_SiteMember(t *testing.T) {
 		t.Skip("Test database not available, skipping:", err)
 		return
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	merchantOrgID := uuid.New().String()
 	childOrgID := uuid.New().String()
@@ -667,6 +681,7 @@ func TestSyncUsers_SiteMember(t *testing.T) {
 	}))
 	defer mockIAM.Close()
 	services.SetIAMInternalURLForTesting(mockIAM.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	handler := NewIAMProxyHandler()
 	router := gin.New()

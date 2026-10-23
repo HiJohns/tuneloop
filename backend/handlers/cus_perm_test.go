@@ -12,6 +12,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/services"
+	"tuneloop-backend/testutil"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
@@ -24,7 +25,7 @@ func setupCusPermTestDB(t *testing.T) {
 	if err != nil {
 		t.Skip("test database not available")
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 	_ = db
 }
 

@@ -52,6 +52,7 @@ func TestCreateUser2073_BioAllTypesAndDualWrite(t *testing.T) {
 	srv := newIAMMock2068(t, uuid.New().String())
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 	t.Setenv("IAM_SECRET", testIAMSecret)
 
 	h := &UserStaffHandler{}

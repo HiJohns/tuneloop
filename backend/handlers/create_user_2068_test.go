@@ -75,6 +75,7 @@ func TestCreateUser2068_TechnicianMergedAndConflict(t *testing.T) {
 	srv := newIAMMock2068(t, newUserID)
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 	t.Setenv("IAM_SECRET", testIAMSecret)
 
 	h := &UserStaffHandler{}

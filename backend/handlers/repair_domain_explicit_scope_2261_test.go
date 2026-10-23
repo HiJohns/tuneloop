@@ -11,8 +11,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"tuneloop-backend/database"
 	"tuneloop-backend/handlers/testfixtures"
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/testutil"
 
@@ -43,33 +43,45 @@ func TestRepairDomain_ExplicitScopeIsolation_2261(t *testing.T) {
 	require.NoError(t, db.Omit("site_id", "user_instrument_id").Create(&rowA).Error)
 	require.NoError(t, db.Omit("site_id", "user_instrument_id").Create(&rowB).Error)
 
-	// 关键：请求上下文**关闭自动租户范围**（模拟逐域切换后的形态）
-	actor := testutil.TestActor{TenantID: orgA, OrgID: orgA, UserID: uuid.NewString(), Role: "OWNER"}
-	r := gin.New()
-	r.Use(func(c *gin.Context) {
-		ctx := database.ExplicitTenantScopeOnly(actor.InjectContext(c.Request.Context()))
-		c.Request = c.Request.WithContext(ctx)
-		c.Next()
-	})
-	r.GET("/admin/repair-services", ListMerchantRepairServices)
-
-	req := httptest.NewRequest(http.MethodGet, "/admin/repair-services?page=1&page_size=20", nil)
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
-
-	var resp struct {
-		Data struct {
-			List []map[string]interface{} `json:"list"`
-		} `json:"data"`
-	}
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	ids := map[string]bool{}
-	for _, it := range resp.Data.List {
-		if id, ok := it["id"].(string); ok {
-			ids[id] = true
+	actor := testutil.TestActor{TenantID: sharedTenant, OrgID: orgA, UserID: uuid.NewString(), Role: "OWNER"}
+	fetch := func(t *testing.T, withExplicit bool) map[string]bool {
+		t.Helper()
+		r := gin.New()
+		r.Use(func(c *gin.Context) {
+			c.Request = c.Request.WithContext(actor.InjectContext(c.Request.Context()))
+			c.Next()
+		})
+		if withExplicit {
+			r.Use(middleware.ExplicitTenantScope())
 		}
+		r.GET("/admin/repair-services", ListMerchantRepairServices)
+
+		req := httptest.NewRequest(http.MethodGet, "/admin/repair-services?page=1&page_size=20", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+		var resp struct {
+			Data struct {
+				List []map[string]interface{} `json:"list"`
+			} `json:"data"`
+		}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		ids := map[string]bool{}
+		for _, it := range resp.Data.List {
+			if id, ok := it["id"].(string); ok {
+				ids[id] = true
+			}
+		}
+		return ids
 	}
-	assert.True(t, ids[rowA.ID], "本商户服务单必须可见（显式范围模式）")
-	assert.False(t, ids[rowB.ID], "关闭自动租户范围后仍不得跨商户可见（repair 域已显式锚定）")
+
+	offIDs := fetch(t, false)
+	onIDs := fetch(t, true)
+
+	assert.True(t, offIDs[rowA.ID], "自动范围模式下本商户可见")
+	assert.False(t, offIDs[rowB.ID], "自动范围模式下跨商户不可见")
+	assert.True(t, onIDs[rowA.ID], "显式范围模式下本商户可见")
+	assert.False(t, onIDs[rowB.ID], "显式范围模式下跨商户不可见")
+	assert.Equal(t, offIDs, onIDs, "开关 on/off 结果必须等价")
 }

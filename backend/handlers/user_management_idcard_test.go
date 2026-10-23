@@ -11,6 +11,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/testutil"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -29,7 +30,7 @@ func setupIdCardTestDB(t *testing.T) (*gorm.DB, string) {
 		t.Skip("test database not available")
 		return nil, ""
 	}
-	database.SetDB(db)
+	testutil.SetDB(t, db)
 
 	for _, m := range []interface{}{
 		&models.User{}, &models.FaceCaptureBatch{}, &models.Notification{}, &models.AuditLog{},

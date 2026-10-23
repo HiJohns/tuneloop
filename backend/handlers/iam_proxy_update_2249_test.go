@@ -48,6 +48,7 @@ func TestIAMProxy_UpdateIAMUser_ZeroTenant_2249(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 	t.Setenv("IAM_SECRET", testIAMSecret)
 
 	merchantOrg := uuid.New().String()

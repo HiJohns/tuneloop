@@ -28,7 +28,6 @@ import (
 func TestPrepayRenewal_BackfillsDaysFromConfirmRecord(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
-	require.NoError(t, db.Migrator().CreateTable(&models.Coupon{}))
 
 	wechatpay.ResetGlobalForTesting()
 	wechatpay.SetClientForTesting(stubJSAPIClient{}, &wechatpay.Config{
@@ -92,6 +91,7 @@ func TestPrepayRenewal_BackfillsDaysFromConfirmRecord(t *testing.T) {
 		"order_id":    orderID,
 		"amount":      36.0, // 全价 36 元 = 3600 分
 		"coupon_code": "ENO",
+		"open_id":     "wx-test-openid", // #2271: 自包含（JSAPI 预付需要 openid）
 	})
 	req := httptest.NewRequest("POST", "/api/pay/prepay", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -113,7 +113,6 @@ func TestPrepayRenewal_BackfillsDaysFromConfirmRecord(t *testing.T) {
 func TestPrepayRenewal_NoConfirmRecord_Rejected(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
-	require.NoError(t, db.Migrator().CreateTable(&models.Coupon{}))
 
 	wechatpay.ResetGlobalForTesting()
 	wechatpay.SetClientForTesting(stubJSAPIClient{}, &wechatpay.Config{

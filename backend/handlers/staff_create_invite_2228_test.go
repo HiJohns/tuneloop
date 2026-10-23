@@ -60,6 +60,7 @@ func TestStaffCreateUser_InviteMode_2228(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 	t.Setenv("IAM_SECRET", testIAMSecret)
 
 	h := &UserStaffHandler{}

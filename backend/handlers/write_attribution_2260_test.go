@@ -128,8 +128,10 @@ func TestSettlementConfig_AnchoredToMerchantOrg_2260(t *testing.T) {
 	r := gin.New()
 	r.GET("/admin/merchant/:id/settlement", GetSettlementConfig)
 	r.PUT("/admin/merchant/:id/settlement", UpsertSettlementConfig)
-	// 生产可达身份：该端点在 authRequired（平台管理员上下文 tid 为空，无租户过滤）
-	admin := testutil.TestActor{TenantID: "", OrgID: "", UserID: uuid.NewString(), Role: "NAMESPACE_ADMIN"}
+	// 生产可达身份：平台管理员在 authRequired 下 tid=命名空间主组织（非空；
+	// 空 tid/oid 会被 40104 拒绝）。商户记录同样挂在共享 tenant 下，故真实
+	// 租户过滤（addTenantScope）激活时仍能定位商户。
+	admin := testutil.TestActor{TenantID: shared, OrgID: shared, UserID: uuid.NewString(), Role: "NAMESPACE_ADMIN"}
 
 	code, resp := waPost(t, r, http.MethodPut, "/admin/merchant/"+merchantID+"/settlement", admin,
 		map[string]interface{}{
@@ -152,6 +154,16 @@ func TestSettlementConfig_AnchoredToMerchantOrg_2260(t *testing.T) {
 	// 读回
 	code, resp = waPost(t, r, http.MethodGet, "/admin/merchant/"+merchantID+"/settlement", admin, nil)
 	require.Equal(t, http.StatusOK, code, "%v", resp)
+
+	// 负例：他租户商户在激活的租户过滤下不可见（证明 addTenantScope 真实执行）
+	otherTenant := uuid.NewString()
+	otherMerchant := uuid.NewString()
+	require.NoError(t, db.Create(&models.Merchant{
+		ID: otherMerchant, TenantID: otherTenant, OrgID: uuid.NewString(), Name: "WA-OTHER",
+		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
+	}).Error)
+	code, _ = waPost(t, r, http.MethodGet, "/admin/merchant/"+otherMerchant+"/settlement", admin, nil)
+	assert.Equal(t, http.StatusNotFound, code, "跨租户商户必须 404（租户过滤生效）")
 }
 
 // #2260 审计修复（Bug 2）：证明测试夹具在显式注入 database 键后，

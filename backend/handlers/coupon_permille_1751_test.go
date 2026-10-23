@@ -25,8 +25,6 @@ import (
 func TestPrepayCoupon_ENO_Permille10(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
-	// SetupTestDB's table list lacks coupons — create it here.
-	require.NoError(t, db.Migrator().CreateTable(&models.Coupon{}))
 
 	wechatpay.ResetGlobalForTesting()
 	wechatpay.SetClientForTesting(stubJSAPIClient{}, &wechatpay.Config{
@@ -87,7 +85,6 @@ func TestPrepayCoupon_ENO_Permille10(t *testing.T) {
 func TestPrepayCoupon_InvalidPermille_40002(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
-	require.NoError(t, db.Migrator().CreateTable(&models.Coupon{}))
 
 	wechatpay.ResetGlobalForTesting()
 	wechatpay.SetClientForTesting(stubJSAPIClient{}, &wechatpay.Config{

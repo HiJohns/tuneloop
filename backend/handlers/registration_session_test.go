@@ -175,6 +175,7 @@ func TestGetMyRegistrationSession(t *testing.T) {
 	}))
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	s := seedSession(t, db, "openid-session-001", "exch-001", 99)
 
@@ -280,6 +281,7 @@ func TestPrepayMembershipWithCoupon_OREZ(t *testing.T) {
 	srv := newRegisterMockServer(t, newUserID, "OREZUser")
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	db.Exec("DELETE FROM coupons") // fixed code, isolated per test
 	require.NoError(t, db.Create(&models.Coupon{
@@ -364,6 +366,7 @@ func TestPrepayMembership_RecordUserIDReferencesReservedLocalUser(t *testing.T) 
 	srv := newRegisterMockServer(t, newUserID, "ReservedUser")
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	s := seedSession(t, db, "openid-reserved-001", "exch-reserved-001", 99.0)
 
@@ -474,6 +477,7 @@ func TestPaymentCallback_RegistrationComplete(t *testing.T) {
 	srv := newRegisterMockServer(t, newUserID, "SessionUser")
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	// No user exists before the payment is processed (session not seeded yet).
 	var beforeCount int64
@@ -537,6 +541,7 @@ func TestPaymentCallback_SessionFlow_RealCallback(t *testing.T) {
 	srv := newRegisterMockServer(t, newUserID, "CallbackRealUser")
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	wechatpay.ResetGlobalForTesting()
 	wechatpay.SetClientForTesting(stubJSAPIClient{}, &wechatpay.Config{
@@ -634,6 +639,7 @@ func TestRegistrationSecondDocType_Ignored(t *testing.T) {
 	srv := newRegisterMockServer(t, newUserID, "SecondDocIgnored")
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	form := registerForm{
 		Nickname:         "微信用户",

@@ -32,7 +32,12 @@ func GetMerchantWebhook(c *gin.Context) {
 	}
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
-	tenantID := middleware.GetTenantID(ctx)
+	merchant, ok := resolveOperatorMerchantConfig(ctx)
+	if !ok || merchant.OrgID == "" {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "无商户归属"})
+		return
+	}
+	tenantID := merchant.OrgID // #2262: 配置键 = 商户 org
 
 	cfg, err := services.LoadMerchantWebhook(db, tenantID)
 	if err != nil {
@@ -63,7 +68,12 @@ func UpdateMerchantWebhook(c *gin.Context) {
 	}
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
-	tenantID := middleware.GetTenantID(ctx)
+	merchant, ok := resolveOperatorMerchantConfig(ctx)
+	if !ok || merchant.OrgID == "" {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "无商户归属"})
+		return
+	}
+	tenantID := merchant.OrgID // #2262: 配置键 = 商户 org
 
 	if err := services.SaveMerchantWebhook(db, tenantID, services.WebhookConfig{Enabled: req.Enabled, URL: req.URL}); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
@@ -79,7 +89,12 @@ func TestMerchantWebhook(c *gin.Context) {
 	}
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
-	tenantID := middleware.GetTenantID(ctx)
+	merchant, ok := resolveOperatorMerchantConfig(ctx)
+	if !ok || merchant.OrgID == "" {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "无商户归属"})
+		return
+	}
+	tenantID := merchant.OrgID // #2262: 配置键 = 商户 org
 
 	cfg, err := services.LoadMerchantWebhook(db, tenantID)
 	if err != nil {

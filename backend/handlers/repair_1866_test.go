@@ -265,28 +265,37 @@ func TestListPendingRepairs_TenantFilter(t *testing.T) {
 	tenantA, orgA, _ := testfixtures.NewTenantIDs("d4e5f6a1b2c3")
 	tenantB, orgB, _ := testfixtures.NewTenantIDs("e5f6a1b2c3d4")
 
-	// Tenant A: one repair_pending instrument
+	// #2264：站点+成员自包含（不再依赖前序用例残留）
+	siteA := uuid.New().String()
+	siteB := uuid.New().String()
+	require.NoError(t, db.Create(&models.Site{ID: siteA, TenantID: tenantA, OrgID: orgA, Name: "T4-site-A", Status: "active"}).Error)
+	require.NoError(t, db.Create(&models.Site{ID: siteB, TenantID: tenantB, OrgID: orgB, Name: "T4-site-B", Status: "active"}).Error)
+	staffID := uuid.New().String()
+	testutil.SeedSiteMember(t, db, siteA, staffID, "Manager")
+
 	instA := uuid.New().String()
+	siteAUUID := uuid.MustParse(siteA)
 	require.NoError(t, db.Create(&models.Instrument{
-		ID: instA, TenantID: tenantA, OrgID: &orgA,
+		ID: instA, TenantID: tenantA, OrgID: &orgA, CurrentSiteID: &siteAUUID,
 		SN: "T4-TENANT-A", StockStatus: "maintenance", RepairStatus: "repair_pending",
 	}).Error)
 
 	// Tenant B: one repair_pending instrument (should NOT appear in A's results)
 	instB := uuid.New().String()
+	siteBUUID := uuid.MustParse(siteB)
 	require.NoError(t, db.Create(&models.Instrument{
-		ID: instB, TenantID: tenantB, OrgID: &orgB,
+		ID: instB, TenantID: tenantB, OrgID: &orgB, CurrentSiteID: &siteBUUID,
 		SN: "T4-TENANT-B", StockStatus: "maintenance", RepairStatus: "repair_pending",
 	}).Error)
 
 	// Tenant A: one available instrument (should NOT appear — not repair_pending)
 	require.NoError(t, db.Create(&models.Instrument{
-		ID: uuid.New().String(), TenantID: tenantA, OrgID: &orgA,
+		ID: uuid.New().String(), TenantID: tenantA, OrgID: &orgA, CurrentSiteID: &siteAUUID,
 		SN: "T4-TENANT-A-AVAIL", StockStatus: "available",
 	}).Error)
 
-	// Request as tenant A staff
-	staff := testutil.MakeSiteMember(tenantA, orgA, uuid.New().String())
+	// Request as tenant A staff（与 site_members 的 user 一致）
+	staff := testutil.MakeSiteMember(tenantA, orgA, staffID)
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
 		ctx := staff.InjectContext(c.Request.Context())

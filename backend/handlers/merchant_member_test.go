@@ -113,6 +113,7 @@ func setupMerchantMemberRouter(t *testing.T, tenantID string) (*gin.Engine, *htt
 
 	mockIAM := newMerchantMemberMockIAM(t)
 	services.SetIAMInternalURLForTesting(mockIAM.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
@@ -302,6 +303,7 @@ func TestCreateMerchant_WithoutAdmin(t *testing.T) {
 	mockIAM := newMerchantMemberMockIAM(t)
 	defer mockIAM.Close()
 	services.SetIAMInternalURLForTesting(mockIAM.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	router := gin.New()
 	router.Use(func(c *gin.Context) {

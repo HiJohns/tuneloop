@@ -429,7 +429,7 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
   if (!instrument) return <View style={{ minHeight: '100vh', backgroundColor: '#FDFBF7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#a1a1aa' }}>乐器不存在</Text></View>
 
   return (
-    <View style={{ minHeight: '100vh', backgroundColor: '#FDFBF7', paddingBottom: 112 }}>
+    <View style={{ minHeight: '100vh', backgroundColor: '#FDFBF7', paddingBottom: 176 }}>
       <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 16 }}>
         <View style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12 }}>
           <Text style={{ fontWeight: '900', color: '#000', marginBottom: 8 }}>租赁乐器</Text>
@@ -769,6 +769,11 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
           <Text style={{ fontSize: 14, color: '#a1a1aa' }}>应付总额</Text>
           <Text style={{ fontSize: 20, fontWeight: '900', color: '#915F38' }}>¥{formatCents(totalAmount)}</Text>
         </View>
+        <View style={{ marginBottom: 8, paddingLeft: 4, paddingRight: 4 }}>
+          <Text style={{ display: 'block', textAlign: 'center', fontSize: 12, color: '#a1a1aa', lineHeight: 1.625 }}>
+            {t('下单之前请您仔细阅读《租用服务协议》、《平台规则文档》、《乐器损耗与赔偿标准》细则')}
+          </Text>
+        </View>
         <Button
           onClick={handleSubmit}
           disabled={submitting}
@@ -1065,7 +1070,7 @@ function BatchCheckout({ nav }) {
 
   return (
     <View style={{ height: '100vh', width: '100vw', backgroundColor: '#fafafa', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      <ScrollView style={{ width: '100%', flex: '1 1 0%', paddingBottom: 112 }} scrollY showScrollbar={false}>
+      <ScrollView style={{ width: '100%', flex: '1 1 0%', paddingBottom: 144 }} scrollY showScrollbar={false}>
         <View style={{ padding: 16, margin: 16, backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', border: '1px solid #f4f4f5', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <View style={{ textAlign: 'center' }}>
             <Text style={{ fontSize: 12, color: '#a1a1aa', fontWeight: '700', letterSpacing: '0.1em' }}>TOTAL PAYABLE</Text>
@@ -1338,6 +1343,11 @@ function BatchCheckout({ nav }) {
       </ScrollView>
 
       <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', padding: 16, paddingBottom: 24, borderTop: '1px solid #f4f4f5', zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <View style={{ marginBottom: 8, paddingLeft: 8, paddingRight: 8 }}>
+          <Text style={{ display: 'block', textAlign: 'center', fontSize: 12, color: '#a1a1aa', lineHeight: 1.625 }}>
+            {t('下单之前请您仔细阅读《租用服务协议》、《平台规则文档》、《乐器损耗与赔偿标准》细则')}
+          </Text>
+        </View>
         <Button
           onClick={handleSubmit}
           disabled={submitting}

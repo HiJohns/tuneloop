@@ -30,9 +30,6 @@ func TestApplyRenewalSideEffects_DaysSurvivesCallbackOverwrite(t *testing.T) {
 	defer cleanup()
 
 	db := database.GetDB()
-	if !db.Migrator().HasTable(&models.OrderPaymentRecord{}) {
-		require.NoError(t, db.Migrator().CreateTable(&models.OrderPaymentRecord{}))
-	}
 	tenantID := "00000000-0000-4000-8000-0000000000f1"
 	userID := "00000000-0000-4000-8000-0000000000f2"
 	orgID := "00000000-0000-4000-8000-0000000000f3"

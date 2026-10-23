@@ -7,7 +7,7 @@ import Taro from '@tarojs/taro'
 import { View, Text, Camera, Image, Input, Button } from '@tarojs/components'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, resolveErrorMessage, resolveUploadError } from '../services/api'
-import { env, dialog, uploadFile, getCameraContext } from '../platform'
+import { env, dialog, uploadFile, getCameraContext, useDidShow } from '../platform'
 import FaceCaptureUploader from '../components/FaceCaptureUploader'
 import { setIdentityVerifyCache } from '../hooks/useIdentityGuard'
 // #2109: E证通小程序 SDK（weapp 自动核身；顶层无 wx 访问，H5 打包安全）
@@ -31,7 +31,7 @@ export default function FaceVerify() {
   const [autoName, setAutoName] = useState('')
   const [autoIdCard, setAutoIdCard] = useState('')
   const [autoSubmitting, setAutoSubmitting] = useState(false)
-  const [autoAvailable, setAutoAvailable] = useState(true)
+  const [autoAvailable, setAutoAvailable] = useState(false) // #2272: 由 /config face_verify 决定
   const [actionPrompt, setActionPrompt] = useState('')
   const photoPathRef = useRef('')
   const videoPathRef = useRef('')
@@ -45,6 +45,20 @@ export default function FaceVerify() {
   const stallHandledRef = useRef(false)
   const navigate = useNavigate()
   const baseUrl = env.apiBaseUrl
+
+  // #2272：核身能力由服务端下发（weapp 才启用自动通道；H5 永远手动）
+  const loadFaceCapability = async () => {
+    try {
+      const resp = await apiFetch(`${baseUrl}/config`)
+      const r = await resp.json()
+      const fv = r?.data?.face_verify
+      setAutoAvailable(Boolean(env.isMiniProgram && fv?.auto_enabled))
+    } catch {
+      setAutoAvailable(false)
+    }
+  }
+  useEffect(() => { loadFaceCapability() }, [])
+  useDidShow(() => { loadFaceCapability() })
 
   // #1821: 桌面版微信（Mac/Windows）的 <camera> 仅支持拍照，录像不可用——
   // 之前在此环境下静默走了「录像失败→仅提交照片」，用户以为已上传视频。
@@ -538,6 +552,43 @@ export default function FaceVerify() {
       )
     }
 
+    // #2272：自动通道可用 → 仅渲染自动核身（不渲染相机/上传入口）
+    if (autoAvailable) {
+      return (
+        <View style={{ minHeight: '100vh', backgroundColor: '#f4f4f5', padding: 16, boxSizing: 'border-box' }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 16 }}>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#111', marginBottom: 8, display: 'block' }}>实名认证</Text>
+            {renderStatusBar()}
+            <View style={{ marginTop: 12, padding: 12, backgroundColor: '#f0fdf4', borderRadius: 8, borderWidth: 1, borderColor: '#bbf7d0' }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#166534', display: 'block' }}>微信自动核身（腾讯云）</Text>
+              <Text style={{ fontSize: 12, color: '#15803d', marginTop: 4, display: 'block' }}>
+                填写真实姓名与身份证号，跳转微信官方核验，通过后自动完成实名认证。
+              </Text>
+              <Input
+                style={{ height: 40, backgroundColor: '#fff', borderRadius: 8, paddingLeft: 12, paddingRight: 12, marginTop: 8, fontSize: 13, boxSizing: 'border-box' }}
+                value={autoName}
+                onInput={e => setAutoName(e.detail?.value ?? e.target?.value ?? '')}
+                placeholder="真实姓名（与身份证一致）"
+              />
+              <Input
+                style={{ height: 40, backgroundColor: '#fff', borderRadius: 8, paddingLeft: 12, paddingRight: 12, marginTop: 8, fontSize: 13, boxSizing: 'border-box' }}
+                value={autoIdCard}
+                onInput={e => setAutoIdCard(e.detail?.value ?? e.target?.value ?? '')}
+                placeholder="身份证号（18 位）"
+              />
+              <Button
+                onClick={handleAutoVerify}
+                disabled={autoSubmitting || !autoName.trim() || !autoIdCard.trim()}
+                style={{ width: '100%', margin: 0, marginTop: 10, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#16a34a', color: '#fff', borderRadius: 8, fontSize: 14, fontWeight: '700', boxSizing: 'border-box' }}
+              >
+                {autoSubmitting ? '处理中...' : '发起微信核身'}
+              </Button>
+            </View>
+          </View>
+        </View>
+      )
+    }
+
     // Camera mode: idle / photo_done / recording / blink / uploading
     // #1821: 采集窗压缩至约 1/4 屏 + resolution=low → 录制视频为低分辨率，
     // 上传更快、服务器占用更小（全屏预览不改变录制分辨率，真正压缩靠 low）。
@@ -738,38 +789,6 @@ export default function FaceVerify() {
                 请完成以下人脸采样。提交后由平台员工依据身份证照核对填写实名信息（真实姓名、身份证号等），审核通过即完成实名认证。
               </Text>
             </View>
-            {/* #2109: 微信自动核身（E证通）——按钮点击直跳官方小程序核验 */}
-            {/* #2202: 自动核身入口本期不启用（#2109 未实装，此区块在 H5 分支内条件恒 false） */}
-            {false && env.isMiniProgram && autoAvailable && (
-              <View style={{ padding: 12, backgroundColor: '#f0fdf4', borderRadius: 8, borderWidth: 1, borderColor: '#bbf7d0', marginBottom: 12 }}>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: '#166534', display: 'block' }}>微信自动核身（腾讯云）</Text>
-                <Text style={{ fontSize: 12, color: '#15803d', marginTop: 4, display: 'block' }}>
-                  填写真实姓名与身份证号，跳转微信官方核验，通过后自动完成实名认证（无需等待人工审核）。
-                </Text>
-                <Input
-                  style={{ height: 40, backgroundColor: '#fff', borderRadius: 8, paddingLeft: 12, paddingRight: 12, marginTop: 8, fontSize: 13, boxSizing: 'border-box' }}
-                  value={autoName}
-                  onInput={e => setAutoName(e.detail?.value ?? e.target?.value ?? '')}
-                  placeholder="真实姓名（与身份证一致）"
-                />
-                <Input
-                  style={{ height: 40, backgroundColor: '#fff', borderRadius: 8, paddingLeft: 12, paddingRight: 12, marginTop: 8, fontSize: 13, boxSizing: 'border-box' }}
-                  value={autoIdCard}
-                  onInput={e => setAutoIdCard(e.detail?.value ?? e.target?.value ?? '')}
-                  placeholder="身份证号（18 位）"
-                />
-                <Button
-                  onClick={handleAutoVerify}
-                  disabled={autoSubmitting || !autoName.trim() || !autoIdCard.trim()}
-                  style={{ width: '100%', margin: 0, marginTop: 10, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#16a34a', color: '#fff', borderRadius: 8, fontSize: 14, fontWeight: '700', boxSizing: 'border-box' }}
-                >
-                  {autoSubmitting ? '处理中...' : '发起微信核身'}
-                </Button>
-                <Text style={{ fontSize: 11, color: '#4d7c0f', marginTop: 6, display: 'block' }}>
-                  核验完成后自动返回本页；如未通过可重试或改用下方人工通道。
-                </Text>
-              </View>
-            )}
             <FaceCaptureUploader
               initialStatus={status}
               onSubmitSuccess={() => {

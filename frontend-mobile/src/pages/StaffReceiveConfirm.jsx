@@ -151,7 +151,7 @@ export default function StaffReceiveConfirm() {
         <Text className="text-base font-black text-black mb-3 flex items-center gap-2">
           <Camera size={18} />拍照留档
         </Text>
-        <Text className="text-xs text-zinc-400 mb-3">请拍摄乐器当前状态照片作为接收留档</Text>
+        <Text className="text-xs text-red-500 font-normal mb-3">请拍摄乐器当前状态照片作为接收留档</Text>
 
         {photoSpecs.length > 0 && (
           <View className="mb-4 p-3 bg-blue-50 rounded-lg">

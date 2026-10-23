@@ -81,7 +81,7 @@ export default function InvoiceConfirm() {
       if (title.length > 255) return { error: `${name}：发票抬头过长` }
       if (f.invoice_type === '专用' && !tax) return { error: `${name}：专用发票需填写税号` }
       if (tax && !TAX_RE.test(tax)) return { error: `${name}：税号格式不正确` }
-      groups.push({ tenant_id: g.tenant_id, order_ids: g.orders.map(o => o.order_id), invoice_type: f.invoice_type || '普通', title, tax_number: tax })
+      groups.push({ order_ids: g.orders.map(o => o.order_id), invoice_type: f.invoice_type || '普通', title, tax_number: tax }) // #2262: tenant 由服务端按订单派生
     }
     return { groups }
   }
