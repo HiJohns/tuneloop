@@ -361,7 +361,6 @@ func UpsertSettlementConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": cfg})
 }
 
-
 // settlementConfigAllowed（#2261）：结算配置的显式商户范围校验。
 // 操作者可解析到商户时，仅允许本商户；无法解析（平台管理员）不限制。
 // 返回 false 时已写入 404 响应（不暴露他商户存在性）。

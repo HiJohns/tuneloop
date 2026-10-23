@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services/wechatpay"
@@ -67,13 +68,7 @@ func cleanupTestData(db *gorm.DB, tenantID string) {
 }
 
 func TestLeaseFlow_CompleteLifecycle(t *testing.T) {
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("Test database not available, skipping:", err)
-		return
-	}
-	testutil.SetDB(t, db)
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	_, instrumentID, userID := setupTestData(t, db, tenantID)
@@ -178,13 +173,7 @@ func TestLeaseFlow_CompleteLifecycle(t *testing.T) {
 }
 
 func TestLeaseFlow_CancelOrder(t *testing.T) {
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("Test database not available, skipping:", err)
-		return
-	}
-	testutil.SetDB(t, db)
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	_, instrumentID, userID := setupTestData(t, db, tenantID)
@@ -332,13 +321,7 @@ func TestCancelOrderByCustomer_StatusGuard(t *testing.T) {
 }
 
 func TestLeaseFlow_InvalidStatusTransitions(t *testing.T) {
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("Test database not available, skipping:", err)
-		return
-	}
-	testutil.SetDB(t, db)
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	_, instrumentID, userID := setupTestData(t, db, tenantID)
@@ -376,13 +359,7 @@ func TestLeaseFlow_InvalidStatusTransitions(t *testing.T) {
 }
 
 func TestLeaseFlow_GetOrdersWithStatusFilter(t *testing.T) {
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("Test database not available, skipping:", err)
-		return
-	}
-	testutil.SetDB(t, db)
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	_, instrumentID, userID := setupTestData(t, db, tenantID)
@@ -448,13 +425,7 @@ func setupGuestTestRouter(t *testing.T, userID string) *gin.Engine {
 }
 
 func TestGuestCreateOrder_TenantDerivedFromInstrument(t *testing.T) {
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("Test database not available, skipping:", err)
-		return
-	}
-	testutil.SetDB(t, db)
+	db := testfixtures.SetupTestDB(t)
 
 	gTenantID := uuid.New().String()
 	gOrgID := uuid.New().String()
@@ -462,9 +433,7 @@ func TestGuestCreateOrder_TenantDerivedFromInstrument(t *testing.T) {
 	gUserID := uuid.New().String()
 	now := time.Now()
 
-	db.Exec(`INSERT INTO users (id, iam_sub, tenant_id, org_id, name, email, phone, credit_score, is_shadow, created_at, updated_at) 
-		VALUES (?, ?, ?, ?, ?, ?, ?, 600, false, ?, ?)`,
-		gUserID, gUserID, gTenantID, gOrgID, "Guest User", "guest@example.com", "13900139000", now, now)
+	testutil.SeedVerifiedCustomer(t, db, gTenantID, gOrgID, gUserID)
 
 	db.Exec(`INSERT INTO instruments (id, tenant_id, org_id, site_id, level, stock_status, images, specifications, pricing, created_at, updated_at) 
 		VALUES (?, ?, ?, NULL, 'standard', 'available', '[]', '{}', '[]', ?, ?)`,
@@ -499,7 +468,7 @@ func TestGuestCreateOrder_TenantDerivedFromInstrument(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, w.Code)
 
 	var resp map[string]interface{}
-	err = json.Unmarshal(w.Body.Bytes(), &resp)
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	require.NoError(t, err)
 	assert.Equal(t, float64(20000), resp["code"])
 
@@ -512,13 +481,7 @@ func TestGuestCreateOrder_TenantDerivedFromInstrument(t *testing.T) {
 }
 
 func TestGuestCreateOrder_InstrumentNotFound(t *testing.T) {
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("Test database not available, skipping:", err)
-		return
-	}
-	testutil.SetDB(t, db)
+	db := testfixtures.SetupTestDB(t)
 
 	gUserID := uuid.New().String()
 	now := time.Now()
@@ -552,22 +515,14 @@ func TestGuestCreateOrder_InstrumentNotFound(t *testing.T) {
 }
 
 func TestGuestBatchCreateOrder(t *testing.T) {
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("Test database not available, skipping:", err)
-		return
-	}
-	testutil.SetDB(t, db)
+	db := testfixtures.SetupTestDB(t)
 
 	gTenantID := uuid.New().String()
 	gOrgID := uuid.New().String()
 	gUserID := uuid.New().String()
 	now := time.Now()
 
-	db.Exec(`INSERT INTO users (id, iam_sub, tenant_id, org_id, name, email, phone, credit_score, is_shadow, created_at, updated_at) 
-		VALUES (?, ?, ?, ?, ?, ?, ?, 600, false, ?, ?)`,
-		gUserID, gUserID, gTenantID, gOrgID, "Guest User", "guest@example.com", "13900139000", now, now)
+	testutil.SeedVerifiedCustomer(t, db, gTenantID, gOrgID, gUserID)
 
 	id1 := uuid.New().String()
 	db.Exec(`INSERT INTO instruments (id, tenant_id, org_id, level, stock_status, images, specifications, pricing, created_at, updated_at) 
@@ -617,13 +572,7 @@ func TestGuestBatchCreateOrder(t *testing.T) {
 }
 
 func TestLeaseFlow_CreateOrder_InstrumentNotAvailable(t *testing.T) {
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("Test database not available, skipping:", err)
-		return
-	}
-	testutil.SetDB(t, db)
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	_, instrumentID, userID := setupTestData(t, db, tenantID)
@@ -788,9 +737,6 @@ func TestGetOrder_DamagePanel(t *testing.T) {
 		orderID, tenantID, tenantID, userID, instID).Error)
 
 	// Ensure tables exist even when other tests (SetupTestDB) dropped them.
-	if !db.Migrator().HasTable(&models.InstrumentMedia{}) {
-		require.NoError(t, db.Migrator().CreateTable(&models.InstrumentMedia{}))
-	}
 	damageAmt := 20000.0
 	reportID := uuid.New().String()
 	require.NoError(t, db.Exec(`INSERT INTO damage_reports (id, tenant_id, org_id, lease_id, instrument_id, user_id, damage_amount, damage_description, status, created_at, updated_at)
@@ -870,9 +816,6 @@ func TestGetOrder_DamagePanel_FromDamageReport(t *testing.T) {
 		orderID, tenantID, tenantID, userID, instID).Error)
 
 	// Ensure tables exist even when other tests (SetupTestDB) dropped them.
-	if !db.Migrator().HasTable(&models.InstrumentMedia{}) {
-		require.NoError(t, db.Migrator().CreateTable(&models.InstrumentMedia{}))
-	}
 	// Damage data lives in damage_reports (post-migration).
 	require.NoError(t, db.Exec(`INSERT INTO damage_reports (id, tenant_id, org_id, lease_id, instrument_id, user_id, condition, damage_description, damage_amount, status, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, 'damaged', '弦断了', 10000, 'pending', now(), now())`,
