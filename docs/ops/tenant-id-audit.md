@@ -370,6 +370,9 @@
 | ISO-13 | 商户 A 管理员 | 跨商户维修服务单详情 / 转派 / 收货 / 结算 | 404 / 403；状态与金额不变 | ✅ 列表隔离 `TestRepairService_LeafOrgScope_Isolation_2134`；转派跨商户目标 40003 `TestReassignRepairService_2229_Validation`；跨网点操作 403 `TestAcceptRepair_OtherSite_Forbidden` |
 | ISO-14 | 网点管理员 | 跨网点订单/乐器详情 | 跨商户 → 404/403；本商户 org 锚可读 | ✅ 自动化：`TestIsolationMatrix_OrderDetail_CrossMerchant_ISO14`（站点级列表隔离由 #1911/#2116 覆盖） |
 | ISO-15 | 顾客（零租户） | 下单/读取/我的订单 | 不因 tid 为空被拒；数据落商户 org；跨顾客 404 | ✅ 自动化：`TestIsolationMatrix_CustomerZeroTenant_Chain_ISO15`（拍付/收货动作由 `prepay_2110`/`#2116` 组覆盖，wxpay 真链路列部署侧走查） |
+| ISO-16 | 顾客 | 发票申请：伪造 `tenant_id=B`；跨商户订单合并 | 伪造 → 400 且无申请行；不传 → 落订单商户 org；跨商户合并 → 400 | ✅ `TestInvoiceSubmit_TenantDerivedFromOrders_2262` |
+| ISO-17 | 商户 A/B 管理员 | 共享 tenant 下各自 webhook 配置 | A/B 互不覆盖；旧 tenant 键只读回退可用 | ✅ `TestMerchantWebhook_SharedTenantIsolation_2262`、`TestMerchantTenantID_ReturnsMerchantOrg_2262` |
+| ISO-18 | 商户/网点管理员、顾客 | B3 显式模式下的 repair / orders-instruments / membership 路由 | 跨商户 404/空；本商户 200；on/off 等价 | ✅ `TestRepairDomain_ExplicitScopeIsolation_2261`、`TestOrdersInstrumentsDomain_ExplicitScopeIsolation_2261`、`TestMembershipDomain_SitesExplicitScope_2261`（#2261 `d96d385e`） |
 
 ## A6 覆盖率校验（可复跑）
 
@@ -436,7 +439,7 @@ bash scripts/tenant-audit-coverage.sh
 | B3 | 读回调逐域显式化（opt-in 等价迁移） | 🟡 批次1 ✅ 开关+观察；批次2 本地统计（9 表）✅ / 生产 24h 待部署；**批次3-域1（repair）/域2（orders·instruments）就绪**：显式模式隔离守卫通过；**域3（merchants/sites/site_members/technician_profiles）**：结算配置显式商户范围已补（`86774cf1`，红绿实证），technician_profiles 守卫已过（`8fa44810`）；sites/invoice_applications/instrument_media 本身即显式 tenant；#2269 判定有误已回滚（`e8a64aa4`）；**观察期实采（商户管理员受控流量）命中 12 表**：instruments/instrument_media/instrument_properties/sites/merchants/technician_profiles/users/orders/order_payment_records/order_status_history/properties/invoice_applications（真实口径：sites.tenant_id=商户 org、merchants.tenant_id=共享 tenant/org_id=商户 org） | `TestExplicitTenantScopeOnly_2261`、`TestRepairDomain_ExplicitScopeIsolation_2261`、`TestOrdersInstrumentsDomain_ExplicitScopeIsolation_2261`、`TestMembershipDomain_SitesExplicitScope_2261`、`TestTechnicianProfilesDomain_ExplicitScopeIsolation_2261`。**B3 三域已挂 `middleware.ExplicitTenantScope()`（`d96d385e`）**：repair 组 / orders+instruments 44 路由 / siteRequired+technician_profiles+merchants；全量 diff 无新增失败（15 vs 基线 21，修复 6 项）。预生产观察日志核对待部署后执行。 |
 | B4 | A3-8 必修清单（P2/P3 批 25 文件）口径改造 | 🟡 逐文件判定完成；本轮修 `invoice.go`（归属由订单派生）+ `member_invite_2114.go`（org 锚） | 见 §A7-B4 |
 | B5 | 前端/services tenant payload 收敛 | 🟡 盘点 88 行（63/21/4）→ `docs/ops/tenant-payload-audit-2262.md`；改 `webhook.go`（org 键 + 旧键只读回退）、`InvoiceConfirm` 移除 payload | 与 API 口径同步 |
-| B6 | 隔离矩阵补齐（ISO-14 网点管理员跨网点、ISO-15 顾客全链路） | ⬜ 部分（ISO-13 ✅） | 行级断言
+| B6 | 隔离矩阵补齐（ISO-14~18） | 🟡 自动化 ✅（ISO-16/17 随 #2262，ISO-18 随 #2261）；预生产走查待发布 | 行级断言
 
 
 ## §A7-B4 逐文件判定（#2262）
