@@ -374,7 +374,7 @@ export default function ShippingInterface() {
                 )}
               </View>
               {photos.length === 0 && (
-                <Text className="text-xs text-red-400">请先拍照存档（至少 1 张）</Text>
+                <Text className="text-xs text-red-500 font-normal">请先拍照存档（至少 1 张）</Text>
               )}
               {photos.length > 0 && (
                 <Text className="text-xs text-gray-400">已拍摄 {photos.length} 张，最多 10 张</Text>

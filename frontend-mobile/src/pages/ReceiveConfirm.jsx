@@ -9,6 +9,7 @@ import { calculateDays } from '../utils/daycalc'
 import { dialog, env, uploadFile, toWeappRoute } from '../platform'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
+import { t } from '../i18n'
 
 export default function ReceiveConfirm() {
   const [searchParams] = useSearchParams()
@@ -195,7 +196,10 @@ export default function ReceiveConfirm() {
           <Camera size={18} />
           拍照留档
         </Text>
-        <Text className="text-xs text-zinc-400 mb-3">请拍摄乐器当前状态照片作为签收留档</Text>
+        <View className="mb-3">
+          <Text className="block text-xs text-red-500 font-normal leading-relaxed">{t('*为保障您的权益，发货前我们将提供乐器的照片及视频，完整展示提琴的面板、背板、侧板、琴头、琴颈等各部位状态。')}</Text>
+          <Text className="block text-xs text-red-500 font-normal leading-relaxed mt-1">{t('请您在收到后及时核对确认，以此为例拍摄提琴各部位的图片及视频，以便明确乐器在交付时的实际状况，避免后续因运输损坏等问题产生争议。')}</Text>
+        </View>
         <View className="flex flex-wrap gap-2">
           {photoFiles.map((file, i) => (
             <View key={i} className="relative">

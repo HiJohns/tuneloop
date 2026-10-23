@@ -172,6 +172,11 @@ export default function MembershipCenter() {
             {user?.membership_level_name || '普通会员'}
           </Text>
         </View>
+        <View className="w-full mt-3 pt-3 border-t border-zinc-100">
+          <Text className="block text-center text-xs text-amber-700 leading-relaxed">
+            {t('请详细阅读页面下方会员规则与权益手册')}
+          </Text>
+        </View>
       </View>
 
       {/* Membership benefits card — follows current level (#1830) */}

@@ -8,6 +8,7 @@ import dayjs from 'dayjs'
 import { dialog, env, session, storage, eventBus, getInputValue } from '../platform'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
 import { formatBeijingDate } from '../utils/format'
+import { t } from '../i18n'
 import regions from '../data/regions.json'
 import IdPhotoUploader from '../components/IdPhotoUploader'
 import VerifyWarningBar from '../components/VerifyWarningBar'
@@ -427,7 +428,7 @@ function SingleCheckout({ id, navigate, resumePending }) {
   if (!instrument) return <View className="min-h-screen flex items-center justify-center"><Text className="text-zinc-400">乐器不存在</Text></View>
 
   return (
-    <View className="min-h-screen pb-28" style={{ backgroundColor: '#FDFBF7' }}>
+    <View className="min-h-screen pb-44" style={{ backgroundColor: '#FDFBF7' }}>
       <View className="px-4 pt-4 pb-3 flex items-center gap-2" style={{ backgroundImage: 'linear-gradient(to bottom, #FDF4E7, #FFFFFF)' }}>
         <ArrowLeft size={20} className="text-black cursor-pointer" onClick={() => navigate(-1)} />
         <Text className="text-lg font-black text-black">确认订单</Text>
@@ -820,6 +821,9 @@ function SingleCheckout({ id, navigate, resumePending }) {
           <Text className="text-sm text-zinc-400">应付总额</Text>
           <Text className="text-xl font-black" style={{ color: '#915F38' }}>¥{formatCents(totalAmount)}</Text>
         </View>
+        <Text className="block text-center text-xs text-zinc-400 leading-relaxed mb-2 px-1">
+          {t('下单之前请您仔细阅读《租用服务协议》、《平台规则文档》、《乐器损耗与赔偿标准》细则')}
+        </Text>
         <Button
           onClick={handleSubmit}
           disabled={submitting}
@@ -1108,7 +1112,7 @@ function BatchCheckout({ navigate }) {
         <View className="w-6"></View>
       </View>
 
-      <ScrollView className="w-full flex-1 pb-28" scrollY showScrollbar={false}>
+      <ScrollView className="w-full flex-1 pb-36" scrollY showScrollbar={false}>
         {/* #1792 T4: 核身警告条（仅警告不阻断提交） */}
         <View className="px-4 pt-3">
           <VerifyWarningBar status={user?.id_verify_status || ''} navigate={navigate} />
@@ -1387,6 +1391,9 @@ function BatchCheckout({ navigate }) {
       </ScrollView>
 
       <View className="absolute bottom-0 left-0 right-0 bg-white p-4 pb-6 border-t border-zinc-100 z-50 flex flex-col items-center">
+        <Text className="block text-center text-xs text-zinc-400 leading-relaxed mb-2 px-2">
+          {t('下单之前请您仔细阅读《租用服务协议》、《平台规则文档》、《乐器损耗与赔偿标准》细则')}
+        </Text>
          <Button
           style={{ width: '100%', margin: 0, backgroundColor: submitting ? 'rgba(185,142,95,0.5)' : '#B98E5F', color: '#fff', fontWeight: 900, fontSize: 16, height: 48, borderRadius: 999, border: 'none', outline: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', letterSpacing: '0.05em' }}
           onClick={handleSubmit}
