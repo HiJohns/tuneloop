@@ -407,10 +407,10 @@ func TestUpdateCategory_PartialUpdatePreservesOtherFields(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code)
 
 	var stored struct {
-		Name     string `json:"name"`
-		Icon     string `json:"icon"`
-		Visible  bool   `json:"visible"`
-		Sort     int    `json:"sort"`
+		Name     string  `json:"name"`
+		Icon     string  `json:"icon"`
+		Visible  bool    `json:"visible"`
+		Sort     int     `json:"sort"`
 		ParentID *string `json:"parent_id"`
 	}
 	require.NoError(t, db.Raw(`SELECT name, icon, visible, sort, parent_id FROM categories WHERE id = ?`, catID).Scan(&stored).Error)

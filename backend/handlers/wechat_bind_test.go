@@ -218,6 +218,7 @@ func TestConfirmBind_Success(t *testing.T) {
 	})
 	defer mockIAM.Close()
 	services.SetIAMInternalURLForTesting(mockIAM.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	token := "abcd1234abcd1234"
 	bindTokensMu.Lock()

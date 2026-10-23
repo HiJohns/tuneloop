@@ -425,6 +425,7 @@ func TestIAMMock_MerchantCreate_CallsIAM(t *testing.T) {
 	}, nil)
 	defer mockIAM.Close()
 	services.SetIAMInternalURLForTesting(mockIAM.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	tenantID := uuid.New().String()
 
@@ -486,6 +487,7 @@ func TestIAMMock_SiteMemberAdd_CallsBind(t *testing.T) {
 	}, nil)
 	defer mockIAM.Close()
 	services.SetIAMInternalURLForTesting(mockIAM.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	tenantID := uuid.New().String()
 	siteOrgID := uuid.New().String()
@@ -606,6 +608,7 @@ func TestIAMMock_UserUpdate_EmailChange_ReturnsPending(t *testing.T) {
 	})
 	defer mockIAM.Close()
 	services.SetIAMInternalURLForTesting(mockIAM.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	tenantID := uuid.New().String()
 
@@ -766,6 +769,7 @@ func TestAddMember_ExistingAccount_Returns40902_NoAttach(t *testing.T) {
 	})
 	defer mockIAM.Close()
 	services.SetIAMInternalURLForTesting(mockIAM.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	tenantID := uuid.New().String()
 	site := models.Site{
@@ -838,6 +842,7 @@ func TestAddMember_ExistingAccount_SameMerchant_Returns40902_NoAttach(t *testing
 	})
 	defer mockIAM.Close()
 	services.SetIAMInternalURLForTesting(mockIAM.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	tenantID := uuid.New().String()
 	otherSite := models.Site{

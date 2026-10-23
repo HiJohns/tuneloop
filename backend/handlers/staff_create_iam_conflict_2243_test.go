@@ -48,6 +48,7 @@ func TestStaffCreateUser_IAMConflict_2243(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 	t.Setenv("IAM_SECRET", testIAMSecret)
 
 	h := &UserStaffHandler{}
@@ -99,6 +100,7 @@ func TestStaffCreateUser_IAMBadRequest_2243(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 	t.Setenv("IAM_SECRET", testIAMSecret)
 
 	h := &UserStaffHandler{}

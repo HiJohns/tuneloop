@@ -49,11 +49,14 @@ func TestAddMember_SharedTenant_MerchantOrgAnchor_2250(t *testing.T) {
 		write(w, map[string]interface{}{"access_token": "t2250", "expires_in": 7200, "token_type": "Bearer"})
 	})
 	for _, p := range []string{"/api/v1/users/", "/api/v1/organizations/", "/api/v1/namespaces/"} {
-		mux.HandleFunc(p, func(w http.ResponseWriter, r *http.Request) { write(w, map[string]interface{}{"data": map[string]interface{}{}}) })
+		mux.HandleFunc(p, func(w http.ResponseWriter, r *http.Request) {
+			write(w, map[string]interface{}{"data": map[string]interface{}{}})
+		})
 	}
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 	t.Setenv("IAM_SECRET", testIAMSecret)
 
 	h := &MerchantMemberHandler{}

@@ -12,9 +12,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/testutil"
 )
 
 // #1762 regression tests: end_date is recomputed server-side from
@@ -24,20 +25,12 @@ import (
 // bogus 30-day end_date → persisted end_date = start + 2 days.
 func TestCreateOrder_RentDaysOverridesEndDate(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	database.SetDB(db)
-	if err := setupUserRentalTables(t, db); err != nil {
-		t.Fatalf("failed to setup tables: %v", err)
-	}
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	userID := uuid.New().String()
 	instrumentID := uuid.New().String()
+	testutil.SeedVerifiedCustomer(t, db, tenantID, tenantID, userID)
 
 	require.NoError(t, db.Create(&models.Instrument{
 		ID:          instrumentID,
@@ -92,20 +85,12 @@ func TestCreateOrder_RentDaysOverridesEndDate(t *testing.T) {
 // legacy behavior — days derived from submitted dates, no recompute.
 func TestCreateOrder_NoRentDays_LegacyPath(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	database.SetDB(db)
-	if err := setupUserRentalTables(t, db); err != nil {
-		t.Fatalf("failed to setup tables: %v", err)
-	}
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	userID := uuid.New().String()
 	instrumentID := uuid.New().String()
+	testutil.SeedVerifiedCustomer(t, db, tenantID, tenantID, userID)
 
 	require.NoError(t, db.Create(&models.Instrument{
 		ID:          instrumentID,
@@ -157,16 +142,7 @@ func TestCreateOrder_NoRentDays_LegacyPath(t *testing.T) {
 // recomputes end_date per item from rent_qty.
 func TestBatchCreateOrder_RentDaysOverridesEndDate(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	database.SetDB(db)
-	if err := setupUserRentalTables(t, db); err != nil {
-		t.Fatalf("failed to setup tables: %v", err)
-	}
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	userID := uuid.New().String()

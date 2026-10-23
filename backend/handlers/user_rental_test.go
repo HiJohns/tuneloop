@@ -13,39 +13,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
-	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 )
 
-func setupUserRentalTables(t *testing.T, db *gorm.DB) error {
-	tables := []interface{}{
-		&models.Instrument{},
-		&models.Order{},
-		&models.ElectronicContract{},
-	}
-	for _, table := range tables {
-		_ = db.Migrator().DropTable(table)
-		if err := db.Migrator().CreateTable(table); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func TestListUserInstruments(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	database.SetDB(db)
-	if err := setupUserRentalTables(t, db); err != nil {
-		t.Fatalf("failed to setup tables: %v", err)
-	}
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	categoryID := uuid.New().String()
@@ -100,7 +75,7 @@ func TestListUserInstruments(t *testing.T) {
 			PageSize int                      `json:"pageSize"`
 		} `json:"data"`
 	}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
+	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
 	assert.Equal(t, 20000, response.Code)
 	assert.Equal(t, int64(2), response.Data.Total)
@@ -109,16 +84,7 @@ func TestListUserInstruments(t *testing.T) {
 
 func TestGetUserInstrumentDetail(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	database.SetDB(db)
-	if err := setupUserRentalTables(t, db); err != nil {
-		t.Fatalf("failed to setup tables: %v", err)
-	}
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	instrumentID := uuid.New().String()
@@ -150,7 +116,7 @@ func TestGetUserInstrumentDetail(t *testing.T) {
 		Code int                    `json:"code"`
 		Data map[string]interface{} `json:"data"`
 	}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
+	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
 	assert.Equal(t, 20000, response.Code)
 	assert.Equal(t, instrumentID, response.Data["id"])
@@ -160,16 +126,7 @@ func TestGetUserInstrumentDetail(t *testing.T) {
 
 func TestCreateRentalOrder(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	database.SetDB(db)
-	if err := setupUserRentalTables(t, db); err != nil {
-		t.Fatalf("failed to setup tables: %v", err)
-	}
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	userID := uuid.New().String()
@@ -218,7 +175,7 @@ func TestCreateRentalOrder(t *testing.T) {
 		Message string                 `json:"message"`
 		Data    map[string]interface{} `json:"data"`
 	}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
+	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
 	assert.Equal(t, 20000, response.Code)
 	assert.Equal(t, "success", response.Message)
@@ -229,16 +186,7 @@ func TestCreateRentalOrder(t *testing.T) {
 
 func TestGetElectronicContract(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	database.SetDB(db)
-	if err := setupUserRentalTables(t, db); err != nil {
-		t.Fatalf("failed to setup tables: %v", err)
-	}
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	userID := uuid.New().String()
@@ -277,7 +225,7 @@ func TestGetElectronicContract(t *testing.T) {
 		Code int                    `json:"code"`
 		Data map[string]interface{} `json:"data"`
 	}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
+	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
 	assert.Equal(t, 20000, response.Code)
 	assert.Equal(t, contractID, response.Data["id"])

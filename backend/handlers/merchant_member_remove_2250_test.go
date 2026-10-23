@@ -74,6 +74,7 @@ func TestRemoveMember_SharedTenant_OrgAnchorAndIAMUnbind_2250(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 	t.Setenv("IAM_SECRET", testIAMSecret)
 
 	actor := func(orgID string) gin.HandlerFunc {

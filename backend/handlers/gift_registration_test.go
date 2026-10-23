@@ -72,6 +72,7 @@ func TestGiftRegistration(t *testing.T) {
 		srv := newRegisterMockServer(t, newUserID, "GiftUser")
 		defer srv.Close()
 		services.SetIAMInternalURLForTesting(srv.URL)
+		t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 		router := gin.New()
 		router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)
@@ -137,6 +138,7 @@ func TestGiftRegistration(t *testing.T) {
 		srv := newRegisterMockServer(t, newUserID, "NoRefUser")
 		defer srv.Close()
 		services.SetIAMInternalURLForTesting(srv.URL)
+		t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 		router := gin.New()
 		router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)

@@ -244,6 +244,7 @@ func TestReportWechatShipping_OpenIDPriority(t *testing.T) {
 			iamSrv := httptest.NewServer(iamMux)
 			defer iamSrv.Close()
 			services.SetIAMInternalURLForTesting(iamSrv.URL)
+			t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 			services.SetWxAPIBaseURLForTesting(ts.URL)
 			defer services.SetWxAPIBaseURLForTesting("https://api.weixin.qq.com")

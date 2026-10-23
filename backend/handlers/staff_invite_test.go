@@ -245,10 +245,10 @@ func TestListMyPendingInvitations(t *testing.T) {
 		Status: "pending", ExpiresAt: time.Now().Add(time.Hour), InviteeUserID: &bySiteLocal,
 	}
 	require.NoError(t, db.Create(&invSite).Error)
-	mk("pending", time.Hour, &otherLocal, "")         // 他人 → 不可见
-	mk("pending", time.Hour, nil, "13999999999")      // 他人 identifier → 不可见
-	mk("accepted", time.Hour, &myLocal, "")           // 已处理 → 不可见
-	mk("pending", -time.Hour, &myLocal, "")           // 已过期 → 不可见
+	mk("pending", time.Hour, &otherLocal, "")    // 他人 → 不可见
+	mk("pending", time.Hour, nil, "13999999999") // 他人 identifier → 不可见
+	mk("accepted", time.Hour, &myLocal, "")      // 已处理 → 不可见
+	mk("pending", -time.Hour, &myLocal, "")      // 已过期 → 不可见
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
@@ -297,6 +297,7 @@ func TestAcceptInvitation_IdentifierClaim(t *testing.T) {
 	srv := newMockIAMServer(nil, nil)
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 	db := database.GetDB()
 	require.NoError(t, db.AutoMigrate(&models.StaffInvite{}, &models.User{}, &models.SiteMember{}))
 
