@@ -1,6 +1,7 @@
 package testfixtures
 
 import (
+	"strings"
 	"testing"
 
 	"gorm.io/gorm"
@@ -120,4 +121,24 @@ func SetupTestDB(t *testing.T) *gorm.DB {
 func NewTenantIDs(seed string) (tenantID, orgID, userID string) {
 	base := "00000000-0000-4000-8000-" + seed
 	return base[:35] + "1", base[:35] + "2", base[:35] + "3"
+}
+
+// ResetTestDB 清空全部 public 表并重置自增（#2271）。要求表已由 SetupTestDB 创建。
+func ResetTestDB(t *testing.T) {
+	t.Helper()
+	db := database.GetDB()
+	var tables []string
+	if err := db.Raw(`SELECT tablename FROM pg_tables WHERE schemaname = 'public'`).Scan(&tables).Error; err != nil {
+		t.Fatalf("reset test db: list tables: %v", err)
+	}
+	if len(tables) == 0 {
+		return
+	}
+	quoted := make([]string, 0, len(tables))
+	for _, tb := range tables {
+		quoted = append(quoted, `"`+tb+`"`)
+	}
+	if err := db.Exec(`TRUNCATE TABLE ` + strings.Join(quoted, ", ") + ` RESTART IDENTITY CASCADE`).Error; err != nil {
+		t.Fatalf("reset test db: truncate: %v", err)
+	}
 }

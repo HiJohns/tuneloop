@@ -26,10 +26,7 @@ func setupPrepayCouponRouter(t *testing.T, tenantID, userID string) *gin.Engine 
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 	testfixtures.SetupWechatPayMock(t)
-	db := testfixtures.SetupTestDB(t)
-	// allTables 不含 Coupon → 手动建表（幂等）
-	_ = db.Migrator().DropTable(&models.Coupon{})
-	require.NoError(t, db.Migrator().CreateTable(&models.Coupon{}))
+	testfixtures.SetupTestDB(t)
 
 	router := gin.New()
 	router.Use(func(c *gin.Context) {

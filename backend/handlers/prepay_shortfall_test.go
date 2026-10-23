@@ -35,7 +35,6 @@ func TestPrepayShortfall_OREZ(t *testing.T) {
 		Status:   "active",
 	}
 	require.NoError(t, db.Create(&user).Error)
-	require.NoError(t, db.Migrator().CreateTable(&models.Coupon{}))
 	require.NoError(t, db.Create(&models.Coupon{
 		ID: uuid.New().String(), Code: "OREZ", Type: "waive", Value: 0, Active: true,
 	}).Error)
