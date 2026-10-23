@@ -541,8 +541,10 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 	}
 
 	db := database.GetDB().WithContext(c.Request.Context())
+	// #2261 B3-C：显式租户过滤（关闭自动范围后仍不可跨租户更新）
+	tenantID := middleware.GetTenantID(c.Request.Context())
 
-	result := db.Model(&models.Site{}).Where("id = ?", siteID).Updates(map[string]interface{}{
+	result := db.Model(&models.Site{}).Where("id = ? AND tenant_id = ?", siteID, tenantID).Updates(map[string]interface{}{
 		"name":           req.Name,
 		"address":        req.Address,
 		"type":           req.Type,

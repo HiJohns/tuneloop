@@ -9,8 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"tuneloop-backend/database"
 	"tuneloop-backend/handlers/testfixtures"
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/testutil"
 
@@ -48,49 +48,62 @@ func TestOrdersInstrumentsDomain_ExplicitScopeIsolation_2261(t *testing.T) {
 	require.NoError(t, db.Create(&orderA).Error)
 	require.NoError(t, db.Create(&orderB).Error)
 
-	// 商户 A 管理员 + 显式模式（关闭自动租户过滤）
+	// 商户 A 管理员；对比「自动范围 on/off」两种模式（#2261 B3-B 路由级守卫）
 	adminA := testutil.TestActor{TenantID: orgA, OrgID: orgA, UserID: uuid.NewString(), Role: "OWNER"}
-	withExplicit := func(c *gin.Context) {
-		ctx := database.ExplicitTenantScopeOnly(adminA.InjectContext(c.Request.Context()))
-		c.Request = c.Request.WithContext(ctx)
-		c.Next()
+
+	newRouter := func(t *testing.T, explicit bool) *gin.Engine {
+		t.Helper()
+		r := gin.New()
+		r.Use(func(c *gin.Context) {
+			c.Request = c.Request.WithContext(adminA.InjectContext(c.Request.Context()))
+			c.Next()
+		})
+		if explicit {
+			r.Use(middleware.ExplicitTenantScope())
+		}
+		r.GET("/orders/:id", GetOrder)
+		r.GET("/instruments", GetInstruments)
+		return r
 	}
 
-	// 1) 订单详情：B 的单 → 404；A 的单 → 200
-	r := gin.New()
-	r.Use(withExplicit)
-	r.GET("/orders/:id", GetOrder)
-	req := httptest.NewRequest(http.MethodGet, "/orders/"+orderB.ID, nil)
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusNotFound, w.Code, "显式模式下跨商户订单详情必须 404")
+	run := func(t *testing.T, explicit bool) (int, int, map[string]bool) {
+		t.Helper()
+		r := newRouter(t, explicit)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/orders/"+orderB.ID, nil))
+		crossCode := w.Code
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/orders/"+orderA.ID, nil))
+		ownCode := w.Code
 
-	req = httptest.NewRequest(http.MethodGet, "/orders/"+orderA.ID, nil)
-	w = httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusOK, w.Code, "本商户订单详情必须可见")
-
-	// 2) 乐器列表：仅 A 的乐器
-	r2 := gin.New()
-	r2.Use(withExplicit)
-	r2.GET("/instruments", GetInstruments)
-	req = httptest.NewRequest(http.MethodGet, "/instruments?page=1&pageSize=50", nil)
-	w = httptest.NewRecorder()
-	r2.ServeHTTP(w, req)
-	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
-	var listResp struct {
-		Data struct {
-			List []struct {
-				ID string `json:"id"`
-			} `json:"list"`
-		} `json:"data"`
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/instruments?page=1&pageSize=50", nil))
+		require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+		var listResp struct {
+			Data struct {
+				List []struct {
+					ID string `json:"id"`
+				} `json:"list"`
+			} `json:"data"`
+		}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &listResp))
+		ids := map[string]bool{}
+		for _, it := range listResp.Data.List {
+			ids[it.ID] = true
+		}
+		return crossCode, ownCode, ids
 	}
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &listResp))
-	ids := map[string]bool{}
-	for _, it := range listResp.Data.List {
-		ids[it.ID] = true
-	}
-	assert.True(t, ids[instA], "本商户乐器必须可见")
-	assert.False(t, ids[instB], "显式模式下跨商户乐器不得可见")
 
+	crossOff, ownOff, idsOff := run(t, false)
+	crossOn, ownOn, idsOn := run(t, true)
+
+	assert.Equal(t, http.StatusNotFound, crossOff, "自动范围：跨商户订单 404")
+	assert.Equal(t, http.StatusOK, ownOff, "自动范围：本商户订单 200")
+	assert.Equal(t, crossOff, crossOn, "开关 on/off 状态码必须等价（跨商户）")
+	assert.Equal(t, ownOff, ownOn, "开关 on/off 状态码必须等价（本商户）")
+	assert.Equal(t, http.StatusNotFound, crossOn, "显式模式：跨商户订单 404")
+	assert.True(t, idsOff[instA] && idsOn[instA], "本商户乐器在两种模式下均可见")
+	assert.False(t, idsOff[instB], "自动范围：跨商户乐器不可见")
+	assert.False(t, idsOn[instB], "显式模式：跨商户乐器不可见")
+	assert.Equal(t, idsOff, idsOn, "乐器列表 on/off 必须等价")
 }
