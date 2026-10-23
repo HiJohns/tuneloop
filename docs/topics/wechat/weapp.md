@@ -198,7 +198,12 @@ Tuneloop 后端代理 → IAM 解密 → 更新用户 phone
 2. 微信小程序后台 → 设置 → 第三方服务 → 添加「慧眼人脸核身」插件（企业主体审核，1-3 工作日）
 3. 前端 `EditProfile.jsx` 的 `handleFaceVerify` 中完成插件跳转接入（当前为 TODO，`plugin://faceid/verify?token=...`）
 4. 慧眼按次计费套餐购买
-5. 未配置时降级：face-verify 端点返回 40012，前端隐藏人脸认证按钮，三处身份证照片上传不受影响
+5. 未配置时降级（#2272）：
+   - `GET /api/config` 下发 `face_verify={provider,auto_enabled}`；`eid` 缺 `EID_MERCHANT_ID` 或未配置密钥 → `manual/false`；
+   - weapp 仅在 `auto_enabled=true` 时显示自动核身（隐藏手动相机/上传）；否则仅手动，且不请求 token；
+   - 自动 token 返回 40012 时，前端本地降级为手动并提示；
+   - 首帧使用启动缓存 `app_config` 同步决定通道；无缓存时先 loading，不预渲染相机；
+   - 三处身份证照片上传与人工审核通道不受影响
 
 ### 环境变量
 

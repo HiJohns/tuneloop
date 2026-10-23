@@ -674,6 +674,22 @@ GET /api/confirmation-sessions/:id
 
 ## 三、白标化配置模块
 
+### 3.0 客户端能力配置
+
+**接口**: `GET /api/config`
+
+**说明**: 客户端启动时读取环境与能力开关（不返回任何密钥）。与核身相关的字段：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `face_verify.provider` | string | `manual` / `eid` / `faceid`（非法或未配置一律返回 `manual`） |
+| `face_verify.auto_enabled` | bool | 仅当腾讯云密钥就绪且 provider 所需参数齐全时为 `true`（`eid` 还需 `EID_MERCHANT_ID`） |
+
+**语义**：
+- `auto_enabled=true`：weapp 渲染自动核身通道（隐藏手动相机/上传）；H5 **始终**仅手动。
+- `auto_enabled=false`：weapp/H5 均仅手动；前端不调用 `/user/face-verify/token`。
+- 服务端未配置时，`/user/face-verify/token` 返回 **40012**；前端收到后本地降级为手动并提示。
+
 ### 3.1 品牌配置
 
 **接口**: `GET /api/common/brand-config`
