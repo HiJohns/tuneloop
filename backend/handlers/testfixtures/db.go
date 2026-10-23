@@ -19,6 +19,9 @@ var allTables = []interface{}{
 	&models.InstrumentLevel{},
 	&models.Category{},
 	&models.Site{},
+	&models.Tenant{},
+	&models.Banner{},
+	&models.MaintenanceWorker{},
 	&models.SiteMember{},
 	&models.MerchantMember{}, // #2064: 账户管理 personnel_type 员工判定依赖
 	&models.StaffInvite{},    // #2114: 邀请与成员管理测试

@@ -15,40 +15,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
-	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
-	"tuneloop-backend/testutil"
 )
-
-func setupWarehouseTables(t *testing.T, db *gorm.DB) error {
-	tables := []interface{}{
-		&models.Order{},
-		&models.OrderStatusHistory{},
-	}
-	for _, table := range tables {
-		_ = db.Migrator().DropTable(table)
-		if err := db.Migrator().CreateTable(table); err != nil {
-			return err
-		}
-	}
-	return nil
-}
 
 func TestListWarehouseOrders(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	testutil.SetDB(t, db)
-	if err := setupWarehouseTables(t, db); err != nil {
-		t.Fatalf("failed to setup tables: %v", err)
-	}
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	order := models.Order{
@@ -78,7 +53,7 @@ func TestListWarehouseOrders(t *testing.T) {
 			List []map[string]interface{} `json:"list"`
 		} `json:"data"`
 	}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
+	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
 	assert.Equal(t, 20000, response.Code)
 	assert.Greater(t, len(response.Data.List), 0)
@@ -86,16 +61,7 @@ func TestListWarehouseOrders(t *testing.T) {
 
 func TestUpdateShipping(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	testutil.SetDB(t, db)
-	if err := setupWarehouseTables(t, db); err != nil {
-		t.Fatalf("failed to setup tables: %v", err)
-	}
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	orderID := uuid.New().String()
@@ -133,7 +99,7 @@ func TestUpdateShipping(t *testing.T) {
 		Code int                    `json:"code"`
 		Data map[string]interface{} `json:"data"`
 	}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
+	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
 	assert.Equal(t, 20000, response.Code)
 
@@ -151,21 +117,10 @@ func TestUpdateShipping(t *testing.T) {
 // cache is only a fallback when record.OpenID is empty.
 func TestReportWechatShipping_OpenIDPriority(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	testutil.SetDB(t, db)
-	if err := setupWarehouseTables(t, db); err != nil {
-		t.Fatalf("failed to setup tables: %v", err)
-	}
+	db := testfixtures.SetupTestDB(t)
 	// users / order_payment_records keep their real (migration-built) schema:
 	// IAMSub is tagged `-:migration`, so GORM CreateTable would drop iam_sub.
 	// Use the existing tables and clean up test rows per case.
-	_ = db.Migrator().HasTable(&models.User{})
-	_ = db.Migrator().HasTable(&models.OrderPaymentRecord{})
 
 	tenantID := uuid.New().String()
 
@@ -278,16 +233,7 @@ func TestReportWechatShipping_OpenIDPriority(t *testing.T) {
 // 40002 instead of 404 (which would come from PG SQLSTATE 22P02).
 func TestConfirmDelivery_InvalidUUID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	testutil.SetDB(t, db)
-	if err := setupWarehouseTables(t, db); err != nil {
-		t.Fatalf("failed to setup tables: %v", err)
-	}
+	testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	handler := NewWarehouseHandler()
