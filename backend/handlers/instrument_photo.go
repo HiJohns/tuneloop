@@ -71,7 +71,9 @@ func UploadInstrumentPhotos(c *gin.Context) {
 	// Get instrument details
 	db := database.GetDB().WithContext(c.Request.Context())
 	var instrument models.Instrument
-	if err := db.Preload("Tenant").Preload("Category").First(&instrument, "id = ?", instrumentID).Error; err != nil {
+	if err := db.Preload("Tenant").Preload("Category").
+		Where("id = ? AND tenant_id = ?", instrumentID, middleware.GetTenantID(c.Request.Context())).
+		First(&instrument).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{
 				"code":    40400,

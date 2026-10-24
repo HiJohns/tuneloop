@@ -512,7 +512,12 @@ bash scripts/tenant-audit-coverage.sh
 | `PUT /instruments/:id` | `UpdateInstrument` | instruments | `id = ? AND tenant_id = ?`（`instrument.go:479`） | `TestInstrumentsWrite_ExplicitScope_2276` |
 | `DELETE /instruments/batch` | `BatchDeleteInstruments` | instruments, orders | `deleteInstrumentWithChecks`：`id = ? AND tenant_id = ?`（`instrument.go:950`） | 同上（跨商户行保留断言） |
 
-> 待续：media 写删 / photos / pricing / activity / scrap / import / export / loss / restore；`/orders/:id` 详情与 pickup/admin-update/outbound/assessment（需逐条核对）。
+| `GET/POST/PUT/DELETE /instruments/:id/media*` | `GetInstrumentMedia`/`CreateInstrumentMedia`/`SetMediaDisplay`/`DeleteMediaBatch`/`DeleteSingleMedia` | instrument_media | `tenant_id = ?`（读写删均显式） | `TestInstrumentMedia_ExplicitScope_2276` |
+| `POST /instruments/:id/photos/upload` | `UploadInstrumentPhotos` | instruments, instrument_media | 乐器加载补 `id = ? AND tenant_id = ?`（本批） | 代码审查 + 列表/删除守卫 |
+| `POST /instruments/:id/cover-image` | `UploadCoverImage` | instruments | 入口补 `id = ? AND tenant_id = ?`（本批） | 同上 |
+| `POST /instruments/:id/display-image` | `UploadDisplayImage` | instruments, instrument_media | `id = ? AND tenant_id = ?`（既有） | 同上 |
+
+> 待续：pricing / activity / scrap / import / export / loss / restore；`/orders/:id` 详情与 pickup/admin-update/outbound/assessment（需逐条核对）。
 
 ### 已回滚（未切换，自动范围保留）
 
