@@ -504,6 +504,16 @@ bash scripts/tenant-audit-coverage.sh
 
 > 批次 A 仅切只读；写路由（start/complete/accept/reject/records-add/return-shipping/transit）保持自动范围，待批次 A2。
 
+### 批次 B（#2276）：orders / instruments（进行中）
+
+| 路由 | Handler | 触达表 | 显式过滤证据 | 守卫 |
+|---|---|---|---|---|
+| `GET /instruments/:id` | `GetInstrumentByID` | instruments | `id = ? AND tenant_id = ?`（`api.go:51`） | `TestInstrumentDetail_ExplicitScope_2276` |
+| `PUT /instruments/:id` | `UpdateInstrument` | instruments | `id = ? AND tenant_id = ?`（`instrument.go:479`） | `TestInstrumentsWrite_ExplicitScope_2276` |
+| `DELETE /instruments/batch` | `BatchDeleteInstruments` | instruments, orders | `deleteInstrumentWithChecks`：`id = ? AND tenant_id = ?`（`instrument.go:950`） | 同上（跨商户行保留断言） |
+
+> 待续：media 写删 / photos / pricing / activity / scrap / import / export / loss / restore；`/orders/:id` 详情与 pickup/admin-update/outbound/assessment（需逐条核对）。
+
 ### 已回滚（未切换，自动范围保留）
 
 原批次挂载但**未完成逐路由清单/守卫**的入口全部回滚，包括：
