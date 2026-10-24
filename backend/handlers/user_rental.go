@@ -577,6 +577,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create order: " + err.Error()})
 		return
 	}
+	insertInitialTermVersion(tx, &order)
 
 	// Link guarantors to the order (#1557)
 	if req.DepositWaived {
@@ -1040,6 +1041,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create order for " + item.InstrumentID})
 			return
 		}
+		insertInitialTermVersion(tx, &order)
 
 		// Link guarantors to this order (batch shares the same guarantors) (#1557)
 		if req.DepositWaived {

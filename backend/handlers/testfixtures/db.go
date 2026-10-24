@@ -29,6 +29,7 @@ var allTables = []interface{}{
 	&models.StaffInvite{},    // #2114: 邀请与成员管理测试
 	&models.Instrument{},
 	&models.Order{},
+	&models.OrderTermVersion{},
 	&models.PaymentSession{},
 	&models.SessionOrderLink{},
 	&models.Notification{},

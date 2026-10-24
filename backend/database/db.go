@@ -423,6 +423,7 @@ var defaultMigrationArtifacts = []migrationArtifact{
 	{20260922002, "site_members", "roles", "网点成员多重角色列（#2034）"},
 	{20260923001, "pending_orders", "", "待提交订单缓存表（#2041）"},
 	{20260924001, "staff_invites", "invitee_user_id", "邀请通知被邀请人列（#2052）"},
+	{20261024001, "order_term_versions", "", "订单期限版本表（#2282 P4a）"},
 	{20260924002, "users", "intro_letter_url", "介绍信列（#2057 裁定3）"},
 	{20260925001, "users", "bio", "全员富文本简介列（#2073）"},
 	{20260927001, "repair_requests", "quote_material_cents", "维修报价料钱列（#2085）"},
@@ -596,6 +597,7 @@ func validateDatabaseSchema(db *gorm.DB) error {
 		&models.MerchantSettlementConfig{},
 		&models.Settlement{},
 		&models.SettlementCalculation{},
+		&models.OrderTermVersion{}, // #2282 P4a
 		&models.OverdueCharge{},
 		&models.OrderLog{},
 		&models.PaymentSession{},

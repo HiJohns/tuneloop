@@ -68,12 +68,12 @@ type FaceCaptureBatch struct {
 }
 
 type Category struct {
-	ID        string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID  string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	Name      string    `gorm:"type:varchar(100);not null" json:"name"`
-	Icon      string    `json:"icon"`
-	ParentID  *string   `gorm:"type:uuid" json:"parent_id"`
-	Level     int       `gorm:"default:1" json:"level"`
+	ID       string  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID string  `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	Name     string  `gorm:"type:varchar(100);not null" json:"name"`
+	Icon     string  `json:"icon"`
+	ParentID *string `gorm:"type:uuid" json:"parent_id"`
+	Level    int     `gorm:"default:1" json:"level"`
 	// #2133: tag aligned with the actual DB column default (integer DEFAULT 0).
 	// sort is a pure ordering value and takes no part in visibility.
 	Sort      int       `gorm:"default:0" json:"sort"`
@@ -1422,3 +1422,17 @@ type TechnicianProfile struct {
 
 // OrderNoPrefix 业务订单号前缀（#1965）：`YL<YYYYMMDD>-<NNN>`（当日第 N 单）
 const OrderNoPrefix = "YL"
+
+// OrderTermVersion (#2282 P4a): append-only term snapshot; pricing_breakdown stays immutable.
+type OrderTermVersion struct {
+	ID              string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	OrderID         string    `gorm:"type:uuid;not null;uniqueIndex:idx_term_order_version" json:"order_id"`
+	Version         int       `gorm:"not null;uniqueIndex:idx_term_order_version" json:"version"`
+	StartDate       *string   `gorm:"type:date" json:"start_date"`
+	EndDate         *string   `gorm:"type:date" json:"end_date"`
+	Days            int       `gorm:"not null;default:0" json:"days"`
+	TierSegments    string    `gorm:"type:jsonb;not null;default:'[]'" json:"tier_segments"`
+	TotalAmount     Cents     `gorm:"type:bigint;not null;default:0" json:"total_amount"`
+	PaymentRecordID *string   `gorm:"type:uuid" json:"payment_record_id,omitempty"`
+	CreatedAt       time.Time `json:"created_at"`
+}
