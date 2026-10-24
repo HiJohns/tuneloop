@@ -604,10 +604,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			repairRequired.POST("/repair/:id/accept", middleware.RequireAnyCusPerm("repair:accept", "instrument:maintain"), repairHandler.AcceptRepair)
 			repairRequired.POST("/repair/:id/reject", middleware.RequireAnyCusPerm("repair:accept", "instrument:maintain"), repairHandler.RejectRepair)
 			repairRequired.POST("/repair/:id/records", repairHandler.AddRecord)
-			repairRequired.GET("/repair/:id/records", repairHandler.ListRecords)
-			repairRequired.GET("/repair/mine", repairHandler.ListMyRepairs)
-			repairRequired.GET("/repair/pending", repairHandler.ListPendingRepairs)
-			repairRequired.GET("/repair/acceptance", repairHandler.ListAcceptanceRepairs)
+			repairRequired.GET("/repair/:id/records", middleware.ExplicitTenantScope(), repairHandler.ListRecords)
+			repairRequired.GET("/repair/mine", middleware.ExplicitTenantScope(), repairHandler.ListMyRepairs)
+			repairRequired.GET("/repair/pending", middleware.ExplicitTenantScope(), repairHandler.ListPendingRepairs)
+			repairRequired.GET("/repair/acceptance", middleware.ExplicitTenantScope(), repairHandler.ListAcceptanceRepairs)
 
 			// Warning routes (Issue #1140)
 			authRequired.GET("/warnings", handlers.ListWarnings)
@@ -682,8 +682,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			repairReqRequired.GET("/repair-services", repairServiceHandler.ListTasks)
 
 			// Repair config routes (Issue #1118) — merchant_admin only
-			authRequired.GET("/config/repair", middleware.RequireRole("OWNER"), handlers.GetRepairAllSettings)
-			authRequired.GET("/config/repair/single", middleware.RequireRole("OWNER"), handlers.GetRepairSetting)
+			authRequired.GET("/config/repair", middleware.ExplicitTenantScope(), middleware.RequireRole("OWNER"), handlers.GetRepairAllSettings)
+			authRequired.GET("/config/repair/single", middleware.ExplicitTenantScope(), middleware.RequireRole("OWNER"), handlers.GetRepairSetting)
 			authRequired.PUT("/config/repair/single", middleware.RequireRole("OWNER"), handlers.SetRepairSetting)
 			// v3 system-level check_fee (namespace_admin should be used when permission framework in place)
 			authRequired.GET("/config/repair/check-fee", handlers.GetCheckFee)
@@ -695,7 +695,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.PUT("/sites/:id/config/shipping-fee", handlers.SetSiteShippingFee)
 
 			// Repair appeal routes (Issues #1115, #1116, #1119)
-			authRequired.GET("/repair-appeals", handlers.ListAppeals)
+			authRequired.GET("/repair-appeals", middleware.ExplicitTenantScope(), handlers.ListAppeals)
 			authRequired.POST("/repair-appeals/:id/close", handlers.CloseAppeal)
 			authRequired.POST("/repair-appeals/:id/review", handlers.ReviewAppeal)
 			authRequired.POST("/repair-appeals/:id/forward", handlers.ForwardAppeal)
@@ -862,7 +862,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			}
 
 			// #1879: merchant owner repair-request list (PC admin)
-			authRequired.GET("/merchant/repair-requests", middleware.RequireRole("OWNER"), handlers.ListMerchantRepairRequests)
+			authRequired.GET("/merchant/repair-requests", middleware.ExplicitTenantScope(), middleware.RequireRole("OWNER"), handlers.ListMerchantRepairRequests)
 
 			// Permission Management (merchant admin only, sys_perm bit 26)
 			permRequired := authRequired.Group("")

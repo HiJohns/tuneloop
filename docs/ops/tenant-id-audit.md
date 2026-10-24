@@ -489,6 +489,21 @@ bash scripts/tenant-audit-coverage.sh
 | `PUT /merchant/sites/:id` | `UpdateSite` | sites | `id = ? AND tenant_id = ?`（`site.go:547`） | `TestMembershipDomain_SitesExplicitScope_2261` |
 | `GET /sites/:id/members` | `SiteMemberHandler.ListMembers` | sites, site_members, users | `hasSiteAccess`：`sites.id = ? AND sites.tenant_id = ?`（`site_member.go:325+`） | `TestMembershipDomain_SitesExplicitScope_2261` |
 
+### 批次 A（#2276）：repair 只读（8 条新增）
+
+| 路由 | Handler | 触达表 | 显式过滤证据 | 守卫 |
+|---|---|---|---|---|
+| `GET /repair/mine` | `ListMyRepairs` | instruments | `repair_worker_id = 操作者 user_id`（`repair.go:463`） | 用户维度守卫 |
+| `GET /repair/pending` | `ListPendingRepairs` | instruments, site_members | `current_site_id IN 操作者站点成员hips`（`repair.go:479-490`） | `TestListPendingRepairs_TenantFilter` |
+| `GET /repair/acceptance` | `ListAcceptanceRepairs` | instruments, site_members | 同上（站点成员hips） | 需 B/C 批次补路由级守卫 |
+| `GET /repair/:id/records` | `ListRecords` | instruments, repair_records | 先 `id = ? AND tenant_id = ?` 校验乐器（`repair.go:418+`） | `TestRepairRecords_ExplicitScope_2276` |
+| `GET /merchant/repair-requests` | `ListMerchantRepairRequests` | repair_requests | `tenant_id = 操作者 tid`（`repair_admin.go:24`） | 需补路由级守卫 |
+| `GET /repair-appeals` | `ListAppeals` | appeals | `org_id = 操作者 oid`（`appeal.go:36-38`） | 需补路由级守卫 |
+| `GET /config/repair` | `GetRepairAllSettings` | system_settings | 配置键 = 商户 org anchor（`repair_config.go:95`） | 已有配置隔离测试 |
+| `GET /config/repair/single` | `GetRepairSetting` | system_settings | 同上（`repair_config.go:37`） | 已有配置隔离测试 |
+
+> 批次 A 仅切只读；写路由（start/complete/accept/reject/records-add/return-shipping/transit）保持自动范围，待批次 A2。
+
 ### 已回滚（未切换，自动范围保留）
 
 原批次挂载但**未完成逐路由清单/守卫**的入口全部回滚，包括：

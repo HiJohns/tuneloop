@@ -414,6 +414,13 @@ func (h *RepairHandler) ListRecords(c *gin.Context) {
 
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
+	// #2276：显式模式下必须先校验乐器归属（父对象授权）
+	tenantID := middleware.GetTenantID(ctx)
+	var instr models.Instrument
+	if err := db.Where("id = ? AND tenant_id = ?", instrumentID, tenantID).First(&instr).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
+		return
+	}
 
 	var records []models.RepairRecord
 	if err := db.Where("instrument_id = ?", instrumentID).Order("created_at ASC").Find(&records).Error; err != nil {
