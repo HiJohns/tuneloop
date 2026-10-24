@@ -27,9 +27,6 @@ func setup1867Fixture(t *testing.T) (*gorm.DB, *UserRentalHandler) {
 	gin.SetMode(gin.TestMode)
 	t.Setenv("DEPOSIT_WAIVER_MIN_CREDIT", "600")
 	db := testfixtures.SetupTestDB(t)
-	// Guarantor tables are not part of the shared fixture set — create them
-	// for the deposit-free flow under test.
-	require.NoError(t, db.Migrator().CreateTable(&models.Guarantor{}, &models.OrderGuarantor{}))
 	return db, NewUserRentalHandler()
 }
 

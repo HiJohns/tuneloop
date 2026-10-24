@@ -44,6 +44,8 @@ var allTables = []interface{}{
 	&models.OrderPaymentRecord{},
 	&models.PointsTransaction{},
 	&models.User{},
+	&models.Guarantor{},
+	&models.OrderGuarantor{},
 	&models.PointBatch{},            // #1947 Sub-D: 乐币批次
 	&models.PointBatchConsumption{}, // #1947 Sub-D: 批次扣减留痕
 	&models.FaceCaptureBatch{},      // #1789 T1: 核身批次表
