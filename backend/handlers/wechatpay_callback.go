@@ -17,6 +17,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // WechatPayCallback handles POST /api/wechatpay/notify
@@ -70,40 +71,58 @@ func processRefundCallback(c *gin.Context, result *wechatpay.CallbackResult) boo
 	db := database.GetDB().WithContext(c.Request.Context())
 	now := time.Now()
 
-	var refundRecord models.OrderRefundRecord
-	if err := db.Where("out_refund_no = ?", result.OutRefundNo).First(&refundRecord).Error; err != nil {
-		log.Printf("[processRefundCallback] refund record not found for %s: %v", result.OutRefundNo, err)
-		return false
-	}
-
-	if err := db.Model(&refundRecord).Updates(map[string]interface{}{
-		"status":     "refunded",
-		"refund_id":  result.RefundID,
-		"updated_at": now,
-	}).Error; err != nil {
-		log.Printf("[processRefundCallback] failed to update refund record %s: %v", result.OutRefundNo, err)
-		return false
-	}
-
-	// Update the associated settlement refund status (if any)
-	if refundRecord.PaymentRecordID != nil {
-		var settlement models.Settlement
-		if err := db.Where("order_id IN (SELECT order_id FROM order_payment_records WHERE id = ?)", *refundRecord.PaymentRecordID).
-			First(&settlement).Error; err == nil {
-			if err := db.Model(&settlement).Updates(map[string]interface{}{
-				"refund_status": "completed",
-				"updated_at":    now,
-			}).Error; err != nil {
-				log.Printf("[processRefundCallback] failed to update settlement for %s: %v", result.OutRefundNo, err)
-			}
+	err := db.Transaction(func(tx *gorm.DB) error {
+		var refundRecord models.OrderRefundRecord
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("out_refund_no = ?", result.OutRefundNo).First(&refundRecord).Error; err != nil {
+			return err
+		}
+		// 幂等：已 refunded 的回调直接成功返回，不重复扣减
+		if refundRecord.Status == "refunded" {
+			return nil
+		}
+		if err := tx.Model(&refundRecord).Updates(map[string]interface{}{
+			"status":     "refunded",
+			"refund_id":  result.RefundID,
+			"updated_at": now,
+		}).Error; err != nil {
+			return err
 		}
 
-		// Re-evaluate membership level after refund (aggregated spending decreased;
-		// level only upgrades, so this is a no-op unless other spending crossed a threshold)
+		if refundRecord.PaymentRecordID == nil {
+			return nil
+		}
 		var payment models.OrderPaymentRecord
-		if err := db.Where("id = ?", *refundRecord.PaymentRecordID).First(&payment).Error; err == nil {
-			if err := services.CheckAndUpgradeLevel(payment.UserID, nil); err != nil {
-				log.Printf("[processRefundCallback] membership level check failed: %v", err)
+		if err := tx.Where("id = ?", *refundRecord.PaymentRecordID).First(&payment).Error; err != nil {
+			return err
+		}
+		if payment.OrderID != nil {
+			// #2278：cash_paid 为净额（扣除已退款）
+			if err := tx.Model(&models.Order{}).Where("id = ?", *payment.OrderID).
+				Update("cash_paid", gorm.Expr("GREATEST(cash_paid - ?, 0)", refundRecord.Amount)).Error; err != nil {
+				return err
+			}
+			if err := tx.Model(&models.Settlement{}).Where("order_id = ?", *payment.OrderID).
+				Updates(map[string]interface{}{"refund_status": "completed", "updated_at": now}).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Printf("[processRefundCallback] failed for %s: %v", result.OutRefundNo, err)
+		return false
+	}
+
+	// 退款后会员等级复核（消费额下降；等级只升不降，通常为 no-op）
+	if result.RefundID != "" {
+		var refund models.OrderRefundRecord
+		if err := db.Where("out_refund_no = ?", result.OutRefundNo).First(&refund).Error; err == nil && refund.PaymentRecordID != nil {
+			var payment models.OrderPaymentRecord
+			if err := db.Where("id = ?", *refund.PaymentRecordID).First(&payment).Error; err == nil {
+				if err := services.CheckAndUpgradeLevel(payment.UserID, nil); err != nil {
+					log.Printf("[processRefundCallback] membership level check failed: %v", err)
+				}
 			}
 		}
 	}
@@ -355,6 +374,13 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 		}
 		return nil
 	case "payment_shortfall":
+		// #2278：补缴到账必须入账（现金净额）
+		if record.OrderID != nil {
+			if err := tx.Model(&models.Order{}).Where("id = ?", *record.OrderID).
+				Update("cash_paid", gorm.Expr("cash_paid + ?", record.Amount)).Error; err != nil {
+				return err
+			}
+		}
 		// #1746 L-04C 流程 4/5：补缴支付成功 → 订单 completed → 结算闭环。
 		// settlement 已存在（shortfall 时创建，pending）→ 标记完成
 		// （此时已付 ≥ 应付，无退款/走幂等 executeRefund）。
