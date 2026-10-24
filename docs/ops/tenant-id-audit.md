@@ -371,8 +371,8 @@
 | ISO-14 | 网点管理员 | 跨网点订单/乐器详情 | 跨商户 → 404/403；本商户 org 锚可读 | ✅ 自动化：`TestIsolationMatrix_OrderDetail_CrossMerchant_ISO14`（站点级列表隔离由 #1911/#2116 覆盖） |
 | ISO-15 | 顾客（零租户） | 下单/读取/我的订单 | 不因 tid 为空被拒；数据落商户 org；跨顾客 404 | ✅ 自动化：`TestIsolationMatrix_CustomerZeroTenant_Chain_ISO15`（拍付/收货动作由 `prepay_2110`/`#2116` 组覆盖，wxpay 真链路列部署侧走查） |
 | ISO-16 | 顾客 | 发票申请：伪造 `tenant_id=B`；跨商户订单合并 | 伪造 → 400 且无申请行；不传 → 落订单商户 org；跨商户合并 → 400 | ✅ `TestInvoiceSubmit_TenantDerivedFromOrders_2262` |
-| ISO-17 | 商户 A/B 管理员 | 共享 tenant 下各自 webhook 配置 | A/B 互不覆盖；旧 tenant 键只读回退可用 | ✅ `TestMerchantWebhook_SharedTenantIsolation_2262`、`TestMerchantTenantID_ReturnsMerchantOrg_2262` |
-| ISO-18 | 商户/网点管理员、顾客 | B3 显式模式下的 repair / orders-instruments / membership 路由 | 跨商户 404/空；本商户 200；on/off 等价 | ✅ `TestRepairDomain_ExplicitScopeIsolation_2261`、`TestOrdersInstrumentsDomain_ExplicitScopeIsolation_2261`、`TestMembershipDomain_SitesExplicitScope_2261`（#2261 `d96d385e`） |
+| ISO-17 | 商户 A/B 管理员 | 共享 tenant 下各自 webhook 配置 | A/B 互不覆盖；旧 tenant 键在 scoped ctx 下只读回退可用 | ✅ `TestMerchantWebhook_LegacyKeyFallbackUnderScopedCtx_2262`、`TestMerchantWebhook_SharedTenantIsolation_2262`（#2262 返工） |
+| ISO-18 | 商户/网点管理员、顾客 | B3 显式模式下的 repair / orders-instruments / membership 路由 | 跨商户 404/空；本商户 200；on/off 等价 | 🟡 **待 #2261 审计 PASS**（返工 `e80de659`：8 条已守卫路由；其余回滚）。测试：`TestRepairDomain_ExplicitScopeIsolation_2261`、`TestOrdersInstrumentsDomain_ExplicitScopeIsolation_2261`、`TestMembershipDomain_SitesExplicitScope_2261`、`TestOrdersByTradeNo_ExplicitScopeIsolation_2261`、`TestOrdersInstrumentsDelete_ExplicitScope_2261` |
 
 ## A6 覆盖率校验（可复跑）
 
