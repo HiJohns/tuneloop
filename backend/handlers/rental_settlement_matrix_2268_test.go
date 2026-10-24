@@ -335,14 +335,12 @@ func TestMatrix_RentalShortfallApplied_2268(t *testing.T) {
 // 前端 prepay 的 amount 已扣除乐币（cashAmount = displayAmount - gift*100），
 // 回调 deductPointsFromRecord 又减一次 → cash_paid 少记 gift。
 func TestMatrix_GiftPointsNotDoubleDeducted_2268(t *testing.T) {
-	// #2279 已修复：gift 不再从 cash_paid 扣减。
 	db := testfixtures.SetupTestDB(t)
 	org := uuid.NewString()
 	user := uuid.NewString()
 	require.NoError(t, db.Create(&models.User{
 		ID: user, IAMSub: user, TenantID: org, OrgID: org, Status: "active", Name: "乐币用户",
 	}).Error)
-	// 订单：租金 3000 + 押金 500，使用乐币 200 → 创建时 cash = 3300
 	order := models.Order{
 		ID: uuid.NewString(), TenantID: org, OrgID: org, UserID: user, InstrumentID: uuid.NewString(),
 		Level: "entry", LeaseTerm: 30, Status: "reserved",
@@ -351,20 +349,26 @@ func TestMatrix_GiftPointsNotDoubleDeducted_2268(t *testing.T) {
 	}
 	require.NoError(t, db.Create(&order).Error)
 
-	gift := `{"gift_used":20000}` // 分
+	gift := `{"gift_used":20000}`
 	rec := models.OrderPaymentRecord{
 		ID: uuid.NewString(), TenantID: org, UserID: user, OrderID: &order.ID,
 		OrderType: "rent", Amount: models.FromYuan(3300), Type: "payment", Status: "paid",
 		RawResponse: &gift,
 	}
-	// deductPointsFromRecord 直接调用（FIFO 可能因无批次失败，但订单更新在其之前）
-	_ = deductPointsFromRecord(db, &rec, time.Now())
+	require.NoError(t, db.Create(&rec).Error)
+	// 走生产路径（applySideEffects），不再直接调 helper
+	require.NoError(t, applySideEffects(db, &rec, time.Now()))
 
 	var after models.Order
 	require.NoError(t, db.Where("id = ?", order.ID).First(&after).Error)
-	assert.Equal(t, models.FromYuan(3300), after.CashPaid,
-		"cash_paid 已被 record.Amount（已扣乐币）覆盖，不得再减一次 gift；当前少记 ¥200")
+	assert.Equal(t, models.FromYuan(3300), after.CashPaid, "rent：cash 应为净额，不得再扣 gift")
 	assert.Equal(t, models.FromYuan(200), after.GiftPointsUsed)
+
+	paid, refunded, net, err := RecomputeOrderFinancials(db, order.ID)
+	require.NoError(t, err)
+	assert.Equal(t, models.FromYuan(3300), paid)
+	assert.Equal(t, models.Cents(0), refunded)
+	assert.Equal(t, after.CashPaid, net, "Paid − Refunded = CashPaid")
 }
 
 // 返点场景 10：结算时给介绍人按「应收租金 × 推荐人等级比例」发返点；
