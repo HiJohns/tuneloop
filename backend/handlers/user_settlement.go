@@ -263,7 +263,7 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		spendingBasis = result.RentPayable
 	}
 	if err := tx.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
-		"total_spending": gorm.Expr("total_spending + ?", spendingBasis),
+		"total_spending": gorm.Expr("total_spending + ?", models.FromYuan(spendingBasis)),
 		"updated_at":     time.Now(),
 	}).Error; err != nil {
 		tx.Rollback()
@@ -579,7 +579,7 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 		spendingBasis = result.RentPayable
 	}
 	if err := tx.Model(&models.User{}).Where("id = ?", order.UserID).Updates(map[string]interface{}{
-		"total_spending": gorm.Expr("total_spending + ?", spendingBasis),
+		"total_spending": gorm.Expr("total_spending + ?", models.FromYuan(spendingBasis)),
 		"updated_at":     time.Now(),
 	}).Error; err != nil {
 		return nil, fmt.Errorf("failed to update total spending: %w", err)

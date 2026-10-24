@@ -460,11 +460,9 @@ func TestMatrix_ReferralOnZeroCashOrder_2268(t *testing.T) {
 	assert.Equal(t, models.FromYuan(150), batch.AmountCents, "0 现金订单仍按应收租金发返点")
 }
 
-// #2268 已知缺陷（红）：total_spending 为 Cents 列，但 executeRefund 写入的是**元**
-// （spendingBasis=result.CashBasis 元）→ 前端 MembershipCenter /100 展示少 100 倍
-// （¥3000 显示 ¥30）；且当前无任何升级逻辑读取该字段。修复后移除 skip。
+// #2280 已修复：total_spending 统一写 Cents（原缺陷：写入元，/100 少 100 倍）。
+
 func TestMatrix_TotalSpendingUnit_2268(t *testing.T) {
-	t.Skip("known bug #2268: total_spending stores yuan in a Cents column (100x understatement)")
 	db := testfixtures.SetupTestDB(t)
 	testfixtures.SetupWechatPayMock(t)
 	org := uuid.NewString()
