@@ -335,9 +335,7 @@ func TestMatrix_RentalShortfallApplied_2268(t *testing.T) {
 // 前端 prepay 的 amount 已扣除乐币（cashAmount = displayAmount - gift*100），
 // 回调 deductPointsFromRecord 又减一次 → cash_paid 少记 gift。
 func TestMatrix_GiftPointsNotDoubleDeducted_2268(t *testing.T) {
-	// #2268 已知缺陷（红）：rent 路径用 record.Amount 覆盖 cash_paid（不重复扣）；
-	// 风险在 renewal/damage/shortfall/loss 等不覆盖路径。修复后移除 skip。
-	t.Skip("known bug #2268: rent path overwrites cash_paid; risk is renewal/damage/shortfall/loss paths")
+	// #2279 已修复：gift 不再从 cash_paid 扣减。
 	db := testfixtures.SetupTestDB(t)
 	org := uuid.NewString()
 	user := uuid.NewString()

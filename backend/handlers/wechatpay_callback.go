@@ -336,6 +336,13 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 		}
 		return nil
 	case "damage":
+		// #2279：定损赔付为实收现金，必须入账（不得仅 executeRefund）
+		if record.OrderID != nil {
+			if err := tx.Model(&models.Order{}).Where("id = ?", *record.OrderID).
+				Update("cash_paid", gorm.Expr("cash_paid + ?", record.Amount)).Error; err != nil {
+				return err
+			}
+		}
 		if err := tx.Model(&models.Order{}).Where("id = ?", record.OrderID).Update("status", models.OrderStatusCompleted).Error; err != nil {
 			return err
 		}
@@ -365,6 +372,10 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 		// #1948 LS-06：丢失补缴到账 → 幂等关闭 pending 补缴记录（M-08 解除）。
 		// 订单已因丢失置 cancelled，不改变。
 		if record.OrderID != nil {
+			if err := tx.Model(&models.Order{}).Where("id = ?", *record.OrderID).
+				Update("cash_paid", gorm.Expr("cash_paid + ?", record.Amount)).Error; err != nil {
+				return err
+			}
 			if err := tx.Model(&models.OrderPaymentRecord{}).
 				Where("order_id = ? AND order_type = ? AND status = ? AND method = ?",
 					*record.OrderID, "loss", "pending", "loss").
@@ -434,13 +445,10 @@ func deductPointsFromRecord(tx *gorm.DB, record *models.OrderPaymentRecord, now 
 	}
 	// #1983 阶段 2：不再扣减 users.promo_points 快照；余额 = 批次 SUM（下方 FIFO 扣减为准）。
 	if record.OrderID != nil {
+		// #2279：cash_paid 已是现金净额，gift 不得再扣（gift 与 cash 完全分离）
 		updates := map[string]interface{}{
 			"gift_points_used": giftUsedCents,
 		}
-		// Deduct gift points from cash_paid so settlement does not double
-		// count them (L-06). cash_paid was set to the full total at order
-		// creation; the gift-covered portion is not cash.
-		updates["cash_paid"] = gorm.Expr("GREATEST(cash_paid - ?, 0)", giftUsedCents)
 		if err := tx.Model(&models.Order{}).Where("id = ?", *record.OrderID).
 			Updates(updates).Error; err != nil {
 			return fmt.Errorf("update order points: %w", err)
