@@ -439,7 +439,7 @@ bash scripts/tenant-audit-coverage.sh
 | B3 | 读回调逐域显式化（opt-in 等价迁移） | 🟡 批次1 ✅ 开关+观察；批次2 本地统计（9 表）✅ / 生产 24h 待部署；**批次3-域1（repair）/域2（orders·instruments）就绪**：显式模式隔离守卫通过；**域3（merchants/sites/site_members/technician_profiles）**：结算配置显式商户范围已补（`86774cf1`，红绿实证），technician_profiles 守卫已过（`8fa44810`）；sites/invoice_applications/instrument_media 本身即显式 tenant；#2269 判定有误已回滚（`e8a64aa4`）；**观察期实采（商户管理员受控流量）命中 12 表**：instruments/instrument_media/instrument_properties/sites/merchants/technician_profiles/users/orders/order_payment_records/order_status_history/properties/invoice_applications（真实口径：sites.tenant_id=商户 org、merchants.tenant_id=共享 tenant/org_id=商户 org） | `TestExplicitTenantScopeOnly_2261`、`TestRepairDomain_ExplicitScopeIsolation_2261`、`TestOrdersInstrumentsDomain_ExplicitScopeIsolation_2261`、`TestMembershipDomain_SitesExplicitScope_2261`、`TestTechnicianProfilesDomain_ExplicitScopeIsolation_2261`。**B3 三域已挂 `middleware.ExplicitTenantScope()`（`d96d385e`）**：repair 组 / orders+instruments 44 路由 / siteRequired+technician_profiles+merchants；全量 diff 无新增失败（15 vs 基线 21，修复 6 项）。预生产观察日志核对待部署后执行。 |
 | B4 | A3-8 必修清单（P2/P3 批 25 文件）口径改造 | 🟡 逐文件判定完成；本轮修 `invoice.go`（归属由订单派生）+ `member_invite_2114.go`（org 锚） | 见 §A7-B4 |
 | B5 | 前端/services tenant payload 收敛 | 🟡 盘点 88 行（63/21/4）→ `docs/ops/tenant-payload-audit-2262.md`；改 `webhook.go`（org 键 + 旧键只读回退）、`InvoiceConfirm` 移除 payload | 与 API 口径同步 |
-| B6 | 隔离矩阵补齐（ISO-14~18） | 🟡 自动化 ✅（ISO-16/17 随 #2262，ISO-18 随 #2261）；预生产走查待发布 | 行级断言
+| B6 | 隔离矩阵补齐（ISO-14~18） | 🟡 自动化部分：ISO-16/17 ✅（#2262 返工）；**ISO-18 待 #2261 审计 PASS**；预生产走查待最终关闭时 waitForConfirm | 行级断言
 
 
 ## §A7-B4 逐文件判定（#2262）
