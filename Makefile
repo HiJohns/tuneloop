@@ -269,3 +269,6 @@ bump-major:
 	@if [ ! -f VERSION ]; then echo "ERROR: VERSION file not found"; exit 1; fi
 	@awk -F. '{printf "%d.0.0\n", $$1+1}' VERSION > VERSION.tmp && mv VERSION.tmp VERSION
 	@echo "Bumped to $(shell cat VERSION)"
+
+# 本机环境覆盖（已 gitignore，存在时自动加载；放末尾确保覆盖共享目标）
+-include Makefile.local

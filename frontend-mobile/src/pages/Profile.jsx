@@ -482,14 +482,6 @@ export default function Profile() {
             </View>
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
-          {/* 3.1 证件照管理（#2239：实名认证/证件照上传直达） */}
-          <View className="flex justify-between items-center py-3.5" onClick={() => nav('/profile/edit?section=id-photo')}>
-            <View className="flex items-center gap-2">
-              <Text className="text-lg">🪪</Text>
-              <Text className="text-base font-bold text-zinc-800">证件照管理</Text>
-            </View>
-            <Text className="text-sm text-zinc-300">❯</Text>
-          </View>
           {/* 4. 系统通知 */}
           <View className="flex justify-between items-center py-3.5" onClick={() => nav('/messages')}>
             <View className="flex items-center gap-2">
