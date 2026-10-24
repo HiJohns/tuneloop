@@ -9,6 +9,7 @@ package handlers
 //   2) 守恒式：CashRefundable - PayableShortfall == 实收(含押金) - (应收租金+逾期+定损+物流)
 
 import (
+	"context"
 	"encoding/json"
 	"math"
 	"testing"
@@ -17,6 +18,7 @@ import (
 	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
+	"tuneloop-backend/services/wechatpay"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -498,17 +500,20 @@ func TestMatrix_TotalSpendingUnit_2268(t *testing.T) {
 // #2278：补缴超过应结金额 → 超收退款（幂等）。
 func TestMatrix_ShortfallExcessRefund_2268(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
+	stub := &excessRefundStub{}
+	wechatpay.SetClientForTesting(stub, &wechatpay.Config{NotifyURL: "http://localhost/notify", RefundNotifyURL: "http://localhost/notify"})
+	t.Cleanup(func() { wechatpay.ResetGlobalForTesting() })
 	org := uuid.NewString()
 	user := uuid.NewString()
 	require.NoError(t, db.Create(&models.User{ID: user, IAMSub: user, TenantID: org, OrgID: org, Status: "active"}).Error)
 	order := models.Order{
 		ID: uuid.NewString(), TenantID: org, OrgID: org, UserID: user, InstrumentID: uuid.NewString(),
-		Level: "entry", LeaseTerm: 30, Status: "returned",
-		Deposit: 0, CashPaid: models.FromYuan(3500),
+		Level: "entry", LeaseTerm: 30, Status: "returned", Deposit: 0, CashPaid: models.FromYuan(3500),
 	}
 	require.NoError(t, db.Create(&order).Error)
+	rentNo := "rentexcess2278"
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{
-		ID: uuid.NewString(), TenantID: org, UserID: user, OrderID: &order.ID,
+		ID: uuid.NewString(), TenantID: org, UserID: user, OrderID: &order.ID, OutTradeNo: &rentNo,
 		OrderType: "rent", Amount: models.FromYuan(3500), Type: "payment", Status: "paid",
 	}).Error)
 	require.NoError(t, db.Create(&models.Settlement{OrderID: order.ID, ActualRentAmount: models.FromYuan(3000), RefundStatus: "pending"}).Error)
@@ -516,9 +521,9 @@ func TestMatrix_ShortfallExcessRefund_2268(t *testing.T) {
 		ID: uuid.NewString(), TenantID: org, UserID: user, OrderID: &order.ID,
 		OrderType: "payment_shortfall", Amount: models.FromYuan(200), Type: "payment", Status: "paid",
 	}
+	require.NoError(t, db.Create(&rec).Error)
 	require.NoError(t, applySideEffects(db, &rec, time.Now()))
-	// 结算重算幂等：再次重算不得重复生成退款
-	require.NoError(t, applyShortfallSettlement(db, order.ID))
+	// 重算幂等：不得重复发起退款
 	require.NoError(t, applyShortfallSettlement(db, order.ID))
 
 	var after models.Order
@@ -527,8 +532,54 @@ func TestMatrix_ShortfallExcessRefund_2268(t *testing.T) {
 	var st models.Settlement
 	require.NoError(t, db.Where("order_id = ?", order.ID).First(&st).Error)
 	assert.Equal(t, models.FromYuan(700), st.CashRefundable, "超收 700 必须可退")
+	assert.Equal(t, "refunding", st.RefundStatus)
+	assert.Equal(t, int64(70000), stub.params.RefundAmount, "必须调用微信退款 API，金额=70000 分")
+	assert.Equal(t, rentNo, stub.params.OutTradeNo)
 	var refunds []models.OrderRefundRecord
-	require.NoError(t, db.Where("out_refund_no LIKE ?", "excess_%").Find(&refunds).Error)
+	require.NoError(t, db.Where("reason = ?", "补缴超收退款").Find(&refunds).Error)
 	require.Len(t, refunds, 1, "超收退款必须幂等（仅 1 条）")
-	assert.Equal(t, models.FromYuan(700), refunds[0].Amount)
+}
+
+type excessRefundStub struct {
+	wechatpay.Client
+	params wechatpay.RefundParams
+	err    error
+}
+
+func (s *excessRefundStub) Refund(_ context.Context, p wechatpay.RefundParams) (*wechatpay.RefundResult, error) {
+	s.params = p
+	if s.err != nil {
+		return nil, s.err
+	}
+	return &wechatpay.RefundResult{RefundID: "wx-excess-2278"}, nil
+}
+
+// #2278 返工：退款 API 失败必须显式失败（不静默 pending）。
+func TestMatrix_ShortfallExcessRefundAPIFailure_2268(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	stub := &excessRefundStub{err: context.DeadlineExceeded}
+	wechatpay.SetClientForTesting(stub, &wechatpay.Config{RefundNotifyURL: "http://localhost/notify"})
+	t.Cleanup(func() { wechatpay.ResetGlobalForTesting() })
+	org, user, orderID := uuid.NewString(), uuid.NewString(), uuid.NewString()
+	require.NoError(t, db.Create(&models.User{ID: user, IAMSub: user, TenantID: org, OrgID: org, Status: "active"}).Error)
+	require.NoError(t, db.Create(&models.Order{ID: orderID, TenantID: org, OrgID: org, UserID: user,
+		InstrumentID: uuid.NewString(), Level: "entry", LeaseTerm: 30, Status: "returned", CashPaid: models.FromYuan(3500)}).Error)
+	no := "rentfail2278"
+	require.NoError(t, db.Create(&models.OrderPaymentRecord{ID: uuid.NewString(), TenantID: org, UserID: user,
+		OrderID: &orderID, OutTradeNo: &no, OrderType: "rent", Amount: models.FromYuan(3500), Type: "payment", Status: "paid"}).Error)
+	require.NoError(t, db.Create(&models.Settlement{OrderID: orderID, ActualRentAmount: models.FromYuan(3000), RefundStatus: "pending"}).Error)
+	rec := models.OrderPaymentRecord{ID: uuid.NewString(), TenantID: org, UserID: user, OrderID: &orderID,
+		OrderType: "payment_shortfall", Amount: models.FromYuan(200), Type: "payment", Status: "paid"}
+	require.NoError(t, db.Create(&rec).Error)
+
+	err := applySideEffects(db, &rec, time.Now())
+	require.Error(t, err, "退款失败必须显式返回错误")
+
+	var st models.Settlement
+	require.NoError(t, db.Where("order_id = ?", orderID).First(&st).Error)
+	assert.Equal(t, "failed", st.RefundStatus)
+	var refund models.OrderRefundRecord
+	require.NoError(t, db.Where("reason = ?", "补缴超收退款").First(&refund).Error)
+	assert.Equal(t, "failed", refund.Status)
+	assert.NotNil(t, refund.FailReason)
 }

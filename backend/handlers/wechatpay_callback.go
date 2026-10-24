@@ -417,7 +417,7 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 		if record.OrderID != nil {
 			// #2278：重算结算并处理超收退款（executeRefund 对已存在 settlement 会提前返回）
 			if err := applyShortfallSettlement(tx, *record.OrderID); err != nil {
-				log.Printf("[applySideEffects] Failed to recompute settlement for order %s: %v", *record.OrderID, err)
+				return fmt.Errorf("recompute shortfall settlement: %w", err)
 			}
 		}
 		return nil
