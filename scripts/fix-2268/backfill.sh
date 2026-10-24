@@ -55,16 +55,22 @@ FROM (
   SELECT o2.id,
          (COALESCE(p.paid_sum,0)-COALESCE(f.refunded_sum,0)) AS ledger_cash,
          COALESCE(p.damage_paid,0) AS damage_paid,
+         COALESCE(p.shortfall_paid,0) AS shortfall_paid,
+         COALESCE(f.refunded_sum,0) AS refunded_sum,
          o2.cash_paid AS old_cash
   FROM orders o2
   LEFT JOIN (SELECT order_id, COALESCE(SUM(CASE WHEN type='payment' AND status='paid' THEN amount ELSE 0 END),0) AS paid_sum,
-                    COALESCE(SUM(CASE WHEN type='payment' AND status='paid' AND order_type='damage' THEN amount ELSE 0 END),0) AS damage_paid
+                    COALESCE(SUM(CASE WHEN type='payment' AND status='paid' AND order_type='damage' THEN amount ELSE 0 END),0) AS damage_paid,
+                    COALESCE(SUM(CASE WHEN type='payment' AND status='paid' AND order_type='payment_shortfall' THEN amount ELSE 0 END),0) AS shortfall_paid
              FROM order_payment_records GROUP BY order_id) p ON p.order_id=o2.id
   LEFT JOIN (SELECT pr.order_id, COALESCE(SUM(CASE WHEN rr.status='refunded' THEN rr.amount ELSE 0 END),0) AS refunded_sum
              FROM order_refund_records rr JOIN order_payment_records pr ON pr.id=rr.payment_record_id GROUP BY pr.order_id) f ON f.order_id=o2.id
   WHERE COALESCE(p.damage_paid,0)=0
 ) t
-WHERE o.id=t.id AND o.cash_paid=t.old_cash AND o.cash_paid <> t.ledger_cash;
+WHERE o.id=t.id AND o.cash_paid=t.old_cash AND o.cash_paid <> t.ledger_cash
+  -- 安全阀：仅自动修复「退款未回写」「补缴未入账」；ledger=0（历史流水已清理）与租金覆盖类一律人工
+  AND t.ledger_cash > 0
+  AND ( (t.refunded_sum > 0 AND t.old_cash > t.ledger_cash) OR t.shortfall_paid > 0 );
 COMMIT;
 SQL
 }
