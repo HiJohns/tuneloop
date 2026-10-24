@@ -404,15 +404,9 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 			}
 		}
 		if record.OrderID != nil {
-			if err := tx.Model(&models.Settlement{}).Where("order_id = ?", *record.OrderID).
-				Update("refund_status", "completed").Error; err != nil {
-				log.Printf("[applySideEffects] Failed to complete settlement for order %s: %v", *record.OrderID, err)
-			}
-			var completedOrder models.Order
-			if err := tx.Where("id = ?", *record.OrderID).First(&completedOrder).Error; err == nil {
-				if _, err := executeRefund(tx, completedOrder); err != nil {
-					log.Printf("[applySideEffects] Settlement failed for order %s: %v", *record.OrderID, err)
-				}
+			// #2278：重算结算并处理超收退款（executeRefund 对已存在 settlement 会提前返回）
+			if err := applyShortfallSettlement(tx, *record.OrderID); err != nil {
+				log.Printf("[applySideEffects] Failed to recompute settlement for order %s: %v", *record.OrderID, err)
 			}
 		}
 		return nil

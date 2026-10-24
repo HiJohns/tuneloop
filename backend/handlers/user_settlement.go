@@ -1647,3 +1647,60 @@ func (h *UserSettlementHandler) StaffRefundOrder(c *gin.Context) {
 		},
 	})
 }
+
+// #2278：补缴到账后重算结算；超收（cash_paid > 应结）生成幂等退款流水。
+func applyShortfallSettlement(tx *gorm.DB, orderID string) error {
+	var order models.Order
+	if err := tx.Where("id = ?", orderID).First(&order).Error; err != nil {
+		return err
+	}
+	var st models.Settlement
+	if err := tx.Where("order_id = ?", orderID).First(&st).Error; err != nil {
+		return nil
+	}
+	// 应结 = 结算已确认的租金 + 逾期 + 物流（定损已体现在补缴金额/结算中）
+	due := st.ActualRentAmount + st.OverdueChargesTotal + order.ShippingFee
+	excess := order.CashPaid - due
+	if excess < 0 {
+		excess = 0
+	}
+	status := "completed"
+	if excess > 0 {
+		status = "pending"
+	}
+	if err := tx.Model(&st).Updates(map[string]interface{}{
+		"cash_refundable": excess,
+		"refund_status":   status,
+		"updated_at":      time.Now(),
+	}).Error; err != nil {
+		return err
+	}
+	if excess <= 0 {
+		return nil
+	}
+	no := "excess_" + strings.ReplaceAll(orderID, "-", "")[:20]
+	var cnt int64
+	if err := tx.Model(&models.OrderRefundRecord{}).Where("out_refund_no = ?", no).Count(&cnt).Error; err != nil {
+		return err
+	}
+	if cnt > 0 {
+		return nil
+	}
+	var rentPay models.OrderPaymentRecord
+	tx.Where("order_id = ? AND order_type = ? AND status = ?", orderID, "rent", "paid").First(&rentPay)
+	reason := "补缴超收退款"
+	rr := models.OrderRefundRecord{
+		ID:          uuid.New().String(),
+		TenantID:    order.TenantID,
+		OutRefundNo: &no,
+		Amount:      excess,
+		Reason:      &reason,
+		Status:      "pending",
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+	if rentPay.ID != "" {
+		rr.PaymentRecordID = &rentPay.ID
+	}
+	return tx.Create(&rr).Error
+}

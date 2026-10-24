@@ -310,7 +310,7 @@ func TestMatrix_RentalShortfallApplied_2268(t *testing.T) {
 	order := models.Order{
 		ID: uuid.NewString(), TenantID: org, OrgID: org, UserID: user, InstrumentID: uuid.NewString(),
 		Level: "entry", LeaseTerm: 30, Status: "returned",
-		Deposit: models.FromYuan(500), CashPaid: models.FromYuan(3500),
+		Deposit: 0, CashPaid: models.FromYuan(2800),
 	}
 	require.NoError(t, db.Create(&order).Error)
 	require.NoError(t, db.Create(&models.Settlement{
@@ -325,7 +325,7 @@ func TestMatrix_RentalShortfallApplied_2268(t *testing.T) {
 
 	var after models.Order
 	require.NoError(t, db.Where("id = ?", order.ID).First(&after).Error)
-	assert.Equal(t, models.FromYuan(3700), after.CashPaid, "补缴到账后 cash_paid 必须 +200")
+	assert.Equal(t, models.FromYuan(3000), after.CashPaid, "补缴到账后 cash_paid 必须 +200")
 	var st models.Settlement
 	require.NoError(t, db.Where("order_id = ?", order.ID).First(&st).Error)
 	assert.NotEqual(t, "pending", st.RefundStatus, "补缴完成后结算必须闭环（当前卡 pending）")
@@ -491,4 +491,42 @@ func TestMatrix_TotalSpendingUnit_2268(t *testing.T) {
 	require.NoError(t, db.Where("id = ?", referee).First(&after).Error)
 	assert.Equal(t, models.FromYuan(3000), after.TotalSpending,
 		"total_spending 必须按分存储（当前写入元值 → 少 100 倍）")
+}
+
+// #2278：补缴超过应结金额 → 超收退款（幂等）。
+func TestMatrix_ShortfallExcessRefund_2268(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	org := uuid.NewString()
+	user := uuid.NewString()
+	require.NoError(t, db.Create(&models.User{ID: user, IAMSub: user, TenantID: org, OrgID: org, Status: "active"}).Error)
+	order := models.Order{
+		ID: uuid.NewString(), TenantID: org, OrgID: org, UserID: user, InstrumentID: uuid.NewString(),
+		Level: "entry", LeaseTerm: 30, Status: "returned",
+		Deposit: 0, CashPaid: models.FromYuan(3500),
+	}
+	require.NoError(t, db.Create(&order).Error)
+	require.NoError(t, db.Create(&models.OrderPaymentRecord{
+		ID: uuid.NewString(), TenantID: org, UserID: user, OrderID: &order.ID,
+		OrderType: "rent", Amount: models.FromYuan(3500), Type: "payment", Status: "paid",
+	}).Error)
+	require.NoError(t, db.Create(&models.Settlement{OrderID: order.ID, ActualRentAmount: models.FromYuan(3000), RefundStatus: "pending"}).Error)
+	rec := models.OrderPaymentRecord{
+		ID: uuid.NewString(), TenantID: org, UserID: user, OrderID: &order.ID,
+		OrderType: "payment_shortfall", Amount: models.FromYuan(200), Type: "payment", Status: "paid",
+	}
+	require.NoError(t, applySideEffects(db, &rec, time.Now()))
+	// 结算重算幂等：再次重算不得重复生成退款
+	require.NoError(t, applyShortfallSettlement(db, order.ID))
+	require.NoError(t, applyShortfallSettlement(db, order.ID))
+
+	var after models.Order
+	require.NoError(t, db.Where("id = ?", order.ID).First(&after).Error)
+	assert.Equal(t, models.FromYuan(3700), after.CashPaid)
+	var st models.Settlement
+	require.NoError(t, db.Where("order_id = ?", order.ID).First(&st).Error)
+	assert.Equal(t, models.FromYuan(700), st.CashRefundable, "超收 700 必须可退")
+	var refunds []models.OrderRefundRecord
+	require.NoError(t, db.Where("out_refund_no LIKE ?", "excess_%").Find(&refunds).Error)
+	require.Len(t, refunds, 1, "超收退款必须幂等（仅 1 条）")
+	assert.Equal(t, models.FromYuan(700), refunds[0].Amount)
 }

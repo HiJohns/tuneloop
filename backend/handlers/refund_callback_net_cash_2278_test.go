@@ -58,3 +58,36 @@ func TestRefundCallback_NetCashPaid_2268(t *testing.T) {
 	require.NoError(t, db.Where("id = ?", order.ID).First(&after).Error)
 	assert.Equal(t, models.FromYuan(3000), after.CashPaid, "重复回调不得重复扣减")
 }
+
+// #2278 §3：P0 三笔退款差异单在修复后路径 replay（净值）。
+func TestRefundReplay_P0Cases_2278(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+	org := uuid.NewString()
+	cases := []struct{ paid, refund int64 }{{627000, 626000}, {40740, 40640}, {31, 20}}
+	for i, c := range cases {
+		userID := uuid.NewString()
+		require.NoError(t, db.Create(&models.User{ID: userID, IAMSub: userID, TenantID: org, OrgID: org, Status: "active"}).Error)
+		order := models.Order{ID: uuid.NewString(), TenantID: org, OrgID: org, UserID: userID,
+			InstrumentID: uuid.NewString(), Level: "entry", LeaseTerm: 30, Status: "completed",
+			CashPaid: models.Cents(c.paid)}
+		require.NoError(t, db.Create(&order).Error)
+		pay := models.OrderPaymentRecord{ID: uuid.NewString(), TenantID: org, UserID: userID, OrderID: &order.ID,
+			OrderType: "rent", Amount: models.Cents(c.paid), Type: "payment", Status: "paid"}
+		require.NoError(t, db.Create(&pay).Error)
+		no := "p0refund" + string(rune('a'+i))
+		refund := models.OrderRefundRecord{ID: uuid.NewString(), TenantID: org, PaymentRecordID: &pay.ID,
+			OutRefundNo: &no, Amount: models.Cents(c.refund), Status: "pending"}
+		require.NoError(t, db.Create(&refund).Error)
+		require.NoError(t, db.Create(&models.Settlement{OrderID: order.ID, ActualRentAmount: models.Cents(c.paid), RefundStatus: "pending"}).Error)
+
+		w := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(w)
+		ctx.Request = httptest.NewRequest("POST", "/api/wechatpay/refund-notify", nil)
+		require.True(t, processRefundCallback(ctx, &wechatpay.CallbackResult{OutRefundNo: no, RefundID: "wx-" + no}))
+
+		var after models.Order
+		require.NoError(t, db.Where("id = ?", order.ID).First(&after).Error)
+		assert.Equal(t, models.Cents(c.paid-c.refund), after.CashPaid, "case %d: Paid−Refunded 必须等于 CashPaid", i)
+	}
+}
