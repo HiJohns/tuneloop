@@ -577,13 +577,13 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		{
 			// Outbound confirmation routes for mini-program (must be before /orders/:id)
 			outboundHandler := handlers.NewOutboundHandler(database.GetDB())
-			authRequired.GET("/orders/:id/outbound-photos", outboundHandler.GetOutboundPhotos)
-			authRequired.POST("/orders/:id/outbound-confirm", outboundHandler.ConfirmOutbound)
+			authRequired.GET("/orders/:id/outbound-photos", middleware.ExplicitTenantScope(), outboundHandler.GetOutboundPhotos)
+			authRequired.POST("/orders/:id/outbound-confirm", middleware.ExplicitTenantScope(), outboundHandler.ConfirmOutbound)
 
 			// Assessment routes for damage comparison (must be before /orders/:id)
 			assessmentHandler := handlers.NewAssessmentHandler(database.GetDB())
-			authRequired.GET("/orders/:id/assessment", assessmentHandler.GetAssessmentData)
-			authRequired.POST("/orders/:id/assessment", assessmentHandler.SubmitAssessment)
+			authRequired.GET("/orders/:id/assessment", middleware.ExplicitTenantScope(), assessmentHandler.GetAssessmentData)
+			authRequired.POST("/orders/:id/assessment", middleware.ExplicitTenantScope(), assessmentHandler.SubmitAssessment)
 
 			// Label management routes for tag normalization
 			labelHandler := handlers.NewLabelHandler(database.GetDB())

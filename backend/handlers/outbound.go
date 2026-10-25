@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
@@ -28,7 +29,7 @@ func (h *OutboundHandler) GetOutboundPhotos(c *gin.Context) {
 		InstrumentID string `json:"instrument_id"`
 	}
 
-	if err := h.db.Table("orders").Where("id = ?", orderID).First(&order).Error; err != nil {
+	if err := h.db.Table("orders").Where("id = ? AND tenant_id = ?", orderID, middleware.GetTenantID(c.Request.Context())).First(&order).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"code":    40400,
 			"message": "订单不存在",
@@ -86,12 +87,18 @@ func (h *OutboundHandler) ConfirmOutbound(c *gin.Context) {
 		return
 	}
 
-	// Update order status
-	if err := h.db.Table("orders").Where("id = ?", orderID).Update("status", "outbound_confirmed").Error; err != nil {
+	// Update order status（显式租户，0 行 → 404）
+	tenantID := middleware.GetTenantID(c.Request.Context())
+	res := h.db.Table("orders").Where("id = ? AND tenant_id = ?", orderID, tenantID).Update("status", "outbound_confirmed")
+	if res.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "更新订单状态失败",
 		})
+		return
+	}
+	if res.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "订单不存在"})
 		return
 	}
 
@@ -100,7 +107,7 @@ func (h *OutboundHandler) ConfirmOutbound(c *gin.Context) {
 		InstrumentID string `json:"instrument_id"`
 	}
 
-	if err := h.db.Table("orders").Where("id = ?", orderID).First(&order).Error; err != nil {
+	if err := h.db.Table("orders").Where("id = ? AND tenant_id = ?", orderID, tenantID).First(&order).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "获取订单信息失败",
