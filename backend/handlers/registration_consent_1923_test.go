@@ -16,7 +16,7 @@ import (
 
 // #1923: registration (both the H5 /auth/register path and the weapp
 // registration-session path) must reject callers that did not explicitly
-// agree to 《租用服务协议》/《个人信息保护政策》.
+// agree to 相关协议.
 func TestRegistrationRequiresAgreedTerms(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
@@ -32,7 +32,7 @@ func TestRegistrationRequiresAgreedTerms(t *testing.T) {
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 		require.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), "租用服务协议")
+		assert.Contains(t, w.Body.String(), "请先阅读并同意相关协议")
 	})
 
 	t.Run("weapp_session", func(t *testing.T) {
@@ -47,6 +47,6 @@ func TestRegistrationRequiresAgreedTerms(t *testing.T) {
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 		require.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), "租用服务协议")
+		assert.Contains(t, w.Body.String(), "请先阅读并同意相关协议")
 	})
 }

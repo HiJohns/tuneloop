@@ -70,12 +70,12 @@ func (h *RegistrationSessionHandler) CreateRegistrationSession(c *gin.Context) {
 		return
 	}
 
-	// #1923: 注册/支付保费前必须勾选协议（租用服务协议 + 个人信息保护政策）。
+	// #1923/#2285: 注册/支付保费前必须勾选相关协议。
 	if !req.AgreedTerms {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "请先阅读并同意《租用服务协议》与《个人信息保护政策》"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "请先阅读并同意相关协议"})
 		return
 	}
-	log.Printf("[Consent] registration session: terms agreed (rental_agreement, privacy_policy)")
+	log.Printf("[Consent] registration session: terms agreed (related_agreements)")
 
 	form := registerForm{
 		Nickname:         req.Nickname,

@@ -1530,7 +1530,7 @@ API 来源：
   - 「不同意」随时可点（白底灰描边），「同意」为品牌金（`#915F38`）——两按钮颜色区分明显
   - 点「同意」→ 返回来源页，勾选框**选中**；点「不同意」→ 返回，保持**未选中**
 - **已选中状态下点击勾选框** → 直接取消勾选（无需倒计时）
-- 页面常驻协议入口：`ContentPage` 合并模式沿用 #2258 的 RichContent 渲染与文案
+- 页面常驻协议入口：`ContentPage` 合并模式按序渲染 **`rental_agreement` → `damage_standard` → `privacy_policy`** 三份正文（RichContent），段间 `#e4e4e7` 1px 分割线；`damage_standard` 标题为「《乐器损耗与赔偿标准》细则」
 
 ---
 

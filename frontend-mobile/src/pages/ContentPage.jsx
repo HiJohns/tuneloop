@@ -36,8 +36,8 @@ export default function ContentPage() {
     related_agreements: '相关协议内容',
   }
 
-  // #2258: 合并阅读页 — 一个入口连续显示两项协议正文
-  const RELATED_AGREEMENT_KEYS = ['rental_agreement', 'privacy_policy']
+  // #2258/#2285: 合并阅读页 — 一个入口连续显示三项协议正文
+  const RELATED_AGREEMENT_KEYS = ['rental_agreement', 'damage_standard', 'privacy_policy']
 
   // #1686: default content when the backend has no record yet — the entry
   // must never feel like a dead page.
