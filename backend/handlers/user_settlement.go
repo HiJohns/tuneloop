@@ -465,10 +465,17 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 		}
 		if settlement != nil {
 			settlement.RefundStatus = status
-			if err := tx.Model(settlement).Update("refund_status", status).Error; err != nil {
-				return nil, fmt.Errorf("failed to update settlement status: %w", err)
-			}
 		}
+	}
+	// 结算状态持久化（含零现金 → completed）
+	if settlement != nil {
+		if err := tx.Model(settlement).Update("refund_status", settlement.RefundStatus).Error; err != nil {
+			return nil, fmt.Errorf("failed to update settlement status: %w", err)
+		}
+	}
+	// 退款执行后标记押金已退（保持 #1743 旧语义）
+	if err := tx.Model(&models.Order{}).Where("id = ?", order.ID).Update("deposit_refunded", true).Error; err != nil {
+		return nil, fmt.Errorf("failed to mark deposit refunded: %w", err)
 	}
 
 	// Increment total spending by the CASH portion of actual rental amount
@@ -1605,7 +1612,8 @@ func initiateCashRefund(ctx context.Context, tx *gorm.DB, order models.Order, am
 			return &rec, settleStatus, err
 		}
 		rec.RefundID = &resp.RefundID
-		rec.Status = "refunding"
+		// 旧契约：退款流水保持 pending，等待 REFUND.SUCCESS 回调置 refunded
+		rec.Status = "pending"
 		settleStatus = "refunding"
 	}
 	if err := tx.Create(&rec).Error; err != nil {
@@ -1646,7 +1654,8 @@ func applyShortfallSettlement(tx *gorm.DB, orderID string) error {
 				case "failed":
 					mapped = "failed"
 				case "pending":
-					mapped = "pending"
+					// 流水 pending = 微信退款已提交待回调；结算仍为 refunding
+					mapped = "refunding"
 				}
 				return tx.Model(&st).Updates(map[string]interface{}{"cash_refundable": excess, "refund_status": mapped}).Error
 			}

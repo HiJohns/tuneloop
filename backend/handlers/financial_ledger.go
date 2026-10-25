@@ -29,9 +29,10 @@ func RecomputeOrderFinancials(db *gorm.DB, orderID string) (paid, refunded, net 
 }
 
 // orderLedgerCash 返回账本净额（仅当存在 paid 流水时有效），供读路径过渡使用。
+// 过渡策略：仅当存在已退款流水（net < paid）时用于收敛虚高聚合。
 func orderLedgerCash(db *gorm.DB, orderID string) (models.Cents, bool) {
-	paid, _, net, err := RecomputeOrderFinancials(db, orderID)
-	if err != nil || paid <= 0 {
+	paid, refunded, net, err := RecomputeOrderFinancials(db, orderID)
+	if err != nil || paid <= 0 || refunded <= 0 {
 		return 0, false
 	}
 	return net, true
