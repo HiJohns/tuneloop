@@ -411,9 +411,9 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		// #1948 乐器丢失与找回（员工/管理员，双入口之一；归属校验在 handler 内）
 		lossHandler := handlers.NewInstrumentLossHandler()
 		technicianProfileHandler := handlers.NewTechnicianProfileHandler()
-		authRequired.POST("/instruments/:id/lost", middleware.RequireCusPerm("instrument:update"), lossHandler.Register)
-		authRequired.POST("/instruments/:id/restore", middleware.RequireCusPerm("instrument:update"), lossHandler.Restore)
-		authRequired.GET("/instrument-loss", middleware.RequireCusPerm("instrument:read"), lossHandler.List)
+		authRequired.POST("/instruments/:id/lost", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:update"), lossHandler.Register)
+		authRequired.POST("/instruments/:id/restore", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:update"), lossHandler.Restore)
+		authRequired.GET("/instrument-loss", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:read"), lossHandler.List)
 		// #1974 T1 师傅档案维护（PC 管理端）
 		authRequired.GET("/technician-profiles", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:read"), technicianProfileHandler.List)
 		authRequired.POST("/technician-profiles", middleware.RequireCusPerm("instrument:update"), technicianProfileHandler.Create)
@@ -435,10 +435,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.GET("/instruments/:id/media", middleware.ExplicitTenantScope(), handlers.GetInstrumentMedia)
 		authRequired.POST("/instruments/:id/display-image", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:media_upload"), handlers.UploadDisplayImage)
 		authRequired.POST("/instruments/:id/cover-image", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:media_upload"), handlers.UploadCoverImage)
-		authRequired.GET("/instruments/:id/activity-log", handlers.GetInstrumentActivityLog)
-		authRequired.GET("/instruments/:id/pricing", handlers.GetInstrumentPricing)
-		authRequired.POST("/instruments/import", handlers.ImportInstruments)
-		authRequired.GET("/instruments/export", handlers.ExportInstruments)
+		authRequired.GET("/instruments/:id/activity-log", middleware.ExplicitTenantScope(), handlers.GetInstrumentActivityLog)
+		authRequired.GET("/instruments/:id/pricing", middleware.ExplicitTenantScope(), handlers.GetInstrumentPricing)
+		authRequired.POST("/instruments/import", middleware.ExplicitTenantScope(), handlers.ImportInstruments)
+		authRequired.GET("/instruments/export", middleware.ExplicitTenantScope(), handlers.ExportInstruments)
 		authRequired.GET("/instruments/import/template", handlers.DownloadCSVTemplate)
 		authRequired.GET("/instruments/batch-import/template", handlers.DownloadCSVTemplate)
 		authRequired.POST("/instruments/batch-import", handlers.ExecuteBatchImport)
@@ -461,7 +461,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.PUT("/forwarding/sessions/:id/recover", handlers.RecoverForwardingSession)
 
 		// Scrap instrument
-		authRequired.POST("/instruments/:id/scrap", middleware.RequireCusPerm("instrument:update"), handlers.ScrapInstrument)
+		authRequired.POST("/instruments/:id/scrap", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:update"), handlers.ScrapInstrument)
 
 		// Merchant management routes (require tenant sys_perm + project_admin role)
 		authRequired.GET("/merchants", middleware.RequireSysPerm(middleware.SysPermTenantList), merchantHandler.ListMerchants)

@@ -517,7 +517,13 @@ bash scripts/tenant-audit-coverage.sh
 | `POST /instruments/:id/cover-image` | `UploadCoverImage` | instruments | 入口补 `id = ? AND tenant_id = ?`（本批） | 同上 |
 | `POST /instruments/:id/display-image` | `UploadDisplayImage` | instruments, instrument_media | `id = ? AND tenant_id = ?`（既有） | 同上 |
 
-> 待续：pricing / activity / scrap / import / export / loss / restore；`/orders/:id` 详情与 pickup/admin-update/outbound/assessment（需逐条核对）。
+| `GET /instruments/:id/pricing` | `GetInstrumentPricing` | instruments, pricing_templates | `tenant_id = ?`（pricing.go:253） | 代码审查 |
+| `GET /instruments/:id/activity-log` | `GetInstrumentActivityLog` | orders, order_status_history | `instrument_id = ? AND tenant_id = ?`（activity_log.go:63） | `TestInstrumentMisc_ExplicitScope_2276` |
+| `POST /instruments/:id/scrap` | `ScrapInstrument` | instruments | `id = ? AND tenant_id = ?`（instrument_scrap.go:24） | 同上（跨商户 404） |
+| `POST /instruments/:id/lost` / `restore`、`GET /instrument-loss` | lossHandler | instrument_loss_records, instruments | `tenant_id = ?`（instrument_loss.go:393） | 代码审查 |
+| `POST /instruments/import` / `GET /instruments/export` | import/export | instruments, categories | `tenant_id`（instrument_import.go:33/139） | 代码审查 |
+
+> 待续：`/orders/:id` 详情与 pickup/admin-update/outbound/assessment（需逐条核对）。
 
 ### 已回滚（未切换，自动范围保留）
 
