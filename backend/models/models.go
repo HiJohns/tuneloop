@@ -298,9 +298,10 @@ type SettlementCalculation struct {
 	// Result is TEXT (not JSONB): #1738 audit contract requires the stored
 	// bytes to be byte-identical to what the handler responded — JSONB
 	// normalization (key reorder + whitespace) would break that guarantee.
-	Result     *string   `gorm:"type:text" json:"result,omitempty"`
-	ActualDays int       `gorm:"not null;default:0" json:"actual_days"`
-	CreatedAt  time.Time `json:"created_at"`
+	Result        *string   `gorm:"type:text" json:"result,omitempty"`
+	ActualDays    int       `gorm:"not null;default:0" json:"actual_days"`
+	LedgerVersion int64     `gorm:"not null;default:0" json:"ledger_version"` // #2282 P4b: 幂等键组成部分
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 type OverdueCharge struct {

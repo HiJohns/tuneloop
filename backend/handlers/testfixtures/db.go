@@ -41,6 +41,7 @@ var allTables = []interface{}{
 	&models.AuditLog{},
 
 	&models.Settlement{},
+	&models.SettlementCalculation{},
 	&models.OrderRefundRecord{},
 	&models.OrderPaymentRecord{},
 	&models.PointsTransaction{},

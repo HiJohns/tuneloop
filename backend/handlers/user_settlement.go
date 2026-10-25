@@ -100,6 +100,9 @@ func recordSettlementCalculation(db *gorm.DB, order *models.Order, trigger strin
 	}
 	snap := string(inputs)
 	res := string(breakdownJSON)
+	var lastVersion int64
+	db.Model(&models.SettlementCalculation{}).Where("order_id = ? AND trigger = ?", order.ID, trigger).
+		Select("COALESCE(MAX(ledger_version),0)").Scan(&lastVersion)
 	row := models.SettlementCalculation{
 		ID:            uuid.New().String(),
 		OrderID:       order.ID,
@@ -108,6 +111,7 @@ func recordSettlementCalculation(db *gorm.DB, order *models.Order, trigger strin
 		InputSnapshot: &snap,
 		Result:        &res,
 		ActualDays:    actualDays,
+		LedgerVersion: lastVersion + 1,
 		CreatedAt:     time.Now(),
 	}
 	if err := db.Create(&row).Error; err != nil {
