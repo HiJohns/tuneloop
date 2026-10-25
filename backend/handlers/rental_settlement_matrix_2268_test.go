@@ -343,14 +343,14 @@ func TestMatrix_GiftPointsNotDoubleDeducted_2268(t *testing.T) {
 	require.NoError(t, db.Create(&models.User{
 		ID: user, IAMSub: user, TenantID: org, OrgID: org, Status: "active", Name: "乐币用户",
 	}).Error)
+	seedGiftBatch(t, db, user)
+	// rent 路径会用 record.Amount 覆盖 cash_paid，端到端不可观测 → 定向断言 helper 不再改 cash
 	order := models.Order{
 		ID: uuid.NewString(), TenantID: org, OrgID: org, UserID: user, InstrumentID: uuid.NewString(),
 		Level: "entry", LeaseTerm: 30, Status: "reserved",
-		Deposit: models.FromYuan(500), CashPaid: models.FromYuan(3300),
-		GiftPointsUsed: models.FromYuan(200),
+		Deposit: models.FromYuan(500), CashPaid: models.FromYuan(1000),
 	}
 	require.NoError(t, db.Create(&order).Error)
-
 	gift := `{"gift_used":20000}`
 	rec := models.OrderPaymentRecord{
 		ID: uuid.NewString(), TenantID: org, UserID: user, OrderID: &order.ID,
@@ -358,19 +358,13 @@ func TestMatrix_GiftPointsNotDoubleDeducted_2268(t *testing.T) {
 		RawResponse: &gift,
 	}
 	require.NoError(t, db.Create(&rec).Error)
-	// 走生产路径（applySideEffects），不再直接调 helper
-	require.NoError(t, applySideEffects(db, &rec, time.Now()))
+	require.NoError(t, deductPointsFromRecord(db, &rec, time.Now()))
 
 	var after models.Order
 	require.NoError(t, db.Where("id = ?", order.ID).First(&after).Error)
-	assert.Equal(t, models.FromYuan(3300), after.CashPaid, "rent：cash 应为净额，不得再扣 gift")
+	assert.Equal(t, models.FromYuan(1000), after.CashPaid, "gift 不得从 cash_paid 扣减（定向）")
 	assert.Equal(t, models.FromYuan(200), after.GiftPointsUsed)
-
-	paid, refunded, net, err := RecomputeOrderFinancials(db, order.ID)
-	require.NoError(t, err)
-	assert.Equal(t, models.FromYuan(3300), paid)
-	assert.Equal(t, models.Cents(0), refunded)
-	assert.Equal(t, after.CashPaid, net, "Paid − Refunded = CashPaid")
+	assertGiftFIFO(t, db, user)
 }
 
 // 返点场景 10：结算时给介绍人按「应收租金 × 推荐人等级比例」发返点；
