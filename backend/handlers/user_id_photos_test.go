@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/models"
 	"tuneloop-backend/testutil"
 
@@ -28,31 +29,18 @@ func smallValidJPG() []byte {
 
 func setupIdPhotoTestDB(t *testing.T) (*gorm.DB, string, string) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return nil, "", ""
-	}
-	testutil.SetDB(t, db)
-
-	_ = db.Migrator().DropTable(&models.User{})
-	require.NoError(t, db.Migrator().CreateTable(&models.User{}))
-	// iam_sub excluded from GORM tags; add manually
-	if !db.Migrator().HasColumn(&models.User{}, "iam_sub") {
-		require.NoError(t, db.Exec(`ALTER TABLE users ADD COLUMN iam_sub varchar(255)`).Error)
-	}
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	userID := uuid.New().String()
-	db.Create(&models.User{
+	require.NoError(t, db.Create(&models.User{
 		ID:       userID,
 		TenantID: tenantID,
 		OrgID:    tenantID,
 		IAMSub:   userID,
 		Role:     "USER",
 		Status:   "active",
-	})
+	}).Error)
 
 	return db, tenantID, userID
 }
