@@ -685,10 +685,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			// Repair config routes (Issue #1118) — merchant_admin only
 			authRequired.GET("/config/repair", middleware.ExplicitTenantScope(), middleware.RequireRole("OWNER"), handlers.GetRepairAllSettings)
 			authRequired.GET("/config/repair/single", middleware.ExplicitTenantScope(), middleware.RequireRole("OWNER"), handlers.GetRepairSetting)
-			authRequired.PUT("/config/repair/single", middleware.RequireRole("OWNER"), handlers.SetRepairSetting)
+			authRequired.PUT("/config/repair/single", middleware.ExplicitTenantScope(), middleware.RequireRole("OWNER"), handlers.SetRepairSetting)
 			// v3 system-level check_fee (namespace_admin should be used when permission framework in place)
 			authRequired.GET("/config/repair/check-fee", handlers.GetCheckFee)
-			authRequired.PUT("/config/repair/check-fee", handlers.SetCheckFee)
+			authRequired.PUT("/config/repair/check-fee", middleware.ExplicitTenantScope(), handlers.SetCheckFee)
 			// Home menu config (category visibility/sort for WeChat homepage)
 			authRequired.GET("/config/home-menu", handlers.GetHomeMenuConfig)
 			authRequired.PUT("/config/home-menu", handlers.SetHomeMenuConfig)
