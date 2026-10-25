@@ -579,6 +579,11 @@ type settlementResult struct {
 // computeSettlement performs the tier-based rent calculation and refund math.
 // It mirrors docs/cases/cases.md §2.7.
 func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
+	// #2281 P3 步骤2：读路径以账本净额为上限（过渡：仅收敛，不放大）
+	if net, ok := orderLedgerCash(db, order.ID); ok && order.CashPaid > net {
+		log.Printf("[Settlement] cash_paid(%d) > ledger net(%d) for order %s, using ledger", order.CashPaid, net, order.ID)
+		order.CashPaid = net
+	}
 	_, finalDailyRent, _ := parsePricingBreakdown(order.PricingBreakdown)
 	// #1803 T2: 首期基准日租（分语义），用于首期/续费阶梯展开（Rate 赋值）。
 	// final_daily_rent 为折扣后，base_daily_rent 为折扣前基准。

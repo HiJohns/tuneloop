@@ -27,3 +27,12 @@ func RecomputeOrderFinancials(db *gorm.DB, orderID string) (paid, refunded, net 
 	paid, refunded = models.Cents(paidRaw), models.Cents(refundedRaw)
 	return paid, refunded, paid - refunded, nil
 }
+
+// orderLedgerCash 返回账本净额（仅当存在 paid 流水时有效），供读路径过渡使用。
+func orderLedgerCash(db *gorm.DB, orderID string) (models.Cents, bool) {
+	paid, _, net, err := RecomputeOrderFinancials(db, orderID)
+	if err != nil || paid <= 0 {
+		return 0, false
+	}
+	return net, true
+}
