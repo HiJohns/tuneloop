@@ -25,7 +25,7 @@ func setupUserStaffTest(t *testing.T) (db *gorm.DB, handler *UserStaffHandler, t
 	config := database.LoadConfig()
 	dbConn, err := database.InitDB(config)
 	if err != nil {
-		t.Skip("test database not available")
+		t.Fatalf("test database unavailable: %v", err)
 		return
 	}
 	database.SetDB(dbConn)

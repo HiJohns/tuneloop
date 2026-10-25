@@ -715,6 +715,7 @@ func TestPrepayRentWithCoupon_ENO(t *testing.T) {
 		"order_type":  "rent",
 		"amount":      100.0,
 		"coupon_code": "ENO",
+		"open_id":     "mock-openid-eno",
 	})
 	req := httptest.NewRequest("POST", "/api/pay/prepay", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")

@@ -39,7 +39,7 @@ func initTestDB(t *testing.T) {
 	config := database.LoadConfig()
 	db, err := database.InitDB(config)
 	if err != nil {
-		t.Skip("test database not available")
+		t.Fatalf("test database unavailable: %v", err)
 		return
 	}
 	testutil.SetDB(t, db)

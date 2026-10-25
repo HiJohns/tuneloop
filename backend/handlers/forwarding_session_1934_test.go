@@ -340,8 +340,8 @@ func TestOutboundSessionAutoCreatedOnCreateOrder(t *testing.T) {
 	instrumentID := uuid.New().String()
 	userID := uuid.New().String()
 	now := time.Now()
-	require.NoError(t, db.Exec(`INSERT INTO users (id, iam_sub, tenant_id, org_id, name, email, phone, credit_score, is_shadow, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, 600, false, ?, ?)`,
+	require.NoError(t, db.Exec(`INSERT INTO users (id, iam_sub, tenant_id, org_id, name, email, phone, credit_score, is_shadow, face_verified, id_photo_front, id_photo_back, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, 600, false, true, '/uploads/media/id-front-test.jpg', '/uploads/media/id-back-test.jpg', ?, ?)`,
 		userID, userID, tenantID, orgID, "Guest User", "guest1934@example.com", "13900139001", now, now).Error)
 	require.NoError(t, db.Exec(`INSERT INTO instruments (id, tenant_id, org_id, site_id, level, stock_status, images, specifications, pricing, created_at, updated_at)
 		VALUES (?, ?, ?, NULL, 'standard', 'available', '[]', '{}', '[]', ?, ?)`,

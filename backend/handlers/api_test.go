@@ -20,7 +20,7 @@ func TestGetInstruments_Thumbnail(t *testing.T) {
 	cfg := database.LoadConfig()
 	db, err := database.InitDB(cfg)
 	if err != nil {
-		t.Skip("test database not available")
+		t.Fatalf("test database unavailable: %v", err)
 		return
 	}
 	testutil.SetDB(t, db)
@@ -86,7 +86,7 @@ func TestGetInstrument_MediaDisplayStorageKey(t *testing.T) {
 	cfg := database.LoadConfig()
 	db, err := database.InitDB(cfg)
 	if err != nil {
-		t.Skip("test database not available")
+		t.Fatalf("test database unavailable: %v", err)
 		return
 	}
 	testutil.SetDB(t, db)
@@ -140,7 +140,7 @@ func TestDeleteSingleMedia_StructuredKey(t *testing.T) {
 	cfg := database.LoadConfig()
 	db, err := database.InitDB(cfg)
 	if err != nil {
-		t.Skip("test database not available")
+		t.Fatalf("test database unavailable: %v", err)
 		return
 	}
 	testutil.SetDB(t, db)

@@ -23,7 +23,7 @@ func setupCusPermTestDB(t *testing.T) {
 	config := database.LoadConfig()
 	db, err := database.InitDB(config)
 	if err != nil {
-		t.Skip("test database not available")
+		t.Fatalf("test database unavailable: %v", err)
 	}
 	testutil.SetDB(t, db)
 	_ = db

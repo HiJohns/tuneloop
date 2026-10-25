@@ -612,7 +612,7 @@ func TestGetOrderLogs_DedupAndOperator(t *testing.T) {
 	cfg := database.LoadConfig()
 	db, err := database.InitDB(cfg)
 	if err != nil {
-		t.Skip("test database not available")
+		t.Fatalf("test database unavailable: %v", err)
 		return
 	}
 	testutil.SetDB(t, db)
@@ -722,7 +722,7 @@ func TestGetOrder_DamagePanel(t *testing.T) {
 	cfg := database.LoadConfig()
 	db, err := database.InitDB(cfg)
 	if err != nil {
-		t.Skip("test database not available")
+		t.Fatalf("test database unavailable: %v", err)
 		return
 	}
 	testutil.SetDB(t, db)
@@ -801,7 +801,7 @@ func TestGetOrder_DamagePanel_FromDamageReport(t *testing.T) {
 	cfg := database.LoadConfig()
 	db, err := database.InitDB(cfg)
 	if err != nil {
-		t.Skip("test database not available")
+		t.Fatalf("test database unavailable: %v", err)
 		return
 	}
 	testutil.SetDB(t, db)

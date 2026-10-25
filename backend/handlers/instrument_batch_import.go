@@ -831,9 +831,9 @@ func buildPropertyResolutions(validations []RowValidation, properties []models.P
 			var opt models.PropertyOption
 			err := q.First(&opt).Error
 			if err == nil {
-				if opt.Status == "confirmed" {
-					r.Status = "confirmed"
-				} else if opt.Alias != nil {
+				if opt.Alias != nil {
+					// #2284：别名优先——合并后的源值可能仍标记 confirmed，
+					// 但 alias 存在即应映射到目标值。
 					r.Status = "alias"
 					var aliasOption models.PropertyOption
 					if err := unscopedDB.Where("id = ?", *opt.Alias).First(&aliasOption).Error; err == nil {
@@ -841,6 +841,8 @@ func buildPropertyResolutions(validations []RowValidation, properties []models.P
 					} else {
 						r.ResolvedValue = value
 					}
+				} else if opt.Status == "confirmed" {
+					r.Status = "confirmed"
 				} else if opt.Status == "pending" {
 					r.Status = "pending"
 				} else {

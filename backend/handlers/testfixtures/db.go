@@ -1,7 +1,9 @@
 package testfixtures
 
 import (
+	"os"
 	"strings"
+	"sync"
 	"testing"
 
 	"gorm.io/gorm"
@@ -94,18 +96,43 @@ var allTables = []interface{}{
 	&models.InstrumentProperty{},      // #1902: instrument property flow tests
 }
 
-// SetupTestDB connects to the test database, drops and recreates all
-// business tables, and registers the global DB. Returns the *gorm.DB.
-// Skips the test when the test DB is unavailable.
-func SetupTestDB(t *testing.T) *gorm.DB {
+var (
+	sharedTestDB   *gorm.DB
+	sharedTestOnce sync.Once
+	sharedTestErr  error
+)
+
+// GetTestDB returns the process-wide singleton test DB pool (#2284).
+func GetTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
+	sharedTestOnce.Do(func() {
+		config := database.LoadConfig()
+		sharedTestDB, sharedTestErr = database.InitDB(config)
+		if sharedTestErr == nil && sharedTestDB != nil {
+			if sqlDB, err := sharedTestDB.DB(); err == nil {
+				sqlDB.SetMaxOpenConns(8)
+				sqlDB.SetMaxIdleConns(4)
+			}
+		}
+	})
+	if sharedTestErr != nil || sharedTestDB == nil {
+		if os.Getenv("TUNELOOP_TEST_ALLOW_SKIP") == "1" {
+			t.Skipf("test database not available: %v", sharedTestErr)
+			return nil
+		}
+		t.Fatalf("test database unavailable: %v", sharedTestErr)
 		return nil
 	}
-	database.SetDB(db)
+	database.SetDB(sharedTestDB)
+	return sharedTestDB
+}
+
+func SetupTestDB(t *testing.T) *gorm.DB {
+	t.Helper()
+	db := GetTestDB(t)
+	if db == nil {
+		return nil
+	}
 
 	// #1721: DropTable 按序删除会被外键阻止（残留导致 CreateTable 报 already
 	// exists）——用 CASCADE 原生清理全部业务表。

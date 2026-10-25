@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
@@ -34,14 +35,20 @@ func skipIfNoIAM(t *testing.T) {
 	if nsID == "" && pcID == "" && clientID == "" {
 		t.Skip("No IAM client ID set (IAM_NAMESPACE or IAM_PC_CLIENT_ID), skipping IAM integration test")
 	}
+	// #2284：外部 IAM 不可达时跳过（集成测试依赖外部服务，不得因连不上而红）。
+	base := strings.TrimRight(os.Getenv("BEACONIAM_INTERNAL_URL"), "/")
+	client := &http.Client{Timeout: 2 * time.Second}
+	resp, err := client.Get(base + "/api/v1/auth/public-key.pem")
+	if err != nil {
+		t.Skipf("IAM unavailable: %v", err)
+	}
+	resp.Body.Close()
 }
 
 func setupIAMTestDB(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
+	db := testfixtures.GetTestDB(t)
+	if db == nil {
 		return
 	}
 	testutil.SetDB(t, db)
@@ -180,6 +187,8 @@ func TestIAMIntegration_ConfirmationCallback(t *testing.T) {
 		ConfirmTarget:  "test@example.com",
 		ActionType:     "site_staff",
 		ActionTargetID: uuid.New().String(),
+		MerchantID:     uuid.New().String(),
+		IAMSessionID:   uuid.New().String(),
 		Status:         "waiting",
 		Token:          uuid.New().String(),
 		ExpiresAt:      time.Now().Add(24 * time.Hour),
@@ -233,16 +242,18 @@ func TestIAMIntegration_ConfirmationCallback_Reject(t *testing.T) {
 	sessionID := uuid.New().String()
 
 	session := models.ConfirmationSession{
-		ID:            sessionID,
-		TenantID:      tenantID,
-		OrgID:         orgID,
-		UserID:        userID,
-		ConfirmType:   "email",
-		ConfirmTarget: "test@example.com",
-		ActionType:    "merchant_admin",
-		Status:        "waiting",
-		Token:         uuid.New().String(),
-		ExpiresAt:     time.Now().Add(24 * time.Hour),
+		ID:             sessionID,
+		TenantID:       tenantID,
+		OrgID:          orgID,
+		UserID:         userID,
+		ConfirmType:    "email",
+		ConfirmTarget:  "test@example.com",
+		ActionType:     "merchant_admin",
+		ActionTargetID: uuid.New().String(),
+		MerchantID:     uuid.New().String(),
+		Status:         "waiting",
+		Token:          uuid.New().String(),
+		ExpiresAt:      time.Now().Add(24 * time.Hour),
 	}
 	require.NoError(t, db.Create(&session).Error)
 
@@ -279,6 +290,7 @@ func TestIAMIntegration_UserUpdate_EmailChange(t *testing.T) {
 		ID:          userID,
 		IAMSub:      iamSub,
 		TenantID:    tenantID,
+		OrgID:       uuid.New().String(),
 		Name:        "Test User",
 		Email:       "old@example.com",
 		Phone:       "13800138000",
@@ -326,10 +338,9 @@ func TestIAMIntegration_UserUpdate_EmailChange(t *testing.T) {
 
 func setupMockIAMAndDB(t *testing.T) func() {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
+	db := testfixtures.GetTestDB(t)
+	if db == nil {
+		return func() {}
 	}
 	testutil.SetDB(t, db)
 
@@ -409,8 +420,14 @@ func TestIAMMock_MerchantCreate_CallsIAM(t *testing.T) {
 
 	orgCalled := false
 	var orgPayload map[string]interface{}
+	mockOrgID := uuid.New().String()
 
 	mockIAM := newMockIAMServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/namespaces/") {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{"id": "mock-ns", "name": "Mock NS"})
+			return
+		}
 		if r.Method == "POST" {
 			orgCalled = true
 			json.NewDecoder(r.Body).Decode(&orgPayload)
@@ -418,8 +435,8 @@ func TestIAMMock_MerchantCreate_CallsIAM(t *testing.T) {
 			w.WriteHeader(http.StatusCreated)
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"data": map[string]interface{}{
-					"org_id":   "mock-org-id",
-					"admin_id": "mock-admin-id",
+					"org_id":   mockOrgID,
+					"admin_id": uuid.New().String(),
 				},
 			})
 		}
@@ -429,6 +446,8 @@ func TestIAMMock_MerchantCreate_CallsIAM(t *testing.T) {
 	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	tenantID := uuid.New().String()
+	adminUser := models.User{ID: uuid.New().String(), TenantID: tenantID, OrgID: uuid.New().String(), Name: "Mock Admin", Email: "admin@mock.com", Phone: "13800138000", Status: "active"}
+	require.NoError(t, db.Create(&adminUser).Error)
 
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
@@ -444,14 +463,11 @@ func TestIAMMock_MerchantCreate_CallsIAM(t *testing.T) {
 	router.POST("/api/merchants", handler.CreateMerchant)
 
 	body, _ := json.Marshal(map[string]interface{}{
-		"name":           "Mock Merchant",
-		"code":           "MOCK" + uuid.New().String()[:8],
-		"address":        "Test Address",
-		"contact_phone":  "13800138000",
-		"admin_name":     "Mock Admin",
-		"admin_username": "mockadmin",
-		"admin_email":    "admin@mock.com",
-		"admin_phone":    "13800138000",
+		"name":          "Mock Merchant",
+		"code":          "MOCK" + uuid.New().String()[:8],
+		"address":       "Test Address",
+		"contact_phone": "13800138000",
+		"admin_uid":     adminUser.ID,
 	})
 	req := httptest.NewRequest("POST", "/api/merchants", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -464,7 +480,7 @@ func TestIAMMock_MerchantCreate_CallsIAM(t *testing.T) {
 
 	var merchant models.Merchant
 	require.NoError(t, db.Where("tenant_id = ?", tenantID).First(&merchant).Error)
-	assert.Equal(t, "mock-org-id", merchant.OrgID)
+	assert.Equal(t, mockOrgID, merchant.OrgID)
 }
 
 func TestIAMMock_SiteMemberAdd_CallsBind(t *testing.T) {
@@ -476,6 +492,11 @@ func TestIAMMock_SiteMemberAdd_CallsBind(t *testing.T) {
 	var bindPayload map[string]interface{}
 
 	mockIAM := newMockIAMServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{"id": "mock-org", "name": "Mock Org"})
+			return
+		}
 		if r.Method == "PUT" {
 			bindCalled = true
 			json.NewDecoder(r.Body).Decode(&bindPayload)
@@ -515,6 +536,8 @@ func TestIAMMock_SiteMemberAdd_CallsBind(t *testing.T) {
 	router.Use(func(c *gin.Context) {
 		ctx := c.Request.Context()
 		ctx = context.WithValue(ctx, middleware.ContextKeyTenantID, tenantID)
+		ctx = context.WithValue(ctx, middleware.ContextKeyOrgID, tenantID)
+		ctx = context.WithValue(ctx, middleware.ContextKeyRole, "ADMIN")
 		ctx = context.WithValue(ctx, middleware.ContextKeyUserID, "operator")
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
@@ -557,21 +580,25 @@ func TestIAMMock_ConfirmationCallback_Failed(t *testing.T) {
 		TenantID: tenantID,
 		Name:     "Failed Test User",
 		Email:    "failed@mock.com",
+		OrgID:    uuid.New().String(),
 		Status:   "pending",
 	}
 	require.NoError(t, db.Create(&user).Error)
 
 	session := models.ConfirmationSession{
-		ID:            sessionID,
-		TenantID:      tenantID,
-		OrgID:         uuid.New().String(),
-		UserID:        userID,
-		ConfirmType:   "email",
-		ConfirmTarget: "failed@mock.com",
-		ActionType:    "merchant_admin",
-		Status:        "waiting",
-		Token:         uuid.New().String(),
-		ExpiresAt:     time.Now().Add(24 * time.Hour),
+		ID:             sessionID,
+		TenantID:       tenantID,
+		OrgID:          uuid.New().String(),
+		UserID:         userID,
+		ConfirmType:    "email",
+		ConfirmTarget:  "failed@mock.com",
+		ActionType:     "merchant_admin",
+		ActionTargetID: uuid.New().String(),
+		MerchantID:     uuid.New().String(),
+		IAMSessionID:   uuid.New().String(),
+		Status:         "waiting",
+		Token:          uuid.New().String(),
+		ExpiresAt:      time.Now().Add(24 * time.Hour),
 	}
 	require.NoError(t, db.Create(&session).Error)
 
@@ -785,6 +812,8 @@ func TestAddMember_ExistingAccount_Returns40902_NoAttach(t *testing.T) {
 	router.Use(func(c *gin.Context) {
 		ctx := c.Request.Context()
 		ctx = context.WithValue(ctx, middleware.ContextKeyTenantID, tenantID)
+		ctx = context.WithValue(ctx, middleware.ContextKeyOrgID, tenantID)
+		ctx = context.WithValue(ctx, middleware.ContextKeyRole, "ADMIN")
 		ctx = context.WithValue(ctx, middleware.ContextKeyUserID, "operator")
 		ctx = context.WithValue(ctx, middleware.ContextKeyNamespaceID, uuid.New().String())
 		c.Request = c.Request.WithContext(ctx)
@@ -872,6 +901,8 @@ func TestAddMember_ExistingAccount_SameMerchant_Returns40902_NoAttach(t *testing
 	router.Use(func(c *gin.Context) {
 		ctx := c.Request.Context()
 		ctx = context.WithValue(ctx, middleware.ContextKeyTenantID, tenantID)
+		ctx = context.WithValue(ctx, middleware.ContextKeyOrgID, tenantID)
+		ctx = context.WithValue(ctx, middleware.ContextKeyRole, "ADMIN")
 		ctx = context.WithValue(ctx, middleware.ContextKeyUserID, "operator")
 		ctx = context.WithValue(ctx, middleware.ContextKeyNamespaceID, uuid.New().String())
 		c.Request = c.Request.WithContext(ctx)
