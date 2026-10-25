@@ -156,8 +156,6 @@ func TestIdPhotoUploadPersistsAndDeletes(t *testing.T) {
 func TestUploadIDPhoto_SecondDocTriggersReview(t *testing.T) {
 	db, tenantID, userID := setupIdPhotoTestDB(t)
 	// face_capture_batches 不在 setupIdPhotoTestDB 的表集内 —— 本测试自建。
-	_ = db.Migrator().DropTable(&models.FaceCaptureBatch{})
-	require.NoError(t, db.Migrator().CreateTable(&models.FaceCaptureBatch{}))
 
 	// 用户已有「已认证」第二证件状态 —— 上传新照必须重置。
 	require.NoError(t, db.Model(&models.User{}).Where("id = ?", userID).
