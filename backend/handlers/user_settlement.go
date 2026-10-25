@@ -20,6 +20,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type UserSettlementHandler struct{}
@@ -497,34 +498,39 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 		return nil, fmt.Errorf("failed to update total spending: %w", err)
 	}
 
-	// #1945 Sub-B：取消"退款返点给自己"（refund_rebate 不再产生）。
+	// #2282 P4c：返点按实收现金（CashBasis）、结算时点、order_id 幂等、等级取订单快照、0 现金不发。
 	var orderUser models.User
 	if err := tx.Where("id = ?", order.UserID).First(&orderUser).Error; err == nil {
-		// Referral commission (#1542 + #1535): referrer gets gift points
-		// proportional to the referred user's rent × referrer-level ratio.
 		if referrer := services.FindReferrer(order.UserID); referrer != nil {
-			refRatio := 0.0
-			if policy := services.GetGiftPolicyByLevel(tx, levelIDOrZero(referrer.MembershipLevelID)); policy != nil {
-				refRatio = policy.ReferralRatio
+			levelID := 0
+			if order.ReferralLevelID != nil {
+				levelID = *order.ReferralLevelID
+			} else if referrer.MembershipLevelID != nil {
+				levelID = *referrer.MembershipLevelID
 			}
-			if refRatio > 0 {
-				refPoints := math.Floor(result.RentPayable * refRatio)
-				if refPoints > 0 {
-					refCents := models.FromYuan(refPoints) // #1757: cents — yuan-computed points ×100
-					// #1945 / #1983: 裂变返佣建批次（批次 SUM 为余额唯一真源）
-					if _, berr := services.CreatePointsBatch(tx, referrer.ID, services.PointBatchSourceFission, "referral_spend", refCents); berr != nil {
-						log.Printf("[executeRefund] create fission points batch failed: %v", berr)
+			basis := result.CashBasis
+			if basis > 0 {
+				if policy := services.GetGiftPolicyByLevel(tx, levelID); policy != nil && policy.ReferralRatio > 0 {
+					refPoints := math.Floor(basis * policy.ReferralRatio)
+					if refPoints > 0 {
+						refCents := models.FromYuan(refPoints)
+						rc := models.ReferralCommission{
+							OrderID: order.ID, ReferrerID: referrer.ID, AmountCents: refCents,
+							LevelID: &levelID, BasisCents: models.FromYuan(basis), CreatedAt: time.Now(),
+						}
+						res := tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "order_id"}}, DoNothing: true}).Create(&rc)
+						if res.Error == nil && res.RowsAffected > 0 {
+							if _, berr := services.CreatePointsBatch(tx, referrer.ID, services.PointBatchSourceFission, "referral_spend", refCents); berr != nil {
+								log.Printf("[executeRefund] create fission points batch failed: %v", berr)
+							}
+							tx.Create(&models.PointsTransaction{
+								ID: uuid.New().String(), UserID: referrer.ID, TenantID: order.TenantID,
+								Type: "referral", Amount: refCents, OrderID: &order.ID,
+								Description: fmt.Sprintf("介绍人返赠点: 实收现金 ¥%.2f × %.2f%%", basis, policy.ReferralRatio*100),
+								CreatedAt:   time.Now(),
+							})
+						}
 					}
-					tx.Create(&models.PointsTransaction{
-						ID:          uuid.New().String(),
-						UserID:      referrer.ID,
-						TenantID:    order.TenantID,
-						Type:        "referral",
-						Amount:      refCents,
-						OrderID:     &order.ID,
-						Description: fmt.Sprintf("介绍人返赠点: 被介绍人订单租金 ¥%.2f × %.2f%%", result.RentPayable, refRatio*100),
-						CreatedAt:   time.Now(),
-					})
 				}
 			}
 		}

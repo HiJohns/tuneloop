@@ -12,6 +12,16 @@ import (
 	"gorm.io/gorm"
 )
 
+// snapshotReferralLevel 下单时记录推荐人会员等级（#2282 P4c）。
+func snapshotReferralLevel(order *models.Order) {
+	if order == nil || order.UserID == "" {
+		return
+	}
+	if ref := services.FindReferrer(order.UserID); ref != nil && ref.MembershipLevelID != nil {
+		order.ReferralLevelID = ref.MembershipLevelID
+	}
+}
+
 func insertInitialTermVersion(tx *gorm.DB, order *models.Order) {
 	if order == nil || order.PricingBreakdown == nil || *order.PricingBreakdown == "" {
 		return

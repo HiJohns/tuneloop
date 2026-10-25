@@ -231,6 +231,7 @@ type Order struct {
 	OrderNo                 string     `gorm:"type:varchar(24)" json:"order_no"`            // #1981: uniqueness enforced by migration partial index (WHERE order_no IS NOT NULL AND order_no <> ''), not AutoMigrate
 	DeliveryAddress         *string    `gorm:"type:text" json:"delivery_address,omitempty"` // #2010 S2: 收货地址并入 orders（原 lease_sessions.delivery_address）
 	Status                  string     `gorm:"type:varchar(40);default:'reserved';index" json:"status"`
+	ReferralLevelID         *int       `gorm:"type:int" json:"referral_level_id,omitempty"` // #2282 P4c: 下单时推荐人等级快照
 	StartDate               *string    `gorm:"type:date" json:"start_date"`
 	EndDate                 *string    `gorm:"type:date" json:"end_date"`
 	TrackingNumber          *string    `gorm:"type:varchar(100);index" json:"tracking_number"`
@@ -1437,4 +1438,15 @@ type OrderTermVersion struct {
 	TotalAmount     Cents     `gorm:"type:bigint;not null;default:0" json:"total_amount"`
 	PaymentRecordID *string   `gorm:"type:uuid" json:"payment_record_id,omitempty"`
 	CreatedAt       time.Time `json:"created_at"`
+}
+
+// ReferralCommission (#2282 P4c): 结算返点幂等台账（order_id 唯一）。
+type ReferralCommission struct {
+	ID          string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	OrderID     string    `gorm:"type:uuid;not null;uniqueIndex" json:"order_id"`
+	ReferrerID  string    `gorm:"type:uuid;not null;index" json:"referrer_id"`
+	AmountCents Cents     `gorm:"type:bigint;not null;default:0" json:"amount_cents"`
+	LevelID     *int      `gorm:"type:int" json:"level_id,omitempty"`
+	BasisCents  Cents     `gorm:"type:bigint;not null;default:0" json:"basis_cents"`
+	CreatedAt   time.Time `json:"created_at"`
 }

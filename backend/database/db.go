@@ -426,6 +426,8 @@ var defaultMigrationArtifacts = []migrationArtifact{
 	{20261024001, "order_term_versions", "", "订单期限版本表（#2282 P4a）"},
 	{20261025001, "order_refund_records", "order_id", "退款流水订单锚（#2278）"},
 	{20261025002, "settlement_calculations", "ledger_version", "结算计算幂等键（#2282 P4b）"},
+	{20261025003, "orders", "referral_level_id", "下单推荐人等级快照（#2282 P4c）"},
+	{20261025003, "referral_commissions", "", "返点幂等台账（#2282 P4c）"},
 	{20260924002, "users", "intro_letter_url", "介绍信列（#2057 裁定3）"},
 	{20260925001, "users", "bio", "全员富文本简介列（#2073）"},
 	{20260927001, "repair_requests", "quote_material_cents", "维修报价料钱列（#2085）"},
@@ -599,7 +601,8 @@ func validateDatabaseSchema(db *gorm.DB) error {
 		&models.MerchantSettlementConfig{},
 		&models.Settlement{},
 		&models.SettlementCalculation{},
-		&models.OrderTermVersion{}, // #2282 P4a
+		&models.OrderTermVersion{},   // #2282 P4a
+		&models.ReferralCommission{}, // #2282 P4c
 		&models.OverdueCharge{},
 		&models.OrderLog{},
 		&models.PaymentSession{},

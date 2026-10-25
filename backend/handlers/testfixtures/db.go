@@ -30,6 +30,7 @@ var allTables = []interface{}{
 	&models.Instrument{},
 	&models.Order{},
 	&models.OrderTermVersion{},
+	&models.ReferralCommission{},
 	&models.PaymentSession{},
 	&models.SessionOrderLink{},
 	&models.Notification{},
