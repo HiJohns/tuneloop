@@ -37,3 +37,13 @@ func orderLedgerCash(db *gorm.DB, orderID string) (models.Cents, bool) {
 	}
 	return net, true
 }
+
+// #2281 P3 步骤3：聚合 cash_paid 的唯一写入口（回调/续租/退款共用）。
+func setOrderCashPaid(tx *gorm.DB, orderID string, amount models.Cents) error {
+	return tx.Model(&models.Order{}).Where("id = ?", orderID).Update("cash_paid", amount).Error
+}
+
+func addOrderCashPaid(tx *gorm.DB, orderID string, delta models.Cents) error {
+	return tx.Model(&models.Order{}).Where("id = ?", orderID).
+		Update("cash_paid", gorm.Expr("GREATEST(cash_paid + ?, 0)", delta)).Error
+}

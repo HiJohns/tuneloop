@@ -507,10 +507,9 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 	// Update cash_paid / prepaid_points_used with renewal payment
 	renewalAmount := record.Amount
 	if record.Status == "paid" && renewalAmount > 0 {
-		tx.Model(&models.Order{}).Where("id = ?", orderID).Updates(map[string]interface{}{
-			"cash_paid":           gorm.Expr("cash_paid + ?", renewalAmount),
-			"prepaid_points_used": gorm.Expr("prepaid_points_used + ?", 0), // renewal is cash (WeChat Pay)
-		})
+		if err := addOrderCashPaid(tx, orderID, renewalAmount); err != nil {
+			log.Printf("[Renewal] add cash_paid failed for order %s: %v", orderID, err)
+		}
 	}
 
 	// #2282 P4a：追加不可变期限版本（pricing_breakdown 的读切换在 P4b 完成前暂保留）

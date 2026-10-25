@@ -98,8 +98,7 @@ func processRefundCallback(c *gin.Context, result *wechatpay.CallbackResult) boo
 		}
 		if payment.OrderID != nil {
 			// #2278：cash_paid 为净额（扣除已退款）
-			if err := tx.Model(&models.Order{}).Where("id = ?", *payment.OrderID).
-				Update("cash_paid", gorm.Expr("GREATEST(cash_paid - ?, 0)", refundRecord.Amount)).Error; err != nil {
+			if err := addOrderCashPaid(tx, *payment.OrderID, -refundRecord.Amount); err != nil {
 				return err
 			}
 			if err := tx.Model(&models.Settlement{}).Where("order_id = ?", *payment.OrderID).
@@ -249,9 +248,14 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 		// cash_paid so settlement uses the real paid base, not the pre-order
 		// full-price snapshot. gift_points_used stays untouched. Renewal has
 		// its own accumulation logic (renewal.go) — never touch it here.
-		if err := tx.Model(&models.Order{}).Where("id = ?", record.OrderID).
-			Updates(map[string]interface{}{"status": models.OrderStatusPaid, "cash_paid": record.Amount}).Error; err != nil {
-			return err
+		if record.OrderID != nil {
+			if err := tx.Model(&models.Order{}).Where("id = ?", *record.OrderID).
+				Update("status", models.OrderStatusPaid).Error; err != nil {
+				return err
+			}
+			if err := setOrderCashPaid(tx, *record.OrderID, record.Amount); err != nil {
+				return err
+			}
 		}
 		// Order timeline (order_logs) — payment must be visible to customer
 		if record.OrderID != nil {
@@ -338,8 +342,7 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 	case "damage":
 		// #2279：定损赔付为实收现金，必须入账（不得仅 executeRefund）
 		if record.OrderID != nil {
-			if err := tx.Model(&models.Order{}).Where("id = ?", *record.OrderID).
-				Update("cash_paid", gorm.Expr("cash_paid + ?", record.Amount)).Error; err != nil {
+			if err := addOrderCashPaid(tx, *record.OrderID, record.Amount); err != nil {
 				return err
 			}
 		}
@@ -372,8 +375,7 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 		// #1948 LS-06：丢失补缴到账 → 幂等关闭 pending 补缴记录（M-08 解除）。
 		// 订单已因丢失置 cancelled，不改变。
 		if record.OrderID != nil {
-			if err := tx.Model(&models.Order{}).Where("id = ?", *record.OrderID).
-				Update("cash_paid", gorm.Expr("cash_paid + ?", record.Amount)).Error; err != nil {
+			if err := addOrderCashPaid(tx, *record.OrderID, record.Amount); err != nil {
 				return err
 			}
 			if err := tx.Model(&models.OrderPaymentRecord{}).
@@ -387,8 +389,7 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 	case "payment_shortfall":
 		// #2278：补缴到账必须入账（现金净额）
 		if record.OrderID != nil {
-			if err := tx.Model(&models.Order{}).Where("id = ?", *record.OrderID).
-				Update("cash_paid", gorm.Expr("cash_paid + ?", record.Amount)).Error; err != nil {
+			if err := addOrderCashPaid(tx, *record.OrderID, record.Amount); err != nil {
 				return err
 			}
 		}
