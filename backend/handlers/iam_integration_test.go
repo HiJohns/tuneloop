@@ -338,25 +338,11 @@ func TestIAMIntegration_UserUpdate_EmailChange(t *testing.T) {
 
 func setupMockIAMAndDB(t *testing.T) func() {
 	gin.SetMode(gin.TestMode)
-	db := testfixtures.GetTestDB(t)
+	db := testfixtures.SetupTestDB(t)
 	if db == nil {
 		return func() {}
 	}
 	testutil.SetDB(t, db)
-
-	_ = db.Migrator().DropTable(&models.ConfirmationSession{})
-	_ = db.Migrator().DropTable(&models.SiteMember{})
-	_ = db.Migrator().DropTable(&models.Site{})
-	_ = db.Migrator().DropTable(&models.Merchant{})
-	_ = db.Migrator().DropTable(&models.User{})
-	require.NoError(t, db.Migrator().CreateTable(&models.User{}))
-	// iam_sub has -:migration tag and is excluded from CreateTable; add it manually
-	// (mirrors addIAMSubColumn in main_test.go).
-	db.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS iam_sub VARCHAR(255) NOT NULL DEFAULT ''")
-	require.NoError(t, db.Migrator().CreateTable(&models.Merchant{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.Site{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.SiteMember{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.ConfirmationSession{}))
 
 	return func() { services.SetIAMInternalURLForTesting("") }
 }
