@@ -442,6 +442,10 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 	if err := tx.Where("id = ?", orderID).First(&order).Error; err != nil {
 		return err
 	}
+	oldEndDate := ""
+	if order.EndDate != nil {
+		oldEndDate = *order.EndDate
+	}
 
 	// Renewal continues from the original end date (not from today), so an
 	// overdue order's new end date = end_date + additional_days (continuous).
@@ -507,6 +511,22 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 			"cash_paid":           gorm.Expr("cash_paid + ?", renewalAmount),
 			"prepaid_points_used": gorm.Expr("prepaid_points_used + ?", 0), // renewal is cash (WeChat Pay)
 		})
+	}
+
+	// #2282 P4a：追加不可变期限版本（pricing_breakdown 的读切换在 P4b 完成前暂保留）
+	var lastVer int
+	tx.Model(&models.OrderTermVersion{}).Where("order_id = ?", orderID).
+		Select("COALESCE(MAX(version),0)").Scan(&lastVer)
+	termStart := oldEndDate
+	tv := models.OrderTermVersion{
+		OrderID: orderID, Version: lastVer + 1, StartDate: &termStart, EndDate: &newEndDateStr,
+		Days: additionalDays, TierSegments: "[]", TotalAmount: renewalAmount,
+	}
+	if record.ID != "" {
+		tv.PaymentRecordID = &record.ID
+	}
+	if err := tx.Create(&tv).Error; err != nil {
+		log.Printf("[Renewal] insert term_version failed for order %s: %v", orderID, err)
 	}
 
 	// 续期是顾客主动发起（续期页选天数 + 微信支付），日志须归属支付人
