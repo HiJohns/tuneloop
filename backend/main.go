@@ -425,7 +425,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		// #1798: batch delete (static path registered before :id param — httprouter static-first)
 		authRequired.DELETE("/instruments/batch", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:delete"), handlers.BatchDeleteInstruments)
 		authRequired.PUT("/instruments/:id/status", middleware.RequireDebugMode(), middleware.RequireCusPerm("instrument:update"), handlers.UpdateInstrumentStatus)
-		authRequired.PUT("/orders/:id/admin-update", middleware.RequireDebugMode(), handlers.AdminUpdateOrder)
+		authRequired.PUT("/orders/:id/admin-update", middleware.ExplicitTenantScope(), middleware.RequireDebugMode(), handlers.AdminUpdateOrder)
 		authRequired.POST("/instruments/:id/photos/upload", middleware.ExplicitTenantScope(), handlers.UploadInstrumentPhotos)
 		authRequired.GET("/instruments/:id/photos/latest", handlers.GetLatestInstrumentPhotos)
 		authRequired.POST("/instruments/:id/media", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:media_upload"), handlers.CreateInstrumentMedia)
@@ -446,7 +446,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/instruments/batch-import/media", handlers.UploadBatchMedia)
 		authRequired.GET("/overdue-leases", handlers.GetOverdueLeases)
 		authRequired.GET("/orders/by-trade-no/:out_trade_no", middleware.ExplicitTenantScope(), handlers.GetOrdersByOutTradeNo)
-		authRequired.POST("/orders/:id/pickup", middleware.RequireCusPerm("order:update"), handlers.PickupOrder)
+		authRequired.POST("/orders/:id/pickup", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("order:update"), handlers.PickupOrder)
 		authRequired.POST("/orders/:id/cancel", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("order:cancel"), handlers.CancelOrder)
 		authRequired.GET("/merchant/orders", handlers.ListMerchantOrders)
 

@@ -1690,8 +1690,13 @@ func AdminUpdateOrder(c *gin.Context) {
 
 	// #2261 返工：显式模式更新必须限定租户
 	tenantID := middleware.GetTenantID(ctx)
-	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ?", orderID, tenantID).Updates(updates).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "update failed: " + err.Error()})
+	res := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ?", orderID, tenantID).Updates(updates)
+	if res.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "update failed: " + res.Error.Error()})
+		return
+	}
+	if res.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "order not found"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "updated"})
