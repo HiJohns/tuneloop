@@ -452,77 +452,23 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 
 	// Cash refund via WeChat Pay
 	if result.CashRefundable > 0 {
-		cfg := wechatpay.GetConfig()
-
-		outRefundNo := fmt.Sprintf("sttl_%s_%d", order.ID[:8], time.Now().Unix())
-
-		refundRecord := models.OrderRefundRecord{
-			ID:        uuid.New().String(),
-			TenantID:  order.TenantID,
-			Amount:    models.FromYuan(result.CashRefundable),
-			Reason:    strPtr("租赁结算退款"),
-			Status:    "pending",
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+		ctx := tx.Statement.Context
+		if ctx == nil {
+			ctx = context.Background()
 		}
-
-		var paymentRecord models.OrderPaymentRecord
-		paymentFound := false
-		var outTradeNo string
-		if err := tx.Where("order_id = ? AND order_type = ? AND status = ?", order.ID, "rent", "paid").First(&paymentRecord).Error; err == nil && paymentRecord.ID != "" {
-			paymentFound = true
-			if paymentRecord.OutTradeNo != nil {
-				outTradeNo = *paymentRecord.OutTradeNo
+		rec, status, refundErr := initiateCashRefund(ctx, tx, order, models.FromYuan(result.CashRefundable), "租赁结算退款")
+		if refundErr != nil {
+			log.Printf("[executeRefund] refund failed for order %s: %v", order.ID, refundErr)
+		}
+		if rec == nil {
+			return nil, fmt.Errorf("failed to create refund record for order %s", order.ID)
+		}
+		if settlement != nil {
+			settlement.RefundStatus = status
+			if err := tx.Model(settlement).Update("refund_status", status).Error; err != nil {
+				return nil, fmt.Errorf("failed to update settlement status: %w", err)
 			}
 		}
-
-		if !paymentFound || cfg == nil || paymentRecord.Amount <= 0 {
-			refundRecord.Status = "refunded"
-			if settlement != nil {
-				settlement.RefundStatus = "completed"
-			}
-		} else {
-			refundRecord.PaymentRecordID = &paymentRecord.ID
-			client := wechatpay.GetClient()
-			refundResp, err := client.Refund(context.Background(), wechatpay.RefundParams{
-				OutTradeNo:   outTradeNo,
-				OutRefundNo:  outRefundNo,
-				TotalAmount:  int64(paymentRecord.Amount),
-				RefundAmount: int64(models.FromYuan(result.CashRefundable)),
-				Reason:       "租赁结算退款",
-				NotifyURL:    cfg.RefundNotifyURL,
-			})
-			if err != nil {
-				refundRecord.Status = "failed"
-				fr := err.Error()
-				refundRecord.FailReason = &fr
-				log.Printf("[executeRefund] refund failed for order %s: %v", order.ID, err)
-				if settlement != nil {
-					settlement.RefundStatus = "failed"
-				}
-			} else {
-				refundRecord.RefundID = &refundResp.RefundID
-				if settlement != nil {
-					settlement.RefundStatus = "refunding"
-				}
-			}
-		}
-		refundRecord.OutRefundNo = &outRefundNo
-
-		if err := tx.Create(&refundRecord).Error; err != nil {
-			return nil, fmt.Errorf("failed to create refund record: %w", err)
-		}
-	}
-
-	if settlement != nil {
-		if err := tx.Model(settlement).Update("refund_status", settlement.RefundStatus).Error; err != nil {
-			return nil, fmt.Errorf("failed to update settlement status: %w", err)
-		}
-	}
-
-	// Mark deposit as refunded only after actual refund executes
-	if err := tx.Model(&models.Order{}).Where("id = ?", order.ID).Update("deposit_refunded", true).Error; err != nil {
-		return nil, fmt.Errorf("failed to mark deposit refunded: %w", err)
 	}
 
 	// Increment total spending by the CASH portion of actual rental amount
@@ -1612,20 +1558,36 @@ func initiateCashRefund(ctx context.Context, tx *gorm.DB, order models.Order, am
 	no := "ex" + raw[:29]
 	rec := models.OrderRefundRecord{
 		ID: uuid.New().String(), TenantID: order.TenantID, OutRefundNo: &no,
-		Amount: amount, Reason: &reason, Status: "pending",
+		Amount: amount, Reason: &reason, Status: "refunded",
 		CreatedAt: time.Now(), UpdatedAt: time.Now(),
 	}
-	settleStatus := "refunded"
+	rec.OrderID = &order.ID
+	settleStatus := "completed"
 	if found {
 		rec.PaymentRecordID = &pr.ID
 		outTradeNo := ""
 		if pr.OutTradeNo != nil {
 			outTradeNo = *pr.OutTradeNo
 		}
-		resp, err := wechatpay.GetClient().Refund(ctx, wechatpay.RefundParams{
+		notifyURL := ""
+		if cfg := wechatpay.GetConfig(); cfg != nil {
+			notifyURL = cfg.RefundNotifyURL
+		}
+		client := wechatpay.GetClient()
+		if client == nil {
+			rec.Status = "failed"
+			fr := "wechatpay client not initialized"
+			rec.FailReason = &fr
+			settleStatus = "failed"
+			if e := tx.Create(&rec).Error; e != nil {
+				return nil, settleStatus, e
+			}
+			return &rec, settleStatus, fmt.Errorf("%s", fr)
+		}
+		resp, err := client.Refund(ctx, wechatpay.RefundParams{
 			OutTradeNo: outTradeNo, OutRefundNo: no,
 			TotalAmount: int64(pr.Amount), RefundAmount: int64(amount),
-			Reason: reason, NotifyURL: wechatpay.GetConfig().RefundNotifyURL,
+			Reason: reason, NotifyURL: notifyURL,
 		})
 		if err != nil {
 			rec.Status = "failed"
@@ -1665,15 +1627,13 @@ func applyShortfallSettlement(tx *gorm.DB, orderID string) error {
 	if excess > 0 {
 		var cnt int64
 		if err := tx.Model(&models.OrderRefundRecord{}).
-			Joins("JOIN order_payment_records pr ON pr.id = order_refund_records.payment_record_id").
-			Where("pr.order_id = ? AND order_refund_records.reason = ?", orderID, "补缴超收退款").Count(&cnt).Error; err != nil {
+			Where("order_id = ? AND reason = ?", orderID, "补缴超收退款").Count(&cnt).Error; err != nil {
 			return err
 		}
 		if cnt > 0 {
 			var existing models.OrderRefundRecord
-			if e := tx.Joins("JOIN order_payment_records pr ON pr.id = order_refund_records.payment_record_id").
-				Where("pr.order_id = ? AND order_refund_records.reason = ?", orderID, "补缴超收退款").
-				Order("order_refund_records.created_at DESC").First(&existing).Error; e == nil {
+			if e := tx.Where("order_id = ? AND reason = ?", orderID, "补缴超收退款").
+				Order("created_at DESC").First(&existing).Error; e == nil {
 				mapped := "refunding"
 				switch existing.Status {
 				case "refunded":

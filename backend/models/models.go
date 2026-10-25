@@ -383,6 +383,7 @@ type OrderPaymentRecord struct {
 type OrderRefundRecord struct {
 	ID              string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	TenantID        string    `gorm:"type:uuid;not null" json:"tenant_id"`
+	OrderID         *string   `gorm:"type:uuid;index" json:"order_id,omitempty"` // #2278: 幂等锚（无 rent 支付单时也可查重）
 	PaymentRecordID *string   `gorm:"type:uuid;index" json:"payment_record_id,omitempty"`
 	OutRefundNo     *string   `gorm:"type:varchar(32);uniqueIndex" json:"out_refund_no"`
 	RefundID        *string   `gorm:"type:varchar(64)" json:"refund_id"`
