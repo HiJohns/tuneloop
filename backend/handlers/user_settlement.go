@@ -194,57 +194,12 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 
 	// Cash refund via WeChat Pay (if cash was paid on this order)
 	if result.CashRefundable > 0 {
-		var paymentRecord models.OrderPaymentRecord
-		paymentFound := false
-		var outTradeNo string
-		if err := tx.Where("order_id = ? AND order_type = ? AND status = ?", orderID, "rent", "paid").First(&paymentRecord).Error; err == nil && paymentRecord.ID != "" {
-			paymentFound = true
-			if paymentRecord.OutTradeNo != nil {
-				outTradeNo = *paymentRecord.OutTradeNo
-			}
+		rec, status, refundErr := initiateCashRefund(c.Request.Context(), tx, order, models.FromYuan(result.CashRefundable), "租赁结算退款")
+		settlement.RefundStatus = status
+		if refundErr != nil {
+			log.Printf("[ConfirmSettlement] refund failed for order %s: %v", orderID, refundErr)
 		}
-
-		cfg := wechatpay.GetConfig()
-		outRefundNo := fmt.Sprintf("sttl_%s_%d", orderID[:8], time.Now().Unix())
-
-		refundRecord := models.OrderRefundRecord{
-			ID:        uuid.New().String(),
-			TenantID:  order.TenantID,
-			Amount:    models.FromYuan(result.CashRefundable),
-			Reason:    strPtr("租赁结算退款"),
-			Status:    "pending",
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		}
-
-		if !paymentFound {
-			refundRecord.Status = "refunded"
-			settlement.RefundStatus = "completed"
-		} else {
-			refundRecord.PaymentRecordID = &paymentRecord.ID
-			client := wechatpay.GetClient()
-			refundResp, err := client.Refund(c.Request.Context(), wechatpay.RefundParams{
-				OutTradeNo:   outTradeNo,
-				OutRefundNo:  outRefundNo,
-				TotalAmount:  int64(paymentRecord.Amount),
-				RefundAmount: int64(models.FromYuan(result.CashRefundable)),
-				Reason:       "租赁结算退款",
-				NotifyURL:    cfg.RefundNotifyURL,
-			})
-			if err != nil {
-				refundRecord.Status = "failed"
-				fr := err.Error()
-				refundRecord.FailReason = &fr
-				log.Printf("[ConfirmSettlement] refund failed for order %s: %v", orderID, err)
-				settlement.RefundStatus = "failed"
-			} else {
-				refundRecord.RefundID = &refundResp.RefundID
-				settlement.RefundStatus = "refunding"
-			}
-		}
-		refundRecord.OutRefundNo = &outRefundNo
-
-		if err := tx.Create(&refundRecord).Error; err != nil {
+		if rec == nil {
 			tx.Rollback()
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create refund record"})
 			return
@@ -1649,6 +1604,49 @@ func (h *UserSettlementHandler) StaffRefundOrder(c *gin.Context) {
 }
 
 // #2278：补缴到账后重算结算；超收（cash_paid > 应结）生成幂等退款流水。
+// initiateCashRefund 发起现金退款（执行退款 API；供 executeRefund/补缴超收复用）。
+func initiateCashRefund(ctx context.Context, tx *gorm.DB, order models.Order, amount models.Cents, reason string) (*models.OrderRefundRecord, string, error) {
+	var pr models.OrderPaymentRecord
+	found := tx.Where("order_id = ? AND order_type = ? AND status = ?", order.ID, "rent", "paid").First(&pr).Error == nil && pr.ID != ""
+	raw := strings.ReplaceAll(uuid.NewString(), "-", "")
+	no := "ex" + raw[:29]
+	rec := models.OrderRefundRecord{
+		ID: uuid.New().String(), TenantID: order.TenantID, OutRefundNo: &no,
+		Amount: amount, Reason: &reason, Status: "pending",
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}
+	settleStatus := "refunded"
+	if found {
+		rec.PaymentRecordID = &pr.ID
+		outTradeNo := ""
+		if pr.OutTradeNo != nil {
+			outTradeNo = *pr.OutTradeNo
+		}
+		resp, err := wechatpay.GetClient().Refund(ctx, wechatpay.RefundParams{
+			OutTradeNo: outTradeNo, OutRefundNo: no,
+			TotalAmount: int64(pr.Amount), RefundAmount: int64(amount),
+			Reason: reason, NotifyURL: wechatpay.GetConfig().RefundNotifyURL,
+		})
+		if err != nil {
+			rec.Status = "failed"
+			fr := err.Error()
+			rec.FailReason = &fr
+			settleStatus = "failed"
+			if e := tx.Create(&rec).Error; e != nil {
+				return nil, settleStatus, e
+			}
+			return &rec, settleStatus, err
+		}
+		rec.RefundID = &resp.RefundID
+		rec.Status = "refunding"
+		settleStatus = "refunding"
+	}
+	if err := tx.Create(&rec).Error; err != nil {
+		return nil, settleStatus, err
+	}
+	return &rec, settleStatus, nil
+}
+
 func applyShortfallSettlement(tx *gorm.DB, orderID string) error {
 	var order models.Order
 	if err := tx.Where("id = ?", orderID).First(&order).Error; err != nil {
@@ -1658,49 +1656,57 @@ func applyShortfallSettlement(tx *gorm.DB, orderID string) error {
 	if err := tx.Where("order_id = ?", orderID).First(&st).Error; err != nil {
 		return nil
 	}
-	// 应结 = 结算已确认的租金 + 逾期 + 物流（定损已体现在补缴金额/结算中）
 	due := st.ActualRentAmount + st.OverdueChargesTotal + order.ShippingFee
 	excess := order.CashPaid - due
 	if excess < 0 {
 		excess = 0
+	}
+	// 已有超收退款：结算状态跟随流水，避免重复发起
+	if excess > 0 {
+		var cnt int64
+		if err := tx.Model(&models.OrderRefundRecord{}).
+			Joins("JOIN order_payment_records pr ON pr.id = order_refund_records.payment_record_id").
+			Where("pr.order_id = ? AND order_refund_records.reason = ?", orderID, "补缴超收退款").Count(&cnt).Error; err != nil {
+			return err
+		}
+		if cnt > 0 {
+			var existing models.OrderRefundRecord
+			if e := tx.Joins("JOIN order_payment_records pr ON pr.id = order_refund_records.payment_record_id").
+				Where("pr.order_id = ? AND order_refund_records.reason = ?", orderID, "补缴超收退款").
+				Order("order_refund_records.created_at DESC").First(&existing).Error; e == nil {
+				mapped := "refunding"
+				switch existing.Status {
+				case "refunded":
+					mapped = "completed"
+				case "failed":
+					mapped = "failed"
+				case "pending":
+					mapped = "pending"
+				}
+				return tx.Model(&st).Updates(map[string]interface{}{"cash_refundable": excess, "refund_status": mapped}).Error
+			}
+		}
 	}
 	status := "completed"
 	if excess > 0 {
 		status = "pending"
 	}
 	if err := tx.Model(&st).Updates(map[string]interface{}{
-		"cash_refundable": excess,
-		"refund_status":   status,
-		"updated_at":      time.Now(),
+		"cash_refundable": excess, "refund_status": status, "updated_at": time.Now(),
 	}).Error; err != nil {
 		return err
 	}
 	if excess <= 0 {
 		return nil
 	}
-	no := "excess_" + strings.ReplaceAll(orderID, "-", "")[:20]
-	var cnt int64
-	if err := tx.Model(&models.OrderRefundRecord{}).Where("out_refund_no = ?", no).Count(&cnt).Error; err != nil {
+	ctx := tx.Statement.Context
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	_, settleStatus, err := initiateCashRefund(ctx, tx, order, excess, "补缴超收退款")
+	if err != nil {
+		tx.Model(&st).Update("refund_status", settleStatus)
 		return err
 	}
-	if cnt > 0 {
-		return nil
-	}
-	var rentPay models.OrderPaymentRecord
-	tx.Where("order_id = ? AND order_type = ? AND status = ?", orderID, "rent", "paid").First(&rentPay)
-	reason := "补缴超收退款"
-	rr := models.OrderRefundRecord{
-		ID:          uuid.New().String(),
-		TenantID:    order.TenantID,
-		OutRefundNo: &no,
-		Amount:      excess,
-		Reason:      &reason,
-		Status:      "pending",
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
-	}
-	if rentPay.ID != "" {
-		rr.PaymentRecordID = &rentPay.ID
-	}
-	return tx.Create(&rr).Error
+	return tx.Model(&st).Update("refund_status", settleStatus).Error
 }
