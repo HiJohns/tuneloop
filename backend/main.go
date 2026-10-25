@@ -389,6 +389,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		// #1797: 子分类内排序（行内上移/下移）
 		authRequired.PUT("/instruments/:id/sort", middleware.RequireCusPerm("instrument:update"), handlers.SortInstrument)
 		authRequired.GET("/reports/assessment/:order_id", handlers.HandleAssessmentReport(database.GetDB()))
+		authRequired.GET("/admin/orders/:id/financials", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.AdminOrderFinancials)
 		authRequired.GET("/admin/payments", handlers.ListPayments)
 		authRequired.GET("/admin/payments/export", handlers.ExportPayments)
 		authRequired.POST("/admin/payments/:out_trade_no/query", handlers.QueryPaymentByTradeNo)
