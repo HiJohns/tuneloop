@@ -42,3 +42,20 @@
 
 - 本 Issue 已消除「前序用例残留数据」这一**主要**顺序耦合来源（下单/维修列表用例自包含）。
 - 剩余 28 个文件为「按需建表」的局部夹具：虽仍是 partial，但均在同一用例内先 Drop 再 Create（不依赖前序数据），风险低于 `setupUserRentalTables` 的“只建 3 表、其余表残留”。统一迁移另立子 Issue，避免本 Issue 无限扩大。
+
+## 独立测试库与 shuffle 回归（#2271）
+
+- 测试库按节点隔离：`TUNELOOP_TEST_DB` 优先；否则 `tuneloop_test_<OPENCODE_NODE_ID>`（见 #2288）。
+- 并行节点示例：
+  ```bash
+  TUNELOOP_TEST_DB=tuneloop_test_node2 go test ./handlers -count=1
+  TUNELOOP_TEST_DB=tuneloop_test_3134 go test ./handlers -count=1
+  ```
+- shuffle 回归（#2271）：
+  ```bash
+  # 基线：非 shuffle 全量失败集合（每行一个测试名）
+  cd backend && go test ./handlers -count=1 -v > ../tmp/full.log
+  grep '^--- FAIL' ../tmp/full.log | sed 's/.*FAIL: //;s/ (.*//' | sort -u > ../tmp/test-baseline.txt
+  cd .. && scripts/test-shuffle.sh 20261023 42 7777
+  ```
+  脚本对每个 seed 输出 NEW/MISSING；存在 NEW 即退出 1。日志在 `tmp/shuffle-2271/`。
