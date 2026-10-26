@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { formatCents } from '../utils/money'
+import { computeDisplayedCashCents } from '../utils/paymentAmount.mjs'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { apiFetch , resolveErrorMessage } from '../services/api'
 import { env, dialog } from '../platform'
@@ -74,9 +75,13 @@ export default function Payment() {
   const isRefund = ['refund', 'deposit-refund'].includes(pType)
 
   const displayAmount = appliedCoupon ? couponAmount : data.amount
-  const cashAmount = isRefund
-    ? data.amount
-    : Math.max(0, displayAmount - giftUsed * 100)
+  const cashAmount = computeDisplayedCashCents({
+    amountCents: data.amount,
+    couponFinalCents: couponAmount,
+    giftUsedCents: giftUsed * 100,
+    hasCoupon: !!appliedCoupon,
+    isRefund,
+  })
 
   return (
     <div className="min-h-screen" style={{ paddingBottom: 100, backgroundColor: '#FDFBF7' }}>
@@ -140,7 +145,7 @@ export default function Payment() {
         )}
       </div>
 
-      {!isRefund && pType !== 'appeal' && data.amount > 0 && maxGift > 0 && (
+      {!isRefund && !appliedCoupon && pType !== 'appeal' && data.amount > 0 && maxGift > 0 && (
         <div className="bg-white mx-4 mt-4 rounded-2xl p-4 shadow-sm">
           <div className="text-sm font-black text-black mb-3">使用乐币</div>
 
@@ -271,6 +276,7 @@ export default function Payment() {
         const hint = d.type === 'waive' ? '已应用，全额免除' : `已应用，优惠后金额 ¥${formatCents(final)}`
         setAppliedCoupon({ code: d.code || code, hint })
         setCouponAmount(final)
+        setGiftUsed(0)
       } else {
         setAppliedCoupon(null)
         setCouponAmount(0)

@@ -1,8 +1,8 @@
 package models
 
 // Coupon is a discount code applied at prepay time (#1719 通用化)。
-// percent 类型的 Value 为千分比（1000 = 1%，#1728/#1751）——ENO = 10（10‰ = 1%），
-// 配置成 1 会按 1‰ 少扣 10 倍。Type waive = full waiver (amount 0).
+// percent 类型的 Value 为**实付千分比**（10 = 1%，1000 = 100% 原价；#1728/#1751/#2291）——
+// ENO = 10（10‰ = 1%），配置成 1 会按 1‰ 少扣 10 倍。Type waive = full waiver (amount 0).
 type Coupon struct {
 	ID          string  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	Code        string  `gorm:"uniqueIndex;size:32" json:"code"`

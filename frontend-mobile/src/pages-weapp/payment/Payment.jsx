@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { formatCents } from '../../utils/money'
+import { computeDisplayedCashCents } from '../../utils/paymentAmount.mjs'
 import Taro, { useDidShow, useLoad } from '@tarojs/taro'
 import { View, Text, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, resolveLogin, resolveErrorMessage } from '../../services/api'
@@ -157,9 +158,13 @@ export default function Payment() {
   // prepay); 服务端按 coupons 表决定 waive/percent（#2291）。
   const displayAmount = appliedCoupon ? couponAmount : data.amount
 
-  const cashAmount = isRefund
-    ? data.amount
-    : Math.max(0, displayAmount - giftUsed * 100)
+  const cashAmount = computeDisplayedCashCents({
+    amountCents: data?.amount || 0,
+    couponFinalCents: couponAmount,
+    giftUsedCents: giftUsed * 100,
+    hasCoupon: !!appliedCoupon,
+    isRefund,
+  })
 
   const applyCoupon = () => {
     const tryApply = async () => {
@@ -190,6 +195,7 @@ export default function Payment() {
           const hint = d.type === 'waive' ? '已应用，全额免除' : `已应用，优惠后金额 ¥${formatCents(final)}`
           setAppliedCoupon({ code: d.code || code, hint })
           setCouponAmount(final)
+          setGiftUsed(0)
         } else {
           setAppliedCoupon(null)
           setCouponAmount(0)
@@ -560,7 +566,7 @@ export default function Payment() {
         </View>
 
         {/* Points usage (only for non-refund, non-appeal) */}
-        {!isRefund && pType !== 'appeal' && pType !== 'membership' && data.amount > 0 && maxGift > 0 && (
+        {!isRefund && !appliedCoupon && pType !== 'appeal' && pType !== 'membership' && data.amount > 0 && maxGift > 0 && (
           <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
             <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>使用乐币</Text>
 
