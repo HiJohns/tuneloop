@@ -170,15 +170,13 @@ func TestDashboardStats_2005_CustomerForbidden(t *testing.T) {
 }
 
 // #2006 QA 返工：聚合查询失败必须 500，不得静默返回 0（HTTP 200）。
-// 注入方式：删除 merchants 表 → 治理支首个聚合失败。
-// fixture-guard:allow 故障注入（模拟表缺失），非夹具残留。
+// 注入方式：临时重命名 merchants 表 → 治理支首个聚合失败（可逆，不使用 Drop/Create）。
 func TestDashboardStats_2005_AggregationErrorReturns500(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.Merchant{}))
-	require.NoError(t, db.Migrator().DropTable(&models.Merchant{}))
-	t.Cleanup(func() { _ = db.AutoMigrate(&models.Merchant{}) })
+	require.NoError(t, db.Exec(`ALTER TABLE merchants RENAME TO merchants_hidden_2005`).Error)
+	t.Cleanup(func() { _ = db.Exec(`ALTER TABLE merchants_hidden_2005 RENAME TO merchants`).Error })
 
 	code, _ := callDashboardStats(t, "NAMESPACE_ADMIN", "", "")
 	require.Equal(t, http.StatusInternalServerError, code, "聚合失败必须 500，不得静默 0")

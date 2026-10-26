@@ -53,9 +53,10 @@
   ```
 - shuffle 回归（#2271）：
   ```bash
-  # 基线：非 shuffle 全量失败集合（每行一个测试名）
-  cd backend && go test ./handlers -count=1 -v > ../tmp/full.log
-  grep '^--- FAIL' ../tmp/full.log | sed 's/.*FAIL: //;s/ (.*//' | sort -u > ../tmp/test-baseline.txt
-  cd .. && scripts/test-shuffle.sh 20261023 42 7777
+  # 必须显式节点/库（脚本拒绝默认落到他节点库；#2288）
+  OPENCODE_NODE_ID=node-2 scripts/test-shuffle.sh --update-baseline 20261023 42 7777
+  # 或指定 TUNELOOP_TEST_DB=tuneloop_test_xxx
+  # 基线缺失时自动跑非 shuffle 全量生成 tmp/test-baseline.txt；也可单独 --update-baseline
   ```
   脚本对每个 seed 输出 NEW/MISSING；存在 NEW 即退出 1。日志在 `tmp/shuffle-2271/`。
+- 夹具守卫：`grep -rn "Migrator().DropTable\|Migrator().CreateTable" backend/handlers/*_test.go` = **0**（testfixtures 除外）；残留两处已迁移（`iam_proxy` → SetupTestDB；`dashboard_stats` → 可逆表重命名故障注入）。

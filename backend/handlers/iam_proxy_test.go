@@ -376,12 +376,8 @@ func TestIAMProxyHandler_Issue340_IntegrationFlow(t *testing.T) {
 
 func TestSyncOrganizations_SiteTenantID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db := testfixtures.GetTestDB(t)
+	db := testfixtures.SetupTestDB(t)
 	testutil.SetDB(t, db)
-
-	// Set up Site table
-	_ = db.Migrator().DropTable(&models.Site{})
-	require.NoError(t, db.Migrator().CreateTable(&models.Site{}))
 
 	merchantOrgID := uuid.New().String()
 	nsOrgID := uuid.New().String()
