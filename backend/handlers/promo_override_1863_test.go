@@ -294,6 +294,9 @@ func TestPromoOverride_CheckConstraintMigration(t *testing.T) {
 
 	upSQL, err := os.ReadFile("../database/migrations/20260910002_widen_promo_override_type_check.up.sql")
 	require.NoError(t, err)
+	// #2281/#2288：共享库 TRUNCATE 快路径会保留 schema——测试结束必须恢复 widened 约束，
+	// 否则后续 promo 用例被旧的 2 值 CHECK 污染。
+	t.Cleanup(func() { _ = db.Exec(string(upSQL)).Error })
 	require.NoError(t, db.Exec(string(upSQL)).Error, "up migration must apply")
 	require.NoError(t, insert("rent_to_own"), "post-migration insert must succeed")
 

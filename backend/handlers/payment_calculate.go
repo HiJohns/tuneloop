@@ -358,16 +358,18 @@ func loadCancelledOrderRefund(db *gorm.DB, id string, resp *PaymentCalculateResp
 		return
 	}
 	// #1758: cents contract — all payment fields stay cents (frontend /100).
-	total := float64(order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed)
+	// #2281：现金部分以账本净额为准（无流水旧单回退缓存）。
+	cashPaid := effectiveCashPaid(db, order)
+	total := float64(cashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed)
 	resp.Title = "取消订单退款"
 	resp.Amount = total
 	resp.Details = map[string]interface{}{
 		"total_paid":       total,
-		"cash_paid":        float64(order.CashPaid),
+		"cash_paid":        float64(cashPaid),
 		"prepaid_used":     float64(order.PrepaidPointsUsed),
 		"gift_used":        float64(order.GiftPointsUsed),
 		"total_refund":     total,
-		"cash_refundable":  float64(order.CashPaid),
+		"cash_refundable":  float64(cashPaid),
 		"prepaid_refunded": float64(order.PrepaidPointsUsed),
 		"gift_refunded":    float64(order.GiftPointsUsed),
 		"cancel_refund":    true,

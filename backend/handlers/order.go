@@ -1161,7 +1161,7 @@ func CancelOrderByCustomer(c *gin.Context) {
 
 	// For paid/pending_shipment orders, create refund session and return navigation
 	if oldStatus == models.OrderStatusPaid || oldStatus == models.OrderStatusPendingShipment {
-		refundAmount := order.CashPaid
+		refundAmount := effectiveCashPaid(db, order)
 		refundStatus := ""
 		if refundAmount > 0 {
 			outRefundNo := fmt.Sprintf("can_%s_%d", orderID[:8], time.Now().Unix())

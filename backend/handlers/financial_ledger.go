@@ -28,14 +28,38 @@ func RecomputeOrderFinancials(db *gorm.DB, orderID string) (paid, refunded, net 
 	return paid, refunded, paid - refunded, nil
 }
 
-// orderLedgerCash 返回账本净额（仅当存在 paid 流水时有效），供读路径过渡使用。
-// 过渡策略：仅当存在已退款流水（net < paid）时用于收敛虚高聚合。
-func orderLedgerCash(db *gorm.DB, orderID string) (models.Cents, bool) {
+// OrderLedger 是单一账本快照（#2281 P3）：支付/退款流水为唯一事实源。
+type OrderLedger struct {
+	Paid      models.Cents
+	Refunded  models.Cents
+	Net       models.Cents
+	HasLedger bool // 至少一条 paid 流水
+}
+
+// LoadOrderLedger 读取账本；无 paid 流水（旧单）时 HasLedger=false。
+func LoadOrderLedger(db *gorm.DB, orderID string) (OrderLedger, error) {
 	paid, refunded, net, err := RecomputeOrderFinancials(db, orderID)
-	if err != nil || paid <= 0 || refunded <= 0 {
+	if err != nil {
+		return OrderLedger{}, err
+	}
+	return OrderLedger{Paid: paid, Refunded: refunded, Net: net, HasLedger: paid > 0}, nil
+}
+
+// orderLedgerCash 返回账本净额（仅当存在 paid 流水时有效）。
+func orderLedgerCash(db *gorm.DB, orderID string) (models.Cents, bool) {
+	l, err := LoadOrderLedger(db, orderID)
+	if err != nil || !l.HasLedger {
 		return 0, false
 	}
-	return net, true
+	return l.Net, true
+}
+
+// effectiveCashPaid 供读路径统一取值：有账本 → 净额；旧单（无流水）→ 缓存值。
+func effectiveCashPaid(db *gorm.DB, order models.Order) models.Cents {
+	if l, err := LoadOrderLedger(db, order.ID); err == nil && l.HasLedger {
+		return l.Net
+	}
+	return order.CashPaid
 }
 
 // #2281 P3 步骤3：聚合 cash_paid 的唯一写入口（回调/续租/退款共用）。

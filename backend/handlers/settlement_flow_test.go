@@ -166,7 +166,7 @@ func TestSettlementFlow(t *testing.T) {
 		UserID:     userID,
 		OrderID:    &orderID,
 		OrderType:  "rent",
-		Amount:     3500,
+		Amount:     models.FromYuan(3500),
 		Type:       "payment",
 		Status:     "paid",
 		Method:     strPtr("jsapi"),

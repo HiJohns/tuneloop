@@ -217,7 +217,7 @@ func (h *InstrumentLossHandler) Register(c *gin.Context) {
 			// ①去程（未签收）租金 0、押金全退；③返程租金至归还寄出日 —— 口径不变（2026-09-18 复核）
 			rentCents, scene := lossRentToDateCents(db, order, now)
 			owed := models.Cents(rentCents) + models.Cents(burden)
-			paidCash := order.CashPaid
+			paidCash := effectiveCashPaid(db, *order)
 			diff = paidCash - owed
 			breakdown = map[string]interface{}{
 				"scene": scene, "rent_cents": rentCents, "user_burden_cents": burden,
