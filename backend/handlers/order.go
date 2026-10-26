@@ -1199,6 +1199,7 @@ func CancelOrderByCustomer(c *gin.Context) {
 			db.Create(&refundRecord)
 			refundStatus = refundRecord.Status
 		}
+		ledgerCash := effectiveCashPaid(db, order)
 		c.JSON(http.StatusOK, gin.H{
 			"code": 20000,
 			"data": gin.H{
@@ -1208,12 +1209,12 @@ func CancelOrderByCustomer(c *gin.Context) {
 				"refund_amount": refundAmount,
 				"refund_status": refundStatus,
 				"breakdown": gin.H{
-					"total_paid":     order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed,
-					"cash_paid":      order.CashPaid,
+					"total_paid":     ledgerCash + order.PrepaidPointsUsed + order.GiftPointsUsed,
+					"cash_paid":      ledgerCash,
 					"prepaid_used":   order.PrepaidPointsUsed,
 					"gift_used":      order.GiftPointsUsed,
-					"total_refund":   order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed,
-					"cash_refund":    order.CashPaid,
+					"total_refund":   ledgerCash + order.PrepaidPointsUsed + order.GiftPointsUsed,
+					"cash_refund":    ledgerCash,
 					"prepaid_refund": order.PrepaidPointsUsed,
 					"gift_refund":    order.GiftPointsUsed,
 				},
@@ -1309,14 +1310,15 @@ func StaffCancelOrder(c *gin.Context) {
 	// Refund prepaid points if used
 	refundOrderPoints(db, &order)
 
-	// Initiate original-path refund with WeChat Pay
-	refundAmount := order.CashPaid
+	// Initiate original-path refund with WeChat Pay（#2281：账本净额为唯一口径）
+	refundAmount := effectiveCashPaid(db, order)
 	refundStatus := ""
 	if refundAmount > 0 {
 		outRefundNo := fmt.Sprintf("scn_%s_%d", orderID[:8], time.Now().Unix())
 		refundRecord := models.OrderRefundRecord{
 			ID:          uuid.New().String(),
 			TenantID:    order.TenantID,
+			OrderID:     &orderID,
 			Amount:      refundAmount,
 			OutRefundNo: &outRefundNo,
 			Reason:      strPtr("员工取消订单"),
@@ -1327,6 +1329,7 @@ func StaffCancelOrder(c *gin.Context) {
 		var paymentRecord models.OrderPaymentRecord
 		if err := db.Where("order_id = ? AND order_type = ? AND status = ?", orderID, "rent", "paid").
 			First(&paymentRecord).Error; err == nil && paymentRecord.OutTradeNo != nil && paymentRecord.Amount > 0 {
+			refundRecord.PaymentRecordID = &paymentRecord.ID
 			cfg := wechatpay.GetConfig()
 			client := wechatpay.GetClient()
 			_, refundErr := client.Refund(context.Background(), wechatpay.RefundParams{

@@ -68,17 +68,23 @@ func TestAdminOrderFinancials_ReplayThree_2281(t *testing.T) {
 
 	type replay struct {
 		orderID  string
+		orderNo  string
 		payments []models.Cents
 		refunds  []models.Cents
 		cash     models.Cents
 	}
+	// P0 差异单（docs/ops/settlement-reconciliation-2268.md §4）只读 replay：
+	// 以 P0 账本值为权威，复刻「修复后」聚合值，断言 diff=0。
 	cases := []replay{
-		{orderID: uuid.NewString(), payments: []models.Cents{models.FromYuan(1500)}, refunds: []models.Cents{models.FromYuan(300)}, cash: models.FromYuan(1200)},
-		{orderID: uuid.NewString(), payments: []models.Cents{models.FromYuan(1000)}, refunds: nil, cash: models.FromYuan(1000)},
-		{orderID: uuid.NewString(), payments: []models.Cents{models.FromYuan(2000), models.FromYuan(500)}, refunds: []models.Cents{models.FromYuan(200)}, cash: models.FromYuan(2300)},
+		// YL20261020-010：paid 40740 / refunded 40640 → net 100（P0 cash_paid=40740）
+		{orderID: uuid.NewString(), orderNo: "YL20261020-010", payments: []models.Cents{40740}, refunds: []models.Cents{40640}, cash: 100},
+		// YL20260908-002：damage paid 100 + 其余 72 → net 172（P0 cash_paid=72）
+		{orderID: uuid.NewString(), orderNo: "YL20260908-002", payments: []models.Cents{172}, refunds: nil, cash: 172},
+		// YL20260914-003：rent 6 + shortfall 5 → net 11（P0 cash_paid=6）
+		{orderID: uuid.NewString(), orderNo: "YL20260914-003", payments: []models.Cents{6, 5}, refunds: nil, cash: 11},
 	}
 	for _, c := range cases {
-		require.NoError(t, db.Create(&models.Order{ID: c.orderID, TenantID: org, OrgID: org, UserID: uuid.NewString(),
+		require.NoError(t, db.Create(&models.Order{ID: c.orderID, OrderNo: c.orderNo, TenantID: org, OrgID: org, UserID: uuid.NewString(),
 			InstrumentID: uuid.NewString(), Level: "entry", LeaseTerm: 30, Status: "completed", CashPaid: c.cash}).Error)
 		for j, amt := range c.payments {
 			pr := models.OrderPaymentRecord{ID: uuid.NewString(), TenantID: org, UserID: uuid.NewString(), OrderID: &c.orderID,

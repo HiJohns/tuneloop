@@ -441,7 +441,7 @@ func loadShortfallPayment(db *gorm.DB, id string, resp *PaymentCalculateResponse
 		"shipping_fee":     float64(order.ShippingFee),
 		"overdue_fee":      result.OverdueChargesTotal * 100,
 		"damage_amount":    result.DamageDeducted * 100,
-		"paid_total":       float64(order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed),
+		"paid_total":       float64(effectiveCashPaid(db, order) + order.PrepaidPointsUsed + order.GiftPointsUsed),
 	}
 	return ""
 }
