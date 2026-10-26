@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/testutil"
 )
 
@@ -31,12 +31,7 @@ func TestBuildOrderDeliveryAddress_2010S2(t *testing.T) {
 
 // #2010 S2: GET /orders/:id 的 delivery_address 读自 orders 列（不依赖 lease_sessions）
 func TestGetOrder_DeliveryAddressFromOrders_2010S2(t *testing.T) {
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Fatalf("test database unavailable: %v", err)
-		return
-	}
+	db := testfixtures.GetTestDB(t)
 	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()

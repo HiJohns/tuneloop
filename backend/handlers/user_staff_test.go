@@ -16,18 +16,14 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 )
 
 func setupUserStaffTest(t *testing.T) (db *gorm.DB, handler *UserStaffHandler, tenantID, userID string) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	dbConn, err := database.InitDB(config)
-	if err != nil {
-		t.Fatalf("test database unavailable: %v", err)
-		return
-	}
+	dbConn := testfixtures.GetTestDB(t)
 	database.SetDB(dbConn)
 
 	db = database.GetDB()

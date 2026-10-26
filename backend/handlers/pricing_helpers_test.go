@@ -3,7 +3,7 @@ package handlers
 import (
 	"testing"
 
-	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/models"
 	"tuneloop-backend/testutil"
 )
@@ -12,12 +12,7 @@ import (
 // 乐器现价回退判定；无乐器时不放大错误。
 
 func TestResolveBaseDailyRentCents(t *testing.T) {
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Fatalf("test database unavailable: %v", err)
-		return
-	}
+	db := testfixtures.GetTestDB(t)
 	testutil.SetDB(t, db)
 
 	// 无乐器（order nil / instrument 不存在）→ 原样返回

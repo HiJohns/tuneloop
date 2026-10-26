@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/services"
 	"tuneloop-backend/testutil"
@@ -20,11 +20,7 @@ import (
 
 func setupCusPermTestDB(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Fatalf("test database unavailable: %v", err)
-	}
+	db := testfixtures.GetTestDB(t)
 	testutil.SetDB(t, db)
 	_ = db
 }

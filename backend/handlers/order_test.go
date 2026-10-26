@@ -609,12 +609,7 @@ func TestLeaseFlow_CreateOrder_InstrumentNotAvailable(t *testing.T) {
 // duplicates an explicit order_log event (same transition) is skipped, and the
 // order_log operator resolves from OperatorID instead of hardcoded "system".
 func TestGetOrderLogs_DedupAndOperator(t *testing.T) {
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Fatalf("test database unavailable: %v", err)
-		return
-	}
+	db := testfixtures.GetTestDB(t)
 	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
@@ -719,12 +714,7 @@ func TestGetOrderLogs_DedupAndOperator(t *testing.T) {
 // detail returns the damage object (amount, description, photos, fee preview
 // with refund = paid - damage - rent - shipping).
 func TestGetOrder_DamagePanel(t *testing.T) {
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Fatalf("test database unavailable: %v", err)
-		return
-	}
+	db := testfixtures.GetTestDB(t)
 	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
@@ -798,12 +788,7 @@ func TestGetOrder_DamagePanel(t *testing.T) {
 }
 
 func TestGetOrder_DamagePanel_FromDamageReport(t *testing.T) {
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Fatalf("test database unavailable: %v", err)
-		return
-	}
+	db := testfixtures.GetTestDB(t)
 	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()

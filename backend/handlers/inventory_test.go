@@ -12,7 +12,7 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
-	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/testutil"
@@ -21,12 +21,8 @@ import (
 func TestGetInventoryRentSetting(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("Test database not available, skipping:", err)
-		return
-	}
+	db := testfixtures.GetTestDB(t)
+	var err error
 	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
@@ -94,12 +90,8 @@ func TestGetInventoryRentSetting(t *testing.T) {
 func TestBatchUpdateRent(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("Test database not available, skipping:", err)
-		return
-	}
+	db := testfixtures.GetTestDB(t)
+	var err error
 	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()

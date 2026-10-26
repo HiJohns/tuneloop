@@ -123,8 +123,11 @@ func GetTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("test database unavailable: %v", sharedTestErr)
 		return nil
 	}
-	database.SetDB(sharedTestDB)
-	return sharedTestDB
+	// #2288: 每个用例一个独立的 *gorm.DB 实例（共享同一 sql.DB 池），
+	// 避免 Session/回调配置在用例间互相污染。
+	instance := sharedTestDB.Session(&gorm.Session{})
+	database.SetDB(instance)
+	return instance
 }
 
 func SetupTestDB(t *testing.T) *gorm.DB {
@@ -132,6 +135,25 @@ func SetupTestDB(t *testing.T) *gorm.DB {
 	db := GetTestDB(t)
 	if db == nil {
 		return nil
+	}
+
+	// #2288: 上一个用例若泄漏未关闭的事务，DDL（DROP/CREATE INDEX）会无限等待。
+	// 测试串行执行，因此 idle-in-transaction 必为已结束用例的残留 → 终止连接释放锁。
+	db.Exec(`SELECT pg_terminate_backend(pid) FROM pg_stat_activity
+		WHERE datname = current_database() AND state = 'idle in transaction'
+		  AND pid <> pg_backend_pid()`)
+
+	// #2288: 表已存在时用 TRUNCATE 代替 DROP/CREATE（快 10x+，避免全量超过 10m）。
+	allExist := true
+	for _, table := range allTables {
+		if !db.Migrator().HasTable(table) {
+			allExist = false
+			break
+		}
+	}
+	if allExist {
+		ResetTestDB(t)
+		return db
 	}
 
 	// #1721: DropTable 按序删除会被外键阻止（残留导致 CreateTable 报 already

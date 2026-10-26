@@ -185,6 +185,11 @@ func getEnv(key, defaultValue string) string {
 func InitDB(cfg *Config) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode)
+	// #2288: 测试库共享连接池时，DDL 会使 pgx 缓存的 prepared statement 失效
+	// （SQLSTATE 0A000: cached plan must not change result type）→ 测试进程显式关闭缓存。
+	if os.Getenv("TUNELOOP_DB_SIMPLE_PROTOCOL") == "1" {
+		dsn += " default_query_exec_mode=simple_protocol"
+	}
 
 	log.Printf("[DB] Connecting: host=%s port=%s user=%s dbname=%s",
 		cfg.Host, cfg.Port, cfg.User, cfg.DBName)

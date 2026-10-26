@@ -73,6 +73,8 @@ var allTestModels = []interface{}{
 func TestMain(m *testing.M) {
 	// Redirect all tests to the isolated test database
 	os.Setenv("TUNELOOP_DB", testDBName)
+	// #2288: 共享连接池 + 测试间 DDL → 禁用 pgx prepared statement 缓存
+	os.Setenv("TUNELOOP_DB_SIMPLE_PROTOCOL", "1")
 
 	// Safety guard: verify the env var actually took effect
 	resolved := os.Getenv("TUNELOOP_DB")

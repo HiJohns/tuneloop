@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/testutil"
@@ -36,12 +37,7 @@ func uuidPtrStr(s string) *uuid.UUID {
 }
 
 func initTestDB(t *testing.T) {
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Fatalf("test database unavailable: %v", err)
-		return
-	}
+	db := testfixtures.GetTestDB(t)
 	testutil.SetDB(t, db)
 }
 

@@ -17,11 +17,12 @@ func TestSharedTestDB_Singleton_2284(t *testing.T) {
 	db1 := testfixtures.GetTestDB(t)
 	db2 := testfixtures.GetTestDB(t)
 	require.NotNil(t, db1)
-	assert.Same(t, db1, db2, "GetTestDB 必须复用同一 *gorm.DB 单例")
-
-	sqlDB, err := db1.DB()
+	sqlDB1, err := db1.DB()
 	require.NoError(t, err)
-	assert.LessOrEqual(t, sqlDB.Stats().OpenConnections, 8, "连接数不得超过池上限")
+	sqlDB2, err := db2.DB()
+	require.NoError(t, err)
+	assert.Same(t, sqlDB1, sqlDB2, "GetTestDB 必须复用同一 sql.DB 连接池")
+	assert.LessOrEqual(t, sqlDB1.Stats().OpenConnections, 8, "连接数不得超过池上限")
 }
 
 // TestNoDatabaseUnavailableSkip_2284 防止「连不上测试库就 SKIP」的假通过回归。

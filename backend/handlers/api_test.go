@@ -11,18 +11,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"tuneloop-backend/database"
 	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/testutil"
 )
 
 func TestGetInstruments_Thumbnail(t *testing.T) {
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Fatalf("test database unavailable: %v", err)
-		return
-	}
+	db := testfixtures.GetTestDB(t)
+	var err error
 	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
@@ -83,12 +78,7 @@ func TestGetInstruments_Thumbnail(t *testing.T) {
 // returns storage_key in media.display items, enabling the frontend to call
 // DELETE /instruments/:id/media/key/:storage_key (#1646).
 func TestGetInstrument_MediaDisplayStorageKey(t *testing.T) {
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Fatalf("test database unavailable: %v", err)
-		return
-	}
+	db := testfixtures.GetTestDB(t)
 	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
@@ -137,12 +127,7 @@ func TestGetInstrument_MediaDisplayStorageKey(t *testing.T) {
 // DELETE /instruments/:id/media/key/*storage_key matches structured keys that
 // contain slashes ({tenant}/{org}/xxx.webp) as well as single-segment keys.
 func TestDeleteSingleMedia_StructuredKey(t *testing.T) {
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Fatalf("test database unavailable: %v", err)
-		return
-	}
+	db := testfixtures.GetTestDB(t)
 	testutil.SetDB(t, db)
 
 	for _, tc := range []struct {

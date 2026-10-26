@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/testutil"
@@ -21,12 +21,8 @@ import (
 func TestGetSiteTreeReturnsManager(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("Test database not available, skipping:", err)
-		return
-	}
+	db := testfixtures.GetTestDB(t)
+	var err error
 	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
@@ -103,12 +99,8 @@ func TestGetSiteTreeReturnsManager(t *testing.T) {
 func TestGetSiteTreeReturnsNullManagerWhenNoManager(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("Test database not available, skipping:", err)
-		return
-	}
+	db := testfixtures.GetTestDB(t)
+	var err error
 	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
@@ -173,12 +165,8 @@ func TestGetSiteTreeReturnsNullManagerWhenNoManager(t *testing.T) {
 func TestGetSiteDetailReturnsManager(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("Test database not available, skipping:", err)
-		return
-	}
+	db := testfixtures.GetTestDB(t)
+	var err error
 	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
@@ -247,12 +235,8 @@ func TestGetSiteDetailReturnsManager(t *testing.T) {
 func TestGetSiteDetailReturnsNullManagerWhenNoManager(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("Test database not available, skipping:", err)
-		return
-	}
+	db := testfixtures.GetTestDB(t)
+	var err error
 	testutil.SetDB(t, db)
 
 	tenantID := uuid.New().String()
@@ -308,12 +292,8 @@ func TestGetSiteDetailReturnsNullManagerWhenNoManager(t *testing.T) {
 
 func TestTransitRoute_DBCreation(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("Test database not available, skipping:", err)
-		return
-	}
+	db := testfixtures.GetTestDB(t)
+	var err error
 	testutil.SetDB(t, db)
 
 	controlledSiteID := uuid.New().String()

@@ -55,6 +55,11 @@ func sortRouter(t *testing.T, tenantID string) *gin.Engine {
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
 		ctx := context.WithValue(c.Request.Context(), middleware.ContextKeyTenantID, tenantID)
+		if tenantID != "" {
+			// #2288: 固定商户管理员范围，避免共享池场景下受前序用例上下文影响。
+			ctx = context.WithValue(ctx, middleware.ContextKeyOrgID, tenantID)
+			ctx = context.WithValue(ctx, middleware.ContextKeyRole, "ADMIN")
+		}
 		c.Request = c.Request.WithContext(ctx)
 		c.Set("tenant_id", tenantID)
 		c.Next()
