@@ -29,7 +29,17 @@
 
 - **裁定**：`orders.pricing_breakdown` 视为**创建时快照，只读**；续租写**追加式** `term_version`（天数/档位/金额/支付记录 ID），结算按版本区间求和。
 - 依据：当前续租重写 `pricing_breakdown`，导致历史区间不可复算。
-- 状态：**[已确认 2026-10-24]**（P4 执行；历史快照不可变、续租追加 term_version）。
+- 状态：**[已确认 2026-10-24 / 已实现]**：
+  - 续租仅追加 `order_term_versions`（`renewal.go` 不再改写 `pricing_breakdown`）；
+  - `computeSettlement` 有版本时按版本合计覆盖天数/合同天数，日均 = Σtotal/Σdays；无版本回退只读快照；
+  - 损失/定损日租读取同步版本加权日均；
+  - 守卫：`TestOrderTermVersion_MultiRenewalImmutable_2282`（30+30+30，`pricing_breakdown` 逐字节不变）、`TestRenewal1997_*`。
+
+## 3.1 结算幂等（#2282 P4b，2026-10-26 补齐）
+
+- `settlement_calculations.ledger_version` = 账本条目数（paid + refunded）；唯一键 `(order_id, trigger, ledger_version)`。
+- 重复 confirm/preview（账本未变）→ `ON CONFLICT DO NOTHING` 并返回既有 calculation，仅 1 次退款/返点；并发由唯一键兜底。
+- 守卫：`TestSettlementCalculation_LedgerVersion_2282`（版本递增/既有行返回）、`TestSettlementCalculation_ConcurrentIdempotent_2282`（10 并发仅 1 行）。
 
 ## 4. 补缴闭环（`payment_shortfall`）
 
@@ -53,7 +63,9 @@
 | 时点 | 结算成功时发放（非支付到账时） | [已确认 2026-10-24] |
 | 幂等 | 同一订单结算重试不得重复发放（唯一键 `order_id + source`） | [已确认 2026-10-24] |
 | 等级取值 | **下单时**会员等级（非结算时） | [已确认 2026-10-24] |
-| 0 现金订单 | **不发/发 0**（乐币全额支付无现金毛利） | [已确认 2026-10-24] |
+| 0 现金订单 | **不发/发 0**（乐币全额支付无现金毛利） | [已确认 2026-10-24 / 已实现] |
+
+实现：`referral_commissions` 唯一键 `(order_id)` 幂等；`orders.referral_level_id` 快照；`result.CashBasis <= 0` 直接跳过。守卫：`TestReferralCommission_Idempotent_2282` / `_LevelSnapshot_2282` / `TestMatrix_ReferralOnZeroCashOrder_2268`。
 
 ## 7. 逾期费口径
 

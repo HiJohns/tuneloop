@@ -461,45 +461,31 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 		return err
 	}
 
-	// Update pricing_breakdown with new tier segments
+	// #2282 P4a：pricing_breakdown 创建后只读——续租仅追加 term_version。
+	// 续期档位段（分语义）写入版本，供审计/结算区间核对。
+	termSegmentsJSON := "[]"
 	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
 		var pb services.PricingBreakdown
 		if err := json.Unmarshal([]byte(*order.PricingBreakdown), &pb); err == nil {
-			originalDays := pb.RentDays
-			newTotalDays := originalDays + additionalDays
-			pb.RentDays = newTotalDays
-
-			// Recompute tier segments for the full new term
-			pb.TierSegments = services.ComputeTierSegments(newTotalDays, pb.PricingTiers)
-
-			// Build cumulative discount from applied policies
+			offset := pb.RentDays
+			if usedDays, _, ok := termVersionTotals(tx, orderID); ok {
+				offset = usedDays
+			}
+			segs := services.ComputeTierSegmentsFromOffset(offset, additionalDays, pb.PricingTiers)
 			cumulativeDiscount := 1.0
 			for _, p := range pb.AppliedPolicies {
-				if p.Type == "membership_discount" || p.Type == "promo_campaign" {
-					if p.Rate > 0 {
-						cumulativeDiscount *= p.Rate
-					}
+				if (p.Type == "membership_discount" || p.Type == "promo_campaign") && p.Rate > 0 {
+					cumulativeDiscount *= p.Rate
 				}
 			}
-
-			// Recompute totals
-			newTotalAmount := 0.0
-			for i := range pb.TierSegments {
-				s := &pb.TierSegments[i]
+			for i := range segs {
+				s := &segs[i]
 				s.Rate = pb.BaseDailyRent
 				s.Discount = s.Discount * cumulativeDiscount
 				s.Subtotal = s.Rate * s.Discount * float64(s.Days)
-				newTotalAmount += s.Subtotal
 			}
-
-			pb.TotalAmount = math.Round(newTotalAmount*100) / 100
-			newEffectiveRate := pb.TotalAmount / float64(newTotalDays)
-			pb.FinalDailyRent = math.Round(newEffectiveRate*100) / 100
-
-			updatedPBJSON, err := json.Marshal(pb)
-			if err == nil {
-				updatedStr := string(updatedPBJSON)
-				tx.Model(&order).Update("pricing_breakdown", &updatedStr)
+			if b, err := json.Marshal(segs); err == nil {
+				termSegmentsJSON = string(b)
 			}
 		}
 	}
@@ -519,7 +505,7 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 	termStart := oldEndDate
 	tv := models.OrderTermVersion{
 		OrderID: orderID, Version: lastVer + 1, StartDate: &termStart, EndDate: &newEndDateStr,
-		Days: additionalDays, TierSegments: "[]", TotalAmount: renewalAmount,
+		Days: additionalDays, TierSegments: termSegmentsJSON, TotalAmount: renewalAmount,
 	}
 	if record.ID != "" {
 		tv.PaymentRecordID = &record.ID

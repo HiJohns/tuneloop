@@ -1328,3 +1328,41 @@ repair_completed   → 已修复（师傅完成）
 > ⚠️ **待立项**：乐器丢失与找回（LS-01~LS-06，`cases/instrument-loss.md`）为 2026-09-17 用户需求，**后端无表/无端点**（仅 `instruments.stock_status='lost'` 常量已定义）。丢失登记/找回/结算所需表结构（丢失记录、赔偿、恢复）待立项后补录。
 
 ---
+
+### 2.56 order_term_versions - 订单期限版本表（#2282 P4a）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | uuid | PK |
+| order_id | uuid | 订单 ID（与 version 唯一） |
+| version | int | 版本号（1=创建；续租 +1） |
+| start_date / end_date | date | 该版本覆盖区间 |
+| days | int | 该版本天数 |
+| tier_segments | jsonb | 档位段（分语义；续租追加时写入） |
+| total_amount | bigint(Cents) | 该版本金额 |
+| payment_record_id | uuid | 续租支付流水（v1 为空） |
+| created_at | timestamptz | 创建时间 |
+
+- **不可变**：只 INSERT；`pricing_breakdown` 创建后只读。
+- 结算/损失/定损优先按版本合计；无版本旧订单回退 `pricing_breakdown`（只读）。
+
+### 2.57 referral_commissions - 返点幂等台账（#2282 P4c）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | uuid | PK |
+| order_id | uuid | 唯一（幂等键） |
+| referrer_id | uuid | 推荐人 |
+| amount_cents | bigint(Cents) | 返点金额 |
+| level_id | int | 下单时推荐人等级快照 |
+| basis_cents | bigint(Cents) | 基数（CashBasis） |
+| created_at | timestamptz | 结算时点 |
+
+- `ON CONFLICT (order_id) DO NOTHING`；仅首次插入成功才创建积分批次/流水。
+- `CashBasis <= 0` 不发返点（不写台账）。
+
+### 2.58 结算幂等键（#2282 P4b）
+
+- `settlement_calculations.ledger_version bigint`：账本条目数（paid 支付流水 + refunded 退款流水）。
+- 唯一索引 `(order_id, trigger, ledger_version)`；重复 confirm/preview 同版本 → `ON CONFLICT DO NOTHING` 并返回既有行（不重复退款/返点）。
+- `orders.referral_level_id`：下单时推荐人等级快照（旧单 NULL → 回退当前等级）。

@@ -33,7 +33,8 @@ type OrderLedger struct {
 	Paid      models.Cents
 	Refunded  models.Cents
 	Net       models.Cents
-	HasLedger bool // 至少一条 paid 流水
+	Version   int64 // 账本条目数（paid + refunded），幂等键组成部分
+	HasLedger bool  // 至少一条 paid 流水
 }
 
 // LoadOrderLedger 读取账本；无 paid 流水（旧单）时 HasLedger=false。
@@ -42,7 +43,19 @@ func LoadOrderLedger(db *gorm.DB, orderID string) (OrderLedger, error) {
 	if err != nil {
 		return OrderLedger{}, err
 	}
-	return OrderLedger{Paid: paid, Refunded: refunded, Net: net, HasLedger: paid > 0}, nil
+	var paidCount, refundCount int64
+	if err := db.Model(&models.OrderPaymentRecord{}).
+		Where("order_id = ? AND type = ? AND status = ?", orderID, "payment", "paid").
+		Count(&paidCount).Error; err != nil {
+		return OrderLedger{}, err
+	}
+	if err := db.Table("order_refund_records AS rr").
+		Joins("JOIN order_payment_records AS pr ON pr.id = rr.payment_record_id").
+		Where("pr.order_id = ? AND rr.status = ?", orderID, "refunded").
+		Count(&refundCount).Error; err != nil {
+		return OrderLedger{}, err
+	}
+	return OrderLedger{Paid: paid, Refunded: refunded, Net: net, Version: paidCount + refundCount, HasLedger: paid > 0}, nil
 }
 
 // orderLedgerCash 返回账本净额（仅当存在 paid 流水时有效）。

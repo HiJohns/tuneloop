@@ -292,16 +292,16 @@ type Settlement struct {
 // so any displayed amount can be traced to a persisted calculation.
 type SettlementCalculation struct {
 	ID            string  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	OrderID       string  `gorm:"type:uuid;index;not null" json:"order_id"`
+	OrderID       string  `gorm:"type:uuid;not null;uniqueIndex:idx_settlement_calc_version" json:"order_id"`
 	TenantID      string  `gorm:"type:uuid;index" json:"tenant_id"`
-	Trigger       string  `gorm:"type:varchar(20);not null" json:"trigger"` // preview | confirm
+	Trigger       string  `gorm:"type:varchar(20);not null;uniqueIndex:idx_settlement_calc_version" json:"trigger"` // preview | confirm
 	InputSnapshot *string `gorm:"type:jsonb" json:"input_snapshot,omitempty"`
 	// Result is TEXT (not JSONB): #1738 audit contract requires the stored
 	// bytes to be byte-identical to what the handler responded — JSONB
 	// normalization (key reorder + whitespace) would break that guarantee.
 	Result        *string   `gorm:"type:text" json:"result,omitempty"`
 	ActualDays    int       `gorm:"not null;default:0" json:"actual_days"`
-	LedgerVersion int64     `gorm:"not null;default:0" json:"ledger_version"` // #2282 P4b: 幂等键组成部分
+	LedgerVersion int64     `gorm:"not null;default:0;uniqueIndex:idx_settlement_calc_version" json:"ledger_version"` // #2282 P4b: 幂等键组成部分
 	CreatedAt     time.Time `json:"created_at"`
 }
 

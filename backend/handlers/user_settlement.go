@@ -69,7 +69,9 @@ func (h *UserSettlementHandler) CalculateSettlement(c *gin.Context) {
 	// #1738 P2: persist the preview computation and respond with exactly the
 	// persisted bytes — what the client sees is what the audit trail stores.
 	breakdownJSON, _ := json.Marshal(result.Breakdown)
-	recordSettlementCalculation(db, &order, "preview", result.ActualDays, breakdownJSON)
+	if _, err := recordSettlementCalculation(db, &order, "preview", result.ActualDays, breakdownJSON); err != nil {
+		log.Printf("[SettlementAudit] preview record failed for order %s: %v", order.ID, err)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
@@ -80,7 +82,7 @@ func (h *UserSettlementHandler) CalculateSettlement(c *gin.Context) {
 // recordSettlementCalculation (#1738 P2): append-only audit row capturing
 // the order input snapshot and the computed result. Best-effort: a failed
 // insert is logged loudly but never blocks the settlement flow itself.
-func recordSettlementCalculation(db *gorm.DB, order *models.Order, trigger string, actualDays int, breakdownJSON []byte) {
+func recordSettlementCalculation(db *gorm.DB, order *models.Order, trigger string, actualDays int, breakdownJSON []byte) (models.SettlementCalculation, error) {
 	inputs, err := json.Marshal(map[string]interface{}{
 		"order_id":                  order.ID,
 		"status":                    order.Status,
@@ -96,14 +98,14 @@ func recordSettlementCalculation(db *gorm.DB, order *models.Order, trigger strin
 		"pricing_breakdown":         order.PricingBreakdown,
 	})
 	if err != nil {
-		log.Printf("[SettlementAudit] input snapshot marshal failed for order %s: %v", order.ID, err)
-		return
+		return models.SettlementCalculation{}, err
+	}
+	ledger, err := LoadOrderLedger(db, order.ID)
+	if err != nil {
+		return models.SettlementCalculation{}, err
 	}
 	snap := string(inputs)
 	res := string(breakdownJSON)
-	var lastVersion int64
-	db.Model(&models.SettlementCalculation{}).Where("order_id = ? AND trigger = ?", order.ID, trigger).
-		Select("COALESCE(MAX(ledger_version),0)").Scan(&lastVersion)
 	row := models.SettlementCalculation{
 		ID:            uuid.New().String(),
 		OrderID:       order.ID,
@@ -112,12 +114,25 @@ func recordSettlementCalculation(db *gorm.DB, order *models.Order, trigger strin
 		InputSnapshot: &snap,
 		Result:        &res,
 		ActualDays:    actualDays,
-		LedgerVersion: lastVersion + 1,
+		LedgerVersion: ledger.Version,
 		CreatedAt:     time.Now(),
 	}
-	if err := db.Create(&row).Error; err != nil {
-		log.Printf("[SettlementAudit] FAILED to persist calculation (trigger=%s) for order %s: %v", trigger, order.ID, err)
+	tx := db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "order_id"}, {Name: "trigger"}, {Name: "ledger_version"}},
+		DoNothing: true,
+	}).Create(&row)
+	if tx.Error != nil {
+		return row, tx.Error
 	}
+	if tx.RowsAffected == 0 {
+		var existing models.SettlementCalculation
+		if err := db.Where("order_id = ? AND trigger = ? AND ledger_version = ?", order.ID, trigger, ledger.Version).
+			First(&existing).Error; err != nil {
+			return row, err
+		}
+		return existing, nil
+	}
+	return row, nil
 }
 
 func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
@@ -251,7 +266,9 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 	tx.Commit()
 
 	// #1738 P2: audit the confirm-time recomputation (inputs + final numbers).
-	recordSettlementCalculation(db, &order, "confirm", result.ActualDays, breakdownJSON)
+	if _, err := recordSettlementCalculation(db, &order, "confirm", result.ActualDays, breakdownJSON); err != nil {
+		log.Printf("[SettlementAudit] confirm record failed for order %s: %v", order.ID, err)
+	}
 
 	// Check and upgrade membership level after settlement
 	if err := services.CheckAndUpgradeLevel(userID, nil); err != nil {
@@ -624,6 +641,12 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	}
 	_, capRate, snapPayRatio := parsePointsPolicySnapshot(order.PointsPolicySnapshot)
 
+	// #2282 P4a：有 term_versions → 覆盖天数/日均以版本为准；无版本走旧单 fallback。
+	versionDays, versionTotal, hasVersions := termVersionTotals(db, order.ID)
+	if hasVersions && versionTotal > 0 && versionDays > 0 {
+		finalDailyRent = float64(versionTotal) / 100 / float64(versionDays)
+	}
+
 	var tierSegments []services.TierSegment
 	coverDays := 0
 	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
@@ -639,6 +662,9 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 				tierSegments[i].Subtotal /= 100
 			}
 		}
+	}
+	if hasVersions {
+		coverDays = versionDays
 	}
 
 	// Overdue fee for staged settlement: collected once at return inspection
@@ -858,7 +884,13 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	// 29846d18: 3−1−1=1；1bf456df: 2−1=1。反推 ≤0 或续费缺 days →
 	// 段模型不可用 → #1743 兜底（log）。
 	contractDays := 0
-	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+	if hasVersions {
+		versions, _ := LoadTermVersions(db, order.ID)
+		if len(versions) > 0 {
+			contractDays = versions[0].Days
+		}
+	}
+	if contractDays == 0 && order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
 		var pb services.PricingBreakdown
 		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil && pb.RentDays > 0 {
 			renewalDays := 0

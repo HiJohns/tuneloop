@@ -442,20 +442,28 @@ func TestMatrix_ReferralOnZeroCashOrder_2268(t *testing.T) {
 	order := buildMatrixOrder(t, db, c)
 	order.UserID = referee
 	// 租金 3000 全部由乐币支付，仅现金押金 500 → cash_paid=500, gift=3000
+	// #2282 P4c：0 现金口径 = CashBasis（rentPayable − 赠点）为 0；令 pay_ratio=100% 使赠点全覆盖租金。
+	snapshot := `{"pay_ratio":1,"cap_rate":100}`
 	require.NoError(t, db.Model(&models.Order{}).Where("id = ?", order.ID).Updates(map[string]interface{}{
 		"user_id": referee, "cash_paid": models.FromYuan(500), "gift_points_used": models.FromYuan(3000),
+		"points_policy_snapshot": snapshot,
 	}).Error)
 	require.NoError(t, db.Model(&models.OrderPaymentRecord{}).Where("order_id = ?", order.ID).Updates(map[string]interface{}{
 		"user_id": referee, "amount": models.FromYuan(500),
 	}).Error)
 
-	_, err := executeRefund(db, order)
+	var reloaded models.Order
+	require.NoError(t, db.Where("id = ?", order.ID).First(&reloaded).Error)
+	_, err := executeRefund(db, reloaded)
 	require.NoError(t, err)
 
-	// 0 现金订单仍按应收租金发返点（当前口径，记录风险）
-	var batch models.PointBatch
-	require.NoError(t, db.Where("user_id = ? AND source_type = ?", referrer, services.PointBatchSourceFission).First(&batch).Error)
-	assert.Equal(t, models.FromYuan(150), batch.AmountCents, "0 现金订单仍按应收租金发返点")
+	// #2282 P4c：0 现金（CashBasis<=0）不发返点，也不写返点台账。
+	var batchCount int64
+	require.NoError(t, db.Model(&models.PointBatch{}).
+		Where("user_id = ? AND source_type = ?", referrer, services.PointBatchSourceFission).Count(&batchCount).Error)
+	assert.Zero(t, batchCount, "0 现金订单不得发返点")
+	require.NoError(t, db.Model(&models.ReferralCommission{}).Where("order_id = ?", order.ID).Count(&batchCount).Error)
+	assert.Zero(t, batchCount, "0 现金订单不得写返点台账")
 }
 
 // #2280 已修复：total_spending 统一写 Cents（原缺陷：写入元，/100 少 100 倍）。

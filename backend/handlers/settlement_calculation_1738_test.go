@@ -150,6 +150,6 @@ func TestSettlementCalculation_AppendOnlyPreview(t *testing.T) {
 	var count int64
 	require.NoError(t, database.GetDB().Model(&models.SettlementCalculation{}).
 		Where("order_id = ? AND trigger = ?", order.ID, "preview").Count(&count).Error)
-	require.Equal(t, int64(2), count,
-		"append-only audit trail keeps one row per preview call")
+	require.Equal(t, int64(1), count,
+		"#2282 P4b: 同 ledger_version 重复 preview 幂等（仅 1 行）")
 }

@@ -49,6 +49,13 @@ func computeDamageRefund(db *gorm.DB, order models.Order, damageYuan float64) (r
 		}
 	}
 	if actualRentDays == 0 && actualRent == 0 {
+		// #2282 P4a：有 term_versions → 加权日均 × 实际天数（旧单继续走 pb fallback）。
+		if vDays, vTotal, ok := termVersionTotals(db, order.ID); ok && vDays > 0 && vTotal > 0 && order.DeliveredAt != nil && order.ReturnedAt != nil {
+			actualDays := services.CalculateLeaseDays(*order.DeliveredAt, *order.ReturnedAt)
+			actualRent = float64(vTotal) / 100 / float64(vDays) * float64(actualDays)
+		}
+	}
+	if actualRentDays == 0 && actualRent == 0 {
 		if order.DeliveredAt != nil && order.ReturnedAt != nil {
 			// #1738 P3: same lease-day rule as settlement money math.
 			days := services.CalculateLeaseDays(*order.DeliveredAt, *order.ReturnedAt)

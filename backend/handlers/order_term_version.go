@@ -52,3 +52,23 @@ func insertInitialTermVersion(tx *gorm.DB, order *models.Order) {
 		log.Printf("[TermVersion] insert initial version failed for order %s: %v", order.ID, err)
 	}
 }
+
+// #2282 P4a：按版本读取（无版本 → 旧单 fallback 由调用方处理）。
+func LoadTermVersions(db *gorm.DB, orderID string) ([]models.OrderTermVersion, error) {
+	var versions []models.OrderTermVersion
+	err := db.Where("order_id = ?", orderID).Order("version ASC").Find(&versions).Error
+	return versions, err
+}
+
+// termVersionTotals 返回版本覆盖天数与合计金额（分）；无版本 ok=false。
+func termVersionTotals(db *gorm.DB, orderID string) (days int, total models.Cents, ok bool) {
+	versions, err := LoadTermVersions(db, orderID)
+	if err != nil || len(versions) == 0 {
+		return 0, 0, false
+	}
+	for _, v := range versions {
+		days += v.Days
+		total += v.TotalAmount
+	}
+	return days, total, days > 0
+}
