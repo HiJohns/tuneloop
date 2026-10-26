@@ -665,6 +665,26 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	}
 	if hasVersions {
 		coverDays = versionDays
+		versions, _ := LoadTermVersions(db, order.ID)
+		var vSegs []services.TierSegment
+		segOK := len(versions) > 0
+		for _, v := range versions {
+			var segs []services.TierSegment
+			if strings.TrimSpace(v.TierSegments) == "" || v.TierSegments == "[]" ||
+				json.Unmarshal([]byte(v.TierSegments), &segs) != nil || len(segs) == 0 {
+				segOK = false
+				break
+			}
+			for i := range segs {
+				segs[i].Rate /= 100
+				segs[i].Subtotal /= 100
+			}
+			vSegs = append(vSegs, segs...)
+		}
+		if segOK {
+			// P4a：结算按版本区间求和（档位/折扣取各版本快照）
+			tierSegments = vSegs
+		}
 	}
 
 	// Overdue fee for staged settlement: collected once at return inspection

@@ -464,6 +464,7 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 	// #2282 P4a：pricing_breakdown 创建后只读——续租仅追加 term_version。
 	// 续期档位段（分语义）写入版本，供审计/结算区间核对。
 	termSegmentsJSON := "[]"
+	termTotalCents := record.Amount
 	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
 		var pb services.PricingBreakdown
 		if err := json.Unmarshal([]byte(*order.PricingBreakdown), &pb); err == nil {
@@ -478,14 +479,18 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 					cumulativeDiscount *= p.Rate
 				}
 			}
+			total := 0.0
 			for i := range segs {
 				s := &segs[i]
 				s.Rate = pb.BaseDailyRent
 				s.Discount = s.Discount * cumulativeDiscount
 				s.Subtotal = s.Rate * s.Discount * float64(s.Days)
+				total += s.Subtotal
 			}
 			if b, err := json.Marshal(segs); err == nil {
 				termSegmentsJSON = string(b)
+				// #2282 P4a：版本金额 = 档位段合计（租金口径，分）；现金实付见支付流水。
+				termTotalCents = models.Cents(math.Round(total))
 			}
 		}
 	}
@@ -505,7 +510,7 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 	termStart := oldEndDate
 	tv := models.OrderTermVersion{
 		OrderID: orderID, Version: lastVer + 1, StartDate: &termStart, EndDate: &newEndDateStr,
-		Days: additionalDays, TierSegments: termSegmentsJSON, TotalAmount: renewalAmount,
+		Days: additionalDays, TierSegments: termSegmentsJSON, TotalAmount: termTotalCents,
 	}
 	if record.ID != "" {
 		tv.PaymentRecordID = &record.ID
