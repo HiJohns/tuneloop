@@ -31,8 +31,10 @@ func (h *MerchantHandler) ListMerchants(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c.Request.Context())
 
 	query := db.Model(&models.Merchant{}).Where("tenant_id = ?", tenantID)
-	if orgID := middleware.GetOrgID(c.Request.Context()); orgID != "" {
-		query = query.Where("(org_id = ? OR org_id IS NULL)", orgID)
+	if middleware.GetBusinessRole(c.Request.Context()) == middleware.BusinessRoleMerchantAdmin {
+		if orgID := middleware.GetOrgID(c.Request.Context()); orgID != "" {
+			query = query.Where("(org_id = ? OR org_id IS NULL)", orgID)
+		}
 	}
 
 	// Apply status filter if provided
@@ -130,8 +132,10 @@ func (h *MerchantHandler) GetMerchant(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c.Request.Context())
 
 	q := db.Where("id = ? AND tenant_id = ?", id, tenantID)
-	if oid := middleware.GetOrgID(c.Request.Context()); oid != "" {
-		q = q.Where("(org_id = ? OR org_id IS NULL)", oid)
+	if middleware.GetBusinessRole(c.Request.Context()) == middleware.BusinessRoleMerchantAdmin {
+		if oid := middleware.GetOrgID(c.Request.Context()); oid != "" {
+			q = q.Where("(org_id = ? OR org_id IS NULL)", oid)
+		}
 	}
 	result := q.First(&merchant)
 	if result.Error == gorm.ErrRecordNotFound {
@@ -519,8 +523,10 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 	// Check if merchant exists
 	var merchant models.Merchant
 	q := db.Where("id = ? AND tenant_id = ?", id, tenantID)
-	if oid := middleware.GetOrgID(c.Request.Context()); oid != "" {
-		q = q.Where("(org_id = ? OR org_id IS NULL)", oid)
+	if middleware.GetBusinessRole(c.Request.Context()) == middleware.BusinessRoleMerchantAdmin {
+		if oid := middleware.GetOrgID(c.Request.Context()); oid != "" {
+			q = q.Where("(org_id = ? OR org_id IS NULL)", oid)
+		}
 	}
 	result := q.First(&merchant)
 	if result.Error == gorm.ErrRecordNotFound {
@@ -625,8 +631,10 @@ func (h *MerchantHandler) DeleteMerchant(c *gin.Context) {
 	// Check if merchant exists
 	var merchant models.Merchant
 	q := db.Where("id = ? AND tenant_id = ?", id, tenantID)
-	if oid := middleware.GetOrgID(c.Request.Context()); oid != "" {
-		q = q.Where("(org_id = ? OR org_id IS NULL)", oid)
+	if middleware.GetBusinessRole(c.Request.Context()) == middleware.BusinessRoleMerchantAdmin {
+		if oid := middleware.GetOrgID(c.Request.Context()); oid != "" {
+			q = q.Where("(org_id = ? OR org_id IS NULL)", oid)
+		}
 	}
 	result := q.First(&merchant)
 	if result.Error == gorm.ErrRecordNotFound {
