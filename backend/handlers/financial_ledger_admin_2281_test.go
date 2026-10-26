@@ -72,16 +72,17 @@ func TestAdminOrderFinancials_ReplayThree_2281(t *testing.T) {
 		payments []models.Cents
 		refunds  []models.Cents
 		cash     models.Cents
+		wantDiff models.Cents
 	}
 	// P0 差异单（docs/ops/settlement-reconciliation-2268.md §4）只读 replay：
 	// 以 P0 账本值为权威，复刻「修复后」聚合值，断言 diff=0。
 	cases := []replay{
 		// YL20261020-010：paid 40740 / refunded 40640 → net 100（P0 cash_paid=40740）
-		{orderID: uuid.NewString(), orderNo: "YL20261020-010", payments: []models.Cents{40740}, refunds: []models.Cents{40640}, cash: 100},
+		{orderID: uuid.NewString(), orderNo: "YL20261020-010", payments: []models.Cents{40740}, refunds: []models.Cents{40640}, cash: 40740, wantDiff: -40640},
 		// YL20260908-002：damage paid 100 + 其余 72 → net 172（P0 cash_paid=72）
-		{orderID: uuid.NewString(), orderNo: "YL20260908-002", payments: []models.Cents{172}, refunds: nil, cash: 172},
+		{orderID: uuid.NewString(), orderNo: "YL20260908-002", payments: []models.Cents{172}, refunds: nil, cash: 72, wantDiff: 100},
 		// YL20260914-003：rent 6 + shortfall 5 → net 11（P0 cash_paid=6）
-		{orderID: uuid.NewString(), orderNo: "YL20260914-003", payments: []models.Cents{6, 5}, refunds: nil, cash: 11},
+		{orderID: uuid.NewString(), orderNo: "YL20260914-003", payments: []models.Cents{6, 5}, refunds: nil, cash: 6, wantDiff: 5},
 	}
 	for _, c := range cases {
 		require.NoError(t, db.Create(&models.Order{ID: c.orderID, OrderNo: c.orderNo, TenantID: org, OrgID: org, UserID: uuid.NewString(),
@@ -119,8 +120,21 @@ func TestAdminOrderFinancials_ReplayThree_2281(t *testing.T) {
 			} `json:"data"`
 		}
 		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-		assert.Equal(t, c.cash, resp.Data.LedgerNet, "case %d: cash_paid 应等于账本净额", i)
+		assert.Equal(t, c.cash, resp.Data.CashPaid, "case %d: 必须 replay P0 当前 cash_paid", i)
 		assert.Equal(t, resp.Data.LedgerPaid-resp.Data.LedgerRef, resp.Data.LedgerNet, "case %d: Paid−Refunded=Net", i)
-		assert.Equal(t, models.Cents(0), resp.Data.Diff, "case %d: diff 必须为 0", i)
+		assert.Equal(t, -c.wantDiff, resp.Data.Diff, "case %d: 端点 diff=cash-ledger，应为 P0 差异的相反数（%s）", i, c.orderNo)
+
+		// 模拟 P5 回填：cash_paid → ledger_net，再次对账应为 0
+		require.NoError(t, db.Model(&models.Order{}).Where("id = ?", c.orderID).
+			Update("cash_paid", resp.Data.LedgerNet).Error)
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/admin/orders/"+c.orderID+"/financials", nil))
+		require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+		var after struct {
+			Data struct{ CashPaid, LedgerNet, Diff models.Cents } `json:"data"`
+		}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &after))
+		assert.Equal(t, after.Data.LedgerNet, after.Data.CashPaid, "case %d: 回填后 cash=net", i)
+		assert.Equal(t, models.Cents(0), after.Data.Diff, "case %d: 回填后 diff=0", i)
 	}
 }

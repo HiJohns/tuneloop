@@ -1168,6 +1168,7 @@ func CancelOrderByCustomer(c *gin.Context) {
 			refundRecord := models.OrderRefundRecord{
 				ID:          uuid.New().String(),
 				TenantID:    order.TenantID,
+				OrderID:     &orderID,
 				Amount:      refundAmount,
 				OutRefundNo: &outRefundNo,
 				Reason:      strPtr("顾客取消订单"),
@@ -1179,6 +1180,7 @@ func CancelOrderByCustomer(c *gin.Context) {
 			var paymentRecord models.OrderPaymentRecord
 			if err := db.Where("order_id = ? AND order_type = ? AND status = ?", orderID, "rent", "paid").
 				First(&paymentRecord).Error; err == nil && paymentRecord.OutTradeNo != nil && paymentRecord.Amount > 0 {
+				refundRecord.PaymentRecordID = &paymentRecord.ID
 				cfg := wechatpay.GetConfig()
 				client := wechatpay.GetClient()
 				_, refundErr := client.Refund(context.Background(), wechatpay.RefundParams{

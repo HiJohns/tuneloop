@@ -3,6 +3,7 @@ package handlers
 // #2281 审计修复：员工取消订单退款金额以账本净额为准。
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -66,4 +67,61 @@ func TestStaffCancelOrder_UsesLedgerNet_2281(t *testing.T) {
 	var refund models.OrderRefundRecord
 	require.NoError(t, db.Where("order_id = ? AND out_refund_no LIKE 'scn_%'", orderID).Order("created_at desc").First(&refund).Error)
 	assert.Equal(t, models.FromYuan(60), refund.Amount, "退款金额必须 = 账本净额（100−40），不得用缓存 80")
+}
+
+func TestCancelOrderByCustomer_UsesLedgerNet_2281(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+	testfixtures.SetupWechatPayMock(t)
+
+	org, user := uuid.NewString(), uuid.NewString()
+	instID, orderID := uuid.NewString(), uuid.NewString()
+	require.NoError(t, db.Create(&models.Instrument{ID: instID, TenantID: org, OrgID: &org, SN: "CC-2281", StockStatus: "rented"}).Error)
+	require.NoError(t, db.Create(&models.Order{
+		ID: orderID, TenantID: org, OrgID: org, UserID: user, InstrumentID: instID,
+		Level: "entry", LeaseTerm: 30, Status: models.OrderStatusPaid, CashPaid: models.FromYuan(80),
+	}).Error)
+
+	payID := uuid.NewString()
+	require.NoError(t, db.Create(&models.OrderPaymentRecord{
+		ID: payID, TenantID: org, UserID: user, OrderID: &orderID,
+		OrderType: "rent", Amount: models.FromYuan(100), Type: "payment", Status: "paid",
+		OutTradeNo: strPtr("CCPAY-" + uuid.NewString()[:8]), CreatedAt: time.Now(),
+	}).Error)
+	require.NoError(t, db.Create(&models.OrderRefundRecord{
+		ID: uuid.NewString(), TenantID: org, OrderID: &orderID, PaymentRecordID: &payID,
+		OutRefundNo: strPtr("CCREF-" + uuid.NewString()[:8]), Amount: models.FromYuan(40),
+		Status: "refunded", CreatedAt: time.Now(),
+	}).Error)
+
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		actor := testutil.MakeCustomer(org, user)
+		c.Request = c.Request.WithContext(actor.InjectContext(c.Request.Context()))
+		c.Next()
+	})
+	r.POST("/orders/:id/cancel-by-user", CancelOrderByCustomer)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/orders/"+orderID+"/cancel-by-user", nil))
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var resp struct {
+		Data struct {
+			RefundAmount float64 `json:"refund_amount"`
+			Breakdown    struct {
+				CashPaid   float64 `json:"cash_paid"`
+				CashRefund float64 `json:"cash_refund"`
+			} `json:"breakdown"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, float64(models.FromYuan(60)), resp.Data.RefundAmount)
+	assert.Equal(t, float64(models.FromYuan(60)), resp.Data.Breakdown.CashPaid)
+	assert.Equal(t, float64(models.FromYuan(60)), resp.Data.Breakdown.CashRefund)
+
+	var refund models.OrderRefundRecord
+	require.NoError(t, db.Where("order_id = ? AND out_refund_no LIKE 'can_%'", orderID).Order("created_at desc").First(&refund).Error)
+	assert.Equal(t, models.FromYuan(60), refund.Amount)
+	require.NotNil(t, refund.OrderID, "退款流水必须归属订单（账本可回写）")
+	require.NotNil(t, refund.PaymentRecordID, "退款流水必须关联支付记录（对账 JOIN）")
 }
