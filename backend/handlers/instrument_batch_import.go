@@ -331,7 +331,7 @@ func UploadBatchMedia(c *gin.Context) {
 	storage := services.NewMediaStorage()
 	sessionID := c.PostForm("session_id")
 	session, exists := importSessions[sessionID]
-	if !exists {
+	if !exists || session.TenantID != middleware.GetTenantID(ctx) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "Invalid or expired session"})
 		return
 	}

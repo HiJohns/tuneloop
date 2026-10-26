@@ -536,3 +536,16 @@ bash scripts/tenant-audit-coverage.sh
 > 原因：关闭自动范围会同时影响 Query/Delete；上述入口存在未显式带 `tenant_id/org_id/user_id/父对象授权` 的查询（如支付会话反查），必须先补过滤 + 路由级守卫（on/off 等价）再切换。
 >
 > 回滚方式：移除对应路由/组的 `middleware.ExplicitTenantScope()`；行为恢复为自动租户范围（本轮不改 handler 业务逻辑）。
+
+### 批次 B/C（#2276）：repair 写 / instrument 遗留 / membership 写
+
+| 域 | 路由（分组） | Handler | 显式过滤证据 | 守卫 |
+|---|---|---|---|---|
+| repair 状态机 | POST `/repair/:id/{start,complete,takeover,reassign,accept,reject,records}` | `repair.go` | `instruments.id = ? AND tenant_id = ?`；records 经 instrument 归属门控 | `TestRepairWrite_ExplicitScope_2276` |
+| repair 请求 | `/repair-requests/:id/{return-shipping,transit-process,receive,complete,transit-relay}` | `repair_request.go` | `id = ? AND tenant_id IN ?`（`repairServiceTenantScope`，含商户 org 锚） | `TestRepairDomain_*`（既有）+ #2276 域回归 |
+| repair 服务 | `/repair-services/:id/{quote,legs,adjust,receive,start,complete,dispatch,reassign}` | `repair_service.go` | `loadRepairService`：`id = ? AND tenant_id IN ?` | 同上 |
+| repair 申诉 | `/repair-appeals/:id/{close,review,forward}` | `appeal.go` | 申诉/订单门控加载（既有 `tenant_id` 过滤） | `TestRepairDomain_*` |
+| instrument 遗留 | PUT `/instruments/:id/{sort,status}`、GET `/instruments/:id/{photos/latest,pricing-v2}`、`/instruments/batch-{import,import/preview,import/media,import/template,pricing}` | `instrument*.go` / `pricing.go` | `id + tenant_id`；batch import session `TenantID` 与当前租户比对 | `TestInstrumentsLeftovers_ExplicitScope_2276` |
+| membership 商户 | `/merchants*`、`/admin/merchants/:id/members*` | `merchant.go` / `merchant_member.go` | `tenant_id = ?` + 商户 `org_id` 锚（历史空 org 兼容 NULL）；成员按 `merchant.OrgID` anchor | `TestMembershipWrite_ExplicitScope_2276` |
+| site 写 | POST `/merchant/sites`、GET `/sites/tree`、`/sites/:id/members`（Add/Apply/Invite/Update/Remove） | `site.go` / `site_member.go` | `hasSiteAccess`：`sites.id = ? AND sites.tenant_id = ?`；成员写再按商户/站点归属 | `TestMembershipWrite_ExplicitScope_2276` |
+| technician 写 | POST `/technician-profiles`、PUT `/technician-profiles/:id{,/status}`、POST `/technician-profiles/:id/photo` | `technician_profile.go` | Create：`resolveOperatorMerchant2247` → `profileTenant`；Update/Status/Photo：`tenant_id IN (tid, org)` | `TestMembershipWrite_ExplicitScope_2276` |

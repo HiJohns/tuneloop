@@ -31,6 +31,9 @@ func (h *MerchantHandler) ListMerchants(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c.Request.Context())
 
 	query := db.Model(&models.Merchant{}).Where("tenant_id = ?", tenantID)
+	if orgID := middleware.GetOrgID(c.Request.Context()); orgID != "" {
+		query = query.Where("(org_id = ? OR org_id IS NULL)", orgID)
+	}
 
 	// Apply status filter if provided
 	if status := c.Query("status"); status != "" {
@@ -126,7 +129,11 @@ func (h *MerchantHandler) GetMerchant(c *gin.Context) {
 	db := database.GetDB().WithContext(c.Request.Context())
 	tenantID := middleware.GetTenantID(c.Request.Context())
 
-	result := db.Where("id = ? AND tenant_id = ?", id, tenantID).First(&merchant)
+	q := db.Where("id = ? AND tenant_id = ?", id, tenantID)
+	if oid := middleware.GetOrgID(c.Request.Context()); oid != "" {
+		q = q.Where("(org_id = ? OR org_id IS NULL)", oid)
+	}
+	result := q.First(&merchant)
 	if result.Error == gorm.ErrRecordNotFound {
 		c.JSON(http.StatusNotFound, gin.H{
 			"code":    40400,
@@ -511,7 +518,11 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 
 	// Check if merchant exists
 	var merchant models.Merchant
-	result := db.Where("id = ? AND tenant_id = ?", id, tenantID).First(&merchant)
+	q := db.Where("id = ? AND tenant_id = ?", id, tenantID)
+	if oid := middleware.GetOrgID(c.Request.Context()); oid != "" {
+		q = q.Where("(org_id = ? OR org_id IS NULL)", oid)
+	}
+	result := q.First(&merchant)
 	if result.Error == gorm.ErrRecordNotFound {
 		c.JSON(http.StatusNotFound, gin.H{
 			"code":    40400,
@@ -613,7 +624,11 @@ func (h *MerchantHandler) DeleteMerchant(c *gin.Context) {
 
 	// Check if merchant exists
 	var merchant models.Merchant
-	result := db.Where("id = ? AND tenant_id = ?", id, tenantID).First(&merchant)
+	q := db.Where("id = ? AND tenant_id = ?", id, tenantID)
+	if oid := middleware.GetOrgID(c.Request.Context()); oid != "" {
+		q = q.Where("(org_id = ? OR org_id IS NULL)", oid)
+	}
+	result := q.First(&merchant)
 	if result.Error == gorm.ErrRecordNotFound {
 		c.JSON(http.StatusNotFound, gin.H{
 			"code":    40400,
@@ -624,7 +639,11 @@ func (h *MerchantHandler) DeleteMerchant(c *gin.Context) {
 
 	// Check for active sites
 	var siteCount int64
-	db.Model(&models.Site{}).Where("org_id = ? AND status = ?", merchant.OrgID, "active").Count(&siteCount)
+	orgAnchor := merchant.OrgID
+	if orgAnchor == "" {
+		orgAnchor = merchant.TenantID
+	}
+	db.Model(&models.Site{}).Where("org_id = ? AND status = ?", orgAnchor, "active").Count(&siteCount)
 	if siteCount > 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
@@ -635,7 +654,7 @@ func (h *MerchantHandler) DeleteMerchant(c *gin.Context) {
 
 	// Check for incomplete orders (paid or in_lease status)
 	var orderCount int64
-	db.Model(&models.Order{}).Where("org_id = ? AND status IN (?)", merchant.OrgID, []string{models.OrderStatusPaid, models.OrderStatusInLease}).Count(&orderCount)
+	db.Model(&models.Order{}).Where("org_id = ? AND status IN (?)", orgAnchor, []string{models.OrderStatusPaid, models.OrderStatusInLease}).Count(&orderCount)
 	if orderCount > 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,

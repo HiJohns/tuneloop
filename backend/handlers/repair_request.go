@@ -244,7 +244,7 @@ func (h *RepairRequestHandler) Get(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 
 	var req models.RepairRequest
-	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id IN ?", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "not found"})
 		return
 	}
@@ -358,7 +358,7 @@ func (h *RepairRequestHandler) UpdateTracking(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 
 	var req models.RepairRequest
-	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id IN ?", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "not found"})
 		return
 	}
@@ -446,7 +446,7 @@ func (h *RepairRequestHandler) AddRecord(c *gin.Context) {
 	}
 
 	var req models.RepairRequest
-	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id IN ?", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "repair request not found"})
 		return
 	}
@@ -566,7 +566,7 @@ func (h *RepairRequestHandler) TransitProcess(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 
 	var req models.RepairRequest
-	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id IN ?", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "not found"})
 		return
 	}
@@ -641,7 +641,7 @@ func (h *RepairRequestHandler) Receive(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 
 	var req models.RepairRequest
-	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id IN ?", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "not found"})
 		return
 	}
@@ -693,7 +693,7 @@ func (h *RepairRequestHandler) TransitRelay(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 
 	var req models.RepairRequest
-	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id IN ?", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "not found"})
 		return
 	}
@@ -712,7 +712,7 @@ func (h *RepairRequestHandler) TransitRelay(c *gin.Context) {
 	}
 
 	var transitOrder models.RepairTransitOrder
-	if err := db.Where("repair_request_id = ? AND direction = ?", id, body.Direction).First(&transitOrder).Error; err != nil {
+	if err := db.Where("repair_request_id = ? AND direction = ? AND tenant_id IN ?", id, body.Direction, repairServiceTenantScope(ctx)).First(&transitOrder).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "transit order not found"})
 		return
 	}
@@ -759,7 +759,7 @@ func (h *RepairRequestHandler) ConfirmReceipt(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 
 	var req models.RepairRequest
-	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id IN ?", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "not found"})
 		return
 	}
@@ -796,7 +796,7 @@ func (h *RepairRequestHandler) CompleteRepairRequest(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 
 	var req models.RepairRequest
-	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id IN ?", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "not found"})
 		return
 	}
@@ -840,7 +840,7 @@ func (h *RepairRequestHandler) ReturnShipping(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 
 	var req models.RepairRequest
-	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id IN ?", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "not found"})
 		return
 	}
@@ -907,7 +907,7 @@ func (h *RepairRequestHandler) PayRepairRequest(c *gin.Context) {
 	userID := middleware.GetUserID(ctx)
 
 	var req models.RepairRequest
-	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id IN ?", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "not found"})
 		return
 	}
@@ -1015,7 +1015,7 @@ func (h *RepairRequestHandler) Requote(c *gin.Context) {
 	userID := middleware.GetUserID(ctx)
 
 	var req models.RepairRequest
-	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id IN ?", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "not found"})
 		return
 	}
@@ -1151,7 +1151,7 @@ func (h *RepairRequestHandler) RejectRequote(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 
 	var req models.RepairRequest
-	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id IN ?", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "not found"})
 		return
 	}

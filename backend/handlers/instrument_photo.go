@@ -368,10 +368,11 @@ func GetLatestInstrumentPhotos(c *gin.Context) {
 	}
 
 	db := database.GetDB().WithContext(c.Request.Context())
+	tenantScope := middleware.GetTenantID(c.Request.Context())
 
-	// Get instrument details
+	// Get instrument details（显式范围：跨商户 404）
 	var instrument models.Instrument
-	if err := db.Preload("Tenant").First(&instrument, "id = ?", instrumentID).Error; err != nil {
+	if err := db.Preload("Tenant").Where("id = ? AND tenant_id = ?", instrumentID, tenantScope).First(&instrument).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{
 				"code":    40400,
