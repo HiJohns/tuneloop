@@ -39,3 +39,18 @@ func TestNoDatabaseUnavailableSkip_2284(t *testing.T) {
 			"%s 不得在测试库不可用时 SKIP（应 Fatal，避免假通过）", f)
 	}
 }
+
+func TestResolveTestDBName_2288(t *testing.T) {
+	t.Setenv("TUNELOOP_TEST_DB", "")
+	t.Setenv("OPENCODE_NODE_ID", "")
+	assert.Equal(t, "tuneloop_test", resolveTestDBName(), "无覆盖时保持默认库名")
+
+	t.Setenv("OPENCODE_NODE_ID", "node-2")
+	assert.Equal(t, "tuneloop_test_node_2", resolveTestDBName(), "节点必须使用独立库")
+
+	t.Setenv("OPENCODE_NODE_ID", "Node-3/A")
+	assert.Equal(t, "tuneloop_test_node_3_a", resolveTestDBName(), "非法字符必须净化")
+
+	t.Setenv("TUNELOOP_TEST_DB", "Custom_DB")
+	assert.Equal(t, "custom_db", resolveTestDBName(), "显式 TUNELOOP_TEST_DB 优先")
+}

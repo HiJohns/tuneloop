@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"tuneloop-backend/database"
@@ -14,7 +15,38 @@ import (
 )
 
 // testDBName is the isolated database used by tests, separate from the dev database.
-const testDBName = "tuneloop_test"
+// Resolved in TestMain: TUNELOOP_TEST_DB > tuneloop_test_<OPENCODE_NODE_ID> > tuneloop_test.
+var testDBName = "tuneloop_test"
+
+// resolveTestDBName returns a per-node isolated test database name (#2288).
+// 多节点共享同一 PostgreSQL 时，TRUNCATE / pg_terminate_backend 只能作用于本节点库。
+func resolveTestDBName() string {
+	if v := strings.TrimSpace(os.Getenv("TUNELOOP_TEST_DB")); v != "" {
+		return sanitizeTestDBName(v)
+	}
+	node := strings.TrimSpace(os.Getenv("OPENCODE_NODE_ID"))
+	if node == "" {
+		return "tuneloop_test"
+	}
+	return sanitizeTestDBName("tuneloop_test_" + node)
+}
+
+func sanitizeTestDBName(name string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(name) {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9', r == '_':
+			b.WriteRune(r)
+		default:
+			b.WriteByte('_')
+		}
+	}
+	out := b.String()
+	if out == "" {
+		return "tuneloop_test"
+	}
+	return out
+}
 
 // allTestModels lists all GORM model types needed by handlers tests.
 // AutoMigrate uses these to create the schema in the isolated test database.
@@ -71,6 +103,8 @@ var allTestModels = []interface{}{
 }
 
 func TestMain(m *testing.M) {
+	// #2288: 按节点隔离测试库（TUNELOOP_TEST_DB 覆盖；否则 tuneloop_test_<node>）
+	testDBName = resolveTestDBName()
 	// Redirect all tests to the isolated test database
 	os.Setenv("TUNELOOP_DB", testDBName)
 	// #2288: 共享连接池 + 测试间 DDL → 禁用 pgx prepared statement 缓存
