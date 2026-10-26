@@ -3892,7 +3892,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
   "order_type": "rent",
   "amount": 558.00,
   "gift_used": 0,
-  "coupon_code": "ENO"
+  "coupon_code": "WELCOME10"
 }
 ```
 
