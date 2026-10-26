@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"crypto/sha1"
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -15,25 +18,49 @@ import (
 )
 
 // testDBName is the isolated database used by tests, separate from the dev database.
-// Resolved in TestMain: TUNELOOP_TEST_DB > tuneloop_test_<OPENCODE_NODE_ID> > tuneloop_test.
+// Resolved in TestMain: TUNELOOP_TEST_DB > tuneloop_test_<node>_<hash> > tuneloop_test.
 var testDBName = "tuneloop_test"
 
-// resolveTestDBName returns a per-node isolated test database name (#2288).
-// 多节点共享同一 PostgreSQL 时，TRUNCATE / pg_terminate_backend 只能作用于本节点库。
-func resolveTestDBName() string {
+// 白名单：只允许测试库命名空间，禁止 TUNELOOP_TEST_DB 指向生产库。
+var testDBNameRe = regexp.MustCompile(`^tuneloop_test(_[a-z0-9_]+)?$`)
+
+// resolveTestDBName 返回按节点隔离的测试库名；非法名称必须显式报错（不得净化后使用）。
+func resolveTestDBName() (string, error) {
 	if v := strings.TrimSpace(os.Getenv("TUNELOOP_TEST_DB")); v != "" {
-		return sanitizeTestDBName(v)
+		name, err := validateTestDBName(v)
+		if err != nil {
+			return "", fmt.Errorf("TUNELOOP_TEST_DB=%q: %w", v, err)
+		}
+		return name, nil
 	}
 	node := strings.TrimSpace(os.Getenv("OPENCODE_NODE_ID"))
 	if node == "" {
-		return "tuneloop_test"
+		return "tuneloop_test", nil
 	}
-	return sanitizeTestDBName("tuneloop_test_" + node)
+	// 追加原始 ID 的短 hash：nodeA/nodea、node-2/node_2 不会映射到同一库。
+	// #nosec G401 -- 非加密用途，仅用于名称去重。
+	sum := sha1.Sum([]byte(node))
+	name := fmt.Sprintf("tuneloop_test_%s_%s", sanitizeNodeSegment(node), hex.EncodeToString(sum[:])[:8])
+	return validateTestDBName(name)
 }
 
-func sanitizeTestDBName(name string) string {
+func validateTestDBName(name string) (string, error) {
+	if name == "" {
+		return "", fmt.Errorf("test DB name is empty")
+	}
+	if len(name) > 63 {
+		return "", fmt.Errorf("test DB name too long (%d > 63)", len(name))
+	}
+	if !testDBNameRe.MatchString(name) {
+		return "", fmt.Errorf("test DB name %q must match %s", name, testDBNameRe)
+	}
+	return name, nil
+}
+
+// sanitizeNodeSegment 仅用于节点名的可读片段；唯一性由 hash 保证。
+func sanitizeNodeSegment(node string) string {
 	var b strings.Builder
-	for _, r := range strings.ToLower(name) {
+	for _, r := range strings.ToLower(node) {
 		switch {
 		case r >= 'a' && r <= 'z', r >= '0' && r <= '9', r == '_':
 			b.WriteRune(r)
@@ -41,9 +68,9 @@ func sanitizeTestDBName(name string) string {
 			b.WriteByte('_')
 		}
 	}
-	out := b.String()
+	out := strings.Trim(b.String(), "_")
 	if out == "" {
-		return "tuneloop_test"
+		return "node"
 	}
 	return out
 }
@@ -103,17 +130,22 @@ var allTestModels = []interface{}{
 }
 
 func TestMain(m *testing.M) {
-	// #2288: 按节点隔离测试库（TUNELOOP_TEST_DB 覆盖；否则 tuneloop_test_<node>）
-	testDBName = resolveTestDBName()
+	// #2288: 按节点隔离测试库；名称不在白名单内则拒绝运行（防误连生产库）
+	resolved, err := resolveTestDBName()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FATAL: %v\n", err)
+		os.Exit(1)
+	}
+	testDBName = resolved
 	// Redirect all tests to the isolated test database
 	os.Setenv("TUNELOOP_DB", testDBName)
 	// #2288: 共享连接池 + 测试间 DDL → 禁用 pgx prepared statement 缓存
 	os.Setenv("TUNELOOP_DB_SIMPLE_PROTOCOL", "1")
 
 	// Safety guard: verify the env var actually took effect
-	resolved := os.Getenv("TUNELOOP_DB")
-	if resolved != testDBName {
-		fmt.Fprintf(os.Stderr, "FATAL: failed to set TUNELOOP_DB to '%s', got '%s'\n", testDBName, resolved)
+	gotDB := os.Getenv("TUNELOOP_DB")
+	if gotDB != testDBName {
+		fmt.Fprintf(os.Stderr, "FATAL: failed to set TUNELOOP_DB to '%s', got '%s'\n", testDBName, gotDB)
 		os.Exit(1)
 	}
 

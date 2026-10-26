@@ -5,6 +5,7 @@ package handlers
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"tuneloop-backend/handlers/testfixtures"
@@ -43,14 +44,31 @@ func TestNoDatabaseUnavailableSkip_2284(t *testing.T) {
 func TestResolveTestDBName_2288(t *testing.T) {
 	t.Setenv("TUNELOOP_TEST_DB", "")
 	t.Setenv("OPENCODE_NODE_ID", "")
-	assert.Equal(t, "tuneloop_test", resolveTestDBName(), "无覆盖时保持默认库名")
+	n, err := resolveTestDBName()
+	require.NoError(t, err)
+	assert.Equal(t, "tuneloop_test", n, "无覆盖时保持默认库名")
 
 	t.Setenv("OPENCODE_NODE_ID", "node-2")
-	assert.Equal(t, "tuneloop_test_node_2", resolveTestDBName(), "节点必须使用独立库")
+	n, err = resolveTestDBName()
+	require.NoError(t, err)
+	assert.Regexp(t, `^tuneloop_test_node_2_[a-f0-9]{8}$`, n, "节点库名带短 hash")
 
-	t.Setenv("OPENCODE_NODE_ID", "Node-3/A")
-	assert.Equal(t, "tuneloop_test_node_3_a", resolveTestDBName(), "非法字符必须净化")
+	t.Setenv("OPENCODE_NODE_ID", "nodeA")
+	a, err := resolveTestDBName()
+	require.NoError(t, err)
+	t.Setenv("OPENCODE_NODE_ID", "nodea")
+	b, err := resolveTestDBName()
+	require.NoError(t, err)
+	assert.NotEqual(t, a, b, "大小写不同的节点 ID 必须映射到不同库")
 
-	t.Setenv("TUNELOOP_TEST_DB", "Custom_DB")
-	assert.Equal(t, "custom_db", resolveTestDBName(), "显式 TUNELOOP_TEST_DB 优先")
+	t.Setenv("TUNELOOP_TEST_DB", "tuneloop_test_custom")
+	n, err = resolveTestDBName()
+	require.NoError(t, err)
+	assert.Equal(t, "tuneloop_test_custom", n, "显式测试库覆盖保留")
+
+	for _, bad := range []string{"tuneloop", "beaconiam", "postgres", "tuneloop_test_", "prod_tuneloop_test", strings.Repeat("a", 70)} {
+		t.Setenv("TUNELOOP_TEST_DB", bad)
+		_, err := resolveTestDBName()
+		assert.Error(t, err, "非白名单库名必须拒绝: %q", bad)
+	}
 }
