@@ -1388,6 +1388,18 @@ API 来源：
 
 ---
 
+### 2.19a 支付页优惠码校验（#2291）
+
+**组件**: `frontend-mobile/src/pages/Payment.jsx` + `frontend-mobile/src/pages-weapp/payment/Payment.jsx`
+
+**交互**:
+- 用户输入优惠码 → 点击「应用」→ 调 `POST /api/coupons/validate`（`{code, amount_cents}`）
+- 成功：展示服务端返回的 `final_amount_cents`（分）与提示；`waive` 显示「全额免除」
+- 失败：提示 `resolveErrorMessage`（如「优惠码无效」「优惠码配置异常」），清空已应用状态
+- **禁止**在页面硬编码任何码值或折扣比例；prepay 若被服务端拒绝，清空已应用优惠码并提示
+
+---
+
 ### 2.20 移动端个人中心未读角标
 
 **组件**: `frontend-mobile/src/pages/Profile.jsx` + `frontend-mobile/src/components/BottomNav.jsx`

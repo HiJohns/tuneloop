@@ -2229,7 +2229,7 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
     "deposit": 0,
     "deposit_refunded": false,
     "status": "active",
-    "coupon_code": "ENO",            // #1744 优惠码快照（无码为 null）
+    "coupon_code": "WELCOME10",            // #1744 优惠码快照（无码为 null）
     "coupon_discount": 3564,         // #1744 折扣金额（分；无码 0）
     "created_at": "2026-03-21T10:30:00Z",
     "start_date": "2026-03-21",
@@ -3841,6 +3841,30 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 | wallet | object | 赠点信息（promo_points / max_gift_ratio / max_gift_amount，均为分） |
 | details | object | 明细（各字段分契约；rent 含 pricing_breakdown、refund 含 cash_refundable 等） |
 
+### 8.11.2a 优惠码校验（预览，#2291）
+
+**接口**: `POST /api/coupons/validate`（`userOptionalAuth`）
+
+**说明**: 前端应用优惠码前调用；仅用于**预览**，最终扣款仍由 `POST /api/pay/prepay` 按服务端金额重算。前端**禁止**硬编码码值/折扣幅度。
+
+**请求 Body**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| code | string | 优惠码（大小写不敏感） |
+| amount_cents | int64 | 优惠前金额（分，≥0） |
+
+**响应 data**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| code | string | 规范码（大写） |
+| type | string | `waive` \| `percent` |
+| value | number | percent 为**实付千分比**（10=1%，1000=原价）；waive 忽略 |
+| description | string | 后台说明 |
+| discount_cents | int64 | 优惠金额（分）= amount_cents − final |
+| final_amount_cents | int64 | 折后应付（分） |
+
+**错误**: 未知/停用 → `40002 优惠码无效`；percent `value` 不在 1..1000 → `40002 优惠码配置异常`。
+
 ### 8.11.2 创建预付支付
 
 **接口**: `POST /api/pay/prepay`
@@ -3859,7 +3883,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 | amount | decimal(元) | 现金支付金额（总额 − 赠点；有优惠码时传原金额，后端重算） |
 | gift_used | decimal(元) | 赠点抵扣金额（默认 0；优惠码场景前端传 0） |
 | open_id | string | 微信 openid（仅 JSAPI 支付，可选；后端可按 iam_sub 回填） |
-| coupon_code | string | 优惠码（可选，#1719 所有支付类型通用：OREZ waive 全免 / ENO percent 1%） |
+| coupon_code | string | 优惠码（可选；后台配置的 `waive`/`percent`，前端先经 `/coupons/validate` 查询；测试码已生产停用） |
 
 **请求示例**:
 ```json
@@ -3872,9 +3896,10 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 }
 ```
 
-**优惠码行为**（#1719 通用化，服务端权威）:
-- `waive`（OREZ）：金额重算为 0 → 直接记账 `paid`（method=`waived`）并执行副作用（applySideEffects），不调微信
-- `percent`（ENO）：比例 = value / 1000（千分比，10‰ = 1%，#1728）→ 金额 = round(原金额 × 比例) → 走正常微信 JSAPI/Native
+**优惠码行为**（#1719 通用化，服务端权威；#2291 前端改为 validate 预览）:
+- `waive`：金额重算为 0 → 直接记账 `paid`（method=`waived`）并执行副作用（applySideEffects），不调微信
+- `percent`：实付 = 原金额 × value / 1000（value 为**实付千分比**，10=1%，1000=原价，1..1000）→ 走正常微信 JSAPI/Native
+- 测试码（OREZ/ENO）生产停用；前端不得硬编码码值，应用/展示以 `/coupons/validate` 返回为准
 - **优惠快照（#1744）**：优惠码应用后回写订单 `orders.coupon_code` / `orders.coupon_discount`（分 = 优惠前金额 − 折后实付；waive 全额）——非 session 流程（有 order_id）才回写，幂等覆盖，无码订单保持 NULL/0
 - 模拟支付已移除（#1719）：运行时一律真实微信支付
 

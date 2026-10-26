@@ -22,7 +22,7 @@ export default function Payment() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [giftUsed, setGiftUsed] = useState(0)
-  // #1719 优惠码通用化（P3 分语义）：OREZ 全免 / ENO 1%（千分比 10‰）
+  // #2291: 优惠码由服务端 /coupons/validate 校验并计算，前端不硬编码码值/幅度
   const [couponCode, setCouponCode] = useState('')
   const [appliedCoupon, setAppliedCoupon] = useState(null)
   const [couponAmount, setCouponAmount] = useState(0)
@@ -255,20 +255,31 @@ export default function Payment() {
     </div>
   )
 
-  function applyCoupon() {
+  async function applyCoupon() {
     const code = (couponCode || '').trim().toUpperCase()
     if (!code) { dialog.alert('请输入优惠码'); return }
-    if (code === 'OREZ') {
-      setAppliedCoupon({ code, hint: '已应用，全额免除' })
+    try {
+      const resp = await apiFetch(`${baseUrl}/coupons/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, amount_cents: data?.amount || 0 }),
+      })
+      const result = await resp.json()
+      if (result.code === 20000) {
+        const d = result.data || {}
+        const final = Number(d.final_amount_cents || 0)
+        const hint = d.type === 'waive' ? '已应用，全额免除' : `已应用，优惠后金额 ¥${formatCents(final)}`
+        setAppliedCoupon({ code: d.code || code, hint })
+        setCouponAmount(final)
+      } else {
+        setAppliedCoupon(null)
+        setCouponAmount(0)
+        dialog.alert(resolveErrorMessage(result, '优惠码无效'))
+      }
+    } catch {
+      setAppliedCoupon(null)
       setCouponAmount(0)
-    } else if (code === 'ENO') {
-      // #1728 P3：金额为分，ENO 千分比 10‰ = 1% → 分运算
-      const base = data?.amount || 0
-      const discounted = Math.round(base * 10 / 1000)
-      setAppliedCoupon({ code, hint: '已应用，优惠后金额 ¥' + formatCents(discounted) })
-      setCouponAmount(discounted)
-    } else {
-      dialog.alert('优惠码无效')
+      dialog.alert('优惠码校验失败，请重试')
     }
   }
 
@@ -285,7 +296,7 @@ export default function Payment() {
   async function doPay(cashAmount) {
     if (cashAmount <= 0) {
       if (appliedCoupon) {
-        // OREZ 全免：调 prepay 走后端 waive 记账
+        // 服务端判定 waive：调 prepay 走后端记账
         try {
           const resp = await apiFetch(`${baseUrl}/pay/prepay`, {
             method: 'POST',
@@ -300,7 +311,11 @@ export default function Payment() {
           })
           const result = await resp.json()
           if (result.code === 20000) { dialog.alert('支付成功'); afterPaySuccess(pId) }
-          else dialog.alert('支付失败: ' + resolveErrorMessage(result))
+          else {
+            setAppliedCoupon(null)
+            setCouponAmount(0)
+            dialog.alert('支付失败: ' + resolveErrorMessage(result))
+          }
         } catch (err) { dialog.alert('支付失败: ' + err.message) }
         return
       }
@@ -338,6 +353,7 @@ export default function Payment() {
           dialog.alert('支付失败: ' + (resolveErrorMessage(result) || '无法获取支付参数，请稍后重试'))
         }
       } else {
+        if (appliedCoupon) { setAppliedCoupon(null); setCouponAmount(0) }
         dialog.alert('支付失败: ' + resolveErrorMessage(result))
       }
     } catch (err) {

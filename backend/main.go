@@ -767,6 +767,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/orders/:id/renewal/calculate", handlers.CalculateRenewal)
 				userOptionalAuth.POST("/orders/:id/renewal/confirm", handlers.ConfirmRenewal)
 				userOptionalAuth.POST("/pay/prepay", handlers.PrepayOrder)
+				// #2291: 优惠码预览校验（服务端唯一计算源）
+				userOptionalAuth.POST("/coupons/validate", handlers.ValidateCoupon)
 				userOptionalAuth.POST("/pay/calculate", handlers.CalculatePayment)
 				userOptionalAuth.POST("/pay/query", handlers.QueryPayment)
 				userOptionalAuth.GET("/users/me", staffHandler.GetCurrentUser)

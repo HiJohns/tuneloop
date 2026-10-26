@@ -154,7 +154,7 @@ export default function Payment() {
   const isRefund = ['refund', 'deposit-refund'].includes(pType)
 
   // Coupon applies a preview discount (final price is server-authoritative at
-  // prepay); OREZ waives the fee entirely (¥0). #1719: all payment types.
+  // prepay); 服务端按 coupons 表决定 waive/percent（#2291）。
   const displayAmount = appliedCoupon ? couponAmount : data.amount
 
   const cashAmount = isRefund
@@ -162,7 +162,7 @@ export default function Payment() {
     : Math.max(0, displayAmount - giftUsed * 100)
 
   const applyCoupon = () => {
-    const tryApply = () => {
+    const tryApply = async () => {
       const rawInput = couponInputRef.current
       const rawState = couponCode
       const code = (rawInput || rawState || '').trim().toUpperCase()
@@ -177,18 +177,28 @@ export default function Payment() {
         ts: Date.now(),
       })
       if (!code) { dialog.toast('请输入优惠码'); return }
-      if (code === 'OREZ') {
-        setAppliedCoupon({ code, hint: '已应用，全额免除' })
+      try {
+        const resp = await apiFetch(`${baseUrl}/coupons/validate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, amount_cents: data?.amount || pAmount || 0 }),
+        })
+        const result = await resp.json()
+        if (result.code === 20000) {
+          const d = result.data || {}
+          const final = Number(d.final_amount_cents || 0)
+          const hint = d.type === 'waive' ? '已应用，全额免除' : `已应用，优惠后金额 ¥${formatCents(final)}`
+          setAppliedCoupon({ code: d.code || code, hint })
+          setCouponAmount(final)
+        } else {
+          setAppliedCoupon(null)
+          setCouponAmount(0)
+          dialog.toast(resolveErrorMessage(result, '优惠码无效'))
+        }
+      } catch {
+        setAppliedCoupon(null)
         setCouponAmount(0)
-      } else if (code === 'ENO') {
-        // #1728 P3：金额单位为分（API/URL），ENO 千分比 10‰ = 1% → 分运算。
-        // 租期/维修等支付页跳转不带 amount URL 参数（pAmount=0），用 data.amount。
-        const base = data?.amount || pAmount || 0
-        const discounted = Math.round(base * 10 / 1000) // 1%
-        setAppliedCoupon({ code, hint: '已应用，优惠后金额 ¥' + formatCents(discounted) })
-        setCouponAmount(discounted)
-      } else {
-        dialog.toast('优惠码无效')
+        dialog.toast('优惠码校验失败，请重试')
       }
     }
     // Fast typing + immediate tap: the last input event may still be in
@@ -312,7 +322,7 @@ export default function Payment() {
     // openid 由后端解析（#1678）：membership 两阶段流程创建 session 时已
     // 解析并存储微信身份，prepay 无需前端传递 open_id。
     // 优惠码（#1719 通用化，所有支付类型）：有优惠码时提交原金额 + coupon_code，
-    // 最终金额由后端服务端重算（OREZ → 0 走 waive 记账，ENO → 1%）；优惠码
+    // 最终金额由后端服务端重算（waive → 0，percent → 按 coupons.value）；优惠码
     // 场景不叠加赠点抵扣（gift_used=0）。
     const payAmount = appliedCoupon
       ? (data?.amount || 0)
@@ -418,7 +428,7 @@ export default function Payment() {
     if (isPaying) return // 防抖：支付流程进行中忽略重复点击（QA #1819）
     if (cashAmount <= 0) {
       if (appliedCoupon || (pType === 'membership' && pSessionId)) {
-        // OREZ full waiver (or membership session waiver): run prepay so
+        // 服务端 waive（或会员 session 免单）：run prepay so
         // the server books the paid record and applies side effects
         // (#1719 通用化：任意支付类型的 waive 优惠码都走此路径).
         setIsPaying(true)
@@ -434,6 +444,8 @@ export default function Payment() {
             }
           } else {
             setIsPaying(false)
+            setAppliedCoupon(null)
+            setCouponAmount(0)
             dialog.alert(resolveErrorMessage(result, '请稍后重试'), { title: t('支付失败') })
           }
         } catch (err) {
@@ -471,6 +483,8 @@ export default function Payment() {
         }
       } else {
         setIsPaying(false)
+        setAppliedCoupon(null)
+        setCouponAmount(0)
         dialog.alert(resolveErrorMessage(result, '请稍后重试'), { title: t('支付失败') })
       }
     } catch (err) {
