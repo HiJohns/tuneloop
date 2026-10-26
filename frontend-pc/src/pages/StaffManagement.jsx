@@ -5,6 +5,7 @@ import ReactQuill from 'react-quill'
 import PhotoUploader from '../components/PhotoUploader'
 import 'react-quill/dist/quill.snow.css'
 import { staffApi, sitesApi, personnelApi, invitesApi } from '../services/api'
+import { resolveErrorMessage } from '../services/errorMessages'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 const { Option } = Select
@@ -216,6 +217,9 @@ export default function StaffManagement() {
         const users = result.data || []
         const names = users.map(u => `${u.name}(${u.phone})`).join(', ')
         message.error(`创建用户失败：姓名、手机号或邮箱与以下用户冲突: ${names}`)
+      } else {
+        // #2290：4091x（IAM 字段冲突）等未显式处理的 code 不得静默
+        message.error(resolveErrorMessage(result, '创建用户失败，请稍后重试'))
       }
     } catch (error) {
       message.error('创建用户失败: ' + error.message)
@@ -622,8 +626,12 @@ export default function StaffManagement() {
             <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
               <Input placeholder="姓名" />
             </Form.Item>
-            <Form.Item name="username" label="用户名">
-              <Input placeholder="用户名" />
+            <Form.Item
+              name="username"
+              label="登录用户名（可选）"
+              extra="仅用于登录，平台内唯一；留空自动使用上方邮箱。员工姓名请填「姓名」。"
+            >
+              <Input placeholder="留空自动使用邮箱" />
             </Form.Item>
             <Form.Item name="email" label="邮箱" rules={[{ required: true, message: '请输入邮箱（邀请邮件投递通道）' }]}>
               <Input placeholder="邮箱（邀请邮件将发送至此）" />
