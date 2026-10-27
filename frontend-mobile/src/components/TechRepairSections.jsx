@@ -10,6 +10,7 @@ import { dialog, env, getInputValue, uploadFile as uploadFileApi } from '../plat
 import { formatBeijingDate } from '../utils/format'
 import { photoSrc } from '../utils/media'
 import ImageUploader from './ImageUploader'
+import RepairServiceQuoteForm from './RepairServiceQuoteForm'
 import SegmentedTabs from './SegmentedTabs'
 
 const svcStatusLabels = {
@@ -73,9 +74,6 @@ export default function TechRepairSections() {
   const [expanded, setExpanded] = useState('') // `${id}:quote|adjust`
   const [submitting, setSubmitting] = useState(false)
   // 报价表单（元）
-  const [repairYuan, setRepairYuan] = useState('')
-  const [materialYuan, setMaterialYuan] = useState('') // #2085 料钱
-  const [logiYuan, setLogiYuan] = useState('')
   // 加价表单（元）
   const [newQuoteYuan, setNewQuoteYuan] = useState('')
   const [incurredYuan, setIncurredYuan] = useState('')
@@ -140,37 +138,10 @@ export default function TechRepairSections() {
 
   const toggle = (id, mode) => {
     if (expanded === `${id}:${mode}`) { setExpanded(''); return }
-    setRepairYuan(''); setMaterialYuan(''); setLogiYuan(''); setNewQuoteYuan(''); setIncurredYuan(''); setReceiveFiles([])
+    setNewQuoteYuan(''); setIncurredYuan(''); setReceiveFiles([])
     setExpanded(`${id}:${mode}`)
   }
 
-  const submitQuote = async (id) => {
-    const repairCents = yuanToCents(repairYuan)
-    const materialCents = yuanToCents(materialYuan === '' ? '0' : materialYuan) // #2085 料钱（可空=0）
-    const logiCents = yuanToCents(logiYuan === '' ? '0' : logiYuan)
-    if (repairCents <= 0) { dialog.alert('请填写正确的修理费'); return }
-    if (materialCents < 0) { dialog.alert('请填写正确的料钱'); return }
-    if (logiCents < 0) { dialog.alert('请填写正确的物流费预估'); return }
-    setSubmitting(true)
-    try {
-      const res = await apiFetch(`${baseUrl}/repair-services/${id}/quote`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quote_repair_cents: repairCents, quote_material_cents: materialCents, quote_logistics_cents: logiCents }),
-      })
-      const result = await res.json()
-      if (result.code === 20000) {
-        dialog.alert('报价已提交，等待用户支付')
-        setExpanded('')
-        fetchLists()
-      } else {
-        dialog.alert(resolveErrorMessage(result))
-      }
-    } catch (e) {
-      dialog.alert(resolveErrorMessage(e))
-    }
-    setSubmitting(false)
-  }
 
   const submitAdjust = async (id) => {
     const newQuoteCents = yuanToCents(newQuoteYuan)
@@ -344,19 +315,10 @@ export default function TechRepairSections() {
           {rr.video_url ? (
             <Video src={photoSrc(rr.video_url)} controls style={{ width: '100%', height: 160, borderRadius: 8, backgroundColor: '#000000' }} />
           ) : null}
-          <Text style={labelStyle}>修理费（元）</Text>
-          <Input style={inputStyle} type="digit" value={repairYuan}
-            onInput={e => setRepairYuan(getInputValue(e))} placeholder="如 200" />
-          <Text style={labelStyle}>料钱（元；材料/配件费，可空）</Text>
-          <Input style={inputStyle} type="digit" value={materialYuan}
-            onInput={e => setMaterialYuan(getInputValue(e))} placeholder="如 30" />
-          <Text style={labelStyle}>物流费预估（元）</Text>
-          <Input style={inputStyle} type="digit" value={logiYuan}
-            onInput={e => setLogiYuan(getInputValue(e))} placeholder="如 50" />
-          <Button disabled={submitting} onClick={() => submitQuote(rr.id)}
-            style={{ ...btnPrimaryStyle, opacity: submitting ? 0.5 : 1 }}>
-            {submitting ? '处理中...' : '提交报价'}
-          </Button>
+          <RepairServiceQuoteForm
+            serviceId={rr.id}
+            onSubmitted={() => { setExpanded(''); fetchLists() }}
+          />
         </View>
       ),
     })

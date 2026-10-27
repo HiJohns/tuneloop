@@ -84,8 +84,9 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 - **维修师不再挂靠网点**，**直属商户**（tenant 级）；`tenant_id` 即服务单归属
 - 档案字段：`photo`（个人照片）、`bio`（详细介绍）、`experience`（专长与年限，结构化：`[{craft, years}]`）
 
-### 报价（维修师，weapp 工作台）
+### 报价（维修师，weapp 工作台 / 详情页）
 - 维修师**报价**：`修理费` + `料钱` + `物流费预估`
+- **入口（#2293）**：① 工作台「待报价」卡片展开「填写报价」；② 已指派技师从卡片进入 `/repair-service-detail?order_id=…` → 「维修师报价」面板。两入口共用组件 `RepairServiceQuoteForm` + 同一 API `POST /repair-services/:id/quote`
   - 直连模式（无中转）：1 段受管物流（**维修师→用户**）
   - 受控组合：3 段受管物流（中转→受控、受控→中转、中转→用户）；**用户→中转段用户自担**
 - **调用 / 获取**

@@ -7,6 +7,7 @@ import { apiFetch, getToken, resolveErrorMessage, resolveUploadError } from '../
 import { dialog, env, getInputValue, toWeappRoute, uploadFile as uploadFileApi } from '../platform'
 import { parseJWT } from '../platform/init'
 import { formatBeijingDate } from '../utils/format'
+import RepairServiceQuoteForm from '../components/RepairServiceQuoteForm'
 import { photoSrc } from '../utils/media'
 import ImageUploader from '../components/ImageUploader'
 import { t } from '../i18n'
@@ -626,6 +627,14 @@ export default function RepairServiceDetail() {
                 {t.site_address ? <Text style={{ fontSize: 11, color: '#A1A1AA' }}>{t.site_address}</Text> : null}
               </View>
             ))}
+          </View>
+        )}
+
+        {/* #2293 维修师报价（已指派 + 待报价 + 员工视角；后端再鉴权） */}
+        {isStaffView && rr.status === 'pending_quote' && rr.technician_id && (
+          <View style={cardStyle}>
+            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>维修师报价</Text>
+            <RepairServiceQuoteForm serviceId={rr.id} onSubmitted={loadDetail} />
           </View>
         )}
 
