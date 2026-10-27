@@ -372,7 +372,7 @@
 | ISO-15 | 顾客（零租户） | 下单/读取/我的订单 | 不因 tid 为空被拒；数据落商户 org；跨顾客 404 | ✅ 自动化：`TestIsolationMatrix_CustomerZeroTenant_Chain_ISO15`（拍付/收货动作由 `prepay_2110`/`#2116` 组覆盖，wxpay 真链路列部署侧走查） |
 | ISO-16 | 顾客 | 发票申请：伪造 `tenant_id=B`；跨商户订单合并 | 伪造 → 400 且无申请行；不传 → 落订单商户 org；跨商户合并 → 400 | ✅ `TestInvoiceSubmit_TenantDerivedFromOrders_2262` |
 | ISO-17 | 商户 A/B 管理员 | 共享 tenant 下各自 webhook 配置 | A/B 互不覆盖；旧 tenant 键在 scoped ctx 下只读回退可用 | ✅ `TestMerchantWebhook_LegacyKeyFallbackUnderScopedCtx_2262`、`TestMerchantWebhook_SharedTenantIsolation_2262`（#2262 返工） |
-| ISO-18 | 商户/网点管理员、顾客 | B3 显式模式下的 repair / orders-instruments / membership 路由 | 跨商户 404/空；本商户 200；on/off 等价 | 🟡 **待 #2261 审计 PASS**（返工 `e80de659`：8 条已守卫路由；其余回滚）。测试：`TestRepairDomain_ExplicitScopeIsolation_2261`、`TestOrdersInstrumentsDomain_ExplicitScopeIsolation_2261`、`TestMembershipDomain_SitesExplicitScope_2261`、`TestOrdersByTradeNo_ExplicitScopeIsolation_2261`、`TestOrdersInstrumentsDelete_ExplicitScope_2261` |
+| ISO-18 | 商户/网点管理员、顾客 | B3 显式模式下的 repair / orders-instruments / membership 路由 | 跨商户 404/空；本商户 200；on/off 等价 | ✅ **#2276 全量收口（`46b651dbb`）** + #2261 8 条。守卫：repair `TestRepairWrite_ExplicitScope_2276` / `TestRepairMoreWrites_ExplicitScope_2276` / `TestRepairAppeal_ExplicitScope_2276`；instruments/orders `TestInstrumentDetail_ExplicitScope_2276` / `TestInstrumentsWrite_ExplicitScope_2276` / `TestInstrumentMedia_ExplicitScope_2276` / `TestInstrumentMisc_ExplicitScope_2276` / `TestInstrumentsLeftovers_ExplicitScope_2276` / `TestInstrumentsLeftovers_MoreRoutes_2276` / `TestOrdersPickupAdmin_ExplicitScope_2276` / `TestOutboundAssessment_ExplicitScope_2276` / `TestOrdersByTradeNo_ExplicitScopeIsolation_2261` / `TestOrdersInstrumentsDelete_ExplicitScope_2261`；membership/site `TestMembershipWrite_ExplicitScope_2276` / `TestMerchantAdmin_SharedTenantOrgScope_2276` / `TestCreateSite_ExplicitScope_2276` / `TestSiteInvite_ExplicitScope_2276` / `TestMerchantList_PlatformAdmin_2276`；机制 `TestExplicitTenantScopeOnly_2261` |
 
 ## A6 覆盖率校验（可复跑）
 
@@ -436,10 +436,10 @@ bash scripts/tenant-audit-coverage.sh
 | `confirmation_session.go` | ⚪ 不适用 | 会话归属 user_id，tenant 仅上下文元数据 |
 | `staff_invite.go` / `site_member.go` / `member_invite_2114.go` | ⚪ 不适用 | 写入前经 `hasSiteAccess`（sites.tenant_id = 操作者 tid）→ 与 site.TenantID 恒等 |
 | `repair_config.go` | ✅ 已修（#2251） | 维修设置锚商户 org / 平台 nil UUID |
-| B3 | 读回调逐域显式化（opt-in 等价迁移） | 🟡 批次1 ✅ 开关+观察；批次2 本地统计（9 表）✅；**批次3 返工后仅保留 8 条已核查+已守卫路由**（§A7-B3）；其余原批次路由**已回滚**（repair 组、orders/instruments 详情与写删、membership 商户/站点写等），由 **#2276** 跟踪逐路由补过滤+守卫后再切；#2269 判定有误已回滚（`e8a64aa4`）；观察期实采 12 表（真实口径：sites.tenant_id=商户 org、merchants.tenant_id=共享 tenant/org_id=商户 org） | `TestExplicitTenantScopeOnly_2261`、`TestRepairDomain_...`、`TestOrdersInstrumentsDomain_...`、`TestMembershipDomain_Sites...`、`TestTechnicianProfilesDomain_...`、`TestOrdersByTradeNo_ExplicitScopeIsolation_2261`、`TestOrdersInstrumentsDelete_ExplicitScope_2261`；全量 10 failed / NEW 空。预生产观察日志已核对（8 条切域无注入）。 |
+| B3 | 读回调逐域显式化（opt-in 等价迁移） | ✅ 批次1 开关+观察；批次2 本地统计（9 表）；批次3 由 **#2276（`46b651dbb`）** 全量收口：8 条已核路由 + repair / orders-instruments / membership / site 写路由均已显式过滤并具备路由级守卫；预生产观察日志已核对（8 条切域无注入） | `TestExplicitTenantScopeOnly_2261` + ISO-18 所列 #2276 守卫（全量 911 RUN / 45 failed / NEW 空） |
 | B4 | A3-8 必修清单（P2/P3 批 25 文件）口径改造 | 🟡 逐文件判定完成；本轮修 `invoice.go`（归属由订单派生）+ `member_invite_2114.go`（org 锚） | 见 §A7-B4 |
 | B5 | 前端/services tenant payload 收敛 | 🟡 盘点 88 行（63/21/4）→ `docs/ops/tenant-payload-audit-2262.md`；改 `webhook.go`（org 键 + 旧键只读回退）、`InvoiceConfirm` 移除 payload | 与 API 口径同步 |
-| B6 | 隔离矩阵补齐（ISO-14~18） | 🟡 自动化部分：ISO-16/17 ✅（#2262 返工）；**ISO-18 待 #2261 审计 PASS**；预生产走查待最终关闭时 waitForConfirm | 行级断言
+| B6 | 隔离矩阵补齐（ISO-14~18） | 🟡 自动化：ISO-14/15/16/17/18 ✅（#2262 / #2276）；**预生产真机走查 = 部署侧待办**（需发布含 `46b651dbb` 的新包 + 用户回评；当前 1.0.75 不含最终 #2276） | 行级断言 + ISO-18 守卫列表 |
 
 
 ## §A7-B4 逐文件判定（#2262）
