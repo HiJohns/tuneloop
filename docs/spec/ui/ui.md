@@ -3009,6 +3009,7 @@ const handleSyncUsersFromIAM = async () => {
 > - 创建成功页主按钮 = 「查看维修单」（不再出现「下一步：选择维修师」绕路）
 >
 > **#2049 维修师档案（PC `System/TechnicianProfiles.jsx`）**：
+> - **菜单入口**：平台管理 → 维修师档案（人员管理下方）；面包屑「平台管理 / 维修师档案」；交易管理不再包含该入口。商户/网点管理员若仅有 `instrument:read`，平台管理分组仅显示维修师档案（人员管理需额外 sysPerm）。
 > - **照片**：本地选择后预览，保存时经 `POST /technician-profiles/:id/photo` 走媒体管线（原图 WebP + `_thumb.jpg`）；列表列用 `photo_thumb`（48px），无照片显示 `-`/占位符
 > - **简介 `bio`**：`react-quill` 富文本编辑器（HTML 存储）；移动端 `TechDetail` 用共享 `<RichContent html={bio} />` 渲染（#1907 红线，禁裸 `RichText`），`TechList` 列表摘要用 `htmlToPlainText(bio)`
 > - 维修师列表/详情：无照片 → 人像占位符「师」（列表优先 `avatar_thumb`，详情用 `avatar` 原图）
