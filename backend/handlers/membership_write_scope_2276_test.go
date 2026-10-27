@@ -56,6 +56,7 @@ func TestMembershipWrite_ExplicitScope_2276(t *testing.T) {
 		r.POST("/sites/:id/members", siteMemberHandler.AddMember)
 		r.PUT("/technician-profiles/:id", techHandler.Update)
 		r.GET("/admin/merchants/:id/members", merchantMemberHandler.ListMembers)
+		r.POST("/admin/merchants/:id/members", merchantMemberHandler.AddMember)
 		r.GET("/sites/tree", siteHandler.GetSiteTree)
 		return r
 	}
@@ -73,21 +74,39 @@ func TestMembershipWrite_ExplicitScope_2276(t *testing.T) {
 	require.Len(t, listResp.Data.List, 1)
 	assert.Equal(t, merchantA.ID, listResp.Data.List[0]["id"])
 
-	// on/off 等价
+	// on/off 等价（状态码 + 列表内容）
 	wOff := httptest.NewRecorder()
 	router(false).ServeHTTP(wOff, httptest.NewRequest(http.MethodGet, "/merchants?page=1&pageSize=10", nil))
 	assert.Equal(t, w.Code, wOff.Code, "on/off 等价")
+	var offResp struct {
+		Data struct {
+			List []map[string]interface{} `json:"list"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(wOff.Body.Bytes(), &offResp))
+	require.Len(t, offResp.Data.List, len(listResp.Data.List), "on/off 列表长度一致")
+	for i := range offResp.Data.List {
+		assert.Equal(t, listResp.Data.List[i]["id"], offResp.Data.List[i]["id"], "on/off 列表 ID 一致")
+	}
 
-	// 跨商户成员列表 404
+	// 跨租户成员列表 404（同 shared tenant 的其他 org 仍为 403，#2274）
 	w = httptest.NewRecorder()
 	router(true).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/admin/merchants/"+merchantB.ID+"/members", nil))
-	assert.Equal(t, http.StatusForbidden, w.Code, "跨商户成员列表沿用 #2274 的 403 不泄漏契约")
+	assert.Equal(t, http.StatusNotFound, w.Code)
+
+	// 跨租户 AddMember 404（不进入 IAM）
+	w = httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/admin/merchants/"+merchantB.ID+"/members", bytes.NewReader([]byte(`{}`)))
+	req.Header.Set("Content-Type", "application/json")
+	router(true).ServeHTTP(w, req)
+	assert.Equal(t, http.StatusNotFound, w.Code)
 
 	// 站点树不含他租户站点
 	w = httptest.NewRecorder()
 	router(true).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/sites/tree", nil))
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
 	assert.NotContains(t, w.Body.String(), siteB.ID, "站点树不得返回他租户站点")
+	assert.Contains(t, w.Body.String(), siteA.ID, "站点树应包含本租户站点")
 
 	// 跨商户详情 404
 	w = httptest.NewRecorder()
@@ -97,7 +116,7 @@ func TestMembershipWrite_ExplicitScope_2276(t *testing.T) {
 	// 跨租户网点加成员 404
 	body, _ := json.Marshal(map[string]interface{}{"user_ids": []map[string]string{{"user_id": uuid.NewString(), "role": "site_member"}}})
 	w = httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/sites/"+siteB.ID+"/members", bytes.NewReader(body))
+	req = httptest.NewRequest(http.MethodPost, "/sites/"+siteB.ID+"/members", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	router(true).ServeHTTP(w, req)
 	assert.Equal(t, http.StatusNotFound, w.Code)

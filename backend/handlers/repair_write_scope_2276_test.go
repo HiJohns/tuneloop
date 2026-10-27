@@ -62,6 +62,12 @@ func TestRepairWrite_ExplicitScope_2276(t *testing.T) {
 	require.NoError(t, db.Where("id = ?", instID).First(&after).Error)
 	assert.Equal(t, "repair_pending", after.RepairStatus, "跨租户不得修改")
 
+	// on/off 等价：未挂显式范围时 handler 仍按 tenant 过滤
+	code, _ = call(tenantB, false, "/repair/"+instID+"/start", "")
+	assert.Equal(t, http.StatusNotFound, code, "on/off 等价：跨租户 404")
+	require.NoError(t, db.Where("id = ?", instID).First(&after).Error)
+	assert.Equal(t, "repair_pending", after.RepairStatus)
+
 	// 本租户：200
 	code, resp := call(tenantA, true, "/repair/"+instID+"/start", "")
 	require.Equal(t, http.StatusOK, code, resp)
