@@ -30,11 +30,16 @@ func (h *MerchantHandler) ListMerchants(c *gin.Context) {
 	db := database.GetDB().WithContext(c.Request.Context())
 	tenantID := middleware.GetTenantID(c.Request.Context())
 
-	query := db.Model(&models.Merchant{}).Where("tenant_id = ?", tenantID)
+	query := db.Model(&models.Merchant{})
 	if middleware.GetBusinessRole(c.Request.Context()) == middleware.BusinessRoleMerchantAdmin {
 		if orgID := middleware.GetOrgID(c.Request.Context()); orgID != "" {
-			query = query.Where("(org_id = ? OR org_id IS NULL)", orgID)
+			// #2274/#2276：商户管理员按商户 org 锚（共享 tenant 下不得看其他商户）
+			query = query.Where("org_id = ?", orgID)
+		} else {
+			query = query.Where("tenant_id = ?", tenantID)
 		}
+	} else {
+		query = query.Where("tenant_id = ?", tenantID)
 	}
 
 	// Apply status filter if provided
@@ -131,11 +136,15 @@ func (h *MerchantHandler) GetMerchant(c *gin.Context) {
 	db := database.GetDB().WithContext(c.Request.Context())
 	tenantID := middleware.GetTenantID(c.Request.Context())
 
-	q := db.Where("id = ? AND tenant_id = ?", id, tenantID)
+	var q *gorm.DB
 	if middleware.GetBusinessRole(c.Request.Context()) == middleware.BusinessRoleMerchantAdmin {
 		if oid := middleware.GetOrgID(c.Request.Context()); oid != "" {
-			q = q.Where("(org_id = ? OR org_id IS NULL)", oid)
+			q = db.Where("id = ? AND org_id = ?", id, oid)
+		} else {
+			q = db.Where("id = ? AND tenant_id = ?", id, tenantID)
 		}
+	} else {
+		q = db.Where("id = ? AND tenant_id = ?", id, tenantID)
 	}
 	result := q.First(&merchant)
 	if result.Error == gorm.ErrRecordNotFound {
@@ -522,11 +531,15 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 
 	// Check if merchant exists
 	var merchant models.Merchant
-	q := db.Where("id = ? AND tenant_id = ?", id, tenantID)
+	var q *gorm.DB
 	if middleware.GetBusinessRole(c.Request.Context()) == middleware.BusinessRoleMerchantAdmin {
 		if oid := middleware.GetOrgID(c.Request.Context()); oid != "" {
-			q = q.Where("(org_id = ? OR org_id IS NULL)", oid)
+			q = db.Where("id = ? AND org_id = ?", id, oid)
+		} else {
+			q = db.Where("id = ? AND tenant_id = ?", id, tenantID)
 		}
+	} else {
+		q = db.Where("id = ? AND tenant_id = ?", id, tenantID)
 	}
 	result := q.First(&merchant)
 	if result.Error == gorm.ErrRecordNotFound {
@@ -630,11 +643,15 @@ func (h *MerchantHandler) DeleteMerchant(c *gin.Context) {
 
 	// Check if merchant exists
 	var merchant models.Merchant
-	q := db.Where("id = ? AND tenant_id = ?", id, tenantID)
+	var q *gorm.DB
 	if middleware.GetBusinessRole(c.Request.Context()) == middleware.BusinessRoleMerchantAdmin {
 		if oid := middleware.GetOrgID(c.Request.Context()); oid != "" {
-			q = q.Where("(org_id = ? OR org_id IS NULL)", oid)
+			q = db.Where("id = ? AND org_id = ?", id, oid)
+		} else {
+			q = db.Where("id = ? AND tenant_id = ?", id, tenantID)
 		}
+	} else {
+		q = db.Where("id = ? AND tenant_id = ?", id, tenantID)
 	}
 	result := q.First(&merchant)
 	if result.Error == gorm.ErrRecordNotFound {
