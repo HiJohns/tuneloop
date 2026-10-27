@@ -191,7 +191,7 @@ export default function MessageDetail() {
 
   // #2090：维修服务通知跳转——workbench（师傅）/ detail（顾客报价·加价）；参数用 order_id（#1674）
   const handleRepairServiceAction = (target) => {
-    const id = notification?.ref_id || ''
+    const id = notification?.ref_id || actionData?.repair_id || ''
     if (!id) return
     if (env.isMiniProgram) {
       if (target === 'workbench') {
@@ -395,6 +395,22 @@ export default function MessageDetail() {
               className="w-full mt-6 py-2.5 bg-brand-primary text-white rounded-lg text-sm font-medium"
             >
               进入维修工作台
+            </Button>
+          )}
+          {notification.action_type === 'repair_svc_receive' && (notification.ref_id || actionData?.repair_id) && (
+            <Button
+              onClick={() => handleRepairServiceAction('detail')}
+              className="w-full mt-6 py-2.5 bg-brand-primary text-white rounded-lg text-sm font-medium"
+            >
+              查看维修单
+            </Button>
+          )}
+          {notification.ref_type === 'repair_service' && notification.action_type === 'info' && (notification.ref_id || actionData?.repair_id) && (
+            <Button
+              onClick={() => handleRepairServiceAction('detail')}
+              className="w-full mt-6 py-2.5 bg-brand-primary text-white rounded-lg text-sm font-medium"
+            >
+              查看维修单
             </Button>
           )}
           {(notification.action_type === 'repair_svc_review' || notification.action_type === 'repair_svc_adjust' || notification.action_type === 'repair_svc_declined') && (

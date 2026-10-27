@@ -72,8 +72,11 @@ export default function RepairServiceDetail() {
     return Taro.navigateTo({ url: route.url })
   }
   // #1674：参数统一 query（order_id），不使用 useParams
-  const orderId = new URLSearchParams(env.isMiniProgram ? (Taro.getCurrentInstance()?.router?.params || {}) : window.location.search)
-    .get('order_id') || ''
+  // #2297 P0：挂载时冻结 orderId；weapp 选择照片重渲染后 Taro router params 可能为空，
+  // 禁止每次渲染重取（否则动作请求出现 /repair-services//receive）。
+  const [orderId, setOrderId] = useState(() => new URLSearchParams(
+    env.isMiniProgram ? (Taro.getCurrentInstance()?.router?.params || {}) : window.location.search
+  ).get('order_id') || '')
   const [detail, setDetail] = useState(null) // {repair, logistics_fees, review?, site?}
   const [loading, setLoading] = useState(true)
   // #2119: 技师/员工加价（详情页入口）
@@ -108,8 +111,16 @@ export default function RepairServiceDetail() {
   const isStaffView = (() => { try { const t = getToken(); return !!t && (parseJWT(t)?.role || '') !== 'USER' && (parseJWT(t)?.role || '') !== '' } catch { return false } })()
 
 
+  useEffect(() => {
+    if (!orderId && detail?.repair?.id) setOrderId(detail.repair.id)
+  }, [detail, orderId])
+
   const loadDetail = async () => {
-    if (!orderId) { setLoading(false); return }
+    if (!orderId) {
+      setLoading(false)
+      dialog.alert('维修单参数缺失，请返回重新进入')
+      return
+    }
     try {
       const res = await apiFetch(`${baseUrl}/user/repair-services/${orderId}`)
       const result = await res.json()
