@@ -24,8 +24,6 @@ mobile,frontend-mobile/src/components/AddressManager.jsx,184,详细地址
 mobile,frontend-mobile/src/components/AddressManager.jsx,185,邮编
 mobile,frontend-mobile/src/components/AddressManager.jsx,190,取消
 mobile,frontend-mobile/src/components/AddressManager.jsx,198,"暂无地址，点击上方""+ 新地址""添加"
-mobile,frontend-mobile/src/components/AgreementCheckbox.jsx,75,我已阅读并同意所有「
-mobile,frontend-mobile/src/components/AgreementCheckbox.jsx,76,相关协议
 mobile,frontend-mobile/src/components/FaceCaptureUploader.jsx,101,视频保存失败，仅照片已提交，请稍后重试
 mobile,frontend-mobile/src/components/FaceCaptureUploader.jsx,118,视频保存失败，仅照片已提交，请稍后重试
 mobile,frontend-mobile/src/components/FaceCaptureUploader.jsx,142,人脸采样（必填）

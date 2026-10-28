@@ -5,9 +5,9 @@
 
 | 端 | 文件数 | 文案条数 |
 |---|---:|---:|
-| frontend-mobile | 74 | 1488 |
+| frontend-mobile | 73 | 1486 |
 | frontend-pc | 76 | 1783 |
-| 合计 | 150 | 3271 |
+| 合计 | 149 | 3269 |
 
 ## frontend-mobile
 
@@ -44,11 +44,6 @@
 - L185: 邮编
 - L190: 取消
 - L198: 暂无地址，点击上方"+ 新地址"添加
-
-### `frontend-mobile/src/components/AgreementCheckbox.jsx`
-
-- L75: 我已阅读并同意所有「
-- L76: 相关协议
 
 ### `frontend-mobile/src/components/FaceCaptureUploader.jsx`
 
