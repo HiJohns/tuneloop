@@ -317,7 +317,9 @@ func TestAPIErrorResponses(t *testing.T) {
 				writer.Close()
 				req := httptest.NewRequest("POST", "/api/instruments/import", body)
 				req.Header.Set("Content-Type", writer.FormDataContentType())
-				return req
+				// Handler reads the tenant from the request ctx (#1928). Inject it
+				// only here so the "missing tenant id" case above still returns 40001.
+				return req.WithContext(context.WithValue(req.Context(), middleware.ContextKeyTenantID, "tenant-123"))
 			},
 			expectedCode:   40002,
 			expectedStatus: "File upload failed",
@@ -326,22 +328,22 @@ func TestAPIErrorResponses(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			db, _ := setupTestDB(t)
-
+			// No DB access on these error paths; sqlmock setup would only add
+			// brittle expectations (#2264 batch 4).
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
 
-			req := tt.setupRequest()
-
-			ctx.Request = req
-			ctx.Set("db", db)
+			ctx.Request = tt.setupRequest()
 
 			ImportInstruments(ctx)
 
 			assert.Equal(t, http.StatusBadRequest, w.Code)
+			// #1928/#2264: decode the RESPONSE body. ctx.ShouldBindJSON reads the
+			// request body (empty here) and always yields a nil map.
 			var response map[string]interface{}
-			ctx.ShouldBindJSON(&response)
-			assert.Equal(t, tt.expectedCode, response["code"])
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &response))
+			assert.Equal(t, float64(tt.expectedCode), response["code"])
+			assert.Contains(t, response["message"], tt.expectedStatus)
 		})
 	}
 }

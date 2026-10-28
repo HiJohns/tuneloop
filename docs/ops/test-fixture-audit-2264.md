@@ -43,6 +43,15 @@
 - 本 Issue 已消除「前序用例残留数据」这一**主要**顺序耦合来源（下单/维修列表用例自包含）。
 - 剩余 28 个文件为「按需建表」的局部夹具：虽仍是 partial，但均在同一用例内先 Drop 再 Create（不依赖前序数据），风险低于 `setupUserRentalTables` 的“只建 3 表、其余表残留”。统一迁移另立子 Issue，避免本 Issue 无限扩大。
 
+## 批次 4 收口（sqlmock 期望泄漏 / 响应解码）
+
+- `handlers/instrument_update_test.go` `TestUpdateInstrument`：改用 `testfixtures.SetupTestDB` 真实库（seed `categories` / `instrument_levels` / `instruments`），删除对 SQL 文本的 sqlmock 期望，避免处理器新增查询导致「expectations 已耗尽」。
+  - 子用例按 `docs/spec/api.md` §5.5.2 partial update 重写：404 not found；仅 `description` / 仅 `level_id` / 仅 `category_id` 更新且其他字段不变；非法 `category_id` → 400。
+  - 原「缺 name/level/category_id 必须 400」断言作废：`UpdateInstrumentRequest` 无 `name` 字段，partial update 允许省略 `level_id` / `category_id`。
+  - `TestUpdateInstrumentPricingField` 保持 sqlmock（回归通过）。
+- `handlers/instrument_import_test.go` `TestAPIErrorResponses`：删除无用的 sqlmock/DB 初始化；响应改为 `json.Unmarshal(w.Body...)`（原 `ctx.ShouldBindJSON` 读请求体，恒为 nil）；「missing file」子用例补 tenant ctx 以命中 40002。
+- shuffle 残余（三 seed 基线）已由 **#2271** 承接并关闭；本 Issue 不再重复。
+
 ## 独立测试库与 shuffle 回归（#2271）
 
 - 测试库按节点隔离：`TUNELOOP_TEST_DB` 优先；否则 `tuneloop_test_<OPENCODE_NODE_ID>`（见 #2288）。
