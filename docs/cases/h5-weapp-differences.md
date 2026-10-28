@@ -49,6 +49,7 @@
 | 行为 | H5 | weapp | 依据 |
 |------|----|-------|------|
 | 推广/分享二维码落地 | **首页**（`/?ref=<code>`，落地存 `ref_code`） | **首页**（小程序码 `scene=ref=<code>`，首页 `useDidShow` 捕获） | 两端均**落首页、落地即捕获邀请码、注册时消费**（#2203）；禁止改回"落注册页" |
+| 下单页 D1 物流费提醒 | 单件 `/checkout?id=` 与批量 `/checkout` 均显示；批量按合计有效押金判定 | 同 H5（双副本同构） | 两端单件/批量同文案、同判定（#2299；`docs/spec/ui/ui.md` §2.22） |
 
 ## 3. 覆盖判定流程（每次平台差异相关改动）
 
@@ -65,7 +66,7 @@
 | C2 | ~~`user-warnings` 仅 H5 有（weapp 无）~~ **已决**：判定为 PC 后台功能，H5 端已移除（weapp 本无） | #2186 已清理 |
 | C3 | 双实现页漂移（Home/Profile/Checkout/MyLeases/Detail/Success） | 见 D1 收敛 Issue |
 | C4 | ~~H5-only 功能是否补到 weapp~~ **已决**：`lease-history`/`my-contracts`/`site-detail`/`transit-workflow` 确认为孤儿 → H5 移除（#2187–#2190）；`staff-order-detail` → 向 weapp 看齐（#2191） | #2187–#2191 |
-| C5 | H5 批量结算（`/checkout` 的 `BatchCheckout`）缺 D1「乐器往返物流费…顺丰快递到付…」提示；H5 单笔结算（`/checkout?id=` 的 `SingleCheckout`）与 weapp 有该提示。两端结算入口文案不等价，收敛中 | #2299 |
+| C5 | ~~H5 批量结算缺 D1 物流费提示~~ **已收敛**：两端 `BatchCheckout` 均补齐（按合计有效押金判定）；weapp 批量此前同样缺失，现与 H5 单件/批量一致 | #2299 已修复 |
 
 ## 5. 维护
 

@@ -909,6 +909,16 @@ function BatchCheckout({ nav }) {
     return total
   }, [groups, depositWaived])
 
+  // #2299: 批量结算 D1 物流费提醒——按合计有效押金判定（与单件同构）
+  const grandDeposit = useMemo(() => {
+    let total = 0
+    for (const group of groups) {
+      for (const item of group.items) total += (item.deposit || 0)
+    }
+    return total
+  }, [groups])
+  const effectiveGrandDeposit = depositWaived ? 0 : grandDeposit
+
   // #1867: pick + upload the signed recommendation letter photo (weapp picker)
   const handleLetterUpload = () => {
     Taro.chooseImage({
@@ -1130,6 +1140,13 @@ function BatchCheckout({ nav }) {
               )
             })}
           </View>
+
+          {/* #2299: 批量结算 D1 物流费提醒（与单件同构，按合计有效押金判定） */}
+          <Text style={{ width: '100%', fontSize: 13, color: '#ef4444', fontWeight: 500, marginTop: 8, lineHeight: '18px', display: 'block' }}>
+            {effectiveGrandDeposit === 0
+              ? t('尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时我们将选择顺丰快递到付且保价，请注意检查乐器状态后方可支付运费，谢谢您，祝您使用愉快！')
+              : t('尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时的物流费届时将从您的押金中扣除，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！')}
+          </Text>
 
           <View style={{ width: '100%', backgroundColor: '#fafafa', padding: 12, borderRadius: 12, fontSize: 11, color: '#a1a1aa', lineHeight: '20px' }}>
             {t("🔒 暖心提示：资产固定押金将在乐器归还、网点网管质检合格后，按原支付渠道原路退回至您的微信零钱。")}

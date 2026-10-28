@@ -952,6 +952,16 @@ function BatchCheckout({ navigate }) {
     return total
   }, [groups, depositWaived])
 
+  // #2299: 批量结算 D1 物流费提醒——按合计有效押金判定（与单件同构）
+  const grandDeposit = useMemo(() => {
+    let total = 0
+    for (const group of groups) {
+      for (const item of group.items) total += (item.deposit || 0)
+    }
+    return total
+  }, [groups])
+  const effectiveGrandDeposit = depositWaived ? 0 : grandDeposit
+
   const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-brand-primary'
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1'
 
@@ -1175,6 +1185,13 @@ function BatchCheckout({ navigate }) {
               )
             })}
           </View>
+
+          {/* #2299: 批量结算 D1 物流费提醒（与单件同构，按合计有效押金判定） */}
+          <Text className="block text-red-500 font-medium mt-2 leading-relaxed">
+            {effectiveGrandDeposit === 0
+              ? t("尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时我们将选择顺丰快递到付且保价，请注意检查乐器状态后方可支付运费，谢谢您，祝您使用愉快！")
+              : t("尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时的物流费届时将从您的押金中扣除，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！")}
+          </Text>
 
           <View className="w-full bg-zinc-50 p-3 rounded-xl text-zinc-400 leading-normal">
             {t("🔒 暖心提示：资产固定押金将在乐器归还、网点网管质检合格后，按原支付渠道原路退回至您的微信零钱。")}
