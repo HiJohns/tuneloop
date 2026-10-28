@@ -2994,7 +2994,9 @@ const handleSyncUsersFromIAM = async () => {
 > - 网点员工（weapp）：分段发运（实填本段物流费）| 待发回清单 | 发回（末段实填 → 触发结算）；「网点维修服务工作台」卡片仅 site 角色可见（#2084）
 > - **#2094 评价卡判定**：评价表单仅在 `closed` 且时间线含 `settled`（真结算）时显示；未支付超时置 `cancelled`（PaymentScheduler，时间线 `payment_timeout`）→ 详情显示「服务已关闭」信息卡（无误出的评价）
 > - **#2293 维修服务详情·维修师报价**：`/repair-service-detail` 在 `status='pending_quote' && technician_id` 且员工/技师视角时渲染「维修师报价」面板（修理费/料钱/物流费预估；共享 `RepairServiceQuoteForm`）；提交成功 → `pending_payment`，顾客侧「查看报价」可见。顾客视角不显示；无技师仍走「选择维修师」。
-> - **#2090 通知**：新服务流三处通知（创建→师傅 / 报价·加价→顾客）在消息中心渲染操作按钮：`repair_svc_quote`→「进入维修工作台」；`repair_svc_review`→「查看报价」；`repair_svc_adjust`→「查看加价并确认」（跳 `/repair-service-detail?order_id=…`）
+> - **#2090 通知**：新服务流通知（创建→师傅 / 报价·加价·拒绝→顾客或师傅 / 已寄出→师傅与商户管理员）在消息中心渲染操作按钮：`repair_svc_quote`→「进入维修工作台」；`repair_svc_review`→「查看报价」；`repair_svc_adjust`→「查看加价并确认」；`repair_svc_receive`/商户 `info`→「查看维修单」（均跳 `/repair-service-detail?order_id=…`）
+> - **#2297 维修服务详情·物流面板与角色**：`paid`（已支付·待寄出）顾客显示「寄出乐器」（收件地址/维修师/编码/物流公司/单号/确认寄出，RS-04）；`done_repair` 且 `isStaffView` 员工显示「寄回物流（顾客收件信息）+ 实际物流费 + 确认发回并结算」；`shipping` 员工收货拍照；`pending_repair` 员工开始；`repairing` 完成。顾客不显示员工面板；详情动作必须绑定当前维修单 ID，空 ID 不得发请求。
+> - **#2297 通知入口**：顾客已寄出 → 维修师 `repair_svc_receive`、商户管理员 `info`（`ref_type=repair_service`）均显示「查看维修单」，跳 `/repair-service-detail?order_id=…`；空 ID 不渲染按钮。
 > - PC 后台：维修服务全量列表 + 评价（评分/留言/照片）展示；**#2229：网点管理员**（`site_admin`）在「待报价」行可**转派**给本商户其他在册维修师（弹窗：目标师傅下拉 + **原因必填**；提示「先线下与顾客沟通同意」；转派留痕时间线/审计）；#2229 顾客信息完整展示（不脱敏——受控商户口径不适用）
 >
 > **#2050 角色互斥（入口门控，强制）**：

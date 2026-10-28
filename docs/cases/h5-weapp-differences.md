@@ -42,6 +42,7 @@
 | A16 | 收货（接收）交互 | **独立收货页** `StaffReceiveConfirm`（`/staff/receive`） | 订单详情**内联**收货 + 拍照 | 机制不同；**收货结果/图证流程须等价**（#2191 核对） |
 | A17 | 退款结果呈现 | 跳**退款页** `/payment?type=refund` | 结果 **Toast** 提示 | 机制不同；**退款结果须可见且一致**（#2191 核对） |
 | A18 | 续提回填范围（#2041 `resume_pending`） | 回填**续航天数 + 优惠码** | 仅回填**续航天数**（weapp Checkout 无优惠码功能） | 功能差异；续提核心（天数/失效校验/清理）两端须一致（#2201） |
+| A19 | 登录/资料完善页归属（#2244/#2300） | 无独立 weapp-only 登录/资料完善路由，协议同意在既有注册/登录流程中完成 | `pages-weapp/login`、`pages-weapp/profile-complete` 承载登录后资料完善/协议同意（共享 `AgreementCheckbox`） | 页面归属/流程差异；**两端「必选同意 + 阅读页/勾选流」语义须等价**（#2300 真机回评） |
 
 ### 2.1 已核对一致的行为（非差异，登记防回归）
 
@@ -64,6 +65,7 @@
 | C2 | ~~`user-warnings` 仅 H5 有（weapp 无）~~ **已决**：判定为 PC 后台功能，H5 端已移除（weapp 本无） | #2186 已清理 |
 | C3 | 双实现页漂移（Home/Profile/Checkout/MyLeases/Detail/Success） | 见 D1 收敛 Issue |
 | C4 | ~~H5-only 功能是否补到 weapp~~ **已决**：`lease-history`/`my-contracts`/`site-detail`/`transit-workflow` 确认为孤儿 → H5 移除（#2187–#2190）；`staff-order-detail` → 向 weapp 看齐（#2191） | #2187–#2191 |
+| C5 | H5 批量结算（`/checkout` 的 `BatchCheckout`）缺 D1「乐器往返物流费…顺丰快递到付…」提示；H5 单笔结算（`/checkout?id=` 的 `SingleCheckout`）与 weapp 有该提示。两端结算入口文案不等价，收敛中 | #2299 |
 
 ## 5. 维护
 

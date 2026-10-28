@@ -122,6 +122,14 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
   - 详情页需展示**寄件地址**（所选网点名称/地址/联系人/电话）→ `GET /api/user/repair-services/:id` 需返回 `site` 对象　**【RS-API-3，新增】**
   - `POST /api/user/repair-services/:id/ship {tracking_company, tracking_number}` → 状态 `shipping`
 
+### 角色 × 状态 × 物流面板（2026-10 实测补充）
+
+- 支付成功后状态为 **`paid`**，界面标签「已支付·待寄出」；不是 `pending_ship`。
+- **顾客**在 `paid` 时看到「**寄出乐器**」面板：收件地址（商户/网点）+ 收件人（维修师）+ 把 6 位维修编码写在物流单信息栏 + 物流公司/物流单号 + 「确认寄出」。这是 RS-04 顾客自寄，**不是员工面板**。
+- **员工/维修师**的「**寄回物流（顾客收件信息）** + 实际物流费 + 确认发回并结算」只在 `done_repair` 且 `isStaffView` 时出现；顾客不显示。
+- `shipping`：员工/维修师收货拍照（至少 1 张）→ `repairing`（维修师本人）或 `pending_repair`（商户员工代收）；`pending_repair` 后由维修师「开始维修」。
+- 详情页所有动作必须绑定当前维修单 ID（挂载时冻结/使用已加载的 `detail.repair.id`）；不得在重渲染后重新读取可能为空的页面参数，也不得为空 ID 发请求。
+
 ## RS-05 分段物流（网点/中转员工，weapp + PC 后台）
 
 - 每段发运时，经手员工**实填本段物流费**（报价预估为参考）
@@ -171,7 +179,7 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 
 ## RS-14 通知（#2090）
 
-> 新服务流的三处通知（此前 RS 流程完全无通知）。均带操作按钮，点击直达对应页面。
+> 新服务流通知（创建/报价/加价/拒绝/已寄出；此前 RS 流程完全无通知）。均带操作按钮，点击直达对应页面。
 
 | 触发 | 收件人 | 标题 | action_type | 按钮 → 跳转 |
 |------|--------|------|-------------|-------------|
@@ -179,7 +187,9 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 | 提交报价（`POST /repair-services/:id/quote`） | **顾客**（`localUserIDBySub(rr.UserID)`） | 您的维修单已报价 | `repair_svc_review` | 查看报价（`/repair-service-detail?order_id=…`） |
 | 加价申请（`POST /repair-services/:id/adjust`） | **顾客** | 维修单有新的加价申请 | `repair_svc_adjust` | 查看加价并确认（同详情页） |
 | 拒绝报价（`POST /user/repair-services/:id/quote/decline`） | **师傅** | 报价被拒绝 | `repair_svc_declined` | 查看维修单（详情页，已取消态） |
+| 顾客已寄出（`POST /user/repair-services/:id/ship`） | **维修师** / **商户管理员** | 顾客已寄出 | `repair_svc_receive` / `info` | 「查看维修单」→ `/repair-service-detail?order_id=…`（`ref_id` 或 `action_data.repair_id`） |
 
+- **「顾客已寄出」双收件人**：维修师 `repair_svc_receive`；商户管理员 `info` + `ref_type='repair_service'`（`action_data.repair_id`）。两端都必须有「查看维修单」入口；空 ID 不渲染按钮。
 - 通知经 `services.Notify` 创建（`type='repair'`、`ref_type='repair_service'`、`ref_id`＝维修单 ID）；`tenant_id` 为空时跳过不发（not null uuid）
 - 前端 `MessageDetail.jsx` 按 `action_type` 渲染按钮；两端导航（weapp `Taro.navigateTo` 完整路由 / H5 `navigate`）
 - 通知失败不阻断主流程（`Notify` 内部 log）
