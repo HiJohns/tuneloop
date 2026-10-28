@@ -110,15 +110,15 @@ export default function ProfileComplete() {
   }
 
   const handleRegister = async () => {
-    if (!name.trim()) { dialog.toast('请输入姓名'); return }
-    if (!phone.trim()) { dialog.toast('请输入手机号'); return }
-    if (!agreed) { dialog.toast('请阅读并同意《相关协议》'); return }
+    if (!name.trim()) { dialog.toast(t("请输入姓名")); return }
+    if (!phone.trim()) { dialog.toast(t("请输入手机号")); return }
+    if (!agreed) { dialog.toast(t("请阅读并同意《相关协议》")); return }
     // #1924: 身份证正反面必填（取消学生证豁免）；第二证件可选，类型由平台
     // 审核时指定（顾客提交时保持「未定」）。
     const frontReady = uploadedSides.front || !!idPhotoFrontRef.current?.hasFile()
     const backReady = uploadedSides.back || !!idPhotoBackRef.current?.hasFile()
     if (!frontReady || !backReady) {
-      dialog.toast('请先上传身份证正反面照片')
+      dialog.toast(t("请先上传身份证正反面照片"))
       return
     }
     setSaving(true)
@@ -204,7 +204,7 @@ export default function ProfileComplete() {
       }
       Taro.redirectTo({ url: `/pages-weapp/payment/index?type=membership&session_id=${sid}&amount=${amount}` })
     } catch (err) {
-      dialog.toast('网络错误, 请重试')
+      dialog.toast(t("网络错误, 请重试"))
     }
     setSaving(false)
   }
@@ -215,8 +215,8 @@ export default function ProfileComplete() {
 
   return (
     <View style={{ height: '100vh', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 32 }}>
-      <Text style={{ fontSize: 24, fontWeight: '900', color: '#000', marginBottom: 8, marginTop: 32 }}>注册账号</Text>
-      <Text style={{ fontSize: 14, color: '#a1a1aa', marginBottom: 24 }}>填写信息即可开始租赁</Text>
+      <Text style={{ fontSize: 24, fontWeight: '900', color: '#000', marginBottom: 8, marginTop: 32 }}>{t("注册账号")}</Text>
+      <Text style={{ fontSize: 14, color: '#a1a1aa', marginBottom: 24 }}>{t("填写信息即可开始租赁")}</Text>
 
       <View onClick={handleChooseAvatar}
         style={{ width: 72, height: 72, borderRadius: 999, backgroundColor: '#e4e4e7', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24, overflow: 'hidden' }}>
@@ -228,24 +228,24 @@ export default function ProfileComplete() {
       </View>
 
       <View style={{ width: '100%', display: 'flex', alignItems: 'center', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', marginBottom: 12 }}>
-        <Input placeholder="昵称" value={nickname} onInput={e => setNickname(e.detail.value)}
+        <Input placeholder={t("昵称")} value={nickname} onInput={e => setNickname(e.detail.value)}
           type="nickname"
           style={{ flex: 1, fontSize: 14, height: '20px', padding: 0 }} />
       </View>
       <View style={{ width: '100%', display: 'flex', alignItems: 'center', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', marginBottom: 12 }}>
-        <Input placeholder="姓名" value={name} onInput={e => setName(e.detail.value)}
+        <Input placeholder={t("姓名")} value={name} onInput={e => setName(e.detail.value)}
           style={{ flex: 1, fontSize: 14, height: '20px', padding: 0 }} />
       </View>
       <View style={{ width: '100%', display: 'flex', alignItems: 'center', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', marginBottom: 12 }}>
-        <Input placeholder="手机号" value={phone} onInput={e => setPhone(e.detail.value)}
+        <Input placeholder={t("手机号")} value={phone} onInput={e => setPhone(e.detail.value)}
           style={{ flex: 1, fontSize: 14, height: '20px', padding: 0 }} />
       </View>
       <View style={{ width: '100%', display: 'flex', alignItems: 'center', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', marginBottom: 24 }}>
-        <Input placeholder="邮箱（选填）" value={email} onInput={e => setEmail(e.detail.value)}
+        <Input placeholder={t("邮箱（选填）")} value={email} onInput={e => setEmail(e.detail.value)}
           style={{ flex: 1, fontSize: 14, height: '20px', padding: 0 }} />
       </View>
 
-      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', width: '100%', marginBottom: 12 }}>收货地址（选填）</Text>
+      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', width: '100%', marginBottom: 12 }}>{t("收货地址（选填）")}</Text>
       <View style={{ display: 'flex', width: '100%', marginBottom: 12 }}>
         <View style={{ flex: 1, marginRight: 8 }}>
           <Picker mode="selector" range={provinceNames} value={province ? provinceNames.indexOf(province) : 0}
@@ -275,17 +275,17 @@ export default function ProfileComplete() {
         )}
       </View>
       <View style={{ width: '100%', display: 'flex', alignItems: 'center', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', marginBottom: 12 }}>
-        <Input placeholder="详细地址" value={detail} onInput={e => setDetail(e.detail.value)}
+        <Input placeholder={t("详细地址")} value={detail} onInput={e => setDetail(e.detail.value)}
           style={{ flex: 1, fontSize: 14, height: '20px', padding: 0 }} />
       </View>
       <View style={{ width: '100%', display: 'flex', alignItems: 'center', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', marginBottom: 24 }}>
-        <Input placeholder="邮编（选填）" value={postalCode} onInput={e => setPostalCode(e.detail.value)}
+        <Input placeholder={t("邮编（选填）")} value={postalCode} onInput={e => setPostalCode(e.detail.value)}
           style={{ flex: 1, fontSize: 14, height: '20px', padding: 0 }} />
       </View>
 
       {/* #1845: 默认身份证必填；选择「学生证」类型并已传学生证后提示可豁免 */}
       <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', width: '100%', marginBottom: 12 }}>
-        身份证照片<Text style={{ color: '#ef4444' }}>（必填）</Text>
+        {t("身份证照片")}<Text style={{ color: '#ef4444' }}>{t("（必填）")}</Text>
       </Text>
       {/* #1807: 正反面一行（各 ~48%） */}
       <View style={{ display: 'flex', width: '100%', marginBottom: 12, justifyContent: 'space-between' }}>
@@ -297,13 +297,13 @@ export default function ProfileComplete() {
         </View>
       </View>
       {/* #1924: 第二证件可选；类型不再由顾客指定（审核时由平台员工指定） */}
-      <Text style={{ fontSize: 14, fontWeight: '600', color: '#000', width: '100%', marginBottom: 4 }}>第二证件照（可选）</Text>
+      <Text style={{ fontSize: 14, fontWeight: '600', color: '#000', width: '100%', marginBottom: 4 }}>{t("第二证件照（可选）")}</Text>
       <Text style={{ fontSize: 12, color: '#a16207', width: '100%', marginBottom: 8, lineHeight: '18px' }}>
-        （学生证/教职工证/工作证等；类型由平台审核时指定，可用于免押金等政策）
+        {t("（学生证/教职工证/工作证等；类型由平台审核时指定，可用于免押金等政策）")}
       </Text>
       {/* #2044: 审核提示（上传后用户不知会送审） */}
       <Text style={{ fontSize: 12, color: '#71717a', width: '100%', marginBottom: 24, lineHeight: '18px' }}>
-        实名信息将由平台审核；完成微信核身的可即时生效，人工审核约需 1-2 个工作日，结果将通过系统消息通知您。
+        {t("实名信息将由平台审核；完成微信核身的可即时生效，人工审核约需 1-2 个工作日，结果将通过系统消息通知您。")}
       </Text>
 
       <View style={{ display: 'flex', width: '100%', marginBottom: 24 }}>
@@ -319,13 +319,13 @@ export default function ProfileComplete() {
       </View>
       {(resumeSid || sessionAmount > 0) && (
         <Text style={{ fontSize: 12, color: '#a1a1aa', textAlign: 'center', display: 'block', marginBottom: 8 }}>
-          会员费 ¥{formatCents(Number(sessionAmount))}{resumeSid ? '（已创建支付会话）' : ''}
+          {t("会员费 ¥")}{formatCents(Number(sessionAmount))}{resumeSid ? '（已创建支付会话）' : ''}
         </Text>
       )}
       {mode !== 'member' && (
-        <Text style={{ fontSize: 14, color: '#a1a1aa', textAlign: 'center', display: 'block', marginBottom: 8 }} onClick={goAccountSelect}>用户名密码登录</Text>
+        <Text style={{ fontSize: 14, color: '#a1a1aa', textAlign: 'center', display: 'block', marginBottom: 8 }} onClick={goAccountSelect}>{t("用户名密码登录")}</Text>
       )}
-      <Text style={{ fontSize: 14, color: '#a1a1aa', textAlign: 'center', display: 'block' }} onClick={() => Taro.navigateBack()}>返回</Text>
+      <Text style={{ fontSize: 14, color: '#a1a1aa', textAlign: 'center', display: 'block' }} onClick={() => Taro.navigateBack()}>{t("返回")}</Text>
     </View>
   )
 }

@@ -17,6 +17,7 @@ import fs from 'fs'
 import path from 'path'
 import { fileURLToPath, pathToFileURL } from 'url'
 import { createRequire } from 'module'
+import { mergeLocale } from './i18n-merge.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(pathToFileURL(path.join(ROOT, 'frontend-mobile/package.json')))
@@ -179,6 +180,7 @@ for (const file of files) {
       const inArg = parent && (parent.isCallExpression() || parent.isJSXExpressionContainer() || parent.isReturnStatement())
       if (!inArg) return
       left.__file = rel
+      p.node.__file = rel
       const key = left.value + '{msg}'
       collect(left, key)
       const rightSrc = src.slice(p.node.right.start, p.node.right.end)
@@ -201,9 +203,10 @@ if (WRITE && edits.length) {
     for (const e of list) s = s.slice(0, e.start) + e.text + s.slice(e.end)
     fs.writeFileSync(abs, s)
   }
-  // 重建清单（源串即 key）
-  const inv = {}
-  for (const k of [...keys].sort()) inv[k] = k
+  // 合并写回（保留既有 key，避免单文件覆盖整本字典；#2298）
+  let existing = {}
+  try { existing = JSON.parse(fs.readFileSync(ZH_JSON, 'utf8')) } catch {}
+  const inv = mergeLocale(existing, [...keys])
   fs.writeFileSync(ZH_JSON, JSON.stringify(inv, null, 2) + '\n')
 }
 

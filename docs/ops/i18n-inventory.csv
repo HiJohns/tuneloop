@@ -1,5 +1,6 @@
-﻿end,file,line,text
+end,file,line,text
 mobile,frontend-mobile/src/App-H5.jsx,223,正在完成登录...
+mobile,frontend-mobile/src/components-weapp/ErrorBoundary.jsx,12,渲染错误:
 mobile,frontend-mobile/src/components/AddressManager.jsx,42,请填写收货人
 mobile,frontend-mobile/src/components/AddressManager.jsx,43,请填写手机号
 mobile,frontend-mobile/src/components/AddressManager.jsx,44,邮编格式不正确，请输入6位数字
@@ -23,6 +24,8 @@ mobile,frontend-mobile/src/components/AddressManager.jsx,184,详细地址
 mobile,frontend-mobile/src/components/AddressManager.jsx,185,邮编
 mobile,frontend-mobile/src/components/AddressManager.jsx,190,取消
 mobile,frontend-mobile/src/components/AddressManager.jsx,198,"暂无地址，点击上方""+ 新地址""添加"
+mobile,frontend-mobile/src/components/AgreementCheckbox.jsx,75,我已阅读并同意所有「
+mobile,frontend-mobile/src/components/AgreementCheckbox.jsx,76,相关协议
 mobile,frontend-mobile/src/components/FaceCaptureUploader.jsx,101,视频保存失败，仅照片已提交，请稍后重试
 mobile,frontend-mobile/src/components/FaceCaptureUploader.jsx,118,视频保存失败，仅照片已提交，请稍后重试
 mobile,frontend-mobile/src/components/FaceCaptureUploader.jsx,142,人脸采样（必填）
@@ -71,44 +74,338 @@ mobile,frontend-mobile/src/components/RepairRecordPanel.jsx,148,添加记录
 mobile,frontend-mobile/src/components/RepairRecordPanel.jsx,150,输入评论...
 mobile,frontend-mobile/src/components/RepairRecordPanel.jsx,154,+ 照片（
 mobile,frontend-mobile/src/components/RepairRecordPanel.jsx,157,+ 照片（
+mobile,frontend-mobile/src/components/RepairServiceQuoteForm.jsx,30,请填写正确的修理费
+mobile,frontend-mobile/src/components/RepairServiceQuoteForm.jsx,31,请填写正确的料钱
+mobile,frontend-mobile/src/components/RepairServiceQuoteForm.jsx,32,请填写正确的物流费预估
+mobile,frontend-mobile/src/components/RepairServiceQuoteForm.jsx,46,报价已提交，等待用户支付
+mobile,frontend-mobile/src/components/RepairServiceQuoteForm.jsx,59,修理费（元）
+mobile,frontend-mobile/src/components/RepairServiceQuoteForm.jsx,61,如 200
+mobile,frontend-mobile/src/components/RepairServiceQuoteForm.jsx,62,料钱（元；材料/配件费，可空）
+mobile,frontend-mobile/src/components/RepairServiceQuoteForm.jsx,64,如 30
+mobile,frontend-mobile/src/components/RepairServiceQuoteForm.jsx,65,物流费预估（元）
+mobile,frontend-mobile/src/components/RepairServiceQuoteForm.jsx,67,如 50
 mobile,frontend-mobile/src/components/StaffIdPhotoViewer.jsx,50,身份证
 mobile,frontend-mobile/src/components/StaffIdPhotoViewer.jsx,57,身份证正面
 mobile,frontend-mobile/src/components/StaffIdPhotoViewer.jsx,59,正面
 mobile,frontend-mobile/src/components/StaffIdPhotoViewer.jsx,67,身份证背面
 mobile,frontend-mobile/src/components/StaffIdPhotoViewer.jsx,69,背面
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,151,请填写正确的修理费
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,152,请填写正确的料钱
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,153,请填写正确的物流费预估
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,163,报价已提交，等待用户支付
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,178,请填写正确的新修理费总价
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,179,请填写正确的到此为止修理费
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,180,到此为止修理费不能超过新总价
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,206,收货拍照请在小程序中操作
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,210,请先拍照留档
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,254,已开始维修
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,274,已完工，等待网点发回
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,302,编码
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,312,提交人：
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,347,修理费（元）
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,349,如 200
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,350,料钱（元；材料/配件费，可空）
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,352,如 30
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,353,物流费预估（元）
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,355,如 50
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,374,收货拍照（可拍多张，至少 1 张后统一提交）
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,398,发起加价（收货后维修中方可发起）
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,399,新修理费总价（元）
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,401,如 300
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,402,到此为止修理费（元，用户不继续时按此结算）
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,404,如 50
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,418,列表范围：最近 30 天
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,420,列表拉取失败
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,421,网络异常或登录态失效，请检查网络后重试。
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,446,列表范围：最近 30 天
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,447,刷新
-mobile,frontend-mobile/src/components/TechRepairSections.jsx,478,加载中...
+mobile,frontend-mobile/src/components/TechRepairSections.jsx,149,请填写正确的新修理费总价
+mobile,frontend-mobile/src/components/TechRepairSections.jsx,150,请填写正确的到此为止修理费
+mobile,frontend-mobile/src/components/TechRepairSections.jsx,151,到此为止修理费不能超过新总价
+mobile,frontend-mobile/src/components/TechRepairSections.jsx,177,收货拍照请在小程序中操作
+mobile,frontend-mobile/src/components/TechRepairSections.jsx,181,请先拍照留档
+mobile,frontend-mobile/src/components/TechRepairSections.jsx,225,已开始维修
+mobile,frontend-mobile/src/components/TechRepairSections.jsx,245,已完工，等待网点发回
+mobile,frontend-mobile/src/components/TechRepairSections.jsx,273,编码
+mobile,frontend-mobile/src/components/TechRepairSections.jsx,283,提交人：
+mobile,frontend-mobile/src/components/TechRepairSections.jsx,336,收货拍照（可拍多张，至少 1 张后统一提交）
+mobile,frontend-mobile/src/components/TechRepairSections.jsx,360,发起加价（收货后维修中方可发起）
+mobile,frontend-mobile/src/components/TechRepairSections.jsx,361,新修理费总价（元）
+mobile,frontend-mobile/src/components/TechRepairSections.jsx,363,如 300
+mobile,frontend-mobile/src/components/TechRepairSections.jsx,364,到此为止修理费（元，用户不继续时按此结算）
+mobile,frontend-mobile/src/components/TechRepairSections.jsx,366,如 50
+mobile,frontend-mobile/src/components/TechRepairSections.jsx,380,列表范围：最近 30 天
+mobile,frontend-mobile/src/components/TechRepairSections.jsx,382,列表拉取失败
+mobile,frontend-mobile/src/components/TechRepairSections.jsx,383,网络异常或登录态失效，请检查网络后重试。
+mobile,frontend-mobile/src/components/TechRepairSections.jsx,408,列表范围：最近 30 天
+mobile,frontend-mobile/src/components/TechRepairSections.jsx,409,刷新
+mobile,frontend-mobile/src/components/TechRepairSections.jsx,440,加载中...
 mobile,frontend-mobile/src/components/VerifyWarningBar.jsx,37,去核身
-mobile,frontend-mobile/src/components-weapp/ErrorBoundary.jsx,12,渲染错误:
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,84,乐器信息加载中，请稍候
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,185,加载中...
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,189,乐器不存在
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,275,日租 ¥
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,276,/日
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,280,押金 ¥
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,319,规格参数
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,330,暂无规格参数
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,337,定价策略
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,344,/天
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,352,押金
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,358,物流费
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,366,合计金额
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,367,预付全款租金 + 固定押金 + 往返运费
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,371,⚠️ 逾期后每日自动扣款 ¥
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,372,/日；押金归还质检通过后退还
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,383,租购转化
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,396,操作日志
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,454,立即租赁
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,461,乐器可租赁
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,462,当前乐器可供租赁
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,467,租赁中
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,468,租期：
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,469,至
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,472,超期
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,473,天
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,481,归还乐器
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,487,归还中
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,488,该乐器正在归还流程中
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,489,租期：
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,490,至
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,493,押金已退还
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,498,已预约
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,499,租期：
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,500,至
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,505,乐器物流中
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,506,该乐器正在运输途中
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,512,确认收货
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,518,已超期
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,519,租期：
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,520,至
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,523,超期
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,524,天
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,532,归还乐器
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,538,乐器物流中
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,539,该乐器正在运输途中
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,545,确认收货
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,552,该乐器目前不可租赁
+mobile,frontend-mobile/src/pages-weapp/Detail.jsx,553,乐器已被预约，暂时无法租赁
+mobile,frontend-mobile/src/pages-weapp/Home.jsx,107,租赁中
+mobile,frontend-mobile/src/pages-weapp/Home.jsx,379,搜索乐器
+mobile,frontend-mobile/src/pages-weapp/Home.jsx,664,暂无乐器
+mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,129,取消订单
+mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,129,确认取消该订单？取消后不可恢复。
+mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,180,加载中...
+mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,184,暂无租约
+mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,205,订单 #
+mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,216,乐器:
+mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,222,下单日:
+mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,227,总金额:
+mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,232,含运费 ¥
+mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,245,支付
+mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,253,确认收货
+mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,264,归还
+mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,272,接收
+mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,280,发货
+mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,288,取消订单
+mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,294,等待处理
+mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,306,加载更多...
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,50,网络错误: {msg}
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,58,编辑资料
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,61,姓名
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,65,手机
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,69,邮箱
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,75,取消
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,386,加载中...
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,440,退出登录
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,447,切换身份
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,464,待付款
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,468,服务中
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,472,维修中
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,485,待报价
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,491,维修中
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,497,已完成
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,503,系统通知
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,513,订单管理
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,519,乐器管理
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,525,接收
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,531,发货
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,539,待报价
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,545,中转工作台
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,558,租赁记录
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,564,维修记录
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,571,待支付
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,578,服务中
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,591,平台规则
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,601,会员中心
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,611,个人资料
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,621,系统通知
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,624,条未读
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,634,申请发票
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,644,加入商户
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,653,商务合作
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,661,联系我们
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,669,关于
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,692,待提交订单
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,694,加载中...
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,696,暂无待提交订单
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,699,乐器：
+mobile,frontend-mobile/src/pages-weapp/Profile.jsx,703,取消
+mobile,frontend-mobile/src/pages-weapp/Success.jsx,49,验证支付状态...
+mobile,frontend-mobile/src/pages-weapp/Success.jsx,61,支付异常
+mobile,frontend-mobile/src/pages-weapp/Success.jsx,63,查看订单详情
+mobile,frontend-mobile/src/pages-weapp/Success.jsx,75,付款完成！
+mobile,frontend-mobile/src/pages-weapp/Success.jsx,76,感谢您的租赁，祝您使用愉快
+mobile,frontend-mobile/src/pages-weapp/Success.jsx,80,返回首页
+mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,89,登录状态失效，请重试
+mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,101,网络错误，请重试
+mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,152,网络错误，请重试
+mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,159,请输入账号和密码
+mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,195,网络错误，请重试
+mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,205,加载中...
+mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,211,该微信关联了
+mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,211,个身份
+mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,239,注册为顾客
+mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,240,使用微信注册顾客身份
+mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,255,用户名 / 手机号 / 邮箱
+mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,257,密码
+mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,267,返回
+mobile,frontend-mobile/src/pages-weapp/bind/Bind.jsx,53,正在绑定...
+mobile,frontend-mobile/src/pages-weapp/bind/Bind.jsx,57,绑定成功
+mobile,frontend-mobile/src/pages-weapp/bind/Bind.jsx,58,PC 端将自动刷新
+mobile,frontend-mobile/src/pages-weapp/bind/Bind.jsx,59,返回
+mobile,frontend-mobile/src/pages-weapp/bind/Bind.jsx,67,绑定失败
+mobile,frontend-mobile/src/pages-weapp/bind/Bind.jsx,68,请重试
+mobile,frontend-mobile/src/pages-weapp/bind/Bind.jsx,69,返回
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,164,取消订单
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,164,确认取消该订单？取消后不可恢复。
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,199,订单不存在
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,211,确认收货成功
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,229,确认执行退款
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,229,将按结算差额退回现金与赠点。
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,237,退款成功
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,249,确认取消订单
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,249,取消后不可恢复，已付款将原路退回。
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,258,订单已取消
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,290,已接受定损
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,324,已提交申诉
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,338,加载中...
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,345,订单不存在
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,435,订单编号
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,449,租约已超期
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,450,超期
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,451,天 · 累计逾期费 ¥
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,453,/天）
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,482,配送信息
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,485,👤 下单人
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,494,🏪 中转网点
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,505,📍 地址
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,536,费用明细
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,541,实付部分
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,554,优惠券抵扣
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,569,优惠券抵扣
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,573,合计实付
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,575,应付部分
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,576,实际租金
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,586,优惠券抵扣
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,596,物流费
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,598,实际应付
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,600,（折后）应付
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,605,结算差额
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,619,实付金额
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,627,优惠券抵扣
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,631,实付合计
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,638,实际租期
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,639,实际租期
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,646,退款
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,648,现金退款
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,651,退回预付点
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,654,赠送乐币退还
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,656,退款合计
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,663,结算状态
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,665,退款方式
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,669,退款状态
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,680,需补缴
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,686,去补缴 ¥
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,696,收支记录
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,704,优惠券抵扣
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,714,净支出
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,722,定损费用预览
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,724,实际租期
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,727,实际租金
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,734,退款
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,737,应补缴
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,749,合同快照
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,766,阶梯定价
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,773,第
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,774,阶
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,774,天: ¥
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,774,/天 ×
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,774,天
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,785,租金小计 ¥
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,793,折
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,801,日租金
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,803,原价
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,805,合同租期（天）
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,806,租金
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,814,押金
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,827,押金
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,829,物流费
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,839,担保人信息
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,849,暂无担保人信息
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,855,✍️ 推荐信
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,856,点击查看
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,867,本订单为免押金订单
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,869,请核实以下担保人信息，若担保人不符合要求应取消订单：
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,885,收货拍照留档
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,886,请拍摄乐器到达时的状态
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,894,订单动态
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,931,加载更多
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,940,定损信息
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,941,定损金额
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,943,定损说明
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,945,定损说明
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,966,接受
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,972,拒绝
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,986,去支付 ¥
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,1000,📦 发货
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,1011,🚚 接收并转发
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,1015,📦 代收货
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,1019,↩️ 接收
+mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,1070,↩️ 归还
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,144,保存成功
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,148,保存成功
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,156,网络错误
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,167,获取微信登录凭证失败
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,176,发现您已使用此微信号注册有账户，将合并：当前账户的组织关系与密码将迁移至该微信账户，当前账户作废并需重新登录。是否继续？
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,178,已放弃绑定该微信号
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,189,账户已合并，请重新登录
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,205,微信绑定成功
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,210,网络错误
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,226,姓名
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,232,昵称
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,238,手机号
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,244,邮箱
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,250,身份证照片
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,261,第二证件照（可选，请选择证件类型）
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,273,介绍信（学生证必传）
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,293,请先上传身份证正反面，再上传第二证件
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,300,实名认证
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,303,✅ 已认证
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,304,姓名：
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,305,身份证：
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,306,认证时间：
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,310,⚠️ 实名认证审核中
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,311,已提交人脸采样，平台员工审核通过后即完成实名认证（人工审核约需 1-2 个工作日；如页面提供微信自动核身，完成后即时生效）。
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,319,⚠️ 尚未完成实名认证
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,320,请先上传身份证照片
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,322,去上传身份证 👉
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,327,⚠️ 审核未通过
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,328,请重新发起人脸识别
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,330,发起人脸识别 👉
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,335,⚠️ 已上传身份证照片
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,336,请完成人脸识别
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,338,发起人脸识别 👉
+mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,348,微信账户
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,110,加载中...
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,111,订单不存在
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,128,下单日
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,129,原预期归还
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,131,超期
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,131,天（续期需覆盖）
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,137,续期设置
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,139,已超期，最少续期
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,139,天
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,152,天
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,158,自定义:
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,162,天数
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,167,天
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,170,预期归还日:
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,176,费用明细
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,181,第
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,181,阶
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,181,天 · ¥
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,181,/天
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,186,续期费
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,190,合计
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,193,新到期日:
+mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,195,当前订单定价数据不完整，请联系管理员
+mobile,frontend-mobile/src/pages-weapp/search/Search.jsx,43,搜索乐器 SN
+mobile,frontend-mobile/src/pages-weapp/search/Search.jsx,44,搜索
+mobile,frontend-mobile/src/pages-weapp/search/Search.jsx,51,历史搜索
+mobile,frontend-mobile/src/pages-weapp/search/Search.jsx,60,搜索中...
+mobile,frontend-mobile/src/pages-weapp/search/Search.jsx,69,/日
+mobile,frontend-mobile/src/pages-weapp/search/Search.jsx,74,未找到匹配的乐器
 mobile,frontend-mobile/src/pages/About.jsx,61,关于
 mobile,frontend-mobile/src/pages/About.jsx,74,本页用于版本归属核对：小程序版本为前端构建标识，服务器版本由后端 /api/config 提供。
 mobile,frontend-mobile/src/pages/Cart.jsx,281,确定要删除该乐器吗？
@@ -130,140 +427,8 @@ mobile,frontend-mobile/src/pages/Cart.jsx,466,📞 电话:
 mobile,frontend-mobile/src/pages/Cart.jsx,470,网点小计
 mobile,frontend-mobile/src/pages/Cart.jsx,485,合计总额
 mobile,frontend-mobile/src/pages/Cart.jsx,495,去结算
-mobile,frontend-mobile/src/pages/Checkout.jsx,165,该乐器已被租出，暂存的待提交订单已失效
-mobile,frontend-mobile/src/pages/Checkout.jsx,235,优惠码校验失败
-mobile,frontend-mobile/src/pages/Checkout.jsx,264,请填写担保人姓名和电话
-mobile,frontend-mobile/src/pages/Checkout.jsx,268,请填写18位身份证号
-mobile,frontend-mobile/src/pages/Checkout.jsx,272,请上传身份证正面照
-mobile,frontend-mobile/src/pages/Checkout.jsx,276,请上传身份证反面照
-mobile,frontend-mobile/src/pages/Checkout.jsx,280,请上传其他证件照（学生证/工作证）
-mobile,frontend-mobile/src/pages/Checkout.jsx,305,担保人已保存
-mobile,frontend-mobile/src/pages/Checkout.jsx,307,保存失败: {msg}
-mobile,frontend-mobile/src/pages/Checkout.jsx,310,保存失败: {msg}
-mobile,frontend-mobile/src/pages/Checkout.jsx,328,上传失败: {msg}
-mobile,frontend-mobile/src/pages/Checkout.jsx,332,请先登录才能下单
-mobile,frontend-mobile/src/pages/Checkout.jsx,334,免押金订单需至少选择 2 位担保人
-mobile,frontend-mobile/src/pages/Checkout.jsx,344,免押金订单需上传签名的推荐信照片，模板可在免押金区块下载
-mobile,frontend-mobile/src/pages/Checkout.jsx,349,请选择收货地址
-mobile,frontend-mobile/src/pages/Checkout.jsx,353,请填写收货人
-mobile,frontend-mobile/src/pages/Checkout.jsx,415,下单失败: {msg}
-mobile,frontend-mobile/src/pages/Checkout.jsx,418,下单失败: {msg}
-mobile,frontend-mobile/src/pages/Checkout.jsx,426,加载中...
-mobile,frontend-mobile/src/pages/Checkout.jsx,427,乐器不存在
-mobile,frontend-mobile/src/pages/Checkout.jsx,433,确认订单
-mobile,frontend-mobile/src/pages/Checkout.jsx,440,租赁乐器
-mobile,frontend-mobile/src/pages/Checkout.jsx,449,商户: 合作商户（中转发货）
-mobile,frontend-mobile/src/pages/Checkout.jsx,450,中转地址:
-mobile,frontend-mobile/src/pages/Checkout.jsx,452,网点:
-mobile,frontend-mobile/src/pages/Checkout.jsx,459,租期选择
-mobile,frontend-mobile/src/pages/Checkout.jsx,479,天
-mobile,frontend-mobile/src/pages/Checkout.jsx,482,预计归还:
-mobile,frontend-mobile/src/pages/Checkout.jsx,484,· 阶梯计价
-mobile,frontend-mobile/src/pages/Checkout.jsx,489,费用明细
-mobile,frontend-mobile/src/pages/Checkout.jsx,494,租金 (
-mobile,frontend-mobile/src/pages/Checkout.jsx,494,天)
-mobile,frontend-mobile/src/pages/Checkout.jsx,498,押金
-mobile,frontend-mobile/src/pages/Checkout.jsx,500,¥0（免押金）
-mobile,frontend-mobile/src/pages/Checkout.jsx,502,(日租金×倍率)
-mobile,frontend-mobile/src/pages/Checkout.jsx,511,阶梯定价
-mobile,frontend-mobile/src/pages/Checkout.jsx,520,/天
-mobile,frontend-mobile/src/pages/Checkout.jsx,533,优惠码（选填）
-mobile,frontend-mobile/src/pages/Checkout.jsx,548,优惠(
-mobile,frontend-mobile/src/pages/Checkout.jsx,555,合计
-mobile,frontend-mobile/src/pages/Checkout.jsx,558,租金 ¥
-mobile,frontend-mobile/src/pages/Checkout.jsx,558,+ 押金 ¥
-mobile,frontend-mobile/src/pages/Checkout.jsx,561,尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时我们将选择快递到付且保价，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！
-mobile,frontend-mobile/src/pages/Checkout.jsx,564,尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时的物流费届时将从您的押金中扣除，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！
-mobile,frontend-mobile/src/pages/Checkout.jsx,573,免押金租赁
-mobile,frontend-mobile/src/pages/Checkout.jsx,593,应提供两位担保人的联系方式。我们的员工将会与他们联系确认，若担保人不符合要求，订单将被取消并退款。
-mobile,frontend-mobile/src/pages/Checkout.jsx,603,推荐信
-mobile,frontend-mobile/src/pages/Checkout.jsx,606,下载推荐信模板
-mobile,frontend-mobile/src/pages/Checkout.jsx,618,打印模板 → 推荐人签名 → 拍照上传
-mobile,frontend-mobile/src/pages/Checkout.jsx,624,担保人信息
-mobile,frontend-mobile/src/pages/Checkout.jsx,625,已选
-mobile,frontend-mobile/src/pages/Checkout.jsx,653,姓名
-mobile,frontend-mobile/src/pages/Checkout.jsx,654,联系电话
-mobile,frontend-mobile/src/pages/Checkout.jsx,657,工作单位
-mobile,frontend-mobile/src/pages/Checkout.jsx,660,职务
-mobile,frontend-mobile/src/pages/Checkout.jsx,663,地址（选填）
-mobile,frontend-mobile/src/pages/Checkout.jsx,667,18位身份证号
-mobile,frontend-mobile/src/pages/Checkout.jsx,671,身份证正面*
-mobile,frontend-mobile/src/pages/Checkout.jsx,675,身份证反面*
-mobile,frontend-mobile/src/pages/Checkout.jsx,679,其他证件*
-mobile,frontend-mobile/src/pages/Checkout.jsx,695,取消
-mobile,frontend-mobile/src/pages/Checkout.jsx,704,新增担保人
-mobile,frontend-mobile/src/pages/Checkout.jsx,712,收货地址
-mobile,frontend-mobile/src/pages/Checkout.jsx,735,默认
-mobile,frontend-mobile/src/pages/Checkout.jsx,746,收货人
-mobile,frontend-mobile/src/pages/Checkout.jsx,747,姓名
-mobile,frontend-mobile/src/pages/Checkout.jsx,750,电话
-mobile,frontend-mobile/src/pages/Checkout.jsx,751,手机号
-mobile,frontend-mobile/src/pages/Checkout.jsx,756,省
-mobile,frontend-mobile/src/pages/Checkout.jsx,760,市
-mobile,frontend-mobile/src/pages/Checkout.jsx,767,区
-mobile,frontend-mobile/src/pages/Checkout.jsx,777,详细地址
-mobile,frontend-mobile/src/pages/Checkout.jsx,780,邮编
-mobile,frontend-mobile/src/pages/Checkout.jsx,780,请输入6位数字邮编
-mobile,frontend-mobile/src/pages/Checkout.jsx,783,设置为我的收货地址
-mobile,frontend-mobile/src/pages/Checkout.jsx,794,使用新地址
-mobile,frontend-mobile/src/pages/Checkout.jsx,801,选择已有地址
-mobile,frontend-mobile/src/pages/Checkout.jsx,808,租赁须知
-mobile,frontend-mobile/src/pages/Checkout.jsx,810,· 提交即生成订单，需在10分钟内完成支付
-mobile,frontend-mobile/src/pages/Checkout.jsx,811,· 超时未支付订单将自动取消
-mobile,frontend-mobile/src/pages/Checkout.jsx,812,· 发货前可取消订单免手续费
-mobile,frontend-mobile/src/pages/Checkout.jsx,813,· 押金在归还验收后原路退还
-mobile,frontend-mobile/src/pages/Checkout.jsx,820,应付总额
-mobile,frontend-mobile/src/pages/Checkout.jsx,956,请填写担保人姓名和电话
-mobile,frontend-mobile/src/pages/Checkout.jsx,960,请填写18位身份证号
-mobile,frontend-mobile/src/pages/Checkout.jsx,977,担保人已保存
-mobile,frontend-mobile/src/pages/Checkout.jsx,979,保存失败: {msg}
-mobile,frontend-mobile/src/pages/Checkout.jsx,982,保存失败: {msg}
-mobile,frontend-mobile/src/pages/Checkout.jsx,1000,上传失败: {msg}
-mobile,frontend-mobile/src/pages/Checkout.jsx,1004,请先登录才能下单
-mobile,frontend-mobile/src/pages/Checkout.jsx,1007,免押金订单需至少选择 2 位担保人
-mobile,frontend-mobile/src/pages/Checkout.jsx,1017,免押金订单需上传签名的推荐信照片，模板可在免押金区块下载
-mobile,frontend-mobile/src/pages/Checkout.jsx,1022,请选择收货地址
-mobile,frontend-mobile/src/pages/Checkout.jsx,1026,请填写收货人
-mobile,frontend-mobile/src/pages/Checkout.jsx,1072,下单成功，但未生成订单
-mobile,frontend-mobile/src/pages/Checkout.jsx,1087,下单失败: {msg}
-mobile,frontend-mobile/src/pages/Checkout.jsx,1090,下单失败: {msg}
-mobile,frontend-mobile/src/pages/Checkout.jsx,1098,购物车为空
-mobile,frontend-mobile/src/pages/Checkout.jsx,1107,确认支付
-mobile,frontend-mobile/src/pages/Checkout.jsx,1159,天 · ¥
-mobile,frontend-mobile/src/pages/Checkout.jsx,1168,小计 ¥
-mobile,frontend-mobile/src/pages/Checkout.jsx,1175,🔒 暖心提示：资产固定押金将在乐器归还、网点网管质检合格后，按原支付渠道原路退回至您的微信零钱。
-mobile,frontend-mobile/src/pages/Checkout.jsx,1181,免押金租赁
-mobile,frontend-mobile/src/pages/Checkout.jsx,1201,应提供两位担保人的联系方式。我们的员工将会与他们联系确认，若担保人不符合要求，订单将被取消并退款。
-mobile,frontend-mobile/src/pages/Checkout.jsx,1209,✍️ 推荐信
-mobile,frontend-mobile/src/pages/Checkout.jsx,1212,下载推荐信模板
-mobile,frontend-mobile/src/pages/Checkout.jsx,1224,打印模板 → 推荐人签名 → 拍照上传
-mobile,frontend-mobile/src/pages/Checkout.jsx,1229,🛡 担保人信息
-mobile,frontend-mobile/src/pages/Checkout.jsx,1230,已选
-mobile,frontend-mobile/src/pages/Checkout.jsx,1258,姓名
-mobile,frontend-mobile/src/pages/Checkout.jsx,1259,联系电话
-mobile,frontend-mobile/src/pages/Checkout.jsx,1262,工作单位
-mobile,frontend-mobile/src/pages/Checkout.jsx,1265,职务
-mobile,frontend-mobile/src/pages/Checkout.jsx,1268,地址（选填）
-mobile,frontend-mobile/src/pages/Checkout.jsx,1282,取消
-mobile,frontend-mobile/src/pages/Checkout.jsx,1287,+ 新增担保人
-mobile,frontend-mobile/src/pages/Checkout.jsx,1293,📍 收货地址
-mobile,frontend-mobile/src/pages/Checkout.jsx,1314,默认
-mobile,frontend-mobile/src/pages/Checkout.jsx,1325,收货人
-mobile,frontend-mobile/src/pages/Checkout.jsx,1326,姓名
-mobile,frontend-mobile/src/pages/Checkout.jsx,1329,电话
-mobile,frontend-mobile/src/pages/Checkout.jsx,1330,手机号
-mobile,frontend-mobile/src/pages/Checkout.jsx,1335,省
-mobile,frontend-mobile/src/pages/Checkout.jsx,1339,市
-mobile,frontend-mobile/src/pages/Checkout.jsx,1346,区
-mobile,frontend-mobile/src/pages/Checkout.jsx,1356,详细地址
-mobile,frontend-mobile/src/pages/Checkout.jsx,1359,邮编
-mobile,frontend-mobile/src/pages/Checkout.jsx,1359,请输入6位数字邮编
-mobile,frontend-mobile/src/pages/Checkout.jsx,1362,设置为我的收货地址
-mobile,frontend-mobile/src/pages/Checkout.jsx,1369,+ 使用新地址
-mobile,frontend-mobile/src/pages/Checkout.jsx,1372,选择已有地址
-mobile,frontend-mobile/src/pages/Checkout.jsx,1381,微信支付
-mobile,frontend-mobile/src/pages/Checkout.jsx,1382,亿万用户的安全选择
-mobile,frontend-mobile/src/pages/ContentPage.jsx,77,加载中...
+mobile,frontend-mobile/src/pages/ContentPage.jsx,131,加载中...
+mobile,frontend-mobile/src/pages/ContentPage.jsx,152,不同意
 mobile,frontend-mobile/src/pages/Detail.jsx,183,加载中...
 mobile,frontend-mobile/src/pages/Detail.jsx,187,乐器不存在
 mobile,frontend-mobile/src/pages/Detail.jsx,202,乐器详情
@@ -314,46 +479,48 @@ mobile,frontend-mobile/src/pages/Detail.jsx,559,该乐器正在运输途中
 mobile,frontend-mobile/src/pages/Detail.jsx,565,确认收货
 mobile,frontend-mobile/src/pages/Detail.jsx,572,该乐器目前不可租赁
 mobile,frontend-mobile/src/pages/Detail.jsx,573,乐器已被预约，暂时无法租赁
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,73,加载失败，请重试
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,223,视频保存失败，仅照片已提交，请稍后重试
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,240,请填写真实姓名与身份证号
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,241,身份证号格式不正确（18 位，末位可为 X）
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,253,自动核身暂未开通，请使用下方人工通道
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,262,核身未完成，可重新发起
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,272,核身通过，实名认证已完成
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,274,核验未通过，可重新发起或使用人工通道
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,277,结果查询失败，请稍后重试
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,280,已取消核身
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,478,✅ 已实名认证
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,485,⚠️ 请先上传身份证或学生证照片
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,486,人脸识别前需先上传身份证件照（学生可上传学生证）。
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,488,去上传身份证 ›
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,496,⚠️ 实名认证审核中
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,497,已提交人脸采样，平台员工审核通过后即完成实名认证（人工审核约需 1-2 个工作日；如页面提供微信自动核身，完成后即时生效）。
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,504,审核未通过，请重新发起人脸识别。
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,518,实名认证
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,536,请使用手机微信
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,537,实名认证需要录制动态视频（活体检测），电脑版微信不支持视频录制。请使用手机微信打开本小程序完成实名认证。
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,541,返回
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,553,返回
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,562,暂不实名认证？前往退出登录
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,591,录制中
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,625,图像采集完成！
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,626,下面还需要采集一段视频，录制过程中会提示您完成一个动作，请配合。
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,637,重新拍摄
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,646,继续录视频
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,667,重新拍摄
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,677,重试上传
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,708,人脸识别
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,712,实名认证
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,716,暂不实名认证？前往退出登录
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,721,请完成以下人脸采样。提交后由平台员工依据身份证照核对填写实名信息（真实姓名、身份证号等），审核通过即完成实名认证。
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,729,微信自动核身（腾讯云）
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,730,填写真实姓名与身份证号，跳转微信官方核验，通过后自动完成实名认证（无需等待人工审核）。
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,737,真实姓名（与身份证一致）
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,743,身份证号（18 位）
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,752,核验完成后自动返回本页；如未通过可重试或改用下方人工通道。
-mobile,frontend-mobile/src/pages/FaceVerify.jsx,761,提交成功，等待审核
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,92,加载失败，请重试
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,258,视频保存失败，仅照片已提交，请稍后重试
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,275,请填写真实姓名与身份证号
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,276,身份证号格式不正确（18 位，末位可为 X）
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,288,自动核身暂未开通，请使用下方人工通道
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,297,核身未完成，可重新发起
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,307,核身通过，实名认证已完成
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,309,核验未通过，可重新发起或使用人工通道
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,312,结果查询失败，请稍后重试
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,315,已取消核身
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,513,✅ 已实名认证
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,520,⚠️ 请先上传身份证或学生证照片
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,521,人脸识别前需先上传身份证件照（学生可上传学生证）。
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,523,去上传身份证 ›
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,531,⚠️ 实名认证审核中
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,532,已提交人脸采样，平台员工审核通过后即完成实名认证（人工审核约需 1-2 个工作日；如页面提供微信自动核身，完成后即时生效）。
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,539,审核未通过，请重新发起人脸识别。
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,553,实名认证
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,565,实名认证
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,567,加载中…
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,578,实名认证
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,581,微信自动核身（腾讯云）
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,582,填写真实姓名与身份证号，跳转微信官方核验，通过后自动完成实名认证。
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,589,真实姓名（与身份证一致）
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,595,身份证号（18 位）
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,621,请使用手机微信
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,622,实名认证需要录制动态视频（活体检测），电脑版微信不支持视频录制。请使用手机微信打开本小程序完成实名认证。
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,626,返回
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,638,返回
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,647,暂不实名认证？前往退出登录
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,676,录制中
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,710,图像采集完成！
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,711,下面还需要采集一段视频，录制过程中会提示您完成一个动作，请配合。
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,722,重新拍摄
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,731,继续录视频
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,752,重新拍摄
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,762,重试上传
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,793,人脸识别
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,797,实名认证
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,801,暂不实名认证？前往退出登录
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,806,请完成以下人脸采样。提交后由平台员工依据身份证照核对填写实名信息（真实姓名、身份证号等），审核通过即完成实名认证。
+mobile,frontend-mobile/src/pages/FaceVerify.jsx,814,提交成功，等待审核
 mobile,frontend-mobile/src/pages/Home.jsx,71,租赁中
 mobile,frontend-mobile/src/pages/Home.jsx,345,搜索乐器...
 mobile,frontend-mobile/src/pages/Home.jsx,391,暂无乐器
@@ -414,26 +581,6 @@ mobile,frontend-mobile/src/pages/InvoiceConfirm.jsx,147,发票抬头
 mobile,frontend-mobile/src/pages/InvoiceConfirm.jsx,148,请输入发票抬头（个人或单位名称）
 mobile,frontend-mobile/src/pages/InvoiceConfirm.jsx,149,税号
 mobile,frontend-mobile/src/pages/InvoiceConfirm.jsx,158,总开票金额
-mobile,frontend-mobile/src/pages/MembershipCenter.jsx,44,该功能请在 H5 端使用
-mobile,frontend-mobile/src/pages/MembershipCenter.jsx,70,二维码生成失败
-mobile,frontend-mobile/src/pages/MembershipCenter.jsx,79,获取推广二维码失败
-mobile,frontend-mobile/src/pages/MembershipCenter.jsx,94,二维码生成失败
-mobile,frontend-mobile/src/pages/MembershipCenter.jsx,103,二维码生成失败
-mobile,frontend-mobile/src/pages/MembershipCenter.jsx,108,二维码生成失败
-mobile,frontend-mobile/src/pages/MembershipCenter.jsx,164,会员中心
-mobile,frontend-mobile/src/pages/MembershipCenter.jsx,181,会员权益
-mobile,frontend-mobile/src/pages/MembershipCenter.jsx,199,消费总额
-mobile,frontend-mobile/src/pages/MembershipCenter.jsx,205,乐币
-mobile,frontend-mobile/src/pages/MembershipCenter.jsx,217,历史记录
-mobile,frontend-mobile/src/pages/MembershipCenter.jsx,219,租赁历史
-mobile,frontend-mobile/src/pages/MembershipCenter.jsx,223,维修历史
-mobile,frontend-mobile/src/pages/MembershipCenter.jsx,232,获取推广二维码
-mobile,frontend-mobile/src/pages/MembershipCenter.jsx,235,邀请好友注册，赚取奖励乐币
-mobile,frontend-mobile/src/pages/MembershipCenter.jsx,246,推广二维码
-mobile,frontend-mobile/src/pages/MembershipCenter.jsx,250,好友扫码注册，你获得奖励
-mobile,frontend-mobile/src/pages/MembershipCenter.jsx,251,关闭
-mobile,frontend-mobile/src/pages/MembershipCenter.jsx,261,会员规则与权益手册
-mobile,frontend-mobile/src/pages/MembershipCenter.jsx,280,加载中...
 mobile,frontend-mobile/src/pages/MessageDetail.jsx,114,已接受定损，退款将在 3-5 个工作日内原路退回
 mobile,frontend-mobile/src/pages/MessageDetail.jsx,126,操作失败: {msg}
 mobile,frontend-mobile/src/pages/MessageDetail.jsx,144,请输入申诉原因
@@ -460,22 +607,24 @@ mobile,frontend-mobile/src/pages/MessageDetail.jsx,362,支付 ¥
 mobile,frontend-mobile/src/pages/MessageDetail.jsx,377,查看申诉结果
 mobile,frontend-mobile/src/pages/MessageDetail.jsx,386,查看详情 / 确认新报价
 mobile,frontend-mobile/src/pages/MessageDetail.jsx,396,进入维修工作台
-mobile,frontend-mobile/src/pages/MessageDetail.jsx,414,查看/下载发票
-mobile,frontend-mobile/src/pages/MessageDetail.jsx,429,查看申请详情
-mobile,frontend-mobile/src/pages/MessageDetail.jsx,446,查看订单详情
-mobile,frontend-mobile/src/pages/MessageDetail.jsx,459,前往会员中心查看赠点
-mobile,frontend-mobile/src/pages/MessageDetail.jsx,469,结算明细（服务端计算）
-mobile,frontend-mobile/src/pages/MessageDetail.jsx,471,租金
-mobile,frontend-mobile/src/pages/MessageDetail.jsx,474,物流费
-mobile,frontend-mobile/src/pages/MessageDetail.jsx,477,逾期费
-mobile,frontend-mobile/src/pages/MessageDetail.jsx,480,损坏赔偿
-mobile,frontend-mobile/src/pages/MessageDetail.jsx,483,已付总额
-mobile,frontend-mobile/src/pages/MessageDetail.jsx,486,需补缴
-mobile,frontend-mobile/src/pages/MessageDetail.jsx,506,去补缴
-mobile,frontend-mobile/src/pages/MessageDetail.jsx,517,申诉
-mobile,frontend-mobile/src/pages/MessageDetail.jsx,524,请输入申诉原因...
-mobile,frontend-mobile/src/pages/MessageDetail.jsx,527,取消
-mobile,frontend-mobile/src/pages/MessageDetail.jsx,530,提交
+mobile,frontend-mobile/src/pages/MessageDetail.jsx,404,查看维修单
+mobile,frontend-mobile/src/pages/MessageDetail.jsx,412,查看维修单
+mobile,frontend-mobile/src/pages/MessageDetail.jsx,430,查看/下载发票
+mobile,frontend-mobile/src/pages/MessageDetail.jsx,445,查看申请详情
+mobile,frontend-mobile/src/pages/MessageDetail.jsx,462,查看订单详情
+mobile,frontend-mobile/src/pages/MessageDetail.jsx,475,前往会员中心查看赠点
+mobile,frontend-mobile/src/pages/MessageDetail.jsx,485,结算明细（服务端计算）
+mobile,frontend-mobile/src/pages/MessageDetail.jsx,487,租金
+mobile,frontend-mobile/src/pages/MessageDetail.jsx,490,物流费
+mobile,frontend-mobile/src/pages/MessageDetail.jsx,493,逾期费
+mobile,frontend-mobile/src/pages/MessageDetail.jsx,496,损坏赔偿
+mobile,frontend-mobile/src/pages/MessageDetail.jsx,499,已付总额
+mobile,frontend-mobile/src/pages/MessageDetail.jsx,502,需补缴
+mobile,frontend-mobile/src/pages/MessageDetail.jsx,522,去补缴
+mobile,frontend-mobile/src/pages/MessageDetail.jsx,533,申诉
+mobile,frontend-mobile/src/pages/MessageDetail.jsx,540,请输入申诉原因...
+mobile,frontend-mobile/src/pages/MessageDetail.jsx,543,取消
+mobile,frontend-mobile/src/pages/MessageDetail.jsx,546,提交
 mobile,frontend-mobile/src/pages/Messages.jsx,64,已全部标记为已读
 mobile,frontend-mobile/src/pages/Messages.jsx,109,消息
 mobile,frontend-mobile/src/pages/Messages.jsx,111,全部已读
@@ -667,85 +816,6 @@ mobile,frontend-mobile/src/pages/OrderDetail.jsx,1199,该订单已完成
 mobile,frontend-mobile/src/pages/OrderDetail.jsx,1200,该订单已取消
 mobile,frontend-mobile/src/pages/OrderDetail.jsx,1201,乐器归还中，等待验收
 mobile,frontend-mobile/src/pages/OrderDetail.jsx,1202,已过户
-mobile,frontend-mobile/src/pages/Payment.jsx,62,加载中...
-mobile,frontend-mobile/src/pages/Payment.jsx,67,支付数据不存在
-mobile,frontend-mobile/src/pages/Payment.jsx,99,合计
-mobile,frontend-mobile/src/pages/Payment.jsx,109,原支付明细
-mobile,frontend-mobile/src/pages/Payment.jsx,111,原支付总额
-mobile,frontend-mobile/src/pages/Payment.jsx,114,  现金
-mobile,frontend-mobile/src/pages/Payment.jsx,117,  预付点
-mobile,frontend-mobile/src/pages/Payment.jsx,120,  赠点
-mobile,frontend-mobile/src/pages/Payment.jsx,122,退款明细（原路退回）
-mobile,frontend-mobile/src/pages/Payment.jsx,126,退现金（微信原路）
-mobile,frontend-mobile/src/pages/Payment.jsx,129,退回预付点
-mobile,frontend-mobile/src/pages/Payment.jsx,132,退回赠点
-mobile,frontend-mobile/src/pages/Payment.jsx,135,赠点抵扣（按当前级别比例）
-mobile,frontend-mobile/src/pages/Payment.jsx,137,退款金额
-mobile,frontend-mobile/src/pages/Payment.jsx,138,退款完成后将按实付现金发放返点赠点，可在会员中心查看。
-mobile,frontend-mobile/src/pages/Payment.jsx,145,使用乐币
-mobile,frontend-mobile/src/pages/Payment.jsx,149,本次可用
-mobile,frontend-mobile/src/pages/Payment.jsx,151,使用
-mobile,frontend-mobile/src/pages/Payment.jsx,159,乐币
-mobile,frontend-mobile/src/pages/Payment.jsx,161,乐币使用不得超过租金的
-mobile,frontend-mobile/src/pages/Payment.jsx,168,现金差额
-mobile,frontend-mobile/src/pages/Payment.jsx,175,优惠码
-mobile,frontend-mobile/src/pages/Payment.jsx,181,输入优惠码（选填）
-mobile,frontend-mobile/src/pages/Payment.jsx,195,优惠后金额
-mobile,frontend-mobile/src/pages/Payment.jsx,202,退款说明
-mobile,frontend-mobile/src/pages/Payment.jsx,203,金额将在提交后原路退回至您的微信支付账户，预计 1-7 个工作日到账。
-mobile,frontend-mobile/src/pages/Payment.jsx,216,确认退款 ¥
-mobile,frontend-mobile/src/pages/Payment.jsx,224,确认退款 ¥
-mobile,frontend-mobile/src/pages/Payment.jsx,232,确认，查看订单详情
-mobile,frontend-mobile/src/pages/Payment.jsx,252,支付成功
-mobile,frontend-mobile/src/pages/Payment.jsx,260,请输入优惠码
-mobile,frontend-mobile/src/pages/Payment.jsx,271,优惠码无效
-mobile,frontend-mobile/src/pages/Payment.jsx,302,支付成功
-mobile,frontend-mobile/src/pages/Payment.jsx,303,支付失败: {msg}
-mobile,frontend-mobile/src/pages/Payment.jsx,304,支付失败: {msg}
-mobile,frontend-mobile/src/pages/Payment.jsx,307,支付成功
-mobile,frontend-mobile/src/pages/Payment.jsx,338,支付失败: {msg}
-mobile,frontend-mobile/src/pages/Payment.jsx,341,支付失败: {msg}
-mobile,frontend-mobile/src/pages/Payment.jsx,344,支付失败: {msg}
-mobile,frontend-mobile/src/pages/Payment.jsx,349,退款申请已提交
-mobile,frontend-mobile/src/pages/Payment.jsx,391,微信扫码支付
-mobile,frontend-mobile/src/pages/Payment.jsx,394,支付二维码
-mobile,frontend-mobile/src/pages/Payment.jsx,395,生成中...
-mobile,frontend-mobile/src/pages/Payment.jsx,396,请用微信「扫一扫」；同一手机可长按二维码识别
-mobile,frontend-mobile/src/pages/Payment.jsx,397,取消支付
-mobile,frontend-mobile/src/pages/Payment.jsx,421,阶梯定价
-mobile,frontend-mobile/src/pages/Payment.jsx,427,  折扣
-mobile,frontend-mobile/src/pages/Payment.jsx,431,租金小计
-mobile,frontend-mobile/src/pages/Payment.jsx,432,押金
-mobile,frontend-mobile/src/pages/Payment.jsx,433,物流费
-mobile,frontend-mobile/src/pages/Payment.jsx,444,原报价（材料费）
-mobile,frontend-mobile/src/pages/Payment.jsx,445,原报价（服务费）
-mobile,frontend-mobile/src/pages/Payment.jsx,446,原报价（物流费）
-mobile,frontend-mobile/src/pages/Payment.jsx,447,原报价合计
-mobile,frontend-mobile/src/pages/Payment.jsx,450,材料费
-mobile,frontend-mobile/src/pages/Payment.jsx,451,服务费
-mobile,frontend-mobile/src/pages/Payment.jsx,452,物流费
-mobile,frontend-mobile/src/pages/Payment.jsx,454,需补付
-mobile,frontend-mobile/src/pages/Payment.jsx,464,租金小计
-mobile,frontend-mobile/src/pages/Payment.jsx,465,押金
-mobile,frontend-mobile/src/pages/Payment.jsx,466,物流费
-mobile,frontend-mobile/src/pages/Payment.jsx,467,已付合计
-mobile,frontend-mobile/src/pages/Payment.jsx,470,损失评估
-mobile,frontend-mobile/src/pages/Payment.jsx,471,押金抵扣
-mobile,frontend-mobile/src/pages/Payment.jsx,472,需补付
-mobile,frontend-mobile/src/pages/Payment.jsx,481,实际租期
-mobile,frontend-mobile/src/pages/Payment.jsx,482,实际租金
-mobile,frontend-mobile/src/pages/Payment.jsx,484,损坏扣款
-mobile,frontend-mobile/src/pages/Payment.jsx,487,逾期费用
-mobile,frontend-mobile/src/pages/Payment.jsx,490,退款金额
-mobile,frontend-mobile/src/pages/Payment.jsx,500,续期天数
-mobile,frontend-mobile/src/pages/Payment.jsx,501,续期费
-mobile,frontend-mobile/src/pages/Payment.jsx,503,合计
-mobile,frontend-mobile/src/pages/Payment.jsx,512,实际租金
-mobile,frontend-mobile/src/pages/Payment.jsx,514,物流费
-mobile,frontend-mobile/src/pages/Payment.jsx,517,逾期费
-mobile,frontend-mobile/src/pages/Payment.jsx,520,损坏赔偿
-mobile,frontend-mobile/src/pages/Payment.jsx,522,已付总额
-mobile,frontend-mobile/src/pages/Payment.jsx,524,需补缴
 mobile,frontend-mobile/src/pages/PaymentComplete.jsx,16,该功能请在 H5 端使用
 mobile,frontend-mobile/src/pages/PaymentComplete.jsx,24,无效访问
 mobile,frontend-mobile/src/pages/PaymentComplete.jsx,25,返回首页
@@ -794,22 +864,6 @@ mobile,frontend-mobile/src/pages/Profile.jsx,511,加入商户
 mobile,frontend-mobile/src/pages/Profile.jsx,521,商务合作
 mobile,frontend-mobile/src/pages/Profile.jsx,529,联系我们
 mobile,frontend-mobile/src/pages/Profile.jsx,537,关于
-mobile,frontend-mobile/src/pages/ReceiveConfirm.jsx,22,该功能请在 H5 端使用
-mobile,frontend-mobile/src/pages/ReceiveConfirm.jsx,78,订单不存在
-mobile,frontend-mobile/src/pages/ReceiveConfirm.jsx,97,确认收货成功
-mobile,frontend-mobile/src/pages/ReceiveConfirm.jsx,104,确认收货失败: {msg}
-mobile,frontend-mobile/src/pages/ReceiveConfirm.jsx,107,操作失败: {msg}
-mobile,frontend-mobile/src/pages/ReceiveConfirm.jsx,114,加载中...
-mobile,frontend-mobile/src/pages/ReceiveConfirm.jsx,138,确认收货
-mobile,frontend-mobile/src/pages/ReceiveConfirm.jsx,165,费用信息
-mobile,frontend-mobile/src/pages/ReceiveConfirm.jsx,168,租金小计
-mobile,frontend-mobile/src/pages/ReceiveConfirm.jsx,172,押金
-mobile,frontend-mobile/src/pages/ReceiveConfirm.jsx,177,物流费
-mobile,frontend-mobile/src/pages/ReceiveConfirm.jsx,183,合计
-mobile,frontend-mobile/src/pages/ReceiveConfirm.jsx,195,拍照留档
-mobile,frontend-mobile/src/pages/ReceiveConfirm.jsx,198,请拍摄乐器当前状态照片作为签收留档
-mobile,frontend-mobile/src/pages/ReceiveConfirm.jsx,214,拍摄
-mobile,frontend-mobile/src/pages/ReceiveConfirm.jsx,219,拍摄
 mobile,frontend-mobile/src/pages/ReceivingInterface.jsx,107,未找到该乐器
 mobile,frontend-mobile/src/pages/ReceivingInterface.jsx,113,未找到该乐器的活跃订单
 mobile,frontend-mobile/src/pages/ReceivingInterface.jsx,126,请填写赔偿金额
@@ -858,42 +912,37 @@ mobile,frontend-mobile/src/pages/ReceivingRepairScan.jsx,184,收货（受控网�
 mobile,frontend-mobile/src/pages/ReceivingRepairScan.jsx,193,确认收货
 mobile,frontend-mobile/src/pages/ReceivingRepairScan.jsx,200,请拍摄拆箱照片：
 mobile,frontend-mobile/src/pages/ReceivingRepairScan.jsx,219,提交中转处理
-mobile,frontend-mobile/src/pages/Register.jsx,56,请输入姓名
-mobile,frontend-mobile/src/pages/Register.jsx,57,请输入手机号
-mobile,frontend-mobile/src/pages/Register.jsx,58,手机号格式不正确
-mobile,frontend-mobile/src/pages/Register.jsx,59,请输入密码
-mobile,frontend-mobile/src/pages/Register.jsx,60,两次输入的密码不一致
-mobile,frontend-mobile/src/pages/Register.jsx,61,请先阅读并同意《租用服务协议》与《个人信息保护政策》
-mobile,frontend-mobile/src/pages/Register.jsx,114,"网络错误, 请重试"
-mobile,frontend-mobile/src/pages/Register.jsx,122,注册账号
-mobile,frontend-mobile/src/pages/Register.jsx,123,填写信息即可开始租赁
-mobile,frontend-mobile/src/pages/Register.jsx,126,姓名
-mobile,frontend-mobile/src/pages/Register.jsx,128,请输入真实姓名
-mobile,frontend-mobile/src/pages/Register.jsx,132,昵称（微信昵称，可编辑）
-mobile,frontend-mobile/src/pages/Register.jsx,134,输入您的昵称
-mobile,frontend-mobile/src/pages/Register.jsx,138,手机号
-mobile,frontend-mobile/src/pages/Register.jsx,140,请输入手机号
-mobile,frontend-mobile/src/pages/Register.jsx,144,邮箱（选填）
-mobile,frontend-mobile/src/pages/Register.jsx,146,请输入邮箱
-mobile,frontend-mobile/src/pages/Register.jsx,150,密码
-mobile,frontend-mobile/src/pages/Register.jsx,152,请输入密码
-mobile,frontend-mobile/src/pages/Register.jsx,156,确认密码
-mobile,frontend-mobile/src/pages/Register.jsx,158,请再次输入密码
-mobile,frontend-mobile/src/pages/Register.jsx,163,收货地址（选填）
-mobile,frontend-mobile/src/pages/Register.jsx,167,省
-mobile,frontend-mobile/src/pages/Register.jsx,172,市
-mobile,frontend-mobile/src/pages/Register.jsx,177,区
-mobile,frontend-mobile/src/pages/Register.jsx,182,详细地址
-mobile,frontend-mobile/src/pages/Register.jsx,184,邮编（选填）
-mobile,frontend-mobile/src/pages/Register.jsx,189,身份证照片（选填）
-mobile,frontend-mobile/src/pages/Register.jsx,205,实名信息将由平台审核；完成微信核身的可即时生效，人工审核约需 1-2 个工作日，结果将通过系统消息通知您。
-mobile,frontend-mobile/src/pages/Register.jsx,217,如果继续支付保费，代表已接受并同意
-mobile,frontend-mobile/src/pages/Register.jsx,218,《租用服务协议》
-mobile,frontend-mobile/src/pages/Register.jsx,219,与
-mobile,frontend-mobile/src/pages/Register.jsx,220,《个人信息保护政策》
-mobile,frontend-mobile/src/pages/Register.jsx,221,内容
-mobile,frontend-mobile/src/pages/Register.jsx,231,已有账号？
-mobile,frontend-mobile/src/pages/Register.jsx,232,登录 →
+mobile,frontend-mobile/src/pages/Register.jsx,83,请输入姓名
+mobile,frontend-mobile/src/pages/Register.jsx,84,请输入手机号
+mobile,frontend-mobile/src/pages/Register.jsx,85,手机号格式不正确
+mobile,frontend-mobile/src/pages/Register.jsx,86,请输入密码
+mobile,frontend-mobile/src/pages/Register.jsx,87,两次输入的密码不一致
+mobile,frontend-mobile/src/pages/Register.jsx,88,请先阅读并同意《相关协议》
+mobile,frontend-mobile/src/pages/Register.jsx,144,"网络错误, 请重试"
+mobile,frontend-mobile/src/pages/Register.jsx,152,注册账号
+mobile,frontend-mobile/src/pages/Register.jsx,153,填写信息即可开始租赁
+mobile,frontend-mobile/src/pages/Register.jsx,156,姓名
+mobile,frontend-mobile/src/pages/Register.jsx,158,请输入真实姓名
+mobile,frontend-mobile/src/pages/Register.jsx,162,昵称（微信昵称，可编辑）
+mobile,frontend-mobile/src/pages/Register.jsx,164,输入您的昵称
+mobile,frontend-mobile/src/pages/Register.jsx,168,手机号
+mobile,frontend-mobile/src/pages/Register.jsx,170,请输入手机号
+mobile,frontend-mobile/src/pages/Register.jsx,174,邮箱（选填）
+mobile,frontend-mobile/src/pages/Register.jsx,176,请输入邮箱
+mobile,frontend-mobile/src/pages/Register.jsx,180,密码
+mobile,frontend-mobile/src/pages/Register.jsx,182,请输入密码
+mobile,frontend-mobile/src/pages/Register.jsx,186,确认密码
+mobile,frontend-mobile/src/pages/Register.jsx,188,请再次输入密码
+mobile,frontend-mobile/src/pages/Register.jsx,193,收货地址（选填）
+mobile,frontend-mobile/src/pages/Register.jsx,197,省
+mobile,frontend-mobile/src/pages/Register.jsx,202,市
+mobile,frontend-mobile/src/pages/Register.jsx,207,区
+mobile,frontend-mobile/src/pages/Register.jsx,212,详细地址
+mobile,frontend-mobile/src/pages/Register.jsx,214,邮编（选填）
+mobile,frontend-mobile/src/pages/Register.jsx,219,身份证照片（选填）
+mobile,frontend-mobile/src/pages/Register.jsx,235,实名信息将由平台审核；完成微信核身的可即时生效，人工审核约需 1-2 个工作日，结果将通过系统消息通知您。
+mobile,frontend-mobile/src/pages/Register.jsx,255,已有账号？
+mobile,frontend-mobile/src/pages/Register.jsx,256,登录 →
 mobile,frontend-mobile/src/pages/Renewal.jsx,83,续期失败：{msg}
 mobile,frontend-mobile/src/pages/Renewal.jsx,86,网络错误：{msg}
 mobile,frontend-mobile/src/pages/Renewal.jsx,92,加载中...
@@ -1095,103 +1144,105 @@ mobile,frontend-mobile/src/pages/RepairServiceCreate.jsx,222,照片（
 mobile,frontend-mobile/src/pages/RepairServiceCreate.jsx,250,试奏视频（可选，1 段）
 mobile,frontend-mobile/src/pages/RepairServiceCreate.jsx,263,＋ 录制/选择试奏视频（≤60s）
 mobile,frontend-mobile/src/pages/RepairServiceCreate.jsx,267,＋ 选择试奏视频
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,70,该功能请在 H5 端使用
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,125,请填写物流单号
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,127,请填写正确的物流费
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,135,已发回并结算
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,143,请先拍照留档
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,176,已开始维修
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,189,已完工，等待网点发回
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,200,请填写正确的新修理费总价
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,201,请填写正确的到此为止修理费
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,211,加价申请已提交，等待用户确认
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,291,无法获取支付参数，请稍后重试
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,303,支付成功
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,362,已拒绝报价，维修服务已关闭
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,372,请填写物流单号
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,382,寄出成功，等待维修师收货
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,417,已选择不继续，乐器将安排发回并按已发生费用结算
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,435,请选择评分
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,447,评价成功，感谢反馈
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,457,加载中...
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,467,维修服务详情
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,471,维修单不存在或已删除
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,494,维修服务详情
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,522,试奏视频
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,527,创建于
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,534,费用明细
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,536,修理费
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,541,物料费
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,546,物流费预估
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,551,加价后修理费
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,557,到此为止修理费（按停止时结算）
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,569,物流费校正
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,584,优惠码抵扣
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,589,已付合计
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,594,已退款
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,600,待补缴
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,612,选择维修师
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,614,加载可选择的维修师
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,616,暂无可选维修师
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,623,选择
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,636,待支付
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,638,合计应付
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,648,请在微信小程序内完成支付
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,650,去支付
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,657,接受报价并支付
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,661,拒绝报价
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,672,寄出乐器
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,676,收件地址：
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,679,联系电话：
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,682,收件人（维修师）：
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,686,请将维修编码
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,686,写在物流单信息栏
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,687,物流公司
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,688,如 顺丰速运
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,689,物流单号（必填）
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,690,运单号
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,691,确认寄出
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,698,维修师发起加价
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,700,新修理费总价
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,704,到此为止修理费（不继续时按此结算）
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,708,继续需补差价
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,711,继续修理并补差价
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,714,不继续，安排发回
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,727,寄出物流：
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,738,维修完成
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,739,等待网点发回，发回时自动按实际费用结算（多退少补）
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,748,维修服务补缴
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,753,实际费用超出预付部分，未支付将影响会员升级
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,756,去补缴
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,765,服务已关闭
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,766,该维修服务未完成支付，已自动关闭；如有需要可重新发起维修。
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,772,待顾客评价
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,773,维修服务已完成结算，等待顾客评价。
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,793,评价本次维修服务
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,801,留言（可选）
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,847,收货存档照
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,849,收货时间：
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,865,可执行操作
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,868,收货拍照（可拍多张，至少 1 张后统一提交）
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,884,寄回物流（顾客收件信息）
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,887,收件人：
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,891,物流公司
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,892,如 顺丰速运
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,893,物流单号（必填）
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,894,运单号
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,896,物流费（元）
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,902,按预估
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,916,发起加价
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,921,新修理费总价（元）
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,923,如 300
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,924,到此为止修理费（元，用户不继续时按此结算）
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,926,如 50
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,941,进度记录
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,964,拒绝报价
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,965,请选择拒绝原因
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,973,备注（可选，≤200 字）
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,974,补充说明（可选）
-mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,977,取消
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,71,该功能请在 H5 端使用
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,121,维修单参数缺失，请返回重新进入
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,137,请填写物流单号
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,139,请填写正确的物流费
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,147,已发回并结算
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,155,请先拍照留档
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,188,已开始维修
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,201,已完工，等待网点发回
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,212,请填写正确的新修理费总价
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,213,请填写正确的到此为止修理费
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,223,加价申请已提交，等待用户确认
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,303,无法获取支付参数，请稍后重试
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,315,支付成功
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,374,已拒绝报价，维修服务已关闭
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,384,请填写物流单号
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,394,寄出成功，等待维修师收货
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,429,已选择不继续，乐器将安排发回并按已发生费用结算
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,447,请选择评分
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,459,评价成功，感谢反馈
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,469,加载中...
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,479,维修服务详情
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,483,维修单不存在或已删除
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,506,维修服务详情
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,534,试奏视频
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,539,创建于
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,546,费用明细
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,548,修理费
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,553,物料费
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,558,物流费预估
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,563,加价后修理费
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,569,到此为止修理费（按停止时结算）
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,581,物流费校正
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,596,优惠码抵扣
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,601,已付合计
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,606,已退款
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,612,待补缴
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,624,选择维修师
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,626,加载可选择的维修师
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,628,暂无可选维修师
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,635,选择
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,647,维修师报价
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,656,待支付
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,658,合计应付
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,668,请在微信小程序内完成支付
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,670,去支付
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,677,接受报价并支付
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,681,拒绝报价
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,692,寄出乐器
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,696,收件地址：
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,699,联系电话：
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,702,收件人（维修师）：
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,706,请将维修编码
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,706,写在物流单信息栏
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,707,物流公司
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,708,如 顺丰速运
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,709,物流单号（必填）
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,710,运单号
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,711,确认寄出
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,718,维修师发起加价
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,720,新修理费总价
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,724,到此为止修理费（不继续时按此结算）
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,728,继续需补差价
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,731,继续修理并补差价
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,734,不继续，安排发回
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,747,寄出物流：
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,758,维修完成
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,759,等待网点发回，发回时自动按实际费用结算（多退少补）
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,768,维修服务补缴
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,773,实际费用超出预付部分，未支付将影响会员升级
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,776,去补缴
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,785,服务已关闭
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,786,该维修服务未完成支付，已自动关闭；如有需要可重新发起维修。
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,792,待顾客评价
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,793,维修服务已完成结算，等待顾客评价。
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,813,评价本次维修服务
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,821,留言（可选）
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,867,收货存档照
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,869,收货时间：
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,885,可执行操作
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,888,收货拍照（可拍多张，至少 1 张后统一提交）
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,904,寄回物流（顾客收件信息）
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,907,收件人：
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,911,物流公司
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,912,如 顺丰速运
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,913,物流单号（必填）
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,914,运单号
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,916,物流费（元）
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,922,按预估
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,936,发起加价
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,941,新修理费总价（元）
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,943,如 300
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,944,到此为止修理费（元，用户不继续时按此结算）
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,946,如 50
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,961,进度记录
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,984,拒绝报价
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,985,请选择拒绝原因
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,993,备注（可选，≤200 字）
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,994,补充说明（可选）
+mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,997,取消
 mobile,frontend-mobile/src/pages/RepairWorkflow.jsx,101,操作失败: {msg}
 mobile,frontend-mobile/src/pages/RepairWorkflow.jsx,117,接手失败: {msg}
 mobile,frontend-mobile/src/pages/RepairWorkflow.jsx,130,请扫描或选择乐器
@@ -1225,29 +1276,6 @@ mobile,frontend-mobile/src/pages/RepairWorkflow.jsx,321,此乐器由
 mobile,frontend-mobile/src/pages/RepairWorkflow.jsx,321,负责处理中
 mobile,frontend-mobile/src/pages/RepairWorkflow.jsx,337,验收通过
 mobile,frontend-mobile/src/pages/RepairWorkflow.jsx,372,乐器状态正常，不需要维修
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,21,该功能请在 H5 端使用
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,66,请填写物流信息
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,104,归还失败: {msg}
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,107,操作失败: {msg}
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,148,加载中...
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,157,归还乐器
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,167,订单信息
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,170,订单号
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,175,起始日
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,181,到期日
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,196,尊敬的顾客您好，感谢您选择
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,196,的乐器，乐器寄回时请优先选择顺丰快递且保价，还原初始包装保护乐器，为保障您的权益，我们将第一时间查收并检验乐器状态，谢谢您，祝您生活愉快！
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,201,发回地址
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,229,物流信息
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,231,请填写返程物流信息，用于归还乐器
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,234,承运公司
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,236,如：顺丰速运
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,239,快递单号
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,241,请输入快递单号
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,249,拍照留档
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,251,请拍摄乐器当前状态照片作为归还留档
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,267,拍摄
-mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,272,拍摄
 mobile,frontend-mobile/src/pages/ReturnSettlement.jsx,70,加载中...
 mobile,frontend-mobile/src/pages/ReturnSettlement.jsx,80,归还申请已提交
 mobile,frontend-mobile/src/pages/ReturnSettlement.jsx,81,感谢您选择
@@ -1400,24 +1428,6 @@ mobile,frontend-mobile/src/pages/StaffOrders.jsx,256,预计天数:
 mobile,frontend-mobile/src/pages/StaffOrders.jsx,256,天
 mobile,frontend-mobile/src/pages/StaffOrders.jsx,257,预期归还日:
 mobile,frontend-mobile/src/pages/StaffOrders.jsx,266,加载中...
-mobile,frontend-mobile/src/pages/StaffReceiveConfirm.jsx,79,请填写赔偿金额
-mobile,frontend-mobile/src/pages/StaffReceiveConfirm.jsx,98,已提交定损，已通知顾客确认
-mobile,frontend-mobile/src/pages/StaffReceiveConfirm.jsx,104,接收确认成功
-mobile,frontend-mobile/src/pages/StaffReceiveConfirm.jsx,114,接收失败: {msg}
-mobile,frontend-mobile/src/pages/StaffReceiveConfirm.jsx,115,操作失败: {msg}
-mobile,frontend-mobile/src/pages/StaffReceiveConfirm.jsx,121,加载中...
-mobile,frontend-mobile/src/pages/StaffReceiveConfirm.jsx,130,接收确认
-mobile,frontend-mobile/src/pages/StaffReceiveConfirm.jsx,152,拍照留档
-mobile,frontend-mobile/src/pages/StaffReceiveConfirm.jsx,154,请拍摄乐器当前状态照片作为接收留档
-mobile,frontend-mobile/src/pages/StaffReceiveConfirm.jsx,158,拍照要求
-mobile,frontend-mobile/src/pages/StaffReceiveConfirm.jsx,170,出库照片（供对比）
-mobile,frontend-mobile/src/pages/StaffReceiveConfirm.jsx,174,出库照
-mobile,frontend-mobile/src/pages/StaffReceiveConfirm.jsx,186,定损评估
-mobile,frontend-mobile/src/pages/StaffReceiveConfirm.jsx,192,无损坏
-mobile,frontend-mobile/src/pages/StaffReceiveConfirm.jsx,197,有损坏
-mobile,frontend-mobile/src/pages/StaffReceiveConfirm.jsx,203,损坏维修赔偿（元）
-mobile,frontend-mobile/src/pages/StaffReceiveConfirm.jsx,208,备注说明
-mobile,frontend-mobile/src/pages/StaffReceiveConfirm.jsx,210,选填
 mobile,frontend-mobile/src/pages/Success.jsx,21,付款完成！
 mobile,frontend-mobile/src/pages/Success.jsx,22,感谢您的租赁，祝您使用愉快
 mobile,frontend-mobile/src/pages/Success.jsx,26,返回首页
@@ -1472,544 +1482,6 @@ mobile,frontend-mobile/src/pages/TransitWorkbench.jsx,95,物流
 mobile,frontend-mobile/src/pages/account-select/index.tsx,12,请使用网页版登录
 mobile,frontend-mobile/src/pages/account-select/index.tsx,13,微信账户切换仅在小程序中支持，请打开微信小程序后重试
 mobile,frontend-mobile/src/pages/account-select/index.tsx,18,返回首页
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,243,上传失败: {msg}
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,250,请选择收货地址
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,254,请填写收货人
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,258,免押金订单需至少选择 2 位担保人
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,268,免押金订单需上传签名的推荐信照片，模板可在免押金区块下载
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,282,请先登录才能下单
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,344,下单失败: {msg}
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,348,下单失败: {msg}
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,355,请填写担保人姓名和电话
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,359,请填写18位身份证号
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,363,请上传身份证正面照
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,367,请上传身份证反面照
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,371,请上传其他证件照（学生证/工作证）
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,392,担保人已保存
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,394,保存失败: {msg}
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,397,保存失败: {msg}
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,428,加载中...
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,429,乐器不存在
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,435,租赁乐器
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,447,商户: 合作商户（中转发货）
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,448,中转地址:
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,451,网点:
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,459,租期选择
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,477,天
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,481,预计归还:
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,482,· 阶梯计价
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,492,申请免押金
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,509,应提供两位担保人的联系方式。我们的员工将会与他们联系确认。
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,515,推荐信
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,518,下载推荐信模板
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,527,打印模板 → 推荐人签名 → 拍照上传
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,533,已保存担保人
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,552,新增担保人
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,555,姓名*
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,556,担保人姓名
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,560,电话*
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,561,手机号
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,567,公司/单位
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,568,公司/单位
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,572,职务
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,573,职务
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,578,身份证号*
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,579,18位身份证号
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,583,地址*
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,584,联系地址
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,590,身份证正面*
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,594,身份证反面*
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,598,其他证件*
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,621,费用明细
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,624,租金 (
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,624,天)
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,632,/天
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,637,押金
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,639,(免押金)
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,640,(日租金×倍率)
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,644,合计
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,647,租金 ¥
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,647,+ 押金 ¥
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,659,收货地址
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,677,默认
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,688,收货人
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,689,姓名
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,693,电话
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,694,手机号
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,700,省
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,709,市
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,719,区
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,730,详细地址
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,731,详细地址
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,735,邮编
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,736,邮编
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,743,设置为我的收货地址
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,749,+ 使用新地址
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,752,选择已有地址
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,757,租赁须知
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,759,· 提交即生成订单，需在10分钟内完成支付
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,760,· 超时未支付订单将自动取消
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,761,· 发货前可取消订单免手续费
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,762,· 押金在归还验收后原路退还
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,769,应付总额
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,920,上传失败: {msg}
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,928,请选择收货地址
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,932,请填写收货人
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,936,免押金订单需至少选择 2 位担保人
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,946,免押金订单需上传签名的推荐信照片，模板可在免押金区块下载
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,960,请先登录才能下单
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1005,下单成功，但未生成订单
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1021,下单失败: {msg}
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1025,下单失败: {msg}
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1032,请填写担保人姓名和电话
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1044,担保人已保存
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1046,保存失败: {msg}
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1049,保存失败: {msg}
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1061,购物车为空
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1097,件
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1113,天 · ¥
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1122,小计 ¥
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1129,🔒 暖心提示：资产固定押金将在乐器归还、网点网管质检合格后，按原支付渠道原路退回至您的微信零钱。
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1138,申请免押金
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1155,应提供两位担保人的联系方式。我们的员工将会与他们联系确认。
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1161,推荐信
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1164,下载推荐信模板
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1173,打印模板 → 推荐人签名 → 拍照上传
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1179,已保存担保人
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1198,新增担保人
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1201,姓名*
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1202,担保人姓名
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1206,电话*
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1207,手机号
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1213,公司/单位
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1214,公司/单位
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1218,职务
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1219,职务
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1224,地址
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1225,联系地址
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1247,📍 收货地址
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1263,默认
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1274,收货人
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1275,姓名
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1279,电话
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1280,手机号
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1306,详细地址
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1308,邮编
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1314,设置为我的收货地址
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1320,+ 使用新地址
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1323,选择已有地址
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1332,微信支付
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1333,亿万用户的安全选择
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,84,乐器信息加载中，请稍候
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,185,加载中...
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,189,乐器不存在
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,275,日租 ¥
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,276,/日
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,280,押金 ¥
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,319,规格参数
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,330,暂无规格参数
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,337,定价策略
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,344,/天
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,352,押金
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,358,物流费
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,366,合计金额
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,367,预付全款租金 + 固定押金 + 往返运费
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,371,⚠️ 逾期后每日自动扣款 ¥
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,372,/日；押金归还质检通过后退还
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,383,租购转化
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,396,操作日志
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,454,立即租赁
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,461,乐器可租赁
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,462,当前乐器可供租赁
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,467,租赁中
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,468,租期：
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,469,至
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,472,超期
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,473,天
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,481,归还乐器
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,487,归还中
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,488,该乐器正在归还流程中
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,489,租期：
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,490,至
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,493,押金已退还
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,498,已预约
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,499,租期：
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,500,至
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,505,乐器物流中
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,506,该乐器正在运输途中
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,512,确认收货
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,518,已超期
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,519,租期：
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,520,至
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,523,超期
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,524,天
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,532,归还乐器
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,538,乐器物流中
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,539,该乐器正在运输途中
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,545,确认收货
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,552,该乐器目前不可租赁
-mobile,frontend-mobile/src/pages-weapp/Detail.jsx,553,乐器已被预约，暂时无法租赁
-mobile,frontend-mobile/src/pages-weapp/Home.jsx,107,租赁中
-mobile,frontend-mobile/src/pages-weapp/Home.jsx,379,搜索乐器
-mobile,frontend-mobile/src/pages-weapp/Home.jsx,664,暂无乐器
-mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,129,取消订单
-mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,129,确认取消该订单？取消后不可恢复。
-mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,180,加载中...
-mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,184,暂无租约
-mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,205,订单 #
-mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,216,乐器:
-mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,222,下单日:
-mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,227,总金额:
-mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,232,含运费 ¥
-mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,245,支付
-mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,253,确认收货
-mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,264,归还
-mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,272,接收
-mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,280,发货
-mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,288,取消订单
-mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,294,等待处理
-mobile,frontend-mobile/src/pages-weapp/MyLeases.jsx,306,加载更多...
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,50,网络错误: {msg}
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,58,编辑资料
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,61,姓名
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,65,手机
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,69,邮箱
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,75,取消
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,386,加载中...
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,440,退出登录
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,447,切换身份
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,464,待付款
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,468,服务中
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,472,维修中
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,485,待报价
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,491,维修中
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,497,已完成
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,503,系统通知
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,513,订单管理
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,519,乐器管理
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,525,接收
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,531,发货
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,539,待报价
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,545,中转工作台
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,558,租赁记录
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,564,维修记录
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,571,待支付
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,578,服务中
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,591,平台规则
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,601,会员中心
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,611,个人资料
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,621,系统通知
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,624,条未读
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,634,申请发票
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,644,加入商户
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,653,商务合作
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,661,联系我们
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,669,关于
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,692,待提交订单
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,694,加载中...
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,696,暂无待提交订单
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,699,乐器：
-mobile,frontend-mobile/src/pages-weapp/Profile.jsx,703,取消
-mobile,frontend-mobile/src/pages-weapp/Success.jsx,49,验证支付状态...
-mobile,frontend-mobile/src/pages-weapp/Success.jsx,61,支付异常
-mobile,frontend-mobile/src/pages-weapp/Success.jsx,63,查看订单详情
-mobile,frontend-mobile/src/pages-weapp/Success.jsx,75,付款完成！
-mobile,frontend-mobile/src/pages-weapp/Success.jsx,76,感谢您的租赁，祝您使用愉快
-mobile,frontend-mobile/src/pages-weapp/Success.jsx,80,返回首页
-mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,89,登录状态失效，请重试
-mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,101,网络错误，请重试
-mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,152,网络错误，请重试
-mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,159,请输入账号和密码
-mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,195,网络错误，请重试
-mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,205,加载中...
-mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,211,该微信关联了
-mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,211,个身份
-mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,239,注册为顾客
-mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,240,使用微信注册顾客身份
-mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,255,用户名 / 手机号 / 邮箱
-mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,257,密码
-mobile,frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx,267,返回
-mobile,frontend-mobile/src/pages-weapp/bind/Bind.jsx,53,正在绑定...
-mobile,frontend-mobile/src/pages-weapp/bind/Bind.jsx,57,绑定成功
-mobile,frontend-mobile/src/pages-weapp/bind/Bind.jsx,58,PC 端将自动刷新
-mobile,frontend-mobile/src/pages-weapp/bind/Bind.jsx,59,返回
-mobile,frontend-mobile/src/pages-weapp/bind/Bind.jsx,67,绑定失败
-mobile,frontend-mobile/src/pages-weapp/bind/Bind.jsx,68,请重试
-mobile,frontend-mobile/src/pages-weapp/bind/Bind.jsx,69,返回
-mobile,frontend-mobile/src/pages-weapp/login/Login.jsx,116,请阅读并同意《租用服务协议》与《个人信息保护政策》
-mobile,frontend-mobile/src/pages-weapp/login/Login.jsx,124,请阅读并同意《租用服务协议》与《个人信息保护政策》
-mobile,frontend-mobile/src/pages-weapp/login/Login.jsx,133,登录
-mobile,frontend-mobile/src/pages-weapp/login/Login.jsx,139,📱 微信用户一键登录
-mobile,frontend-mobile/src/pages-weapp/login/Login.jsx,146,其他方式
-mobile,frontend-mobile/src/pages-weapp/login/Login.jsx,152,邮箱/手机号
-mobile,frontend-mobile/src/pages-weapp/login/Login.jsx,154,密码
-mobile,frontend-mobile/src/pages-weapp/login/Login.jsx,157,登录
-mobile,frontend-mobile/src/pages-weapp/login/Login.jsx,164,👀 随便看看
-mobile,frontend-mobile/src/pages-weapp/login/Login.jsx,170,我已阅读并同意
-mobile,frontend-mobile/src/pages-weapp/login/Login.jsx,171,《租用服务协议》
-mobile,frontend-mobile/src/pages-weapp/login/Login.jsx,172,与
-mobile,frontend-mobile/src/pages-weapp/login/Login.jsx,173,《个人信息保护政策》
-mobile,frontend-mobile/src/pages-weapp/login/Login.jsx,177,版本 v
-mobile,frontend-mobile/src/pages-weapp/login/Login.jsx,181,清除 Token
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,164,取消订单
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,164,确认取消该订单？取消后不可恢复。
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,199,订单不存在
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,211,确认收货成功
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,229,确认执行退款
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,229,将按结算差额退回现金与赠点。
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,237,退款成功
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,249,确认取消订单
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,249,取消后不可恢复，已付款将原路退回。
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,258,订单已取消
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,290,已接受定损
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,324,已提交申诉
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,338,加载中...
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,345,订单不存在
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,435,订单编号
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,449,租约已超期
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,450,超期
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,451,天 · 累计逾期费 ¥
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,453,/天）
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,482,配送信息
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,485,👤 下单人
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,494,🏪 中转网点
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,505,📍 地址
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,536,费用明细
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,541,实付部分
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,554,优惠券抵扣
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,569,优惠券抵扣
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,573,合计实付
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,575,应付部分
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,576,实际租金
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,586,优惠券抵扣
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,596,物流费
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,598,实际应付
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,600,（折后）应付
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,605,结算差额
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,619,实付金额
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,627,优惠券抵扣
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,631,实付合计
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,638,实际租期
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,639,实际租期
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,646,退款
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,648,现金退款
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,651,退回预付点
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,654,赠送乐币退还
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,656,退款合计
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,663,结算状态
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,665,退款方式
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,669,退款状态
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,680,需补缴
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,686,去补缴 ¥
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,696,收支记录
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,704,优惠券抵扣
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,714,净支出
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,722,定损费用预览
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,724,实际租期
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,727,实际租金
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,734,退款
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,737,应补缴
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,749,合同快照
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,766,阶梯定价
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,773,第
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,774,阶
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,774,天: ¥
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,774,/天 ×
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,774,天
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,785,租金小计 ¥
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,793,折
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,801,日租金
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,803,原价
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,805,合同租期（天）
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,806,租金
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,814,押金
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,827,押金
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,829,物流费
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,839,担保人信息
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,849,暂无担保人信息
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,855,✍️ 推荐信
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,856,点击查看
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,867,本订单为免押金订单
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,869,请核实以下担保人信息，若担保人不符合要求应取消订单：
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,885,收货拍照留档
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,886,请拍摄乐器到达时的状态
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,894,订单动态
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,931,加载更多
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,940,定损信息
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,941,定损金额
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,943,定损说明
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,945,定损说明
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,966,接受
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,972,拒绝
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,986,去支付 ¥
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,1000,📦 发货
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,1011,🚚 接收并转发
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,1015,📦 代收货
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,1019,↩️ 接收
-mobile,frontend-mobile/src/pages-weapp/order-detail/OrderDetail.jsx,1070,↩️ 归还
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,138,支付参数缺失，请从订单详情重新进入
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,142,加载中...
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,179,请输入优惠码
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,191,优惠码无效
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,239,注册成功，正在登录...
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,297,注册处理中，请稍后在首页查看
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,403,支付成功，注册处理中
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,429,会员已激活，赠点已到账
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,432,支付成功
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,483,退款申请已提交
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,499,合计
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,518,原支付明细
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,520,原支付总额
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,523,  现金
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,526,  预付点
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,529,  赠点
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,531,退款明细（原路退回）
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,535,退现金（微信原路）
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,538,退回预付点
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,541,退回赠点
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,543,退款金额
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,551,使用乐币
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,554,本次可用
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,556,使用
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,563,乐币
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,566,乐币使用不得超过租金的
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,571,现金差额
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,579,退款说明
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,580,金额将在提交后原路退回至您的微信支付账户，预计 1-7 个工作日到账。
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,589,成为 VIP 会员后，你将获得以下权益：
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,591,· 解锁全部乐器租赁服务
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,594,· 获赠 99 赠点，可用于抵扣租金
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,595,（每次最多抵扣租金的
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,603,优惠码
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,608,输入优惠码（选填）
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,625,优惠后金额
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,639,确认退款 ¥
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,643,确认，查看订单详情
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,703,合计
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,716,合计
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,727,阶梯定价
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,732,  折扣
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,736,租金小计
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,737,押金
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,738,物流费
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,749,原报价（材料费）
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,750,原报价（服务费）
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,751,原报价（物流费）
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,752,原报价合计
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,755,材料费
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,756,服务费
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,757,物流费
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,759,需补付
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,769,租金小计
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,770,押金
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,771,物流费
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,772,已付合计
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,775,损失评估
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,776,押金抵扣
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,777,需补付
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,787,实际租期
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,788,实际租金
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,790,损坏扣款
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,793,逾期费用
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,796,退款金额
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,806,续期天数
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,807,续期费
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,809,合计
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,818,实际租金
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,820,物流费
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,823,逾期费
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,826,损坏赔偿
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,828,已付总额
-mobile,frontend-mobile/src/pages-weapp/payment/Payment.jsx,830,需补缴
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,131,保存成功
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,135,保存成功
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,143,网络错误
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,154,获取微信登录凭证失败
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,163,发现您已使用此微信号注册有账户，将合并：当前账户的组织关系与密码将迁移至该微信账户，当前账户作废并需重新登录。是否继续？
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,165,已放弃绑定该微信号
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,176,账户已合并，请重新登录
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,192,微信绑定成功
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,197,网络错误
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,213,姓名
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,219,昵称
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,225,手机号
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,231,邮箱
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,237,身份证照片
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,248,第二证件照（可选，请选择证件类型）
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,260,介绍信（学生证必传）
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,280,请先上传身份证正反面，再上传第二证件
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,287,实名认证
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,290,✅ 已认证
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,291,姓名：
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,292,身份证：
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,293,认证时间：
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,297,⚠️ 实名认证审核中
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,298,已提交人脸采样，平台员工审核通过后即完成实名认证（人工审核约需 1-2 个工作日；如页面提供微信自动核身，完成后即时生效）。
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,306,⚠️ 尚未完成实名认证
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,307,请先上传身份证照片
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,309,去上传身份证 👉
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,314,⚠️ 审核未通过
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,315,请重新发起人脸识别
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,317,发起人脸识别 👉
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,322,⚠️ 已上传身份证照片
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,323,请完成人脸识别
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,325,发起人脸识别 👉
-mobile,frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx,335,微信账户
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,112,请输入姓名
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,113,请输入手机号
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,114,请阅读并同意《租用服务协议》与《个人信息保护政策》
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,120,请先上传身份证正反面照片
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,206,"网络错误, 请重试"
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,217,注册账号
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,218,填写信息即可开始租赁
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,230,昵称
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,235,姓名
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,239,手机号
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,243,邮箱（选填）
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,247,收货地址（选填）
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,277,详细地址
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,281,邮编（选填）
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,286,身份证照片
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,287,（必填）
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,299,第二证件照（可选）
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,300,（学生证/教职工证/工作证等；类型由平台审核时指定，可用于免押金等政策）
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,304,实名信息将由平台审核；完成微信核身的可即时生效，人工审核约需 1-2 个工作日，结果将通过系统消息通知您。
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,315,我已阅读并同意
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,316,《租用服务协议》
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,317,与
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,318,《个人信息保护政策》
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,326,会员费 ¥
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,331,用户名密码登录
-mobile,frontend-mobile/src/pages-weapp/profile-complete/ProfileComplete.jsx,333,返回
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,110,加载中...
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,111,订单不存在
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,128,下单日
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,129,原预期归还
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,131,超期
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,131,天（续期需覆盖）
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,137,续期设置
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,139,已超期，最少续期
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,139,天
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,152,天
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,158,自定义:
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,162,天数
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,167,天
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,170,预期归还日:
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,176,费用明细
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,181,第
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,181,阶
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,181,天 · ¥
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,181,/天
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,186,续期费
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,190,合计
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,193,新到期日:
-mobile,frontend-mobile/src/pages-weapp/renewal/Renewal.jsx,195,当前订单定价数据不完整，请联系管理员
-mobile,frontend-mobile/src/pages-weapp/search/Search.jsx,43,搜索乐器 SN
-mobile,frontend-mobile/src/pages-weapp/search/Search.jsx,44,搜索
-mobile,frontend-mobile/src/pages-weapp/search/Search.jsx,51,历史搜索
-mobile,frontend-mobile/src/pages-weapp/search/Search.jsx,60,搜索中...
-mobile,frontend-mobile/src/pages-weapp/search/Search.jsx,69,/日
-mobile,frontend-mobile/src/pages-weapp/search/Search.jsx,74,未找到匹配的乐器
 mobile,frontend-mobile/src/services/api.js,107,此功能需要登录，是否前往登录？
 mobile,frontend-mobile/src/services/api.js,128,无法获取配置，请刷新页面重试
 mobile,frontend-mobile/src/services/api.js,221,您尚未注册会员，要注册吗？
@@ -2089,49 +1561,44 @@ pc,frontend-pc/src/components/ProtectedRoute.jsx,130,权限不足
 pc,frontend-pc/src/components/ProtectedRoute.jsx,131,您没有权限访问此页面
 pc,frontend-pc/src/components/ProtectedRoute.jsx,162,权限不足
 pc,frontend-pc/src/components/ProtectedRoute.jsx,163,您没有权限访问此页面
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,80,获取成员列表失败
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,90,至少保留一个角色
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,96,角色已更新
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,100,更新角色失败
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,107,成员移除成功
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,112,移除成员失败
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,171,申请已提交，等待商户管理员审批
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,178,提交申请失败
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,192,成员已绑定
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,198,绑定成功，但部分角色权限分配失败。
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,240,初始密码（请立即复制保存）：
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,242,此为仅显示一次密码，请妥善保存。
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,248,用户创建成功，但部分角色权限分配失败。
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,263,操作失败
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,300,选择角色
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,323,移除该成员的本网点员工身份？
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,327,移除
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,339,搜索姓名或邮箱
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,348,添加成员
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,363,生成邀请码失败
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,366,邀请加入
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,372,邀请加入
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,392,网点：
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,393,角色：
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,400,添加成员
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,415,用户名：
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,416,姓名：
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,417,邮箱：
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,418,手机：
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,420,改为新建用户
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,427,用户名
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,434,该用户名已注册
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,437,姓名
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,441,邮箱
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,448,该邮箱已注册
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,451,手机
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,458,该手机号已注册
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,462,该用户已注册
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,463,改为绑定现有用户
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,472,角色
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,480,跳过邮箱验证（直接激活）
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,488,取消
-pc,frontend-pc/src/components/SiteMemberManagement.jsx,496,确认添加
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,77,获取成员列表失败
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,87,至少保留一个角色
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,93,角色已更新
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,97,更新角色失败
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,104,成员移除成功
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,109,移除成员失败
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,168,申请已提交，等待商户管理员审批
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,175,提交申请失败
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,189,成员已绑定
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,195,绑定成功，但部分角色权限分配失败。
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,237,初始密码（请立即复制保存）：
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,239,此为仅显示一次密码，请妥善保存。
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,245,用户创建成功，但部分角色权限分配失败。
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,260,操作失败
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,297,选择角色
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,320,移除该成员的本网点员工身份？
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,324,移除
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,336,搜索姓名或邮箱
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,345,添加成员
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,351,添加成员
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,366,用户名：
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,367,姓名：
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,368,邮箱：
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,369,手机：
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,371,改为新建用户
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,378,用户名
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,385,该用户名已注册
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,388,姓名
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,392,邮箱
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,399,该邮箱已注册
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,402,手机
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,409,该手机号已注册
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,413,该用户已注册
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,414,改为绑定现有用户
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,423,角色
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,431,跳过邮箱验证（直接激活）
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,439,取消
+pc,frontend-pc/src/components/SiteMemberManagement.jsx,447,确认添加
 pc,frontend-pc/src/components/WechatBinding.jsx,25,二维码生成失败，请重试
 pc,frontend-pc/src/components/WechatBinding.jsx,34,生成二维码失败
 pc,frontend-pc/src/components/WechatBinding.jsx,49,微信绑定成功
@@ -2334,10 +1801,10 @@ pc,frontend-pc/src/pages/DirectMemberManagement.jsx,272,手机号
 pc,frontend-pc/src/pages/DirectMemberManagement.jsx,273,手机号
 pc,frontend-pc/src/pages/DirectMemberManagement.jsx,275,邮箱
 pc,frontend-pc/src/pages/DirectMemberManagement.jsx,276,邮箱（邀请邮件将发送至此）
-pc,frontend-pc/src/pages/DirectMemberManagement.jsx,278,用户名
-pc,frontend-pc/src/pages/DirectMemberManagement.jsx,279,用户名（选填）
-pc,frontend-pc/src/pages/DirectMemberManagement.jsx,281,职位/专长
-pc,frontend-pc/src/pages/DirectMemberManagement.jsx,282,如 钢琴维修
+pc,frontend-pc/src/pages/DirectMemberManagement.jsx,280,登录用户名（可选）
+pc,frontend-pc/src/pages/DirectMemberManagement.jsx,283,留空自动使用邮箱
+pc,frontend-pc/src/pages/DirectMemberManagement.jsx,285,职位/专长
+pc,frontend-pc/src/pages/DirectMemberManagement.jsx,286,如 钢琴维修
 pc,frontend-pc/src/pages/ExpireWarning.jsx,5,数据正在同步中...
 pc,frontend-pc/src/pages/ExpireWarning.jsx,6,模块开发中，敬请期待
 pc,frontend-pc/src/pages/FinanceConfig.jsx,57,配置已更新，即时生效
@@ -2657,45 +2124,47 @@ pc,frontend-pc/src/pages/SiteBulkImport.jsx,212,批量导入网点
 pc,frontend-pc/src/pages/SiteBulkImport.jsx,220,下一步：确认导入
 pc,frontend-pc/src/pages/SiteBulkImport.jsx,225,下一步：确认导入（跳过错误）
 pc,frontend-pc/src/pages/SiteBulkImport.jsx,230,返回网点管理
-pc,frontend-pc/src/pages/SiteManagement.jsx,103,加载网点数据失败: {msg}
-pc,frontend-pc/src/pages/SiteManagement.jsx,184,请先选择一个网点
-pc,frontend-pc/src/pages/SiteManagement.jsx,223,删除成功
-pc,frontend-pc/src/pages/SiteManagement.jsx,227,删除失败: {msg}
-pc,frontend-pc/src/pages/SiteManagement.jsx,277,更新成功
-pc,frontend-pc/src/pages/SiteManagement.jsx,292,操作失败: {msg}
-pc,frontend-pc/src/pages/SiteManagement.jsx,301,暂无网点数据
-pc,frontend-pc/src/pages/SiteManagement.jsx,302,创建顶级网点
-pc,frontend-pc/src/pages/SiteManagement.jsx,320,网点结构
-pc,frontend-pc/src/pages/SiteManagement.jsx,329,创建顶级网点
-pc,frontend-pc/src/pages/SiteManagement.jsx,336,批量导入
-pc,frontend-pc/src/pages/SiteManagement.jsx,349,搜索网点
-pc,frontend-pc/src/pages/SiteManagement.jsx,399,创建下级网点
-pc,frontend-pc/src/pages/SiteManagement.jsx,400,编辑
-pc,frontend-pc/src/pages/SiteManagement.jsx,402,确定要删除该网点吗？
-pc,frontend-pc/src/pages/SiteManagement.jsx,407,删除
-pc,frontend-pc/src/pages/SiteManagement.jsx,417,网点ID
-pc,frontend-pc/src/pages/SiteManagement.jsx,418,网点名称
-pc,frontend-pc/src/pages/SiteManagement.jsx,419,网点类型
-pc,frontend-pc/src/pages/SiteManagement.jsx,420,地址
-pc,frontend-pc/src/pages/SiteManagement.jsx,421,联系电话
-pc,frontend-pc/src/pages/SiteManagement.jsx,422,父级网点
-pc,frontend-pc/src/pages/SiteManagement.jsx,452,取消
-pc,frontend-pc/src/pages/SiteManagement.jsx,458,提交
-pc,frontend-pc/src/pages/SiteManagement.jsx,467,网点名称
-pc,frontend-pc/src/pages/SiteManagement.jsx,471,请输入网点名称
-pc,frontend-pc/src/pages/SiteManagement.jsx,476,网点类型
-pc,frontend-pc/src/pages/SiteManagement.jsx,479,请选择网点类型
-pc,frontend-pc/src/pages/SiteManagement.jsx,480,直营店
-pc,frontend-pc/src/pages/SiteManagement.jsx,481,加盟店
-pc,frontend-pc/src/pages/SiteManagement.jsx,482,合作店
-pc,frontend-pc/src/pages/SiteManagement.jsx,488,地址
-pc,frontend-pc/src/pages/SiteManagement.jsx,491,请输入地址
-pc,frontend-pc/src/pages/SiteManagement.jsx,496,联系电话
-pc,frontend-pc/src/pages/SiteManagement.jsx,499,请输入联系电话
-pc,frontend-pc/src/pages/SiteManagement.jsx,504,邮编
-pc,frontend-pc/src/pages/SiteManagement.jsx,507,请输入邮编
-pc,frontend-pc/src/pages/SiteManagement.jsx,512,中转网点
-pc,frontend-pc/src/pages/SiteManagement.jsx,515,请选择中转网点
+pc,frontend-pc/src/pages/SiteManagement.jsx,111,加载网点数据失败: {msg}
+pc,frontend-pc/src/pages/SiteManagement.jsx,192,请先选择一个网点
+pc,frontend-pc/src/pages/SiteManagement.jsx,231,删除成功
+pc,frontend-pc/src/pages/SiteManagement.jsx,235,删除失败: {msg}
+pc,frontend-pc/src/pages/SiteManagement.jsx,286,更新成功
+pc,frontend-pc/src/pages/SiteManagement.jsx,301,操作失败: {msg}
+pc,frontend-pc/src/pages/SiteManagement.jsx,310,暂无网点数据
+pc,frontend-pc/src/pages/SiteManagement.jsx,311,创建顶级网点
+pc,frontend-pc/src/pages/SiteManagement.jsx,329,网点结构
+pc,frontend-pc/src/pages/SiteManagement.jsx,338,创建顶级网点
+pc,frontend-pc/src/pages/SiteManagement.jsx,345,批量导入
+pc,frontend-pc/src/pages/SiteManagement.jsx,358,搜索网点
+pc,frontend-pc/src/pages/SiteManagement.jsx,408,创建下级网点
+pc,frontend-pc/src/pages/SiteManagement.jsx,409,编辑
+pc,frontend-pc/src/pages/SiteManagement.jsx,411,确定要删除该网点吗？
+pc,frontend-pc/src/pages/SiteManagement.jsx,416,删除
+pc,frontend-pc/src/pages/SiteManagement.jsx,426,网点ID
+pc,frontend-pc/src/pages/SiteManagement.jsx,427,网点名称
+pc,frontend-pc/src/pages/SiteManagement.jsx,428,网点类型
+pc,frontend-pc/src/pages/SiteManagement.jsx,429,地址
+pc,frontend-pc/src/pages/SiteManagement.jsx,430,联系电话
+pc,frontend-pc/src/pages/SiteManagement.jsx,431,父级网点
+pc,frontend-pc/src/pages/SiteManagement.jsx,461,取消
+pc,frontend-pc/src/pages/SiteManagement.jsx,467,提交
+pc,frontend-pc/src/pages/SiteManagement.jsx,476,网点名称
+pc,frontend-pc/src/pages/SiteManagement.jsx,480,请输入网点名称
+pc,frontend-pc/src/pages/SiteManagement.jsx,486,目标商户
+pc,frontend-pc/src/pages/SiteManagement.jsx,490,请选择目标商户
+pc,frontend-pc/src/pages/SiteManagement.jsx,502,网点类型
+pc,frontend-pc/src/pages/SiteManagement.jsx,505,请选择网点类型
+pc,frontend-pc/src/pages/SiteManagement.jsx,506,直营店
+pc,frontend-pc/src/pages/SiteManagement.jsx,507,加盟店
+pc,frontend-pc/src/pages/SiteManagement.jsx,508,合作店
+pc,frontend-pc/src/pages/SiteManagement.jsx,514,地址
+pc,frontend-pc/src/pages/SiteManagement.jsx,517,请输入地址
+pc,frontend-pc/src/pages/SiteManagement.jsx,522,联系电话
+pc,frontend-pc/src/pages/SiteManagement.jsx,525,请输入联系电话
+pc,frontend-pc/src/pages/SiteManagement.jsx,530,邮编
+pc,frontend-pc/src/pages/SiteManagement.jsx,533,请输入邮编
+pc,frontend-pc/src/pages/SiteManagement.jsx,538,中转网点
+pc,frontend-pc/src/pages/SiteManagement.jsx,541,请选择中转网点
 pc,frontend-pc/src/pages/StaffBulkImport.jsx,27,请先上传 CSV 文件
 pc,frontend-pc/src/pages/StaffBulkImport.jsx,42,校验失败: {msg}
 pc,frontend-pc/src/pages/StaffBulkImport.jsx,52,登录已过期，请刷新页面重新登录
@@ -2740,94 +2209,94 @@ pc,frontend-pc/src/pages/StaffEdit.jsx,103,成员
 pc,frontend-pc/src/pages/StaffEdit.jsx,104,维修师傅
 pc,frontend-pc/src/pages/StaffEdit.jsx,108,保存
 pc,frontend-pc/src/pages/StaffEdit.jsx,109,取消
-pc,frontend-pc/src/pages/StaffManagement.jsx,95,加载人员列表失败: {msg}
-pc,frontend-pc/src/pages/StaffManagement.jsx,173,该手机号/邮箱已有账户
-pc,frontend-pc/src/pages/StaffManagement.jsx,174,已向其发送
-pc,frontend-pc/src/pages/StaffManagement.jsx,174,邀请通知
-pc,frontend-pc/src/pages/StaffManagement.jsx,174,，请其打开「系统消息」选择
-pc,frontend-pc/src/pages/StaffManagement.jsx,174,接受
-pc,frontend-pc/src/pages/StaffManagement.jsx,174,或
-pc,frontend-pc/src/pages/StaffManagement.jsx,174,拒绝
-pc,frontend-pc/src/pages/StaffManagement.jsx,175,接受后即绑定为本人账户成员，无需管理员代为创建。
-pc,frontend-pc/src/pages/StaffManagement.jsx,196,已为该员工预建账户，
-pc,frontend-pc/src/pages/StaffManagement.jsx,196,邀请邮件
-pc,frontend-pc/src/pages/StaffManagement.jsx,196,已发送至
-pc,frontend-pc/src/pages/StaffManagement.jsx,197,请其查收邮件 → 点击链接完成激活并
-pc,frontend-pc/src/pages/StaffManagement.jsx,197,设置密码
-pc,frontend-pc/src/pages/StaffManagement.jsx,197,；亦可从「系统消息」查看邀请。
-pc,frontend-pc/src/pages/StaffManagement.jsx,198,激活/接受前该账户不可登录；维修师在激活前不会出现在顾客侧。
-pc,frontend-pc/src/pages/StaffManagement.jsx,209,照片上传失败，可在后续编辑中重试
-pc,frontend-pc/src/pages/StaffManagement.jsx,221,创建用户失败: {msg}
-pc,frontend-pc/src/pages/StaffManagement.jsx,242,编辑成功
-pc,frontend-pc/src/pages/StaffManagement.jsx,250,编辑失败: {msg}
-pc,frontend-pc/src/pages/StaffManagement.jsx,259,用户已删除
-pc,frontend-pc/src/pages/StaffManagement.jsx,265,删除失败: {msg}
-pc,frontend-pc/src/pages/StaffManagement.jsx,273,用户已激活
-pc,frontend-pc/src/pages/StaffManagement.jsx,279,激活失败: {msg}
-pc,frontend-pc/src/pages/StaffManagement.jsx,285,请先选择要重设密码的用户
-pc,frontend-pc/src/pages/StaffManagement.jsx,297,重设密码失败: {msg}
-pc,frontend-pc/src/pages/StaffManagement.jsx,303,请先选择要删除的用户
-pc,frontend-pc/src/pages/StaffManagement.jsx,324,批量删除失败: {msg}
-pc,frontend-pc/src/pages/StaffManagement.jsx,334,请先选择要重设密码的用户
-pc,frontend-pc/src/pages/StaffManagement.jsx,394,未激活
-pc,frontend-pc/src/pages/StaffManagement.jsx,395,待确认
-pc,frontend-pc/src/pages/StaffManagement.jsx,396,正常
-pc,frontend-pc/src/pages/StaffManagement.jsx,397,禁用
-pc,frontend-pc/src/pages/StaffManagement.jsx,412,编辑
-pc,frontend-pc/src/pages/StaffManagement.jsx,421,激活
-pc,frontend-pc/src/pages/StaffManagement.jsx,430,重设密码
-pc,frontend-pc/src/pages/StaffManagement.jsx,445,删除
-pc,frontend-pc/src/pages/StaffManagement.jsx,478,人员管理
-pc,frontend-pc/src/pages/StaffManagement.jsx,485,邀请管理
-pc,frontend-pc/src/pages/StaffManagement.jsx,489,直属成员管理
-pc,frontend-pc/src/pages/StaffManagement.jsx,497,批量导入
-pc,frontend-pc/src/pages/StaffManagement.jsx,504,创建用户
-pc,frontend-pc/src/pages/StaffManagement.jsx,517,搜索姓名
-pc,frontend-pc/src/pages/StaffManagement.jsx,521,选择网点
-pc,frontend-pc/src/pages/StaffManagement.jsx,535,只看直属员工（含维修师傅）
-pc,frontend-pc/src/pages/StaffManagement.jsx,539,搜索
-pc,frontend-pc/src/pages/StaffManagement.jsx,552,已选择
-pc,frontend-pc/src/pages/StaffManagement.jsx,552,项
-pc,frontend-pc/src/pages/StaffManagement.jsx,559,重设密码
-pc,frontend-pc/src/pages/StaffManagement.jsx,567,批量删除
-pc,frontend-pc/src/pages/StaffManagement.jsx,570,取消选择
-pc,frontend-pc/src/pages/StaffManagement.jsx,596,创建用户
-pc,frontend-pc/src/pages/StaffManagement.jsx,598,返回列表
-pc,frontend-pc/src/pages/StaffManagement.jsx,614,用户类型
-pc,frontend-pc/src/pages/StaffManagement.jsx,616,网点员工
-pc,frontend-pc/src/pages/StaffManagement.jsx,617,商户直属员工
-pc,frontend-pc/src/pages/StaffManagement.jsx,622,姓名
-pc,frontend-pc/src/pages/StaffManagement.jsx,623,姓名
-pc,frontend-pc/src/pages/StaffManagement.jsx,625,用户名
-pc,frontend-pc/src/pages/StaffManagement.jsx,626,用户名
-pc,frontend-pc/src/pages/StaffManagement.jsx,628,邮箱
-pc,frontend-pc/src/pages/StaffManagement.jsx,629,邮箱（邀请邮件将发送至此）
-pc,frontend-pc/src/pages/StaffManagement.jsx,631,手机号
-pc,frontend-pc/src/pages/StaffManagement.jsx,632,手机号
-pc,frontend-pc/src/pages/StaffManagement.jsx,639,归属网点
-pc,frontend-pc/src/pages/StaffManagement.jsx,640,选择网点
-pc,frontend-pc/src/pages/StaffManagement.jsx,646,角色
-pc,frontend-pc/src/pages/StaffManagement.jsx,648,管理员
-pc,frontend-pc/src/pages/StaffManagement.jsx,649,成员
-pc,frontend-pc/src/pages/StaffManagement.jsx,657,职位
-pc,frontend-pc/src/pages/StaffManagement.jsx,658,如：客服 / 运营
-pc,frontend-pc/src/pages/StaffManagement.jsx,663,简介（富文本）
-pc,frontend-pc/src/pages/StaffManagement.jsx,664,如：钢琴维修 12 年 · 小提琴维修 8 年
-pc,frontend-pc/src/pages/StaffManagement.jsx,666,照片（头像）
-pc,frontend-pc/src/pages/StaffManagement.jsx,671,照片将在创建成功后上传；也可稍后在用户编辑中更换。
-pc,frontend-pc/src/pages/StaffManagement.jsx,678,创建并发送邀请
-pc,frontend-pc/src/pages/StaffManagement.jsx,679,取消
-pc,frontend-pc/src/pages/StaffManagement.jsx,689,编辑用户
-pc,frontend-pc/src/pages/StaffManagement.jsx,696,姓名
-pc,frontend-pc/src/pages/StaffManagement.jsx,697,请输入姓名
-pc,frontend-pc/src/pages/StaffManagement.jsx,699,手机
-pc,frontend-pc/src/pages/StaffManagement.jsx,700,请输入手机号
-pc,frontend-pc/src/pages/StaffManagement.jsx,702,邮箱
-pc,frontend-pc/src/pages/StaffManagement.jsx,703,请输入邮箱
-pc,frontend-pc/src/pages/StaffManagement.jsx,705,职位
-pc,frontend-pc/src/pages/StaffManagement.jsx,706,请输入职位
-pc,frontend-pc/src/pages/StaffManagement.jsx,708,归属网点
-pc,frontend-pc/src/pages/StaffManagement.jsx,709,选择网点
+pc,frontend-pc/src/pages/StaffManagement.jsx,96,加载人员列表失败: {msg}
+pc,frontend-pc/src/pages/StaffManagement.jsx,174,该手机号/邮箱已有账户
+pc,frontend-pc/src/pages/StaffManagement.jsx,175,已向其发送
+pc,frontend-pc/src/pages/StaffManagement.jsx,175,邀请通知
+pc,frontend-pc/src/pages/StaffManagement.jsx,175,，请其打开「系统消息」选择
+pc,frontend-pc/src/pages/StaffManagement.jsx,175,接受
+pc,frontend-pc/src/pages/StaffManagement.jsx,175,或
+pc,frontend-pc/src/pages/StaffManagement.jsx,175,拒绝
+pc,frontend-pc/src/pages/StaffManagement.jsx,176,接受后即绑定为本人账户成员，无需管理员代为创建。
+pc,frontend-pc/src/pages/StaffManagement.jsx,197,已为该员工预建账户，
+pc,frontend-pc/src/pages/StaffManagement.jsx,197,邀请邮件
+pc,frontend-pc/src/pages/StaffManagement.jsx,197,已发送至
+pc,frontend-pc/src/pages/StaffManagement.jsx,198,请其查收邮件 → 点击链接完成激活并
+pc,frontend-pc/src/pages/StaffManagement.jsx,198,设置密码
+pc,frontend-pc/src/pages/StaffManagement.jsx,198,；亦可从「系统消息」查看邀请。
+pc,frontend-pc/src/pages/StaffManagement.jsx,199,激活/接受前该账户不可登录；维修师在激活前不会出现在顾客侧。
+pc,frontend-pc/src/pages/StaffManagement.jsx,210,照片上传失败，可在后续编辑中重试
+pc,frontend-pc/src/pages/StaffManagement.jsx,225,创建用户失败: {msg}
+pc,frontend-pc/src/pages/StaffManagement.jsx,246,编辑成功
+pc,frontend-pc/src/pages/StaffManagement.jsx,254,编辑失败: {msg}
+pc,frontend-pc/src/pages/StaffManagement.jsx,263,用户已删除
+pc,frontend-pc/src/pages/StaffManagement.jsx,269,删除失败: {msg}
+pc,frontend-pc/src/pages/StaffManagement.jsx,277,用户已激活
+pc,frontend-pc/src/pages/StaffManagement.jsx,283,激活失败: {msg}
+pc,frontend-pc/src/pages/StaffManagement.jsx,289,请先选择要重设密码的用户
+pc,frontend-pc/src/pages/StaffManagement.jsx,301,重设密码失败: {msg}
+pc,frontend-pc/src/pages/StaffManagement.jsx,307,请先选择要删除的用户
+pc,frontend-pc/src/pages/StaffManagement.jsx,328,批量删除失败: {msg}
+pc,frontend-pc/src/pages/StaffManagement.jsx,338,请先选择要重设密码的用户
+pc,frontend-pc/src/pages/StaffManagement.jsx,398,未激活
+pc,frontend-pc/src/pages/StaffManagement.jsx,399,待确认
+pc,frontend-pc/src/pages/StaffManagement.jsx,400,正常
+pc,frontend-pc/src/pages/StaffManagement.jsx,401,禁用
+pc,frontend-pc/src/pages/StaffManagement.jsx,416,编辑
+pc,frontend-pc/src/pages/StaffManagement.jsx,425,激活
+pc,frontend-pc/src/pages/StaffManagement.jsx,434,重设密码
+pc,frontend-pc/src/pages/StaffManagement.jsx,449,删除
+pc,frontend-pc/src/pages/StaffManagement.jsx,482,人员管理
+pc,frontend-pc/src/pages/StaffManagement.jsx,489,邀请管理
+pc,frontend-pc/src/pages/StaffManagement.jsx,493,直属成员管理
+pc,frontend-pc/src/pages/StaffManagement.jsx,501,批量导入
+pc,frontend-pc/src/pages/StaffManagement.jsx,508,创建用户
+pc,frontend-pc/src/pages/StaffManagement.jsx,521,搜索姓名
+pc,frontend-pc/src/pages/StaffManagement.jsx,525,选择网点
+pc,frontend-pc/src/pages/StaffManagement.jsx,539,只看直属员工（含维修师傅）
+pc,frontend-pc/src/pages/StaffManagement.jsx,543,搜索
+pc,frontend-pc/src/pages/StaffManagement.jsx,556,已选择
+pc,frontend-pc/src/pages/StaffManagement.jsx,556,项
+pc,frontend-pc/src/pages/StaffManagement.jsx,563,重设密码
+pc,frontend-pc/src/pages/StaffManagement.jsx,571,批量删除
+pc,frontend-pc/src/pages/StaffManagement.jsx,574,取消选择
+pc,frontend-pc/src/pages/StaffManagement.jsx,600,创建用户
+pc,frontend-pc/src/pages/StaffManagement.jsx,602,返回列表
+pc,frontend-pc/src/pages/StaffManagement.jsx,618,用户类型
+pc,frontend-pc/src/pages/StaffManagement.jsx,620,网点员工
+pc,frontend-pc/src/pages/StaffManagement.jsx,621,商户直属员工
+pc,frontend-pc/src/pages/StaffManagement.jsx,626,姓名
+pc,frontend-pc/src/pages/StaffManagement.jsx,627,姓名
+pc,frontend-pc/src/pages/StaffManagement.jsx,631,登录用户名（可选）
+pc,frontend-pc/src/pages/StaffManagement.jsx,634,留空自动使用邮箱
+pc,frontend-pc/src/pages/StaffManagement.jsx,636,邮箱
+pc,frontend-pc/src/pages/StaffManagement.jsx,637,邮箱（邀请邮件将发送至此）
+pc,frontend-pc/src/pages/StaffManagement.jsx,639,手机号
+pc,frontend-pc/src/pages/StaffManagement.jsx,640,手机号
+pc,frontend-pc/src/pages/StaffManagement.jsx,647,归属网点
+pc,frontend-pc/src/pages/StaffManagement.jsx,648,选择网点
+pc,frontend-pc/src/pages/StaffManagement.jsx,654,角色
+pc,frontend-pc/src/pages/StaffManagement.jsx,656,管理员
+pc,frontend-pc/src/pages/StaffManagement.jsx,657,成员
+pc,frontend-pc/src/pages/StaffManagement.jsx,665,职位
+pc,frontend-pc/src/pages/StaffManagement.jsx,666,如：客服 / 运营
+pc,frontend-pc/src/pages/StaffManagement.jsx,671,简介（富文本）
+pc,frontend-pc/src/pages/StaffManagement.jsx,672,如：钢琴维修 12 年 · 小提琴维修 8 年
+pc,frontend-pc/src/pages/StaffManagement.jsx,674,照片（头像）
+pc,frontend-pc/src/pages/StaffManagement.jsx,679,照片将在创建成功后上传；也可稍后在用户编辑中更换。
+pc,frontend-pc/src/pages/StaffManagement.jsx,686,创建并发送邀请
+pc,frontend-pc/src/pages/StaffManagement.jsx,687,取消
+pc,frontend-pc/src/pages/StaffManagement.jsx,697,编辑用户
+pc,frontend-pc/src/pages/StaffManagement.jsx,704,姓名
+pc,frontend-pc/src/pages/StaffManagement.jsx,705,请输入姓名
+pc,frontend-pc/src/pages/StaffManagement.jsx,707,手机
+pc,frontend-pc/src/pages/StaffManagement.jsx,708,请输入手机号
+pc,frontend-pc/src/pages/StaffManagement.jsx,710,邮箱
+pc,frontend-pc/src/pages/StaffManagement.jsx,711,请输入邮箱
+pc,frontend-pc/src/pages/StaffManagement.jsx,713,职位
+pc,frontend-pc/src/pages/StaffManagement.jsx,714,请输入职位
+pc,frontend-pc/src/pages/StaffManagement.jsx,716,归属网点
+pc,frontend-pc/src/pages/StaffManagement.jsx,717,选择网点
 pc,frontend-pc/src/pages/StaffResetPassword.jsx,17,无法获取用户数据，请返回列表重试
 pc,frontend-pc/src/pages/StaffResetPassword.jsx,39,重置密码失败: {msg}
 pc,frontend-pc/src/pages/StaffResetPassword.jsx,48,重置密码
@@ -3202,46 +2671,67 @@ pc,frontend-pc/src/pages/admin/category/List.jsx,396,图标
 pc,frontend-pc/src/pages/admin/category/List.jsx,397,例如 🎹
 pc,frontend-pc/src/pages/admin/category/List.jsx,403,可见性
 pc,frontend-pc/src/pages/admin/category/List.jsx,410,↑↓ 调整首页菜单显示顺序，👁‍🗨 从首页隐藏该分类
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,73,请填写完整实名信息（真实姓名、身份证号、有效期、签发机关、住址，根据证件照核对）
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,77,身份证号格式不正确（18 位，末位可为 X）
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,82,请指定第二证件类型（学生证/教职工证/工作证/其他）
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,87,学生证作为第二证件需介绍信，请驳回并要求补传
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,105,已通过
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,126,请填写驳回原因
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,133,已驳回
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,156,实名已采录
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,170,无
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,172,第二证件
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,176,第二证件复审
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,190,无
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,213,无
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,234,通过
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,242,驳回
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,252,实名核身审核队列
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,256,按用户筛选：
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,260,刷新
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,277,通过核身申请
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,293,该用户实名信息已在用户详情中采录，请与证件照、人脸自拍核对一致后确认通过（无需重复填写）。
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,298,真实姓名
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,299,身份证号
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,300,有效期
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,301,签发机关
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,302,住址
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,309,请根据证件照核对填写完整实名信息（实名信息由员工填写，顾客不自行输入）。
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,313,真实姓名（必填）
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,319,身份证号（必填，18 位）
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,326,身份证有效期（必填，如 2035-12-31 或 长期）
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,333,签发机关（必填，按证件照抄录）
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,340,证件住址（必填，按证件照抄录）
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,348,第二证件类型（用户自报
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,349,；审核人可修正）
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,356,选择第二证件类型
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,362,介绍信：
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,371,学生证作为第二证件需介绍信，请驳回并要求补传
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,378,驳回核身申请
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,386,驳回原因将展示给顾客，请说明具体问题（如照片不清晰、与证件不符）。
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,391,请输入驳回原因（必填）
-pc,frontend-pc/src/pages/admin/face-review/index.jsx,401,自拍视频预览
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,109,请填写完整实名信息（真实姓名、身份证号、有效期、签发机关、住址，根据证件照核对）
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,113,身份证号格式不正确（18 位，末位可为 X）
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,118,请指定第二证件类型（学生证/教职工证/工作证/其他）
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,123,学生证作为第二证件需介绍信，请驳回并要求补传
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,141,已通过
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,162,请填写驳回原因
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,169,已驳回
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,192,实名已采录
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,206,无
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,208,第二证件
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,212,第二证件复审
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,226,无
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,249,无
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,270,通过
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,278,驳回
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,310,第二证件复审
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,310,注册核身
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,317,通过
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,317,驳回
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,336,查看详情
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,342,实名核身审核
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,346,按用户筛选：
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,350,刷新
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,384,按实名姓名搜索
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,394,结果
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,400,刷新
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,421,通过核身申请
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,437,该用户实名信息已在用户详情中采录，请与证件照、人脸自拍核对一致后确认通过（无需重复填写）。
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,442,真实姓名
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,443,身份证号
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,444,有效期
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,445,签发机关
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,446,住址
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,453,请根据证件照核对填写完整实名信息（实名信息由员工填写，顾客不自行输入）。
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,457,真实姓名（必填）
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,463,身份证号（必填，18 位）
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,470,身份证有效期（必填，如 2035-12-31 或 长期）
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,477,签发机关（必填，按证件照抄录）
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,484,证件住址（必填，按证件照抄录）
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,492,第二证件类型（用户自报
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,493,；审核人可修正）
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,500,选择第二证件类型
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,506,介绍信：
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,515,学生证作为第二证件需介绍信，请驳回并要求补传
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,522,驳回核身申请
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,530,驳回原因将展示给顾客，请说明具体问题（如照片不清晰、与证件不符）。
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,535,请输入驳回原因（必填）
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,545,自拍视频预览
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,562,审核详情
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,570,审核结果
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,571,通过
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,571,驳回
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,572,实名姓名
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,573,身份证号
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,574,有效期
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,575,签发机关
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,576,住址
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,578,第二证件
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,581,驳回原因
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,583,审核时间
+pc,frontend-pc/src/pages/admin/face-review/index.jsx,584,审核人
 pc,frontend-pc/src/pages/admin/instrument/BatchImport.jsx,45,请先上传 CSV 文件
 pc,frontend-pc/src/pages/admin/instrument/BatchImport.jsx,70,校验失败: {msg}
 pc,frontend-pc/src/pages/admin/instrument/BatchImport.jsx,101,提交失败: {msg}
@@ -3441,51 +2931,49 @@ pc,frontend-pc/src/pages/admin/instrument/Form.jsx,1464,封面图
 pc,frontend-pc/src/pages/admin/instrument/Form.jsx,1483,选择封面图
 pc,frontend-pc/src/pages/admin/instrument/Form.jsx,1496,取消
 pc,frontend-pc/src/pages/admin/instrument/Form.jsx,1504,提交
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,103,加载乐器失败: {msg}
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,228,上移
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,235,下移
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,239,查看
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,244,确定要删除这个乐器吗？
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,249,删除
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,275,删除成功
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,290,乐器保存成功
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,304,请先选择要操作的乐器
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,328,请先选择要删除的乐器
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,370,请先选择要修改价格的乐器
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,414,模板下载成功
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,426,请至少选择一个导出字段
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,443,导出成功
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,479,乐器管理
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,480,管理可租赁的乐器信息、价格和库存
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,487,已选择
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,487,项
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,494,批量上架
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,501,批量下架
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,508,批量改价
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,516,批量删除
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,521,取消选择
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,529,搜索识别码...
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,535,选择分类
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,546,乐器分级
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,557,选择状态
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,575,导入
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,583,新增乐器
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,619,批量修改价格
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,631,价格类型
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,634,请选择价格类型
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,635,日租金
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,636,周租金
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,637,月租金
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,638,押金
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,644,操作
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,647,请选择操作
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,648,设置为
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,649,增加
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,650,减少
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,651,乘以
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,657,金额/比例
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,660,输入数值
-pc,frontend-pc/src/pages/admin/instrument/List.jsx,667,选择导出字段
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,106,加载乐器失败: {msg}
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,261,查看
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,266,确定要删除这个乐器吗？
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,271,删除
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,297,删除成功
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,312,乐器保存成功
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,326,请先选择要操作的乐器
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,350,请先选择要删除的乐器
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,392,请先选择要修改价格的乐器
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,436,模板下载成功
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,448,请至少选择一个导出字段
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,465,导出成功
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,501,乐器管理
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,502,管理可租赁的乐器信息、价格和库存
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,509,已选择
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,509,项
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,516,批量上架
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,523,批量下架
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,530,批量改价
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,538,批量删除
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,543,取消选择
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,551,搜索识别码...
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,557,选择分类
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,568,乐器分级
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,579,选择状态
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,597,导入
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,605,新增乐器
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,641,批量修改价格
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,653,价格类型
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,656,请选择价格类型
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,657,日租金
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,658,周租金
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,659,月租金
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,660,押金
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,666,操作
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,669,请选择操作
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,670,设置为
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,671,增加
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,672,减少
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,673,乘以
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,679,金额/比例
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,682,输入数值
+pc,frontend-pc/src/pages/admin/instrument/List.jsx,689,选择导出字段
 pc,frontend-pc/src/pages/admin/inventory/RentSetting.jsx,12,阶梯价格（基于第一阶梯日均价 ¥
 pc,frontend-pc/src/pages/admin/inventory/RentSetting.jsx,25,/天
 pc,frontend-pc/src/pages/admin/inventory/RentSetting.jsx,27,%折扣

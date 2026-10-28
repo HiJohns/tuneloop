@@ -240,22 +240,22 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
         const r = await uploadLetterPhoto(env.apiBaseUrl, path)
         setLetterUploading(false)
         if (r.ok) setLetterUrl(r.url)
-        else dialog.alert('上传失败: ' + r.error)
+        else dialog.alert(t("上传失败: {msg}", { msg: r.error }))
       },
     })
   }
 
   const handleSubmit = async () => {
     if (!useNewAddress && !selectedAddressId) {
-      dialog.alert('请选择收货地址')
+      dialog.alert(t("请选择收货地址"))
       return
     }
     if (useNewAddress && !newAddress.recipient_name) {
-      dialog.alert('请填写收货人')
+      dialog.alert(t("请填写收货人"))
       return
     }
     if (depositWaived && selectedGuarantorIds.length < 2) {
-      dialog.alert('免押金订单需至少选择 2 位担保人')
+      dialog.alert(t("免押金订单需至少选择 2 位担保人"))
       return
     }
     // #1867: eligibility + recommendation letter gates
@@ -265,7 +265,7 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
         return
       }
       if (!letterUrl) {
-        dialog.alert('免押金订单需上传签名的推荐信照片，模板可在免押金区块下载')
+        dialog.alert(t("免押金订单需上传签名的推荐信照片，模板可在免押金区块下载"))
         return
       }
     }
@@ -279,7 +279,7 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
       }
     } catch {}
     if (role === 'GUEST') {
-      dialog.alert('请先登录才能下单')
+      dialog.alert(t("请先登录才能下单"))
       return
     }
 
@@ -341,34 +341,34 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
             Taro.navigateTo({ url: '/pages-weapp/profile/edit/index' })
           }
         } else {
-          dialog.alert('下单失败: ' + (resolveErrorMessage(resp, '未知错误')))
+          dialog.alert(t("下单失败: {msg}", { msg: resolveErrorMessage(resp, '未知错误') }))
         }
       }
     } catch (err) {
-      dialog.alert('下单失败: ' + (err?.message || '网络错误'))
+      dialog.alert(t("下单失败: {msg}", { msg: err?.message || '网络错误' }))
     }
     setSubmitting(false)
   }
 
   const handleSaveGuarantor = async () => {
     if (!newGuarantor.name.trim() || !newGuarantor.phone.trim()) {
-      dialog.alert('请填写担保人姓名和电话')
+      dialog.alert(t("请填写担保人姓名和电话"))
       return
     }
     if (!newGuarantor.id_card_no.trim() || newGuarantor.id_card_no.trim().length !== 18) {
-      dialog.alert('请填写18位身份证号')
+      dialog.alert(t("请填写18位身份证号"))
       return
     }
     if (!gPhotoFront) {
-      dialog.alert('请上传身份证正面照')
+      dialog.alert(t("请上传身份证正面照"))
       return
     }
     if (!gPhotoBack) {
-      dialog.alert('请上传身份证反面照')
+      dialog.alert(t("请上传身份证反面照"))
       return
     }
     if (!gPhotoOther) {
-      dialog.alert('请上传其他证件照（学生证/工作证）')
+      dialog.alert(t("请上传其他证件照（学生证/工作证）"))
       return
     }
     setSavingGuarantor(true)
@@ -389,12 +389,12 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
         setGPhotoBack('')
         setGPhotoOther('')
         setShowAddGuarantor(false)
-        dialog.toast('担保人已保存', { icon: 'success' })
+        dialog.toast(t("担保人已保存"), { icon: 'success' })
       } else {
-        dialog.alert('保存失败: ' + (resolveErrorMessage(resp, '未知错误')))
+        dialog.alert(t("保存失败: {msg}", { msg: resolveErrorMessage(resp, '未知错误') }))
       }
     } catch (err) {
-      dialog.alert('保存失败: ' + (err?.message || '网络错误'))
+      dialog.alert(t("保存失败: {msg}", { msg: err?.message || '网络错误' }))
     }
     setSavingGuarantor(false)
   }
@@ -425,14 +425,14 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
     }
   }
 
-  if (loading) return <View style={{ minHeight: '100vh', backgroundColor: '#FDFBF7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#a1a1aa' }}>加载中...</Text></View>
-  if (!instrument) return <View style={{ minHeight: '100vh', backgroundColor: '#FDFBF7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#a1a1aa' }}>乐器不存在</Text></View>
+  if (loading) return <View style={{ minHeight: '100vh', backgroundColor: '#FDFBF7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#a1a1aa' }}>{t("加载中...")}</Text></View>
+  if (!instrument) return <View style={{ minHeight: '100vh', backgroundColor: '#FDFBF7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#a1a1aa' }}>{t("乐器不存在")}</Text></View>
 
   return (
     <View style={{ minHeight: '100vh', backgroundColor: '#FDFBF7', paddingBottom: 176 }}>
       <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 16 }}>
         <View style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12 }}>
-          <Text style={{ fontWeight: '900', color: '#000', marginBottom: 8 }}>租赁乐器</Text>
+          <Text style={{ fontWeight: '900', color: '#000', marginBottom: 8 }}>{t("租赁乐器")}</Text>
           <View style={{ display: 'flex' }}>
             <Image
               src={fixImg(instrument.cover_image || parseImages(instrument.images)?.[0] || '')}
@@ -444,11 +444,11 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
               {/* #1937: 受控商户 —— 合作商户占位 + 中转网点地址（后端 instrument.transit_info 已下发） */}
               {instrument.transit_info ? (
                 <View>
-                  <Text style={{ fontSize: 12, color: '#a1a1aa', display: 'block' }}>商户: 合作商户（中转发货）</Text>
-                  {instrument.transit_info.address && <Text style={{ fontSize: 12, color: '#a1a1aa', display: 'block' }}>中转地址: {instrument.transit_info.address}</Text>}
+                  <Text style={{ fontSize: 12, color: '#a1a1aa', display: 'block' }}>{t("商户: 合作商户（中转发货）")}</Text>
+                  {instrument.transit_info.address && <Text style={{ fontSize: 12, color: '#a1a1aa', display: 'block' }}>{t("中转地址:")} {instrument.transit_info.address}</Text>}
                 </View>
               ) : (
-                <Text style={{ fontSize: 12, color: '#a1a1aa', display: 'block' }}>网点: {instrument.site_name || '-'}</Text>
+                <Text style={{ fontSize: 12, color: '#a1a1aa', display: 'block' }}>{t("网点:")} {instrument.site_name || '-'}</Text>
               )}
             </View>
           </View>
@@ -457,7 +457,7 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
         <View style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12 }}>
           <Text style={{ fontWeight: '900', color: '#000', marginBottom: 12, display: 'flex', alignItems: 'center' }}>
             <Text style={{ fontSize: 16, color: '#915F38', marginRight: 8 }}>📅</Text>
-            租期选择
+            {t("租期选择")}
           </Text>
           <View style={{ display: 'flex', alignItems: 'center' }}>
             <Button
@@ -474,12 +474,12 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
               onClick={() => handleDaysChange(days + 1)}
               style={{ width: 40, height: 40, border: '1px solid #d4d4d8', borderRadius: 8, fontSize: 18, fontWeight: '500', color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: '40px', textAlign: 'center', marginLeft: 0 }}
             >+</Button>
-            <Text style={{ fontSize: 14, color: '#6b7280', marginLeft: 12 }}>天</Text>
+            <Text style={{ fontSize: 14, color: '#6b7280', marginLeft: 12 }}>{t("天")}</Text>
           </View>
           <View style={{ marginTop: 8, fontSize: 12, color: '#9ca3af', display: 'flex', alignItems: 'center' }}>
             <Text style={{ fontSize: 12, marginRight: 4 }}>🕐</Text>
-            <Text>预计归还: {formatBeijingDate(returnDate)}</Text>
-            {pricingV2?.tiers?.length > 0 && <Text style={{ marginLeft: 4 }}>· 阶梯计价</Text>}
+            <Text>{t("预计归还:")} {formatBeijingDate(returnDate)}</Text>
+            {pricingV2?.tiers?.length > 0 && <Text style={{ marginLeft: 4 }}>{t("· 阶梯计价")}</Text>}
           </View>
         </View>
 
@@ -489,7 +489,7 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
             if (waiver && !waiver.eligible) { showWaiverIneligible(waiver.reasons); return }
             setDepositWaived(!depositWaived)
           }}>
-            <Text style={{ fontWeight: '900', color: '#000' }}>申请免押金</Text>
+            <Text style={{ fontWeight: '900', color: '#000' }}>{t("申请免押金")}</Text>
             <View style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: depositWaived && (!waiver || waiver.eligible) ? '#915F38' : '#d4d4d8', position: 'relative', flexShrink: 0 }}>
               <View style={{ position: 'absolute', top: 2, left: depositWaived && (!waiver || waiver.eligible) ? 22 : 2, width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', transition: 'left 0.2s' }} />
             </View>
@@ -506,16 +506,16 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
           {depositWaived && (
             <View style={{ marginTop: 12, borderTop: '1px dashed #e4e4e7', paddingTop: 12 }}>
               <View style={{ backgroundColor: '#fffbeb', border: '1px solid #fef3c7', borderRadius: 8, padding: 10, marginBottom: 10 }}>
-                <Text style={{ fontSize: 12, color: '#b45309', lineHeight: '18px' }}>应提供两位担保人的联系方式。我们的员工将会与他们联系确认。</Text>
+                <Text style={{ fontSize: 12, color: '#b45309', lineHeight: '18px' }}>{t("应提供两位担保人的联系方式。我们的员工将会与他们联系确认。")}</Text>
               </View>
 
               {/* #1867: recommendation letter — template download + signed photo upload */}
               {(!waiver || waiver.eligible) && (
                 <View style={{ border: '1px solid #e4e4e7', borderRadius: 8, padding: 10, marginBottom: 10 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 6 }}>推荐信</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 6 }}>{t("推荐信")}</Text>
                   <View style={{ display: 'flex', marginBottom: 8 }}>
                     <View style={{ flex: '1 1 0%', marginRight: 8, backgroundColor: '#f4f4f5', borderRadius: 8, padding: 8, alignItems: 'center' }} onClick={() => downloadLetterTemplate(env.apiBaseUrl)}>
-                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46', textAlign: 'center' }}>下载推荐信模板</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46', textAlign: 'center' }}>{t("下载推荐信模板")}</Text>
                     </View>
                     <View style={{ flex: '1 1 0%', backgroundColor: '#000', borderRadius: 8, padding: 8, alignItems: 'center' }} onClick={() => { if (!letterUploading) handleLetterUpload() }}>
                       <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff', textAlign: 'center' }}>
@@ -524,13 +524,13 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
                     </View>
                   </View>
                   {letterUrl && <Image src={fixImg(letterUrl)} mode="aspectFill" style={{ width: 96, height: 96, borderRadius: 8 }} />}
-                  <Text style={{ fontSize: 11, color: '#a1a1aa', marginTop: 6 }}>打印模板 → 推荐人签名 → 拍照上传</Text>
+                  <Text style={{ fontSize: 11, color: '#a1a1aa', marginTop: 6 }}>{t("打印模板 → 推荐人签名 → 拍照上传")}</Text>
                 </View>
               )}
 
               {guarantors.length > 0 && (
                 <View style={{ marginBottom: 10 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 6 }}>已保存担保人</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 6 }}>{t("已保存担保人")}</Text>
                   {guarantors.map(g => (
                     <View key={g.id} style={{ display: 'flex', alignItems: 'center', padding: 10, border: selectedGuarantorIds.includes(g.id) ? '1px solid #915F38' : '1px solid #e4e4e7', borderRadius: 8, backgroundColor: selectedGuarantorIds.includes(g.id) ? '#fffbeb' : 'transparent', marginBottom: 8 }}
                       onClick={() => toggleGuarantor(g.id)}>
@@ -549,53 +549,53 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
 
               {showAddGuarantor && (
                 <View style={{ backgroundColor: '#fafafa', borderRadius: 8, padding: 10, marginBottom: 10 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 8 }}>新增担保人</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 8 }}>{t("新增担保人")}</Text>
                   <View style={{ display: 'flex', marginBottom: 8 }}>
                     <View style={{ flex: '1 1 0%', marginRight: 8 }}>
-                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>姓名*</Text>
-                      <Input value={newGuarantor.name} onInput={e => setNewGuarantor(prev => ({ ...prev, name: e.detail.value }))} placeholder="担保人姓名"
+                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("姓名*")}</Text>
+                      <Input value={newGuarantor.name} onInput={e => setNewGuarantor(prev => ({ ...prev, name: e.detail.value }))} placeholder={t("担保人姓名")}
                         style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                     </View>
                     <View style={{ flex: '1 1 0%' }}>
-                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>电话*</Text>
-                      <Input value={newGuarantor.phone} onInput={e => setNewGuarantor(prev => ({ ...prev, phone: e.detail.value }))} placeholder="手机号"
+                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("电话*")}</Text>
+                      <Input value={newGuarantor.phone} onInput={e => setNewGuarantor(prev => ({ ...prev, phone: e.detail.value }))} placeholder={t("手机号")}
                         style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                     </View>
                   </View>
                   <View style={{ display: 'flex', marginBottom: 8 }}>
                     <View style={{ flex: '1 1 0%', marginRight: 8 }}>
-                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>公司/单位</Text>
-                      <Input value={newGuarantor.company} onInput={e => setNewGuarantor(prev => ({ ...prev, company: e.detail.value }))} placeholder="公司/单位"
+                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("公司/单位")}</Text>
+                      <Input value={newGuarantor.company} onInput={e => setNewGuarantor(prev => ({ ...prev, company: e.detail.value }))} placeholder={t("公司/单位")}
                         style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                     </View>
                     <View style={{ flex: '1 1 0%' }}>
-                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>职务</Text>
-                      <Input value={newGuarantor.title} onInput={e => setNewGuarantor(prev => ({ ...prev, title: e.detail.value }))} placeholder="职务"
+                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("职务")}</Text>
+                      <Input value={newGuarantor.title} onInput={e => setNewGuarantor(prev => ({ ...prev, title: e.detail.value }))} placeholder={t("职务")}
                         style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                     </View>
                   </View>
                   <View style={{ marginBottom: 8 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>身份证号*</Text>
-                    <Input value={newGuarantor.id_card_no} onInput={e => setNewGuarantor(prev => ({ ...prev, id_card_no: e.detail.value }))} placeholder="18位身份证号"
+                    <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("身份证号*")}</Text>
+                    <Input value={newGuarantor.id_card_no} onInput={e => setNewGuarantor(prev => ({ ...prev, id_card_no: e.detail.value }))} placeholder={t("18位身份证号")}
                       style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                   </View>
                   <View style={{ marginBottom: 8 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>地址*</Text>
-                    <Input value={newGuarantor.address} onInput={e => setNewGuarantor(prev => ({ ...prev, address: e.detail.value }))} placeholder="联系地址"
+                    <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("地址*")}</Text>
+                    <Input value={newGuarantor.address} onInput={e => setNewGuarantor(prev => ({ ...prev, address: e.detail.value }))} placeholder={t("联系地址")}
                       style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                   </View>
                   {/* #1782: ID photo uploads */}
                   <View style={{ display: 'flex', width: '100%', marginBottom: 8, flexWrap: 'wrap', justifyContent: 'space-between' }}>
                     <View style={{ width: '30%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <Text style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>身份证正面*</Text>
+                      <Text style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>{t("身份证正面*")}</Text>
                       <IdPhotoUploader side="front" onChange={onFrontPhotoChange} />
                     </View>
                     <View style={{ width: '30%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <Text style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>身份证反面*</Text>
+                      <Text style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>{t("身份证反面*")}</Text>
                       <IdPhotoUploader side="back" onChange={setGPhotoBack} />
                     </View>
                     <View style={{ width: '30%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <Text style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>其他证件*</Text>
+                      <Text style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>{t("其他证件*")}</Text>
                       <IdPhotoUploader side="other" onChange={setGPhotoOther} />
                     </View>
                   </View>
@@ -618,10 +618,10 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
         </View>
 
         <View style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12 }}>
-          <Text style={{ fontWeight: '900', color: '#000', marginBottom: 12 }}>费用明细</Text>
+          <Text style={{ fontWeight: '900', color: '#000', marginBottom: 12 }}>{t("费用明细")}</Text>
           <View style={{ fontSize: 14 }}>
             <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <Text style={{ color: '#a1a1aa' }}>租金 ({days}天)</Text>
+              <Text style={{ color: '#a1a1aa' }}>{t("租金 (")}{days}{t("天)")}</Text>
               <Text style={{ fontWeight: '500', flexShrink: 0, marginLeft: 'auto', whiteSpace: 'nowrap' }}>¥{formatCents(totalRent)}</Text>
             </View>
             {pricingV2?.tiers?.length > 0 && (
@@ -629,26 +629,26 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
                 {pricingV2.tiers.map((t, i) => {
                   const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
                   const range = t.days_max > 0 ? `${prevMax + 1}-${t.days_max}天` : `${prevMax + 1}天以上`
-                  return <Text key={i} style={{ marginRight: 12 }}>{range}: ¥{formatCents(Number(t.daily_rate))}/天</Text>
+                  return <Text key={i} style={{ marginRight: 12 }}>{range}: ¥{formatCents(Number(t.daily_rate))}{t("/天")}</Text>
                 })}
               </View>
             )}
             <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <Text style={{ color: '#a1a1aa' }}>押金</Text>
+              <Text style={{ color: '#a1a1aa' }}>{t("押金")}</Text>
               <Text style={{ fontWeight: '500', flexShrink: 0, marginLeft: 'auto', whiteSpace: 'nowrap' }}>
-                {depositWaived ? <Text>¥0<Text style={{ fontSize: 10, color: '#16a34a', marginLeft: 4 }}>(免押金)</Text></Text>
-                  : <>¥{formatCents((deposit || 0))}{deposit === 0 ? <Text style={{ fontSize: 10, color: '#a1a1aa', marginLeft: 4 }}>(日租金×倍率)</Text> : null}</>}
+                {depositWaived ? <Text>¥0<Text style={{ fontSize: 10, color: '#16a34a', marginLeft: 4 }}>{t("(免押金)")}</Text></Text>
+                  : <>¥{formatCents((deposit || 0))}{deposit === 0 ? <Text style={{ fontSize: 10, color: '#a1a1aa', marginLeft: 4 }}>{t("(日租金×倍率)")}</Text> : null}</>}
               </Text>
             </View>
             <View style={{ borderTop: '1px solid #d4d4d8', paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontWeight: '700', fontSize: 16, marginBottom: 4 }}>
-              <Text style={{ color: '#18181b' }}>合计</Text>
+              <Text style={{ color: '#18181b' }}>{t("合计")}</Text>
               <Text style={{ color: '#915F38', flexShrink: 0, marginLeft: 'auto', whiteSpace: 'nowrap' }}>¥{formatCents(totalAmount)}</Text>
             </View>
-            <Text style={{ fontSize: 10, color: '#a1a1aa', textAlign: 'right' }}>租金 ¥{formatCents(totalRent)} + 押金 ¥{formatCents((effectiveDeposit || 0))}</Text>
+            <Text style={{ fontSize: 10, color: '#a1a1aa', textAlign: 'right' }}>{t("租金 ¥")}{formatCents(totalRent)} {t("+ 押金 ¥")}{formatCents((effectiveDeposit || 0))}</Text>
             {/* #1732: 物流费提醒——0 押金（含免押金）快递到付，已付押金从押金扣除 */}
             <Text style={{ fontSize: 13, color: '#ef4444', fontWeight: 500, marginTop: 8, lineHeight: '18px', display: 'block' }}>
               {effectiveDeposit === 0
-                ? '尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时我们将选择快递到付且保价，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！'
+                ? '尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时我们将选择顺丰快递到付且保价，请注意检查乐器状态后方可支付运费，谢谢您，祝您使用愉快！'
                 : '尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时的物流费届时将从您的押金中扣除，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！'}
             </Text>
           </View>
@@ -657,7 +657,7 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
         <View style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12 }}>
           <Text style={{ fontWeight: '900', color: '#000', marginBottom: 12, display: 'flex', alignItems: 'center' }}>
             <Text style={{ fontSize: 16, color: '#915F38', marginRight: 8 }}>📍</Text>
-            收货地址
+            {t("收货地址")}
           </Text>
 
           {addresses.length > 0 && !useNewAddress && (
@@ -674,7 +674,7 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
                   <View style={{ flex: '1 1 0%', fontSize: 14 }}>
                     <Text style={{ fontWeight: '500', marginBottom: 4 }}>{addr.recipient_name} · {addr.phone}</Text>
                     <Text style={{ fontSize: 12, color: '#9ca3af' }}>{addr.province}{addr.city}{addr.district} {addr.detail}</Text>
-                    {addr.is_default && <Text style={{ fontSize: 12, color: '#915F38', marginTop: 2 }}>默认</Text>}
+                    {addr.is_default && <Text style={{ fontSize: 12, color: '#915F38', marginTop: 2 }}>{t("默认")}</Text>}
                   </View>
                 </View>
               ))}
@@ -685,19 +685,19 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
             <View>
               <View style={{ display: 'flex', marginBottom: 8 }}>
                 <View style={{ flex: '1 1 0%', marginRight: 8 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>收货人</Text>
-                  <Input value={newAddress.recipient_name} onInput={e => setNewAddress(prev => ({ ...prev, recipient_name: e.detail.value }))} placeholder="姓名"
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("收货人")}</Text>
+                  <Input value={newAddress.recipient_name} onInput={e => setNewAddress(prev => ({ ...prev, recipient_name: e.detail.value }))} placeholder={t("姓名")}
                     style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                 </View>
                 <View style={{ flex: '1 1 0%' }}>
-                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>电话</Text>
-                  <Input value={newAddress.phone} onInput={e => setNewAddress(prev => ({ ...prev, phone: e.detail.value }))} placeholder="手机号"
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("电话")}</Text>
+                  <Input value={newAddress.phone} onInput={e => setNewAddress(prev => ({ ...prev, phone: e.detail.value }))} placeholder={t("手机号")}
                     style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                 </View>
               </View>
               <View style={{ display: 'flex', marginBottom: 8 }}>
                 <View style={{ flex: '1 1 0%', marginRight: 8 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>省</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("省")}</Text>
                   <Picker mode="selector" range={provinceNames} value={provinceIdx >= 0 ? provinceIdx : 0}
                     onChange={e => setNewAddress(prev => ({ ...prev, province: provinceNames[e.detail.value], city: '', district: '' }))}>
                     <View style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, color: newAddress.province ? '#000' : '#9ca3af' }}>
@@ -706,7 +706,7 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
                   </Picker>
                 </View>
                 <View style={{ flex: '1 1 0%', marginRight: 8 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>市</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("市")}</Text>
                   <Picker mode="selector" range={cityNames} value={cityIdx >= 0 ? cityIdx : 0}
                     onChange={e => setNewAddress(prev => ({ ...prev, city: cityNames[e.detail.value], district: '' }))}>
                     <View style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, color: newAddress.city ? '#000' : '#9ca3af' }}>
@@ -716,7 +716,7 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
                 </View>
                  {districtNames.length > 0 && (
                  <View style={{ flex: '1 1 0%' }}>
-                   <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>区</Text>
+                   <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("区")}</Text>
                    <Picker mode="selector" range={districtNames} value={districtIdx >= 0 ? districtIdx : 0}
                      onChange={e => setNewAddress(prev => ({ ...prev, district: districtNames[e.detail.value] }))}>
                      <View style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, color: newAddress.district ? '#000' : '#9ca3af' }}>
@@ -727,46 +727,46 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
                  )}
                </View>
                <View style={{ marginBottom: 8 }}>
-                 <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>详细地址</Text>
-                 <Input value={newAddress.detail} onInput={e => setNewAddress(prev => ({ ...prev, detail: e.detail.value }))} placeholder="详细地址"
+                 <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("详细地址")}</Text>
+                 <Input value={newAddress.detail} onInput={e => setNewAddress(prev => ({ ...prev, detail: e.detail.value }))} placeholder={t("详细地址")}
                   style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%' }} />
               </View>
               <View style={{ marginBottom: 8 }}>
-                <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>邮编</Text>
-                <Input value={newAddress.postal_code} onInput={e => setNewAddress(prev => ({ ...prev, postal_code: e.detail.value }))} placeholder="邮编"
+                <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("邮编")}</Text>
+                <Input value={newAddress.postal_code} onInput={e => setNewAddress(prev => ({ ...prev, postal_code: e.detail.value }))} placeholder={t("邮编")}
                   maxlength={6} style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%' }} />
               </View>
               <View style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }} onClick={() => setSaveAddress(!saveAddress)}>
                 <View style={{ width: 16, height: 16, borderRadius: 4, border: '1px solid #d4d4d8', backgroundColor: saveAddress ? '#915F38' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 8 }}>
                   {saveAddress && <Text style={{ color: '#fff', fontSize: 10 }}>✓</Text>}
                 </View>
-                <Text style={{ fontSize: 14, color: '#6b7280' }}>设置为我的收货地址</Text>
+                <Text style={{ fontSize: 14, color: '#6b7280' }}>{t("设置为我的收货地址")}</Text>
               </View>
             </View>
           )}
 
           {addresses.length > 0 && !useNewAddress && (
-            <Text style={{ marginTop: 12, fontSize: 14, color: '#915F38' }} onClick={() => setUseNewAddress(true)}>+ 使用新地址</Text>
+            <Text style={{ marginTop: 12, fontSize: 14, color: '#915F38' }} onClick={() => setUseNewAddress(true)}>{t("+ 使用新地址")}</Text>
           )}
           {useNewAddress && addresses.length > 0 && (
-            <Text style={{ marginTop: 12, fontSize: 14, color: '#9ca3af' }} onClick={() => setUseNewAddress(false)}>选择已有地址</Text>
+            <Text style={{ marginTop: 12, fontSize: 14, color: '#9ca3af' }} onClick={() => setUseNewAddress(false)}>{t("选择已有地址")}</Text>
           )}
         </View>
 
         <View style={{ backgroundColor: '#fffbeb', border: '1px solid #fef3c7', borderRadius: 16, padding: 16, fontSize: 14, color: '#b45309', marginBottom: 12 }}>
-          <Text style={{ fontWeight: '500', marginBottom: 4 }}>租赁须知</Text>
+          <Text style={{ fontWeight: '500', marginBottom: 4 }}>{t("租赁须知")}</Text>
           <View style={{ fontSize: 12, color: '#d97706' }}>
-            <Text style={{ marginBottom: 2 }}>· 提交即生成订单，需在10分钟内完成支付</Text>
-            <Text style={{ marginBottom: 2 }}>· 超时未支付订单将自动取消</Text>
-            <Text style={{ marginBottom: 2 }}>· 发货前可取消订单免手续费</Text>
-            <Text>· 押金在归还验收后原路退还</Text>
+            <Text style={{ marginBottom: 2 }}>{t("· 提交即生成订单，需在10分钟内完成支付")}</Text>
+            <Text style={{ marginBottom: 2 }}>{t("· 超时未支付订单将自动取消")}</Text>
+            <Text style={{ marginBottom: 2 }}>{t("· 发货前可取消订单免手续费")}</Text>
+            <Text>{t("· 押金在归还验收后原路退还")}</Text>
           </View>
         </View>
       </View>
 
       <View style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', borderTop: '1px solid #f4f4f5', padding: 16 }}>
         <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <Text style={{ fontSize: 14, color: '#a1a1aa' }}>应付总额</Text>
+          <Text style={{ fontSize: 14, color: '#a1a1aa' }}>{t("应付总额")}</Text>
           <Text style={{ fontSize: 20, fontWeight: '900', color: '#915F38' }}>¥{formatCents(totalAmount)}</Text>
         </View>
         <View style={{ marginBottom: 8, paddingLeft: 4, paddingRight: 4 }}>
@@ -922,7 +922,7 @@ function BatchCheckout({ nav }) {
         const r = await uploadLetterPhoto(env.apiBaseUrl, path)
         setLetterUploading(false)
         if (r.ok) setLetterUrl(r.url)
-        else dialog.alert('上传失败: ' + r.error)
+        else dialog.alert(t("上传失败: {msg}", { msg: r.error }))
       },
     })
   }
@@ -930,15 +930,15 @@ function BatchCheckout({ nav }) {
   const handleSubmit = async () => {
     if (cartItems.length === 0) return
     if (!useNewAddress && !selectedAddressId) {
-      dialog.alert('请选择收货地址')
+      dialog.alert(t("请选择收货地址"))
       return
     }
     if (useNewAddress && !newAddress.recipient_name) {
-      dialog.alert('请填写收货人')
+      dialog.alert(t("请填写收货人"))
       return
     }
     if (depositWaived && selectedGuarantorIds.length < 2) {
-      dialog.alert('免押金订单需至少选择 2 位担保人')
+      dialog.alert(t("免押金订单需至少选择 2 位担保人"))
       return
     }
     // #1867: eligibility + recommendation letter gates
@@ -948,7 +948,7 @@ function BatchCheckout({ nav }) {
         return
       }
       if (!letterUrl) {
-        dialog.alert('免押金订单需上传签名的推荐信照片，模板可在免押金区块下载')
+        dialog.alert(t("免押金订单需上传签名的推荐信照片，模板可在免押金区块下载"))
         return
       }
     }
@@ -962,7 +962,7 @@ function BatchCheckout({ nav }) {
       }
     } catch {}
     if (role === 'GUEST') {
-      dialog.alert('请先登录才能下单')
+      dialog.alert(t("请先登录才能下单"))
       return
     }
 
@@ -1007,7 +1007,7 @@ function BatchCheckout({ nav }) {
           eventBus.emit('cartUpdated')
           Taro.redirectTo({ url: `/pages-weapp/payment/index?type=rent&id=${orders[0].order_id}` })
         } else {
-          dialog.alert('下单成功，但未生成订单')
+          dialog.alert(t("下单成功，但未生成订单"))
         }
       } else {
         if (orderResp.code === 40310) {
@@ -1023,18 +1023,18 @@ function BatchCheckout({ nav }) {
             Taro.navigateTo({ url: '/pages-weapp/profile/edit/index' })
           }
         } else {
-          dialog.alert('下单失败: ' + (resolveErrorMessage(orderResp, '未知错误')))
+          dialog.alert(t("下单失败: {msg}", { msg: resolveErrorMessage(orderResp, '未知错误') }))
         }
       }
     } catch (err) {
-      dialog.alert('下单失败: ' + (err?.message || '网络错误'))
+      dialog.alert(t("下单失败: {msg}", { msg: err?.message || '网络错误' }))
     }
     setSubmitting(false)
   }
 
   const handleSaveGuarantor = async () => {
     if (!newGuarantor.name.trim() || !newGuarantor.phone.trim()) {
-      dialog.alert('请填写担保人姓名和电话')
+      dialog.alert(t("请填写担保人姓名和电话"))
       return
     }
     setSavingGuarantor(true)
@@ -1046,12 +1046,12 @@ function BatchCheckout({ nav }) {
         setSelectedGuarantorIds(prev => [...prev, saved.id])
         setNewGuarantor({ name: '', phone: '', company: '', title: '', address: '' })
         setShowAddGuarantor(false)
-        dialog.toast('担保人已保存', { icon: 'success' })
+        dialog.toast(t("担保人已保存"), { icon: 'success' })
       } else {
-        dialog.alert('保存失败: ' + (resolveErrorMessage(resp, '未知错误')))
+        dialog.alert(t("保存失败: {msg}", { msg: resolveErrorMessage(resp, '未知错误') }))
       }
     } catch (err) {
-      dialog.alert('保存失败: ' + (err?.message || '网络错误'))
+      dialog.alert(t("保存失败: {msg}", { msg: err?.message || '网络错误' }))
     }
     setSavingGuarantor(false)
   }
@@ -1063,7 +1063,7 @@ function BatchCheckout({ nav }) {
   if (cartItems.length === 0) {
     return (
       <View style={{ minHeight: '100vh', backgroundColor: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: '#a1a1aa' }}>购物车为空</Text>
+        <Text style={{ color: '#a1a1aa' }}>{t("购物车为空")}</Text>
       </View>
     )
   }
@@ -1099,7 +1099,7 @@ function BatchCheckout({ nav }) {
                       <Text style={{ marginRight: 4 }}>📍</Text>
                       <Text style={{ fontSize: 14, color: '#52525b' }}>{group.site_name}</Text>
                     </View>
-                    <Text style={{ fontSize: 12, color: '#a1a1aa' }}>{group.items.length}件</Text>
+                    <Text style={{ fontSize: 12, color: '#a1a1aa' }}>{group.items.length}{t("件")}</Text>
                   </View>
                   {group.items.map((item) => {
                     const p = getItemPricing(item)
@@ -1115,7 +1115,7 @@ function BatchCheckout({ nav }) {
                           <Text style={{ fontSize: 10, color: '#a1a1aa' }}>{item.category_name || ''}</Text>
                         </View>
                         <Text style={{ fontSize: 10, color: '#6b7280', flexShrink: 0, marginLeft: 8 }}>
-                          {item.rent_qty || 1}天 · ¥{formatCents((p.rent || 0))}
+                          {item.rent_qty || 1}{t("天 · ¥")}{formatCents((p.rent || 0))}
                         </Text>
                       </View>
                     )
@@ -1124,7 +1124,7 @@ function BatchCheckout({ nav }) {
                     <Text style={{ fontSize: 10, color: '#a1a1aa' }}>
                       {depositWaived ? '免押金' : `押金 ¥${formatCents((groupDeposit || 0))}`}
                     </Text>
-                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#27272a' }}>小计 ¥{formatCents((groupSubtotal || 0))}</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#27272a' }}>{t("小计 ¥")}{formatCents((groupSubtotal || 0))}</Text>
                   </View>
                 </View>
               )
@@ -1132,7 +1132,7 @@ function BatchCheckout({ nav }) {
           </View>
 
           <View style={{ width: '100%', backgroundColor: '#fafafa', padding: 12, borderRadius: 12, fontSize: 11, color: '#a1a1aa', lineHeight: '20px' }}>
-            🔒 暖心提示：资产固定押金将在乐器归还、网点网管质检合格后，按原支付渠道原路退回至您的微信零钱。
+            {t("🔒 暖心提示：资产固定押金将在乐器归还、网点网管质检合格后，按原支付渠道原路退回至您的微信零钱。")}
           </View>
 
           <View style={{ width: '100%', borderTop: '1px dashed #e4e4e7', paddingTop: 16, marginTop: 16 }}>
@@ -1140,7 +1140,7 @@ function BatchCheckout({ nav }) {
               if (waiver && !waiver.eligible) { showWaiverIneligible(waiver.reasons); return }
               setDepositWaived(!depositWaived)
             }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#6b7280' }}>申请免押金</Text>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#6b7280' }}>{t("申请免押金")}</Text>
               <View style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: depositWaived && (!waiver || waiver.eligible) ? '#915F38' : '#d4d4d8', position: 'relative', flexShrink: 0 }}>
                 <View style={{ position: 'absolute', top: 2, left: depositWaived && (!waiver || waiver.eligible) ? 22 : 2, width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff' }} />
               </View>
@@ -1157,16 +1157,16 @@ function BatchCheckout({ nav }) {
             {depositWaived && (
               <View style={{ marginBottom: 12, borderTop: '1px dashed #e4e4e7', paddingTop: 12 }}>
                 <View style={{ backgroundColor: '#fffbeb', border: '1px solid #fef3c7', borderRadius: 8, padding: 10, marginBottom: 10 }}>
-                  <Text style={{ fontSize: 12, color: '#b45309', lineHeight: '18px' }}>应提供两位担保人的联系方式。我们的员工将会与他们联系确认。</Text>
+                  <Text style={{ fontSize: 12, color: '#b45309', lineHeight: '18px' }}>{t("应提供两位担保人的联系方式。我们的员工将会与他们联系确认。")}</Text>
                 </View>
 
                 {/* #1867: recommendation letter — template download + signed photo upload */}
                 {(!waiver || waiver.eligible) && (
                   <View style={{ border: '1px solid #e4e4e7', borderRadius: 8, padding: 10, marginBottom: 10 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6 }}>推荐信</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6 }}>{t("推荐信")}</Text>
                     <View style={{ display: 'flex', marginBottom: 8 }}>
                       <View style={{ flex: '1 1 0%', marginRight: 8, backgroundColor: '#f4f4f5', borderRadius: 8, padding: 8, alignItems: 'center' }} onClick={() => downloadLetterTemplate(env.apiBaseUrl)}>
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46', textAlign: 'center' }}>下载推荐信模板</Text>
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46', textAlign: 'center' }}>{t("下载推荐信模板")}</Text>
                       </View>
                       <View style={{ flex: '1 1 0%', backgroundColor: '#000', borderRadius: 8, padding: 8, alignItems: 'center' }} onClick={() => { if (!letterUploading) handleLetterUpload() }}>
                         <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff', textAlign: 'center' }}>
@@ -1175,13 +1175,13 @@ function BatchCheckout({ nav }) {
                       </View>
                     </View>
                     {letterUrl && <Image src={fixImg(letterUrl)} mode="aspectFill" style={{ width: 96, height: 96, borderRadius: 8 }} />}
-                    <Text style={{ fontSize: 11, color: '#a1a1aa', marginTop: 6 }}>打印模板 → 推荐人签名 → 拍照上传</Text>
+                    <Text style={{ fontSize: 11, color: '#a1a1aa', marginTop: 6 }}>{t("打印模板 → 推荐人签名 → 拍照上传")}</Text>
                   </View>
                 )}
 
                 {guarantors.length > 0 && (
                   <View style={{ marginBottom: 10 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6 }}>已保存担保人</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6 }}>{t("已保存担保人")}</Text>
                     {guarantors.map(g => (
                       <View key={g.id} style={{ display: 'flex', alignItems: 'center', padding: 10, border: selectedGuarantorIds.includes(g.id) ? '1px solid #915F38' : '1px solid #e4e4e7', borderRadius: 8, backgroundColor: selectedGuarantorIds.includes(g.id) ? '#fffbeb' : 'transparent', marginBottom: 8 }}
                         onClick={() => toggleGuarantor(g.id)}>
@@ -1200,34 +1200,34 @@ function BatchCheckout({ nav }) {
 
                 {showAddGuarantor && (
                   <View style={{ backgroundColor: '#fafafa', borderRadius: 8, padding: 10, marginBottom: 10 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 8 }}>新增担保人</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 8 }}>{t("新增担保人")}</Text>
                     <View style={{ display: 'flex', marginBottom: 8 }}>
                       <View style={{ flex: '1 1 0%', marginRight: 8 }}>
-                        <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>姓名*</Text>
-                        <Input value={newGuarantor.name} onInput={e => setNewGuarantor(prev => ({ ...prev, name: e.detail.value }))} placeholder="担保人姓名"
+                        <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("姓名*")}</Text>
+                        <Input value={newGuarantor.name} onInput={e => setNewGuarantor(prev => ({ ...prev, name: e.detail.value }))} placeholder={t("担保人姓名")}
                           style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                       </View>
                       <View style={{ flex: '1 1 0%' }}>
-                        <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>电话*</Text>
-                        <Input value={newGuarantor.phone} onInput={e => setNewGuarantor(prev => ({ ...prev, phone: e.detail.value }))} placeholder="手机号"
+                        <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("电话*")}</Text>
+                        <Input value={newGuarantor.phone} onInput={e => setNewGuarantor(prev => ({ ...prev, phone: e.detail.value }))} placeholder={t("手机号")}
                           style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                       </View>
                     </View>
                     <View style={{ display: 'flex', marginBottom: 8 }}>
                       <View style={{ flex: '1 1 0%', marginRight: 8 }}>
-                        <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>公司/单位</Text>
-                        <Input value={newGuarantor.company} onInput={e => setNewGuarantor(prev => ({ ...prev, company: e.detail.value }))} placeholder="公司/单位"
+                        <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("公司/单位")}</Text>
+                        <Input value={newGuarantor.company} onInput={e => setNewGuarantor(prev => ({ ...prev, company: e.detail.value }))} placeholder={t("公司/单位")}
                           style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                       </View>
                       <View style={{ flex: '1 1 0%' }}>
-                        <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>职务</Text>
-                        <Input value={newGuarantor.title} onInput={e => setNewGuarantor(prev => ({ ...prev, title: e.detail.value }))} placeholder="职务"
+                        <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("职务")}</Text>
+                        <Input value={newGuarantor.title} onInput={e => setNewGuarantor(prev => ({ ...prev, title: e.detail.value }))} placeholder={t("职务")}
                           style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                       </View>
                     </View>
                     <View style={{ marginBottom: 10 }}>
-                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>地址</Text>
-                      <Input value={newGuarantor.address} onInput={e => setNewGuarantor(prev => ({ ...prev, address: e.detail.value }))} placeholder="联系地址"
+                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("地址")}</Text>
+                      <Input value={newGuarantor.address} onInput={e => setNewGuarantor(prev => ({ ...prev, address: e.detail.value }))} placeholder={t("联系地址")}
                         style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                     </View>
                     <Button onClick={savingGuarantor ? undefined : handleSaveGuarantor}
@@ -1249,7 +1249,7 @@ function BatchCheckout({ nav }) {
           </View>
 
           <View style={{ width: '100%', borderTop: '1px dashed #e4e4e7', paddingTop: 16, marginTop: 16 }}>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: '#6b7280', marginBottom: 12 }}>📍 收货地址</Text>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#6b7280', marginBottom: 12 }}>{t("📍 收货地址")}</Text>
 
             {addresses.length > 0 && !useNewAddress && (
               <View style={{ marginBottom: 12 }}>
@@ -1265,7 +1265,7 @@ function BatchCheckout({ nav }) {
                     <View style={{ flex: '1 1 0%', fontSize: 12 }}>
                       <Text style={{ fontWeight: '500', color: '#27272a', marginBottom: 4 }}>{addr.recipient_name} · {addr.phone}</Text>
                       <Text style={{ color: '#a1a1aa' }}>{addr.province}{addr.city}{addr.district} {addr.detail}</Text>
-                      {addr.is_default && <Text style={{ fontSize: 12, color: '#915F38', marginTop: 2 }}>默认</Text>}
+                      {addr.is_default && <Text style={{ fontSize: 12, color: '#915F38', marginTop: 2 }}>{t("默认")}</Text>}
                     </View>
                   </View>
                 ))}
@@ -1276,13 +1276,13 @@ function BatchCheckout({ nav }) {
               <View>
                 <View style={{ display: 'flex', marginBottom: 8 }}>
                   <View style={{ flex: '1 1 0%', marginRight: 8 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>收货人</Text>
-                  <Input value={newAddress.recipient_name} onInput={e => setNewAddress(prev => ({ ...prev, recipient_name: e.detail.value }))} placeholder="姓名"
+                    <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("收货人")}</Text>
+                  <Input value={newAddress.recipient_name} onInput={e => setNewAddress(prev => ({ ...prev, recipient_name: e.detail.value }))} placeholder={t("姓名")}
                     style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                 </View>
                 <View style={{ flex: '1 1 0%' }}>
-                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>电话</Text>
-                  <Input value={newAddress.phone} onInput={e => setNewAddress(prev => ({ ...prev, phone: e.detail.value }))} placeholder="手机号"
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("电话")}</Text>
+                  <Input value={newAddress.phone} onInput={e => setNewAddress(prev => ({ ...prev, phone: e.detail.value }))} placeholder={t("手机号")}
                     style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                 </View>
               </View>
@@ -1308,24 +1308,24 @@ function BatchCheckout({ nav }) {
                   </View>
                   )}
                 </View>
-                <Input value={newAddress.detail} onInput={e => setNewAddress(prev => ({ ...prev, detail: e.detail.value }))} placeholder="详细地址"
+                <Input value={newAddress.detail} onInput={e => setNewAddress(prev => ({ ...prev, detail: e.detail.value }))} placeholder={t("详细地址")}
                   style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', marginBottom: 8 }} />
-                <Input value={newAddress.postal_code} onInput={e => setNewAddress(prev => ({ ...prev, postal_code: e.detail.value }))} placeholder="邮编"
+                <Input value={newAddress.postal_code} onInput={e => setNewAddress(prev => ({ ...prev, postal_code: e.detail.value }))} placeholder={t("邮编")}
                   maxlength={6} style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', marginBottom: 8 }} />
                 <View style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }} onClick={() => setSaveAddress(!saveAddress)}>
                   <View style={{ width: 16, height: 16, borderRadius: 4, border: '1px solid #d4d4d8', backgroundColor: saveAddress ? '#915F38' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 8 }}>
                     {saveAddress && <Text style={{ color: '#fff', fontSize: 10 }}>✓</Text>}
                   </View>
-                  <Text style={{ fontSize: 12, color: '#6b7280' }}>设置为我的收货地址</Text>
+                  <Text style={{ fontSize: 12, color: '#6b7280' }}>{t("设置为我的收货地址")}</Text>
                 </View>
               </View>
             )}
 
             {addresses.length > 0 && !useNewAddress && (
-              <Text style={{ marginTop: 12, fontSize: 12, color: '#915F38' }} onClick={() => setUseNewAddress(true)}>+ 使用新地址</Text>
+              <Text style={{ marginTop: 12, fontSize: 12, color: '#915F38' }} onClick={() => setUseNewAddress(true)}>{t("+ 使用新地址")}</Text>
             )}
             {useNewAddress && addresses.length > 0 && (
-              <Text style={{ marginTop: 12, fontSize: 12, color: '#9ca3af' }} onClick={() => setUseNewAddress(false)}>选择已有地址</Text>
+              <Text style={{ marginTop: 12, fontSize: 12, color: '#9ca3af' }} onClick={() => setUseNewAddress(false)}>{t("选择已有地址")}</Text>
             )}
           </View>
         </View>
@@ -1334,8 +1334,8 @@ function BatchCheckout({ nav }) {
           <View style={{ display: 'flex', alignItems: 'center' }}>
             <Text style={{ fontSize: 24, marginRight: 12 }}>🟢</Text>
             <View>
-              <Text style={{ fontSize: 16, fontWeight: '900', color: '#000' }}>微信支付</Text>
-              <Text style={{ fontSize: 11, color: '#a1a1aa' }}>亿万用户的安全选择</Text>
+              <Text style={{ fontSize: 16, fontWeight: '900', color: '#000' }}>{t("微信支付")}</Text>
+              <Text style={{ fontSize: 11, color: '#a1a1aa' }}>{t("亿万用户的安全选择")}</Text>
             </View>
           </View>
           <Text style={{ fontSize: 14, fontWeight: '900', color: '#f97316' }}>✓</Text>

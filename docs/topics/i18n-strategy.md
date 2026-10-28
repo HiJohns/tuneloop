@@ -64,6 +64,9 @@
 ### 闸 1 — 抽取脚本（AST，不手抄）
 Babel 遍历 `frontend-mobile/src`：产出**清单**（文件×行×串）+ 直接**自动改写**（JSXText/字符串字面量 → `t('…')`），黑名单（§2）与动态拼接（`'a'+x` → `t('a{msg}')`）自动处理；**人工复核 diff**。
 - 产出：`scripts/i18n-extract.mjs`（--dry-run / --write / --report）。
+- **#2298 起 `--write` 为 merge**：读取现有 `zh-CN.json`，保留既有 key/value，仅追加本次扫描到的新 key（稳定排序）；可按文件/小目录重复运行，不再整体覆盖字典。
+- **`--report` ≠ 字典**：report 输出“当前仍硬编码”的清单（`docs/ops/i18n-inventory.csv`）；`zh-CN.json` 是已提取 key 的字典（源串即 key）。
+- 回归：`node --test scripts/i18n-extract.merge.test.mjs`（既有 key 不丢失）。
 
 ### 闸 2 — 集中拦截（一处覆盖一片）
 1. `platform/dialog` 的 `alert/toast/confirm` 内部先 `t()` → **374 处零改动即翻译**；
@@ -97,6 +100,7 @@ Babel 遍历 `frontend-mobile/src`：产出**清单**（文件×行×串）+ 直
 | **0 基建** | `t()` 实现 + zh 字典骨架 + 抽取脚本 + ESLint rule + 覆盖率报告 + `dialog`/`resolveErrorMessage` 集中拦截 | 机制与仪表就绪；**集中拦截即覆盖 ~1100 调用点** | 1–2 个 Issue |
 | **1 weapp 核心流程** | 登录/注册/完善资料、首页、商城、我的租赁、结算/支付、订单详情、个人中心（**H5/weapp 共享页一次抽取两端受益**） | 核心流程残留=0 | 按页 8–10 个 |
 | **2 mobile 全量 + H5 独有** | 其余 mobile 页面 + `App-H5` + H5 独有页 + 双实现页（Home/Checkout/OrderDetail/Payment/Profile/…）| mobile 残留=0 | 按页 10–12 个 |
+| **1.1 #2298 批次** | Payment/Checkout/MembershipCenter/Receive/Return/Login/ProfileComplete 提取 + D 文案落稿 | 目标文件 ESLint 0 + H5/weapp 构建 + 探针 | 单 Issue |
 | **3 管理后台** | frontend-pc（复用闸 1–3 方法；`message.*` 包装 + `errorMessages.js` 迁移） | PC 残留=0 | 按页 8–10 个 |
 
 > 顺序内每 Issue：抽取该页 → ESLint 0 → 构建 → `zh-CN.json` 提交。**任何时刻可暂停**（残留报告显示剩余），不产生半成品态（未抽页面仍硬编码但功能不变）。

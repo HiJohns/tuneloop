@@ -41,7 +41,7 @@ export default function MembershipCenter() {
     if (!env.isMiniProgram) return navigate(to)
     if (to === -1) return Taro.navigateBack()
     const route = toWeappRoute(to)
-    if (!route) { dialog.alert('该功能请在 H5 端使用'); return }
+    if (!route) { dialog.alert(t("该功能请在 H5 端使用")); return }
     if (route.type === 'switchTab') return Taro.switchTab({ url: route.url })
     return Taro.navigateTo({ url: route.url })
   }
@@ -67,7 +67,7 @@ export default function MembershipCenter() {
             generateQRCanvas(h5Url)
           } else {
             QRCode.toString(h5Url, { type: 'svg', width: 256 }, (err, svg) => {
-              if (err) { dialog.toast('二维码生成失败'); return }
+              if (err) { dialog.toast(t("二维码生成失败")); return }
               setQrDataUrl('data:image/svg+xml,' + encodeURIComponent(svg))
               setShowQR(true)
             })
@@ -76,7 +76,7 @@ export default function MembershipCenter() {
       }
     } catch (err) {
       console.log('[QR DEBUG] API exception:', err.message || err)
-      dialog.toast('获取推广二维码失败')
+      dialog.toast(t("获取推广二维码失败"))
     }
   }
 
@@ -91,7 +91,7 @@ export default function MembershipCenter() {
       console.log('[QR DEBUG] canvas query result:', JSON.stringify(res))
       if (!res || !res[0] || !res[0].node) {
         console.log('[QR DEBUG] canvas not found, res=', res)
-        dialog.toast('二维码生成失败')
+        dialog.toast(t("二维码生成失败"))
         return
       }
       const canvas = res[0].node
@@ -100,12 +100,12 @@ export default function MembershipCenter() {
       canvas.width = 256
       canvas.height = 256
       QRCode.toCanvas(canvas, url, { width: 256, margin: 1 }, (err) => {
-        if (err) { console.log('[QR DEBUG] QRCode.toCanvas error:', err); dialog.toast('二维码生成失败'); return }
+        if (err) { console.log('[QR DEBUG] QRCode.toCanvas error:', err); dialog.toast(t("二维码生成失败")); return }
         console.log('[QR DEBUG] QRCode.toCanvas ok, exporting temp file...')
         Taro.canvasToTempFilePath({
           canvas,
           success: (r) => { console.log('[QR DEBUG] canvasToTempFilePath ok, path=', r.tempFilePath); setQrSrc(r.tempFilePath); setShowQR(true) },
-          fail: (e) => { console.log('[QR DEBUG] canvasToTempFilePath fail:', JSON.stringify(e)); dialog.toast('二维码生成失败') },
+          fail: (e) => { console.log('[QR DEBUG] canvasToTempFilePath fail:', JSON.stringify(e)); dialog.toast(t("二维码生成失败")) },
         })
       })
     })
@@ -161,7 +161,7 @@ export default function MembershipCenter() {
       {!env.isMiniProgram && (
       <View className="flex items-center px-4 py-3 bg-white border-b border-zinc-100">
         <Text className="text-lg mr-2" onClick={() => window.history.back()}>{'<'}</Text>
-        <Text className="text-lg font-bold flex-1 text-center mr-4">会员中心</Text>
+        <Text className="text-lg font-bold flex-1 text-center mr-4">{t("会员中心")}</Text>
       </View>
       )}
 
@@ -183,7 +183,7 @@ export default function MembershipCenter() {
       {benefits.length > 0 && (
         <View className="mx-4 mt-4 bg-white rounded-2xl shadow-sm p-4">
           <View className="flex items-center justify-between mb-3">
-            <Text className="text-sm font-bold text-zinc-800">会员权益</Text>
+            <Text className="text-sm font-bold text-zinc-800">{t("会员权益")}</Text>
             <Text className="text-xs font-bold text-amber-700">{user?.membership_level_name || ''}</Text>
           </View>
           <View style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -201,13 +201,13 @@ export default function MembershipCenter() {
       <View className="mx-4 mt-4">
         <View className="bg-white rounded-2xl shadow-sm p-4">
           <View className="flex justify-between items-center py-3 border-b border-zinc-50">
-            <Text className="text-sm text-zinc-500">消费总额</Text>
+            <Text className="text-sm text-zinc-500">{t("消费总额")}</Text>
             <Text className="text-base font-bold text-zinc-800">
               ¥{user?.total_spending ? (Number(user.total_spending) / 100).toLocaleString() : '0'}
             </Text>
           </View>
           <View className="flex justify-between items-center py-3">
-            <Text className="text-sm text-zinc-500">乐币</Text>
+            <Text className="text-sm text-zinc-500">{t("乐币")}</Text>
             <Text className="text-base font-bold text-zinc-800">
               {user?.promo_points ? Number((Number(user.promo_points) / 100).toFixed(1)).toLocaleString() : '0'}
             </Text>
@@ -219,13 +219,13 @@ export default function MembershipCenter() {
 
         {/* 历史记录（#2053 裁定：顾客历史在会员中心查看） */}
       <View className="mx-4 mt-4 bg-white rounded-2xl shadow-sm p-4">
-        <Text className="text-sm font-bold text-zinc-800 mb-2">历史记录</Text>
+        <Text className="text-sm font-bold text-zinc-800 mb-2">{t("历史记录")}</Text>
         <View className="flex justify-between items-center py-3 border-b border-zinc-50" onClick={() => nav('/my-leases?status=completed')}>
-          <Text className="text-sm text-zinc-600">租赁历史</Text>
+          <Text className="text-sm text-zinc-600">{t("租赁历史")}</Text>
           <Text className="text-sm text-zinc-300">❯</Text>
         </View>
         <View className="flex justify-between items-center py-3" onClick={() => nav('/my-repairs?tab=service')}>
-          <Text className="text-sm text-zinc-600">维修历史</Text>
+          <Text className="text-sm text-zinc-600">{t("维修历史")}</Text>
           <Text className="text-sm text-zinc-300">❯</Text>
         </View>
       </View>
@@ -235,9 +235,9 @@ export default function MembershipCenter() {
         <View className="items-center">
           <Button onClick={handleGetPromo}
             style={{ backgroundColor: '#000', color: '#fff', borderRadius: 999, padding: '10px 24px', fontSize: 14, fontWeight: '700', border: 'none' }}>
-            获取推广二维码
+            {t("获取推广二维码")}
           </Button>
-          <Text className="text-xs text-zinc-400 mt-2">邀请好友注册，赚取奖励乐币</Text>
+          <Text className="text-xs text-zinc-400 mt-2">{t("邀请好友注册，赚取奖励乐币")}</Text>
         </View>
       </View>
 
@@ -248,13 +248,13 @@ export default function MembershipCenter() {
       {showQR && (
         <View className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setShowQR(false)}>
           <View className="bg-white rounded-2xl p-6 mx-8 flex-col" style={{ display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
-            <Text className="text-sm font-bold text-center mb-4">推广二维码</Text>
+            <Text className="text-sm font-bold text-center mb-4">{t("推广二维码")}</Text>
             <View style={{ alignItems: 'center' }}>
               {env.isMiniProgram ? (qrSrc && <Image src={qrSrc} className="w-48 h-48" mode="aspectFit" />) : (qrDataUrl && <Image src={qrDataUrl} className="w-48 h-48" mode="aspectFit" />)}
             </View>
-            <Text className="text-xs text-zinc-400 text-center mt-2">好友扫码注册，你获得奖励</Text>
+            <Text className="text-xs text-zinc-400 text-center mt-2">{t("好友扫码注册，你获得奖励")}</Text>
             <Button onClick={() => setShowQR(false)} className="mt-4 py-2 bg-zinc-100 rounded-xl font-bold text-sm text-zinc-600 w-full">
-              关闭
+              {t("关闭")}
             </Button>
           </View>
         </View>
@@ -263,7 +263,7 @@ export default function MembershipCenter() {
       {/* Membership rules & benefits handbook (#1830 增量: backend-editable) */}
       <View className="mx-4 mt-4 bg-white rounded-2xl shadow-sm p-4 mb-8">
         <View className="flex items-center justify-between" onClick={() => setShowHandbook(!showHandbook)}>
-          <Text className="text-sm font-bold text-zinc-800">会员规则与权益手册</Text>
+          <Text className="text-sm font-bold text-zinc-800">{t("会员规则与权益手册")}</Text>
           <Text className="text-xs text-zinc-400">{showHandbook ? '收起 ▲' : '展开 ▼'}</Text>
         </View>
         {showHandbook && (handbookHtml ? (
@@ -282,7 +282,7 @@ export default function MembershipCenter() {
 
       {loading && (
         <View className="flex-1 items-center justify-center mt-20">
-          <Text className="text-zinc-400">加载中...</Text>
+          <Text className="text-zinc-400">{t("加载中...")}</Text>
         </View>
       )}
     </ScrollView>

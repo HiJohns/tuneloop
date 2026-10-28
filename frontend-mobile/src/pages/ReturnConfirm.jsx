@@ -19,7 +19,7 @@ export default function ReturnConfirm() {
     if (!env.isMiniProgram) return navigate(to)
     if (to === -1) return Taro.navigateBack()
     const route = toWeappRoute(to)
-    if (!route) { dialog.alert('该功能请在 H5 端使用'); return }
+    if (!route) { dialog.alert(t("该功能请在 H5 端使用")); return }
     if (route.type === 'switchTab') return Taro.switchTab({ url: route.url })
     return Taro.navigateTo({ url: route.url })
   }
@@ -64,7 +64,7 @@ export default function ReturnConfirm() {
 
   const handleSubmitReturn = async () => {
     if (!courierCompany.trim() || !trackingNumber.trim()) {
-      dialog.alert('请填写物流信息')
+      dialog.alert(t("请填写物流信息"))
       return
     }
     setSubmitting(true)
@@ -102,10 +102,10 @@ export default function ReturnConfirm() {
           navigate(`/return-settlement?order_id=${orderId}`, { replace: true })
         }
       } else {
-        dialog.alert('归还失败: ' + (resolveErrorMessage(result, '')))
+        dialog.alert(t("归还失败: {msg}", { msg: resolveErrorMessage(result, '') }))
       }
     } catch (err) {
-      dialog.alert('操作失败: ' + err.message)
+      dialog.alert(t("操作失败: {msg}", { msg: err.message }))
     }
     setSubmitting(false)
   }
@@ -146,7 +146,7 @@ export default function ReturnConfirm() {
 
   if (loading) {
     return <View style={{ backgroundColor: "#FDFBF7" }} className="min-h-screen flex items-center justify-center">
-      <Text className="text-zinc-400 font-medium">加载中...</Text>
+      <Text className="text-zinc-400 font-medium">{t("加载中...")}</Text>
     </View>
   }
 
@@ -155,7 +155,7 @@ export default function ReturnConfirm() {
       {!env.isMiniProgram && (
         <View className="px-4 pt-4 pb-3 flex items-center gap-2" style={{ background: 'linear-gradient(to bottom, #FDF4E7, #fff)' }}>
           <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
-          <Text className="text-lg font-black text-black">归还乐器</Text>
+          <Text className="text-lg font-black text-black">{t("归还乐器")}</Text>
         </View>
       )}
 
@@ -165,21 +165,21 @@ export default function ReturnConfirm() {
       {order && (
         <>
           <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <View><Text className="text-base font-black text-black">订单信息</Text></View>
+            <View><Text className="text-base font-black text-black">{t("订单信息")}</Text></View>
             <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <View className="flex items-center">
-                <Text className="text-sm text-zinc-400 w-16">订单号</Text>
+                <Text className="text-sm text-zinc-400 w-16">{t("订单号")}</Text>
                 <Text className="text-sm font-bold text-black">{(order.id || '').slice(0, 8)}</Text>
               </View>
               {order.start_date && (
                 <View className="flex items-center">
-                  <Text className="text-sm text-zinc-400 w-16">起始日</Text>
+                  <Text className="text-sm text-zinc-400 w-16">{t("起始日")}</Text>
                   <Text className="text-sm font-bold text-black">{formatBeijingDate(order.start_date)}</Text>
                 </View>
               )}
               {order.end_date && (
                 <View className="flex items-center">
-                  <Text className="text-sm text-zinc-400 w-16">到期日</Text>
+                  <Text className="text-sm text-zinc-400 w-16">{t("到期日")}</Text>
                   {/* #1847: 到期日展示口径与详情页 LeaseInfo 一致 = 归还截止日
                       （起始日 + rent_days）；end_date 列是租期末日（start+N−1），
                       裸读会比详情页早一天。pb.rent_days 缺失时回退 end_date。 */}
@@ -194,12 +194,12 @@ export default function ReturnConfirm() {
 
       {/* #1732: 归还物流提醒（所有订单） */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
-        <Text className="block text-red-500 font-medium leading-relaxed">尊敬的顾客您好，感谢您选择{order?.merchant_name || '云租吧'}的乐器，乐器寄回时请优先选择顺丰快递且保价，还原初始包装保护乐器，为保障您的权益，我们将第一时间查收并检验乐器状态，谢谢您，祝您生活愉快！</Text>
+        <Text className="block text-red-500 font-medium leading-relaxed">{t("尊敬的顾客您好，感谢您选择")}{order?.merchant_name || '云租吧'}{t("的乐器，乐器寄回时请优先选择顺丰快递并保价，还原初始包装保护乐器，为保障您的权益，我们将第一时间查收并检验乐器状态，谢谢您，祝您生活愉快！")}</Text>
       </View>
 
       {/* Return Address — preferred: transit_info (controlled), fallback: instrument.site_* */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
-        <Text className="text-base font-black text-black mb-3 block">发回地址</Text>
+        <Text className="text-base font-black text-black mb-3 block">{t("发回地址")}</Text>
         {(() => {
           const ti = order?.transit_info
           if (ti) {
@@ -227,19 +227,19 @@ export default function ReturnConfirm() {
       {/* Logistics Info */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <Text className="text-base font-black text-black mb-3 flex items-center gap-2">
-          <Truck size={18} />物流信息
+          <Truck size={18} />{t("物流信息")}
         </Text>
         <Text className="text-xs text-red-500 font-normal mb-3">{t('*请填写真实返程物流信息，用于归还乐器')}</Text>
         <View style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <View>
-            <Text className="text-xs font-bold text-zinc-500 mb-1">承运公司</Text>
+            <Text className="text-xs font-bold text-zinc-500 mb-1">{t("承运公司")}</Text>
             <Input value={courierCompany} onInput={e => setCourierCompany(getInputValue(e))}
-              placeholder="如：顺丰速运" className="w-full border rounded-lg px-3 py-2 text-sm" />
+              placeholder={t("如：顺丰速运")} className="w-full border rounded-lg px-3 py-2 text-sm" />
           </View>
           <View>
-            <Text className="text-xs font-bold text-zinc-500 mb-1">快递单号</Text>
+            <Text className="text-xs font-bold text-zinc-500 mb-1">{t("快递单号")}</Text>
             <Input value={trackingNumber} onInput={e => setTrackingNumber(getInputValue(e))}
-              placeholder="请输入快递单号" className="w-full border rounded-lg px-3 py-2 text-sm" />
+              placeholder={t("请输入快递单号")} className="w-full border rounded-lg px-3 py-2 text-sm" />
           </View>
         </View>
       </View>
@@ -247,9 +247,9 @@ export default function ReturnConfirm() {
       {/* Photo Upload */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <Text className="text-base font-black text-black mb-3 flex items-center gap-2">
-          <Camera size={18} />拍照留档
+          <Camera size={18} />{t("拍照留档")}
         </Text>
-        <Text className="text-xs text-red-500 font-normal leading-relaxed mb-3">{t('*请拍摄完整展示乐器当前面板、背板、侧板、琴头、琴颈等各部位状态的照片及视频作为归还留档')}</Text>
+        <Text className="text-xs text-red-500 font-normal leading-relaxed mb-3">{t('*请拍摄完整展示乐器当前面板、背板、侧板、琴头、琴颈等各部位状态的照片作为归还留档')}</Text>
         <View className="flex flex-wrap gap-2">
           {photoFiles.map((file, i) => (
             <View key={i} className="relative">
@@ -265,12 +265,12 @@ export default function ReturnConfirm() {
               <View onClick={handlePhotoCaptureWeapp}
                 className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400">
                 <Camera size={20} />
-                <Text className="text-xs mt-1">拍摄</Text>
+                <Text className="text-xs mt-1">{t("拍摄")}</Text>
               </View>
             ) : (
               <label className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer text-gray-400">
                 <Camera size={20} />
-                <Text className="text-xs mt-1">拍摄</Text>
+                <Text className="text-xs mt-1">{t("拍摄")}</Text>
                 <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handlePhotoCapture} />
               </label>
             )
