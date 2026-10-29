@@ -84,6 +84,18 @@
 - **平台管理员创建限制**：`POST /users` 对 `site_staff` / `repair_technician` / `merchant_direct` 返回 `403 / 40310`（平台侧仅能通过创建商户产生商户负责人，#1718）。
 - **历史回填**：迁移 `20261020001` 将档案 `tenant_id` 按 `users.tenant_id → merchants.org_id` 规范化（执行需授权）。
 
+#### 1.5.6 归属锚定总则（P3，#2255）
+
+> 全量隔离矩阵与批次证据见 [`docs/ops/tenant-id-audit.md`](../../ops/tenant-id-audit.md) §A5 / §A7；本节固化对外契约总则，端点细则见本节末尾索引。
+
+- **数据归属锚 = 商户 org**（`merchants.org_id`）：业务数据（订单/乐器/维修/发票/结算等）的 `tenant_id` 写入**目标商户 org**。`merchants.tenant_id` 可能是**多商户共享值**，不得作为数据归属或可见性依据。
+- **写入归属从对象推导**：写入/更新时归属取自业务对象（`orders` → instrument / repair_request 等）的商户 org；**不得**取操作者本地缓存 `users.tenant_id`（顾客零租户、员工共享 tenant 均不可靠）。
+- **顾客（零租户）**：JWT `tid` 保持空（D1）；`/api/user*` 走 `userOptionalAuth`，归属由 instrument/order 反推，不因 `tid` 为空被拒。
+- **读路径显式化（opt-in）**：已迁移路由挂 `middleware.ExplicitTenantScope()`（#2255 时点 `backend/main.go` **95 处**）→ GORM `addTenantScope` 跳过自动注入，由 handler 显式按商户 org 过滤；未迁移路由仍由 `addTenantScope` 回退（`backend/database/db.go:103`）。
+- **身份查询例外**：按 JWT 身份键（`iam_sub` / user.ID）定位 `users` 行、且上下文可能带非零 `tid` 时，用 `database.IdentityCtx(ctx)`（`db.go:222`）关闭自动作用域，避免零租户用户被误伤（#2078）。
+- **平台级/元数据表例外**：平台资源（P 表，如 categories / properties / labels）的 `tenant_id` 仅为创建者元数据，不作可见性锚；例外与逐路由判定以 §A5/§A7 为准。
+- **端点细则索引**：维修师档案 §1.5.5；维修/定损 §7.10；网点归属（`sites.tenant_id = 商户 org`，#2266）；会员/商户员工（membership）；发票（归属由订单派生）；商户 webhook（org 键 + 旧 tenant 键只读回退，#2262）。
+
 ### 1.6 权限模型 (v2.1)
 
 权限控制基于 JWT 中的两层位图。

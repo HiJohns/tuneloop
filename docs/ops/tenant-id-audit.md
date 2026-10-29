@@ -411,7 +411,7 @@ bash scripts/tenant-audit-coverage.sh
 | B0 | **隔离守卫测试网**：ISO-14/15 自动化（守卫网先于回调改造存在） | ✅（#2259） | `TestIsolationMatrix_*` ×2 全绿
 | B1 | **商户归属解析统一**：`resolveOperatorMerchantConfig`（#2251）改为复用 `resolveOperatorMerchant2247`（#2247）——单一实现（org 优先 → 唯一 tenant → 共享不解析） | ✅ 已完成 | `TestResolveMerchantOrg_Precedence_2255`（org 优先/唯一 tenant/共享拒绝/未知身份 4 例）+ #2247/#2251 原测试回归 |
 | B2a | **S4 写入数据归属（缓存表）**：`pending_order` 的 tenant 改为乐器所属商户 org（原用 `users.tenant_id` 缓存，顾客零租户/共享 tenant 均不可靠） | ✅ 已完成（`pending_order`） | 红绿：`TestCreatePendingOrder_TenantFromInstrument_2255`（父提交=零租户/共享 → 修复=商户 org）+ 无乐器回退平台零 UUID 负例 |
-| B2b | **S4 写入数据归属（逐点显式化）** | 🟡 部分（2 点）：乐器促销覆盖 → 乐器商户 org（+跨商户 404）；商户结算配置 → 商户 org（修 computePaymentDeadline 口径） | 红绿：`TestPromoOverride_WriteAnchoredToInstrumentOrg_2260` / `TestSettlementConfig_AnchoredToMerchantOrg_2260`（父提交红）；**回调判定**：`setTenantIDFromContext` 现状只在字段零值时填充 → 显式归属点改造后自动不介入（守卫式 no-op 成立） |
+| B2b | **S4 写入数据归属（逐点显式化）** | ✅ 完成（#2260 R3 PASS）：2 点改造——乐器促销覆盖 → 乐器商户 org（+跨商户 404）；商户结算配置 → 商户 org（修 computePaymentDeadline 口径）；其余 S4 点 N/A（逐点判定见下表） | 红绿：`TestPromoOverride_WriteAnchoredToInstrumentOrg_2260` / `TestSettlementConfig_AnchoredToMerchantOrg_2260`（父提交红）；**回调判定**：`setTenantIDFromContext` 现状只在字段零值时填充 → 显式归属点改造后自动不介入（守卫式 no-op 成立） |
 ### B2b S4 逐点判定表（2026-10-22）
 
 | S4 点 | 判定 | 证据/理由 |
@@ -437,8 +437,8 @@ bash scripts/tenant-audit-coverage.sh
 | `staff_invite.go` / `site_member.go` / `member_invite_2114.go` | ⚪ 不适用 | 写入前经 `hasSiteAccess`（sites.tenant_id = 操作者 tid）→ 与 site.TenantID 恒等 |
 | `repair_config.go` | ✅ 已修（#2251） | 维修设置锚商户 org / 平台 nil UUID |
 | B3 | 读回调逐域显式化（opt-in 等价迁移） | ✅ 批次1 开关+观察；批次2 本地统计（9 表）；批次3 由 **#2276（`46b651dbb`）** 全量收口：8 条已核路由 + repair / orders-instruments / membership / site 写路由均已显式过滤并具备路由级守卫；预生产观察日志已核对（8 条切域无注入） | `TestExplicitTenantScopeOnly_2261` + ISO-18 所列 #2276 守卫（全量 911 RUN / 45 failed / NEW 空） |
-| B4 | A3-8 必修清单（P2/P3 批 25 文件）口径改造 | 🟡 逐文件判定完成；本轮修 `invoice.go`（归属由订单派生）+ `member_invite_2114.go`（org 锚） | 见 §A7-B4 |
-| B5 | 前端/services tenant payload 收敛 | 🟡 盘点 88 行（63/21/4）→ `docs/ops/tenant-payload-audit-2262.md`；改 `webhook.go`（org 键 + 旧键只读回退）、`InvoiceConfirm` 移除 payload | 与 API 口径同步 |
+| B4 | A3-8 必修清单（P2/P3 批 25 文件）口径改造 | ✅ 完成（#2262 R2 PASS）：逐文件判定 + 修 `invoice.go`（归属由订单派生）、`member_invite_2114.go`（org 锚） | 见 §A7-B4 |
+| B5 | 前端/services tenant payload 收敛 | ✅ 完成（#2262 R2 PASS）：盘点 88 行（63/21/4）→ `docs/ops/tenant-payload-audit-2262.md`；改 `webhook.go`（org 键 + 旧键只读回退）、`InvoiceConfirm` 移除 payload | 与 API 口径同步 |
 | B6 | 隔离矩阵补齐（ISO-14~18） | 🟡 自动化：ISO-14/15/16/17/18 ✅（#2262 / #2276）；**预生产真机走查 = 部署侧待办**（需发布含 `46b651dbb` 的新包 + 用户回评；当前 1.0.75 不含最终 #2276） | 行级断言 + ISO-18 守卫列表 |
 
 
