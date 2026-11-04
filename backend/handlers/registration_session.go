@@ -264,12 +264,89 @@ func (h *RegistrationSessionHandler) GetRegistrationSessionStatus(c *gin.Context
 		"code": 20000,
 		"data": gin.H{
 			"status": session.Status,
+			"error":  session.Error,
 			// #1807: completed 后返回新注册账户的 IAM user_id——前端
 			// finishMembershipFlow 直接 wx-login-select 登录新会员（多账户
 			// 场景下不跳账户选择页，注册完成即切换为新账户）。
 			"user_id": session.IAMUserID,
 		},
 	})
+}
+
+// RebindRegistrationSession handles POST /api/auth/registration-sessions/:id/rebind.
+// Paid but WxBind failed (expired exchange_token) → user re-authorizes WeChat and
+// the session is finalized without re-creating the account (#2308).
+func (h *RegistrationSessionHandler) RebindRegistrationSession(c *gin.Context) {
+	var req struct {
+		ExchangeToken string `json:"exchange_token"`
+		WxCode        string `json:"wx_code"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
+		return
+	}
+	if req.ExchangeToken == "" && req.WxCode == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "exchange_token or wx_code is required"})
+		return
+	}
+
+	db := h.db.WithContext(c.Request.Context())
+	var session models.RegistrationSession
+	if err := db.Where("id = ?", c.Param("id")).First(&session).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "registration session not found"})
+		return
+	}
+	if session.Status == "completed" {
+		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"status": "completed", "user_id": session.IAMUserID}})
+		return
+	}
+	if session.IAMUserID == nil || *session.IAMUserID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "session has no reserved user"})
+		return
+	}
+
+	now := time.Now()
+	updates := map[string]interface{}{
+		"status":     "pending",
+		"error":      "",
+		"updated_at": now,
+	}
+	if req.ExchangeToken != "" {
+		updates["exchange_token"] = req.ExchangeToken
+	} else {
+		// wx_code fallback: bind now; activateReservedUser will skip WxBind
+		// because exchange_token is cleared.
+		if _, err := h.iamService.WxBind("", req.WxCode, *session.IAMUserID); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "微信授权失败: " + err.Error()})
+			return
+		}
+		updates["exchange_token"] = ""
+	}
+	if err := db.Model(&session).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update session: " + err.Error()})
+		return
+	}
+
+	var record models.OrderPaymentRecord
+	if err := db.Where("session_id = ? AND status = ?", session.ID, "paid").
+		Order("created_at desc").First(&record).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "payment not completed for this session"})
+		return
+	}
+	if err := applySideEffectsAndRecord(db, &record, now); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "重新授权后仍未完成: " + err.Error()})
+		return
+	}
+
+	var updated models.RegistrationSession
+	if err := db.Where("id = ?", session.ID).First(&updated).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to reload session"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
+		"status":  updated.Status,
+		"user_id": updated.IAMUserID,
+	}})
 }
 
 // resolveOpenidResult exchanges a WeChat login code for the openid via IAM

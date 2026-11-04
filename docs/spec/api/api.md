@@ -4111,6 +4111,28 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ---
 
+**接口**: `GET /api/auth/registration-sessions/:id/status`
+
+**说明**: 支付后轮询注册会话状态。`data.status` ∈ `pending|paid|completed|failed|needs_rebind`；`needs_rebind` 表示支付已成功但微信绑定失败（exchange_token 过期），需要重新授权；`data.error` 返回错误摘要。
+
+**接口**: `POST /api/auth/registration-sessions/:id/rebind`
+
+**说明**: 支付成功但 WxBind 失败后的恢复端点（匿名，会话级）。使用新的 `exchange_token`（或 `wx_code`）重新绑定微信并完成注册；不重复建号/扣款。已 `completed` 的会话幂等返回 200。
+
+**请求 Body**:
+```json
+{ "exchange_token": "fresh-token" }
+```
+
+**响应**:
+```json
+{ "code": 20000, "data": { "status": "completed", "user_id": "iam-user-uuid" } }
+```
+
+> #2308：`order_payment_records` 新增 `side_effect_status`（none/pending/succeeded/failed/needs_rebind）、`side_effect_error`、`side_effect_attempts`；支付成功后 side effect 失败不得回滚 `paid`。
+
+---
+
 ### 8.11a.1 实名核身自拍采集与审核（#1787）
 
 > 五态状态机：`none` / `uploaded` / `pending_review` / `verified` / `rejected`（判定优先级见 docs/cases/id-photos.md §核身状态派生与消费）。

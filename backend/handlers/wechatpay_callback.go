@@ -3,10 +3,12 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"tuneloop-backend/database"
@@ -130,6 +132,59 @@ func processRefundCallback(c *gin.Context, result *wechatpay.CallbackResult) boo
 	return true
 }
 
+// isWxRebindError 判断 WxBind 失败是否可通过重新授权恢复（#2308）。
+func isWxRebindError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var mergeErr *services.WxNeedsMergeError
+	if errors.As(err, &mergeErr) {
+		return true
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "invalid or expired exchange_token") ||
+		strings.Contains(msg, "needs merge")
+}
+
+// applySideEffectsAndRecord 在独立事务中执行 side effects，并把结果持久化到
+// order_payment_records。调用方必须已把 status=paid 落库；本函数失败不回滚 paid。
+func applySideEffectsAndRecord(db *gorm.DB, rec *models.OrderPaymentRecord, now time.Time) error {
+	tx := db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	if err := applySideEffects(tx, rec, now); err != nil {
+		tx.Rollback()
+		status := "failed"
+		if isWxRebindError(err) {
+			status = "needs_rebind"
+		}
+		updates := map[string]interface{}{
+			"side_effect_status":   status,
+			"side_effect_error":    err.Error(),
+			"side_effect_attempts": gorm.Expr("side_effect_attempts + 1"),
+			"updated_at":           now,
+		}
+		if updErr := db.Model(rec).Updates(updates).Error; updErr != nil {
+			log.Printf("[applySideEffectsAndRecord] persist side effect status failed for %s: %v", rec.ID, updErr)
+		}
+		if status == "needs_rebind" && rec.OrderType == "membership" && rec.SessionID != nil && *rec.SessionID != "" {
+			if updErr := db.Model(&models.RegistrationSession{}).Where("id = ?", *rec.SessionID).
+				Updates(map[string]interface{}{"status": "needs_rebind", "error": err.Error(), "updated_at": now}).Error; updErr != nil {
+				log.Printf("[applySideEffectsAndRecord] mark session needs_rebind failed: %v", updErr)
+			}
+		}
+		return err
+	}
+	if err := tx.Commit().Error; err != nil {
+		return err
+	}
+	if err := db.Model(rec).Update("side_effect_status", "succeeded").Error; err != nil {
+		log.Printf("[applySideEffectsAndRecord] mark succeeded failed for %s: %v", rec.ID, err)
+	}
+	return nil
+}
+
 func processPaymentCallback(c *gin.Context, result *wechatpay.CallbackResult) bool {
 	if !result.Success {
 		log.Printf("[processPaymentCallback] payment not successful for %s", result.OutTradeNo)
@@ -166,20 +221,16 @@ func processPaymentCallback(c *gin.Context, result *wechatpay.CallbackResult) bo
 	rawStr := string(raw)
 	record.RawResponse = &rawStr
 
-	tx := db.Begin()
-
-	if err := tx.Save(&record).Error; err != nil {
-		tx.Rollback()
+	record.SideEffectStatus = "pending"
+	record.SideEffectError = nil
+	if err := db.Save(&record).Error; err != nil {
 		log.Printf("[processPaymentCallback] failed to update record: %v", err)
 		return false
 	}
-
-	if err := applySideEffects(tx, &record, now); err != nil {
-		tx.Rollback()
-		return false
+	// #2308: 支付已成功入账，side effect 失败不得回滚 paid（否则微信回调/调度器无限重试）。
+	if err := applySideEffectsAndRecord(db, &record, now); err != nil {
+		log.Printf("[processPaymentCallback] side effects failed for %s: %v", result.OutTradeNo, err)
 	}
-
-	tx.Commit()
 	log.Printf("[processPaymentCallback] payment processed: out_trade_no=%s transaction_id=%s amount=%d type=%s", result.OutTradeNo, result.TransactionID, int64(record.Amount), record.OrderType)
 
 	// #1730: virtual/service goods (no physical delivery) must report
@@ -541,21 +592,20 @@ func processPendingRecord(db *gorm.DB, rec *models.OrderPaymentRecord) {
 	}
 
 	if result.TradeState == "SUCCESS" {
-		tx := db.Begin()
 		rec.Status = "paid"
 		rec.TransactionID = &result.TransactionID
+		rec.SideEffectStatus = "pending"
+		rec.SideEffectError = nil
 		rec.UpdatedAt = time.Now()
-		if err := tx.Save(&rec).Error; err != nil {
-			tx.Rollback()
+		if err := db.Save(rec).Error; err != nil {
 			log.Printf("[PaymentScheduler] save failed for %s: %v", *rec.OutTradeNo, err)
 			return
 		}
-		if err := applySideEffects(tx, rec, time.Now()); err != nil {
-			tx.Rollback()
+		// #2308: paid 已落库；side effect 失败只记录，不再让调度器每分钟重试。
+		if err := applySideEffectsAndRecord(db, rec, time.Now()); err != nil {
 			log.Printf("[PaymentScheduler] side effects failed for %s: %v", *rec.OutTradeNo, err)
 			return
 		}
-		tx.Commit()
 		log.Printf("[PaymentScheduler] recovered + applied: out_trade_no=%s tx_id=%s", *rec.OutTradeNo, result.TransactionID)
 		return
 	}

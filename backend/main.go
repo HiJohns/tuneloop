@@ -235,6 +235,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	api.GET("/auth/registration-sessions/me", regSessionHandler.GetMyRegistrationSession)
 	api.GET("/auth/registration-sessions/:id/status", regSessionHandler.GetRegistrationSessionStatus)
 	api.POST("/auth/registration-sessions/:id/id-photo", regSessionHandler.UploadSessionIDPhoto)
+	api.POST("/auth/registration-sessions/:id/rebind", regSessionHandler.RebindRegistrationSession)
 	api.POST("/wx/login", authHandler.WxLogin)
 	api.POST("/wx/phone", authHandler.WxPhone)
 	api.POST("/wechatpay/notify", handlers.WechatPayCallback)

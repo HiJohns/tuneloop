@@ -281,10 +281,15 @@ func completeRegistrationFromSession(tx *gorm.DB, record *models.OrderPaymentRec
 		userID, openid, err = createIAMUserWithBind(iamService, &form, password, session.ExchangeToken, "")
 	}
 	if err != nil {
-		// Paid but account creation failed → keep a traceable failed record
+		// Paid but account creation failed → keep a traceable record
 		// for manual handling (red-line #1637: error surfaced).
+		// #2308: WxBind 过期/合并类错误可重新授权恢复 → needs_rebind。
+		status := "failed"
+		if isWxRebindError(err) {
+			status = "needs_rebind"
+		}
 		tx.Model(&session).Updates(map[string]interface{}{
-			"status":     "failed",
+			"status":     status,
 			"error":      err.Error(),
 			"updated_at": now,
 		})

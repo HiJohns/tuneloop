@@ -377,8 +377,12 @@ type OrderPaymentRecord struct {
 	Days           *int       `gorm:"type:integer" json:"days,omitempty"`                    // #1802 T1: 续费天数独立持久化（RawResponse 会被微信回调覆盖）
 	CouponCode     *string    `gorm:"type:varchar(32)" json:"coupon_code,omitempty"`         // #1853: 本笔支付优惠码（逐笔入库）
 	CouponDiscount Cents      `gorm:"type:bigint;not null;default:0" json:"coupon_discount"` // #1853: 本笔支付折扣（分，无码 0）
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
+	// #2308: side effect（如注册 WxBind）状态。支付成功不得因 side effect 失败而回滚。
+	SideEffectStatus   string    `gorm:"type:varchar(20);not null;default:'none'" json:"side_effect_status"`
+	SideEffectError    *string   `gorm:"type:text" json:"side_effect_error,omitempty"`
+	SideEffectAttempts int       `gorm:"type:integer;not null;default:0" json:"side_effect_attempts"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
 // OrderRefundRecord 退款记录表（支持部分退款，与支付记录一对多）

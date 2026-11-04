@@ -33,6 +33,9 @@ export default function Payment() {
   const pId = paramState.id
   const pAmount = parseFloat(paramState.amount || '0')
   const pSessionId = paramState.session_id
+  // #2308: 支付成功但 WxBind 过期 → 需要用户重新授权微信完成注册。
+  const [rebindNeeded, setRebindNeeded] = useState(false)
+  const [rebindBusy, setRebindBusy] = useState(false)
 
   // #1785: dual-source param fallback — router params may be empty on the
   // first render; re-read on onLoad (page init options) and onShow so a
@@ -241,15 +244,18 @@ export default function Payment() {
     const exit = (url) => { if (exited) return; exited = true; safeExitTab(url) }
     try {
       let completed = false
+      let needsRebind = false
       let newUserId = ''
       for (let i = 0; i < 20; i++) {
         try {
           const resp = await apiFetch(`${baseUrl}/auth/registration-sessions/${pSessionId}/status`, { auth: false })
           const r = await resp.json()
           if (r.code === 20000 && r.data?.status === 'completed') { completed = true; newUserId = r.data?.user_id || ''; break }
+          if (r.code === 20000 && r.data?.status === 'needs_rebind') { needsRebind = true; break }
         } catch (e) { console.warn('[payment] session status poll failed', e) }
         await new Promise(res => setTimeout(res, 1000))
       }
+      if (needsRebind) { setRebindNeeded(true); return }
       session.removeItem('pending_registration_session')
       if (completed) {
         dialog.toast(t("注册成功，正在登录..."), { duration: 1500 })
@@ -312,6 +318,36 @@ export default function Payment() {
       console.warn('[payment] finishMembershipFlow failed', e)
       dialog.toast(t("注册处理中，请稍后在首页查看"))
       exit('/pages-weapp/home/index')
+    }
+  }
+
+  // #2308: WxBind 过期后的显式重新授权。前端用 wx.login 换取新
+  // exchange_token，再调用 rebind 端点完成注册（不重复扣款/建号）。
+  const doRebind = async () => {
+    if (rebindBusy) return
+    setRebindBusy(true)
+    try {
+      const code = await wxLogin()
+      if (!code) throw new Error(t('无法获取微信授权'))
+      const accResp = await apiFetch(`${baseUrl}/auth/wx-accounts?code=${encodeURIComponent(code)}`, { auth: false })
+      const acc = await accResp.json()
+      const exchangeToken = acc.data?.exchange_token || ''
+      if (!exchangeToken) throw new Error(acc.message || t('无法获取微信授权'))
+      const resp = await apiFetch(`${baseUrl}/auth/registration-sessions/${pSessionId}/rebind`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exchange_token: exchangeToken }),
+        auth: false,
+      })
+      const r = await resp.json()
+      if (r.code !== 20000) throw new Error(resolveErrorMessage(r, t('重新授权失败')))
+      setRebindNeeded(false)
+      dialog.toast(t('授权成功，正在完成注册...'), { duration: 1500 })
+      finishMembershipFlow()
+    } catch (e) {
+      dialog.alert(e.message || t('重新授权失败，请稍后重试'), { title: t('重新授权') })
+    } finally {
+      setRebindBusy(false)
     }
   }
 
@@ -653,7 +689,11 @@ export default function Payment() {
 
       {/* Pay/Confirm button */}
       <View style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', borderTop: '1px solid #f4f4f5', padding: 16 }}>
-        {isRefund ? (
+        {rebindNeeded ? (
+          <Button style={btnStyle('#B98E5F')} onClick={doRebind} disabled={rebindBusy}>
+            {rebindBusy ? t('处理中...') : t('重新授权微信并完成注册')}
+          </Button>
+        ) : isRefund ? (
           <View style={{ display: 'flex', flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
               <Button style={btnStyle('#B98E5F')} onClick={handleRefund}>{t("确认退款 ¥")}{formatCents(Number(cashAmount))}</Button>

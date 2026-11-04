@@ -174,3 +174,13 @@ steps:
 ---
 
 *Last updated: 2026-08-14*
+
+## 支付成功但微信绑定失败（#2308）
+
+1. 用户提交注册并支付会员费成功（微信侧已扣款）。
+2. 后端 `order_payment_records.status=paid`；`applySideEffects` 调 WxBind 返回 `invalid or expired exchange_token`。
+3. 断言：支付记录不回滚为 pending；`side_effect_status=needs_rebind`；`registration_sessions.status=needs_rebind`。
+4. 支付页轮询到 `needs_rebind`，展示「重新授权微信并完成注册」。
+5. 用户点击 → `wx.login` 取新 code → `/auth/wx-accounts` 取新 exchange_token → `POST /auth/registration-sessions/:id/rebind`。
+6. 断言：会话 `completed`、IAM 用户 active、本地用户 active；不产生第二笔支付、不重复建号。
+7. 若用户不再点击，系统不自动无限重试 WxBind；记录保留 `needs_rebind` 供人工/后续登录恢复。
