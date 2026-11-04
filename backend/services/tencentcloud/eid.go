@@ -13,10 +13,10 @@ import (
 // 服务端同样只负责签发凭证（GetEidToken）与查询结果（GetEidResult）。
 // #1807 阶段1：FACE_VERIFY_PROVIDER=eid 时启用。
 type EidProvider struct {
-	secretID     string
-	secretKey    string
-	region       string
-	merchantID   string
+	secretID   string
+	secretKey  string
+	region     string
+	merchantID string
 }
 
 func NewEidProvider(cfg Config) *EidProvider {
@@ -43,10 +43,8 @@ func (p *EidProvider) GetToken(name, idCard string) (string, error) {
 		return "", fmt.Errorf("create eid client: %w", err)
 	}
 
-	compareLib := "BUSINESS"
 	req := NewGetEidTokenRequest()
 	req.MerchantId = &p.merchantID
-	req.CompareLib = &compareLib
 	req.Name = &name
 	req.IdCard = &idCard
 

@@ -205,6 +205,8 @@ Tuneloop 后端代理 → IAM 解密 → 更新用户 phone
    - 首帧使用启动缓存 `app_config` 同步决定通道；无缓存时先 loading，不预渲染相机；
    - 三处身份证照片上传与人工审核通道不受影响
 
+> 参数差异（#2306）：E证通 `GetEidToken` **不接受 `CompareLib`**（该参数属于慧眼 `GetFaceIdToken`）。误传会返回 `UnknownParameter: 未定义参数 CompareLib`。`backend/services/tencentcloud/eid.go` 已移除该参数；`faceid_real.go` 的 `CompareLib` 保持不变。
+
 ### 环境变量
 
 BeaconIAM 需新增：
