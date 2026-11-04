@@ -412,7 +412,9 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		operatorID := middleware.GetUserID(c.Request.Context())
 		iamRole := toIAMRole(resolvedRole)
 		if err := iamClient.BindUserToOrganizationWithToken(userToken, user.IAMSub, orgID, iamRole, operatorID); err != nil {
-			iamClient.DeleteUser(user.IAMSub)
+			if purgeErr := iamClient.PurgeUser(user.IAMSub); purgeErr != nil {
+				log.Printf("[CreateUser] rollback purge failed for %s: %v", user.IAMSub, purgeErr)
+			}
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM bind user to organization failed: " + err.Error()})
 			return
 		}
@@ -480,7 +482,9 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	}); err != nil {
 		if orgID != "" && user.IAMSub != "" {
 			iamClient.UnbindUserFromOrganization(user.IAMSub, orgID, "")
-			iamClient.DeleteUser(user.IAMSub)
+			if purgeErr := iamClient.PurgeUser(user.IAMSub); purgeErr != nil {
+				log.Printf("[CreateUser] rollback purge failed for %s: %v", user.IAMSub, purgeErr)
+			}
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create user: " + err.Error()})
 		return
@@ -579,7 +583,9 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 		iamRole = "staff"
 	}
 	if err := iamClient.BindUserToOrganization(iamResp.UserID, orgID, iamRole, ""); err != nil {
-		iamClient.DeleteUser(iamResp.UserID)
+		if purgeErr := iamClient.PurgeUser(iamResp.UserID); purgeErr != nil {
+			log.Printf("[ActivateUser] rollback purge failed for %s: %v", iamResp.UserID, purgeErr)
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM bind user to organization failed: " + err.Error()})
 		return
 	}
@@ -589,7 +595,9 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 		cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(template.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
 		if err := iamClient.SetUserCustomerPermissions(orgID, iamResp.UserID, cusPerm, cusPermExt); err != nil {
 			iamClient.UnbindUserFromOrganization(iamResp.UserID, orgID, "")
-			iamClient.DeleteUser(iamResp.UserID)
+			if purgeErr := iamClient.PurgeUser(iamResp.UserID); purgeErr != nil {
+				log.Printf("[ActivateUser] rollback purge failed for %s: %v", iamResp.UserID, purgeErr)
+			}
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM set user permissions failed: " + err.Error()})
 			return
 		}
@@ -604,7 +612,9 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 		"status":  status,
 	}).Error; err != nil {
 		iamClient.UnbindUserFromOrganization(iamResp.UserID, orgID, "")
-		iamClient.DeleteUser(iamResp.UserID)
+		if purgeErr := iamClient.PurgeUser(iamResp.UserID); purgeErr != nil {
+			log.Printf("[ActivateUser] rollback purge failed for %s: %v", iamResp.UserID, purgeErr)
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update user iam_sub: " + err.Error()})
 		return
 	}
