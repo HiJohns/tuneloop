@@ -233,3 +233,46 @@ func TestCreateRegistrationSession2307_ReusesInitUserWithoutSession(t *testing.T
 	require.NoError(t, db.Model(&models.User{}).Count(&userCount).Error)
 	assert.EqualValues(t, 1, userCount, "must reuse the existing local user")
 }
+
+func TestCreateRegistrationSession2307_CompletedUserStill409(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/auth/token", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"access_token": "t2307", "expires_in": 7200})
+	})
+	mux.HandleFunc("/api/v1/users", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusConflict)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "username already exists"})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
+	t.Setenv("IAM_SECRET", testIAMSecret)
+
+	require.NoError(t, db.Create(&models.User{
+		ID: uuid.New().String(), IAMSub: uuid.New().String(), TenantID: "00000000-0000-0000-0000-000000000000",
+		OrgID: "00000000-0000-0000-0000-000000000000", Username: "13900002310",
+		Name: "已注册", Phone: "13900002310", Status: "active",
+	}).Error)
+
+	h := NewRegistrationSessionHandler(db)
+	r := gin.New()
+	r.POST("/api/auth/registration-sessions", h.CreateRegistrationSession)
+	body, _ := json.Marshal(map[string]interface{}{
+		"nickname": "已注册", "name": "已注册", "phone": "13900002310", "agreed_terms": true,
+	})
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/registration-sessions", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+	require.Equal(t, http.StatusConflict, w.Code, w.Body.String())
+	var resp struct {
+		Code int `json:"code"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, 40900, resp.Code)
+}
