@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -49,9 +50,11 @@ func (h *RegistrationSessionHandler) iamClientFor() *services.IAMClient {
 }
 
 type resumableRegistration struct {
-	SessionID string
-	Amount    models.Cents
-	Status    string
+	SessionID   string
+	IAMUserID   string
+	LocalUserID string
+	Amount      models.Cents
+	Status      string
 }
 
 // findResumableRegistration locates an init user + unfinished session for the
@@ -70,8 +73,10 @@ func (h *RegistrationSessionHandler) findResumableRegistration(phone, email stri
 	}
 	err := q.Order("created_at desc").First(&user).Error
 	iamID := ""
+	localUserID := ""
 	if err == nil {
 		iamID = user.IAMSub
+		localUserID = user.ID
 	} else if err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
@@ -92,9 +97,10 @@ func (h *RegistrationSessionHandler) findResumableRegistration(phone, email stri
 	var session models.RegistrationSession
 	if err := db.Where("iam_user_id = ? AND status IN ?", iamID,
 		[]string{"pending", "failed", "needs_rebind"}).Order("created_at desc").First(&session).Error; err != nil {
-		return nil, nil
+		// init user exists but no session → reuse the user, create a new session.
+		return &resumableRegistration{IAMUserID: iamID, LocalUserID: localUserID, Status: "none"}, nil
 	}
-	return &resumableRegistration{SessionID: session.ID, Amount: session.Amount, Status: session.Status}, nil
+	return &resumableRegistration{SessionID: session.ID, IAMUserID: iamID, LocalUserID: localUserID, Amount: session.Amount, Status: session.Status}, nil
 }
 
 // CreateRegistrationSession handles POST /api/auth/registration-sessions.
@@ -163,31 +169,47 @@ func (h *RegistrationSessionHandler) CreateRegistrationSession(c *gin.Context) {
 		n := form.Nickname
 		reserveReq.Nickname = &n
 	}
+	var reserveResp *services.CreateUserResponse
+	var reusedIAMUser bool
+	var reuseLocalUserID string
 	reserveResp, reserveErr := iamClient.CreateUser(reserveReq)
 	if reserveErr != nil {
-		isDuplicate := strings.Contains(reserveErr.Error(), "already exists") || strings.Contains(reserveErr.Error(), "conflict")
+		isDuplicate := errors.Is(reserveErr, services.ErrIAMUserExists) ||
+			strings.Contains(reserveErr.Error(), "already exists") || strings.Contains(reserveErr.Error(), "conflict")
 		if isDuplicate {
 			if resume, rerr := h.findResumableRegistration(form.Phone, form.Email); rerr == nil && resume != nil {
+				if resume.SessionID != "" {
+					c.JSON(http.StatusConflict, gin.H{
+						"code":    40901,
+						"message": "检测到未完成的注册，可继续完成支付",
+						"data": gin.H{
+							"resume_session_id": resume.SessionID,
+							"amount":            resume.Amount,
+							"session_status":    resume.Status,
+						},
+					})
+					return
+				}
+				// init user without a session → reuse it and create a new session.
+				if resume.IAMUserID != "" {
+					reusedIAMUser = true
+					reuseLocalUserID = resume.LocalUserID
+					reserveResp = &services.CreateUserResponse{UserID: resume.IAMUserID, Status: "init"}
+				}
+			}
+			if reserveResp == nil {
 				c.JSON(http.StatusConflict, gin.H{
-					"code":    40901,
-					"message": "检测到未完成的注册，可继续完成支付",
-					"data": gin.H{
-						"resume_session_id": resume.SessionID,
-						"amount":            resume.Amount,
-						"session_status":    resume.Status,
-					},
+					"code":    40900,
+					"message": "该手机号或邮箱已注册，请直接登录",
 				})
 				return
 			}
-			c.JSON(http.StatusConflict, gin.H{
-				"code":    40900,
-				"message": "该手机号或邮箱已注册，请直接登录",
-			})
+		}
+		if reserveResp == nil {
+			log.Printf("[RegistrationSession] init user reservation failed: %v", reserveErr)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "注册失败，请稍后重试"})
 			return
 		}
-		log.Printf("[RegistrationSession] init user reservation failed: %v", reserveErr)
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "注册失败，请稍后重试"})
-		return
 	}
 	session.IAMUserID = &reserveResp.UserID
 
@@ -197,28 +219,34 @@ func (h *RegistrationSessionHandler) CreateRegistrationSession(c *gin.Context) {
 	// created with status=init now and activated (status→active + gift
 	// points/referral) at the payment callback. Best-effort with rollback:
 	// if the local insert fails, purge the IAM reservation.
-	localUser := models.User{
-		IAMSub:             reserveResp.UserID,
-		TenantID:           "00000000-0000-0000-0000-000000000000",
-		OrgID:              "00000000-0000-0000-0000-000000000000",
-		Username:           form.Phone,
-		Name:               form.Name,
-		Nickname:           form.Nickname,
-		Phone:              form.Phone,
-		Email:              form.Email,
-		Role:               "USER",
-		Status:             "init",
-		IsProfileCompleted: true,
-	}
-	if err := h.db.Create(&localUser).Error; err != nil {
-		if purgeErr := iamClient.PurgeUser(reserveResp.UserID); purgeErr != nil {
-			log.Printf("[RegistrationSession] rollback purge failed for %s: %v", reserveResp.UserID, purgeErr)
+	if reuseLocalUserID != "" {
+		session.LocalUserID = &reuseLocalUserID
+	} else {
+		localUser := models.User{
+			IAMSub:             reserveResp.UserID,
+			TenantID:           "00000000-0000-0000-0000-000000000000",
+			OrgID:              "00000000-0000-0000-0000-000000000000",
+			Username:           form.Phone,
+			Name:               form.Name,
+			Nickname:           form.Nickname,
+			Phone:              form.Phone,
+			Email:              form.Email,
+			Role:               "USER",
+			Status:             "init",
+			IsProfileCompleted: true,
 		}
-		log.Printf("[RegistrationSession] local user reservation failed: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "注册失败，请稍后重试"})
-		return
+		if err := h.db.Create(&localUser).Error; err != nil {
+			if !reusedIAMUser {
+				if purgeErr := iamClient.PurgeUser(reserveResp.UserID); purgeErr != nil {
+					log.Printf("[RegistrationSession] rollback purge failed for %s: %v", reserveResp.UserID, purgeErr)
+				}
+			}
+			log.Printf("[RegistrationSession] local user reservation failed: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "注册失败，请稍后重试"})
+			return
+		}
+		session.LocalUserID = &localUser.ID
 	}
-	session.LocalUserID = &localUser.ID
 
 	// Resolve openid when a WeChat code is provided (used by
 	// GetMyRegistrationSession to resume a pending session). wx-accounts mints
@@ -238,8 +266,11 @@ func (h *RegistrationSessionHandler) CreateRegistrationSession(c *gin.Context) {
 
 	if err := h.db.Create(&session).Error; err != nil {
 		// Release the reserved user so the email/phone is not stuck (#1682).
-		if purgeErr := iamClient.PurgeUser(*session.IAMUserID); purgeErr != nil {
-			log.Printf("[RegistrationSession] failed to release reserved user %s: %v", *session.IAMUserID, purgeErr)
+		// Do not purge a reused init user (it existed before this request).
+		if !reusedIAMUser {
+			if purgeErr := iamClient.PurgeUser(*session.IAMUserID); purgeErr != nil {
+				log.Printf("[RegistrationSession] failed to release reserved user %s: %v", *session.IAMUserID, purgeErr)
+			}
 		}
 		log.Printf("[RegistrationSession] create failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create registration session"})

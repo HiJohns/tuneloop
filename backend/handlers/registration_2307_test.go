@@ -170,3 +170,66 @@ func TestCreateRegistrationSession2307_ResumesInitUser(t *testing.T) {
 	assert.Equal(t, 40901, resp.Code)
 	assert.Equal(t, session.ID, resp.Data.ResumeSessionID)
 }
+
+func TestCreateRegistrationSession2307_ReusesInitUserWithoutSession(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/auth/token", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"access_token": "t2307", "expires_in": 7200})
+	})
+	mux.HandleFunc("/api/v1/users", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusConflict)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "username already exists"})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
+	t.Setenv("IAM_SECRET", testIAMSecret)
+
+	iamID := uuid.New().String()
+	local := &models.User{
+		ID: uuid.New().String(), IAMSub: iamID, TenantID: "00000000-0000-0000-0000-000000000000",
+		OrgID: "00000000-0000-0000-0000-000000000000", Username: "13900002309",
+		Name: "无会话", Phone: "13900002309", Status: "init",
+	}
+	require.NoError(t, db.Create(local).Error)
+
+	h := NewRegistrationSessionHandler(db)
+	r := gin.New()
+	r.POST("/api/auth/registration-sessions", h.CreateRegistrationSession)
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"nickname": "无会话", "name": "无会话", "phone": "13900002309", "agreed_terms": true,
+	})
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/registration-sessions", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			SessionID string `json:"session_id"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+	require.NotEmpty(t, resp.Data.SessionID)
+
+	var session models.RegistrationSession
+	require.NoError(t, db.First(&session, "id = ?", resp.Data.SessionID).Error)
+	require.NotNil(t, session.IAMUserID)
+	assert.Equal(t, iamID, *session.IAMUserID)
+	require.NotNil(t, session.LocalUserID)
+	assert.Equal(t, local.ID, *session.LocalUserID)
+
+	var userCount int64
+	require.NoError(t, db.Model(&models.User{}).Count(&userCount).Error)
+	assert.EqualValues(t, 1, userCount, "must reuse the existing local user")
+}
