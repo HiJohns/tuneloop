@@ -164,6 +164,13 @@ export default function ProfileComplete() {
           // sessionUpload.sessionId 随之 rerender 拿到新 sid，否则 uploadPending()
           // 走 user/id-photo 端点（两阶段注册用户未创建 → 401 上传失败）。
           setResumeSid(sid)
+        } else if (result.code === 40901 && result.data?.resume_session_id) {
+          // #2307: 同手机号已有未完成的 init 用户/session → 继续原流程，不重复建号。
+          sid = result.data.resume_session_id
+          amount = result.data.amount || amount
+          setResumeSid(sid)
+          setSessionAmount(amount)
+          dialog.toast(t('继续未完成的注册'), { duration: 1500 })
         } else {
           dialog.toast(resolveErrorMessage(result, '提交失败, 请重试'), { duration: 3000 })
           setSaving(false)

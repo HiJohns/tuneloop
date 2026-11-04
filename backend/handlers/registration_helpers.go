@@ -362,13 +362,28 @@ func cleanupStaleInitReservations(db *gorm.DB) {
 	cutoff := time.Now().Add(-initReservationTTL)
 
 	var sessions []models.RegistrationSession
-	if err := db.Where("status = ? AND created_at < ?", "pending", cutoff).Find(&sessions).Error; err != nil {
+	if err := db.Where("status IN ? AND created_at < ?", []string{"pending", "failed", "needs_rebind"}, cutoff).
+		Find(&sessions).Error; err != nil {
 		log.Printf("[InitReservationScheduler] query failed: %v", err)
 		return
 	}
 
 	iamClient := services.NewIAMClient()
 	for _, s := range sessions {
+		// #2307: 已支付/支付中的会话不得清理（避免删除已付费账户）。
+		var paid, pending int64
+		if err := db.Model(&models.OrderPaymentRecord{}).Where("session_id = ? AND status = ?", s.ID, "paid").Count(&paid).Error; err != nil {
+			log.Printf("[InitReservationScheduler] paid check failed for session %s: %v", s.ID, err)
+			continue
+		}
+		if err := db.Model(&models.OrderPaymentRecord{}).Where("session_id = ? AND status = ?", s.ID, "pending").Count(&pending).Error; err != nil {
+			log.Printf("[InitReservationScheduler] pending check failed for session %s: %v", s.ID, err)
+			continue
+		}
+		if paid > 0 || pending > 0 {
+			log.Printf("[InitReservationScheduler] skip paid/paying session=%s paid=%d pending=%d", s.ID, paid, pending)
+			continue
+		}
 		// Release the reserved IAM user (init → purge). Best-effort: if IAM
 		// already removed it, the purge is a no-op error we tolerate. Legacy
 		// pre-#1682 sessions have no reserved user — just fail the session.

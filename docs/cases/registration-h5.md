@@ -184,3 +184,12 @@ steps:
 5. 用户点击 → `wx.login` 取新 code → `/auth/wx-accounts` 取新 exchange_token → `POST /auth/registration-sessions/:id/rebind`。
 6. 断言：会话 `completed`、IAM 用户 active、本地用户 active；不产生第二笔支付、不重复建号。
 7. 若用户不再点击，系统不自动无限重试 WxBind；记录保留 `needs_rebind` 供人工/后续登录恢复。
+
+## 注册中断后继续（#2307）
+
+1. 用户首次提交注册，IAM 预建 `status=init` 用户 + `registration_sessions(pending)`；未支付即离开。
+2. 用户用同一手机号再次提交注册：`POST /auth/registration-sessions` 收到 IAM 409。
+3. 后端按手机号查本地 init 用户 + 未完成 session，返回 `409 / code 40901 / data.resume_session_id`。
+4. 前端复用该 `session_id` 直接进入支付页，不重复创建 IAM 用户/本地用户/session。
+5. 断言：IAM 用户仍只有 1 个；session 仍只有 1 个；支付完成后正常激活。
+6. 若超过 24h 且无任何支付记录，清理器 purge IAM + 删除本地缓存 + session=failed；有 paid/pending 支付记录时不得清理。

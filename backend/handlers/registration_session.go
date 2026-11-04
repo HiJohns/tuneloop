@@ -48,6 +48,55 @@ func (h *RegistrationSessionHandler) iamClientFor() *services.IAMClient {
 	return services.NewIAMClient()
 }
 
+type resumableRegistration struct {
+	SessionID string
+	Amount    models.Cents
+	Status    string
+}
+
+// findResumableRegistration locates an init user + unfinished session for the
+// same phone/email so a retry can continue instead of returning 409 (#2307).
+func (h *RegistrationSessionHandler) findResumableRegistration(phone, email string) (*resumableRegistration, error) {
+	if phone == "" && email == "" {
+		return nil, nil
+	}
+	db := h.db
+	var user models.User
+	q := db.Where("status = ? AND iam_sub <> ''", "init")
+	if phone != "" {
+		q = q.Where("phone = ?", phone)
+	} else {
+		q = q.Where("email = ?", email)
+	}
+	err := q.Order("created_at desc").First(&user).Error
+	iamID := ""
+	if err == nil {
+		iamID = user.IAMSub
+	} else if err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	if iamID == "" {
+		// Local cache missing (manual repair / different device) → IAM fallback.
+		if users, lerr := h.iamClientFor().ListUsers(); lerr == nil {
+			for _, u := range users {
+				if (phone != "" && u.Phone == phone) || (email != "" && u.Email == email) {
+					iamID = u.ID
+					break
+				}
+			}
+		}
+	}
+	if iamID == "" {
+		return nil, nil
+	}
+	var session models.RegistrationSession
+	if err := db.Where("iam_user_id = ? AND status IN ?", iamID,
+		[]string{"pending", "failed", "needs_rebind"}).Order("created_at desc").First(&session).Error; err != nil {
+		return nil, nil
+	}
+	return &resumableRegistration{SessionID: session.ID, Amount: session.Amount, Status: session.Status}, nil
+}
+
 // CreateRegistrationSession handles POST /api/auth/registration-sessions.
 // Persists the form (pending) and returns session_id + amount (base
 // membership fee; coupon discounts are applied at prepay time).
@@ -116,7 +165,20 @@ func (h *RegistrationSessionHandler) CreateRegistrationSession(c *gin.Context) {
 	}
 	reserveResp, reserveErr := iamClient.CreateUser(reserveReq)
 	if reserveErr != nil {
-		if strings.Contains(reserveErr.Error(), "already exists") || strings.Contains(reserveErr.Error(), "conflict") {
+		isDuplicate := strings.Contains(reserveErr.Error(), "already exists") || strings.Contains(reserveErr.Error(), "conflict")
+		if isDuplicate {
+			if resume, rerr := h.findResumableRegistration(form.Phone, form.Email); rerr == nil && resume != nil {
+				c.JSON(http.StatusConflict, gin.H{
+					"code":    40901,
+					"message": "检测到未完成的注册，可继续完成支付",
+					"data": gin.H{
+						"resume_session_id": resume.SessionID,
+						"amount":            resume.Amount,
+						"session_status":    resume.Status,
+					},
+				})
+				return
+			}
 			c.JSON(http.StatusConflict, gin.H{
 				"code":    40900,
 				"message": "该手机号或邮箱已注册，请直接登录",
