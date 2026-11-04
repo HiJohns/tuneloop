@@ -271,7 +271,7 @@ export default function Register() {
                   extraFields={{ second_doc_type: secondDocType, intro_letter_url: introLetterKey }}
                   beforeUpload={() => {
                     if (!secondDocType) return '请先选择第二证件类型'
-                    if (secondDocType === 'student' && !introLetterKey) return '学生证需先上传介绍信'
+                    if (secondDocType === 'student' && !introLetterKey && !introLetterRef.current?.hasFile()) return '学生证需先上传介绍信'
                     return ''
                   }} />
               ) : (

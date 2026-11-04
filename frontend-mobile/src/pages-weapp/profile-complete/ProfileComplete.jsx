@@ -359,7 +359,7 @@ export default function ProfileComplete() {
             extraFields={{ second_doc_type: secondDocType, intro_letter_url: introLetterKey }}
             beforeUpload={() => {
               if (!secondDocType) return t('请先选择第二证件类型')
-              if (secondDocType === 'student' && !introLetterKey) return t('学生证需先上传介绍信')
+              if (secondDocType === 'student' && !introLetterKey && !introLetterRef.current?.hasFile()) return t('学生证需先上传介绍信')
               return ''
             }}
             onSelect={() => setOtherPicked(true)} onClear={() => setOtherPicked(false)} />
