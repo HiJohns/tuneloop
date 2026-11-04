@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { View, Text, Input, Button, ScrollView } from '@tarojs/components'
+import { View, Text, Input, Button, ScrollView, Picker } from '@tarojs/components'
 import { apiFetch , resolveErrorMessage } from '../services/api'
 import { dialog, env, storage, session, navigation } from '../platform'
 import { getWXConfig } from '../platform/init'
 import IdPhotoUploader from '../components/IdPhotoUploader'
+import IntroLetterUploader from '../components/IntroLetterUploader'
 import regions from '../data/regions.json'
 import AgreementCheckbox from '../components/AgreementCheckbox'
 
@@ -44,6 +45,18 @@ export default function Register() {
   const idPhotoFrontRef = useRef(null)
   const idPhotoBackRef = useRef(null)
   const idPhotoOtherRef = useRef(null)
+  const introLetterRef = useRef(null)
+  const [uploadedSides, setUploadedSides] = useState({})
+  const [secondDocType, setSecondDocType] = useState('')
+  const [introLetterKey, setIntroLetterKey] = useState('')
+  const SECOND_DOC_OPTIONS = [
+    { code: 'student', label: '学生证' },
+    { code: 'teacher', label: '教职工证' },
+    { code: 'work', label: '工作证' },
+    { code: 'other', label: '其他' },
+  ]
+  const secondDocLabel = (SECOND_DOC_OPTIONS.find(o => o.code === secondDocType) || {}).label || ''
+  const idBaseReady = !!(uploadedSides.front && uploadedSides.back)
 
   // 推荐码：从 URL ?ref= 或 ?scene=ref= 读取（微信扫码场景）
   useEffect(() => {
@@ -116,7 +129,17 @@ export default function Register() {
         try {
           if (idPhotoFrontRef.current?.uploadPending) await idPhotoFrontRef.current.uploadPending()
           if (idPhotoBackRef.current?.uploadPending) await idPhotoBackRef.current.uploadPending()
-          if (idPhotoOtherRef.current?.uploadPending) await idPhotoOtherRef.current.uploadPending()
+          let introKey = ''
+          if (introLetterRef.current?.uploadPending) {
+            const k = await introLetterRef.current.uploadPending()
+            if (k && k !== 'skip') introKey = k
+          }
+          if (idPhotoOtherRef.current?.uploadPending) {
+            await idPhotoOtherRef.current.uploadPending(undefined, {
+              second_doc_type: secondDocType,
+              intro_letter_url: introKey || introLetterKey,
+            })
+          }
         } catch (e) { console.error('[Register] id photo upload failed', e) }
 
         // 保存收货地址
@@ -219,13 +242,41 @@ export default function Register() {
           <View className="mb-1"><Text className="text-sm font-medium text-gray-700">身份证照片（选填）</Text></View>
           <View className="flex flex-row gap-3">
             <View className="flex-1 flex justify-center">
-              <IdPhotoUploader ref={idPhotoFrontRef} side="front" defer />
+              <IdPhotoUploader ref={idPhotoFrontRef} side="front" defer onSelect={() => setUploadedSides(s => ({ ...s, front: true }))} onClear={() => setUploadedSides(s => ({ ...s, front: false }))} />
             </View>
             <View className="flex-1 flex justify-center">
-              <IdPhotoUploader ref={idPhotoBackRef} side="back" defer />
+              <IdPhotoUploader ref={idPhotoBackRef} side="back" defer onSelect={() => setUploadedSides(s => ({ ...s, back: true }))} onClear={() => setUploadedSides(s => ({ ...s, back: false }))} />
             </View>
+          </View>
+          <View className="mt-3">
+            <Text className="text-xs text-yellow-700">第二证件照（可选；学生证需介绍信）</Text>
+          </View>
+          <Picker mode="selector" range={SECOND_DOC_OPTIONS.map(o => o.label)}
+            value={Math.max(0, SECOND_DOC_OPTIONS.findIndex(o => o.code === secondDocType))}
+            onChange={e => setSecondDocType(SECOND_DOC_OPTIONS[e.detail.value]?.code || '')}>
+            <View className="border border-gray-300 rounded-lg px-4 py-3 text-sm mb-2" style={{ color: secondDocLabel ? '#000' : '#9ca3af' }}>
+              {secondDocLabel || '选择第二证件类型（可选）'}
+            </View>
+          </Picker>
+          {secondDocType === 'student' && (
+            <View className="mb-2">
+              <Text className="text-xs text-yellow-700 mb-1">学生证作为第二证件时需上传介绍信</Text>
+              <IntroLetterUploader ref={introLetterRef} defer initialKey={introLetterKey} onChange={(k) => setIntroLetterKey(k)} leftAligned />
+            </View>
+          )}
+          <View className="flex flex-row gap-3 mt-2">
             <View className="flex-1 flex justify-center">
-              <IdPhotoUploader ref={idPhotoOtherRef} side="other" defer />
+              {idBaseReady ? (
+                <IdPhotoUploader ref={idPhotoOtherRef} side="other" defer
+                  extraFields={{ second_doc_type: secondDocType, intro_letter_url: introLetterKey }}
+                  beforeUpload={() => {
+                    if (!secondDocType) return '请先选择第二证件类型'
+                    if (secondDocType === 'student' && !introLetterKey) return '学生证需先上传介绍信'
+                    return ''
+                  }} />
+              ) : (
+                <Text className="text-xs text-gray-400">请先上传身份证正反面</Text>
+              )}
             </View>
           </View>
         </View>

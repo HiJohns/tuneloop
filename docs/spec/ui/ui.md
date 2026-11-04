@@ -1497,6 +1497,14 @@ API 来源：
 >    - **双端一致性（#2041 整改 / #2053 整改 / #2174 调整 / #2178）**：H5（`pages/Profile.jsx` 的 `PendingOrdersModal`）与 weapp（`pages-weapp/Profile.jsx` 独立实现）**均保留「待提交订单」弹层**（#2174 已移除「我的」菜单入口）。
 >    - 续提跳转：已实名 → `checkout?id=<instrument_id>&resume_pending=<pending_id>`（weapp 用 `/pages-weapp/checkout/index`）；未实名 → 个人资料编辑页。
 
+### 2.22.2 注册页第二证件类型与介绍信（#2314）
+
+> 注册页（H5 `Register.jsx` / weapp `ProfileComplete.jsx`）第二证件区：
+> - 先上传身份证正/反面，第二证件槽才可用；否则提示「请先上传身份证正反面，再上传第二证件」。
+> - 第二证件类型由用户选择：学生证 / 教职工证 / 工作证 / 其他（`id_photo_other_type`）。
+> - 选择学生证时必须先上传介绍信（`IntroLetterUploader`，会话级 `side=intro`）；未上传时阻止第二证件上传。
+> - 类型/介绍信随注册 session form_data 落地，审核端可修正。
+
 ### 2.22.1 注册页证件审核提示（#2044）
 
 > 注册页（H5/weapp）身份证照片与第二证件上传区下方展示一行说明：「实名信息将由平台审核；完成微信核身的可即时生效，人工审核约需 1-2 个工作日，结果将通过系统消息通知您」——内联 style，灰字小号（#2112：兼顾微信自动核身即时路径）。

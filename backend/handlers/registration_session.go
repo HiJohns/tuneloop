@@ -489,8 +489,8 @@ func (h *RegistrationSessionHandler) UploadSessionIDPhoto(c *gin.Context) {
 	}
 
 	side := c.PostForm("side")
-	if side != "front" && side != "back" && side != "other" {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "invalid side, must be front, back, or other"})
+	if side != "front" && side != "back" && side != "other" && side != "intro" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "invalid side, must be front, back, other, or intro"})
 		return
 	}
 
@@ -555,14 +555,19 @@ func (h *RegistrationSessionHandler) UploadSessionIDPhoto(c *gin.Context) {
 	if form.IDPhotos == nil {
 		form.IDPhotos = map[string]string{}
 	}
-	form.IDPhotos[side] = filename
-	// #2057 裁定3: 自报类型/介绍信随 form_data 落地（类型在注册完成时仍由审核端权威决定，沿用既有不变量）
-	if side == "other" {
-		if secondDocType != "" {
-			form.IdPhotoOtherType = secondDocType
-		}
-		if secondDocType == "student" {
-			form.IntroLetterURL = introLetterKey
+	if side == "intro" {
+		// 学生证介绍信：单独上传，只写 form.IntroLetterURL。
+		form.IntroLetterURL = filename
+	} else {
+		form.IDPhotos[side] = filename
+		// #2057 裁定3: 自报类型/介绍信随 form_data 落地（类型在注册完成时仍由审核端权威决定，沿用既有不变量）
+		if side == "other" {
+			if secondDocType != "" {
+				form.IdPhotoOtherType = secondDocType
+			}
+			if secondDocType == "student" {
+				form.IntroLetterURL = introLetterKey
+			}
 		}
 	}
 
@@ -576,7 +581,8 @@ func (h *RegistrationSessionHandler) UploadSessionIDPhoto(c *gin.Context) {
 		"code":    20000,
 		"message": "upload success",
 		"data": gin.H{
-			"side": side,
+			"side":     side,
+			"file_key": filename,
 		},
 	})
 }

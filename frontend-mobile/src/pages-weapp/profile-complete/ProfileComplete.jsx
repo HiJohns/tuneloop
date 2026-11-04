@@ -5,6 +5,7 @@ import { View, Text, Input, Picker, Image } from '@tarojs/components'
 import {dialog, storage, session, env, request, wxLogin } from '../../platform'
 import { apiFetch , resolveErrorMessage } from '../../services/api'
 import IdPhotoUploader from '../../components/IdPhotoUploader'
+import IntroLetterUploader from '../../components/IntroLetterUploader'
 import regions from '../../data/regions.json'
 import AgreementCheckbox from '../../components/AgreementCheckbox'
 import { t } from '../../i18n'
@@ -40,8 +41,20 @@ export default function ProfileComplete() {
   const [uploadedSides, setUploadedSides] = useState({})
   // #1845: 其他证件（学生证）槽本轮是否已选图（onSelect 回调，供豁免判定与标签）。
   const [otherPicked, setOtherPicked] = useState(false)
+  // #2314: 第二证件类型（自报）+ 学生证介绍信
+  const [secondDocType, setSecondDocType] = useState('')
+  const [introLetterKey, setIntroLetterKey] = useState('')
+  const introLetterRef = useRef(null)
 
   const ID_TYPE_OPTIONS = ['学生证', '教职工证', '教师证', '工作证', '其他']
+  const SECOND_DOC_OPTIONS = [
+    { code: 'student', label: '学生证' },
+    { code: 'teacher', label: '教职工证' },
+    { code: 'work', label: '工作证' },
+    { code: 'other', label: '其他' },
+  ]
+  const secondDocLabel = (SECOND_DOC_OPTIONS.find(o => o.code === secondDocType) || {}).label || ''
+  const idBaseReady = !!(uploadedSides.front && uploadedSides.back)
 
   const provinceNames = regions.map(r => r.name)
   const selectedProv = regions.find(r => r.name === province)
@@ -80,6 +93,8 @@ export default function ProfileComplete() {
             // #1845: resume 会话回填第三证件类型（学生证豁免判定依赖）。
             // #1845: 已上传证件侧回填（id_photos: {front|back|other: key}）。
             // 服务端照片随会话保留，本次不再重复上传，仅用于必填校验。
+            if (f.id_photo_other_type) setSecondDocType(f.id_photo_other_type)
+            if (f.intro_letter_url) setIntroLetterKey(f.intro_letter_url)
             if (f.id_photos && typeof f.id_photos === 'object') {
               const sides = {}
               Object.keys(f.id_photos).forEach(side => {
@@ -130,6 +145,7 @@ export default function ProfileComplete() {
       let amount = sessionAmount
       if (!sid) {
         const body = { name: name.trim(), nickname: nickname.trim() || name.trim(), phone: phone.trim(), email: email.trim(), agreed_terms: true }
+        if (secondDocType) body.id_photo_other_type = secondDocType
         if (province || city || detail) {
           body.address = { province, city, district, detail, postal_code: postalCode }
         }
@@ -185,7 +201,8 @@ export default function ProfileComplete() {
       const slots = [
         { label: '身份证正面', ref: idPhotoFrontRef, uploaded: uploadedSides.front },
         { label: '身份证反面', ref: idPhotoBackRef, uploaded: uploadedSides.back },
-        { label: '其他证件', ref: idPhotoOtherRef, uploaded: uploadedSides.other },
+        { label: '介绍信', ref: introLetterRef, uploaded: !!introLetterKey, intro: true },
+        { label: '其他证件', ref: idPhotoOtherRef, uploaded: uploadedSides.other, other: true },
       ]
       const failedSides = []
       for (const slot of slots) {
@@ -194,7 +211,12 @@ export default function ProfileComplete() {
         if (!hasLocal) continue // 未选图 = skip，不尝试上传
         // #1807: 显式传 sid（新建 session 后 prop 更新有批处理延迟，直接传参
         // 保证走 session 端点而非 user/id-photo 匿名 401）。
-        const outcome = await slot.ref.current?.uploadPending(sid)
+        const outcome = slot.intro
+          ? await slot.ref.current?.uploadPending(sid)
+          : slot.other
+            ? await slot.ref.current?.uploadPending(sid, { second_doc_type: secondDocType, intro_letter_url: introLetterKey })
+            : await slot.ref.current?.uploadPending(sid)
+        if (slot.intro && outcome && outcome !== 'skip') setIntroLetterKey(outcome)
         if (outcome === null) failedSides.push(slot.label)
       }
       if (failedSides.length > 0) {
@@ -297,24 +319,53 @@ export default function ProfileComplete() {
       {/* #1807: 正反面一行（各 ~48%） */}
       <View style={{ display: 'flex', width: '100%', marginBottom: 12, justifyContent: 'space-between' }}>
         <View style={{ width: '48%', display: 'flex', justifyContent: 'center' }}>
-          <IdPhotoUploader ref={idPhotoFrontRef} side="front" defer sessionUpload={{ sessionId: resumeSid || undefined }} />
+          <IdPhotoUploader ref={idPhotoFrontRef} side="front" defer sessionUpload={{ sessionId: resumeSid || undefined }} onSelect={() => setUploadedSides(s => ({ ...s, front: true }))} onClear={() => setUploadedSides(s => ({ ...s, front: false }))} />
         </View>
         <View style={{ width: '48%', display: 'flex', justifyContent: 'center' }}>
-          <IdPhotoUploader ref={idPhotoBackRef} side="back" defer sessionUpload={{ sessionId: resumeSid || undefined }} />
+          <IdPhotoUploader ref={idPhotoBackRef} side="back" defer sessionUpload={{ sessionId: resumeSid || undefined }} onSelect={() => setUploadedSides(s => ({ ...s, back: true }))} onClear={() => setUploadedSides(s => ({ ...s, back: false }))} />
         </View>
       </View>
-      {/* #1924: 第二证件可选；类型不再由顾客指定（审核时由平台员工指定） */}
+      {/* #2314: 第二证件可选；类型由本人选择，平台审核时可修正 */}
       <Text style={{ fontSize: 14, fontWeight: '600', color: '#000', width: '100%', marginBottom: 4 }}>{t("第二证件照（可选）")}</Text>
       <Text style={{ fontSize: 12, color: '#a16207', width: '100%', marginBottom: 8, lineHeight: '18px' }}>
-        {t("（学生证/教职工证/工作证等；类型由平台审核时指定，可用于免押金等政策）")}
+        {t("（学生证/教职工证/工作证等；请选择类型，可用于免押金等政策）")}
       </Text>
+      <View style={{ width: '100%', marginBottom: 12 }}>
+        <Picker mode="selector" range={SECOND_DOC_OPTIONS.map(o => o.label)}
+          value={Math.max(0, SECOND_DOC_OPTIONS.findIndex(o => o.code === secondDocType))}
+          onChange={e => setSecondDocType(SECOND_DOC_OPTIONS[e.detail.value]?.code || '')}>
+          <View style={{ border: '1px solid #d4d4d8', borderRadius: 12, height: '44px', display: 'flex', alignItems: 'center', padding: '0 16px', boxSizing: 'border-box', fontSize: 14, color: secondDocLabel ? '#000' : '#9ca3af' }}>
+            {secondDocLabel || t('选择第二证件类型（可选）')}
+          </View>
+        </Picker>
+      </View>
+      {secondDocType === 'student' && (
+        <View style={{ width: '100%', marginBottom: 12 }}>
+          <Text style={{ fontSize: 12, color: '#a16207', width: '100%', marginBottom: 8, lineHeight: '18px' }}>
+            {t("学生证作为第二证件时需上传介绍信")}
+          </Text>
+          <IntroLetterUploader ref={introLetterRef} defer sessionUpload={{ sessionId: resumeSid || undefined }}
+            initialKey={introLetterKey} onChange={(k) => setIntroLetterKey(k)} leftAligned />
+        </View>
+      )}
       {/* #2044: 审核提示（上传后用户不知会送审） */}
       <Text style={{ fontSize: 12, color: '#71717a', width: '100%', marginBottom: 24, lineHeight: '18px' }}>
         {t("实名信息将由平台审核；完成微信核身的可即时生效，人工审核约需 1-2 个工作日，结果将通过系统消息通知您。")}
       </Text>
 
       <View style={{ display: 'flex', width: '100%', marginBottom: 24 }}>
-        <IdPhotoUploader ref={idPhotoOtherRef} side="other" defer sessionUpload={{ sessionId: resumeSid || undefined }} leftAligned onSelect={() => setOtherPicked(true)} onClear={() => setOtherPicked(false)} />
+        {idBaseReady ? (
+          <IdPhotoUploader ref={idPhotoOtherRef} side="other" defer sessionUpload={{ sessionId: resumeSid || undefined }} leftAligned
+            extraFields={{ second_doc_type: secondDocType, intro_letter_url: introLetterKey }}
+            beforeUpload={() => {
+              if (!secondDocType) return t('请先选择第二证件类型')
+              if (secondDocType === 'student' && !introLetterKey) return t('学生证需先上传介绍信')
+              return ''
+            }}
+            onSelect={() => setOtherPicked(true)} onClear={() => setOtherPicked(false)} />
+        ) : (
+          <Text style={{ fontSize: 12, color: '#a1a1aa' }}>{t("请先上传身份证正反面，再上传第二证件")}</Text>
+        )}
       </View>
 
       {/* #2209/#2244: 协议同意（必选，显性阅读同意流） */}
