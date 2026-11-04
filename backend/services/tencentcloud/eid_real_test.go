@@ -2,6 +2,7 @@ package tencentcloud
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -33,6 +34,10 @@ func TestGetEidTokenRequest_NoCompareLib(t *testing.T) {
 	require.Contains(t, body, "MerchantId")
 	require.Contains(t, body, "Name")
 	require.Contains(t, body, "IdCard")
+
+	// 字段存在性断言：即使值为 nil（omitempty 不序列化），也不允许再声明 CompareLib。
+	_, hasCompareLib := reflect.TypeOf(GetEidTokenRequest{}).FieldByName("CompareLib")
+	require.False(t, hasCompareLib, "GetEidTokenRequest must not declare CompareLib")
 }
 
 func TestGetEidResultRequestConstruction(t *testing.T) {
