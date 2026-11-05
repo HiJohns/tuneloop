@@ -157,3 +157,73 @@ func TestBatchUpdateRent(t *testing.T) {
 	// Cleanup
 	db.Exec(`DELETE FROM instruments WHERE tenant_id = ?`, tenantID)
 }
+
+func TestGetInventoryRentSetting_Filters(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.GetTestDB(t)
+	testutil.SetDB(t, db)
+
+	tenantID := uuid.New().String()
+	now := time.Now()
+	cat1, cat2 := uuid.New().String(), uuid.New().String()
+	lvl1, lvl2 := uuid.New().String(), uuid.New().String()
+	inst1, inst2 := uuid.New().String(), uuid.New().String()
+	code1, code2 := "prof-"+uuid.New().String()[:8], "entry-"+uuid.New().String()[:8]
+	db.Exec(`INSERT INTO instrument_levels (id, caption, code, sort_order) VALUES (?, ?, ?, 1)`, lvl1, code1, code1)
+	db.Exec(`INSERT INTO instrument_levels (id, caption, code, sort_order) VALUES (?, ?, ?, 2)`, lvl2, code2, code2)
+	defer func() {
+		db.Exec(`DELETE FROM instrument_properties WHERE tenant_id = ?`, tenantID)
+		db.Exec(`DELETE FROM instruments WHERE tenant_id = ?`, tenantID)
+		db.Exec(`DELETE FROM instrument_levels WHERE id IN (?, ?)`, lvl1, lvl2)
+	}()
+
+	for _, row := range []struct {
+		id, sn, brand, model, cat, lvl string
+	}{
+		{inst1, "SN-F1", "雅马哈", "U1", cat1, lvl1},
+		{inst2, "SN-F2", "卡瓦依", "K3", cat2, lvl2},
+	} {
+		db.Exec(`INSERT INTO instruments (id, sn, category_name, level_name, category_id, level_id, pricing, tenant_id, org_id, stock_status, created_at, updated_at)
+			VALUES (?, ?, '钢琴', '专业级', ?, ?, '{"daily_rent":100}', ?, ?, 'available', ?, ?)`,
+			row.id, row.sn, row.cat, row.lvl, tenantID, tenantID, now, now)
+		db.Exec(`INSERT INTO instrument_properties (id, tenant_id, instrument_id, property_name, value, created_at, updated_at)
+			VALUES (?, ?, ?, '品牌', ?, ?, ?)`, uuid.New().String(), tenantID, row.id, row.brand, now, now)
+		db.Exec(`INSERT INTO instrument_properties (id, tenant_id, instrument_id, property_name, value, created_at, updated_at)
+			VALUES (?, ?, ?, '型号', ?, ?, ?)`, uuid.New().String(), tenantID, row.id, row.model, now, now)
+	}
+
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		ctx := context.WithValue(c.Request.Context(), middleware.ContextKeyTenantID, tenantID)
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	h := NewInventoryHandler()
+	router.GET("/inventory/rent-setting", h.GetRentSetting)
+
+	cases := []struct{ query, wantSN string }{
+		{"brand=" + "雅马哈", "SN-F1"},
+		{"model=U1", "SN-F1"},
+		{"category_id=" + cat1, "SN-F1"},
+		{"level_id=" + lvl1, "SN-F1"},
+	}
+	for _, tc := range cases {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/inventory/rent-setting?page=1&pageSize=10&"+tc.query, nil)
+		router.ServeHTTP(w, req)
+		require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+		var resp struct {
+			Data struct {
+				List  []map[string]interface{} `json:"list"`
+				Total int64                    `json:"total"`
+			} `json:"data"`
+		}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		require.EqualValues(t, 1, resp.Data.Total, tc.query)
+		require.Len(t, resp.Data.List, 1)
+		assert.Equal(t, tc.wantSN, resp.Data.List[0]["sn"])
+		assert.Equal(t, "雅马哈", resp.Data.List[0]["brand"])
+		assert.Equal(t, "U1", resp.Data.List[0]["model"])
+	}
+
+}

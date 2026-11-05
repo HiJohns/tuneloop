@@ -279,11 +279,17 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 		query = query.Where("instruments.level_id = ?", levelID)
 	}
 
-	// Handle brand and model filters via instrument_properties
-	// This is a simplified version - in production, you'd need a proper join
-	if brand != "" || model != "" {
-		// For now, we'll filter after fetching due to JSONB complexity
-		// A better implementation would use a proper join with instrument_properties
+	// #2316: brand/model live in instrument_properties (品牌/型号). Filter in SQL
+	// so total/pagination are correct (previous TODO left both filters unused).
+	if brand != "" {
+		query = query.Where(`EXISTS (SELECT 1 FROM instrument_properties ip
+			WHERE ip.instrument_id = instruments.id AND ip.property_name = ? AND ip.value ILIKE ?)`,
+			"品牌", "%"+brand+"%")
+	}
+	if model != "" {
+		query = query.Where(`EXISTS (SELECT 1 FROM instrument_properties ip
+			WHERE ip.instrument_id = instruments.id AND ip.property_name = ? AND ip.value ILIKE ?)`,
+			"型号", "%"+model+"%")
 	}
 
 	// Get total count before pagination
@@ -309,6 +315,24 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 		ShippingFee     float64  `json:"shipping_fee"`
 		OverdueDailyFee float64  `json:"overdue_daily_fee"`
 		TotalPrice      *float64 `json:"total_price"`
+	}
+
+	// #2316: resolve the page's actual brand/model properties (not the filter text).
+	propMap := map[string]map[string]string{}
+	if len(instruments) > 0 {
+		ids := make([]string, 0, len(instruments))
+		for _, inst := range instruments {
+			ids = append(ids, inst.ID)
+		}
+		var props []models.InstrumentProperty
+		if err := db.Where("instrument_id IN ? AND property_name IN ?", ids, []string{"品牌", "型号"}).Find(&props).Error; err == nil {
+			for _, p := range props {
+				if propMap[p.InstrumentID] == nil {
+					propMap[p.InstrumentID] = map[string]string{}
+				}
+				propMap[p.InstrumentID][p.PropertyName] = p.Value
+			}
+		}
 	}
 
 	var items []RentSettingItem
@@ -337,8 +361,8 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 			SN:              inst.SN,
 			CategoryName:    inst.CategoryName,
 			LevelName:       inst.LevelName,
-			Brand:           brand,
-			Model:           model,
+			Brand:           propMap[inst.ID]["品牌"],
+			Model:           propMap[inst.ID]["型号"],
 			SiteName:        siteName,
 			DailyRent:       dailyRent,
 			Deposit:         deposit,

@@ -2863,6 +2863,7 @@ const handleSyncUsersFromIAM = async () => {
 **功能**:
 - 乐器列表展示（识别码、分类、网点、级别、日租金、押金、物流费、逾期日费）
 - 筛选：品牌、型号、类别、级别、网点
+  - **#2316**：品牌/型号为文本包含匹配（后端 `instrument_properties` 的 `品牌`/`型号`，ILIKE）；类别/级别为下拉选择真实 ID（`/categories`、`/instruments/levels`）。
 - 在线编辑各字段，保存后批量更新（`PUT /api/inventory/rent-setting/batch`）
 
 
