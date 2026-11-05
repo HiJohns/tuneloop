@@ -329,14 +329,11 @@ export default function Payment() {
     try {
       const code = await wxLogin()
       if (!code) throw new Error(t('无法获取微信授权'))
-      const accResp = await apiFetch(`${baseUrl}/auth/wx-accounts?code=${encodeURIComponent(code)}`, { auth: false })
-      const acc = await accResp.json()
-      const exchangeToken = acc.data?.exchange_token || ''
-      if (!exchangeToken) throw new Error(acc.message || t('无法获取微信授权'))
+      // #2308 v3: 只提交 wx_code；后端用 wx-accounts 解析 openid 后与 session.OpenID 比对。
       const resp = await apiFetch(`${baseUrl}/auth/registration-sessions/${pSessionId}/rebind`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ exchange_token: exchangeToken }),
+        body: JSON.stringify({ wx_code: code }),
         auth: false,
       })
       const r = await resp.json()

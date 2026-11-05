@@ -371,15 +371,14 @@ func (h *RegistrationSessionHandler) GetRegistrationSessionStatus(c *gin.Context
 // the session is finalized without re-creating the account (#2308).
 func (h *RegistrationSessionHandler) RebindRegistrationSession(c *gin.Context) {
 	var req struct {
-		ExchangeToken string `json:"exchange_token"`
-		WxCode        string `json:"wx_code"`
+		WxCode string `json:"wx_code"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
 		return
 	}
-	if req.ExchangeToken == "" && req.WxCode == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "exchange_token or wx_code is required"})
+	if req.WxCode == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "wx_code is required"})
 		return
 	}
 
@@ -398,22 +397,32 @@ func (h *RegistrationSessionHandler) RebindRegistrationSession(c *gin.Context) {
 		return
 	}
 
+	if session.OpenID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "session openid missing; please restart registration"})
+		return
+	}
+	// #2308 v3: 服务端解析 wx_code 的 openid，只有与 session.OpenID 一致才允许绑定，
+	// 不接受客户端提交的 openid/exchange_token 作为所有权证明。
+	wxRes, wxErr := h.iamService.WxAccounts(req.WxCode)
+	if wxErr != nil || wxRes == nil || wxRes.OpenID == "" {
+		msg := "微信授权失败"
+		if wxErr != nil {
+			msg += ": " + wxErr.Error()
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": msg})
+		return
+	}
+	if wxRes.OpenID != session.OpenID {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40301, "message": "微信身份与注册账户不一致"})
+		return
+	}
+
 	now := time.Now()
 	updates := map[string]interface{}{
-		"status":     "pending",
-		"error":      "",
-		"updated_at": now,
-	}
-	if req.ExchangeToken != "" {
-		updates["exchange_token"] = req.ExchangeToken
-	} else {
-		// wx_code fallback: bind now; activateReservedUser will skip WxBind
-		// because exchange_token is cleared.
-		if _, err := h.iamService.WxBind("", req.WxCode, *session.IAMUserID); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "微信授权失败: " + err.Error()})
-			return
-		}
-		updates["exchange_token"] = ""
+		"status":         "pending",
+		"error":          "",
+		"exchange_token": wxRes.ExchangeToken,
+		"updated_at":     now,
 	}
 	if err := db.Model(&session).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update session: " + err.Error()})

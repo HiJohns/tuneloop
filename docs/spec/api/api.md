@@ -4132,12 +4132,14 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 **接口**: `POST /api/auth/registration-sessions/:id/rebind`
 
-**说明**: 支付成功但 WxBind 失败后的恢复端点（匿名，会话级）。使用新的 `exchange_token`（或 `wx_code`）重新绑定微信并完成注册；不重复建号/扣款。已 `completed` 的会话幂等返回 200。
+**说明**: 支付成功但 WxBind 失败后的恢复端点（匿名，会话级）。只接受 `wx_code`；后端调用 `wx-accounts` 解析 openid，与 `registration_sessions.openid` 比对通过后才绑定并完成注册；不重复建号/扣款。已 `completed` 的会话幂等返回 200。
 
 **请求 Body**:
 ```json
-{ "exchange_token": "fresh-token" }
+{ "wx_code": "wx.login 返回的 code" }
 ```
+
+**失败**: `400` wx_code 缺失/过期、session openid 缺失；`403` 解析出的 openid 与 session.openid 不一致（不绑定）。
 
 **响应**:
 ```json

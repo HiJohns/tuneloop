@@ -27,14 +27,15 @@ import (
 // 3) POST /auth/registration-sessions/:id/rebind 可用新 token 完成注册
 
 type rebindMock2308 struct {
-	srv     *httptest.Server
-	bindOK  int32
-	bindHit int32
+	srv            *httptest.Server
+	bindOK         int32
+	bindHit        int32
+	accountsOpenID string
 }
 
 func newRebindMock2308(t *testing.T) *rebindMock2308 {
 	t.Helper()
-	m := &rebindMock2308{}
+	m := &rebindMock2308{accountsOpenID: "openid2308"}
 	writeJSON := func(w http.ResponseWriter, v interface{}) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(v)
@@ -42,6 +43,9 @@ func newRebindMock2308(t *testing.T) *rebindMock2308 {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/auth/token", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, map[string]interface{}{"access_token": "t2308", "expires_in": 7200, "token_type": "Bearer"})
+	})
+	mux.HandleFunc("/api/v1/auth/wx-accounts", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, map[string]interface{}{"openid": m.accountsOpenID, "exchange_token": "fresh-token"})
 	})
 	mux.HandleFunc("/api/v1/auth/wx-bind", func(w http.ResponseWriter, r *http.Request) {
 		atomic.AddInt32(&m.bindHit, 1)
@@ -91,7 +95,7 @@ func setupPaidRegistration2308(t *testing.T, m *rebindMock2308) (*models.User, *
 	session := &models.RegistrationSession{
 		ID: uuid.New().String(), IAMUserID: &iamUserID, LocalUserID: &localUser.ID,
 		FormData: string(form), Amount: models.FromYuan(99), Status: "pending",
-		ExchangeToken: "expired-token",
+		OpenID: "openid2308", ExchangeToken: "expired-token",
 	}
 	require.NoError(t, db.Create(session).Error)
 
@@ -151,7 +155,7 @@ func TestRebindRegistration2308_CompletesAfterFreshToken(t *testing.T) {
 	r := gin.New()
 	r.POST("/api/auth/registration-sessions/:id/rebind", h.RebindRegistrationSession)
 
-	body, _ := json.Marshal(map[string]string{"exchange_token": "fresh-token"})
+	body, _ := json.Marshal(map[string]string{"wx_code": "code2308"})
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/registration-sessions/"+session.ID+"/rebind", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -161,4 +165,65 @@ func TestRebindRegistration2308_CompletesAfterFreshToken(t *testing.T) {
 	var gotSession models.RegistrationSession
 	require.NoError(t, database.GetDB().First(&gotSession, "id = ?", session.ID).Error)
 	assert.Equal(t, "completed", gotSession.Status)
+}
+
+func TestRebindRegistration2308_RejectsMismatchedOpenID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	m := newRebindMock2308(t)
+	m.accountsOpenID = "attacker-openid"
+	defer m.close()
+	_, session, record := setupPaidRegistration2308(t, m)
+	require.NoError(t, database.GetDB().Model(&models.OrderPaymentRecord{}).Where("id = ?", record.ID).
+		Updates(map[string]interface{}{"status": "paid", "side_effect_status": "needs_rebind"}).Error)
+	require.NoError(t, database.GetDB().Model(&models.RegistrationSession{}).Where("id = ?", session.ID).
+		Updates(map[string]interface{}{"status": "needs_rebind"}).Error)
+
+	atomic.StoreInt32(&m.bindOK, 1)
+	h := NewRegistrationSessionHandler(database.GetDB())
+	r := gin.New()
+	r.POST("/api/auth/registration-sessions/:id/rebind", h.RebindRegistrationSession)
+	body, _ := json.Marshal(map[string]string{"wx_code": "attacker-code"})
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/registration-sessions/"+session.ID+"/rebind", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+	require.Equal(t, http.StatusForbidden, w.Code, w.Body.String())
+	assert.EqualValues(t, 0, atomic.LoadInt32(&m.bindHit), "mismatched openid must not bind")
+}
+
+func TestRebindRegistration2308_RejectsExchangeTokenOnly(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	m := newRebindMock2308(t)
+	defer m.close()
+	_, session, record := setupPaidRegistration2308(t, m)
+	_ = record
+	h := NewRegistrationSessionHandler(database.GetDB())
+	r := gin.New()
+	r.POST("/api/auth/registration-sessions/:id/rebind", h.RebindRegistrationSession)
+	body, _ := json.Marshal(map[string]string{"exchange_token": "only-token"})
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/registration-sessions/"+session.ID+"/rebind", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+	require.Equal(t, http.StatusBadRequest, w.Code, w.Body.String())
+	assert.EqualValues(t, 0, atomic.LoadInt32(&m.bindHit))
+}
+
+func TestRebindRegistration2308_RejectsEmptySessionOpenID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	m := newRebindMock2308(t)
+	defer m.close()
+	_, session, _ := setupPaidRegistration2308(t, m)
+	require.NoError(t, database.GetDB().Model(&models.RegistrationSession{}).Where("id = ?", session.ID).Update("openid", "").Error)
+
+	h := NewRegistrationSessionHandler(database.GetDB())
+	r := gin.New()
+	r.POST("/api/auth/registration-sessions/:id/rebind", h.RebindRegistrationSession)
+	body, _ := json.Marshal(map[string]string{"wx_code": "code2308"})
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/registration-sessions/"+session.ID+"/rebind", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+	require.Equal(t, http.StatusBadRequest, w.Code, w.Body.String())
+	assert.EqualValues(t, 0, atomic.LoadInt32(&m.bindHit))
 }
