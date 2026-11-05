@@ -314,7 +314,7 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 
 	// #2057 裁定3: 员工指定 student 作为第二证件时，用户必须已提交介绍信，
 	// 否则不允许通过（应走既有 reject/通知链路要求补传）。
-	if req.Action == "approve" && req.SecondDocType == "student" {
+	if req.Action == "approve" && batch.Kind == "second_doc" && req.SecondDocType == "student" {
 		if !(targetUserFound && targetUser.IntroLetterURL != nil && *targetUser.IntroLetterURL != "") {
 			c.JSON(http.StatusConflict, gin.H{
 				"code":    40912,
