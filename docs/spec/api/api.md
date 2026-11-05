@@ -4097,12 +4097,14 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 **说明**: 两阶段注册第一步：校验表单并预留 `status=init` 的 IAM 用户 + 本地用户缓存，返回 `session_id` 与会员费金额。重试时若同手机号/邮箱已有未完成的 init 用户，返回 `409 + code 40901` 与 `resume_session_id`，前端可直接继续原支付会话（不重复建号）。
 
+**#2307 分流**: 40901 的 `data.action` 为 `pay`（未支付，pending）、`rebind`（已支付/needs_rebind）或 `restart`（failed 且无支付）；前端据此选择支付页、重新授权或重新提交。
+
 **失败响应（#2307）**:
 ```json
 {
   "code": 40901,
   "message": "检测到未完成的注册，可继续完成支付",
-  "data": { "resume_session_id": "uuid", "amount": 9900, "session_status": "pending" }
+  "data": { "resume_session_id": "uuid", "amount": 9900, "session_status": "pending", "action": "pay" }
 }
 ```
 

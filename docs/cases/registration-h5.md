@@ -203,3 +203,11 @@ steps:
    - 不调用 WxBind、不更新 session、不完成注册。
 4. 只有 openid 一致时才绑定并完成注册。
 5. 仅提交 `exchange_token`（无 wx_code）→ 400，避免无法校验所有权的绑定。
+
+## 40901 action 分流（#2307 v2）
+
+1. 同手机号重试注册，后端返回 40901 + `data.action`。
+2. `action=pay`（session pending、无 paid 记录）→ 进入支付页，复用 session。
+3. `action=rebind`（session 有 paid 记录或 status=needs_rebind）→ 前端 `wx.login` → rebind(wx_code) → 登录新账户 → 核身页；**不得**再调用 prepay。
+4. `action=restart`（status=failed 且无 paid）→ 清除本地 resume，提示重新提交。
+5. 负向断言：rebind 分支不产生第二笔支付、不重复建号。

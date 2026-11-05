@@ -55,6 +55,7 @@ type resumableRegistration struct {
 	LocalUserID string
 	Amount      models.Cents
 	Status      string
+	Action      string // pay | rebind | restart (#2307)
 }
 
 // findResumableRegistration locates an init user + unfinished session for the
@@ -98,9 +99,17 @@ func (h *RegistrationSessionHandler) findResumableRegistration(phone, email stri
 	if err := db.Where("iam_user_id = ? AND status IN ?", iamID,
 		[]string{"pending", "failed", "needs_rebind"}).Order("created_at desc").First(&session).Error; err != nil {
 		// init user exists but no session → reuse the user, create a new session.
-		return &resumableRegistration{IAMUserID: iamID, LocalUserID: localUserID, Status: "none"}, nil
+		return &resumableRegistration{IAMUserID: iamID, LocalUserID: localUserID, Status: "none", Action: "restart"}, nil
 	}
-	return &resumableRegistration{SessionID: session.ID, IAMUserID: iamID, LocalUserID: localUserID, Amount: session.Amount, Status: session.Status}, nil
+	var paid int64
+	db.Model(&models.OrderPaymentRecord{}).Where("session_id = ? AND status = ?", session.ID, "paid").Count(&paid)
+	action := "pay"
+	if paid > 0 || session.Status == "needs_rebind" {
+		action = "rebind"
+	} else if session.Status == "failed" {
+		action = "restart"
+	}
+	return &resumableRegistration{SessionID: session.ID, IAMUserID: iamID, LocalUserID: localUserID, Amount: session.Amount, Status: session.Status, Action: action}, nil
 }
 
 // CreateRegistrationSession handles POST /api/auth/registration-sessions.
@@ -186,6 +195,7 @@ func (h *RegistrationSessionHandler) CreateRegistrationSession(c *gin.Context) {
 							"resume_session_id": resume.SessionID,
 							"amount":            resume.Amount,
 							"session_status":    resume.Status,
+							"action":            resume.Action,
 						},
 					})
 					return

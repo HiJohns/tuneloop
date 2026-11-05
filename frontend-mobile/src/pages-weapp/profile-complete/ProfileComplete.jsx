@@ -124,6 +124,42 @@ export default function ProfileComplete() {
       .catch(() => {})
   }
 
+  // #2307: 已支付/needs_rebind → 直接重新授权并登录新账户，不再进支付页。
+  const doResumeRebind = async (sessionId) => {
+    const code = await wxLogin()
+    if (!code) throw new Error(t('无法获取微信授权'))
+    const resp = await apiFetch(`${env.apiBaseUrl}/auth/registration-sessions/${sessionId}/rebind`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wx_code: code }),
+      auth: false,
+    })
+    const r = await resp.json()
+    if (r.code !== 20000) throw new Error(resolveErrorMessage(r, t('重新授权失败')))
+    const userID = r.data?.user_id || ''
+    const code2 = await wxLogin()
+    if (code2) {
+      const accResp = await apiFetch(`${env.apiBaseUrl}/auth/wx-accounts?code=${encodeURIComponent(code2)}`, { auth: false })
+      const acc = await accResp.json()
+      const exchangeToken = acc.data?.exchange_token || ''
+      if (exchangeToken && userID) {
+        const loginResp = await apiFetch(`${env.apiBaseUrl}/auth/wx-login-select`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ exchange_token: exchangeToken, user_id: userID }),
+        })
+        const lr = await loginResp.json()
+        if (lr.code === 20000 && lr.data?.access_token) {
+          storage.setItem('token', lr.data.access_token)
+          if (lr.data.expires_in) storage.setItem('token_expiry', (Date.now() + lr.data.expires_in * 1000).toString())
+          if (lr.data.refresh_token) storage.setItem('refresh_token', lr.data.refresh_token)
+        }
+      }
+    }
+    session.removeItem('pending_registration_session')
+    Taro.redirectTo({ url: '/pages-weapp/face-verify/index', fail: () => Taro.switchTab({ url: '/pages-weapp/home/index', fail: () => {} }) })
+  }
+
   const handleRegister = async () => {
     if (!name.trim()) { dialog.toast(t("请输入姓名")); return }
     if (!phone.trim()) { dialog.toast(t("请输入手机号")); return }
@@ -181,7 +217,26 @@ export default function ProfileComplete() {
           // 走 user/id-photo 端点（两阶段注册用户未创建 → 401 上传失败）。
           setResumeSid(sid)
         } else if (result.code === 40901 && result.data?.resume_session_id) {
-          // #2307: 同手机号已有未完成的 init 用户/session → 继续原流程，不重复建号。
+          // #2307: 按 action 分流——pending 走支付；已支付/needs_rebind 走 rebind；failed 无支付重新提交。
+          const action = result.data.action || 'pay'
+          if (action === 'rebind') {
+            try {
+              dialog.toast(t('检测到已支付，正在重新授权...'), { duration: 1500 })
+              await doResumeRebind(result.data.resume_session_id)
+            } catch (e) {
+              dialog.toast(e.message || t('重新授权失败，请稍后重试'), { duration: 3000 })
+            }
+            setSaving(false)
+            return
+          }
+          if (action === 'restart') {
+            setResumeSid('')
+            setSessionAmount(0)
+            session.removeItem('pending_registration_session')
+            dialog.toast(t('请重新提交注册'), { duration: 2000 })
+            setSaving(false)
+            return
+          }
           sid = result.data.resume_session_id
           amount = result.data.amount || amount
           setResumeSid(sid)
