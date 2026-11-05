@@ -24,11 +24,12 @@ type TierPrice struct {
 }
 
 type InstrumentPricing struct {
-	BaseDailyRate float64     `json:"base_daily_rate"`
-	Tiers         []TierPrice `json:"tiers"`
-	Deposit       float64     `json:"deposit"`
-	DepositMode   string      `json:"deposit_mode"`
-	ShippingFee   float64     `json:"shipping_fee,omitempty"`
+	BaseDailyRate   float64     `json:"base_daily_rate"`
+	Tiers           []TierPrice `json:"tiers"`
+	Deposit         float64     `json:"deposit"`
+	DepositMode     string      `json:"deposit_mode"`
+	ShippingFee     float64     `json:"shipping_fee,omitempty"`
+	OverdueDailyFee float64     `json:"overdue_daily_fee,omitempty"`
 }
 
 // TierDetail represents one tier's contribution to the final rent calculation.
@@ -244,6 +245,9 @@ func CalculatePricing(baseDailyRate float64, totalPrice float64, configJSON stri
 	if ov, ok := overrides["shipping_fee"].(float64); ok && ov > 0 {
 		result.ShippingFee = ov
 	}
+	if ov, ok := overrides["overdue_daily_fee"].(float64); ok && ov > 0 {
+		result.OverdueDailyFee = ov
+	}
 
 	// Fallback: read pricing fields from instrument's Pricing JSONB
 	// (#1743 统一解析器：元语义)
@@ -254,6 +258,9 @@ func CalculatePricing(baseDailyRate float64, totalPrice float64, configJSON stri
 		}
 		if result.Deposit == 0 && pf.Deposit > 0 {
 			result.Deposit = pf.Deposit
+		}
+		if result.OverdueDailyFee == 0 && pf.OverdueDailyFee > 0 {
+			result.OverdueDailyFee = pf.OverdueDailyFee
 		}
 	}
 
@@ -312,5 +319,6 @@ func FormatPricingResult(p *InstrumentPricing) map[string]interface{} {
 	if p.ShippingFee > 0 {
 		result["shipping_fee"] = toCents(p.ShippingFee)
 	}
+	result["overdue_daily_fee"] = toCents(p.OverdueDailyFee)
 	return result
 }

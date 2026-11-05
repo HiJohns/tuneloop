@@ -1306,7 +1306,7 @@ GET /api/confirmation-sessions/:id
 
 **接口**: `GET /api/public/instruments/:id/pricing-v2`
 
-> **#1755 单位**：响应金额字段（`base_daily_rate` / `tiers[].daily_rate` / `deposit` / `shipping_fee`）为**分**（P3 契约，前端 /100 显示）。
+> **#1755 单位**：响应金额字段（`base_daily_rate` / `tiers[].daily_rate` / `deposit` / `shipping_fee` / `overdue_daily_fee`）为**分**（P3 契约，前端 /100 显示）。
 
 **响应**:
 ```json

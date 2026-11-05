@@ -2744,6 +2744,7 @@ const handleSyncUsersFromIAM = async () => {
 **Tab 1 — 基本信息**:
 - 左侧: 乐器信息 (SN/分类/级别/状态/评分/创建时间/描述)
 - 右侧: 价格配置（分段租金表 + 底价/押金/物流费/逾期费）+ 当前租赁信息
+  - **#2315**：逾期费展示/编辑读取 `pricing-v2.overdue_daily_fee`（分→元）；旧 `instrument.pricing.overdue_daily_fee` 仅作 fallback。
 
 **Tab 2 — 多媒体**:
 - 左侧: 展示图像（当前展示图 + 上传/替换按钮，单幅，宽度≤1920px）+ 视频（显示/删除）

@@ -2,6 +2,8 @@ package services
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestCalculatePricing_Deposit(t *testing.T) {
@@ -219,4 +221,15 @@ func TestParseInstrumentPricing_ToCents(t *testing.T) {
 	if overdue != 1500 {
 		t.Fatalf("overdue cents = %v, want 1500", overdue)
 	}
+}
+
+func TestFormatPricingResult_OverdueOverride(t *testing.T) {
+	p := CalculatePricing(100, 0, `{}`, `{"overdue_daily_fee":15}`)
+	m := FormatPricingResult(p)
+	require.Equal(t, float64(1500), m["overdue_daily_fee"])
+}
+
+func TestCalculatePricing_OverdueFallbackFromInstrumentPricing(t *testing.T) {
+	m := FormatPricingResult(CalculatePricing(100, 0, `{}`, `{}`, `{"overdue_daily_fee":12}`))
+	require.Equal(t, float64(1200), m["overdue_daily_fee"])
 }

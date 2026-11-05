@@ -268,7 +268,8 @@ export default function InstrumentDetail() {
   }
 
   const pricing = parsePricing(instrument.pricing)
-  const overdueDailyFee = pricing?.overdue_daily_fee || 0
+  // #2315: pricing-v2 返回分；优先用它，旧 instrument.pricing 仅作 fallback。
+  const overdueDailyFee = pricingV2?.overdue_daily_fee != null ? toYuan(pricingV2.overdue_daily_fee) : (pricing?.overdue_daily_fee || 0)
 
   const activeStatuses = ['rented']
 
