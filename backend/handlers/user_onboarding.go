@@ -374,9 +374,22 @@ func (h *UserOnboardingHandler) DeleteIdPhoto(c *gin.Context) {
 			log.Printf("[MediaRegistry] mark id photo %s unreferenced failed: %v", oldKey, err)
 		}
 	}
-	if err := db.Model(&models.User{}).Where("id = ?", userID).Update(col, "").Error; err != nil {
+	updates := map[string]interface{}{col: ""}
+	if side == "other" {
+		updates["id_photo_other_type"] = nil
+		updates["id_photo_other_verified"] = false
+		updates["intro_letter_url"] = nil
+	}
+	if err := db.Model(&models.User{}).Where("id = ?", userID).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to delete photo"})
 		return
+	}
+	if side == "other" {
+		if err := db.Model(&models.FaceCaptureBatch{}).
+			Where("user_id = ? AND kind = ? AND status = ?", userID, "second_doc", "pending").
+			Updates(map[string]interface{}{"status": "rejected", "reject_reason": "second document deleted"}).Error; err != nil {
+			log.Printf("[DeleteIdPhoto] reject pending second_doc batches failed: %v", err)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -548,14 +561,16 @@ func (h *UserOnboardingHandler) AdminDeleteIdPhoto(c *gin.Context) {
 	}
 
 	side := c.Query("side")
-	if side != "front" && side != "back" {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "invalid side, must be front or back"})
+	if side != "front" && side != "back" && side != "other" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "invalid side, must be front, back, or other"})
 		return
 	}
 
 	col := "id_photo_front"
 	if side == "back" {
 		col = "id_photo_back"
+	} else if side == "other" {
+		col = "id_photo_other"
 	}
 	// Read the old storage key, delete the physical file, then clear the field.
 	var oldUser models.User
@@ -564,13 +579,18 @@ func (h *UserOnboardingHandler) AdminDeleteIdPhoto(c *gin.Context) {
 		return
 	}
 	var oldKey string
-	if col == "id_photo_front" {
+	switch col {
+	case "id_photo_front":
 		if oldUser.IdPhotoFront != nil {
 			oldKey = *oldUser.IdPhotoFront
 		}
-	} else {
+	case "id_photo_back":
 		if oldUser.IdPhotoBack != nil {
 			oldKey = *oldUser.IdPhotoBack
+		}
+	case "id_photo_other":
+		if oldUser.IdPhotoOther != nil {
+			oldKey = *oldUser.IdPhotoOther
 		}
 	}
 	if oldKey != "" {
@@ -582,9 +602,22 @@ func (h *UserOnboardingHandler) AdminDeleteIdPhoto(c *gin.Context) {
 			log.Printf("[MediaRegistry] mark id photo %s unreferenced failed: %v", oldKey, err)
 		}
 	}
-	if err := db.Model(&models.User{}).Where("id = ?", targetID).Update(col, "").Error; err != nil {
+	updates := map[string]interface{}{col: ""}
+	if side == "other" {
+		updates["id_photo_other_type"] = nil
+		updates["id_photo_other_verified"] = false
+		updates["intro_letter_url"] = nil
+	}
+	if err := db.Model(&models.User{}).Where("id = ?", targetID).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to delete photo"})
 		return
+	}
+	if side == "other" {
+		if err := db.Model(&models.FaceCaptureBatch{}).
+			Where("user_id = ? AND kind = ? AND status = ?", targetID, "second_doc", "pending").
+			Updates(map[string]interface{}{"status": "rejected", "reject_reason": "second document deleted"}).Error; err != nil {
+			log.Printf("[AdminDeleteIdPhoto] reject pending second_doc batches failed: %v", err)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{

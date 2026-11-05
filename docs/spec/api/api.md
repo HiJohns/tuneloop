@@ -336,6 +336,8 @@ Body：`{ role: "<主角色>", roles: ["<角色>", ...] }`（`roles` 可选；�
 
 **审核端（#2057 裁定3）**: `POST /api/admin/face-review/:batchId` 指定 `second_doc_type=student` 而用户 `intro_letter_url` 为空 → 返回 `40912` + `data.reasons=["no_intro_letter"]`（提示员工驳回并要求补传）；其余类型不受限。审核队列条目新增 `intro_letter_url`（可访问 URL）。
 
+> **#2311 审核分离**：`kind=registration` 的 approve 只写实名/`face_verified`，不再要求或写入 `second_doc_type`/`id_photo_other_verified`；第二证件由独立的 `kind=second_doc` 批次复审（approve 只写 `id_photo_other_type` + `id_photo_other_verified=true`）。注册完成时若有第二证件，服务端幂等创建 `second_doc` pending 批次。删除第二证件（`side=other`）会清空 `id_photo_other_type`/`id_photo_other_verified`/`intro_letter_url`，并把 pending `second_doc` 批次置 `rejected`。
+
 **创建订单**（`POST /api/user/orders`、`/user/orders/batch`）：新增前置校验 →
 - 缺证件照 / `face_verified=false` → `40310 need_identity`，`data.reasons: ["no_id_photo" | "not_verified"]`
 - 免押叠加校验仍为 `40301`（两个错误码并存，40310 先于 40301）

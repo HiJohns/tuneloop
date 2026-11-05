@@ -136,12 +136,35 @@ func syncLocalUserAndRewards(db *gorm.DB, iamUserID, tenantID, orgID, openid str
 	}
 
 	grantRegistrationRewards(db, &newUser, form)
+	if form.IDPhotos != nil && form.IDPhotos["other"] != "" {
+		ensureSecondDocBatch(db, newUser.ID)
+	}
 	return &newUser
 }
 
 // grantRegistrationRewards credits ref_code, registration gift points and
 // the referral bonus on a local user (shared by the legacy create path and
 // the #1688 reserved-user activation path).
+// #2311: 注册完成时若已提交第二证件，幂等创建独立的 second_doc 复审批次。
+func ensureSecondDocBatch(db *gorm.DB, userID string) {
+	var n int64
+	if err := db.Model(&models.FaceCaptureBatch{}).
+		Where("user_id = ? AND kind = ? AND status IN ?", userID, "second_doc", []string{"pending", "approved"}).
+		Count(&n).Error; err != nil {
+		log.Printf("[register helper] second_doc idempotency check failed for %s: %v", userID, err)
+		return
+	}
+	if n > 0 {
+		return
+	}
+	if err := db.Create(&models.FaceCaptureBatch{
+		ID: uuid.New().String(), UserID: userID, Status: "pending", Kind: "second_doc",
+		SubmittedAt: time.Now(), CreatedAt: time.Now(),
+	}).Error; err != nil {
+		log.Printf("[register helper] create second_doc batch failed for %s: %v", userID, err)
+	}
+}
+
 func grantRegistrationRewards(db *gorm.DB, user *models.User, form *registerForm) {
 	refCode := user.ID[:8]
 	db.Model(user).Update("ref_code", refCode)
@@ -327,6 +350,10 @@ func completeRegistrationFromSession(tx *gorm.DB, record *models.OrderPaymentRec
 			if len(photoUpdates) > 0 {
 				tx.Model(&models.User{}).Where("id = ?", localUser.ID).Updates(photoUpdates)
 			}
+		}
+		// #2311: 有第二证件则注册完成即建独立 second_doc 批次（幂等）。
+		if form.IDPhotos != nil && form.IDPhotos["other"] != "" {
+			ensureSecondDocBatch(tx, localUser.ID)
 		}
 		// #1924: 第二证件类型不再由顾客指定 —— 保持「未定」，由平台员工在
 		// 审核时指定（face_review approve 的 second_doc_type）。

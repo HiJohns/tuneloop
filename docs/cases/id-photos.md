@@ -433,3 +433,12 @@ none（未上传证件照）
 ---
 
 *Last updated: 2026-08-27*
+
+## 第二证件独立复审（#2311）
+
+1. 用户注册时提交第二证件（session form_data.id_photos.other 非空）。
+2. 注册完成（支付回调/legacy register）→ 服务端幂等创建 `kind=second_doc`、`status=pending` 批次；重复回调/重试不产生重复批次。
+3. 注册核身批次 approve：只写 `face_verified`/`face_verify_method=manual` 与实名 5 项；不要求 `second_doc_type`，不写 `id_photo_other_verified`。
+4. 独立 second_doc 批次 approve：`second_doc_type` 必填（student/teacher/work/other），只写 `id_photo_other_type` + `id_photo_other_verified=true`。
+5. 删除第二证件（`side=other`）：清空 `id_photo_other`、`id_photo_other_type`、`id_photo_other_verified`、`intro_letter_url`；pending second_doc 批次置 `rejected`。
+6. 断言：实名通过后第二证件仍可为未认证；第二证件通过/驳回不影响 `face_verified`。

@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"net/textproto"
 	"testing"
+	"time"
 
 	"tuneloop-backend/database"
 	"tuneloop-backend/handlers/testfixtures"
@@ -267,4 +268,58 @@ func TestIdPhotoAdminUploadDelete(t *testing.T) {
 	require.NoError(t, db.Where("id = ?", userID).First(&user).Error)
 	require.NotNil(t, user.IdPhotoBack)
 	assert.Equal(t, "", *user.IdPhotoBack)
+}
+
+func TestEnsureSecondDocBatch2305_Idempotent(t *testing.T) {
+	db, _, userID := setupIdPhotoTestDB(t)
+	ensureSecondDocBatch(db, userID)
+	ensureSecondDocBatch(db, userID)
+	var n int64
+	require.NoError(t, db.Model(&models.FaceCaptureBatch{}).
+		Where("user_id = ? AND kind = ? AND status = ?", userID, "second_doc", "pending").Count(&n).Error)
+	assert.EqualValues(t, 1, n, "repeated registration must not duplicate second_doc batch")
+}
+
+func TestSyncLocalUserAndRewards2305_CreatesSecondDocBatch(t *testing.T) {
+	db, tenantID, _ := setupIdPhotoTestDB(t)
+	form := &registerForm{
+		Name: "第二证件用户", Phone: "13900002315",
+		IDPhotos: map[string]string{"other": "id_photos/other.jpg"},
+	}
+	u := syncLocalUserAndRewards(db, uuid.New().String(), tenantID, tenantID, "openid2311", form)
+	require.NotNil(t, u)
+	var n int64
+	require.NoError(t, db.Model(&models.FaceCaptureBatch{}).
+		Where("user_id = ? AND kind = ? AND status = ?", u.ID, "second_doc", "pending").Count(&n).Error)
+	assert.EqualValues(t, 1, n)
+}
+
+func TestDeleteIdPhotoOther2305_ClearsAndRejectsBatch(t *testing.T) {
+	db, tenantID, userID := setupIdPhotoTestDB(t)
+	other := "id_photos/other.jpg"
+	typ := "student"
+	intro := "intro/letter.jpg"
+	require.NoError(t, db.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
+		"id_photo_other": other, "id_photo_other_type": typ,
+		"id_photo_other_verified": true, "intro_letter_url": intro,
+	}).Error)
+	batch := models.FaceCaptureBatch{ID: uuid.New().String(), UserID: userID, Status: "pending", Kind: "second_doc", SubmittedAt: time.Now(), CreatedAt: time.Now()}
+	require.NoError(t, db.Create(&batch).Error)
+
+	router := idPhotoRouter(testutil.TestActor{TenantID: tenantID, OrgID: tenantID, UserID: userID, Role: "USER"})
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodDelete, "/api/user/id-photo?side=other", nil)
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var user models.User
+	require.NoError(t, db.First(&user, "id = ?", userID).Error)
+	assert.True(t, user.IdPhotoOther == nil || *user.IdPhotoOther == "")
+	assert.Nil(t, user.IdPhotoOtherType)
+	assert.False(t, user.IdPhotoOtherVerified)
+	assert.Nil(t, user.IntroLetterURL)
+
+	var got models.FaceCaptureBatch
+	require.NoError(t, db.First(&got, "id = ?", batch.ID).Error)
+	assert.Equal(t, "rejected", got.Status)
 }

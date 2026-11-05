@@ -309,11 +309,6 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "real_name, id_card_no, id_card_expire, id_card_authority and id_card_address are required for approve (user has no existing ID info)"})
 				return
 			}
-			// #1924: 顾客提交了第二证件 → 审核时必须指定类型。
-			if secondDocPresent && !validSecondDocType(req.SecondDocType) {
-				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "second_doc_type 必填且需为 student/teacher/work/other"})
-				return
-			}
 		}
 	}
 
@@ -365,10 +360,6 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 				userUpdates["id_card_expire"] = req.IdCardExpire
 				userUpdates["id_card_authority"] = req.IdCardAuthority
 				userUpdates["id_card_address"] = req.IdCardAddress
-			}
-			if secondDocPresent {
-				userUpdates["id_photo_other_type"] = req.SecondDocType
-				userUpdates["id_photo_other_verified"] = true
 			}
 		}
 		if err := tx.Model(&models.User{}).Where("id = ?", batch.UserID).
