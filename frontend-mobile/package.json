@@ -12,7 +12,8 @@
     "build:h5": "taro build --type h5",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "smoke": "vitest run --config vitest.config.js"
+    "smoke": "vitest run --config vitest.config.js",
+    "smoke:defect": "node scripts/page-smoke/run-defect.mjs"
   },
   "dependencies": {
     "@tarojs/components": "4.2.0",

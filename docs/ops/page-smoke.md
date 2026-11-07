@@ -57,8 +57,22 @@ npm run smoke
 
 ## 5. 红绿自证
 
-`smoke.test.jsx` 含 `captures the #2298 t-shadow defect (red-green)`：`red-green.fixture.jsx` 的 `.map((t, i) => ... t('/天'))` 会触发 `t is not a function`，测试断言 harness 捕获该错误。
-修复前用带缺陷的 Checkout 副本跑 smoke 会 FAIL；修复后 PASS（#2318 已用 H5/weapp 双端红绿验证）。
+### 5.1 页面级 red-green（真实 Checkout 副本）
+
+```bash
+cd frontend-mobile
+npm run smoke:defect   # 必须 FAIL（注入 t 遮蔽后的真实 Checkout）
+npm run smoke          # 必须 PASS（修复后的全部关键页）
+```
+
+- `scripts/page-smoke/run-defect.mjs` 读取当前 `src/pages/Checkout.jsx`，仅对阶梯定价块做机械注入：
+  `map((tier, i)` → `map((t, i)`、块内 `tier.` → `t.`，生成临时 `src/pages/CheckoutAuditDefect.jsx`（测试后自动删除，不提交）。
+- `scripts/page-smoke/checkout-defect.spec.jsx` 用真实 3 档 `tiers` fixture 渲染该副本；预期 `expect(errors).toEqual([])` **失败**，输出 `H5 /checkout injected t-shadow` + `TypeError: t is not a function`。
+- 该 spec 不匹配 `npm run smoke` 的 `*.test.jsx` include，只在 `npm run smoke:defect` 显式运行；这是可重放的页面级红绿证据。
+
+### 5.2 合成单元保护（额外）
+
+`smoke.test.jsx` 另含 `captures the #2298 t-shadow defect (red-green)`：`red-green.fixture.jsx` 的最小 `.map((t, i) => t('/天'))` 触发错误，断言 harness 捕获。它只作额外保护，不能替代 5.1 的真实 Checkout 行。
 
 ## 6. 门禁接入
 
