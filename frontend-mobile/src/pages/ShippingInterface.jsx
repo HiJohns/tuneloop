@@ -37,9 +37,9 @@ export default function ShippingInterface() {
     return null
   }
 
-  const fetchOrder = async (orderId) => {
+  const fetchOrder = async (targetOrderId) => {
     try {
-      const resp = await apiFetch(`${baseUrl}/orders/${orderId}`)
+      const resp = await apiFetch(`${baseUrl}/orders/${targetOrderId}`)
       const result = await resp.json()
       if (result.code === 20000) {
         setOrder(result.data)

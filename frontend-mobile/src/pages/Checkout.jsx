@@ -313,8 +313,8 @@ function SingleCheckout({ id, navigate, resumePending }) {
     setSavingGuarantor(false)
   }
 
-  const toggleGuarantor = (id) => {
-    setSelectedGuarantorIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  const toggleGuarantor = (guarantorId) => {
+    setSelectedGuarantorIds(prev => prev.includes(guarantorId) ? prev.filter(x => x !== guarantorId) : [...prev, guarantorId])
   }
 
   // #1867: pick + upload the signed recommendation letter photo
@@ -512,13 +512,13 @@ function SingleCheckout({ id, navigate, resumePending }) {
                   <Text className="text-xs text-zinc-500 font-medium">{t("阶梯定价")}</Text>
                 </View>
                 <View>
-                  {pricingV2.tiers.map((t, i) => {
+                  {pricingV2.tiers.map((tier, i) => {
                     const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
-                    const range = t.days_max > 0 ? `${prevMax + 1}-${t.days_max}天` : `${prevMax + 1}天以上`
+                    const range = tier.days_max > 0 ? `${prevMax + 1}-${tier.days_max}天` : `${prevMax + 1}天以上`
                     return (
                       <View key={i} className="flex justify-between text-xs mb-1">
                         <Text className="text-zinc-400">{range}</Text>
-                        <Text className="text-zinc-600 font-medium">¥{formatCents(Number(t.daily_rate))}{t("/天")}</Text>
+                        <Text className="text-zinc-600 font-medium">¥{formatCents(Number(tier.daily_rate))}{t("/天")}</Text>
                       </View>
                     )
                   })}
@@ -998,8 +998,8 @@ function BatchCheckout({ navigate }) {
     setSavingGuarantor(false)
   }
 
-  const toggleGuarantor = (id) => {
-    setSelectedGuarantorIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  const toggleGuarantor = (guarantorId) => {
+    setSelectedGuarantorIds(prev => prev.includes(guarantorId) ? prev.filter(x => x !== guarantorId) : [...prev, guarantorId])
   }
 
   // #1867: pick + upload the signed recommendation letter photo

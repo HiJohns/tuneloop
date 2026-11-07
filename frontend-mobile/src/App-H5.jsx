@@ -207,8 +207,8 @@ function OAuthCallback() {
         } else {
           throw new Error('No access token in response')
         }
-      } catch (error) {
-        console.error('Token exchange failed:', error)
+      } catch (err) {
+        console.error('Token exchange failed:', err)
         navigation.redirect('/')
       }
     }

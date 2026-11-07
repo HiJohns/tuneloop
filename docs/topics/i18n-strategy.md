@@ -67,6 +67,7 @@ Babel 遍历 `frontend-mobile/src`：产出**清单**（文件×行×串）+ 直
 - **#2298 起 `--write` 为 merge**：读取现有 `zh-CN.json`，保留既有 key/value，仅追加本次扫描到的新 key（稳定排序）；可按文件/小目录重复运行，不再整体覆盖字典。
 - **`--report` ≠ 字典**：report 输出“当前仍硬编码”的清单（`docs/ops/i18n-inventory.csv`）；`zh-CN.json` 是已提取 key 的字典（源串即 key）。
 - 回归：`node --test scripts/i18n-extract.merge.test.mjs`（既有 key 不丢失）。
+- **`t` 遮蔽保护（#2318）**：改写前用 Babel scope 检查 `t` 是否被局部变量遮蔽（典型：`tiers.map((t, i) => ...)`）；遮蔽时**跳过并告警**，不生成 `t(...)`，避免把 i18n 调用改成对 map 元素的调用（线上 checkout 崩溃根因）。配套 `frontend-mobile/eslint.config.mjs` 的 `no-shadow: error`（忽略 `src/mp_ecard_sdk/**`）在改动期拦截同类命名。
 
 ### 闸 2 — 集中拦截（一处覆盖一片）
 1. `platform/dialog` 的 `alert/toast/confirm` 内部先 `t()` → **374 处零改动即翻译**；

@@ -87,8 +87,8 @@ export default function Payment() {
     if (!pType) {
       // #1785: weapp may not have router params on first render; show error
       // after a short delay instead of staying stuck on loading forever.
-      const t = setTimeout(() => setParamsReady(true), 800)
-      return () => clearTimeout(t)
+      const timer = setTimeout(() => setParamsReady(true), 800)
+      return () => clearTimeout(timer)
     }
     const fetchData = async () => {
       if (pType === 'membership') {
@@ -463,9 +463,9 @@ export default function Payment() {
     })
   }
 
-  const handlePay = async (cashAmount) => {
+  const handlePay = async (payAmount) => {
     if (isPaying) return // 防抖：支付流程进行中忽略重复点击（QA #1819）
-    if (cashAmount <= 0) {
+    if (payAmount <= 0) {
       if (appliedCoupon || (pType === 'membership' && pSessionId)) {
         // 服务端 waive（或会员 session 免单）：run prepay so
         // the server books the paid record and applies side effects

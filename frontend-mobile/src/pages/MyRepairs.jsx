@@ -68,11 +68,11 @@ export default function MyRepairs() {
         apiFetch(`${baseUrl}/site-members/me`),
       ])
       const role = await roleRes.json()
-      const roles = role.code === 20000 ? (role.data?.roles || []) : []
-      setRoles(roles)
+      const fetchedRoles = role.code === 20000 ? (role.data?.roles || []) : []
+      setRoles(fetchedRoles)
 
-      const hasSiteRole = roles.some(r => ['site_admin', 'site_member'].includes(r))
-      const isPureTech = roles.includes('repair_technician') && !hasSiteRole
+      const hasSiteRole = fetchedRoles.some(r => ['site_admin', 'site_member'].includes(r))
+      const isPureTech = fetchedRoles.includes('repair_technician') && !hasSiteRole
 
       const fetches = []
 

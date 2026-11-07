@@ -108,7 +108,7 @@ export default function RepairServiceDetail() {
   const [reviewPhotos, setReviewPhotos] = useState([])
   const baseUrl = env.apiBaseUrl
   // #2119: 员工/技师视图判定（JWT role 非 USER）
-  const isStaffView = (() => { try { const t = getToken(); return !!t && (parseJWT(t)?.role || '') !== 'USER' && (parseJWT(t)?.role || '') !== '' } catch { return false } })()
+  const isStaffView = (() => { try { const token = getToken(); return !!token && (parseJWT(token)?.role || '') !== 'USER' && (parseJWT(token)?.role || '') !== '' } catch { return false } })()
 
 
   useEffect(() => {
@@ -490,7 +490,7 @@ export default function RepairServiceDetail() {
   const cc = detail.merchant // 商户地址（无 site 的新单寄件地址来源）
   const photos = Array.isArray(rr.photos) ? rr.photos : (() => { try { return JSON.parse(rr.photos || '[]') } catch { return [] } })()
   // #2094：真结算判定——closed 且时间线含 settled（发回结算）；未含则为超时/异常关闭 → 不显示评价
-  const hasSettledTimeline = (detail.timeline || []).some(t => t.record_type === 'settled')
+  const hasSettledTimeline = (detail.timeline || []).some(entry => entry.record_type === 'settled')
   const reviewPhotosParsed = detail.review && detail.review.photos
     ? (Array.isArray(detail.review.photos) ? detail.review.photos : (() => { try { return JSON.parse(detail.review.photos || '[]') } catch { return [] } })())
     : []
@@ -626,16 +626,16 @@ export default function RepairServiceDetail() {
               <Button onClick={loadTechnicians} style={btnSecondaryStyle}>加载可选择的维修师</Button>
             ) : technicians.length === 0 ? (
               <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无可选维修师</Text>
-            ) : technicians.map(t => (
-              <View key={t.technician_id}
-                onClick={() => { if (!busy) selectTechnician(t.technician_id) }}
+            ) : technicians.map(tech => (
+              <View key={tech.technician_id}
+                onClick={() => { if (!busy) selectTechnician(tech.technician_id) }}
                 style={{ border: '1px solid #E4E4E7', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>{t.name || '维修师'}</Text>
+                  <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>{tech.name || '维修师'}</Text>
                   <Text style={{ fontSize: 12, color: '#171717', fontWeight: 'bold' }}>选择</Text>
                 </View>
-                <Text style={{ fontSize: 11, color: '#71717A' }}>{t.site_name || ''}</Text>
-                {t.site_address ? <Text style={{ fontSize: 11, color: '#A1A1AA' }}>{t.site_address}</Text> : null}
+                <Text style={{ fontSize: 11, color: '#71717A' }}>{tech.site_name || ''}</Text>
+                {tech.site_address ? <Text style={{ fontSize: 11, color: '#A1A1AA' }}>{tech.site_address}</Text> : null}
               </View>
             ))}
           </View>
@@ -959,18 +959,18 @@ export default function RepairServiceDetail() {
         {(detail.timeline || []).length > 0 && (
           <View style={cardStyle}>
             <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#18181B' }}>进度记录</Text>
-            {detail.timeline.map((t, i) => (
-              <View key={t.id || i} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {detail.timeline.map((entry, i) => (
+              <View key={entry.id || i} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#3F3F46' }}>
-                    {timelineLabels[t.record_type] || t.record_type}
-                    {t.operator ? ` · ${t.operator}` : ''}
+                    {timelineLabels[entry.record_type] || entry.record_type}
+                    {entry.operator ? ` · ${entry.operator}` : ''}
                   </Text>
                   <Text style={{ fontSize: 11, color: '#A1A1AA' }}>
-                    {t.created_at ? formatBeijingDate(t.created_at) : '-'}
+                    {entry.created_at ? formatBeijingDate(entry.created_at) : '-'}
                   </Text>
                 </View>
-                {t.comment ? <Text style={{ fontSize: 11, color: '#71717A' }}>{t.comment}</Text> : null}
+                {entry.comment ? <Text style={{ fontSize: 11, color: '#71717A' }}>{entry.comment}</Text> : null}
               </View>
             ))}
           </View>

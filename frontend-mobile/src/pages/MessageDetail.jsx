@@ -191,20 +191,20 @@ export default function MessageDetail() {
 
   // #2090：维修服务通知跳转——workbench（师傅）/ detail（顾客报价·加价）；参数用 order_id（#1674）
   const handleRepairServiceAction = (target) => {
-    const id = notification?.ref_id || actionData?.repair_id || ''
-    if (!id) return
+    const refId = notification?.ref_id || actionData?.repair_id || ''
+    if (!refId) return
     if (env.isMiniProgram) {
       if (target === 'workbench') {
         Taro.navigateTo({ url: '/pages-weapp/my-repairs/index?tab=service' })
       } else {
-        Taro.navigateTo({ url: `/pages-weapp/repair-service-detail/index?order_id=${id}` })
+        Taro.navigateTo({ url: `/pages-weapp/repair-service-detail/index?order_id=${refId}` })
       }
       return
     }
     if (target === 'workbench') {
       navigate('/my-repairs?tab=service')
     } else {
-      navigate(`/repair-service-detail?order_id=${id}`)
+      navigate(`/repair-service-detail?order_id=${refId}`)
     }
   }
 
@@ -307,23 +307,23 @@ export default function MessageDetail() {
                 {/* #1859: 结算方向行（定损上下文）。ref.damage 由 #1858 后端挂载
                     （与订单详情 damage 对象同源）；未部署时优雅降级不渲染。 */}
                 {damageReport && (() => {
-                  const damagePreview = ref?.damage || order?.damage || null
-                  if (!damagePreview) return null
-                  const shortfall = Number(damagePreview.shortfall || 0)
-                  const refund = Number(damagePreview.refund || 0)
-                  if (shortfall > 0) {
+                  const damageInfo = ref?.damage || order?.damage || null
+                  if (!damageInfo) return null
+                  const shortfallAmt = Number(damageInfo.shortfallAmt || 0)
+                  const refundAmt = Number(damageInfo.refundAmt || 0)
+                  if (shortfallAmt > 0) {
                     return (
                       <View className="flex justify-between">
                         <Text className="text-gray-500">结算方向</Text>
-                        <Text className="font-medium" style={{ color: '#dc2626' }}>需补缴 ¥{formatCents(shortfall)}</Text>
+                        <Text className="font-medium" style={{ color: '#dc2626' }}>需补缴 ¥{formatCents(shortfallAmt)}</Text>
                       </View>
                     )
                   }
-                  if (refund > 0) {
+                  if (refundAmt > 0) {
                     return (
                       <View className="flex justify-between">
                         <Text className="text-gray-500">结算方向</Text>
-                        <Text className="font-medium" style={{ color: '#16a34a' }}>应退 ¥{formatCents(refund)}</Text>
+                        <Text className="font-medium" style={{ color: '#16a34a' }}>应退 ¥{formatCents(refundAmt)}</Text>
                       </View>
                     )
                   }

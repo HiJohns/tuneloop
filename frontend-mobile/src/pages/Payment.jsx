@@ -300,8 +300,8 @@ export default function Payment() {
     }
   }
 
-  async function doPay(cashAmount) {
-    if (cashAmount <= 0) {
+  async function doPay(payAmount) {
+    if (payAmount <= 0) {
       if (appliedCoupon) {
         // 服务端判定 waive：调 prepay 走后端记账
         try {
@@ -337,10 +337,10 @@ export default function Payment() {
         body: JSON.stringify({
           order_id: pId,
           order_type: pType,
-          // #1758: cashAmount/giftUsed are cents; prepay expects yuan
+          // #1758: payAmount/giftUsed are cents; prepay expects yuan
           // (server FromYuan) — sending cents as yuan overcharged 100×
           // (7d5cadd7: ¥0.04 charged as ¥3.01).
-          amount: (appliedCoupon ? data.amount : cashAmount) / 100,
+          amount: (appliedCoupon ? data.amount : payAmount) / 100,
           gift_used: appliedCoupon ? 0 : giftUsed,
           ...(appliedCoupon ? { coupon_code: appliedCoupon.code } : {}),
         }),
@@ -354,7 +354,7 @@ export default function Payment() {
           setQrPay({
             code_url: pd.code_url,
             out_trade_no: pd.out_trade_no,
-            amount: (appliedCoupon ? data.amount : cashAmount),
+            amount: (appliedCoupon ? data.amount : payAmount),
           })
         } else {
           dialog.alert(t("支付失败: {msg}", { msg: resolveErrorMessage(result) || '无法获取支付参数，请稍后重试' }))

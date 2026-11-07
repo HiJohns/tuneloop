@@ -234,19 +234,19 @@ export default function Detail() {
               {bannerImages.length > 0 && (
                 <View key="clone-last" style={{ height: '100%', width: `${100 / (bannerImages.length + 2)}%` }}>
                   <Image src={bannerImages[bannerImages.length - 1].url || bannerImages[bannerImages.length - 1]} style={{ width: '100%', height: '100%' }}
-                    onClick={() => { try { previewImage({ urls: bannerImages.map(img => img.url || img).filter(Boolean), current: bannerImages[bannerImages.length - 1].url || bannerImages[bannerImages.length - 1] }) } catch {} }} />
+                    onClick={() => { try { previewImage({ urls: bannerImages.map(im => im.url || im).filter(Boolean), current: bannerImages[bannerImages.length - 1].url || bannerImages[bannerImages.length - 1] }) } catch {} }} />
                 </View>
               )}
               {bannerImages.map((img, i) => (
                 <View key={i} style={{ height: '100%', width: `${100 / (bannerImages.length + 2)}%` }}>
                   <Image src={img.url || img} style={{ width: '100%', height: '100%' }}
-                    onClick={() => { try { previewImage({ urls: bannerImages.map(img => img.url || img).filter(Boolean), current: img.url || img }) } catch {} }} />
+                    onClick={() => { try { previewImage({ urls: bannerImages.map(im => im.url || im).filter(Boolean), current: img.url || img }) } catch {} }} />
                 </View>
               ))}
               {bannerImages.length > 0 && (
                 <View key="clone-first" style={{ height: '100%', width: `${100 / (bannerImages.length + 2)}%` }}>
                   <Image src={bannerImages[0].url || bannerImages[0]} style={{ width: '100%', height: '100%' }}
-                    onClick={() => { try { previewImage({ urls: bannerImages.map(img => img.url || img).filter(Boolean), current: bannerImages[0].url || bannerImages[0] }) } catch {} }} />
+                    onClick={() => { try { previewImage({ urls: bannerImages.map(im => im.url || im).filter(Boolean), current: bannerImages[0].url || bannerImages[0] }) } catch {} }} />
                 </View>
               )}
             </View>
@@ -335,13 +335,13 @@ export default function Detail() {
           {isRentable && pricingV2?.tiers?.length > 0 && (
             <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', marginBottom: 12 }}>
               <Text style={{ fontSize: 16, fontWeight: '900', color: '#000', marginBottom: 8 }}>定价策略</Text>
-              {pricingV2.tiers.map((t, i) => {
+              {pricingV2.tiers.map((tier, i) => {
                 const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
-                const range = t.days_max > 0 ? `${prevMax + 1}-${t.days_max}天` : `${prevMax + 1}天以上`
+                const range = tier.days_max > 0 ? `${prevMax + 1}-${tier.days_max}天` : `${prevMax + 1}天以上`
                 return (
                   <View key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                     <Text style={{ color: '#71717a', fontSize: 14 }}>{range}</Text>
-                    <Text style={{ fontWeight: '700', color: '#000', fontSize: 14 }}>¥{formatCents((Math.round(t.daily_rate) || 0))}/天</Text>
+                    <Text style={{ fontWeight: '700', color: '#000', fontSize: 14 }}>¥{formatCents((Math.round(tier.daily_rate) || 0))}/天</Text>
                   </View>
                 )
               })}

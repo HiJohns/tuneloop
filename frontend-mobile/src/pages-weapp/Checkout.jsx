@@ -626,10 +626,10 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
             </View>
             {pricingV2?.tiers?.length > 0 && (
               <View style={{ fontSize: 12, color: '#a1a1aa', paddingLeft: 8, paddingBottom: 4, borderBottom: '1px dashed #d4d4d8' }}>
-                {pricingV2.tiers.map((t, i) => {
+                {pricingV2.tiers.map((tier, i) => {
                   const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
-                  const range = t.days_max > 0 ? `${prevMax + 1}-${t.days_max}天` : `${prevMax + 1}天以上`
-                  return <Text key={i} style={{ marginRight: 12 }}>{range}: ¥{formatCents(Number(t.daily_rate))}{t("/天")}</Text>
+                  const range = tier.days_max > 0 ? `${prevMax + 1}-${tier.days_max}天` : `${prevMax + 1}天以上`
+                  return <Text key={i} style={{ marginRight: 12 }}>{range}: ¥{formatCents(Number(tier.daily_rate))}{t("/天")}</Text>
                 })}
               </View>
             )}

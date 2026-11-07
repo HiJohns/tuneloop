@@ -209,7 +209,7 @@ export default function FaceVerify() {
         uploadFile(`${baseUrl}/user/face-capture`, photoPathRef.current, {
           name: 'image',
           onProgress: onUploadProgress,
-          onStart: (t) => { uploadTaskRef.current = t },
+          onStart: (task) => { uploadTaskRef.current = task },
         }),
         90000
       )
@@ -242,7 +242,7 @@ export default function FaceVerify() {
           name: 'video',
           formData: { batch_id: batchId },
           onProgress: onUploadProgress,
-          onStart: (t) => { uploadTaskRef.current = t },
+          onStart: (task) => { uploadTaskRef.current = task },
         }),
         300000
       )
