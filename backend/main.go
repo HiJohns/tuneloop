@@ -732,6 +732,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				// 匿名防护不变：HandleUpload 内显式校验 GetUserID（Optional 拦截器对无 token
 				// 请求不注入 claims）。
 				userOptionalAuth.POST("/upload", handlers.HandleUpload)
+				// #2320: H5 生产端 JS 错误上报（匿名可调；只写 audit_logs，不产生业务副作用）
+				userOptionalAuth.POST("/client-error", handlers.ClientError)
 				userOptionalAuth.POST("/user/orders", userRentalHandler.CreateOrder)
 				// #2031 A: 本人自助获得顾客身份（禁止管理员代挂；无组织创建）
 				userOptionalAuth.POST("/user/register-as-customer", handlers.RegisterAsCustomer)

@@ -129,6 +129,38 @@
 | 客户端管理 | sys_perm | namespace_* (bits 0-4) |
 | 定价管理 | cus_perm | instrument:price |
 
+### 1.7 客户端错误上报（#2320）
+
+**接口**: `POST /api/client-error`（`userOptionalAuth`，匿名可调）
+
+H5 未捕获 JS 错误（`window.onerror` / `unhandledrejection`）上报，仅写入审计日志，不产生业务副作用。
+
+**请求体**:
+
+```json
+{
+  "message": "TypeError: t is not a function",
+  "stack": "at Checkout (Checkout.jsx:521)",
+  "route": "/checkout?id=xxx",
+  "version": "1.0.78",
+  "user_agent": "Mozilla/5.0 ..."
+}
+```
+
+| 字段 | 上限 | 必填 |
+|------|-----:|:---:|
+| `message` | 1 KB | 是 |
+| `stack` | 8 KB | 否 |
+| `route` | 512 B | 否 |
+| `version` | 64 B | 否 |
+| `user_agent` | 500 B | 否 |
+
+- 成功/限流：`204 No Content`；无效/超长：`400`（`code=40001`）。
+- 进程内按 `ip + sha256(message)` 每分钟最多 1 条，超限静默丢弃。
+- 落库 `audit_logs`：`action=client_error`、`resource_type=frontend`、`status=error`、`status_code=500`；匿名 `tenant_id`/`user_id` 使用零 UUID。
+- `message`/`stack` 落库前脱敏（Bearer token、token/phone/id_card/password 键值、手机号、身份证号）。
+- 详细排查见 [`docs/ops/client-error.md`](../../ops/client-error.md)。
+
 ---
 
 ## 二、认证与授权模块
