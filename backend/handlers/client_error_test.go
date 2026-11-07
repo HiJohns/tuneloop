@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -147,4 +148,26 @@ func TestClientError_RedactsSensitiveValues(t *testing.T) {
 	assert.NotContains(t, stored, "110101199003071234")
 	assert.NotContains(t, stored, "top-secret")
 	assert.Contains(t, stored, "[redacted]")
+}
+
+func TestClientError_LogsForJournalctl(t *testing.T) {
+	testfixtures.SetupTestDB(t)
+	resetClientErrorLimiterForTest()
+
+	var buf bytes.Buffer
+	oldWriter := log.Writer()
+	oldFlags := log.Flags()
+	log.SetOutput(&buf)
+	log.SetFlags(0)
+	defer func() {
+		log.SetOutput(oldWriter)
+		log.SetFlags(oldFlags)
+	}()
+
+	r := newClientErrorRouter(nil)
+	rec := postClientError(t, r, `{"message":"log visible boom","route":"/smoke-log","version":"1.0.78"}`)
+	require.Equal(t, http.StatusNoContent, rec.Code)
+	assert.Contains(t, buf.String(), "[client-error]")
+	assert.Contains(t, buf.String(), "route=/smoke-log")
+	assert.Contains(t, buf.String(), "version=1.0.78")
 }
