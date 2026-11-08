@@ -566,6 +566,15 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
           }
         }
 
+        // #2321: top-level deposit is authoritative (cents); 0 = zero-deposit.
+        // Fall back to pricing JSON only when the column was never set.
+        const topDeposit = instrumentData.deposit != null ? toYuan(instrumentData.deposit) : undefined
+        form.setFieldsValue({
+          deposit_reduced_enabled: instrumentData.deposit_reduced != null,
+          deposit_reduced: instrumentData.deposit_reduced != null ? toYuan(instrumentData.deposit_reduced) : undefined,
+          ...(topDeposit !== undefined ? { deposit: topDeposit } : {}),
+        })
+
         // Populate dynamic properties
         // API returns { "品牌": ["value1"], "型号": ["value2"] }
         // Form fields are named prop_{property_id}
@@ -980,6 +989,9 @@ const loadCategoryChildren = async (node) => {
         description: values.description,
         base_daily_rate: values.base_daily_rate || 0,
         total_price: values.total_price || 0,
+        deposit: values.deposit != null ? values.deposit : undefined,
+        deposit_reduced_enabled: !!values.deposit_reduced_enabled,
+        deposit_reduced: values.deposit_reduced_enabled ? (values.deposit_reduced ?? 0) : null,
         pricing: {
           daily_rent: values.base_daily_rate || 0,
           deposit: Number(values.deposit) > 0 ? values.deposit : (existingDeposit ?? undefined),
@@ -1300,7 +1312,7 @@ const loadCategoryChildren = async (node) => {
             <Form.Item label="总价(¥)" name="total_price">
               <InputNumber min={0} precision={2} prefix="¥" style={{ width: 200 }} placeholder="乐器总价" onChange={(val) => setTotalPrice(val)} />
             </Form.Item>
-             <Form.Item label="押金(¥)" name="deposit">
+             <Form.Item label="押金(¥)" name="deposit" extra="0 = 零押金乐器（无需担保人/推荐信）">
                 <InputNumber min={0} precision={2} prefix="¥" style={{ width: 200 }}
                   placeholder={(() => {
                     const fv = form.getFieldsValue()
@@ -1318,6 +1330,32 @@ const loadCategoryChildren = async (node) => {
                       ? `建议: ¥${(fp * 0.3).toFixed(0)} (总价×0.3)`
                       : `建议: ¥${dr * 7} (日租金×7)`
                   })()} />
+             </Form.Item>
+             <Form.Item label="差额押金（可选）" style={{ marginBottom: 0 }}>
+               <Space align="start">
+                 <Form.Item name="deposit_reduced_enabled" valuePropName="checked" noStyle>
+                   <Switch />
+                 </Form.Item>
+                 <Form.Item noStyle shouldUpdate={(prev, cur) => prev.deposit_reduced_enabled !== cur.deposit_reduced_enabled || prev.deposit !== cur.deposit}>
+                   {({ getFieldValue }) => getFieldValue('deposit_reduced_enabled') ? (
+                     <Form.Item
+                       name="deposit_reduced"
+                       noStyle
+                       rules={[{
+                         validator: (_, v) => {
+                           const full = getFieldValue('deposit')
+                           if (v != null && full != null && Number(v) > Number(full)) {
+                             return Promise.reject(new Error('差额押金不能大于全额押金'))
+                           }
+                           return Promise.resolve()
+                         },
+                       }]}
+                     >
+                       <InputNumber min={0} precision={2} prefix="¥" placeholder="0 = 差额 0，仍需资格/担保人" style={{ width: 260 }} />
+                     </Form.Item>
+                   ) : null}
+                 </Form.Item>
+               </Space>
              </Form.Item>
             <Form.Item label="逾期日费(¥/天)" name="overdue_daily_fee">
               <InputNumber min={0} precision={2} prefix="¥" style={{ width: 200 }} />

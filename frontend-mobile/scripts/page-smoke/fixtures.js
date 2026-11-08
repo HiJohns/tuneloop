@@ -26,12 +26,32 @@ const instrument = {
 const pricingV2 = {
   base_daily_rate: 1000,
   deposit: 10000,
+  deposit_reduced: 3000,
   shipping_fee: 0,
   tiers: [
     { days_max: 7, daily_rate: 1000 },
     { days_max: 30, daily_rate: 800 },
     { days_max: -1, daily_rate: 600 },
   ],
+}
+
+const zeroPricingV2 = {
+  base_daily_rate: 1000,
+  deposit: 0,
+  deposit_reduced: null,
+  shipping_fee: 0,
+  tiers: [
+    { days_max: 7, daily_rate: 1000 },
+    { days_max: 30, daily_rate: 800 },
+    { days_max: -1, daily_rate: 600 },
+  ],
+}
+
+const zeroInstrument = {
+  ...instrument,
+  id: 'inst-zero',
+  sn: 'SN-SMOKE-ZERO',
+  deposit: 0,
 }
 
 const address = {
@@ -126,6 +146,8 @@ export const fixtures = {
   tiers,
   instrument,
   pricingV2,
+  zeroPricingV2,
+  zeroInstrument,
   address,
   addresses: [address],
   guarantors: [{ id: 'g-1', name: '测试担保人', phone: '13900000000', status: 'confirmed' }],

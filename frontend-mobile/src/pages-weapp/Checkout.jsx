@@ -59,8 +59,9 @@ function getItemPricing(item) {
   const rent = item.pricing_v2?.tiers?.length
     ? computeTieredRent(item.pricing_v2, days, item.pricing_v2.base_daily_rate || dailyRent)
     : dailyRent * days
-  const deposit = item.deposit || pricing[0]?.deposit || 0
-  return { dailyRent, deposit, rent, shippingFee: item.shipping_fee || pricing[0]?.shipping_fee || 0 }
+  const deposit = item.pricing_v2?.deposit ?? item.deposit ?? pricing[0]?.deposit ?? 0
+  const depositReduced = item.pricing_v2?.deposit_reduced ?? null
+  return { dailyRent, deposit, depositReduced, rent, shippingFee: item.shipping_fee || pricing[0]?.shipping_fee || 0 }
 }
 
 function SingleCheckout({ id, nav, resumePending = '' }) {
@@ -213,8 +214,11 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
   }, [])
 
   const totalRent = pricingV2 ? computeTieredRent(pricingV2, days, pricingV2.base_daily_rate || 0) : 0
-  const deposit = instrument?.deposit || pricingV2?.deposit || parsePricing(instrument?.pricing)[0]?.deposit || 0
-  const effectiveDeposit = depositWaived ? 0 : deposit
+  const depositReduced = pricingV2?.deposit_reduced ?? null
+  const deposit = pricingV2?.deposit ?? instrument?.deposit ?? parsePricing(instrument?.pricing)[0]?.deposit ?? 0
+  const isZeroDeposit = Number(deposit) === 0
+  const canReduceDeposit = !isZeroDeposit && depositReduced != null
+  const effectiveDeposit = depositWaived && canReduceDeposit ? Number(depositReduced) : deposit
   // Shipping fee is not determined at order time (#1570): the staff fills
   // the actual fee at dispatch, and it is not charged at checkout.
   const totalAmount = totalRent + effectiveDeposit
@@ -255,7 +259,7 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
       return
     }
     if (depositWaived && selectedGuarantorIds.length < 2) {
-      dialog.alert(t("免押金订单需至少选择 2 位担保人"))
+      dialog.alert(t("差额押金订单需至少选择 2 位担保人"))
       return
     }
     // #1867: eligibility + recommendation letter gates
@@ -265,7 +269,7 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
         return
       }
       if (!letterUrl) {
-        dialog.alert(t("免押金订单需上传签名的推荐信照片，模板可在免押金区块下载"))
+        dialog.alert(t("差额押金订单需上传签名的推荐信照片，模板可在差额押金区块下载"))
         return
       }
     }
@@ -308,8 +312,8 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
         rent_days: days,
       }
       if (deliveryAddress) body.delivery_address = deliveryAddress
-      if (depositWaived) {
-        body.deposit_waived = true
+      body.deposit_tier = depositWaived && canReduceDeposit ? 'reduced' : (isZeroDeposit ? 'zero' : 'full')
+      if (body.deposit_tier === 'reduced') {
         body.guarantor_ids = selectedGuarantorIds
         body.recommendation_letter = letterUrl
       }
@@ -483,19 +487,20 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
           </View>
         </View>
 
-        {/* Deposit-free application (#1557) + #1867 eligibility gate */}
+        {/* 差额押金（#2321；D1/D4 资格不变） */}
+        {canReduceDeposit && (
         <View style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12 }}>
           <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} onClick={() => {
             if (waiver && !waiver.eligible) { showWaiverIneligible(waiver.reasons); return }
             setDepositWaived(!depositWaived)
           }}>
-            <Text style={{ fontWeight: '900', color: '#000' }}>{t("申请免押金")}</Text>
+            <Text style={{ fontWeight: '900', color: '#000' }}>{t("差额押金（减免）")}</Text>
             <View style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: depositWaived && (!waiver || waiver.eligible) ? '#915F38' : '#d4d4d8', position: 'relative', flexShrink: 0 }}>
               <View style={{ position: 'absolute', top: 2, left: depositWaived && (!waiver || waiver.eligible) ? 22 : 2, width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', transition: 'left 0.2s' }} />
             </View>
           </View>
           <Text style={{ fontSize: 11, color: '#a1a1aa', marginTop: 6 }}>
-            {waiver && !waiver.eligible ? '学生／教职工专享（需实名核验+信用分达标）' : '免押金订单可免除押金，需提供担保人信息供核验'}
+            {waiver && !waiver.eligible ? '学生／教职工专享（需实名核验+信用分达标）' : '差额押金需提供两位担保人并上传推荐信'}
           </Text>
           {waiver && !waiver.eligible && (
             <View style={{ backgroundColor: '#fafafa', border: '1px solid #e4e4e7', borderRadius: 8, padding: 10, marginTop: 8 }}>
@@ -616,6 +621,7 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
             </View>
           )}
         </View>
+        )}
 
         <View style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12 }}>
           <Text style={{ fontWeight: '900', color: '#000', marginBottom: 12 }}>{t("费用明细")}</Text>
@@ -636,8 +642,9 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
             <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <Text style={{ color: '#a1a1aa' }}>{t("押金")}</Text>
               <Text style={{ fontWeight: '500', flexShrink: 0, marginLeft: 'auto', whiteSpace: 'nowrap' }}>
-                {depositWaived ? <Text>¥0<Text style={{ fontSize: 10, color: '#16a34a', marginLeft: 4 }}>{t("(免押金)")}</Text></Text>
-                  : <>¥{formatCents((deposit || 0))}{deposit === 0 ? <Text style={{ fontSize: 10, color: '#a1a1aa', marginLeft: 4 }}>{t("(日租金×倍率)")}</Text> : null}</>}
+                {isZeroDeposit ? <Text>¥0<Text style={{ fontSize: 10, color: '#16a34a', marginLeft: 4 }}>{t("(零押金)")}</Text></Text>
+                  : depositWaived && canReduceDeposit ? <Text>¥{formatCents(Number(depositReduced))}<Text style={{ fontSize: 10, color: '#16a34a', marginLeft: 4 }}>{t("(差额押金)")}</Text></Text>
+                  : <>¥{formatCents((deposit || 0))}</>}
               </Text>
             </View>
             <View style={{ borderTop: '1px solid #d4d4d8', paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontWeight: '700', fontSize: 16, marginBottom: 4 }}>
@@ -894,30 +901,45 @@ function BatchCheckout({ nav }) {
     return Object.values(map)
   }, [cartItems])
 
+  const canReduceAll = useMemo(() => {
+    if (cartItems.length === 0) return false
+    return groups.every(group => group.items.every(item => {
+      const p = getItemPricing(item)
+      return Number(p.deposit) === 0 || p.depositReduced != null
+    }))
+  }, [groups, cartItems.length])
+  const allZeroDeposit = useMemo(() => {
+    if (cartItems.length === 0) return false
+    return groups.every(group => group.items.every(item => Number(getItemPricing(item).deposit) === 0))
+  }, [groups, cartItems.length])
+  const effectiveGroupDeposit = (group) => {
+    let total = 0
+    for (const item of group.items) {
+      const p = getItemPricing(item)
+      if (Number(p.deposit) === 0) continue
+      total += depositWaived && canReduceAll ? Number(p.depositReduced ?? p.deposit) : Number(p.deposit)
+    }
+    return total
+  }
+  const grandDeposit = useMemo(() => {
+    let total = 0
+    for (const group of groups) for (const item of group.items) total += Number(getItemPricing(item).deposit)
+    return total
+  }, [groups])
+  const effectiveGrandDeposit = useMemo(() => {
+    let total = 0
+    for (const group of groups) total += effectiveGroupDeposit(group)
+    return total
+  }, [groups, depositWaived, canReduceAll])
   const grandTotal = useMemo(() => {
     let total = 0
     for (const group of groups) {
       let groupRent = 0
-      let groupDeposit = 0
-      for (const item of group.items) {
-        const p = getItemPricing(item)
-        groupRent += p.rent
-        groupDeposit += p.deposit
-      }
-      total += groupRent + (depositWaived ? 0 : groupDeposit)
+      for (const item of group.items) groupRent += getItemPricing(item).rent
+      total += groupRent + effectiveGroupDeposit(group)
     }
     return total
-  }, [groups, depositWaived])
-
-  // #2299: 批量结算 D1 物流费提醒——按合计有效押金判定（与单件同构）
-  const grandDeposit = useMemo(() => {
-    let total = 0
-    for (const group of groups) {
-      for (const item of group.items) total += (item.deposit || 0)
-    }
-    return total
-  }, [groups])
-  const effectiveGrandDeposit = depositWaived ? 0 : grandDeposit
+  }, [groups, depositWaived, canReduceAll])
 
   // #1867: pick + upload the signed recommendation letter photo (weapp picker)
   const handleLetterUpload = () => {
@@ -948,7 +970,7 @@ function BatchCheckout({ nav }) {
       return
     }
     if (depositWaived && selectedGuarantorIds.length < 2) {
-      dialog.alert(t("免押金订单需至少选择 2 位担保人"))
+      dialog.alert(t("差额押金订单需至少选择 2 位担保人"))
       return
     }
     // #1867: eligibility + recommendation letter gates
@@ -958,7 +980,7 @@ function BatchCheckout({ nav }) {
         return
       }
       if (!letterUrl) {
-        dialog.alert(t("免押金订单需上传签名的推荐信照片，模板可在免押金区块下载"))
+        dialog.alert(t("差额押金订单需上传签名的推荐信照片，模板可在差额押金区块下载"))
         return
       }
     }
@@ -1002,8 +1024,8 @@ function BatchCheckout({ nav }) {
       }))
       const body = { items }
       if (deliveryAddress) body.delivery_address = deliveryAddress
-      if (depositWaived) {
-        body.deposit_waived = true
+      body.deposit_tier = depositWaived && canReduceAll ? 'reduced' : (allZeroDeposit ? 'zero' : 'full')
+      if (body.deposit_tier === 'reduced') {
         body.guarantor_ids = selectedGuarantorIds
         body.recommendation_letter = letterUrl
       }
@@ -1092,13 +1114,8 @@ function BatchCheckout({ nav }) {
           <View style={{ width: '100%', borderTop: '1px dashed #e4e4e7', paddingTop: 16, marginTop: 16 }}>
             {groups.map((group) => {
               let groupRent = 0
-              let groupDeposit = 0
-              group.items.forEach(item => {
-                const p = getItemPricing(item)
-                groupRent += p.rent
-                groupDeposit += p.deposit
-              })
-              const groupSubtotal = groupRent + (depositWaived ? 0 : groupDeposit)
+              group.items.forEach(item => { groupRent += getItemPricing(item).rent })
+              const groupSubtotal = groupRent + effectiveGroupDeposit(group)
               return (
                 <View key={group.tenant_id || 'unknown'} style={{ backgroundColor: 'rgba(250,250,250,0.4)', borderRadius: 12, padding: 12, marginBottom: 12 }}>
                   <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -1132,7 +1149,7 @@ function BatchCheckout({ nav }) {
                   })}
                   <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4, paddingTop: 4, borderTop: '1px solid rgba(228,228,231,0.6)' }}>
                     <Text style={{ fontSize: 10, color: '#a1a1aa' }}>
-                      {depositWaived ? '免押金' : `押金 ¥${formatCents((groupDeposit || 0))}`}
+                      {Number(effectiveGroupDeposit(group)) === 0 ? '零押金' : (depositWaived && canReduceAll ? `差额押金 ¥${formatCents(effectiveGroupDeposit(group))}` : `押金 ¥${formatCents(effectiveGroupDeposit(group))}`)}
                     </Text>
                     <Text style={{ fontSize: 14, fontWeight: '700', color: '#27272a' }}>{t("小计 ¥")}{formatCents((groupSubtotal || 0))}</Text>
                   </View>
@@ -1153,17 +1170,18 @@ function BatchCheckout({ nav }) {
           </View>
 
           <View style={{ width: '100%', borderTop: '1px dashed #e4e4e7', paddingTop: 16, marginTop: 16 }}>
+            {canReduceAll && !allZeroDeposit && (<>
             <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }} onClick={() => {
               if (waiver && !waiver.eligible) { showWaiverIneligible(waiver.reasons); return }
               setDepositWaived(!depositWaived)
             }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#6b7280' }}>{t("申请免押金")}</Text>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#6b7280' }}>{t("差额押金（减免）")}</Text>
               <View style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: depositWaived && (!waiver || waiver.eligible) ? '#915F38' : '#d4d4d8', position: 'relative', flexShrink: 0 }}>
                 <View style={{ position: 'absolute', top: 2, left: depositWaived && (!waiver || waiver.eligible) ? 22 : 2, width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff' }} />
               </View>
             </View>
             <Text style={{ fontSize: 11, color: '#a1a1aa', marginBottom: 12 }}>
-              {waiver && !waiver.eligible ? '学生／教职工专享（需实名核验+信用分达标）' : '免押金订单可免除押金，需提供担保人信息供核验'}
+              {waiver && !waiver.eligible ? '学生／教职工专享（需实名核验+信用分达标）' : '差额押金需提供两位担保人并上传推荐信'}
             </Text>
             {waiver && !waiver.eligible && (
               <View style={{ backgroundColor: '#fafafa', border: '1px solid #e4e4e7', borderRadius: 8, padding: 10, marginBottom: 10 }}>
@@ -1263,7 +1281,11 @@ function BatchCheckout({ nav }) {
                 </Text>
               </View>
             )}
+          </>)}
           </View>
+          {!canReduceAll && !allZeroDeposit && (
+            <Text style={{ fontSize: 11, color: '#a1a1aa', marginBottom: 8 }}>{t("部分乐器未配置差额押金，按全额/零押金结算")}</Text>
+          )}
 
           <View style={{ width: '100%', borderTop: '1px dashed #e4e4e7', paddingTop: 16, marginTop: 16 }}>
             <Text style={{ fontSize: 12, fontWeight: '700', color: '#6b7280', marginBottom: 12 }}>{t("📍 收货地址")}</Text>

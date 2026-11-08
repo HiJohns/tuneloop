@@ -132,7 +132,9 @@ export default function InventoryRentSetting() {
       .map(item => ({
          id: item.id,
          daily_rent: item.daily_rent,
-         deposit: item.deposit || 0,
+         deposit: item.deposit != null ? item.deposit : undefined,
+         deposit_reduced_enabled: item.deposit_reduced != null && item.deposit_reduced !== '',
+         deposit_reduced: item.deposit_reduced != null && item.deposit_reduced !== '' ? item.deposit_reduced : null,
          overdue_daily_fee: item.overdue_daily_fee || item.daily_rent,
       }))
     setLoading(true)
@@ -238,6 +240,17 @@ export default function InventoryRentSetting() {
           onChange={(val) => handleRentChange(record.id, 'deposit', val)}
           style={{ width: '100%' }}
           formatter={(val) => `¥ ${val}`} parser={(val) => val.replace(/¥\s?/g, '')}
+        />
+      ),
+    },
+    {
+      title: '差额押金', dataIndex: 'deposit_reduced', key: 'deposit_reduced', width: 120,
+      render: (value, record) => (
+        <InputNumber min={0} precision={2} value={value}
+          onChange={(val) => handleRentChange(record.id, 'deposit_reduced', val)}
+          placeholder="未配置"
+          style={{ width: '100%' }}
+          formatter={(val) => val == null ? '' : `¥ ${val}`} parser={(val) => val.replace(/¥\s?/g, '')}
         />
       ),
     },

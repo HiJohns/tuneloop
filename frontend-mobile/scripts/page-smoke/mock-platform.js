@@ -16,11 +16,13 @@ const json = (data, status = 200) => {
 export function installFetchMock() {
   const fetchMock = vi.fn(async (input) => {
     const url = String(input)
+    if (url.includes('/public/instruments/inst-zero') && url.includes('/pricing-v2')) return json(fixtures.zeroPricingV2)
+    if (url.includes('/public/instruments/inst-zero')) return json(fixtures.zeroInstrument)
     if (url.includes('/public/instruments/') && url.includes('/pricing-v2')) return json(fixtures.pricingV2)
     if (url.includes('/public/instruments/')) return json(fixtures.instrument)
     if (url.includes('/user/addresses')) return json({ list: fixtures.addresses })
     if (url.includes('/user/guarantors')) return json({ list: fixtures.guarantors })
-    if (url.includes('/user/deposit-waiver/eligibility')) return json({ eligible: false, reasons: [] })
+    if (url.includes('/user/deposit-waiver/eligibility')) return json({ eligible: true, reasons: [] })
     if (url.includes('/users/me')) return json(fixtures.user)
     if (url.includes('/user/orders/counts')) return json(fixtures.counts)
     if (url.includes('/site-members/me')) return json(fixtures.siteMember)

@@ -2163,9 +2163,14 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
       "start_date": "2026-03-21",
       "end_date": "2026-06-21"
     }
-  ]
+  ],
+  "deposit_tier": "reduced",
+  "guarantor_ids": [],
+  "recommendation_letter": ""
 }
 ```
+
+> **#2321 批量押金**：`deposit_tier` 作用于所有条目；每项按自身乐器配置决定 tier（全额=0 → zero；有差额且请求 reduced 且资格满足 → reduced；否则 full）。零押金项不要求担保人/推荐信；无差额配置的条目回退 full。旧 `deposit_waived=true` 仅兼容为 reduced。
 
 **响应**:
 ```json

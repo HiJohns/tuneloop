@@ -24,7 +24,9 @@ describe('mobile page render smoke', () => {
         </MemoryRouter>
       )
       expect(errors, `${route.name} fatal render errors:\n${errors.join('\n\n')}`).toEqual([])
-      expect(document.body.textContent, `${route.name} did not render marker "${route.marker}"`).toContain(route.marker)
+      for (const marker of (route.markers || [route.marker])) {
+        expect(document.body.textContent, `${route.name} did not render marker "${marker}"`).toContain(marker)
+      }
     })
   }
 

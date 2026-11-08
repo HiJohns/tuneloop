@@ -11,7 +11,14 @@ export const criticalRoutes = [
     name: 'H5 /checkout',
     pattern: '/checkout',
     entry: '/checkout?id=inst-1',
-    marker: '费用明细',
+    markers: ['费用明细', '差额押金（减免）'],
+    load: () => import('../../src/pages/checkout'),
+  },
+  {
+    name: 'H5 /checkout (zero deposit)',
+    pattern: '/checkout',
+    entry: '/checkout?id=inst-zero',
+    markers: ['费用明细', '零押金'],
     load: () => import('../../src/pages/checkout'),
   },
   {
@@ -53,7 +60,14 @@ export const criticalRoutes = [
     name: 'weapp checkout',
     pattern: '/weapp-checkout',
     entry: '/weapp-checkout?id=inst-1',
-    marker: '费用明细',
+    markers: ['费用明细', '差额押金（减免）'],
+    load: () => import('../../src/pages-weapp/checkout'),
+  },
+  {
+    name: 'weapp checkout (zero deposit)',
+    pattern: '/weapp-checkout',
+    entry: '/weapp-checkout?id=inst-zero',
+    markers: ['费用明细', '零押金'],
     load: () => import('../../src/pages-weapp/checkout'),
   },
   {

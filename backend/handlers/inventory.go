@@ -312,6 +312,7 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 		SiteName        string   `json:"site_name"`
 		DailyRent       float64  `json:"daily_rent"`
 		Deposit         float64  `json:"deposit"`
+		DepositReduced  *float64 `json:"deposit_reduced"`
 		ShippingFee     float64  `json:"shipping_fee"`
 		OverdueDailyFee float64  `json:"overdue_daily_fee"`
 		TotalPrice      *float64 `json:"total_price"`
@@ -342,6 +343,9 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 		pf := services.ParseInstrumentPricing(inst.Pricing)
 		dailyRent := pf.DailyRent
 		deposit := pf.Deposit
+		if inst.Deposit != nil {
+			deposit = (*inst.Deposit).ToYuan()
+		}
 		shippingFee := pf.ShippingFee
 		overdueDailyFee := pf.OverdueDailyFee
 		if overdueDailyFee <= 0 && dailyRent > 0 {
@@ -366,6 +370,7 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 			SiteName:        siteName,
 			DailyRent:       dailyRent,
 			Deposit:         deposit,
+			DepositReduced:  models.ToYuanPtr(inst.DepositReduced),
 			ShippingFee:     shippingFee,
 			OverdueDailyFee: overdueDailyFee,
 			TotalPrice:      models.ToYuanPtr(inst.TotalPrice),

@@ -56,9 +56,10 @@ function getItemPricing(item) {
   const rent = item.pricing_v2?.tiers?.length
     ? computeTieredRent(item.pricing_v2, days, item.pricing_v2.base_daily_rate || dailyRent)
     : dailyRent * days
-  const deposit = item.deposit || 0
+  const deposit = item.pricing_v2?.deposit ?? item.deposit ?? 0
+  const depositReduced = item.pricing_v2?.deposit_reduced ?? null
   const shippingFee = item.shipping_fee || 0
-  return { dailyRent, deposit, rent, shippingFee }
+  return { dailyRent, deposit, depositReduced, rent, shippingFee }
 }
 
 function SingleCheckout({ id, navigate, resumePending }) {
@@ -201,8 +202,11 @@ function SingleCheckout({ id, navigate, resumePending }) {
   }, [])
 
   const totalRent = pricingV2 ? computeTieredRent(pricingV2, days, pricingV2.base_daily_rate || 0) : 0
-  const deposit = instrument?.deposit || pricingV2?.deposit || parsePricing(instrument?.pricing)[0]?.deposit || 0
-  const effectiveDeposit = depositWaived ? 0 : deposit
+  const depositReduced = pricingV2?.deposit_reduced ?? null
+  const deposit = pricingV2?.deposit ?? instrument?.deposit ?? parsePricing(instrument?.pricing)[0]?.deposit ?? 0
+  const isZeroDeposit = Number(deposit) === 0
+  const canReduceDeposit = !isZeroDeposit && depositReduced != null
+  const effectiveDeposit = depositWaived && canReduceDeposit ? Number(depositReduced) : deposit
   // Shipping fee is not determined at order time (#1570): staff fills the
   // actual fee at dispatch, not charged at checkout.
   const totalAmount = totalRent + effectiveDeposit
@@ -332,7 +336,7 @@ function SingleCheckout({ id, navigate, resumePending }) {
   const handleSubmit = async () => {
     if (!getToken()) { dialog.alert(t("请先登录才能下单")); return }
     if (depositWaived && selectedGuarantorIds.length < 2) {
-      dialog.alert(t("免押金订单需至少选择 2 位担保人"))
+      dialog.alert(t("差额押金订单需至少选择 2 位担保人"))
       return
     }
     // #1867: eligibility + recommendation letter gates
@@ -342,7 +346,7 @@ function SingleCheckout({ id, navigate, resumePending }) {
         return
       }
       if (!letterUrl) {
-        dialog.alert(t("免押金订单需上传签名的推荐信照片，模板可在免押金区块下载"))
+        dialog.alert(t("差额押金订单需上传签名的推荐信照片，模板可在差额押金区块下载"))
         return
       }
     }
@@ -381,8 +385,8 @@ function SingleCheckout({ id, navigate, resumePending }) {
       }
       if (deliveryAddress) body.delivery_address = deliveryAddress
       if (discountCode.trim()) body.discount_code = discountCode.trim()
-      if (depositWaived) {
-        body.deposit_waived = true
+      body.deposit_tier = depositWaived && canReduceDeposit ? 'reduced' : (isZeroDeposit ? 'zero' : 'full')
+      if (body.deposit_tier === 'reduced') {
         body.guarantor_ids = selectedGuarantorIds
         body.recommendation_letter = letterUrl
       }
@@ -497,10 +501,12 @@ function SingleCheckout({ id, navigate, resumePending }) {
               </View>
               <View className="flex justify-between items-center">
                 <Text className="text-zinc-400">{t("押金")}</Text>
-                {depositWaived ? (
-                  <Text className="text-green-600 font-medium flex-shrink-0 ml-auto whitespace-nowrap">{t("¥0（免押金）")}</Text>
+                {isZeroDeposit ? (
+                  <Text className="text-green-600 font-medium flex-shrink-0 ml-auto whitespace-nowrap">{t("¥0（零押金）")}</Text>
+                ) : depositWaived && canReduceDeposit ? (
+                  <Text className="text-green-600 font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(depositReduced))}{t("（差额押金）")}</Text>
                 ) : (
-                  <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents((deposit || 0))}{deposit === 0 ? <Text className="text-zinc-400 ml-1">{t("(日租金×倍率)")}</Text> : null}</Text>
+                  <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents((deposit || 0))}</Text>
                 )}
               </View>
             </View>
@@ -567,11 +573,12 @@ function SingleCheckout({ id, navigate, resumePending }) {
           </View>
         </View>
 
-        {/* 免押金开关 */}
+        {/* 差额押金开关（#2321） */}
+        {canReduceDeposit && (
         <View className="bg-white rounded-2xl shadow-sm p-4 mb-3">
           <View className="flex items-center justify-between">
             <View>
-              <Text className="font-black text-black">{t("免押金租赁")}</Text>
+              <Text className="font-black text-black">{t("差额押金（减免）")}</Text>
               <Text className="text-xs text-zinc-400 mt-0.5">
                 {waiver && !waiver.eligible ? '学生／教职工专享（需实名核验+信用分达标）' : '需提供两位担保人的联系方式'}
               </Text>
@@ -597,6 +604,7 @@ function SingleCheckout({ id, navigate, resumePending }) {
             </View>
           )}
         </View>
+        )}
 
         {/* #1867: recommendation letter — template download + signed photo upload */}
         {depositWaived && waiver?.eligible && (
@@ -937,30 +945,47 @@ function BatchCheckout({ navigate }) {
     return Object.values(map)
   }, [cartItems])
 
+  const canReduceAll = useMemo(() => {
+    if (cartItems.length === 0) return false
+    return groups.every(group => group.items.every(item => {
+      const p = getItemPricing(item)
+      return Number(p.deposit) === 0 || p.depositReduced != null
+    }))
+  }, [groups, cartItems.length])
+
+  const allZeroDeposit = useMemo(() => {
+    if (cartItems.length === 0) return false
+    return groups.every(group => group.items.every(item => Number(getItemPricing(item).deposit) === 0))
+  }, [groups, cartItems.length])
+
+  const effectiveGroupDeposit = (group) => {
+    let total = 0
+    for (const item of group.items) {
+      const p = getItemPricing(item)
+      if (Number(p.deposit) === 0) continue
+      total += depositWaived && canReduceAll ? Number(p.depositReduced ?? p.deposit) : Number(p.deposit)
+    }
+    return total
+  }
+  const grandDeposit = useMemo(() => {
+    let total = 0
+    for (const group of groups) for (const item of group.items) total += Number(getItemPricing(item).deposit)
+    return total
+  }, [groups])
+  const effectiveGrandDeposit = useMemo(() => {
+    let total = 0
+    for (const group of groups) total += effectiveGroupDeposit(group)
+    return total
+  }, [groups, depositWaived, canReduceAll])
   const grandTotal = useMemo(() => {
     let total = 0
     for (const group of groups) {
       let groupRent = 0
-      let groupDeposit = 0
-      for (const item of group.items) {
-        const p = getItemPricing(item)
-        groupRent += p.rent
-        groupDeposit += p.deposit
-      }
-      total += groupRent + (depositWaived ? 0 : groupDeposit)
+      for (const item of group.items) groupRent += getItemPricing(item).rent
+      total += groupRent + effectiveGroupDeposit(group)
     }
     return total
-  }, [groups, depositWaived])
-
-  // #2299: 批量结算 D1 物流费提醒——按合计有效押金判定（与单件同构）
-  const grandDeposit = useMemo(() => {
-    let total = 0
-    for (const group of groups) {
-      for (const item of group.items) total += (item.deposit || 0)
-    }
-    return total
-  }, [groups])
-  const effectiveGrandDeposit = depositWaived ? 0 : grandDeposit
+  }, [groups, depositWaived, canReduceAll])
 
   const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-brand-primary'
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1'
@@ -1018,7 +1043,7 @@ function BatchCheckout({ navigate }) {
     if (!getToken()) { dialog.alert(t("请先登录才能下单")); return }
     if (cartItems.length === 0) return
     if (depositWaived && selectedGuarantorIds.length < 2) {
-      dialog.alert(t("免押金订单需至少选择 2 位担保人"))
+      dialog.alert(t("差额押金订单需至少选择 2 位担保人"))
       return
     }
     // #1867: eligibility + recommendation letter gates
@@ -1028,7 +1053,7 @@ function BatchCheckout({ navigate }) {
         return
       }
       if (!letterUrl) {
-        dialog.alert(t("免押金订单需上传签名的推荐信照片，模板可在免押金区块下载"))
+        dialog.alert(t("差额押金订单需上传签名的推荐信照片，模板可在差额押金区块下载"))
         return
       }
     }
@@ -1066,8 +1091,8 @@ function BatchCheckout({ navigate }) {
       }))
       const body = { items }
         if (deliveryAddress) body.delivery_address = deliveryAddress
-        if (depositWaived) {
-          body.deposit_waived = true
+        body.deposit_tier = depositWaived && canReduceAll ? 'reduced' : (allZeroDeposit ? 'zero' : 'full')
+        if (body.deposit_tier === 'reduced') {
           body.guarantor_ids = selectedGuarantorIds
           body.recommendation_letter = letterUrl
         }
@@ -1177,7 +1202,7 @@ function BatchCheckout({ navigate }) {
                   })}
                   <View className="flex justify-between items-center mt-1 pt-1 border-t" style={{ borderColor: 'rgba(228,228,231,0.6)' }}>
                     <Text className="text-zinc-400">
-                      {depositWaived ? '免押金' : `押金 ¥${formatCents((groupDeposit || 0))}`}
+                      {Number(effectiveGroupDeposit(group)) === 0 ? '零押金' : (depositWaived && canReduceAll ? `差额押金 ¥${formatCents(effectiveGroupDeposit(group))}` : `押金 ¥${formatCents(effectiveGroupDeposit(group))}`)}
                     </Text>
                     <Text className="text-sm font-bold text-zinc-800">{t("小计 ¥")}{formatCents((groupSubtotal || 0))}</Text>
                   </View>
@@ -1197,9 +1222,10 @@ function BatchCheckout({ navigate }) {
             {t("🔒 暖心提示：资产固定押金将在乐器归还、网点网管质检合格后，按原支付渠道原路退回至您的微信零钱。")}
           </View>
 
+          {canReduceAll && !allZeroDeposit && (<>
           <View className="w-full flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2.5">
             <View className="flex-1 min-w-0">
-              <Text className="text-sm font-medium text-gray-700">{t("免押金租赁")}</Text>
+              <Text className="text-sm font-medium text-gray-700">{t("差额押金（减免）")}</Text>
               <Text className="block text-gray-400">
                 {waiver && !waiver.eligible ? '学生／教职工专享（需实名核验+信用分达标）' : '需提供两位担保人的联系方式'}
               </Text>
@@ -1223,6 +1249,10 @@ function BatchCheckout({ navigate }) {
                 {t("应提供两位担保人的联系方式。我们的员工将会与他们联系确认，若担保人不符合要求，订单将被取消并退款。")}
               </Text>
             </View>
+          )}
+          </>)}
+          {!canReduceAll && !allZeroDeposit && (
+            <Text className="block text-xs text-zinc-400 mb-2">{t("部分乐器未配置差额押金，按全额/零押金结算")}</Text>
           )}
           {/* #1867: recommendation letter — template download + signed photo upload */}
           {depositWaived && waiver?.eligible && (
