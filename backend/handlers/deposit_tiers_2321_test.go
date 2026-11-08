@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -203,3 +204,42 @@ func TestDepositTiers_2321_RejectsReducedAboveFull(t *testing.T) {
 }
 
 func ptrFloat(v float64) *float64 { return &v }
+
+func TestDepositTiers_2321_OrderDetailExposesReducedFields(t *testing.T) {
+	db, handler := setup1867Fixture(t)
+	tenantID, orgID, _ := testfixtures.NewTenantIDs("2321d4e5f6a7")
+	sub := uuid.New().String()
+	userID := seed1867User(t, db, tenantID, orgID, sub, true, strPtr1867("student"), true, 700)
+	guarantors := seedEligibleGuarantors(t, db, userID)
+	instID := seedTierInstrument(t, db, tenantID, orgID, 500, ptrFloat(200))
+	createRouter := new1867Router(handler, tenantID, orgID, sub)
+	data := createTierOrder(t, createRouter, map[string]interface{}{
+		"instrument_id": instID, "start_date": "2026-09-15", "end_date": "2026-09-20",
+		"deposit_tier": "reduced", "guarantor_ids": guarantors, "recommendation_letter": "/uploads/detail.jpg",
+	})
+
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	actor := testutil.MakeCustomer(tenantID, userID)
+	r.Use(func(c *gin.Context) {
+		c.Request = c.Request.WithContext(actor.InjectContext(c.Request.Context()))
+		c.Next()
+	})
+	r.GET("/orders/:id", GetOrder)
+	req := httptest.NewRequest(http.MethodGet, "/orders/"+data["order_id"].(string), nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+	var resp struct {
+		Code int                    `json:"code"`
+		Data map[string]interface{} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+	assert.Equal(t, models.DepositTierReduced, resp.Data["deposit_tier"])
+	assert.Equal(t, float64(20000), resp.Data["deposit_reduced"]) // cents
+	assert.Equal(t, "/uploads/detail.jpg", resp.Data["recommendation_letter"])
+	guarantorsData, ok := resp.Data["guarantors"].([]interface{})
+	require.True(t, ok)
+	assert.Len(t, guarantorsData, 2)
+}
