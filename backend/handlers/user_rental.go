@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"net/http"
 	"sort"
@@ -174,6 +175,85 @@ func (h *UserRentalHandler) GetInstrument(c *gin.Context) {
 	})
 }
 
+func centsPtr(yuan float64) *models.Cents {
+	c := models.FromYuan(yuan)
+	return &c
+}
+
+func reducedSnapshot(instrument *models.Instrument) *models.Cents {
+	if instrument.DepositReduced == nil {
+		return nil
+	}
+	v := *instrument.DepositReduced
+	return &v
+}
+
+func recommendationLetter(needs bool, letter string) string {
+	if needs {
+		return letter
+	}
+	return ""
+}
+
+func validDepositTier(tier string) bool {
+	return tier == "" || tier == models.DepositTierFull || tier == models.DepositTierReduced || tier == models.DepositTierZero
+}
+
+func requestedDepositTier(tier string, legacyWaived bool) string {
+	if tier != "" {
+		return tier
+	}
+	if legacyWaived {
+		return models.DepositTierReduced
+	}
+	return models.DepositTierFull
+}
+
+// validateReducedDepositRequest enforces D1/D4 for the reduced tier:
+// existing waiver eligibility + recommendation letter + 2 owned guarantors.
+func validateReducedDepositRequest(c *gin.Context, db *gorm.DB, userID string, guarantorIDs []string, letter string) bool {
+	if bizCode, msg := checkDepositWaiverEligibility(db, userID); bizCode != 0 {
+		c.JSON(http.StatusForbidden, gin.H{"code": bizCode, "message": msg})
+		return false
+	}
+	if strings.TrimSpace(letter) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "reduced-deposit order requires a recommendation letter"})
+		return false
+	}
+	if len(guarantorIDs) < 2 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "reduced-deposit order requires at least 2 guarantors"})
+		return false
+	}
+	var guarantorCount int64
+	if err := db.Model(&models.Guarantor{}).
+		Where("id IN ? AND user_id = ?", guarantorIDs, userID).
+		Count(&guarantorCount).Error; err != nil || int(guarantorCount) != len(guarantorIDs) {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid guarantor_ids: guarantors must belong to you"})
+		return false
+	}
+	return true
+}
+
+// resolveDepositTier picks the payable tier for one instrument.
+// full is authoritative from instruments.deposit when set (including 0).
+func resolveDepositTier(instrument *models.Instrument, pricingResult *services.InstrumentPricing, requested string) (tier string, full, reduced float64, validReduced bool) {
+	full = pricingResult.Deposit
+	if instrument.Deposit != nil {
+		full = (*instrument.Deposit).ToYuan()
+	}
+	if full <= 0 {
+		return models.DepositTierZero, full, 0, false
+	}
+	if requested == models.DepositTierReduced && instrument.DepositReduced != nil {
+		reduced = (*instrument.DepositReduced).ToYuan()
+		if reduced >= 0 && reduced <= full {
+			return models.DepositTierReduced, full, reduced, true
+		}
+		log.Printf("[deposit] invalid reduced=%v full=%v instrument=%s; falling back to full", reduced, full, instrument.ID)
+	}
+	return models.DepositTierFull, full, 0, false
+}
+
 // POST /api/user/orders - Create rental order
 func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	var req struct {
@@ -185,8 +265,9 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		Notes                string      `json:"notes"`
 		GiftPointsUsed       float64     `json:"gift_points_used"`
 		DiscountCode         string      `json:"discount_code"`         // redeemable code (#1539)
-		DepositWaived        bool        `json:"deposit_waived"`        // deposit-free application (#1557)
-		GuarantorIDs         []string    `json:"guarantor_ids"`         // guarantors for deposit-free order (#1557)
+		DepositWaived        bool        `json:"deposit_waived"`        // legacy alias: mapped to reduced (#1557/#2321)
+		DepositTier          string      `json:"deposit_tier"`          // #2321: full|reduced|zero
+		GuarantorIDs         []string    `json:"guarantor_ids"`         // guarantors for reduced-deposit order (#1557)
 		RecommendationLetter string      `json:"recommendation_letter"` // #1867: deposit-free letter URL
 	}
 
@@ -198,6 +279,10 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(ctx)
 	orgID := middleware.GetOrgID(ctx)
+	if !validDepositTier(req.DepositTier) {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid deposit_tier"})
+		return
+	}
 
 	db := database.GetDB().WithContext(ctx)
 
@@ -269,17 +354,6 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	// #2040: 下单前置——身份证照 + 已实名（员工审核放行）方可下单
 	if !requireIdentityForOrder(c, db, userID) {
 		return
-	}
-
-	if req.DepositWaived {
-		if bizCode, msg := checkDepositWaiverEligibility(db, userID); bizCode != 0 {
-			c.JSON(http.StatusForbidden, gin.H{"code": bizCode, "message": msg})
-			return
-		}
-		if strings.TrimSpace(req.RecommendationLetter) == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "deposit-free order requires a recommendation letter"})
-			return
-		}
 	}
 
 	// Begin transaction with row lock to prevent oversell
@@ -362,27 +436,21 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	if len(pricingResult.Tiers) > 0 {
 		dailyRent = pricingResult.Tiers[0].DailyRate
 	}
-	deposit := pricingResult.Deposit
+	requestedTier := requestedDepositTier(req.DepositTier, req.DepositWaived)
+	depositTier, fullDeposit, reducedAmount, _ := resolveDepositTier(&lockedInstrument, pricingResult, requestedTier)
+	deposit := fullDeposit
+	needsGuarantors := false
+	if depositTier == models.DepositTierReduced {
+		if !validateReducedDepositRequest(c, db, userID, req.GuarantorIDs, req.RecommendationLetter) {
+			tx.Rollback()
+			return
+		}
+		deposit = reducedAmount
+		needsGuarantors = true
+	}
 	// Shipping fee is NOT charged at order creation (#1621): it is
 	// confirmed at staff return-inspection (deducted from deposit).
 	shippingFee := 0.0
-
-	// Deposit-free order: require at least 2 guarantors owned by this user,
-	// then zero out the deposit before any amount calculation (#1557).
-	if req.DepositWaived {
-		if len(req.GuarantorIDs) < 2 {
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "deposit-free order requires at least 2 guarantors"})
-			return
-		}
-		var guarantorCount int64
-		if err := db.Model(&models.Guarantor{}).
-			Where("id IN ? AND user_id = ?", req.GuarantorIDs, userID).
-			Count(&guarantorCount).Error; err != nil || int(guarantorCount) != len(req.GuarantorIDs) {
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid guarantor_ids: guarantors must belong to you"})
-			return
-		}
-		deposit = 0
-	}
 
 	// Determine deposit calculation method for audit trail
 	depositMethod := "base_daily_rate"
@@ -500,8 +568,11 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		LeaseTerm:            months,
 		MonthlyRent:          0,
 		Deposit:              models.FromYuan(deposit),
-		DepositWaived:        req.DepositWaived,
-		RecommendationLetter: req.RecommendationLetter,
+		DepositTier:          depositTier,
+		DepositFull:          centsPtr(fullDeposit),
+		DepositReduced:       reducedSnapshot(&lockedInstrument),
+		DepositWaived:        false,
+		RecommendationLetter: recommendationLetter(needsGuarantors, req.RecommendationLetter),
 		ShippingFee:          models.FromYuan(shippingFee),
 		DeliveryAddress:      orderDeliveryAddress,
 		Status:               models.OrderStatusReserved, // Must pay via WeChat Pay before status becomes paid
@@ -548,7 +619,10 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		"delivery_address": req.DeliveryAddress,
 		"notes":            req.Notes,
 		"gift_points_used": req.GiftPointsUsed,
+		"deposit_tier":     depositTier,
 		"deposit_waived":   req.DepositWaived,
+		"deposit_full":     fullDeposit,
+		"deposit_reduced":  reducedAmount,
 		"guarantor_ids":    req.GuarantorIDs,
 	}
 	if reqSnapshotJSON, err := json.Marshal(requestSnapshot); err == nil {
@@ -580,8 +654,8 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	}
 	insertInitialTermVersion(tx, &order)
 
-	// Link guarantors to the order (#1557)
-	if req.DepositWaived {
+	// Link guarantors to the order (#1557/#2321)
+	if needsGuarantors {
 		for _, gid := range req.GuarantorIDs {
 			if err := tx.Create(&models.OrderGuarantor{OrderID: order.ID, GuarantorID: gid}).Error; err != nil {
 				tx.Rollback()
@@ -685,12 +759,15 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 
 	// Build response
 	respData := gin.H{
-		"order_id":    order.ID,
-		"amount":      totalAmount,
-		"deposit":     deposit,
-		"lease_id":    order.ID, // #2010 S4: session 已废弃；lease_id 语义=order.ID
-		"contract_id": contract.ID,
-		"payment_url": "https://pay.example.com/" + order.ID,
+		"order_id":        order.ID,
+		"amount":          totalAmount,
+		"deposit":         deposit,
+		"deposit_tier":    depositTier,
+		"deposit_full":    fullDeposit,
+		"deposit_reduced": reducedAmount,
+		"lease_id":        order.ID, // #2010 S4: session 已废弃；lease_id 语义=order.ID
+		"contract_id":     contract.ID,
+		"payment_url":     "https://pay.example.com/" + order.ID,
 	}
 
 	// #1934（受控商户）: outbound 转发会话在下单时自动创建（docs/cases/transit.md B1）。
@@ -724,7 +801,8 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			RentDays     int    `json:"rent_days"`
 		} `json:"items" binding:"required,min=1"`
 		DeliveryAddress      interface{} `json:"delivery_address"`
-		DepositWaived        bool        `json:"deposit_waived"`        // deposit-free application (#1557)
+		DepositWaived        bool        `json:"deposit_waived"`        // legacy alias: mapped to reduced (#1557/#2321)
+		DepositTier          string      `json:"deposit_tier"`          // #2321: full|reduced|zero (all items)
 		GuarantorIDs         []string    `json:"guarantor_ids"`         // shared guarantors for all items (#1557)
 		RecommendationLetter string      `json:"recommendation_letter"` // #1867: deposit-free letter URL
 	}
@@ -737,6 +815,10 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(ctx)
 	orgID := middleware.GetOrgID(ctx)
+	if !validDepositTier(req.DepositTier) {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid deposit_tier"})
+		return
+	}
 
 	db := database.GetDB().WithContext(ctx)
 
@@ -778,32 +860,6 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 	// #2040: 下单前置——身份证照 + 已实名（员工审核放行）方可下单
 	if !requireIdentityForOrder(c, db, userID) {
 		return
-	}
-
-	if req.DepositWaived {
-		if bizCode, msg := checkDepositWaiverEligibility(db, userID); bizCode != 0 {
-			c.JSON(http.StatusForbidden, gin.H{"code": bizCode, "message": msg})
-			return
-		}
-		if strings.TrimSpace(req.RecommendationLetter) == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "deposit-free order requires a recommendation letter"})
-			return
-		}
-	}
-
-	// Deposit-free batch order: require at least 2 guarantors owned by this user (#1557)
-	if req.DepositWaived {
-		if len(req.GuarantorIDs) < 2 {
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "deposit-free order requires at least 2 guarantors"})
-			return
-		}
-		var guarantorCount int64
-		if err := db.Model(&models.Guarantor{}).
-			Where("id IN ? AND user_id = ?", req.GuarantorIDs, userID).
-			Count(&guarantorCount).Error; err != nil || int(guarantorCount) != len(req.GuarantorIDs) {
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid guarantor_ids: guarantors must belong to you"})
-			return
-		}
 	}
 
 	// Ensure user exists locally (guest may not have a local record yet)
@@ -871,6 +927,8 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 
 	var results []orderResult
 	totalAmount := 0.0
+	guarantorChecked := false
+	requestedTier := requestedDepositTier(req.DepositTier, req.DepositWaived)
 
 	for _, item := range req.Items {
 		startDate, err := time.Parse("2006-01-02", item.StartDate)
@@ -927,15 +985,23 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		if len(pricingResult.Tiers) > 0 {
 			dailyRent = pricingResult.Tiers[0].DailyRate
 		}
-		deposit := pricingResult.Deposit
+		depositTier, fullDeposit, reducedAmount, _ := resolveDepositTier(&lockedInstrument, pricingResult, requestedTier)
+		deposit := fullDeposit
+		needsGuarantors := false
+		if depositTier == models.DepositTierReduced {
+			if !guarantorChecked {
+				if !validateReducedDepositRequest(c, db, userID, req.GuarantorIDs, req.RecommendationLetter) {
+					tx.Rollback()
+					return
+				}
+				guarantorChecked = true
+			}
+			deposit = reducedAmount
+			needsGuarantors = true
+		}
 		// Shipping fee is NOT charged at order creation (#1621): it is
 		// confirmed at staff return-inspection (deducted from deposit).
 		shippingFee := 0.0
-
-		// Deposit-free batch order: zero out deposit before amount calculation (#1557)
-		if req.DepositWaived {
-			deposit = 0
-		}
 
 		// Calculate pricing_breakdown (needed for payment page display)
 		pricingTiers := make([]services.PricingTierConfig, 0, len(pricingResult.Tiers))
@@ -978,8 +1044,11 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			LeaseTerm:            months,
 			MonthlyRent:          0,
 			Deposit:              models.FromYuan(deposit),
-			DepositWaived:        req.DepositWaived,
-			RecommendationLetter: req.RecommendationLetter,
+			DepositTier:          depositTier,
+			DepositFull:          centsPtr(fullDeposit),
+			DepositReduced:       reducedSnapshot(&lockedInstrument),
+			DepositWaived:        false,
+			RecommendationLetter: recommendationLetter(needsGuarantors, req.RecommendationLetter),
 			ShippingFee:          models.FromYuan(shippingFee),
 			DeliveryAddress:      buildOrderDeliveryAddress(req.DeliveryAddress), // #2010 S2
 			CashPaid:             models.FromYuan(orderAmount),
@@ -1013,7 +1082,10 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			"rent_days":        days,
 			"instrument_id":    item.InstrumentID,
 			"delivery_address": req.DeliveryAddress,
+			"deposit_tier":     depositTier,
 			"deposit_waived":   req.DepositWaived,
+			"deposit_full":     fullDeposit,
+			"deposit_reduced":  reducedAmount,
 			"guarantor_ids":    req.GuarantorIDs,
 		}
 		if reqSnapshotJSON, err := json.Marshal(requestSnapshot); err == nil {
@@ -1045,8 +1117,8 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		}
 		insertInitialTermVersion(tx, &order)
 
-		// Link guarantors to this order (batch shares the same guarantors) (#1557)
-		if req.DepositWaived {
+		// Link guarantors to this order (batch shares the same guarantors) (#1557/#2321)
+		if needsGuarantors {
 			for _, gid := range req.GuarantorIDs {
 				if err := tx.Create(&models.OrderGuarantor{OrderID: order.ID, GuarantorID: gid}).Error; err != nil {
 					tx.Rollback()

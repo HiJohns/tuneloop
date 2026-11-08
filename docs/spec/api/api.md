@@ -1258,7 +1258,9 @@ GET /api/confirmation-sessions/:id
 |---------|------|---------|
 | `base_daily_rate` | **元** | `ToCentsPtr` ×100 存分（instrument.go:416-418） |
 | `total_price` | **元** | `ToCentsPtr` ×100 存分（instrument.go:419-421） |
-| `deposit` | **元** | 仅 `> 0` 时 `ToCentsPtr` 落 `instruments.deposit` 列（instrument.go:424-426）；0/缺省 → 列保持默认，回退 `deposit_mode` 配置（**不支持 0 押金**） |
+| `deposit` | **元** | 传值（含 0）即 `ToCentsPtr` 落 `instruments.deposit` 列；0=零押金乐器（#2321）。缺省=不更新 | 
+| `deposit_reduced_enabled` | bool | 是否启用差额档；`true` 时 `deposit_reduced` 必填（≥0） | 
+| `deposit_reduced` | **元** | 差额押金；`enabled=false` 或未传=清空/NULL；0=差额 0；必须 ≤ 全额 |
 | `pricing` | **元** | 整体 JSON 序列化存 `instruments.pricing` JSONB（instrument.go:401-411） |
 
 **成功响应**:
@@ -1286,7 +1288,8 @@ GET /api/confirmation-sessions/:id
 **请求体**（`UpdateInstrumentRequest`，partial update）：**指针字段区分「未传（nil，不更新）」与「显式清空（空串/0，需谨慎）」**。字段同 `POST` 减去 `category_id` 必填约束。`pricing` / `base_daily_rate` / `total_price` / `deposit` 的处理：
 - `pricing`：传入即**无条件覆盖**整个 JSONB（instrument.go:671-674）——必须携带完整 pricing 对象，仅改部分键会导致其余键丢失。
 - `base_daily_rate` / `total_price`：传入且 `> 0` 时按 **元** `ToCentsPtr` 转分更新（instrument.go:677-681）。
-- `deposit`：仅 `> 0` 时更新 `instruments.deposit` 列（instrument.go:622-624）。
+- `deposit`：传值（含 0）时更新 `instruments.deposit` 列（#2321；0=零押金乐器）。
+- `deposit_reduced_enabled` + `deposit_reduced`：启用/关闭差额档；`deposit_reduced` 0 有效，必须 ≤ 全额。
 - `properties`：传入即删除重建乐器属性关联（instrument.go:733-743）。
 
 **成功响应**:
@@ -1338,7 +1341,7 @@ GET /api/confirmation-sessions/:id
 
 **接口**: `GET /api/public/instruments/:id/pricing-v2`
 
-> **#1755 单位**：响应金额字段（`base_daily_rate` / `tiers[].daily_rate` / `deposit` / `shipping_fee` / `overdue_daily_fee`）为**分**（P3 契约，前端 /100 显示）。
+> **#1755/#2321 单位**：响应金额字段（`base_daily_rate` / `tiers[].daily_rate` / `deposit` / `deposit_reduced` / `shipping_fee` / `overdue_daily_fee`）为**分**（前端 /100 显示）；`deposit` 为权威全额（`instruments.deposit` 优先，含 0），`deposit_reduced` 为 null（无差额档）或分。
 
 **响应**:
 ```json
@@ -1347,6 +1350,7 @@ GET /api/confirmation-sessions/:id
   "data": {
     "base_daily_rate": 100,
     "deposit": 2000,
+    "deposit_reduced": 800,
     "shipping_fee": 50,
     "overdue_daily_fee": 150,
     "tiers": [
@@ -2106,6 +2110,7 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
   "rent_days": 92,
   "delivery_address": {},
   "notes": "",
+  "deposit_tier": "full",
   "deposit_waived": false,
   "guarantor_ids": [],
   "recommendation_letter": ""
@@ -2114,7 +2119,7 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
 
 > **#1762: `end_date` 由服务端按 `rent_days` 权威重算**——`rent_days > 0` 时服务端以 `end_date = start_date + (rent_days − 1)` 覆盖前端提交值（前端 end_date 仅供参考，不信任）；`rent_days = 0` 时按提交的 start/end 推导天数（legacy 兼容）。批量下单（6.3）同规则（按每项 `rent_days`）。
 >
-> **#1867 免押金字段**：`deposit_waived=true` 时必须同时满足——① 用户已实名核验且第三证件类型为 `student`/`teacher`；② 内部信用分 ≥ `DEPOSIT_WAIVER_MIN_CREDIT`（默认 600）；③ `guarantor_ids` ≥ 2 个本人名下担保人；④ `recommendation_letter` 非空（`POST /upload` 返回的推荐信照片 URL）。不满足时返回 `40301`（资格不符）或 `40002`（缺推荐信）。
+> **#2321 押金三态**：`deposit_tier=full|reduced|zero`。`full`=全额；`zero` 仅由乐器全额押金=0 触发（无需担保人/推荐信）；`reduced` 需乐器配置 `deposit_reduced` 且满足 #1867 既有资格（实名/学生教师/信用分）+ 2 位本人担保人 + 推荐信，实付 `deposit_reduced`（可为 0）。无差额配置时回退全额。旧字段 `deposit_waived=true` 仅作 `reduced` 兼容别名，不再置 0。不满足资格返回 `40301`，缺推荐信/担保人返回 `40002`。
 
 **响应**:
 ```json
@@ -2125,6 +2130,9 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
     "order_id": "order-001",
     "amount": 2800,
     "deposit": 500,
+    "deposit_tier": "full",
+    "deposit_full": 500,
+    "deposit_reduced": 200,
     "lease_id": "lease-001",
     "contract_id": "contract-001",
     "payment_url": "https://pay.example.com/..."

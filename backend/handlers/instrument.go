@@ -19,42 +19,46 @@ var pricingService = service.NewPricingService()
 
 // CreateInstrumentRequest is used for POST (create). Fields are optional except CategoryID.
 type CreateInstrumentRequest struct {
-	LevelID        string                   `json:"level_id"`
-	CategoryID     string                   `json:"category_id" binding:"required"`
-	SN             string                   `json:"sn"`
-	SiteID         string                   `json:"site_id"`
-	Status         string                   `json:"status"`
-	Pricing        map[string]interface{}   `json:"pricing"`
-	BaseDailyRate  *float64                 `json:"base_daily_rate"`
-	TotalPrice     *float64                 `json:"total_price"`
-	Deposit        *float64                 `json:"deposit"`
-	Description    string                   `json:"description"`
-	Images         []string                 `json:"images"`
-	Video          string                   `json:"video"`
-	Poster         string                   `json:"poster"`
-	Specifications []map[string]interface{} `json:"specifications"`
-	Properties     map[string]interface{}   `json:"properties"`
-	Level          string                   `json:"level"`
+	LevelID               string                   `json:"level_id"`
+	CategoryID            string                   `json:"category_id" binding:"required"`
+	SN                    string                   `json:"sn"`
+	SiteID                string                   `json:"site_id"`
+	Status                string                   `json:"status"`
+	Pricing               map[string]interface{}   `json:"pricing"`
+	BaseDailyRate         *float64                 `json:"base_daily_rate"`
+	TotalPrice            *float64                 `json:"total_price"`
+	Deposit               *float64                 `json:"deposit"`
+	DepositReducedEnabled *bool                    `json:"deposit_reduced_enabled"`
+	DepositReduced        *float64                 `json:"deposit_reduced"`
+	Description           string                   `json:"description"`
+	Images                []string                 `json:"images"`
+	Video                 string                   `json:"video"`
+	Poster                string                   `json:"poster"`
+	Specifications        []map[string]interface{} `json:"specifications"`
+	Properties            map[string]interface{}   `json:"properties"`
+	Level                 string                   `json:"level"`
 }
 
 // UpdateInstrumentRequest is used for PUT (partial update). Pointer fields distinguish
 // "not sent" (nil) from "explicitly cleared" (empty string).
 type UpdateInstrumentRequest struct {
-	CategoryID     *string                  `json:"category_id"`
-	LevelID        *string                  `json:"level_id"`
-	SiteID         *string                  `json:"site_id"`
-	Status         *string                  `json:"status"`
-	Description    *string                  `json:"description"`
-	Video          *string                  `json:"video"`
-	Poster         *string                  `json:"poster"`
-	Images         []string                 `json:"images"`
-	Pricing        map[string]interface{}   `json:"pricing"`
-	BaseDailyRate  *float64                 `json:"base_daily_rate"`
-	TotalPrice     *float64                 `json:"total_price"`
-	Deposit        *float64                 `json:"deposit"`
-	Specifications []map[string]interface{} `json:"specifications"`
-	Properties     map[string]interface{}   `json:"properties"`
-	Level          *string                  `json:"level"`
+	CategoryID            *string                  `json:"category_id"`
+	LevelID               *string                  `json:"level_id"`
+	SiteID                *string                  `json:"site_id"`
+	Status                *string                  `json:"status"`
+	Description           *string                  `json:"description"`
+	Video                 *string                  `json:"video"`
+	Poster                *string                  `json:"poster"`
+	Images                []string                 `json:"images"`
+	Pricing               map[string]interface{}   `json:"pricing"`
+	BaseDailyRate         *float64                 `json:"base_daily_rate"`
+	TotalPrice            *float64                 `json:"total_price"`
+	Deposit               *float64                 `json:"deposit"`
+	DepositReducedEnabled *bool                    `json:"deposit_reduced_enabled"`
+	DepositReduced        *float64                 `json:"deposit_reduced"`
+	Specifications        []map[string]interface{} `json:"specifications"`
+	Properties            map[string]interface{}   `json:"properties"`
+	Level                 *string                  `json:"level"`
 }
 
 // processProperties handles the properties association logic for instruments
@@ -421,8 +425,27 @@ func CreateInstrument(c *gin.Context) {
 	}
 
 	// Handle Video field
-	if req.Deposit != nil && *req.Deposit > 0 {
+	if req.Deposit != nil {
 		instrument.Deposit = models.ToCentsPtr(req.Deposit)
+	}
+	if req.DepositReducedEnabled != nil && *req.DepositReducedEnabled {
+		if req.DepositReduced == nil || *req.DepositReduced < 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "deposit_reduced must be >= 0 when enabled"})
+			return
+		}
+		instrument.DepositReduced = models.ToCentsPtr(req.DepositReduced)
+	} else if req.DepositReducedEnabled != nil {
+		instrument.DepositReduced = nil
+	} else if req.DepositReduced != nil {
+		if *req.DepositReduced < 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "deposit_reduced must be >= 0"})
+			return
+		}
+		instrument.DepositReduced = models.ToCentsPtr(req.DepositReduced)
+	}
+	if instrument.Deposit != nil && instrument.DepositReduced != nil && *instrument.DepositReduced > *instrument.Deposit {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "deposit_reduced cannot exceed deposit"})
+		return
 	}
 
 	instrument.Video = req.Video
@@ -507,8 +530,27 @@ func UpdateInstrument(c *gin.Context) {
 	if req.Poster != nil {
 		instrument.Poster = *req.Poster
 	}
-	if req.Deposit != nil && *req.Deposit > 0 {
+	if req.Deposit != nil {
 		instrument.Deposit = models.ToCentsPtr(req.Deposit)
+	}
+	if req.DepositReducedEnabled != nil && *req.DepositReducedEnabled {
+		if req.DepositReduced == nil || *req.DepositReduced < 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "deposit_reduced must be >= 0 when enabled"})
+			return
+		}
+		instrument.DepositReduced = models.ToCentsPtr(req.DepositReduced)
+	} else if req.DepositReducedEnabled != nil {
+		instrument.DepositReduced = nil
+	} else if req.DepositReduced != nil {
+		if *req.DepositReduced < 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "deposit_reduced must be >= 0"})
+			return
+		}
+		instrument.DepositReduced = models.ToCentsPtr(req.DepositReduced)
+	}
+	if instrument.Deposit != nil && instrument.DepositReduced != nil && *instrument.DepositReduced > *instrument.Deposit {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "deposit_reduced cannot exceed deposit"})
+		return
 	}
 	log.Printf("[DEBUG] req.CategoryID = '%v', req.Level = '%v'", req.CategoryID, req.Level)
 
@@ -619,9 +661,26 @@ func UpdateInstrument(c *gin.Context) {
 		updates["poster"] = *req.Poster
 	}
 
-	if req.Deposit != nil && *req.Deposit > 0 {
+	if req.Deposit != nil {
 		// #1987: request is yuan, stored as cents — mirror Create handler.
 		updates["deposit"] = models.ToCentsPtr(req.Deposit)
+	}
+	if req.DepositReducedEnabled != nil {
+		if *req.DepositReducedEnabled {
+			if req.DepositReduced == nil || *req.DepositReduced < 0 {
+				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "deposit_reduced must be >= 0 when enabled"})
+				return
+			}
+			updates["deposit_reduced"] = models.ToCentsPtr(req.DepositReduced)
+		} else {
+			updates["deposit_reduced"] = nil
+		}
+	} else if req.DepositReduced != nil {
+		if *req.DepositReduced < 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "deposit_reduced must be >= 0"})
+			return
+		}
+		updates["deposit_reduced"] = models.ToCentsPtr(req.DepositReduced)
 	}
 
 	if req.CategoryID != nil && *req.CategoryID != "" {

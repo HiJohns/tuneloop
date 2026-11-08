@@ -191,6 +191,8 @@
 | video | VARCHAR(500) | | 视频 URL |
 | specifications | JSONB | DEFAULT '{}' | 技术规格 (JSON) |
 | pricing | JSONB | DEFAULT '{}' | 定价信息 (JSON) |
+| deposit | BIGINT | DEFAULT 0 | 全额押金（分）；0=零押金乐器（#2321） |
+| deposit_reduced | BIGINT | NULL | 差额押金（分）；NULL=无差额档，0=差额 0（#2321） |
 | stock_status | VARCHAR(20) | DEFAULT 'available' | 库存状态 |
 | created_at | TIMESTAMP | | 创建时间 |
 | updated_at | TIMESTAMP | | 更新时间 |
@@ -329,7 +331,10 @@ photos:
 | lease_term | INT | NOT NULL | 租赁期限 (月) |
 | deposit_mode | VARCHAR(20) | DEFAULT 'standard' | 押金模式 |
 | monthly_rent | DECIMAL(10,2) | NOT NULL | 月租金 |
-| deposit | DECIMAL(10,2) | DEFAULT 0 | 押金金额 |
+| deposit | DECIMAL(10,2) | DEFAULT 0 | 实付押金金额（分） |
+| deposit_tier | VARCHAR(10) | NULL | 押金档位快照 full/reduced/zero（#2321；历史为空） |
+| deposit_full | BIGINT | NULL | 下单时全额押金快照（分，#2321） |
+| deposit_reduced | BIGINT | NULL | 下单时差额押金快照（分，#2321） |
 | accumulated_months | INT | DEFAULT 0 | 已累计月份 |
 | status | VARCHAR(20) | DEFAULT 'pending', INDEX | 订单状态 |
 | start_date | DATE | | 开始日期 |

@@ -462,7 +462,7 @@ func GetPublicInstrumentPricingV2(c *gin.Context) {
 	result := services.CalculatePricing((*instrument.BaseDailyRate).ToYuan(), totalPrice, config.Config, instrument.PricingOverrides, instrument.Pricing)
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": services.FormatPricingResult(result),
+		"data": pricingResponseWithInstrument(result, &instrument),
 	})
 }
 

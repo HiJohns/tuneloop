@@ -103,6 +103,7 @@ type Instrument struct {
 	Poster             string     `gorm:"type:text" json:"poster"`
 	CoverImage         string     `gorm:"type:text" json:"cover_image"`
 	Deposit            *Cents     `gorm:"type:bigint;default:0" json:"deposit"`
+	DepositReduced     *Cents     `gorm:"type:bigint" json:"deposit_reduced"` // #2321: 差额押金（分）；NULL=无差额档，0=差额 0
 	Specifications     string     `gorm:"type:jsonb;default:'{}'" json:"specifications"`
 	Pricing            string     `gorm:"type:jsonb;default:'{}'" json:"pricing"`
 	TotalPrice         *Cents     `gorm:"type:bigint" json:"total_price"`
@@ -134,6 +135,12 @@ const (
 	StockStatusArchived    = "archived"
 	StockStatusLost        = "lost"
 	StockStatusSold        = "sold"
+)
+
+const (
+	DepositTierFull    = "full"
+	DepositTierReduced = "reduced"
+	DepositTierZero    = "zero"
 )
 
 const (
@@ -223,6 +230,9 @@ type Order struct {
 	DepositMode          string `gorm:"type:varchar(20);default:'standard'" json:"deposit_mode"`
 	MonthlyRent          Cents  `gorm:"type:bigint;not null" json:"monthly_rent"`
 	Deposit              Cents  `gorm:"type:bigint;default:0" json:"deposit"`
+	DepositTier          string `gorm:"type:varchar(10)" json:"deposit_tier"` // #2321: full|reduced|zero；历史订单为空
+	DepositFull          *Cents `gorm:"type:bigint" json:"deposit_full"`
+	DepositReduced       *Cents `gorm:"type:bigint" json:"deposit_reduced"`
 	DepositWaived        bool   `gorm:"column:deposit_waived;not null;default:false" json:"deposit_waived"`
 	RecommendationLetter string `gorm:"column:recommendation_letter;type:varchar(500);not null;default:''" json:"recommendation_letter"` // #1867: deposit-free application letter URL
 	ShippingFee          Cents  `gorm:"type:bigint;default:0" json:"shipping_fee"`

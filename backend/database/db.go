@@ -450,6 +450,10 @@ var defaultMigrationArtifacts = []migrationArtifact{
 	{20261002001, "repair_requests", "received_by", "收货人列（#2116）"},
 	{20261002001, "repair_requests", "received_at", "收货时间列（#2116）"},
 	{20261012001, "mall_images", "", "商城图片表（#2210）"},
+	{20261108001, "instruments", "deposit_reduced", "差额押金列（#2321）"},
+	{20261108001, "orders", "deposit_tier", "押金档位快照列（#2321）"},
+	{20261108001, "orders", "deposit_full", "全额押金快照列（#2321）"},
+	{20261108001, "orders", "deposit_reduced", "差额押金快照列（#2321）"},
 }
 
 // verifyArtifacts 纯逻辑（便于单测）：对 version ≥ a.Version 的工件断言存在。

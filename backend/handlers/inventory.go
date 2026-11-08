@@ -390,11 +390,13 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 	var req struct {
 		Items []struct {
-			ID              string  `json:"id" binding:"required"`
-			DailyRent       float64 `json:"daily_rent"`
-			Deposit         float64 `json:"deposit"`
-			ShippingFee     float64 `json:"shipping_fee"`
-			OverdueDailyFee float64 `json:"overdue_daily_fee"`
+			ID                    string   `json:"id" binding:"required"`
+			DailyRent             float64  `json:"daily_rent"`
+			Deposit               *float64 `json:"deposit"`
+			DepositReducedEnabled *bool    `json:"deposit_reduced_enabled"`
+			DepositReduced        *float64 `json:"deposit_reduced"`
+			ShippingFee           float64  `json:"shipping_fee"`
+			OverdueDailyFee       float64  `json:"overdue_daily_fee"`
 		} `json:"items" binding:"required"`
 	}
 
@@ -437,8 +439,8 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 		if item.DailyRent > 0 {
 			pricing["daily_rent"] = item.DailyRent
 		}
-		if item.Deposit > 0 {
-			pricing["deposit"] = item.Deposit
+		if item.Deposit != nil {
+			pricing["deposit"] = *item.Deposit
 		} else if instrument.TotalPrice != nil && *instrument.TotalPrice > 0 {
 			// Fallback: use deposit_ratio × total_price when total_price exists
 			depositRatio := 0.3
@@ -454,6 +456,17 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 			pricing["deposit"] = (*instrument.TotalPrice).ToYuan() * depositRatio
 		} else {
 			pricing["deposit"] = float64(0)
+		}
+		if item.DepositReducedEnabled != nil {
+			if *item.DepositReducedEnabled {
+				if item.DepositReduced == nil || *item.DepositReduced < 0 {
+					c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "deposit_reduced must be >= 0 when enabled"})
+					return
+				}
+				instrument.DepositReduced = models.ToCentsPtr(item.DepositReduced)
+			} else {
+				instrument.DepositReduced = nil
+			}
 		}
 		pricing["shipping_fee"] = item.ShippingFee
 		if item.OverdueDailyFee > 0 {
@@ -487,10 +500,17 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 		if scopedDB, err := middleware.ApplyOrgScope(updateQuery, ctx); err == nil {
 			updateQuery = scopedDB
 		}
-		if err := updateQuery.Updates(map[string]interface{}{
+		updateFields := map[string]interface{}{
 			"pricing":           string(updatedPricing),
 			"pricing_overrides": string(overridesJSON),
-		}).Error; err != nil {
+		}
+		if item.Deposit != nil {
+			updateFields["deposit"] = models.ToCentsPtr(item.Deposit)
+		}
+		if item.DepositReducedEnabled != nil {
+			updateFields["deposit_reduced"] = instrument.DepositReduced
+		}
+		if err := updateQuery.Updates(updateFields).Error; err != nil {
 			log.Printf("[WARN] Failed to update pricing for instrument %s: %v", item.ID, err)
 			continue
 		}

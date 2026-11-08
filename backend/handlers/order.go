@@ -603,7 +603,7 @@ func GetOrder(c *gin.Context) {
 		Address string `json:"address"`
 	}
 	var guarantors []guarantorEntry
-	if order.DepositWaived {
+	if order.DepositWaived || order.DepositTier == models.DepositTierReduced {
 		db.Table("order_guarantors og").
 			Select("g.id, g.name, g.phone, g.company, g.title, g.address").
 			Joins("JOIN guarantors g ON g.id = og.guarantor_id").
@@ -628,6 +628,9 @@ func GetOrder(c *gin.Context) {
 		"lease_term":            order.LeaseTerm,
 		"deposit_mode":          order.DepositMode,
 		"deposit":               order.Deposit,
+		"deposit_tier":          order.DepositTier,
+		"deposit_full":          order.DepositFull,
+		"deposit_reduced":       order.DepositReduced,
 		"deposit_waived":        order.DepositWaived,
 		"recommendation_letter": order.RecommendationLetter, // #1867: letter URL for staff review
 		"guarantors":            guarantors,
