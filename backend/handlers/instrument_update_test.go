@@ -11,216 +11,149 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
+	"tuneloop-backend/models"
 	"tuneloop-backend/testutil"
 )
 
+// TestUpdateInstrument pins the partial-update contract (docs/spec/api.md §5.5.2,
+// "UpdateInstrumentRequest, partial update"): only supplied fields change, absent
+// fields keep their stored values. It runs on the shared real test DB instead of
+// sqlmock so newly added handler queries (categories / instrument_levels) do not
+// have to be mirrored as brittle SQL expectations (#2264 batch 4).
+//
+// The legacy "missing name/level/category_id must return 400" sub-cases were
+// removed: the endpoint has no name field at all, and partial update explicitly
+// allows omitting level/category_id.
 func TestUpdateInstrument(t *testing.T) {
 	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
 
-	tests := []struct {
-		name          string
-		instrumentID  string
-		setupDBMock   func(sqlmock.Sqlmock)
-		requestBody   map[string]interface{}
-		expectedCode  int
-		expectedError string
-	}{
-		{
-			name:         "instrument not found",
-			instrumentID: "inst-999",
-			setupDBMock: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{
-					"id", "tenant_id", "org_id", "category_id", "name", "brand", "level",
-					"model", "description", "images", "video", "specifications", "pricing",
-					"stock_status", "created_at", "updated_at",
-				})
-				mock.ExpectQuery(`SELECT \* FROM "instruments"`).
-					WithArgs("inst-999", "tenant-001", 1).
-					WillReturnRows(rows)
-			},
-			requestBody: map[string]interface{}{
-				"name": "Test",
-			},
-			expectedCode:  404,
-			expectedError: "instrument not found",
-		},
-		{
-			name:         "missing required field name returns validation error",
-			instrumentID: "inst-004",
-			setupDBMock: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{
-					"id", "tenant_id", "org_id", "category_id", "name", "brand", "level",
-					"model", "description", "images", "video", "specifications", "pricing",
-					"stock_status", "created_at", "updated_at",
-				}).AddRow(
-					"inst-004", "tenant-001", "org-001", "cat-001", "Piano", "Yamaha", "beginner",
-					"U1", "Description", "[]", "", `[]`, "{}",
-					"available", time.Now(), time.Now(),
-				)
-				mock.ExpectQuery(`SELECT \* FROM "instruments"`).
-					WithArgs("inst-004", "tenant-001", 1).
-					WillReturnRows(rows)
-			},
-			requestBody: map[string]interface{}{
-				"level":       "beginner",
-				"category_id": "550e8400-e29b-41d4-a716-446655440000",
-			},
-			expectedCode:  400,
-			expectedError: "Name",
-		},
-		{
-			name:         "missing required field level returns validation error",
-			instrumentID: "inst-005",
-			setupDBMock: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{
-					"id", "tenant_id", "org_id", "category_id", "name", "brand", "level",
-					"model", "description", "images", "video", "specifications", "pricing",
-					"stock_status", "created_at", "updated_at",
-				}).AddRow(
-					"inst-005", "tenant-001", "org-001", "cat-001", "Guitar", "Taylor", "intermediate",
-					"A2", "Description", "[]", "", `[]`, "{}",
-					"available", time.Now(), time.Now(),
-				)
-				mock.ExpectQuery(`SELECT \* FROM "instruments"`).
-					WithArgs("inst-005", "tenant-001", 1).
-					WillReturnRows(rows)
-			},
-			requestBody: map[string]interface{}{
-				"name":        "Test Instrument",
-				"category_id": "550e8400-e29b-41d4-a716-446655440000",
-			},
-			expectedCode:  400,
-			expectedError: "Level",
-		},
-		{
-			name:         "missing required field category_id returns validation error",
-			instrumentID: "inst-006",
-			setupDBMock: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{
-					"id", "tenant_id", "org_id", "category_id", "name", "brand", "level",
-					"model", "description", "images", "video", "specifications", "pricing",
-					"stock_status", "created_at", "updated_at",
-				}).AddRow(
-					"inst-006", "tenant-001", "org-001", "cat-001", "Violin", "Suzuki", "professional",
-					"V1", "Description", "[]", "", `[]`, "{}",
-					"available", time.Now(), time.Now(),
-				)
-				mock.ExpectQuery(`SELECT \* FROM "instruments"`).
-					WithArgs("inst-006", "tenant-001", 1).
-					WillReturnRows(rows)
-			},
-			requestBody: map[string]interface{}{
-				"name":  "Test Instrument",
-				"level": "beginner",
-			},
-			expectedCode:  400,
-			expectedError: "CategoryID",
-		},
-		{
-			name:         "successful update with specifications",
-			instrumentID: "inst-001",
-			setupDBMock: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{
-					"id", "tenant_id", "org_id", "category_id", "name", "brand", "level",
-					"model", "description", "images", "video", "specifications", "pricing",
-					"stock_status", "created_at", "updated_at",
-				}).AddRow(
-					"inst-001", "tenant-001", "org-001", "550e8400-e29b-41d4-a716-446655440000", "Piano", "Yamaha", "beginner",
-					"U1", "Test description", "[]", "", `[{"name":"standard","daily_rent":100,"monthly_rent":2500,"deposit":5000,"stock":5}]`, "{}",
-					"available", time.Now(), time.Now(),
-				)
-				mock.ExpectQuery(`SELECT \* FROM "instruments"`).
-					WithArgs("inst-001", "tenant-001", 1).
-					WillReturnRows(rows)
+	tenantID := uuid.New().String()
+	orgID := uuid.New().String()
 
-				catRows := sqlmock.NewRows([]string{"name"}).AddRow("Piano")
-				mock.ExpectQuery(`SELECT "name" FROM "categories"`).
-					WithArgs("550e8400-e29b-41d4-a716-446655440000", 1).
-					WillReturnRows(catRows)
+	levelA := models.InstrumentLevel{ID: uuid.New(), Caption: "入门级", Code: "beginner"}
+	levelB := models.InstrumentLevel{ID: uuid.New(), Caption: "专业级", Code: "professional"}
+	require.NoError(t, db.Create(&levelA).Error)
+	require.NoError(t, db.Create(&levelB).Error)
 
-				mock.ExpectBegin()
-				mock.ExpectExec(`UPDATE "instruments"`).
-					WillReturnResult(sqlmock.NewResult(1, 1))
-				mock.ExpectCommit()
-			},
-			requestBody: map[string]interface{}{
-				"name":        "Piano Updated",
-				"brand":       "Yamaha",
-				"level":       "beginner",
-				"model":       "U1",
-				"category_id": "550e8400-e29b-41d4-a716-446655440000",
-				"description": "Test description",
-				"images":      []string{},
-				"video":       "",
-				"specifications": []map[string]interface{}{
-					{
-						"name":         "standard",
-						"daily_rent":   100.0,
-						"weekly_rent":  600.0,
-						"monthly_rent": 2500.0,
-						"deposit":      5000.0,
-						"stock":        5,
-					},
-				},
-			},
-			expectedCode:  200,
-			expectedError: "",
-		},
+	catA := models.Category{ID: uuid.New().String(), TenantID: tenantID, Name: "钢琴"}
+	catB := models.Category{ID: uuid.New().String(), TenantID: tenantID, Name: "吉他"}
+	require.NoError(t, db.Create(&catA).Error)
+	require.NoError(t, db.Create(&catB).Error)
+
+	deposit := models.FromYuan(500)
+	seedInstrument := func(t *testing.T) models.Instrument {
+		t.Helper()
+		inst := models.Instrument{
+			ID:             uuid.New().String(),
+			TenantID:       tenantID,
+			OrgID:          &orgID,
+			CategoryID:     &catA.ID,
+			CategoryName:   catA.Name,
+			LevelID:        &levelA.ID,
+			LevelName:      levelA.Caption,
+			SN:             "SN-" + uuid.New().String()[:8],
+			Description:    "original description",
+			Images:         "[]",
+			Specifications: "{}",
+			Pricing:        "{}",
+			Deposit:        &deposit,
+			StockStatus:    models.StockStatusAvailable,
+		}
+		require.NoError(t, db.Create(&inst).Error)
+		return inst
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			sqlDB, mock, err := sqlmock.New()
-			assert.NoError(t, err)
-			defer sqlDB.Close()
-
-			dialector := postgres.New(postgres.Config{
-				Conn:       sqlDB,
-				DriverName: "postgres",
-			})
-
-			db, err := gorm.Open(dialector, &gorm.Config{})
-			assert.NoError(t, err)
-
-			testutil.SetDB(t, db)
-
-			if tt.setupDBMock != nil {
-				tt.setupDBMock(mock)
-			}
-
-			bodyBytes, err := json.Marshal(tt.requestBody)
-			assert.NoError(t, err)
-
-			w := httptest.NewRecorder()
-			ctx, _ := gin.CreateTestContext(w)
-
-			ctx.Params = gin.Params{{Key: "id", Value: tt.instrumentID}}
-			ctx.Request = httptest.NewRequest("PUT", "/api/instruments/"+tt.instrumentID, bytes.NewReader(bodyBytes))
-			ctx.Request.Header.Set("Content-Type", "application/json")
-
-			tenantCtx := context.WithValue(context.Background(), middleware.ContextKeyTenantID, "tenant-001")
-			ctx.Request = ctx.Request.WithContext(tenantCtx)
-
-			UpdateInstrument(ctx)
-
-			assert.Equal(t, tt.expectedCode, w.Code, "Expected status code %d, got %d. Body: %s", tt.expectedCode, w.Code, w.Body.String())
-
-			if tt.expectedError != "" {
-				var response map[string]interface{}
-				err := json.Unmarshal(w.Body.Bytes(), &response)
-				assert.NoError(t, err)
-				message, ok := response["message"].(string)
-				assert.True(t, ok, "Expected response to have message field")
-				assert.Contains(t, message, tt.expectedError, "Expected error message to contain '%s', got '%s'", tt.expectedError, message)
-			}
-
-			assert.NoError(t, mock.ExpectationsWereMet())
-		})
+	put := func(t *testing.T, instrumentID string, body map[string]interface{}) *httptest.ResponseRecorder {
+		t.Helper()
+		bodyBytes, err := json.Marshal(body)
+		require.NoError(t, err)
+		w := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(w)
+		ctx.Params = gin.Params{{Key: "id", Value: instrumentID}}
+		ctx.Request = httptest.NewRequest(http.MethodPut, "/api/instruments/"+instrumentID, bytes.NewReader(bodyBytes))
+		ctx.Request.Header.Set("Content-Type", "application/json")
+		tenantCtx := context.WithValue(context.Background(), middleware.ContextKeyTenantID, tenantID)
+		ctx.Request = ctx.Request.WithContext(tenantCtx)
+		UpdateInstrument(ctx)
+		return w
 	}
+
+	reload := func(t *testing.T, instrumentID string) models.Instrument {
+		t.Helper()
+		var got models.Instrument
+		require.NoError(t, db.Where("id = ?", instrumentID).First(&got).Error)
+		return got
+	}
+
+	t.Run("instrument not found", func(t *testing.T) {
+		w := put(t, uuid.New().String(), map[string]interface{}{"description": "x"})
+		assert.Equal(t, http.StatusNotFound, w.Code, "body: %s", w.Body.String())
+		var response map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &response))
+		assert.Equal(t, float64(40401), response["code"])
+		assert.Contains(t, response["message"], "instrument not found")
+	})
+
+	t.Run("only description updates and leaves other fields untouched", func(t *testing.T) {
+		inst := seedInstrument(t)
+		w := put(t, inst.ID, map[string]interface{}{"description": "updated description"})
+		require.Equal(t, http.StatusOK, w.Code, "body: %s", w.Body.String())
+
+		got := reload(t, inst.ID)
+		assert.Equal(t, "updated description", got.Description)
+		assert.Equal(t, inst.CategoryID, got.CategoryID)
+		assert.Equal(t, inst.CategoryName, got.CategoryName)
+		assert.Equal(t, inst.LevelID, got.LevelID)
+		assert.Equal(t, inst.LevelName, got.LevelName)
+		assert.Equal(t, inst.Deposit, got.Deposit)
+		assert.Equal(t, inst.StockStatus, got.StockStatus)
+	})
+
+	t.Run("only level_id updates level and leaves other fields untouched", func(t *testing.T) {
+		inst := seedInstrument(t)
+		w := put(t, inst.ID, map[string]interface{}{"level_id": levelB.ID.String()})
+		require.Equal(t, http.StatusOK, w.Code, "body: %s", w.Body.String())
+
+		got := reload(t, inst.ID)
+		require.NotNil(t, got.LevelID)
+		assert.Equal(t, levelB.ID, *got.LevelID)
+		assert.Equal(t, levelB.Caption, got.LevelName)
+		assert.Equal(t, inst.Description, got.Description)
+		assert.Equal(t, inst.CategoryID, got.CategoryID)
+		assert.Equal(t, inst.Deposit, got.Deposit)
+	})
+
+	t.Run("only category_id updates category and leaves other fields untouched", func(t *testing.T) {
+		inst := seedInstrument(t)
+		w := put(t, inst.ID, map[string]interface{}{"category_id": catB.ID})
+		require.Equal(t, http.StatusOK, w.Code, "body: %s", w.Body.String())
+
+		got := reload(t, inst.ID)
+		require.NotNil(t, got.CategoryID)
+		assert.Equal(t, catB.ID, *got.CategoryID)
+		assert.Equal(t, catB.Name, got.CategoryName)
+		assert.Equal(t, inst.Description, got.Description)
+		assert.Equal(t, inst.LevelID, got.LevelID)
+		assert.Equal(t, inst.Deposit, got.Deposit)
+	})
+
+	t.Run("invalid category_id format returns 400", func(t *testing.T) {
+		inst := seedInstrument(t)
+		w := put(t, inst.ID, map[string]interface{}{"category_id": "not-a-uuid"})
+		assert.Equal(t, http.StatusBadRequest, w.Code, "body: %s", w.Body.String())
+		var response map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &response))
+		assert.Equal(t, float64(40002), response["code"])
+		assert.Contains(t, response["message"], "invalid category_id format")
+	})
 }
 
 func TestUpdateInstrumentPricingField(t *testing.T) {

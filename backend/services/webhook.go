@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -98,13 +99,20 @@ func LoadMerchantWebhook(db *gorm.DB, merchantOrgID string) (WebhookConfig, erro
 	if merchantOrgID == "" {
 		return cfg, nil
 	}
+	// #2262 返工：配置读取必须关闭自动租户范围（共享 tenant 下 scoped 查询恒 0）
+	ctx := db.Statement.Context
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	idb := db.WithContext(database.IdentityCtx(ctx))
+
 	var s models.SystemSetting
-	err := db.Where("tenant_id = ? AND setting_key = ?", merchantOrgID, MerchantWebhookKey).First(&s).Error
+	err := idb.Where("tenant_id = ? AND setting_key = ?", merchantOrgID, MerchantWebhookKey).First(&s).Error
 	if err == gorm.ErrRecordNotFound {
-		// 旧键回退：商户 org → merchants.tenant_id
+		// 旧键回退：商户 org → merchants.tenant_id（同样用 IdentityCtx）
 		var m models.Merchant
-		if e := db.Where("org_id = ?", merchantOrgID).First(&m).Error; e == nil && m.TenantID != "" && m.TenantID != merchantOrgID {
-			err = db.Where("tenant_id = ? AND setting_key = ?", m.TenantID, MerchantWebhookKey).First(&s).Error
+		if e := idb.Where("org_id = ?", merchantOrgID).First(&m).Error; e == nil && m.TenantID != "" && m.TenantID != merchantOrgID {
+			err = idb.Where("tenant_id = ? AND setting_key = ?", m.TenantID, MerchantWebhookKey).First(&s).Error
 		}
 	}
 	if err == gorm.ErrRecordNotFound || strings.TrimSpace(s.SettingValue) == "" {
@@ -130,6 +138,12 @@ func SaveMerchantWebhook(db *gorm.DB, tenantID string, cfg WebhookConfig) error 
 	if tenantID == "" {
 		return fmt.Errorf("缺少商户信息")
 	}
+	// #2262 返工：显式 org 键写入，关闭自动租户范围（否则共享 tenant 下查不到既有行）
+	ctx := db.Statement.Context
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	db = db.WithContext(database.IdentityCtx(ctx))
 	if cfg.URL != "" {
 		if err := ValidateWeComWebhookURL(cfg.URL); err != nil {
 			return err

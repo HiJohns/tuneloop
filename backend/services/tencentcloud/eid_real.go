@@ -31,11 +31,12 @@ func NewEidClient(credential tencentcloudsdk.CredentialIface, region string, cli
 }
 
 // GetEidTokenRequest requests an EID verification token.
-// 必填：MerchantId（E证通商户 ID）+ CompareLib（BUSINESS）+ Name + IdCard。
+// 必填：MerchantId（E证通商户 ID）+ Name + IdCard。
+// 注意：GetEidToken 不接受 CompareLib（那是 GetFaceIdToken 的参数），
+// 传入会返回 UnknownParameter（生产事故 #2306）。
 type GetEidTokenRequest struct {
 	*tchttp.BaseRequest
 	MerchantId *string `json:"MerchantId,omitnil,omitempty" name:"MerchantId"`
-	CompareLib *string `json:"CompareLib,omitnil,omitempty" name:"CompareLib"`
 	Name       *string `json:"Name,omitnil,omitempty" name:"Name"`
 	IdCard     *string `json:"IdCard,omitnil,omitempty" name:"IdCard"`
 	SubType    *string `json:"SubType,omitnil,omitempty" name:"SubType"` // 证件类型："1"=身份证

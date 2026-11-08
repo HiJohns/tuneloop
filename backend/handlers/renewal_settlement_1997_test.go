@@ -104,6 +104,21 @@ func TestRenewal1997_Settlement_ChargesConsumedRenewalDays(t *testing.T) {
 		PricingBreakdown: &pricingBreakdown,
 	}
 	require.NoError(t, db.Create(&order).Error)
+	// #2282 P4a：初始版本（合同 10 天 / ¥100），续租追加 v2。
+	require.NoError(t, db.Create(&models.OrderTermVersion{
+		OrderID: order.ID, Version: 1, StartDate: &startDate, EndDate: &endDate,
+		Days: 10, TierSegments: "[]", TotalAmount: models.FromYuan(100),
+	}).Error)
+
+	// #2281：账本为唯一事实源——补首期租金流水（合同 ¥100），否则只有续期流水
+	// 会把 cash_paid 收敛为 ¥40。
+	initTradeNo := "INIT-1997-" + uuid.New().String()[:8]
+	require.NoError(t, db.Create(&models.OrderPaymentRecord{
+		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID: userID,
+		OrderID: &order.ID, OrderType: "rent", OutTradeNo: &initTradeNo,
+		Amount: models.FromYuan(100), Type: "payment", Status: "paid",
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}).Error)
 
 	// 续期 4 天（覆盖逾期），支付 ¥40。
 	additionalDays := 4

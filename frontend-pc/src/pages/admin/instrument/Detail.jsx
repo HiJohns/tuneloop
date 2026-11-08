@@ -268,7 +268,8 @@ export default function InstrumentDetail() {
   }
 
   const pricing = parsePricing(instrument.pricing)
-  const overdueDailyFee = pricing?.overdue_daily_fee || 0
+  // #2315: pricing-v2 返回分；优先用它，旧 instrument.pricing 仅作 fallback。
+  const overdueDailyFee = pricingV2?.overdue_daily_fee != null ? toYuan(pricingV2.overdue_daily_fee) : (pricing?.overdue_daily_fee || 0)
 
   const activeStatuses = ['rented']
 
@@ -440,6 +441,8 @@ export default function InstrumentDetail() {
                        // yuan editing/display; submit keeps yuan semantics.
                        base_daily_rate: pricingV2?.base_daily_rate != null ? toYuan(pricingV2.base_daily_rate) : '',
                        deposit: pricingV2?.deposit != null ? toYuan(pricingV2.deposit) : '',
+                       deposit_reduced_enabled: pricingV2?.deposit_reduced != null,
+                       deposit_reduced: pricingV2?.deposit_reduced != null ? toYuan(pricingV2.deposit_reduced) : '',
                        overdue_daily_fee: overdueDailyFee || '',
                     }))
                   }} />}
@@ -451,8 +454,17 @@ export default function InstrumentDetail() {
                         <InputNumber value={editValues.base_daily_rate} onChange={v => setEditValues(prev => ({ ...prev, base_daily_rate: v }))} style={{ width: '100%' }} min={0} precision={2} prefix="¥" />
                       </div>
                       <div>
-                        <label className="text-sm text-gray-500">押金</label>
+                        <label className="text-sm text-gray-500">押金（0=零押金乐器）</label>
                         <InputNumber value={editValues.deposit} onChange={v => setEditValues(prev => ({ ...prev, deposit: v }))} style={{ width: '100%' }} min={0} precision={2} prefix="¥" />
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-500">差额押金（可选；0=差额0，仍需资格/担保人）</label>
+                        <div className="flex items-center gap-2">
+                          <Switch checked={!!editValues.deposit_reduced_enabled} onChange={v => setEditValues(prev => ({ ...prev, deposit_reduced_enabled: v, deposit_reduced: v ? (prev.deposit_reduced ?? 0) : '' }))} />
+                          {editValues.deposit_reduced_enabled && (
+                            <InputNumber value={editValues.deposit_reduced} onChange={v => setEditValues(prev => ({ ...prev, deposit_reduced: v }))} style={{ flex: 1 }} min={0} precision={2} prefix="¥" />
+                          )}
+                        </div>
                       </div>
                       <div>
                         <label className="text-sm text-gray-500">逾期日费</label>
@@ -463,8 +475,22 @@ export default function InstrumentDetail() {
                           setSavingPricing(true)
                           try {
                             const overrides = {}
-                            if (editValues.deposit != null) overrides.deposit = editValues.deposit
                             if (editValues.overdue_daily_fee != null) overrides.overdue_daily_fee = editValues.overdue_daily_fee
+                            if (editValues.deposit_reduced_enabled && editValues.deposit != null && Number(editValues.deposit_reduced) > Number(editValues.deposit)) {
+                              message.error('差额押金不能大于全额押金')
+                              setSavingPricing(false)
+                              return
+                            }
+                            const depositRes = await api.put(`/instruments/${id}`, {
+                              deposit: editValues.deposit,
+                              deposit_reduced_enabled: !!editValues.deposit_reduced_enabled,
+                              deposit_reduced: editValues.deposit_reduced_enabled ? (editValues.deposit_reduced ?? 0) : null,
+                            })
+                            if (depositRes.code !== 20000) {
+                              message.error(depositRes.message || '押金保存失败')
+                              setSavingPricing(false)
+                              return
+                            }
                             const res = await api.put('/instruments/batch-pricing', {
                               items: [{
                                 id,
@@ -497,6 +523,7 @@ export default function InstrumentDetail() {
                     {/* #1755: pricing-v2 cents → display yuan (/100) */}
                     <Descriptions.Item label="标准日租">¥{pricingV2?.base_daily_rate != null ? formatCents(pricingV2.base_daily_rate) : '-'}/天</Descriptions.Item>
                     <Descriptions.Item label="押金">¥{pricingV2?.deposit != null ? formatCents(pricingV2.deposit) : '-'}</Descriptions.Item>
+                    <Descriptions.Item label="差额押金">{pricingV2?.deposit_reduced != null ? `¥${formatCents(pricingV2.deposit_reduced)}` : '未配置'}</Descriptions.Item>
                     <Descriptions.Item label="押金模式">{pricingV2?.deposit_mode || 'ratio'}</Descriptions.Item>
                     <Descriptions.Item label="逾期日费">¥{overdueDailyFee || '-'}</Descriptions.Item>
                   </Descriptions>

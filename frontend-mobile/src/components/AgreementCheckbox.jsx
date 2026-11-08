@@ -6,6 +6,7 @@ import Taro from '@tarojs/taro'
 import { useEffect, useCallback } from 'react'
 import { Text, View } from '@tarojs/components'
 import { env, eventBus, navigation, storage, useDidShow } from '../platform'
+import { t } from '../i18n'
 
 export const AGREEMENT_CONSENT_RESULT_KEY = 'agreement_consent_result'
 export const AGREEMENT_CONSENT_EVENT = 'agreementConsentChanged'
@@ -72,8 +73,8 @@ export default function AgreementCheckbox({ agreed, onChange, style, onOpenConse
       >
         {agreed ? <Text style={{ color: '#fff', fontSize: 12, lineHeight: '18px' }}>✓</Text> : null}
       </View>
-      <Text style={{ fontSize: 12, color: '#a1a1aa', marginLeft: 8 }}>我已阅读并同意所有「</Text>
-      <Text style={{ fontSize: 12, color: '#915F38' }} onClick={openPlainRead}>相关协议</Text>
+      <Text style={{ fontSize: 12, color: '#a1a1aa', marginLeft: 8 }}>{t("我已阅读并同意所有「")}</Text>
+      <Text style={{ fontSize: 12, color: '#915F38' }} onClick={openPlainRead}>{t("相关协议")}</Text>
       <Text style={{ fontSize: 12, color: '#a1a1aa' }}>」</Text>
     </View>
   )

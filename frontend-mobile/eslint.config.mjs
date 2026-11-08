@@ -67,7 +67,7 @@ const i18nPlugin = {
 
 export default [
   {
-    ignores: ["dist/**", "dist-weapp/**", "node_modules/**", "**/*.test.js", "**/*.test.jsx"],
+    ignores: ["dist/**", "dist-h5/**", "dist-weapp/**", "node_modules/**", "src/mp_ecard_sdk/**", "**/*.test.js", "**/*.test.jsx"],
   },
   {
     files: ["**/*.{js,jsx}"],
@@ -82,6 +82,7 @@ export default [
       ...js.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
       "no-undef": "error",
+      "no-shadow": "error",
       "no-use-before-define": ["warn", { variables: true, functions: false }],
       "no-unused-vars": "off",
       "no-empty": "off",

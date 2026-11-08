@@ -84,6 +84,18 @@
 - **平台管理员创建限制**：`POST /users` 对 `site_staff` / `repair_technician` / `merchant_direct` 返回 `403 / 40310`（平台侧仅能通过创建商户产生商户负责人，#1718）。
 - **历史回填**：迁移 `20261020001` 将档案 `tenant_id` 按 `users.tenant_id → merchants.org_id` 规范化（执行需授权）。
 
+#### 1.5.6 归属锚定总则（P3，#2255）
+
+> 全量隔离矩阵与批次证据见 [`docs/ops/tenant-id-audit.md`](../../ops/tenant-id-audit.md) §A5 / §A7；本节固化对外契约总则，端点细则见本节末尾索引。
+
+- **数据归属锚 = 商户 org**（`merchants.org_id`）：业务数据（订单/乐器/维修/发票/结算等）的 `tenant_id` 写入**目标商户 org**。`merchants.tenant_id` 可能是**多商户共享值**，不得作为数据归属或可见性依据。
+- **写入归属从对象推导**：写入/更新时归属取自业务对象（`orders` → instrument / repair_request 等）的商户 org；**不得**取操作者本地缓存 `users.tenant_id`（顾客零租户、员工共享 tenant 均不可靠）。
+- **顾客（零租户）**：JWT `tid` 保持空（D1）；`/api/user*` 走 `userOptionalAuth`，归属由 instrument/order 反推，不因 `tid` 为空被拒。
+- **读路径显式化（opt-in）**：已迁移路由挂 `middleware.ExplicitTenantScope()`（#2255 时点 `backend/main.go` **95 处**）→ GORM `addTenantScope` 跳过自动注入，由 handler 显式按商户 org 过滤；未迁移路由仍由 `addTenantScope` 回退（`backend/database/db.go:103`）。
+- **身份查询例外**：按 JWT 身份键（`iam_sub` / user.ID）定位 `users` 行、且上下文可能带非零 `tid` 时，用 `database.IdentityCtx(ctx)`（`db.go:222`）关闭自动作用域，避免零租户用户被误伤（#2078）。
+- **平台级/元数据表例外**：平台资源（P 表，如 categories / properties / labels）的 `tenant_id` 仅为创建者元数据，不作可见性锚；例外与逐路由判定以 §A5/§A7 为准。
+- **端点细则索引**：维修师档案 §1.5.5；维修/定损 §7.10；网点归属（`sites.tenant_id = 商户 org`，#2266）；会员/商户员工（membership）；发票（归属由订单派生）；商户 webhook（org 键 + 旧 tenant 键只读回退，#2262）。
+
 ### 1.6 权限模型 (v2.1)
 
 权限控制基于 JWT 中的两层位图。
@@ -116,6 +128,38 @@
 | 权限管理 | sys_perm | permission:manage (bit 26) |
 | 客户端管理 | sys_perm | namespace_* (bits 0-4) |
 | 定价管理 | cus_perm | instrument:price |
+
+### 1.7 客户端错误上报（#2320）
+
+**接口**: `POST /api/client-error`（`userOptionalAuth`，匿名可调）
+
+H5 未捕获 JS 错误（`window.onerror` / `unhandledrejection`）上报，仅写入审计日志，不产生业务副作用。
+
+**请求体**:
+
+```json
+{
+  "message": "TypeError: t is not a function",
+  "stack": "at Checkout (Checkout.jsx:521)",
+  "route": "/checkout?id=xxx",
+  "version": "1.0.78",
+  "user_agent": "Mozilla/5.0 ..."
+}
+```
+
+| 字段 | 上限 | 必填 |
+|------|-----:|:---:|
+| `message` | 1 KB | 是 |
+| `stack` | 8 KB | 否 |
+| `route` | 512 B | 否 |
+| `version` | 64 B | 否 |
+| `user_agent` | 500 B | 否 |
+
+- 成功/限流：`204 No Content`；无效/超长：`400`（`code=40001`）。
+- 进程内按 `ip + sha256(message)` 每分钟最多 1 条，超限静默丢弃。
+- 落库 `audit_logs`：`action=client_error`、`resource_type=frontend`、`status=error`、`status_code=500`；匿名 `tenant_id`/`user_id` 使用零 UUID。
+- `message`/`stack` 落库前脱敏（Bearer token、token/phone/id_card/password 键值、手机号、身份证号）。
+- 详细排查见 [`docs/ops/client-error.md`](../../ops/client-error.md)。
 
 ---
 
@@ -323,6 +367,8 @@ Body：`{ role: "<主角色>", roles: ["<角色>", ...] }`（`roles` 可选；�
 **证件上传**（`POST /api/user/id-photo`、admin 版）：`side=other` 时若 `id_photo_front`/`id_photo_back` 缺失 → `40902` + `data.reasons=["no_id_photo"]`（message：请先上传身份证正反面）
 
 **审核端（#2057 裁定3）**: `POST /api/admin/face-review/:batchId` 指定 `second_doc_type=student` 而用户 `intro_letter_url` 为空 → 返回 `40912` + `data.reasons=["no_intro_letter"]`（提示员工驳回并要求补传）；其余类型不受限。审核队列条目新增 `intro_letter_url`（可访问 URL）。
+
+> **#2311 审核分离**：`kind=registration` 的 approve 只写实名/`face_verified`，不再要求或写入 `second_doc_type`/`id_photo_other_verified`；第二证件由独立的 `kind=second_doc` 批次复审（approve 只写 `id_photo_other_type` + `id_photo_other_verified=true`）。注册完成时若有第二证件，服务端幂等创建 `second_doc` pending 批次。删除第二证件（`side=other`）会清空 `id_photo_other_type`/`id_photo_other_verified`/`intro_letter_url`，并把 pending `second_doc` 批次置 `rejected`。
 
 **创建订单**（`POST /api/user/orders`、`/user/orders/batch`）：新增前置校验 →
 - 缺证件照 / `face_verified=false` → `40310 need_identity`，`data.reasons: ["no_id_photo" | "not_verified"]`
@@ -1212,7 +1258,9 @@ GET /api/confirmation-sessions/:id
 |---------|------|---------|
 | `base_daily_rate` | **元** | `ToCentsPtr` ×100 存分（instrument.go:416-418） |
 | `total_price` | **元** | `ToCentsPtr` ×100 存分（instrument.go:419-421） |
-| `deposit` | **元** | 仅 `> 0` 时 `ToCentsPtr` 落 `instruments.deposit` 列（instrument.go:424-426）；0/缺省 → 列保持默认，回退 `deposit_mode` 配置（**不支持 0 押金**） |
+| `deposit` | **元** | 传值（含 0）即 `ToCentsPtr` 落 `instruments.deposit` 列；0=零押金乐器（#2321）。缺省=不更新 | 
+| `deposit_reduced_enabled` | bool | 是否启用差额档；`true` 时 `deposit_reduced` 必填（≥0） | 
+| `deposit_reduced` | **元** | 差额押金；`enabled=false` 或未传=清空/NULL；0=差额 0；必须 ≤ 全额 |
 | `pricing` | **元** | 整体 JSON 序列化存 `instruments.pricing` JSONB（instrument.go:401-411） |
 
 **成功响应**:
@@ -1240,7 +1288,8 @@ GET /api/confirmation-sessions/:id
 **请求体**（`UpdateInstrumentRequest`，partial update）：**指针字段区分「未传（nil，不更新）」与「显式清空（空串/0，需谨慎）」**。字段同 `POST` 减去 `category_id` 必填约束。`pricing` / `base_daily_rate` / `total_price` / `deposit` 的处理：
 - `pricing`：传入即**无条件覆盖**整个 JSONB（instrument.go:671-674）——必须携带完整 pricing 对象，仅改部分键会导致其余键丢失。
 - `base_daily_rate` / `total_price`：传入且 `> 0` 时按 **元** `ToCentsPtr` 转分更新（instrument.go:677-681）。
-- `deposit`：仅 `> 0` 时更新 `instruments.deposit` 列（instrument.go:622-624）。
+- `deposit`：传值（含 0）时更新 `instruments.deposit` 列（#2321；0=零押金乐器）。
+- `deposit_reduced_enabled` + `deposit_reduced`：启用/关闭差额档；`deposit_reduced` 0 有效，必须 ≤ 全额。
 - `properties`：传入即删除重建乐器属性关联（instrument.go:733-743）。
 
 **成功响应**:
@@ -1292,7 +1341,7 @@ GET /api/confirmation-sessions/:id
 
 **接口**: `GET /api/public/instruments/:id/pricing-v2`
 
-> **#1755 单位**：响应金额字段（`base_daily_rate` / `tiers[].daily_rate` / `deposit` / `shipping_fee`）为**分**（P3 契约，前端 /100 显示）。
+> **#1755/#2321 单位**：响应金额字段（`base_daily_rate` / `tiers[].daily_rate` / `deposit` / `deposit_reduced` / `shipping_fee` / `overdue_daily_fee`）为**分**（前端 /100 显示）；`deposit` 为权威全额（`instruments.deposit` 优先，含 0），`deposit_reduced` 为 null（无差额档）或分。
 
 **响应**:
 ```json
@@ -1301,6 +1350,7 @@ GET /api/confirmation-sessions/:id
   "data": {
     "base_daily_rate": 100,
     "deposit": 2000,
+    "deposit_reduced": 800,
     "shipping_fee": 50,
     "overdue_daily_fee": 150,
     "tiers": [
@@ -2060,6 +2110,7 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
   "rent_days": 92,
   "delivery_address": {},
   "notes": "",
+  "deposit_tier": "full",
   "deposit_waived": false,
   "guarantor_ids": [],
   "recommendation_letter": ""
@@ -2068,7 +2119,7 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
 
 > **#1762: `end_date` 由服务端按 `rent_days` 权威重算**——`rent_days > 0` 时服务端以 `end_date = start_date + (rent_days − 1)` 覆盖前端提交值（前端 end_date 仅供参考，不信任）；`rent_days = 0` 时按提交的 start/end 推导天数（legacy 兼容）。批量下单（6.3）同规则（按每项 `rent_days`）。
 >
-> **#1867 免押金字段**：`deposit_waived=true` 时必须同时满足——① 用户已实名核验且第三证件类型为 `student`/`teacher`；② 内部信用分 ≥ `DEPOSIT_WAIVER_MIN_CREDIT`（默认 600）；③ `guarantor_ids` ≥ 2 个本人名下担保人；④ `recommendation_letter` 非空（`POST /upload` 返回的推荐信照片 URL）。不满足时返回 `40301`（资格不符）或 `40002`（缺推荐信）。
+> **#2321 押金三态**：`deposit_tier=full|reduced|zero`。`full`=全额；`zero` 仅由乐器全额押金=0 触发（无需担保人/推荐信）；`reduced` 需乐器配置 `deposit_reduced` 且满足 #1867 既有资格（实名/学生教师/信用分）+ 2 位本人担保人 + 推荐信，实付 `deposit_reduced`（可为 0）。无差额配置时回退全额。旧字段 `deposit_waived=true` 仅作 `reduced` 兼容别名，不再置 0。不满足资格返回 `40301`，缺推荐信/担保人返回 `40002`。
 
 **响应**:
 ```json
@@ -2079,6 +2130,9 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
     "order_id": "order-001",
     "amount": 2800,
     "deposit": 500,
+    "deposit_tier": "full",
+    "deposit_full": 500,
+    "deposit_reduced": 200,
     "lease_id": "lease-001",
     "contract_id": "contract-001",
     "payment_url": "https://pay.example.com/..."
@@ -2109,9 +2163,14 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
       "start_date": "2026-03-21",
       "end_date": "2026-06-21"
     }
-  ]
+  ],
+  "deposit_tier": "reduced",
+  "guarantor_ids": [],
+  "recommendation_letter": ""
 }
 ```
+
+> **#2321 批量押金**：`deposit_tier` 作用于所有条目；每项按自身乐器配置决定 tier（全额=0 → zero；有差额且请求 reduced 且资格满足 → reduced；否则 full）。零押金项不要求担保人/推荐信；无差额配置的条目回退 full。旧 `deposit_waived=true` 仅兼容为 reduced。
 
 **响应**:
 ```json
@@ -2229,7 +2288,7 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
     "deposit": 0,
     "deposit_refunded": false,
     "status": "active",
-    "coupon_code": "ENO",            // #1744 优惠码快照（无码为 null）
+    "coupon_code": "WELCOME10",            // #1744 优惠码快照（无码为 null）
     "coupon_discount": 3564,         // #1744 折扣金额（分；无码 0）
     "created_at": "2026-03-21T10:30:00Z",
     "start_date": "2026-03-21",
@@ -3841,6 +3900,30 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 | wallet | object | 赠点信息（promo_points / max_gift_ratio / max_gift_amount，均为分） |
 | details | object | 明细（各字段分契约；rent 含 pricing_breakdown、refund 含 cash_refundable 等） |
 
+### 8.11.2a 优惠码校验（预览，#2291）
+
+**接口**: `POST /api/coupons/validate`（`userOptionalAuth`）
+
+**说明**: 前端应用优惠码前调用；仅用于**预览**，最终扣款仍由 `POST /api/pay/prepay` 按服务端金额重算。前端**禁止**硬编码码值/折扣幅度。
+
+**请求 Body**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| code | string | 优惠码（大小写不敏感） |
+| amount_cents | int64 | 优惠前金额（分，≥0） |
+
+**响应 data**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| code | string | 规范码（大写） |
+| type | string | `waive` \| `percent` |
+| value | number | percent 为**实付千分比**（10=1%，1000=原价）；waive 忽略 |
+| description | string | 后台说明 |
+| discount_cents | int64 | 优惠金额（分）= amount_cents − final |
+| final_amount_cents | int64 | 折后应付（分） |
+
+**错误**: 未知/停用 → `40002 优惠码无效`；percent `value` 不在 1..1000 → `40002 优惠码配置异常`。
+
 ### 8.11.2 创建预付支付
 
 **接口**: `POST /api/pay/prepay`
@@ -3859,7 +3942,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 | amount | decimal(元) | 现金支付金额（总额 − 赠点；有优惠码时传原金额，后端重算） |
 | gift_used | decimal(元) | 赠点抵扣金额（默认 0；优惠码场景前端传 0） |
 | open_id | string | 微信 openid（仅 JSAPI 支付，可选；后端可按 iam_sub 回填） |
-| coupon_code | string | 优惠码（可选，#1719 所有支付类型通用：OREZ waive 全免 / ENO percent 1%） |
+| coupon_code | string | 优惠码（可选；后台配置的 `waive`/`percent`，前端先经 `/coupons/validate` 查询；测试码已生产停用） |
 
 **请求示例**:
 ```json
@@ -3868,13 +3951,14 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
   "order_type": "rent",
   "amount": 558.00,
   "gift_used": 0,
-  "coupon_code": "ENO"
+  "coupon_code": "WELCOME10"
 }
 ```
 
-**优惠码行为**（#1719 通用化，服务端权威）:
-- `waive`（OREZ）：金额重算为 0 → 直接记账 `paid`（method=`waived`）并执行副作用（applySideEffects），不调微信
-- `percent`（ENO）：比例 = value / 1000（千分比，10‰ = 1%，#1728）→ 金额 = round(原金额 × 比例) → 走正常微信 JSAPI/Native
+**优惠码行为**（#1719 通用化，服务端权威；#2291 前端改为 validate 预览）:
+- `waive`：金额重算为 0 → 直接记账 `paid`（method=`waived`）并执行副作用（applySideEffects），不调微信
+- `percent`：实付 = 原金额 × value / 1000（value 为**实付千分比**，10=1%，1000=原价，1..1000）→ 走正常微信 JSAPI/Native
+- 测试码（OREZ/ENO）生产停用；前端不得硬编码码值，应用/展示以 `/coupons/validate` 返回为准
 - **优惠快照（#1744）**：优惠码应用后回写订单 `orders.coupon_code` / `orders.coupon_discount`（分 = 优惠前金额 − 折后实付；waive 全额）——非 session 流程（有 order_id）才回写，幂等覆盖，无码订单保持 NULL/0
 - 模拟支付已移除（#1719）：运行时一律真实微信支付
 
@@ -4056,6 +4140,23 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ---
 
+**接口**: `POST /api/auth/registration-sessions`
+
+**说明**: 两阶段注册第一步：校验表单并预留 `status=init` 的 IAM 用户 + 本地用户缓存，返回 `session_id` 与会员费金额。重试时若同手机号/邮箱已有未完成的 init 用户，返回 `409 + code 40901` 与 `resume_session_id`，前端可直接继续原支付会话（不重复建号）。
+
+**#2307 分流**: 40901 的 `data.action` 为 `pay`（未支付，pending）、`rebind`（已支付/needs_rebind）或 `restart`（failed 且无支付）；前端据此选择支付页、重新授权或重新提交。
+
+**失败响应（#2307）**:
+```json
+{
+  "code": 40901,
+  "message": "检测到未完成的注册，可继续完成支付",
+  "data": { "resume_session_id": "uuid", "amount": 9900, "session_status": "pending", "action": "pay" }
+}
+```
+
+---
+
 **接口**: `POST /api/auth/registration-sessions/:id/id-photo`
 
 **说明**: 注册阶段上传身份证照片（会话级匿名端点，无需认证）
@@ -4071,6 +4172,30 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
   "data": { "side": "front", "url": "/uploads/media/id_photos/uuid_123.jpg" }
 }
 ```
+
+---
+
+**接口**: `GET /api/auth/registration-sessions/:id/status`
+
+**说明**: 支付后轮询注册会话状态。`data.status` ∈ `pending|paid|completed|failed|needs_rebind`；`needs_rebind` 表示支付已成功但微信绑定失败（exchange_token 过期），需要重新授权；`data.error` 返回错误摘要。
+
+**接口**: `POST /api/auth/registration-sessions/:id/rebind`
+
+**说明**: 支付成功但 WxBind 失败后的恢复端点（匿名，会话级）。只接受 `wx_code`；后端调用 `wx-accounts` 解析 openid，与 `registration_sessions.openid` 比对通过后才绑定并完成注册；不重复建号/扣款。已 `completed` 的会话幂等返回 200。
+
+**请求 Body**:
+```json
+{ "wx_code": "wx.login 返回的 code" }
+```
+
+**失败**: `400` wx_code 缺失/过期、session openid 缺失；`403` 解析出的 openid 与 session.openid 不一致（不绑定）。
+
+**响应**:
+```json
+{ "code": 20000, "data": { "status": "completed", "user_id": "iam-user-uuid" } }
+```
+
+> #2308：`order_payment_records` 新增 `side_effect_status`（none/pending/succeeded/failed/needs_rebind）、`side_effect_error`、`side_effect_attempts`；支付成功后 side effect 失败不得回滚 `paid`。
 
 ---
 
@@ -6006,7 +6131,7 @@ GET /api/admin/dashboard/near-transfers
 | name | string | 是 | 姓名 |
 | phone | string | 是 | 手机号 |
 | email | string | 否 | 邮箱（改选填） |
-| username | string | 否 | 用户名（不传时自动使用 email 前缀） |
+| username | string | 否 | 登录用户名：不传时自动使用 email（**完整邮箱地址**）作为登录名；登录名在 IAM namespace 内唯一 |
 | **user_type** | string | 否 | **#2068**：`site_staff`(缺省) \| `repair_technician` \| `merchant_direct`；决定归属与是否一并建档案/关系 |
 | **bio** | string | 否 | **#2068/#2073**：简介（富文本 HTML）——**全类型**落 `users.bio`；`repair_technician` 另**双写** `technician_profiles.bio` |
 
@@ -6019,7 +6144,9 @@ GET /api/admin/dashboard/near-transfers
 | `merchant_direct` | **直属商户** | `merchant_members` |
 
 - 本地落库（users + 归属记录）**单事务**；失败回滚 IAM 侧（Unbind + DeleteUser），消除「建了用户但档案失败」半态
-- **唯一性冲突**（phone/email/username）：`409 40900` + `data:[{id,name,phone,email,...}]`（candidates）；前端据此前置提示/发送邀请通知（#2052）
+- **唯一性冲突**（phone/email/username）：
+  - 本地预检（同租户）：`409 40900` + `data:[{id,name,phone,email,...}]`（candidates）；前端据此前置提示/发送邀请通知（#2052）
+  - IAM 创建冲突（namespace 级）：`409 40910/40911/40913/40914` + `data:{conflict_field, conflict_value}`；`40911`=用户名（username）、`40913`=手机号（phone）、`40914`=邮箱（email），未识别字段回退 `40910`（#2290）。`username` 留空时后端以 email 作为登录名，IAM 报 username 冲突时归一化为邮箱冲突 `40914`
 | position | string | 否 | 职位 |
 | site_id | string | 否 | 归属网点 ID |
 | role | string | 否 | 角色：site_member / site_admin / repair_technician |
@@ -6042,7 +6169,8 @@ GET /api/admin/dashboard/near-transfers
 - 未传 `role` 且未指定 `site_id` → `site_member`
 
 **约束**：
-- `phone`、`email`、`username` 在租户内唯一，冲突返回 `40900`
+- 本地预检 `phone`、`email`、`username` 仅在同租户内唯一，冲突返回 `40900`
+- IAM 登录名（`username`）、邮箱、手机号为 **namespace 级唯一**；IAM 创建时冲突返回 `40910`/`40911`/`40913`/`40914`（见上）
 - 只有 `site_admin`/`merchant_admin` 可以创建 `site_admin` 角色
 - 创建用户后自动在 IAM 侧绑定组织、设置权限位图、分配角色模板
 
@@ -6938,8 +7066,14 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 | 40300 | 权限不足 |
 | 40400 | 资源不存在 |
 | 40900 | 资源冲突 |
+| 40910 | IAM 创建冲突（未细分字段，#2243/#2290） |
+| 40911 | IAM 用户名冲突（登录名 namespace 内唯一） |
+| 40913 | IAM 手机号冲突 |
+| 40914 | IAM 邮箱冲突 |
 | 42200 | 业务逻辑错误 |
 | 50000 | 服务器错误 |
+
+> **错误码占用说明**：`40912` 已被 #2057（学生证作为第二证件需介绍信）占用，IAM 创建冲突不得复用。
 
 > **#1735 会话失效语义**：收到 `40105`/`40106`/`40107` 时前端**不得尝试静默续期**（refresh），必须清除本地凭证并引导重新登录；网络/临时错误保持登录态可重试。
 

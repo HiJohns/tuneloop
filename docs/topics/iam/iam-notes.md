@@ -66,6 +66,17 @@ Tuneloop 的 `IAMClaims` 结构体中同时有 `Oid` 和 `Gid`。`Gid` 在 IAM J
   - **修复（#2078）**：`database.IdentityCtx(ctx)`（覆盖 `TenantIDKey=""` 使作用域回调早退）用于 GET/PUT `/users/me`——按已验证 JWT `sub`（全局唯一 iam_sub）定位自身记录的身份端点，无跨租户泄漏面；**其他按 iam_sub 查询的员工上下文路径需逐个评估后再用**
   - **备忘记法**：凡「按 JWT 身份键（iam_sub / user.ID）查 users 行」的查询，若运行上下文可能带非零租户声明（员工上下文），必须评估租户作用域是否误伤零租户行
 
+## P3 后的上下文 claim 语义（tuneloop 侧，#2255）
+
+> P3 = 代码侧停用 `tenant_id` 作为自动可见性锚，统一为**商户 org / membership 锚**。矩阵与批次真值见 `docs/ops/tenant-id-audit.md` §A5 / §A7；对外契约总则见 `docs/spec/api/api.md` §1.5.6。
+
+- **claim 本身不变**：员工上下文 JWT 仍带 `tid`（组织租户；多商户共享时该值可能与 `merchants.tenant_id` 相同）与 `oid`；顾客上下文 `tid` 保持空（D1 不变）。P3 不修改 IAM token 结构。
+- **`tid` 用途收窄**：`tid` 不再单独决定数据可见性。已迁移路由挂 `middleware.ExplicitTenantScope()` → `database.ExplicitTenantScopeOnly`（`backend/database/db.go:143`）使 `addTenantScope`（同文件 `:103`）跳过自动注入，由 handler 显式按**商户 org** 过滤；未 opt-in 路由仍走 `addTenantScope` 回退。
+- **写入归属**：取业务对象（order / instrument / repair_request）的商户 org；不得取 `users.tenant_id` 本地缓存（顾客零租户 / 员工共享 tenant 均不可靠）。
+- **身份查询**：按 `iam_sub` / user.ID 查 `users` 时须评估 `addTenantScope` 误伤零租户行；身份端点用 `database.IdentityCtx(ctx)`（`db.go:222`，见 #2078）。
+- **共享 tenant 歧义**：`merchants.tenant_id` 为多商户共享值时，`tid` 不能定位唯一商户 → 用 `resolveOperatorMerchant*`（org 优先 → 唯一 tenant → 共享不解析，#2247/#2251/#2255）。
+- **真值来源**：`docs/ops/tenant-id-audit.md` §A5（ISO 矩阵）/ §A7（逐批与逐路由判定）。
+
 ## 微信小程序登录流程
 
 > 完整架构说明见 `docs/topics/wechat/weapp.md`（#2016 起以 `wx_user_bindings` 为绑定权威源）。

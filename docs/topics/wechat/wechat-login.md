@@ -445,5 +445,6 @@ CREATE INDEX IF NOT EXISTS idx_users_wx_openid ON users(wx_openid);
 
 weapp 登录页（`pages-weapp/login`）与补全页（`pages-weapp/profile-complete`）的协议勾选改为**显性阅读同意流**：
 - 默认未选中；未选中点击勾选框 → 合并阅读页（`/pages-weapp/content/index?key=related_agreements&consent=1`）
+- 合并页同屏渲染三份协议：**租用服务协议 → 乐器损耗与赔偿标准 → 个人信息保护政策**（段间分割线）
 - 合并页 15 秒倒计时后「同意」可点；「同意/不同意」返回后分别回写选中/未选中（storage + useDidShow）
 - 登录/注册提交仍以 `agreed` 为前置校验（未勾选拦截文案不变）

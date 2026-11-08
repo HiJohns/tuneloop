@@ -64,6 +64,10 @@
 ### 闸 1 — 抽取脚本（AST，不手抄）
 Babel 遍历 `frontend-mobile/src`：产出**清单**（文件×行×串）+ 直接**自动改写**（JSXText/字符串字面量 → `t('…')`），黑名单（§2）与动态拼接（`'a'+x` → `t('a{msg}')`）自动处理；**人工复核 diff**。
 - 产出：`scripts/i18n-extract.mjs`（--dry-run / --write / --report）。
+- **#2298 起 `--write` 为 merge**：读取现有 `zh-CN.json`，保留既有 key/value，仅追加本次扫描到的新 key（稳定排序）；可按文件/小目录重复运行，不再整体覆盖字典。
+- **`--report` ≠ 字典**：report 输出“当前仍硬编码”的清单（`docs/ops/i18n-inventory.csv`）；`zh-CN.json` 是已提取 key 的字典（源串即 key）。
+- 回归：`node --test scripts/i18n-extract.merge.test.mjs`（既有 key 不丢失）。
+- **`t` 遮蔽保护（#2318）**：改写前用 Babel scope 检查 `t` 是否被局部变量遮蔽（典型：`tiers.map((t, i) => ...)`）；遮蔽时**跳过并告警**，不生成 `t(...)`，避免把 i18n 调用改成对 map 元素的调用（线上 checkout 崩溃根因）。配套 `frontend-mobile/eslint.config.mjs` 的 `no-shadow: error`（忽略 `src/mp_ecard_sdk/**`）在改动期拦截同类命名。
 
 ### 闸 2 — 集中拦截（一处覆盖一片）
 1. `platform/dialog` 的 `alert/toast/confirm` 内部先 `t()` → **374 处零改动即翻译**；
@@ -97,6 +101,7 @@ Babel 遍历 `frontend-mobile/src`：产出**清单**（文件×行×串）+ 直
 | **0 基建** | `t()` 实现 + zh 字典骨架 + 抽取脚本 + ESLint rule + 覆盖率报告 + `dialog`/`resolveErrorMessage` 集中拦截 | 机制与仪表就绪；**集中拦截即覆盖 ~1100 调用点** | 1–2 个 Issue |
 | **1 weapp 核心流程** | 登录/注册/完善资料、首页、商城、我的租赁、结算/支付、订单详情、个人中心（**H5/weapp 共享页一次抽取两端受益**） | 核心流程残留=0 | 按页 8–10 个 |
 | **2 mobile 全量 + H5 独有** | 其余 mobile 页面 + `App-H5` + H5 独有页 + 双实现页（Home/Checkout/OrderDetail/Payment/Profile/…）| mobile 残留=0 | 按页 10–12 个 |
+| **1.1 #2298 批次** | Payment/Checkout/MembershipCenter/Receive/Return/Login/ProfileComplete 提取 + D 文案落稿 | 目标文件 ESLint 0 + H5/weapp 构建 + 探针 | 单 Issue |
 | **3 管理后台** | frontend-pc（复用闸 1–3 方法；`message.*` 包装 + `errorMessages.js` 迁移） | PC 残留=0 | 按页 8–10 个 |
 
 > 顺序内每 Issue：抽取该页 → ESLint 0 → 构建 → `zh-CN.json` 提交。**任何时刻可暂停**（残留报告显示剩余），不产生半成品态（未抽页面仍硬编码但功能不变）。
@@ -126,6 +131,47 @@ Babel 遍历 `frontend-mobile/src`：产出**清单**（文件×行×串）+ 直
 - weapp/H5 共享资源 = `frontend-mobile/src/i18n/*`（同库双端编译，符合 AGENTS「跨端代码复用」原则）；
 - `docs/cases/h5-weapp-differences.md` 不受影响（i18n 不改行为，仅文案来源）；
 - 每批构建验证沿用既有约定（`build:h5`/`build:weapp` + wxml 探针）。
+
+## 9. 提取落地手册（2026-10 实战补充）
+
+### 9.1 三个真值不要混用
+
+| 对象 | 作用 | 不是 |
+|------|------|------|
+| 源码（JSX/JS） | 唯一文案来源；`t('中文源串')` 的 key 来自这里 | 不是清单/字典 |
+| `frontend-mobile/src/i18n/locales/zh-CN.json` | 运行时**字典**；key→显示值，缺失回退 key | 不是全量文案清单 |
+| `docs/ops/i18n-inventory.csv/.md` | `--report` 产出的**硬编码残留清单** | 不是运行时字典，也不是提交给译者的翻译文件 |
+
+- `--report` 只打印；`--write` 才改写源码并重建字典。
+- `--write` 必须 **merge** 既有字典（保留旧 key/value），不能按单文件覆盖整本字典。
+- 全量 `--write` 会改写大量文件；本阶段按页/按批提取，跑完必须 `--report` 复核 residual。
+
+### 9.2 工具盲区（必须手工 `t()`）
+
+AST 抽取不是万能的，以下需要人工处理：
+
+- **条件表达式/三元里的字符串**（例如 JSX 中根据状态返回不同文案）；
+- **共享组件的文案**（组件不在目标页面文件内，必须单独提取）；
+- 动态拼接、模板串、含 `{}` 字面量；
+- 非标准 JSX 属性或数组内的字符串。
+
+做法：先对目标文件跑 `--report`/dry-run，列出 residual；自动无法覆盖的，手工包 `t('…')`，再 `--write` merge 补字典。
+
+### 9.3 外部 reviewed 清单的使用规则
+
+- 外部清单可能被表格工具损坏（如以 `+`/`＋` 开头的文案被写成 `#NAME?`）或基于旧快照；**不能整列直灌**。
+- 先核对：行数、文件/行号、源文案、术语差异；区分「Excel 损坏」「版本漂移」「reviewed 变更」。
+- **源文案以代码为准**；reviewed 列只在产品/运营确认后作为变更依据。
+- 提示性文案的 `*` 是**强调**，不是必填；必填语义只用于后接输入组件的字段。
+
+### 9.4 每批验收（缺一不可）
+
+- [ ] `--report` 目标文件无新增 residual（或逐条列出人工项）
+- [ ] `zh-CN.json` 含目标文件全部 `t()` key；既有 key 未丢失
+- [ ] 旧 key/旧文案清理有清单；不残留未引用 key
+- [ ] 真渲染：目标入口/路由的文案可见；不能用 build/探针替代
+- [ ] H5/weapp 分支分别核对；页面归属差异登记到 `docs/cases/h5-weapp-differences.md`
+- [ ] ESLint + `build:h5` + `build:weapp` + wxml 原生标签探针
 
 ---
 _草案：待评审后按 Phase 0 起步，Phase 1 起按页拆 Issue。_

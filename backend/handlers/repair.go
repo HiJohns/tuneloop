@@ -35,7 +35,7 @@ func (h *RepairHandler) StartRepair(c *gin.Context) {
 	userID := middleware.GetUserID(ctx)
 
 	var inst models.Instrument
-	if err := db.Where("id = ?", instrumentID).First(&inst).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id = ?", instrumentID, middleware.GetTenantID(ctx)).First(&inst).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
 		return
 	}
@@ -75,7 +75,7 @@ func (h *RepairHandler) CompleteRepair(c *gin.Context) {
 	userID := middleware.GetUserID(ctx)
 
 	var inst models.Instrument
-	if err := db.Where("id = ?", instrumentID).First(&inst).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id = ?", instrumentID, middleware.GetTenantID(ctx)).First(&inst).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
 		return
 	}
@@ -127,7 +127,7 @@ func (h *RepairHandler) AcceptRepair(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 
 	var inst models.Instrument
-	if err := db.Where("id = ?", instrumentID).First(&inst).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id = ?", instrumentID, middleware.GetTenantID(ctx)).First(&inst).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
 		return
 	}
@@ -188,7 +188,7 @@ func (h *RepairHandler) RejectRepair(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 
 	var inst models.Instrument
-	if err := db.Where("id = ?", instrumentID).First(&inst).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id = ?", instrumentID, middleware.GetTenantID(ctx)).First(&inst).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
 		return
 	}
@@ -255,7 +255,7 @@ func (h *RepairHandler) TakeoverRepair(c *gin.Context) {
 	userID := middleware.GetUserID(ctx)
 
 	var inst models.Instrument
-	if err := db.Where("id = ?", instrumentID).First(&inst).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id = ?", instrumentID, middleware.GetTenantID(ctx)).First(&inst).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
 		return
 	}
@@ -309,7 +309,7 @@ func (h *RepairHandler) ReassignRepair(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 
 	var inst models.Instrument
-	if err := db.Where("id = ?", instrumentID).First(&inst).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id = ?", instrumentID, middleware.GetTenantID(ctx)).First(&inst).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
 		return
 	}
@@ -365,6 +365,12 @@ func (h *RepairHandler) AddRecord(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 	userID := middleware.GetUserID(ctx)
 
+	// 显式范围：记录只能写入本租户的乐器
+	var scoped int64
+	if err := db.Model(&models.Instrument{}).Where("id = ? AND tenant_id = ?", instrumentID, middleware.GetTenantID(ctx)).Count(&scoped).Error; err != nil || scoped == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
+		return
+	}
 	photosJSON, _ := json.Marshal(req.Photos)
 
 	record := models.RepairRecord{
@@ -414,6 +420,13 @@ func (h *RepairHandler) ListRecords(c *gin.Context) {
 
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
+	// #2276：显式模式下必须先校验乐器归属（父对象授权）
+	tenantID := middleware.GetTenantID(ctx)
+	var instr models.Instrument
+	if err := db.Where("id = ? AND tenant_id = ?", instrumentID, tenantID).First(&instr).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
+		return
+	}
 
 	var records []models.RepairRecord
 	if err := db.Where("instrument_id = ?", instrumentID).Order("created_at ASC").Find(&records).Error; err != nil {

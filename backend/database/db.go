@@ -185,6 +185,11 @@ func getEnv(key, defaultValue string) string {
 func InitDB(cfg *Config) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode)
+	// #2288: 测试库共享连接池时，DDL 会使 pgx 缓存的 prepared statement 失效
+	// （SQLSTATE 0A000: cached plan must not change result type）→ 测试进程显式关闭缓存。
+	if os.Getenv("TUNELOOP_DB_SIMPLE_PROTOCOL") == "1" {
+		dsn += " default_query_exec_mode=simple_protocol"
+	}
 
 	log.Printf("[DB] Connecting: host=%s port=%s user=%s dbname=%s",
 		cfg.Host, cfg.Port, cfg.User, cfg.DBName)
@@ -423,6 +428,14 @@ var defaultMigrationArtifacts = []migrationArtifact{
 	{20260922002, "site_members", "roles", "网点成员多重角色列（#2034）"},
 	{20260923001, "pending_orders", "", "待提交订单缓存表（#2041）"},
 	{20260924001, "staff_invites", "invitee_user_id", "邀请通知被邀请人列（#2052）"},
+	{20261024001, "order_term_versions", "", "订单期限版本表（#2282 P4a）"},
+	{20261025001, "order_refund_records", "order_id", "退款流水订单锚（#2278）"},
+	{20261025002, "settlement_calculations", "ledger_version", "结算计算幂等键（#2282 P4b）"},
+	{20261025003, "orders", "referral_level_id", "下单推荐人等级快照（#2282 P4c）"},
+	{20261025003, "referral_commissions", "", "返点幂等台账（#2282 P4c）"},
+	{20261105001, "order_payment_records", "side_effect_status", "支付 side effect 状态（#2308）"},
+	{20261105001, "order_payment_records", "side_effect_error", "支付 side effect 错误（#2308）"},
+	{20261105001, "order_payment_records", "side_effect_attempts", "支付 side effect 尝试次数（#2308）"},
 	{20260924002, "users", "intro_letter_url", "介绍信列（#2057 裁定3）"},
 	{20260925001, "users", "bio", "全员富文本简介列（#2073）"},
 	{20260927001, "repair_requests", "quote_material_cents", "维修报价料钱列（#2085）"},
@@ -437,6 +450,10 @@ var defaultMigrationArtifacts = []migrationArtifact{
 	{20261002001, "repair_requests", "received_by", "收货人列（#2116）"},
 	{20261002001, "repair_requests", "received_at", "收货时间列（#2116）"},
 	{20261012001, "mall_images", "", "商城图片表（#2210）"},
+	{20261108001, "instruments", "deposit_reduced", "差额押金列（#2321）"},
+	{20261108001, "orders", "deposit_tier", "押金档位快照列（#2321）"},
+	{20261108001, "orders", "deposit_full", "全额押金快照列（#2321）"},
+	{20261108001, "orders", "deposit_reduced", "差额押金快照列（#2321）"},
 }
 
 // verifyArtifacts 纯逻辑（便于单测）：对 version ≥ a.Version 的工件断言存在。
@@ -596,6 +613,8 @@ func validateDatabaseSchema(db *gorm.DB) error {
 		&models.MerchantSettlementConfig{},
 		&models.Settlement{},
 		&models.SettlementCalculation{},
+		&models.OrderTermVersion{},   // #2282 P4a
+		&models.ReferralCommission{}, // #2282 P4c
 		&models.OverdueCharge{},
 		&models.OrderLog{},
 		&models.PaymentSession{},

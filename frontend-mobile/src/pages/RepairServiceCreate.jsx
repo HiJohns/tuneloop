@@ -196,17 +196,17 @@ export default function RepairServiceCreate() {
               <Text style={{ fontSize: 12, color: '#A1A1AA' }}>加载中...</Text>
             ) : techList.length === 0 ? (
               <Text style={{ fontSize: 12, color: '#A1A1AA' }}>暂无维修师</Text>
-            ) : techList.map(t => (
-              <View key={t.technician_id} onClick={() => setSelectedId(t.technician_id)}
+            ) : techList.map(candidate => (
+              <View key={candidate.technician_id} onClick={() => setSelectedId(candidate.technician_id)}
                 style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px solid #F4F4F5', borderRadius: 10, padding: 10 }}>
-                {t.avatar ? (
-                  <Image src={t.avatar} mode="aspectFill" style={{ width: 40, height: 40, borderRadius: 20 }} />
+                {candidate.avatar ? (
+                  <Image src={candidate.avatar} mode="aspectFill" style={{ width: 40, height: 40, borderRadius: 20 }} />
                 ) : (
                   <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4F4F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Text style={{ fontSize: 15, color: '#A1A1AA' }}>师</Text>
                   </View>
                 )}
-                <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#18181B' }}>{t.name || '维修师'}</Text>
+                <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#18181B' }}>{candidate.name || '维修师'}</Text>
               </View>
             ))}
           </View>

@@ -36,7 +36,7 @@ func (h *AssessmentHandler) GetAssessmentData(c *gin.Context) {
 		CreatedAt    time.Time `json:"created_at"`
 	}
 
-	if err := h.db.Table("orders").Where("id = ?", orderID).First(&order).Error; err != nil {
+	if err := h.db.Table("orders").Where("id = ? AND tenant_id = ?", orderID, middleware.GetTenantID(c.Request.Context())).First(&order).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"code":    40400,
 			"message": "Order not found",
@@ -113,7 +113,7 @@ func (h *AssessmentHandler) SubmitAssessment(c *gin.Context) {
 		OrgID        string `json:"org_id"`
 	}
 
-	if err := h.db.Table("orders").Where("id = ?", orderID).First(&order).Error; err != nil {
+	if err := h.db.Table("orders").Where("id = ? AND tenant_id = ?", orderID, middleware.GetTenantID(c.Request.Context())).First(&order).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"code":    40400,
 			"message": "Order not found",

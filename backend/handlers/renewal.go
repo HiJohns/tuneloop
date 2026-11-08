@@ -442,6 +442,10 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 	if err := tx.Where("id = ?", orderID).First(&order).Error; err != nil {
 		return err
 	}
+	oldEndDate := ""
+	if order.EndDate != nil {
+		oldEndDate = *order.EndDate
+	}
 
 	// Renewal continues from the original end date (not from today), so an
 	// overdue order's new end date = end_date + additional_days (continuous).
@@ -457,45 +461,36 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 		return err
 	}
 
-	// Update pricing_breakdown with new tier segments
+	// #2282 P4a：pricing_breakdown 创建后只读——续租仅追加 term_version。
+	// 续期档位段（分语义）写入版本，供审计/结算区间核对。
+	termSegmentsJSON := "[]"
+	termTotalCents := record.Amount
 	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
 		var pb services.PricingBreakdown
 		if err := json.Unmarshal([]byte(*order.PricingBreakdown), &pb); err == nil {
-			originalDays := pb.RentDays
-			newTotalDays := originalDays + additionalDays
-			pb.RentDays = newTotalDays
-
-			// Recompute tier segments for the full new term
-			pb.TierSegments = services.ComputeTierSegments(newTotalDays, pb.PricingTiers)
-
-			// Build cumulative discount from applied policies
+			offset := pb.RentDays
+			if usedDays, _, ok := termVersionTotals(tx, orderID); ok {
+				offset = usedDays
+			}
+			segs := services.ComputeTierSegmentsFromOffset(offset, additionalDays, pb.PricingTiers)
 			cumulativeDiscount := 1.0
 			for _, p := range pb.AppliedPolicies {
-				if p.Type == "membership_discount" || p.Type == "promo_campaign" {
-					if p.Rate > 0 {
-						cumulativeDiscount *= p.Rate
-					}
+				if (p.Type == "membership_discount" || p.Type == "promo_campaign") && p.Rate > 0 {
+					cumulativeDiscount *= p.Rate
 				}
 			}
-
-			// Recompute totals
-			newTotalAmount := 0.0
-			for i := range pb.TierSegments {
-				s := &pb.TierSegments[i]
+			total := 0.0
+			for i := range segs {
+				s := &segs[i]
 				s.Rate = pb.BaseDailyRent
 				s.Discount = s.Discount * cumulativeDiscount
 				s.Subtotal = s.Rate * s.Discount * float64(s.Days)
-				newTotalAmount += s.Subtotal
+				total += s.Subtotal
 			}
-
-			pb.TotalAmount = math.Round(newTotalAmount*100) / 100
-			newEffectiveRate := pb.TotalAmount / float64(newTotalDays)
-			pb.FinalDailyRent = math.Round(newEffectiveRate*100) / 100
-
-			updatedPBJSON, err := json.Marshal(pb)
-			if err == nil {
-				updatedStr := string(updatedPBJSON)
-				tx.Model(&order).Update("pricing_breakdown", &updatedStr)
+			if b, err := json.Marshal(segs); err == nil {
+				termSegmentsJSON = string(b)
+				// #2282 P4a：版本金额 = 档位段合计（租金口径，分）；现金实付见支付流水。
+				termTotalCents = models.Cents(math.Round(total))
 			}
 		}
 	}
@@ -503,10 +498,25 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 	// Update cash_paid / prepaid_points_used with renewal payment
 	renewalAmount := record.Amount
 	if record.Status == "paid" && renewalAmount > 0 {
-		tx.Model(&models.Order{}).Where("id = ?", orderID).Updates(map[string]interface{}{
-			"cash_paid":           gorm.Expr("cash_paid + ?", renewalAmount),
-			"prepaid_points_used": gorm.Expr("prepaid_points_used + ?", 0), // renewal is cash (WeChat Pay)
-		})
+		if err := addOrderCashPaid(tx, orderID, renewalAmount); err != nil {
+			log.Printf("[Renewal] add cash_paid failed for order %s: %v", orderID, err)
+		}
+	}
+
+	// #2282 P4a：追加不可变期限版本（pricing_breakdown 的读切换在 P4b 完成前暂保留）
+	var lastVer int
+	tx.Model(&models.OrderTermVersion{}).Where("order_id = ?", orderID).
+		Select("COALESCE(MAX(version),0)").Scan(&lastVer)
+	termStart := oldEndDate
+	tv := models.OrderTermVersion{
+		OrderID: orderID, Version: lastVer + 1, StartDate: &termStart, EndDate: &newEndDateStr,
+		Days: additionalDays, TierSegments: termSegmentsJSON, TotalAmount: termTotalCents,
+	}
+	if record.ID != "" {
+		tv.PaymentRecordID = &record.ID
+	}
+	if err := tx.Create(&tv).Error; err != nil {
+		log.Printf("[Renewal] insert term_version failed for order %s: %v", orderID, err)
 	}
 
 	// 续期是顾客主动发起（续期页选天数 + 微信支付），日志须归属支付人

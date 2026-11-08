@@ -1015,16 +1015,25 @@ steps:
 - 退款按钮仅 deposit_refunding 状态（#1607）
 - weapp 的 OrderDetail 独立副本（pages-weapp/order-detail）需与共享版行为一致——最终目标：**weapp 薄壳引用共享 OrderDetail.jsx**（消除双代码库）
 
-## 免押金申请资格（#1867 收紧）
+## 押金三态（#2321，D1–D5）
 
-免押金（deposit_waived）下单时的服务端强制条件（防止前端绕过）：
+- **全额**：默认；`orders.deposit` = 乐器全额押金。
+- **差额**：乐器配置 `deposit_reduced`（可空；0=差额 0）；需满足 #1867 既有资格 + 2 担保人 + 推荐信；`orders.deposit_tier=reduced`，实付差额；无差额配置时回退全额。
+- **零押金**：乐器全额押金=0；无需担保人/推荐信；`deposit_tier=zero`，实付 0。
+- **历史**：旧 `deposit_waived=true` 订单不追溯；新订单 `deposit_waived=false`，旧请求字段仅兼容为 reduced。
+- **退款/结算**：均以 `orders.deposit` 实付为基准。
 
-1. **身份**：用户已实名核验（`face_verified`）且第三证件类型（#1807）为 `student` / `teacher` —— 社会人员不可申请
+## 免押金申请资格（#1867 收紧，差额档沿用）
+
+差额押金（`deposit_tier=reduced`）下单时的服务端强制条件（防止前端绕过）：
+
+1. **身份**：用户已实名核验（`face_verified`）且第三证件类型（#1807）为 `student` / `teacher` —— 社会人员不可申请（D1 要求不变）
 2. **信用分**：内部信用分 ≥ `DEPOSIT_WAIVER_MIN_CREDIT`（env，默认 600；外部征信接入前为模拟口径）
 3. **担保人**：≥ 2 个本人名下担保人（#1557 既有规则）
 4. **推荐信**：`recommendation_letter` 非空 —— 结算页可下载推荐信模板（移动端静态 PDF），推荐人签名后拍照上传
 5. 员工在订单详情查看担保人 + 推荐信照片，不符合要求走既有 staff-cancel（reason=担保人不符合要求）
-6. 资格查询端点：`GET /user/deposit-waiver/eligibility`（响应含 `eligible`/`reasons`，结算页据此禁用免押开关并提示原因）
+6. 资格查询端点：`GET /user/deposit-waiver/eligibility`（响应含 `eligible`/`reasons`，结算页据此禁用差额开关并提示原因）
+7. 前端展示三态（D5）：全额 / 差额 / 零押金；无差额档时担保人不产生折扣
 
 ## 验收
 - checklist-verify.py：L-07 各 seq 的 page/controls/api 在 weapp+h5 均通过（配合 #1613 修复）

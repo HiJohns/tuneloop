@@ -380,7 +380,8 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	if err != nil {
 		// #2243：IAM 409（已注册）→ 业务冲突 409 + 明确文案；不得统一 500
 		if errors.Is(err, services.ErrIAMUserExists) {
-			c.JSON(http.StatusConflict, gin.H{"code": 40910, "message": "该手机号/邮箱/用户名已在平台注册，请让本人登录后自助加入（作为员工加入 / 注册为顾客）"})
+			// #2290：按 IAM 返回的具体冲突字段给出可操作提示
+			respondIAMCreateConflict(c, err, req.Username, req.Email, req.Phone)
 			return
 		}
 		// #2243：非冲突类 IAM 4xx → 400 + 保留 IAM 原始 message（不再一律 500）
@@ -411,7 +412,9 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		operatorID := middleware.GetUserID(c.Request.Context())
 		iamRole := toIAMRole(resolvedRole)
 		if err := iamClient.BindUserToOrganizationWithToken(userToken, user.IAMSub, orgID, iamRole, operatorID); err != nil {
-			iamClient.DeleteUser(user.IAMSub)
+			if purgeErr := iamClient.PurgeUser(user.IAMSub); purgeErr != nil {
+				log.Printf("[CreateUser] rollback purge failed for %s: %v", user.IAMSub, purgeErr)
+			}
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM bind user to organization failed: " + err.Error()})
 			return
 		}
@@ -479,7 +482,9 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	}); err != nil {
 		if orgID != "" && user.IAMSub != "" {
 			iamClient.UnbindUserFromOrganization(user.IAMSub, orgID, "")
-			iamClient.DeleteUser(user.IAMSub)
+			if purgeErr := iamClient.PurgeUser(user.IAMSub); purgeErr != nil {
+				log.Printf("[CreateUser] rollback purge failed for %s: %v", user.IAMSub, purgeErr)
+			}
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create user: " + err.Error()})
 		return
@@ -550,7 +555,8 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 	if err != nil {
 		// #2243：IAM 409（已注册）→ 业务冲突 409 + 明确文案；不得统一 500
 		if errors.Is(err, services.ErrIAMUserExists) {
-			c.JSON(http.StatusConflict, gin.H{"code": 40910, "message": "该手机号/邮箱/用户名已在平台注册，请让本人登录后自助加入（作为员工加入 / 注册为顾客）"})
+			// #2290：激活路径用户名固定取 email → 按邮箱冲突提示
+			respondIAMCreateConflict(c, err, "", user.Email, user.Phone)
 			return
 		}
 		// #2243：非冲突类 IAM 4xx → 400 + 保留 IAM 原始 message（不再一律 500）
@@ -577,7 +583,9 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 		iamRole = "staff"
 	}
 	if err := iamClient.BindUserToOrganization(iamResp.UserID, orgID, iamRole, ""); err != nil {
-		iamClient.DeleteUser(iamResp.UserID)
+		if purgeErr := iamClient.PurgeUser(iamResp.UserID); purgeErr != nil {
+			log.Printf("[ActivateUser] rollback purge failed for %s: %v", iamResp.UserID, purgeErr)
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM bind user to organization failed: " + err.Error()})
 		return
 	}
@@ -587,7 +595,9 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 		cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(template.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
 		if err := iamClient.SetUserCustomerPermissions(orgID, iamResp.UserID, cusPerm, cusPermExt); err != nil {
 			iamClient.UnbindUserFromOrganization(iamResp.UserID, orgID, "")
-			iamClient.DeleteUser(iamResp.UserID)
+			if purgeErr := iamClient.PurgeUser(iamResp.UserID); purgeErr != nil {
+				log.Printf("[ActivateUser] rollback purge failed for %s: %v", iamResp.UserID, purgeErr)
+			}
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM set user permissions failed: " + err.Error()})
 			return
 		}
@@ -602,7 +612,9 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 		"status":  status,
 	}).Error; err != nil {
 		iamClient.UnbindUserFromOrganization(iamResp.UserID, orgID, "")
-		iamClient.DeleteUser(iamResp.UserID)
+		if purgeErr := iamClient.PurgeUser(iamResp.UserID); purgeErr != nil {
+			log.Printf("[ActivateUser] rollback purge failed for %s: %v", iamResp.UserID, purgeErr)
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update user iam_sub: " + err.Error()})
 		return
 	}
@@ -1577,8 +1589,26 @@ func (h *UserStaffHandler) WxMergeCurrentUser(c *gin.Context) {
 
 // iamErrorMessage（#2243）提取 IAM 4xx 响应中的可读 message：
 // 优先 json.message / json.error；无法解析时回退原始响应体（保留 IAM 原始文案）。
+// iamErrorBody 提取 IAM 错误中包裹的 JSON body（409/4xx 均复用，#2290）。
+func iamErrorBody(err error) string {
+	raw := err.Error()
+	for _, prefix := range []string{
+		services.ErrIAMUserExists.Error() + ": ",
+		services.ErrIAMInvalidRequest.Error() + ": ",
+	} {
+		if strings.HasPrefix(raw, prefix) {
+			raw = strings.TrimPrefix(raw, prefix)
+			break
+		}
+	}
+	if i := strings.Index(raw, "{"); i >= 0 {
+		raw = raw[i:]
+	}
+	return strings.TrimSpace(raw)
+}
+
 func iamErrorMessage(err error) string {
-	raw := strings.TrimPrefix(err.Error(), services.ErrIAMInvalidRequest.Error()+": ")
+	raw := iamErrorBody(err)
 	var payload struct {
 		Message string `json:"message"`
 		Error   string `json:"error"`
@@ -1592,4 +1622,62 @@ func iamErrorMessage(err error) string {
 		}
 	}
 	return raw
+}
+
+// iamConflictField 解析 IAM 409 body 的具体冲突字段（#2290）。
+func iamConflictField(err error) string {
+	var payload struct {
+		Message string `json:"message"`
+		Error   string `json:"error"`
+	}
+	if json.Unmarshal([]byte(iamErrorBody(err)), &payload) != nil {
+		return ""
+	}
+	text := strings.ToLower(strings.TrimSpace(payload.Error + " " + payload.Message))
+	switch {
+	case strings.Contains(text, "username already exists"):
+		return "username"
+	case strings.Contains(text, "phone already exists"):
+		return "phone"
+	case strings.Contains(text, "email already exists"):
+		return "email"
+	default:
+		return ""
+	}
+}
+
+// respondIAMCreateConflict 统一 IAM 创建冲突响应（#2290）。
+// username 留空（或等于 email）时 IAM 的 "username already exists" 归一化为邮箱冲突。
+func respondIAMCreateConflict(c *gin.Context, err error, requestedUsername, email, phone string) {
+	field := iamConflictField(err)
+	if field == "username" &&
+		(strings.TrimSpace(requestedUsername) == "" || (email != "" && strings.EqualFold(requestedUsername, email))) {
+		field = "email"
+	}
+	switch field {
+	case "username":
+		c.JSON(http.StatusConflict, gin.H{
+			"code":    40911,
+			"message": fmt.Sprintf("用户名「%s」已被其他账号使用（登录名在平台内唯一）。请更换用户名，或留空自动使用邮箱。", requestedUsername),
+			"data":    gin.H{"conflict_field": "username", "conflict_value": requestedUsername},
+		})
+	case "phone":
+		c.JSON(http.StatusConflict, gin.H{
+			"code":    40913,
+			"message": fmt.Sprintf("手机号「%s」已被其他账号使用。请更换手机号，或让本人登录后自助加入。", phone),
+			"data":    gin.H{"conflict_field": "phone", "conflict_value": phone},
+		})
+	case "email":
+		value := email
+		if value == "" {
+			value = requestedUsername
+		}
+		c.JSON(http.StatusConflict, gin.H{
+			"code":    40914,
+			"message": fmt.Sprintf("邮箱「%s」已被其他账号使用。请更换邮箱，或让本人登录后自助加入。", value),
+			"data":    gin.H{"conflict_field": "email", "conflict_value": value},
+		})
+	default:
+		c.JSON(http.StatusConflict, gin.H{"code": 40910, "message": "该手机号/邮箱/用户名已在平台注册，请让本人登录后自助加入（作为员工加入 / 注册为顾客）"})
+	}
 }

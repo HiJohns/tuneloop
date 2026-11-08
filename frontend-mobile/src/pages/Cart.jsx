@@ -445,9 +445,9 @@ export default function Cart() {
 
                             {/* Tier breakdown (小票标准：阶梯天数×日租金=费用 → 租金合计 + 押金 + 总金额) */}
                             <View className="text-right mt-2" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                              {pricing.tiers.map((t, i) => (
+                              {pricing.tiers.map((tier, i) => (
                                 <Text key={i} className="block text-zinc-500">
-                                  {t.days}天 × ¥{formatCents((t.rate || 0))}/天 = ¥{formatCents((t.fee || 0))}
+                                  {tier.days}天 × ¥{formatCents((tier.rate || 0))}/天 = ¥{formatCents((tier.fee || 0))}
                                 </Text>
                               ))}
                               <Text className="block text-zinc-500">租金合计 ¥{formatCents(pricing.rent)}</Text>

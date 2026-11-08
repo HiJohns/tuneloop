@@ -8,10 +8,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
-	"tuneloop-backend/testutil"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -24,23 +23,7 @@ import (
 // customer user (with ID photos) and a pending batch.
 func setupIdCardTestDB(t *testing.T) (*gorm.DB, string) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return nil, ""
-	}
-	testutil.SetDB(t, db)
-
-	for _, m := range []interface{}{
-		&models.User{}, &models.FaceCaptureBatch{}, &models.Notification{}, &models.AuditLog{},
-	} {
-		_ = db.Migrator().DropTable(m)
-		require.NoError(t, db.Migrator().CreateTable(m))
-	}
-	if !db.Migrator().HasColumn(&models.User{}, "iam_sub") {
-		require.NoError(t, db.Exec(`ALTER TABLE users ADD COLUMN iam_sub varchar(255)`).Error)
-	}
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	userID := uuid.New().String()

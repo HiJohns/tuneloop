@@ -20,7 +20,7 @@ export default function ReceiveConfirm() {
     if (!env.isMiniProgram) return navigate(to)
     if (to === -1) return Taro.navigateBack()
     const route = toWeappRoute(to)
-    if (!route) { dialog.alert('该功能请在 H5 端使用'); return }
+    if (!route) { dialog.alert(t("该功能请在 H5 端使用")); return }
     if (route.type === 'switchTab') return Taro.switchTab({ url: route.url })
     return Taro.navigateTo({ url: route.url })
   }
@@ -76,7 +76,7 @@ export default function ReceiveConfirm() {
   }
 
   const handleConfirmReceive = async () => {
-    if (!orderId) { dialog.alert('订单不存在'); return }
+    if (!orderId) { dialog.alert(t("订单不存在")); return }
     setSubmitting(true)
     try {
       const photoUrls = []
@@ -95,24 +95,24 @@ export default function ReceiveConfirm() {
       })
       const result = await resp.json()
       if (result.code === 20000) {
-        dialog.alert('确认收货成功')
+        dialog.alert(t("确认收货成功"))
         if (env.isMiniProgram) {
           Taro.navigateBack()
         } else {
           navigate('/my-leases', { replace: true })
         }
       } else {
-        dialog.alert('确认收货失败: ' + (resolveErrorMessage(result, '')))
+        dialog.alert(t("确认收货失败: {msg}", { msg: resolveErrorMessage(result, '') }))
       }
     } catch (err) {
-      dialog.alert('操作失败: ' + err.message)
+      dialog.alert(t("操作失败: {msg}", { msg: err.message }))
     }
     setSubmitting(false)
   }
 
   if (loading) {
     return <View style={{ backgroundColor: "#FDFBF7" }} className="min-h-screen flex items-center justify-center">
-      <Text className="text-zinc-400 font-medium">加载中...</Text>
+      <Text className="text-zinc-400 font-medium">{t("加载中...")}</Text>
     </View>
   }
 
@@ -136,7 +136,7 @@ export default function ReceiveConfirm() {
       {!env.isMiniProgram && (
         <View style={{ backgroundImage: 'linear-gradient(to bottom, #FDF4E7, #FFFFFF)' }} className="px-4 pt-4 pb-3 flex items-center gap-2">
           <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
-          <Text className="text-lg font-black text-black">确认收货</Text>
+          <Text className="text-lg font-black text-black">{t("确认收货")}</Text>
         </View>
       )}
 
@@ -163,25 +163,25 @@ export default function ReceiveConfirm() {
         const total = subtotal + deposit + shipping
         return (
           <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
-            <Text className="text-base font-black text-black mb-3">费用信息</Text>
+            <Text className="text-base font-black text-black mb-3">{t("费用信息")}</Text>
             <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <View className="flex justify-between text-sm">
-                <Text className="text-zinc-500 font-medium">租金小计</Text>
+                <Text className="text-zinc-500 font-medium">{t("租金小计")}</Text>
                 <Text className="text-black font-black">¥{formatCents(subtotal)}</Text>
               </View>
               <View className="flex justify-between text-sm">
-                <Text className="text-zinc-500 font-medium">押金</Text>
+                <Text className="text-zinc-500 font-medium">{t("押金")}</Text>
                 <Text className="text-black font-black">¥{formatCents(deposit)}</Text>
               </View>
               {shipping > 0 && (
                 <View className="flex justify-between text-sm">
-                  <Text className="text-zinc-500 font-medium">物流费</Text>
+                  <Text className="text-zinc-500 font-medium">{t("物流费")}</Text>
                   <Text className="text-black font-black">¥{formatCents(shipping)}</Text>
                 </View>
               )}
               <View className="border-t border-zinc-100 pt-2 mt-1">
                 <View className="flex justify-between text-sm">
-                  <Text className="text-zinc-700 font-bold">合计</Text>
+                  <Text className="text-zinc-700 font-bold">{t("合计")}</Text>
                   <Text className="text-green-600 font-black text-base">¥{formatCents(total)}</Text>
                 </View>
               </View>
@@ -194,11 +194,11 @@ export default function ReceiveConfirm() {
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <Text className="text-base font-black text-black mb-3 flex items-center gap-2">
           <Camera size={18} />
-          拍照留档
+          {t("拍照留档")}
         </Text>
         <View className="mb-3">
-          <Text className="block text-xs text-red-500 font-normal leading-relaxed">{t('*为保障您的权益，发货前我们将提供乐器的照片及视频，完整展示提琴的面板、背板、侧板、琴头、琴颈等各部位状态。')}</Text>
-          <Text className="block text-xs text-red-500 font-normal leading-relaxed mt-1">{t('请您在收到后及时核对确认，以此为例拍摄提琴各部位的图片及视频，以便明确乐器在交付时的实际状况，避免后续因运输损坏等问题产生争议。')}</Text>
+          <Text className="block text-xs text-red-500 font-normal leading-relaxed">{t('*为保障您的权益，发货前我们将提供乐器的照片，完整展示乐器的面板、背板、侧板、琴头、琴颈等各部位状态。')}</Text>
+          <Text className="block text-xs text-red-500 font-normal leading-relaxed mt-1">{t('请您在收到后及时核对确认，以此为例拍摄乐器各部位的照片，以便明确乐器在交付时的实际状况，避免后续因运输损坏等问题产生争议。')}</Text>
         </View>
         <View className="flex flex-wrap gap-2">
           {photoFiles.map((file, i) => (
@@ -215,12 +215,12 @@ export default function ReceiveConfirm() {
               <View onClick={handlePhotoCaptureWeapp}
                 className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400">
                 <Camera size={20} />
-                <Text className="text-xs mt-1">拍摄</Text>
+                <Text className="text-xs mt-1">{t("拍摄")}</Text>
               </View>
             ) : (
               <label className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer text-gray-400">
                 <Camera size={20} />
-                <Text className="text-xs mt-1">拍摄</Text>
+                <Text className="text-xs mt-1">{t("拍摄")}</Text>
                 <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handlePhotoCapture} />
               </label>
             )

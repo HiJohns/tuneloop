@@ -20,6 +20,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type UserSettlementHandler struct{}
@@ -68,7 +69,9 @@ func (h *UserSettlementHandler) CalculateSettlement(c *gin.Context) {
 	// #1738 P2: persist the preview computation and respond with exactly the
 	// persisted bytes — what the client sees is what the audit trail stores.
 	breakdownJSON, _ := json.Marshal(result.Breakdown)
-	recordSettlementCalculation(db, &order, "preview", result.ActualDays, breakdownJSON)
+	if _, err := recordSettlementCalculation(db, &order, "preview", result.ActualDays, breakdownJSON); err != nil {
+		log.Printf("[SettlementAudit] preview record failed for order %s: %v", order.ID, err)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
@@ -79,7 +82,7 @@ func (h *UserSettlementHandler) CalculateSettlement(c *gin.Context) {
 // recordSettlementCalculation (#1738 P2): append-only audit row capturing
 // the order input snapshot and the computed result. Best-effort: a failed
 // insert is logged loudly but never blocks the settlement flow itself.
-func recordSettlementCalculation(db *gorm.DB, order *models.Order, trigger string, actualDays int, breakdownJSON []byte) {
+func recordSettlementCalculation(db *gorm.DB, order *models.Order, trigger string, actualDays int, breakdownJSON []byte) (models.SettlementCalculation, error) {
 	inputs, err := json.Marshal(map[string]interface{}{
 		"order_id":                  order.ID,
 		"status":                    order.Status,
@@ -95,8 +98,11 @@ func recordSettlementCalculation(db *gorm.DB, order *models.Order, trigger strin
 		"pricing_breakdown":         order.PricingBreakdown,
 	})
 	if err != nil {
-		log.Printf("[SettlementAudit] input snapshot marshal failed for order %s: %v", order.ID, err)
-		return
+		return models.SettlementCalculation{}, err
+	}
+	ledger, err := LoadOrderLedger(db, order.ID)
+	if err != nil {
+		return models.SettlementCalculation{}, err
 	}
 	snap := string(inputs)
 	res := string(breakdownJSON)
@@ -108,11 +114,25 @@ func recordSettlementCalculation(db *gorm.DB, order *models.Order, trigger strin
 		InputSnapshot: &snap,
 		Result:        &res,
 		ActualDays:    actualDays,
+		LedgerVersion: ledger.Version,
 		CreatedAt:     time.Now(),
 	}
-	if err := db.Create(&row).Error; err != nil {
-		log.Printf("[SettlementAudit] FAILED to persist calculation (trigger=%s) for order %s: %v", trigger, order.ID, err)
+	tx := db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "order_id"}, {Name: "trigger"}, {Name: "ledger_version"}},
+		DoNothing: true,
+	}).Create(&row)
+	if tx.Error != nil {
+		return row, tx.Error
 	}
+	if tx.RowsAffected == 0 {
+		var existing models.SettlementCalculation
+		if err := db.Where("order_id = ? AND trigger = ? AND ledger_version = ?", order.ID, trigger, ledger.Version).
+			First(&existing).Error; err != nil {
+			return row, err
+		}
+		return existing, nil
+	}
+	return row, nil
 }
 
 func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
@@ -194,57 +214,12 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 
 	// Cash refund via WeChat Pay (if cash was paid on this order)
 	if result.CashRefundable > 0 {
-		var paymentRecord models.OrderPaymentRecord
-		paymentFound := false
-		var outTradeNo string
-		if err := tx.Where("order_id = ? AND order_type = ? AND status = ?", orderID, "rent", "paid").First(&paymentRecord).Error; err == nil && paymentRecord.ID != "" {
-			paymentFound = true
-			if paymentRecord.OutTradeNo != nil {
-				outTradeNo = *paymentRecord.OutTradeNo
-			}
+		rec, status, refundErr := initiateCashRefund(c.Request.Context(), tx, order, models.FromYuan(result.CashRefundable), "租赁结算退款")
+		settlement.RefundStatus = status
+		if refundErr != nil {
+			log.Printf("[ConfirmSettlement] refund failed for order %s: %v", orderID, refundErr)
 		}
-
-		cfg := wechatpay.GetConfig()
-		outRefundNo := fmt.Sprintf("sttl_%s_%d", orderID[:8], time.Now().Unix())
-
-		refundRecord := models.OrderRefundRecord{
-			ID:        uuid.New().String(),
-			TenantID:  order.TenantID,
-			Amount:    models.FromYuan(result.CashRefundable),
-			Reason:    strPtr("租赁结算退款"),
-			Status:    "pending",
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		}
-
-		if !paymentFound {
-			refundRecord.Status = "refunded"
-			settlement.RefundStatus = "completed"
-		} else {
-			refundRecord.PaymentRecordID = &paymentRecord.ID
-			client := wechatpay.GetClient()
-			refundResp, err := client.Refund(c.Request.Context(), wechatpay.RefundParams{
-				OutTradeNo:   outTradeNo,
-				OutRefundNo:  outRefundNo,
-				TotalAmount:  int64(paymentRecord.Amount),
-				RefundAmount: int64(models.FromYuan(result.CashRefundable)),
-				Reason:       "租赁结算退款",
-				NotifyURL:    cfg.RefundNotifyURL,
-			})
-			if err != nil {
-				refundRecord.Status = "failed"
-				fr := err.Error()
-				refundRecord.FailReason = &fr
-				log.Printf("[ConfirmSettlement] refund failed for order %s: %v", orderID, err)
-				settlement.RefundStatus = "failed"
-			} else {
-				refundRecord.RefundID = &refundResp.RefundID
-				settlement.RefundStatus = "refunding"
-			}
-		}
-		refundRecord.OutRefundNo = &outRefundNo
-
-		if err := tx.Create(&refundRecord).Error; err != nil {
+		if rec == nil {
 			tx.Rollback()
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create refund record"})
 			return
@@ -263,7 +238,7 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		spendingBasis = result.RentPayable
 	}
 	if err := tx.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
-		"total_spending": gorm.Expr("total_spending + ?", spendingBasis),
+		"total_spending": gorm.Expr("total_spending + ?", models.FromYuan(spendingBasis)),
 		"updated_at":     time.Now(),
 	}).Error; err != nil {
 		tx.Rollback()
@@ -291,7 +266,9 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 	tx.Commit()
 
 	// #1738 P2: audit the confirm-time recomputation (inputs + final numbers).
-	recordSettlementCalculation(db, &order, "confirm", result.ActualDays, breakdownJSON)
+	if _, err := recordSettlementCalculation(db, &order, "confirm", result.ActualDays, breakdownJSON); err != nil {
+		log.Printf("[SettlementAudit] confirm record failed for order %s: %v", order.ID, err)
+	}
 
 	// Check and upgrade membership level after settlement
 	if err := services.CheckAndUpgradeLevel(userID, nil); err != nil {
@@ -497,75 +474,28 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 
 	// Cash refund via WeChat Pay
 	if result.CashRefundable > 0 {
-		cfg := wechatpay.GetConfig()
-
-		outRefundNo := fmt.Sprintf("sttl_%s_%d", order.ID[:8], time.Now().Unix())
-
-		refundRecord := models.OrderRefundRecord{
-			ID:        uuid.New().String(),
-			TenantID:  order.TenantID,
-			Amount:    models.FromYuan(result.CashRefundable),
-			Reason:    strPtr("租赁结算退款"),
-			Status:    "pending",
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+		ctx := tx.Statement.Context
+		if ctx == nil {
+			ctx = context.Background()
 		}
-
-		var paymentRecord models.OrderPaymentRecord
-		paymentFound := false
-		var outTradeNo string
-		if err := tx.Where("order_id = ? AND order_type = ? AND status = ?", order.ID, "rent", "paid").First(&paymentRecord).Error; err == nil && paymentRecord.ID != "" {
-			paymentFound = true
-			if paymentRecord.OutTradeNo != nil {
-				outTradeNo = *paymentRecord.OutTradeNo
-			}
+		rec, status, refundErr := initiateCashRefund(ctx, tx, order, models.FromYuan(result.CashRefundable), "租赁结算退款")
+		if refundErr != nil {
+			log.Printf("[executeRefund] refund failed for order %s: %v", order.ID, refundErr)
 		}
-
-		if !paymentFound || cfg == nil || paymentRecord.Amount <= 0 {
-			refundRecord.Status = "refunded"
-			if settlement != nil {
-				settlement.RefundStatus = "completed"
-			}
-		} else {
-			refundRecord.PaymentRecordID = &paymentRecord.ID
-			client := wechatpay.GetClient()
-			refundResp, err := client.Refund(context.Background(), wechatpay.RefundParams{
-				OutTradeNo:   outTradeNo,
-				OutRefundNo:  outRefundNo,
-				TotalAmount:  int64(paymentRecord.Amount),
-				RefundAmount: int64(models.FromYuan(result.CashRefundable)),
-				Reason:       "租赁结算退款",
-				NotifyURL:    cfg.RefundNotifyURL,
-			})
-			if err != nil {
-				refundRecord.Status = "failed"
-				fr := err.Error()
-				refundRecord.FailReason = &fr
-				log.Printf("[executeRefund] refund failed for order %s: %v", order.ID, err)
-				if settlement != nil {
-					settlement.RefundStatus = "failed"
-				}
-			} else {
-				refundRecord.RefundID = &refundResp.RefundID
-				if settlement != nil {
-					settlement.RefundStatus = "refunding"
-				}
-			}
+		if rec == nil {
+			return nil, fmt.Errorf("failed to create refund record for order %s", order.ID)
 		}
-		refundRecord.OutRefundNo = &outRefundNo
-
-		if err := tx.Create(&refundRecord).Error; err != nil {
-			return nil, fmt.Errorf("failed to create refund record: %w", err)
+		if settlement != nil {
+			settlement.RefundStatus = status
 		}
 	}
-
+	// 结算状态持久化（含零现金 → completed）
 	if settlement != nil {
 		if err := tx.Model(settlement).Update("refund_status", settlement.RefundStatus).Error; err != nil {
 			return nil, fmt.Errorf("failed to update settlement status: %w", err)
 		}
 	}
-
-	// Mark deposit as refunded only after actual refund executes
+	// 退款执行后标记押金已退（保持 #1743 旧语义）
 	if err := tx.Model(&models.Order{}).Where("id = ?", order.ID).Update("deposit_refunded", true).Error; err != nil {
 		return nil, fmt.Errorf("failed to mark deposit refunded: %w", err)
 	}
@@ -579,40 +509,45 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 		spendingBasis = result.RentPayable
 	}
 	if err := tx.Model(&models.User{}).Where("id = ?", order.UserID).Updates(map[string]interface{}{
-		"total_spending": gorm.Expr("total_spending + ?", spendingBasis),
+		"total_spending": gorm.Expr("total_spending + ?", models.FromYuan(spendingBasis)),
 		"updated_at":     time.Now(),
 	}).Error; err != nil {
 		return nil, fmt.Errorf("failed to update total spending: %w", err)
 	}
 
-	// #1945 Sub-B：取消"退款返点给自己"（refund_rebate 不再产生）。
+	// #2282 P4c：返点按实收现金（CashBasis）、结算时点、order_id 幂等、等级取订单快照、0 现金不发。
 	var orderUser models.User
 	if err := tx.Where("id = ?", order.UserID).First(&orderUser).Error; err == nil {
-		// Referral commission (#1542 + #1535): referrer gets gift points
-		// proportional to the referred user's rent × referrer-level ratio.
 		if referrer := services.FindReferrer(order.UserID); referrer != nil {
-			refRatio := 0.0
-			if policy := services.GetGiftPolicyByLevel(tx, levelIDOrZero(referrer.MembershipLevelID)); policy != nil {
-				refRatio = policy.ReferralRatio
+			levelID := 0
+			if order.ReferralLevelID != nil {
+				levelID = *order.ReferralLevelID
+			} else if referrer.MembershipLevelID != nil {
+				levelID = *referrer.MembershipLevelID
 			}
-			if refRatio > 0 {
-				refPoints := math.Floor(result.RentPayable * refRatio)
-				if refPoints > 0 {
-					refCents := models.FromYuan(refPoints) // #1757: cents — yuan-computed points ×100
-					// #1945 / #1983: 裂变返佣建批次（批次 SUM 为余额唯一真源）
-					if _, berr := services.CreatePointsBatch(tx, referrer.ID, services.PointBatchSourceFission, "referral_spend", refCents); berr != nil {
-						log.Printf("[executeRefund] create fission points batch failed: %v", berr)
+			basis := result.CashBasis
+			if basis > 0 {
+				if policy := services.GetGiftPolicyByLevel(tx, levelID); policy != nil && policy.ReferralRatio > 0 {
+					refPoints := math.Floor(basis * policy.ReferralRatio)
+					if refPoints > 0 {
+						refCents := models.FromYuan(refPoints)
+						rc := models.ReferralCommission{
+							OrderID: order.ID, ReferrerID: referrer.ID, AmountCents: refCents,
+							LevelID: &levelID, BasisCents: models.FromYuan(basis), CreatedAt: time.Now(),
+						}
+						res := tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "order_id"}}, DoNothing: true}).Create(&rc)
+						if res.Error == nil && res.RowsAffected > 0 {
+							if _, berr := services.CreatePointsBatch(tx, referrer.ID, services.PointBatchSourceFission, "referral_spend", refCents); berr != nil {
+								log.Printf("[executeRefund] create fission points batch failed: %v", berr)
+							}
+							tx.Create(&models.PointsTransaction{
+								ID: uuid.New().String(), UserID: referrer.ID, TenantID: order.TenantID,
+								Type: "referral", Amount: refCents, OrderID: &order.ID,
+								Description: fmt.Sprintf("介绍人返赠点: 实收现金 ¥%.2f × %.2f%%", basis, policy.ReferralRatio*100),
+								CreatedAt:   time.Now(),
+							})
+						}
 					}
-					tx.Create(&models.PointsTransaction{
-						ID:          uuid.New().String(),
-						UserID:      referrer.ID,
-						TenantID:    order.TenantID,
-						Type:        "referral",
-						Amount:      refCents,
-						OrderID:     &order.ID,
-						Description: fmt.Sprintf("介绍人返赠点: 被介绍人订单租金 ¥%.2f × %.2f%%", result.RentPayable, refRatio*100),
-						CreatedAt:   time.Now(),
-					})
 				}
 			}
 		}
@@ -678,6 +613,13 @@ type settlementResult struct {
 // computeSettlement performs the tier-based rent calculation and refund math.
 // It mirrors docs/cases/cases.md §2.7.
 func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
+	// #2281 P3 步骤2：有账本时以账本净额为准（无流水旧单保持 cash_paid fallback）。
+	if l, err := LoadOrderLedger(db, order.ID); err == nil && l.HasLedger {
+		if order.CashPaid != l.Net {
+			log.Printf("[Ledger] cash_paid(%d) != ledger net(%d) for order %s, using ledger", order.CashPaid, l.Net, order.ID)
+		}
+		order.CashPaid = l.Net
+	}
 	_, finalDailyRent, _ := parsePricingBreakdown(order.PricingBreakdown)
 	// #1803 T2: 首期基准日租（分语义），用于首期/续费阶梯展开（Rate 赋值）。
 	// final_daily_rent 为折扣后，base_daily_rent 为折扣前基准。
@@ -699,6 +641,12 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	}
 	_, capRate, snapPayRatio := parsePointsPolicySnapshot(order.PointsPolicySnapshot)
 
+	// #2282 P4a：有 term_versions → 覆盖天数/日均以版本为准；无版本走旧单 fallback。
+	versionDays, versionTotal, hasVersions := termVersionTotals(db, order.ID)
+	if hasVersions && versionTotal > 0 && versionDays > 0 {
+		finalDailyRent = float64(versionTotal) / 100 / float64(versionDays)
+	}
+
 	var tierSegments []services.TierSegment
 	coverDays := 0
 	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
@@ -713,6 +661,29 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 				tierSegments[i].Rate /= 100
 				tierSegments[i].Subtotal /= 100
 			}
+		}
+	}
+	if hasVersions {
+		coverDays = versionDays
+		versions, _ := LoadTermVersions(db, order.ID)
+		var vSegs []services.TierSegment
+		segOK := len(versions) > 0
+		for _, v := range versions {
+			var segs []services.TierSegment
+			if strings.TrimSpace(v.TierSegments) == "" || v.TierSegments == "[]" ||
+				json.Unmarshal([]byte(v.TierSegments), &segs) != nil || len(segs) == 0 {
+				segOK = false
+				break
+			}
+			for i := range segs {
+				segs[i].Rate /= 100
+				segs[i].Subtotal /= 100
+			}
+			vSegs = append(vSegs, segs...)
+		}
+		if segOK {
+			// P4a：结算按版本区间求和（档位/折扣取各版本快照）
+			tierSegments = vSegs
 		}
 	}
 
@@ -933,7 +904,13 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	// 29846d18: 3−1−1=1；1bf456df: 2−1=1。反推 ≤0 或续费缺 days →
 	// 段模型不可用 → #1743 兜底（log）。
 	contractDays := 0
-	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+	if hasVersions {
+		versions, _ := LoadTermVersions(db, order.ID)
+		if len(versions) > 0 {
+			contractDays = versions[0].Days
+		}
+	}
+	if contractDays == 0 && order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
 		var pb services.PricingBreakdown
 		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil && pb.RentDays > 0 {
 			renewalDays := 0
@@ -1646,4 +1623,128 @@ func (h *UserSettlementHandler) StaffRefundOrder(c *gin.Context) {
 			"receipt":              receipt,
 		},
 	})
+}
+
+// #2278：补缴到账后重算结算；超收（cash_paid > 应结）生成幂等退款流水。
+// initiateCashRefund 发起现金退款（执行退款 API；供 executeRefund/补缴超收复用）。
+func initiateCashRefund(ctx context.Context, tx *gorm.DB, order models.Order, amount models.Cents, reason string) (*models.OrderRefundRecord, string, error) {
+	var pr models.OrderPaymentRecord
+	found := tx.Where("order_id = ? AND order_type = ? AND status = ?", order.ID, "rent", "paid").First(&pr).Error == nil && pr.ID != ""
+	raw := strings.ReplaceAll(uuid.NewString(), "-", "")
+	no := "ex" + raw[:29]
+	rec := models.OrderRefundRecord{
+		ID: uuid.New().String(), TenantID: order.TenantID, OutRefundNo: &no,
+		Amount: amount, Reason: &reason, Status: "refunded",
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}
+	rec.OrderID = &order.ID
+	settleStatus := "completed"
+	if found {
+		rec.PaymentRecordID = &pr.ID
+		outTradeNo := ""
+		if pr.OutTradeNo != nil {
+			outTradeNo = *pr.OutTradeNo
+		}
+		notifyURL := ""
+		if cfg := wechatpay.GetConfig(); cfg != nil {
+			notifyURL = cfg.RefundNotifyURL
+		}
+		client := wechatpay.GetClient()
+		if client == nil {
+			rec.Status = "failed"
+			fr := "wechatpay client not initialized"
+			rec.FailReason = &fr
+			settleStatus = "failed"
+			if e := tx.Create(&rec).Error; e != nil {
+				return nil, settleStatus, e
+			}
+			return &rec, settleStatus, fmt.Errorf("%s", fr)
+		}
+		resp, err := client.Refund(ctx, wechatpay.RefundParams{
+			OutTradeNo: outTradeNo, OutRefundNo: no,
+			TotalAmount: int64(pr.Amount), RefundAmount: int64(amount),
+			Reason: reason, NotifyURL: notifyURL,
+		})
+		if err != nil {
+			rec.Status = "failed"
+			fr := err.Error()
+			rec.FailReason = &fr
+			settleStatus = "failed"
+			if e := tx.Create(&rec).Error; e != nil {
+				return nil, settleStatus, e
+			}
+			return &rec, settleStatus, err
+		}
+		rec.RefundID = &resp.RefundID
+		// 旧契约：退款流水保持 pending，等待 REFUND.SUCCESS 回调置 refunded
+		rec.Status = "pending"
+		settleStatus = "refunding"
+	}
+	if err := tx.Create(&rec).Error; err != nil {
+		return nil, settleStatus, err
+	}
+	return &rec, settleStatus, nil
+}
+
+func applyShortfallSettlement(tx *gorm.DB, orderID string) error {
+	var order models.Order
+	if err := tx.Where("id = ?", orderID).First(&order).Error; err != nil {
+		return err
+	}
+	var st models.Settlement
+	if err := tx.Where("order_id = ?", orderID).First(&st).Error; err != nil {
+		return nil
+	}
+	due := st.ActualRentAmount + st.OverdueChargesTotal + order.ShippingFee
+	excess := order.CashPaid - due
+	if excess < 0 {
+		excess = 0
+	}
+	// 已有超收退款：结算状态跟随流水，避免重复发起
+	if excess > 0 {
+		var cnt int64
+		if err := tx.Model(&models.OrderRefundRecord{}).
+			Where("order_id = ? AND reason = ?", orderID, "补缴超收退款").Count(&cnt).Error; err != nil {
+			return err
+		}
+		if cnt > 0 {
+			var existing models.OrderRefundRecord
+			if e := tx.Where("order_id = ? AND reason = ?", orderID, "补缴超收退款").
+				Order("created_at DESC").First(&existing).Error; e == nil {
+				mapped := "refunding"
+				switch existing.Status {
+				case "refunded":
+					mapped = "completed"
+				case "failed":
+					mapped = "failed"
+				case "pending":
+					// 流水 pending = 微信退款已提交待回调；结算仍为 refunding
+					mapped = "refunding"
+				}
+				return tx.Model(&st).Updates(map[string]interface{}{"cash_refundable": excess, "refund_status": mapped}).Error
+			}
+		}
+	}
+	status := "completed"
+	if excess > 0 {
+		status = "pending"
+	}
+	if err := tx.Model(&st).Updates(map[string]interface{}{
+		"cash_refundable": excess, "refund_status": status, "updated_at": time.Now(),
+	}).Error; err != nil {
+		return err
+	}
+	if excess <= 0 {
+		return nil
+	}
+	ctx := tx.Statement.Context
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	_, settleStatus, err := initiateCashRefund(ctx, tx, order, excess, "补缴超收退款")
+	if err != nil {
+		tx.Model(&st).Update("refund_status", settleStatus)
+		return err
+	}
+	return tx.Model(&st).Update("refund_status", settleStatus).Error
 }

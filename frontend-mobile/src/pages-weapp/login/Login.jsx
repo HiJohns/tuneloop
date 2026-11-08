@@ -114,7 +114,7 @@ export default function Login() {
   // #2206: 协议同意校验（模块级函数无法访问组件 state，在组件内校验）
   const handleWxLoginClick = () => {
     if (!agreed) {
-      dialog.toast('请阅读并同意《相关协议》')
+      dialog.toast(t("请阅读并同意《相关协议》"))
       return
     }
     handleWxLogin()
@@ -122,7 +122,7 @@ export default function Login() {
 
   const handleIAMLoginClick = () => {
     if (!agreed) {
-      dialog.toast('请阅读并同意《相关协议》')
+      dialog.toast(t("请阅读并同意《相关协议》"))
       return
     }
     handleIAMLogin(identifier, password)
@@ -131,50 +131,50 @@ export default function Login() {
   return (
     <View style={{ height: '100vh', width: '100vw', backgroundColor: '#fafafa' }}>
       <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', paddingLeft: 32, paddingRight: 32, boxSizing: 'border-box' }}>
-      <Text style={{ fontSize: 28, fontWeight: '900', color: '#000', marginBottom: 48 }}>登录</Text>
+      <Text style={{ fontSize: 28, fontWeight: '900', color: '#000', marginBottom: 48 }}>{t("登录")}</Text>
 
       {/* Channel 1: WeChat one-click */}
       <View style={{ width: '100%', paddingLeft: 0, paddingRight: 0 }}>
         <Button onClick={handleWxLoginClick}
           style={{ margin: 0, width: '100%', backgroundColor: '#07c160', color: '#fff', borderRadius: 24, fontSize: 16, fontWeight: '700', marginBottom: 16, paddingTop: 12, paddingBottom: 12, border: 'none', boxSizing: 'border-box' }}>
-          <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>📱 微信用户一键登录</Text>
+          <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>{t("📱 微信用户一键登录")}</Text>
         </Button>
       </View>
 
       {/* Divider */}
       <View style={{ display: 'flex', alignItems: 'center', width: '100%', marginBottom: 16 }}>
         <View style={{ flex: 1, height: 1, backgroundColor: '#e4e4e7' }} />
-        <Text style={{ paddingLeft: 12, paddingRight: 12, fontSize: 14, color: '#a1a1aa' }}>其他方式</Text>
+        <Text style={{ paddingLeft: 12, paddingRight: 12, fontSize: 14, color: '#a1a1aa' }}>{t("其他方式")}</Text>
         <View style={{ flex: 1, height: 1, backgroundColor: '#e4e4e7' }} />
       </View>
 
       {/* Channel 2: IAM account login */}
       <View style={{ width: '100%', marginBottom: 12 }}>
-        <Input placeholder="邮箱/手机号" value={identifier} onInput={e => setIdentifier(e.detail.value)}
+        <Input placeholder={t("邮箱/手机号")} value={identifier} onInput={e => setIdentifier(e.detail.value)}
           style={{ margin: 0, width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12 }} />
-        <Input placeholder="密码" password value={password} onInput={e => setPassword(e.detail.value)}
+        <Input placeholder={t("密码")} password value={password} onInput={e => setPassword(e.detail.value)}
           style={{ margin: 0, width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 16 }} />
          <Button onClick={handleIAMLoginClick}
           style={{ margin: 0, width: '100%', height: 44, backgroundColor: '#915F38', color: '#fff', borderRadius: 22, fontSize: 14, fontWeight: '700', lineHeight: '44px', boxSizing: 'border-box' }}>
-          登录
+          {t("登录")}
         </Button>
       </View>
 
       {/* Channel 3: Guest browse */}
       <View style={{ marginTop: 24 }}>
-        <Text style={{ fontSize: 14, color: '#71717a' }} onClick={handleGuestBrowse}>👀 随便看看</Text>
+        <Text style={{ fontSize: 14, color: '#71717a' }} onClick={handleGuestBrowse}>{t("👀 随便看看")}</Text>
       </View>
 
       {/* #2206/#2244: 协议同意（必选，显性阅读同意流） */}
       <AgreementCheckbox agreed={agreed} onChange={setAgreed} style={{ marginTop: 20 }} />
 
       {/* Developer mode toggle */}
-      <Text style={{ fontSize: 10, color: '#d4d4d8', marginTop: 32 }} onClick={handleVersionTap}>版本 v{env.version || 'dev'}</Text>
+      <Text style={{ fontSize: 10, color: '#d4d4d8', marginTop: 32 }} onClick={handleVersionTap}>{t("版本 v")}{env.version || 'dev'}</Text>
       {showDevMode && (
         <View style={{ marginTop: 12, width: '100%' }}>
           <Button onClick={() => { storage.removeItem('token'); storage.removeItem('token_expiry'); Taro.navigateBack() }}
             style={{ width: '100%', height: 36, backgroundColor: '#fee2e2', color: '#b91c1c', borderRadius: 8, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: '36px' }}>
-            清除 Token
+            {t("清除 Token")}
           </Button>
         </View>
       )}

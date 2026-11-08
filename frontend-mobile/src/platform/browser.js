@@ -51,16 +51,16 @@ export const session = {
 export const cookie = {
   get: (name) => {
     const cookies = document.cookie.split(';')
-    for (const cookie of cookies) {
-      const [n, ...rest] = cookie.trim().split('=')
+    for (const part of cookies) {
+      const [n, ...rest] = part.trim().split('=')
       if (n === name) return rest.join('=')
     }
     return null
   },
   set: (name, value, options = {}) => {
-    let cookie = `${name}=${value}; path=${options.path || '/'}`
-    if (options.expires) cookie += `; expires=${options.expires}`
-    document.cookie = cookie
+    let cookieValue = `${name}=${value}; path=${options.path || '/'}`
+    if (options.expires) cookieValue += `; expires=${options.expires}`
+    document.cookie = cookieValue
   },
   remove: (name) => {
     document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`

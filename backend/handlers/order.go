@@ -603,7 +603,7 @@ func GetOrder(c *gin.Context) {
 		Address string `json:"address"`
 	}
 	var guarantors []guarantorEntry
-	if order.DepositWaived {
+	if order.DepositWaived || order.DepositTier == models.DepositTierReduced {
 		db.Table("order_guarantors og").
 			Select("g.id, g.name, g.phone, g.company, g.title, g.address").
 			Joins("JOIN guarantors g ON g.id = og.guarantor_id").
@@ -628,6 +628,9 @@ func GetOrder(c *gin.Context) {
 		"lease_term":            order.LeaseTerm,
 		"deposit_mode":          order.DepositMode,
 		"deposit":               order.Deposit,
+		"deposit_tier":          order.DepositTier,
+		"deposit_full":          order.DepositFull,
+		"deposit_reduced":       order.DepositReduced,
 		"deposit_waived":        order.DepositWaived,
 		"recommendation_letter": order.RecommendationLetter, // #1867: letter URL for staff review
 		"guarantors":            guarantors,
@@ -1040,10 +1043,12 @@ func CancelOrder(c *gin.Context) {
 	}
 
 	db := database.GetDB().WithContext(c.Request.Context())
+	// #2261 返工：显式模式下必须限定租户
+	tenantID := middleware.GetTenantID(c.Request.Context())
 
 	// Find order and check status
 	var order models.Order
-	if err := db.Where("id = ?", orderID).First(&order).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id = ?", orderID, tenantID).First(&order).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"code":    40400,
 			"message": "order not found",
@@ -1159,13 +1164,14 @@ func CancelOrderByCustomer(c *gin.Context) {
 
 	// For paid/pending_shipment orders, create refund session and return navigation
 	if oldStatus == models.OrderStatusPaid || oldStatus == models.OrderStatusPendingShipment {
-		refundAmount := order.CashPaid
+		refundAmount := effectiveCashPaid(db, order)
 		refundStatus := ""
 		if refundAmount > 0 {
 			outRefundNo := fmt.Sprintf("can_%s_%d", orderID[:8], time.Now().Unix())
 			refundRecord := models.OrderRefundRecord{
 				ID:          uuid.New().String(),
 				TenantID:    order.TenantID,
+				OrderID:     &orderID,
 				Amount:      refundAmount,
 				OutRefundNo: &outRefundNo,
 				Reason:      strPtr("顾客取消订单"),
@@ -1177,6 +1183,7 @@ func CancelOrderByCustomer(c *gin.Context) {
 			var paymentRecord models.OrderPaymentRecord
 			if err := db.Where("order_id = ? AND order_type = ? AND status = ?", orderID, "rent", "paid").
 				First(&paymentRecord).Error; err == nil && paymentRecord.OutTradeNo != nil && paymentRecord.Amount > 0 {
+				refundRecord.PaymentRecordID = &paymentRecord.ID
 				cfg := wechatpay.GetConfig()
 				client := wechatpay.GetClient()
 				_, refundErr := client.Refund(context.Background(), wechatpay.RefundParams{
@@ -1197,6 +1204,7 @@ func CancelOrderByCustomer(c *gin.Context) {
 			db.Create(&refundRecord)
 			refundStatus = refundRecord.Status
 		}
+		ledgerCash := effectiveCashPaid(db, order)
 		c.JSON(http.StatusOK, gin.H{
 			"code": 20000,
 			"data": gin.H{
@@ -1206,12 +1214,12 @@ func CancelOrderByCustomer(c *gin.Context) {
 				"refund_amount": refundAmount,
 				"refund_status": refundStatus,
 				"breakdown": gin.H{
-					"total_paid":     order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed,
-					"cash_paid":      order.CashPaid,
+					"total_paid":     ledgerCash + order.PrepaidPointsUsed + order.GiftPointsUsed,
+					"cash_paid":      ledgerCash,
 					"prepaid_used":   order.PrepaidPointsUsed,
 					"gift_used":      order.GiftPointsUsed,
-					"total_refund":   order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed,
-					"cash_refund":    order.CashPaid,
+					"total_refund":   ledgerCash + order.PrepaidPointsUsed + order.GiftPointsUsed,
+					"cash_refund":    ledgerCash,
 					"prepaid_refund": order.PrepaidPointsUsed,
 					"gift_refund":    order.GiftPointsUsed,
 				},
@@ -1307,14 +1315,15 @@ func StaffCancelOrder(c *gin.Context) {
 	// Refund prepaid points if used
 	refundOrderPoints(db, &order)
 
-	// Initiate original-path refund with WeChat Pay
-	refundAmount := order.CashPaid
+	// Initiate original-path refund with WeChat Pay（#2281：账本净额为唯一口径）
+	refundAmount := effectiveCashPaid(db, order)
 	refundStatus := ""
 	if refundAmount > 0 {
 		outRefundNo := fmt.Sprintf("scn_%s_%d", orderID[:8], time.Now().Unix())
 		refundRecord := models.OrderRefundRecord{
 			ID:          uuid.New().String(),
 			TenantID:    order.TenantID,
+			OrderID:     &orderID,
 			Amount:      refundAmount,
 			OutRefundNo: &outRefundNo,
 			Reason:      strPtr("员工取消订单"),
@@ -1325,6 +1334,7 @@ func StaffCancelOrder(c *gin.Context) {
 		var paymentRecord models.OrderPaymentRecord
 		if err := db.Where("order_id = ? AND order_type = ? AND status = ?", orderID, "rent", "paid").
 			First(&paymentRecord).Error; err == nil && paymentRecord.OutTradeNo != nil && paymentRecord.Amount > 0 {
+			refundRecord.PaymentRecordID = &paymentRecord.ID
 			cfg := wechatpay.GetConfig()
 			client := wechatpay.GetClient()
 			_, refundErr := client.Refund(context.Background(), wechatpay.RefundParams{
@@ -1686,8 +1696,15 @@ func AdminUpdateOrder(c *gin.Context) {
 		return
 	}
 
-	if err := db.Model(&models.Order{}).Where("id = ?", orderID).Updates(updates).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "update failed: " + err.Error()})
+	// #2261 返工：显式模式更新必须限定租户
+	tenantID := middleware.GetTenantID(ctx)
+	res := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ?", orderID, tenantID).Updates(updates)
+	if res.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "update failed: " + res.Error.Error()})
+		return
+	}
+	if res.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "order not found"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "updated"})
@@ -1721,9 +1738,11 @@ func GetOrdersByOutTradeNo(c *gin.Context) {
 	}
 
 	db := database.GetDB().WithContext(ctx)
+	// #2261 返工：显式模式关闭自动范围后，必须显式限定租户
+	tenantID := middleware.GetTenantID(ctx)
 
 	var session models.PaymentSession
-	if err := db.Where("out_trade_no = ?", outTradeNo).First(&session).Error; err != nil {
+	if err := db.Where("out_trade_no = ? AND tenant_id = ?", outTradeNo, tenantID).First(&session).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "payment session not found"})
 		return
 	}
@@ -1747,7 +1766,7 @@ func GetOrdersByOutTradeNo(c *gin.Context) {
 	}
 
 	var orders []models.Order
-	if err := db.Where("id IN ?", orderIDs).Find(&orders).Error; err != nil {
+	if err := db.Where("id IN ? AND tenant_id = ?", orderIDs, tenantID).Find(&orders).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query orders"})
 		return
 	}

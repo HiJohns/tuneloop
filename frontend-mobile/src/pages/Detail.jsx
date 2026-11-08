@@ -243,7 +243,7 @@ export default function Detail() {
                   <Image src={bannerImages[bannerImages.length - 1].url || bannerImages[bannerImages.length - 1]} className="w-full h-full object-cover"
                     onClick={() => {
                       try {
-                        const urls = bannerImages.map(img => img.url || img)
+                        const urls = bannerImages.map(im => im.url || im)
                         previewImage({ urls, current: urls[urls.length - 1] })
                       } catch (e) { console.warn('[Preview] failed:', e) }
                     }} />
@@ -254,7 +254,7 @@ export default function Detail() {
                   <Image src={img.url || img} className="w-full h-full object-cover"
                     onClick={() => {
                       try {
-                        const urls = bannerImages.map(img => img.url || img)
+                        const urls = bannerImages.map(im => im.url || im)
                         previewImage({ urls, current: img.url || img })
                       } catch (e) { console.warn('[Preview] previewImage failed:', e) }
                     }} />
@@ -265,7 +265,7 @@ export default function Detail() {
                   <Image src={bannerImages[0].url || bannerImages[0]} className="w-full h-full object-cover"
                     onClick={() => {
                       try {
-                        const urls = bannerImages.map(img => img.url || img)
+                        const urls = bannerImages.map(im => im.url || im)
                         previewImage({ urls, current: urls[0] })
                       } catch (e) { console.warn('[Preview] previewImage failed:', e) }
                     }} />
@@ -363,13 +363,13 @@ export default function Detail() {
           {isRentable && pricingV2?.tiers?.length > 0 && (
             <View className="bg-white rounded-2xl p-4 shadow-sm mb-3" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <Text className="text-base font-black text-black">定价策略</Text>
-              {pricingV2.tiers.map((t, i) => {
+              {pricingV2.tiers.map((tier, i) => {
                 const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
-                const range = t.days_max > 0 ? `${prevMax + 1}-${t.days_max}天` : `${prevMax + 1}天以上`
+                const range = tier.days_max > 0 ? `${prevMax + 1}-${tier.days_max}天` : `${prevMax + 1}天以上`
                 return (
                   <View key={i} className="flex justify-between text-sm">
                     <Text className="text-zinc-500">{range}</Text>
-                    <Text className="font-bold text-black">¥{formatCents((Math.round(t.daily_rate) || 0))}/天</Text>
+                    <Text className="font-bold text-black">¥{formatCents((Math.round(tier.daily_rate) || 0))}/天</Text>
                   </View>
                 )
               })}

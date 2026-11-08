@@ -53,6 +53,18 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 			PricingBreakdown: str1743Ptr(pbJSON),
 		}
 		require.NoError(t, db.Create(&o).Error)
+		var renewalSum float64
+		for _, r := range renewals {
+			renewalSum += r[1].(float64)
+		}
+		// #2281：账本为唯一事实源——补合同租金流水（cash − 续期合计）。
+		if contract := cash - renewalSum; contract > 0 {
+			require.NoError(t, db.Create(&models.OrderPaymentRecord{
+				TenantID: tenantID, UserID: userID, OrderID: &o.ID,
+				OrderType: "rent", Type: "payment", Status: "paid",
+				Amount: cents(contract), CreatedAt: time.Date(2026, 8, 1, 9, 0, 0, 0, time.UTC),
+			}).Error)
+		}
 		for i, r := range renewals {
 			days := r[0].(int)
 			amount := r[1].(float64)
@@ -155,6 +167,11 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 				"tier_segments":[{"tier":1,"days":3,"rate":3600,"discount":1,"subtotal":10800}]}`),
 		}
 		require.NoError(t, db.Create(&o).Error)
+		// #2281：补合同租金流水（1.08 − 0.36 × 2）。
+		require.NoError(t, db.Create(&models.OrderPaymentRecord{
+			TenantID: tenantID, UserID: userID, OrderID: &o.ID,
+			OrderType: "rent", Type: "payment", Status: "paid", Amount: cents(0.36),
+		}).Error)
 		require.NoError(t, db.Create(&models.OrderPaymentRecord{
 			TenantID: tenantID, UserID: userID, OrderID: &o.ID,
 			OrderType: "renewal", Type: "payment", Status: "paid",
@@ -199,6 +216,11 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 				"tier_segments":[{"tier":1,"days":2,"rate":3600,"discount":1,"subtotal":7200}]}`),
 		}
 		require.NoError(t, db.Create(&o).Error)
+		// #2281：补合同租金流水（0.72 − 0.36）。
+		require.NoError(t, db.Create(&models.OrderPaymentRecord{
+			TenantID: tenantID, UserID: userID, OrderID: &o.ID,
+			OrderType: "rent", Type: "payment", Status: "paid", Amount: cents(0.36),
+		}).Error)
 		require.NoError(t, db.Create(&models.OrderPaymentRecord{
 			TenantID: tenantID, UserID: userID, OrderID: &o.ID,
 			OrderType: "renewal", Type: "payment", Status: "paid",
@@ -389,6 +411,12 @@ func TestPayableTiers_TruncatedByActualDays(t *testing.T) {
 			"tier_segments":[{"tier":1,"days":2,"rate":3600,"discount":1,"subtotal":7200}]}`),
 	}
 	require.NoError(t, db.Create(&o).Error)
+	// #2281：补合同租金流水（现金 0.72 − 续期 0.36）。
+	require.NoError(t, db.Create(&models.OrderPaymentRecord{
+		TenantID: tenantID, UserID: userID, OrderID: &o.ID,
+		OrderType: "rent", Type: "payment", Status: "paid",
+		Amount: cents(0.36),
+	}).Error)
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{
 		TenantID: tenantID, UserID: userID, OrderID: &o.ID,
 		OrderType: "renewal", Type: "payment", Status: "paid",

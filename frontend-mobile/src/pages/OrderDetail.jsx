@@ -557,10 +557,10 @@ export default function OrderDetail() {
                   {order.fee_detail.paid_block?.contract_rent?.date ? `（${formatBeijingDate(order.fee_detail.paid_block.contract_rent.date)}）` : ''}
                 </Text>
               </View>
-              {(order.fee_detail.paid_block?.contract_rent?.tiers || []).map((t, i) => (
+              {(order.fee_detail.paid_block?.contract_rent?.tiers || []).map((tier, i) => (
                 <View key={`ct-${i}`} className="flex justify-between text-sm pl-3">
-                  <Text className="text-zinc-400">第{t.tier}阶梯 ¥{formatCents(Number(t.rate))}/天 × {t.days}天</Text>
-                  <Text className="text-zinc-500 flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(t.subtotal))}</Text>
+                  <Text className="text-zinc-400">第{tier.tier}阶梯 ¥{formatCents(Number(tier.rate))}/天 × {tier.days}天</Text>
+                  <Text className="text-zinc-500 flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(tier.subtotal))}</Text>
                 </View>
               ))}
               {Number(order.fee_detail.paid_block?.contract_rent?.discount_amount) > 0 && (
@@ -580,10 +580,10 @@ export default function OrderDetail() {
                   <View className="flex justify-between text-sm">
                     <Text className="text-zinc-500 font-medium">续费 ¥{formatCents(Number(r.amount))}</Text>
                   </View>
-                  {(r.tiers || []).map((t, j) => (
+                  {(r.tiers || []).map((tier, j) => (
                     <View key={`rt-${j}`} className="flex justify-between text-sm pl-3">
-                      <Text className="text-zinc-400">第{t.tier}阶梯 ¥{formatCents(Number(t.rate))}/天 × {t.days}天</Text>
-                      <Text className="text-zinc-500 flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(t.subtotal))}</Text>
+                      <Text className="text-zinc-400">第{tier.tier}阶梯 ¥{formatCents(Number(tier.rate))}/天 × {tier.days}天</Text>
+                      <Text className="text-zinc-500 flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(tier.subtotal))}</Text>
                     </View>
                   ))}
                   {Number(r.discount_amount) > 0 && (
@@ -605,10 +605,10 @@ export default function OrderDetail() {
                 <Text className="text-zinc-500 font-medium">实际租金</Text>
                 <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(order.fee_detail.payable_block?.actual_rent?.amount))}</Text>
               </View>
-              {(order.fee_detail.payable_block?.actual_rent?.tiers || []).map((t, i) => (
+              {(order.fee_detail.payable_block?.actual_rent?.tiers || []).map((tier, i) => (
                 <View key={`pr-${i}`} className="flex justify-between text-sm pl-3">
-                  <Text className="text-zinc-400">第{t.tier}阶梯 ¥{formatCents(Number(t.rate))}/天 × {t.days}天</Text>
-                  <Text className="text-zinc-500 flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(t.subtotal))}</Text>
+                  <Text className="text-zinc-400">第{tier.tier}阶梯 ¥{formatCents(Number(tier.rate))}/天 × {tier.days}天</Text>
+                  <Text className="text-zinc-500 flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(tier.subtotal))}</Text>
                 </View>
               ))}
               {Number(order.fee_detail.payable_block?.discount_amount) > 0 && (
@@ -803,18 +803,18 @@ export default function OrderDetail() {
                     let prevMax = 0
                     const rows = []
                     const tierList = tiers.length > 0 ? tiers : [{ days_max: -1, daily_rate: baseRate }]
-                    for (const t of tierList) {
-                      const tierDays = t.days_max > 0 ? t.days_max - prevMax : remaining
+                    for (const tier of tierList) {
+                      const tierDays = tier.days_max > 0 ? tier.days_max - prevMax : remaining
                       const segDays = Math.min(tierDays, remaining)
                       if (segDays <= 0) break
-                      const rate = t.daily_rate || baseRate
+                      const rate = tier.daily_rate || baseRate
                       const segAmount = segDays * rate
                       const startDay = prevMax + 1
                       const endDay = startDay + segDays - 1
                       const range = segDays === 1 ? `${startDay}天` : `${startDay}-${endDay}天`
                       rows.push({ range, rate, segDays, segAmount })
                       remaining -= segDays
-                      prevMax = t.days_max > 0 ? t.days_max : prevMax + segDays
+                      prevMax = tier.days_max > 0 ? tier.days_max : prevMax + segDays
                     }
                     return (
                       <View className="text-xs text-zinc-400 pl-2 pb-1 border-b border-dashed">

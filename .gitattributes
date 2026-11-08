@@ -1,0 +1,2 @@
+# 强制移动端源码 CSS 使用 LF，消除 autocrlf 造成的 CRLF 假 M 噪音
+frontend-mobile/src/*.css text eol=lf

@@ -5,6 +5,7 @@ import { View, Text, Input, Picker, Image } from '@tarojs/components'
 import {dialog, storage, session, env, request, wxLogin } from '../../platform'
 import { apiFetch , resolveErrorMessage } from '../../services/api'
 import IdPhotoUploader from '../../components/IdPhotoUploader'
+import IntroLetterUploader from '../../components/IntroLetterUploader'
 import regions from '../../data/regions.json'
 import AgreementCheckbox from '../../components/AgreementCheckbox'
 import { t } from '../../i18n'
@@ -40,8 +41,20 @@ export default function ProfileComplete() {
   const [uploadedSides, setUploadedSides] = useState({})
   // #1845: 其他证件（学生证）槽本轮是否已选图（onSelect 回调，供豁免判定与标签）。
   const [otherPicked, setOtherPicked] = useState(false)
+  // #2314: 第二证件类型（自报）+ 学生证介绍信
+  const [secondDocType, setSecondDocType] = useState('')
+  const [introLetterKey, setIntroLetterKey] = useState('')
+  const introLetterRef = useRef(null)
 
   const ID_TYPE_OPTIONS = ['学生证', '教职工证', '教师证', '工作证', '其他']
+  const SECOND_DOC_OPTIONS = [
+    { code: 'student', label: '学生证' },
+    { code: 'teacher', label: '教职工证' },
+    { code: 'work', label: '工作证' },
+    { code: 'other', label: '其他' },
+  ]
+  const secondDocLabel = (SECOND_DOC_OPTIONS.find(o => o.code === secondDocType) || {}).label || ''
+  const idBaseReady = !!(uploadedSides.front && uploadedSides.back)
 
   const provinceNames = regions.map(r => r.name)
   const selectedProv = regions.find(r => r.name === province)
@@ -80,6 +93,8 @@ export default function ProfileComplete() {
             // #1845: resume 会话回填第三证件类型（学生证豁免判定依赖）。
             // #1845: 已上传证件侧回填（id_photos: {front|back|other: key}）。
             // 服务端照片随会话保留，本次不再重复上传，仅用于必填校验。
+            if (f.id_photo_other_type) setSecondDocType(f.id_photo_other_type)
+            if (f.intro_letter_url) setIntroLetterKey(f.intro_letter_url)
             if (f.id_photos && typeof f.id_photos === 'object') {
               const sides = {}
               Object.keys(f.id_photos).forEach(side => {
@@ -109,16 +124,52 @@ export default function ProfileComplete() {
       .catch(() => {})
   }
 
+  // #2307: 已支付/needs_rebind → 直接重新授权并登录新账户，不再进支付页。
+  const doResumeRebind = async (sessionId) => {
+    const code = await wxLogin()
+    if (!code) throw new Error(t('无法获取微信授权'))
+    const resp = await apiFetch(`${env.apiBaseUrl}/auth/registration-sessions/${sessionId}/rebind`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wx_code: code }),
+      auth: false,
+    })
+    const r = await resp.json()
+    if (r.code !== 20000) throw new Error(resolveErrorMessage(r, t('重新授权失败')))
+    const userID = r.data?.user_id || ''
+    const code2 = await wxLogin()
+    if (code2) {
+      const accResp = await apiFetch(`${env.apiBaseUrl}/auth/wx-accounts?code=${encodeURIComponent(code2)}`, { auth: false })
+      const acc = await accResp.json()
+      const exchangeToken = acc.data?.exchange_token || ''
+      if (exchangeToken && userID) {
+        const loginResp = await apiFetch(`${env.apiBaseUrl}/auth/wx-login-select`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ exchange_token: exchangeToken, user_id: userID }),
+        })
+        const lr = await loginResp.json()
+        if (lr.code === 20000 && lr.data?.access_token) {
+          storage.setItem('token', lr.data.access_token)
+          if (lr.data.expires_in) storage.setItem('token_expiry', (Date.now() + lr.data.expires_in * 1000).toString())
+          if (lr.data.refresh_token) storage.setItem('refresh_token', lr.data.refresh_token)
+        }
+      }
+    }
+    session.removeItem('pending_registration_session')
+    Taro.redirectTo({ url: '/pages-weapp/face-verify/index', fail: () => Taro.switchTab({ url: '/pages-weapp/home/index', fail: () => {} }) })
+  }
+
   const handleRegister = async () => {
-    if (!name.trim()) { dialog.toast('请输入姓名'); return }
-    if (!phone.trim()) { dialog.toast('请输入手机号'); return }
-    if (!agreed) { dialog.toast('请阅读并同意《相关协议》'); return }
+    if (!name.trim()) { dialog.toast(t("请输入姓名")); return }
+    if (!phone.trim()) { dialog.toast(t("请输入手机号")); return }
+    if (!agreed) { dialog.toast(t("请阅读并同意《相关协议》")); return }
     // #1924: 身份证正反面必填（取消学生证豁免）；第二证件可选，类型由平台
     // 审核时指定（顾客提交时保持「未定」）。
     const frontReady = uploadedSides.front || !!idPhotoFrontRef.current?.hasFile()
     const backReady = uploadedSides.back || !!idPhotoBackRef.current?.hasFile()
     if (!frontReady || !backReady) {
-      dialog.toast('请先上传身份证正反面照片')
+      dialog.toast(t("请先上传身份证正反面照片"))
       return
     }
     setSaving(true)
@@ -130,6 +181,7 @@ export default function ProfileComplete() {
       let amount = sessionAmount
       if (!sid) {
         const body = { name: name.trim(), nickname: nickname.trim() || name.trim(), phone: phone.trim(), email: email.trim(), agreed_terms: true }
+        if (secondDocType) body.id_photo_other_type = secondDocType
         if (province || city || detail) {
           body.address = { province, city, district, detail, postal_code: postalCode }
         }
@@ -164,6 +216,32 @@ export default function ProfileComplete() {
           // sessionUpload.sessionId 随之 rerender 拿到新 sid，否则 uploadPending()
           // 走 user/id-photo 端点（两阶段注册用户未创建 → 401 上传失败）。
           setResumeSid(sid)
+        } else if (result.code === 40901 && result.data?.resume_session_id) {
+          // #2307: 按 action 分流——pending 走支付；已支付/needs_rebind 走 rebind；failed 无支付重新提交。
+          const action = result.data.action || 'pay'
+          if (action === 'rebind') {
+            try {
+              dialog.toast(t('检测到已支付，正在重新授权...'), { duration: 1500 })
+              await doResumeRebind(result.data.resume_session_id)
+            } catch (e) {
+              dialog.toast(e.message || t('重新授权失败，请稍后重试'), { duration: 3000 })
+            }
+            setSaving(false)
+            return
+          }
+          if (action === 'restart') {
+            setResumeSid('')
+            setSessionAmount(0)
+            session.removeItem('pending_registration_session')
+            dialog.toast(t('请重新提交注册'), { duration: 2000 })
+            setSaving(false)
+            return
+          }
+          sid = result.data.resume_session_id
+          amount = result.data.amount || amount
+          setResumeSid(sid)
+          setSessionAmount(amount)
+          dialog.toast(t('继续未完成的注册'), { duration: 1500 })
         } else {
           dialog.toast(resolveErrorMessage(result, '提交失败, 请重试'), { duration: 3000 })
           setSaving(false)
@@ -178,7 +256,8 @@ export default function ProfileComplete() {
       const slots = [
         { label: '身份证正面', ref: idPhotoFrontRef, uploaded: uploadedSides.front },
         { label: '身份证反面', ref: idPhotoBackRef, uploaded: uploadedSides.back },
-        { label: '其他证件', ref: idPhotoOtherRef, uploaded: uploadedSides.other },
+        { label: '介绍信', ref: introLetterRef, uploaded: !!introLetterKey, intro: true },
+        { label: '其他证件', ref: idPhotoOtherRef, uploaded: uploadedSides.other, other: true },
       ]
       const failedSides = []
       for (const slot of slots) {
@@ -187,7 +266,12 @@ export default function ProfileComplete() {
         if (!hasLocal) continue // 未选图 = skip，不尝试上传
         // #1807: 显式传 sid（新建 session 后 prop 更新有批处理延迟，直接传参
         // 保证走 session 端点而非 user/id-photo 匿名 401）。
-        const outcome = await slot.ref.current?.uploadPending(sid)
+        const outcome = slot.intro
+          ? await slot.ref.current?.uploadPending(sid)
+          : slot.other
+            ? await slot.ref.current?.uploadPending(sid, { second_doc_type: secondDocType, intro_letter_url: introLetterKey })
+            : await slot.ref.current?.uploadPending(sid)
+        if (slot.intro && outcome && outcome !== 'skip') setIntroLetterKey(outcome)
         if (outcome === null) failedSides.push(slot.label)
       }
       if (failedSides.length > 0) {
@@ -204,7 +288,7 @@ export default function ProfileComplete() {
       }
       Taro.redirectTo({ url: `/pages-weapp/payment/index?type=membership&session_id=${sid}&amount=${amount}` })
     } catch (err) {
-      dialog.toast('网络错误, 请重试')
+      dialog.toast(t("网络错误, 请重试"))
     }
     setSaving(false)
   }
@@ -215,8 +299,8 @@ export default function ProfileComplete() {
 
   return (
     <View style={{ height: '100vh', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 32 }}>
-      <Text style={{ fontSize: 24, fontWeight: '900', color: '#000', marginBottom: 8, marginTop: 32 }}>注册账号</Text>
-      <Text style={{ fontSize: 14, color: '#a1a1aa', marginBottom: 24 }}>填写信息即可开始租赁</Text>
+      <Text style={{ fontSize: 24, fontWeight: '900', color: '#000', marginBottom: 8, marginTop: 32 }}>{t("注册账号")}</Text>
+      <Text style={{ fontSize: 14, color: '#a1a1aa', marginBottom: 24 }}>{t("填写信息即可开始租赁")}</Text>
 
       <View onClick={handleChooseAvatar}
         style={{ width: 72, height: 72, borderRadius: 999, backgroundColor: '#e4e4e7', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24, overflow: 'hidden' }}>
@@ -228,24 +312,24 @@ export default function ProfileComplete() {
       </View>
 
       <View style={{ width: '100%', display: 'flex', alignItems: 'center', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', marginBottom: 12 }}>
-        <Input placeholder="昵称" value={nickname} onInput={e => setNickname(e.detail.value)}
+        <Input placeholder={t("昵称")} value={nickname} onInput={e => setNickname(e.detail.value)}
           type="nickname"
           style={{ flex: 1, fontSize: 14, height: '20px', padding: 0 }} />
       </View>
       <View style={{ width: '100%', display: 'flex', alignItems: 'center', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', marginBottom: 12 }}>
-        <Input placeholder="姓名" value={name} onInput={e => setName(e.detail.value)}
+        <Input placeholder={t("姓名")} value={name} onInput={e => setName(e.detail.value)}
           style={{ flex: 1, fontSize: 14, height: '20px', padding: 0 }} />
       </View>
       <View style={{ width: '100%', display: 'flex', alignItems: 'center', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', marginBottom: 12 }}>
-        <Input placeholder="手机号" value={phone} onInput={e => setPhone(e.detail.value)}
+        <Input placeholder={t("手机号")} value={phone} onInput={e => setPhone(e.detail.value)}
           style={{ flex: 1, fontSize: 14, height: '20px', padding: 0 }} />
       </View>
       <View style={{ width: '100%', display: 'flex', alignItems: 'center', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', marginBottom: 24 }}>
-        <Input placeholder="邮箱（选填）" value={email} onInput={e => setEmail(e.detail.value)}
+        <Input placeholder={t("邮箱（选填）")} value={email} onInput={e => setEmail(e.detail.value)}
           style={{ flex: 1, fontSize: 14, height: '20px', padding: 0 }} />
       </View>
 
-      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', width: '100%', marginBottom: 12 }}>收货地址（选填）</Text>
+      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', width: '100%', marginBottom: 12 }}>{t("收货地址（选填）")}</Text>
       <View style={{ display: 'flex', width: '100%', marginBottom: 12 }}>
         <View style={{ flex: 1, marginRight: 8 }}>
           <Picker mode="selector" range={provinceNames} value={province ? provinceNames.indexOf(province) : 0}
@@ -275,39 +359,68 @@ export default function ProfileComplete() {
         )}
       </View>
       <View style={{ width: '100%', display: 'flex', alignItems: 'center', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', marginBottom: 12 }}>
-        <Input placeholder="详细地址" value={detail} onInput={e => setDetail(e.detail.value)}
+        <Input placeholder={t("详细地址")} value={detail} onInput={e => setDetail(e.detail.value)}
           style={{ flex: 1, fontSize: 14, height: '20px', padding: 0 }} />
       </View>
       <View style={{ width: '100%', display: 'flex', alignItems: 'center', paddingTop: 12, paddingBottom: 12, border: '1px solid #d4d4d8', borderRadius: 12, paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', marginBottom: 24 }}>
-        <Input placeholder="邮编（选填）" value={postalCode} onInput={e => setPostalCode(e.detail.value)}
+        <Input placeholder={t("邮编（选填）")} value={postalCode} onInput={e => setPostalCode(e.detail.value)}
           style={{ flex: 1, fontSize: 14, height: '20px', padding: 0 }} />
       </View>
 
       {/* #1845: 默认身份证必填；选择「学生证」类型并已传学生证后提示可豁免 */}
       <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', width: '100%', marginBottom: 12 }}>
-        身份证照片<Text style={{ color: '#ef4444' }}>（必填）</Text>
+        {t("身份证照片")}<Text style={{ color: '#ef4444' }}>{t("（必填）")}</Text>
       </Text>
       {/* #1807: 正反面一行（各 ~48%） */}
       <View style={{ display: 'flex', width: '100%', marginBottom: 12, justifyContent: 'space-between' }}>
         <View style={{ width: '48%', display: 'flex', justifyContent: 'center' }}>
-          <IdPhotoUploader ref={idPhotoFrontRef} side="front" defer sessionUpload={{ sessionId: resumeSid || undefined }} />
+          <IdPhotoUploader ref={idPhotoFrontRef} side="front" defer sessionUpload={{ sessionId: resumeSid || undefined }} onSelect={() => setUploadedSides(s => ({ ...s, front: true }))} onClear={() => setUploadedSides(s => ({ ...s, front: false }))} />
         </View>
         <View style={{ width: '48%', display: 'flex', justifyContent: 'center' }}>
-          <IdPhotoUploader ref={idPhotoBackRef} side="back" defer sessionUpload={{ sessionId: resumeSid || undefined }} />
+          <IdPhotoUploader ref={idPhotoBackRef} side="back" defer sessionUpload={{ sessionId: resumeSid || undefined }} onSelect={() => setUploadedSides(s => ({ ...s, back: true }))} onClear={() => setUploadedSides(s => ({ ...s, back: false }))} />
         </View>
       </View>
-      {/* #1924: 第二证件可选；类型不再由顾客指定（审核时由平台员工指定） */}
-      <Text style={{ fontSize: 14, fontWeight: '600', color: '#000', width: '100%', marginBottom: 4 }}>第二证件照（可选）</Text>
+      {/* #2314: 第二证件可选；类型由本人选择，平台审核时可修正 */}
+      <Text style={{ fontSize: 14, fontWeight: '600', color: '#000', width: '100%', marginBottom: 4 }}>{t("第二证件照（可选）")}</Text>
       <Text style={{ fontSize: 12, color: '#a16207', width: '100%', marginBottom: 8, lineHeight: '18px' }}>
-        （学生证/教职工证/工作证等；类型由平台审核时指定，可用于免押金等政策）
+        {t("（学生证/教职工证/工作证等；请选择类型，可用于免押金等政策）")}
       </Text>
+      <View style={{ width: '100%', marginBottom: 12 }}>
+        <Picker mode="selector" range={SECOND_DOC_OPTIONS.map(o => o.label)}
+          value={Math.max(0, SECOND_DOC_OPTIONS.findIndex(o => o.code === secondDocType))}
+          onChange={e => setSecondDocType(SECOND_DOC_OPTIONS[e.detail.value]?.code || '')}>
+          <View style={{ border: '1px solid #d4d4d8', borderRadius: 12, height: '44px', display: 'flex', alignItems: 'center', padding: '0 16px', boxSizing: 'border-box', fontSize: 14, color: secondDocLabel ? '#000' : '#9ca3af' }}>
+            {secondDocLabel || t('选择第二证件类型（可选）')}
+          </View>
+        </Picker>
+      </View>
+      {secondDocType === 'student' && (
+        <View style={{ width: '100%', marginBottom: 12 }}>
+          <Text style={{ fontSize: 12, color: '#a16207', width: '100%', marginBottom: 8, lineHeight: '18px' }}>
+            {t("学生证作为第二证件时需上传介绍信")}
+          </Text>
+          <IntroLetterUploader ref={introLetterRef} defer sessionUpload={{ sessionId: resumeSid || undefined }}
+            initialKey={introLetterKey} onChange={(k) => setIntroLetterKey(k)} leftAligned />
+        </View>
+      )}
       {/* #2044: 审核提示（上传后用户不知会送审） */}
       <Text style={{ fontSize: 12, color: '#71717a', width: '100%', marginBottom: 24, lineHeight: '18px' }}>
-        实名信息将由平台审核；完成微信核身的可即时生效，人工审核约需 1-2 个工作日，结果将通过系统消息通知您。
+        {t("实名信息将由平台审核；完成微信核身的可即时生效，人工审核约需 1-2 个工作日，结果将通过系统消息通知您。")}
       </Text>
 
       <View style={{ display: 'flex', width: '100%', marginBottom: 24 }}>
-        <IdPhotoUploader ref={idPhotoOtherRef} side="other" defer sessionUpload={{ sessionId: resumeSid || undefined }} leftAligned onSelect={() => setOtherPicked(true)} onClear={() => setOtherPicked(false)} />
+        {idBaseReady ? (
+          <IdPhotoUploader ref={idPhotoOtherRef} side="other" defer sessionUpload={{ sessionId: resumeSid || undefined }} leftAligned
+            extraFields={{ second_doc_type: secondDocType, intro_letter_url: introLetterKey }}
+            beforeUpload={() => {
+              if (!secondDocType) return t('请先选择第二证件类型')
+              if (secondDocType === 'student' && !introLetterKey && !introLetterRef.current?.hasFile()) return t('学生证需先上传介绍信')
+              return ''
+            }}
+            onSelect={() => setOtherPicked(true)} onClear={() => setOtherPicked(false)} />
+        ) : (
+          <Text style={{ fontSize: 12, color: '#a1a1aa' }}>{t("请先上传身份证正反面，再上传第二证件")}</Text>
+        )}
       </View>
 
       {/* #2209/#2244: 协议同意（必选，显性阅读同意流） */}
@@ -319,13 +432,13 @@ export default function ProfileComplete() {
       </View>
       {(resumeSid || sessionAmount > 0) && (
         <Text style={{ fontSize: 12, color: '#a1a1aa', textAlign: 'center', display: 'block', marginBottom: 8 }}>
-          会员费 ¥{formatCents(Number(sessionAmount))}{resumeSid ? '（已创建支付会话）' : ''}
+          {t("会员费 ¥")}{formatCents(Number(sessionAmount))}{resumeSid ? '（已创建支付会话）' : ''}
         </Text>
       )}
       {mode !== 'member' && (
-        <Text style={{ fontSize: 14, color: '#a1a1aa', textAlign: 'center', display: 'block', marginBottom: 8 }} onClick={goAccountSelect}>用户名密码登录</Text>
+        <Text style={{ fontSize: 14, color: '#a1a1aa', textAlign: 'center', display: 'block', marginBottom: 8 }} onClick={goAccountSelect}>{t("用户名密码登录")}</Text>
       )}
-      <Text style={{ fontSize: 14, color: '#a1a1aa', textAlign: 'center', display: 'block' }} onClick={() => Taro.navigateBack()}>返回</Text>
+      <Text style={{ fontSize: 14, color: '#a1a1aa', textAlign: 'center', display: 'block' }} onClick={() => Taro.navigateBack()}>{t("返回")}</Text>
     </View>
   )
 }

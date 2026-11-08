@@ -706,6 +706,12 @@ func UploadCoverImage(c *gin.Context) {
 	instrumentID := c.Param("id")
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
+	// #2276：显式模式必须先校验乐器归属
+	var owned models.Instrument
+	if err := db.Select("id").Where("id = ? AND tenant_id = ?", instrumentID, middleware.GetTenantID(ctx)).First(&owned).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
+		return
+	}
 
 	file, _, err := c.Request.FormFile("file")
 	if err != nil {

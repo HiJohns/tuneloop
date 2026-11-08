@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { formatCents } from '../../utils/money'
+import { computeDisplayedCashCents } from '../../utils/paymentAmount.mjs'
 import Taro, { useDidShow, useLoad } from '@tarojs/taro'
 import { View, Text, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, resolveLogin, resolveErrorMessage } from '../../services/api'
@@ -32,6 +33,9 @@ export default function Payment() {
   const pId = paramState.id
   const pAmount = parseFloat(paramState.amount || '0')
   const pSessionId = paramState.session_id
+  // #2308: 支付成功但 WxBind 过期 → 需要用户重新授权微信完成注册。
+  const [rebindNeeded, setRebindNeeded] = useState(false)
+  const [rebindBusy, setRebindBusy] = useState(false)
 
   // #1785: dual-source param fallback — router params may be empty on the
   // first render; re-read on onLoad (page init options) and onShow so a
@@ -83,8 +87,8 @@ export default function Payment() {
     if (!pType) {
       // #1785: weapp may not have router params on first render; show error
       // after a short delay instead of staying stuck on loading forever.
-      const t = setTimeout(() => setParamsReady(true), 800)
-      return () => clearTimeout(t)
+      const timer = setTimeout(() => setParamsReady(true), 800)
+      return () => clearTimeout(timer)
     }
     const fetchData = async () => {
       if (pType === 'membership') {
@@ -135,11 +139,11 @@ export default function Payment() {
     // #1785: if params are missing after delay, show explicit error
     if (!pType && paramsReady) {
       return <View style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FDFBF7' }}>
-        <Text style={{ color: '#ef4444' }}>支付参数缺失，请从订单详情重新进入</Text>
+        <Text style={{ color: '#ef4444' }}>{t("支付参数缺失，请从订单详情重新进入")}</Text>
       </View>
     }
     return <View style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FDFBF7' }}>
-      <Text style={{ color: '#a1a1aa' }}>加载中...</Text>
+      <Text style={{ color: '#a1a1aa' }}>{t("加载中...")}</Text>
     </View>
   }
   if (!data) {
@@ -154,15 +158,19 @@ export default function Payment() {
   const isRefund = ['refund', 'deposit-refund'].includes(pType)
 
   // Coupon applies a preview discount (final price is server-authoritative at
-  // prepay); OREZ waives the fee entirely (¥0). #1719: all payment types.
+  // prepay); 服务端按 coupons 表决定 waive/percent（#2291）。
   const displayAmount = appliedCoupon ? couponAmount : data.amount
 
-  const cashAmount = isRefund
-    ? data.amount
-    : Math.max(0, displayAmount - giftUsed * 100)
+  const cashAmount = computeDisplayedCashCents({
+    amountCents: data?.amount || 0,
+    couponFinalCents: couponAmount,
+    giftUsedCents: giftUsed * 100,
+    hasCoupon: !!appliedCoupon,
+    isRefund,
+  })
 
   const applyCoupon = () => {
-    const tryApply = () => {
+    const tryApply = async () => {
       const rawInput = couponInputRef.current
       const rawState = couponCode
       const code = (rawInput || rawState || '').trim().toUpperCase()
@@ -176,19 +184,30 @@ export default function Payment() {
         appliedBefore: !!appliedCoupon,
         ts: Date.now(),
       })
-      if (!code) { dialog.toast('请输入优惠码'); return }
-      if (code === 'OREZ') {
-        setAppliedCoupon({ code, hint: '已应用，全额免除' })
+      if (!code) { dialog.toast(t("请输入优惠码")); return }
+      try {
+        const resp = await apiFetch(`${baseUrl}/coupons/validate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, amount_cents: data?.amount || pAmount || 0 }),
+        })
+        const result = await resp.json()
+        if (result.code === 20000) {
+          const d = result.data || {}
+          const final = Number(d.final_amount_cents || 0)
+          const hint = d.type === 'waive' ? '已应用，全额免除' : `已应用，优惠后金额 ¥${formatCents(final)}`
+          setAppliedCoupon({ code: d.code || code, hint })
+          setCouponAmount(final)
+          setGiftUsed(0)
+        } else {
+          setAppliedCoupon(null)
+          setCouponAmount(0)
+          dialog.toast(resolveErrorMessage(result, '优惠码无效'))
+        }
+      } catch {
+        setAppliedCoupon(null)
         setCouponAmount(0)
-      } else if (code === 'ENO') {
-        // #1728 P3：金额单位为分（API/URL），ENO 千分比 10‰ = 1% → 分运算。
-        // 租期/维修等支付页跳转不带 amount URL 参数（pAmount=0），用 data.amount。
-        const base = data?.amount || pAmount || 0
-        const discounted = Math.round(base * 10 / 1000) // 1%
-        setAppliedCoupon({ code, hint: '已应用，优惠后金额 ¥' + formatCents(discounted) })
-        setCouponAmount(discounted)
-      } else {
-        dialog.toast('优惠码无效')
+        dialog.toast(t("优惠码校验失败，请重试"))
       }
     }
     // Fast typing + immediate tap: the last input event may still be in
@@ -225,18 +244,21 @@ export default function Payment() {
     const exit = (url) => { if (exited) return; exited = true; safeExitTab(url) }
     try {
       let completed = false
+      let needsRebind = false
       let newUserId = ''
       for (let i = 0; i < 20; i++) {
         try {
           const resp = await apiFetch(`${baseUrl}/auth/registration-sessions/${pSessionId}/status`, { auth: false })
           const r = await resp.json()
           if (r.code === 20000 && r.data?.status === 'completed') { completed = true; newUserId = r.data?.user_id || ''; break }
+          if (r.code === 20000 && r.data?.status === 'needs_rebind') { needsRebind = true; break }
         } catch (e) { console.warn('[payment] session status poll failed', e) }
         await new Promise(res => setTimeout(res, 1000))
       }
+      if (needsRebind) { setRebindNeeded(true); return }
       session.removeItem('pending_registration_session')
       if (completed) {
-        dialog.toast('注册成功，正在登录...', { duration: 1500 })
+        dialog.toast(t("注册成功，正在登录..."), { duration: 1500 })
         // #1807: 直接用新账户 user_id 登录（需要 exchange_token——调 wx-accounts 获取）。
         let loggedIn = false
         if (newUserId) {
@@ -294,8 +316,35 @@ export default function Payment() {
       }
     } catch (e) {
       console.warn('[payment] finishMembershipFlow failed', e)
-      dialog.toast('注册处理中，请稍后在首页查看')
+      dialog.toast(t("注册处理中，请稍后在首页查看"))
       exit('/pages-weapp/home/index')
+    }
+  }
+
+  // #2308: WxBind 过期后的显式重新授权。前端用 wx.login 换取新
+  // exchange_token，再调用 rebind 端点完成注册（不重复扣款/建号）。
+  const doRebind = async () => {
+    if (rebindBusy) return
+    setRebindBusy(true)
+    try {
+      const code = await wxLogin()
+      if (!code) throw new Error(t('无法获取微信授权'))
+      // #2308 v3: 只提交 wx_code；后端用 wx-accounts 解析 openid 后与 session.OpenID 比对。
+      const resp = await apiFetch(`${baseUrl}/auth/registration-sessions/${pSessionId}/rebind`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wx_code: code }),
+        auth: false,
+      })
+      const r = await resp.json()
+      if (r.code !== 20000) throw new Error(resolveErrorMessage(r, t('重新授权失败')))
+      setRebindNeeded(false)
+      dialog.toast(t('授权成功，正在完成注册...'), { duration: 1500 })
+      finishMembershipFlow()
+    } catch (e) {
+      dialog.alert(e.message || t('重新授权失败，请稍后重试'), { title: t('重新授权') })
+    } finally {
+      setRebindBusy(false)
     }
   }
 
@@ -312,7 +361,7 @@ export default function Payment() {
     // openid 由后端解析（#1678）：membership 两阶段流程创建 session 时已
     // 解析并存储微信身份，prepay 无需前端传递 open_id。
     // 优惠码（#1719 通用化，所有支付类型）：有优惠码时提交原金额 + coupon_code，
-    // 最终金额由后端服务端重算（OREZ → 0 走 waive 记账，ENO → 1%）；优惠码
+    // 最终金额由后端服务端重算（waive → 0，percent → 按 coupons.value）；优惠码
     // 场景不叠加赠点抵扣（gift_used=0）。
     const payAmount = appliedCoupon
       ? (data?.amount || 0)
@@ -400,7 +449,7 @@ export default function Payment() {
       paySign: payData.data.pay_sign,
       success: () => {
         if (pType === 'membership' && pSessionId) {
-          dialog.toast('支付成功，注册处理中', { duration: 1500 })
+          dialog.toast(t("支付成功，注册处理中"), { duration: 1500 })
           startMembershipFlow()
         } else {
           dialog.toast(pType === 'membership' ? '会员已激活，赠点已到账' : t('支付成功'), { icon: 'success' })
@@ -414,11 +463,11 @@ export default function Payment() {
     })
   }
 
-  const handlePay = async (cashAmount) => {
+  const handlePay = async (payAmount) => {
     if (isPaying) return // 防抖：支付流程进行中忽略重复点击（QA #1819）
-    if (cashAmount <= 0) {
+    if (payAmount <= 0) {
       if (appliedCoupon || (pType === 'membership' && pSessionId)) {
-        // OREZ full waiver (or membership session waiver): run prepay so
+        // 服务端 waive（或会员 session 免单）：run prepay so
         // the server books the paid record and applies side effects
         // (#1719 通用化：任意支付类型的 waive 优惠码都走此路径).
         setIsPaying(true)
@@ -426,14 +475,16 @@ export default function Payment() {
           const result = await doPrepay()
           if (result.code === 20000) {
             if (pType === 'membership' && pSessionId) {
-              dialog.toast('会员已激活，赠点已到账', { icon: 'success' })
+              dialog.toast(t("会员已激活，赠点已到账"), { icon: 'success' })
               startMembershipFlow()
             } else {
-              dialog.toast('支付成功', { icon: 'success' })
+              dialog.toast(t("支付成功"), { icon: 'success' })
               afterPaySuccess(pId)
             }
           } else {
             setIsPaying(false)
+            setAppliedCoupon(null)
+            setCouponAmount(0)
             dialog.alert(resolveErrorMessage(result, '请稍后重试'), { title: t('支付失败') })
           }
         } catch (err) {
@@ -471,6 +522,8 @@ export default function Payment() {
         }
       } else {
         setIsPaying(false)
+        setAppliedCoupon(null)
+        setCouponAmount(0)
         dialog.alert(resolveErrorMessage(result, '请稍后重试'), { title: t('支付失败') })
       }
     } catch (err) {
@@ -480,7 +533,7 @@ export default function Payment() {
   }
 
   const handleRefund = async () => {
-    dialog.toast('退款申请已提交', { icon: 'success' })
+    dialog.toast(t("退款申请已提交"), { icon: 'success' })
     setTimeout(() => Taro.navigateBack(), 2000)
   }
 
@@ -496,7 +549,7 @@ export default function Payment() {
               {renderDetailsBlock(data.details, data.type)}
               {data.type === 'rent' && data.details.pricing_breakdown && (
                 <View style={{ borderTop: '1px solid #f4f4f5', marginTop: 8, paddingTop: 8 }}>
-                  <Row label="合计" value={`¥${formatCents(Number(data.amount))}`} bold />
+                  <Row label={t("合计")} value={`¥${formatCents(Number(data.amount))}`} bold />
                 </View>
               )}
               {/* #1773: 物流费提醒——0 押金快递到付，已付押金从押金扣除 */}
@@ -515,60 +568,60 @@ export default function Payment() {
             <View style={{ marginTop: 8 }}>
               {data.details?.cancel_refund && (
                 <>
-                  <Text style={{ fontSize: 12, color: '#a1a1aa', fontWeight: '700', marginTop: 8, marginBottom: 4 }}>原支付明细</Text>
+                  <Text style={{ fontSize: 12, color: '#a1a1aa', fontWeight: '700', marginTop: 8, marginBottom: 4 }}>{t("原支付明细")}</Text>
                   {data.details.total_paid !== undefined && (
-                    <Row label="原支付总额" value={`¥${formatCents(Number(data.details.total_paid))}`} />
+                    <Row label={t("原支付总额")} value={`¥${formatCents(Number(data.details.total_paid))}`} />
                   )}
                   {data.details.cash_paid !== undefined && Number(data.details.cash_paid) > 0 && (
-                    <Row label="  现金" value={`¥${formatCents(Number(data.details.cash_paid))}`} />
+                    <Row label={t("  现金")} value={`¥${formatCents(Number(data.details.cash_paid))}`} />
                   )}
                   {data.details.prepaid_used !== undefined && Number(data.details.prepaid_used) > 0 && (
-                    <Row label="  预付点" value={`¥${formatCents(Number(data.details.prepaid_used))}`} />
+                    <Row label={t("  预付点")} value={`¥${formatCents(Number(data.details.prepaid_used))}`} />
                   )}
                   {data.details.gift_used !== undefined && Number(data.details.gift_used) > 0 && (
-                    <Row label="  赠点" value={`¥${formatCents(Number(data.details.gift_used))}`} />
+                    <Row label={t("  赠点")} value={`¥${formatCents(Number(data.details.gift_used))}`} />
                   )}
-                  <Text style={{ fontSize: 12, color: '#a1a1aa', fontWeight: '700', marginTop: 12, marginBottom: 4 }}>退款明细（原路退回）</Text>
+                  <Text style={{ fontSize: 12, color: '#a1a1aa', fontWeight: '700', marginTop: 12, marginBottom: 4 }}>{t("退款明细（原路退回）")}</Text>
                 </>
               )}
               {data.details?.cash_refundable !== undefined && Number(data.details.cash_refundable) > 0 && (
-                <Row label="退现金（微信原路）" value={`¥${formatCents(Number(data.details.cash_refundable))}`} />
+                <Row label={t("退现金（微信原路）")} value={`¥${formatCents(Number(data.details.cash_refundable))}`} />
               )}
               {data.details?.prepaid_refunded !== undefined && Number(data.details.prepaid_refunded) > 0 && (
-                <Row label="退回预付点" value={`+¥${formatCents(Number(data.details.prepaid_refunded))}`} color="#16a34a" />
+                <Row label={t("退回预付点")} value={`+¥${formatCents(Number(data.details.prepaid_refunded))}`} color="#16a34a" />
               )}
               {data.details?.gift_refunded !== undefined && Number(data.details.gift_refunded) > 0 && (
-                <Row label="退回赠点" value={`+¥${formatCents(Number(data.details.gift_refunded))}`} color="#16a34a" />
+                <Row label={t("退回赠点")} value={`+¥${formatCents(Number(data.details.gift_refunded))}`} color="#16a34a" />
               )}
-              <Row label="退款金额" value={`¥${formatCents(Number(data.amount))}`} bold />
+              <Row label={t("退款金额")} value={`¥${formatCents(Number(data.amount))}`} bold />
             </View>
           )}
         </View>
 
         {/* Points usage (only for non-refund, non-appeal) */}
-        {!isRefund && pType !== 'appeal' && pType !== 'membership' && data.amount > 0 && maxGift > 0 && (
+        {!isRefund && !appliedCoupon && pType !== 'appeal' && pType !== 'membership' && data.amount > 0 && maxGift > 0 && (
           <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>使用乐币</Text>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>{t("使用乐币")}</Text>
 
             <View style={{ marginBottom: 4 }}>
-              <Row label="本次可用" value={`${Math.floor(Math.min(maxGift, data.amount) / 100)} 乐币`} />
+              <Row label={t("本次可用")} value={`${Math.floor(Math.min(maxGift, data.amount) / 100)} 乐币`} />
               <View style={{ display: 'flex', alignItems: 'center', marginTop: 4 }}>
-                <Text style={{ fontSize: 13, color: '#71717a', width: 72 }}>使用</Text>
+                <Text style={{ fontSize: 13, color: '#71717a', width: 72 }}>{t("使用")}</Text>
                 <View style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
                   <Input type="number" value={String(giftUsed || '')}
                     onInput={e => setGiftUsed(clampPoints(e.detail.value, Math.floor(Math.min(maxGift, data.amount) / 100)))}
                     style={{ flex: 1, border: '1px solid #e4e4e7', borderRadius: 8, padding: '6px 10px', fontSize: 13, textAlign: 'right' }}
                   />
                 </View>
-                <Text style={{ fontSize: 13, color: '#71717a', marginLeft: 4 }}>乐币</Text>
+                <Text style={{ fontSize: 13, color: '#71717a', marginLeft: 4 }}>{t("乐币")}</Text>
               </View>
             </View>
             <Text style={{ fontSize: 11, color: '#a1a1aa', textAlign: 'right', marginBottom: 8 }}>
-              乐币使用不得超过租金的 {Math.round((wallet.max_gift_ratio || 0.3) * 100)}%，不足1元的部分不能使用乐币。
+              {t("乐币使用不得超过租金的")} {Math.round((wallet.max_gift_ratio || 0.3) * 100)}{t("%，不足1元的部分不能使用乐币。")}
             </Text>
 
             <View style={{ borderTop: '1px solid #e4e4e7', paddingTop: 8 }}>
-              <Row label="现金差额" value={`¥${formatCents(Number(cashAmount))}`} bold />
+              <Row label={t("现金差额")} value={`¥${formatCents(Number(cashAmount))}`} bold />
             </View>
           </View>
         )}
@@ -576,9 +629,9 @@ export default function Payment() {
         {/* Refund summary */}
         {isRefund && (
           <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 8 }}>退款说明</Text>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 8 }}>{t("退款说明")}</Text>
             <Text style={{ fontSize: 13, color: '#71717a' }}>
-              金额将在提交后原路退回至您的微信支付账户，预计 1-7 个工作日到账。
+              {t("金额将在提交后原路退回至您的微信支付账户，预计 1-7 个工作日到账。")}
             </Text>
           </View>
         )}
@@ -586,13 +639,13 @@ export default function Payment() {
         {/* Membership benefits note (#1575) */}
         {pType === 'membership' && (
           <View style={{ backgroundColor: '#fef9ec', margin: 16, borderRadius: 16, padding: 16 }}>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: '#92400e', marginBottom: 8 }}>成为 VIP 会员后，你将获得以下权益：</Text>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: '#92400e', marginBottom: 8 }}>{t("成为 VIP 会员后，你将获得以下权益：")}</Text>
             <View style={{ marginBottom: 4 }}>
-              <Text style={{ fontSize: 12, color: '#92400e', lineHeight: '18px' }}>· 解锁全部乐器租赁服务</Text>
+              <Text style={{ fontSize: 12, color: '#92400e', lineHeight: '18px' }}>{t("· 解锁全部乐器租赁服务")}</Text>
             </View>
             <View>
-              <Text style={{ fontSize: 12, color: '#92400e', lineHeight: '18px' }}>· 获赠 99 赠点，可用于抵扣租金</Text>
-              <Text style={{ fontSize: 11, color: '#a16207', lineHeight: '16px', paddingLeft: 12 }}>（每次最多抵扣租金的 {Math.round((maxPayRatio || 0.3) * 100)}%）</Text>
+              <Text style={{ fontSize: 12, color: '#92400e', lineHeight: '18px' }}>{t("· 获赠 99 赠点，可用于抵扣租金")}</Text>
+              <Text style={{ fontSize: 11, color: '#a16207', lineHeight: '16px', paddingLeft: 12 }}>{t("（每次最多抵扣租金的")} {Math.round((maxPayRatio || 0.3) * 100)}%）</Text>
             </View>
           </View>
         )}
@@ -600,12 +653,12 @@ export default function Payment() {
         {/* 优惠码（#1719 通用化）：所有付款类支付页显示；退款/申诉结果页除外 */}
         {!isRefund && pType !== 'appeal' && !prepayData?.data && (
           <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 8 }}>优惠码</Text>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 8 }}>{t("优惠码")}</Text>
             <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Input
                 defaultValue={couponCode}
                 onInput={e => { couponInputRef.current = e.detail.value; setCouponCode(e.detail.value) }}
-                placeholder="输入优惠码（选填）"
+                placeholder={t("输入优惠码（选填）")}
                 placeholderStyle="color:#a1a1aa;font-size:12px"
                 style={{ flex: 1, border: '1px solid #e4e4e7', borderRadius: 10, padding: '8px 12px', fontSize: 13 }}
               />
@@ -622,7 +675,7 @@ export default function Payment() {
               <Text style={{ fontSize: 12, color: '#16a34a', marginTop: 8, display: 'block' }}>{appliedCoupon.hint}</Text>
             )}
             {appliedCoupon && (
-              <Row label="优惠后金额" value={`¥${formatCents(Number(couponAmount))}`} bold />
+              <Row label={t("优惠后金额")} value={`¥${formatCents(Number(couponAmount))}`} bold />
             )}
           </View>
         )}
@@ -633,15 +686,19 @@ export default function Payment() {
 
       {/* Pay/Confirm button */}
       <View style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', borderTop: '1px solid #f4f4f5', padding: 16 }}>
-        {isRefund ? (
+        {rebindNeeded ? (
+          <Button style={btnStyle('#B98E5F')} onClick={doRebind} disabled={rebindBusy}>
+            {rebindBusy ? t('处理中...') : t('重新授权微信并完成注册')}
+          </Button>
+        ) : isRefund ? (
           <View style={{ display: 'flex', flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
-              <Button style={btnStyle('#B98E5F')} onClick={handleRefund}>确认退款 ¥{formatCents(Number(cashAmount))}</Button>
+              <Button style={btnStyle('#B98E5F')} onClick={handleRefund}>{t("确认退款 ¥")}{formatCents(Number(cashAmount))}</Button>
             </View>
           </View>
         ) : pType === 'appeal' ? (
           <Button style={btnStyle('#16a34a')} onClick={() => Taro.redirectTo({ url: `/pages-weapp/order-detail/index?id=${pId}` })}>
-            确认，查看订单详情
+            {t("确认，查看订单详情")}
           </Button>
         ) : prepayData?.data ? (
           <View style={{ display: 'flex', flexDirection: 'row', gap: 12 }}>
@@ -700,7 +757,7 @@ function renderDetailsBlock(details, type) {
         {svcItems.map((it, i) => (
           <Row key={i} label={it.label} value={`¥${formatCents(Number(it.amount || 0))}`} />
         ))}
-        <Row label="合计" value={`¥${formatCents(Number(details?.total || 0))}`} bold />
+        <Row label={t("合计")} value={`¥${formatCents(Number(details?.total || 0))}`} bold />
       </View>
     )
   }
@@ -713,7 +770,7 @@ function renderDetailsBlock(details, type) {
           <Row key={i} label={item.label} value={`¥${formatCents(Number(item.amount || 0))}`} />
         ))}
         <View style={{ borderTop: '1px solid #f4f4f5', marginTop: 8, paddingTop: 8 }}>
-          <Row label="合计" value={`¥${formatCents(items.reduce((s, it) => s + Number(it.amount || 0), 0))}`} bold />
+          <Row label={t("合计")} value={`¥${formatCents(items.reduce((s, it) => s + Number(it.amount || 0), 0))}`} bold />
         </View>
       </View>
     )
@@ -724,18 +781,18 @@ function renderDetailsBlock(details, type) {
     if (pb && pb.tier_segments) {
       return (
         <View>
-          <Text style={{ fontSize: 13, fontWeight: '600', color: '#52525b', marginBottom: 4 }}>阶梯定价</Text>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: '#52525b', marginBottom: 4 }}>{t("阶梯定价")}</Text>
           {pb.tier_segments.map((seg, i) => (
             <View key={i} style={{ paddingLeft: 16, paddingRight: 36 }}>
               <Row label={`第${seg.tier}阶 ${seg.days}天`} value={`¥${formatCents(Number(seg.days * seg.rate))}`} valueSize={11} />
               {seg.discount < 1.0 && (
-                <Row label="  折扣" value={`-¥${formatCents(Number(seg.days * seg.rate - seg.subtotal))}`} color="#16a34a" valueSize={11} />
+                <Row label={t("  折扣")} value={`-¥${formatCents(Number(seg.days * seg.rate - seg.subtotal))}`} color="#16a34a" valueSize={11} />
               )}
             </View>
           ))}
-          <Row label="租金小计" value={`¥${formatCents(Number(pb.total_amount || 0))}`} bold />
-          {details.deposit > 0 && <Row label="押金" value={`¥${formatCents(Number(details.deposit))}`} />}
-          {details.shipping_fee > 0 && <Row label="物流费" value={`¥${formatCents(Number(details.shipping_fee))}`} />}
+          <Row label={t("租金小计")} value={`¥${formatCents(Number(pb.total_amount || 0))}`} bold />
+          {details.deposit > 0 && <Row label={t("押金")} value={`¥${formatCents(Number(details.deposit))}`} />}
+          {details.shipping_fee > 0 && <Row label={t("物流费")} value={`¥${formatCents(Number(details.shipping_fee))}`} />}
         </View>
       )
     }
@@ -746,17 +803,17 @@ function renderDetailsBlock(details, type) {
       <View>
         {type === 'requote' && oldQ && (
           <View style={{ opacity: 0.5, marginBottom: 4 }}>
-            <Row label="原报价（材料费）" value={`¥${formatCents(Number(oldQ.material_fee || 0))}`} />
-            <Row label="原报价（服务费）" value={`¥${formatCents(Number(oldQ.service_fee || 0))}`} />
-            <Row label="原报价（物流费）" value={`¥${formatCents(Number(oldQ.logistics_fee || 0))}`} />
-            <Row label="原报价合计" value={`¥${formatCents(Number(oldQ.total || 0))}`} bold />
+            <Row label={t("原报价（材料费）")} value={`¥${formatCents(Number(oldQ.material_fee || 0))}`} />
+            <Row label={t("原报价（服务费）")} value={`¥${formatCents(Number(oldQ.service_fee || 0))}`} />
+            <Row label={t("原报价（物流费）")} value={`¥${formatCents(Number(oldQ.logistics_fee || 0))}`} />
+            <Row label={t("原报价合计")} value={`¥${formatCents(Number(oldQ.total || 0))}`} bold />
           </View>
         )}
-        <Row label="材料费" value={`¥${formatCents(Number(details.material_fee || 0))}`} />
-        <Row label="服务费" value={`¥${formatCents(Number(details.service_fee || 0))}`} />
-        <Row label="物流费" value={`¥${formatCents(Number(details.logistics_fee || 0))}`} />
+        <Row label={t("材料费")} value={`¥${formatCents(Number(details.material_fee || 0))}`} />
+        <Row label={t("服务费")} value={`¥${formatCents(Number(details.service_fee || 0))}`} />
+        <Row label={t("物流费")} value={`¥${formatCents(Number(details.logistics_fee || 0))}`} />
         {type === 'requote' && oldQ && (
-          <Row label="需补付" value={`+¥${formatCents(Math.max(0, Number(details.total || 0)))}`} bold color="#dc2626" />
+          <Row label={t("需补付")} value={`+¥${formatCents(Math.max(0, Number(details.total || 0)))}`} bold color="#dc2626" />
         )}
       </View>
     )
@@ -766,15 +823,15 @@ function renderDetailsBlock(details, type) {
     return (
       <View>
         <View style={{ opacity: 0.5 }}>
-          <Row label="租金小计" value={`¥${formatCents(Number(pb.rent_subtotal || 0))}`} />
-          <Row label="押金" value={`¥${formatCents(Number(pb.deposit || 0))}`} />
-          <Row label="物流费" value={`¥${formatCents(Number(pb.shipping_fee || 0))}`} />
-          <Row label="已付合计" value={`¥${formatCents(Number(pb.paid_total || 0))}`} bold />
+          <Row label={t("租金小计")} value={`¥${formatCents(Number(pb.rent_subtotal || 0))}`} />
+          <Row label={t("押金")} value={`¥${formatCents(Number(pb.deposit || 0))}`} />
+          <Row label={t("物流费")} value={`¥${formatCents(Number(pb.shipping_fee || 0))}`} />
+          <Row label={t("已付合计")} value={`¥${formatCents(Number(pb.paid_total || 0))}`} bold />
         </View>
         <View style={{ borderTop: '1px solid #f4f4f5', paddingTop: 8, marginTop: 4 }}>
-          <Row label="损失评估" value={`¥${formatCents(Number(details.damage_amount || 0))}`} />
-          <Row label="押金抵扣" value={`-¥${formatCents(Number(details.deposit_deduction || 0))}`} />
-          <Row label="需补付" value={`¥${formatCents(Number(details.pay_amount || 0))}`} bold color="#dc2626" />
+          <Row label={t("损失评估")} value={`¥${formatCents(Number(details.damage_amount || 0))}`} />
+          <Row label={t("押金抵扣")} value={`-¥${formatCents(Number(details.deposit_deduction || 0))}`} />
+          <Row label={t("需补付")} value={`¥${formatCents(Number(details.pay_amount || 0))}`} bold color="#dc2626" />
         </View>
       </View>
     )
@@ -784,16 +841,16 @@ function renderDetailsBlock(details, type) {
     // appeal outcome (ResolveAppeal/AgreeDamage already ran settlement).
     return (
       <View>
-        <Row label="实际租期" value={`${Number(details.actual_rent_days || 0)} 天`} />
-        <Row label="实际租金" value={`¥${formatCents(Number(details.actual_rent_amount || 0))}`} />
+        <Row label={t("实际租期")} value={`${Number(details.actual_rent_days || 0)} 天`} />
+        <Row label={t("实际租金")} value={`¥${formatCents(Number(details.actual_rent_amount || 0))}`} />
         {Number(details.damage_deducted || 0) > 0 && (
-          <Row label="损坏扣款" value={`-¥${formatCents(Number(details.damage_deducted))}`} color="#dc2626" />
+          <Row label={t("损坏扣款")} value={`-¥${formatCents(Number(details.damage_deducted))}`} color="#dc2626" />
         )}
         {Number(details.overdue_fee || 0) > 0 && (
-          <Row label="逾期费用" value={`-¥${formatCents(Number(details.overdue_fee))}`} color="#dc2626" />
+          <Row label={t("逾期费用")} value={`-¥${formatCents(Number(details.overdue_fee))}`} color="#dc2626" />
         )}
         <View style={{ borderTop: '1px solid #f4f4f5', paddingTop: 8, marginTop: 4 }}>
-          <Row label="退款金额" value={`¥${formatCents(Number(details.cash_refundable || 0))}`} bold color="#3b82f6" />
+          <Row label={t("退款金额")} value={`¥${formatCents(Number(details.cash_refundable || 0))}`} bold color="#3b82f6" />
         </View>
       </View>
     )
@@ -803,10 +860,10 @@ function renderDetailsBlock(details, type) {
     const days = Number(details.days || 0)
     return (
       <View>
-        <Row label="续期天数" value={`${days} 天`} />
-        <Row label="续期费" value={`¥${formatCents(Number(details.renewal_cost || 0))}`} />
+        <Row label={t("续期天数")} value={`${days} 天`} />
+        <Row label={t("续期费")} value={`¥${formatCents(Number(details.renewal_cost || 0))}`} />
         <View style={{ borderTop: '1px solid #f4f4f5', paddingTop: 8, marginTop: 4 }}>
-          <Row label="合计" value={`¥${formatCents(Number(details.total || 0))}`} bold />
+          <Row label={t("合计")} value={`¥${formatCents(Number(details.total || 0))}`} bold />
         </View>
       </View>
     )
@@ -815,19 +872,19 @@ function renderDetailsBlock(details, type) {
     // #1748 L-04C 流程 3: 补缴支付确认页明细（服务端 calculate）。
     return (
       <View>
-        <Row label="实际租金" value={`¥${formatCents(Number(details.rent || 0))}`} />
+        <Row label={t("实际租金")} value={`¥${formatCents(Number(details.rent || 0))}`} />
         {Number(details.shipping_fee || 0) > 0 && (
-          <Row label="物流费" value={`¥${formatCents(Number(details.shipping_fee))}`} />
+          <Row label={t("物流费")} value={`¥${formatCents(Number(details.shipping_fee))}`} />
         )}
         {Number(details.overdue_fee || 0) > 0 && (
-          <Row label="逾期费" value={`¥${formatCents(Number(details.overdue_fee))}`} />
+          <Row label={t("逾期费")} value={`¥${formatCents(Number(details.overdue_fee))}`} />
         )}
         {Number(details.damage_amount || 0) > 0 && (
-          <Row label="损坏赔偿" value={`¥${formatCents(Number(details.damage_amount))}`} />
+          <Row label={t("损坏赔偿")} value={`¥${formatCents(Number(details.damage_amount))}`} />
         )}
-        <Row label="已付总额" value={`¥${formatCents(Number(details.paid_total || 0))}`} />
+        <Row label={t("已付总额")} value={`¥${formatCents(Number(details.paid_total || 0))}`} />
         <View style={{ borderTop: '1px solid #f4f4f5', paddingTop: 8, marginTop: 4 }}>
-          <Row label="需补缴" value={`¥${formatCents(Number(details.shortfall_amount || 0))}`} bold color="#dc2626" />
+          <Row label={t("需补缴")} value={`¥${formatCents(Number(details.shortfall_amount || 0))}`} bold color="#dc2626" />
         </View>
       </View>
     )

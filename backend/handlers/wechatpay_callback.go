@@ -3,10 +3,12 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"tuneloop-backend/database"
@@ -17,6 +19,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // WechatPayCallback handles POST /api/wechatpay/notify
@@ -70,46 +73,116 @@ func processRefundCallback(c *gin.Context, result *wechatpay.CallbackResult) boo
 	db := database.GetDB().WithContext(c.Request.Context())
 	now := time.Now()
 
-	var refundRecord models.OrderRefundRecord
-	if err := db.Where("out_refund_no = ?", result.OutRefundNo).First(&refundRecord).Error; err != nil {
-		log.Printf("[processRefundCallback] refund record not found for %s: %v", result.OutRefundNo, err)
-		return false
-	}
-
-	if err := db.Model(&refundRecord).Updates(map[string]interface{}{
-		"status":     "refunded",
-		"refund_id":  result.RefundID,
-		"updated_at": now,
-	}).Error; err != nil {
-		log.Printf("[processRefundCallback] failed to update refund record %s: %v", result.OutRefundNo, err)
-		return false
-	}
-
-	// Update the associated settlement refund status (if any)
-	if refundRecord.PaymentRecordID != nil {
-		var settlement models.Settlement
-		if err := db.Where("order_id IN (SELECT order_id FROM order_payment_records WHERE id = ?)", *refundRecord.PaymentRecordID).
-			First(&settlement).Error; err == nil {
-			if err := db.Model(&settlement).Updates(map[string]interface{}{
-				"refund_status": "completed",
-				"updated_at":    now,
-			}).Error; err != nil {
-				log.Printf("[processRefundCallback] failed to update settlement for %s: %v", result.OutRefundNo, err)
-			}
+	err := db.Transaction(func(tx *gorm.DB) error {
+		var refundRecord models.OrderRefundRecord
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("out_refund_no = ?", result.OutRefundNo).First(&refundRecord).Error; err != nil {
+			return err
+		}
+		// 幂等：已 refunded 的回调直接成功返回，不重复扣减
+		if refundRecord.Status == "refunded" {
+			return nil
+		}
+		if err := tx.Model(&refundRecord).Updates(map[string]interface{}{
+			"status":     "refunded",
+			"refund_id":  result.RefundID,
+			"updated_at": now,
+		}).Error; err != nil {
+			return err
 		}
 
-		// Re-evaluate membership level after refund (aggregated spending decreased;
-		// level only upgrades, so this is a no-op unless other spending crossed a threshold)
+		if refundRecord.PaymentRecordID == nil {
+			return nil
+		}
 		var payment models.OrderPaymentRecord
-		if err := db.Where("id = ?", *refundRecord.PaymentRecordID).First(&payment).Error; err == nil {
-			if err := services.CheckAndUpgradeLevel(payment.UserID, nil); err != nil {
-				log.Printf("[processRefundCallback] membership level check failed: %v", err)
+		if err := tx.Where("id = ?", *refundRecord.PaymentRecordID).First(&payment).Error; err != nil {
+			return err
+		}
+		if payment.OrderID != nil {
+			// #2278：cash_paid 为净额（扣除已退款）
+			if err := addOrderCashPaid(tx, *payment.OrderID, -refundRecord.Amount); err != nil {
+				return err
+			}
+			if err := tx.Model(&models.Settlement{}).Where("order_id = ?", *payment.OrderID).
+				Updates(map[string]interface{}{"refund_status": "completed", "updated_at": now}).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Printf("[processRefundCallback] failed for %s: %v", result.OutRefundNo, err)
+		return false
+	}
+
+	// 退款后会员等级复核（消费额下降；等级只升不降，通常为 no-op）
+	if result.RefundID != "" {
+		var refund models.OrderRefundRecord
+		if err := db.Where("out_refund_no = ?", result.OutRefundNo).First(&refund).Error; err == nil && refund.PaymentRecordID != nil {
+			var payment models.OrderPaymentRecord
+			if err := db.Where("id = ?", *refund.PaymentRecordID).First(&payment).Error; err == nil {
+				if err := services.CheckAndUpgradeLevel(payment.UserID, nil); err != nil {
+					log.Printf("[processRefundCallback] membership level check failed: %v", err)
+				}
 			}
 		}
 	}
 
 	log.Printf("[processRefundCallback] refund processed: out_refund_no=%s refund_id=%s", result.OutRefundNo, result.RefundID)
 	return true
+}
+
+// isWxRebindError 判断 WxBind 失败是否可通过重新授权恢复（#2308）。
+func isWxRebindError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var mergeErr *services.WxNeedsMergeError
+	if errors.As(err, &mergeErr) {
+		return true
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "invalid or expired exchange_token") ||
+		strings.Contains(msg, "needs merge")
+}
+
+// applySideEffectsAndRecord 在独立事务中执行 side effects，并把结果持久化到
+// order_payment_records。调用方必须已把 status=paid 落库；本函数失败不回滚 paid。
+func applySideEffectsAndRecord(db *gorm.DB, rec *models.OrderPaymentRecord, now time.Time) error {
+	tx := db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	if err := applySideEffects(tx, rec, now); err != nil {
+		tx.Rollback()
+		status := "failed"
+		if isWxRebindError(err) {
+			status = "needs_rebind"
+		}
+		updates := map[string]interface{}{
+			"side_effect_status":   status,
+			"side_effect_error":    err.Error(),
+			"side_effect_attempts": gorm.Expr("side_effect_attempts + 1"),
+			"updated_at":           now,
+		}
+		if updErr := db.Model(rec).Updates(updates).Error; updErr != nil {
+			log.Printf("[applySideEffectsAndRecord] persist side effect status failed for %s: %v", rec.ID, updErr)
+		}
+		if status == "needs_rebind" && rec.OrderType == "membership" && rec.SessionID != nil && *rec.SessionID != "" {
+			if updErr := db.Model(&models.RegistrationSession{}).Where("id = ?", *rec.SessionID).
+				Updates(map[string]interface{}{"status": "needs_rebind", "error": err.Error(), "updated_at": now}).Error; updErr != nil {
+				log.Printf("[applySideEffectsAndRecord] mark session needs_rebind failed: %v", updErr)
+			}
+		}
+		return err
+	}
+	if err := tx.Commit().Error; err != nil {
+		return err
+	}
+	if err := db.Model(rec).Update("side_effect_status", "succeeded").Error; err != nil {
+		log.Printf("[applySideEffectsAndRecord] mark succeeded failed for %s: %v", rec.ID, err)
+	}
+	return nil
 }
 
 func processPaymentCallback(c *gin.Context, result *wechatpay.CallbackResult) bool {
@@ -148,20 +221,16 @@ func processPaymentCallback(c *gin.Context, result *wechatpay.CallbackResult) bo
 	rawStr := string(raw)
 	record.RawResponse = &rawStr
 
-	tx := db.Begin()
-
-	if err := tx.Save(&record).Error; err != nil {
-		tx.Rollback()
+	record.SideEffectStatus = "pending"
+	record.SideEffectError = nil
+	if err := db.Save(&record).Error; err != nil {
 		log.Printf("[processPaymentCallback] failed to update record: %v", err)
 		return false
 	}
-
-	if err := applySideEffects(tx, &record, now); err != nil {
-		tx.Rollback()
-		return false
+	// #2308: 支付已成功入账，side effect 失败不得回滚 paid（否则微信回调/调度器无限重试）。
+	if err := applySideEffectsAndRecord(db, &record, now); err != nil {
+		log.Printf("[processPaymentCallback] side effects failed for %s: %v", result.OutTradeNo, err)
 	}
-
-	tx.Commit()
 	log.Printf("[processPaymentCallback] payment processed: out_trade_no=%s transaction_id=%s amount=%d type=%s", result.OutTradeNo, result.TransactionID, int64(record.Amount), record.OrderType)
 
 	// #1730: virtual/service goods (no physical delivery) must report
@@ -230,9 +299,14 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 		// cash_paid so settlement uses the real paid base, not the pre-order
 		// full-price snapshot. gift_points_used stays untouched. Renewal has
 		// its own accumulation logic (renewal.go) — never touch it here.
-		if err := tx.Model(&models.Order{}).Where("id = ?", record.OrderID).
-			Updates(map[string]interface{}{"status": models.OrderStatusPaid, "cash_paid": record.Amount}).Error; err != nil {
-			return err
+		if record.OrderID != nil {
+			if err := tx.Model(&models.Order{}).Where("id = ?", *record.OrderID).
+				Update("status", models.OrderStatusPaid).Error; err != nil {
+				return err
+			}
+			if err := setOrderCashPaid(tx, *record.OrderID, record.Amount); err != nil {
+				return err
+			}
 		}
 		// Order timeline (order_logs) — payment must be visible to customer
 		if record.OrderID != nil {
@@ -317,6 +391,12 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 		}
 		return nil
 	case "damage":
+		// #2279：定损赔付为实收现金，必须入账（不得仅 executeRefund）
+		if record.OrderID != nil {
+			if err := addOrderCashPaid(tx, *record.OrderID, record.Amount); err != nil {
+				return err
+			}
+		}
 		if err := tx.Model(&models.Order{}).Where("id = ?", record.OrderID).Update("status", models.OrderStatusCompleted).Error; err != nil {
 			return err
 		}
@@ -346,6 +426,9 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 		// #1948 LS-06：丢失补缴到账 → 幂等关闭 pending 补缴记录（M-08 解除）。
 		// 订单已因丢失置 cancelled，不改变。
 		if record.OrderID != nil {
+			if err := addOrderCashPaid(tx, *record.OrderID, record.Amount); err != nil {
+				return err
+			}
 			if err := tx.Model(&models.OrderPaymentRecord{}).
 				Where("order_id = ? AND order_type = ? AND status = ? AND method = ?",
 					*record.OrderID, "loss", "pending", "loss").
@@ -355,6 +438,12 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 		}
 		return nil
 	case "payment_shortfall":
+		// #2278：补缴到账必须入账（现金净额）
+		if record.OrderID != nil {
+			if err := addOrderCashPaid(tx, *record.OrderID, record.Amount); err != nil {
+				return err
+			}
+		}
 		// #1746 L-04C 流程 4/5：补缴支付成功 → 订单 completed → 结算闭环。
 		// settlement 已存在（shortfall 时创建，pending）→ 标记完成
 		// （此时已付 ≥ 应付，无退款/走幂等 executeRefund）。
@@ -378,15 +467,9 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 			}
 		}
 		if record.OrderID != nil {
-			if err := tx.Model(&models.Settlement{}).Where("order_id = ?", *record.OrderID).
-				Update("refund_status", "completed").Error; err != nil {
-				log.Printf("[applySideEffects] Failed to complete settlement for order %s: %v", *record.OrderID, err)
-			}
-			var completedOrder models.Order
-			if err := tx.Where("id = ?", *record.OrderID).First(&completedOrder).Error; err == nil {
-				if _, err := executeRefund(tx, completedOrder); err != nil {
-					log.Printf("[applySideEffects] Settlement failed for order %s: %v", *record.OrderID, err)
-				}
+			// #2278：重算结算并处理超收退款（executeRefund 对已存在 settlement 会提前返回）
+			if err := applyShortfallSettlement(tx, *record.OrderID); err != nil {
+				return fmt.Errorf("recompute shortfall settlement: %w", err)
 			}
 		}
 		return nil
@@ -414,13 +497,10 @@ func deductPointsFromRecord(tx *gorm.DB, record *models.OrderPaymentRecord, now 
 	}
 	// #1983 阶段 2：不再扣减 users.promo_points 快照；余额 = 批次 SUM（下方 FIFO 扣减为准）。
 	if record.OrderID != nil {
+		// #2279：cash_paid 已是现金净额，gift 不得再扣（gift 与 cash 完全分离）
 		updates := map[string]interface{}{
 			"gift_points_used": giftUsedCents,
 		}
-		// Deduct gift points from cash_paid so settlement does not double
-		// count them (L-06). cash_paid was set to the full total at order
-		// creation; the gift-covered portion is not cash.
-		updates["cash_paid"] = gorm.Expr("GREATEST(cash_paid - ?, 0)", giftUsedCents)
 		if err := tx.Model(&models.Order{}).Where("id = ?", *record.OrderID).
 			Updates(updates).Error; err != nil {
 			return fmt.Errorf("update order points: %w", err)
@@ -512,21 +592,20 @@ func processPendingRecord(db *gorm.DB, rec *models.OrderPaymentRecord) {
 	}
 
 	if result.TradeState == "SUCCESS" {
-		tx := db.Begin()
 		rec.Status = "paid"
 		rec.TransactionID = &result.TransactionID
+		rec.SideEffectStatus = "pending"
+		rec.SideEffectError = nil
 		rec.UpdatedAt = time.Now()
-		if err := tx.Save(&rec).Error; err != nil {
-			tx.Rollback()
+		if err := db.Save(rec).Error; err != nil {
 			log.Printf("[PaymentScheduler] save failed for %s: %v", *rec.OutTradeNo, err)
 			return
 		}
-		if err := applySideEffects(tx, rec, time.Now()); err != nil {
-			tx.Rollback()
+		// #2308: paid 已落库；side effect 失败只记录，不再让调度器每分钟重试。
+		if err := applySideEffectsAndRecord(db, rec, time.Now()); err != nil {
 			log.Printf("[PaymentScheduler] side effects failed for %s: %v", *rec.OutTradeNo, err)
 			return
 		}
-		tx.Commit()
 		log.Printf("[PaymentScheduler] recovered + applied: out_trade_no=%s tx_id=%s", *rec.OutTradeNo, result.TransactionID)
 		return
 	}

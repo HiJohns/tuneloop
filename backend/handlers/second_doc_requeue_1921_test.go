@@ -49,8 +49,8 @@ func TestRequeueSecondDocBatches(t *testing.T) {
 		Kind: "second_doc", SubmittedAt: time.Now(), CreatedAt: time.Now(),
 	}).Error)
 
-	// Case C: second doc uploaded, latest batch pending (registration) →
-	// skip — already visible in the review queue
+	// Case C: second doc uploaded, registration batch pending, no second_doc
+	// batch → still requeue (independent review)
 	inReviewUser := models.User{
 		ID: uuid.New().String(), IAMSub: uuid.New().String(),
 		TenantID: uuid.New().String(), OrgID: uuid.New().String(),
@@ -78,7 +78,7 @@ func TestRequeueSecondDocBatches(t *testing.T) {
 		Kind: "registration", SubmittedAt: time.Now().Add(-time.Hour), CreatedAt: time.Now().Add(-time.Hour),
 	}).Error)
 
-	// Case E: latest batch rejected → skip
+	// Case E: latest registration batch rejected, no second_doc batch → requeue
 	rejectedUser := models.User{
 		ID: uuid.New().String(), IAMSub: uuid.New().String(),
 		TenantID: uuid.New().String(), OrgID: uuid.New().String(),
@@ -90,6 +90,16 @@ func TestRequeueSecondDocBatches(t *testing.T) {
 		ID: uuid.New().String(), UserID: rejectedUser.ID, Status: "rejected",
 		Kind: "registration", SubmittedAt: time.Now(), CreatedAt: time.Now(),
 	}).Error)
+
+	// Case G: type set but still unverified → requeue (verified=false is the gate)
+	typedUnverifiedUser := models.User{
+		ID: uuid.New().String(), IAMSub: uuid.New().String(),
+		TenantID: uuid.New().String(), OrgID: uuid.New().String(),
+		Username: "requeue-g", Status: "active",
+		IdPhotoOther:     strPtr("/uploads/media/other-g.jpg"),
+		IdPhotoOtherType: strPtr("student"),
+	}
+	require.NoError(t, db.Create(&typedUnverifiedUser).Error)
 
 	// Case F: no second doc at all → skip
 	plainUser := models.User{
@@ -103,21 +113,24 @@ func TestRequeueSecondDocBatches(t *testing.T) {
 		Kind: "registration", SubmittedAt: time.Now().Add(-time.Hour), CreatedAt: time.Now().Add(-time.Hour),
 	}).Error)
 
-	// Dry run: exactly one candidate (case A), nothing persisted
+	// Dry run: cases A/C/E are candidates; nothing persisted
 	count, err := RequeueSecondDocBatches(true)
 	require.NoError(t, err)
-	assert.Equal(t, 1, count)
+	assert.Equal(t, 4, count)
 	var total int64
 	db.Model(&models.FaceCaptureBatch{}).Where("kind = ? AND status = ?", "second_doc", "pending").Count(&total)
 	assert.Equal(t, int64(1), total, "dry run must not create batches")
 
-	// Real run: batch created for case A
+	// Real run: batches created for A/C/E
 	count, err = RequeueSecondDocBatches(false)
 	require.NoError(t, err)
-	assert.Equal(t, 1, count)
-	var requeued models.FaceCaptureBatch
-	require.NoError(t, db.Where("user_id = ? AND kind = ? AND status = ?", approvedUser.ID, "second_doc", "pending").
-		First(&requeued).Error)
+	assert.Equal(t, 4, count)
+	for _, uid := range []string{approvedUser.ID, inReviewUser.ID, rejectedUser.ID, typedUnverifiedUser.ID} {
+		var n int64
+		require.NoError(t, db.Model(&models.FaceCaptureBatch{}).
+			Where("user_id = ? AND kind = ? AND status = ?", uid, "second_doc", "pending").Count(&n).Error)
+		assert.EqualValues(t, 1, n)
+	}
 
 	// Idempotency: second run is a no-op
 	count, err = RequeueSecondDocBatches(false)

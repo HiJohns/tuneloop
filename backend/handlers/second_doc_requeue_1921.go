@@ -8,57 +8,39 @@ import (
 	"tuneloop-backend/models"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
-// RequeueSecondDocBatches (#1921) creates pending `second_doc` review batches
-// for legacy users who uploaded a second document (id_photo_other) but have
-// no reviewer-assigned type (id_photo_other_type empty) — those users are
-// invisible to the review queue and cannot reach deposit-free eligibility.
-// Only users whose latest face-capture batch is `approved` are requeued:
-// pending batches are already visible to staff and rejected ones were
-// explicitly declined. Idempotent: users with a pending `second_doc` batch
-// are skipped, so repeated runs never duplicate batches.
+// RequeueSecondDocBatches (#1921/#2312) creates pending `second_doc` review
+// batches for users who uploaded a second document (id_photo_other) but are
+// still unverified — those users have no independent second-doc review and
+// cannot reach deposit-free eligibility. Idempotent: users with a pending or
+// approved `second_doc` batch are skipped, so repeated runs never duplicate.
 func RequeueSecondDocBatches(dryRun bool) (int, error) {
 	db := database.GetDB()
 
 	var users []models.User
 	if err := db.
 		Where("id_photo_other IS NOT NULL AND id_photo_other != ''").
-		Where("id_photo_other_type IS NULL OR id_photo_other_type = ''").
+		Where("id_photo_other_verified = ?", false).
 		Find(&users).Error; err != nil {
 		return 0, err
 	}
 
 	count := 0
 	for _, user := range users {
-		// Idempotency: an open second-doc review already exists.
-		var pending int64
+		// Idempotency: an open/approved second-doc review already exists.
+		var open int64
 		if err := db.Model(&models.FaceCaptureBatch{}).
-			Where("user_id = ? AND kind = ? AND status = ?", user.ID, "second_doc", "pending").
-			Count(&pending).Error; err != nil {
+			Where("user_id = ? AND kind = ? AND status IN ?", user.ID, "second_doc", []string{"pending", "approved"}).
+			Count(&open).Error; err != nil {
 			return count, err
 		}
-		if pending > 0 {
+		if open > 0 {
 			continue
 		}
 
-		// Only requeue when the latest batch was approved (see doc comment).
-		var latest models.FaceCaptureBatch
-		if err := db.Where("user_id = ?", user.ID).
-			Order("submitted_at DESC, created_at DESC").
-			First(&latest).Error; err != nil {
-			if err == gorm.ErrRecordNotFound {
-				continue // never entered face review — out of scope
-			}
-			return count, err
-		}
-		if latest.Status != "approved" {
-			continue
-		}
-
-		log.Printf("[RequeueSecondDoc] user %s (%s): latest batch %s approved, second doc untyped → requeue",
-			user.ID, user.Username, latest.ID)
+		log.Printf("[RequeueSecondDoc] user %s (%s): second doc unverified and no open second_doc batch → requeue",
+			user.ID, user.Username)
 		if !dryRun {
 			if err := db.Create(&models.FaceCaptureBatch{
 				ID:          uuid.New().String(),

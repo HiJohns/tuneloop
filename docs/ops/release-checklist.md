@@ -17,16 +17,26 @@
 # 微信小程序：先构建归档，再上传（上传不重新编译，保证发布内容=已验证内容）
 cd frontend-mobile          # nvm use 22 必须！
 nvm use 22
+# 预生产体验版
+make weapp-build-pre VERSION=YYYYMMDD-HHMMSS_COMMITID
+make weapp-upload-dev VERSION=YYYYMMDD-HHMMSS_COMMITID APP_VERSION=1.0.0-dev DESC="pre release note"
+# 生产正式版
 make weapp-build-prod VERSION=YYYYMMDD-HHMMSS_COMMITID   # 生成 releases/weapp-prod/<VERSION>/dist-weapp
-make weapp-upload-prod VERSION=YYYYMMDD-HHMMSS_COMMITID DESC="release note"
+make weapp-upload-prod VERSION=YYYYMMDD-HHMMSS_COMMITID APP_VERSION=1.0.<x> DESC="release note"
 # 注意：VERSION 必须命令行显式传（Makefile 的 $(origin VERSION) 判断，否则回退 1.0.0）
 
 # tuneloop（后端 + PC + H5）——make release 默认产出预生产包并自动部署到 pre！
 make release
+# 注意：make release 不含 weapp（见上方单独构建/上传）；后端 VERSION 用 VERSION 文件，前端版本自动取 git 短码。
 
 # beaconiam（build + ui + 自动 scp 到 cadenza:/opt/flow）
 cd ../beaconiam && make release
 ```
+
+> **发布通道故障**：`make release` 的 Seafile 上传若认证失败（HTTP 400），可直接 `rsync` 上传 zip 到 `cadenza:/opt/flow/`，再执行
+> `sudo TUNELOOP_APPS_BASE=/opt/tuneloop-pre/apps ./deploy.sh <pkg>.zip`。
+> 正确凭据以日常 cloudus fetch 使用的 600 env 文件为准，不把密码写进仓库或 `.bashrc`。
+> 若同时发布 weapp，先确认体验版已构建上传并在微信后台设为体验版；`make release` 不会带上小程序。
 
 ## 2. 部署（cadenza）
 
@@ -93,7 +103,7 @@ readlink /opt/tuneloop/apps/tuneloop/uploads           # → /opt/uploads
 ### 3.6 微信小程序（上传≠可用）
 
 - [ ] 微信公众平台「版本管理」将归档版本选为**体验版** → 真机回归
-- [ ] 生产 appid `wxcb44a1be70e356ed`、预生产 `wx9f96827856269a6c` 域名与 apiBaseUrl 与环境匹配
+- [ ] **单 appid 策略**：预生产/生产共用 `wxcb44a1be70e356ed`（不再有独立预生产 appid）；预生产使用 `prewx` apiBaseUrl + `weapp-upload-dev`，生产使用 `wx` apiBaseUrl + `weapp-upload-prod`，域名与 apiBaseUrl 必须匹配
 - [ ] 合法域名（request/uploadFile）已配好（prewx.cadenzayueqi.com / wx.cadenzayueqi.com）
 
 ## 4. 专项验证卡（本次涉及的结构/数据迁移）

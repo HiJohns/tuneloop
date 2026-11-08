@@ -106,7 +106,7 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
     // overrideSessionId (#1807): 新建注册 session 后显式传入新 sid——
     // prop 更新有 React 批处理时序延迟，注册页在创建 session 后立即上传时
     // 直接传 sid，避免走 user/id-photo 端点（匿名 401 上传失败）。
-    uploadPending: async (overrideSessionId) => {
+    uploadPending: async (overrideSessionId, overrideExtraFields) => {
       // 'skip' = 该槽未选图（注册页勿判为失败——#1845：空槽误报上传失败）。
       if (!pendingFile) return 'skip'
       setUploading(true)
@@ -120,7 +120,7 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
         // #2184: 统一走 platform.uploadFile；会话上传匿名 auth:false，用户上传自动注入 token
         const resp = await uploadFile(uploadUrl, pendingFile, {
           name: 'file',
-          formData: { side, ...extraFields },
+          formData: { side, ...extraFields, ...(overrideExtraFields || {}) },
           auth: !useSession,
         })
         if (!resp.ok) throw new Error('upload failed')

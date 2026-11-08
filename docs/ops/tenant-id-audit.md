@@ -371,8 +371,8 @@
 | ISO-14 | 网点管理员 | 跨网点订单/乐器详情 | 跨商户 → 404/403；本商户 org 锚可读 | ✅ 自动化：`TestIsolationMatrix_OrderDetail_CrossMerchant_ISO14`（站点级列表隔离由 #1911/#2116 覆盖） |
 | ISO-15 | 顾客（零租户） | 下单/读取/我的订单 | 不因 tid 为空被拒；数据落商户 org；跨顾客 404 | ✅ 自动化：`TestIsolationMatrix_CustomerZeroTenant_Chain_ISO15`（拍付/收货动作由 `prepay_2110`/`#2116` 组覆盖，wxpay 真链路列部署侧走查） |
 | ISO-16 | 顾客 | 发票申请：伪造 `tenant_id=B`；跨商户订单合并 | 伪造 → 400 且无申请行；不传 → 落订单商户 org；跨商户合并 → 400 | ✅ `TestInvoiceSubmit_TenantDerivedFromOrders_2262` |
-| ISO-17 | 商户 A/B 管理员 | 共享 tenant 下各自 webhook 配置 | A/B 互不覆盖；旧 tenant 键只读回退可用 | ✅ `TestMerchantWebhook_SharedTenantIsolation_2262`、`TestMerchantTenantID_ReturnsMerchantOrg_2262` |
-| ISO-18 | 商户/网点管理员、顾客 | B3 显式模式下的 repair / orders-instruments / membership 路由 | 跨商户 404/空；本商户 200；on/off 等价 | ✅ `TestRepairDomain_ExplicitScopeIsolation_2261`、`TestOrdersInstrumentsDomain_ExplicitScopeIsolation_2261`、`TestMembershipDomain_SitesExplicitScope_2261`（#2261 `d96d385e`） |
+| ISO-17 | 商户 A/B 管理员 | 共享 tenant 下各自 webhook 配置 | A/B 互不覆盖；旧 tenant 键在 scoped ctx 下只读回退可用 | ✅ `TestMerchantWebhook_LegacyKeyFallbackUnderScopedCtx_2262`、`TestMerchantWebhook_SharedTenantIsolation_2262`（#2262 返工） |
+| ISO-18 | 商户/网点管理员、顾客 | B3 显式模式下的 repair / orders-instruments / membership 路由 | 跨商户 404/空；本商户 200；on/off 等价 | ✅ **#2276 全量收口（`46b651dbb`）** + #2261 8 条。守卫：repair `TestRepairWrite_ExplicitScope_2276` / `TestRepairMoreWrites_ExplicitScope_2276` / `TestRepairAppeal_ExplicitScope_2276`；instruments/orders `TestInstrumentDetail_ExplicitScope_2276` / `TestInstrumentsWrite_ExplicitScope_2276` / `TestInstrumentMedia_ExplicitScope_2276` / `TestInstrumentMisc_ExplicitScope_2276` / `TestInstrumentsLeftovers_ExplicitScope_2276` / `TestInstrumentsLeftovers_MoreRoutes_2276` / `TestOrdersPickupAdmin_ExplicitScope_2276` / `TestOutboundAssessment_ExplicitScope_2276` / `TestOrdersByTradeNo_ExplicitScopeIsolation_2261` / `TestOrdersInstrumentsDelete_ExplicitScope_2261`；membership/site `TestMembershipWrite_ExplicitScope_2276` / `TestMerchantAdmin_SharedTenantOrgScope_2276` / `TestCreateSite_ExplicitScope_2276` / `TestSiteInvite_ExplicitScope_2276` / `TestMerchantList_PlatformAdmin_2276`；机制 `TestExplicitTenantScopeOnly_2261` |
 
 ## A6 覆盖率校验（可复跑）
 
@@ -411,7 +411,7 @@ bash scripts/tenant-audit-coverage.sh
 | B0 | **隔离守卫测试网**：ISO-14/15 自动化（守卫网先于回调改造存在） | ✅（#2259） | `TestIsolationMatrix_*` ×2 全绿
 | B1 | **商户归属解析统一**：`resolveOperatorMerchantConfig`（#2251）改为复用 `resolveOperatorMerchant2247`（#2247）——单一实现（org 优先 → 唯一 tenant → 共享不解析） | ✅ 已完成 | `TestResolveMerchantOrg_Precedence_2255`（org 优先/唯一 tenant/共享拒绝/未知身份 4 例）+ #2247/#2251 原测试回归 |
 | B2a | **S4 写入数据归属（缓存表）**：`pending_order` 的 tenant 改为乐器所属商户 org（原用 `users.tenant_id` 缓存，顾客零租户/共享 tenant 均不可靠） | ✅ 已完成（`pending_order`） | 红绿：`TestCreatePendingOrder_TenantFromInstrument_2255`（父提交=零租户/共享 → 修复=商户 org）+ 无乐器回退平台零 UUID 负例 |
-| B2b | **S4 写入数据归属（逐点显式化）** | 🟡 部分（2 点）：乐器促销覆盖 → 乐器商户 org（+跨商户 404）；商户结算配置 → 商户 org（修 computePaymentDeadline 口径） | 红绿：`TestPromoOverride_WriteAnchoredToInstrumentOrg_2260` / `TestSettlementConfig_AnchoredToMerchantOrg_2260`（父提交红）；**回调判定**：`setTenantIDFromContext` 现状只在字段零值时填充 → 显式归属点改造后自动不介入（守卫式 no-op 成立） |
+| B2b | **S4 写入数据归属（逐点显式化）** | ✅ 完成（#2260 R3 PASS）：2 点改造——乐器促销覆盖 → 乐器商户 org（+跨商户 404）；商户结算配置 → 商户 org（修 computePaymentDeadline 口径）；其余 S4 点 N/A（逐点判定见下表） | 红绿：`TestPromoOverride_WriteAnchoredToInstrumentOrg_2260` / `TestSettlementConfig_AnchoredToMerchantOrg_2260`（父提交红）；**回调判定**：`setTenantIDFromContext` 现状只在字段零值时填充 → 显式归属点改造后自动不介入（守卫式 no-op 成立） |
 ### B2b S4 逐点判定表（2026-10-22）
 
 | S4 点 | 判定 | 证据/理由 |
@@ -436,10 +436,10 @@ bash scripts/tenant-audit-coverage.sh
 | `confirmation_session.go` | ⚪ 不适用 | 会话归属 user_id，tenant 仅上下文元数据 |
 | `staff_invite.go` / `site_member.go` / `member_invite_2114.go` | ⚪ 不适用 | 写入前经 `hasSiteAccess`（sites.tenant_id = 操作者 tid）→ 与 site.TenantID 恒等 |
 | `repair_config.go` | ✅ 已修（#2251） | 维修设置锚商户 org / 平台 nil UUID |
-| B3 | 读回调逐域显式化（opt-in 等价迁移） | 🟡 批次1 ✅ 开关+观察；批次2 本地统计（9 表）✅ / 生产 24h 待部署；**批次3-域1（repair）/域2（orders·instruments）就绪**：显式模式隔离守卫通过；**域3（merchants/sites/site_members/technician_profiles）**：结算配置显式商户范围已补（`86774cf1`，红绿实证），technician_profiles 守卫已过（`8fa44810`）；sites/invoice_applications/instrument_media 本身即显式 tenant；#2269 判定有误已回滚（`e8a64aa4`）；**观察期实采（商户管理员受控流量）命中 12 表**：instruments/instrument_media/instrument_properties/sites/merchants/technician_profiles/users/orders/order_payment_records/order_status_history/properties/invoice_applications（真实口径：sites.tenant_id=商户 org、merchants.tenant_id=共享 tenant/org_id=商户 org） | `TestExplicitTenantScopeOnly_2261`、`TestRepairDomain_ExplicitScopeIsolation_2261`、`TestOrdersInstrumentsDomain_ExplicitScopeIsolation_2261`、`TestMembershipDomain_SitesExplicitScope_2261`、`TestTechnicianProfilesDomain_ExplicitScopeIsolation_2261`。**B3 三域已挂 `middleware.ExplicitTenantScope()`（`d96d385e`）**：repair 组 / orders+instruments 44 路由 / siteRequired+technician_profiles+merchants；全量 diff 无新增失败（15 vs 基线 21，修复 6 项）。预生产观察日志核对待部署后执行。 |
-| B4 | A3-8 必修清单（P2/P3 批 25 文件）口径改造 | 🟡 逐文件判定完成；本轮修 `invoice.go`（归属由订单派生）+ `member_invite_2114.go`（org 锚） | 见 §A7-B4 |
-| B5 | 前端/services tenant payload 收敛 | 🟡 盘点 88 行（63/21/4）→ `docs/ops/tenant-payload-audit-2262.md`；改 `webhook.go`（org 键 + 旧键只读回退）、`InvoiceConfirm` 移除 payload | 与 API 口径同步 |
-| B6 | 隔离矩阵补齐（ISO-14~18） | 🟡 自动化 ✅（ISO-16/17 随 #2262，ISO-18 随 #2261）；预生产走查待发布 | 行级断言
+| B3 | 读回调逐域显式化（opt-in 等价迁移） | ✅ 批次1 开关+观察；批次2 本地统计（9 表）；批次3 由 **#2276（`46b651dbb`）** 全量收口：8 条已核路由 + repair / orders-instruments / membership / site 写路由均已显式过滤并具备路由级守卫；预生产观察日志已核对（8 条切域无注入） | `TestExplicitTenantScopeOnly_2261` + ISO-18 所列 #2276 守卫（全量 911 RUN / 45 failed / NEW 空） |
+| B4 | A3-8 必修清单（P2/P3 批 25 文件）口径改造 | ✅ 完成（#2262 R2 PASS）：逐文件判定 + 修 `invoice.go`（归属由订单派生）、`member_invite_2114.go`（org 锚） | 见 §A7-B4 |
+| B5 | 前端/services tenant payload 收敛 | ✅ 完成（#2262 R2 PASS）：盘点 88 行（63/21/4）→ `docs/ops/tenant-payload-audit-2262.md`；改 `webhook.go`（org 键 + 旧键只读回退）、`InvoiceConfirm` 移除 payload | 与 API 口径同步 |
+| B6 | 隔离矩阵补齐（ISO-14~18） | 🟡 自动化：ISO-14/15/16/17/18 ✅（#2262 / #2276）；**预生产真机走查 = 部署侧待办**（需发布含 `46b651dbb` 的新包 + 用户回评；当前 1.0.75 不含最终 #2276） | 行级断言 + ISO-18 守卫列表 |
 
 
 ## §A7-B4 逐文件判定（#2262）
@@ -470,3 +470,84 @@ bash scripts/tenant-audit-coverage.sh
 | **`member_invite_2114.go`** | **需改**：`GetMyMerchant` OR 回退共享 tenant | ✅ 改 `resolveOperatorMerchantConfig`；`TestMyMerchant_SharedTenantOrgAnchor_2262` 红绿 |
 | `services/webhook.go` | **需改**：商户身份用共享 tenant 作键 | ✅ 改商户 org（双读单写）；`TestMerchantWebhook_SharedTenantIsolation_2262` / `TestMerchantTenantID_ReturnsMerchantOrg_2262` |
 | `frontend-mobile/src/pages/InvoiceConfirm.jsx` | 请求 payload 携带 `tenant_id` | ✅ 已移除 payload（分组展示保留） |
+
+## §A7-B3 路由 × 表 显式过滤清单（#2261 返工）
+
+> 审计返工后**只保留**以下已核查 + 有守卫的路由挂载 `middleware.ExplicitTenantScope()`；
+> 其余原批次路由已**回滚开关**（恢复自动租户范围），待逐路由清单与守卫补齐后再切。
+
+### 已切换（8 条）
+
+| 路由 | Handler | 触达表 | 显式过滤证据 | 守卫 |
+|---|---|---|---|---|
+| `GET /instruments` | `GetInstruments` | instruments | `resolveOperatorMerchant*` → `tenant_id IN (org, tenant)`（`instrument.go` 列表范围） | `TestOrdersInstrumentsDomain_ExplicitScopeIsolation_2261` |
+| `GET /technician-profiles` | `TechnicianProfileHandler.List` | technician_profiles, users | `tenant_id IN merchantScopeIDs2247`（`technician_profile.go:84+`） | `TestTechnicianProfilesDomain_ExplicitScopeIsolation_2261` |
+| `DELETE /instruments/:id` | `DeleteInstrument` | instruments, orders | `id = ? AND tenant_id = ?`（`instrument.go:950`） | `TestOrdersInstrumentsDelete_ExplicitScope_2261` |
+| `GET /orders/by-trade-no/:out_trade_no` | `GetOrdersByOutTradeNo` | payment_sessions, session_order_links, orders | `out_trade_no = ? AND tenant_id = ?`；orders 同（`order.go:1723/1749`） | `TestOrdersByTradeNo_ExplicitScopeIsolation_2261` |
+| `POST /orders/:id/cancel` | `CancelOrder` | orders, order_payment_records, refunds | `id = ? AND tenant_id = ?`（`order.go:1048`） | `TestOrdersInstrumentsDelete_ExplicitScope_2261` |
+| `GET /admin/repair-services` | `ListMerchantRepairServices` | repair_requests, merchants | 解析商户 org → `tenant_id IN merchantScopeIDs`（`repair_service_admin_2129.go:31-56`） | `TestRepairDomain_ExplicitScopeIsolation_2261` |
+| `PUT /merchant/sites/:id` | `UpdateSite` | sites | `id = ? AND tenant_id = ?`（`site.go:547`） | `TestMembershipDomain_SitesExplicitScope_2261` |
+| `GET /sites/:id/members` | `SiteMemberHandler.ListMembers` | sites, site_members, users | `hasSiteAccess`：`sites.id = ? AND sites.tenant_id = ?`（`site_member.go:325+`） | `TestMembershipDomain_SitesExplicitScope_2261` |
+
+### 批次 A（#2276）：repair 只读（8 条新增）
+
+| 路由 | Handler | 触达表 | 显式过滤证据 | 守卫 |
+|---|---|---|---|---|
+| `GET /repair/mine` | `ListMyRepairs` | instruments | `repair_worker_id = 操作者 user_id`（`repair.go:463`） | 用户维度守卫 |
+| `GET /repair/pending` | `ListPendingRepairs` | instruments, site_members | `current_site_id IN 操作者站点成员hips`（`repair.go:479-490`） | `TestListPendingRepairs_TenantFilter` |
+| `GET /repair/acceptance` | `ListAcceptanceRepairs` | instruments, site_members | 同上（站点成员hips） | 需 B/C 批次补路由级守卫 |
+| `GET /repair/:id/records` | `ListRecords` | instruments, repair_records | 先 `id = ? AND tenant_id = ?` 校验乐器（`repair.go:418+`） | `TestRepairRecords_ExplicitScope_2276` |
+| `GET /merchant/repair-requests` | `ListMerchantRepairRequests` | repair_requests | `tenant_id = 操作者 tid`（`repair_admin.go:24`） | 需补路由级守卫 |
+| `GET /repair-appeals` | `ListAppeals` | appeals | `org_id = 操作者 oid`（`appeal.go:36-38`） | 需补路由级守卫 |
+| `GET /config/repair` | `GetRepairAllSettings` | system_settings | 配置键 = 商户 org anchor（`repair_config.go:95`） | 已有配置隔离测试 |
+| `GET /config/repair/single` | `GetRepairSetting` | system_settings | 同上（`repair_config.go:37`） | 已有配置隔离测试 |
+
+> 批次 A 仅切只读；写路由（start/complete/accept/reject/records-add/return-shipping/transit）保持自动范围，待批次 A2。
+
+### 批次 B（#2276）：orders / instruments（进行中）
+
+| 路由 | Handler | 触达表 | 显式过滤证据 | 守卫 |
+|---|---|---|---|---|
+| `GET /instruments/:id` | `GetInstrumentByID` | instruments | `id = ? AND tenant_id = ?`（`api.go:51`） | `TestInstrumentDetail_ExplicitScope_2276` |
+| `PUT /instruments/:id` | `UpdateInstrument` | instruments | `id = ? AND tenant_id = ?`（`instrument.go:479`） | `TestInstrumentsWrite_ExplicitScope_2276` |
+| `DELETE /instruments/batch` | `BatchDeleteInstruments` | instruments, orders | `deleteInstrumentWithChecks`：`id = ? AND tenant_id = ?`（`instrument.go:950`） | 同上（跨商户行保留断言） |
+
+| `GET/POST/PUT/DELETE /instruments/:id/media*` | `GetInstrumentMedia`/`CreateInstrumentMedia`/`SetMediaDisplay`/`DeleteMediaBatch`/`DeleteSingleMedia` | instrument_media | `tenant_id = ?`（读写删均显式） | `TestInstrumentMedia_ExplicitScope_2276` |
+| `POST /instruments/:id/photos/upload` | `UploadInstrumentPhotos` | instruments, instrument_media | 乐器加载补 `id = ? AND tenant_id = ?`（本批） | 代码审查 + 列表/删除守卫 |
+| `POST /instruments/:id/cover-image` | `UploadCoverImage` | instruments | 入口补 `id = ? AND tenant_id = ?`（本批） | 同上 |
+| `POST /instruments/:id/display-image` | `UploadDisplayImage` | instruments, instrument_media | `id = ? AND tenant_id = ?`（既有） | 同上 |
+
+| `GET /instruments/:id/pricing` | `GetInstrumentPricing` | instruments, pricing_templates | `tenant_id = ?`（pricing.go:253） | 代码审查 |
+| `GET /instruments/:id/activity-log` | `GetInstrumentActivityLog` | orders, order_status_history | `instrument_id = ? AND tenant_id = ?`（activity_log.go:63） | `TestInstrumentMisc_ExplicitScope_2276` |
+| `POST /instruments/:id/scrap` | `ScrapInstrument` | instruments | `id = ? AND tenant_id = ?`（instrument_scrap.go:24） | 同上（跨商户 404） |
+| `POST /instruments/:id/lost` / `restore`、`GET /instrument-loss` | lossHandler | instrument_loss_records, instruments | `tenant_id = ?`（instrument_loss.go:393） | 代码审查 |
+| `POST /instruments/import` / `GET /instruments/export` | import/export | instruments, categories | `tenant_id`（instrument_import.go:33/139） | 代码审查 |
+
+> 待续：`/orders/:id` 详情与 pickup/admin-update/outbound/assessment（需逐条核对）。
+
+### 已回滚（未切换，自动范围保留）
+
+原批次挂载但**未完成逐路由清单/守卫**的入口全部回滚，包括：
+
+- repair：`repairRequired` / `repairReqRequired` 两个路由组、`/config/repair*`、`/repair-appeals*`、`/merchant/repair-requests`、customer repair 路由；
+- orders/instruments：`/orders/:id`（detail）、`/orders/:id/admin-update`、`/orders/:id/pickup`、`/outbound-*`、`/assessment`、`/instruments/:id`（detail/update）、media 写删、pricing/activity/scrap/import/export/loss/restore、`/instrument-loss`；
+- membership：`/merchants*`、`/admin/merchants/*/members*`、`/merchant/sites`（Create）、`/sites/tree`、其余 site 成员写路由、technician-profiles 写路由。
+
+> 原因：关闭自动范围会同时影响 Query/Delete；上述入口存在未显式带 `tenant_id/org_id/user_id/父对象授权` 的查询（如支付会话反查），必须先补过滤 + 路由级守卫（on/off 等价）再切换。
+>
+> 回滚方式：移除对应路由/组的 `middleware.ExplicitTenantScope()`；行为恢复为自动租户范围（本轮不改 handler 业务逻辑）。
+
+### 批次 B/C（#2276）：repair 写 / instrument 遗留 / membership 写
+
+| 域 | 路由（分组） | Handler | 显式过滤证据 | 守卫 |
+|---|---|---|---|---|
+| repair 状态机 | POST `/repair/:id/{start,complete,takeover,reassign,accept,reject,records}` | `repair.go` | `instruments.id = ? AND tenant_id = ?`；records 经 instrument 归属门控 | `TestRepairWrite_ExplicitScope_2276`（start on/off）、`TestRepairMoreWrites_ExplicitScope_2276` |
+| repair 请求 | `/repair-requests/:id/{return-shipping,transit-process,receive,complete,transit-relay}` | `repair_request.go` | `id = ? AND tenant_id IN ?`（`repairServiceTenantScope`，含商户 org 锚） | `TestRepairMoreWrites_ExplicitScope_2276`（receive 真状态 200/404 + on/off） |
+| repair 服务 | `/repair-services/:id/{quote,legs,adjust,receive,start,complete,dispatch,reassign}` | `repair_service.go` | `loadRepairService`：`id = ? AND tenant_id IN ?` | `TestRepairMoreWrites_ExplicitScope_2276`（receive 真状态：本租户 200→repairing；跨租户 on/off 404 且状态不变） |
+| repair 申诉 | `/repair-appeals/:id/{close,review,forward}` | `repair_admin.go` | `appeals.id = ? AND tenant_id IN ?`（`repairServiceTenantScope`）；级联 repair_requests 同 | `TestRepairAppeal_ExplicitScope_2276`（含 on/off） |
+| instrument 遗留 | PUT `/instruments/:id/{sort,status}`、GET `/instruments/:id/{photos/latest,pricing-v2}`、`/instruments/batch-{import,import/preview,import/media,import/template,pricing}` | `instrument*.go` / `pricing.go` | `id + tenant_id`；batch import session `TenantID` 与当前租户比对 | `TestInstrumentsLeftovers_{ExplicitScope,MoreRoutes}_2276` |
+| membership 商户 | `/merchants*`、`/admin/merchants/:id/members*` | `merchant.go` / `merchant_member.go` | merchant_admin → `org_id = 操作者 org`；平台管理员按 tenant；成员加载：跨租户 404；同一 shared tenant 的其他商户 org → 403（#2274 契约） | `TestMembershipWrite_ExplicitScope_2276`（GET/POST admin members 跨租户 404；list on/off 内容一致）、`TestMerchantList_PlatformAdmin_2276`、`TestMerchantAdmin_SharedTenantOrgScope_2276`（注释：JWT tid==oid，共享的是 merchants.tenant_id） |
+| site 写 | POST `/merchant/sites`、GET `/sites/tree`、`/sites/:id/members`（Add/Apply/Update/Remove）、`/sites/:id/invites/send` | `site.go` / `site_member.go` / `staff_invite.go` | `hasSiteAccess`：`sites.id = ? AND sites.tenant_id = ?`；tree 按 tenant；CreateSite 锚当前商户/租户；invite 路由已挂显式开关 | `TestMembershipWrite_ExplicitScope_2276`（tree 不含他租户、含本租户）、`TestCreateSite_ExplicitScope_2276`、`TestSiteInvite_ExplicitScope_2276` |
+| technician 写 | POST `/technician-profiles`、PUT `/technician-profiles/:id{,/status}`、POST `/technician-profiles/:id/photo` | `technician_profile.go` | Create：`resolveOperatorMerchant2247` → `profileTenant`；Update/Status/Photo：`tenant_id IN (tid, org)` | `TestMembershipWrite_ExplicitScope_2276` |
+
+> **2026-10-28 预生产 1.0.77 双商户 API 复核**（A/B 商户管理员，真实 token）：`/admin/merchants/{other}/members` 双向 **403**（同 shared tenant、不同 org，符合 #2274 契约）；`/sites/{other}/members` 双向 **404**；B→A 订单/乐器详情 **404**；两棵树均不含对方站点。证据见 #2296。

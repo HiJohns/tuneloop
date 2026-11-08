@@ -165,7 +165,7 @@ func (h *TechnicianProfileHandler) Create(c *gin.Context) {
 		profileTenant = merchant.OrgID
 	}
 	var cnt int64
-	db.Model(&models.TechnicianProfile{}).Where("user_id = ? AND tenant_id = ?", body.UserID, tid).Count(&cnt)
+	db.Model(&models.TechnicianProfile{}).Where("user_id = ? AND tenant_id = ?", body.UserID, profileTenant).Count(&cnt)
 	if cnt > 0 {
 		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "technician profile already exists"})
 		return
@@ -199,7 +199,11 @@ func (h *TechnicianProfileHandler) Update(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 	tid := middleware.GetTenantID(ctx)
 	var p models.TechnicianProfile
-	if err := db.Where("id = ? AND tenant_id = ?", c.Param("id"), tid).First(&p).Error; err != nil {
+	scope := []string{tid}
+	if oid := middleware.GetOrgID(c.Request.Context()); oid != "" && oid != tid {
+		scope = append(scope, oid)
+	}
+	if err := db.Where("id = ? AND tenant_id IN ?", c.Param("id"), scope).First(&p).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "technician profile not found"})
 		return
 	}
@@ -244,7 +248,11 @@ func (h *TechnicianProfileHandler) SetStatus(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 	tid := middleware.GetTenantID(ctx)
 	var p models.TechnicianProfile
-	if err := db.Where("id = ? AND tenant_id = ?", c.Param("id"), tid).First(&p).Error; err != nil {
+	scope := []string{tid}
+	if oid := middleware.GetOrgID(c.Request.Context()); oid != "" && oid != tid {
+		scope = append(scope, oid)
+	}
+	if err := db.Where("id = ? AND tenant_id IN ?", c.Param("id"), scope).First(&p).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "technician profile not found"})
 		return
 	}
@@ -272,7 +280,11 @@ func (h *TechnicianProfileHandler) UploadPhoto(c *gin.Context) {
 		return
 	}
 	var p models.TechnicianProfile
-	if err := db.Where("id = ? AND tenant_id = ?", c.Param("id"), tid).First(&p).Error; err != nil {
+	scope := []string{tid}
+	if oid := middleware.GetOrgID(c.Request.Context()); oid != "" && oid != tid {
+		scope = append(scope, oid)
+	}
+	if err := db.Where("id = ? AND tenant_id IN ?", c.Param("id"), scope).First(&p).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "technician profile not found"})
 		return
 	}

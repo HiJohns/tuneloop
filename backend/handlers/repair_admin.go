@@ -190,9 +190,10 @@ func CloseAppeal(c *gin.Context) {
 
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
+	scopes := repairServiceTenantScope(ctx)
 
 	var appeal models.Appeal
-	if err := db.Where("id = ?", id).First(&appeal).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id IN ?", id, scopes).First(&appeal).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "not found"})
 		return
 	}
@@ -204,7 +205,7 @@ func CloseAppeal(c *gin.Context) {
 
 	// Cascade: close linked repair request
 	if appeal.ObjectType == "repair_request" && appeal.ObjectID != "" {
-		db.Model(&models.RepairRequest{}).Where("id = ?", appeal.ObjectID).
+		db.Model(&models.RepairRequest{}).Where("id = ? AND tenant_id IN ?", appeal.ObjectID, scopes).
 			Updates(map[string]interface{}{"status": models.RepairReqStatusClosed, "closed_at": now})
 	}
 
@@ -226,9 +227,10 @@ func ReviewAppeal(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "desensitized_description required"})
 		return
 	}
+	scopes := repairServiceTenantScope(ctx)
 
 	var appeal models.Appeal
-	if err := db.Where("id = ?", id).First(&appeal).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id IN ?", id, scopes).First(&appeal).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "appeal not found"})
 		return
 	}
@@ -260,9 +262,10 @@ func ForwardAppeal(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "forwarded_to required"})
 		return
 	}
+	scopes := repairServiceTenantScope(ctx)
 
 	var appeal models.Appeal
-	if err := db.Where("id = ?", id).First(&appeal).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id IN ?", id, scopes).First(&appeal).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "appeal not found"})
 		return
 	}

@@ -247,6 +247,22 @@ func BatchSetInstrumentPricing(c *gin.Context) {
 	})
 }
 
+// pricingResponseWithInstrument merges per-instrument deposit fields into the
+// pricing-v2 response. Full deposit is authoritative from instruments.deposit
+// when set (including 0 = zero-deposit instrument); reduced is nullable.
+func pricingResponseWithInstrument(result *services.InstrumentPricing, instrument *models.Instrument) map[string]interface{} {
+	data := services.FormatPricingResult(result)
+	if instrument.Deposit != nil {
+		data["deposit"] = int64(*instrument.Deposit)
+	}
+	if instrument.DepositReduced != nil {
+		data["deposit_reduced"] = int64(*instrument.DepositReduced)
+	} else {
+		data["deposit_reduced"] = nil
+	}
+	return data
+}
+
 // GET /api/instruments/:id/pricing-v2 - Get instrument full pricing with tier calculation
 func GetInstrumentPricingV2(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -316,7 +332,7 @@ func GetInstrumentPricingV2(c *gin.Context) {
 	result := services.CalculatePricing((*instrument.BaseDailyRate).ToYuan(), totalPrice, config.Config, instrument.PricingOverrides, instrument.Pricing)
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": services.FormatPricingResult(result),
+		"data": pricingResponseWithInstrument(result, &instrument),
 	})
 }
 

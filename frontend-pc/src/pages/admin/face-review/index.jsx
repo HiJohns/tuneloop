@@ -102,7 +102,8 @@ export default function FaceReviewPage() {
   const handleApprove = async () => {
     const collected = !!(approving && approving.id_info_collected)
     const isSecondDoc = approving?.kind === 'second_doc'
-    const needsSecondType = !!(approving?.has_second_doc)
+    // #2313: 注册核身批次只处理实名；第二证件类型仅由 second_doc 批次处理。
+    const needsSecondType = isSecondDoc
     // #1924: 第二证件复审只指定类型；注册审核未采录时才需录入 5 项实名信息。
     if (!collected && !isSecondDoc) {
       if (!realName.trim() || !idCardNo.trim() || !idCardExpire.trim() || !idCardAuthority.trim() || !idCardAddress.trim()) {
@@ -427,7 +428,7 @@ export default function FaceReviewPage() {
         okButtonProps={{
           loading: submitting,
           // #2104：学生证缺介绍信时禁用「通过」（须走驳回补传），避免无效重试
-          disabled: secondDocType === 'student' && approving?.has_second_doc && !approving?.intro_letter_url,
+          disabled: secondDocType === 'student' && approving?.kind === 'second_doc' && !approving?.intro_letter_url,
         }}
       >
         {approving && (approving.id_info_collected || approving.kind === 'second_doc') ? (
@@ -486,8 +487,8 @@ export default function FaceReviewPage() {
             />
           </div>
         )}
-        {/* #1924: 用户提交了第二证件 → 审核人必须指定类型 */}
-        {approving?.has_second_doc && (
+        {/* #2313: 第二证件复审独立批次 → 才展示类型选择 */}
+        {approving?.kind === 'second_doc' && (
           <div style={{ marginTop: 16 }}>
             <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
               第二证件类型（用户自报{approving?.id_photo_other_type ? `：${approving.id_photo_other_type}` : '：未选择'}；审核人可修正）

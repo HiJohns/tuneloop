@@ -235,6 +235,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	api.GET("/auth/registration-sessions/me", regSessionHandler.GetMyRegistrationSession)
 	api.GET("/auth/registration-sessions/:id/status", regSessionHandler.GetRegistrationSessionStatus)
 	api.POST("/auth/registration-sessions/:id/id-photo", regSessionHandler.UploadSessionIDPhoto)
+	api.POST("/auth/registration-sessions/:id/rebind", regSessionHandler.RebindRegistrationSession)
 	api.POST("/wx/login", authHandler.WxLogin)
 	api.POST("/wx/phone", authHandler.WxPhone)
 	api.POST("/wechatpay/notify", handlers.WechatPayCallback)
@@ -381,14 +382,15 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		sitePoints.PUT("/site/points-policies/:id", handlers.UpdatePointsPolicy)
 
 		authRequired.GET("/instruments", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:read"), handlers.GetInstruments)
-		authRequired.GET("/instruments/levels", middleware.ExplicitTenantScope(), handlers.GetInstrumentLevels)
-		authRequired.GET("/instruments/filter-options", middleware.ExplicitTenantScope(), handlers.GetInstrumentFilterOptions)
-		authRequired.GET("/instruments/check", middleware.ExplicitTenantScope(), handlers.CheckInstrumentSN)
+		authRequired.GET("/instruments/levels", handlers.GetInstrumentLevels)
+		authRequired.GET("/instruments/filter-options", handlers.GetInstrumentFilterOptions)
+		authRequired.GET("/instruments/check", handlers.CheckInstrumentSN)
 		authRequired.GET("/instruments/:id", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:read"), handlers.GetInstrumentByID)
 		authRequired.PUT("/instruments/:id", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:update"), handlers.UpdateInstrument)
 		// #1797: 子分类内排序（行内上移/下移）
 		authRequired.PUT("/instruments/:id/sort", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:update"), handlers.SortInstrument)
 		authRequired.GET("/reports/assessment/:order_id", handlers.HandleAssessmentReport(database.GetDB()))
+		authRequired.GET("/admin/orders/:id/financials", middleware.RequireSysPerm(middleware.SysPermTenantView), handlers.AdminOrderFinancials)
 		authRequired.GET("/admin/payments", handlers.ListPayments)
 		authRequired.GET("/admin/payments/export", handlers.ExportPayments)
 		authRequired.POST("/admin/payments/:out_trade_no/query", handlers.QueryPaymentByTradeNo)
@@ -407,7 +409,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/admin/platform-staff/invites", handlers.InvitePlatformStaff)
 
 		// Instrument CRUD
-		authRequired.POST("/instruments", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:create"), handlers.CreateInstrument)
+		authRequired.POST("/instruments", middleware.RequireCusPerm("instrument:create"), handlers.CreateInstrument)
 		// #1948 乐器丢失与找回（员工/管理员，双入口之一；归属校验在 handler 内）
 		lossHandler := handlers.NewInstrumentLossHandler()
 		technicianProfileHandler := handlers.NewTechnicianProfileHandler()
@@ -439,7 +441,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.GET("/instruments/:id/pricing", middleware.ExplicitTenantScope(), handlers.GetInstrumentPricing)
 		authRequired.POST("/instruments/import", middleware.ExplicitTenantScope(), handlers.ImportInstruments)
 		authRequired.GET("/instruments/export", middleware.ExplicitTenantScope(), handlers.ExportInstruments)
-		authRequired.GET("/instruments/import/template", middleware.ExplicitTenantScope(), handlers.DownloadCSVTemplate)
+		authRequired.GET("/instruments/import/template", handlers.DownloadCSVTemplate)
 		authRequired.GET("/instruments/batch-import/template", middleware.ExplicitTenantScope(), handlers.DownloadCSVTemplate)
 		authRequired.POST("/instruments/batch-import", middleware.ExplicitTenantScope(), handlers.ExecuteBatchImport)
 		authRequired.POST("/instruments/batch-import/preview", middleware.ExplicitTenantScope(), handlers.PreviewBatchImport)
@@ -448,7 +450,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.GET("/orders/by-trade-no/:out_trade_no", middleware.ExplicitTenantScope(), handlers.GetOrdersByOutTradeNo)
 		authRequired.POST("/orders/:id/pickup", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("order:update"), handlers.PickupOrder)
 		authRequired.POST("/orders/:id/cancel", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("order:cancel"), handlers.CancelOrder)
-		authRequired.GET("/merchant/orders", middleware.ExplicitTenantScope(), handlers.ListMerchantOrders)
+		authRequired.GET("/merchant/orders", handlers.ListMerchantOrders)
 
 		// Forwarding session routes
 		authRequired.GET("/forwarding/sessions", handlers.ListForwardingSessions)
@@ -481,7 +483,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.GET("/admin/invites/pending-count", middleware.RequireCusPerm("member:invite"), handlers.MerchantInvitesPendingCount)
 		authRequired.POST("/admin/invites/:id/approve", middleware.RequireCusPerm("member:invite"), handlers.ApproveInvite)
 		authRequired.POST("/admin/invites/:id/reject", middleware.RequireCusPerm("member:invite"), handlers.RejectInvite)
-		authRequired.POST("/admin/merchants/:id/invites", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("member:invite"), handlers.InviteToMerchant)
+		authRequired.POST("/admin/merchants/:id/invites", middleware.RequireCusPerm("member:invite"), handlers.InviteToMerchant)
 
 		// Platform user management (#1545): list/detail/edit/export users
 		authRequired.POST("/admin/users/:id/avatar", middleware.RequireSysPerm(middleware.SysPermUserUpdate), handlers.AdminUploadUserAvatar) // #2073 管理员为用户上传头像
@@ -498,23 +500,23 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.PUT("/admin/user-management/:id/id-card", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), userManagementHandler.UpdateIdCard)
 		authRequired.POST("/admin/user-management/:id/id-photo/reject", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), userManagementHandler.RejectIdPhotos)
 
-		siteRequired := authRequired.Group("", middleware.ExplicitTenantScope())
+		siteRequired := authRequired.Group("")
 		{
 			siteRequired.GET("/common/sites", siteHandler.ListSites)
-			siteRequired.POST("/merchant/sites", middleware.RequireSysPerm(middleware.SysPermOrganizationCreate), siteHandler.CreateSite)
-			siteRequired.PUT("/merchant/sites/:id", middleware.RequireSysPerm(middleware.SysPermOrganizationUpdate), siteHandler.UpdateSite)
+			siteRequired.POST("/merchant/sites", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermOrganizationCreate), siteHandler.CreateSite)
+			siteRequired.PUT("/merchant/sites/:id", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermOrganizationUpdate), siteHandler.UpdateSite)
 			siteRequired.DELETE("/merchant/sites/:id", middleware.RequireSysPerm(middleware.SysPermOrganizationDelete), siteHandler.DeleteSite)
-			siteRequired.GET("/sites/tree", siteHandler.GetSiteTree)
+			siteRequired.GET("/sites/tree", middleware.ExplicitTenantScope(), siteHandler.GetSiteTree)
 			// #2114：站点成员管理限站点管理员及以上（ADMIN/OWNER），顾客/员工不可增删成员
-			siteRequired.GET("/sites/:id/members", middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), siteMemberHandler.ListMembers)
-			siteRequired.POST("/sites/:id/members", middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), siteMemberHandler.AddMember)
+			siteRequired.GET("/sites/:id/members", middleware.ExplicitTenantScope(), middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), siteMemberHandler.ListMembers)
+			siteRequired.POST("/sites/:id/members", middleware.ExplicitTenantScope(), middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), siteMemberHandler.AddMember)
 			// #2114 网点申请非本商户成员加入（P2 已注册 / P3 未注册）→ 交商户管理员审批
-			siteRequired.POST("/sites/:id/members/apply", middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), handlers.ApplySiteMembership)
+			siteRequired.POST("/sites/:id/members/apply", middleware.ExplicitTenantScope(), middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), handlers.ApplySiteMembership)
 			// #2031 邀请制自助加入：管理员只发邀请码，本人登录后接受（一人一号）
 			// #2216: 匿名邀请码创建已下线（只认定向邀请，见 /user/invitations/pending）。
-			siteRequired.POST("/sites/:id/invites/send", middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), handlers.SendStaffInvite)
-			siteRequired.PUT("/sites/:id/members/:uid", middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), siteMemberHandler.UpdateMemberRole)
-			siteRequired.DELETE("/sites/:id/members/:uid", middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), siteMemberHandler.RemoveMember)
+			siteRequired.POST("/sites/:id/invites/send", middleware.ExplicitTenantScope(), middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), handlers.SendStaffInvite)
+			siteRequired.PUT("/sites/:id/members/:uid", middleware.ExplicitTenantScope(), middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), siteMemberHandler.UpdateMemberRole)
+			siteRequired.DELETE("/sites/:id/members/:uid", middleware.ExplicitTenantScope(), middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), siteMemberHandler.RemoveMember)
 			// Staff/User management routes (Issue #333)
 			authRequired.GET("/staff", middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), staffHandler.ListStaff)
 			authRequired.POST("/users/me/resend-email-confirmation", staffHandler.ResendEmailConfirmation)
@@ -596,18 +598,18 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			// New repair state machine API (flat, replacing ticket/session layers)
 			// #1882: repair:* permissions with legacy instrument:maintain fallback
 			// until IAM role-template bitmaps are resynced and users regranted.
-			repairRequired := maintRequired.Group("", middleware.ExplicitTenantScope())
-			repairRequired.POST("/repair/:id/start", middleware.RequireAnyCusPerm("repair:start", "instrument:maintain"), repairHandler.StartRepair)
-			repairRequired.POST("/repair/:id/complete", middleware.RequireAnyCusPerm("repair:complete", "instrument:maintain"), repairHandler.CompleteRepair)
-			repairRequired.POST("/repair/:id/takeover", repairHandler.TakeoverRepair)
-			repairRequired.POST("/repair/:id/reassign", repairHandler.ReassignRepair)
-			repairRequired.POST("/repair/:id/accept", middleware.RequireAnyCusPerm("repair:accept", "instrument:maintain"), repairHandler.AcceptRepair)
-			repairRequired.POST("/repair/:id/reject", middleware.RequireAnyCusPerm("repair:accept", "instrument:maintain"), repairHandler.RejectRepair)
-			repairRequired.POST("/repair/:id/records", repairHandler.AddRecord)
-			repairRequired.GET("/repair/:id/records", repairHandler.ListRecords)
-			repairRequired.GET("/repair/mine", repairHandler.ListMyRepairs)
-			repairRequired.GET("/repair/pending", repairHandler.ListPendingRepairs)
-			repairRequired.GET("/repair/acceptance", repairHandler.ListAcceptanceRepairs)
+			repairRequired := maintRequired
+			repairRequired.POST("/repair/:id/start", middleware.ExplicitTenantScope(), middleware.RequireAnyCusPerm("repair:start", "instrument:maintain"), repairHandler.StartRepair)
+			repairRequired.POST("/repair/:id/complete", middleware.ExplicitTenantScope(), middleware.RequireAnyCusPerm("repair:complete", "instrument:maintain"), repairHandler.CompleteRepair)
+			repairRequired.POST("/repair/:id/takeover", middleware.ExplicitTenantScope(), repairHandler.TakeoverRepair)
+			repairRequired.POST("/repair/:id/reassign", middleware.ExplicitTenantScope(), repairHandler.ReassignRepair)
+			repairRequired.POST("/repair/:id/accept", middleware.ExplicitTenantScope(), middleware.RequireAnyCusPerm("repair:accept", "instrument:maintain"), repairHandler.AcceptRepair)
+			repairRequired.POST("/repair/:id/reject", middleware.ExplicitTenantScope(), middleware.RequireAnyCusPerm("repair:accept", "instrument:maintain"), repairHandler.RejectRepair)
+			repairRequired.POST("/repair/:id/records", middleware.ExplicitTenantScope(), repairHandler.AddRecord)
+			repairRequired.GET("/repair/:id/records", middleware.ExplicitTenantScope(), repairHandler.ListRecords)
+			repairRequired.GET("/repair/mine", middleware.ExplicitTenantScope(), repairHandler.ListMyRepairs)
+			repairRequired.GET("/repair/pending", middleware.ExplicitTenantScope(), repairHandler.ListPendingRepairs)
+			repairRequired.GET("/repair/acceptance", middleware.ExplicitTenantScope(), repairHandler.ListAcceptanceRepairs)
 
 			// Warning routes (Issue #1140)
 			authRequired.GET("/warnings", handlers.ListWarnings)
@@ -659,25 +661,25 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			// authRequired quotes routes removed in v3 — moved to userOptionalAuth as nested /repair-requests/:id/quotes
 
 			// Repair request routes (Issue #1110)
-			repairReqRequired := authRequired.Group("", middleware.ExplicitTenantScope())
-			repairReqRequired.PUT("/repair-requests/:id/return-shipping", repairReqHandler.ReturnShipping)
+			repairReqRequired := authRequired
+			repairReqRequired.PUT("/repair-requests/:id/return-shipping", middleware.ExplicitTenantScope(), repairReqHandler.ReturnShipping)
 			// v3 repair-request transit routes
-			repairReqRequired.POST("/repair-requests/:id/transit-process", repairReqHandler.TransitProcess)
-			repairReqRequired.POST("/repair-requests/:id/receive", repairReqHandler.Receive)
-			repairReqRequired.POST("/repair-requests/:id/complete", repairReqHandler.CompleteRepairRequest)
-			repairReqRequired.POST("/repair-requests/:id/transit-relay", repairReqHandler.TransitRelay)
+			repairReqRequired.POST("/repair-requests/:id/transit-process", middleware.ExplicitTenantScope(), repairReqHandler.TransitProcess)
+			repairReqRequired.POST("/repair-requests/:id/receive", middleware.ExplicitTenantScope(), repairReqHandler.Receive)
+			repairReqRequired.POST("/repair-requests/:id/complete", middleware.ExplicitTenantScope(), repairReqHandler.CompleteRepairRequest)
+			repairReqRequired.POST("/repair-requests/:id/transit-relay", middleware.ExplicitTenantScope(), repairReqHandler.TransitRelay)
 			// #1942 阶段2 维修服务（type='service'）师傅/员工端
 			// #1950 F7：权限对齐 v3 repair:*（fallback instrument:maintain，师傅角色拥有）
-			repairReqRequired.POST("/repair-services/:id/quote", middleware.RequireAnyCusPerm("repair:accept", "instrument:maintain"), repairServiceHandler.Quote)
-			repairReqRequired.POST("/repair-services/:id/legs", repairServiceHandler.AddLegFee)
-			repairReqRequired.POST("/repair-services/:id/adjust", middleware.RequireAnyCusPerm("repair:accept", "instrument:maintain"), repairServiceHandler.Adjust)
-			repairReqRequired.POST("/repair-services/:id/receive", middleware.RequireAnyCusPerm("repair:complete", "instrument:maintain"), repairServiceHandler.Receive) // #2116 收货确认
-			repairReqRequired.POST("/repair-services/:id/start", middleware.RequireAnyCusPerm("repair:complete", "instrument:maintain"), repairServiceHandler.Start)     // #2116 开始维修
-			repairReqRequired.POST("/repair-services/:id/complete", middleware.RequireAnyCusPerm("repair:complete", "instrument:maintain"), repairServiceHandler.Complete)
-			repairReqRequired.POST("/repair-services/:id/dispatch", repairServiceHandler.Dispatch)
+			repairReqRequired.POST("/repair-services/:id/quote", middleware.ExplicitTenantScope(), middleware.RequireAnyCusPerm("repair:accept", "instrument:maintain"), repairServiceHandler.Quote)
+			repairReqRequired.POST("/repair-services/:id/legs", middleware.ExplicitTenantScope(), repairServiceHandler.AddLegFee)
+			repairReqRequired.POST("/repair-services/:id/adjust", middleware.ExplicitTenantScope(), middleware.RequireAnyCusPerm("repair:accept", "instrument:maintain"), repairServiceHandler.Adjust)
+			repairReqRequired.POST("/repair-services/:id/receive", middleware.ExplicitTenantScope(), middleware.RequireAnyCusPerm("repair:complete", "instrument:maintain"), repairServiceHandler.Receive) // #2116 收货确认
+			repairReqRequired.POST("/repair-services/:id/start", middleware.ExplicitTenantScope(), middleware.RequireAnyCusPerm("repair:complete", "instrument:maintain"), repairServiceHandler.Start)     // #2116 开始维修
+			repairReqRequired.POST("/repair-services/:id/complete", middleware.ExplicitTenantScope(), middleware.RequireAnyCusPerm("repair:complete", "instrument:maintain"), repairServiceHandler.Complete)
+			repairReqRequired.POST("/repair-services/:id/dispatch", middleware.ExplicitTenantScope(), repairServiceHandler.Dispatch)
 			repairReqRequired.GET("/repair-services/pending-dispatch", repairServiceHandler.ListPendingDispatch)
 			// #2229：网点管理员在询价阶段转派给本商户其他维修师（原因必填，留痕时间线+审计）
-			repairReqRequired.POST("/repair-services/:id/reassign", repairServiceHandler.Reassign)
+			repairReqRequired.POST("/repair-services/:id/reassign", middleware.ExplicitTenantScope(), repairServiceHandler.Reassign)
 			// #1954 RS-API-2：师傅/员工任务列表（员工上下文，JWT oid 作用域）
 			repairReqRequired.GET("/repair-services", repairServiceHandler.ListTasks)
 
@@ -686,7 +688,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.GET("/config/repair/single", middleware.ExplicitTenantScope(), middleware.RequireRole("OWNER"), handlers.GetRepairSetting)
 			authRequired.PUT("/config/repair/single", middleware.ExplicitTenantScope(), middleware.RequireRole("OWNER"), handlers.SetRepairSetting)
 			// v3 system-level check_fee (namespace_admin should be used when permission framework in place)
-			authRequired.GET("/config/repair/check-fee", middleware.ExplicitTenantScope(), handlers.GetCheckFee)
+			authRequired.GET("/config/repair/check-fee", handlers.GetCheckFee)
 			authRequired.PUT("/config/repair/check-fee", middleware.ExplicitTenantScope(), handlers.SetCheckFee)
 			// Home menu config (category visibility/sort for WeChat homepage)
 			authRequired.GET("/config/home-menu", handlers.GetHomeMenuConfig)
@@ -730,6 +732,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				// 匿名防护不变：HandleUpload 内显式校验 GetUserID（Optional 拦截器对无 token
 				// 请求不注入 claims）。
 				userOptionalAuth.POST("/upload", handlers.HandleUpload)
+				// #2320: H5 生产端 JS 错误上报（匿名可调；只写 audit_logs，不产生业务副作用）
+				userOptionalAuth.POST("/client-error", handlers.ClientError)
 				userOptionalAuth.POST("/user/orders", userRentalHandler.CreateOrder)
 				// #2031 A: 本人自助获得顾客身份（禁止管理员代挂；无组织创建）
 				userOptionalAuth.POST("/user/register-as-customer", handlers.RegisterAsCustomer)
@@ -766,6 +770,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/orders/:id/renewal/calculate", handlers.CalculateRenewal)
 				userOptionalAuth.POST("/orders/:id/renewal/confirm", handlers.ConfirmRenewal)
 				userOptionalAuth.POST("/pay/prepay", handlers.PrepayOrder)
+				// #2291: 优惠码预览校验（服务端唯一计算源）
+				userOptionalAuth.POST("/coupons/validate", handlers.ValidateCoupon)
 				userOptionalAuth.POST("/pay/calculate", handlers.CalculatePayment)
 				userOptionalAuth.POST("/pay/query", handlers.QueryPayment)
 				userOptionalAuth.GET("/users/me", staffHandler.GetCurrentUser)
@@ -830,12 +836,12 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/notifications/:id/read", handlers.MarkNotificationRead)
 				userOptionalAuth.GET("/user-instruments/lookup", repairReqHandler.UserInstrumentLookup)
 				userOptionalAuth.GET("/site-members/me", handlers.GetMyRoles)
-				userOptionalAuth.POST("/repair-appeals", middleware.ExplicitTenantScope(), handlers.CreateAppeal)
+				userOptionalAuth.POST("/repair-appeals", handlers.CreateAppeal)
 				userOptionalAuth.POST("/appeals", appealHandler.SubmitAppeal)
 				userOptionalAuth.POST("/appeals/:id/agree", appealHandler.AgreeDamage)
-				userOptionalAuth.GET("/repair-requests", middleware.ExplicitTenantScope(), repairReqHandler.List)
-				userOptionalAuth.GET("/repair-requests/:id", middleware.ExplicitTenantScope(), repairReqHandler.Get)
-				userOptionalAuth.GET("/repair-requests/:id/records", middleware.ExplicitTenantScope(), repairReqHandler.ListRecords)
+				userOptionalAuth.GET("/repair-requests", repairReqHandler.List)
+				userOptionalAuth.GET("/repair-requests/:id", repairReqHandler.Get)
+				userOptionalAuth.GET("/repair-requests/:id/records", repairReqHandler.ListRecords)
 				userOptionalAuth.POST("/repair-requests/:id/records", repairReqHandler.AddRecord)
 				userOptionalAuth.POST("/repair-requests/:id/pay", repairReqHandler.PayRepairRequest)
 				userOptionalAuth.PUT("/repair-requests/:id/tracking", repairReqHandler.UpdateTracking)

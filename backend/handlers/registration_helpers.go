@@ -136,12 +136,35 @@ func syncLocalUserAndRewards(db *gorm.DB, iamUserID, tenantID, orgID, openid str
 	}
 
 	grantRegistrationRewards(db, &newUser, form)
+	if form.IDPhotos != nil && form.IDPhotos["other"] != "" {
+		ensureSecondDocBatch(db, newUser.ID)
+	}
 	return &newUser
 }
 
 // grantRegistrationRewards credits ref_code, registration gift points and
 // the referral bonus on a local user (shared by the legacy create path and
 // the #1688 reserved-user activation path).
+// #2311: 注册完成时若已提交第二证件，幂等创建独立的 second_doc 复审批次。
+func ensureSecondDocBatch(db *gorm.DB, userID string) {
+	var n int64
+	if err := db.Model(&models.FaceCaptureBatch{}).
+		Where("user_id = ? AND kind = ? AND status IN ?", userID, "second_doc", []string{"pending", "approved"}).
+		Count(&n).Error; err != nil {
+		log.Printf("[register helper] second_doc idempotency check failed for %s: %v", userID, err)
+		return
+	}
+	if n > 0 {
+		return
+	}
+	if err := db.Create(&models.FaceCaptureBatch{
+		ID: uuid.New().String(), UserID: userID, Status: "pending", Kind: "second_doc",
+		SubmittedAt: time.Now(), CreatedAt: time.Now(),
+	}).Error; err != nil {
+		log.Printf("[register helper] create second_doc batch failed for %s: %v", userID, err)
+	}
+}
+
 func grantRegistrationRewards(db *gorm.DB, user *models.User, form *registerForm) {
 	refCode := user.ID[:8]
 	db.Model(user).Update("ref_code", refCode)
@@ -281,10 +304,15 @@ func completeRegistrationFromSession(tx *gorm.DB, record *models.OrderPaymentRec
 		userID, openid, err = createIAMUserWithBind(iamService, &form, password, session.ExchangeToken, "")
 	}
 	if err != nil {
-		// Paid but account creation failed → keep a traceable failed record
+		// Paid but account creation failed → keep a traceable record
 		// for manual handling (red-line #1637: error surfaced).
+		// #2308: WxBind 过期/合并类错误可重新授权恢复 → needs_rebind。
+		status := "failed"
+		if isWxRebindError(err) {
+			status = "needs_rebind"
+		}
 		tx.Model(&session).Updates(map[string]interface{}{
-			"status":     "failed",
+			"status":     status,
 			"error":      err.Error(),
 			"updated_at": now,
 		})
@@ -323,6 +351,10 @@ func completeRegistrationFromSession(tx *gorm.DB, record *models.OrderPaymentRec
 				tx.Model(&models.User{}).Where("id = ?", localUser.ID).Updates(photoUpdates)
 			}
 		}
+		// #2311: 有第二证件则注册完成即建独立 second_doc 批次（幂等）。
+		if form.IDPhotos != nil && form.IDPhotos["other"] != "" {
+			ensureSecondDocBatch(tx, localUser.ID)
+		}
 		// #1924: 第二证件类型不再由顾客指定 —— 保持「未定」，由平台员工在
 		// 审核时指定（face_review approve 的 second_doc_type）。
 	}
@@ -357,13 +389,28 @@ func cleanupStaleInitReservations(db *gorm.DB) {
 	cutoff := time.Now().Add(-initReservationTTL)
 
 	var sessions []models.RegistrationSession
-	if err := db.Where("status = ? AND created_at < ?", "pending", cutoff).Find(&sessions).Error; err != nil {
+	if err := db.Where("status IN ? AND created_at < ?", []string{"pending", "failed", "needs_rebind"}, cutoff).
+		Find(&sessions).Error; err != nil {
 		log.Printf("[InitReservationScheduler] query failed: %v", err)
 		return
 	}
 
 	iamClient := services.NewIAMClient()
 	for _, s := range sessions {
+		// #2307: 已支付/支付中的会话不得清理（避免删除已付费账户）。
+		var paid, pending int64
+		if err := db.Model(&models.OrderPaymentRecord{}).Where("session_id = ? AND status = ?", s.ID, "paid").Count(&paid).Error; err != nil {
+			log.Printf("[InitReservationScheduler] paid check failed for session %s: %v", s.ID, err)
+			continue
+		}
+		if err := db.Model(&models.OrderPaymentRecord{}).Where("session_id = ? AND status = ?", s.ID, "pending").Count(&pending).Error; err != nil {
+			log.Printf("[InitReservationScheduler] pending check failed for session %s: %v", s.ID, err)
+			continue
+		}
+		if paid > 0 || pending > 0 {
+			log.Printf("[InitReservationScheduler] skip paid/paying session=%s paid=%d pending=%d", s.ID, paid, pending)
+			continue
+		}
 		// Release the reserved IAM user (init → purge). Best-effort: if IAM
 		// already removed it, the purge is a no-op error we tolerate. Legacy
 		// pre-#1682 sessions have no reserved user — just fail the session.

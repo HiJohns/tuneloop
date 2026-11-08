@@ -174,3 +174,40 @@ steps:
 ---
 
 *Last updated: 2026-08-14*
+
+## 支付成功但微信绑定失败（#2308）
+
+1. 用户提交注册并支付会员费成功（微信侧已扣款）。
+2. 后端 `order_payment_records.status=paid`；`applySideEffects` 调 WxBind 返回 `invalid or expired exchange_token`。
+3. 断言：支付记录不回滚为 pending；`side_effect_status=needs_rebind`；`registration_sessions.status=needs_rebind`。
+4. 支付页轮询到 `needs_rebind`，展示「重新授权微信并完成注册」。
+5. 用户点击 → `wx.login` 取新 code → `/auth/wx-accounts` 取新 exchange_token → `POST /auth/registration-sessions/:id/rebind`。
+6. 断言：会话 `completed`、IAM 用户 active、本地用户 active；不产生第二笔支付、不重复建号。
+7. 若用户不再点击，系统不自动无限重试 WxBind；记录保留 `needs_rebind` 供人工/后续登录恢复。
+
+## 注册中断后继续（#2307）
+
+1. 用户首次提交注册，IAM 预建 `status=init` 用户 + `registration_sessions(pending)`；未支付即离开。
+2. 用户用同一手机号再次提交注册：`POST /auth/registration-sessions` 收到 IAM 409。
+3. 后端按手机号查本地 init 用户 + 未完成 session，返回 `409 / code 40901 / data.resume_session_id`。
+4. 前端复用该 `session_id` 直接进入支付页，不重复创建 IAM 用户/本地用户/session。
+5. 断言：IAM 用户仍只有 1 个；session 仍只有 1 个；支付完成后正常激活。
+6. 若超过 24h 且无任何支付记录，清理器 purge IAM + 删除本地缓存 + session=failed；有 paid/pending 支付记录时不得清理。
+
+## rebind openid 不匹配（#2308 v3）
+
+1. 用户支付成功但 WxBind 失败，session 进入 `needs_rebind`。
+2. 用户 A 打开支付页点击重新授权；后端用新 `wx_code` 调 `wx-accounts` 解析 openid。
+3. 若解析出的 openid 与 `registration_sessions.openid` 不一致：
+   - 返回 403「微信身份与注册账户不一致」；
+   - 不调用 WxBind、不更新 session、不完成注册。
+4. 只有 openid 一致时才绑定并完成注册。
+5. 仅提交 `exchange_token`（无 wx_code）→ 400，避免无法校验所有权的绑定。
+
+## 40901 action 分流（#2307 v2）
+
+1. 同手机号重试注册，后端返回 40901 + `data.action`。
+2. `action=pay`（session pending、无 paid 记录）→ 进入支付页，复用 session。
+3. `action=rebind`（session 有 paid 记录或 status=needs_rebind）→ 前端 `wx.login` → rebind(wx_code) → 登录新账户 → 核身页；**不得**再调用 prepay。
+4. `action=restart`（status=failed 且无 paid）→ 清除本地 resume，提示重新提交。
+5. 负向断言：rebind 分支不产生第二笔支付、不重复建号。

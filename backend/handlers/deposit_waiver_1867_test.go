@@ -27,9 +27,6 @@ func setup1867Fixture(t *testing.T) (*gorm.DB, *UserRentalHandler) {
 	gin.SetMode(gin.TestMode)
 	t.Setenv("DEPOSIT_WAIVER_MIN_CREDIT", "600")
 	db := testfixtures.SetupTestDB(t)
-	// Guarantor tables are not part of the shared fixture set — create them
-	// for the deposit-free flow under test.
-	require.NoError(t, db.Migrator().CreateTable(&models.Guarantor{}, &models.OrderGuarantor{}))
 	return db, NewUserRentalHandler()
 }
 
@@ -39,11 +36,13 @@ func setup1867Fixture(t *testing.T) (*gorm.DB, *UserRentalHandler) {
 func seed1867User(t *testing.T, db *gorm.DB, tenantID, orgID, iamSub string, faceVerified bool, idType *string, otherVerified bool, credit int) string {
 	t.Helper()
 	userID := uuid.New().String()
+	front := "/uploads/media/id-front.jpg"
+	back := "/uploads/media/id-back.jpg"
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: iamSub, TenantID: tenantID, OrgID: orgID,
 		Username: "u-" + iamSub[:8], Status: "active",
-		FaceVerified: faceVerified, IdPhotoOtherType: idType,
-		IdPhotoOtherVerified: otherVerified, CreditScore: credit,
+		FaceVerified: faceVerified, IdPhotoFront: &front, IdPhotoBack: &back,
+		IdPhotoOtherType: idType, IdPhotoOtherVerified: otherVerified, CreditScore: credit,
 	}).Error)
 	return userID
 }
@@ -51,9 +50,12 @@ func seed1867User(t *testing.T, db *gorm.DB, tenantID, orgID, iamSub string, fac
 func seed1867Instrument(t *testing.T, db *gorm.DB, tenantID, orgID string) string {
 	t.Helper()
 	instID := uuid.New().String()
+	full := models.FromYuan(500)
+	reduced := models.FromYuan(200)
 	require.NoError(t, db.Create(&models.Instrument{
 		ID: instID, TenantID: tenantID, OrgID: &orgID,
 		SN: "1867-INST", StockStatus: "available",
+		Deposit: &full, DepositReduced: &reduced,
 		Pricing: `[{"daily_rent": 10.0, "weekly_rent": 70.0, "monthly_rent": 300.0, "deposit": 500.0}]`,
 	}).Error)
 	return instID
@@ -216,9 +218,10 @@ func TestCreateOrder_DepositWaiverGate(t *testing.T) {
 	orderID := data["order_id"].(string)
 	var order models.Order
 	require.NoError(t, db.Where("id = ?", orderID).First(&order).Error)
-	assert.True(t, order.DepositWaived)
+	assert.False(t, order.DepositWaived)
+	assert.Equal(t, models.DepositTierReduced, order.DepositTier)
 	assert.Equal(t, "/uploads/letter-happy.jpg", order.RecommendationLetter)
-	assert.Equal(t, models.Cents(0), order.Deposit, "deposit must be zeroed for waived orders")
+	assert.Equal(t, models.FromYuan(200), order.Deposit, "deposit must use the instrument reduced tier")
 
 	var linkCount int64
 	db.Model(&models.OrderGuarantor{}).Where("order_id = ?", orderID).Count(&linkCount)
@@ -267,7 +270,8 @@ func TestBatchCreateOrder_DepositWaiverGate(t *testing.T) {
 
 	var order models.Order
 	require.NoError(t, db.Where("user_id = ? AND instrument_id = ?", userID, instID).First(&order).Error)
-	assert.True(t, order.DepositWaived)
+	assert.False(t, order.DepositWaived)
+	assert.Equal(t, models.DepositTierReduced, order.DepositTier)
 	assert.Equal(t, "/uploads/letter-batch.jpg", order.RecommendationLetter)
-	assert.Equal(t, models.Cents(0), order.Deposit)
+	assert.Equal(t, models.FromYuan(200), order.Deposit)
 }

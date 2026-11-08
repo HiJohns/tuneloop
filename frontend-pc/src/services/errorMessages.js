@@ -92,6 +92,8 @@ export function resolveErrorMessage(result, fallback = '操作失败，请重试
   const { code, message } = result
   if (message && ERROR_MESSAGE_MAP[message]) return ERROR_MESSAGE_MAP[message]
   if (code && ERROR_CODE_MAP[code]) return ERROR_CODE_MAP[code]
+  // #2290：4091x（IAM 用户名/手机号/邮箱冲突）依赖后端中文 message 透传，
+  // 禁止加入 ERROR_CODE_MAP —— code 映射会遮蔽具体字段值。
   // #2104：未知 code 且后端给出可执行 message（如 40912「学生证作为第二证件需介绍信…」）
   // 直接透传——不再被通用 fallback 遮蔽为「数据冲突，请刷新后重试」（#2100 教训）
   if (message) return message

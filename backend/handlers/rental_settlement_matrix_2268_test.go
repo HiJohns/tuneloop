@@ -9,6 +9,7 @@ package handlers
 //   2) 守恒式：CashRefundable - PayableShortfall == 实收(含押金) - (应收租金+逾期+定损+物流)
 
 import (
+	"context"
 	"encoding/json"
 	"math"
 	"testing"
@@ -17,6 +18,7 @@ import (
 	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
+	"tuneloop-backend/services/wechatpay"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -300,9 +302,7 @@ var _ = json.Marshal
 // #2268 组合用例 A：租赁补缴支付回调必须入账（当前无 payment_shortfall case）。
 // 期望：补缴 200 到账后 cash_paid +200、settlement 完成；当前实现无副作用 → FAIL。
 func TestMatrix_RentalShortfallApplied_2268(t *testing.T) {
-	// #2268 已知缺陷（红）：payment_shortfall 分支已存在（wechatpay_callback.go:357-392），
-	// 但未累加 cash_paid、未触发 executeRefund/结算重算。修复后移除 skip。
-	t.Skip("known bug #2268: payment_shortfall case exists but omits cash_paid increment / executeRefund")
+	// #2278 已修复：payment_shortfall 到账累加 cash_paid 并闭环 settlement。
 	db := testfixtures.SetupTestDB(t)
 	org := uuid.NewString()
 	user := uuid.NewString()
@@ -312,7 +312,7 @@ func TestMatrix_RentalShortfallApplied_2268(t *testing.T) {
 	order := models.Order{
 		ID: uuid.NewString(), TenantID: org, OrgID: org, UserID: user, InstrumentID: uuid.NewString(),
 		Level: "entry", LeaseTerm: 30, Status: "returned",
-		Deposit: models.FromYuan(500), CashPaid: models.FromYuan(3500),
+		Deposit: 0, CashPaid: models.FromYuan(2800),
 	}
 	require.NoError(t, db.Create(&order).Error)
 	require.NoError(t, db.Create(&models.Settlement{
@@ -327,7 +327,7 @@ func TestMatrix_RentalShortfallApplied_2268(t *testing.T) {
 
 	var after models.Order
 	require.NoError(t, db.Where("id = ?", order.ID).First(&after).Error)
-	assert.Equal(t, models.FromYuan(3700), after.CashPaid, "补缴到账后 cash_paid 必须 +200")
+	assert.Equal(t, models.FromYuan(3000), after.CashPaid, "补缴到账后 cash_paid 必须 +200")
 	var st models.Settlement
 	require.NoError(t, db.Where("order_id = ?", order.ID).First(&st).Error)
 	assert.NotEqual(t, "pending", st.RefundStatus, "补缴完成后结算必须闭环（当前卡 pending）")
@@ -337,38 +337,34 @@ func TestMatrix_RentalShortfallApplied_2268(t *testing.T) {
 // 前端 prepay 的 amount 已扣除乐币（cashAmount = displayAmount - gift*100），
 // 回调 deductPointsFromRecord 又减一次 → cash_paid 少记 gift。
 func TestMatrix_GiftPointsNotDoubleDeducted_2268(t *testing.T) {
-	// #2268 已知缺陷（红）：rent 路径用 record.Amount 覆盖 cash_paid（不重复扣）；
-	// 风险在 renewal/damage/shortfall/loss 等不覆盖路径。修复后移除 skip。
-	t.Skip("known bug #2268: rent path overwrites cash_paid; risk is renewal/damage/shortfall/loss paths")
 	db := testfixtures.SetupTestDB(t)
 	org := uuid.NewString()
 	user := uuid.NewString()
 	require.NoError(t, db.Create(&models.User{
 		ID: user, IAMSub: user, TenantID: org, OrgID: org, Status: "active", Name: "乐币用户",
 	}).Error)
-	// 订单：租金 3000 + 押金 500，使用乐币 200 → 创建时 cash = 3300
+	seedGiftBatch(t, db, user)
+	// rent 路径会用 record.Amount 覆盖 cash_paid，端到端不可观测 → 定向断言 helper 不再改 cash
 	order := models.Order{
 		ID: uuid.NewString(), TenantID: org, OrgID: org, UserID: user, InstrumentID: uuid.NewString(),
 		Level: "entry", LeaseTerm: 30, Status: "reserved",
-		Deposit: models.FromYuan(500), CashPaid: models.FromYuan(3300),
-		GiftPointsUsed: models.FromYuan(200),
+		Deposit: models.FromYuan(500), CashPaid: models.FromYuan(1000),
 	}
 	require.NoError(t, db.Create(&order).Error)
-
-	gift := `{"gift_used":20000}` // 分
+	gift := `{"gift_used":20000}`
 	rec := models.OrderPaymentRecord{
 		ID: uuid.NewString(), TenantID: org, UserID: user, OrderID: &order.ID,
 		OrderType: "rent", Amount: models.FromYuan(3300), Type: "payment", Status: "paid",
 		RawResponse: &gift,
 	}
-	// deductPointsFromRecord 直接调用（FIFO 可能因无批次失败，但订单更新在其之前）
-	_ = deductPointsFromRecord(db, &rec, time.Now())
+	require.NoError(t, db.Create(&rec).Error)
+	require.NoError(t, deductPointsFromRecord(db, &rec, time.Now()))
 
 	var after models.Order
 	require.NoError(t, db.Where("id = ?", order.ID).First(&after).Error)
-	assert.Equal(t, models.FromYuan(3300), after.CashPaid,
-		"cash_paid 已被 record.Amount（已扣乐币）覆盖，不得再减一次 gift；当前少记 ¥200")
+	assert.Equal(t, models.FromYuan(1000), after.CashPaid, "gift 不得从 cash_paid 扣减（定向）")
 	assert.Equal(t, models.FromYuan(200), after.GiftPointsUsed)
+	assertGiftFIFO(t, db, user)
 }
 
 // 返点场景 10：结算时给介绍人按「应收租金 × 推荐人等级比例」发返点；
@@ -446,27 +442,33 @@ func TestMatrix_ReferralOnZeroCashOrder_2268(t *testing.T) {
 	order := buildMatrixOrder(t, db, c)
 	order.UserID = referee
 	// 租金 3000 全部由乐币支付，仅现金押金 500 → cash_paid=500, gift=3000
+	// #2282 P4c：0 现金口径 = CashBasis（rentPayable − 赠点）为 0；令 pay_ratio=100% 使赠点全覆盖租金。
+	snapshot := `{"pay_ratio":1,"cap_rate":100}`
 	require.NoError(t, db.Model(&models.Order{}).Where("id = ?", order.ID).Updates(map[string]interface{}{
 		"user_id": referee, "cash_paid": models.FromYuan(500), "gift_points_used": models.FromYuan(3000),
+		"points_policy_snapshot": snapshot,
 	}).Error)
 	require.NoError(t, db.Model(&models.OrderPaymentRecord{}).Where("order_id = ?", order.ID).Updates(map[string]interface{}{
 		"user_id": referee, "amount": models.FromYuan(500),
 	}).Error)
 
-	_, err := executeRefund(db, order)
+	var reloaded models.Order
+	require.NoError(t, db.Where("id = ?", order.ID).First(&reloaded).Error)
+	_, err := executeRefund(db, reloaded)
 	require.NoError(t, err)
 
-	// 0 现金订单仍按应收租金发返点（当前口径，记录风险）
-	var batch models.PointBatch
-	require.NoError(t, db.Where("user_id = ? AND source_type = ?", referrer, services.PointBatchSourceFission).First(&batch).Error)
-	assert.Equal(t, models.FromYuan(150), batch.AmountCents, "0 现金订单仍按应收租金发返点")
+	// #2282 P4c：0 现金（CashBasis<=0）不发返点，也不写返点台账。
+	var batchCount int64
+	require.NoError(t, db.Model(&models.PointBatch{}).
+		Where("user_id = ? AND source_type = ?", referrer, services.PointBatchSourceFission).Count(&batchCount).Error)
+	assert.Zero(t, batchCount, "0 现金订单不得发返点")
+	require.NoError(t, db.Model(&models.ReferralCommission{}).Where("order_id = ?", order.ID).Count(&batchCount).Error)
+	assert.Zero(t, batchCount, "0 现金订单不得写返点台账")
 }
 
-// #2268 已知缺陷（红）：total_spending 为 Cents 列，但 executeRefund 写入的是**元**
-// （spendingBasis=result.CashBasis 元）→ 前端 MembershipCenter /100 展示少 100 倍
-// （¥3000 显示 ¥30）；且当前无任何升级逻辑读取该字段。修复后移除 skip。
+// #2280 已修复：total_spending 统一写 Cents（原缺陷：写入元，/100 少 100 倍）。
+
 func TestMatrix_TotalSpendingUnit_2268(t *testing.T) {
-	t.Skip("known bug #2268: total_spending stores yuan in a Cents column (100x understatement)")
 	db := testfixtures.SetupTestDB(t)
 	testfixtures.SetupWechatPayMock(t)
 	org := uuid.NewString()
@@ -495,4 +497,91 @@ func TestMatrix_TotalSpendingUnit_2268(t *testing.T) {
 	require.NoError(t, db.Where("id = ?", referee).First(&after).Error)
 	assert.Equal(t, models.FromYuan(3000), after.TotalSpending,
 		"total_spending 必须按分存储（当前写入元值 → 少 100 倍）")
+}
+
+// #2278：补缴超过应结金额 → 超收退款（幂等）。
+func TestMatrix_ShortfallExcessRefund_2268(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	stub := &excessRefundStub{}
+	wechatpay.SetClientForTesting(stub, &wechatpay.Config{NotifyURL: "http://localhost/notify", RefundNotifyURL: "http://localhost/notify"})
+	t.Cleanup(func() { wechatpay.ResetGlobalForTesting() })
+	org := uuid.NewString()
+	user := uuid.NewString()
+	require.NoError(t, db.Create(&models.User{ID: user, IAMSub: user, TenantID: org, OrgID: org, Status: "active"}).Error)
+	order := models.Order{
+		ID: uuid.NewString(), TenantID: org, OrgID: org, UserID: user, InstrumentID: uuid.NewString(),
+		Level: "entry", LeaseTerm: 30, Status: "returned", Deposit: 0, CashPaid: models.FromYuan(3500),
+	}
+	require.NoError(t, db.Create(&order).Error)
+	rentNo := "rentexcess2278"
+	require.NoError(t, db.Create(&models.OrderPaymentRecord{
+		ID: uuid.NewString(), TenantID: org, UserID: user, OrderID: &order.ID, OutTradeNo: &rentNo,
+		OrderType: "rent", Amount: models.FromYuan(3500), Type: "payment", Status: "paid",
+	}).Error)
+	require.NoError(t, db.Create(&models.Settlement{OrderID: order.ID, ActualRentAmount: models.FromYuan(3000), RefundStatus: "pending"}).Error)
+	rec := models.OrderPaymentRecord{
+		ID: uuid.NewString(), TenantID: org, UserID: user, OrderID: &order.ID,
+		OrderType: "payment_shortfall", Amount: models.FromYuan(200), Type: "payment", Status: "paid",
+	}
+	require.NoError(t, db.Create(&rec).Error)
+	require.NoError(t, applySideEffects(db, &rec, time.Now()))
+	// 重算幂等：不得重复发起退款
+	require.NoError(t, applyShortfallSettlement(db, order.ID))
+
+	var after models.Order
+	require.NoError(t, db.Where("id = ?", order.ID).First(&after).Error)
+	assert.Equal(t, models.FromYuan(3700), after.CashPaid)
+	var st models.Settlement
+	require.NoError(t, db.Where("order_id = ?", order.ID).First(&st).Error)
+	assert.Equal(t, models.FromYuan(700), st.CashRefundable, "超收 700 必须可退")
+	assert.Equal(t, "refunding", st.RefundStatus)
+	assert.Equal(t, int64(70000), stub.params.RefundAmount, "必须调用微信退款 API，金额=70000 分")
+	assert.Equal(t, rentNo, stub.params.OutTradeNo)
+	var refunds []models.OrderRefundRecord
+	require.NoError(t, db.Where("reason = ?", "补缴超收退款").Find(&refunds).Error)
+	require.Len(t, refunds, 1, "超收退款必须幂等（仅 1 条）")
+}
+
+type excessRefundStub struct {
+	wechatpay.Client
+	params wechatpay.RefundParams
+	err    error
+}
+
+func (s *excessRefundStub) Refund(_ context.Context, p wechatpay.RefundParams) (*wechatpay.RefundResult, error) {
+	s.params = p
+	if s.err != nil {
+		return nil, s.err
+	}
+	return &wechatpay.RefundResult{RefundID: "wx-excess-2278"}, nil
+}
+
+// #2278 返工：退款 API 失败必须显式失败（不静默 pending）。
+func TestMatrix_ShortfallExcessRefundAPIFailure_2268(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	stub := &excessRefundStub{err: context.DeadlineExceeded}
+	wechatpay.SetClientForTesting(stub, &wechatpay.Config{RefundNotifyURL: "http://localhost/notify"})
+	t.Cleanup(func() { wechatpay.ResetGlobalForTesting() })
+	org, user, orderID := uuid.NewString(), uuid.NewString(), uuid.NewString()
+	require.NoError(t, db.Create(&models.User{ID: user, IAMSub: user, TenantID: org, OrgID: org, Status: "active"}).Error)
+	require.NoError(t, db.Create(&models.Order{ID: orderID, TenantID: org, OrgID: org, UserID: user,
+		InstrumentID: uuid.NewString(), Level: "entry", LeaseTerm: 30, Status: "returned", CashPaid: models.FromYuan(3500)}).Error)
+	no := "rentfail2278"
+	require.NoError(t, db.Create(&models.OrderPaymentRecord{ID: uuid.NewString(), TenantID: org, UserID: user,
+		OrderID: &orderID, OutTradeNo: &no, OrderType: "rent", Amount: models.FromYuan(3500), Type: "payment", Status: "paid"}).Error)
+	require.NoError(t, db.Create(&models.Settlement{OrderID: orderID, ActualRentAmount: models.FromYuan(3000), RefundStatus: "pending"}).Error)
+	rec := models.OrderPaymentRecord{ID: uuid.NewString(), TenantID: org, UserID: user, OrderID: &orderID,
+		OrderType: "payment_shortfall", Amount: models.FromYuan(200), Type: "payment", Status: "paid"}
+	require.NoError(t, db.Create(&rec).Error)
+
+	err := applySideEffects(db, &rec, time.Now())
+	require.Error(t, err, "退款失败必须显式返回错误")
+
+	var st models.Settlement
+	require.NoError(t, db.Where("order_id = ?", orderID).First(&st).Error)
+	assert.Equal(t, "failed", st.RefundStatus)
+	var refund models.OrderRefundRecord
+	require.NoError(t, db.Where("reason = ?", "补缴超收退款").First(&refund).Error)
+	assert.Equal(t, "failed", refund.Status)
+	assert.NotNil(t, refund.FailReason)
 }

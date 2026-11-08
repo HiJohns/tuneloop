@@ -43,46 +43,46 @@ bash scripts/h5-weapp-parity.sh > docs/topics/h5-weapp-parity.md   # 重新生�
 
 # H5 ↔ weapp 一致性机械快照（自动生成）
 
-- 生成时间: 2026-10-09 22:56:00
+- 生成时间: 2026-10-28 19:42:53
 - 源: `frontend-mobile/src`
 - 说明: 本文件由 `scripts/h5-weapp-parity.sh` 生成（只读侦察），**请勿手改**。
 
 ## 1. 登记对称性（h5Pages ↔ weappPages ↔ App-H5 路由 ↔ ROUTE_MAP）
 
-- weappPages: 52 条目 | h5Pages: 40 条目
-- **weapp 有 / H5 无**（13）: account-select, bind, content, invoice, login, payment, profile-complete, profile/edit, renewal, repair-payment-complete, return-settlement, search, setting
-- **H5 有 / weapp 无**（1）: staff-order-detail
-- App-H5 路由: 59 条 | ROUTE_MAP: 39 条
+- weappPages: 54 条目 | h5Pages: 42 条目
+- **weapp 有 / H5 无**（12）: account-select, bind, content, login, payment, profile-complete, profile/edit, renewal, repair-payment-complete, return-settlement, search, setting
+- **H5 有 / weapp 无**（0）: 无
+- App-H5 路由: 62 条 | ROUTE_MAP: 42 条
 - **H5 路由无 weapp 映射（首段）**（11，候选：H5-only / 页面内显式跳转 / 遗漏，需人工判定）: /about, /account-select, /callback, /face-verify, /receive, /register, /renewal, /return, /search, /setting, /success
 
 ## 2. 双实现清单（pages/X.jsx ↔ pages-weapp/**/X.jsx，漂移风险最高）
 
 | 页面 | H5 行数 | weapp 行数 | weapp 路径 | 行差 |
 |------|--------:|----------:|------------|-----:|
-| Checkout.jsx | 1411 | 1327 | pages-weapp/Checkout.jsx | 84 |
-| Detail.jsx | 590 | 569 | pages-weapp/Detail.jsx | 21 |
-| Home.jsx | 496 | 625 | pages-weapp/Home.jsx | 129 |
-| MyLeases.jsx | 340 | 319 | pages-weapp/MyLeases.jsx | 21 |
-| Profile.jsx | 584 | 704 | pages-weapp/Profile.jsx | 120 |
+| Checkout.jsx | 1437 | 1388 | pages-weapp/Checkout.jsx | 49 |
+| Detail.jsx | 590 | 571 | pages-weapp/Detail.jsx | 19 |
+| Home.jsx | 496 | 669 | pages-weapp/Home.jsx | 173 |
+| MyLeases.jsx | 342 | 315 | pages-weapp/MyLeases.jsx | 27 |
+| Profile.jsx | 562 | 730 | pages-weapp/Profile.jsx | 168 |
 | Success.jsx | 32 | 86 | pages-weapp/Success.jsx | 54 |
-| OrderDetail.jsx | 1210 | 1158 | pages-weapp/order-detail/OrderDetail.jsx | 52 |
-| Payment.jsx | 461 | 837 | pages-weapp/payment/Payment.jsx | 376 |
-| Renewal.jsx | 192 | 205 | pages-weapp/renewal/Renewal.jsx | 13 |
+| OrderDetail.jsx | 1212 | 1143 | pages-weapp/order-detail/OrderDetail.jsx | 69 |
+| Payment.jsx | 553 | 860 | pages-weapp/payment/Payment.jsx | 307 |
+| Renewal.jsx | 192 | 208 | pages-weapp/renewal/Renewal.jsx | 16 |
 | Search.jsx | 86 | 79 | pages-weapp/search/Search.jsx | 7 |
 
 ## 3. 两端行为分叉点（env.isMiniProgram / isWeapp）
 
-- 含分叉的文件: **49** | 分叉点总数: **218**（每处都需判定：合理适配 / 潜在分歧）
+- 含分叉的文件: **52** | 分叉点总数: **243**（每处都需判定：合理适配 / 潜在分歧）
 
 ## 4. 组件分裂（components/ vs components-weapp/）
 
 - 双实现: BottomNav.jsx 
-- 仅 shared: AddressManager.jsx FaceCaptureUploader.jsx IdPhotoUploader.jsx ImageUploader.jsx InstrumentInfo.jsx IntroLetterUploader.jsx LeaseInfo.jsx OptionSheet.jsx OrderTimeline.jsx RepairRecordPanel.jsx RichContent.jsx SegmentedTabs.jsx StaffIdPhotoViewer.jsx TechRepairSections.jsx VerifyWarningBar.jsx 
+- 仅 shared: AddressManager.jsx AgreementCheckbox.jsx FaceCaptureUploader.jsx IdPhotoUploader.jsx ImageUploader.jsx InstrumentInfo.jsx IntroLetterUploader.jsx JoinSiteModal.jsx LeaseInfo.jsx OptionSheet.jsx OrderTimeline.jsx RepairRecordPanel.jsx RepairServiceQuoteForm.jsx RichContent.jsx SegmentedTabs.jsx StaffIdPhotoViewer.jsx TechRepairSections.jsx VerifyWarningBar.jsx 
 - 仅 weapp: ErrorBoundary.jsx 
 
 ## 5. 平台抽象层对称（platform/browser.js ↔ platform/index.weapp.js）
 
-- browser: 21 | weapp: 21
+- browser: 22 | weapp: 22
 - **仅 browser**: 无
 - **仅 weapp**: 无
 
@@ -90,39 +90,41 @@ bash scripts/h5-weapp-parity.sh > docs/topics/h5-weapp-parity.md   # 重新生�
 
 | 页面 | onClick | dialog | nav | useEffect | useDidShow | setState |
 |------|--------:|-------:|----:|----------:|-----------:|---------:|
-| Profile.jsx | 31 | 0 | 17 | 6 | 0 | 40 |
+| Profile.jsx | 30 | 0 | 18 | 7 | 0 | 41 |
 | RepairRequestDetail.jsx | 29 | 17 | 3 | 1 | 0 | 66 |
-| RepairServiceDetail.jsx | 27 | 50 | 1 | 2 | 0 | 62 |
+| RepairServiceDetail.jsx | 27 | 49 | 1 | 3 | 0 | 63 |
 | OrderDetail.jsx | 23 | 14 | 16 | 5 | 0 | 28 |
-| Checkout.jsx | 21 | 34 | 8 | 5 | 0 | 99 |
+| Checkout.jsx | 21 | 36 | 8 | 5 | 0 | 99 |
+| MessageDetail.jsx | 18 | 1 | 21 | 1 | 0 | 11 |
 | MyRepairs.jsx | 16 | 2 | 2 | 2 | 0 | 25 |
-| MessageDetail.jsx | 16 | 1 | 21 | 1 | 0 | 11 |
+| FaceVerify.jsx | 12 | 1 | 7 | 3 | 0 | 52 |
 | Detail.jsx | 12 | 0 | 8 | 1 | 0 | 22 |
 | RepairWorkflow.jsx | 11 | 8 | 1 | 1 | 0 | 22 |
 | StaffInstrumentForm.jsx | 10 | 4 | 2 | 1 | 0 | 31 |
 | StaffInstrumentDetail.jsx | 10 | 15 | 10 | 2 | 0 | 10 |
-| RepairServiceCreate.jsx | 10 | 8 | 6 | 3 | 0 | 19 |
 | MyLeases.jsx | 10 | 3 | 8 | 2 | 0 | 15 |
-| FaceVerify.jsx | 10 | 0 | 3 | 2 | 0 | 47 |
 | ReceivingRepairScan.jsx | 9 | 9 | 2 | 1 | 0 | 17 |
 | InstrumentLossManage.jsx | 9 | 11 | 1 | 2 | 0 | 36 |
 | Cart.jsx | 9 | 2 | 3 | 3 | 1 | 24 |
 | MembershipCenter.jsx | 8 | 1 | 2 | 3 | 0 | 15 |
 | StaffInstruments.jsx | 7 | 0 | 4 | 2 | 0 | 17 |
 | ShippingInterface.jsx | 7 | 7 | 3 | 1 | 0 | 21 |
+| RepairServiceCreate.jsx | 7 | 8 | 6 | 3 | 0 | 15 |
 | ReceivingInterface.jsx | 7 | 8 | 2 | 2 | 0 | 34 |
-| Invoice.jsx | 7 | 0 | 0 | 1 | 0 | 19 |
-| Payment.jsx | 6 | 10 | 5 | 1 | 0 | 10 |
+| Payment.jsx | 7 | 12 | 5 | 3 | 0 | 22 |
 | Messages.jsx | 6 | 2 | 2 | 1 | 1 | 6 |
 | Home.jsx | 6 | 0 | 6 | 3 | 0 | 33 |
 | StaffReceiveConfirm.jsx | 5 | 6 | 4 | 3 | 0 | 15 |
 | ReturnConfirm.jsx | 5 | 4 | 5 | 1 | 0 | 10 |
 | RepairScan.jsx | 5 | 6 | 2 | 1 | 0 | 10 |
-| Register.jsx | 5 | 8 | 3 | 1 | 0 | 21 |
 | ReceiveConfirm.jsx | 5 | 5 | 4 | 1 | 0 | 8 |
 | StaffOrders.jsx | 4 | 1 | 3 | 2 | 0 | 18 |
 | Search.jsx | 4 | 0 | 2 | 1 | 0 | 8 |
 | Renewal.jsx | 4 | 2 | 3 | 2 | 0 | 8 |
+| Invoice.jsx | 4 | 1 | 2 | 1 | 0 | 7 |
+| RepairServiceComplete.jsx | 3 | 1 | 3 | 0 | 0 | 0 |
+| InvoiceConfirm.jsx | 3 | 1 | 4 | 1 | 0 | 9 |
+| ContentPage.jsx | 3 | 0 | 2 | 2 | 0 | 9 |
 
 ## 7. weapp 样式禁区命中（#1831：硬禁区=必删类；软禁区=禁新增）
 

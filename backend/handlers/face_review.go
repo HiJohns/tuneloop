@@ -309,17 +309,12 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "real_name, id_card_no, id_card_expire, id_card_authority and id_card_address are required for approve (user has no existing ID info)"})
 				return
 			}
-			// #1924: 顾客提交了第二证件 → 审核时必须指定类型。
-			if secondDocPresent && !validSecondDocType(req.SecondDocType) {
-				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "second_doc_type 必填且需为 student/teacher/work/other"})
-				return
-			}
 		}
 	}
 
 	// #2057 裁定3: 员工指定 student 作为第二证件时，用户必须已提交介绍信，
 	// 否则不允许通过（应走既有 reject/通知链路要求补传）。
-	if req.Action == "approve" && req.SecondDocType == "student" {
+	if req.Action == "approve" && batch.Kind == "second_doc" && req.SecondDocType == "student" {
 		if !(targetUserFound && targetUser.IntroLetterURL != nil && *targetUser.IntroLetterURL != "") {
 			c.JSON(http.StatusConflict, gin.H{
 				"code":    40912,
@@ -365,10 +360,6 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 				userUpdates["id_card_expire"] = req.IdCardExpire
 				userUpdates["id_card_authority"] = req.IdCardAuthority
 				userUpdates["id_card_address"] = req.IdCardAddress
-			}
-			if secondDocPresent {
-				userUpdates["id_photo_other_type"] = req.SecondDocType
-				userUpdates["id_photo_other_verified"] = true
 			}
 		}
 		if err := tx.Model(&models.User{}).Where("id = ?", batch.UserID).

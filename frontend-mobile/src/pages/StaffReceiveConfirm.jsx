@@ -9,6 +9,7 @@ import { apiFetch, resolveErrorMessage, resolveUploadError } from '../services/a
 import { dialog, env, uploadFile, getInputValue } from '../platform'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
+import { t } from '../i18n'
 
 export default function StaffReceiveConfirm() {
   const [searchParams] = useSearchParams()
@@ -76,7 +77,7 @@ export default function StaffReceiveConfirm() {
       }
       const dmgAmt = hasDamage ? (parseFloat(damageAmount) || 0) : 0
       if (hasDamage && dmgAmt <= 0) {
-        dialog.alert('请填写赔偿金额')
+        dialog.alert(t("请填写赔偿金额"))
         setSubmitting(false)
         return
       }
@@ -95,13 +96,13 @@ export default function StaffReceiveConfirm() {
       const result = await resp.json()
       if (result.code === 20000) {
         if (dmgAmt > 0) {
-          dialog.alert('已提交定损，已通知顾客确认')
+          dialog.alert(t("已提交定损，已通知顾客确认"))
         } else {
           const sa = result.data?.shortfall_amount || 0
           if (sa > 0) {
             dialog.alert(`已发起结算，待顾客补缴 ¥${formatCents(sa)}，补缴完成后订单自动完成`)
           } else {
-            dialog.alert('接收确认成功')
+            dialog.alert(t("接收确认成功"))
           }
         }
         if (env.isMiniProgram) {
@@ -111,14 +112,14 @@ export default function StaffReceiveConfirm() {
         } else {
           navigate('/staff/orders')
         }
-      } else { dialog.alert('接收失败: ' + (resolveErrorMessage(result, ''))) }
-    } catch (err) { dialog.alert('操作失败: ' + err.message) }
+      } else { dialog.alert(t("接收失败: {msg}", { msg: resolveErrorMessage(result, '') })) }
+    } catch (err) { dialog.alert(t("操作失败: {msg}", { msg: err.message })) }
     setSubmitting(false)
   }
 
   if (loading) {
     return <View style={{ backgroundColor: "#FDFBF7" }} className="min-h-screen flex items-center justify-center">
-      <Text className="text-zinc-400 font-medium">加载中...</Text>
+      <Text className="text-zinc-400 font-medium">{t("加载中...")}</Text>
     </View>
   }
 
@@ -127,7 +128,7 @@ export default function StaffReceiveConfirm() {
       {!env.isMiniProgram && (
         <View style={{ backgroundImage: 'linear-gradient(to bottom, #FDF4E7, #FFFFFF)' }} className="px-4 pt-4 pb-3 flex items-center gap-2">
           <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
-          <Text className="text-lg font-black text-black">接收确认</Text>
+          <Text className="text-lg font-black text-black">{t("接收确认")}</Text>
         </View>
       )}
 
@@ -149,13 +150,13 @@ export default function StaffReceiveConfirm() {
       {/* Photo Upload */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <Text className="text-base font-black text-black mb-3 flex items-center gap-2">
-          <Camera size={18} />拍照留档
+          <Camera size={18} />{t("拍照留档")}
         </Text>
-        <Text className="text-xs text-red-500 font-normal mb-3">请拍摄乐器当前状态照片作为接收留档</Text>
+        <Text className="text-xs text-red-500 font-normal mb-3">{t("请拍摄乐器当前状态照片作为接收留档")}</Text>
 
         {photoSpecs.length > 0 && (
           <View className="mb-4 p-3 bg-blue-50 rounded-lg">
-            <Text className="text-sm font-bold text-blue-800 mb-1">拍照要求</Text>
+            <Text className="text-sm font-bold text-blue-800 mb-1">{t("拍照要求")}</Text>
             <Text className="text-xs text-blue-700" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {photoSpecs.map((spec, idx) => (
                 <Text key={idx} className="block">• {spec.position}: {spec.description}</Text>
@@ -167,11 +168,11 @@ export default function StaffReceiveConfirm() {
         {outboundPhotos.length > 0 && (
           <View className="mb-4">
             <Text className="text-xs font-bold text-zinc-500 mb-2 flex items-center gap-1">
-              <ImageIcon size={14} />出库照片（供对比）
+              <ImageIcon size={14} />{t("出库照片（供对比）")}
             </Text>
             <View className="grid grid-cols-3 gap-2">
               {outboundPhotos.map((p, i) => (
-                <Image key={i} src={p.url} alt="出库照" className="w-full rounded border object-cover h-20" />
+                <Image key={i} src={p.url} alt={t("出库照")} className="w-full rounded border object-cover h-20" />
               ))}
             </View>
           </View>
@@ -183,31 +184,31 @@ export default function StaffReceiveConfirm() {
       {/* 定损区块：无损坏/有损坏 toggle + 追缴费用 */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <Text className="text-base font-black text-black mb-3 flex items-center gap-2">
-          <AlertTriangle size={18} />定损评估
+          <AlertTriangle size={18} />{t("定损评估")}
         </Text>
         <View className="flex gap-3 mb-4">
           <View onClick={() => { setHasDamage(false); setDamageReason(''); setDamageAmount('') }}
             className="flex-1 py-2 rounded-lg font-medium text-sm flex items-center justify-center"
             style={{ backgroundColor: !hasDamage ? '#dcfce7' : '#f4f4f5', color: !hasDamage ? '#15803d' : '#71717a', borderWidth: 2, borderColor: !hasDamage ? '#22c55e' : 'transparent' }}>
-            <Text className="text-sm font-bold">无损坏</Text>
+            <Text className="text-sm font-bold">{t("无损坏")}</Text>
           </View>
           <View onClick={() => setHasDamage(true)}
             className="flex-1 py-2 rounded-lg font-medium text-sm flex items-center justify-center"
             style={{ backgroundColor: hasDamage ? '#fee2e2' : '#f4f4f5', color: hasDamage ? '#dc2626' : '#71717a', borderWidth: 2, borderColor: hasDamage ? '#ef4444' : 'transparent' }}>
-            <Text className="text-sm font-bold">有损坏</Text>
+            <Text className="text-sm font-bold">{t("有损坏")}</Text>
           </View>
         </View>
         {hasDamage && (
           <View style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <View>
-              <Text className="text-xs font-bold text-zinc-500 mb-1">损坏维修赔偿（元）</Text>
+              <Text className="text-xs font-bold text-zinc-500 mb-1">{t("损坏维修赔偿（元）")}</Text>
               <Input type={env.isMiniProgram ? 'digit' : 'number'} value={damageAmount} onInput={e => setDamageAmount(getInputValue(e))}
                 placeholder="0.00" className="w-full border rounded-lg px-3 py-2 text-sm" />
             </View>
             <View>
-              <Text className="text-xs font-bold text-zinc-500 mb-1">备注说明</Text>
+              <Text className="text-xs font-bold text-zinc-500 mb-1">{t("备注说明")}</Text>
               <Input value={damageReason} onInput={e => setDamageReason(getInputValue(e))}
-                placeholder="选填" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                placeholder={t("选填")} className="w-full border rounded-lg px-3 py-2 text-sm" />
             </View>
           </View>
         )}

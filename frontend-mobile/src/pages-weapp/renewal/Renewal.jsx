@@ -174,12 +174,12 @@ export default function Renewal() {
         {calcResult && (
           <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12 }}>
             <Text style={{ fontSize: 14, fontWeight: '700', marginBottom: 8 }}>费用明细</Text>
-            {calcResult.tier_breakdown?.map((t, i) => {
-              const tierRate = (t.rate * (t.discount || 1)).toFixed(2)
+            {calcResult.tier_breakdown?.map((tier, i) => {
+              const tierRate = (tier.rate * (tier.discount || 1)).toFixed(2)
               return (
               <View key={i} style={{ display: 'flex', justifyContent: 'space-between', paddingVertical: 4 }}>
-                <Text style={{ fontSize: 12, color: '#71717a' }}>第{t.tier}阶 {t.days}天 · ¥{formatCents((tierRate || 0))}/天</Text>
-                <Text style={{ fontSize: 12, fontWeight: '500' }}>¥{formatCents(Number(t.subtotal || 0))}</Text>
+                <Text style={{ fontSize: 12, color: '#71717a' }}>第{tier.tier}阶 {tier.days}天 · ¥{formatCents((tierRate || 0))}/天</Text>
+                <Text style={{ fontSize: 12, fontWeight: '500' }}>¥{formatCents(Number(tier.subtotal || 0))}</Text>
               </View>
             )})}
             <View style={{ display: 'flex', justifyContent: 'space-between', paddingVertical: 4, borderTop: '1px solid #f3f4f6', marginTop: 4 }}>

@@ -65,9 +65,13 @@ func TestStaffCreateUser_IAMConflict_2243(t *testing.T) {
 		"site_id": siteID,
 	})
 	assert.Equal(t, http.StatusConflict, code, "IAM 409 应映射为 HTTP 409，实际=%v resp=%v", code, resp)
-	assert.Equal(t, float64(40910), resp["code"], "应返回专用冲突码 40910，实际=%v", resp["code"])
+	assert.Equal(t, float64(40913), resp["code"], "手机号冲突应返回 40913，实际=%v", resp["code"])
 	msg, _ := resp["message"].(string)
-	assert.Contains(t, msg, "已", "文案应说明已注册；实际=%q", msg)
+	assert.Contains(t, msg, "手机号", "文案应指明手机号冲突；实际=%q", msg)
+	assert.Contains(t, msg, "13000000000", "文案应包含具体冲突值；实际=%q", msg)
+	data, _ := resp["data"].(map[string]interface{})
+	assert.Equal(t, "phone", data["conflict_field"])
+	assert.Equal(t, "13000000000", data["conflict_value"])
 }
 
 // TestStaffCreateUser_IAMBadRequest_2243：非冲突类 IAM 4xx 必须映射为 HTTP 400
@@ -120,4 +124,90 @@ func TestStaffCreateUser_IAMBadRequest_2243(t *testing.T) {
 	assert.Equal(t, float64(40010), resp["code"], "应返回 40010，实际=%v", resp["code"])
 	msg, _ := resp["message"].(string)
 	assert.Contains(t, msg, "invalid phone format", "必须保留 IAM 原始 message；实际=%q", msg)
+}
+
+// TestStaffCreateUser_IAMConflictFields_2290：IAM 409 按具体字段返回 40911/40913/40914，
+// 未识别字段回退 40910；username 留空时归一化为邮箱冲突。
+func TestStaffCreateUser_IAMConflictFields_2290(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+	tenantID := uuid.New().String()
+	operatorID := uuid.New().String()
+	require.NoError(t, db.Create(&models.User{
+		ID: operatorID, IAMSub: operatorID, TenantID: tenantID, OrgID: tenantID,
+		Username: "op2290", Role: "admin", Status: "active",
+	}).Error)
+	siteID := uuid.New().String()
+	require.NoError(t, db.Create(&models.Site{ID: siteID, TenantID: tenantID, OrgID: tenantID, Name: "S2290"}).Error)
+
+	writeJSON := func(w http.ResponseWriter, v interface{}) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(v)
+	}
+	uniq := func() string { return uuid.New().String()[:8] }
+
+	cases := []struct {
+		name       string
+		iamError   string
+		username   string
+		email      string
+		phone      string
+		wantCode   float64
+		wantField  string
+		wantValue  string
+		wantMsgHas string
+	}{
+		{"username_explicit", "username already exists", "taken_login_2290", "u1_2290@example.com", "13100000001", 40911, "username", "taken_login_2290", "用户名"},
+		{"username_blank_is_email", "username already exists", "", "taken_email_2290@example.com", "13100000002", 40914, "email", "taken_email_2290@example.com", "邮箱"},
+		{"email", "email already exists", "u_email_2290", "taken_email2_2290@example.com", "13100000003", 40914, "email", "taken_email2_2290@example.com", "邮箱"},
+		{"phone", "phone already exists", "u_phone_2290", "u_phone_2290@example.com", "13100000004", 40913, "phone", "13100000004", "手机号"},
+		{"unknown", "some new rule", "u_unknown_2290", "u_unknown_2290@example.com", "13100000005", 40910, "", "", "已"},
+	}
+
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			mux := http.NewServeMux()
+			mux.HandleFunc("/api/v1/auth/token", func(w http.ResponseWriter, r *http.Request) {
+				writeJSON(w, map[string]interface{}{"access_token": "t2290", "expires_in": 7200, "token_type": "Bearer"})
+			})
+			mux.HandleFunc("/api/v1/users", func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusConflict)
+				writeJSON(w, map[string]string{"error": tc.iamError})
+			})
+			srv := httptest.NewServer(mux)
+			defer srv.Close()
+			services.SetIAMInternalURLForTesting(srv.URL)
+			t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
+			t.Setenv("IAM_SECRET", testIAMSecret)
+
+			h := &UserStaffHandler{}
+			r := gin.New()
+			r.Use(func(c *gin.Context) {
+				c.Request = c.Request.WithContext(
+					testutil.TestActor{TenantID: tenantID, OrgID: tenantID, UserID: operatorID, Role: "ADMIN"}.InjectContext(c.Request.Context()))
+				c.Next()
+			})
+			r.POST("/users", h.CreateUser)
+
+			body := map[string]interface{}{
+				"name": "冲突员工" + uniq(), "phone": tc.phone, "email": tc.email, "site_id": siteID,
+			}
+			if tc.username != "" {
+				body["username"] = tc.username
+			}
+			code, resp := doCreate2068(t, r, body)
+			assert.Equal(t, http.StatusConflict, code, "case %d: %v", i, resp)
+			assert.Equal(t, tc.wantCode, resp["code"], "case %d resp=%v", i, resp)
+			msg, _ := resp["message"].(string)
+			assert.Contains(t, msg, tc.wantMsgHas, "case %d message=%q", i, msg)
+			if tc.wantValue != "" {
+				assert.Contains(t, msg, tc.wantValue, "case %d message 应含冲突值", i)
+			}
+			data, _ := resp["data"].(map[string]interface{})
+			if tc.wantField != "" {
+				assert.Equal(t, tc.wantField, data["conflict_field"], "case %d", i)
+				assert.Equal(t, tc.wantValue, data["conflict_value"], "case %d", i)
+			}
+		})
+	}
 }

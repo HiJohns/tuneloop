@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -255,24 +256,16 @@ func PrepayOrder(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "优惠码无效"})
 			return
 		}
-		switch coupon.Type {
-		case "waive":
-			baseAmount = 0
-		case "percent":
-			// #1751: guard against misconfigured permille values — a value
-			// outside 1..1000‰ would silently over/under-charge (ENO was
-			// seeded 1‰ = 1/10 of the intended 1% discount).
-			if coupon.Value < 1 || coupon.Value > 1000 {
+		pricing, err := resolveCouponPricing(coupon, baseAmount)
+		if err != nil {
+			if errors.Is(err, ErrCouponConfig) {
 				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "优惠码配置异常，请联系客服"})
 				return
 			}
-			// Integer math (audit #1726 R7): coupon.Value is permille (‰),
-			// amount in cents — 分 × ‰ / 1000, no float round-trip.
-			baseAmount = baseAmount * models.Cents(coupon.Value) / 1000
-		default:
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "优惠码无效"})
 			return
 		}
+		baseAmount = pricing.FinalCents
 		couponApplied = coupon.Code
 	}
 	// #1948 乐器丢失补缴（LS-03/LS-06）：金额 = 该订单 pending 补缴记录合计（服务端权威）

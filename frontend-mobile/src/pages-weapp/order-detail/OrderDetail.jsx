@@ -542,12 +542,12 @@ export default function OrderDetail() {
               <Row
                 label={`合同租金 ¥${formatCents(Number(order.fee_detail.paid_block?.contract_rent?.amount))}${order.fee_detail.paid_block?.contract_rent?.date ? `（${formatBeijingDate(order.fee_detail.paid_block.contract_rent.date)}）` : ''}`}
               />
-              {(order.fee_detail.paid_block?.contract_rent?.tiers || []).map((t, i) => (
+              {(order.fee_detail.paid_block?.contract_rent?.tiers || []).map((tier, i) => (
                 <Row
                   key={`ct-${i}`}
                   indent
-                  label={`第${t.tier}阶梯 ¥${formatCents(Number(t.rate))}/天 × ${t.days}天`}
-                  value={`¥${formatCents(Number(t.subtotal))}`}
+                  label={`第${tier.tier}阶梯 ¥${formatCents(Number(tier.rate))}/天 × ${tier.days}天`}
+                  value={`¥${formatCents(Number(tier.subtotal))}`}
                 />
               ))}
               {Number(order.fee_detail.paid_block?.contract_rent?.discount_amount) > 0 && (
@@ -557,12 +557,12 @@ export default function OrderDetail() {
               {(order.fee_detail.paid_block?.renewals || []).map((r, i) => (
                 <View key={`ren-${i}`}>
                   <Row label={`续费 ¥${formatCents(Number(r.amount))}`} />
-                  {(r.tiers || []).map((t, j) => (
+                  {(r.tiers || []).map((tier, j) => (
                     <Row
                       key={`rt-${j}`}
                       indent
-                      label={`第${t.tier}阶梯 ¥${formatCents(Number(t.rate))}/天 × ${t.days}天`}
-                      value={`¥${formatCents(Number(t.subtotal))}`}
+                      label={`第${tier.tier}阶梯 ¥${formatCents(Number(tier.rate))}/天 × ${tier.days}天`}
+                      value={`¥${formatCents(Number(tier.subtotal))}`}
                     />
                   ))}
                   {Number(r.discount_amount) > 0 && (
@@ -574,12 +574,12 @@ export default function OrderDetail() {
 
               <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginTop: 8, marginBottom: 4 }}>应付部分</Text>
               <Row label="实际租金" value={`¥${formatCents(Number(order.fee_detail.payable_block?.actual_rent?.amount))}`} />
-              {(order.fee_detail.payable_block?.actual_rent?.tiers || []).map((t, i) => (
+              {(order.fee_detail.payable_block?.actual_rent?.tiers || []).map((tier, i) => (
                 <Row
                   key={`pr-${i}`}
                   indent
-                  label={`第${t.tier}阶梯 ¥${formatCents(Number(t.rate))}/天 × ${t.days}天`}
-                  value={`¥${formatCents(Number(t.subtotal))}`}
+                  label={`第${tier.tier}阶梯 ¥${formatCents(Number(tier.rate))}/天 × ${tier.days}天`}
+                  value={`¥${formatCents(Number(tier.subtotal))}`}
                 />
               ))}
               {Number(order.fee_detail.payable_block?.discount_amount) > 0 && (

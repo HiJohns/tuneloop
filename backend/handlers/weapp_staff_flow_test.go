@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
-	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 )
@@ -23,26 +23,7 @@ import (
 func setupWeappStaffTables(t *testing.T) *gorm.DB {
 	cleanup := setupMockIAMAndDB(t)
 	t.Cleanup(cleanup)
-	db := database.GetDB()
-	for _, m := range []interface{}{
-		&models.Instrument{},
-		&models.Order{},
-
-		&models.DamageReport{},
-		&models.Notification{},
-		&models.OrderStatusHistory{},
-		&models.Settlement{},
-		&models.OrderPaymentRecord{},
-		&models.OrderRefundRecord{},
-		&models.SiteMember{},
-		&models.User{},
-		&models.Merchant{},
-	} {
-		_ = db.Migrator().DropTable(m)
-		require.NoError(t, db.Migrator().CreateTable(m))
-	}
-	db.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS iam_sub VARCHAR(255) NOT NULL DEFAULT ''")
-	return db
+	return testfixtures.SetupTestDB(t)
 }
 
 // staffTestRouter builds a gin router with the IAM-context middleware used by
@@ -122,7 +103,7 @@ func TestShippingFlow_StaffToken(t *testing.T) {
 	var updated models.Order
 	require.NoError(t, db.First(&updated, "id = ?", order.ID).Error)
 	require.Equal(t, models.OrderStatusShipped, updated.Status)
-	require.Equal(t, 100.0, updated.ShippingFee, "staff-filled shipping fee must persist (#1541)")
+	require.Equal(t, models.FromYuan(100), updated.ShippingFee, "staff-filled shipping fee must persist (#1541)")
 	require.NotNil(t, updated.TrackingNumber)
 	require.Equal(t, "SF123456789", *updated.TrackingNumber)
 
@@ -152,8 +133,8 @@ func TestReceiveFlow_StaffToken(t *testing.T) {
 			StockStatus:   models.StockStatusRented,
 		}
 		require.NoError(t, db.Create(&inst).Error)
-		start := "2026-08-01"
-		end := "2026-08-30"
+		start := now.AddDate(0, 0, -30).Format("2006-01-02")
+		end := now.AddDate(0, 0, -1).Format("2006-01-02")
 		o := models.Order{
 			ID:           uuid.New().String(),
 			TenantID:     tenantID,
@@ -165,7 +146,7 @@ func TestReceiveFlow_StaffToken(t *testing.T) {
 			EndDate:      &end,
 			LeaseTerm:    30,
 			Deposit:      models.FromYuan(500),
-			CashPaid:     models.FromYuan(30),
+			CashPaid:     models.FromYuan(1000),
 		}
 		require.NoError(t, db.Create(&o).Error)
 		return inst, o
@@ -182,6 +163,7 @@ func TestReceiveFlow_StaffToken(t *testing.T) {
 		"condition":     "damaged",
 		"notes":         "琴面刮痕",
 		"damage_amount": 200.0,
+		"photos":        []string{"/uploads/media/return-damaged-test.jpg"},
 	})
 	w1 := httptest.NewRecorder()
 	router.ServeHTTP(w1, httptest.NewRequest("PUT", "/api/warehouse/orders/"+order1.ID+"/return-inspect", bytes.NewReader(damagedBody)))
@@ -203,6 +185,7 @@ func TestReceiveFlow_StaffToken(t *testing.T) {
 		"scan_time":     now.Format(time.RFC3339),
 		"condition":     "good",
 		"notes":         "验收通过",
+		"photos":        []string{"/uploads/media/return-good-test.jpg"},
 	})
 	w2 := httptest.NewRecorder()
 	router.ServeHTTP(w2, httptest.NewRequest("PUT", "/api/warehouse/orders/"+order2.ID+"/return-inspect", bytes.NewReader(goodBody)))

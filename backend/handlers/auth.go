@@ -316,12 +316,12 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 		return
 	}
 
-	// #1923: 注册前必须勾选协议（租用服务协议 + 个人信息保护政策）。
+	// #1923/#2285: 注册前必须勾选相关协议。
 	if !req.AgreedTerms {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "请先阅读并同意《租用服务协议》与《个人信息保护政策》"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "请先阅读并同意相关协议"})
 		return
 	}
-	log.Printf("[Consent] /auth/register: terms agreed (rental_agreement, privacy_policy)")
+	log.Printf("[Consent] /auth/register: terms agreed (related_agreements)")
 
 	// Username is derived from phone (#1638: registration no longer accepts
 	// a username input; the legacy fallback is removed).

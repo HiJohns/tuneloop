@@ -27,6 +27,7 @@ func TestLeaseEarlyReturn(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 
 	tenantID, orgID, userID := testfixtures.NewTenantIDs("00000000e1f2")
+	testutil.SeedVerifiedCustomer(t, db, tenantID, orgID, userID)
 	instrumentID := uuid.New().String()
 
 	// Instrument: daily 100, deposit 500. Lease 30 days → rent 3000.
@@ -120,7 +121,7 @@ func TestLeaseEarlyReturn(t *testing.T) {
 		UserID:     userID,
 		OrderID:    &orderID,
 		OrderType:  "rent",
-		Amount:     3500,
+		Amount:     models.FromYuan(3500),
 		Type:       "payment",
 		Status:     "paid",
 		Method:     strPtr("mock"),

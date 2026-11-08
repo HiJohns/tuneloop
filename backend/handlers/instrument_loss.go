@@ -50,9 +50,12 @@ func loadLossInstrument(c *gin.Context, db *gorm.DB, id string) (*models.Instrum
 	return &inst, true
 }
 
-// lossDailyRentCents 取日租金（分）：PricingBreakdown.final_daily_rent（折扣后，元）
-// 优先，缺失回退 MonthlyRent/30。
-func lossDailyRentCents(order *models.Order) models.Cents {
+// lossDailyRentCents 取日租金（分）：优先 term_versions 加权日均，旧单回退
+// PricingBreakdown.final_daily_rent（折扣后，元）/ MonthlyRent/30。
+func lossDailyRentCents(db *gorm.DB, order *models.Order) models.Cents {
+	if days, total, ok := termVersionTotals(db, order.ID); ok && days > 0 && total > 0 {
+		return total / models.Cents(days)
+	}
 	if _, finalDaily, err := parsePricingBreakdown(order.PricingBreakdown); err == nil && finalDaily > 0 {
 		return models.FromYuan(finalDaily)
 	}
@@ -106,7 +109,7 @@ func lossReturningTs(db *gorm.DB, order *models.Order) time.Time {
 // lossEndDate 计算场景租金截止时间（LS-03a）：
 // ①去程（未签收）→ 0（不走此函数）；②in_lease → 丢失日；③returning → 返程起点。
 func lossRentToDateCents(db *gorm.DB, order *models.Order, lossDate time.Time) (models.Cents, string) {
-	daily := lossDailyRentCents(order)
+	daily := lossDailyRentCents(db, order)
 	if daily <= 0 {
 		return 0, ""
 	}
@@ -217,7 +220,7 @@ func (h *InstrumentLossHandler) Register(c *gin.Context) {
 			// ①去程（未签收）租金 0、押金全退；③返程租金至归还寄出日 —— 口径不变（2026-09-18 复核）
 			rentCents, scene := lossRentToDateCents(db, order, now)
 			owed := models.Cents(rentCents) + models.Cents(burden)
-			paidCash := order.CashPaid
+			paidCash := effectiveCashPaid(db, *order)
 			diff = paidCash - owed
 			breakdown = map[string]interface{}{
 				"scene": scene, "rent_cents": rentCents, "user_burden_cents": burden,

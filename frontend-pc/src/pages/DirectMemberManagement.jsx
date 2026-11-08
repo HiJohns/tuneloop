@@ -275,8 +275,12 @@ export default function DirectMemberManagement() {
           <Form.Item name="email" label="邮箱" rules={[{ required: true, message: '请输入邮箱（邀请邮件投递通道）' }]}>
             <Input placeholder="邮箱（邀请邮件将发送至此）" />
           </Form.Item>
-          <Form.Item name="username" label="用户名">
-            <Input placeholder="用户名（选填）" autoComplete="off" />
+          <Form.Item
+            name="username"
+            label="登录用户名（可选）"
+            extra="仅用于登录，平台内唯一；留空自动使用上方邮箱。员工姓名请填「姓名」。"
+          >
+            <Input placeholder="留空自动使用邮箱" autoComplete="off" />
           </Form.Item>
           <Form.Item name="position" label="职位/专长">
             <Input placeholder="如 钢琴维修" />

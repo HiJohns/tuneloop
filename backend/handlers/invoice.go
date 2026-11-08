@@ -140,7 +140,7 @@ func (h *InvoiceHandler) ListEligible(c *gin.Context) {
 }
 
 type invoiceSubmitGroup struct {
-	TenantID string   `json:"tenant_id" binding:"required"`
+	TenantID string   `json:"tenant_id"` // #2262: 可选，仅校验
 	OrderIDs []string `json:"order_ids" binding:"required,min=1"`
 	// #1941 发票信息（每个分组=一张发票）
 	InvoiceType string `json:"invoice_type"`

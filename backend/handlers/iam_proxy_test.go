@@ -14,7 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
@@ -376,17 +376,8 @@ func TestIAMProxyHandler_Issue340_IntegrationFlow(t *testing.T) {
 
 func TestSyncOrganizations_SiteTenantID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
+	db := testfixtures.SetupTestDB(t)
 	testutil.SetDB(t, db)
-
-	// Set up Site table
-	_ = db.Migrator().DropTable(&models.Site{})
-	require.NoError(t, db.Migrator().CreateTable(&models.Site{}))
 
 	merchantOrgID := uuid.New().String()
 	nsOrgID := uuid.New().String()
@@ -522,12 +513,8 @@ func TestSyncOrganizations_SiteTenantID(t *testing.T) {
 func TestSyncUsers_ScopeFilter(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("Test database not available, skipping:", err)
-		return
-	}
+	db := testfixtures.GetTestDB(t)
+	var err error
 	testutil.SetDB(t, db)
 
 	merchantOrgID := uuid.New().String()
@@ -625,12 +612,8 @@ func TestSyncUsers_ScopeFilter(t *testing.T) {
 func TestSyncUsers_SiteMember(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("Test database not available, skipping:", err)
-		return
-	}
+	db := testfixtures.GetTestDB(t)
+	var err error
 	testutil.SetDB(t, db)
 
 	merchantOrgID := uuid.New().String()

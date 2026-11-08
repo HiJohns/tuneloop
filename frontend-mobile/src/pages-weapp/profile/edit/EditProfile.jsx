@@ -109,8 +109,8 @@ export default function EditProfile() {
   })()
   useEffect(() => {
     if (sectionParam !== 'id-photo') return undefined
-    const t = setTimeout(() => goIdPhotoSection(), 400)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => goIdPhotoSection(), 400)
+    return () => clearTimeout(timer)
   }, [sectionParam])
 
   useEffect(() => {

@@ -1995,11 +1995,13 @@ make weapp-upload-prod VERSION=x.x.x DESC="release"
 | 修改类型 | 强制验证 | 命令 |
 |---------|---------|------|
 | JS/JSX (前端) | ESLint `no-undef` 零错误（`no-use-before-define` 为 warning，仅观察不阻塞） | `npx eslint "src/**/*.{js,jsx}"` |
+| 移动端页面 (frontend-mobile/src) | 页面渲染冒烟：构建通过 ≠ 页面可打开 | `cd frontend-mobile && npm run smoke` |
 | Go (后端) | 编译通过 | `go build .` |
 
 ### 验证原则
 
 - **JS 修改**：必须针对**修改涉及的文件**执行 ESLint，确认无 `no-undef` 错误。不要求无 warning（如 `no-unused-vars`），但必须 0 `no-undef`。
+- **移动端页面修改**：除 ESLint 外必须运行 `cd frontend-mobile && npm run smoke`，捕获渲染期 `TypeError`/`ReferenceError`（规则见 `docs/ops/page-smoke.md`）。
 - **Go 修改**：必须执行 `go build .` 确认编译通过。
 - **Both**：同时涉及前后端的修改，两组验证都要做。
 - 验证结果必须写入 Work Summary Comment。

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Table, InputNumber, Button, Space, Form, message, Card, Input, Select, Tabs, Tag } from 'antd'
-import { inventoryApi, api } from '../../../services/api'
+import { inventoryApi, api, categoriesApi, instrumentsApi } from '../../../services/api'
 
 const { Search } = Input
 const { TabPane } = Tabs
@@ -51,6 +51,8 @@ export default function InventoryRentSetting() {
   const [filters, setFilters] = useState({ brand: '', model: '', category_id: '', level_id: '' })
   const [tableData, setTableData] = useState([])
   const [merchantConfig, setMerchantConfig] = useState(null)
+  const [categories, setCategories] = useState([])
+  const [levels, setLevels] = useState([])
   const businessRole = (localStorage.getItem('user_business_role') || '').toLowerCase()
 
   // Batch pricing state
@@ -59,6 +61,12 @@ export default function InventoryRentSetting() {
 
   useEffect(() => {
     loadPricingConfig()
+    categoriesApi.getList().then(r => {
+      if (r.code === 20000) setCategories(Array.isArray(r.data) ? r.data : (r.data?.list || []))
+    }).catch(() => {})
+    instrumentsApi.getLevels().then(r => {
+      if (r.code === 20000) setLevels(Array.isArray(r.data) ? r.data : (r.data?.list || []))
+    }).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -124,7 +132,9 @@ export default function InventoryRentSetting() {
       .map(item => ({
          id: item.id,
          daily_rent: item.daily_rent,
-         deposit: item.deposit || 0,
+         deposit: item.deposit != null ? item.deposit : undefined,
+         deposit_reduced_enabled: item.deposit_reduced != null && item.deposit_reduced !== '',
+         deposit_reduced: item.deposit_reduced != null && item.deposit_reduced !== '' ? item.deposit_reduced : null,
          overdue_daily_fee: item.overdue_daily_fee || item.daily_rent,
       }))
     setLoading(true)
@@ -234,6 +244,17 @@ export default function InventoryRentSetting() {
       ),
     },
     {
+      title: '差额押金', dataIndex: 'deposit_reduced', key: 'deposit_reduced', width: 120,
+      render: (value, record) => (
+        <InputNumber min={0} precision={2} value={value}
+          onChange={(val) => handleRentChange(record.id, 'deposit_reduced', val)}
+          placeholder="未配置"
+          style={{ width: '100%' }}
+          formatter={(val) => val == null ? '' : `¥ ${val}`} parser={(val) => val.replace(/¥\s?/g, '')}
+        />
+      ),
+    },
+    {
       title: '逾期日费', dataIndex: 'overdue_daily_fee', key: 'overdue_daily_fee', width: 120,
       render: (value, record) => (
         <InputNumber min={0} precision={2} value={value}
@@ -298,17 +319,17 @@ export default function InventoryRentSetting() {
                   style={{ width: 150 }}
                   onSearch={() => setPagination({ ...pagination, current: 1 })}
                 />
-                <Search
-                  placeholder="分类" value={filters.category_id}
-                  onChange={(e) => setFilters({ ...filters, category_id: e.target.value })}
+                <Select
+                  placeholder="分类" allowClear value={filters.category_id || undefined}
+                  onChange={(v) => setFilters({ ...filters, category_id: v || '' })}
                   style={{ width: 150 }}
-                  onSearch={() => setPagination({ ...pagination, current: 1 })}
+                  options={categories.map(c => ({ value: c.id, label: c.name }))}
                 />
-                <Search
-                  placeholder="等级" value={filters.level_id}
-                  onChange={(e) => setFilters({ ...filters, level_id: e.target.value })}
+                <Select
+                  placeholder="等级" allowClear value={filters.level_id || undefined}
+                  onChange={(v) => setFilters({ ...filters, level_id: v || '' })}
                   style={{ width: 150 }}
-                  onSearch={() => setPagination({ ...pagination, current: 1 })}
+                  options={levels.map(l => ({ value: l.id, label: l.caption || l.name || l.code }))}
                 />
               </Space>
             </div>

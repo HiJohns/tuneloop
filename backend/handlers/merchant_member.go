@@ -634,7 +634,19 @@ func loadMerchantForAccess(db *gorm.DB, tenantID, merchantID string, c *gin.Cont
 		err = idb.Where("id = ?", merchantID).First(&merchant).Error
 	}
 	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
+		// #2276：不同租户 → 404（不泄漏）；同一 shared tenant 的其他商户 org → 403（#2274 契约）
+		var target models.Merchant
+		if idb.Where("id = ?", merchantID).First(&target).Error == nil {
+			var sameTenantMerchant int64
+			idb.Model(&models.Merchant{}).
+				Where("tenant_id = ? AND org_id = ?", target.TenantID, tenantID).
+				Count(&sameTenantMerchant)
+			if target.TenantID == tenantID || sameTenantMerchant > 0 {
+				c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
+				return models.Merchant{}, false
+			}
+		}
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "merchant not found"})
 		return models.Merchant{}, false
 	}
 	return merchant, true

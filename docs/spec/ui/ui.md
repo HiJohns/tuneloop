@@ -1388,6 +1388,18 @@ API 来源：
 
 ---
 
+### 2.19a 支付页优惠码校验（#2291）
+
+**组件**: `frontend-mobile/src/pages/Payment.jsx` + `frontend-mobile/src/pages-weapp/payment/Payment.jsx`
+
+**交互**:
+- 用户输入优惠码 → 点击「应用」→ 调 `POST /api/coupons/validate`（`{code, amount_cents}`）
+- 成功：展示服务端返回的 `final_amount_cents`（分）与提示；`waive` 显示「全额免除」
+- 失败：提示 `resolveErrorMessage`（如「优惠码无效」「优惠码配置异常」），清空已应用状态
+- **禁止**在页面硬编码任何码值或折扣比例；prepay 若被服务端拒绝，清空已应用优惠码并提示
+
+---
+
 ### 2.20 移动端个人中心未读角标
 
 **组件**: `frontend-mobile/src/pages/Profile.jsx` + `frontend-mobile/src/components/BottomNav.jsx`
@@ -1419,22 +1431,30 @@ API 来源：
 
 ---
 
-### 2.22 移动端下单/归还物流费提醒（#1732）
+### 2.22 移动端下单/归还物流费提醒（#1732 / #2299）
 
 **适用端**: H5 移动端 + 微信小程序（weapp）顾客端
 
 **下单页（Checkout.jsx，双副本同步：`pages/Checkout.jsx` H5 + `pages-weapp/Checkout.jsx` weapp）**:
 
-按有效押金 `effectiveDeposit === 0` 判定（覆盖「乐器本身 0 押金」与「免押金开关」两种场景）显示红色提醒：
+适用入口（两端均覆盖）：
+- 单件结算 `/checkout?id=<instrument_id>`（`SingleCheckout`）
+- 批量结算 `/checkout`（`BatchCheckout`）
+
+判定口径（覆盖「乐器本身 0 押金」与「免押金开关」两种场景）：
+- 单件：`effectiveDeposit = 免押金开关 ? 0 : instrument.deposit`
+- 批量：`effectiveDeposit = 免押金开关 ? 0 : Σ(item.deposit)`（混合押金购物车按**合计**判定；合计 `> 0` 使用押金扣除文案）
 
 | 条件 | 文案 |
 |------|------|
-| `effectiveDeposit === 0` | 尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时我们将选择快递到付且保价，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！ |
+| `effectiveDeposit === 0` | 尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时我们将选择顺丰快递到付且保价，请注意检查乐器状态后方可支付运费，谢谢您，祝您使用愉快！ |
 | `effectiveDeposit > 0` | 尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时的物流费届时将从您的押金中扣除，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！ |
+
+位置：单件在合计摘要行下方；批量在 TOTAL 卡内**分组明细之后、「暖心提示」之前**（同属合计摘要区域）。
 
 **归还页（ReturnConfirm.jsx，共享版即两端）**: 所有订单无条件显示：
 
-尊敬的顾客您好，感谢您选择云租吧的乐器，乐器寄回时请优先选择顺丰快递且保价，还原初始包装保护乐器，为保障您的权益，我们将第一时间查收并检验乐器状态，谢谢您，祝您生活愉快！
+尊敬的顾客您好，感谢您选择云租吧的乐器，乐器寄回时请优先选择顺丰快递并保价，还原初始包装保护乐器，为保障您的权益，我们将第一时间查收并检验乐器状态，谢谢您，祝您生活愉快！
 
 **下单页协议提示（#2273）**: 单件/批量、H5 与 weapp 双副本的固定底栏「合计摘要与提交按钮之间」显示居中灰色纯文本（12px / `#a1a1aa` / `leading-relaxed` / 下外边距 8px）：
 
@@ -1442,7 +1462,7 @@ API 来源：
 
 为容纳该提示，内容区底部留白同步放大：单件 `pb-28 → pb-44`（weapp `112 → 176`）、批量 `pb-28 → pb-36`（weapp `112 → 144`）。
 
-**样式**: 红色（`text-red-500` / `#ef4444`）13px 中等字重，下单页在合计摘要下方，归还页在订单信息卡之后。（#2273 协议提示为 12px 常规字重，与物流费提醒的 13px 中等字重区分）
+**样式**: 红色（`text-red-500` / `#ef4444`）13px 中等字重，下单页在合计摘要区域（单件：合计行下方；批量：分组明细之后、「暖心提示」之前），归还页在订单信息卡之后。（#2273 协议提示为 12px 常规字重，与物流费提醒的 13px 中等字重区分）
 
 ---
 
@@ -1476,6 +1496,21 @@ API 来源：
 > 3. **系统消息 / 我的**：`id_verify`（实名通过/驳回）通知与其它类型一致，点击进入 `message-detail` 消息详情页（#2178 起）——`storage.open_pending_modal=1` 不再由消息置入；「待提交订单」弹层保留作为 Checkout 拦截（命中 40310 写入待提交订单）的续提入口，不再由消息点击自动触发。——**「我的」菜单中不再提供「待提交订单」菜单入口（#2174）**
 >    - **双端一致性（#2041 整改 / #2053 整改 / #2174 调整 / #2178）**：H5（`pages/Profile.jsx` 的 `PendingOrdersModal`）与 weapp（`pages-weapp/Profile.jsx` 独立实现）**均保留「待提交订单」弹层**（#2174 已移除「我的」菜单入口）。
 >    - 续提跳转：已实名 → `checkout?id=<instrument_id>&resume_pending=<pending_id>`（weapp 用 `/pages-weapp/checkout/index`）；未实名 → 个人资料编辑页。
+
+### 2.22.2 注册页第二证件类型与介绍信（#2314）
+
+> 注册页（H5 `Register.jsx` / weapp `ProfileComplete.jsx`）第二证件区：
+> - 先上传身份证正/反面，第二证件槽才可用；否则提示「请先上传身份证正反面，再上传第二证件」。
+> - 第二证件类型由用户选择：学生证 / 教职工证 / 工作证 / 其他（`id_photo_other_type`）。
+> - 选择学生证时必须先上传介绍信（`IntroLetterUploader`，会话级 `side=intro`）；未上传时阻止第二证件上传。
+> - 类型/介绍信随注册 session form_data 落地，审核端可修正。
+
+### 2.21.2 PC 审核页：注册核身与第二证件复审分离（#2313）
+
+> PC「实名审核队列」按 `kind` 分开展示与操作：
+> - `kind=registration`：只展示/提交实名 5 项与通过/驳回；**不展示第二证件类型选择**，不再要求 `second_doc_type`。
+> - `kind=second_doc`：独立条目，展示第二证件照片/类型选择/介绍信；approve 只写 `id_photo_other_type` + `id_photo_other_verified=true`。
+> - 两批次的通过/驳回互不影响；删除第二证件后待审 second_doc 批次自动 rejected（后端 #2311）。
 
 ### 2.22.1 注册页证件审核提示（#2044）
 
@@ -1530,7 +1565,15 @@ API 来源：
   - 「不同意」随时可点（白底灰描边），「同意」为品牌金（`#915F38`）——两按钮颜色区分明显
   - 点「同意」→ 返回来源页，勾选框**选中**；点「不同意」→ 返回，保持**未选中**
 - **已选中状态下点击勾选框** → 直接取消勾选（无需倒计时）
-- 页面常驻协议入口：`ContentPage` 合并模式沿用 #2258 的 RichContent 渲染与文案
+- 页面常驻协议入口：`ContentPage` 合并模式按序渲染 **`rental_agreement` → `damage_standard` → `privacy_policy`** 三份正文（RichContent），段间 `#e4e4e7` 1px 分割线；`damage_standard` 标题为「《乐器损耗与赔偿标准》细则」
+
+### 2.99 押金三态（#2321）
+
+- **全额**：默认；PC 乐器配置「押金」字段（0=零押金乐器）。
+- **差额**：PC Form/Detail/RentSetting 增加「差额押金」开关+金额（空=未配置，0=差额 0）；必须 ≤ 全额。结算页仅在该乐器配置差额且用户满足 D1/D4（实名/学生教师/信用分 + 2 担保人 + 推荐信）时显示「差额押金（减免）」开关；实付差额。无差额配置时不显示折扣。
+- **零押金**：乐器全额押金=0；结算页显示「¥0（零押金）」，不要求担保人/推荐信。
+- **批量**：仅当所有选中乐器均为零押金或配置差额时显示减免开关；否则提示「部分乐器未配置差额押金，按全额/零押金结算」。
+- **历史**：旧 `deposit_waived` 订单不追溯；后端旧字段仅兼容为 reduced。
 
 ---
 
@@ -2491,6 +2534,8 @@ const handleSyncUsersFromIAM = async () => {
   - 维修师傅：职位 + **简介（react-quill 富文本）** + **个人照片**（创建成功后经 `POST /technician-profiles/:id/photo` 媒体管线上传；失败提示可在「维修师档案」页补传）
   - 商户直属员工：职位
 - **唯一性冲突**：提交前 `GET /users/check`；命中既有账户 → **自动发送「加入邀请通知」（#2052）**并由被邀请人自助接受/拒绝（不硬报冲突、不代挂）
+- **用户名语义（#2290）**：用户名 = 登录账号（可选，平台内唯一；留空自动使用邮箱）。姓名可重名，不参与唯一性；表单「用户名」不得用于填姓名
+- **IAM 冲突提示（#2290）**：创建时若 IAM 返回字段冲突，提示必须指明具体字段与值，并给可操作建议（更换用户名 / 留空用邮箱 / 更换手机号或邮箱 / 让本人登录后自助加入）；不得只显示「服务器开小差」或三字段合一文案
 - **#2073：照片 + 富文本简介对「所有类型」开放**（原先仅维修师傅）：照片=**头像**（创建后经 `POST /api/admin/users/:id/avatar` 上传，256²WebP）；简介富文本落 `users.bio`（师傅另双写 `technician_profiles.bio`）；`technician_profiles.photo`（师傅列表/档案展示）仍由「维修师档案」页管理
 - **#2070 细化**：
   - 照片统一用**共享控件 `components/PhotoUploader.jsx`**（抽自「维修师档案」页）：**选择即预览**（本地 objectURL）、**编辑场景回显现有图**；禁止再用裸 `input[type=file]`（「维修师档案」页亦已改用该组件）
@@ -2707,6 +2752,7 @@ const handleSyncUsersFromIAM = async () => {
 **Tab 1 — 基本信息**:
 - 左侧: 乐器信息 (SN/分类/级别/状态/评分/创建时间/描述)
 - 右侧: 价格配置（分段租金表 + 底价/押金/物流费/逾期费）+ 当前租赁信息
+  - **#2315**：逾期费展示/编辑读取 `pricing-v2.overdue_daily_fee`（分→元）；旧 `instrument.pricing.overdue_daily_fee` 仅作 fallback。
 
 **Tab 2 — 多媒体**:
 - 左侧: 展示图像（当前展示图 + 上传/替换按钮，单幅，宽度≤1920px）+ 视频（显示/删除）
@@ -2826,6 +2872,7 @@ const handleSyncUsersFromIAM = async () => {
 **功能**:
 - 乐器列表展示（识别码、分类、网点、级别、日租金、押金、物流费、逾期日费）
 - 筛选：品牌、型号、类别、级别、网点
+  - **#2316**：品牌/型号为文本包含匹配（后端 `instrument_properties` 的 `品牌`/`型号`，ILIKE）；类别/级别为下拉选择真实 ID（`/categories`、`/instruments/levels`）。
 - 在线编辑各字段，保存后批量更新（`PUT /api/inventory/rent-setting/batch`）
 
 
@@ -2979,7 +3026,10 @@ const handleSyncUsersFromIAM = async () => {
 > - 维修师（weapp 工作台，#2084 共享组件 `TechRepairSections`：MyRepairs 维修服务 Tab 内联 + 独立页 `/tech-repair-workbench` 复用；**#2148 状态网格看板：顶部 flex-wrap 六 chip（含计数）——待报价 / 已报价·待付款（#2088）/ 已寄出·待收货（#2116）/ 维修中 / 待发回（#2091）/ 已完成；默认选中首个非空组，用户点选后不再自动切换；下方仅渲染选中组列表**）：报价（修理费+料钱+物流费预估，受控模式预估 3 段；料钱 #2085）| 加价（新总价+到此为止修理费；料钱不参与补差）| 完成修理
 > - 网点员工（weapp）：分段发运（实填本段物流费）| 待发回清单 | 发回（末段实填 → 触发结算）；「网点维修服务工作台」卡片仅 site 角色可见（#2084）
 > - **#2094 评价卡判定**：评价表单仅在 `closed` 且时间线含 `settled`（真结算）时显示；未支付超时置 `cancelled`（PaymentScheduler，时间线 `payment_timeout`）→ 详情显示「服务已关闭」信息卡（无误出的评价）
-> - **#2090 通知**：新服务流三处通知（创建→师傅 / 报价·加价→顾客）在消息中心渲染操作按钮：`repair_svc_quote`→「进入维修工作台」；`repair_svc_review`→「查看报价」；`repair_svc_adjust`→「查看加价并确认」（跳 `/repair-service-detail?order_id=…`）
+> - **#2293 维修服务详情·维修师报价**：`/repair-service-detail` 在 `status='pending_quote' && technician_id` 且员工/技师视角时渲染「维修师报价」面板（修理费/料钱/物流费预估；共享 `RepairServiceQuoteForm`）；提交成功 → `pending_payment`，顾客侧「查看报价」可见。顾客视角不显示；无技师仍走「选择维修师」。
+> - **#2090 通知**：新服务流通知（创建→师傅 / 报价·加价·拒绝→顾客或师傅 / 已寄出→师傅与商户管理员）在消息中心渲染操作按钮：`repair_svc_quote`→「进入维修工作台」；`repair_svc_review`→「查看报价」；`repair_svc_adjust`→「查看加价并确认」；`repair_svc_receive`/商户 `info`→「查看维修单」（均跳 `/repair-service-detail?order_id=…`）
+> - **#2297 维修服务详情·物流面板与角色**：`paid`（已支付·待寄出）顾客显示「寄出乐器」（收件地址/维修师/编码/物流公司/单号/确认寄出，RS-04）；`done_repair` 且 `isStaffView` 员工显示「寄回物流（顾客收件信息）+ 实际物流费 + 确认发回并结算」；`shipping` 员工收货拍照；`pending_repair` 员工开始；`repairing` 完成。顾客不显示员工面板；详情动作必须绑定当前维修单 ID，空 ID 不得发请求。
+> - **#2297 通知入口**：顾客已寄出 → 维修师 `repair_svc_receive`、商户管理员 `info`（`ref_type=repair_service`）均显示「查看维修单」，跳 `/repair-service-detail?order_id=…`；空 ID 不渲染按钮。
 > - PC 后台：维修服务全量列表 + 评价（评分/留言/照片）展示；**#2229：网点管理员**（`site_admin`）在「待报价」行可**转派**给本商户其他在册维修师（弹窗：目标师傅下拉 + **原因必填**；提示「先线下与顾客沟通同意」；转派留痕时间线/审计）；#2229 顾客信息完整展示（不脱敏——受控商户口径不适用）
 >
 > **#2050 角色互斥（入口门控，强制）**：
@@ -2995,6 +3045,7 @@ const handleSyncUsersFromIAM = async () => {
 > - 创建成功页主按钮 = 「查看维修单」（不再出现「下一步：选择维修师」绕路）
 >
 > **#2049 维修师档案（PC `System/TechnicianProfiles.jsx`）**：
+> - **菜单入口**：平台管理 → 维修师档案（人员管理下方）；面包屑「平台管理 / 维修师档案」；交易管理不再包含该入口。商户/网点管理员若仅有 `instrument:read`，平台管理分组仅显示维修师档案（人员管理需额外 sysPerm）。
 > - **照片**：本地选择后预览，保存时经 `POST /technician-profiles/:id/photo` 走媒体管线（原图 WebP + `_thumb.jpg`）；列表列用 `photo_thumb`（48px），无照片显示 `-`/占位符
 > - **简介 `bio`**：`react-quill` 富文本编辑器（HTML 存储）；移动端 `TechDetail` 用共享 `<RichContent html={bio} />` 渲染（#1907 红线，禁裸 `RichText`），`TechList` 列表摘要用 `htmlToPlainText(bio)`
 > - 维修师列表/详情：无照片 → 人像占位符「师」（列表优先 `avatar_thumb`，详情用 `avatar` 原图）

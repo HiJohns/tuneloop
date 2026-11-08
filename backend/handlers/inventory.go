@@ -279,11 +279,17 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 		query = query.Where("instruments.level_id = ?", levelID)
 	}
 
-	// Handle brand and model filters via instrument_properties
-	// This is a simplified version - in production, you'd need a proper join
-	if brand != "" || model != "" {
-		// For now, we'll filter after fetching due to JSONB complexity
-		// A better implementation would use a proper join with instrument_properties
+	// #2316: brand/model live in instrument_properties (品牌/型号). Filter in SQL
+	// so total/pagination are correct (previous TODO left both filters unused).
+	if brand != "" {
+		query = query.Where(`EXISTS (SELECT 1 FROM instrument_properties ip
+			WHERE ip.instrument_id = instruments.id AND ip.property_name = ? AND ip.value ILIKE ?)`,
+			"品牌", "%"+brand+"%")
+	}
+	if model != "" {
+		query = query.Where(`EXISTS (SELECT 1 FROM instrument_properties ip
+			WHERE ip.instrument_id = instruments.id AND ip.property_name = ? AND ip.value ILIKE ?)`,
+			"型号", "%"+model+"%")
 	}
 
 	// Get total count before pagination
@@ -306,9 +312,28 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 		SiteName        string   `json:"site_name"`
 		DailyRent       float64  `json:"daily_rent"`
 		Deposit         float64  `json:"deposit"`
+		DepositReduced  *float64 `json:"deposit_reduced"`
 		ShippingFee     float64  `json:"shipping_fee"`
 		OverdueDailyFee float64  `json:"overdue_daily_fee"`
 		TotalPrice      *float64 `json:"total_price"`
+	}
+
+	// #2316: resolve the page's actual brand/model properties (not the filter text).
+	propMap := map[string]map[string]string{}
+	if len(instruments) > 0 {
+		ids := make([]string, 0, len(instruments))
+		for _, inst := range instruments {
+			ids = append(ids, inst.ID)
+		}
+		var props []models.InstrumentProperty
+		if err := db.Where("instrument_id IN ? AND property_name IN ?", ids, []string{"品牌", "型号"}).Find(&props).Error; err == nil {
+			for _, p := range props {
+				if propMap[p.InstrumentID] == nil {
+					propMap[p.InstrumentID] = map[string]string{}
+				}
+				propMap[p.InstrumentID][p.PropertyName] = p.Value
+			}
+		}
 	}
 
 	var items []RentSettingItem
@@ -318,6 +343,9 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 		pf := services.ParseInstrumentPricing(inst.Pricing)
 		dailyRent := pf.DailyRent
 		deposit := pf.Deposit
+		if inst.Deposit != nil {
+			deposit = (*inst.Deposit).ToYuan()
+		}
 		shippingFee := pf.ShippingFee
 		overdueDailyFee := pf.OverdueDailyFee
 		if overdueDailyFee <= 0 && dailyRent > 0 {
@@ -337,11 +365,12 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 			SN:              inst.SN,
 			CategoryName:    inst.CategoryName,
 			LevelName:       inst.LevelName,
-			Brand:           brand,
-			Model:           model,
+			Brand:           propMap[inst.ID]["品牌"],
+			Model:           propMap[inst.ID]["型号"],
 			SiteName:        siteName,
 			DailyRent:       dailyRent,
 			Deposit:         deposit,
+			DepositReduced:  models.ToYuanPtr(inst.DepositReduced),
 			ShippingFee:     shippingFee,
 			OverdueDailyFee: overdueDailyFee,
 			TotalPrice:      models.ToYuanPtr(inst.TotalPrice),
@@ -366,11 +395,13 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 	var req struct {
 		Items []struct {
-			ID              string  `json:"id" binding:"required"`
-			DailyRent       float64 `json:"daily_rent"`
-			Deposit         float64 `json:"deposit"`
-			ShippingFee     float64 `json:"shipping_fee"`
-			OverdueDailyFee float64 `json:"overdue_daily_fee"`
+			ID                    string   `json:"id" binding:"required"`
+			DailyRent             float64  `json:"daily_rent"`
+			Deposit               *float64 `json:"deposit"`
+			DepositReducedEnabled *bool    `json:"deposit_reduced_enabled"`
+			DepositReduced        *float64 `json:"deposit_reduced"`
+			ShippingFee           float64  `json:"shipping_fee"`
+			OverdueDailyFee       float64  `json:"overdue_daily_fee"`
 		} `json:"items" binding:"required"`
 	}
 
@@ -413,8 +444,8 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 		if item.DailyRent > 0 {
 			pricing["daily_rent"] = item.DailyRent
 		}
-		if item.Deposit > 0 {
-			pricing["deposit"] = item.Deposit
+		if item.Deposit != nil {
+			pricing["deposit"] = *item.Deposit
 		} else if instrument.TotalPrice != nil && *instrument.TotalPrice > 0 {
 			// Fallback: use deposit_ratio × total_price when total_price exists
 			depositRatio := 0.3
@@ -430,6 +461,17 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 			pricing["deposit"] = (*instrument.TotalPrice).ToYuan() * depositRatio
 		} else {
 			pricing["deposit"] = float64(0)
+		}
+		if item.DepositReducedEnabled != nil {
+			if *item.DepositReducedEnabled {
+				if item.DepositReduced == nil || *item.DepositReduced < 0 {
+					c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "deposit_reduced must be >= 0 when enabled"})
+					return
+				}
+				instrument.DepositReduced = models.ToCentsPtr(item.DepositReduced)
+			} else {
+				instrument.DepositReduced = nil
+			}
 		}
 		pricing["shipping_fee"] = item.ShippingFee
 		if item.OverdueDailyFee > 0 {
@@ -463,10 +505,17 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 		if scopedDB, err := middleware.ApplyOrgScope(updateQuery, ctx); err == nil {
 			updateQuery = scopedDB
 		}
-		if err := updateQuery.Updates(map[string]interface{}{
+		updateFields := map[string]interface{}{
 			"pricing":           string(updatedPricing),
 			"pricing_overrides": string(overridesJSON),
-		}).Error; err != nil {
+		}
+		if item.Deposit != nil {
+			updateFields["deposit"] = models.ToCentsPtr(item.Deposit)
+		}
+		if item.DepositReducedEnabled != nil {
+			updateFields["deposit_reduced"] = instrument.DepositReduced
+		}
+		if err := updateQuery.Updates(updateFields).Error; err != nil {
 			log.Printf("[WARN] Failed to update pricing for instrument %s: %v", item.ID, err)
 			continue
 		}

@@ -150,6 +150,19 @@ func TestInspectReturn_Good_RefundReceiptNotification(t *testing.T) {
 	}
 	require.NoError(t, db.Create(&order).Error)
 
+	// #2281：补合同租金流水（¥3500 − 续期 ¥120），账本净额与 cash_paid 一致。
+	require.NoError(t, db.Create(&models.OrderPaymentRecord{
+		ID:        uuid.New().String(),
+		TenantID:  tenantID,
+		UserID:    userID,
+		OrderID:   &order.ID,
+		OrderType: "rent",
+		Amount:    338000,
+		Type:      "payment",
+		Status:    "paid",
+		CreatedAt: time.Now(),
+	}).Error)
+
 	// Renewal payment record → receipt must include the renewal fee line.
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{
 		ID:        uuid.New().String(),

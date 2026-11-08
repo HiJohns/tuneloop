@@ -87,7 +87,7 @@ func TestFaceReview_SecondDoc_RequiresType(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "second_doc_type")
 }
 
-func TestFaceReview_Registration_RequiresTypeWhenSecondDocPresent(t *testing.T) {
+func TestFaceReview_Registration_ApprovesWithoutSecondDocType(t *testing.T) {
 	userID, batchID, db := setupSecondDocFixture(t, "registration", false)
 	router := faceReviewRouter(t, uuid.New().String())
 
@@ -96,17 +96,33 @@ func TestFaceReview_Registration_RequiresTypeWhenSecondDocPresent(t *testing.T) 
 		"id_card_expire": "2035-12-31", "id_card_authority": "北京市公安局", "id_card_address": "北京市",
 	}
 	w := postReview(t, router, batchID, idFields)
-	require.Equal(t, http.StatusBadRequest, w.Code, w.Body.String())
-	assert.Contains(t, w.Body.String(), "second_doc_type")
-
-	idFields["second_doc_type"] = "teacher"
-	w = postReview(t, router, batchID, idFields)
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
 
 	var user models.User
 	require.NoError(t, db.First(&user, "id = ?", userID).Error)
 	assert.True(t, user.FaceVerified)
-	assert.True(t, user.IdPhotoOtherVerified)
-	require.NotNil(t, user.IdPhotoOtherType)
-	assert.Equal(t, "teacher", *user.IdPhotoOtherType)
+	// #2311: 注册核身只处理实名，不写第二证件类型/认证态。
+	assert.False(t, user.IdPhotoOtherVerified)
+	assert.Nil(t, user.IdPhotoOtherType)
+}
+
+// #2311: registration approve must ignore second_doc_type entirely; the
+// student intro-letter rule belongs only to the independent second_doc batch.
+func TestFaceReview_Registration_StudentTypeDoesNotRequireIntroLetter(t *testing.T) {
+	userID, batchID, db := setupSecondDocFixture(t, "registration", false)
+	router := faceReviewRouter(t, uuid.New().String())
+
+	body := map[string]interface{}{
+		"action": "approve", "real_name": "张三", "id_card_no": "110101199001011234",
+		"id_card_expire": "2035-12-31", "id_card_authority": "北京市公安局", "id_card_address": "北京市",
+		"second_doc_type": "student",
+	}
+	w := postReview(t, router, batchID, body)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var user models.User
+	require.NoError(t, db.First(&user, "id = ?", userID).Error)
+	assert.True(t, user.FaceVerified)
+	assert.False(t, user.IdPhotoOtherVerified)
+	assert.Nil(t, user.IdPhotoOtherType)
 }

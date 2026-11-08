@@ -7,6 +7,59 @@ import { initializeApp, storeToken, parseJWT, cachePermissions, getWXConfig, sho
 
 setInitDeps(initPermissionMapping, publicRoutes)
 
+// #2320: H5 生产端 JS 错误上报（weapp 另立）。只上报 message/stack/route/version/UA，
+// 上报失败静默；同 message+route 每分钟最多一次，避免刷爆后端。
+const CLIENT_ERROR_WINDOW_MS = 60 * 1000
+const clientErrorSentAt = new Map()
+
+function sanitizeClientErrorText(value, limit) {
+  return String(value || '')
+    .replace(/(Bearer\s+)[A-Za-z0-9._~+/-]+=*/gi, '$1[redacted]')
+    .replace(/((?:token|access_token|refresh_token|phone|id_card|id_card_no|password)\s*[=:]\s*)[^\s,;]+/gi, '$1[redacted]')
+    .replace(/\b1[3-9]\d{9}\b/g, '[redacted-phone]')
+    .replace(/\b\d{17}[\dXx]\b/g, '[redacted-id]')
+    .slice(0, limit)
+}
+
+function reportClientError(rawMessage, rawStack) {
+  try {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') return
+    const errorMessage = sanitizeClientErrorText(rawMessage, 1024) || 'unknown client error'
+    const route = sanitizeClientErrorText(window.location.pathname + window.location.search, 512)
+    const key = errorMessage + '|' + route
+    const now = Date.now()
+    if (now - (clientErrorSentAt.get(key) || 0) < CLIENT_ERROR_WINDOW_MS) return
+    clientErrorSentAt.set(key, now)
+
+    const payload = {
+      message: errorMessage,
+      stack: sanitizeClientErrorText(rawStack, 8192),
+      route,
+      version: String(env.version || '').slice(0, 64),
+      user_agent: String(navigator.userAgent || '').slice(0, 500),
+    }
+    const url = `${env.apiBaseUrl}/client-error`
+    const body = JSON.stringify(payload)
+    if (navigator.sendBeacon) {
+      const blob = new Blob([body], { type: 'application/json' })
+      if (navigator.sendBeacon(url, blob)) return
+    }
+    fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true }).catch(() => {})
+  } catch {
+    // 错误上报不得影响页面
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (event) => {
+    reportClientError(event?.message || 'window.onerror', event?.error?.stack || '')
+  })
+  window.addEventListener('unhandledrejection', (event) => {
+    const reason = event?.reason
+    reportClientError(reason?.message || String(reason || 'unhandledrejection'), reason?.stack || '')
+  })
+}
+
 import Home from './pages/Home'
 import ContentPage from './pages/ContentPage'
 import Setting from './pages/Setting'
@@ -207,8 +260,8 @@ function OAuthCallback() {
         } else {
           throw new Error('No access token in response')
         }
-      } catch (error) {
-        console.error('Token exchange failed:', error)
+      } catch (err) {
+        console.error('Token exchange failed:', err)
         navigation.redirect('/')
       }
     }

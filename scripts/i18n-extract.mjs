@@ -17,6 +17,7 @@ import fs from 'fs'
 import path from 'path'
 import { fileURLToPath, pathToFileURL } from 'url'
 import { createRequire } from 'module'
+import { mergeLocale } from './i18n-merge.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(pathToFileURL(path.join(ROOT, 'frontend-mobile/package.json')))
@@ -63,6 +64,18 @@ function insideT(p) {
   }
   return false
 }
+// t 是否被局部变量遮蔽（#2318：map((t, i)) 会截获 i18n t；必须跳过并告警）
+function shadowedT(p) {
+  const b = p.scope.getBinding('t')
+  if (!b) return false
+  if (b.kind === 'module') return false
+  const d = b.path
+  if (d.isVariableDeclarator()) {
+    const id = d.node.id
+    if (id && id.type === 'ObjectPattern') return false
+  }
+  return true
+}
 function calleeName(p) {
   const c = p.node.callee
   if (!c) return ''
@@ -86,6 +99,7 @@ function isConsole(p) {
 const edits = [] // {file, start, end, text}
 const keys = new Set()
 const found = [] // {file, line, text}
+const shadowed = [] // {file, line, text} — t 被遮蔽，未改写
 
 function addEdit(node, replacement) {
   edits.push({ file: node.__file, start: node.start, end: node.end, text: replacement })
@@ -120,6 +134,7 @@ for (const file of files) {
       const raw = p.node.value
       const core = raw.trim()
       if (!core || !ZH.test(core) || insideT(p)) return
+      if (shadowedT(p)) { shadowed.push({ file: rel, line: (p.node.loc && p.node.loc.start.line) || 0, text: core }); return }
       const lead = raw.slice(0, raw.indexOf(core))
       const tail = raw.slice(raw.indexOf(core) + core.length)
       p.node.__file = rel
@@ -131,6 +146,7 @@ for (const file of files) {
       if (!['placeholder', 'title', 'label', 'alt'].includes(name)) return
       const v = p.node.value
       if (!v || !v.value || typeof v.value !== 'string' || !ZH.test(v.value) || insideT(p)) return
+      if (shadowedT(p)) { shadowed.push({ file: rel, line: (v.loc && v.loc.start.line) || 0, text: v.value }); return }
       v.__file = rel
       collect(v, v.value)
       const nv = p.node.value
@@ -138,6 +154,7 @@ for (const file of files) {
     },
     CallExpression(p) {
       if (isConsole(p) || insideT(p)) return
+      const shadow = shadowedT(p)
       const fn = calleeName(p)
       const obj = objName(p)
       const isDialog = obj === 'dialog' && DIALOG_CALLS.has(fn)
@@ -156,6 +173,7 @@ for (const file of files) {
             if (!prop.key || !['title', 'content'].includes(prop.key.name)) continue
             const val = prop.value
             if (val.type === 'StringLiteral' && ZH.test(val.value)) {
+              if (shadow) { shadowed.push({ file: rel, line: (val.loc && val.loc.start.line) || 0, text: val.value }); continue }
               val.__file = rel
               collect(val, val.value)
               addEdit(val, `t(${esc(val.value)})`)
@@ -164,6 +182,7 @@ for (const file of files) {
         }
       }
       for (const a of wanted) {
+        if (shadow) { shadowed.push({ file: rel, line: (a.loc && a.loc.start.line) || 0, text: a.value }); continue }
         a.__file = rel
         collect(a, a.value)
         addEdit(a, `t(${esc(a.value)})`)
@@ -174,11 +193,17 @@ for (const file of files) {
       if (p.node.operator !== '+') return
       const left = p.node.left
       if (left.type !== 'StringLiteral' || !ZH.test(left.value) || insideT(p)) return
+      if (shadowedT(p)) {
+        const key = left.value + '{msg}'
+        shadowed.push({ file: rel, line: (left.loc && left.loc.start.line) || 0, text: key })
+        return
+      }
       // 仅在调用/属性实参或 JSX 表达式上下文中处理，避免误伤
       const parent = p.parentPath
       const inArg = parent && (parent.isCallExpression() || parent.isJSXExpressionContainer() || parent.isReturnStatement())
       if (!inArg) return
       left.__file = rel
+      p.node.__file = rel
       const key = left.value + '{msg}'
       collect(left, key)
       const rightSrc = src.slice(p.node.right.start, p.node.right.end)
@@ -201,13 +226,18 @@ if (WRITE && edits.length) {
     for (const e of list) s = s.slice(0, e.start) + e.text + s.slice(e.end)
     fs.writeFileSync(abs, s)
   }
-  // 重建清单（源串即 key）
-  const inv = {}
-  for (const k of [...keys].sort()) inv[k] = k
+  // 合并写回（保留既有 key，避免单文件覆盖整本字典；#2298）
+  let existing = {}
+  try { existing = JSON.parse(fs.readFileSync(ZH_JSON, 'utf8')) } catch {}
+  const inv = mergeLocale(existing, [...keys])
   fs.writeFileSync(ZH_JSON, JSON.stringify(inv, null, 2) + '\n')
 }
 
 // 输出
+if (shadowed.length) {
+  console.log(`[i18n-extract] 跳过 ${shadowed.length} 处（t 被局部变量遮蔽，未改写）`)
+  for (const w of shadowed) console.log(`  shadowed\t${w.file}:${w.line}\t${w.text}`)
+}
 if (REPORT) {
   for (const f of found) console.log(`${f.file}:${f.line}\t${f.text}`)
 } else {

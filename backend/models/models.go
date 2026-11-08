@@ -68,12 +68,12 @@ type FaceCaptureBatch struct {
 }
 
 type Category struct {
-	ID        string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID  string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	Name      string    `gorm:"type:varchar(100);not null" json:"name"`
-	Icon      string    `json:"icon"`
-	ParentID  *string   `gorm:"type:uuid" json:"parent_id"`
-	Level     int       `gorm:"default:1" json:"level"`
+	ID       string  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID string  `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	Name     string  `gorm:"type:varchar(100);not null" json:"name"`
+	Icon     string  `json:"icon"`
+	ParentID *string `gorm:"type:uuid" json:"parent_id"`
+	Level    int     `gorm:"default:1" json:"level"`
 	// #2133: tag aligned with the actual DB column default (integer DEFAULT 0).
 	// sort is a pure ordering value and takes no part in visibility.
 	Sort      int       `gorm:"default:0" json:"sort"`
@@ -103,6 +103,7 @@ type Instrument struct {
 	Poster             string     `gorm:"type:text" json:"poster"`
 	CoverImage         string     `gorm:"type:text" json:"cover_image"`
 	Deposit            *Cents     `gorm:"type:bigint;default:0" json:"deposit"`
+	DepositReduced     *Cents     `gorm:"type:bigint" json:"deposit_reduced"` // #2321: 差额押金（分）；NULL=无差额档，0=差额 0
 	Specifications     string     `gorm:"type:jsonb;default:'{}'" json:"specifications"`
 	Pricing            string     `gorm:"type:jsonb;default:'{}'" json:"pricing"`
 	TotalPrice         *Cents     `gorm:"type:bigint" json:"total_price"`
@@ -134,6 +135,12 @@ const (
 	StockStatusArchived    = "archived"
 	StockStatusLost        = "lost"
 	StockStatusSold        = "sold"
+)
+
+const (
+	DepositTierFull    = "full"
+	DepositTierReduced = "reduced"
+	DepositTierZero    = "zero"
 )
 
 const (
@@ -223,6 +230,9 @@ type Order struct {
 	DepositMode          string `gorm:"type:varchar(20);default:'standard'" json:"deposit_mode"`
 	MonthlyRent          Cents  `gorm:"type:bigint;not null" json:"monthly_rent"`
 	Deposit              Cents  `gorm:"type:bigint;default:0" json:"deposit"`
+	DepositTier          string `gorm:"type:varchar(10)" json:"deposit_tier"` // #2321: full|reduced|zero；历史订单为空
+	DepositFull          *Cents `gorm:"type:bigint" json:"deposit_full"`
+	DepositReduced       *Cents `gorm:"type:bigint" json:"deposit_reduced"`
 	DepositWaived        bool   `gorm:"column:deposit_waived;not null;default:false" json:"deposit_waived"`
 	RecommendationLetter string `gorm:"column:recommendation_letter;type:varchar(500);not null;default:''" json:"recommendation_letter"` // #1867: deposit-free application letter URL
 	ShippingFee          Cents  `gorm:"type:bigint;default:0" json:"shipping_fee"`
@@ -231,6 +241,7 @@ type Order struct {
 	OrderNo                 string     `gorm:"type:varchar(24)" json:"order_no"`            // #1981: uniqueness enforced by migration partial index (WHERE order_no IS NOT NULL AND order_no <> ''), not AutoMigrate
 	DeliveryAddress         *string    `gorm:"type:text" json:"delivery_address,omitempty"` // #2010 S2: 收货地址并入 orders（原 lease_sessions.delivery_address）
 	Status                  string     `gorm:"type:varchar(40);default:'reserved';index" json:"status"`
+	ReferralLevelID         *int       `gorm:"type:int" json:"referral_level_id,omitempty"` // #2282 P4c: 下单时推荐人等级快照
 	StartDate               *string    `gorm:"type:date" json:"start_date"`
 	EndDate                 *string    `gorm:"type:date" json:"end_date"`
 	TrackingNumber          *string    `gorm:"type:varchar(100);index" json:"tracking_number"`
@@ -291,16 +302,17 @@ type Settlement struct {
 // so any displayed amount can be traced to a persisted calculation.
 type SettlementCalculation struct {
 	ID            string  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	OrderID       string  `gorm:"type:uuid;index;not null" json:"order_id"`
+	OrderID       string  `gorm:"type:uuid;not null;uniqueIndex:idx_settlement_calc_version" json:"order_id"`
 	TenantID      string  `gorm:"type:uuid;index" json:"tenant_id"`
-	Trigger       string  `gorm:"type:varchar(20);not null" json:"trigger"` // preview | confirm
+	Trigger       string  `gorm:"type:varchar(20);not null;uniqueIndex:idx_settlement_calc_version" json:"trigger"` // preview | confirm
 	InputSnapshot *string `gorm:"type:jsonb" json:"input_snapshot,omitempty"`
 	// Result is TEXT (not JSONB): #1738 audit contract requires the stored
 	// bytes to be byte-identical to what the handler responded — JSONB
 	// normalization (key reorder + whitespace) would break that guarantee.
-	Result     *string   `gorm:"type:text" json:"result,omitempty"`
-	ActualDays int       `gorm:"not null;default:0" json:"actual_days"`
-	CreatedAt  time.Time `json:"created_at"`
+	Result        *string   `gorm:"type:text" json:"result,omitempty"`
+	ActualDays    int       `gorm:"not null;default:0" json:"actual_days"`
+	LedgerVersion int64     `gorm:"not null;default:0;uniqueIndex:idx_settlement_calc_version" json:"ledger_version"` // #2282 P4b: 幂等键组成部分
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 type OverdueCharge struct {
@@ -375,14 +387,19 @@ type OrderPaymentRecord struct {
 	Days           *int       `gorm:"type:integer" json:"days,omitempty"`                    // #1802 T1: 续费天数独立持久化（RawResponse 会被微信回调覆盖）
 	CouponCode     *string    `gorm:"type:varchar(32)" json:"coupon_code,omitempty"`         // #1853: 本笔支付优惠码（逐笔入库）
 	CouponDiscount Cents      `gorm:"type:bigint;not null;default:0" json:"coupon_discount"` // #1853: 本笔支付折扣（分，无码 0）
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
+	// #2308: side effect（如注册 WxBind）状态。支付成功不得因 side effect 失败而回滚。
+	SideEffectStatus   string    `gorm:"type:varchar(20);not null;default:'none'" json:"side_effect_status"`
+	SideEffectError    *string   `gorm:"type:text" json:"side_effect_error,omitempty"`
+	SideEffectAttempts int       `gorm:"type:integer;not null;default:0" json:"side_effect_attempts"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
 // OrderRefundRecord 退款记录表（支持部分退款，与支付记录一对多）
 type OrderRefundRecord struct {
 	ID              string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	TenantID        string    `gorm:"type:uuid;not null" json:"tenant_id"`
+	OrderID         *string   `gorm:"type:uuid;index" json:"order_id,omitempty"` // #2278: 幂等锚（无 rent 支付单时也可查重）
 	PaymentRecordID *string   `gorm:"type:uuid;index" json:"payment_record_id,omitempty"`
 	OutRefundNo     *string   `gorm:"type:varchar(32);uniqueIndex" json:"out_refund_no"`
 	RefundID        *string   `gorm:"type:varchar(64)" json:"refund_id"`
@@ -1422,3 +1439,28 @@ type TechnicianProfile struct {
 
 // OrderNoPrefix 业务订单号前缀（#1965）：`YL<YYYYMMDD>-<NNN>`（当日第 N 单）
 const OrderNoPrefix = "YL"
+
+// OrderTermVersion (#2282 P4a): append-only term snapshot; pricing_breakdown stays immutable.
+type OrderTermVersion struct {
+	ID              string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	OrderID         string    `gorm:"type:uuid;not null;uniqueIndex:idx_term_order_version" json:"order_id"`
+	Version         int       `gorm:"not null;uniqueIndex:idx_term_order_version" json:"version"`
+	StartDate       *string   `gorm:"type:date" json:"start_date"`
+	EndDate         *string   `gorm:"type:date" json:"end_date"`
+	Days            int       `gorm:"not null;default:0" json:"days"`
+	TierSegments    string    `gorm:"type:jsonb;not null;default:'[]'" json:"tier_segments"`
+	TotalAmount     Cents     `gorm:"type:bigint;not null;default:0" json:"total_amount"`
+	PaymentRecordID *string   `gorm:"type:uuid" json:"payment_record_id,omitempty"`
+	CreatedAt       time.Time `json:"created_at"`
+}
+
+// ReferralCommission (#2282 P4c): 结算返点幂等台账（order_id 唯一）。
+type ReferralCommission struct {
+	ID          string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	OrderID     string    `gorm:"type:uuid;not null;uniqueIndex" json:"order_id"`
+	ReferrerID  string    `gorm:"type:uuid;not null;index" json:"referrer_id"`
+	AmountCents Cents     `gorm:"type:bigint;not null;default:0" json:"amount_cents"`
+	LevelID     *int      `gorm:"type:int" json:"level_id,omitempty"`
+	BasisCents  Cents     `gorm:"type:bigint;not null;default:0" json:"basis_cents"`
+	CreatedAt   time.Time `json:"created_at"`
+}

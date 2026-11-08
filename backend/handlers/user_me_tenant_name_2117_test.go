@@ -26,8 +26,6 @@ func TestGetCurrentUser_TenantNameByJWTTid_2117(t *testing.T) {
 
 	// 员工上下文对应的商户（JWT tid 指向）
 	staffTenant := uuid.New().String()
-	_ = db.Migrator().DropTable(&models.Merchant{})
-	require.NoError(t, db.Migrator().CreateTable(&models.Merchant{}))
 	require.NoError(t, db.Create(&models.Merchant{
 		ID: uuid.NewString(), TenantID: staffTenant, OrgID: uuid.NewString(),
 		Name: "卡丹萨", AdminUID: uuid.NewString(), Status: "active",
@@ -60,8 +58,6 @@ func TestGetCurrentUser_TenantNameAbsentForCustomer_2117(t *testing.T) {
 	require.NoError(t, db.Model(&models.User{}).Where("id = ?", userID).
 		Updates(map[string]interface{}{"tenant_id": "00000000-0000-0000-0000-000000000000"}).Error)
 	staffTenant := uuid.New().String()
-	_ = db.Migrator().DropTable(&models.Merchant{})
-	require.NoError(t, db.Migrator().CreateTable(&models.Merchant{}))
 	require.NoError(t, db.Create(&models.Merchant{
 		ID: uuid.NewString(), TenantID: staffTenant, OrgID: uuid.NewString(),
 		Name: "卡丹萨", AdminUID: uuid.NewString(), Status: "active",
