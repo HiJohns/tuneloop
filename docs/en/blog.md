@@ -1,0 +1,411 @@
+- 2026-03-14: Batch run completed; tasks included: 
+- 2026-03-14: Batch run completed; tasks included: 
+- 2026-03-14: Batch run completed; tasks included: 
+- 2026-03-14: Batch run completed; tasks included: 
+- 2026-03-15: Batch run completed; tasks included: 
+- 2026-03-15: Batch run completed; tasks included: 
+- 2026-03-15: Batch run completed; tasks included: 
+- 2026-03-15: Batch run completed; tasks included: 
+- 2026-03-15: Batch run completed; tasks included: 
+- 2026-03-15: Batch run completed; tasks included: 
+- 2026-03-15: Batch run completed; tasks included: 
+- 2026-03-16: Batch run completed; tasks included: 
+- 2026-03-16: Batch run completed; tasks included: 
+- 2026-03-16: Batch run completed; tasks included: 
+- 2026-03-16: Batch run completed; tasks included: 
+- 2026-03-16: Batch run completed; tasks included: 
+- 2026-03-16: Batch run completed; tasks included: 
+- 2026-03-21: Batch run completed; tasks included: 
+- 2026-03-21: Batch run completed; tasks included: 
+- 2026-03-21: Batch run completed; tasks included: #58 API docs, #59 UI docs, #60 IAM, #61 Lease engine
+- 2026-03-21: Batch run completed; tasks included: 
+- 2026-03-21: Batch run completed; tasks included: 
+- 2026-03-21: Batch run completed; tasks included: 
+- 2026-03-21: Batch run completed; tasks included: 
+- 2026-03-21: Batch run completed; tasks included: 
+- 2026-03-22: Batch run completed; tasks included: 
+- 2026-03-23: Batch run completed; tasks included: 
+- 2026-03-24: Batch run completed; tasks included: 
+- 2026-03-24: Batch run completed; tasks included: 
+- 2026-03-25: Batch run completed; tasks included: 
+- 2026-03-26: Batch run completed; tasks included: 
+- 2026-03-26: Batch run completed; tasks included: 
+- 2026-03-26: Batch run completed; tasks included: 
+- 2026-03-26: Batch run completed; tasks included: 
+- 2026-03-28: Batch run completed; tasks included: 
+- 2026-03-28: Batch run completed; tasks included: 
+- 2026-03-28: Batch run completed; tasks included: 
+- 2026-03-28: Batch run completed; tasks included: 
+- 2026-03-29: Batch run completed; tasks included: 
+- 2026-03-29: Batch run completed; tasks included: 
+- 2026-03-30: Batch run completed; tasks included: 
+- 2026-03-30: Batch run completed; tasks included: 
+- 2026-03-31: Batch run completed; tasks included: 
+- 2026-03-31: Batch run completed; tasks included: 
+- 2026-03-31: Batch run completed; tasks included: 
+- 2026-03-31: Batch run completed; tasks included: 
+- 2026-03-31: Batch run completed; tasks included: 
+- 2026-04-01: Batch run completed; tasks included: 
+- 2026-04-01: Batch run completed; tasks included: 
+- 2026-04-01: Batch run completed; tasks included: 
+- 2026-04-02: Batch run completed; tasks included: 
+- 2026-04-04: Batch run completed; tasks included: 
+- 2026-04-04: Batch run completed; tasks included: 
+- 2026-04-06: Batch run completed; tasks included: 
+- 2026-04-06: Batch run completed; tasks included: 
+- 2026-04-08: Batch run completed; tasks included: 
+- 2026-04-08: Batch run completed; tasks included: 
+- 2026-04-08: Batch run completed; tasks included: 
+- 2026-04-09: Batch run completed; tasks included: 
+- 2026-04-09: Batch run completed; tasks included: 
+- 2026-04-10: Batch run completed; tasks included: 
+- 2026-04-10: Batch run completed; tasks included: 
+- 2026-04-10: Batch run completed; tasks included: 
+- 2026-04-10: Batch run completed; tasks included: 
+- 2026-04-10: Batch run completed; tasks included: 
+- 2026-04-10: Batch run completed; tasks included: 
+- 2026-04-11: Batch run completed; tasks included: 
+- 2026-04-11: Batch run completed; tasks included: 
+- 2026-04-11: Batch run completed; tasks included: 
+- 2026-04-11: Batch run completed; tasks included: 
+- 2026-04-12: Batch run completed; tasks included: 
+- 2026-04-12: Batch run completed; tasks included: 
+- 2026-04-15: Batch run completed; tasks included: 
+- 2026-04-15: Batch run completed; tasks included: 
+- 2026-04-15: Batch run completed; tasks included: 
+- 2026-04-15: Batch run completed; tasks included: 
+- 2026-04-15: Batch run completed; tasks included: 
+- 2026-04-15: Batch run completed; tasks included: 
+- 2026-04-16: Batch run completed; tasks included: 
+- 2026-04-16: Batch run completed; tasks included: 
+- 2026-04-16: Batch run completed; tasks included: 
+- 2026-04-16: Batch run completed; tasks included: 
+- 2026-04-17: Batch run completed; tasks included: 
+- 2026-04-18: Batch run completed; tasks included: 
+- 2026-04-20: Batch run completed; tasks included: 
+- 2026-04-23: Batch run completed; tasks included: 
+- 2026-04-23: Batch run completed; tasks included: 
+- 2026-04-24: Batch run completed; tasks included: 
+- 2026-04-24: Batch run completed; tasks included: 
+- 2026-04-25: Batch run completed; tasks included: 
+- 2026-04-25: Batch run completed; tasks included: 
+- 2026-04-25: Batch run completed; tasks included: 
+- 2026-04-26: Batch run completed; tasks included: 
+- 2026-04-26: Batch run completed; tasks included: 
+- 2026-04-26: Batch run completed; tasks included: 
+- 2026-04-26: Batch run completed; tasks included: 
+- 2026-04-26: Batch run completed; tasks included: 
+- 2026-04-26: Batch run completed; tasks included: 
+- 2026-04-27: Batch run completed; tasks included: 
+- 2026-04-29: Batch run completed; tasks included: 
+- 2026-04-29: Batch run completed; tasks included: 
+- 2026-04-29: Batch run completed; tasks included: 
+- 2026-04-30: Batch run completed; tasks included: 
+- 2026-05-01: Batch run completed; tasks included: 
+- 2026-05-01: Batch run completed; tasks included: 
+- 2026-05-03: Batch run completed; tasks included: 
+- 2026-05-04: Batch run completed; tasks included: 
+- 2026-05-04: Batch run completed; tasks included: 
+- 2026-05-04: Batch run completed; tasks included: 
+- 2026-05-05: Batch run completed; tasks included: 
+- 2026-05-05: Batch run completed; tasks included: 
+- 2026-05-06: Batch run completed; tasks included: 
+- 2026-05-08: Batch run completed; tasks included: 
+- 2026-05-08: Batch run completed; tasks included: 
+- 2026-05-08: Batch run completed; tasks included: 
+- 2026-05-09: Batch run completed; tasks included: 
+- 2026-05-10: Batch run completed; tasks included: 
+- 2026-05-11: Batch run completed; tasks included: 
+- 2026-05-11: Batch run completed; tasks included: 
+- 2026-05-11: Batch run completed; tasks included: 
+- 2026-05-11: Batch run completed; tasks included: 
+- 2026-05-11: Batch run completed; tasks included: 
+- 2026-05-11: Batch run completed; tasks included: 
+- 2026-05-12: Batch run completed; tasks included: 
+- 2026-05-12: Batch run completed; tasks included: 
+- 2026-05-12: Batch run completed; tasks included: 
+- 2026-05-12: Batch run completed; tasks included: 
+- 2026-05-13: Batch run completed; tasks included: 
+- 2026-05-13: Batch run completed; tasks included: 
+- 2026-05-14: Batch run completed; tasks included: 
+- 2026-05-14: Batch run completed; tasks included: 
+- 2026-05-15: Batch run completed; tasks included: 
+- 2026-05-15: Batch run completed; tasks included: 
+- 2026-05-16: Batch run completed; tasks included: 
+- 2026-05-16: Batch run completed; tasks included: 
+- 2026-05-17: Batch run completed; tasks included: 
+- 2026-05-18: Batch run completed; tasks included: 
+- 2026-05-18: Batch run completed; tasks included: 
+- 2026-05-18: Batch run completed; tasks included: 
+- 2026-05-18: Batch run completed; tasks included: 
+- 2026-05-18: Batch run completed; tasks included: 
+- 2026-05-19: Batch run completed; tasks included: 
+- 2026-05-19: Batch run completed; tasks included: 
+- 2026-05-19: Batch run completed; tasks included: 
+- 2026-05-19: Batch run completed; tasks included: 
+- 2026-05-19: Batch run completed; tasks included: 
+- 2026-05-19: Batch run completed; tasks included: 
+- 2026-05-20: Batch run completed; tasks included: 
+- 2026-05-20: Batch run completed; tasks included: 
+- 2026-05-20: Batch run completed; tasks included: 
+- 2026-05-20: Batch run completed; tasks included: 
+- 2026-05-22: Batch run completed; tasks included: 
+- 2026-05-22: Batch run completed; tasks included: 
+- 2026-05-23: Batch run completed; tasks included: 
+- 2026-05-23: Batch run completed; tasks included: 
+- 2026-05-23: Batch run completed; tasks included: 
+- 2026-05-24: Batch run completed; tasks included: 
+- 2026-05-24: Batch run completed; tasks included: 
+- 2026-05-25: Batch run completed; tasks included: 
+- 2026-05-25: Batch run completed; tasks included: 
+- 2026-05-25: Batch run completed; tasks included: 
+- 2026-05-26: Batch run completed; tasks included: 
+- 2026-05-26: Batch run completed; tasks included: 
+- 2026-05-26: Batch run completed; tasks included: 
+- 2026-05-27: Batch run completed; tasks included: 
+- 2026-05-27: Batch run completed; tasks included: 
+- 2026-05-27: Batch run completed; tasks included: 
+- 2026-05-27: Batch run completed; tasks included: 
+- 2026-05-27: Batch run completed; tasks included: 
+- 2026-05-27: Batch run completed; tasks included: 
+- 2026-05-27: Batch run completed; tasks included: 
+- 2026-05-28: Batch run completed; tasks included: 
+- 2026-05-28: Batch run completed; tasks included: 
+- 2026-05-28: Batch run completed; tasks included: 
+- 2026-05-29: Batch run completed; tasks included: 
+- 2026-05-30: Batch run completed; tasks included: 
+- 2026-05-31: Batch run completed; tasks included: 
+- 2026-05-31: Batch run completed; tasks included: 
+- 2026-06-01: Batch run completed; tasks included: 
+- 2026-06-02: Batch run completed; tasks included: 
+- 2026-06-02: Batch run completed; tasks included: 
+- 2026-06-04: Batch run completed; tasks included: 
+- 2026-06-05: Batch run completed; tasks included: 
+- 2026-06-06: Batch run completed; tasks included: 
+- 2026-06-06: Batch run completed; tasks included: 
+- 2026-06-07: Batch run completed; tasks included: 
+- 2026-06-07: Batch run completed; tasks included: 
+- 2026-06-07: Batch run completed; tasks included: 
+- 2026-06-08: Batch run completed; tasks included: 
+- 2026-06-08: Batch run completed; tasks included: 
+- 2026-06-08: Batch run completed; tasks included: 
+- 2026-06-09: Batch run completed; tasks included: 
+- 2026-06-09: Batch run completed; tasks included: 
+- 2026-06-09: Batch run completed; tasks included: 
+- 2026-06-10: Batch run completed; tasks included: 
+- 2026-06-12: Batch run completed; tasks included: 
+- 2026-06-14: Batch run completed; tasks included: 
+- 2026-06-15: Batch run completed; tasks included: 
+- 2026-06-15: Batch run completed; tasks included: 
+- 2026-06-16: Batch run completed; tasks included: 
+- 2026-06-17: Batch run completed; tasks included: 
+- 2026-06-19: Batch run completed; tasks included: 
+- 2026-06-19: Batch run completed; tasks included: 
+- 2026-06-19: Batch run completed; tasks included: 
+- 2026-06-19: Batch run completed; tasks included: 
+- 2026-06-20: Batch run completed; tasks included: 
+- 2026-06-20: Batch run completed; tasks included: 
+- 2026-06-21: Batch run completed; tasks included: 
+- 2026-06-21: Batch run completed; tasks included: 
+- 2026-06-21: Batch run completed; tasks included: 
+- 2026-06-22: Batch run completed; tasks included: 
+- 2026-06-22: Batch run completed; tasks included: 
+- 2026-06-22: Batch run completed; tasks included: 
+- 2026-06-22: Batch run completed; tasks included: 
+- 2026-06-22: Batch run completed; tasks included: 
+- 2026-06-23: Batch run completed; tasks included: 
+- 2026-06-23: Batch run completed; tasks included: 
+- 2026-06-23: Batch run completed; tasks included: 
+- 2026-06-24: Batch run completed; tasks included: 
+- 2026-06-24: Batch run completed; tasks included: 
+- 2026-06-25: Batch run completed; tasks included: 
+- 2026-06-25: Batch run completed; tasks included: 
+- 2026-06-25: Batch run completed; tasks included: 
+- 2026-06-26: Batch run completed; tasks included: 
+- 2026-06-26: Batch run completed; tasks included: 
+- 2026-06-27: Batch run completed; tasks included: 
+- 2026-06-28: Batch run completed; tasks included: 
+- 2026-06-28: Batch run completed; tasks included: 
+- 2026-06-29: Batch run completed; tasks included: 
+- 2026-06-29: Batch run completed; tasks included: 
+- 2026-06-29: Batch run completed; tasks included: 
+- 2026-06-30: Batch run completed; tasks included: 
+- 2026-06-30: Batch run completed; tasks included: 
+- 2026-06-30: Batch run completed; tasks included: 
+- 2026-06-30: Batch run completed; tasks included: 
+- 2026-06-30: Batch run completed; tasks included: 
+- 2026-06-30: Batch run completed; tasks included: 
+- 2026-06-30: Batch run completed; tasks included: 
+- 2026-06-30: Batch run completed; tasks included: 
+- 2026-07-01: Batch run completed; tasks included: 
+- 2026-07-02: Batch run completed; tasks included: 
+- 2026-07-02: Batch run completed; tasks included: 
+- 2026-07-02: Batch run completed; tasks included: 
+- 2026-07-03: Batch run completed; tasks included: 
+- 2026-07-03: Batch run completed; tasks included: 
+- 2026-07-03: Batch run completed; tasks included: 
+- 2026-07-03: Batch run completed; tasks included: 
+- 2026-07-03: Batch run completed; tasks included: 
+- 2026-07-04: Batch run completed; tasks included: 
+- 2026-07-04: Batch run completed; tasks included: 
+- 2026-07-04: Batch run completed; tasks included: 
+- 2026-07-04: Batch run completed; tasks included: 
+- 2026-07-04: Batch run completed; tasks included: 
+- 2026-07-04: Batch run completed; tasks included: 
+- 2026-07-04: Batch run completed; tasks included: 
+- 2026-07-04: Batch run completed; tasks included: 
+- 2026-07-05: Batch run completed; tasks included: 
+- 2026-07-05: Batch run completed; tasks included: 
+- 2026-07-05: Batch run completed; tasks included: 
+- 2026-07-05: Batch run completed; tasks included: 
+- 2026-07-05: Batch run completed; tasks included: 
+- 2026-07-05: Batch run completed; tasks included: 
+- 2026-07-05: Batch run completed; tasks included: 
+- 2026-07-08: Batch run completed; tasks included: 
+- 2026-07-08: Batch run completed; tasks included: 
+- 2026-07-08: Batch run completed; tasks included: 
+- 2026-07-09: Batch run completed; tasks included: 
+- 2026-07-10: Batch run completed; tasks included: 
+- 2026-07-11: Batch run completed; tasks included: 
+- 2026-07-12: Batch run completed; tasks included: 
+- 2026-07-12: Batch run completed; tasks included: 
+- 2026-07-13: Batch run completed; tasks included: 
+- 2026-07-14: Batch run completed; tasks included: 
+- 2026-07-14: Batch run completed; tasks included: 
+- 2026-07-14: Batch run completed; tasks included: 
+- 2026-07-15: Batch run completed; tasks included: 
+- 2026-07-15: Batch run completed; tasks included: 
+- 2026-07-15: Batch run completed; tasks included: 
+- 2026-07-15: Batch run completed; tasks included: 
+- 2026-07-17: Batch run completed; tasks included: 
+- 2026-07-19: Batch run completed; tasks included: 
+- 2026-07-20: Batch run completed; tasks included: 
+- 2026-07-26: Batch run completed; tasks included: 
+- 2026-07-28: Batch run completed; tasks included: 
+- 2026-07-28: Batch run completed; tasks included: 
+- 2026-07-28: Batch run completed; tasks included: 
+- 2026-07-28: Batch run completed; tasks included: 
+- 2026-07-28: Batch run completed; tasks included: 
+- 2026-07-28: Batch run completed; tasks included: 
+- 2026-07-29: Batch run completed; tasks included: 
+- 2026-07-30: Batch run completed; tasks included: 
+- 2026-07-30: Batch run completed; tasks included: 
+- 2026-08-02: Batch run completed; tasks included: 
+- 2026-08-03: Batch run completed; tasks included: 
+- 2026-08-03: Batch run completed; tasks included: 
+- 2026-08-03: Batch run completed; tasks included: 
+- 2026-08-04: Batch run completed; tasks included: 
+- 2026-08-05: Batch run completed; tasks included: 
+- 2026-08-06: Batch run completed; tasks included: 
+- 2026-08-07: Batch run completed; tasks included: 
+- 2026-08-07: Batch run completed; tasks included: 
+- 2026-08-07: Batch run completed; tasks included: 
+- 2026-08-08: Batch run completed; tasks included: 
+- 2026-08-08: Batch run completed; tasks included: 
+- 2026-08-09: Batch run completed; tasks included: 
+- 2026-08-11: Batch run completed; tasks included: 
+- 2026-08-12: Batch run completed; tasks included: 
+- 2026-08-13: Batch run completed; tasks included: 
+- 2026-08-13: Batch run completed; tasks included: 
+- 2026-08-15: Batch run completed; tasks included: 
+- 2026-08-16: Batch run completed; tasks included: 
+- 2026-08-18: Batch run completed; tasks included: 
+- 2026-08-18: Batch run completed; tasks included: 
+- 2026-08-20: Batch run completed; tasks included: 
+- 2026-08-21: Batch run completed; tasks included: 
+- 2026-08-21: Batch run completed; tasks included: 
+- 2026-08-21: Batch run completed; tasks included: 
+- 2026-08-21: Batch run completed; tasks included: 
+- 2026-08-22: Batch run completed; tasks included: 
+- 2026-08-23: Batch run completed; tasks included: 
+- 2026-08-24: Batch run completed; tasks included: 
+- 2026-08-24: Batch run completed; tasks included: 
+- 2026-08-24: Batch run completed; tasks included: 
+- 2026-08-25: Batch run completed; tasks included: 
+- 2026-08-25: Batch run completed; tasks included: 
+- 2026-08-25: Batch run completed; tasks included: 
+- 2026-08-27: Batch run completed; tasks included: 
+- 2026-08-28: Batch run completed; tasks included: 
+- 2026-08-28: Batch run completed; tasks included: 
+- 2026-08-28: Batch run completed; tasks included: 
+- 2026-08-29: Batch run completed; tasks included: 
+- 2026-08-30: Batch run completed; tasks included: 
+- 2026-09-02: Batch run completed; tasks included: 
+- 2026-09-02: Batch run completed; tasks included: 
+- 2026-09-03: Batch run completed; tasks included: 
+- 2026-09-03: Batch run completed; tasks included: 
+- 2026-09-05: Batch run completed; tasks included: 
+- 2026-09-06: Issue #1819 (invoice handler user_id bug) — PASS, committed 105fd362 + 96ae2cf5, all 5 tests PASS
+- 2026-09-06: Batch run completed; tasks included: 
+- 2026-09-06: Batch run completed; tasks included: 
+- 2026-09-07: Batch run completed; tasks included: 
+- 2026-09-07: Batch run completed; tasks included: 
+- 2026-09-07: Batch run completed; tasks included: 
+- 2026-09-08: Batch run completed; tasks included: 
+- 2026-09-08: Batch run completed; tasks included: 
+- 2026-09-08: Batch run completed; tasks included: 
+- 2026-09-08: Batch run completed; tasks included: 
+- 2026-09-08: Batch run completed; tasks included: 
+- 2026-09-09: Batch run completed; tasks included: 
+- 2026-09-09: Batch run completed; tasks included: 
+- 2026-09-09: Batch run completed; tasks included: 
+- 2026-09-09: Batch run completed; tasks included: 
+- 2026-09-10: Batch run completed; tasks included: Resolved Issues: #1865, #1862; Rejected: #1866, #1864, #1863
+- 2026-09-10: Batch run completed; tasks included: Resolved Issues: #1864; Rejected: #1866, #1863
+- 2026-09-10: Batch run completed; tasks included: Resolved Issues: #1866, #1863
+- 2026-09-10: Batch run completed; tasks included: Resolved Issues: #1869, #1868, #1867, #1840, #1830
+- 2026-09-11: Batch run completed; tasks included: Resolved Issues: #1871, #1870
+- 2026-09-11: Batch run completed; tasks included: Resolved Issues: #1872 (hotfix: weapp loses params after image selection)
+- 2026-09-11: Batch run completed; tasks included: Resolved Issues: #1873; Rejected: #1874 (date migration missed LeaseInfo/Checkout/weapp renewal; rework pending)
+- 2026-09-11: Batch run completed; tasks included: Resolved Issues: #1874 (rework filled 4 missed spots; re-audit PASS)
+- 2026-09-11: Batch run completed; tasks included: Resolved Issues: #1875 (repair-completion jsonb blocker + global fix of 47 raw alerts in weapp)
+- 2026-09-11: Batch run completed; tasks included: Resolved Issues: #1876 (weapp repair-record photos: prepend origin to relative paths)
+- 2026-09-12: Batch run completed; tasks included: Resolved Issues: #1877, #1878, #1879, #1880, #1881, #1882, #1883, #1884, #1885, #1886, #1887, #1888, #1889 (13 repair-domain items: site/role/owner validation + current_site_id + reject reason + docs/legacy cleanup + PC/weapp fixes; #1879 rework re-audit PASS)
+- 2026-09-12: Batch run completed; tasks included: Resolved Issues: #1890, #1891 (device feedback: localize repair statuses + status badge on weapp detail; #1889 backfilled the missed unique-site derivation for org; also removed the repair page top bar 738d6df5)
+- 2026-09-12: Batch run completed; tasks included: Resolved Issues: #1892 (site-staff entry for instruments awaiting acceptance: new GET /repair/acceptance + MyRepairs card; ui.md §2.9.1 + api.md §7.11.9)
+- 2026-09-12: Batch run completed; tasks included: Resolved Issues: #1893 (instrument management: two-level category filter + cover thumbnail chain + OptionSheet reuse refactor)
+- 2026-09-12: Batch run completed; tasks included: Resolved Issues: #1894 (204-row backfill migration aligning instrument org to site org + batch import now writes org; root cause: site-staff ApplyOrgScope filtered by org and hid rows)
+- 2026-09-13: Batch run completed; tasks included: Resolved Issues: #1897 (platform staff use operator oid), #1900 (gift-point policy normalization 5/10/15% + rebate 0.5/1/2% + guardrails + legacy bypass), #1901 (OREZ/ENO points_basis + non-production full-amount switch); prerelease deployed ec3fab35 with TEST_COUPON_GROSS_POINTS enabled
+- 2026-09-13: Batch run completed; tasks included: Resolved Issues: #1898 (warning email notifications: SMTP service / three-tier config page / immediate trigger / cooldown / no silent failures; SMTPS 465 support)
+- 2026-09-13: Batch run completed; tasks included: Resolved Issues: #1899 (Option A: removed system discount policy + rebate config pages/routes/backend modules, tables retained; rebates unified into the gift-point policy)
+- 2026-09-13: Batch run completed; tasks included: Resolved Issues: #1897 rework (platform staff list filtered by role=staff + Create persists STAFF; cases #1795 T6.1/T6.2)
+- 2026-09-13: Batch run completed; tasks included: Resolved Issues: #1897 rework 2 (platform staff management restricted to system admin: backend 403 gate + frontend bit5; no PLATFORM_ROOT_ORG_ID)
+- 2026-09-13: Batch run completed; tasks included: Resolved Issues: #1904 (beaconiam fn_roles claim unparsed → system admin misjudged as merchant admin → 403 on platform staff management; fixed claim mapping + frontend fn_roles detection)
+- 2026-09-13: Batch run completed; tasks included: Resolved Issues: #1906 (align new-platform-staff password setup: auto-generated by default + one-time display + forced change + 409 on conflict)
+- 2026-09-13: Batch run completed; tasks included: 
+- 2026-09-14: Batch run completed; tasks included: Resolved Issues: #1907
+- 2026-09-13: Batch run completed; tasks included: Resolved Issues: #1908 (warning config merged into a single warning_notification key, migrating the old three-tier keys; single frontend card)
+- 2026-09-13: Batch run completed; tasks included: Resolved Issues: #1910 (in-app SMTP configuration: DirectMail UI config + fallback to personal mailbox, password encryption, system-admin only, test send)
+- 2026-09-14: Batch run completed; tasks included: Resolved Issues: #1909 (WeCom webhook: platform/merchant two-tier config, encryption + SSRF validation, test send, fallback to in-app notification on failure)
+- 2026-09-14: Batch run completed; tasks included: Resolved Issues: #1911 (multi-site repair technicians: instrument list/filter now spans all member sites, compatible with admin org scope)
+- 2026-09-14: Emergency response: production tuneloop crash loop for 29h (DB schema ahead of the deployment snapshot) → forward release 1.0.4, migrations 20260829003 → 20260912006, service recovered; cadenza disk reclaimed 20G + deploy.sh 30-day retention policy (#1912/#1913)
+- 2026-09-14: Batch run completed; tasks included: Resolved Issues: #1915 (order detail supports WeChat order-center out_trade_no jump; the order-review path works end to end)
+- 2026-09-14: Batch run completed; tasks included: Resolved Issues: #1919 (PC instrument detail blank page: restored the missing import of formatBeijingDateTimeShort in Detail.jsx)
+- 2026-09-14: Batch run completed; tasks included: Resolved Issues: #1926 (for pending-shipment/shipped orders, actual rental days and rent stay zero until receipt)
+- 2026-09-14: Batch run completed; tasks included: Resolved Issues: #1923 (strict terms-agreement validation at registration, H5 + mini-program + terms entry on the logged-out login page)
+- 2026-09-15: Batch run completed; tasks included: Resolved Issues: #1902, #1918, #1920, #1921, #1922, #1925; Rejected: #1924 (returned for fix)
+- 2026-09-15: Batch run completed; tasks included: Resolved Issues: #1924 (re-audit pass), #1925, #1922, #1921, #1920, #1918, #1902
+- 2026-09-17: Batch run completed; tasks included: 
+- 2026-09-17: Batch run completed; tasks included: 
+- 2026-09-17: Batch run completed; tasks included: 
+- 2026-09-17: Batch run completed; tasks included: Resolved Issues: #1938, #1930, #1929, #1928
+- 2026-09-17: Audit batch completed: #1949 PASS (done); #1950/#1953 REJECTED and returned for rework (see each Issue's audit report). Resolved Issues: #1949
+- 2026-09-17: Audit batch (Q3) — PASS/done: #1949 #1950 #1952 #1953 #1954 #1956 #1957 #1946 #1940; REJECTED: #1955 (item 8 back-payment entry lacks a backend data source); HOLD: #1951 (parent waiting for #1955 rework + prerelease walkthrough). Resolved Issues: #1949, #1950, #1952, #1953, #1954, #1956, #1957, #1946, #1940
+- 2026-09-18: Audit batch (Q4) — PASS/done: #1955 #1958 #1959 #1960 #1961 #1962; parent acceptance closed: #1951 #1948. Resolved Issues: #1951, #1948, #1955, #1958, #1959, #1960, #1961, #1962
+- 2026-09-18: Audit batch (Q5) — PASS/done: #1965 #1966 #1967 #1968 #1969 #1971 #1972 #1973 #1975 #1976 #1977 #1978 #1979 #1944. Resolved Issues: #1965, #1966, #1967, #1968, #1969, #1971, #1972, #1973, #1975, #1976, #1977, #1978, #1979, #1944
+- 2026-09-19: Audit batch (Q6) — PASS/done: #1941 #1947 #1980 #1981 #1983 #1987; REJECTED and returned for rework: #1945 (migration 011 preset name matching missed + no migration test), #1982 (gift-add sourceRef truncation cut multi-byte characters → 500); HOLD: #1974 (parent waiting for #1984 prerelease walkthrough). Resolved Issues: #1941, #1947, #1980, #1981, #1983, #1987
+- 2026-09-19: Audit batch (Q6 addendum) — PASS/done: #1988 (main branch, new documentation governance layout). Resolved Issues: #1988
+- 2026-09-19: Audit batch (Q7) — second-round audit PASS/done: #1982 (rune truncation + wording + regression test e9542ff0), #1945 (id-based preset migration 20260918003 + migration test a92d9f28). Resolved Issues: #1982, #1945
+- 2026-09-19: Audit batch (Q8) — PASS/done: #1964 #1939 #1931 (parent integration verification); REJECTED and returned for rework: #1970 (docs/topics/iam/iam.md not rebuilt as a symlink per A5; it was a regular file containing a path string). Resolved Issues: #1964, #1939, #1931
+- 2026-09-20: Audit batch (Q9) — OSS pipeline second-round audit PASS/done: #1991 #1992 #1993 #1994 #1995 (P4 backfill / P3 dual-write / P5 switch reads / P6 wrap-up / S5 bypass-abstraction refactor); #1989 (7 H5 thin shells, build:h5 restored); #1986 (migration-artifact startup assertion + snapshot recovery SOP); #1970 (doc governance Option A merged, A5 symlink fixed). Resolved Issues: #1970, #1986, #1989, #1991, #1992, #1993, #1994, #1995
+- 2026-09-20: QA batch audit completed; passed and closed: #2003, #2002, #2001, #2000, #1997, #1980, #1964; REJECTED and returned: #2004 (2 rework items), #1999 (integration blocked)
+- 2026-09-20: QA second-round audit: #2004 rework re-audit PASS (d1a3d2ae, both audit findings closed); parent #1999 integration acceptance PASS closed manually (the Parent Auto-Completion script did not fire because of self-matching in comments)
+- 2026-09-21: QA round 3: dashboard layering and data-model convergence closed end to end — PASS closed #2015 #2014 #2013 #2012 #2011 (worktree baseline comparison: 0 new failures); rework re-audit PASS for #2006 (aggregation fail-fast) / #2009 (lease basis unified to orders); parents #2005/#2010 integration acceptance closed manually (Parent search self-match defect in the script, recorded twice). DB red line: migrations not executed by AI; deployment bootstrap checks listed.
+- 2026-09-21: QA round 4: users.wx_openid deprecation pipeline fully green — #2017 (008b wiring + 5 fallbacks removed + internal resolve endpoint + client helper), #2018 (user management / payment fallback switch), #2019 (openidOfUser switch + local column dropped) all PASS; production/prerelease binding coverage evidence: 0 uncovered (dropping the column loses no data); pre-existing defect found and recorded: unbind never deleted wx_user_bindings rows (since #483).
+- 2026-09-21: #2016 closed after audit passed (evidence of zero remaining references + all sub-tasks done); a separate Issue filed for the broken-unbind defect (unbind has not deleted binding rows since #483; to ship with the beaconiam fix during upgrade)
+- 2026-09-30: Batch run completed; tasks included: Resolved Issues: #2110, #2111, #2113 (v1.0.32 prerelease deploy)
+- 2026-09-30: Batch run completed; tasks included: Resolved Issues: #2112 (v1.0.33 prerelease deploy)
+- 2026-10-04: Batch run completed; tasks included: Resolved Issues: #2114, #2115, #2116, #2117, #2119, #2120, #2121, #2122
+- 2026-10-05: Batch run completed; tasks included: Resolved Issues: #2118, #2123, #2124, #2125, #2126, #2127, #2128, #2129
+- 2026-10-06: Batch run completed; tasks included: Resolved Issues: #2134, #2135
+- 2026-10-06: Batch run completed; tasks included: Resolved Issues: #2145, #2146, #2148, #2150, #2151
