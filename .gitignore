@@ -70,6 +70,9 @@ scripts/sync-opencode.sh
 Makefile.local
 .env.local
 **/.env.local
+# 本机专属文档与 Node 版本钉扎（已取消跟踪）
+LOCAL.md
+frontend-mobile/.nvmrc
 
 # 平台原生依赖（历史遗留仍被跟踪，已用 git rm --cached 移出索引）
 frontend-pc/node_modules/
