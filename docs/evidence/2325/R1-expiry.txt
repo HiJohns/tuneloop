@@ -1,0 +1,25 @@
+TAP version 13
+# Subtest: computeExpiryMs 规则：expires_in 优先 / JWT exp 回退 / 兜底 3600
+ok 1 - computeExpiryMs 规则：expires_in 优先 / JWT exp 回退 / 兜底 3600
+  ---
+  duration_ms: 33.755682
+  ...
+# Subtest: token 写入点成对：所有 setItem(token) 均有 expiry
+ok 2 - token 写入点成对：所有 setItem(token) 均有 expiry # SKIP test name does not match pattern
+  ---
+  duration_ms: 0.516156
+  ...
+# Subtest: 接线：api.js 刷新与 Login.jsx 微信登录均使用 computeExpiryMs
+ok 3 - 接线：api.js 刷新与 Login.jsx 微信登录均使用 computeExpiryMs
+  ---
+  duration_ms: 3.528911
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 1
+# todo 0
+# duration_ms 596.156784
