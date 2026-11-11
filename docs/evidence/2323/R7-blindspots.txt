@@ -1,0 +1,4 @@
+CHECK: checked=3273 exact=3149 prefix=124 failures=0
+BLINDSPOTS: ternary=2 matched=2
+NEGATIVE(blindspots-missing)=2
+RESULT: PASS

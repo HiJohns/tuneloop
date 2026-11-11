@@ -1483,7 +1483,9 @@ mobile,frontend-mobile/src/services/api.js,128,无法获取配置，请刷新页
 mobile,frontend-mobile/src/services/api.js,221,您尚未注册会员，要注册吗？,report,,
 mobile,frontend-mobile/src/services/api.js,282,登录失败，请重试,report,,
 mobile,frontend-mobile/src/utils/depositWaiver.js,87,已复制模板链接，请在浏览器打开下载,report,,
+mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,615,+ 新增担保人,manual,,三元盲区：条件表达式内字面量未被抽取（生成器 AST 盲区）；不计入 #NAME?
 mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,756,+ 使用新地址,manual,,待产品确认：原 #NAME?（Excel 公式损坏）；状态=已抽取；工作副本行 749
+mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1276,+ 新增担保人,manual,,三元盲区：条件表达式内字面量未被抽取（生成器 AST 盲区）；不计入 #NAME?
 mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1364,+ 新增担保人,manual,,待产品确认：原 #NAME?（Excel 公式损坏）；状态=已抽取；工作副本行 1320
 mobile,frontend-mobile/src/pages/Checkout.jsx,568,尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时我们将选择顺丰快递到付且保价，请注意检查乐器状态后方可支付运费，谢谢您，祝您使用愉快！,manual,,人工备注：黑色加粗；状态=已抽取
 mobile,frontend-mobile/src/pages/Checkout.jsx,571,尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时的物流费届时将从您的押金中扣除，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！,manual,,人工备注：黑色加粗；状态=已抽取

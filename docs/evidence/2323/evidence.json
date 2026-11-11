@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2323,
-  "build": "i18n-inventory 90e432289",
-  "commit": "90e43228995e5361607caacb9dccbdb75a221aea",
+  "build": "i18n-inventory 6df96405d",
+  "commit": "6df96405d6c4bf517a9c138e7ed659d224760e70",
   "dirty": false,
   "rows": [
     {
@@ -13,8 +13,8 @@
         "docs/evidence/2323/R1-build.txt"
       ],
       "assert": "grep -c 匹配各字段行数",
-      "actual": "rows=3288 mobile=1484 pc=1789 manual=15 IDEMPOTENT: yes NEGATIVE(expect-rows)=1 RESULT: PASS",
-      "expected": "rows=3288 mobile=1484 pc=1789 manual=15 IDEMPOTENT: yes RESULT: PASS",
+      "actual": "rows=3290 mobile=1484 pc=1789 manual=17 IDEMPOTENT: yes NEGATIVE(expect-rows)=1 RESULT: PASS",
+      "expected": "rows=3290 mobile=1484 pc=1789 manual=17 IDEMPOTENT: yes RESULT: PASS",
       "negative": "脚本内置：期望行数故意错为 3289 时须输出 NEGATIVE(expect-rows)=1 且 RESULT: FAIL",
       "negative_result": "NEGATIVE(expect-rows)=1 — 期望行数写错时自检判 FAIL",
       "pass": true
@@ -72,7 +72,7 @@
       "actual": "expected=8 matched=8 identity_diff=0 NEGATIVE(identity-wrong)=2 RESULT: PASS",
       "expected": "expected=8 matched=8 identity_diff=0 RESULT: PASS",
       "negative": "fixtures/identity-wrong.csv 把 weapp 一条改成 + 新增担保人，须输出 NEGATIVE(identity-wrong)=2",
-      "negative_result": "NEGATIVE(identity-wrong)=2 — weapp 一条改成 + 新增担保人：缺 1 条 + 多 1 条，identity_diff=2",
+      "negative_result": "NEGATIVE(identity-wrong)=2 — weapp 一条改成 + 新增担保人：缺 1 多 1",
       "pass": true
     },
     {
@@ -87,6 +87,20 @@
       "expected": "mobile=1484 files_mobile=73 pc=1789 files_pc=76 total=3273 files_total=149 RESULT: PASS",
       "negative": "fixtures/bad-stats.md 合计改 3000，须输出 NEGATIVE(bad-stats)=1",
       "negative_result": "NEGATIVE(bad-stats)=1 — 合计改 3000 被检出",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "node scripts/i18n-inventory-verify.mjs --csv docs/ops/i18n-inventory.csv --check-blindspots --negative docs/evidence/2323/fixtures/blindspots-missing.csv --evidence docs/evidence/2323/R7-blindspots.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2323/R7-blindspots.txt"
+      ],
+      "assert": "grep 命中 BLINDSPOTS 行且 matched=2",
+      "actual": "ternary=2 matched=2 NEGATIVE(blindspots-missing)=2 RESULT: PASS",
+      "expected": "ternary=2 matched=2 RESULT: PASS",
+      "negative": "fixtures/blindspots-missing.csv 删 1 条三元盲区行，须输出 NEGATIVE(blindspots-missing)=2",
+      "negative_result": "NEGATIVE(blindspots-missing)=2 — 删 1 条三元盲区：缺 1 + 计数不等",
       "pass": true
     }
   ]
