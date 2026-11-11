@@ -126,6 +126,8 @@ export const getInputValue = (e) => e.target?.value ?? ''
 
 export const navigation = {
   redirect: (url) => { window.location.href = url },
+  // #2326: 会话失效回首页（与 weapp 的 switchTab 目标语义等价，A15 平台层对称）
+  resetToHome: () => { window.location.href = '/' },
   getCurrentPath: () => window.location.pathname + window.location.search,
   getOrigin: () => window.location.origin,
   getQueryParams: () => Object.fromEntries(new URLSearchParams(window.location.search)),

@@ -141,6 +141,10 @@ export const navigation = {
   redirect: (url) => {
     Taro.redirectTo({ url })
   },
+  // #2326: 首页是 tabBar 页，必须 switchTab；redirectTo('/') 会报 page not found
+  resetToHome: () => {
+    Taro.switchTab({ url: '/pages-weapp/home/index' })
+  },
   navigateTo: (url) => {
     Taro.navigateTo({ url })
   },
