@@ -7,7 +7,7 @@ mobile,frontend-mobile/src/components/AddressManager.jsx,44,邮编格式不正�
 mobile,frontend-mobile/src/components/AddressManager.jsx,61,保存失败: {msg},report,,
 mobile,frontend-mobile/src/components/AddressManager.jsx,68,确认删除此地址？,report,,
 mobile,frontend-mobile/src/components/AddressManager.jsx,86,收货地址,report,,
-mobile,frontend-mobile/src/components/AddressManager.jsx,89,+ 新地址,report,,待产品确认：原 #NAME?（Excel 公式损坏）；状态=残余
+mobile,frontend-mobile/src/components/AddressManager.jsx,89,+ 新地址,report,,待产品确认：原 #NAME?（Excel 公式损坏）；状态=残余；工作副本行 88
 mobile,frontend-mobile/src/components/AddressManager.jsx,101,默认,report,,
 mobile,frontend-mobile/src/components/AddressManager.jsx,105,编辑,report,,
 mobile,frontend-mobile/src/components/AddressManager.jsx,107,设默认,report,,
@@ -1139,8 +1139,8 @@ mobile,frontend-mobile/src/pages/RepairServiceCreate.jsx,215,问题描述 *,repo
 mobile,frontend-mobile/src/pages/RepairServiceCreate.jsx,217,描述乐器问题（无需填写识别码）,report,,
 mobile,frontend-mobile/src/pages/RepairServiceCreate.jsx,222,照片（,report,,
 mobile,frontend-mobile/src/pages/RepairServiceCreate.jsx,250,试奏视频（可选，1 段）,report,,
-mobile,frontend-mobile/src/pages/RepairServiceCreate.jsx,263,＋ 录制/选择试奏视频（≤60s）,report,,待产品确认：原 #NAME?（Excel 公式损坏）；状态=残余
-mobile,frontend-mobile/src/pages/RepairServiceCreate.jsx,267,＋ 选择试奏视频,report,,待产品确认：原 #NAME?（Excel 公式损坏）；状态=残余
+mobile,frontend-mobile/src/pages/RepairServiceCreate.jsx,263,＋ 录制/选择试奏视频（≤60s）,report,,待产品确认：原 #NAME?（Excel 公式损坏）；状态=残余；工作副本行 263
+mobile,frontend-mobile/src/pages/RepairServiceCreate.jsx,267,＋ 选择试奏视频,report,,待产品确认：原 #NAME?（Excel 公式损坏）；状态=残余；工作副本行 267
 mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,71,该功能请在 H5 端使用,report,,
 mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,121,维修单参数缺失，请返回重新进入,report,,
 mobile,frontend-mobile/src/pages/RepairServiceDetail.jsx,137,请填写物流单号,report,,
@@ -1483,12 +1483,12 @@ mobile,frontend-mobile/src/services/api.js,128,无法获取配置，请刷新页
 mobile,frontend-mobile/src/services/api.js,221,您尚未注册会员，要注册吗？,report,,
 mobile,frontend-mobile/src/services/api.js,282,登录失败，请重试,report,,
 mobile,frontend-mobile/src/utils/depositWaiver.js,87,已复制模板链接，请在浏览器打开下载,report,,
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,615,+ 新增担保人,manual,,待产品确认：原 #NAME?（Excel 公式损坏）；状态=三元盲区
-mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,756,+ 使用新地址,manual,,待产品确认：原 #NAME?（Excel 公式损坏）；状态=已抽取
+mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,756,+ 使用新地址,manual,,待产品确认：原 #NAME?（Excel 公式损坏）；状态=已抽取；工作副本行 749
+mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,1364,+ 使用新地址,manual,,待产品确认：原 #NAME?（Excel 公式损坏）；状态=已抽取；工作副本行 1320
 mobile,frontend-mobile/src/pages/Checkout.jsx,568,尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时我们将选择顺丰快递到付且保价，请注意检查乐器状态后方可支付运费，谢谢您，祝您使用愉快！,manual,,人工备注：黑色加粗；状态=已抽取
 mobile,frontend-mobile/src/pages/Checkout.jsx,571,尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时的物流费届时将从您的押金中扣除，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！,manual,,人工备注：黑色加粗；状态=已抽取
-mobile,frontend-mobile/src/pages/Checkout.jsx,1338,+ 新增担保人,manual,,待产品确认：原 #NAME?（Excel 公式损坏）；状态=已抽取
-mobile,frontend-mobile/src/pages/Checkout.jsx,1420,+ 使用新地址,manual,,待产品确认：原 #NAME?（Excel 公式损坏）；状态=已抽取
+mobile,frontend-mobile/src/pages/Checkout.jsx,1338,+ 新增担保人,manual,,待产品确认：原 #NAME?（Excel 公式损坏）；状态=已抽取；工作副本行 1287
+mobile,frontend-mobile/src/pages/Checkout.jsx,1420,+ 使用新地址,manual,,待产品确认：原 #NAME?（Excel 公式损坏）；状态=已抽取；工作副本行 1369
 mobile,frontend-mobile/src/pages/ReceiveConfirm.jsx,200,*为保障您的权益，发货前我们将提供乐器的照片，完整展示乐器的面板、背板、侧板、琴头、琴颈等各部位状态。,manual,,人工备注：红色；状态=已抽取（工作副本文案与代码不一致，已按代码校正）
 mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,232,*请填写真实返程物流信息，用于归还乐器,manual,,人工备注：红色；状态=已抽取
 mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,252,*请拍摄完整展示乐器当前面板、背板、侧板、琴头、琴颈等各部位状态的照片作为归还留档,manual,,人工备注：红色；状态=已抽取（工作副本文案与代码不一致，已按代码校正）
@@ -2851,7 +2851,7 @@ pc,frontend-pc/src/pages/admin/instrument/Detail.jsx,527,押金模式,report,,
 pc,frontend-pc/src/pages/admin/instrument/Detail.jsx,528,逾期日费,report,,
 pc,frontend-pc/src/pages/admin/instrument/Detail.jsx,533,阶梯折扣,report,,
 pc,frontend-pc/src/pages/admin/instrument/Detail.jsx,556,展示图像,report,,
-pc,frontend-pc/src/pages/admin/instrument/Detail.jsx,559,+ 新增,report,,待产品确认：原 #NAME?（Excel 公式损坏）；状态=残余
+pc,frontend-pc/src/pages/admin/instrument/Detail.jsx,559,+ 新增,report,,待产品确认：原 #NAME?（Excel 公式损坏）；状态=残余；工作副本行 531
 pc,frontend-pc/src/pages/admin/instrument/Detail.jsx,570,展示图上传成功,report,,
 pc,frontend-pc/src/pages/admin/instrument/Detail.jsx,590,上传失败: {msg},report,,
 pc,frontend-pc/src/pages/admin/instrument/Detail.jsx,617,删除此图片？,report,,
