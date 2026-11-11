@@ -1,0 +1,4 @@
+CHECK: checked=3273 exact=3149 prefix=124 failures=0
+MD: mobile=1484 files_mobile=73 pc=1789 files_pc=76 total=3273 files_total=149
+NEGATIVE(bad-stats)=1
+RESULT: PASS

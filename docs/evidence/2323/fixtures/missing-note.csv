@@ -1,0 +1,15 @@
+end,file,line,text,来源,修改,备注
+mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,615,+ 新增担保人,manual,,待产品确认：原 #NAME?（Excel 公式损坏）；状态=三元盲区
+mobile,frontend-mobile/src/pages-weapp/Checkout.jsx,756,+ 使用新地址,manual,,待产品确认：原 #NAME?（Excel 公式损坏）；状态=已抽取
+mobile,frontend-mobile/src/pages/Checkout.jsx,568,尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时我们将选择顺丰快递到付且保价，请注意检查乐器状态后方可支付运费，谢谢您，祝您使用愉快！,manual,,人工备注：黑色加粗；状态=已抽取
+mobile,frontend-mobile/src/pages/Checkout.jsx,571,尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时的物流费届时将从您的押金中扣除，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！,manual,,人工备注：黑色加粗；状态=已抽取
+mobile,frontend-mobile/src/pages/Checkout.jsx,1338,+ 新增担保人,manual,,待产品确认：原 #NAME?（Excel 公式损坏）；状态=已抽取
+mobile,frontend-mobile/src/pages/Checkout.jsx,1420,+ 使用新地址,manual,,待产品确认：原 #NAME?（Excel 公式损坏）；状态=已抽取
+mobile,frontend-mobile/src/pages/ReceiveConfirm.jsx,200,*为保障您的权益，发货前我们将提供乐器的照片，完整展示乐器的面板、背板、侧板、琴头、琴颈等各部位状态。,manual,,人工备注：红色；状态=已抽取（工作副本文案与代码不一致，已按代码校正）
+mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,232,*请填写真实返程物流信息，用于归还乐器,manual,,人工备注：红色；状态=已抽取
+mobile,frontend-mobile/src/pages/ReturnConfirm.jsx,252,*请拍摄完整展示乐器当前面板、背板、侧板、琴头、琴颈等各部位状态的照片作为归还留档,manual,,人工备注：红色；状态=已抽取（工作副本文案与代码不一致，已按代码校正）
+note,,,顾客下单页面 申请免押金下下方的“免押金仅限学生/教职工申请；第二证件照尚未完成”改为“押金减免优惠仅限在校学生、老师及乐团演奏家申请；第二证件照尚未完成”。同时加一个带颜色箭头，点击跳转到个人资料-第二证件照上传的地方。,manual,,人工需求：未实现
+note,,,顾客下单页面 申请免押金下方的“学生/教职工专享（需实名核验+信用分达标）”改为“在校学生、老师及乐团演奏家专享（需实名核验+信用分达标）”,manual,,人工需求：未实现
+note,,,顾客下单页面 申请免押金，改为：申请押金减免优惠,manual,,人工需求：未实现
+note,,,顾客下单页面 第二证件照未认证的顾客，点击申请免押金，会弹出提示框，显示：“免押金仅限学生/教职工申请；第二证件照尚未完成”。改为“押金减免优惠仅限在校学生、老师及乐团演奏家申请；第二证件照尚未完成；请您前往“我的”-“个人资料”-“第二证件照”上传证件。,manual,,人工需求：未实现
+note,,,（请下滑查看详细会员规则与权益手册）,manual,,人工需求：未实现；原描述：会员中心页面-相应会员等级后面添加一行黑色小字。如果在同一行显示不完整或者不美观，那就在下面另起一行

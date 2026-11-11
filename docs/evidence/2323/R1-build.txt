@@ -1,0 +1,4 @@
+BUILD: rows=3288 mobile=1484 pc=1789 manual=15
+IDEMPOTENT: yes
+NEGATIVE(expect-rows)=1
+RESULT: PASS

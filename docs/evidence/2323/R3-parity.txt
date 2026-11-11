@@ -1,0 +1,4 @@
+CHECK: checked=3273 exact=3149 prefix=124 failures=0
+PARITY: report_rows=3273 csv_report_rows=3273 diff=0
+NEGATIVE(extra-row)=1
+RESULT: PASS

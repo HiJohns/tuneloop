@@ -1,0 +1,3 @@
+CHECK: checked=3273 exact=3149 prefix=124 failures=0
+NEGATIVE(bad-rows)=2
+RESULT: PASS

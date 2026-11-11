@@ -1,0 +1,4 @@
+CHECK: checked=3273 exact=3149 prefix=124 failures=0
+SUPPLEMENTAL: name_error=8 requirement=6 style=5 lost=0
+NEGATIVE(missing-note)=1
+RESULT: PASS
