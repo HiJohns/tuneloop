@@ -3742,14 +3742,14 @@
 
 | 端 | 文件 | 行 | 文案 | 备注 |
 |---|---|---:|---|---|
-| mobile | `frontend-mobile/src/components/AddressManager.jsx` | 89 | + 新地址 | 待产品确认：原 #NAME?（Excel 公式损坏）；状态=残余 |
-| mobile | `frontend-mobile/src/pages/RepairServiceCreate.jsx` | 263 | ＋ 录制/选择试奏视频（≤60s） | 待产品确认：原 #NAME?（Excel 公式损坏）；状态=残余 |
-| mobile | `frontend-mobile/src/pages/RepairServiceCreate.jsx` | 267 | ＋ 选择试奏视频 | 待产品确认：原 #NAME?（Excel 公式损坏）；状态=残余 |
-| mobile | `frontend-mobile/src/pages-weapp/Checkout.jsx` | 615 | + 新增担保人 | 待产品确认：原 #NAME?（Excel 公式损坏）；状态=三元盲区 |
-| mobile | `frontend-mobile/src/pages-weapp/Checkout.jsx` | 756 | + 使用新地址 | 待产品确认：原 #NAME?（Excel 公式损坏）；状态=已抽取 |
-| mobile | `frontend-mobile/src/pages/Checkout.jsx` | 1338 | + 新增担保人 | 待产品确认：原 #NAME?（Excel 公式损坏）；状态=已抽取 |
-| mobile | `frontend-mobile/src/pages/Checkout.jsx` | 1420 | + 使用新地址 | 待产品确认：原 #NAME?（Excel 公式损坏）；状态=已抽取 |
-| pc | `frontend-pc/src/pages/admin/instrument/Detail.jsx` | 559 | + 新增 | 待产品确认：原 #NAME?（Excel 公式损坏）；状态=残余 |
+| mobile | `frontend-mobile/src/components/AddressManager.jsx` | 89 | + 新地址 | 待产品确认：原 #NAME?（Excel 公式损坏）；状态=残余；工作副本行 88 |
+| mobile | `frontend-mobile/src/pages/RepairServiceCreate.jsx` | 263 | ＋ 录制/选择试奏视频（≤60s） | 待产品确认：原 #NAME?（Excel 公式损坏）；状态=残余；工作副本行 263 |
+| mobile | `frontend-mobile/src/pages/RepairServiceCreate.jsx` | 267 | ＋ 选择试奏视频 | 待产品确认：原 #NAME?（Excel 公式损坏）；状态=残余；工作副本行 267 |
+| mobile | `frontend-mobile/src/pages-weapp/Checkout.jsx` | 756 | + 使用新地址 | 待产品确认：原 #NAME?（Excel 公式损坏）；状态=已抽取；工作副本行 749 |
+| mobile | `frontend-mobile/src/pages-weapp/Checkout.jsx` | 1364 | + 使用新地址 | 待产品确认：原 #NAME?（Excel 公式损坏）；状态=已抽取；工作副本行 1320 |
+| mobile | `frontend-mobile/src/pages/Checkout.jsx` | 1338 | + 新增担保人 | 待产品确认：原 #NAME?（Excel 公式损坏）；状态=已抽取；工作副本行 1287 |
+| mobile | `frontend-mobile/src/pages/Checkout.jsx` | 1420 | + 使用新地址 | 待产品确认：原 #NAME?（Excel 公式损坏）；状态=已抽取；工作副本行 1369 |
+| pc | `frontend-pc/src/pages/admin/instrument/Detail.jsx` | 559 | + 新增 | 待产品确认：原 #NAME?（Excel 公式损坏）；状态=残余；工作副本行 531 |
 
 ## 人工备注与需求（11 条）
 

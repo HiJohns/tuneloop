@@ -33,16 +33,17 @@ const SOURCES = [
 ]
 
 // 工作副本里被 Excel 当成公式解析的 8 条（文案以 `+` / `＋` 开头 → `#NAME?`）。
-// 原文由 #2323 逐条人工核对：#NAME? 无法在代码中定位，故按代码还原 text（不猜、不删）。
+// 真值来源：工作副本的 (file, 行号) + 与工作副本行号吻合的扫描快照（同一 buggy 行号口径）。
+// 禁止按 Issue 正文的散文描述臆测；每条的 wcLine 必须与工作副本 `#NAME?` 行号一致。
 const NAME_ERROR_REPAIRS = [
-  { file: 'frontend-mobile/src/components/AddressManager.jsx', text: '+ 新地址' },
-  { file: 'frontend-mobile/src/pages/Checkout.jsx', text: '+ 新增担保人' },
-  { file: 'frontend-mobile/src/pages/Checkout.jsx', text: '+ 使用新地址' },
-  { file: 'frontend-mobile/src/pages/RepairServiceCreate.jsx', text: '＋ 录制/选择试奏视频（≤60s）' },
-  { file: 'frontend-mobile/src/pages/RepairServiceCreate.jsx', text: '＋ 选择试奏视频' },
-  { file: 'frontend-mobile/src/pages-weapp/Checkout.jsx', text: '+ 新增担保人' },
-  { file: 'frontend-mobile/src/pages-weapp/Checkout.jsx', text: '+ 使用新地址' },
-  { file: 'frontend-pc/src/pages/admin/instrument/Detail.jsx', text: '+ 新增' },
+  { file: 'frontend-mobile/src/components/AddressManager.jsx', wcLine: 88, text: '+ 新地址' },
+  { file: 'frontend-mobile/src/pages/Checkout.jsx', wcLine: 1287, text: '+ 新增担保人' },
+  { file: 'frontend-mobile/src/pages/Checkout.jsx', wcLine: 1369, text: '+ 使用新地址' },
+  { file: 'frontend-mobile/src/pages/RepairServiceCreate.jsx', wcLine: 263, text: '＋ 录制/选择试奏视频（≤60s）' },
+  { file: 'frontend-mobile/src/pages/RepairServiceCreate.jsx', wcLine: 267, text: '＋ 选择试奏视频' },
+  { file: 'frontend-mobile/src/pages-weapp/Checkout.jsx', wcLine: 749, text: '+ 使用新地址' },
+  { file: 'frontend-mobile/src/pages-weapp/Checkout.jsx', wcLine: 1320, text: '+ 使用新地址' },
+  { file: 'frontend-pc/src/pages/admin/instrument/Detail.jsx', wcLine: 531, text: '+ 新增' },
 ]
 
 const STYLE_NOTE_PREFIX_MIN = 20
@@ -139,6 +140,28 @@ function findTCallLine(file, text) {
   const needles = [`t('${text}')`, `t("${text}")`]
   for (let i = 0; i < lines.length; i += 1) if (needles.some((n) => lines[i].includes(n))) return i + 1
   return 0
+}
+
+function allMatchLines(file, needle) {
+  const lines = fileLines(file)
+  if (!lines) return []
+  const out = []
+  for (let i = 0; i < lines.length; i += 1) if (lines[i].includes(needle)) out.push(i + 1)
+  return out
+}
+
+function allTCallLines(file, text) {
+  const lines = fileLines(file)
+  if (!lines) return []
+  const needles = [`t('${text}')`, `t("${text}")`]
+  const out = []
+  for (let i = 0; i < lines.length; i += 1) if (needles.some((n) => lines[i].includes(n))) out.push(i + 1)
+  return out
+}
+
+/** 取距离目标行最近的一条（同名文案在同文件多次出现时区分归属） */
+function nearestLine(candidates, target) {
+  return candidates.reduce((best, l) => (Math.abs(l - target) < Math.abs(best - target) ? l : best), candidates[0])
 }
 
 function commonPrefixLen(a, b) {
@@ -343,30 +366,33 @@ function deriveManualFromNotes(notesPath) {
   for (const s of SOURCES) {
     for (const r of runReport(s.dir).rows) reportKeys.add(`${r.file}\u0000${r.text}`)
   }
+  const seenName = new Set()
   for (const rep of NAME_ERROR_REPAIRS) {
     if (reportKeys.has(`${rep.file}\u0000${rep.text}`)) continue
-    const tLine = findTCallLine(rep.file, rep.text)
-    const rawLine = findLiteralLine(rep.file, rep.text)
+    const tLines = allTCallLines(rep.file, rep.text)
+    const rawLines = allMatchLines(rep.file, rep.text)
     let status = '未定位'
     let line = ''
-    if (tLine) { status = '已抽取'; line = tLine } else if (rawLine) { status = '三元盲区'; line = rawLine }
+    if (tLines.length) { status = '已抽取'; line = nearestLine(tLines, rep.wcLine) } else if (rawLines.length) { status = '三元盲区'; line = nearestLine(rawLines, rep.wcLine) }
+    const dedupe = `${rep.file}\u0000${line}\u0000${rep.text}`
+    if (seenName.has(dedupe)) continue
+    seenName.add(dedupe)
     manual.push({
       end: normalizeEnd(rep.file), file: rep.file, line, text: rep.text, source: 'manual', edit: '',
-      note: `待产品确认：原 #NAME?（Excel 公式损坏）；状态=${status}`,
+      note: `待产品确认：原 #NAME?（Excel 公式损坏）；状态=${status}；工作副本行 ${rep.wcLine}`,
     })
   }
   return manual
 }
 
 function markNameErrors(rows) {
-  const reportKeys = new Set(rows.filter((r) => r.source === 'report').map((r) => `${r.file}\u0000${r.text}`))
   for (const rep of NAME_ERROR_REPAIRS) {
-    if (!reportKeys.has(`${rep.file}\u0000${rep.text}`)) continue
-    for (const r of rows) {
-      if (r.source === 'report' && r.file === rep.file && r.text === rep.text) {
-        r.note = '待产品确认：原 #NAME?（Excel 公式损坏）；状态=残余'
-      }
-    }
+    const cands = rows.filter((r) => r.source === 'report' && r.file === rep.file && r.text === rep.text)
+    if (!cands.length) continue
+    const pick = cands.reduce((best, r) => (
+      Math.abs(Number(r.line) - rep.wcLine) < Math.abs(Number(best.line) - rep.wcLine) ? r : best
+    ), cands[0])
+    pick.note = `待产品确认：原 #NAME?（Excel 公式损坏）；状态=残余；工作副本行 ${rep.wcLine}`
   }
   return rows
 }

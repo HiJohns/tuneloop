@@ -43,8 +43,23 @@ const NEGATIVE = opt('--negative', '')
 const EVIDENCE = opt('--evidence', '')
 const DO_PARITY = flag('--parity')
 const DO_SUPP = flag('--check-supplemental')
+const DO_IDENTITY = flag('--check-name-identity')
 
 const EXPECT = { name_error: 8, requirement: 6, style: 5 }
+
+// 8 条 #NAME? 的 identity 真值：来自工作副本的 (file, 行号) + 与工作副本行号吻合的扫描快照。
+// 计数相等不代表内容正确（2026-11-11 审计 Bug 1：一条被改成 + 新增担保人、另一条丢失）。
+// 这里用 (file, text) 多重集比对；`pages-weapp/Checkout.jsx` 的两条都是 `+ 使用新地址`。
+const NAME_ERROR_EXPECT = [
+  { file: 'frontend-mobile/src/components/AddressManager.jsx', text: '+ 新地址' },
+  { file: 'frontend-mobile/src/pages/Checkout.jsx', text: '+ 新增担保人' },
+  { file: 'frontend-mobile/src/pages/Checkout.jsx', text: '+ 使用新地址' },
+  { file: 'frontend-mobile/src/pages/RepairServiceCreate.jsx', text: '＋ 录制/选择试奏视频（≤60s）' },
+  { file: 'frontend-mobile/src/pages/RepairServiceCreate.jsx', text: '＋ 选择试奏视频' },
+  { file: 'frontend-mobile/src/pages-weapp/Checkout.jsx', text: '+ 使用新地址' },
+  { file: 'frontend-mobile/src/pages-weapp/Checkout.jsx', text: '+ 使用新地址' },
+  { file: 'frontend-pc/src/pages/admin/instrument/Detail.jsx', text: '+ 新增' },
+]
 
 // ---------------------------------------------------------------- io
 function parseCsvLine(line) {
@@ -161,6 +176,41 @@ function checkSupplemental(rows) {
   }
 }
 
+function checkNameIdentity(rows) {
+  const actual = new Map()
+  for (const r of rows) {
+    if (!r.note.startsWith('待产品确认')) continue
+    const k = `${r.file}\u0000${r.text}`
+    actual.set(k, (actual.get(k) || 0) + 1)
+  }
+  const expect = new Map()
+  for (const e of NAME_ERROR_EXPECT) {
+    const k = `${e.file}\u0000${e.text}`
+    expect.set(k, (expect.get(k) || 0) + 1)
+  }
+  let diff = 0
+  let matched = 0
+  const problems = []
+  for (const [k, n] of expect) {
+    const a = actual.get(k) || 0
+    matched += Math.min(a, n)
+    if (a !== n) {
+      diff += Math.abs(a - n)
+      problems.push(`identity mismatch ${k.replace(/\u0000/g, ' | ')} expected=${n} actual=${a}`)
+    }
+  }
+  for (const [k, a] of actual) {
+    if (expect.has(k)) continue
+    diff += a
+    problems.push(`unexpected name_error row ${k.replace(/\u0000/g, ' | ')}`)
+  }
+  return {
+    summary: `NAME-IDENTITY: expected=${NAME_ERROR_EXPECT.length} matched=${matched} identity_diff=${diff}`,
+    problems,
+    diff,
+  }
+}
+
 function mdStats(mdPath, rows) {
   const text = fs.readFileSync(mdPath, 'utf8')
   const pick = (label) => {
@@ -194,6 +244,7 @@ function negativeCount(kind, file) {
   const fixture = readRows(path.resolve(ROOT, file))
   if (kind === 'parity') return checkParity(fixture).problems.length
   if (kind === 'supp') return checkSupplemental(fixture).problems.length
+  if (kind === 'identity') return checkNameIdentity(fixture).problems.length
   return checkRows(fixture).problems.length
 }
 
@@ -224,6 +275,12 @@ if (DO_SUPP) {
   if (r.problems.length) { fail = true; for (const p of r.problems) log.push(`  FAIL ${p}`) }
 }
 
+if (DO_IDENTITY) {
+  const r = checkNameIdentity(rows)
+  log.push(r.summary)
+  if (r.problems.length) { fail = true; for (const p of r.problems.slice(0, 10)) log.push(`  FAIL ${p}`) }
+}
+
 if (MD) {
   const r = mdStats(path.resolve(ROOT, MD), rows)
   log.push(r.summary)
@@ -231,7 +288,7 @@ if (MD) {
 }
 
 if (NEGATIVE) {
-  const kind = MD ? 'md' : DO_PARITY ? 'parity' : DO_SUPP ? 'supp' : 'rows'
+  const kind = MD ? 'md' : DO_PARITY ? 'parity' : DO_IDENTITY ? 'identity' : DO_SUPP ? 'supp' : 'rows'
   const n = negativeCount(kind, NEGATIVE)
   log.push(`NEGATIVE(${path.basename(NEGATIVE, path.extname(NEGATIVE))})=${n}`)
   if (!n) { fail = true; log.push('  FAIL negative fixture was not detected') }
