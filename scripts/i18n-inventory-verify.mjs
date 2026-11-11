@@ -44,12 +44,19 @@ const EVIDENCE = opt('--evidence', '')
 const DO_PARITY = flag('--parity')
 const DO_SUPP = flag('--check-supplemental')
 const DO_IDENTITY = flag('--check-name-identity')
+const DO_BLIND = flag('--check-blindspots')
 
 const EXPECT = { name_error: 8, requirement: 6, style: 5 }
 
 // 8 条 #NAME? 的 identity 真值：来自工作副本的 (file, 行号) + 与工作副本行号吻合的扫描快照。
 // 计数相等不代表内容正确（2026-11-11 审计 Bug 1：一条被改成 + 新增担保人、另一条丢失）。
 // 这里用 (file, text) 多重集比对；`pages-weapp/Checkout.jsx` 的两条都是 `+ 使用新地址`。
+// 三元表达式盲区：生成器抓不到但用户可见，按计划须显式登记且不计入 #NAME?。
+const TERNARY_EXPECT = [
+  { file: 'frontend-mobile/src/pages-weapp/Checkout.jsx', line: 615, text: '+ 新增担保人' },
+  { file: 'frontend-mobile/src/pages-weapp/Checkout.jsx', line: 1276, text: '+ 新增担保人' },
+]
+
 const NAME_ERROR_EXPECT = [
   { file: 'frontend-mobile/src/components/AddressManager.jsx', text: '+ 新地址' },
   { file: 'frontend-mobile/src/pages/Checkout.jsx', text: '+ 新增担保人' },
@@ -211,6 +218,28 @@ function checkNameIdentity(rows) {
   }
 }
 
+function checkBlindspots(rows) {
+  const actual = rows.filter((r) => r.note.startsWith('三元盲区'))
+  const key = (r) => `${r.file}\u0000${Number(r.line)}\u0000${r.text}`
+  const have = new Set(actual.map(key))
+  const problems = []
+  let matched = 0
+  for (const e of TERNARY_EXPECT) {
+    if (have.has(`${e.file}\u0000${e.line}\u0000${e.text}`)) matched += 1
+    else problems.push(`missing blindspot ${e.file}:${e.line} ${e.text}`)
+  }
+  for (const r of actual) {
+    if (!TERNARY_EXPECT.some((e) => e.file === r.file && e.line === Number(r.line) && e.text === r.text)) {
+      problems.push(`unexpected blindspot ${r.file}:${r.line} ${r.text}`)
+    }
+  }
+  if (actual.length !== TERNARY_EXPECT.length) problems.push(`ternary count ${actual.length} != ${TERNARY_EXPECT.length}`)
+  return {
+    summary: `BLINDSPOTS: ternary=${actual.length} matched=${matched}`,
+    problems,
+  }
+}
+
 function mdStats(mdPath, rows) {
   const text = fs.readFileSync(mdPath, 'utf8')
   const pick = (label) => {
@@ -245,6 +274,7 @@ function negativeCount(kind, file) {
   if (kind === 'parity') return checkParity(fixture).problems.length
   if (kind === 'supp') return checkSupplemental(fixture).problems.length
   if (kind === 'identity') return checkNameIdentity(fixture).problems.length
+  if (kind === 'blind') return checkBlindspots(fixture).problems.length
   return checkRows(fixture).problems.length
 }
 
@@ -281,6 +311,12 @@ if (DO_IDENTITY) {
   if (r.problems.length) { fail = true; for (const p of r.problems.slice(0, 10)) log.push(`  FAIL ${p}`) }
 }
 
+if (DO_BLIND) {
+  const r = checkBlindspots(rows)
+  log.push(r.summary)
+  if (r.problems.length) { fail = true; for (const p of r.problems.slice(0, 10)) log.push(`  FAIL ${p}`) }
+}
+
 if (MD) {
   const r = mdStats(path.resolve(ROOT, MD), rows)
   log.push(r.summary)
@@ -288,7 +324,7 @@ if (MD) {
 }
 
 if (NEGATIVE) {
-  const kind = MD ? 'md' : DO_PARITY ? 'parity' : DO_IDENTITY ? 'identity' : DO_SUPP ? 'supp' : 'rows'
+  const kind = MD ? 'md' : DO_PARITY ? 'parity' : DO_IDENTITY ? 'identity' : DO_BLIND ? 'blind' : DO_SUPP ? 'supp' : 'rows'
   const n = negativeCount(kind, NEGATIVE)
   log.push(`NEGATIVE(${path.basename(NEGATIVE, path.extname(NEGATIVE))})=${n}`)
   if (!n) { fail = true; log.push('  FAIL negative fixture was not detected') }

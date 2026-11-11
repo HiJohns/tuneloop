@@ -46,6 +46,14 @@ const NAME_ERROR_REPAIRS = [
   { file: 'frontend-pc/src/pages/admin/instrument/Detail.jsx', wcLine: 531, text: '+ 新增' },
 ]
 
+// 三元表达式内的中文字面量：生成器只覆盖 JSXText / UI 属性 / dialog・Taro・message 调用 / 二元拼接，
+// 条件表达式（`cond ? '已收起' : '+ 新增'`）属 AST 盲区，`--report` 抓不到。
+// 计划（§3 工具盲区 / Out of Scope）要求「显式登记而非静默丢弃」→ 作为补充行登记，且**不计入** #NAME?。
+const TERNARY_BLINDSPOTS = [
+  { file: 'frontend-mobile/src/pages-weapp/Checkout.jsx', line: 615, text: '+ 新增担保人' },
+  { file: 'frontend-mobile/src/pages-weapp/Checkout.jsx', line: 1276, text: '+ 新增担保人' },
+]
+
 const STYLE_NOTE_PREFIX_MIN = 20
 
 // ---------------------------------------------------------------- argv
@@ -223,8 +231,19 @@ function build(manualRows) {
     for (const row of r.rows) report.push({ ...row, end: s.end, source: 'report' })
     shadowed.push(...r.shadowed)
   }
-  const rows = report.concat(manualRows)
-  return { report, manualRows, rows, shadowed }
+  const merged = manualRows.slice()
+  const seen = new Set(merged.map((r) => `${r.file}\u0000${r.line}\u0000${r.text}`))
+  for (const b of TERNARY_BLINDSPOTS) {
+    const key = `${b.file}\u0000${b.line}\u0000${b.text}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    merged.push({
+      end: normalizeEnd(b.file), file: b.file, line: b.line, text: b.text, source: 'manual', edit: '',
+      note: '三元盲区：条件表达式内字面量未被抽取（生成器 AST 盲区）；不计入 #NAME?',
+    })
+  }
+  const rows = report.concat(merged)
+  return { report, manualRows: merged, rows, shadowed }
 }
 
 function renderCsv(rows) {
@@ -295,6 +314,16 @@ function renderMd(report, rows, shadowed) {
   out.push('|---|---|---:|---|---|')
   for (const r of styleNotes) out.push(`| 样式 | \`${r.file}\` | ${r.line || '-'} | ${r.text} | ${r.note} |`)
   for (const r of reqNotes) out.push(`| 需求 | - | - | ${r.text} | ${r.note} |`)
+  out.push('')
+
+  const ternary = rows.filter((r) => (r.note || '').startsWith('三元盲区'))
+  out.push(`## 三元盲区（AST 未覆盖，已登记 ${ternary.length} 条）`)
+  out.push('')
+  out.push('> 条件表达式内的中文字面量生成器抓不到；按计划「显式登记而非静默丢弃」单列，不计入 #NAME?。')
+  out.push('')
+  out.push('| 文件 | 行 | 文案 | 备注 |')
+  out.push('|---|---:|---|---|')
+  for (const r of ternary) out.push(`| \`${r.file}\` | ${r.line} | ${r.text} | ${r.note} |`)
   out.push('')
 
   out.push(`## 工具盲区（未纳入清单，${shadowed.length} 条）`)
