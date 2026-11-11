@@ -105,9 +105,12 @@ function addEdit(node, replacement) {
   edits.push({ file: node.__file, start: node.start, end: node.end, text: replacement })
 }
 
-function collect(node, text) {
+// #2323: JSXText 节点含前导空白/换行，loc.start.line 会落在文案的上一行。
+// line 允许显式传入「文案真正开始的行」，否则回退到节点起始行。
+function collect(node, text, line) {
   keys.add(text)
-  found.push({ file: node.__file, line: (node.loc && node.loc.start.line) || 0, text })
+  const nodeLine = (node.loc && node.loc.start.line) || 0
+  found.push({ file: node.__file, line: line || nodeLine, text })
 }
 
 function esc(s) {
@@ -134,11 +137,13 @@ for (const file of files) {
       const raw = p.node.value
       const core = raw.trim()
       if (!core || !ZH.test(core) || insideT(p)) return
-      if (shadowedT(p)) { shadowed.push({ file: rel, line: (p.node.loc && p.node.loc.start.line) || 0, text: core }); return }
       const lead = raw.slice(0, raw.indexOf(core))
       const tail = raw.slice(raw.indexOf(core) + core.length)
+      // #2323: 多行 JSXText 的 loc.start 在上一行；按前导片段的换行数偏移到文案真正所在行。
+      const lineNo = ((p.node.loc && p.node.loc.start.line) || 0) + (lead.match(/\n/g) || []).length
+      if (shadowedT(p)) { shadowed.push({ file: rel, line: lineNo, text: core }); return }
       p.node.__file = rel
-      collect(p.node, core)
+      collect(p.node, core, lineNo)
       addEdit(p.node, `${lead}{t(${esc(core)})}${tail}`)
     },
     JSXAttribute(p) {

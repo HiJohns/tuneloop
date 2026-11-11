@@ -173,5 +173,36 @@ AST 抽取不是万能的，以下需要人工处理：
 - [ ] H5/weapp 分支分别核对；页面归属差异登记到 `docs/cases/h5-weapp-differences.md`
 - [ ] ESLint + `build:h5` + `build:weapp` + wxml 原生标签探针
 
+### 9.5 清单生成与校验（#2323）
+
+`docs/ops/i18n-inventory.csv` / `.md` **不再手工维护**，由脚本逐字节重建：
+
+```bash
+# 重建（唯一合法入口；禁止手改产物）
+node scripts/i18n-inventory-build.mjs
+node scripts/i18n-inventory-build.mjs --self-test        # 额外做幂等 + 行数自检
+node scripts/i18n-inventory-build.mjs --notes i18n-inventory.csv   # 首次导入未入 git 的产品工作副本
+
+# 校验（改完代码/文案后跑；非 0 退出即不可提交）
+node scripts/i18n-inventory-verify.mjs --csv docs/ops/i18n-inventory.csv --parity --check-supplemental --check-md docs/ops/i18n-inventory.md
+```
+
+**CSV 列**：`end,file,line,text,来源,修改,备注`
+
+| 字段 | 语义 |
+|---|---|
+| `来源=report` | 生成器产物，与 `--report` 实时输出**逐条相等**（`--parity` 断言 diff=0） |
+| `来源=manual` | 人工行（待产品确认 / 样式备注 / 需求备注），**不计入** `.md` 统计 |
+| `修改` / `备注` | 产品工作副本的人工列；`修改` 当前实测 0 条非空 |
+
+**断言规则**
+
+- `text` 含 `{msg}` 时是字符串拼接的**合成 key**（源码为 `'前缀' + x`），源码不存在该字面量 → 断言**前缀**出现在该行。
+- 多行 JSXText 的行号取「文案真正开始的那一行」（`loc.start.line + 前导换行数`），否则会统一偏上一行。
+- 8 条 `#NAME?`（Excel 把 `+`/`＋` 开头文案当公式）无法定位，按代码还原 `text` 并标 `待产品确认：原 #NAME?（Excel 公式损坏）；状态=残余|已抽取|三元盲区`。
+- `t` 被局部变量遮蔽（`map((t,i))`）与三元表达式内的字面量是 AST 盲区：生成器主动跳过，`build` 会把它们写进 `.md` 的「工具盲区」节，**不静默丢弃**。
+
+**依赖风险**：生成器通过 `createRequire(frontend-mobile/package.json)` 解析 `@babel/parser` / `@babel/traverse`，二者**未在 package.json 显式声明**，依赖 `@babel/core` 的传递提升。改为 pnpm / isolated 安装会断链，届时需显式声明为 devDependency。
+
 ---
 _草案：待评审后按 Phase 0 起步，Phase 1 起按页拆 Issue。_
