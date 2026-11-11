@@ -1,5 +1,6 @@
 import { storage, session, cookie, request as platformRequest, dialog, navigation, env, wxLogin as wxLoginCode, eventBus } from '../platform'
 import { isContextDrift } from '../utils/sessionContext'
+import { computeExpiryMs } from './sessionToken.mjs'
 
 export { resolveErrorMessage, ERROR_CODE_MAP, ERROR_MESSAGE_MAP } from './errorMessages'
 export const publicRoutes = ['/', '/instrument', '/content', '/cart', '/success', '/callback']
@@ -388,6 +389,8 @@ async function refreshAccessToken() {
   const data = await response.json()
   if (data.code === 20000 && data.data?.access_token) {
     storage.setItem('token', data.data.access_token)
+    // #2325: 续期必须同步刷新过期时间；否则下一次 getToken() 仍判过期 → 反复 401 → 最终登出
+    storage.setItem('token_expiry', String(computeExpiryMs(data.data.expires_in, data.data.access_token)))
     if (data.data.refresh_token) storage.setItem('refresh_token', data.data.refresh_token)
     // #2111: 刷新后上下文一致性校验——漂移即清会话并引导重登（杜绝静默换身份）
     const lc = storage.getJSON('login_context')
