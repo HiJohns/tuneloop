@@ -1,0 +1,35 @@
+TAP version 13
+# Subtest: 公开页判定（H5）：带 query 也必须命中
+ok 1 - 公开页判定（H5）：带 query 也必须命中
+  ---
+  duration_ms: 3.300163
+  ...
+# Subtest: 公开页判定（weapp）：按 pages-weapp 页面路径
+ok 2 - 公开页判定（weapp）：按 pages-weapp 页面路径
+  ---
+  duration_ms: 0.433003
+  ...
+# Subtest: 降级窗口：同窗口内并发 401 只降级一次
+ok 3 - 降级窗口：同窗口内并发 401 只降级一次 # SKIP test name does not match pattern
+  ---
+  duration_ms: 0.367912
+  ...
+# Subtest: 接线：api.js 使用 isPublicPath 与 resetToHome，且无裸 redirect 根路径
+ok 4 - 接线：api.js 使用 isPublicPath 与 resetToHome，且无裸 redirect 根路径 # SKIP test name does not match pattern
+  ---
+  duration_ms: 2.299612
+  ...
+# Subtest: 平台对称：两端均导出 resetToHome
+ok 5 - 平台对称：两端均导出 resetToHome # SKIP test name does not match pattern
+  ---
+  duration_ms: 0.3116
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 3
+# todo 0
+# duration_ms 231.110761
