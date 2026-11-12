@@ -132,6 +132,9 @@ type PayScoreOrder struct {
 	State      string            `json:"state,omitempty"` // CREATED/DOING/DONE/MORDIFY/CANCELED/EXPIRED
 	RiskFund   *PayScoreRiskFund `json:"risk_fund,omitempty"`
 	OpenID     string            `json:"openid,omitempty"`
+	// Package 是创建服务订单后微信返回的拉起凭证（前端 openBusinessView 使用）。
+	// mock provider 不返回真实 package（响应里带 mock=true 区分）。
+	Package string `json:"package,omitempty"`
 }
 
 // PayScoreCallbackEnvelope 是回调外层信封（resource 加密）。

@@ -126,6 +126,15 @@ func PrepayOrder(c *gin.Context) {
 		}
 	}
 
+	// #2327 D5/D12: 租金支付前先过支付分闸门（PAYSCORE_ENFORCE=false 时放行）。
+	// 放在创建支付记录/调用微信之前，避免"已建单但被闸门拒绝"的孤儿支付记录。
+	if req.OrderType == "rent" && effectiveOrderID != "" {
+		if err := creditGateError(db, effectiveOrderID); err != nil {
+			failCreditGate(c, err)
+			return
+		}
+	}
+
 	// Last-resort: never persist an empty string into a uuid column
 	if tenantID == "" {
 		tenantID = "00000000-0000-0000-0000-000000000000"

@@ -220,6 +220,33 @@ func validateReducedDepositRequest(c *gin.Context, db *gorm.DB, userID string, g
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "reduced-deposit order requires a recommendation letter"})
 		return false
 	}
+	return validateGuarantors(c, db, userID, guarantorIDs)
+}
+
+// validateCreditPathDepositRequest 按下单信用路径选择 reduced 档资格校验（#2327 D1/D3/D13）：
+//   - internal（默认）：沿用 #1867 内部免押资格 + 推荐信 + 2 担保人；
+//   - payscore：不要求内部资格/推荐信，但仍需 2 位本人担保人。
+func validateCreditPathDepositRequest(c *gin.Context, db *gorm.DB, userID string, guarantorIDs []string, letter, creditPath string) bool {
+	if creditPath == models.DepositCreditPathPayscore {
+		return validateGuarantors(c, db, userID, guarantorIDs)
+	}
+	return validateReducedDepositRequest(c, db, userID, guarantorIDs, letter)
+}
+
+// normalizeDepositCreditPath 归一化信用路径；空值按 internal 兼容旧客户端（D13）。
+func normalizeDepositCreditPath(path string) (string, bool) {
+	switch path {
+	case "":
+		return models.DepositCreditPathInternal, true
+	case models.DepositCreditPathInternal, models.DepositCreditPathPayscore:
+		return path, true
+	default:
+		return "", false
+	}
+}
+
+// validateGuarantors 校验 reduced 档必须有 2 位本人名下担保人。
+func validateGuarantors(c *gin.Context, db *gorm.DB, userID string, guarantorIDs []string) bool {
 	if len(guarantorIDs) < 2 {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "reduced-deposit order requires at least 2 guarantors"})
 		return false
@@ -267,6 +294,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		DiscountCode         string      `json:"discount_code"`         // redeemable code (#1539)
 		DepositWaived        bool        `json:"deposit_waived"`        // legacy alias: mapped to reduced (#1557/#2321)
 		DepositTier          string      `json:"deposit_tier"`          // #2321: full|reduced|zero
+		DepositCreditPath    string      `json:"deposit_credit_path"`   // #2327 D13: internal|payscore（默认 internal）
 		GuarantorIDs         []string    `json:"guarantor_ids"`         // guarantors for reduced-deposit order (#1557)
 		RecommendationLetter string      `json:"recommendation_letter"` // #1867: deposit-free letter URL
 	}
@@ -281,6 +309,11 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	orgID := middleware.GetOrgID(ctx)
 	if !validDepositTier(req.DepositTier) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid deposit_tier"})
+		return
+	}
+	creditPath, ok := normalizeDepositCreditPath(req.DepositCreditPath)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid deposit_credit_path"})
 		return
 	}
 
@@ -438,10 +471,18 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	}
 	requestedTier := requestedDepositTier(req.DepositTier, req.DepositWaived)
 	depositTier, fullDeposit, reducedAmount, _ := resolveDepositTier(&lockedInstrument, pricingResult, requestedTier)
+	// #2327 D13: payscore 路径下允许主动选择 zero 档（押金由支付分担保，
+	// 风险金额按乐器原价；这是信用档位，不是「乐器本身零押金」）。
+	if creditPath == models.DepositCreditPathPayscore && requestedTier == models.DepositTierZero && fullDeposit > 0 {
+		depositTier = models.DepositTierZero
+	}
 	deposit := fullDeposit
+	if depositTier == models.DepositTierZero {
+		deposit = 0
+	}
 	needsGuarantors := false
 	if depositTier == models.DepositTierReduced {
-		if !validateReducedDepositRequest(c, db, userID, req.GuarantorIDs, req.RecommendationLetter) {
+		if !validateCreditPathDepositRequest(c, db, userID, req.GuarantorIDs, req.RecommendationLetter, creditPath) {
 			tx.Rollback()
 			return
 		}
@@ -569,6 +610,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		MonthlyRent:          0,
 		Deposit:              models.FromYuan(deposit),
 		DepositTier:          depositTier,
+		DepositCreditPath:    creditPath,
 		DepositFull:          centsPtr(fullDeposit),
 		DepositReduced:       reducedSnapshot(&lockedInstrument),
 		DepositWaived:        false,
@@ -803,6 +845,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		DeliveryAddress      interface{} `json:"delivery_address"`
 		DepositWaived        bool        `json:"deposit_waived"`        // legacy alias: mapped to reduced (#1557/#2321)
 		DepositTier          string      `json:"deposit_tier"`          // #2321: full|reduced|zero (all items)
+		DepositCreditPath    string      `json:"deposit_credit_path"`   // #2327 D13: internal|payscore (all items)
 		GuarantorIDs         []string    `json:"guarantor_ids"`         // shared guarantors for all items (#1557)
 		RecommendationLetter string      `json:"recommendation_letter"` // #1867: deposit-free letter URL
 	}
@@ -817,6 +860,11 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 	orgID := middleware.GetOrgID(ctx)
 	if !validDepositTier(req.DepositTier) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid deposit_tier"})
+		return
+	}
+	creditPath, ok := normalizeDepositCreditPath(req.DepositCreditPath)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid deposit_credit_path"})
 		return
 	}
 
@@ -986,11 +1034,18 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			dailyRent = pricingResult.Tiers[0].DailyRate
 		}
 		depositTier, fullDeposit, reducedAmount, _ := resolveDepositTier(&lockedInstrument, pricingResult, requestedTier)
+		// #2327 D13: payscore 路径下 zero 档 = 押金全由支付分担保。
+		if creditPath == models.DepositCreditPathPayscore && requestedTier == models.DepositTierZero && fullDeposit > 0 {
+			depositTier = models.DepositTierZero
+		}
 		deposit := fullDeposit
+		if depositTier == models.DepositTierZero {
+			deposit = 0
+		}
 		needsGuarantors := false
 		if depositTier == models.DepositTierReduced {
 			if !guarantorChecked {
-				if !validateReducedDepositRequest(c, db, userID, req.GuarantorIDs, req.RecommendationLetter) {
+				if !validateCreditPathDepositRequest(c, db, userID, req.GuarantorIDs, req.RecommendationLetter, creditPath) {
 					tx.Rollback()
 					return
 				}
@@ -1045,6 +1100,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			MonthlyRent:          0,
 			Deposit:              models.FromYuan(deposit),
 			DepositTier:          depositTier,
+			DepositCreditPath:    creditPath,
 			DepositFull:          centsPtr(fullDeposit),
 			DepositReduced:       reducedSnapshot(&lockedInstrument),
 			DepositWaived:        false,

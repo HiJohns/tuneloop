@@ -124,6 +124,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		payScoreProvider = nil
 	}
 	payscoreHandler := handlers.NewPayscoreHandler(database.GetDB(), payScoreProvider, payScoreCfg)
+	handlers.SetPayscoreSettlementProvider(payScoreProvider, payScoreCfg.PayScoreServiceID)
 	userAddressHandler := handlers.NewUserAddressHandler()
 	userOnboardingHandler := handlers.NewUserOnboardingHandler()
 	faceVerifyHandler := handlers.NewFaceVerifyHandler(faceVerifyProvider)

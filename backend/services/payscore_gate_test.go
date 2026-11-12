@@ -30,6 +30,40 @@ func TestAssertTierPayable(t *testing.T) {
 	}
 }
 
+// TestAssertOrderPayableIfEnforced 覆盖 #2327 D4/D12/D13：
+//   - enforce=false 时一律放行（线上行为不变）；
+//   - zero 档要区分「乐器本身零押金」（internal/空路径）与「payscore 免押」。
+func TestAssertOrderPayableIfEnforced(t *testing.T) {
+	cases := []struct {
+		name    string
+		tier    string
+		path    string
+		state   string
+		enforce bool
+		ok      bool
+	}{
+		{"enforce 关闭时 reduced 未评估也放行", "reduced", "payscore", "", false, true},
+		{"enforce 关闭时 zero 未评估也放行", "zero", "payscore", "", false, true},
+		{"enforce 开启 reduced 已通过", "reduced", "payscore", "approved", true, true},
+		{"enforce 开启 reduced 未评估拒绝", "reduced", "payscore", "", true, false},
+		{"enforce 开启 zero(payscore) 未评估拒绝", "zero", "payscore", "", true, false},
+		{"enforce 开启 zero(payscore) 已通过", "zero", "payscore", "approved", true, true},
+		// 乐器本身零押金（full<=0）与信用无关，不得被 enforce 误伤。
+		{"enforce 开启 free 零押金放行", "zero", "", "", true, true},
+		{"enforce 开启 internal reduced 未评估拒绝", "reduced", "internal", "", true, false},
+		{"full 档始终放行", "full", "payscore", "", true, true},
+	}
+	for _, tc := range cases {
+		err := AssertOrderPayableIfEnforced(tc.tier, tc.path, tc.state, tc.enforce)
+		if tc.ok && err != nil {
+			t.Fatalf("%s: unexpected error %v", tc.name, err)
+		}
+		if !tc.ok && err == nil {
+			t.Fatalf("%s: expected rejection", tc.name)
+		}
+	}
+}
+
 func TestResolveCreditRiskAmount(t *testing.T) {
 	// full=5000, reduced=2000, price=12000（分）
 	cases := []struct {
