@@ -2,6 +2,7 @@ package wechatpay
 
 import (
 	"os"
+	"strconv"
 )
 
 type Config struct {
@@ -13,6 +14,11 @@ type Config struct {
 	NotifyURL       string
 	RefundNotifyURL string
 	MockMode        bool
+
+	// 微信支付分（免押租借，#2327）。默认关闭，未获商务准入前不得对线上开启。
+	PayScoreEnabled      bool
+	PayScoreServiceID    string
+	PayScoreRiskMaxCents int64
 }
 
 func LoadConfig() *Config {
@@ -31,6 +37,13 @@ func LoadConfig() *Config {
 		baseURL = "http://localhost:5553"
 	}
 
+	payScoreEnabled := false
+	switch os.Getenv("PAYSCORE_ENABLED") {
+	case "1", "true", "TRUE", "yes":
+		payScoreEnabled = true
+	}
+	riskMax, _ := strconv.ParseInt(os.Getenv("PAYSCORE_RISK_MAX_CENTS"), 10, 64)
+
 	return &Config{
 		MchID:           mchID,
 		AppID:           appID,
@@ -40,6 +53,10 @@ func LoadConfig() *Config {
 		NotifyURL:       baseURL + "/api/wechatpay/notify",
 		RefundNotifyURL: baseURL + "/api/wechatpay/notify", // same URL, WeChat distinguishes by event_type
 		MockMode:        false,
+
+		PayScoreEnabled:      payScoreEnabled,
+		PayScoreServiceID:    os.Getenv("PAYSCORE_SERVICE_ID"),
+		PayScoreRiskMaxCents: riskMax,
 	}
 }
 

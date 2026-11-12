@@ -84,3 +84,75 @@ type Client interface {
 	QueryRefund(ctx context.Context, outRefundNo string) (*RefundResult, error)
 	VerifyPaymentCallback(ctx context.Context, body []byte, signature, serial, timestamp, nonce string) (*CallbackResult, error)
 }
+
+// ---- 微信支付分（免押租借，#2327 S1）----
+
+type PayScoreRiskFund struct {
+	Name        string `json:"name"`
+	Amount      int64  `json:"amount"` // 分
+	Description string `json:"description,omitempty"`
+}
+
+type PayScoreTimeRange struct {
+	StartTime string `json:"start_time"`
+	EndTime   string `json:"end_time"`
+}
+
+type PayScoreCreateParams struct {
+	ServiceID  string            `json:"service_id"`
+	OutOrderNo string            `json:"out_order_no"`
+	AppID      string            `json:"appid"`
+	RiskFund   PayScoreRiskFund  `json:"risk_fund"`
+	TimeRange  PayScoreTimeRange `json:"time_range"`
+	NotifyURL  string            `json:"notify_url"`
+	OpenID     string            `json:"openid,omitempty"`
+}
+
+type PayScoreModifyParams struct {
+	ServiceID  string             `json:"service_id"`
+	OutOrderNo string             `json:"out_order_no"`
+	RiskFund   *PayScoreRiskFund  `json:"risk_fund,omitempty"`
+	TimeRange  *PayScoreTimeRange `json:"time_range,omitempty"`
+}
+
+type PayScoreSyncParams struct {
+	ServiceID  string `json:"service_id"`
+	OutOrderNo string `json:"out_order_no"`
+	Type       string `json:"type"`
+	Detail     string `json:"detail,omitempty"`
+}
+
+// PayScoreOrder 服务订单（微信返回的字段子集，按需扩展）。
+type PayScoreOrder struct {
+	AppID      string            `json:"appid,omitempty"`
+	MchID      string            `json:"mchid,omitempty"`
+	ServiceID  string            `json:"service_id"`
+	OutOrderNo string            `json:"out_order_no"`
+	OrderID    string            `json:"order_id,omitempty"`
+	State      string            `json:"state,omitempty"` // CREATED/DOING/DONE/MORDIFY/CANCELED/EXPIRED
+	RiskFund   *PayScoreRiskFund `json:"risk_fund,omitempty"`
+	OpenID     string            `json:"openid,omitempty"`
+}
+
+// PayScoreCallbackEnvelope 是回调外层信封（resource 加密）。
+type PayScoreCallbackEnvelope struct {
+	ID        string `json:"id"`
+	EventType string `json:"event_type"`
+	Resource  struct {
+		Algorithm      string `json:"algorithm"`
+		Ciphertext     string `json:"ciphertext"`
+		AssociatedData string `json:"associated_data"`
+		Nonce          string `json:"nonce"`
+	} `json:"resource"`
+}
+
+// PayScoreCallback 是解密后的业务事件。
+type PayScoreCallback struct {
+	EventType      string `json:"event_type,omitempty"`
+	ServiceID      string `json:"service_id,omitempty"`
+	OutOrderNo     string `json:"out_order_no,omitempty"`
+	OrderID        string `json:"order_id,omitempty"`
+	State          string `json:"state,omitempty"`
+	RiskFundAmount int64  `json:"risk_fund_amount,omitempty"`
+	OpenID         string `json:"openid,omitempty"`
+}
