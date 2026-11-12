@@ -254,4 +254,16 @@ export const getPhoneNumber = (e) => {
 // Weapp: Taro Input component fires e.detail.value.
 export const getInputValue = (e) => e.detail?.value ?? ''
 
+// #2327 S4: 小程序通过 openBusinessView 拉起支付分（package 由后端下发）。
+// 失败如实返回 launched=false，由页面展示错误，不得伪造成功。
+export const openCreditAssessment = (params = {}) => new Promise((resolve) => {
+  if (!params.package) { resolve({ launched: false, mode: 'missing-package' }); return }
+  Taro.openBusinessView({
+    businessType: 'wxpayScoreUse',
+    extraData: { package: params.package },
+    success: () => resolve({ launched: true, mode: 'weapp' }),
+    fail: (err) => resolve({ launched: false, mode: 'weapp', error: err?.errMsg || 'openBusinessView failed' }),
+  })
+})
+
 export { toWeappRoute } from './navigation'

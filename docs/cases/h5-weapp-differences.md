@@ -43,6 +43,7 @@
 | A17 | 退款结果呈现 | 跳**退款页** `/payment?type=refund` | 结果 **Toast** 提示 | 机制不同；**退款结果须可见且一致**（#2191 核对） |
 | A18 | 续提回填范围（#2041 `resume_pending`） | 回填**续航天数 + 优惠码** | 仅回填**续航天数**（weapp Checkout 无优惠码功能） | 功能差异；续提核心（天数/失效校验/清理）两端须一致（#2201） |
 | A19 | 登录/资料完善页归属（#2244/#2300） | 无独立 weapp-only 登录/资料完善路由，协议同意在既有注册/登录流程中完成 | `pages-weapp/login`、`pages-weapp/profile-complete` 承载登录后资料完善/协议同意（共享 `AgreementCheckbox`） | 页面归属/流程差异；**两端「必选同意 + 阅读页/勾选流」语义须等价**（#2300 真机回评） |
+| A20 | 支付分信用评测拉起（#2327 S4） | H5：`jweixin.openBusinessView`（需 APIv2 JS-SDK 签名，未配置时提示改用小程序）；微信外浏览器降级为不可拉起 | weapp：`wx.openBusinessView`（`businessType: 'wxpayScoreUse'`） | 机制不同（A15 平台层能力分支）；**mock / 缺 package / 未签名时两端都不得伪造拉起成功**（#2328 联调） |
 
 ### 2.1 已核对一致的行为（非差异，登记防回归）
 

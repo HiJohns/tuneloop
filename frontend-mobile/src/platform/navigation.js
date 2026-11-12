@@ -23,6 +23,7 @@ const ROUTE_MAP = [
   { match: '/checkout',    type: 'navigateTo', url: '/pages-weapp/checkout/index' },
   { match: '/cart',        type: 'navigateTo', url: '/pages-weapp/cart/index' },
   { match: '/payment',     type: 'navigateTo', url: '/pages-weapp/payment/index' },
+  { match: '/credit-assessment', type: 'navigateTo', url: '/pages-weapp/credit-assessment/index' },
   { match: '/order/:id',   type: 'navigateTo', url: (p) => `/pages-weapp/order-detail/index?id=${p.id}` },
   { match: '/staff/orders', type: 'navigateTo', url: '/pages-weapp/staff-orders/index' },
   { match: '/staff/orders/:id', type: 'navigateTo', url: (p) => `/pages-weapp/order-detail/index?id=${p.id}` },

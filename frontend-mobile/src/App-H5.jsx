@@ -81,6 +81,7 @@ import Messages from './pages/Messages'
 import MessageDetail from './pages/MessageDetail'
 import PaymentComplete from './pages/PaymentComplete'
 import Payment from './pages/Payment'
+import CreditAssessment from './pages/CreditAssessment'
 import Renewal from './pages/Renewal'
 import StaffInstruments from './pages/StaffInstruments'
 import StaffInstrumentDetail from './pages/StaffInstrumentDetail'
@@ -323,6 +324,7 @@ function App() {
         <Route path="/message-detail" element={<ProtectedRoute><MessageDetail /></ProtectedRoute>} />
         <Route path="/payment-complete" element={<ProtectedRoute><PaymentComplete /></ProtectedRoute>} />
         <Route path="/payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
+        <Route path="/credit-assessment" element={<ProtectedRoute><CreditAssessment /></ProtectedRoute>} />
         <Route path="/renewal/:orderId" element={<ProtectedRoute><Renewal /></ProtectedRoute>} />
 <Route path="/staff/instrument/new" element={<ProtectedRoute><StaffInstrumentForm /></ProtectedRoute>} />
 <Route path="/staff/instruments" element={<ProtectedRoute><StaffInstruments /></ProtectedRoute>} />

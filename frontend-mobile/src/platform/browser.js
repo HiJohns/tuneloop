@@ -236,4 +236,8 @@ export const getCameraContext = () => ({
 export const wxLogin = () => Promise.resolve('')
 export const getPhoneNumber = () => ({ encryptedData: '', iv: '' })
 
+// #2327 S4 / D6: H5 拉起微信支付分需 APIv2 JS-SDK 签名；未接入前显式返回未拉起，
+// 不得伪造成功（页面据此提示改用小程序）。
+export const openCreditAssessment = async () => ({ launched: false, mode: 'unsupported' })
+
 export { toWeappRoute } from './navigation'

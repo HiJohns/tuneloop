@@ -5,6 +5,7 @@ import { t } from '../i18n'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { apiFetch , resolveErrorMessage } from '../services/api'
 import { env, dialog } from '../platform'
+import { creditGate, buildAssessmentRoute } from '../utils/creditFlow.mjs'
 import QRCode from 'qrcode'
 
 const baseUrl = env.apiBaseUrl
@@ -30,6 +31,9 @@ export default function Payment() {
   const [couponAmount, setCouponAmount] = useState(0)
   // #2185: H5（非微信手机浏览器）Native 扫码支付——prepay 返回 code_url 后展示二维码并轮询查单
   const [qrPay, setQrPay] = useState(null)
+  // #2327 S4/D5: 支付分信用态（reduced/zero 未 approved 时禁用支付）
+  const [credit, setCredit] = useState(null)
+  const [creditBlocked, setCreditBlocked] = useState(false)
 
   useEffect(() => {
     if (!pType) return
@@ -53,10 +57,26 @@ export default function Payment() {
         })
         const result = await resp.json()
         if (result.code === 20000) setData(result.data)
+        // 40320 = 支付分档位未通过信用评测（S3b 闸门）；渲染评测入口而非“数据不存在”
+        else if (result.code === 40320) setCreditBlocked(true)
       } catch {}
       setLoading(false)
     }
     fetchData()
+  }, [pType, pId])
+
+  // #2327 S4: 租金支付页拉取信用状态（无该接口时静默降级，不影响其他支付类型）。
+  useEffect(() => {
+    if (pType !== 'rent' || !pId) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const resp = await apiFetch(`${baseUrl}/orders/${pId}/credit-status`)
+        const result = await resp.json()
+        if (!cancelled && result.code === 20000) setCredit(result.data)
+      } catch {}
+    })()
+    return () => { cancelled = true }
   }, [pType, pId])
 
   if (loading) {
@@ -65,6 +85,29 @@ export default function Payment() {
     </div>
   }
   if (!data) {
+    if (pType === 'rent' && creditBlocked) {
+      return (
+        <div className="min-h-screen" style={{ backgroundColor: '#FDFBF7' }}>
+          <div className="px-4 py-3 flex items-center">
+            <span className="text-xl font-bold text-black cursor-pointer" onClick={() => navigate(-1)}>❮</span>
+            <span className="text-lg font-bold flex-1 text-center">{t("支付确认")}</span>
+            <span className="w-6" />
+          </div>
+          <div className="bg-white mx-4 mt-4 rounded-2xl p-4 shadow-sm">
+            <div className="text-sm font-bold text-black mb-2">{t("需要微信信用评测")}</div>
+            <div className="text-xs text-zinc-500 leading-relaxed">
+              {t("当前押金档位需要先完成微信信用评测，通过后即可继续支付。")}
+            </div>
+            <button
+              style={{ width: '100%', marginTop: 16, height: 48, backgroundColor: '#B98E5F', color: '#fff', fontWeight: 700, fontSize: 16, borderRadius: 16, border: 'none' }}
+              onClick={() => navigate(buildAssessmentRoute({ orderId: pId, returnPath: `/payment?type=rent&id=${pId}` }))}
+            >
+              {t("去微信完成评测")}
+            </button>
+          </div>
+        </div>
+      )
+    }
     return <div className="h-screen flex items-center justify-center">
       <span className="text-zinc-400">{t("支付数据不存在")}</span>
     </div>
@@ -74,6 +117,9 @@ export default function Payment() {
   const maxGift = Math.min(wallet.promo_points || 0, wallet.max_gift_amount || 0)
 
   const isRefund = ['refund', 'deposit-refund'].includes(pType)
+
+  const gate = pType === 'rent' ? creditGate(credit) : { canPay: true, showEntry: false, reason: '', action: 'none' }
+  const payBlocked = pType === 'rent' && (!gate.canPay || creditBlocked)
 
   const displayAmount = appliedCoupon ? couponAmount : data.amount
   const cashAmount = computeDisplayedCashCents({
@@ -212,6 +258,26 @@ export default function Payment() {
         </div>
       )}
 
+      {pType === 'rent' && (gate.showEntry || creditBlocked) && (
+        <div className="bg-white mx-4 mt-4 rounded-2xl p-4 shadow-sm">
+          <div className="text-sm font-bold text-black mb-1">{t("微信信用评测")}</div>
+          <div className="text-xs text-zinc-500 leading-relaxed">
+            {gate.reason || t("当前押金档位需要先完成微信信用评测。")}
+          </div>
+          <button
+            style={{ width: '100%', marginTop: 12, height: 44, backgroundColor: '#B98E5F', color: '#fff', fontWeight: 700, fontSize: 15, borderRadius: 12, border: 'none' }}
+            onClick={() => navigate(buildAssessmentRoute({
+              orderId: pId,
+              tier: credit?.deposit_tier || '',
+              riskAmountCents: credit?.risk_amount_cents || 0,
+              returnPath: `/payment?type=rent&id=${pId}`,
+            }))}
+          >
+            {t("去微信完成评测")}
+          </button>
+        </div>
+      )}
+
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4">
         {isRefund ? (
           data.details?.cancel_refund ? (
@@ -240,14 +306,17 @@ export default function Payment() {
           </button>
         ) : (
           <button
-            style={{ width: '100%', paddingTop: 14, paddingBottom: 14, color: '#fff', fontWeight: 900, fontSize: 16, borderRadius: 16, border: 'none', outline: 'none', backgroundColor: cashAmount > 0 ? '#B98E5F' : '#16a34a' }}
-            onClick={() => doPay(cashAmount)}
+            style={{ width: '100%', paddingTop: 14, paddingBottom: 14, color: '#fff', fontWeight: 900, fontSize: 16, borderRadius: 16, border: 'none', outline: 'none', backgroundColor: payBlocked ? '#d4d4d8' : cashAmount > 0 ? '#B98E5F' : '#16a34a' }}
+            disabled={payBlocked}
+            onClick={() => { if (payBlocked) return; doPay(cashAmount) }}
           >
-            {pType === 'damage' && cashAmount <= 0
-              ? '无需支付 ¥0'
-              : cashAmount > 0
-                ? `微信支付 ¥${formatCents(Number(cashAmount))}`
-                : '确认支付 ¥0（使用点数）'}
+            {payBlocked
+              ? t('请先完成微信信用评测')
+              : pType === 'damage' && cashAmount <= 0
+                ? '无需支付 ¥0'
+                : cashAmount > 0
+                  ? `微信支付 ¥${formatCents(Number(cashAmount))}`
+                  : '确认支付 ¥0（使用点数）'}
           </button>
         )}
       </div>

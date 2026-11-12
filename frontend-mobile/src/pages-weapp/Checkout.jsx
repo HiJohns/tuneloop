@@ -6,6 +6,7 @@ import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, guarantor
 import dayjs from 'dayjs'
 import { dialog, env, session, storage, eventBus } from '../platform'
 import { fetchWaiverEligibility, waiverReasonText, showWaiverIneligible, downloadLetterTemplate, uploadLetterPhoto } from '../utils/depositWaiver'
+import { buildTierOptions, buildOrderDepositPayload } from '../utils/creditFlow.mjs'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
 import { formatBeijingDate } from '../utils/format'
 import regions from '../data/regions.json'
@@ -80,7 +81,9 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
   const [rentalCalcLoading, setRentalCalcLoading] = useState(false)
   const [daysInputText, setDaysInputText] = useState('30')
 
-  const [depositWaived, setDepositWaived] = useState(false)
+  // #2327 S4: 三档选择（full/reduced/zero）；reduced 承接原 depositWaived 语义。
+  const [depositTierState, setDepositTierState] = useState('full')
+  const depositWaived = depositTierState === 'reduced'
   // #1867: deposit-free eligibility + recommendation letter
   const [waiver, setWaiver] = useState(null)
   const [letterUrl, setLetterUrl] = useState('')
@@ -218,7 +221,12 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
   const deposit = pricingV2?.deposit ?? instrument?.deposit ?? parsePricing(instrument?.pricing)[0]?.deposit ?? 0
   const isZeroDeposit = Number(deposit) === 0
   const canReduceDeposit = !isZeroDeposit && depositReduced != null
-  const effectiveDeposit = depositWaived && canReduceDeposit ? Number(depositReduced) : deposit
+  const tierOptions = buildTierOptions(deposit, depositReduced)
+  const effectiveDeposit = depositTierState === 'zero'
+    ? 0
+    : depositTierState === 'reduced' && canReduceDeposit
+      ? Number(depositReduced)
+      : deposit
   // Shipping fee is not determined at order time (#1570): the staff fills
   // the actual fee at dispatch, and it is not charged at checkout.
   const totalAmount = totalRent + effectiveDeposit
@@ -262,17 +270,7 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
       dialog.alert(t("差额押金订单需至少选择 2 位担保人"))
       return
     }
-    // #1867: eligibility + recommendation letter gates
-    if (depositWaived) {
-      if (waiver && !waiver.eligible) {
-        showWaiverIneligible(waiver.reasons)
-        return
-      }
-      if (!letterUrl) {
-        dialog.alert(t("差额押金订单需上传签名的推荐信照片，模板可在差额押金区块下载"))
-        return
-      }
-    }
+    // #2327 D13: payscore 路径不要求内部资格/推荐信（担保人仍需 2 位）。
 
     const token = getToken()
     let role = ''
@@ -312,11 +310,16 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
         rent_days: days,
       }
       if (deliveryAddress) body.delivery_address = deliveryAddress
-      body.deposit_tier = depositWaived && canReduceDeposit ? 'reduced' : (isZeroDeposit ? 'zero' : 'full')
-      if (body.deposit_tier === 'reduced') {
-        body.guarantor_ids = selectedGuarantorIds
-        body.recommendation_letter = letterUrl
+      const depositPayload = buildOrderDepositPayload({
+        tier: isZeroDeposit ? 'zero' : depositTierState,
+        guarantorIds: selectedGuarantorIds,
+      })
+      if (!depositPayload.ok) {
+        dialog.alert(t("差额押金订单需至少选择 2 位担保人"))
+        setSubmitting(false)
+        return
       }
+      Object.assign(body, depositPayload.body)
 
       const resp = await ordersApi.create(body)
       if (resp.code === 20000 || resp.code === 20100) {
@@ -487,51 +490,43 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
           </View>
         </View>
 
+        {/* #2327 S4: 免押金档（payscore 信用评测） */}
+        {!isZeroDeposit && (
+        <View style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12 }}
+          onClick={() => setDepositTierState(depositTierState === 'zero' ? 'full' : 'zero')}>
+          <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flex: '1 1 0%' }}>
+              <Text style={{ fontWeight: '900', color: '#000' }}>{t("免押金")}</Text>
+              <Text style={{ fontSize: 11, color: '#a1a1aa', marginTop: 4, display: 'block' }}>{t("需完成微信信用评测；与差额押金二选一")}</Text>
+            </View>
+            <Text style={{ fontWeight: '700', marginRight: 12 }}>¥0</Text>
+            <View style={{ width: 20, height: 20, borderRadius: 10, border: '2px solid ' + (depositTierState === 'zero' ? '#915F38' : '#d4d4d8'), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {depositTierState === 'zero' && <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#915F38' }} />}
+            </View>
+          </View>
+        </View>
+        )}
+
         {/* 差额押金（#2321；D1/D4 资格不变） */}
         {canReduceDeposit && (
         <View style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12 }}>
           <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} onClick={() => {
-            if (waiver && !waiver.eligible) { showWaiverIneligible(waiver.reasons); return }
-            setDepositWaived(!depositWaived)
+            setDepositTierState(depositTierState === 'reduced' ? 'full' : 'reduced')
           }}>
             <Text style={{ fontWeight: '900', color: '#000' }}>{t("差额押金（减免）")}</Text>
-            <View style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: depositWaived && (!waiver || waiver.eligible) ? '#915F38' : '#d4d4d8', position: 'relative', flexShrink: 0 }}>
-              <View style={{ position: 'absolute', top: 2, left: depositWaived && (!waiver || waiver.eligible) ? 22 : 2, width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', transition: 'left 0.2s' }} />
+            <View style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: depositWaived ? '#915F38' : '#d4d4d8', position: 'relative', flexShrink: 0 }}>
+              <View style={{ position: 'absolute', top: 2, left: depositWaived ? 22 : 2, width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', transition: 'left 0.2s' }} />
             </View>
           </View>
           <Text style={{ fontSize: 11, color: '#a1a1aa', marginTop: 6 }}>
-            {waiver && !waiver.eligible ? '学生／教职工专享（需实名核验+信用分达标）' : '差额押金需提供两位担保人并上传推荐信'}
+            {t("差额押金需 2 位担保人 + 微信信用评测")}
           </Text>
-          {waiver && !waiver.eligible && (
-            <View style={{ backgroundColor: '#fafafa', border: '1px solid #e4e4e7', borderRadius: 8, padding: 10, marginTop: 8 }}>
-              <Text style={{ fontSize: 12, color: '#71717a', lineHeight: '18px' }}>{waiverReasonText(waiver.reasons)}</Text>
-            </View>
-          )}
 
           {depositWaived && (
             <View style={{ marginTop: 12, borderTop: '1px dashed #e4e4e7', paddingTop: 12 }}>
               <View style={{ backgroundColor: '#fffbeb', border: '1px solid #fef3c7', borderRadius: 8, padding: 10, marginBottom: 10 }}>
                 <Text style={{ fontSize: 12, color: '#b45309', lineHeight: '18px' }}>{t("应提供两位担保人的联系方式。我们的员工将会与他们联系确认。")}</Text>
               </View>
-
-              {/* #1867: recommendation letter — template download + signed photo upload */}
-              {(!waiver || waiver.eligible) && (
-                <View style={{ border: '1px solid #e4e4e7', borderRadius: 8, padding: 10, marginBottom: 10 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 6 }}>{t("推荐信")}</Text>
-                  <View style={{ display: 'flex', marginBottom: 8 }}>
-                    <View style={{ flex: '1 1 0%', marginRight: 8, backgroundColor: '#f4f4f5', borderRadius: 8, padding: 8, alignItems: 'center' }} onClick={() => downloadLetterTemplate(env.apiBaseUrl)}>
-                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46', textAlign: 'center' }}>{t("下载推荐信模板")}</Text>
-                    </View>
-                    <View style={{ flex: '1 1 0%', backgroundColor: '#000', borderRadius: 8, padding: 8, alignItems: 'center' }} onClick={() => { if (!letterUploading) handleLetterUpload() }}>
-                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff', textAlign: 'center' }}>
-                        {letterUploading ? '上传中...' : (letterUrl ? '重新上传' : '上传签名推荐信')}
-                      </Text>
-                    </View>
-                  </View>
-                  {letterUrl && <Image src={fixImg(letterUrl)} mode="aspectFill" style={{ width: 96, height: 96, borderRadius: 8 }} />}
-                  <Text style={{ fontSize: 11, color: '#a1a1aa', marginTop: 6 }}>{t("打印模板 → 推荐人签名 → 拍照上传")}</Text>
-                </View>
-              )}
 
               {guarantors.length > 0 && (
                 <View style={{ marginBottom: 10 }}>

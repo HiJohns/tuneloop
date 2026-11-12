@@ -5,6 +5,7 @@ import Taro, { useDidShow, useLoad } from '@tarojs/taro'
 import { View, Text, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, resolveLogin, resolveErrorMessage } from '../../services/api'
 import {dialog, env, session, storage, wxLogin } from '../../platform'
+import { creditGate } from '../../utils/creditFlow.mjs'
 import { t } from '../../i18n'
 
 
@@ -73,6 +74,9 @@ export default function Payment() {
   const [prepayData, setPrepayData] = useState(null)
   const [isPaying, setIsPaying] = useState(false)
   const [maxPayRatio, setMaxPayRatio] = useState(0.3)
+  // #2327 S4/D5: 支付分信用态（reduced/zero 未 approved 时禁用支付）
+  const [credit, setCredit] = useState(null)
+  const [creditBlocked, setCreditBlocked] = useState(false)
   // 优惠码预览（#1719 通用化）：所有支付页可用，最终金额服务端重算。
   const [couponCode, setCouponCode] = useState('')
   const [appliedCoupon, setAppliedCoupon] = useState(null)
@@ -123,6 +127,9 @@ export default function Payment() {
         const result = await resp.json()
         if (result.code === 20000) {
           setData(result.data)
+        } else if (result.code === 40320) {
+          // 支付分档位未通过信用评测（S3b 闸门）
+          setCreditBlocked(true)
         } else {
           // #1785: surface the backend's explicit error (e.g. 40002 补缴单不存在).
           setErrorMsg(result.message || '支付数据不存在')
@@ -133,6 +140,12 @@ export default function Payment() {
       setLoading(false)
     }
     fetchData()
+    if (pType === 'rent' && pId) {
+      apiFetch(`${baseUrl}/orders/${pId}/credit-status`)
+        .then((r) => r.json())
+        .then((r) => { if (r.code === 20000) setCredit(r.data) })
+        .catch(() => {})
+    }
   }, [pType, pId])
 
   if (loading) {
@@ -147,6 +160,22 @@ export default function Payment() {
     </View>
   }
   if (!data) {
+    if (pType === 'rent' && creditBlocked) {
+      return <View style={{ minHeight: '100vh', backgroundColor: '#FDFBF7' }}>
+        <View style={{ padding: 16 }}>
+          <Text style={{ fontSize: 16, fontWeight: 700, display: 'block' }}>{t('需要微信信用评测')}</Text>
+          <Text style={{ fontSize: 12, color: '#71717a', marginTop: 8, display: 'block' }}>
+            {t('当前押金档位需要先完成微信信用评测，通过后即可继续支付。')}
+          </Text>
+          <Button
+            style={{ marginTop: 16, backgroundColor: '#B98E5F', color: '#fff', borderRadius: 12, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={() => Taro.navigateTo({ url: `/pages-weapp/credit-assessment/index?order_id=${pId}&return_path=${encodeURIComponent(`/payment?type=rent&id=${pId}`)}` })}
+          >
+            <Text style={{ color: '#fff', fontWeight: 700 }}>{t('去微信完成评测')}</Text>
+          </Button>
+        </View>
+      </View>
+    }
     return <View style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FDFBF7' }}>
       <Text style={{ color: errorMsg ? '#ef4444' : '#a1a1aa' }}>{errorMsg || '支付数据不存在'}</Text>
     </View>
@@ -160,6 +189,9 @@ export default function Payment() {
   // Coupon applies a preview discount (final price is server-authoritative at
   // prepay); 服务端按 coupons 表决定 waive/percent（#2291）。
   const displayAmount = appliedCoupon ? couponAmount : data.amount
+
+  const gate = pType === 'rent' ? creditGate(credit) : { canPay: true, showEntry: false, reason: '', action: 'none' }
+  const payBlocked = pType === 'rent' && (!gate.canPay || creditBlocked)
 
   const cashAmount = computeDisplayedCashCents({
     amountCents: data?.amount || 0,
@@ -680,6 +712,21 @@ export default function Payment() {
           </View>
         )}
 
+        {pType === 'rent' && (gate.showEntry || creditBlocked) && (
+          <View style={{ margin: '12px 16px', padding: 16, backgroundColor: '#fff', borderRadius: 16 }}>
+            <Text style={{ fontSize: 14, fontWeight: 700, display: 'block' }}>{t('微信信用评测')}</Text>
+            <Text style={{ fontSize: 12, color: '#71717a', marginTop: 4, display: 'block' }}>
+              {gate.reason || t('当前押金档位需要先完成微信信用评测。')}
+            </Text>
+            <Button
+              style={{ marginTop: 12, backgroundColor: '#B98E5F', color: '#fff', borderRadius: 12, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              onClick={() => Taro.navigateTo({ url: `/pages-weapp/credit-assessment/index?order_id=${pId}&tier=${credit?.deposit_tier || ''}&risk_amount_cents=${credit?.risk_amount_cents || 0}&return_path=${encodeURIComponent(`/payment?type=rent&id=${pId}`)}` })}
+            >
+              <Text style={{ color: '#fff', fontWeight: 700 }}>{t('去微信完成评测')}</Text>
+            </Button>
+          </View>
+        )}
+
         {/* Bottom padding for button */}
         <View style={{ height: 80 }} />
       </ScrollView>
@@ -703,16 +750,16 @@ export default function Payment() {
         ) : prepayData?.data ? (
           <View style={{ display: 'flex', flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
-              <Button style={btnStyle('#B98E5F')} onClick={doRealPay} disabled={isPaying}>
-                {isPaying ? '处理中...' : `微信支付 ¥${formatCents(Number(cashAmount))}`}
+              <Button style={btnStyle(payBlocked ? '#d4d4d8' : '#B98E5F')} onClick={() => { if (!payBlocked) doRealPay() }} disabled={isPaying || payBlocked}>
+                {payBlocked ? t('请先完成微信信用评测') : isPaying ? '处理中...' : `微信支付 ¥${formatCents(Number(cashAmount))}`}
               </Button>
             </View>
           </View>
         ) : (
           <View style={{ display: 'flex', flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
-              <Button style={btnStyle(cashAmount > 0 ? '#B98E5F' : '#16a34a')} onClick={() => handlePay(cashAmount)} disabled={isPaying}>
-                {isPaying ? '处理中...' : `发起支付 ¥${formatCents(Number(cashAmount))}`}
+              <Button style={btnStyle(payBlocked ? '#d4d4d8' : cashAmount > 0 ? '#B98E5F' : '#16a34a')} onClick={() => { if (!payBlocked) handlePay(cashAmount) }} disabled={isPaying || payBlocked}>
+                {payBlocked ? t('请先完成微信信用评测') : isPaying ? '处理中...' : `发起支付 ¥${formatCents(Number(cashAmount))}`}
               </Button>
             </View>
           </View>
