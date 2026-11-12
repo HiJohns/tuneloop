@@ -1,0 +1,4 @@
+=== RUN   TestProviderNoNetworkWhenDisabled
+--- PASS: TestProviderNoNetworkWhenDisabled (0.00s)
+PASS
+ok  	tuneloop-backend/services/wechatpay	0.012s
