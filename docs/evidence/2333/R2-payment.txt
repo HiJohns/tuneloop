@@ -1,0 +1,101 @@
+
+> frontend-mobile@1.0.0 smoke
+> vitest run --config vitest.config.js
+
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /home/coder/tuneloop/frontend-mobile
+
+stderr | scripts/page-smoke/smoke.test.jsx > mobile page render smoke > H5 /checkout renders without fatal errors
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+3:42:22 PM [vite] warning: Duplicate "style" attribute in JSX element
+36 |                  <View onClick={e => { e.stopPropagation(); setImageIndex(i => (i - 1 + allImgs.length) % allImgs.length) }}
+37 |                    style={{ top: '50%', transform: 'translateY(-50%)' }}
+38 |                    className="absolute left-2 rounded-full w-8 h-8 flex items-center justify-center shadow-sm" style={{ backgroundColor: 'rgba(255,255,255,0.8)' }}>
+   |                                                                                                                ^
+39 |                    <ArrowLeft size={18} className="text-zinc-600" />
+40 |                  </View>
+
+  Plugin: vite:esbuild
+  File: /home/coder/tuneloop/frontend-mobile/src/components/InstrumentInfo.jsx
+stderr | scripts/page-smoke/smoke.test.jsx > mobile page render smoke > H5 /cart renders without fatal errors
+Warning: React does not recognize the `scrollY` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `scrolly` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at div
+    at div
+    at Cart (/home/coder/tuneloop/frontend-mobile/src/pages/Cart.jsx:84:42)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+Warning: React does not recognize the `showScrollbar` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `showscrollbar` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at div
+    at div
+    at Cart (/home/coder/tuneloop/frontend-mobile/src/pages/Cart.jsx:84:42)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+
+stderr | scripts/page-smoke/smoke.test.jsx > mobile page render smoke > H5 /register renders without fatal errors
+Warning: Received `true` for a non-boolean attribute `password`.
+
+If you want to write it to the DOM, pass a string instead: password="true" or password={value.toString()}.
+    at input
+    at div
+    at div
+    at div
+    at Register (/home/coder/tuneloop/frontend-mobile/src/pages/Register.jsx:30:42)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+Warning: validateDOMNesting(...): <div> cannot appear as a child of <select>.
+    at div
+    at select
+    at div
+    at div
+    at div
+    at Register (/home/coder/tuneloop/frontend-mobile/src/pages/Register.jsx:30:42)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+
+stderr | scripts/page-smoke/smoke.test.jsx > mobile page render smoke > weapp payment renders without fatal errors
+Warning: React does not recognize the `placeholderStyle` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `placeholderstyle` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at input
+    at div
+    at div
+    at div
+    at div
+    at Payment (/home/coder/tuneloop/frontend-mobile/src/pages-weapp/payment/Payment.jsx:29:61)
+    at PaymentWithGuard (/home/coder/tuneloop/frontend-mobile/src/pages-weapp/payment/index.tsx:8:25)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+
+ ✓ scripts/page-smoke/smoke.test.jsx (17 tests) 12532ms
+   ✓ mobile page render smoke > H5 /checkout renders without fatal errors 2714ms
+   ✓ mobile page render smoke > H5 /checkout (zero deposit) renders without fatal errors 417ms
+   ✓ mobile page render smoke > H5 /payment renders without fatal errors 780ms
+   ✓ mobile page render smoke > H5 /order/:id renders without fatal errors 933ms
+   ✓ mobile page render smoke > H5 /cart renders without fatal errors 570ms
+   ✓ mobile page render smoke > H5 /profile renders without fatal errors 740ms
+   ✓ mobile page render smoke > H5 /register renders without fatal errors 657ms
+   ✓ mobile page render smoke > weapp checkout renders without fatal errors 1092ms
+   ✓ mobile page render smoke > weapp checkout (zero deposit) renders without fatal errors 434ms
+   ✓ mobile page render smoke > weapp payment renders without fatal errors 661ms
+   ✓ mobile page render smoke > weapp order-detail renders without fatal errors 942ms
+   ✓ mobile page render smoke > weapp cart renders without fatal errors 479ms
+   ✓ mobile page render smoke > weapp profile renders without fatal errors 959ms
+   ✓ mobile page render smoke > weapp profile-complete renders without fatal errors 526ms
+   ✓ mobile page render smoke > payment credit gate renders entry when credit is not approved 527ms
+
+ Test Files  1 passed (1)
+      Tests  17 passed (17)
+   Start at  15:42:11
+   Duration  18.49s (transform 4.32s, setup 150ms, collect 1.04s, tests 12.53s, environment 2.60s, prepare 1.37s)
+
