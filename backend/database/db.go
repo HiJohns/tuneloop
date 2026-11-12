@@ -452,6 +452,10 @@ var defaultMigrationArtifacts = []migrationArtifact{
 	{20261012001, "mall_images", "", "商城图片表（#2210）"},
 	{20261108001, "instruments", "deposit_reduced", "差额押金列（#2321）"},
 	{20261108001, "orders", "deposit_tier", "押金档位快照列（#2321）"},
+	{20261112001, "orders", "credit_state", "支付分信用状态列（#2327 S2）"},
+	{20261112001, "orders", "credit_risk_amount_cents", "支付分风险金额列（#2327 S2）"},
+	{20261112001, "orders", "credit_service_order_no", "支付分服务订单号列（#2327 S2）"},
+	{20261112001, "orders", "credit_assessed_at", "支付分评估时间列（#2327 S2）"},
 	{20261108001, "orders", "deposit_full", "全额押金快照列（#2321）"},
 	{20261108001, "orders", "deposit_reduced", "差额押金快照列（#2321）"},
 }

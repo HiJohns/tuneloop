@@ -235,8 +235,13 @@ type Order struct {
 	DepositReduced       *Cents `gorm:"type:bigint" json:"deposit_reduced"`
 	DepositWaived        bool   `gorm:"column:deposit_waived;not null;default:false" json:"deposit_waived"`
 	RecommendationLetter string `gorm:"column:recommendation_letter;type:varchar(500);not null;default:''" json:"recommendation_letter"` // #1867: deposit-free application letter URL
-	ShippingFee          Cents  `gorm:"type:bigint;default:0" json:"shipping_fee"`
-	AccumulatedMonths    int    `gorm:"default:0" json:"accumulated_months"`
+	// #2327: 微信支付分（免押租借）信用状态快照；空 = 未走支付分通道
+	CreditState           string     `gorm:"column:credit_state;type:varchar(20);not null;default:''" json:"credit_state"`
+	CreditRiskAmountCents int64      `gorm:"column:credit_risk_amount_cents;not null;default:0" json:"credit_risk_amount_cents"`
+	CreditServiceOrderNo  string     `gorm:"column:credit_service_order_no;type:varchar(64);not null;default:''" json:"credit_service_order_no"`
+	CreditAssessedAt      *time.Time `gorm:"column:credit_assessed_at" json:"credit_assessed_at,omitempty"`
+	ShippingFee           Cents      `gorm:"type:bigint;default:0" json:"shipping_fee"`
+	AccumulatedMonths     int        `gorm:"default:0" json:"accumulated_months"`
 	// #1965 业务订单号：`YL<YYYYMMDD>-<NNN>`（当日第 N 单），唯一索引
 	OrderNo                 string     `gorm:"type:varchar(24)" json:"order_no"`            // #1981: uniqueness enforced by migration partial index (WHERE order_no IS NOT NULL AND order_no <> ''), not AutoMigrate
 	DeliveryAddress         *string    `gorm:"type:text" json:"delivery_address,omitempty"` // #2010 S2: 收货地址并入 orders（原 lease_sessions.delivery_address）
