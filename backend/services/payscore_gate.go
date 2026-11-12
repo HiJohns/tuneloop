@@ -1,15 +1,14 @@
-package handlers
+package services
 
 import (
 	"fmt"
 
 	"tuneloop-backend/models"
-	"tuneloop-backend/services"
 	"tuneloop-backend/services/wechatpay"
 )
 
 // ResolveCreditRiskAmount 计算某订单需要提交给微信的风险金额（分）。
-// 纯函数，不依赖 DB，便于单测；full 档返回 0（无需评估）。
+// 纯函数，不依赖 DB；full 档返回 0（无需评估）。
 func ResolveCreditRiskAmount(tier string, fullDeposit, reducedDeposit, instrumentPrice int64) (int64, error) {
 	return wechatpay.ComputeRiskAmount(tier, fullDeposit, reducedDeposit, instrumentPrice)
 }
@@ -27,13 +26,13 @@ func AssertTierPayable(tier, creditState string) error {
 		return nil
 	}
 	switch creditState {
-	case services.CreditStateApproved:
+	case CreditStateApproved:
 		return nil
-	case services.CreditStatePending:
+	case CreditStatePending:
 		return fmt.Errorf("credit_pending: 信用评估尚未完成，请先在支付页完成微信信用评估")
-	case services.CreditStateRejected:
+	case CreditStateRejected:
 		return fmt.Errorf("credit_rejected: 信用评估未通过，请改用全押金档位或更换乐器")
-	case services.CreditStateExpired:
+	case CreditStateExpired:
 		return fmt.Errorf("credit_expired: 信用评估已过期，请重新评估")
 	default:
 		return fmt.Errorf("credit_required: 该押金档位需要先完成微信信用评估")

@@ -49,7 +49,7 @@ func (h *PayscoreHandler) creditPayload(order *models.Order) gin.H {
 		"risk_amount_cents":   order.CreditRiskAmountCents,
 		"service_order_no":    order.CreditServiceOrderNo,
 		"mock":                h.provider.IsMock(),
-		"requires_assessment": RequiresCreditAssessment(order.DepositTier),
+		"requires_assessment": services.RequiresCreditAssessment(order.DepositTier),
 	}
 }
 
@@ -73,7 +73,7 @@ func (h *PayscoreHandler) CreateAssessment(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "无权操作该订单"})
 		return
 	}
-	if !RequiresCreditAssessment(order.DepositTier) {
+	if !services.RequiresCreditAssessment(order.DepositTier) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "该押金档位无需信用评估"})
 		return
 	}
@@ -91,7 +91,7 @@ func (h *PayscoreHandler) CreateAssessment(c *gin.Context) {
 			price = centsValue(inst.TotalPrice)
 		}
 	}
-	risk, err := ResolveCreditRiskAmount(order.DepositTier, centsValue(order.DepositFull), centsValue(order.DepositReduced), price)
+	risk, err := services.ResolveCreditRiskAmount(order.DepositTier, centsValue(order.DepositFull), centsValue(order.DepositReduced), price)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
 		return
