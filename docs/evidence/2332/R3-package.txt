@@ -1,0 +1,15 @@
+=== RUN   TestPayScorePackage
+--- PASS: TestPayScorePackage (0.00s)
+=== RUN   TestPayScorePackageTTLConfigurable
+--- PASS: TestPayScorePackageTTLConfigurable (0.00s)
+PASS
+ok  	tuneloop-backend/services/wechatpay	0.028s
+[WARNING] No .env file found in common paths
+2026/11/12 14:56:22 [DB] Configuration loaded: host=127.0.0.1 port=15432 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/12 14:56:22 [DB] Configuration loaded: host=127.0.0.1 port=15432 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/12 14:56:22 [DB] Connecting: host=127.0.0.1 port=15432 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/12 14:56:22 [DB] Connected to database 'tuneloop_test_local'
+=== RUN   TestCreditPayloadPackage
+--- PASS: TestCreditPayloadPackage (0.00s)
+PASS
+ok  	tuneloop-backend/handlers	6.973s

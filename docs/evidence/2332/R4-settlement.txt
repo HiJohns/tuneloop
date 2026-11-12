@@ -1,0 +1,49 @@
+[WARNING] No .env file found in common paths
+2026/11/12 14:56:37 [DB] Configuration loaded: host=127.0.0.1 port=15432 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/12 14:56:37 [DB] Configuration loaded: host=127.0.0.1 port=15432 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/12 14:56:37 [DB] Connecting: host=127.0.0.1 port=15432 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/12 14:56:37 [DB] Connected to database 'tuneloop_test_local'
+=== RUN   TestSettlementCashVsPayscore
+2026/11/12 14:56:44 [DB] Configuration loaded: host=127.0.0.1 port=15432 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/12 14:56:44 [DB] Connecting: host=127.0.0.1 port=15432 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/12 14:56:44 [DB] Connected to database 'tuneloop_test_local'
+
+2026/11/12 14:56:46 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[1534.130ms] [33m[rows:0][35m TRUNCATE TABLE "points_policies", "membership_level_benefits", "transit_routes", "electronic_contracts", "audit_logs", "forwarding_sessions", "repair_logistics_fees", "face_capture_batches", "site_members", "confirmation_sessions", "referrals", "merchants", "merchant_settlement_configs", "user_addresses", "orders", "order_guarantors", "appeals", "order_logs", "warnings", "instrument_media", "discount_code_usages", "media_assets", "system_settings", "properties", "settlements", "instrument_properties", "site_images", "repair_quotes", "membership_gift_ratios", "categories", "repair_request_records", "points_transactions", "merchant_pricing_configs", "guarantors", "users", "repair_transit_orders", "order_term_versions", "merchant_members", "damage_reports", "gift_policies", "property_options", "instrument_promo_overrides", "inventory_transfers", "maintenance_sessions", "instrument_loss_records", "registration_sessions", "repair_requests", "mall_images", "repair_records", "point_batches", "invoice_application_orders", "instrument_photo_batches", "transit_shipping_fees", "banners", "pricing_templates", "instrument_photo_specs", "overdue_charges", "payment_sessions", "notifications", "maintenance_workers", "roles", "tenants", "staff_invites", "invoice_applications", "membership_levels", "order_refund_records", "repair_reviews", "discount_policies", "order_status_history", "sites", "order_payment_records", "instruments", "pending_orders", "point_batch_consumptions", "referral_commissions", "settlement_calculations", "discount_codes", "coupons", "instrument_levels", "maintenance_tickets", "user_instruments", "promo_plans", "technician_profiles", "maintenance_session_records", "session_order_links" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 14:56:46 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:325 [35;1mrecord not found
+[0m[33m[3.142ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '114e395e-666d-4334-b8c7-b1813b945627' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/12 14:56:46 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:716 [35;1mrecord not found
+[0m[33m[4.944ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '114e395e-666d-4334-b8c7-b1813b945627' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/12 14:56:46 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:836 [35;1mrecord not found
+[0m[33m[2.476ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '114e395e-666d-4334-b8c7-b1813b945627' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/12 14:56:46 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[2.396ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/12 14:56:46 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:1668 [35;1mrecord not found
+[0m[33m[3.025ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE order_id = '114e395e-666d-4334-b8c7-b1813b945627' AND order_type = 'rent' AND status = 'paid' ORDER BY "order_payment_records"."id" LIMIT 1
+
+2026/11/12 14:56:46 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[3.589ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '47855332-f5a7-4cf3-bb04-bc853752256b' ORDER BY "referrals"."id" LIMIT 1
+2026/11/12 14:56:46 [payscore] order 114e395e-666d-4334-b8c7-b1813b945627 settled action=complete service_order=so-reduced-1
+--- PASS: TestSettlementCashVsPayscore (1.90s)
+=== RUN   TestRefundNotForPayscore
+
+2026/11/12 14:56:47 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[1361.562ms] [33m[rows:0][35m TRUNCATE TABLE "points_policies", "membership_level_benefits", "transit_routes", "electronic_contracts", "audit_logs", "forwarding_sessions", "repair_logistics_fees", "face_capture_batches", "site_members", "confirmation_sessions", "referrals", "merchants", "merchant_settlement_configs", "user_addresses", "orders", "order_guarantors", "appeals", "order_logs", "warnings", "instrument_media", "discount_code_usages", "media_assets", "system_settings", "properties", "settlements", "instrument_properties", "site_images", "repair_quotes", "membership_gift_ratios", "categories", "repair_request_records", "points_transactions", "merchant_pricing_configs", "guarantors", "users", "repair_transit_orders", "order_term_versions", "merchant_members", "damage_reports", "gift_policies", "property_options", "instrument_promo_overrides", "inventory_transfers", "maintenance_sessions", "instrument_loss_records", "registration_sessions", "repair_requests", "mall_images", "repair_records", "point_batches", "invoice_application_orders", "instrument_photo_batches", "transit_shipping_fees", "banners", "pricing_templates", "instrument_photo_specs", "overdue_charges", "payment_sessions", "notifications", "maintenance_workers", "roles", "tenants", "staff_invites", "invoice_applications", "membership_levels", "order_refund_records", "repair_reviews", "discount_policies", "order_status_history", "sites", "order_payment_records", "instruments", "pending_orders", "point_batch_consumptions", "referral_commissions", "settlement_calculations", "discount_codes", "coupons", "instrument_levels", "maintenance_tickets", "user_instruments", "promo_plans", "technician_profiles", "maintenance_session_records", "session_order_links" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 14:56:47 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:325 [35;1mrecord not found
+[0m[33m[2.734ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '4173ba66-26be-4adc-b69c-ab8a4b32f44f' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/12 14:56:47 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.690ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/12 14:56:48 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[3.303ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '4e203053-14f9-4d64-a0cf-6b26deb4b098' ORDER BY "referrals"."id" LIMIT 1
+2026/11/12 14:56:48 [payscore] order 4173ba66-26be-4adc-b69c-ab8a4b32f44f settled action=complete service_order=so-zero-1
+--- PASS: TestRefundNotForPayscore (1.71s)
+PASS
+ok  	tuneloop-backend/handlers	10.617s
