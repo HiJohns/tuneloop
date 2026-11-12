@@ -145,6 +145,18 @@ func UploadShippingInfo(openid, outTradeNo, transactionID, trackingNo, courierCo
 // frozen funds much sooner; later attempts cover longer sync tails.
 var retryBackoffs = []time.Duration{0, 15 * time.Second, time.Minute, 5 * time.Minute}
 
+// SetShippingBackoffsForTesting overrides the shipping retry schedule and
+// returns a restore func. Production defaults are unchanged; only tests
+// (handlers shipping/report paths) call this to avoid multi-minute sleeps.
+func SetShippingBackoffsForTesting(backoffs []time.Duration) func() {
+	prev := retryBackoffs
+	if backoffs == nil {
+		backoffs = prev
+	}
+	retryBackoffs = backoffs
+	return func() { retryBackoffs = prev }
+}
+
 // UploadShippingInfoWithRetry attempts upload_shipping_info with backoff retry
 // to handle WeChat's payment-order index sync delay (errcode 10060001 right
 // after payment callback). Non-fatal: exhaustion logs and returns.

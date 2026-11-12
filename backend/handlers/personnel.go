@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"strings"
@@ -112,6 +113,14 @@ type siteMembershipRow struct {
 // 归属由 site_members.sites.tenant_id / merchant_members.tenant_id / technician_profiles.tenant_id 决定，
 // users 行按 id 取回（local users.tenant_id 不可靠，如商户管理员自身行为全零 uuid）。
 func personnelMerchantView(db *gorm.DB, tid, keyword, siteFilter string, directOnly bool) []personnelRow {
+	// #2067 + #2261：成员归属已由 sites / merchant_members / technician_profiles
+	// 的 tenant_id 显式过滤；本地 users.tenant_id 不可靠（零租户用户），
+	// 必须关闭自动租户范围，否则 users 查询会把零租户成员漏掉。
+	scopeCtx := db.Statement.Context
+	if scopeCtx == nil {
+		scopeCtx = context.Background()
+	}
+	db = db.WithContext(database.ExplicitTenantScopeOnly(scopeCtx))
 	if directOnly {
 		siteFilter = "" // #2067: direct 优先（页面可能同时带网点选择）
 	}

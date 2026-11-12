@@ -34,13 +34,17 @@ func TestDiscountCodeFlow(t *testing.T) {
 
 	// Instrument: daily 100, deposit 500. Lease 10 days → rent 1000.
 	baseRate := 100.0
+	deposit := 500.0
 	require.NoError(t, db.Create(&models.Instrument{
 		ID:            instrumentID,
 		TenantID:      tenantID,
 		OrgID:         &orgID,
 		StockStatus:   models.StockStatusAvailable,
 		BaseDailyRate: models.ToCentsPtr(&baseRate),
-		Pricing:       `{"daily_rent":100.0,"monthly_rent":3000.0,"deposit":500.0}`,
+		// #2321: Deposit column is authoritative; the pricing JSON alone is not
+		// enough (zero-deposit instruments legitimately resolve to tier zero).
+		Deposit: models.ToCentsPtr(&deposit),
+		Pricing: `{"daily_rent":100.0,"monthly_rent":3000.0,"deposit":500.0}`,
 	}).Error)
 
 	// Default pricing template (no discount): 30-day tier at 100/day.
@@ -52,6 +56,10 @@ func TestDiscountCodeFlow(t *testing.T) {
 		IsActive:        true,
 		ConfigSchema:    `{"tiers":[{"days_max":30,"discount_percent":0},{"days_max":365,"discount_percent":20}],"deposit_ratio":0}`,
 	}).Error)
+
+	// #2336: 下单需要实名认证；guest actor 必须有对应的已验证本地用户，
+	// 否则 EnsureLocalUser 自动建出的用户会被身份闸门 40310 拦截。
+	testutil.SeedVerifiedCustomer(t, db, tenantID, orgID, userID)
 
 	// Customer actor (guest: tid derived from instrument).
 	customer := testutil.MakeCustomer("", userID)

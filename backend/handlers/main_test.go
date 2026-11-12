@@ -9,9 +9,11 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	_ "github.com/lib/pq"
 	"gorm.io/gorm"
@@ -139,6 +141,11 @@ func TestMain(m *testing.M) {
 	testDBName = resolved
 	// Redirect all tests to the isolated test database
 	os.Setenv("TUNELOOP_DB", testDBName)
+	// #2336: NewIAMService log.Fatal()s when credentials are absent, which kills
+	// the whole test process without a test failure. Provide package-wide
+	// defaults; individual tests may still override via t.Setenv.
+	os.Setenv("IAM_NAMESPACE", "test-ns")
+	os.Setenv("IAM_SECRET", "test-secret-1489")
 	// #2288: 共享连接池 + 测试间 DDL → 禁用 pgx prepared statement 缓存
 	os.Setenv("TUNELOOP_DB_SIMPLE_PROTOCOL", "1")
 
@@ -183,6 +190,12 @@ func TestMain(m *testing.M) {
 	}
 
 	database.SetDB(testDB)
+
+	// #2336: shipping retries must never sleep minutes inside the test process.
+	// Tests that assert the retry path override this locally; this default keeps
+	// any incidental reportWechatShipping goroutine fast and network-free.
+	restoreShippingBackoffs := services.SetShippingBackoffsForTesting([]time.Duration{0, 10 * time.Millisecond})
+	defer restoreShippingBackoffs()
 
 	code := m.Run()
 	os.Exit(code)

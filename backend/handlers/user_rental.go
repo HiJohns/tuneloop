@@ -449,6 +449,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 			}
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query pricing config"})
+			tx.Rollback()
 			return
 		}
 	} else {
@@ -558,6 +559,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	var userWallet models.User
 	if err := db.Where("id = ?", userID).First(&userWallet).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		tx.Rollback()
 		return
 	}
 
@@ -571,6 +573,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 			maxGiftAllowed := floorFloat(totalAmount * policy.PayRatio)
 			if req.GiftPointsUsed > maxGiftAllowed {
 				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": fmt.Sprintf("gift points usage exceeds max allowed: %.2f (max %.2f)", req.GiftPointsUsed, maxGiftAllowed)})
+				tx.Rollback()
 				return
 			}
 		}
@@ -579,10 +582,12 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		walletBalance, berr := services.GetUserPointsBalance(db, userWallet.ID)
 		if berr != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to compute points balance"})
+			tx.Rollback()
 			return
 		}
 		if models.FromYuan(req.GiftPointsUsed) > walletBalance {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "insufficient gift points"})
+			tx.Rollback()
 			return
 		}
 	}
@@ -590,6 +595,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	cashPaid := totalAmount - req.GiftPointsUsed
 	if cashPaid < 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "points exceed total amount"})
+		tx.Rollback()
 		return
 	}
 

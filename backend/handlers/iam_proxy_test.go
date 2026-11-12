@@ -324,7 +324,13 @@ func TestIAMProxyHandler_Issue340_IntegrationFlow(t *testing.T) {
 
 		handler.LookupUser(c)
 
-		assert.Equal(t, http.StatusNotFound, w.Code)
+		// Contract (see TestIAMProxyHandler_LookupUser above): upstream 404 is
+		// wrapped as HTTP 200 with business code 40400.
+		assert.Equal(t, http.StatusOK, w.Code)
+		var notFoundResp map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &notFoundResp))
+		assert.Equal(t, 40400, int(notFoundResp["code"].(float64)))
+		assert.Equal(t, "user not found", notFoundResp["message"])
 	})
 
 	// Test 2: Create new user (should succeed)
@@ -370,7 +376,10 @@ func TestIAMProxyHandler_Issue340_IntegrationFlow(t *testing.T) {
 
 		var response map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &response)
-		assert.Equal(t, "existing-user-id", response["id"])
+		// Success payload is wrapped as {code, data}; IAM fields live under data.
+		data, ok := response["data"].(map[string]interface{})
+		require.True(t, ok, "response must contain data: %s", w.Body.String())
+		assert.Equal(t, "existing-user-id", data["id"])
 	})
 }
 

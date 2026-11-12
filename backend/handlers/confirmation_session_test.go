@@ -313,15 +313,18 @@ func TestConfirmationSessionHandler_Confirm(t *testing.T) {
 	t.Run("ConfirmConfirmationSession_InvalidToken", func(t *testing.T) {
 		// Create test session
 		testSession := models.ConfirmationSession{
-			ID:            uuid.New().String(),
-			TenantID:      "11111111-1111-1111-1111-111111111111",
-			UserID:        "55555555-5555-5555-5555-555555555555",
-			ConfirmType:   "email",
-			ConfirmTarget: "test@example.com",
-			ActionType:    "merchant_admin",
-			Status:        "waiting",
-			Token:         "valid-token",
-			ExpiresAt:     time.Now().Add(24 * time.Hour),
+			ID:             uuid.New().String(),
+			TenantID:       "11111111-1111-1111-1111-111111111111",
+			OrgID:          "22222222-2222-2222-2222-222222222222",
+			UserID:         "55555555-5555-5555-5555-555555555555",
+			ConfirmType:    "email",
+			ConfirmTarget:  "test@example.com",
+			MerchantID:     "00000000-0000-0000-0000-000000000000", // uuid 列不接受空串
+			ActionType:     "merchant_admin",
+			ActionTargetID: "33333333-3333-3333-3333-333333333333",
+			Status:         "waiting",
+			Token:          "valid-token",
+			ExpiresAt:      time.Now().Add(24 * time.Hour),
 		}
 		err := db.Create(&testSession).Error
 		assert.NoError(t, err)

@@ -58,6 +58,9 @@ func TestCleanupStaleInitReservations2307_SkipsPaid(t *testing.T) {
 	services.SetIAMInternalURLForTesting(m.srv.URL)
 	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 	t.Setenv("IAM_SECRET", testIAMSecret)
+	// #2336: NewIAMService log.Fatal()s without a namespace; set it per test
+	// instead of relying on the cached service from a previous test.
+	t.Setenv("IAM_NAMESPACE", "test-ns")
 
 	old := time.Now().Add(-48 * time.Hour)
 	mkSession := func(status string, withPayment string) (*models.RegistrationSession, *models.User) {
@@ -133,6 +136,9 @@ func TestCreateRegistrationSession2307_ResumesInitUser(t *testing.T) {
 	services.SetIAMInternalURLForTesting(srv.URL)
 	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 	t.Setenv("IAM_SECRET", testIAMSecret)
+	// #2336: NewIAMService log.Fatal()s without a namespace; set it per test
+	// instead of relying on the cached service from a previous test.
+	t.Setenv("IAM_NAMESPACE", "test-ns")
 
 	iamID := uuid.New().String()
 	local := &models.User{
@@ -192,6 +198,9 @@ func TestCreateRegistrationSession2307_ReusesInitUserWithoutSession(t *testing.T
 	services.SetIAMInternalURLForTesting(srv.URL)
 	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 	t.Setenv("IAM_SECRET", testIAMSecret)
+	// #2336: NewIAMService log.Fatal()s without a namespace; set it per test
+	// instead of relying on the cached service from a previous test.
+	t.Setenv("IAM_NAMESPACE", "test-ns")
 
 	iamID := uuid.New().String()
 	local := &models.User{
@@ -254,6 +263,9 @@ func TestCreateRegistrationSession2307_CompletedUserStill409(t *testing.T) {
 	services.SetIAMInternalURLForTesting(srv.URL)
 	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 	t.Setenv("IAM_SECRET", testIAMSecret)
+	// #2336: NewIAMService log.Fatal()s without a namespace; set it per test
+	// instead of relying on the cached service from a previous test.
+	t.Setenv("IAM_NAMESPACE", "test-ns")
 
 	require.NoError(t, db.Create(&models.User{
 		ID: uuid.New().String(), IAMSub: uuid.New().String(), TenantID: "00000000-0000-0000-0000-000000000000",
@@ -297,6 +309,9 @@ func TestCreateRegistrationSession2307_PaidSessionActionsRebind(t *testing.T) {
 	services.SetIAMInternalURLForTesting(srv.URL)
 	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 	t.Setenv("IAM_SECRET", testIAMSecret)
+	// #2336: NewIAMService log.Fatal()s without a namespace; set it per test
+	// instead of relying on the cached service from a previous test.
+	t.Setenv("IAM_NAMESPACE", "test-ns")
 
 	iamID := uuid.New().String()
 	local := &models.User{ID: uuid.New().String(), IAMSub: iamID, TenantID: "00000000-0000-0000-0000-000000000000", OrgID: "00000000-0000-0000-0000-000000000000", Username: "13900002311", Name: "已支付", Phone: "13900002311", Status: "init"}
@@ -345,6 +360,9 @@ func TestCreateRegistrationSession2307_FailedNoPaymentActionsRestart(t *testing.
 	services.SetIAMInternalURLForTesting(srv.URL)
 	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 	t.Setenv("IAM_SECRET", testIAMSecret)
+	// #2336: NewIAMService log.Fatal()s without a namespace; set it per test
+	// instead of relying on the cached service from a previous test.
+	t.Setenv("IAM_NAMESPACE", "test-ns")
 
 	iamID := uuid.New().String()
 	local := &models.User{ID: uuid.New().String(), IAMSub: iamID, TenantID: "00000000-0000-0000-0000-000000000000", OrgID: "00000000-0000-0000-0000-000000000000", Username: "13900002312", Name: "失败", Phone: "13900002312", Status: "init"}
