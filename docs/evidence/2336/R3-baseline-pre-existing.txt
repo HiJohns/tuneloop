@@ -1,0 +1,900 @@
+[WARNING] No .env file found in common paths
+2026/11/12 19:05:10 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_base2336 sslmode=disable
+2026/11/12 19:05:10 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_base2336 sslmode=disable
+2026/11/12 19:05:10 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_base2336
+2026/11/12 19:05:10 [DB] Connected to database 'tuneloop_test_base2336'
+2026/11/12 19:05:24 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_base2336 sslmode=disable
+2026/11/12 19:05:24 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_base2336
+2026/11/12 19:05:24 [DB] Connected to database 'tuneloop_test_base2336'
+
+2026/11/12 19:05:25 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[463.457ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "instrument_photo_specs", "inventory_transfers", "maintenance_sessions", "maintenance_session_records", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "categories", "order_payment_records", "forwarding_sessions", "maintenance_tickets", "sites", "tenants", "banners", "mall_images", "maintenance_workers", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "user_addresses", "merchants", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "face_capture_batches", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "discount_code_usages", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "repair_reviews", "instrument_loss_records", "technician_profiles", "user_instruments", "repair_request_records", "repair_quotes", "repair_transit_orders", "transit_routes", "instrument_media", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "property_options", "instrument_properties", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:25 [31;1m/home/coder/base-2336/backend/handlers/repair.go:426 [35;1mERROR: invalid input syntax for type uuid: "" (SQLSTATE 22P02)
+[0m[33m[1.558ms] [34;1m[rows:0][0m SELECT * FROM "instruments" WHERE id = '679025d4-0dcf-4d35-b1e2-755f66b8860c' AND tenant_id = '' ORDER BY "instruments"."id" LIMIT 1
+--- FAIL: TestListRecords_DamageObject (0.80s)
+    repair_1866_test.go:208: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_1866_test.go:208
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 404
+        	Test:       	TestListRecords_DamageObject
+
+2026/11/12 19:05:26 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[602.408ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "instrument_photo_specs", "inventory_transfers", "maintenance_sessions", "maintenance_session_records", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "mall_images", "maintenance_workers", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "discount_code_usages", "categories", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "repair_reviews", "instrument_loss_records", "technician_profiles", "user_instruments", "repair_request_records", "repair_quotes", "repair_transit_orders", "transit_routes", "instrument_media", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "property_options", "instrument_properties", "order_payment_records", "forwarding_sessions", "maintenance_tickets", "sites", "tenants", "banners", "user_addresses", "merchants", "face_capture_batches", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+2026/11/12 19:05:26 [TenantScope][observe] auto-scope injected for table=merchants (add explicit scope, then set ExplicitTenantScopeOnly)
+--- FAIL: TestListMerchantRepairServices_SharedTenantNoLeak_2248 (0.90s)
+    repair_service_2248_test.go:65: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_2248_test.go:65
+        	Error:      	Should be false
+        	Test:       	TestListMerchantRepairServices_SharedTenantNoLeak_2248
+        	Messages:   	共享 tenant 的其他商户维修单不得出现（#2248）
+
+2026/11/12 19:05:26 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[388.490ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "categories", "instrument_photo_specs", "inventory_transfers", "maintenance_sessions", "maintenance_session_records", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "mall_images", "maintenance_workers", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "discount_code_usages", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "repair_reviews", "instrument_loss_records", "technician_profiles", "user_instruments", "repair_request_records", "repair_quotes", "repair_transit_orders", "transit_routes", "instrument_media", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "property_options", "instrument_properties", "order_payment_records", "forwarding_sessions", "maintenance_tickets", "sites", "tenants", "banners", "user_addresses", "merchants", "face_capture_batches", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:26 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.365ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:26 [Notify] WeChat stub: would send template message to user cff0212d-cb97-449f-a8e4-6d3aeb26ef25 (type=repair, ref=7b63c82a-2266-4849-81fd-0b7ff664ddd5)
+
+2026/11/12 19:05:26 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.279ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:26 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[0.288ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = '399b77dc-97ca-4336-845d-87f3e633d1c3' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:26 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[0.505ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','399b77dc-97ca-4336-845d-87f3e633d1c3') AND (id = '7b63c82a-2266-4849-81fd-0b7ff664ddd5' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+2026/11/12 19:05:26 [Notify] WeChat stub: would send template message to user cff0212d-cb97-449f-a8e4-6d3aeb26ef25 (type=repair, ref=7b63c82a-2266-4849-81fd-0b7ff664ddd5)
+
+2026/11/12 19:05:26 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[0.488ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = '399b77dc-97ca-4336-845d-87f3e633d1c3' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:26 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[0.920ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','399b77dc-97ca-4336-845d-87f3e633d1c3') AND (id = '7b63c82a-2266-4849-81fd-0b7ff664ddd5' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+--- FAIL: TestAdjust2116_RejectedWhileShipping (0.62s)
+    repair_service_receive_2116_test.go:193: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_receive_2116_test.go:193
+        	Error:      	Not equal: 
+        	            	expected: 40900
+        	            	actual  : 40400
+        	Test:       	TestAdjust2116_RejectedWhileShipping
+        	Messages:   	收货前不可加价
+
+2026/11/12 19:05:27 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[599.413ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "instrument_properties", "order_payment_records", "forwarding_sessions", "categories", "instrument_photo_specs", "inventory_transfers", "discount_code_usages", "repair_reviews", "instrument_loss_records", "maintenance_sessions", "maintenance_session_records", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "mall_images", "maintenance_workers", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "repair_request_records", "repair_quotes", "repair_transit_orders", "transit_routes", "banners", "user_addresses", "merchants", "face_capture_batches", "instrument_media", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:27 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[1.694ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:27 [Notify] WeChat stub: would send template message to user 4b6e861f-df81-4452-a23b-c5caee1f8c07 (type=repair, ref=81ff05c4-1962-45cb-b187-9fad7fd792ce)
+
+2026/11/12 19:05:27 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[1.111ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:27 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[0.399ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = '847676b2-d357-42d0-b6fd-e9c71a1b36a8' ORDER BY "merchants"."id" LIMIT 1
+--- FAIL: TestListTasks2116_IncludesSubmitterName (0.85s)
+    repair_service_receive_2116_test.go:215: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_receive_2116_test.go:215
+        	Error:      	"0" is not greater than or equal to "1"
+        	Test:       	TestListTasks2116_IncludesSubmitterName
+
+2026/11/12 19:05:28 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[591.259ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "categories", "instrument_photo_specs", "inventory_transfers", "discount_code_usages", "repair_reviews", "instrument_loss_records", "maintenance_sessions", "maintenance_session_records", "repair_request_records", "repair_quotes", "repair_transit_orders", "banners", "user_addresses", "merchants", "face_capture_batches", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "mall_images", "maintenance_workers", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:28 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[1.184ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:28 [Notify] WeChat stub: would send template message to user 6d3bae94-7980-434e-a694-c2dc9d1f88bf (type=repair, ref=10837146-75fa-44eb-9349-7b51c87f37a1)
+
+2026/11/12 19:05:28 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[2.632ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:28 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[3.674ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = '99a6d929-5bd4-45a4-9310-4e384ab3dd67' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:28 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[2.745ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','99a6d929-5bd4-45a4-9310-4e384ab3dd67') AND (id = '10837146-75fa-44eb-9349-7b51c87f37a1' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+2026/11/12 19:05:28 [Notify] WeChat stub: would send template message to user 6d3bae94-7980-434e-a694-c2dc9d1f88bf (type=repair, ref=10837146-75fa-44eb-9349-7b51c87f37a1)
+
+2026/11/12 19:05:28 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[0.485ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = '99a6d929-5bd4-45a4-9310-4e384ab3dd67' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:28 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[0.629ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','99a6d929-5bd4-45a4-9310-4e384ab3dd67') AND (id = '10837146-75fa-44eb-9349-7b51c87f37a1' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+--- FAIL: TestDispatch2122_ShortfallNotification (0.98s)
+    repair_service_receive_2116_test.go:292: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_test.go:146
+        	            				/home/coder/base-2336/backend/handlers/repair_service_receive_2116_test.go:292
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+        	Test:       	TestDispatch2122_ShortfallNotification
+        	Messages:   	map[code:40400 message:repair service not found]
+
+2026/11/12 19:05:29 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[322.286ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "categories", "instrument_photo_specs", "inventory_transfers", "discount_code_usages", "repair_reviews", "instrument_loss_records", "maintenance_sessions", "maintenance_session_records", "repair_request_records", "repair_quotes", "repair_transit_orders", "banners", "user_addresses", "merchants", "face_capture_batches", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "mall_images", "maintenance_workers", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:29 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.592ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:29 [Notify] WeChat stub: would send template message to user 031a617f-7e5d-44c5-b1f6-623153a624f3 (type=repair, ref=13117991-388a-4573-ac19-fca42f64d2bc)
+
+2026/11/12 19:05:29 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[1.154ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+--- FAIL: TestSelectTechnician2122_NoSiteMerchantOnly (0.66s)
+    repair_service_receive_2116_test.go:315: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_receive_2116_test.go:315
+        	Error:      	Not equal: 
+        	            	expected: "00000000-0000-4000-8000-1950a1b2c3d1"
+        	            	actual  : "00000000-0000-4000-8000-1950a1b2c3d2"
+        	            	
+        	            	Diff:
+        	            	--- Expected
+        	            	+++ Actual
+        	            	@@ -1 +1 @@
+        	            	-00000000-0000-4000-8000-1950a1b2c3d1
+        	            	+00000000-0000-4000-8000-1950a1b2c3d2
+        	Test:       	TestSelectTechnician2122_NoSiteMerchantOnly
+        	Messages:   	应回填商户租户
+
+2026/11/12 19:05:30 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[741.125ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "categories", "instrument_photo_specs", "inventory_transfers", "discount_code_usages", "repair_reviews", "instrument_loss_records", "maintenance_sessions", "maintenance_session_records", "repair_request_records", "repair_quotes", "repair_transit_orders", "banners", "user_addresses", "merchants", "face_capture_batches", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "mall_images", "maintenance_workers", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+2026/11/12 19:05:30 [Notify] WeChat stub: would send template message to user f6b79f80-826a-4f5c-bee1-89d9d76996df (type=repair, ref=3bf14864-5b9d-4ebd-87f3-0207d3d1556e)
+--- FAIL: TestRepairService_CreateNormalizesTenant_2134 (0.97s)
+    repair_service_tenant_2134_test.go:143: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_tenant_2134_test.go:143
+        	Error:      	Not equal: 
+        	            	expected: "00000000-0000-4000-8000-1950a1b2c3d1"
+        	            	actual  : "00000000-0000-4000-8000-1950a1b2c3d2"
+        	            	
+        	            	Diff:
+        	            	--- Expected
+        	            	+++ Actual
+        	            	@@ -1 +1 @@
+        	            	-00000000-0000-4000-8000-1950a1b2c3d1
+        	            	+00000000-0000-4000-8000-1950a1b2c3d2
+        	Test:       	TestRepairService_CreateNormalizesTenant_2134
+        	Messages:   	写入应把叶组织规范化为根租户
+
+2026/11/12 19:05:31 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[807.181ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "categories", "instrument_photo_specs", "inventory_transfers", "discount_code_usages", "repair_reviews", "instrument_loss_records", "maintenance_sessions", "maintenance_session_records", "repair_request_records", "repair_quotes", "repair_transit_orders", "banners", "user_addresses", "merchants", "face_capture_batches", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "mall_images", "maintenance_workers", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:31 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[1.519ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:31 [Notify] WeChat stub: would send template message to user 6673289c-0a51-4e12-9179-66cc68aedec9 (type=repair, ref=208a56d7-5732-4b20-980a-678dbbc860e5)
+
+2026/11/12 19:05:31 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.555ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:31 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[1.629ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = 'e46609e6-4a5b-4bc9-b0ad-2513814532ef' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:31 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[1.811ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','e46609e6-4a5b-4bc9-b0ad-2513814532ef') AND (id = '208a56d7-5732-4b20-980a-678dbbc860e5' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+--- FAIL: TestRepairService_HappyPathSettlementRefund (1.09s)
+    repair_service_test.go:218: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_test.go:218
+        	Error:      	Not equal: 
+        	            	expected: "e46609e6-4a5b-4bc9-b0ad-2513814532ef"
+        	            	actual  : ""
+        	            	
+        	            	Diff:
+        	            	--- Expected
+        	            	+++ Actual
+        	            	@@ -1 +1 @@
+        	            	-e46609e6-4a5b-4bc9-b0ad-2513814532ef
+        	            	+
+        	Test:       	TestRepairService_HappyPathSettlementRefund
+    repair_service_test.go:219: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_test.go:219
+        	Error:      	Not equal: 
+        	            	expected: "00000000-0000-4000-8000-1950a1b2c3d1"
+        	            	actual  : "00000000-0000-4000-8000-1950a1b2c3d2"
+        	            	
+        	            	Diff:
+        	            	--- Expected
+        	            	+++ Actual
+        	            	@@ -1 +1 @@
+        	            	-00000000-0000-4000-8000-1950a1b2c3d1
+        	            	+00000000-0000-4000-8000-1950a1b2c3d2
+        	Test:       	TestRepairService_HappyPathSettlementRefund
+    repair_service_test.go:224: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_test.go:224
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+        	Test:       	TestRepairService_HappyPathSettlementRefund
+
+2026/11/12 19:05:32 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[816.814ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "categories", "instrument_photo_specs", "inventory_transfers", "discount_code_usages", "repair_reviews", "instrument_loss_records", "maintenance_sessions", "maintenance_session_records", "repair_request_records", "repair_quotes", "repair_transit_orders", "banners", "user_addresses", "merchants", "face_capture_batches", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "mall_images", "maintenance_workers", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:32 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.412ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:32 [Notify] WeChat stub: would send template message to user 10a408b5-7ee2-4b4f-8597-d87ca181cfbe (type=repair, ref=6ccade93-03a0-4467-aa99-78e4ee6f0c0b)
+
+2026/11/12 19:05:32 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[3.142ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:32 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[2.319ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = 'd12f363d-138f-4da6-b0cf-cb2ffc1b24e8' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:32 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[0.637ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','d12f363d-138f-4da6-b0cf-cb2ffc1b24e8') AND (id = '6ccade93-03a0-4467-aa99-78e4ee6f0c0b' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+2026/11/12 19:05:32 [Notify] WeChat stub: would send template message to user 10a408b5-7ee2-4b4f-8597-d87ca181cfbe (type=repair, ref=6ccade93-03a0-4467-aa99-78e4ee6f0c0b)
+
+2026/11/12 19:05:32 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[1.167ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = 'd12f363d-138f-4da6-b0cf-cb2ffc1b24e8' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:32 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[1.796ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','d12f363d-138f-4da6-b0cf-cb2ffc1b24e8') AND (id = '6ccade93-03a0-4467-aa99-78e4ee6f0c0b' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+--- FAIL: TestRepairService_AdjustAcceptPaysDifference (1.24s)
+    repair_service_test.go:274: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_test.go:146
+        	            				/home/coder/base-2336/backend/handlers/repair_service_test.go:274
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+        	Test:       	TestRepairService_AdjustAcceptPaysDifference
+        	Messages:   	map[code:40400 message:repair service not found]
+
+2026/11/12 19:05:33 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[806.615ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "categories", "instrument_photo_specs", "inventory_transfers", "discount_code_usages", "repair_reviews", "instrument_loss_records", "maintenance_sessions", "maintenance_session_records", "repair_request_records", "repair_quotes", "repair_transit_orders", "banners", "user_addresses", "merchants", "face_capture_batches", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "mall_images", "maintenance_workers", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:33 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.541ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:33 [Notify] WeChat stub: would send template message to user 15172086-f4fb-4ee8-b65d-fad7eac50719 (type=repair, ref=e829fb9e-ad97-4130-b825-84f95f8d289b)
+
+2026/11/12 19:05:33 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[1.660ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:33 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[0.934ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = '750ce462-ac7c-4a7d-9250-f98d028bbee5' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:33 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[0.933ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','750ce462-ac7c-4a7d-9250-f98d028bbee5') AND (id = 'e829fb9e-ad97-4130-b825-84f95f8d289b' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+2026/11/12 19:05:33 [Notify] WeChat stub: would send template message to user 15172086-f4fb-4ee8-b65d-fad7eac50719 (type=repair, ref=e829fb9e-ad97-4130-b825-84f95f8d289b)
+
+2026/11/12 19:05:33 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[0.480ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = '750ce462-ac7c-4a7d-9250-f98d028bbee5' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:33 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[3.692ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','750ce462-ac7c-4a7d-9250-f98d028bbee5') AND (id = 'e829fb9e-ad97-4130-b825-84f95f8d289b' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+--- FAIL: TestRepairService_AdjustDeclineSettlement (1.19s)
+    repair_service_test.go:320: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_test.go:146
+        	            				/home/coder/base-2336/backend/handlers/repair_service_test.go:320
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+        	Test:       	TestRepairService_AdjustDeclineSettlement
+        	Messages:   	map[code:40400 message:repair service not found]
+
+2026/11/12 19:05:34 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[762.956ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "categories", "instrument_photo_specs", "inventory_transfers", "discount_code_usages", "repair_reviews", "instrument_loss_records", "maintenance_sessions", "maintenance_session_records", "repair_request_records", "repair_quotes", "repair_transit_orders", "banners", "user_addresses", "merchants", "face_capture_batches", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "mall_images", "maintenance_workers", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:35 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[1.925ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:35 [Notify] WeChat stub: would send template message to user 7118f3d4-3325-41c4-b2ad-7802b82b30bd (type=repair, ref=7fd6796c-883a-4984-8eee-49f5f04c58d4)
+
+2026/11/12 19:05:35 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.291ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:35 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[0.292ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = '8b93af90-e5b3-43ec-88d2-87e683fdc3c8' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:35 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[0.541ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','8b93af90-e5b3-43ec-88d2-87e683fdc3c8') AND (id = '7fd6796c-883a-4984-8eee-49f5f04c58d4' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+2026/11/12 19:05:35 [Notify] WeChat stub: would send template message to user 7118f3d4-3325-41c4-b2ad-7802b82b30bd (type=repair, ref=7fd6796c-883a-4984-8eee-49f5f04c58d4)
+
+2026/11/12 19:05:35 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[2.208ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = '8b93af90-e5b3-43ec-88d2-87e683fdc3c8' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:35 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[1.085ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','8b93af90-e5b3-43ec-88d2-87e683fdc3c8') AND (id = '7fd6796c-883a-4984-8eee-49f5f04c58d4' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+--- FAIL: TestRepairService_SettlementShortfall (1.22s)
+    repair_service_test.go:353: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_test.go:146
+        	            				/home/coder/base-2336/backend/handlers/repair_service_test.go:353
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+        	Test:       	TestRepairService_SettlementShortfall
+        	Messages:   	map[code:40400 message:repair service not found]
+
+2026/11/12 19:05:35 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[703.670ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "categories", "instrument_photo_specs", "inventory_transfers", "discount_code_usages", "repair_reviews", "instrument_loss_records", "maintenance_sessions", "maintenance_session_records", "repair_request_records", "repair_quotes", "repair_transit_orders", "banners", "user_addresses", "merchants", "face_capture_batches", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "mall_images", "maintenance_workers", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:35 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.944ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:35 [Notify] WeChat stub: would send template message to user 36689543-20e1-476f-9146-dd6f5443a77d (type=repair, ref=30f59037-225d-4a22-a6eb-4379dc6da2e4)
+
+2026/11/12 19:05:35 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[0.278ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = '9d794bbb-305b-43d0-91b1-f84f0ce7c27e' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:35 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[0.515ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','9d794bbb-305b-43d0-91b1-f84f0ce7c27e') AND (id = '30f59037-225d-4a22-a6eb-4379dc6da2e4' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+
+2026/11/12 19:05:36 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[1.271ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = '9d794bbb-305b-43d0-91b1-f84f0ce7c27e' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:36 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[0.469ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','9d794bbb-305b-43d0-91b1-f84f0ce7c27e') AND (id = '30f59037-225d-4a22-a6eb-4379dc6da2e4' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+--- FAIL: TestRepairService_StatusGuardsAndTenantIsolation (0.95s)
+    repair_service_test.go:383: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_test.go:383
+        	Error:      	Not equal: 
+        	            	expected: 40900
+        	            	actual  : 40400
+        	Test:       	TestRepairService_StatusGuardsAndTenantIsolation
+    repair_service_test.go:385: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_test.go:385
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+        	Test:       	TestRepairService_StatusGuardsAndTenantIsolation
+        	Messages:   	创建即锁定 → 本租户员工可报价
+
+2026/11/12 19:05:37 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[774.181ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "categories", "instrument_photo_specs", "inventory_transfers", "discount_code_usages", "repair_reviews", "instrument_loss_records", "maintenance_sessions", "maintenance_session_records", "repair_request_records", "repair_quotes", "repair_transit_orders", "banners", "user_addresses", "merchants", "face_capture_batches", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "mall_images", "maintenance_workers", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:37 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[4.185ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:37 [Notify] WeChat stub: would send template message to user 28c906eb-f85b-47b2-b18d-944fc26f56bd (type=repair, ref=330ab8bd-426d-484a-b714-e21518713ecd)
+
+2026/11/12 19:05:37 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[2.642ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:37 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.459ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:37 [Notify] WeChat stub: would send template message to user 28c906eb-f85b-47b2-b18d-944fc26f56bd (type=repair, ref=e19ab25f-7154-4b46-9550-081da4d11333)
+
+2026/11/12 19:05:37 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[2.994ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = '8ca342f6-9c04-49a5-942c-d20396070bbf' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:37 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[3.252ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = '8ca342f6-9c04-49a5-942c-d20396070bbf' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:37 [RepairService.ListTasks][diag] scope=mine role="STAFF" tid="00000000-0000-4000-8000-1950a1b2c3d1" oid="8ca342f6-9c04-49a5-942c-d20396070bbf" me="28c906eb-f85b-47b2-b18d-944fc26f56bd" scopes=[00000000-0000-4000-8000-1950a1b2c3d1 8ca342f6-9c04-49a5-942c-d20396070bbf] rows=0
+--- FAIL: TestRepairService_TaskListScopes (1.16s)
+    repair_service_test.go:441: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_test.go:441
+        	Error:      	Should be true
+        	Test:       	TestRepairService_TaskListScopes
+        	Messages:   	本网点单在列
+    repair_service_test.go:443: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_test.go:443
+        	Error:      	Should be true
+        	Test:       	TestRepairService_TaskListScopes
+        	Messages:   	无 site 单（本租户）对网点账号可见
+    repair_service_test.go:449: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_test.go:449
+        	Error:      	"[]" should have 2 item(s), but has 0
+        	Test:       	TestRepairService_TaskListScopes
+
+2026/11/12 19:05:38 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[1463.861ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "categories", "instrument_photo_specs", "inventory_transfers", "discount_code_usages", "repair_reviews", "instrument_loss_records", "maintenance_sessions", "maintenance_session_records", "repair_request_records", "repair_quotes", "repair_transit_orders", "banners", "user_addresses", "merchants", "face_capture_batches", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "mall_images", "maintenance_workers", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:39 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[3.497ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:39 [Notify] WeChat stub: would send template message to user 02dbb644-aa62-4e4a-bda5-36fe38ef74ea (type=repair, ref=34031714-fea1-45f1-9136-5ecfa459ccf3)
+
+2026/11/12 19:05:39 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[5.286ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:39 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:601 [35;1mrecord not found
+[0m[33m[2.596ms] [34;1m[rows:0][0m SELECT * FROM "repair_reviews" WHERE repair_id = '34031714-fea1-45f1-9136-5ecfa459ccf3' ORDER BY "repair_reviews"."id" LIMIT 1
+
+2026/11/12 19:05:39 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:659 [35;1mrecord not found
+[0m[33m[1.369ms] [34;1m[rows:0][0m SELECT * FROM "user_addresses" WHERE user_id = '11013e26-ecfd-4e4b-837b-575123573577' ORDER BY is_default DESC, created_at DESC,"user_addresses"."id" LIMIT 1
+--- FAIL: TestRepairService_DetailSite (1.96s)
+    repair_service_test.go:490: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_test.go:490
+        	Error:      	Should be true
+        	Test:       	TestRepairService_DetailSite
+        	Messages:   	详情应含 site 对象
+
+2026/11/12 19:05:40 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[521.769ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "categories", "instrument_photo_specs", "inventory_transfers", "discount_code_usages", "repair_reviews", "instrument_loss_records", "maintenance_sessions", "maintenance_session_records", "repair_request_records", "repair_quotes", "repair_transit_orders", "banners", "user_addresses", "merchants", "face_capture_batches", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "mall_images", "maintenance_workers", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:40 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.593ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:40 [Notify] WeChat stub: would send template message to user b608310b-2bd6-4786-8d65-a2e5d1c1225e (type=repair, ref=51722c2b-4fa1-43b5-bb8b-9478d2ece841)
+
+2026/11/12 19:05:40 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.334ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:40 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[0.438ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = '9addb7e6-dbf7-4cbd-8b48-0c4178e9c70e' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:40 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[0.727ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','9addb7e6-dbf7-4cbd-8b48-0c4178e9c70e') AND (id = '51722c2b-4fa1-43b5-bb8b-9478d2ece841' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+2026/11/12 19:05:40 [Notify] WeChat stub: would send template message to user b608310b-2bd6-4786-8d65-a2e5d1c1225e (type=repair, ref=51722c2b-4fa1-43b5-bb8b-9478d2ece841)
+
+2026/11/12 19:05:40 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[0.485ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = '9addb7e6-dbf7-4cbd-8b48-0c4178e9c70e' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:40 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[0.666ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','9addb7e6-dbf7-4cbd-8b48-0c4178e9c70e') AND (id = '51722c2b-4fa1-43b5-bb8b-9478d2ece841' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+--- FAIL: TestRepairService_Timeline (0.97s)
+    repair_service_test.go:533: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_test.go:146
+        	            				/home/coder/base-2336/backend/handlers/repair_service_test.go:533
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+        	Test:       	TestRepairService_Timeline
+        	Messages:   	map[code:40400 message:repair service not found]
+
+2026/11/12 19:05:40 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[636.760ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "categories", "instrument_photo_specs", "inventory_transfers", "discount_code_usages", "repair_reviews", "instrument_loss_records", "maintenance_sessions", "maintenance_session_records", "repair_request_records", "repair_quotes", "repair_transit_orders", "banners", "user_addresses", "merchants", "face_capture_batches", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "mall_images", "maintenance_workers", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:40 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[1.586ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:40 [Notify] WeChat stub: would send template message to user 1b2dac66-60b3-49fc-8253-3c9769fff24b (type=repair, ref=4dc77a11-2788-46bd-a4e6-0ca86f2d55c0)
+
+2026/11/12 19:05:40 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[1.321ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:40 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[0.369ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = '1c2a828e-e5b8-47ea-bc4f-560aba3e16b3' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:40 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[1.302ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','1c2a828e-e5b8-47ea-bc4f-560aba3e16b3') AND (id = '4dc77a11-2788-46bd-a4e6-0ca86f2d55c0' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+2026/11/12 19:05:41 [Notify] WeChat stub: would send template message to user 1b2dac66-60b3-49fc-8253-3c9769fff24b (type=repair, ref=4dc77a11-2788-46bd-a4e6-0ca86f2d55c0)
+
+2026/11/12 19:05:41 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[0.408ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = '1c2a828e-e5b8-47ea-bc4f-560aba3e16b3' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:41 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[2.080ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','1c2a828e-e5b8-47ea-bc4f-560aba3e16b3') AND (id = '4dc77a11-2788-46bd-a4e6-0ca86f2d55c0' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+--- FAIL: TestRepairService_PaymentsSummary (0.92s)
+    repair_service_test.go:586: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_test.go:146
+        	            				/home/coder/base-2336/backend/handlers/repair_service_test.go:586
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+        	Test:       	TestRepairService_PaymentsSummary
+        	Messages:   	map[code:40400 message:repair service not found]
+
+2026/11/12 19:05:41 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[618.710ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "categories", "instrument_photo_specs", "inventory_transfers", "discount_code_usages", "repair_reviews", "instrument_loss_records", "maintenance_sessions", "maintenance_session_records", "banners", "user_addresses", "merchants", "face_capture_batches", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "repair_request_records", "repair_quotes", "repair_transit_orders", "mall_images", "maintenance_workers", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:41 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.584ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:41 [Notify] WeChat stub: would send template message to user 0ca79b22-1d6f-4656-9a9a-22a71cae7862 (type=repair, ref=e85471ed-1875-49dc-8d1e-45ffa374f6e4)
+
+2026/11/12 19:05:41 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.287ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:42 [Notify] WeChat stub: would send template message to user 0ca79b22-1d6f-4656-9a9a-22a71cae7862 (type=repair, ref=3579e978-c947-4eda-99cb-014a5602b889)
+
+2026/11/12 19:05:42 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[1.631ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:42 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[0.325ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = 'c52309ba-83d6-4210-9724-2aac5115ebe7' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:42 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[0.602ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','c52309ba-83d6-4210-9724-2aac5115ebe7') AND (id = 'e85471ed-1875-49dc-8d1e-45ffa374f6e4' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+--- FAIL: TestRepairService_ListMineStatusFilter (1.01s)
+    repair_service_test.go:644: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_test.go:644
+        	Error:      	Not equal: 
+        	            	expected: 1
+        	            	actual  : 0
+        	Test:       	TestRepairService_ListMineStatusFilter
+        	Messages:   	只返回 pending_payment 状态的单
+
+2026/11/12 19:05:43 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[674.578ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "categories", "instrument_photo_specs", "inventory_transfers", "discount_code_usages", "repair_reviews", "instrument_loss_records", "banners", "user_addresses", "merchants", "face_capture_batches", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "repair_request_records", "maintenance_sessions", "maintenance_session_records", "repair_quotes", "repair_transit_orders", "mall_images", "maintenance_workers", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:43 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[5.401ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:43 [Notify] WeChat stub: would send template message to user 67c6c386-df9a-4f60-aab3-0833c53a4810 (type=repair, ref=26080d27-5716-4f05-bc37-0045b68d86fd)
+
+2026/11/12 19:05:43 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.791ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:43 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[1.209ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = 'e94268ef-4dc9-451a-9b3b-cfc69d7b5cd6' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:43 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[1.340ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','e94268ef-4dc9-451a-9b3b-cfc69d7b5cd6') AND (id = '26080d27-5716-4f05-bc37-0045b68d86fd' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+2026/11/12 19:05:43 [Notify] WeChat stub: would send template message to user 67c6c386-df9a-4f60-aab3-0833c53a4810 (type=repair, ref=26080d27-5716-4f05-bc37-0045b68d86fd)
+
+2026/11/12 19:05:43 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[0.971ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = 'e94268ef-4dc9-451a-9b3b-cfc69d7b5cd6' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:43 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[0.839ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','e94268ef-4dc9-451a-9b3b-cfc69d7b5cd6') AND (id = '26080d27-5716-4f05-bc37-0045b68d86fd' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+--- FAIL: TestRepairService_ShortfallPrepay (1.12s)
+    repair_service_test.go:662: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_test.go:146
+        	            				/home/coder/base-2336/backend/handlers/repair_service_test.go:662
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+        	Test:       	TestRepairService_ShortfallPrepay
+        	Messages:   	map[code:40400 message:repair service not found]
+
+2026/11/12 19:05:44 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[663.909ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "categories", "instrument_photo_specs", "inventory_transfers", "discount_code_usages", "repair_reviews", "instrument_loss_records", "banners", "user_addresses", "merchants", "face_capture_batches", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "repair_request_records", "maintenance_sessions", "maintenance_session_records", "repair_quotes", "repair_transit_orders", "mall_images", "maintenance_workers", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:44 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.288ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:44 [Notify] WeChat stub: would send template message to user 5b342e57-bb0f-40ed-a20b-43b42e7aa3e8 (type=repair, ref=959b3d62-ff4a-4d7a-8061-8c572016a011)
+
+2026/11/12 19:05:44 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[0.304ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = 'ebe0c044-89c5-4e35-a90b-d8a8f4537876' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:44 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[4.684ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','ebe0c044-89c5-4e35-a90b-d8a8f4537876') AND (id = '959b3d62-ff4a-4d7a-8061-8c572016a011' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+--- FAIL: TestRepairService_CouponDispatchDeduction_2096 (0.93s)
+    repair_service_test.go:782: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_test.go:782
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+        	Test:       	TestRepairService_CouponDispatchDeduction_2096
+
+2026/11/12 19:05:44 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[634.788ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "categories", "instrument_photo_specs", "inventory_transfers", "discount_code_usages", "repair_reviews", "banners", "user_addresses", "merchants", "face_capture_batches", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "repair_request_records", "maintenance_sessions", "maintenance_session_records", "repair_quotes", "repair_transit_orders", "instrument_loss_records", "mall_images", "maintenance_workers", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:44 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.314ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:44 [Notify] WeChat stub: would send template message to user b5792692-ce5d-4f6b-86ac-bed0ecacf05a (type=repair, ref=58173ad9-246e-4a98-8dbd-5d200d1a0303)
+
+2026/11/12 19:05:44 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[0.318ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = 'f8db5565-7064-4db2-b025-ef0ffb5ee04e' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:44 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[0.568ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','f8db5565-7064-4db2-b025-ef0ffb5ee04e') AND (id = '58173ad9-246e-4a98-8dbd-5d200d1a0303' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+--- FAIL: TestRepairService_DeclineQuote_2093 (0.89s)
+    repair_service_test.go:831: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_test.go:831
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+        	Test:       	TestRepairService_DeclineQuote_2093
+
+2026/11/12 19:05:45 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[559.307ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "categories", "instrument_photo_specs", "inventory_transfers", "discount_code_usages", "banners", "user_addresses", "merchants", "face_capture_batches", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "repair_request_records", "maintenance_sessions", "maintenance_session_records", "repair_quotes", "repair_transit_orders", "repair_reviews", "instrument_loss_records", "mall_images", "maintenance_workers", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:45 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[3.122ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:45 [Notify] WeChat stub: would send template message to user 77200482-eb22-434d-a289-a490afe826ac (type=repair, ref=13e7df3d-fdd2-4698-a9d6-7f6de2b5d9e2)
+
+2026/11/12 19:05:45 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[1.828ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = '285caea6-dd43-4583-9693-9afed236c664' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:45 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[2.453ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','285caea6-dd43-4583-9693-9afed236c664') AND (id = '13e7df3d-fdd2-4698-a9d6-7f6de2b5d9e2' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+--- FAIL: TestRepairService_PaymentTimeout_PreservesPending_2097 (0.87s)
+    repair_service_test.go:938: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_test.go:938
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+        	Test:       	TestRepairService_PaymentTimeout_PreservesPending_2097
+
+2026/11/12 19:05:46 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[795.030ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "categories", "instrument_photo_specs", "discount_code_usages", "banners", "user_addresses", "merchants", "face_capture_batches", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "repair_request_records", "maintenance_sessions", "maintenance_session_records", "repair_quotes", "repair_transit_orders", "repair_reviews", "inventory_transfers", "instrument_loss_records", "mall_images", "maintenance_workers", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:46 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.412ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:46 [Notify] WeChat stub: would send template message to user 47f36913-2f9b-4a13-b9bb-80c4d23c2ba7 (type=repair, ref=2898dff5-7f79-4f53-b077-50ebe8ee6e81)
+
+2026/11/12 19:05:46 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:214 [35;1mrecord not found
+[0m[33m[0.460ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "merchants" WHERE org_id = '33bc64b1-3741-4c4b-9045-33caaabbcc31' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:46 [31;1m/home/coder/base-2336/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[0.715ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950a1b2c3d1','33bc64b1-3741-4c4b-9045-33caaabbcc31') AND (id = '2898dff5-7f79-4f53-b077-50ebe8ee6e81' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+--- FAIL: TestRepairService_Notifications_2090 (1.05s)
+    repair_service_test.go:994: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/repair_service_test.go:994
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+        	Test:       	TestRepairService_Notifications_2090
+
+2026/11/12 19:05:47 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[597.199ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "categories", "discount_code_usages", "banners", "user_addresses", "merchants", "face_capture_batches", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "roles", "site_images", "warnings", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "repair_request_records", "maintenance_sessions", "maintenance_session_records", "repair_quotes", "repair_transit_orders", "repair_reviews", "inventory_transfers", "instrument_loss_records", "mall_images", "maintenance_workers", "instrument_photo_specs", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:47 [31;1m/home/coder/base-2336/backend/handlers/user_settlement.go:716 [35;1mrecord not found
+[0m[33m[0.673ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '5af6c25a-0480-45ed-a19e-8be8973ed578' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/12 19:05:47 [31;1m/home/coder/base-2336/backend/handlers/user_settlement.go:836 [35;1mrecord not found
+[0m[33m[2.378ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '5af6c25a-0480-45ed-a19e-8be8973ed578' ORDER BY "damage_reports"."id" LIMIT 1
+--- FAIL: TestRefundDiff_PointsOverCap (0.95s)
+    settlement_diff_test.go:62: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/settlement_diff_test.go:62
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 666.6700000000001
+        	Test:       	TestRefundDiff_PointsOverCap
+        	Messages:   	total refund
+
+2026/11/12 19:05:48 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[541.573ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "categories", "discount_code_usages", "banners", "user_addresses", "merchants", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "roles", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "repair_request_records", "maintenance_sessions", "maintenance_session_records", "repair_quotes", "repair_transit_orders", "repair_reviews", "inventory_transfers", "instrument_loss_records", "mall_images", "maintenance_workers", "instrument_photo_specs", "face_capture_batches", "site_images", "warnings", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:48 [31;1m/home/coder/base-2336/backend/handlers/user_settlement.go:716 [35;1mrecord not found
+[0m[33m[1.321ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '65b86a4e-7c67-4eeb-9eaf-2ee5147bf569' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/12 19:05:48 [31;1m/home/coder/base-2336/backend/handlers/user_settlement.go:836 [35;1mrecord not found
+[0m[33m[3.020ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '65b86a4e-7c67-4eeb-9eaf-2ee5147bf569' ORDER BY "damage_reports"."id" LIMIT 1
+--- FAIL: TestRefundDiff_PointsWithinCap (0.75s)
+    settlement_diff_test.go:112: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/settlement_diff_test.go:112
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 666.6700000000001
+        	Test:       	TestRefundDiff_PointsWithinCap
+        	Messages:   	full cash refund
+2026/11/12 19:05:48 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
+
+2026/11/12 19:05:48 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[285.431ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "categories", "discount_code_usages", "banners", "user_addresses", "merchants", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "repair_request_records", "maintenance_sessions", "maintenance_session_records", "repair_quotes", "repair_transit_orders", "repair_reviews", "inventory_transfers", "instrument_loss_records", "mall_images", "maintenance_workers", "instrument_photo_specs", "roles", "face_capture_batches", "site_images", "warnings", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:48 [31;1m/home/coder/base-2336/backend/handlers/user_rental.go:442 [35;1mrecord not found
+[0m[33m[10.632ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '5db6aa6e-8d60-4e29-9fe4-3f802581a2b2' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/12 19:05:48 [31;1m/home/coder/base-2336/backend/handlers/user_rental.go:1491 [35;1mrecord not found
+[0m[33m[0.869ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '5db6aa6e-8d60-4e29-9fe4-3f802581a2b2' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/12 19:05:48 [31;1m/home/coder/base-2336/backend/handlers/user_rental.go:1499 [35;1mrecord not found
+[0m[33m[0.677ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/12 19:05:49 [31;1m/home/coder/base-2336/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[0.582ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '421febf9-8751-4d15-9219-d6f48792a44a' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/12 19:05:49 [31;1m/home/coder/base-2336/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[0.797ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '5db6aa6e-8d60-4e29-9fe4-3f802581a2b2' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:49 [TenantScope][observe] auto-scope injected for table=orders (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/12 19:05:49 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/12 19:05:49 [TenantScope][observe] auto-scope injected for table=forwarding_sessions (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/12 19:05:49 [31;1m/home/coder/base-2336/backend/handlers/warehouse.go:206 [35;1mrecord not found
+[0m[33m[1.614ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE (order_id = '7be0cf74-7ffb-4ae5-900b-290ff8534a0e' AND direction = 'outbound' AND status = 'pending') AND "forwarding_sessions"."tenant_id" = '5db6aa6e-8d60-4e29-9fe4-3f802581a2b2' ORDER BY "forwarding_sessions"."id" LIMIT 1
+2026/11/12 19:05:49 [TenantScope][observe] auto-scope injected for table=order_payment_records (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/12 19:05:49 [IAMClient] NewIAMClient: baseURL=, clientID=, namespace=tuneloop
+2026/11/12 19:05:49 [openidOfUser] resolve failed: user=421febf9-8751-4d15-9219-d6f48792a44a err=ResolveUserOpenid request failed: failed to get client token: failed to request client token: Post "/api/v1/auth/token": unsupported protocol scheme ""
+2026/11/12 19:05:49 [WechatShipping] upload attempt 1/4 failed for rent order 7be0cf74-7ffb-4ae5-900b-290ff8534a0e (out_trade_no=mockbe771550-eaed-4331-a transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
+
+2026/11/12 19:05:49 [31;1m/home/coder/base-2336/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[0.545ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '5db6aa6e-8d60-4e29-9fe4-3f802581a2b2' ORDER BY "merchants"."id" LIMIT 1
+2026/11/12 19:05:49 [WechatShipping] notify_confirm_receive failed for order 7be0cf74-7ffb-4ae5-900b-290ff8534a0e: get access token: WX_APPID or WX_APPSECRET not configured
+2026/11/12 19:05:49 [Ledger] cash_paid(300000) != ledger net(350000) for order 7be0cf74-7ffb-4ae5-900b-290ff8534a0e, using ledger
+2026/11/12 19:05:49 [TenantScope][observe] auto-scope injected for table=instruments (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/12 19:05:49 [TenantScope][observe] auto-scope injected for table=damage_reports (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/12 19:05:49 [31;1m/home/coder/base-2336/backend/handlers/user_settlement.go:716 [35;1mrecord not found
+[0m[33m[0.935ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '7be0cf74-7ffb-4ae5-900b-290ff8534a0e' AND "damage_reports"."tenant_id" = '5db6aa6e-8d60-4e29-9fe4-3f802581a2b2' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/12 19:05:49 [31;1m/home/coder/base-2336/backend/handlers/user_settlement.go:836 [35;1mrecord not found
+[0m[33m[0.455ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '7be0cf74-7ffb-4ae5-900b-290ff8534a0e' AND "damage_reports"."tenant_id" = '5db6aa6e-8d60-4e29-9fe4-3f802581a2b2' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/12 19:05:49 [computeSettlement] segment build failed for order 7be0cf74-7ffb-4ae5-900b-290ff8534a0e: segment paid exceeds original total — falling back to #1743
+
+2026/11/12 19:05:49 [31;1m/home/coder/base-2336/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[0.728ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/12 19:05:49 [31;1m/home/coder/base-2336/backend/handlers/user_settlement.go:325 [35;1mrecord not found
+[0m[33m[0.628ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '7be0cf74-7ffb-4ae5-900b-290ff8534a0e' ORDER BY "settlements"."id" LIMIT 1
+2026/11/12 19:05:49 [Ledger] cash_paid(300000) != ledger net(350000) for order 7be0cf74-7ffb-4ae5-900b-290ff8534a0e, using ledger
+2026/11/12 19:05:49 [computeSettlement] segment build failed for order 7be0cf74-7ffb-4ae5-900b-290ff8534a0e: segment paid exceeds original total — falling back to #1743
+
+2026/11/12 19:05:49 [31;1m/home/coder/base-2336/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[0.363ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/12 19:05:49 [31;1m/home/coder/base-2336/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[0.483ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '421febf9-8751-4d15-9219-d6f48792a44a' ORDER BY "referrals"."id" LIMIT 1
+2026/11/12 19:05:49 [TenantScope][observe] auto-scope injected for table=order_refund_records (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/12 19:05:49 [31;1m/home/coder/base-2336/backend/handlers/warehouse.go:512 [35;1mrecord not found
+[0m[33m[1.935ms] [34;1m[rows:0][0m SELECT * FROM "orders" WHERE (id = '7be0cf74-7ffb-4ae5-900b-290ff8534a0e' AND tenant_id = '5db6aa6e-8d60-4e29-9fe4-3f802581a2b2' AND status = 'returning') AND "orders"."tenant_id" = '5db6aa6e-8d60-4e29-9fe4-3f802581a2b2' ORDER BY "orders"."id" LIMIT 1
+--- FAIL: TestSettlementFlow (0.52s)
+    settlement_flow_test.go:146: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/settlement_flow_test.go:146
+        	Error:      	Not equal: 
+        	            	expected: 50000
+        	            	actual  : 0
+        	Test:       	TestSettlementFlow
+        	Messages:   	deposit from instrument pricing
+    settlement_flow_test.go:148: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/settlement_flow_test.go:148
+        	Error:      	Not equal: 
+        	            	expected: 350000
+        	            	actual  : 300000
+        	Test:       	TestSettlementFlow
+        	Messages:   	rent 3000 + deposit 500 (no points, no discount)
+
+2026/11/12 19:05:49 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[647.169ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_photo_batches", "property_options", "categories", "discount_code_usages", "banners", "user_addresses", "merchants", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "repair_request_records", "maintenance_sessions", "maintenance_session_records", "repair_quotes", "repair_transit_orders", "repair_reviews", "inventory_transfers", "instrument_loss_records", "mall_images", "maintenance_workers", "instrument_photo_specs", "roles", "face_capture_batches", "site_images", "warnings", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions", "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:50 [31;1m/home/coder/base-2336/backend/handlers/warehouse.go:206 [35;1mrecord not found
+[0m[33m[1.922ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE (order_id = 'e757de80-d67d-43cf-9d66-713ea2b33dfa' AND direction = 'outbound' AND status = 'pending') AND "forwarding_sessions"."tenant_id" = 'a4028bcb-06b2-42ab-810f-865c5f4feb2a' ORDER BY "forwarding_sessions"."id" LIMIT 1
+
+2026/11/12 19:05:50 [31;1m/home/coder/base-2336/backend/handlers/warehouse.go:1024 [35;1mrecord not found
+[0m[33m[2.677ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = 'e757de80-d67d-43cf-9d66-713ea2b33dfa' AND status = 'paid') AND "order_payment_records"."tenant_id" = 'a4028bcb-06b2-42ab-810f-865c5f4feb2a' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
+2026/11/12 19:05:50 [WechatShipping] no paid payment record for order e757de80-d67d-43cf-9d66-713ea2b33dfa: record not found
+
+2026/11/12 19:05:50 [31;1m/home/coder/base-2336/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[2.117ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = 'a4028bcb-06b2-42ab-810f-865c5f4feb2a' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:50 [31;1m/home/coder/base-2336/backend/handlers/warehouse.go:206 [35;1mrecord not found
+[0m[33m[0.620ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE (order_id = '6bf53b98-504e-4a1e-bf2d-58ef5978df99' AND direction = 'outbound' AND status = 'pending') AND "forwarding_sessions"."tenant_id" = 'a4028bcb-06b2-42ab-810f-865c5f4feb2a' ORDER BY "forwarding_sessions"."id" LIMIT 1
+
+2026/11/12 19:05:50 [31;1m/home/coder/base-2336/backend/handlers/warehouse.go:1024 [35;1mrecord not found
+[0m[33m[3.400ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = '6bf53b98-504e-4a1e-bf2d-58ef5978df99' AND status = 'paid') AND "order_payment_records"."tenant_id" = 'a4028bcb-06b2-42ab-810f-865c5f4feb2a' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
+2026/11/12 19:05:50 [WechatShipping] no paid payment record for order 6bf53b98-504e-4a1e-bf2d-58ef5978df99: record not found
+
+2026/11/12 19:05:50 [31;1m/home/coder/base-2336/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[0.720ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = 'a4028bcb-06b2-42ab-810f-865c5f4feb2a' ORDER BY "merchants"."id" LIMIT 1
+--- FAIL: TestScenarioC_CancelBoundary (0.96s)
+    --- FAIL: TestScenarioC_CancelBoundary/C4_CannotShipFromAvailable (0.02s)
+        state_machine_e2e_test.go:224: 
+            	Error Trace:	/home/coder/base-2336/backend/handlers/state_machine_e2e_test.go:224
+            	Error:      	Not equal: 
+            	            	expected: 400
+            	            	actual  : 200
+            	Test:       	TestScenarioC_CancelBoundary/C4_CannotShipFromAvailable
+
+2026/11/12 19:05:51 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[853.182ms] [33m[rows:0][35m TRUNCATE TABLE "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders", "instrument_photo_batches", "property_options", "categories", "discount_code_usages", "banners", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "repair_request_records", "maintenance_sessions", "maintenance_session_records", "repair_quotes", "repair_transit_orders", "repair_reviews", "inventory_transfers", "instrument_loss_records", "mall_images", "maintenance_workers", "instrument_photo_specs", "user_addresses", "merchants", "roles", "face_capture_batches", "site_images", "warnings", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "transit_routes", "pending_orders", "appeals", "coupons", "registration_sessions" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:51 [31;1m/home/coder/base-2336/backend/handlers/warehouse.go:206 [35;1mrecord not found
+[0m[33m[1.126ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE (order_id = 'a51207f5-251d-483e-b898-1c9a612c9e2f' AND direction = 'outbound' AND status = 'pending') AND "forwarding_sessions"."tenant_id" = 'd5303105-3bd0-49a3-93ef-30439e52281c' ORDER BY "forwarding_sessions"."id" LIMIT 1
+
+2026/11/12 19:05:51 [31;1m/home/coder/base-2336/backend/handlers/warehouse.go:1024 [35;1mrecord not found
+[0m[33m[3.220ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = 'a51207f5-251d-483e-b898-1c9a612c9e2f' AND status = 'paid') AND "order_payment_records"."tenant_id" = 'd5303105-3bd0-49a3-93ef-30439e52281c' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
+2026/11/12 19:05:51 [WechatShipping] no paid payment record for order a51207f5-251d-483e-b898-1c9a612c9e2f: record not found
+
+2026/11/12 19:05:51 [31;1m/home/coder/base-2336/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.792ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = 'd5303105-3bd0-49a3-93ef-30439e52281c' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/12 19:05:51 [31;1m/home/coder/base-2336/backend/handlers/warehouse.go:1053 [35;1mrecord not found
+[0m[33m[2.045ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = 'a51207f5-251d-483e-b898-1c9a612c9e2f' AND status = 'paid') AND "order_payment_records"."tenant_id" = 'd5303105-3bd0-49a3-93ef-30439e52281c' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
+2026/11/12 19:05:51 [WechatShipping] no paid payment record for order a51207f5-251d-483e-b898-1c9a612c9e2f: record not found
+
+2026/11/12 19:05:51 [31;1m/home/coder/base-2336/backend/handlers/user_settlement.go:716 [35;1mrecord not found
+[0m[33m[2.337ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'a51207f5-251d-483e-b898-1c9a612c9e2f' AND "damage_reports"."tenant_id" = 'd5303105-3bd0-49a3-93ef-30439e52281c' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/12 19:05:51 [31;1m/home/coder/base-2336/backend/handlers/user_settlement.go:836 [35;1mrecord not found
+[0m[33m[2.922ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'a51207f5-251d-483e-b898-1c9a612c9e2f' AND "damage_reports"."tenant_id" = 'd5303105-3bd0-49a3-93ef-30439e52281c' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/12 19:05:51 [computeSettlement] order a51207f5-251d-483e-b898-1c9a612c9e2f contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/12 19:05:51 [31;1m/home/coder/base-2336/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.776ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/12 19:05:51 [TenantScope][observe] auto-scope injected for table=site_members (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/12 19:05:51 [31;1m/home/coder/base-2336/backend/handlers/damage_refund.go:35 [35;1mrecord not found
+[0m[33m[2.867ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = 'a51207f5-251d-483e-b898-1c9a612c9e2f' ORDER BY created_at DESC,"settlements"."id" LIMIT 1
+2026/11/12 19:05:51 [computeSettlement] order a51207f5-251d-483e-b898-1c9a612c9e2f contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/12 19:05:51 [31;1m/home/coder/base-2336/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[0.490ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- FAIL: TestScenarioA_DamageVariant (1.33s)
+    --- FAIL: TestScenarioA_DamageVariant/A8_AcceptDamage (0.05s)
+        state_machine_e2e_test.go:271: 
+            	Error Trace:	/home/coder/base-2336/backend/testutil/state_assert.go:17
+            	            				/home/coder/base-2336/backend/handlers/state_machine_e2e_test.go:271
+            	Error:      	Not equal: 
+            	            	expected: "deposit_refunding"
+            	            	actual  : "pending_damage_response"
+            	            	
+            	            	Diff:
+            	            	--- Expected
+            	            	+++ Actual
+            	            	@@ -1 +1 @@
+            	            	-deposit_refunding
+            	            	+pending_damage_response
+            	Test:       	TestScenarioA_DamageVariant/A8_AcceptDamage
+
+2026/11/12 19:05:52 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[470.149ms] [33m[rows:0][35m TRUNCATE TABLE "properties", "maintenance_tickets", "sites", "tenants", "invoice_application_orders", "instrument_photo_batches", "property_options", "roles", "face_capture_batches", "site_images", "warnings", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "coupons", "registration_sessions", "categories", "discount_code_usages", "banners", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "repair_request_records", "maintenance_sessions", "maintenance_session_records", "repair_quotes", "repair_transit_orders", "repair_reviews", "inventory_transfers", "instrument_loss_records", "mall_images", "maintenance_workers", "instrument_photo_specs", "user_addresses", "merchants", "transit_routes", "pending_orders", "appeals" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:52 [31;1m/home/coder/base-2336/backend/handlers/state_machine_e2e_test.go:458 [35;1mERROR: duplicate key value violates unique constraint "users_pkey" (SQLSTATE 23505)
+[0m[33m[2.062ms] [34;1m[rows:0][0m INSERT INTO "users" ("iam_sub","tenant_id","org_id","username","nickname","name","phone","email","credit_score","deposit_mode","is_shadow","is_system_admin","status","position","role","force_password_change","avatar_url","is_profile_completed","membership_level_id","total_spending","prepaid_points","onboarding_completed","id_photo_front","id_photo_back","id_photo_other","id_photo_other_type","intro_letter_url","bio","id_photo_other_verified","real_name","id_card_no","id_card_expire","id_card_authority","id_card_address","face_verified","face_verified_at","face_verify_method","ref_code","deleted_at","created_at","updated_at","id") VALUES ('','70133375-dd3b-4383-bfd1-32931d5319a8','70133375-dd3b-4383-bfd1-32931d5319a8','refund_test_user','','','','',600,'standard',true,false,'active','','',false,'',false,NULL,0,1000,false,NULL,NULL,NULL,NULL,NULL,'',false,NULL,NULL,NULL,NULL,NULL,false,NULL,NULL,'',NULL,'2026-11-12 19:05:52.14','2026-11-12 19:05:52.14','9b921b9a-18d6-4024-9ba6-1d24da0c8cb4') RETURNING "id"
+--- FAIL: TestInspectReturn_Good_ExecutesRefund (0.76s)
+    state_machine_e2e_test.go:458: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/state_machine_e2e_test.go:458
+        	Error:      	Received unexpected error:
+        	            	ERROR: duplicate key value violates unique constraint "users_pkey" (SQLSTATE 23505)
+        	Test:       	TestInspectReturn_Good_ExecutesRefund
+
+2026/11/12 19:05:53 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[594.030ms] [33m[rows:0][35m TRUNCATE TABLE "properties", "instrument_photo_batches", "property_options", "maintenance_tickets", "sites", "tenants", "invoice_application_orders", "roles", "face_capture_batches", "site_images", "warnings", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "media_assets", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "coupons", "registration_sessions", "categories", "discount_code_usages", "banners", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "repair_request_records", "maintenance_sessions", "maintenance_session_records", "repair_quotes", "repair_transit_orders", "repair_reviews", "inventory_transfers", "instrument_loss_records", "mall_images", "maintenance_workers", "instrument_photo_specs", "user_addresses", "merchants", "transit_routes", "pending_orders", "appeals" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:53 [31;1m/home/coder/base-2336/backend/middleware/iam.go:561 [35;1mrecord not found
+[0m[33m[2.718ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE iam_sub = '8eb46f76-13fb-4681-857b-39fc9f1e30f3' ORDER BY "users"."id" LIMIT 1
+--- FAIL: TestBatchCreateOrder_RentDaysOverridesEndDate (0.99s)
+    user_rental_1762_test.go:198: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/user_rental_1762_test.go:198
+        	Error:      	Not equal: 
+        	            	expected: 201
+        	            	actual  : 403
+        	Test:       	TestBatchCreateOrder_RentDaysOverridesEndDate
+
+2026/11/12 19:05:53 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[502.078ms] [33m[rows:0][35m TRUNCATE TABLE "properties", "instrument_photo_batches", "property_options", "maintenance_tickets", "sites", "media_assets", "tenants", "invoice_application_orders", "roles", "face_capture_batches", "site_images", "warnings", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "coupons", "registration_sessions", "categories", "discount_code_usages", "banners", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "repair_request_records", "maintenance_sessions", "maintenance_session_records", "repair_quotes", "repair_transit_orders", "repair_reviews", "inventory_transfers", "instrument_loss_records", "mall_images", "maintenance_workers", "instrument_photo_specs", "user_addresses", "merchants", "transit_routes", "pending_orders", "appeals" RESTART IDENTITY CASCADE[0m
+--- FAIL: TestGetUserInstrumentDetail (0.70s)
+    user_rental_test.go:123: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/user_rental_test.go:123
+        	Error:      	Not equal: 
+        	            	expected: 12.5
+        	            	actual  : 0
+        	Test:       	TestGetUserInstrumentDetail
+    user_rental_test.go:124: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/user_rental_test.go:124
+        	Error:      	Not equal: 
+        	            	expected: 600
+        	            	actual  : 0
+        	Test:       	TestGetUserInstrumentDetail
+
+2026/11/12 19:05:54 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[401.990ms] [33m[rows:0][35m TRUNCATE TABLE "properties", "instrument_photo_batches", "property_options", "maintenance_tickets", "sites", "media_assets", "tenants", "invoice_application_orders", "roles", "face_capture_batches", "site_images", "warnings", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "coupons", "registration_sessions", "categories", "discount_code_usages", "banners", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "repair_request_records", "maintenance_sessions", "maintenance_session_records", "repair_quotes", "repair_transit_orders", "repair_reviews", "inventory_transfers", "instrument_loss_records", "mall_images", "maintenance_workers", "instrument_photo_specs", "user_addresses", "merchants", "transit_routes", "pending_orders", "appeals" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:54 [31;1m/home/coder/base-2336/backend/middleware/iam.go:561 [35;1mrecord not found
+[0m[33m[0.869ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE iam_sub = '64ea43b6-900d-48df-b3fe-e7f1339be318' ORDER BY "users"."id" LIMIT 1
+--- FAIL: TestCreateRentalOrder (0.57s)
+    user_rental_test.go:172: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/user_rental_test.go:172
+        	Error:      	Not equal: 
+        	            	expected: 201
+        	            	actual  : 403
+        	Test:       	TestCreateRentalOrder
+    user_rental_test.go:180: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/user_rental_test.go:180
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40310
+        	Test:       	TestCreateRentalOrder
+    user_rental_test.go:181: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/user_rental_test.go:181
+        	Error:      	Not equal: 
+        	            	expected: "success"
+        	            	actual  : "请先上传身份证照片并完成实名认证（平台审核通过后）再下单"
+        	            	
+        	            	Diff:
+        	            	--- Expected
+        	            	+++ Actual
+        	            	@@ -1 +1 @@
+        	            	-success
+        	            	+请先上传身份证照片并完成实名认证（平台审核通过后）再下单
+        	Test:       	TestCreateRentalOrder
+    user_rental_test.go:182: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/user_rental_test.go:182
+        	Error:      	Should NOT be empty, but was <nil>
+        	Test:       	TestCreateRentalOrder
+    user_rental_test.go:183: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/user_rental_test.go:183
+        	Error:      	Should NOT be empty, but was <nil>
+        	Test:       	TestCreateRentalOrder
+    user_rental_test.go:184: 
+        	Error Trace:	/home/coder/base-2336/backend/handlers/user_rental_test.go:184
+        	Error:      	Not equal: 
+        	            	expected: float64(140)
+        	            	actual  : <nil>(<nil>)
+        	Test:       	TestCreateRentalOrder
+
+2026/11/12 19:05:54 [32m/home/coder/base-2336/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
+[0m[31;1m[474.746ms] [33m[rows:0][35m TRUNCATE TABLE "properties", "instrument_photo_batches", "property_options", "maintenance_tickets", "sites", "media_assets", "tenants", "invoice_application_orders", "roles", "face_capture_batches", "site_images", "warnings", "site_members", "merchant_members", "staff_invites", "instrument_levels", "order_term_versions", "referral_commissions", "payment_sessions", "session_order_links", "electronic_contracts", "order_logs", "order_status_history", "audit_logs", "settlement_calculations", "order_refund_records", "points_transactions", "guarantors", "order_guarantors", "point_batches", "point_batch_consumptions", "transit_shipping_fees", "membership_gift_ratios", "gift_policies", "pricing_templates", "merchant_pricing_configs", "points_policies", "merchant_settlement_configs", "system_settings", "promo_plans", "referrals", "membership_levels", "membership_level_benefits", "discount_policies", "discount_codes", "confirmation_sessions", "instrument_promo_overrides", "repair_records", "repair_requests", "repair_logistics_fees", "technician_profiles", "user_instruments", "coupons", "registration_sessions", "categories", "discount_code_usages", "banners", "instrument_media", "instrument_properties", "order_payment_records", "forwarding_sessions", "damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "notifications", "repair_request_records", "maintenance_sessions", "maintenance_session_records", "repair_quotes", "repair_transit_orders", "repair_reviews", "inventory_transfers", "instrument_loss_records", "mall_images", "maintenance_workers", "instrument_photo_specs", "user_addresses", "merchants", "transit_routes", "pending_orders", "appeals" RESTART IDENTITY CASCADE[0m
+
+2026/11/12 19:05:54 [31;1m/home/coder/base-2336/backend/handlers/user_settlement.go:325 [35;1mrecord not found
+[0m[33m[0.587ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '2eba8dc0-41f5-4245-a99d-20f0123ffecd' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/12 19:05:55 [31;1m/home/coder/base-2336/backend/handlers/user_settlement.go:716 [35;1mrecord not found
+[0m[33m[0.736ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '2eba8dc0-41f5-4245-a99d-20f0123ffecd' AND "damage_reports"."tenant_id" = '00000000-0000-4000-8000-0000000000d1' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/12 19:05:55 [31;1m/home/coder/base-2336/backend/handlers/user_settlement.go:836 [35;1mrecord not found
+[0m[33m[0.366ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '2eba8dc0-41f5-4245-a99d-20f0123ffecd' AND "damage_reports"."tenant_id" = '00000000-0000-4000-8000-0000000000d1' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/12 19:05:55 [computeSettlement] order 2eba8dc0-41f5-4245-a99d-20f0123ffecd contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/12 19:05:55 [31;1m/home/coder/base-2336/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[2.455ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/12 19:05:55 [31;1m/home/coder/base-2336/backend/handlers/user_settlement.go:1668 [35;1mrecord not found
+[0m[33m[0.489ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = '2eba8dc0-41f5-4245-a99d-20f0123ffecd' AND order_type = 'rent' AND status = 'paid') AND "order_payment_records"."tenant_id" = '00000000-0000-4000-8000-0000000000d1' ORDER BY "order_payment_records"."id" LIMIT 1
+
+2026/11/12 19:05:55 [31;1m/home/coder/base-2336/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[0.514ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '00000000-0000-4000-8000-0000000000d3' ORDER BY "referrals"."id" LIMIT 1
+FAIL
+FAIL	tuneloop-backend/handlers	44.457s
+FAIL

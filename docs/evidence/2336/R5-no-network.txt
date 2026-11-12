@@ -1,0 +1,9 @@
+No real WeChat/IAM network calls in the targeted tests.
+
+$ grep -n 'api.weixin.qq.com' docs/evidence/2336/R1-refund.txt docs/evidence/2336/R2-shipping.txt docs/evidence/2336/R3-handlers.txt
+(no matches)
+
+$ grep -n 'SetClientForTesting|stubJSAPIClient|SetWxAPIBaseURLForTesting' backend/handlers/order_test.go backend/handlers/warehouse_test.go
+backend/handlers/order_test.go:227:	wechatpay.SetClientForTesting(stubJSAPIClient{}, &wechatpay.Config{
+backend/handlers/warehouse_test.go:205:			services.SetWxAPIBaseURLForTesting(ts.URL)
+backend/handlers/warehouse_test.go:206:			defer services.SetWxAPIBaseURLForTesting("https://api.weixin.qq.com")
