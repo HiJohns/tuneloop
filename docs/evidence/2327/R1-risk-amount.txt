@@ -1,0 +1,20 @@
+=== RUN   TestComputeRiskAmount
+=== RUN   TestComputeRiskAmount/full_档无需风险金额
+=== RUN   TestComputeRiskAmount/reduced_档=全额-差额
+=== RUN   TestComputeRiskAmount/reduced_档差额等于全额
+=== RUN   TestComputeRiskAmount/zero_档=乐器原价
+=== RUN   TestComputeRiskAmount/negative_reduced_超过_full
+=== RUN   TestComputeRiskAmount/negative_zero_档缺原价
+=== RUN   TestComputeRiskAmount/negative_非法档位
+=== RUN   TestComputeRiskAmount/negative_负金额
+--- PASS: TestComputeRiskAmount (0.00s)
+    --- PASS: TestComputeRiskAmount/full_档无需风险金额 (0.00s)
+    --- PASS: TestComputeRiskAmount/reduced_档=全额-差额 (0.00s)
+    --- PASS: TestComputeRiskAmount/reduced_档差额等于全额 (0.00s)
+    --- PASS: TestComputeRiskAmount/zero_档=乐器原价 (0.00s)
+    --- PASS: TestComputeRiskAmount/negative_reduced_超过_full (0.00s)
+    --- PASS: TestComputeRiskAmount/negative_zero_档缺原价 (0.00s)
+    --- PASS: TestComputeRiskAmount/negative_非法档位 (0.00s)
+    --- PASS: TestComputeRiskAmount/negative_负金额 (0.00s)
+PASS
+ok  	tuneloop-backend/services/wechatpay	0.008s

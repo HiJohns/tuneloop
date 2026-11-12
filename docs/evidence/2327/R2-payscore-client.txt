@@ -1,0 +1,8 @@
+=== RUN   TestPayScoreClientPaths
+--- PASS: TestPayScoreClientPaths (0.00s)
+=== RUN   TestPayScoreClientRejectsNon2xx
+--- PASS: TestPayScoreClientRejectsNon2xx (0.00s)
+=== RUN   TestPayScoreClientRequiresServiceID
+--- PASS: TestPayScoreClientRequiresServiceID (0.00s)
+PASS
+ok  	tuneloop-backend/services/wechatpay	0.020s
