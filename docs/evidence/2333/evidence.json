@@ -8,9 +8,11 @@
   "rows": [
     {
       "id": "R1",
-      "command": "node --test frontend-mobile/src/utils/creditFlow.test.mjs > docs/evidence/2333/R1-creditflow.txt 2>&1",
+      "command": "node --test frontend-mobile/src/utils/creditFlow.test.mjs",
       "exit": 0,
-      "artifacts": ["docs/evidence/2333/R1-creditflow.txt"],
+      "artifacts": [
+        "docs/evidence/2333/R1-creditflow.txt"
+      ],
       "assert": "三档映射/参数/state→UI 断言 pass",
       "actual": "# pass 8 / # fail 0（含 zero 不得需要担保人、乐器零押金不需评测、reduced 缺担保人拒绝、mock/缺 package 不拉起）",
       "expected": "0 fail",
@@ -20,9 +22,11 @@
     },
     {
       "id": "R2",
-      "command": "cd frontend-mobile && npm run smoke > docs/evidence/2333/R2-payment.txt 2>&1",
+      "command": "cd frontend-mobile && npm run smoke（新增 payment 信用态用例）",
       "exit": 0,
-      "artifacts": ["docs/evidence/2333/R2-payment.txt"],
+      "artifacts": [
+        "docs/evidence/2333/R2-payment.txt"
+      ],
       "assert": "16+ 用例 pass；入口/禁用断言",
       "actual": "Tests 17 passed (17)；新增 payment 信用态用例断言出现「微信信用评测」入口与「请先完成微信信用评测」禁用文案",
       "expected": "0 fail",
@@ -32,9 +36,11 @@
     },
     {
       "id": "R3",
-      "command": "cd frontend-mobile && node node_modules/.bin/taro build --type weapp; grep 原生标签探针 > docs/evidence/2333/R3-creditpage.txt",
+      "command": "cd frontend-mobile && npm run build:weapp + wxml 原生标签探针",
       "exit": 0,
-      "artifacts": ["docs/evidence/2333/R3-creditpage.txt"],
+      "artifacts": [
+        "docs/evidence/2333/R3-creditpage.txt"
+      ],
       "assert": "构建 0；探针输出为空",
       "actual": "Compiled successfully；探针输出为空；dist-weapp/pages-weapp/credit-assessment/{index.js,index.json,index.wxml} 存在",
       "expected": "0/空",
@@ -44,9 +50,11 @@
     },
     {
       "id": "R4",
-      "command": "grep 路由/平台/参数 + node --test > docs/evidence/2333/R4-nav.txt",
+      "command": "grep -n 路由/平台/参数 + node --test 导航断言",
       "exit": 0,
-      "artifacts": ["docs/evidence/2333/R4-nav.txt"],
+      "artifacts": [
+        "docs/evidence/2333/R4-nav.txt"
+      ],
       "assert": "路由/对称/order_id 命中",
       "actual": "app.config.ts（h5+weapp）、App-H5.jsx、ROUTE_MAP 均含 credit-assessment；openCreditAssessment 两端对称导出；CreditAssessment/Payment 无 useParams",
       "expected": "全部",
@@ -58,7 +66,9 @@
       "id": "R5",
       "command": "grep -nE 'openBusinessView|jweixin|微信外|A15' docs/cases/h5-weapp-differences.md > docs/evidence/2333/R5-diff.txt",
       "exit": 0,
-      "artifacts": ["docs/evidence/2333/R5-diff.txt"],
+      "artifacts": [
+        "docs/evidence/2333/R5-diff.txt"
+      ],
       "assert": "条目命中",
       "actual": "A15 平台层能力分支 + 新增 A20（weapp openBusinessView / H5 jweixin / 微信外降级 / mock 不拉起）",
       "expected": "≥1",
@@ -68,9 +78,11 @@
     },
     {
       "id": "R6",
-      "command": "cd frontend-mobile && npx eslint <4 类文件> > docs/evidence/2333/R6-lint.txt 2>&1",
+      "command": "cd frontend-mobile && npx eslint <4 类文件>",
       "exit": 0,
-      "artifacts": ["docs/evidence/2333/R6-lint.txt"],
+      "artifacts": [
+        "docs/evidence/2333/R6-lint.txt"
+      ],
       "assert": "0 errors",
       "actual": "14 problems (0 errors, 14 warnings)，warning 均为既有 i18n/exhaustive-deps 规则",
       "expected": "0",
