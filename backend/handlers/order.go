@@ -770,6 +770,14 @@ func PayOrder(c *gin.Context) {
 		})
 		return
 	}
+	// #2331/#2327: 支付分档位闸门——reduced/zero 必须信用评估通过，full 无需评估
+	if err := services.AssertTierPayable(order.DepositTier, order.CreditState); err != nil {
+		c.JSON(http.StatusForbidden, gin.H{
+			"code":    40320,
+			"message": err.Error(),
+		})
+		return
+	}
 
 	// Guest (tid empty): derive tenant/org from order (which inherited from instrument)
 	if tenantID == "" {
