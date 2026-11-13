@@ -13,24 +13,24 @@
       "artifacts": [
         "docs/evidence/2333/R1-creditflow.txt"
       ],
-      "assert": "三档映射/参数/state→UI 断言 pass",
+      "assert": "三档映射/参数/state→UI",
       "actual": "# pass 8 / # fail 0（含 zero 不得需要担保人、乐器零押金不需评测、reduced 缺担保人拒绝、mock/缺 package 不拉起）",
       "expected": "0 fail",
-      "negative": "把 zero 映射为需担保人 → 失败",
+      "negative": "zero 映射为需担保 → 失败",
       "negative_result": "断言 zero.requiresGuarantors === false；reduced 缺担保人断言 ok=false",
       "pass": true
     },
     {
       "id": "R2",
-      "command": "cd frontend-mobile && npm run smoke（新增 payment 信用态用例）",
+      "command": "cd frontend-mobile && npm run smoke",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2333/R2-payment.txt"
       ],
-      "assert": "16+ 用例 pass；入口/禁用断言",
+      "assert": "17/17；入口/禁用断言",
       "actual": "npm run smoke: 21 passed (0 fail) — 计划期望 17/17，routes 增长后为 21 项，断言全部通过",
       "expected": "0 fail",
-      "negative": "删除入口 → 用例失败",
+      "negative": "删除入口 → 失败",
       "negative_result": "新增用例直接断言入口文案与禁用文案，缺失即 fail",
       "pass": true
     },
@@ -41,10 +41,10 @@
       "artifacts": [
         "docs/evidence/2333/R3-creditpage.txt"
       ],
-      "assert": "构建 0；探针输出为空",
+      "assert": "构建 0；探针为空",
       "actual": "Compiled successfully；探针输出为空；dist-weapp/pages-weapp/credit-assessment/{index.js,index.json,index.wxml} 存在",
       "expected": "0/空",
-      "negative": "原生 <button> 未包 !env.isMiniProgram → 探针命中",
+      "negative": "原生标签未包 !env.isMiniProgram → 命中",
       "negative_result": "探针 grep 覆盖 div/span/img/button/input/textarea/p/select/a，命中即非空",
       "pass": true
     },
@@ -55,7 +55,7 @@
       "artifacts": [
         "docs/evidence/2333/R4-nav.txt"
       ],
-      "assert": "路由/对称/order_id 命中",
+      "assert": "路由/对称/order_id",
       "actual": "app.config.ts（h5+weapp）、App-H5.jsx、ROUTE_MAP 均含 credit-assessment；openCreditAssessment 两端对称导出；CreditAssessment/Payment 无 useParams",
       "expected": "全部",
       "negative": "使用 useParams → 失败",
@@ -64,21 +64,21 @@
     },
     {
       "id": "R5",
-      "command": "grep -nE 'openBusinessView|jweixin|微信外|A15' docs/cases/h5-weapp-differences.md > docs/evidence/2333/R5-diff.txt",
+      "command": "grep -nE 'openBusinessView\\",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2333/R5-diff.txt"
       ],
-      "assert": "条目命中",
+      "assert": "微信外\\",
       "actual": "A15 平台层能力分支 + 新增 A20（weapp openBusinessView / H5 jweixin / 微信外降级 / mock 不拉起）",
-      "expected": "≥1",
-      "negative": "缺条目 → 失败",
+      "expected": "A15' docs/cases/h5-weapp-differences.md",
+      "negative": "docs/evidence/2333/R5-diff.txt",
       "negative_result": "grep 无输出即未登记",
       "pass": true
     },
     {
       "id": "R6",
-      "command": "cd frontend-mobile && npx eslint <4 类文件>",
+      "command": "cd frontend-mobile && npx eslint <改动文件>",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2333/R6-lint.txt"
