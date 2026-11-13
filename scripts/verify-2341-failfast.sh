@@ -4,11 +4,11 @@ set -euo pipefail
 source scripts/lib-2341-env.sh
 require_pg
 echo "PROVENANCE $PROVENANCE"
-( cd backend && FORCE_TEMPLATE_REBUILD=1 go test ./handlers/ -run '^TestDepositTiers_2321_Single$' -count=1 -timeout 8m >/dev/null 2>&1 || true)
+( cd backend && FORCE_TEMPLATE_REBUILD=1 go test -v ./handlers/ -run '^TestDepositTiers_2321_Single$' -count=1 -timeout 8m >/dev/null 2>&1 || true)
 PGPASSWORD="$POSTGRES_PASSWORD" "$PSQL_BIN" -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d tuneloop_test_template \
   -c "ALTER TABLE orders ALTER COLUMN deposit TYPE numeric(10,2) USING deposit::numeric(10,2)"
 set +e
-OUT=$( cd backend && go test ./handlers/ -run '^TestDepositTiers_2321_Single$' -count=1 -timeout 8m 2>&1)
+OUT=$( cd backend && go test -v ./handlers/ -run '^TestDepositTiers_2321_Single$' -count=1 -timeout 8m 2>&1)
 RC=$?
 set -e
 printf '%s\n' "$OUT"

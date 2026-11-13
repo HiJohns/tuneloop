@@ -1,0 +1,1 @@
+/home/coder/.config/opencode/scripts/dep_graph.sh
