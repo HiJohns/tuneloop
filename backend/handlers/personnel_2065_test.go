@@ -177,6 +177,29 @@ func TestPersonnel2065_MerchantView(t *testing.T) {
 	_ = f
 }
 
+// #2336 R7 / D9：商户视图租户隔离负例——跨租户成员不可见、零租户成员（membership 锚定）可见。
+// 该用例是 personnelMerchantView 的 ExplicitTenantScopeOnly 追认条件；泄漏即 FAIL。
+func TestPersonnel_MerchantView_TenantIsolation2336(t *testing.T) {
+	r, _ := setupPersonnel2065(t)
+
+	code, rows := personnelList2065(t, r, "merchant")
+	require.Equal(t, http.StatusOK, code)
+	m := names2065(rows)
+	assert.Contains(t, m, "零租户成员", "membership 锚定：users.tenant_id 全零仍须可见")
+	assert.NotContains(t, m, "他商户成员", "跨租户成员不得出现在本商户视图")
+
+	// 显式按名检索：跨租户成员必须为空集（防止分页/过滤旁路）
+	code, rows = personnelList2065Q(t, r, "actor=merchant&name="+url.QueryEscape("他商户成员"))
+	require.Equal(t, http.StatusOK, code)
+	assert.Empty(t, rows, "跨租户成员按名检索也必须为空")
+
+	// 零租户成员按名检索必须命中（证明不是分页偶然）
+	code, rows = personnelList2065Q(t, r, "actor=merchant&name="+url.QueryEscape("零租户成员"))
+	require.Equal(t, http.StatusOK, code)
+	m = names2065(rows)
+	assert.Contains(t, m, "零租户成员")
+}
+
 func TestPersonnel2065_SiteView(t *testing.T) {
 	r, _ := setupPersonnel2065(t)
 	code, rows := personnelList2065(t, r, "site")
