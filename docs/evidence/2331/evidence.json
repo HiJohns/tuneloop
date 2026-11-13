@@ -69,7 +69,7 @@
       "artifacts": [
         "docs/evidence/2331/R5-remote.txt"
       ],
-      "assert": "`services` 版存在，handlers 版不存在",
+      "assert": "services 版存在，handlers 版不存在",
       "actual": "services_gate_on_remote=1、services_gate_test_on_remote=1、handlers_gate_on_remote=0（精确文件 backend/handlers/payscore_gate.go；payscore_gate_2332_test.go 属 #2332 交付，不在断言范围）",
       "expected": "1/0",
       "negative": "远端无迁移 → 失败",
