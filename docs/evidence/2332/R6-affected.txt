@@ -1,4 +1,4 @@
-PROVENANCE build=payscore-s3b-rev3 commit=52312f4b8f372eacd628eaec3e5daef345aafa79 dirty=false
+PROVENANCE build=payscore-s3b-rev3 commit=5eb15aae026d1bb0ba3f93d675fa5ae5740784f2 dirty=false
 NOTE TestSettlementFlow excluded: pre-existing baseline failure owned by #2339 (Group B).
 CMD go build . && go test ./services/ ./database/ -count=1 && go test ./handlers/ -run 'TestPayscore|TestDepositTier|TestSettlementCashVsPayscore|TestRefundNotForPayscore|TestCreditGate' -count=1
 # github.com/mattn/go-sqlite3
@@ -6,6 +6,6 @@ sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
 sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
 123133 |   zTail = strrchr(zName, '_');
        |         ^
-ok  	tuneloop-backend/services	0.378s
-ok  	tuneloop-backend/database	0.117s
-ok  	tuneloop-backend/handlers	2.991s
+ok  	tuneloop-backend/services	0.304s
+ok  	tuneloop-backend/database	0.085s
+ok  	tuneloop-backend/handlers	4.305s
