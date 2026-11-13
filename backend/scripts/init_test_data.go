@@ -8,7 +8,6 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -65,32 +64,32 @@ func createTestData(db *gorm.DB, tenantID string) error {
 
 	instruments := []models.Instrument{
 		{
+			// models.Instrument no longer has Name/Brand: the display name is
+			// folded into Description and brand/model live in the dynamic
+			// property system (instrument_properties), which this seed skips.
 			TenantID:    tenantID,
-			Name:        "雅马哈立式钢琴 U1",
-			Brand:       "Yamaha",
+			SN:          "SEED-PIANO-U1",
 			Level:       "professional",
 			LevelName:   "专业级",
-			Description: "日本原装进口，音色纯净，适合进阶学习者",
+			Description: "雅马哈立式钢琴 U1：日本原装进口，音色纯净，适合进阶学习者",
 			StockStatus: "available",
 			Pricing:     `{"3month": 800, "6month": 750, "12month": 700}`,
 		},
 		{
 			TenantID:    tenantID,
-			Name:        "泰勒民谣吉他 214ce",
-			Brand:       "Taylor",
+			SN:          "SEED-GUITAR-214CE",
 			Level:       "professional",
 			LevelName:   "专业级",
-			Description: "美国品牌，云杉面板，玫瑰木背侧板",
+			Description: "泰勒民谣吉他 214ce：美国品牌，云杉面板，玫瑰木背侧板",
 			StockStatus: "available",
 			Pricing:     `{"3month": 600, "6month": 550, "12month": 500}`,
 		},
 		{
 			TenantID:    tenantID,
-			Name:        "斯特拉迪瓦里小提琴 4/4",
-			Brand:       "Stradivarius",
+			SN:          "SEED-VIOLIN-STRAD",
 			Level:       "master",
 			LevelName:   "大师级",
-			Description: "意大利手工制作，音质卓越",
+			Description: "斯特拉迪瓦里小提琴 4/4：意大利手工制作，音质卓越",
 			StockStatus: "available",
 			Pricing:     `{"3month": 1200, "6month": 1100, "12month": 1000}`,
 		},
@@ -100,7 +99,7 @@ func createTestData(db *gorm.DB, tenantID string) error {
 		if err := db.Create(&instruments[i]).Error; err != nil {
 			return fmt.Errorf("failed to create instrument: %w", err)
 		}
-		fmt.Printf("✓ Created instrument: %s\n", instruments[i].Name)
+		fmt.Printf("✓ Created instrument: %s\n", instruments[i].SN)
 	}
 
 	return nil

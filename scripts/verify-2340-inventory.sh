@@ -19,10 +19,17 @@ ARTIFACT="$EVIDENCE_DIR/R1-inventory.txt"
 COMMIT="$(git rev-parse HEAD)"
 if [ -n "$(git status --porcelain)" ]; then DIRTY="true"; else DIRTY="false"; fi
 
-# The pre-fix state is the parent of the fix commit. Refuse to run on a repo
-# where HEAD has no parent (nothing to compare against).
-if ! git rev-parse --verify --quiet HEAD^ >/dev/null; then
-    echo "ERROR: HEAD^ not found; run this after committing the fix." >&2
+# Locate the ORIGINAL pre-fix state: the first commit that introduced the
+# //go:build ignore tags into backend/scripts (via -S pickaxe, oldest first).
+# Falls back to HEAD^ for a single-commit fix. This keeps the inventory
+# reproducible as later commits accumulate on top of the fix.
+TAG_COMMIT="$(git log --format=%H -S '//go:build ignore' -- backend/scripts | tail -1)"
+if [ -n "$TAG_COMMIT" ] && git rev-parse --verify --quiet "$TAG_COMMIT^" >/dev/null; then
+    PRE_FIX_SHA="$TAG_COMMIT^"
+elif git rev-parse --verify --quiet HEAD^ >/dev/null; then
+    PRE_FIX_SHA="HEAD^"
+else
+    echo "ERROR: cannot locate a pre-fix commit." >&2
     exit 1
 fi
 
@@ -32,12 +39,12 @@ LOG="$TMP_DIR/build.log"
 cleanup() { git worktree remove --force "$WORKTREE" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 
-git worktree add --detach "$WORKTREE" HEAD^ >/dev/null
+git worktree add --detach "$WORKTREE" "$PRE_FIX_SHA" >/dev/null
 ( cd "$WORKTREE/backend" && go build ./... ) >"$LOG" 2>&1 || true
 
 {
     echo "PROVENANCE build=backend-scripts-multimain commit=$COMMIT dirty=$DIRTY"
-    echo "# Pre-fix state: worktree at HEAD^ ($COMMIT^); command: go build ./..."
+    echo "# Pre-fix state: worktree at $PRE_FIX_SHA; command: go build ./..."
     echo "# (R2 verifies the post-fix build is green; this file proves the conflict existed.)"
     cat "$LOG"
 } >"$ARTIFACT"

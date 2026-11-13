@@ -85,7 +85,7 @@ func main() {
 
 			media := models.InstrumentMedia{
 				TenantID:     "", // filled manually
-				InstrumentID: batch.InstrumentID,
+				InstrumentID: &batch.InstrumentID,
 				BatchID:      batchID,
 				BatchType:    batch.BatchType,
 				FileName:     f.Name,
