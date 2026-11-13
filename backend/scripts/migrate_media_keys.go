@@ -1,10 +1,11 @@
+//go:build ignore
+
 package main
 
 import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"path/filepath"
 	"strings"
 

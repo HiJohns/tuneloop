@@ -1,0 +1,7 @@
+[WARNING] No .env file found in common paths
+=== RUN   TestMigrationArtifacts2327Registered
+--- PASS: TestMigrationArtifacts2327Registered (0.00s)
+=== RUN   TestMigrationArtifacts2327DetectsMissing
+--- PASS: TestMigrationArtifacts2327DetectsMissing (0.00s)
+PASS
+ok  	tuneloop-backend/database	(cached)

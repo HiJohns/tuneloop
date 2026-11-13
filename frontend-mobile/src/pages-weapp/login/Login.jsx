@@ -3,6 +3,7 @@ import Taro from '@tarojs/taro'
 import { View, Text, Button, Input } from '@tarojs/components'
 import {dialog, wxLogin, storage, session, env, request, eventBus } from '../../platform'
 import { resolveErrorMessage } from '../../services/api'
+import { computeExpiryMs } from '../../services/sessionToken.mjs'
 import AgreementCheckbox from '../../components/AgreementCheckbox'
 import { t } from '../../i18n'
 
@@ -31,6 +32,10 @@ async function handleWxLogin() {
     const result = await res.json()
     if (result.code === 20000 && result.data?.token) {
       storage.setItem('token', result.data.token)
+      // #2325: 与其余登录路径一致写入过期时间，否则 getToken() 立即判定未登录
+      storage.setItem('token_expiry', String(computeExpiryMs(result.data.expires_in, result.data.token)))
+      // #2111/#2325: /auth/wx-login 不返回 refresh_token；清除陈旧值，避免跨账号复用
+      storage.removeItem('refresh_token')
       Taro.hideLoading()
       eventBus.emit('loginSuccess')
       // New user (incl. GUEST from openid-not-found): must go to registration

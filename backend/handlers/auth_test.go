@@ -248,6 +248,12 @@ func newRegisterMockServer(t *testing.T, newUserID, name string) *httptest.Serve
 	})
 	// PUT /api/v1/users/:id — init → active activation (#1682/#1688).
 	mux.HandleFunc("/api/v1/users/", func(w http.ResponseWriter, r *http.Request) {
+		// #2031/#1688: callback/registration side effects grant the customer role.
+		if r.Method == "POST" && strings.HasSuffix(r.URL.Path, "/customer-role") {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{"code": 20000})
+			return
+		}
 		if r.Method == "PUT" {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]interface{}{

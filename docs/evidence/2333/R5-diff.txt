@@ -1,0 +1,3 @@
+$ grep -nE 'openBusinessView|jweixin|微信外|A15' docs/cases/h5-weapp-differences.md
+41:| A15 | 平台层能力分支 | `platform/browser.js` | `platform/index.weapp.js` | 抽象层实现差异（导出须对称） |
+46:| A20 | 支付分信用评测拉起（#2327 S4） | H5：`jweixin.openBusinessView`（需 APIv2 JS-SDK 签名，未配置时提示改用小程序）；微信外浏览器降级为不可拉起 | weapp：`wx.openBusinessView`（`businessType: 'wxpayScoreUse'`） | 机制不同（A15 平台层能力分支）；**mock / 缺 package / 未签名时两端都不得伪造拉起成功**（#2328 联调） |

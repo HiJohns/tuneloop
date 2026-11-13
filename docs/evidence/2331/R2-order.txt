@@ -1,0 +1,9 @@
+PROVENANCE build=s3a-payscore commit=110dc4f2c9b3f440c70608824184dc093f6aee50 dirty=false
+# Command: go test ./services/ -run 'TestAssertTierPayable|TestResolveCreditRiskAmount' -count=1 -v
+[WARNING] No .env file found in common paths
+=== RUN   TestAssertTierPayable
+--- PASS: TestAssertTierPayable (0.00s)
+=== RUN   TestResolveCreditRiskAmount
+--- PASS: TestResolveCreditRiskAmount (0.00s)
+PASS
+ok  	tuneloop-backend/services	0.014s

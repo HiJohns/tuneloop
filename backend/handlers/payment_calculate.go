@@ -68,6 +68,12 @@ func CalculatePayment(c *gin.Context) {
 
 	switch req.Type {
 	case "rent":
+		// #2327 D5/D12: 未通过信用评估的 reduced/zero 订单不得进入支付确认页
+		// （PAYSCORE_ENFORCE=false 时放行，保持现有行为）。
+		if err := creditGateError(db, req.ID); err != nil {
+			failCreditGate(c, err)
+			return
+		}
 		loadRentPayment(db, userID, req.ID, &resp)
 	case "repair_service":
 		// #2096: 服务流维修单（repair_services，type='service'）— 报价明细 +

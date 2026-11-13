@@ -1,0 +1,4 @@
+=== RUN   TestVerifyPayScoreCallback
+--- PASS: TestVerifyPayScoreCallback (0.00s)
+PASS
+ok  	tuneloop-backend/services/wechatpay	0.008s

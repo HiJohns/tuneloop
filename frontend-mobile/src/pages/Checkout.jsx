@@ -13,6 +13,7 @@ import regions from '../data/regions.json'
 import IdPhotoUploader from '../components/IdPhotoUploader'
 import VerifyWarningBar from '../components/VerifyWarningBar'
 import { fetchWaiverEligibility, waiverReasonText, showWaiverIneligible, downloadLetterTemplate, uploadLetterPhoto } from '../utils/depositWaiver'
+import { buildTierOptions, buildOrderDepositPayload } from '../utils/creditFlow.mjs'
 
 function parseImages(images) {
   if (!images) return []
@@ -79,7 +80,9 @@ function SingleCheckout({ id, navigate, resumePending }) {
   const [days, setDays] = useState(30)
   const [rentalCalc, setRentalCalc] = useState(null)
   const [rentalCalcLoading, setRentalCalcLoading] = useState(false)
-  const [depositWaived, setDepositWaived] = useState(false)
+  // #2327 S4: 三档选择（full/reduced/zero）；reduced 由原 depositWaived 语义承接。
+  const [depositTierState, setDepositTierState] = useState('full')
+  const depositWaived = depositTierState === 'reduced'
   // #1867: deposit-free eligibility + recommendation letter
   const [waiver, setWaiver] = useState(null)
   const [letterUrl, setLetterUrl] = useState('')
@@ -206,7 +209,12 @@ function SingleCheckout({ id, navigate, resumePending }) {
   const deposit = pricingV2?.deposit ?? instrument?.deposit ?? parsePricing(instrument?.pricing)[0]?.deposit ?? 0
   const isZeroDeposit = Number(deposit) === 0
   const canReduceDeposit = !isZeroDeposit && depositReduced != null
-  const effectiveDeposit = depositWaived && canReduceDeposit ? Number(depositReduced) : deposit
+  const tierOptions = buildTierOptions(deposit, depositReduced)
+  const effectiveDeposit = depositTierState === 'zero'
+    ? 0
+    : depositTierState === 'reduced' && canReduceDeposit
+      ? Number(depositReduced)
+      : deposit
   // Shipping fee is not determined at order time (#1570): staff fills the
   // actual fee at dispatch, not charged at checkout.
   const totalAmount = totalRent + effectiveDeposit
@@ -339,17 +347,7 @@ function SingleCheckout({ id, navigate, resumePending }) {
       dialog.alert(t("差额押金订单需至少选择 2 位担保人"))
       return
     }
-    // #1867: eligibility + recommendation letter gates
-    if (depositWaived) {
-      if (waiver && !waiver.eligible) {
-        showWaiverIneligible(waiver.reasons, navigate)
-        return
-      }
-      if (!letterUrl) {
-        dialog.alert(t("差额押金订单需上传签名的推荐信照片，模板可在差额押金区块下载"))
-        return
-      }
-    }
+    // #2327 D13: payscore 路径不要求内部资格/推荐信（担保人仍需 2 位）。
     if (!useNewAddress && !selectedAddressId) {
       dialog.alert(t("请选择收货地址"))
       return
@@ -385,11 +383,16 @@ function SingleCheckout({ id, navigate, resumePending }) {
       }
       if (deliveryAddress) body.delivery_address = deliveryAddress
       if (discountCode.trim()) body.discount_code = discountCode.trim()
-      body.deposit_tier = depositWaived && canReduceDeposit ? 'reduced' : (isZeroDeposit ? 'zero' : 'full')
-      if (body.deposit_tier === 'reduced') {
-        body.guarantor_ids = selectedGuarantorIds
-        body.recommendation_letter = letterUrl
+      const depositPayload = buildOrderDepositPayload({
+        tier: isZeroDeposit ? 'zero' : depositTierState,
+        guarantorIds: selectedGuarantorIds,
+      })
+      if (!depositPayload.ok) {
+        dialog.alert(t("差额押金订单需至少选择 2 位担保人"))
+        setSubmitting(false)
+        return
       }
+      Object.assign(body, depositPayload.body)
 
       const resp = await ordersApi.create(body)
       if (resp.code === 20000 || resp.code === 20100) {
@@ -573,30 +576,38 @@ function SingleCheckout({ id, navigate, resumePending }) {
           </View>
         </View>
 
-        {/* 差额押金开关（#2321） */}
-        {canReduceDeposit && (
+        {/* #2327 S4: 押金三档（full / reduced / zero） */}
+        {!isZeroDeposit && (
         <View className="bg-white rounded-2xl shadow-sm p-4 mb-3">
-          <View className="flex items-center justify-between">
-            <View>
-              <Text className="font-black text-black">{t("差额押金（减免）")}</Text>
-              <Text className="text-xs text-zinc-400 mt-0.5">
-                {waiver && !waiver.eligible ? '学生／教职工专享（需实名核验+信用分达标）' : '需提供两位担保人的联系方式'}
-              </Text>
-            </View>
-            <input
-              type="checkbox"
-              checked={depositWaived}
-              disabled={waiver ? !waiver.eligible : false}
-              onChange={e => setDepositWaived(e.target.checked)}
-              className="w-5 h-5"
-            />
+          <Text className="font-black text-black">{t("押金档位")}</Text>
+          <Text className="block text-xs text-zinc-400 mt-0.5">{t("押金减免需完成微信信用评测（差额档需 2 位担保人）")}</Text>
+          <View className="mt-3">
+            {tierOptions.map((opt) => (
+              <View
+                key={opt.tier}
+                onClick={() => setDepositTierState(opt.tier)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderTop: opt.tier === 'full' ? 'none' : '1px solid #f4f4f5' }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text className="font-medium text-black">
+                    {opt.tier === 'full' ? t('全额押金') : opt.tier === 'reduced' ? t('差额押金') : t('免押金')}
+                  </Text>
+                  <Text className="block text-xs text-zinc-400">
+                    {opt.tier === 'full'
+                      ? t('无需信用评测')
+                      : opt.tier === 'reduced'
+                        ? t('需 2 位担保人 + 微信信用评测')
+                        : t('需微信信用评测')}
+                  </Text>
+                </View>
+                <Text className="font-medium" style={{ marginRight: 12 }}>¥{formatCents(Number(opt.amount))}</Text>
+                <View style={{ width: 20, height: 20, borderRadius: 10, border: '2px solid ' + (depositTierState === opt.tier ? '#915F38' : '#d4d4d8'), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {depositTierState === opt.tier && <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#915F38' }} />}
+                </View>
+              </View>
+            ))}
           </View>
-          {waiver && !waiver.eligible && (
-            <View className="bg-zinc-50 border border-zinc-100 rounded-lg px-3 py-2 mt-3">
-              <Text className="text-xs text-zinc-500 leading-relaxed">{waiverReasonText(waiver.reasons)}</Text>
-            </View>
-          )}
-          {depositWaived && (
+          {depositTierState === 'reduced' && (
             <View className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mt-3">
               <Text className="text-xs text-amber-700 leading-relaxed">
                 {t("应提供两位担保人的联系方式。我们的员工将会与他们联系确认，若担保人不符合要求，订单将被取消并退款。")}
@@ -604,28 +615,6 @@ function SingleCheckout({ id, navigate, resumePending }) {
             </View>
           )}
         </View>
-        )}
-
-        {/* #1867: recommendation letter — template download + signed photo upload */}
-        {depositWaived && waiver?.eligible && (
-          <View className="bg-white rounded-2xl shadow-sm p-4 mb-3">
-            <Text className="font-black text-black mb-1">{t("推荐信")}</Text>
-            <View className="flex gap-2 mt-2">
-              <button type="button" onClick={() => downloadLetterTemplate(env.apiBaseUrl)}
-                className="px-3 py-2 bg-zinc-100 rounded-lg text-xs font-bold text-zinc-700">{t("下载推荐信模板")}</button>
-              <button type="button" onClick={() => letterInputRef.current?.click()} disabled={letterUploading}
-                className="px-3 py-2 bg-black rounded-lg text-xs font-bold text-white">
-                {letterUploading ? '上传中...' : (letterUrl ? '重新上传' : '上传签名推荐信')}
-              </button>
-            </View>
-            <input ref={letterInputRef} type="file" accept="image/*" style={{ display: 'none' }}
-              onChange={handleLetterFile} />
-            {letterUrl && (
-              <Image src={letterUrl.startsWith('http') ? letterUrl : `${(env.apiBaseUrl || '').replace(/\/api\/?$/, '')}${letterUrl}`}
-                mode="aspectFill" style={{ width: 96, height: 96, marginTop: 8, borderRadius: 8 }} />
-            )}
-            <Text className="text-xs text-zinc-400 mt-2 block">{t("打印模板 → 推荐人签名 → 拍照上传")}</Text>
-          </View>
         )}
 
         {depositWaived && (

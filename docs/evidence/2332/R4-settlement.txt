@@ -1,0 +1,52 @@
+[WARNING] No .env file found in common paths
+2026/11/13 03:52:28 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/13 03:52:28 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/13 03:52:28 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/13 03:52:28 [DB] Connected to database 'tuneloop_test_local'
+=== RUN   TestSettlementCashVsPayscore
+2026/11/13 03:52:53 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/13 03:52:53 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/13 03:52:53 [DB] Connected to database 'tuneloop_test_local'
+
+2026/11/13 03:52:53 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:325 [35;1mrecord not found
+[0m[33m[2.881ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '2e7bc871-ebb8-4d75-a9a6-aac68125a6a7' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/13 03:52:53 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:716 [35;1mrecord not found
+[0m[33m[0.718ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '2e7bc871-ebb8-4d75-a9a6-aac68125a6a7' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/13 03:52:53 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:836 [35;1mrecord not found
+[0m[33m[0.811ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '2e7bc871-ebb8-4d75-a9a6-aac68125a6a7' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/13 03:52:53 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[0.393ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/13 03:52:53 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:1668 [35;1mrecord not found
+[0m[33m[0.543ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE order_id = '2e7bc871-ebb8-4d75-a9a6-aac68125a6a7' AND order_type = 'rent' AND status = 'paid' ORDER BY "order_payment_records"."id" LIMIT 1
+
+2026/11/13 03:52:53 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[0.314ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'e21cc8ad-fdc0-44d5-8a01-04010b44d3d2' ORDER BY "referrals"."id" LIMIT 1
+2026/11/13 03:52:53 [payscore] order 2e7bc871-ebb8-4d75-a9a6-aac68125a6a7 settled action=complete service_order=so-reduced-1
+--- PASS: TestSettlementCashVsPayscore (0.60s)
+=== RUN   TestRefundNotForPayscore
+
+2026/11/13 03:52:54 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:325 [35;1mrecord not found
+[0m[33m[2.011ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '801651c2-b7c2-481c-b427-1000a9b54f68' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/13 03:52:54 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[0.416ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/13 03:52:54 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[0.502ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '4dcaa4c6-d1cc-46cc-8eaa-0548c3e49e98' ORDER BY "referrals"."id" LIMIT 1
+2026/11/13 03:52:54 [payscore] order 801651c2-b7c2-481c-b427-1000a9b54f68 settled action=complete service_order=so-zero-1
+--- PASS: TestRefundNotForPayscore (0.70s)
+PASS
+ok  	tuneloop-backend/handlers	26.179s
+# github.com/mattn/go-sqlite3
+sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
+sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+123133 |   zTail = strrchr(zName, '_');
+       |         ^
+[WARNING] No .env file found in common paths
+testing: warning: no tests to run
+PASS
+ok  	tuneloop-backend/services	0.036s [no tests to run]

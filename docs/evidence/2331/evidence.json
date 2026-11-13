@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "issue": 2331,
+  "build": "s3a-payscore 110dc4f2c",
+  "commit": "110dc4f2c9b3f440c70608824184dc093f6aee50",
+  "dirty": false,
+  "environment": "Linux worktree /tmp/opencode/wt-develop on develop; go 1.27.4 (snap); services pure-function tests, no database required; delivery commits by previous session: 6419c04e1/d38d56817/8db051067/8694b5d5a/b7070d742/4de34e597/be42bceea/21f3bd343",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/run-2331-provider.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2331/R1-provider.txt"
+      ],
+      "assert": "PASS 三态",
+      "actual": "PASS。TestNewPayscoreProvider 全部子测试通过（默认 mock / 启用缺私钥显式报错 / 启用齐全）",
+      "expected": "PASS",
+      "negative": "启用缺私钥静默降级 → 失败",
+      "negative_result": "provider 配置缺私钥时 NewPayscoreProvider 返回显式错误（测试覆盖该分支）",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/run-2331-gate.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2331/R2-order.txt"
+      ],
+      "assert": "PASS",
+      "actual": "PASS。TestAssertTierPayable / TestResolveCreditRiskAmount 全绿（gate 位于 services，handlers 版已删）",
+      "expected": "PASS",
+      "negative": "未 approved 放行 → 失败",
+      "negative_result": "测试覆盖未 approved 状态必须拒绝的分支",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/run-2331-no-network.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2331/R3-no-network.txt"
+      ],
+      "assert": "请求数 0",
+      "actual": "PASS。TestProviderNoNetworkWhenDisabled 通过：PAYSCORE_ENABLED=false 走 mock，源码扫描 + 实调证明零外部请求",
+      "expected": "0",
+      "negative": ">0 → 失败",
+      "negative_result": "mock 实现块含 http./net//httpClient/doer.Do 任一即 FAIL（测试内建断言）",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/run-2331-gate.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2331/R4-order-rerun.txt"
+      ],
+      "assert": "与 services 位置一致",
+      "actual": "一致。同命令重跑全绿，且脚本断言 services/payscore_gate.go 存在、handlers/payscore_gate.go 不存在",
+      "expected": "一致",
+      "negative": "仍指向 handlers → 失败",
+      "negative_result": "脚本显式检查 handlers 实现文件不存在，违反即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2331-remote.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2331/R5-remote.txt"
+      ],
+      "assert": "services 版存在，handlers 版不存在",
+      "actual": "services_gate_on_remote=1、services_gate_test_on_remote=1、handlers_gate_on_remote=0（精确文件 backend/handlers/payscore_gate.go；payscore_gate_2332_test.go 属 #2332 交付，不在断言范围）",
+      "expected": "1/0",
+      "negative": "远端无迁移 → 失败",
+      "negative_result": "services 版缺失或 handlers 实现存在即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash -c \"cd backend && go build .\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2331/R6-build.txt"
+      ],
+      "assert": "exit 0",
+      "actual": "exit 0（空输出 = 编译成功）",
+      "expected": "0",
+      "negative": "失败",
+      "negative_result": "任一编译错误 → exit 非零",
+      "pass": true
+    }
+  ]
+}

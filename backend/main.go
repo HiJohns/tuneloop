@@ -116,6 +116,15 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	roleManageHandler := handlers.NewRoleManageHandler(database.GetDB(), iamClient, permRegistry)
 	warehouseHandler := handlers.NewWarehouseHandler()
 	userRentalHandler := handlers.NewUserRentalHandler()
+	// #2327: 支付分 provider 默认 mock（PAYSCORE_ENABLED=false），外部资质不阻塞开发
+	payScoreCfg := wechatpay.LoadConfig()
+	payScoreProvider, payScoreErr := wechatpay.NewPayscoreProvider(payScoreCfg)
+	if payScoreErr != nil {
+		log.Printf("[payscore] provider init failed, credit assessment disabled: %v", payScoreErr)
+		payScoreProvider = nil
+	}
+	payscoreHandler := handlers.NewPayscoreHandler(database.GetDB(), payScoreProvider, payScoreCfg)
+	handlers.SetPayscoreSettlementProvider(payScoreProvider, payScoreCfg.PayScoreServiceID)
 	userAddressHandler := handlers.NewUserAddressHandler()
 	userOnboardingHandler := handlers.NewUserOnboardingHandler()
 	faceVerifyHandler := handlers.NewFaceVerifyHandler(faceVerifyProvider)
@@ -754,6 +763,11 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/orders", handlers.GetOrders)
 				userOptionalAuth.GET("/orders/:id", handlers.GetOrder)
 				userOptionalAuth.GET("/orders/:id/logs", handlers.GetOrderLogs)
+				// #2327: 微信支付分信用评测（reduced/zero 档）
+				if payscoreHandler != nil && payScoreProvider != nil {
+					userOptionalAuth.POST("/orders/:id/credit-assessment", payscoreHandler.CreateAssessment)
+					userOptionalAuth.GET("/orders/:id/credit-status", payscoreHandler.GetCreditStatus)
+				}
 				userOptionalAuth.POST("/orders/:id/return", handlers.ReturnOrder)
 				userOptionalAuth.POST("/discount-codes/apply", handlers.ApplyDiscountCode)
 				userOptionalAuth.POST("/orders/:id/cancel-by-user", handlers.CancelOrderByCustomer)

@@ -1,0 +1,5 @@
+PROVENANCE build=s3a-payscore commit=110dc4f2c9b3f440c70608824184dc093f6aee50 dirty=false
+# Command: git fetch origin; git ls-tree -r --name-only origin/develop -- <gate paths>
+services_gate_on_remote=1
+services_gate_test_on_remote=1
+handlers_gate_on_remote=0

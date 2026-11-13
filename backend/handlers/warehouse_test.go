@@ -204,6 +204,9 @@ func TestReportWechatShipping_OpenIDPriority(t *testing.T) {
 
 			services.SetWxAPIBaseURLForTesting(ts.URL)
 			defer services.SetWxAPIBaseURLForTesting("https://api.weixin.qq.com")
+			// #2336 D1: no 15s/1m/5m sleeps in tests.
+			restoreBackoffs := services.SetShippingBackoffsForTesting([]time.Duration{0, 10 * time.Millisecond})
+			defer restoreBackoffs()
 
 			reportWechatShipping(db, models.Order{ID: orderID, UserID: userID}, "顺丰", "SF123456")
 

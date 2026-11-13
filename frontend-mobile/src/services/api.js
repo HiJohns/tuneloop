@@ -1,12 +1,15 @@
 import { storage, session, cookie, request as platformRequest, dialog, navigation, env, wxLogin as wxLoginCode, eventBus } from '../platform'
 import { isContextDrift } from '../utils/sessionContext'
+import { computeExpiryMs } from './sessionToken.mjs'
+import { isPublicPath, shouldDegrade } from './authRouting.mjs'
 
 export { resolveErrorMessage, ERROR_CODE_MAP, ERROR_MESSAGE_MAP } from './errorMessages'
-export const publicRoutes = ['/', '/instrument', '/content', '/cart', '/success', '/callback']
+export const publicRoutes = ['/', '/instrument', '/content', '/cart', '/success', '/callback', '/mall']
 
 function isPublicRoute() {
-  const path = navigation.getCurrentPath()
-  return publicRoutes.some(p => path === p || path.startsWith(p + '/'))
+  // #2326: 小程序 getCurrentPath() 返回 /pages-weapp/xxx/index，H5 可能带 query；
+  // 统一交给平台感知的纯函数判定（此前小程序下恒为 false → 公开页 401 直接登出）。
+  return isPublicPath(navigation.getCurrentPath(), { isMiniProgram: env.isMiniProgram })
 }
 
 if (env.isDev && typeof window !== 'undefined' && typeof window.wx === 'undefined') {
@@ -284,7 +287,14 @@ export async function resolveLogin(source = 'profile') {
   }
 }
 
+let lastDegradeAt = 0
+
 export function degradeToGuest() {
+  // #2326: 并发 401 只降级一次（窗口内重复调用直接返回，避免重复跳转）
+  const now = Date.now()
+  if (!shouldDegrade(now, lastDegradeAt)) return
+  lastDegradeAt = now
+
   session.setItem('guest_degradation', '1')
   storage.removeItem('token')
   storage.removeItem('token_expiry')
@@ -297,7 +307,8 @@ export function degradeToGuest() {
   session.removeItem('token')
   cookie.remove('token')
   session.setItem('logged_out_due_expiry', '1')
-  navigation.redirect('/')
+  // #2326: 平台化回首页（weapp 走 switchTab，'/': 非注册页面会导致 redirectTo:fail）
+  navigation.resetToHome()
 }
 
 export function parseJWT(token) {
@@ -388,6 +399,8 @@ async function refreshAccessToken() {
   const data = await response.json()
   if (data.code === 20000 && data.data?.access_token) {
     storage.setItem('token', data.data.access_token)
+    // #2325: 续期必须同步刷新过期时间；否则下一次 getToken() 仍判过期 → 反复 401 → 最终登出
+    storage.setItem('token_expiry', String(computeExpiryMs(data.data.expires_in, data.data.access_token)))
     if (data.data.refresh_token) storage.setItem('refresh_token', data.data.refresh_token)
     // #2111: 刷新后上下文一致性校验——漂移即清会话并引导重登（杜绝静默换身份）
     const lc = storage.getJSON('login_context')

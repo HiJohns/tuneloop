@@ -223,6 +223,16 @@ func TestLeaseFlow_CancelOrder(t *testing.T) {
 
 func TestCancelOrderByCustomer_StatusGuard(t *testing.T) {
 	wechatpay.InitGlobal(wechatpay.LoadConfig())
+	// #2336 D2: 退款必须显式 stub client（不依赖 .env / 真实微信）。
+	wechatpay.SetClientForTesting(stubJSAPIClient{}, &wechatpay.Config{
+		AppID:           "wxcb44a1be70e356ed",
+		NotifyURL:       "http://localhost:5553/api/wechatpay/notify",
+		RefundNotifyURL: "http://localhost:5553/api/wechatpay/notify",
+	})
+	t.Cleanup(func() {
+		wechatpay.ResetGlobalForTesting()
+		testfixtures.SetupWechatPayMock(t)
+	})
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
@@ -262,6 +272,12 @@ func TestCancelOrderByCustomer_StatusGuard(t *testing.T) {
 
 	t.Run("paid_cancel_succeeds_with_refund_status", func(t *testing.T) {
 		orderID := createOrder(t, models.OrderStatusPaid)
+		outTradeNo := "cnl-test-" + orderID[:8]
+		require.NoError(t, db.Create(&models.OrderPaymentRecord{
+			ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID: userID,
+			OrderID: &orderID, OrderType: "rent", OutTradeNo: &outTradeNo,
+			Amount: models.Cents(100), Type: "payment", Status: "paid",
+		}).Error)
 
 		req := httptest.NewRequest("POST", "/orders/"+orderID+"/cancel-by-user", nil)
 		w := httptest.NewRecorder()
@@ -273,9 +289,28 @@ func TestCancelOrderByCustomer_StatusGuard(t *testing.T) {
 		assert.Equal(t, float64(20000), resp["code"])
 		data := resp["data"].(map[string]interface{})
 		assert.Equal(t, "cancelled", data["new_status"])
-		// cash_paid=100 → refund amount > 0, status from refund record (MockMode → refunded)
+		// cash_paid=100 → refund initiated (stub client accepted it). The record
+		// stays pending until the REFUND.SUCCESS callback confirms the money side.
 		assert.Equal(t, float64(100), data["refund_amount"])
-		assert.Equal(t, "refunded", data["refund_status"])
+		assert.Equal(t, "pending", data["refund_status"])
+
+		var refund models.OrderRefundRecord
+		require.NoError(t, db.Where("order_id = ?", orderID).First(&refund).Error)
+		require.NotNil(t, refund.OutRefundNo)
+		assert.Equal(t, "pending", refund.Status)
+
+		// Drive the real refund callback: refund must reach the terminal state.
+		w2 := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w2)
+		c.Request = httptest.NewRequest("POST", "/api/wechatpay/refund-notify", nil)
+		require.True(t, processRefundCallback(c, &wechatpay.CallbackResult{
+			OutRefundNo: *refund.OutRefundNo,
+			RefundID:    "stub-refund-001",
+			Success:     true,
+			EventType:   "REFUND.SUCCESS",
+		}), "refund callback must be processed")
+		require.NoError(t, db.Where("id = ?", refund.ID).First(&refund).Error)
+		assert.Equal(t, "refunded", refund.Status)
 	})
 
 	t.Run("in_lease_cancel_rejected", func(t *testing.T) {
@@ -567,7 +602,9 @@ func TestGuestBatchCreateOrder(t *testing.T) {
 	assert.Len(t, orders, 2)
 	for _, o := range orders {
 		order := o.(map[string]interface{})
-		assert.Equal(t, "paid", order["status"])
+		// CreateOrder/BatchCreateOrder leave new orders reserved; payment moves
+		// them to paid (same contract as the single-order flow).
+		assert.Equal(t, "reserved", order["status"])
 	}
 }
 

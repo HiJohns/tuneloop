@@ -11,7 +11,7 @@ export const criticalRoutes = [
     name: 'H5 /checkout',
     pattern: '/checkout',
     entry: '/checkout?id=inst-1',
-    markers: ['费用明细', '差额押金（减免）'],
+    markers: ['费用明细', '押金档位'],
     load: () => import('../../src/pages/checkout'),
   },
   {

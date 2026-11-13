@@ -1,0 +1,12 @@
+
+/home/coder/tuneloop/frontend-mobile/src/pages-weapp/login/Login.jsx
+  92:46  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+
+/home/coder/tuneloop/frontend-mobile/src/services/api.js
+  108:37  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  129:20  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  222:49  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  283:18  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+
+✖ 5 problems (0 errors, 5 warnings)
+

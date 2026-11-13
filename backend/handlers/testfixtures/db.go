@@ -139,8 +139,10 @@ func SetupTestDB(t *testing.T) *gorm.DB {
 
 	// #2288: 上一个用例若泄漏未关闭的事务，DDL（DROP/CREATE INDEX）会无限等待。
 	// 测试串行执行，因此 idle-in-transaction 必为已结束用例的残留 → 终止连接释放锁。
+	// #2336: aborted transactions report state='idle in transaction (aborted)';
+	// an exact match left them holding locks and made the next TRUNCATE hang.
 	db.Exec(`SELECT pg_terminate_backend(pid) FROM pg_stat_activity
-		WHERE datname = current_database() AND state = 'idle in transaction'
+		WHERE datname = current_database() AND state LIKE 'idle in transaction%'
 		  AND pid <> pg_backend_pid()`)
 
 	// #2288: 表已存在时用 TRUNCATE 代替 DROP/CREATE（快 10x+，避免全量超过 10m）。
@@ -201,11 +203,57 @@ func ResetTestDB(t *testing.T) {
 	if len(tables) == 0 {
 		return
 	}
+	// #2336: truncating all ~85 tables costs ~1s per call (and there are ~765
+	// tests). Most tables are empty in any given test, so only truncate those
+	// that actually contain rows. CASCADE still covers FK-referencing tables.
 	quoted := make([]string, 0, len(tables))
 	for _, tb := range tables {
+		var one int
+		if err := db.Raw(`SELECT 1 FROM "` + tb + `" LIMIT 1`).Scan(&one).Error; err == nil && one == 0 {
+			continue
+		}
 		quoted = append(quoted, `"`+tb+`"`)
 	}
-	if err := db.Exec(`TRUNCATE TABLE ` + strings.Join(quoted, ", ") + ` RESTART IDENTITY CASCADE`).Error; err != nil {
-		t.Fatalf("reset test db: truncate: %v", err)
+	if len(quoted) == 0 {
+		SeedTemplateBaseline(db)
+		return
 	}
+	truncateSQL := `TRUNCATE TABLE ` + strings.Join(quoted, ", ") + ` RESTART IDENTITY CASCADE`
+	truncate := func() error {
+		// #2336: lock_timeout must be set on the SAME session as TRUNCATE
+		// (database/sql does not pin a connection across Exec calls).
+		tx := db.Begin()
+		if tx.Error != nil {
+			return tx.Error
+		}
+		if err := tx.Exec(`SET LOCAL lock_timeout = '20s'`).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+		if err := tx.Exec(truncateSQL).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+		return tx.Commit().Error
+	}
+	// A leaked connection (active or idle-in-transaction) can hold locks that
+	// make TRUNCATE wait forever. Fail fast, report the blockers, terminate the
+	// leaked backends (tests are serial) and retry once.
+	err := truncate()
+	if err != nil {
+		var blockers []struct {
+			PID   int
+			State string
+			Query string
+		}
+		db.Raw(`SELECT pid, state, left(query, 120) AS query FROM pg_stat_activity
+			WHERE datname = current_database() AND pid <> pg_backend_pid()`).Scan(&blockers)
+		t.Logf("reset test db: truncate blocked (%v); backends=%+v", err, blockers)
+		db.Exec(`SELECT pg_terminate_backend(pid) FROM pg_stat_activity
+			WHERE datname = current_database() AND pid <> pg_backend_pid()`)
+		if retryErr := truncate(); retryErr != nil {
+			t.Fatalf("reset test db: truncate after terminating leaked backends: %v (first: %v)", retryErr, err)
+		}
+	}
+	SeedTemplateBaseline(db)
 }

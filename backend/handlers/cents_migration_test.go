@@ -30,6 +30,19 @@ func TestCentsMigration_20260820001(t *testing.T) {
 	} {
 		require.NoError(t, db.Exec(stmt).Error)
 	}
+	// #2336: this test intentionally downgrades shared money columns to numeric.
+	// Restore BIGINT in cleanup so later tests do not scan numeric as yuan (100x).
+	t.Cleanup(func() {
+		for _, stmt := range []string{
+			`ALTER TABLE orders ALTER COLUMN monthly_rent TYPE bigint USING round(monthly_rent)::bigint`,
+			`ALTER TABLE orders ALTER COLUMN deposit TYPE bigint USING round(deposit)::bigint`,
+			`ALTER TABLE orders ALTER COLUMN shipping_fee TYPE bigint USING round(shipping_fee)::bigint`,
+			`ALTER TABLE orders ALTER COLUMN cash_paid TYPE bigint USING round(cash_paid)::bigint`,
+			`ALTER TABLE order_payment_records ALTER COLUMN amount TYPE bigint USING round(amount)::bigint`,
+		} {
+			db.Exec(stmt)
+		}
+	})
 
 	// --- 1. 造元数据（orders 关键列 + JSONB）---
 	require.NoError(t, db.Exec(`INSERT INTO orders (id, tenant_id, org_id, user_id, instrument_id, level, lease_term,

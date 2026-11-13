@@ -1,0 +1,148 @@
+PROVENANCE build=handlers-triaged commit=25fc9021c3fb2a4ec618b6f0f7175c221aa6b520 dirty=false
+===== TestAdjust2116_RejectedWhileShipping
+--- FAIL: TestAdjust2116_RejectedWhileShipping (0.35s)
+        	Error:      	Not equal: 
+        	            	expected: 40900
+        	            	actual  : 40400
+        	Messages:   	收货前不可加价
+FAIL
+===== TestDispatch2122_ShortfallNotification
+--- FAIL: TestDispatch2122_ShortfallNotification (0.23s)
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+        	Messages:   	map[code:40400 message:repair service not found]
+FAIL
+===== TestListMerchantRepairServices_SharedTenantNoLeak_2248
+--- FAIL: TestListMerchantRepairServices_SharedTenantNoLeak_2248 (0.22s)
+        	Error:      	Should be false
+        	Messages:   	共享 tenant 的其他商户维修单不得出现（#2248）
+FAIL
+===== TestListRecords_DamageObject
+--- FAIL: TestListRecords_DamageObject (0.32s)
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 404
+FAIL
+===== TestListTasks2116_IncludesSubmitterName
+--- FAIL: TestListTasks2116_IncludesSubmitterName (0.28s)
+        	Error:      	"0" is not greater than or equal to "1"
+FAIL
+===== TestRepairService_AdjustAcceptPaysDifference
+--- FAIL: TestRepairService_AdjustAcceptPaysDifference (0.21s)
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+        	Messages:   	map[code:40400 message:repair service not found]
+FAIL
+===== TestRepairService_AdjustDeclineSettlement
+--- FAIL: TestRepairService_AdjustDeclineSettlement (0.30s)
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+        	Messages:   	map[code:40400 message:repair service not found]
+FAIL
+===== TestRepairService_CouponDispatchDeduction_2096
+--- FAIL: TestRepairService_CouponDispatchDeduction_2096 (0.24s)
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+FAIL
+===== TestRepairService_CreateNormalizesTenant_2134
+--- FAIL: TestRepairService_CreateNormalizesTenant_2134 (0.23s)
+        	Error:      	Not equal: 
+        	            	expected: "00000000-0000-4000-8000-1950a1b2c3d1"
+        	            	actual  : "00000000-0000-4000-8000-1950a1b2c3d2"
+        	Messages:   	写入应把叶组织规范化为根租户
+FAIL
+===== TestRepairService_DeclineQuote_2093
+--- FAIL: TestRepairService_DeclineQuote_2093 (0.20s)
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+FAIL
+===== TestRepairService_DetailSite
+--- FAIL: TestRepairService_DetailSite (0.20s)
+        	Error:      	Should be true
+        	Messages:   	详情应含 site 对象
+FAIL
+===== TestRepairService_HappyPathSettlementRefund
+--- FAIL: TestRepairService_HappyPathSettlementRefund (0.20s)
+        	Error:      	Not equal: 
+        	            	expected: "5d48f7c2-9c9b-4aa0-89d0-04f1a8beb704"
+        	            	actual  : ""
+        	Error:      	Not equal: 
+        	            	expected: "00000000-0000-4000-8000-1950a1b2c3d1"
+        	            	actual  : "00000000-0000-4000-8000-1950a1b2c3d2"
+        	Error:      	Not equal: 
+===== TestRepairService_ListMineStatusFilter
+--- FAIL: TestRepairService_ListMineStatusFilter (0.34s)
+        	Error:      	Not equal: 
+        	            	expected: 1
+        	            	actual  : 0
+        	Messages:   	只返回 pending_payment 状态的单
+FAIL
+===== TestRepairService_Notifications_2090
+--- FAIL: TestRepairService_Notifications_2090 (0.20s)
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+FAIL
+===== TestRepairService_PaymentTimeout_PreservesPending_2097
+--- FAIL: TestRepairService_PaymentTimeout_PreservesPending_2097 (0.39s)
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+FAIL
+===== TestRepairService_PaymentsSummary
+--- FAIL: TestRepairService_PaymentsSummary (0.28s)
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+        	Messages:   	map[code:40400 message:repair service not found]
+FAIL
+===== TestRepairService_SettlementShortfall
+--- FAIL: TestRepairService_SettlementShortfall (0.29s)
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+        	Messages:   	map[code:40400 message:repair service not found]
+FAIL
+===== TestRepairService_ShortfallPrepay
+--- FAIL: TestRepairService_ShortfallPrepay (0.37s)
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+        	Messages:   	map[code:40400 message:repair service not found]
+FAIL
+===== TestRepairService_StatusGuardsAndTenantIsolation
+--- FAIL: TestRepairService_StatusGuardsAndTenantIsolation (0.38s)
+        	Error:      	Not equal: 
+        	            	expected: 40900
+        	            	actual  : 40400
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+        	Messages:   	创建即锁定 → 本租户员工可报价
+===== TestRepairService_TaskListScopes
+--- FAIL: TestRepairService_TaskListScopes (0.20s)
+        	Error:      	Should be true
+        	Messages:   	本网点单在列
+        	Error:      	Should be true
+        	Messages:   	无 site 单（本租户）对网点账号可见
+        	Error:      	"[]" should have 2 item(s), but has 0
+FAIL
+===== TestRepairService_Timeline
+--- FAIL: TestRepairService_Timeline (0.25s)
+        	Error:      	Not equal: 
+        	            	expected: 20000
+        	            	actual  : 40400
+        	Messages:   	map[code:40400 message:repair service not found]
+FAIL
+===== TestSelectTechnician2122_NoSiteMerchantOnly
+--- FAIL: TestSelectTechnician2122_NoSiteMerchantOnly (0.33s)
+        	Error:      	Not equal: 
+        	            	expected: "00000000-0000-4000-8000-1950a1b2c3d1"
+        	            	actual  : "00000000-0000-4000-8000-1950a1b2c3d2"
+        	Messages:   	应回填商户租户
+FAIL

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -13,7 +14,38 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 )
+
+// setupRenewalIAMStub 提供 #2016 之后的 IAM openid 权威源桩：
+// GET /api/v1/internal/users/:id/wx-openid → {"openid": ...}。
+// 空 openid 表示该用户未绑定微信（仍返回 200 + 空值，调用方给出 40002）。
+func setupRenewalIAMStub(t *testing.T, userID, openid string) {
+	t.Helper()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.URL.Path == "/api/v1/auth/token":
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"access_token": "mock-client-token", "expires_in": 3600, "token_type": "Bearer",
+			})
+		case strings.HasPrefix(r.URL.Path, "/api/v1/internal/users/") && strings.HasSuffix(r.URL.Path, "/wx-openid"):
+			id := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/v1/internal/users/"), "/wx-openid")
+			if id == userID {
+				json.NewEncoder(w).Encode(map[string]string{"openid": openid})
+				return
+			}
+			w.WriteHeader(http.StatusNotFound)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() {
+		srv.Close()
+		services.SetIAMInternalURLForTesting("")
+	})
+}
 
 // #1760 regression tests: ConfirmRenewal must resolve the payer openid
 // server-side (wx_user_bindings/users.wx_openid) when the client sends an
@@ -35,6 +67,8 @@ func TestRenewal_Confirm_OpenIDBackfilled(t *testing.T) {
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
 		Username: "rn-openid-ok", Status: "active",
 	}).Error)
+	// #2016: openid authority is IAM, not users.wx_openid.
+	setupRenewalIAMStub(t, userID, "openid-renewal-001")
 
 	_, orderID := setupRenewalOrder(t, tenantID, userID, orgID, 0)
 	router := renewalRouter(tenantID, userID)
@@ -76,6 +110,7 @@ func TestRenewal_Confirm_NoOpenID_40002(t *testing.T) {
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
 		Username: "rn-openid-none", Status: "active",
 	}).Error)
+	setupRenewalIAMStub(t, userID, "")
 
 	_, orderID := setupRenewalOrder(t, tenantID, userID, orgID, 0)
 	router := renewalRouter(tenantID, userID)

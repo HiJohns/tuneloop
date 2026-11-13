@@ -1,0 +1,12 @@
+[WARNING] No .env file found in common paths
+2026/11/12 12:41:11 [DB] Configuration loaded: host=127.0.0.1 port=15432 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+Created test database 'tuneloop_test_local'
+2026/11/12 12:41:14 [DB] Configuration loaded: host=127.0.0.1 port=15432 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/12 12:41:14 [DB] Connecting: host=127.0.0.1 port=15432 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/12 12:41:14 [DB] Connected to database 'tuneloop_test_local'
+=== RUN   TestAssertTierPayable
+--- PASS: TestAssertTierPayable (0.00s)
+=== RUN   TestResolveCreditRiskAmount
+--- PASS: TestResolveCreditRiskAmount (0.00s)
+PASS
+ok  	tuneloop-backend/handlers	(cached)

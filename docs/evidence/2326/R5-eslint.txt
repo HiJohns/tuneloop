@@ -1,0 +1,9 @@
+
+/home/coder/tuneloop/frontend-mobile/src/services/api.js
+  110:37  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  131:20  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  224:49  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  285:18  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+
+✖ 4 problems (0 errors, 4 warnings)
+

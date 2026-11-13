@@ -3,6 +3,7 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, getCartKey, redirectToLogin, resolveLogin } from '../services/api'
 import { env, dialog, getWindowSize, storage, session } from '../platform'
+import { NAV_FALLBACK_HEIGHT, computeBottomInset, computeContentMinHeight, shouldLoadMore } from '../utils/scrollLayout'
 import { getMinTierDailyRateYuan } from '../utils/pricing'
 import BottomNav from '../components-weapp/BottomNav'
 
@@ -176,6 +177,26 @@ export default function Home() {
   const contentTop = menuTop + stickyMenuHeight
   const viewportHeight = useMemo(() => getWindowSize().height - contentTop, [contentTop])
 
+  const [bottomInset, setBottomInset] = useState(NAV_FALLBACK_HEIGHT)
+
+  // #2343: 底栏高度运行时测量（#bottom-nav），失效时用 60 fallback。
+  const measureBottomInset = useCallback(() => {
+    const measure = () => {
+      try {
+        const query = Taro.createSelectorQuery && Taro.createSelectorQuery()
+        if (!query || !query.select) return
+        query.select('#bottom-nav').boundingClientRect(rect => {
+          setBottomInset(computeBottomInset({
+            windowHeight: getWindowSize().height,
+            navTop: rect && rect.top,
+          }))
+        }).exec()
+      } catch { /* 保持 fallback（smoke/H5 环境无 selector query） */ }
+    }
+    if (Taro.nextTick) Taro.nextTick(measure)
+    else measure()
+  }, [])
+
   // Stable reference (#2223): keep this array memoized, otherwise every render
   // creates a new array and breaks the HomeMenu/MenuContent memo chain.
   const topCategories = useMemo(() => categories.filter(c => !c.parent_id).map(cat => ({
@@ -289,7 +310,8 @@ export default function Home() {
     fetchCategories()
     fetchInstruments().finally(() => setLoading(false))
     fetchBanners()
-  }, [fetchCategories, fetchInstruments, fetchBanners])
+    measureBottomInset()
+  }, [fetchCategories, fetchInstruments, fetchBanners, measureBottomInset])
 
   // Unmount cleanup (#2223): clear all pending scroll debounce timers.
   useEffect(() => () => {
@@ -323,6 +345,7 @@ export default function Home() {
         storage.setItem('ref_code_ts', String(Date.now()))
       }
     } catch { /* 捕获失败不影响首页 */ }
+    measureBottomInset()
     // Returning to the home tab (e.g. after checkout/payment) does NOT
     // remount the page, so the instrument list keeps its pre-payment
     // snapshot — stock_status (租赁中) would be stale. Refresh here.
@@ -430,25 +453,25 @@ export default function Home() {
             if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
             }, 500)
 
-            // Infinite scroll (#2139): near list end (excluding the 2000px bottom
-            // spacer) → load next page.
+            // Infinite scroll (#2139): near list end → load next page.
+            // #2343: no fixed bottom spacer; threshold is measured against the
+            // real scroll height minus LOAD_MORE_THRESHOLD.
             const sh = e.detail?.scrollHeight ?? 0
-            if (sh > 0 && newY + viewportHeight >= sh - 2000 - 300) loadMore()
+            if (shouldLoadMore({ scrollTop: newY, viewportHeight, scrollHeight: sh })) loadMore()
           }}>
+          <View style={{ minHeight: computeContentMinHeight(viewportHeight), boxSizing: 'border-box', paddingBottom: bottomInset }}>
           <View style={{ height: `${menuTravel}px` }}></View>
 
         <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 80 }}>
         <HomeInstrumentList loading={loading} instruments={instruments} tenant={tenant} nav={nav} />
         </View>
         {/* Footer: fixed height + opacity (no && conditional — #1540 anti-rebound) */}
-        <View style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: (instruments.length > 0 && (loadingMore || !hasMore)) ? 1 : 0 }}>
+        <View style={{ height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: (instruments.length > 0 && (loadingMore || !hasMore)) ? 1 : 0 }}>
           <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>
             {loadingMore ? '加载中…' : '已全部加载'}
           </Text>
         </View>
-        {/* Bottom spacer: ensures ScrollView content exceeds viewport
-            so native scroll doesn't reset when list reloads short (#1540). */}
-        <View style={{ height: 2000 }} />
+          </View>
       </ScrollView>
       <View onClick={handleCartClick} style={{ position: 'fixed', bottom: 96, right: 16, backgroundColor: '#002140', padding: 12, borderRadius: 999, boxShadow: '0 4px 6px rgba(0,0,0,0.1)', zIndex: 50 }}>
         <Text style={{ fontSize: 20 }}>🛒</Text>

@@ -1,0 +1,10 @@
+$ cd frontend-mobile && node --max-old-space-size=4096 node_modules/.bin/taro build --type weapp
+  Compiled successfully in 1.35m
+
+$ grep -rlE '<(div|span|img|button|input|textarea|p|select|a)\b' dist-weapp --include='*.wxml' | grep -v '/base.wxml$'
+(empty output = pass)
+
+$ ls dist-weapp/pages-weapp/credit-assessment
+index.js
+index.json
+index.wxml

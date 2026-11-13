@@ -210,6 +210,8 @@ const menuStuck = scrollY >= 150    // 控制菜单粘连切换
 
 隐藏菜单时用 `opacity-0` 而非条件渲染（`{!condition && <Element/>}`），后者会导致 ScrollView 内容高度突变、`scrollY` 反弹、菜单闪烁来回切换。
 
+**#1540 不变量的新实现（#2343）**：ScrollView 内容必须始终高于视口，否则短列表重载会触发原生滚动复位。weapp 端不再使用固定底部垫片，改为外层内容容器 `minHeight = viewport + 1`（`boxSizing: border-box`）+ `paddingBottom = 实测底栏高度`（`#bottom-nav` 的 `boundingClientRect().top`，失效回退 60）。这样既保留「内容 > 视口」，又保证探底后内容止于 tabBar 上沿、无法继续上滑。
+
 ### 4.4 `pointer-events: none` 会继承到子元素
 
 B 层设置 `pointer-events:none` 后，其子元素也会失去触摸事件。必须显式给需要滚动的子元素设置 `pointer-events: auto`。
@@ -292,14 +294,14 @@ const menuStuck = scrollY >= (NEW_SPACER + 4)
 
 **触底检测（跨端差异）**
 - 复用两端已有的 `ScrollView.onScroll`（H5 读 `e.detail ?? e.target`；weapp 读 `e.detail`）。
-- 判断 `scrollTop + viewport ≥ scrollHeight − 垫片 − 300`：
-  - **weapp**：列表末尾有 **2000px 底部 spacer**（见 §4.3），故 `scrollHeight` 需减 2000。
-  - **H5**：无 spacer，不减。
+- 判断 `scrollTop + viewport ≥ scrollHeight − 300`（统一阈值 `LOAD_MORE_THRESHOLD=300`）：
+  - **weapp**：不再使用固定底部垫片（#2343），阈值直接对真实 `scrollHeight` 计算。
+  - **H5**：无 spacer，同样不减。
 - **不用** `useReachBottom`（列表在嵌套 `ScrollView` 内）；**不用** `onScrollToLower`（`taro-shim.js` 把 `ScrollView` 映射为 `div`，H5 下该 prop 失效）。
 
 **footer（加载中 / 已全部加载）**
-- 固定高度 40px + `opacity` 切换；**禁止 `&&` 条件渲染**（滚动路径中 DOM 插删会引发回弹，见 §4.3）。
-- 置于列表后、2000px spacer 前。
+- 固定高度 24px + `opacity` 切换；**禁止 `&&` 条件渲染**（滚动路径中 DOM 插删会引发回弹，见 §4.3）。
+- 置于列表后；weapp 外层内容容器由 `minHeight = viewport + 1` 与 `paddingBottom = 实测底栏高度` 收口。
 
 **约束**：无原生 HTML 标签；不新增 weapp 样式禁区类；`lineHeight` 用字符串。
 

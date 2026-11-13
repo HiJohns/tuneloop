@@ -1,0 +1,140 @@
+PROVENANCE build=test-db-lifecycle commit=43a75ebb2df1b9e32370127e53d3ac7b4196e4f0 dirty=false
+UPDATE 1
+[WARNING] No .env file found in common paths
+2026/11/13 05:21:52 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+Built test template tuneloop_test_template
+2026/11/13 05:21:53 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/13 05:21:53 [DB] Connected to database 'tuneloop_test_local'
+=== RUN   TestDepositTiers_2321_Single
+2026/11/13 05:21:54 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/13 05:21:54 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/13 05:21:54 [DB] Connected to database 'tuneloop_test_local'
+=== RUN   TestDepositTiers_2321_Single/full_by_default
+2026/11/13 05:21:56 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/13 05:21:56 [TenantScope][observe] auto-scope injected for table=instruments (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/13 05:21:56 [TenantScope][observe] auto-scope injected for table=merchant_pricing_configs (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:442 [35;1mrecord not found
+[0m[33m[14.090ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '00000000-0000-4000-8000-2321a1b2c3d1' AND "merchant_pricing_configs"."tenant_id" = '00000000-0000-4000-8000-2321a1b2c3d1' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:445 [35;1mrecord not found
+[0m[33m[3.077ms] [34;1m[rows:0][0m SELECT * FROM "pricing_templates" WHERE is_system_default = true AND is_active = true ORDER BY "pricing_templates"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1497 [35;1mrecord not found
+[0m[33m[2.780ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '00000000-0000-4000-8000-2321a1b2c3d1' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+2026/11/13 05:21:56 [TenantScope][observe] auto-scope injected for table=system_settings (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1505 [35;1mrecord not found
+[0m[33m[0.623ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' AND "system_settings"."tenant_id" = '00000000-0000-4000-8000-2321a1b2c3d1' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[4.256ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '2b0651fc-5a0c-45ec-850b-0aab66d27b84' ORDER BY "referrals"."id" LIMIT 1
+2026/11/13 05:21:56 [TenantScope][observe] auto-scope injected for table=orders (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[0.653ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '00000000-0000-4000-8000-2321a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+=== RUN   TestDepositTiers_2321_Single/reduced_with_eligible_user_and_guarantors
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:442 [35;1mrecord not found
+[0m[33m[0.686ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '00000000-0000-4000-8000-2321a1b2c3d1' AND "merchant_pricing_configs"."tenant_id" = '00000000-0000-4000-8000-2321a1b2c3d1' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:445 [35;1mrecord not found
+[0m[33m[5.803ms] [34;1m[rows:0][0m SELECT * FROM "pricing_templates" WHERE is_system_default = true AND is_active = true ORDER BY "pricing_templates"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1497 [35;1mrecord not found
+[0m[33m[1.467ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '00000000-0000-4000-8000-2321a1b2c3d1' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1505 [35;1mrecord not found
+[0m[33m[0.927ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' AND "system_settings"."tenant_id" = '00000000-0000-4000-8000-2321a1b2c3d1' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[3.923ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '2b0651fc-5a0c-45ec-850b-0aab66d27b84' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[0.438ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '00000000-0000-4000-8000-2321a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+=== RUN   TestDepositTiers_2321_Single/reduced_amount_zero_keeps_reduced_requirements
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:442 [35;1mrecord not found
+[0m[33m[0.458ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '00000000-0000-4000-8000-2321a1b2c3d1' AND "merchant_pricing_configs"."tenant_id" = '00000000-0000-4000-8000-2321a1b2c3d1' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:445 [35;1mrecord not found
+[0m[33m[0.322ms] [34;1m[rows:0][0m SELECT * FROM "pricing_templates" WHERE is_system_default = true AND is_active = true ORDER BY "pricing_templates"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1497 [35;1mrecord not found
+[0m[33m[0.966ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '00000000-0000-4000-8000-2321a1b2c3d1' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1505 [35;1mrecord not found
+[0m[33m[1.374ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' AND "system_settings"."tenant_id" = '00000000-0000-4000-8000-2321a1b2c3d1' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.084ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '2b0651fc-5a0c-45ec-850b-0aab66d27b84' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[0.499ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '00000000-0000-4000-8000-2321a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+=== RUN   TestDepositTiers_2321_Single/zero_deposit_instrument_ignores_requirements
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:442 [35;1mrecord not found
+[0m[33m[2.669ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '00000000-0000-4000-8000-2321a1b2c3d1' AND "merchant_pricing_configs"."tenant_id" = '00000000-0000-4000-8000-2321a1b2c3d1' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:445 [35;1mrecord not found
+[0m[33m[3.302ms] [34;1m[rows:0][0m SELECT * FROM "pricing_templates" WHERE is_system_default = true AND is_active = true ORDER BY "pricing_templates"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1497 [35;1mrecord not found
+[0m[33m[1.198ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '00000000-0000-4000-8000-2321a1b2c3d1' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1505 [35;1mrecord not found
+[0m[33m[5.638ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' AND "system_settings"."tenant_id" = '00000000-0000-4000-8000-2321a1b2c3d1' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[4.152ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '2b0651fc-5a0c-45ec-850b-0aab66d27b84' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[0.380ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '00000000-0000-4000-8000-2321a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+=== RUN   TestDepositTiers_2321_Single/no_reduced_config_falls_back_to_full
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:442 [35;1mrecord not found
+[0m[33m[1.758ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '00000000-0000-4000-8000-2321a1b2c3d1' AND "merchant_pricing_configs"."tenant_id" = '00000000-0000-4000-8000-2321a1b2c3d1' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:445 [35;1mrecord not found
+[0m[33m[0.325ms] [34;1m[rows:0][0m SELECT * FROM "pricing_templates" WHERE is_system_default = true AND is_active = true ORDER BY "pricing_templates"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1497 [35;1mrecord not found
+[0m[33m[3.585ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '00000000-0000-4000-8000-2321a1b2c3d1' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1505 [35;1mrecord not found
+[0m[33m[0.457ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' AND "system_settings"."tenant_id" = '00000000-0000-4000-8000-2321a1b2c3d1' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[0.637ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '2b0651fc-5a0c-45ec-850b-0aab66d27b84' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.151ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '00000000-0000-4000-8000-2321a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+=== RUN   TestDepositTiers_2321_Single/legacy_deposit_waived_maps_to_reduced_not_zero
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:442 [35;1mrecord not found
+[0m[33m[1.598ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '00000000-0000-4000-8000-2321a1b2c3d1' AND "merchant_pricing_configs"."tenant_id" = '00000000-0000-4000-8000-2321a1b2c3d1' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:445 [35;1mrecord not found
+[0m[33m[1.921ms] [34;1m[rows:0][0m SELECT * FROM "pricing_templates" WHERE is_system_default = true AND is_active = true ORDER BY "pricing_templates"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1497 [35;1mrecord not found
+[0m[33m[0.795ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '00000000-0000-4000-8000-2321a1b2c3d1' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1505 [35;1mrecord not found
+[0m[33m[1.476ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' AND "system_settings"."tenant_id" = '00000000-0000-4000-8000-2321a1b2c3d1' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.147ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '2b0651fc-5a0c-45ec-850b-0aab66d27b84' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/13 05:21:56 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[0.401ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '00000000-0000-4000-8000-2321a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+--- PASS: TestDepositTiers_2321_Single (1.98s)
+    --- PASS: TestDepositTiers_2321_Single/full_by_default (0.07s)
+    --- PASS: TestDepositTiers_2321_Single/reduced_with_eligible_user_and_guarantors (0.05s)
+    --- PASS: TestDepositTiers_2321_Single/reduced_amount_zero_keeps_reduced_requirements (0.05s)
+    --- PASS: TestDepositTiers_2321_Single/zero_deposit_instrument_ignores_requirements (0.04s)
+    --- PASS: TestDepositTiers_2321_Single/no_reduced_config_falls_back_to_full (0.03s)
+    --- PASS: TestDepositTiers_2321_Single/legacy_deposit_waived_maps_to_reduced_not_zero (0.04s)
+PASS
+ok  	tuneloop-backend/handlers	4.312s
+R3 STALE-REBUILD PASS

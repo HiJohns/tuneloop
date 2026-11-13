@@ -1,0 +1,10 @@
+PROVENANCE build=test-db-lifecycle commit=43a75ebb2df1b9e32370127e53d3ac7b4196e4f0 dirty=false
+ALTER TABLE
+[WARNING] No .env file found in common paths
+2026/11/13 05:21:25 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/13 05:21:26 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/13 05:21:26 [DB] Connected to database 'tuneloop_test_local'
+FATAL: cents schema drifted (expected bigint): orders.deposit=numeric; rebuild the template with FORCE_TEMPLATE_REBUILD=1
+FAIL	tuneloop-backend/handlers	0.748s
+FAIL
+R2 FAIL-FAST PASS

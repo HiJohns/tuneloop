@@ -1,0 +1,6 @@
+PROVENANCE build=s3a-payscore commit=110dc4f2c9b3f440c70608824184dc093f6aee50 dirty=false
+# Command: go test ./services/wechatpay/ -run 'TestProviderNoNetworkWhenDisabled' -count=1 -v
+=== RUN   TestProviderNoNetworkWhenDisabled
+--- PASS: TestProviderNoNetworkWhenDisabled (0.00s)
+PASS
+ok  	tuneloop-backend/services/wechatpay	0.006s

@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "issue": 2323,
+  "build": "i18n-inventory 6df96405d",
+  "commit": "6df96405d6c4bf517a9c138e7ed659d224760e70",
+  "dirty": false,
+  "rows": [
+    {
+      "id": "R1",
+      "command": "node scripts/i18n-inventory-build.mjs --self-test --evidence docs/evidence/2323/R1-build.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2323/R1-build.txt"
+      ],
+      "assert": "grep -c 匹配各字段行数",
+      "actual": "rows=3290 mobile=1484 pc=1789 manual=17 IDEMPOTENT: yes NEGATIVE(expect-rows)=1 RESULT: PASS",
+      "expected": "rows=3290 mobile=1484 pc=1789 manual=17 IDEMPOTENT: yes RESULT: PASS",
+      "negative": "脚本内置：期望行数故意错为 3289 时须输出 NEGATIVE(expect-rows)=1 且 RESULT: FAIL",
+      "negative_result": "NEGATIVE(expect-rows)=1 — 期望行数写错时自检判 FAIL",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "node scripts/i18n-inventory-verify.mjs --csv docs/ops/i18n-inventory.csv --negative docs/evidence/2323/fixtures/bad-rows.csv --evidence docs/evidence/2323/R2-verify.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2323/R2-verify.txt"
+      ],
+      "assert": "grep 命中 CHECK 行四字段且 failures=0",
+      "actual": "checked=3273 exact=3149 prefix=124 failures=0 NEGATIVE(bad-rows)=2 RESULT: PASS",
+      "expected": "checked=3273 exact=3149 prefix=124 failures=0 RESULT: PASS",
+      "negative": "fixtures/bad-rows.csv 3 行中 2 行坏，须输出 NEGATIVE(bad-rows)=2",
+      "negative_result": "NEGATIVE(bad-rows)=2 — 行号错/文案错各 1 条被检出",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "node scripts/i18n-inventory-verify.mjs --csv docs/ops/i18n-inventory.csv --parity --negative docs/evidence/2323/fixtures/extra-row.csv --evidence docs/evidence/2323/R3-parity.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2323/R3-parity.txt"
+      ],
+      "assert": "grep 命中 PARITY 行且 diff=0",
+      "actual": "report_rows=3273 csv_report_rows=3273 diff=0 NEGATIVE(extra-row)=1 RESULT: PASS",
+      "expected": "report_rows=3273 csv_report_rows=3273 diff=0 RESULT: PASS",
+      "negative": "fixtures/extra-row.csv 多 1 行，须输出 NEGATIVE(extra-row)=1",
+      "negative_result": "NEGATIVE(extra-row)=1 — 多 1 行，parity diff=1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "node scripts/i18n-inventory-verify.mjs --csv docs/ops/i18n-inventory.csv --check-supplemental --negative docs/evidence/2323/fixtures/missing-note.csv --evidence docs/evidence/2323/R4-supplemental.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2323/R4-supplemental.txt"
+      ],
+      "assert": "grep 命中 SUPPLEMENTAL 行且 lost=0",
+      "actual": "name_error=8 requirement=6 style=5 lost=0 NEGATIVE(missing-note)=1 RESULT: PASS",
+      "expected": "name_error=8 requirement=6 style=5 lost=0 RESULT: PASS",
+      "negative": "fixtures/missing-note.csv 删 1 条需求行，须输出 NEGATIVE(missing-note)=1",
+      "negative_result": "NEGATIVE(missing-note)=1 — 删 1 条需求备注，lost=1",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "node scripts/i18n-inventory-verify.mjs --csv docs/ops/i18n-inventory.csv --check-name-identity --negative docs/evidence/2323/fixtures/identity-wrong.csv --evidence docs/evidence/2323/R4a-name-identity.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2323/R4a-name-identity.txt"
+      ],
+      "assert": "grep 命中 NAME-IDENTITY 行且 identity_diff=0",
+      "actual": "expected=8 matched=8 identity_diff=0 NEGATIVE(identity-wrong)=2 RESULT: PASS",
+      "expected": "expected=8 matched=8 identity_diff=0 RESULT: PASS",
+      "negative": "fixtures/identity-wrong.csv 把 weapp 一条改成 + 新增担保人，须输出 NEGATIVE(identity-wrong)=2",
+      "negative_result": "NEGATIVE(identity-wrong)=2 — weapp 一条改成 + 新增担保人：缺 1 多 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "node scripts/i18n-inventory-verify.mjs --csv docs/ops/i18n-inventory.csv --check-md docs/ops/i18n-inventory.md --negative docs/evidence/2323/fixtures/bad-stats.md --evidence docs/evidence/2323/R5-md-stats.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2323/R5-md-stats.txt"
+      ],
+      "assert": "grep 命中 MD 行六字段",
+      "actual": "mobile=1484 files_mobile=73 pc=1789 files_pc=76 total=3273 files_total=149 NEGATIVE(bad-stats)=1 RESULT: PASS",
+      "expected": "mobile=1484 files_mobile=73 pc=1789 files_pc=76 total=3273 files_total=149 RESULT: PASS",
+      "negative": "fixtures/bad-stats.md 合计改 3000，须输出 NEGATIVE(bad-stats)=1",
+      "negative_result": "NEGATIVE(bad-stats)=1 — 合计改 3000 被检出",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "node scripts/i18n-inventory-verify.mjs --csv docs/ops/i18n-inventory.csv --check-blindspots --negative docs/evidence/2323/fixtures/blindspots-missing.csv --evidence docs/evidence/2323/R7-blindspots.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2323/R7-blindspots.txt"
+      ],
+      "assert": "grep 命中 BLINDSPOTS 行且 matched=2",
+      "actual": "ternary=2 matched=2 NEGATIVE(blindspots-missing)=2 RESULT: PASS",
+      "expected": "ternary=2 matched=2 RESULT: PASS",
+      "negative": "fixtures/blindspots-missing.csv 删 1 条三元盲区行，须输出 NEGATIVE(blindspots-missing)=2",
+      "negative_result": "NEGATIVE(blindspots-missing)=2 — 删 1 条三元盲区：缺 1 + 计数不等",
+      "pass": true
+    }
+  ]
+}

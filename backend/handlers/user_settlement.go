@@ -265,6 +265,11 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 
 	tx.Commit()
 
+	// #2327 S3b/D14: 现金结算落库后再收口支付分订单（complete/cancel）。
+	if err := settlePayscoreGuarantee(ctx, order, result.PayscoreAction); err != nil {
+		log.Printf("[ConfirmSettlement] %v", err)
+	}
+
 	// #1738 P2: audit the confirm-time recomputation (inputs + final numbers).
 	if _, err := recordSettlementCalculation(db, &order, "confirm", result.ActualDays, breakdownJSON); err != nil {
 		log.Printf("[SettlementAudit] confirm record failed for order %s: %v", order.ID, err)
@@ -327,6 +332,11 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 		result.CashRefundable = existing.CashRefundable.ToYuan()
 		result.OverdueChargesTotal = existing.OverdueChargesTotal.ToYuan()
 		result.ActualDays = existing.ActualRentDays
+		// #2327 S3b: 幂等重入也必须补齐支付分收口（上次可能只完成了现金侧）。
+		result.PayscoreAction = payscoreActionForOrder(order)
+		if err := settlePayscoreGuarantee(context.Background(), order, result.PayscoreAction); err != nil {
+			log.Printf("[executeRefund] %v", err)
+		}
 		return &result, nil
 	}
 
@@ -343,6 +353,7 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 		result.CashRefundable = existing.CashRefundable.ToYuan()
 		result.OverdueChargesTotal = existing.OverdueChargesTotal.ToYuan()
 		result.ActualDays = existing.ActualRentDays
+		result.PayscoreAction = payscoreActionForOrder(order)
 	} else {
 		result = computeSettlement(order, tx)
 
@@ -553,6 +564,12 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 		}
 	}
 
+	// #2327 S3b/D14: 现金退款执行完毕后再收口支付分订单（complete/cancel）。
+	// 只做支付分动作，不发起任何现金退款；失败不阻断现金结算（可重入补齐）。
+	if err := settlePayscoreGuarantee(context.Background(), order, result.PayscoreAction); err != nil {
+		log.Printf("[executeRefund] %v", err)
+	}
+
 	return &result, nil
 }
 
@@ -607,7 +624,11 @@ type settlementResult struct {
 	DiscountedRent         float64 // #1836: 段级折后租金应收（元）
 	DiscountedDue          float64 // #1836: 段级折后应收（元，含物流原价）
 	SegmentModel           bool    // #1836: 净额是否由段级模型判定（false=#1743 兜底）
-	Breakdown              map[string]interface{}
+	// #2327 S3b/D14: 支付分收口动作（complete/cancel），空=未走支付分。
+	// 现金退款与支付分担保是两条独立通道，本字段只决定支付分侧动作。
+	PayscoreAction      string
+	PayscoreDeductCents int64 // 超出押金的扣款额（应由支付分完结收取，≤ risk amount）
+	Breakdown           map[string]interface{}
 }
 
 // computeSettlement performs the tier-based rent calculation and refund math.
@@ -1299,6 +1320,19 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		cashBasis = 0
 	}
 
+	// #2327 S3b/D14: 结算时区分「现金押金」与「支付分担保」两条通道。
+	// 现金退款只来自实付押金；支付分只做 complete/cancel，绝不返现。
+	payAction := services.ResolveSettlementAction(
+		order.DepositTier,
+		order.DepositCreditPath,
+		order.CreditState,
+		int64(order.Deposit),
+		int64(models.FromYuan(totalDepositDeducted)),
+		order.Status != models.OrderStatusCancelled,
+	)
+	breakdown["payscore_action"] = payAction.PayscoreAction
+	breakdown["payscore_deduct_cents"] = payAction.PayscoreDeductCents
+
 	return settlementResult{
 		RentPayable:            rentPayable,
 		TotalRentPaid:          totalRentPaid,
@@ -1315,6 +1349,8 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		DiscountedRent:         discountedRent,
 		DiscountedDue:          discountedDue,
 		SegmentModel:           useDiscounted,
+		PayscoreAction:         payAction.PayscoreAction,
+		PayscoreDeductCents:    payAction.PayscoreDeductCents,
 		Breakdown:              breakdown,
 	}
 }

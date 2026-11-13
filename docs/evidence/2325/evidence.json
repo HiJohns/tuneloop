@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "issue": 2325,
+  "build": "session-token f55bbea3e",
+  "commit": "f55bbea3ed57cd45157dca332f2cc66ef9978a14",
+  "dirty": false,
+  "rows": [
+    {
+      "id": "R1",
+      "command": "node --test --test-name-pattern computeExpiryMs frontend-mobile/src/services/sessionToken.test.mjs > docs/evidence/2325/R1-expiry.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2325/R1-expiry.txt"
+      ],
+      "assert": "grep 命中 TAP 汇总且 fail 为 0",
+      "actual": "# pass 2 # fail 0",
+      "expected": "# fail 0",
+      "negative": "buggy 实现与该规则返回值相等时断言失败",
+      "negative_result": "buggy 实现（忽略 expires_in）与本规则返回值不等 — 已断言通过",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "node --test --test-name-pattern 写入点成对 frontend-mobile/src/services/sessionToken.test.mjs > docs/evidence/2325/R2-pairing.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2325/R2-pairing.txt"
+      ],
+      "assert": "grep 命中 TAP 汇总且 fail 为 0",
+      "actual": "# pass 1 # fail 0",
+      "expected": "# fail 0",
+      "negative": "夹具违规未被检出时断言失败",
+      "negative_result": "夹具 unpaired-write.jsx 被检出（≥1 违规）— 已断言通过",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "node --test --test-name-pattern 接线 frontend-mobile/src/services/sessionToken.test.mjs > docs/evidence/2325/R3-wiring.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2325/R3-wiring.txt"
+      ],
+      "assert": "grep 命中 TAP 汇总且 fail 为 0",
+      "actual": "# pass 1 # fail 0",
+      "expected": "# fail 0",
+      "negative": "api.js 或 Login.jsx 未接线时断言失败",
+      "negative_result": "夹具 api-unwired.js 被判未接线 — 已断言通过",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash -c \"cd frontend-mobile && npx eslint src/services/sessionToken.mjs src/services/api.js src/pages-weapp/login/Login.jsx\" > docs/evidence/2325/R4-eslint.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2325/R4-eslint.txt"
+      ],
+      "assert": "文件中 errors 计数为 0 且退出码 0",
+      "actual": "0 errors (5 warnings, exit 0)",
+      "expected": "0 errors",
+      "negative": "出现 error 时命令退出码非 0",
+      "negative_result": "ESLint 出现 error 时退出码非 0 — 本次 0 errors",
+      "pass": true
+    }
+  ]
+}

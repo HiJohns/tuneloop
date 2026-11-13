@@ -50,7 +50,20 @@ func TestOrgManagement(t *testing.T) {
 	defer services.SetIAMInternalURLForTesting("")
 	t.Setenv("IAM_NAMESPACE", "test-ns")
 
-	tenantID, orgID, userID := testfixtures.NewTenantIDs("00000000b1c2")
+	// #2266: Site.TenantID is anchored to the merchant org, so the operator's
+	// tenant and merchant org must match (production: merchant org == tenant).
+	tenantID := "00000000-0000-4000-8000-00000000b1c2"
+	orgID := tenantID
+	userID := "00000000-0000-4000-8000-00000000b1c3"
+
+	// #2266/#2247: CreateSite resolves the operator's merchant by org;
+	// seed it so the test exercises the merchant-admin path instead of the
+	// platform-created branch (which requires an explicit merchant_id).
+	require.NoError(t, db.Create(&models.Merchant{
+		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID,
+		Name: "测试商户", Status: "active",
+		AdminUID: "00000000-0000-0000-0000-000000000000", // uuid 列不接受空串
+	}).Error)
 
 	admin := testutil.MakeSiteAdmin(tenantID, orgID, userID)
 	router := gin.New()

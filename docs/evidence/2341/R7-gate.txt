@@ -1,0 +1,516 @@
+PROVENANCE build=test-db-lifecycle commit=43a75ebb2df1b9e32370127e53d3ac7b4196e4f0 dirty=false
+# github.com/mattn/go-sqlite3
+sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
+sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+123133 |   zTail = strrchr(zName, '_');
+       |         ^
+[WARNING] No .env file found in common paths
+=== RUN   TestAuditDisplay_Dictionaries
+--- PASS: TestAuditDisplay_Dictionaries (0.00s)
+=== RUN   TestAuditDisplay_UserAgent
+--- PASS: TestAuditDisplay_UserAgent (0.00s)
+=== RUN   TestParseCSV
+--- PASS: TestParseCSV (0.00s)
+=== RUN   TestDeduplicateRecords
+--- PASS: TestDeduplicateRecords (0.00s)
+=== RUN   TestValidateRequired
+--- PASS: TestValidateRequired (0.00s)
+=== RUN   TestValidateEmail
+--- PASS: TestValidateEmail (0.00s)
+=== RUN   TestSplitTags
+--- PASS: TestSplitTags (0.00s)
+=== RUN   TestIsEmptyRow
+--- PASS: TestIsEmptyRow (0.00s)
+=== RUN   TestReminderScan_FiltersOverduePending
+2026/11/13 05:23:01 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:01 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:01 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    collection_reminder_scheduler_test.go:43: test database not available
+--- SKIP: TestReminderScan_FiltersOverduePending (0.02s)
+=== RUN   TestReminderNotification_TargetsAdmins
+2026/11/13 05:23:01 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:01 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:01 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    collection_reminder_scheduler_test.go:107: test database not available
+--- SKIP: TestReminderNotification_TargetsAdmins (0.02s)
+=== RUN   TestReminderIdempotent
+2026/11/13 05:23:01 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:01 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:01 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    collection_reminder_scheduler_test.go:197: test database not available
+--- SKIP: TestReminderIdempotent (0.02s)
+=== RUN   TestCalculateLeaseDays
+=== RUN   TestCalculateLeaseDays/same_day_under_24h
+=== RUN   TestCalculateLeaseDays/cross_midnight_under_24h
+=== RUN   TestCalculateLeaseDays/cross_midnight_over_24h
+=== RUN   TestCalculateLeaseDays/exactly_48_hours
+=== RUN   TestCalculateLeaseDays/end_before_start_clamps_to_1
+--- PASS: TestCalculateLeaseDays (0.00s)
+    --- PASS: TestCalculateLeaseDays/same_day_under_24h (0.00s)
+    --- PASS: TestCalculateLeaseDays/cross_midnight_under_24h (0.00s)
+    --- PASS: TestCalculateLeaseDays/cross_midnight_over_24h (0.00s)
+    --- PASS: TestCalculateLeaseDays/exactly_48_hours (0.00s)
+    --- PASS: TestCalculateLeaseDays/end_before_start_clamps_to_1 (0.00s)
+=== RUN   TestDualStorage_UploadWritesBoth
+--- PASS: TestDualStorage_UploadWritesBoth (0.00s)
+=== RUN   TestDualStorage_OSSFailBlocksByDefault
+--- PASS: TestDualStorage_OSSFailBlocksByDefault (0.00s)
+=== RUN   TestDualStorage_OSSFailSoftWritesLocalAndLogs
+2026/11/13 05:23:01 [DualStorage] OSS upload failed (soft) key=c.jpg: put failed
+--- PASS: TestDualStorage_OSSFailSoftWritesLocalAndLogs (0.00s)
+=== RUN   TestDualStorage_DeleteAndPrefixBoth
+--- PASS: TestDualStorage_DeleteAndPrefixBoth (0.00s)
+=== RUN   TestDualStorage_StatDelegatesPrimary
+--- PASS: TestDualStorage_StatDelegatesPrimary (0.00s)
+=== RUN   TestNewMediaStorage_ModeSelection
+2026/11/13 05:23:01 [MediaStorage] STORAGE_MODE=oss but OSS_ENDPOINT/OSS_BUCKET missing — falling back to LocalStorage
+2026/11/13 05:23:01 [MediaStorage] STORAGE_MODE=dual but OSS_ENDPOINT/OSS_BUCKET missing — falling back to LocalStorage
+--- PASS: TestNewMediaStorage_ModeSelection (0.00s)
+=== RUN   TestDualStorage_2061_PrimaryClosesReader
+--- PASS: TestDualStorage_2061_PrimaryClosesReader (0.00s)
+=== RUN   TestWarningNotifyConfigValidation
+2026/11/13 05:23:01 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:01 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:01 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    email_1898_test.go:34: test database not available: failed to connect to database: failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+--- SKIP: TestWarningNotifyConfigValidation (0.00s)
+=== RUN   TestSendWarningEmailConfigAndCooldown
+2026/11/13 05:23:01 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:01 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:01 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    email_1898_test.go:60: test database not available: failed to connect to database: failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+--- SKIP: TestSendWarningEmailConfigAndCooldown (0.01s)
+=== RUN   TestCreateOrGetUser_UsernameConflictWithDifferentEmail_Rejected
+2026/11/13 05:23:01 [IAMClient] ListUsers: baseURL=http://127.0.0.1:42811, namespace=, clientID=test-ns
+2026/11/13 05:23:01 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/13 05:23:01 [IAMClient] ListUsers: statusCode=200, responseLen=164
+2026/11/13 05:23:01 [IAMClient] ListUsers: parsed result - users count=1, data count=0
+2026/11/13 05:23:01 [IAMClient] ListUsers: returning 1 users from 'users' field
+2026/11/13 05:23:01 [IAMClient] CreateOrGetUser: user u-1 matched only by username "lisi" with different email/phone, rejecting
+--- PASS: TestCreateOrGetUser_UsernameConflictWithDifferentEmail_Rejected (0.00s)
+=== RUN   TestCreateOrGetUser_EmailMatch_ReusesExistingUser
+2026/11/13 05:23:01 [IAMClient] ListUsers: baseURL=http://127.0.0.1:46335, namespace=, clientID=test-ns
+2026/11/13 05:23:01 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/13 05:23:01 [IAMClient] ListUsers: statusCode=200, responseLen=164
+2026/11/13 05:23:01 [IAMClient] ListUsers: parsed result - users count=1, data count=0
+2026/11/13 05:23:01 [IAMClient] ListUsers: returning 1 users from 'users' field
+2026/11/13 05:23:01 [IAMClient] CreateOrGetUser: conflicts found, returning existing user u-1
+--- PASS: TestCreateOrGetUser_EmailMatch_ReusesExistingUser (0.00s)
+=== RUN   TestCreateOrGetUser_PhoneMatch_ReusesExistingUser
+2026/11/13 05:23:01 [IAMClient] ListUsers: baseURL=http://127.0.0.1:45883, namespace=, clientID=test-ns
+2026/11/13 05:23:01 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/13 05:23:01 [IAMClient] ListUsers: statusCode=200, responseLen=164
+2026/11/13 05:23:01 [IAMClient] ListUsers: parsed result - users count=1, data count=0
+2026/11/13 05:23:01 [IAMClient] ListUsers: returning 1 users from 'users' field
+2026/11/13 05:23:01 [IAMClient] CreateOrGetUser: conflicts found, returning existing user u-1
+--- PASS: TestCreateOrGetUser_PhoneMatch_ReusesExistingUser (0.01s)
+=== RUN   TestCreateOrGetUser_NoConflict_CreatesNewUser
+2026/11/13 05:23:01 [IAMClient] ListUsers: baseURL=http://127.0.0.1:36175, namespace=, clientID=test-ns
+2026/11/13 05:23:01 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/13 05:23:01 [IAMClient] ListUsers: statusCode=200, responseLen=13
+2026/11/13 05:23:01 [IAMClient] ListUsers: parsed result - users count=0, data count=0
+2026/11/13 05:23:01 [IAMClient] ListUsers: returning 0 users from 'data' field
+2026/11/13 05:23:01 [IAMClient] Created user via CreateOrGetUser: user_id=new-user-123
+--- PASS: TestCreateOrGetUser_NoConflict_CreatesNewUser (0.00s)
+=== RUN   TestCreateOrGetUser_ErrorIncludesConflictingEmail
+2026/11/13 05:23:01 [IAMClient] ListUsers: baseURL=http://127.0.0.1:40665, namespace=, clientID=test-ns
+2026/11/13 05:23:01 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/13 05:23:01 [IAMClient] ListUsers: statusCode=200, responseLen=158
+2026/11/13 05:23:01 [IAMClient] ListUsers: parsed result - users count=1, data count=0
+2026/11/13 05:23:01 [IAMClient] ListUsers: returning 1 users from 'users' field
+2026/11/13 05:23:01 [IAMClient] CreateOrGetUser: user u-1 matched only by username "lisi" with different email/phone, rejecting
+--- PASS: TestCreateOrGetUser_ErrorIncludesConflictingEmail (0.00s)
+=== RUN   TestGetUserAuthState_CachesSubjectState
+2026/11/13 05:23:01 [IAMClient] Obtained client credentials token, expires in 3600s
+--- PASS: TestGetUserAuthState_CachesSubjectState (0.00s)
+=== RUN   TestGetUserAuthState_UserNotFound_ReturnsSentinel
+2026/11/13 05:23:01 [IAMClient] Obtained client credentials token, expires in 3600s
+--- PASS: TestGetUserAuthState_UserNotFound_ReturnsSentinel (0.00s)
+=== RUN   TestResolveUserOpenid_BoundAndUnbound
+2026/11/13 05:23:01 [IAMClient] Obtained client credentials token, expires in 3600s
+--- PASS: TestResolveUserOpenid_BoundAndUnbound (0.00s)
+=== RUN   TestJWTClaimsFnRolesMapping
+--- PASS: TestJWTClaimsFnRolesMapping (0.00s)
+=== RUN   TestIsDerivedVariant
+--- PASS: TestIsDerivedVariant (0.00s)
+=== RUN   TestOrphanGraceDays_DefaultAndConfigured
+--- PASS: TestOrphanGraceDays_DefaultAndConfigured (0.00s)
+=== RUN   TestRegisteredKeySet_MergesInstrumentMedia
+--- PASS: TestRegisteredKeySet_MergesInstrumentMedia (0.00s)
+=== RUN   TestGCOrphans_ExemptsFaceCapture
+--- PASS: TestGCOrphans_ExemptsFaceCapture (0.01s)
+=== RUN   TestRegisterAsset_IdempotentUpsert
+--- PASS: TestRegisterAsset_IdempotentUpsert (0.00s)
+=== RUN   TestMarkUnreferenced
+--- PASS: TestMarkUnreferenced (0.01s)
+=== RUN   TestReconcileHTMLRefs
+--- PASS: TestReconcileHTMLRefs (0.01s)
+=== RUN   TestReconcileHTMLRefs_RegistersHistoricalImage
+--- PASS: TestReconcileHTMLRefs_RegistersHistoricalImage (0.01s)
+=== RUN   TestRegisterAsset_RefCountBumps
+--- PASS: TestRegisterAsset_RefCountBumps (0.00s)
+=== RUN   TestCheckAndUpgradeLevel_Aggregation
+2026/11/13 05:23:02 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:02 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:02 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    membership_engine_test.go:15: test database not available
+--- SKIP: TestCheckAndUpgradeLevel_Aggregation (0.00s)
+=== RUN   TestCheckAndUpgradeLevel_DefaultsBlock
+2026/11/13 05:23:02 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:02 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:02 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    membership_engine_test.go:15: test database not available
+--- SKIP: TestCheckAndUpgradeLevel_DefaultsBlock (0.01s)
+=== RUN   TestECSRoleCredentialsProvider
+--- PASS: TestECSRoleCredentialsProvider (0.00s)
+=== RUN   TestECSRoleCredentialsProviderErrors
+--- PASS: TestECSRoleCredentialsProviderErrors (0.00s)
+=== RUN   TestResolveCredentialsProviderChain
+--- PASS: TestResolveCredentialsProviderChain (0.00s)
+=== RUN   TestUploadSmallEntry
+--- PASS: TestUploadSmallEntry (0.00s)
+=== RUN   TestUploadRoutedToPrivateBucket
+--- PASS: TestUploadRoutedToPrivateBucket (0.00s)
+=== RUN   TestUploadLargeUsesMultipart
+--- PASS: TestUploadLargeUsesMultipart (0.15s)
+=== RUN   TestUploadNonSeekerFallsBack
+--- PASS: TestUploadNonSeekerFallsBack (0.00s)
+=== RUN   TestGetURLComposition
+--- PASS: TestGetURLComposition (0.00s)
+=== RUN   TestLocalStorageGetURL
+--- PASS: TestLocalStorageGetURL (0.00s)
+=== RUN   TestLocalStorageList
+--- PASS: TestLocalStorageList (0.00s)
+=== RUN   TestOSSStorageList
+--- PASS: TestOSSStorageList (0.00s)
+=== RUN   TestAssertTierPayable
+--- PASS: TestAssertTierPayable (0.00s)
+=== RUN   TestAssertOrderPayableIfEnforced
+--- PASS: TestAssertOrderPayableIfEnforced (0.00s)
+=== RUN   TestResolveCreditRiskAmount
+--- PASS: TestResolveCreditRiskAmount (0.00s)
+=== RUN   TestResolveSettlementAction
+--- PASS: TestResolveSettlementAction (0.00s)
+=== RUN   TestCreditStateMachine
+--- PASS: TestCreditStateMachine (0.00s)
+=== RUN   TestIsCreditSettled
+--- PASS: TestIsCreditSettled (0.00s)
+=== RUN   TestPointBatch_ConsumeFIFO
+2026/11/13 05:23:02 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:02 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:02 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    point_batches_test.go:72: test database not available
+--- SKIP: TestPointBatch_ConsumeFIFO (0.01s)
+=== RUN   TestPointBatch_RestoreByTransaction
+2026/11/13 05:23:02 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:02 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:02 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    point_batches_test.go:101: test database not available
+--- SKIP: TestPointBatch_RestoreByTransaction (0.01s)
+=== RUN   TestPointBatch_ExpireDueBatches
+2026/11/13 05:23:02 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:02 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:02 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    point_batches_test.go:132: test database not available
+--- SKIP: TestPointBatch_ExpireDueBatches (0.01s)
+=== RUN   TestPointBatch_RemindExpiringBatches
+2026/11/13 05:23:02 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:02 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:02 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    point_batches_test.go:171: test database not available
+--- SKIP: TestPointBatch_RemindExpiringBatches (0.01s)
+=== RUN   TestCreatePointsBatch_Validity
+2026/11/13 05:23:02 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:02 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:02 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    point_batches_test.go:188: test database not available
+--- SKIP: TestCreatePointsBatch_Validity (0.01s)
+=== RUN   TestNormalizeBatchExpiry_NextMonthFirst
+--- PASS: TestNormalizeBatchExpiry_NextMonthFirst (0.00s)
+=== RUN   TestPointBatch_MigrationSQL
+2026/11/13 05:23:02 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:02 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:02 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    point_batches_test.go:220: test database not available
+--- SKIP: TestPointBatch_MigrationSQL (0.01s)
+=== RUN   TestPointBatchScheduler_Run
+2026/11/13 05:23:02 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:02 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:02 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    point_batches_test.go:264: test database not available
+--- SKIP: TestPointBatchScheduler_Run (0.01s)
+=== RUN   TestFormatPricingResult_Cents
+--- PASS: TestFormatPricingResult_Cents (0.00s)
+=== RUN   TestFormatPricingResult_FractionalCents
+--- PASS: TestFormatPricingResult_FractionalCents (0.00s)
+=== RUN   TestCalculatePricing_Deposit
+=== RUN   TestCalculatePricing_Deposit/total_price_>_0_uses_total_price_×_deposit_ratio
+=== RUN   TestCalculatePricing_Deposit/total_price_=_0_yields_zero_deposit_in_ratio_mode
+=== RUN   TestCalculatePricing_Deposit/total_price_>_0_with_custom_deposit_ratio
+=== RUN   TestCalculatePricing_Deposit/total_price_=_0_custom_ratio_also_yields_zero
+=== RUN   TestCalculatePricing_Deposit/zero_ratio_defaults_to_full_amount_(#1436)
+=== RUN   TestCalculatePricing_Deposit/deposit_mode_=_custom_uses_override_only
+=== RUN   TestCalculatePricing_Deposit/override_deposit_takes_precedence
+--- PASS: TestCalculatePricing_Deposit (0.00s)
+    --- PASS: TestCalculatePricing_Deposit/total_price_>_0_uses_total_price_×_deposit_ratio (0.00s)
+    --- PASS: TestCalculatePricing_Deposit/total_price_=_0_yields_zero_deposit_in_ratio_mode (0.00s)
+    --- PASS: TestCalculatePricing_Deposit/total_price_>_0_with_custom_deposit_ratio (0.00s)
+    --- PASS: TestCalculatePricing_Deposit/total_price_=_0_custom_ratio_also_yields_zero (0.00s)
+    --- PASS: TestCalculatePricing_Deposit/zero_ratio_defaults_to_full_amount_(#1436) (0.00s)
+    --- PASS: TestCalculatePricing_Deposit/deposit_mode_=_custom_uses_override_only (0.00s)
+    --- PASS: TestCalculatePricing_Deposit/override_deposit_takes_precedence (0.00s)
+=== RUN   TestCalculateTieredPricing_70Days
+--- PASS: TestCalculateTieredPricing_70Days (0.00s)
+=== RUN   TestCalculateTieredPricing_SingleTier
+--- PASS: TestCalculateTieredPricing_SingleTier (0.00s)
+=== RUN   TestCalculateTieredPricing_ZeroDays
+--- PASS: TestCalculateTieredPricing_ZeroDays (0.00s)
+=== RUN   TestCalculatePricing_OverrideDailyRentKeepsTiers
+--- PASS: TestCalculatePricing_OverrideDailyRentKeepsTiers (0.00s)
+=== RUN   TestCalculatePricing_NoOverrideKeepsTiers
+--- PASS: TestCalculatePricing_NoOverrideKeepsTiers (0.00s)
+=== RUN   TestCalculatePricing_NoTiersNoOverrideRegression
+--- PASS: TestCalculatePricing_NoTiersNoOverrideRegression (0.00s)
+=== RUN   TestParseInstrumentPricing_YuanSemantics
+--- PASS: TestParseInstrumentPricing_YuanSemantics (0.00s)
+=== RUN   TestParseInstrumentPricing_EmptyAndPartial
+--- PASS: TestParseInstrumentPricing_EmptyAndPartial (0.00s)
+=== RUN   TestParseInstrumentPricing_ToCents
+--- PASS: TestParseInstrumentPricing_ToCents (0.00s)
+=== RUN   TestFormatPricingResult_OverdueOverride
+--- PASS: TestFormatPricingResult_OverdueOverride (0.00s)
+=== RUN   TestCalculatePricing_OverdueFallbackFromInstrumentPricing
+--- PASS: TestCalculatePricing_OverdueFallbackFromInstrumentPricing (0.00s)
+=== RUN   TestComputeTierSegments
+=== RUN   TestComputeTierSegments/1_day
+=== RUN   TestComputeTierSegments/30_days
+=== RUN   TestComputeTierSegments/31_days
+=== RUN   TestComputeTierSegments/42_days
+=== RUN   TestComputeTierSegments/180_days
+=== RUN   TestComputeTierSegments/181_days
+=== RUN   TestComputeTierSegments/365_days
+=== RUN   TestComputeTierSegments/366_days
+=== RUN   TestComputeTierSegments/1000_days
+--- PASS: TestComputeTierSegments (0.00s)
+    --- PASS: TestComputeTierSegments/1_day (0.00s)
+    --- PASS: TestComputeTierSegments/30_days (0.00s)
+    --- PASS: TestComputeTierSegments/31_days (0.00s)
+    --- PASS: TestComputeTierSegments/42_days (0.00s)
+    --- PASS: TestComputeTierSegments/180_days (0.00s)
+    --- PASS: TestComputeTierSegments/181_days (0.00s)
+    --- PASS: TestComputeTierSegments/365_days (0.00s)
+    --- PASS: TestComputeTierSegments/366_days (0.00s)
+    --- PASS: TestComputeTierSegments/1000_days (0.00s)
+=== RUN   TestComputeTierSegments_CustomTiers
+--- PASS: TestComputeTierSegments_CustomTiers (0.00s)
+=== RUN   TestFormatPricingBreakdownJSON
+--- PASS: TestFormatPricingBreakdownJSON (0.00s)
+=== RUN   TestCalculatePricingBreakdown_UsesTierDailyRates
+
+2026/11/13 05:23:02 [31;1m/home/coder/tuneloop/backend/services/rent_calculator.go:258 [35;1mno such table: promo_plans
+[0m[33m[0.277ms] [34;1m[rows:0][0m SELECT * FROM `promo_plans` WHERE plan_type = "promo_campaign" AND is_active = true AND (start_date IS NULL OR start_date <= "2026-11-13") AND (end_date IS NULL OR end_date >= "2026-11-13") ORDER BY scope_type ASC, created_at ASC
+--- PASS: TestCalculatePricingBreakdown_UsesTierDailyRates (0.00s)
+=== RUN   TestCalculatePricingBreakdown_FallbackToBaseDailyRate
+
+2026/11/13 05:23:02 [31;1m/home/coder/tuneloop/backend/services/rent_calculator.go:258 [35;1mno such table: promo_plans
+[0m[33m[0.208ms] [34;1m[rows:0][0m SELECT * FROM `promo_plans` WHERE plan_type = "promo_campaign" AND is_active = true AND (start_date IS NULL OR start_date <= "2026-11-13") AND (end_date IS NULL OR end_date >= "2026-11-13") ORDER BY scope_type ASC, created_at ASC
+--- PASS: TestCalculatePricingBreakdown_FallbackToBaseDailyRate (0.00s)
+=== RUN   TestGetRoleTemplate
+=== RUN   TestGetRoleTemplate/namespace_admin
+=== RUN   TestGetRoleTemplate/merchant_admin
+=== RUN   TestGetRoleTemplate/site_admin
+=== RUN   TestGetRoleTemplate/site_member
+=== RUN   TestGetRoleTemplate/repair_technician
+=== RUN   TestGetRoleTemplate/customer
+=== RUN   TestGetRoleTemplate/invalid_role
+--- PASS: TestGetRoleTemplate (0.00s)
+    --- PASS: TestGetRoleTemplate/namespace_admin (0.00s)
+    --- PASS: TestGetRoleTemplate/merchant_admin (0.00s)
+    --- PASS: TestGetRoleTemplate/site_admin (0.00s)
+    --- PASS: TestGetRoleTemplate/site_member (0.00s)
+    --- PASS: TestGetRoleTemplate/repair_technician (0.00s)
+    --- PASS: TestGetRoleTemplate/customer (0.00s)
+    --- PASS: TestGetRoleTemplate/invalid_role (0.00s)
+=== RUN   TestValidateRoleTemplate
+--- PASS: TestValidateRoleTemplate (0.00s)
+=== RUN   TestComputeSysPermBitmap
+--- PASS: TestComputeSysPermBitmap (0.00s)
+=== RUN   TestGetRoleTemplateSysPerm
+--- PASS: TestGetRoleTemplateSysPerm (0.00s)
+=== RUN   TestGetAllValidRoleTemplateCodes
+--- PASS: TestGetAllValidRoleTemplateCodes (0.00s)
+=== RUN   TestMallImageManagePermission
+--- PASS: TestMallImageManagePermission (0.00s)
+=== RUN   TestGetBusinessRole
+=== RUN   TestGetBusinessRole/site_admin
+=== RUN   TestGetBusinessRole/merchant_admin
+=== RUN   TestGetBusinessRole/site_member
+=== RUN   TestGetBusinessRole/repair_technician
+=== RUN   TestGetBusinessRole/namespace_admin
+=== RUN   TestGetBusinessRole/customer
+=== RUN   TestGetBusinessRole/invalid_role
+--- PASS: TestGetBusinessRole (0.00s)
+    --- PASS: TestGetBusinessRole/site_admin (0.00s)
+    --- PASS: TestGetBusinessRole/merchant_admin (0.00s)
+    --- PASS: TestGetBusinessRole/site_member (0.00s)
+    --- PASS: TestGetBusinessRole/repair_technician (0.00s)
+    --- PASS: TestGetBusinessRole/namespace_admin (0.00s)
+    --- PASS: TestGetBusinessRole/customer (0.00s)
+    --- PASS: TestGetBusinessRole/invalid_role (0.00s)
+=== RUN   TestSecretEncryptDecrypt
+--- PASS: TestSecretEncryptDecrypt (0.00s)
+=== RUN   TestSMTPConfigRecordRoundTrip
+2026/11/13 05:23:02 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:02 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:02 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    secrets_1910_test.go:41: test database not available: failed to connect to database: failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+--- SKIP: TestSMTPConfigRecordRoundTrip (0.01s)
+=== RUN   TestSendMailWithFallback_UsesPrimaryThenEnv
+2026/11/13 05:23:02 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:02 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:02 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    secrets_1910_test.go:77: test database not available: failed to connect to database: failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+--- SKIP: TestSendMailWithFallback_UsesPrimaryThenEnv (0.01s)
+=== RUN   TestValidateWeComWebhookURL
+--- PASS: TestValidateWeComWebhookURL (0.00s)
+=== RUN   TestMerchantWebhookRoundTrip
+2026/11/13 05:23:02 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:02 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:02 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    webhook_1909_test.go:26: test database not available: failed to connect to database: failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+--- SKIP: TestMerchantWebhookRoundTrip (0.01s)
+=== RUN   TestWarningWebhookRouting
+2026/11/13 05:23:02 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:02 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:02 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    webhook_1909_test.go:57: test database not available: failed to connect to database: failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+--- SKIP: TestWarningWebhookRouting (0.01s)
+=== RUN   TestMerchantTenantID_ReturnsMerchantOrg_2262
+2026/11/13 05:23:02 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:02 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:02 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    webhook_tenant_anchor_2262_test.go:20: test database not available
+--- SKIP: TestMerchantTenantID_ReturnsMerchantOrg_2262 (0.01s)
+=== RUN   TestResolveExpressCompanyCode
+--- PASS: TestResolveExpressCompanyCode (0.00s)
+=== RUN   TestUploadShippingInfoWithRetry_RetriesOnSyncDelay
+2026/11/13 05:23:02 [WechatShipping] upload attempt 1/2 failed for virtual membership (out_trade_no=out_trade_1 transaction_id=tx_1): wechat upload_shipping_info error 10060001: 支付单不存在
+2026/11/13 05:23:02 [WechatShipping] upload_shipping_info ok label=virtual membership out_trade_no=out_trade_1 transaction_id=tx_1
+--- PASS: TestUploadShippingInfoWithRetry_RetriesOnSyncDelay (0.02s)
+=== RUN   TestUploadShippingInfoWithRetry_GivesUpAfterExhaustion
+2026/11/13 05:23:02 [WechatShipping] upload attempt 1/2 failed for virtual membership (out_trade_no=out_trade_2 transaction_id=tx_2): wechat upload_shipping_info error 10060001: 支付单不存在
+2026/11/13 05:23:02 [WechatShipping] upload attempt 2/2 failed for virtual membership (out_trade_no=out_trade_2 transaction_id=tx_2): wechat upload_shipping_info error 10060001: 支付单不存在
+2026/11/13 05:23:02 [WechatShipping] upload_shipping_info gave up after 2 attempts for virtual membership (out_trade_no=out_trade_2 transaction_id=tx_2): wechat upload_shipping_info error 10060001: 支付单不存在
+--- PASS: TestUploadShippingInfoWithRetry_GivesUpAfterExhaustion (0.01s)
+=== RUN   TestNotifyConfirmReceive_FlatBodyWithNumericReceivedTime
+--- PASS: TestNotifyConfirmReceive_FlatBodyWithNumericReceivedTime (0.00s)
+PASS
+ok  	tuneloop-backend/services	0.622s
+[WARNING] No .env file found in common paths
+=== RUN   TestMigrationArtifacts2327Registered
+--- PASS: TestMigrationArtifacts2327Registered (0.00s)
+=== RUN   TestMigrationArtifacts2327DetectsMissing
+--- PASS: TestMigrationArtifacts2327DetectsMissing (0.00s)
+=== RUN   TestMigrationArtifacts2332Registered
+--- PASS: TestMigrationArtifacts2332Registered (0.00s)
+=== RUN   TestMigrationFiles2332Paired
+--- PASS: TestMigrationFiles2332Paired (0.01s)
+=== RUN   TestMaxLocalMigrationVersion
+--- PASS: TestMaxLocalMigrationVersion (0.00s)
+=== RUN   TestMaxLocalMigrationVersion_EmptyDir
+--- PASS: TestMaxLocalMigrationVersion_EmptyDir (0.01s)
+=== RUN   TestMaxLocalMigrationVersion_MissingDir
+--- PASS: TestMaxLocalMigrationVersion_MissingDir (0.00s)
+=== RUN   TestCheckPackageFreshness
+--- PASS: TestCheckPackageFreshness (0.00s)
+=== RUN   TestValidateModelColumns_MissingTableFails
+2026/11/13 05:23:01 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:01 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:01 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    db_validate_test.go:17: dev db not available
+--- SKIP: TestValidateModelColumns_MissingTableFails (0.02s)
+=== RUN   TestValidateModelColumns_MissingColumnFails
+2026/11/13 05:23:01 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:01 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:01 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    db_validate_test.go:61: dev db not available
+--- SKIP: TestValidateModelColumns_MissingColumnFails (0.01s)
+=== RUN   TestVerifyArtifacts_MissingColumnFails
+2026/11/13 05:23:01 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:01 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:01 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    db_verify_artifacts_test.go:12: dev db not available
+--- SKIP: TestVerifyArtifacts_MissingColumnFails (0.01s)
+=== RUN   TestVerifyArtifacts_MissingTableFails
+2026/11/13 05:23:01 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:01 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:01 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    db_verify_artifacts_test.go:29: dev db not available
+--- SKIP: TestVerifyArtifacts_MissingTableFails (0.01s)
+=== RUN   TestVerifyArtifacts_VersionGateSkips
+--- PASS: TestVerifyArtifacts_VersionGateSkips (0.00s)
+=== RUN   TestVerifyMigrationArtifacts_NoFalsePositive
+2026/11/13 05:23:01 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:01 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:01 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    db_verify_artifacts_test.go:57: dev db not available
+--- SKIP: TestVerifyMigrationArtifacts_NoFalsePositive (0.01s)
+=== RUN   TestExplicitTenantScopeOnly_2261
+2026/11/13 05:23:01 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop sslmode=disable
+2026/11/13 05:23:01 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop
+
+2026/11/13 05:23:01 [35m/home/coder/tuneloop/backend/database/db.go:197
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=tuneloop_user database=tuneloop`: 127.0.0.1:15433 (127.0.0.1): server error: FATAL: database "tuneloop" does not exist (SQLSTATE 3D000)
+    tenant_scope_2261_test.go:24: test database not available
+--- SKIP: TestExplicitTenantScopeOnly_2261 (0.01s)
+PASS
+ok  	tuneloop-backend/database	0.123s
+R7 GATE PASS

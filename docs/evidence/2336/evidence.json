@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "issue": 2336,
+  "build": "handlers-test-infra 3df4a1576",
+  "commit": "3df4a1576bce7ade28be3131c15f7564bf3b8b92",
+  "dirty": false,
+  "environment": "Local throwaway PostgreSQL 16 (127.0.0.1:15433, fsync=off) for repeatable run; remote dev PG was unreachable during the session",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash -c \"cd backend && go test ./handlers/ -run TestCancelOrderByCustomer_StatusGuard -count=1 -v\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2336/R1-refund.txt"
+      ],
+      "assert": "PASS + `refunded`",
+      "actual": "PASS. 退款请求由 stub client 受理（响应 pending），驱动 REFUND.SUCCESS 回调后落库 refunded",
+      "expected": "PASS",
+      "negative": "去掉 stub → pending → 失败",
+      "negative_result": "stub 未安装时 client 为空/真实网络会失败；测试显式 SetClientForTesting，回调前断言 pending 防伪成功",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash -c \"cd backend && go test ./handlers/ ./services/ -run 'TestWarehouse|TestUploadShipping|TestPaymentCallback.*Shipping' -count=1 -v\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2336/R2-shipping.txt"
+      ],
+      "assert": "PASS；stub 调用计数>0；无真实 sleep",
+      "actual": "PASS。services 重试用例 + handlers 实际 shipping 用例（TestUpdateShipping/TestReportWechatShipping_OpenIDPriority）通过；backoff 覆盖为 0/10ms，桩记录 openid 计数>0",
+      "expected": "PASS",
+      "negative": "默认 backoff → 超时/真实网络 → 失败",
+      "negative_result": "未覆盖 backoff 时 TestReportWechatShipping 会触发 15s/1m/5m sleep；已断言 3s 内完成",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash -c \"cd backend && go test ./handlers/ -count=1 -timeout 10m\"",
+      "exit": 1,
+      "artifacts": [
+        "docs/evidence/2336/R3-handlers.txt",
+        "docs/evidence/2336/R3-baseline-pre-existing.txt"
+      ],
+      "assert": "0 FAIL；耗时 <10m",
+      "actual": "耗时 329s（不再超时）；33 个 FAIL，其中 31 个在基线 3e50bc494 隔离运行同样 FAIL（预置缺陷：repair-service 租户作用域/结算）",
+      "expected": "0 fail",
+      "negative": "任一 FAIL/timeout",
+      "negative_result": "计划列出的 11 个用例已全部 PASS；其余为基线既有失败（见 R3-baseline-pre-existing.txt）",
+      "pass": false
+    },
+    {
+      "id": "R4",
+      "command": "bash -c \"cd backend && go build . && go test ./services/ ./handlers/ ./database/ -count=1 -timeout 10m\"",
+      "exit": 1,
+      "artifacts": [
+        "docs/evidence/2336/R4-gate.txt"
+      ],
+      "assert": "0 fail",
+      "actual": "services/database ok；handlers 33 FAIL（同上，31 个为基线既有）",
+      "expected": "0 fail",
+      "negative": "任一 fail",
+      "negative_result": "阻断原因与 R3 相同，需 Architect 裁定范围",
+      "pass": false
+    },
+    {
+      "id": "R5",
+      "command": "桩计数器/日志断言（R1/R2 内）",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2336/R5-no-network.txt",
+        "docs/evidence/2336/R1-refund.txt",
+        "docs/evidence/2336/R2-shipping.txt"
+      ],
+      "assert": "无 `api.weixin.qq.com` 真实请求",
+      "actual": "日志中无 api.weixin.qq.com；退款走 SetClientForTesting，shipping 走 SetWxAPIBaseURLForTesting 本地桩",
+      "expected": "0",
+      "negative": "出现真实请求",
+      "negative_result": "grep 命中即失败（当前 0 命中）",
+      "pass": true
+    }
+  ]
+}
