@@ -1,18 +1,15 @@
 [WARNING] No .env file found in common paths
-2026/11/12 14:56:02 [DB] Configuration loaded: host=127.0.0.1 port=15432 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/12 14:56:02 [DB] Configuration loaded: host=127.0.0.1 port=15432 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/12 14:56:02 [DB] Connecting: host=127.0.0.1 port=15432 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/12 14:56:03 [DB] Connected to database 'tuneloop_test_local'
+2026/11/13 03:51:18 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/13 03:51:18 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/13 03:51:18 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/13 03:51:18 [DB] Connected to database 'tuneloop_test_local'
 === RUN   TestPayGate
-2026/11/12 14:56:09 [DB] Configuration loaded: host=127.0.0.1 port=15432 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/12 14:56:09 [DB] Connecting: host=127.0.0.1 port=15432 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/12 14:56:09 [DB] Connected to database 'tuneloop_test_local'
-
-2026/11/12 14:56:11 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
-[0m[31;1m[1393.590ms] [33m[rows:0][35m TRUNCATE TABLE "points_policies", "membership_level_benefits", "transit_routes", "electronic_contracts", "audit_logs", "forwarding_sessions", "repair_logistics_fees", "face_capture_batches", "site_members", "confirmation_sessions", "referrals", "merchants", "merchant_settlement_configs", "user_addresses", "order_guarantors", "appeals", "orders", "order_logs", "warnings", "instrument_media", "discount_code_usages", "media_assets", "system_settings", "properties", "instrument_properties", "site_images", "settlements", "repair_quotes", "membership_gift_ratios", "categories", "repair_request_records", "points_transactions", "merchant_pricing_configs", "guarantors", "repair_transit_orders", "users", "order_term_versions", "merchant_members", "gift_policies", "property_options", "instrument_promo_overrides", "damage_reports", "inventory_transfers", "maintenance_sessions", "instrument_loss_records", "registration_sessions", "repair_requests", "mall_images", "repair_records", "point_batches", "instrument_photo_batches", "transit_shipping_fees", "banners", "invoice_application_orders", "pricing_templates", "instrument_photo_specs", "overdue_charges", "payment_sessions", "maintenance_workers", "notifications", "roles", "tenants", "staff_invites", "membership_levels", "order_refund_records", "invoice_applications", "repair_reviews", "discount_policies", "order_status_history", "sites", "order_payment_records", "pending_orders", "point_batch_consumptions", "instruments", "referral_commissions", "settlement_calculations", "discount_codes", "coupons", "instrument_levels", "maintenance_tickets", "user_instruments", "promo_plans", "technician_profiles", "maintenance_session_records", "session_order_links" RESTART IDENTITY CASCADE[0m
+2026/11/13 03:51:35 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/13 03:51:35 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/13 03:51:35 [DB] Connected to database 'tuneloop_test_local'
 === RUN   TestPayGate/enforce=false_保持旧行为
-2026/11/12 14:56:11 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
-2026/11/12 14:56:11 [TenantScope][observe] auto-scope injected for table=orders (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/13 03:51:36 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/13 03:51:36 [TenantScope][observe] auto-scope injected for table=orders (add explicit scope, then set ExplicitTenantScopeOnly)
 === RUN   TestPayGate/enforce=true_reduced_未评估拒绝
 === RUN   TestPayGate/enforce=true_reduced_已拒绝
 === RUN   TestPayGate/enforce=true_reduced_已通过放行
@@ -20,20 +17,17 @@
 === RUN   TestPayGate/enforce=true_zero(payscore)_已通过放行
 === RUN   TestPayGate/enforce=true_乐器零押金放行
 === RUN   TestPayGate/enforce=true_full_放行
---- PASS: TestPayGate (1.81s)
-    --- PASS: TestPayGate/enforce=false_保持旧行为 (0.02s)
+--- PASS: TestPayGate (0.59s)
+    --- PASS: TestPayGate/enforce=false_保持旧行为 (0.01s)
     --- PASS: TestPayGate/enforce=true_reduced_未评估拒绝 (0.01s)
     --- PASS: TestPayGate/enforce=true_reduced_已拒绝 (0.01s)
     --- PASS: TestPayGate/enforce=true_reduced_已通过放行 (0.02s)
-    --- PASS: TestPayGate/enforce=true_zero(payscore)_未评估拒绝 (0.02s)
-    --- PASS: TestPayGate/enforce=true_zero(payscore)_已通过放行 (0.02s)
-    --- PASS: TestPayGate/enforce=true_乐器零押金放行 (0.02s)
-    --- PASS: TestPayGate/enforce=true_full_放行 (0.02s)
+    --- PASS: TestPayGate/enforce=true_zero(payscore)_未评估拒绝 (0.01s)
+    --- PASS: TestPayGate/enforce=true_zero(payscore)_已通过放行 (0.01s)
+    --- PASS: TestPayGate/enforce=true_乐器零押金放行 (0.01s)
+    --- PASS: TestPayGate/enforce=true_full_放行 (0.01s)
 === RUN   TestPrepayGate
-
-2026/11/12 14:56:13 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:208 [33mSLOW SQL >= 200ms
-[0m[31;1m[1323.262ms] [33m[rows:0][35m TRUNCATE TABLE "points_policies", "membership_level_benefits", "transit_routes", "electronic_contracts", "audit_logs", "forwarding_sessions", "repair_logistics_fees", "face_capture_batches", "site_members", "confirmation_sessions", "referrals", "merchants", "merchant_settlement_configs", "user_addresses", "order_guarantors", "appeals", "orders", "order_logs", "warnings", "instrument_media", "discount_code_usages", "media_assets", "system_settings", "properties", "instrument_properties", "site_images", "settlements", "repair_quotes", "membership_gift_ratios", "categories", "repair_request_records", "points_transactions", "merchant_pricing_configs", "guarantors", "repair_transit_orders", "users", "order_term_versions", "merchant_members", "gift_policies", "property_options", "instrument_promo_overrides", "damage_reports", "inventory_transfers", "maintenance_sessions", "instrument_loss_records", "registration_sessions", "repair_requests", "mall_images", "repair_records", "point_batches", "instrument_photo_batches", "transit_shipping_fees", "banners", "invoice_application_orders", "pricing_templates", "instrument_photo_specs", "overdue_charges", "payment_sessions", "maintenance_workers", "notifications", "roles", "tenants", "staff_invites", "membership_levels", "order_refund_records", "invoice_applications", "repair_reviews", "discount_policies", "order_status_history", "sites", "order_payment_records", "pending_orders", "point_batch_consumptions", "instruments", "referral_commissions", "settlement_calculations", "discount_codes", "coupons", "instrument_levels", "maintenance_tickets", "user_instruments", "promo_plans", "technician_profiles", "maintenance_session_records", "session_order_links" RESTART IDENTITY CASCADE[0m
-2026/11/12 14:56:13 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
---- PASS: TestPrepayGate (1.55s)
+2026/11/13 03:51:36 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
+--- PASS: TestPrepayGate (0.35s)
 PASS
-ok  	tuneloop-backend/handlers	10.469s
+ok  	tuneloop-backend/handlers	18.712s

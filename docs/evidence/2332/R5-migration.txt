@@ -6,4 +6,4 @@
 === RUN   TestMigrationArtifacts2332Registered
 --- PASS: TestMigrationArtifacts2332Registered (0.00s)
 PASS
-ok  	tuneloop-backend/database	0.024s
+ok  	tuneloop-backend/database	0.031s
