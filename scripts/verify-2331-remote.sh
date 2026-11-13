@@ -17,7 +17,10 @@ git fetch origin --prune >/dev/null 2>&1 || true
 
 SERVICES_GATE=$(git ls-tree -r --name-only origin/develop -- backend/services/payscore_gate.go | grep -c 'payscore_gate' || true)
 SERVICES_TEST=$(git ls-tree -r --name-only origin/develop -- backend/services/payscore_gate_test.go | grep -c 'payscore_gate' || true)
-HANDLERS_GATE=$(git ls-tree -r --name-only origin/develop -- backend/handlers/ | grep -c 'payscore_gate' || true)
+# R5 断言的是 S3a 迁移目标：handlers 下的 gate 实现文件必须不存在。
+# backend/handlers/payscore_gate_2332_test.go 是 #2332（S3b）交付的测试，
+# 不属于本断言范围（裁定见 Issue 评论）。
+HANDLERS_GATE=$(git ls-tree -r --name-only origin/develop -- backend/handlers/payscore_gate.go | grep -c 'payscore_gate' || true)
 
 {
     echo "PROVENANCE build=s3a-payscore commit=$COMMIT dirty=$DIRTY"
