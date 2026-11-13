@@ -215,8 +215,10 @@ func TestRepairService_HappyPathSettlementRefund(t *testing.T) {
 	require.Equal(t, float64(20000), resp["code"])
 	var stored models.RepairRequest
 	require.NoError(t, f.db.First(&stored, "id = ?", id).Error)
-	assert.Equal(t, f.siteID, stored.SiteID)
-	assert.Equal(t, f.tenantID, stored.TenantID)
+	// #2122（8033f0c68）：选师只回填商户租户、不再挂靠网点；
+	// #2248：归属锚 = 商户 org（写入侧 normalizeRepairTenant），不再是根 tenant。
+	assert.Empty(t, stored.SiteID, "#2122：选师后不再挂靠网点")
+	assert.Equal(t, f.orgID, stored.TenantID, "#2248：归属锚 = 商户 org")
 
 	_, resp = svcPost(t, f, staff, "/repair-services/"+id+"/quote", gin.H{
 		"quote_repair_cents": 20000, "quote_logistics_cents": 5000,
@@ -390,8 +392,10 @@ func TestRepairService_StatusGuardsAndTenantIsolation(t *testing.T) {
 	// F1：他租户员工操作本单 → 403（跨租户隔离）
 	otherStaff := testutil.TestActor{TenantID: f.otherTenantID, OrgID: f.otherSiteID, UserID: f.otherStaffSub, Role: "site_member"}
 	status, resp := svcPost(t, f, otherStaff, "/repair-services/"+id+"/complete", nil)
-	assert.Equal(t, http.StatusForbidden, status)
-	assert.Equal(t, float64(40300), resp["code"])
+	// #2338：读路径按商户 org 锚定后，跨租户员工在 loadRepairService 阶段即 404
+	//（不暴露单是否存在），比原先的 403 更严格；隔离语义不变（不得操作他商户单）。
+	assert.Equal(t, http.StatusNotFound, status)
+	assert.Equal(t, float64(40400), resp["code"])
 
 	// 未结算即评价 → 409
 	_, resp = svcPost(t, f, customer, "/user/repair-services/"+id+"/review", gin.H{"rating": 5})
@@ -431,16 +435,21 @@ func TestRepairService_TaskListScopes(t *testing.T) {
 		return w.Code, resp.Data.List
 	}
 
-	// scope=site（JWT oid=site）→ 只见本网点已选师单
+	// #2122（8033f0c68）：维修服务仅商户层级可见——网点账号（oid 非商户 org）看不到。
 	code, list := getList(staff, "?scope=site")
+	require.Equal(t, http.StatusOK, code)
+	assert.Len(t, list, 0, "#2122：网点账号不可见维修服务")
+
+	// 商户层级（oid=商户 org）→ 本商户已选师单 + 无 site 单均可见
+	merchantActor := testutil.TestActor{TenantID: f.tenantID, OrgID: f.orgID, UserID: f.techID, Role: "merchant_admin"}
+	code, list = getList(merchantActor, "?scope=site")
 	require.Equal(t, http.StatusOK, code)
 	ids := map[string]bool{}
 	for _, rr := range list {
 		ids[rr.ID] = true
 	}
-	assert.True(t, ids[idA], "本网点单在列")
-	// #1974 T1：服务单去 site 维度 → 本租户的「无 site 单」对网点账号可见
-	assert.True(t, ids[idB], "无 site 单（本租户）对网点账号可见")
+	assert.True(t, ids[idA], "本商户已选师单在列")
+	assert.True(t, ids[idB], "无 site 单（本商户）对商户账号可见")
 
 	// scope=mine（师傅本人）→ 指派给我的
 	code, list = getList(staff, "?scope=mine&status=pending_quote")
@@ -482,14 +491,17 @@ func TestRepairService_DetailSite(t *testing.T) {
 		return w.Code, out
 	}
 
-	// 顾客上下文（tid/oid 空）→ 可读 + site 寄件地址
+	// 顾客上下文（tid/oid 空）→ 可读；#2122 起选师单不挂网点 → 无 site 块，
+	// 寄件地址来源改为 merchant 块（#1974 T1）。
 	code, out := getDetail(customer)
 	require.Equal(t, http.StatusOK, code)
 	data := svcData(t, out)
-	site, ok := data["site"].(map[string]interface{})
-	require.True(t, ok, "详情应含 site 对象")
-	assert.Equal(t, f.siteID, site["id"])
-	assert.NotNil(t, site["address"])
+	_, hasSite := data["site"].(map[string]interface{})
+	assert.False(t, hasSite, "#2122：选师后不再返回 site 块")
+	merchantBlock, hasMerchant := data["merchant"].(map[string]interface{})
+	require.True(t, hasMerchant, "详情应含 merchant 地址块")
+	assert.Equal(t, "测试商户", merchantBlock["name"])
+	assert.NotNil(t, merchantBlock["address"])
 
 	// 本网点员工 → 可读
 	code, _ = getDetail(staff)
@@ -512,9 +524,9 @@ func TestRepairService_DetailSite(t *testing.T) {
 	assert.Equal(t, "测试商户", merchant["name"])
 	assert.Equal(t, "北京市朝阳区 XX 路 1 号", merchant["address"])
 
-	// 跨租户员工 → 403（#688）
+	// 跨租户员工 → 404（#688/#2338：读路径 org 锚定后不可见，不暴露存在性）
 	code, _ = getDetail(otherStaff)
-	assert.Equal(t, http.StatusForbidden, code)
+	assert.Equal(t, http.StatusNotFound, code)
 }
 
 // TestRepairService_Timeline（RS-API-4）：全流程各迁移点均写时间线且按序返回。

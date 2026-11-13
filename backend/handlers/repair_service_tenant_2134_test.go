@@ -140,5 +140,7 @@ func TestRepairService_CreateNormalizesTenant_2134(t *testing.T) {
 
 	var got models.RepairRequest
 	require.NoError(t, f.db.Where("id = ?", id).First(&got).Error)
-	assert.Equal(t, f.tenantID, got.TenantID, "写入应把叶组织规范化为根租户")
+	// #2338 D8（Architect 裁定 B）：写入锚 = 商户 org（#2248 权威），
+	// 旧断言「规范化为根租户」已被 #2248 返工推翻。
+	assert.Equal(t, f.orgID, got.TenantID, "写入应把叶组织规范化为商户 org（#2248）")
 }

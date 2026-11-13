@@ -4,10 +4,12 @@ package handlers
 // 归属锚 = 商户 org；tenant 仅在该 tenant 未被多商户共享时作为兼容值。
 
 import (
+	"context"
 	"log"
 
 	"gorm.io/gorm"
 
+	"tuneloop-backend/database"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
 )
@@ -52,8 +54,16 @@ func isPlatformOrg2247(iam *services.IAMClient, orgID string) bool {
 func merchantScopeIDs2247(db *gorm.DB, m models.Merchant) []string {
 	ids := []string{m.OrgID}
 	if m.TenantID != "" && m.TenantID != m.OrgID {
+		// #2338：共享判定必须在**全量商户**上做——若沿用请求上下文的自动租户范围，
+		// count 会被 scope 到 JWT tenant（本测试实测恒 0），共享 tenant 被误判为
+		// 独占并进入 IN 列表 → 跨商户泄漏（#2248 回归）。
+		ctx := context.Background()
+		if db.Statement != nil && db.Statement.Context != nil {
+			ctx = db.Statement.Context
+		}
 		var cnt int64
-		db.Model(&models.Merchant{}).Where("tenant_id = ?", m.TenantID).Count(&cnt)
+		db.WithContext(database.IdentityCtx(ctx)).Model(&models.Merchant{}).
+			Where("tenant_id = ?", m.TenantID).Count(&cnt)
 		if cnt <= 1 {
 			ids = append(ids, m.TenantID)
 		}

@@ -195,8 +195,13 @@ func TestListRecords_DamageObject(t *testing.T) {
 	}).Error)
 
 	// Case A: No damage report → damage=null
+	// #2338：ListRecords 在 #2276 后要求「乐器归属 = JWT tenant」（父对象授权），
+	// 旧 fixture 不带身份 → 404。注入本租户员工上下文，断言目标仍是 damage 字段。
 	routerA := gin.New()
 	routerA.Use(func(c *gin.Context) {
+		c.Request = c.Request.WithContext(
+			testutil.TestActor{TenantID: tenantID, OrgID: orgID, UserID: uuid.NewString(), Role: "site_admin"}.
+				InjectContext(c.Request.Context()))
 		c.Next()
 	})
 	routerA.GET("/api/repair/:id/records", (&RepairHandler{}).ListRecords)
