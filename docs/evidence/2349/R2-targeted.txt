@@ -1,0 +1,128 @@
+PROVENANCE build=strict-repair-fixtures commit=09c87c5e18ad65160f69e895a36ff89268bab8c3 dirty=false
+CMD (cd backend && go test ./handlers/ -run '^(TestListMerchantRepairServices_SharedTenantNoLeak_2248|TestRepairService_StatusGuardsAndTenantIsolation|TestRepairService_TaskListScopes|TestRepairService_ListMineStatusFilter)$' -count=1 -v)
+[DEBUG] Loaded .env from: ../.env
+2026/11/13 23:52:02 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2349 sslmode=disable
+2026/11/13 23:52:02 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2349
+2026/11/13 23:52:02 [DB] Connected to database 'tuneloop_test_2349'
+=== RUN   TestListMerchantRepairServices_SharedTenantNoLeak_2248
+2026/11/13 23:52:02 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2349 sslmode=disable
+2026/11/13 23:52:02 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2349
+2026/11/13 23:52:02 [DB] Connected to database 'tuneloop_test_2349'
+--- PASS: TestListMerchantRepairServices_SharedTenantNoLeak_2248 (0.22s)
+=== RUN   TestRepairService_StatusGuardsAndTenantIsolation
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:277 [35;1mrecord not found
+[0m[33m[1.469ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/13 23:52:03 [Notify] WeChat stub: would send template message to user 6ad08139-afbd-41fc-8545-57f95a4ee18c (type=repair, ref=b6e72c5b-a4ba-4a19-97f4-7148d6ea6a6e)
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:237 [35;1mrecord not found
+[0m[33m[0.300ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "sites" WHERE id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "sites"."id" LIMIT 1
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.302ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:237 [35;1mrecord not found
+[0m[33m[0.298ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "sites" WHERE id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "sites"."id" LIMIT 1
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.454ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:237 [35;1mrecord not found
+[0m[33m[0.296ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "sites" WHERE id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "sites"."id" LIMIT 1
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.381ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:237 [35;1mrecord not found
+[0m[33m[0.287ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "sites" WHERE id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "sites"."id" LIMIT 1
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.372ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/13 23:52:03 [Notify] WeChat stub: would send template message to user 1457f292-13aa-4659-b77c-1caa025deb23 (type=repair, ref=b6e72c5b-a4ba-4a19-97f4-7148d6ea6a6e)
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:237 [35;1mrecord not found
+[0m[33m[0.361ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "sites" WHERE id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "sites"."id" LIMIT 1
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.354ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:237 [35;1mrecord not found
+[0m[33m[0.298ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "sites" WHERE id = '00000000-0000-4000-8000-1950f9e8d7c1' ORDER BY "sites"."id" LIMIT 1
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.333ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950f9e8d7c1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:123 [35;1mrecord not found
+[0m[33m[0.421ms] [34;1m[rows:0][0m SELECT * FROM "repair_requests" WHERE tenant_id IN ('00000000-0000-4000-8000-1950f9e8d7c1','bb1b2792-86c3-452c-8039-d75ec911d873') AND (id = 'b6e72c5b-a4ba-4a19-97f4-7148d6ea6a6e' AND type = 'service') ORDER BY "repair_requests"."id" LIMIT 1
+--- PASS: TestRepairService_StatusGuardsAndTenantIsolation (0.18s)
+=== RUN   TestRepairService_TaskListScopes
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:277 [35;1mrecord not found
+[0m[33m[0.307ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/13 23:52:03 [Notify] WeChat stub: would send template message to user 43ad7286-86c7-4273-b7e1-1a85278dc583 (type=repair, ref=b1e5ba51-2521-4360-90c1-ecbb6815f0e7)
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:277 [35;1mrecord not found
+[0m[33m[0.274ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:277 [35;1mrecord not found
+[0m[33m[0.289ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/13 23:52:03 [Notify] WeChat stub: would send template message to user 43ad7286-86c7-4273-b7e1-1a85278dc583 (type=repair, ref=62bf1cc6-55e2-4cc2-85b2-83efce0b6aed)
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:237 [35;1mrecord not found
+[0m[33m[0.334ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "sites" WHERE id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "sites"."id" LIMIT 1
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.296ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/13 23:52:03 [TenantScope][observe] auto-scope injected for table=merchants (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:237 [35;1mrecord not found
+[0m[33m[0.338ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "sites" WHERE id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "sites"."id" LIMIT 1
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.377ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:237 [35;1mrecord not found
+[0m[33m[0.308ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "sites" WHERE id = '00000000-0000-4000-8000-1950a1b2c3d2' ORDER BY "sites"."id" LIMIT 1
+2026/11/13 23:52:03 [RepairService.ListTasks][diag] scope=site role="merchant_admin" tid="00000000-0000-4000-8000-1950a1b2c3d1" oid="00000000-0000-4000-8000-1950a1b2c3d2" me="" scopes=[00000000-0000-4000-8000-1950a1b2c3d1 00000000-0000-4000-8000-1950a1b2c3d2] rows=2
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:237 [35;1mrecord not found
+[0m[33m[0.311ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "sites" WHERE id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "sites"."id" LIMIT 1
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.300ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/13 23:52:03 [RepairService.ListTasks][diag] scope=mine role="STAFF" tid="00000000-0000-4000-8000-1950a1b2c3d1" oid="4f18525e-b82f-4f6a-bf9f-4cbd75c07d1f" me="43ad7286-86c7-4273-b7e1-1a85278dc583" scopes=[00000000-0000-4000-8000-1950a1b2c3d1 4f18525e-b82f-4f6a-bf9f-4cbd75c07d1f 00000000-0000-4000-8000-1950a1b2c3d2] rows=2
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:237 [35;1mrecord not found
+[0m[33m[0.303ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "sites" WHERE id = '00000000-0000-4000-8000-1950f9e8d7c1' ORDER BY "sites"."id" LIMIT 1
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.281ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950f9e8d7c1' ORDER BY "merchants"."id" LIMIT 1
+--- PASS: TestRepairService_TaskListScopes (0.20s)
+=== RUN   TestRepairService_ListMineStatusFilter
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:277 [35;1mrecord not found
+[0m[33m[0.297ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/13 23:52:03 [Notify] WeChat stub: would send template message to user cb29c65e-2716-487d-96c6-23f281e8c16d (type=repair, ref=bf9febe0-44ff-4f3e-8825-a7c6484262f0)
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:277 [35;1mrecord not found
+[0m[33m[0.278ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/13 23:52:03 [Notify] WeChat stub: would send template message to user cb29c65e-2716-487d-96c6-23f281e8c16d (type=repair, ref=5bea1cc9-21d2-4436-a201-8d9da3c402fc)
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:277 [35;1mrecord not found
+[0m[33m[0.303ms] [34;1m[rows:0][0m SELECT "org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:237 [35;1mrecord not found
+[0m[33m[0.312ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "sites" WHERE id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "sites"."id" LIMIT 1
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.317ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:237 [35;1mrecord not found
+[0m[33m[0.308ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "sites" WHERE id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "sites"."id" LIMIT 1
+
+2026/11/13 23:52:03 [31;1m/home/coder/tuneloop/backend/handlers/repair_service.go:242 [35;1mrecord not found
+[0m[33m[0.278ms] [34;1m[rows:0][0m SELECT "tenant_id","org_id" FROM "merchants" WHERE org_id = '00000000-0000-4000-8000-1950a1b2c3d1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/13 23:52:03 [Notify] WeChat stub: would send template message to user 36e3da9f-959b-4028-a0e1-966260d15960 (type=repair, ref=bf9febe0-44ff-4f3e-8825-a7c6484262f0)
+--- PASS: TestRepairService_ListMineStatusFilter (0.20s)
+PASS
+ok  	tuneloop-backend/handlers	1.265s
