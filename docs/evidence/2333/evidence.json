@@ -1,93 +1,107 @@
 {
   "schema_version": 1,
   "issue": 2333,
-  "build": "payscore-s4 b11c50b46 (regenerated at 09652fab4)",
-  "commit": "b11c50b46",
+  "build": "s4-credit-assessment a79b75d31",
+  "commit": "a79b75d3122291a98aec2cc4049f24f74e7a2e0c",
   "dirty": false,
-  "environment": "Node v20.20.2 (repo Taro v4 build; Node 22 unavailable on this host), dev API mocked in smoke harness",
+  "environment": "codex build container; Node v22.23.5; weapp/h5 builds on fix commit a79b75d31; manual rows on prerelease experience build 1.0.79",
   "rows": [
     {
       "id": "R1",
-      "command": "node --test frontend-mobile/src/utils/creditFlow.test.mjs",
+      "command": "bash -c \"cd frontend-mobile && npm run build:weapp > ../docs/evidence/2333/R1-weapp-build.txt 2>&1 && ! grep -rl -e '<div' -e '<span' -e '<img' -e '<button' -e '<input' -e '<textarea' -e '<p ' -e '<select' -e '<a ' dist-weapp/pages-weapp/credit-assessment/index.wxml dist-weapp/pages-weapp/home/index.wxml\"",
       "exit": 0,
       "artifacts": [
-        "docs/evidence/2333/R1-creditflow.txt"
+        "docs/evidence/2333/R1-weapp-build.txt"
       ],
-      "assert": "三档映射/参数/state→UI",
-      "actual": "# pass 8 / # fail 0（含 zero 不得需要担保人、乐器零押金不需评测、reduced 缺担保人拒绝、mock/缺 package 不拉起）",
-      "expected": "0 fail",
-      "negative": "zero 映射为需担保 → 失败",
-      "negative_result": "断言 zero.requiresGuarantors === false；reduced 缺担保人断言 ok=false",
+      "assert": "退出码 0；探针 0 字节",
+      "actual": "weapp build exit 0（Node v22.23.5）；探针 rc=0：credit-assessment/index.wxml 与 home/index.wxml 均无原生 HTML 交互/媒体标签",
+      "expected": "exit 0",
+      "negative": "产物含原生标签 → 非 0",
+      "negative_result": "产物命中 <div 等 → grep 非 0；或构建失败 → 非 0",
       "pass": true
     },
     {
       "id": "R2",
-      "command": "cd frontend-mobile && npm run smoke",
+      "command": "bash -c \"cd frontend-mobile && npm run build:h5 > ../docs/evidence/2333/R2-h5-build.txt 2>&1\"",
       "exit": 0,
       "artifacts": [
-        "docs/evidence/2333/R2-payment.txt"
+        "docs/evidence/2333/R2-h5-build.txt"
       ],
-      "assert": "17/17；入口/禁用断言",
-      "actual": "npm run smoke: 21 passed (0 fail) — 计划期望 17/17，routes 增长后为 21 项，断言全部通过",
-      "expected": "0 fail",
-      "negative": "删除入口 → 失败",
-      "negative_result": "新增用例直接断言入口文案与禁用文案，缺失即 fail",
+      "assert": "退出码 0",
+      "actual": "H5 build exit 0（webpack 2 warnings，0 error）",
+      "expected": "exit 0",
+      "negative": "构建错误 → 非 0",
+      "negative_result": "构建错误 → 非 0",
       "pass": true
     },
     {
       "id": "R3",
-      "command": "cd frontend-mobile && npm run build:weapp + wxml 原生标签探针",
+      "command": "bash -c \"cd frontend-mobile && npx eslint --no-ignore src/utils/scrollLayout.js src/pages/CreditAssessment.jsx src/pages-weapp/credit-assessment/index.tsx src/pages/Checkout.jsx > ../docs/evidence/2333/R3-eslint.txt 2>&1\"",
       "exit": 0,
       "artifacts": [
-        "docs/evidence/2333/R3-creditpage.txt"
+        "docs/evidence/2333/R3-eslint.txt"
       ],
-      "assert": "构建 0；探针为空",
-      "actual": "Compiled successfully；探针输出为空；dist-weapp/pages-weapp/credit-assessment/{index.js,index.json,index.wxml} 存在",
-      "expected": "0/空",
-      "negative": "原生标签未包 !env.isMiniProgram → 命中",
-      "negative_result": "探针 grep 覆盖 div/span/img/button/input/textarea/p/select/a，命中即非空",
+      "assert": "0 errors 且无 no-undef",
+      "actual": "eslint --no-ignore 0 errors / 5 warnings（无 no-undef）",
+      "expected": "0 errors",
+      "negative": "出现 no-undef → 非 0",
+      "negative_result": "no-undef 或解析错误 → 非 0",
       "pass": true
     },
     {
       "id": "R4",
-      "command": "grep -n 路由/平台/参数 + node --test 导航断言",
+      "command": "bash -c \"cd frontend-mobile && npx vitest run scripts/page-smoke/smoke.test.jsx > ../docs/evidence/2333/R4-smoke.txt 2>&1\"",
       "exit": 0,
       "artifacts": [
-        "docs/evidence/2333/R4-nav.txt"
+        "docs/evidence/2333/R4-smoke.txt"
       ],
-      "assert": "路由/对称/order_id",
-      "actual": "app.config.ts（h5+weapp）、App-H5.jsx、ROUTE_MAP 均含 credit-assessment；openCreditAssessment 两端对称导出；CreditAssessment/Payment 无 useParams",
-      "expected": "全部",
-      "negative": "使用 useParams → 失败",
-      "negative_result": "grep useParams 输出为空（页面一律 navigation.getQueryParams / useSearchParams + order_id）",
+      "assert": "退出码 0；routes 含 credit-assessment",
+      "actual": "vitest 1 file passed，18 tests passed（含新增 H5 /credit-assessment 渲染用例）",
+      "expected": "PASS",
+      "negative": "缺路由 → FAIL",
+      "negative_result": "缺 credit-assessment 路由 → 用例缺失（当前已覆盖）；渲染致命错误 → FAIL",
       "pass": true
     },
     {
       "id": "R5",
-      "command": "grep -nE 'openBusinessView\\",
-      "exit": 0,
+      "command": "bash -c \"test -s docs/evidence/2333/R5-manual.md && grep -q 'executor: user' docs/evidence/2333/R5-manual.md && grep -q 'RESULT: PASS' docs/evidence/2333/R5-manual.md\"",
+      "exit": null,
       "artifacts": [
-        "docs/evidence/2333/R5-diff.txt"
+        "docs/evidence/2333/R5-manual.md"
       ],
-      "assert": "微信外\\",
-      "actual": "A15 平台层能力分支 + 新增 A20（weapp openBusinessView / H5 jweixin / 微信外降级 / mock 不拉起）",
-      "expected": "A15' docs/cases/h5-weapp-differences.md",
-      "negative": "docs/evidence/2333/R5-diff.txt",
-      "negative_result": "grep 无输出即未登记",
-      "pass": true
+      "assert": "回执含 executor: user + 两态禁用行为 + RESULT: PASS",
+      "actual": "PENDING：等待 Owner 在预生产体验版回执（executor: user + 两态 + RESULT: PASS）",
+      "expected": "PASS",
+      "negative": "禁用缺失/误放行 → 非 0",
+      "negative_result": "禁用缺失/误放行 → 回执 FAIL，不得 ready（D2）",
+      "pass": false
     },
     {
       "id": "R6",
-      "command": "cd frontend-mobile && npx eslint <改动文件>",
+      "command": "bash -c \"test -s docs/evidence/2333/R6-manual.md && grep -q 'executor: user' docs/evidence/2333/R6-manual.md && grep -q 'RESULT: PASS' docs/evidence/2333/R6-manual.md\"",
+      "exit": null,
+      "artifacts": [
+        "docs/evidence/2333/R6-manual.md"
+      ],
+      "assert": "入参生效 + 提交/轮询正常 + RESULT: PASS",
+      "actual": "PENDING：等待 Owner 在预生产体验版回执（executor: user + 入参/轮询 + RESULT: PASS）",
+      "expected": "PASS",
+      "negative": "入参丢失 → 非 0",
+      "negative_result": "入参丢失/轮询不展示 → 回执 FAIL，不得 ready（D2）",
+      "pass": false
+    },
+    {
+      "id": "R7",
+      "command": "bash -c \"grep -q 'A14' docs/cases/h5-weapp-differences.md\"",
       "exit": 0,
       "artifacts": [
-        "docs/evidence/2333/R6-lint.txt"
+        "docs/evidence/2333/R7-doc.txt"
       ],
-      "assert": "0 errors",
-      "actual": "14 problems (0 errors, 14 warnings)，warning 均为既有 i18n/exhaustive-deps 规则",
-      "expected": "0",
-      "negative": "出现 error → 失败",
-      "negative_result": "eslint 退出码 0；error 计数 0",
+      "assert": "exit 0",
+      "actual": "A14 条目存在于 docs/cases/h5-weapp-differences.md:40，exit 0",
+      "expected": "exit 0",
+      "negative": "条目缺失 → 非 0",
+      "negative_result": "A14 缺失 → exit 1",
       "pass": true
     }
   ]

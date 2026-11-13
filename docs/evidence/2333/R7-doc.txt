@@ -1,0 +1,5 @@
+PROVENANCE build=s4-credit-assessment commit=a79b75d3122291a98aec2cc4049f24f74e7a2e0c dirty=false
+CMD bash -c "grep -q 'A14' docs/cases/h5-weapp-differences.md"
+40:| A14 | 沉浸式首页 | H5 实现 | weapp 自定义导航 + 胶囊对齐 | 视觉机制不同（#1510）；**数据/导航/交互行为须一致** |
+exit=0
+RESULT: A14 present
