@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "issue": 2340,
-  "build": "backend-scripts-multimain fix=5ad1c6885",
+  "build": "backend-scripts-multimain b9b355cfb",
   "commit": "b9b355cfb0ab100c3648c794fb771567d9811a65",
   "dirty": false,
   "environment": "Linux worktree /tmp/opencode/wt-develop on develop; go 1.27.4 (snap); no database required (build-only issue)",
