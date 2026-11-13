@@ -1,0 +1,267 @@
+PROVENANCE build=test-db-lifecycle commit=d49c0944064f1c8bfb6cbdca500999e78a62b499 dirty=false
+[DEBUG] Loaded .env from: ../.env
+2026/11/13 21:14:39 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2344 sslmode=disable
+2026/11/13 21:14:39 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2344
+2026/11/13 21:14:39 [DB] Connected to database 'tuneloop_test_2344'
+=== RUN   TestConfirmationSessionHandler_Confirm
+=== RUN   TestConfirmationSessionHandler_Confirm/ConfirmConfirmationSession_Success
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+=== RUN   TestConfirmationSessionHandler_Confirm/ConfirmConfirmationSession_InvalidToken
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/confirmation_session.go:171 [35;1mrecord not found
+[0m[33m[0.382ms] [34;1m[rows:0][0m SELECT * FROM "confirmation_sessions" WHERE id = '7b26133e-76db-4c00-ba4c-8d3daaf7fe1b' AND tenant_id = '11111111-1111-1111-1111-111111111111' AND token = 'invalid-token' ORDER BY "confirmation_sessions"."id" LIMIT 1
+=== RUN   TestConfirmationSessionHandler_Confirm/ConfirmConfirmationSession_Expired
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/confirmation_session_test.go:42 [35;1mERROR: update or delete on table "users" violates foreign key constraint "site_members_user_id_fkey" on table "site_members" (SQLSTATE 23503)
+[0m[33m[2.827ms] [34;1m[rows:0][0m DELETE FROM "users" WHERE tenant_id = '11111111-1111-1111-1111-111111111111'
+--- PASS: TestConfirmationSessionHandler_Confirm (0.03s)
+    --- PASS: TestConfirmationSessionHandler_Confirm/ConfirmConfirmationSession_Success (0.01s)
+    --- PASS: TestConfirmationSessionHandler_Confirm/ConfirmConfirmationSession_InvalidToken (0.00s)
+    --- PASS: TestConfirmationSessionHandler_Confirm/ConfirmConfirmationSession_Expired (0.00s)
+=== RUN   TestDiscountCodeFlow
+2026/11/13 21:14:40 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
+2026/11/13 21:14:40 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2344 sslmode=disable
+2026/11/13 21:14:40 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2344
+2026/11/13 21:14:40 [DB] Connected to database 'tuneloop_test_2344'
+=== RUN   TestDiscountCodeFlow/valid_code_applies_discount
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:442 [35;1mrecord not found
+[0m[33m[5.447ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '2093cfa5-9e30-48bb-ba12-765a1e078891' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1497 [35;1mrecord not found
+[0m[33m[0.687ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '2093cfa5-9e30-48bb-ba12-765a1e078891' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1505 [35;1mrecord not found
+[0m[33m[0.588ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[0.522ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'e6a584b0-3d5c-4be1-a01c-b20e98439f11' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[0.359ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '2093cfa5-9e30-48bb-ba12-765a1e078891' ORDER BY "merchants"."id" LIMIT 1
+=== RUN   TestDiscountCodeFlow/usage_tracking
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:442 [35;1mrecord not found
+[0m[33m[0.336ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '2093cfa5-9e30-48bb-ba12-765a1e078891' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1497 [35;1mrecord not found
+[0m[33m[0.311ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '2093cfa5-9e30-48bb-ba12-765a1e078891' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1505 [35;1mrecord not found
+[0m[33m[0.333ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[0.317ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'e6a584b0-3d5c-4be1-a01c-b20e98439f11' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[0.387ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '2093cfa5-9e30-48bb-ba12-765a1e078891' ORDER BY "merchants"."id" LIMIT 1
+=== RUN   TestDiscountCodeFlow/max_uses_exhausted
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:442 [35;1mrecord not found
+[0m[33m[0.381ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '2093cfa5-9e30-48bb-ba12-765a1e078891' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1497 [35;1mrecord not found
+[0m[33m[0.312ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '2093cfa5-9e30-48bb-ba12-765a1e078891' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1505 [35;1mrecord not found
+[0m[33m[0.420ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[0.286ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'e6a584b0-3d5c-4be1-a01c-b20e98439f11' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[0.367ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '2093cfa5-9e30-48bb-ba12-765a1e078891' ORDER BY "merchants"."id" LIMIT 1
+=== RUN   TestDiscountCodeFlow/invalid_code_ignored
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:442 [35;1mrecord not found
+[0m[33m[0.361ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '2093cfa5-9e30-48bb-ba12-765a1e078891' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/services/rent_calculator.go:377 [35;1mrecord not found
+[0m[33m[0.345ms] [34;1m[rows:0][0m SELECT * FROM "discount_codes" WHERE code = 'NOPE99' AND is_active = true ORDER BY "discount_codes"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1497 [35;1mrecord not found
+[0m[33m[0.357ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '2093cfa5-9e30-48bb-ba12-765a1e078891' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1505 [35;1mrecord not found
+[0m[33m[0.329ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[0.303ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'e6a584b0-3d5c-4be1-a01c-b20e98439f11' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/services/rent_calculator.go:377 [35;1mrecord not found
+[0m[33m[0.381ms] [34;1m[rows:0][0m SELECT * FROM "discount_codes" WHERE code = 'NOPE99' AND is_active = true ORDER BY "discount_codes"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[0.355ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '2093cfa5-9e30-48bb-ba12-765a1e078891' ORDER BY "merchants"."id" LIMIT 1
+=== RUN   TestDiscountCodeFlow/expired_code_ignored
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:442 [35;1mrecord not found
+[0m[33m[0.329ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '2093cfa5-9e30-48bb-ba12-765a1e078891' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1497 [35;1mrecord not found
+[0m[33m[0.327ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '2093cfa5-9e30-48bb-ba12-765a1e078891' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1505 [35;1mrecord not found
+[0m[33m[0.325ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[0.315ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'e6a584b0-3d5c-4be1-a01c-b20e98439f11' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[0.376ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '2093cfa5-9e30-48bb-ba12-765a1e078891' ORDER BY "merchants"."id" LIMIT 1
+--- PASS: TestDiscountCodeFlow (0.30s)
+    --- PASS: TestDiscountCodeFlow/valid_code_applies_discount (0.03s)
+    --- PASS: TestDiscountCodeFlow/usage_tracking (0.02s)
+    --- PASS: TestDiscountCodeFlow/max_uses_exhausted (0.01s)
+    --- PASS: TestDiscountCodeFlow/invalid_code_ignored (0.01s)
+    --- PASS: TestDiscountCodeFlow/expired_code_ignored (0.01s)
+=== RUN   TestIAMProxyHandler_Issue340_IntegrationFlow
+=== RUN   TestIAMProxyHandler_Issue340_IntegrationFlow/LookupNonExistentUser
+=== RUN   TestIAMProxyHandler_Issue340_IntegrationFlow/CreateNewUser
+=== RUN   TestIAMProxyHandler_Issue340_IntegrationFlow/LookupExistingUser
+--- PASS: TestIAMProxyHandler_Issue340_IntegrationFlow (0.00s)
+    --- PASS: TestIAMProxyHandler_Issue340_IntegrationFlow/LookupNonExistentUser (0.00s)
+    --- PASS: TestIAMProxyHandler_Issue340_IntegrationFlow/CreateNewUser (0.00s)
+    --- PASS: TestIAMProxyHandler_Issue340_IntegrationFlow/LookupExistingUser (0.00s)
+=== RUN   TestCancelOrderByCustomer_StatusGuard
+=== RUN   TestCancelOrderByCustomer_StatusGuard/paid_cancel_succeeds_with_refund_status
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:40 [35;1mERROR: insert or update on table "users" violates foreign key constraint "users_membership_level_id_fkey" (SQLSTATE 23503)
+[0m[33m[1.071ms] [34;1m[rows:0][0m UPDATE "users" SET "membership_level_id"=1,"updated_at"='2026-11-13 21:14:40.501' WHERE "id" = '00000000-0000-0000-0000-0000000000c3'
+2026/11/13 21:14:40 [processRefundCallback] membership level check failed: ERROR: insert or update on table "users" violates foreign key constraint "users_membership_level_id_fkey" (SQLSTATE 23503)
+2026/11/13 21:14:40 [processRefundCallback] refund processed: out_refund_no=can_6f8e77b5_1794604480 refund_id=stub-refund-001
+=== RUN   TestCancelOrderByCustomer_StatusGuard/in_lease_cancel_rejected
+=== RUN   TestCancelOrderByCustomer_StatusGuard/in_transit_cancel_rejected
+=== RUN   TestCancelOrderByCustomer_StatusGuard/reserved_cancel_succeeds_without_refund
+2026/11/13 21:14:40 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
+--- PASS: TestCancelOrderByCustomer_StatusGuard (0.21s)
+    --- PASS: TestCancelOrderByCustomer_StatusGuard/paid_cancel_succeeds_with_refund_status (0.03s)
+    --- PASS: TestCancelOrderByCustomer_StatusGuard/in_lease_cancel_rejected (0.00s)
+    --- PASS: TestCancelOrderByCustomer_StatusGuard/in_transit_cancel_rejected (0.00s)
+    --- PASS: TestCancelOrderByCustomer_StatusGuard/reserved_cancel_succeeds_without_refund (0.00s)
+=== RUN   TestGuestBatchCreateOrder
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:957 [35;1mrecord not found
+[0m[33m[0.483ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '740bbb52-a468-41e9-86ed-de3c86906de1' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1497 [35;1mrecord not found
+[0m[33m[0.285ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '740bbb52-a468-41e9-86ed-de3c86906de1' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1505 [35;1mrecord not found
+[0m[33m[0.402ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[0.623ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[0.494ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'a12b80ab-38e6-4750-aa46-27242a1da4d4' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1497 [35;1mrecord not found
+[0m[33m[0.354ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '740bbb52-a468-41e9-86ed-de3c86906de1' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1505 [35;1mrecord not found
+[0m[33m[0.399ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[0.350ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/13 21:14:40 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[0.349ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'a12b80ab-38e6-4750-aa46-27242a1da4d4' ORDER BY "referrals"."id" LIMIT 1
+--- PASS: TestGuestBatchCreateOrder (0.18s)
+=== RUN   TestOrgManagement
+2026/11/13 21:14:40 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:34517, clientID=test-ns, namespace=test-ns
+2026/11/13 21:14:40 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/13 21:14:40 [IAMClient] Created organization with user token: org_id=11111111-1111-4111-8111-111111111111, admin_id=22222222-2222-4222-8222-222222222222
+2026/11/13 21:14:40 [CreateSite] ListRoleTemplates failed: failed to parse ListRoleTemplates response: json: cannot unmarshal object into Go value of type []struct { ID string "json:\"id\""; Code string "json:\"code\"" }
+2026/11/13 21:14:40 [TenantScope][observe] auto-scope injected for table=sites (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/13 21:14:40 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:34517, clientID=test-ns, namespace=test-ns
+2026/11/13 21:14:40 [TenantScope][observe] auto-scope injected for table=site_members (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/13 21:14:40 [IAMClient] Bound user 24091095-7101-4fdc-8577-ad590c40fa12 to org 11111111-1111-4111-8111-111111111111 with role STAFF (user token)
+2026/11/13 21:14:40 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/13 21:14:40 [AddMember] ListRoleTemplates failed: failed to parse ListRoleTemplates response: json: cannot unmarshal object into Go value of type []struct { ID string "json:\"id\""; Code string "json:\"code\"" }
+--- PASS: TestOrgManagement (0.11s)
+=== RUN   TestPersonnel2065_MerchantView
+--- PASS: TestPersonnel2065_MerchantView (0.18s)
+=== RUN   TestPersonnel2067_MembershipAnchorAndDirect
+--- PASS: TestPersonnel2067_MembershipAnchorAndDirect (0.19s)
+=== RUN   TestPrepayMembershipWithCoupon_OREZ
+2026/11/13 21:14:41 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:45071, clientID=test-ns, namespace=test-ns
+2026/11/13 21:14:41 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/13 21:14:41 [IAMClient] Updated user: user_id=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
+
+2026/11/13 21:14:41 [31;1m/home/coder/tuneloop/backend/handlers/registration_helpers.go:176 [35;1mrecord not found
+[0m[33m[0.327ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'membership_gift_points' ORDER BY "system_settings"."id" LIMIT 1
+--- PASS: TestPrepayMembershipWithCoupon_OREZ (0.17s)
+=== RUN   TestPaymentCallback_RegistrationComplete
+2026/11/13 21:14:41 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:34833, clientID=test-ns, namespace=test-ns
+2026/11/13 21:14:41 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/13 21:14:41 [IAMClient] Updated user: user_id=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
+
+2026/11/13 21:14:41 [31;1m/home/coder/tuneloop/backend/handlers/registration_helpers.go:176 [35;1mrecord not found
+[0m[33m[0.322ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'membership_gift_points' ORDER BY "system_settings"."id" LIMIT 1
+--- PASS: TestPaymentCallback_RegistrationComplete (0.17s)
+=== RUN   TestPaymentCallback_SessionFlow_RealCallback
+2026/11/13 21:14:41 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:39273, clientID=test-ns, namespace=test-ns
+2026/11/13 21:14:41 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/13 21:14:41 [IAMClient] Updated user: user_id=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
+
+2026/11/13 21:14:41 [31;1m/home/coder/tuneloop/backend/handlers/registration_helpers.go:176 [35;1mrecord not found
+[0m[33m[0.295ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'membership_gift_points' ORDER BY "system_settings"."id" LIMIT 1
+2026/11/13 21:14:41 [processPaymentCallback] payment processed: out_trade_no=msess-cb-real-001 transaction_id=txn-cb-real-001 amount=99 type=membership
+
+2026/11/13 21:14:41 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:1001 [35;1mrecord not found
+[0m[33m[0.312ms] [34;1m[rows:0][0m SELECT "iam_sub" FROM "users" WHERE id = '00000000-0000-0000-0000-000000000000' OR iam_sub = '00000000-0000-0000-0000-000000000000' ORDER BY "users"."id" LIMIT 1
+2026/11/13 21:14:41 [WechatShipping] virtual goods membership: no openid for user 00000000-0000-0000-0000-000000000000
+2026/11/13 21:14:41 [WechatShipping] upload attempt 1/2 failed for virtual membership (out_trade_no=msess-cb-real-001 transaction_id=txn-cb-real-001): get access token: WX_APPID or WX_APPSECRET not configured
+2026/11/13 21:14:41 [processPaymentCallback] already processed: msess-cb-real-001
+2026/11/13 21:14:41 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
+--- PASS: TestPaymentCallback_SessionFlow_RealCallback (0.16s)
+=== RUN   TestRenewal_Confirm_OpenIDBackfilled
+2026/11/13 21:14:41 [WechatShipping] upload attempt 2/2 failed for virtual membership (out_trade_no=msess-cb-real-001 transaction_id=txn-cb-real-001): get access token: WX_APPID or WX_APPSECRET not configured
+2026/11/13 21:14:41 [WechatShipping] upload_shipping_info gave up after 2 attempts for virtual membership (out_trade_no=msess-cb-real-001 transaction_id=txn-cb-real-001): get access token: WX_APPID or WX_APPSECRET not configured
+2026/11/13 21:14:41 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:33963, clientID=test-ns, namespace=test-ns
+2026/11/13 21:14:41 [IAMClient] Obtained client credentials token, expires in 3600s
+--- PASS: TestRenewal_Confirm_OpenIDBackfilled (0.16s)
+=== RUN   TestUpdateUser_SiteIDNoChange
+--- PASS: TestUpdateUser_SiteIDNoChange (0.00s)
+=== RUN   TestStaffOrderActions
+2026/11/13 21:14:41 [TenantScope][observe] auto-scope injected for table=orders (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/13 21:14:41 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:325 [35;1mrecord not found
+[0m[33m[0.527ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '80e5512a-593e-4b22-b341-1a3761c34fac' ORDER BY "settlements"."id" LIMIT 1
+2026/11/13 21:14:41 [TenantScope][observe] auto-scope injected for table=order_payment_records (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/13 21:14:41 [TenantScope][observe] auto-scope injected for table=damage_reports (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/13 21:14:41 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:716 [35;1mrecord not found
+[0m[33m[0.502ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '80e5512a-593e-4b22-b341-1a3761c34fac' AND "damage_reports"."tenant_id" = '00000000-0000-4000-8000-0000000000d1' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/13 21:14:41 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:836 [35;1mrecord not found
+[0m[33m[0.400ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '80e5512a-593e-4b22-b341-1a3761c34fac' AND "damage_reports"."tenant_id" = '00000000-0000-4000-8000-0000000000d1' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/13 21:14:41 [computeSettlement] order 80e5512a-593e-4b22-b341-1a3761c34fac contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+2026/11/13 21:14:41 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/13 21:14:41 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[0.375ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/13 21:14:41 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:1668 [35;1mrecord not found
+[0m[33m[0.490ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = '80e5512a-593e-4b22-b341-1a3761c34fac' AND order_type = 'rent' AND status = 'paid') AND "order_payment_records"."tenant_id" = '00000000-0000-4000-8000-0000000000d1' ORDER BY "order_payment_records"."id" LIMIT 1
+
+2026/11/13 21:14:42 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.238ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '00000000-0000-4000-8000-0000000000d3' ORDER BY "referrals"."id" LIMIT 1
+2026/11/13 21:14:42 [TenantScope][observe] auto-scope injected for table=instruments (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/13 21:14:42 [TenantScope][observe] auto-scope injected for table=order_refund_records (add explicit scope, then set ExplicitTenantScopeOnly)
+--- PASS: TestStaffOrderActions (0.17s)
+PASS
+ok  	tuneloop-backend/handlers	2.416s
+R6 PASS (excluded: TestCentsMigration_20260820001, TestGiftPolicyReferralPresetMigration, TestPromoOverride_CheckConstraintMigration, TestPromoOverride_CrossMerchantForbidden_2260 -> #2342)

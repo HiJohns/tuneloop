@@ -1,0 +1,74 @@
+{
+  "provenance": "build=strict-schema-fixtures commit=d49c0944064f1c8bfb6cbdca500999e78a62b499 dirty=false",
+  "test_command": "go test ./handlers/ -run '<6 tests>' -count=1 -v",
+  "exit": 0,
+  "skip_count": 0,
+  "rows": [
+    {
+      "name": "TestConfirmationSessionHandler_Confirm",
+      "red_ref": "#2342 升级评论：site_members_tenant_id_fkey（缺 tenants 行）",
+      "green_file": "tmp/2344-green.log#--- PASS: TestConfirmationSessionHandler_Confirm",
+      "pass": true
+    },
+    {
+      "name": "TestOrgManagement",
+      "red_ref": "#2342 升级评论：site_members_tenant_id_fkey（缺 tenants 行）",
+      "green_file": "tmp/2344-green.log#--- PASS: TestOrgManagement",
+      "pass": true
+    },
+    {
+      "name": "TestPersonnel2067_MembershipAnchorAndDirect",
+      "red_ref": "#2342 升级评论：site_members_tenant_id_fkey（缺 tenants 行）",
+      "green_file": "tmp/2344-green.log#--- PASS: TestPersonnel2067_MembershipAnchorAndDirect",
+      "pass": true
+    },
+    {
+      "name": "TestPersonnel_MerchantView_TenantIsolation2336",
+      "red_ref": "#2342 升级评论：site_members_tenant_id_fkey（缺 tenants 行）",
+      "green_file": "tmp/2344-green.log#--- PASS: TestPersonnel_MerchantView_TenantIsolation2336",
+      "pass": true
+    },
+    {
+      "name": "TestCancelOrderByCustomer_StatusGuard",
+      "red_ref": "#2342 升级评论：uni_instrument_levels_caption 不存在（局部 AutoMigrate 触发 GORM DROP CONSTRAINT）",
+      "green_file": "tmp/2344-green.log#--- PASS: TestCancelOrderByCustomer_StatusGuard",
+      "pass": true
+    },
+    {
+      "name": "TestDiscountCodeFlow",
+      "red_ref": "#2342 升级评论：idx_pricing_templates_system_default 唯一冲突（模板种子 + 用例再插）",
+      "green_file": "tmp/2344-green.log#--- PASS: TestDiscountCodeFlow",
+      "pass": true
+    }
+  ],
+  "drift": [
+    {
+      "name": "TestListMerchantRepairServices_SharedTenantNoLeak_2248",
+      "reason": "merchants_tenant_id_code_key 唯一冲突（同 tenant 两商户 code 均空）",
+      "out_of_scope": true,
+      "pass": false,
+      "note": "D5 drift：需 Architect 扩清单（不在本 Issue Files）"
+    },
+    {
+      "name": "TestRepairService_StatusGuardsAndTenantIsolation",
+      "reason": "site_members_tenant_id_fkey（repair_service_test.go:67 硬编码 tenant）",
+      "out_of_scope": true,
+      "pass": false,
+      "note": "D5 drift：需 Architect 扩清单（不在本 Issue Files）"
+    },
+    {
+      "name": "TestRepairService_TaskListScopes",
+      "reason": "site_members_tenant_id_fkey（同上）",
+      "out_of_scope": true,
+      "pass": false,
+      "note": "D5 drift：需 Architect 扩清单（不在本 Issue Files）"
+    },
+    {
+      "name": "TestRepairService_ListMineStatusFilter",
+      "reason": "site_members_tenant_id_fkey（同上）",
+      "out_of_scope": true,
+      "pass": false,
+      "note": "D5 drift：需 Architect 扩清单（不在本 Issue Files）"
+    }
+  ]
+}

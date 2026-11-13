@@ -1,0 +1,81 @@
+PROVENANCE build=strict-schema-fixtures commit=d49c0944064f1c8bfb6cbdca500999e78a62b499 dirty=false
+CMD bash -c "cd backend && go test ./handlers/ -run TestCancelOrderByCustomer_StatusGuard -count=1 -v"
+[DEBUG] Loaded .env from: ../.env
+2026/11/13 21:14:31 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2344 sslmode=disable
+2026/11/13 21:14:31 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2344
+2026/11/13 21:14:31 [DB] Connected to database 'tuneloop_test_2344'
+=== RUN   TestCancelOrderByCustomer_StatusGuard
+2026/11/13 21:14:31 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
+2026/11/13 21:14:31 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2344 sslmode=disable
+2026/11/13 21:14:31 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2344
+2026/11/13 21:14:31 [DB] Connected to database 'tuneloop_test_2344'
+=== RUN   TestCancelOrderByCustomer_StatusGuard/paid_cancel_succeeds_with_refund_status
+
+2026/11/13 21:14:31 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:40 [35;1mERROR: insert or update on table "users" violates foreign key constraint "users_membership_level_id_fkey" (SQLSTATE 23503)
+[0m[33m[1.174ms] [34;1m[rows:0][0m UPDATE "users" SET "membership_level_id"=1,"updated_at"='2026-11-13 21:14:31.582' WHERE "id" = '00000000-0000-0000-0000-0000000000c3'
+2026/11/13 21:14:31 [processRefundCallback] membership level check failed: ERROR: insert or update on table "users" violates foreign key constraint "users_membership_level_id_fkey" (SQLSTATE 23503)
+2026/11/13 21:14:31 [processRefundCallback] refund processed: out_refund_no=can_f352a97d_1794604471 refund_id=stub-refund-001
+=== RUN   TestCancelOrderByCustomer_StatusGuard/in_lease_cancel_rejected
+=== RUN   TestCancelOrderByCustomer_StatusGuard/in_transit_cancel_rejected
+=== RUN   TestCancelOrderByCustomer_StatusGuard/reserved_cancel_succeeds_without_refund
+2026/11/13 21:14:31 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
+--- PASS: TestCancelOrderByCustomer_StatusGuard (0.26s)
+    --- PASS: TestCancelOrderByCustomer_StatusGuard/paid_cancel_succeeds_with_refund_status (0.02s)
+    --- PASS: TestCancelOrderByCustomer_StatusGuard/in_lease_cancel_rejected (0.00s)
+    --- PASS: TestCancelOrderByCustomer_StatusGuard/in_transit_cancel_rejected (0.00s)
+    --- PASS: TestCancelOrderByCustomer_StatusGuard/reserved_cancel_succeeds_without_refund (0.00s)
+PASS
+ok  	tuneloop-backend/handlers	0.714s
+--- preflight: local AutoMigrate in handlers tests (D1 blind spot) ---
+backend/handlers/auth_test.go:278:	require.NoError(t, db.AutoMigrate(&models.Referral{}))
+backend/handlers/auth_test.go:383:	require.NoError(t, db.AutoMigrate(&models.Referral{}, &models.PointsTransaction{}, &models.SystemSetting{}))
+backend/handlers/auth_test.go:789:	require.NoError(t, db.AutoMigrate(&models.Referral{}, &models.PointsTransaction{}, &models.SystemSetting{}))
+backend/handlers/auth_test.go:854:	require.NoError(t, db.AutoMigrate(&models.Referral{}, &models.PointsTransaction{}, &models.SystemSetting{}))
+backend/handlers/auth_test.go:942:	require.NoError(t, db.AutoMigrate(&models.Referral{}, &models.PointsTransaction{}, &models.SystemSetting{}))
+backend/handlers/auth_test.go:1049:	require.NoError(t, db.AutoMigrate(&models.Referral{}, &models.PointsTransaction{}, &models.SystemSetting{}))
+backend/handlers/cents_migration_test.go:49:	// 必须先建被引用的行（AutoMigrate-only 时代无外键，旧 fixture 直接裸插）。
+backend/handlers/dashboard_stats_2005_test.go:63:	require.NoError(t, db.AutoMigrate(&models.Tenant{}, &models.Merchant{}, &models.User{}))
+backend/handlers/dashboard_stats_2005_test.go:98:	require.NoError(t, db.AutoMigrate(&models.Instrument{}, &models.Order{}))
+backend/handlers/dashboard_stats_2005_test.go:150:	require.NoError(t, db.AutoMigrate(&models.Instrument{}))
+backend/handlers/iam_callback_2228_test.go:77:	require.NoError(t, db.AutoMigrate(&models.StaffInvite{}, &models.User{}, &models.SiteMember{}, &models.Site{}))
+backend/handlers/iam_callback_2228_test.go:170:	require.NoError(t, db.AutoMigrate(&models.StaffInvite{}, &models.User{}, &models.SiteMember{}, &models.Site{}))
+backend/handlers/iam_callback_2228_test.go:230:	require.NoError(t, db.AutoMigrate(&models.StaffInvite{}, &models.User{}, &models.SiteMember{}))
+backend/handlers/instrument_restore_1767_test.go:26:	require.NoError(t, db.AutoMigrate(&models.SettlementCalculation{}))
+backend/handlers/main_test.go:81:// AutoMigrate uses these to create the schema in the isolated test database.
+backend/handlers/main_test.go:160:	// #2341/#2342: 模板库（AutoMigrate → shimmed migrations → seed）→ 克隆 run 库。
+backend/handlers/main_test.go:173:		PostAutoMigrate: func(db *gorm.DB) error {
+backend/handlers/main_test.go:174:			// iam_sub 有 -:migration 标签，AutoMigrate 不建列，需手工补；
+backend/handlers/main_test.go:237:// The User model has `-:migration` on IAMSub, so AutoMigrate skips it.
+backend/handlers/merchant_member_test.go:112:	require.NoError(t, db.AutoMigrate(&models.Merchant{}, &models.MerchantMember{}))
+backend/handlers/merchant_member_test.go:299:	require.NoError(t, db.AutoMigrate(&models.Merchant{}, &models.Site{}))
+backend/handlers/order_no_test.go:46:// schema (AutoMigrate) has no full unique index; the partial index is migration-owned.
+backend/handlers/order_test.go:239:	// #2344 D1: 不再对模板已管理的表做局部 AutoMigrate——严格 schema 下 GORM 会
+backend/handlers/overdue_scheduler_test.go:22:	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.OverdueCharge{}, &models.OrderStatusHistory{}, &models.OrderLog{}))
+backend/handlers/overdue_scheduler_test.go:74:	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.OverdueCharge{}, &models.OrderStatusHistory{}, &models.OrderLog{}))
+backend/handlers/pending_order_test.go:26:	require.NoError(t, db.AutoMigrate(&models.PendingOrder{}))
+backend/handlers/renewal_settlement_1997_test.go:69:	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.DamageReport{}, &models.OrderPaymentRecord{}))
+backend/handlers/renewal_settlement_1997_test.go:170:	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.DamageReport{}, &models.OrderPaymentRecord{}))
+backend/handlers/settlement_1918_test.go:24:	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.DamageReport{}, &models.OverdueCharge{}, &models.Settlement{}))
+backend/handlers/settlement_calculation_1738_test.go:27:	require.NoError(t, db.AutoMigrate(&models.SettlementCalculation{}))
+backend/handlers/staff_invite_test.go:29:	require.NoError(t, db.AutoMigrate(&models.StaffInvite{}))
+backend/handlers/staff_invite_test.go:117:	require.NoError(t, db.AutoMigrate(&models.StaffInvite{}))
+backend/handlers/staff_invite_test.go:199:	require.NoError(t, db.AutoMigrate(&models.StaffInvite{}, &models.User{}, &models.Site{}, &models.Merchant{}))
+backend/handlers/staff_invite_test.go:302:	require.NoError(t, db.AutoMigrate(&models.StaffInvite{}, &models.User{}, &models.SiteMember{}))
+backend/handlers/testfixtures/db.go:89:	&models.MaintenanceTicket{},       // #1886: legacy table retained (AutoMigrate kept; business refs removed)
+backend/handlers/testfixtures/migration_source.go:6:// 无法整链重放，也不是「AutoMigrate 先行」可重放的：
+backend/handlers/testfixtures/migration_source.go:8://     AutoMigrate 已建表 → duplicate table；
+backend/handlers/testfixtures/seed.go:3:// #2344: 严格 schema（#2342 B 顺序：migrations 整链重放 → AutoMigrate 仅缺表）
+backend/handlers/testfixtures/seed.go:4:// 会启用生产形状的外键；而旧「宽松 AutoMigrate」模板不建这些 FK，导致既有
+backend/handlers/testfixtures/template.go:6://   1. 模板库 tuneloop_test_template 由 AutoMigrate → migrations → seed 构建一次；
+backend/handlers/testfixtures/template.go:46:	// PostAutoMigrate 在 AutoMigrate 之后、迁移链重放之前执行（模型无法表达的列/表）。
+backend/handlers/testfixtures/template.go:47:	PostAutoMigrate func(*gorm.DB) error
+backend/handlers/testfixtures/template.go:207:	// #2342 序：AutoMigrate → shimmed migrations → PostMigrate → seed。
+backend/handlers/testfixtures/template.go:246:// AutoMigrateMissingTables 只对「数据库中尚不存在」的模型建表。
+backend/handlers/testfixtures/template.go:249:func AutoMigrateMissingTables(db *gorm.DB, objs []interface{}) error {
+backend/handlers/testfixtures/template.go:259:	if err := db.AutoMigrate(missing...); err != nil {
+backend/handlers/testfixtures/template.go:282:	if err := AutoMigrateMissingTables(db, opts.Models); err != nil {
+backend/handlers/testfixtures/template.go:285:	if opts.PostAutoMigrate != nil {
+backend/handlers/testfixtures/template.go:286:		if err := opts.PostAutoMigrate(db); err != nil {
+backend/handlers/user_settlement_test.go:20:	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.DamageReport{}, &models.OverdueCharge{}, &models.Settlement{}))
+backend/handlers/user_settlement_test.go:75:	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.DamageReport{}, &models.OverdueCharge{}, &models.Settlement{}))
+backend/handlers/user_settlement_test.go:141:	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.DamageReport{}, &models.OverdueCharge{}, &models.Settlement{}))

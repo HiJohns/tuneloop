@@ -1,0 +1,105 @@
+PROVENANCE build=strict-schema-fixtures commit=d49c0944064f1c8bfb6cbdca500999e78a62b499 dirty=false
+CMD bash -c "cd backend && go test ./handlers/ -run TestDiscountCodeFlow -count=1 -v"
+[DEBUG] Loaded .env from: ../.env
+2026/11/13 21:14:35 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2344 sslmode=disable
+2026/11/13 21:14:35 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2344
+2026/11/13 21:14:35 [DB] Connected to database 'tuneloop_test_2344'
+=== RUN   TestDiscountCodeFlow
+2026/11/13 21:14:35 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
+2026/11/13 21:14:35 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2344 sslmode=disable
+2026/11/13 21:14:35 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2344
+2026/11/13 21:14:35 [DB] Connected to database 'tuneloop_test_2344'
+=== RUN   TestDiscountCodeFlow/valid_code_applies_discount
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:442 [35;1mrecord not found
+[0m[33m[5.846ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '24c34dfa-0d9e-428a-a6d3-1b25c9bf73a9' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1497 [35;1mrecord not found
+[0m[33m[0.879ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '24c34dfa-0d9e-428a-a6d3-1b25c9bf73a9' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1505 [35;1mrecord not found
+[0m[33m[0.752ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[0.767ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '001495d9-87dc-42f5-9b5c-82cf89a57c5b' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[0.359ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '24c34dfa-0d9e-428a-a6d3-1b25c9bf73a9' ORDER BY "merchants"."id" LIMIT 1
+=== RUN   TestDiscountCodeFlow/usage_tracking
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:442 [35;1mrecord not found
+[0m[33m[0.329ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '24c34dfa-0d9e-428a-a6d3-1b25c9bf73a9' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1497 [35;1mrecord not found
+[0m[33m[0.320ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '24c34dfa-0d9e-428a-a6d3-1b25c9bf73a9' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1505 [35;1mrecord not found
+[0m[33m[0.358ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[0.273ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '001495d9-87dc-42f5-9b5c-82cf89a57c5b' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[0.322ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '24c34dfa-0d9e-428a-a6d3-1b25c9bf73a9' ORDER BY "merchants"."id" LIMIT 1
+=== RUN   TestDiscountCodeFlow/max_uses_exhausted
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:442 [35;1mrecord not found
+[0m[33m[0.337ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '24c34dfa-0d9e-428a-a6d3-1b25c9bf73a9' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1497 [35;1mrecord not found
+[0m[33m[0.299ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '24c34dfa-0d9e-428a-a6d3-1b25c9bf73a9' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1505 [35;1mrecord not found
+[0m[33m[0.351ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[0.279ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '001495d9-87dc-42f5-9b5c-82cf89a57c5b' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[0.361ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '24c34dfa-0d9e-428a-a6d3-1b25c9bf73a9' ORDER BY "merchants"."id" LIMIT 1
+=== RUN   TestDiscountCodeFlow/invalid_code_ignored
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:442 [35;1mrecord not found
+[0m[33m[0.495ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '24c34dfa-0d9e-428a-a6d3-1b25c9bf73a9' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/services/rent_calculator.go:377 [35;1mrecord not found
+[0m[33m[0.289ms] [34;1m[rows:0][0m SELECT * FROM "discount_codes" WHERE code = 'NOPE99' AND is_active = true ORDER BY "discount_codes"."id" LIMIT 1
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1497 [35;1mrecord not found
+[0m[33m[0.281ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '24c34dfa-0d9e-428a-a6d3-1b25c9bf73a9' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1505 [35;1mrecord not found
+[0m[33m[0.346ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[0.290ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '001495d9-87dc-42f5-9b5c-82cf89a57c5b' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/services/rent_calculator.go:377 [35;1mrecord not found
+[0m[33m[0.305ms] [34;1m[rows:0][0m SELECT * FROM "discount_codes" WHERE code = 'NOPE99' AND is_active = true ORDER BY "discount_codes"."id" LIMIT 1
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[0.349ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '24c34dfa-0d9e-428a-a6d3-1b25c9bf73a9' ORDER BY "merchants"."id" LIMIT 1
+=== RUN   TestDiscountCodeFlow/expired_code_ignored
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:442 [35;1mrecord not found
+[0m[33m[0.340ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '24c34dfa-0d9e-428a-a6d3-1b25c9bf73a9' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1497 [35;1mrecord not found
+[0m[33m[0.314ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '24c34dfa-0d9e-428a-a6d3-1b25c9bf73a9' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1505 [35;1mrecord not found
+[0m[33m[0.360ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[0.328ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '001495d9-87dc-42f5-9b5c-82cf89a57c5b' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/13 21:14:35 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[0.748ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '24c34dfa-0d9e-428a-a6d3-1b25c9bf73a9' ORDER BY "merchants"."id" LIMIT 1
+--- PASS: TestDiscountCodeFlow (0.30s)
+    --- PASS: TestDiscountCodeFlow/valid_code_applies_discount (0.03s)
+    --- PASS: TestDiscountCodeFlow/usage_tracking (0.01s)
+    --- PASS: TestDiscountCodeFlow/max_uses_exhausted (0.01s)
+    --- PASS: TestDiscountCodeFlow/invalid_code_ignored (0.01s)
+    --- PASS: TestDiscountCodeFlow/expired_code_ignored (0.01s)
+PASS
+ok  	tuneloop-backend/handlers	0.734s
