@@ -17,6 +17,9 @@ export PATH="/usr/local/go/bin:$PATH"
 mkdir -p docs/evidence/2338 "$TMPDIR" "$GOCACHE"
 PROVENANCE="build=repair-tenant-anchor commit=$(git rev-parse HEAD) dirty=$(test -z "$(git status --porcelain --untracked-files=no -- backend scripts)" && echo false || echo true)"
 PSQL_BIN="${PSQL_BIN:-$(command -v psql || echo /home/coder/opt/pg/bin/psql)}"
+# #2345：dev 库 legacy 孤儿单已由 Owner 裁定「保留 + 文档化」（方案 B，零 DB 变更）。
+# legacy>0 时据此解读为「已知孤儿单，保留」，不视为失败（exit 语义不变）。
+KNOWN_ORPHAN_REF="#2345"
 DSN="${TUNELOOP_AUDIT_DSN:-}"
 if [ -z "$DSN" ]; then
   DSN="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${TUNELOOP_AUDIT_DB:-tuneloop_debug}?sslmode=disable"
@@ -43,6 +46,6 @@ ORG=$(echo "$RESULT" | awk -F'|' '{print $2}')
 LEGACY=$(echo "$RESULT" | awk -F'|' '{print $3}')
 echo "total=$TOTAL org_anchored=$ORG legacy=$LEGACY" >> "$OUT"
 if [ "${LEGACY:-0}" -gt 0 ]; then
-  echo "ACTION: legacy=$LEGACY > 0 → open a data-repair issue (DB writes need user authorization)." | tee -a "$OUT"
+  echo "ACTION: legacy=$LEGACY > 0 → 已知孤儿单，Owner 裁定保留（$KNOWN_ORPHAN_REF）；零 DB 变更。" | tee -a "$OUT"
 fi
 echo "R13 PASS: total=$TOTAL org_anchored=$ORG legacy=$LEGACY"

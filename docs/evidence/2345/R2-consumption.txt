@@ -1,0 +1,3 @@
+$ TUNELOOP_AUDIT_DSN=... bash scripts/verify-2338-legacy-audit.sh
+ACTION: legacy=2 > 0 → 已知孤儿单，Owner 裁定保留（#2345）；零 DB 变更。
+R13 PASS: total=2 org_anchored=0 legacy=2

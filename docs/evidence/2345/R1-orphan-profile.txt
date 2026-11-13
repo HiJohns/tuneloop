@@ -1,0 +1,11 @@
+PROVENANCE build=legacy-data-disposition commit=6b695b196194cf78cd0ef0659885e0301c608bcc dirty=false
+DSN postgresql://tuneloop_user:trust@127.0.0.1:25432/tuneloop_debug
+SQL 1: SELECT count(*) FROM repair_requests;
+2
+SQL 2: SELECT count(*) FROM repair_requests WHERE tenant_id NOT IN (SELECT org_id FROM merchants WHERE org_id IS NOT NULL);
+2
+SQL 3: orphan three-factor (merchant/user/records)
+a990ffc5-22b1-4392-8b16-5c97fa76ea9f tenant=383c018a-c355-4525-af12-4d0d744fc38d merchants_org=0 merchants_tenant=0 users=0 records=0
+51fa0f90-c300-4a4f-8993-c47af0203876 tenant=6dd387a5-2b32-4cee-bb26-d0450316211a merchants_org=0 merchants_tenant=6 users=0 records=5
+SQL 4 (marker): SELECT 'RESULT: DOCUMENTED-KEEP (#2345)';
+RESULT: DOCUMENTED-KEEP (#2345)
