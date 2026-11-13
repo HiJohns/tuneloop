@@ -215,6 +215,7 @@ func ResetTestDB(t *testing.T) {
 		quoted = append(quoted, `"`+tb+`"`)
 	}
 	if len(quoted) == 0 {
+		SeedTemplateBaseline(db)
 		return
 	}
 	truncateSQL := `TRUNCATE TABLE ` + strings.Join(quoted, ", ") + ` RESTART IDENTITY CASCADE`
@@ -254,4 +255,5 @@ func ResetTestDB(t *testing.T) {
 			t.Fatalf("reset test db: truncate after terminating leaked backends: %v (first: %v)", retryErr, err)
 		}
 	}
+	SeedTemplateBaseline(db)
 }

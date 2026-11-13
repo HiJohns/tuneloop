@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"crypto/sha1"
-	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"os"
@@ -12,6 +11,7 @@ import (
 	"time"
 
 	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
 
@@ -104,6 +104,7 @@ var allTestModels = []interface{}{
 	&models.Merchant{},
 	&models.Notification{},
 	&models.Order{},
+	&models.PricingTemplate{},
 	&models.OrderTermVersion{},
 	&models.ReferralCommission{},
 	&models.OrderStatusHistory{},
@@ -156,37 +157,50 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	// Ensure the test database exists
-	ensureTestDB()
-
-	// Build schema via AutoMigrate (works on fresh DBs, unlike incremental migrations)
+	// #2341: 模板库（AutoMigrate + seed）→ 克隆 run 库。
 	cfg := database.LoadConfig()
+	opts := testfixtures.TemplateOptions{
+		Host: cfg.Host, Port: cfg.Port, User: cfg.User,
+		Password: cfg.Password, SSLMode: cfg.SSLMode,
+		TemplateName: testfixtures.TemplateDBName,
+		Models:       allTestModels,
+		PostMigrate: func(db *gorm.DB) error {
+			// iam_sub 有 -:migration 标签，AutoMigrate 不建列，需手工补。
+			addIAMSubColumn(db)
+			// 纯 SQL join 表（无 GORM 模型）。
+			return db.Exec(`CREATE TABLE IF NOT EXISTS invoice_application_orders (
+				application_id UUID NOT NULL,
+				order_id UUID NOT NULL,
+				PRIMARY KEY (application_id, order_id)
+			)`).Error
+		},
+	}
+	if os.Getenv("FORCE_TEMPLATE_REBUILD") == "1" {
+		if err := testfixtures.DropDatabase(opts, opts.TemplateName); err != nil {
+			fmt.Fprintf(os.Stderr, "FATAL: drop template: %v\n", err)
+			os.Exit(1)
+		}
+	}
+	if rebuilt, err := testfixtures.EnsureTemplate(opts); err != nil {
+		fmt.Fprintf(os.Stderr, "FATAL: ensure template: %v\n", err)
+		os.Exit(1)
+	} else if rebuilt {
+		fmt.Fprintf(os.Stderr, "Built test template %s\n", opts.TemplateName)
+	}
+	if err := testfixtures.CloneTemplate(opts, testDBName); err != nil {
+		fmt.Fprintf(os.Stderr, "FATAL: clone test db: %v\n", err)
+		os.Exit(1)
+	}
+
 	testDB, err := database.InitDB(cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "FATAL: failed to connect to test DB '%s': %v\n", testDBName, err)
 		os.Exit(1)
 	}
-
-	// Create tables for all models via AutoMigrate (works on fresh DBs)
-	if err := testDB.AutoMigrate(allTestModels...); err != nil {
-		fmt.Fprintf(os.Stderr, "FATAL: AutoMigrate failed on test DB '%s': %v\n", testDBName, err)
+	// D4: 金额列必须为 bigint；numeric 会被 Cents.Scan 当作元 ×100。
+	if err := testfixtures.AssertCentsSchema(testDB, allTestModels); err != nil {
+		fmt.Fprintf(os.Stderr, "FATAL: %v\n", err)
 		os.Exit(1)
-	}
-
-	// iam_sub has -:migration tag and is excluded from AutoMigrate; add it manually
-	addIAMSubColumn(testDB)
-
-	// invoice_application_orders is a plain join table not modeled by GORM; create manually
-	testDB.Exec(`CREATE TABLE IF NOT EXISTS invoice_application_orders (
-		application_id UUID NOT NULL,
-		order_id UUID NOT NULL,
-		PRIMARY KEY (application_id, order_id)
-	)`)
-
-	// Truncate tables that tests seed directly (without setupE2ETestEnv) to
-	// avoid duplicate-key errors from rows left by previous test runs.
-	for _, tbl := range []string{"damage_reports", "orders", "instruments", "users", "settlements", "invoice_applications", "invoice_application_orders", "notifications"} {
-		testDB.Exec("TRUNCATE TABLE " + tbl + " CASCADE")
 	}
 
 	database.SetDB(testDB)
@@ -198,6 +212,17 @@ func TestMain(m *testing.M) {
 	defer restoreShippingBackoffs()
 
 	code := m.Run()
+
+	// #2341: 用后清理 run 库（模板保留为共享 fixture）。
+	restoreShippingBackoffs()
+	if sqlDB, err := testDB.DB(); err == nil {
+		sqlDB.Close()
+	}
+	if os.Getenv("KEEP_TEST_DB") != "1" {
+		if err := testfixtures.DropDatabase(opts, testDBName); err != nil {
+			fmt.Fprintf(os.Stderr, "WARNING: drop test db %s: %v\n", testDBName, err)
+		}
+	}
 	os.Exit(code)
 }
 
@@ -205,42 +230,6 @@ func TestMain(m *testing.M) {
 // The User model has `-:migration` on IAMSub, so AutoMigrate skips it.
 func addIAMSubColumn(db *gorm.DB) {
 	db.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS iam_sub VARCHAR(255) NOT NULL DEFAULT ''")
-}
-
-// ensureTestDB creates the test database if it does not exist.
-// Connects to the maintenance database ('postgres') to issue the CREATE DATABASE command.
-func ensureTestDB() {
-	cfg := database.LoadConfig()
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=postgres sslmode=%s",
-		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.SSLMode)
-
-	db, err := sql.Open("postgres", dsn)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "WARNING: cannot connect to postgres maintenance DB: %v\n", err)
-		fmt.Fprintf(os.Stderr, "Please create the '%s' database manually:\n", testDBName)
-		fmt.Fprintf(os.Stderr, "  CREATE DATABASE %s;\n", testDBName)
-		os.Exit(1)
-	}
-	defer db.Close()
-
-	var exists bool
-	err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = $1)", testDBName).Scan(&exists)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "WARNING: cannot check if test DB exists: %v\n", err)
-		fmt.Fprintf(os.Stderr, "Please ensure '%s' exists and has proper permissions.\n", testDBName)
-		os.Exit(1)
-	}
-
-	if !exists {
-		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", testDBName))
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "FATAL: cannot create test DB '%s': %v\n", testDBName, err)
-			fmt.Fprintf(os.Stderr, "Please create it manually:\n")
-			fmt.Fprintf(os.Stderr, "  CREATE DATABASE %s;\n", testDBName)
-			os.Exit(1)
-		}
-		fmt.Fprintf(os.Stderr, "Created test database '%s'\n", testDBName)
-	}
 }
 
 func TestDatabaseIsolation(t *testing.T) {
