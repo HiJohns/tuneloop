@@ -1,0 +1,4 @@
+PROVENANCE build=repair-tenant-anchor commit=eca139b56f029bfbdad056e0bd848b0dc97da13c dirty=false
+RED   docs/evidence/2336/R3-baseline-pre-existing.txt (baseline 3e50bc494)
+GREEN docs/evidence/2338/R2-group-a.txt (fix ad8d12a2d)
+product-defect=14 red=14 green=14

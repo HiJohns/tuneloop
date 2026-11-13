@@ -1,17 +1,10 @@
-PROVENANCE build=repair-tenant-anchor commit=1cb8a827e0521708d251588b285725384c7f8c8e dirty=false
-DSN postgresql://tuneloop_user@127.0.0.1:25432/tuneloop_debug
+PROVENANCE build=repair-tenant-anchor commit=eca139b56f029bfbdad056e0bd848b0dc97da13c dirty=false
+DSN postgresql://tuneloop_user:trust@127.0.0.1:25432/tuneloop_debug
 SQL SELECT
   count(*) AS total,
   count(*) FILTER (WHERE rr.tenant_id IN (SELECT org_id FROM merchants WHERE org_id IS NOT NULL)) AS org_anchored,
   count(*) FILTER (WHERE rr.tenant_id NOT IN (SELECT org_id FROM merchants WHERE org_id IS NOT NULL)) AS legacy
 FROM repair_requests rr
-RESULT 2|1|1
-total=2 org_anchored=1 legacy=1
-ACTION: legacy=1 > 0 → open a data-repair issue (DB writes need user authorization).
-
--- SUPPLEMENT: 预生产快照库只读 COUNT（Owner 授权，2026-11-13）--
-HOST cadenza: docker exec 9a91df0605de_tuneloop-postgres psql -U tuneloop_user -d tuneloop_pre_snapshot
-SQL 同 R13（只读；无写入）
-RESULT total=9 org_anchored=9 legacy=0
-SCHEMA_MIGRATIONS 20261112003 dirty=f
-NOTE 预生产快照无 legacy 行；dev 库（tuneloop_debug）legacy=1，需按 D9 另立数据修复 Issue（写库需用户授权）。
+RESULT 2|0|2
+total=2 org_anchored=0 legacy=2
+ACTION: legacy=2 > 0 → 已知孤儿单，Owner 裁定保留（#2345）；零 DB 变更。
