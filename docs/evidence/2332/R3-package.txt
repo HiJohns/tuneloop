@@ -1,16 +1,16 @@
-PROVENANCE build=payscore-s3b-rev3 commit=309f1d9097557aa9c01d37b85700eeca722a4ce7 dirty=false
+PROVENANCE build=payscore-s3b-rev3 commit=52312f4b8f372eacd628eaec3e5daef345aafa79 dirty=false
 CMD go test ./services/wechatpay/ ./handlers/ -run 'TestPayScorePackage|TestCreditPayloadPackage' -count=1 -v
 === RUN   TestPayScorePackage
 --- PASS: TestPayScorePackage (0.00s)
 === RUN   TestPayScorePackageTTLConfigurable
 --- PASS: TestPayScorePackageTTLConfigurable (0.00s)
 PASS
-ok  	tuneloop-backend/services/wechatpay	0.020s
+ok  	tuneloop-backend/services/wechatpay	0.023s
 [WARNING] No .env file found in common paths
-2026/11/13 13:23:47 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/13 13:23:47 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/13 13:23:47 [DB] Connected to database 'tuneloop_test_local'
+2026/11/13 13:40:16 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/13 13:40:16 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/13 13:40:16 [DB] Connected to database 'tuneloop_test_local'
 === RUN   TestCreditPayloadPackage
 --- PASS: TestCreditPayloadPackage (0.00s)
 PASS
-ok  	tuneloop-backend/handlers	0.728s
+ok  	tuneloop-backend/handlers	1.485s

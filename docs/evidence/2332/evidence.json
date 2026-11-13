@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "issue": 2332,
-  "build": "payscore-s3b rev3 21f3bd3 (evidence regenerated at 309f1d9)",
+  "build": "payscore-s3b rev4 21f3bd3 (evidence regenerated at 52312f4b8)",
   "commit": "21f3bd343",
   "dirty": false,
   "environment": "local disposable PostgreSQL 16 @127.0.0.1:15433 (fsync=off); handlers tests use the #2341 template/clone test-DB lifecycle",
