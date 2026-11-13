@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "issue": 2341,
+  "build": "test-db-lifecycle 43a75ebb2",
+  "commit": "43a75ebb2df1b9e32370127e53d3ac7b4196e4f0",
+  "dirty": false,
+  "environment": "local disposable PostgreSQL 16 @127.0.0.1:15433 (fsync=off); template DB + per-run clone; migrations excluded (see #2342)",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/run-2341-lifecycle.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2341/R1-lifecycle.txt"
+      ],
+      "assert": "模板缺失→重建→克隆→定向套件 exit 0；meta 戳存在",
+      "actual": "Built test template；meta=<model_hash>:<seed_hash>；run 库已删除；定向用例 PASS",
+      "expected": "PASS",
+      "negative": "模板过期未重建 → exit 1",
+      "negative_result": "脚本在无模板时强制删除并以 FORCE_TEMPLATE_REBUILD=1 重建，缺少 Built 行或 meta 为空即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2341-failfast.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2341/R2-failfast.txt"
+      ],
+      "assert": "numeric 降级后 setup fail-fast（报错含列名+重建提示）",
+      "actual": "模板 orders.deposit 改 numeric 后 setup 报 FATAL: cents schema drifted (expected bigint): orders.deposit=numeric; rebuild the template with FORCE_TEMPLATE_REBUILD=1，退出非零",
+      "expected": "FAIL-FAST",
+      "negative": "静默通过 → exit 1",
+      "negative_result": "断言退出非零且包含列名与重建提示",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2341-stale.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2341/R3-stale-rebuild.txt"
+      ],
+      "assert": "篡改 meta 戳后检测过期并自动重建、新戳落库",
+      "actual": "seed_hash 置 stale → 运行检测过期 → Built test template → 新 seed_hash 已落库且 != stale",
+      "expected": "HEALED",
+      "negative": "静默复用过期模板 → exit 1",
+      "negative_result": "脚本断言必须出现 Built 且新戳非 stale",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2341-cleanup.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2341/R4-cleanup.txt"
+      ],
+      "assert": "run 库不存在、模板存在",
+      "actual": "套件结束后 pg_database 无 run 库；tuneloop_test_template 存在",
+      "expected": "CLEAN",
+      "negative": "run 库残留 → exit 1",
+      "negative_result": "任一存在性断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2341-docs.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2341/R5-docs.txt"
+      ],
+      "assert": "中英文档存在且含顺序/fail-fast/清理/排障四节",
+      "actual": "docs/ops/test-db-lifecycle.md 与 docs/en/ops/test-db-lifecycle.md 均含对应四节",
+      "expected": "COMPLETE",
+      "negative": "缺文件/缺节 → exit 1",
+      "negative_result": "缺任一文件或节即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/run-2341-targeted.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2341/R6-targeted.txt"
+      ],
+      "assert": "exit 0；14 用例 0 FAIL（迁移类 4 用例排除并注明 → #2342）",
+      "actual": "14/14 PASS（11 计划 + 2 顺序依赖 + TestPersonnel2065_MerchantView 跨租户负例）；日志注明 4 个迁移类用例归 #2342",
+      "expected": "0 fail",
+      "negative": "任一 FAIL/timeout",
+      "negative_result": "go test 退出码非零即失败",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2341-gate.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2341/R7-gate.txt"
+      ],
+      "assert": "exit 0",
+      "actual": "go build . ok；go test ./services/ ./database/ ok",
+      "expected": "0 fail",
+      "negative": "build/test 失败",
+      "negative_result": "任一命令非零即 exit 1",
+      "pass": true
+    }
+  ]
+}
