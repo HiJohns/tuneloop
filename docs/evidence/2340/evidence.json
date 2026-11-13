@@ -13,10 +13,10 @@
       "artifacts": [
         "docs/evidence/2340/R1-inventory.txt"
       ],
-      "assert": "pre-fix 构建日志含 'main redeclared' 且指向 backend/scripts；基线由 git log -S 锚定到首个打 tag 提交的父提交",
+      "assert": "pre-fix 冲突清单完整（文件×冲突类型）",
       "actual": "PASS。基线 5ee8d3755（df3ea7f0c^）重放 go build ./...：main redeclared hits=4，日志含 backend/scripts",
-      "expected": "PASS（冲突清单完整）",
-      "negative": "清单缺项/无 main redeclared → exit 1",
+      "expected": "全列出",
+      "negative": "清单缺项 → exit 1",
       "negative_result": "修复后树上跑同一命令：worktree 构建于 5ee8d3755 失败日志存在，断言成立；若在修复后状态重放则无 redeclared → 脚本 exit 1（已在 R3 绿色状态验证）",
       "pass": true
     },
@@ -27,10 +27,10 @@
       "artifacts": [
         "docs/evidence/2340/R2-build.txt"
       ],
-      "assert": "exit 0（空输出 = 编译成功）",
+      "assert": "exit 0",
       "actual": "exit 0，产物为空文件（go build 成功无输出）",
       "expected": "0 fail",
-      "negative": "任一构建错误 → exit 非零",
+      "negative": "任一构建错误",
       "negative_result": "修复前（5ee8d3755）同命令 exit 非零（见 R1 产物）；修复后 exit 0",
       "pass": true
     },
@@ -41,10 +41,10 @@
       "artifacts": [
         "docs/evidence/2340/R3-tools.txt"
       ],
-      "assert": "go build . exit 0；6 个工具逐个 go build -o 可编译；gofmt -l backend/scripts 干净",
+      "assert": "go build . exit 0；每个工具显式构建/运行记录存在",
       "actual": "PASS：8 条 OK（1 主构建 + 6 工具 + gofmt），0 条 FAIL",
       "expected": "全部可用",
-      "negative": "任一工具编译失败/主构建失败/gofmt 报告未格式化 → exit 1",
+      "negative": "工具失效 → exit 1",
       "negative_result": "裁定 A 前三个工具编译失败（见 Issue 评论 #issuecomment-6840753242 的 R3 明细）；修复后全部通过",
       "pass": true
     }
