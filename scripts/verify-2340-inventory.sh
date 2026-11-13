@@ -13,7 +13,7 @@ set -euo pipefail
 ISSUE_NUM="${ISSUE_NUM:-2340}"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 EVIDENCE_DIR="$REPO_ROOT/docs/evidence/$ISSUE_NUM"
-mkdir -p "$EVIDENCE_DIR"
+mkdir -p "$REPO_ROOT/tmp" "$EVIDENCE_DIR"
 ARTIFACT="$EVIDENCE_DIR/R1-inventory.txt"
 
 COMMIT="$(git rev-parse HEAD)"

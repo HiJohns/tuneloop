@@ -12,7 +12,7 @@ set -euo pipefail
 ISSUE_NUM="${ISSUE_NUM:-2340}"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 EVIDENCE_DIR="$REPO_ROOT/docs/evidence/$ISSUE_NUM"
-mkdir -p "$EVIDENCE_DIR"
+mkdir -p "$REPO_ROOT/tmp" "$EVIDENCE_DIR"
 ARTIFACT="$EVIDENCE_DIR/R3-tools.txt"
 
 COMMIT="$(git rev-parse HEAD)"
@@ -49,13 +49,20 @@ run_logged() {
 echo "OK: go build ." >>"$ARTIFACT"
 
 # 2. Every tool compiles when named explicitly (ignores its build tag).
+#    Must run from backend/ so the module context resolves internal packages.
 for tool in "${TOOLS[@]}"; do
-    run_logged go build -o "$OUT" "$REPO_ROOT/backend/scripts/$tool"
+    run_logged go build -C "$REPO_ROOT/backend" -o "$OUT" "scripts/$tool"
 done
 
-# 3. vet smoke on the scripts package tree.
-( cd "$REPO_ROOT/backend" && go vet ./scripts/... )
-echo "OK: go vet ./scripts/..." >>"$ARTIFACT"
+# 3. Formatting smoke on the scripts tree (vet has no package left to check
+#    now that every tool carries the ignore tag).
+UNFORMATTED="$(gofmt -l "$REPO_ROOT/backend/scripts")"
+if [ -n "$UNFORMATTED" ]; then
+    echo "FAIL: gofmt -l reports unformatted files: $UNFORMATTED" >>"$ARTIFACT"
+    FAILED=1
+else
+    echo "OK: gofmt -l backend/scripts (clean)" >>"$ARTIFACT"
+fi
 
 if [ "$FAILED" -ne 0 ]; then
     echo "FAIL: tool verification failed; see $ARTIFACT" >&2
