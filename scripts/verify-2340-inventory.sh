@@ -19,11 +19,11 @@ ARTIFACT="$EVIDENCE_DIR/R1-inventory.txt"
 COMMIT="$(git rev-parse HEAD)"
 if [ -n "$(git status --porcelain)" ]; then DIRTY="true"; else DIRTY="false"; fi
 
-# Locate the ORIGINAL pre-fix state: the first commit that introduced the
-# //go:build ignore tags into backend/scripts (via -S pickaxe, oldest first).
-# Falls back to HEAD^ for a single-commit fix. This keeps the inventory
-# reproducible as later commits accumulate on top of the fix.
-TAG_COMMIT="$(git log --format=%H -S '//go:build ignore' -- backend/scripts | tail -1)"
+# Locate the ORIGINAL pre-fix state: the first (oldest) commit that introduced
+# the //go:build ignore tag into clean_instruments.go — a file that was
+# untagged until the fix. Pickaxe over that single file avoids false anchors
+# from migrate_photo_batches.go, which carried the tag long before the fix.
+TAG_COMMIT="$(git log --format=%H -S '//go:build ignore' -- backend/scripts/clean_instruments.go | tail -1)"
 if [ -n "$TAG_COMMIT" ] && git rev-parse --verify --quiet "$TAG_COMMIT^" >/dev/null; then
     PRE_FIX_SHA="$TAG_COMMIT^"
 elif git rev-parse --verify --quiet HEAD^ >/dev/null; then
