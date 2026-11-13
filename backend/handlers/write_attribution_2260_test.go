@@ -52,11 +52,11 @@ func TestPromoOverride_CrossMerchantForbidden_2260(t *testing.T) {
 	orgA, orgB := uuid.NewString(), uuid.NewString()
 	siteOrgA, siteOrgB := uuid.NewString(), uuid.NewString()
 	require.NoError(t, db.Create(&models.Merchant{
-		ID: uuid.NewString(), TenantID: shared, OrgID: orgA, Name: "WA-A",
+		ID: uuid.NewString(), TenantID: shared, OrgID: orgA, Name: "WA-A", Code: "WA-A",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}).Error)
 	require.NoError(t, db.Create(&models.Merchant{
-		ID: uuid.NewString(), TenantID: shared, OrgID: orgB, Name: "WA-B",
+		ID: uuid.NewString(), TenantID: shared, OrgID: orgB, Name: "WA-B", Code: "WA-B",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}).Error)
 	instID := uuid.NewString()

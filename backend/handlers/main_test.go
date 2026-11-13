@@ -157,15 +157,22 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	// #2341: 模板库（AutoMigrate + seed）→ 克隆 run 库。
+	// #2341/#2342: 模板库（AutoMigrate → shimmed migrations → seed）→ 克隆 run 库。
 	cfg := database.LoadConfig()
+	migrationsDir, err := testfixtures.ResolveMigrationsDir()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FATAL: %v\n", err)
+		os.Exit(1)
+	}
 	opts := testfixtures.TemplateOptions{
 		Host: cfg.Host, Port: cfg.Port, User: cfg.User,
 		Password: cfg.Password, SSLMode: cfg.SSLMode,
-		TemplateName: testfixtures.TemplateDBName,
-		Models:       allTestModels,
-		PostMigrate: func(db *gorm.DB) error {
-			// iam_sub 有 -:migration 标签，AutoMigrate 不建列，需手工补。
+		TemplateName:  testfixtures.TemplateDBName,
+		Models:        allTestModels,
+		MigrationsDir: migrationsDir,
+		PostAutoMigrate: func(db *gorm.DB) error {
+			// iam_sub 有 -:migration 标签，AutoMigrate 不建列，需手工补；
+			// 迁移 001 的 idx_users_iam_sub 依赖该列 → 必须在迁移链重放之前补齐（#2342）。
 			addIAMSubColumn(db)
 			// 纯 SQL join 表（无 GORM 模型）。
 			return db.Exec(`CREATE TABLE IF NOT EXISTS invoice_application_orders (
