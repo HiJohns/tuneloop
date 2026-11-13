@@ -231,6 +231,13 @@ func TestActivateUser2309_LocalUpdateFailurePurgesIAM(t *testing.T) {
 			tx.AddError(errors.New("forced users update failure"))
 		}
 	}))
+	// #2336: GORM callbacks live on the shared *gorm.DB registry. Without this
+	// cleanup every later users UPDATE in the process fails, which made
+	// TestStaffOrderActions / TestUpdateUser_SiteIDNoChange fail only in the
+	// full suite (order-dependent pollution).
+	t.Cleanup(func() {
+		db.Callback().Update().Remove("fail_users_update_2309")
+	})
 
 	newUserID := uuid.New().String()
 	m := newIAMRollbackMock2309(t, newUserID)
