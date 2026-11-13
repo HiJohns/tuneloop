@@ -1,0 +1,15 @@
+PROVENANCE build=done-cascade-guard commit=4e76b7b33955bfe0a1100c8b63c41914063b7cde dirty=false
+MODE notgreen
+CMD bash "/home/coder/.config/opencode/scripts/opencode_gh.sh" done 1001 <body>  (gh stub via PATH + GH_BIN)
+exit=0
+--- run log (key lines) ---
+RESTORED:0 WARN:0 NO_BLOCK
+INFO:FOUND_PARENT:999
+INFO:ALL_CHILDREN_DONE:999
+INFO:PARENT_CONTRACT_NOT_GREEN:999
+--- final state ---
+parent_state=OPEN
+parent_auto_comment=no
+child_state=CLOSED
+child_labels=status:done
+RESULT: NOT-CASCADED
