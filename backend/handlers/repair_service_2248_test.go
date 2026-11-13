@@ -26,8 +26,9 @@ func TestListMerchantRepairServices_SharedTenantNoLeak_2248(t *testing.T) {
 
 	sharedTenant := uuid.New().String()
 	orgA, orgB := uuid.New().String(), uuid.New().String()
-	require.NoError(t, db.Create(&models.Merchant{TenantID: sharedTenant, OrgID: orgA, Name: "A2248", Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.New().String()}).Error)
-	require.NoError(t, db.Create(&models.Merchant{TenantID: sharedTenant, OrgID: orgB, Name: "B2248", Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.New().String()}).Error)
+	// #2349: 严格模板下 (tenant_id, code) 唯一；同 tenant 双商户必须给不同 code。
+	require.NoError(t, db.Create(&models.Merchant{TenantID: sharedTenant, OrgID: orgA, Code: "A2248", Name: "A2248", Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.New().String()}).Error)
+	require.NoError(t, db.Create(&models.Merchant{TenantID: sharedTenant, OrgID: orgB, Code: "B2248", Name: "B2248", Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.New().String()}).Error)
 
 	tech := uuid.New().String()
 	rowA := models.RepairRequest{ID: uuid.NewString(), TenantID: orgA, UserID: uuid.NewString(), Type: "service", Status: models.RepairReqStatusPendingQuote, TechnicianID: &tech}

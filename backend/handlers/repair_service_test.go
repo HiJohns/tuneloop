@@ -42,6 +42,8 @@ func setupRepairServiceFixture(t *testing.T) svcFixture {
 	db := testfixtures.SetupTestDB(t)
 	tenantID, orgID, _ := testfixtures.NewTenantIDs("1950a1b2c3d4")
 	otherTenantID, _, _ := testfixtures.NewTenantIDs("1950f9e8d7c6")
+	// #2349: 严格模板下 site_members/merchants 的 tenant_id 有 FK，先补 tenants 行。
+	testfixtures.SeedTenantFK(t, db, tenantID, otherTenantID)
 	siteID := uuid.New().String()
 	otherSiteID := uuid.New().String()
 	require.NoError(t, db.Create(&models.Site{ID: siteID, TenantID: tenantID, OrgID: orgID, Name: "S"}).Error)
