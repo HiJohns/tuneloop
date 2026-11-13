@@ -15,6 +15,6 @@ mkdir -p "$TMPDIR" "$GOCACHE" docs/evidence/2336 tmp
 PROVENANCE="build=handlers-test-infra commit=$(git rev-parse HEAD) dirty=$(test -z "$(git status --porcelain --untracked-files=no -- . ':!docs/evidence')" && echo false || echo true)"
 {
   echo "PROVENANCE $PROVENANCE"
-  echo "CMD go test ./handlers/ ./services/ -run 'TestWarehouse|TestUploadShipping|TestPaymentCallback.*Shipping' -count=1 -v"
-  ( cd backend && go test ./handlers/ ./services/ -run 'TestWarehouse|TestUploadShipping|TestPaymentCallback.*Shipping' -count=1 -v )
+  echo "CMD go test ./handlers/ ./services/ -run 'TestWarehouse|TestUploadShipping|TestUpdateShipping|TestReportWechatShipping|TestShippingFlow|TestPaymentCallback.*Shipping' -count=1 -v"
+  ( cd backend && go test ./handlers/ ./services/ -run 'TestWarehouse|TestUploadShipping|TestUpdateShipping|TestReportWechatShipping|TestShippingFlow|TestPaymentCallback.*Shipping' -count=1 -v )
 } 2>&1 | tee docs/evidence/2336/R2-shipping.txt
