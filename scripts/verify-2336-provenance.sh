@@ -20,7 +20,7 @@ rc=0
   echo "PROVENANCE $PROVENANCE"
   echo "CMD gh issue view 2341 --json number,state,labels,body"
   body=$(gh issue view 2341 --json body -q .body)
-  state=$(gh issue view 2341 --json state -q .state)
+  state=$(gh issue view 2341 --json state -q .state | tr "A-Z" "a-z")
   labels=$(gh issue view 2341 --json labels -q '[.labels[].name] | join(",")')
   echo "state=$state labels=$labels"
   printf '%s' "$body" | grep -q "#2336" && echo "links_parent=#2336 yes"
@@ -37,7 +37,7 @@ rc=0
 {
   echo "PROVENANCE $PROVENANCE"
   echo "CMD grep -o 'api.weixin.qq.com' R1-refund.txt R2-shipping.txt | wc -l"
-  hits=$(cat docs/evidence/2336/R1-refund.txt docs/evidence/2336/R2-shipping.txt | grep -o "api.weixin.qq.com" | wc -l)
+  hits=$(cat docs/evidence/2336/R1-refund.txt docs/evidence/2336/R2-shipping.txt | grep -o "api.weixin.qq.com" | wc -l || true)
   echo "hits=$hits expected=0"
   [ "$hits" -eq 0 ]
 } > docs/evidence/2336/R5-no-network.txt 2>&1 || rc=1
