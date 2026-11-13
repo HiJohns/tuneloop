@@ -17,7 +17,7 @@ mkdir -p "$REPO_ROOT/tmp" "$EVIDENCE_DIR"
 ARTIFACT="$EVIDENCE_DIR/R1-inventory.txt"
 
 COMMIT="$(git rev-parse HEAD)"
-if [ -n "$(git status --porcelain)" ]; then DIRTY="true"; else DIRTY="false"; fi
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then DIRTY="true"; else DIRTY="false"; fi
 
 # Locate the ORIGINAL pre-fix state: the first (oldest) commit that introduced
 # the //go:build ignore tag into clean_instruments.go — a file that was

@@ -16,7 +16,7 @@ mkdir -p "$REPO_ROOT/tmp" "$EVIDENCE_DIR"
 ARTIFACT="$EVIDENCE_DIR/R3-tools.txt"
 
 COMMIT="$(git rev-parse HEAD)"
-if [ -n "$(git status --porcelain)" ]; then DIRTY="true"; else DIRTY="false"; fi
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then DIRTY="true"; else DIRTY="false"; fi
 
 TOOLS=(
     clean_instruments.go
