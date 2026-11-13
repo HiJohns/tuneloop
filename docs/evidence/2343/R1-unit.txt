@@ -2,10 +2,10 @@
 
  RUN  v2.1.9 /home/coder/tuneloop/frontend-mobile
 
- ✓ scripts/page-smoke/home-scroll-layout.test.jsx (4 tests) 72ms
+ ✓ scripts/page-smoke/home-scroll-layout.test.jsx (4 tests) 22ms
 
  Test Files  1 passed (1)
       Tests  4 passed (4)
-   Start at  12:35:33
-   Duration  5.89s (transform 411ms, setup 213ms, collect 129ms, tests 72ms, environment 3.08s, prepare 1.46s)
+   Start at  20:12:12
+   Duration  1.73s (transform 83ms, setup 56ms, collect 37ms, tests 22ms, environment 738ms, prepare 400ms)
 

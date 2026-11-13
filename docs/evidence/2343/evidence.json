@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2343,
-  "build": "weapp-home 77fc9659b",
-  "commit": "77fc9659b5ff1c5308ba74c1d3a2a8b81929d5ba",
+  "build": "weapp-home-overscroll 77fc9659b (regenerated at 9eaa983c1)",
+  "commit": "77fc9659b",
   "dirty": false,
   "environment": "weapp 体验版 1.0.79 (prewx API); local Node 20.20.2 for build/unit; manual rows confirmed by user",
   "rows": [
