@@ -1,3 +1,5 @@
+PROVENANCE build=payscore-s3b-rev3 commit=309f1d9097557aa9c01d37b85700eeca722a4ce7 dirty=false
+CMD go test ./database/ -run 'TestMigrationArtifacts2332|TestMigrationArtifacts2327' -count=1 -v
 [WARNING] No .env file found in common paths
 === RUN   TestMigrationArtifacts2327Registered
 --- PASS: TestMigrationArtifacts2327Registered (0.00s)
@@ -6,4 +8,4 @@
 === RUN   TestMigrationArtifacts2332Registered
 --- PASS: TestMigrationArtifacts2332Registered (0.00s)
 PASS
-ok  	tuneloop-backend/database	0.031s
+ok  	tuneloop-backend/database	0.028s

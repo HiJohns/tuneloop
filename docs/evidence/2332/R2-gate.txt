@@ -1,15 +1,16 @@
+PROVENANCE build=payscore-s3b-rev3 commit=309f1d9097557aa9c01d37b85700eeca722a4ce7 dirty=false
+CMD go test ./handlers/ -run 'TestPrepayGate|TestPayGate|TestCreditGate' -count=1 -v
 [WARNING] No .env file found in common paths
-2026/11/13 03:51:18 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/13 03:51:18 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/13 03:51:18 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/13 03:51:18 [DB] Connected to database 'tuneloop_test_local'
+2026/11/13 13:23:31 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/13 13:23:31 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/13 13:23:31 [DB] Connected to database 'tuneloop_test_local'
 === RUN   TestPayGate
-2026/11/13 03:51:35 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/13 03:51:35 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/13 03:51:35 [DB] Connected to database 'tuneloop_test_local'
+2026/11/13 13:23:32 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/13 13:23:32 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/13 13:23:32 [DB] Connected to database 'tuneloop_test_local'
 === RUN   TestPayGate/enforce=false_保持旧行为
-2026/11/13 03:51:36 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
-2026/11/13 03:51:36 [TenantScope][observe] auto-scope injected for table=orders (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/13 13:23:35 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/13 13:23:35 [TenantScope][observe] auto-scope injected for table=orders (add explicit scope, then set ExplicitTenantScopeOnly)
 === RUN   TestPayGate/enforce=true_reduced_未评估拒绝
 === RUN   TestPayGate/enforce=true_reduced_已拒绝
 === RUN   TestPayGate/enforce=true_reduced_已通过放行
@@ -17,17 +18,17 @@
 === RUN   TestPayGate/enforce=true_zero(payscore)_已通过放行
 === RUN   TestPayGate/enforce=true_乐器零押金放行
 === RUN   TestPayGate/enforce=true_full_放行
---- PASS: TestPayGate (0.59s)
-    --- PASS: TestPayGate/enforce=false_保持旧行为 (0.01s)
-    --- PASS: TestPayGate/enforce=true_reduced_未评估拒绝 (0.01s)
-    --- PASS: TestPayGate/enforce=true_reduced_已拒绝 (0.01s)
-    --- PASS: TestPayGate/enforce=true_reduced_已通过放行 (0.02s)
+--- PASS: TestPayGate (3.10s)
+    --- PASS: TestPayGate/enforce=false_保持旧行为 (0.05s)
+    --- PASS: TestPayGate/enforce=true_reduced_未评估拒绝 (0.00s)
+    --- PASS: TestPayGate/enforce=true_reduced_已拒绝 (0.00s)
+    --- PASS: TestPayGate/enforce=true_reduced_已通过放行 (0.01s)
     --- PASS: TestPayGate/enforce=true_zero(payscore)_未评估拒绝 (0.01s)
     --- PASS: TestPayGate/enforce=true_zero(payscore)_已通过放行 (0.01s)
     --- PASS: TestPayGate/enforce=true_乐器零押金放行 (0.01s)
     --- PASS: TestPayGate/enforce=true_full_放行 (0.01s)
 === RUN   TestPrepayGate
-2026/11/13 03:51:36 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
---- PASS: TestPrepayGate (0.35s)
+2026/11/13 13:23:35 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
+--- PASS: TestPrepayGate (0.33s)
 PASS
-ok  	tuneloop-backend/handlers	18.712s
+ok  	tuneloop-backend/handlers	5.130s
