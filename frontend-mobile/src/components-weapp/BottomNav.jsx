@@ -54,7 +54,7 @@ export default function BottomNav({ active = '', badges = {}, tenant }) {
   ]
 
   return (
-    <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#5A3B24', borderTop: '1px solid #4E321E', paddingTop: 6, paddingBottom: 6, display: 'flex', justifyContent: 'space-around', alignItems: 'center', zIndex: 50 }}>
+    <View id="bottom-nav" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#5A3B24', borderTop: '1px solid #4E321E', paddingTop: 6, paddingBottom: 6, display: 'flex', justifyContent: 'space-around', alignItems: 'center', zIndex: 50 }}>
       {tabs.map((tab, i) => {
         const isActive = active === tab.key
         const badge = badges[tab.key]
