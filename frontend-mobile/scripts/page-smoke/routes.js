@@ -36,6 +36,13 @@ export const criticalRoutes = [
     load: () => import('../../src/pages/OrderDetail'),
   },
   {
+    name: 'H5 /credit-assessment',
+    pattern: '/credit-assessment',
+    entry: '/credit-assessment?order_id=order-1&tier=reduced&risk_amount_cents=5000',
+    markers: ['微信信用评测', '押金档位'],
+    load: () => import('../../src/pages/CreditAssessment'),
+  },
+  {
     name: 'H5 /cart',
     pattern: '/cart',
     entry: '/cart',
