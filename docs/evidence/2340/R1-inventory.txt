@@ -1,0 +1,19 @@
+PROVENANCE build=backend-scripts-multimain commit=5ad1c6885a2fe9ef7c417a7b6bb8a3fab99b46c3 dirty=false
+# Pre-fix state: worktree at df3ea7f0c5e26f871f01ed0c473bcb7617527e2a^; command: go build ./...
+# (R2 verifies the post-fix build is green; this file proves the conflict existed.)
+# tuneloop-backend/scripts
+scripts/fix_dirty_migration.go:11:6: main redeclared in this block
+	scripts/clean_instruments.go:12:6: other declaration of main
+scripts/fix_migration.go:13:6: main redeclared in this block
+	scripts/clean_instruments.go:12:6: other declaration of main
+scripts/init_test_data.go:13:6: main redeclared in this block
+	scripts/clean_instruments.go:12:6: other declaration of main
+scripts/init_test_data.go:67:4: unknown field Name in struct literal of type models.Instrument
+scripts/init_test_data.go:68:4: unknown field Brand in struct literal of type models.Instrument
+scripts/init_test_data.go:77:4: unknown field Name in struct literal of type models.Instrument
+scripts/init_test_data.go:78:4: unknown field Brand in struct literal of type models.Instrument
+scripts/init_test_data.go:87:4: unknown field Name in struct literal of type models.Instrument
+scripts/init_test_data.go:88:4: unknown field Brand in struct literal of type models.Instrument
+scripts/migrate_media_keys.go:19:6: main redeclared in this block
+	scripts/clean_instruments.go:12:6: other declaration of main
+scripts/init_test_data.go:88:4: too many errors

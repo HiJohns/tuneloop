@@ -1,0 +1,10 @@
+PROVENANCE build=backend-scripts-multimain commit=5ad1c6885a2fe9ef7c417a7b6bb8a3fab99b46c3 dirty=false
+# Command: go build . ; per-tool go build -o <tmp> <file.go> ; go vet ./scripts/...
+OK: go build .
+OK: go build -C /tmp/opencode/wt-develop/backend -o /tmp/opencode/wt-develop/tmp/tools-2340.SR9zLj scripts/clean_instruments.go
+OK: go build -C /tmp/opencode/wt-develop/backend -o /tmp/opencode/wt-develop/tmp/tools-2340.SR9zLj scripts/fix_dirty_migration.go
+OK: go build -C /tmp/opencode/wt-develop/backend -o /tmp/opencode/wt-develop/tmp/tools-2340.SR9zLj scripts/fix_migration.go
+OK: go build -C /tmp/opencode/wt-develop/backend -o /tmp/opencode/wt-develop/tmp/tools-2340.SR9zLj scripts/init_test_data.go
+OK: go build -C /tmp/opencode/wt-develop/backend -o /tmp/opencode/wt-develop/tmp/tools-2340.SR9zLj scripts/migrate_media_keys.go
+OK: go build -C /tmp/opencode/wt-develop/backend -o /tmp/opencode/wt-develop/tmp/tools-2340.SR9zLj scripts/migrate_photo_batches.go
+OK: gofmt -l backend/scripts (clean)
