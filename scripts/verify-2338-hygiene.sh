@@ -14,7 +14,8 @@ export PATH="/usr/local/go/bin:$PATH"
 mkdir -p docs/evidence/2338 "$TMPDIR" "$GOCACHE"
 PROVENANCE="build=repair-tenant-anchor commit=$(git rev-parse HEAD) dirty=$(test -z "$(git status --porcelain --untracked-files=no -- backend scripts)" && echo false || echo true)"
 BASE="${BASE_REF:-origin/develop}"
-DIFF=$(git diff "$BASE"...HEAD -- backend/handlers scripts | grep -E '^\+' || true)
+# 只扫描产品/测试代码：脚本自身提到 t.Skip（文档性字符串）不应计入。
+DIFF=$(git diff "$BASE"...HEAD -- backend/handlers backend/services | grep -E '^\+' || true)
 SKIPS=$(printf '%s\n' "$DIFF" | grep -cE '^\+.*t\.Skip' || true)
 {
   echo "PROVENANCE $PROVENANCE"
