@@ -1,4 +1,4 @@
-PROVENANCE build=migrations-fresh-install commit=38f199638a33d3b7c0cada6298a2c385f9e085ed dirty=false
+PROVENANCE build=migrations-fresh-install commit=beff6a242123a6ef589380fb2fc9a85c8dc0e54b dirty=false
 === R5: docs contract (zh + en) ===
 OK   origin-link: docs/ops/test-db-lifecycle.md contains '#2341'
 OK   origin-link: docs/en/ops/test-db-lifecycle.md contains '#2341'

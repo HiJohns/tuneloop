@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2342,
-  "build": "migrations-fresh-install 38f199638",
-  "commit": "38f199638a33d3b7c0cada6298a2c385f9e085ed",
+  "build": "migrations-fresh-install beff6a242",
+  "commit": "beff6a242123a6ef589380fb2fc9a85c8dc0e54b",
   "dirty": false,
   "environment": "disposable PG16 127.0.0.1:15433 (tmp/pgdata); template tuneloop_test_template, run DB tuneloop_test_2342",
   "rows": [
