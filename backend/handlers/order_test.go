@@ -236,11 +236,16 @@ func TestCancelOrderByCustomer_StatusGuard(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.OrderRefundRecord{}, &models.OrderStatusHistory{}, &models.OrderLog{}))
+	// #2344 D1: 不再对模板已管理的表做局部 AutoMigrate——严格 schema 下 GORM 会
+	// 尝试 DROP 历史约束名（uni_instrument_levels_caption）而产生假失败。
+	// 模板（#2342 B 顺序）已含这些表，直接使用。
 
 	tenantID := "00000000-0000-0000-0000-0000000000c1"
 	orgID := "00000000-0000-0000-0000-0000000000c2"
 	userID := "00000000-0000-0000-0000-0000000000c3"
+
+	// #2344: 严格 schema 下 orders.user_id 有 FK，补 users 行。
+	testfixtures.SeedUserFK(t, db, userID, tenantID, orgID)
 
 	instrument := models.Instrument{
 		TenantID:      tenantID,

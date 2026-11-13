@@ -56,6 +56,9 @@ func TestOrgManagement(t *testing.T) {
 	orgID := tenantID
 	userID := "00000000-0000-4000-8000-00000000b1c3"
 
+	// #2344: 严格 schema 下 site_members.tenant_id 有 FK，先补 tenants 行。
+	testfixtures.SeedTenantFK(t, db, tenantID)
+
 	// #2266/#2247: CreateSite resolves the operator's merchant by org;
 	// seed it so the test exercises the merchant-admin path instead of the
 	// platform-created branch (which requires an explicit merchant_id).

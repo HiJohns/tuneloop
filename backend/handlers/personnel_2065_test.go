@@ -64,6 +64,9 @@ func setupPersonnel2065(t *testing.T) (*gin.Engine, personnel2065Fixture) {
 		directMember:     uuid.New().String(),
 	}
 
+	// #2344: 严格 schema 下 site_members 的 tenant_id/site_id 均有 FK（含 rootOrg/otherTid 场景）。
+	testfixtures.SeedTenantFK(t, db, f.tid, f.rootOrg, f.otherTid)
+
 	mkUser := func(id, tid, oid, name, role string) {
 		require.NoError(t, db.Create(&models.User{
 			ID: id, IAMSub: id, TenantID: tid, OrgID: oid, Username: "u-" + id[:8], Name: name, Role: role, Status: "active",
@@ -95,7 +98,10 @@ func setupPersonnel2065(t *testing.T) (*gin.Engine, personnel2065Fixture) {
 	// #2067: 商户直属员工
 	require.NoError(t, db.Create(&models.MerchantMember{TenantID: f.tid, MerchantID: uuid.New().String(), UserID: f.directMember, Role: "site_member", Status: "active"}).Error)
 	require.NoError(t, db.Create(&models.SiteMember{TenantID: f.rootOrg, SiteID: f.transitSite, UserID: f.transitMember, Role: "STAFF", Roles: []string{"STAFF"}, Status: "active"}).Error)
-	require.NoError(t, db.Create(&models.SiteMember{TenantID: f.otherTid, SiteID: uuid.New().String(), UserID: f.otherTenantUser, Role: "STAFF", Roles: []string{"STAFF"}, Status: "active"}).Error)
+	// #2344: 他租户网点必须是真实行（严格 schema 下 site_members.site_id 有 FK）。
+	otherSite := uuid.New().String()
+	require.NoError(t, db.Create(&models.Site{ID: otherSite, TenantID: f.otherTid, OrgID: f.otherTid, Name: "他商户网点", Type: "normal"}).Error)
+	require.NoError(t, db.Create(&models.SiteMember{TenantID: f.otherTid, SiteID: otherSite, UserID: f.otherTenantUser, Role: "STAFF", Roles: []string{"STAFF"}, Status: "active"}).Error)
 
 	// 师傅档案（直属商户，无网点）
 	require.NoError(t, db.Create(&models.TechnicianProfile{
