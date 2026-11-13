@@ -1,10 +1,10 @@
-PROVENANCE build=backend-scripts-multimain commit=487ff02e2a2e735cc8f3d33640065aaff99bbdb9 dirty=true
+PROVENANCE build=backend-scripts-multimain commit=b9b355cfb0ab100c3648c794fb771567d9811a65 dirty=false
 # Command: go build . ; per-tool go build -o <tmp> <file.go> ; go vet ./scripts/...
 OK: go build .
-OK: go build -C /tmp/opencode/wt-develop/backend -o /tmp/opencode/wt-develop/tmp/tools-2340.2lvnu3 scripts/clean_instruments.go
-OK: go build -C /tmp/opencode/wt-develop/backend -o /tmp/opencode/wt-develop/tmp/tools-2340.2lvnu3 scripts/fix_dirty_migration.go
-OK: go build -C /tmp/opencode/wt-develop/backend -o /tmp/opencode/wt-develop/tmp/tools-2340.2lvnu3 scripts/fix_migration.go
-OK: go build -C /tmp/opencode/wt-develop/backend -o /tmp/opencode/wt-develop/tmp/tools-2340.2lvnu3 scripts/init_test_data.go
-OK: go build -C /tmp/opencode/wt-develop/backend -o /tmp/opencode/wt-develop/tmp/tools-2340.2lvnu3 scripts/migrate_media_keys.go
-OK: go build -C /tmp/opencode/wt-develop/backend -o /tmp/opencode/wt-develop/tmp/tools-2340.2lvnu3 scripts/migrate_photo_batches.go
+OK: go build -C /tmp/opencode/wt-develop/backend -o /tmp/opencode/wt-develop/tmp/tools-2340.jYAjHt scripts/clean_instruments.go
+OK: go build -C /tmp/opencode/wt-develop/backend -o /tmp/opencode/wt-develop/tmp/tools-2340.jYAjHt scripts/fix_dirty_migration.go
+OK: go build -C /tmp/opencode/wt-develop/backend -o /tmp/opencode/wt-develop/tmp/tools-2340.jYAjHt scripts/fix_migration.go
+OK: go build -C /tmp/opencode/wt-develop/backend -o /tmp/opencode/wt-develop/tmp/tools-2340.jYAjHt scripts/init_test_data.go
+OK: go build -C /tmp/opencode/wt-develop/backend -o /tmp/opencode/wt-develop/tmp/tools-2340.jYAjHt scripts/migrate_media_keys.go
+OK: go build -C /tmp/opencode/wt-develop/backend -o /tmp/opencode/wt-develop/tmp/tools-2340.jYAjHt scripts/migrate_photo_batches.go
 OK: gofmt -l backend/scripts (clean)
