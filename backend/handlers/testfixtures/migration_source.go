@@ -99,6 +99,10 @@ func MigrationSignature(dir string) (hash string, upFiles int, err error) {
 	}
 	sort.Strings(names)
 	h := sha1.New()
+	// 证据模式下原始文件重放，指纹必须与 shim 模式区分（避免互相判定为「未过期」）。
+	if shimDisabled() {
+		fmt.Fprint(h, "shim=off\n")
+	}
 	for _, name := range names {
 		raw, rerr := os.ReadFile(filepath.Join(dir, name))
 		if rerr != nil {
@@ -113,6 +117,13 @@ func MigrationSignature(dir string) (hash string, upFiles int, err error) {
 	return hex.EncodeToString(h.Sum(nil)), upFiles, nil
 }
 
+// shimDisabled 是证据/诊断用的显式开关：TUNELOOP_TEMPLATE_MIGRATION_SHIM=off
+// 时跳过幂等化变换，按原始文件重放（用于复现 #2341 的红：整链重放失败）。
+// 默认（未设置或任何其他值）= 开启 shim，即模板构建的生产等价路径。
+func shimDisabled() bool {
+	return strings.EqualFold(strings.TrimSpace(os.Getenv("TUNELOOP_TEMPLATE_MIGRATION_SHIM")), "off")
+}
+
 // IdempotentMigrationSource 读取磁盘上的迁移文件、施加幂等化变换，
 // 返回 golang-migrate 的内存 source driver（不改磁盘文件）。
 func IdempotentMigrationSource(dir string) (source.Driver, ShimStats, error) {
@@ -121,6 +132,7 @@ func IdempotentMigrationSource(dir string) (source.Driver, ShimStats, error) {
 	if err != nil {
 		return nil, stats, fmt.Errorf("migration source: read dir %s: %w", dir, err)
 	}
+	shimOff := shimDisabled()
 	fsys := fstest.MapFS{}
 	for _, e := range entries {
 		if e.IsDir() || !strings.HasSuffix(e.Name(), ".sql") {
@@ -141,6 +153,9 @@ func IdempotentMigrationSource(dir string) (source.Driver, ShimStats, error) {
 		stats.AddColumn += st.AddColumn
 		if strings.HasSuffix(e.Name(), ".up.sql") {
 			stats.UpFiles++
+		}
+		if shimOff {
+			transformed = string(raw)
 		}
 		fsys[e.Name()] = &fstest.MapFile{Data: []byte(transformed)}
 	}
