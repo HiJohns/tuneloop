@@ -1,0 +1,13 @@
+PROVENANCE build=repair-tenant-anchor commit=8dc3038a83b8f7921a3e429670533011ebd30c8e dirty=false
+CMD go test ./handlers/ -count=1 -timeout 12m
+-- failing tests --
+TestBatchCreateOrder_RentDaysOverridesEndDate
+TestCreateRentalOrder
+TestGetUserInstrumentDetail
+TestInspectReturn_Good_ExecutesRefund
+TestRefundDiff_PointsOverCap
+TestRefundDiff_PointsWithinCap
+TestScenarioA_DamageVariant
+TestScenarioC_CancelBoundary
+TestSettlementFlow
+R3 PASS: fail_count=9 all within Group B whitelist (#2339)

@@ -1,0 +1,8 @@
+PROVENANCE build=repair-tenant-anchor commit=0b04ebc6e5773522501cb436cfb3a0fe93fa6598 dirty=true
+DSN postgresql://tuneloop_user:trust@127.0.0.1:15433/tuneloop_debug
+SQL SELECT
+  count(*) AS total,
+  count(*) FILTER (WHERE rr.tenant_id IN (SELECT org_id FROM merchants WHERE org_id IS NOT NULL)) AS org_anchored,
+  count(*) FILTER (WHERE rr.tenant_id NOT IN (SELECT org_id FROM merchants WHERE org_id IS NOT NULL)) AS legacy
+FROM repair_requests rr
+BLOCKED: dev DB unreachable (set TUNELOOP_AUDIT_DSN). No data read.

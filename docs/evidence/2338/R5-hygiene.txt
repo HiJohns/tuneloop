@@ -1,0 +1,19 @@
+PROVENANCE build=repair-tenant-anchor commit=ad8d12a2d89fda231d3dabbde5ab5a55232f55ed dirty=true
+BASE origin/develop
+added_t_skip=0 (expected 0)
+-- changed assertion lines (reviewed: stale-assertion updates cite #2122/#2248/#2276) --
++	assert.Equal(t, f.orgID, rr.TenantID, "应回填商户 org（#2248）")
++	assert.Equal(t, f.orgID, got.TenantID, "写入应把叶组织规范化为商户 org（#2248）")
++	assert.Empty(t, stored.SiteID, "#2122：选师后不再挂靠网点")
++	assert.Equal(t, f.orgID, stored.TenantID, "#2248：归属锚 = 商户 org")
++	assert.Equal(t, http.StatusNotFound, status)
++	assert.Equal(t, float64(40400), resp["code"])
++	assert.Len(t, list, 0, "#2122：网点账号不可见维修服务")
++	require.Equal(t, http.StatusOK, code)
++	assert.True(t, ids[idA], "本商户已选师单在列")
++	assert.True(t, ids[idB], "无 site 单（本商户）对商户账号可见")
++	assert.False(t, hasSite, "#2122：选师后不再返回 site 块")
++	require.True(t, hasMerchant, "详情应含 merchant 地址块")
++	assert.Equal(t, "测试商户", merchantBlock["name"])
++	assert.NotNil(t, merchantBlock["address"])
++	assert.Equal(t, http.StatusNotFound, code)

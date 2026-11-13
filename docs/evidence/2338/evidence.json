@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "issue": 2338,
+  "build": "repair-tenant-anchor 8dc3038a8",
+  "commit": "8dc3038a83b8f7921a3e429670533011ebd30c8e",
+  "dirty": false,
+  "environment": "local disposable PostgreSQL 16 @127.0.0.1:15433 (fsync=off); handlers template/clone lifecycle (#2341)",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2338-triage.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2338/R1-triage.json"
+      ],
+      "assert": "22 条均分类合法，stale-assertion 附生产代码证据",
+      "actual": "22/22：product-defect=14，stale-assertion=8，order-dependent=0",
+      "expected": "22",
+      "negative": "缺条/非法分类/缺证据 → exit 1",
+      "negative_result": "逐条校验 class ∈ 3 类且 stale 行必须带 note",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/run-2338-group-a.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2338/R2-group-a.txt"
+      ],
+      "assert": "exit 0 且 0 FAIL",
+      "actual": "22/22 PASS，0 FAIL",
+      "expected": "0 fail",
+      "negative": "任一 FAIL/timeout → 非 0",
+      "negative_result": "go test 失败即非 0",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2338-containment.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2338/R3-containment.txt"
+      ],
+      "assert": "FAIL ≤9 且 ⊆ Group B 白名单",
+      "actual": "fail_count=9，全部 ∈ {BatchCreateOrder,CreateRentalOrder,GetUserInstrumentDetail,InspectReturn,RefundDiff x2,ScenarioA,ScenarioC,SettlementFlow}",
+      "expected": "≤9",
+      "negative": "白名单外 FAIL → exit 1",
+      "negative_result": "逐条 -vxF 比对白名单，出现白名单外即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2338-redgreen.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2338/R4-redgreen.txt"
+      ],
+      "assert": "14 个 product-defect 均有 pre-fix 红 + post-fix 绿",
+      "actual": "red=14 green=14（红=#2336 基线 3e50bc494 隔离运行；绿=当前 R2）",
+      "expected": "成对齐全",
+      "negative": "缺红/缺绿 → exit 1",
+      "negative_result": "缺任一即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2338-hygiene.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2338/R5-hygiene.txt"
+      ],
+      "assert": "新增 t.Skip=0；断言变更逐条列示",
+      "actual": "added_t_skip=0；8 条 stale-assertion 更新均引用 #2122/#2248/#2276 生产代码",
+      "expected": "0",
+      "negative": "出现 skip → exit 1",
+      "negative_result": "计数非 0 即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R12",
+      "command": "bash scripts/verify-2338-readsites.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2338/R12-inventory.json"
+      ],
+      "assert": "每个生产读点均有分类",
+      "actual": "41 个命中点全部分类（org-anchor-needed / technician-flow）",
+      "expected": "全覆盖",
+      "negative": "漏分类 → exit 1",
+      "negative_result": "无命中即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R13",
+      "command": "bash scripts/verify-2338-legacy-audit.sh",
+      "exit": 2,
+      "artifacts": [
+        "docs/evidence/2338/R13-legacy-audit.txt"
+      ],
+      "assert": "dev 库只读 COUNT：total/org_anchored/legacy",
+      "actual": "BLOCKED：本环境无法访问 dev 库（docker socket 权限拒绝；127.0.0.1:5432 凭据不可用；.env 缺失）",
+      "expected": "留痕完整",
+      "negative": "查询失败 → exit 2",
+      "negative_result": "脚本以 exit 2 显式阻塞，未做任何写入",
+      "pass": false
+    }
+  ]
+}
