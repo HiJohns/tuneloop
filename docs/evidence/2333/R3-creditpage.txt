@@ -1,10 +1,16 @@
-$ cd frontend-mobile && node --max-old-space-size=4096 node_modules/.bin/taro build --type weapp
-  Compiled successfully in 1.35m
+$ npm run build:weapp (node v22.23.5)
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+✔ Webpack
+  Compiled successfully in 46.42s
 
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+BUILD_RC=0
 $ grep -rlE '<(div|span|img|button|input|textarea|p|select|a)\b' dist-weapp --include='*.wxml' | grep -v '/base.wxml$'
-(empty output = pass)
-
-$ ls dist-weapp/pages-weapp/credit-assessment
-index.js
-index.json
-index.wxml
+PROBE: EMPTY (pass)

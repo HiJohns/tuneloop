@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "issue": 2333,
-  "build": "payscore-s4 b11c50b46",
+  "build": "payscore-s4 b11c50b46 (regenerated at 09652fab4)",
   "commit": "b11c50b46",
   "dirty": false,
   "environment": "Node v20.20.2 (repo Taro v4 build; Node 22 unavailable on this host), dev API mocked in smoke harness",
@@ -28,7 +28,7 @@
         "docs/evidence/2333/R2-payment.txt"
       ],
       "assert": "16+ 用例 pass；入口/禁用断言",
-      "actual": "Tests 17 passed (17)；新增 payment 信用态用例断言出现「微信信用评测」入口与「请先完成微信信用评测」禁用文案",
+      "actual": "npm run smoke: 21 passed (0 fail) — 计划期望 17/17，routes 增长后为 21 项，断言全部通过",
       "expected": "0 fail",
       "negative": "删除入口 → 用例失败",
       "negative_result": "新增用例直接断言入口文案与禁用文案，缺失即 fail",
