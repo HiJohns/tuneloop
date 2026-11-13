@@ -13,7 +13,7 @@
       "artifacts": [
         "docs/evidence/2343/R1-unit.txt"
       ],
-      "assert": "退出码 0；输出含 `Test Files  1 passed`；用例覆盖 V1–V3 边界",
+      "assert": "退出码 0；输出含 Test Files  1 passed；用例覆盖 V1–V3 边界",
       "actual": "4/4 PASS；fallback/负值/越界、viewport+1、阈值 300/301、scrollHeight=0 全覆盖",
       "expected": "Test Files  1 passed",
       "negative": "旧 2000px 垫片模型或 fallback 越界时用例失败",
@@ -27,7 +27,7 @@
       "artifacts": [
         "docs/evidence/2343/R2-eslint.txt"
       ],
-      "assert": "退出码 0；`0 errors`；无 `no-undef`",
+      "assert": "退出码 0；0 errors；无 no-undef",
       "actual": "0 errors（4 条既有 i18n warning）",
       "expected": "0 errors",
       "negative": "出现 no-undef 或解析错误 → 非 0",
@@ -55,10 +55,10 @@
       "artifacts": [
         "docs/evidence/2343/R4-probe.txt"
       ],
-      "assert": "退出码 0 且产物 0 字节",
+      "assert": "退出码 0 且产物 0 字节（无原生 HTML 交互/媒体标签）",
       "actual": "0 字节（无原生 HTML 交互/媒体标签）",
       "expected": "0 字节",
-      "negative": "出现 <div 等 → grep 命中 → 退出码 1",
+      "negative": "产物含 <div 等 → grep 命中 → 退出码 1",
       "negative_result": "probe 文件 0 字节",
       "pass": true
     },
@@ -69,7 +69,7 @@
       "artifacts": [
         "docs/evidence/2343/R5-manual.md"
       ],
-      "assert": "回执含 `executor: user`、设备/工具、步骤、`RESULT: PASS`；截图存在",
+      "assert": "回执含 executor: user、设备/工具、步骤、RESULT: PASS；截图存在",
       "actual": "用户确认「三者我都确认了，没问题」；截图经用户明确豁免（加载态过短无法捕捉），未伪造 png；回执含 RESULT: PASS",
       "expected": "RESULT: PASS",
       "negative": "缺失回执/截图或写 FAIL → 命令非 0",
@@ -83,7 +83,7 @@
       "artifacts": [
         "docs/evidence/2343/R6-manual.md"
       ],
-      "assert": "短/空列表切换后无回弹；回执含 `RESULT: PASS`",
+      "assert": "短/空列表切换后无回弹；回执含 RESULT: PASS",
       "actual": "用户确认无回弹；截图豁免；回执含 RESULT: PASS",
       "expected": "RESULT: PASS",
       "negative": "出现回弹/复位或回执缺失 → 非 0",
@@ -97,7 +97,7 @@
       "artifacts": [
         "docs/evidence/2343/R7-manual.md"
       ],
-      "assert": "距底约 300px 时出现加载中并追加下一页；回执含 `RESULT: PASS`",
+      "assert": "距底约 300px 时出现加载中并追加下一页；回执含 RESULT: PASS",
       "actual": "用户确认自动加载正常（加载态过快无截图）；回执含 RESULT: PASS",
       "expected": "RESULT: PASS",
       "negative": "不加载/重复加载/回执缺失 → 非 0",
