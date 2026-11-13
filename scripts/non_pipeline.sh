@@ -1,1 +1,0 @@
-/home/coder/.config/opencode/scripts/non_pipeline.sh

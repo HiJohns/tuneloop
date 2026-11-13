@@ -1,1 +1,0 @@
-/home/coder/.config/opencode/scripts/check_unlabeled.sh

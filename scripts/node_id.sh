@@ -1,1 +1,0 @@
-/home/coder/.config/opencode/scripts/node_id.sh

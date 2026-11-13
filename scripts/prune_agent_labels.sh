@@ -1,1 +1,0 @@
-/home/coder/.config/opencode/scripts/prune_agent_labels.sh
