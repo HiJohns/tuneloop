@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "issue": 2342,
+  "build": "migrations-fresh-install 38f199638",
+  "commit": "38f199638a33d3b7c0cada6298a2c385f9e085ed",
+  "dirty": false,
+  "environment": "disposable PG16 127.0.0.1:15433 (tmp/pgdata); template tuneloop_test_template, run DB tuneloop_test_2342",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/run-2342-replay.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2342/R1-replay.txt"
+      ],
+      "assert": "无模板→构建成功；migrations 全链 applied；meta 戳含应用计数；定向 14 用例 exit 0",
+      "actual": "RED: raw replay exits 1 with FATAL ... relation \"appeals\" does not exist (#2341); GREEN: shimmed replay exit 0, 217 up files / 1730 statements, version=20261112003, meta stamped",
+      "expected": "PASS",
+      "negative": "去掉 shim 复现 CREATE TABLE 冲突（红）",
+      "negative_result": "raw (non-shimmed) replay hard-fails on 20260630003 ALTER appeals (relation does not exist) — red asserted, not swallowed",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/run-2342-replay.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2342/R2-idempotent.txt"
+      ],
+      "assert": "同库第二次构建 exit 0 且 meta 一致",
+      "actual": "second build exit 0, no rebuild (no 'migrations replayed'), meta identical: model/seed/migrations hashes + 217 + 20261112003",
+      "expected": "PASS",
+      "negative": "二次构建失败 → exit 1",
+      "negative_result": "grep 'migrations replayed' in R2 artifact aborts with exit 1; meta before/after must be byte-identical",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2342-stale.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2342/R3-stale-rebuild.txt"
+      ],
+      "assert": "篡改 meta 戳→检测过期→重建→新戳落库",
+      "actual": "tampered stamp migrations_hash=stale-tampered/count=0 -> next build printed '[test-template] migrations replayed' + 'Built test template', meta restored to the healthy stamp",
+      "expected": "HEALED",
+      "negative": "静默复用 → exit 1",
+      "negative_result": "missing 'Built test template' or unchanged stamp -> exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/run-2342-migration-tests.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2342/R4-migration-tests.txt"
+      ],
+      "assert": "4 用例 4/4 PASS",
+      "actual": "4/4 PASS (TestCentsMigration_20260820001, TestGiftPolicyReferralPresetMigration, TestPromoOverride_CheckConstraintMigration, TestPromoOverride_CrossMerchantForbidden_2260)",
+      "expected": "4",
+      "negative": "任一 FAIL → exit 1",
+      "negative_result": "any failing case -> go test non-zero -> exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2342-docs.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2342/R5-docs.txt"
+      ],
+      "assert": "中英文档存在且含 shim 规则/失败处理/#2341 链接",
+      "actual": "zh+en docs contain shim rules (IF NOT EXISTS / to_regclass), failure handling, #2341/#2342; stale 'template does not apply migrations' wording removed",
+      "expected": "COMPLETE",
+      "negative": "缺节 → exit 1",
+      "negative_result": "any missing section or the obsolete wording -> RESULT: INCOMPLETE + exit 1",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2342-gate.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2342/R6-gate.txt"
+      ],
+      "assert": "exit 0",
+      "actual": "go build . + go test ./services/ ./database/ exit 0",
+      "expected": "0 fail",
+      "negative": "build/test 失败",
+      "negative_result": "build/test failure -> exit 1",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2342-cleanup.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2342/R7-cleanup.txt"
+      ],
+      "assert": "run 库不存在、模板存在",
+      "actual": "run DB tuneloop_test_2342 absent after suite exit; tuneloop_test_template kept",
+      "expected": "CLEAN",
+      "negative": "run 库残留 → exit 1",
+      "negative_result": "run DB present or template missing -> exit 1",
+      "pass": true
+    }
+  ]
+}

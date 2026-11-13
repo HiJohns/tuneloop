@@ -1,0 +1,16 @@
+PROVENANCE build=migrations-fresh-install commit=38f199638a33d3b7c0cada6298a2c385f9e085ed dirty=false
+=== R2: second build on the same template DB (no drop, no rebuild expected) ===
+CMD (cd backend && go test ./handlers/ -run TestDatabaseIsolation -count=1 -v)
+[DEBUG] Loaded .env from: ../.env
+2026/11/13 20:48:56 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2342 sslmode=disable
+2026/11/13 20:48:57 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2342
+2026/11/13 20:48:57 [DB] Connected to database 'tuneloop_test_2342'
+=== RUN   TestDatabaseIsolation
+2026/11/13 20:48:57 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2342 sslmode=disable
+--- PASS: TestDatabaseIsolation (0.00s)
+PASS
+ok  	tuneloop-backend/handlers	0.600s
+--- template meta before ---
+e7e2ffa4fb8393f300803b0bcf142d27a1ffa2b7|e3dd9d1cc5292b3095dd302c66576a5ffc770d49|5240c564b4bf8f55b323e0c78a94b216ffcaf1d9|217|20261112003
+--- template meta after ---
+e7e2ffa4fb8393f300803b0bcf142d27a1ffa2b7|e3dd9d1cc5292b3095dd302c66576a5ffc770d49|5240c564b4bf8f55b323e0c78a94b216ffcaf1d9|217|20261112003

@@ -1,0 +1,13 @@
+PROVENANCE build=migrations-fresh-install commit=38f199638a33d3b7c0cada6298a2c385f9e085ed dirty=false
+=== R3: tamper template meta stamp -> next build must rebuild ===
+--- meta before tampering ---
+e7e2ffa4fb8393f300803b0bcf142d27a1ffa2b7|e3dd9d1cc5292b3095dd302c66576a5ffc770d49|5240c564b4bf8f55b323e0c78a94b216ffcaf1d9|217|20261112003
+--- meta after tampering (migrations_hash='stale-tampered', count=0) ---
+e7e2ffa4fb8393f300803b0bcf142d27a1ffa2b7|e3dd9d1cc5292b3095dd302c66576a5ffc770d49|stale-tampered|0|20261112003
+exit=0
+--- rebuild log (expect 'Built test template' + 'migrations replayed') ---
+[test-template] migrations replayed: files=399 up=217 statements=1730 create_table=14 create_index=0 index_guard=272 dml_guard=53 alter_table=973 add_column=6 version=20261112003
+Built test template tuneloop_test_template
+--- meta after rebuild ---
+e7e2ffa4fb8393f300803b0bcf142d27a1ffa2b7|e3dd9d1cc5292b3095dd302c66576a5ffc770d49|5240c564b4bf8f55b323e0c78a94b216ffcaf1d9|217|20261112003
+RESULT: HEALED

@@ -1,0 +1,9 @@
+PROVENANCE build=migrations-fresh-install commit=38f199638a33d3b7c0cada6298a2c385f9e085ed dirty=false
+=== R7: run DB is dropped on suite exit, template is kept ===
+CMD (cd backend && go test ./handlers/ -run TestDatabaseIsolation -count=1 -v)
+exit=0
+--- databases before ---
+tuneloop_test_template=template
+--- databases after ---
+tuneloop_test_template=template
+RESULT: CLEAN

@@ -1,0 +1,17 @@
+PROVENANCE build=migrations-fresh-install commit=38f199638a33d3b7c0cada6298a2c385f9e085ed dirty=false
+=== R5: docs contract (zh + en) ===
+OK   origin-link: docs/ops/test-db-lifecycle.md contains '#2341'
+OK   origin-link: docs/en/ops/test-db-lifecycle.md contains '#2341'
+OK   issue-link: docs/ops/test-db-lifecycle.md contains '#2342'
+OK   issue-link: docs/en/ops/test-db-lifecycle.md contains '#2342'
+OK   shim-rule: docs/ops/test-db-lifecycle.md contains 'IF NOT EXISTS'
+OK   shim-rule: docs/en/ops/test-db-lifecycle.md contains 'IF NOT EXISTS'
+OK   guard-rule: docs/ops/test-db-lifecycle.md contains 'to_regclass'
+OK   guard-rule: docs/en/ops/test-db-lifecycle.md contains 'to_regclass'
+OK   idempotent: docs/ops/test-db-lifecycle.md contains '幂等'
+OK   idempotent: docs/en/ops/test-db-lifecycle.md contains 'idempotent'
+OK   failure-handling: docs/ops/test-db-lifecycle.md contains '失败处理'
+OK   failure-handling: docs/en/ops/test-db-lifecycle.md contains 'Failure handling'
+OK   no-silent-skip: docs/ops/test-db-lifecycle.md contains '禁止静默跳过'
+OK   no-silent-skip: docs/en/ops/test-db-lifecycle.md contains 'no silent skips'
+RESULT: COMPLETE
