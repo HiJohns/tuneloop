@@ -1,0 +1,23 @@
+PROVENANCE build=migrations-fresh-install commit=9fdb669b95f521ead37110a035b9f10c24d48d65 dirty=false
+CMD go test ./handlers/ -run 'TestDatabaseIsolation' -count=1 -v  (builds template: shimmed migrations -> AutoMigrate(missing) -> seed)
+[DEBUG] Loaded .env from: ../.env
+2026/11/13 20:24:15 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2342 sslmode=disable
+[test-template] migrations replayed: files=399 up=217 statements=1730 create_table=14 create_index=0 index_guard=272 dml_guard=53 alter_table=973 add_column=6 version=20261112003
+Built test template tuneloop_test_template
+2026/11/13 20:24:17 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2342
+2026/11/13 20:24:17 [DB] Connected to database 'tuneloop_test_2342'
+=== RUN   TestDatabaseIsolation
+2026/11/13 20:24:17 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2342 sslmode=disable
+--- PASS: TestDatabaseIsolation (0.00s)
+PASS
+ok  	tuneloop-backend/handlers	2.645s
+--- second build (idempotent, no rebuild expected) ---
+[DEBUG] Loaded .env from: ../.env
+2026/11/13 20:24:23 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2342 sslmode=disable
+2026/11/13 20:24:23 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2342
+2026/11/13 20:24:23 [DB] Connected to database 'tuneloop_test_2342'
+=== RUN   TestDatabaseIsolation
+2026/11/13 20:24:23 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2342 sslmode=disable
+--- PASS: TestDatabaseIsolation (0.00s)
+PASS
+ok  	tuneloop-backend/handlers	0.476s
