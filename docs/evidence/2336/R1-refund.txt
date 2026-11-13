@@ -1,39 +1,40 @@
+PROVENANCE build=handlers-test-infra commit=900697eaf639e845456b5e98663b7bcbb5285c39 dirty=false
+CMD go test ./handlers/ -run TestCancelOrderByCustomer_StatusGuard -count=1 -v
 [WARNING] No .env file found in common paths
-2026/11/12 19:07:05 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/12 19:07:05 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/12 19:07:05 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/12 19:07:05 [DB] Connected to database 'tuneloop_test_local'
+2026/11/13 13:33:42 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2336 sslmode=disable
+2026/11/13 13:33:42 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2336
+2026/11/13 13:33:42 [DB] Connected to database 'tuneloop_test_2336'
 === RUN   TestCancelOrderByCustomer_StatusGuard
-2026/11/12 19:07:18 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
-2026/11/12 19:07:18 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/12 19:07:18 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/12 19:07:18 [DB] Connected to database 'tuneloop_test_local'
+2026/11/13 13:33:43 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
+2026/11/13 13:33:43 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2336 sslmode=disable
+2026/11/13 13:33:43 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2336
+2026/11/13 13:33:43 [DB] Connected to database 'tuneloop_test_2336'
 === RUN   TestCancelOrderByCustomer_StatusGuard/paid_cancel_succeeds_with_refund_status
 
-2026/11/12 19:07:20 [31;1m/home/coder/tuneloop/backend/handlers/order.go:1128 [35;1mrecord not found
-[0m[33m[0.498ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE iam_sub = '00000000-0000-0000-0000-0000000000c3' ORDER BY "users"."id" LIMIT 1
+2026/11/13 13:33:44 [31;1m/home/coder/tuneloop/backend/handlers/order.go:1128 [35;1mrecord not found
+[0m[33m[1.164ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE iam_sub = '00000000-0000-0000-0000-0000000000c3' ORDER BY "users"."id" LIMIT 1
 
-2026/11/12 19:07:20 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:19 [35;1mrecord not found
-[0m[33m[0.871ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE id = '00000000-0000-0000-0000-0000000000c3' OR iam_sub = '00000000-0000-0000-0000-0000000000c3' ORDER BY "users"."id" LIMIT 1
-2026/11/12 19:07:20 [processRefundCallback] membership level check failed: record not found
-2026/11/12 19:07:20 [processRefundCallback] refund processed: out_refund_no=can_2d45d758_1794510440 refund_id=stub-refund-001
+2026/11/13 13:33:44 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:19 [35;1mrecord not found
+[0m[33m[0.465ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE id = '00000000-0000-0000-0000-0000000000c3' OR iam_sub = '00000000-0000-0000-0000-0000000000c3' ORDER BY "users"."id" LIMIT 1
+2026/11/13 13:33:44 [processRefundCallback] membership level check failed: record not found
+2026/11/13 13:33:44 [processRefundCallback] refund processed: out_refund_no=can_3a672ce8_1794576824 refund_id=stub-refund-001
 === RUN   TestCancelOrderByCustomer_StatusGuard/in_lease_cancel_rejected
 
-2026/11/12 19:07:20 [31;1m/home/coder/tuneloop/backend/handlers/order.go:1128 [35;1mrecord not found
-[0m[33m[0.503ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE iam_sub = '00000000-0000-0000-0000-0000000000c3' ORDER BY "users"."id" LIMIT 1
+2026/11/13 13:33:44 [31;1m/home/coder/tuneloop/backend/handlers/order.go:1128 [35;1mrecord not found
+[0m[33m[0.458ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE iam_sub = '00000000-0000-0000-0000-0000000000c3' ORDER BY "users"."id" LIMIT 1
 === RUN   TestCancelOrderByCustomer_StatusGuard/in_transit_cancel_rejected
 
-2026/11/12 19:07:21 [31;1m/home/coder/tuneloop/backend/handlers/order.go:1128 [35;1mrecord not found
-[0m[33m[3.568ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE iam_sub = '00000000-0000-0000-0000-0000000000c3' ORDER BY "users"."id" LIMIT 1
+2026/11/13 13:33:44 [31;1m/home/coder/tuneloop/backend/handlers/order.go:1128 [35;1mrecord not found
+[0m[33m[0.376ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE iam_sub = '00000000-0000-0000-0000-0000000000c3' ORDER BY "users"."id" LIMIT 1
 === RUN   TestCancelOrderByCustomer_StatusGuard/reserved_cancel_succeeds_without_refund
 
-2026/11/12 19:07:21 [31;1m/home/coder/tuneloop/backend/handlers/order.go:1128 [35;1mrecord not found
+2026/11/13 13:33:44 [31;1m/home/coder/tuneloop/backend/handlers/order.go:1128 [35;1mrecord not found
 [0m[33m[0.401ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE iam_sub = '00000000-0000-0000-0000-0000000000c3' ORDER BY "users"."id" LIMIT 1
-2026/11/12 19:07:21 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
---- PASS: TestCancelOrderByCustomer_StatusGuard (2.21s)
-    --- PASS: TestCancelOrderByCustomer_StatusGuard/paid_cancel_succeeds_with_refund_status (0.05s)
-    --- PASS: TestCancelOrderByCustomer_StatusGuard/in_lease_cancel_rejected (0.01s)
-    --- PASS: TestCancelOrderByCustomer_StatusGuard/in_transit_cancel_rejected (0.01s)
-    --- PASS: TestCancelOrderByCustomer_StatusGuard/reserved_cancel_succeeds_without_refund (0.01s)
+2026/11/13 13:33:44 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
+--- PASS: TestCancelOrderByCustomer_StatusGuard (1.45s)
+    --- PASS: TestCancelOrderByCustomer_StatusGuard/paid_cancel_succeeds_with_refund_status (0.02s)
+    --- PASS: TestCancelOrderByCustomer_StatusGuard/in_lease_cancel_rejected (0.00s)
+    --- PASS: TestCancelOrderByCustomer_StatusGuard/in_transit_cancel_rejected (0.00s)
+    --- PASS: TestCancelOrderByCustomer_StatusGuard/reserved_cancel_succeeds_without_refund (0.00s)
 PASS
-ok  	tuneloop-backend/handlers	15.492s
+ok  	tuneloop-backend/handlers	2.053s

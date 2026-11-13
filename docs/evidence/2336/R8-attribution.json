@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "issue": 2336,
+  "provenance": "build=handlers-test-infra commit=900697eaf639e845456b5e98663b7bcbb5285c39 dirty=false",
+  "exit": 1,
+  "fail_count": 31,
+  "baseline_count": 31,
+  "migration_count": 4,
+  "rows": [
+    {
+      "name": "TestAdjust2116_RejectedWhileShipping",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestBatchCreateOrder_RentDaysOverridesEndDate",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestCreateRentalOrder",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestDispatch2122_ShortfallNotification",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestGetUserInstrumentDetail",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestInspectReturn_Good_ExecutesRefund",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestListMerchantRepairServices_SharedTenantNoLeak_2248",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestListRecords_DamageObject",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestListTasks2116_IncludesSubmitterName",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestRefundDiff_PointsOverCap",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestRefundDiff_PointsWithinCap",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestRepairService_AdjustAcceptPaysDifference",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestRepairService_AdjustDeclineSettlement",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestRepairService_CouponDispatchDeduction_2096",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestRepairService_CreateNormalizesTenant_2134",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestRepairService_DeclineQuote_2093",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestRepairService_DetailSite",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestRepairService_HappyPathSettlementRefund",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestRepairService_ListMineStatusFilter",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestRepairService_Notifications_2090",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestRepairService_PaymentTimeout_PreservesPending_2097",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestRepairService_PaymentsSummary",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestRepairService_SettlementShortfall",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestRepairService_ShortfallPrepay",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestRepairService_StatusGuardsAndTenantIsolation",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestRepairService_TaskListScopes",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestRepairService_Timeline",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestScenarioA_DamageVariant",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestScenarioC_CancelBoundary",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestSelectTechnician2122_NoSiteMerchantOnly",
+      "attribution": "pre-existing(#2338/#2339)"
+    },
+    {
+      "name": "TestSettlementFlow",
+      "attribution": "pre-existing(#2338/#2339)"
+    }
+  ],
+  "unattributed": [],
+  "pass": true
+}

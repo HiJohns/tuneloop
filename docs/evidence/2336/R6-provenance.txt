@@ -1,0 +1,5 @@
+PROVENANCE build=handlers-test-infra commit=900697eaf639e845456b5e98663b7bcbb5285c39 dirty=false
+CMD git show 3df4a1576 -- backend/handlers/user_rental.go | grep -cE '^\+.*Rollback'
+rollback_added=6 expected=6
+explicit_tenant_scope_only_hits=1 expected=1
+62:+	db = db.WithContext(database.ExplicitTenantScopeOnly(scopeCtx))

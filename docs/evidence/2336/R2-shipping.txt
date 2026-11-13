@@ -1,72 +1,78 @@
+PROVENANCE build=handlers-test-infra commit=900697eaf639e845456b5e98663b7bcbb5285c39 dirty=false
+CMD go test ./handlers/ ./services/ -run 'TestWarehouse|TestUploadShipping|TestUpdateShipping|TestReportWechatShipping|TestShippingFlow|TestPaymentCallback.*Shipping' -count=1 -v
 # github.com/mattn/go-sqlite3
 sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
 sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
 123133 |   zTail = strrchr(zName, '_');
        |         ^
 [WARNING] No .env file found in common paths
-2026/11/12 19:07:35 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/12 19:07:35 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/12 19:07:35 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/12 19:07:35 [DB] Connected to database 'tuneloop_test_local'
-testing: warning: no tests to run
-PASS
-ok  	tuneloop-backend/handlers	20.027s [no tests to run]
-[WARNING] No .env file found in common paths
-=== RUN   TestUploadShippingInfoWithRetry_RetriesOnSyncDelay
-2026/11/12 19:07:44 [WechatShipping] upload attempt 1/2 failed for virtual membership (out_trade_no=out_trade_1 transaction_id=tx_1): wechat upload_shipping_info error 10060001: 支付单不存在
-2026/11/12 19:07:44 [WechatShipping] upload_shipping_info ok label=virtual membership out_trade_no=out_trade_1 transaction_id=tx_1
---- PASS: TestUploadShippingInfoWithRetry_RetriesOnSyncDelay (0.02s)
-=== RUN   TestUploadShippingInfoWithRetry_GivesUpAfterExhaustion
-2026/11/12 19:07:44 [WechatShipping] upload attempt 1/2 failed for virtual membership (out_trade_no=out_trade_2 transaction_id=tx_2): wechat upload_shipping_info error 10060001: 支付单不存在
-2026/11/12 19:07:44 [WechatShipping] upload attempt 2/2 failed for virtual membership (out_trade_no=out_trade_2 transaction_id=tx_2): wechat upload_shipping_info error 10060001: 支付单不存在
-2026/11/12 19:07:44 [WechatShipping] upload_shipping_info gave up after 2 attempts for virtual membership (out_trade_no=out_trade_2 transaction_id=tx_2): wechat upload_shipping_info error 10060001: 支付单不存在
---- PASS: TestUploadShippingInfoWithRetry_GivesUpAfterExhaustion (0.01s)
-PASS
-ok  	tuneloop-backend/services	0.092s
-
-=== supplementary: actual shipping handler tests (not matched by the plan regex) ===
-[WARNING] No .env file found in common paths
-2026/11/12 19:08:09 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/12 19:08:09 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/12 19:08:09 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/12 19:08:09 [DB] Connected to database 'tuneloop_test_local'
+2026/11/13 13:33:53 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2336 sslmode=disable
+2026/11/13 13:33:53 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2336
+2026/11/13 13:33:53 [DB] Connected to database 'tuneloop_test_2336'
 === RUN   TestUpdateShipping_VerifyRequired
-2026/11/12 19:08:24 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/12 19:08:24 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/12 19:08:24 [DB] Connected to database 'tuneloop_test_local'
+2026/11/13 13:33:54 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2336 sslmode=disable
+2026/11/13 13:33:54 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2336
+2026/11/13 13:33:54 [DB] Connected to database 'tuneloop_test_2336'
 [GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
  - using env:	export GIN_MODE=release
  - using code:	gin.SetMode(gin.ReleaseMode)
 
 [GIN-debug] PUT    /warehouse/orders/:id/shipping --> tuneloop-backend/handlers.(*WarehouseHandler).UpdateShipping-fm (2 handlers)
 
-2026/11/12 19:08:25 [31;1m/home/coder/tuneloop/backend/handlers/face_verify_status.go:45 [35;1mrecord not found
-[0m[33m[1.268ms] [34;1m[rows:0][0m SELECT * FROM "face_capture_batches" WHERE user_id = 'f178788f-503f-4573-8b16-7db7743485ab' ORDER BY submitted_at DESC,"face_capture_batches"."id" LIMIT 1
---- PASS: TestUpdateShipping_VerifyRequired (0.66s)
+2026/11/13 13:33:56 [31;1m/home/coder/tuneloop/backend/handlers/face_verify_status.go:45 [35;1mrecord not found
+[0m[33m[0.906ms] [34;1m[rows:0][0m SELECT * FROM "face_capture_batches" WHERE user_id = 'a7666ace-8762-4cd9-a124-09b3eabd6b3a' ORDER BY submitted_at DESC,"face_capture_batches"."id" LIMIT 1
+--- PASS: TestUpdateShipping_VerifyRequired (1.48s)
 === RUN   TestUpdateShipping
 
-2026/11/12 19:08:25 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:158 [35;1mrecord not found
-[0m[33m[5.496ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE id = '7d0c5254-b75a-4b54-a29f-055e474a9a58' ORDER BY "users"."id" LIMIT 1
+2026/11/13 13:33:56 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:158 [35;1mrecord not found
+[0m[33m[1.039ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE id = '2c1d6ed3-3ba2-4bf0-b230-dd4877727d09' ORDER BY "users"."id" LIMIT 1
 
-2026/11/12 19:08:25 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:206 [35;1mrecord not found
-[0m[33m[0.491ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE order_id = 'eb20ea99-5edd-4b3a-b035-35ea67fdb525' AND direction = 'outbound' AND status = 'pending' ORDER BY "forwarding_sessions"."id" LIMIT 1
+2026/11/13 13:33:56 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:206 [35;1mrecord not found
+[0m[33m[0.504ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE order_id = '2ca38d0c-8928-4894-b079-3d00c38a6ec1' AND direction = 'outbound' AND status = 'pending' ORDER BY "forwarding_sessions"."id" LIMIT 1
 
-2026/11/12 19:08:25 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:1024 [35;1mrecord not found
-[0m[33m[0.760ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE order_id = 'eb20ea99-5edd-4b3a-b035-35ea67fdb525' AND status = 'paid' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
-2026/11/12 19:08:25 [WechatShipping] no paid payment record for order eb20ea99-5edd-4b3a-b035-35ea67fdb525: record not found
+2026/11/13 13:33:56 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:1024 [35;1mrecord not found
+[0m[33m[0.562ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE order_id = '2ca38d0c-8928-4894-b079-3d00c38a6ec1' AND status = 'paid' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
+2026/11/13 13:33:56 [WechatShipping] no paid payment record for order 2ca38d0c-8928-4894-b079-3d00c38a6ec1: record not found
 
-2026/11/12 19:08:25 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
-[0m[33m[1.622ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '672fae17-faf9-4779-8561-a14c50bf7d9d' ORDER BY "merchants"."id" LIMIT 1
---- PASS: TestUpdateShipping (0.62s)
+2026/11/13 13:33:56 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[0.450ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = 'f5de8147-8605-4a66-8894-68fc6103eb53' ORDER BY "merchants"."id" LIMIT 1
+--- PASS: TestUpdateShipping (0.25s)
 === RUN   TestReportWechatShipping_OpenIDPriority
 === RUN   TestReportWechatShipping_OpenIDPriority/record_openid_wins_over_bindings
-2026/11/12 19:08:26 [WechatShipping] upload_shipping_info ok label=rent order 2b3bf66f-8f3c-4b75-973d-663be6280ca9 out_trade_no=rent390f26f3-dfe transaction_id=450000033719ffd2ba-5
+2026/11/13 13:33:56 [WechatShipping] upload_shipping_info ok label=rent order bd1e3bb9-1230-48e3-93b1-495f85c3c78f out_trade_no=rent43691d9f-a2a transaction_id=45000003376aeb12d1-5
 === RUN   TestReportWechatShipping_OpenIDPriority/record_empty_resolves_from_bindings
-2026/11/12 19:08:26 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:39053, clientID=test-ns, namespace=test-ns
-2026/11/12 19:08:26 [IAMClient] Obtained client credentials token, expires in 3600s
-2026/11/12 19:08:26 [WechatShipping] upload_shipping_info ok label=rent order dec29350-9c7b-444b-a58d-0eeaa5526c18 out_trade_no=rent3d7e0bfa-56a transaction_id=4500000337bb4a750b-d
---- PASS: TestReportWechatShipping_OpenIDPriority (0.42s)
-    --- PASS: TestReportWechatShipping_OpenIDPriority/record_openid_wins_over_bindings (0.04s)
-    --- PASS: TestReportWechatShipping_OpenIDPriority/record_empty_resolves_from_bindings (0.04s)
+2026/11/13 13:33:56 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:39923, clientID=test-ns, namespace=test-ns
+2026/11/13 13:33:56 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/13 13:33:56 [WechatShipping] upload_shipping_info ok label=rent order ae80cd9a-9465-4f89-bfa7-08d08297ae58 out_trade_no=rent9615732b-bb5 transaction_id=4500000337b951eb6d-c
+--- PASS: TestReportWechatShipping_OpenIDPriority (0.24s)
+    --- PASS: TestReportWechatShipping_OpenIDPriority/record_openid_wins_over_bindings (0.03s)
+    --- PASS: TestReportWechatShipping_OpenIDPriority/record_empty_resolves_from_bindings (0.03s)
+=== RUN   TestShippingFlow_StaffToken
+
+2026/11/13 13:33:57 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:158 [35;1mrecord not found
+[0m[33m[1.772ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE id = 'f257bfe6-d30c-4b9f-93a3-b9a2ba5d9eb6' ORDER BY "users"."id" LIMIT 1
+
+2026/11/13 13:33:57 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:206 [35;1mrecord not found
+[0m[33m[1.354ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE order_id = 'd1352d7a-47e4-46f4-b011-cc712e5568de' AND direction = 'outbound' AND status = 'pending' ORDER BY "forwarding_sessions"."id" LIMIT 1
+
+2026/11/13 13:33:57 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:1024 [35;1mrecord not found
+[0m[33m[0.468ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE order_id = 'd1352d7a-47e4-46f4-b011-cc712e5568de' AND status = 'paid' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
+2026/11/13 13:33:57 [WechatShipping] no paid payment record for order d1352d7a-47e4-46f4-b011-cc712e5568de: record not found
+
+2026/11/13 13:33:57 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[0.336ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '83c3a78a-a2c5-47d8-86b9-3184e81565d5' ORDER BY "merchants"."id" LIMIT 1
+--- PASS: TestShippingFlow_StaffToken (0.57s)
 PASS
-ok  	tuneloop-backend/handlers	16.381s
+ok  	tuneloop-backend/handlers	3.818s
+[WARNING] No .env file found in common paths
+=== RUN   TestUploadShippingInfoWithRetry_RetriesOnSyncDelay
+2026/11/13 13:33:57 [WechatShipping] upload attempt 1/2 failed for virtual membership (out_trade_no=out_trade_1 transaction_id=tx_1): wechat upload_shipping_info error 10060001: 支付单不存在
+2026/11/13 13:33:57 [WechatShipping] upload_shipping_info ok label=virtual membership out_trade_no=out_trade_1 transaction_id=tx_1
+--- PASS: TestUploadShippingInfoWithRetry_RetriesOnSyncDelay (0.01s)
+=== RUN   TestUploadShippingInfoWithRetry_GivesUpAfterExhaustion
+2026/11/13 13:33:57 [WechatShipping] upload attempt 1/2 failed for virtual membership (out_trade_no=out_trade_2 transaction_id=tx_2): wechat upload_shipping_info error 10060001: 支付单不存在
+2026/11/13 13:33:57 [WechatShipping] upload attempt 2/2 failed for virtual membership (out_trade_no=out_trade_2 transaction_id=tx_2): wechat upload_shipping_info error 10060001: 支付单不存在
+2026/11/13 13:33:57 [WechatShipping] upload_shipping_info gave up after 2 attempts for virtual membership (out_trade_no=out_trade_2 transaction_id=tx_2): wechat upload_shipping_info error 10060001: 支付单不存在
+--- PASS: TestUploadShippingInfoWithRetry_GivesUpAfterExhaustion (0.01s)
+PASS
+ok  	tuneloop-backend/services	0.073s

@@ -1,0 +1,5 @@
+PROVENANCE build=handlers-test-infra commit=900697eaf639e845456b5e98663b7bcbb5285c39 dirty=false
+CMD gh issue view 2341 --json number,state,labels,body
+state=closed labels=status:done
+links_parent=#2336 yes
+NOTE plan expected status:todo at acceptance; actual=status:done (deferral landed = stronger).

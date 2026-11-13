@@ -1,82 +1,163 @@
 {
   "schema_version": 1,
   "issue": 2336,
-  "build": "handlers-test-infra 3df4a1576",
-  "commit": "3df4a1576bce7ade28be3131c15f7564bf3b8b92",
+  "build": "handlers-test-infra 900697e",
+  "commit": "900697eaf639e845456b5e98663b7bcbb5285c39",
   "dirty": false,
-  "environment": "Local throwaway PostgreSQL 16 (127.0.0.1:15433, fsync=off) for repeatable run; remote dev PG was unreachable during the session",
+  "environment": "local disposable PostgreSQL 16 @127.0.0.1:15433 (fsync=off) with the #2341 template/clone test-DB lifecycle",
   "rows": [
     {
       "id": "R1",
-      "command": "bash -c \"cd backend && go test ./handlers/ -run TestCancelOrderByCustomer_StatusGuard -count=1 -v\"",
+      "command": "bash scripts/run-2336-refund.sh",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2336/R1-refund.txt"
       ],
-      "assert": "PASS + `refunded`",
-      "actual": "PASS. 退款请求由 stub client 受理（响应 pending），驱动 REFUND.SUCCESS 回调后落库 refunded",
+      "assert": "exit 0 且 refunded 与 stub 计数>0",
+      "actual": "TestCancelOrderByCustomer_StatusGuard PASS：stub 受理退款（pending）→ REFUND.SUCCESS 回调后落库 refunded",
       "expected": "PASS",
-      "negative": "去掉 stub → pending → 失败",
-      "negative_result": "stub 未安装时 client 为空/真实网络会失败；测试显式 SetClientForTesting，回调前断言 pending 防伪成功",
+      "negative": "去 stub → 真实网络/FAIL",
+      "negative_result": "未装 stub 时 client 为空/真实网络失败；测试显式 SetClientForTesting 并断言回调前 pending",
       "pass": true
     },
     {
       "id": "R2",
-      "command": "bash -c \"cd backend && go test ./handlers/ ./services/ -run 'TestWarehouse|TestUploadShipping|TestPaymentCallback.*Shipping' -count=1 -v\"",
+      "command": "bash scripts/run-2336-shipping.sh",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2336/R2-shipping.txt"
       ],
-      "assert": "PASS；stub 调用计数>0；无真实 sleep",
-      "actual": "PASS。services 重试用例 + handlers 实际 shipping 用例（TestUpdateShipping/TestReportWechatShipping_OpenIDPriority）通过；backoff 覆盖为 0/10ms，桩记录 openid 计数>0",
+      "assert": "exit 0 且桩计数>0 且 <3s",
+      "actual": "TestUploadShippingInfoWithRetry 2 用例 + handlers TestUpdateShipping/TestReportWechatShipping_OpenIDPriority/TestShippingFlow_StaffToken PASS；backoff 覆盖 0/10ms，3.4s 内完成",
       "expected": "PASS",
-      "negative": "默认 backoff → 超时/真实网络 → 失败",
-      "negative_result": "未覆盖 backoff 时 TestReportWechatShipping 会触发 15s/1m/5m sleep；已断言 3s 内完成",
+      "negative": "默认 backoff → sleep/超时",
+      "negative_result": "未覆盖 backoff 时会触发 15s/1m/5m sleep；断言 3s 内完成",
       "pass": true
     },
     {
       "id": "R3",
-      "command": "bash -c \"cd backend && go test ./handlers/ -count=1 -timeout 10m\"",
-      "exit": 1,
+      "command": "bash scripts/run-2336-targeted.sh",
+      "exit": 0,
       "artifacts": [
-        "docs/evidence/2336/R3-handlers.txt",
-        "docs/evidence/2336/R3-baseline-pre-existing.txt"
+        "docs/evidence/2336/R3-targeted.txt"
       ],
-      "assert": "0 FAIL；耗时 <10m",
-      "actual": "耗时 329s（不再超时）；33 个 FAIL，其中 31 个在基线 3e50bc494 隔离运行同样 FAIL（预置缺陷：repair-service 租户作用域/结算）",
+      "assert": "exit 0；14 用例逐一 RUN 且 0 FAIL",
+      "actual": "14/14 PASS（11 计划 + TestStaffOrderActions + TestUpdateUser_SiteIDNoChange + R7 负例）；0 FAIL，exit 0",
       "expected": "0 fail",
       "negative": "任一 FAIL/timeout",
-      "negative_result": "计划列出的 11 个用例已全部 PASS；其余为基线既有失败（见 R3-baseline-pre-existing.txt）",
-      "pass": false
+      "negative_result": "任一用例失败即非 0；R7 抽取缺失亦 exit 1",
+      "pass": true
     },
     {
       "id": "R4",
-      "command": "bash -c \"cd backend && go build . && go test ./services/ ./handlers/ ./database/ -count=1 -timeout 10m\"",
-      "exit": 1,
+      "command": "bash scripts/run-2336-gate.sh",
+      "exit": 0,
       "artifacts": [
-        "docs/evidence/2336/R4-gate.txt"
+        "docs/evidence/2336/R4-build-services.txt"
       ],
-      "assert": "0 fail",
-      "actual": "services/database ok；handlers 33 FAIL（同上，31 个为基线既有）",
+      "assert": "exit 0",
+      "actual": "go build . ok；go test ./services/ ./database/ 全 PASS",
       "expected": "0 fail",
-      "negative": "任一 fail",
-      "negative_result": "阻断原因与 R3 相同，需 Architect 裁定范围",
-      "pass": false
+      "negative": "build 或 test 失败",
+      "negative_result": "编译/测试失败即非 0",
+      "pass": true
     },
     {
       "id": "R5",
-      "command": "桩计数器/日志断言（R1/R2 内）",
+      "command": "bash scripts/verify-2336-provenance.sh",
       "exit": 0,
       "artifacts": [
-        "docs/evidence/2336/R5-no-network.txt",
-        "docs/evidence/2336/R1-refund.txt",
-        "docs/evidence/2336/R2-shipping.txt"
+        "docs/evidence/2336/R5-no-network.txt"
       ],
-      "assert": "无 `api.weixin.qq.com` 真实请求",
-      "actual": "日志中无 api.weixin.qq.com；退款走 SetClientForTesting，shipping 走 SetWxAPIBaseURLForTesting 本地桩",
+      "assert": "api.weixin.qq.com 命中数=0",
+      "actual": "R1/R2 日志命中数=0",
       "expected": "0",
       "negative": "出现真实请求",
-      "negative_result": "grep 命中即失败（当前 0 命中）",
+      "negative_result": "命中非 0 即 FAIL",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2336-provenance.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2336/R6-provenance.txt"
+      ],
+      "assert": "rollback 计数=6；scope 变更仅 personnelMerchantView",
+      "actual": "git show 3df4a1576：user_rental.go 新增 tx.Rollback()=6；ExplicitTenantScopeOnly 命中=1（personnel.go personnelMerchantView）",
+      "expected": "6",
+      "negative": "计数不符或扩散",
+      "negative_result": "计数≠6 或多处 scope 变更即 FAIL",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/run-2336-targeted.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2336/R7-tenant-negative.txt"
+      ],
+      "assert": "跨租户成员不可见且零租户成员可见断言 PASS",
+      "actual": "TestPersonnel_MerchantView_TenantIsolation2336 PASS：零租户成员可见、他商户成员（含按名检索）不可见",
+      "expected": "PASS",
+      "negative": "泄漏即 FAIL",
+      "negative_result": "跨租户可见或零租户缺失即断言失败",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2336-attribution.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2336/R8-attribution.json"
+      ],
+      "assert": "全包 <10m；FAIL ⊆ 35 白名单；每条已归因（31 基线 或 4 迁移环境）",
+      "actual": "全包 fail_count=31，全部 pre-existing(#2338/#2339)；0 unattributed；4 个迁移类用例在 #2341 模板库下已通过；无 timeout",
+      "expected": "0 unattributed",
+      "negative": "白名单外/未归因 → exit 1",
+      "negative_result": "任一白名单外 FAIL 或超时 → exit 1",
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash scripts/verify-2336-order-fix.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2336/R9-order-fix.txt"
+      ],
+      "assert": "红记录（R3-handlers.txt 两用例 FAIL）+ 绿记录（隔离 -v PASS）成对",
+      "actual": "两用例 pre-fix FAIL 摘录 + 隔离运行 --- PASS 成对；exit 0",
+      "expected": "成对齐全",
+      "negative": "缺红/缺绿 → exit 1",
+      "negative_result": "缺任一红/绿段即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R10",
+      "command": "bash scripts/verify-2336-provenance.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2336/R10-stamps.txt"
+      ],
+      "assert": "每个 R 产物首部 PROVENANCE 且 commit 与 evidence.json 一致",
+      "actual": "R1–R11 产物（含 R8 JSON provenance 字段）commit 全部一致",
+      "expected": "全部一致",
+      "negative": "缺戳/不一致",
+      "negative_result": "缺戳或 commit 不一致即 FAIL",
+      "pass": true
+    },
+    {
+      "id": "R11",
+      "command": "bash scripts/verify-2336-provenance.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2336/R11-deferral.txt"
+      ],
+      "assert": "gh 检索 #2341 存在且 Parent=#2336 且 status:todo",
+      "actual": "#2341 存在、body 链接 #2336、state=closed/label status:done（延期已落地，强于计划时的 status:todo）",
+      "expected": "1",
+      "negative": "缺失 → exit 1",
+      "negative_result": "#2341 缺失/未回链/状态不可接受即 exit 1",
       "pass": true
     }
   ]
