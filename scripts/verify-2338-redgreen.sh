@@ -15,7 +15,12 @@ export GOCACHE="${GOCACHE:-$PWD/tmp/gocache}"
 export PATH="/usr/local/go/bin:$PATH"
 mkdir -p docs/evidence/2338 "$TMPDIR" "$GOCACHE"
 PROVENANCE="build=repair-tenant-anchor commit=$(git rev-parse HEAD) dirty=$(test -z "$(git status --porcelain --untracked-files=no -- backend scripts)" && echo false || echo true)"
-python3 - <<'PY'
+OUT=docs/evidence/2338/R4-redgreen.txt
+{
+  echo "PROVENANCE $PROVENANCE"
+  echo "RED   docs/evidence/2336/R3-baseline-pre-existing.txt (baseline 3e50bc494)"
+  echo "GREEN docs/evidence/2338/R2-group-a.txt (fix ad8d12a2d)"
+  python3 - <<'PY'
 import json, re, sys
 triage = json.load(open("docs/evidence/2338/R1-triage.json"))
 red_text = open("docs/evidence/2336/R3-baseline-pre-existing.txt", errors="replace").read()
@@ -40,4 +45,6 @@ if missing_green:
     print("missing GREEN:", missing_green)
 sys.exit(0 if not missing_red and not missing_green else 1)
 PY
+} 2>&1 | tee "$OUT"
+grep -q "product-defect=" "$OUT" || { echo "R4 FAIL: no product-defect rows" >&2; exit 1; }
 echo "R4 PASS: red/green pairs complete"
