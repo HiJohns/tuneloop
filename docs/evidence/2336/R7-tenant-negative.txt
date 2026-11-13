@@ -1,3 +1,3 @@
-PROVENANCE build=handlers-test-infra commit=900697eaf639e845456b5e98663b7bcbb5285c39 dirty=false
+PROVENANCE build=handlers-test-infra commit=55ce829b89e3c0fab21295a977d4e27c0d04b231 dirty=false
 === RUN   TestPersonnel_MerchantView_TenantIsolation2336
---- PASS: TestPersonnel_MerchantView_TenantIsolation2336 (0.14s)
+--- PASS: TestPersonnel_MerchantView_TenantIsolation2336 (0.28s)
