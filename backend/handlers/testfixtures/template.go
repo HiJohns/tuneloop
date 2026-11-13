@@ -134,7 +134,7 @@ func EnsureTemplate(opts TemplateOptions) (bool, error) {
 		return false, fmt.Errorf("template: check exists: %w", err)
 	}
 	if exists {
-		ok, metaErr := templateUpToDate(conn, opts, wantHash, wantSeed)
+		ok, metaErr := templateUpToDate(opts, wantHash, wantSeed)
 		if metaErr == nil && ok {
 			return false, nil
 		}
@@ -147,16 +147,20 @@ func EnsureTemplate(opts TemplateOptions) (bool, error) {
 	return true, nil
 }
 
-func templateUpToDate(conn *sql.Conn, opts TemplateOptions, wantHash, wantSeed string) (bool, error) {
+func templateUpToDate(opts TemplateOptions, wantHash, wantSeed string) (bool, error) {
+	// meta 表在模板库内；必须连模板库查询（maintenance 连接看不到它）。
+	db, err := sql.Open("postgres", opts.dsn(opts.TemplateName))
+	if err != nil {
+		return false, err
+	}
+	defer db.Close()
 	var hash, seed string
-	err := conn.QueryRowContext(context.Background(),
-		fmt.Sprintf("SELECT model_hash, seed_hash FROM %s WHERE id = 1", metaTable)).Scan(&hash, &seed)
+	err = db.QueryRow(fmt.Sprintf("SELECT model_hash, seed_hash FROM %s WHERE id = 1", metaTable)).Scan(&hash, &seed)
 	if err != nil {
 		return false, err
 	}
 	return hash == wantHash && seed == wantSeed, nil
 }
-
 func rebuildTemplate(conn *sql.Conn, opts TemplateOptions, wantHash, wantSeed string) error {
 	if err := dropDatabase(conn, opts.TemplateName); err != nil {
 		return fmt.Errorf("template: drop: %w", err)
