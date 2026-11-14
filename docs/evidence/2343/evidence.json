@@ -22,7 +22,7 @@
     },
     {
       "id": "R2",
-      "command": "bash -c \"cd frontend-mobile && npx eslint src/utils/scrollLayout.js src/pages-weapp/Home.jsx src/components-weapp/BottomNav.jsx scripts/page-smoke/home-scroll-layout.test.jsx > ../docs/evidence/2343/R2-eslint.txt 2>&1\"",
+      "command": "bash -c \"cd frontend-mobile && npx eslint --no-ignore src/utils/scrollLayout.js src/pages-weapp/Home.jsx src/components-weapp/BottomNav.jsx scripts/page-smoke/home-scroll-layout.test.jsx > ../docs/evidence/2343/R2-eslint.txt 2>&1\"",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2343/R2-eslint.txt"
@@ -64,26 +64,26 @@
     },
     {
       "id": "R5",
-      "command": "bash -c \"test -s docs/evidence/2343/R5-manual.md && test -s docs/evidence/2343/R5-screenshot.png && grep -q 'RESULT: PASS' docs/evidence/2343/R5-manual.md\"",
+      "command": "bash -c \"test -s docs/evidence/2343/R5-manual.md && grep -q 'executor: user' docs/evidence/2343/R5-manual.md && grep -q 'RESULT: PASS' docs/evidence/2343/R5-manual.md\"",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2343/R5-manual.md"
       ],
-      "assert": "回执含 executor: user、设备/工具、步骤、RESULT: PASS；截图存在",
+      "assert": "回执含 executor: user、环境（体验版 1.0.79）、用户原话引用、RESULT: PASS；截图经 Owner 豁免（Rev.2）",
       "actual": "用户确认「三者我都确认了，没问题」；截图经用户明确豁免（加载态过短无法捕捉），未伪造 png；回执含 RESULT: PASS",
       "expected": "RESULT: PASS",
-      "negative": "缺失回执/截图或写 FAIL → 命令非 0",
+      "negative": "缺回执/写 FAIL/无 executor 标识 → 命令非 0",
       "negative_result": "用户 active confirmation 作为验收凭证；waiver 记录在 manual 文件与 Issue comment",
       "pass": true
     },
     {
       "id": "R6",
-      "command": "bash -c \"test -s docs/evidence/2343/R6-manual.md && test -s docs/evidence/2343/R6-screenshot.png && grep -q 'RESULT: PASS' docs/evidence/2343/R6-manual.md\"",
+      "command": "bash -c \"test -s docs/evidence/2343/R6-manual.md && grep -q 'executor: user' docs/evidence/2343/R6-manual.md && grep -q 'RESULT: PASS' docs/evidence/2343/R6-manual.md\"",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2343/R6-manual.md"
       ],
-      "assert": "短/空列表切换后无回弹；回执含 RESULT: PASS",
+      "assert": "短/空列表切换后无回弹；回执含 RESULT: PASS（截图经 Owner 豁免，Rev.2）",
       "actual": "用户确认无回弹；截图豁免；回执含 RESULT: PASS",
       "expected": "RESULT: PASS",
       "negative": "出现回弹/复位或回执缺失 → 非 0",
@@ -92,12 +92,12 @@
     },
     {
       "id": "R7",
-      "command": "bash -c \"test -s docs/evidence/2343/R7-manual.md && test -s docs/evidence/2343/R7-screenshot.png && grep -q 'RESULT: PASS' docs/evidence/2343/R7-manual.md\"",
+      "command": "bash -c \"test -s docs/evidence/2343/R7-manual.md && grep -q 'executor: user' docs/evidence/2343/R7-manual.md && grep -q 'RESULT: PASS' docs/evidence/2343/R7-manual.md\"",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2343/R7-manual.md"
       ],
-      "assert": "距底约 300px 时出现加载中并追加下一页；回执含 RESULT: PASS",
+      "assert": "距底约 300px 时出现加载中并追加下一页；回执含 RESULT: PASS（截图经 Owner 豁免，Rev.2）",
       "actual": "用户确认自动加载正常（加载态过快无截图）；回执含 RESULT: PASS",
       "expected": "RESULT: PASS",
       "negative": "不加载/重复加载/回执缺失 → 非 0",

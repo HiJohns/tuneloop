@@ -27,142 +27,111 @@ dencies 0/100 modules 1 active
  babel-loader › src/app.config.ts
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/116 entries 105/117 depen
-dencies 1/105 modules 83 active 
+● Webpack █████████████████████████ building (10%) 0/116 entries 104/117 depen
+dencies 1/104 modules 83 active 
  babel-loader › src/pages-weapp/payment-complete/index.config.ts
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (28%) 38/116 entries 116/130 depe
-ndencies 38/116 modules 78 active 
+● Webpack █████████████████████████ building (27%) 37/116 entries 116/132 depe
+ndencies 37/116 modules 79 active 
  babel-loader › src/pages-weapp/about/index.tsx
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (30%) 43/116 entries 145/204 depe
-ndencies 43/145 modules 73 active 
+● Webpack █████████████████████████ building (30%) 43/116 entries 116/204 depe
+ndencies 43/116 modules 73 active 
  babel-loader › src/pages-weapp/about/index.tsx
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (36%) 56/116 entries 204/303 depe
-ndencies 56/162 modules 82 active 
- taro-loader › src/pages-weapp/return-settlement/index.tsx
+● Webpack █████████████████████████ building (36%) 56/116 entries 232/295 depe
+ndencies 56/176 modules 78 active 
+ taro-loader › src/pages-weapp/profile/edit/index.tsx
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (36%) 56/116 entries 288/380 depe
-ndencies 56/194 modules 111 active 
- taro-loader › src/pages-weapp/tech-repair-workbench/index.tsx
+● Webpack █████████████████████████ building (36%) 56/116 entries 303/401 depe
+ndencies 56/198 modules 115 active 
+ taro-loader › src/pages-weapp/invoice-confirm/index.tsx
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
 ● Webpack █████████████████████████ building (36%)  
  import loader ./node_modules/postcss-loader/dist/cjs.js
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (36%) 56/116 entries 357/406 depe
-ndencies 56/205 modules 140 active 
- babel-loader › node_modules/@tarojs/taro/index.js
+● Webpack █████████████████████████ building (36%) 56/116 entries 360/409 depe
+ndencies 56/202 modules 145 active 
+ babel-loader › node_modules/@tarojs/react/dist/react.esm.js
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (36%) 56/116 entries 373/409 depe
-ndencies 56/213 modules 152 active 
- babel-loader › src/pages/ContentPage.jsx
+● Webpack █████████████████████████ building (36%) 56/116 entries 369/409 depe
+ndencies 56/209 modules 147 active 
+ babel-loader › src/pages/MembershipCenter.jsx
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (36%) 56/116 entries 495/700 depe
-ndencies 57/282 modules 156 active 
- babel-loader › src/pages-weapp/profile/edit/EditProfile.jsx
+● Webpack █████████████████████████ building (36%) 56/116 entries 470/600 depe
+ndencies 57/248 modules 152 active 
+ babel-loader › src/pages-weapp/payment/Payment.jsx
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (36%) 56/116 entries 690/780 depe
-ndencies 60/300 modules 154 active 
- babel-loader › src/pages/ReturnSettlement.jsx
+● Webpack █████████████████████████ building (36%) 56/116 entries 672/722 depe
+ndencies 59/304 modules 151 active 
+ babel-loader › src/pages/Setting.jsx
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (36%) 56/116 entries 746/780 depe
-ndencies 60/315 modules 189 active 
- babel-loader › node_modules/@tarojs/runtime/dist/perf.js
+● Webpack █████████████████████████ building (36%) 56/116 entries 712/800 depe
+ndencies 66/322 modules 219 active 
+ babel-loader › node_modules/@tarojs/runtime/dist/constants/index.js
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (36%) 56/116 entries 753/780 depe
-ndencies 60/321 modules 223 active 
- babel-loader › src/pages/About.jsx
-
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (36%) 56/116 entries 761/800 depe
-ndencies 61/322 modules 225 active 
- babel-loader › src/services/sessionToken.mjs
-
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (36%) 56/116 entries 1007/1450 de
-pendencies 70/336 modules 216 active 
- babel-loader › src/utils/creditFlow.mjs
-
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (36%) 56/116 entries 1369/1450 de
-pendencies 72/346 modules 215 active 
- babel-loader › src/services/authRouting.mjs
-
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (36%) 56/116 entries 1425/1461 de
-pendencies 75/356 modules 279 active 
- ...oop/frontend-mobile/node_modules/@babel/runtime/helpers/esm/arrayLikeToArr
-ay.js
+● Webpack █████████████████████████ building (36%) 56/116 entries 817/1412 dep
+endencies 73/334 modules 212 active 
+ ...der › node_modules/@tarojs/runtime/dist/dom-external/mutation-observer/ind
+ex.js
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (36%) 56/116 entries 1442/1500 de
-pendencies 83/362 modules 273 active 
+● Webpack █████████████████████████ building (36%) 56/116 entries 1353/1422 de
+pendencies 76/356 modules 210 active 
+ babel-loader › src/utils/scrollLayout.js
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (36%) 56/116 entries 1443/1500 de
+pendencies 91/368 modules 274 active 
+ babel-loader › src/components/OptionSheet.jsx
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (37%) 57/116 entries 1560/1588 de
+pendencies 127/378 modules 239 active 
  ...loop/frontend-mobile/node_modules/@babel/runtime/helpers/esm/wrapNativeSup
 er.js
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (36%) 56/116 entries 1550/1597 de
-pendencies 103/375 modules 254 active 
- babel-loader › src/utils/role.js
+● Webpack █████████████████████████ building (37%) 57/116 entries 1627/1682 de
+pendencies 163/385 modules 222 active 
+ babel-loader › src/components/FaceCaptureUploader.jsx
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (36%) 56/116 entries 1658/1676 de
-pendencies 123/388 modules 262 active 
- asset|/home/coder/tuneloop/frontend-mobile/src/assets/mall.png
+● Webpack █████████████████████████ building (37%) 57/116 entries 1681/1700 de
+pendencies 172/392 modules 216 active 
+ node_modules/qrcode/lib/can-promise.js
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (36%) 56/116 entries 1664/1691 de
-pendencies 135/394 modules 254 active 
- ...s
+● Webpack █████████████████████████ building (37%) 57/116 entries 1718/1733 de
+pendencies 186/404 modules 207 active 
+ node_modules/qrcode/lib/core/qrcode.js
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (37%) 57/116 entries 1752/1780 de
-pendencies 199/407 modules 206 active 
- ...neloop/frontend-mobile/node_modules/@babel/runtime/helpers/esm/readOnlyErr
-or.js
+● Webpack █████████████████████████ building (37%) 57/116 entries 1726/1768 de
+pendencies 188/406 modules 217 active 
+ ...oop/frontend-mobile/node_modules/@babel/runtime/helpers/esm/isNativeFuncti
+on.js
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (37%) 57/116 entries 1778/1789 de
-pendencies 207/408 modules 201 active 
+● Webpack █████████████████████████ building (37%) 57/116 entries 1781/1800 de
+pendencies 231/410 modules 179 active 
  ...neloop/frontend-mobile/node_modules/@babel/runtime/helpers/esm/superPropBa
 se.js
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (37%) 57/116 entries 1783/1825 de
-pendencies 245/410 modules 164 active 
- babel-loader › node_modules/@tarojs/api/dist/interceptor/index.js
-
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (37%) 57/116 entries 1808/1825 de
-pendencies 278/411 modules 133 active 
- ...ntend-mobile/node_modules/@babel/runtime/helpers/esm/objectWithoutProperti
-es.js
-
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (37%) 57/116 entries 1810/1827 de
-pendencies 282/412 modules 130 active 
- node_modules/qrcode/lib/renderer/utils.js
-
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (54%) 94/116 entries 1830/1832 de
-pendencies 329/426 modules 97 active 
- babel-loader › src/utils/auth.js
-
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (54%) 94/116 entries 1852/1863 de
-pendencies 341/428 modules 87 active 
+● Webpack █████████████████████████ building (53%) 91/116 entries 1845/1864 de
+pendencies 330/428 modules 98 active 
  ...-mobile/node_modules/@babel/runtime/helpers/esm/objectWithoutPropertiesLoo
 se.js
 
@@ -170,7 +139,15 @@ Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (64%) 114/116 entries 1871/1878 d
+● Webpack █████████████████████████ building (55%) 97/116 entries 1865/1867 de
+pendencies 356/435 modules 73 active 
+ node_modules/qrcode/lib/core/version-check.js
+
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (64%) 114/116 entries 1870/1876 d
 ependencies 416/436 modules 20 active 
  node_modules/scheduler/index.js
 
@@ -178,37 +155,22 @@ Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (64%) 114/116 entries 1877/1878 d
-ependencies 420/437 modules 17 active 
- node_modules/qrcode/lib/core/galois-field.js
-
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (64%) 114/116 entries 1877/1879 d
-ependencies 421/437 modules 16 active 
+● Webpack █████████████████████████ building (64%) 114/116 entries 1880/1881 d
+ependencies 424/438 modules 14 active 
  node_modules/scheduler/index.js
 
 Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (64%) 114/116 entries 1882/1882 d
-ependencies 429/439 modules 10 active 
- node_modules/qrcode/lib/core/segments.js
+● Webpack █████████████████████████ building (64%) 115/116 entries 1887/1887 d
+ependencies 438/442 modules 4 active 
+ css-loader › postcss-loader › src/app.css|0|||}}
 
 Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ sealing (70%) finish module graph 
- InnerGraphPlugin
-
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
 ● Webpack █████████████████████████ sealing (70%)  
  plugins
 
@@ -258,13 +220,6 @@ Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ sealing (89%)  
- after hashing
-
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
 ● Webpack █████████████████████████ sealing (92%)  
  asset processing
 
@@ -303,7 +258,7 @@ Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
 ✔ Webpack
-  Compiled successfully in 1.07m
+  Compiled successfully in 40.69s
 
 Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
   npx update-browserslist-db@latest
