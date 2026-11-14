@@ -1,0 +1,10 @@
+PROVENANCE build=p12-command-drift commit=6b3d1d76c7e1f0e56aedd7ce8a1891ddcc5af4a1 dirty=false
+MODE full
+CMD bash "/home/coder/.config/opencode/scripts/pre-ready-check.sh" --self-test
+exit=0
+--- summary ---
+PASS=74 FAIL=0
+--- #2348 fixtures ---
+PASS: T73 command whitespace normalization passes P12
+PASS: T74 substantive command drift fails P12
+RESULT: SELFTEST-OK

@@ -1,0 +1,32 @@
+{
+  "provenance": "build=strict-repair-fixtures commit=09c87c5e18ad65160f69e895a36ff89268bab8c3 dirty=false",
+  "test_command": "go test ./handlers/ -run '<4 tests>' -count=1 -v",
+  "exit": 0,
+  "skip_count": 0,
+  "rows": [
+    {
+      "name": "TestListMerchantRepairServices_SharedTenantNoLeak_2248",
+      "red_ref": "#2349 正文第 1 行 / #2344 R1-fix.json drift[0]：merchants_tenant_id_code_key 唯一冲突（同 tenant 双商户 code 均空）",
+      "green_file": "tmp/2349-green.log#--- PASS: TestListMerchantRepairServices_SharedTenantNoLeak_2248",
+      "pass": true
+    },
+    {
+      "name": "TestRepairService_StatusGuardsAndTenantIsolation",
+      "red_ref": "#2349 正文第 2 行 / #2344 drift[1]：site_members_tenant_id_fkey（repair_service_test.go L67 硬编码 tenant 无 tenants 行）",
+      "green_file": "tmp/2349-green.log#--- PASS: TestRepairService_StatusGuardsAndTenantIsolation",
+      "pass": true
+    },
+    {
+      "name": "TestRepairService_TaskListScopes",
+      "red_ref": "#2349 正文第 3 行 / #2344 drift[2]：site_members_tenant_id_fkey（同上）",
+      "green_file": "tmp/2349-green.log#--- PASS: TestRepairService_TaskListScopes",
+      "pass": true
+    },
+    {
+      "name": "TestRepairService_ListMineStatusFilter",
+      "red_ref": "#2349 正文第 4 行 / #2344 drift[3]：site_members_tenant_id_fkey（同上）",
+      "green_file": "tmp/2349-green.log#--- PASS: TestRepairService_ListMineStatusFilter",
+      "pass": true
+    }
+  ]
+}

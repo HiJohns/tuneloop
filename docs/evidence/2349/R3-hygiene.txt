@@ -1,0 +1,10 @@
+PROVENANCE build=strict-repair-fixtures commit=09c87c5e18ad65160f69e895a36ff89268bab8c3 dirty=false
+BASE 44fba3f6c4305bab838a0d767ee7f6acace63f92^
+CMD git diff 44fba3f6c4305bab838a0d767ee7f6acace63f92^ -- backend/handlers
+added_t_skip=0 (expected 0)
+removed_assertion_lines=2 added_assertion_lines=2 (balanced fixture updates allowed)
+--- added t.Skip lines (must be empty) ---
+--- removed assertion lines (must be balanced by added ones) ---
+-	require.NoError(t, db.Create(&models.Merchant{TenantID: sharedTenant, OrgID: orgA, Name: "A2248", Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.New().String()}).Error)
+-	require.NoError(t, db.Create(&models.Merchant{TenantID: sharedTenant, OrgID: orgB, Name: "B2248", Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.New().String()}).Error)
+--- removed assertion lines outside the fixture whitelist (must be empty) ---

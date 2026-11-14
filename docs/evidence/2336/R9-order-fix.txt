@@ -1,0 +1,61 @@
+PROVENANCE build=handlers-test-infra commit=900697eaf639e845456b5e98663b7bcbb5285c39 dirty=false
+== RED: pre-fix full-suite excerpts from docs/evidence/2336/R3-handlers.txt ==
+--- TestStaffOrderActions (pre-fix, full suite) ---
+--- FAIL: TestStaffOrderActions (0.41s)
+    weapp_staff_orders_test.go:144: 
+        	Error Trace:	/home/coder/tuneloop/backend/handlers/weapp_staff_orders_test.go:144
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 500
+        	Test:       	TestStaffOrderActions
+
+2026/11/12 19:14:05 [31;1m/home/coder/tuneloop/backend/services/webhook.go:170 [35;1mrecord not found
+--- TestUpdateUser_SiteIDNoChange (pre-fix, full suite) ---
+--- FAIL: TestUpdateUser_SiteIDNoChange (0.01s)
+    user_staff_test.go:84: 
+        	Error Trace:	/home/coder/tuneloop/backend/handlers/user_staff_test.go:84
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 500
+        	Test:       	TestUpdateUser_SiteIDNoChange
+    user_staff_test.go:91: 
+        	Error Trace:	/home/coder/tuneloop/backend/handlers/user_staff_test.go:91
+== GREEN: isolated current code ==
+[WARNING] No .env file found in common paths
+2026/11/13 13:34:28 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2336 sslmode=disable
+2026/11/13 13:34:28 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2336
+2026/11/13 13:34:29 [DB] Connected to database 'tuneloop_test_2336'
+=== RUN   TestUpdateUser_SiteIDNoChange
+2026/11/13 13:34:29 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2336 sslmode=disable
+2026/11/13 13:34:29 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2336
+2026/11/13 13:34:29 [DB] Connected to database 'tuneloop_test_2336'
+--- PASS: TestUpdateUser_SiteIDNoChange (0.03s)
+=== RUN   TestStaffOrderActions
+2026/11/13 13:34:29 [TenantScope][observe] auto-scope injected for table=orders (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/13 13:34:29 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:325 [35;1mrecord not found
+[0m[33m[0.524ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = 'e53197f4-cb9c-4157-a895-ed5034bf3484' ORDER BY "settlements"."id" LIMIT 1
+2026/11/13 13:34:29 [TenantScope][observe] auto-scope injected for table=order_payment_records (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/13 13:34:29 [TenantScope][observe] auto-scope injected for table=damage_reports (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/13 13:34:29 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:716 [35;1mrecord not found
+[0m[33m[1.140ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'e53197f4-cb9c-4157-a895-ed5034bf3484' AND "damage_reports"."tenant_id" = '00000000-0000-4000-8000-0000000000d1' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/13 13:34:29 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:836 [35;1mrecord not found
+[0m[33m[0.453ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'e53197f4-cb9c-4157-a895-ed5034bf3484' AND "damage_reports"."tenant_id" = '00000000-0000-4000-8000-0000000000d1' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/13 13:34:29 [computeSettlement] order e53197f4-cb9c-4157-a895-ed5034bf3484 contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+2026/11/13 13:34:29 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/13 13:34:29 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[0.650ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/13 13:34:29 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:1668 [35;1mrecord not found
+[0m[33m[0.477ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = 'e53197f4-cb9c-4157-a895-ed5034bf3484' AND order_type = 'rent' AND status = 'paid') AND "order_payment_records"."tenant_id" = '00000000-0000-4000-8000-0000000000d1' ORDER BY "order_payment_records"."id" LIMIT 1
+
+2026/11/13 13:34:29 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[0.550ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '00000000-0000-4000-8000-0000000000d3' ORDER BY "referrals"."id" LIMIT 1
+2026/11/13 13:34:29 [TenantScope][observe] auto-scope injected for table=instruments (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/13 13:34:29 [TenantScope][observe] auto-scope injected for table=order_refund_records (add explicit scope, then set ExplicitTenantScopeOnly)
+--- PASS: TestStaffOrderActions (0.69s)
+PASS
+ok  	tuneloop-backend/handlers	1.202s

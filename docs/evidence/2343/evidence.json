@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "issue": 2343,
+  "build": "weapp-home-overscroll 77fc9659b (regenerated at 9eaa983c1)",
+  "commit": "77fc9659b",
+  "dirty": false,
+  "environment": "weapp 体验版 1.0.79 (prewx API); local Node 20.20.2 for build/unit; manual rows confirmed by user",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash -c \"cd frontend-mobile && npx vitest run scripts/page-smoke/home-scroll-layout.test.jsx > ../docs/evidence/2343/R1-unit.txt 2>&1\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2343/R1-unit.txt"
+      ],
+      "assert": "退出码 0；输出含 Test Files  1 passed；用例覆盖 V1–V3 边界",
+      "actual": "4/4 PASS；fallback/负值/越界、viewport+1、阈值 300/301、scrollHeight=0 全覆盖",
+      "expected": "Test Files  1 passed",
+      "negative": "旧 2000px 垫片模型或 fallback 越界时用例失败",
+      "negative_result": "断言旧模型可滚动量 2000 与新模型不等；navTop 缺失/越界返回 60",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash -c \"cd frontend-mobile && npx eslint --no-ignore src/utils/scrollLayout.js src/pages-weapp/Home.jsx src/components-weapp/BottomNav.jsx scripts/page-smoke/home-scroll-layout.test.jsx > ../docs/evidence/2343/R2-eslint.txt 2>&1\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2343/R2-eslint.txt"
+      ],
+      "assert": "退出码 0；0 errors；无 no-undef",
+      "actual": "0 errors（4 条既有 i18n warning）",
+      "expected": "0 errors",
+      "negative": "出现 no-undef 或解析错误 → 非 0",
+      "negative_result": "ESLint exit 0",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash -c \"cd frontend-mobile && npm run build:weapp > ../docs/evidence/2343/R3-build.txt 2>&1\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2343/R3-build.txt"
+      ],
+      "assert": "退出码 0；产物 dist-weapp/pages-weapp/home/index.wxml 存在",
+      "actual": "build exit 0；home/index.wxml 存在",
+      "expected": "exit 0",
+      "negative": "编译错误 → 非 0",
+      "negative_result": "构建成功",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash -c \"cd frontend-mobile && ! grep -rl -e '<div' -e '<span' -e '<img' -e '<button' -e '<input' -e '<textarea' -e '<p ' -e '<select' -e '<a ' dist-weapp/pages-weapp/home/index.wxml > ../docs/evidence/2343/R4-probe.txt 2>&1\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2343/R4-probe.txt"
+      ],
+      "assert": "退出码 0 且产物 0 字节（无原生 HTML 交互/媒体标签）",
+      "actual": "0 字节（无原生 HTML 交互/媒体标签）",
+      "expected": "0 字节",
+      "negative": "产物含 <div 等 → grep 命中 → 退出码 1",
+      "negative_result": "probe 文件 0 字节",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash -c \"test -s docs/evidence/2343/R5-manual.md && grep -q 'executor: user' docs/evidence/2343/R5-manual.md && grep -q 'RESULT: PASS' docs/evidence/2343/R5-manual.md\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2343/R5-manual.md"
+      ],
+      "assert": "回执含 executor: user、环境（体验版 1.0.79）、用户原话引用、RESULT: PASS；截图经 Owner 豁免（Rev.2）",
+      "actual": "用户确认「三者我都确认了，没问题」；截图经用户明确豁免（加载态过短无法捕捉），未伪造 png；回执含 RESULT: PASS",
+      "expected": "RESULT: PASS",
+      "negative": "缺回执/写 FAIL/无 executor 标识 → 命令非 0",
+      "negative_result": "用户 active confirmation 作为验收凭证；waiver 记录在 manual 文件与 Issue comment",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash -c \"test -s docs/evidence/2343/R6-manual.md && grep -q 'executor: user' docs/evidence/2343/R6-manual.md && grep -q 'RESULT: PASS' docs/evidence/2343/R6-manual.md\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2343/R6-manual.md"
+      ],
+      "assert": "短/空列表切换后无回弹；回执含 RESULT: PASS（截图经 Owner 豁免，Rev.2）",
+      "actual": "用户确认无回弹；截图豁免；回执含 RESULT: PASS",
+      "expected": "RESULT: PASS",
+      "negative": "出现回弹/复位或回执缺失 → 非 0",
+      "negative_result": "用户确认通过",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash -c \"test -s docs/evidence/2343/R7-manual.md && grep -q 'executor: user' docs/evidence/2343/R7-manual.md && grep -q 'RESULT: PASS' docs/evidence/2343/R7-manual.md\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2343/R7-manual.md"
+      ],
+      "assert": "距底约 300px 时出现加载中并追加下一页；回执含 RESULT: PASS（截图经 Owner 豁免，Rev.2）",
+      "actual": "用户确认自动加载正常（加载态过快无截图）；回执含 RESULT: PASS",
+      "expected": "RESULT: PASS",
+      "negative": "不加载/重复加载/回执缺失 → 非 0",
+      "negative_result": "用户确认通过",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash -c \"grep -q 'paddingBottom' docs/topics/frontpage.md && ! grep -q '2000px 底部 spacer' docs/topics/frontpage.md\" > docs/evidence/2343/R8-doc.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2343/R8-doc.txt"
+      ],
+      "assert": "退出码 0；新描述存在且旧描述删除",
+      "actual": "退出码 0",
+      "expected": "exit 0",
+      "negative": "仍含旧 spacer 描述 → 非 0",
+      "negative_result": "旧短语已不存在",
+      "pass": true
+    }
+  ]
+}

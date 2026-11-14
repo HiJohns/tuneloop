@@ -1,0 +1,11 @@
+PROVENANCE build=repair-tenant-anchor commit=f4649aa38bf14bfce5cf756b72463f0b74796f5a dirty=false
+DSN postgresql://tuneloop_user:trust@127.0.0.1:25432/tuneloop_debug
+SQL SELECT
+  count(*) AS total,
+  count(*) FILTER (WHERE rr.tenant_id IN (SELECT org_id FROM merchants WHERE org_id IS NOT NULL)) AS org_anchored,
+  count(*) FILTER (WHERE rr.tenant_id NOT IN (SELECT org_id FROM merchants WHERE org_id IS NOT NULL)) AS legacy
+FROM repair_requests rr
+RESULT 2|0|2
+total=2 org_anchored=0 legacy=2
+ACTION: legacy=2 > 0 → 已知孤儿单，Owner 裁定保留（#2345）；零 DB 变更。
+DISPOSITION legacy rows: known orphan per #2345 (keep, zero DB writes); data-repair #2346 superseded; dev schema dirty tracked by #2347; prerelease snapshot legacy=0 (read-only audit).

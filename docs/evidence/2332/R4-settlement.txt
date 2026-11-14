@@ -1,52 +1,56 @@
-[WARNING] No .env file found in common paths
-2026/11/13 03:52:28 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/13 03:52:28 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/13 03:52:28 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/13 03:52:28 [DB] Connected to database 'tuneloop_test_local'
-=== RUN   TestSettlementCashVsPayscore
-2026/11/13 03:52:53 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/13 03:52:53 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/13 03:52:53 [DB] Connected to database 'tuneloop_test_local'
-
-2026/11/13 03:52:53 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:325 [35;1mrecord not found
-[0m[33m[2.881ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '2e7bc871-ebb8-4d75-a9a6-aac68125a6a7' ORDER BY "settlements"."id" LIMIT 1
-
-2026/11/13 03:52:53 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:716 [35;1mrecord not found
-[0m[33m[0.718ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '2e7bc871-ebb8-4d75-a9a6-aac68125a6a7' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
-
-2026/11/13 03:52:53 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:836 [35;1mrecord not found
-[0m[33m[0.811ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '2e7bc871-ebb8-4d75-a9a6-aac68125a6a7' ORDER BY "damage_reports"."id" LIMIT 1
-
-2026/11/13 03:52:53 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
-[0m[33m[0.393ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
-
-2026/11/13 03:52:53 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:1668 [35;1mrecord not found
-[0m[33m[0.543ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE order_id = '2e7bc871-ebb8-4d75-a9a6-aac68125a6a7' AND order_type = 'rent' AND status = 'paid' ORDER BY "order_payment_records"."id" LIMIT 1
-
-2026/11/13 03:52:53 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
-[0m[33m[0.314ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'e21cc8ad-fdc0-44d5-8a01-04010b44d3d2' ORDER BY "referrals"."id" LIMIT 1
-2026/11/13 03:52:53 [payscore] order 2e7bc871-ebb8-4d75-a9a6-aac68125a6a7 settled action=complete service_order=so-reduced-1
---- PASS: TestSettlementCashVsPayscore (0.60s)
-=== RUN   TestRefundNotForPayscore
-
-2026/11/13 03:52:54 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:325 [35;1mrecord not found
-[0m[33m[2.011ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '801651c2-b7c2-481c-b427-1000a9b54f68' ORDER BY "settlements"."id" LIMIT 1
-
-2026/11/13 03:52:54 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
-[0m[33m[0.416ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
-
-2026/11/13 03:52:54 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
-[0m[33m[0.502ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '4dcaa4c6-d1cc-46cc-8eaa-0548c3e49e98' ORDER BY "referrals"."id" LIMIT 1
-2026/11/13 03:52:54 [payscore] order 801651c2-b7c2-481c-b427-1000a9b54f68 settled action=complete service_order=so-zero-1
---- PASS: TestRefundNotForPayscore (0.70s)
-PASS
-ok  	tuneloop-backend/handlers	26.179s
+PROVENANCE build=payscore-s3b-rev3 commit=52312f4b8f372eacd628eaec3e5daef345aafa79 dirty=false
+CMD go test ./handlers/ ./services/ -run 'TestSettlementCashVsPayscore|TestRefundNotForPayscore|TestRefundPayscoreCancel|TestPayscoreSettlement' -count=1 -v
 # github.com/mattn/go-sqlite3
 sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
 sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
 123133 |   zTail = strrchr(zName, '_');
        |         ^
 [WARNING] No .env file found in common paths
+2026/11/13 13:40:26 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/13 13:40:26 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/13 13:40:26 [DB] Connected to database 'tuneloop_test_local'
+=== RUN   TestSettlementCashVsPayscore
+2026/11/13 13:40:27 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/13 13:40:27 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/13 13:40:27 [DB] Connected to database 'tuneloop_test_local'
+
+2026/11/13 13:40:28 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:325 [35;1mrecord not found
+[0m[33m[0.978ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '45525550-be4e-42ba-9c1c-2c038c538c22' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/13 13:40:28 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:716 [35;1mrecord not found
+[0m[33m[5.484ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '45525550-be4e-42ba-9c1c-2c038c538c22' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/13 13:40:28 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:836 [35;1mrecord not found
+[0m[33m[6.827ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '45525550-be4e-42ba-9c1c-2c038c538c22' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/13 13:40:28 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[2.522ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/13 13:40:28 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:1668 [35;1mrecord not found
+[0m[33m[0.651ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE order_id = '45525550-be4e-42ba-9c1c-2c038c538c22' AND order_type = 'rent' AND status = 'paid' ORDER BY "order_payment_records"."id" LIMIT 1
+
+2026/11/13 13:40:29 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[2.097ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'b1948ef4-f691-4b17-9bdf-c7962c6904e7' ORDER BY "referrals"."id" LIMIT 1
+2026/11/13 13:40:29 [payscore] order 45525550-be4e-42ba-9c1c-2c038c538c22 settled action=complete service_order=so-reduced-1
+--- PASS: TestSettlementCashVsPayscore (1.63s)
+=== RUN   TestRefundNotForPayscore
+
+2026/11/13 13:40:29 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:325 [35;1mrecord not found
+[0m[33m[1.367ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = 'd08f93a5-a7e6-4f09-b972-4d26274823f1' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/13 13:40:29 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[2.857ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/13 13:40:29 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[2.072ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '49cf06fe-0251-4e6f-b6c0-ba86b9e29ea8' ORDER BY "referrals"."id" LIMIT 1
+2026/11/13 13:40:29 [payscore] order d08f93a5-a7e6-4f09-b972-4d26274823f1 settled action=complete service_order=so-zero-1
+--- PASS: TestRefundNotForPayscore (0.41s)
+=== RUN   TestRefundPayscoreCancel
+2026/11/13 13:40:29 [payscore] order 29f2542d-a933-4ad4-8d4f-3e087e56c5fd settled action=cancel service_order=so-cancel-1
+--- PASS: TestRefundPayscoreCancel (0.33s)
+PASS
+ok  	tuneloop-backend/handlers	3.520s
+[WARNING] No .env file found in common paths
 testing: warning: no tests to run
 PASS
-ok  	tuneloop-backend/services	0.036s [no tests to run]
+ok  	tuneloop-backend/services	0.064s [no tests to run]

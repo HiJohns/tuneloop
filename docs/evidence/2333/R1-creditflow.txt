@@ -2,42 +2,50 @@ TAP version 13
 # Subtest: 三档映射：full/reduced/zero 的担保与评测要求
 ok 1 - 三档映射：full/reduced/zero 的担保与评测要求
   ---
-  duration_ms: 8.932251
+  duration_ms: 2.795698
+  type: 'test'
   ...
 # Subtest: 乐器本身零押金：只有 zero，且不需要信用评测
 ok 2 - 乐器本身零押金：只有 zero，且不需要信用评测
   ---
-  duration_ms: 0.464565
+  duration_ms: 0.365432
+  type: 'test'
   ...
 # Subtest: reduced 缺少担保人时禁止下单
 ok 3 - reduced 缺少担保人时禁止下单
   ---
-  duration_ms: 0.545108
+  duration_ms: 2.062825
+  type: 'test'
   ...
 # Subtest: payscore 路径显式传递，full 走 internal
 ok 4 - payscore 路径显式传递，full 走 internal
   ---
-  duration_ms: 0.357622
+  duration_ms: 0.346741
+  type: 'test'
   ...
 # Subtest: creditGate：四态 → 可支付/入口/原因
 ok 5 - creditGate：四态 → 可支付/入口/原因
   ---
-  duration_ms: 4.989596
+  duration_ms: 0.432094
+  type: 'test'
   ...
 # Subtest: resolveCreditLaunch：mock / 缺 package / weapp / h5 / 微信外
 ok 6 - resolveCreditLaunch：mock / 缺 package / weapp / h5 / 微信外
   ---
-  duration_ms: 1.803257
+  duration_ms: 0.31625
+  type: 'test'
   ...
 # Subtest: 评测页路由：一律 query order_id，return_path 编码
 ok 7 - 评测页路由：一律 query order_id，return_path 编码
   ---
-  duration_ms: 4.001015
+  duration_ms: 0.730383
+  type: 'test'
   ...
 # Subtest: 轮询退避与终态判定
 ok 8 - 轮询退避与终态判定
   ---
-  duration_ms: 0.61191
+  duration_ms: 0.287229
+  type: 'test'
   ...
 1..8
 # tests 8
@@ -47,4 +55,4 @@ ok 8 - 轮询退避与终态判定
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 347.880341
+# duration_ms 144.279829

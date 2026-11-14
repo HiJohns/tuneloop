@@ -1,0 +1,9 @@
+PROVENANCE build=strict-schema-fixtures commit=d49c0944064f1c8bfb6cbdca500999e78a62b499 dirty=false
+BASE d49c0944064f1c8bfb6cbdca500999e78a62b499^
+CMD git diff d49c0944064f1c8bfb6cbdca500999e78a62b499^ -- backend/handlers
+added_t_skip=0 (expected 0)
+removed_assertion_lines=2 (each must be a stale-assertion update, reviewed below)
+--- added t.Skip lines (must be empty) ---
+--- removed assertion lines (review) ---
+-	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.OrderRefundRecord{}, &models.OrderStatusHistory{}, &models.OrderLog{}))
+-	require.NoError(t, db.Create(&models.SiteMember{TenantID: f.otherTid, SiteID: uuid.New().String(), UserID: f.otherTenantUser, Role: "STAFF", Roles: []string{"STAFF"}, Status: "active"}).Error)

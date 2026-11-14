@@ -45,6 +45,19 @@ func TestCentsMigration_20260820001(t *testing.T) {
 	})
 
 	// --- 1. 造元数据（orders 关键列 + JSONB）---
+	// #2342: 模板现在重放真实迁移链，orders 带 user_id/instrument_id 外键，
+	// 必须先建被引用的行（AutoMigrate-only 时代无外键，旧 fixture 直接裸插）。
+	require.NoError(t, db.Exec(`INSERT INTO users (id, tenant_id, org_id, name, iam_sub, created_at, updated_at) VALUES (
+		'00000000-0000-0000-0000-000000000001',
+		'00000000-0000-0000-0000-000000000000',
+		'00000000-0000-0000-0000-000000000000', 'cents-user', 'cents-sub-1', NOW(), NOW())
+		ON CONFLICT (id) DO NOTHING`).Error)
+	require.NoError(t, db.Exec(`INSERT INTO instruments (id, tenant_id, org_id, sn, level, stock_status, created_at, updated_at) VALUES (
+		'00000000-0000-0000-0000-000000000002',
+		'00000000-0000-0000-0000-000000000000',
+		'00000000-0000-0000-0000-000000000000', 'SN-CENTS-1', 'standard', 'available', NOW(), NOW())
+		ON CONFLICT (id) DO NOTHING`).Error)
+
 	require.NoError(t, db.Exec(`INSERT INTO orders (id, tenant_id, org_id, user_id, instrument_id, level, lease_term,
 		monthly_rent, deposit, shipping_fee, cash_paid, status, pricing_breakdown, created_at, updated_at) VALUES (
 		'11111111-1111-4111-8111-111111111111',

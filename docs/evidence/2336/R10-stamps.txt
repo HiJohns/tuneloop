@@ -1,0 +1,12 @@
+PROVENANCE build=handlers-test-infra commit=900697eaf639e845456b5e98663b7bcbb5285c39 dirty=false
+expected_commit=900697eaf639e845456b5e98663b7bcbb5285c39
+OK R1-refund.txt
+OK R2-shipping.txt
+OK R3-targeted.txt
+OK R4-build-services.txt
+OK R5-no-network.txt
+OK R6-provenance.txt
+OK R7-tenant-negative.txt
+OK R9-order-fix.txt
+OK R11-deferral.txt
+OK R8 JSON

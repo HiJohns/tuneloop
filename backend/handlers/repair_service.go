@@ -183,7 +183,7 @@ func localUserIDBySub(db *gorm.DB, sub string) string {
 func repairServiceTenantScope(ctx context.Context) []string {
 	tid := middleware.GetTenantID(ctx)
 	oid := middleware.GetOrgID(ctx)
-	scopes := make([]string, 0, 3)
+	scopes := make([]string, 0, 6)
 	// #2248：多商户共享的 tenant 不得进入范围（否则跨商户命中）。
 	sharedTenant := func(v string) bool {
 		if v == "" {
@@ -207,14 +207,49 @@ func repairServiceTenantScope(ctx context.Context) []string {
 	}
 	add(tid)
 	add(oid)
-	// #2134 修订2：本组织所属商户的租户（仅在未被共享时）
-	if oid != "" {
-		var m models.Merchant
-		if err := database.GetDB().WithContext(database.IdentityCtx(ctx)).Select("tenant_id").
-			Where("org_id = ?", oid).First(&m).Error; err == nil {
-			add(m.TenantID)
+	// #2338 D8：读路径随写入锚（商户 org）迁移。写入侧 normalizeRepairTenant 把
+	// 归属统一成 merchants.org_id，而 JWT 的 tid/oid 可能是根 tenant 或网点 id，
+	// 因此必须把「操作者所属商户的 org」也纳入可见集合：
+	//   - v 是网点 id  → 取 sites.org_id（商户 org 锚）
+	//   - v 是商户 org → 直接可见
+	//   - v 是 tenant   → 仅当该 tenant 唯一归属一个商户时补其 org
+	// 共享 tenant 不展开（防止跨商户泄漏，#2248/#2338 R3）。
+	db := database.GetDB().WithContext(database.IdentityCtx(ctx))
+	// 只有「登记在本租户下的商户 org」才是合法锚：同一 org 被其它租户的网点
+	// 复用时（#2338 隔离负例）不得据此扩大可见范围。
+	tryAnchor := func(tenant, org string) {
+		if tenant == "" || org == "" || sharedTenant(tenant) {
+			return
+		}
+		var cnt int64
+		db.Model(&models.Merchant{}).Where("tenant_id = ? AND org_id = ?", tenant, org).Count(&cnt)
+		if cnt != 1 {
+			return
+		}
+		add(org)
+		add(tenant)
+	}
+	merchantOrgAnchor := func(v string) {
+		if v == "" {
+			return
+		}
+		var site models.Site
+		if err := db.Select("tenant_id", "org_id").Where("id = ?", v).First(&site).Error; err == nil {
+			tryAnchor(site.TenantID, site.OrgID)
+			return
+		}
+		var byOrg models.Merchant
+		if err := db.Select("tenant_id", "org_id").Where("org_id = ?", v).First(&byOrg).Error; err == nil {
+			tryAnchor(byOrg.TenantID, byOrg.OrgID)
+			return
+		}
+		var merchants []models.Merchant
+		if err := db.Select("tenant_id", "org_id").Where("tenant_id = ?", v).Limit(2).Find(&merchants).Error; err == nil && len(merchants) == 1 {
+			tryAnchor(merchants[0].TenantID, merchants[0].OrgID)
 		}
 	}
+	merchantOrgAnchor(tid)
+	merchantOrgAnchor(oid)
 	return scopes
 }
 

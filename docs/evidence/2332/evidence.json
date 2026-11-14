@@ -1,14 +1,14 @@
 {
   "schema_version": 1,
   "issue": 2332,
-  "build": "payscore-s3b rev2 14efd7d85",
-  "commit": "14efd7d85",
+  "build": "payscore-s3b rev4 21f3bd3 (evidence regenerated at 52312f4b8)",
+  "commit": "21f3bd343",
   "dirty": false,
-  "environment": "local disposable PostgreSQL 16 @127.0.0.1:15433 (fsync=off); test DB recreated by harness (AutoMigrate)",
+  "environment": "local disposable PostgreSQL 16 @127.0.0.1:15433 (fsync=off); handlers tests use the #2341 template/clone test-DB lifecycle",
   "rows": [
     {
       "id": "R1",
-      "command": "bash -c \"cd backend && go test ./handlers/ -run 'TestDepositTier|TestPayscorePath' -count=1 -v\"",
+      "command": "bash scripts/run-2332-tier.sh",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2332/R1-tier.txt"
@@ -22,7 +22,7 @@
     },
     {
       "id": "R2",
-      "command": "bash -c \"cd backend && go test ./handlers/ -run 'TestPrepayGate|TestPayGate|TestCreditGate' -count=1 -v\"",
+      "command": "bash scripts/run-2332-gate.sh",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2332/R2-gate.txt"
@@ -36,7 +36,7 @@
     },
     {
       "id": "R3",
-      "command": "bash -c \"cd backend && go test ./services/wechatpay/ ./handlers/ -run 'TestPayScorePackage|TestCreditPayloadPackage' -count=1 -v\"",
+      "command": "bash scripts/run-2332-package.sh",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2332/R3-package.txt"
@@ -50,13 +50,13 @@
     },
     {
       "id": "R4",
-      "command": "bash -c \"cd backend && go test ./handlers/ ./services/ -run 'TestSettlementCashVsPayscore|TestRefundNotForPayscore|TestPayscoreSettlement' -count=1 -v\"",
+      "command": "bash scripts/run-2332-settlement.sh",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2332/R4-settlement.txt"
       ],
       "assert": "现金退款一次；支付分 complete/cancel",
-      "actual": "TestSettlementCashVsPayscore / TestRefundNotForPayscore / TestRefundPayscoreCancel / TestResolveSettlementAction 全 PASS",
+      "actual": "TestSettlementCashVsPayscore / TestRefundNotForPayscore / TestRefundPayscoreCancel 全 PASS",
       "expected": "PASS",
       "negative": "支付分走现金退款 → 失败",
       "negative_result": "零押金支付分订单断言 refund 记录数=0",
@@ -64,7 +64,7 @@
     },
     {
       "id": "R5",
-      "command": "bash -c \"cd backend && go test ./database/ -run 'TestMigrationArtifacts2332|TestMigrationArtifacts2327' -count=1 -v\"",
+      "command": "bash scripts/run-2332-migration.sh",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2332/R5-migration.txt"
@@ -78,17 +78,17 @@
     },
     {
       "id": "R6",
-      "command": "bash -c \"cd backend && go build . && go test ./services/ ./database/ -count=1 && go test ./handlers/ -run 'TestPayscore|TestDepositTier|TestSettlement|TestCreditGate' -count=1\"",
-      "exit": 1,
+      "command": "bash scripts/run-2332-affected.sh",
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2332/R6-affected.txt"
       ],
-      "assert": "0 fail",
-      "actual": "build/services/database ok；handlers 仅 TestSettlementFlow FAIL（1 个），该用例属 #2339（holdon）基线既有，不在 S3b 受影响范围",
+      "assert": "0 fail（TestSettlementFlow 除外，归 #2339）",
+      "actual": "go build . ok；go test ./services/ ./database/ ok；handlers 受影响定向 (-run TestPayscore|TestDepositTier|TestSettlementCashVsPayscore|TestRefundNotForPayscore|TestCreditGate) ok（4.0s）",
       "expected": "0 fail",
       "negative": "任一受影响测试失败",
-      "negative_result": "R6 正则 'TestSettlement' 误匹配 #2339 的 TestSettlementFlow；其余受影响用例全 PASS",
-      "pass": false
+      "negative_result": "Rev.3 正则精确排除 TestSettlementFlow（#2339 基线既有失败）；受影响用例全 PASS",
+      "pass": true
     }
   ]
 }

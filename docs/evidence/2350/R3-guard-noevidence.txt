@@ -1,0 +1,16 @@
+PROVENANCE build=done-cascade-guard commit=606a0c416c644c21d346619f7dcab46ecc06dfd4 dirty=false
+MODE noevidence
+CMD bash "/home/coder/.config/opencode/scripts/opencode_gh.sh" done 1001 <body>  (gh stub via PATH + GH_BIN)
+exit=0
+--- run log (key lines) ---
+RESTORED:0 WARN:0 NO_BLOCK
+INFO:FOUND_PARENT:999
+INFO:ALL_CHILDREN_DONE:999
+WARN:MODEL_SIGNATURE_MISSING:parent-auto-completion
+SUCCESS:PARENT_DONE:999
+--- final state ---
+parent_state=CLOSED
+parent_auto_comment=yes
+child_state=CLOSED
+child_labels=status:done
+RESULT: UNCHANGED

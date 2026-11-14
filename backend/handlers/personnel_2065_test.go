@@ -64,6 +64,9 @@ func setupPersonnel2065(t *testing.T) (*gin.Engine, personnel2065Fixture) {
 		directMember:     uuid.New().String(),
 	}
 
+	// #2344: 严格 schema 下 site_members 的 tenant_id/site_id 均有 FK（含 rootOrg/otherTid 场景）。
+	testfixtures.SeedTenantFK(t, db, f.tid, f.rootOrg, f.otherTid)
+
 	mkUser := func(id, tid, oid, name, role string) {
 		require.NoError(t, db.Create(&models.User{
 			ID: id, IAMSub: id, TenantID: tid, OrgID: oid, Username: "u-" + id[:8], Name: name, Role: role, Status: "active",
@@ -95,7 +98,10 @@ func setupPersonnel2065(t *testing.T) (*gin.Engine, personnel2065Fixture) {
 	// #2067: 商户直属员工
 	require.NoError(t, db.Create(&models.MerchantMember{TenantID: f.tid, MerchantID: uuid.New().String(), UserID: f.directMember, Role: "site_member", Status: "active"}).Error)
 	require.NoError(t, db.Create(&models.SiteMember{TenantID: f.rootOrg, SiteID: f.transitSite, UserID: f.transitMember, Role: "STAFF", Roles: []string{"STAFF"}, Status: "active"}).Error)
-	require.NoError(t, db.Create(&models.SiteMember{TenantID: f.otherTid, SiteID: uuid.New().String(), UserID: f.otherTenantUser, Role: "STAFF", Roles: []string{"STAFF"}, Status: "active"}).Error)
+	// #2344: 他租户网点必须是真实行（严格 schema 下 site_members.site_id 有 FK）。
+	otherSite := uuid.New().String()
+	require.NoError(t, db.Create(&models.Site{ID: otherSite, TenantID: f.otherTid, OrgID: f.otherTid, Name: "他商户网点", Type: "normal"}).Error)
+	require.NoError(t, db.Create(&models.SiteMember{TenantID: f.otherTid, SiteID: otherSite, UserID: f.otherTenantUser, Role: "STAFF", Roles: []string{"STAFF"}, Status: "active"}).Error)
 
 	// 师傅档案（直属商户，无网点）
 	require.NoError(t, db.Create(&models.TechnicianProfile{
@@ -175,6 +181,29 @@ func TestPersonnel2065_MerchantView(t *testing.T) {
 	assert.Equal(t, "维修师傅", tech["position"])
 	assert.Equal(t, true, tech["is_technician"])
 	_ = f
+}
+
+// #2336 R7 / D9：商户视图租户隔离负例——跨租户成员不可见、零租户成员（membership 锚定）可见。
+// 该用例是 personnelMerchantView 的 ExplicitTenantScopeOnly 追认条件；泄漏即 FAIL。
+func TestPersonnel_MerchantView_TenantIsolation2336(t *testing.T) {
+	r, _ := setupPersonnel2065(t)
+
+	code, rows := personnelList2065(t, r, "merchant")
+	require.Equal(t, http.StatusOK, code)
+	m := names2065(rows)
+	assert.Contains(t, m, "零租户成员", "membership 锚定：users.tenant_id 全零仍须可见")
+	assert.NotContains(t, m, "他商户成员", "跨租户成员不得出现在本商户视图")
+
+	// 显式按名检索：跨租户成员必须为空集（防止分页/过滤旁路）
+	code, rows = personnelList2065Q(t, r, "actor=merchant&name="+url.QueryEscape("他商户成员"))
+	require.Equal(t, http.StatusOK, code)
+	assert.Empty(t, rows, "跨租户成员按名检索也必须为空")
+
+	// 零租户成员按名检索必须命中（证明不是分页偶然）
+	code, rows = personnelList2065Q(t, r, "actor=merchant&name="+url.QueryEscape("零租户成员"))
+	require.Equal(t, http.StatusOK, code)
+	m = names2065(rows)
+	assert.Contains(t, m, "零租户成员")
 }
 
 func TestPersonnel2065_SiteView(t *testing.T) {

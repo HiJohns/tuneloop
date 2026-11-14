@@ -14,13 +14,19 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 )
 
 // setupConfirmationSessionTest creates a test database and seeds initial data
 func setupConfirmationSessionTest(t *testing.T) *gorm.DB {
+	t.Helper()
 	db := database.GetDB()
+
+	// #2344: 严格 schema 下 site_members 的 tenant_id/site_id 均有 FK，先补种子。
+	testfixtures.SeedTenantFK(t, db, "11111111-1111-1111-1111-111111111111")
+	testfixtures.SeedSiteFK(t, db, "33333333-3333-3333-3333-333333333333", "11111111-1111-1111-1111-111111111111")
 
 	// Clean up any existing test data
 	db.Where("tenant_id = ?", "11111111-1111-1111-1111-111111111111").Delete(&models.ConfirmationSession{})

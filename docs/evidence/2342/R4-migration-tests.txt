@@ -1,0 +1,33 @@
+PROVENANCE build=migrations-fresh-install commit=beff6a242123a6ef589380fb2fc9a85c8dc0e54b dirty=false
+CMD go test ./handlers/ -run '^(TestCentsMigration_20260820001|TestGiftPolicyReferralPresetMigration|TestPromoOverride_CheckConstraintMigration|TestPromoOverride_CrossMerchantForbidden_2260)$' -count=1 -v
+[DEBUG] Loaded .env from: ../.env
+2026/11/13 23:49:22 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2342 sslmode=disable
+2026/11/13 23:49:22 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2342
+2026/11/13 23:49:22 [DB] Connected to database 'tuneloop_test_2342'
+=== RUN   TestCentsMigration_20260820001
+2026/11/13 23:49:23 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2342 sslmode=disable
+2026/11/13 23:49:23 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2342
+2026/11/13 23:49:23 [DB] Connected to database 'tuneloop_test_2342'
+--- PASS: TestCentsMigration_20260820001 (0.72s)
+=== RUN   TestGiftPolicyReferralPresetMigration
+--- PASS: TestGiftPolicyReferralPresetMigration (0.16s)
+=== RUN   TestPromoOverride_CheckConstraintMigration
+
+2026/11/13 23:49:24 [31;1m/home/coder/tuneloop/backend/handlers/promo_override_1863_test.go:290 [35;1mERROR: new row for relation "instrument_promo_overrides" violates check constraint "instrument_promo_overrides_override_type_check" (SQLSTATE 23514)
+[0m[33m[0.489ms] [34;1m[rows:0][0m INSERT INTO instrument_promo_overrides (id, tenant_id, instrument_id, override_type, enabled, content) VALUES (gen_random_uuid(), '00000000-0000-4000-8000-a6b6c6d6e6f1', '9341735e-3bbc-453a-98e0-fb5c3141fade', 'rent_to_own', true, '')
+
+2026/11/13 23:49:24 [31;1m/home/coder/tuneloop/backend/handlers/promo_override_1863_test.go:290 [35;1mERROR: new row for relation "instrument_promo_overrides" violates check constraint "instrument_promo_overrides_override_type_check" (SQLSTATE 23514)
+[0m[33m[0.323ms] [34;1m[rows:0][0m INSERT INTO instrument_promo_overrides (id, tenant_id, instrument_id, override_type, enabled, content) VALUES (gen_random_uuid(), '00000000-0000-4000-8000-a6b6c6d6e6f1', '9341735e-3bbc-453a-98e0-fb5c3141fade', 'rent_to_own', true, '')
+--- PASS: TestPromoOverride_CheckConstraintMigration (0.16s)
+=== RUN   TestPromoOverride_CrossMerchantForbidden_2260
+2026/11/13 23:49:24 [TenantScope][observe] auto-scope injected for table=instruments (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/13 23:49:24 [31;1m/home/coder/tuneloop/backend/handlers/instrument_promo_override.go:25 [35;1mrecord not found
+[0m[33m[0.465ms] [34;1m[rows:0][0m SELECT "tenant_id" FROM "instruments" WHERE id = '4a64912e-0419-40a7-9b34-e00a983b0830' AND tenant_id = '1abcef94-4ed4-4abf-98ec-c4ed7889fe41' AND "instruments"."tenant_id" = '1abcef94-4ed4-4abf-98ec-c4ed7889fe41' ORDER BY "instruments"."id" LIMIT 1
+2026/11/13 23:49:24 [TenantScope][observe] auto-scope injected for table=instrument_promo_overrides (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/13 23:49:24 [31;1m/home/coder/tuneloop/backend/handlers/instrument_promo_override.go:79 [35;1mrecord not found
+[0m[33m[0.416ms] [34;1m[rows:0][0m SELECT * FROM "instrument_promo_overrides" WHERE (tenant_id = 'fbdb7f29-10f1-47c0-aaca-12345cca66bd' AND instrument_id = '4a64912e-0419-40a7-9b34-e00a983b0830' AND override_type = 'rent_to_own') AND "instrument_promo_overrides"."tenant_id" = 'fbdb7f29-10f1-47c0-aaca-12345cca66bd' ORDER BY "instrument_promo_overrides"."id" LIMIT 1
+--- PASS: TestPromoOverride_CrossMerchantForbidden_2260 (0.13s)
+PASS
+ok  	tuneloop-backend/handlers	1.623s

@@ -1,0 +1,62 @@
+PROVENANCE build=done-cascade-guard commit=606a0c416c644c21d346619f7dcab46ecc06dfd4 dirty=false
+TARGET /home/coder/.config/opencode/scripts/opencode_gh.sh
+SHA256 5f4bebbc3b54a362ddb57e5c77c55d9bb8c83deb437fa4e0fbdc8f3f5e7dcf1d
+MTIME 2026-11-13T23:46:00Z
+--- guard symbols ---
+176:# 不级联时调用方必须输出 INFO:PARENT_CONTRACT_NOT_GREEN:<parent>（D3）。
+177:parent_contract_green() {
+453:        if ! parent_contract_green "$PARENT_MATCH"; then
+454:          echo "INFO:PARENT_CONTRACT_NOT_GREEN:$PARENT_MATCH"
+--- syntax check ---
+bash -n: OK
+--- diff vs backup (the durable change snapshot) ---
+--- /home/coder/.config/opencode/scripts/opencode_gh.sh.bak-2350	2026-11-13 23:46:00.063439088 +0000
++++ /home/coder/.config/opencode/scripts/opencode_gh.sh	2026-11-13 23:46:00.088907955 +0000
+@@ -171,6 +171,28 @@
+ }
+ 
+ # Invalidate the cached dependency declaration for a completed/held/reopened Issue.
++# #2350: 父级联收口守卫——父任务存在 docs/evidence/<parent>/evidence.json 时，
++# 仅当全部合同行 pass=true 才允许级联关闭父（D1）；无 evidence 维持现行为（D2）；
++# 不级联时调用方必须输出 INFO:PARENT_CONTRACT_NOT_GREEN:<parent>（D3）。
++parent_contract_green() {
++  local parent="$1"
++  local evidence="docs/evidence/${parent}/evidence.json"
++  [ -f "$evidence" ] || return 0
++  if command -v jq >/dev/null 2>&1; then
++    jq -e '(.rows | type == "array") and ((.rows | length) > 0) and (all(.rows[]; .pass == true))' "$evidence" >/dev/null 2>&1
++    return $?
++  fi
++  if command -v python3 >/dev/null 2>&1; then
++    python3 -c 'import json,sys
++d=json.load(open(sys.argv[1]))
++rows=d.get("rows") or []
++sys.exit(0 if rows and all(r.get("pass") is True for r in rows) else 1)' "$evidence" >/dev/null 2>&1
++    return $?
++  fi
++  # 无 jq/python3：无法证明全绿 → 不级联（fail closed）。
++  return 1
++}
++
+ clear_dep_cache() {
+   local issue_num=$1
+   if [ -f "$SCRIPT_DIR/work_deps.sh" ]; then
+@@ -427,6 +449,10 @@
+       elif [ -z "$CHILD_ISSUES" ]; then
+         echo "INFO:ALL_CHILDREN_DONE:$PARENT_MATCH"
+         
++        # #2350 D1/D3: 父任务合同行未全绿 → 不级联，显式留痕保持父原状态。
++        if ! parent_contract_green "$PARENT_MATCH"; then
++          echo "INFO:PARENT_CONTRACT_NOT_GREEN:$PARENT_MATCH"
++        else
+         # 所有子任务都已完成，自动完成父任务
+         COMPLETION_TEMP=$(mktemp)
+         echo "## Parent Task Auto-Completion" > "$COMPLETION_TEMP"
+@@ -448,6 +474,7 @@
+         
+         rm -f "$COMPLETION_TEMP"
+         echo "SUCCESS:PARENT_DONE:$PARENT_MATCH"
++        fi
+       else
+         echo "INFO:PENDING_CHILDREN:$PARENT_MATCH"
+       fi

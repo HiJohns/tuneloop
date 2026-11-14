@@ -48,6 +48,9 @@ func TestDiscountCodeFlow(t *testing.T) {
 	}).Error)
 
 	// Default pricing template (no discount): 30-day tier at 100/day.
+	// #2344 D3: 模板种子已含 system default（唯一索引 idx_pricing_templates_system_default）；
+	// 先删后插，保证本用例的 30/365 天阶梯生效（不改 #2342 的模板种子本身）。
+	require.NoError(t, db.Where("is_system_default = ?", true).Delete(&models.PricingTemplate{}).Error)
 	require.NoError(t, db.Create(&models.PricingTemplate{
 		ID:              uuid.New().String(),
 		Code:            "default",

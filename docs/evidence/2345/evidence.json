@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "issue": 2345,
+  "build": "legacy-data-disposition 9e8e170",
+  "commit": "9e8e17009",
+  "dirty": false,
+  "environment": "dev tuneloop_debug via SSH tunnel 127.0.0.1:25432 (read-only)",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/run-2345-profile.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2345/R1-orphan-profile.txt"
+      ],
+      "assert": "a990ffc5 行按 id 存在；legacy 计数记录（informational，无阈值断言）；RESULT: DOCUMENTED-KEEP (#2345) 标记在",
+      "actual": "a990ffc5 画像：merchants_org=0 merchants_tenant=0 users=0 records=0；另 1 行为共享 tenant 锚（6 商户）",
+      "expected": "DOCUMENTED-KEEP",
+      "negative": "孤儿行被删/缺标记 → exit 1",
+      "negative_result": "grep 标记缺失即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2338-legacy-audit.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2345/R2-consumption.txt"
+      ],
+      "assert": "脚本对 legacy>0 的输出注明「已知孤儿单，保留（#2345）」且 exit 0",
+      "actual": "ACTION: legacy=2 > 0 → 已知孤儿单，Owner 裁定保留（#2345）；R13 PASS",
+      "expected": "exit 0",
+      "negative": "未引用 #2345 → exit 1",
+      "negative_result": "脚本文本未含 KNOWN_ORPHAN_REF 即视为未引用",
+      "pass": true
+    }
+  ]
+}

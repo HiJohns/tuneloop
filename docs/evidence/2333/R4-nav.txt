@@ -1,12 +1,12 @@
 $ grep -n 'credit-assessment' src/app.config.ts src/App-H5.jsx src/platform/navigation.js
-frontend-mobile/src/app.config.ts:19:  'pages-weapp/credit-assessment/index',
-frontend-mobile/src/app.config.ts:76:  'pages/credit-assessment/index',
-frontend-mobile/src/App-H5.jsx:327:        <Route path="/credit-assessment" element={<ProtectedRoute><CreditAssessment /></ProtectedRoute>} />
-frontend-mobile/src/platform/navigation.js:26:  { match: '/credit-assessment', type: 'navigateTo', url: '/pages-weapp/credit-assessment/index' },
+src/app.config.ts:19:  'pages-weapp/credit-assessment/index',
+src/app.config.ts:76:  'pages/credit-assessment/index',
+src/App-H5.jsx:327:        <Route path="/credit-assessment" element={<ProtectedRoute><CreditAssessment /></ProtectedRoute>} />
+src/platform/navigation.js:26:  { match: '/credit-assessment', type: 'navigateTo', url: '/pages-weapp/credit-assessment/index' },
 
 $ grep -n 'openCreditAssessment' src/platform/browser.js src/platform/index.weapp.js
-frontend-mobile/src/platform/browser.js:241:export const openCreditAssessment = async () => ({ launched: false, mode: 'unsupported' })
-frontend-mobile/src/platform/index.weapp.js:259:export const openCreditAssessment = (params = {}) => new Promise((resolve) => {
+src/platform/browser.js:241:export const openCreditAssessment = async () => ({ launched: false, mode: 'unsupported' })
+src/platform/index.weapp.js:259:export const openCreditAssessment = (params = {}) => new Promise((resolve) => {
 
 $ grep -rn 'useParams' src/pages/CreditAssessment.jsx src/pages/Payment.jsx
 (empty = pass: 一律 query order_id)
@@ -14,7 +14,5 @@ $ grep -rn 'useParams' src/pages/CreditAssessment.jsx src/pages/Payment.jsx
 $ node --test src/utils/creditFlow.test.mjs
 # pass 8
 # fail 0
-# cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 132.582297

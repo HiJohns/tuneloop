@@ -3,35 +3,179 @@
   "commit": "14efd7d85",
   "environment": "local disposable PG16 @127.0.0.1:15433 (fsync=off); handlers test binary from 14efd7d85; each test run isolated (-run ^Name$, fresh DB per run)",
   "rows": [
-    {"test": "TestAdjust2116_RejectedWhileShipping", "isolated": "FAIL", "http": "expected 40900 actual 40400", "class": "product-defect", "root": "tenant-anchor-mismatch", "note": "create 写入叶 org，读取按根 tenant → 404"},
-    {"test": "TestDispatch2122_ShortfallNotification", "isolated": "FAIL", "http": "expected 20000 actual 40400", "class": "product-defect", "root": "tenant-anchor-mismatch"},
-    {"test": "TestListMerchantRepairServices_SharedTenantNoLeak_2248", "isolated": "FAIL", "message": "共享 tenant 的其他商户维修单不得出现（#2248）", "class": "product-defect", "root": "tenant-anchor-mismatch", "note": "读侧按 tenant 过滤无法区分商户"},
-    {"test": "TestListRecords_DamageObject", "isolated": "FAIL", "http": "expected 200 actual 404", "class": "product-defect", "root": "tenant-anchor-mismatch"},
-    {"test": "TestListTasks2116_IncludesSubmitterName", "isolated": "FAIL", "message": "0 is not greater than or equal to 1", "class": "product-defect", "root": "tenant-anchor-mismatch", "note": "任务列表读不到已创建的单"},
-    {"test": "TestRepairService_AdjustAcceptPaysDifference", "isolated": "FAIL", "http": "expected 20000 actual 40400", "class": "product-defect", "root": "tenant-anchor-mismatch"},
-    {"test": "TestRepairService_AdjustDeclineSettlement", "isolated": "FAIL", "http": "expected 20000 actual 40400", "class": "product-defect", "root": "tenant-anchor-mismatch"},
-    {"test": "TestRepairService_CouponDispatchDeduction_2096", "isolated": "FAIL", "http": "expected 20000 actual 40400", "class": "product-defect", "root": "tenant-anchor-mismatch"},
-    {"test": "TestRepairService_CreateNormalizesTenant_2134", "isolated": "FAIL", "http": "expected tenantID actual orgID", "class": "needs-architect", "root": "semantics-conflict", "note": "#2134 期望 tenant_id=根租户；#2248 要求归属锚=商户 org。两者对 RepairRequest.tenant_id 的语义相反，需 Architect 裁定"},
-    {"test": "TestRepairService_DeclineQuote_2093", "isolated": "FAIL", "http": "expected 20000 actual 40400", "class": "product-defect", "root": "tenant-anchor-mismatch"},
-    {"test": "TestRepairService_DetailSite", "isolated": "FAIL", "message": "详情应含 site 对象", "class": "product-defect", "root": "tenant-anchor-mismatch"},
-    {"test": "TestRepairService_HappyPathSettlementRefund", "isolated": "FAIL", "message": "expected non-empty result id actual empty", "class": "product-defect", "root": "tenant-anchor-mismatch"},
-    {"test": "TestRepairService_ListMineStatusFilter", "isolated": "FAIL", "message": "expected 1 actual 0", "class": "product-defect", "root": "tenant-anchor-mismatch"},
-    {"test": "TestRepairService_Notifications_2090", "isolated": "FAIL", "http": "expected 20000 actual 40400", "class": "product-defect", "root": "tenant-anchor-mismatch"},
-    {"test": "TestRepairService_PaymentTimeout_PreservesPending_2097", "isolated": "FAIL", "http": "expected 20000 actual 40400", "class": "product-defect", "root": "tenant-anchor-mismatch"},
-    {"test": "TestRepairService_PaymentsSummary", "isolated": "FAIL", "http": "expected 20000 actual 40400", "class": "product-defect", "root": "tenant-anchor-mismatch"},
-    {"test": "TestRepairService_SettlementShortfall", "isolated": "FAIL", "http": "expected 20000 actual 40400", "class": "product-defect", "root": "tenant-anchor-mismatch"},
-    {"test": "TestRepairService_ShortfallPrepay", "isolated": "FAIL", "http": "expected 20000 actual 40400", "class": "product-defect", "root": "tenant-anchor-mismatch"},
-    {"test": "TestRepairService_StatusGuardsAndTenantIsolation", "isolated": "FAIL", "http": "expected 40900 actual 40400", "class": "product-defect", "root": "tenant-anchor-mismatch"},
-    {"test": "TestRepairService_TaskListScopes", "isolated": "FAIL", "message": "本网点单在列：false", "class": "product-defect", "root": "tenant-anchor-mismatch"},
-    {"test": "TestRepairService_Timeline", "isolated": "FAIL", "http": "expected 20000 actual 40400", "class": "product-defect", "root": "tenant-anchor-mismatch"},
-    {"test": "TestSelectTechnician2122_NoSiteMerchantOnly", "isolated": "FAIL", "http": "expected tenantID actual orgID", "class": "product-defect", "root": "tenant-anchor-mismatch"}
+    {
+      "test": "TestAdjust2116_RejectedWhileShipping",
+      "isolated": "FAIL",
+      "http": "expected 40900 actual 40400",
+      "class": "product-defect",
+      "root": "tenant-anchor-mismatch",
+      "note": "create 写入叶 org，读取按根 tenant → 404"
+    },
+    {
+      "test": "TestDispatch2122_ShortfallNotification",
+      "isolated": "FAIL",
+      "http": "expected 20000 actual 40400",
+      "class": "product-defect",
+      "root": "tenant-anchor-mismatch"
+    },
+    {
+      "test": "TestListMerchantRepairServices_SharedTenantNoLeak_2248",
+      "isolated": "FAIL",
+      "message": "共享 tenant 的其他商户维修单不得出现（#2248）",
+      "class": "product-defect",
+      "root": "tenant-anchor-mismatch",
+      "note": "读侧按 tenant 过滤无法区分商户"
+    },
+    {
+      "test": "TestListRecords_DamageObject",
+      "isolated": "FAIL",
+      "http": "expected 200 actual 404",
+      "class": "stale-assertion",
+      "root": "tenant-anchor-mismatch",
+      "note": "#2276 父对象授权要求 JWT tenant；旧 fixture 未注入身份 → 404（补 actor 上下文）"
+    },
+    {
+      "test": "TestListTasks2116_IncludesSubmitterName",
+      "isolated": "FAIL",
+      "message": "0 is not greater than or equal to 1",
+      "class": "stale-assertion",
+      "root": "tenant-anchor-mismatch",
+      "note": "#2122 网点账号不可见维修服务；旧 fixture 用 site_member → 空列表（改用商户账号）"
+    },
+    {
+      "test": "TestRepairService_AdjustAcceptPaysDifference",
+      "isolated": "FAIL",
+      "http": "expected 20000 actual 40400",
+      "class": "product-defect",
+      "root": "tenant-anchor-mismatch"
+    },
+    {
+      "test": "TestRepairService_AdjustDeclineSettlement",
+      "isolated": "FAIL",
+      "http": "expected 20000 actual 40400",
+      "class": "product-defect",
+      "root": "tenant-anchor-mismatch"
+    },
+    {
+      "test": "TestRepairService_CouponDispatchDeduction_2096",
+      "isolated": "FAIL",
+      "http": "expected 20000 actual 40400",
+      "class": "product-defect",
+      "root": "tenant-anchor-mismatch"
+    },
+    {
+      "test": "TestRepairService_CreateNormalizesTenant_2134",
+      "isolated": "FAIL",
+      "http": "expected tenantID actual orgID",
+      "class": "stale-assertion",
+      "root": "semantics-conflict",
+      "note": "#2248 写入锚 = 商户 org；旧断言期望根 tenant"
+    },
+    {
+      "test": "TestRepairService_DeclineQuote_2093",
+      "isolated": "FAIL",
+      "http": "expected 20000 actual 40400",
+      "class": "product-defect",
+      "root": "tenant-anchor-mismatch"
+    },
+    {
+      "test": "TestRepairService_DetailSite",
+      "isolated": "FAIL",
+      "message": "详情应含 site 对象",
+      "class": "stale-assertion",
+      "root": "tenant-anchor-mismatch",
+      "note": "#2122 选师后 site_id 清空；旧断言要求 site 块（改断 merchant 块）"
+    },
+    {
+      "test": "TestRepairService_HappyPathSettlementRefund",
+      "isolated": "FAIL",
+      "message": "expected non-empty result id actual empty",
+      "class": "stale-assertion",
+      "root": "tenant-anchor-mismatch",
+      "note": "#2122 site_id 清空 + #2248 tenant=org；旧断言相反"
+    },
+    {
+      "test": "TestRepairService_ListMineStatusFilter",
+      "isolated": "FAIL",
+      "message": "expected 1 actual 0",
+      "class": "product-defect",
+      "root": "tenant-anchor-mismatch"
+    },
+    {
+      "test": "TestRepairService_Notifications_2090",
+      "isolated": "FAIL",
+      "http": "expected 20000 actual 40400",
+      "class": "product-defect",
+      "root": "tenant-anchor-mismatch"
+    },
+    {
+      "test": "TestRepairService_PaymentTimeout_PreservesPending_2097",
+      "isolated": "FAIL",
+      "http": "expected 20000 actual 40400",
+      "class": "product-defect",
+      "root": "tenant-anchor-mismatch"
+    },
+    {
+      "test": "TestRepairService_PaymentsSummary",
+      "isolated": "FAIL",
+      "http": "expected 20000 actual 40400",
+      "class": "product-defect",
+      "root": "tenant-anchor-mismatch"
+    },
+    {
+      "test": "TestRepairService_SettlementShortfall",
+      "isolated": "FAIL",
+      "http": "expected 20000 actual 40400",
+      "class": "product-defect",
+      "root": "tenant-anchor-mismatch"
+    },
+    {
+      "test": "TestRepairService_ShortfallPrepay",
+      "isolated": "FAIL",
+      "http": "expected 20000 actual 40400",
+      "class": "product-defect",
+      "root": "tenant-anchor-mismatch"
+    },
+    {
+      "test": "TestRepairService_StatusGuardsAndTenantIsolation",
+      "isolated": "FAIL",
+      "http": "expected 40900 actual 40400",
+      "class": "stale-assertion",
+      "root": "tenant-anchor-mismatch",
+      "note": "读路径 org 锚定后跨租户 404（旧断言 403）"
+    },
+    {
+      "test": "TestRepairService_TaskListScopes",
+      "isolated": "FAIL",
+      "message": "本网点单在列：false",
+      "class": "stale-assertion",
+      "root": "tenant-anchor-mismatch",
+      "note": "#2122 网点账号不可见；旧断言要求网点可见（改用商户账号）"
+    },
+    {
+      "test": "TestRepairService_Timeline",
+      "isolated": "FAIL",
+      "http": "expected 20000 actual 40400",
+      "class": "product-defect",
+      "root": "tenant-anchor-mismatch"
+    },
+    {
+      "test": "TestSelectTechnician2122_NoSiteMerchantOnly",
+      "isolated": "FAIL",
+      "http": "expected tenantID actual orgID",
+      "class": "stale-assertion",
+      "root": "tenant-anchor-mismatch",
+      "note": "#2248 写入锚 = 商户 org；旧断言期望根 tenant"
+    }
   ],
   "summary": {
     "total": 22,
-    "product_defect": 21,
-    "needs_architect": 1,
-    "stale_assertion": 0,
+    "product_defect": 14,
+    "stale_assertion": 8,
+    "needs_architect": 0,
     "order_dependent": 0,
-    "shared_root_cause": "RepairRequest.tenant_id 写入商户 org（normalizeRepairTenant），读路径按 JWT root tenant 过滤 → 详情/列表/派单/任务全部 404；#2134 期望写根 tenant，与 #2248 的「归属锚=商户 org」冲突"
+    "shared_root_cause": "RepairRequest.tenant_id 写入商户 org（normalizeRepairTenant/#2248），读路径按 JWT root tenant 过滤 → 详情/列表/派单/任务 404；另 8 条为 #2122/#2248 后的陈旧断言",
+    "revised_at": "2026-11-13",
+    "revised_note": "D8 裁定 B 后重跑复测：14 条 product-defect（读路径未随 #2248 迁移 + merchantScopeIDs2247 自动租户范围导致共享 tenant 误判）+ 8 条 stale-assertion（#2122 选师去 site / #2248 org 锚 / #2276 父对象授权），均附生产代码证据"
   }
 }

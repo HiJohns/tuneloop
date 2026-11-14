@@ -201,7 +201,8 @@ func TestListTasks2116_IncludesSubmitterName(t *testing.T) {
 	svcData(t, resp)
 	svcPost(t, f, customer, "/user/repair-services/"+svcLastID(t, f)+"/select-technician", gin.H{"technician_id": f.techID})
 
-	staff := testutil.MakeSiteMember(f.tenantID, f.siteID, f.techID)
+	// #2122：维修服务仅商户层级可见；网点账号 list 恒空 → 用商户账号验证「行带提交人」。
+	staff := testutil.TestActor{TenantID: f.tenantID, OrgID: f.orgID, UserID: f.techID, Role: "merchant_admin"}
 	req := httptest.NewRequest(http.MethodGet, "/repair-services?scope=site", nil)
 	w := httptest.NewRecorder()
 	f.router.ServeHTTP(w, req.WithContext(staff.InjectContext(req.Context())))
@@ -312,7 +313,8 @@ func TestSelectTechnician2122_NoSiteMerchantOnly(t *testing.T) {
 
 	var rr models.RepairRequest
 	require.NoError(t, f.db.Where("id = ?", id).First(&rr).Error)
-	assert.Equal(t, f.tenantID, rr.TenantID, "应回填商户租户")
+	// #2338 D8：#2248 之后写入锚是商户 org（不是根 tenant）。
+	assert.Equal(t, f.orgID, rr.TenantID, "应回填商户 org（#2248）")
 	assert.Empty(t, rr.SiteID, "不应再挂靠网点（site_id 空）")
 }
 

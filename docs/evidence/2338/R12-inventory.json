@@ -1,0 +1,252 @@
+{
+  "issue": 2338,
+  "site_count": 41,
+  "rows": [
+    {
+      "file": "backend/handlers/repair_service.go",
+      "line": 117,
+      "code": "// （写入链可能存叶组织 id，见 repairServiceTenantScope 注释）。",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_service.go",
+      "line": 119,
+      "code": "if scopes := repairServiceTenantScope(db.Statement.Context); len(scopes) > 0 {",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_service.go",
+      "line": 120,
+      "code": "q = db.WithContext(database.IdentityCtx(db.Statement.Context)).Where(\"tenant_id IN ?\", scopes)",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_service.go",
+      "line": 171,
+      "code": "// repairServiceTenantScope（#2134）：维修服务单的 staff 商户范围口径。",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_service.go",
+      "line": 183,
+      "code": "func repairServiceTenantScope(ctx context.Context) []string {",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_service.go",
+      "line": 194,
+      "code": "Where(\"tenant_id = ?\", v).Count(&cnt)",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_service.go",
+      "line": 225,
+      "code": "db.Model(&models.Merchant{}).Where(\"tenant_id = ? AND org_id = ?\", tenant, org).Count(&cnt)",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_service.go",
+      "line": 247,
+      "code": "if err := db.Select(\"tenant_id\", \"org_id\").Where(\"tenant_id = ?\", v).Limit(2).Find(&merchants).Error; err == nil && len(merchants) == 1 {",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_service.go",
+      "line": 283,
+      "code": "if err := scoped.Where(\"tenant_id = ?\", tenantOrOrg).Limit(2).Find(&merchants).Error; err == nil {",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_service.go",
+      "line": 319,
+      "code": "scopes := repairServiceTenantScope(ctx)",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_service.go",
+      "line": 660,
+      "code": "if err := db.Where(\"tenant_id = ? OR org_id = ?\", rr.TenantID, rr.TenantID).Order(\"created_at ASC\").First(&m).Error; err == nil {",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_service.go",
+      "line": 1834,
+      "code": "query = query.Where(\"tenant_id = ?\", tenantID)",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_service.go",
+      "line": 1857,
+      "code": "scopes := repairServiceTenantScope(ctx)",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_service.go",
+      "line": 1860,
+      "code": "query = db.WithContext(database.IdentityCtx(ctx)).Where(\"tenant_id IN ?\", scopes)",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_service.go",
+      "line": 1886,
+      "code": "query = query.Where(\"tenant_id IN ?\", scopes)",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_service.go",
+      "line": 1889,
+      "code": "query = query.Where(\"tenant_id IN ?\", scopes)",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_request.go",
+      "line": 247,
+      "code": "if err := db.Where(\"id = ? AND tenant_id IN ?\", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_request.go",
+      "line": 361,
+      "code": "if err := db.Where(\"id = ? AND tenant_id IN ?\", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_request.go",
+      "line": 449,
+      "code": "if err := db.Where(\"id = ? AND tenant_id IN ?\", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_request.go",
+      "line": 569,
+      "code": "if err := db.Where(\"id = ? AND tenant_id IN ?\", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_request.go",
+      "line": 644,
+      "code": "if err := db.Where(\"id = ? AND tenant_id IN ?\", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_request.go",
+      "line": 696,
+      "code": "if err := db.Where(\"id = ? AND tenant_id IN ?\", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_request.go",
+      "line": 715,
+      "code": "if err := db.Where(\"repair_request_id = ? AND direction = ? AND tenant_id IN ?\", id, body.Direction, repairServiceTenantScope(ctx)).First(&transitOrder).Error; ",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_request.go",
+      "line": 762,
+      "code": "if err := db.Where(\"id = ? AND tenant_id IN ?\", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_request.go",
+      "line": 799,
+      "code": "if err := db.Where(\"id = ? AND tenant_id IN ?\", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_request.go",
+      "line": 843,
+      "code": "if err := db.Where(\"id = ? AND tenant_id IN ?\", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_request.go",
+      "line": 910,
+      "code": "if err := db.Where(\"id = ? AND tenant_id IN ?\", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_request.go",
+      "line": 1018,
+      "code": "if err := db.Where(\"id = ? AND tenant_id IN ?\", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_request.go",
+      "line": 1154,
+      "code": "if err := db.Where(\"id = ? AND tenant_id IN ?\", id, repairServiceTenantScope(ctx)).First(&req).Error; err != nil {",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_service_admin_2129.go",
+      "line": 44,
+      "code": "Where(\"tenant_id = ? OR org_id = ?\", tid, tid).First(&m).Error; err == nil {",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair_service_admin_2129.go",
+      "line": 65,
+      "code": "Where(\"tenant_id IN ?\", scopeIDs)",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/repair.go",
+      "line": 38,
+      "code": "if err := db.Where(\"id = ? AND tenant_id = ?\", instrumentID, middleware.GetTenantID(ctx)).First(&inst).Error; err != nil {",
+      "class": "technician-flow"
+    },
+    {
+      "file": "backend/handlers/repair.go",
+      "line": 78,
+      "code": "if err := db.Where(\"id = ? AND tenant_id = ?\", instrumentID, middleware.GetTenantID(ctx)).First(&inst).Error; err != nil {",
+      "class": "technician-flow"
+    },
+    {
+      "file": "backend/handlers/repair.go",
+      "line": 130,
+      "code": "if err := db.Where(\"id = ? AND tenant_id = ?\", instrumentID, middleware.GetTenantID(ctx)).First(&inst).Error; err != nil {",
+      "class": "technician-flow"
+    },
+    {
+      "file": "backend/handlers/repair.go",
+      "line": 191,
+      "code": "if err := db.Where(\"id = ? AND tenant_id = ?\", instrumentID, middleware.GetTenantID(ctx)).First(&inst).Error; err != nil {",
+      "class": "technician-flow"
+    },
+    {
+      "file": "backend/handlers/repair.go",
+      "line": 258,
+      "code": "if err := db.Where(\"id = ? AND tenant_id = ?\", instrumentID, middleware.GetTenantID(ctx)).First(&inst).Error; err != nil {",
+      "class": "technician-flow"
+    },
+    {
+      "file": "backend/handlers/repair.go",
+      "line": 312,
+      "code": "if err := db.Where(\"id = ? AND tenant_id = ?\", instrumentID, middleware.GetTenantID(ctx)).First(&inst).Error; err != nil {",
+      "class": "technician-flow"
+    },
+    {
+      "file": "backend/handlers/repair.go",
+      "line": 370,
+      "code": "if err := db.Model(&models.Instrument{}).Where(\"id = ? AND tenant_id = ?\", instrumentID, middleware.GetTenantID(ctx)).Count(&scoped).Error; err != nil || scoped",
+      "class": "technician-flow"
+    },
+    {
+      "file": "backend/handlers/repair.go",
+      "line": 426,
+      "code": "if err := db.Where(\"id = ? AND tenant_id = ?\", instrumentID, tenantID).First(&instr).Error; err != nil {",
+      "class": "technician-flow"
+    },
+    {
+      "file": "backend/handlers/merchant_scope_2247.go",
+      "line": 31,
+      "code": "if err := db.Where(\"tenant_id = ?\", tenantID).Limit(2).Find(&merchants).Error; err == nil &&",
+      "class": "org-anchor-needed"
+    },
+    {
+      "file": "backend/handlers/merchant_scope_2247.go",
+      "line": 66,
+      "code": "Where(\"tenant_id = ?\", m.TenantID).Count(&cnt)",
+      "class": "org-anchor-needed"
+    }
+  ]
+}

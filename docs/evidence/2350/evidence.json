@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "issue": 2350,
+  "build": "done-cascade-guard 606a0c416",
+  "commit": "606a0c416c644c21d346619f7dcab46ecc06dfd4",
+  "dirty": false,
+  "environment": "synthetic parent/child issues + PATH gh stub driving the real ~/.config/opencode/scripts/opencode_gh.sh done branch",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2350-guard.sh notgreen",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2350/R1-guard-notgreen.txt"
+      ],
+      "assert": "父合同行含 pass=false 时子 done 后父保持 OPEN + INFO 留痕",
+      "actual": "gh stub 驱动 done：父 evidence 含 pass=false → INFO:PARENT_CONTRACT_NOT_GREEN:999，父保持 OPEN、无 Auto-Completion 评论；子 CLOSED",
+      "expected": "NOT-CASCADED",
+      "negative": "被级联关闭 → exit 1",
+      "negative_result": "守卫缺失（备份版 opencode_gh.sh）→ 父被级联关闭且写自动完成评论 → 断言失败 exit 1（已实测红）",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2350-guard.sh green",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2350/R2-guard-green.txt"
+      ],
+      "assert": "父全绿时级联正常（父 CLOSED）",
+      "actual": "父合同行全绿 → SUCCESS:PARENT_DONE:999，父 CLOSED 并写 Auto-Completion 评论",
+      "expected": "CASCADED",
+      "negative": "未级联 → exit 1",
+      "negative_result": "未级联 → exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2350-guard.sh noevidence",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2350/R3-guard-noevidence.txt"
+      ],
+      "assert": "父无 evidence.json 时行为不变",
+      "actual": "父无 evidence.json → 维持原级联行为（父 CLOSED）",
+      "expected": "UNCHANGED",
+      "negative": "行为改变 → exit 1",
+      "negative_result": "父无 evidence 时行为改变（不级联）→ exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2350-guard.sh snapshot",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2350/R4-config-snapshot.txt"
+      ],
+      "assert": "共享配置已落盘守卫：符号命中 + bash -n OK + 与备份的 diff 快照可核验",
+      "actual": "守卫符号命中 4 处；bash -n OK；diff 显示 helper 与 done 分支守卫插入（审计要求的配置 diff 快照）",
+      "expected": "落盘可核验",
+      "negative": "配置缺守卫 → 快照为空/无 diff → 不可核验",
+      "negative_result": "preflight 直接 exit 3 并给出 apply-2350-guard.sh 修复入口",
+      "pass": true
+    }
+  ]
+}

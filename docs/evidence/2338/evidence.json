@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "issue": 2338,
+  "build": "repair-tenant-anchor ad8d12a2",
+  "commit": "ad8d12a2d",
+  "dirty": false,
+  "environment": "handlers test suite on disposable PG16 127.0.0.1:15433; dev audit via SSH tunnel 127.0.0.1:25432 (read-only)",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2338-triage.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2338/R1-triage.json"
+      ],
+      "assert": "22 名单全覆盖且每条分类合法、证据路径存在",
+      "actual": "22/22：product-defect=14，stale-assertion=8，order-dependent=0",
+      "expected": "22 条",
+      "negative": "缺条/非法分类 → exit 1",
+      "negative_result": "逐条校验 class ∈ 3 类且 stale 行必须带 note",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/run-2338-group-a.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2338/R2-group-a.txt"
+      ],
+      "assert": "exit 0 且 0 FAIL",
+      "actual": "22/22 PASS，0 FAIL",
+      "expected": "0 fail",
+      "negative": "任一 FAIL/timeout",
+      "negative_result": "go test 失败即非 0",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2338-containment.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2338/R3-containment.txt"
+      ],
+      "assert": "FAIL 计数 ≤9 且每条 ∈ Group B 9 名单",
+      "actual": "fail_count=9，全部 ∈ {BatchCreateOrder,CreateRentalOrder,GetUserInstrumentDetail,InspectReturn,RefundDiff x2,ScenarioA,ScenarioC,SettlementFlow}",
+      "expected": "≤9",
+      "negative": "白名单外出现 FAIL",
+      "negative_result": "逐条 -vxF 比对白名单，出现白名单外即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2338-redgreen.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2338/R4-redgreen.txt"
+      ],
+      "assert": "每个 product-defect 有 pre-fix 红记录 + post-fix 绿记录",
+      "actual": "product-defect=14 red=14 green=14（R1 triage × #2336 基线红 × R2 Group A 绿，成对齐全）",
+      "expected": "成对齐全",
+      "negative": "缺红即 exit 1",
+      "negative_result": "缺任一条红或绿 → python 退出 1 → 脚本 exit 1（产物仍落盘供排查）",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2338-hygiene.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2338/R5-hygiene.txt"
+      ],
+      "assert": "diff 新增 t.Skip=0；断言删除均在白名单",
+      "actual": "added_t_skip=0；8 条 stale-assertion 更新均引用 #2122/#2248/#2276 生产代码",
+      "expected": "0",
+      "negative": "出现 skip/弱化",
+      "negative_result": "计数非 0 即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R12",
+      "command": "bash scripts/verify-2338-readsites.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2338/R12-inventory.json"
+      ],
+      "assert": "grep 命中的每个生产读点均有分类与文件路径",
+      "actual": "41 个命中点全部分类（org-anchor-needed / technician-flow）",
+      "expected": "全覆盖",
+      "negative": "漏分类 → exit 1",
+      "negative_result": "无命中即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R13",
+      "command": "bash scripts/verify-2338-legacy-audit.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2338/R13-legacy-audit.txt"
+      ],
+      "assert": "dev 库只读 COUNT：total、org-anchored、legacy（tenant_id 不在任何 merchants.org_id）；legacy>0 → 输出另立数据修复 Issue 的指令",
+      "actual": "RESULT 2|0|2 → total=2 org_anchored=0 legacy=2；legacy>0 按 #2345 Rev2（Owner 裁定方案 B：保留 + 文档化，零 DB 变更）解读为已知孤儿单，脚本引用 #2345 并保持 exit 0。注：本机 dev 库仅经 SSH 隧道可达（127.0.0.1:25432），故以 TUNELOOP_AUDIT_DSN 注入（脚本头部声明的首选方式）",
+      "expected": "留痕完整",
+      "negative": "查询失败/缺字段 → exit 1",
+      "negative_result": "dev 库不可达时脚本显式 BLOCKED + exit 2（不静默当 0）；缺字段/查询错误即非 0",
+      "pass": true
+    }
+  ]
+}

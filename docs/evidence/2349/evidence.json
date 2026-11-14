@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "issue": 2349,
+  "build": "strict-repair-fixtures 09c87c5e1",
+  "commit": "09c87c5e18ad65160f69e895a36ff89268bab8c3",
+  "dirty": false,
+  "environment": "handlers test suite on disposable PG16 127.0.0.1:15433 with #2342 strict template",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2349-fixes.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2349/R1-fix.json"
+      ],
+      "assert": "4 条红绿成对（红引用正文/#2344 drift；绿=当前 PASS）；skip=0",
+      "actual": "4/4 pass（rows=4, skip=0）；红引用本 Issue 正文 4 行 + #2344 R1-fix.json drift[0..3]",
+      "expected": "4/4",
+      "negative": "缺红/缺绿/出现 skip → exit 1",
+      "negative_result": "任一 row 非 PASS 或 skip>0 → python exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/run-2349-targeted.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2349/R2-targeted.txt"
+      ],
+      "assert": "exit 0；0 FAIL",
+      "actual": "4/4 PASS，exit 0",
+      "expected": "0 fail",
+      "negative": "任一 FAIL/timeout",
+      "negative_result": "任一 FAIL/timeout → 非 0",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2349-hygiene.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2349/R3-hygiene.txt"
+      ],
+      "assert": "diff 新增 t.Skip=0；断言删除在白名单",
+      "actual": "added_t_skip=0；删除 2 行断言均为同 fixture 的 Code 补充（新增 2 行平衡，白名单内）",
+      "expected": "0",
+      "negative": "出现 skip/弱化",
+      "negative_result": "新增 t.Skip 或白名单外断言删除 → exit 1",
+      "pass": true
+    }
+  ]
+}

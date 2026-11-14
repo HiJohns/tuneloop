@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "issue": 2344,
+  "build": "strict-schema-fixtures d49c09440",
+  "commit": "d49c0944064f1c8bfb6cbdca500999e78a62b499",
+  "dirty": false,
+  "environment": "handlers test suite on disposable PG16 127.0.0.1:15433 with #2342 strict template (shimmed migrations)",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2344-fixes.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2344/R1-fix.json"
+      ],
+      "assert": "6 条修复逐一记录红（#2342 清单引用）与绿（当前 PASS）；skip 计数=0",
+      "actual": "6/6 pass（skip_count=0）；drift 另记 4 条（D5，待 Architect 扩清单）",
+      "expected": "6/6",
+      "negative": "缺红/出现 skip → exit 1",
+      "negative_result": "任一 row 非 PASS 或 skip_count>0 → python 退出 1 → 脚本 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash -c \"cd backend && go test ./handlers/ -run TestCancelOrderByCustomer_StatusGuard -count=1 -v\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2344/R2-statusguard.txt"
+      ],
+      "assert": "exit 0 且无 DROP CONSTRAINT 假失败",
+      "actual": "PASS（0.25s），产物含 AutoMigrate 全量预检清单，无 DROP CONSTRAINT 假失败",
+      "expected": "PASS",
+      "negative": "保留局部 AutoMigrate → FAIL",
+      "negative_result": "保留局部 AutoMigrate → `uni_instrument_levels_caption` 不存在 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash -c \"cd backend && go test ./handlers/ -run TestDiscountCodeFlow -count=1 -v\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2344/R3-discount.txt"
+      ],
+      "assert": "exit 0",
+      "actual": "PASS（0.29s），先删模板 system default 后插入 30/365 阶梯，无唯一冲突",
+      "expected": "PASS",
+      "negative": "唯一索引冲突 → FAIL",
+      "negative_result": "不删模板 system default → `idx_pricing_templates_system_default` 冲突 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/run-2341-targeted.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2344/R4-targeted.txt"
+      ],
+      "assert": "14/14 PASS、exit 0",
+      "actual": "`scripts/run-2341-targeted.sh` → R6 PASS（14 用例，excluded 4 migration tests → #2342）",
+      "expected": "0 fail",
+      "negative": "任一 FAIL/timeout",
+      "negative_result": "任一用例 FAIL/timeout → 非 0",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2344-hygiene.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2344/R5-hygiene.txt"
+      ],
+      "assert": "diff 新增 t.Skip=0；断言删除在白名单",
+      "actual": "added_t_skip=0；删除的 2 行断言为旧 fixture 适配（见 diff 段）",
+      "expected": "0",
+      "negative": "出现 skip/弱化",
+      "negative_result": "新增 t.Skip → added_t_skip>0 → exit 1",
+      "pass": true
+    }
+  ]
+}
