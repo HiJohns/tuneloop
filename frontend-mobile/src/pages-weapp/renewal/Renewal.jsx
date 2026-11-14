@@ -5,6 +5,7 @@ import { View, Text, ScrollView, Input, Button, Image } from '@tarojs/components
 import { apiFetch, resolveErrorMessage } from '../../services/api'
 import {dialog, env } from '../../platform'
 import { formatBeijingDate } from '../../utils/format'
+import { rentDaysInputState, rentDaysCommitState } from '../../utils/rentDays.mjs'
 import { t } from '../../i18n'
 
 
@@ -113,6 +114,18 @@ export default function Renewal() {
   const overdueDays = calcResult?.overdue_days || 0
   const minDays = calcResult?.min_additional_days || 0
 
+  const renewalDaysOptions = { min: minDays || 1, fallback: minDays || 1 }
+  const handleCustomDaysInput = (value) => {
+    const next = rentDaysInputState(value, renewalDaysOptions)
+    setCustomDays(next.text)
+    setDays(next.days)
+  }
+  const handleCustomDaysCommit = () => {
+    const next = rentDaysCommitState(customDays, renewalDaysOptions)
+    setCustomDays(next.text)
+    setDays(next.days)
+  }
+
   return (
     <View style={{ minHeight: '100vh', backgroundColor: '#FDFBF7' }}>
       {/* Title bar removed — native navigation bar shows 续期 (#1511) */}
@@ -161,7 +174,8 @@ export default function Renewal() {
               min={minDays || 1}
               placeholder="天数"
               value={customDays}
-              onInput={(e) => { setCustomDays(e.detail.value); setDays(Math.max(minDays || 1, parseInt(e.detail.value) || (minDays || 1))) }}
+              onInput={(e) => handleCustomDaysInput(e.detail.value)}
+              onBlur={handleCustomDaysCommit}
               style={{ width: 80, padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 8, textAlign: 'center', fontSize: 12 }}
             />
             <Text style={{ fontSize: 12, color: '#71717a' }}>天</Text>

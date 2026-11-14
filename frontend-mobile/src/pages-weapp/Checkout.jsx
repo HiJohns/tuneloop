@@ -7,6 +7,7 @@ import dayjs from 'dayjs'
 import { dialog, env, session, storage, eventBus } from '../platform'
 import { fetchWaiverEligibility, waiverReasonText, showWaiverIneligible, downloadLetterTemplate, uploadLetterPhoto } from '../utils/depositWaiver'
 import { buildTierOptions, buildOrderDepositPayload } from '../utils/creditFlow.mjs'
+import { rentDaysInputState, rentDaysCommitState, rentDaysStepState } from '../utils/rentDays.mjs'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
 import { formatBeijingDate } from '../utils/format'
 import regions from '../data/regions.json'
@@ -16,6 +17,7 @@ import { t } from '../i18n'
 
 const IMG_BASE = env.apiBaseUrl.replace(/\/api$/, '')
 const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? IMG_BASE + url : url
+const CHECKOUT_DAYS_OPTIONS = { min: 1, max: 730, fallback: 1 }
 
 function parseImages(images) {
   if (!images) return []
@@ -186,9 +188,9 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
         const cached = (prj.data?.list || []).find(x => String(x.id) === String(resumePending))
         if (cancelled || !cached?.payload) return
         if (cached.payload.rent_days) {
-          const d = Number(cached.payload.rent_days) || 30
-          setDays(d)
-          setDaysInputText(String(d))
+          const next = rentDaysCommitState(cached.payload.rent_days, { ...CHECKOUT_DAYS_OPTIONS, fallback: 30 })
+          setDays(next.days)
+          setDaysInputText(next.text)
         }
       } catch { /* 回填失败不阻断结算 */ }
     }
@@ -233,10 +235,22 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
   const startDate = dayjs().format('YYYY-MM-DD')
   const returnDate = dayjs(calculateEndDate(new Date(), days)).format('YYYY-MM-DD')
 
-  const handleDaysChange = (value) => {
-    const v = parseInt(value) || 1
-    setDays(Math.max(1, Math.min(730, v)))
-    setDaysInputText(String(Math.max(1, Math.min(730, v))))
+  const handleDaysInput = (value) => {
+    const next = rentDaysInputState(value, CHECKOUT_DAYS_OPTIONS)
+    setDays(next.days)
+    setDaysInputText(next.text)
+  }
+
+  const handleDaysCommit = () => {
+    const next = rentDaysCommitState(daysInputText, CHECKOUT_DAYS_OPTIONS)
+    setDays(next.days)
+    setDaysInputText(next.text)
+  }
+
+  const handleDaysStep = (delta) => {
+    const next = rentDaysStepState(days, delta, CHECKOUT_DAYS_OPTIONS)
+    setDays(next.days)
+    setDaysInputText(next.text)
   }
 
   // #1867: pick + upload the signed recommendation letter photo (weapp picker)
@@ -468,17 +482,18 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
           </Text>
           <View style={{ display: 'flex', alignItems: 'center' }}>
             <Button
-              onClick={() => handleDaysChange(days - 1)}
+              onClick={() => handleDaysStep(-1)}
               style={{ width: 40, height: 40, border: '1px solid #d4d4d8', borderRadius: 8, fontSize: 18, fontWeight: '500', color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: '40px', textAlign: 'center', marginRight: 0 }}
             >−</Button>
             <Input
               type="number"
               value={daysInputText}
-              onInput={e => handleDaysChange(e.detail.value)}
+              onInput={e => handleDaysInput(e.detail.value)}
+              onBlur={handleDaysCommit}
               style={{ flex: '1 1 0%', textAlign: 'center', fontSize: 20, fontWeight: 'bold', border: '1px solid #d4d4d8', borderRadius: 8, paddingTop: 8, paddingBottom: 8, marginLeft: 12, marginRight: 12 }}
             />
             <Button
-              onClick={() => handleDaysChange(days + 1)}
+              onClick={() => handleDaysStep(1)}
               style={{ width: 40, height: 40, border: '1px solid #d4d4d8', borderRadius: 8, fontSize: 18, fontWeight: '500', color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: '40px', textAlign: 'center', marginLeft: 0 }}
             >+</Button>
             <Text style={{ fontSize: 14, color: '#6b7280', marginLeft: 12 }}>{t("天")}</Text>

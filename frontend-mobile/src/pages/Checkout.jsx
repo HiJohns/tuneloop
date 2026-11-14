@@ -14,6 +14,9 @@ import IdPhotoUploader from '../components/IdPhotoUploader'
 import VerifyWarningBar from '../components/VerifyWarningBar'
 import { fetchWaiverEligibility, waiverReasonText, showWaiverIneligible, downloadLetterTemplate, uploadLetterPhoto } from '../utils/depositWaiver'
 import { buildTierOptions, buildOrderDepositPayload } from '../utils/creditFlow.mjs'
+import { rentDaysInputState, rentDaysCommitState, rentDaysStepState } from '../utils/rentDays.mjs'
+
+const CHECKOUT_DAYS_OPTIONS = { min: 1, max: 730, fallback: 1 }
 
 function parseImages(images) {
   if (!images) return []
@@ -78,6 +81,7 @@ function SingleCheckout({ id, navigate, resumePending }) {
   const [newAddress, setNewAddress] = useState({ recipient_name: '', phone: '', province: '', city: '', district: '', detail: '', postal_code: '' })
   const [saveAddress, setSaveAddress] = useState(true)
   const [days, setDays] = useState(30)
+  const [daysInputText, setDaysInputText] = useState('30')
   const [rentalCalc, setRentalCalc] = useState(null)
   const [rentalCalcLoading, setRentalCalcLoading] = useState(false)
   // #2327 S4: 三档选择（full/reduced/zero）；reduced 由原 depositWaived 语义承接。
@@ -176,7 +180,11 @@ function SingleCheckout({ id, navigate, resumePending }) {
         const prj = await pr.json()
         const cached = (prj.data?.list || []).find(x => String(x.id) === String(resumePending))
         if (cancelled || !cached?.payload) return
-        if (cached.payload.rent_days) setDays(Number(cached.payload.rent_days) || 30)
+        if (cached.payload.rent_days) {
+          const next = rentDaysCommitState(cached.payload.rent_days, { ...CHECKOUT_DAYS_OPTIONS, fallback: 30 })
+          setDays(next.days)
+          setDaysInputText(next.text)
+        }
         if (cached.payload.discount_code) setDiscountCode(cached.payload.discount_code)
       } catch { /* 回填失败不阻断结算 */ }
     }
@@ -221,8 +229,22 @@ function SingleCheckout({ id, navigate, resumePending }) {
   const startDate = dayjs().format('YYYY-MM-DD')
   const returnDate = dayjs(calculateEndDate(new Date(), days)).format('YYYY-MM-DD')
 
-  const handleDaysChange = (value) => {
-    setDays(Math.max(1, Math.min(730, parseInt(value) || 1)))
+  const handleDaysInput = (value) => {
+    const next = rentDaysInputState(value, CHECKOUT_DAYS_OPTIONS)
+    setDays(next.days)
+    setDaysInputText(next.text)
+  }
+
+  const handleDaysCommit = () => {
+    const next = rentDaysCommitState(daysInputText, CHECKOUT_DAYS_OPTIONS)
+    setDays(next.days)
+    setDaysInputText(next.text)
+  }
+
+  const handleDaysStep = (delta) => {
+    const next = rentDaysStepState(days, delta, CHECKOUT_DAYS_OPTIONS)
+    setDays(next.days)
+    setDaysInputText(next.text)
   }
 
   const handleApplyDiscount = async () => {
@@ -469,19 +491,20 @@ function SingleCheckout({ id, navigate, resumePending }) {
           </Text>
           <View className="flex items-center gap-3">
             <Button
-              onClick={() => handleDaysChange(days - 1)}
+              onClick={() => handleDaysStep(-1)}
               className="w-10 h-10 border rounded-lg text-lg font-medium text-gray-500"
             >−</Button>
             <input
               type="number"
-              min={0}
+              min={1}
               max={730}
-              value={days}
-              onChange={e => handleDaysChange(e.target.value)}
+              value={daysInputText}
+              onChange={e => handleDaysInput(e.target.value)}
+              onBlur={handleDaysCommit}
               className="flex-1 text-center text-xl font-bold border rounded-lg py-2"
             />
             <Button
-              onClick={() => handleDaysChange(days + 1)}
+              onClick={() => handleDaysStep(1)}
               className="w-10 h-10 border rounded-lg text-lg font-medium text-gray-500"
             >+</Button>
             <Text className="text-sm text-gray-500">{t("天")}</Text>

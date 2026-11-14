@@ -6,6 +6,7 @@ import { apiFetch, resolveErrorMessage } from '../services/api'
 import { dialog, env } from '../platform'
 import { formatBeijingDate } from '../utils/format'
 import { ArrowLeft } from 'lucide-react'
+import { rentDaysInputState, rentDaysCommitState } from '../utils/rentDays.mjs'
 
 export default function Renewal() {
   // #1674: weapp jumps use query (?order_id=); H5 legacy links may use
@@ -23,6 +24,7 @@ export default function Renewal() {
   const [instrument, setInstrument] = useState(null)
   const [loading, setLoading] = useState(true)
   const [days, setDays] = useState(30)
+  const [daysInputText, setDaysInputText] = useState('30')
   const [calcResult, setCalcResult] = useState(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -96,6 +98,18 @@ export default function Renewal() {
   const overdueDays = calcResult?.overdue_days || 0
   const minDays = calcResult?.min_additional_days || 0
 
+  const renewalDaysOptions = { min: minDays || 1, fallback: minDays || 1 }
+  const handleDaysInput = (value) => {
+    const next = rentDaysInputState(value, renewalDaysOptions)
+    setDays(next.days)
+    setDaysInputText(next.text)
+  }
+  const handleDaysCommit = () => {
+    const next = rentDaysCommitState(daysInputText, renewalDaysOptions)
+    setDays(next.days)
+    setDaysInputText(next.text)
+  }
+
   const dayOptions = [7, 15, 30, 60, 90, 180, 365]
 
   return (
@@ -132,7 +146,11 @@ export default function Renewal() {
               const disabled = d < minDays
               return (
                 <View key={d}
-                  onClick={() => !disabled && setDays(d)}
+                  onClick={() => {
+                    if (disabled) return
+                    setDays(d)
+                    setDaysInputText(String(d))
+                  }}
                   className={`px-4 py-2 rounded-full border cursor-pointer ${days === d ? 'bg-blue-600 text-white border-blue-600' : disabled ? 'bg-gray-100 text-gray-400 border-gray-200 opacity-60' : 'bg-white text-gray-700 border-gray-300'}`}>
                   <Text>{d}天</Text>
                 </View>
@@ -144,8 +162,9 @@ export default function Renewal() {
             <input
               type="number"
               min={minDays || 1}
-              value={days}
-              onChange={e => setDays(Math.max(minDays || 1, parseInt(e.target.value) || (minDays || 1)))}
+              value={daysInputText}
+              onChange={e => handleDaysInput(e.target.value)}
+              onBlur={handleDaysCommit}
               className="w-20 px-2 py-1 border border-gray-300 rounded text-center text-sm"
             />
             <Text className="text-sm text-gray-500">天</Text>
