@@ -1,7 +1,7 @@
-PROVENANCE build=done-cascade-guard commit=606a0c416c644c21d346619f7dcab46ecc06dfd4 dirty=false
+PROVENANCE build=done-cascade-guard commit=27dea4071f7bb6b3e87d6635c31580d6ced5a7af dirty=false
 TARGET /home/coder/.config/opencode/scripts/opencode_gh.sh
-SHA256 5f4bebbc3b54a362ddb57e5c77c55d9bb8c83deb437fa4e0fbdc8f3f5e7dcf1d
-MTIME 2026-11-13T23:46:00Z
+SHA256 bb3eaa0afca69ea4b362d2383c4b19a7e93c5b582d2be3447343f8059adb0d23
+MTIME 2026-11-14T17:22:08Z
 --- guard symbols ---
 176:# 不级联时调用方必须输出 INFO:PARENT_CONTRACT_NOT_GREEN:<parent>（D3）。
 177:parent_contract_green() {
@@ -10,8 +10,8 @@ MTIME 2026-11-13T23:46:00Z
 --- syntax check ---
 bash -n: OK
 --- diff vs backup (the durable change snapshot) ---
---- /home/coder/.config/opencode/scripts/opencode_gh.sh.bak-2350	2026-11-13 23:46:00.063439088 +0000
-+++ /home/coder/.config/opencode/scripts/opencode_gh.sh	2026-11-13 23:46:00.088907955 +0000
+--- /home/coder/.config/opencode/scripts/opencode_gh.sh.bak-2350	2026-11-14 17:22:08.561646196 +0000
++++ /home/coder/.config/opencode/scripts/opencode_gh.sh	2026-11-14 17:22:08.588748948 +0000
 @@ -171,6 +171,28 @@
  }
  
@@ -41,7 +41,7 @@ bash -n: OK
  clear_dep_cache() {
    local issue_num=$1
    if [ -f "$SCRIPT_DIR/work_deps.sh" ]; then
-@@ -427,6 +449,10 @@
+@@ -427,6 +449,11 @@
        elif [ -z "$CHILD_ISSUES" ]; then
          echo "INFO:ALL_CHILDREN_DONE:$PARENT_MATCH"
          
@@ -49,10 +49,11 @@ bash -n: OK
 +        if ! parent_contract_green "$PARENT_MATCH"; then
 +          echo "INFO:PARENT_CONTRACT_NOT_GREEN:$PARENT_MATCH"
 +        else
++        
          # 所有子任务都已完成，自动完成父任务
          COMPLETION_TEMP=$(mktemp)
          echo "## Parent Task Auto-Completion" > "$COMPLETION_TEMP"
-@@ -448,6 +474,7 @@
+@@ -448,6 +475,7 @@
          
          rm -f "$COMPLETION_TEMP"
          echo "SUCCESS:PARENT_DONE:$PARENT_MATCH"

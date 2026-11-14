@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2348,
-  "build": "p12-command-drift d5f84451f",
-  "commit": "d5f84451f23197f904283ea24c27cd06a5fda645",
+  "build": "p12-command-drift 27dea4071",
+  "commit": "27dea4071f7bb6b3e87d6635c31580d6ced5a7af",
   "dirty": false,
   "environment": "shared ~/.config/opencode/scripts/pre-ready-check.sh self-test harness + real #2343 evidence.json",
   "rows": [
