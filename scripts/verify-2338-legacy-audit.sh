@@ -48,4 +48,12 @@ echo "total=$TOTAL org_anchored=$ORG legacy=$LEGACY" >> "$OUT"
 if [ "${LEGACY:-0}" -gt 0 ]; then
   echo "ACTION: legacy=$LEGACY > 0 → 已知孤儿单，Owner 裁定保留（$KNOWN_ORPHAN_REF）；零 DB 变更。" | tee -a "$OUT"
 fi
+# 处置链留痕（不依赖本次查询结果，静态引用已闭环的 Issue）：
+#   #2345：Owner 裁定 B（保留 + 文档化，零 DB 变更）
+#   #2346：数据修复 Issue（被 B 裁定取代，done）
+#   #2347：dev schema_migrations dirty 跟踪（Owner 授权后已对齐 20261112003）
+#   预生产快照 tuneloop_pre_snapshot：legacy=0（只读审计）
+{
+  echo "DISPOSITION legacy rows: known orphan per #2345 (keep, zero DB writes); data-repair #2346 superseded; dev schema dirty tracked by #2347; prerelease snapshot legacy=0 (read-only audit)."
+} | tee -a "$OUT"
 echo "R13 PASS: total=$TOTAL org_anchored=$ORG legacy=$LEGACY"
