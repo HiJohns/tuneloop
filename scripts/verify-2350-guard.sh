@@ -4,8 +4,8 @@
 set -euo pipefail
 MODE="${1:-}"
 case "$MODE" in
-  notgreen|green|noevidence) ;;
-  *) echo "usage: $0 notgreen|green|noevidence" >&2; exit 2 ;;
+  notgreen|green|noevidence|snapshot) ;;
+  *) echo "usage: $0 notgreen|green|noevidence|snapshot" >&2; exit 2 ;;
 esac
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
@@ -14,6 +14,37 @@ GH_SCRIPT="${OPENCODE_GH_SCRIPT:-$HOME/.config/opencode/scripts/opencode_gh.sh}"
 
 mkdir -p "$REPO_ROOT/docs/evidence/2350" "$REPO_ROOT/tmp"
 PROVENANCE="build=done-cascade-guard commit=$(git -C "$REPO_ROOT" rev-parse HEAD) dirty=$(test -z "$(git -C "$REPO_ROOT" status --porcelain --untracked-files=no -- scripts)" && echo false || echo true)"
+
+# #2350 修复轮：共享配置不在 git 内，必须先在当前主机验证守卫已落盘。
+# 未落盘时给出可复现的修复入口（apply-2350-guard.sh），而不是让产物与配置脱节。
+if ! grep -q "parent_contract_green" "$GH_SCRIPT"; then
+  echo "ERROR: guard missing in $GH_SCRIPT" >&2
+  echo "REMEDIATION: bash $REPO_ROOT/scripts/apply-2350-guard.sh  (idempotent, backs up .bak-2350)" >&2
+  exit 3
+fi
+
+if [ "$MODE" = "snapshot" ]; then
+  OUT="$REPO_ROOT/docs/evidence/2350/R4-config-snapshot.txt"
+  BACKUP="$GH_SCRIPT.bak-2350"
+  {
+    echo "PROVENANCE $PROVENANCE"
+    echo "TARGET $GH_SCRIPT"
+    echo "SHA256 $(sha256sum "$GH_SCRIPT" | awk '{print $1}')"
+    echo "MTIME $(date -r "$GH_SCRIPT" -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || stat -c %y "$GH_SCRIPT")"
+    echo "--- guard symbols ---"
+    grep -n "parent_contract_green\|PARENT_CONTRACT_NOT_GREEN" "$GH_SCRIPT"
+    echo "--- syntax check ---"
+    bash -n "$GH_SCRIPT" && echo "bash -n: OK"
+    echo "--- diff vs backup (the durable change snapshot) ---"
+    if [ -f "$BACKUP" ]; then
+      diff -u "$BACKUP" "$GH_SCRIPT" || true
+    else
+      echo "WARN: backup not found: $BACKUP"
+    fi
+  } > "$OUT"
+  echo "$OUT: PASS"
+  exit 0
+fi
 
 WORK="$(mktemp -d "$REPO_ROOT/tmp/2350-guard.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
