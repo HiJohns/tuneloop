@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2338,
-  "build": "repair-tenant-anchor eca139b56",
-  "commit": "eca139b56f029bfbdad056e0bd848b0dc97da13c",
+  "build": "repair-tenant-anchor ad8d12a2",
+  "commit": "ad8d12a2d",
   "dirty": false,
   "environment": "handlers test suite on disposable PG16 127.0.0.1:15433; dev audit via SSH tunnel 127.0.0.1:25432 (read-only)",
   "rows": [
