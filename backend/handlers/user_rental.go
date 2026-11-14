@@ -472,10 +472,12 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	}
 	requestedTier := requestedDepositTier(req.DepositTier, req.DepositWaived)
 	depositTier, fullDeposit, reducedAmount, _ := resolveDepositTier(&lockedInstrument, pricingResult, requestedTier)
-	// #2327 D13: payscore 路径下允许主动选择 zero 档（押金由支付分担保，
-	// 风险金额按乐器原价；这是信用档位，不是「乐器本身零押金」）。
-	if creditPath == models.DepositCreditPathPayscore && requestedTier == models.DepositTierZero && fullDeposit > 0 {
-		depositTier = models.DepositTierZero
+	// #2352 D1: 全额押金 ≠ 0 时**不提供** zero 档——信用评测只能减免到差额档，
+	// 不能只凭信用免掉全部押金（旧 #2327 D13 的「payscore 全免」已废止）。
+	if err := validateZeroTierForFullDeposit(requestedTier, fullDeposit); err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
+		return
 	}
 	deposit := fullDeposit
 	if depositTier == models.DepositTierZero {
@@ -1512,4 +1514,13 @@ func computePaymentDeadline(db *gorm.DB, tenantID, orgID string) *time.Time {
 	// Default
 	deadline := time.Now().Add(time.Duration(defaultMin) * time.Minute)
 	return &deadline
+}
+
+// validateZeroTierForFullDeposit 落实 #2352 D1：zero 档仅适用于「乐器全额押金 == 0」。
+// 全额押金 > 0 的订单不得只凭信用评测免掉全部押金（4xx 拒绝）。
+func validateZeroTierForFullDeposit(tier string, fullDeposit float64) error {
+	if tier == models.DepositTierZero && fullDeposit > 0 {
+		return errors.New("zero deposit tier is only available for instruments with zero full deposit")
+	}
+	return nil
 }

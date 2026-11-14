@@ -12,7 +12,6 @@ import { t } from '../i18n'
 import regions from '../data/regions.json'
 import IdPhotoUploader from '../components/IdPhotoUploader'
 import VerifyWarningBar from '../components/VerifyWarningBar'
-import { fetchWaiverEligibility, waiverReasonText, showWaiverIneligible, downloadLetterTemplate, uploadLetterPhoto } from '../utils/depositWaiver'
 import { buildTierOptions, buildOrderDepositPayload } from '../utils/creditFlow.mjs'
 import { rentDaysInputState, rentDaysCommitState, rentDaysStepState } from '../utils/rentDays.mjs'
 
@@ -87,11 +86,6 @@ function SingleCheckout({ id, navigate, resumePending }) {
   // #2327 S4: 三档选择（full/reduced/zero）；reduced 由原 depositWaived 语义承接。
   const [depositTierState, setDepositTierState] = useState('full')
   const depositWaived = depositTierState === 'reduced'
-  // #1867: deposit-free eligibility + recommendation letter
-  const [waiver, setWaiver] = useState(null)
-  const [letterUrl, setLetterUrl] = useState('')
-  const [letterUploading, setLetterUploading] = useState(false)
-  const letterInputRef = useRef(null)
   const [guarantors, setGuarantors] = useState([])
   const [selectedGuarantorIds, setSelectedGuarantorIds] = useState([])
   const [showAddGuarantor, setShowAddGuarantor] = useState(false)
@@ -208,8 +202,6 @@ function SingleCheckout({ id, navigate, resumePending }) {
       } catch {}
     }
     fetchUser()
-    // #1867: deposit-free eligibility gates the waiver toggle
-    fetchWaiverEligibility(env.apiBaseUrl).then(setWaiver)
   }, [])
 
   const totalRent = pricingV2 ? computeTieredRent(pricingV2, days, pricingV2.base_daily_rate || 0) : 0
@@ -351,17 +343,6 @@ function SingleCheckout({ id, navigate, resumePending }) {
     setSelectedGuarantorIds(prev => prev.includes(guarantorId) ? prev.filter(x => x !== guarantorId) : [...prev, guarantorId])
   }
 
-  // #1867: pick + upload the signed recommendation letter photo
-  const handleLetterFile = async (e) => {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file) return
-    setLetterUploading(true)
-    const r = await uploadLetterPhoto(env.apiBaseUrl, file)
-    setLetterUploading(false)
-    if (r.ok) setLetterUrl(r.url)
-    else dialog.alert(t("上传失败: {msg}", { msg: r.error }))
-  }
 
   const handleSubmit = async () => {
     if (!getToken()) { dialog.alert(t("请先登录才能下单")); return }
@@ -599,8 +580,7 @@ function SingleCheckout({ id, navigate, resumePending }) {
           </View>
         </View>
 
-        {/* #2327 S4: 押金三档（full / reduced / zero） */}
-        {!isZeroDeposit && (
+        {/* #2327 S4 / #2352: 押金档位（full+reduced 或 zero），0 押金乐器同样渲染 */}
         <View className="bg-white rounded-2xl shadow-sm p-4 mb-3">
           <Text className="font-black text-black">{t("押金档位")}</Text>
           <Text className="block text-xs text-zinc-400 mt-0.5">{t("押金减免需完成微信信用评测（差额档需 2 位担保人）")}</Text>
@@ -613,7 +593,7 @@ function SingleCheckout({ id, navigate, resumePending }) {
               >
                 <View style={{ flex: 1 }}>
                   <Text className="font-medium text-black">
-                    {opt.tier === 'full' ? t('全额押金') : opt.tier === 'reduced' ? t('差额押金') : t('免押金')}
+                    {opt.tier === 'full' ? t('全额押金') : opt.tier === 'reduced' ? t('差额押金') : t('零押金')}
                   </Text>
                   <Text className="block text-xs text-zinc-400">
                     {opt.tier === 'full'
@@ -638,7 +618,6 @@ function SingleCheckout({ id, navigate, resumePending }) {
             </View>
           )}
         </View>
-        )}
 
         {depositWaived && (
           <View className="bg-white rounded-2xl shadow-sm p-4 mb-3">
@@ -868,11 +847,6 @@ function BatchCheckout({ navigate }) {
   const [previewIndex, setPreviewIndex] = useState(-1)
   const [user, setUser] = useState(null)
   const [depositWaived, setDepositWaived] = useState(false)
-  // #1867: deposit-free eligibility + recommendation letter
-  const [waiver, setWaiver] = useState(null)
-  const [letterUrl, setLetterUrl] = useState('')
-  const [letterUploading, setLetterUploading] = useState(false)
-  const letterInputRef = useRef(null)
   const [guarantors, setGuarantors] = useState([])
   const [selectedGuarantorIds, setSelectedGuarantorIds] = useState([])
   const [showAddGuarantor, setShowAddGuarantor] = useState(false)
@@ -931,8 +905,6 @@ function BatchCheckout({ navigate }) {
       } catch {}
     }
     fetchUser()
-    // #1867: deposit-free eligibility gates the waiver toggle
-    fetchWaiverEligibility(env.apiBaseUrl).then(setWaiver)
   }, [])
 
   const groups = useMemo(() => {
@@ -1039,17 +1011,6 @@ function BatchCheckout({ navigate }) {
     setSelectedGuarantorIds(prev => prev.includes(guarantorId) ? prev.filter(x => x !== guarantorId) : [...prev, guarantorId])
   }
 
-  // #1867: pick + upload the signed recommendation letter photo
-  const handleLetterFile = async (e) => {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file) return
-    setLetterUploading(true)
-    const r = await uploadLetterPhoto(env.apiBaseUrl, file)
-    setLetterUploading(false)
-    if (r.ok) setLetterUrl(r.url)
-    else dialog.alert(t("上传失败: {msg}", { msg: r.error }))
-  }
 
   const handleSubmit = async () => {
     if (!getToken()) { dialog.alert(t("请先登录才能下单")); return }
@@ -1058,17 +1019,7 @@ function BatchCheckout({ navigate }) {
       dialog.alert(t("差额押金订单需至少选择 2 位担保人"))
       return
     }
-    // #1867: eligibility + recommendation letter gates
-    if (depositWaived) {
-      if (waiver && !waiver.eligible) {
-        showWaiverIneligible(waiver.reasons, navigate)
-        return
-      }
-      if (!letterUrl) {
-        dialog.alert(t("差额押金订单需上传签名的推荐信照片，模板可在差额押金区块下载"))
-        return
-      }
-    }
+    // #2352 D2: 旧 #1867 资格校验/推荐信已退役；差额档仅保留 2 位担保人 + 信用评测。
     if (!useNewAddress && !selectedAddressId) {
       dialog.alert(t("请选择收货地址"))
       return
@@ -1106,7 +1057,6 @@ function BatchCheckout({ navigate }) {
         body.deposit_tier = depositWaived && canReduceAll ? 'reduced' : (allZeroDeposit ? 'zero' : 'full')
         if (body.deposit_tier === 'reduced') {
           body.guarantor_ids = selectedGuarantorIds
-          body.recommendation_letter = letterUrl
         }
         const orderResp = await ordersApi.batchCreate(body)
         if (orderResp.code === 20000) {
@@ -1238,23 +1188,15 @@ function BatchCheckout({ navigate }) {
           <View className="w-full flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2.5">
             <View className="flex-1 min-w-0">
               <Text className="text-sm font-medium text-gray-700">{t("差额押金（减免）")}</Text>
-              <Text className="block text-gray-400">
-                {waiver && !waiver.eligible ? '学生／教职工专享（需实名核验+信用分达标）' : '需提供两位担保人的联系方式'}
-              </Text>
+              <Text className="block text-gray-400">{t("需 2 位担保人 + 微信信用评测")}</Text>
             </View>
             <input
               type="checkbox"
               checked={depositWaived}
-              disabled={waiver ? !waiver.eligible : false}
               onChange={e => setDepositWaived(e.target.checked)}
               className="w-5 h-5"
             />
           </View>
-          {waiver && !waiver.eligible && (
-            <View className="w-full bg-zinc-50 border border-zinc-100 rounded-lg px-3 py-2">
-              <Text className="text-xs text-zinc-500 leading-relaxed">{waiverReasonText(waiver.reasons)}</Text>
-            </View>
-          )}
           {depositWaived && (
             <View className="w-full bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
               <Text className="text-xs text-amber-700 leading-relaxed">
@@ -1265,27 +1207,6 @@ function BatchCheckout({ navigate }) {
           </>)}
           {!canReduceAll && !allZeroDeposit && (
             <Text className="block text-xs text-zinc-400 mb-2">{t("部分乐器未配置差额押金，按全额/零押金结算")}</Text>
-          )}
-          {/* #1867: recommendation letter — template download + signed photo upload */}
-          {depositWaived && waiver?.eligible && (
-            <View className="w-full bg-white rounded-xl border border-zinc-100 p-3">
-              <Text className="text-xs font-bold text-zinc-500 mb-1">{t("✍️ 推荐信")}</Text>
-              <View className="flex gap-2 mt-2">
-                <button type="button" onClick={() => downloadLetterTemplate(env.apiBaseUrl)}
-                  className="px-3 py-2 bg-zinc-100 rounded-lg text-xs font-bold text-zinc-700">{t("下载推荐信模板")}</button>
-                <button type="button" onClick={() => letterInputRef.current?.click()} disabled={letterUploading}
-                  className="px-3 py-2 bg-black rounded-lg text-xs font-bold text-white">
-                  {letterUploading ? '上传中...' : (letterUrl ? '重新上传' : '上传签名推荐信')}
-                </button>
-              </View>
-              <input ref={letterInputRef} type="file" accept="image/*" style={{ display: 'none' }}
-                onChange={handleLetterFile} />
-              {letterUrl && (
-                <Image src={letterUrl.startsWith('http') ? letterUrl : `${(env.apiBaseUrl || '').replace(/\/api\/?$/, '')}${letterUrl}`}
-                  mode="aspectFill" style={{ width: 96, height: 96, marginTop: 8, borderRadius: 8 }} />
-              )}
-              <Text className="text-xs text-zinc-400 mt-2 block">{t("打印模板 → 推荐人签名 → 拍照上传")}</Text>
-            </View>
           )}
           {depositWaived && (
             <View className="w-full bg-white rounded-xl border border-zinc-100 p-3">
