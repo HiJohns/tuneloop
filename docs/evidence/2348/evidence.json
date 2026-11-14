@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2348,
-  "build": "p12-command-drift 6b3d1d76c",
-  "commit": "6b3d1d76c7e1f0e56aedd7ce8a1891ddcc5af4a1",
+  "build": "p12-command-drift d5f84451f",
+  "commit": "d5f84451f23197f904283ea24c27cd06a5fda645",
   "dirty": false,
   "environment": "shared ~/.config/opencode/scripts/pre-ready-check.sh self-test harness + real #2343 evidence.json",
   "rows": [
@@ -60,6 +60,20 @@
       "expected": "FAIL-AS-EXPECTED",
       "negative": "未检出 → exit 1",
       "negative_result": "未检出 → 断言 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2348-p12.sh snapshot",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2348/R5-config-snapshot.txt"
+      ],
+      "assert": "共享配置已落盘 P12 command-drift：符号命中 + bash -n OK + 与备份的 diff 快照",
+      "actual": "normalize_contract_text / command drift 命中；self-test T73/T74 命中；两份共享文件 bash -n OK；diff 显示 P12 比对块与 fixtures 插入",
+      "expected": "落盘可核验",
+      "negative": "配置缺改动 → 无法产生快照 → preflight exit 3",
+      "negative_result": "verify 脚本 preflight 直接 exit 3 并给出 apply-2348-p12.sh 修复入口",
       "pass": true
     }
   ]
