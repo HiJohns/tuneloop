@@ -1,0 +1,7 @@
+PROVENANCE build=p12-command-drift commit=6b3d1d76c7e1f0e56aedd7ce8a1891ddcc5af4a1 dirty=false
+TARGET #2343
+CMD bash "/home/coder/.config/opencode/scripts/pre-ready-check.sh" 2343 --plan-file <latest Accepted Plan> --summary-file <latest Work Summary> --dry-run
+exit=1
+--- P12 line ---
+P12  FAIL   commit must equal the latest fix commit 6b695b196194cf78cd0ef0659885e0301c608bcc (got: 77fc9659b5ff1c5308ba74c1d3a2a8b81929d5ba); R2: command drift: evidence command does not match the plan contract; R5: command drift: evidence command does not match the plan contract; R5: assert does not match the plan contract; R5: negative does not match the plan contract; R6: command drift: evidence command does not match the plan contract; R6: assert does not match the plan contract; R7: command drift: evidence command does not match the plan contract; R7: assert does not match the plan contract
+RESULT: FAIL-AS-EXPECTED (real #2343 drift detected)

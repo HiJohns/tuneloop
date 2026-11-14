@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "issue": 2348,
+  "build": "p12-command-drift 6b3d1d76c",
+  "commit": "6b3d1d76c7e1f0e56aedd7ce8a1891ddcc5af4a1",
+  "dirty": false,
+  "environment": "shared ~/.config/opencode/scripts/pre-ready-check.sh self-test harness + real #2343 evidence.json",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2348-p12.sh drift",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2348/R1-drift-fail.txt"
+      ],
+      "assert": "self-test 的漂移 fixture 报 command drift FAIL",
+      "actual": "self-test T74（实质 drift fixture）报 P12 FAIL 且 detail 含 command drift；检测生效",
+      "expected": "FAIL-AS-EXPECTED",
+      "negative": "未检出 → exit 1",
+      "negative_result": "无检测 → T74 不产生 command drift → 断言失败 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2348-p12.sh consistent",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2348/R2-consistent-pass.txt"
+      ],
+      "assert": "一致样例不计 drift（计数=漂移样例数）",
+      "actual": "self-test T73（仅空白差异）P12 PASS，无 command drift 误报",
+      "expected": "计数正确",
+      "negative": "误报合法行 → exit 1",
+      "negative_result": "把空白差异误报为 drift → T73 FAIL → exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2348-p12.sh full",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2348/R3-selftest.txt"
+      ],
+      "assert": "self-test 全量 exit 0",
+      "actual": "--self-test 全量 exit 0（PASS=74 FAIL=0）",
+      "expected": "exit 0",
+      "negative": "任一意外 → exit 1",
+      "negative_result": "self-test 任一意外 → FAIL>0 / 非 0",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2348-regression-2343.sh",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2348/R4-regression-2343.txt"
+      ],
+      "assert": "P12 FAIL 且 detail 含 command drift（对 #2343 现场旧命令的负例回归）",
+      "actual": "对 #2343 现场 evidence.json：P12 FAIL，detail 含 R2/R5/R6/R7 command drift（并同时暴露 assert/negative 漂移）",
+      "expected": "FAIL-AS-EXPECTED",
+      "negative": "未检出 → exit 1",
+      "negative_result": "未检出 → 断言 exit 1",
+      "pass": true
+    }
+  ]
+}
