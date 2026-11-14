@@ -3,14 +3,46 @@
 set -euo pipefail
 MODE="${1:-}"
 case "$MODE" in
-  drift|consistent|full) ;;
-  *) echo "usage: $0 drift|consistent|full" >&2; exit 2 ;;
+  drift|consistent|full|snapshot) ;;
+  *) echo "usage: $0 drift|consistent|full|snapshot" >&2; exit 2 ;;
 esac
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 PRE_READY="${PRE_READY_BIN:-$HOME/.config/opencode/scripts/pre-ready-check.sh}"
 [ -f "$PRE_READY" ] || { echo "ERROR: pre-ready-check.sh not found: $PRE_READY" >&2; exit 2; }
 mkdir -p "$REPO_ROOT/docs/evidence/2348" "$REPO_ROOT/tmp"
 PROVENANCE="build=p12-command-drift commit=$(git -C "$REPO_ROOT" rev-parse HEAD) dirty=$(test -z "$(git -C "$REPO_ROOT" status --porcelain --untracked-files=no -- scripts)" && echo false || echo true)"
+
+# #2348 修复轮：共享配置不在 git，先验证当前主机确实已落盘 P12 改动。
+if [ "$MODE" != "snapshot" ]; then
+  if ! grep -q "normalize_contract_text" "$PRE_READY" || ! grep -q "command drift" "$PRE_READY"; then
+    echo "ERROR: P12 command-drift check missing in $PRE_READY" >&2
+    echo "REMEDIATION: bash $REPO_ROOT/scripts/apply-2348-p12.sh  (idempotent, backs up .bak-2348)" >&2
+    exit 3
+  fi
+fi
+
+if [ "$MODE" = "snapshot" ]; then
+  OUT="$REPO_ROOT/docs/evidence/2348/R5-config-snapshot.txt"
+  TESTS="$HOME/.config/opencode/scripts/tests/test_pre_ready_check.sh"
+  {
+    echo "PROVENANCE $PROVENANCE"
+    echo "TARGET $PRE_READY"
+    echo "SHA256 $(sha256sum "$PRE_READY" | awk '{print $1}')"
+    echo "MTIME $(date -r "$PRE_READY" -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || stat -c %y "$PRE_READY")"
+    echo "--- P12 symbols ---"
+    grep -n "normalize_contract_text\|command drift" "$PRE_READY"
+    echo "--- self-test fixtures ---"
+    grep -n "T73 command whitespace\|T74 substantive command drift" "$TESTS"
+    echo "--- syntax check ---"
+    bash -n "$PRE_READY" && echo "pre-ready bash -n: OK"
+    bash -n "$TESTS" && echo "self-test bash -n: OK"
+    echo "--- diff vs backups (durable change snapshot) ---"
+    diff -u "$HOME/.config/opencode/scripts/.pre-ready-check.sh.bak-2348" "$PRE_READY" || true
+    diff -u "$HOME/.config/opencode/scripts/tests/test_pre_ready_check.sh.bak-2348" "$TESTS" || true
+  } > "$OUT"
+  echo "$OUT: PASS"
+  exit 0
+fi
 
 case "$MODE" in
   drift) OUT="docs/evidence/2348/R1-drift-fail.txt" ;;
