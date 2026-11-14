@@ -1,0 +1,75 @@
+PROVENANCE build=p12-command-drift commit=d5f84451f23197f904283ea24c27cd06a5fda645 dirty=false
+TARGET /home/coder/.config/opencode/scripts/pre-ready-check.sh
+SHA256 758851f2aeb83917e00857fc0ea44958cc2eb8e8aae43ad728e80a1a9660bae3
+MTIME 2026-11-13T23:54:29Z
+--- P12 symbols ---
+532:normalize_contract_text() {
+683:          # #2348 D1: 规范化后比对（空白/引号风格差异不算 drift；实质差异 → command drift）。
+684:          [ "$(normalize_contract_text "$P12_CMD")" = "$(normalize_contract_text "$plan_cmd")" ] \
+685:            || add_p12_error "$rid: command drift: evidence command does not match the plan contract"
+--- self-test fixtures ---
+915:run_case "T73 command whitespace normalization passes P12" 0 'P12.*PASS' "$REPO_OK" \
+918:run_case "T74 substantive command drift fails P12" 1 'P12.*command drift' "$REPO_OK" \
+--- syntax check ---
+pre-ready bash -n: OK
+self-test bash -n: OK
+--- diff vs backups (durable change snapshot) ---
+--- /home/coder/.config/opencode/scripts/.pre-ready-check.sh.bak-2348	2026-11-13 23:54:29.464506936 +0000
++++ /home/coder/.config/opencode/scripts/pre-ready-check.sh	2026-11-13 23:54:29.494369231 +0000
+@@ -527,6 +527,15 @@
+ 
+ # --------------------------------------------------------- evidence contract
+ [ -n "$EVIDENCE_FILE" ] || EVIDENCE_FILE="$REPO_ROOT/docs/evidence/$ISSUE/evidence.json"
++# #2348 D1: command 单元格比对前的规范化（空白折叠 + 统一弯引号）；
++# 仅消除格式差异，实质文本（如截图子句/--no-ignore）仍会被判为 drift。
++normalize_contract_text() {
++  printf '%s' "$1" \
++    | sed -e 's/[“”]/"/g' -e "s/[‘’]/'/g" \
++    | tr -s '[:space:]' ' ' \
++    | sed -e 's/^ //' -e 's/ $//'
++}
++
+ P12_ROOT="$(cd "$REPO_ROOT" && pwd -P)"
+ CONTRACT_ALL="$DATA_DIR/contract-rows-all.txt"
+ CONTRACT_ROWS="$DATA_DIR/contract-rows.txt"
+@@ -670,7 +679,11 @@
+         [ -n "$P12_ACTUAL" ] || add_p12_error "$rid: actual is empty"
+         [ -n "$P12_EXPECTED" ] || add_p12_error "$rid: expected is empty"
+ 
+-        [ -z "$P12_CMD" ] || [ "$P12_CMD" = "$plan_cmd" ] || add_p12_error "$rid: command does not match the plan contract"
++        if [ -n "$P12_CMD" ]; then
++          # #2348 D1: 规范化后比对（空白/引号风格差异不算 drift；实质差异 → command drift）。
++          [ "$(normalize_contract_text "$P12_CMD")" = "$(normalize_contract_text "$plan_cmd")" ] \
++            || add_p12_error "$rid: command drift: evidence command does not match the plan contract"
++        fi
+         [ -z "$P12_ASSERT" ] || [ "$P12_ASSERT" = "$plan_assert" ] || add_p12_error "$rid: assert does not match the plan contract"
+         [ -z "$P12_EXPECTED" ] || [ "$P12_EXPECTED" = "$plan_expected" ] || add_p12_error "$rid: expected does not match the plan contract"
+         [ -z "$P12_NEG" ] || [ "$P12_NEG" = "$plan_negative" ] || add_p12_error "$rid: negative does not match the plan contract"
+--- /home/coder/.config/opencode/scripts/tests/test_pre_ready_check.sh.bak-2348	2026-11-13 23:54:29.468256453 +0000
++++ /home/coder/.config/opencode/scripts/tests/test_pre_ready_check.sh	2026-11-13 23:57:24.941170334 +0000
+@@ -671,6 +671,11 @@
+ jq '(.rows[] | select(.id=="R1") | del(.negative))' "$EVIDENCE_GOOD" > "$EVIDENCE_MISSING_NEGATIVE"
+ jq --arg c "$(cd "$REPO_OK" && git rev-parse HEAD^)" '.commit=$c | .build=($c[0:7])' "$EVIDENCE_GOOD" > "$EVIDENCE_OLDER_ANCESTOR"
+ jq '.build="0000000"' "$EVIDENCE_GOOD" > "$EVIDENCE_BUILD_MISMATCH"
++# #2348: command 单元格规范化 fixtures
++PLAN_WS="$WORK/plan-whitespace.md"
++sed 's/| R1 | `true` |/| R1 | `true     ` |/' "$PLAN_CONTRACT" > "$PLAN_WS"
++EVIDENCE_CMD_DRIFT="$EVIDENCE_DIR/evidence-command-drift.json"
++jq '(.rows[] | select(.id=="R1") | .command) = "true && echo drifted"' "$EVIDENCE_GOOD" > "$EVIDENCE_CMD_DRIFT"
+ AIAUDIT_GOOD="$WORK/aiaudit-good.json"
+ AIAUDIT_BAD="$WORK/aiaudit-bad.json"
+ printf '{"summary":{"fail":0,"pass":10,"warn":0,"skip":2}}\n' > "$AIAUDIT_GOOD"
+@@ -906,6 +911,13 @@
+ run_case "T64 build/commit mismatch fails P12" 1 'P12.*FAIL' "$REPO_OK" \
+   "${CONTRACT_COMMON[@]}" --evidence-file "$EVIDENCE_BUILD_MISMATCH"
+ 
++# #2348 D1/D4: 空白/引号风格差异不算 drift；实质差异必须报 command drift。
++run_case "T73 command whitespace normalization passes P12" 0 'P12.*PASS' "$REPO_OK" \
++  "${CONTRACT_COMMON[@]}" --plan-file "$PLAN_WS" --evidence-file "$EVIDENCE_GOOD"
++
++run_case "T74 substantive command drift fails P12" 1 'P12.*command drift' "$REPO_OK" \
++  "${CONTRACT_COMMON[@]}" --evidence-file "$EVIDENCE_CMD_DRIFT"
++
+ RUN_ALLOW_LOCAL=0 run_case "T65 unpushed fix fails P13" 1 'P13.*FAIL' "$REPO_REMOTE" \
+   --plan-file "$PLAN" --summary-file "$SUMMARY_GOOD" --changed-files "$CHANGED_OK" \
+   --affected-cmd true --fix-commit "$REMOTE_HEAD" --no-full-gate \

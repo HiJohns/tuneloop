@@ -1,0 +1,70 @@
+
+/home/ken/git/tuneloop-2351/frontend-mobile/src/pages-weapp/Checkout.jsx
+  943:6  warning  React Hook useMemo has a missing dependency: 'effectiveGroupDeposit'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  952:6  warning  React Hook useMemo has a missing dependency: 'effectiveGroupDeposit'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/ken/git/tuneloop-2351/frontend-mobile/src/pages-weapp/renewal/Renewal.jsx
+   50:6    warning  React Hook useEffect has a missing dependency: 'baseUrl'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   67:6    warning  React Hook useEffect has a missing dependency: 'baseUrl'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   85:50   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+   88:45   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  111:128  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  112:127  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  141:146  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  142:146  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  144:148  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  144:219  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  150:78   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  152:79   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  152:97   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  165:131  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  171:62   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  175:27   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  181:62   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  184:93   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  190:80   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  195:66   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  195:78   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  195:91   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  195:126  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  200:64   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  204:65   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  207:76   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  209:78   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+
+/home/ken/git/tuneloop-2351/frontend-mobile/src/pages/Checkout.jsx
+   193:6   warning  React Hook useEffect has a missing dependency: 'navigate'. Either include it or remove the dependency array. If 'navigate' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
+   266:50  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                                                                                                                                                 i18n/no-hardcoded-ui-string
+   991:6   warning  React Hook useMemo has a missing dependency: 'effectiveGroupDeposit'. Either include it or remove the dependency array                                                                                                           react-hooks/exhaustive-deps
+  1000:6   warning  React Hook useMemo has a missing dependency: 'effectiveGroupDeposit'. Either include it or remove the dependency array                                                                                                           react-hooks/exhaustive-deps
+
+/home/ken/git/tuneloop-2351/frontend-mobile/src/pages/Renewal.jsx
+   52:6    warning  React Hook useEffect has a missing dependency: 'baseUrl'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   69:6    warning  React Hook useEffect has a missing dependency: 'baseUrl'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   85:60   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+   88:55   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+   94:89   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+   95:88   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  119:57   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  131:95   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  132:95   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  134:97   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  134:162  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  140:54   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  142:63   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  142:81   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  155:28   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  161:53   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  170:53   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  173:64   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  179:56   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  184:49   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  184:58   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  184:68   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  184:103  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  189:47   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  193:21   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+  197:21   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                            i18n/no-hardcoded-ui-string
+
+✖ 59 problems (0 errors, 59 warnings)
+
