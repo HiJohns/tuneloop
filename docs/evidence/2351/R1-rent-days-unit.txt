@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: 输入期保留空串，同时 days 回退到最小值
+ok 1 - 输入期保留空串，同时 days 回退到最小值
+  ---
+  duration_ms: 1.638957
+  type: 'test'
+  ...
+# Subtest: 清空后可连续输入 6 -> 60，文本不被覆盖
+ok 2 - 清空后可连续输入 6 -> 60，文本不被覆盖
+  ---
+  duration_ms: 0.172563
+  type: 'test'
+  ...
+# Subtest: 失焦空串归一化：Checkout=1，Renewal=minDays
+ok 3 - 失焦空串归一化：Checkout=1，Renewal=minDays
+  ---
+  duration_ms: 0.128584
+  type: 'test'
+  ...
+# Subtest: Checkout 上限 730：编辑期保留 999，失焦归一为 730
+ok 4 - Checkout 上限 730：编辑期保留 999，失焦归一为 730
+  ---
+  duration_ms: 0.153876
+  type: 'test'
+  ...
+# Subtest: 0、负数、非数字不会产生非法 days
+ok 5 - 0、负数、非数字不会产生非法 days
+  ---
+  duration_ms: 0.317626
+  type: 'test'
+  ...
+# Subtest: +/- 步进同步文本与数字，并在边界封顶
+ok 6 - +/- 步进同步文本与数字，并在边界封顶
+  ---
+  duration_ms: 0.162198
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 51.125695

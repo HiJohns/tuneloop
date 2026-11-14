@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "issue": 2351,
+  "build": "rent-days-input 2e2a101d5",
+  "commit": "2e2a101d5",
+  "dirty": false,
+  "environment": "local Node v22.23.4; frontend-mobile vitest 2.1.9 + webpack H5/WeApp builds; no backend/database",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash -c \"node --test frontend-mobile/src/utils/rentDays.test.mjs > docs/evidence/2351/R1-rent-days-unit.txt 2>&1\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2351/R1-rent-days-unit.txt"
+      ],
+      "assert": "退出码 0；输出 # fail 0；覆盖空串/连续输入/失焦/730/minDays/step",
+      "actual": "# tests 6 / # pass 6 / # fail 0；空串保留、6→60、失焦归一、730 上限、minDays=45、步进边界全覆盖",
+      "expected": "# fail 0",
+      "negative": "任一边界断言失败或模块缺失 → 非 0",
+      "negative_result": "修复前 rentDays.mjs 不存在，node --test 失败；修复后 6/6 PASS",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash -c \"cd frontend-mobile && npx vitest run --config vitest.config.js scripts/page-smoke/rent-days-input.test.jsx > ../docs/evidence/2351/R2-rent-days-ui.txt 2>&1\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2351/R2-rent-days-ui.txt"
+      ],
+      "assert": "退出码 0；输出 Test Files  1 passed；H5 Checkout/Renewal 清空、60、失焦空、999",
+      "actual": "Test Files 1 passed；Tests 3 passed；H5 Checkout 清空保持空、60 保持、空失焦=1、999 失焦=730；H5 Renewal 同样通过",
+      "expected": "Test Files  1 passed",
+      "negative": "清空后立即回 1/30、输入被覆盖、失焦未归一 → 非 0",
+      "negative_result": "红证据 R0 中三条用例均失败：清空回写 1、999 输入被写成 730、Renewal 清空回写 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash -c \"cd frontend-mobile && npx eslint src/pages/Checkout.jsx src/pages-weapp/Checkout.jsx src/pages/Renewal.jsx src/pages-weapp/renewal/Renewal.jsx > ../docs/evidence/2351/R3-eslint.txt 2>&1\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2351/R3-eslint.txt"
+      ],
+      "assert": "退出码 0；no-undef 为 0",
+      "actual": "0 errors, 59 warnings（均为既有 i18n/exhaustive-deps 告警）",
+      "expected": "0 errors",
+      "negative": "出现 no-undef/解析错误 → 非 0",
+      "negative_result": "ESLint exit 0；no-undef 未出现",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash -c \"bash scripts/check-rent-days-wiring.sh > docs/evidence/2351/R4-rent-days-wiring.txt 2>&1\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2351/R4-rent-days-wiring.txt"
+      ],
+      "assert": "退出码 0；四页均含 helper import/使用与 onBlur",
+      "actual": "WIRING: PASS；H5/WeApp Checkout 与 Renewal 均使用 rentDays helper 且存在 onBlur",
+      "expected": "WIRING: PASS",
+      "negative": "任一页仍用旧即时 clamp 或缺 onBlur → 非 0",
+      "negative_result": "脚本同时检查旧 clamp/value={days}/parseInt(e.detail.value) 残留，均未命中",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash -c \"cd frontend-mobile && npm run build:h5 > ../docs/evidence/2351/R5-h5-build.txt 2>&1\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2351/R5-h5-build.txt"
+      ],
+      "assert": "退出码 0；H5 构建成功",
+      "actual": "webpack compiled successfully in 23188 ms；2 条 asset size warning，0 error",
+      "expected": "exit 0",
+      "negative": "JSX/import 错误或构建失败 → 非 0",
+      "negative_result": "构建 exit 0",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash -c \"cd frontend-mobile && npm run build:weapp > ../docs/evidence/2351/R6-weapp-build.txt 2>&1\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2351/R6-weapp-build.txt"
+      ],
+      "assert": "退出码 0；WeApp 构建成功",
+      "actual": "Webpack compiled successfully in 11150 ms",
+      "expected": "exit 0",
+      "negative": "编译错误/产物缺失 → 非 0",
+      "negative_result": "构建 exit 0",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash -c \"cd frontend-mobile && npm run smoke > ../docs/evidence/2351/R7-smoke.txt 2>&1\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2351/R7-smoke.txt"
+      ],
+      "assert": "退出码 0；smoke 全绿且包含新增租期用例",
+      "actual": "Test Files 3 passed；Tests 25 passed；包含 rent-days-input.test.jsx 的 3 条租期用例",
+      "expected": "Test Files 全 passed",
+      "negative": "任一页面渲染/交互回归 → 非 0",
+      "negative_result": "三文件全部通过，新增租期用例在内",
+      "pass": true
+    }
+  ]
+}

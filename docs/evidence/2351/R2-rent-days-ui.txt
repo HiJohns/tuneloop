@@ -1,0 +1,18 @@
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /home/ken/git/tuneloop-2351/frontend-mobile
+
+stdout | scripts/page-smoke/rent-days-input.test.jsx
+[Dev Mode] Injecting mock wx object for browser debugging
+
+stderr | scripts/page-smoke/rent-days-input.test.jsx > mobile rent days input direct editing (#2351) > H5 Checkout keeps the field empty while clearing and retyping
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ scripts/page-smoke/rent-days-input.test.jsx (3 tests) 129ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  14:43:13
+   Duration  1.16s (transform 193ms, setup 24ms, collect 335ms, tests 129ms, environment 273ms, prepare 187ms)
+
