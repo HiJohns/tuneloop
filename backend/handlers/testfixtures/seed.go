@@ -11,6 +11,7 @@ package testfixtures
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
@@ -57,4 +58,28 @@ func SeedUserFK(t *testing.T, db *gorm.DB, userID, tenantID, orgID string) {
 	if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&row).Error; err != nil {
 		t.Fatalf("#2344 seed users(%s): %v", userID, err)
 	}
+}
+
+// SeedMembershipLevelFK 确保 users.membership_level_id 指向的行存在（严格 schema 有 FK）。
+// #2357：旧夹具常用 `MembershipLevelID: intPtr(1)`，而 membership_levels 无该行。
+func SeedMembershipLevelFK(t *testing.T, db *gorm.DB, levelID int) {
+	t.Helper()
+	if levelID <= 0 {
+		return
+	}
+	row := models.MembershipLevel{ID: levelID, Name: "test-level", MinAmount: 0}
+	if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&row).Error; err != nil {
+		t.Fatalf("#2357 seed membership_levels(%d): %v", levelID, err)
+	}
+}
+
+// UniqueIAMSub 生成唯一的 iam_sub（严格 schema 下 users.iam_sub 有唯一索引）。
+// #2357：多处夹具复用同一个 iam_sub（如 "refund_test_user"）触发 users_iam_sub_key。
+func UniqueIAMSub(seed string) string {
+	return "iam-" + seed + "-" + uuid.New().String()
+}
+
+// UniqueCode 生成带随机后缀的业务 code（覆盖 pricing_templates / merchants 等唯一索引）。
+func UniqueCode(seed string) string {
+	return seed + "-" + uuid.New().String()[:8]
 }

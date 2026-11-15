@@ -149,6 +149,11 @@ func TestBatchCreateOrder_RentDaysOverridesEndDate(t *testing.T) {
 	instrumentID1 := uuid.New().String()
 	instrumentID2 := uuid.New().String()
 
+	// #2339/#2357: #2040 要求已核身用户；严格 schema 需要 tenant/site 行。
+	testfixtures.SeedTenantFK(t, db, tenantID)
+	testfixtures.SeedSiteFK(t, db, tenantID, tenantID)
+	testutil.SeedVerifiedCustomer(t, db, tenantID, tenantID, userID)
+
 	require.NoError(t, db.Create(&models.Instrument{
 		ID:          instrumentID1,
 		TenantID:    tenantID,

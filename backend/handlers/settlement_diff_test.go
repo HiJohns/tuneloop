@@ -28,14 +28,21 @@ func TestRefundDiff_PointsOverCap(t *testing.T) {
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
 		Username: "diffover", Status: "active", MembershipLevelID: intPtr(1),
+		// #2357: membership_levels(1) 需存在（FK）
 	}).Error)
 
 	// R0 = 3000 (cash 2000 + gift 1000, deposit 500 excluded from rent formula)
 	// Actual rent R1 = 2800 (28 days × 100).
 	returnedAt := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
+	// #2339/#2357: 严格 schema 下 orders.instrument_id 有 FK → 先建乐器再建订单。
+	instrumentID := uuid.New().String()
+	require.NoError(t, db.Create(&models.Instrument{
+		ID: instrumentID, TenantID: tenantID, OrgID: &orgID,
+		SN: "DIFF-OVER", BaseDailyRate: models.ToCentsPtr(float64Ptr(100)), StockStatus: "rented",
+	}).Error)
 	order := models.Order{
 		TenantID: tenantID, OrgID: orgID, UserID: userID,
-		InstrumentID:     uuid.New().String(),
+		InstrumentID:     instrumentID,
 		StartDate:        strPtr("2026-07-01"),
 		EndDate:          strPtr("2026-07-30"),
 		LeaseTerm:        30,
@@ -47,11 +54,6 @@ func TestRefundDiff_PointsOverCap(t *testing.T) {
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
-	// Create the instrument the order references
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "DIFF-OVER", BaseDailyRate: models.ToCentsPtr(float64Ptr(100)), StockStatus: "rented",
-	}).Error)
 
 	result := computeSettlement(order, db)
 

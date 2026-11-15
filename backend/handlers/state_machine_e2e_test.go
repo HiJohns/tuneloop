@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"gorm.io/gorm/clause"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 	"tuneloop-backend/database"
+
 	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -34,6 +36,9 @@ func setupE2ETestEnv(t *testing.T) (*gin.Engine, string, string, string, string)
 	tenantID := uuid.New().String()
 	userID := uuid.New().String()
 	orgID := tenantID
+	// #2339/#2357: 严格 schema 下 sites/users 有 FK；先种 tenant + site（org 即网点）。
+	testfixtures.SeedTenantFK(t, db, tenantID)
+	testfixtures.SeedSiteFK(t, db, orgID, tenantID)
 
 	instrumentID := uuid.New().String()
 	db.Create(&models.Instrument{
@@ -455,10 +460,15 @@ func TestInspectReturn_Good_ExecutesRefund(t *testing.T) {
 	db := database.GetDB()
 
 	// User row with prepaid points (required for points refund)
-	require.NoError(t, db.Create(&models.User{
+	// #2339/#2357: setupE2ETestEnv 已种该用户 → 用 upsert 只补 prepaid_points，避免 users_pkey 重复。
+	require.NoError(t, db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"prepaid_points"}),
+	}).Create(&models.User{
 		ID:            userID,
 		TenantID:      tenantID,
 		OrgID:         orgID,
+		IAMSub:        testfixtures.UniqueIAMSub("refund"),
 		Username:      "refund_test_user",
 		PrepaidPoints: models.Cents(1000),
 		Status:        "active",

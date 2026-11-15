@@ -16,6 +16,7 @@ import (
 	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/testutil"
 )
 
 func TestListUserInstruments(t *testing.T) {
@@ -132,6 +133,11 @@ func TestCreateRentalOrder(t *testing.T) {
 	userID := uuid.New().String()
 	instrumentID := uuid.New().String()
 
+	// #2339/#2357: 严格 schema 下 tenants/sites 有 FK；#2040 下单要求已核身用户。
+	testfixtures.SeedTenantFK(t, db, tenantID)
+	testfixtures.SeedSiteFK(t, db, tenantID, tenantID)
+	testutil.SeedVerifiedCustomer(t, db, tenantID, tenantID, userID)
+
 	// Create available instrument
 	instrument := models.Instrument{
 		ID:          instrumentID,
@@ -148,6 +154,8 @@ func TestCreateRentalOrder(t *testing.T) {
 		ctx := c.Request.Context()
 		ctx = context.WithValue(ctx, middleware.ContextKeyTenantID, tenantID)
 		ctx = context.WithValue(ctx, middleware.ContextKeyUserID, userID)
+		// #2339: orders.org_id 为 uuid，缺失会让 CreateOrder 报 22P02；网点=租户。
+		ctx = context.WithValue(ctx, middleware.ContextKeyOrgID, tenantID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
