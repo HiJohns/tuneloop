@@ -1,12 +1,13 @@
+PROVENANCE build=s4-credit-assessment 6332b83 commit=6332b83315512f88f7e806e91c37d447e5f68e4f dirty=false
 [33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
 
- RUN  v2.1.9 /tmp/opencode/wt-2333-work/frontend-mobile
+ RUN  v2.1.9 /tmp/fix-2333/frontend-mobile
 
 stderr | scripts/page-smoke/smoke.test.jsx > mobile page render smoke > H5 /checkout renders without fatal errors
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
-5:06:27 AM [vite] warning: Duplicate "style" attribute in JSX element
+11:47:10 PM [vite] warning: Duplicate "style" attribute in JSX element
 36 |                  <View onClick={e => { e.stopPropagation(); setImageIndex(i => (i - 1 + allImgs.length) % allImgs.length) }}
 37 |                    style={{ top: '50%', transform: 'translateY(-50%)' }}
 38 |                    className="absolute left-2 rounded-full w-8 h-8 flex items-center justify-center shadow-sm" style={{ backgroundColor: 'rgba(255,255,255,0.8)' }}>
@@ -15,24 +16,24 @@ stderr | scripts/page-smoke/smoke.test.jsx > mobile page render smoke > H5 /chec
 40 |                  </View>
 
   Plugin: vite:esbuild
-  File: /tmp/opencode/wt-2333-work/frontend-mobile/src/components/InstrumentInfo.jsx
+  File: /tmp/fix-2333/frontend-mobile/src/components/InstrumentInfo.jsx
 stderr | scripts/page-smoke/smoke.test.jsx > mobile page render smoke > H5 /cart renders without fatal errors
 Warning: React does not recognize the `scrollY` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `scrolly` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
     at div
     at div
-    at Cart (/tmp/opencode/wt-2333-work/frontend-mobile/src/pages/Cart.jsx:84:42)
-    at RenderedRoute (/tmp/opencode/wt-2333-work/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
-    at Routes (/tmp/opencode/wt-2333-work/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
-    at Router (/tmp/opencode/wt-2333-work/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
-    at MemoryRouter (/tmp/opencode/wt-2333-work/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+    at Cart (/tmp/fix-2333/frontend-mobile/src/pages/Cart.jsx:84:42)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
 Warning: React does not recognize the `showScrollbar` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `showscrollbar` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
     at div
     at div
-    at Cart (/tmp/opencode/wt-2333-work/frontend-mobile/src/pages/Cart.jsx:84:42)
-    at RenderedRoute (/tmp/opencode/wt-2333-work/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
-    at Routes (/tmp/opencode/wt-2333-work/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
-    at Router (/tmp/opencode/wt-2333-work/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
-    at MemoryRouter (/tmp/opencode/wt-2333-work/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+    at Cart (/tmp/fix-2333/frontend-mobile/src/pages/Cart.jsx:84:42)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
 
 stderr | scripts/page-smoke/smoke.test.jsx > mobile page render smoke > H5 /register renders without fatal errors
 Warning: Received `true` for a non-boolean attribute `password`.
@@ -42,22 +43,22 @@ If you want to write it to the DOM, pass a string instead: password="true" or pa
     at div
     at div
     at div
-    at Register (/tmp/opencode/wt-2333-work/frontend-mobile/src/pages/Register.jsx:30:42)
-    at RenderedRoute (/tmp/opencode/wt-2333-work/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
-    at Routes (/tmp/opencode/wt-2333-work/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
-    at Router (/tmp/opencode/wt-2333-work/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
-    at MemoryRouter (/tmp/opencode/wt-2333-work/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+    at Register (/tmp/fix-2333/frontend-mobile/src/pages/Register.jsx:30:42)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
 Warning: validateDOMNesting(...): <div> cannot appear as a child of <select>.
     at div
     at select
     at div
     at div
     at div
-    at Register (/tmp/opencode/wt-2333-work/frontend-mobile/src/pages/Register.jsx:30:42)
-    at RenderedRoute (/tmp/opencode/wt-2333-work/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
-    at Routes (/tmp/opencode/wt-2333-work/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
-    at Router (/tmp/opencode/wt-2333-work/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
-    at MemoryRouter (/tmp/opencode/wt-2333-work/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+    at Register (/tmp/fix-2333/frontend-mobile/src/pages/Register.jsx:30:42)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
 
 stderr | scripts/page-smoke/smoke.test.jsx > mobile page render smoke > weapp payment renders without fatal errors
 Warning: React does not recognize the `placeholderStyle` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `placeholderstyle` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
@@ -66,33 +67,33 @@ Warning: React does not recognize the `placeholderStyle` prop on a DOM element. 
     at div
     at div
     at div
-    at Payment (/tmp/opencode/wt-2333-work/frontend-mobile/src/pages-weapp/payment/Payment.jsx:29:61)
-    at PaymentWithGuard (/tmp/opencode/wt-2333-work/frontend-mobile/src/pages-weapp/payment/index.tsx:8:25)
-    at RenderedRoute (/tmp/opencode/wt-2333-work/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
-    at Routes (/tmp/opencode/wt-2333-work/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
-    at Router (/tmp/opencode/wt-2333-work/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
-    at MemoryRouter (/tmp/opencode/wt-2333-work/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+    at Payment (/tmp/fix-2333/frontend-mobile/src/pages-weapp/payment/Payment.jsx:29:61)
+    at PaymentWithGuard (/tmp/fix-2333/frontend-mobile/src/pages-weapp/payment/index.tsx:8:25)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
 
- ✓ scripts/page-smoke/smoke.test.jsx (18 tests) 8023ms
-   ✓ mobile page render smoke > H5 /checkout renders without fatal errors 1126ms
-   ✓ mobile page render smoke > H5 /checkout (zero deposit) renders without fatal errors 333ms
-   ✓ mobile page render smoke > H5 /payment renders without fatal errors 474ms
-   ✓ mobile page render smoke > H5 /order/:id renders without fatal errors 703ms
-   ✓ mobile page render smoke > H5 /credit-assessment renders without fatal errors 351ms
-   ✓ mobile page render smoke > H5 /cart renders without fatal errors 391ms
-   ✓ mobile page render smoke > H5 /profile renders without fatal errors 412ms
-   ✓ mobile page render smoke > H5 /register renders without fatal errors 468ms
-   ✓ mobile page render smoke > weapp checkout renders without fatal errors 631ms
-   ✓ mobile page render smoke > weapp checkout (zero deposit) renders without fatal errors 336ms
-   ✓ mobile page render smoke > weapp payment renders without fatal errors 415ms
-   ✓ mobile page render smoke > weapp order-detail renders without fatal errors 459ms
-   ✓ mobile page render smoke > weapp cart renders without fatal errors 320ms
-   ✓ mobile page render smoke > weapp profile renders without fatal errors 575ms
-   ✓ mobile page render smoke > weapp profile-complete renders without fatal errors 490ms
-   ✓ mobile page render smoke > payment credit gate renders entry when credit is not approved 509ms
+ ✓ scripts/page-smoke/smoke.test.jsx (18 tests) 10780ms
+   ✓ mobile page render smoke > H5 /checkout renders without fatal errors 2607ms
+   ✓ mobile page render smoke > H5 /checkout (zero deposit) renders without fatal errors 368ms
+   ✓ mobile page render smoke > H5 /payment renders without fatal errors 603ms
+   ✓ mobile page render smoke > H5 /order/:id renders without fatal errors 884ms
+   ✓ mobile page render smoke > H5 /credit-assessment renders without fatal errors 423ms
+   ✓ mobile page render smoke > H5 /cart renders without fatal errors 451ms
+   ✓ mobile page render smoke > H5 /profile renders without fatal errors 603ms
+   ✓ mobile page render smoke > H5 /register renders without fatal errors 522ms
+   ✓ mobile page render smoke > weapp checkout renders without fatal errors 843ms
+   ✓ mobile page render smoke > weapp checkout (zero deposit) renders without fatal errors 349ms
+   ✓ mobile page render smoke > weapp payment renders without fatal errors 460ms
+   ✓ mobile page render smoke > weapp order-detail renders without fatal errors 543ms
+   ✓ mobile page render smoke > weapp cart renders without fatal errors 382ms
+   ✓ mobile page render smoke > weapp profile renders without fatal errors 655ms
+   ✓ mobile page render smoke > weapp profile-complete renders without fatal errors 485ms
+   ✓ mobile page render smoke > payment credit gate renders entry when credit is not approved 523ms
 
  Test Files  1 passed (1)
       Tests  18 passed (18)
-   Start at  05:06:23
-   Duration  9.52s (transform 1.65s, setup 97ms, collect 277ms, tests 8.02s, environment 637ms, prepare 234ms)
+   Start at  23:47:01
+   Duration  15.79s (transform 3.22s, setup 131ms, collect 904ms, tests 10.78s, environment 2.25s, prepare 981ms)
 

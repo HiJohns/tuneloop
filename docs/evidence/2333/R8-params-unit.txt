@@ -1,11 +1,12 @@
+PROVENANCE build=s4-credit-assessment 6332b83 commit=6332b83315512f88f7e806e91c37d447e5f68e4f dirty=false
 [33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
 
- RUN  v2.1.9 /tmp/opencode/wt-2333-work/frontend-mobile
+ RUN  v2.1.9 /tmp/fix-2333/frontend-mobile
 
- ✓ scripts/page-smoke/credit-assessment-2333.test.jsx (5 tests) 13ms
+ ✓ scripts/page-smoke/credit-assessment-2333.test.jsx (5 tests) 35ms
 
  Test Files  1 passed (1)
       Tests  5 passed (5)
-   Start at  05:10:13
-   Duration  2.32s (transform 132ms, setup 65ms, collect 20ms, tests 13ms, environment 1.24s, prepare 238ms)
+   Start at  23:47:20
+   Duration  3.82s (transform 265ms, setup 129ms, collect 84ms, tests 35ms, environment 1.91s, prepare 800ms)
 

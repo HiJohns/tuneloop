@@ -1,3 +1,4 @@
+PROVENANCE build=s4-credit-assessment 6332b83 commit=6332b83315512f88f7e806e91c37d447e5f68e4f dirty=false
 
 > frontend-mobile@1.0.0 build:h5
 > taro build --type h5
@@ -15,6 +16,11 @@ Tips:
 
 - 即将开始启动编译，请稍等~
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ setup (9%) compilation 
+ InferAsyncModulesPlugin
+
+- 即将开始启动编译，请稍等~
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
 ● Webpack █████████████████████████ building (10%) 0/1 entries 1/1 dependencie
 s 0/1 modules 1 active 
  babel-loader › src/app.config.ts
@@ -22,151 +28,752 @@ s 0/1 modules 1 active
 - 即将开始启动编译，请稍等~
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
 ● Webpack █████████████████████████ building (10%)  
- import loader ./node_modules/babel-loader/lib/index.js
+ ...js
 
 - 即将开始启动编译，请稍等~
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
 ● Webpack █████████████████████████ building (10%)  
- import loader ./node_modules/@tarojs/taro-loader/lib/h5.js
+ .../home/coder/tuneloop/frontend-mobile/node_modules/@tarojs/taro-loader/lib/
+h5.js
 
 - 即将开始启动编译，请稍等~
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
 ● Webpack █████████████████████████ building (10%) 0/1 entries 1/2 dependencie
 s 0/1 modules 1 active 
  babel-loader › src/app.config.ts
 
 - 即将开始启动编译，请稍等~
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (10%) 0/1 entries 2/55 dependenci
+es 0/2 modules 2 active 
+ babel-loader › src/app.tsx
+
+- 即将开始启动编译，请稍等~
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
 ● Webpack █████████████████████████ building (10%) 0/1 entries 48/66 dependenc
-ies 0/48 modules 6 active 
+ies 0/48 modules 5 active 
  babel-loader › src/pages/about/index.tsx
 
 - 即将开始启动编译，请稍等~
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/1 entries 55/68 dependenc
-ies 1/53 modules 49 active 
- ...bel-loader › node_modules/@tarojs/plugin-platform-h5/dist/runtime/apis/ind
+● Webpack █████████████████████████ building (10%) 0/1 entries 52/106 dependen
+cies 0/51 modules 50 active 
+ .../home/coder/tuneloop/frontend-mobile/node_modules/@tarojs/runtime/dist/ind
 ex.js
 
 - 即将开始启动编译，请稍等~
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/1 entries 56/68 dependenc
-ies 1/54 modules 53 active 
- style-loader › css-loader › node_modules/@tarojs/components/global.css
+● Webpack █████████████████████████ building (10%) 0/1 entries 52/106 dependen
+cies 0/51 modules 51 active 
+ .../home/coder/tuneloop/frontend-mobile/node_modules/@tarojs/components/globa
+l.css
+
+- 即将开始启动编译，请稍等~
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (10%) 0/1 entries 53/112 dependen
+cies 0/52 modules 52 active 
+ ..../home/coder/tuneloop/frontend-mobile/node_modules/@tarojs/router/dist/ind
+ex.js
+
+- 即将开始启动编译，请稍等~
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (10%) 0/1 entries 65/119 dependen
+cies 1/63 modules 61 active 
+ .../home/coder/tuneloop/frontend-mobile/node_modules/@tarojs/components/globa
+l.css
+
+- 即将开始启动编译，请稍等~
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (10%) 0/1 entries 111/128 depende
+ncies 1/108 modules 83 active 
+ babel-loader › src/pages/TechRepairWorkbench.jsx
 
 - 即将开始启动编译，请稍等~
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/1 entries 57/94 dependenc
-ies 1/55 modules 54 active 
- babel-loader › node_modules/@tarojs/components/dist/components/index.js
+● Webpack █████████████████████████ building (10%) 0/1 entries 112/137 depende
+ncies 1/109 modules 108 active 
+ ...e/coder/tuneloop/frontend-mobile/node_modules/react/cjs/react.production.m
+in.js
+
+- 即将开始启动编译，请稍等~
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (10%) 0/1 entries 115/243 depende
+ncies 2/112 modules 107 active 
+ ...e/coder/tuneloop/frontend-mobile/node_modules/react/cjs/react.production.m
+in.js
+
+- 即将开始启动编译，请稍等~
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (10%) 0/1 entries 120/300 depende
+ncies 2/117 modules 107 active 
+ ...e/coder/tuneloop/frontend-mobile/node_modules/react/cjs/react.production.m
+in.js
+
+- 即将开始启动编译，请稍等~
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (10%) 0/1 entries 128/593 depende
+ncies 3/121 modules 106 active 
+ babel-loader › src/pages/OrderDetail.jsx
 
 - 即将开始启动编译，请稍等~
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/1 entries 59/95 dependenc
-ies 1/57 modules 55 active 
- css-loader › node_modules/@tarojs/components/global.css
+● Webpack █████████████████████████ building (10%) 0/1 entries 807/877 depende
+ncies 9/311 modules 101 active 
+ babel-loader › src/pages/Cart.jsx
 
 - 即将开始启动编译，请稍等~
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/1 entries 67/129 dependen
-cies 1/64 modules 62 active 
- node_modules/react/cjs/react.production.min.js
-
-- 即将开始启动编译，请稍等~
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/1 entries 73/132 dependen
-cies 1/69 modules 64 active 
- babel-loader › src/platform/polyfill.js
-
-- 即将开始启动编译，请稍等~
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/1 entries 176/292 depende
-ncies 4/171 modules 65 active 
- babel-loader › src/mp_ecard_sdk/main.js
-
-- 即将开始启动编译，请稍等~
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/1 entries 262/309 depende
-ncies 9/250 modules 70 active 
- babel-loader › src/pages/ReturnConfirm.jsx
-
-- 即将开始启动编译，请稍等~
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/1 entries 287/400 depende
-ncies 9/271 modules 138 active 
- ...r › node_modules/@tarojs/components/dist/components/taro-animation-view-co
+● Webpack █████████████████████████ building (10%) 0/1 entries 868/900 depende
+ncies 9/318 modules 175 active 
+ ...obile/node_modules/@tarojs/components/dist/components/taro-movable-area-co
 re.js
 
 - 即将开始启动编译，请稍等~
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/1 entries 307/800 depende
-ncies 11/273 modules 136 active 
- ...r › node_modules/@tarojs/components/dist/components/taro-animation-view-co
+● Webpack █████████████████████████ building (10%) 0/1 entries 920/1000 depend
+encies 10/323 modules 174 active 
+ ...obile/node_modules/@tarojs/components/dist/components/taro-movable-area-co
 re.js
 
 - 即将开始启动编译，请稍等~
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/1 entries 990/1078 depend
-encies 20/326 modules 128 active 
- ...loader › node_modules/@tarojs/components/dist/components/taro-ar-camera-co
+● Webpack █████████████████████████ building (10%) 0/1 entries 1250/1325 depen
+dencies 11/331 modules 174 active 
+ ...d-mobile/node_modules/@tarojs/components/dist/components/taro-page-meta-co
 re.js
 
 - 即将开始启动编译，请稍等~
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/1 entries 1086/1168 depen
-dencies 21/338 modules 207 active 
- ...bel-loader › node_modules/@tarojs/components/dist/components/taro-radio-co
+● Webpack █████████████████████████ building (10%) 0/1 entries 1314/1400 depen
+dencies 12/337 modules 260 active 
+ babel-loader › src/platform/browser.js
+
+- 即将开始启动编译，请稍等~
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (10%) 0/1 entries 1366/1500 depen
+dencies 12/341 modules 260 active 
+ babel-loader › src/platform/browser.js
+
+- 即将开始启动编译，请稍等~
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (10%) 0/1 entries 1705/1795 depen
+dencies 28/354 modules 245 active 
+ ...tuneloop/frontend-mobile/node_modules/@babel/runtime/helpers/esm/regenerat
+or.js
+
+- 即将开始启动编译，请稍等~
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (10%) 0/1 entries 1773/1801 depen
+dencies 32/357 modules 290 active 
+ ...coder/tuneloop/frontend-mobile/node_modules/@tarojs/router/dist/router/sta
+ck.js
+
+- 即将开始启动编译，请稍等~
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (10%) 0/1 entries 1788/1804 depen
+dencies 34/367 modules 324 active 
+ ...mobile/node_modules/@tarojs/components/dist/taro-components/taro-component
+s.css
+
+- 即将开始启动编译，请稍等~
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (10%) 0/1 entries 1790/1805 depen
+dencies 36/367 modules 325 active 
+ ...er/tuneloop/frontend-mobile/node_modules/@tarojs/runtime/dist/polyfill/arr
+ay.js
+
+- 即将开始启动编译，请稍等~
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (10%) 0/1 entries 1794/1810 depen
+dencies 39/368 modules 323 active 
+ ...tend-mobile/node_modules/@tarojs/runtime/dist/polyfill/intersection-observ
+er.js
+
+- 即将开始启动编译，请稍等~
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (10%) 0/1 entries 1927/2000 depen
+dencies 71/383 modules 291 active 
+ ...tend-mobile/node_modules/@tarojs/runtime/dist/polyfill/intersection-observ
+er.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (10%) 0/1 entries 2351/3537 depen
+dencies 89/700 modules 273 active 
+ ...tend-mobile/node_modules/@tarojs/runtime/dist/polyfill/intersection-observ
+er.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (10%) 0/1 entries 2500/3537 depen
+dencies 89/848 modules 273 active 
+ ...tend-mobile/node_modules/@tarojs/runtime/dist/polyfill/intersection-observ
+er.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (10%) 0/1 entries 2551/3537 depen
+dencies 89/900 modules 273 active 
+ ...tend-mobile/node_modules/@tarojs/runtime/dist/polyfill/intersection-observ
+er.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (10%) 0/1 entries 3450/3537 depen
+dencies 90/1797 modules 273 active 
+ ...r/tuneloop/frontend-mobile/node_modules/@tarojs/runtime/dist/polyfill/obje
+ct.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (11%) 0/1 entries 3515/3539 depen
+dencies 92/1856 modules 313 active 
+ ...oop/frontend-mobile/node_modules/lucide-react/dist/esm/icons/alarm-clock-o
+ff.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (11%) 0/1 entries 3553/4000 depen
+dencies 117/1882 modules 334 active 
+ ...loop/frontend-mobile/node_modules/lucide-react/dist/esm/icons/arrow-big-le
+ft.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (11%) 0/1 entries 3629/5000 depen
+dencies 137/1894 modules 314 active 
+ ...loop/frontend-mobile/node_modules/lucide-react/dist/esm/icons/arrow-big-le
+ft.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (11%) 0/1 entries 4986/5077 depen
+dencies 138/1920 modules 314 active 
+ ...tuneloop/frontend-mobile/node_modules/lucide-react/dist/esm/icons/ampersan
+ds.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (11%) 0/1 entries 5023/5100 depen
+dencies 139/1922 modules 355 active 
+ ...ontend-mobile/node_modules/lucide-react/dist/esm/icons/arrow-up-right-squa
 re.js
 
 - 即将开始启动编译，请稍等~
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/1 entries 1532/1555 depen
-dencies 24/349 modules 205 active 
- ...ader › node_modules/@tarojs/components/dist/components/taro-radio-group-co
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (11%) 0/1 entries 5114/5123 depen
+dencies 142/1990 modules 376 active 
+ ...eloop/frontend-mobile/node_modules/lucide-react/dist/esm/icons/badge-perce
+nt.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (11%) 0/1 entries 5207/5212 depen
+dencies 142/1997 modules 470 active 
+ .../tuneloop/frontend-mobile/node_modules/lucide-react/dist/esm/icons/brain-c
+og.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (11%) 0/1 entries 5302/5303 depen
+dencies 142/1998 modules 569 active 
+ ...uneloop/frontend-mobile/node_modules/lucide-react/dist/esm/icons/clipboard
+-x.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (11%) 0/1 entries 5352/5398 depen
+dencies 142/1998 modules 668 active 
+ ...der/tuneloop/frontend-mobile/node_modules/lucide-react/dist/esm/icons/disc
+-3.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (11%) 0/1 entries 5432/5441 depen
+dencies 142/1998 modules 752 active 
+ ...eloop/frontend-mobile/node_modules/lucide-react/dist/esm/icons/file-termin
+al.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (11%) 0/1 entries 5496/5506 depen
+dencies 144/1998 modules 782 active 
+ ...uneloop/frontend-mobile/node_modules/lucide-react/dist/esm/icons/flask-rou
+nd.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (12%) 0/1 entries 5545/5563 depen
+dencies 245/1998 modules 770 active 
+ ...coder/tuneloop/frontend-mobile/node_modules/lucide-react/dist/esm/icons/gr
+ab.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (12%) 0/1 entries 5634/5637 depen
+dencies 245/1998 modules 836 active 
+ ...neloop/frontend-mobile/node_modules/lucide-react/dist/esm/icons/lamp-ceili
+ng.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (12%) 0/1 entries 5686/5703 depen
+dencies 248/1998 modules 873 active 
+ ...uneloop/frontend-mobile/node_modules/lucide-react/dist/esm/icons/list-filt
+er.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (12%) 0/1 entries 5741/5761 depen
+dencies 248/1998 modules 964 active 
+ ...oop/frontend-mobile/node_modules/lucide-react/dist/esm/icons/move-diagonal
+-2.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (12%) 0/1 entries 5802/5834 depen
+dencies 248/1998 modules 1014 active 
+ ...op/frontend-mobile/node_modules/lucide-react/dist/esm/icons/panel-right-op
+en.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (12%) 0/1 entries 5860/5884 depen
+dencies 248/1998 modules 1079 active 
+ ...der/tuneloop/frontend-mobile/node_modules/lucide-react/dist/esm/icons/pock
+et.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (12%) 0/1 entries 5902/5936 depen
+dencies 249/1999 modules 1111 active 
+ ...r/tuneloop/frontend-mobile/node_modules/lucide-react/dist/esm/icons/redo-d
+ot.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (12%) 0/1 entries 5978/5985 depen
+dencies 249/1999 modules 1193 active 
+ ...neloop/frontend-mobile/node_modules/lucide-react/dist/esm/icons/shield-min
+us.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (12%) 0/1 entries 6059/6085 depen
+dencies 249/1999 modules 1264 active 
+ ...neloop/frontend-mobile/node_modules/lucide-react/dist/esm/icons/step-forwa
+rd.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (12%) 0/1 entries 6099/6129 depen
+dencies 249/1999 modules 1311 active 
+ ...uneloop/frontend-mobile/node_modules/lucide-react/dist/esm/icons/text-curs
+or.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (12%) 0/1 entries 6172/6185 depen
+dencies 249/1999 modules 1382 active 
+ ...r/tuneloop/frontend-mobile/node_modules/lucide-react/dist/esm/icons/variab
+le.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (12%) 0/1 entries 6235/6250 depen
+dencies 249/1999 modules 1451 active 
+ ...tuneloop/frontend-mobile/node_modules/lucide-react/dist/esm/icons/folder-c
+og.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (12%) 0/1 entries 6269/6279 depen
+dencies 249/1999 modules 1482 active 
+ ...oder/tuneloop/frontend-mobile/node_modules/@tarojs/taro-h5/dist/api/ad/ind
+ex.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (12%) 0/1 entries 6279/6299 depen
+dencies 249/1999 modules 1495 active 
+ ...tend-mobile/node_modules/@tarojs/taro-h5/dist/api/canvas/createCanvasConte
+xt.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (12%) 0/1 entries 6420/6465 depen
+dencies 270/2001 modules 1539 active 
+ ...er/tuneloop/frontend-mobile/node_modules/@tarojs/taro-h5/dist/api/swan/ind
+ex.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (12%) 0/1 entries 6517/6567 depen
+dencies 270/2003 modules 1559 active 
+ ...rontend-mobile/node_modules/@tarojs/taro-h5/dist/api/network/websocket/ind
+ex.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (12%) 0/1 entries 6555/6600 depen
+dencies 270/2006 modules 1626 active 
+ .../home/coder/tuneloop/frontend-mobile/node_modules/swiper/modules/mousewhee
+l.mjs
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (13%) 0/1 entries 6628/6700 depen
+dencies 274/2012 modules 1622 active 
+ .../home/coder/tuneloop/frontend-mobile/node_modules/swiper/modules/mousewhee
+l.mjs
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (13%) 0/1 entries 6761/6792 depen
+dencies 342/2048 modules 1589 active 
+ ..../../home/coder/tuneloop/frontend-mobile/node_modules/antd/es/back-top/ind
+ex.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (13%) 0/1 entries 7117/7214 depen
+dencies 347/2205 modules 1627 active 
+ .../home/coder/tuneloop/frontend-mobile/node_modules/antd/es/notification/ind
+ex.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (28%) 0/1 entries 7248/7500 depen
+dencies 1668/2253 modules 381 active 
+ ...me/coder/tuneloop/frontend-mobile/node_modules/swiper/shared/ssr-window.es
+m.mjs
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (28%) 0/1 entries 7443/7541 depen
+dencies 1713/2307 modules 337 active 
+ ...t/esm|/home/coder/tuneloop/frontend-mobile/node_modules/swiper/shared/util
+s.mjs
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (28%) 0/1 entries 7525/7555 depen
+dencies 1718/2360 modules 397 active 
+ ...e/coder/tuneloop/frontend-mobile/node_modules/antd/es/cascader/hooks/useBa
+se.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (30%) 0/1 entries 7799/7869 depen
+dencies 1852/2385 modules 270 active 
+ ..../home/coder/tuneloop/frontend-mobile/node_modules/antd/es/descriptions/It
+em.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (30%) 0/1 entries 8319/8403 depen
+dencies 1885/2480 modules 314 active 
+ ...home/coder/tuneloop/frontend-mobile/node_modules/@rc-component/util/es/ind
+ex.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (31%) 0/1 entries 8642/8719 depen
+dencies 1913/2574 modules 356 active 
+ ...home/coder/tuneloop/frontend-mobile/node_modules/@rc-component/menu/es/ind
+ex.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (31%) 0/1 entries 8812/8970 depen
+dencies 1934/2616 modules 404 active 
+ .../home/coder/tuneloop/frontend-mobile/node_modules/lodash-es/_listCacheDele
+te.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (31%) 0/1 entries 8949/8987 depen
+dencies 1942/2673 modules 466 active 
+ ...home/coder/tuneloop/frontend-mobile/node_modules/@rc-component/tour/es/ind
+ex.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (31%) 0/1 entries 9079/9172 depen
+dencies 1975/2711 modules 435 active 
+ ...oop/frontend-mobile/node_modules/@rc-component/util/es/hooks/useLayoutEffe
+ct.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (32%) 0/1 entries 9372/9439 depen
+dencies 2026/2773 modules 475 active 
+ ...../../home/coder/tuneloop/frontend-mobile/node_modules/antd/es/progress/Li
+ne.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (33%) 0/1 entries 9725/9807 depen
+dencies 2108/2838 modules 481 active 
+ ...ome/coder/tuneloop/frontend-mobile/node_modules/@rc-component/image/es/Ima
+ge.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (33%) 0/1 entries 9765/9807 depen
+dencies 2109/2855 modules 513 active 
+ ...home/coder/tuneloop/frontend-mobile/node_modules/antd/es/tree/utils/dictUt
+il.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (33%) 0/1 entries 9996/10071 depe
+ndencies 2144/2911 modules 515 active 
+ ...script/esm|/home/coder/tuneloop/frontend-mobile/node_modules/lodash-es/_ro
+ot.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (35%) 0/1 entries 10200/10297 dep
+endencies 2314/2971 modules 428 active 
+ .../home/coder/tuneloop/frontend-mobile/node_modules/antd/es/badge/SingleNumb
+er.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (35%) 0/1 entries 10274/10297 dep
+endencies 2321/3019 modules 492 active 
+ ...eloop/frontend-mobile/node_modules/@rc-component/picker/es/PickerPanel/ind
+ex.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (36%) 0/1 entries 10479/10573 dep
+endencies 2385/3073 modules 435 active 
+ ...ontend-mobile/node_modules/antd/es/color-picker/components/PanelPicker/ind
+ex.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (36%) 0/1 entries 10732/10819 dep
+endencies 2434/3142 modules 470 active 
+ ...eloop/frontend-mobile/node_modules/@rc-component/menu/es/context/MenuConte
+xt.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (37%) 0/1 entries 10818/10832 dep
+endencies 2468/3180 modules 526 active 
+ ...der/tuneloop/frontend-mobile/node_modules/antd/es/upload/UploadList/ListIt
+em.js
+
+- 即将开始启动编译，请稍等~
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (38%) 0/1 entries 11045/11107 dep
+endencies 2563/3224 modules 435 active 
+ ...ome/coder/tuneloop/frontend-mobile/node_modules/antd/es/upload/style/pictu
 re.js
 
 - 即将开始启动编译，请稍等~
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/1 entries 1600/1796 depen
-dencies 24/355 modules 300 active 
- ...el-loader › node_modules/@tarojs/runtime/dist/dom-external/inner-html/pars
-er.js
-
-- 即将开始启动编译，请稍等~
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/1 entries 1664/1801 depen
-dencies 25/356 modules 299 active 
- ...el-loader › node_modules/@tarojs/runtime/dist/dom-external/inner-html/pars
-er.js
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (39%) 0/1 entries 11265/11333 dep
+endencies 2645/3272 modules 446 active 
+ .../node_modules/@rc-component/picker/es/PickerInput/hooks/useRangeDisabledDa
+te.js
 
 - 即将开始启动编译，请稍等~
 Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/1 entries 2700/3431 depen
-dencies 52/1184 modules 272 active 
- ...el-loader › node_modules/@tarojs/runtime/dist/dom-external/inner-html/pars
-er.js
+● Webpack █████████████████████████ building (40%) 0/1 entries 11434/11577 dep
+endencies 2789/3307 modules 383 active 
+ .../tuneloop/frontend-mobile/node_modules/@rc-component/input/es/hooks/useCou
+nt.js
 
 - 即将开始启动编译，请稍等~
 Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/1 entries 2815/3431 depen
-dencies 52/1300 modules 272 active 
- ...el-loader › node_modules/@tarojs/runtime/dist/dom-external/inner-html/pars
-er.js
+● Webpack █████████████████████████ building (42%) 0/1 entries 11722/11762 dep
+endencies 2961/3354 modules 302 active 
+ .../coder/tuneloop/frontend-mobile/node_modules/@rc-component/table/es/ColGro
+up.js
 
 - 即将开始启动编译，请稍等~
 Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/1 entries 2900/3431 depen
-dencies 52/1384 modules 272 active 
- ...el-loader › node_modules/@tarojs/runtime/dist/dom-external/inner-html/pars
+● Webpack █████████████████████████ building (43%) 0/1 entries 11959/12054 dep
+endencies 3055/3401 modules 303 active 
+ ...oop/frontend-mobile/node_modules/antd/es/table/hooks/useFilter/FilterWrapp
 er.js
 
 - 即将开始启动编译，请稍等~
@@ -174,435 +781,48 @@ Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/1 entries 3371/3431 depen
-dencies 55/1810 modules 270 active 
- node_modules/@stencil/core/internal/client/index.js
+● Webpack █████████████████████████ building (45%) 0/1 entries 12143/12217 dep
+endencies 3256/3441 modules 183 active 
+ ../../../home/coder/tuneloop/frontend-mobile/node_modules/yup/index.esm.js
 
 - 即将开始启动编译，请稍等~
 Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/1 entries 3391/3450 depen
-dencies 57/1826 modules 307 active 
- node_modules/hammerjs/hammer.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/1 entries 3482/3500 depen
-dencies 67/1861 modules 360 active 
- node_modules/lucide-react/dist/esm/icons/arrow-big-left.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (11%) 0/1 entries 5016/5040 depen
-dencies 95/1965 modules 333 active 
- node_modules/lucide-react/dist/esm/icons/arrow-big-right-dash.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (11%) 0/1 entries 5109/5136 depen
-dencies 96/1967 modules 428 active 
- node_modules/lucide-react/dist/esm/icons/bean.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (11%) 0/1 entries 5159/5205 depen
-dencies 98/1991 modules 500 active 
- node_modules/lucide-react/dist/esm/icons/cable.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (11%) 0/1 entries 5254/5291 depen
-dencies 98/1992 modules 597 active 
- node_modules/lucide-react/dist/esm/icons/clock-2.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (11%) 0/1 entries 5366/5386 depen
-dencies 98/1994 modules 716 active 
- node_modules/lucide-react/dist/esm/icons/egg.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (11%) 0/1 entries 5397/5400 depen
-dencies 99/1994 modules 751 active 
- node_modules/lucide-react/dist/esm/icons/file-input.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (11%) 0/1 entries 5492/5510 depen
-dencies 100/1994 modules 850 active 
- node_modules/lucide-react/dist/esm/icons/fuel.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (11%) 0/1 entries 5589/5619 depen
-dencies 100/1994 modules 949 active 
- node_modules/lucide-react/dist/esm/icons/japanese-yen.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (11%) 0/1 entries 5642/5659 depen
-dencies 100/1994 modules 989 active 
- node_modules/lucide-react/dist/esm/icons/lightbulb.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (11%) 0/1 entries 5740/5759 depen
-dencies 103/1994 modules 1085 active 
- node_modules/lucide-react/dist/esm/icons/move-down-left.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (11%) 0/1 entries 5819/5839 depen
-dencies 103/1994 modules 1170 active 
- node_modules/lucide-react/dist/esm/icons/phone-outgoing.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (11%) 0/1 entries 5909/5918 depen
-dencies 103/1994 modules 1264 active 
- node_modules/lucide-react/dist/esm/icons/satellite.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (11%) 0/1 entries 6014/6025 depen
-dencies 103/1994 modules 1345 active 
- node_modules/lucide-react/dist/esm/icons/slash.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (11%) 0/1 entries 6110/6127 depen
-dencies 103/1994 modules 1444 active 
- node_modules/lucide-react/dist/esm/icons/timer-reset.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (11%) 0/1 entries 6183/6208 depen
-dencies 104/1995 modules 1522 active 
- node_modules/lucide-react/dist/esm/icons/wand-2.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (11%) 0/1 entries 6270/6283 depen
-dencies 104/1995 modules 1610 active 
- babel-loader › node_modules/@tarojs/shared/dist/shortcuts.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (11%) 0/1 entries 6340/6364 depen
-dencies 163/1996 modules 1609 active 
- babel-loader › node_modules/@tarojs/taro-h5/dist/api/files/index.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (11%) 0/1 entries 6364/6405 depen
-dencies 172/1996 modules 1619 active 
- babel-loader › node_modules/@tarojs/taro-h5/dist/api/share/index.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (11%) 0/1 entries 6444/6499 depen
-dencies 181/1997 modules 1612 active 
- babel-loader › node_modules/@tarojs/taro-h5/dist/api/wxml/index.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (11%) 0/1 entries 6489/6560 depen
-dencies 181/1999 modules 1636 active 
- ...3-work/frontend-mobile/node_modules/@babel/runtime/helpers/esm/toPropertyK
-ey.js
+● Webpack █████████████████████████ building (46%) 0/1 entries 12243/12257 dep
+endencies 3296/3467 modules 169 active 
+ ...ontend-mobile/node_modules/@rc-component/color-picker/es/components/Gradie
+nt.js
 
 - 即将开始启动编译，请稍等~
 Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (12%) 0/1 entries 6597/6700 depen
-dencies 197/2003 modules 1684 active 
- babel-loader › node_modules/@tarojs/router/dist/events/scroll.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (12%) 0/1 entries 6733/6759 depen
-dencies 252/2032 modules 1678 active 
- node_modules/antd/es/rate/index.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (12%) 0/1 entries 7273/7349 depen
-dencies 256/2260 modules 1704 active 
- node_modules/antd/es/typography/index.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (26%) 0/1 entries 7333/7472 depen
-dencies 1545/2300 modules 482 active 
- .../opencode/wt-2333-work/frontend-mobile/node_modules/lodash-es/_arrayLikeKe
-ys.js
+● Webpack █████████████████████████ building (46%) 0/1 entries 12303/12346 dep
+endencies 3358/3468 modules 110 active 
+ ...ules/@rc-component/picker/es/PickerPanel/TimePanel/TimePanelBody/useScroll
+To.js
 
 - 即将开始启动编译，请稍等~
 Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (28%) 0/1 entries 7834/7876 depen
-dencies 1642/2395 modules 471 active 
- node_modules/antd/es/descriptions/Item.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (30%) 0/1 entries 8256/8347 depen
-dencies 1858/2476 modules 330 active 
- node_modules/antd/es/layout/Sider.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (30%) 0/1 entries 8308/8347 depen
-dencies 1860/2503 modules 375 active 
- node_modules/antd/es/modal/Modal.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (30%) 0/1 entries 8589/8660 depen
-dencies 1886/2555 modules 363 active 
- node_modules/antd/es/menu/SubMenu.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (30%) 0/1 entries 8847/8908 depen
-dencies 1909/2610 modules 401 active 
- ...wt-2333-work/frontend-mobile/node_modules/swiper/shared/classes-to-selecto
-r.mjs
+● Webpack █████████████████████████ building (47%) 0/1 entries 12386/12399 dep
+endencies 3418/3494 modules 76 active 
+ .../tuneloop/frontend-mobile/node_modules/runes2/dist/index.cjs.production.mi
+n.cjs
 
 - 即将开始启动编译，请稍等~
 Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (31%) 0/1 entries 9049/9146 depen
-dencies 1966/2702 modules 429 active 
- node_modules/antd/es/space/style/compact.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (32%) 0/1 entries 9355/9436 depen
-dencies 2024/2766 modules 463 active 
- node_modules/antd/es/drawer/useFocusable.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (32%) 0/1 entries 9585/9674 depen
-dencies 2088/2806 modules 480 active 
- node_modules/@rc-component/motion/es/CSSMotion.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (33%) 0/1 entries 9944/10012 depe
-ndencies 2153/2896 modules 505 active 
- node_modules/antd/es/form/util.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (35%) 0/1 entries 10163/10255 dep
-endencies 2323/2969 modules 414 active 
- node_modules/@rc-component/tabs/es/Tabs.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (36%) 0/1 entries 10490/10582 dep
-endencies 2386/3085 modules 432 active 
- node_modules/antd/es/float-button/style/group.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (36%) 0/1 entries 10738/10786 dep
-endencies 2454/3135 modules 441 active 
- node_modules/@rc-component/input-number/es/StepHandler.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (38%) 0/1 entries 10987/11076 dep
-endencies 2554/3203 modules 439 active 
- node_modules/@rc-component/steps/es/StepIcon.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (39%) 0/1 entries 11243/11314 dep
-endencies 2654/3259 modules 432 active 
- node_modules/@rc-component/picker/es/PickerInput/hooks/useCellRender.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (41%) 0/1 entries 11456/11567 dep
-endencies 2820/3306 modules 354 active 
- node_modules/@rc-component/mentions/es/DropdownMenu.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (42%) 0/1 entries 11743/11809 dep
-endencies 2972/3358 modules 298 active 
- node_modules/@rc-component/table/es/Footer/Summary.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (43%) 0/1 entries 11956/12046 dep
-endencies 3077/3399 modules 286 active 
- node_modules/antd/es/table/hooks/useFilter/FilterSearch.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (45%) 0/1 entries 12134/12198 dep
-endencies 3269/3440 modules 168 active 
- node_modules/@rc-component/portal/es/util.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (46%) 0/1 entries 12200/12231 dep
-endencies 3298/3446 modules 144 active 
- node_modules/@rc-component/async-validator/es/messages.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (47%) 0/1 entries 12327/12334 dep
-endencies 3385/3485 modules 86 active 
- node_modules/@rc-component/async-validator/es/validator/array.js
-
-- 即将开始启动编译，请稍等~
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (48%) 0/1 entries 12413/12416 dep
-endencies 3461/3502 modules 41 active 
- node_modules/@rc-component/async-validator/es/rule/type.js
+● Webpack █████████████████████████ building (48%) 0/1 entries 12418/12418 dep
+endencies 3500/3504 modules 4 active 
+ ../../../home/coder/tuneloop/frontend-mobile/node_modules/antd/es/index.js
 
 - 即将开始启动编译，请稍等~
 Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
@@ -697,8 +917,8 @@ Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ sealing (92%)  
- asset processing
+● Webpack █████████████████████████ sealing (89%)  
+ after hashing
 
 - 即将开始启动编译，请稍等~
 Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
@@ -739,7 +959,7 @@ Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
 ✔ Webpack
-  Compiled successfully in 1.80m
+  Compiled successfully in 2.45m
 
 - 即将开始启动编译，请稍等~
 Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
@@ -754,61 +974,61 @@ AssetsOverSizeLimitWarning: asset size limit: The following asset(s) exceed the 
 This can impact web performance.
 Assets: 
   js/app.js (281 KiB)
-  chunk/925.js (367 KiB)
-  chunk/220.js (375 KiB)
-  chunk/945.js (539 KiB)
+  chunk/885.js (367 KiB)
+  chunk/83.js (375 KiB)
+  chunk/650.js (539 KiB)
 
 EntrypointsOverSizeLimitWarning: entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244 KiB). This can impact web performance.
 Entrypoints:
   app (393 KiB)
-      js/232.js
+      js/299.js
       css/app.css
       js/app.js
 
-⚠️  编译警告. 11/15/2026, 5:09:52 AM
+⚠️  编译警告. 11/15/2026, 11:46:47 PM
 
 AssetsOverSizeLimitWarning: asset size limit: The following asset(s) exceed the recommended size limit (244 KiB).
 This can impact web performance.
 Assets: 
   js/app.js (281 KiB)
-  chunk/925.js (367 KiB)
-  chunk/220.js (375 KiB)
-  chunk/945.js (539 KiB)
+  chunk/885.js (367 KiB)
+  chunk/83.js (375 KiB)
+  chunk/650.js (539 KiB)
 
 EntrypointsOverSizeLimitWarning: entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244 KiB). This can impact web performance.
 Entrypoints:
   app (393 KiB)
-      js/232.js
+      js/299.js
       css/app.css
       js/app.js
 
-assets by path [1m[32mchunk/*.js[39m[22m 6.27 MiB
+assets by path [1m[32mchunk/*.js[39m[22m 6.37 MiB
   assets by status [1m[33m1.25 MiB[39m[22m [1m[33m[big][39m[22m
-    asset [1m[33mchunk/945.js[39m[22m [1m[33m539 KiB[39m[22m [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m [1m[33m[big][39m[22m
-    asset [1m[33mchunk/220.js[39m[22m [1m[33m375 KiB[39m[22m [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m [1m[33m[big][39m[22m 1 related asset
-    asset [1m[33mchunk/925.js[39m[22m [1m[33m367 KiB[39m[22m [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m [1m[33m[big][39m[22m 1 related asset
+    asset [1m[33mchunk/650.js[39m[22m [1m[33m539 KiB[39m[22m [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m [1m[33m[big][39m[22m
+    asset [1m[33mchunk/83.js[39m[22m [1m[33m375 KiB[39m[22m [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m [1m[33m[big][39m[22m 1 related asset
+    asset [1m[33mchunk/885.js[39m[22m [1m[33m367 KiB[39m[22m [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m [1m[33m[big][39m[22m 1 related asset
   + 42 assets
-assets by path [1m[32mjs/*.js[39m[22m 372 KiB
+assets by path [1m[32mjs/*.js[39m[22m 371 KiB
   asset [1m[33mjs/app.js[39m[22m [1m[33m281 KiB[39m[22m [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m [1m[33m[big][39m[22m (name: app) 1 related asset
-  asset [1m[32mjs/232.js[39m[22m 90.4 KiB [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m (id hint: taro) 1 related asset
+  asset [1m[32mjs/299.js[39m[22m 90.4 KiB [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m (id hint: taro) 1 related asset
 asset [1m[32mcss/app.css[39m[22m 21.5 KiB [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m (name: app)
-Entrypoint [1mapp[39m[22m [1m[33m[big][39m[22m 393 KiB = [1m[32mjs/232.js[39m[22m 90.4 KiB [1m[32mcss/app.css[39m[22m 21.5 KiB [1m[32mjs/app.js[39m[22m 281 KiB
+Entrypoint [1mapp[39m[22m [1m[33m[big][39m[22m 393 KiB = [1m[32mjs/299.js[39m[22m 90.4 KiB [1m[32mcss/app.css[39m[22m 21.5 KiB [1m[32mjs/app.js[39m[22m 281 KiB
 
 [1m[33mWARNING[39m[22m in [1masset size limit: The following asset(s) exceed the recommended size limit (244 KiB).
 This can impact web performance.
 Assets: 
   js/app.js (281 KiB)
-  chunk/925.js (367 KiB)
-  chunk/220.js (375 KiB)
-  chunk/945.js (539 KiB)[39m[22m
+  chunk/885.js (367 KiB)
+  chunk/83.js (375 KiB)
+  chunk/650.js (539 KiB)[39m[22m
 
 [1m[33mWARNING[39m[22m in [1mentrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244 KiB). This can impact web performance.
 Entrypoints:
   app (393 KiB)
-      js/232.js
+      js/299.js
       css/app.css
       js/app.js
 [39m[22m
 
-webpack 5.91.0 compiled with [1m[33m2 warnings[39m[22m in 108208 ms
+webpack 5.91.0 compiled with [1m[33m2 warnings[39m[22m in 147293 ms
 
