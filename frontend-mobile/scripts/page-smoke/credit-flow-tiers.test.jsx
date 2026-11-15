@@ -32,6 +32,10 @@ describe('buildTierOptions (#2352)', () => {
     expect(opts[0].requiresGuarantors).toBe(false)
   })
 
+  it('deposit_reduced = 0 is treated as unconfigured (#2357)', () => {
+    expect(buildTierOptions(6000, 0).map((o) => o.tier)).toEqual([DEPOSIT_TIER.FULL])
+  })
+
   it('reduced equal to full is not offered', () => {
     const tiers = buildTierOptions(6000, 6000).map((o) => o.tier)
     expect(tiers).toEqual([DEPOSIT_TIER.FULL])

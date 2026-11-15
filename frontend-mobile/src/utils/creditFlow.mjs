@@ -47,7 +47,8 @@ export function buildTierOptions(depositYuan, depositReducedYuan) {
     // #2352 F2（Owner 裁定 2026-11-15）：所有 payscore 新单（含全额）都要评测通过后才能支付。
     requiresAssessment: true,
   }]
-  if (reduced != null && reduced >= 0 && reduced < full) {
+  // #2357: deposit_reduced = 0 视为「未配置」（不是零差额免押）
+  if (reduced != null && reduced > 0 && reduced < full) {
     options.push({
       tier: DEPOSIT_TIER.REDUCED,
       amount: reduced,

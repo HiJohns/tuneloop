@@ -207,7 +207,8 @@ function SingleCheckout({ id, navigate, resumePending }) {
   const depositReduced = pricingV2?.deposit_reduced ?? null
   const deposit = pricingV2?.deposit ?? instrument?.deposit ?? parsePricing(instrument?.pricing)[0]?.deposit ?? 0
   const isZeroDeposit = Number(deposit) === 0
-  const canReduceDeposit = !isZeroDeposit && depositReduced != null
+  // #2357 修正：deposit_reduced = 0/空 表示未配置；必须 0 < reduced < full 才提供差额档。
+  const canReduceDeposit = !isZeroDeposit && depositReduced != null && Number(depositReduced) > 0 && Number(depositReduced) < Number(deposit)
   // #2357: 默认全额；打开「差额押金」拉杆后按 deposit_reduced 计价。
   const effectiveDeposit = depositWaived && canReduceDeposit ? Number(depositReduced) : (isZeroDeposit ? 0 : deposit)
   // Shipping fee is not determined at order time (#1570): staff fills the

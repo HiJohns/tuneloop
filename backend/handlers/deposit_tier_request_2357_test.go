@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 )
 
 func TestValidateRequestedTier_2357(t *testing.T) {
@@ -23,4 +24,30 @@ func TestValidateRequestedTier_2357(t *testing.T) {
 	// zero 仅当全额押金 = 0（不得凭信用免掉全额押金）
 	assert.NoError(t, validateRequestedTier(models.DepositTierZero, 0, 0))
 	assert.Error(t, validateRequestedTier(models.DepositTierZero, 6000, 2000))
+}
+
+// #2357 修正：deposit_reduced = 0 表示「未配置」，不得当成零差额免押；
+// 请求差额但配置无效时必须由调用方显式拒绝（禁止静默回落成全额定档）。
+func TestResolveDepositTierRejectsZeroReduced_2357(t *testing.T) {
+	fullOnly := models.FromYuan(6000)
+	zeroReduced := models.FromYuan(0)
+	okReduced := models.FromYuan(2000)
+	eqReduced := models.FromYuan(6000)
+	pricing := &services.InstrumentPricing{Deposit: 6000}
+
+	inst := &models.Instrument{Deposit: &fullOnly, DepositReduced: &zeroReduced}
+	tier, _, reduced, valid := resolveDepositTier(inst, pricing, models.DepositTierReduced)
+	assert.Equal(t, models.DepositTierFull, tier)
+	assert.False(t, valid, "reduced=0 must be treated as unconfigured")
+	assert.Zero(t, reduced)
+
+	inst.DepositReduced = &eqReduced
+	_, _, _, valid = resolveDepositTier(inst, pricing, models.DepositTierReduced)
+	assert.False(t, valid, "reduced == full must be invalid")
+
+	inst.DepositReduced = &okReduced
+	tier, _, reduced, valid = resolveDepositTier(inst, pricing, models.DepositTierReduced)
+	assert.True(t, valid)
+	assert.Equal(t, models.DepositTierReduced, tier)
+	assert.Equal(t, 2000.0, reduced)
 }

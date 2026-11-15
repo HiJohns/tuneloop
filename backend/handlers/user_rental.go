@@ -292,7 +292,9 @@ func resolveDepositTier(instrument *models.Instrument, pricingResult *services.I
 	}
 	if requested == models.DepositTierReduced && instrument.DepositReduced != nil {
 		reduced = (*instrument.DepositReduced).ToYuan()
-		if reduced >= 0 && reduced <= full {
+		// #2357 修正：deposit_reduced = 0 表示「未配置」（历史数据常见），
+		// 不能当作「零差额免押」；必须 0 < reduced < full 才是有效差额档。
+		if reduced > 0 && reduced < full {
 			return models.DepositTierReduced, full, reduced, true
 		}
 		log.Printf("[deposit] invalid reduced=%v full=%v instrument=%s; falling back to full", reduced, full, instrument.ID)
@@ -495,7 +497,13 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	if requestedTier == "" {
 		requestedTier = models.DepositTierFull
 	}
-	depositTier, fullDeposit, reducedAmount, _ := resolveDepositTier(&lockedInstrument, pricingResult, requestedTier)
+	depositTier, fullDeposit, reducedAmount, validReduced := resolveDepositTier(&lockedInstrument, pricingResult, requestedTier)
+	if requestedTier == models.DepositTierReduced && !validReduced {
+		// #2357 修正：不得静默回落成全额定档（会造成确认页与支付页金额不一致）。
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "reduced deposit tier is not configured for this instrument"})
+		return
+	}
 	// #2357：确认页可请求 full / reduced（zero 仅当乐器全额押金 = 0）。
 	if err := validateRequestedTier(requestedTier, fullDeposit, reducedAmount); err != nil {
 		tx.Rollback()
