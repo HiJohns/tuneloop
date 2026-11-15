@@ -470,15 +470,15 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	if len(pricingResult.Tiers) > 0 {
 		dailyRent = pricingResult.Tiers[0].DailyRate
 	}
-	requestedTier := requestedDepositTier(req.DepositTier, req.DepositWaived)
-	depositTier, fullDeposit, reducedAmount, _ := resolveDepositTier(&lockedInstrument, pricingResult, requestedTier)
-	// #2352 D1: 全额押金 ≠ 0 时**不提供** zero 档——信用评测只能减免到差额档，
-	// 不能只凭信用免掉全部押金（旧 #2327 D13 的「payscore 全免」已废止）。
-	if err := validateZeroTierForFullDeposit(requestedTier, fullDeposit); err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
-		return
+	// #2352 Rev.2: 确认页不再选择档位；下单只落「全额押金档」（乐器 0 押金则 zero），
+	// 档位改由支付页自选（差额需 2 位担保人），所有新单统一进入信用评测流程。
+	requestedTier := models.DepositTierFull
+	if len(pricingResult.Tiers) == 0 && lockedInstrument.Deposit == nil {
+		requestedTier = models.DepositTierFull
 	}
+	depositTier, fullDeposit, reducedAmount, _ := resolveDepositTier(&lockedInstrument, pricingResult, requestedTier)
+	// #2352 Rev.2 D1: 所有新单都进入信用评测（payscore），下单即落 pending。
+	creditPath = models.DepositCreditPathPayscore
 	deposit := fullDeposit
 	if depositTier == models.DepositTierZero {
 		deposit = 0
@@ -619,6 +619,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		Deposit:              models.FromYuan(deposit),
 		DepositTier:          depositTier,
 		DepositCreditPath:    creditPath,
+		CreditState:          services.CreditStatePending, // #2352 Rev.2 D1: 下单即进入评测流程
 		DepositFull:          centsPtr(fullDeposit),
 		DepositReduced:       reducedSnapshot(&lockedInstrument),
 		DepositWaived:        false,
@@ -1109,6 +1110,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			Deposit:              models.FromYuan(deposit),
 			DepositTier:          depositTier,
 			DepositCreditPath:    creditPath,
+			CreditState:          services.CreditStatePending, // #2352 Rev.2 D1
 			DepositFull:          centsPtr(fullDeposit),
 			DepositReduced:       reducedSnapshot(&lockedInstrument),
 			DepositWaived:        false,

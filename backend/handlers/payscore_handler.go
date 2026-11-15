@@ -103,9 +103,10 @@ func (h *PayscoreHandler) CreateAssessment(c *gin.Context) {
 			price = centsValue(inst.TotalPrice)
 		}
 	}
-	risk, err := services.ResolveCreditRiskAmount(order.DepositTier, centsValue(order.DepositFull), centsValue(order.DepositReduced), price)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
+	// #2352 Rev.2 D2: 评测标的 = 乐器原价（与押金档位/差额无关）。
+	risk := creditRiskAmount(price, order.DepositFull)
+	if risk <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "instrument price is required for credit assessment"})
 		return
 	}
 
@@ -235,4 +236,16 @@ func creditEventFromProviderState(state string) string {
 	default:
 		return ""
 	}
+}
+
+// creditRiskAmount 落实 #2352 Rev.2 D2：评测标的恒为乐器原价；
+// 仅当原价缺失时退回押金快照（兼容历史数据）。
+func creditRiskAmount(price int64, fullDeposit *models.Cents) int64 {
+	if price > 0 {
+		return price
+	}
+	if fullDeposit != nil {
+		return int64(*fullDeposit)
+	}
+	return 0
 }

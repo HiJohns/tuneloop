@@ -5,7 +5,8 @@ import { t } from '../i18n'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { apiFetch , resolveErrorMessage } from '../services/api'
 import { env, dialog } from '../platform'
-import { creditGate, buildAssessmentRoute } from '../utils/creditFlow.mjs'
+import { creditGate, buildAssessmentRoute, buildTierOptions } from '../utils/creditFlow.mjs'
+import { guarantorsApi } from '../services/api'
 import QRCode from 'qrcode'
 
 const baseUrl = env.apiBaseUrl
@@ -34,6 +35,17 @@ export default function Payment() {
   // #2327 S4/D5: 支付分信用态（reduced/zero 未 approved 时禁用支付）
   const [credit, setCredit] = useState(null)
   const [creditBlocked, setCreditBlocked] = useState(false)
+  // #2352 Rev.2 D3: 支付页自选押金档位（全额/差额）；差额需 2 位担保人。
+  const [depositTier, setDepositTier] = useState('full')
+  const [guarantors, setGuarantors] = useState([])
+  const [selectedGuarantorIds, setSelectedGuarantorIds] = useState([])
+
+  useEffect(() => {
+    if (pType !== 'rent') return
+    let cancelled = false
+    guarantorsApi.list().then((r) => { if (!cancelled && r && r.code === 20000) setGuarantors(r.data || []) }).catch(() => {})
+    return () => { cancelled = true }
+  }, [pType])
 
   useEffect(() => {
     if (!pType) return
@@ -121,9 +133,17 @@ export default function Payment() {
   const gate = pType === 'rent' ? creditGate(credit) : { canPay: true, showEntry: false, reason: '', action: 'none' }
   const payBlocked = pType === 'rent' && (!gate.canPay || creditBlocked)
 
-  const displayAmount = appliedCoupon ? couponAmount : data.amount
+  const details = data.details || {}
+  const depositFull = Number(details.deposit_full || 0)
+  const depositReduced = details.deposit_reduced == null ? null : Number(details.deposit_reduced)
+  const currentDeposit = Number(details.deposit || 0)
+  const canChooseTier = pType === 'rent' && depositFull > 0 && depositReduced != null
+  const effectiveDeposit = depositTier === 'reduced' ? Number(depositReduced ?? currentDeposit) : (depositTier === 'zero' ? 0 : currentDeposit)
+  const amountCents = Number(data.amount) - currentDeposit + effectiveDeposit
+  const tierBlocked = depositTier === 'reduced' && selectedGuarantorIds.length < 2
+  const displayAmount = appliedCoupon ? couponAmount : amountCents
   const cashAmount = computeDisplayedCashCents({
-    amountCents: data.amount,
+    amountCents,
     couponFinalCents: couponAmount,
     giftUsedCents: giftUsed * 100,
     hasCoupon: !!appliedCoupon,
@@ -258,6 +278,31 @@ export default function Payment() {
         </div>
       )}
 
+      {canChooseTier && (
+        <div className="bg-white mx-4 mt-4 rounded-2xl p-4 shadow-sm">
+          <div className="text-sm font-bold text-black mb-2">{t("押金档位")}</div>
+          {buildTierOptions(depositFull, depositReduced).filter((o) => o.tier !== 'zero').map((opt) => (
+            <label key={opt.tier} className="flex items-center justify-between py-2">
+              <span className="text-sm text-zinc-700">{opt.tier === 'full' ? t('全额押金') : t('差额押金')} ¥{formatCents(Number(opt.amount))}</span>
+              <input type="radio" name="deposit-tier" checked={depositTier === opt.tier} onChange={() => setDepositTier(opt.tier)} />
+            </label>
+          ))}
+          {depositTier === 'reduced' && (
+            <div className="mt-2 border-t border-zinc-100 pt-2">
+              <div className="text-xs text-zinc-500 mb-1">{t("差额押金需选择 2 位担保人")}（{selectedGuarantorIds.length}/2）</div>
+              {guarantors.map((g) => (
+                <label key={g.id} className="flex items-center justify-between py-1">
+                  <span className="text-xs text-zinc-700">{g.name} · {g.phone}</span>
+                  <input type="checkbox" checked={selectedGuarantorIds.includes(g.id)}
+                    onChange={() => setSelectedGuarantorIds((prev) => prev.includes(g.id) ? prev.filter((x) => x !== g.id) : [...prev, g.id])} />
+                </label>
+              ))}
+              {guarantors.length === 0 && <div className="text-xs text-zinc-400">{t("请先在个人中心添加担保人")}</div>}
+            </div>
+          )}
+        </div>
+      )}
+
       {pType === 'rent' && (gate.showEntry || creditBlocked) && (
         <div className="bg-white mx-4 mt-4 rounded-2xl p-4 shadow-sm">
           <div className="text-sm font-bold text-black mb-1">{t("微信信用评测")}</div>
@@ -370,6 +415,10 @@ export default function Payment() {
   }
 
   async function doPay(payAmount) {
+    if (tierBlocked) {
+      dialog.alert(t("差额押金需选择 2 位担保人"))
+      return
+    }
     if (payAmount <= 0) {
       if (appliedCoupon) {
         // 服务端判定 waive：调 prepay 走后端记账
@@ -380,7 +429,8 @@ export default function Payment() {
               order_id: pId,
               order_type: pType,
               // #1758: data.amount is cents; prepay expects yuan (FromYuan).
-              amount: data.amount / 100,
+              amount: amountCents / 100,
+              ...(canChooseTier ? { deposit_tier: depositTier, guarantor_ids: selectedGuarantorIds } : {}),
               gift_used: 0,
               coupon_code: appliedCoupon.code,
             }),
@@ -409,7 +459,8 @@ export default function Payment() {
           // #1758: payAmount/giftUsed are cents; prepay expects yuan
           // (server FromYuan) — sending cents as yuan overcharged 100×
           // (7d5cadd7: ¥0.04 charged as ¥3.01).
-          amount: (appliedCoupon ? data.amount : payAmount) / 100,
+          amount: (appliedCoupon ? amountCents : payAmount) / 100,
+          ...(canChooseTier ? { deposit_tier: depositTier, guarantor_ids: selectedGuarantorIds } : {}),
           gift_used: appliedCoupon ? 0 : giftUsed,
           ...(appliedCoupon ? { coupon_code: appliedCoupon.code } : {}),
         }),

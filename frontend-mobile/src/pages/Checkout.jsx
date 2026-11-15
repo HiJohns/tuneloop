@@ -12,7 +12,6 @@ import { t } from '../i18n'
 import regions from '../data/regions.json'
 import IdPhotoUploader from '../components/IdPhotoUploader'
 import VerifyWarningBar from '../components/VerifyWarningBar'
-import { buildTierOptions, buildOrderDepositPayload } from '../utils/creditFlow.mjs'
 import { rentDaysInputState, rentDaysCommitState, rentDaysStepState } from '../utils/rentDays.mjs'
 
 const CHECKOUT_DAYS_OPTIONS = { min: 1, max: 730, fallback: 1 }
@@ -83,9 +82,6 @@ function SingleCheckout({ id, navigate, resumePending }) {
   const [daysInputText, setDaysInputText] = useState('30')
   const [rentalCalc, setRentalCalc] = useState(null)
   const [rentalCalcLoading, setRentalCalcLoading] = useState(false)
-  // #2327 S4: 三档选择（full/reduced/zero）；reduced 由原 depositWaived 语义承接。
-  const [depositTierState, setDepositTierState] = useState('full')
-  const depositWaived = depositTierState === 'reduced'
   const [guarantors, setGuarantors] = useState([])
   const [selectedGuarantorIds, setSelectedGuarantorIds] = useState([])
   const [showAddGuarantor, setShowAddGuarantor] = useState(false)
@@ -208,13 +204,8 @@ function SingleCheckout({ id, navigate, resumePending }) {
   const depositReduced = pricingV2?.deposit_reduced ?? null
   const deposit = pricingV2?.deposit ?? instrument?.deposit ?? parsePricing(instrument?.pricing)[0]?.deposit ?? 0
   const isZeroDeposit = Number(deposit) === 0
-  const canReduceDeposit = !isZeroDeposit && depositReduced != null
-  const tierOptions = buildTierOptions(deposit, depositReduced)
-  const effectiveDeposit = depositTierState === 'zero'
-    ? 0
-    : depositTierState === 'reduced' && canReduceDeposit
-      ? Number(depositReduced)
-      : deposit
+  // #2352 Rev.2 D3: 确认页不再做档位选择——展示全额押金，档位在支付页自选。
+  const effectiveDeposit = isZeroDeposit ? 0 : deposit
   // Shipping fee is not determined at order time (#1570): staff fills the
   // actual fee at dispatch, not charged at checkout.
   const totalAmount = totalRent + effectiveDeposit
@@ -346,11 +337,7 @@ function SingleCheckout({ id, navigate, resumePending }) {
 
   const handleSubmit = async () => {
     if (!getToken()) { dialog.alert(t("请先登录才能下单")); return }
-    if (depositWaived && selectedGuarantorIds.length < 2) {
-      dialog.alert(t("差额押金订单需至少选择 2 位担保人"))
-      return
-    }
-    // #2327 D13: payscore 路径不要求内部资格/推荐信（担保人仍需 2 位）。
+    // #2352 Rev.2 D3: 确认页不采集担保人/档位（改在支付页）。
     if (!useNewAddress && !selectedAddressId) {
       dialog.alert(t("请选择收货地址"))
       return
@@ -386,16 +373,6 @@ function SingleCheckout({ id, navigate, resumePending }) {
       }
       if (deliveryAddress) body.delivery_address = deliveryAddress
       if (discountCode.trim()) body.discount_code = discountCode.trim()
-      const depositPayload = buildOrderDepositPayload({
-        tier: isZeroDeposit ? 'zero' : depositTierState,
-        guarantorIds: selectedGuarantorIds,
-      })
-      if (!depositPayload.ok) {
-        dialog.alert(t("差额押金订单需至少选择 2 位担保人"))
-        setSubmitting(false)
-        return
-      }
-      Object.assign(body, depositPayload.body)
 
       const resp = await ordersApi.create(body)
       if (resp.code === 20000 || resp.code === 20100) {
@@ -405,8 +382,8 @@ function SingleCheckout({ id, navigate, resumePending }) {
         }
         const orderId = resp.data?.order_id
         if (orderId) {
-          // Keep /checkout in history so payment back button returns here (#1629)
-          navigate(`/payment?type=rent&id=${orderId}`)
+          // #2352 Rev.2 D1: 提交后进入独立信用评测页（评测标的=乐器原价）。
+          navigate(`/credit-assessment?order_id=${orderId}`)
         } else {
           navigate('/success', { replace: true })
         }
@@ -510,8 +487,6 @@ function SingleCheckout({ id, navigate, resumePending }) {
                 <Text className="text-zinc-400">{t("押金")}</Text>
                 {isZeroDeposit ? (
                   <Text className="text-green-600 font-medium flex-shrink-0 ml-auto whitespace-nowrap">{t("¥0（零押金）")}</Text>
-                ) : depositWaived && canReduceDeposit ? (
-                  <Text className="text-green-600 font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents(Number(depositReduced))}{t("（差额押金）")}</Text>
                 ) : (
                   <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{formatCents((deposit || 0))}</Text>
                 )}
@@ -579,133 +554,6 @@ function SingleCheckout({ id, navigate, resumePending }) {
             )}
           </View>
         </View>
-
-        {/* #2327 S4 / #2352: 押金档位（full+reduced 或 zero），0 押金乐器同样渲染 */}
-        <View className="bg-white rounded-2xl shadow-sm p-4 mb-3">
-          <Text className="font-black text-black">{t("押金档位")}</Text>
-          <Text className="block text-xs text-zinc-400 mt-0.5">{t("押金减免需完成微信信用评测（差额档需 2 位担保人）")}</Text>
-          <View className="mt-3">
-            {tierOptions.map((opt) => (
-              <View
-                key={opt.tier}
-                onClick={() => setDepositTierState(opt.tier)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderTop: opt.tier === 'full' ? 'none' : '1px solid #f4f4f5' }}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text className="font-medium text-black">
-                    {opt.tier === 'full' ? t('全额押金') : opt.tier === 'reduced' ? t('差额押金') : t('零押金')}
-                  </Text>
-                  <Text className="block text-xs text-zinc-400">
-                    {opt.tier === 'full'
-                      ? t('无需信用评测')
-                      : opt.tier === 'reduced'
-                        ? t('需 2 位担保人 + 微信信用评测')
-                        : t('需微信信用评测')}
-                  </Text>
-                </View>
-                <Text className="font-medium" style={{ marginRight: 12 }}>¥{formatCents(Number(opt.amount))}</Text>
-                <View style={{ width: 20, height: 20, borderRadius: 10, border: '2px solid ' + (depositTierState === opt.tier ? '#915F38' : '#d4d4d8'), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {depositTierState === opt.tier && <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#915F38' }} />}
-                </View>
-              </View>
-            ))}
-          </View>
-          {depositTierState === 'reduced' && (
-            <View className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mt-3">
-              <Text className="text-xs text-amber-700 leading-relaxed">
-                {t("应提供两位担保人的联系方式。我们的员工将会与他们联系确认，若担保人不符合要求，订单将被取消并退款。")}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {depositWaived && (
-          <View className="bg-white rounded-2xl shadow-sm p-4 mb-3">
-            <Text className="font-black text-black mb-1">{t("担保人信息")}</Text>
-            <Text className="text-zinc-400 mb-3">{t("已选")} {selectedGuarantorIds.length}/2</Text>
-            {guarantors.length > 0 && (
-              <View className="mb-3">
-                {guarantors.map((g, gi) => (
-                  <label
-                    key={g.id}
-                    className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${gi > 0 ? 'mt-2' : ''} ${
-                      selectedGuarantorIds.includes(g.id) ? 'border-brand-primary bg-blue-50' : 'border-gray-200'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedGuarantorIds.includes(g.id)}
-                      onChange={() => toggleGuarantor(g.id)}
-                      className="mt-1"
-                    />
-                    <View className="flex-1 text-sm">
-                      <Text className="font-medium">{g.name} · {g.phone}</Text>
-                      {(g.company || g.title) && <Text className="block text-xs text-gray-400">{[g.company, g.title].filter(Boolean).join(' / ')}</Text>}
-                      {g.address && <Text className="block text-xs text-gray-400">{g.address}</Text>}
-                    </View>
-                  </label>
-                ))}
-              </View>
-            )}
-            {showAddGuarantor ? (
-              <View className="bg-gray-50 rounded-lg p-3">
-                <View className="grid grid-cols-2 gap-2">
-                  <input className={inputClass} value={newGuarantor.name} onChange={e => setNewGuarantor(prev => ({ ...prev, name: e.target.value }))} placeholder={t("姓名")} />
-                  <input className={inputClass} value={newGuarantor.phone} onChange={e => setNewGuarantor(prev => ({ ...prev, phone: e.target.value }))} placeholder={t("联系电话")} />
-                </View>
-                <View className="mt-2">
-                  <input className={inputClass} value={newGuarantor.company} onChange={e => setNewGuarantor(prev => ({ ...prev, company: e.target.value }))} placeholder={t("工作单位")} />
-                </View>
-                <View className="mt-2">
-                  <input className={inputClass} value={newGuarantor.title} onChange={e => setNewGuarantor(prev => ({ ...prev, title: e.target.value }))} placeholder={t("职务")} />
-                </View>
-                <View className="mt-2">
-                  <input className={inputClass} value={newGuarantor.address} onChange={e => setNewGuarantor(prev => ({ ...prev, address: e.target.value }))} placeholder={t("地址（选填）")} />
-                </View>
-                {/* #1782: ID photo uploads */}
-                <View className="mt-2">
-                  <input className={inputClass} value={newGuarantor.id_card_no} onChange={e => setNewGuarantor(prev => ({ ...prev, id_card_no: e.target.value }))} placeholder={t("18位身份证号")} />
-                </View>
-                <View className="flex gap-2 mt-2">
-                  <View className="flex-1 flex flex-col items-center text-center">
-                    <Text className="text-gray-500 mb-1">{t("身份证正面*")}</Text>
-                    <IdPhotoUploader side="front" onChange={onFrontPhotoChange} />
-                  </View>
-                  <View className="flex-1 flex flex-col items-center text-center">
-                    <Text className="text-gray-500 mb-1">{t("身份证反面*")}</Text>
-                    <IdPhotoUploader side="back" onChange={setGPhotoBack} />
-                  </View>
-                  <View className="flex-1 flex flex-col items-center text-center">
-                    <Text className="text-gray-500 mb-1">{t("其他证件*")}</Text>
-                    <IdPhotoUploader side="other" onChange={setGPhotoOther} />
-                  </View>
-                </View>
-                <View className="flex gap-2 mt-3">
-                  <Button
-                    onClick={handleSaveGuarantor}
-                    disabled={savingGuarantor}
-                    style={{ flex: 1, backgroundColor: '#B98E5F', color: '#fff', borderRadius: 8, fontSize: 14, border: 'none' }}
-                  >
-                    <Text style={{ color: '#fff', fontSize: 14 }}>{savingGuarantor ? '保存中...' : '保存'}</Text>
-                  </Button>
-                  <Button
-                    onClick={() => setShowAddGuarantor(false)}
-                    style={{ flex: 1, backgroundColor: '#f4f4f5', color: '#71717a', borderRadius: 8, fontSize: 14, border: 'none' }}
-                  >
-                    <Text style={{ color: '#71717a', fontSize: 14 }}>{t("取消")}</Text>
-                  </Button>
-                </View>
-              </View>
-            ) : (
-              <Button
-                onClick={() => setShowAddGuarantor(true)}
-                className="text-sm text-brand-primary flex items-center gap-1"
-              >
-                <Plus size={14} /> {t("新增担保人")}
-              </Button>
-            )}
-          </View>
-        )}
 
         <View className="bg-white rounded-2xl shadow-sm p-4 mb-3">
           <Text className="font-black text-black mb-3 flex items-center gap-2">
@@ -846,7 +694,7 @@ function BatchCheckout({ navigate }) {
   const [previewImages, setPreviewImages] = useState([])
   const [previewIndex, setPreviewIndex] = useState(-1)
   const [user, setUser] = useState(null)
-  const [depositWaived, setDepositWaived] = useState(false)
+  const depositWaived = false // #2352 Rev.2 D5: 旧免押/差额复选框已退役
   const [guarantors, setGuarantors] = useState([])
   const [selectedGuarantorIds, setSelectedGuarantorIds] = useState([])
   const [showAddGuarantor, setShowAddGuarantor] = useState(false)
@@ -947,7 +795,7 @@ function BatchCheckout({ navigate }) {
     for (const item of group.items) {
       const p = getItemPricing(item)
       if (Number(p.deposit) === 0) continue
-      total += depositWaived && canReduceAll ? Number(p.depositReduced ?? p.deposit) : Number(p.deposit)
+      total += Number(p.deposit)
     }
     return total
   }
@@ -1015,10 +863,7 @@ function BatchCheckout({ navigate }) {
   const handleSubmit = async () => {
     if (!getToken()) { dialog.alert(t("请先登录才能下单")); return }
     if (cartItems.length === 0) return
-    if (depositWaived && selectedGuarantorIds.length < 2) {
-      dialog.alert(t("差额押金订单需至少选择 2 位担保人"))
-      return
-    }
+    // #2352 Rev.2 D3: 档位/担保人改在支付页选择。
     // #2352 D2: 旧 #1867 资格校验/推荐信已退役；差额档仅保留 2 位担保人 + 信用评测。
     if (!useNewAddress && !selectedAddressId) {
       dialog.alert(t("请选择收货地址"))
@@ -1054,7 +899,7 @@ function BatchCheckout({ navigate }) {
       }))
       const body = { items }
         if (deliveryAddress) body.delivery_address = deliveryAddress
-        body.deposit_tier = depositWaived && canReduceAll ? 'reduced' : (allZeroDeposit ? 'zero' : 'full')
+        body.deposit_tier = allZeroDeposit ? 'zero' : 'full' // #2352 Rev.2: 档位改由支付页选择
         if (body.deposit_tier === 'reduced') {
           body.guarantor_ids = selectedGuarantorIds
         }
@@ -1068,7 +913,7 @@ function BatchCheckout({ navigate }) {
             storage.removeItem('cart_checkout')
             eventBus.emit('cartUpdated')
             // Keep /checkout in history so payment back button returns here (#1629)
-            navigate(`/payment?type=rent&id=${orders[0].order_id}`)
+            navigate(`/credit-assessment?order_id=${orders[0].order_id}`)
           } else {
             dialog.alert(t("下单成功，但未生成订单"))
           }
@@ -1164,7 +1009,7 @@ function BatchCheckout({ navigate }) {
                   })}
                   <View className="flex justify-between items-center mt-1 pt-1 border-t" style={{ borderColor: 'rgba(228,228,231,0.6)' }}>
                     <Text className="text-zinc-400">
-                      {Number(effectiveGroupDeposit(group)) === 0 ? '零押金' : (depositWaived && canReduceAll ? `差额押金 ¥${formatCents(effectiveGroupDeposit(group))}` : `押金 ¥${formatCents(effectiveGroupDeposit(group))}`)}
+                      {Number(effectiveGroupDeposit(group)) === 0 ? '零押金' : `押金 ¥${formatCents(effectiveGroupDeposit(group))}`}
                     </Text>
                     <Text className="text-sm font-bold text-zinc-800">{t("小计 ¥")}{formatCents((groupSubtotal || 0))}</Text>
                   </View>
@@ -1183,95 +1028,6 @@ function BatchCheckout({ navigate }) {
           <View className="w-full bg-zinc-50 p-3 rounded-xl text-zinc-400 leading-normal">
             {t("🔒 暖心提示：资产固定押金将在乐器归还、网点网管质检合格后，按原支付渠道原路退回至您的微信零钱。")}
           </View>
-
-          {canReduceAll && !allZeroDeposit && (<>
-          <View className="w-full flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2.5">
-            <View className="flex-1 min-w-0">
-              <Text className="text-sm font-medium text-gray-700">{t("差额押金（减免）")}</Text>
-              <Text className="block text-gray-400">{t("需 2 位担保人 + 微信信用评测")}</Text>
-            </View>
-            <input
-              type="checkbox"
-              checked={depositWaived}
-              onChange={e => setDepositWaived(e.target.checked)}
-              className="w-5 h-5"
-            />
-          </View>
-          {depositWaived && (
-            <View className="w-full bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-              <Text className="text-xs text-amber-700 leading-relaxed">
-                {t("应提供两位担保人的联系方式。我们的员工将会与他们联系确认，若担保人不符合要求，订单将被取消并退款。")}
-              </Text>
-            </View>
-          )}
-          </>)}
-          {!canReduceAll && !allZeroDeposit && (
-            <Text className="block text-xs text-zinc-400 mb-2">{t("部分乐器未配置差额押金，按全额/零押金结算")}</Text>
-          )}
-          {depositWaived && (
-            <View className="w-full bg-white rounded-xl border border-zinc-100 p-3">
-              <Text className="text-xs font-bold text-zinc-500 mb-1">{t("🛡 担保人信息")}</Text>
-              <Text className="text-zinc-400 mb-3">{t("已选")} {selectedGuarantorIds.length}/2</Text>
-              {guarantors.length > 0 && (
-                <View className="mb-3">
-                  {guarantors.map((g, gi) => (
-                    <label
-                      key={g.id}
-                      className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${gi > 0 ? 'mt-2' : ''} ${
-                        selectedGuarantorIds.includes(g.id) ? 'border-brand-primary bg-blue-50' : 'border-gray-200'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedGuarantorIds.includes(g.id)}
-                        onChange={() => toggleGuarantor(g.id)}
-                        className="mt-1"
-                      />
-                      <View className="flex-1 text-xs">
-                        <Text className="font-medium text-zinc-800">{g.name} · {g.phone}</Text>
-                        {(g.company || g.title) && <Text className="text-zinc-400">{[g.company, g.title].filter(Boolean).join(' / ')}</Text>}
-                        {g.address && <Text className="text-zinc-400">{g.address}</Text>}
-                      </View>
-                    </label>
-                  ))}
-                </View>
-              )}
-              {showAddGuarantor ? (
-                <View className="bg-gray-50 rounded-lg p-3">
-                  <View className="grid grid-cols-2 gap-2">
-                    <input className={inputClass} value={newGuarantor.name} onChange={e => setNewGuarantor(prev => ({ ...prev, name: e.target.value }))} placeholder={t("姓名")} />
-                    <input className={inputClass} value={newGuarantor.phone} onChange={e => setNewGuarantor(prev => ({ ...prev, phone: e.target.value }))} placeholder={t("联系电话")} />
-                  </View>
-                  <View className="mt-2">
-                    <input className={inputClass} value={newGuarantor.company} onChange={e => setNewGuarantor(prev => ({ ...prev, company: e.target.value }))} placeholder={t("工作单位")} />
-                  </View>
-                  <View className="mt-2">
-                    <input className={inputClass} value={newGuarantor.title} onChange={e => setNewGuarantor(prev => ({ ...prev, title: e.target.value }))} placeholder={t("职务")} />
-                  </View>
-                  <View className="mt-2">
-                    <input className={inputClass} value={newGuarantor.address} onChange={e => setNewGuarantor(prev => ({ ...prev, address: e.target.value }))} placeholder={t("地址（选填）")} />
-                  </View>
-                  <View className="flex gap-2 mt-3">
-                    <Button
-                      onClick={handleSaveGuarantor}
-                      disabled={savingGuarantor}
-                      style={{ flex: 1, backgroundColor: '#B98E5F', color: '#fff', borderRadius: 8, fontSize: 14, border: 'none' }}
-                    >
-                      <Text style={{ color: '#fff', fontSize: 14 }}>{savingGuarantor ? '保存中...' : '保存'}</Text>
-                    </Button>
-                    <Button
-                      onClick={() => setShowAddGuarantor(false)}
-                      style={{ flex: 1, backgroundColor: '#f4f4f5', color: '#71717a', borderRadius: 8, fontSize: 14, border: 'none' }}
-                    >
-                      <Text style={{ color: '#71717a', fontSize: 14 }}>{t("取消")}</Text>
-                    </Button>
-                  </View>
-                </View>
-              ) : (
-                <Text className="text-xs text-brand-primary" onClick={() => setShowAddGuarantor(true)}>{t("+ 新增担保人")}</Text>
-              )}
-            </View>
-          )}
 
           <View className="w-full border-t border-dashed border-zinc-200 pt-4">
             <Text className="text-xs font-bold text-zinc-500 mb-3">{t("📍 收货地址")}</Text>
