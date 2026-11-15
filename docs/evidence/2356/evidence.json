@@ -35,7 +35,7 @@
     },
     {
       "id": "R3",
-      "command": "go test ./handlers/ -run '2357|2352'",
+      "command": "go test ./handlers/ -run '235[27]'",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2352/R14-backend-tiers.txt"
