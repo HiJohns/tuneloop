@@ -1,0 +1,19 @@
+PROVENANCE commit=24d52c2a1fa030ddd30bbd195d7762ff17cd2e11
+CMD static probes (detail pending entry / assessment no-weapp-header / deadline)
+--- 1) 详情页本人待支付入口（两端）---
+frontend-mobile/src/pages/Detail.jsx:517:          ) : activeOrder.order_status === 'reserved' && activeOrder.is_mine ? (
+frontend-mobile/src/pages-weapp/Detail.jsx:497:          ) : activeOrder.order_status === 'reserved' && activeOrder.is_mine ? (
+--- 2) 评测页标题栏仅 H5（ui.md）---
+186:      {!env.isMiniProgram && (
+--- 3) 评测页截止提示 ---
+9:import { pendingOrderHint } from '../utils/pendingOrder.mjs'
+49:  const deadlineLabel = pendingOrderHint(credit?.payment_deadline, nowTick)
+195:      {credit?.payment_deadline && (
+--- 4) 评测补建条件（pending 无服务单）---
+117:      const notStarted = !current || !current.service_order_no
+118:      if (notStarted || current.credit_state === CREDIT_STATE.NONE || current.credit_state === CREDIT_STATE.EXPIRED) {
+108:		if order.CreditServiceOrderNo != "" {
+--- 5) 构建产物探针 ---
+weapp detail is_mine hits: 1
+assessment payment_deadline hits: 1
+assessment wxml native-tag files: 0

@@ -73,7 +73,9 @@ func assertApproved(creditState string) error {
 	case CreditStatePending:
 		return fmt.Errorf("credit_pending: 信用评估尚未完成，请先在支付页完成微信信用评估")
 	case CreditStateRejected:
-		return fmt.Errorf("credit_rejected: 信用评估未通过，请改用全押金档位或更换乐器")
+		// #2352 F2（Owner 裁定 2026-11-15）：全额档同样要求评估通过，
+		// 因此不能再引导用户「改用全押金」。
+		return fmt.Errorf("credit_rejected: 信用评估未通过，本订单无法继续支付，请联系客服协助处理")
 	case CreditStateExpired:
 		return fmt.Errorf("credit_expired: 信用评估已过期，请重新评估")
 	default:

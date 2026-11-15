@@ -1,0 +1,12 @@
+PROVENANCE build=credit-flow-2352-weapp commit=e93f02638da21d03fcf3194a8bfc90007f9f1a2c dirty=true
+CMD grep -nE 'buildTierOptions|deposit_tier|guarantor_ids|buildAssessmentRoute|credit-assessment' frontend-mobile/src/pages-weapp/payment/Payment.jsx
+8:import { creditGate, buildTierOptions, buildAssessmentRoute } from '../../utils/creditFlow.mjs'
+83:  const [selectedGuarantorIds, setSelectedGuarantorIds] = useState([])
+185:            onClick={() => Taro.navigateTo({ url: `/pages-weapp/credit-assessment/index?order_id=${pId}&return_path=${encodeURIComponent(`/payment?type=rent&id=${pId}`)}` })}
+210:  const tierBlocked = depositTier === 'reduced' && selectedGuarantorIds.length < 2
+434:      ...(canChooseTier ? { deposit_tier: depositTier, guarantor_ids: selectedGuarantorIds } : {}),
+746:            {buildTierOptions(depositFull, depositReduced).filter((o) => o.tier !== 'zero').map((opt) => (
+760:                  {t('差额押金需选择 2 位担保人') + '（' + selectedGuarantorIds.length + '/2）'}
+766:                    <View style={{ width: 18, height: 18, borderRadius: 4, border: '1px solid #d4d4d8', backgroundColor: selectedGuarantorIds.includes(g.id) ? '#915F38' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+767:                      {selectedGuarantorIds.includes(g.id) && <Text style={{ color: '#fff', fontSize: 11 }}>✓</Text>}
+785:              onClick={() => Taro.navigateTo({ url: '/pages-weapp/credit-assessment/index?order_id=' + pId + '&return_path=' + encodeURIComponent(`/payment?type=rent&id=${pId}`) })}

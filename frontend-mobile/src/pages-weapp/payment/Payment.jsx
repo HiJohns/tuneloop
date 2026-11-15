@@ -3,9 +3,9 @@ import { formatCents } from '../../utils/money'
 import { computeDisplayedCashCents } from '../../utils/paymentAmount.mjs'
 import Taro, { useDidShow, useLoad } from '@tarojs/taro'
 import { View, Text, ScrollView, Input } from '@tarojs/components'
-import { apiFetch, resolveLogin, resolveErrorMessage } from '../../services/api'
+import { apiFetch, resolveLogin, resolveErrorMessage, guarantorsApi } from '../../services/api'
 import {dialog, env, session, storage, wxLogin } from '../../platform'
-import { creditGate } from '../../utils/creditFlow.mjs'
+import { creditGate, buildTierOptions, buildAssessmentRoute } from '../../utils/creditFlow.mjs'
 import { t } from '../../i18n'
 
 
@@ -77,6 +77,10 @@ export default function Payment() {
   // #2327 S4/D5: 支付分信用态（reduced/zero 未 approved 时禁用支付）
   const [credit, setCredit] = useState(null)
   const [creditBlocked, setCreditBlocked] = useState(false)
+  // #2352 Rev.2 D3 / #2356: 支付页自选押金档位（全额/差额）；差额需 2 位担保人。
+  const [depositTier, setDepositTier] = useState('full')
+  const [guarantors, setGuarantors] = useState([])
+  const [selectedGuarantorIds, setSelectedGuarantorIds] = useState([])
   // 优惠码预览（#1719 通用化）：所有支付页可用，最终金额服务端重算。
   const [couponCode, setCouponCode] = useState('')
   const [appliedCoupon, setAppliedCoupon] = useState(null)
@@ -148,6 +152,15 @@ export default function Payment() {
     }
   }, [pType, pId])
 
+  useEffect(() => {
+    if (pType !== 'rent') return
+    let cancelled = false
+    guarantorsApi.list()
+      .then((r) => { if (!cancelled && r && r.code === 20000) setGuarantors(r.data || []) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [pType])
+
   if (loading) {
     // #1785: if params are missing after delay, show explicit error
     if (!pType && paramsReady) {
@@ -186,15 +199,25 @@ export default function Payment() {
 
   const isRefund = ['refund', 'deposit-refund'].includes(pType)
 
+  // #2352 Rev.2 D3: 押金档位（全额/差额）在支付页自选；差额需 2 位担保人。
+  const details = data.details || {}
+  const depositFull = Number(details.deposit_full || 0)
+  const depositReduced = details.deposit_reduced == null ? null : Number(details.deposit_reduced)
+  const currentDeposit = Number(details.deposit || 0)
+  const canChooseTier = pType === 'rent' && depositFull > 0 && depositReduced != null
+  const effectiveDeposit = depositTier === 'reduced' ? Number(depositReduced ?? currentDeposit) : currentDeposit
+  const amountCents = Number(data?.amount || 0) - currentDeposit + effectiveDeposit
+  const tierBlocked = depositTier === 'reduced' && selectedGuarantorIds.length < 2
+
   // Coupon applies a preview discount (final price is server-authoritative at
   // prepay); 服务端按 coupons 表决定 waive/percent（#2291）。
-  const displayAmount = appliedCoupon ? couponAmount : data.amount
+  const displayAmount = appliedCoupon ? couponAmount : amountCents
 
   const gate = pType === 'rent' ? creditGate(credit) : { canPay: true, showEntry: false, reason: '', action: 'none' }
   const payBlocked = pType === 'rent' && (!gate.canPay || creditBlocked)
 
   const cashAmount = computeDisplayedCashCents({
-    amountCents: data?.amount || 0,
+    amountCents,
     couponFinalCents: couponAmount,
     giftUsedCents: giftUsed * 100,
     hasCoupon: !!appliedCoupon,
@@ -408,6 +431,7 @@ export default function Payment() {
       // 100× (7d5cadd7: ¥0.04 charged as ¥3.01).
       amount: payAmount / 100,
       open_id: '',
+      ...(canChooseTier ? { deposit_tier: depositTier, guarantor_ids: selectedGuarantorIds } : {}),
       // gift_used likewise cents → yuan (server FromYuan).
       gift_used: appliedCoupon ? 0 : (pType === 'membership' ? 0 : giftUsed),
     }
@@ -497,6 +521,10 @@ export default function Payment() {
 
   const handlePay = async (payAmount) => {
     if (isPaying) return // 防抖：支付流程进行中忽略重复点击（QA #1819）
+    if (tierBlocked) {
+      dialog.alert(t("差额押金需选择 2 位担保人"))
+      return
+    }
     if (payAmount <= 0) {
       if (appliedCoupon || (pType === 'membership' && pSessionId)) {
         // 服务端 waive（或会员 session 免单）：run prepay so
@@ -712,6 +740,40 @@ export default function Payment() {
           </View>
         )}
 
+        {canChooseTier && (
+          <View style={{ margin: '12px 16px', padding: 16, backgroundColor: '#fff', borderRadius: 16 }}>
+            <Text style={{ fontSize: 14, fontWeight: 700, display: 'block', marginBottom: 8 }}>{t('押金档位')}</Text>
+            {buildTierOptions(depositFull, depositReduced).filter((o) => o.tier !== 'zero').map((opt) => (
+              <View key={opt.tier} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, paddingBottom: 8 }}
+                onClick={() => setDepositTier(opt.tier)}>
+                <Text style={{ fontSize: 14, color: '#3f3f46' }}>
+                  {(opt.tier === 'full' ? t('全额押金') : t('差额押金')) + ' ¥' + formatCents(Number(opt.amount))}
+                </Text>
+                <View style={{ width: 20, height: 20, borderRadius: 10, border: '2px solid ' + (depositTier === opt.tier ? '#915F38' : '#d4d4d8'), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {depositTier === opt.tier && <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#915F38' }} />}
+                </View>
+              </View>
+            ))}
+            {depositTier === 'reduced' && (
+              <View style={{ marginTop: 8, borderTop: '1px solid #f4f4f5', paddingTop: 8 }}>
+                <Text style={{ fontSize: 12, color: '#71717a', display: 'block', marginBottom: 4 }}>
+                  {t('差额押金需选择 2 位担保人') + '（' + selectedGuarantorIds.length + '/2）'}
+                </Text>
+                {guarantors.map((g) => (
+                  <View key={g.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, paddingBottom: 6 }}
+                    onClick={() => setSelectedGuarantorIds((prev) => prev.includes(g.id) ? prev.filter((x) => x !== g.id) : [...prev, g.id])}>
+                    <Text style={{ fontSize: 12, color: '#3f3f46' }}>{g.name + ' · ' + g.phone}</Text>
+                    <View style={{ width: 18, height: 18, borderRadius: 4, border: '1px solid #d4d4d8', backgroundColor: selectedGuarantorIds.includes(g.id) ? '#915F38' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      {selectedGuarantorIds.includes(g.id) && <Text style={{ color: '#fff', fontSize: 11 }}>✓</Text>}
+                    </View>
+                  </View>
+                ))}
+                {guarantors.length === 0 && <Text style={{ fontSize: 12, color: '#a1a1aa' }}>{t('请先在个人中心添加担保人')}</Text>}
+              </View>
+            )}
+          </View>
+        )}
+
         {pType === 'rent' && (gate.showEntry || creditBlocked) && (
           <View style={{ margin: '12px 16px', padding: 16, backgroundColor: '#fff', borderRadius: 16 }}>
             <Text style={{ fontSize: 14, fontWeight: 700, display: 'block' }}>{t('微信信用评测')}</Text>
@@ -720,7 +782,7 @@ export default function Payment() {
             </Text>
             <Button
               style={{ marginTop: 12, backgroundColor: '#B98E5F', color: '#fff', borderRadius: 12, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              onClick={() => Taro.navigateTo({ url: `/pages-weapp/credit-assessment/index?order_id=${pId}&tier=${credit?.deposit_tier || ''}&risk_amount_cents=${credit?.risk_amount_cents || 0}&return_path=${encodeURIComponent(`/payment?type=rent&id=${pId}`)}` })}
+              onClick={() => Taro.navigateTo({ url: '/pages-weapp/credit-assessment/index?order_id=' + pId + '&return_path=' + encodeURIComponent(`/payment?type=rent&id=${pId}`) })}
             >
               <Text style={{ color: '#fff', fontWeight: 700 }}>{t('去微信完成评测')}</Text>
             </Button>
@@ -751,7 +813,7 @@ export default function Payment() {
           <View style={{ display: 'flex', flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
               <Button style={btnStyle(payBlocked ? '#d4d4d8' : '#B98E5F')} onClick={() => { if (!payBlocked) doRealPay() }} disabled={isPaying || payBlocked}>
-                {payBlocked ? t('请先完成微信信用评测') : isPaying ? '处理中...' : `微信支付 ¥${formatCents(Number(cashAmount))}`}
+                {tierBlocked ? t('差额押金需选择 2 位担保人') : payBlocked ? t('请先完成微信信用评测') : isPaying ? '处理中...' : `微信支付 ¥${formatCents(Number(cashAmount))}`}
               </Button>
             </View>
           </View>
@@ -759,7 +821,7 @@ export default function Payment() {
           <View style={{ display: 'flex', flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
               <Button style={btnStyle(payBlocked ? '#d4d4d8' : cashAmount > 0 ? '#B98E5F' : '#16a34a')} onClick={() => { if (!payBlocked) handlePay(cashAmount) }} disabled={isPaying || payBlocked}>
-                {payBlocked ? t('请先完成微信信用评测') : isPaying ? '处理中...' : `发起支付 ¥${formatCents(Number(cashAmount))}`}
+                {tierBlocked ? t('差额押金需选择 2 位担保人') : payBlocked ? t('请先完成微信信用评测') : isPaying ? '处理中...' : `发起支付 ¥${formatCents(Number(cashAmount))}`}
               </Button>
             </View>
           </View>

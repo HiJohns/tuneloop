@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "issue": 2352,
-  "build": "credit-flow-2352 d9b1f1e15",
-  "commit": "d9b1f1e15",
+  "build": "credit-flow-2352 24d52c2a1 (H5 + weapp + F1/F2/F3)",
+  "commit": "24d52c2a1fa030ddd30bbd195d7762ff17cd2e11",
   "dirty": false,
-  "environment": "frontend Node22 + backend PG16 127.0.0.1:15433 strict template",
+  "environment": "Linux worktree /tmp/opencode/wt-2354 @ origin/develop; Node 22.22.3; H5 + weapp 双侧机器行已跑，R9 等 Owner 真机",
   "rows": [
     {
       "id": "R1",
@@ -14,10 +14,24 @@
         "docs/evidence/2352/R1-checkout-ui.txt"
       ],
       "assert": "checkout 无档位/免评/担保人控件",
-      "actual": "PASS",
+      "actual": "PASS（H5 共享实现 pages/Checkout.jsx）— weapp 双实现此前漏改，见 R1w",
       "expected": "PASS",
       "negative": "不符 → exit 1",
       "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R1w",
+      "command": "bash scripts/verify-2352-weapp.sh checkout",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R1w-checkout.txt"
+      ],
+      "assert": "weapp 确认页：单品流与批量流提交后均跳 credit-assessment；无档位/免押交互；不提交 deposit_tier",
+      "actual": "PASS — 2 处 credit-assessment 跳转；无 setDepositTierState/setDepositWaived；无 buildOrderDepositPayload/body.deposit_tier；负例（改回直跳支付页）exit 1",
+      "expected": "PASS",
+      "negative": "改回直跳支付页 → exit 1",
+      "negative_result": "红绿已实测",
       "pass": true
     },
     {
@@ -28,10 +42,24 @@
         "docs/evidence/2352/R2-route.txt"
       ],
       "assert": "提交跳评测页且带 order_id",
-      "actual": "PASS",
+      "actual": "PASS（H5 共享实现）— weapp 侧见 R1w/R10",
       "expected": "PASS",
       "negative": "不符 → exit 1",
       "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2w",
+      "command": "bash scripts/verify-2352-weapp.sh payment",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R2w-payment.txt"
+      ],
+      "assert": "weapp 支付页：有全额/差额档位选择；差额需 ≥2 担保人；prepay 带 deposit_tier/guarantor_ids；评测入口只传 order_id",
+      "actual": "PASS — buildTierOptions + tierBlocked 守卫 + prepay body 扩展；无 risk_amount_cents 旧参数",
+      "expected": "PASS",
+      "negative": "缺档位/无 2 担保人校验 → exit 1",
+      "negative_result": "红绿已实测",
       "pass": true
     },
     {
@@ -131,6 +159,62 @@
       "negative": "不符 → exit 1",
       "negative_result": "断言失败即 exit 1",
       "pass": false
+    },
+    {
+      "id": "R10",
+      "command": "bash scripts/verify-2352-weapp.sh dist",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R10-weapp-dist.txt"
+      ],
+      "assert": "构建产物：checkout bundle 含评测页路由、不含免押金 toggle；payment bundle 含 deposit_tier",
+      "actual": "PASS — dist-weapp 实测（这正是此前漏掉的断言层）",
+      "expected": "PASS",
+      "negative": "产物无路由或残留 toggle → exit 1",
+      "negative_result": "红绿已实测",
+      "pass": true
+    },
+    {
+      "id": "R11",
+      "command": "node --test src/utils/creditFlow.test.mjs src/utils/pendingOrder.test.mjs",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R11-unit.txt"
+      ],
+      "assert": "档位模型按 #2352（full>0 无 zero；所有档位 requiresAssessment=true）+ 待支付倒计时文案 4 例",
+      "actual": "PASS — 12/12（含新增 pendingOrder 4 例：无截止/剩余/已过期/不足 1 分钟）",
+      "expected": "PASS",
+      "negative": "陈旧断言（zero 档/fallback_full）→ fail",
+      "negative_result": "修复前 3 例 fail，修复后 0",
+      "pass": true
+    },
+    {
+      "id": "R12",
+      "command": "go test ./handlers/ -run '2352|CreditPayload|RejectedMessage'",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R12-backend.txt"
+      ],
+      "assert": "creditPayload 下发 payment_deadline/order_status；被拒文案不含「改用全额」；F2：全额 pending/rejected 均被拦、approved 放行、enforce=false 放行",
+      "actual": "PASS — ok tuneloop-backend/handlers",
+      "expected": "PASS",
+      "negative": "文案回退或闸门放开全额 → fail",
+      "negative_result": "断言内建",
+      "pass": true
+    },
+    {
+      "id": "R13",
+      "command": "静态+产物探针（见 R13-static.txt）",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R13-static.txt"
+      ],
+      "assert": "两端详情页有本人 reserved 待支付入口；评测页标题栏仅 H5（weapp 无自绘栏）；评测页消费 payment_deadline；pending 无服务单时补建",
+      "actual": "PASS — 静态命中全部；weapp 产物 detail is_mine=1 / assessment payment_deadline=1 / 原生标签 0",
+      "expected": "PASS",
+      "negative": "weapp 自绘标题栏 / 无待支付入口 → 不达标",
+      "negative_result": "—",
+      "pass": true
     }
   ]
 }

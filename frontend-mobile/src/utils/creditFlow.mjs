@@ -44,7 +44,8 @@ export function buildTierOptions(depositYuan, depositReducedYuan) {
     tier: DEPOSIT_TIER.FULL,
     amount: full,
     requiresGuarantors: false,
-    requiresAssessment: false,
+    // #2352 F2（Owner 裁定 2026-11-15）：所有 payscore 新单（含全额）都要评测通过后才能支付。
+    requiresAssessment: true,
   }]
   if (reduced != null && reduced >= 0 && reduced < full) {
     options.push({
@@ -107,8 +108,9 @@ export function creditGate(payload) {
     case CREDIT_STATE.REJECTED:
       return {
         canPay: false, showEntry: true, state,
-        reason: '信用评测未通过，请改用全额押金或更换乐器',
-        action: 'fallback_full',
+        // #2352 F2（Owner 裁定）：全额档同样要求评测通过，不再提供「改用全额」出口。
+        reason: '信用评测未通过，本订单无法继续支付，请联系客服协助处理',
+        action: 'blocked',
       }
     case CREDIT_STATE.EXPIRED:
       return {
