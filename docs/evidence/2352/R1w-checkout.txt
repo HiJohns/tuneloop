@@ -1,0 +1,12 @@
+PROVENANCE build=credit-flow-2352-weapp commit=e93f02638da21d03fcf3194a8bfc90007f9f1a2c dirty=true
+CMD grep -nE 'credit-assessment|免押金|buildOrderDepositPayload|deposit_tier' frontend-mobile/src/pages-weapp/Checkout.jsx
+86:  // 也不采集担保人/推荐信（内部资格 #1867 仅保留历史订单兼容）。
+277:    // #2352 Rev.2 D3: 确认页不采集担保人/推荐信（改在支付页选档位）。
+328:          Taro.redirectTo({ url: `/pages-weapp/credit-assessment/index?order_id=${orderId}` })
+357:      dialog.alert(t("请填写担保人姓名和电话"))
+394:        dialog.toast(t("担保人已保存"), { icon: 'success' })
+517:            {/* #1732: 物流费提醒——0 押金（含免押金）快递到付，已付押金从押金扣除 */}
+834:    // #2352 Rev.2 D3: 确认页不采集担保人/推荐信/档位（档位在支付页自选）。
+884:          Taro.redirectTo({ url: `/pages-weapp/credit-assessment/index?order_id=${orders[0].order_id}` })
+913:      dialog.alert(t("请填写担保人姓名和电话"))
+925:        dialog.toast(t("担保人已保存"), { icon: 'success' })
