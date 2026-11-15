@@ -1,8 +1,5 @@
-PROVENANCE build=credit-flow-2352-weapp commit=e93f02638da21d03fcf3194a8bfc90007f9f1a2c dirty=true
-CMD grep credit-assessment + 免押金 in frontend-mobile/dist-weapp/pages-weapp/{checkout,payment}/index.js
---- checkout bundle: assessment route hits ---
-2
---- checkout bundle: legacy zero-deposit toggle hits ---
-0
---- payment bundle: deposit_tier hits ---
-1
+PROVENANCE build=credit-flow-2352-weapp commit=33f352f2464de37f69603af1b70baeb379063f6e dirty=true
+checkout bundle: assessment route hits = 2
+checkout bundle: reduced-tier toggle hits = 0
+checkout bundle: guarantor fetch hits = 2
+payment bundle: deposit_tier hits = 0

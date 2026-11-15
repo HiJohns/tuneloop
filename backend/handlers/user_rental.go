@@ -261,6 +261,25 @@ func validateGuarantors(c *gin.Context, db *gorm.DB, userID string, guarantorIDs
 	return true
 }
 
+// validateRequestedTier 校验确认页提交的押金档位（#2357）。
+//
+//	zero  —— 仅当乐器全额押金 = 0（不得凭信用免掉全额押金）；
+//	reduced —— 乐器必须配置了小于全额的第二档（deposit_reduced > 0）；
+//	full  —— 恒可。
+func validateRequestedTier(requested string, fullDeposit, reducedAmount float64) error {
+	switch requested {
+	case models.DepositTierZero:
+		if fullDeposit > 0 {
+			return fmt.Errorf("zero deposit tier is only available when the instrument deposit is 0")
+		}
+	case models.DepositTierReduced:
+		if reducedAmount <= 0 || reducedAmount >= fullDeposit {
+			return fmt.Errorf("reduced deposit tier is not configured for this instrument")
+		}
+	}
+	return nil
+}
+
 // resolveDepositTier picks the payable tier for one instrument.
 // full is authoritative from instruments.deposit when set (including 0).
 func resolveDepositTier(instrument *models.Instrument, pricingResult *services.InstrumentPricing, requested string) (tier string, full, reduced float64, validReduced bool) {
@@ -470,13 +489,19 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	if len(pricingResult.Tiers) > 0 {
 		dailyRent = pricingResult.Tiers[0].DailyRate
 	}
-	// #2352 Rev.2: 确认页不再选择档位；下单只落「全额押金档」（乐器 0 押金则 zero），
-	// 档位改由支付页自选（差额需 2 位担保人），所有新单统一进入信用评测流程。
-	requestedTier := models.DepositTierFull
-	if len(pricingResult.Tiers) == 0 && lockedInstrument.Deposit == nil {
+	// #2352 / #2357（Owner 2026-11-15 改判）：档位决定回归「确认订单页」——
+	// 确认页展示全额押金，并提供「差额押金」拉杆（差额需 2 位担保人）。
+	requestedTier := req.DepositTier
+	if requestedTier == "" {
 		requestedTier = models.DepositTierFull
 	}
 	depositTier, fullDeposit, reducedAmount, _ := resolveDepositTier(&lockedInstrument, pricingResult, requestedTier)
+	// #2357：确认页可请求 full / reduced（zero 仅当乐器全额押金 = 0）。
+	if err := validateRequestedTier(requestedTier, fullDeposit, reducedAmount); err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
+		return
+	}
 	// #2352 Rev.2 D1: 所有新单都进入信用评测（payscore），下单即落 pending。
 	creditPath = models.DepositCreditPathPayscore
 	deposit := fullDeposit
@@ -1043,9 +1068,12 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			dailyRent = pricingResult.Tiers[0].DailyRate
 		}
 		depositTier, fullDeposit, reducedAmount, _ := resolveDepositTier(&lockedInstrument, pricingResult, requestedTier)
-		// #2327 D13: payscore 路径下 zero 档 = 押金全由支付分担保。
-		if creditPath == models.DepositCreditPathPayscore && requestedTier == models.DepositTierZero && fullDeposit > 0 {
-			depositTier = models.DepositTierZero
+		// #2357: 零押档只允许「乐器全额押金 = 0」；全额>0 请求 zero 直接拒绝
+		// （旧版曾按 payscore 放行，等于凭信用免掉全部押金，已按 Owner 口径废止）。
+		if requestedTier == models.DepositTierZero && fullDeposit > 0 {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "zero deposit tier is only available when the instrument deposit is 0"})
+			return
 		}
 		deposit := fullDeposit
 		if depositTier == models.DepositTierZero {
