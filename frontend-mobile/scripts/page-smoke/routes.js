@@ -11,14 +11,16 @@ export const criticalRoutes = [
     name: 'H5 /checkout',
     pattern: '/checkout',
     entry: '/checkout?id=inst-1',
-    markers: ['费用明细', '押金档位'],
+    // #2352: 确认页不再含押金档位选择器（档位改在支付页选择）；
+    // 标记改为确认页稳定元素（费用明细 + 提交订单）。
+    markers: ['费用明细', '提交订单'],
     load: () => import('../../src/pages/checkout'),
   },
   {
     name: 'H5 /checkout (zero deposit)',
     pattern: '/checkout',
     entry: '/checkout?id=inst-zero',
-    markers: ['费用明细', '零押金'],
+    markers: ['费用明细', '提交订单'],
     load: () => import('../../src/pages/checkout'),
   },
   {
