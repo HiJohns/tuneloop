@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2354,
-  "build": "home-layers-2354 e93f026 (weapp, preprod)",
-  "commit": "e93f02638da21d03fcf3194a8bfc90007f9f1a2c",
+  "build": "home-layers-2354 108f84b (weapp, preprod)",
+  "commit": "108f84b2487c817b4efb6018d91e715dd94d7261",
   "dirty": false,
   "environment": "Linux worktree /tmp/opencode/wt-2354 @ origin/develop; Node 22.22.3; R4 待 Owner 真机",
   "rows": [
