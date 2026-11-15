@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { apiFetch, resolveErrorMessage } from '../services/api'
 import { env, dialog, toWeappRoute, openCreditAssessment } from '../platform'
 import { t } from '../i18n'
+import { pendingOrderHint } from '../utils/pendingOrder.mjs'
 import {
   CREDIT_STATE,
   creditGate,
@@ -38,6 +39,15 @@ export default function CreditAssessment() {
   const [credit, setCredit] = useState(null)
   // 评测标的金额（乐器原价）由后端返回；页面只展示，不自算（#2333 R8）。
   const riskAmountCents = Number(credit?.risk_amount_cents || 0)
+  // #2352 F1: 订单支付截止倒计时（30s 刷新，纯文本，不影响布局高度）。
+  const [nowTick, setNowTick] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNowTick(Date.now()), 30000)
+    return () => clearInterval(id)
+  }, [])
+  // #2352 F1: 建单/截止提示与详情页共用同一份格式化逻辑（utils/pendingOrder.mjs）。
+  const deadlineLabel = pendingOrderHint(credit?.payment_deadline, nowTick)
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [launching, setLaunching] = useState(false)
@@ -102,7 +112,10 @@ export default function CreditAssessment() {
       }
       const current = await fetchStatus()
       if (cancelled) return
-      if (!current || current.credit_state === CREDIT_STATE.NONE || current.credit_state === CREDIT_STATE.EXPIRED) {
+      // #2352 F3: credit_state=pending 但服务单未创建（下单即落 pending）时也必须补建，
+      // 否则页面停在「评测进行中」、评测标的金额恒为 0（显示 —）。
+      const notStarted = !current || !current.service_order_no
+      if (notStarted || current.credit_state === CREDIT_STATE.NONE || current.credit_state === CREDIT_STATE.EXPIRED) {
         await startAssessment()
       }
       if (!cancelled) setLoading(false)
@@ -169,11 +182,23 @@ export default function CreditAssessment() {
 
   return (
     <View className="min-h-screen" style={{ backgroundColor: '#FDFBF7', paddingBottom: 100 }}>
-      <View className="px-4 py-3 flex items-center" style={{ backgroundImage: 'linear-gradient(to bottom, #FDF4E7, #FFFFFF)' }}>
-        <Text className="text-xl font-bold text-black" onClick={() => nav(-1)}>❮</Text>
-        <Text className="text-lg font-bold flex-1 text-center">{t('微信信用评测')}</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      {/* ui.md：weapp 页面一律使用原生导航栏，禁止自绘标题栏/返回按钮（H5 无原生栏，保留）。 */}
+      {!env.isMiniProgram && (
+        <View className="px-4 py-3 flex items-center" style={{ backgroundImage: 'linear-gradient(to bottom, #FDF4E7, #FFFFFF)' }}>
+          <Text className="text-xl font-bold text-black" onClick={() => nav(-1)}>❮</Text>
+          <Text className="text-lg font-bold flex-1 text-center">{t('微信信用评测')}</Text>
+          <View style={{ width: 24 }} />
+        </View>
+      )}
+
+      {/* #2352 F1: 提交即建单（锁库存 10 分钟），这里必须明确告知截止时间。 */}
+      {credit?.payment_deadline && (
+        <View className="bg-amber-50 border border-amber-100 mx-4 mt-4 rounded-2xl px-4 py-3">
+          <Text className="block text-xs text-amber-700">
+            {deadlineLabel || t('订单已创建，请在截止前完成评测与支付，超时订单将自动取消')}
+          </Text>
+        </View>
+      )}
 
       <View className="bg-white mx-4 mt-4 rounded-2xl p-4 shadow-sm">
         <View className="flex items-center justify-between">
@@ -214,7 +239,7 @@ export default function CreditAssessment() {
 
       {state === CREDIT_STATE.REJECTED && (
         <View className="bg-white mx-4 mt-4 rounded-2xl p-4 shadow-sm">
-          <Text className="text-sm text-red-500">{t('信用评测未通过：请返回商品页改用全额押金重新下单，或更换乐器。')}</Text>
+          <Text className="text-sm text-red-500">{t('信用评测未通过：本订单暂无法继续支付（全额押金同样需要评测通过）。如需帮助请联系客服。')}</Text>
         </View>
       )}
 
@@ -226,12 +251,12 @@ export default function CreditAssessment() {
           >
             <Text style={{ color: '#fff', fontWeight: 700 }}>{t('返回继续支付')}</Text>
           </Button>
-        ) : gate.action === 'fallback_full' ? (
+        ) : gate.action === 'blocked' ? (
           <Button
             style={{ width: '100%', margin: 0, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#B98E5F', color: '#fff', fontWeight: 700, fontSize: 16, borderRadius: 16 }}
             onClick={() => nav(-1)}
           >
-            <Text style={{ color: '#fff', fontWeight: 700 }}>{t('返回更换押金档位')}</Text>
+            <Text style={{ color: '#fff', fontWeight: 700 }}>{t('返回订单')}</Text>
           </Button>
         ) : (
           <Button

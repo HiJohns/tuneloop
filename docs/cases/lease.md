@@ -1026,6 +1026,15 @@ steps:
    - 该评测页 URL 作为**微信支付分申请提交的页面地址**（S0 #2328 使用）。
 3. 评测完成后进入**支付页**：由用户自行选择全额或差额；选择差额须已提供 **≥ 2 位本人担保人**。
 
+### 提交即建单（锁库存）与超时释放（#2352 F1/F3，2026-11-15 真机确认）
+
+- 点「提交订单」时**订单已创建**（`status=reserved`，评测必须绑定 `out_order_no`），乐器随之锁定（`stock_status=rented`），`payment_deadline` 默认 +10 分钟（`merchant_settlement_configs.payment_timeout` → 系统设置 → 默认 10）。
+- 超时由 `ReservedOrderScheduler`（30s 扫描）将订单置 `cancelled`、乐器置回 `available`，并记录 `order_status_history.notes=支付超时自动取消`。
+- 用户放弃评测后可在两处继续：**乐器详情页**（本人 `reserved` 单显示「待支付 + 截止倒计时 + 继续评测/去支付」）与**我的租赁 → 未支付**（支付/取消）。
+- **评测页必须显示订单截止时间**（`GET /orders/:id/credit-status` 返回 `payment_deadline` / `order_status`），并提示「超时订单自动取消」。
+- **服务单补建**：下单即落 `credit_state=pending`，但 `credit_service_order_no` 为空表示评测尚未真正创建；
+  `POST /orders/:id/credit-assessment` 在「pending 且无服务单」时必须补建（否则页面误判「评测进行中」而永久轮询，评测标的金额恒为 0 → 显示「—」）。
+
 ### 三场景（含小票形态）
 
 | 场景 | 条件 | 实付押金 | 小票押金项 | 担保人 |
@@ -1042,7 +1051,10 @@ steps:
 ### 评测状态与支付闸门
 
 - 评测状态落库 `credit_state` ∈ `pending` / `approved` / `rejected` / `expired`（随订单记录）。
-- `PAYSCORE_ENFORCE=true` 时：差额/零押金场景未 `approved` → 支付被拦截（403 / 业务码 40320）；全额场景不因评测结果被拦。
+- `PAYSCORE_ENFORCE=true` 时：**所有 payscore 新单**（含全额档）未 `approved` → 支付被拦截（403 / 业务码 40320）。
+  - **Owner 裁定（2026-11-15）**：全额档**同样**要求评测通过——不存在「改用全额押金即可绕过」的出口；
+    被微信判 `rejected` 的用户本单无法支付，需联系客服（`credit_rejected` 文案不得再引导改用全额）。
+  - 相应前端：评测页被拒文案、支付页闸门提示均按此口径；`creditFlow.creditGate(rejected).action = 'blocked'`。
 - `PAYSCORE_ENFORCE=false`（默认）→ 保持旧行为（闸门放行），仅用于灰度过渡。
 
 ### 免押金申请资格（#1867）——新模型中退役

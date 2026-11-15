@@ -1434,18 +1434,25 @@ func GetOrderByInstrumentSN(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"code": 20000,
-		"data": gin.H{
-			"order_id":      order.ID,
-			"order_status":  order.Status,
-			"instrument_id": instrument.ID,
-			"instrument_sn": sn,
-			"start_date":    order.StartDate,
-			"end_date":      order.EndDate,
-			"deposit":       order.Deposit,
-		},
-	})
+	// #2352 F1: 本人未支付订单要能「继续支付」，需要截止时间与归属判定
+	// （is_mine 由服务端按 JWT 计算，避免把 user_id 暴露给任意访问者）。
+	viewerID := middleware.GetUserID(ctx)
+	data := gin.H{
+		"order_id":      order.ID,
+		"order_status":  order.Status,
+		"instrument_id": instrument.ID,
+		"instrument_sn": sn,
+		"start_date":    order.StartDate,
+		"end_date":      order.EndDate,
+		"deposit":       order.Deposit,
+		"is_mine":       viewerID != "" && order.UserID == viewerID,
+	}
+	if order.PaymentDeadline != nil {
+		data["payment_deadline"] = order.PaymentDeadline.Format(time.RFC3339)
+	} else {
+		data["payment_deadline"] = nil
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": data})
 }
 
 // GetOrderLogs retrieves ordered timeline of events for an order

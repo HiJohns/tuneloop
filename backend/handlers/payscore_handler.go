@@ -55,6 +55,13 @@ func (h *PayscoreHandler) creditPayload(order *models.Order) gin.H {
 		"requires_assessment": services.RequiresCreditApprovalForOrder(order.DepositTier, order.DepositCreditPath),
 		// #2327 D0: 前端 openBusinessView 需要的拉起凭证与过期时间。
 		"credit_package": order.CreditPackage,
+		// #2352 F1: 评测页需提示「订单已创建，请在截止前完成评测与支付」。
+		"order_status": order.Status,
+	}
+	if order.PaymentDeadline != nil {
+		payload["payment_deadline"] = order.PaymentDeadline.Format(time.RFC3339)
+	} else {
+		payload["payment_deadline"] = nil
 	}
 	if order.CreditPackageExpireAt != nil {
 		payload["credit_package_expire_at"] = order.CreditPackageExpireAt.Format(time.RFC3339)
@@ -90,10 +97,19 @@ func (h *PayscoreHandler) CreateAssessment(c *gin.Context) {
 		return
 	}
 	switch order.CreditState {
-	case services.CreditStateApproved, services.CreditStatePending:
-		// 幂等：不重复建单（微信侧同一 out_order_no 重复创建会报错）
+	case services.CreditStateApproved:
+		// 幂等：已通过不重复建单
 		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": h.creditPayload(&order)})
 		return
+	case services.CreditStatePending:
+		// #2352 F3（2026-11-15 真机发现）：下单即落 pending，但服务单可能尚未创建
+		// （credit_service_order_no 为空）。此时必须补建，否则页面误判「评测进行中」
+		// 而永远轮询，评测标的金额一直是 0 → 前端显示「—」。
+		if order.CreditServiceOrderNo != "" {
+			// 幂等：同一 out_order_no 重复创建会被微信拒绝
+			c.JSON(http.StatusOK, gin.H{"code": 20000, "data": h.creditPayload(&order)})
+			return
+		}
 	}
 
 	price := int64(0)

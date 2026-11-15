@@ -1,0 +1,5 @@
+PROVENANCE commit=24d52c2a1fa030ddd30bbd195d7762ff17cd2e11
+CMD node --test src/utils/creditFlow.test.mjs src/utils/pendingOrder.test.mjs
+# tests 12
+# pass 12
+# fail 0

@@ -1,4 +1,4 @@
-PROVENANCE build=credit-flow-2352-weapp commit=e93f02638da21d03fcf3194a8bfc90007f9f1a2c
+PROVENANCE commit=24d52c2a1fa030ddd30bbd195d7762ff17cd2e11
 CMD npx vitest run scripts/page-smoke/smoke.test.jsx
  Test Files  1 passed (1)
       Tests  18 passed (18)
