@@ -1,4 +1,4 @@
-PROVENANCE build=credit-flow-2352-weapp commit=b15374e7c75ac6ad51dcb56c7f63b2c332a6343c dirty=true
+PROVENANCE build=credit-flow-2352-weapp commit=4aa951308b66b0a0584cb562529f581ea96aa3aa dirty=true
 CMD grep -nE 'depositTierState|差额押金|guarantors|credit-assessment|免押金' frontend-mobile/src/pages-weapp/Checkout.jsx
 5:import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, guarantorsApi, getCartKey , resolveErrorMessage } from '../services/api'
 85:  // #2357（Owner 2026-11-15 改判）：差额押金在确认页用拉杆选择，需 2 位担保人。
@@ -8,17 +8,20 @@ CMD grep -nE 'depositTierState|差额押金|guarantors|credit-assessment|免押�
 97:  // #1782: guarantor ID photo uploads + OCR auto-fill
 159:        const gRes = await apiFetch(`${env.apiBaseUrl}/user/guarantors`)
 281:      dialog.alert(t("差额押金订单需至少选择 2 位担保人"))
-334:          Taro.redirectTo({ url: `/pages-weapp/credit-assessment/index?order_id=${orderId}` })
-390:      const resp = await guarantorsApi.create(payload)
-421:      const resp = await guarantorsApi.idcardOCR(storageKey, 'FRONT')
-495:        {/* #2357（Owner 2026-11-15 改判）：差额押金回到确认页，用拉杆展开；
-501:            setDepositTierState(depositTierState === 'reduced' ? 'full' : 'reduced')
-503:            <Text style={{ fontWeight: '900', color: '#000' }}>{t("差额押金（减免）")}</Text>
-509:            {t("差额押金需 2 位担保人 + 微信信用评测")}
-518:              {guarantors.length > 0 && (
-521:                  {guarantors.map(g => (
-636:            {/* #1732: 物流费提醒——0 押金（含免押金）快递到付，已付押金从押金扣除 */}
-792:  const [guarantors, setGuarantors] = useState([])
-834:        const gRes = await apiFetch(`${env.apiBaseUrl}/user/guarantors`)
-1003:          Taro.redirectTo({ url: `/pages-weapp/credit-assessment/index?order_id=${orders[0].order_id}` })
-1037:      const resp = await guarantorsApi.create(newGuarantor)
+324:      body.deposit_tier = isZeroDeposit ? 'zero' : (depositWaived && canReduceDeposit ? 'reduced' : 'full')
+326:      if (body.deposit_tier === 'reduced') body.guarantor_ids = selectedGuarantorIds
+339:          Taro.redirectTo({ url: `/pages-weapp/credit-assessment/index?order_id=${orderId}` })
+395:      const resp = await guarantorsApi.create(payload)
+426:      const resp = await guarantorsApi.idcardOCR(storageKey, 'FRONT')
+500:        {/* #2357（Owner 2026-11-15 改判）：差额押金回到确认页，用拉杆展开；
+506:            setDepositTierState(depositTierState === 'reduced' ? 'full' : 'reduced')
+508:            <Text style={{ fontWeight: '900', color: '#000' }}>{t("差额押金（减免）")}</Text>
+514:            {t("差额押金需 2 位担保人 + 微信信用评测")}
+523:              {guarantors.length > 0 && (
+526:                  {guarantors.map(g => (
+641:            {/* #1732: 物流费提醒——0 押金（含免押金）快递到付，已付押金从押金扣除 */}
+797:  const [guarantors, setGuarantors] = useState([])
+839:        const gRes = await apiFetch(`${env.apiBaseUrl}/user/guarantors`)
+1000:      body.deposit_tier = allZeroDeposit ? 'zero' : 'full'
+1011:          Taro.redirectTo({ url: `/pages-weapp/credit-assessment/index?order_id=${orders[0].order_id}` })
+1045:      const resp = await guarantorsApi.create(newGuarantor)

@@ -38,6 +38,13 @@ case "$MODE" in
     grep -qE "user/guarantors|guarantorsApi" "$CO" || { echo "R1w FAIL: saved guarantors are not loaded" >&2; exit 1; }
     # 正向 4：差额档必须 0 < reduced < full（deposit_reduced=0 视为未配置）
     grep -q "Number(depositReduced) > 0" "$CO" || { echo "R1w FAIL: reduced tier must require 0 < reduced < full" >&2; exit 1; }
+    # 正向 5：档位必须真的随下单提交（2026-11-15 事故：weapp 漏了这段，后端只能按全额落库）
+    grep -q "body.deposit_tier = isZeroDeposit ?" "$CO" || { echo "R1w FAIL: weapp single-checkout does not submit deposit_tier" >&2; exit 1; }
+    grep -q "body.deposit_credit_path = 'payscore'" "$CO" || { echo "R1w FAIL: weapp checkout does not submit payscore credit path" >&2; exit 1; }
+    grep -q "body.guarantor_ids = selectedGuarantorIds" "$CO" || { echo "R1w FAIL: weapp checkout does not submit guarantor_ids for reduced" >&2; exit 1; }
+    # 两端一致性：H5 共享实现必须同样提交档位（防止单边漂移）
+    grep -q "body.deposit_tier = isZeroDeposit ?" frontend-mobile/src/pages/Checkout.jsx \
+      || { echo "R1w FAIL: H5 checkout lost deposit_tier submission" >&2; exit 1; }
     # 负例：不得再出现「免押金」zero 档入口（#2352 D1）
     grep -q "depositTierState === 'zero'" "$CO" && { echo "R1w FAIL: zero-deposit toggle must not exist" >&2; exit 1; }
     # 负例：不得直跳支付页
@@ -78,6 +85,8 @@ case "$MODE" in
       || { echo "R10 FAIL: built checkout bundle has no assessment route" >&2; exit 1; }
     grep -q "user/guarantors" "$A/pages-weapp/checkout/index.js" \
       || { echo "R10 FAIL: built checkout bundle does not load saved guarantors" >&2; exit 1; }
+    grep -q "deposit_tier" "$A/pages-weapp/checkout/index.js" \
+      || { echo "R10 FAIL: built checkout bundle does not submit deposit_tier (would book full tier)" >&2; exit 1; }
     grep -q "deposit_tier" "$A/pages-weapp/payment/index.js" \
       && { echo "R10 FAIL: built payment bundle still sends deposit_tier" >&2; exit 1; }
     echo "PASS: weapp bundles carry confirm-page tier choice and assessment routing"

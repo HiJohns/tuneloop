@@ -2,7 +2,7 @@
   "schema_version": 1,
   "issue": 2352,
   "build": "credit-flow-2352/2357 b15374e7c (deposit_reduced=0 → unconfigured)",
-  "commit": "b15374e7c75ac6ad51dcb56c7f63b2c332a6343c",
+  "commit": "4aa951308b66b0a0584cb562529f581ea96aa3aa",
   "dirty": false,
   "environment": "Linux worktree /tmp/opencode/wt-2354 @ origin/develop; Node 22.22.3; H5 + weapp 双侧机器行已跑，R9 等 Owner 真机",
   "rows": [
@@ -27,10 +27,10 @@
       "artifacts": [
         "docs/evidence/2352/R1w-checkout.txt"
       ],
-      "assert": "weapp 确认页：差额押金拉杆 + 2 位担保人校验 + 自动读取已保存担保人 + 提交后进评测页（两条流）",
-      "actual": "PASS — 2 处评测页跳转；setDepositTierState 存在；担保人列表走 /user/guarantors；无 zero 档入口；不直跳支付页",
+      "assert": "weapp 确认页：差额拉杆 + 2 位担保人 + 已保存担保人 + **下单真的提交 deposit_tier/credit_path/guarantor_ids** + 两条流进评测页；H5 端同步断言（防单边漂移）",
+      "actual": "PASS — 含 2026-11-15 事故回归断言（weapp 漏传档位 → 后端按全额落库）；负例：删掉提交行 → exit 1",
       "expected": "PASS",
-      "negative": "缺拉杆/缺担保人/直跳支付页 → exit 1",
+      "negative": "缺拉杆/缺担保人/漏传档位/直跳支付页 → exit 1",
       "negative_result": "红绿已实测",
       "pass": true
     },
@@ -167,7 +167,7 @@
       "artifacts": [
         "docs/evidence/2352/R10-weapp-dist.txt"
       ],
-      "assert": "构建产物：checkout 含评测页路由 + 差额押金 + 担保人拉取；payment 不含 deposit_tier",
+      "assert": "构建产物：checkout 含评测路由 + 差额押金 + 担保人拉取 + **deposit_tier**；payment 不含 deposit_tier",
       "actual": "PASS — dist-weapp 实测（断言层，此前缺失）",
       "expected": "PASS",
       "negative": "产物降级 → exit 1",
