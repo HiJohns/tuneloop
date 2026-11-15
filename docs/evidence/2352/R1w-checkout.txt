@@ -1,4 +1,4 @@
-PROVENANCE build=credit-flow-2352-weapp commit=2532fb6ec4b6ccd87e0a1dd14061c4f2cb046a68 dirty=false
+PROVENANCE build=credit-flow-2352-weapp commit=6332b83315512f88f7e806e91c37d447e5f68e4f dirty=false
 CMD grep -nE 'depositTierState|差额押金|guarantors|credit-assessment|免押金' frontend-mobile/src/pages-weapp/Checkout.jsx
 5:import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, guarantorsApi, getCartKey , resolveErrorMessage } from '../services/api'
 85:  // #2357（Owner 2026-11-15 改判）：差额押金在确认页用拉杆选择，需 2 位担保人。

@@ -1,3 +1,27 @@
-PROVENANCE commit=b15374e7c75ac6ad51dcb56c7f63b2c332a6343c
-CMD go test ./handlers/ -run '2357|2352|CreditPayload|RejectedMessage'
-ok  	tuneloop-backend/handlers	0.718s
+PROVENANCE build=deposit-tier-confirm 6332b83 commit=6332b83315512f88f7e806e91c37d447e5f68e4f dirty=false
+[WARNING] No .env file found in common paths
+2026/11/15 23:35:09 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_fix2356 sslmode=disable
+2026/11/15 23:35:11 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_fix2356
+2026/11/15 23:35:11 [DB] Connected to database 'tuneloop_test_fix2356'
+=== RUN   TestCreditPayloadExposesPaymentDeadline_2352
+--- PASS: TestCreditPayloadExposesPaymentDeadline_2352 (0.00s)
+=== RUN   TestRejectedMessageDoesNotSuggestFullTier_2352
+--- PASS: TestRejectedMessageDoesNotSuggestFullTier_2352 (0.00s)
+=== RUN   TestValidateRequestedTier_2357
+--- PASS: TestValidateRequestedTier_2357 (0.00s)
+=== RUN   TestResolveDepositTierRejectsZeroReduced_2357
+2026/11/15 23:35:11 [deposit] invalid reduced=0 full=6000 instrument=; falling back to full
+2026/11/15 23:35:11 [deposit] invalid reduced=6000 full=6000 instrument=; falling back to full
+--- PASS: TestResolveDepositTierRejectsZeroReduced_2357 (0.00s)
+=== RUN   TestCreditRiskAmountEqualsInstrumentPrice_2352
+--- PASS: TestCreditRiskAmountEqualsInstrumentPrice_2352 (0.00s)
+=== RUN   TestPaymentTierChoice_2352
+--- PASS: TestPaymentTierChoice_2352 (0.00s)
+=== RUN   TestAllPayscoreOrdersRequireAssessment_2352
+--- PASS: TestAllPayscoreOrdersRequireAssessment_2352 (0.00s)
+=== RUN   TestZeroReceiptDepositIsZero_2352
+--- PASS: TestZeroReceiptDepositIsZero_2352 (0.00s)
+=== RUN   TestLegacyInternalOrderUnchanged_2352
+--- PASS: TestLegacyInternalOrderUnchanged_2352 (0.00s)
+PASS
+ok  	tuneloop-backend/handlers	1.614s

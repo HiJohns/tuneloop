@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "issue": 2356,
-  "build": "deposit-tier-confirm 6332b83 (weapp+backend, preprod 1.0.85)",
+  "build": "credit-flow-2352-weapp/deposit-tier-confirm 6332b83 (weapp+backend, preprod 1.0.85)",
   "commit": "6332b83315512f88f7e806e91c37d447e5f68e4f",
   "environment": "Linux worktree @ origin/develop; Node 22; 预生产 1.0.85 / weapp 1.0.87-dev",
   "rows": [
@@ -41,7 +41,7 @@
         "docs/evidence/2352/R14-backend-tiers.txt"
       ],
       "assert": "档位校验 full/reduced/zero 三态 + resolveDepositTier 不静默回落",
-      "actual": "PASS（含 TestResolveDepositTierRejectsZeroReduced_2357）",
+      "actual": "go test -run 235[27]：9 PASS / 0 FAIL（含 deposit_reduced=0 未配置、40002 不静默回落）",
       "expected": "PASS",
       "negative": "静默回落/zero 放行 → fail",
       "negative_result": "单测覆盖",
