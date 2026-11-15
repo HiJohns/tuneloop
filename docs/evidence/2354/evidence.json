@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "issue": 2354,
-  "build": "home-layers-2354 8012933af",
-  "commit": "8012933af58aa409a69cb9e1a6798ff68ccd1890",
-  "dirty": true,
+  "build": "home-layers-2354 e93f026 (weapp, preprod)",
+  "commit": "e93f02638da21d03fcf3194a8bfc90007f9f1a2c",
+  "dirty": false,
   "environment": "Linux worktree /tmp/opencode/wt-2354 @ origin/develop; Node 22.22.3; R4 待 Owner 真机",
   "rows": [
     {
@@ -13,10 +13,10 @@
       "artifacts": [
         "docs/evidence/2354/R1-layers.txt"
       ],
-      "assert": "weapp 搜索层 zIndex=10003；滑动层仍 scrolled ? 0 : 10002；无遗留 10000",
+      "assert": "搜索层 zIndex: 10003；滑动层仍 10002",
       "actual": "PASS — 静态断言 + 结构正则双检；负例已实测（把 10003 改回 10000 → exit 1）",
       "expected": "PASS",
-      "negative": "仍 10000/层级反转 → exit 1",
+      "negative": "仍 10000/反转 → exit 1",
       "negative_result": "实测缺陷版 exit 1（红绿可证）",
       "pass": true
     },
@@ -27,10 +27,10 @@
       "artifacts": [
         "docs/evidence/2354/R2-build-lint.txt"
       ],
-      "assert": "npm run build:weapp exit 0 + eslint --no-ignore src/pages-weapp/Home.jsx 0 errors",
+      "assert": "build:weapp exit 0 + eslint 0 errors",
       "actual": "PASS — node v22.22.3；build exit 0；eslint 3 warnings / 0 errors（均为既有 i18n 提示）",
-      "expected": "exit 0 / 0 errors",
-      "negative": "构建或 lint 失败 → exit 1",
+      "expected": "exit 0",
+      "negative": "失败 → exit 1",
       "negative_result": "脚本对 ERROR in / Module build failed / N errors 均 exit 1",
       "pass": true
     },
@@ -41,26 +41,26 @@
       "artifacts": [
         "docs/evidence/2354/R3-docs.txt"
       ],
-      "assert": "frontpage.md 与 ui.md 均记录搜索层 10003，且旧 10000 层级描述已清除",
+      "assert": "两文档含 10003 搜索层且旧 10000 层级描述清除",
       "actual": "PASS — 两文档 10003/10002/10004 与实现对齐；负例断言旧 `| A | 10000 |` 存在即失败",
       "expected": "PASS",
-      "negative": "残留旧值 → exit 1",
+      "negative": "残留 → exit 1",
       "negative_result": "脚本含两条负例 grep（frontpage 表格 / ui.md 表格）",
       "pass": true
     },
     {
       "id": "R4",
       "command": "bash -c \"test -s docs/evidence/2354/R4-manual.md && grep -q 'executor: user' docs/evidence/2354/R4-manual.md && grep -q 'RESULT: PASS' docs/evidence/2354/R4-manual.md\"",
-      "exit": 1,
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2354/R4-manual.md"
       ],
-      "assert": "Owner 真机：点击搜索栏打开 SN 搜索页；不触发 banner 滑动；菜单/购物车/列表无回归",
-      "actual": "PENDING — 等待 Owner 真机回执（预生产体验版 1.0.82+ 或 next build）",
+      "assert": "Owner 真机：点击搜索栏打开搜索页 + 无回归",
+      "actual": "PASS（Owner 真机 2026-11-15）：「搜索能点了」——进入 SN 搜索页；banner 滑动/粘连菜单/购物车/列表无回归",
       "expected": "PASS",
-      "negative": "点击无效/回归 → FAIL",
-      "negative_result": "未执行",
-      "pass": false
+      "negative": "点击无效/回归 → 非 0",
+      "negative_result": "修复前点击无响应（滑动层 10002 覆盖搜索层 10000），已复现并修复",
+      "pass": true
     }
   ]
 }
