@@ -1,0 +1,20 @@
+PROVENANCE build=home-layers-2354 commit=8012933af58aa409a69cb9e1a6798ff68ccd1890 dirty=true
+CMD grep -nE '1000[0-9]' docs/topics/frontpage.md docs/spec/ui/ui.md
+14:  Z=10004  ┌─────────────────────────┐  粘连菜单（fixed top-62px, 仅 menuStuck 时显示）
+15:  Z=10003  ├─────────────────────────┤  A: 搜索条（absolute top-0, transparent；#2354 同步 weapp）
+16:  Z=10002  ├─────────────────────────┤  轮换图滑动层（#1540 手势捕获，滚动后降至 0）
+31:| 粘连菜单 | 10004 | `fixed top-62px` | `bg-transparent` | menuStuck 时接管菜单可见性 |
+32:| A | 10003 | `absolute top-0` | `bg-transparent` | 始终透明搜索条（**必须高于滑动层 10002**，否则点击被手势层吞掉；#2354） |
+33:| 滑动层 | 10002 | `absolute top-0 h-240` | 透明 | banner 滑动/点击手势捕获；滚动后 `zIndex` 降为 0 以让位 |
+39:| 粘连菜单 | 10004 | 10002（与滑动层同值，切换靠 opacity，不叠加） |
+40:| 搜索条 | 10003 | 10003 |
+41:| 轮换图滑动层 | 10002（滚动后 0） | 10002（滚动后 0） |
+119:// B 层外固定菜单（memo 子组件 HomeMenu），z-10004 > 搜索条 z-10003 > 滑动层 z-10002
+180:<View className="absolute top-0 left-0 right-0 z-[10003] pt-3 pb-2 px-6">
+--- ui.md ---
+273:| 10004 | 粘连菜单外层（H5） | auto | 最高，menuStuck 时接管菜单 |
+274:| 10003 | 搜索栏外层 | `none`（容器）/ `auto`（输入框） | **必须高于 swipe 层**，否则点击被手势层吞掉（#2354） |
+275:| 10002 | `<div>` swipe 层 | auto（默认） | banner 滑动/点击捕获；滚动后降至 0 让位（#1540） |
+279:> **两端一致性（#2354）**：H5 `src/pages/Home.jsx` 与 weapp `src/pages-weapp/Home.jsx` 的搜索层均为 `10003`，滑动层均为 `10002`。weapp 粘连菜单为 `10002`（与滑动层同值，靠 opacity 切换、不叠加），H5 为 `10004`。
+298:- 粘连菜单：Z=10001, `top:102px`，`menuStuck`（≥130）时接管
+2933:> 编辑 Modal：pay_ratio（0 ~ `pay_ratio_max`，手册值=全额抵扣）、referral_ratio（0~1.0）、referral_reg_points（0~100000）+ 启用开关；~~退款返点比例~~（`refund_ratio` 字段废弃，已移除）

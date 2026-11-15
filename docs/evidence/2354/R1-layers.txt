@@ -1,0 +1,11 @@
+PROVENANCE build=home-layers-2354 commit=8012933af58aa409a69cb9e1a6798ff68ccd1890 dirty=true
+CMD grep -nE 'zIndex|z-\[' frontend-mobile/src/pages-weapp/Home.jsx frontend-mobile/src/pages/Home.jsx
+--- weapp search / swipe / sticky-menu ---
+379:        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 240, zIndex: scrolled ? 0 : 10002 }}
+401:      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10003, display: 'flex', justifyContent: 'center', top: searchTop, paddingRight: navBar.menuRight ? Math.max(0, navBar.windowWidth - navBar.menuRight + 8) : 0 }}>
+576:    <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10002, backgroundColor: 'transparent', top, height: stickyMenuHeight, overflow: 'hidden' }}>
+--- H5 search / swipe / sticky-menu ---
+303:          <View className={`absolute top-0 left-0 right-0 ${scrolled ? 'z-0' : ''}`} style={{ height: 240 , zIndex: 10002}}
+340:      <View className="fixed left-0 right-0 flex items-center justify-center" style={{ top: '16px' , zIndex: 10003}}>
+352:      <View className="fixed left-0 right-0 bg-transparent" style={{ top: `${242 - menuScroll}px`, zIndex: 10004 }}>
+413:        style={{ zIndex: 10004, backgroundColor: '#002140' }}>

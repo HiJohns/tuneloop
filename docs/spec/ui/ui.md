@@ -270,10 +270,13 @@ setInterval(() => {
 **层级**：
 | Z | 元素 | pointer-events | 说明 |
 |----|------|----------------|------|
-| 10002 | `<div>` swipe 层 | auto（默认） | 最高，捕获鼠标/触摸 |
-| 10000 | 搜索栏外层 | `none`（容器）/ `auto`（输入框） | 穿透 |
+| 10004 | 粘连菜单外层（H5） | auto | 最高，menuStuck 时接管菜单 |
+| 10003 | 搜索栏外层 | `none`（容器）/ `auto`（输入框） | **必须高于 swipe 层**，否则点击被手势层吞掉（#2354） |
+| 10002 | `<div>` swipe 层 | auto（默认） | banner 滑动/点击捕获；滚动后降至 0 让位（#1540） |
 | 100 | 菜单+列表剪切层 | `none` | 穿透 |
 | 5 | 磨砂背景 | `none` | 穿透 |
+
+> **两端一致性（#2354）**：H5 `src/pages/Home.jsx` 与 weapp `src/pages-weapp/Home.jsx` 的搜索层均为 `10003`，滑动层均为 `10002`。weapp 粘连菜单为 `10002`（与滑动层同值，靠 opacity 切换、不叠加），H5 为 `10004`。
 
 **鼠标/触摸事件**：
 - 必须用原生 `<div>` 而非 Taro `<View>`——H5 模式下 Taro View 不转发 `onMouseDown`/`onMouseUp`

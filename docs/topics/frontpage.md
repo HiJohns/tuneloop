@@ -11,8 +11,9 @@
 首页采用五层 Z 轴分解架构，每一层职责单一、互不干扰：
 
 ```
-  Z=10000  ┌─────────────────────────┐  A: 搜索条（absolute top-0, transparent）
-  Z=10001  ├─────────────────────────┤  粘连菜单（fixed top-62px, 仅 menuStuck 时显示）
+  Z=10004  ┌─────────────────────────┐  粘连菜单（fixed top-62px, 仅 menuStuck 时显示）
+  Z=10003  ├─────────────────────────┤  A: 搜索条（absolute top-0, transparent；#2354 同步 weapp）
+  Z=10002  ├─────────────────────────┤  轮换图滑动层（#1540 手势捕获，滚动后降至 0）
   Z=100    ├─────────────────────────┤  B: 裁剪容器（fixed, overflow:hidden）
            │  ┌───────────────────┐  │    ├── C: ScrollView（flex-1, 列表滚动）
            │  │ 自然菜单 (opacity) │  │    └── BottomNav（底条，B 层内 flex 子元素）
@@ -27,8 +28,19 @@
 | D | 0 | `fixed inset-0` | 轮换图 + 背景色 | 视觉底层，全屏轮换背景 |
 | E | 5 | `fixed inset-0` | `透明 → backdrop-blur-md` | 滚动后提供统一磨砂背板 |
 | B+C | 100 | `fixed top-94px bottom-0` | `overflow:hidden` | 裁剪内容 + 包底条 |
-| 粘连菜单 | 10001 | `fixed top-62px` | `bg-transparent` | menuStuck 时接管菜单可见性 |
-| A | 10000 | `absolute top-0` | `bg-transparent` | 始终透明搜索条 |
+| 粘连菜单 | 10004 | `fixed top-62px` | `bg-transparent` | menuStuck 时接管菜单可见性 |
+| A | 10003 | `absolute top-0` | `bg-transparent` | 始终透明搜索条（**必须高于滑动层 10002**，否则点击被手势层吞掉；#2354） |
+| 滑动层 | 10002 | `absolute top-0 h-240` | 透明 | banner 滑动/点击手势捕获；滚动后 `zIndex` 降为 0 以让位 |
+
+**两端实现对照（#2354 同步后）**：
+
+| 层 | H5（`src/pages/Home.jsx`） | weapp（`src/pages-weapp/Home.jsx`） |
+|----|:---:|:---:|
+| 粘连菜单 | 10004 | 10002（与滑动层同值，切换靠 opacity，不叠加） |
+| 搜索条 | 10003 | 10003 |
+| 轮换图滑动层 | 10002（滚动后 0） | 10002（滚动后 0） |
+
+> 搜索条在任何一端都必须 **严格高于滑动层**，否则顶部 240px 带内的点击会先被手势层接走（#2354 weapp 真机现象：点搜索栏无响应、触发 banner 滑动）。
 
 ---
 
@@ -104,7 +116,7 @@ const menuTravel = Math.max(0, bannerBottom - menuTop)
 const ms = Math.min(newY, menuTravel)
 if (ms !== menuScrollRef.current) { menuScrollRef.current = ms; setMenuScroll(ms) }
 
-// B 层外固定菜单（memo 子组件 HomeMenu），z-10002 > 搜索条 z-10000
+// B 层外固定菜单（memo 子组件 HomeMenu），z-10004 > 搜索条 z-10003 > 滑动层 z-10002
 <HomeMenu menuTravel={menuTravel} menuTop={menuTop} bannerBottom={bannerBottom}
           menuScroll={menuScroll} stickyMenuHeight={stickyMenuHeight} ... />
 ```
@@ -165,7 +177,7 @@ if (ms !== menuScrollRef.current) { menuScrollRef.current = ms; setMenuScroll(ms
 搜索条始终透明，无自身背景。滚动后搜索框微调边框透明度以适应 E 层磨砂背景：
 
 ```jsx
-<View className="absolute top-0 left-0 right-0 z-[10000] pt-3 pb-2 px-6">
+<View className="absolute top-0 left-0 right-0 z-[10003] pt-3 pb-2 px-6">
   <View className={`w-[250px] h-[42px] mx-auto rounded-full flex items-center px-4 shadow-sm
     ${scrolled
       ? 'bg-white/20 backdrop-blur-sm border border-white/10'
