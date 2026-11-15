@@ -175,6 +175,27 @@ if (ms !== menuScrollRef.current) { menuScrollRef.current = ms; setMenuScroll(ms
 </View>
 ```
 
+### 2.6 首页价格排序（#2355）
+
+吸顶分类行右侧提供三态价格排序胶囊，H5 与 weapp 语义一致：
+
+`价格⇅`（默认，原序）→ `价格↑`（升序）→ `价格↓`（降序）→ `价格⇅`。
+
+**取数与分页**
+- 默认模式保持 §七 的 50 条/页无限滚动。
+- 价格模式只拉取当前 `tenant` + `category_id`，`pageSize=100`，按响应 `total` 翻页，最多 100 页；按 `id` 去重、过滤 `archived/lost`，请求序号防竞态。
+- 价格模式不分页加载（`loadMore` no-op）；全量拉取失败不提交部分结果，恢复切换前模式与原列表并 toast「排序失败，请重试」。
+- asc→desc 复用已拉取全量列表，不重复请求；desc→default 重新拉第 1 页 50 条。
+
+**排序口径**
+- `stock_status === 'available'` 优先，非可租整体在后；可租组内按卡片展示价排序，无有效价在升序/降序都最后；同价按 SN/id 稳定排序。
+- 卡片与排序统一调用 `frontend-mobile/src/utils/homeSort.js` 的 `getHomeDisplayPrice`：优先阶梯最低日均价，缺失回退 `daily_rate_cents / 100`，round 2 位。
+- 排序状态仅保存在组件 state；跨一级/二级分类保留，页面重挂载恢复默认。每次成功切换后列表回顶（H5 `ScrollView` ref；weapp 顶部 spacer + `scrollIntoView`）。
+
+**尺寸**
+- 菜单左右 padding 16px、高度 48px；胶囊 52×32、`right: 8`、垂直居中、`zIndex: 2`。
+- 分类可视宽度 `computeMenuAvailWidth(windowWidth) = windowWidth - 2*16 - 52`（375→291，320→236），不新增第三行。
+
 ---
 
 ## 三、滚动状态管理
@@ -232,11 +253,18 @@ Taro 的 ScrollView 组件内部使用 CSS sticky 时，定位基准是 ScrollVi
 
 ```
 frontend-mobile/src/pages/Home.jsx
-├── InstrumentCard      # 乐器卡片子组件
+├── InstrumentCard      # 乐器卡片子组件（getHomeDisplayPrice 统一展示价）
 ├── parseImages()       # 图片解析工具
-├── getDailyRate()      # 日租金计算（daily_rate_cents 基准日租，分）
-├── MenuContent()       # 菜单条子组件（支持触摸滑动）
+├── MenuContent()       # 菜单条子组件（支持触摸滑动 + 价格排序胶囊）
 └── Home()              # 首页主组件
+
+frontend-mobile/src/utils/homeSort.js
+├── nextSortMode()      # 三态循环
+├── computeMenuAvailWidth()
+├── getHomeDisplayPrice()  # 排序与卡片共用的展示价
+├── shouldFetchNextPage()
+├── normalizeHomeInstrumentPages()
+└── sortHomeInstruments()
 
 frontend-mobile/src/pages-weapp/Home.jsx
 ├── MenuContent()       # 菜单条子组件（支持触摸滑动）
@@ -249,6 +277,7 @@ frontend-mobile/src/pages-weapp/Home.jsx
 > `pricing.tiers[].daily_rate`（单位元）取 min）并以小字「起」后缀（`/日起`）；
 > `pricing` 缺失/解析失败时回退 `daily_rate_cents` 基准日租（不加「起」）。
 > H5（`pages/Home.jsx`）与 weapp（`pages-weapp/Home.jsx`）同一语义，改动需双端同步。
+> #2355 起两处卡片与价格排序统一调用 `utils/homeSort.js` 的 `getHomeDisplayPrice`。
 
 ---
 

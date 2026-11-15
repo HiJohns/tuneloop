@@ -4,7 +4,18 @@ import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, getCartKey, redirectToLogin, resolveLogin } from '../services/api'
 import { env, dialog, getWindowSize, storage, session } from '../platform'
 import { NAV_FALLBACK_HEIGHT, computeBottomInset, computeContentMinHeight, shouldLoadMore } from '../utils/scrollLayout'
-import { getMinTierDailyRateYuan } from '../utils/pricing'
+import {
+  SORT_MODE,
+  SORT_LABEL,
+  SORT_PAGE_SIZE,
+  MAX_SORT_PAGES,
+  nextSortMode,
+  computeMenuAvailWidth,
+  getHomeDisplayPrice,
+  normalizeHomeInstrumentPages,
+  shouldFetchNextPage,
+  sortHomeInstruments,
+} from '../utils/homeSort'
 import BottomNav from '../components-weapp/BottomNav'
 
 const PAGE_SIZE = 50
@@ -55,22 +66,12 @@ function BannerImage({ src, aspectRatio, onClick }) {
   )
 }
 
-// #1750/#1772: Server-computed daily_rate_cents (cents) is the single source of truth.
-// Tiers-format pricing has no top-level daily_rent; base_daily_rate is also cents.
-// Always use daily_rate_cents from the API and divide by 100 for display (yuan).
-function getDailyRate(instrument) {
-  return (instrument.daily_rate_cents || 0) / 100
-}
-
 function InstrumentCard({ instrument, onClick }) {
   const images = parseImages(instrument.images)
-  const dailyRate = getDailyRate(instrument)
-  // #1842: 卡片价格 = 阶梯最低日均价（pricing tiers 的 min daily_rate，元）+「起」；
-  // 无 pricing 时回退 daily_rate_cents 基准日租（不加「起」）。
-  const minTierRate = getMinTierDailyRateYuan(instrument)
-  const showFrom = minTierRate !== null && minTierRate > 0
-  const priceDisplay = showFrom ? Number(minTierRate.toFixed(2)) : Number(dailyRate.toFixed(2))
-  const monthlyRent = Number((dailyRate * 30).toFixed(2))
+  // #1842/#2355: 卡片价格 = 阶梯最低日均价（元）+「起」；无 pricing 时回退
+  // daily_rate_cents 基准日租（不加「起」）。排序复用同一 helper。
+  const { value: priceValue, showFrom } = getHomeDisplayPrice(instrument)
+  const priceDisplay = priceValue ?? 0
   const levelName = instrument.level_name || ''
   const thumb = fixImg(instrument.cover_image || instrument.thumbnail || images[0] || INSTRUMENT_PLACEHOLDER)
 
@@ -134,9 +135,17 @@ export default function Home() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState(categoryFromUrl)
+  const [sortMode, setSortMode] = useState(SORT_MODE.DEFAULT)
+  const [sortLoading, setSortLoading] = useState(false)
+  const [listScrollIntoView, setListScrollIntoView] = useState('')
   const pageRef = useRef(1)
   const hasMoreRef = useRef(true)
   const loadingMoreRef = useRef(false)
+  const sortLoadingRef = useRef(false)
+  const sortModeRef = useRef(SORT_MODE.DEFAULT)
+  const fullInstrumentsRef = useRef([])
+  const requestSeqRef = useRef(0)
+  const didShowRef = useRef(false)
   const [banners, setBanners] = useState([])
   const [currentBanner, setCurrentBanner] = useState(0)
   const [jumpReset, setJumpReset] = useState(false)
@@ -255,7 +264,8 @@ export default function Home() {
     } catch {}
   }, [baseUrl, tenant])
 
-  const fetchInstruments = useCallback(async (pageNum = 1, append = false) => {
+  const fetchDefaultPage = useCallback(async (pageNum = 1, append = false, throwOnError = false) => {
+    const seq = append ? requestSeqRef.current : ++requestSeqRef.current
     try {
       if (append) setLoadingMore(true)
       let url = `${baseUrl}/public/instruments?page=${pageNum}&pageSize=${PAGE_SIZE}`
@@ -263,26 +273,80 @@ export default function Home() {
       if (tenant) url += `&tenant=${tenant}`
       const res = await apiFetch(url)
       const result = await res.json()
-      if (result.code === 20000) {
-        const list = (result.data?.list || []).filter(i => i.stock_status !== 'archived' && i.stock_status !== 'lost')
-        setInstruments(prev => {
-          if (!append) return list
-          const seen = new Set(prev.map(i => i.id))
-          return [...prev, ...list.filter(i => !seen.has(i.id))]
-        })
-        pageRef.current = pageNum
-        const total = result.data?.total || 0
-        const more = pageNum * PAGE_SIZE < total
-        hasMoreRef.current = more
-        setHasMore(more)
-      }
-    } catch {}
-    finally {
+      if (result.code !== 20000) throw new Error('list request failed')
+      if (seq !== requestSeqRef.current) return
+      const list = (result.data?.list || []).filter(i => i.stock_status !== 'archived' && i.stock_status !== 'lost')
+      setInstruments(prev => {
+        if (!append) return list
+        const seen = new Set(prev.map(i => i.id))
+        return [...prev, ...list.filter(i => !seen.has(i.id))]
+      })
+      if (!append) fullInstrumentsRef.current = []
+      pageRef.current = pageNum
+      const total = result.data?.total || 0
+      const more = pageNum * PAGE_SIZE < total
+      hasMoreRef.current = more
+      setHasMore(more)
+    } catch (error) {
+      if (throwOnError) throw error
+    } finally {
       if (append) setLoadingMore(false)
     }
   }, [baseUrl, tenant, selectedCategory])
 
+  const fetchAllSorted = useCallback(async () => {
+    const seq = ++requestSeqRef.current
+    const pages = []
+    let page = 1
+    let total = 0
+    let received = 0
+    for (;;) {
+      let url = `${baseUrl}/public/instruments?page=${page}&pageSize=${SORT_PAGE_SIZE}`
+      if (selectedCategory) url += `&category_id=${selectedCategory}`
+      if (tenant) url += `&tenant=${tenant}`
+      const res = await apiFetch(url)
+      const result = await res.json()
+      if (result.code !== 20000) throw new Error('list request failed')
+      const list = Array.isArray(result.data?.list) ? result.data.list : []
+      pages.push(list)
+      total = Number(result.data?.total) || 0
+      received += list.length
+      if (list.length === 0) {
+        if (received < total) throw new Error('incomplete list')
+        break
+      }
+      if (!shouldFetchNextPage({ page, pageSize: SORT_PAGE_SIZE, total, received })) {
+        if (received < total && page >= MAX_SORT_PAGES) throw new Error('too many pages')
+        break
+      }
+      page += 1
+    }
+    if (seq !== requestSeqRef.current) return null
+    return normalizeHomeInstrumentPages(pages)
+  }, [baseUrl, tenant, selectedCategory])
+
+  const fetchInstruments = useCallback(async (pageNum = 1, append = false, options = {}) => {
+    const mode = options.mode || sortModeRef.current
+    if (mode !== SORT_MODE.DEFAULT) {
+      if (append) return
+      try {
+        const all = await fetchAllSorted()
+        if (!all) return
+        fullInstrumentsRef.current = all
+        setInstruments(sortHomeInstruments(all, mode))
+        hasMoreRef.current = false
+        setHasMore(false)
+      } catch (error) {
+        if (options.throwOnError) throw error
+        dialog.toast('排序失败，请重试')
+      }
+      return
+    }
+    await fetchDefaultPage(pageNum, append, options.throwOnError)
+  }, [fetchAllSorted, fetchDefaultPage])
+
   const loadMore = useCallback(() => {
+    if (sortModeRef.current !== SORT_MODE.DEFAULT || sortLoadingRef.current) return
     if (!hasMoreRef.current || loadingMoreRef.current) return
     loadingMoreRef.current = true
     fetchInstruments(pageRef.current + 1, true).finally(() => { loadingMoreRef.current = false })
@@ -346,9 +410,13 @@ export default function Home() {
       }
     } catch { /* 捕获失败不影响首页 */ }
     measureBottomInset()
-    // Returning to the home tab (e.g. after checkout/payment) does NOT
-    // remount the page, so the instrument list keeps its pre-payment
-    // snapshot — stock_status (租赁中) would be stale. Refresh here.
+    // First show is covered by the mount effect below. Subsequent shows mean
+    // the user returned to the home tab (search/detail/checkout), so refresh
+    // the list with the current sort mode without resetting the sort state.
+    if (!didShowRef.current) {
+      didShowRef.current = true
+      return
+    }
     fetchInstruments().catch(() => {})
   })
 
@@ -368,6 +436,53 @@ export default function Home() {
   const handleCategoryChange = useCallback((catId) => {
     setSelectedCategory(catId)
   }, [])
+
+  const resetHomeListScroll = useCallback(() => {
+    scrollYRef.current = 0
+    setListScrollIntoView('')
+    if (Taro.nextTick) Taro.nextTick(() => setListScrollIntoView('home-list-top'))
+    else setListScrollIntoView('home-list-top')
+  }, [])
+
+  const handleSortToggle = useCallback(async () => {
+    if (loading || sortLoadingRef.current || instruments.length === 0) return
+    const previous = sortModeRef.current
+    const next = nextSortMode(previous)
+    sortLoadingRef.current = true
+    setSortLoading(true)
+    try {
+      if (next === SORT_MODE.ASC) {
+        const all = await fetchAllSorted()
+        if (!all) return
+        fullInstrumentsRef.current = all
+        setInstruments(sortHomeInstruments(all, SORT_MODE.ASC))
+        hasMoreRef.current = false
+        setHasMore(false)
+      } else if (next === SORT_MODE.DESC) {
+        let all = fullInstrumentsRef.current
+        if (!all.length) {
+          all = await fetchAllSorted()
+          if (!all) return
+          fullInstrumentsRef.current = all
+        }
+        setInstruments(sortHomeInstruments(all, SORT_MODE.DESC))
+        hasMoreRef.current = false
+        setHasMore(false)
+      } else {
+        await fetchDefaultPage(1, false, true)
+      }
+      sortModeRef.current = next
+      setSortMode(next)
+      resetHomeListScroll()
+    } catch {
+      sortModeRef.current = previous
+      setSortMode(previous)
+      dialog.toast('排序失败，请重试')
+    } finally {
+      sortLoadingRef.current = false
+      setSortLoading(false)
+    }
+  }, [loading, instruments.length, fetchAllSorted, fetchDefaultPage, resetHomeListScroll])
 
   return (
     <View style={{ height: '100vh', width: '100vw', position: 'relative' }}>
@@ -406,12 +521,12 @@ export default function Home() {
       {/* Menu — fixed, follows scroll (top = bannerBottom - min(s, menuTravel)), stops at m.
           List viewport (clip container) starts at m+h, so the menu region
           m..m+h is never overlapped by list cards. */}
-        <HomeMenu menuTravel={menuTravel} menuTop={menuTop} bannerBottom={bannerBottom} menuScroll={menuScroll} stickyMenuHeight={stickyMenuHeight} categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} subMenuCat={subMenuCat} onSetSubMenuCat={setSubMenuCat} windowWidth={navBar.windowWidth} />
+        <HomeMenu menuTravel={menuTravel} menuTop={menuTop} bannerBottom={bannerBottom} menuScroll={menuScroll} stickyMenuHeight={stickyMenuHeight} categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} subMenuCat={subMenuCat} onSetSubMenuCat={setSubMenuCat} windowWidth={navBar.windowWidth} sortMode={sortMode} sortDisabled={loading || sortLoading || instruments.length === 0} onSortToggle={handleSortToggle} />
 
       {/* B: clip container — fixed, wraps ScrollView + BottomNav */}
       <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, top: contentTop, bottom: 0 }}>
         <ScrollView id="home-scroll" style={{ height: '100%', backgroundColor: 'transparent' }}
-          scrollY showScrollbar={false}
+          scrollY scrollWithAnimation={false} scrollIntoView={listScrollIntoView || undefined} showScrollbar={false}
           onScroll={e => {
             const newY = e.detail?.scrollTop ?? 0
             scrollYRef.current = newY
@@ -460,7 +575,7 @@ export default function Home() {
             if (shouldLoadMore({ scrollTop: newY, viewportHeight, scrollHeight: sh })) loadMore()
           }}>
           <View style={{ minHeight: computeContentMinHeight(viewportHeight), boxSizing: 'border-box', paddingBottom: bottomInset }}>
-          <View style={{ height: `${menuTravel}px` }}></View>
+          <View id="home-list-top" style={{ height: `${menuTravel}px` }}></View>
 
         <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 80 }}>
         <HomeInstrumentList loading={loading} instruments={instruments} tenant={tenant} nav={nav} />
@@ -488,7 +603,7 @@ export default function Home() {
 }
 
 // #2223：memo 化——滚动帧仅更新 HomeMenu 外层 top，跳过整排分类 Text 的重渲染
-const MenuContent = memo(function MenuContent({ categories, selectedCategory, onCategoryChange, catOffsetX, setCatOffsetX, scrolled, subMenuCat, onSetSubMenuCat, windowWidth = 375 }) {
+const MenuContent = memo(function MenuContent({ categories, selectedCategory, onCategoryChange, catOffsetX, setCatOffsetX, scrolled, subMenuCat, onSetSubMenuCat, windowWidth = 375, sortMode = SORT_MODE.DEFAULT, sortDisabled, onSortToggle }) {
   const items = [{ id: null, name: '全部', sub_categories: [] }, ...(categories || [])]
   const localTouchRef = useRef({ x: 0, offset: 0, dragged: false })
 
@@ -507,7 +622,7 @@ const MenuContent = memo(function MenuContent({ categories, selectedCategory, on
     return w + 44
   }
   const totalWidth = displayItems.reduce((sum, it) => sum + estimateWidth(it.name), 0)
-  const availWidth = Math.max(0, windowWidth - 56)
+  const availWidth = computeMenuAvailWidth(windowWidth)
   const maxOffset = Math.min(0, -(totalWidth - availWidth))
 
   const handleItemClick = (item) => {
@@ -526,53 +641,85 @@ const MenuContent = memo(function MenuContent({ categories, selectedCategory, on
     }
   }
 
+  const stopSortTouch = (e) => {
+    if (e && e.stopPropagation) e.stopPropagation()
+  }
+
   return (
-    <View style={{ width: '100%', overflow: 'hidden', paddingLeft: 28, paddingRight: 28, backgroundColor: 'rgba(0,0,0,0.2)', paddingTop: 4, paddingBottom: 4 }}
-      onTouchStart={e => {
-        localTouchRef.current = { x: e.touches[0].clientX, offset: catOffsetX, dragged: false }
-      }}
-      onTouchMove={e => {
-        const dx = e.touches[0].clientX - localTouchRef.current.x
-        if (Math.abs(dx) > 5) {
-          localTouchRef.current.dragged = true
-          setCatOffsetX(Math.min(0, Math.max(localTouchRef.current.offset + dx, maxOffset)))
-        }
-      }}
-    >
-      <View style={{ display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', transform: `translateX(${catOffsetX}px)` }}>
-        {displayItems.map(item => (
-          <Text
-            key={item.id || 'all'}
-            style={{
-              fontSize: 18,
-              whiteSpace: 'nowrap',
-              textShadow: '0 1px 4px rgba(0,0,0,0.6)',
-              marginRight: 32,
-              paddingLeft: 6,
-              paddingRight: 6,
-              paddingTop: 10,
-              paddingBottom: 10,
-              fontWeight: selectedCategory === item.id ? '900' : '700',
-              borderBottom: selectedCategory === item.id ? '2px solid #fff' : 'none',
-              color: item.id === '__back__' ? 'rgba(255,255,255,0.6)' : selectedCategory === item.id ? '#fff' : 'rgba(255,255,255,0.8)'
-            }}
-            onClick={() => {
-              handleItemClick(item)
-            }}
-          >
-            {item.name}
-          </Text>
-        ))}
+    <View style={{ width: '100%', height: 48, boxSizing: 'border-box', overflow: 'hidden', position: 'relative', display: 'flex', alignItems: 'center', paddingLeft: 16, paddingRight: 16, backgroundColor: 'rgba(0,0,0,0.2)' }}>
+      <View
+        style={{ width: availWidth, overflow: 'hidden' }}
+        onTouchStart={e => {
+          localTouchRef.current = { x: e.touches[0].clientX, offset: catOffsetX, dragged: false }
+        }}
+        onTouchMove={e => {
+          const dx = e.touches[0].clientX - localTouchRef.current.x
+          if (Math.abs(dx) > 5) {
+            localTouchRef.current.dragged = true
+            setCatOffsetX(Math.min(0, Math.max(localTouchRef.current.offset + dx, maxOffset)))
+          }
+        }}
+      >
+        <View style={{ display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', transform: `translateX(${catOffsetX}px)` }}>
+          {displayItems.map(item => (
+            <Text
+              key={item.id || 'all'}
+              style={{
+                fontSize: 18,
+                whiteSpace: 'nowrap',
+                textShadow: '0 1px 4px rgba(0,0,0,0.6)',
+                marginRight: 32,
+                paddingLeft: 6,
+                paddingRight: 6,
+                paddingTop: 10,
+                paddingBottom: 10,
+                fontWeight: selectedCategory === item.id ? '900' : '700',
+                borderBottom: selectedCategory === item.id ? '2px solid #fff' : 'none',
+                color: item.id === '__back__' ? 'rgba(255,255,255,0.6)' : selectedCategory === item.id ? '#fff' : 'rgba(255,255,255,0.8)'
+              }}
+              onClick={() => {
+                handleItemClick(item)
+              }}
+            >
+              {item.name}
+            </Text>
+          ))}
+        </View>
+      </View>
+      <View
+        onTouchStart={stopSortTouch}
+        onTouchMove={stopSortTouch}
+        onClick={sortDisabled ? undefined : onSortToggle}
+        style={{
+          position: 'absolute',
+          right: 8,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          width: 52,
+          height: 32,
+          borderRadius: 999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'rgba(255,255,255,0.18)',
+          border: '1px solid rgba(255,255,255,0.35)',
+          zIndex: 2,
+          opacity: sortDisabled ? 0.5 : 1,
+        }}
+      >
+        <Text style={{ fontSize: 12, lineHeight: '16px', fontWeight: '900', color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>
+          {SORT_LABEL[sortMode] || SORT_LABEL[SORT_MODE.DEFAULT]}
+        </Text>
       </View>
     </View>
   )
 })
 
-const HomeMenu = memo(function HomeMenu({ menuTravel, menuTop, bannerBottom, menuScroll, stickyMenuHeight, categories, selectedCategory, onCategoryChange, catOffsetX, setCatOffsetX, scrolled, subMenuCat, onSetSubMenuCat, windowWidth }) {
+const HomeMenu = memo(function HomeMenu({ menuTravel, menuTop, bannerBottom, menuScroll, stickyMenuHeight, categories, selectedCategory, onCategoryChange, catOffsetX, setCatOffsetX, scrolled, subMenuCat, onSetSubMenuCat, windowWidth, sortMode, sortDisabled, onSortToggle }) {
   const top = menuTravel === 0 ? `${menuTop}px` : `${Math.max(0, bannerBottom - menuScroll)}px`
   return (
     <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10002, backgroundColor: 'transparent', top, height: stickyMenuHeight, overflow: 'hidden' }}>
-      <MenuContent categories={categories} selectedCategory={selectedCategory} onCategoryChange={onCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} subMenuCat={subMenuCat} onSetSubMenuCat={onSetSubMenuCat} windowWidth={windowWidth} />
+      <MenuContent categories={categories} selectedCategory={selectedCategory} onCategoryChange={onCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} subMenuCat={subMenuCat} onSetSubMenuCat={onSetSubMenuCat} windowWidth={windowWidth} sortMode={sortMode} sortDisabled={sortDisabled} onSortToggle={onSortToggle} />
     </View>
   )
 })
