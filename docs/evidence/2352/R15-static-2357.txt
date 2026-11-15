@@ -26,3 +26,16 @@ frontend-mobile/src/pages/Checkout.jsx:1019:        if (body.deposit_tier === 'r
 264:// validateRequestedTier 校验确认页提交的押金档位（#2357）。
 269:func validateRequestedTier(requested string, fullDeposit, reducedAmount float64) error {
 500:	if err := validateRequestedTier(requestedTier, fullDeposit, reducedAmount); err != nil {
+PROVENANCE commit=b15374e7c75ac6ad51dcb56c7f63b2c332a6343c
+CMD static probes: deposit_reduced guard (0 = unconfigured)
+--- 前端两端 canReduceDeposit ---
+frontend-mobile/src/pages/Checkout.jsx:211:  const canReduceDeposit = !isZeroDeposit && depositReduced != null && Number(depositReduced) > 0 && Number(depositReduced) < Number(deposit)
+frontend-mobile/src/pages-weapp/Checkout.jsx:225:  const canReduceDeposit = !isZeroDeposit && depositReduced != null && Number(depositReduced) > 0 && Number(depositReduced) < Number(deposit)
+--- buildTierOptions ---
+51:  if (reduced != null && reduced > 0 && reduced < full) {
+--- 后端 resolveDepositTier ---
+297:		if reduced > 0 && reduced < full {
+--- 后端显式拒绝（不静默回落）---
+285:func resolveDepositTier(instrument *models.Instrument, pricingResult *services.InstrumentPricing, requested string) (tier string, full, reduced float64, validReduced bool) {
+500:	depositTier, fullDeposit, reducedAmount, validReduced := resolveDepositTier(&lockedInstrument, pricingResult, requestedTier)
+501:	if requestedTier == models.DepositTierReduced && !validReduced {

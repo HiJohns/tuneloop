@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2352,
-  "build": "credit-flow-2352/2357 33f352f24",
-  "commit": "33f352f2464de37f69603af1b70baeb379063f6e",
+  "build": "credit-flow-2352/2357 b15374e7c (deposit_reduced=0 → unconfigured)",
+  "commit": "b15374e7c75ac6ad51dcb56c7f63b2c332a6343c",
   "dirty": false,
   "environment": "Linux worktree /tmp/opencode/wt-2354 @ origin/develop; Node 22.22.3; H5 + weapp 双侧机器行已跑，R9 等 Owner 真机",
   "rows": [
@@ -181,8 +181,8 @@
       "artifacts": [
         "docs/evidence/2352/R11-unit.txt"
       ],
-      "assert": "档位/信用/待支付倒计时纯逻辑单测（含 F2：所有档位 requiresAssessment=true）",
-      "actual": "PASS — 21/21",
+      "assert": "档位/信用/待支付倒计时纯逻辑单测（含 reduced=0 视为未配置）",
+      "actual": "PASS — 22/22",
       "expected": "PASS",
       "negative": "陈旧断言 → fail",
       "negative_result": "红绿已实测",
@@ -223,8 +223,8 @@
       "artifacts": [
         "docs/evidence/2352/R14-backend-tiers.txt"
       ],
-      "assert": "#2357 下单档位校验：full 恒可；reduced 需第二档且 <全额；zero 仅当全额押金=0",
-      "actual": "PASS — ok",
+      "assert": "#2357 下单档位校验 + resolveDepositTier：reduced 必须 0<reduced<full（0=未配置）；请求差额未配置 → 显式拒绝（不静默回落）",
+      "actual": "PASS — ok（新增 TestResolveDepositTierRejectsZeroReduced_2357）",
       "expected": "PASS",
       "negative": "zero 全额>0 放行 → fail",
       "negative_result": "红绿已实测",
@@ -237,11 +237,27 @@
       "artifacts": [
         "docs/evidence/2352/R15-static-2357.txt"
       ],
-      "assert": "确认页两端都有差额拉杆+担保人；支付页两端无 buildTierOptions；下单提交带 deposit_tier；后端 validateRequestedTier 生效",
+      "assert": "确认页差额拉杆（0<reduced<full）+ 担保人自选；支付页无档位；后端 validateRequestedTier/resolveDepositTier 显式拒绝",
       "actual": "PASS",
       "expected": "PASS",
       "negative": "—",
       "negative_result": "红绿已实测",
+      "pass": true
+    },
+    {
+      "id": "R16",
+      "command": "bash scripts/verify-2352-weapp.sh checkout|payment|dist + H5/weapp build + smoke",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R1w-checkout.txt",
+        "docs/evidence/2352/R10-weapp-dist.txt",
+        "docs/evidence/2352/R4-smoke.txt"
+      ],
+      "assert": "#2357 修正后回归：weapp 三档断言、双端构建 exit 0、smoke 18/18",
+      "actual": "PASS — R1w/R2w/R10 PASS；build:h5/build:weapp exit 0；smoke 18/18",
+      "expected": "PASS",
+      "negative": "差额档 0 仍被提供 / 静默回落 → FAIL",
+      "negative_result": "单测 + 静态负例覆盖",
       "pass": true
     }
   ]

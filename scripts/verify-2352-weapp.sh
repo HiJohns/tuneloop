@@ -36,6 +36,8 @@ case "$MODE" in
     grep -q "差额押金订单需至少选择 2 位担保人" "$CO" || { echo "R1w FAIL: guarantor validation missing" >&2; exit 1; }
     # 正向 3：自动带出已保存担保人（列表 + 勾选）
     grep -qE "user/guarantors|guarantorsApi" "$CO" || { echo "R1w FAIL: saved guarantors are not loaded" >&2; exit 1; }
+    # 正向 4：差额档必须 0 < reduced < full（deposit_reduced=0 视为未配置）
+    grep -q "Number(depositReduced) > 0" "$CO" || { echo "R1w FAIL: reduced tier must require 0 < reduced < full" >&2; exit 1; }
     # 负例：不得再出现「免押金」zero 档入口（#2352 D1）
     grep -q "depositTierState === 'zero'" "$CO" && { echo "R1w FAIL: zero-deposit toggle must not exist" >&2; exit 1; }
     # 负例：不得直跳支付页
