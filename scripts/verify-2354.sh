@@ -18,7 +18,7 @@ mkdir -p docs/evidence/2354
 
 WEAPP_HOME="frontend-mobile/src/pages-weapp/Home.jsx"
 H5_HOME="frontend-mobile/src/pages/Home.jsx"
-PROVENANCE="build=home-layers-2354 commit=$(git rev-parse HEAD) dirty=$(test -z "$(git status --porcelain --untracked-files=no -- "$WEAPP_HOME" "$H5_HOME" docs scripts)" && echo false || echo true)"
+PROVENANCE="build=home-layers-2354 commit=$(git rev-parse HEAD) dirty=$(test -z "$(git status --porcelain --untracked-files=no -- "$WEAPP_HOME" "$H5_HOME" docs scripts ':!docs/evidence')" && echo false || echo true)"
 
 case "$MODE" in
   # ---------- R1：源码静态断言（层级关系） ----------
