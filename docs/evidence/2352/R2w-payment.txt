@@ -1,4 +1,4 @@
-PROVENANCE build=credit-flow-2352-weapp commit=33f352f2464de37f69603af1b70baeb379063f6e dirty=true
+PROVENANCE build=credit-flow-2352-weapp commit=4aa951308b66b0a0584cb562529f581ea96aa3aa dirty=true
 CMD grep -nE 'deposit_tier|buildTierOptions|credit-assessment|guarantor_ids' frontend-mobile/src/pages-weapp/payment/Payment.jsx
 8:import { creditGate, buildAssessmentRoute } from '../../utils/creditFlow.mjs'
 173:            onClick={() => Taro.navigateTo({ url: `/pages-weapp/credit-assessment/index?order_id=${pId}&return_path=${encodeURIComponent(`/payment?type=rent&id=${pId}`)}` })}

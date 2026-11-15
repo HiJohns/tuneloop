@@ -36,6 +36,12 @@ test('乐器本身零押金：只有 zero，且仍必须过评测', () => {
   assert.equal(opts[0].requiresAssessment, true)
 })
 
+test('deposit_reduced = 0 视为未配置（#2357 修正）', () => {
+  // 历史数据常以 0 表示「没有配置第二档」，不得据此提供「零差额免押」
+  const opts = buildTierOptions(6000, 0)
+  assert.deepEqual(opts.map(o => o.tier), [DEPOSIT_TIER.FULL])
+})
+
 test('reduced 缺少担保人时禁止下单', () => {
   const bad = buildOrderDepositPayload({ tier: 'reduced', guarantorIds: ['g1'] })
   assert.equal(bad.ok, false)

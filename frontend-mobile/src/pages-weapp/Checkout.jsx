@@ -221,7 +221,8 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
   const depositReduced = pricingV2?.deposit_reduced ?? null
   const deposit = pricingV2?.deposit ?? instrument?.deposit ?? parsePricing(instrument?.pricing)[0]?.deposit ?? 0
   const isZeroDeposit = Number(deposit) === 0
-  const canReduceDeposit = !isZeroDeposit && depositReduced != null
+  // #2357 修正：deposit_reduced = 0/空 表示未配置；必须 0 < reduced < full 才提供差额档。
+  const canReduceDeposit = !isZeroDeposit && depositReduced != null && Number(depositReduced) > 0 && Number(depositReduced) < Number(deposit)
   // 确认页：默认全额；打开差额拉杆后按 deposit_reduced 计价。
   const effectiveDeposit = depositWaived && canReduceDeposit ? Number(depositReduced) : (isZeroDeposit ? 0 : deposit)
   // Shipping fee is not determined at order time (#1570): the staff fills
@@ -319,6 +320,11 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
         rent_days: days,
       }
       if (deliveryAddress) body.delivery_address = deliveryAddress
+      // #2357: 档位随下单提交（差额档附带担保人；信用路径统一 payscore）
+      body.deposit_tier = isZeroDeposit ? 'zero' : (depositWaived && canReduceDeposit ? 'reduced' : 'full')
+      body.deposit_credit_path = 'payscore'
+      if (body.deposit_tier === 'reduced') body.guarantor_ids = selectedGuarantorIds
+
       const resp = await ordersApi.create(body)
       if (resp.code === 20000 || resp.code === 20100) {
         eventBus.emit('cartUpdated')
@@ -990,6 +996,9 @@ function BatchCheckout({ nav }) {
       }))
       const body = { items }
       if (deliveryAddress) body.delivery_address = deliveryAddress
+      // #2357: 购物车暂无差额拉杆（多件乐器差额配置可能不同）；全额/零押二选一
+      body.deposit_tier = allZeroDeposit ? 'zero' : 'full'
+      body.deposit_credit_path = 'payscore'
       const orderResp = await ordersApi.batchCreate(body)
       if (orderResp.code === 20000) {
         const orders = orderResp.data?.orders || []
