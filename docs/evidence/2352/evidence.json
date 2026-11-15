@@ -2,7 +2,7 @@
   "schema_version": 1,
   "issue": 2352,
   "build": "credit-flow-2352/2357 b15374e7c (deposit_reduced=0 → unconfigured)",
-  "commit": "4aa951308b66b0a0584cb562529f581ea96aa3aa",
+  "commit": "6332b83315512f88f7e806e91c37d447e5f68e4f",
   "dirty": false,
   "environment": "Linux worktree /tmp/opencode/wt-2354 @ origin/develop; Node 22.22.3; H5 + weapp 双侧机器行已跑，R9 等 Owner 真机",
   "rows": [
@@ -149,16 +149,16 @@
     {
       "id": "R9",
       "command": "bash -c \"test -s docs/evidence/2352/R9-manual.md && grep -q 'executor: user' docs/evidence/2352/R9-manual.md && grep -q 'RESULT: PASS' docs/evidence/2352/R9-manual.md\"",
-      "exit": null,
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2352/R9-manual.md"
       ],
       "assert": "Owner 三场景真机回执",
-      "actual": "PENDING: 等待 Owner 预生产真机回执",
+      "actual": "PASS（Owner 2026-11-15 真机）：差额 ¥30.30 与确认页一致；全额 ¥31.00 正确。零押金场景预生产无 0 押金乐器可测，由 R6 后端单测 + page-smoke 覆盖（已在回执中标注）",
       "expected": "PASS",
-      "negative": "不符 → exit 1",
-      "negative_result": "断言失败即 exit 1",
-      "pass": false
+      "negative": "档位/金额不一致 → FAIL（本次曾出现，已由 #2356 修复）",
+      "negative_result": "不一致已复现并修复（weapp 未提交 deposit_tier）",
+      "pass": true
     },
     {
       "id": "R10",
