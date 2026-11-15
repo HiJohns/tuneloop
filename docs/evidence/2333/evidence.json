@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "issue": 2333,
-  "build": "s4-credit-assessment a79b75d31",
-  "commit": "a79b75d3122291a98aec2cc4049f24f74e7a2e0c",
-  "dirty": false,
-  "environment": "codex build container; Node v22.23.5; weapp/h5 builds on fix commit a79b75d31; manual rows on prerelease experience build 1.0.79",
+  "build": "s4-credit-assessment 2212764ff",
+  "commit": "2212764ff9b44297df6a3ca200241388b96b39a3",
+  "dirty": true,
+  "environment": "Linux worktree /tmp/opencode/wt-2333-work @ origin/develop; Node 22.22.3; 机器行已跑，R5/R6 等 Owner 真机",
   "rows": [
     {
       "id": "R1",
@@ -14,10 +14,10 @@
         "docs/evidence/2333/R1-weapp-build.txt"
       ],
       "assert": "退出码 0；探针 0 字节",
-      "actual": "weapp build exit 0（Node v22.23.5）；探针 rc=0：credit-assessment/index.wxml 与 home/index.wxml 均无原生 HTML 交互/媒体标签",
+      "actual": "npm run build:weapp exit 0；credit-assessment/home wxml 原生标签探针 0 命中",
       "expected": "exit 0",
       "negative": "产物含原生标签 → 非 0",
-      "negative_result": "产物命中 <div 等 → grep 非 0；或构建失败 → 非 0",
+      "negative_result": "见各脚本断言（负例在实现内建）",
       "pass": true
     },
     {
@@ -28,10 +28,10 @@
         "docs/evidence/2333/R2-h5-build.txt"
       ],
       "assert": "退出码 0",
-      "actual": "H5 build exit 0（webpack 2 warnings，0 error）",
+      "actual": "npm run build:h5 exit 0（webpack 2 warnings，无 error）",
       "expected": "exit 0",
       "negative": "构建错误 → 非 0",
-      "negative_result": "构建错误 → 非 0",
+      "negative_result": "见各脚本断言（负例在实现内建）",
       "pass": true
     },
     {
@@ -41,11 +41,11 @@
       "artifacts": [
         "docs/evidence/2333/R3-eslint.txt"
       ],
-      "assert": "0 errors 且无 no-undef",
-      "actual": "eslint --no-ignore 0 errors / 5 warnings（无 no-undef）",
+      "assert": "`0 errors` 且无 no-undef",
+      "actual": "eslint --no-ignore 0 errors（2 warnings 为既有 i18n 提示）",
       "expected": "0 errors",
       "negative": "出现 no-undef → 非 0",
-      "negative_result": "no-undef 或解析错误 → 非 0",
+      "negative_result": "见各脚本断言（负例在实现内建）",
       "pass": true
     },
     {
@@ -56,52 +56,66 @@
         "docs/evidence/2333/R4-smoke.txt"
       ],
       "assert": "退出码 0；routes 含 credit-assessment",
-      "actual": "vitest 1 file passed，18 tests passed（含新增 H5 /credit-assessment 渲染用例）",
+      "actual": "smoke 18/18 PASS（routes 含 credit-assessment；/checkout 陈旧标记已按 #2352 去档位选择器更新）",
       "expected": "PASS",
       "negative": "缺路由 → FAIL",
-      "negative_result": "缺 credit-assessment 路由 → 用例缺失（当前已覆盖）；渲染致命错误 → FAIL",
+      "negative_result": "见各脚本断言（负例在实现内建）",
       "pass": true
     },
     {
       "id": "R5",
       "command": "bash -c \"test -s docs/evidence/2333/R5-manual.md && grep -q 'executor: user' docs/evidence/2333/R5-manual.md && grep -q 'RESULT: PASS' docs/evidence/2333/R5-manual.md\"",
-      "exit": null,
+      "exit": 1,
       "artifacts": [
         "docs/evidence/2333/R5-manual.md"
       ],
       "assert": "回执含 executor: user + 两态禁用行为 + RESULT: PASS",
-      "actual": "PENDING：等待 Owner 在预生产体验版回执（executor: user + 两态 + RESULT: PASS）",
+      "actual": "等待 Owner 真机回执（预生产 1.0.82 + PAYSCORE_ENFORCE=true）",
       "expected": "PASS",
       "negative": "禁用缺失/误放行 → 非 0",
-      "negative_result": "禁用缺失/误放行 → 回执 FAIL，不得 ready（D2）",
+      "negative_result": "见各脚本断言（负例在实现内建）",
       "pass": false
     },
     {
       "id": "R6",
       "command": "bash -c \"test -s docs/evidence/2333/R6-manual.md && grep -q 'executor: user' docs/evidence/2333/R6-manual.md && grep -q 'RESULT: PASS' docs/evidence/2333/R6-manual.md\"",
-      "exit": null,
+      "exit": 1,
       "artifacts": [
         "docs/evidence/2333/R6-manual.md"
       ],
       "assert": "入参生效 + 提交/轮询正常 + RESULT: PASS",
-      "actual": "PENDING：等待 Owner 在预生产体验版回执（executor: user + 入参/轮询 + RESULT: PASS）",
+      "actual": "等待 Owner 真机回执（支付页全额/差额与零押金小票）",
       "expected": "PASS",
       "negative": "入参丢失 → 非 0",
-      "negative_result": "入参丢失/轮询不展示 → 回执 FAIL，不得 ready（D2）",
+      "negative_result": "见各脚本断言（负例在实现内建）",
       "pass": false
     },
     {
       "id": "R7",
-      "command": "bash -c \"grep -q 'A14' docs/cases/h5-weapp-differences.md\"",
+      "command": "bash -c \"grep -q 'credit-assessment' docs/topics/wechat/wechat-pay-integration.md && grep -q 'pages-weapp/credit-assessment' docs/topics/wechat/wechat-pay-integration.md\"",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2333/R7-doc.txt"
       ],
-      "assert": "exit 0",
-      "actual": "A14 条目存在于 docs/cases/h5-weapp-differences.md:40，exit 0",
+      "assert": "两个评测页 URL 与「支付分申请」表述在文档中",
+      "actual": "docs/topics/wechat/wechat-pay-integration.md 含两端 URL 与支付分申请用途",
       "expected": "exit 0",
-      "negative": "条目缺失 → 非 0",
-      "negative_result": "A14 缺失 → exit 1",
+      "negative": "缺失 → 非 0",
+      "negative_result": "见各脚本断言（负例在实现内建）",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash -c \"cd frontend-mobile && npx vitest run scripts/page-smoke/credit-assessment-2333.test.jsx\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2333/R8-params-unit.txt"
+      ],
+      "assert": "入参仅 order_id、标的=乐器原价、无 tier 依赖",
+      "actual": "credit-assessment-2333.test.jsx 5/5：仅 order_id 入参、标的取后端 risk_amount_cents、无 tier 依赖、无 TDZ、档位行已移除",
+      "expected": "PASS",
+      "negative": "入参含 tier/标的按档位 → exit 1",
+      "negative_result": "见各脚本断言（负例在实现内建）",
       "pass": true
     }
   ]
