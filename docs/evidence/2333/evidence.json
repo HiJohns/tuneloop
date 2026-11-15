@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "issue": 2333,
-  "build": "s4-credit-assessment 2212764ff",
+  "build": "s4-credit-assessment 6332b83 (weapp+H5, preprod 1.0.85)",
   "commit": "6332b83315512f88f7e806e91c37d447e5f68e4f",
-  "dirty": true,
+  "dirty": false,
   "environment": "Linux worktree /tmp/opencode/wt-2333-work @ origin/develop; Node 22.22.3; 机器行已跑，R5/R6 等 Owner 真机",
   "rows": [
     {
@@ -72,7 +72,7 @@
       "assert": "回执含 executor: user + 两态禁用行为 + RESULT: PASS",
       "actual": "PASS（Owner 真机 2026-11-15）：提交即进评测页、mock 自动通过、返回支付页金额一致、weapp 无自绘标题栏",
       "expected": "PASS",
-      "negative": "评测页不出现/金额为空/自绘标题栏 → FAIL",
+      "negative": "禁用缺失/误放行 → 非 0",
       "negative_result": "金额为空已复现并修复（服务单补建）",
       "pass": true
     },
@@ -83,10 +83,10 @@
       "artifacts": [
         "docs/evidence/2333/R6-manual.md"
       ],
-      "assert": "支付页无档位选择；金额与下单所选档位一致（档位改在确认页选择，见 #2356）",
+      "assert": "入参生效 + 提交/轮询正常 + RESULT: PASS",
       "actual": "PASS（改判后范围）：支付页不再出现档位选择器，金额取订单已定档位（差额 ¥30.30 与确认页一致）",
       "expected": "PASS",
-      "negative": "支付页仍可选档位/金额与确认页不一致 → FAIL",
+      "negative": "入参丢失 → 非 0",
       "negative_result": "曾出现金额不一致（weapp 未提交档位），已由 #2356 修复",
       "pass": true
     },
