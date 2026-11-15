@@ -41,7 +41,7 @@
       "artifacts": [
         "docs/evidence/2333/R3-eslint.txt"
       ],
-      "assert": "`0 errors` 且无 no-undef",
+      "assert": "0 errors 且无 no-undef",
       "actual": "eslint --no-ignore 0 errors（2 warnings 为既有 i18n 提示）",
       "expected": "0 errors",
       "negative": "出现 no-undef → 非 0",

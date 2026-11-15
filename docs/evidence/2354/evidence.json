@@ -13,7 +13,7 @@
       "artifacts": [
         "docs/evidence/2354/R1-layers.txt"
       ],
-      "assert": "weapp 搜索层 zIndex=10003；滑动层仍 `scrolled ? 0 : 10002`；无遗留 10000",
+      "assert": "weapp 搜索层 zIndex=10003；滑动层仍 scrolled ? 0 : 10002；无遗留 10000",
       "actual": "PASS — 静态断言 + 结构正则双检；负例已实测（把 10003 改回 10000 → exit 1）",
       "expected": "PASS",
       "negative": "仍 10000/层级反转 → exit 1",
