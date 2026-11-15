@@ -1,4 +1,4 @@
-PROVENANCE build=credit-flow-2352 commit=d9b1f1e150c67dcb7496b5cd930d88be6fb48b1a dirty=false
+PROVENANCE build=credit-flow-2352 commit=d18ee05c34c7df077b919bd53cf2a3857a492ac7 dirty=false
 CMD grep assessment URLs in docs/topics/wechat/wechat-pay-integration.md
 589:独立信用评测页（H5 /credit-assessment?order_id=… ；weapp pages-weapp/credit-assessment/index）
 603:评测页 URL（用于支付分申请）：`/credit-assessment`（H5）、`pages-weapp/credit-assessment/index`（小程序）。
