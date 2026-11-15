@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -743,8 +744,10 @@ func PayOrder(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c.Request.Context())
 
 	var req struct {
-		PaymentMethod   string `json:"payment_method"`
-		DeliveryAddress string `json:"delivery_address"`
+		PaymentMethod   string   `json:"payment_method"`
+		DeliveryAddress string   `json:"delivery_address"`
+		DepositTier     string   `json:"deposit_tier"`  // #2352 Rev.2 D3: 支付页自选 full|reduced（zero 仅 0 押金乐器）
+		GuarantorIDs    []string `json:"guarantor_ids"` // reduced 必须 2 位
 	}
 	_ = c.ShouldBindJSON(&req)
 
@@ -769,6 +772,26 @@ func PayOrder(c *gin.Context) {
 			"message": "order not found",
 		})
 		return
+	}
+	// #2352 Rev.2 D3/D5: 支付页自选押金档位（确认页不再选择）。
+	//   full     → 全额押金（默认；0 担保人）
+	//   reduced  → 差额押金（乐器全额>0 + 2 位担保人）
+	//   zero     → 仅乐器全额押金==0 时允许
+	if req.DepositTier != "" {
+		tier, dep, verr := resolvePaymentDepositTier(req.DepositTier, order.DepositFull, order.DepositReduced, req.GuarantorIDs)
+		if verr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": verr.Error()})
+			return
+		}
+		order.DepositTier = tier
+		order.Deposit = dep
+		if err := db.Model(&order).Updates(map[string]interface{}{
+			"deposit_tier": order.DepositTier,
+			"deposit":      order.Deposit,
+		}).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update deposit tier"})
+			return
+		}
 	}
 	// #2331/#2327: 支付分档位闸门——仅 PAYSCORE_ENFORCE=true 时生效；
 	// enforce=false（默认）保持现有行为不变（D12）。
@@ -1783,4 +1806,44 @@ func GetOrdersByOutTradeNo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
 		"orders": orders,
 	}})
+}
+
+// resolvePaymentDepositTier 落实 #2352 Rev.2 D3：支付页自选档位。
+//
+//	full    → 全额押金（默认）
+//	reduced → 差额押金（乐器全额>0 且有差额配置 + 至少 2 位担保人）
+//	zero    → 仅乐器全额押金 == 0
+func resolvePaymentDepositTier(tier string, fullDeposit, reducedDeposit *models.Cents, guarantorIDs []string) (string, models.Cents, error) {
+	fullYuan := 0.0
+	if fullDeposit != nil {
+		fullYuan = fullDeposit.ToYuan()
+	}
+	switch tier {
+	case models.DepositTierFull:
+		if fullDeposit == nil {
+			return models.DepositTierFull, 0, nil
+		}
+		return models.DepositTierFull, *fullDeposit, nil
+	case models.DepositTierZero:
+		if err := validateZeroTierForFullDeposit(models.DepositTierZero, fullYuan); err != nil {
+			return "", 0, err
+		}
+		return models.DepositTierZero, 0, nil
+	case models.DepositTierReduced:
+		if fullYuan <= 0 || reducedDeposit == nil {
+			return "", 0, errors.New("reduced deposit tier is unavailable for this instrument")
+		}
+		ids := 0
+		for _, id := range guarantorIDs {
+			if id != "" {
+				ids++
+			}
+		}
+		if ids < 2 {
+			return "", 0, errors.New("reduced-deposit order requires at least 2 guarantors")
+		}
+		return models.DepositTierReduced, *reducedDeposit, nil
+	default:
+		return "", 0, errors.New("invalid deposit_tier")
+	}
 }

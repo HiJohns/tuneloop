@@ -1,0 +1,10 @@
+PROVENANCE build=deposit-tiers-2352 commit=7c288ec58b1487360eca9dfd585c87280ee90e1a dirty=true
+CMD (cd backend && go test ./handlers/ -run TestZeroTierRequiresAssessment_2352 -count=1 -v)
+[DEBUG] Loaded .env from: ../.env
+2026/11/14 14:45:24 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2352 sslmode=disable
+2026/11/14 14:45:24 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2352
+2026/11/14 14:45:24 [DB] Connected to database 'tuneloop_test_2352'
+=== RUN   TestZeroTierRequiresAssessment_2352
+--- PASS: TestZeroTierRequiresAssessment_2352 (0.00s)
+PASS
+ok  	tuneloop-backend/handlers	1.594s

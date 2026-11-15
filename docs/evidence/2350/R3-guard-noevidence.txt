@@ -1,4 +1,4 @@
-PROVENANCE build=done-cascade-guard commit=606a0c416c644c21d346619f7dcab46ecc06dfd4 dirty=false
+PROVENANCE build=done-cascade-guard commit=27dea4071f7bb6b3e87d6635c31580d6ced5a7af dirty=false
 MODE noevidence
 CMD bash "/home/coder/.config/opencode/scripts/opencode_gh.sh" done 1001 <body>  (gh stub via PATH + GH_BIN)
 exit=0

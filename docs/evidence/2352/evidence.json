@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "issue": 2352,
+  "build": "credit-flow-2352 d9b1f1e15",
+  "commit": "d9b1f1e15",
+  "dirty": false,
+  "environment": "frontend Node22 + backend PG16 127.0.0.1:15433 strict template",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/run-2352-frontend.sh checkout",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R1-checkout-ui.txt"
+      ],
+      "assert": "checkout 无档位/免评/担保人控件",
+      "actual": "PASS",
+      "expected": "PASS",
+      "negative": "不符 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/run-2352-frontend.sh route",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R2-route.txt"
+      ],
+      "assert": "提交跳评测页且带 order_id",
+      "actual": "PASS",
+      "expected": "PASS",
+      "negative": "不符 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2352-backend.sh amount",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R3-amount.txt"
+      ],
+      "assert": "标的恒等乐器原价",
+      "actual": "PASS",
+      "expected": "PASS",
+      "negative": "不符 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2352-backend.sh state",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R4-assessment-state.txt"
+      ],
+      "assert": "下单落 pending；enforce 拦支付",
+      "actual": "PASS",
+      "expected": "PASS",
+      "negative": "不符 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2352-backend.sh choice",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R5-tier-choice.txt"
+      ],
+      "assert": "0/1 担保人拒绝差额；2 位→差额",
+      "actual": "PASS",
+      "expected": "PASS",
+      "negative": "不符 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2352-backend.sh zero-receipt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R6-zero-receipt.txt"
+      ],
+      "assert": "零押金订单押金=0",
+      "actual": "PASS",
+      "expected": "PASS",
+      "negative": "不符 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2352-backend.sh legacy",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R7-legacy.txt"
+      ],
+      "assert": "历史 internal 单不变",
+      "actual": "PASS",
+      "expected": "UNCHANGED",
+      "negative": "不符 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2352-backend.sh doc",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R8-doc.txt"
+      ],
+      "assert": "两评测页 URL + 申请用途",
+      "actual": "PASS",
+      "expected": "PASS",
+      "negative": "不符 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash -c \"test -s docs/evidence/2352/R9-manual.md && grep -q 'executor: user' docs/evidence/2352/R9-manual.md && grep -q 'RESULT: PASS' docs/evidence/2352/R9-manual.md\"",
+      "exit": null,
+      "artifacts": [
+        "docs/evidence/2352/R9-manual.md"
+      ],
+      "assert": "Owner 三场景真机回执",
+      "actual": "PENDING: 等待 Owner 预生产真机回执",
+      "expected": "PASS",
+      "negative": "不符 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": false
+    }
+  ]
+}

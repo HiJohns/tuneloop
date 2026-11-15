@@ -21,6 +21,12 @@ gh issue view "$TARGET" --json comments \
   --jq '[.comments[] | select(.body|startswith("## Work Summary"))] | last | .body' > "$SUMMARY_FILE"
 [ -s "$PLAN_FILE" ] || { echo "ERROR: no Accepted Plan on #$TARGET" >&2; exit 2; }
 [ -s "$SUMMARY_FILE" ] || { echo "ERROR: no Work Summary on #$TARGET" >&2; exit 2; }
+# #2348 修复轮：目标 Issue 的证据可能已被修正（漂移消失）。为保持负例可复现，
+# 从目标证据派生一份「篡改副本」（仅改 command 尾部），断言 P12 仍能捕获。
+TAMPERED="$REPO_ROOT/tmp/2348-regression-${TARGET}-tampered.json"
+jq '(.rows[0].command) = ((.rows[0].command // "true") + " && true")' \
+  "$REPO_ROOT/docs/evidence/${TARGET}/evidence.json" > "$TAMPERED"
+[ -s "$TAMPERED" ] || { echo "ERROR: cannot build tampered evidence for #$TARGET" >&2; exit 2; }
 printf 'docs/evidence/%s/evidence.json\n' "$TARGET" > "$CHANGED_FILE"
 
 set +e
@@ -28,6 +34,7 @@ bash "$PRE_READY" "$TARGET" \
   --plan-file "$PLAN_FILE" \
   --summary-file "$SUMMARY_FILE" \
   --changed-files "$CHANGED_FILE" \
+  --evidence-file "$TAMPERED" \
   --affected-cmd true \
   --dry-run --allow-local-only \
   --report "$REPO_ROOT/tmp/2348-regression-${TARGET}.json" > "$REPO_ROOT/tmp/2348-regression-${TARGET}.log" 2>&1
@@ -43,7 +50,7 @@ set -e
   grep -E "^P12" "$REPO_ROOT/tmp/2348-regression-${TARGET}.log" || true
 } > "$OUT"
 
-# 现场 #2343 evidence.json 携带旧命令（R2 缺 --no-ignore；R5-R7 含已豁免的截图子句）。
+# 篡改副本模拟 command drift（真实 #2343 证据已修正，故用派生副本保持负例可复现）。
 [ "$RC" -ne 0 ] || { echo "R4 FAIL: gate passed despite command drift" >&2; exit 1; }
 grep -q "P12" "$REPO_ROOT/tmp/2348-regression-${TARGET}.log" || { echo "R4 FAIL: P12 did not run" >&2; exit 1; }
 grep -q "command drift" "$REPO_ROOT/tmp/2348-regression-${TARGET}.log" || { echo "R4 FAIL: command drift not reported" >&2; exit 1; }

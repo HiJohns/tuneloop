@@ -1,0 +1,1 @@
+guarantor gate: 0/1 blocked, 2 allowed; zero→payscore

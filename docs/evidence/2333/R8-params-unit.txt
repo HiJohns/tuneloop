@@ -1,0 +1,11 @@
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /tmp/opencode/wt-2333-work/frontend-mobile
+
+ ✓ scripts/page-smoke/credit-assessment-2333.test.jsx (5 tests) 13ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  05:10:13
+   Duration  2.32s (transform 132ms, setup 65ms, collect 20ms, tests 13ms, environment 1.24s, prepare 238ms)
+

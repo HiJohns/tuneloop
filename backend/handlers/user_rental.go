@@ -470,13 +470,15 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	if len(pricingResult.Tiers) > 0 {
 		dailyRent = pricingResult.Tiers[0].DailyRate
 	}
-	requestedTier := requestedDepositTier(req.DepositTier, req.DepositWaived)
-	depositTier, fullDeposit, reducedAmount, _ := resolveDepositTier(&lockedInstrument, pricingResult, requestedTier)
-	// #2327 D13: payscore 路径下允许主动选择 zero 档（押金由支付分担保，
-	// 风险金额按乐器原价；这是信用档位，不是「乐器本身零押金」）。
-	if creditPath == models.DepositCreditPathPayscore && requestedTier == models.DepositTierZero && fullDeposit > 0 {
-		depositTier = models.DepositTierZero
+	// #2352 Rev.2: 确认页不再选择档位；下单只落「全额押金档」（乐器 0 押金则 zero），
+	// 档位改由支付页自选（差额需 2 位担保人），所有新单统一进入信用评测流程。
+	requestedTier := models.DepositTierFull
+	if len(pricingResult.Tiers) == 0 && lockedInstrument.Deposit == nil {
+		requestedTier = models.DepositTierFull
 	}
+	depositTier, fullDeposit, reducedAmount, _ := resolveDepositTier(&lockedInstrument, pricingResult, requestedTier)
+	// #2352 Rev.2 D1: 所有新单都进入信用评测（payscore），下单即落 pending。
+	creditPath = models.DepositCreditPathPayscore
 	deposit := fullDeposit
 	if depositTier == models.DepositTierZero {
 		deposit = 0
@@ -617,6 +619,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		Deposit:              models.FromYuan(deposit),
 		DepositTier:          depositTier,
 		DepositCreditPath:    creditPath,
+		CreditState:          services.CreditStatePending, // #2352 Rev.2 D1: 下单即进入评测流程
 		DepositFull:          centsPtr(fullDeposit),
 		DepositReduced:       reducedSnapshot(&lockedInstrument),
 		DepositWaived:        false,
@@ -1107,6 +1110,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			Deposit:              models.FromYuan(deposit),
 			DepositTier:          depositTier,
 			DepositCreditPath:    creditPath,
+			CreditState:          services.CreditStatePending, // #2352 Rev.2 D1
 			DepositFull:          centsPtr(fullDeposit),
 			DepositReduced:       reducedSnapshot(&lockedInstrument),
 			DepositWaived:        false,
@@ -1512,4 +1516,13 @@ func computePaymentDeadline(db *gorm.DB, tenantID, orgID string) *time.Time {
 	// Default
 	deadline := time.Now().Add(time.Duration(defaultMin) * time.Minute)
 	return &deadline
+}
+
+// validateZeroTierForFullDeposit 落实 #2352 D1：zero 档仅适用于「乐器全额押金 == 0」。
+// 全额押金 > 0 的订单不得只凭信用评测免掉全部押金（4xx 拒绝）。
+func validateZeroTierForFullDeposit(tier string, fullDeposit float64) error {
+	if tier == models.DepositTierZero && fullDeposit > 0 {
+		return errors.New("zero deposit tier is only available for instruments with zero full deposit")
+	}
+	return nil
 }

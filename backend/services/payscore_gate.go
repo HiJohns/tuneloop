@@ -27,14 +27,9 @@ func RequiresCreditAssessment(tier string) bool {
 //
 // reduced 档恒需信用（差额押金靠支付分补足）；full 档无需评估。
 func RequiresCreditApprovalForOrder(tier, creditPath string) bool {
-	switch tier {
-	case models.DepositTierReduced:
-		return true
-	case models.DepositTierZero:
-		return creditPath == models.DepositCreditPathPayscore
-	default:
-		return false
-	}
+	// #2352 Rev.2 D1: 所有 payscore 新单（含全额档）都必须先完成信用评测；
+	// internal 路径仅历史订单/旧客户端兼容，不新增。
+	return creditPath == models.DepositCreditPathPayscore
 }
 
 // AssertOrderPayable 订单级支付闸门：按档位 + 下单时的信用路径判定。

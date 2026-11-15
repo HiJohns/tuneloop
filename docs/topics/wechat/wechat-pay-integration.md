@@ -580,3 +580,24 @@ curl -X POST -H "Content-Type: application/json" -d '{}' "https://api.weixin.qq.
 | 平台证书解析 | `backend/services/wechatpay/signer.go` | 29-54 |
 | 公钥提取 + 部署 | `docs/archive/reports/wechat-20260717.md` | 步骤 1 |
 | 前置 prepay open_id | `frontend-mobile/src/pages-weapp/payment/Payment.jsx` | `handlePay()` |
+
+## 信用评测导入流程（#2352 Rev.2）
+
+```
+确认订单页（无档位选择/无信用 UI/无担保人采集；仅租金 + 全额押金）
+  → 提交订单
+独立信用评测页（H5 /credit-assessment?order_id=… ；weapp pages-weapp/credit-assessment/index）
+  · 评测标的 = 乐器原价（固定，不随档位/押金变化）
+  · 该页 URL 作为微信支付分申请提交的页面地址（S0 #2328 使用）
+  → 评测完成
+支付页（用户自选全额 / 差额；差额需 2 位担保人）
+  → 三场景小票
+```
+
+| 场景 | 条件 | 实付押金 | 小票押金项 | 担保人 |
+|---|---|---|---|---|
+| 全额支付 | 乐器全额押金 > 0，选全额 | 全额押金 | 有 | 0 |
+| 零押金 | 乐器全额押金 = 0 | 0 | 无 | 0 |
+| 差额支付 | 乐器全额押金 > 0，选差额且提供 2 位担保人 | `deposit_reduced` | 有 | 2 位 |
+
+评测页 URL（用于支付分申请）：`/credit-assessment`（H5）、`pages-weapp/credit-assessment/index`（小程序）。

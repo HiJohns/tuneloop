@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2350,
-  "build": "done-cascade-guard 606a0c416",
-  "commit": "606a0c416c644c21d346619f7dcab46ecc06dfd4",
+  "build": "done-cascade-guard 27dea4071",
+  "commit": "27dea4071f7bb6b3e87d6635c31580d6ced5a7af",
   "dirty": false,
   "environment": "synthetic parent/child issues + PATH gh stub driving the real ~/.config/opencode/scripts/opencode_gh.sh done branch",
   "rows": [

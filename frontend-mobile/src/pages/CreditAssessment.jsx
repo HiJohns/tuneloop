@@ -13,9 +13,10 @@ import {
   pollDelay,
 } from '../utils/creditFlow'
 
-// #2327 S4 / D8: 通用微信支付分信用评测页（H5 + weapp 共用）。
-// 入参（一律 query）：order_id、tier、risk_amount_cents、return_path。
-// 本页只做「展示 + 拉起 + 轮询」，不承载任何业务规则（规则在 services/creditFlow.mjs）。
+// #2327 S4 / D8 / #2352 / #2333: 通用微信支付分信用评测页（H5 + weapp 共用）。
+// 入参（一律 query）：仅 order_id（可选 return_path）。
+// #2333 R8: 评测标的金额 = 乐器原价，由后端 /credit-{status,assessment} 返回 risk_amount_cents，
+// 页面不再接收 tier / risk_amount_cents 参数，也不承载任何业务规则（规则在 services/creditFlow.mjs）。
 
 const STATE_TEXT = {
   [CREDIT_STATE.NONE]: '尚未评测',
@@ -32,11 +33,11 @@ export default function CreditAssessment() {
     : Object.fromEntries(new URLSearchParams(typeof window !== 'undefined' ? window.location.search : ''))
 
   const orderId = params.order_id || ''
-  const tier = params.tier || ''
-  const riskAmountCents = Number(params.risk_amount_cents || 0)
   const returnPath = params.return_path || (orderId ? `/payment?type=rent&id=${orderId}` : '')
 
   const [credit, setCredit] = useState(null)
+  // 评测标的金额（乐器原价）由后端返回；页面只展示，不自算（#2333 R8）。
+  const riskAmountCents = Number(credit?.risk_amount_cents || 0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [launching, setLaunching] = useState(false)
@@ -176,13 +177,10 @@ export default function CreditAssessment() {
 
       <View className="bg-white mx-4 mt-4 rounded-2xl p-4 shadow-sm">
         <View className="flex items-center justify-between">
-          <Text className="font-black text-black">{t('押金档位')}</Text>
-          <Text className="text-zinc-600">{tier || '—'}</Text>
+          <Text className="font-black text-black">{t('评测标的金额')}</Text>
+          <Text className="text-zinc-600">{riskAmountCents > 0 ? `¥${(riskAmountCents / 100).toFixed(2)}` : '—'}</Text>
         </View>
-        <View className="flex items-center justify-between mt-2">
-          <Text className="font-black text-black">{t('担保金额')}</Text>
-          <Text className="text-zinc-600">¥{(riskAmountCents / 100).toFixed(2)}</Text>
-        </View>
+        <Text className="block text-xs text-zinc-400 mt-1">{t('评测标的为乐器原价，与所选押金档位无关')}</Text>
         <View className="flex items-center justify-between mt-2">
           <Text className="font-black text-black">{t('评测状态')}</Text>
           <Text className="font-medium" style={{ color: state === CREDIT_STATE.APPROVED ? '#16a34a' : state === CREDIT_STATE.REJECTED ? '#dc2626' : '#915F38' }}>
