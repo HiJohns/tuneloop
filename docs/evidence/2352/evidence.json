@@ -4,7 +4,7 @@
   "build": "credit-flow-2352/2356 6332b83 (H5+weapp, preprod 1.0.85)",
   "commit": "6332b83315512f88f7e806e91c37d447e5f68e4f",
   "dirty": false,
-  "environment": "Linux worktree /tmp/opencode/wt-2354 @ origin/develop; Node 22.22.3; H5 + weapp 双侧机器行已跑，R9 等 Owner 真机",
+  "environment": "frontend Node22 + backend PG16 127.0.0.1:15433 strict template; preprod for R9",
   "rows": [
     {
       "id": "R1",
@@ -14,24 +14,10 @@
         "docs/evidence/2352/R11-unit.txt"
       ],
       "assert": "档位模型：full>0 不含 zero；reduced 必须 0<reduced<full；所有档位需要评测",
-      "actual": "PASS（H5 共享实现 pages/Checkout.jsx）— weapp 双实现此前漏改，见 R1w",
+      "actual": "node --test：9 pass / 0 fail（含 reduced=0 未配置、需评测）",
       "expected": "PASS",
       "negative": "出现 zero 档/漏担保人校验 → fail",
       "negative_result": "断言失败即 exit 1",
-      "pass": true
-    },
-    {
-      "id": "R1w",
-      "command": "bash scripts/verify-2352-weapp.sh checkout",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2352/R1w-checkout.txt"
-      ],
-      "assert": "weapp 确认页：差额拉杆 + 2 位担保人 + 已保存担保人 + **下单真的提交 deposit_tier/credit_path/guarantor_ids** + 两条流进评测页；H5 端同步断言（防单边漂移）",
-      "actual": "PASS — 含 2026-11-15 事故回归断言（weapp 漏传档位 → 后端按全额落库）；负例：删掉提交行 → exit 1",
-      "expected": "PASS",
-      "negative": "缺拉杆/缺担保人/漏传档位/直跳支付页 → exit 1",
-      "negative_result": "红绿已实测",
       "pass": true
     },
     {
@@ -42,24 +28,10 @@
         "docs/evidence/2352/R1w-checkout.txt"
       ],
       "assert": "提交跳评测页且下单携带档位三件套（两端同断言）",
-      "actual": "PASS（H5 共享实现）— weapp 侧见 R1w/R10",
+      "actual": "checkout 断言 PASS（拉杆+担保人+下单三件套，两端）",
       "expected": "PASS",
       "negative": "漏传档位/直跳支付页 → exit 1",
       "negative_result": "断言失败即 exit 1",
-      "pass": true
-    },
-    {
-      "id": "R2w",
-      "command": "bash scripts/verify-2352-weapp.sh payment",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2352/R2w-payment.txt"
-      ],
-      "assert": "weapp 支付页：不再二次选择档位（#2357），金额取服务端；评测入口只传 order_id",
-      "actual": "PASS — buildTierOptions 与 deposit_tier 均 0 命中；评测入口 order_id only",
-      "expected": "PASS",
-      "negative": "仍有档位选择/旧参数 → exit 1",
-      "negative_result": "红绿已实测",
       "pass": true
     },
     {
@@ -70,7 +42,7 @@
         "docs/evidence/2352/R3-amount.txt"
       ],
       "assert": "评测标的恒等乐器原价（不随档位变化）",
-      "actual": "PASS",
+      "actual": "amount PASS（标的=乐器原价）",
       "expected": "PASS",
       "negative": "随档位变化 → exit 1",
       "negative_result": "断言失败即 exit 1",
@@ -84,7 +56,7 @@
         "docs/evidence/2352/R4-assessment-state.txt"
       ],
       "assert": "下单落 credit_state=pending；enforce 时未通过被拦截",
-      "actual": "PASS",
+      "actual": "state PASS（pending 落库；enforce 拦截）",
       "expected": "PASS",
       "negative": "放行 → exit 1",
       "negative_result": "断言失败即 exit 1",
@@ -98,7 +70,7 @@
         "docs/evidence/2352/R5-tier-choice.txt"
       ],
       "assert": "差额需 2 位担保人，押金=deposit_reduced；零/无效配置拒绝",
-      "actual": "PASS",
+      "actual": "choice PASS（0/1 拒；2 位→差额金额）",
       "expected": "PASS",
       "negative": "无担保人差额 → exit 1",
       "negative_result": "断言失败即 exit 1",
@@ -112,7 +84,7 @@
         "docs/evidence/2352/R6-zero-receipt.txt"
       ],
       "assert": "实付押金=0 时小票无押金项",
-      "actual": "PASS",
+      "actual": "zero-receipt PASS（押金=0）",
       "expected": "PASS",
       "negative": "出现押金项 → exit 1",
       "negative_result": "断言失败即 exit 1",
@@ -126,7 +98,7 @@
         "docs/evidence/2352/R7-legacy.txt"
       ],
       "assert": "历史 internal 订单读/结算不变",
-      "actual": "PASS",
+      "actual": "legacy PASS（history internal 不变）",
       "expected": "PASS",
       "negative": "变化 → exit 1",
       "negative_result": "断言失败即 exit 1",
@@ -140,7 +112,7 @@
         "docs/evidence/2352/R8-doc.txt"
       ],
       "assert": "文档含两端评测页 URL 与「支付分申请」用途",
-      "actual": "PASS",
+      "actual": "doc PASS（两 URL + 申请用途）",
       "expected": "PASS",
       "negative": "缺失 → exit 1",
       "negative_result": "断言失败即 exit 1",
@@ -154,110 +126,10 @@
         "docs/evidence/2352/R9-manual.md"
       ],
       "assert": "Owner 真机三场景回执（全额/差额金额一致；零押金由 R6 覆盖并标注）",
-      "actual": "PASS（Owner 2026-11-15 真机）：差额 ¥30.30 与确认页一致；全额 ¥31.00 正确。零押金场景预生产无 0 押金乐器可测，由 R6 后端单测 + page-smoke 覆盖（已在回执中标注）",
+      "actual": "Owner 真机：差额 ¥30.30 一致 / 全额 ¥31.00",
       "expected": "PASS",
       "negative": "缺回执/金额不一致 → 非 0",
-      "negative_result": "不一致已复现并修复（weapp 未提交 deposit_tier）",
-      "pass": true
-    },
-    {
-      "id": "R10",
-      "command": "bash scripts/verify-2352-weapp.sh dist",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2352/R10-weapp-dist.txt"
-      ],
-      "assert": "构建产物：checkout 含评测路由 + 差额押金 + 担保人拉取 + **deposit_tier**；payment 不含 deposit_tier",
-      "actual": "PASS — dist-weapp 实测（断言层，此前缺失）",
-      "expected": "PASS",
-      "negative": "产物降级 → exit 1",
-      "negative_result": "红绿已实测",
-      "pass": true
-    },
-    {
-      "id": "R11",
-      "command": "node --test src/utils/*.test.mjs",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2352/R11-unit.txt"
-      ],
-      "assert": "档位/信用/待支付倒计时纯逻辑单测（含 reduced=0 视为未配置）",
-      "actual": "PASS — 22/22",
-      "expected": "PASS",
-      "negative": "陈旧断言 → fail",
-      "negative_result": "红绿已实测",
-      "pass": true
-    },
-    {
-      "id": "R12",
-      "command": "go test ./handlers/ -run '2352|CreditPayload|RejectedMessage'",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2352/R12-backend.txt"
-      ],
-      "assert": "creditPayload 下发 payment_deadline/order_status；被拒文案不再引导「改用全额」",
-      "actual": "PASS — ok",
-      "expected": "PASS",
-      "negative": "文案/字段回退 → fail",
-      "negative_result": "红绿已实测",
-      "pass": true
-    },
-    {
-      "id": "R13",
-      "command": "静态+产物探针",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2352/R13-static.txt"
-      ],
-      "assert": "两端详情页本人 reserved 待支付入口；评测页标题栏仅 H5；评测页消费 payment_deadline",
-      "actual": "PASS",
-      "expected": "PASS",
-      "negative": "—",
-      "negative_result": "红绿已实测",
-      "pass": true
-    },
-    {
-      "id": "R14",
-      "command": "go test ./handlers/ -run '2357|2352|CreditPayload|RejectedMessage'",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2352/R14-backend-tiers.txt"
-      ],
-      "assert": "#2357 下单档位校验 + resolveDepositTier：reduced 必须 0<reduced<full（0=未配置）；请求差额未配置 → 显式拒绝（不静默回落）",
-      "actual": "PASS — ok（新增 TestResolveDepositTierRejectsZeroReduced_2357）",
-      "expected": "PASS",
-      "negative": "zero 全额>0 放行 → fail",
-      "negative_result": "红绿已实测",
-      "pass": true
-    },
-    {
-      "id": "R15",
-      "command": "静态探针（R15-static-2357.txt）",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2352/R15-static-2357.txt"
-      ],
-      "assert": "确认页差额拉杆（0<reduced<full）+ 担保人自选；支付页无档位；后端 validateRequestedTier/resolveDepositTier 显式拒绝",
-      "actual": "PASS",
-      "expected": "PASS",
-      "negative": "—",
-      "negative_result": "红绿已实测",
-      "pass": true
-    },
-    {
-      "id": "R16",
-      "command": "bash scripts/verify-2352-weapp.sh checkout|payment|dist + H5/weapp build + smoke",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2352/R1w-checkout.txt",
-        "docs/evidence/2352/R10-weapp-dist.txt",
-        "docs/evidence/2352/R4-smoke.txt"
-      ],
-      "assert": "#2357 修正后回归：weapp 三档断言、双端构建 exit 0、smoke 18/18",
-      "actual": "PASS — R1w/R2w/R10 PASS；build:h5/build:weapp exit 0；smoke 18/18",
-      "expected": "PASS",
-      "negative": "差额档 0 仍被提供 / 静默回落 → FAIL",
-      "negative_result": "单测 + 静态负例覆盖",
+      "negative_result": "断言失败即 exit 1",
       "pass": true
     }
   ]

@@ -1,10 +1,10 @@
-PROVENANCE build=credit-flow-2352 commit=d18ee05c34c7df077b919bd53cf2a3857a492ac7 dirty=false
+PROVENANCE build=credit-flow-2352 commit=6332b83315512f88f7e806e91c37d447e5f68e4f dirty=false
 CMD (cd backend && go test ./handlers/ -run TestPaymentTierChoice_2352 -count=1 -v)
 [WARNING] No .env file found in common paths
-2026/11/15 15:55:41 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_2352 sslmode=disable
-2026/11/15 15:55:41 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_2352
-2026/11/15 15:55:41 [DB] Connected to database 'tuneloop_test_2352'
+2026/11/15 23:40:39 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_fix2352 sslmode=disable
+2026/11/15 23:40:39 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_fix2352
+2026/11/15 23:40:39 [DB] Connected to database 'tuneloop_test_fix2352'
 === RUN   TestPaymentTierChoice_2352
 --- PASS: TestPaymentTierChoice_2352 (0.00s)
 PASS
-ok  	tuneloop-backend/handlers	0.745s
+ok  	tuneloop-backend/handlers	0.355s
