@@ -1,0 +1,3 @@
+PROVENANCE commit=33f352f2464de37f69603af1b70baeb379063f6e
+CMD go test ./handlers/ -run '2357|2352|CreditPayload|RejectedMessage'
+ok  	tuneloop-backend/handlers	5.048s

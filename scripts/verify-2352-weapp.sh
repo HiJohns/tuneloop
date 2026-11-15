@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
-# #2352 weapp 端校验：确认页去档位 UI + 提交跳评测页；支付页档位自选 + prepay 带 tier。
+# #2352 / #2357 押金档位链路校验（weapp 双实现）：
+#   - 确认页：全额押金>0 时提供「差额押金」拉杆（差额需 2 位担保人，自动带出已保存担保人），
+#             不提供「免押金/零押金」选项；提交后进入信用评测页；
+#   - 支付页：不再二次选择档位（#2357：档位决定回到确认页），只展示服务端计算金额；
+#   - 产物：weapp bundle 里能看到上述行为（此前缺失的断言层）。
 #
 # 用法：bash scripts/verify-2352-weapp.sh <checkout|payment|dist>
-# 产物：docs/evidence/2352/R1w-checkout.txt / R2w-payment.txt / R10-weapp-dist.txt
-#
-# 背景（2026-11-15 发现）：Rev.2 的改动只落在 H5 共享实现（pages/Checkout.jsx、
-# pages/Payment.jsx），weapp 的两份双实现（pages-weapp/Checkout.jsx、
-# pages-weapp/payment/Payment.jsx）未跟进 → weapp 真机上确认页仍选档位、提交后
-# 直接进支付页，评测页永不出现。本脚本把这条链路的断言固定下来。
 set -euo pipefail
 
 MODE="${1:-}"
@@ -26,40 +24,40 @@ case "$MODE" in
     OUT=docs/evidence/2352/R1w-checkout.txt
     {
       echo "PROVENANCE $PROVENANCE"
-      echo "CMD grep -nE 'credit-assessment|免押金|buildOrderDepositPayload|deposit_tier' $CO"
-      grep -nE "credit-assessment|免押金|buildOrderDepositPayload|deposit_tier|担保人" "$CO" || true
+      echo "CMD grep -nE 'depositTierState|差额押金|guarantors|credit-assessment|免押金' $CO"
+      grep -nE "depositTierState|差额押金|guarantors|guarantor|credit-assessment|免押金|deposit_tier" "$CO" || true
     } > "$OUT" 2>&1
 
-    # 正向：单品流与批量流都必须跳评测页
+    # 正向 1：提交后进入评测页（单品 + 批量两条流）
     test "$(grep -c "pages-weapp/credit-assessment/index?order_id=" "$CO")" -ge 2 \
       || { echo "R1w FAIL: weapp checkout must route to credit-assessment on submit (single + cart)" >&2; exit 1; }
-    grep -q "pages-weapp/payment/index?type=rent&id=" "$CO" \
-      && { echo "R1w FAIL: weapp checkout still redirects straight to payment" >&2; exit 1; }
-    # 负例：确认页不得再有档位/免押交互或档位提交（注释提及不算）
-    grep -qE "setDepositTierState|depositTierState|setDepositWaived\(" "$CO" \
-      && { echo "R1w FAIL: legacy deposit-tier toggle state still present" >&2; exit 1; }
-    grep -q "buildOrderDepositPayload" "$CO" && { echo "R1w FAIL: checkout still submits deposit tier" >&2; exit 1; }
-    grep -q "body.deposit_tier" "$CO" && { echo "R1w FAIL: batch body still sends deposit_tier" >&2; exit 1; }
-    echo "PASS: weapp checkout has no tier UI and routes both flows to credit-assessment"
+    # 正向 2：差额押金拉杆 + 2 位担保人校验
+    grep -q "setDepositTierState" "$CO" || { echo "R1w FAIL: 差额押金 toggle missing" >&2; exit 1; }
+    grep -q "差额押金订单需至少选择 2 位担保人" "$CO" || { echo "R1w FAIL: guarantor validation missing" >&2; exit 1; }
+    # 正向 3：自动带出已保存担保人（列表 + 勾选）
+    grep -qE "user/guarantors|guarantorsApi" "$CO" || { echo "R1w FAIL: saved guarantors are not loaded" >&2; exit 1; }
+    # 负例：不得再出现「免押金」zero 档入口（#2352 D1）
+    grep -q "depositTierState === 'zero'" "$CO" && { echo "R1w FAIL: zero-deposit toggle must not exist" >&2; exit 1; }
+    # 负例：不得直跳支付页
+    grep -q "pages-weapp/payment/index?type=rent&id=" "$CO" && { echo "R1w FAIL: checkout must not skip the assessment page" >&2; exit 1; }
+    echo "PASS: weapp checkout offers reduced-deposit toggle + saved guarantors, then routes to assessment"
     ;;
 
   payment)
     OUT=docs/evidence/2352/R2w-payment.txt
     {
       echo "PROVENANCE $PROVENANCE"
-      echo "CMD grep -nE 'buildTierOptions|deposit_tier|guarantor_ids|buildAssessmentRoute|credit-assessment' $PAY"
-      grep -nE "buildTierOptions|deposit_tier|guarantor_ids|buildAssessmentRoute|credit-assessment|selectedGuarantorIds" "$PAY" || true
+      echo "CMD grep -nE 'deposit_tier|buildTierOptions|credit-assessment|guarantor_ids' $PAY"
+      grep -nE "deposit_tier|buildTierOptions|credit-assessment|guarantor_ids|creditGate" "$PAY" || true
     } > "$OUT" 2>&1
 
-    grep -q "buildTierOptions" "$PAY"      || { echo "R2w FAIL: payment page has no tier options" >&2; exit 1; }
-    grep -q "deposit_tier" "$PAY"          || { echo "R2w FAIL: prepay body lacks deposit_tier" >&2; exit 1; }
-    grep -q "guarantor_ids" "$PAY"         || { echo "R2w FAIL: prepay body lacks guarantor_ids" >&2; exit 1; }
-    grep -q "selectedGuarantorIds.length < 2" "$PAY" \
-      || { echo "R2w FAIL: reduced tier does not require 2 guarantors" >&2; exit 1; }
-    # 负例：评测入口不得再拼旧参数（页面已只读 order_id）
-    grep -q "risk_amount_cents=" "$PAY" \
-      && { echo "R2w FAIL: stale risk_amount_cents param still passed to assessment page" >&2; exit 1; }
-    echo "PASS: weapp payment offers full/reduced tiers, requires 2 guarantors, sends tier on prepay"
+    # 负例：支付页不再选择档位（#2357）
+    grep -q "buildTierOptions" "$PAY" && { echo "R2w FAIL: payment page must not offer tier selection anymore" >&2; exit 1; }
+    grep -q "deposit_tier" "$PAY" && { echo "R2w FAIL: prepay must not send deposit_tier (chosen at checkout)" >&2; exit 1; }
+    # 正向：评测入口仍只传 order_id
+    grep -q "credit-assessment/index?order_id=" "$PAY" || { echo "R2w FAIL: assessment entry missing" >&2; exit 1; }
+    grep -q "risk_amount_cents=" "$PAY" && { echo "R2w FAIL: stale risk_amount_cents param" >&2; exit 1; }
+    echo "PASS: weapp payment shows server-calculated amount and no tier selector"
     ;;
 
   dist)
@@ -68,25 +66,19 @@ case "$MODE" in
     test -d "$A" || { echo "R10 FAIL: dist-weapp missing (run build:weapp first)" >&2; exit 1; }
     {
       echo "PROVENANCE $PROVENANCE"
-      echo "CMD grep credit-assessment + 免押金 in $A/pages-weapp/{checkout,payment}/index.js"
-      echo "--- checkout bundle: assessment route hits ---"
-      grep -o "pages-weapp/credit-assessment/index?order_id=" "$A/pages-weapp/checkout/index.js" | wc -l || true
-      echo "--- checkout bundle: legacy zero-deposit toggle hits ---"
-      grep -o "免押金" "$A/pages-weapp/checkout/index.js" | wc -l || true
-      echo "--- payment bundle: deposit_tier hits ---"
-      grep -o "deposit_tier" "$A/pages-weapp/payment/index.js" | wc -l || true
+      echo "checkout bundle: assessment route hits = $(grep -o 'pages-weapp/credit-assessment/index?order_id=' "$A/pages-weapp/checkout/index.js" | wc -l)"
+      echo "checkout bundle: reduced-tier toggle hits = $(grep -o '差额押金' "$A/pages-weapp/checkout/index.js" | wc -l)"
+      echo "checkout bundle: guarantor fetch hits = $(grep -o 'user/guarantors' "$A/pages-weapp/checkout/index.js" | wc -l)"
+      echo "payment bundle: deposit_tier hits = $(grep -o 'deposit_tier' "$A/pages-weapp/payment/index.js" | wc -l)"
     } > "$OUT" 2>&1
 
     grep -q "pages-weapp/credit-assessment/index?order_id=" "$A/pages-weapp/checkout/index.js" \
-      || { echo "R10 FAIL: built weapp checkout bundle has no assessment route" >&2; exit 1; }
-    # 陷阱：文案在产物里可能是 unicode 转义，用 \u 形式再查一次
-    if grep -q "免押金" "$A/pages-weapp/checkout/index.js" || grep -q 'u514d\\u62bc\\u91d1' "$A/pages-weapp/checkout/index.js"; then
-      echo "R10 FAIL: built weapp checkout bundle still contains 免押金 toggle copy" >&2
-      exit 1
-    fi
+      || { echo "R10 FAIL: built checkout bundle has no assessment route" >&2; exit 1; }
+    grep -q "user/guarantors" "$A/pages-weapp/checkout/index.js" \
+      || { echo "R10 FAIL: built checkout bundle does not load saved guarantors" >&2; exit 1; }
     grep -q "deposit_tier" "$A/pages-weapp/payment/index.js" \
-      || { echo "R10 FAIL: built weapp payment bundle does not send deposit_tier" >&2; exit 1; }
-    echo "PASS: weapp bundles route to assessment and carry tier choice"
+      && { echo "R10 FAIL: built payment bundle still sends deposit_tier" >&2; exit 1; }
+    echo "PASS: weapp bundles carry confirm-page tier choice and assessment routing"
     ;;
 
 esac

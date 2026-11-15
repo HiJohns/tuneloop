@@ -10,7 +10,8 @@ describe('buildTierOptions (#2352)', () => {
     expect(tiers).not.toContain(DEPOSIT_TIER.ZERO)
     const full = opts.find((o) => o.tier === DEPOSIT_TIER.FULL)
     const reduced = opts.find((o) => o.tier === DEPOSIT_TIER.REDUCED)
-    expect(full.requiresAssessment).toBe(false)
+    // #2352 F2（Owner 裁定）：全额档同样要求评测通过
+    expect(full.requiresAssessment).toBe(true)
     expect(full.requiresGuarantors).toBe(false)
     expect(reduced.requiresAssessment).toBe(true)
     expect(reduced.requiresGuarantors).toBe(true)

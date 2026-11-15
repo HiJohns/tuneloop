@@ -82,8 +82,9 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
   const [rentalCalcLoading, setRentalCalcLoading] = useState(false)
   const [daysInputText, setDaysInputText] = useState('30')
 
-  // #2352 Rev.2 D3 / #2356-weapp: 确认页不做档位选择（全额/差额在支付页自选），
-  // 也不采集担保人/推荐信（内部资格 #1867 仅保留历史订单兼容）。
+  // #2357（Owner 2026-11-15 改判）：差额押金在确认页用拉杆选择，需 2 位担保人。
+  const [depositTierState, setDepositTierState] = useState('full')
+  const depositWaived = depositTierState === 'reduced'
   // #1867: deposit-free eligibility + recommendation letter
   const [waiver, setWaiver] = useState(null)
   const [letterUrl, setLetterUrl] = useState('')
@@ -221,8 +222,8 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
   const deposit = pricingV2?.deposit ?? instrument?.deposit ?? parsePricing(instrument?.pricing)[0]?.deposit ?? 0
   const isZeroDeposit = Number(deposit) === 0
   const canReduceDeposit = !isZeroDeposit && depositReduced != null
-  // 确认页只展示全额押金；零押金乐器（全额=0）显示 0。
-  const effectiveDeposit = isZeroDeposit ? 0 : deposit
+  // 确认页：默认全额；打开差额拉杆后按 deposit_reduced 计价。
+  const effectiveDeposit = depositWaived && canReduceDeposit ? Number(depositReduced) : (isZeroDeposit ? 0 : deposit)
   // Shipping fee is not determined at order time (#1570): the staff fills
   // the actual fee at dispatch, and it is not charged at checkout.
   const totalAmount = totalRent + effectiveDeposit
@@ -274,7 +275,11 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
       dialog.alert(t("请填写收货人"))
       return
     }
-    // #2352 Rev.2 D3: 确认页不采集担保人/推荐信（改在支付页选档位）。
+    // #2357: 差额档需 ≥2 位本人担保人（在确认页选择）
+    if (depositWaived && selectedGuarantorIds.length < 2) {
+      dialog.alert(t("差额押金订单需至少选择 2 位担保人"))
+      return
+    }
 
     const token = getToken()
     let role = ''
@@ -485,6 +490,119 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
             {pricingV2?.tiers?.length > 0 && <Text style={{ marginLeft: 4 }}>{t("· 阶梯计价")}</Text>}
           </View>
         </View>
+
+        {/* #2357（Owner 2026-11-15 改判）：差额押金回到确认页，用拉杆展开；
+            全额押金=0 的乐器不显示该拉杆（零押金场景）。 */}
+
+        {canReduceDeposit && (
+        <View style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12 }}>
+          <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} onClick={() => {
+            setDepositTierState(depositTierState === 'reduced' ? 'full' : 'reduced')
+          }}>
+            <Text style={{ fontWeight: '900', color: '#000' }}>{t("差额押金（减免）")}</Text>
+            <View style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: depositWaived ? '#915F38' : '#d4d4d8', position: 'relative', flexShrink: 0 }}>
+              <View style={{ position: 'absolute', top: 2, left: depositWaived ? 22 : 2, width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', transition: 'left 0.2s' }} />
+            </View>
+          </View>
+          <Text style={{ fontSize: 11, color: '#a1a1aa', marginTop: 6 }}>
+            {t("差额押金需 2 位担保人 + 微信信用评测")}
+          </Text>
+
+          {depositWaived && (
+            <View style={{ marginTop: 12, borderTop: '1px dashed #e4e4e7', paddingTop: 12 }}>
+              <View style={{ backgroundColor: '#fffbeb', border: '1px solid #fef3c7', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                <Text style={{ fontSize: 12, color: '#b45309', lineHeight: '18px' }}>{t("应提供两位担保人的联系方式。我们的员工将会与他们联系确认。")}</Text>
+              </View>
+
+              {guarantors.length > 0 && (
+                <View style={{ marginBottom: 10 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 6 }}>{t("已保存担保人")}</Text>
+                  {guarantors.map(g => (
+                    <View key={g.id} style={{ display: 'flex', alignItems: 'center', padding: 10, border: selectedGuarantorIds.includes(g.id) ? '1px solid #915F38' : '1px solid #e4e4e7', borderRadius: 8, backgroundColor: selectedGuarantorIds.includes(g.id) ? '#fffbeb' : 'transparent', marginBottom: 8 }}
+                      onClick={() => toggleGuarantor(g.id)}>
+                      <View style={{ width: 16, height: 16, borderRadius: 4, border: '1px solid #d4d4d8', backgroundColor: selectedGuarantorIds.includes(g.id) ? '#915F38' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 10, flexShrink: 0 }}>
+                        {selectedGuarantorIds.includes(g.id) && <Text style={{ color: '#fff', fontSize: 10 }}>✓</Text>}
+                      </View>
+                      <View style={{ flex: '1 1 0%', minWidth: 0 }}>
+                        <Text style={{ fontSize: 13, fontWeight: '600', color: '#000' }}>{g.name} · {g.phone}</Text>
+                        <Text style={{ fontSize: 11, color: '#9ca3af' }}>{[g.company, g.title].filter(Boolean).join(' / ') || '-'}</Text>
+                        {g.address && <Text style={{ fontSize: 11, color: '#9ca3af' }}>{g.address}</Text>}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {showAddGuarantor && (
+                <View style={{ backgroundColor: '#fafafa', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 8 }}>{t("新增担保人")}</Text>
+                  <View style={{ display: 'flex', marginBottom: 8 }}>
+                    <View style={{ flex: '1 1 0%', marginRight: 8 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("姓名*")}</Text>
+                      <Input value={newGuarantor.name} onInput={e => setNewGuarantor(prev => ({ ...prev, name: e.detail.value }))} placeholder={t("担保人姓名")}
+                        style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
+                    </View>
+                    <View style={{ flex: '1 1 0%' }}>
+                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("电话*")}</Text>
+                      <Input value={newGuarantor.phone} onInput={e => setNewGuarantor(prev => ({ ...prev, phone: e.detail.value }))} placeholder={t("手机号")}
+                        style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
+                    </View>
+                  </View>
+                  <View style={{ display: 'flex', marginBottom: 8 }}>
+                    <View style={{ flex: '1 1 0%', marginRight: 8 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("公司/单位")}</Text>
+                      <Input value={newGuarantor.company} onInput={e => setNewGuarantor(prev => ({ ...prev, company: e.detail.value }))} placeholder={t("公司/单位")}
+                        style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
+                    </View>
+                    <View style={{ flex: '1 1 0%' }}>
+                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("职务")}</Text>
+                      <Input value={newGuarantor.title} onInput={e => setNewGuarantor(prev => ({ ...prev, title: e.detail.value }))} placeholder={t("职务")}
+                        style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
+                    </View>
+                  </View>
+                  <View style={{ marginBottom: 8 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("身份证号*")}</Text>
+                    <Input value={newGuarantor.id_card_no} onInput={e => setNewGuarantor(prev => ({ ...prev, id_card_no: e.detail.value }))} placeholder={t("18位身份证号")}
+                      style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
+                  </View>
+                  <View style={{ marginBottom: 8 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("地址*")}</Text>
+                    <Input value={newGuarantor.address} onInput={e => setNewGuarantor(prev => ({ ...prev, address: e.detail.value }))} placeholder={t("联系地址")}
+                      style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
+                  </View>
+                  {/* #1782: ID photo uploads */}
+                  <View style={{ display: 'flex', width: '100%', marginBottom: 8, flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                    <View style={{ width: '30%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>{t("身份证正面*")}</Text>
+                      <IdPhotoUploader side="front" onChange={onFrontPhotoChange} />
+                    </View>
+                    <View style={{ width: '30%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>{t("身份证反面*")}</Text>
+                      <IdPhotoUploader side="back" onChange={setGPhotoBack} />
+                    </View>
+                    <View style={{ width: '30%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>{t("其他证件*")}</Text>
+                      <IdPhotoUploader side="other" onChange={setGPhotoOther} />
+                    </View>
+                  </View>
+                  <Button onClick={savingGuarantor ? undefined : handleSaveGuarantor}
+                    style={{ width: '100%', backgroundColor: savingGuarantor ? 'rgba(145,95,56,0.5)' : '#915F38', color: '#fff', borderRadius: 8, fontWeight: '700', fontSize: 14, textAlign: 'center', padding: '10px 0', lineHeight: '20px', margin: 0 }}>
+                    {savingGuarantor ? '保存中...' : '保存担保人'}
+                  </Button>
+                </View>
+              )}
+
+              <Text style={{ fontSize: 13, color: '#915F38', marginBottom: 8 }} onClick={() => setShowAddGuarantor(!showAddGuarantor)}>
+                {showAddGuarantor ? '− 收起' : '+ 新增担保人'}
+              </Text>
+
+              <Text style={{ fontSize: 12, color: selectedGuarantorIds.length < 2 ? '#ef4444' : '#16a34a', fontWeight: '600' }}>
+                {selectedGuarantorIds.length >= 2 ? `已选 ${selectedGuarantorIds.length} 位担保人` : `已选 ${selectedGuarantorIds.length}/2（需至少 2 位担保人）`}
+              </Text>
+            </View>
+          )}
+        </View>
+        )}
 
         <View style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12 }}>
           <Text style={{ fontWeight: '900', color: '#000', marginBottom: 12 }}>{t("费用明细")}</Text>
