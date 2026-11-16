@@ -111,6 +111,26 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 		}
 	}
 
+	// #2375：直属成员角色（merchant_members），作为 site_members 之后的第二优先级。
+	merchantRoleByUser := map[string]string{}
+	if len(users) > 0 {
+		var mmRows []struct {
+			UserID string
+			Role   string
+		}
+		mmUserIDs := make([]string, 0, len(users))
+		for _, u := range users {
+			mmUserIDs = append(mmUserIDs, u.ID)
+		}
+		db.Table("merchant_members").
+			Select("user_id, role").
+			Where("user_id IN ? AND tenant_id = ?", mmUserIDs, tenantID).
+			Scan(&mmRows)
+		for _, r := range mmRows {
+			merchantRoleByUser[r.UserID] = r.Role
+		}
+	}
+
 	var result []gin.H
 	for _, user := range users {
 		item := gin.H{
@@ -126,10 +146,14 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 			"created_at": user.CreatedAt,
 			"updated_at": user.UpdatedAt,
 		}
+		mmRole := merchantRoleByUser[user.ID]
 		if usi, ok := userSiteMap[user.ID]; ok {
 			item["site_id"] = usi.SiteID
 			item["site_name"] = usi.SiteName
 			item["role"] = usi.Role
+		} else if mmRole != "" {
+			// #2375：直属成员（无网点）→ merchant_members.role；否则保持 users.role。
+			item["role"] = mmRole
 		}
 		result = append(result, item)
 	}
@@ -418,6 +442,8 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	}
 	user.ForcePasswordChange = req.ForcePasswordChange
 
+	// #2375 D1：角色分配失败只警告、不回滚创建（data.role_errors）。
+	roleErrors := make([]gin.H, 0)
 	if orgID != "" && user.IAMSub != "" {
 		userToken := services.ExtractUserToken(c)
 		operatorID := middleware.GetUserID(c.Request.Context())
@@ -445,16 +471,23 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 
 		nsID := middleware.GetNamespaceID(c.Request.Context())
 		if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
+			found := false
 			for _, t := range templates {
 				if t.Code == resolvedRole {
+					found = true
 					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, user.IAMSub, orgID, t.Code); err != nil {
 						log.Printf("[CreateUser] AssignRoleTemplateToUserWithToken failed for user %s code %s: %v", user.IAMSub, resolvedRole, err)
+						roleErrors = append(roleErrors, gin.H{"code": t.Code, "error": err.Error()})
 					}
 					break
 				}
 			}
+			if !found {
+				roleErrors = append(roleErrors, gin.H{"code": resolvedRole, "error": "role template not found in namespace"})
+			}
 		} else {
 			log.Printf("[CreateUser] ListRoleTemplates failed: %v", err)
+			roleErrors = append(roleErrors, gin.H{"code": resolvedRole, "error": "failed to list role templates: " + err.Error()})
 		}
 	}
 
@@ -544,6 +577,9 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	}
 	if technicianProfileID != "" {
 		respData["technician_profile_id"] = technicianProfileID // #2068: 供前端创建后上传照片
+	}
+	if len(roleErrors) > 0 {
+		respData["role_errors"] = roleErrors
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -696,6 +732,7 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 		Email    string     `json:"email"`
 		Position string     `json:"position"`
 		SiteID   *uuid.UUID `json:"site_id"`
+		Role     string     `json:"role"` // #2375：主角色变更（白名单）
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -740,6 +777,21 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 			"data":    conflicts,
 		})
 		return
+	}
+
+	// #2375：角色白名单（禁止提权到商户负责人/平台角色）。
+	roleErrors := make([]gin.H, 0)
+	newRole := strings.TrimSpace(req.Role)
+	if req.Role != "" && newRole == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "role must not be blank"})
+		return
+	}
+	if newRole != "" {
+		allowed := map[string]bool{"site_member": true, "site_admin": true, "merchant_staff": true, "repair_technician": true}
+		if !allowed[newRole] {
+			c.JSON(http.StatusForbidden, gin.H{"code": 40301, "message": "role not allowed: only site_member/site_admin/merchant_staff/repair_technician"})
+			return
+		}
 	}
 
 	// Update user
@@ -841,15 +893,61 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 		}
 	}
 
-	if err := db.Model(&models.User{}).Where("id = ?", userID).Updates(updates).Error; err != nil {
+	if newRole != "" {
+		updates["role"] = newRole
+		// IAM 同步：失败进 role_errors（不阻断本地更新，D3/#2375）。
+		if existingUser.IAMSub != "" {
+			orgID := existingUser.OrgID
+			if orgID == "" {
+				orgID = tenantID
+			}
+			userToken := services.ExtractUserToken(c)
+			iamClient := services.NewIAMClient()
+			if err := iamClient.UpdateUserRoleInOrgWithToken(userToken, orgID, existingUser.IAMSub, toIAMRole(newRole)); err != nil {
+				roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "update IAM role: " + err.Error()})
+			}
+			if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, existingUser.IAMSub, orgID, newRole); err != nil {
+				roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "assign role template: " + err.Error()})
+			}
+		}
+	}
+
+	if err := db.Model(&models.User{}).Where("id = ? AND tenant_id = ?", userID, tenantID).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update user: " + err.Error()})
 		return
 	}
 
+	// #2375：本地目标域同步（网点/商户直属），保持单一主角色（D4）。
+	if newRole != "" {
+		if err := db.Model(&models.SiteMember{}).
+			Where("user_id = ? AND tenant_id = ?", userID, tenantID).
+			Updates(map[string]interface{}{"role": newRole, "roles": []string{newRole}}).Error; err != nil {
+			log.Printf("[UpdateUser] site_members role sync failed user=%s: %v", userID, err)
+			roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "sync site_members: " + err.Error()})
+		}
+		if err := db.Model(&models.MerchantMember{}).
+			Where("user_id = ? AND tenant_id = ?", userID, tenantID).
+			Update("role", newRole).Error; err != nil {
+			log.Printf("[UpdateUser] merchant_members role sync failed user=%s: %v", userID, err)
+			roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "sync merchant_members: " + err.Error()})
+		}
+		writeAuditLog(db, tenantID, middleware.GetUserID(c.Request.Context()), "user.role_update", "user", userID, map[string]interface{}{
+			"from": existingUser.Role,
+			"to":   newRole,
+		})
+	}
+
+	respData := gin.H{"id": userID}
+	if newRole != "" {
+		respData["role"] = newRole
+	}
+	if len(roleErrors) > 0 {
+		respData["role_errors"] = roleErrors
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
 		"message": "success",
-		"data":    gin.H{"id": userID},
+		"data":    respData,
 	})
 }
 

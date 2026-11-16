@@ -251,6 +251,9 @@ export default function StaffManagement() {
         } else {
           Modal.error({ title: '无法创建', content: '请填写邮箱（走邀请）或设置密码（自动生成/手动设置）' })
         }
+        if (result.data?.role_errors?.length > 0) {
+          message.warning('已创建，但部分角色权限分配失败，可在成员详情中重新分配')
+        }
         // #2073: 全类型照片 → 头像（创建后经管理员媒体管线上传）
         if (result.data?.id && createPhotoFile) {
           try {
@@ -441,6 +444,16 @@ export default function StaffManagement() {
       key: 'site_name',
       width: 150,
       render: (siteName) => siteName || '-'
+    },
+    {
+      title: '角色',
+      dataIndex: 'role',
+      key: 'role',
+      width: 130,
+      render: (role) => {
+        const roleMap = { site_admin: '管理员', site_member: '成员', merchant_staff: '商户直属员工', repair_technician: '维修师傅', STAFF: '成员', WORKER: '员工' }
+        return roleMap[role] || role || '-'
+      }
     },
     {
       title: '职位',

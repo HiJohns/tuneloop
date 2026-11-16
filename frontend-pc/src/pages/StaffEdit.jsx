@@ -64,6 +64,9 @@ export default function StaffEdit() {
         } else {
           message.success('更新用户成功')
         }
+        if (result.data?.role_errors?.length > 0) {
+          message.warning('已保存，但部分角色权限同步失败，可在成员详情中重新分配')
+        }
         navigate('/staff')
       }
     } catch (error) {
@@ -97,11 +100,12 @@ export default function StaffEdit() {
               ))}
             </Select>
           </Form.Item>
-          <Form.Item name="role" label="角色">
-            <Select>
-                    <Select.Option value="site_admin">管理员</Select.Option>
-                    <Select.Option value="site_member">成员</Select.Option>
-                    <Select.Option value="repair_technician">维修师傅</Select.Option>
+          <Form.Item name="role" label="角色" extra="仅支持：管理员 / 成员 / 商户直属员工 / 维修师傅">
+            <Select allowClear>
+              <Select.Option value="site_admin">管理员</Select.Option>
+              <Select.Option value="site_member">成员</Select.Option>
+              <Select.Option value="merchant_staff">商户直属员工</Select.Option>
+              <Select.Option value="repair_technician">维修师傅</Select.Option>
             </Select>
           </Form.Item>
           <Space>
