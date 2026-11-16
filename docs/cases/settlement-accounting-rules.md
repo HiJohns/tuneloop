@@ -93,3 +93,72 @@
 - **#2283** P5 历史数据回填（用户书面授权，先 dry-run）
 
 每个执行 Issue 的验收：组合矩阵行级断言 `Paid − Refunded = CashPaid`（缺陷版 FAIL → 修复版 PASS）+ ≥3 笔真实订单 replay。
+
+## 10. 结算退款分账户模型（2026-11-16 评审后）
+
+> 详细算法与推演见 `docs/cases/settlement-refund-spec-v2.md`；本条是可执行口径的摘要，与 §1–§8 并列生效。
+
+### 10.1 三条原则
+
+| # | 原则 |
+|---|---|
+| P1 | **押金 ≠ 折扣**：押金独立账户，归还时退还（可扣逾期/定损/物流），不参与租金折算、不作乐币基数 |
+| P2 | **应付租金按标价重算**：`R_actual = 标价日租 × 实际天数`（含阶梯），禁止用「实付 ÷ 标价」倒推日租 |
+| P3 | **乐币只抵租金且有上限**：`cap = floor(R_actual × ratio_snapshot)`；超额退点、少用不补、不折现 |
+
+### 10.2 分账户公式（金额整数分 / 乐币整数点）
+
+```text
+# 乐币
+cap        = floor(R_actual × ratio_snapshot)
+p_consumed = min(p_used, cap)
+p_refund   = p_used − p_consumed
+
+# 租金账户（现金）
+rent_cash_paid      = cash_paid − deposit_collected
+rent_cash_due       = R_actual − p_consumed
+rent_refund         = max(0, rent_cash_paid − rent_cash_due)
+rent_shortfall      = max(0, rent_cash_due − rent_cash_paid)
+
+# 押金账户（deductions = 逾期 + 定损 + 物流）
+deposit_deductions  = min(deposit_collected, deductions)
+deposit_refund      = deposit_collected − deposit_deductions
+other_fee_shortfall = max(0, deductions − deposit_collected)
+
+# 汇总（执行层）
+cash_refundable = rent_refund + deposit_refund
+cash_payable    = rent_shortfall + other_fee_shortfall
+net_cash        = cash_refundable − cash_payable
+```
+
+### 10.3 不变量（实现与测试必须校验）
+
+```text
+net_cash + p_refund = cash_paid + p_used − R_actual − deductions
+```
+
+### 10.4 已确认决议（2026-11-16）
+
+| # | 决议 |
+|---|---|
+| Q8 | 新单**必须足额收款**：`cash_paid = R_list − p_used + deposit`；历史少收单标 `legacy_underpaid` 不追溯 |
+| Q11 | 乐币比例取**下单快照**（`points_policy_snapshot`），不溯既往；缺快照 fallback 最新并标 `legacy_policy` |
+| Q13 | **执行层净额结清**（多退少补一次完成）；核算仍分账户，账本保留两条以上分录 |
+
+### 10.5 净额结清的三条硬约束
+
+1. **协议授权**：押金可扣项（逾期/定损/物流）须在《租用服务协议》中明示，账单逐项列明依据；
+2. **争议不抵扣**：申诉进行中的争议金额挂起（`disputed_amount`），只结清无争议部分；
+3. **账本分离**：现金按 `net_cash` 一次收/付，但账本保留「租金退款 / 押金退款 / 额外费用补缴」分账户分录与幂等键。
+
+### 10.6 与既有条款的关系
+
+- §1 `cash_paid` = 现金净实收（含押金）保持不变；
+- §3 续租 `term_version` 快照不可变 → 作为 `R_actual` 的计算基础；
+- §6 返点基数沿用 `CashBasis`（实收现金）；本模型明确其**不含押金**（押金为代收代付，非收入）；
+- 历史已结算订单**不按本模型重算**，保留原 `algorithm_version`。
+
+### 10.7 待确认（不阻塞文档定稿）
+
+Q1 乐币基数=实际标价租金、Q2 floor、Q3 整数分、Q4 扣款顺序 逾期→定损→物流、Q5 押金不抵租金、
+Q6 续费同合同累计、Q7 历史不重算、Q9 乐币原路冲正、Q10 取消三档、Q12 阶梯按实际天数重算。

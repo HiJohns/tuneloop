@@ -331,9 +331,9 @@ steps:
 
 ## 关键规则
 - 物流费：发货时员工填写（#1541），下单时不显示（#1570）
-- 结算：`R = Ra + De - Dd - O - Re`（§2.7）
-- **乐币抵扣（初次付款+续费通用）**：付款总额 `R0 = C0 + A0`，其中 `A0`（乐币抵扣）≤ `floor(R0 × 会员级别抵扣比例)`，`C0`（现金）为微信实付。比例由乐币规则配置（L-05）
-- **退款差额**：退款时按调整后应付 `R1` 与当前级别使用比例重算赠点上限 `A1`；`A1 < A0` 时退 `A0−A1` 到赠点账户、退 `C0−C1` 到微信（详见 L-06）
+- 结算：**分账户**（租金 / 押金 / 额外费用）分别核算，执行层按净额一次收付 —— 公式见 **L-06 v2**
+- **乐币抵扣（初次付款+续费通用）**：`A0 ≤ floor(合同标价租金 × pay_ratio)`（**不含押金**；比例取**下单快照** `points_policy_snapshot`，不溯既往）；现金 `C0 = 合同标价租金 − A0`，押金 `De` 单列
+- **退款差额**：按实际标价租金 `R1` 重算 `cap1 = floor(R1 × ratio_snapshot)`；`p_refund = max(0, A0 − cap1)`（超额才退，少用不折现、不补发）；租金现金差额与押金退款分账户核算（详见 **L-06 v2**）
 - **累计花销口径**：`total_spending` 按 `C1`（实付现金）累计，不含赠点面值——避免赠点循环放大（详见 L-06）
 
 ---
@@ -395,8 +395,8 @@ steps:
 
 ## 关键规则
 - 实际天数 = CalculateDays(start_date, returned_at)
-- 退款 = Ra + De - Re（无逾期/损坏时）
-- **乐币差额**：按 L-06 差额结算执行（A1 重算、C1 累计、完成通知）
+- 退款按 **L-06 v2 分账户**：租金账户差额（`R_actual` 标价重算）+ 押金账户退款（无逾期/损坏时全额）+ 乐币超额退回
+- **乐币差额**：`cap1 = floor(R_actual × ratio_snapshot)`、`p_refund = max(0, p_used − cap1)`（少用不补、不折现）
 
 ---
 id: L-03
@@ -615,9 +615,10 @@ steps:
 5. 三路径最终都呈现标准退款收据（seq 8），差额 = 最初实付 − 实需付款；**三路径退款/补缴通知统一含感谢语 + 收据明细（颗粒度 = 订单详情费用明细：实付金额 / 实际租期与租金 / 结算行（原始租金、实收租金、实际天数、可退现金、退款方式状态）/ 收支明细）**
 
 ## 关键规则
-- **退款分流判定（#1745）**：应付总额（实际租金 + 物流费 + 逾期费 + 损坏赔偿）vs 已付总额（现金实付 + 赠点抵扣 + 押金可抵）：
-  - 应付 ≤ 已付 → **自动退款**（差额退回，L-06 分账）
-  - 应付 > 已付（**含免押金/优惠码少付场景**）→ **补缴**（L-04C），差额 = 应付 − 已付
+- **退款分流判定（#1745 / v2）**：按 **L-06 v2 分账户**计算 `net_cash`：
+  - `net_cash > 0` → **自动退款**（净额一次退回；账本保留租金/押金两条分录）
+  - `net_cash < 0` → **补缴**（净额一次收取，差额 = `rent_shortfall + other_fee_shortfall`）
+  - 申诉进行中的争议金额**挂起不抵扣**，仅结清无争议部分
 - 员工退款按钮保留为 `deposit_refunding` 状态的兜底入口（自动流程失败时人工触发，POST /orders/:id/refund）
 - 终审后通知**同时**发顾客（结果）与员工（待退款链接）
 - 支付页收据必须含「乐器 SN（分类）」行与赠点/现金分账明细（L-06）
@@ -834,7 +835,7 @@ steps:
   - seq: 2
     action: 系统差额结算（内部）
     frontend: []
-    api: {method: POST, path: /orders/:id/refund, params: [], internal: "A1=floor(R1×pay_ratio); 退乐币=A0−A1; 退现金=C0−C1; C1=R1−A1"}
+    api: {method: POST, path: /orders/:id/refund, params: [], internal: "L-06 v2 分账户：cap=floor(R_actual×ratio_snapshot); p_refund=max(0,p_used−cap); rent_cash_paid=cash_paid−deposit; rent_cash_due=R_actual−min(p_used,cap); rent_refund=max(0,rent_cash_paid−rent_cash_due); rent_shortfall=max(0,−(...)); deposit_refund=deposit−min(deposit,deductions); other_fee_shortfall=max(0,deductions−deposit); net_cash=rent_refund+deposit_refund−rent_shortfall−other_fee_shortfall"}
   - seq: 3
     action: 关单并累计花销（内部）
     frontend: []
@@ -862,15 +863,26 @@ steps:
 
 ## 流程
 1. 员工触发退款 → `POST /orders/:id/refund`
-2. **差额结算**：按调整后应付租金 `R1` 与当前级别抵扣比例算 `A1 = floor(R1 × pay_ratio)`：
-   - 若 `A1 < A0`：退 `A0−A1` 回原批次（保留原到期日），退 `C0−C1` 回微信（`C1 = R1 − A1`）
-   - 若 `A1 ≥ A0`：乐币不退，退现金 `C0 − C1`（`C1 = R1 − A0`，乐币保持 A0）
-   - 校验：`退乐币 + 退现金 = R0 − R1`（总差额守恒）
+2. **差额结算（v2 分账户，2026-11-16 评审后）**：
+   - **乐币**：`cap = floor(R_actual × ratio_snapshot)`；`p_consumed = min(p_used, cap)`；`p_refund = p_used − p_consumed`
+     （超额退点，回原批次并保留原到期日；少用不补发、不折现）
+   - **租金账户**：`rent_cash_paid = cash_paid − deposit`；`rent_cash_due = R_actual − p_consumed`；
+     `rent_refund = max(0, paid − due)`；`rent_shortfall = max(0, due − paid)`
+   - **押金账户**：`deposit_deductions = min(deposit, deductions)`（deductions = 逾期 + 定损 + 物流）；
+     `deposit_refund = deposit − deposit_deductions`；`other_fee_shortfall = max(0, deductions − deposit)`
+   - **汇总**：`cash_refundable = rent_refund + deposit_refund`；`cash_payable = rent_shortfall + other_fee_shortfall`；
+     `net_cash = cash_refundable − cash_payable`（**执行层按净额一次收/付**，账本保留分账户分录）
+   - 校验（守恒）：`net_cash + p_refund = cash_paid + p_used − R_actual − deductions`
+   - **押金不得抵扣租金缺口**；**争议金额不抵扣**（申诉中原额挂起，仅结清无争议部分）
 3. **关单**：订单状态 → `completed`（已完成/done）；`total_spending += C1`（实付现金口径）
 4. **通知**：发送订单完成通知——完整收据 + 感谢语 + 乐币退回（A0−A1）+ 会员中心链接
 
 ## 关键规则
-- **累计花销口径 = C1**：仅实付现金累计 total_spending，不含乐币面值（防乐币循环放大；行业惯例：航司里程/信用卡积分/电商成长值均按实付）
+- **三条不可违反的口径（v2）**：① 押金 ≠ 折扣（独立账户、独立退还）；② 应付租金按标价重算（禁止用实付/标价倒推日租）；③ 乐币只退超额（`p_refund = max(0, p_used − cap)`）
+- **乐币比例取下单快照**（`points_policy_snapshot`），政策变更不溯既往；缺快照老单 fallback 最新并标 `legacy_policy`
+- **新单必须足额收款**：`cash_paid = 合同标价租金 − p_used + deposit`；历史少收单标 `legacy_underpaid`，不追溯
+- **净额结清的三条硬约束**：协议授权（押金可扣项须在《租用服务协议》明示）/ 争议不抵扣（申诉挂起）/ 账本分账户（净额只作用于现金动作）
+- **累计花销口径 = 实付现金租金（`rent_cash_due`，不含押金、不含乐币面值）**：防止乐币循环放大（行业惯例：按实付现金计）
 - **不再发放退款返点**（#1945 取消"退款返点给自己"，`refund_ratio`/`refund_rebate` 已移除）
 - 支付快照必须存 `pay_ratio`（修复：PointsPolicySnapshot 此前仅存 scope_type/scope_id，cap_rate 恒为 0）
 - 支付回调使用乐币后必须同步扣减 `cash_paid`（防结算双计）
