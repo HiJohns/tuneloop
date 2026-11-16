@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { act, cleanup, fireEvent, screen } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import Taro from '@tarojs/taro'
 
 import H5Home from '../../src/pages/Home'
 import WeappHome from '../../src/pages-weapp/Home'
@@ -309,6 +310,7 @@ describe('weapp home price sort', () => {
 describe('home price sort layout', () => {
   afterEach(() => {
     cleanup()
+    vi.restoreAllMocks()
     setViewportWidth(375)
   })
 
@@ -330,6 +332,39 @@ describe('home price sort layout', () => {
     const narrowPill = Array.from(document.querySelectorAll('div')).find(node => node.style.width === '52px' && node.style.position === 'absolute')
     expect(narrowScroller).toBeTruthy()
     expect(narrowPill).toBeTruthy()
+    expect(16 + 236).toBeLessThanOrEqual(320 - 8 - 52)
+  })
+
+  it('keeps the 52px pill clear of the category viewport in weapp at 375 and 320', async () => {
+    const renderWeappAt = async (width) => {
+      vi.spyOn(Taro, 'getSystemInfoSync').mockReturnValue({
+        windowWidth: width,
+        windowHeight: 667,
+        statusBarHeight: 20,
+        platform: 'devtools',
+      })
+      vi.spyOn(Taro, 'getMenuButtonBoundingClientRect').mockReturnValue({
+        top: 10,
+        height: 32,
+        right: width - 10,
+        left: width - 75,
+        width: 65,
+      })
+      installHomeFetch()
+      await renderHome(WeappHome)
+    }
+    const findWidth = (width) => Array.from(document.querySelectorAll('div')).find(node => node.style.width === width)
+    const findPill = () => Array.from(document.querySelectorAll('div')).find(node => node.style.width === '52px' && node.style.position === 'absolute')
+
+    await renderWeappAt(375)
+    expect(findWidth('291px')).toBeTruthy()
+    expect(findPill()).toBeTruthy()
+    expect(16 + 291).toBeLessThanOrEqual(375 - 8 - 52)
+
+    cleanup()
+    await renderWeappAt(320)
+    expect(findWidth('236px')).toBeTruthy()
+    expect(findPill()).toBeTruthy()
     expect(16 + 236).toBeLessThanOrEqual(320 - 8 - 52)
   })
 })
