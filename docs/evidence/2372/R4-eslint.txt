@@ -1,0 +1,10 @@
+
+/home/coder/tuneloop/frontend-pc/src/pages/StaffManagement.jsx
+  71:5  warning  'fetchStaffList' was used before it was defined                                                                                                                                                                                              no-use-before-define
+  72:5  warning  'fetchSiteTree' was used before it was defined                                                                                                                                                                                               no-use-before-define
+  77:6  warning  React Hook useEffect has a missing dependency: 'fetchStaffList'. Either include it or remove the dependency array                                                                                                                            react-hooks/exhaustive-deps
+  80:5  warning  'fetchStaffList' was used before it was defined                                                                                                                                                                                              no-use-before-define
+  81:6  warning  React Hook useEffect has a missing dependency: 'fetchStaffList'. Either include it or remove the dependency array. Mutable values like 'pagination.current' aren't valid dependencies because mutating them doesn't re-render the component  react-hooks/exhaustive-deps
+
+✖ 5 problems (0 errors, 5 warnings)
+
