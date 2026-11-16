@@ -1373,6 +1373,24 @@ func (h *UserStaffHandler) ResetPassword(c *gin.Context) {
 		return
 	}
 
+	// #2389：全部目标用户都没有邮箱 → 邮件重置必然“假成功”，显式 400（D2）。
+	if len(users) > 0 {
+		allWithoutEmail := true
+		for _, user := range users {
+			if strings.TrimSpace(user.Email) != "" {
+				allWithoutEmail = false
+				break
+			}
+		}
+		if allWithoutEmail {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40002,
+				"message": "该账号未配置邮箱，无法通过邮件重置，请使用管理员直设密码",
+			})
+			return
+		}
+	}
+
 	var iamSubs []string
 	for _, user := range users {
 		if user.IAMSub != "" {

@@ -485,7 +485,14 @@ export default function StaffManagement() {
             type="link"
             size="small"
             icon={<MailOutlined />}
-              onClick={() => navigate(`/staff/${record.id}/reset-password`, { state: { user: record } })}
+            onClick={() => {
+              // #2389：无邮箱账号不走邮件重置；入口直接拦截（不跳转、不发请求）。
+              if (!String(record.email || '').trim()) {
+                message.warning('该账号未配置邮箱，需管理员直设密码（功能对接中）')
+                return
+              }
+              navigate(`/staff/${record.id}/reset-password`, { state: { user: record } })
+            }}
           >
             重设密码
           </Button>

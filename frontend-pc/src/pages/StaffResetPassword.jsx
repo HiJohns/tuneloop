@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { Card, Button, Form, Input, Radio, Checkbox, Space, message, Descriptions } from 'antd'
+import { Card, Button, Form, Input, Radio, Checkbox, Space, message, Descriptions, Alert } from 'antd'
 import { staffApi } from '../services/api'
 
 export default function StaffResetPassword() {
@@ -19,7 +19,14 @@ export default function StaffResetPassword() {
     }
   }, [])
 
+  // #2389：无邮箱账号禁止走邮件重置（直接访问 URL 也兜底）。
+  const noEmail = !!user && !String(user.email || '').trim()
+
   const handleSubmit = async () => {
+    if (noEmail) {
+      message.warning('该账号未配置邮箱，需管理员直设密码（功能对接中）')
+      return
+    }
     setLoading(true)
     try {
       const values = form.getFieldsValue()
@@ -52,7 +59,17 @@ export default function StaffResetPassword() {
           <Descriptions.Item label="手机号">{user.phone || '-'}</Descriptions.Item>
         </Descriptions>
 
-        <Form form={form} layout="vertical">
+        {noEmail && (
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message="该账号未配置邮箱，无法通过邮件重置密码"
+            description="请由管理员直设密码（功能对接中）；本页提交已禁用。"
+          />
+        )}
+
+        <Form form={form} layout="vertical" disabled={noEmail}>
           <Form.Item name="auto_generate" label="密码设置" initialValue={true}>
             <Radio.Group onChange={e => setAutoGenerate(e.target.value)}>
               <Radio value={true}>自动生成</Radio>
@@ -70,7 +87,7 @@ export default function StaffResetPassword() {
         </Form>
 
         <Space>
-          <Button type="primary" onClick={handleSubmit} loading={loading}>确认重置</Button>
+          <Button type="primary" onClick={handleSubmit} loading={loading} disabled={noEmail}>确认重置</Button>
           <Button onClick={() => navigate('/staff')}>取消</Button>
         </Space>
       </Card>
