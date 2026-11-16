@@ -1,0 +1,27 @@
+PROVENANCE build=member-password-modes-2371 commit=d0e6ac46ba3a889b8f329adea4545df74fe8bbfa dirty=false
+[DEBUG] Loaded .env from: ../.env
+2026/11/16 15:23:13 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2371ev sslmode=disable
+2026/11/16 15:23:14 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2371ev
+2026/11/16 15:23:14 [DB] Connected to database 'tuneloop_test_2371ev'
+=== RUN   TestAddMemberNewUsersAutoGenerate_2366
+2026/11/16 15:23:14 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2371ev sslmode=disable
+2026/11/16 15:23:14 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2371ev
+2026/11/16 15:23:14 [DB] Connected to database 'tuneloop_test_2371ev'
+
+2026/11/16 15:23:16 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[407.583ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/16 15:23:16 [TenantScope][observe] auto-scope injected for table=sites (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/16 15:23:16 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:39405, clientID=test-ns, namespace=test-ns
+2026/11/16 15:23:16 [AddMember] direct activation with generated/initial password for m2
+2026/11/16 15:23:16 [IAMClient] ListUsers: baseURL=http://127.0.0.1:39405, namespace=test-ns, clientID=test-ns
+2026/11/16 15:23:16 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/16 15:23:16 [IAMClient] ListUsers: statusCode=200, responseLen=12
+2026/11/16 15:23:16 [IAMClient] ListUsers: parsed result - users count=0, data count=0
+2026/11/16 15:23:16 [IAMClient] ListUsers: returning 0 users from 'data' field
+2026/11/16 15:23:16 [IAMClient] Created user via CreateOrGetUser: user_id=18fc8400-1547-4fbc-aa6f-915d849e4ba6
+2026/11/16 15:23:16 [TenantScope][observe] auto-scope injected for table=site_members (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/16 15:23:16 [IAMClient] Bound user 18fc8400-1547-4fbc-aa6f-915d849e4ba6 to org a238b238-3fb0-4c52-be92-676017d9ccae with role STAFF (user token)
+2026/11/16 15:23:16 [IAMClient] Assigned role template site_member to user 18fc8400-1547-4fbc-aa6f-915d849e4ba6 (via user token)
+--- PASS: TestAddMemberNewUsersAutoGenerate_2366 (1.49s)
+PASS
+ok  	tuneloop-backend/handlers	3.393s

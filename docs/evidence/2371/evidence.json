@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "issue": 2371,
+  "build": "member-password-modes-2371 d0e6ac4",
+  "commit": "d0e6ac46ba3a889b8f329adea4545df74fe8bbfa",
+  "dirty": false,
+  "environment": "backend handlers tests on PG 127.0.0.1:15433 (strict schema, tenants FK seeded); IAM mock",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "go test ./handlers/ -run 'TestAddMemberNewUsersManualPassword_2366' -count=1 -v > docs/evidence/2371/R1-manual-password.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2371/R1-manual-password.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：无邮箱+手动密码建号成功；initial_passwords[0].identifier=m1；IAM 请求 password=Abcd1234/skip_activation=true；本地 users.email 为空",
+      "expected": "PASS",
+      "negative": "需要邮箱 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "go test ./handlers/ -run 'TestAddMemberNewUsersAutoGenerate_2366' -count=1 -v > docs/evidence/2371/R2-auto-generate.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2371/R2-auto-generate.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：auto_generate 下发 12 位密码并通过 validatePassword；与 IAM 请求一致",
+      "expected": "PASS",
+      "negative": "密码弱/空 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "go test ./handlers/ -run 'TestAddMemberNewUsersRejectNoChannel_2366' -count=1 -v > docs/evidence/2371/R3-reject-no-channel.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2371/R3-reject-no-channel.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：缺标识/缺投递通道/password+auto_generate 互斥均 400(40001)，users 无新增",
+      "expected": "PASS",
+      "negative": "无通道仍建号 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "go test ./handlers/ -run 'TestAddMemberNewUsersLegacyCompat_2366' -count=1 -v > docs/evidence/2371/R4-legacy-compat.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2371/R4-legacy-compat.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：仅 username/name/email 走邀请分支（无密码、skip_activation=false、callback_url 下发）；无 username 时以 email 为登录名",
+      "expected": "PASS",
+      "negative": "老调用被 400 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    }
+  ]
+}
