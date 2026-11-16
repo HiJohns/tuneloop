@@ -1,20 +1,23 @@
+PROVENANCE build=home-price-sort-2355-39a067e commit=39a067e2e818cdee2bedd576982eb181d3025965 dirty=false
 [33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
 
- RUN  v2.1.9 /home/ken/git/tuneloop/frontend-mobile
+ RUN  v2.1.9 /home/ken/git/tuneloop/tmp/wt-2355-evidence/frontend-mobile
 
+ ↓ scripts/page-smoke/credit-assessment-2333.test.jsx (5 tests | 5 skipped)
  ↓ scripts/page-smoke/home-scroll-layout.test.jsx (4 tests | 4 skipped)
+ ↓ scripts/page-smoke/credit-flow-tiers.test.jsx (5 tests | 5 skipped)
  ↓ scripts/page-smoke/smoke.test.jsx (18 tests | 18 skipped)
-stdout | scripts/page-smoke/home-sort.test.jsx
-[Dev Mode] Injecting mock wx object for browser debugging
-
 stdout | scripts/page-smoke/rent-days-input.test.jsx
 [Dev Mode] Injecting mock wx object for browser debugging
 
- ↓ scripts/page-smoke/rent-days-input.test.jsx (3 tests | 3 skipped)
- ✓ scripts/page-smoke/home-sort.test.jsx (10 tests | 4 skipped) 12ms
+stdout | scripts/page-smoke/home-sort.test.jsx
+[Dev Mode] Injecting mock wx object for browser debugging
 
- Test Files  1 passed | 3 skipped (4)
-      Tests  6 passed | 29 skipped (35)
-   Start at  11:22:18
-   Duration  1.14s (transform 382ms, setup 57ms, collect 973ms, tests 12ms, environment 1.25s, prepare 873ms)
+ ↓ scripts/page-smoke/rent-days-input.test.jsx (3 tests | 3 skipped)
+ ✓ scripts/page-smoke/home-sort.test.jsx (11 tests | 5 skipped) 11ms
+
+ Test Files  1 passed | 5 skipped (6)
+      Tests  6 passed | 40 skipped (46)
+   Start at  18:10:48
+   Duration  1.11s (transform 418ms, setup 101ms, collect 1.03s, tests 11ms, environment 2.02s, prepare 1.10s)
 

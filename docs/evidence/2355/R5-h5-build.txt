@@ -1,3 +1,4 @@
+PROVENANCE build=home-price-sort-2355-39a067e commit=39a067e2e818cdee2bedd576982eb181d3025965 dirty=false
 
 > frontend-mobile@1.0.0 build
 > vite build
@@ -28,10 +29,11 @@ rendering chunks...
 computing gzip size...
 dist/index.html                     0.56 kB │ gzip:   0.36 kB
 dist/assets/index-B1gKWdxd.css     25.04 kB │ gzip:   4.81 kB
-dist/assets/index-BvZgxnSq.js   1,011.49 kB │ gzip: 300.98 kB
+dist/assets/index-DiVDWoze.js   1,003.70 kB │ gzip: 298.92 kB
 
 (!) Some chunks are larger than 500 kB after minification. Consider:
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 4.90s
+✓ built in 4.50s
+h5_build=pass

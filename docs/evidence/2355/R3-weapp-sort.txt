@@ -1,7 +1,10 @@
+PROVENANCE build=home-price-sort-2355-39a067e commit=39a067e2e818cdee2bedd576982eb181d3025965 dirty=false
 [33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
 
- RUN  v2.1.9 /home/ken/git/tuneloop/frontend-mobile
+ RUN  v2.1.9 /home/ken/git/tuneloop/tmp/wt-2355-evidence/frontend-mobile
 
+ ↓ scripts/page-smoke/credit-assessment-2333.test.jsx (5 tests | 5 skipped)
+ ↓ scripts/page-smoke/credit-flow-tiers.test.jsx (5 tests | 5 skipped)
  ↓ scripts/page-smoke/home-scroll-layout.test.jsx (4 tests | 4 skipped)
  ↓ scripts/page-smoke/smoke.test.jsx (18 tests | 18 skipped)
 stdout | scripts/page-smoke/home-sort.test.jsx
@@ -16,7 +19,7 @@ Warning: React does not recognize the `scrollY` prop on a DOM element. If you in
     at div
     at div
     at div
-    at Home (/home/ken/git/tuneloop/frontend-mobile/src/pages-weapp/Home.jsx:169:37)
+    at Home (/home/ken/git/tuneloop/tmp/wt-2355-evidence/frontend-mobile/src/pages-weapp/Home.jsx:169:37)
     at RenderedRoute (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
     at Routes (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
     at Router (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
@@ -25,7 +28,7 @@ Warning: React does not recognize the `scrollWithAnimation` prop on a DOM elemen
     at div
     at div
     at div
-    at Home (/home/ken/git/tuneloop/frontend-mobile/src/pages-weapp/Home.jsx:169:37)
+    at Home (/home/ken/git/tuneloop/tmp/wt-2355-evidence/frontend-mobile/src/pages-weapp/Home.jsx:169:37)
     at RenderedRoute (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
     at Routes (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
     at Router (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
@@ -34,7 +37,7 @@ Warning: React does not recognize the `scrollIntoView` prop on a DOM element. If
     at div
     at div
     at div
-    at Home (/home/ken/git/tuneloop/frontend-mobile/src/pages-weapp/Home.jsx:169:37)
+    at Home (/home/ken/git/tuneloop/tmp/wt-2355-evidence/frontend-mobile/src/pages-weapp/Home.jsx:169:37)
     at RenderedRoute (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
     at Routes (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
     at Router (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
@@ -43,7 +46,7 @@ Warning: React does not recognize the `showScrollbar` prop on a DOM element. If 
     at div
     at div
     at div
-    at Home (/home/ken/git/tuneloop/frontend-mobile/src/pages-weapp/Home.jsx:169:37)
+    at Home (/home/ken/git/tuneloop/tmp/wt-2355-evidence/frontend-mobile/src/pages-weapp/Home.jsx:169:37)
     at RenderedRoute (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
     at Routes (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
     at Router (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
@@ -51,11 +54,11 @@ Warning: React does not recognize the `showScrollbar` prop on a DOM element. If 
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
- ✓ scripts/page-smoke/home-sort.test.jsx (10 tests | 9 skipped) 582ms
-   ✓ weapp home price sort > toggles all three states and keeps mode across categories 579ms
+ ✓ scripts/page-smoke/home-sort.test.jsx (11 tests | 10 skipped) 551ms
+   ✓ weapp home price sort > toggles all three states and keeps mode across categories 549ms
 
- Test Files  1 passed | 3 skipped (4)
-      Tests  1 passed | 34 skipped (35)
-   Start at  11:22:30
-   Duration  1.73s (transform 382ms, setup 89ms, collect 1.02s, tests 582ms, environment 1.13s, prepare 679ms)
+ Test Files  1 passed | 5 skipped (6)
+      Tests  1 passed | 45 skipped (46)
+   Start at  18:10:52
+   Duration  1.63s (transform 367ms, setup 90ms, collect 966ms, tests 551ms, environment 1.93s, prepare 1.13s)
 

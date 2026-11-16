@@ -1,13 +1,16 @@
+PROVENANCE build=home-price-sort-2355-39a067e commit=39a067e2e818cdee2bedd576982eb181d3025965 dirty=false
 [33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
 
- RUN  v2.1.9 /home/ken/git/tuneloop/frontend-mobile
+ RUN  v2.1.9 /home/ken/git/tuneloop/tmp/wt-2355-evidence/frontend-mobile
 
+ ↓ scripts/page-smoke/credit-assessment-2333.test.jsx (5 tests | 5 skipped)
  ↓ scripts/page-smoke/home-scroll-layout.test.jsx (4 tests | 4 skipped)
+ ↓ scripts/page-smoke/credit-flow-tiers.test.jsx (5 tests | 5 skipped)
  ↓ scripts/page-smoke/smoke.test.jsx (18 tests | 18 skipped)
-stdout | scripts/page-smoke/rent-days-input.test.jsx
+stdout | scripts/page-smoke/home-sort.test.jsx
 [Dev Mode] Injecting mock wx object for browser debugging
 
-stdout | scripts/page-smoke/home-sort.test.jsx
+stdout | scripts/page-smoke/rent-days-input.test.jsx
 [Dev Mode] Injecting mock wx object for browser debugging
 
  ↓ scripts/page-smoke/rent-days-input.test.jsx (3 tests | 3 skipped)
@@ -16,7 +19,7 @@ Warning: React does not recognize the `scrollY` prop on a DOM element. If you in
     at div
     at div
     at div
-    at Home (/home/ken/git/tuneloop/frontend-mobile/src/pages/Home.jsx:110:42)
+    at Home (/home/ken/git/tuneloop/tmp/wt-2355-evidence/frontend-mobile/src/pages/Home.jsx:110:42)
     at RenderedRoute (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
     at Routes (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
     at Router (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
@@ -25,7 +28,7 @@ Warning: React does not recognize the `scrollWithAnimation` prop on a DOM elemen
     at div
     at div
     at div
-    at Home (/home/ken/git/tuneloop/frontend-mobile/src/pages/Home.jsx:110:42)
+    at Home (/home/ken/git/tuneloop/tmp/wt-2355-evidence/frontend-mobile/src/pages/Home.jsx:110:42)
     at RenderedRoute (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
     at Routes (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
     at Router (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
@@ -36,7 +39,7 @@ If you want to write it to the DOM, pass a string instead: enhanced="true" or en
     at div
     at div
     at div
-    at Home (/home/ken/git/tuneloop/frontend-mobile/src/pages/Home.jsx:110:42)
+    at Home (/home/ken/git/tuneloop/tmp/wt-2355-evidence/frontend-mobile/src/pages/Home.jsx:110:42)
     at RenderedRoute (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
     at Routes (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
     at Router (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
@@ -45,7 +48,7 @@ Warning: React does not recognize the `showScrollbar` prop on a DOM element. If 
     at div
     at div
     at div
-    at Home (/home/ken/git/tuneloop/frontend-mobile/src/pages/Home.jsx:110:42)
+    at Home (/home/ken/git/tuneloop/tmp/wt-2355-evidence/frontend-mobile/src/pages/Home.jsx:110:42)
     at RenderedRoute (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
     at Routes (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
     at Router (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
@@ -53,11 +56,21 @@ Warning: React does not recognize the `showScrollbar` prop on a DOM element. If 
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
- ✓ scripts/page-smoke/home-sort.test.jsx (10 tests | 9 skipped) 303ms
-   ✓ home price sort layout > keeps the 52px pill clear of the category viewport at 375 and 320 301ms
+stderr | scripts/page-smoke/home-sort.test.jsx > home price sort layout > keeps the 52px pill clear of the category viewport in weapp at 375 and 320
+Warning: React does not recognize the `scrollIntoView` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `scrollintoview` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at div
+    at div
+    at div
+    at Home (/home/ken/git/tuneloop/tmp/wt-2355-evidence/frontend-mobile/src/pages-weapp/Home.jsx:169:37)
+    at RenderedRoute (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
 
- Test Files  1 passed | 3 skipped (4)
-      Tests  1 passed | 34 skipped (35)
-   Start at  11:22:35
-   Duration  1.41s (transform 356ms, setup 67ms, collect 904ms, tests 303ms, environment 1.24s, prepare 692ms)
+ ✓ scripts/page-smoke/home-sort.test.jsx (11 tests | 9 skipped) 551ms
+
+ Test Files  1 passed | 5 skipped (6)
+      Tests  2 passed | 44 skipped (46)
+   Start at  18:10:54
+   Duration  1.62s (transform 366ms, setup 104ms, collect 967ms, tests 551ms, environment 1.81s, prepare 1.13s)
 
