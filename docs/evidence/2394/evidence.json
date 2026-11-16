@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "issue": 2394,
+  "build": "go1.25.0 handlers-targeted 3f57828",
+  "commit": "3f57828758a0ca56cd840c7f66e221b3e99ebf1b",
+  "dirty": false,
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2394.sh r1-request > docs/evidence/2394/R1-request.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2394/R1-request.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "exit 0；--- PASS: TestMemberRemovalCreateRequest_2394；首次 201 / 重复 409 / 库中仅 1 条 pending",
+      "expected": "PASS",
+      "negative": "重复放行 → FAIL",
+      "negative_result": "若第二次申请返回 201/200（未拦截重复）→ 用例断言失败",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2394.sh r2-approve > docs/evidence/2394/R2-approve.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2394/R2-approve.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "exit 0；--- PASS: TestMemberRemovalApprove_2394；site_members 删除、IAM unbind 1 次（网点 org + IAM sub）、状态 executed、审计 2 条、通知 1 条",
+      "expected": "PASS",
+      "negative": "未解绑 → FAIL",
+      "negative_result": "若 site_members 未删除或 IAM 解绑未发生 → 用例断言失败",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2394.sh r3-guard > docs/evidence/2394/R3-guard.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2394/R3-guard.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "exit 0；--- PASS: TestSiteRemoveRequiresApproval_2394；网点管理员 403/40901 且成员关系不变；商户管理员直接移除仍 200",
+      "expected": "PASS",
+      "negative": "直接删除 → FAIL",
+      "negative_result": "若网点管理员被放行直接删除成员 → 用例断言失败",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2394.sh r4-migration > docs/evidence/2394/R4-migration.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2394/R4-migration.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "exit 0；--- PASS: TestMemberRemovalMigration_2394；up→down→up 后表与部分唯一索引存在；go build ./... 通过",
+      "expected": "PASS",
+      "negative": "迁移失败 → exit 1",
+      "negative_result": "若迁移无表/无索引或 down 未删除表 → 用例断言失败；go build 失败 → 脚本 exit 1",
+      "pass": true
+    }
+  ]
+}

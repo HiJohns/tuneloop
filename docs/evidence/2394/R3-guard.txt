@@ -1,0 +1,23 @@
+[DEBUG] Loaded .env from: ../.env
+2026/11/16 21:57:47 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/16 21:57:47 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/16 21:57:47 [DB] Connected to database 'tuneloop_test'
+=== RUN   TestSiteRemoveRequiresApproval_2394
+2026/11/16 21:57:48 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/16 21:57:48 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/16 21:57:48 [DB] Connected to database 'tuneloop_test'
+
+2026/11/16 21:57:49 [32m/home/coder/tuneloop-wt/issue-2394/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[605.790ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "coupons", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/16 21:57:49 [TenantScope][observe] auto-scope injected for table=sites (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/16 21:57:49 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:37847, clientID=test-ns, namespace=test-ns
+2026/11/16 21:57:49 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/16 21:57:49 [IAMClient] Unbound user with user token: user=9dad1cea-48be-4677-8262-b8ef57e3112d org=782c417d-f145-46ef-98d1-d24ccd70c3df
+2026/11/16 21:57:49 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/16 21:57:49 [IAMClient] Incremented perm_version
+2026/11/16 21:57:49 [TenantScope][observe] auto-scope injected for table=site_members (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/16 21:57:49 [TenantScope][observe] auto-scope injected for table=merchant_members (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/16 21:57:49 [TenantScope][observe] auto-scope injected for table=technician_profiles (add explicit scope, then set ExplicitTenantScopeOnly)
+--- PASS: TestSiteRemoveRequiresApproval_2394 (1.49s)
+PASS
+ok  	tuneloop-backend/handlers	2.583s

@@ -1,0 +1,23 @@
+[DEBUG] Loaded .env from: ../.env
+2026/11/16 21:57:26 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/16 21:57:26 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/16 21:57:26 [DB] Connected to database 'tuneloop_test'
+=== RUN   TestMemberRemovalApprove_2394
+2026/11/16 21:57:27 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/16 21:57:27 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/16 21:57:27 [DB] Connected to database 'tuneloop_test'
+
+2026/11/16 21:57:28 [32m/home/coder/tuneloop-wt/issue-2394/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[608.700ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "coupons", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/16 21:57:28 [TenantScope][observe] auto-scope injected for table=sites (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/16 21:57:28 [TenantScope][observe] auto-scope injected for table=site_members (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/16 21:57:28 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/16 21:57:28 [TenantScope][observe] auto-scope injected for table=member_removal_requests (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/16 21:57:28 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:41083, clientID=test-ns, namespace=test-ns
+2026/11/16 21:57:28 [IAMClient] Unbound user with user token: user=f42993a0-5b11-4f41-b425-540e884b08a6 org=9479857b-af78-48a3-a2db-f19d0de41cc6
+2026/11/16 21:57:28 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/16 21:57:28 [IAMClient] Incremented perm_version
+2026/11/16 21:57:28 [Notify] WeChat stub: would send template message to user 4cf84325-7afe-4765-a30f-f95816f56fc5 (type=removal_approved, ref=955cee91-6a2b-44d2-8dae-672a5a4aa058)
+--- PASS: TestMemberRemovalApprove_2394 (1.52s)
+PASS
+ok  	tuneloop-backend/handlers	2.757s

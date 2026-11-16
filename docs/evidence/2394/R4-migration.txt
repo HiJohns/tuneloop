@@ -1,0 +1,11 @@
+[DEBUG] Loaded .env from: ../.env
+2026/11/16 21:58:08 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/16 21:58:08 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/16 21:58:08 [DB] Connected to database 'tuneloop_test'
+=== RUN   TestMemberRemovalMigration_2394
+2026/11/16 21:58:08 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/16 21:58:08 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/16 21:58:08 [DB] Connected to database 'tuneloop_test'
+--- PASS: TestMemberRemovalMigration_2394 (0.14s)
+PASS
+ok  	tuneloop-backend/handlers	1.222s
