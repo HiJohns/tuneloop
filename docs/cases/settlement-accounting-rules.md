@@ -94,7 +94,7 @@
 
 每个执行 Issue 的验收：组合矩阵行级断言 `Paid − Refunded = CashPaid`（缺陷版 FAIL → 修复版 PASS）+ ≥3 笔真实订单 replay。
 
-## 10. 结算退款分账户模型（2026-11-16 评审后）
+## 10. 结算退款分账户模型（2026-11 评审后）
 
 > 详细算法与推演见 `docs/cases/settlement-refund-spec-v2.md`；本条是可执行口径的摘要，与 §1–§8 并列生效。
 
@@ -109,35 +109,45 @@
 ### 10.2 分账户公式（金额整数分 / 乐币整数点）
 
 ```text
+# 单位：现金一律 _cents（int64），乐币一律 _points（int64，1 点 = 100 分）
+# 比例：整型 ratio_num / ratio_den（30% → 3/10），禁止浮点
+
 # 乐币
-cap        = floor(R_actual × ratio_snapshot)
-p_consumed = min(p_used, cap)
-p_refund   = p_used − p_consumed
+cap_points        = floor(R_actual_cents * ratio_num / (100 * ratio_den))
+p_consumed_points = min(p_used_points, cap_points)
+p_refund_points   = p_used_points - p_consumed_points
 
-# 租金账户（现金）
-rent_cash_paid      = cash_paid − deposit_collected
-rent_cash_due       = R_actual − p_consumed
-rent_refund         = max(0, rent_cash_paid − rent_cash_due)
-rent_shortfall      = max(0, rent_cash_due − rent_cash_paid)
+# 租金账户（现金，分）
+rent_cash_paid_cents  = cash_paid_cents - deposit_held_cents
+rent_cash_due_cents   = R_actual_cents - p_consumed_points * 100
+rent_refund_cents     = max(0, rent_cash_paid_cents - rent_cash_due_cents)
+rent_shortfall_cents  = max(0, rent_cash_due_cents - rent_cash_paid_cents)
 
-# 押金账户（deductions = 逾期 + 定损 + 物流）
-deposit_deductions  = min(deposit_collected, deductions)
-deposit_refund      = deposit_collected − deposit_deductions
-other_fee_shortfall = max(0, deductions − deposit_collected)
+# 押金账户（deductions_cents = 逾期 + 定损 + 物流）
+deposit_deductions_cents  = min(deposit_held_cents, deductions_cents)
+deposit_refund_cents      = deposit_held_cents - deposit_deductions_cents
+other_fee_shortfall_cents = max(0, deductions_cents - deposit_held_cents)
 
 # 汇总（执行层）
-cash_refundable = rent_refund + deposit_refund
-cash_payable    = rent_shortfall + other_fee_shortfall
-net_cash        = cash_refundable − cash_payable
+cash_refundable_cents = rent_refund_cents + deposit_refund_cents
+cash_payable_cents    = rent_shortfall_cents + other_fee_shortfall_cents
+net_cash_cents        = cash_refundable_cents - cash_payable_cents
 ```
+
+> 单位转换唯一出口：`PointsFromStoredCents` / `StoredCentsFromPoints` / `PointsToCashCents`
+> （`orders.gift_points_used` 以 Cents 存储：900 点 = 90000 Cents）。
 
 ### 10.3 不变量（实现与测试必须校验）
 
 ```text
-net_cash + p_refund = cash_paid + p_used − R_actual − deductions
+net_cash_cents + p_refund_points * 100
+  = cash_paid_cents + p_used_points * 100 − R_actual_cents − deductions_cents
 ```
 
-### 10.4 已确认决议（2026-11-16）
+> 实现中作为独立的 invariant 检查（`ErrSettlementInvariantViolation`），不得只写在文档里；
+> 多次结算/冲正/争议挂起场景需按 v2.1 §9 的版本机制处理，不可直接套用该等式。
+
+### 10.4 已确认决议（2026-11）
 
 | # | 决议 |
 |---|---|
@@ -158,7 +168,18 @@ net_cash + p_refund = cash_paid + p_used − R_actual − deductions
 - §6 返点基数沿用 `CashBasis`（实收现金）；本模型明确其**不含押金**（押金为代收代付，非收入）；
 - 历史已结算订单**不按本模型重算**，保留原 `algorithm_version`。
 
-### 10.7 待确认（不阻塞文档定稿）
+### 10.7 并发、状态机与执行边界（评审 P1）
+
+- **订单级唯一最终结算**：同一订单不得存在两个有效最终结算版本；计算与执行均在订单锁内。
+- **状态机**：`calculated → confirmed → processing → succeeded | partially_succeeded | failed_retryable`；
+  部分成功（如现金退款成功、乐币恢复失败）**禁止整单重放**，按子动作重试。
+- **执行边界**：账务永远分账户；仅当支付渠道/资金来源/协议均允许时才做净额收付，否则按原交易分别执行，
+  执行完毕后账务合计必须等于 `net_cash_cents`。
+- **逾期三变量**：`contract_rent_actual` / `overdue_rent` / `overdue_penalty`；罚金不入乐币基数，
+  `overdue_rent` 是否入基数待 Q14 确认。
+- **续费**：按 `term_versions` 累计天数与金额，押金沿用/重收待 Q15 确认。
+
+### 10.8 待确认（不阻塞文档定稿）
 
 Q1 乐币基数=实际标价租金、Q2 floor、Q3 整数分、Q4 扣款顺序 逾期→定损→物流、Q5 押金不抵租金、
 Q6 续费同合同累计、Q7 历史不重算、Q9 乐币原路冲正、Q10 取消三档、Q12 阶梯按实际天数重算。

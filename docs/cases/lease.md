@@ -863,15 +863,15 @@ steps:
 
 ## 流程
 1. 员工触发退款 → `POST /orders/:id/refund`
-2. **差额结算（v2 分账户，2026-11-16 评审后）**：
-   - **乐币**：`cap = floor(R_actual × ratio_snapshot)`；`p_consumed = min(p_used, cap)`；`p_refund = p_used − p_consumed`
+2. **差额结算（v2 分账户，2026-11 评审后）**：
+   - **乐币**：`cap_points = floor(R_actual_cents × ratio_num / (100 × ratio_den))`；`p_consumed = min(p_used, cap)`；`p_refund = p_used − p_consumed`（现金一律分、乐币一律点）
      （超额退点，回原批次并保留原到期日；少用不补发、不折现）
    - **租金账户**：`rent_cash_paid = cash_paid − deposit`；`rent_cash_due = R_actual − p_consumed`；
      `rent_refund = max(0, paid − due)`；`rent_shortfall = max(0, due − paid)`
    - **押金账户**：`deposit_deductions = min(deposit, deductions)`（deductions = 逾期 + 定损 + 物流）；
      `deposit_refund = deposit − deposit_deductions`；`other_fee_shortfall = max(0, deductions − deposit)`
    - **汇总**：`cash_refundable = rent_refund + deposit_refund`；`cash_payable = rent_shortfall + other_fee_shortfall`；
-     `net_cash = cash_refundable − cash_payable`（**执行层按净额一次收/付**，账本保留分账户分录）
+     `net_cash = cash_refundable − cash_payable`（**执行层按净额一次收/付**；渠道/资金来源/协议不允许时按原交易分笔执行，账务合计仍等于 net_cash；账本保留分账户分录）
    - 校验（守恒）：`net_cash + p_refund = cash_paid + p_used − R_actual − deductions`
    - **押金不得抵扣租金缺口**；**争议金额不抵扣**（申诉中原额挂起，仅结清无争议部分）
 3. **关单**：订单状态 → `completed`（已完成/done）；`total_spending += C1`（实付现金口径）
