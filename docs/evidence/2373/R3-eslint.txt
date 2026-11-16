@@ -1,0 +1,13 @@
+
+/home/coder/tuneloop/frontend-pc/src/components/MerchantMemberManagement.jsx
+   54:7   warning  'fetchMembers' was used before it was defined                                                                    no-use-before-define
+   56:6   warning  React Hook useEffect has a missing dependency: 'fetchMembers'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  229:27  warning  'bindExistingUser' was used before it was defined                                                                no-use-before-define
+
+/home/coder/tuneloop/frontend-pc/src/components/SiteMemberManagement.jsx
+  59:7  warning  'fetchMembers' was used before it was defined                                                                                       no-use-before-define
+  60:7  warning  'fetchRoles' was used before it was defined                                                                                         no-use-before-define
+  62:6  warning  React Hook useEffect has missing dependencies: 'fetchMembers' and 'fetchRoles'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 6 problems (0 errors, 6 warnings)
+
