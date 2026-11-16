@@ -284,6 +284,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	{
 		// IAM Proxy routes
 		iamProxyHandler := handlers.NewIAMProxyHandler()
+		// #2386: 全体成员聚合视图（只读；权限在 handler 内按业务角色降级/隔离）
+		authRequired.GET("/staff/members", handlers.NewStaffMembersHandler().List)
 		authRequired.GET("/iam/users/lookup", iamProxyHandler.LookupUser)
 		authRequired.GET("/iam/users/search", iamProxyHandler.SearchUsers)
 		authRequired.POST("/iam/users", iamProxyHandler.CreateUser)
