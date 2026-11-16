@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Card, Table, Button, Modal, Form, Input, Select, message, Spin, Space, Popconfirm, Tag, Alert, Radio, Checkbox, Badge } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined, SendOutlined, MailOutlined, ReloadOutlined, TeamOutlined } from '@ant-design/icons'
+import { Card, Table, Button, Modal, Form, Input, Select, message, Spin, Space, Popconfirm, Tag, Alert, Radio, Checkbox, Badge, Dropdown, Tabs } from 'antd'
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined, SendOutlined, MailOutlined, ReloadOutlined, TeamOutlined, DownOutlined } from '@ant-design/icons'
 import ReactQuill from 'react-quill'
 import PhotoUploader from '../components/PhotoUploader'
 import PasswordSettingFields from '../components/PasswordSettingFields'
@@ -502,6 +502,13 @@ export default function StaffManagement() {
   // Hide site column for site-level roles (they only see their own site)
   const businessRole = localStorage.getItem('user_business_role') || ''
   const isSiteLevel = businessRole === 'site_admin' || businessRole === 'site_member'
+  // #2391 D4：平台管理员可切 Tab，但不下发「创建成员」
+  const isPlatformAdmin = businessRole === 'system_admin' || businessRole === 'platform_staff'
+  // #2391 D1/D2：旧入口重定向到 /staff?scope=direct|all；默认直属成员
+  const activeScope = new URLSearchParams(location.search).get('scope') === 'all' ? 'all' : 'direct'
+  const handleScopeChange = (key) => {
+    navigate(`/staff?scope=${key === 'all' ? 'all' : 'direct'}`)
+  }
   const columns = isSiteLevel
     ? allColumns.filter(col => col.key !== 'site_name')
     : allColumns
@@ -526,18 +533,13 @@ export default function StaffManagement() {
         title="人员管理" 
         extra={
           <Space>
-            {/* #2114: 邀请管理 + 直属成员管理入口（商户管理员 / 系统管理员） */}
+            {/* #2114: 邀请管理入口（商户管理员 / 系统管理员） */}
             {(isMerchantAdmin || businessRole === 'system_admin') && (
-              <>
-                <Badge count={invitePending} size="small">
-                  <Button icon={<TeamOutlined />} onClick={() => navigate('/staff/invites')}>
-                    邀请管理
-                  </Button>
-                </Badge>
-                <Button icon={<TeamOutlined />} onClick={() => navigate('/staff/direct')}>
-                  直属成员管理
+              <Badge count={invitePending} size="small">
+                <Button icon={<TeamOutlined />} onClick={() => navigate('/staff/invites')}>
+                  邀请管理
                 </Button>
-              </>
+              </Badge>
             )}
             <Button
               icon={<UploadOutlined />}
@@ -545,16 +547,48 @@ export default function StaffManagement() {
             >
               批量导入
             </Button>
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />}
-              onClick={() => { resetCreateState(); setViewMode('create') }} // #2072: 进入即重置
-            >
-              创建用户
-            </Button>
+            {/* #2391 D3/D4：创建成员下拉（管理员/员工/维修师）；平台管理员不下发（真实对话框 #2392） */}
+            {!isPlatformAdmin && (
+              <Dropdown
+                menu={{
+                  items: [
+                    { key: 'admin', label: '管理员' },
+                    { key: 'staff', label: '员工' },
+                    { key: 'technician', label: '维修师' }
+                  ],
+                  onClick: ({ key }) => {
+                    resetCreateState() // #2072: 进入即重置
+                    setUserType(key === 'technician' ? 'repair_technician' : 'site_staff')
+                    setViewMode('create')
+                  }
+                }}
+              >
+                <Button type="primary" icon={<PlusOutlined />}>
+                  创建成员 <DownOutlined />
+                </Button>
+              </Dropdown>
+            )}
           </Space>
         }
       >
+        {/* #2391：人员管理单入口 —— 直属成员（默认）/ 全体成员 */}
+        <Tabs
+          activeKey={activeScope}
+          onChange={handleScopeChange}
+          items={[
+            { key: 'direct', label: '直属成员' },
+            { key: 'all', label: '全体成员' }
+          ]}
+        />
+        {activeScope === 'all' ? (
+          <Alert
+            type="info"
+            showIcon
+            message="全体成员视图建设中"
+            description="等待聚合接口（#2386）合入后启用；当前请使用「直属成员」。"
+          />
+        ) : (
+        <>
         <Form
           name="staff-search" /* #2072: 命名空间化字段 id，避免与创建表单同名 id 致浏览器自动填充 */
           layout="inline"
@@ -638,6 +672,8 @@ export default function StaffManagement() {
           onChange={handleTableChange}
           scroll={{ x: 1400 }}
         />
+        </>
+        )}
       </Card>
       ) : (
       <Card 

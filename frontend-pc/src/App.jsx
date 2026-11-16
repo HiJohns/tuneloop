@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { BrowserRouter, Routes, Route, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { Layout, Menu, Breadcrumb, Spin, Modal } from 'antd'
 import { Tabs } from 'antd'
 import {
@@ -30,7 +30,6 @@ import StaffManagement from './pages/StaffManagement'
 import StaffEdit from './pages/StaffEdit'
 import StaffResetPassword from './pages/StaffResetPassword'
 import InviteManagement from './pages/InviteManagement'
-import DirectMemberManagement from './pages/DirectMemberManagement'
 import NotificationCenter from './components/NotificationCenter'
 import PermissionManage from './pages/admin/PermissionManage'
 import AssetDetail from './pages/AssetDetail'
@@ -39,7 +38,6 @@ import TenantManagement from './pages/TenantManagement'
 import AppealManagement from './pages/AppealManagement'
 import RepairConfigPage from './pages/admin/repair/RepairConfigPage'
 import MerchantRepairList from './pages/admin/repair/MerchantRepairList'
-import TechnicianProfiles from './pages/System/TechnicianProfiles'
 import WarningManagement from './pages/admin/warnings/WarningManagement'
 import WarningSettings from './pages/admin/warnings/WarningSettings'
 import SmtpSettings from './pages/admin/warnings/SmtpSettings'
@@ -349,7 +347,6 @@ function MainLayout() {
       { key: '/platform-staff', label: '平台员工管理', permission: { sysPermBits: [5] } }, // #1795 T6
       { key: '/organization/sites', label: '网点管理', permission: { sysPermBits: [10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true } },
       { key: '/staff', label: '人员管理', permission: { sysPermBits: [15], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true } },
-      { key: '/technician-profiles', label: '维修师档案', permission: { cusPermCodes: ['instrument:read'] } },
       { key: '/appeals', label: '申诉处理', permission: { cusPermCodes: ['appeal:read'] } },
       { key: '/organization/iam-sync', label: '与 IAM 同步', permission: { sysPermBits: [10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true } },
       { key: '/system/permissions', label: '权限管理', permission: { sysPermBits: [27] } },
@@ -457,7 +454,7 @@ function onMenuClick(e) {
   if (['/instruments/categories', '/instruments/properties', '/instruments/list', '/site/stock'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['product']
   else if (['/inventory/rent-setting', '/pricing/config', '/repair/settings', '/system/gift-policies', '/system/membership-levels', '/system/membership-handbook', '/system/banners'].includes(location.pathname)) openKeys = ['strategy']
   else if (['/orders', '/warehouse', '/transit-center', '/overdue-alerts', '/merchant/invoices'].includes(location.pathname)) openKeys = ['transaction']
-  else if (location.pathname.startsWith('/merchants') || ['/system/user-management', '/organization/sites', '/staff', '/technician-profiles', '/appeals', '/organization/iam-sync', '/system/permissions', '/system/warnings', '/system/warning-settings', '/system/smtp-settings', '/merchant/notification-settings'].includes(location.pathname)) openKeys = ['platform']
+  else if (location.pathname.startsWith('/merchants') || ['/system/user-management', '/organization/sites', '/staff', '/appeals', '/organization/iam-sync', '/system/permissions', '/system/warnings', '/system/warning-settings', '/system/smtp-settings', '/merchant/notification-settings'].includes(location.pathname)) openKeys = ['platform']
   else if (['/', '/system/content-edit', '/system/audit-logs'].includes(location.pathname)) openKeys = ['system']
   else if (location.pathname.startsWith('/user/')) openKeys = []
 
@@ -487,7 +484,6 @@ function onMenuClick(e) {
     '/pricing/config': { title: '定价策略', parent: '策略配置' },
     '/repair/settings': { title: '维修工单设置', parent: '策略配置' },
     '/repair/requests': { title: '维修工单列表', parent: '交易管理' },
-    '/technician-profiles': { title: '维修师档案', parent: '平台管理' },
     '/system/gift-policies': { title: '乐币规则', parent: '策略配置' },
     '/system/membership-levels': { title: '会员级别管理', parent: '策略配置' },
     '/system/membership-handbook': { title: '会员手册编辑', parent: '策略配置' },
@@ -715,12 +711,13 @@ function onMenuClick(e) {
             <Route path="/staff/:id/edit" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15] }}><StaffEdit /></ProtectedRoute>} />
             <Route path="/staff/:id/reset-password" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15] }}><StaffResetPassword /></ProtectedRoute>} />
             <Route path="/staff/invites" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['member:invite'] }}><InviteManagement /></ProtectedRoute>} /> {/* #2114 */}
-            <Route path="/staff/direct" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15], cusPermCodes: ['member:invite'] }}><DirectMemberManagement /></ProtectedRoute>} /> {/* #2114 */}
+            {/* #2391 D1：旧入口保留重定向（防老链接 404），统一到 /staff 单入口 */}
+            <Route path="/staff/direct" element={<Navigate to="/staff?scope=direct" replace />} />
             <Route path="/appeals" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['appeal:read'] }}><AppealManagement /></ProtectedRoute>} />
             <Route path="/workorders" element={<ProtectedRoute><WorkOrderList /></ProtectedRoute>} />
             <Route path="/repair/settings" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price_config'] }}><RepairConfigPage /></ProtectedRoute>} />
             <Route path="/repair/requests" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price_config', 'instrument:read'] }}><MerchantRepairList /></ProtectedRoute>} />
-            <Route path="/technician-profiles" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read'] }}><TechnicianProfiles /></ProtectedRoute>} />
+            <Route path="/technician-profiles" element={<Navigate to="/staff?scope=all" replace />} />
             <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />
             <Route path="/system/permissions" element={<ProtectedRoute requiredPermission={{ sysPermBits: [27] }}><PermissionManage /></ProtectedRoute>} />
             <Route path="/system/clients" element={<ProtectedRoute requiredPermission={{ sysPermBits: [0] }}><ClientManagement /></ProtectedRoute>} />
