@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "issue": 2373,
+  "build": "vite-build-node22 ce713a1",
+  "commit": "ce713a194e8d9fb4a97a5212cef311d098fb3eee",
+  "dirty": false,
+  "rows": [
+    {
+      "id": "R1",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2373/R1-site-manual.md",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2373/R1-site-manual.md"
+      ],
+      "assert": "exit 0（人工回执存在且 PASS）",
+      "actual": "exit 0；网点新增成员（空邮箱 + 自动生成）Owner 回执含 RESULT: PASS（请求体 auto_generate、无 email；Modal 展示 identifier + 12 位密码）",
+      "expected": "PASS",
+      "negative": "回执缺失 → exit 1",
+      "negative_result": "若回执文件缺失或不含 RESULT: PASS → grep exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2373/R2-merchant-manual.md",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2373/R2-merchant-manual.md"
+      ],
+      "assert": "exit 0（人工回执存在且 PASS）",
+      "actual": "exit 0；商户直属成员（空邮箱 + 手动密码）Owner 回执含 RESULT: PASS（弱口令 abc 被前端拦截）",
+      "expected": "PASS",
+      "negative": "回执缺失 → exit 1",
+      "negative_result": "若回执文件缺失或不含 RESULT: PASS → grep exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "cd frontend-pc && npm run build > ../docs/evidence/2373/R3-build.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2373/R3-build.txt"
+      ],
+      "assert": "exit 0；文件含 built in",
+      "actual": "exit 0；从 HEAD ce713a194 重新构建，vite 输出含 built in",
+      "expected": "PASS",
+      "negative": "构建失败 → exit 1",
+      "negative_result": "若 vite build 失败 → npm exit 非 0（命令返回非 0）",
+      "pass": true
+    }
+  ]
+}
