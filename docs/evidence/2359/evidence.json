@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "issue": 2359,
+  "build": "settlement-calculator-2359 8e0666a",
+  "commit": "8e0666a87bcbb40b57ce23fd1d90808f22786ed5",
+  "dirty": false,
+  "environment": "pure-function tests (no DB/network); go vet + gofmt on Go 1.25",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "cd backend && go test ./services/ -run 'TestSettlementCalculatorCore_2359' -count=1 -v > ../docs/evidence/2359/R1-core.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2359/R1-core.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：T1-T10 全部逐项断言（R_list/cap/p_refund/rent due/refund/shortfall/deposit refund/other shortfall/net/refundable/payable）；T4 rent_shortfall=46000、deposit_refund=50000、p_refund=160、net=4000；守恒式在计算器内强制校验",
+      "expected": "PASS",
+      "negative": "分账户不等 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "cd backend && go test ./services/ -run 'TestSettlementCalculatorCoupon_2359' -count=1 -v > ../docs/evidence/2359/R2-coupon.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2359/R2-coupon.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：T23 券 30000/900 点/28 天 → R_after=250000、cap=750、退点=150、rent due=175000、补缴=15000、押金退=50000、净现金=35000；Q8 首付=210000",
+      "expected": "PASS",
+      "negative": "T23 数值偏差 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "cd backend && go test ./services/ -run 'TestSettlementCalculatorDispute_2359' -count=1 -v > ../docs/evidence/2359/R3-dispute-unique-source.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2359/R3-dispute-unique-source.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：T24 只扣 undisputed=10000、disputed=30000 挂起、押金退 40000；T25 有 active 版本时新版本 ErrSettlementDuplicateActive、同版本重试允许；T26 押金扣 30000 后租金实收/应付/退款不变",
+      "expected": "PASS",
+      "negative": "争议混入 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "cd backend && go test ./services/ -run 'TestSettlementCalculatorErrors_2359' -count=1 -v > ../docs/evidence/2359/R4-errors.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2359/R4-errors.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：ratio_den=0 / ratio_num>den / 负天数 / 负押金 / 券超额 / 争议超额 → ErrSettlementInvalidInput；日租与 ratio_den 溢出 → ErrSettlementOverflow；守恒式破坏 → ErrSettlementInvariantViolation；unresolved → legacy_policy_unresolved，均无 panic",
+      "expected": "PASS",
+      "negative": "静默容错 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "cd backend && go vet ./services/ > ../docs/evidence/2359/R5-static.txt 2>&1 && test -z \"$(gofmt -l services/)\" >> ../docs/evidence/2359/R5-static.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2359/R5-static.txt"
+      ],
+      "assert": "exit 0；文件无输出",
+      "actual": "PASS：go vet ./services/ 无输出（CGO_CFLAGS=-w 抑制 go-sqlite3 第三方 C 警告）；gofmt -l services/ 无输出",
+      "expected": "PASS",
+      "negative": "vet/gofmt 有输出 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    }
+  ]
+}

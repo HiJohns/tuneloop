@@ -1,0 +1,30 @@
+# github.com/mattn/go-sqlite3
+sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
+sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+123133 |   zTail = strrchr(zName, '_');
+       |         ^
+[DEBUG] Loaded .env from: ../.env
+=== RUN   TestSettlementCalculatorErrors_2359
+=== RUN   TestSettlementCalculatorErrors_2359/ratio_den_zero
+=== RUN   TestSettlementCalculatorErrors_2359/ratio_num_gt_den
+=== RUN   TestSettlementCalculatorErrors_2359/negative_days
+=== RUN   TestSettlementCalculatorErrors_2359/negative_deposit
+=== RUN   TestSettlementCalculatorErrors_2359/coupon_exceeds_rent
+=== RUN   TestSettlementCalculatorErrors_2359/disputed_exceeds_deductions
+=== RUN   TestSettlementCalculatorErrors_2359/daily_rate_overflow
+=== RUN   TestSettlementCalculatorErrors_2359/ratio_den_overflow
+=== RUN   TestSettlementCalculatorErrors_2359/invariant_violation
+=== RUN   TestSettlementCalculatorErrors_2359/unresolved_ratio_marker
+--- PASS: TestSettlementCalculatorErrors_2359 (0.00s)
+    --- PASS: TestSettlementCalculatorErrors_2359/ratio_den_zero (0.00s)
+    --- PASS: TestSettlementCalculatorErrors_2359/ratio_num_gt_den (0.00s)
+    --- PASS: TestSettlementCalculatorErrors_2359/negative_days (0.00s)
+    --- PASS: TestSettlementCalculatorErrors_2359/negative_deposit (0.00s)
+    --- PASS: TestSettlementCalculatorErrors_2359/coupon_exceeds_rent (0.00s)
+    --- PASS: TestSettlementCalculatorErrors_2359/disputed_exceeds_deductions (0.00s)
+    --- PASS: TestSettlementCalculatorErrors_2359/daily_rate_overflow (0.00s)
+    --- PASS: TestSettlementCalculatorErrors_2359/ratio_den_overflow (0.00s)
+    --- PASS: TestSettlementCalculatorErrors_2359/invariant_violation (0.00s)
+    --- PASS: TestSettlementCalculatorErrors_2359/unresolved_ratio_marker (0.00s)
+PASS
+ok  	tuneloop-backend/services	0.020s
