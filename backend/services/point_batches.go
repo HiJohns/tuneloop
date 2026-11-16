@@ -47,9 +47,9 @@ func SetPointBatchReminderLead(lead time.Duration) {
 
 // 全局「乐币规则」参数在 system_settings 中的键（#1945 Sub-B §四）。
 const (
-	SettingPayRatioMax              = "pay_ratio_max"                // 抵扣比例上限（默认 1.0）
-	SettingPointBatchValidityMonths = "point_batch_validity_months"  // 乐币有效期（月，默认 24）
-	SettingPointExpiryReminderDays  = "point_expiry_reminder_days"   // 到期提醒提前量（天，默认 30）
+	SettingPayRatioMax              = "pay_ratio_max"               // 抵扣比例上限（默认 1.0）
+	SettingPointBatchValidityMonths = "point_batch_validity_months" // 乐币有效期（月，默认 24）
+	SettingPointExpiryReminderDays  = "point_expiry_reminder_days"  // 到期提醒提前量（天，默认 30）
 )
 
 // GetGlobalFloatSetting 读取全局租户（nil UUID）下的 system_settings 数值，缺失/非法返回 def。

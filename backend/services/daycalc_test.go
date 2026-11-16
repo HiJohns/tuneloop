@@ -11,7 +11,7 @@ import (
 func TestCalculateLeaseDays(t *testing.T) {
 	loc := time.FixedZone("CST", 8*3600)
 	cases := []struct {
-		name string
+		name  string
 		start time.Time
 		end   time.Time
 		want  int
