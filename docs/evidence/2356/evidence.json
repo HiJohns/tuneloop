@@ -1,19 +1,19 @@
 {
   "schema_version": 1,
   "issue": 2356,
-  "build": "credit-flow-2352-weapp/deposit-tier-confirm 6332b83 (weapp+backend, preprod 1.0.85)",
-  "commit": "6332b83315512f88f7e806e91c37d447e5f68e4f",
-  "environment": "Linux worktree @ origin/develop; Node 22; 预生产 1.0.85 / weapp 1.0.87-dev",
+  "build": "credit-flow-2352-weapp/deposit-tier-confirm 8cf2855 (weapp checkout/payment static + backend tiers)",
+  "commit": "8cf2855e675ffed66e3681cf62286ce079ddbd0e",
+  "environment": "Linux worktree @ origin/develop 8cf2855e6; Node 22; R4 Owner 真机回执（预生产 1.0.85 / weapp 1.0.87-dev）",
   "rows": [
     {
       "id": "R1",
       "command": "bash scripts/verify-2352-weapp.sh checkout",
       "exit": 0,
       "artifacts": [
-        "docs/evidence/2352/R1w-checkout.txt"
+        "docs/evidence/2356/R1w-checkout.txt"
       ],
       "assert": "确认页有差额拉杆且下单携带档位三件套；H5 端同断言",
-      "actual": "PASS（含红绿：删掉提交行 → exit 1）",
+      "actual": "PASS @HEAD 8cf2855：checkout 模式 exit 0；产物含 deposit_tier/guarantor；PROVENANCE commit=8cf2855 dirty=false",
       "expected": "PASS",
       "negative": "漏传档位/缺担保人 → exit 1",
       "negative_result": "实测 exit 1",
@@ -24,10 +24,10 @@
       "command": "bash scripts/verify-2352-weapp.sh payment",
       "exit": 0,
       "artifacts": [
-        "docs/evidence/2352/R2w-payment.txt"
+        "docs/evidence/2356/R2w-payment.txt"
       ],
       "assert": "支付页无档位选择、无 deposit_tier；评测入口只传 order_id",
-      "actual": "PASS",
+      "actual": "PASS @HEAD 8cf2855：payment 模式 exit 0；产物中唯一 deposit_tier 出现在内嵌 CMD 的 grep 模式行，源码命中 0 行",
       "expected": "PASS",
       "negative": "仍有档位/旧参数 → exit 1",
       "negative_result": "断言内建",
@@ -35,16 +35,16 @@
     },
     {
       "id": "R3",
-      "command": "go test ./handlers/ -run '235[27]'",
+      "command": "go test ./handlers/ -run '235[27]' -count=1 -v > docs/evidence/2356/R14-backend-tiers.txt 2>&1",
       "exit": 0,
       "artifacts": [
-        "docs/evidence/2352/R14-backend-tiers.txt"
+        "docs/evidence/2356/R14-backend-tiers.txt"
       ],
       "assert": "档位校验 full/reduced/zero 三态 + resolveDepositTier 不静默回落",
-      "actual": "go test -run 235[27]：9 PASS / 0 FAIL（含 deposit_reduced=0 未配置、40002 不静默回落）",
+      "actual": "PASS @HEAD 8cf2855（在 backend 模块根执行）：9 PASS / 0 FAIL；输出含 ok  tuneloop-backend/handlers",
       "expected": "PASS",
       "negative": "静默回落/zero 放行 → fail",
-      "negative_result": "单测覆盖",
+      "negative_result": "单测覆盖（reduced==0/==full → 拒绝，不静默回落）",
       "pass": true
     },
     {
