@@ -153,9 +153,10 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	tenantID := middleware.GetTenantID(ctx)
 
 	var req struct {
-		Username            string    `json:"username"`
+		// #2366 D3：后台创建只有 username 必填；phone/email 可选。
+		Username            string    `json:"username" binding:"required"`
 		Name                string    `json:"name" binding:"required"`
-		Phone               string    `json:"phone" binding:"required"`
+		Phone               string    `json:"phone"`
 		Email               string    `json:"email"`
 		Position            string    `json:"position"`
 		SiteID              uuid.UUID `json:"site_id"`
@@ -171,6 +172,14 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid request body: " + err.Error()})
+		return
+	}
+	// #2366 D3：username 为唯一必填登录标识；全空白视为缺失（前端已 trim，后端兜底）。
+	req.Username = strings.TrimSpace(req.Username)
+	req.Phone = strings.TrimSpace(req.Phone)
+	req.Email = strings.TrimSpace(req.Email)
+	if req.Username == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "username is required"})
 		return
 	}
 
@@ -206,8 +215,8 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	}
 	var conflicts []gin.H
 
-	// Check username
-	if req.Username != "" {
+	// Check username（#2366 D3：username 恒查）
+	{
 		var existingUser models.User
 		if err := db.Where("tenant_id = ? AND username = ? AND deleted_at IS NULL", tenantID, req.Username).First(&existingUser).Error; err == nil {
 			conflicts = append(conflicts, gin.H{
@@ -336,10 +345,8 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	}
 
 	iamClient := services.NewIAMClient()
+	// #2366 D3：username 必填，删除「留空回退 email」的隐式分支。
 	username := req.Username
-	if username == "" {
-		username = req.Email
-	}
 	createReq := &services.CreateUserRequest{
 		Username: username,
 		Name:     req.Name,

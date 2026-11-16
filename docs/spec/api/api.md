@@ -6129,9 +6129,9 @@ GET /api/admin/dashboard/near-transfers
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | name | string | 是 | 姓名 |
-| phone | string | 是 | 手机号 |
-| email | string | 否 | 邮箱（改选填） |
-| username | string | 否 | 登录用户名：不传时自动使用 email（**完整邮箱地址**）作为登录名；登录名在 IAM namespace 内唯一 |
+| phone | string | 否 | 手机号（**#2366 D3 起可选**；后台创建仅 username 必填） |
+| email | string | 否 | 邮箱（选填；无邮箱时无法自助找回密码） |
+| username | string | 是 | 登录用户名（IAM namespace 内唯一）；**后台创建必填**（#2366 D3），不再回退 email 作为登录名 |
 | **user_type** | string | 否 | **#2068**：`site_staff`(缺省) \| `repair_technician` \| `merchant_direct`；决定归属与是否一并建档案/关系 |
 | **bio** | string | 否 | **#2068/#2073**：简介（富文本 HTML）——**全类型**落 `users.bio`；`repair_technician` 另**双写** `technician_profiles.bio` |
 
@@ -6146,7 +6146,7 @@ GET /api/admin/dashboard/near-transfers
 - 本地落库（users + 归属记录）**单事务**；失败回滚 IAM 侧（Unbind + DeleteUser），消除「建了用户但档案失败」半态
 - **唯一性冲突**（phone/email/username）：
   - 本地预检（同租户）：`409 40900` + `data:[{id,name,phone,email,...}]`（candidates）；前端据此前置提示/发送邀请通知（#2052）
-  - IAM 创建冲突（namespace 级）：`409 40910/40911/40913/40914` + `data:{conflict_field, conflict_value}`；`40911`=用户名（username）、`40913`=手机号（phone）、`40914`=邮箱（email），未识别字段回退 `40910`（#2290）。`username` 留空时后端以 email 作为登录名，IAM 报 username 冲突时归一化为邮箱冲突 `40914`
+  - IAM 创建冲突（namespace 级）：`409 40910/40911/40913/40914` + `data:{conflict_field, conflict_value}`；`40911`=用户名（username）、`40913`=手机号（phone）、`40914`=邮箱（email），未识别字段回退 `40910`（#2290）。`username` 必填（#2366 D3），不再以 email 回退。
 | position | string | 否 | 职位 |
 | site_id | string | 否 | 归属网点 ID |
 | role | string | 否 | 角色：site_member / site_admin / repair_technician |
