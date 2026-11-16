@@ -456,8 +456,10 @@ steps:
 
 ## 关键规则
 - 逾期费一次性收取（不再每日扣款，#1492）
+- **逾期三变量**（v2 口径）：`contract_rent_actual`（合同期内租金）/ `overdue_rent`（逾期期间按日租的额外租金）/ `overdue_penalty`（罚金）；
+  `overdue_rent` **计入乐币基数**（属租金，2026-11 确认），`overdue_penalty` 不计入、只进额外费用账户
 - 极端欠费线下处理，不挂账
-- **乐币差额**：按 L-06 差额结算执行（A1 重算、C1 累计、完成通知）
+- **乐币差额**：按 L-06 差额结算执行（cap 重算、累计划销、完成通知）
 
 ---
 id: L-04
@@ -777,7 +779,7 @@ steps:
 
 ## 流程
 1. 系统管理 → 乐币规则 → 列表展示各会员级别配置：
-   - `pay_ratio`（抵扣比例）：初次付款/续费时，乐币抵扣 ≤ floor(应付总额 × pay_ratio)
+   - `pay_ratio`（抵扣比例）：初次付款/续费时，乐币抵扣 ≤ floor(合同标价租金 × pay_ratio)（**不含押金**；比例取订单快照，不溯既往）
    - `referral_ratio`（裂变比例）：被推荐人产生租金时，推荐人返佣 = floor(租金 × referral_ratio)
    - `referral_reg_points`（邀请奖）：被推荐人注册成功后发放给推荐人的乐币数
 2. 全局参数卡片：抵扣上限 `pay_ratio_max`、乐币有效期 `point_batch_validity_months`、到期提醒提前量 `point_expiry_reminder_days` → 保存 → PUT /admin/point-settings（即时生效）
@@ -992,6 +994,8 @@ steps:
 3. 支付页（type=renewal）→ 可填写优惠码（OREZ 全免 / ENO 1%，服务端重算）→ 微信支付（openid 由后端从本地 users 缓存回填，前端不传 open_id）
 
 ## 关键规则
+- **续费押金沿用原押金、不重复收取**（2026-11 确认）；若续费时调整档位（全额→差额等），仅收取差额部分并更新 `deposit_held`
+- 续费租金按 `term_versions` 追加（不重写 `pricing_breakdown`），结算时按版本累计重算 `R_actual`
 - 优惠码对所有支付类型通用（#1719）：amount 传原金额 + coupon_code，后端 coupons 表重算（waive→0 走记账分支；percent→按比例）
 - 无优惠码时 amount = 续期计算总额
 

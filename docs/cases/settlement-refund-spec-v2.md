@@ -5,7 +5,7 @@
 > **P1** ④ Q11 快照缺失的三级来源与冻结；⑤ Q13 净额执行增加渠道前置条件；⑥ 订单级并发与 `partially_succeeded` 状态机；
 > ⑦ 逾期三变量（`contract_rent_actual` / `overdue_rent` / `overdue_penalty`）；⑧ 续费完整性字段与押金口径。
 > 架构：**`SettlementCalculator`（纯计算）+ `SettlementExecutor`（锁/落库/执行/重试/审计）** 两模块分离。
-> 状态：**草案 v2.1；P0 已按评审修正，P1 边界已写明；Q14/Q15 等业务口径待确认后方可改码。**
+> 状态：**草案 v2.1 —— Q8/Q11/Q13/Q14/Q15 已确认；Q1–Q7/Q9/Q10/Q12 按建议值（评审确认后定稿）。**
 
 ---
 
@@ -19,8 +19,8 @@
 | P1-4 Q11 fallback | §7 三级来源 + 本次结算冻结比例，重试复用 |
 | P1-5 Q13 执行边界 | §8 增加「渠道/资金来源/协议」前置条件；否则按原交易分别执行，账务仍等于 `net_cash` |
 | P1-6 幂等/并发 | §9 订单级唯一最终结算 + 锁 + 版本 + `partially_succeeded` + 冲正 |
-| P1-7 逾期规则 | §10 三变量拆分，`overdue_penalty` 不入乐币基数（`overdue_rent` 待确认 Q14） |
-| P1-8 续费完整性 | §11 补 `original/renewal` 天数与金额；押金沿用/重收待确认 Q15 |
+| P1-7 逾期规则 | §10 三变量拆分；**Q14 已确认**：`overdue_rent` 计入乐币基数、`overdue_penalty` 不计 |
+| P1-8 续费完整性 | §11 补 `original/renewal` 天数与金额；**Q15 已确认**：续费沿用原押金 |
 | P2 细节 | §12 结果/账本字段；§5 T4/T6 分账户断言；§5 T7 条件；§14 T15 凭证；§15 券测试保留（系统有 `/coupons/validate`） |
 | 日期一致性 | 全文改为「2026-11 评审确认」，不再写具体日 |
 
@@ -217,11 +217,11 @@ calculated → confirmed → processing → succeeded
 | 变量 | 含义 | 账户 | 乐币基数 |
 |---|---|---|---|
 | `contract_rent_actual` | 合同期内实际天数租金（标价） | 租金账户 | 计入 |
-| `overdue_rent` | 逾期期间按日租产生的**额外租金** | 租金账户 | **待确认 Q14** |
+| `overdue_rent` | 逾期期间按日租产生的**额外租金** | 租金账户 | **计入（Q14 已确认）** |
 | `overdue_penalty` | 逾期**罚金**（违约性质） | 额外费用账户 | 不计入 |
 
 - 示例：合同 30 天 / 实际 35 天 / 日租 100 / 罚金 50 → 方案 A：租金 3500 + 罚金 250；方案 B：租金 3000 + 罚金 250。
-  **上线前必须确认 A/B 与 `overdue_rent` 是否可用乐币**（Q14）。
+  **Q14 已确认：`overdue_rent` 计入乐币基数（属租金），`overdue_penalty` 不计入。** 采用方案 A 的租金口径。
 
 ---
 
@@ -233,12 +233,12 @@ calculated → confirmed → processing → succeeded
 original_term_days, original_rent_cents
 renewal_term_days,  renewal_rent_cents        （可多次，按 term_versions 累加）
 total_contract_days, total_contract_rent_cents
-deposit_policy: carry_over | recharge | topup （Q15）
+deposit_policy: carry_over            // Q15 已确认：沿用原押金（仅档位调整时收差额）
 actual_days
 ```
 
 - `R_actual` = 按 `term_versions` 的阶梯与天数重算（非按日均摊）；
-- 续费押金是否重新收取/沿用原押金 → **Q15 待确认**（默认沿用原押金，差额按档位调整）。
+- **Q15 已确认：续费沿用原押金，不重复收取**；若档位调整（如补差价升级差额档），仅收差额部分并更新 `deposit_held`。
 
 ---
 
@@ -317,8 +317,8 @@ cash_refundable_cents, cash_payable_cents, net_cash_cents
 | Q11 | 比例来源 | ✅ 已确认：下单快照（§7 三级 fallback + 冻结） |
 | Q12 | 阶梯重算 | 按实际天数重算阶梯段 |
 | Q13 | 净额执行 | ✅ 已确认：账务分账户，执行按渠道条件净额或分笔（§8） |
-| Q14 | `overdue_rent` 是否计入乐币基数 | 建议**计入**（属租金）；`overdue_penalty` 不计 |
-| Q15 | 续费押金 | 建议沿用原押金，不重复收取（差额按档位调整） |
+| Q14 | `overdue_rent` 是否计入乐币基数 | ✅ 已确认：**计入**（属租金）；`overdue_penalty` 不计 |
+| Q15 | 续费押金 | ✅ 已确认：**沿用原押金**，不重复收取；档位调整仅收差额 |
 
 ---
 

@@ -175,9 +175,8 @@ net_cash_cents + p_refund_points * 100
   部分成功（如现金退款成功、乐币恢复失败）**禁止整单重放**，按子动作重试。
 - **执行边界**：账务永远分账户；仅当支付渠道/资金来源/协议均允许时才做净额收付，否则按原交易分别执行，
   执行完毕后账务合计必须等于 `net_cash_cents`。
-- **逾期三变量**：`contract_rent_actual` / `overdue_rent` / `overdue_penalty`；罚金不入乐币基数，
-  `overdue_rent` 是否入基数待 Q14 确认。
-- **续费**：按 `term_versions` 累计天数与金额，押金沿用/重收待 Q15 确认。
+- **逾期三变量**：`contract_rent_actual` / `overdue_rent` / `overdue_penalty`；**Q14 已确认：`overdue_rent` 计入乐币基数（属租金），`overdue_penalty` 不计入**。
+- **续费**：按 `term_versions` 累计天数与金额；**Q15 已确认：沿用原押金，不重复收取**（档位调整仅收差额）。
 
 ### 10.8 待确认（不阻塞文档定稿）
 
