@@ -3,6 +3,7 @@ package wechatpay
 import (
 	"context"
 	"testing"
+	"time"
 )
 
 // #2327：外部资质（service_id/商务准入）退化为配置项——默认走 mock，业务可先行开发。
@@ -79,5 +80,31 @@ func TestMockPayscoreProviderLifecycle(t *testing.T) {
 	// 负例：未知订单必须报错
 	if err := p.CancelOrder(ctx, "SVC1", "missing"); err == nil {
 		t.Fatal("cancel unknown order must fail")
+	}
+}
+
+func TestMockProviderHoldsPendingForApproveAfter(t *testing.T) {
+	m := NewMockPayscoreProvider()
+	m.ApproveAfter = 40 * time.Millisecond
+	if _, err := m.CreateOrder(context.Background(), PayScoreCreateParams{
+		OutOrderNo: "delay-1",
+		RiskFund:   PayScoreRiskFund{Name: RiskFundName, Amount: 100},
+	}); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	q, err := m.QueryOrder(context.Background(), "", "delay-1")
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if q.State != mockStatePending {
+		t.Fatalf("expected pending within approve-after window, got %q", q.State)
+	}
+	time.Sleep(50 * time.Millisecond)
+	q2, err := m.QueryOrder(context.Background(), "", "delay-1")
+	if err != nil {
+		t.Fatalf("query 2: %v", err)
+	}
+	if q2.State != mockStateApproved {
+		t.Fatalf("expected approved after window, got %q", q2.State)
 	}
 }
