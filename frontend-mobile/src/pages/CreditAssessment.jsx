@@ -212,11 +212,6 @@ export default function CreditAssessment() {
             {t(STATE_TEXT[state] || '尚未评测')}
           </Text>
         </View>
-        {credit?.mock && (
-          <View className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mt-3">
-            <Text className="text-xs text-amber-700">{t('模拟评估（开发/测试环境，不会真实拉起微信）')}</Text>
-          </View>
-        )}
       </View>
 
       {error ? (
