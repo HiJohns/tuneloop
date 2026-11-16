@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Space, message, Popconfirm, Modal, Input, Select, Checkbox, Typography, Alert } from 'antd';
+import { Table, Button, Space, message, Popconfirm, Modal, Input, Select, Form, Alert } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import api from '../services/api';
 import { formatBeijingDate } from '../utils/date';
 import { adminApi, invitesApi } from '../services/api';
+import PasswordSettingFields from './PasswordSettingFields';
+import InitialPasswordModal from './InitialPasswordModal';
 
 const ROLE_NAMES = {
   admin: '网点管理员',
@@ -35,7 +37,13 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
   const [adding, setAdding] = useState(false);
   const [availableRoles, setAvailableRoles] = useState([]);
   const [selectedRole, setSelectedRole] = useState('site_admin');
-  const [skipActivation, setSkipActivation] = useState(false);
+  // #2373：密码模式（D1）——不再暴露「跳过邮箱验证」独立开关；密码模式即直接激活。
+  const [autoGenerate, setAutoGenerate] = useState(true);
+  const [forcePasswordChange, setForcePasswordChange] = useState(true);
+  const [passwordDraft, setPasswordDraft] = useState('');
+  const [initialPasswords, setInitialPasswords] = useState([]);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [pwdForm] = Form.useForm();
 
   const [formMode, setFormMode] = useState('new');
   const [username, setUsername] = useState('');
@@ -146,12 +154,19 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
     setExistingUser(null);
     setDuplicates({});
     setSelectedRole('site_admin');
-    setSkipActivation(false);
+    setAutoGenerate(true);
+    setForcePasswordChange(true);
+    setPasswordDraft('');
+    setInitialPasswords([]);
+    setPasswordModalOpen(false);
+    pwdForm.resetFields();
   };
 
   const isFormValid = () => {
     if (formMode === 'existing') return !!existingUser;
-    return username.trim() && name.trim() && email.trim() && phone.trim();
+    // #2373：邮箱选填（后端 #2371：无邮箱时需有密码通道）。
+    const hasPasswordInput = autoGenerate || !!passwordDraft;
+    return !!username.trim() && !!name.trim() && !!phone.trim() && (!!email.trim() || hasPasswordInput);
   };
 
   // #2114 P2/P3：网点管理员无权限直接添加非本商户成员 → 引导提交加入申请（商户管理员审批）。
@@ -200,9 +215,33 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
           message.error(response.message || '绑定失败');
         }
       } else {
+        // #2373：手动密码先做前端强度校验（与后端一致），通过后再提交 #2371 契约字段。
+        if (!autoGenerate) {
+          try {
+            await pwdForm.validateFields();
+          } catch {
+            setAdding(false);
+            return;
+          }
+        }
+        const password = autoGenerate ? '' : passwordDraft;
+        if (!email.trim() && !autoGenerate && !password) {
+          message.error('需填写邮箱或设置密码');
+          setAdding(false);
+          return;
+        }
+        const newUser = {
+          username: username.trim(),
+          name: name.trim(),
+          phone: phone.trim(),
+          role: selectedRole,
+          auto_generate: autoGenerate,
+          force_password_change: forcePasswordChange,
+        };
+        if (email.trim()) newUser.email = email.trim();
+        if (!autoGenerate) newUser.password = password;
         const response = await api.post(`${membersBase}/${siteId}/members`, {
-          new_users: [{ username: username.trim(), name: name.trim(), email: email.trim(), phone: phone.trim(), role: selectedRole }],
-          skip_activation: skipActivation,
+          new_users: [newUser],
         });
         if (response.code === 20000 || response.code === 20100) {
           const data = response.data;
@@ -216,30 +255,18 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
             return;
           }
           message.success(`成功添加 ${directCount} 个用户`);
+          // #2373：先重置表单，再打开一次性密码 Modal（避免 resetForm 清空刚拿到的密码）。
+          const passwords = (data.initial_passwords || []).map(p => ({
+            identifier: p.identifier || p.email || p.username || '',
+            password: p.password,
+          }));
           setModalVisible(false);
           resetForm();
           fetchMembers();
           onRefresh && onRefresh();
-
-          if (skipActivation && data.initial_passwords?.length > 0) {
-            const lines = data.initial_passwords.map((p, i) => (
-              <div key={i} style={{ marginBottom: 8 }}>
-                <span style={{ color: '#666' }}>{p.email}：</span>
-                <Typography.Text copyable code style={{ fontSize: 14, padding: '2px 8px' }}>
-                  {p.password}
-                </Typography.Text>
-              </div>
-            ));
-            Modal.success({
-              title: '成员已创建',
-              content: (
-                <div>
-                  <p>初始密码（请立即复制保存）：</p>
-                  <div style={{ margin: '12px 0' }}>{lines}</div>
-                  <p style={{ color: '#ff4d4f' }}>此为仅显示一次密码，请妥善保存。</p>
-                </div>
-              ),
-            });
+          if (passwords.length > 0) {
+            setInitialPasswords(passwords);
+            setPasswordModalOpen(true);
           }
           if (data.role_errors?.length > 0) {
             message.warning('用户创建成功，但部分角色权限分配失败。');
@@ -389,7 +416,7 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
               <Input value={name} onChange={e => setName(e.target.value)} />
             </div>
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', marginBottom: 4, color: '#666' }}>邮箱 <span style={{ color: '#ff4d4f' }}>*</span></label>
+              <label style={{ display: 'block', marginBottom: 4, color: '#666' }}>邮箱（选填）</label>
               <Input
                 value={email}
                 onChange={e => { setEmail(e.target.value); setDuplicates(prev => ({ ...prev, email: false })); }}
@@ -427,11 +454,14 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
             ))}
           </Select>
           {formMode !== 'existing' && (
-            <div style={{ marginTop: 12 }}>
-              <Checkbox checked={skipActivation} onChange={e => setSkipActivation(e.target.checked)}>
-                跳过邮箱验证（直接激活）
-              </Checkbox>
-            </div>
+            <Form form={pwdForm} component={false} onValuesChange={(_, vals) => setPasswordDraft(vals.password || '')}>
+              <PasswordSettingFields
+                autoGenerate={autoGenerate}
+                forcePasswordChange={forcePasswordChange}
+                onAutoGenerateChange={setAutoGenerate}
+                onForcePasswordChangeChange={setForcePasswordChange}
+              />
+            </Form>
           )}
         </div>
 
@@ -449,6 +479,13 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
           </Button>
         </div>
       </Modal>
+
+      <InitialPasswordModal
+        open={passwordModalOpen}
+        passwords={initialPasswords}
+        onClose={() => { setPasswordModalOpen(false); setInitialPasswords([]); }}
+        title="成员初始密码（仅展示一次）"
+      />
 
       <Table
         columns={columns}
