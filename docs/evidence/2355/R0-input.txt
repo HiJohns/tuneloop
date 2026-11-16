@@ -1,0 +1,14 @@
+3:const maxPageSize = 100
+52:	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+61:	pageSize = clampPageSize(pageSize, 20, maxPageSize)
+63:	offset := (page - 1) * pageSize
+90:	if err := query.Order("created_at DESC").Offset(offset).Limit(pageSize).Find(&instruments).Error; err != nil {
+192:			"pageSize": pageSize,
+80:	var total int64
+81:	if err := query.Count(&total).Error; err != nil {
+173:			"total_price":      instrument.TotalPrice,
+190:			"total":    total,
+269:		"total_price":      instrument.TotalPrice,
+458:	totalPrice := 0.0
+460:		totalPrice = (*instrument.TotalPrice).ToYuan()
+462:	result := services.CalculatePricing((*instrument.BaseDailyRate).ToYuan(), totalPrice, config.Config, instrument.PricingOverrides, instrument.Pricing)

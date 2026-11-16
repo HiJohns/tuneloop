@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "issue": 2355,
+  "build": "home-price-sort 1a1797e",
+  "commit": "1a1797eb0524739bdabe46acc7d0ecc28d079f97",
+  "dirty": false,
+  "environment": "local Linux; Node v22.23.4; H5 Vite + weapp Taro builds on fix commit 1a1797e; interaction evidence via page-smoke/taro-shim (jsdom), not a real-device E2E",
+  "rows": [
+    {
+      "id": "R0",
+      "command": "bash -c 'grep -n \"maxPageSize = 100\" backend/handlers/pagination_helpers.go > docs/evidence/2355/R0-input.txt && grep -n \"pageSize\" backend/handlers/public.go >> docs/evidence/2355/R0-input.txt && grep -n \"total\" backend/handlers/public.go >> docs/evidence/2355/R0-input.txt'",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2355/R0-input.txt"
+      ],
+      "assert": "三个 grep 均命中且 exit 0",
+      "actual": "maxPageSize = 100 命中；public.go 含 pageSize 默认 20、clamp、响应 pageSize；total Count 与响应 total 命中；exit 0",
+      "expected": "maxPageSize=100, pageSize 默认 20, total 存在",
+      "negative": "任一 grep 未命中则非 0",
+      "negative_result": "任一 grep 未命中时 && 链短路，命令非 0",
+      "pass": true
+    },
+    {
+      "id": "R1",
+      "command": "cd frontend-mobile && npx vitest run --config vitest.config.js -t \"homeSort\" > ../docs/evidence/2355/R1-unit.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2355/R1-unit.txt"
+      ],
+      "assert": "Vitest exit 0 且 homeSort 用例通过",
+      "actual": "homeSort describe 6/6 PASS：三态循环、375/320 宽度、展示价回退、分页判断、去重/过滤、升降序与稳定性",
+      "expected": "all homeSort tests pass",
+      "negative": "rented/无效价顺序错误或 input mutation 则失败",
+      "negative_result": "排序分组错误、无价/rented 位置错误或输入被 mutate 时对应断言 FAIL",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "cd frontend-mobile && npx vitest run --config vitest.config.js -t \"H5 home price sort\" > ../docs/evidence/2355/R2-h5-sort.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2355/R2-h5-sort.txt"
+      ],
+      "assert": "Vitest exit 0 且 H5 交互用例通过",
+      "actual": "H5 2/2 PASS：三态/跨分类/重挂载恢复默认；asc 请求 pageSize=100、desc 不重复请求、default 恢复 pageSize=50；全量失败回退标签与列表",
+      "expected": "labels and order exact",
+      "negative": "标签/顺序/默认恢复错误则失败",
+      "negative_result": "标签、顺序、请求分页或失败回退任一不符时对应断言 FAIL",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "cd frontend-mobile && npx vitest run --config vitest.config.js -t \"weapp home price sort\" > ../docs/evidence/2355/R3-weapp-sort.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2355/R3-weapp-sort.txt"
+      ],
+      "assert": "Vitest exit 0 且 weapp 用例通过",
+      "actual": "weapp 1/1 PASS：三态/顺序/asc 100 分页/desc 不重复请求/跨分类保持/default 恢复 50 分页；taro-shim 渲染无 fatal error",
+      "expected": "labels and order exact",
+      "negative": "标签/顺序/跨分类保持错误则失败",
+      "negative_result": "weapp 三态、顺序或跨分类保持任一错误时对应断言 FAIL",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "cd frontend-mobile && npx vitest run --config vitest.config.js -t \"home price sort layout\" > ../docs/evidence/2355/R4-layout.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2355/R4-layout.txt"
+      ],
+      "assert": "Vitest exit 0 且宽度断言通过",
+      "actual": "375 scroller=291、pill=52；320 scroller=236、pill=52；scroller 右缘 <= pill 左缘",
+      "expected": "375=291, 320=236, pill=52",
+      "negative": "重叠或宽度错误则失败",
+      "negative_result": "scroller/pill 宽度不符或右缘越过 pill 左缘时断言 FAIL",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "cd frontend-mobile && npm run build > ../docs/evidence/2355/R5-h5-build.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2355/R5-h5-build.txt"
+      ],
+      "assert": "exit 0",
+      "actual": "Vite build exit 0，3047 modules transformed，产物 dist/assets/index-DHBz7qfW.js",
+      "expected": "H5 build exit 0",
+      "negative": "构建错误则非 0",
+      "negative_result": "任一 Vite 构建错误使命令非 0",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "cd frontend-mobile && npm run build:weapp > ../docs/evidence/2355/R6-weapp-build.txt 2>&1 && ! grep -qE -e '<div' -e '<span' -e '<img' -e '<button' -e '<input' -e '<textarea' -e '<p ' -e '<select' -e '<a ' dist-weapp/pages-weapp/home/index.wxml",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2355/R6-weapp-build.txt"
+      ],
+      "assert": "build exit 0 且探针 exit 0",
+      "actual": "Taro Webpack compiled successfully in 12.50s；home/index.wxml 无原生 HTML 交互/媒体标签，探针 exit 0",
+      "expected": "weapp build exit 0, no native tags",
+      "negative": "原生标签或构建失败则非 0",
+      "negative_result": "wxml 命中任意原生标签则 grep 成功、取反失败；构建失败亦非 0",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "cd frontend-mobile && npx eslint src/pages/Home.jsx src/pages-weapp/Home.jsx src/utils/homeSort.js > ../docs/evidence/2355/R7-eslint.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2355/R7-eslint.txt"
+      ],
+      "assert": "ESLint exit 0",
+      "actual": "ESLint exit 0：0 errors / 12 warnings（均为既有 i18n warning 或 Home 既有 hook warning）",
+      "expected": "0 errors",
+      "negative": "任一 error 则非 0",
+      "negative_result": "出现 no-undef 或其他 error 时 ESLint 非 0",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash -c \"grep -c '价格排序' docs/topics/frontpage.md > docs/evidence/2355/R8-docs.txt && grep -c '价格排序' docs/spec/ui/ui.md >> docs/evidence/2355/R8-docs.txt && grep -c '价格排序' docs/cases/h5-weapp-differences.md >> docs/evidence/2355/R8-docs.txt\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2355/R8-docs.txt"
+      ],
+      "assert": "三个 grep -c 均至少 1 且 exit 0",
+      "actual": "计数 4 / 1 / 1：frontpage、ui、h5-weapp-differences 均含「价格排序」",
+      "expected": "3 docs contain 价格排序",
+      "negative": "任一文档缺失或计数 0 则非 0",
+      "negative_result": "任一文件缺失或计数为 0 时 grep -c 非 0",
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash -c \"git status --porcelain -- backend > docs/evidence/2355/R9-no-backend.txt && test ! -s docs/evidence/2355/R9-no-backend.txt\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2355/R9-no-backend.txt"
+      ],
+      "assert": "产物为空且 exit 0",
+      "actual": "R9-no-backend.txt 0 字节，backend 无任何改动",
+      "expected": "backend diff empty",
+      "negative": "任何 backend 改动则非 0",
+      "negative_result": "backend 出现修改/新增时 test -s 成功、取反失败",
+      "pass": true
+    }
+  ]
+}

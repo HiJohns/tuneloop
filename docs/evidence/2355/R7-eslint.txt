@@ -1,0 +1,19 @@
+
+/home/ken/git/tuneloop/frontend-mobile/src/pages-weapp/Home.jsx
+  109:81   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  341:22   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  480:20   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  517:116  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  834:44   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+
+/home/ken/git/tuneloop/frontend-mobile/src/pages/Home.jsx
+   72:65  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                                                          i18n/no-hardcoded-ui-string
+  221:22  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                                                          i18n/no-hardcoded-ui-string
+  276:6   warning  React Hook useEffect has missing dependencies: 'searchParams' and 'selectedCategory'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  276:7   warning  React Hook useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked  react-hooks/exhaustive-deps
+  323:20  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                                                          i18n/no-hardcoded-ui-string
+  449:63  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                                                          i18n/no-hardcoded-ui-string
+  495:41  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                                                          i18n/no-hardcoded-ui-string
+
+✖ 12 problems (0 errors, 12 warnings)
+

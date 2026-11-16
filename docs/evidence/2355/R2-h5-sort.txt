@@ -1,0 +1,63 @@
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /home/ken/git/tuneloop/frontend-mobile
+
+ ↓ scripts/page-smoke/home-scroll-layout.test.jsx (4 tests | 4 skipped)
+ ↓ scripts/page-smoke/smoke.test.jsx (18 tests | 18 skipped)
+stdout | scripts/page-smoke/rent-days-input.test.jsx
+[Dev Mode] Injecting mock wx object for browser debugging
+
+stdout | scripts/page-smoke/home-sort.test.jsx
+[Dev Mode] Injecting mock wx object for browser debugging
+
+ ↓ scripts/page-smoke/rent-days-input.test.jsx (3 tests | 3 skipped)
+stderr | scripts/page-smoke/home-sort.test.jsx > H5 home price sort > toggles all three states, preserves mode across categories, and resets on remount
+Warning: React does not recognize the `scrollY` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `scrolly` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at div
+    at div
+    at div
+    at Home (/home/ken/git/tuneloop/frontend-mobile/src/pages/Home.jsx:110:42)
+    at RenderedRoute (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+Warning: React does not recognize the `scrollWithAnimation` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `scrollwithanimation` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at div
+    at div
+    at div
+    at Home (/home/ken/git/tuneloop/frontend-mobile/src/pages/Home.jsx:110:42)
+    at RenderedRoute (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+Warning: Received `true` for a non-boolean attribute `enhanced`.
+
+If you want to write it to the DOM, pass a string instead: enhanced="true" or enhanced={value.toString()}.
+    at div
+    at div
+    at div
+    at Home (/home/ken/git/tuneloop/frontend-mobile/src/pages/Home.jsx:110:42)
+    at RenderedRoute (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+Warning: React does not recognize the `showScrollbar` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `showscrollbar` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at div
+    at div
+    at div
+    at Home (/home/ken/git/tuneloop/frontend-mobile/src/pages/Home.jsx:110:42)
+    at RenderedRoute (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/ken/git/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ scripts/page-smoke/home-sort.test.jsx (10 tests | 8 skipped) 890ms
+   ✓ H5 home price sort > toggles all three states, preserves mode across categories, and resets on remount 679ms
+
+ Test Files  1 passed | 3 skipped (4)
+      Tests  2 passed | 33 skipped (35)
+   Start at  11:22:24
+   Duration  2.02s (transform 382ms, setup 54ms, collect 1.04s, tests 890ms, environment 1.21s, prepare 711ms)
+
