@@ -1,11 +1,12 @@
-# R2 人工回执 —— #2373 商户直属成员：空邮箱 + 手动密码
+# R2 人工回执 —— #2373 负责人（商户管理员）：空邮箱 + 手动密码
 
 > Owner 在预生产（`preweb.cadenzayueqi.com`）按下列步骤核对后，把文末 `RESULT: PENDING` 改为 `RESULT: PASS`（或 `FAIL` + 原因）。
 > 契约：`grep -q 'RESULT: PASS' docs/evidence/2373/R2-merchant-manual.md`（见 #2373 Accepted Plan 的 R2 行）。
 
 ## 前置
 
-- 预生产商户 → 直属成员 → 「添加管理员」，已部署含 #2370/#2371/#2373 的版本。
+- 预生产「商户 → 负责人管理」→「添加管理员」，已部署含 #2370/#2371/#2373 的版本。
+  （注意：本页创建的是 `role=merchant_admin` 的**负责人**；「直属成员（merchant_staff）」在 `DirectMemberManagement`，属 #2372 范围。）
 - 浏览器开发者工具 → Network 面板打开。
 
 ## 步骤与核对项
