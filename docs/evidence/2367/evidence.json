@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "issue": 2367,
+  "build": "go1.25.0 handlers-targeted bdc92af",
+  "commit": "bdc92af30570d63d5da4e48250a0b2e6664ed482",
+  "dirty": false,
+  "rows": [
+    {
+      "id": "R1",
+      "command": "cd backend && go test ./handlers/ -run 'TestCreateMerchantDirectMerchantScope_2364' -count=1 -v > ../docs/evidence/2367/R1-fixed.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2367/R1-fixed.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "exit 0；--- PASS: TestCreateMerchantDirectMerchantScope_2364；用例断言 200 且 users/merchant_members 各 1 行、IAM bind 到商户 org",
+      "expected": "PASS",
+      "negative": "500 → FAIL",
+      "negative_result": "修复前同一用例返回 500（failed to create user: merchant not found for operator scope），已在本轮红绿实证中复现",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "cd backend && go test ./handlers/ -run 'TestResolveMerchantScopePreFixRed_2364' -count=1 -v > ../docs/evidence/2367/R2-pre-fix-red.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2367/R2-pre-fix-red.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "exit 0；--- PASS: TestResolveMerchantScopePreFixRed_2364；带自动 tenant scope 句柄解析失败，merchantConfigDB 解析成功，共享 tenant 歧义时 500 文案原样保留",
+      "expected": "PASS",
+      "negative": "未复现缺陷 → FAIL",
+      "negative_result": "若带 scope 句柄能解析到商户（缺陷未复现），断言失败 → exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "cd backend && go build ./... > ../docs/evidence/2367/R3-build.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2367/R3-build.txt"
+      ],
+      "assert": "exit 0",
+      "actual": "exit 0；构建输出 0 字节（无错误、无告警）",
+      "expected": "PASS",
+      "negative": "编译失败 → exit 1",
+      "negative_result": "go build 失败时命令返回非 0 → 合同行 FAIL",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash -c \"test -s docs/evidence/2367/R4-preprod.md && grep -q 'executor: ops' docs/evidence/2367/R4-preprod.md && grep -q 'RESULT: PENDING' docs/evidence/2367/R4-preprod.md\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2367/R4-preprod.md"
+      ],
+      "assert": "exit 0（ops 待办工件符合约定）",
+      "actual": "exit 0；工件非空，含 executor: ops 与 RESULT: PENDING（预生产复测尚未执行，ops 待办）",
+      "expected": "PASS",
+      "negative": "写 RESULT: PASS 或缺失 → exit 1",
+      "negative_result": "若工件写成 RESULT: PASS 或缺少 executor/结果字段，断言失败 → exit 1",
+      "pass": true
+    }
+  ]
+}
