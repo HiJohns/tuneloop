@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "issue": 2370,
+  "build": "password-fields-2370 c118b50",
+  "commit": "c118b500719b6ed3d2f5302f28f426aac33cc144",
+  "dirty": false,
+  "environment": "Node 22 断言脚本 + PC 前端 vite build；R2/R3 为 Owner 浏览器人工回执",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "node scripts/assert-password-2370.mjs > docs/evidence/2370/R1-validate.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2370/R1-validate.txt"
+      ],
+      "assert": "exit 0；输出含 6/6 PASS",
+      "actual": "PASS：6/6 PASS（abc12345/ABCD1234/AbcdEfgh/Abcd 负例文案逐条校验；Abcd1234 与 Abcd 1234 为 true）",
+      "expected": "PASS",
+      "negative": "任一例判定错误 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2370/R2-fields-manual.md",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2370/R2-fields-manual.md"
+      ],
+      "assert": "exit 0",
+      "actual": "PASS：Owner 回执 9 项全勾选（自动态隐藏密码框/手动态必填/自动态不发 password）",
+      "expected": "PASS",
+      "negative": "回执缺失 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2370/R3-modal-manual.md",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2370/R3-modal-manual.md"
+      ],
+      "assert": "exit 0",
+      "actual": "PASS：Owner 回执 6 项（1/3 条展示、复制准确、关闭不可再查看、刷新不复现、Storage 无明文）",
+      "expected": "PASS",
+      "negative": "回执缺失 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "cd frontend-pc && npm run build > ../docs/evidence/2370/R4-build.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2370/R4-build.txt"
+      ],
+      "assert": "exit 0；含 built in",
+      "actual": "PASS：vite build exit 0 且输出含 built in",
+      "expected": "PASS",
+      "negative": "构建失败 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    }
+  ]
+}
