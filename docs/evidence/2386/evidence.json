@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "issue": 2386,
+  "build": "staff-members-2386 72b3657",
+  "commit": "72b365780",
+  "dirty": false,
+  "environment": "backend handlers tests on PG 127.0.0.1:15433 (strict schema)",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2386.sh r1-aggregate > docs/evidence/2386/R1-aggregate.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2386/R1-aggregate.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：直属 2 + 网点 A 3（u3 兼 B）→ total=5；u3 sites=[A,B]；跨租户用户不可见；无重复 user",
+      "expected": "PASS",
+      "negative": "未去重 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2386.sh r2-scope > docs/evidence/2386/R2-scope.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2386/R2-scope.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：网点管理员 scope=all 降级为本站点（3 行）；直属成员 u1 不出现；跨商户 0 行",
+      "expected": "PASS",
+      "negative": "泄漏 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2386.sh r3-platform > docs/evidence/2386/R3-platform.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2386/R3-platform.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：namespace admin 200 可读；测试路由仅 GET，POST 404/405（无写入口）",
+      "expected": "PASS",
+      "negative": "出现写路径 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2386.sh build > docs/evidence/2386/R4-build.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2386/R4-build.txt"
+      ],
+      "assert": "exit 0",
+      "actual": "PASS：go build ./... exit 0（输出为空）",
+      "expected": "PASS",
+      "negative": "编译失败 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    }
+  ]
+}
