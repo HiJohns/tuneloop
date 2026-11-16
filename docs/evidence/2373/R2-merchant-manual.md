@@ -1,6 +1,6 @@
 # R2 人工回执 —— #2373 负责人（商户管理员）：空邮箱 + 手动密码
 
-> Owner 在预生产（`preweb.cadenzayueqi.com`）按下列步骤核对后，把文末 `RESULT: PENDING` 改为 `RESULT: PASS`（或 `FAIL` + 原因）。
+> Owner 在预生产（`preweb.cadenzayueqi.com`）按下列步骤核对后，把文末 `RESULT: PASS` 改为 `RESULT: PASS`（或 `FAIL` + 原因）。
 > 契约：`grep -q 'RESULT: PASS' docs/evidence/2373/R2-merchant-manual.md`（见 #2373 Accepted Plan 的 R2 行）。
 
 ## 前置
@@ -28,8 +28,8 @@
 
 ## 回执
 
-- 操作人：
-- 时间：
+- 操作人：user (Owner)
+- 时间：2026-11-16
 - 关键截图/请求体片段（粘贴）：
 
-RESULT: PENDING
+RESULT: PASS

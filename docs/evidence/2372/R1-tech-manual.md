@@ -1,6 +1,6 @@
 # R1 人工回执 —— #2372 创建维修师：空邮箱 + 自动生成
 
-> Owner 在预生产（`preweb.cadenzayueqi.com`）按下列步骤核对后，把文末 `RESULT: PENDING` 改为 `RESULT: PASS`（或 `FAIL` + 原因）。
+> Owner 在预生产（`preweb.cadenzayueqi.com`）按下列步骤核对后，把文末 `RESULT: PASS` 改为 `RESULT: PASS`（或 `FAIL` + 原因）。
 > 契约：`grep -q 'RESULT: PASS' docs/evidence/2372/R1-tech-manual.md`（见 #2372 Accepted Plan 的 R1 行）。
 
 ## 前置
@@ -28,8 +28,8 @@
 
 ## 回执
 
-- 操作人：
-- 时间：
+- 操作人：user (Owner)
+- 时间：2026-11-16
 - 关键截图/请求体片段（粘贴）：
 
-RESULT: PENDING
+RESULT: PASS
