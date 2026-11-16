@@ -91,7 +91,8 @@ func (h *TechnicianProfileHandler) List(c *gin.Context) {
 	}
 	// #2247：归属锚 = 商户 org（tenant 仅在未被共享时兼容）
 	opOrg := middleware.GetOrgID(ctx)
-	merchant, hasMerchant := resolveOperatorMerchant2247(db, opOrg, tid)
+	// #2379（同 #2367）：org 分支不能被自动 tenant scope 追加恒假过滤；仅本次解析放宽。
+	merchant, hasMerchant := resolveOperatorMerchant2247(merchantConfigDB(ctx), opOrg, tid)
 	query := db.Model(&models.TechnicianProfile{})
 	if hasMerchant {
 		query = query.Where("tenant_id IN ?", merchantScopeIDs2247(db, merchant))
