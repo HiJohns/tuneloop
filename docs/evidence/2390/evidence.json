@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "issue": 2390,
+  "build": "vite-build-node22 d757bcb",
+  "commit": "d757bcb16e93560c5e4dda39c589d4ee0a3345df",
+  "dirty": false,
+  "rows": [
+    {
+      "id": "R1",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2390/R1-manual.md",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2390/R1-manual.md"
+      ],
+      "assert": "exit 0",
+      "actual": "exit 0；Chromium 运行时：列表与表单均显示「创建员工」，列表/表单均无「创建用户」",
+      "expected": "PASS",
+      "negative": "缺失 → exit 1",
+      "negative_result": "若 R1-manual.md 缺失或不含 RESULT: PASS → grep exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2390/R2-manual.md",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2390/R2-manual.md"
+      ],
+      "assert": "exit 0",
+      "actual": "exit 0；表单无「网点员工」单选项，仅「商户直属员工」且默认选中",
+      "expected": "PASS",
+      "negative": "缺失 → exit 1",
+      "negative_result": "若 R2-manual.md 缺失或不含 RESULT: PASS → grep exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2390/R3-manual.md",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2390/R3-manual.md"
+      ],
+      "assert": "exit 0",
+      "actual": "exit 0；引导文案存在，点击「前往网点管理」跳转 /organization/sites",
+      "expected": "PASS",
+      "negative": "缺失 → exit 1",
+      "negative_result": "若 R3-manual.md 缺失或不含 RESULT: PASS → grep exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "npm --prefix frontend-pc run build > docs/evidence/2390/R4-build.txt 2>&1 && ! grep -q '创建用户' frontend-pc/src/pages/StaffManagement.jsx",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2390/R4-build.txt"
+      ],
+      "assert": "exit 0；含 built in；源码无「创建用户」",
+      "actual": "exit 0；vite build 含 built in；源码 grep「创建用户」无命中",
+      "expected": "PASS",
+      "negative": "文案残留 → exit 1",
+      "negative_result": "若仍存在「创建用户」→ grep 命中 → exit 1；构建失败 → npm exit 非 0",
+      "pass": true
+    }
+  ]
+}
