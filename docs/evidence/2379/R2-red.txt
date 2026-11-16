@@ -1,0 +1,15 @@
+[DEBUG] Loaded .env from: ../.env
+2026/11/16 22:41:53 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2379 sslmode=disable
+2026/11/16 22:41:54 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2379
+2026/11/16 22:41:54 [DB] Connected to database 'tuneloop_test_verify2379'
+=== RUN   TestTechnicianProfileMerchantScopeRed_2379
+2026/11/16 22:41:54 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2379 sslmode=disable
+2026/11/16 22:41:54 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2379
+2026/11/16 22:41:54 [DB] Connected to database 'tuneloop_test_verify2379'
+2026/11/16 22:41:55 [TenantScope][observe] auto-scope injected for table=merchants (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/16 22:41:55 [31;1m/home/coder/tuneloop/backend/handlers/merchant_scope_2247.go:25 [35;1mrecord not found
+[0m[33m[1.161ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE org_id = '9f8d015d-adb9-489d-a5cf-4c07115caa20' AND "merchants"."tenant_id" = '9f8d015d-adb9-489d-a5cf-4c07115caa20' ORDER BY "merchants"."id" LIMIT 1
+--- PASS: TestTechnicianProfileMerchantScopeRed_2379 (0.78s)
+PASS
+ok  	tuneloop-backend/handlers	2.742s

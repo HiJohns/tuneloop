@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "issue": 2379,
+  "build": "tech-scope-2379 1fbfe2a",
+  "commit": "1fbfe2a66",
+  "dirty": false,
+  "environment": "backend handlers tests on PG 127.0.0.1:15433 (strict schema)",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2379.sh r1-fixed > docs/evidence/2379/R1-fixed.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2379/R1-fixed.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：merchantConfigDB 解析到 org_id=O 的商户（merchants.tenant_id=N、JWT tid=O）",
+      "expected": "PASS",
+      "negative": "仍 false → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2379.sh r2-red > docs/evidence/2379/R2-red.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2379/R2-red.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：同一 fixture 用自动 tenant scope 句柄解析失败（缺陷可复现）",
+      "expected": "PASS",
+      "negative": "未复现 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2379.sh build > docs/evidence/2379/R3-build.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2379/R3-build.txt"
+      ],
+      "assert": "exit 0",
+      "actual": "PASS：go build ./... exit 0（空输出）",
+      "expected": "PASS",
+      "negative": "编译失败 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    }
+  ]
+}
