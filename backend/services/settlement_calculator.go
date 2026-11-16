@@ -414,9 +414,21 @@ func calcActualList(dailyRate int64, days int, overdueRent int64, tiers []Pricin
 	return addInt64(base, overdueRent)
 }
 
-// calcPointsCap = floor(R_after_coupon * ratio_num / (100 * ratio_den))。
-func calcPointsCap(rAfterCoupon, ratioNum, ratioDen int64) (int64, error) {
-	product, err := mulInt64(rAfterCoupon, ratioNum)
+// CalcPointsCap = floor(R_after_coupon * ratio_num / (100 * ratio_den))。
+//
+// #2359/#2362：这是「支付端 cap」与「结算端 cap」的唯一公式出口；任何调用方
+// 不得自行实现第二套公式（审计按重复实现 REJECT）。
+func CalcPointsCap(rAfterCouponCents, ratioNum, ratioDen int64) (int64, error) {
+	if rAfterCouponCents < 0 {
+		return 0, fmt.Errorf("%w: rent after coupon must be >= 0", ErrSettlementInvalidInput)
+	}
+	if ratioDen <= 0 {
+		return 0, fmt.Errorf("%w: ratio_den must be > 0", ErrSettlementInvalidInput)
+	}
+	if ratioNum < 0 || ratioNum > ratioDen {
+		return 0, fmt.Errorf("%w: ratio must satisfy 0 <= ratio_num <= ratio_den", ErrSettlementInvalidInput)
+	}
+	product, err := mulInt64(rAfterCouponCents, ratioNum)
 	if err != nil {
 		return 0, err
 	}
@@ -425,6 +437,11 @@ func calcPointsCap(rAfterCoupon, ratioNum, ratioDen int64) (int64, error) {
 		return 0, err
 	}
 	return product / den, nil
+}
+
+// calcPointsCap 保留旧名（包内调用），统一委托公开出口。
+func calcPointsCap(rAfterCoupon, ratioNum, ratioDen int64) (int64, error) {
+	return CalcPointsCap(rAfterCoupon, ratioNum, ratioDen)
 }
 
 func pointsToCashChecked(p int64) (int64, error) {

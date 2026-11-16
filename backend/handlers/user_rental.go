@@ -22,6 +22,82 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+type pointsUsageError struct {
+	Code    int
+	Message string
+}
+
+// pointsRatioFromDecimal 把十进制比例（如 points_policies.max_pay_ratio=0.3）归一化为整数比。
+// #2362 Rev.2 A1/D3：只通过十进制字符串解析，禁止二进制浮点参与 cap 运算。
+func pointsRatioFromDecimal(v float64) (int64, int64, bool) {
+	if v < 0 || v > 1 {
+		return 0, 0, false
+	}
+	s := strconv.FormatFloat(v, 'f', -1, 64)
+	parts := strings.SplitN(s, ".", 2)
+	whole, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return 0, 0, false
+	}
+	num, den := whole, int64(1)
+	if len(parts) == 2 && parts[1] != "" {
+		frac := parts[1]
+		if len(frac) > 9 { // 0.1234567891 级精度足够；超长截断避免溢出
+			frac = frac[:9]
+		}
+		den = 1
+		for i := 0; i < len(frac); i++ {
+			den *= 10
+		}
+		f, err := strconv.ParseInt(frac, 10, 64)
+		if err != nil {
+			return 0, 0, false
+		}
+		num = num*den + f
+	}
+	if num < 0 || num > den {
+		return 0, 0, false
+	}
+	if num == 0 {
+		return 0, 1, true
+	}
+	g := gcdInt64(num, den)
+	return num / g, den / g, true
+}
+
+func gcdInt64(a, b int64) int64 {
+	for b != 0 {
+		a, b = b, a%b
+	}
+	if a < 0 {
+		return -a
+	}
+	return a
+}
+
+// validatePointsUsage 执行支付端乐币校验（#2362 Rev.2）：
+//   - 负数 / 非整点（不足 100 分）→ 拒绝；
+//   - cap 与结算端同源（services.CalcPointsCap），基数为券后租金；
+//   - 乐币折算不得超过券后租金（押金/运费不可用乐币抵扣 → 首付不足）。
+func validatePointsUsage(rentAfterCouponCents, usedCents, ratioNum, ratioDen int64) (int64, *pointsUsageError) {
+	if usedCents < 0 {
+		return 0, &pointsUsageError{40002, "gift points usage must be >= 0"}
+	}
+	if usedCents%100 != 0 {
+		return 0, &pointsUsageError{40002, "gift points must be whole points (multiples of 100 cents)"}
+	}
+	capPoints, err := services.CalcPointsCap(rentAfterCouponCents, ratioNum, ratioDen)
+	if err != nil {
+		return 0, &pointsUsageError{40002, "points policy is invalid: " + err.Error()}
+	}
+	if usedCents > capPoints*100 {
+		return capPoints, &pointsUsageError{40002, fmt.Sprintf(
+			"gift points usage exceeds max allowed: %.2f points (max %.2f, base=rent after coupon %d cents)",
+			float64(usedCents)/100, float64(capPoints), rentAfterCouponCents)}
+	}
+	return capPoints, nil
+}
+
 type UserRentalHandler struct{}
 
 // buildOrderDeliveryAddress 把下单请求的 delivery_address（interface{}）转为 orders.delivery_address
@@ -598,19 +674,56 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		return
 	}
 
-	req.GiftPointsUsed = max(0, req.GiftPointsUsed)
-
-	if req.GiftPointsUsed > 0 {
-		// #1900: server-side cap from gift_policies (per level, level-0 fallback).
-		// Legacy points_policies is empty in most environments, which silently
-		// disabled the cap entirely.
-		if policy := services.GetGiftPolicyByLevel(db, levelIDOrZero(userWallet.MembershipLevelID)); policy != nil {
-			maxGiftAllowed := floorFloat(totalAmount * policy.PayRatio)
-			if req.GiftPointsUsed > maxGiftAllowed {
-				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": fmt.Sprintf("gift points usage exceeds max allowed: %.2f (max %.2f)", req.GiftPointsUsed, maxGiftAllowed)})
-				tx.Rollback()
-				return
+	// #2362 Rev.2（B1/A1/D4）：请求单位仍是元（兼容旧客户端），此处是唯一的
+	// float→cents 边界；cap 基数为券后租金（rentSubtotal，不含押金/运费），
+	// 比例来自 points_policies（整数比），无政策时按 legacy 三级回退不猜比例。
+	rentAfterCouponCents := models.FromYuan(rentSubtotal)
+	capRatioNum, capRatioDen := int64(0), int64(1)
+	capRatioResolved := false
+	capRatioSource := "unresolved"
+	capPolicyPayRatio := 0.0
+	var capPolicyRow struct {
+		ScopeType string  `json:"scope_type"`
+		ScopeID   *string `json:"scope_id"`
+		PayRatio  float64 `json:"pay_ratio"`
+	}
+	if err := db.Table("points_policies").
+		Select("scope_type, scope_id, max_pay_ratio AS pay_ratio").
+		Where("is_active = ?", true).
+		Order("CASE scope_type WHEN 'site' THEN 0 WHEN 'merchant' THEN 1 WHEN 'system' THEN 2 END ASC").
+		Limit(1).Find(&capPolicyRow).Error; err == nil && capPolicyRow.PayRatio > 0 {
+		if n, d, ok := pointsRatioFromDecimal(capPolicyRow.PayRatio); ok {
+			capRatioNum, capRatioDen, capRatioResolved = n, d, true
+			capRatioSource = "points_policy"
+			capPolicyPayRatio = capPolicyRow.PayRatio
+		}
+	}
+	if !capRatioResolved {
+		if policy := services.GetGiftPolicyByLevel(db, levelIDOrZero(userWallet.MembershipLevelID)); policy != nil && policy.PayRatio > 0 {
+			if n, d, ok := pointsRatioFromDecimal(policy.PayRatio); ok {
+				capRatioNum, capRatioDen, capRatioResolved = n, d, true
+				capRatioSource = "gift_policy"
+				capPolicyPayRatio = policy.PayRatio
 			}
+		}
+	}
+
+	if req.GiftPointsUsed < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "gift points usage must be >= 0"})
+		tx.Rollback()
+		return
+	}
+	if req.GiftPointsUsed > 0 {
+		usedCents := models.FromYuan(req.GiftPointsUsed)
+		if !capRatioResolved {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "points policy unresolved (legacy_policy_unresolved); points cannot be used"})
+			tx.Rollback()
+			return
+		}
+		if _, perr := validatePointsUsage(int64(rentAfterCouponCents), int64(usedCents), capRatioNum, capRatioDen); perr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"code": perr.Code, "message": perr.Message})
+			tx.Rollback()
+			return
 		}
 		// #1757: wallet balance is cents; request is yuan (legacy client).
 		// #1983 阶段 2：余额 = 未过期批次 SUM（users.promo_points 快照已废弃）。
@@ -620,7 +733,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 			tx.Rollback()
 			return
 		}
-		if models.FromYuan(req.GiftPointsUsed) > walletBalance {
+		if usedCents > walletBalance {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "insufficient gift points"})
 			tx.Rollback()
 			return
@@ -672,25 +785,23 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		order.PricingBreakdown = &pricingBreakdownJSON
 	}
 
-	// Snapshot the applicable points policy at time of order
+	// Snapshot the applicable points policy at time of order（#2362 Rev.2 A1）：
+	// 整数比 ratio_num/ratio_den 是 cap 的唯一来源；pay_ratio 仅保留兼容/展示。
 	func() {
-		var pps []struct {
-			ScopeType string  `json:"scope_type"`
-			ScopeID   *string `json:"scope_id"`
-			PayRatio  float64 `json:"pay_ratio"`
+		snap := map[string]interface{}{
+			"pay_ratio": capPolicyPayRatio,
+			"ratio_num": capRatioNum,
+			"ratio_den": capRatioDen,
+			"source":    capRatioSource,
 		}
-		if err := database.GetDB().WithContext(c.Request.Context()).
-			Table("points_policies").
-			Select("scope_type, scope_id, max_pay_ratio AS pay_ratio").
-			Where("is_active = ?", true).
-			Order("CASE scope_type WHEN 'site' THEN 0 WHEN 'merchant' THEN 1 WHEN 'system' THEN 2 END ASC").
-			Limit(1).
-			Find(&pps).Error; err == nil && len(pps) > 0 {
-			snap, err := json.Marshal(pps[0])
-			if err == nil {
-				snapStr := string(snap)
-				order.PointsPolicySnapshot = &snapStr
-			}
+		if capRatioSource == "points_policy" {
+			snap["scope_type"] = capPolicyRow.ScopeType
+			snap["scope_id"] = capPolicyRow.ScopeID
+		}
+		snapBytes, err := json.Marshal(snap)
+		if err == nil {
+			snapStr := string(snapBytes)
+			order.PointsPolicySnapshot = &snapStr
 		}
 	}()
 
