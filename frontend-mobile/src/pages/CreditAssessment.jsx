@@ -202,10 +202,10 @@ export default function CreditAssessment() {
 
       <View className="bg-white mx-4 mt-4 rounded-2xl p-4 shadow-sm">
         <View className="flex items-center justify-between">
-          <Text className="font-black text-black">{t('评测标的金额')}</Text>
+          <Text className="font-black text-black">{t('评估金额')}</Text>
           <Text className="text-zinc-600">{riskAmountCents > 0 ? `¥${(riskAmountCents / 100).toFixed(2)}` : '—'}</Text>
         </View>
-        <Text className="block text-xs text-zinc-400 mt-1">{t('评测标的为乐器原价，与所选押金档位无关')}</Text>
+        <Text className="block text-xs text-zinc-400 mt-1">{t('以本次订单信息为准')}</Text>
         <View className="flex items-center justify-between mt-2">
           <Text className="font-black text-black">{t('评测状态')}</Text>
           <Text className="font-medium" style={{ color: state === CREDIT_STATE.APPROVED ? '#16a34a' : state === CREDIT_STATE.REJECTED ? '#dc2626' : '#915F38' }}>
