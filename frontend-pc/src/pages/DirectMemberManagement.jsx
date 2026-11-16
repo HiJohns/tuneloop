@@ -6,6 +6,7 @@ import { invitesApi, personnelApi, staffApi } from '../services/api'
 import { formatBeijingDate } from '../utils/date'
 import PasswordSettingFields from '../components/PasswordSettingFields'
 import InitialPasswordModal from '../components/InitialPasswordModal'
+import { resolveCreateFeedback } from '../utils/createFeedback'
 
 // #2114 直属成员管理（子页）：
 // - 商户管理员：管理/邀请本商户直属员工（merchant_staff）
@@ -127,18 +128,26 @@ export default function DirectMemberManagement() {
       const resp = await staffApi.createUser(payload)
       if (resp.code === 20000) {
         // #2372：密码模式 → 一次性展示；否则保留邀请文案（有邮箱走 IAM 邮件）。
-        const plain = resp.data?.initial_password
-        const list = (resp.data?.initial_passwords || []).map(p => ({
-          identifier: p.identifier || p.email || p.username || '',
-          password: p.password,
-        }))
-        if (plain) list.push({ identifier: payload.username || payload.email || '', password: plain })
-        if (list.length > 0) {
+        const feedback = resolveCreateFeedback({
+          autoGenerate: techAutoGenerate,
+          password: values.password,
+          email: values.email,
+        })
+        if (feedback === 'password_auto') {
+          const plain = resp.data?.initial_password
+          const list = (resp.data?.initial_passwords || []).map(p => ({
+            identifier: p.identifier || p.email || p.username || '',
+            password: p.password,
+          }))
+          if (plain) list.push({ identifier: payload.username || payload.email || '', password: plain })
           setInitialPasswords(list)
           setPasswordModalOpen(true)
           message.success('已创建，初始密码仅显示一次')
           message.info('请提醒该维修师登录后到「个人中心」绑定微信')
-        } else {
+        } else if (feedback === 'password_manual') {
+          message.success('已创建，账号可用用户名 + 你设置的密码登录')
+          message.info('请提醒该维修师登录后到「个人中心」绑定微信')
+        } else if (feedback === 'invite') {
           // #2228 P2：邀请制——不再下发初始密码；激活前顾客侧不可见（Q7）
           Modal.info({
             title: '已创建并发送邀请',
@@ -151,6 +160,8 @@ export default function DirectMemberManagement() {
               </div>
             ),
           })
+        } else {
+          message.error('需填写邮箱或设置密码')
         }
         setTechOpen(false)
         techForm.resetFields()

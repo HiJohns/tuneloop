@@ -5,6 +5,7 @@ import ReactQuill from 'react-quill'
 import PhotoUploader from '../components/PhotoUploader'
 import PasswordSettingFields from '../components/PasswordSettingFields'
 import InitialPasswordModal from '../components/InitialPasswordModal'
+import { resolveCreateFeedback } from '../utils/createFeedback'
 import 'react-quill/dist/quill.snow.css'
 import { staffApi, sitesApi, personnelApi, invitesApi } from '../services/api'
 import { resolveErrorMessage } from '../services/errorMessages'
@@ -213,19 +214,27 @@ export default function StaffManagement() {
       const result = await staffApi.createUser(payload)
       if (result.code === 20000) {
         // #2372：密码模式（手动/自动生成）→ 一次性展示；否则保留邀请文案（有邮箱走 IAM 邮件）。
-        const plain = result.data?.initial_password
-        const list = (result.data?.initial_passwords || []).map(p => ({
-          identifier: p.identifier || p.email || p.username || '',
-          password: p.password,
-        }))
-        if (plain) {
-          list.push({ identifier: values.username || values.email || '', password: plain })
-        }
-        if (list.length > 0) {
+        // #2388：按创建通道分支（禁止再用「是否有 initial_password」猜模式）。
+        const feedback = resolveCreateFeedback({
+          autoGenerate: createAutoGenerate,
+          password: values.password,
+          email: values.email,
+        })
+        if (feedback === 'password_auto') {
+          const plain = result.data?.initial_password
+          const list = (result.data?.initial_passwords || []).map(p => ({
+            identifier: p.identifier || p.email || p.username || '',
+            password: p.password,
+          }))
+          if (plain) {
+            list.push({ identifier: values.username || values.email || '', password: plain })
+          }
           setInitialPasswords(list)
           setPasswordModalOpen(true)
           message.success('已创建，初始密码仅显示一次')
-        } else {
+        } else if (feedback === 'password_manual') {
+          message.success('已创建，账号可用用户名 + 你设置的密码登录')
+        } else if (feedback === 'invite') {
           Modal.info({
             title: '已创建并发送邀请',
             width: 480,
@@ -237,6 +246,8 @@ export default function StaffManagement() {
               </div>
             ),
           })
+        } else {
+          message.error('需填写邮箱或设置密码')
         }
         // #2073: 全类型照片 → 头像（创建后经管理员媒体管线上传）
         if (result.data?.id && createPhotoFile) {

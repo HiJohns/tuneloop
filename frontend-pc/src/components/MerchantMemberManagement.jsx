@@ -4,7 +4,8 @@ import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons'
 import api from '../services/api';
 import { formatBeijingDate } from '../utils/date';
 import PasswordSettingFields from './PasswordSettingFields';
-import InitialPasswordModal from './InitialPasswordModal';
+import InitialPasswordModal from './InitialPasswordModal'
+import { resolveCreateFeedback } from '../utils/createFeedback';
 
 const ROLE_COLORS = {
   owner: 'red', merchant_admin: 'red',
@@ -196,6 +197,12 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
           }
           message.success(`成功添加 ${directCount} 个用户`);
           // #2373：先重置表单，再打开一次性密码 Modal（避免 resetForm 清空刚拿到的密码）。
+          // #2388：按创建通道分支，禁止用「是否有 initial_passwords」猜模式。
+          const feedback = resolveCreateFeedback({
+            autoGenerate,
+            password: passwordDraft,
+            email,
+          });
           const passwords = (data.initial_passwords || []).map(p => ({
             identifier: p.identifier || p.email || p.username || '',
             password: p.password,
@@ -204,9 +211,19 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
           resetForm();
           fetchMembers();
           onRefresh && onRefresh();
-          if (passwords.length > 0) {
+          if (feedback === 'password_auto') {
             setInitialPasswords(passwords);
             setPasswordModalOpen(true);
+          } else if (feedback === 'password_manual') {
+            message.success('已创建，账号可用用户名 + 你设置的密码登录');
+          } else if (feedback === 'invite') {
+            Modal.info({
+              title: '已创建并发送邀请',
+              width: 480,
+              content: <p>已创建账户，<b>邀请邮件</b>已发送至 {email}。</p>,
+            });
+          } else {
+            message.error('需填写邮箱或设置密码');
           }
           if (data.role_errors?.length > 0) {
             message.warning('用户创建成功，但部分角色权限分配失败。');
