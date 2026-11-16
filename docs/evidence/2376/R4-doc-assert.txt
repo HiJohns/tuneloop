@@ -1,0 +1,4 @@
+PROVENANCE build=admin-create-contract 94d3865 commit=94d3865dec18d2511a9cb4815b14c8adc767e2e4 dirty=false
+CMD grep 'username.*是' / grep 'phone.*否' docs/spec/api/api.md
+1
+1

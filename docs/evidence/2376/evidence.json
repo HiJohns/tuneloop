@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "issue": 2376,
+  "build": "admin-create-contract 94d3865",
+  "commit": "94d3865dec18d2511a9cb4815b14c8adc767e2e4",
+  "dirty": false,
+  "environment": "backend handlers tests on PG16 127.0.0.1:15433; docs grep",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "go test ./handlers/ -run 'TestCreateUserUsernameOnly_2366' -count=1 -v > docs/evidence/2376/R1-username-only.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2376/R1-username-only.txt"
+      ],
+      "assert": "exit 0；输出含 --- PASS: TestCreateUserUsernameOnly_2366",
+      "actual": "PASS：username-only + auto_generate 建号成功，users.username 落库，phone/email 空，technician_profiles 1 行",
+      "expected": "PASS",
+      "negative": "未放宽 phone 必填 → 该用例 FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "go test ./handlers/ -run 'TestCreateUserMissingUsername_2366' -count=1 -v > docs/evidence/2376/R2-missing-username.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2376/R2-missing-username.txt"
+      ],
+      "assert": "exit 0；输出含 --- PASS: TestCreateUserMissingUsername_2366",
+      "actual": "PASS：缺 username → 400/40001，users 无新增（另含全空白 username 用例）",
+      "expected": "PASS",
+      "negative": "username 缺失仍 200 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "go test ./handlers/ -run 'TestCreateUserEmptyContactNoConflict_2366' -count=1 -v > docs/evidence/2376/R3-empty-contact.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2376/R3-empty-contact.txt"
+      ],
+      "assert": "exit 0；输出含 --- PASS: TestCreateUserEmptyContactNoConflict_2366",
+      "actual": "PASS：连续两个无 phone/email 用户均 200，users 2 行且联系方式为空",
+      "expected": "PASS",
+      "negative": "第二个用户 409 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "grep -c 'username.*string.*是' docs/spec/api/api.md > docs/evidence/2376/R4-doc-assert.txt 2>&1 && grep -c 'phone.*string.*否' docs/spec/api/api.md >> docs/evidence/2376/R4-doc-assert.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2376/R4-doc-assert.txt"
+      ],
+      "assert": "exit 0；产物两行且均为 1",
+      "actual": "PASS：两行计数均为 1（username 必填=是 / phone 必填=否）",
+      "expected": "PASS",
+      "negative": "文档仍写 phone 必填 → 无匹配（exit 1）",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    }
+  ]
+}

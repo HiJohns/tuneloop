@@ -1,0 +1,29 @@
+PROVENANCE build=admin-create-contract 94d3865 commit=94d3865dec18d2511a9cb4815b14c8adc767e2e4 dirty=false
+[DEBUG] Loaded .env from: ../.env
+2026/11/16 14:36:28 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2376c sslmode=disable
+2026/11/16 14:36:29 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2376c
+2026/11/16 14:36:29 [DB] Connected to database 'tuneloop_test_2376c'
+=== RUN   TestCreateUserUsernameOnly_2366
+2026/11/16 14:36:29 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2376c sslmode=disable
+2026/11/16 14:36:29 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2376c
+2026/11/16 14:36:29 [DB] Connected to database 'tuneloop_test_2376c'
+2026/11/16 14:36:30 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:39993, clientID=test-ns, namespace=test-ns
+2026/11/16 14:36:30 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/16 14:36:30 [#2247] GetOrganization(4cb4dfc1-5289-45df-bb38-5872cf5d1c17) failed: GetOrganization: IAM response missing org id
+2026/11/16 14:36:30 [TenantScope][observe] auto-scope injected for table=merchants (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/16 14:36:30 [31;1m/home/coder/tuneloop/backend/handlers/merchant_scope_2247.go:25 [35;1mrecord not found
+[0m[33m[2.417ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE org_id = '4cb4dfc1-5289-45df-bb38-5872cf5d1c17' AND "merchants"."tenant_id" = '4cb4dfc1-5289-45df-bb38-5872cf5d1c17' ORDER BY "merchants"."id" LIMIT 1
+2026/11/16 14:36:30 [CreateUser] #2247: cannot resolve merchant for org=4cb4dfc1-5289-45df-bb38-5872cf5d1c17 tenant=4cb4dfc1-5289-45df-bb38-5872cf5d1c17 (fallback to tenant)
+2026/11/16 14:36:30 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/16 14:36:30 [31;1m/home/coder/tuneloop/backend/handlers/user_staff.go:221 [35;1mrecord not found
+[0m[33m[0.805ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE (tenant_id = '4cb4dfc1-5289-45df-bb38-5872cf5d1c17' AND username = 'tech_a' AND deleted_at IS NULL) AND "users"."tenant_id" = '4cb4dfc1-5289-45df-bb38-5872cf5d1c17' ORDER BY "users"."id" LIMIT 1
+2026/11/16 14:36:30 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:39993, clientID=test-ns, namespace=test-ns
+2026/11/16 14:36:30 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/16 14:36:30 [IAMClient] Created user: user_id=00000000-0000-4000-8000-000000000001, status=active
+2026/11/16 14:36:30 [IAMClient] Bound user 00000000-0000-4000-8000-000000000001 to org 4cb4dfc1-5289-45df-bb38-5872cf5d1c17 with role repair_technician (user token)
+2026/11/16 14:36:30 [CreateUser] ListRoleTemplates failed: failed to parse ListRoleTemplates response: json: cannot unmarshal object into Go value of type []struct { ID string "json:\"id\""; Code string "json:\"code\"" }
+--- PASS: TestCreateUserUsernameOnly_2366 (0.84s)
+PASS
+ok  	tuneloop-backend/handlers	2.263s

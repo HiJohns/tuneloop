@@ -1,0 +1,12 @@
+PROVENANCE build=admin-create-contract 94d3865 commit=94d3865dec18d2511a9cb4815b14c8adc767e2e4 dirty=false
+[DEBUG] Loaded .env from: ../.env
+2026/11/16 14:36:45 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2376c sslmode=disable
+2026/11/16 14:36:46 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2376c
+2026/11/16 14:36:46 [DB] Connected to database 'tuneloop_test_2376c'
+=== RUN   TestCreateUserMissingUsername_2366
+2026/11/16 14:36:47 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2376c sslmode=disable
+2026/11/16 14:36:47 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2376c
+2026/11/16 14:36:47 [DB] Connected to database 'tuneloop_test_2376c'
+--- PASS: TestCreateUserMissingUsername_2366 (0.64s)
+PASS
+ok  	tuneloop-backend/handlers	2.120s
