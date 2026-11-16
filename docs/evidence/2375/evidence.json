@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "issue": 2375,
+  "build": "roles-2375 d43b97d",
+  "commit": "d43b97d2a",
+  "dirty": false,
+  "environment": "backend handlers tests on PG 127.0.0.1:15433 + IAM httptest mock; Node 22 build",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "go test ./handlers/ -run 'TestCreateUserRoleErrors_2375' -count=1 -v > docs/evidence/2375/R1-role-errors.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2375/R1-role-errors.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestCreateUserRoleErrors_2375",
+      "actual": "PASS：角色模板 404 → 创建仍 200；data.role_errors 长度 ≥1；users 2 行（操作者 + 新用户）",
+      "expected": "PASS",
+      "negative": "角色失败导致 500/回滚 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "go test ./handlers/ -run 'TestUpdateUserRole_2375' -count=1 -v > docs/evidence/2375/R2-role-update.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2375/R2-role-update.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestUpdateUserRole_2375；用例断言 mock 调用次数与 audit 行数",
+      "actual": "PASS：users.role=repair_technician；IAM role 调用 1 次、模板调用 1 次；audit_logs user.role_update 1 行",
+      "expected": "PASS",
+      "negative": "只改本地未调 IAM → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "go test ./handlers/ -run 'TestUpdateUserRoleForbidden_2375' -count=1 -v > docs/evidence/2375/R3-forbidden.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2375/R3-forbidden.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestUpdateUserRoleForbidden_2375",
+      "actual": "PASS：merchant_admin → 403 40301；跨租户 → 404；两者均未触发 IAM 调用",
+      "expected": "PASS",
+      "negative": "提权/跨租户通过 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "cd frontend-pc && npm run build > ../docs/evidence/2375/R4-list-role.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2375/R4-list-role.txt"
+      ],
+      "assert": "exit 0；产物末尾含 built in",
+      "actual": "PASS：npm build exit 0（含 built in）；/staff 含「角色」列（dataIndex role）；StaffEdit 含 role 表单项提交",
+      "expected": "PASS",
+      "negative": "构建失败 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    }
+  ]
+}
