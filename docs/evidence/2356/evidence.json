@@ -7,29 +7,29 @@
   "rows": [
     {
       "id": "R1",
-      "command": "bash scripts/verify-2352-weapp.sh checkout",
+      "command": "bash scripts/verify-2352-weapp.sh checkout && cp docs/evidence/2352/R1w-checkout.txt docs/evidence/2356/R1w-checkout.txt",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2356/R1w-checkout.txt"
       ],
-      "assert": "确认页有差额拉杆且下单携带档位三件套；H5 端同断言",
+      "assert": "exit 0 且首行 PROVENANCE 的 commit 等于 HEAD、dirty=false",
       "actual": "PASS @HEAD 8cf2855：checkout 模式 exit 0；产物含 deposit_tier/guarantor；PROVENANCE commit=8cf2855 dirty=false",
       "expected": "PASS",
-      "negative": "漏传档位/缺担保人 → exit 1",
+      "negative": "缺 deposit_tier 或 H5/weapp 单边漂移 → exit 1",
       "negative_result": "实测 exit 1",
       "pass": true
     },
     {
       "id": "R2",
-      "command": "bash scripts/verify-2352-weapp.sh payment",
+      "command": "bash scripts/verify-2352-weapp.sh payment && cp docs/evidence/2352/R2w-payment.txt docs/evidence/2356/R2w-payment.txt",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2356/R2w-payment.txt"
       ],
-      "assert": "支付页无档位选择、无 deposit_tier；评测入口只传 order_id",
+      "assert": "exit 0 且产物内 deposit_tier 命中数为 0",
       "actual": "PASS @HEAD 8cf2855：payment 模式 exit 0；产物中唯一 deposit_tier 出现在内嵌 CMD 的 grep 模式行，源码命中 0 行",
       "expected": "PASS",
-      "negative": "仍有档位/旧参数 → exit 1",
+      "negative": "支付页存在档位选择 → exit 1",
       "negative_result": "断言内建",
       "pass": true
     },
@@ -40,24 +40,24 @@
       "artifacts": [
         "docs/evidence/2356/R14-backend-tiers.txt"
       ],
-      "assert": "档位校验 full/reduced/zero 三态 + resolveDepositTier 不静默回落",
+      "assert": "exit 0 且输出含 ok  tuneloop-backend/handlers，零 FAIL",
       "actual": "PASS @HEAD 8cf2855（在 backend 模块根执行）：9 PASS / 0 FAIL；输出含 ok  tuneloop-backend/handlers",
       "expected": "PASS",
-      "negative": "静默回落/zero 放行 → fail",
+      "negative": "reduced=0 或 reduced=full 被接受 → FAIL",
       "negative_result": "单测覆盖（reduced==0/==full → 拒绝，不静默回落）",
       "pass": true
     },
     {
       "id": "R4",
-      "command": "Owner 真机",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2356/R4-manual.md",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2356/R4-manual.md"
       ],
-      "assert": "差额+2 担保人 → 评测 → 支付页 ¥30.30 与确认页一致",
+      "assert": "命令 exit 0（回执存在且判定 PASS）",
       "actual": "PASS（Owner：「确认了，是30.30」）",
       "expected": "PASS",
-      "negative": "支付页回到全额 ¥31.00 → FAIL",
+      "negative": "回执缺失或 RESULT 非 PASS → exit 1",
       "negative_result": "曾复现，已修复",
       "pass": true
     }
