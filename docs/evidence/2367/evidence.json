@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "issue": 2367,
+  "build": "merchant-scope-2367 e379b06",
+  "commit": "e379b0639",
+  "dirty": false,
+  "environment": "backend handlers tests on PG 127.0.0.1:15433 (strict schema) + IAM httptest mock; R4 pre-production ops",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "cd backend && go test ./handlers/ -run 'TestCreateMerchantDirectMerchantScope_2364' -count=1 -v > ../docs/evidence/2367/R1-fixed.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2367/R1-fixed.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：merchant_direct 创建 200；users + merchant_members 各 1 行；IAM bind 收到商户 org",
+      "expected": "PASS",
+      "negative": "500 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "cd backend && go test ./handlers/ -run 'TestResolveMerchantScopePreFixRed_2364' -count=1 -v > ../docs/evidence/2367/R2-pre-fix-red.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2367/R2-pre-fix-red.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：带自动 tenant scope 的句柄解析恒 0 行（复现根因）；不可解析时 500 文案原样保留",
+      "expected": "PASS",
+      "negative": "未复现缺陷 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "cd backend && go build ./... > ../docs/evidence/2367/R3-build.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2367/R3-build.txt"
+      ],
+      "assert": "exit 0",
+      "actual": "PASS：go build ./... exit 0",
+      "expected": "PASS",
+      "negative": "编译失败 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash -c \"test -s docs/evidence/2367/R4-preprod.md && grep -q 'executor: ops' docs/evidence/2367/R4-preprod.md && grep -q 'RESULT: PENDING' docs/evidence/2367/R4-preprod.md\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2367/R4-preprod.md"
+      ],
+      "assert": "exit 0（ops 待办工件符合约定）",
+      "actual": "PENDING：ops 待办工件符合约定（executor: ops + RESULT: PENDING）；预生产复测后改 PASS",
+      "expected": "PASS",
+      "negative": "写 RESULT: PASS 或缺失 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    }
+  ]
+}

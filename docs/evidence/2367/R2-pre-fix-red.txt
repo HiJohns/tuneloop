@@ -1,0 +1,33 @@
+[DEBUG] Loaded .env from: ../.env
+2026/11/16 15:58:12 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2367ev sslmode=disable
+2026/11/16 15:58:12 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2367ev
+2026/11/16 15:58:12 [DB] Connected to database 'tuneloop_test_2367ev'
+=== RUN   TestResolveMerchantScopePreFixRed_2364
+2026/11/16 15:58:13 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2367ev sslmode=disable
+2026/11/16 15:58:13 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2367ev
+2026/11/16 15:58:13 [DB] Connected to database 'tuneloop_test_2367ev'
+2026/11/16 15:58:13 [TenantScope][observe] auto-scope injected for table=merchants (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/16 15:58:13 [31;1m/home/coder/tuneloop/backend/handlers/merchant_scope_2247.go:25 [35;1mrecord not found
+[0m[33m[0.491ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE org_id = '74826089-530e-42b6-8fab-4c1689ea5502' AND "merchants"."tenant_id" = '74826089-530e-42b6-8fab-4c1689ea5502' ORDER BY "merchants"."id" LIMIT 1
+2026/11/16 15:58:13 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:41981, clientID=test-ns, namespace=test-ns
+2026/11/16 15:58:13 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/16 15:58:13 [#2247] GetOrganization(2a724609-da79-4e82-8a07-ce245d8fc67b) failed: GetOrganization: IAM response missing org id
+
+2026/11/16 15:58:13 [31;1m/home/coder/tuneloop/backend/handlers/merchant_scope_2247.go:25 [35;1mrecord not found
+[0m[33m[0.482ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE org_id = '2a724609-da79-4e82-8a07-ce245d8fc67b' ORDER BY "merchants"."id" LIMIT 1
+2026/11/16 15:58:13 [CreateUser] #2247: cannot resolve merchant for org=2a724609-da79-4e82-8a07-ce245d8fc67b tenant=57506a5c-52c9-46e6-b8ad-9de08bcc5f39 (fallback to tenant)
+2026/11/16 15:58:13 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/16 15:58:13 [31;1m/home/coder/tuneloop/backend/handlers/user_staff.go:225 [35;1mrecord not found
+[0m[33m[0.989ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE (tenant_id = '57506a5c-52c9-46e6-b8ad-9de08bcc5f39' AND username = 'merchant_direct_2364_unresolved' AND deleted_at IS NULL) AND "users"."tenant_id" = '57506a5c-52c9-46e6-b8ad-9de08bcc5f39' ORDER BY "users"."id" LIMIT 1
+2026/11/16 15:58:13 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:41981, clientID=test-ns, namespace=test-ns
+2026/11/16 15:58:13 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/16 15:58:13 [IAMClient] Created user: user_id=8899270b-f6cd-47a8-ab9c-7a8c8d590d6b, status=active
+2026/11/16 15:58:13 [IAMClient] Bound user 8899270b-f6cd-47a8-ab9c-7a8c8d590d6b to org 57506a5c-52c9-46e6-b8ad-9de08bcc5f39 with role STAFF (user token)
+2026/11/16 15:58:13 [IAMClient] Incremented perm_version
+2026/11/16 15:58:13 [IAMClient] Unbound user 8899270b-f6cd-47a8-ab9c-7a8c8d590d6b from org 57506a5c-52c9-46e6-b8ad-9de08bcc5f39
+2026/11/16 15:58:13 [IAMClient] Incremented perm_version
+--- PASS: TestResolveMerchantScopePreFixRed_2364 (0.23s)
+PASS
+ok  	tuneloop-backend/handlers	0.711s
