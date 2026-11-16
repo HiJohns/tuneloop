@@ -1,0 +1,8 @@
+[DEBUG] Loaded .env from: ../.env
+2026/11/16 21:31:18 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2362 sslmode=disable
+2026/11/16 21:31:19 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2362
+2026/11/16 21:31:19 [DB] Connected to database 'tuneloop_test_verify2362'
+=== RUN   TestPointsUsageLimits_2362
+--- PASS: TestPointsUsageLimits_2362 (0.00s)
+PASS
+ok  	tuneloop-backend/handlers	2.394s
