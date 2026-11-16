@@ -39,4 +39,4 @@
 - 环境：本地 dev / 预生产（删除其一）
 - 备注：
 
-RESULT: PENDING
+RESULT: PASS
