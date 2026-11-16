@@ -49,14 +49,24 @@ func TestSettlementFlow(t *testing.T) {
 	// Default pricing template so CalculatePricing has a config to read:
 	// tier 1 = 30 days at 100/day (0% discount), deposit_ratio 0 (use
 	// instrument Pricing JSON deposit instead).
-	require.NoError(t, db.Create(&models.PricingTemplate{
-		ID:              uuid.New().String(),
-		Code:            "default",
-		Name:            "Default",
-		IsSystemDefault: true,
-		IsActive:        true,
-		ConfigSchema:    `{"tiers":[{"days_max":30,"discount_percent":0},{"days_max":365,"discount_percent":20}],"deposit_ratio":0}`,
-	}).Error)
+	// #2339/#2357: idx_pricing_templates_system_default 是唯一索引（仅一行 system default）。
+	// 模板基线可能已种过一行 → 存在则更新其 ConfigSchema，不存在才创建。
+	defaultCfg := `{"tiers":[{"days_max":30,"discount_percent":0},{"days_max":365,"discount_percent":20}],"deposit_ratio":0}`
+	var existing models.PricingTemplate
+	if err := db.Where("is_system_default = ?", true).First(&existing).Error; err == nil {
+		require.NoError(t, db.Model(&models.PricingTemplate{}).
+			Where("id = ?", existing.ID).
+			Updates(map[string]interface{}{"config_schema": defaultCfg, "is_active": true}).Error)
+	} else {
+		require.NoError(t, db.Create(&models.PricingTemplate{
+			ID:              uuid.New().String(),
+			Code:            "default",
+			Name:            "Default",
+			IsSystemDefault: true,
+			IsActive:        true,
+			ConfigSchema:    defaultCfg,
+		}).Error)
+	}
 
 	// Customer actor with a user row (prepaid points for points tracking).
 	// #1902: IAMSub=userID（EnsureLocalUser 按 iam_sub 解析，缺失会生成未核身

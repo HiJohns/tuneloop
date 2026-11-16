@@ -41,10 +41,13 @@ export default function PaymentComplete() {
             <Text className="text-gray-500">定损金额</Text>
             <Text>¥{formatCents(Number(state.damageAmount || 0))}</Text>
           </View>
-          <View className="flex justify-between">
-            <Text className="text-gray-500">押金抵扣</Text>
-            <Text>¥{formatCents(Number(state.deposit || 0))}</Text>
-          </View>
+          {/* #2352 Rev.2 D4: 零押金场景小票不出现押金项 */}
+          {Number(state.deposit || 0) > 0 && (
+            <View className="flex justify-between">
+              <Text className="text-gray-500">押金抵扣</Text>
+              <Text>¥{formatCents(Number(state.deposit || 0))}</Text>
+            </View>
+          )}
           <View className="border-t" />
           <View className="flex justify-between">
             <Text className="text-gray-500">商户</Text>

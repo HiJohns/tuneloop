@@ -27,6 +27,9 @@ type PrepayRequest struct {
 	GiftUsed   float64 `json:"gift_used"`
 	SessionID  string  `json:"session_id,omitempty"`  // membership: two-phase registration session (#1663)
 	CouponCode string  `json:"coupon_code,omitempty"` // 通用优惠码（OREZ waive 全免 / ENO percent 1%，#1719）
+	// #2352 Rev.2 D3: 支付页自选押金档位（rent 专用；确认页不再选择）。
+	DepositTier  string   `json:"deposit_tier,omitempty"`
+	GuarantorIDs []string `json:"guarantor_ids,omitempty"`
 }
 
 type PrepayResponse struct {
@@ -129,6 +132,23 @@ func PrepayOrder(c *gin.Context) {
 	// #2327 D5/D12: 租金支付前先过支付分闸门（PAYSCORE_ENFORCE=false 时放行）。
 	// 放在创建支付记录/调用微信之前，避免"已建单但被闸门拒绝"的孤儿支付记录。
 	if req.OrderType == "rent" && effectiveOrderID != "" {
+		// #2352 Rev.2 D3: 记录用户在支付页选择的押金档位（full|reduced|zero）。
+		if req.DepositTier != "" {
+			var order models.Order
+			if err := db.Select("id", "deposit_full", "deposit_reduced").
+				Where("id = ?", effectiveOrderID).First(&order).Error; err == nil {
+				tier, dep, verr := resolvePaymentDepositTier(req.DepositTier, order.DepositFull, order.DepositReduced, req.GuarantorIDs)
+				if verr != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": verr.Error()})
+					return
+				}
+				if err := db.Model(&models.Order{}).Where("id = ?", order.ID).
+					Updates(map[string]interface{}{"deposit_tier": tier, "deposit": dep}).Error; err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update deposit tier"})
+					return
+				}
+			}
+		}
 		if err := creditGateError(db, effectiveOrderID); err != nil {
 			failCreditGate(c, err)
 			return

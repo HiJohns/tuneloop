@@ -1,0 +1,41 @@
+PROVENANCE commit=33f352f2464de37f69603af1b70baeb379063f6e
+CMD static probes: confirm-page tier toggle / payment-page no selector / assessment entry
+--- 1) H5 确认页差额拉杆 + 担保人 ---
+85:  // #2357（Owner 2026-11-15 改判）：差额押金在确认页用拉杆选择，需 2 位担保人。
+211:  // #2357: 默认全额；打开「差额押金」拉杆后按 deposit_reduced 计价。
+337:  const toggleGuarantor = (guarantorId) => {
+346:      dialog.alert(t("差额押金订单需至少选择 2 位担保人"))
+457:        {/* #2357（Owner 2026-11-15 改判）：差额押金回到确认页，用拉杆展开；
+466:                <Text className="font-black text-black">{t('差额押金')}</Text>
+--- 2) weapp 确认页差额拉杆 + 担保人 ---
+85:  // #2357（Owner 2026-11-15 改判）：差额押金在确认页用拉杆选择，需 2 位担保人。
+280:      dialog.alert(t("差额押金订单需至少选择 2 位担保人"))
+409:  const toggleGuarantor = (gid) => {
+494:        {/* #2357（Owner 2026-11-15 改判）：差额押金回到确认页，用拉杆展开；
+502:            <Text style={{ fontWeight: '900', color: '#000' }}>{t("差额押金（减免）")}</Text>
+508:            {t("差额押金需 2 位担保人 + 微信信用评测")}
+--- 3) 支付页无档位选择（两端）---
+frontend-mobile/src/pages/Payment.jsx:0
+frontend-mobile/src/pages-weapp/payment/Payment.jsx:0
+--- 4) 下单提交带档位 ---
+frontend-mobile/src/pages/Checkout.jsx:385:      body.deposit_tier = isZeroDeposit ? 'zero' : (depositWaived && canReduceDeposit ? 'reduced' : 'full')
+frontend-mobile/src/pages/Checkout.jsx:387:      if (body.deposit_tier === 'reduced') body.guarantor_ids = selectedGuarantorIds
+frontend-mobile/src/pages/Checkout.jsx:1018:        body.deposit_tier = allZeroDeposit ? 'zero' : 'full' // #2352 Rev.2: 档位改由支付页选择
+frontend-mobile/src/pages/Checkout.jsx:1019:        if (body.deposit_tier === 'reduced') {
+--- 5) 后端档位校验 ---
+264:// validateRequestedTier 校验确认页提交的押金档位（#2357）。
+269:func validateRequestedTier(requested string, fullDeposit, reducedAmount float64) error {
+500:	if err := validateRequestedTier(requestedTier, fullDeposit, reducedAmount); err != nil {
+PROVENANCE commit=b15374e7c75ac6ad51dcb56c7f63b2c332a6343c
+CMD static probes: deposit_reduced guard (0 = unconfigured)
+--- 前端两端 canReduceDeposit ---
+frontend-mobile/src/pages/Checkout.jsx:211:  const canReduceDeposit = !isZeroDeposit && depositReduced != null && Number(depositReduced) > 0 && Number(depositReduced) < Number(deposit)
+frontend-mobile/src/pages-weapp/Checkout.jsx:225:  const canReduceDeposit = !isZeroDeposit && depositReduced != null && Number(depositReduced) > 0 && Number(depositReduced) < Number(deposit)
+--- buildTierOptions ---
+51:  if (reduced != null && reduced > 0 && reduced < full) {
+--- 后端 resolveDepositTier ---
+297:		if reduced > 0 && reduced < full {
+--- 后端显式拒绝（不静默回落）---
+285:func resolveDepositTier(instrument *models.Instrument, pricingResult *services.InstrumentPricing, requested string) (tier string, full, reduced float64, validReduced bool) {
+500:	depositTier, fullDeposit, reducedAmount, validReduced := resolveDepositTier(&lockedInstrument, pricingResult, requestedTier)
+501:	if requestedTier == models.DepositTierReduced && !validReduced {

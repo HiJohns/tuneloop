@@ -3,9 +3,9 @@ import { formatCents } from '../../utils/money'
 import { computeDisplayedCashCents } from '../../utils/paymentAmount.mjs'
 import Taro, { useDidShow, useLoad } from '@tarojs/taro'
 import { View, Text, ScrollView, Input } from '@tarojs/components'
-import { apiFetch, resolveLogin, resolveErrorMessage } from '../../services/api'
+import { apiFetch, resolveLogin, resolveErrorMessage, guarantorsApi } from '../../services/api'
 import {dialog, env, session, storage, wxLogin } from '../../platform'
-import { creditGate } from '../../utils/creditFlow.mjs'
+import { creditGate, buildAssessmentRoute } from '../../utils/creditFlow.mjs'
 import { t } from '../../i18n'
 
 
@@ -77,6 +77,7 @@ export default function Payment() {
   // #2327 S4/D5: 支付分信用态（reduced/zero 未 approved 时禁用支付）
   const [credit, setCredit] = useState(null)
   const [creditBlocked, setCreditBlocked] = useState(false)
+  // #2357（Owner 2026-11-15 改判）：档位在确认页选定并随下单提交，支付页只展示金额。
   // 优惠码预览（#1719 通用化）：所有支付页可用，最终金额服务端重算。
   const [couponCode, setCouponCode] = useState('')
   const [appliedCoupon, setAppliedCoupon] = useState(null)
@@ -186,15 +187,18 @@ export default function Payment() {
 
   const isRefund = ['refund', 'deposit-refund'].includes(pType)
 
+  // #2357: 应付金额直接取服务端计算结果（档位已在下单时确定）。
+  const amountCents = Number(data?.amount || 0)
+
   // Coupon applies a preview discount (final price is server-authoritative at
   // prepay); 服务端按 coupons 表决定 waive/percent（#2291）。
-  const displayAmount = appliedCoupon ? couponAmount : data.amount
+  const displayAmount = appliedCoupon ? couponAmount : amountCents
 
   const gate = pType === 'rent' ? creditGate(credit) : { canPay: true, showEntry: false, reason: '', action: 'none' }
   const payBlocked = pType === 'rent' && (!gate.canPay || creditBlocked)
 
   const cashAmount = computeDisplayedCashCents({
-    amountCents: data?.amount || 0,
+    amountCents,
     couponFinalCents: couponAmount,
     giftUsedCents: giftUsed * 100,
     hasCoupon: !!appliedCoupon,
@@ -720,7 +724,7 @@ export default function Payment() {
             </Text>
             <Button
               style={{ marginTop: 12, backgroundColor: '#B98E5F', color: '#fff', borderRadius: 12, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              onClick={() => Taro.navigateTo({ url: `/pages-weapp/credit-assessment/index?order_id=${pId}&tier=${credit?.deposit_tier || ''}&risk_amount_cents=${credit?.risk_amount_cents || 0}&return_path=${encodeURIComponent(`/payment?type=rent&id=${pId}`)}` })}
+              onClick={() => Taro.navigateTo({ url: '/pages-weapp/credit-assessment/index?order_id=' + pId + '&return_path=' + encodeURIComponent(`/payment?type=rent&id=${pId}`) })}
             >
               <Text style={{ color: '#fff', fontWeight: 700 }}>{t('去微信完成评测')}</Text>
             </Button>

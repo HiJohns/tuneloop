@@ -1,0 +1,65 @@
+PROVENANCE build=credit-flow-2352/2356 6332b83 commit=6332b83315512f88f7e806e91c37d447e5f68e4f dirty=false
+TAP version 13
+# Subtest: 档位映射（\#2352）：full>0 只有 full/reduced，且都需评测通过
+ok 1 - 档位映射（\#2352）：full>0 只有 full/reduced，且都需评测通过
+  ---
+  duration_ms: 2.960803
+  type: 'test'
+  ...
+# Subtest: 乐器本身零押金：只有 zero，且仍必须过评测
+ok 2 - 乐器本身零押金：只有 zero，且仍必须过评测
+  ---
+  duration_ms: 0.458935
+  type: 'test'
+  ...
+# Subtest: deposit_reduced = 0 视为未配置（\#2357 修正）
+ok 3 - deposit_reduced = 0 视为未配置（\#2357 修正）
+  ---
+  duration_ms: 1.653411
+  type: 'test'
+  ...
+# Subtest: reduced 缺少担保人时禁止下单
+ok 4 - reduced 缺少担保人时禁止下单
+  ---
+  duration_ms: 0.418553
+  type: 'test'
+  ...
+# Subtest: payscore 路径显式传递，full 走 internal
+ok 5 - payscore 路径显式传递，full 走 internal
+  ---
+  duration_ms: 0.392822
+  type: 'test'
+  ...
+# Subtest: creditGate：四态 → 可支付/入口/原因
+ok 6 - creditGate：四态 → 可支付/入口/原因
+  ---
+  duration_ms: 0.444174
+  type: 'test'
+  ...
+# Subtest: resolveCreditLaunch：mock / 缺 package / weapp / h5 / 微信外
+ok 7 - resolveCreditLaunch：mock / 缺 package / weapp / h5 / 微信外
+  ---
+  duration_ms: 0.679081
+  type: 'test'
+  ...
+# Subtest: 评测页路由：一律 query order_id，return_path 编码
+ok 8 - 评测页路由：一律 query order_id，return_path 编码
+  ---
+  duration_ms: 0.628659
+  type: 'test'
+  ...
+# Subtest: 轮询退避与终态判定
+ok 9 - 轮询退避与终态判定
+  ---
+  duration_ms: 0.675031
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 157.515664

@@ -6,7 +6,6 @@ import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, guarantor
 import dayjs from 'dayjs'
 import { dialog, env, session, storage, eventBus } from '../platform'
 import { fetchWaiverEligibility, waiverReasonText, showWaiverIneligible, downloadLetterTemplate, uploadLetterPhoto } from '../utils/depositWaiver'
-import { buildTierOptions, buildOrderDepositPayload } from '../utils/creditFlow.mjs'
 import { rentDaysInputState, rentDaysCommitState, rentDaysStepState } from '../utils/rentDays.mjs'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
 import { formatBeijingDate } from '../utils/format'
@@ -83,7 +82,7 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
   const [rentalCalcLoading, setRentalCalcLoading] = useState(false)
   const [daysInputText, setDaysInputText] = useState('30')
 
-  // #2327 S4: 三档选择（full/reduced/zero）；reduced 承接原 depositWaived 语义。
+  // #2357（Owner 2026-11-15 改判）：差额押金在确认页用拉杆选择，需 2 位担保人。
   const [depositTierState, setDepositTierState] = useState('full')
   const depositWaived = depositTierState === 'reduced'
   // #1867: deposit-free eligibility + recommendation letter
@@ -222,13 +221,10 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
   const depositReduced = pricingV2?.deposit_reduced ?? null
   const deposit = pricingV2?.deposit ?? instrument?.deposit ?? parsePricing(instrument?.pricing)[0]?.deposit ?? 0
   const isZeroDeposit = Number(deposit) === 0
-  const canReduceDeposit = !isZeroDeposit && depositReduced != null
-  const tierOptions = buildTierOptions(deposit, depositReduced)
-  const effectiveDeposit = depositTierState === 'zero'
-    ? 0
-    : depositTierState === 'reduced' && canReduceDeposit
-      ? Number(depositReduced)
-      : deposit
+  // #2357 修正：deposit_reduced = 0/空 表示未配置；必须 0 < reduced < full 才提供差额档。
+  const canReduceDeposit = !isZeroDeposit && depositReduced != null && Number(depositReduced) > 0 && Number(depositReduced) < Number(deposit)
+  // 确认页：默认全额；打开差额拉杆后按 deposit_reduced 计价。
+  const effectiveDeposit = depositWaived && canReduceDeposit ? Number(depositReduced) : (isZeroDeposit ? 0 : deposit)
   // Shipping fee is not determined at order time (#1570): the staff fills
   // the actual fee at dispatch, and it is not charged at checkout.
   const totalAmount = totalRent + effectiveDeposit
@@ -280,11 +276,11 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
       dialog.alert(t("请填写收货人"))
       return
     }
+    // #2357: 差额档需 ≥2 位本人担保人（在确认页选择）
     if (depositWaived && selectedGuarantorIds.length < 2) {
       dialog.alert(t("差额押金订单需至少选择 2 位担保人"))
       return
     }
-    // #2327 D13: payscore 路径不要求内部资格/推荐信（担保人仍需 2 位）。
 
     const token = getToken()
     let role = ''
@@ -324,16 +320,10 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
         rent_days: days,
       }
       if (deliveryAddress) body.delivery_address = deliveryAddress
-      const depositPayload = buildOrderDepositPayload({
-        tier: isZeroDeposit ? 'zero' : depositTierState,
-        guarantorIds: selectedGuarantorIds,
-      })
-      if (!depositPayload.ok) {
-        dialog.alert(t("差额押金订单需至少选择 2 位担保人"))
-        setSubmitting(false)
-        return
-      }
-      Object.assign(body, depositPayload.body)
+      // #2357: 档位随下单提交（差额档附带担保人；信用路径统一 payscore）
+      body.deposit_tier = isZeroDeposit ? 'zero' : (depositWaived && canReduceDeposit ? 'reduced' : 'full')
+      body.deposit_credit_path = 'payscore'
+      if (body.deposit_tier === 'reduced') body.guarantor_ids = selectedGuarantorIds
 
       const resp = await ordersApi.create(body)
       if (resp.code === 20000 || resp.code === 20100) {
@@ -344,7 +334,9 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
         }
         const orderId = resp.data?.order_id
         if (orderId) {
-          Taro.redirectTo({ url: `/pages-weapp/payment/index?type=rent&id=${orderId}` })
+          // #2352 Rev.2 D1: 提交后必进「微信信用评测」页（评测标的=乐器原价）；
+          // 评测页通过后回支付页自选档位。
+          Taro.redirectTo({ url: `/pages-weapp/credit-assessment/index?order_id=${orderId}` })
         } else {
           Taro.redirectTo({ url: '/pages-weapp/success/index' })
         }
@@ -505,24 +497,9 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
           </View>
         </View>
 
-        {/* #2327 S4: 免押金档（payscore 信用评测） */}
-        {!isZeroDeposit && (
-        <View style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12 }}
-          onClick={() => setDepositTierState(depositTierState === 'zero' ? 'full' : 'zero')}>
-          <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <View style={{ flex: '1 1 0%' }}>
-              <Text style={{ fontWeight: '900', color: '#000' }}>{t("免押金")}</Text>
-              <Text style={{ fontSize: 11, color: '#a1a1aa', marginTop: 4, display: 'block' }}>{t("需完成微信信用评测；与差额押金二选一")}</Text>
-            </View>
-            <Text style={{ fontWeight: '700', marginRight: 12 }}>¥0</Text>
-            <View style={{ width: 20, height: 20, borderRadius: 10, border: '2px solid ' + (depositTierState === 'zero' ? '#915F38' : '#d4d4d8'), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {depositTierState === 'zero' && <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#915F38' }} />}
-            </View>
-          </View>
-        </View>
-        )}
+        {/* #2357（Owner 2026-11-15 改判）：差额押金回到确认页，用拉杆展开；
+            全额押金=0 的乐器不显示该拉杆（零押金场景）。 */}
 
-        {/* 差额押金（#2321；D1/D4 资格不变） */}
         {canReduceDeposit && (
         <View style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12 }}>
           <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} onClick={() => {
@@ -653,8 +630,7 @@ function SingleCheckout({ id, nav, resumePending = '' }) {
               <Text style={{ color: '#a1a1aa' }}>{t("押金")}</Text>
               <Text style={{ fontWeight: '500', flexShrink: 0, marginLeft: 'auto', whiteSpace: 'nowrap' }}>
                 {isZeroDeposit ? <Text>¥0<Text style={{ fontSize: 10, color: '#16a34a', marginLeft: 4 }}>{t("(零押金)")}</Text></Text>
-                  : depositWaived && canReduceDeposit ? <Text>¥{formatCents(Number(depositReduced))}<Text style={{ fontSize: 10, color: '#16a34a', marginLeft: 4 }}>{t("(差额押金)")}</Text></Text>
-                  : <>¥{formatCents((deposit || 0))}</>}
+                  : <Text>¥{formatCents(Number(effectiveDeposit))}</Text>}
               </Text>
             </View>
             <View style={{ borderTop: '1px solid #d4d4d8', paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontWeight: '700', fontSize: 16, marginBottom: 4 }}>
@@ -813,8 +789,8 @@ function BatchCheckout({ nav }) {
   const [saveAddress, setSaveAddress] = useState(true)
   const [user, setUser] = useState(null)
 
-  const [depositWaived, setDepositWaived] = useState(false)
-  // #1867: deposit-free eligibility + recommendation letter
+  // #2352 Rev.2 D3: 档位在支付页自选，确认页不再有 depositWaived 语义。
+  // #1867: deposit-free eligibility + recommendation letter（仅历史订单兼容）
   const [waiver, setWaiver] = useState(null)
   const [letterUrl, setLetterUrl] = useState('')
   const [letterUploading, setLetterUploading] = useState(false)
@@ -927,7 +903,7 @@ function BatchCheckout({ nav }) {
     for (const item of group.items) {
       const p = getItemPricing(item)
       if (Number(p.deposit) === 0) continue
-      total += depositWaived && canReduceAll ? Number(p.depositReduced ?? p.deposit) : Number(p.deposit)
+      total += Number(p.deposit)
     }
     return total
   }
@@ -940,7 +916,7 @@ function BatchCheckout({ nav }) {
     let total = 0
     for (const group of groups) total += effectiveGroupDeposit(group)
     return total
-  }, [groups, depositWaived, canReduceAll])
+  }, [groups])
   const grandTotal = useMemo(() => {
     let total = 0
     for (const group of groups) {
@@ -949,7 +925,7 @@ function BatchCheckout({ nav }) {
       total += groupRent + effectiveGroupDeposit(group)
     }
     return total
-  }, [groups, depositWaived, canReduceAll])
+  }, [groups])
 
   // #1867: pick + upload the signed recommendation letter photo (weapp picker)
   const handleLetterUpload = () => {
@@ -979,21 +955,7 @@ function BatchCheckout({ nav }) {
       dialog.alert(t("请填写收货人"))
       return
     }
-    if (depositWaived && selectedGuarantorIds.length < 2) {
-      dialog.alert(t("差额押金订单需至少选择 2 位担保人"))
-      return
-    }
-    // #1867: eligibility + recommendation letter gates
-    if (depositWaived) {
-      if (waiver && !waiver.eligible) {
-        showWaiverIneligible(waiver.reasons)
-        return
-      }
-      if (!letterUrl) {
-        dialog.alert(t("差额押金订单需上传签名的推荐信照片，模板可在差额押金区块下载"))
-        return
-      }
-    }
+    // #2352 Rev.2 D3: 确认页不采集担保人/推荐信/档位（档位在支付页自选）。
 
     const token = getToken()
     let role = ''
@@ -1034,11 +996,9 @@ function BatchCheckout({ nav }) {
       }))
       const body = { items }
       if (deliveryAddress) body.delivery_address = deliveryAddress
-      body.deposit_tier = depositWaived && canReduceAll ? 'reduced' : (allZeroDeposit ? 'zero' : 'full')
-      if (body.deposit_tier === 'reduced') {
-        body.guarantor_ids = selectedGuarantorIds
-        body.recommendation_letter = letterUrl
-      }
+      // #2357: 购物车暂无差额拉杆（多件乐器差额配置可能不同）；全额/零押二选一
+      body.deposit_tier = allZeroDeposit ? 'zero' : 'full'
+      body.deposit_credit_path = 'payscore'
       const orderResp = await ordersApi.batchCreate(body)
       if (orderResp.code === 20000) {
         const orders = orderResp.data?.orders || []
@@ -1047,7 +1007,8 @@ function BatchCheckout({ nav }) {
           const cart = storage.getJSON(getCartKey(), { items: [] }) || { items: [] }
           storage.setJSON(getCartKey(), { items: cart.items.filter(item => !ids.has(item.instrument_id || item.id)) })
           eventBus.emit('cartUpdated')
-          Taro.redirectTo({ url: `/pages-weapp/payment/index?type=rent&id=${orders[0].order_id}` })
+          // #2352 Rev.2 D1: 批量下单后同样先进信用评测页（按首单订单号）。
+          Taro.redirectTo({ url: `/pages-weapp/credit-assessment/index?order_id=${orders[0].order_id}` })
         } else {
           dialog.alert(t("下单成功，但未生成订单"))
         }
@@ -1159,7 +1120,7 @@ function BatchCheckout({ nav }) {
                   })}
                   <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4, paddingTop: 4, borderTop: '1px solid rgba(228,228,231,0.6)' }}>
                     <Text style={{ fontSize: 10, color: '#a1a1aa' }}>
-                      {Number(effectiveGroupDeposit(group)) === 0 ? '零押金' : (depositWaived && canReduceAll ? `差额押金 ¥${formatCents(effectiveGroupDeposit(group))}` : `押金 ¥${formatCents(effectiveGroupDeposit(group))}`)}
+                      {Number(effectiveGroupDeposit(group)) === 0 ? '零押金' : `押金 ¥${formatCents(effectiveGroupDeposit(group))}`}
                     </Text>
                     <Text style={{ fontSize: 14, fontWeight: '700', color: '#27272a' }}>{t("小计 ¥")}{formatCents((groupSubtotal || 0))}</Text>
                   </View>
@@ -1178,124 +1139,6 @@ function BatchCheckout({ nav }) {
           <View style={{ width: '100%', backgroundColor: '#fafafa', padding: 12, borderRadius: 12, fontSize: 11, color: '#a1a1aa', lineHeight: '20px' }}>
             {t("🔒 暖心提示：资产固定押金将在乐器归还、网点网管质检合格后，按原支付渠道原路退回至您的微信零钱。")}
           </View>
-
-          <View style={{ width: '100%', borderTop: '1px dashed #e4e4e7', paddingTop: 16, marginTop: 16 }}>
-            {canReduceAll && !allZeroDeposit && (<>
-            <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }} onClick={() => {
-              if (waiver && !waiver.eligible) { showWaiverIneligible(waiver.reasons); return }
-              setDepositWaived(!depositWaived)
-            }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#6b7280' }}>{t("差额押金（减免）")}</Text>
-              <View style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: depositWaived && (!waiver || waiver.eligible) ? '#915F38' : '#d4d4d8', position: 'relative', flexShrink: 0 }}>
-                <View style={{ position: 'absolute', top: 2, left: depositWaived && (!waiver || waiver.eligible) ? 22 : 2, width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff' }} />
-              </View>
-            </View>
-            <Text style={{ fontSize: 11, color: '#a1a1aa', marginBottom: 12 }}>
-              {waiver && !waiver.eligible ? '学生／教职工专享（需实名核验+信用分达标）' : '差额押金需提供两位担保人并上传推荐信'}
-            </Text>
-            {waiver && !waiver.eligible && (
-              <View style={{ backgroundColor: '#fafafa', border: '1px solid #e4e4e7', borderRadius: 8, padding: 10, marginBottom: 10 }}>
-                <Text style={{ fontSize: 12, color: '#71717a', lineHeight: '18px' }}>{waiverReasonText(waiver.reasons)}</Text>
-              </View>
-            )}
-
-            {depositWaived && (
-              <View style={{ marginBottom: 12, borderTop: '1px dashed #e4e4e7', paddingTop: 12 }}>
-                <View style={{ backgroundColor: '#fffbeb', border: '1px solid #fef3c7', borderRadius: 8, padding: 10, marginBottom: 10 }}>
-                  <Text style={{ fontSize: 12, color: '#b45309', lineHeight: '18px' }}>{t("应提供两位担保人的联系方式。我们的员工将会与他们联系确认。")}</Text>
-                </View>
-
-                {/* #1867: recommendation letter — template download + signed photo upload */}
-                {(!waiver || waiver.eligible) && (
-                  <View style={{ border: '1px solid #e4e4e7', borderRadius: 8, padding: 10, marginBottom: 10 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6 }}>{t("推荐信")}</Text>
-                    <View style={{ display: 'flex', marginBottom: 8 }}>
-                      <View style={{ flex: '1 1 0%', marginRight: 8, backgroundColor: '#f4f4f5', borderRadius: 8, padding: 8, alignItems: 'center' }} onClick={() => downloadLetterTemplate(env.apiBaseUrl)}>
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46', textAlign: 'center' }}>{t("下载推荐信模板")}</Text>
-                      </View>
-                      <View style={{ flex: '1 1 0%', backgroundColor: '#000', borderRadius: 8, padding: 8, alignItems: 'center' }} onClick={() => { if (!letterUploading) handleLetterUpload() }}>
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff', textAlign: 'center' }}>
-                          {letterUploading ? '上传中...' : (letterUrl ? '重新上传' : '上传签名推荐信')}
-                        </Text>
-                      </View>
-                    </View>
-                    {letterUrl && <Image src={fixImg(letterUrl)} mode="aspectFill" style={{ width: 96, height: 96, borderRadius: 8 }} />}
-                    <Text style={{ fontSize: 11, color: '#a1a1aa', marginTop: 6 }}>{t("打印模板 → 推荐人签名 → 拍照上传")}</Text>
-                  </View>
-                )}
-
-                {guarantors.length > 0 && (
-                  <View style={{ marginBottom: 10 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6 }}>{t("已保存担保人")}</Text>
-                    {guarantors.map(g => (
-                      <View key={g.id} style={{ display: 'flex', alignItems: 'center', padding: 10, border: selectedGuarantorIds.includes(g.id) ? '1px solid #915F38' : '1px solid #e4e4e7', borderRadius: 8, backgroundColor: selectedGuarantorIds.includes(g.id) ? '#fffbeb' : 'transparent', marginBottom: 8 }}
-                        onClick={() => toggleGuarantor(g.id)}>
-                        <View style={{ width: 16, height: 16, borderRadius: 4, border: '1px solid #d4d4d8', backgroundColor: selectedGuarantorIds.includes(g.id) ? '#915F38' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 10, flexShrink: 0 }}>
-                          {selectedGuarantorIds.includes(g.id) && <Text style={{ color: '#fff', fontSize: 10 }}>✓</Text>}
-                        </View>
-                        <View style={{ flex: '1 1 0%', minWidth: 0 }}>
-                          <Text style={{ fontSize: 12, fontWeight: '600', color: '#000' }}>{g.name} · {g.phone}</Text>
-                          <Text style={{ fontSize: 11, color: '#9ca3af' }}>{[g.company, g.title].filter(Boolean).join(' / ') || '-'}</Text>
-                          {g.address && <Text style={{ fontSize: 11, color: '#9ca3af' }}>{g.address}</Text>}
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                {showAddGuarantor && (
-                  <View style={{ backgroundColor: '#fafafa', borderRadius: 8, padding: 10, marginBottom: 10 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 8 }}>{t("新增担保人")}</Text>
-                    <View style={{ display: 'flex', marginBottom: 8 }}>
-                      <View style={{ flex: '1 1 0%', marginRight: 8 }}>
-                        <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("姓名*")}</Text>
-                        <Input value={newGuarantor.name} onInput={e => setNewGuarantor(prev => ({ ...prev, name: e.detail.value }))} placeholder={t("担保人姓名")}
-                          style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
-                      </View>
-                      <View style={{ flex: '1 1 0%' }}>
-                        <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("电话*")}</Text>
-                        <Input value={newGuarantor.phone} onInput={e => setNewGuarantor(prev => ({ ...prev, phone: e.detail.value }))} placeholder={t("手机号")}
-                          style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
-                      </View>
-                    </View>
-                    <View style={{ display: 'flex', marginBottom: 8 }}>
-                      <View style={{ flex: '1 1 0%', marginRight: 8 }}>
-                        <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("公司/单位")}</Text>
-                        <Input value={newGuarantor.company} onInput={e => setNewGuarantor(prev => ({ ...prev, company: e.detail.value }))} placeholder={t("公司/单位")}
-                          style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
-                      </View>
-                      <View style={{ flex: '1 1 0%' }}>
-                        <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("职务")}</Text>
-                        <Input value={newGuarantor.title} onInput={e => setNewGuarantor(prev => ({ ...prev, title: e.detail.value }))} placeholder={t("职务")}
-                          style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
-                      </View>
-                    </View>
-                    <View style={{ marginBottom: 10 }}>
-                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>{t("地址")}</Text>
-                      <Input value={newGuarantor.address} onInput={e => setNewGuarantor(prev => ({ ...prev, address: e.detail.value }))} placeholder={t("联系地址")}
-                        style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
-                    </View>
-                    <Button onClick={savingGuarantor ? undefined : handleSaveGuarantor}
-                      style={{ width: '100%', backgroundColor: savingGuarantor ? 'rgba(145,95,56,0.5)' : '#915F38', color: '#fff', borderRadius: 8, fontWeight: '700', fontSize: 14, textAlign: 'center', padding: '10px 0', lineHeight: '20px', margin: 0 }}>
-                      {savingGuarantor ? '保存中...' : '保存担保人'}
-                    </Button>
-                  </View>
-                )}
-
-                <Text style={{ fontSize: 12, color: '#915F38', marginBottom: 8 }} onClick={() => setShowAddGuarantor(!showAddGuarantor)}>
-                  {showAddGuarantor ? '− 收起' : '+ 新增担保人'}
-                </Text>
-
-                <Text style={{ fontSize: 12, color: selectedGuarantorIds.length < 2 ? '#ef4444' : '#16a34a', fontWeight: '600' }}>
-                  {selectedGuarantorIds.length >= 2 ? `已选 ${selectedGuarantorIds.length} 位担保人` : `已选 ${selectedGuarantorIds.length}/2（需至少 2 位担保人）`}
-                </Text>
-              </View>
-            )}
-          </>)}
-          </View>
-          {!canReduceAll && !allZeroDeposit && (
-            <Text style={{ fontSize: 11, color: '#a1a1aa', marginBottom: 8 }}>{t("部分乐器未配置差额押金，按全额/零押金结算")}</Text>
-          )}
 
           <View style={{ width: '100%', borderTop: '1px dashed #e4e4e7', paddingTop: 16, marginTop: 16 }}>
             <Text style={{ fontSize: 12, fontWeight: '700', color: '#6b7280', marginBottom: 12 }}>{t("📍 收货地址")}</Text>

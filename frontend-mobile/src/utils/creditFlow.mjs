@@ -1,8 +1,9 @@
 // #2327 S4: 支付分信用评测的纯逻辑（两端共用，禁止把业务规则写进页面）。
 //
 // 约定：
-//   - 押金档位：full（全额）/ reduced（差额，需 2 担保人 + 信用）/ zero（免押，需信用）
-//   - 乐器本身 0 押金时只有 zero，但**不需要**信用评测（与信用免押区分）
+//   - 押金档位（#2352 Owner 口径）：
+//       full>0  → full（无需评测/0 担保）+ reduced（需信用 + 2 担保人）；**不提供 zero**
+//       full==0 → 仅 zero（需信用评测，0 担保人）
 //   - payscore 路径下单必须显式传 deposit_credit_path='payscore'
 
 export const DEPOSIT_TIER = {
@@ -26,7 +27,7 @@ export function isCreditSettled(state) {
 }
 
 // buildTierOptions 返回结算页可展示的档位（金额单位：元，与页面 pricing 同口径）。
-// requiresAssessment=false 表示无需微信信用评测（全额档 / 乐器本身零押金）。
+// requiresAssessment=false 仅用于全额档；zero（乐器本身零押金）也需要信用评测（#2352）。
 export function buildTierOptions(depositYuan, depositReducedYuan) {
   const full = Number(depositYuan) || 0
   const reduced = depositReducedYuan == null ? null : Number(depositReducedYuan)
@@ -35,7 +36,7 @@ export function buildTierOptions(depositYuan, depositReducedYuan) {
       tier: DEPOSIT_TIER.ZERO,
       amount: 0,
       requiresGuarantors: false,
-      requiresAssessment: false,
+      requiresAssessment: true,
       reason: 'instrument_zero_deposit',
     }]
   }
@@ -43,9 +44,11 @@ export function buildTierOptions(depositYuan, depositReducedYuan) {
     tier: DEPOSIT_TIER.FULL,
     amount: full,
     requiresGuarantors: false,
-    requiresAssessment: false,
+    // #2352 F2（Owner 裁定 2026-11-15）：所有 payscore 新单（含全额）都要评测通过后才能支付。
+    requiresAssessment: true,
   }]
-  if (reduced != null && reduced >= 0 && reduced < full) {
+  // #2357: deposit_reduced = 0 视为「未配置」（不是零差额免押）
+  if (reduced != null && reduced > 0 && reduced < full) {
     options.push({
       tier: DEPOSIT_TIER.REDUCED,
       amount: reduced,
@@ -53,12 +56,7 @@ export function buildTierOptions(depositYuan, depositReducedYuan) {
       requiresAssessment: true,
     })
   }
-  options.push({
-    tier: DEPOSIT_TIER.ZERO,
-    amount: 0,
-    requiresGuarantors: false,
-    requiresAssessment: true,
-  })
+  // #2352 D1: full>0 不得出现 zero 档（不能只凭信用免掉全部押金）。
   return options
 }
 
@@ -111,8 +109,9 @@ export function creditGate(payload) {
     case CREDIT_STATE.REJECTED:
       return {
         canPay: false, showEntry: true, state,
-        reason: '信用评测未通过，请改用全额押金或更换乐器',
-        action: 'fallback_full',
+        // #2352 F2（Owner 裁定）：全额档同样要求评测通过，不再提供「改用全额」出口。
+        reason: '信用评测未通过，本订单无法继续支付，请联系客服协助处理',
+        action: 'blocked',
       }
     case CREDIT_STATE.EXPIRED:
       return {

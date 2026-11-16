@@ -1015,25 +1015,58 @@ steps:
 - 退款按钮仅 deposit_refunding 状态（#1607）
 - weapp 的 OrderDetail 独立副本（pages-weapp/order-detail）需与共享版行为一致——最终目标：**weapp 薄壳引用共享 OrderDetail.jsx**（消除双代码库）
 
-## 押金三态（#2321，D1–D5）
+## 押金三态与信用评测导入流程（#2327 S4 / #2352，**取代 #2321 的确认页选择器方案**）
 
-- **全额**：默认；`orders.deposit` = 乐器全额押金。
-- **差额**：乐器配置 `deposit_reduced`（可空；0=差额 0）；需满足 #1867 既有资格 + 2 担保人 + 推荐信；`orders.deposit_tier=reduced`，实付差额；无差额配置时回退全额。
-- **零押金**：乐器全额押金=0；无需担保人/推荐信；`deposit_tier=zero`，实付 0。
-- **历史**：旧 `deposit_waived=true` 订单不追溯；新订单 `deposit_waived=false`，旧请求字段仅兼容为 reduced。
-- **退款/结算**：均以 `orders.deposit` 实付为基准。
+### 流程（档位在确认页决定，提交后必经评测）
 
-## 免押金申请资格（#1867 收紧，差额档沿用）
+1. **确认订单页**：展示租金与全额押金；**乐器全额押金 > 0 时**提供一个「**差额押金**」拉杆——
+   打开后显示担保人规则与**已保存担保人列表（可直接勾选，≥2 位）**，并可在本页新增担保人。
+   全额押金 = 0 的乐器不显示该拉杆（零押金场景）。
+   - ~~确认页只展示全额、档位在支付页选~~（#2352 Rev.2 原方案，**#2357 已改判**：支付页选择位于页面最底部，决定过于重要不宜隐藏）。
+2. 点「提交订单」→ **建单**（携带所选档位与担保人，`deposit_credit_path=payscore`）→ 跳转**独立信用评测页**
+   （H5：`/credit-assessment?order_id=…`；weapp：`pages-weapp/credit-assessment/index?order_id=…`）。
+   - **所有订单必经**评测：包括选择全额押金的顾客与全额押金为 0 的乐器。
+   - **评测标的金额 = 乐器原价**（固定值，不随押金档位/差额变化）。
+   - 该评测页 URL 作为**微信支付分申请提交的页面地址**（S0 #2328 使用）。
+3. 评测完成后进入**支付页**：按订单已定档位直接展示应付金额（**不再二次选择档位**，避免与已提交的担保人/档位不一致）。
 
-差额押金（`deposit_tier=reduced`）下单时的服务端强制条件（防止前端绕过）：
+### 提交即建单（锁库存）与超时释放（#2352 F1/F3，2026-11-15 真机确认）
 
-1. **身份**：用户已实名核验（`face_verified`）且第三证件类型（#1807）为 `student` / `teacher` —— 社会人员不可申请（D1 要求不变）
-2. **信用分**：内部信用分 ≥ `DEPOSIT_WAIVER_MIN_CREDIT`（env，默认 600；外部征信接入前为模拟口径）
-3. **担保人**：≥ 2 个本人名下担保人（#1557 既有规则）
-4. **推荐信**：`recommendation_letter` 非空 —— 结算页可下载推荐信模板（移动端静态 PDF），推荐人签名后拍照上传
-5. 员工在订单详情查看担保人 + 推荐信照片，不符合要求走既有 staff-cancel（reason=担保人不符合要求）
-6. 资格查询端点：`GET /user/deposit-waiver/eligibility`（响应含 `eligible`/`reasons`，结算页据此禁用差额开关并提示原因）
-7. 前端展示三态（D5）：全额 / 差额 / 零押金；无差额档时担保人不产生折扣
+- 点「提交订单」时**订单已创建**（`status=reserved`，评测必须绑定 `out_order_no`），乐器随之锁定（`stock_status=rented`），`payment_deadline` 默认 +10 分钟（`merchant_settlement_configs.payment_timeout` → 系统设置 → 默认 10）。
+- 超时由 `ReservedOrderScheduler`（30s 扫描）将订单置 `cancelled`、乐器置回 `available`，并记录 `order_status_history.notes=支付超时自动取消`。
+- 用户放弃评测后可在两处继续：**乐器详情页**（本人 `reserved` 单显示「待支付 + 截止倒计时 + 继续评测/去支付」）与**我的租赁 → 未支付**（支付/取消）。
+- **评测页必须显示订单截止时间**（`GET /orders/:id/credit-status` 返回 `payment_deadline` / `order_status`），并提示「超时订单自动取消」。
+- **服务单补建**：下单即落 `credit_state=pending`，但 `credit_service_order_no` 为空表示评测尚未真正创建；
+  `POST /orders/:id/credit-assessment` 在「pending 且无服务单」时必须补建（否则页面误判「评测进行中」而永久轮询，评测标的金额恒为 0 → 显示「—」）。
+
+### 三场景（含小票形态）
+
+| 场景 | 条件 | 实付押金 | 小票押金项 | 担保人 |
+|------|------|---------|-----------|-------|
+| **全额支付** | 乐器全额押金 > 0，用户选全额 | 全额押金 | **有** | 0 |
+| **零押金** | **乐器全额押金 = 0**（不提供全额/差额选项） | 0 | **无**（小票不出现押金项） | 0 |
+| **差额支付** | 乐器全额押金 > 0，用户选差额**且已提供 ≥2 位担保人** | `deposit_reduced`（第二档） | **有**（金额=实付差额） | **≥2** |
+
+- 乐器未配置 `deposit_reduced`（或差额 ≥ 全额）→ 不提供差额选项（仅全额/零押金）。
+- 下单接口对档位的校验（#2357）：`full` 恒可；`reduced` 必须已配置第二档且 `< 全额`；`zero` **仅当乐器全额押金 = 0**（`40002` 拒绝）。
+- `orders.deposit_tier` ∈ `full` / `reduced` / `zero`；`orders.deposit` = 实付押金（零押金场景为 0，小票据此抑制押金项）。
+- **历史**：旧 `deposit_waived=true` 订单不追溯；旧请求字段仅兼容映射为 reduced（仅旧客户端/历史单，新 UI 不再产生 internal 路径订单）。
+- **退款/结算**：均以 `orders.deposit` 实付为基准；零押金场景无押金退款项。
+
+### 评测状态与支付闸门
+
+- 评测状态落库 `credit_state` ∈ `pending` / `approved` / `rejected` / `expired`（随订单记录）。
+- `PAYSCORE_ENFORCE=true` 时：**所有 payscore 新单**（含全额档）未 `approved` → 支付被拦截（403 / 业务码 40320）。
+  - **Owner 裁定（2026-11-15）**：全额档**同样**要求评测通过——不存在「改用全额押金即可绕过」的出口；
+    被微信判 `rejected` 的用户本单无法支付，需联系客服（`credit_rejected` 文案不得再引导改用全额）。
+  - 相应前端：评测页被拒文案、支付页闸门提示均按此口径；`creditFlow.creditGate(rejected).action = 'blocked'`。
+- `PAYSCORE_ENFORCE=false`（默认）→ 保持旧行为（闸门放行），仅用于灰度过渡。
+
+### 免押金申请资格（#1867）——新模型中退役
+
+- 新 payscore 信用路径**不再要求**「学生/教师身份 + 内部信用分 + 推荐信」；资格统一由**微信信用评测**承担（差额档额外要求 ≥2 担保人）。
+- 旧 `internal` 资格路径（`GET /user/deposit-waiver/eligibility`、推荐信模板、员工核对担保人+推荐信）**仅保留给历史订单与旧客户端兼容**，新 UI 不再展示该面板。
+- 员工侧「担保人不符合要求 → staff-cancel」流程对差额档**继续适用**（担保人仍由员工联系确认）。
 
 ## 验收
 - checklist-verify.py：L-07 各 seq 的 page/controls/api 在 weapp+h5 均通过（配合 #1613 修复）

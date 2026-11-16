@@ -9,6 +9,7 @@ import { env, storage, session, eventBus, getWindowSize, previewImage } from '..
 import { formatBeijingDate, formatBeijingDateTimeShort } from '../utils/format'
 import { calculateDays } from '../utils/daycalc'
 import { View, Text, Image, Button, Video, ScrollView } from '@tarojs/components'
+import { pendingOrderHint } from '../utils/pendingOrder.mjs'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -512,6 +513,21 @@ export default function Detail() {
               {activeOrder.deposit_refunded && (
                 <Text className="text-green-600 text-sm mt-1">押金已退还</Text>
               )}
+            </View>
+          ) : activeOrder.order_status === 'reserved' && activeOrder.is_mine ? (
+            // #2352 F1: 本人未支付订单——给出「继续支付」入口，避免只剩「已预约」让人误解
+            <View className="p-3 bg-blue-50 rounded-lg" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <Text className="text-blue-700 font-medium">待支付</Text>
+              <Text className="text-gray-500 text-sm">
+                租期：{formatBeijingDate(activeOrder.start_date)} 至 {formatBeijingDate(activeOrder.end_date)}
+              </Text>
+              <Text className="text-red-500 text-xs">{pendingOrderHint(activeOrder.payment_deadline)}</Text>
+              <View
+                onClick={() => navigate(`/payment?type=rent&id=${activeOrder.order_id}`)}
+                style={{ width: '100%', paddingTop: 10, paddingBottom: 10, backgroundColor: '#B98E5F', color: '#fff', borderRadius: 8, fontWeight: 700, textAlign: 'center' }}
+              >
+                <Text style={{ color: '#fff', fontWeight: 700 }}>继续评测 / 去支付</Text>
+              </View>
             </View>
           ) : ['reserved', 'pending', 'paid', 'pending_shipment'].includes(activeOrder.order_status) ? (
             <View className="p-3 bg-blue-50 rounded-lg" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

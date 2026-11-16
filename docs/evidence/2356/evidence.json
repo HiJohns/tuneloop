@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "issue": 2356,
+  "build": "credit-flow-2352-weapp/deposit-tier-confirm 6332b83 (weapp+backend, preprod 1.0.85)",
+  "commit": "6332b83315512f88f7e806e91c37d447e5f68e4f",
+  "environment": "Linux worktree @ origin/develop; Node 22; 预生产 1.0.85 / weapp 1.0.87-dev",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2352-weapp.sh checkout",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R1w-checkout.txt"
+      ],
+      "assert": "确认页有差额拉杆且下单携带档位三件套；H5 端同断言",
+      "actual": "PASS（含红绿：删掉提交行 → exit 1）",
+      "expected": "PASS",
+      "negative": "漏传档位/缺担保人 → exit 1",
+      "negative_result": "实测 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2352-weapp.sh payment",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R2w-payment.txt"
+      ],
+      "assert": "支付页无档位选择、无 deposit_tier；评测入口只传 order_id",
+      "actual": "PASS",
+      "expected": "PASS",
+      "negative": "仍有档位/旧参数 → exit 1",
+      "negative_result": "断言内建",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "go test ./handlers/ -run '235[27]'",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R14-backend-tiers.txt"
+      ],
+      "assert": "档位校验 full/reduced/zero 三态 + resolveDepositTier 不静默回落",
+      "actual": "go test -run 235[27]：9 PASS / 0 FAIL（含 deposit_reduced=0 未配置、40002 不静默回落）",
+      "expected": "PASS",
+      "negative": "静默回落/zero 放行 → fail",
+      "negative_result": "单测覆盖",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "Owner 真机",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2356/R4-manual.md"
+      ],
+      "assert": "差额+2 担保人 → 评测 → 支付页 ¥30.30 与确认页一致",
+      "actual": "PASS（Owner：「确认了，是30.30」）",
+      "expected": "PASS",
+      "negative": "支付页回到全额 ¥31.00 → FAIL",
+      "negative_result": "曾复现，已修复",
+      "pass": true
+    }
+  ],
+  "dirty": false
+}

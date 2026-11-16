@@ -1,0 +1,11 @@
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /home/coder/tuneloop/frontend-mobile
+
+ ✓ scripts/page-smoke/credit-flow-tiers.test.jsx (4 tests) 87ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  14:52:45
+   Duration  5.06s (transform 233ms, setup 151ms, collect 98ms, tests 87ms, environment 2.68s, prepare 1.06s)
+

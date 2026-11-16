@@ -165,12 +165,21 @@ func loadRentPayment(db *gorm.DB, userID, id string, resp *PaymentCalculateRespo
 	// ToYuan() (yuan) which mixed units (3 分 + 0.01 元 = 3.01 元 → 多扣).
 	resp.Amount += float64(order.Deposit + order.ShippingFee)
 	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
-		resp.Details = map[string]interface{}{
+		details := map[string]interface{}{
 			"pricing_breakdown": *order.PricingBreakdown,
 			"deposit":           float64(order.Deposit),
 			"shipping_fee":      float64(order.ShippingFee),
 			"total":             resp.Amount,
 		}
+		// #2352 Rev.2 D3: 支付页自选档位所需的快照（全额/差额/当前档）。
+		details["deposit_tier"] = order.DepositTier
+		if order.DepositFull != nil {
+			details["deposit_full"] = float64(*order.DepositFull)
+		}
+		if order.DepositReduced != nil {
+			details["deposit_reduced"] = float64(*order.DepositReduced)
+		}
+		resp.Details = details
 	}
 }
 

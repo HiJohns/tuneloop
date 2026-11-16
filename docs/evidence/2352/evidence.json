@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "issue": 2352,
+  "build": "credit-flow-2352/2356 6332b83 (H5+weapp, preprod 1.0.85)",
+  "commit": "6332b83315512f88f7e806e91c37d447e5f68e4f",
+  "dirty": false,
+  "environment": "frontend Node22 + backend PG16 127.0.0.1:15433 strict template; preprod for R9",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "cd frontend-mobile && node --test src/utils/creditFlow.test.mjs",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R11-unit.txt"
+      ],
+      "assert": "档位模型：full>0 不含 zero；reduced 必须 0<reduced<full；所有档位需要评测",
+      "actual": "node --test：9 pass / 0 fail（含 reduced=0 未配置、需评测）",
+      "expected": "PASS",
+      "negative": "出现 zero 档/漏担保人校验 → fail",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2352-weapp.sh checkout",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R1w-checkout.txt"
+      ],
+      "assert": "提交跳评测页且下单携带档位三件套（两端同断言）",
+      "actual": "checkout 断言 PASS（拉杆+担保人+下单三件套，两端）",
+      "expected": "PASS",
+      "negative": "漏传档位/直跳支付页 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2352-backend.sh amount",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R3-amount.txt"
+      ],
+      "assert": "评测标的恒等乐器原价（不随档位变化）",
+      "actual": "amount PASS（标的=乐器原价）",
+      "expected": "PASS",
+      "negative": "随档位变化 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2352-backend.sh state",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R4-assessment-state.txt"
+      ],
+      "assert": "下单落 credit_state=pending；enforce 时未通过被拦截",
+      "actual": "state PASS（pending 落库；enforce 拦截）",
+      "expected": "PASS",
+      "negative": "放行 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2352-backend.sh choice",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R5-tier-choice.txt"
+      ],
+      "assert": "差额需 2 位担保人，押金=deposit_reduced；零/无效配置拒绝",
+      "actual": "choice PASS（0/1 拒；2 位→差额金额）",
+      "expected": "PASS",
+      "negative": "无担保人差额 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2352-backend.sh zero-receipt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R6-zero-receipt.txt"
+      ],
+      "assert": "实付押金=0 时小票无押金项",
+      "actual": "zero-receipt PASS（押金=0）",
+      "expected": "PASS",
+      "negative": "出现押金项 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2352-backend.sh legacy",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R7-legacy.txt"
+      ],
+      "assert": "历史 internal 订单读/结算不变",
+      "actual": "legacy PASS（history internal 不变）",
+      "expected": "PASS",
+      "negative": "变化 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2352-backend.sh doc",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R8-doc.txt"
+      ],
+      "assert": "文档含两端评测页 URL 与「支付分申请」用途",
+      "actual": "doc PASS（两 URL + 申请用途）",
+      "expected": "PASS",
+      "negative": "缺失 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash -c \"test -s docs/evidence/2352/R9-manual.md && grep -q 'executor: user' docs/evidence/2352/R9-manual.md && grep -q 'RESULT: PASS' docs/evidence/2352/R9-manual.md\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2352/R9-manual.md"
+      ],
+      "assert": "Owner 真机三场景回执（全额/差额金额一致；零押金由 R6 覆盖并标注）",
+      "actual": "Owner 真机：差额 ¥30.30 一致 / 全额 ¥31.00",
+      "expected": "PASS",
+      "negative": "缺回执/金额不一致 → 非 0",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    }
+  ]
+}

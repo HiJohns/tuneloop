@@ -1,4 +1,4 @@
-PROVENANCE build=p12-command-drift commit=d5f84451f23197f904283ea24c27cd06a5fda645 dirty=false
+PROVENANCE build=p12-command-drift commit=27dea4071f7bb6b3e87d6635c31580d6ced5a7af dirty=false
 MODE full
 CMD bash "/home/coder/.config/opencode/scripts/pre-ready-check.sh" --self-test
 exit=0

@@ -27,14 +27,9 @@ func RequiresCreditAssessment(tier string) bool {
 //
 // reduced 档恒需信用（差额押金靠支付分补足）；full 档无需评估。
 func RequiresCreditApprovalForOrder(tier, creditPath string) bool {
-	switch tier {
-	case models.DepositTierReduced:
-		return true
-	case models.DepositTierZero:
-		return creditPath == models.DepositCreditPathPayscore
-	default:
-		return false
-	}
+	// #2352 Rev.2 D1: 所有 payscore 新单（含全额档）都必须先完成信用评测；
+	// internal 路径仅历史订单/旧客户端兼容，不新增。
+	return creditPath == models.DepositCreditPathPayscore
 }
 
 // AssertOrderPayable 订单级支付闸门：按档位 + 下单时的信用路径判定。
@@ -78,7 +73,9 @@ func assertApproved(creditState string) error {
 	case CreditStatePending:
 		return fmt.Errorf("credit_pending: 信用评估尚未完成，请先在支付页完成微信信用评估")
 	case CreditStateRejected:
-		return fmt.Errorf("credit_rejected: 信用评估未通过，请改用全押金档位或更换乐器")
+		// #2352 F2（Owner 裁定 2026-11-15）：全额档同样要求评估通过，
+		// 因此不能再引导用户「改用全押金」。
+		return fmt.Errorf("credit_rejected: 信用评估未通过，本订单无法继续支付，请联系客服协助处理")
 	case CreditStateExpired:
 		return fmt.Errorf("credit_expired: 信用评估已过期，请重新评估")
 	default:

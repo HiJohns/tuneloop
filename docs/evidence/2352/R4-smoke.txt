@@ -1,0 +1,4 @@
+PROVENANCE commit=4aa951308b66b0a0584cb562529f581ea96aa3aa
+CMD npx vitest run scripts/page-smoke/smoke.test.jsx
+ Test Files  1 passed (1)
+      Tests  18 passed (18)

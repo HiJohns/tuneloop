@@ -1,0 +1,5 @@
+PROVENANCE build=credit-flow-2352-weapp commit=4aa951308b66b0a0584cb562529f581ea96aa3aa dirty=true
+checkout bundle: assessment route hits = 2
+checkout bundle: reduced-tier toggle hits = 0
+checkout bundle: guarantor fetch hits = 2
+payment bundle: deposit_tier hits = 0

@@ -13,26 +13,33 @@ import {
   isCreditSettled,
 } from './creditFlow.mjs'
 
-test('三档映射：full/reduced/zero 的担保与评测要求', () => {
+test('档位映射（#2352）：full>0 只有 full/reduced，且都需评测通过', () => {
   const opts = buildTierOptions(500, 200)
-  assert.deepEqual(opts.map(o => o.tier), ['full', 'reduced', 'zero'])
+  // #2352 D1：全额押金>0 时不得出现 zero 档（不能凭信用免掉全部押金）
+  assert.deepEqual(opts.map(o => o.tier), ['full', 'reduced'])
+  assert.ok(!opts.some(o => o.tier === DEPOSIT_TIER.ZERO), 'full>0 不得出现零押金档')
   const full = opts.find(o => o.tier === DEPOSIT_TIER.FULL)
   const reduced = opts.find(o => o.tier === DEPOSIT_TIER.REDUCED)
-  const zero = opts.find(o => o.tier === DEPOSIT_TIER.ZERO)
-  assert.equal(full.requiresAssessment, false)
+  // #2352 F2：全额档同样要求评测通过
+  assert.equal(full.requiresAssessment, true)
   assert.equal(reduced.requiresGuarantors, true)
   assert.equal(reduced.requiresAssessment, true)
-  // 负例：zero 绝不能被映射为需要担保人
-  assert.equal(zero.requiresGuarantors, false)
-  assert.equal(zero.amount, 0)
-  assert.equal(zero.requiresAssessment, true)
+  // 负例：full>0 时 zero 档必须缺席（#2352 D1，不能凭信用免掉全部押金）
+  assert.equal(opts.find(o => o.tier === DEPOSIT_TIER.ZERO), undefined)
 })
 
-test('乐器本身零押金：只有 zero，且不需要信用评测', () => {
+test('乐器本身零押金：只有 zero，且仍必须过评测', () => {
   const opts = buildTierOptions(0, null)
   assert.equal(opts.length, 1)
   assert.equal(opts[0].tier, DEPOSIT_TIER.ZERO)
-  assert.equal(opts[0].requiresAssessment, false, '零押金乐器不得被误判为信用免押')
+  // #2352 D1：评测对所有订单必经（含零押金乐器），故这里恒为 true
+  assert.equal(opts[0].requiresAssessment, true)
+})
+
+test('deposit_reduced = 0 视为未配置（#2357 修正）', () => {
+  // 历史数据常以 0 表示「没有配置第二档」，不得据此提供「零差额免押」
+  const opts = buildTierOptions(6000, 0)
+  assert.deepEqual(opts.map(o => o.tier), [DEPOSIT_TIER.FULL])
 })
 
 test('reduced 缺少担保人时禁止下单', () => {
@@ -64,7 +71,7 @@ test('creditGate：四态 → 可支付/入口/原因', () => {
 
   const rejected = creditGate({ requires_assessment: true, credit_state: CREDIT_STATE.REJECTED })
   assert.equal(rejected.canPay, false)
-  assert.equal(rejected.action, 'fallback_full')
+  assert.equal(rejected.action, 'blocked')
 
   const expired = creditGate({ requires_assessment: true, credit_state: CREDIT_STATE.EXPIRED })
   assert.equal(expired.canPay, false)

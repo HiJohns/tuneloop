@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "issue": 2354,
+  "build": "home-layers-2354 108f84b (weapp, preprod)",
+  "commit": "108f84b2487c817b4efb6018d91e715dd94d7261",
+  "dirty": false,
+  "environment": "Linux worktree /tmp/opencode/wt-2354 @ origin/develop; Node 22.22.3; R4 待 Owner 真机",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2354.sh layers",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2354/R1-layers.txt"
+      ],
+      "assert": "搜索层 zIndex: 10003；滑动层仍 10002",
+      "actual": "PASS — 静态断言 + 结构正则双检；负例已实测（把 10003 改回 10000 → exit 1）",
+      "expected": "PASS",
+      "negative": "仍 10000/反转 → exit 1",
+      "negative_result": "实测缺陷版 exit 1（红绿可证）",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2354.sh build",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2354/R2-build-lint.txt"
+      ],
+      "assert": "build:weapp exit 0 + eslint 0 errors",
+      "actual": "PASS — node v22.22.3；build exit 0；eslint 3 warnings / 0 errors（均为既有 i18n 提示）",
+      "expected": "exit 0",
+      "negative": "失败 → exit 1",
+      "negative_result": "脚本对 ERROR in / Module build failed / N errors 均 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2354.sh docs",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2354/R3-docs.txt"
+      ],
+      "assert": "两文档含 10003 搜索层且旧 10000 层级描述清除",
+      "actual": "PASS — 两文档 10003/10002/10004 与实现对齐；负例断言旧 `| A | 10000 |` 存在即失败",
+      "expected": "PASS",
+      "negative": "残留 → exit 1",
+      "negative_result": "脚本含两条负例 grep（frontpage 表格 / ui.md 表格）",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash -c \"test -s docs/evidence/2354/R4-manual.md && grep -q 'executor: user' docs/evidence/2354/R4-manual.md && grep -q 'RESULT: PASS' docs/evidence/2354/R4-manual.md\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2354/R4-manual.md"
+      ],
+      "assert": "Owner 真机：点击搜索栏打开搜索页 + 无回归",
+      "actual": "PASS（Owner 真机 2026-11-15）：「搜索能点了」——进入 SN 搜索页；banner 滑动/粘连菜单/购物车/列表无回归",
+      "expected": "PASS",
+      "negative": "点击无效/回归 → 非 0",
+      "negative_result": "修复前点击无响应（滑动层 10002 覆盖搜索层 10000），已复现并修复",
+      "pass": true
+    }
+  ]
+}

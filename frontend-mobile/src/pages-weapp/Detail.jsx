@@ -7,6 +7,7 @@ import { dialog, env, getWindowSize, previewImage, session, storage } from '../p
 import { formatBeijingDate, formatBeijingDateTimeShort } from '../utils/format'
 import { calculateDays } from '../utils/daycalc'
 import { t } from '../i18n'
+import { pendingOrderHint } from '../utils/pendingOrder.mjs'
 
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
@@ -492,6 +493,21 @@ export default function Detail() {
               {activeOrder.deposit_refunded && (
                 <Text style={{ color: '#16a34a', fontSize: 14, marginTop: 4 }}>押金已退还</Text>
               )}
+            </View>
+          ) : activeOrder.order_status === 'reserved' && activeOrder.is_mine ? (
+            // #2352 F1: 本人未支付订单——给出「继续支付」入口（weapp 走完整页面路径）
+            <View style={{ padding: 12, backgroundColor: '#eff6ff', borderRadius: 8, marginBottom: 8 }}>
+              <Text style={{ color: '#1d4ed8', fontWeight: '500' }}>{t('待支付')}</Text>
+              <Text style={{ color: '#6b7280', fontSize: 14 }}>
+                租期：{formatBeijingDate(activeOrder.start_date)} 至 {formatBeijingDate(activeOrder.end_date)}
+              </Text>
+              <Text style={{ color: '#ef4444', fontSize: 12, marginTop: 4, display: 'block' }}>{pendingOrderHint(activeOrder.payment_deadline)}</Text>
+              <View
+                onClick={() => nav(`/pages-weapp/payment/index?type=rent&id=${activeOrder.order_id}`)}
+                style={{ width: '100%', height: 44, marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#B98E5F', color: '#fff', borderRadius: 8 }}
+              >
+                <Text style={{ color: '#fff', fontWeight: '700' }}>{t('继续评测 / 去支付')}</Text>
+              </View>
             </View>
           ) : ['reserved', 'pending', 'paid', 'pending_shipment'].includes(activeOrder.order_status) ? (
             <View style={{ padding: 12, backgroundColor: '#eff6ff', borderRadius: 8, marginBottom: 8 }}>

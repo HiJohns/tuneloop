@@ -3,7 +3,10 @@ package wechatpay
 import (
 	"context"
 	"fmt"
+	"os"
+	"strconv"
 	"sync"
+	"time"
 )
 
 // PayscoreProvider 是支付分能力的唯一入口。业务层只依赖该接口：
@@ -40,10 +43,23 @@ type MockPayscoreProvider struct {
 	mu      sync.Mutex
 	orders  map[string]*PayScoreOrder
 	Approve bool
+	// ApproveAfter 让模拟评估在创建后保持 pending 一段时间（便于真机截图/观察）；
+	// 0 = 立即出结果（默认，供单测使用）。
+	ApproveAfter time.Duration
+	createdAt    map[string]time.Time
 }
 
 func NewMockPayscoreProvider() *MockPayscoreProvider {
-	return &MockPayscoreProvider{orders: map[string]*PayScoreOrder{}, Approve: true}
+	return &MockPayscoreProvider{orders: map[string]*PayScoreOrder{}, Approve: true, createdAt: map[string]time.Time{}}
+}
+
+// MockApproveAfter 读取模拟评估的 pending 时长（PAYSCORE_MOCK_APPROVE_AFTER_SECONDS，默认 30s）。
+// 仅影响 mock provider；真实 provider 由微信侧决定时长。
+func MockApproveAfter() time.Duration {
+	if v, err := strconv.Atoi(os.Getenv("PAYSCORE_MOCK_APPROVE_AFTER_SECONDS")); err == nil && v >= 0 {
+		return time.Duration(v) * time.Second
+	}
+	return 30 * time.Second
 }
 
 func (m *MockPayscoreProvider) IsMock() bool { return true }
@@ -62,6 +78,7 @@ func (m *MockPayscoreProvider) CreateOrder(_ context.Context, params PayScoreCre
 	}
 	m.mu.Lock()
 	m.orders[params.OutOrderNo] = order
+	m.createdAt[params.OutOrderNo] = time.Now()
 	m.mu.Unlock()
 	return order, nil
 }
@@ -72,6 +89,14 @@ func (m *MockPayscoreProvider) QueryOrder(_ context.Context, _ /*serviceID*/, ou
 	order, ok := m.orders[outOrderNo]
 	if !ok {
 		return nil, fmt.Errorf("mock payscore: order %q not found", outOrderNo)
+	}
+	// 模拟评估：创建后 ApproveAfter 内保持 pending（默认 30s，便于真机截图）。
+	if m.ApproveAfter > 0 {
+		if created, ok := m.createdAt[outOrderNo]; ok && time.Since(created) < m.ApproveAfter {
+			cp := *order
+			cp.State = mockStatePending
+			return &cp, nil
+		}
 	}
 	state := mockStateRejected
 	if m.Approve {
@@ -102,7 +127,9 @@ func (m *MockPayscoreProvider) VerifyPayScoreCallback(_ PayScoreCallbackHeaders,
 // NewPayscoreProvider 按配置选择实现：默认 mock；仅当 PAYSCORE_ENABLED 且具备私钥时走真实客户端。
 func NewPayscoreProvider(cfg *Config) (PayscoreProvider, error) {
 	if cfg == nil || !cfg.PayScoreEnabled {
-		return NewMockPayscoreProvider(), nil
+		m := NewMockPayscoreProvider()
+		m.ApproveAfter = MockApproveAfter()
+		return m, nil
 	}
 	client, err := NewPayScoreClient(cfg)
 	if err != nil {
