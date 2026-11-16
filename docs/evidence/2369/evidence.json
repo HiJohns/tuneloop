@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "issue": 2369,
+  "build": "orphan-cleanup-2369 52a3286",
+  "commit": "52a3286b341ee570b70c4aaf818f07470a7c5db2",
+  "dirty": false,
+  "environment": "backend handlers tests on PG 127.0.0.1:15433 (strict schema) + IAM httptest mock; PC frontend built with Node 22; R4 ops manual",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "cd backend && go test ./handlers/ -run 'TestCreateUserOrphanMark_2364' -count=1 -v > ../docs/evidence/2369/R1-orphan-mark.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2369/R1-orphan-mark.txt"
+      ],
+      "assert": "exit 0；含 `--- PASS`",
+      "actual": "PASS：500 响应 data.orphan=true + data.iam_user_id；日志含 create_user_orphan；本地无 users 行；purge 调用 1 次（403 被捕获）",
+      "expected": "PASS",
+      "negative": "无标记 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "cd backend && go test ./handlers/ -run 'TestListIAMOrphans_2364' -count=1 -v > ../docs/evidence/2369/R2-list.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2369/R2-list.txt"
+      ],
+      "assert": "exit 0；含 `--- PASS`；用例断言分页 query 与跨页聚合（23/25）",
+      "actual": "PASS：25 pending 分两页（服务端 20/页），返回 23 孤儿（2 个本地已登记被排除）；请求均带 status=pending&include_orgs=true&page_size=100，page=1/2；商户管理员 403 40300",
+      "expected": "PASS",
+      "negative": "漏分页或权限放行 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "cd backend && go test ./handlers/ -run 'TestPurgeIAMOrphans_2364' -count=1 -v > ../docs/evidence/2369/R3-purge.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2369/R3-purge.txt"
+      ],
+      "assert": "exit 0；含 `--- PASS`",
+      "actual": "PASS：2 个孤儿 → purged=2、failed=[]、notes 含 user_task_queues；本地存在的 ID → failed 且不调用 purge；空 user_ids → 400 40001",
+      "expected": "PASS",
+      "negative": "静默失败 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash -c \"test -s docs/evidence/2369/R4-ui-manual.md && grep -q 'executor: ops' docs/evidence/2369/R4-ui-manual.md && grep -q 'RESULT: PENDING' docs/evidence/2369/R4-ui-manual.md\"",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2369/R4-ui-manual.md"
+      ],
+      "assert": "exit 0（ops 待办工件符合约定）",
+      "actual": "PENDING：ops 待办工件符合约定（executor: ops + RESULT: PENDING）；待清理后改为 PASS 并转 waitForConfirm 回执",
+      "expected": "PASS",
+      "negative": "写 PASS 或缺失 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "grep -c 'user_task_queues' docs/ops/pending-user-orphan-cleanup.md > docs/evidence/2369/R5-sop.txt 2>&1 && grep -c 'user_task_queues' docs/en/ops/pending-user-orphan-cleanup.md >> docs/evidence/2369/R5-sop.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2369/R5-sop.txt"
+      ],
+      "assert": "exit 0；两行均 ≥1",
+      "actual": "PASS：中文/英文 SOP 均含 user_task_queues（各 7 处）；中文含 2026-11-16 实例",
+      "expected": "PASS",
+      "negative": "缺 en 或无步骤 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    }
+  ]
+}
