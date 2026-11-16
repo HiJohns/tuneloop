@@ -2,7 +2,8 @@ package handlers
 
 // #1938: 站点 / 中转网点共享的成员添加核心。
 // 自 SiteMemberHandler.AddMember 提取，保持既有行为不变，供中转中心复用。
-// 契约：user_id(+role) | user_ids:[{user_id,role}] | new_users:[{username,name,email,phone,role}] + skip_activation。
+// 契约：user_id(+role) | user_ids:[{user_id,role}] |
+//       new_users:[{username,name,email,phone,role,password,auto_generate,force_password_change}] + skip_activation。
 
 import (
 	"errors"
@@ -10,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -30,6 +32,11 @@ type addMemberUser struct {
 	Email    string `json:"email"`
 	Phone    string `json:"phone"`
 	Role     string `json:"role"`
+	// #2366 D1/D6：密码模式（缺省 = 邀请 / 旧 skip_activation 行为）。
+	// password 与 auto_generate 互斥；force_password_change 缺省 false（保持旧行为）。
+	Password            string `json:"password"`
+	AutoGenerate        bool   `json:"auto_generate"`
+	ForcePasswordChange bool   `json:"force_password_change"`
 }
 
 type addMemberInput struct {
@@ -50,6 +57,86 @@ type addMemberResult struct {
 type addMemberFail struct {
 	Status int
 	Body   gin.H
+}
+
+// newUserCreateReq 归一化 new_users 条目并构造 IAM 创建请求（#2366 D1/D6）。
+// 网点成员（addMembersCore）与商户直属成员（merchant_member.AddMember）共用本函数，
+// 避免「手动密码 / 自动生成 / 邀请」规则在两处漂移。
+//
+// 规则：
+//  1. username 空且 email 空 → 400（无可用的登录标识）；
+//  2. username 空且 email 非空 → username 显式取 email（旧行为，不再静默回退）；
+//  3. password 与 auto_generate 同时出现 → 400（二选一）；
+//  4. 手动密码 / 无邮箱自动生成 / 旧 skip_activation → 直接激活并一次性回显密码；
+//  5. 有邮箱 + 自动生成 → 仍走邀请（D2：IAM 邮件流程，本任务不改变该分支）；
+//  6. 无密码模式且无邮箱 → 400（邀请无投递通道）。
+//
+// 返回值 identifier 为实际登录名，用于 initial_passwords[].identifier 回显。
+func newUserCreateReq(c *gin.Context, nu addMemberUser, reason, operatorID string, skipActivation bool) (*services.CreateUserRequest, string, *addMemberFail) {
+	username := strings.TrimSpace(nu.Username)
+	email := strings.TrimSpace(nu.Email)
+
+	if username == "" {
+		if email == "" {
+			return nil, "", &addMemberFail{http.StatusBadRequest, gin.H{
+				"code":    40001,
+				"message": "username is required when email is empty",
+			}}
+		}
+		username = email
+	}
+
+	if nu.Password != "" && nu.AutoGenerate {
+		return nil, "", &addMemberFail{http.StatusBadRequest, gin.H{
+			"code":    40001,
+			"message": "password and auto_generate are mutually exclusive",
+		}}
+	}
+
+	direct := false // true = 直接激活并一次性回显初始密码
+	password := ""  // 仅 direct 时使用
+	switch {
+	case nu.Password != "":
+		if err := validatePassword(nu.Password); err != nil {
+			return nil, "", &addMemberFail{http.StatusBadRequest, gin.H{
+				"code":    40001,
+				"message": err.Error(),
+			}}
+		}
+		direct, password = true, nu.Password
+	case nu.AutoGenerate && email == "":
+		direct, password = true, generatePassword()
+	case skipActivation: // 保留旧 skip_activation 语义：服务端生成密码并一次性下发
+		direct, password = true, generatePassword()
+	case email == "":
+		return nil, "", &addMemberFail{http.StatusBadRequest, gin.H{
+			"code":    40001,
+			"message": "email is required unless password or auto_generate is provided",
+		}}
+	}
+
+	createReq := &services.CreateUserRequest{
+		Username:            username,
+		Name:                strings.TrimSpace(nu.Name),
+		Email:               email,
+		Phone:               strings.TrimSpace(nu.Phone),
+		Reason:              reason,
+		OperatorID:          operatorID,
+		SkipActivation:      direct,
+		ForcePasswordChange: nu.ForcePasswordChange,
+	}
+	if direct {
+		createReq.Password = password
+		createReq.SendNotificationEmail = true
+		createReq.NotificationLang = middleware.GetCulture(c)
+	} else {
+		callbackURL := os.Getenv("EXTERNAL_WEB_URL")
+		if callbackURL == "" {
+			callbackURL = fmt.Sprintf("http://%s", c.Request.Host)
+		}
+		createReq.CallbackURL = callbackURL
+	}
+	return createReq, username, nil
 }
 
 // addMembersCore 执行成员添加（新建用户 → IAM 绑定 → 角色模板 → 本地缓存）。
@@ -97,30 +184,12 @@ func addMembersCore(c *gin.Context, db *gorm.DB, site models.Site, tenantID, sit
 	// Process new_users: create or get users first, then add to processing list
 	if len(input.NewUsers) > 0 {
 		for _, nu := range input.NewUsers {
-			callbackURL := os.Getenv("EXTERNAL_WEB_URL")
-			if callbackURL == "" {
-				callbackURL = fmt.Sprintf("http://%s", c.Request.Host)
+			createReq, identifier, fail := newUserCreateReq(c, nu, "网点成员 - "+site.Name, operatorID, input.SkipActivation)
+			if fail != nil {
+				return res, fail
 			}
-			nuUsername := nu.Username
-			if nuUsername == "" {
-				nuUsername = nu.Email
-			}
-			createReq := &services.CreateUserRequest{
-				Username:       nuUsername,
-				Name:           nu.Name,
-				Email:          nu.Email,
-				Phone:          nu.Phone,
-				Reason:         "网点成员 - " + site.Name,
-				OperatorID:     operatorID,
-				SkipActivation: input.SkipActivation,
-			}
-			createReq.Password = generatePassword()
-			createReq.SendNotificationEmail = input.SkipActivation
-			if input.SkipActivation {
-				createReq.NotificationLang = middleware.GetCulture(c)
-				log.Printf("[AddMember] skip_activation=true, generated password for %s", nu.Email)
-			} else {
-				createReq.CallbackURL = callbackURL
+			if createReq.Password != "" {
+				log.Printf("[AddMember] direct activation with generated/initial password for %s", identifier)
 			}
 			userResult, err := iamClient.CreateOrGetUser(userToken, createReq)
 			if err != nil {
@@ -135,10 +204,11 @@ func addMembersCore(c *gin.Context, db *gorm.DB, site models.Site, tenantID, sit
 						"data":    gin.H{"registered": true},
 					}}
 				}
-				log.Printf("[AddMember] Failed to create user %s: %v", nu.Email, err)
+				log.Printf("[AddMember] Failed to create user %s: %v", createReq.Email, err)
 				res.BindErrors = append(res.BindErrors, gin.H{
-					"email": nu.Email,
-					"error": err.Error(),
+					"email":      createReq.Email,
+					"identifier": identifier,
+					"error":      err.Error(),
 				})
 				continue
 			}
@@ -153,10 +223,12 @@ func addMembersCore(c *gin.Context, db *gorm.DB, site models.Site, tenantID, sit
 				}}
 			}
 
-			if input.SkipActivation && createReq.Password != "" {
+			if createReq.Password != "" {
+				// #2366：identifier = 实际登录名；email 保留兼容旧前端。
 				res.InitialPasswords = append(res.InitialPasswords, gin.H{
-					"email":    nu.Email,
-					"password": createReq.Password,
+					"identifier": identifier,
+					"email":      createReq.Email,
+					"password":   createReq.Password,
 				})
 			}
 
@@ -165,9 +237,9 @@ func addMembersCore(c *gin.Context, db *gorm.DB, site models.Site, tenantID, sit
 				IAMSub:   userResult.UserID,
 				TenantID: tenantID,
 				OrgID:    site.OrgID,
-				Name:     nu.Name,
-				Email:    nu.Email,
-				Phone:    nu.Phone,
+				Name:     createReq.Name,
+				Email:    createReq.Email,
+				Phone:    createReq.Phone,
 				Role:     "site_member",
 				Status:   "active",
 			}

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"tuneloop-backend/database"
@@ -95,13 +94,8 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 		Role           string                   `json:"role"`
 		UserIDs        []map[string]interface{} `json:"user_ids"`
 		SkipActivation bool                     `json:"skip_activation"`
-		NewUsers       []struct {
-			Username string `json:"username"`
-			Name     string `json:"name"`
-			Email    string `json:"email"`
-			Phone    string `json:"phone"`
-			Role     string `json:"role"`
-		} `json:"new_users"`
+		// #2366：与网点成员共用 addMemberUser（密码模式字段同步，避免规则漂移）。
+		NewUsers []addMemberUser `json:"new_users"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -150,30 +144,14 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 
 	if len(input.NewUsers) > 0 {
 		for _, nu := range input.NewUsers {
-			callbackURL := os.Getenv("EXTERNAL_WEB_URL")
-			if callbackURL == "" {
-				callbackURL = fmt.Sprintf("http://%s", c.Request.Host)
+			// #2366：统一走共享构造函数（与网点成员同一套密码模式规则）。
+			createReq, identifier, fail := newUserCreateReq(c, nu, "商户成员 - "+merchant.Name, operatorID, input.SkipActivation)
+			if fail != nil {
+				c.JSON(fail.Status, fail.Body)
+				return
 			}
-			nuUsername := nu.Username
-			if nuUsername == "" {
-				nuUsername = nu.Email
-			}
-			createReq := &services.CreateUserRequest{
-				Username:              nuUsername,
-				Name:                  nu.Name,
-				Email:                 nu.Email,
-				Phone:                 nu.Phone,
-				Reason:                "商户成员 - " + merchant.Name,
-				OperatorID:            operatorID,
-				SkipActivation:        input.SkipActivation,
-				Password:              generatePassword(),
-				SendNotificationEmail: input.SkipActivation,
-			}
-			if input.SkipActivation {
-				createReq.NotificationLang = middleware.GetCulture(c)
-				log.Printf("[MerchantAddMember] skip_activation=true, generated password for %s", nu.Email)
-			} else {
-				createReq.CallbackURL = callbackURL
+			if createReq.Password != "" {
+				log.Printf("[MerchantAddMember] direct activation with generated/initial password for %s", identifier)
 			}
 			userResult, err := iamClient.CreateOrGetUser(userToken, createReq)
 			if err != nil {
@@ -212,10 +190,11 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 					})
 					return
 				}
-				log.Printf("[MerchantAddMember] Failed to create user %s: %v", nu.Email, err)
+				log.Printf("[MerchantAddMember] Failed to create user %s: %v", createReq.Email, err)
 				bindErrors = append(bindErrors, gin.H{
-					"email": nu.Email,
-					"error": err.Error(),
+					"email":      createReq.Email,
+					"identifier": identifier,
+					"error":      err.Error(),
 				})
 				continue
 			}
@@ -232,7 +211,7 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 						OrgID:    merchantAnchor,
 						Name:     existingUser.Name,
 						Email:    existingUser.Email,
-						Phone:    nu.Phone,
+						Phone:    createReq.Phone,
 						Role:     "site_member",
 						Status:   "active",
 					}
@@ -248,7 +227,7 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 						"status":     "active",
 					}
 					if existingLocal.Phone == "" {
-						updates["phone"] = nu.Phone
+						updates["phone"] = createReq.Phone
 					}
 					if err := db.Model(&models.User{}).
 						Where("id = ? AND tenant_id = ?", existingLocal.ID, tenantID).
@@ -268,10 +247,12 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 				continue
 			}
 
-			if input.SkipActivation && createReq.Password != "" {
+			if createReq.Password != "" {
+				// #2366：identifier = 实际登录名；email 保留兼容旧前端。
 				initialPasswords = append(initialPasswords, gin.H{
-					"email":    nu.Email,
-					"password": createReq.Password,
+					"identifier": identifier,
+					"email":      createReq.Email,
+					"password":   createReq.Password,
 				})
 			}
 
@@ -280,9 +261,9 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 				IAMSub:   userResult.UserID,
 				TenantID: merchantAnchor,
 				OrgID:    merchantAnchor,
-				Name:     nu.Name,
-				Email:    nu.Email,
-				Phone:    nu.Phone,
+				Name:     createReq.Name,
+				Email:    createReq.Email,
+				Phone:    createReq.Phone,
 				Role:     "site_member",
 				Status:   "active",
 			}
