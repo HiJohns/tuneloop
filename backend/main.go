@@ -80,6 +80,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	userManagementHandler := handlers.NewUserManagementHandler()
 	setupHandler := handlers.NewSetupHandler()
 	siteMemberHandler := handlers.NewSiteMemberHandler()
+	memberRemovalHandler := handlers.NewMemberRemovalRequestHandler()
 	iamProxyHandler := handlers.NewIAMProxyHandler()
 	staffHandler := &handlers.UserStaffHandler{}
 	propertyHandler := handlers.NewPropertyHandler()
@@ -499,6 +500,13 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/admin/invites/:id/reject", middleware.RequireCusPerm("member:invite"), handlers.RejectInvite)
 		authRequired.POST("/admin/merchants/:id/invites", middleware.RequireCusPerm("member:invite"), handlers.InviteToMerchant)
 
+		// #2394（#2385 D3）成员移除审批：网点管理员提交申请 → 商户管理员批准/拒绝。
+		// 审批入口 handler 内二次校验 BusinessRoleMerchantAdmin（网点管理员即使 IAM ADMIN 也不可审批）。
+		authRequired.GET("/admin/removal-requests", middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), memberRemovalHandler.ListRemovalRequests)
+		authRequired.POST("/admin/removal-requests/:id/approve", middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), memberRemovalHandler.ApproveRemovalRequest)
+		authRequired.POST("/admin/removal-requests/:id/reject", middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), memberRemovalHandler.RejectRemovalRequest)
+		authRequired.POST("/admin/removal-requests/:id/cancel", middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), memberRemovalHandler.CancelRemovalRequest)
+
 		// Platform user management (#1545): list/detail/edit/export users
 		authRequired.POST("/admin/users/:id/avatar", middleware.RequireSysPerm(middleware.SysPermUserUpdate), handlers.AdminUploadUserAvatar) // #2073 管理员为用户上传头像
 		authRequired.GET("/admin/user-management", middleware.RequireSysPerm(middleware.SysPermTenantList), userManagementHandler.List)
@@ -531,6 +539,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			siteRequired.POST("/sites/:id/invites/send", middleware.ExplicitTenantScope(), middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), handlers.SendStaffInvite)
 			siteRequired.PUT("/sites/:id/members/:uid", middleware.ExplicitTenantScope(), middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), siteMemberHandler.UpdateMemberRole)
 			siteRequired.DELETE("/sites/:id/members/:uid", middleware.ExplicitTenantScope(), middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), siteMemberHandler.RemoveMember)
+			// #2394：网点管理员提交成员移除申请（审批权在商户管理员）
+			siteRequired.POST("/sites/:id/members/:user_id/removal-requests", middleware.ExplicitTenantScope(), middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), memberRemovalHandler.CreateSiteMemberRemovalRequest)
 			// Staff/User management routes (Issue #333)
 			authRequired.GET("/staff", middleware.RequireRole("ADMIN", "OWNER", "NAMESPACE_ADMIN"), staffHandler.ListStaff)
 			authRequired.POST("/users/me/resend-email-confirmation", staffHandler.ResendEmailConfirmation)

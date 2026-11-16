@@ -257,6 +257,18 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 
 // RemoveMember DELETE /api/sites/:id/members/:uid - Remove member from site
 func (h *SiteMemberHandler) RemoveMember(c *gin.Context) {
+	// #2394（#2385 D3）：网点管理员不得直接开除成员 —— 必须提交移除申请，
+	// 由商户管理员批准后执行。商户管理员/系统管理员仍可直接移除。
+	switch middleware.GetBusinessRole(c.Request.Context()) {
+	case middleware.BusinessRoleMerchantAdmin, middleware.BusinessRoleSystemAdmin, middleware.BusinessRolePlatformStaff:
+	default:
+		c.JSON(http.StatusForbidden, gin.H{
+			"code":    40901,
+			"message": "removal_requires_approval",
+		})
+		return
+	}
+
 	siteID := c.Param("id")
 	userID := c.Param("uid")
 	db := database.GetDB().WithContext(c.Request.Context())

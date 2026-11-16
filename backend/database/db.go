@@ -484,6 +484,8 @@ var defaultMigrationArtifacts = []migrationArtifact{
 	{20261116001, "settlement_calculations", "legacy_marker", "历史数据标记列（#2360）"},
 	{20261116001, "order_payment_allocations", "", "支付分配账本表（#2360）"},
 	{20261116001, "settlement_action_ledger", "", "结算子动作账本表（#2360）"},
+	// #2394（#2385）：成员移除审批单（网点管理员申请 → 商户管理员批准/拒绝）。
+	{20261116002, "member_removal_requests", "", "成员移除审批单表（#2394）"},
 }
 
 // verifyArtifacts 纯逻辑（便于单测）：对 version ≥ a.Version 的工件断言存在。
@@ -709,6 +711,7 @@ var modelsToValidate = []interface{}{
 
 	&models.OrderPaymentAllocation{}, // #2360: 支付分配账本
 	&models.SettlementActionLedger{}, // #2360: 结算子动作账本
+	&models.MemberRemovalRequest{},   // #2394: 成员移除审批单（20261116002 migration）
 }
 
 // ModelsToValidateForTest 暴露启动校验清单（测试用，#2360 R4）。
