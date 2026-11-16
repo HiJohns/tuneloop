@@ -111,22 +111,25 @@
 ```text
 # 单位：现金一律 _cents（int64），乐币一律 _points（int64，1 点 = 100 分）
 # 比例：整型 ratio_num / ratio_den（30% → 3/10），禁止浮点
+# 租金三层：R_actual_list_cents（券前标价）→ coupon_discount_cents → R_after_coupon_cents
 
-# 乐币
-cap_points        = floor(R_actual_cents * ratio_num / (100 * ratio_den))
+# 乐币（基数为券前标价）
+cap_points        = floor(R_actual_list_cents * ratio_num / (100 * ratio_den))
 p_consumed_points = min(p_used_points, cap_points)
 p_refund_points   = p_used_points - p_consumed_points
 
 # 租金账户（现金，分）
-rent_cash_paid_cents  = cash_paid_cents - deposit_held_cents
-rent_cash_due_cents   = R_actual_cents - p_consumed_points * 100
+rent_cash_paid_net_cents = 分配账本读取（禁止用 cash_paid_net − deposit_held 反推）
+rent_cash_due_cents   = R_after_coupon_cents - p_consumed_points * 100
 rent_refund_cents     = max(0, rent_cash_paid_cents - rent_cash_due_cents)
 rent_shortfall_cents  = max(0, rent_cash_due_cents - rent_cash_paid_cents)
 
-# 押金账户（deductions_cents = 逾期 + 定损 + 物流）
-deposit_deductions_cents  = min(deposit_held_cents, deductions_cents)
-deposit_refund_cents      = deposit_held_cents - deposit_deductions_cents
-other_fee_shortfall_cents = max(0, deductions_cents - deposit_held_cents)
+# 押金账户（争议隔离：仅无争议金额参与扣款）
+deductions_total_cents      = overdue_penalty + damage + logistics
+undisputed_deductions_cents = deductions_total_cents - disputed_amount_cents
+deposit_deductions_cents    = min(deposit_held_cents, undisputed_deductions_cents)
+deposit_refund_cents        = deposit_held_cents - deposit_deductions_cents
+other_fee_shortfall_cents   = max(0, undisputed_deductions_cents - deposit_held_cents)
 
 # 汇总（执行层）
 cash_refundable_cents = rent_refund_cents + deposit_refund_cents
@@ -141,7 +144,8 @@ net_cash_cents        = cash_refundable_cents - cash_payable_cents
 
 ```text
 net_cash_cents + p_refund_points * 100
-  = cash_paid_cents + p_used_points * 100 − R_actual_cents − deductions_cents
+  = cash_paid_cents + p_used_points * 100
+    − R_actual_list_cents + coupon_discount_cents − deductions_total_cents
 ```
 
 > 实现中作为独立的 invariant 检查（`ErrSettlementInvariantViolation`），不得只写在文档里；
@@ -170,7 +174,11 @@ net_cash_cents + p_refund_points * 100
 
 ### 10.7 并发、状态机与执行边界（评审 P1）
 
-- **订单级唯一最终结算**：同一订单不得存在两个有效最终结算版本；计算与执行均在订单锁内。
+- **订单级唯一最终结算**：`UNIQUE(order_id) WHERE status IN ('confirmed','processing','succeeded','partially_succeeded','failed_retryable')`；
+  `failed_retryable` 未冲正/解除前不得创建新版本；计算与执行均在订单锁内。
+- **幂等键**：每个资金动作预生成 `settlement_id + action_type + source_transaction_id`，不依赖渠道返回值。
+- **租金/押金现金实收**：只能从支付分配账本读取（`rent_cash_paid_net` / `deposit_cash_collected_net` / `deposit_held`）；
+  押金扣用后禁止用 `cash_paid_net − deposit_held` 反推。
 - **状态机**：`calculated → confirmed → processing → succeeded | partially_succeeded | failed_retryable`；
   部分成功（如现金退款成功、乐币恢复失败）**禁止整单重放**，按子动作重试。
 - **执行边界**：账务永远分账户；仅当支付渠道/资金来源/协议均允许时才做净额收付，否则按原交易分别执行，
@@ -181,4 +189,5 @@ net_cash_cents + p_refund_points * 100
 ### 10.8 待确认（不阻塞文档定稿）
 
 Q1 乐币基数=实际标价租金、Q2 floor、Q3 整数分、Q4 扣款顺序 逾期→定损→物流、Q5 押金不抵租金、
-Q6 续费同合同累计、Q7 历史不重算、Q9 乐币原路冲正、Q10 取消三档、Q12 阶梯按实际天数重算。
+Q6 续费同合同累计、Q7 历史不重算、Q9 乐币原路冲正、Q10 取消三档、Q12 阶梯按实际天数重算；
+**Q16 优惠券与乐币是否可叠加（阻塞）**、**Q17 支付分配账本是否列入本期（阻塞 §3.1）**。
