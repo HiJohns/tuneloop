@@ -1,0 +1,5 @@
+[DEBUG] Loaded .env from: ../.env
+=== RUN   TestSchemaValidationSettlement_2360
+--- PASS: TestSchemaValidationSettlement_2360 (0.30s)
+PASS
+ok  	tuneloop-backend/database	0.309s

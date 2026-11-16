@@ -1,0 +1,30 @@
+[DEBUG] Loaded .env from: ../.env
+=== RUN   TestSettlementUniqueActive_2360
+
+2026/11/16 16:08:41 [31;1m/home/coder/tuneloop/backend/database/settlement_model_2360_test.go:205 [35;1mERROR: duplicate key value violates unique constraint "idx_settlement_active_order" (SQLSTATE 23505)
+[0m[33m[0.565ms] [34;1m[rows:0][0m INSERT INTO settlement_calculations
+            (order_id, trigger, ledger_version, settlement_version, status, calculated_at)
+            VALUES ('ed7ec721-7475-427e-bee9-51a6318a0945', 'confirm', 2, 2, 'confirmed', now())
+
+2026/11/16 16:08:41 [31;1m/home/coder/tuneloop/backend/database/settlement_model_2360_test.go:205 [35;1mERROR: duplicate key value violates unique constraint "idx_settlement_active_order" (SQLSTATE 23505)
+[0m[33m[0.577ms] [34;1m[rows:0][0m INSERT INTO settlement_calculations
+            (order_id, trigger, ledger_version, settlement_version, status, calculated_at)
+            VALUES ('ed7ec721-7475-427e-bee9-51a6318a0945', 'confirm', 3, 3, 'processing', now())
+
+2026/11/16 16:08:41 [31;1m/home/coder/tuneloop/backend/database/settlement_model_2360_test.go:205 [35;1mERROR: duplicate key value violates unique constraint "idx_settlement_active_order" (SQLSTATE 23505)
+[0m[33m[0.482ms] [34;1m[rows:0][0m INSERT INTO settlement_calculations
+            (order_id, trigger, ledger_version, settlement_version, status, calculated_at)
+            VALUES ('ed7ec721-7475-427e-bee9-51a6318a0945', 'confirm', 4, 4, 'succeeded', now())
+
+2026/11/16 16:08:41 [31;1m/home/coder/tuneloop/backend/database/settlement_model_2360_test.go:205 [35;1mERROR: duplicate key value violates unique constraint "idx_settlement_active_order" (SQLSTATE 23505)
+[0m[33m[0.413ms] [34;1m[rows:0][0m INSERT INTO settlement_calculations
+            (order_id, trigger, ledger_version, settlement_version, status, calculated_at)
+            VALUES ('ed7ec721-7475-427e-bee9-51a6318a0945', 'confirm', 5, 5, 'partially_succeeded', now())
+
+2026/11/16 16:08:41 [31;1m/home/coder/tuneloop/backend/database/settlement_model_2360_test.go:205 [35;1mERROR: duplicate key value violates unique constraint "idx_settlement_active_order" (SQLSTATE 23505)
+[0m[33m[0.420ms] [34;1m[rows:0][0m INSERT INTO settlement_calculations
+            (order_id, trigger, ledger_version, settlement_version, status, calculated_at)
+            VALUES ('ed7ec721-7475-427e-bee9-51a6318a0945', 'confirm', 6, 6, 'failed_retryable', now())
+--- PASS: TestSettlementUniqueActive_2360 (0.05s)
+PASS
+ok  	tuneloop-backend/database	0.059s

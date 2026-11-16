@@ -1,0 +1,5 @@
+[DEBUG] Loaded .env from: ../.env
+=== RUN   TestMigrationSettlementModel_2360
+--- PASS: TestMigrationSettlementModel_2360 (0.17s)
+PASS
+ok  	tuneloop-backend/database	0.182s

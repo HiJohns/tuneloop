@@ -1,0 +1,15 @@
+# github.com/mattn/go-sqlite3
+sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
+sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+123133 |   zTail = strrchr(zName, '_');
+       |         ^
+[DEBUG] Loaded .env from: ../.env
+=== RUN   TestLegacyRentCashFallback_2360
+2026/11/16 16:08:46 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2360 sslmode=disable
+2026/11/16 16:08:46 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2360
+2026/11/16 16:08:46 [DB] Connected to database 'tuneloop_test_2360'
+2026/11/16 16:08:47 [PaymentAllocation] legacy audit legacy_derived_rent_cash for order 57930c8a-bd2b-4f4c-851f-c7fd56445061: legacy fallback: paid_net=100000 deposit=0 derived_rent=100000 (no deposit deductions, no allocation rows)
+2026/11/16 16:08:47 [PaymentAllocation] legacy audit legacy_policy_unresolved for order e36022d9-f2ac-48e1-954e-6478b9f12551: deposit deductions detected (1 overdue charge rows); derived rent is forbidden
+--- PASS: TestLegacyRentCashFallback_2360 (0.32s)
+PASS
+ok  	tuneloop-backend/services	0.341s

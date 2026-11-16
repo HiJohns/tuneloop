@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "issue": 2360,
+  "build": "settlement-ledger-2360 f5717df",
+  "commit": "f5717dfab1ed0c399887c284f188569922a388bc",
+  "dirty": false,
+  "environment": "backend database/services tests on PG 127.0.0.1:15433; migration cases run in per-test scratch schemas (search_path + simple_protocol)",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "cd backend && go test ./database/ -run 'TestMigrationSettlementModel_2360' -count=1 -v > ../docs/evidence/2360/R1-migration.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2360/R1-migration.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：基线表上 up → down → up；19 个新列 + 2 张新表 + 3 个索引存在；down 后结构消失；二次 up 幂等恢复",
+      "expected": "PASS",
+      "negative": "二次 up 失败 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "cd backend && go test ./database/ -run 'TestSettlementUniqueActive_2360' -count=1 -v > ../docs/evidence/2360/R2-unique.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2360/R2-unique.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：已有 confirmed 版本时，5 种 active 状态各自插入第二版本均被 idx_settlement_active_order 拒绝；failed/calculated 可插；不同订单互不影响",
+      "expected": "PASS",
+      "negative": "放行 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "cd backend && go test ./services/ -run 'TestPaymentAllocationRead_2360' -count=1 -v > ../docs/evidence/2360/R3-ledger.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2360/R3-ledger.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：账本租金 100000；押金 100000、扣用 30000 → 持有 70000；反推值 130000 ≠ 账本 100000，服务只返回账本值",
+      "expected": "PASS",
+      "negative": "反推值 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "cd backend && go test ./database/ -run 'TestSchemaValidationSettlement_2360' -count=1 -v > ../docs/evidence/2360/R4-schema.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2360/R4-schema.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：validateModelColumns（3 模型）+ 20261116001 工件断言通过；合成缺列负例被识别；两新模型在 modelsToValidate；历史 confirm 回填仅最新一条 confirmed",
+      "expected": "PASS",
+      "negative": "校验失败 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "cd backend && go test ./services/ -run 'TestLegacyRentCashFallback_2360' -count=1 -v > ../docs/evidence/2360/R5-legacy.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2360/R5-legacy.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：无分配行且无押金扣用 → legacy_derived_rent_cash + order_logs 审计行，金额未改写；检测到押金扣用 → legacy_policy_unresolved 且不返回反推值，同样留审计行",
+      "expected": "PASS",
+      "negative": "静默回退 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    }
+  ]
+}
