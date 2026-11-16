@@ -416,6 +416,7 @@ type User struct {
 	TokenVersion     int64         `json:"token_version"` // #1735: bumped on password change / deactivate — JWTs with iat before this are revoked
 	EmailSentAt      *time.Time    `json:"email_sent_at,omitempty"`
 	EmailConfirmedAt *time.Time    `json:"email_confirmed_at,omitempty"`
+	CreatedAt        *time.Time    `json:"created_at,omitempty"` // #2369：孤儿年龄判定（IAM models.User.created_at）
 	Organizations    []OrgRelation `json:"organizations,omitempty"`
 }
 
@@ -759,6 +760,78 @@ func (c *IAMClient) ListUsersWithToken(token string) ([]User, error) {
 		return result.Users, nil
 	}
 	return result.Data, nil
+}
+
+// PurgeUserWithToken physically deletes an IAM user using the caller's user token
+// (#2369). IAM only allows namespace admins (or self) to purge; the service-auth
+// PurgeUser cannot satisfy that rule, so admin-initiated cleanup must carry the
+// operator token.
+func (c *IAMClient) PurgeUserWithToken(token, userID string) error {
+	if token == "" {
+		return fmt.Errorf("PurgeUserWithToken: empty user token")
+	}
+	if userID == "" {
+		return fmt.Errorf("PurgeUserWithToken: empty user id")
+	}
+	respBody, statusCode, err := c.doRequestWithToken("DELETE", "/api/v1/users/"+userID+"/purge", token, nil)
+	if err != nil {
+		return fmt.Errorf("PurgeUserWithToken request failed: %w", err)
+	}
+	if statusCode != http.StatusOK {
+		return fmt.Errorf("PurgeUserWithToken returned status %d: %s", statusCode, string(respBody))
+	}
+	return nil
+}
+
+// ListPendingUsersWithToken lists IAM users with status=pending using the caller's
+// user token, explicitly paginating (#2369 D6).
+//
+// IAM's GET /api/v1/users defaults to page=1&page_size=20; relying on the default
+// silently misses orphans beyond the first 20 rows. We request page_size=100 and
+// keep requesting pages until a short page is returned.
+func (c *IAMClient) ListPendingUsersWithToken(token string) ([]User, error) {
+	if token == "" {
+		return nil, fmt.Errorf("ListPendingUsersWithToken: empty user token")
+	}
+	const pageSize = 100
+	const maxPages = 100 // hard cap: 10k pending users, prevents unbounded loops
+
+	var all []User
+	for page := 1; page <= maxPages; page++ {
+		path := fmt.Sprintf("/api/v1/users?status=pending&include_orgs=true&page_size=%d&page=%d", pageSize, page)
+		respBody, statusCode, err := c.doRequestWithToken("GET", path, token, nil)
+		if err != nil {
+			return nil, fmt.Errorf("ListPendingUsersWithToken request failed (page %d): %w", page, err)
+		}
+		if statusCode != http.StatusOK {
+			return nil, fmt.Errorf("ListPendingUsersWithToken returned status %d (page %d): %s", statusCode, page, string(respBody))
+		}
+
+		var result struct {
+			Users    []User `json:"users"`
+			Data     []User `json:"data"`
+			PageSize int    `json:"page_size"`
+		}
+		if err := json.Unmarshal(respBody, &result); err != nil {
+			return nil, fmt.Errorf("failed to parse ListPendingUsersWithToken response (page %d): %w", page, err)
+		}
+		pageUsers := result.Users
+		if len(pageUsers) == 0 {
+			pageUsers = result.Data
+		}
+		all = append(all, pageUsers...)
+
+		// IAM may cap page_size lower than requested（如上限 20）。判定「不足一页」时
+		// 必须以服务端实际返回的 page_size 为准，否则会提前停止并漏检后续页。
+		effectivePageSize := pageSize
+		if result.PageSize > 0 && result.PageSize < pageSize {
+			effectivePageSize = result.PageSize
+		}
+		if len(pageUsers) < effectivePageSize {
+			break
+		}
+	}
+	return all, nil
 }
 
 // GetUser retrieves a single user from IAM by ID using service auth

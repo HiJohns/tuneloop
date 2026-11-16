@@ -419,10 +419,23 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		operatorID := middleware.GetUserID(c.Request.Context())
 		iamRole := toIAMRole(resolvedRole)
 		if err := iamClient.BindUserToOrganizationWithToken(userToken, user.IAMSub, orgID, iamRole, operatorID); err != nil {
+			// #2369：回滚 purge 用 service 身份，IAM 仅允许 namespace admin 清理他人 →
+			// 失败时留下 pending 孤儿。响应必须显式标记，便于管理员在孤儿面板收尾。
+			orphan := false
 			if purgeErr := iamClient.PurgeUser(user.IAMSub); purgeErr != nil {
 				log.Printf("[CreateUser] rollback purge failed for %s: %v", user.IAMSub, purgeErr)
+				log.Printf("[CreateUser] create_user_orphan iam_user_id=%s reason=bind_failed purge_error=%v", user.IAMSub, purgeErr)
+				orphan = true
 			}
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM bind user to organization failed: " + err.Error()})
+			resp := gin.H{"code": 50000, "message": "IAM bind user to organization failed: " + err.Error()}
+			if orphan {
+				resp["data"] = gin.H{
+					"orphan":      true,
+					"iam_user_id": user.IAMSub,
+					"hint":        "IAM 账号未能自动回滚，请系统管理员在用户管理「IAM 孤儿账号」面板清理",
+				}
+			}
+			c.JSON(http.StatusInternalServerError, resp)
 			return
 		}
 
@@ -487,13 +500,28 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		}
 		return nil
 	}); err != nil {
-		if orgID != "" && user.IAMSub != "" {
-			iamClient.UnbindUserFromOrganization(user.IAMSub, orgID, "")
+		// #2369：无论 orgID 是否为空都尝试回滚 IAM（否则无 org 分支直接留孤儿）；
+		// purge 失败 → 显式 orphan 标记 + 结构化日志，供管理员在面板清理。
+		orphan := false
+		if user.IAMSub != "" {
+			if orgID != "" {
+				iamClient.UnbindUserFromOrganization(user.IAMSub, orgID, "")
+			}
 			if purgeErr := iamClient.PurgeUser(user.IAMSub); purgeErr != nil {
 				log.Printf("[CreateUser] rollback purge failed for %s: %v", user.IAMSub, purgeErr)
+				log.Printf("[CreateUser] create_user_orphan iam_user_id=%s reason=local_tx_failed purge_error=%v", user.IAMSub, purgeErr)
+				orphan = true
 			}
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create user: " + err.Error()})
+		resp := gin.H{"code": 50000, "message": "failed to create user: " + err.Error()}
+		if orphan {
+			resp["data"] = gin.H{
+				"orphan":      true,
+				"iam_user_id": user.IAMSub,
+				"hint":        "IAM 账号未能自动回滚，请系统管理员在用户管理「IAM 孤儿账号」面板清理",
+			}
+		}
+		c.JSON(http.StatusInternalServerError, resp)
 		return
 	}
 

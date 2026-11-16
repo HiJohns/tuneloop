@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Table, Input, Button, Space, Modal, Form, InputNumber, Switch, message, Tag, Typography, Collapse, Image, Divider, Alert, Radio } from 'antd'
-import { DownloadOutlined, IdcardOutlined, ScanOutlined, CheckCircleOutlined } from '@ant-design/icons'
+import { DownloadOutlined, IdcardOutlined, ScanOutlined, CheckCircleOutlined, WarningOutlined } from '@ant-design/icons'
 import { api, faceReviewApi, fetchBlob } from '../../services/api'
 import IdPhotoDisplay from '../../components/IdPhotoDisplay'
 import { formatBeijingDate, formatBeijingDateTimeShort } from '../../utils/date'
@@ -43,6 +43,13 @@ export default function UserManagement() {
   const [grantVisible, setGrantVisible] = useState(false)
   const [grantForm] = Form.useForm()
   const [granting, setGranting] = useState(false)
+  // #2369：IAM 孤儿账号（pending + org_id 空 + 本地无 iam_sub + ≥60 分钟）。
+  // 仅系统管理员可访问（后端 requireSystemAdmin 40300）；本地无任何记录，清理即物理删除 IAM 账号。
+  const [orphanOpen, setOrphanOpen] = useState(false)
+  const [orphans, setOrphans] = useState([])
+  const [orphanLoading, setOrphanLoading] = useState(false)
+  const [orphanSelected, setOrphanSelected] = useState([])
+  const [orphanPurging, setOrphanPurging] = useState(false)
   // Module 2: face batches (read-only, review via face-review queue #1813)
   const [batches, setBatches] = useState([])
 
@@ -158,6 +165,98 @@ export default function UserManagement() {
     }
     setGranting(false)
   }
+
+  // ---- #2369: IAM orphan accounts ----
+  const fetchOrphans = async () => {
+    setOrphanLoading(true)
+    try {
+      const resp = await api.get('/admin/iam-orphans')
+      if (resp?.code === 20000) {
+        setOrphans(resp.data?.list || [])
+      } else {
+        message.error(resp?.message || '加载 IAM 孤儿账号失败')
+      }
+    } catch (err) {
+      message.error('加载 IAM 孤儿账号失败: ' + (err.message || ''))
+    }
+    setOrphanLoading(false)
+  }
+
+  const openOrphans = () => {
+    setOrphanOpen(true)
+    setOrphanSelected([])
+    fetchOrphans()
+  }
+
+  const purgeOrphans = async (userIds) => {
+    if (!userIds || userIds.length === 0) {
+      message.warning('请先选择要清理的账号')
+      return
+    }
+    setOrphanPurging(true)
+    try {
+      const resp = await api.post('/admin/iam-orphans/purge', { user_ids: userIds })
+      if (resp?.code === 20000) {
+        const purged = resp.data?.purged || 0
+        const failed = resp.data?.failed || []
+        if (failed.length > 0) {
+          message.warning(`已清理 ${purged} 个，${failed.length} 个失败（详见控制台）`)
+          // eslint-disable-next-line no-console
+          console.warn('[iam-orphans] failed entries', failed)
+        } else {
+          message.success(`已清理 ${purged} 个 IAM 孤儿账号`)
+        }
+        setOrphanSelected([])
+        fetchOrphans()
+      } else {
+        message.error(resp?.message || '清理失败')
+      }
+    } catch (err) {
+      message.error('清理失败: ' + (err.message || ''))
+    }
+    setOrphanPurging(false)
+  }
+
+  const confirmPurgeOne = (record) => {
+    Modal.confirm({
+      title: '清理该 IAM 孤儿账号？',
+      content: `将永久删除 IAM 账号「${record.username || record.id}」（本地无任何记录，创建时事务已回滚）。此操作不可撤销。`,
+      okText: '确认清理',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: () => purgeOrphans([record.id]),
+    })
+  }
+
+  const confirmPurgeSelected = () => {
+    if (orphanSelected.length === 0) {
+      message.warning('请先选择要清理的账号')
+      return
+    }
+    Modal.confirm({
+      title: `清理选中的 ${orphanSelected.length} 个 IAM 孤儿账号？`,
+      content: '将永久删除这些 IAM 账号（本地无任何记录）。此操作不可撤销。',
+      okText: '确认批量清理',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: () => purgeOrphans(orphanSelected),
+    })
+  }
+
+  const orphanColumns = [
+    { title: '登录名', dataIndex: 'username', key: 'username', render: v => v || '-' },
+    { title: '姓名', dataIndex: 'name', key: 'name', render: v => v || '-' },
+    { title: '邮箱', dataIndex: 'email', key: 'email', render: v => v || '-' },
+    { title: '手机', dataIndex: 'phone', key: 'phone', render: v => v || '-' },
+    { title: '创建时间', dataIndex: 'created_at', key: 'created_at', render: v => v ? formatBeijingDateTimeShort(v) : '-' },
+    { title: '已挂起', dataIndex: 'age_minutes', key: 'age_minutes', render: v => (v != null ? `${v} 分钟` : '-') },
+    {
+      title: '操作', key: 'actions', width: 100,
+      render: (_, r) => (
+        <Button danger type="link" size="small" style={{ padding: 0 }} onClick={() => confirmPurgeOne(r)}>清理</Button>
+      ),
+    },
+  ]
 
   // ---- Module 1: ID card info ----
   const handleMarkDeleted = async (user = current) => {
@@ -280,6 +379,8 @@ export default function UserManagement() {
           onSearch={(v) => { setSearch(v); fetchList(1, pageSize, v, personnelType) }}
         />
         <Button icon={<DownloadOutlined />} onClick={handleExport}>导出 CSV</Button>
+        {/* #2369：IAM 孤儿账号面板（系统管理员；本地无记录，仅 IAM 侧残留） */}
+        <Button icon={<WarningOutlined />} onClick={openOrphans}>IAM 孤儿账号</Button>
       </Space>
 
       <Table
@@ -489,6 +590,43 @@ export default function UserManagement() {
           </Form.Item>
           <Alert type="info" showIcon message="加赠将新增一条乐币批次，有效期按全局规则（默认获取后 2 年，次月首日到期）。" />
         </Form>
+      </Modal>
+
+      {/* #2369: IAM 孤儿账号（pending + org_id 空 + 本地无 iam_sub + ≥60 分钟） */}
+      <Modal
+        title="IAM 孤儿账号"
+        open={orphanOpen}
+        onCancel={() => setOrphanOpen(false)}
+        footer={[
+          <Button key="refresh" onClick={fetchOrphans} loading={orphanLoading}>刷新</Button>,
+          <Button key="batch" danger disabled={orphanSelected.length === 0} loading={orphanPurging} onClick={confirmPurgeSelected}>
+            批量清理（{orphanSelected.length}）
+          </Button>,
+          <Button key="close" onClick={() => setOrphanOpen(false)}>关闭</Button>,
+        ]}
+        width={900}
+        destroyOnClose
+      >
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 12 }}
+          message="这些账号只存在于 IAM（创建时本地事务已回滚，本地无任何记录），同邮箱/用户名重试会一直冲突。"
+          description="清理会物理删除 IAM 账号，不可撤销。IAM 侧的 user_task_queues 遗留任务需按运维 SOP 另行核对。"
+        />
+        <Table
+          rowKey="id"
+          size="small"
+          loading={orphanLoading}
+          dataSource={orphans}
+          columns={orphanColumns}
+          rowSelection={{
+            selectedRowKeys: orphanSelected,
+            onChange: (keys) => setOrphanSelected(keys),
+          }}
+          pagination={false}
+          locale={{ emptyText: '当前没有孤儿账号' }}
+        />
       </Modal>
     </div>
   )

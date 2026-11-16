@@ -416,6 +416,11 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.DELETE("/admin/platform-staff/:id", middleware.RequireSysPerm(middleware.SysPermUserUpdate), platformStaffHandler.Disable)
 		// #2114 平台直属成员邀请（handler 内 requireSystemAdmin 二次校验）
 		authRequired.POST("/admin/platform-staff/invites", handlers.InvitePlatformStaff)
+		// #2369：IAM 孤儿账号诊断/清理（pending + org_id 空 + 本地无 iam_sub + ≥60 分钟）。
+		// 权限在 handler 内用 requireSystemAdmin 精确判定（RequireSysPerm 在 sysPerm==0 会放行）。
+		iamOrphanHandler := handlers.NewIAMOrphanHandler()
+		authRequired.GET("/admin/iam-orphans", iamOrphanHandler.List)
+		authRequired.POST("/admin/iam-orphans/purge", iamOrphanHandler.Purge)
 
 		// Instrument CRUD
 		authRequired.POST("/instruments", middleware.RequireCusPerm("instrument:create"), handlers.CreateInstrument)
