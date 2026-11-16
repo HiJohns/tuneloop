@@ -461,6 +461,29 @@ var defaultMigrationArtifacts = []migrationArtifact{
 	{20261112003, "orders", "deposit_credit_path", "下单信用路径列（#2327 S3b）"},
 	{20261108001, "orders", "deposit_full", "全额押金快照列（#2321）"},
 	{20261108001, "orders", "deposit_reduced", "差额押金快照列（#2321）"},
+	// #2360（#2268）：结算版本化 + 支付分配账本 + 子动作账本。缺任一工件会因
+	// schema_migrations 已记录但实列缺失而 FATAL（#1986 教训）。
+	{20261116001, "settlement_calculations", "settlement_version", "结算版本列（#2360）"},
+	{20261116001, "settlement_calculations", "status", "结算状态机列（#2360）"},
+	{20261116001, "settlement_calculations", "algorithm_version", "算法版本列（#2360）"},
+	{20261116001, "settlement_calculations", "ratio_num", "比例分子列（#2360）"},
+	{20261116001, "settlement_calculations", "ratio_den", "比例分母列（#2360）"},
+	{20261116001, "settlement_calculations", "ratio_source", "比例来源列（#2360）"},
+	{20261116001, "settlement_calculations", "calculated_at", "计算时间列（#2360）"},
+	{20261116001, "settlement_calculations", "accounts_json", "分账户明细列（#2360）"},
+	{20261116001, "settlement_calculations", "rent_cash_paid_net_cents", "租金现金净实收列（#2360）"},
+	{20261116001, "settlement_calculations", "deposit_cash_collected_net_cents", "押金累计净收款列（#2360）"},
+	{20261116001, "settlement_calculations", "deposit_held_cents", "持有押金列（#2360）"},
+	{20261116001, "settlement_calculations", "overdue_penalty_cents", "逾期罚金列（#2360）"},
+	{20261116001, "settlement_calculations", "damage_fee_cents", "定损费列（#2360）"},
+	{20261116001, "settlement_calculations", "logistics_fee_cents", "物流费列（#2360）"},
+	{20261116001, "settlement_calculations", "damage_report_id", "定损凭证列（#2360）"},
+	{20261116001, "settlement_calculations", "logistics_ref", "物流凭证列（#2360）"},
+	{20261116001, "settlement_calculations", "pricing_policy_snapshot", "价格规则快照列（#2360）"},
+	{20261116001, "settlement_calculations", "pricing_policy_version", "价格规则版本列（#2360）"},
+	{20261116001, "settlement_calculations", "legacy_marker", "历史数据标记列（#2360）"},
+	{20261116001, "order_payment_allocations", "", "支付分配账本表（#2360）"},
+	{20261116001, "settlement_action_ledger", "", "结算子动作账本表（#2360）"},
 }
 
 // verifyArtifacts 纯逻辑（便于单测）：对 version ≥ a.Version 的工件断言存在。
@@ -600,6 +623,97 @@ func validateModelColumns(db *gorm.DB, instance interface{}) error {
 	return nil
 }
 
+// modelsToValidate 是启动时 schema 校验的完整持久化模型清单（#1716）。
+// 表缺失 = FATAL；新增模型必须加入本清单并同步 migration + defaultMigrationArtifacts。
+var modelsToValidate = []interface{}{
+	&models.User{},
+	&models.FaceCaptureBatch{}, // #1789 T1: 核身批次表（20260829003 migration）
+	&models.Category{},
+	&models.Instrument{},
+	&models.Referral{},
+	&models.Notification{},
+	&models.InstrumentPhotoSpec{},
+	&models.Order{},
+	&models.MerchantSettlementConfig{},
+	&models.Settlement{},
+	&models.SettlementCalculation{},
+	&models.OrderTermVersion{},   // #2282 P4a
+	&models.ReferralCommission{}, // #2282 P4c
+	&models.OverdueCharge{},
+	&models.OrderLog{},
+	&models.PaymentSession{},
+	&models.SessionOrderLink{},
+	&models.OrderPaymentRecord{},
+	&models.OrderRefundRecord{},
+	&models.Site{},
+	&models.MaintenanceTicket{},
+	&models.BrandConfig{},
+	&models.OwnershipCertificate{},
+	&models.Technician{},
+	&models.SiteImage{},
+	&models.InventoryTransfer{},
+	&models.Client{},
+	&models.Lease{},
+	&models.Deposit{},
+	&models.UserInstrument{},
+	&models.RepairRequest{},
+	&models.RepairLogisticsFee{},   // #1942: 维修服务分段物流费
+	&models.RepairReview{},         // #1942: 维修服务评价
+	&models.InstrumentLossRecord{}, // #1948: 乐器丢失台账
+	&models.TechnicianProfile{},    // #1974 T1: 师傅档案（直属商户）
+	&models.RepairRequestRecord{},
+	&models.PointsTransaction{},
+	&models.Tenant{},
+	&models.InstrumentLevel{},
+	&models.Property{},
+	&models.PropertyOption{},
+	&models.InstrumentProperty{},
+	&models.MaintenanceWorker{},
+	&models.MaintenanceSession{},
+	&models.MaintenanceSessionRecord{},
+	&models.RepairRecord{},
+	&models.ForwardingSession{},
+	&models.TransitShippingFee{}, // #1934: 受控中转物流费分段
+	&models.ElectronicContract{},
+	&models.DamageReport{},
+	&models.Appeal{},
+	&models.OrderStatusHistory{},
+	&models.AuditLog{},
+	&models.InstrumentPhotoBatch{},
+	&models.Merchant{},
+	&models.SiteMember{},
+	&models.StaffInvite{},
+	&models.PendingOrder{},
+	&models.MerchantMember{},
+	&models.Role{},
+	&models.InstrumentMedia{},
+	&models.SystemSetting{},
+	&models.MediaAsset{},
+	&models.PricingTemplate{},
+	&models.MerchantPricingConfig{},
+	&models.UserAddress{},
+	&models.TransitRoute{},
+	&models.TransitOrder{},
+	&models.RepairTransitOrder{},
+	&models.Warning{},
+	&models.Banner{},
+	&models.MallImage{}, // #2210: 商城页图片表（20261012001 migration，平台级）
+	&models.InvoiceApplication{},
+	&models.MembershipLevelBenefit{},  // #1830: 会员权益行（20260907001 migration）
+	&models.InstrumentPromoOverride{}, // #1863: 乐器促销覆盖（20260910001 migration）
+	&models.ConfirmationSession{},
+	&models.Label{},
+	&models.PointBatch{},            // #1947 Sub-D: 乐币批次（20260917010 migration）
+	&models.PointBatchConsumption{}, // #1947 Sub-D: 批次扣减留痕
+	&models.GiftPolicy{},            // #1945 Sub-B: 乐币规则（20260917011 变更列）
+
+	&models.OrderPaymentAllocation{}, // #2360: 支付分配账本
+	&models.SettlementActionLedger{}, // #2360: 结算子动作账本
+}
+
+// ModelsToValidateForTest 暴露启动校验清单（测试用，#2360 R4）。
+func ModelsToValidateForTest() []interface{} { return modelsToValidate }
+
 // validateDatabaseSchema checks that all model struct columns exist in the database.
 func validateDatabaseSchema(db *gorm.DB) error {
 	fmt.Println("Validating database schema...")
@@ -608,89 +722,6 @@ func validateDatabaseSchema(db *gorm.DB) error {
 	// validated. Table-missing models below are NOT failures — they are either
 	// intentionally exempt (non-persisted / composite) or deprecated:
 	//   ConfirmationSession, Label — no table ever created (non-persisted)
-	modelsToValidate := []interface{}{
-		&models.User{},
-		&models.FaceCaptureBatch{}, // #1789 T1: 核身批次表（20260829003 migration）
-		&models.Category{},
-		&models.Instrument{},
-		&models.Referral{},
-		&models.Notification{},
-		&models.InstrumentPhotoSpec{},
-		&models.Order{},
-		&models.MerchantSettlementConfig{},
-		&models.Settlement{},
-		&models.SettlementCalculation{},
-		&models.OrderTermVersion{},   // #2282 P4a
-		&models.ReferralCommission{}, // #2282 P4c
-		&models.OverdueCharge{},
-		&models.OrderLog{},
-		&models.PaymentSession{},
-		&models.SessionOrderLink{},
-		&models.OrderPaymentRecord{},
-		&models.OrderRefundRecord{},
-		&models.Site{},
-		&models.MaintenanceTicket{},
-		&models.BrandConfig{},
-		&models.OwnershipCertificate{},
-		&models.Technician{},
-		&models.SiteImage{},
-		&models.InventoryTransfer{},
-		&models.Client{},
-		&models.Lease{},
-		&models.Deposit{},
-		&models.UserInstrument{},
-		&models.RepairRequest{},
-		&models.RepairLogisticsFee{},   // #1942: 维修服务分段物流费
-		&models.RepairReview{},         // #1942: 维修服务评价
-		&models.InstrumentLossRecord{}, // #1948: 乐器丢失台账
-		&models.TechnicianProfile{},    // #1974 T1: 师傅档案（直属商户）
-		&models.RepairRequestRecord{},
-		&models.PointsTransaction{},
-		&models.Tenant{},
-		&models.InstrumentLevel{},
-		&models.Property{},
-		&models.PropertyOption{},
-		&models.InstrumentProperty{},
-		&models.MaintenanceWorker{},
-		&models.MaintenanceSession{},
-		&models.MaintenanceSessionRecord{},
-		&models.RepairRecord{},
-		&models.ForwardingSession{},
-		&models.TransitShippingFee{}, // #1934: 受控中转物流费分段
-		&models.ElectronicContract{},
-		&models.DamageReport{},
-		&models.Appeal{},
-		&models.OrderStatusHistory{},
-		&models.AuditLog{},
-		&models.InstrumentPhotoBatch{},
-		&models.Merchant{},
-		&models.SiteMember{},
-		&models.StaffInvite{},
-		&models.PendingOrder{},
-		&models.MerchantMember{},
-		&models.Role{},
-		&models.InstrumentMedia{},
-		&models.SystemSetting{},
-		&models.MediaAsset{},
-		&models.PricingTemplate{},
-		&models.MerchantPricingConfig{},
-		&models.UserAddress{},
-		&models.TransitRoute{},
-		&models.TransitOrder{},
-		&models.RepairTransitOrder{},
-		&models.Warning{},
-		&models.Banner{},
-		&models.MallImage{}, // #2210: 商城页图片表（20261012001 migration，平台级）
-		&models.InvoiceApplication{},
-		&models.MembershipLevelBenefit{},  // #1830: 会员权益行（20260907001 migration）
-		&models.InstrumentPromoOverride{}, // #1863: 乐器促销覆盖（20260910001 migration）
-		&models.ConfirmationSession{},
-		&models.Label{},
-		&models.PointBatch{},            // #1947 Sub-D: 乐币批次（20260917010 migration）
-		&models.PointBatchConsumption{}, // #1947 Sub-D: 批次扣减留痕
-		&models.GiftPolicy{},            // #1945 Sub-B: 乐币规则（20260917011 变更列）
-	}
-
 	for _, m := range modelsToValidate {
 		if err := validateModelColumns(db, m); err != nil {
 			return err

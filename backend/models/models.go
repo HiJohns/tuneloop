@@ -325,10 +325,44 @@ type SettlementCalculation struct {
 	// Result is TEXT (not JSONB): #1738 audit contract requires the stored
 	// bytes to be byte-identical to what the handler responded — JSONB
 	// normalization (key reorder + whitespace) would break that guarantee.
-	Result        *string   `gorm:"type:text" json:"result,omitempty"`
-	ActualDays    int       `gorm:"not null;default:0" json:"actual_days"`
-	LedgerVersion int64     `gorm:"not null;default:0;uniqueIndex:idx_settlement_calc_version" json:"ledger_version"` // #2282 P4b: 幂等键组成部分
-	CreatedAt     time.Time `json:"created_at"`
+	Result        *string `gorm:"type:text" json:"result,omitempty"`
+	ActualDays    int     `gorm:"not null;default:0" json:"actual_days"`
+	LedgerVersion int64   `gorm:"not null;default:0;uniqueIndex:idx_settlement_calc_version" json:"ledger_version"` // #2282 P4b: 幂等键组成部分
+
+	// #2360（v2.2 §9/§12）：结算版本化 + 状态机 + 算法/比例/价格快照 + 分账户金额。
+	// status 参与订单级唯一约束：UNIQUE(order_id) WHERE status IN
+	// ('confirmed','processing','succeeded','partially_succeeded','failed_retryable')。
+	SettlementVersion int64      `gorm:"not null;default:1;index:idx_settlement_order_version" json:"settlement_version"`
+	Status            string     `gorm:"type:varchar(24);not null;default:'calculated';index" json:"status"`
+	AlgorithmVersion  string     `gorm:"type:varchar(40);not null;default:''" json:"algorithm_version"`
+	RatioNum          *int       `gorm:"type:integer" json:"ratio_num,omitempty"`
+	RatioDen          *int       `gorm:"type:integer" json:"ratio_den,omitempty"`
+	RatioSource       string     `gorm:"type:varchar(20);not null;default:''" json:"ratio_source"` // snapshot | history | unresolved
+	CalculatedAt      *time.Time `json:"calculated_at,omitempty"`
+	// AccountsJSON 保存完整分账户明细（§12 全字段）；下钻金额列提供索引/查询能力。
+	AccountsJSON *string `gorm:"type:jsonb" json:"accounts_json,omitempty"`
+
+	// 分账户金额（分）：租金/押金现金实收只能来自 order_payment_allocations。
+	RentCashPaidNetCents         Cents `gorm:"type:bigint;not null;default:0" json:"rent_cash_paid_net_cents"`
+	DepositCashCollectedNetCents Cents `gorm:"type:bigint;not null;default:0" json:"deposit_cash_collected_net_cents"`
+	DepositHeldCents             Cents `gorm:"type:bigint;not null;default:0" json:"deposit_held_cents"`
+
+	// 费用分类 + 凭证（#2360 范围 4）：分别落库，凭证关联定损单/物流单。
+	OverduePenaltyCents Cents   `gorm:"type:bigint;not null;default:0" json:"overdue_penalty_cents"`
+	DamageFeeCents      Cents   `gorm:"type:bigint;not null;default:0" json:"damage_fee_cents"`
+	LogisticsFeeCents   Cents   `gorm:"type:bigint;not null;default:0" json:"logistics_fee_cents"`
+	DamageReportID      *string `gorm:"type:uuid" json:"damage_report_id,omitempty"`
+	LogisticsRef        string  `gorm:"type:varchar(100);not null;default:''" json:"logistics_ref"`
+
+	// 价格规则快照（#2360 范围 5）：结算按冻结快照重算阶梯，不读当前政策。
+	PricingPolicySnapshot *string `gorm:"type:jsonb" json:"pricing_policy_snapshot,omitempty"`
+	PricingPolicyVersion  string  `gorm:"type:varchar(40);not null;default:''" json:"pricing_policy_version"`
+
+	// 历史数据标记（#2360 D1）：legacy_derived_rent_cash | legacy_policy_unresolved |
+	// legacy_underpaid | ''（不重算，只标记）。
+	LegacyMarker string `gorm:"type:varchar(40);not null;default:''" json:"legacy_marker"`
+
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type OverdueCharge struct {
