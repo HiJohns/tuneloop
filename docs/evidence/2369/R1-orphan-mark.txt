@@ -1,0 +1,20 @@
+[DEBUG] Loaded .env from: ../.env
+2026/11/16 15:53:52 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2369ev sslmode=disable
+2026/11/16 15:53:53 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2369ev
+2026/11/16 15:53:53 [DB] Connected to database 'tuneloop_test_2369ev'
+=== RUN   TestCreateUserOrphanMark_2364
+2026/11/16 15:53:53 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2369ev sslmode=disable
+2026/11/16 15:53:53 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2369ev
+2026/11/16 15:53:53 [DB] Connected to database 'tuneloop_test_2369ev'
+
+2026/11/16 15:53:53 [31;1m/home/coder/tuneloop/backend/handlers/merchant_scope_2247.go:25 [35;1mrecord not found
+[0m[33m[0.721ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE org_id = 'c2aec5c2-cafd-442f-b4cd-cdd2e37d9bfc' AND "merchants"."tenant_id" = 'c2aec5c2-cafd-442f-b4cd-cdd2e37d9bfc' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/16 15:53:53 [31;1m/home/coder/tuneloop/backend/handlers/user_staff.go:221 [35;1mrecord not found
+[0m[33m[0.546ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE (tenant_id = 'c2aec5c2-cafd-442f-b4cd-cdd2e37d9bfc' AND username = 'orphan_2364' AND deleted_at IS NULL) AND "users"."tenant_id" = 'c2aec5c2-cafd-442f-b4cd-cdd2e37d9bfc' ORDER BY "users"."id" LIMIT 1
+
+2026/11/16 15:53:53 [31;1m/home/coder/tuneloop/backend/handlers/user_staff.go:235 [35;1mrecord not found
+[0m[33m[0.411ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE (tenant_id = 'c2aec5c2-cafd-442f-b4cd-cdd2e37d9bfc' AND phone = '13800002364' AND deleted_at IS NULL) AND "users"."tenant_id" = 'c2aec5c2-cafd-442f-b4cd-cdd2e37d9bfc' ORDER BY "users"."id" LIMIT 1
+--- PASS: TestCreateUserOrphanMark_2364 (0.22s)
+PASS
+ok  	tuneloop-backend/handlers	0.946s

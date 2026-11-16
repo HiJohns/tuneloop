@@ -1,0 +1,13 @@
+[DEBUG] Loaded .env from: ../.env
+2026/11/16 15:54:01 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2369ev sslmode=disable
+2026/11/16 15:54:01 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2369ev
+2026/11/16 15:54:01 [DB] Connected to database 'tuneloop_test_2369ev'
+=== RUN   TestPurgeIAMOrphans_2364
+2026/11/16 15:54:02 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2369ev sslmode=disable
+2026/11/16 15:54:02 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2369ev
+2026/11/16 15:54:02 [DB] Connected to database 'tuneloop_test_2369ev'
+2026/11/16 15:54:02 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:40703, clientID=test-ns, namespace=test-ns
+2026/11/16 15:54:02 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:40703, clientID=test-ns, namespace=test-ns
+--- PASS: TestPurgeIAMOrphans_2364 (0.23s)
+PASS
+ok  	tuneloop-backend/handlers	0.724s
