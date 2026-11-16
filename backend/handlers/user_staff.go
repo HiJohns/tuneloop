@@ -206,7 +206,11 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40310, "message": "平台管理员仅可创建商户管理员，不能直接创建商户员工/维修师"})
 		return
 	}
-	merchant, hasMerchant := resolveOperatorMerchant2247(db, opOrgID, tenantID)
+	// #2367（父 #2364 A）：商户归属解析必须用 IdentityCtx 句柄——merchants.tenant_id 是
+	// 命名空间 org，JWT tid 是商户 org；自动 tenant scope 会给 org 分支追加恒假的
+	// `tenant_id = <JWT tid>`，导致 merchant_direct 落库守卫 500。仅本次解析放宽，其它查询
+	// 保持自动 scope（D1）。
+	merchant, hasMerchant := resolveOperatorMerchant2247(merchantConfigDB(ctx), opOrgID, tenantID)
 	merchantOrg := tenantID
 	if hasMerchant && merchant.OrgID != "" {
 		merchantOrg = merchant.OrgID
