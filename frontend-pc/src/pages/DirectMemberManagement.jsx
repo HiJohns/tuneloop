@@ -4,6 +4,8 @@ import { PlusOutlined, UserAddOutlined, ReloadOutlined } from '@ant-design/icons
 import { useNavigate } from 'react-router-dom'
 import { invitesApi, personnelApi, staffApi } from '../services/api'
 import { formatBeijingDate } from '../utils/date'
+import PasswordSettingFields from '../components/PasswordSettingFields'
+import InitialPasswordModal from '../components/InitialPasswordModal'
 
 // #2114 直属成员管理（子页）：
 // - 商户管理员：管理/邀请本商户直属员工（merchant_staff）
@@ -34,6 +36,11 @@ export default function DirectMemberManagement() {
   const [techOpen, setTechOpen] = useState(false)
   const [techForm] = Form.useForm()
   const [creating, setCreating] = useState(false)
+  // #2372：密码模式（默认自动生成 + 强制改密，D1）。
+  const [techAutoGenerate, setTechAutoGenerate] = useState(true)
+  const [techForcePasswordChange, setTechForcePasswordChange] = useState(true)
+  const [initialPasswords, setInitialPasswords] = useState([])
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   // #2153：服务端分页
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
@@ -105,29 +112,50 @@ export default function DirectMemberManagement() {
     try {
       const values = await techForm.validateFields()
       setCreating(true)
-      const resp = await staffApi.createUser({
+      // #2372：username 为唯一必填登录标识（#2376）；email 选填。
+      const payload = {
         user_type: 'repair_technician',
         name: values.name,
-        username: values.username,
-        email: values.email,
+        username: (values.username || '').trim(),
         phone: values.phone,
         position: values.position,
-      })
+        auto_generate: techAutoGenerate,
+        force_password_change: techForcePasswordChange,
+      }
+      if (values.email?.trim()) payload.email = values.email.trim()
+      if (!techAutoGenerate) payload.password = values.password
+      const resp = await staffApi.createUser(payload)
       if (resp.code === 20000) {
-        // #2228 P2：邀请制——不再下发初始密码；激活前顾客侧不可见（Q7）
-        Modal.info({
-          title: '已创建并发送邀请',
-          width: 480,
-          content: (
-            <div>
-              <p>已为该维修师预建账户，<b>邀请邮件</b>已发送至 {values.email}。</p>
-              <p>请其查收邮件 → 点击链接完成激活并<b>设置密码</b>；亦可从「系统消息」查看邀请。</p>
-              <p style={{ fontSize: 12, color: '#999' }}>激活前该账户不可登录，且不会出现在顾客侧维修师列表。</p>
-            </div>
-          ),
-        })
+        // #2372：密码模式 → 一次性展示；否则保留邀请文案（有邮箱走 IAM 邮件）。
+        const plain = resp.data?.initial_password
+        const list = (resp.data?.initial_passwords || []).map(p => ({
+          identifier: p.identifier || p.email || p.username || '',
+          password: p.password,
+        }))
+        if (plain) list.push({ identifier: payload.username || payload.email || '', password: plain })
+        if (list.length > 0) {
+          setInitialPasswords(list)
+          setPasswordModalOpen(true)
+          message.success('已创建，初始密码仅显示一次')
+          message.info('请提醒该维修师登录后到「个人中心」绑定微信')
+        } else {
+          // #2228 P2：邀请制——不再下发初始密码；激活前顾客侧不可见（Q7）
+          Modal.info({
+            title: '已创建并发送邀请',
+            width: 480,
+            content: (
+              <div>
+                <p>已为该维修师预建账户，<b>邀请邮件</b>已发送至 {values.email}。</p>
+                <p>请其查收邮件 → 点击链接完成激活并<b>设置密码</b>；亦可从「系统消息」查看邀请。</p>
+                <p style={{ fontSize: 12, color: '#999' }}>激活前该账户不可登录，且不会出现在顾客侧维修师列表。</p>
+              </div>
+            ),
+          })
+        }
         setTechOpen(false)
         techForm.resetFields()
+        setTechAutoGenerate(true)
+        setTechForcePasswordChange(true)
         fetchList()
       } else {
         message.error(resp.message || '创建失败')
@@ -272,21 +300,35 @@ export default function DirectMemberManagement() {
           <Form.Item name="phone" label="手机号" rules={[{ required: true, message: '请输入手机号' }]}>
             <Input placeholder="手机号" />
           </Form.Item>
-          <Form.Item name="email" label="邮箱" rules={[{ required: true, message: '请输入邮箱（邀请邮件投递通道）' }]}>
-            <Input placeholder="邮箱（邀请邮件将发送至此）" />
+          <Form.Item name="email" label="邮箱（选填）">
+            <Input placeholder="留空则用下方密码模式直接创建" />
           </Form.Item>
           <Form.Item
             name="username"
-            label="登录用户名（可选）"
-            extra="仅用于登录，平台内唯一；留空自动使用上方邮箱。员工姓名请填「姓名」。"
+            label="登录用户名"
+            rules={[{ required: true, message: '请填写用户名' }]}
+            extra="仅用于登录，平台内唯一。员工姓名请填「姓名」。"
           >
-            <Input placeholder="留空自动使用邮箱" autoComplete="off" />
+            <Input placeholder="登录用户名" autoComplete="off" />
           </Form.Item>
           <Form.Item name="position" label="职位/专长">
             <Input placeholder="如 钢琴维修" />
           </Form.Item>
+          <PasswordSettingFields
+            autoGenerate={techAutoGenerate}
+            forcePasswordChange={techForcePasswordChange}
+            onAutoGenerateChange={setTechAutoGenerate}
+            onForcePasswordChangeChange={setTechForcePasswordChange}
+          />
         </Form>
       </Modal>
+
+      <InitialPasswordModal
+        open={passwordModalOpen}
+        passwords={initialPasswords}
+        onClose={() => { setPasswordModalOpen(false); setInitialPasswords([]) }}
+        title="维修师初始密码（仅展示一次）"
+      />
     </div>
   )
 }
