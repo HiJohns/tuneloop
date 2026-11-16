@@ -1,4 +1,4 @@
-PROVENANCE build=password-fields-2370 commit=1cbb257bc563b0b4cf51e4d6dfa847bad8b99142 dirty=false
+PROVENANCE build=password-fields-2370 commit=f6d988544e8c1f6e5d2606cccfa0a910b3f363b7 dirty=false
 
 > frontend-pc@1.0.0 build
 > vite build
@@ -19,4 +19,4 @@ dist/assets/index-BRBmByG0.js   2,606.25 kB │ gzip: 800.08 kB
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 34.58s
+✓ built in 47.14s
