@@ -1,9 +1,12 @@
-# 结算退款算法规格 v2.2（定稿草案 · 评审 4 项必修已修）
+# 结算退款算法规格 v2.3（定稿 · 评审 4 项必修 + Q16/Q17 决策）
 
+> v2.2 → v2.3（业务决策）：**Q16 优惠券在前、乐币上限按「券后实际租金」计算**（覆盖评审建议的「按券前标价」）；
+> **Q17 支付分配账本列入本期**。据此：`cap` 基数改为 `R_after_coupon_cents`，守恒式去掉券项（券已体现在实收与券后租金中）。
+>
 > v2.1 → v2.2（按 2026-11 评审）：① 优惠券与乐币基数拆分 + 守恒式补券项；② 争议金额从实际扣款隔离；
 > ③ `failed_retryable` 纳入订单级唯一约束 + 预生成稳定幂等键；④ 租金现金实收改由**支付分配账本**读取（禁止反推）。
 > 附带：T8 夹具显式化、T23–T26 新增、整数溢出校验、价格规则快照、费用分类分配。
-> 状态：**定稿草案 v2.2；Q16（券×乐币是否可叠加）、Q17（分配账本迁移）为唯一阻塞项，其余口径已确认。**
+> 状态：**定稿 v2.3 —— Q1–Q17 全部确认（Q16 券在前、上限按券后租金；Q17 分配账本列入本期）。**
 
 ---
 
@@ -57,7 +60,8 @@ coupon_discount_cents = 优惠券抵扣（>=0）
 R_after_coupon_cents  = R_actual_list_cents - coupon_discount_cents   // 必须 >= 0
 ```
 
-**基数是 `R_actual_list_cents`（券前标价）**；券后金额只影响「租金现金应收」，不改变乐币上限基数（Q16 若改为不叠加，则按互斥规则处理）。
+**Q16 决策（2026-11）：优惠券在前、乐币在后，乐币上限基数为 `R_after_coupon_cents`（券后实际租金）。**
+即：先扣券，再按券后租金计算可用乐币上限与消耗。
 
 ---
 
@@ -65,7 +69,7 @@ R_after_coupon_cents  = R_actual_list_cents - coupon_discount_cents   // 必须 
 
 ```text
 # 乐币
-cap_points        = floor(R_actual_list_cents * ratio_num / (100 * ratio_den))
+cap_points        = floor(R_after_coupon_cents * ratio_num / (100 * ratio_den))   // Q16：券后租金为基数
 p_consumed_points = min(p_used_points, cap_points)
 p_refund_points   = p_used_points - p_consumed_points
 
@@ -107,7 +111,10 @@ deposit_held_cents                // 当前持有押金（未退未扣）
 ```text
 net_cash_cents + PointsToCashCents(p_refund_points)
   = cash_paid_cents + PointsToCashCents(p_used_points)
-    - R_actual_list_cents + coupon_discount_cents - deductions_total_cents
+    - R_after_coupon_cents - deductions_total_cents
+
+# 说明：优惠券不是支付，已体现在「cash_paid 减少」与「R_after_coupon 减少」两侧，
+# 故等式不再单列 coupon 项（v2.2 的写法在 Q16 券前基数下才成立）。
 ```
 
 作为独立 invariant（`ErrSettlementInvariantViolation`）；多次结算/冲正/争议挂起按 §9 版本机制处理。
@@ -143,7 +150,7 @@ deposit_policy=carry_over
 
 | # | 场景 | 期望要点 |
 |---|---|---|
-| T23 | 券 30000 分 + 乐币 900 点，28 天 | `R_after_coupon=250000`；cap 仍按 280000 计算=840；rent 退 `210000−166000=44000`；守恒式含券项 |
+| T23 | 券 30000 分 + 乐币 900 点，28 天 | `R_after_coupon=250000`；**cap=750（按券后租金）**；`p_refund=150`；rent 现金实收 160000 vs 应付 175000 → **补缴 15000**；押金退 50000；**净现金 +35000**；守恒：35000+15000=300000−250000 ✓ |
 | T24 | 定损 300 分处于申诉 + 逾期 100 分 | 只扣 `undisputed=10000`；`disputed=30000` 挂起；押金退 `40000`；申诉结案后补结算 |
 | T25 | 首次结算 `failed_retryable` 后再发起 | 订单级唯一阻挡第二版本；必须先冲正/恢复同一 settlement |
 | T26 | 押金已被扣 30000 后再结算 | `rent_cash_paid_net` 从分配账本读取，不得因 `deposit_held` 变化而改变 |
@@ -154,7 +161,7 @@ deposit_policy=carry_over
 
 | 概念 | 用途 |
 |---|---|
-| `initial_cash_collected_cents` | 下单校验足额：`= R_list_cents − PointsToCashCents(p_used) + deposit_cents`（券另计，见 Q16） |
+| `initial_cash_collected_cents` | 下单校验足额：`= R_after_coupon_cents − PointsToCashCents(p_used) + deposit_cents`（券在前，Q16） |
 | `cash_paid_net_cents` | 结算时现金净实收（含押金） |
 | `deposit_held_cents` | 结算时持有押金 |
 
@@ -283,23 +290,28 @@ T1–T10（§5）+ T11–T22（v2.1）+ **T23–T26（§5 新增）**；断言�
 
 ---
 
-## 16. 待确认（Q1–Q17）
+## 16. 决策清单（Q1–Q17，全部已确认）
 
-| # | 问题 | 状态 |
+| # | 问题 | 结论 |
 |---|---|---|
-| Q1 | 乐币基数 = 券前实际标价租金 | 待确认（评审建议） |
-| Q2 | floor 取整 / Q3 整数分 / Q4 扣款顺序 逾期→定损→物流 / Q5 押金不抵租金 / Q6 续费同合同累计 / Q7 历史不重算 | 待确认（建议值） |
-| Q8 | 新单足额收款 | ✅ |
-| Q9 | 乐币原路冲正 + 批次分配明细 | 待确认 |
-| Q10 | 取消三档 | 待确认 |
-| Q11 | 比例下单快照 | ✅ |
-| Q12 | 阶梯按实际天数重算 | 待确认 |
-| Q13 | 账务分账户 / 执行按渠道条件净额 | ✅ |
-| Q14 | `overdue_rent` 计入乐币基数 | ✅ |
-| Q15 | 续费沿用原押金 | ✅ |
-| **Q16** | **优惠券与乐币可否叠加**（可→§2 公式；不可→互斥规则） | **待产品确认（阻塞）** |
-| **Q17** | **支付分配账本迁移**（`rent_cash_paid_net` / `deposit_cash_collected_net` 落库）是否列入本期 | **待确认（阻塞 §3.1）** |
+| Q1 | 乐币基数 | ✅ **券后实际租金 `R_after_coupon_cents`**（随 Q16 更新；原「券前标价」作废） |
+| Q2 | 取整 | ✅ `floor`，整数点 |
+| Q3 | 精度 | ✅ 整数分 |
+| Q4 | 押金扣款顺序 | ✅ 逾期 → 定损 → 物流（分类记账 + 凭证） |
+| Q5 | 押金抵租金 | ✅ 不允许 |
+| Q6 | 续费结算 | ✅ 同一合同累计（`term_versions`）；独立合同分别结算 |
+| Q7 | 历史订单 | ✅ 不重算，保留 `algorithm_version` |
+| Q8 | 新单收款 | ✅ 必须足额（§6 三口径） |
+| Q9 | 乐币退款 | ✅ 原交易冲正 + 保存批次分配明细（不得仅凭 FIFO 反推） |
+| Q10 | 提前取消 | ✅ 三档（未交付 / 已交付未起租 / 已起租）；T7 仅覆盖第一档 |
+| Q11 | 比例来源 | ✅ 下单快照（三级 fallback + 结算冻结） |
+| Q12 | 阶梯重算 | ✅ 按实际天数重算阶梯段 |
+| Q13 | 净额执行 | ✅ 账务分账户；执行按渠道/资金来源/协议条件净额或分笔 |
+| Q14 | `overdue_rent` | ✅ 计入乐币基数；`overdue_penalty` 不计 |
+| Q15 | 续费押金 | ✅ 沿用原押金，不重复收取（档位调整仅收差额） |
+| Q16 | 券 × 乐币 | ✅ 可叠加，**券在前**；上限按券后实际租金 |
+| Q17 | 支付分配账本 | ✅ 列入本期（§3.1 强制从账本读取） |
 
 ---
 
-*v2.2 by deepseek/deepseek-flash（按 2026-11 评审 4 项必修修订）*
+*v2.3 by deepseek/deepseek-flash（评审 4 项必修 + Q16/Q17 业务决策）*

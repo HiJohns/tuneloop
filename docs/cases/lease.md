@@ -332,7 +332,7 @@ steps:
 ## 关键规则
 - 物流费：发货时员工填写（#1541），下单时不显示（#1570）
 - 结算：**分账户**（租金 / 押金 / 额外费用）分别核算，执行层按净额一次收付 —— 公式见 **L-06 v2**
-- **乐币抵扣（初次付款+续费通用）**：`A0 ≤ floor(合同标价租金 × pay_ratio)`（**不含押金**；比例取**下单快照** `points_policy_snapshot`，不溯既往）；现金 `C0 = 合同标价租金 − A0`，押金 `De` 单列
+- **乐币抵扣（初次付款+续费通用）**：`A0 ≤ floor(券后实际租金 × pay_ratio)`（**券在前、不含押金**；比例取**下单快照** `points_policy_snapshot`，不溯既往）；现金 `C0 = 券后租金 − A0`，押金 `De` 单列
 - **退款差额**：按实际标价租金 `R1` 重算 `cap1 = floor(R1 × ratio_snapshot)`；`p_refund = max(0, A0 − cap1)`（超额才退，少用不折现、不补发）；租金现金差额与押金退款分账户核算（详见 **L-06 v2**）
 - **累计花销口径**：`total_spending` 按 `C1`（实付现金）累计，不含赠点面值——避免赠点循环放大（详见 L-06）
 
@@ -779,7 +779,7 @@ steps:
 
 ## 流程
 1. 系统管理 → 乐币规则 → 列表展示各会员级别配置：
-   - `pay_ratio`（抵扣比例）：初次付款/续费时，乐币抵扣 ≤ floor(合同标价租金 × pay_ratio)（**不含押金**；比例取订单快照，不溯既往）
+   - `pay_ratio`（抵扣比例）：初次付款/续费时，乐币抵扣 ≤ floor(**券后实际租金** × pay_ratio)（券在前、不含押金；比例取订单快照，不溯既往）
    - `referral_ratio`（裂变比例）：被推荐人产生租金时，推荐人返佣 = floor(租金 × referral_ratio)
    - `referral_reg_points`（邀请奖）：被推荐人注册成功后发放给推荐人的乐币数
 2. 全局参数卡片：抵扣上限 `pay_ratio_max`、乐币有效期 `point_batch_validity_months`、到期提醒提前量 `point_expiry_reminder_days` → 保存 → PUT /admin/point-settings（即时生效）

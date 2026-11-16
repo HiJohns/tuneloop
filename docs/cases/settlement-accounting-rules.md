@@ -113,8 +113,8 @@
 # 比例：整型 ratio_num / ratio_den（30% → 3/10），禁止浮点
 # 租金三层：R_actual_list_cents（券前标价）→ coupon_discount_cents → R_after_coupon_cents
 
-# 乐币（基数为券前标价）
-cap_points        = floor(R_actual_list_cents * ratio_num / (100 * ratio_den))
+# 乐币（基数为券后实际租金；Q16：券在前）
+cap_points        = floor(R_after_coupon_cents * ratio_num / (100 * ratio_den))
 p_consumed_points = min(p_used_points, cap_points)
 p_refund_points   = p_used_points - p_consumed_points
 
@@ -145,7 +145,8 @@ net_cash_cents        = cash_refundable_cents - cash_payable_cents
 ```text
 net_cash_cents + p_refund_points * 100
   = cash_paid_cents + p_used_points * 100
-    − R_actual_list_cents + coupon_discount_cents − deductions_total_cents
+    − R_after_coupon_cents − deductions_total_cents
+# 券不是支付，已体现在「实收减少」与「券后租金减少」两侧
 ```
 
 > 实现中作为独立的 invariant 检查（`ErrSettlementInvariantViolation`），不得只写在文档里；
@@ -190,4 +191,4 @@ net_cash_cents + p_refund_points * 100
 
 Q1 乐币基数=实际标价租金、Q2 floor、Q3 整数分、Q4 扣款顺序 逾期→定损→物流、Q5 押金不抵租金、
 Q6 续费同合同累计、Q7 历史不重算、Q9 乐币原路冲正、Q10 取消三档、Q12 阶梯按实际天数重算；
-**Q16 优惠券与乐币是否可叠加（阻塞）**、**Q17 支付分配账本是否列入本期（阻塞 §3.1）**。
+**Q16 已确认：券在前、乐币上限按券后实际租金**；**Q17 已确认：支付分配账本列入本期**。
