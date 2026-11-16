@@ -167,7 +167,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
         }
         const password = autoGenerate ? '' : passwordDraft;
         if (!email.trim() && !autoGenerate && !password) {
-          message.error('需填写邮箱或设置密码');
+          Modal.error({ title: '无法创建', content: '请填写邮箱（走邀请）或设置密码（自动生成/手动设置）' });
           setAdding(false);
           return;
         }
@@ -202,6 +202,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
             autoGenerate,
             password: passwordDraft,
             email,
+            username,
           });
           const passwords = (data.initial_passwords || []).map(p => ({
             identifier: p.identifier || p.email || p.username || '',
@@ -211,22 +212,22 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
           resetForm();
           fetchMembers();
           onRefresh && onRefresh();
-          if (feedback === 'password_auto') {
+          if (feedback.kind === 'password_auto') {
             setInitialPasswords(passwords);
             setPasswordModalOpen(true);
-          } else if (feedback === 'password_manual') {
+          } else if (feedback.kind === 'password_manual') {
             message.success('已创建，账号可用用户名 + 你设置的密码登录');
-          } else if (feedback === 'invite') {
+          } else if (feedback.kind === 'invite') {
             Modal.info({
               title: '已创建并发送邀请',
               width: 480,
-              content: <p>已创建账户，<b>邀请邮件</b>已发送至 {email}。</p>,
+              content: <div><p><b>邀请邮件</b>已发送至 {email}。</p><p>请其查收 → 点击链接完成激活并设置密码；亦可从系统消息查看；激活前不可登录。</p></div>,
             });
           } else {
-            message.error('需填写邮箱或设置密码');
+            Modal.error({ title: '无法创建', content: '请填写邮箱（走邀请）或设置密码（自动生成/手动设置）' });
           }
           if (data.role_errors?.length > 0) {
-            message.warning('用户创建成功，但部分角色权限分配失败。');
+            message.warning('已创建，但部分角色权限分配失败，可在成员详情中重新分配');
           }
         } else if (response.code === 40902) {
           // #2031：既有账户不允许管理员挂接（一人一号）→ 引导本人自助加入
@@ -462,6 +463,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
 
       <InitialPasswordModal
         open={passwordModalOpen}
+        title="已创建 · 初始密码仅显示一次"
         passwords={initialPasswords}
         onClose={() => { setPasswordModalOpen(false); setInitialPasswords([]); }}
         title="管理员初始密码（仅展示一次）"

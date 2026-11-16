@@ -1391,8 +1391,14 @@ func (h *UserStaffHandler) ResetPassword(c *gin.Context) {
 		}
 	}
 
+	// #2389 Rev.3：混合批量只对有邮箱的用户发邮件；无邮箱的进入 skipped_no_email。
 	var iamSubs []string
+	skippedNoEmail := make([]string, 0)
 	for _, user := range users {
+		if strings.TrimSpace(user.Email) == "" {
+			skippedNoEmail = append(skippedNoEmail, user.ID)
+			continue
+		}
 		if user.IAMSub != "" {
 			iamSubs = append(iamSubs, user.IAMSub)
 		}
@@ -1401,7 +1407,7 @@ func (h *UserStaffHandler) ResetPassword(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"code":    20000,
 			"message": "success",
-			"data":    gin.H{"sent": 0, "skipped": len(req.UserIDs)},
+			"data":    gin.H{"sent": 0, "skipped": len(req.UserIDs), "skipped_no_email": skippedNoEmail},
 		})
 		return
 	}

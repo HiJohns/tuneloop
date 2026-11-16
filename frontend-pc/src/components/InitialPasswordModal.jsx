@@ -16,8 +16,8 @@ export default function InitialPasswordModal({ open, passwords = [], onClose, ti
   }
   return (
     <Modal open={open} title={title} onCancel={onClose} footer={<Button type="primary" onClick={onClose}>我已保存，关闭</Button>} width={560}>
-      <Paragraph type="danger">此为仅显示一次密码，请立即复制保存；关闭后无法再次查看。</Paragraph>
-      {(passwords || []).map((p, i) => (
+      <Paragraph type="danger">请立即复制并通过安全渠道告知本人；关闭后不可再查看。该账号可用用户名登录，登录后可在个人中心绑定微信。</Paragraph>
+      {(passwords || []).slice(0, 10).map((p, i) => (
         <Paragraph key={`${p.identifier || ''}-${i}`} style={{ marginBottom: 8 }}>
           <Text strong>{p.identifier || p.email || p.username || `用户${i + 1}`}</Text>
           <Text>：</Text>
@@ -25,6 +25,9 @@ export default function InitialPasswordModal({ open, passwords = [], onClose, ti
           <Button type="link" size="small" onClick={() => copy(p.password)}>复制</Button>
         </Paragraph>
       ))}
+      {(passwords || []).length > 10 && (
+        <Paragraph type="secondary">还有 {(passwords || []).length - 10} 条（请分批创建或联系管理员导出）</Paragraph>
+      )}
     </Modal>
   )
 }

@@ -132,8 +132,9 @@ export default function DirectMemberManagement() {
           autoGenerate: techAutoGenerate,
           password: values.password,
           email: values.email,
+          username: values.username,
         })
-        if (feedback === 'password_auto') {
+        if (feedback.kind === 'password_auto') {
           const plain = resp.data?.initial_password
           const list = (resp.data?.initial_passwords || []).map(p => ({
             identifier: p.identifier || p.email || p.username || '',
@@ -144,24 +145,23 @@ export default function DirectMemberManagement() {
           setPasswordModalOpen(true)
           message.success('已创建，初始密码仅显示一次')
           message.info('请提醒该维修师登录后到「个人中心」绑定微信')
-        } else if (feedback === 'password_manual') {
+        } else if (feedback.kind === 'password_manual') {
           message.success('已创建，账号可用用户名 + 你设置的密码登录')
           message.info('请提醒该维修师登录后到「个人中心」绑定微信')
-        } else if (feedback === 'invite') {
+        } else if (feedback.kind === 'invite') {
           // #2228 P2：邀请制——不再下发初始密码；激活前顾客侧不可见（Q7）
           Modal.info({
             title: '已创建并发送邀请',
             width: 480,
             content: (
               <div>
-                <p>已为该维修师预建账户，<b>邀请邮件</b>已发送至 {values.email}。</p>
-                <p>请其查收邮件 → 点击链接完成激活并<b>设置密码</b>；亦可从「系统消息」查看邀请。</p>
-                <p style={{ fontSize: 12, color: '#999' }}>激活前该账户不可登录，且不会出现在顾客侧维修师列表。</p>
+                <p><b>邀请邮件</b>已发送至 {values.email}。</p>
+                <p>请其查收 → 点击链接完成激活并设置密码；亦可从系统消息查看；激活前不可登录。</p>
               </div>
             ),
           })
         } else {
-          message.error('需填写邮箱或设置密码')
+          Modal.error({ title: '无法创建', content: '请填写邮箱（走邀请）或设置密码（自动生成/手动设置）' })
         }
         setTechOpen(false)
         techForm.resetFields()
@@ -336,6 +336,7 @@ export default function DirectMemberManagement() {
 
       <InitialPasswordModal
         open={passwordModalOpen}
+        title="已创建 · 初始密码仅显示一次"
         passwords={initialPasswords}
         onClose={() => { setPasswordModalOpen(false); setInitialPasswords([]) }}
         title="维修师初始密码（仅展示一次）"

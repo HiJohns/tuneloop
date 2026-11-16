@@ -219,8 +219,9 @@ export default function StaffManagement() {
           autoGenerate: createAutoGenerate,
           password: values.password,
           email: values.email,
+          username: values.username,
         })
-        if (feedback === 'password_auto') {
+        if (feedback.kind === 'password_auto') {
           const plain = result.data?.initial_password
           const list = (result.data?.initial_passwords || []).map(p => ({
             identifier: p.identifier || p.email || p.username || '',
@@ -229,25 +230,26 @@ export default function StaffManagement() {
           if (plain) {
             list.push({ identifier: values.username || values.email || '', password: plain })
           }
+          if (!feedback.identifier) {
+            console.error('[create-feedback] password_auto without identifier')
+          }
           setInitialPasswords(list)
           setPasswordModalOpen(true)
-          message.success('已创建，初始密码仅显示一次')
-        } else if (feedback === 'password_manual') {
+        } else if (feedback.kind === 'password_manual') {
           message.success('已创建，账号可用用户名 + 你设置的密码登录')
-        } else if (feedback === 'invite') {
+        } else if (feedback.kind === 'invite') {
           Modal.info({
             title: '已创建并发送邀请',
             width: 480,
             content: (
               <div>
-                <p>已为该员工预建账户，<b>邀请邮件</b>已发送至 {values.email}。</p>
-                <p>请其查收邮件 → 点击链接完成激活并<b>设置密码</b>；亦可从「系统消息」查看邀请。</p>
-                <p style={{ fontSize: 12, color: '#999' }}>激活/接受前该账户不可登录；维修师在激活前不会出现在顾客侧。</p>
+                <p><b>邀请邮件</b>已发送至 {values.email}。</p>
+                <p>请其查收 → 点击链接完成激活并设置密码；亦可从系统消息查看；激活前不可登录。</p>
               </div>
             ),
           })
         } else {
-          message.error('需填写邮箱或设置密码')
+          Modal.error({ title: '无法创建', content: '请填写邮箱（走邀请）或设置密码（自动生成/手动设置）' })
         }
         // #2073: 全类型照片 → 头像（创建后经管理员媒体管线上传）
         if (result.data?.id && createPhotoFile) {
@@ -338,16 +340,22 @@ export default function StaffManagement() {
       message.warning('请先选择要重设密码的用户')
       return
     }
-    // #2372 D2：无邮箱账号无法走邮件重置 → 入口不置灰，但明确提示需管理员直设（#2374）。
+    // #2389 Rev.3：混合批量先过滤无邮箱行；全部无邮箱则只提示、不发请求。
     const noEmail = staffList.filter(u => userIds.includes(u.id) && !(u.email || '').trim())
-    if (noEmail.length > 0) {
-      message.warning(`该账号未配置邮箱，重置需管理员直设密码（${noEmail.length} 个）`)
+    const withEmail = userIds.filter(id => !noEmail.some(u => u.id === id))
+    if (withEmail.length === 0) {
+      Modal.warning({
+        title: '该账号未配置邮箱',
+        content: '无法通过邮件重置密码。请使用「直接设置密码」功能（对接中）；在此之前可由管理员在成员详情中重置。',
+        okText: '知道了',
+      })
       return
     }
     try {
-      const res = await staffApi.resetPassword(userIds)
+      const res = await staffApi.resetPassword(withEmail)
       if (res.code === 20000) {
-        message.success(`已发送重设密码邮件（${userIds.length} 个用户）`)
+        const skipped = res.data?.skipped_no_email?.length || noEmail.length
+        message.success(skipped > 0 ? `已发送 ${withEmail.length} 封；${skipped} 个账号因未配置邮箱未发送` : `已发送重设密码邮件（${withEmail.length} 个用户）`)
         setSelectedRowKeys([])
       } else {
         message.error(res.message || '重设密码失败')
@@ -486,9 +494,13 @@ export default function StaffManagement() {
             size="small"
             icon={<MailOutlined />}
             onClick={() => {
-              // #2389：无邮箱账号不走邮件重置；入口直接拦截（不跳转、不发请求）。
+              // #2389 Rev.3：无邮箱账号不跳转，弹 Modal.warning（按钮保持可点）。
               if (!String(record.email || '').trim()) {
-                message.warning('该账号未配置邮箱，需管理员直设密码（功能对接中）')
+                Modal.warning({
+                  title: '该账号未配置邮箱',
+                  content: '无法通过邮件重置密码。请使用「直接设置密码」功能（对接中）；在此之前可由管理员在成员详情中重置。',
+                  okText: '知道了',
+                })
                 return
               }
               navigate(`/staff/${record.id}/reset-password`, { state: { user: record } })
@@ -764,6 +776,7 @@ export default function StaffManagement() {
 
       <InitialPasswordModal
         open={passwordModalOpen}
+        title="已创建 · 初始密码仅显示一次"
         passwords={initialPasswords}
         onClose={() => { setPasswordModalOpen(false); setInitialPasswords([]) }}
         title="初始密码（仅展示一次）"
