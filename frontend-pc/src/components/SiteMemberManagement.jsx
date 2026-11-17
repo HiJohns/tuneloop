@@ -484,7 +484,7 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
         open={passwordModalOpen}
         passwords={initialPasswords}
         onClose={() => { setPasswordModalOpen(false); setInitialPasswords([]); }}
-        title="成员初始密码（仅展示一次）"
+        title="已创建 · 初始密码仅显示一次"
       />
 
       <Table

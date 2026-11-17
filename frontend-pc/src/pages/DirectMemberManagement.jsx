@@ -339,7 +339,6 @@ export default function DirectMemberManagement() {
         title="已创建 · 初始密码仅显示一次"
         passwords={initialPasswords}
         onClose={() => { setPasswordModalOpen(false); setInitialPasswords([]) }}
-        title="维修师初始密码（仅展示一次）"
       />
     </div>
   )
