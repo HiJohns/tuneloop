@@ -16,8 +16,8 @@ import {
 
 // #2327 S4 / D8 / #2352 / #2333: 通用微信支付分信用评测页（H5 + weapp 共用）。
 // 入参（一律 query）：仅 order_id（可选 return_path）。
-// #2333 R8: 评测标的金额 = 乐器原价，由后端 /credit-{status,assessment} 返回 risk_amount_cents，
-// 页面不再接收 tier / risk_amount_cents 参数，也不承载任何业务规则（规则在 services/creditFlow.mjs）。
+// #2333 R8: 评估金额由后端 /credit-{status,assessment} 返回 risk_amount_cents，
+// 页面只展示、不自算；不再接收 tier / risk_amount_cents 参数，也不承载业务规则（规则在 services/creditFlow.mjs）。
 
 const STATE_TEXT = {
   [CREDIT_STATE.NONE]: '尚未评测',
@@ -37,7 +37,7 @@ export default function CreditAssessment() {
   const returnPath = params.return_path || (orderId ? `/payment?type=rent&id=${orderId}` : '')
 
   const [credit, setCredit] = useState(null)
-  // 评测标的金额（乐器原价）由后端返回；页面只展示，不自算（#2333 R8）。
+  // 评估金额由后端返回；页面只展示，不自算（#2333 R8）。
   const riskAmountCents = Number(credit?.risk_amount_cents || 0)
   // #2352 F1: 订单支付截止倒计时（30s 刷新，纯文本，不影响布局高度）。
   const [nowTick, setNowTick] = useState(() => Date.now())
@@ -113,7 +113,7 @@ export default function CreditAssessment() {
       const current = await fetchStatus()
       if (cancelled) return
       // #2352 F3: credit_state=pending 但服务单未创建（下单即落 pending）时也必须补建，
-      // 否则页面停在「评测进行中」、评测标的金额恒为 0（显示 —）。
+      // 否则页面停在「评测进行中」、评估金额恒为 0（显示 —）。
       const notStarted = !current || !current.service_order_no
       if (notStarted || current.credit_state === CREDIT_STATE.NONE || current.credit_state === CREDIT_STATE.EXPIRED) {
         await startAssessment()

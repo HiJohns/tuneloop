@@ -41,7 +41,8 @@ export const criticalRoutes = [
     name: 'H5 /credit-assessment',
     pattern: '/credit-assessment',
     entry: '/credit-assessment?order_id=order-1&tier=reduced&risk_amount_cents=5000',
-    markers: ['微信信用评测', '押金档位'],
+    // #2333 复审：marker 不得依赖会随产品文案变化的句子；改用稳定的结构标签。
+    markers: ['微信信用评测', '评测状态'],
     load: () => import('../../src/pages/CreditAssessment'),
   },
   {
