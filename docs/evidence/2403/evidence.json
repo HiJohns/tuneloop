@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "issue": 2403,
+  "build": "go1.25.0 handlers-targeted 3cf0574",
+  "commit": "3cf057478eecaa7525d8c886b0f423daf2c7521b",
+  "dirty": false,
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2403.sh r1-invite > docs/evidence/2403/R1-invite.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2403/R1-invite.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "exit 0；--- PASS: TestInviteToMerchantMerchantScopeFixed_2403；邀请 201 且 invite 落库（tenant/org=商户 org、kind/role=merchant_staff）；修复前同用例 404",
+      "expected": "PASS",
+      "negative": "404 → FAIL",
+      "negative_result": "修复前（3cf057478^）同用例失败：expected 201 / actual 404「商户不存在」",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2403.sh r2-isolation > docs/evidence/2403/R2-isolation.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2403/R2-isolation.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "exit 0；--- PASS: TestInviteToMerchantCrossMerchant404_2403；商户 B 的 id + 商户 A 管理员 → 404 且不落库",
+      "expected": "PASS",
+      "negative": "跨商户 200 → FAIL",
+      "negative_result": "若跨商户请求返回 200/201 或产生 staff_invites 行 → 用例断言失败",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2403.sh r3-dedup > docs/evidence/2403/R3-dedup.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2403/R3-dedup.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "exit 0；--- PASS: TestInviteToMerchantDedupAndKind_2403；重复邀请 409 且仅 1 行；kind 缺省 → merchant_member/member",
+      "expected": "PASS",
+      "negative": "去重失效 → FAIL",
+      "negative_result": "若重复邀请返回 201 或产生第二行 → 用例断言失败",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2403.sh build > docs/evidence/2403/R4-build.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2403/R4-build.txt"
+      ],
+      "assert": "exit 0",
+      "actual": "exit 0；go build ./... 无输出（0 字节）",
+      "expected": "PASS",
+      "negative": "编译失败 → exit 1",
+      "negative_result": "若 go build 失败 → 脚本返回非 0",
+      "pass": true
+    }
+  ]
+}

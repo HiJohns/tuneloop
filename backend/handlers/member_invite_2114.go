@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -372,8 +373,20 @@ func InviteToMerchant(c *gin.Context) {
 	}
 
 	// 商户组织（target org）：merchants.org_id
+	// #2403：merchants.tenant_id 是命名空间 org，而 JWT tid 是商户 org —— 用 tenant 过滤恒不匹配；
+	// 改为按 id 查（merchantConfigDB 跳过自动 tenant scope），再用操作者**可见组织**授权，
+	// 不可见一律 404（不泄露商户存在性）。invite 表相关查询仍走原 db scope。
 	var merchant models.Merchant
-	if err := db.Where("id = ? AND tenant_id = ?", merchantID, tenantID).First(&merchant).Error; err != nil {
+	if err := merchantConfigDB(ctx).Where("id = ?", merchantID).First(&merchant).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "商户不存在"})
+		return
+	}
+	visibleOrgs, visErr := middleware.GetVisibleOrgIDs(ctx)
+	if visErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "解析可见组织失败：" + visErr.Error()})
+		return
+	}
+	if len(visibleOrgs) > 0 && !slices.Contains(visibleOrgs, merchant.OrgID) {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "商户不存在"})
 		return
 	}
