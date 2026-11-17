@@ -1,0 +1,11 @@
+[DEBUG] Loaded .env from: ../.env
+2026/11/17 01:03:37 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2402 sslmode=disable
+2026/11/17 01:03:38 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2402
+2026/11/17 01:03:38 [DB] Connected to database 'tuneloop_test_verify2402'
+=== RUN   TestSendStaffInviteInvalidSiteID_2402
+2026/11/17 01:03:40 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2402 sslmode=disable
+2026/11/17 01:03:40 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2402
+2026/11/17 01:03:40 [DB] Connected to database 'tuneloop_test_verify2402'
+--- PASS: TestSendStaffInviteInvalidSiteID_2402 (0.79s)
+PASS
+ok  	tuneloop-backend/handlers	3.669s
