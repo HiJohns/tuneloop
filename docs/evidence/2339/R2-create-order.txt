@@ -1,0 +1,32 @@
+[DEBUG] Loaded .env from: ../.env
+2026/11/17 00:41:16 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
+2026/11/17 00:41:18 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2339
+2026/11/17 00:41:18 [DB] Connected to database 'tuneloop_test_verify2339'
+=== RUN   TestCreateRentalOrder
+2026/11/17 00:41:18 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
+2026/11/17 00:41:18 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2339
+2026/11/17 00:41:18 [DB] Connected to database 'tuneloop_test_verify2339'
+
+2026/11/17 00:41:19 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[358.657ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+
+2026/11/17 00:41:20 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:541 [35;1mrecord not found
+[0m[33m[23.342ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '1bf248c7-5473-4046-b1e4-e841181f6cb8' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/17 00:41:20 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[0.746ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/17 00:41:20 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1650 [35;1mrecord not found
+[0m[33m[1.152ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '1bf248c7-5473-4046-b1e4-e841181f6cb8' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/17 00:41:20 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1658 [35;1mrecord not found
+[0m[33m[2.986ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/17 00:41:20 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[4.469ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '12f875f4-38f7-4e05-9219-1a88a5311ee2' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/17 00:41:20 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[0.856ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '1bf248c7-5473-4046-b1e4-e841181f6cb8' ORDER BY "merchants"."id" LIMIT 1
+--- PASS: TestCreateRentalOrder (1.21s)
+PASS
+ok  	tuneloop-backend/handlers	3.987s

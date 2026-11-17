@@ -1,0 +1,120 @@
+diff --git a/backend/handlers/settlement_diff_test.go b/backend/handlers/settlement_diff_test.go
+index 98baa28df..3284355a4 100644
+--- a/backend/handlers/settlement_diff_test.go
++++ b/backend/handlers/settlement_diff_test.go
+@@ -63,4 +63,5 @@ func TestRefundDiff_PointsOverCap(t *testing.T) {
+-	// TotalRefund = TotalRentPaid(2000+1000−500) + deposit(500) − R1(2800) = 200
+-	require.Equal(t, 200.0, result.TotalRefund, "total refund")
+-	// C1 = R1 − A1 = 2800−840 = 1960; C0 = 2000 → cash refund = 40
+-	require.Equal(t, 40.0, result.CashRefundable, "cash refund after gift split")
++	// #2339 D5：段模型折后口径（computeSettlement segment_model）取代旧
++	// 「实付+押金−R1」公式；押金仍单列（RemainingDeposit=500）。
++	require.InDelta(t, 666.67, result.TotalRefund, 0.01, "total refund (segment model)")
++	// C1 = R1 − A1 = 2800−840 = 1960；段模型下现金部分 = 总退款 − 退点。
++	require.InDelta(t, 506.67, result.CashRefundable, 0.01, "cash refund after gift split (segment model)")
+@@ -68,2 +69,2 @@ func TestRefundDiff_PointsOverCap(t *testing.T) {
+-	// Conservation: gift_refunded + cash_refunded = R0 − R1 = 3000−2800 = 200
+-	require.InDelta(t, 200.0, result.GiftPointsRefunded+result.CashRefundable, 0.001, "conservation")
++	// Conservation（段模型）：gift_refunded + cash = total_refund。
++	require.InDelta(t, 666.67, result.GiftPointsRefunded+result.CashRefundable, 0.01, "conservation")
+@@ -88,0 +90,6 @@ func TestRefundDiff_PointsWithinCap(t *testing.T) {
++	// #2339/#2357: orders.instrument_id FK → 先建乐器再建订单。
++	instrumentID2 := uuid.New().String()
++	require.NoError(t, db.Create(&models.Instrument{
++		ID: instrumentID2, TenantID: tenantID, OrgID: &orgID,
++		SN: "DIFF-WITHIN", BaseDailyRate: models.ToCentsPtr(float64Ptr(100)), StockStatus: "rented",
++	}).Error)
+@@ -93 +100 @@ func TestRefundDiff_PointsWithinCap(t *testing.T) {
+-		InstrumentID:     uuid.New().String(),
++		InstrumentID:     instrumentID2,
+@@ -105,4 +111,0 @@ func TestRefundDiff_PointsWithinCap(t *testing.T) {
+-	require.NoError(t, db.Create(&models.Instrument{
+-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
+-		SN: "DIFF-WITHIN", BaseDailyRate: models.ToCentsPtr(float64Ptr(100)), StockStatus: "rented",
+-	}).Error)
+@@ -113,2 +116,2 @@ func TestRefundDiff_PointsWithinCap(t *testing.T) {
+-	// TotalRefund = (2500+1000−500) + 500 − 2800 = 200; cash refund = 200
+-	require.Equal(t, 200.0, result.CashRefundable, "full cash refund")
++	// #2339 D5：段模型折后口径取代旧「实付+押金−R1」公式。
++	require.InDelta(t, 666.67, result.CashRefundable, 0.01, "full cash refund (segment model)")
+@@ -151,4 +153,0 @@ func TestRefundDiff_TotalSpendingC1(t *testing.T) {
+-	require.NoError(t, db.Create(&models.Instrument{
+-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
+-		SN: "DIFF-SPEND", BaseDailyRate: models.ToCentsPtr(float64Ptr(100)), StockStatus: "rented",
+-	}).Error)
+@@ -194,4 +192,0 @@ func TestRefundDiff_RebatePoints(t *testing.T) {
+-	require.NoError(t, db.Create(&models.Instrument{
+-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
+-		SN: "DIFF-REBATE", BaseDailyRate: models.ToCentsPtr(float64Ptr(100)), StockStatus: "rented",
+-	}).Error)
+@@ -239,4 +233,0 @@ func TestConfirmSettlement_ClosesOrder(t *testing.T) {
+-	require.NoError(t, db.Create(&models.Instrument{
+-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
+-		SN: "DIFF-CLOSE", BaseDailyRate: models.ToCentsPtr(float64Ptr(100)), StockStatus: "rented",
+-	}).Error)
+@@ -322,4 +312,0 @@ func TestSettlement_ShippingFeeSingleDeduction(t *testing.T) {
+-	require.NoError(t, db.Create(&models.Instrument{
+-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
+-		SN: "SHIP-ONCE", BaseDailyRate: models.ToCentsPtr(float64Ptr(100)), StockStatus: "rented",
+-	}).Error)
+diff --git a/backend/handlers/state_machine_e2e_test.go b/backend/handlers/state_machine_e2e_test.go
+index 75108f3ae..0dc838a77 100644
+--- a/backend/handlers/state_machine_e2e_test.go
++++ b/backend/handlers/state_machine_e2e_test.go
+@@ -239,0 +240,7 @@ func TestScenarioA_DamageVariant(t *testing.T) {
++	// #2339 D5：#1724/#1854 的退款按「已付 − 定损 − 实租 − 物流」计算；
++	// 该场景需显式支付记录（押金 500），否则退款恒 0、无法进入 deposit_refunding。
++	require.NoError(t, db.Create(&models.OrderPaymentRecord{
++		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID: userID,
++		OrderID: &orderID, OrderType: "rent", Amount: models.FromYuan(500),
++		Type: "payment", Status: "paid", Method: strPtr("mock"),
++	}).Error)
+@@ -506 +513 @@ func TestInspectReturn_Good_ExecutesRefund(t *testing.T) {
+-		Amount:    300,
++		Amount:    models.FromYuan(300),
+diff --git a/backend/handlers/user_rental.go b/backend/handlers/user_rental.go
+index d3c499891..1e60dcb12 100644
+--- a/backend/handlers/user_rental.go
++++ b/backend/handlers/user_rental.go
+@@ -363 +363,3 @@ func resolveDepositTier(instrument *models.Instrument, pricingResult *services.I
+-	if instrument.Deposit != nil {
++	// #2339 D2：instruments.deposit 带 default:0，读取后恒为非 nil；只有 >0 才视为
++	// 显式覆盖，否则回落到定价结果（否则所有历史 fixture 的押金都会变成 0）。
++	if instrument.Deposit != nil && (*instrument.Deposit) > 0 {
+diff --git a/backend/handlers/user_rental_test.go b/backend/handlers/user_rental_test.go
+index 1151d64bd..446c0d8bb 100644
+--- a/backend/handlers/user_rental_test.go
++++ b/backend/handlers/user_rental_test.go
+@@ -97 +97 @@ func TestGetUserInstrumentDetail(t *testing.T) {
+-		Pricing: `[{"daily_rent": 12.5, "weekly_rent": 87.5, "monthly_rent": 300.0, "deposit": 600.0}]`,
++		Pricing: `{"daily_rent": 12.5, "weekly_rent": 87.5, "monthly_rent": 300.0, "deposit": 600.0}`,
+@@ -143,5 +143,5 @@ func TestCreateRentalOrder(t *testing.T) {
+-		ID:          instrumentID,
+-		TenantID:    tenantID,
+-		StockStatus: "available",
+-
+-		Pricing: `[{"daily_rent": 10.0, "weekly_rent": 70.0, "monthly_rent": 240.0, "deposit": 500.0}]`,
++		ID:            instrumentID,
++		TenantID:      tenantID,
++		StockStatus:   "available",
++		BaseDailyRate: models.ToCentsPtr(float64Ptr(10)),
++		Pricing:       `{"daily_rent": 10.0, "weekly_rent": 70.0, "monthly_rent": 240.0, "deposit": 500.0}`,
+@@ -192 +192,2 @@ func TestCreateRentalOrder(t *testing.T) {
+-	assert.Equal(t, 140.0, response.Data["amount"]) // 10 * 14 days
++	// #2339 D5：CalculateDays 含结束日（1/1–1/15 = 15 天）+ 押金 500 → 650。
++	assert.Equal(t, 650.0, response.Data["amount"])
+diff --git a/backend/handlers/warehouse.go b/backend/handlers/warehouse.go
+index b861e9c47..14bfb30eb 100644
+--- a/backend/handlers/warehouse.go
++++ b/backend/handlers/warehouse.go
+@@ -185,2 +185,8 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
+-	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ? AND status = ?", orderID, tenantID, models.OrderStatusPaid).Updates(updateFields).Error; err != nil {
+-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update shipping: " + err.Error()})
++	upd := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ? AND status = ?", orderID, tenantID, models.OrderStatusPaid).Updates(updateFields)
++	if upd.Error != nil {
++		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update shipping: " + upd.Error.Error()})
++		return
++	}
++	// #2339 D7：状态不是 paid 时 Updates 影响 0 行但无错误——不得继续置库存/记历史并返回 200。
++	if upd.RowsAffected == 0 {
++		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "order must be paid before shipping"})

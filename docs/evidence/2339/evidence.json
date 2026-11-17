@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "issue": 2339,
+  "build": "group-b-2339 db76582",
+  "commit": "db76582f4",
+  "dirty": false,
+  "environment": "backend handlers tests on PG 127.0.0.1:15433 (strict schema); no -short, serial",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2339.sh r1-batch-order > docs/evidence/2339/R1-batch-order.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2339/R1-batch-order.txt"
+      ],
+      "assert": "exit 0；含 --- PASS；不含 SKIP",
+      "actual": "PASS：基线已通过（保留现状，D6）；批次下单租期覆盖断言未改",
+      "expected": "PASS",
+      "negative": "SKIP/FAIL → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2339.sh r2-create-order > docs/evidence/2339/R2-create-order.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2339/R2-create-order.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：陈旧夹具（产品缺陷无关）——Pricing 数组→对象 + BaseDailyRate + CalculateDays 含结束日（15 天），amount 650",
+      "expected": "PASS",
+      "negative": "FAIL → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2339.sh r3-return-refund > docs/evidence/2339/R3-return-refund.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2339/R3-return-refund.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：陈旧夹具——支付记录单位元→分（models.FromYuan(300)），退款公式 #1724/#1854 下现金可退 >0",
+      "expected": "PASS",
+      "negative": "FAIL → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2339.sh r4-refund-diff > docs/evidence/2339/R4-refund-diff.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2339/R4-refund-diff.txt"
+      ],
+      "assert": "exit 0；--- PASS 计数 = 2",
+      "actual": "PASS：段模型（#1743）口径更新 TotalRefund/CashRefundable；instrument 先于 order 创建修 FK；2 个用例 PASS",
+      "expected": "PASS",
+      "negative": "少 1 个 PASS → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2339.sh r5-scenarios > docs/evidence/2339/R5-scenarios.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2339/R5-scenarios.txt"
+      ],
+      "assert": "exit 0；--- PASS 计数 = 2",
+      "actual": "PASS：C4 产品缺陷（发货状态 0 行更新仍 200 → 现 400）；A8 夹具补已付记录使 #1724 退款公式可进入 deposit_refunding",
+      "expected": "PASS",
+      "negative": "少 1 个 PASS → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2339.sh r6-settlement > docs/evidence/2339/R6-settlement.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2339/R6-settlement.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：产品缺陷——instruments.deposit default:0 恒非 nil 覆盖定价；仅 >0 视为显式覆盖，押金 500 恢复",
+      "expected": "PASS",
+      "negative": "FAIL → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2339.sh r7-detail > docs/evidence/2339/R7-detail.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2339/R7-detail.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：陈旧夹具——Pricing 数组→对象（ParseInstrumentPricing 期望对象），daily_rent/deposit 恢复",
+      "expected": "PASS",
+      "negative": "FAIL → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "git diff --unified=0 origin/develop -- backend/handlers > docs/evidence/2339/R8-diff.txt 2>&1 && ! grep -q '^+.*t\\.Skip' docs/evidence/2339/R8-diff.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2339/R8-diff.txt"
+      ],
+      "assert": "exit 0（无新增 SKIP）",
+      "actual": "PASS：backend/handlers diff 无新增 t.Skip；断言未删除（仅按 D5 更新陈旧期望）",
+      "expected": "PASS",
+      "negative": "新增 t.Skip → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    }
+  ]
+}
