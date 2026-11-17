@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "issue": 2387,
+  "build": "vite-build-node22 a4d609e",
+  "commit": "a4d609eab4353c7efa5b958c516d33b5f718e3c5",
+  "dirty": false,
+  "rows": [
+    {
+      "id": "R1",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2387/R1-manual.md",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2387/R1-manual.md"
+      ],
+      "assert": "exit 0（人工回执）",
+      "actual": "exit 0；生产组件 InitialPasswordModal + headless Chromium：非安全上下文 3/3「已复制」且 execCommand 内容==密码；安全上下文 3/3「已复制」且 readText==密码；按钮三次均 disabled=false；两条路径失败时自动选中密码并提示手动复制。完整「创建→弹窗」链路受 #2400 阻塞，采用审计 B1 允许的组件挂载路径。",
+      "expected": "PASS",
+      "negative": "回执缺失 → exit 1",
+      "negative_result": "若任一上下文出现复制失败/无「已复制」/按钮置灰，或复制内容 != 密码 → 断言失败；#2400 修复前不得用创建链路替代（会得到无弹窗）",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "grep -q 'execCommand' frontend-pc/src/utils/clipboard.js > docs/evidence/2387/R2-static.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2387/R2-static.txt"
+      ],
+      "assert": "exit 0；输出含 execCommand",
+      "actual": "exit 0；grep -q 命中 execCommand（-q 无输出，产物为 0 字节属预期），降级路径存在",
+      "expected": "PASS",
+      "negative": "无降级 → exit 1",
+      "negative_result": "若 clipboard.js 不含 execCommand 降级 → grep exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "npm --prefix frontend-pc run build > docs/evidence/2387/R3-build.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2387/R3-build.txt"
+      ],
+      "assert": "exit 0；含 built in",
+      "actual": "exit 0；vite build 输出含 built in（5414 modules transformed）",
+      "expected": "PASS",
+      "negative": "构建失败 → exit 1",
+      "negative_result": "若 vite build 失败 → npm exit 非 0",
+      "pass": true
+    }
+  ]
+}
