@@ -13,7 +13,7 @@
       "artifacts": [
         "docs/evidence/2401/R1-no-selector.md"
       ],
-      "assert": "exit 0（Owner 回执 PASS：无员工类型标签/任何 Radio，引导仍在）",
+      "assert": "exit 0",
       "actual": "PASS：Owner 回执 RESULT: PASS；源码无 员工类型/Radio 选择器（仅保留注释）",
       "expected": "PASS",
       "negative": "缺失 → exit 1",
@@ -27,7 +27,7 @@
       "artifacts": [
         "docs/evidence/2401/R2-payload.md"
       ],
-      "assert": "exit 0（Owner 回执 PASS：请求 user_type=merchant_direct）",
+      "assert": "exit 0",
       "actual": "PASS：Owner 回执 RESULT: PASS；payload 显式 user_type=merchant_direct（staff-management:184）",
       "expected": "PASS",
       "negative": "缺失 → exit 1",
@@ -44,7 +44,7 @@
       "assert": "exit 0；含 built in",
       "actual": "PASS：vite build exit 0，输出含 built in",
       "expected": "PASS",
-      "negative": "构建失败 → exit 1",
+      "negative": "失败 → exit 1",
       "negative_result": "断言失败即 exit 1",
       "pass": true
     }
