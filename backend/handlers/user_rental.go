@@ -81,19 +81,19 @@ func gcdInt64(a, b int64) int64 {
 //   - 乐币折算不得超过券后租金（押金/运费不可用乐币抵扣 → 首付不足）。
 func validatePointsUsage(rentAfterCouponCents, usedCents, ratioNum, ratioDen int64) (int64, *pointsUsageError) {
 	if usedCents < 0 {
-		return 0, &pointsUsageError{40002, "gift points usage must be >= 0"}
+		return 0, &pointsUsageError{40002, "乐币使用数量不能为负"}
 	}
 	if usedCents%100 != 0 {
-		return 0, &pointsUsageError{40002, "gift points must be whole points (multiples of 100 cents)"}
+		return 0, &pointsUsageError{40002, "乐币必须为整点数（100 分/点）"}
 	}
 	capPoints, err := services.CalcPointsCap(rentAfterCouponCents, ratioNum, ratioDen)
 	if err != nil {
-		return 0, &pointsUsageError{40002, "points policy is invalid: " + err.Error()}
+		return 0, &pointsUsageError{40002, "乐币比例配置无效，暂不可使用乐币"}
 	}
 	if usedCents > capPoints*100 {
 		return capPoints, &pointsUsageError{40002, fmt.Sprintf(
-			"gift points usage exceeds max allowed: %.2f points (max %.2f, base=rent after coupon %d cents)",
-			float64(usedCents)/100, float64(capPoints), rentAfterCouponCents)}
+			"乐币使用超出上限：本次 %.2f 点，上限 %.2f 点",
+			float64(usedCents)/100, float64(capPoints))}
 	}
 	return capPoints, nil
 }
@@ -331,7 +331,7 @@ func validateGuarantors(c *gin.Context, db *gorm.DB, userID string, guarantorIDs
 	if err := db.Model(&models.Guarantor{}).
 		Where("id IN ? AND user_id = ?", guarantorIDs, userID).
 		Count(&guarantorCount).Error; err != nil || int(guarantorCount) != len(guarantorIDs) {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid guarantor_ids: guarantors must belong to you"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "担保人无效：只能选择本人的担保人"})
 		return false
 	}
 	return true
@@ -346,11 +346,11 @@ func validateRequestedTier(requested string, fullDeposit, reducedAmount float64)
 	switch requested {
 	case models.DepositTierZero:
 		if fullDeposit > 0 {
-			return fmt.Errorf("zero deposit tier is only available when the instrument deposit is 0")
+			return fmt.Errorf("该乐器不支持零押金档，请选择其他押金档位")
 		}
 	case models.DepositTierReduced:
 		if reducedAmount <= 0 || reducedAmount >= fullDeposit {
-			return fmt.Errorf("reduced deposit tier is not configured for this instrument")
+			return fmt.Errorf("该乐器未配置差额押金档")
 		}
 	}
 	return nil
@@ -399,7 +399,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid parameters: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "请求参数不正确，请检查后重试"})
 		return
 	}
 
@@ -407,12 +407,12 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	tenantID := middleware.GetTenantID(ctx)
 	orgID := middleware.GetOrgID(ctx)
 	if !validDepositTier(req.DepositTier) {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid deposit_tier"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "押金档位无效"})
 		return
 	}
 	creditPath, ok := normalizeDepositCreditPath(req.DepositCreditPath)
 	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid deposit_credit_path"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "押金信用方式无效"})
 		return
 	}
 
@@ -432,7 +432,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	// Look up instrument (no tenant_id filter — guest doesn't know it)
 	var instrument models.Instrument
 	if err := db.Where("id = ? AND stock_status = ?", req.InstrumentID, "available").First(&instrument).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "instrument not available"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "该乐器暂不可租"})
 		return
 	}
 
@@ -495,7 +495,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		Where("id = ? AND tenant_id = ? AND stock_status = ?", req.InstrumentID, effectiveTenantID, "available").
 		First(&lockedInstrument).Error; err != nil {
 		tx.Rollback()
-		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "instrument already reserved"})
+		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "该乐器已被租出"})
 		return
 	}
 
@@ -503,7 +503,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	startDate, err := time.Parse("2006-01-02", req.StartDate)
 	if err != nil {
 		tx.Rollback()
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid start_date format"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "开始日期格式不正确"})
 		return
 	}
 
@@ -521,12 +521,12 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		endDate, err = time.Parse("2006-01-02", req.EndDate)
 		if err != nil {
 			tx.Rollback()
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid end_date format"})
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "结束日期格式不正确"})
 			return
 		}
 		if endDate.Before(startDate) {
 			tx.Rollback()
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "end_date must be after start_date"})
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "结束日期必须晚于开始日期"})
 			return
 		}
 	}
@@ -579,7 +579,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	if requestedTier == models.DepositTierReduced && !validReduced {
 		// #2357 修正：不得静默回落成全额定档（会造成确认页与支付页金额不一致）。
 		tx.Rollback()
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "reduced deposit tier is not configured for this instrument"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "该乐器未配置差额押金档"})
 		return
 	}
 	// #2357：确认页可请求 full / reduced（zero 仅当乐器全额押金 = 0）。
@@ -671,7 +671,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	// Points wallet validation
 	var userWallet models.User
 	if err := db.Where("id = ?", userID).First(&userWallet).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "用户不存在"})
 		tx.Rollback()
 		return
 	}
@@ -711,14 +711,14 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	}
 
 	if req.GiftPointsUsed < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "gift points usage must be >= 0"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "乐币使用数量不能为负"})
 		tx.Rollback()
 		return
 	}
 	if req.GiftPointsUsed > 0 {
 		usedCents := models.FromYuan(req.GiftPointsUsed)
 		if !capRatioResolved {
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "points policy unresolved (legacy_policy_unresolved); points cannot be used"})
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "该订单的乐币比例无法确定，暂不可使用乐币"})
 			tx.Rollback()
 			return
 		}
@@ -736,7 +736,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 			return
 		}
 		if usedCents > walletBalance {
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "insufficient gift points"})
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "乐币不足"})
 			tx.Rollback()
 			return
 		}
@@ -744,7 +744,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 
 	cashPaid := totalAmount - req.GiftPointsUsed
 	if cashPaid < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "points exceed total amount"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "乐币抵扣超过应付金额"})
 		tx.Rollback()
 		return
 	}
@@ -898,7 +898,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		}
 		if consumed < giftUsedCents {
 			tx.Rollback()
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "insufficient gift points"})
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "乐币不足"})
 			return
 		}
 
@@ -1006,7 +1006,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid parameters: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "请求参数不正确，请检查后重试"})
 		return
 	}
 
@@ -1014,12 +1014,12 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 	tenantID := middleware.GetTenantID(ctx)
 	orgID := middleware.GetOrgID(ctx)
 	if !validDepositTier(req.DepositTier) {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid deposit_tier"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "押金档位无效"})
 		return
 	}
 	creditPath, ok := normalizeDepositCreditPath(req.DepositCreditPath)
 	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid deposit_credit_path"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "押金信用方式无效"})
 		return
 	}
 
@@ -1193,7 +1193,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		// （旧版曾按 payscore 放行，等于凭信用免掉全部押金，已按 Owner 口径废止）。
 		if requestedTier == models.DepositTierZero && fullDeposit > 0 {
 			tx.Rollback()
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "zero deposit tier is only available when the instrument deposit is 0"})
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "该乐器不支持零押金档，请选择其他押金档位"})
 			return
 		}
 		deposit := fullDeposit
@@ -1671,7 +1671,7 @@ func computePaymentDeadline(db *gorm.DB, tenantID, orgID string) *time.Time {
 // 全额押金 > 0 的订单不得只凭信用评测免掉全部押金（4xx 拒绝）。
 func validateZeroTierForFullDeposit(tier string, fullDeposit float64) error {
 	if tier == models.DepositTierZero && fullDeposit > 0 {
-		return errors.New("zero deposit tier is only available for instruments with zero full deposit")
+		return errors.New("该乐器不支持零押金档，请选择其他押金档位")
 	}
 	return nil
 }

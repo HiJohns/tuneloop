@@ -788,10 +788,11 @@ function SingleCheckout({ id, navigate, resumePending }) {
         <Text className="block text-center text-xs text-zinc-400 leading-relaxed mb-2 px-1">
           {t('下单之前请您仔细阅读《租用服务协议》、《平台规则文档》、《乐器损耗与赔偿标准》细则')}
         </Text>
+        {/* #2406：主 CTA 固定 48px 高（业界惯例 44~48），不再用上下 padding 撑高 */}
         <Button
           onClick={handleSubmit}
           disabled={submitting}
-          style={{ width: '100%', paddingTop: 12, paddingBottom: 12, backgroundColor: submitting ? 'rgba(185,142,95,0.5)' : '#B98E5F', color: '#fff', borderRadius: 12, border: 'none', outline: 'none', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+          style={{ width: '100%', height: 48, margin: 0, padding: 0, backgroundColor: submitting ? 'rgba(185,142,95,0.5)' : '#B98E5F', color: '#fff', borderRadius: 12, border: 'none', outline: 'none', fontSize: 16, fontWeight: '600', lineHeight: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
         >
           {submitting ? '处理中...' : '提交订单'}
         </Button>
