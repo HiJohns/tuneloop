@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Card, Table, Button, Modal, Form, Input, Select, message, Spin, Space, Popconfirm, Tag, Alert, Radio, Checkbox, Badge } from 'antd'
+import { Card, Table, Button, Modal, Form, Input, Select, message, Spin, Space, Popconfirm, Tag, Alert, Checkbox, Badge } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined, SendOutlined, MailOutlined, ReloadOutlined, TeamOutlined } from '@ant-design/icons'
 import ReactQuill from 'react-quill'
 import PhotoUploader from '../components/PhotoUploader'
@@ -180,6 +180,8 @@ export default function StaffManagement() {
       }
       const payload = {
         ...values,
+        // #2401：表单不再提供员工类型选择；固定为商户直属员工（后端契约不变）。
+        user_type: 'merchant_direct',
         username: values.username.trim(),
         auto_generate: createAutoGenerate,
         force_password_change: createForcePasswordChange,
@@ -723,13 +725,6 @@ export default function StaffManagement() {
           layout="vertical"
           onFinish={handleCreateUser}
         >
-          {/* #2390：移除「网点员工」选项（网点页单一入口）；保留商户直属员工 */}
-          <Form.Item name="user_type" label="员工类型" initialValue="merchant_direct" rules={[{ required: true }]}>
-            <Radio.Group onChange={e => setUserType(e.target.value)}>
-              <Radio value="merchant_direct">商户直属员工</Radio>
-            </Radio.Group>
-          </Form.Item>
-
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
               <Input placeholder="姓名" />
