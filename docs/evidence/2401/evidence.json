@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "issue": 2401,
+  "build": "staff-type-2401 de9541e",
+  "commit": "de9541ee9",
+  "dirty": false,
+  "environment": "PC frontend build (Node 22); R1/R2 Owner browser receipts",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2401/R1-no-selector.md",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2401/R1-no-selector.md"
+      ],
+      "assert": "exit 0（Owner 回执 PASS：无员工类型标签/任何 Radio，引导仍在）",
+      "actual": "PASS：Owner 回执 RESULT: PASS；源码无 员工类型/Radio 选择器（仅保留注释）",
+      "expected": "PASS",
+      "negative": "缺失 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2401/R2-payload.md",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2401/R2-payload.md"
+      ],
+      "assert": "exit 0（Owner 回执 PASS：请求 user_type=merchant_direct）",
+      "actual": "PASS：Owner 回执 RESULT: PASS；payload 显式 user_type=merchant_direct（staff-management:184）",
+      "expected": "PASS",
+      "negative": "缺失 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "npm --prefix frontend-pc run build > docs/evidence/2401/R3-build.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2401/R3-build.txt"
+      ],
+      "assert": "exit 0；含 built in",
+      "actual": "PASS：vite build exit 0，输出含 built in",
+      "expected": "PASS",
+      "negative": "构建失败 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    }
+  ]
+}
