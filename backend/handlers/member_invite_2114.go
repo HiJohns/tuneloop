@@ -400,6 +400,8 @@ func InviteToMerchant(c *gin.Context) {
 	switch kind {
 	case "merchant_staff":
 		role = "merchant_staff" // #2129：直属员工专用角色（含 repair:read）
+	case "repair_technician": // #2405：维修师邀请
+		role = "repair_technician"
 	default:
 		kind = "merchant_member"
 	}

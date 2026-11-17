@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -216,29 +218,14 @@ func AcceptInvite(c *gin.Context) {
 		return
 	}
 
-	// Idempotent: already a member of this site → mark accepted and return.
-	var existing int64
-	db.Model(&models.SiteMember{}).
-		Where("tenant_id = ? AND site_id = ? AND user_id = ?", invite.TenantID, invite.SiteID, user.ID).
-		Count(&existing)
-	if existing == 0 && invite.SiteID != nil {
-		iamRole := toIAMRole(invite.Role)
-		if err := services.NewIAMClient().BindUserToOrganization(user.IAMSub, invite.OrgID, iamRole, user.IAMSub); err != nil {
-			log.Printf("[AcceptInvite] IAM bind failed user=%s org=%s: %v", user.ID, invite.OrgID, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "加入失败，请稍后重试"})
-			return
-		}
-		if err := db.Create(&models.SiteMember{
-			TenantID: invite.TenantID,
-			SiteID:   *invite.SiteID,
-			UserID:   user.ID,
-			Role:     invite.Role,
-			Roles:    []string{invite.Role}, // #2034
-		}).Error; err != nil {
-			log.Printf("[AcceptInvite] local site_member create failed user=%s site=%s: %v", user.ID, strOrEmpty(invite.SiteID), err)
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "加入失败，请稍后重试"})
-			return
-		}
+	// #2405：与 AcceptInvitation 共用 bindInvitee（网点/商户/维修师三路统一落库，幂等）。
+	if err := bindInvitee(db, &invite, &user, inviteBindOpts{
+		nsID:      middleware.GetNamespaceID(ctx),
+		userToken: services.ExtractUserToken(c),
+	}); err != nil {
+		log.Printf("[AcceptInvite] bindInvitee failed user=%s org=%s: %v", user.ID, invite.OrgID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "加入失败，请稍后重试"})
+		return
 	}
 
 	now := time.Now()
@@ -265,6 +252,65 @@ type inviteBindOpts struct {
 	userToken string
 }
 
+// ensureMerchantInviteRows（#2405）：商户级邀请接受后落本地行，幂等且不覆盖已有档案。
+//   - merchant_member / merchant_staff → merchant_members（role=invite.Role）
+//   - repair_technician → merchant_members(role=site_member) + technician_profiles（空档案）
+//   - platform_staff 等平台级 kind 不落商户行。
+func ensureMerchantInviteRows(db *gorm.DB, invite *models.StaffInvite, user *models.User) error {
+	kind := invite.Kind
+	if kind == "" {
+		kind = "merchant_member"
+	}
+	switch kind {
+	case "merchant_member", "merchant_staff", "repair_technician":
+	default:
+		return nil
+	}
+	ctx := context.Background()
+	if db != nil && db.Statement != nil && db.Statement.Context != nil {
+		ctx = db.Statement.Context
+	}
+	var merchant models.Merchant
+	if err := merchantConfigDB(ctx).Where("org_id = ?", invite.OrgID).First(&merchant).Error; err != nil {
+		return fmt.Errorf("merchant not found for org %s: %w", invite.OrgID, err)
+	}
+	tenantID := merchant.OrgID
+	if tenantID == "" {
+		tenantID = invite.TenantID
+	}
+
+	var existing models.MerchantMember
+	err := db.Where("user_id = ?", user.ID).First(&existing).Error
+	if err == gorm.ErrRecordNotFound {
+		role := invite.Role
+		if role == "" || role == "member" || kind == "repair_technician" {
+			role = "site_member"
+		}
+		if e := db.Create(&models.MerchantMember{
+			ID: uuid.New().String(), TenantID: tenantID, MerchantID: merchant.ID,
+			UserID: user.ID, Role: role, Status: "active",
+		}).Error; e != nil {
+			return fmt.Errorf("merchant_member create: %w", e)
+		}
+	} else if err != nil {
+		return fmt.Errorf("merchant_member lookup: %w", err)
+	}
+
+	if kind == "repair_technician" {
+		var tp models.TechnicianProfile
+		if err := db.Where("user_id = ?", user.ID).First(&tp).Error; err == gorm.ErrRecordNotFound {
+			if e := db.Create(&models.TechnicianProfile{
+				ID: uuid.New().String(), UserID: user.ID, TenantID: tenantID, Status: "active",
+			}).Error; e != nil {
+				return fmt.Errorf("technician_profile create: %w", e)
+			}
+		} else if err != nil {
+			return fmt.Errorf("technician_profile lookup: %w", err)
+		}
+	}
+	return nil
+}
+
 // bindInvitee 完成邀请的「组织绑定 + 职能角色模板（#2032）」，幂等。
 //   - 网点级邀请（SiteID 非空）→ IAM bind + site_members 行（已存在则跳过建行）；
 //   - 商户/平台级邀请（SiteID 为空，#2228 P1 修复）→ IAM bind 到 invite.OrgID
@@ -283,6 +329,10 @@ func bindInvitee(db *gorm.DB, invite *models.StaffInvite, user *models.User, opt
 			if err := iamClient.BindUserToOrganization(user.IAMSub, invite.OrgID, iamRole, user.IAMSub); err != nil {
 				return fmt.Errorf("iam bind (merchant): %w", err)
 			}
+		}
+		// #2405：商户级邀请接受后必须落本地成员/档案（此前只做 IAM bind）。
+		if err := ensureMerchantInviteRows(db, invite, user); err != nil {
+			return err
 		}
 		return assignInviteRoleTemplate(iamClient, invite, user, opts)
 	}
