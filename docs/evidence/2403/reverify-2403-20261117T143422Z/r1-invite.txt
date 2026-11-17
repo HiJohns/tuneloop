@@ -1,0 +1,19 @@
+[DEBUG] Loaded .env from: ../.env
+2026/11/17 15:56:34 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/17 15:56:40 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/17 15:56:40 [DB] Connected to database 'tuneloop_test'
+=== RUN   TestInviteToMerchantMerchantScopeFixed_2403
+2026/11/17 15:56:40 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/17 15:56:40 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/17 15:56:40 [DB] Connected to database 'tuneloop_test'
+
+2026/11/17 15:56:41 [32m/home/coder/tuneloop-wt/reverify-2403/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[629.909ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/17 15:56:41 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/17 15:56:41 [31;1m/home/coder/tuneloop-wt/reverify-2403/backend/handlers/member_invite_2114.go:29 [35;1mrecord not found
+[0m[33m[3.236ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE (phone = 'invitee2403@example.com' OR email = 'invitee2403@example.com') AND "users"."tenant_id" = '28f1bda3-5da0-425f-9b7b-af286c6528cc' ORDER BY "users"."id" LIMIT 1
+2026/11/17 15:56:41 [TenantScope][observe] auto-scope injected for table=staff_invites (add explicit scope, then set ExplicitTenantScopeOnly)
+--- PASS: TestInviteToMerchantMerchantScopeFixed_2403 (1.19s)
+PASS
+ok  	tuneloop-backend/handlers	7.872s
