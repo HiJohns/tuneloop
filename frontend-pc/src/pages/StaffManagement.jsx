@@ -21,7 +21,7 @@ export default function StaffManagement() {
   const [searchParams, setSearchParams] = useState({ name: '', siteId: null })
   const [siteTree, setSiteTree] = useState([])
   const [viewMode, setViewMode] = useState('list') // 'list' | 'create'
-  const [userType, setUserType] = useState('site_staff') // #2068: 用户类型
+  const [userType, setUserType] = useState('merchant_direct') // #2390: 仅保留商户直属员工
   const [createPhotoFile, setCreatePhotoFile] = useState(null) // #2073: 创建照片文件（头像，创建后上传）
   const [createPhotoUrl, setCreatePhotoUrl] = useState('') // #2073: 本地预览 URL（选择即预览）
   const [createFormKey, setCreateFormKey] = useState(0) // #2074: 创建表单重挂载 key（清空 ReactQuill 等非受控残留）
@@ -152,13 +152,14 @@ export default function StaffManagement() {
   }
 
   // #2072: 创建表单状态全量重置（表单字段 + 类型 + 照片预览）；四出口统一调用
+  // #2390: 默认类型改为 merchant_direct（网点员工走网点页）
   const resetCreateState = () => {
     createUserForm.resetFields()
     setCreateAutoGenerate(true)
     setCreateForcePasswordChange(true)
     setInitialPasswords([])
     setPasswordModalOpen(false)
-    setUserType('site_staff')
+    setUserType('merchant_direct')
     setCreatePhotoFile(null)
     setCreatePhotoUrl('')
     setCreateFormKey(k => k + 1) // #2074: 强制重挂载（ReactQuill 忽略 value=undefined，仅 resetFields 清不掉编辑器）
@@ -166,9 +167,9 @@ export default function StaffManagement() {
 
   const handleCreateUser = async (values) => {
     try {
-      // #2372：无邮箱时必须给出用户名（后端 #2376 以 username 为唯一必填登录标识）。
+      // #2372：无邮箱时必须给出登录名（后端 #2376 以 username 为唯一必填登录标识）。
       if (!values.username?.trim()) {
-        message.error('请填写用户名')
+        message.error('请填写登录名')
         return
       }
       const payload = {
@@ -270,13 +271,13 @@ export default function StaffManagement() {
       } else if (result.code === 40900) {
         const users = result.data || []
         const names = users.map(u => `${u.name}(${u.phone})`).join(', ')
-        message.error(`创建用户失败：姓名、手机号或邮箱与以下用户冲突: ${names}`)
+        message.error(`创建员工失败：姓名、手机号或邮箱与以下员工冲突: ${names}`)
       } else {
         // #2290：4091x（IAM 字段冲突）等未显式处理的 code 不得静默
-        message.error(resolveErrorMessage(result, '创建用户失败，请稍后重试'))
+        message.error(resolveErrorMessage(result, '创建员工失败，请稍后重试'))
       }
     } catch (error) {
-      message.error('创建用户失败: ' + error.message)
+      message.error('创建员工失败: ' + error.message)
     }
   }
 
@@ -314,7 +315,7 @@ export default function StaffManagement() {
     try {
       const res = await staffApi.batchDelete([record.id])
       if (res.code === 20000) {
-        message.success('用户已删除')
+        message.success('员工已删除')
         fetchStaffList()
       } else {
         message.error(res.message || '删除失败')
@@ -328,7 +329,7 @@ export default function StaffManagement() {
     try {
       const res = await staffApi.activateUser(record.id)
       if (res.code === 20000) {
-        message.success('用户已激活')
+        message.success('员工已激活')
         fetchStaffList()
       } else {
         message.error(res.message || '激活失败')
@@ -340,7 +341,7 @@ export default function StaffManagement() {
 
   const handleResetPassword = async (userIds) => {
     if (!userIds || userIds.length === 0) {
-      message.warning('请先选择要重设密码的用户')
+      message.warning('请先选择要重设密码的员工')
       return
     }
     // #2389 Rev.3：混合批量先过滤无邮箱行；全部无邮箱则只提示、不发请求。
@@ -370,12 +371,12 @@ export default function StaffManagement() {
 
   const handleBatchDelete = () => {
     if (selectedRowKeys.length === 0) {
-      message.warning('请先选择要删除的用户')
+      message.warning('请先选择要删除的员工')
       return
     }
     Modal.confirm({
       title: '批量删除确认',
-      content: `确定要删除选中的 ${selectedRowKeys.length} 个用户吗？此操作不可恢复。`,
+      content: `确定要删除选中的 ${selectedRowKeys.length} 个员工吗？此操作不可恢复。`,
       okText: '确定删除',
       cancelText: '取消',
       okButtonProps: { danger: true },
@@ -384,7 +385,7 @@ export default function StaffManagement() {
         try {
           const result = await staffApi.batchDelete(selectedRowKeys)
           if (result.code === 20000) {
-            message.success(`已成功删除 ${result.data.deleted} 个用户`)
+            message.success(`已成功删除 ${result.data.deleted} 个员工`)
             setSelectedRowKeys([])
             fetchStaffList()
           } else {
@@ -401,7 +402,7 @@ export default function StaffManagement() {
 
   const handleBatchResetPassword = async () => {
     if (selectedRowKeys.length === 0) {
-      message.warning('请先选择要重设密码的用户')
+      message.warning('请先选择要重设密码的员工')
       return
     }
     setBatchLoading(true)
@@ -522,7 +523,7 @@ export default function StaffManagement() {
             重设密码
           </Button>
           <Popconfirm
-            title={`确定删除用户「${record.name}」？`}
+            title={`确定删除员工「${record.name}」？`}
             onConfirm={() => handleDeleteUser(record)}
             okText="确定"
             cancelText="取消"
@@ -593,7 +594,7 @@ export default function StaffManagement() {
               icon={<PlusOutlined />}
               onClick={() => { resetCreateState(); setViewMode('create') }} // #2072: 进入即重置
             >
-              创建用户
+              创建员工
             </Button>
           </Space>
         }
@@ -684,7 +685,7 @@ export default function StaffManagement() {
       </Card>
       ) : (
       <Card 
-        title="创建用户" 
+        title="创建员工" 
         extra={
           <Button onClick={() => { resetCreateState(); setViewMode('list') }}>
             返回列表
@@ -693,7 +694,14 @@ export default function StaffManagement() {
         className="mb-4" 
         size="small"
       >
-        {/* #2068: 去「搜索用户」Tab（死 Tab：state 从未写入）；直接展示创建表单 */}
+        {/* #2390：网点员工创建统一走「网点管理 → 成员」；本页仅创建商户直属员工 */}
+        <Alert
+          type="info"
+          showIcon
+          className="mb-3"
+          message="网点员工请在「网点管理 → 成员」中创建"
+          action={<Button size="small" type="link" onClick={() => navigate('/organization/sites')}>前往网点管理</Button>}
+        />
         <Form
           key={createFormKey}
           name="staff-create" /* #2072: 命名空间化字段 id */
@@ -701,10 +709,9 @@ export default function StaffManagement() {
           layout="vertical"
           onFinish={handleCreateUser}
         >
-          {/* #2068: 用户类型置首（不同类型后续可扩展字段） */}
-          <Form.Item name="user_type" label="用户类型" initialValue="site_staff" rules={[{ required: true }]}>
+          {/* #2390：移除「网点员工」选项（网点页单一入口）；保留商户直属员工 */}
+          <Form.Item name="user_type" label="员工类型" initialValue="merchant_direct" rules={[{ required: true }]}>
             <Radio.Group onChange={e => setUserType(e.target.value)}>
-              <Radio value="site_staff">网点员工</Radio>
               <Radio value="merchant_direct">商户直属员工</Radio>
             </Radio.Group>
           </Form.Item>
@@ -715,11 +722,11 @@ export default function StaffManagement() {
             </Form.Item>
             <Form.Item
               name="username"
-              label="登录用户名"
-              rules={[{ required: true, message: '请填写用户名' }]}
+              label="登录名"
+              rules={[{ required: true, message: '请填写登录名' }]}
               extra="仅用于登录，平台内唯一。员工姓名请填「姓名」。"
             >
-              <Input placeholder="登录用户名" autoComplete="off" />
+              <Input placeholder="登录名" autoComplete="off" />
             </Form.Item>
             <Form.Item name="email" label="邮箱（选填）">
               <Input placeholder="留空则用下方密码模式直接创建" />
@@ -773,13 +780,13 @@ export default function StaffManagement() {
               onSelect={(f) => { setCreatePhotoFile(f); setCreatePhotoUrl(URL.createObjectURL(f)) }}
             />
             <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
-              照片将在创建成功后上传；也可稍后在用户编辑中更换。
+              照片将在创建成功后上传；也可稍后在员工编辑中更换。
             </div>
           </Form.Item>
 
           {/* #2372：密码模式默认自动生成；「有邮箱且未设密码」时后端保留邀请（邮件）语义 */}
           <Space>
-            <Button type="primary" htmlType="submit">创建用户</Button>
+            <Button type="primary" htmlType="submit">创建员工</Button>
             <Button onClick={() => { resetCreateState(); setViewMode('list') }}>取消</Button>
           </Space>
         </Form>
@@ -795,10 +802,10 @@ export default function StaffManagement() {
         title="初始密码（仅展示一次）"
       />
 
-      {/* #2052：原「用户已存在」冲突选择对话框已移除 —— 改为发送邀请通知 */}
+      {/* #2052：原「员工已存在」冲突选择对话框已移除 —— 改为发送邀请通知 */}
 
       <Modal
-        title="编辑用户"
+        title="编辑员工"
         open={editModalVisible}
         onCancel={() => setEditModalVisible(false)}
         onOk={handleSubmitEdit}
