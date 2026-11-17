@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "issue": 2400,
+  "build": "vite-build-node22 26e741e",
+  "commit": "26e741e77768811db0b4da585292e90d11f43917",
+  "dirty": false,
+  "rows": [
+    {
+      "id": "R1",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2400/R1-modal.md",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2400/R1-modal.md"
+      ],
+      "assert": "exit 0（含红绿两段）",
+      "actual": "exit 0；红：修复前 modalCount=0（POST 200 无弹窗）；绿：修复后 modalCount=1、标题「已创建 · 初始密码仅显示一次」、identifier 与 12 位密码均在弹窗内",
+      "expected": "PASS",
+      "negative": "缺失/仍无弹窗 → exit 1",
+      "negative_result": "若 R1-modal.md 缺失或不含 RESULT: PASS，或绿证 modalCount=0 → 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2400/R2-reset.md",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2400/R2-reset.md"
+      ],
+      "assert": "exit 0",
+      "actual": "exit 0；关闭后弹窗不可见、DOM 无明文、列表含新成员、再次进入表单为空",
+      "expected": "PASS",
+      "negative": "缺失 → exit 1",
+      "negative_result": "若 R2-reset.md 缺失或不含 RESULT: PASS → grep exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2400/R3-manual.md",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2400/R3-manual.md"
+      ],
+      "assert": "exit 0",
+      "actual": "exit 0；手动密码路径 modalCount=0，显示「已创建，账号可用用户名 + 你设置的密码登录」，无自动生成文案",
+      "expected": "PASS",
+      "negative": "缺失 → exit 1",
+      "negative_result": "若 R3-manual.md 缺失或不含 RESULT: PASS → grep exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "npm --prefix frontend-pc run build > docs/evidence/2400/R4-build.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2400/R4-build.txt"
+      ],
+      "assert": "exit 0；含 built in",
+      "actual": "exit 0；vite build 输出含 built in",
+      "expected": "PASS",
+      "negative": "失败 → exit 1",
+      "negative_result": "若构建失败 → npm exit 非 0",
+      "pass": true
+    }
+  ]
+}
