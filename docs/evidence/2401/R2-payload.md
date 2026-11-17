@@ -1,15 +1,7 @@
-# R2 人工回执 —— 创建请求固定 user_type=merchant_direct
+# R2 人工回执 —— 创建表单提交负载（user_type）
 
 > executor: user
-> DevTools → Network，提交一次创建，核对后把 `- 操作人：user (Owner)
-- 时间：2026-11-172026-11-17
-- 备注：Owner 2026-11-17 实测：创建 shanghuyuangong3 成功；POST /api/users 请求体含 user_type="merchant_direct"。Owner 2026-11-17 实测：创建 shanghuyuangong3 成功；POST /api/users 请求体含 user_type="merchant_direct"。
-
-RESULT: PASS` 改为 `- 操作人：user (Owner)
-- 时间：2026-11-172026-11-17
-- 备注：Owner 2026-11-17 实测：创建 shanghuyuangong3 成功；POST /api/users 请求体含 user_type="merchant_direct"。Owner 2026-11-17 实测：创建 shanghuyuangong3 成功；POST /api/users 请求体含 user_type="merchant_direct"。
-
-RESULT: PASS`。
+> DevTools → Network，提交一次创建，核对后把 `RESULT: PENDING` 改为 `RESULT: PASS`（或 FAIL + 原因）。
 
 | # | 核对项 | 期望 | 勾选 |
 |---|---|---|---|
@@ -18,7 +10,7 @@ RESULT: PASS`。
 | 3 | 创建成功（200/201，无 400） | 是 | [x] |
 
 - 操作人：user (Owner)
-- 时间：2026-11-172026-11-17
-- 备注：Owner 2026-11-17 实测：创建 shanghuyuangong3 成功；POST /api/users 请求体含 user_type="merchant_direct"。Owner 2026-11-17 实测：创建 shanghuyuangong3 成功；POST /api/users 请求体含 user_type="merchant_direct"。
+- 时间：2026-11-17
+- 备注：Owner 2026-11-17 实测：创建 shanghuyuangong3 成功；POST /api/users 请求体含 user_type="merchant_direct"。
 
 RESULT: PASS
