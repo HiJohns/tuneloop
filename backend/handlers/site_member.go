@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"github.com/google/uuid"
 	"log"
 	"net/http"
 	"time"
@@ -323,6 +324,11 @@ func (h *SiteMemberHandler) RemoveMember(c *gin.Context) {
 
 // hasSiteAccess checks if user has access to site
 func hasSiteAccess(db *gorm.DB, tenantID, siteID string, c *gin.Context) bool {
+	// #2402 D4：路径 id 非 UUID 时直接 400，禁止把原始值拼进 uuid 查询（SQLSTATE 22P02）。
+	if _, err := uuid.Parse(siteID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "site_id is invalid"})
+		return false
+	}
 	var count int64
 	result := db.Model(&models.Site{}).
 		Where("id = ? AND tenant_id = ?", siteID, tenantID).

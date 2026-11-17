@@ -191,32 +191,60 @@ export default function StaffManagement() {
       if (createAutoGenerate) delete payload.password
       const checkResult = await staffApi.checkUserExists(values.phone, values.email, values.username)
       if (checkResult.code === 20000 && checkResult.data?.exists) {
-        // #2052：撞库 → 不再硬报冲突，改为向既有账户发送「加入邀请通知」，
-        // 由被邀请人本人在「系统消息」接受/拒绝（一人一号，禁止管理员代挂）。
+        // #2402 Rev.2：撞库不自动发邀请；先提示冲突，由管理员显式选择。
         const users = checkResult.data.users || []
-        const who = users[0]?.name || users[0]?.phone || users[0]?.email || ''
-        const identifier = values.phone || values.email || ''
-        const invite = await staffApi.sendStaffInvite(values.site_id, {
-          identifier,
-          role: values.role || 'site_member',
-        })
-        if (invite.code === 20100) {
-          Modal.info({
-            title: '已发送邀请通知',
-            width: 480,
-            content: (
-              <div>
-                <p>该手机号/邮箱已有账户{who ? `（${who}）` : ''}。</p>
-                <p>已向其发送<b>邀请通知</b>，请其打开「系统消息」选择<b>接受</b>或<b>拒绝</b>。</p>
-                <p style={{ fontSize: 12, color: '#999' }}>接受后即绑定为本人账户成员，无需管理员代为创建。</p>
-              </div>
-            ),
-          })
-          resetCreateState() // #2072
-          setViewMode('list')
-        } else {
-          message.error(invite.message || '发送邀请失败')
+        const existing = users[0] || {}
+        const who = existing.name || existing.phone || existing.email || ''
+        const identifier = values.phone || values.email || values.username || ''
+        let merchantId = null
+        if (userType === 'merchant_direct') {
+          try {
+            const m = await invitesApi.myMerchant()
+            if (m.code === 20000) merchantId = m.data?.id || null
+          } catch { /* 无商户上下文 → 禁用邀请按钮 */ }
         }
+        const canInvite = userType === 'merchant_direct'
+          ? !!merchantId
+          : (userType === 'site_staff' ? !!values.site_id : false)
+        const inviteHint = userType === 'repair_technician'
+          ? '维修师请到「直属成员管理」邀请，或让本人登录后加入。'
+          : (canInvite
+            ? '将向该账号发送「加入邀请」，由本人在系统消息中接受。'
+            : '当前上下文无法发送邀请，请到「负责人管理 / 邀请管理」操作。')
+        Modal.confirm({
+          title: '该手机号/邮箱已注册',
+          width: 520,
+          content: (
+            <div>
+              <p>已有账户{who ? `（${who}）` : ''}使用该手机号/邮箱/登录名。</p>
+              <p>{inviteHint}</p>
+            </div>
+          ),
+          okText: '发送加入邀请',
+          okButtonProps: { disabled: !canInvite },
+          cancelText: '修改信息',
+          onOk: async () => {
+            if (!canInvite) return
+            const resp = userType === 'merchant_direct'
+              ? await invitesApi.inviteToMerchant(merchantId, { identifier, kind: 'merchant_staff' })
+              : await staffApi.sendStaffInvite(values.site_id, { identifier, role: values.role || 'site_member' })
+            if (resp.code === 20100) {
+              message.success('邀请已发出，待对方接受')
+              resetCreateState()
+              setViewMode('list')
+            } else {
+              message.error(resp.message || '发送邀请失败')
+            }
+          },
+          onCancel: () => {
+            // 修改信息：清空冲突字段并聚焦，不发任何请求。
+            if (values.phone && existing.phone === values.phone) createUserForm.setFieldsValue({ phone: '' })
+            else if (values.email && existing.email === values.email) createUserForm.setFieldsValue({ email: '' })
+            else if (values.username && existing.username === values.username) createUserForm.setFieldsValue({ username: '' })
+            createUserForm.scrollToField('phone')
+            setTimeout(() => document.getElementById('staff-create_phone')?.focus(), 0)
+          },
+        })
         return
       }
 
