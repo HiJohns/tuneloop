@@ -517,3 +517,11 @@ Response shape: `{ "code": 20000, "data": { "level_id": N, "list": [{ "id", "lev
 Table: `membership_level_benefits` (migration 20260907001, seeded with per-tier draft copy).
 
 *Model: deepseek-v4-flash*
+
+## WeChat Pay Score deposit contract (#2327 S1–S4)
+
+- Order snapshot fields: `deposit_tier` (full/reduced/zero), `credit_state` (pending/approved/rejected/cancelled/failed), `credit_risk_amount_cents` (waiver amount in cents), `credit_service_order_no`, `credit_assessed_at`.
+- `POST /api/user/orders/:id/credit-assessment` creates or reuses the Pay Score service order; `GET /api/user/orders/:id/credit-status` refreshes the state machine.
+- Payment gate: reduced/zero orders cannot be paid until `credit_state == approved`; full orders are unaffected.
+- Config: `PAYSCORE_ENABLED` (default false = mock provider), `PAYSCORE_SERVICE_ID`, `PAYSCORE_RISK_MAX_CENTS` (must be >= the waiver amount).
+- Risk amount semantics: `credit_risk_amount_cents` is the waiver amount (zero = full deposit; reduced = full - reduced), not the order total.

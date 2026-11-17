@@ -372,3 +372,11 @@ Submit → refresh list
 ---
 
 *Model: zhipuai/glm-5*
+
+## WeChat Pay Score launch (#2327)
+
+| Dimension | H5 | weapp | Verdict |
+|---|---|---|---|
+| Launch API | jweixin + openBusinessView (pending v2/D6) | wx.openBusinessView | acceptable difference |
+| Entry visibility | hidden until D6 | shown for reduced/zero before approval | acceptable difference |
+| Outside WeChat | falls back to normal payment with notice | n/a | acceptable difference |

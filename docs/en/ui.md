@@ -526,3 +526,10 @@ Shared page `frontend-mobile/src/pages/MembershipCenter.jsx` (H5 + weapp), top-t
 6. **Membership Rules & Benefits Handbook card** (new, bottom; backend-editable since the #1830 follow-up): collapsible title「会员规则与权益手册」; body renders the admin-configured rich text from PC "策略配置-会员手册编辑" (settings key `membership_handbook`, read via `GET /public/settings/:key`, images normalized by `normalizeContentUrls`); falls back to the unified static copy (`HANDBOOK_SECTIONS`) when no admin content exists — identical for all members
 
 *Model: deepseek-v4-flash*
+
+## WeChat Pay Score & three deposit tiers (#2327 S3/S4)
+
+- Checkout shows full deposit and, when configured, a reduced-deposit toggle with saved guarantors (at least two) selected on the same page.
+- Payment page shows a "WeChat credit assessment" entry and disables payment for reduced/zero orders until `credit_state == approved`.
+- Credit assessment page takes only `order_id`; the backend supplies tier and `risk_amount_cents`. It is the single WeChat hand-off point (`wx.openBusinessView` in weapp).
+- H5 Pay Score (jweixin + openBusinessView) is pending v2/D6; outside WeChat it falls back to normal payment with an explanation.

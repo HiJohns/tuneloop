@@ -75,3 +75,14 @@
 - 责任人：任何改动触及 H5↔weapp 差异的开发/评审。
 - 更新时机：发现未覆盖差异时**先改本文件**（见顶部强制要求）。
 - 关联：`scripts/h5-weapp-parity.sh`（机械快照）、`docs/topics/h5-weapp-parity.md`（白名单+快照）、Issue #2172（一致性 umbrella）。
+
+## 6. 微信支付分拉起（#2327）
+
+| 维度 | H5（`wx.cadenzayueqi.com`） | weapp | 判定 |
+|---|---|---|---|
+| 拉起 API | `jweixin` + `openBusinessView`（待 v2/D6） | `wx.openBusinessView`（`platform/index.weapp.js`） | 可接受差异（H5 待实现） |
+| 入口展示 | 暂不展示支付分入口（D6） | `reduced`/`zero` 未 approved 时展示「微信信用评测」 | 可接受差异 |
+| 微信外浏览器 | 不支持支付分，降级普通支付并提示 | 不适用 | 可接受差异 |
+
+- H5 启用支付分前必须完成公众号 JSAPI/APIv2 密钥配置与真机验证；在此之前不得在 H5 展示「微信信用评测」按钮。
+- 任何新增差异必须先登记本文件（AGENTS.md 强制同步要求）。

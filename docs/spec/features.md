@@ -304,3 +304,14 @@
 - [ ] 如有新页面，checklist-verify.py 是否需要补控件映射
 
 **反例**：#1545 平台管理员用户管理实现了 4 个 API + 1 个新页面，首次提交时无 docs/cases 文档，后续补充。
+
+## 九、微信支付分押金与三档押金（#2327 S1–S4）
+
+- **三档押金：full / reduced / zero**（`orders.deposit_tier` 快照）：
+  - `full` 恒可用；`reduced` 需配置第二档且 `0 < reduced < full`；`zero` 仅当乐器全额押金 = 0 或支付分通过后减免至 0。
+  - 差额档（reduced）需至少 2 位担保人，担保人在确认订单页选择并随下单提交。
+- **微信支付分评测**：下单后经 `POST /api/user/orders/:id/credit-assessment` 拉起评测；通过后 `orders.credit_state=approved`，按 `credit_risk_amount_cents`（= 减免额度）免押/减押；不通过则按原档位支付。
+- **零押金失败兜底（D4）**：zero 评测未通过时该订单**不可用**（不得回落到内部免押）；用户需改选 full/reduced 重新下单。
+- **内部免押（D1）保留**：既有学生/教师免押与推荐信流程与支付分**并列**，不互相替代。
+- **开关**：`PAYSCORE_ENABLED` 默认 false（mock provider，零网络请求）；上线前由 ops 配置 `PAYSCORE_SERVICE_ID` / `PAYSCORE_RISK_MAX_CENTS` 并置 true。
+- 历史订单无 `deposit_tier` 快照时按 full 处理；不回溯改写已支付订单。

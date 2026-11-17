@@ -1,0 +1,27 @@
+OK docs/spec/features.md :: 三档押金：full / reduced / zero
+OK docs/spec/features.md :: PAYSCORE_ENABLED
+OK docs/spec/features.md :: 零押金失败兜底（D4）
+OK docs/spec/features.md :: 内部免押（D1）保留
+OK docs/spec/api/api.md :: credit_state
+OK docs/spec/api/api.md :: credit_risk_amount_cents
+OK docs/spec/api/api.md :: POST /api/user/orders/:id/credit-assessment
+OK docs/spec/api/api.md :: GET /api/user/orders/:id/credit-status
+OK docs/spec/api/api.md :: PAYSCORE_SERVICE_ID
+OK docs/spec/api/api.md :: PAYSCORE_RISK_MAX_CENTS
+OK docs/spec/api/api.md :: reduced` / `zero` 订单在 `credit_state != approved`
+OK docs/spec/ui/ui.md :: 微信信用评测
+OK docs/spec/ui/ui.md :: 结算页三档
+OK docs/spec/ui/ui.md :: 信用评测页契约
+OK docs/spec/ui/ui.md :: return_path
+OK docs/spec/ui/ui.md :: H5 / weapp 差异
+OK docs/topics/wechat/wechat-pay-integration.md :: PayScoreProvider
+OK docs/topics/wechat/wechat-pay-integration.md :: 回调验签
+OK docs/topics/wechat/wechat-pay-integration.md :: jweixin
+OK docs/topics/wechat/wechat-pay-integration.md :: S3b
+OK docs/cases/h5-weapp-differences.md :: openBusinessView
+OK docs/cases/h5-weapp-differences.md :: jweixin
+OK docs/cases/h5-weapp-differences.md :: H5 展示「微信信用评测」
+OK docs/topics/wechat/wechat-payscore-deposit-waiver.md :: 已立项/实现中
+OK docs/topics/wechat/wechat-payscore-deposit-waiver.md :: D1–D9
+OK docs/topics/wechat/wechat-payscore-deposit-waiver.md :: risk 金额口径
+OK docs/topics/wechat/wechat-payscore-deposit-waiver.md :: S0 商务前置

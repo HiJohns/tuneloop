@@ -206,3 +206,10 @@ orders 新增（或独立 order_payscore 表）：
 - JSAPI 调起支付分确认订单页：<https://pay.weixin.qq.com/doc/v3/merchant/4012587945>
 - 小程序调起支付分-确认订单：<https://pay.weixin.qq.com/doc/v3/merchant/4012587949>
 - 免确认模式（灰度未开放）：<https://pay.weixin.qq.com/doc/v3/merchant/4012646720>
+
+## 10. 实施状态（#2327，2026-11）
+
+- **状态：已立项/实现中**（S1–S4 已合入 develop：模型/迁移、provider、评测接口、支付闸门、前端三档与评测页；S0 商务资质为上线前置）。
+- **D1–D9**：内部免押与支付分并列（D1）；risk 金额 = 减免额度（D2）；reduced 需 2 位担保人（D3）；zero 失败不可用（D4）；先建单后评测（D5）；H5 待 v2（D6）；`PAYSCORE_ENABLED` 默认 false（D7）；评测页契约（D8）；S0 仅阻塞上线（D9）。
+- **risk 金额口径**：`credit_risk_amount_cents` = 本单减免额度（零押金 = 全额押金；差额档 = full − reduced），不得写成订单总价或租金。
+- **S0 商务前置**：微信支付分 `service_id` 与费率协议未就绪前保持 `PAYSCORE_ENABLED=false`（mock），不影响普通支付与内部免押。

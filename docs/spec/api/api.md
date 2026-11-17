@@ -7119,3 +7119,33 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 
 
 ---
+
+## 十五、微信支付分押金契约（#2327 S1–S4）
+
+### 15.1 订单字段（快照）
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `deposit_tier` | string | `full` / `reduced` / `zero`（下单快照） |
+| `credit_state` | string | `''` / `pending` / `approved` / `rejected` / `cancelled` / `failed` |
+| `credit_risk_amount_cents` | int64 | 评测标的/减免额度（分），= 零押金减免额度 |
+| `credit_service_order_no` | string | 微信支付分服务订单号（幂等键） |
+| `credit_assessed_at` | timestamp | 最近一次评测完成时间 |
+
+### 15.2 接口
+
+- `POST /api/user/orders/:id/credit-assessment`：创建/复用支付分服务单；已 `approved` 直接返回现状，`pending` 复用同一 `credit_service_order_no`（不重复建单）。返回 `credit_state`、`credit_service_order_no`、`risk_amount_cents`。
+- `GET /api/user/orders/:id/credit-status`：查询并推进状态机（pending → approved/rejected），返回同上字段。
+- **支付闸门**：`reduced` / `zero` 订单在 `credit_state != approved` 时，支付接口返回 400 并提示先完成微信信用评测；`full` 不受影响。
+
+### 15.3 配置
+
+| 变量 | 默认 | 说明 |
+|---|---|---|
+| `PAYSCORE_ENABLED` | false | false=mock provider（零网络）；true=真实微信支付分 |
+| `PAYSCORE_SERVICE_ID` | 空 | 微信支付分服务 ID（S0 商务开通后配置） |
+| `PAYSCORE_RISK_MAX_CENTS` | 0 | 单笔风险上限（分），须 >= 减免额度 |
+
+### 15.4 回调
+
+支付分回调走既有微信支付回调验签链路；`credit_state` 只由服务端状态机推进，客户端上报的状态不采信。

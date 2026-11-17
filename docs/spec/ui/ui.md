@@ -3779,3 +3779,29 @@ components/
 - **路由**：`/repair/requests` → Tab「服务单」（仅 cus_perm `repair:read` 者可见；**网点员工隐藏**）
 - **数据源**：`GET /api/admin/repair-services`（**授权范围=商户组织**，网点账号后端返回空）
 - **交互**：状态筛选 + 起止时间（默认近 30 天，前端控制）+ 分页；列：编码/状态/顾客(脱敏)/维修师/报价合计/已付/待补缴/创建时间/更新时间/详情
+
+## 八、微信支付分与三档押金 UI（#2327 S3/S4）
+
+### 8.1 结算页三档
+
+- 乐器全额押金 > 0 时展示全额押金；配置了差额档时展示「差额押金」拉杆（默认关），展开后可勾选已保存担保人（>=2）并支持本页新增。
+- 全额押金 = 0 时不展示档位选择，押金显示 ¥0。
+- 档位结果随下单提交：`deposit_tier` + `guarantor_ids` + `deposit_credit_path=payscore`。
+
+### 8.2 支付页「微信信用评测」入口
+
+- `reduced` / `zero` 订单在 `credit_state != approved` 时，支付页展示「微信信用评测」入口并禁用支付按钮。
+- 入口跳转信用评测页；评测通过后回到支付页，金额与所选档位一致。
+
+### 8.3 信用评测页契约
+
+- 页面只接收 `order_id`（由后端返回 `risk_amount_cents` / `tier`）；不再接收前端传入的 `tier`/风险金额。
+- 唯一微信交接点：小程序 `wx.openBusinessView`；H5 暂未启用（见 §8.4）。
+- `return_path`：评测完成后返回的站内路径（默认支付页），仅允许站内相对路径。
+- 评测标的金额 = 乐器原价（`risk_amount_cents`），不得显示「—」。
+
+### 8.4 H5 / weapp 差异
+
+- weapp：小程序内通过 `wx.openBusinessView` 拉起支付分服务单。
+- H5：`jweixin` + 微信 JSAPI 的支付分拉起**待 v2（D6）**，当前 H5 不展示支付分入口；微信外浏览器不支持时降级为普通支付并提示。
+- 两端差异登记见 `docs/cases/h5-weapp-differences.md`。

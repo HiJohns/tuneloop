@@ -601,3 +601,13 @@ curl -X POST -H "Content-Type: application/json" -d '{}' "https://api.weixin.qq.
 | 差额支付 | 乐器全额押金 > 0，选差额且提供 2 位担保人 | `deposit_reduced` | 有 | 2 位 |
 
 评测页 URL（用于支付分申请）：`/credit-assessment`（H5）、`pages-weapp/credit-assessment/index`（小程序）。
+
+## 微信支付分押金接入（#2327 S1–S4）
+
+- **Provider seam**：`services/wechatpay.NewPayscoreProvider` 默认 mock（`PAYSCORE_ENABLED=false`，零网络请求）；置 true 且配置私钥后走真实微信支付分客户端。业务代码只依赖 `PayScoreProvider` 接口，便于灰度与回滚。
+- **配置**：`PAYSCORE_ENABLED`（默认 false）、`PAYSCORE_SERVICE_ID`（S0 商务开通后配置）、`PAYSCORE_RISK_MAX_CENTS`（风险上限，须 >= 单笔减免额度）；与 `WECHAT_PAY_*` 支付配置分离。
+- **服务单**：下单后创建/复用 `credit_service_order_no`（幂等）；`pending` 复用同一单，`approved` 直接返回。
+- **回调验签**：支付分回调复用微信支付 APIv3 验签与解密链路；回调只推进服务端状态机，客户端上报不采信。
+- **H5 拉起**：需 `jweixin` + 公众号 JSAPI（APIv2 密钥）在微信内浏览器打开 `openBusinessView`；微信外浏览器降级普通支付（待 v2/D6）。
+- **S3b 结算/退款差异**：`reduced`/`zero` 订单结算时只有实际收取的现金押金可退；支付分减免部分只做服务单 complete/cancel，**绝不返现**（`ResolveSettlementAction`）。
+- **上线开关**：S0 商务资质（service_id）就绪后置 `PAYSCORE_ENABLED=true` 并重启；未就绪保持 mock，不影响普通支付。
