@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2333,
-  "build": "s4-credit-assessment a33bedd (weapp+H5, copy-synced)",
-  "commit": "a33beddd8bc810ee535cb1313fba48e414736e2e",
+  "build": "s4-credit-assessment 607cdf58f (merged develop)",
+  "commit": "607cdf58ff2765fbe03eb3fd9a7d0134857abd62",
   "dirty": false,
   "environment": "Linux worktree /tmp/opencode/wt-2333-work @ origin/develop; Node 22.22.3; 机器行已跑，R5/R6 等 Owner 真机",
   "rows": [
@@ -14,7 +14,7 @@
         "docs/evidence/2333/R1-weapp-build.txt"
       ],
       "assert": "退出码 0；探针 0 字节",
-      "actual": "exit 0；HEAD a33beddd8 重跑 weapp build；credit-assessment/home wxml 原生标签探针 0 命中",
+      "actual": "exit 0；HEAD a33beddd8 重跑 weapp build；credit-assessment/home wxml 原生标签探针 0 命中｜已在合并 HEAD 607cdf58f 重跑",
       "expected": "exit 0",
       "negative": "产物含原生标签 → 非 0",
       "negative_result": "见各脚本断言（负例在实现内建）",
@@ -28,7 +28,7 @@
         "docs/evidence/2333/R2-h5-build.txt"
       ],
       "assert": "退出码 0",
-      "actual": "exit 0；HEAD a33beddd8 重跑 H5 build（webpack compiled with 2 warnings，exit 0）",
+      "actual": "exit 0；HEAD a33beddd8 重跑 H5 build（webpack compiled with 2 warnings，exit 0）｜已在合并 HEAD 607cdf58f 重跑",
       "expected": "exit 0",
       "negative": "构建错误 → 非 0",
       "negative_result": "见各脚本断言（负例在实现内建）",
@@ -42,7 +42,7 @@
         "docs/evidence/2333/R3-eslint.txt"
       ],
       "assert": "0 errors 且无 no-undef",
-      "actual": "exit 0；HEAD a33beddd8 重跑 eslint --no-ignore：0 errors（5 warnings）",
+      "actual": "exit 0；HEAD a33beddd8 重跑 eslint --no-ignore：0 errors（5 warnings）｜已在合并 HEAD 607cdf58f 重跑",
       "expected": "0 errors",
       "negative": "出现 no-undef → 非 0",
       "negative_result": "见各脚本断言（负例在实现内建）",
@@ -56,7 +56,7 @@
         "docs/evidence/2333/R4-smoke.txt"
       ],
       "assert": "退出码 0；routes 含 credit-assessment",
-      "actual": "exit 0；HEAD a33beddd8 上 vitest smoke 18/18 PASS；credit-assessment marker 改为稳定标签「评测状态」（不再依赖「押金档位」文案）",
+      "actual": "exit 0；HEAD a33beddd8 上 vitest smoke 18/18 PASS；credit-assessment marker 改为稳定标签「评测状态」（不再依赖「押金档位」文案）｜已在合并 HEAD 607cdf58f 重跑",
       "expected": "PASS",
       "negative": "缺路由 → FAIL",
       "negative_result": "若 routes marker 失配或页面渲染错误 → vitest 失败（exit 非 0）",
@@ -70,11 +70,11 @@
         "docs/evidence/2333/R5-manual.md"
       ],
       "assert": "回执含 executor: user + 两态禁用行为 + RESULT: PASS",
-      "actual": "PASS（Owner 真机 2026-11-15）：提交即进评测页、mock 自动通过、返回支付页金额一致、weapp 无自绘标题栏",
+      "actual": "待重出：现回执 dated 2026-11-15（1.0.85），早于 UI 改动 4c2faee98/86fc6f0b3；需在合并后归档重签",
       "expected": "PASS",
       "negative": "禁用缺失/误放行 → 非 0",
-      "negative_result": "金额为空已复现并修复（服务单补建）",
-      "pass": true
+      "negative_result": "回执缺失/旧 build → FAIL",
+      "pass": false
     },
     {
       "id": "R6",
@@ -84,11 +84,11 @@
         "docs/evidence/2333/R6-manual.md"
       ],
       "assert": "入参生效 + 提交/轮询正常 + RESULT: PASS",
-      "actual": "PASS（改判后范围）：支付页不再出现档位选择器，金额取订单已定档位（差额 ¥30.30 与确认页一致）",
+      "actual": "待重出：现回执 dated 2026-11-15（1.0.85），早于 UI 改动 4c2faee98/86fc6f0b3；需在合并后归档重签",
       "expected": "PASS",
       "negative": "入参丢失 → 非 0",
-      "negative_result": "曾出现金额不一致（weapp 未提交档位），已由 #2356 修复",
-      "pass": true
+      "negative_result": "回执缺失/旧 build → FAIL",
+      "pass": false
     },
     {
       "id": "R7",
@@ -98,7 +98,7 @@
         "docs/evidence/2333/R7-doc.txt"
       ],
       "assert": "两个评测页 URL 与「支付分申请」表述在文档中",
-      "actual": "docs/topics/wechat/wechat-pay-integration.md 含两端 URL 与支付分申请用途",
+      "actual": "docs/topics/wechat/wechat-pay-integration.md 含两端 URL 与支付分申请用途｜已在合并 HEAD 607cdf58f 重跑",
       "expected": "exit 0",
       "negative": "缺失 → 非 0",
       "negative_result": "见各脚本断言（负例在实现内建）",
@@ -112,7 +112,7 @@
         "docs/evidence/2333/R8-params-unit.txt"
       ],
       "assert": "入参仅 order_id、标的=乐器原价、无 tier 依赖",
-      "actual": "exit 0；HEAD a33beddd8 上 credit-assessment-2333.test.jsx 5/5 PASS；金额行断言「评估金额」+ 动态值 riskAmountCents/100/¥；不再引用已删除的「评测标的金额/乐器原价」",
+      "actual": "exit 0；HEAD a33beddd8 上 credit-assessment-2333.test.jsx 5/5 PASS；金额行断言「评估金额」+ 动态值 riskAmountCents/100/¥；不再引用已删除的「评测标的金额/乐器原价」｜已在合并 HEAD 607cdf58f 重跑",
       "expected": "PASS",
       "negative": "入参含 tier/标的按档位 → exit 1",
       "negative_result": "若仍断言旧文案或金额行缺失 → vitest 失败（exit 非 0）",

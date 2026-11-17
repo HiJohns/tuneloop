@@ -1,9 +1,9 @@
-PROVENANCE build=s4-credit-assessment a33beddd8 commit=a33beddd8bc810ee535cb1313fba48e414736e2e dirty=false
+PROVENANCE build=s4-credit-assessment 607cdf58f commit=607cdf58ff2765fbe03eb3fd9a7d0134857abd62 dirty=false
 
-/home/coder/tuneloop-wt/issue-2333/frontend-mobile/src/pages-weapp/credit-assessment/index.tsx
+/home/coder/tuneloop/frontend-mobile/src/pages-weapp/credit-assessment/index.tsx
   0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
 
-/home/coder/tuneloop-wt/issue-2333/frontend-mobile/src/pages/Checkout.jsx
+/home/coder/tuneloop/frontend-mobile/src/pages/Checkout.jsx
   186:6   warning  React Hook useEffect has a missing dependency: 'navigate'. Either include it or remove the dependency array. If 'navigate' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
   254:50  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）                                                                                                                                                                                 i18n/no-hardcoded-ui-string
   928:6   warning  React Hook useMemo has unnecessary dependencies: 'canReduceAll' and 'depositWaived'. Either exclude them or remove the dependency array                                                                                          react-hooks/exhaustive-deps

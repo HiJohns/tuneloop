@@ -1,12 +1,12 @@
-PROVENANCE build=s4-credit-assessment a33beddd8 commit=a33beddd8bc810ee535cb1313fba48e414736e2e dirty=false
+PROVENANCE build=s4-credit-assessment 607cdf58f commit=607cdf58ff2765fbe03eb3fd9a7d0134857abd62 dirty=false
 [33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
 
- RUN  v2.1.9 /home/coder/tuneloop-wt/issue-2333/frontend-mobile
+ RUN  v2.1.9 /home/coder/tuneloop/frontend-mobile
 
- ✓ scripts/page-smoke/credit-assessment-2333.test.jsx (5 tests) 106ms
+ ✓ scripts/page-smoke/credit-assessment-2333.test.jsx (5 tests) 14ms
 
  Test Files  1 passed (1)
       Tests  5 passed (5)
-   Start at  16:07:33
-   Duration  8.12s (transform 333ms, setup 203ms, collect 105ms, tests 106ms, environment 4.08s, prepare 2.14s)
+   Start at  19:16:20
+   Duration  1.81s (transform 68ms, setup 39ms, collect 21ms, tests 14ms, environment 964ms, prepare 521ms)
 

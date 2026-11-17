@@ -1,5 +1,2 @@
-PROVENANCE build=s4-credit-assessment 6332b83 commit=6332b83315512f88f7e806e91c37d447e5f68e4f dirty=false
-CMD grep -n credit-assessment docs/topics/wechat/wechat-pay-integration.md
-589:独立信用评测页（H5 /credit-assessment?order_id=… ；weapp pages-weapp/credit-assessment/index）
-603:评测页 URL（用于支付分申请）：`/credit-assessment`（H5）、`pages-weapp/credit-assessment/index`（小程序）。
-RESULT: PASS
+PROVENANCE build=s4-credit-assessment 607cdf58f commit=607cdf58ff2765fbe03eb3fd9a7d0134857abd62 dirty=false
+R7-OK
