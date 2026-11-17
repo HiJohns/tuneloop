@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2333,
-  "build": "s4-credit-assessment 6332b83 (weapp+H5, preprod 1.0.85)",
-  "commit": "6332b83315512f88f7e806e91c37d447e5f68e4f",
+  "build": "s4-credit-assessment a33bedd (weapp+H5, copy-synced)",
+  "commit": "a33beddd8bc810ee535cb1313fba48e414736e2e",
   "dirty": false,
   "environment": "Linux worktree /tmp/opencode/wt-2333-work @ origin/develop; Node 22.22.3; 机器行已跑，R5/R6 等 Owner 真机",
   "rows": [
@@ -14,7 +14,7 @@
         "docs/evidence/2333/R1-weapp-build.txt"
       ],
       "assert": "退出码 0；探针 0 字节",
-      "actual": "npm run build:weapp exit 0；credit-assessment/home wxml 原生标签探针 0 命中",
+      "actual": "exit 0；HEAD a33beddd8 重跑 weapp build；credit-assessment/home wxml 原生标签探针 0 命中",
       "expected": "exit 0",
       "negative": "产物含原生标签 → 非 0",
       "negative_result": "见各脚本断言（负例在实现内建）",
@@ -28,7 +28,7 @@
         "docs/evidence/2333/R2-h5-build.txt"
       ],
       "assert": "退出码 0",
-      "actual": "npm run build:h5 exit 0（webpack 2 warnings，无 error）",
+      "actual": "exit 0；HEAD a33beddd8 重跑 H5 build（webpack compiled with 2 warnings，exit 0）",
       "expected": "exit 0",
       "negative": "构建错误 → 非 0",
       "negative_result": "见各脚本断言（负例在实现内建）",
@@ -42,7 +42,7 @@
         "docs/evidence/2333/R3-eslint.txt"
       ],
       "assert": "0 errors 且无 no-undef",
-      "actual": "eslint --no-ignore 0 errors（2 warnings 为既有 i18n 提示）",
+      "actual": "exit 0；HEAD a33beddd8 重跑 eslint --no-ignore：0 errors（5 warnings）",
       "expected": "0 errors",
       "negative": "出现 no-undef → 非 0",
       "negative_result": "见各脚本断言（负例在实现内建）",
@@ -56,10 +56,10 @@
         "docs/evidence/2333/R4-smoke.txt"
       ],
       "assert": "退出码 0；routes 含 credit-assessment",
-      "actual": "smoke 18/18 PASS（routes 含 credit-assessment；/checkout 陈旧标记已按 #2352 去档位选择器更新）",
+      "actual": "exit 0；HEAD a33beddd8 上 vitest smoke 18/18 PASS；credit-assessment marker 改为稳定标签「评测状态」（不再依赖「押金档位」文案）",
       "expected": "PASS",
       "negative": "缺路由 → FAIL",
-      "negative_result": "见各脚本断言（负例在实现内建）",
+      "negative_result": "若 routes marker 失配或页面渲染错误 → vitest 失败（exit 非 0）",
       "pass": true
     },
     {
@@ -112,10 +112,10 @@
         "docs/evidence/2333/R8-params-unit.txt"
       ],
       "assert": "入参仅 order_id、标的=乐器原价、无 tier 依赖",
-      "actual": "credit-assessment-2333.test.jsx 5/5：仅 order_id 入参、标的取后端 risk_amount_cents、无 tier 依赖、无 TDZ、档位行已移除",
+      "actual": "exit 0；HEAD a33beddd8 上 credit-assessment-2333.test.jsx 5/5 PASS；金额行断言「评估金额」+ 动态值 riskAmountCents/100/¥；不再引用已删除的「评测标的金额/乐器原价」",
       "expected": "PASS",
       "negative": "入参含 tier/标的按档位 → exit 1",
-      "negative_result": "见各脚本断言（负例在实现内建）",
+      "negative_result": "若仍断言旧文案或金额行缺失 → vitest 失败（exit 非 0）",
       "pass": true
     }
   ]
