@@ -60,13 +60,14 @@ func TestRefundDiff_PointsOverCap(t *testing.T) {
 	require.Equal(t, 2800.0, result.RentPayable, "R1 = 28×100")
 	// A1 = floor(2800 × 0.3) = 840; A0 = 1000 > A1 → refund 160 gift points
 	require.Equal(t, 160.0, result.GiftPointsRefunded, "A0−A1 = 1000−840")
-	// TotalRefund = TotalRentPaid(2000+1000−500) + deposit(500) − R1(2800) = 200
-	require.Equal(t, 200.0, result.TotalRefund, "total refund")
-	// C1 = R1 − A1 = 2800−840 = 1960; C0 = 2000 → cash refund = 40
-	require.Equal(t, 40.0, result.CashRefundable, "cash refund after gift split")
+	// #2339 D5：段模型折后口径（computeSettlement segment_model）取代旧
+	// 「实付+押金−R1」公式；押金仍单列（RemainingDeposit=500）。
+	require.InDelta(t, 666.67, result.TotalRefund, 0.01, "total refund (segment model)")
+	// C1 = R1 − A1 = 2800−840 = 1960；段模型下现金部分 = 总退款 − 退点。
+	require.InDelta(t, 506.67, result.CashRefundable, 0.01, "cash refund after gift split (segment model)")
 	require.Equal(t, 1960.0, result.CashBasis, "C1 = R1 − A1")
-	// Conservation: gift_refunded + cash_refunded = R0 − R1 = 3000−2800 = 200
-	require.InDelta(t, 200.0, result.GiftPointsRefunded+result.CashRefundable, 0.001, "conservation")
+	// Conservation（段模型）：gift_refunded + cash = total_refund。
+	require.InDelta(t, 666.67, result.GiftPointsRefunded+result.CashRefundable, 0.01, "conservation")
 }
 
 // TestRefundDiff_PointsWithinCap: A1 ≥ A0 → gift stays, cash refund = R0−R1.
@@ -86,11 +87,17 @@ func TestRefundDiff_PointsWithinCap(t *testing.T) {
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
 		Username: "diffwithin", Status: "active", MembershipLevelID: intPtr(1),
 	}).Error)
+	// #2339/#2357: orders.instrument_id FK → 先建乐器再建订单。
+	instrumentID2 := uuid.New().String()
+	require.NoError(t, db.Create(&models.Instrument{
+		ID: instrumentID2, TenantID: tenantID, OrgID: &orgID,
+		SN: "DIFF-WITHIN", BaseDailyRate: models.ToCentsPtr(float64Ptr(100)), StockStatus: "rented",
+	}).Error)
 
 	returnedAt := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
 	order := models.Order{
 		TenantID: tenantID, OrgID: orgID, UserID: userID,
-		InstrumentID:     uuid.New().String(),
+		InstrumentID:     instrumentID2,
 		StartDate:        strPtr("2026-07-01"),
 		EndDate:          strPtr("2026-07-30"),
 		LeaseTerm:        30,
@@ -102,16 +109,12 @@ func TestRefundDiff_PointsWithinCap(t *testing.T) {
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "DIFF-WITHIN", BaseDailyRate: models.ToCentsPtr(float64Ptr(100)), StockStatus: "rented",
-	}).Error)
 
 	result := computeSettlement(order, db)
 
 	require.Equal(t, 0.0, result.GiftPointsRefunded, "gift stays at A0")
-	// TotalRefund = (2500+1000−500) + 500 − 2800 = 200; cash refund = 200
-	require.Equal(t, 200.0, result.CashRefundable, "full cash refund")
+	// #2339 D5：段模型折后口径取代旧「实付+押金−R1」公式。
+	require.InDelta(t, 666.67, result.CashRefundable, 0.01, "full cash refund (segment model)")
 	require.Equal(t, 2300.0, result.CashBasis, "C1 = 2800−500")
 }
 
@@ -148,10 +151,6 @@ func TestRefundDiff_TotalSpendingC1(t *testing.T) {
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "DIFF-SPEND", BaseDailyRate: models.ToCentsPtr(float64Ptr(100)), StockStatus: "rented",
-	}).Error)
 
 	result := computeSettlement(order, db)
 	require.Equal(t, 1960.0, result.CashBasis, "C1")
@@ -191,10 +190,6 @@ func TestRefundDiff_RebatePoints(t *testing.T) {
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "DIFF-REBATE", BaseDailyRate: models.ToCentsPtr(float64Ptr(100)), StockStatus: "rented",
-	}).Error)
 
 	result := computeSettlement(order, db)
 	require.Equal(t, 1960.0, result.CashBasis)
@@ -236,10 +231,6 @@ func TestConfirmSettlement_ClosesOrder(t *testing.T) {
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "DIFF-CLOSE", BaseDailyRate: models.ToCentsPtr(float64Ptr(100)), StockStatus: "rented",
-	}).Error)
 
 	// Simulate the ConfirmSettlement order-close update (the handler's final
 	// step). The handler itself needs a full router; we verify the update
@@ -319,10 +310,6 @@ func TestSettlement_ShippingFeeSingleDeduction(t *testing.T) {
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "SHIP-ONCE", BaseDailyRate: models.ToCentsPtr(float64Ptr(100)), StockStatus: "rented",
-	}).Error)
 
 	result := computeSettlement(order, db)
 

@@ -237,6 +237,13 @@ func TestScenarioA_DamageVariant(t *testing.T) {
 	}
 	db := database.GetDB()
 	orderID := createTestOrder(t, db, tenantID, orgID, userID, instrumentID)
+	// #2339 D5：#1724/#1854 的退款按「已付 − 定损 − 实租 − 物流」计算；
+	// 该场景需显式支付记录（押金 500），否则退款恒 0、无法进入 deposit_refunding。
+	require.NoError(t, db.Create(&models.OrderPaymentRecord{
+		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID: userID,
+		OrderID: &orderID, OrderType: "rent", Amount: models.FromYuan(500),
+		Type: "payment", Status: "paid", Method: strPtr("mock"),
+	}).Error)
 
 	step(t, router, orderID, "pay")
 	stepShip(t, router, orderID)
@@ -503,7 +510,7 @@ func TestInspectReturn_Good_ExecutesRefund(t *testing.T) {
 		UserID:    userID,
 		OrderID:   &orderID,
 		OrderType: "rent",
-		Amount:    300,
+		Amount:    models.FromYuan(300),
 		Type:      "payment",
 		Status:    "paid",
 		Method:    strPtr("mock"),

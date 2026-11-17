@@ -182,8 +182,14 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 		// #1754: staff enters yuan; Cents column stores cents.
 		updateFields["shipping_fee"] = models.FromYuan(req.ShippingFee)
 	}
-	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ? AND status = ?", orderID, tenantID, models.OrderStatusPaid).Updates(updateFields).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update shipping: " + err.Error()})
+	upd := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ? AND status = ?", orderID, tenantID, models.OrderStatusPaid).Updates(updateFields)
+	if upd.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update shipping: " + upd.Error.Error()})
+		return
+	}
+	// #2339 D7：状态不是 paid 时 Updates 影响 0 行但无错误——不得继续置库存/记历史并返回 200。
+	if upd.RowsAffected == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "order must be paid before shipping"})
 		return
 	}
 

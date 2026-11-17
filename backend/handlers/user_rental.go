@@ -360,7 +360,9 @@ func validateRequestedTier(requested string, fullDeposit, reducedAmount float64)
 // full is authoritative from instruments.deposit when set (including 0).
 func resolveDepositTier(instrument *models.Instrument, pricingResult *services.InstrumentPricing, requested string) (tier string, full, reduced float64, validReduced bool) {
 	full = pricingResult.Deposit
-	if instrument.Deposit != nil {
+	// #2339 D2：instruments.deposit 带 default:0，读取后恒为非 nil；只有 >0 才视为
+	// 显式覆盖，否则回落到定价结果（否则所有历史 fixture 的押金都会变成 0）。
+	if instrument.Deposit != nil && (*instrument.Deposit) > 0 {
 		full = (*instrument.Deposit).ToYuan()
 	}
 	if full <= 0 {

@@ -94,7 +94,7 @@ func TestGetUserInstrumentDetail(t *testing.T) {
 		TenantID:    tenantID,
 		StockStatus: "available",
 
-		Pricing: `[{"daily_rent": 12.5, "weekly_rent": 87.5, "monthly_rent": 300.0, "deposit": 600.0}]`,
+		Pricing: `{"daily_rent": 12.5, "weekly_rent": 87.5, "monthly_rent": 300.0, "deposit": 600.0}`,
 	}
 	db.Create(&instrument)
 
@@ -140,11 +140,11 @@ func TestCreateRentalOrder(t *testing.T) {
 
 	// Create available instrument
 	instrument := models.Instrument{
-		ID:          instrumentID,
-		TenantID:    tenantID,
-		StockStatus: "available",
-
-		Pricing: `[{"daily_rent": 10.0, "weekly_rent": 70.0, "monthly_rent": 240.0, "deposit": 500.0}]`,
+		ID:            instrumentID,
+		TenantID:      tenantID,
+		StockStatus:   "available",
+		BaseDailyRate: models.ToCentsPtr(float64Ptr(10)),
+		Pricing:       `{"daily_rent": 10.0, "weekly_rent": 70.0, "monthly_rent": 240.0, "deposit": 500.0}`,
 	}
 	db.Create(&instrument)
 
@@ -189,7 +189,8 @@ func TestCreateRentalOrder(t *testing.T) {
 	assert.Equal(t, "success", response.Message)
 	assert.NotEmpty(t, response.Data["order_id"])
 	assert.NotEmpty(t, response.Data["lease_id"])
-	assert.Equal(t, 140.0, response.Data["amount"]) // 10 * 14 days
+	// #2339 D5：CalculateDays 含结束日（1/1–1/15 = 15 天）+ 押金 500 → 650。
+	assert.Equal(t, 650.0, response.Data["amount"])
 }
 
 func TestGetElectronicContract(t *testing.T) {
