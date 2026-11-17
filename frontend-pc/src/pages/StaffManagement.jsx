@@ -392,10 +392,14 @@ export default function StaffManagement() {
     const noEmail = staffList.filter(u => userIds.includes(u.id) && !(u.email || '').trim())
     const withEmail = userIds.filter(id => !noEmail.some(u => u.id === id))
     if (withEmail.length === 0) {
-      Modal.warning({
+      // #2389 Rev.4：无邮箱时引导先补邮箱（跳转编辑页）；不发起 reset-password 请求。
+      const target = noEmail[0]?.id
+      Modal.confirm({
         title: '该账号未配置邮箱',
-        content: '无法通过邮件重置密码。请使用「直接设置密码」功能（对接中）；在此之前可由管理员在成员详情中重置。',
-        okText: '知道了',
+        content: '无法通过邮件重置密码。可先为其补充邮箱后再重置；管理员直接设置密码功能正在对接中。',
+        okText: '去补充邮箱',
+        cancelText: '知道了',
+        onOk: () => { if (target) navigate(`/staff/${target}/edit`) },
       })
       return
     }
