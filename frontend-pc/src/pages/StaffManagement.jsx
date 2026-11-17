@@ -151,17 +151,23 @@ export default function StaffManagement() {
     })
   }
 
-  // #2072: 创建表单状态全量重置（表单字段 + 类型 + 照片预览）；四出口统一调用
-  const resetCreateState = () => {
+  // #2072: 创建表单状态重置（表单字段 + 类型 + 照片预览）；四出口统一调用
+  // #2400 D1：本函数**不触碰**一次性密码弹窗状态——成功分支先开后关会把弹窗立即关掉。
+  const resetCreateForm = () => {
     createUserForm.resetFields()
     setCreateAutoGenerate(true)
     setCreateForcePasswordChange(true)
-    setInitialPasswords([])
-    setPasswordModalOpen(false)
     setUserType('site_staff')
     setCreatePhotoFile(null)
     setCreatePhotoUrl('')
     setCreateFormKey(k => k + 1) // #2074: 强制重挂载（ReactQuill 忽略 value=undefined，仅 resetFields 清不掉编辑器）
+  }
+
+  // 全量重置（表单 + 一次性弹窗）；用于入口/取消/无弹窗路径，弹窗关闭由 onClose 清理。
+  const resetCreateState = () => {
+    resetCreateForm()
+    setInitialPasswords([])
+    setPasswordModalOpen(false)
   }
 
   const handleCreateUser = async (values) => {
@@ -221,6 +227,8 @@ export default function StaffManagement() {
           email: values.email,
           username: values.username,
         })
+        // #2400：成功分支不得在打开弹窗后调用会清空弹窗的 resetCreateState。
+        let passwordModalOpened = false
         if (feedback.kind === 'password_auto') {
           const plain = result.data?.initial_password
           const list = (result.data?.initial_passwords || []).map(p => ({
@@ -235,6 +243,7 @@ export default function StaffManagement() {
           }
           setInitialPasswords(list)
           setPasswordModalOpen(true)
+          passwordModalOpened = list.length > 0
         } else if (feedback.kind === 'password_manual') {
           message.success('已创建，账号可用用户名 + 你设置的密码登录')
         } else if (feedback.kind === 'invite') {
@@ -264,7 +273,12 @@ export default function StaffManagement() {
             message.warning('照片上传失败，可在后续编辑中重试')
           }
         }
-        resetCreateState() // #2072
+        // #2400 D1：有一次性密码弹窗时只重置表单，保留弹窗与明文；弹窗关闭由 onClose 清理。
+        if (passwordModalOpened) {
+          resetCreateForm()
+        } else {
+          resetCreateState() // #2072
+        }
         setViewMode('list')
         fetchStaffList()
       } else if (result.code === 40900) {
@@ -792,7 +806,6 @@ export default function StaffManagement() {
         title="已创建 · 初始密码仅显示一次"
         passwords={initialPasswords}
         onClose={() => { setPasswordModalOpen(false); setInitialPasswords([]) }}
-        title="初始密码（仅展示一次）"
       />
 
       {/* #2052：原「用户已存在」冲突选择对话框已移除 —— 改为发送邀请通知 */}
