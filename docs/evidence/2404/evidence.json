@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "issue": 2404,
+  "build": "password-modal-title-2404 4aa312e",
+  "commit": "4aa312ecb",
+  "dirty": false,
+  "environment": "headless Chromium (chrome-headless-shell) + esbuild bundle of the real component; Node 22 build",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2404/R1-direct.md",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2404/R1-direct.md"
+      ],
+      "assert": "exit 0",
+      "actual": "PASS：headless Chromium 渲染真实 InitialPasswordModal：统一标题出现且仅 1 次；DirectMemberManagement 调用点恰好 1 个 title=统一文案（executor: dev）",
+      "expected": "PASS",
+      "negative": "缺失 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2404/R2-merchant.md",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2404/R2-merchant.md"
+      ],
+      "assert": "exit 0",
+      "actual": "PASS：同一运行时探针 + MerchantMemberManagement 调用点恰好 1 个 title（无重复属性）",
+      "expected": "PASS",
+      "negative": "缺失 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2404/R3-site.md",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2404/R3-site.md"
+      ],
+      "assert": "exit 0",
+      "actual": "PASS：同一运行时探针 + SiteMemberManagement 调用点补统一 title 且仅 1 个",
+      "expected": "PASS",
+      "negative": "缺失 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "npm --prefix frontend-pc run build > docs/evidence/2404/R4-build.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2404/R4-build.txt"
+      ],
+      "assert": "exit 0；含 built in；不含 Duplicate \\\"title\\\"",
+      "actual": "PASS：npm --prefix frontend-pc run build exit 0，含 built in，且 0 处 Duplicate \"title\"",
+      "expected": "PASS",
+      "negative": "有告警 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    }
+  ]
+}

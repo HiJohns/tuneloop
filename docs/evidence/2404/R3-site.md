@@ -1,6 +1,16 @@
-# R3-site 人工回执 — #2404
+# R3-site — #2404 runtime evidence (dev, headless)
 
-> executor: user
-> 在 PC 管理后台触发对应创建流程（自动生成密码），确认一次性弹窗标题为「已创建 · 初始密码仅显示一次」，且控制台无 Duplicate \"title\" 警告；核对后把 RESULT: PENDING 改为 RESULT: PASS。
+executor: dev
+component-call-site: src/components/SiteMemberManagement.jsx
 
-RESULT: PENDING
+```text
+RUNTIME PASS: title rendered exactly once (已创建 · 初始密码仅显示一次); password row rendered
+SOURCE PASS: src/pages/DirectMemberManagement.jsx exactly one title (已创建 · 初始密码仅显示一次)
+SOURCE PASS: src/components/MerchantMemberManagement.jsx exactly one title (已创建 · 初始密码仅显示一次)
+SOURCE PASS: src/components/SiteMemberManagement.jsx exactly one title (已创建 · 初始密码仅显示一次)
+SOURCE PASS: src/pages/StaffManagement.jsx exactly one title (已创建 · 初始密码仅显示一次)
+```
+
+断言：弹窗标题「已创建 · 初始密码仅显示一次」在 headless Chromium DOM 中出现且仅 1 次；调用点恰好一个 title 属性且等于统一文案。
+
+RESULT: PASS

@@ -18,4 +18,4 @@ dist/assets/index-DoocAc5K.js   2,617.42 kB │ gzip: 804.72 kB
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 2m 3s
+✓ built in 1m 17s
