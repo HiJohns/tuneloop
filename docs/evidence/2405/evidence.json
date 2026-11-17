@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "issue": 2405,
+  "build": "invite-kinds-2405 e85c2d7",
+  "commit": "e85c2d74d",
+  "dirty": false,
+  "environment": "backend handlers tests on PG 127.0.0.1:15433 + IAM httptest mock",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2405.sh r1-merchant-staff > docs/evidence/2405/R1-merchant-staff.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2405/R1-merchant-staff.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：kind=merchant_staff 接受后 merchant_members 1 行（role=merchant_staff，merchant 由 invite.OrgID 反查）",
+      "expected": "PASS",
+      "negative": "无本地行 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2405.sh r2-technician > docs/evidence/2405/R2-technician.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2405/R2-technician.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：kind=repair_technician → merchant_members(role=site_member) + technician_profiles 各 1 行",
+      "expected": "PASS",
+      "negative": "无档案 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2405.sh r3-idempotent > docs/evidence/2405/R3-idempotent.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2405/R3-idempotent.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：重复 bindInvitee 后 merchant_members/technician_profiles 仍各 1 行",
+      "expected": "PASS",
+      "negative": "重复行 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2405.sh r4-site-regression > docs/evidence/2405/R4-site-regression.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2405/R4-site-regression.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：网点邀请仍建 site_members（role=site_member），行为不变",
+      "expected": "PASS",
+      "negative": "回归失败 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2405.sh build > docs/evidence/2405/R5-build.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2405/R5-build.txt"
+      ],
+      "assert": "exit 0",
+      "actual": "PASS：go build ./... exit 0（空输出）",
+      "expected": "PASS",
+      "negative": "编译失败 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    }
+  ]
+}

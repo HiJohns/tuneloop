@@ -1,0 +1,20 @@
+[DEBUG] Loaded .env from: ../.env
+2026/11/17 17:25:41 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
+2026/11/17 17:25:42 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405
+2026/11/17 17:25:42 [DB] Connected to database 'tuneloop_test_verify2405'
+=== RUN   TestAcceptInviteTechnician_2405
+2026/11/17 17:25:42 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
+2026/11/17 17:25:42 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405
+2026/11/17 17:25:42 [DB] Connected to database 'tuneloop_test_verify2405'
+2026/11/17 17:25:43 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:39357, clientID=test-ns, namespace=test-ns
+2026/11/17 17:25:43 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/17 17:25:43 [IAMClient] Bound user d73d031f-3fc6-4ed9-95c0-c50748a81980 to org 7d3a0ecd-ea6e-45bf-98e1-55e3679d98b4 with role repair_technician
+
+2026/11/17 17:25:43 [31;1m/home/coder/tuneloop/backend/handlers/staff_invite.go:283 [35;1mrecord not found
+[0m[33m[0.395ms] [34;1m[rows:0][0m SELECT * FROM "merchant_members" WHERE user_id = '7898dfce-5a5e-4417-95bf-7bcaccd71ac1' ORDER BY "merchant_members"."id" LIMIT 1
+
+2026/11/17 17:25:43 [31;1m/home/coder/tuneloop/backend/handlers/staff_invite.go:301 [35;1mrecord not found
+[0m[33m[0.373ms] [34;1m[rows:0][0m SELECT * FROM "technician_profiles" WHERE user_id = '7898dfce-5a5e-4417-95bf-7bcaccd71ac1' ORDER BY "technician_profiles"."id" LIMIT 1
+--- PASS: TestAcceptInviteTechnician_2405 (0.38s)
+PASS
+ok  	tuneloop-backend/handlers	1.634s

@@ -1,0 +1,14 @@
+[DEBUG] Loaded .env from: ../.env
+2026/11/17 17:26:07 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
+2026/11/17 17:26:07 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405
+2026/11/17 17:26:07 [DB] Connected to database 'tuneloop_test_verify2405'
+=== RUN   TestAcceptInviteSiteRegression_2405
+2026/11/17 17:26:08 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
+2026/11/17 17:26:08 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405
+2026/11/17 17:26:08 [DB] Connected to database 'tuneloop_test_verify2405'
+2026/11/17 17:26:08 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:43895, clientID=test-ns, namespace=test-ns
+2026/11/17 17:26:08 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/17 17:26:08 [IAMClient] Bound user 6e53690f-17a8-42cd-8436-7cc6ea95dcd6 to org 3207f87d-82e3-43a0-9a96-c97ca588dcdd with role STAFF
+--- PASS: TestAcceptInviteSiteRegression_2405 (0.42s)
+PASS
+ok  	tuneloop-backend/handlers	1.595s

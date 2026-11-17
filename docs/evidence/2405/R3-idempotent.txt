@@ -1,0 +1,26 @@
+[DEBUG] Loaded .env from: ../.env
+2026/11/17 17:25:52 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
+2026/11/17 17:25:52 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405
+2026/11/17 17:25:52 [DB] Connected to database 'tuneloop_test_verify2405'
+=== RUN   TestAcceptInviteIdempotent_2405
+2026/11/17 17:25:53 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
+2026/11/17 17:25:53 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405
+2026/11/17 17:25:53 [DB] Connected to database 'tuneloop_test_verify2405'
+
+2026/11/17 17:25:54 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[428.610ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/17 17:25:54 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:33799, clientID=test-ns, namespace=test-ns
+2026/11/17 17:25:54 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/17 17:25:54 [IAMClient] Bound user e23ae84b-f3d8-47b1-8359-d25de91280b2 to org 7b640b36-8e18-4818-ac2a-3e716bb1ddb2 with role repair_technician
+
+2026/11/17 17:25:54 [31;1m/home/coder/tuneloop/backend/handlers/staff_invite.go:283 [35;1mrecord not found
+[0m[33m[3.348ms] [34;1m[rows:0][0m SELECT * FROM "merchant_members" WHERE user_id = '7c15cf4b-b37a-4820-ac44-5a5edf2efa25' ORDER BY "merchant_members"."id" LIMIT 1
+
+2026/11/17 17:25:54 [31;1m/home/coder/tuneloop/backend/handlers/staff_invite.go:301 [35;1mrecord not found
+[0m[33m[1.539ms] [34;1m[rows:0][0m SELECT * FROM "technician_profiles" WHERE user_id = '7c15cf4b-b37a-4820-ac44-5a5edf2efa25' ORDER BY "technician_profiles"."id" LIMIT 1
+2026/11/17 17:25:54 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:33799, clientID=test-ns, namespace=test-ns
+2026/11/17 17:25:54 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/17 17:25:54 [IAMClient] Bound user e23ae84b-f3d8-47b1-8359-d25de91280b2 to org 7b640b36-8e18-4818-ac2a-3e716bb1ddb2 with role repair_technician
+--- PASS: TestAcceptInviteIdempotent_2405 (1.46s)
+PASS
+ok  	tuneloop-backend/handlers	2.644s
