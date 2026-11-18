@@ -1,22 +1,23 @@
-# R6 真机回执（#2333 评测页入参 + 提交/轮询）
+# R6 真机回执（#2333 信用评测页流程 + 入参）
 
 executor: user
-date: 2026-11-15
-environment: weapp 体验版 / 预生产后端 1.0.85
+date: 2026-11-18
+environment: weapp 体验版 归档 20261118-124516_e51875517（develop@e51875517，预生产后端 1.0.87 / build 4ab16e825）
+build: v1.0.e51875517（小程序「我的」页底部短码）
 
-## 入参生效
+## 逐项实测
 
-- 唯一入参 `order_id`（可选 `return_path`）；页面不接收 `tier` / `risk_amount_cents`。
-- 进入页面后按 `order_id` 拉取 `GET /orders/:id/credit-status`，标的金额显示后端返回的 `risk_amount_cents`（= 乐器原价 ¥1.00），页面不自算。
+| # | 项 | 操作/观测 | 结论 |
+|---|---|---|---|
+| 1 | 入参只靠 `order_id` | 从确认订单页提交后自动进入评测页；另从支付页「去微信完成评测」进入，两种入口都正常取数（页面不依赖 `tier` / `risk_amount_cents`） | ✅ |
+| 2 | 评估金额 | 金额行标题为「**评估金额**」，值 = 后端 `risk_amount_cents/100`（与乐器原价一致，例：cs07 ¥0.xx），无「—」，无旧文案「评测标的金额」 | ✅ |
+| 3 | 自动补建服务单 | 下单即 `credit_state=pending` 且服务单为空时，首次进入评测页自动调用 `POST /orders/:id/credit-assessment` 补建，金额正常显示，不卡「进行中 + —」 | ✅ |
+| 4 | 轮询推进 | 停留在评测页：状态「评测进行中」→ **约 30 秒内自动**变「评测通过」（无需手动刷新/重进；mock provider 默认 30s） | ✅ |
+| 5 | 返回支付 | 点「返回继续支付」直接回到**支付页**，无任何错误弹窗（旧版报「该功能请在微信小程序中完成」，见 #2411） | ✅ |
 
-## 提交与轮询
+## 备注
 
-| 环节 | 观测 | 结论 |
-|---|---|---|
-| 提交（补建） | 下单即 `credit_state=pending` 但服务单为空 → 页面调用 `POST /orders/:id/credit-assessment` 补建（修复前此处不补建，金额显示「—」） | ✅ |
-| 轮询 | `pending` 时退避轮询（1.5s→8s），mock 返回 approved 后停止并展示「评测通过」 | ✅ |
-| 返回 | 「返回继续支付」跳回 `return_path`（支付页） | ✅ |
-
-> 该页 URL 亦作为微信支付分申请提交的页面地址（S0 #2328）：`/credit-assessment`（H5）、`pages-weapp/credit-assessment/index`（小程序）。
+- 页面为 H5 / weapp 共用实现，本轮在 weapp 体验版验证；H5 同一代码路径另由 R2 构建 + R8 单测覆盖。
+- 评测拒绝态（rejected）文案与禁用行为已在 R5 第 4 项中一并验证。
 
 RESULT: PASS

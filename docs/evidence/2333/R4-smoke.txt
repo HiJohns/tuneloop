@@ -1,4 +1,4 @@
-PROVENANCE build=s4-credit-assessment 607cdf58f commit=607cdf58ff2765fbe03eb3fd9a7d0134857abd62 dirty=false
+PROVENANCE build=s4-credit-assessment e51875517 commit=e51875517a6eb24b8b3ef1ab5021c26123830599 dirty=false
 [33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
 
  RUN  v2.1.9 /home/coder/tuneloop/frontend-mobile
@@ -7,7 +7,7 @@ stderr | scripts/page-smoke/smoke.test.jsx > mobile page render smoke > H5 /chec
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
-7:16:14 PM [vite] warning: Duplicate "style" attribute in JSX element
+2:16:04 PM [vite] warning: Duplicate "style" attribute in JSX element
 36 |                  <View onClick={e => { e.stopPropagation(); setImageIndex(i => (i - 1 + allImgs.length) % allImgs.length) }}
 37 |                    style={{ top: '50%', transform: 'translateY(-50%)' }}
 38 |                    className="absolute left-2 rounded-full w-8 h-8 flex items-center justify-center shadow-sm" style={{ backgroundColor: 'rgba(255,255,255,0.8)' }}>
@@ -74,26 +74,26 @@ Warning: React does not recognize the `placeholderStyle` prop on a DOM element. 
     at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
     at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
 
- ✓ scripts/page-smoke/smoke.test.jsx (18 tests) 6962ms
-   ✓ mobile page render smoke > H5 /checkout renders without fatal errors 908ms
-   ✓ mobile page render smoke > H5 /checkout (zero deposit) renders without fatal errors 335ms
-   ✓ mobile page render smoke > H5 /payment renders without fatal errors 489ms
-   ✓ mobile page render smoke > H5 /order/:id renders without fatal errors 576ms
-   ✓ mobile page render smoke > H5 /credit-assessment renders without fatal errors 327ms
-   ✓ mobile page render smoke > H5 /cart renders without fatal errors 369ms
-   ✓ mobile page render smoke > H5 /profile renders without fatal errors 384ms
-   ✓ mobile page render smoke > H5 /register renders without fatal errors 394ms
-   ✓ mobile page render smoke > weapp checkout renders without fatal errors 450ms
-   ✓ mobile page render smoke > weapp checkout (zero deposit) renders without fatal errors 321ms
-   ✓ mobile page render smoke > weapp payment renders without fatal errors 365ms
-   ✓ mobile page render smoke > weapp order-detail renders without fatal errors 388ms
-   ✓ mobile page render smoke > weapp cart renders without fatal errors 319ms
-   ✓ mobile page render smoke > weapp profile renders without fatal errors 407ms
-   ✓ mobile page render smoke > weapp profile-complete renders without fatal errors 395ms
-   ✓ mobile page render smoke > payment credit gate renders entry when credit is not approved 508ms
+ ✓ scripts/page-smoke/smoke.test.jsx (18 tests) 11327ms
+   ✓ mobile page render smoke > H5 /checkout renders without fatal errors 1982ms
+   ✓ mobile page render smoke > H5 /checkout (zero deposit) renders without fatal errors 350ms
+   ✓ mobile page render smoke > H5 /payment renders without fatal errors 852ms
+   ✓ mobile page render smoke > H5 /order/:id renders without fatal errors 1173ms
+   ✓ mobile page render smoke > H5 /credit-assessment renders without fatal errors 408ms
+   ✓ mobile page render smoke > H5 /cart renders without fatal errors 586ms
+   ✓ mobile page render smoke > H5 /profile renders without fatal errors 597ms
+   ✓ mobile page render smoke > H5 /register renders without fatal errors 647ms
+   ✓ mobile page render smoke > weapp checkout renders without fatal errors 945ms
+   ✓ mobile page render smoke > weapp checkout (zero deposit) renders without fatal errors 348ms
+   ✓ mobile page render smoke > weapp payment renders without fatal errors 602ms
+   ✓ mobile page render smoke > weapp order-detail renders without fatal errors 805ms
+   ✓ mobile page render smoke > weapp cart renders without fatal errors 339ms
+   ✓ mobile page render smoke > weapp profile renders without fatal errors 640ms
+   ✓ mobile page render smoke > weapp profile-complete renders without fatal errors 437ms
+   ✓ mobile page render smoke > payment credit gate renders entry when credit is not approved 524ms
 
  Test Files  1 passed (1)
       Tests  18 passed (18)
-   Start at  19:16:10
-   Duration  9.25s (transform 1.17s, setup 43ms, collect 395ms, tests 6.96s, environment 1.01s, prepare 118ms)
+   Start at  14:15:53
+   Duration  19.16s (transform 4.08s, setup 157ms, collect 1.57s, tests 11.33s, environment 4.15s, prepare 1.16s)
 

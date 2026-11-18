@@ -16,7 +16,9 @@ const source = readFileSync(pagePath, 'utf8')
 describe('credit assessment page (#2333 R8)', () => {
   it('reads only order_id (and optional return_path) from query params', () => {
     expect(source).toMatch(/const\s+orderId\s*=\s*params\.order_id/)
-    expect(source).toMatch(/const\s+returnPath\s*=\s*params\.return_path/)
+    // #2411：return_path 先经 decodeReturnPath 解码，再作为返回目标
+    expect(source).toMatch(/decodeReturnPath\(params\.return_path/)
+    expect(source).toMatch(/const\s+returnPath\s*=\s*decodedReturnPath/)
   })
 
   it('no longer reads the legacy tier / risk_amount_cents params', () => {
