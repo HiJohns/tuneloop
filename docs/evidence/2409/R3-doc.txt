@@ -1,8 +1,3 @@
-docs/cases/cases.md:1271:        Staff->>API: GET /auth/wx-accounts?code=...
-docs/cases/cases.md:1300:| `POST` | `/api/wechat-bind/confirm` | 小程序 | 确认绑定（提交 token + wx_openid；openid 由 `/auth/wx-accounts` 获取，并转发 exchange_token 供 #2410 使用） |
-docs/cases/cases.md:1318:6. **解绑（#2020，D4 衔接）**：`POST /api/users/me/wechat-unbind` 必须**删除该用户对应的 `wx_user_bindings` 行**（beaconiam `UpdateUser` 空 `wx_openid` 分支由 no-op 改为 DELETE）；解绑后 `wx-accounts` 不再返回该账户
-docs/cases/cases.md:1554:2. 会话 completed → 以新用户身份自动登录（wx-accounts 取 exchange_token → wx-login-select 指定 user_id），落地顺序：
-docs/spec/api/api.md:247:#### `GET /api/auth/wx-accounts`（分流/上下文列表）
-docs/spec/api/api.md:250:**响应 data**（beaconiam `wx-accounts` 返回 `accounts[]`，每个账户内嵌 `contexts[]` + `is_customer`——tuneloop 平铺给前端）:
-docs/spec/api/api.md:299:- 解绑后 `wx-accounts` 不再返回该上下文
-docs/spec/api/api.md:4193:**说明**: 支付成功但 WxBind 失败后的恢复端点（匿名，会话级）。只接受 `wx_code`；后端调用 `wx-accounts` 解析 openid，与 `registration_sessions.openid` 比对通过后才绑定并完成注册；不重复建号/扣款。已 `completed` 的会话幂等返回 200。
+PROVENANCE build=bind-openid-2409-d57d246 commit=d57d24666bd85e10162ab7087f605ec1a695f9ae dirty=false
+docs/cases/cases.md: wx-accounts=ok openid=ok
+docs/spec/api/api.md: wx-accounts=ok openid=ok

@@ -1,15 +1,16 @@
+PROVENANCE build=bind-openid-2409-d57d246 commit=d57d24666bd85e10162ab7087f605ec1a695f9ae dirty=false
 
 > frontend-mobile@1.0.0 smoke
-> vitest run --config vitest.config.js scripts/page-smoke/bind-wx-accounts.test.jsx
+> vitest run --config vitest.config.js scripts/page-smoke/bind-wx-accounts.test.jsx -t uses wx-accounts openid
 
 [33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
 
- RUN  v2.1.9 /home/ken/git/tuneloop/frontend-mobile
+ RUN  v2.1.9 /home/ken/git/tuneloop/tmp/wt-2409/frontend-mobile
 
- ✓ scripts/page-smoke/bind-wx-accounts.test.jsx (4 tests) 166ms
+ ✓ scripts/page-smoke/bind-wx-accounts.test.jsx (4 tests | 2 skipped) 66ms
 
  Test Files  1 passed (1)
-      Tests  4 passed (4)
-   Start at  17:38:48
-   Duration  974ms (transform 63ms, setup 23ms, collect 95ms, tests 166ms, environment 264ms, prepare 192ms)
+      Tests  2 passed | 2 skipped (4)
+   Start at  19:31:49
+   Duration  1000ms (transform 74ms, setup 21ms, collect 91ms, tests 66ms, environment 330ms, prepare 297ms)
 
