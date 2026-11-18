@@ -1,0 +1,15 @@
+
+> frontend-mobile@1.0.0 smoke
+> vitest run --config vitest.config.js scripts/page-smoke/bind-wx-accounts.test.jsx
+
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /home/ken/git/tuneloop/frontend-mobile
+
+ ✓ scripts/page-smoke/bind-wx-accounts.test.jsx (4 tests) 166ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  17:38:48
+   Duration  974ms (transform 63ms, setup 23ms, collect 95ms, tests 166ms, environment 264ms, prepare 192ms)
+
