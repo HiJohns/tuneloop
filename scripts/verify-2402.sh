@@ -15,5 +15,14 @@ export TUNELOOP_TEST_DB="${TUNELOOP_TEST_DB:-tuneloop_test_verify2402}"
 export IAM_NAMESPACE="${IAM_NAMESPACE:-test-ns}"
 export IAM_SECRET="${IAM_SECRET:-test-secret-1489}"
 mkdir -p "$TMPDIR" "$GOCACHE"
+
+BUILD="1.0.$(git rev-parse --short HEAD)"
+COMMIT="$(git rev-parse HEAD)"
+DIRTY=false
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+  DIRTY=true
+fi
+echo "# build=$BUILD commit=$COMMIT dirty=$DIRTY"
+
 cd "$REPO_ROOT/backend"
 go test ./handlers/ -run '^TestSendStaffInviteInvalidSiteID_2402$' -count=1 -v
