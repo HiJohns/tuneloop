@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2386,
-  "build": "1.0.5929b0912",
-  "commit": "5929b0912d7de3ce68796017faec883b05a1ddc1",
+  "build": "1.0.f807e028d",
+  "commit": "f807e028dbea511da4159adda1f008597fd4201f",
   "dirty": false,
   "environment": "backend handlers tests on PG 127.0.0.1:15433; fix commit 5929b0912 (Rev.2)",
   "rows": [
@@ -10,7 +10,9 @@
       "id": "R1",
       "command": "bash scripts/verify-2386.sh r1-aggregate",
       "exit": 0,
-      "artifacts": ["docs/evidence/2386/R1-aggregate.txt"],
+      "artifacts": [
+        "docs/evidence/2386/R1-aggregate.txt"
+      ],
       "assert": "exit 0；含 --- PASS",
       "actual": "PASS：直属 2 + 网点 A 3（u3 兼 B）→ total=5；u3 sites=[A,B]；跨租户用户不可见；无重复 user",
       "expected": "PASS",
@@ -22,7 +24,9 @@
       "id": "R2",
       "command": "bash scripts/verify-2386.sh r2-scope",
       "exit": 0,
-      "artifacts": ["docs/evidence/2386/R2-scope.txt"],
+      "artifacts": [
+        "docs/evidence/2386/R2-scope.txt"
+      ],
       "assert": "exit 0；含 --- PASS",
       "actual": "PASS：网点管理员 scope=all 降级为本站点（3 行）；直属成员 u1 不出现；跨商户 0 行",
       "expected": "PASS",
@@ -34,7 +38,9 @@
       "id": "R3",
       "command": "bash scripts/verify-2386.sh r3-platform",
       "exit": 0,
-      "artifacts": ["docs/evidence/2386/R3-platform.txt"],
+      "artifacts": [
+        "docs/evidence/2386/R3-platform.txt"
+      ],
       "assert": "exit 0；含 --- PASS",
       "actual": "PASS：namespace admin 200 可读；测试路由仅 GET，POST 404/405（无写入口）",
       "expected": "PASS",
@@ -46,7 +52,9 @@
       "id": "R4",
       "command": "bash scripts/verify-2386.sh build",
       "exit": 0,
-      "artifacts": ["docs/evidence/2386/R4-build.txt"],
+      "artifacts": [
+        "docs/evidence/2386/R4-build.txt"
+      ],
       "assert": "exit 0",
       "actual": "PASS：cd backend && go build ./... exit 0（产物首行 provenance）",
       "expected": "PASS",
@@ -58,7 +66,9 @@
       "id": "R5",
       "command": "bash scripts/verify-2386.sh r5-default-scope",
       "exit": 0,
-      "artifacts": ["docs/evidence/2386/R5-default-scope.txt"],
+      "artifacts": [
+        "docs/evidence/2386/R5-default-scope.txt"
+      ],
       "assert": "exit 0；含 --- PASS: TestStaffMembersDefaultScope_2386",
       "actual": "PASS：不传 scope → 仅直属 1 行（默认 direct）",
       "expected": "PASS",
@@ -70,7 +80,9 @@
       "id": "R6",
       "command": "bash scripts/verify-2386.sh r6-identity-roles",
       "exit": 0,
-      "artifacts": ["docs/evidence/2386/R6-identity-roles.txt"],
+      "artifacts": [
+        "docs/evidence/2386/R6-identity-roles.txt"
+      ],
       "assert": "exit 0；含 --- PASS: TestStaffMembersIdentityRoles_2386",
       "actual": "PASS：sm.role=site_member + roles=[site_member,site_admin] 时 identity=admin 与 staff 均命中（jsonb_exists_any）",
       "expected": "PASS",
@@ -82,7 +94,9 @@
       "id": "R7",
       "command": "bash scripts/verify-2386.sh r7-merchant-role",
       "exit": 0,
-      "artifacts": ["docs/evidence/2386/R7-merchant-role.txt"],
+      "artifacts": [
+        "docs/evidence/2386/R7-merchant-role.txt"
+      ],
       "assert": "exit 0；含 --- PASS: TestStaffMembersMerchantRole_2386",
       "actual": "PASS：直属用户 merchant_role=site_admin；纯网点用户 merchant_role=null（D2）",
       "expected": "PASS",
@@ -94,7 +108,9 @@
       "id": "R8",
       "command": "bash scripts/verify-2386.sh r8-direct-isolation",
       "exit": 0,
-      "artifacts": ["docs/evidence/2386/R8-direct-isolation.txt"],
+      "artifacts": [
+        "docs/evidence/2386/R8-direct-isolation.txt"
+      ],
       "assert": "exit 0；含 --- PASS: TestStaffMembersDirectIsolation_2386",
       "actual": "PASS：A 网点成员 + B 直属 → A direct 0 行；A all 含该用户且 is_direct=false、merchant_role=null",
       "expected": "PASS",

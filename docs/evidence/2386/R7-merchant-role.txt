@@ -1,12 +1,15 @@
-# build=1.0.5929b0912 commit=5929b0912d7de3ce68796017faec883b05a1ddc1 dirty=false
+# build=1.0.f807e028d commit=f807e028dbea511da4159adda1f008597fd4201f dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/18 17:53:14 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2386 sslmode=disable
-2026/11/18 17:53:15 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2386
-2026/11/18 17:53:15 [DB] Connected to database 'tuneloop_test_verify2386'
+2026/11/18 21:22:28 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/18 21:22:28 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/18 21:22:28 [DB] Connected to database 'tuneloop_test'
 === RUN   TestStaffMembersMerchantRole_2386
-2026/11/18 17:53:15 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2386 sslmode=disable
-2026/11/18 17:53:15 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2386
-2026/11/18 17:53:15 [DB] Connected to database 'tuneloop_test_verify2386'
---- PASS: TestStaffMembersMerchantRole_2386 (0.23s)
+2026/11/18 21:22:29 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/18 21:22:29 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/18 21:22:29 [DB] Connected to database 'tuneloop_test'
+
+2026/11/18 21:22:30 [32m/home/coder/tuneloop-wt/reverify-2386/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[606.294ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+--- PASS: TestStaffMembersMerchantRole_2386 (1.16s)
 PASS
-ok  	tuneloop-backend/handlers	0.713s
+ok  	tuneloop-backend/handlers	1.771s

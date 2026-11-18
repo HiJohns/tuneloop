@@ -1,0 +1,8 @@
+r1-aggregate exit=0
+r2-scope exit=0
+r3-platform exit=0
+r4-build exit=0
+r5-default-scope exit=0
+r6-identity-roles exit=0
+r7-merchant-role exit=0
+r8-direct-isolation exit=0

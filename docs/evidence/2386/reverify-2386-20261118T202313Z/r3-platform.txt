@@ -1,0 +1,15 @@
+# build=1.0.f807e028d commit=f807e028dbea511da4159adda1f008597fd4201f dirty=false
+[DEBUG] Loaded .env from: ../.env
+2026/11/18 21:20:45 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/18 21:20:45 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/18 21:20:46 [DB] Connected to database 'tuneloop_test'
+=== RUN   TestStaffMembersPlatform_2386
+2026/11/18 21:20:46 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/18 21:20:46 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/18 21:20:46 [DB] Connected to database 'tuneloop_test'
+
+2026/11/18 21:20:47 [32m/home/coder/tuneloop-wt/reverify-2386/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[579.098ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+--- PASS: TestStaffMembersPlatform_2386 (1.08s)
+PASS
+ok  	tuneloop-backend/handlers	1.745s
