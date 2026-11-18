@@ -1,6 +1,7 @@
 import Taro from '@tarojs/taro'
 // #2214: 集中拦截——dialog 文案统一经 t()（覆盖全部 dialog.* 调用点）
 import { t } from '../i18n'
+import { showDialog, isDialogHostMounted } from '../components/AppDialog'
 
 // #2267: weapp 复用原生页面显示钩子
 export const useDidShow = Taro.useDidShow
@@ -119,22 +120,45 @@ export const uploadFile = (url, filePath, options = {}) => {
 
 export const previewImage = (args) => Taro.previewImage(args)
 
+// 未挂载时的唯一原生回退入口（#2415 D2：全仓仅此 1 处 showModal）。
+function showNativeModal(opts) {
+  return new Promise((resolve) => {
+    Taro.showModal({
+      ...opts,
+      success: (res) => resolve(res || {}),
+      fail: () => resolve({}),
+    })
+  })
+}
+
 export const dialog = {
+  // #2415：自绘实现（DialogHost 已挂载时）；未挂载回退原生。
   alert: (msg, opts = {}) => {
-    Taro.showModal({ title: t(opts.title || '提示'), content: t(msg), showCancel: false })
+    const title = t(opts.title || '提示')
+    const content = t(msg)
+    if (isDialogHostMounted()) {
+      return showDialog({ type: 'alert', title, message: content })
+    }
+    return showNativeModal({ title, content, showCancel: false }).then(() => undefined)
   },
   confirm: (msg, opts = {}) => {
-    return new Promise((resolve) => {
-      Taro.showModal({
-        title: t(opts.title || '提示'),
-        content: t(msg),
-        success: (res) => resolve(res.confirm),
-      })
-    })
+    const title = t(opts.title || '提示')
+    const content = t(msg)
+    if (isDialogHostMounted()) {
+      return showDialog({ type: 'confirm', title, message: content })
+    }
+    return showNativeModal({ title, content }).then((res) => !!res.confirm)
   },
   toast: (msg, opts = {}) => {
-    Taro.showToast({ title: t(msg), icon: opts.icon || 'none', duration: opts.duration || 2000 })
+    const title = t(msg)
+    const duration = opts.duration || 2000
+    if (isDialogHostMounted()) {
+      return showDialog({ type: 'toast', message: title, duration })
+    }
+    Taro.showToast({ title, icon: opts.icon || 'none', duration })
   },
+  // 供 S2 迁移 editable 场景使用：#2415 D4
+  showDialog,
 }
 
 export const navigation = {

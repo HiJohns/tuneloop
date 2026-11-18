@@ -1,6 +1,7 @@
 // #2214: 集中拦截——dialog 文案统一经 t()（覆盖全部 dialog.* 调用点）
 import { useEffect, useRef } from 'react'
 import { t } from '../i18n'
+import { showDialog, isDialogHostMounted } from '../components/AppDialog'
 
 // #2267: H5 版 useDidShow — 首次挂载 + bfcache 返回 + 页面重新可见时执行。
 // weapp 侧直接复用 Taro.useDidShow（见 index.weapp.js）。
@@ -111,14 +112,39 @@ export const uploadFile = (url, file, options = {}) => {
   return fetch(url, { method: 'POST', body: fd, ...rest, headers })
 }
 
-// #2214: 收敛 Taro.showToast/showModal 的归宿。opts 保真原 Taro 语义：
+// #2214: 收敛 Taro 原生 showToast/showModal 的归宿。opts 保真原 Taro 语义：
 //   alert/confirm: { title }（H5 无独立标题栏 → 前置换行模拟）；toast: { icon, duration }（H5 忽略）。
 const withTitle = (msg, title) => (title ? `${title}\n\n${msg}` : msg)
 
+// 未挂载时的唯一原生 alert 回退入口（#2415 D2：全仓仅此 1 处）。
+function nativeAlert(text) {
+  window.alert(text)
+}
+
 export const dialog = {
-  alert: (msg, opts = {}) => window.alert(t(withTitle(msg, opts.title))),
-  confirm: (msg, opts = {}) => window.confirm(t(withTitle(msg, opts.title))),
-  toast: (msg) => window.alert(t(msg)),
+  // #2415：自绘实现（DialogHost 已挂载时）；未挂载回退原生。
+  alert: (msg, opts = {}) => {
+    if (isDialogHostMounted()) {
+      return showDialog({ type: 'alert', title: t(opts.title || '提示'), message: t(msg) })
+    }
+    nativeAlert(t(withTitle(msg, opts.title)))
+    return Promise.resolve()
+  },
+  confirm: (msg, opts = {}) => {
+    if (isDialogHostMounted()) {
+      return showDialog({ type: 'confirm', title: t(opts.title || '提示'), message: t(msg) })
+    }
+    return Promise.resolve(window.confirm(t(withTitle(msg, opts.title))))
+  },
+  toast: (msg, opts = {}) => {
+    const message = t(msg)
+    if (isDialogHostMounted()) {
+      return showDialog({ type: 'toast', message, duration: opts.duration || 2000 })
+    }
+    nativeAlert(message)
+  },
+  // 供 S2 迁移 editable 场景使用：#2415 D4
+  showDialog,
 }
 
 // H5: native <input> fires React synthetic event with e.target.value.

@@ -4,6 +4,7 @@ import { message } from 'antd'
 import { getToken, initPermissionMapping, publicRoutes, request, apiFetch } from './services/api'
 import { storage, session, navigation, env } from './platform'
 import { initializeApp, storeToken, parseJWT, cachePermissions, getWXConfig, showLoginReason, setInitDeps } from './platform/init'
+import DialogHost from './components/DialogHost'
 
 setInitDeps(initPermissionMapping, publicRoutes)
 
@@ -360,6 +361,8 @@ function App() {
         <Route path="/transit-receive" element={<ProtectedRoute><TransitReceive /></ProtectedRoute>} />
         <Route path="/transit-ship" element={<ProtectedRoute><TransitShip /></ProtectedRoute>} />
       </Routes>
+      {/* #2415：H5 全局对话框宿主（与 weapp app.tsx 对称） */}
+      <DialogHost />
     </BrowserRouter>
   )
 }
