@@ -10,7 +10,7 @@ case "$MODE" in
   r1-aggregate)        ART="docs/evidence/2386/R1-aggregate.txt"; TEST='^TestStaffMembersAggregate_2386$' ;;
   r2-scope)            ART="docs/evidence/2386/R2-scope.txt"; TEST='^TestStaffMembersScope_2386$' ;;
   r3-platform)         ART="docs/evidence/2386/R3-platform.txt"; TEST='^TestStaffMembersPlatform_2386$' ;;
-  build)               ART="docs/evidence/2386/R4-build.txt"; TEST="" ;;
+  build|r4-build)      ART="docs/evidence/2386/R4-build.txt"; TEST="" ;;
   r5-default-scope)    ART="docs/evidence/2386/R5-default-scope.txt"; TEST='^TestStaffMembersDefaultScope_2386$' ;;
   r6-identity-roles)   ART="docs/evidence/2386/R6-identity-roles.txt"; TEST='^TestStaffMembersIdentityRoles_2386$' ;;
   r7-merchant-role)    ART="docs/evidence/2386/R7-merchant-role.txt"; TEST='^TestStaffMembersMerchantRole_2386$' ;;
@@ -21,17 +21,11 @@ esac
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
-export PATH="/usr/local/go/bin:${PATH}"
-export TMPDIR="${TMPDIR:-$REPO_ROOT/tmp/gobuild}"
-export GOCACHE="${GOCACHE:-$REPO_ROOT/tmp/gocache}"
-export POSTGRES_HOST="${POSTGRES_HOST:-127.0.0.1}"
-export POSTGRES_PORT="${POSTGRES_PORT:-15433}"
-export POSTGRES_USER="${POSTGRES_USER:-tuneloop_user}"
-export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-trust}"
-export TUNELOOP_TEST_DB="${TUNELOOP_TEST_DB:-tuneloop_test_verify2386}"
-export IAM_NAMESPACE="${IAM_NAMESPACE:-test-ns}"
-export IAM_SECRET="${IAM_SECRET:-test-secret-1489}"
-mkdir -p "$TMPDIR" "$GOCACHE" "$(dirname "$ART")"
+if ! command -v go >/dev/null 2>&1; then
+  export PATH="/usr/local/go/bin:${PATH}"
+fi
+export TMPDIR="$REPO_ROOT/tmp/gobuild"
+mkdir -p "$TMPDIR" "$(dirname "$ART")"
 
 BUILD="1.0.$(git rev-parse --short HEAD)"
 COMMIT="$(git rev-parse HEAD)"
@@ -44,11 +38,14 @@ fi
 {
   echo "# build=$BUILD commit=$COMMIT dirty=$DIRTY"
   cd "$REPO_ROOT/backend"
-  if [ "$MODE" = "build" ]; then
-    go build ./...
-  else
-    go test ./handlers/ -run "$TEST" -count=1 -v
-  fi
+  case "$MODE" in
+    build|r4-build)
+      go build ./...
+      ;;
+    *)
+      go test ./handlers/ -run "$TEST" -count=1 -v
+      ;;
+  esac
 } 2>&1 | tee "$ART"
 
 exit "${PIPESTATUS[0]}"
