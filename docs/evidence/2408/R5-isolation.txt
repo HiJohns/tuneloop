@@ -1,0 +1,4 @@
+# build=1.0.382cbb83a commit=382cbb83a2fb219d4fdbbed686f44b89c0b10ae0 dirty=false
+env_reads=1 mockResultFromEnv_call_sites=1
+real_provider_returns_client=yes
+ISOLATION PASS: PAYSCORE_MOCK_RESULT only read by mockResultFromEnv; real branch returns PayScoreClient

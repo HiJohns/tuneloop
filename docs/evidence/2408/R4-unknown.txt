@@ -1,0 +1,7 @@
+# build=1.0.382cbb83a commit=382cbb83a2fb219d4fdbbed686f44b89c0b10ae0 dirty=false
+=== RUN   TestMockPayscoreResult_2408
+=== RUN   TestMockPayscoreResult_2408/unknown-falls-back
+--- PASS: TestMockPayscoreResult_2408 (0.00s)
+    --- PASS: TestMockPayscoreResult_2408/unknown-falls-back (0.00s)
+PASS
+ok  	tuneloop-backend/services/wechatpay	0.036s

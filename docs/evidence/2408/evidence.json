@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "issue": 2408,
+  "build": "1.0.0b963041d",
+  "commit": "0b963041d14cafeb152f138439e7d997bb5e01f0",
+  "dirty": false,
+  "environment": "backend wechatpay mock provider unit tests; fix commit 0b963041d (already in develop); evidence generated at later HEAD",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2408.sh r1-default",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2408/R1-default.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestMockPayscoreResult_2408",
+      "actual": "PASS：未设置 env → 到时 approved",
+      "expected": "PASS",
+      "negative": "仍 pending → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2408.sh r2-rejected",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2408/R2-rejected.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：PAYSCORE_MOCK_RESULT=rejected → 到时 rejected",
+      "expected": "PASS",
+      "negative": "approved → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2408.sh r3-pending",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2408/R3-pending.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestMockPayscoreResult_PendingStaysPending_2408",
+      "actual": "PASS：pending 模式连续 3 次查询均 pending（忽略 ApproveAfter）",
+      "expected": "PASS",
+      "negative": "任一次 approved → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2408.sh r4-unknown",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2408/R4-unknown.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：未知值 wat → approved（历史行为，不报错）",
+      "expected": "PASS",
+      "negative": "报错 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2408.sh r5-isolation",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2408/R5-isolation.txt"
+      ],
+      "assert": "exit 0；真实路径不含 PAYSCORE_MOCK_RESULT 读取",
+      "actual": "PASS：env_reads=1（仅 mockResultFromEnv）；mockResultFromEnv 调用点=1（NewMockPayscoreProvider）；真实分支 return client",
+      "expected": "PASS",
+      "negative": "mock 泄露 → FAIL",
+      "negative_result": "env 读取/调用点 >1 或真实分支缺失即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2408.sh r6-build",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2408/R6-build.txt"
+      ],
+      "assert": "exit 0",
+      "actual": "PASS：cd backend && go build ./... exit 0",
+      "expected": "PASS",
+      "negative": "失败 → FAIL",
+      "negative_result": "构建失败即 exit 1",
+      "pass": true
+    }
+  ]
+}

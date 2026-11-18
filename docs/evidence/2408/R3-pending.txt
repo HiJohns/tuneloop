@@ -1,0 +1,5 @@
+# build=1.0.382cbb83a commit=382cbb83a2fb219d4fdbbed686f44b89c0b10ae0 dirty=false
+=== RUN   TestMockPayscoreResult_PendingStaysPending_2408
+--- PASS: TestMockPayscoreResult_PendingStaysPending_2408 (0.00s)
+PASS
+ok  	tuneloop-backend/services/wechatpay	0.045s
