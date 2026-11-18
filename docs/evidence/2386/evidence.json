@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "issue": 2386,
-  "build": "staff-members-2386 72b3657",
-  "commit": "72b365780",
+  "build": "staff-members-2386 fc3fe92",
+  "commit": "fc3fe925d",
   "dirty": false,
-  "environment": "backend handlers tests on PG 127.0.0.1:15433 (strict schema)",
+  "environment": "backend handlers tests on PG 127.0.0.1:15433 (strict schema); audit-fix commit fc3fe925d",
   "rows": [
     {
       "id": "R1",
@@ -60,6 +60,66 @@
       "expected": "PASS",
       "negative": "编译失败 → exit 1",
       "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2386.sh r5-default-scope > docs/evidence/2386/R5-default-scope.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2386/R5-default-scope.txt",
+        "docs/evidence/2386/R5-R8-red-old-handler.txt"
+      ],
+      "assert": "exit 0；含 --- PASS；不传 scope 时只返回直属 1 行",
+      "actual": "PASS：不传 scope → 只返回直属成员 u1（1 行）；旧实现返回 2 行（红证据 R5-R8-red-old-handler.txt）",
+      "expected": "PASS",
+      "negative": "默认 all → 返回 2 行 → FAIL",
+      "negative_result": "旧 handler 实测 FAIL：should have 1 item(s), but has 2",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2386.sh r6-identity-roles > docs/evidence/2386/R6-identity-roles.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2386/R6-identity-roles.txt",
+        "docs/evidence/2386/R5-R8-red-old-handler.txt"
+      ],
+      "assert": "exit 0；含 --- PASS；sm.role=site_member + roles=[site_member,site_admin] 时 identity=admin 与 staff 均命中",
+      "actual": "PASS：identity=admin（roles[] jsonb）与 identity=staff 均返回该用户；旧实现 identity=admin 0 行（红证据）",
+      "expected": "PASS",
+      "negative": "只过滤 sm.role → identity=admin 0 行 → FAIL",
+      "negative_result": "旧 handler 实测 FAIL：identity=admin must match roles[] jsonb",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2386.sh r7-merchant-role > docs/evidence/2386/R7-merchant-role.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2386/R7-merchant-role.txt",
+        "docs/evidence/2386/R5-R8-red-old-handler.txt"
+      ],
+      "assert": "exit 0；含 --- PASS；直属行 merchant_role=site_admin，非直属行为空",
+      "actual": "PASS：直属 u1 merchant_role=site_admin；仅网点 u2 merchant_role=\"\"；旧实现字段缺失/为 null（红证据）",
+      "expected": "PASS",
+      "negative": "响应无 merchant_role → FAIL",
+      "negative_result": "旧 handler 实测 FAIL：expected site_admin, actual <nil>",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2386.sh r8-direct-isolation > docs/evidence/2386/R8-direct-isolation.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2386/R8-direct-isolation.txt",
+        "docs/evidence/2386/R5-R8-red-old-handler.txt"
+      ],
+      "assert": "exit 0；含 --- PASS；A 网点成员 + B 直属 → A direct 0 行；A all 含且 is_direct=false",
+      "actual": "PASS：A 管理员 scope=direct 不含该用户；scope=all 含该用户且 is_direct=false、merchant_role=\"\"；旧实现 direct 误纳入（红证据）",
+      "expected": "PASS",
+      "negative": "JOIN 未按 tenant scoping → A direct 误纳入 B 直属 → FAIL",
+      "negative_result": "旧 handler 实测 FAIL：B-direct user must not appear in A direct",
       "pass": true
     }
   ]

@@ -1,0 +1,50 @@
+# RED: new audit tests R5-R8 against OLD handler (commit d5cf5bba6, before fix)
+# command: go test ./handlers/ -run 'TestStaffMembers(DefaultScope|IdentityRoles|MerchantRole|DirectIsolation)_2386' -count=1
+
+[WARNING] No .env file found in common paths
+2026/11/18 15:59:54 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2386red sslmode=disable
+2026/11/18 15:59:55 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2386red
+2026/11/18 15:59:55 [DB] Connected to database 'tuneloop_test_2386red'
+2026/11/18 15:59:55 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2386red sslmode=disable
+2026/11/18 15:59:55 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_2386red
+2026/11/18 15:59:55 [DB] Connected to database 'tuneloop_test_2386red'
+--- FAIL: TestStaffMembersDefaultScope_2386 (0.35s)
+    staff_members_2386_test.go:210: 
+        	Error Trace:	/tmp/opencode/wt-2386-red/backend/handlers/staff_members_2386_test.go:210
+        	Error:      	"[map[email: identities:[site_member] is_direct:false joined_at:2026-11-17T15:59:55.64253Z name:成员 s2 phone: role:site_member sites:[map[id:41fa2a1a-7f5b-4eb0-886e-f029c14a7306 name:SiteA2386 roles:[site_member]]] status:active user_id:4ca978bb-ed19-44d0-9c33-49e42b5d6e43 username:u2386_s2] map[email: identities:[site_member] is_direct:true joined_at:2026-11-17T15:59:55.64253Z name:成员 d1 phone: role:site_member sites:<nil> status:active user_id:573c980a-4c48-4394-900a-4e92261f3ddb username:u2386_d1]]" should have 1 item(s), but has 2
+        	Test:       	TestStaffMembersDefaultScope_2386
+        	Messages:   	default scope must be direct
+--- FAIL: TestStaffMembersIdentityRoles_2386 (0.40s)
+    staff_members_2386_test.go:232: 
+        	Error Trace:	/tmp/opencode/wt-2386-red/backend/handlers/staff_members_2386_test.go:232
+        	Error:      	Should be true
+        	Test:       	TestStaffMembersIdentityRoles_2386
+        	Messages:   	identity=admin must match roles[] jsonb
+--- FAIL: TestStaffMembersMerchantRole_2386 (0.50s)
+    staff_members_2386_test.go:253: 
+        	Error Trace:	/tmp/opencode/wt-2386-red/backend/handlers/staff_members_2386_test.go:253
+        	Error:      	Not equal: 
+        	            	expected: string("site_admin")
+        	            	actual  : <nil>(<nil>)
+        	Test:       	TestStaffMembersMerchantRole_2386
+    staff_members_2386_test.go:254: 
+        	Error Trace:	/tmp/opencode/wt-2386-red/backend/handlers/staff_members_2386_test.go:254
+        	Error:      	Not equal: 
+        	            	expected: string("")
+        	            	actual  : <nil>(<nil>)
+        	Test:       	TestStaffMembersMerchantRole_2386
+--- FAIL: TestStaffMembersDirectIsolation_2386 (0.45s)
+    staff_members_2386_test.go:277: 
+        	Error Trace:	/tmp/opencode/wt-2386-red/backend/handlers/staff_members_2386_test.go:277
+        	Error:      	Should not be: "da39e9ca-eeec-4ac3-b9cd-c6a46d5ab5a3"
+        	Test:       	TestStaffMembersDirectIsolation_2386
+        	Messages:   	B-direct user must not appear in A direct
+    staff_members_2386_test.go:288: 
+        	Error Trace:	/tmp/opencode/wt-2386-red/backend/handlers/staff_members_2386_test.go:288
+        	Error:      	Not equal: 
+        	            	expected: string("")
+        	            	actual  : <nil>(<nil>)
+        	Test:       	TestStaffMembersDirectIsolation_2386
+FAIL
+FAIL	tuneloop-backend/handlers	2.401s
+FAIL

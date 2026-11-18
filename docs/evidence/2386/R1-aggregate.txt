@@ -1,11 +1,11 @@
 [DEBUG] Loaded .env from: ../.env
-2026/11/16 21:59:13 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2386 sslmode=disable
-2026/11/16 21:59:14 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2386
-2026/11/16 21:59:14 [DB] Connected to database 'tuneloop_test_verify2386'
+2026/11/18 16:00:29 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2386 sslmode=disable
+2026/11/18 16:00:29 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2386
+2026/11/18 16:00:29 [DB] Connected to database 'tuneloop_test_verify2386'
 === RUN   TestStaffMembersAggregate_2386
-2026/11/16 21:59:15 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2386 sslmode=disable
-2026/11/16 21:59:15 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2386
-2026/11/16 21:59:15 [DB] Connected to database 'tuneloop_test_verify2386'
---- PASS: TestStaffMembersAggregate_2386 (0.48s)
+2026/11/18 16:00:30 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2386 sslmode=disable
+2026/11/18 16:00:30 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2386
+2026/11/18 16:00:30 [DB] Connected to database 'tuneloop_test_verify2386'
+--- PASS: TestStaffMembersAggregate_2386 (0.56s)
 PASS
-ok  	tuneloop-backend/handlers	2.029s
+ok  	tuneloop-backend/handlers	1.793s

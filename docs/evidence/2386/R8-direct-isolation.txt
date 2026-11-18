@@ -1,0 +1,11 @@
+[DEBUG] Loaded .env from: ../.env
+2026/11/18 16:01:57 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2386 sslmode=disable
+2026/11/18 16:01:58 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2386
+2026/11/18 16:01:58 [DB] Connected to database 'tuneloop_test_verify2386'
+=== RUN   TestStaffMembersDirectIsolation_2386
+2026/11/18 16:01:58 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2386 sslmode=disable
+2026/11/18 16:01:58 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2386
+2026/11/18 16:01:58 [DB] Connected to database 'tuneloop_test_verify2386'
+--- PASS: TestStaffMembersDirectIsolation_2386 (0.43s)
+PASS
+ok  	tuneloop-backend/handlers	1.293s

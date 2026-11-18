@@ -1,0 +1,14 @@
+[DEBUG] Loaded .env from: ../.env
+2026/11/18 16:01:41 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2386 sslmode=disable
+2026/11/18 16:01:41 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2386
+2026/11/18 16:01:41 [DB] Connected to database 'tuneloop_test_verify2386'
+=== RUN   TestStaffMembersMerchantRole_2386
+2026/11/18 16:01:43 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2386 sslmode=disable
+2026/11/18 16:01:43 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2386
+2026/11/18 16:01:43 [DB] Connected to database 'tuneloop_test_verify2386'
+
+2026/11/18 16:01:44 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[317.900ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+--- PASS: TestStaffMembersMerchantRole_2386 (0.92s)
+PASS
+ok  	tuneloop-backend/handlers	3.343s
