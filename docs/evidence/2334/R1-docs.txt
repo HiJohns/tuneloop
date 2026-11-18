@@ -1,3 +1,4 @@
+# build=1.0.4835f3e24 commit=4835f3e24f2d2fedb25fdd1f9f736ca18cb31832 dirty=false
 OK docs/spec/features.md :: 三档押金：full / reduced / zero
 OK docs/spec/features.md :: PAYSCORE_ENABLED
 OK docs/spec/features.md :: 零押金失败兜底（D4）

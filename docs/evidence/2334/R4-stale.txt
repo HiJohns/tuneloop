@@ -1,0 +1,5 @@
+# build=1.0.4835f3e24 commit=4835f3e24f2d2fedb25fdd1f9f736ca18cb31832 dirty=false
+OK no-stale: deposit_waived=true 即免押
+OK no-stale: PAYSCORE_ENABLED=true 默认
+OK no-stale: pending 可支付
+OK no-stale: 零押金失败回退全额

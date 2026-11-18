@@ -1,10 +1,9 @@
+# build=1.0.4835f3e24 commit=4835f3e24f2d2fedb25fdd1f9f736ca18cb31832 dirty=false
 OK-EN docs/en/api.md
 OK-EN docs/en/ui.md
 OK-EN docs/en/cases.md
-OK en/api credit-assessment
-OK en/api risk
-OK en/api config
-OK en/ui entry
-OK en/ui risk
-OK en/cases openBusinessView
-OK en/cases h5
+OK docs/en/api.md credit-assessment
+OK docs/en/api.md config
+OK docs/en/ui.md entry
+OK docs/en/cases.md openBusinessView
+OK docs/en/cases.md h5
