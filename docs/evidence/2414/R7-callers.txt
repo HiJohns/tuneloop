@@ -1,0 +1,11 @@
+# build=1.0.e30a5ba54
+# commit=e30a5ba5479a171542c8142b9c266c24f534a65c
+# dirty=true
+# 全仓 /rental/calculate 调用方清单（复审 R7）
+backend/main.go:766:				userOptionalAuth.POST("/rental/calculate", userRentalHandler.CalculateRental)
+backend/handlers/rental_calculate_2414_test.go:3:// #2414：遗留 POST /api/user/rental/calculate 押金口径对齐（#2406 规则）。
+backend/handlers/rental_calculate_2414_test.go:76:	r.POST("/rental/calculate", h.CalculateRental)
+backend/handlers/rental_calculate_2414_test.go:85:	req := httptest.NewRequest(http.MethodPost, "/rental/calculate", bytes.NewReader(body))
+docs/spec/api/api.md:3864:> **#2180 使用单位**：乐币**最小使用单位为元（整数）**。`POST /api/rental/calculate` 的 `gift_points_max` 返回**元**（`math.Floor(cents / 100)`，向下取整）；支付页输入以元为单位（`clampPoints` 用 `parseInt` 取整），`gift_used`（prepay 请求）为元，后端 `FromYuan` 转分存储。余额展示字段（`promo_points` / `prepaid_points` / `gift_points_used` / `gift_points_refunded` 等）仍为分，前端 `/100` 或 `formatCents` 转元。
+docs/spec/api/api.md:4501:**接口**: `POST /api/rental/calculate`
+# 说明：仓内无前端调用方；仅后端路由注册 + 本 Issue 测试/脚本/证据引用。公开路由保留。

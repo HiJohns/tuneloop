@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2414,
-  "build": "1.0.5bb2271e6",
-  "commit": "5bb2271e6cc165243aa6fca12656d7690468cb07",
+  "build": "s4-rental-calculate e30a5ba (cents-contract)",
+  "commit": "e30a5ba5479a171542c8142b9c266c24f534a65c",
   "dirty": false,
   "environment": "backend handlers entry-level tests on PG 127.0.0.1:15433; fix commit 5bb2271e6",
   "rows": [
@@ -60,6 +60,48 @@
       "expected": "PASS",
       "negative": "失败 → FAIL",
       "negative_result": "构建失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2414.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2414/R5-units.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "exit 0；TestCalculateRentalUnitConsistency_2414 PASS：cash_to_pay==total_rent+deposit+shipping_fee（分）、sum(tiers[].subtotal)==total_rent、金额字段均为整数分",
+      "expected": "PASS",
+      "negative": "单位混用 → FAIL",
+      "negative_result": "若任一金额字段仍为元或分项求和不等于合计 → 用例断言失败",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2414.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2414/R6-doc.txt"
+      ],
+      "assert": "exit 0；含 R6 PASS",
+      "actual": "exit 0；§8.12 含 tiers/subtotal/total_rent/member_discount_amount/deposit/shipping_fee/cash_to_pay 与「为分」契约、两条不变量",
+      "expected": "PASS",
+      "negative": "文档缺字段/单位 → exit 1",
+      "negative_result": "若 §8.12 缺字段、缺「为分」或缺少不变量 → 脚本返回非 0",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2414.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2414/R7-callers.txt"
+      ],
+      "assert": "exit 0；列出调用方",
+      "actual": "exit 0；全仓 grep 列出 main.go 路由注册与测试/文档引用；仓内无前端调用方（公开路由保留）",
+      "expected": "PASS",
+      "negative": "缺失 → exit 1",
+      "negative_result": "若命令失败或产物缺失 → 脚本返回非 0",
       "pass": true
     }
   ]

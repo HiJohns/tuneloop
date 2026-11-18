@@ -1,25 +1,28 @@
-# build=1.0.5bb2271e6
-# commit=5bb2271e6cc165243aa6fca12656d7690468cb07
-# dirty=false
+# build=1.0.e30a5ba54
+# commit=e30a5ba5479a171542c8142b9c266c24f534a65c
+# dirty=true
 [DEBUG] Loaded .env from: ../.env
-2026/11/18 17:16:57 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414 sslmode=disable
-2026/11/18 17:16:57 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414
-2026/11/18 17:16:57 [DB] Connected to database 'tuneloop_test_verify2414'
+2026/11/18 20:56:01 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/18 20:56:01 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/18 20:56:01 [DB] Connected to database 'tuneloop_test'
 === RUN   TestCalculateRentalDepositTrueZero_2414
-2026/11/18 17:16:57 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414 sslmode=disable
-2026/11/18 17:16:57 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414
-2026/11/18 17:16:57 [DB] Connected to database 'tuneloop_test_verify2414'
-2026/11/18 17:16:57 [TenantScope][observe] auto-scope injected for table=instruments (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/18 20:56:02 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/18 20:56:02 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/18 20:56:02 [DB] Connected to database 'tuneloop_test'
 
-2026/11/18 17:16:57 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1574 [35;1mrecord not found
-[0m[33m[0.440ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = 'f585b6a2-b8e7-4538-ba0c-3b873a4afd3e' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
-2026/11/18 17:16:57 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/18 20:56:03 [32m/home/coder/tuneloop-wt/issue-2414/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[611.321ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/18 20:56:03 [TenantScope][observe] auto-scope injected for table=instruments (add explicit scope, then set ExplicitTenantScopeOnly)
 
-2026/11/18 17:16:57 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1648 [35;1mrecord not found
-[0m[33m[0.823ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE iam_sub = '424238ce-aff0-4c8f-a8b1-51bdf692e3a9' AND "users"."tenant_id" = 'f585b6a2-b8e7-4538-ba0c-3b873a4afd3e' ORDER BY "users"."id" LIMIT 1
+2026/11/18 20:56:03 [31;1m/home/coder/tuneloop-wt/issue-2414/backend/handlers/user_rental.go:1574 [35;1mrecord not found
+[0m[33m[1.790ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '5d99bb17-2bae-4ae2-8433-927c508bd059' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+2026/11/18 20:56:03 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
 
-2026/11/18 17:16:57 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
-[0m[33m[0.523ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
---- PASS: TestCalculateRentalDepositTrueZero_2414 (0.23s)
+2026/11/18 20:56:03 [31;1m/home/coder/tuneloop-wt/issue-2414/backend/handlers/user_rental.go:1658 [35;1mrecord not found
+[0m[33m[2.420ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE iam_sub = '77c86f0a-4ef5-4f27-aea2-dd0c16d32b74' AND "users"."tenant_id" = '5d99bb17-2bae-4ae2-8433-927c508bd059' ORDER BY "users"."id" LIMIT 1
+
+2026/11/18 20:56:03 [31;1m/home/coder/tuneloop-wt/issue-2414/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.982ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestCalculateRentalDepositTrueZero_2414 (1.27s)
 PASS
-ok  	tuneloop-backend/handlers	0.727s
+ok  	tuneloop-backend/handlers	2.143s

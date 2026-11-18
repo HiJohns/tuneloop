@@ -1,0 +1,4 @@
+# build=1.0.e30a5ba54
+# commit=e30a5ba5479a171542c8142b9c266c24f534a65c
+# dirty=true
+R6 PASS：§8.12 字段/单位/一致性约束齐全
