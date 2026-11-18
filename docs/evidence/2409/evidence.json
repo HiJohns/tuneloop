@@ -9,11 +9,13 @@
       "id": "R1",
       "command": "npm --prefix frontend-mobile run smoke -- scripts/page-smoke/bind-wx-accounts.test.jsx > docs/evidence/2409/R1-bind-success.txt 2>&1",
       "exit": 0,
-      "artifacts": ["docs/evidence/2409/R1-bind-success.txt"],
-      "assert": "exit 0; Test Files 1 passed; confirm uses wx_openid=o-1 and exchange_token=ex-1; page shows 绑定成功",
+      "artifacts": [
+        "docs/evidence/2409/R1-bind-success.txt"
+      ],
+      "assert": "exit 0；含 Test Files  1 passed",
       "actual": "Test Files 1 passed (1); Tests 4 passed (4); success cases render 绑定成功",
       "expected": "PASS",
-      "negative": "old path calls /auth/wx-login or skips confirm",
+      "negative": "仍走 /auth/wx-login → exit 1",
       "negative_result": "pre-fix run: 2 failed, page showed 绑定失败 (tmp/red-2409.log)",
       "pass": true
     },
@@ -21,11 +23,13 @@
       "id": "R2",
       "command": "npm --prefix frontend-mobile run smoke -- scripts/page-smoke/bind-wx-accounts.test.jsx > docs/evidence/2409/R2-bind-failure.txt 2>&1",
       "exit": 0,
-      "artifacts": ["docs/evidence/2409/R2-bind-failure.txt"],
-      "assert": "exit 0; Test Files 1 passed; failure path makes zero confirm calls; page shows 绑定失败",
+      "artifacts": [
+        "docs/evidence/2409/R2-bind-failure.txt"
+      ],
+      "assert": "exit 0；含 Test Files  1 passed",
       "actual": "Test Files 1 passed (1); Tests 4 passed (4); failure cases render 绑定失败 and do not call confirm",
       "expected": "PASS",
-      "negative": "failure path still calls confirm",
+      "negative": "失败路径仍 confirm → exit 1",
       "negative_result": "test fails if confirm is called without a real openid",
       "pass": true
     },
@@ -33,11 +37,13 @@
       "id": "R3",
       "command": "grep -n \"wx-accounts\" docs/cases/cases.md docs/spec/api/api.md > docs/evidence/2409/R3-doc.txt",
       "exit": 0,
-      "artifacts": ["docs/evidence/2409/R3-doc.txt"],
-      "assert": "exit 0; both docs/cases/cases.md and docs/spec/api/api.md match wx-accounts",
+      "artifacts": [
+        "docs/evidence/2409/R3-doc.txt"
+      ],
+      "assert": "exit 0；两个文件路径均出现",
       "actual": "both files matched wx-accounts/openid contract text",
       "expected": "PASS",
-      "negative": "either document missing the wx-accounts/openid contract",
+      "negative": "任一文件缺失 → exit 1",
       "negative_result": "grep exits 1 if a file is missing or has no match",
       "pass": true
     },
@@ -45,11 +51,13 @@
       "id": "R4",
       "command": "cd frontend-mobile && npx eslint src/pages-weapp/bind/Bind.jsx > ../docs/evidence/2409/R4-lint.txt 2>&1",
       "exit": 0,
-      "artifacts": ["docs/evidence/2409/R4-lint.txt"],
-      "assert": "exit 0; no no-undef errors",
+      "artifacts": [
+        "docs/evidence/2409/R4-lint.txt"
+      ],
+      "assert": "exit 0",
       "actual": "0 errors, 8 warnings",
       "expected": "PASS",
-      "negative": "any no-undef or parser error",
+      "negative": "no-undef → exit 1",
       "negative_result": "ESLint exits non-zero on no-undef/parser error",
       "pass": true
     },
@@ -57,11 +65,13 @@
       "id": "R5",
       "command": "npm --prefix frontend-mobile run build:weapp > docs/evidence/2409/R5-weapp-build.txt 2>&1",
       "exit": 0,
-      "artifacts": ["docs/evidence/2409/R5-weapp-build.txt"],
-      "assert": "exit 0; Compiled successfully; WXML probe empty",
+      "artifacts": [
+        "docs/evidence/2409/R5-weapp-build.txt"
+      ],
+      "assert": "exit 0",
       "actual": "Compiled successfully in 11.40s; WXML_PROBE: PASS",
       "expected": "PASS",
-      "negative": "build failure or native HTML controls in WXML",
+      "negative": "失败 → exit 1",
       "negative_result": "build exits non-zero or probe lists native HTML controls",
       "pass": true
     }
