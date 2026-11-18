@@ -1,0 +1,31 @@
+# build=1.0.c1a4fb014 commit=c1a4fb014bd5e1ab9400e177d96d6b4e5e36f6ee dirty=false
+[DEBUG] Loaded .env from: ../.env
+2026/11/18 19:14:42 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2362 sslmode=disable
+2026/11/18 19:14:44 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2362
+2026/11/18 19:14:44 [DB] Connected to database 'tuneloop_test_verify2362'
+=== RUN   TestOrderAmountConsistency_2362
+2026/11/18 19:14:45 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
+2026/11/18 19:14:45 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2362 sslmode=disable
+2026/11/18 19:14:45 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2362
+2026/11/18 19:14:45 [DB] Connected to database 'tuneloop_test_verify2362'
+
+2026/11/18 19:14:47 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[963.567ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+
+2026/11/18 19:14:47 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:542 [35;1mrecord not found
+[0m[33m[41.147ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '1e794b71-ef29-49fe-8158-088ae1be8e2d' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/18 19:14:47 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1713 [35;1mrecord not found
+[0m[33m[0.853ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '1e794b71-ef29-49fe-8158-088ae1be8e2d' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/18 19:14:47 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1721 [35;1mrecord not found
+[0m[33m[0.984ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/18 19:14:47 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[7.397ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '89970dff-94c4-4c5d-b4df-de59947a43d7' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/18 19:14:48 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.156ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '1e794b71-ef29-49fe-8158-088ae1be8e2d' ORDER BY "merchants"."id" LIMIT 1
+--- PASS: TestOrderAmountConsistency_2362 (2.91s)
+PASS
+ok  	tuneloop-backend/handlers	6.771s

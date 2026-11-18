@@ -1,8 +1,9 @@
+# build=1.0.c1a4fb014 commit=c1a4fb014bd5e1ab9400e177d96d6b4e5e36f6ee dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/16 21:30:58 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2362 sslmode=disable
-2026/11/16 21:30:59 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2362
-2026/11/16 21:30:59 [DB] Connected to database 'tuneloop_test_verify2362'
+2026/11/18 19:13:39 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2362 sslmode=disable
+2026/11/18 19:13:40 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2362
+2026/11/18 19:13:40 [DB] Connected to database 'tuneloop_test_verify2362'
 === RUN   TestPointsCapParity_2362
 --- PASS: TestPointsCapParity_2362 (0.00s)
 PASS
-ok  	tuneloop-backend/handlers	1.778s
+ok  	tuneloop-backend/handlers	3.258s

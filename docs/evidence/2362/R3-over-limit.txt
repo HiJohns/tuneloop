@@ -1,8 +1,25 @@
+# build=1.0.c1a4fb014 commit=c1a4fb014bd5e1ab9400e177d96d6b4e5e36f6ee dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/16 21:31:18 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2362 sslmode=disable
-2026/11/16 21:31:19 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2362
-2026/11/16 21:31:19 [DB] Connected to database 'tuneloop_test_verify2362'
-=== RUN   TestPointsUsageLimits_2362
---- PASS: TestPointsUsageLimits_2362 (0.00s)
+2026/11/18 19:14:07 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2362 sslmode=disable
+2026/11/18 19:14:08 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2362
+2026/11/18 19:14:08 [DB] Connected to database 'tuneloop_test_verify2362'
+=== RUN   TestOrderRejectsBadPoints_2362
+2026/11/18 19:14:10 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
+2026/11/18 19:14:10 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2362 sslmode=disable
+2026/11/18 19:14:10 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2362
+2026/11/18 19:14:10 [DB] Connected to database 'tuneloop_test_verify2362'
+
+2026/11/18 19:14:12 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[302.601ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+
+2026/11/18 19:14:12 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:542 [35;1mrecord not found
+[0m[33m[26.130ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '8beeed11-fd34-4721-872d-bf445810adb7' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/18 19:14:12 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:542 [35;1mrecord not found
+[0m[33m[2.534ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '8beeed11-fd34-4721-872d-bf445810adb7' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/18 19:14:12 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:542 [35;1mrecord not found
+[0m[33m[5.517ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '8beeed11-fd34-4721-872d-bf445810adb7' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+--- PASS: TestOrderRejectsBadPoints_2362 (1.83s)
 PASS
-ok  	tuneloop-backend/handlers	2.394s
+ok  	tuneloop-backend/handlers	5.858s
