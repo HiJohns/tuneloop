@@ -1268,17 +1268,17 @@ sequenceDiagram
         Note over Staff, API: 小程序内绑定 (获取真实 openid)
         WX-->>Staff: 打开小程序 Bind 页<br/>scene=bind_xxx
         Staff->>Staff: wx.login() 获取 code
-        Staff->>API: POST /auth/wx-login {code}
+        Staff->>API: GET /auth/wx-accounts?code=...
         API->>WX: jscode2session
         WX-->>API: {openid (真实)}
-        API-->>Staff: {wx_openid: 真实openid}
-        Staff->>API: POST /api/wechat-bind/confirm<br/>{token, wx_openid}
+        API-->>Staff: {openid, accounts, exchange_token}
+        Staff->>API: POST /api/wechat-bind/confirm<br/>{token, wx_openid: openid, exchange_token}
     end
 
     rect rgb(255, 248, 240)
         Note over API, IAM: 绑定落库（#2016：绑定表为唯一权威源）
         API->>API: token status → bound
-        API->>IAM: PATCH /api/v1/users/{user_id}<br/>{wx_openid}
+        API->>IAM: PUT /api/v1/users/{user_id}<br/>{wx_openid}
         IAM->>IAM: upsert wx_user_bindings (openid, user_id)
     end
 
@@ -1297,7 +1297,7 @@ sequenceDiagram
 | `POST` | `/api/users/me/wechat-bind` | PC | 生成绑定 token + 小程序码（需登录态） |
 | `GET` | `/api/users/me/wechat-bind/:token` | PC | PC 轮询绑定状态 |
 | `GET` | `/api/wechat-bind/confirm-page` | 微信 | 旧二维码引导页（已降级：绑定须在小程序完成，不再提供 OAuth 网页确认） |
-| `POST` | `/api/wechat-bind/confirm` | 小程序 | 确认绑定（提交 token + wx_openid，openid 须为 wx.login 换取的实时 openid） |
+| `POST` | `/api/wechat-bind/confirm` | 小程序 | 确认绑定（提交 token + wx_openid；openid 由 `/auth/wx-accounts` 获取，并转发 exchange_token 供 #2410 使用） |
 | `POST` | `/api/users/me/wechat-unbind` | PC | 解绑微信 |
 
 #### token 生命周期
@@ -1314,7 +1314,7 @@ sequenceDiagram
 2. **OAuth 授权**：确认页首次访问无 `code` 参数时，302 重定向到 `https://open.weixin.qq.com/connect/oauth2/authorize`，scope 为 `snsapi_base`（静默授权，无需用户确认即可获取 openid）
 3. **token 一次性**：确认后立即标记 bound 并清除，不可重放
 4. **轮询频率**：PC 端每 2 秒轮询一次，5 分钟超时自动关闭弹窗
-5. **绑定语义（#2016/#2025 一人一记录）**：绑定关系唯一权威源 = `wx_user_bindings`（openid ↔ user_id）；`users.wx_openid`（旧缓存列）已废弃。同一微信号在兼容期内可存在多条历史绑定（存量多户），新流程按一人一记录收敛（不再为同一人新建第二户）
+5. **绑定语义（#2016/#2025 一人一记录）**：绑定关系唯一权威源 = `wx_user_bindings`（openid ↔ user_id）；`users.wx_openid`（旧缓存列）已废弃。同一微信号在兼容期内可存在多条历史绑定（存量多户），新流程按一人一记录收敛（不再为同一人新建第二户）。PC 扫码路径接入 `needs_merge` 的一微信一账户收紧见 #2410
 6. **解绑（#2020，D4 衔接）**：`POST /api/users/me/wechat-unbind` 必须**删除该用户对应的 `wx_user_bindings` 行**（beaconiam `UpdateUser` 空 `wx_openid` 分支由 no-op 改为 DELETE）；解绑后 `wx-accounts` 不再返回该账户
 
 ## 4.2 人员管理

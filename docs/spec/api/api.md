@@ -250,19 +250,28 @@ H5 未捕获 JS 错误（`window.onerror` / `unhandledrejection`）上报，仅�
 **响应 data**（beaconiam `wx-accounts` 返回 `accounts[]`，每个账户内嵌 `contexts[]` + `is_customer`——tuneloop 平铺给前端）:
 ```json
 {
-  "user": { "id": "uuid", "name": "林维训" },
-  "contexts": [
-    { "type": "customer", "label": "顾客" },
-    { "type": "org", "org_id": "site-uuid", "org_name": "新街口店", "role": "ADMIN", "label": "新街口店" }
+  "openid": "o-real-openid",
+  "accounts": [
+    {
+      "user_id": "uuid",
+      "name": "林维训",
+      "nickname": "林",
+      "role": "USER",
+      "org_id": "",
+      "tenant_id": "",
+      "is_customer": true,
+      "contexts": [
+        { "type": "customer", "label": "顾客" }
+      ]
+    }
   ],
-  "is_customer": true,
-  "has_pending_registration": false
+  "exchange_token": "single-use-exchange-token"
 }
 ```
-- 0 上下文 → `has_pending_registration` 决定「继续完成注册」/「注册为顾客」
+- `openid` 始终返回真实 openid（`accounts=[]` 时也可用于首次绑定）；`exchange_token` 为单次使用，供 `wx-login-select` / `wx-bind` 消费
+- 0 账户 → 前端进入注册；1 账户 → 可直接登录；≥2 → 进入 `/account-select`
 - **顾客上下文派生（B1）**：非组织上下文——当用户持有 `customer` 职能角色（附着于其根组织 `member` 关系）时输出 `{type:"customer", label:"顾客"}`；签发时 tid 保持空
-- 1 上下文 → 前端可直接 `wx-login-select`
-- ≥2 上下文 → 进入 `/account-select` 组织上下文选择页
+- **PC 扫码绑定（#2409）**：Bind 页必须从本接口读取 `openid`，不再从 `/auth/wx-login` 读取 `wx_openid`；confirm 同时转发 `exchange_token`（#2410 使用）
 
 #### `POST /api/auth/wx-login-select`（按上下文签发）
 

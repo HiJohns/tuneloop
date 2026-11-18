@@ -26,15 +26,15 @@ export default function Bind() {
     try {
       const code = await wxLogin()
       if (!code) { setStatus('error'); return }
-      const res = await request(`${env.apiBaseUrl}/auth/wx-login`, {
-        method: 'POST',
-        body: JSON.stringify({ code }),
-      })
+      const res = await request(`${env.apiBaseUrl}/auth/wx-accounts?code=${encodeURIComponent(code)}`)
       const result = await res.json()
-      if (result.code === 20000 && result.data?.wx_openid) {
+      const openid = result?.data?.openid
+      if (result.code === 20000 && openid) {
+        const payload = { token, wx_openid: openid }
+        if (result.data.exchange_token) payload.exchange_token = result.data.exchange_token
         const confRes = await request(`${env.apiBaseUrl}/wechat-bind/confirm`, {
           method: 'POST',
-          body: JSON.stringify({ token, wx_openid: result.data.wx_openid }),
+          body: JSON.stringify(payload),
         })
         const confResult = await confRes.json()
         if (confResult.code === 20000) {
