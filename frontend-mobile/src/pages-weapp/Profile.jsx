@@ -293,7 +293,7 @@ export default function Profile() {
     return () => { cancelled = true }
   }, [isGuest, baseUrl])
 
-  // #2409：金刚区角标必须随订单状态变化刷新。tab 页 switchTab 回来不会重新 mount，
+  // #2412：金刚区角标必须随订单状态变化刷新。tab 页 switchTab 回来不会重新 mount，
   // 旧实现只在 mount 拉一次 counts → 订单被取消后角标仍显示 1，点进去列表却是空的。
   const fetchOrderCounts = useCallback(async () => {
     try {
@@ -337,7 +337,7 @@ export default function Profile() {
   }, [baseUrl, isStaff])
   useDidShow(() => {
     if (isStaff) refreshStaffData()
-    else fetchOrderCounts() // #2409：回前台/切回 tab 时刷新金刚区角标
+    else fetchOrderCounts() // #2412：回前台/切回 tab 时刷新金刚区角标
     fetchPendingInvites()
   })
 

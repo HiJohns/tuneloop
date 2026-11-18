@@ -243,7 +243,7 @@ export default function Profile() {
   const hasSiteRole = myRoles.some(r => ['site_admin', 'site_member'].includes(r))
   const isPureTech = isTech && !hasSiteRole
 
-  // #2409：金刚区角标必须随订单状态变化刷新（H5 走 platform.useDidShow：挂载 + 可见性变化）。
+  // #2412：金刚区角标必须随订单状态变化刷新（H5 走 platform.useDidShow：挂载 + 可见性变化）。
   const fetchOrderCounts = useCallback(async () => {
     try {
       const resp = await apiFetch(`${baseUrl}/user/orders/counts`)
