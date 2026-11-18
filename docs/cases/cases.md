@@ -1272,22 +1272,31 @@ sequenceDiagram
         API->>WX: jscode2session
         WX-->>API: {openid (真实)}
         API-->>Staff: {openid, accounts, exchange_token}
-        Staff->>API: POST /api/wechat-bind/confirm<br/>{token, wx_openid: openid, exchange_token}
+        Staff->>API: POST /api/wechat-bind/confirm<br/>{token, exchange_token}<br/>(wx_openid 兼容字段，忽略)
     end
 
     rect rgb(255, 248, 240)
-        Note over API, IAM: 绑定落库（#2016：绑定表为唯一权威源）
-        API->>API: token status → bound
-        API->>IAM: PUT /api/v1/users/{user_id}<br/>{wx_openid}
-        IAM->>IAM: upsert wx_user_bindings (openid, user_id)
+        Note over API, IAM: 绑定走 auth/wx-bind（#2410 D1；禁止 UpdateUser 直写 wx_openid）
+        API->>IAM: POST /api/v1/auth/wx-bind<br/>{client_id, user_id: iam_sub, exchange_token, code: ""}
+        alt openid 未被其他存活账户占用
+            IAM->>IAM: upsert wx_user_bindings (openid, user_id)
+            API->>API: token status → bound
+            API-->>Staff: 绑定成功
+        else openid 已绑定其他存活账户（needs_merge）
+            IAM-->>API: {needs_merge:true, existing_user_id, target_user_id, openid}
+            API->>API: token status → needs_merge（不落 bound）
+            API-->>Staff: 409 / 40900 + 合并引导（不显示绑定成功）
+        end
     end
 
-    API-->>Staff: 绑定成功
-
-    PC->>API: 轮询到 status=bound
-    API-->>PC: {status: "bound"}
-    PC->>PC: 关闭二维码弹窗<br/>显示「已绑定」
-    PC-->>Admin: 绑定完成
+    PC->>API: 轮询到 status=bound / needs_merge
+    alt status=bound
+        PC->>PC: 关闭二维码弹窗<br/>显示「已绑定」
+        PC-->>Admin: 绑定完成
+    else status=needs_merge
+        PC->>PC: 提示「该微信已绑定其他账户，请在手机端编辑资料合并」
+        PC-->>Admin: 等待手机端合并（本期不做 PC 合并弹窗/自动登出）
+    end
 ```
 
 #### 接口清单
@@ -1297,14 +1306,15 @@ sequenceDiagram
 | `POST` | `/api/users/me/wechat-bind` | PC | 生成绑定 token + 小程序码（需登录态） |
 | `GET` | `/api/users/me/wechat-bind/:token` | PC | PC 轮询绑定状态 |
 | `GET` | `/api/wechat-bind/confirm-page` | 微信 | 旧二维码引导页（已降级：绑定须在小程序完成，不再提供 OAuth 网页确认） |
-| `POST` | `/api/wechat-bind/confirm` | 小程序 | 确认绑定（提交 token + wx_openid；openid 由 `/auth/wx-accounts` 获取，并转发 exchange_token 供 #2410 使用） |
+| `POST` | `/api/wechat-bind/confirm` | 小程序 | 确认绑定（token + exchange_token；wx_openid 仅兼容字段、忽略）。走 IAM `/api/v1/auth/wx-bind`；`needs_merge` → 409/40900，不落绑定 |
 | `POST` | `/api/users/me/wechat-unbind` | PC | 解绑微信 |
 
 #### token 生命周期
 
 ```
 生成 (POST /users/me/wechat-bind) → pending
-    ├── 扫码确认 (POST /wechat-bind/confirm) → bound → 删除
+    ├── 扫码确认 (POST /wechat-bind/confirm) 成功 → bound → 删除
+    ├── 扫码确认返回 needs_merge → needs_merge（不落绑定；等用户在手机端合并）
     └── 超时 5 分钟 → expired → 定时清理删除
 ```
 
@@ -1314,7 +1324,7 @@ sequenceDiagram
 2. **OAuth 授权**：确认页首次访问无 `code` 参数时，302 重定向到 `https://open.weixin.qq.com/connect/oauth2/authorize`，scope 为 `snsapi_base`（静默授权，无需用户确认即可获取 openid）
 3. **token 一次性**：确认后立即标记 bound 并清除，不可重放
 4. **轮询频率**：PC 端每 2 秒轮询一次，5 分钟超时自动关闭弹窗
-5. **绑定语义（#2016/#2025 一人一记录）**：绑定关系唯一权威源 = `wx_user_bindings`（openid ↔ user_id）；`users.wx_openid`（旧缓存列）已废弃。同一微信号在兼容期内可存在多条历史绑定（存量多户），新流程按一人一记录收敛（不再为同一人新建第二户）。PC 扫码路径接入 `needs_merge` 的一微信一账户收紧见 #2410
+5. **绑定语义（#2016/#2025 一人一记录）**：绑定关系唯一权威源 = `wx_user_bindings`（openid ↔ user_id）；`users.wx_openid`（旧缓存列）已废弃。同一微信号在兼容期内可存在多条历史绑定（存量多户），新流程按一人一记录收敛（不再为同一人新建第二户）。PC 扫码确认（#2410）只走 IAM `/api/v1/auth/wx-bind`，`exchange_token` 为唯一权威；`IAMClient.UpdateUser` / `UpdateUserWithToken` 对非空 `wx_openid` 在发请求前直接拒绝，空值解绑仍走 IAM 删除绑定行，禁止绕过 `needs_merge`
 6. **解绑（#2020，D4 衔接）**：`POST /api/users/me/wechat-unbind` 必须**删除该用户对应的 `wx_user_bindings` 行**（beaconiam `UpdateUser` 空 `wx_openid` 分支由 no-op 改为 DELETE）；解绑后 `wx-accounts` 不再返回该账户
 
 ## 4.2 人员管理

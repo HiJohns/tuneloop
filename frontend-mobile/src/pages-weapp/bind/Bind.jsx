@@ -5,6 +5,7 @@ import { wxLogin, storage, env, request } from '../../platform'
 
 export default function Bind() {
   const [status, setStatus] = useState('loading')
+  const [mergeInfo, setMergeInfo] = useState(null)
 
   useEffect(() => {
     const params = Taro.getCurrentInstance().router?.params || {}
@@ -41,6 +42,12 @@ export default function Bind() {
           setStatus('success')
           return
         }
+        // #2410 D3：该微信已绑定其他账户 → 明确引导合并，不显示绑定成功。
+        if (confResult.code === 40900 && confResult.data?.needs_merge) {
+          setMergeInfo(confResult.data)
+          setStatus('needs_merge')
+          return
+        }
       }
       setStatus('error')
     } catch {
@@ -56,6 +63,21 @@ export default function Bind() {
           <Text style={{ fontSize: 48, marginBottom: 16 }}>✅</Text>
           <Text style={{ fontSize: 18, fontWeight: '700', color: '#000', marginBottom: 8 }}>绑定成功</Text>
           <Text style={{ fontSize: 14, color: '#71717a', marginBottom: 24 }}>PC 端将自动刷新</Text>
+          <Button onClick={() => Taro.navigateBack()} style={{ backgroundColor: '#915F38', color: '#fff', borderRadius: 22, padding: '12px 32px', fontSize: 14, fontWeight: '700', border: 'none' }}>
+            返回
+          </Button>
+        </View>
+      )}
+      {status === 'needs_merge' && (
+        <View style={{ alignItems: 'center', padding: 12 }}>
+          <Text style={{ fontSize: 48, marginBottom: 16 }}>🔗</Text>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#000', marginBottom: 8 }}>该微信已绑定其他账户</Text>
+          <Text style={{ fontSize: 14, color: '#71717a', marginBottom: 24, textAlign: 'center', lineHeight: '22px' }}>
+            请前往「我的 → 编辑资料 → 微信绑定」确认合并；合并后当前账户的组织关系与密码将迁移至该微信账户。
+          </Text>
+          {mergeInfo?.openid ? (
+            <Text style={{ fontSize: 12, color: '#a1a1aa', marginBottom: 16 }}>openid: {mergeInfo.openid}</Text>
+          ) : null}
           <Button onClick={() => Taro.navigateBack()} style={{ backgroundColor: '#915F38', color: '#fff', borderRadius: 22, padding: '12px 32px', fontSize: 14, fontWeight: '700', border: 'none' }}>
             返回
           </Button>

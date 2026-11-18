@@ -271,7 +271,26 @@ H5 未捕获 JS 错误（`window.onerror` / `unhandledrejection`）上报，仅�
 - `openid` 始终返回真实 openid（`accounts=[]` 时也可用于首次绑定）；`exchange_token` 为单次使用，供 `wx-login-select` / `wx-bind` 消费
 - 0 账户 → 前端进入注册；1 账户 → 可直接登录；≥2 → 进入 `/account-select`
 - **顾客上下文派生（B1）**：非组织上下文——当用户持有 `customer` 职能角色（附着于其根组织 `member` 关系）时输出 `{type:"customer", label:"顾客"}`；签发时 tid 保持空
-- **PC 扫码绑定（#2409）**：Bind 页必须从本接口读取 `openid`，不再从 `/auth/wx-login` 读取 `wx_openid`；confirm 同时转发 `exchange_token`（#2410 使用）
+- **PC 扫码绑定（#2409/#2410）**：Bind 页从本接口读取 `openid` 与 `exchange_token`；`POST /api/wechat-bind/confirm` 以 `exchange_token` 为**唯一绑定权威**（`wx_openid` 仅兼容展示，不转发给 IAM）。
+
+#### `POST /api/wechat-bind/confirm`（PC 扫码绑定确认，#2410）
+
+**Body**: `{ token, exchange_token }`
+- `exchange_token` 必填（单次使用，来自 `GET /api/auth/wx-accounts`）；缺失 → `40002`。
+- `wx_openid` 为兼容字段：可传但**忽略**，不得转发给 IAM，也不因与真实 openid 不一致返回 400。
+
+**绑定通路**：只允许 beaconiam `POST /api/v1/auth/wx-bind`（`{client_id, user_id: iam_sub, exchange_token, code: ""}`）。
+**禁止** tuneloop 通过 `PUT /api/v1/users/{id}` 写非空 `wx_openid`（`IAMClient.UpdateUser` / `UpdateUserWithToken` 在发请求前拒绝；空值解绑保留）。
+
+**响应**：
+
+| 场景 | HTTP | code | data | token 状态 |
+|---|---:|---:|---|---|
+| 首次绑定成功 | 200 | 20000 | — | `bound` |
+| 该微信已绑定其他存活账户 | 409 | 40900 | `{needs_merge:true, existing_user_id, target_user_id, openid}` | `needs_merge` |
+| token 无效/已用/过期 | 400 | 40004 | — | — |
+
+- `needs_merge` 时**不得**创建第二绑定、不得把 token 置为 `bound`；Bind 页显示合并引导（见 `ui.md`），PC 轮询读到 `needs_merge` 后提示到手机端完成合并。
 
 #### `POST /api/auth/wx-login-select`（按上下文签发）
 

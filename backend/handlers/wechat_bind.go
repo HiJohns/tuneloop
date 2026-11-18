@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"log"
 	"net/http"
 	"sync"
@@ -138,18 +139,26 @@ func (h *WechatBindHandler) PollBindToken(c *gin.Context) {
 }
 
 // ConfirmBind completes the binding (WeChat MP side).
+// #2410：绑定只能走 IAM /api/v1/auth/wx-bind（#2228 一微信一账户）。
+// exchange_token 是唯一权威来源；客户端传来的 wx_openid 忽略且不转发。
 func (h *WechatBindHandler) ConfirmBind(c *gin.Context) {
 	var req struct {
-		Token    string `json:"token" binding:"required"`
-		WxOpenid string `json:"wx_openid" binding:"required"`
+		Token         string `json:"token" binding:"required"`
+		ExchangeToken string `json:"exchange_token" binding:"required"`
+		WxOpenid      string `json:"wx_openid"` // 兼容字段，不作为绑定权威
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Printf("[ConfirmBind] body parse error: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "token and wx_openid required"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "token and exchange_token required"})
 		return
 	}
 
-	log.Printf("[ConfirmBind] req.Token=%q req.WxOpenid=%q", req.Token, req.WxOpenid)
+	log.Printf("[ConfirmBind] req.Token=%q exchange_token=%s", req.Token, func() string {
+		if req.ExchangeToken == "" {
+			return "empty"
+		}
+		return "present"
+	}())
 
 	bindTokensMu.Lock()
 	entry, exists := bindTokens[req.Token]
@@ -164,7 +173,6 @@ func (h *WechatBindHandler) ConfirmBind(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "invalid or expired token"})
 		return
 	}
-	entry.WxOpenid = req.WxOpenid
 	userID := entry.UserID
 	bindTokensMu.Unlock()
 
@@ -177,13 +185,32 @@ func (h *WechatBindHandler) ConfirmBind(c *gin.Context) {
 		return
 	}
 
-	// Update IAM user's wx_openid (IAM expects iam_sub as user identifier)
-	iamClient := services.NewIAMClient()
-	updErr := iamClient.UpdateUser(user.IAMSub, &services.UpdateUserRequest{
-		WxOpenid: &req.WxOpenid,
-	})
-	if updErr != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to bind: " + updErr.Error()})
+	// #2410 D1/D2：只提交 exchange_token，不发送 wx_openid（防止绕过 needs_merge）。
+	_, bindErr := services.NewIAMService().WxBind(req.ExchangeToken, "", user.IAMSub)
+
+	var mergeErr *services.WxNeedsMergeError
+	if errors.As(bindErr, &mergeErr) {
+		// #2410 D3：needs_merge 不落绑定；token 置 needs_merge 供 PC 轮询提示。
+		bindTokensMu.Lock()
+		if e, ok := bindTokens[req.Token]; ok {
+			e.Status = "needs_merge"
+		}
+		bindTokensMu.Unlock()
+
+		c.JSON(http.StatusConflict, gin.H{
+			"code":    40900,
+			"message": "该微信已绑定其他账户，需要合并",
+			"data": gin.H{
+				"needs_merge":      true,
+				"existing_user_id": mergeErr.ExistingUserID,
+				"target_user_id":   mergeErr.TargetUserID,
+				"openid":           mergeErr.OpenID,
+			},
+		})
+		return
+	}
+	if bindErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to bind: " + bindErr.Error()})
 		return
 	}
 

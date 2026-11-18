@@ -1121,7 +1121,20 @@ type UpdateUserRequest struct {
 	WxOpenid    *string `json:"wx_openid,omitempty"`
 }
 
+// rejectDirectWxOpenidUpdate（#2410 D5）：非空 wx_openid 不得经 UpdateUser 写入。
+// IAM UpdateUser 的 wx_openid 分支是 #483 的多绑定 upsert，会绕过 #2228 needs_merge；
+// 空值解绑保留。绑定/换绑必须走 IAMService.WxBind（/api/v1/auth/wx-bind）。
+func rejectDirectWxOpenidUpdate(req *UpdateUserRequest) error {
+	if req != nil && req.WxOpenid != nil && strings.TrimSpace(*req.WxOpenid) != "" {
+		return errors.New("direct wx_openid update is forbidden: use WxBind (/api/v1/auth/wx-bind) so needs_merge is enforced")
+	}
+	return nil
+}
+
 func (c *IAMClient) UpdateUser(userID string, req *UpdateUserRequest) error {
+	if err := rejectDirectWxOpenidUpdate(req); err != nil {
+		return err
+	}
 	path := fmt.Sprintf("/api/v1/users/%s", userID)
 	respBody, statusCode, err := c.doRequest("PUT", path, req)
 	if err != nil {
@@ -1396,6 +1409,9 @@ func (c *IAMClient) DeleteOrganizationWithToken(token, orgID string) error {
 }
 
 func (c *IAMClient) UpdateUserWithToken(token, userID string, req *UpdateUserRequest) error {
+	if err := rejectDirectWxOpenidUpdate(req); err != nil {
+		return err
+	}
 	path := fmt.Sprintf("/api/v1/users/%s", userID)
 	respBody, statusCode, err := c.doRequestWithToken("PUT", path, token, req)
 	if err != nil {

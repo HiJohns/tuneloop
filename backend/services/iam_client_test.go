@@ -268,3 +268,48 @@ func TestResolveUserOpenid_BoundAndUnbound(t *testing.T) {
 	require.NoError(t, err, "404 must be treated as no-binding, not an error")
 	require.Equal(t, "", empty)
 }
+
+// #2410 D5：非空 wx_openid 不得通过 UpdateUser/UpdateUserWithToken 直接写入 IAM
+// （IAM 该分支是 #483 多绑定 upsert，会绕过 #2228 needs_merge）。空值解绑保留。
+func TestIAMClient_RejectsDirectWxOpenid(t *testing.T) {
+	userPUT := 0
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/auth/token", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"access_token": "mock-token",
+			"expires_in":   3600,
+			"token_type":   "Bearer",
+		})
+	})
+	mux.HandleFunc("/api/v1/users/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPut {
+			userPUT++
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"code":20000,"message":"success"}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	SetIAMInternalURLForTesting(srv.URL)
+	defer SetIAMInternalURLForTesting("")
+
+	client := NewIAMClientWithCredentials("test-ns", "test-secret")
+	openid := "o-direct-must-be-rejected"
+
+	err := client.UpdateUser("u-1", &UpdateUserRequest{WxOpenid: &openid})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "WxBind", "error must point callers at the controlled wx-bind path")
+	require.Equal(t, 0, userPUT, "non-empty wx_openid must be rejected before any HTTP request")
+
+	err = client.UpdateUserWithToken("user-token", "u-1", &UpdateUserRequest{WxOpenid: &openid})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "WxBind")
+	require.Equal(t, 0, userPUT, "UpdateUserWithToken must reject before any HTTP request")
+
+	// 空值解绑仍可用（保留 #2020 解绑语义）。
+	empty := ""
+	require.NoError(t, client.UpdateUser("u-1", &UpdateUserRequest{WxOpenid: &empty}))
+	require.Equal(t, 1, userPUT, "empty wx_openid (unbind) must still reach IAM")
+	t.Logf("user_put_requests=%d (non-empty openid rejected before HTTP; empty unbind sent)", userPUT)
+}

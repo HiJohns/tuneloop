@@ -203,6 +203,27 @@ func TestPollBindToken_States(t *testing.T) {
 	bindTokensMu.Unlock()
 }
 
+func newWxBindMock(t *testing.T, response string, capture *map[string]interface{}, userPUT *bool) *httptest.Server {
+	t.Helper()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/auth/wx-bind", func(w http.ResponseWriter, r *http.Request) {
+		if capture != nil {
+			var body map[string]interface{}
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			*capture = body
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(response))
+	})
+	mux.HandleFunc("/api/v1/users/", func(w http.ResponseWriter, r *http.Request) {
+		if userPUT != nil {
+			*userPUT = true
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+	return httptest.NewServer(mux)
+}
+
 func TestConfirmBind_Success(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
@@ -211,14 +232,14 @@ func TestConfirmBind_Success(t *testing.T) {
 	user := models.User{ID: "6d1e2c3a-0000-4000-8000-000000000104", IAMSub: "iam-sub-0004", TenantID: "00000000-0000-0000-0000-000000000001", OrgID: "00000000-0000-0000-0000-000000000000", Username: "bindtest4"}
 	require.NoError(t, db.Create(&user).Error)
 
-	// Mock IAM so UpdateUser succeeds.
-	mockIAM := newMockIAMServer(nil, func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"code":20000}`))
-	})
+	var captured map[string]interface{}
+	userPUT := false
+	mockIAM := newWxBindMock(t, `{"user_id":"iam-sub-0004","wx_openid":"o-real"}`, &captured, &userPUT)
 	defer mockIAM.Close()
 	services.SetIAMInternalURLForTesting(mockIAM.URL)
 	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
+	t.Setenv("IAM_NAMESPACE", "test-ns")
+	t.Setenv("IAM_SECRET", "test-secret")
 
 	token := "abcd1234abcd1234"
 	bindTokensMu.Lock()
@@ -232,25 +253,85 @@ func TestConfirmBind_Success(t *testing.T) {
 	router := gin.New()
 	router.POST("/wechat-bind/confirm", NewWechatBindHandler().ConfirmBind)
 
-	body, _ := json.Marshal(map[string]string{"token": token, "wx_openid": "oa7cSxREALOPENID"})
+	// 客户端可以带 wx_openid，但后端必须忽略且不转发（Rev.3 D2）。
+	body, _ := json.Marshal(map[string]string{
+		"token": token, "exchange_token": "ex-1", "wx_openid": "client-should-be-ignored",
+	})
 	req := httptest.NewRequest("POST", "/wechat-bind/confirm", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	require.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusOK, w.Code, "body=%s", w.Body.String())
 	var resp struct {
 		Code int `json:"code"`
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	require.Equal(t, 20000, resp.Code)
-
-	// #2016 S3: 绑定落 beaconiam wx_user_bindings（本地 users.wx_openid 列已废弃）
+	require.NotNil(t, captured, "IAM wx-bind request must be captured")
+	require.Equal(t, "ex-1", captured["exchange_token"])
+	require.NotContains(t, captured, "wx_openid", "wx_openid must not be forwarded to IAM")
+	require.False(t, userPUT, "ConfirmBind must not call PUT /api/v1/users/")
+	require.Equal(t, "bound", lookupBindStatus(token))
+	t.Logf("IAM path=/api/v1/auth/wx-bind body=%v user_put=%v token_status=%s", captured, userPUT, lookupBindStatus(token))
 
 	// Token consumed: second confirm with same token must fail.
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, httptest.NewRequest("POST", "/wechat-bind/confirm", bytes.NewReader(body)))
 	require.Equal(t, http.StatusBadRequest, w.Code)
+
+	bindTokensMu.Lock()
+	delete(bindTokens, token)
+	bindTokensMu.Unlock()
+}
+
+// R2：IAM 返回 needs_merge → 409/40900，token=needs_merge，且不落 bound。
+func TestConfirmBind_NeedsMerge(t *testing.T) {
+	cleanup := setupMockIAMAndDB(t)
+	defer cleanup()
+	db := database.GetDB()
+
+	user := models.User{ID: "6d1e2c3a-0000-4000-8000-000000000105", IAMSub: "iam-sub-0005", TenantID: "00000000-0000-0000-0000-000000000001", OrgID: "00000000-0000-0000-0000-000000000000", Username: "bindtest5"}
+	require.NoError(t, db.Create(&user).Error)
+
+	mockIAM := newWxBindMock(t, `{"needs_merge":true,"existing_user_id":"y-user","target_user_id":"x-user","openid":"o-conflict"}`, nil, nil)
+	defer mockIAM.Close()
+	services.SetIAMInternalURLForTesting(mockIAM.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
+	t.Setenv("IAM_NAMESPACE", "test-ns")
+	t.Setenv("IAM_SECRET", "test-secret")
+
+	token := "beef1234beef1234"
+	bindTokensMu.Lock()
+	bindTokens[token] = &bindTokenEntry{UserID: user.ID, Status: "pending", CreatedAt: time.Now()}
+	bindTokensMu.Unlock()
+
+	router := gin.New()
+	router.POST("/wechat-bind/confirm", NewWechatBindHandler().ConfirmBind)
+	body, _ := json.Marshal(map[string]string{"token": token, "exchange_token": "ex-conflict"})
+	req := httptest.NewRequest("POST", "/wechat-bind/confirm", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusConflict, w.Code, "body=%s", w.Body.String())
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			NeedsMerge     bool   `json:"needs_merge"`
+			ExistingUserID string `json:"existing_user_id"`
+			TargetUserID   string `json:"target_user_id"`
+			OpenID         string `json:"openid"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 40900, resp.Code)
+	require.True(t, resp.Data.NeedsMerge)
+	require.Equal(t, "y-user", resp.Data.ExistingUserID)
+	require.Equal(t, "x-user", resp.Data.TargetUserID)
+	require.Equal(t, "o-conflict", resp.Data.OpenID)
+	require.Equal(t, "needs_merge", lookupBindStatus(token))
+	t.Logf("needs_merge=%v existing=%s target=%s token_status=%s", resp.Data.NeedsMerge, resp.Data.ExistingUserID, resp.Data.TargetUserID, lookupBindStatus(token))
 
 	bindTokensMu.Lock()
 	delete(bindTokens, token)
@@ -265,14 +346,14 @@ func TestConfirmBind_MissingParams(t *testing.T) {
 	router.POST("/wechat-bind/confirm", NewWechatBindHandler().ConfirmBind)
 
 	// no token
-	body, _ := json.Marshal(map[string]string{"wx_openid": "oa7cSxREALOPENID"})
+	body, _ := json.Marshal(map[string]string{"exchange_token": "ex-1"})
 	req := httptest.NewRequest("POST", "/wechat-bind/confirm", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusBadRequest, w.Code)
 
-	// no wx_openid
+	// no exchange_token（旧版客户端不再兼容，Rev.3 D7）
 	body, _ = json.Marshal(map[string]string{"token": "abcd1234abcd1234"})
 	req = httptest.NewRequest("POST", "/wechat-bind/confirm", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")

@@ -807,6 +807,11 @@ API 来源：
 - **拒绝** → 放弃绑定（当前账户不变）；
 - **同意** → `POST /users/me/wx-merge`（本人令牌）→ 成功 toast「账户已合并，请重新登录」+ **自动登出**（清会话回首页）；重登（微信）后可见「切换身份」（多上下文时）。
 
+**PC 扫码绑定（#2410）**：PC 生成小程序码 → 手机 Bind 页 `POST /api/wechat-bind/confirm`（`token` + `exchange_token`）。
+- 成功 → Bind 页「绑定成功」，PC 轮询到 `bound` 后关闭弹窗；
+- 该微信已绑定其他存活账户 → IAM 返回 `needs_merge`，Bind 页显示「该微信已绑定其他账户」+ 引导「我的 → 编辑资料 → 微信绑定」确认合并，**不得**显示「绑定成功」；PC 轮询到 `needs_merge` 时提示到手机端合并；
+- PC 端合并弹窗/自动登出不在本期（#2410 D4）。
+
 #### 2.6.2a 实名核身自拍采集（#1787，编辑资料页内）
 
 **五态状态机**: `none` / `uploaded` / `pending_review` / `verified` / `rejected`（派生见 docs/cases/id-photos.md）
