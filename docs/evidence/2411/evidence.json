@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "issue": 2411,
+  "build": "1.0.4409c4099",
+  "commit": "4409c409982e6618e4b711f0fa211d107dd23d57",
+  "dirty": false,
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2411.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2411/R1-return-path.txt"
+      ],
+      "assert": "exit 0；Tests 4 passed",
+      "actual": "4 用例 PASS：编码 H5 路径解码后映射到支付页；原生路径原样；畸形编码不抛错；空值返回空串",
+      "expected": "PASS",
+      "negative": "未解码 → FAIL",
+      "negative_result": "缺陷版映射失败并弹「该功能请在微信小程序中完成」",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2411.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2411/R2-manual.md"
+      ],
+      "assert": "含 executor: user 与 RESULT: PASS",
+      "actual": "真机：评测通过 →「返回继续支付」直接回支付页，无弹窗",
+      "expected": "PASS",
+      "negative": "回执缺失 → FAIL",
+      "negative_result": "旧版弹「该功能请在微信小程序中完成」",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2411.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2411/R3-eslint.txt"
+      ],
+      "assert": "exit 0；0 errors",
+      "actual": "0 errors / 6 warnings",
+      "expected": "PASS",
+      "negative": "error → FAIL",
+      "negative_result": "出现 error → 断言失败",
+      "pass": true
+    }
+  ]
+}
