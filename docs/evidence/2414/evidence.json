@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "issue": 2414,
+  "build": "1.0.5bb2271e6",
+  "commit": "5bb2271e6cc165243aa6fca12656d7690468cb07",
+  "dirty": false,
+  "environment": "backend handlers entry-level tests on PG 127.0.0.1:15433; fix commit 5bb2271e6",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2414.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2414/R1-zero-fallback.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestCalculateRentalDeposit_2406Rule_2414",
+      "actual": "PASS：instruments.deposit=0 + 定价押金 ¥0.01 → 响应 deposit=1 分（采购定价同源，非 0）",
+      "expected": "PASS",
+      "negative": "返回 0 → FAIL",
+      "negative_result": "旧实现实测 FAIL：expected 1 / actual 0（红绿实证见 Work Summary）",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2414.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2414/R2-instrument.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：instruments.deposit=500 元 → 响应 deposit=50000 分（乐器显式配置覆盖定价 ¥0.01）",
+      "expected": "PASS",
+      "negative": "取定价 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2414.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2414/R3-true-zero.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：乐器未配置 + 定价押金 0 → 响应 deposit=0（真零押金，无自造 fallback）",
+      "expected": "PASS",
+      "negative": "自造 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2414.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2414/R4-build.txt"
+      ],
+      "assert": "exit 0",
+      "actual": "PASS：cd backend && go build ./... exit 0（产物仅 provenance 头）",
+      "expected": "PASS",
+      "negative": "失败 → exit 1",
+      "negative_result": "构建失败即 exit 1",
+      "pass": true
+    }
+  ]
+}
