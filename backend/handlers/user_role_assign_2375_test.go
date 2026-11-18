@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 
@@ -23,13 +24,22 @@ import (
 )
 
 type iamRoleMock2375 struct {
-	mu        sync.Mutex
-	roleCalls int
-	tmplCalls int
+	mu         sync.Mutex
+	roleCalls  int
+	tmplCalls  int
+	lastOrgID  string
+	lastRole   string
+	roleStatus int
 }
 
 func setupRoleMock2375(t *testing.T, rec *iamRoleMock2375, templatesStatus int) {
 	t.Helper()
+	setupRoleMock2375WithRoleStatus(t, rec, templatesStatus, http.StatusOK)
+}
+
+func setupRoleMock2375WithRoleStatus(t *testing.T, rec *iamRoleMock2375, templatesStatus, roleStatus int) {
+	t.Helper()
+	rec.roleStatus = roleStatus
 	writeJSON := func(w http.ResponseWriter, v interface{}) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(v)
@@ -57,9 +67,23 @@ func setupRoleMock2375(t *testing.T, rec *iamRoleMock2375, templatesStatus int) 
 	})
 	mux.HandleFunc("/api/v1/organizations/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPut && bytes.Contains([]byte(r.URL.Path), []byte("/role")) {
+			parts := strings.Split(r.URL.Path, "/")
+			orgID := ""
+			for i, p := range parts {
+				if p == "organizations" && i+1 < len(parts) {
+					orgID = parts[i+1]
+				}
+			}
 			rec.mu.Lock()
 			rec.roleCalls++
+			rec.lastOrgID = orgID
+			rec.lastRole = r.URL.Query().Get("role")
 			rec.mu.Unlock()
+			if rec.roleStatus != http.StatusOK {
+				w.WriteHeader(rec.roleStatus)
+				writeJSON(w, map[string]string{"error": "role endpoint unavailable"})
+				return
+			}
 		}
 		writeJSON(w, map[string]interface{}{"code": 20000})
 	})
@@ -203,5 +227,85 @@ func TestUpdateUserRoleForbidden_2375(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, put(foreignID, map[string]interface{}{"role": "repair_technician"}), "cross-tenant must be 404")
 	rec.mu.Lock()
 	assert.Zero(t, rec.roleCalls, "no IAM call for rejected requests")
+	rec.mu.Unlock()
+}
+
+// R5：pending 账号角色端点 404 → HTTP 200 + role_errors（不 500），本地 role 已更新。
+func TestUpdateUserPendingRoleErrors_2375(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+	testutil.SetDB(t, db)
+	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID)
+	targetID := uuid.New().String()
+	require.NoError(t, db.Create(&models.User{
+		ID: targetID, IAMSub: uuid.New().String(), TenantID: tenantID, OrgID: tenantID,
+		Username: "u2375p", Name: "待激活", Role: "site_member", Status: "pending",
+	}).Error)
+	rec := &iamRoleMock2375{}
+	setupRoleMock2375WithRoleStatus(t, rec, http.StatusOK, http.StatusNotFound)
+
+	r := roleRouter2375(tenantID, uuid.New().String(), "ADMIN", func(r *gin.Engine, h *UserStaffHandler) {
+		r.PUT("/users/:id", h.UpdateUser)
+	})
+	body, _ := json.Marshal(map[string]interface{}{"role": "repair_technician"})
+	req := httptest.NewRequest(http.MethodPut, "/users/"+targetID, bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code, "pending role failure must not be 500: body=%s", w.Body.String())
+	var resp map[string]interface{}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	data := resp["data"].(map[string]interface{})
+	roleErrors, ok := data["role_errors"].([]interface{})
+	require.True(t, ok, "role_errors must be present: %v", data)
+	assert.GreaterOrEqual(t, len(roleErrors), 1)
+
+	var got models.User
+	require.NoError(t, db.Where("id = ?", targetID).First(&got).Error)
+	assert.Equal(t, "repair_technician", got.Role, "local role must update before IAM failure handling")
+	rec.mu.Lock()
+	defer rec.mu.Unlock()
+	assert.Equal(t, 1, rec.roleCalls, "IAM role endpoint attempted once")
+}
+
+// R6：IAM 目标参数正确 — org_id=existingUser.OrgID；repair_technician→repair_technician，merchant_staff→STAFF。
+func TestUpdateUserRoleIAMPayload_2375(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+	testutil.SetDB(t, db)
+	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID)
+	targetID := uuid.New().String()
+	require.NoError(t, db.Create(&models.User{
+		ID: targetID, IAMSub: uuid.New().String(), TenantID: tenantID, OrgID: tenantID,
+		Username: "u2375i", Name: "IAM 参数", Role: "site_member", Status: "active",
+	}).Error)
+	rec := &iamRoleMock2375{}
+	setupRoleMock2375(t, rec, http.StatusOK)
+
+	r := roleRouter2375(tenantID, uuid.New().String(), "ADMIN", func(r *gin.Engine, h *UserStaffHandler) {
+		r.PUT("/users/:id", h.UpdateUser)
+	})
+	put := func(role string) {
+		b, _ := json.Marshal(map[string]interface{}{"role": role})
+		req := httptest.NewRequest(http.MethodPut, "/users/"+targetID, bytes.NewReader(b))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		require.Equal(t, http.StatusOK, w.Code, "body=%s", w.Body.String())
+	}
+
+	put("repair_technician")
+	rec.mu.Lock()
+	assert.Equal(t, tenantID, rec.lastOrgID, "org_id must be existingUser.OrgID")
+	assert.Equal(t, "repair_technician", rec.lastRole, "toIAMRole(repair_technician)")
+	rec.mu.Unlock()
+
+	put("merchant_staff")
+	rec.mu.Lock()
+	assert.Equal(t, "STAFF", rec.lastRole, "toIAMRole(merchant_staff) = STAFF")
+	assert.Equal(t, 2, rec.roleCalls, "role call per update")
 	rec.mu.Unlock()
 }
