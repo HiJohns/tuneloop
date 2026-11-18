@@ -1,12 +1,12 @@
-# build=1.0.8144f06a1 commit=8144f06a1cf1454cff5ae8b7fe1bcd8eca3956e4 dirty=true
+# build=1.0.313069c4a commit=313069c4a0c73623214f206c0364d3833e1f963c dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/18 17:45:19 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2402 sslmode=disable
-2026/11/18 17:45:19 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2402
-2026/11/18 17:45:19 [DB] Connected to database 'tuneloop_test_verify2402'
+2026/11/18 17:45:33 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2402 sslmode=disable
+2026/11/18 17:45:33 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2402
+2026/11/18 17:45:33 [DB] Connected to database 'tuneloop_test_verify2402'
 === RUN   TestSendStaffInviteInvalidSiteID_2402
-2026/11/18 17:45:19 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2402 sslmode=disable
-2026/11/18 17:45:19 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2402
-2026/11/18 17:45:19 [DB] Connected to database 'tuneloop_test_verify2402'
---- PASS: TestSendStaffInviteInvalidSiteID_2402 (0.22s)
+2026/11/18 17:45:34 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2402 sslmode=disable
+2026/11/18 17:45:34 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2402
+2026/11/18 17:45:34 [DB] Connected to database 'tuneloop_test_verify2402'
+--- PASS: TestSendStaffInviteInvalidSiteID_2402 (0.23s)
 PASS
-ok  	tuneloop-backend/handlers	0.699s
+ok  	tuneloop-backend/handlers	0.707s
