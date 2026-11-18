@@ -125,22 +125,32 @@ export default function CreditAssessment() {
   }, [orderId])
 
   // pending 时轮询（退避 1.5s → 8s），终态停止。
+  //
+  // #2407：原实现用 `setCredit({...next})` 触发本 effect 重跑，但依赖是
+  // credit_state/service_order_no —— 值没变时 effect 不会重新执行，于是只轮询
+  // 1 次就停住（mock provider 默认 30s 才通过 → 页面永远停在「评测进行中」）。
+  // 改为自递归 setTimeout 循环：cancelled 标志负责卸载/终态后停止。
   useEffect(() => {
-    if (!credit || credit.credit_state !== CREDIT_STATE.PENDING) {
+    if (!orderId || !credit || credit.credit_state !== CREDIT_STATE.PENDING) {
       if (timerRef.current) clearTimeout(timerRef.current)
       return
     }
-    timerRef.current = setTimeout(async () => {
-      pollRef.current += 1
+    let cancelled = false
+    const tick = async () => {
       const next = await fetchStatus()
+      if (cancelled) return
       if (next && next.credit_state === CREDIT_STATE.PENDING) {
-        // 触发下一次 effect（state 未变时手动续排）。
-        timerRef.current = setTimeout(() => setCredit({ ...next }), pollDelay(pollRef.current))
+        pollRef.current += 1
+        timerRef.current = setTimeout(tick, pollDelay(pollRef.current))
       }
-    }, pollDelay(pollRef.current))
-    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+    }
+    timerRef.current = setTimeout(tick, pollDelay(pollRef.current))
+    return () => {
+      cancelled = true
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [credit?.credit_state, credit?.service_order_no])
+  }, [orderId, credit?.credit_state])
 
   const gate = creditGate(credit)
   const launch = resolveCreditLaunch({
