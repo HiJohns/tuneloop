@@ -251,7 +251,7 @@ func TestStaffMembersMerchantRole_2386(t *testing.T) {
 		byID[row["user_id"].(string)] = row
 	}
 	assert.Equal(t, "site_admin", byID[u1.ID]["merchant_role"])
-	assert.Equal(t, "", byID[u2.ID]["merchant_role"])
+	assert.Nil(t, byID[u2.ID]["merchant_role"])
 }
 
 // R8：A 网点成员 + B 直属 → A 的 direct 不含该人；all 含且 is_direct=false（F4）。
@@ -285,7 +285,7 @@ func TestStaffMembersDirectIsolation_2386(t *testing.T) {
 		if row["user_id"] == u.ID {
 			found = true
 			assert.Equal(t, false, row["is_direct"])
-			assert.Equal(t, "", row["merchant_role"])
+			assert.Nil(t, row["merchant_role"])
 		}
 	}
 	assert.True(t, found, "A site member must appear in all")

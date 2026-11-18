@@ -42,7 +42,7 @@ type staffMemberRow struct {
 	Email        string               `json:"email"`
 	Status       string               `json:"status"`
 	Role         string               `json:"role"`
-	MerchantRole string               `json:"merchant_role"`
+	MerchantRole *string              `json:"merchant_role"`
 	Identities   []string             `json:"identities"`
 	Sites        []staffMemberSiteRef `json:"sites"`
 	IsDirect     bool                 `json:"is_direct"`
@@ -259,7 +259,8 @@ func (h *StaffMembersHandler) List(c *gin.Context) {
 		}
 		if d, ok := directByUser[u.ID]; ok {
 			row.IsDirect = true
-			row.MerchantRole = d.Role
+			role := d.Role
+			row.MerchantRole = &role
 			addIdentity(d.Role)
 			if !d.CreatedAt.IsZero() && d.CreatedAt.Before(row.JoinedAt) {
 				row.JoinedAt = d.CreatedAt
