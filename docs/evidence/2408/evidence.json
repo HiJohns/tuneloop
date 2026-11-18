@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2408,
-  "build": "1.0.0b963041d",
-  "commit": "0b963041d14cafeb152f138439e7d997bb5e01f0",
+  "build": "1.0.ae1406f3e",
+  "commit": "ae1406f3e412957389969350db416905fee74015",
   "dirty": false,
   "environment": "backend wechatpay mock provider unit tests; fix commit 0b963041d (already in develop); evidence generated at later HEAD",
   "rows": [
@@ -70,10 +70,10 @@
         "docs/evidence/2408/R5-isolation.txt"
       ],
       "assert": "exit 0；真实路径不含 PAYSCORE_MOCK_RESULT 读取",
-      "actual": "PASS：env_reads=1（仅 mockResultFromEnv）；mockResultFromEnv 调用点=1（NewMockPayscoreProvider）；真实分支 return client",
+      "actual": "exit 0；产物含 grep -n 命中行：PAYSCORE_MOCK_RESULT 仅在 mockResultFromEnv 读取（env_reads=1），mockResultFromEnv 调用点 1 处，真实分支 return client, nil（行 175）",
       "expected": "PASS",
       "negative": "mock 泄露 → FAIL",
-      "negative_result": "env 读取/调用点 >1 或真实分支缺失即 exit 1",
+      "negative_result": "若 env 读取 >1 或 mock 构造泄露到真实分支，或缺少命中行 → 断言/脚本失败",
       "pass": true
     },
     {
