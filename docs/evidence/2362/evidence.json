@@ -1,79 +1,92 @@
 {
   "schema_version": 1,
   "issue": 2362,
-  "build": "points-cap-2362 3d8f216",
-  "commit": "3d8f216ec",
+  "build": "1.0.c1a4fb014",
+  "commit": "c1a4fb014bd5e1ab9400e177d96d6b4e5e36f6ee",
   "dirty": false,
-  "environment": "backend handlers tests on PG 127.0.0.1:15433; Node 22 builds (h5 + weapp)",
   "rows": [
     {
       "id": "R1",
-      "command": "bash scripts/verify-2362.sh r1-snapshot > docs/evidence/2362/R1-snapshot.txt 2>&1",
+      "command": "bash scripts/verify-2362.sh r1-order-snapshot",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2362/R1-snapshot.txt"
       ],
-      "assert": "exit 0；含 --- PASS",
-      "actual": "PASS：0.3→3/10、0.25→1/4、0.335→67/200；快照写入 ratio_num/ratio_den（JSON 键，无新列）；CalcPointsCap 整数运算",
+      "assert": "exit 0；含 --- PASS: TestOrderSnapshotRatio_2362",
+      "actual": "exit 0；--- PASS: TestOrderSnapshotRatio_2362（ratio_num=3/ratio_den=10 快照）",
       "expected": "PASS",
-      "negative": "缺键 → FAIL",
-      "negative_result": "断言失败即 exit 1",
+      "negative": "快照缺键 → FAIL",
+      "negative_result": "若 orders.points_policy_snapshot 缺 ratio_num/ratio_den → 用例断言失败",
       "pass": true
     },
     {
       "id": "R2",
-      "command": "bash scripts/verify-2362.sh r2-cap > docs/evidence/2362/R2-cap.txt 2>&1",
+      "command": "bash scripts/verify-2362.sh r2-cap",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2362/R2-cap.txt"
       ],
-      "assert": "exit 0；含 --- PASS",
-      "actual": "PASS：券后租金 250000 + 3/10 → cap=750；与 SettlementCalculator 输出逐值相等；含押金基数会得到不同值（反例）",
+      "assert": "exit 0；含 --- PASS: TestPointsCapParity_2362",
+      "actual": "exit 0；--- PASS: TestPointsCapParity_2362（cap=750 与结算端相等，押金不计入基数）",
       "expected": "PASS",
-      "negative": "基数错 → FAIL",
-      "negative_result": "断言失败即 exit 1",
+      "negative": "基数含押金 → FAIL",
+      "negative_result": "若 cap 基数包含押金或与 Calculator 不相等 → 用例断言失败",
       "pass": true
     },
     {
       "id": "R3",
-      "command": "bash scripts/verify-2362.sh r3-over-limit > docs/evidence/2362/R3-over-limit.txt 2>&1",
+      "command": "bash scripts/verify-2362.sh r3-order-reject",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2362/R3-over-limit.txt"
       ],
-      "assert": "exit 0；含 --- PASS",
-      "actual": "PASS：用满 750 点通过；超 1 点/负数/非整点均 40002",
+      "assert": "exit 0；含 --- PASS: TestOrderRejectsBadPoints_2362",
+      "actual": "exit 0；--- PASS: TestOrderRejectsBadPoints_2362（超 cap 1 点/负数/非整点均 400 且无订单行）",
       "expected": "PASS",
-      "negative": "越界放行 → FAIL",
-      "negative_result": "断言失败即 exit 1",
+      "negative": "建单 → FAIL",
+      "negative_result": "若越界乐币仍创建订单 → 用例断言失败",
       "pass": true
     },
     {
       "id": "R4",
-      "command": "bash scripts/verify-2362.sh r4-insufficient > docs/evidence/2362/R4-insufficient.txt 2>&1",
+      "command": "bash scripts/verify-2362.sh r4-order-amount",
       "exit": 0,
       "artifacts": [
-        "docs/evidence/2362/R4-insufficient.txt"
+        "docs/evidence/2362/R4-amount.txt"
       ],
-      "assert": "exit 0；含 --- PASS",
-      "actual": "PASS：1/1 比例下用 1200 点（券后租金 1000 点）被拒（40002），不进入建单",
+      "assert": "exit 0；含 --- PASS: TestOrderAmountConsistency_2362",
+      "actual": "exit 0；--- PASS: TestOrderAmountConsistency_2362（券后租金 270000 − 乐币 80000 + 押金 50000 = CashPaid 240000）",
       "expected": "PASS",
-      "negative": "建单 → FAIL",
-      "negative_result": "断言失败即 exit 1",
+      "negative": "金额不符 → FAIL",
+      "negative_result": "若响应应付与订单行不一致 → 用例断言失败",
       "pass": true
     },
     {
       "id": "R5",
-      "command": "npm --prefix frontend-mobile run build:h5 > docs/evidence/2362/R5-build.txt 2>&1",
+      "command": "bash scripts/verify-2362.sh r5-build-h5",
       "exit": 0,
       "artifacts": [
-        "docs/evidence/2362/R5-build.txt"
+        "docs/evidence/2362/R5-build-h5.txt"
       ],
-      "assert": "exit 0",
-      "actual": "PASS：h5 与 weapp 构建均 exit 0（同一产物记录两段输出）",
+      "assert": "exit 0；含 Compiled successfully",
+      "actual": "exit 0；H5 构建含 Compiled successfully（webpack compiled with 2 warnings）",
       "expected": "PASS",
       "negative": "失败 → exit 1",
-      "negative_result": "断言失败即 exit 1",
+      "negative_result": "若构建失败 → 脚本返回非 0",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2362.sh r6-build-weapp",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2362/R6-build-weapp.txt"
+      ],
+      "assert": "exit 0；含 Compiled successfully；探针 0 命中",
+      "actual": "exit 0；weapp 构建含 Compiled successfully，WXML_PROBE PASS（原生标签 0 命中）",
+      "expected": "PASS",
+      "negative": "失败/原生标签 → FAIL",
+      "negative_result": "若构建失败或 wxml 含原生 HTML 标签 → 脚本返回非 0",
       "pass": true
     }
   ]

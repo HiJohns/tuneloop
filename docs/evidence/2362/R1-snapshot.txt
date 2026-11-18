@@ -1,8 +1,31 @@
+# build=1.0.c1a4fb014 commit=c1a4fb014bd5e1ab9400e177d96d6b4e5e36f6ee dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/16 21:30:38 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2362 sslmode=disable
-2026/11/16 21:30:39 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2362
-2026/11/16 21:30:39 [DB] Connected to database 'tuneloop_test_verify2362'
-=== RUN   TestPointsRatioSnapshot_2362
---- PASS: TestPointsRatioSnapshot_2362 (0.00s)
+2026/11/18 21:35:46 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2362 sslmode=disable
+2026/11/18 21:35:50 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2362
+2026/11/18 21:35:50 [DB] Connected to database 'tuneloop_test_verify2362'
+=== RUN   TestOrderSnapshotRatio_2362
+2026/11/18 21:35:50 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
+2026/11/18 21:35:50 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2362 sslmode=disable
+2026/11/18 21:35:50 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2362
+2026/11/18 21:35:50 [DB] Connected to database 'tuneloop_test_verify2362'
+
+2026/11/18 21:35:51 [32m/home/coder/tuneloop-wt/reverify-2362/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[630.014ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+
+2026/11/18 21:35:52 [31;1m/home/coder/tuneloop-wt/reverify-2362/backend/handlers/user_rental.go:542 [35;1mrecord not found
+[0m[33m[17.111ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = 'aa58ee65-3640-4113-846c-a0e23fa6d510' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/18 21:35:52 [31;1m/home/coder/tuneloop-wt/reverify-2362/backend/handlers/user_rental.go:1713 [35;1mrecord not found
+[0m[33m[3.834ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = 'aa58ee65-3640-4113-846c-a0e23fa6d510' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/18 21:35:52 [31;1m/home/coder/tuneloop-wt/reverify-2362/backend/handlers/user_rental.go:1721 [35;1mrecord not found
+[0m[33m[2.759ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/18 21:35:52 [31;1m/home/coder/tuneloop-wt/reverify-2362/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[3.132ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '9a3b9459-13a4-4691-b5f5-da029dd3aa18' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/18 21:35:52 [31;1m/home/coder/tuneloop-wt/reverify-2362/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.488ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = 'aa58ee65-3640-4113-846c-a0e23fa6d510' ORDER BY "merchants"."id" LIMIT 1
+--- PASS: TestOrderSnapshotRatio_2362 (1.29s)
 PASS
-ok  	tuneloop-backend/handlers	1.480s
+ok  	tuneloop-backend/handlers	6.081s

@@ -1,0 +1,6 @@
+r1-order-snapshot exit=0
+r2-cap exit=0
+r3-order-reject exit=0
+r4-order-amount exit=0
+r5-build-h5 exit=0
+r6-build-weapp exit=0
