@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2405,
-  "build": "invite-kinds-2405 e85c2d7",
-  "commit": "e85c2d74d",
+  "build": "invite-kinds-2405 571a795",
+  "commit": "571a79560",
   "dirty": false,
   "environment": "backend handlers tests on PG 127.0.0.1:15433 + IAM httptest mock",
   "rows": [
@@ -28,7 +28,7 @@
         "docs/evidence/2405/R2-technician.txt"
       ],
       "assert": "exit 0；含 --- PASS",
-      "actual": "PASS：kind=repair_technician → merchant_members(role=site_member) + technician_profiles 各 1 行",
+      "actual": "PASS（审计 F2 修正）：维修师 merchant_members role=merchant_staff + technician_profiles 1 行",
       "expected": "PASS",
       "negative": "无档案 → FAIL",
       "negative_result": "断言失败即 exit 1",
@@ -42,7 +42,7 @@
         "docs/evidence/2405/R3-idempotent.txt"
       ],
       "assert": "exit 0；含 --- PASS",
-      "actual": "PASS：重复 bindInvitee 后 merchant_members/technician_profiles 仍各 1 行",
+      "actual": "PASS：同商户重复接受后 merchant_members/technician_profiles 仍各 1 行",
       "expected": "PASS",
       "negative": "重复行 → FAIL",
       "negative_result": "断言失败即 exit 1",
@@ -73,6 +73,34 @@
       "actual": "PASS：go build ./... exit 0（空输出）",
       "expected": "PASS",
       "negative": "编译失败 → exit 1",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2405.sh r6-cross-merchant > docs/evidence/2405/R6-cross-merchant.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2405/R6-cross-merchant.txt"
+      ],
+      "assert": "exit 0；含 --- PASS：跨商户新增 A 行、B 行不变",
+      "actual": "PASS：已有商户 B 行时接受 A 邀请 → 新增 A 行（role=merchant_staff），B 行保持 site_member",
+      "expected": "PASS",
+      "negative": "丢弃 A 写入 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2405.sh r7-cross-tenant-tech > docs/evidence/2405/R7-cross-tenant-tech.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2405/R7-cross-tenant-tech.txt"
+      ],
+      "assert": "exit 0；含 --- PASS：跨租户新增 A 档案、B 档案不变",
+      "actual": "PASS：已有租户 B 档案时接受 A 维修师邀请 → 新增 A 档案（tenant=A），B 保留",
+      "expected": "PASS",
+      "negative": "档案仍只有 B → FAIL",
       "negative_result": "断言失败即 exit 1",
       "pass": true
     }
