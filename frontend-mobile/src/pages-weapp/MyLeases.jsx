@@ -241,7 +241,7 @@ export default function MyLeases() {
                       {showPay && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); Taro.redirectTo({ url: `/pages-weapp/payment/index?type=rent&id=${order.id}` }) }}
-                          style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#000', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
+                          style={{ flex: '1 1 0%', minWidth: 0, height: 40, margin: 0, padding: 0, lineHeight: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
                         >
                           支付
                         </Button>
@@ -249,7 +249,7 @@ export default function MyLeases() {
                       {showConfirm && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); nav(`/pages-weapp/order-detail/index?id=${order.id}`) }}
-                          style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#16a34a', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
+                          style={{ flex: '1 1 0%', minWidth: 0, height: 40, margin: 0, padding: 0, lineHeight: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#16a34a', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
                         >
                           确认收货
                         </Button>
@@ -260,7 +260,7 @@ export default function MyLeases() {
                             e.stopPropagation()
                             nav(`/pages-weapp/return-confirm/index?order_id=${order.id}&instrument=${order.instrument_id}`)
                           }}
-                          style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#f97316', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
+                          style={{ flex: '1 1 0%', minWidth: 0, height: 40, margin: 0, padding: 0, lineHeight: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f97316', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
                         >
                           归还
                         </Button>
@@ -268,7 +268,7 @@ export default function MyLeases() {
                       {showStaffReceive && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); nav(`/pages-weapp/receiving-interface/index?order_id=${order.id}`) }}
-                          style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#be123c', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
+                          style={{ flex: '1 1 0%', minWidth: 0, height: 40, margin: 0, padding: 0, lineHeight: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#be123c', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
                         >
                           接收
                         </Button>
@@ -276,7 +276,7 @@ export default function MyLeases() {
                       {showStaffShip && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); nav(`/pages-weapp/shipping-interface/index?order_id=${order.id}`) }}
-                          style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#000', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
+                          style={{ flex: '1 1 0%', minWidth: 0, height: 40, margin: 0, padding: 0, lineHeight: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
                         >
                           发货
                         </Button>
@@ -284,13 +284,13 @@ export default function MyLeases() {
                       {showCancel && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); handleCancelFromList(order.id, order.status) }}
-                          style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#ef4444', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
+                          style={{ flex: '1 1 0%', minWidth: 0, height: 40, margin: 0, padding: 0, lineHeight: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ef4444', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
                         >
                           取消订单
                         </Button>
                       )}
                       {!showPay && !showConfirm && !showReturn && !showCancel && !showStaffReceive && !showStaffShip && (
-                        <View style={{ width: '100%', paddingTop: 10, paddingBottom: 10, backgroundColor: '#f4f4f5', borderRadius: 12, textAlign: 'center' }}>
+                        <View style={{ width: '100%', height: 40, margin: 0, padding: 0, lineHeight: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f4f5', borderRadius: 12, textAlign: 'center' }}>
                           <Text style={{ color: '#a1a1aa', fontWeight: '900', fontSize: 14, textAlign: 'center' }}>等待处理</Text>
                         </View>
                       )}

@@ -102,7 +102,7 @@ export default function Payment() {
               {t("当前押金档位需要先完成微信信用评测，通过后即可继续支付。")}
             </div>
             <button
-              style={{ width: '100%', marginTop: 16, height: 48, backgroundColor: '#B98E5F', color: '#fff', fontWeight: 700, fontSize: 16, borderRadius: 16, border: 'none' }}
+              style={{ width: '100%', margin: '16px 0 0', padding: 0, height: 48, lineHeight: '48px', backgroundColor: '#B98E5F', color: '#fff', fontWeight: 700, fontSize: 16, borderRadius: 12, border: 'none' }}
               onClick={() => navigate(buildAssessmentRoute({ orderId: pId, returnPath: `/payment?type=rent&id=${pId}` }))}
             >
               {t("去微信完成评测")}
@@ -270,7 +270,7 @@ export default function Payment() {
             {gate.reason || t("当前押金档位需要先完成微信信用评测。")}
           </div>
           <button
-            style={{ width: '100%', marginTop: 12, height: 44, backgroundColor: '#B98E5F', color: '#fff', fontWeight: 700, fontSize: 15, borderRadius: 12, border: 'none' }}
+            style={{ width: '100%', margin: '12px 0 0', padding: 0, height: 48, lineHeight: '48px', backgroundColor: '#B98E5F', color: '#fff', fontWeight: 700, fontSize: 16, borderRadius: 12, border: 'none' }}
             onClick={() => navigate(buildAssessmentRoute({
               orderId: pId,
               tier: credit?.deposit_tier || '',

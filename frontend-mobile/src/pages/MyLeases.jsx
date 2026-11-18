@@ -268,7 +268,7 @@ export default function MyLeases() {
                        {showPay && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); navigate(`/payment?type=rent&id=${order.id}`, { replace: true }) }}
-                          className="flex-1 min-w-0 py-2.5 bg-black text-white rounded-xl font-black text-sm"
+                          className="flex-1 min-w-0 h-10 leading-10 p-0 bg-black text-white rounded-xl font-black text-sm"
                         >
                           支付
                         </Button>
@@ -276,7 +276,7 @@ export default function MyLeases() {
                       {showConfirm && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); navigate(`/order/${order.id}`) }}
-                          className="flex-1 min-w-0 py-2.5 bg-green-600 text-white rounded-xl font-black text-sm"
+                          className="flex-1 min-w-0 h-10 leading-10 p-0 bg-green-600 text-white rounded-xl font-black text-sm"
                         >
                           确认收货
                         </Button>
@@ -287,7 +287,7 @@ export default function MyLeases() {
                             e.stopPropagation()
                             navigate(`/return?order_id=${order.id}&instrument=${order.instrument_id}`)
                           }}
-                          className="flex-1 min-w-0 py-2.5 bg-orange-500 text-white rounded-xl font-black text-sm"
+                          className="flex-1 min-w-0 h-10 leading-10 p-0 bg-orange-500 text-white rounded-xl font-black text-sm"
                         >
                           归还
                         </Button>
@@ -295,7 +295,7 @@ export default function MyLeases() {
                       {showStaffReceive && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); navigate(`/staff/receiving?order_id=${order.id}`) }}
-                          className="flex-1 min-w-0 py-2.5 bg-rose-700 text-white rounded-xl font-black text-sm"
+                          className="flex-1 min-w-0 h-10 leading-10 p-0 bg-rose-700 text-white rounded-xl font-black text-sm"
                         >
                           接收
                         </Button>
@@ -303,7 +303,7 @@ export default function MyLeases() {
                       {showStaffShip && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); navigate(`/staff/shipping?order_id=${order.id}`) }}
-                          className="flex-1 min-w-0 py-2.5 bg-black text-white rounded-xl font-black text-sm"
+                          className="flex-1 min-w-0 h-10 leading-10 p-0 bg-black text-white rounded-xl font-black text-sm"
                         >
                           发货
                         </Button>
@@ -311,13 +311,13 @@ export default function MyLeases() {
                       {showCancel && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); handleCancelFromList(order.id, order.status) }}
-                          className="flex-1 min-w-0 py-2.5 bg-red-500 text-white rounded-xl font-black text-sm"
+                          className="flex-1 min-w-0 h-10 leading-10 p-0 bg-red-500 text-white rounded-xl font-black text-sm"
                         >
                           取消订单
                         </Button>
                       )}
                       {!showPay && !showConfirm && !showReturn && !showCancel && !showStaffReceive && !showStaffShip && (
-                        <View className="w-full py-2.5 bg-zinc-100 rounded-xl text-center">
+                        <View className="w-full h-10 leading-10 p-0 bg-zinc-100 rounded-xl text-center">
                           <Text className="text-zinc-400 font-black text-sm">等待处理</Text>
                         </View>
                       )}

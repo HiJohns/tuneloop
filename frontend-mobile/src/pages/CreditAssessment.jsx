@@ -4,7 +4,7 @@ import Taro from '@tarojs/taro'
 import { useNavigate } from 'react-router-dom'
 
 import { apiFetch, resolveErrorMessage } from '../services/api'
-import { env, dialog, toWeappRoute, openCreditAssessment } from '../platform'
+import { env, dialog, toWeappRoute, openCreditAssessment, useDidShow } from '../platform'
 import { t } from '../i18n'
 import { pendingOrderHint } from '../utils/pendingOrder.mjs'
 import {
@@ -85,6 +85,14 @@ export default function CreditAssessment() {
     return null
   }
 
+  // #2407：weapp 定时器在后台会被挂起，返回前台/从其他页面回来时补一次状态刷新，
+  // 否则页面可能长时间停在旧状态（首帧由下面的初始化 effect 负责，这里跳过第一次）。
+  const didShowRef = useRef(false)
+  useDidShow(() => {
+    if (!didShowRef.current) { didShowRef.current = true; return }
+    if (orderId) fetchStatus()
+  })
+
   const startAssessment = async () => {
     try {
       const resp = await apiFetch(`${env.apiBaseUrl}/orders/${orderId}/credit-assessment`, { method: 'POST' })
@@ -136,12 +144,20 @@ export default function CreditAssessment() {
       return
     }
     let cancelled = false
+    let failures = 0
     const tick = async () => {
       const next = await fetchStatus()
       if (cancelled) return
       if (next && next.credit_state === CREDIT_STATE.PENDING) {
+        failures = 0
         pollRef.current += 1
         timerRef.current = setTimeout(tick, pollDelay(pollRef.current))
+        return
+      }
+      // 请求失败（next=null）时不要永久停摆：网络抖动/后台恢复都可能失败一次。
+      if (!next && failures < 4) {
+        failures += 1
+        timerRef.current = setTimeout(tick, pollDelay(pollRef.current + failures))
       }
     }
     timerRef.current = setTimeout(tick, pollDelay(pollRef.current))
@@ -251,21 +267,21 @@ export default function CreditAssessment() {
       <View className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4">
         {state === CREDIT_STATE.APPROVED ? (
           <Button
-            style={{ width: '100%', margin: 0, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 16, borderRadius: 16 }}
+            style={{ width: '100%', margin: 0, padding: 0, height: 48, lineHeight: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 16, borderRadius: 16 }}
             onClick={() => nav(returnPath || -1)}
           >
             <Text style={{ color: '#fff', fontWeight: 700 }}>{t('返回继续支付')}</Text>
           </Button>
         ) : gate.action === 'blocked' ? (
           <Button
-            style={{ width: '100%', margin: 0, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#B98E5F', color: '#fff', fontWeight: 700, fontSize: 16, borderRadius: 16 }}
+            style={{ width: '100%', margin: 0, padding: 0, height: 48, lineHeight: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#B98E5F', color: '#fff', fontWeight: 700, fontSize: 16, borderRadius: 16 }}
             onClick={() => nav(-1)}
           >
             <Text style={{ color: '#fff', fontWeight: 700 }}>{t('返回订单')}</Text>
           </Button>
         ) : (
           <Button
-            style={{ width: '100%', margin: 0, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: launch.canLaunch ? '#B98E5F' : '#d4d4d8', color: '#fff', fontWeight: 700, fontSize: 16, borderRadius: 16 }}
+            style={{ width: '100%', margin: 0, padding: 0, height: 48, lineHeight: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: launch.canLaunch ? '#B98E5F' : '#d4d4d8', color: '#fff', fontWeight: 700, fontSize: 16, borderRadius: 16 }}
             disabled={!launch.canLaunch || launching}
             onClick={handleLaunch}
           >

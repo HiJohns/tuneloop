@@ -169,7 +169,7 @@ export default function Payment() {
             {t('当前押金档位需要先完成微信信用评测，通过后即可继续支付。')}
           </Text>
           <Button
-            style={{ marginTop: 16, backgroundColor: '#B98E5F', color: '#fff', borderRadius: 12, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ margin: '16px 0 0', padding: 0, backgroundColor: '#B98E5F', color: '#fff', borderRadius: 12, height: 48, fontSize: 16, lineHeight: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={() => Taro.navigateTo({ url: `/pages-weapp/credit-assessment/index?order_id=${pId}&return_path=${encodeURIComponent(`/payment?type=rent&id=${pId}`)}` })}
           >
             <Text style={{ color: '#fff', fontWeight: 700 }}>{t('去微信完成评测')}</Text>
@@ -723,7 +723,7 @@ export default function Payment() {
               {gate.reason || t('当前押金档位需要先完成微信信用评测。')}
             </Text>
             <Button
-              style={{ marginTop: 12, backgroundColor: '#B98E5F', color: '#fff', borderRadius: 12, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ margin: '12px 0 0', padding: 0, backgroundColor: '#B98E5F', color: '#fff', borderRadius: 12, height: 48, fontSize: 16, lineHeight: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               onClick={() => Taro.navigateTo({ url: '/pages-weapp/credit-assessment/index?order_id=' + pId + '&return_path=' + encodeURIComponent(`/payment?type=rent&id=${pId}`) })}
             >
               <Text style={{ color: '#fff', fontWeight: 700 }}>{t('去微信完成评测')}</Text>
