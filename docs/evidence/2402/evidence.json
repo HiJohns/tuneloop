@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "issue": 2402,
+  "build": "1.0.9261ff43e",
+  "commit": "9261ff43e9d9eb9a3fb8e1b6bdd334f79a482d32",
+  "dirty": false,
+  "environment": "PC manual receipts R1/R2 (Owner-signed); R4 backend test + R5 frontend build on PG 127.0.0.1:15433 / node 22",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2402/R1-conflict-modal.md",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2402/R1-conflict-modal.md"
+      ],
+      "assert": "exit 0",
+      "actual": "PASS：Owner 2026-11-17 实测冲突弹窗出现，提交时无邀请请求",
+      "expected": "PASS",
+      "negative": "缺失 → exit 1",
+      "negative_result": "回执未签或仍 PENDING 即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2402/R2-edit.md",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2402/R2-edit.md"
+      ],
+      "assert": "exit 0",
+      "actual": "PASS：Owner 实测点「修改信息」关闭弹窗且无请求",
+      "expected": "PASS",
+      "negative": "缺失 → exit 1",
+      "negative_result": "回执未签或仍 PENDING 即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2402/R3-invite.md",
+      "exit": 1,
+      "artifacts": [
+        "docs/evidence/2402/R3-invite.md"
+      ],
+      "assert": "exit 0",
+      "actual": "PENDING：Owner 人工回执未签（浏览器 Network 断言 inviteToMerchant；不得代签）",
+      "expected": "PASS",
+      "negative": "缺失 → exit 1",
+      "negative_result": "当前 grep 返回 1（文件仍为 RESULT: PENDING）",
+      "pass": false
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2402.sh r4-backend > docs/evidence/2402/R4-backend.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2402/R4-backend.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：TestSendStaffInviteInvalidSiteID_2402；非法 site_id 返回 400（不再 22P02/404）",
+      "expected": "PASS",
+      "negative": "仍 404 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "npm --prefix frontend-pc run build > docs/evidence/2402/R5-build.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2402/R5-build.txt"
+      ],
+      "assert": "exit 0；含 built in",
+      "actual": "PASS：vite build built in 31.43s（前后端 build 均 exit 0；后端见 R4）",
+      "expected": "PASS",
+      "negative": "失败 → exit 1",
+      "negative_result": "构建失败即 exit 1",
+      "pass": true
+    }
+  ]
+}
