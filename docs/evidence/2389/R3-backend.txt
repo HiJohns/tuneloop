@@ -1,12 +1,13 @@
+# build=1.0.1d632e91e commit=1d632e91ea84aa608ed8001a49dd142b52eac717 dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/16 23:06:34 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2389 sslmode=disable
-2026/11/16 23:06:35 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2389
-2026/11/16 23:06:35 [DB] Connected to database 'tuneloop_test_verify2389'
+2026/11/18 17:48:22 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2389 sslmode=disable
+2026/11/18 17:48:22 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2389
+2026/11/18 17:48:22 [DB] Connected to database 'tuneloop_test_verify2389'
 === RUN   TestResetPasswordNoEmail_2389
-2026/11/16 23:06:35 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2389 sslmode=disable
-2026/11/16 23:06:35 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2389
-2026/11/16 23:06:35 [DB] Connected to database 'tuneloop_test_verify2389'
-2026/11/16 23:06:35 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
---- PASS: TestResetPasswordNoEmail_2389 (0.50s)
+2026/11/18 17:48:22 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2389 sslmode=disable
+2026/11/18 17:48:22 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2389
+2026/11/18 17:48:22 [DB] Connected to database 'tuneloop_test_verify2389'
+2026/11/18 17:48:22 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+--- PASS: TestResetPasswordNoEmail_2389 (0.23s)
 PASS
-ok  	tuneloop-backend/handlers	1.854s
+ok  	tuneloop-backend/handlers	0.700s
