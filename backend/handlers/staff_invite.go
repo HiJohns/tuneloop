@@ -254,7 +254,7 @@ type inviteBindOpts struct {
 
 // ensureMerchantInviteRows（#2405）：商户级邀请接受后落本地行，幂等且不覆盖已有档案。
 //   - merchant_member / merchant_staff → merchant_members（role=invite.Role）
-//   - repair_technician → merchant_members(role=site_member) + technician_profiles（空档案）
+//   - repair_technician → merchant_members(role=merchant_staff，与计划 R2 对齐) + technician_profiles（空档案）
 //   - platform_staff 等平台级 kind 不落商户行。
 func ensureMerchantInviteRows(db *gorm.DB, invite *models.StaffInvite, user *models.User) error {
 	kind := invite.Kind
@@ -280,10 +280,14 @@ func ensureMerchantInviteRows(db *gorm.DB, invite *models.StaffInvite, user *mod
 	}
 
 	var existing models.MerchantMember
-	err := db.Where("user_id = ?", user.ID).First(&existing).Error
+	// #2405 F1：幂等键必须是 (user_id, merchant_id)，否则跨商户受邀会被静默丢弃。
+	err := db.Where("user_id = ? AND merchant_id = ?", user.ID, merchant.ID).First(&existing).Error
 	if err == gorm.ErrRecordNotFound {
 		role := invite.Role
-		if role == "" || role == "member" || kind == "repair_technician" {
+		switch {
+		case kind == "repair_technician":
+			role = "merchant_staff" // 审计 F2：与计划 R2（同 R1）对齐
+		case role == "" || role == "member":
 			role = "site_member"
 		}
 		if e := db.Create(&models.MerchantMember{
@@ -298,7 +302,8 @@ func ensureMerchantInviteRows(db *gorm.DB, invite *models.StaffInvite, user *mod
 
 	if kind == "repair_technician" {
 		var tp models.TechnicianProfile
-		if err := db.Where("user_id = ?", user.ID).First(&tp).Error; err == gorm.ErrRecordNotFound {
+		// #2405 F1：档案幂等键 = (user_id, tenant_id)，允许跨租户各建一份。
+		if err := db.Where("user_id = ? AND tenant_id = ?", user.ID, tenantID).First(&tp).Error; err == gorm.ErrRecordNotFound {
 			if e := db.Create(&models.TechnicianProfile{
 				ID: uuid.New().String(), UserID: user.ID, TenantID: tenantID, Status: "active",
 			}).Error; e != nil {

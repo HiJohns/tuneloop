@@ -82,7 +82,7 @@ func TestAcceptInviteTechnician_2405(t *testing.T) {
 	var mm models.MerchantMember
 	require.NoError(t, db.Where("user_id = ?", u.ID).First(&mm).Error)
 	assert.Equal(t, merchant.ID, mm.MerchantID)
-	assert.Equal(t, "site_member", mm.Role, "与创建路径一致")
+	assert.Equal(t, "merchant_staff", mm.Role, "审计 F2：与计划 R2 对齐")
 	var tp models.TechnicianProfile
 	require.NoError(t, db.Where("user_id = ?", u.ID).First(&tp).Error)
 	assert.Equal(t, "active", tp.Status)
@@ -117,4 +117,61 @@ func TestAcceptInviteSiteRegression_2405(t *testing.T) {
 	var sm models.SiteMember
 	require.NoError(t, db.Where("user_id = ? AND site_id = ?", u.ID, site.ID).First(&sm).Error)
 	assert.Equal(t, "site_member", sm.Role)
+}
+
+func TestAcceptInviteCrossMerchant_2405(t *testing.T) {
+	db, tenantID, orgID, _, _ := setupInvite2405(t)
+	u := inviteUser2405(t, db, tenantID, orgID)
+
+	// 用户已是商户 B 的成员（不同 tenant/merchant）
+	tenantB := uuid.New().String()
+	orgB := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantB, orgB)
+	merchantB := models.Merchant{ID: uuid.New().String(), TenantID: tenantB, OrgID: orgB, AdminUID: uuid.New().String(), Name: "B2405", Status: "active"}
+	require.NoError(t, db.Create(&merchantB).Error)
+	require.NoError(t, db.Create(&models.MerchantMember{ID: uuid.New().String(), TenantID: orgB, MerchantID: merchantB.ID, UserID: u.ID, Role: "site_member", Status: "active"}).Error)
+
+	invite := models.StaffInvite{ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID, Kind: "merchant_staff", Role: "merchant_staff", Code: "c2405e"}
+	require.NoError(t, db.Create(&invite).Error)
+	require.NoError(t, bindInvitee(db, &invite, u, inviteBindOpts{}))
+
+	var rows []models.MerchantMember
+	require.NoError(t, db.Where("user_id = ?", u.ID).Find(&rows).Error)
+	assert.Len(t, rows, 2, "must add merchant A row without dropping B")
+	byMerchant := map[string]models.MerchantMember{}
+	for _, r := range rows {
+		byMerchant[r.MerchantID] = r
+	}
+	assert.Equal(t, "merchant_staff", byMerchant[inviteMerchantID(t, db, orgID)].Role)
+	assert.Equal(t, "site_member", byMerchant[merchantB.ID].Role, "B row unchanged")
+}
+
+func TestAcceptInviteCrossTenantTechnician_2405(t *testing.T) {
+	db, tenantID, orgID, _, _ := setupInvite2405(t)
+	u := inviteUser2405(t, db, tenantID, orgID)
+
+	tenantB := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantB)
+	require.NoError(t, db.Create(&models.TechnicianProfile{ID: uuid.New().String(), UserID: u.ID, TenantID: tenantB, Status: "active"}).Error)
+
+	invite := models.StaffInvite{ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID, Kind: "repair_technician", Role: "repair_technician", Code: "c2405f"}
+	require.NoError(t, db.Create(&invite).Error)
+	require.NoError(t, bindInvitee(db, &invite, u, inviteBindOpts{}))
+
+	var profiles []models.TechnicianProfile
+	require.NoError(t, db.Where("user_id = ?", u.ID).Find(&profiles).Error)
+	assert.Len(t, profiles, 2, "must add tenant A profile without dropping B")
+	tenants := map[string]bool{}
+	for _, p := range profiles {
+		tenants[p.TenantID] = true
+	}
+	assert.True(t, tenants[tenantB])
+	assert.True(t, tenants[orgID])
+}
+
+func inviteMerchantID(t *testing.T, db *gorm.DB, orgID string) string {
+	t.Helper()
+	var m models.Merchant
+	require.NoError(t, db.Where("org_id = ?", orgID).First(&m).Error)
+	return m.ID
 }
