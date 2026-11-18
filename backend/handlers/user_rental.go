@@ -219,7 +219,7 @@ func (h *UserRentalHandler) GetInstrument(c *gin.Context) {
 
 	var instrument models.Instrument
 	if err := db.Where("id = ? AND tenant_id = ?", instrumentID, tenantID).First(&instrument).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "乐器不存在"})
 		return
 	}
 
@@ -293,7 +293,7 @@ func validateReducedDepositRequest(c *gin.Context, db *gorm.DB, userID string, g
 		return false
 	}
 	if strings.TrimSpace(letter) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "reduced-deposit order requires a recommendation letter"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "差额押金订单需要推荐信"})
 		return false
 	}
 	return validateGuarantors(c, db, userID, guarantorIDs)
@@ -324,7 +324,7 @@ func normalizeDepositCreditPath(path string) (string, bool) {
 // validateGuarantors 校验 reduced 档必须有 2 位本人名下担保人。
 func validateGuarantors(c *gin.Context, db *gorm.DB, userID string, guarantorIDs []string) bool {
 	if len(guarantorIDs) < 2 {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "reduced-deposit order requires at least 2 guarantors"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "差额押金订单需至少 2 位担保人"})
 		return false
 	}
 	var guarantorCount int64
@@ -1040,7 +1040,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 	for _, item := range req.Items {
 		var inst models.Instrument
 		if err := db.Where("id = ? AND stock_status = ?", item.InstrumentID, "available").First(&inst).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "instrument " + item.InstrumentID + " not available"})
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "乐器 " + item.InstrumentID + " 暂不可租"})
 			return
 		}
 		// Derive tenant from first instrument if guest
@@ -1137,7 +1137,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		startDate, err := time.Parse("2006-01-02", item.StartDate)
 		if err != nil {
 			tx.Rollback()
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid start_date format for " + item.InstrumentID})
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "乐器 " + item.InstrumentID + " 的开始日期格式不正确"})
 			return
 		}
 
@@ -1151,12 +1151,12 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			endDate, err = time.Parse("2006-01-02", item.EndDate)
 			if err != nil {
 				tx.Rollback()
-				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid end_date format for " + item.InstrumentID})
+				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "乐器 " + item.InstrumentID + " 的结束日期格式不正确"})
 				return
 			}
 			if endDate.Before(startDate) {
 				tx.Rollback()
-				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "end_date before start_date for " + item.InstrumentID})
+				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "乐器 " + item.InstrumentID + " 的结束日期早于开始日期"})
 				return
 			}
 		}
@@ -1167,7 +1167,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			Where("id = ? AND tenant_id = ? AND stock_status = ?", item.InstrumentID, effectiveTenantID, "available").
 			First(&lockedInstrument).Error; err != nil {
 			tx.Rollback()
-			c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "instrument " + item.InstrumentID + " already reserved"})
+			c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "乐器 " + item.InstrumentID + " 已被租出"})
 			return
 		}
 
@@ -1428,7 +1428,7 @@ func (h *UserRentalHandler) GetContract(c *gin.Context) {
 		q = q.Where("tenant_id = ?", tenantID)
 	}
 	if err := q.First(&contract).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "contract not found"})
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "合同不存在"})
 		return
 	}
 
@@ -1543,7 +1543,7 @@ func (h *UserRentalHandler) CalculateRental(c *gin.Context) {
 		Days         int    `json:"days" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil || req.Days <= 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: instrument_id and positive days required"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "请求参数不正确：需要乐器与正数天数"})
 		return
 	}
 
@@ -1554,7 +1554,7 @@ func (h *UserRentalHandler) CalculateRental(c *gin.Context) {
 	// Load instrument
 	var instrument models.Instrument
 	if err := db.Where("id = ?", req.InstrumentID).First(&instrument).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "乐器不存在"})
 		return
 	}
 
