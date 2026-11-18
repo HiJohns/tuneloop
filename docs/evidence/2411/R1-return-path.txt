@@ -1,0 +1,15 @@
+# PROVENANCE
+# build=1.0.4409c4099
+# commit=4409c409982e6618e4b711f0fa211d107dd23d57
+# dirty=false
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /home/coder/tuneloop/frontend-mobile
+
+ ✓ scripts/page-smoke/credit-return-path-2411.test.jsx (4 tests) 14ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  15:18:21
+   Duration  1.20s (transform 65ms, setup 38ms, collect 30ms, tests 14ms, environment 513ms, prepare 98ms)
+
