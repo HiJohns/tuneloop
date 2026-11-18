@@ -1,3 +1,4 @@
+# build=1.0.7b629faa6 commit=7b629faa6d6dc9615b9646a2336f6782a9cdb339 dirty=false
 
 > frontend-pc@1.0.0 build
 > vite build
@@ -18,4 +19,4 @@ dist/assets/index-Dp30HDmF.js   2,617.51 kB │ gzip: 804.81 kB
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 1m 24s
+✓ built in 31.47s

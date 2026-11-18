@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "issue": 2389,
+  "build": "1.0.71fec994c",
+  "commit": "71fec994c4f6265640408d5933459c847ce8fe12",
+  "dirty": false,
+  "environment": "R1/R2 browser manual receipts (Owner); R3 backend test on PG 127.0.0.1:15433; R4 frontend-pc build (node 22)",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2389/R1-manual.md",
+      "exit": 1,
+      "artifacts": [
+        "docs/evidence/2389/R1-manual.md"
+      ],
+      "assert": "exit 0",
+      "actual": "PENDING：Owner 浏览器回执未签（入口提示且不跳转/无请求）",
+      "expected": "PASS",
+      "negative": "缺失 → exit 1",
+      "negative_result": "当前 grep 返回 1（RESULT: PENDING）",
+      "pass": false
+    },
+    {
+      "id": "R2",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2389/R2-manual.md",
+      "exit": 1,
+      "artifacts": [
+        "docs/evidence/2389/R2-manual.md"
+      ],
+      "assert": "exit 0",
+      "actual": "PENDING：Owner 浏览器回执未签（直接访问重设页提交禁用）",
+      "expected": "PASS",
+      "negative": "缺失 → exit 1",
+      "negative_result": "当前 grep 返回 1（RESULT: PENDING）",
+      "pass": false
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2389.sh r3-no-email > docs/evidence/2389/R3-backend.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2389/R3-backend.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：TestResetPasswordNoEmail_2389；全无邮箱返回 400 40002（provenance dirty=false）",
+      "expected": "PASS",
+      "negative": "仍 200 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "npm --prefix frontend-pc run build > docs/evidence/2389/R4-build.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2389/R4-build.txt"
+      ],
+      "assert": "exit 0；含 built in",
+      "actual": "PASS：vite build built in 31.47s（provenance dirty=false）",
+      "expected": "PASS",
+      "negative": "失败 → exit 1",
+      "negative_result": "构建失败即 exit 1",
+      "pass": true
+    }
+  ]
+}
