@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -46,11 +47,40 @@ type MockPayscoreProvider struct {
 	// ApproveAfter 让模拟评估在创建后保持 pending 一段时间（便于真机截图/观察）；
 	// 0 = 立即出结果（默认，供单测使用）。
 	ApproveAfter time.Duration
-	createdAt    map[string]time.Time
+	// AlwaysPending 由 PAYSCORE_MOCK_RESULT=pending 打开：查询永远返回 pending，
+	// 用于验证「未 approved → 档位禁用」的 UI/闸门（#2408）。
+	AlwaysPending bool
+	createdAt     map[string]time.Time
 }
 
 func NewMockPayscoreProvider() *MockPayscoreProvider {
-	return &MockPayscoreProvider{orders: map[string]*PayScoreOrder{}, Approve: true, createdAt: map[string]time.Time{}}
+	approve, alwaysPending := mockResultFromEnv()
+	return &MockPayscoreProvider{
+		orders:        map[string]*PayScoreOrder{},
+		Approve:       approve,
+		AlwaysPending: alwaysPending,
+		createdAt:     map[string]time.Time{},
+	}
+}
+
+// mockResultFromEnv 解析 QA 开关 PAYSCORE_MOCK_RESULT（仅影响 mock provider）：
+//
+//	approved（默认）→ 到时返回 approved
+//	rejected        → 到时返回 rejected
+//	pending         → 永远 pending（验证「未 approved」禁用态）
+//
+// 真实 provider 完全不受影响；未识别的值按 approved 处理，保持历史行为。
+func mockResultFromEnv() (approve bool, alwaysPending bool) {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("PAYSCORE_MOCK_RESULT"))) {
+	case "", "approved", "approve", "pass":
+		return true, false
+	case "rejected", "reject", "fail":
+		return false, false
+	case "pending", "hold", "never":
+		return true, true
+	default:
+		return true, false
+	}
 }
 
 // MockApproveAfter 读取模拟评估的 pending 时长（PAYSCORE_MOCK_APPROVE_AFTER_SECONDS，默认 30s）。
@@ -89,6 +119,12 @@ func (m *MockPayscoreProvider) QueryOrder(_ context.Context, _ /*serviceID*/, ou
 	order, ok := m.orders[outOrderNo]
 	if !ok {
 		return nil, fmt.Errorf("mock payscore: order %q not found", outOrderNo)
+	}
+	// #2408：QA 明确要求永远 pending 时，不进入时间判定。
+	if m.AlwaysPending {
+		cp := *order
+		cp.State = mockStatePending
+		return &cp, nil
 	}
 	// 模拟评估：创建后 ApproveAfter 内保持 pending（默认 30s，便于真机截图）。
 	if m.ApproveAfter > 0 {
