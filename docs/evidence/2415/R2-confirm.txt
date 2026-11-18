@@ -1,0 +1,21 @@
+# build=1.0.b1ddef102 commit=b1ddef1028115af5e3ee4e6878d3df52ce423a01 dirty=false
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /home/coder/tuneloop/frontend-mobile
+
+stderr | scripts/page-smoke/app-dialog-2415.test.jsx > AppDialog confirm (#2415) > TestAppDialogConfirm_2415 resolves false on cancel and true on confirm
+Warning: React does not recognize the `scrollY` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `scrolly` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at div
+    at div
+    at div
+    at DialogHost (/home/coder/tuneloop/frontend-mobile/src/components/AppDialog.jsx:31:55)
+
+ ✓ scripts/page-smoke/app-dialog-2415.test.jsx (7 tests | 6 skipped) 894ms
+   ✓ AppDialog confirm (#2415) > TestAppDialogConfirm_2415 resolves false on cancel and true on confirm 845ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 6 skipped (7)
+   Start at  18:12:35
+   Duration  9.56s (transform 870ms, setup 234ms, collect 1.95s, tests 894ms, environment 3.42s, prepare 1.56s)
+
+--- PASS: TestAppDialogConfirm_2415

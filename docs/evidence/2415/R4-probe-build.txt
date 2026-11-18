@@ -1,0 +1,39 @@
+# build=1.0.b1ddef102 commit=b1ddef1028115af5e3ee4e6878d3df52ce423a01 dirty=false
+fallback_counts: Taro.showModal=1 Taro.showToast=1 window.alert=1 window.confirm=1
+
+> frontend-mobile@1.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[plugin:vite:esbuild] [plugin vite:esbuild] src/pages/StaffInstrumentForm.jsx: Duplicate "style" attribute in JSX element
+266|  
+267|    return (
+268|      <View style={{ backgroundColor: "#FDFBF7" }} className="min-h-screen pb-24" style={{ backgroundColor: '#FDFBF7' }}>
+   |                                                                                  ^
+269|        {!env.isMiniProgram && (
+270|          <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
+
+[plugin:vite:esbuild] [plugin vite:esbuild] src/components/InstrumentInfo.jsx: Duplicate "style" attribute in JSX element
+36 |                  <View onClick={e => { e.stopPropagation(); setImageIndex(i => (i - 1 + allImgs.length) % allImgs.length) }}
+37 |                    style={{ top: '50%', transform: 'translateY(-50%)' }}
+38 |                    className="absolute left-2 rounded-full w-8 h-8 flex items-center justify-center shadow-sm" style={{ backgroundColor: 'rgba(255,255,255,0.8)' }}>
+   |                                                                                                                ^
+39 |                    <ArrowLeft size={18} className="text-zinc-600" />
+40 |                  </View>
+
+✓ 3049 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                     0.56 kB │ gzip:   0.37 kB
+dist/assets/index-DMKClAg_.css     25.08 kB │ gzip:   4.82 kB
+dist/assets/index-Dzt61J4Q.js   1,007.61 kB │ gzip: 300.27 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 1m 20s

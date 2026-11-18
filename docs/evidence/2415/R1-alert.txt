@@ -1,0 +1,21 @@
+# build=1.0.b1ddef102 commit=b1ddef1028115af5e3ee4e6878d3df52ce423a01 dirty=false
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /home/coder/tuneloop/frontend-mobile
+
+stderr | scripts/page-smoke/app-dialog-2415.test.jsx > AppDialog alert (#2415) > TestAppDialogAlert_2415 renders a white card + title and resolves on confirm
+Warning: React does not recognize the `scrollY` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `scrolly` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at div
+    at div
+    at div
+    at DialogHost (/home/coder/tuneloop/frontend-mobile/src/components/AppDialog.jsx:31:55)
+
+ ✓ scripts/page-smoke/app-dialog-2415.test.jsx (7 tests | 6 skipped) 816ms
+   ✓ AppDialog alert (#2415) > TestAppDialogAlert_2415 renders a white card + title and resolves on confirm 784ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 6 skipped (7)
+   Start at  18:12:20
+   Duration  10.93s (transform 1.39s, setup 603ms, collect 2.02s, tests 816ms, environment 4.74s, prepare 1.55s)
+
+--- PASS: TestAppDialogAlert_2415

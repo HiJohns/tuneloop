@@ -1,0 +1,21 @@
+# build=1.0.b1ddef102 commit=b1ddef1028115af5e3ee4e6878d3df52ce423a01 dirty=false
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /home/coder/tuneloop/frontend-mobile
+
+stderr | scripts/page-smoke/app-dialog-2415.test.jsx > AppDialog queue (#2415) > TestAppDialogQueue_2415 queues a second call instead of overwriting the first
+Warning: React does not recognize the `scrollY` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `scrolly` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at div
+    at div
+    at div
+    at DialogHost (/home/coder/tuneloop/frontend-mobile/src/components/AppDialog.jsx:31:55)
+
+ ✓ scripts/page-smoke/app-dialog-2415.test.jsx (7 tests | 6 skipped) 1050ms
+   ✓ AppDialog queue (#2415) > TestAppDialogQueue_2415 queues a second call instead of overwriting the first 1024ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 6 skipped (7)
+   Start at  18:13:12
+   Duration  9.15s (transform 940ms, setup 168ms, collect 2.10s, tests 1.05s, environment 2.70s, prepare 2.04s)
+
+--- PASS: TestAppDialogQueue_2415

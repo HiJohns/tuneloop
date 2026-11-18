@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "issue": 2415,
+  "build": "1.0.b1ddef102",
+  "commit": "b1ddef1028115af5e3ee4e6878d3df52ce423a01",
+  "dirty": false,
+  "environment": "frontend-mobile vitest+jsdom (node 22); fix commit b1ddef102",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2415.sh r1-alert",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2415/R1-alert.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestAppDialogAlert_2415",
+      "actual": "PASS：白底卡片 + 标题渲染；点确定后 Promise resolve",
+      "expected": "PASS",
+      "negative": "原生 → FAIL",
+      "negative_result": "走原生弹窗或未渲染卡片即失败",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2415.sh r2-confirm",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2415/R2-confirm.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestAppDialogConfirm_2415",
+      "actual": "PASS：取消 resolve(false)；确认 resolve(true)",
+      "expected": "PASS",
+      "negative": "恒 true → FAIL",
+      "negative_result": "取消返回 true 即失败",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2415.sh r3-scroll",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2415/R3-scroll.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestAppDialogScroll_2415",
+      "actual": "PASS：超长 message 存在 data-dialog-scroll 容器；标题渲染",
+      "expected": "PASS",
+      "negative": "截断 → FAIL",
+      "negative_result": "无滚动容器或标题缺失即失败",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2415.sh r4-probe-build",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2415/R4-probe-build.txt"
+      ],
+      "assert": "exit 0；回退计数 ≤1；build exit 0",
+      "actual": "PASS：Taro.showModal=1 Taro.showToast=1 window.alert=1 window.confirm=1；vite build exit 0（built in 1m20s）",
+      "expected": "PASS",
+      "negative": ">1 → FAIL",
+      "negative_result": "任一原生回退计数 >1 或构建失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2415.sh r5-queue",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2415/R5-queue.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestAppDialogQueue_2415",
+      "actual": "PASS：连续两次 alert，第二个排队；关闭第一个后显示第二个",
+      "expected": "PASS",
+      "negative": "覆盖 → FAIL",
+      "negative_result": "第二次调用覆盖第一个即失败",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2415.sh r6-editable",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2415/R6-editable.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestAppDialogEditable_2415",
+      "actual": "PASS：输入值回传（尺寸不符）；取消 resolve(null)",
+      "expected": "PASS",
+      "negative": "丢值 → FAIL",
+      "negative_result": "确认丢值或取消非 null 即失败",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2415.sh r7-toast",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2415/R7-toast.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestAppDialogToast_2415",
+      "actual": "PASS：自绘 toast 出现并自动关闭；platform Taro.showToast 回退仅 1 处",
+      "expected": "PASS",
+      "negative": "原生 → FAIL",
+      "negative_result": "未走自绘 toast 即失败",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2415.sh r8-mount",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2415/R8-mount.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestDialogHostMounted_2415",
+      "actual": "PASS：渲染 app.tsx 后 isDialogHostMounted()=true；App-H5.jsx 含 DialogHost import/挂载",
+      "expected": "PASS",
+      "negative": "未挂载 → FAIL",
+      "negative_result": "入口未挂载或订阅未生效即失败",
+      "pass": true
+    }
+  ]
+}
