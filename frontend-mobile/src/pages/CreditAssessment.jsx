@@ -12,6 +12,7 @@ import {
   creditGate,
   resolveCreditLaunch,
   pollDelay,
+  decodeReturnPath,
 } from '../utils/creditFlow'
 
 // #2327 S4 / D8 / #2352 / #2333: 通用微信支付分信用评测页（H5 + weapp 共用）。
@@ -34,7 +35,10 @@ export default function CreditAssessment() {
     : Object.fromEntries(new URLSearchParams(typeof window !== 'undefined' ? window.location.search : ''))
 
   const orderId = params.order_id || ''
-  const returnPath = params.return_path || (orderId ? `/payment?type=rent&id=${orderId}` : '')
+  // #2411：weapp 侧 return_path 常是 URL-encoded 的 H5 路径（支付页 encodeURIComponent 传入），
+  // 不解码会导致 toWeappRoute 匹配失败 → 误报「该功能请在微信小程序中完成」。
+  const decodedReturnPath = decodeReturnPath(params.return_path || '')
+  const returnPath = decodedReturnPath || (orderId ? `/payment?type=rent&id=${orderId}` : '')
 
   const [credit, setCredit] = useState(null)
   // 评估金额由后端返回；页面只展示，不自算（#2333 R8）。
@@ -60,12 +64,25 @@ export default function CreditAssessment() {
       return navigate(-1)
     }
     if (!env.isMiniProgram) return navigate(to)
-    const route = toWeappRoute(to)
+
+    // #2411：weapp 的目标可能是 H5 路径（需映射）或已是原生 /pages-weapp/... 路径。
+    const target = decodeReturnPath(to)
+    const route = (typeof target === 'string' && target.startsWith('/pages'))
+      ? { type: 'navigateTo', url: target }
+      : toWeappRoute(target)
     if (!route) {
-      dialog.alert(t('该功能请在微信小程序中完成'))
+      dialog.alert(t('暂时无法返回，请从首页重新进入'))
       return
     }
-    return Taro.navigateTo({ url: route.url })
+    // 目标就是上一个页面（如从支付页进来）→ 直接返回，让其 onShow 重新拉取最新档位。
+    try {
+      const pages = Taro.getCurrentPages()
+      const prev = pages[pages.length - 2]
+      const targetPath = route.url.split('?')[0].replace(/^\//, '')
+      if (prev && prev.route === targetPath) return Taro.navigateBack()
+    } catch { /* getCurrentPages 不可用时走下面兜底 */ }
+    if (route.type === 'switchTab') return Taro.switchTab({ url: route.url })
+    return Taro.redirectTo({ url: route.url })
   }
 
   const fetchStatus = async () => {

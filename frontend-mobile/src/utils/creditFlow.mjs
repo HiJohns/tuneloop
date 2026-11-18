@@ -153,6 +153,22 @@ export function buildAssessmentRoute({ orderId, tier, riskAmountCents, returnPat
 }
 
 // pollDelay 轮询退避：1.5s 起，最长 8s（避免打爆 status 接口）。
+/**
+ * #2411：评测页 return_path 解码。
+ * weapp 侧支付页用 encodeURIComponent 传 H5 路径，而 Taro router.params 不保证解码；
+ * 未解码时 toWeappRoute 匹配失败 → 误报「该功能请在微信小程序中完成」。
+ * 纯函数：无 %xx → 原样返回；解码失败（畸形编码）→ 原样返回，绝不抛错。
+ */
+export function decodeReturnPath(raw) {
+  if (!raw || typeof raw !== 'string') return ''
+  if (!/%[0-9A-Fa-f]{2}/.test(raw)) return raw
+  try {
+    return decodeURIComponent(raw)
+  } catch {
+    return raw
+  }
+}
+
 export function pollDelay(attempt) {
   const base = 1500 * Math.pow(2, Math.max(0, attempt || 0))
   return Math.min(base, 8000)

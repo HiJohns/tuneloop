@@ -170,7 +170,7 @@ export default function Payment() {
           </Text>
           <Button
             style={{ margin: '16px 0 0', padding: 0, backgroundColor: '#B98E5F', color: '#fff', borderRadius: 12, height: 48, fontSize: 16, lineHeight: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            onClick={() => Taro.navigateTo({ url: `/pages-weapp/credit-assessment/index?order_id=${pId}&return_path=${encodeURIComponent(`/payment?type=rent&id=${pId}`)}` })}
+            onClick={() => Taro.navigateTo({ url: `/pages-weapp/credit-assessment/index?order_id=${pId}&return_path=${encodeURIComponent(`/pages-weapp/payment/index?type=rent&id=${pId}`)}` })}
           >
             <Text style={{ color: '#fff', fontWeight: 700 }}>{t('去微信完成评测')}</Text>
           </Button>
@@ -724,7 +724,7 @@ export default function Payment() {
             </Text>
             <Button
               style={{ margin: '12px 0 0', padding: 0, backgroundColor: '#B98E5F', color: '#fff', borderRadius: 12, height: 48, fontSize: 16, lineHeight: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              onClick={() => Taro.navigateTo({ url: '/pages-weapp/credit-assessment/index?order_id=' + pId + '&return_path=' + encodeURIComponent(`/payment?type=rent&id=${pId}`) })}
+              onClick={() => Taro.navigateTo({ url: '/pages-weapp/credit-assessment/index?order_id=' + pId + '&return_path=' + encodeURIComponent(`/pages-weapp/payment/index?type=rent&id=${pId}`) })}
             >
               <Text style={{ color: '#fff', fontWeight: 700 }}>{t('去微信完成评测')}</Text>
             </Button>
