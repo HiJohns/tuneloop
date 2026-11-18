@@ -58,7 +58,7 @@
       "assert": "exit 0",
       "actual": "PASS：cd backend && go build ./... exit 0（产物仅 provenance 头）",
       "expected": "PASS",
-      "negative": "失败 → exit 1",
+      "negative": "失败 → FAIL",
       "negative_result": "构建失败即 exit 1",
       "pass": true
     }
