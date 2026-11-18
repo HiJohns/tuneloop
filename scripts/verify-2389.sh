@@ -15,5 +15,15 @@ export TUNELOOP_TEST_DB="${TUNELOOP_TEST_DB:-tuneloop_test_verify2389}"
 export IAM_NAMESPACE="${IAM_NAMESPACE:-test-ns}"
 export IAM_SECRET="${IAM_SECRET:-test-secret-1489}"
 mkdir -p "$TMPDIR" "$GOCACHE"
+
+BUILD="1.0.$(git rev-parse --short HEAD)"
+COMMIT="$(git rev-parse HEAD)"
+DIRTY=false
+# 证据产物在生成时被重定向创建/截断；排除 docs/evidence/2389/ 后 dirty 只反映源码变更。
+if [ -n "$(git status --porcelain --untracked-files=no | grep -v 'docs/evidence/2389/' || true)" ]; then
+  DIRTY=true
+fi
+echo "# build=$BUILD commit=$COMMIT dirty=$DIRTY"
+
 cd "$REPO_ROOT/backend"
 go test ./handlers/ -run '^TestResetPasswordNoEmail_2389$' -count=1 -v
