@@ -1626,19 +1626,29 @@ func (h *UserRentalHandler) CalculateRental(c *gin.Context) {
 		return
 	}
 	totalRent := breakdown.TotalAmount
-	tierDetails := make([]services.TierDetail, 0, len(breakdown.TierSegments))
+	// #2414（复审 F1/A）：§8.12 约定金额字段一律为**分**；内部计算仍用元，仅出参换算。
+	// tiers[].effective_rate 是「元/天」费率（非金额），保持元；gift_points_max 按 #2180 返回元。
+	tierDetails := make([]gin.H, 0, len(breakdown.TierSegments))
+	tierCentsSum := int64(0)
 	daysMin := 1
 	for _, seg := range breakdown.TierSegments {
 		daysMax := daysMin + seg.Days - 1
-		tierDetails = append(tierDetails, services.TierDetail{
-			DaysMin:         daysMin,
-			DaysMax:         daysMax,
-			DiscountPercent: int(math.Round((1 - seg.Discount) * 100)),
-			DaysInTier:      seg.Days,
-			EffectiveRate:   seg.Rate * seg.Discount,
-			Subtotal:        seg.Subtotal,
+		subtotalCents := int64(math.Round(seg.Subtotal * 100))
+		tierCentsSum += subtotalCents
+		tierDetails = append(tierDetails, gin.H{
+			"days_min":         daysMin,
+			"days_max":         daysMax,
+			"discount_percent": int(math.Round((1 - seg.Discount) * 100)),
+			"days_in_tier":     seg.Days,
+			"effective_rate":   seg.Rate * seg.Discount,
+			"subtotal":         subtotalCents,
 		})
 		daysMin = daysMax + 1
+	}
+	// 保证 sum(tiers[].subtotal) == total_rent（逐段取整后求和，避免总分与分项各自取整不一致）。
+	totalRentCents := tierCentsSum
+	if len(breakdown.TierSegments) == 0 {
+		totalRentCents = int64(math.Round(totalRent * 100))
 	}
 
 	// Membership discount
@@ -1684,18 +1694,23 @@ func (h *UserRentalHandler) CalculateRental(c *gin.Context) {
 
 	prepaidPointsMax := prepaidPointsBalance
 
+	// #2414（复审 F1/A）：金额字段统一为分，并保证 cash_to_pay == total_rent + deposit + shipping_fee（分）。
+	shippingFeeCents := int64(math.Round(shippingFee * 100))
+	memberDiscountCents := int64(math.Round(memberDiscountAmount * 100))
+	cashToPayCents := totalRentCents + depositCents + shippingFeeCents
+
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
 		"tiers":                   tierDetails,
-		"total_rent":              totalRent,
+		"total_rent":              totalRentCents,
 		"member_discount_percent": memberDiscountPercent,
-		"member_discount_amount":  memberDiscountAmount,
+		"member_discount_amount":  memberDiscountCents,
 		"deposit":                 depositCents,
-		"shipping_fee":            shippingFee,
+		"shipping_fee":            shippingFeeCents,
 		"gift_points_max":         math.Floor(giftPointsMax / 100),
 		"prepaid_points_max":      prepaidPointsMax,
 		"gift_points_used":        0,
 		"prepaid_points_used":     0,
-		"cash_to_pay":             totalPay,
+		"cash_to_pay":             cashToPayCents,
 	}})
 }
 

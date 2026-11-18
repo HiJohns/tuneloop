@@ -9,6 +9,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -119,4 +120,41 @@ func TestCalculateRentalDepositTrueZero_2414(t *testing.T) {
 	require.Equal(t, http.StatusOK, code, "resp=%v", resp)
 	data := resp["data"].(map[string]interface{})
 	assert.Equal(t, float64(0), data["deposit"], "zero pricing deposit stays zero")
+}
+
+// R5（复审 F2）：同一响应内金额单位一致（分），且分项与合计可相加。
+func TestCalculateRentalUnitConsistency_2414(t *testing.T) {
+	r, instID := setupRentalCalculate2414(t, 500, `{"deposit":0.01}`)
+
+	code, resp := postRentalCalculate2414(t, r, instID, 70)
+	require.Equal(t, http.StatusOK, code, "resp=%v", resp)
+	data := resp["data"].(map[string]interface{})
+
+	totalRent := data["total_rent"].(float64)
+	deposit := data["deposit"].(float64)
+	shipping := data["shipping_fee"].(float64)
+	cash := data["cash_to_pay"].(float64)
+
+	assert.Equal(t, float64(5000), shipping, "shipping_fee 必须为分（50 元 = 5000 分）")
+	assert.Equal(t, totalRent+deposit+shipping, cash,
+		"cash_to_pay 必须等于 total_rent + deposit + shipping_fee（同为分）")
+
+	// 所有金额字段必须是整数分（不得残留元）
+	for _, key := range []string{"total_rent", "deposit", "shipping_fee", "cash_to_pay", "member_discount_amount"} {
+		v, ok := data[key].(float64)
+		require.True(t, ok, "%s must be a number", key)
+		assert.Equal(t, math.Trunc(v), v, "%s 必须是整数分（不得是元）", key)
+	}
+
+	tiers, ok := data["tiers"].([]interface{})
+	require.True(t, ok, "tiers must be an array")
+	require.NotEmpty(t, tiers, "70 天必须产生至少一个阶梯")
+	sum := float64(0)
+	for _, raw := range tiers {
+		tier := raw.(map[string]interface{})
+		sub := tier["subtotal"].(float64)
+		assert.Equal(t, math.Trunc(sub), sub, "tiers[].subtotal 必须是整数分")
+		sum += sub
+	}
+	assert.Equal(t, totalRent, sum, "sum(tiers[].subtotal) 必须等于 total_rent")
 }

@@ -4516,20 +4516,26 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
   "code": 20000,
   "data": {
     "tiers": [
-      {"days_min": 1, "days_max": 30, "discount_percent": 0, "days_in_tier": 30, "effective_rate": 100, "subtotal": 3000},
-      {"days_min": 31, "days_max": 70, "discount_percent": 5, "days_in_tier": 40, "effective_rate": 95, "subtotal": 3800}
+      {"days_min": 1, "days_max": 30, "discount_percent": 0, "days_in_tier": 30, "effective_rate": 100, "subtotal": 300000},
+      {"days_min": 31, "days_max": 70, "discount_percent": 5, "days_in_tier": 40, "effective_rate": 95, "subtotal": 380000}
     ],
-    "total_rent": 6800,
-    "deposit": 2000,
-    "shipping_fee": 50,
+    "total_rent": 680000,
+    "member_discount_percent": 0,
+    "member_discount_amount": 0,
+    "deposit": 200000,
+    "shipping_fee": 5000,
     "gift_points_max": 100,
     "gift_points_used": 0,
-    "cash_to_pay": 8850
+    "cash_to_pay": 885000
   }
 }
 ```
 
-> 赠点上限 = `min(用户赠点余额, 总支付额 × PointsPolicy.MaxPayRatio)`。现金 = 总支付额 − 赠点。**`gift_points_max` 返回元（整数，向下取整，#2180）；其余金额字段（`total_rent`/`deposit`/`shipping_fee`/`cash_to_pay`）为分。**
+> 赠点上限 = `min(用户赠点余额, 总支付额 × PointsPolicy.MaxPayRatio)`。现金 = 总支付额 − 赠点。
+>
+> **单位契约**：`gift_points_max` 返回**元**（整数，向下取整，#2180）；其余金额字段——`tiers[].subtotal` / `total_rent` / `member_discount_amount` / `deposit` / `shipping_fee` / `cash_to_pay`——一律为**分**。`tiers[].effective_rate` 是「元/天」费率（非金额），保持元。
+>
+> **一致性约束**：`cash_to_pay = total_rent + deposit + shipping_fee`（分）；`sum(tiers[].subtotal) = total_rent`。
 
 ---
 
