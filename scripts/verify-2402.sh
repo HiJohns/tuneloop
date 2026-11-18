@@ -19,7 +19,9 @@ mkdir -p "$TMPDIR" "$GOCACHE"
 BUILD="1.0.$(git rev-parse --short HEAD)"
 COMMIT="$(git rev-parse HEAD)"
 DIRTY=false
-if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+# 证据产物本身在生成时被 shell 重定向创建/截断；排除 docs/evidence/2402/
+# 后，dirty 只反映源码/其它 tracked 变更（Accepted Plan Artifact Provenance）。
+if [ -n "$(git status --porcelain --untracked-files=no | grep -v 'docs/evidence/2402/' || true)" ]; then
   DIRTY=true
 fi
 echo "# build=$BUILD commit=$COMMIT dirty=$DIRTY"
