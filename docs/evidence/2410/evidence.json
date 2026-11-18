@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "issue": 2410,
+  "build": "1.0.2985c0b51",
+  "commit": "2985c0b51970db76e7e2a30c13c4c0d714eb23cb",
+  "dirty": false,
+  "environment": "clean detached evidence worktree tmp/wt-2410 @ 2985c0b51; PG 127.0.0.1:15433 (disposable DB); node 22 for weapp build",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/evidence-2410.sh r1-wxbind > docs/evidence/2410/R1-confirm-wxbind.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2410/R1-confirm-wxbind.txt"
+      ],
+      "assert": "exit 0；含 PROVENANCE；含 --- PASS；mock 收到 /api/v1/auth/wx-bind 且请求体不含 wx_openid",
+      "actual": "PASS：TestConfirmBind_Success；IAM body=map[client_id:test-ns code: exchange_token:ex-1 user_id:iam-sub-0004]（无 wx_openid）；user_put=false；token_status=bound",
+      "expected": "PASS",
+      "negative": "仍调用 /api/v1/users/ 或转发 wx_openid → exit 1",
+      "negative_result": "旧实现走 PUT /api/v1/users/ 且带 wx_openid；修复前测试断言失败",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/evidence-2410.sh r2-needs-merge > docs/evidence/2410/R2-needs-merge.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2410/R2-needs-merge.txt"
+      ],
+      "assert": "exit 0；含 PROVENANCE；含 --- PASS",
+      "actual": "PASS：TestConfirmBind_NeedsMerge；409/40900；existing=y-user target=x-user token_status=needs_merge（无 bound）",
+      "expected": "PASS",
+      "negative": "返回 20000 或落绑定 → exit 1",
+      "negative_result": "旧实现忽略 needs_merge 并 UpdateUser，返回 20000",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/evidence-2410.sh r3-update-guard > docs/evidence/2410/R3-update-guard.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2410/R3-update-guard.txt"
+      ],
+      "assert": "exit 0；含 PROVENANCE；含 --- PASS",
+      "actual": "PASS：TestIAMClient_RejectsDirectWxOpenid；非空 wx_openid 在发请求前被拒（user_put 不增加），空值解绑仍发 PUT",
+      "expected": "PASS",
+      "negative": "仍发 PUT /api/v1/users/ → exit 1",
+      "negative_result": "未加 guard 时 UpdateUser 会直接 PUT 非空 wx_openid",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/evidence-2410.sh r4-bind-ui > docs/evidence/2410/R4-bind-ui.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2410/R4-bind-ui.txt"
+      ],
+      "assert": "exit 0；含 PROVENANCE；含 Test Files 1 passed",
+      "actual": "PASS：bind-needs-merge.test.jsx 1 passed；显示「该微信已绑定其他账户」「确认合并」「编辑资料」，不含「绑定成功」",
+      "expected": "PASS",
+      "negative": "显示绑定成功或无合并引导 → exit 1",
+      "negative_result": "把 409 当 error 或 success 即失败",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/evidence-2410.sh r5-doc > docs/evidence/2410/R5-doc.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2410/R5-doc.txt"
+      ],
+      "assert": "exit 0；含 PROVENANCE；三个文档均含 needs_merge/exchange_token",
+      "actual": "PASS：docs/spec/api/api.md、docs/spec/ui/ui.md、docs/cases/cases.md 均含 needs_merge 与 exchange_token",
+      "expected": "PASS",
+      "negative": "任一文档缺字段 → exit 1",
+      "negative_result": "DOC_MISSING 并 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/evidence-2410.sh r6-go-build > docs/evidence/2410/R6-go-build.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2410/R6-go-build.txt"
+      ],
+      "assert": "exit 0；含 PROVENANCE",
+      "actual": "PASS：clean worktree 内 cd backend && go build ./... exit 0",
+      "expected": "PASS",
+      "negative": "失败 → exit 1",
+      "negative_result": "编译失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/evidence-2410.sh r7-weapp-build > docs/evidence/2410/R7-weapp-build.txt 2>&1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2410/R7-weapp-build.txt"
+      ],
+      "assert": "exit 0；含 PROVENANCE；WXML_PROBE PASS",
+      "actual": "PASS：node 22 build:weapp Compiled successfully；WXML_PROBE PASS（无原生 HTML 标签）",
+      "expected": "PASS",
+      "negative": "构建失败或原生 HTML → exit 1",
+      "negative_result": "构建失败或 WXML 探针命中即 exit 1",
+      "pass": true
+    }
+  ]
+}

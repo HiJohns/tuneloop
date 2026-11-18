@@ -1,0 +1,14 @@
+# build=1.0.2985c0b51 commit=2985c0b51970db76e7e2a30c13c4c0d714eb23cb dirty=false PROVENANCE=pc-qr-wxbind-2410-2985c0b51
+[WARNING] No .env file found in common paths
+2026/11/18 17:32:24 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2410 sslmode=disable
+2026/11/18 17:32:24 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2410
+2026/11/18 17:32:24 [DB] Connected to database 'tuneloop_test_verify2410'
+=== RUN   TestConfirmBind_NeedsMerge
+2026/11/18 17:32:25 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2410 sslmode=disable
+2026/11/18 17:32:25 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2410
+2026/11/18 17:32:25 [DB] Connected to database 'tuneloop_test_verify2410'
+2026/11/18 17:32:25 [ConfirmBind] req.Token="beef1234beef1234" exchange_token=present
+    wechat_bind_test.go:334: needs_merge=true existing=y-user target=x-user token_status=needs_merge
+--- PASS: TestConfirmBind_NeedsMerge (0.23s)
+PASS
+ok  	tuneloop-backend/handlers	0.692s

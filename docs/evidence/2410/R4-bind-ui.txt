@@ -1,0 +1,12 @@
+# build=1.0.2985c0b51 commit=2985c0b51970db76e7e2a30c13c4c0d714eb23cb dirty=false PROVENANCE=pc-qr-wxbind-2410-2985c0b51
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /home/coder/tuneloop/tmp/wt-2410/frontend-mobile
+
+ ✓ scripts/page-smoke/bind-needs-merge.test.jsx (1 test) 188ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  17:32:33
+   Duration  2.70s (transform 161ms, setup 63ms, collect 410ms, tests 188ms, environment 1.16s, prepare 527ms)
+

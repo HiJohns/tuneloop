@@ -1,0 +1,14 @@
+# build=1.0.2985c0b51 commit=2985c0b51970db76e7e2a30c13c4c0d714eb23cb dirty=false PROVENANCE=pc-qr-wxbind-2410-2985c0b51
+# github.com/mattn/go-sqlite3
+sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
+sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+123133 |   zTail = strrchr(zName, '_');
+       |         ^
+[WARNING] No .env file found in common paths
+=== RUN   TestIAMClient_RejectsDirectWxOpenid
+2026/11/18 17:32:30 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/18 17:32:30 [IAMClient] Updated user: user_id=u-1
+    iam_client_test.go:314: user_put_requests=1 (non-empty openid rejected before HTTP; empty unbind sent)
+--- PASS: TestIAMClient_RejectsDirectWxOpenid (0.00s)
+PASS
+ok  	tuneloop-backend/services	0.021s

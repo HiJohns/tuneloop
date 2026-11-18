@@ -1,0 +1,4 @@
+# build=1.0.2985c0b51 commit=2985c0b51970db76e7e2a30c13c4c0d714eb23cb dirty=false PROVENANCE=pc-qr-wxbind-2410-2985c0b51
+DOC_OK: docs/spec/api/api.md
+DOC_OK: docs/spec/ui/ui.md
+DOC_OK: docs/cases/cases.md
