@@ -3,7 +3,7 @@ import Taro from '@tarojs/taro'
 import { useNavigate } from 'react-router-dom'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, notificationApi , resolveErrorMessage } from '../services/api'
-import { env, storage, session, toWeappRoute, getInputValue, eventBus } from '../platform'
+import { env, storage, session, toWeappRoute, getInputValue, eventBus, useDidShow } from '../platform'
 import { getAppConfig } from '../platform/init'
 import { isStaffRole } from '../utils/role'
 import BottomNav from '../components/BottomNav'
@@ -243,18 +243,24 @@ export default function Profile() {
   const hasSiteRole = myRoles.some(r => ['site_admin', 'site_member'].includes(r))
   const isPureTech = isTech && !hasSiteRole
 
+  // #2409：金刚区角标必须随订单状态变化刷新（H5 走 platform.useDidShow：挂载 + 可见性变化）。
+  const fetchOrderCounts = useCallback(async () => {
+    try {
+      const resp = await apiFetch(`${baseUrl}/user/orders/counts`)
+      const result = await resp.json()
+      if (result.code === 20000) {
+        setOrderCounts(result.data || {})
+      }
+    } catch {}
+  }, [baseUrl])
+
   useEffect(() => {
-    const fetchCounts = async () => {
-      try {
-        const resp = await apiFetch(`${baseUrl}/user/orders/counts`)
-        const result = await resp.json()
-        if (result.code === 20000) {
-          setOrderCounts(result.data || {})
-        }
-      } catch {}
-    }
-    if (!isStaff) fetchCounts()
-  }, [baseUrl, isStaff])
+    if (!isStaff) fetchOrderCounts()
+  }, [fetchOrderCounts, isStaff])
+
+  useDidShow(() => {
+    if (!isStaff) fetchOrderCounts()
+  })
 
   // #1937: 中转网点成员 → 个人中心展示「中转工作台」入口（/site-members/me 返回 site_type）
   useEffect(() => {

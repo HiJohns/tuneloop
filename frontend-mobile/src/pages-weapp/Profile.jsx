@@ -293,18 +293,21 @@ export default function Profile() {
     return () => { cancelled = true }
   }, [isGuest, baseUrl])
 
+  // #2409：金刚区角标必须随订单状态变化刷新。tab 页 switchTab 回来不会重新 mount，
+  // 旧实现只在 mount 拉一次 counts → 订单被取消后角标仍显示 1，点进去列表却是空的。
+  const fetchOrderCounts = useCallback(async () => {
+    try {
+      const resp = await apiFetch(`${baseUrl}/user/orders/counts`)
+      const result = await resp.json()
+      if (result.code === 20000) {
+        setOrderCounts(result.data || {})
+      }
+    } catch {}
+  }, [baseUrl])
+
   useEffect(() => {
-    const fetchCounts = async () => {
-      try {
-        const resp = await apiFetch(`${baseUrl}/user/orders/counts`)
-        const result = await resp.json()
-        if (result.code === 20000) {
-          setOrderCounts(result.data || {})
-        }
-      } catch {}
-    }
-    if (!isStaff) fetchCounts()
-  }, [baseUrl, isStaff])
+    if (!isStaff) fetchOrderCounts()
+  }, [fetchOrderCounts, isStaff])
 
   // #1937: 中转网点成员 → 个人中心展示「中转工作台」入口（/site-members/me 返回 site_type）
   // #2095: tab 页 switchTab 回前台不重新 mount → useDidShow 重取（roles/待报价角标同步）
@@ -334,6 +337,7 @@ export default function Profile() {
   }, [baseUrl, isStaff])
   useDidShow(() => {
     if (isStaff) refreshStaffData()
+    else fetchOrderCounts() // #2409：回前台/切回 tab 时刷新金刚区角标
     fetchPendingInvites()
   })
 
