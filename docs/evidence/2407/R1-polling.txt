@@ -1,0 +1,20 @@
+# PROVENANCE
+# build=1.0.f4f08c854
+# commit=f4f08c854f22f4418793f46ef2ce71e8374ed6fa
+# dirty=false
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /home/coder/tuneloop/frontend-mobile
+
+stderr | scripts/page-smoke/credit-assessment-polling-2407.test.jsx > credit assessment polling (#2407) > keeps polling pending and renders 评测通过 once approved
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ scripts/page-smoke/credit-assessment-polling-2407.test.jsx (1 test) 344ms
+   ✓ credit assessment polling (#2407) > keeps polling pending and renders 评测通过 once approved 341ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  15:15:56
+   Duration  3.12s (transform 298ms, setup 51ms, collect 540ms, tests 344ms, environment 1.19s, prepare 699ms)
+

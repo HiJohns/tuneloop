@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "issue": 2407,
+  "build": "1.0.f4f08c854",
+  "commit": "f4f08c854f22f4418793f46ef2ce71e8374ed6fa",
+  "dirty": false,
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2407.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2407/R1-polling.txt"
+      ],
+      "assert": "exit 0；含 Tests 1 passed",
+      "actual": "PASS：fetch 3 次后 approved，渲染「评测通过」「返回继续支付」",
+      "expected": "PASS",
+      "negative": "缺陷版只轮询 2 次即停 → FAIL",
+      "negative_result": "缺陷版断言失败：expected 2 to be greater than or equal to 3",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2407.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2407/R2-manual.md"
+      ],
+      "assert": "含 executor: user 与 RESULT: PASS",
+      "actual": "真机约 30s 自动通过（两次复测）",
+      "expected": "PASS",
+      "negative": "需手动刷新才更新 → FAIL",
+      "negative_result": "回执缺失或 FAIL → 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2407.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2407/R3-eslint.txt"
+      ],
+      "assert": "exit 0；0 errors",
+      "actual": "0 errors",
+      "expected": "PASS",
+      "negative": "出现 error → FAIL",
+      "negative_result": "eslint 非 0 → 断言失败",
+      "pass": true
+    }
+  ]
+}
