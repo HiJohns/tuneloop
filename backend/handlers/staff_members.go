@@ -21,6 +21,7 @@ import (
 	"tuneloop-backend/middleware"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lib/pq"
 )
 
 type StaffMembersHandler struct{}
@@ -34,17 +35,18 @@ type staffMemberSiteRef struct {
 }
 
 type staffMemberRow struct {
-	UserID     string               `json:"user_id"`
-	Username   string               `json:"username"`
-	Name       string               `json:"name"`
-	Phone      string               `json:"phone"`
-	Email      string               `json:"email"`
-	Status     string               `json:"status"`
-	Role       string               `json:"role"`
-	Identities []string             `json:"identities"`
-	Sites      []staffMemberSiteRef `json:"sites"`
-	IsDirect   bool                 `json:"is_direct"`
-	JoinedAt   time.Time            `json:"joined_at"`
+	UserID       string               `json:"user_id"`
+	Username     string               `json:"username"`
+	Name         string               `json:"name"`
+	Phone        string               `json:"phone"`
+	Email        string               `json:"email"`
+	Status       string               `json:"status"`
+	Role         string               `json:"role"`
+	MerchantRole string               `json:"merchant_role"`
+	Identities   []string             `json:"identities"`
+	Sites        []staffMemberSiteRef `json:"sites"`
+	IsDirect     bool                 `json:"is_direct"`
+	JoinedAt     time.Time            `json:"joined_at"`
 }
 
 type staffMemberBaseRow struct {
@@ -95,7 +97,8 @@ func (h *StaffMembersHandler) List(c *gin.Context) {
 	oid := middleware.GetOrgID(ctx)
 	callerID := middleware.GetUserID(ctx)
 
-	scope := c.DefaultQuery("scope", "all")
+	// #2386 F1：Issue 契约默认 direct（只列本商户直属）。
+	scope := c.DefaultQuery("scope", "direct")
 	if scope != "all" && scope != "direct" {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "scope must be all|direct"})
 		return
@@ -138,19 +141,26 @@ func (h *StaffMembersHandler) List(c *gin.Context) {
 		return
 	}
 
+	// #2386 F4：直属 JOIN 必须按邀请商户锚定 tenant，避免「B 商户直属」混入 A 的 direct。
+	mmJoin := "LEFT JOIN merchant_members mm ON mm.user_id = users.id"
+	joinArgs := []interface{}{}
+	if len(anchors) > 0 {
+		mmJoin += " AND mm.tenant_id IN ?"
+		joinArgs = append(joinArgs, anchors)
+	}
 	q := db.Table("users").
-		Joins("LEFT JOIN merchant_members mm ON mm.user_id = users.id").
+		Joins(mmJoin, joinArgs...).
 		Joins("LEFT JOIN site_members sm ON sm.user_id = users.id")
 	switch role {
 	case middleware.BusinessRoleMerchantAdmin:
-		q = q.Where("mm.tenant_id IN ? OR sm.tenant_id IN ?", anchors, anchors)
+		q = q.Where("(mm.tenant_id IN ? OR sm.tenant_id IN ?)", anchors, anchors)
 	case middleware.BusinessRoleSiteAdmin, middleware.BusinessRoleSiteMember:
 		q = q.Where("sm.site_id IN ?", scopedSiteIDs)
 	}
 	if scope == "direct" {
 		q = q.Where("mm.user_id IS NOT NULL")
 	} else {
-		q = q.Where("mm.user_id IS NOT NULL OR sm.user_id IS NOT NULL")
+		q = q.Where("(mm.user_id IS NOT NULL OR sm.user_id IS NOT NULL)")
 	}
 	if siteID := strings.TrimSpace(c.Query("site_id")); siteID != "" {
 		q = q.Where("sm.site_id = ?", siteID)
@@ -160,10 +170,13 @@ func (h *StaffMembersHandler) List(c *gin.Context) {
 	}
 	if kw := strings.TrimSpace(c.Query("keyword")); kw != "" {
 		like := "%" + kw + "%"
-		q = q.Where("users.username ILIKE ? OR users.name ILIKE ? OR users.email ILIKE ? OR users.phone ILIKE ?", like, like, like, like)
+		q = q.Where("(users.username ILIKE ? OR users.name ILIKE ? OR users.email ILIKE ? OR users.phone ILIKE ?)", like, like, like, like)
 	}
 	if roles := identityRoles(identity); len(roles) > 0 {
-		q = q.Where("mm.role IN ? OR sm.role IN ? OR users.role IN ?", roles, roles, roles)
+		// #2386 F3：site_members.roles 是 jsonb 多角色，必须参与筛选（与 identities 展示一致）。
+		// 用 jsonb_exists_any（?| 的函数形式）避免 GORM 把操作符里的 ? 当成占位符。
+		q = q.Where("(mm.role IN ? OR sm.role IN ? OR users.role IN ? OR jsonb_exists_any(sm.roles, ?::text[]))",
+			roles, roles, roles, pq.Array(roles))
 	}
 
 	var total int64
@@ -246,6 +259,7 @@ func (h *StaffMembersHandler) List(c *gin.Context) {
 		}
 		if d, ok := directByUser[u.ID]; ok {
 			row.IsDirect = true
+			row.MerchantRole = d.Role
 			addIdentity(d.Role)
 			if !d.CreatedAt.IsZero() && d.CreatedAt.Before(row.JoinedAt) {
 				row.JoinedAt = d.CreatedAt

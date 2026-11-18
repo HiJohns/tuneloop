@@ -192,3 +192,101 @@ func TestStaffMembersPlatform_2386(t *testing.T) {
 	r.ServeHTTP(w, req)
 	assert.Contains(t, []int{http.StatusNotFound, http.StatusMethodNotAllowed}, w.Code)
 }
+
+// R5：不传 scope → 默认 direct（Issue 契约 F1）。
+func TestStaffMembersDefaultScope_2386(t *testing.T) {
+	f := newStaffFixture2386(t)
+	base := time.Now().Add(-24 * time.Hour)
+	u1 := f.user(t, "d1", "site_member")
+	u2 := f.user(t, "s2", "site_member")
+	f.direct(t, u1, "site_member", base)
+	f.siteMember(t, f.siteA, u2, "site_member", []string{"site_member"}, base)
+
+	r := staffRouter2386(f.tenantID, f.tenantID, u1.ID, "ADMIN")
+	code, resp := getStaffMembers2386(t, r, "/staff/members?page_size=50")
+	require.Equal(t, http.StatusOK, code, "resp=%v", resp)
+	data := resp["data"].(map[string]interface{})
+	list := data["list"].([]interface{})
+	require.Len(t, list, 1, "default scope must be direct")
+	assert.Equal(t, u1.ID, list[0].(map[string]interface{})["user_id"])
+}
+
+// R6：identity 过滤必须识别 site_members.roles[] 多角色（F3）。
+func TestStaffMembersIdentityRoles_2386(t *testing.T) {
+	f := newStaffFixture2386(t)
+	base := time.Now().Add(-24 * time.Hour)
+	u := f.user(t, "dual", "site_member")
+	f.siteMember(t, f.siteA, u, "site_member", []string{"site_member", "site_admin"}, base)
+
+	r := staffRouter2386(f.tenantID, f.tenantID, u.ID, "ADMIN")
+	for _, identity := range []string{"admin", "staff"} {
+		code, resp := getStaffMembers2386(t, r, "/staff/members?scope=all&identity="+identity+"&page_size=50")
+		require.Equal(t, http.StatusOK, code)
+		list := resp["data"].(map[string]interface{})["list"].([]interface{})
+		found := false
+		for _, it := range list {
+			if it.(map[string]interface{})["user_id"] == u.ID {
+				found = true
+			}
+		}
+		assert.True(t, found, "identity=%s must match roles[] jsonb", identity)
+	}
+}
+
+// R7：响应含 merchant_role（直属角色；非直属为空），F2。
+func TestStaffMembersMerchantRole_2386(t *testing.T) {
+	f := newStaffFixture2386(t)
+	base := time.Now().Add(-24 * time.Hour)
+	u1 := f.user(t, "d1", "site_member")
+	u2 := f.user(t, "s2", "site_member")
+	f.direct(t, u1, "site_admin", base)
+	f.siteMember(t, f.siteA, u2, "site_member", []string{"site_member"}, base)
+
+	r := staffRouter2386(f.tenantID, f.tenantID, u1.ID, "ADMIN")
+	code, resp := getStaffMembers2386(t, r, "/staff/members?scope=all&page_size=50")
+	require.Equal(t, http.StatusOK, code)
+	byID := map[string]map[string]interface{}{}
+	for _, it := range resp["data"].(map[string]interface{})["list"].([]interface{}) {
+		row := it.(map[string]interface{})
+		byID[row["user_id"].(string)] = row
+	}
+	assert.Equal(t, "site_admin", byID[u1.ID]["merchant_role"])
+	assert.Equal(t, "", byID[u2.ID]["merchant_role"])
+}
+
+// R8：A 网点成员 + B 直属 → A 的 direct 不含该人；all 含且 is_direct=false（F4）。
+func TestStaffMembersDirectIsolation_2386(t *testing.T) {
+	f := newStaffFixture2386(t)
+	base := time.Now().Add(-24 * time.Hour)
+	u := f.user(t, "mixed", "site_member")
+	f.siteMember(t, f.siteA, u, "site_member", []string{"site_member"}, base)
+
+	tenantB := uuid.New().String()
+	testfixtures.SeedTenantFK(t, f.db, tenantB)
+	merchantB := &models.Merchant{ID: uuid.New().String(), TenantID: tenantB, OrgID: tenantB, AdminUID: uuid.New().String(), Name: "MB2386", Status: "active"}
+	require.NoError(t, f.db.Create(merchantB).Error)
+	require.NoError(t, f.db.Create(&models.MerchantMember{
+		ID: uuid.New().String(), TenantID: tenantB, MerchantID: merchantB.ID, UserID: u.ID, Role: "merchant_staff", Status: "active",
+	}).Error)
+
+	r := staffRouter2386(f.tenantID, f.tenantID, u.ID, "ADMIN")
+	code, resp := getStaffMembers2386(t, r, "/staff/members?scope=direct&page_size=50")
+	require.Equal(t, http.StatusOK, code)
+	list := resp["data"].(map[string]interface{})["list"].([]interface{})
+	for _, it := range list {
+		assert.NotEqual(t, u.ID, it.(map[string]interface{})["user_id"], "B-direct user must not appear in A direct")
+	}
+
+	code, resp = getStaffMembers2386(t, r, "/staff/members?scope=all&page_size=50")
+	require.Equal(t, http.StatusOK, code)
+	found := false
+	for _, it := range resp["data"].(map[string]interface{})["list"].([]interface{}) {
+		row := it.(map[string]interface{})
+		if row["user_id"] == u.ID {
+			found = true
+			assert.Equal(t, false, row["is_direct"])
+			assert.Equal(t, "", row["merchant_role"])
+		}
+	}
+	assert.True(t, found, "A site member must appear in all")
+}
