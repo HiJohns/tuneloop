@@ -1563,21 +1563,83 @@ func (h *UserRentalHandler) CalculateRental(c *gin.Context) {
 	if instrument.BaseDailyRate != nil {
 		baseRate = (*instrument.BaseDailyRate).ToYuan()
 	}
+	totalPrice := float64(0)
+	if instrument.TotalPrice != nil {
+		totalPrice = (*instrument.TotalPrice).ToYuan()
+	}
 
-	// Resolve tier config and calculate
-	tiers, _ := services.ResolvePricingConfig("")
-	pricingResult := services.CalculateTieredPricing(req.Days, baseRate, tiers)
+	// #2414：与 pricing-v2 / 下单同源——商户定价配置（缺省回退系统默认模板）。
+	var merchantConfigJSON string
+	var pricingConfig models.MerchantPricingConfig
+	if err := merchantConfigDB(ctx).Where("tenant_id = ?", instrument.TenantID).First(&pricingConfig).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query pricing config"})
+			return
+		}
+		var defaultTemplate models.PricingTemplate
+		if err := db.Where("is_system_default = ? AND is_active = ?", true, true).First(&defaultTemplate).Error; err != nil {
+			merchantConfigJSON = "{}"
+		} else {
+			merchantConfigJSON = defaultTemplate.ConfigSchema
+		}
+	} else {
+		merchantConfigJSON = pricingConfig.Config
+	}
 
-	// Deposit from instrument or pricing config
-	deposit := float64(0)
-	if instrument.Deposit != nil {
-		deposit = (*instrument.Deposit).ToYuan()
-	} else if instrument.BaseDailyRate != nil {
-		deposit = (*instrument.BaseDailyRate).ToYuan() * 2.0 // default fallback
+	pricingResult := services.CalculatePricing(baseRate, totalPrice, merchantConfigJSON, instrument.PricingOverrides, instrument.Pricing)
+
+	// #2414 D2：押金与 resolveDepositTier 同规则——instrument>0 覆盖，否则取定价押金。
+	depositYuan := pricingResult.Deposit
+	if instrument.Deposit != nil && (*instrument.Deposit) > 0 {
+		depositYuan = (*instrument.Deposit).ToYuan()
+	}
+	// 响应 deposit 与 pricing-v2 逐值相等（分，见 docs/spec/api/api.md §8.12）。
+	depositCents := int64(math.Round(depositYuan * 100))
+
+	// 租金分解复用同一份 InstrumentPricing.Tiers（不再走 CalculateTieredPricing 的全局档位）。
+	pricingTiers := make([]services.PricingTierConfig, 0, len(pricingResult.Tiers))
+	for _, t := range pricingResult.Tiers {
+		pricingTiers = append(pricingTiers, services.PricingTierConfig{
+			DaysMax:         t.DaysMax,
+			DailyRate:       t.DailyRate,
+			DiscountPercent: 0,
+		})
 	}
 
 	// Shipping fee
 	shippingFee := float64(50) // system default
+
+	breakdown, err := services.CalculatePricingBreakdown(services.RentCalcInput{
+		BaseDailyRate: pricingResult.BaseDailyRate,
+		LeaseTerm:     req.Days,
+		InstrumentID:  instrument.ID,
+		TenantID:      instrument.TenantID,
+		OrgID:         instrument.OrgID,
+		Deposit:       depositYuan,
+		DepositMethod: pricingResult.DepositMode,
+		TotalPrice:    totalPrice,
+		ShippingFee:   shippingFee,
+		PricingTiers:  pricingTiers,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to calculate pricing"})
+		return
+	}
+	totalRent := breakdown.TotalAmount
+	tierDetails := make([]services.TierDetail, 0, len(breakdown.TierSegments))
+	daysMin := 1
+	for _, seg := range breakdown.TierSegments {
+		daysMax := daysMin + seg.Days - 1
+		tierDetails = append(tierDetails, services.TierDetail{
+			DaysMin:         daysMin,
+			DaysMax:         daysMax,
+			DiscountPercent: int(math.Round((1 - seg.Discount) * 100)),
+			DaysInTier:      seg.Days,
+			EffectiveRate:   seg.Rate * seg.Discount,
+			Subtotal:        seg.Subtotal,
+		})
+		daysMin = daysMax + 1
+	}
 
 	// Membership discount
 	memberDiscountPercent := float64(0)
@@ -1589,7 +1651,7 @@ func (h *UserRentalHandler) CalculateRental(c *gin.Context) {
 			// RebateConfig.rent_ratio is a discount ratio (e.g., 0.95 = 5% off)
 			if rebate.RentRatio > 0 && rebate.RentRatio < 1 {
 				memberDiscountPercent = (1 - rebate.RentRatio) * 100
-				memberDiscountAmount = pricingResult.TotalRent * (1 - rebate.RentRatio)
+				memberDiscountAmount = totalRent * (1 - rebate.RentRatio)
 			}
 		}
 	}
@@ -1609,7 +1671,7 @@ func (h *UserRentalHandler) CalculateRental(c *gin.Context) {
 	// (#1757): balance is cents; total (yuan) × ratio converted to cents.
 	// #1900: ratio from gift_policies (per level, level-0 fallback).
 	giftPointsMax := float64(0)
-	totalPay := pricingResult.TotalRent + deposit + shippingFee
+	totalPay := totalRent + depositYuan + shippingFee
 	if policy := services.GetGiftPolicyByLevel(db, levelIDOrZero(localUser.MembershipLevelID)); policy != nil {
 		giftPointsMax = giftPointsBalance
 		if policy.PayRatio > 0 {
@@ -1623,11 +1685,11 @@ func (h *UserRentalHandler) CalculateRental(c *gin.Context) {
 	prepaidPointsMax := prepaidPointsBalance
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
-		"tiers":                   pricingResult.Tiers,
-		"total_rent":              pricingResult.TotalRent,
+		"tiers":                   tierDetails,
+		"total_rent":              totalRent,
 		"member_discount_percent": memberDiscountPercent,
 		"member_discount_amount":  memberDiscountAmount,
-		"deposit":                 deposit,
+		"deposit":                 depositCents,
 		"shipping_fee":            shippingFee,
 		"gift_points_max":         math.Floor(giftPointsMax / 100),
 		"prepaid_points_max":      prepaidPointsMax,
