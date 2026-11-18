@@ -1,0 +1,30 @@
+# R6-deposit-prefix — 修复前失败输出（押金期望 500 / 实际 0）
+
+- 修复前 commit：`b9ee1928f`（= `db76582f4^`，fix commit 的父提交）
+- 命令：`cd backend && go test ./handlers/ -run '^TestSettlementFlow$' -count=1 -v`
+- 环境：`POSTGRES_HOST=127.0.0.1 POSTGRES_PORT=15433`，`TUNELOOP_TEST_DB=tuneloop_test_2339prefix`（一次性）
+- 结论：`resolveDepositTier` 把 `instruments.deposit = 0` 当作显式零押金（`DepositTierZero`），
+  定价模板押金 ¥500 被丢弃；修复后（`>0` 才覆盖，0 = 未配置 → 取定价）同一测试 PASS。
+
+```text
+=== RUN   TestSettlementFlow
+    settlement_flow_test.go:156:
+        	Error Trace:	.../backend/handlers/settlement_flow_test.go:156
+        	Error:      	Not equal:
+        	            	expected: 50000
+        	            	actual  : 0
+        	Test:       	TestSettlementFlow
+        	Messages:   	deposit from instrument pricing
+    settlement_flow_test.go:158:
+        	Error Trace:	.../backend/handlers/settlement_flow_test.go:158
+        	Error:      	Not equal:
+        	            	expected: 350000
+        	            	actual  : 300000
+        	Test:       	TestSettlementFlow
+        	Messages:   	rent 3000 + deposit 500 (no points, no discount)
+--- FAIL: TestSettlementFlow (1.51s)
+FAIL
+FAIL	tuneloop-backend/handlers	3.215s
+```
+
+修复后（commit `db76582f4`，R6 证据）：`--- PASS: TestSettlementFlow`。

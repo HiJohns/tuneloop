@@ -1,0 +1,22 @@
+# R5-c4-prefix — 修复前失败输出（C4 期望 400 / 实际 200）
+
+- 修复前 commit：`b9ee1928f`（= `db76582f4^`，fix commit 的父提交）
+- 命令：`cd backend && go test ./handlers/ -run '^TestScenarioC_CancelBoundary$/^C4_CannotShipFromAvailable$' -count=1 -v`
+- 环境：`POSTGRES_HOST=127.0.0.1 POSTGRES_PORT=15433`，`TUNELOOP_TEST_DB=tuneloop_test_2339prefix`（一次性）
+- 结论：产品缺陷（`warehouse.UpdateShipping` 对 0 行更新仍返回 200），修复后同一测试 PASS。
+
+```text
+=== RUN   TestScenarioC_CancelBoundary/C4_CannotShipFromAvailable
+    state_machine_e2e_test.go:229:
+        	Error Trace:	.../backend/handlers/state_machine_e2e_test.go:229
+        	Error:      	Not equal:
+        	            	expected: 400
+        	            	actual  : 200
+        	Test:       	TestScenarioC_CancelBoundary/C4_CannotShipFromAvailable
+--- FAIL: TestScenarioC_CancelBoundary (0.46s)
+    --- FAIL: TestScenarioC_CancelBoundary/C4_CannotShipFromAvailable (0.03s)
+FAIL
+FAIL	tuneloop-backend/handlers	12.589s
+```
+
+修复后（commit `db76582f4`，R5 证据）：`--- PASS: TestScenarioC_CancelBoundary/C4_CannotShipFromAvailable`。

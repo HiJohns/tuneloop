@@ -60,8 +60,10 @@ func TestRefundDiff_PointsOverCap(t *testing.T) {
 	require.Equal(t, 2800.0, result.RentPayable, "R1 = 28×100")
 	// A1 = floor(2800 × 0.3) = 840; A0 = 1000 > A1 → refund 160 gift points
 	require.Equal(t, 160.0, result.GiftPointsRefunded, "A0−A1 = 1000−840")
-	// #2339 D5：段模型折后口径（computeSettlement segment_model）取代旧
-	// 「实付+押金−R1」公式；押金仍单列（RemainingDeposit=500）。
+	// #2339 审计 F3：以下期望值是当前实现（#1836 段级折后模型）的输出，
+	// 与 docs/cases/settlement-refund-spec-v2.md 的分账户公式不一致
+	// （推导见 docs/evidence/2339/R4-derivation.md），待 Architect 裁定，
+	// 不得视为已文档化的验收真值。
 	require.InDelta(t, 666.67, result.TotalRefund, 0.01, "total refund (segment model)")
 	// C1 = R1 − A1 = 2800−840 = 1960；段模型下现金部分 = 总退款 − 退点。
 	require.InDelta(t, 506.67, result.CashRefundable, 0.01, "cash refund after gift split (segment model)")
@@ -113,7 +115,8 @@ func TestRefundDiff_PointsWithinCap(t *testing.T) {
 	result := computeSettlement(order, db)
 
 	require.Equal(t, 0.0, result.GiftPointsRefunded, "gift stays at A0")
-	// #2339 D5：段模型折后口径取代旧「实付+押金−R1」公式。
+	// #2339 审计 F3：当前实现输出；与 spec v2 分账户公式的差异待 Architect 裁定
+	// （docs/evidence/2339/R4-derivation.md）。
 	require.InDelta(t, 666.67, result.CashRefundable, 0.01, "full cash refund (segment model)")
 	require.Equal(t, 2300.0, result.CashBasis, "C1 = 2800−500")
 }

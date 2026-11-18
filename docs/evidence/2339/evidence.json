@@ -53,7 +53,8 @@
       "command": "bash scripts/verify-2339.sh r4-refund-diff > docs/evidence/2339/R4-refund-diff.txt 2>&1",
       "exit": 0,
       "artifacts": [
-        "docs/evidence/2339/R4-refund-diff.txt"
+        "docs/evidence/2339/R4-refund-diff.txt",
+        "docs/evidence/2339/R4-derivation.md"
       ],
       "assert": "exit 0；--- PASS 计数 = 2",
       "actual": "PASS：段模型（#1743）口径更新 TotalRefund/CashRefundable；instrument 先于 order 创建修 FK；2 个用例 PASS",
@@ -67,7 +68,8 @@
       "command": "bash scripts/verify-2339.sh r5-scenarios > docs/evidence/2339/R5-scenarios.txt 2>&1",
       "exit": 0,
       "artifacts": [
-        "docs/evidence/2339/R5-scenarios.txt"
+        "docs/evidence/2339/R5-scenarios.txt",
+        "docs/evidence/2339/R5-c4-prefix.txt"
       ],
       "assert": "exit 0；--- PASS 计数 = 2",
       "actual": "PASS：C4 产品缺陷（发货状态 0 行更新仍 200 → 现 400）；A8 夹具补已付记录使 #1724 退款公式可进入 deposit_refunding",
@@ -81,7 +83,9 @@
       "command": "bash scripts/verify-2339.sh r6-settlement > docs/evidence/2339/R6-settlement.txt 2>&1",
       "exit": 0,
       "artifacts": [
-        "docs/evidence/2339/R6-settlement.txt"
+        "docs/evidence/2339/R6-settlement.txt",
+        "docs/evidence/2339/R6-deposit-prefix.txt",
+        "docs/evidence/2339/R6-impact.md"
       ],
       "assert": "exit 0；含 --- PASS",
       "actual": "PASS：产品缺陷——instruments.deposit default:0 恒非 nil 覆盖定价；仅 >0 视为显式覆盖，押金 500 恢复",

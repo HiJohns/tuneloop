@@ -1,11 +1,11 @@
 [DEBUG] Loaded .env from: ../.env
-2026/11/17 00:43:22 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
-2026/11/17 00:43:23 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2339
-2026/11/17 00:43:23 [DB] Connected to database 'tuneloop_test_verify2339'
+2026/11/18 16:17:17 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
+2026/11/18 16:17:18 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2339
+2026/11/18 16:17:18 [DB] Connected to database 'tuneloop_test_verify2339'
 === RUN   TestGetUserInstrumentDetail
-2026/11/17 00:43:23 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
-2026/11/17 00:43:23 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2339
-2026/11/17 00:43:23 [DB] Connected to database 'tuneloop_test_verify2339'
---- PASS: TestGetUserInstrumentDetail (0.67s)
+2026/11/18 16:17:18 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
+2026/11/18 16:17:18 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2339
+2026/11/18 16:17:18 [DB] Connected to database 'tuneloop_test_verify2339'
+--- PASS: TestGetUserInstrumentDetail (0.36s)
 PASS
-ok  	tuneloop-backend/handlers	2.498s
+ok  	tuneloop-backend/handlers	1.528s
