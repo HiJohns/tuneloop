@@ -1,0 +1,18 @@
+# PROVENANCE
+# build=1.0.6f834587d
+# commit=6f834587d2730bf6f2d5d4a80c3fe9650f26b0e4
+# dirty=false
+[DEBUG] Loaded .env from: ../.env
+2026/11/18 15:21:06 [DB] Configuration loaded: host=localhost port=5432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/18 15:21:07 [DB] Connecting: host=localhost port=5432 user=tuneloop_user dbname=tuneloop_test
+2026/11/18 15:21:07 [DB] Connected to database 'tuneloop_test'
+=== RUN   TestPricingResponseDeposit_InstrumentZeroFallsBackToPricing_2406
+--- PASS: TestPricingResponseDeposit_InstrumentZeroFallsBackToPricing_2406 (0.00s)
+=== RUN   TestPricingResponseDeposit_InstrumentOverride_2406
+--- PASS: TestPricingResponseDeposit_InstrumentOverride_2406 (0.00s)
+=== RUN   TestPricingResponseDeposit_TrueZero_2406
+--- PASS: TestPricingResponseDeposit_TrueZero_2406 (0.00s)
+=== RUN   TestPricingResponseDeposit_ReducedZeroIsNull_2406
+--- PASS: TestPricingResponseDeposit_ReducedZeroIsNull_2406 (0.00s)
+PASS
+ok  	tuneloop-backend/handlers	1.456s

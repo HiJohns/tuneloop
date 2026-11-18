@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "issue": 2406,
+  "build": "1.0.6f834587d",
+  "commit": "",
+  "dirty": false,
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2406.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2406/R1-deposit-readpath.txt"
+      ],
+      "assert": "exit 0；Tests 4 passed",
+      "actual": "4 用例 PASS：0 → 回落 1 分；显式 500 元 → 50000 分；双 0 → 0；reduced 0 → null、200 元 → 20000",
+      "expected": "PASS",
+      "negative": "0 被当权威 → FAIL",
+      "negative_result": "缺陷版把 0 当权威 → 页面零押金 → 下单 400",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2406.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2406/R2-zh-copy.txt"
+      ],
+      "assert": "exit 0；英文用户面文案 0 处",
+      "actual": "无英文用户面 4xx 文案；中文零押金文案存在",
+      "expected": "PASS",
+      "negative": "残留英文 → FAIL",
+      "negative_result": "出现英文 4xx 文案 → exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2406.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2406/R3-manual.md"
+      ],
+      "assert": "含 executor: user 与 RESULT: PASS",
+      "actual": "真机：押金 ¥0.01、提交成功、CTA 48、差额需 2 担保人中文提示",
+      "expected": "PASS",
+      "negative": "回执缺失 → FAIL",
+      "negative_result": "显示零押金或被 400 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2406.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2406/R4-eslint.txt"
+      ],
+      "assert": "exit 0；0 errors",
+      "actual": "0 errors",
+      "expected": "PASS",
+      "negative": "error → FAIL",
+      "negative_result": "eslint 非 0 → FAIL",
+      "pass": true
+    }
+  ]
+}
