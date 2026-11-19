@@ -1,4 +1,4 @@
-# build=1.0.49f71a254 commit=49f71a25497b7eb13e5d7e3f0191309babe784a1 dirty=true
+# build=1.0.29da094d4 commit=29da094d489aebfba2c860f061d1dc693b57785d dirty=false
 # github.com/mattn/go-sqlite3
 sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
 sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
@@ -7,14 +7,11 @@ sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier f
 [DEBUG] Loaded .env from: ../.env
 === RUN   TestSettlementExecutorConcurrency_2361
 
-2026/11/19 16:29:42 [32m/home/coder/tuneloop/backend/services/settlement_executor_2361_test.go:99 [33mSLOW SQL >= 200ms
-[0m[31;1m[857.021ms] [33m[rows:0][35m CREATE DATABASE "tuneloop_test_verify2361"[0m
+2026/11/19 16:30:16 [31;1m/home/coder/tuneloop/backend/services/settlement_executor_2361.go:307 [35;1mrecord not found
+[0m[33m[9.704ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = '3c13e08f-b86f-47d0-ae54-68c6aea1e268' AND settlement_version = 1 ORDER BY "settlement_calculations"."id" LIMIT 1
 
-2026/11/19 16:29:42 [31;1m/home/coder/tuneloop/backend/services/settlement_executor_2361.go:307 [35;1mrecord not found
-[0m[33m[7.913ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = 'bdb7d9f9-9e35-44c0-8519-9de5a0cf67a5' AND settlement_version = 1 ORDER BY "settlement_calculations"."id" LIMIT 1
-
-2026/11/19 16:29:42 [31;1m/home/coder/tuneloop/backend/services/settlement_executor_2361.go:323 [35;1mrecord not found
-[0m[33m[8.588ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = 'bdb7d9f9-9e35-44c0-8519-9de5a0cf67a5' AND status IN ('confirmed','processing','succeeded','partially_succeeded','failed_retryable') ORDER BY "settlement_calculations"."id" LIMIT 1
---- PASS: TestSettlementExecutorConcurrency_2361 (1.49s)
+2026/11/19 16:30:16 [31;1m/home/coder/tuneloop/backend/services/settlement_executor_2361.go:323 [35;1mrecord not found
+[0m[33m[3.388ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = '3c13e08f-b86f-47d0-ae54-68c6aea1e268' AND status IN ('confirmed','processing','succeeded','partially_succeeded','failed_retryable') ORDER BY "settlement_calculations"."id" LIMIT 1
+--- PASS: TestSettlementExecutorConcurrency_2361 (0.49s)
 PASS
-ok  	tuneloop-backend/services	1.505s
+ok  	tuneloop-backend/services	0.509s

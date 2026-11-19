@@ -1,4 +1,4 @@
-# build=1.0.49f71a254 commit=49f71a25497b7eb13e5d7e3f0191309babe784a1 dirty=true
+# build=1.0.29da094d4 commit=29da094d489aebfba2c860f061d1dc693b57785d dirty=false
 # github.com/mattn/go-sqlite3
 sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
 sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
@@ -7,11 +7,11 @@ sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier f
 [DEBUG] Loaded .env from: ../.env
 === RUN   TestSettlementExecutorReversal_2361
 
-2026/11/19 16:29:51 [31;1m/home/coder/tuneloop/backend/services/settlement_executor_2361.go:307 [35;1mrecord not found
-[0m[33m[3.241ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = 'eac9e517-814e-4737-bb14-5c166a86234b' AND settlement_version = 1 ORDER BY "settlement_calculations"."id" LIMIT 1
+2026/11/19 16:30:24 [31;1m/home/coder/tuneloop/backend/services/settlement_executor_2361.go:307 [35;1mrecord not found
+[0m[33m[2.409ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = 'a92c83ff-5a07-4a92-89ac-2b90303ec258' AND settlement_version = 1 ORDER BY "settlement_calculations"."id" LIMIT 1
 
-2026/11/19 16:29:51 [31;1m/home/coder/tuneloop/backend/services/settlement_executor_2361.go:323 [35;1mrecord not found
-[0m[33m[3.374ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = 'eac9e517-814e-4737-bb14-5c166a86234b' AND status IN ('confirmed','processing','succeeded','partially_succeeded','failed_retryable') ORDER BY "settlement_calculations"."id" LIMIT 1
+2026/11/19 16:30:24 [31;1m/home/coder/tuneloop/backend/services/settlement_executor_2361.go:323 [35;1mrecord not found
+[0m[33m[1.530ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = 'a92c83ff-5a07-4a92-89ac-2b90303ec258' AND status IN ('confirmed','processing','succeeded','partially_succeeded','failed_retryable') ORDER BY "settlement_calculations"."id" LIMIT 1
 --- PASS: TestSettlementExecutorReversal_2361 (0.41s)
 PASS
-ok  	tuneloop-backend/services	0.431s
+ok  	tuneloop-backend/services	0.426s

@@ -1,4 +1,4 @@
-# build=1.0.49f71a254 commit=49f71a25497b7eb13e5d7e3f0191309babe784a1 dirty=true
+# build=1.0.29da094d4 commit=29da094d489aebfba2c860f061d1dc693b57785d dirty=false
 # github.com/mattn/go-sqlite3
 sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
 sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
@@ -7,11 +7,11 @@ sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier f
 [DEBUG] Loaded .env from: ../.env
 === RUN   TestSettlementExecutorNetting_2361
 
-2026/11/19 16:29:53 [31;1m/home/coder/tuneloop/backend/services/settlement_executor_2361.go:307 [35;1mrecord not found
-[0m[33m[2.449ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = 'e72157ea-ec92-4ae3-a3c1-b5723b7f2b67' AND settlement_version = 1 ORDER BY "settlement_calculations"."id" LIMIT 1
+2026/11/19 16:30:26 [31;1m/home/coder/tuneloop/backend/services/settlement_executor_2361.go:307 [35;1mrecord not found
+[0m[33m[2.632ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = '706004a2-55b0-4a2c-ada2-168f03199492' AND settlement_version = 1 ORDER BY "settlement_calculations"."id" LIMIT 1
 
-2026/11/19 16:29:53 [31;1m/home/coder/tuneloop/backend/services/settlement_executor_2361.go:323 [35;1mrecord not found
-[0m[33m[1.793ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = 'e72157ea-ec92-4ae3-a3c1-b5723b7f2b67' AND status IN ('confirmed','processing','succeeded','partially_succeeded','failed_retryable') ORDER BY "settlement_calculations"."id" LIMIT 1
---- PASS: TestSettlementExecutorNetting_2361 (0.39s)
+2026/11/19 16:30:26 [31;1m/home/coder/tuneloop/backend/services/settlement_executor_2361.go:323 [35;1mrecord not found
+[0m[33m[1.651ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = '706004a2-55b0-4a2c-ada2-168f03199492' AND status IN ('confirmed','processing','succeeded','partially_succeeded','failed_retryable') ORDER BY "settlement_calculations"."id" LIMIT 1
+--- PASS: TestSettlementExecutorNetting_2361 (0.41s)
 PASS
-ok  	tuneloop-backend/services	0.413s
+ok  	tuneloop-backend/services	0.462s
