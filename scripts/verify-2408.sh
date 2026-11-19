@@ -39,6 +39,12 @@ fi
     r5-isolation)
       cd "$REPO_ROOT"
       f="backend/services/wechatpay/payscore_provider.go"
+      echo "--- grep -n PAYSCORE_MOCK_RESULT ---"
+      grep -n 'PAYSCORE_MOCK_RESULT' "$f" || true
+      echo "--- grep -n mockResultFromEnv ---"
+      grep -n 'mockResultFromEnv' "$f" || true
+      echo "--- grep -n real provider return ---"
+      grep -n 'return client, nil' "$f" || true
       env_reads=$(grep -c 'os.Getenv("PAYSCORE_MOCK_RESULT")' "$f" | tr -d ' ')
       call_sites=$(grep -c ':= mockResultFromEnv()' "$f" | tr -d ' ')
       echo "env_reads=$env_reads mockResultFromEnv_call_sites=$call_sites"
