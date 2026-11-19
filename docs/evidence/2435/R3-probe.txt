@@ -1,0 +1,2 @@
+# build=1.0.2eed6f8a9 commit=2eed6f8a94fe40960376de94d63da9e35db3c015 dirty=true
+PROBE-OK: backend auto-enqueue + UI fallback text present

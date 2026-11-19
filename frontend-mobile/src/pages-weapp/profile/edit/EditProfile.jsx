@@ -261,6 +261,7 @@ export default function EditProfile() {
           <Text style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>第二证件照（可选，请选择证件类型）</Text>
           <View style={{ marginBottom: 10 }}>
             <Picker mode="selector" range={SECOND_DOC_OPTIONS.map(o => o.label)}
+              disabled={idPhotoOtherVerified}
               value={Math.max(0, SECOND_DOC_OPTIONS.findIndex(o => o.code === secondDocType))}
               onChange={e => setSecondDocType(SECOND_DOC_OPTIONS[e.detail.value]?.code || '')}>
               <View style={{ border: '1px solid #d4d4d8', borderRadius: 8, height: 40, display: 'flex', alignItems: 'center', paddingLeft: 12, paddingRight: 12, boxSizing: 'border-box', fontSize: 14, color: secondDocType ? '#000' : '#9ca3af' }}>
@@ -278,9 +279,17 @@ export default function EditProfile() {
             </View>
           )}
           {idPhotoOther ? (
-            <Text style={{ fontSize: 12, marginBottom: 8, color: idPhotoOtherVerified ? '#16a34a' : '#a16207' }}>
-              {idPhotoOtherVerified ? `✅ 已认证（${SECOND_DOC_LABELS[idPhotoOtherType] || idPhotoOtherType || '已指定类型'}）` : '⏳ 已提交，待平台审核（审核后指定类型）'}
-            </Text>
+            <View style={{ marginBottom: 8 }}>
+              {/* #2435：类型未定时必须显式说明「未定（待平台核定）」，不出现无解释空白 */}
+              <Text style={{ fontSize: 12, display: 'block', color: idPhotoOtherVerified ? '#16a34a' : '#a16207' }}>
+                第二证件类型：{idPhotoOtherVerified
+                  ? (SECOND_DOC_LABELS[idPhotoOtherType] || idPhotoOtherType || '已指定类型')
+                  : '未定（待平台核定）'}
+              </Text>
+              <Text style={{ fontSize: 12, display: 'block', color: '#a1a1aa', marginTop: 2 }}>
+                {idPhotoOtherVerified ? '✅ 已认证（类型由平台核定，不可自行修改）' : '⏳ 已提交，平台审核后指定类型'}
+              </Text>
+            </View>
           ) : null}
           <View>
             <IdPhotoUploader side="other" initialUrl={idPhotoOther}

@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "issue": 2435,
+  "build": "1.0.2eed6f8a9",
+  "commit": "2eed6f8a94fe40960376de94d63da9e35db3c015",
+  "dirty": true,
+  "environment": "local: Go handler tests (PG 127.0.0.1:5432) + page-smoke; device/UI re-verification pending next prerelease",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2435.sh r1-go",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2435/R1-go.txt"
+      ],
+      "assert": "exit 0；AutoEnqueuesSecondDoc + NoRequeueWhenSecondDocVerified 均 PASS",
+      "actual": "PASS：实名审核通过且第二证件未核定时补建 1 个 pending second_doc 批次（幂等）；已核定时不补建；#1924/#2311 既有 4 条断言全部仍通过",
+      "expected": "PASS",
+      "negative": "未补建 / 重复补建 / 已核定仍补建 → FAIL",
+      "negative_result": "单测断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2435.sh r2-smoke",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2435/R2-smoke.txt"
+      ],
+      "assert": "exit 0；84 tests",
+      "actual": "PASS：page-smoke 84 tests 全绿",
+      "expected": "PASS",
+      "negative": "任一失败 → FAIL",
+      "negative_result": "有 failed 即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2435.sh r3-probe",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2435/R3-probe.txt"
+      ],
+      "assert": "exit 0；PROBE-OK",
+      "actual": "PASS：后端 auto-enqueue 调用点 + `id_photo_other_verified` 入 select + UI「未定（待平台核定）」文案均存在",
+      "expected": "PASS",
+      "negative": "任一缺失 → FAIL",
+      "negative_result": "grep 未命中即 exit 1",
+      "pass": true
+    }
+  ]
+}

@@ -286,7 +286,7 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 	// - 未采录：员工必须填写 5 项实名信息（按证件照抄录，防顾客手输伪造）
 	// 目标用户（#1924：审核涉及第二证件状态）。
 	var targetUser models.User
-	targetUserFound := db.Select("id, tenant_id, real_name, id_card_no, id_card_expire, id_card_authority, id_card_address, id_photo_other, id_photo_other_type, intro_letter_url, face_verified").
+	targetUserFound := db.Select("id, tenant_id, real_name, id_card_no, id_card_expire, id_card_authority, id_card_address, id_photo_other, id_photo_other_type, id_photo_other_verified, intro_letter_url, face_verified").
 		Where("id = ?", batch.UserID).First(&targetUser).Error == nil
 	secondDocPresent := targetUserFound && targetUser.IdPhotoOther != nil && *targetUser.IdPhotoOther != ""
 
@@ -375,6 +375,12 @@ func (h *FaceReviewHandler) Review(c *gin.Context) {
 			tx.Rollback()
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update batch"})
 			return
+		}
+		// #2435：实名通过时若用户已上传第二证件但尚未核定类型，补建独立的
+		// second_doc 复审批次（幂等）——否则类型会永久停留在「未定」
+		// （#1924/#2311 裁定：类型只能由 second_doc 批次指定）。
+		if batch.Kind != "second_doc" && secondDocPresent && !targetUser.IdPhotoOtherVerified {
+			ensureSecondDocBatch(tx, batch.UserID)
 		}
 	} else {
 		// 驳回：批次 rejected + reason。
