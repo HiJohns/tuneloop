@@ -68,10 +68,12 @@ func settlePayscoreGuarantee(ctx context.Context, order models.Order, action str
 // payscoreActionForOrder 根据订单终态推导收口动作（重试路径用）。
 // 已取消 → cancel；其余结算场景（归还/完成/定损）→ complete。
 func payscoreActionForOrder(order models.Order) string {
-	if !services.RequiresCreditApprovalForOrder(order.DepositTier, order.DepositCreditPath) {
+	// #2418 F2：收口只看「确实走过支付分」，不复用支付闸门的评测必要性判据
+	// （零押金乐器免评测，但已产生服务单时仍需 complete/cancel）。
+	if order.CreditState == "" || order.CreditServiceOrderNo == "" {
 		return services.PayscoreActionNone
 	}
-	if order.CreditState == "" || order.CreditServiceOrderNo == "" {
+	if order.DepositCreditPath == models.DepositCreditPathInternal {
 		return services.PayscoreActionNone
 	}
 	if order.Status == models.OrderStatusCancelled {

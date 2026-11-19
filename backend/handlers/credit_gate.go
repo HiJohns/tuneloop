@@ -23,13 +23,21 @@ func creditGateError(db *gorm.DB, orderID string) error {
 		return nil
 	}
 	var order models.Order
-	if err := db.Select("deposit_tier", "deposit_credit_path", "credit_state").
+	if err := db.Select("deposit_tier", "deposit_credit_path", "credit_state", "deposit").
 		Where("id = ?", orderID).First(&order).Error; err != nil {
 		// 订单不存在由调用方自己的校验负责（此处不越权改变 404 语义）。
 		return nil
 	}
 	return services.AssertOrderPayableIfEnforced(
-		order.DepositTier, order.DepositCreditPath, order.CreditState, true)
+		order.DepositTier, order.DepositCreditPath, order.CreditState, orderDepositCents(&order), true)
+}
+
+// orderDepositCents 取订单实付押金（分）；nil 视为 0（#2418 F2 判据）。
+func orderDepositCents(order *models.Order) int64 {
+	if order == nil {
+		return 0
+	}
+	return int64(order.Deposit)
 }
 
 // failCreditGate 是支付入口共用的错误响应（403 / 40320）。

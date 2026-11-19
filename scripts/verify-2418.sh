@@ -10,7 +10,9 @@ case "$MODE" in
   r3) ART="docs/evidence/2418/R3-zero-deposit.txt"; TEST='^TestAssertOrderPayableZeroDeposit_2418$' ;;
   r4) ART="docs/evidence/2418/R4-doc.txt"; TEST="" ;;
   r5) ART="docs/evidence/2418/R5-build.txt"; TEST="" ;;
-  *) echo "usage: $0 <r1|r2|r3|r4|r5>" >&2; exit 2 ;;
+  r6) ART="docs/evidence/2418/R6-full-payscore.txt"; TEST='^TestAssertOrderPayableFullPayscore_2418$' ;;
+  r7) ART="docs/evidence/2418/R7-zero-deposit-payscore.txt"; TEST='^TestAssertOrderPayableZeroDepositPayscore_2418$' ;;
+  *) echo "usage: $0 <r1|r2|r3|r4|r5|r6|r7>" >&2; exit 2 ;;
 esac
 REPO_ROOT="$(git rev-parse --show-toplevel)"; cd "$REPO_ROOT"
 export PATH="/usr/local/go/bin:${PATH}"
@@ -22,11 +24,11 @@ if [ -n "$(git status --porcelain --untracked-files=no | grep -v 'docs/evidence/
 {
   echo "# build=$BUILD commit=$COMMIT dirty=$DIRTY"
   case "$MODE" in
-    r1|r2|r3) cd "$REPO_ROOT/backend"; go test ./services/ -run "$TEST" -count=1 -v ;;
+    r1|r2|r3|r6|r7) cd "$REPO_ROOT/backend"; go test ./services/ -run "$TEST" -count=1 -v ;;
     r4)
       cd "$REPO_ROOT"
-      if grep -q "internal 路径" docs/cases/lease.md && grep -q "approved" docs/cases/lease.md; then
-        echo "DOC_OK: docs/cases/lease.md internal path requires approved"
+      if grep -q "三档一致" docs/cases/lease.md && grep -q "订单押金为 0" docs/cases/lease.md && grep -q "approved" docs/cases/lease.md; then
+        echo "DOC_OK: docs/cases/lease.md 三档一致 + 零押金判据=订单押金为 0"
       else
         echo "DOC_MISSING: docs/cases/lease.md"; exit 1
       fi

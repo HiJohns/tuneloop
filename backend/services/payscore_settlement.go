@@ -42,8 +42,11 @@ func ResolveSettlementAction(tier, creditPath, creditState string, cashDepositCe
 
 	// 支付分通道：仅「确实走支付分」的订单（路径 payscore / 历史订单已有信用状态）才有动作。
 	// internal 路径即使残留 approved 快照也不得走支付分收口。
+	// #2418 F2：结算收口只看「该单是否确实走过支付分通道」（有信用状态且非 internal），
+	// 不再复用支付闸门的「是否需要评测」判据——零押金乐器（押金=0）虽免评测，
+	// 但若用户已完成评测并产生服务单，结算仍需 complete/cancel 收口。
 	usesPayscore := creditState != "" && creditPath != models.DepositCreditPathInternal
-	if RequiresCreditApprovalForOrder(tier, creditPath) && usesPayscore {
+	if usesPayscore {
 		if serviceCompleted {
 			action.PayscoreAction = PayscoreActionComplete
 		} else {

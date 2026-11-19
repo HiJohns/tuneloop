@@ -62,11 +62,12 @@ func TestPaymentTierChoice_2352(t *testing.T) {
 
 func TestAllPayscoreOrdersRequireAssessment_2352(t *testing.T) {
 	// R4：所有 payscore 新单（含全额档）在 enforce=true 且 pending 时支付被拦；
-	// 历史 internal 单保持旧行为（不拦截）。
-	require.Error(t, services.AssertOrderPayableIfEnforced(models.DepositTierFull, models.DepositCreditPathPayscore, services.CreditStatePending, true))
-	require.NoError(t, services.AssertOrderPayableIfEnforced(models.DepositTierFull, models.DepositCreditPathPayscore, services.CreditStateApproved, true))
-	require.NoError(t, services.AssertOrderPayableIfEnforced(models.DepositTierFull, models.DepositCreditPathInternal, "", true))
-	require.NoError(t, services.AssertOrderPayableIfEnforced(models.DepositTierFull, models.DepositCreditPathPayscore, services.CreditStatePending, false))
+	// #2418 F1：internal 单同样要求 approved（Owner 三档一致）。
+	require.Error(t, services.AssertOrderPayableIfEnforced(models.DepositTierFull, models.DepositCreditPathPayscore, services.CreditStatePending, 50000, true))
+	require.NoError(t, services.AssertOrderPayableIfEnforced(models.DepositTierFull, models.DepositCreditPathPayscore, services.CreditStateApproved, 50000, true))
+	// #2418 F1：internal 路径同样要求 approved（不再豁免）。
+	require.Error(t, services.AssertOrderPayableIfEnforced(models.DepositTierFull, models.DepositCreditPathInternal, "", 50000, true))
+	require.NoError(t, services.AssertOrderPayableIfEnforced(models.DepositTierFull, models.DepositCreditPathPayscore, services.CreditStatePending, 50000, false))
 }
 
 func TestZeroReceiptDepositIsZero_2352(t *testing.T) {

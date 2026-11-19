@@ -41,7 +41,7 @@ func TestCreditPayloadExposesPaymentDeadline_2352(t *testing.T) {
 
 func TestRejectedMessageDoesNotSuggestFullTier_2352(t *testing.T) {
 	err := services.AssertOrderPayableIfEnforced(
-		models.DepositTierFull, models.DepositCreditPathPayscore, services.CreditStateRejected, true)
+		models.DepositTierFull, models.DepositCreditPathPayscore, services.CreditStateRejected, 50000, true)
 	require.Error(t, err)
 	msg := err.Error()
 	assert.NotContains(t, msg, "全押金")
@@ -50,10 +50,10 @@ func TestRejectedMessageDoesNotSuggestFullTier_2352(t *testing.T) {
 
 	// 全额 + pending：同样被拦（Owner 裁定：所有 payscore 单需 approved）
 	require.Error(t, services.AssertOrderPayableIfEnforced(
-		models.DepositTierFull, models.DepositCreditPathPayscore, services.CreditStatePending, true))
+		models.DepositTierFull, models.DepositCreditPathPayscore, services.CreditStatePending, 50000, true))
 	// approved 放行；enforce=false 放行
 	require.NoError(t, services.AssertOrderPayableIfEnforced(
-		models.DepositTierFull, models.DepositCreditPathPayscore, services.CreditStateApproved, true))
+		models.DepositTierFull, models.DepositCreditPathPayscore, services.CreditStateApproved, 50000, true))
 	require.NoError(t, services.AssertOrderPayableIfEnforced(
-		models.DepositTierFull, models.DepositCreditPathPayscore, services.CreditStateRejected, false))
+		models.DepositTierFull, models.DepositCreditPathPayscore, services.CreditStateRejected, 50000, false))
 }

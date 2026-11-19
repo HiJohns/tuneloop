@@ -39,22 +39,27 @@ func TestAssertOrderPayableIfEnforced(t *testing.T) {
 		tier    string
 		path    string
 		state   string
+		deposit int64
 		enforce bool
 		ok      bool
 	}{
-		{"enforce 关闭时 reduced 未评估也放行", "reduced", "payscore", "", false, true},
-		{"enforce 关闭时 zero 未评估也放行", "zero", "payscore", "", false, true},
-		{"enforce 开启 reduced 已通过", "reduced", "payscore", "approved", true, true},
-		{"enforce 开启 reduced 未评估拒绝", "reduced", "payscore", "", true, false},
-		{"enforce 开启 zero(payscore) 未评估拒绝", "zero", "payscore", "", true, false},
-		{"enforce 开启 zero(payscore) 已通过", "zero", "payscore", "approved", true, true},
-		// 乐器本身零押金（full<=0）与信用无关，不得被 enforce 误伤。
-		{"enforce 开启 free 零押金放行", "zero", "", "", true, true},
-		{"enforce 开启 internal reduced 未评估拒绝", "reduced", "internal", "", true, false},
-		{"full 档始终放行", "full", "payscore", "", true, true},
+		{"enforce 关闭时 reduced 未评估也放行", "reduced", "payscore", "", 50000, false, true},
+		{"enforce 关闭时 zero 未评估也放行", "zero", "payscore", "", 50000, false, true},
+		{"enforce 开启 reduced 已通过", "reduced", "payscore", "approved", 50000, true, true},
+		{"enforce 开启 reduced 未评估拒绝", "reduced", "payscore", "", 50000, true, false},
+		{"enforce 开启 zero(payscore,押金>0) 未评估拒绝", "zero", "payscore", "", 50000, true, false},
+		{"enforce 开启 zero(payscore,押金>0) 已通过", "zero", "payscore", "approved", 50000, true, true},
+		// #2418 F2：乐器本身零押金（订单押金=0）与信用无关，不得被 enforce 误伤；判据不依赖路径。
+		{"enforce 开启 乐器零押金(payscore) 放行", "zero", "payscore", "", 0, true, true},
+		{"enforce 开启 乐器零押金(历史空路径) 放行", "zero", "", "", 0, true, true},
+		{"enforce 开启 internal reduced 未评估拒绝", "reduced", "internal", "", 50000, true, false},
+		// #2418 F1：full 档同样要求 approved（不再按路径豁免）。
+		{"enforce 开启 full(payscore) 未评估拒绝", "full", "payscore", "", 50000, true, false},
+		{"enforce 开启 full(internal) 未评估拒绝", "full", "internal", "", 50000, true, false},
+		{"enforce 开启 full(payscore) 已通过", "full", "payscore", "approved", 50000, true, true},
 	}
 	for _, tc := range cases {
-		err := AssertOrderPayableIfEnforced(tc.tier, tc.path, tc.state, tc.enforce)
+		err := AssertOrderPayableIfEnforced(tc.tier, tc.path, tc.state, tc.deposit, tc.enforce)
 		if tc.ok && err != nil {
 			t.Fatalf("%s: unexpected error %v", tc.name, err)
 		}
@@ -91,14 +96,35 @@ func TestResolveCreditRiskAmount(t *testing.T) {
 
 // #2418 R2：internal 全额档同样要求信用评测（Owner 三档一致口径）。
 func TestAssertOrderPayableInternalFull_2418(t *testing.T) {
-	if err := AssertOrderPayableIfEnforced("full", "internal", "", true); err == nil {
+	if err := AssertOrderPayableIfEnforced("full", "internal", "", 50000, true); err == nil {
 		t.Fatal("full + internal + 未评测 must be rejected")
 	}
 }
 
-// #2418 R3：乐器本身零押金（zero + 空路径）与信用无关，必须放行。
+// #2418 R3：历史空路径形态（zero + path="" + 押金 0）与信用无关，必须放行（兼容历史订单）。
 func TestAssertOrderPayableZeroDeposit_2418(t *testing.T) {
-	if err := AssertOrderPayableIfEnforced("zero", "", "", true); err != nil {
-		t.Fatalf("free zero-deposit instrument must be payable: %v", err)
+	if err := AssertOrderPayableIfEnforced("zero", "", "", 0, true); err != nil {
+		t.Fatalf("legacy free zero-deposit instrument must be payable: %v", err)
+	}
+}
+
+// #2418 R6（复审 F1）：full + payscore 未评测必须拒绝（Owner 三档一致）；已通过放行。
+func TestAssertOrderPayableFullPayscore_2418(t *testing.T) {
+	if err := AssertOrderPayableIfEnforced("full", "payscore", "", 50000, true); err == nil {
+		t.Fatal("full + payscore + 未评测 must be rejected")
+	}
+	if err := AssertOrderPayableIfEnforced("full", "payscore", "approved", 50000, true); err != nil {
+		t.Fatalf("full + payscore + approved must be payable: %v", err)
+	}
+}
+
+// #2418 R7（复审 F2）：zero + payscore + 订单押金=0（乐器本身零押金）必须放行。
+func TestAssertOrderPayableZeroDepositPayscore_2418(t *testing.T) {
+	if err := AssertOrderPayableIfEnforced("zero", "payscore", "", 0, true); err != nil {
+		t.Fatalf("production zero-deposit instrument (payscore path) must be payable: %v", err)
+	}
+	// 对照：信用免押（押金>0）仍必须评测。
+	if err := AssertOrderPayableIfEnforced("zero", "payscore", "", 50000, true); err == nil {
+		t.Fatal("zero + payscore + 押金>0 + 未评测 must be rejected")
 	}
 }
