@@ -56,10 +56,10 @@
         "docs/evidence/2416/R4-manual.md"
       ],
       "assert": "exit 0；含 executor: user 与 RESULT: PASS",
-      "actual": "PENDING：Owner 体验版真机回执未签（≥5 页面；Developer 不代签）",
+      "actual": "FAIL：Owner 2026-11-19 真机（体验版 v1.0.935f980ae）购物车删除/地址删除/取消订单三处弹窗均不出现、无后续请求；根因见 #2431（DialogHost 挂在 App 层不可见，showDialog Promise 永不 resolve）",
       "expected": "PASS",
       "negative": "PENDING → FAIL",
-      "negative_result": "RESULT: PENDING → exit 1",
+      "negative_result": "弹窗不可见 → exit 1（当前即此状态）",
       "pass": false
     }
   ]
