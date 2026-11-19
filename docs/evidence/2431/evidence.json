@@ -65,16 +65,16 @@
     {
       "id": "R5",
       "command": "manual device re-verification (Owner)",
-      "exit": 1,
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2431/R5-manual.md"
       ],
       "assert": "RESULT: PASS",
-      "actual": "PENDING：等待发布预生产 + 重传体验版后 Owner 真机回验（购物车删除/地址删除/取消订单）",
+      "actual": "PASS：Owner 2026-11-19 真机（体验版 v1.0.5aa9737a3）：购物车删除 / 地址删除 / 顾客取消订单 / 绑定合并确认 均出现**系统原生弹窗**并可执行；第 4 项（发货页取消订单按钮）因按钮仅免押金订单渲染而 N/A",
       "expected": "PASS",
       "negative": "仍无弹窗 → FAIL",
-      "negative_result": "回执未签即 exit 1",
-      "pass": false
+      "negative_result": "仍无弹窗 → FAIL",
+      "pass": true
     }
   ]
 }

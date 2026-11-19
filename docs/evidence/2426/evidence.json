@@ -37,16 +37,16 @@
     {
       "id": "R3",
       "command": "bash scripts/verify-2426.sh r3",
-      "exit": 1,
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2426/R3-manual.md"
       ],
       "assert": "exit 0；含 executor: user 与 RESULT: PASS",
-      "actual": "PENDING：Owner 真机回执未签（三行分离 + 脱敏 + PC 提示）",
+      "actual": "PASS：Owner 2026-11-19 真机（体验版 v1.0.5aa9737a3）：标题/正文/绑定编号三行分离，openid 已脱敏；PC 提示本轮未复测（R2 单测覆盖 needs_merge → 停止轮询 + warning）",
       "expected": "PASS",
       "negative": "PENDING → FAIL",
-      "negative_result": "RESULT: PENDING → exit 1",
-      "pass": false
+      "negative_result": "挤在一行或明文 openid → FAIL",
+      "pass": true
     },
     {
       "id": "R4",
