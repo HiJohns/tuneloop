@@ -1,0 +1,199 @@
+# build=1.0.7c596c40c commit=7c596c40c9f4db3b6d627a6a6f289a94729e7edf dirty=false
+
+> frontend-mobile@1.0.0 smoke
+> vitest run --config vitest.config.js
+
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /home/coder/tuneloop/frontend-mobile
+
+stdout | scripts/page-smoke/home-sort.test.jsx
+[Dev Mode] Injecting mock wx object for browser debugging
+
+stderr | scripts/page-smoke/home-sort.test.jsx > H5 home price sort > toggles all three states, preserves mode across categories, and resets on remount
+Warning: React does not recognize the `scrollY` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `scrolly` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at div
+    at div
+    at div
+    at Home (/home/coder/tuneloop/frontend-mobile/src/pages/Home.jsx:110:42)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+Warning: React does not recognize the `scrollWithAnimation` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `scrollwithanimation` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at div
+    at div
+    at div
+    at Home (/home/coder/tuneloop/frontend-mobile/src/pages/Home.jsx:110:42)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+Warning: Received `true` for a non-boolean attribute `enhanced`.
+
+If you want to write it to the DOM, pass a string instead: enhanced="true" or enhanced={value.toString()}.
+    at div
+    at div
+    at div
+    at Home (/home/coder/tuneloop/frontend-mobile/src/pages/Home.jsx:110:42)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+Warning: React does not recognize the `showScrollbar` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `showscrollbar` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at div
+    at div
+    at div
+    at Home (/home/coder/tuneloop/frontend-mobile/src/pages/Home.jsx:110:42)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+stderr | scripts/page-smoke/home-sort.test.jsx > weapp home price sort > toggles all three states and keeps mode across categories
+Warning: React does not recognize the `scrollIntoView` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `scrollintoview` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at div
+    at div
+    at div
+    at Home (/home/coder/tuneloop/frontend-mobile/src/pages-weapp/Home.jsx:169:37)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+
+ ✓ scripts/page-smoke/home-sort.test.jsx (11 tests) 6064ms
+   ✓ H5 home price sort > toggles all three states, preserves mode across categories, and resets on remount 2988ms
+   ✓ H5 home price sort > rolls back the label and list when the full price load fails 541ms
+   ✓ weapp home price sort > toggles all three states and keeps mode across categories 1062ms
+   ✓ home price sort layout > keeps the 52px pill clear of the category viewport at 375 and 320 542ms
+   ✓ home price sort layout > keeps the 52px pill clear of the category viewport in weapp at 375 and 320 833ms
+stderr | scripts/page-smoke/app-dialog-2415.test.jsx > AppDialog alert (#2415) > TestAppDialogAlert_2415 renders a white card + title and resolves on confirm
+Warning: React does not recognize the `scrollY` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `scrolly` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at div
+    at div
+    at div
+    at DialogHost (/home/coder/tuneloop/frontend-mobile/src/components/AppDialog.jsx:31:55)
+
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ✓ scripts/page-smoke/app-dialog-2415.test.jsx (7 tests) 1598ms
+   ✓ DialogHost mount (#2415) > TestDialogHostMounted_2415 mounts in the weapp entry and is referenced by the H5 entry 913ms
+stderr | scripts/page-smoke/smoke.test.jsx > mobile page render smoke > H5 /checkout renders without fatal errors
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+12:29:02 AM [vite] warning: Duplicate "style" attribute in JSX element
+36 |                  <View onClick={e => { e.stopPropagation(); setImageIndex(i => (i - 1 + allImgs.length) % allImgs.length) }}
+37 |                    style={{ top: '50%', transform: 'translateY(-50%)' }}
+38 |                    className="absolute left-2 rounded-full w-8 h-8 flex items-center justify-center shadow-sm" style={{ backgroundColor: 'rgba(255,255,255,0.8)' }}>
+   |                                                                                                                ^
+39 |                    <ArrowLeft size={18} className="text-zinc-600" />
+40 |                  </View>
+
+  Plugin: vite:esbuild
+  File: /home/coder/tuneloop/frontend-mobile/src/components/InstrumentInfo.jsx
+stderr | scripts/page-smoke/smoke.test.jsx > mobile page render smoke > H5 /cart renders without fatal errors
+Warning: React does not recognize the `scrollY` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `scrolly` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at div
+    at div
+    at Cart (/home/coder/tuneloop/frontend-mobile/src/pages/Cart.jsx:84:42)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+Warning: React does not recognize the `showScrollbar` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `showscrollbar` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at div
+    at div
+    at Cart (/home/coder/tuneloop/frontend-mobile/src/pages/Cart.jsx:84:42)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+
+stderr | scripts/page-smoke/smoke.test.jsx > mobile page render smoke > H5 /register renders without fatal errors
+Warning: Received `true` for a non-boolean attribute `password`.
+
+If you want to write it to the DOM, pass a string instead: password="true" or password={value.toString()}.
+    at input
+    at div
+    at div
+    at div
+    at Register (/home/coder/tuneloop/frontend-mobile/src/pages/Register.jsx:30:42)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+Warning: validateDOMNesting(...): <div> cannot appear as a child of <select>.
+    at div
+    at select
+    at div
+    at div
+    at div
+    at Register (/home/coder/tuneloop/frontend-mobile/src/pages/Register.jsx:30:42)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+
+stderr | scripts/page-smoke/smoke.test.jsx > mobile page render smoke > weapp payment renders without fatal errors
+Warning: React does not recognize the `placeholderStyle` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `placeholderstyle` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at input
+    at div
+    at div
+    at div
+    at div
+    at Payment (/home/coder/tuneloop/frontend-mobile/src/pages-weapp/payment/Payment.jsx:29:61)
+    at PaymentWithGuard (/home/coder/tuneloop/frontend-mobile/src/pages-weapp/payment/index.tsx:8:25)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+
+ ✓ scripts/page-smoke/smoke.test.jsx (18 tests) 12390ms
+   ✓ mobile page render smoke > H5 /checkout renders without fatal errors 1633ms
+   ✓ mobile page render smoke > H5 /checkout (zero deposit) renders without fatal errors 535ms
+   ✓ mobile page render smoke > H5 /payment renders without fatal errors 951ms
+   ✓ mobile page render smoke > H5 /order/:id renders without fatal errors 1129ms
+   ✓ mobile page render smoke > H5 /credit-assessment renders without fatal errors 1100ms
+   ✓ mobile page render smoke > H5 /cart renders without fatal errors 938ms
+   ✓ mobile page render smoke > H5 /profile renders without fatal errors 865ms
+   ✓ mobile page render smoke > H5 /register renders without fatal errors 825ms
+   ✓ mobile page render smoke > weapp checkout renders without fatal errors 768ms
+   ✓ mobile page render smoke > weapp checkout (zero deposit) renders without fatal errors 434ms
+   ✓ mobile page render smoke > weapp payment renders without fatal errors 550ms
+   ✓ mobile page render smoke > weapp order-detail renders without fatal errors 503ms
+   ✓ mobile page render smoke > weapp cart renders without fatal errors 334ms
+   ✓ mobile page render smoke > weapp profile renders without fatal errors 621ms
+   ✓ mobile page render smoke > weapp profile-complete renders without fatal errors 602ms
+   ✓ mobile page render smoke > payment credit gate renders entry when credit is not approved 521ms
+ ✓ scripts/page-smoke/bind-wx-accounts.test.jsx (4 tests) 262ms
+stdout | scripts/page-smoke/rent-days-input.test.jsx
+[Dev Mode] Injecting mock wx object for browser debugging
+
+stderr | scripts/page-smoke/rent-days-input.test.jsx > mobile rent days input direct editing (#2351) > H5 Checkout keeps the field empty while clearing and retyping
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ scripts/page-smoke/rent-days-input.test.jsx (3 tests) 938ms
+   ✓ mobile rent days input direct editing (#2351) > H5 Checkout keeps the field empty while clearing and retyping 455ms
+ ✓ scripts/page-smoke/credit-assessment-2333.test.jsx (5 tests) 158ms
+stderr | scripts/page-smoke/credit-assessment-polling-2407.test.jsx > credit assessment polling (#2407) > keeps polling pending and renders 评测通过 once approved
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ scripts/page-smoke/credit-assessment-polling-2407.test.jsx (1 test) 801ms
+   ✓ credit assessment polling (#2407) > keeps polling pending and renders 评测通过 once approved 787ms
+ ✓ scripts/page-smoke/bind-needs-merge.test.jsx (1 test) 696ms
+   ✓ Bind page needs_merge (#2410) > shows merge guidance and never claims success on 409 needs_merge 684ms
+ ✓ scripts/page-smoke/home-scroll-layout.test.jsx (4 tests) 41ms
+ ✓ scripts/page-smoke/credit-flow-tiers.test.jsx (5 tests) 84ms
+ ✓ scripts/page-smoke/credit-return-path-2411.test.jsx (4 tests) 80ms
+
+ Test Files  11 passed (11)
+      Tests  63 passed (63)
+   Start at  00:28:16
+   Duration  85.78s (transform 8.83s, setup 977ms, collect 13.48s, tests 23.11s, environment 32.10s, prepare 5.83s)
+
