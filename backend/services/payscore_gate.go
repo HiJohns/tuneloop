@@ -18,18 +18,29 @@ func RequiresCreditAssessment(tier string) bool {
 	return tier == models.DepositTierReduced || tier == models.DepositTierZero
 }
 
-// RequiresCreditApprovalForOrder 是「订单级」的信用要求判定（#2327 D4/D13）。
+// RequiresCreditApprovalForOrder 是「订单级」的信用要求判定（#2327 D4/D13 / #2418）。
 //
-// zero 档存在两种来源，必须区分：
-//   - 乐器本身零押金（full<=0）：与信用无关，不得因 enforce 而阻断支付；
-//   - payscore 免押金路径（deposit_credit_path=payscore）：押金由支付分担保，
-//     必须 approved。
-//
-// reduced 档恒需信用（差额押金靠支付分补足）；full 档无需评估。
+// Owner 2026-11-15「三档一致：未 approved 一律不可支付」：
+//   - internal 路径（内部差额/推荐信资格）不再免评测；
+//   - payscore 路径必须 approved；
+//   - full 档 payscore 保持既有放行（无需评估）；
+//   - zero 档存在两种来源：乐器本身零押金（full<=0，path 为空）与信用免押路径；
+//     只有前者与信用无关（D3 例外）。
 func RequiresCreditApprovalForOrder(tier, creditPath string) bool {
-	// #2352 Rev.2 D1: 所有 payscore 新单（含全额档）都必须先完成信用评测；
-	// internal 路径仅历史订单/旧客户端兼容，不新增。
-	return creditPath == models.DepositCreditPathPayscore
+	switch tier {
+	case models.DepositTierFull:
+		// full 档仅在 internal 资格路径下要求评测；历史 payscore 全押金单保持放行。
+		return creditPath == models.DepositCreditPathInternal
+	case models.DepositTierZero:
+		if creditPath == "" {
+			return false // 乐器本身零押金（D3）
+		}
+		return true
+	case models.DepositTierReduced:
+		return true
+	default:
+		return false
+	}
 }
 
 // AssertOrderPayable 订单级支付闸门：按档位 + 下单时的信用路径判定。

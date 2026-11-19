@@ -88,3 +88,17 @@ func TestResolveCreditRiskAmount(t *testing.T) {
 		t.Fatal("reduced>full must fail")
 	}
 }
+
+// #2418 R2：internal 全额档同样要求信用评测（Owner 三档一致口径）。
+func TestAssertOrderPayableInternalFull_2418(t *testing.T) {
+	if err := AssertOrderPayableIfEnforced("full", "internal", "", true); err == nil {
+		t.Fatal("full + internal + 未评测 must be rejected")
+	}
+}
+
+// #2418 R3：乐器本身零押金（zero + 空路径）与信用无关，必须放行。
+func TestAssertOrderPayableZeroDeposit_2418(t *testing.T) {
+	if err := AssertOrderPayableIfEnforced("zero", "", "", true); err != nil {
+		t.Fatalf("free zero-deposit instrument must be payable: %v", err)
+	}
+}

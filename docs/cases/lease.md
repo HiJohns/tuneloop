@@ -1074,6 +1074,7 @@ steps:
 
 - 评测状态落库 `credit_state` ∈ `pending` / `approved` / `rejected` / `expired`（随订单记录）。
 - `PAYSCORE_ENFORCE=true` 时：**所有 payscore 新单**（含全额档）未 `approved` → 支付被拦截（403 / 业务码 40320）。
+- **internal 路径（历史/旧客户端）同样需要 approved（#2418）**：内部资格/推荐信不替代微信信用评测；唯一例外是「乐器本身零押金」（全额押金 = 0，`deposit_credit_path` 为空）。
   - **Owner 裁定（2026-11-15）**：全额档**同样**要求评测通过——不存在「改用全额押金即可绕过」的出口；
     被微信判 `rejected` 的用户本单无法支付，需联系客服（`credit_rejected` 文案不得再引导改用全额）。
   - 相应前端：评测页被拒文案、支付页闸门提示均按此口径；`creditFlow.creditGate(rejected).action = 'blocked'`。
