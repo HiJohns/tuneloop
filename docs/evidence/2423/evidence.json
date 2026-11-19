@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "issue": 2423,
+  "build": "1.0.fc8cbc14c",
+  "commit": "fc8cbc14c5d6f3d6b3c5fe0ac35669af8de8b544",
+  "dirty": false,
+  "environment": "backend services tests (pure function, no DB); fix commit fc8cbc14c",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2423.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2423/R1-t23.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestComputeRefundSpecT23_2423；T23 cap=750 p_refund=150 net_cash=35000",
+      "actual": "PASS：cap=750（券后基数）、p_refund=150、rent_shortfall=15000、deposit_refund=50000、net_cash=35000；守恒 50000=50000",
+      "expected": "PASS",
+      "negative": "数值不符 → FAIL",
+      "negative_result": "任一数值偏差即 t.Fatalf → exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2423.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2423/R2-fixture2339.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestComputeRefundSpecFixture2339_2423；net_cash=4000 分（¥40）/ p_refund=160",
+      "actual": "PASS：#2339 fixture cap=840、p_refund=160、net_cash_cents=4000 (¥40.00)；显式记录段模型旧值 666.67/506.67",
+      "expected": "PASS",
+      "negative": "666.67/506.67 旧口径 → FAIL",
+      "negative_result": "net_cash != 4000 即 t.Fatalf → exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2423.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2423/R3-conservation.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestComputeRefundSpecConservation_2423（固定种子 200 组）",
+      "actual": "PASS：200 组合法输入逐组满足 net_cash + PointsToCash(p_refund) == cash_paid + PointsToCash(p_used) − R_after_coupon − fees",
+      "expected": "PASS",
+      "negative": "守恒违例 → FAIL",
+      "negative_result": "任一违例即 ErrSettlementInvariantViolation/t.Fatalf → exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2423.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2423/R4-bounds.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestComputeRefundSpecBounds_2423（无押金/押金扣用/券后=0/p_used>cap + 非法/溢出/守恒失败）",
+      "actual": "PASS：4 个边界 + 负值/ratio 非法/溢出 → error；守恒不一致 → ConservationOK=false + ErrSettlementInvariantViolation",
+      "expected": "PASS",
+      "negative": "负退款/静默成功 → FAIL",
+      "negative_result": "panic 或 nil error 即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2423.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2423/R5-build.txt"
+      ],
+      "assert": "exit 0（cd backend && go build ./...）",
+      "actual": "PASS：go build ./... exit 0",
+      "expected": "PASS",
+      "negative": "编译失败 → FAIL",
+      "negative_result": "非 0 退出即 exit 1",
+      "pass": true
+    }
+  ]
+}
