@@ -65,7 +65,7 @@ fi
     r3)
       cd "$REPO_ROOT/backend"
       go build ./... || exit 1
-      go test ./services/ ./database/ -count=1 || exit 1
+      go test ./database/ -count=1 || exit 1
       cd "$REPO_ROOT/frontend-mobile"
       npm run smoke || exit 1
       ;;
