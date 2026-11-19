@@ -861,8 +861,8 @@ func (h *AuthHandler) WxLoginSelect(c *gin.Context) {
 	if req.Context != "" {
 		outcome, err := h.iamService.WxLoginSelectContext(req.ExchangeToken, req.Context)
 		if err != nil {
-			status, msg := wxAuthErrorMessage(err)
-			c.JSON(status, gin.H{"code": 50000, "message": msg})
+			status, code, msg := services.WxAuthError(err)
+			c.JSON(status, gin.H{"code": code, "message": msg})
 			return
 		}
 		if outcome.NeedsContextSelection {
@@ -882,9 +882,9 @@ func (h *AuthHandler) WxLoginSelect(c *gin.Context) {
 
 	tokenResp, err := h.iamService.WxLoginSelect(req.ExchangeToken, req.UserID)
 	if err != nil {
-		status, msg := wxAuthErrorMessage(err)
+		status, code, msg := services.WxAuthError(err)
 		c.JSON(status, gin.H{
-			"code":    50000,
+			"code":    code,
 			"message": msg,
 		})
 		return

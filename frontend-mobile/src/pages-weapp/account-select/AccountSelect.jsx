@@ -5,6 +5,7 @@ import {dialog, request, wxLogin as wxLoginCode, storage, session, env, eventBus
 import { resolveErrorMessage } from '../../services/api'
 import { parseJWT } from '../../platform/init'
 import { t } from '../../i18n'
+import { decideAfterSelectFailure, isAccountPrefetchFresh } from '../../utils/accountSelect.mjs'
 
 
 
@@ -75,7 +76,7 @@ export default function AccountSelect() {
           const raw = session.getItem('wx_accounts_prefetched')
           if (raw) {
             const pf = JSON.parse(raw)
-            if (pf && Array.isArray(pf.accounts) && Date.now() - (pf.ts || 0) < 120000) {
+            if (pf && Array.isArray(pf.accounts) && isAccountPrefetchFresh(pf.ts)) {
               setAccounts(pf.accounts || [])
               session.setItem('wx_login_token', pf.exchange_token || '')
               session.removeItem('wx_accounts_prefetched')
@@ -105,8 +106,8 @@ export default function AccountSelect() {
     load()
   }, [])
 
-  const handleContextLogin = async (item) => {
-    setLoggingIn(item.key)
+  const handleContextLogin = async (item, retried = false) => {
+    if (!retried) setLoggingIn(item.key)
     try {
       const exchangeToken = session.getItem('wx_login_token') || ''
       const body = { exchange_token: exchangeToken, context: item.context }
@@ -147,11 +148,29 @@ export default function AccountSelect() {
         }
         return
       }
-      dialog.toast(resolveErrorMessage(result, '登录失败，请重试'))
+      const decision = decideAfterSelectFailure(result.code)
+      if (decision === 'refresh-and-retry' && !retried) {
+        session.removeItem('wx_login_token')
+        const code = await wxLoginCode()
+        if (code) {
+          const accRes = await request(`${env.apiBaseUrl}/auth/wx-accounts?code=${encodeURIComponent(code)}`)
+          const acc = await accRes.json()
+          if (acc.code === 20000 && acc.data?.exchange_token) {
+            session.setItem('wx_login_token', acc.data.exchange_token)
+            return handleContextLogin(item, true)
+          }
+        }
+        session.removeItem('wx_login_token')
+        dialog.toast('登录凭证已过期，请返回重试')
+      } else {
+        session.removeItem('wx_login_token')
+        dialog.toast(result.code === 40110 ? '登录凭证已过期，请返回重试' : resolveErrorMessage(result, '登录失败，请重试'))
+      }
     } catch {
+      session.removeItem('wx_login_token')
       dialog.toast('网络错误，请重试')
     }
-    setLoggingIn('')
+    if (!retried) setLoggingIn('')
   }
 
   const handlePwdLogin = async () => {
