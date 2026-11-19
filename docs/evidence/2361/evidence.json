@@ -1,0 +1,94 @@
+{
+ "schema_version": 1,
+ "issue": 2361,
+ "build": "1.0.29da094d4",
+ "commit": "29da094d489aebfba2c860f061d1dc693b57785d",
+ "dirty": false,
+ "environment": "backend services tests on isolated PG database/schema (TUNELOOP_TEST_DB=tuneloop_test_verify2361); fix commit 29da094d4",
+ "rows": [
+  {
+   "id": "R1",
+   "command": "bash scripts/verify-2361.sh r1-concurrency",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2361/R1-concurrency.txt"
+   ],
+   "assert": "exit 0；含 --- PASS",
+   "expected": "PASS",
+   "negative": "双结算 → FAIL",
+   "negative_result": "出现 2 条最终结算或双倍退款即 exit 1",
+   "actual": "PASS：10 并发仅 1 条 settlement（succeeded），deposit/fee/points 各执行 1 次，其余调用返回同一 settlement",
+   "pass": true
+  },
+  {
+   "id": "R2",
+   "command": "bash scripts/verify-2361.sh r2-idempotency",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2361/R2-idempotency.txt"
+   ],
+   "assert": "exit 0；含 --- PASS",
+   "expected": "PASS",
+   "negative": "重复退款 → FAIL",
+   "negative_result": "重试后 deposit_refund 调用 >1 即 exit 1",
+   "actual": "PASS：首轮押金退款成功后注入中断；重试不重放退款（调用 1 次）、幂等键不变，最终 succeeded",
+   "pass": true
+  },
+  {
+   "id": "R3",
+   "command": "bash scripts/verify-2361.sh r3-partial",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2361/R3-partial.txt"
+   ],
+   "assert": "exit 0；含 --- PASS",
+   "expected": "PASS",
+   "negative": "整单重放 → FAIL",
+   "negative_result": "现金动作被重放即 exit 1",
+   "actual": "PASS：points_restore 返回 500 → partially_succeeded；重试只重跑 points，现金动作保持 1 次，最终 succeeded",
+   "pass": true
+  },
+  {
+   "id": "R4",
+   "command": "bash scripts/verify-2361.sh r4-reversal",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2361/R4-reversal.txt"
+   ],
+   "assert": "exit 0；含 --- PASS",
+   "expected": "PASS",
+   "negative": "覆盖旧版本 → FAIL",
+   "negative_result": "旧行仍 succeeded 或金额变化即 exit 1",
+   "actual": "PASS：旧行 status=superseded（金额不变），新行 calculated + version=2 + supersedes=旧 id，active 唯一槽为空",
+   "pass": true
+  },
+  {
+   "id": "R5",
+   "command": "bash scripts/verify-2361.sh r5-netting",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2361/R5-netting.txt"
+   ],
+   "assert": "exit 0；含 --- PASS",
+   "expected": "PASS",
+   "negative": "合计不等 → FAIL",
+   "negative_result": "Σcredit−Σdebit ≠ net_cash 即 exit 1",
+   "actual": "PASS：非净额路径 ≥2 个现金动作（deposit_refund 50000 − fee_charge 46000 = 4000）；净额路径单 net_refund 4000",
+   "pass": true
+  },
+  {
+   "id": "R6",
+   "command": "bash scripts/verify-2361.sh r6-schema",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2361/R6-schema.txt"
+   ],
+   "assert": "exit 0；三处断言齐全",
+   "expected": "PASS",
+   "negative": "缺任一 → FAIL",
+   "negative_result": "迁移/模型/db.go 任一缺失即 exit 1",
+   "actual": "PASS：up/down 可执行且幂等；supersedes 列+索引；模型字段；db.go 20261117001 工件；active 索引不含 superseded",
+   "pass": true
+  }
+ ]
+}
