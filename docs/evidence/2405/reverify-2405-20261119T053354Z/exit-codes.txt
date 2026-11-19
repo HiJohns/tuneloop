@@ -1,0 +1,7 @@
+r1-merchant-staff exit=0
+r2-technician exit=0
+r3-idempotent exit=0
+r4-site-regression exit=0
+r5-build exit=0
+r6-cross-merchant exit=0
+r7-cross-tenant-tech exit=0

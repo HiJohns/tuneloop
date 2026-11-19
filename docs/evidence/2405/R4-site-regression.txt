@@ -1,17 +1,18 @@
+# build=1.0.9a71e5427 commit=9a71e542771f09f2597c54051ef5d8a14574e690 dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/18 15:38:54 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
-2026/11/18 15:38:56 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405
-2026/11/18 15:38:56 [DB] Connected to database 'tuneloop_test_verify2405'
+2026/11/19 06:27:42 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
+2026/11/19 06:27:42 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2405
+2026/11/19 06:27:42 [DB] Connected to database 'tuneloop_test_verify2405'
 === RUN   TestAcceptInviteSiteRegression_2405
-2026/11/18 15:38:57 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
-2026/11/18 15:38:57 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405
-2026/11/18 15:38:57 [DB] Connected to database 'tuneloop_test_verify2405'
+2026/11/19 06:27:43 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
+2026/11/19 06:27:43 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2405
+2026/11/19 06:27:43 [DB] Connected to database 'tuneloop_test_verify2405'
 
-2026/11/18 15:38:57 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
-[0m[31;1m[273.827ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-2026/11/18 15:38:57 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:40187, clientID=test-ns, namespace=test-ns
-2026/11/18 15:38:57 [IAMClient] Obtained client credentials token, expires in 7200s
-2026/11/18 15:38:57 [IAMClient] Bound user 7388ab62-fd0b-43d6-b310-78a8c42b34c4 to org c1fd5744-3e8e-42fc-abc1-3d24059f92c2 with role STAFF
---- PASS: TestAcceptInviteSiteRegression_2405 (0.79s)
+2026/11/19 06:27:44 [32m/home/coder/tuneloop-wt/reverify-2405/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[616.650ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/19 06:27:44 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:46763, clientID=test-ns, namespace=test-ns
+2026/11/19 06:27:44 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/19 06:27:44 [IAMClient] Bound user 57847a76-4fbc-4381-a91f-4c8fe899d344 to org d23eea77-48b9-4f7e-ab0c-46b236c17e8b with role STAFF
+--- PASS: TestAcceptInviteSiteRegression_2405 (1.22s)
 PASS
-ok  	tuneloop-backend/handlers	3.312s
+ok  	tuneloop-backend/handlers	2.080s
