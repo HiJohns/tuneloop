@@ -1,7 +1,7 @@
-# build=1.0.ae1406f3e commit=ae1406f3e412957389969350db416905fee74015 dirty=false
+# build=1.0.9c6dcd855 commit=9c6dcd855b8683aa1547fe3bd537ac4c8a1f130b dirty=false
 === RUN   TestMockPayscoreResult_2408
 === RUN   TestMockPayscoreResult_2408/default-approved
 --- PASS: TestMockPayscoreResult_2408 (0.00s)
     --- PASS: TestMockPayscoreResult_2408/default-approved (0.00s)
 PASS
-ok  	tuneloop-backend/services/wechatpay	0.018s
+ok  	tuneloop-backend/services/wechatpay	0.023s

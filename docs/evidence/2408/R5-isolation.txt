@@ -1,4 +1,4 @@
-# build=1.0.ae1406f3e commit=ae1406f3e412957389969350db416905fee74015 dirty=false
+# build=1.0.9c6dcd855 commit=9c6dcd855b8683aa1547fe3bd537ac4c8a1f130b dirty=false
 --- grep -n PAYSCORE_MOCK_RESULT ---
 50:	// AlwaysPending 由 PAYSCORE_MOCK_RESULT=pending 打开：查询永远返回 pending，
 66:// mockResultFromEnv 解析 QA 开关 PAYSCORE_MOCK_RESULT（仅影响 mock provider）：
