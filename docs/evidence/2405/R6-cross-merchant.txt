@@ -1,18 +1,21 @@
 # build=1.0.9a71e5427 commit=9a71e542771f09f2597c54051ef5d8a14574e690 dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/19 00:36:43 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
-2026/11/19 00:36:44 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405
-2026/11/19 00:36:44 [DB] Connected to database 'tuneloop_test_verify2405'
+2026/11/19 06:28:44 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
+2026/11/19 06:28:44 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2405
+2026/11/19 06:28:44 [DB] Connected to database 'tuneloop_test_verify2405'
 === RUN   TestAcceptInviteCrossMerchant_2405
-2026/11/19 00:36:44 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
-2026/11/19 00:36:44 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405
-2026/11/19 00:36:44 [DB] Connected to database 'tuneloop_test_verify2405'
-2026/11/19 00:36:45 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:34589, clientID=test-ns, namespace=test-ns
-2026/11/19 00:36:45 [IAMClient] Obtained client credentials token, expires in 7200s
-2026/11/19 00:36:45 [IAMClient] Bound user 4f3f5b96-b580-4f3e-886a-36ee5ee0e766 to org e7f15327-b06b-40f9-a545-28fa1e81bf96 with role STAFF
+2026/11/19 06:28:44 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
+2026/11/19 06:28:44 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2405
+2026/11/19 06:28:44 [DB] Connected to database 'tuneloop_test_verify2405'
 
-2026/11/19 00:36:45 [31;1m/home/coder/tuneloop/backend/handlers/staff_invite.go:284 [35;1mrecord not found
-[0m[33m[2.421ms] [34;1m[rows:0][0m SELECT * FROM "merchant_members" WHERE user_id = '33a8ffa2-bb6c-406c-8991-3eaf7bd107d0' AND merchant_id = 'bf72f364-151f-472f-a71c-014492c2d706' ORDER BY "merchant_members"."id" LIMIT 1
---- PASS: TestAcceptInviteCrossMerchant_2405 (0.39s)
+2026/11/19 06:28:45 [32m/home/coder/tuneloop-wt/reverify-2405/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[606.653ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/19 06:28:46 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:39139, clientID=test-ns, namespace=test-ns
+2026/11/19 06:28:46 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/19 06:28:46 [IAMClient] Bound user 6c3ce6cd-5e3d-4a25-9265-0744483b7dd8 to org f1bf52e8-629c-446c-8e0f-2e561615560f with role STAFF
+
+2026/11/19 06:28:46 [31;1m/home/coder/tuneloop-wt/reverify-2405/backend/handlers/staff_invite.go:284 [35;1mrecord not found
+[0m[33m[2.174ms] [34;1m[rows:0][0m SELECT * FROM "merchant_members" WHERE user_id = '9ec97d80-2be3-4450-978b-3af856519d35' AND merchant_id = 'ba063940-6a00-4f57-a6d7-96ac2f68b70e' ORDER BY "merchant_members"."id" LIMIT 1
+--- PASS: TestAcceptInviteCrossMerchant_2405 (1.23s)
 PASS
-ok  	tuneloop-backend/handlers	2.025s
+ok  	tuneloop-backend/handlers	2.066s

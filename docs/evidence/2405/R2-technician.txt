@@ -1,21 +1,6 @@
-# build=1.0.9a71e5427 commit=9a71e542771f09f2597c54051ef5d8a14574e690 dirty=false
+# build=1.0.8c56ecfe2 commit=8c56ecfe2534ef4199598b43a3b75924cba5953b dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/19 00:35:30 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
-2026/11/19 00:35:32 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405
-2026/11/19 00:35:32 [DB] Connected to database 'tuneloop_test_verify2405'
-=== RUN   TestAcceptInviteTechnician_2405
-2026/11/19 00:35:32 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
-2026/11/19 00:35:32 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405
-2026/11/19 00:35:32 [DB] Connected to database 'tuneloop_test_verify2405'
-2026/11/19 00:35:33 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:45163, clientID=test-ns, namespace=test-ns
-2026/11/19 00:35:33 [IAMClient] Obtained client credentials token, expires in 7200s
-2026/11/19 00:35:33 [IAMClient] Bound user 3b1d6066-2f72-4eec-9f02-6a5d412d21cb to org d473a691-6018-4f7c-9200-3767e31f1d7c with role repair_technician
-
-2026/11/19 00:35:33 [31;1m/home/coder/tuneloop/backend/handlers/staff_invite.go:284 [35;1mrecord not found
-[0m[33m[0.699ms] [34;1m[rows:0][0m SELECT * FROM "merchant_members" WHERE user_id = '23677aae-a509-4945-a0a3-db8546608f21' AND merchant_id = '7fc0362a-c5c4-44be-a555-b809e252c52e' ORDER BY "merchant_members"."id" LIMIT 1
-
-2026/11/19 00:35:33 [31;1m/home/coder/tuneloop/backend/handlers/staff_invite.go:306 [35;1mrecord not found
-[0m[33m[2.549ms] [34;1m[rows:0][0m SELECT * FROM "technician_profiles" WHERE user_id = '23677aae-a509-4945-a0a3-db8546608f21' AND tenant_id = 'd473a691-6018-4f7c-9200-3767e31f1d7c' ORDER BY "technician_profiles"."id" LIMIT 1
---- PASS: TestAcceptInviteTechnician_2405 (0.64s)
-PASS
-ok  	tuneloop-backend/handlers	2.697s
+2026/11/19 06:29:56 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
+FATAL: ensure template: template: maintenance conn: dial tcp 127.0.0.1:15433: connect: connection refused
+FAIL	tuneloop-backend/handlers	0.025s
+FAIL

@@ -4,7 +4,6 @@
   "build": "1.0.9a71e5427",
   "commit": "9a71e542771f09f2597c54051ef5d8a14574e690",
   "dirty": false,
-  "environment": "backend handlers invite tests on PG 127.0.0.1:15433; evidence commit 9a71e5427",
   "rows": [
     {
       "id": "R1",
@@ -14,10 +13,10 @@
         "docs/evidence/2405/R1-merchant-staff.txt"
       ],
       "assert": "exit 0；含 --- PASS",
-      "actual": "PASS：merchant_staff 邀请 → merchant_members 1 行 role=merchant_staff",
+      "actual": "exit 0；--- PASS: TestAcceptInviteMerchantStaff_2405；merchant_members 1 行 role=merchant_staff",
       "expected": "PASS",
       "negative": "缺行 → FAIL",
-      "negative_result": "断言失败即 exit 1",
+      "negative_result": "若未建 merchant_members 行 → 用例断言失败",
       "pass": true
     },
     {
@@ -28,10 +27,10 @@
         "docs/evidence/2405/R2-technician.txt"
       ],
       "assert": "exit 0；含 --- PASS",
-      "actual": "PASS：repair_technician → merchant_members(role=merchant_staff) + technician_profiles 1 行",
+      "actual": "exit 0；--- PASS: TestAcceptInviteTechnician_2405；merchant_members + technician_profiles 各 1 行",
       "expected": "PASS",
       "negative": "缺档案 → FAIL",
-      "negative_result": "断言失败即 exit 1",
+      "negative_result": "若未建 technician_profiles → 用例断言失败",
       "pass": true
     },
     {
@@ -42,10 +41,10 @@
         "docs/evidence/2405/R3-idempotent.txt"
       ],
       "assert": "exit 0；含 --- PASS",
-      "actual": "PASS：重复接受不产生重复行",
+      "actual": "exit 0；--- PASS: TestAcceptInviteIdempotent_2405；重复接受不产生重复行",
       "expected": "PASS",
       "negative": "2 行 → FAIL",
-      "negative_result": "断言失败即 exit 1",
+      "negative_result": "若重复接受产生第二行 → 用例断言失败",
       "pass": true
     },
     {
@@ -56,10 +55,10 @@
         "docs/evidence/2405/R4-site-regression.txt"
       ],
       "assert": "exit 0；含 --- PASS",
-      "actual": "PASS：网点邀请仍落 site_members，行为不变",
+      "actual": "exit 0；--- PASS: TestAcceptInviteSiteRegression_2405；网点邀请仍写 site_members",
       "expected": "PASS",
       "negative": "回归 → FAIL",
-      "negative_result": "断言失败即 exit 1",
+      "negative_result": "若网点邀请落库路径被破坏 → 用例断言失败",
       "pass": true
     },
     {
@@ -70,10 +69,10 @@
         "docs/evidence/2405/R5-build.txt"
       ],
       "assert": "exit 0；含 BUILD OK",
-      "actual": "PASS：cd backend && go build ./... + BUILD OK",
+      "actual": "exit 0；BUILD OK（go build ./...）",
       "expected": "PASS",
       "negative": "空/失败 → FAIL",
-      "negative_result": "构建失败即 exit 1",
+      "negative_result": "若构建失败或输出为空 → 脚本返回非 0",
       "pass": true
     },
     {
@@ -84,10 +83,10 @@
         "docs/evidence/2405/R6-cross-merchant.txt"
       ],
       "assert": "exit 0；含 --- PASS",
-      "actual": "PASS：已有商户 B 行 → 接受 A 邀请新增 A 行，B 行不变",
+      "actual": "exit 0；--- PASS: TestAcceptInviteCrossMerchant_2405；新增 A 行、B 行保留",
       "expected": "PASS",
       "negative": "仅 B 行 → FAIL",
-      "negative_result": "断言失败即 exit 1",
+      "negative_result": "若 A 行未写入或 B 行被删 → 用例断言失败",
       "pass": true
     },
     {
@@ -98,10 +97,10 @@
         "docs/evidence/2405/R7-cross-tenant-tech.txt"
       ],
       "assert": "exit 0；含 --- PASS",
-      "actual": "PASS：已有租户 B 档案 → 接受 A 邀请新增 A 档案",
+      "actual": "exit 0；--- PASS: TestAcceptInviteCrossTenantTechnician_2405；新增 A 档案、B 档案保留",
       "expected": "PASS",
       "negative": "仍只有 B → FAIL",
-      "negative_result": "断言失败即 exit 1",
+      "negative_result": "若 A 档案未写入或 B 档案被删 → 用例断言失败",
       "pass": true
     }
   ]

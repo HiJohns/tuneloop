@@ -1,24 +1,24 @@
 # build=1.0.9a71e5427 commit=9a71e542771f09f2597c54051ef5d8a14574e690 dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/19 00:36:58 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
-2026/11/19 00:37:00 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405
-2026/11/19 00:37:00 [DB] Connected to database 'tuneloop_test_verify2405'
+2026/11/19 06:28:58 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
+2026/11/19 06:28:58 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2405
+2026/11/19 06:28:58 [DB] Connected to database 'tuneloop_test_verify2405'
 === RUN   TestAcceptInviteCrossTenantTechnician_2405
-2026/11/19 00:37:00 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
-2026/11/19 00:37:00 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2405
-2026/11/19 00:37:00 [DB] Connected to database 'tuneloop_test_verify2405'
+2026/11/19 06:28:58 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
+2026/11/19 06:28:58 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2405
+2026/11/19 06:28:58 [DB] Connected to database 'tuneloop_test_verify2405'
 
-2026/11/19 00:37:01 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
-[0m[31;1m[247.226ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-2026/11/19 00:37:01 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:45905, clientID=test-ns, namespace=test-ns
-2026/11/19 00:37:01 [IAMClient] Obtained client credentials token, expires in 7200s
-2026/11/19 00:37:01 [IAMClient] Bound user 2bb1875e-2745-4221-a3a2-78660cc62cb8 to org c3bda7db-5cf6-4d23-9832-0f67b25d2c56 with role repair_technician
+2026/11/19 06:28:59 [32m/home/coder/tuneloop-wt/reverify-2405/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[584.932ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/19 06:28:59 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:37649, clientID=test-ns, namespace=test-ns
+2026/11/19 06:28:59 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/19 06:28:59 [IAMClient] Bound user 9151d370-f65f-41f5-8ac4-56b14a3e8b71 to org 97e5ad23-9765-4c3b-9edf-6d0bd708276d with role repair_technician
 
-2026/11/19 00:37:01 [31;1m/home/coder/tuneloop/backend/handlers/staff_invite.go:284 [35;1mrecord not found
-[0m[33m[1.393ms] [34;1m[rows:0][0m SELECT * FROM "merchant_members" WHERE user_id = 'a7bded6d-3367-4b7a-a6f8-8276c3f9c14d' AND merchant_id = '296378a0-7daa-4864-9b01-d74392bc4c50' ORDER BY "merchant_members"."id" LIMIT 1
+2026/11/19 06:28:59 [31;1m/home/coder/tuneloop-wt/reverify-2405/backend/handlers/staff_invite.go:284 [35;1mrecord not found
+[0m[33m[1.410ms] [34;1m[rows:0][0m SELECT * FROM "merchant_members" WHERE user_id = '0ce9e718-3f15-498b-838b-29977c730de7' AND merchant_id = 'bc409523-26ea-4f29-9041-21989d08613b' ORDER BY "merchant_members"."id" LIMIT 1
 
-2026/11/19 00:37:01 [31;1m/home/coder/tuneloop/backend/handlers/staff_invite.go:306 [35;1mrecord not found
-[0m[33m[0.697ms] [34;1m[rows:0][0m SELECT * FROM "technician_profiles" WHERE user_id = 'a7bded6d-3367-4b7a-a6f8-8276c3f9c14d' AND tenant_id = 'c3bda7db-5cf6-4d23-9832-0f67b25d2c56' ORDER BY "technician_profiles"."id" LIMIT 1
---- PASS: TestAcceptInviteCrossTenantTechnician_2405 (0.78s)
+2026/11/19 06:28:59 [31;1m/home/coder/tuneloop-wt/reverify-2405/backend/handlers/staff_invite.go:306 [35;1mrecord not found
+[0m[33m[1.426ms] [34;1m[rows:0][0m SELECT * FROM "technician_profiles" WHERE user_id = '0ce9e718-3f15-498b-838b-29977c730de7' AND tenant_id = '97e5ad23-9765-4c3b-9edf-6d0bd708276d' ORDER BY "technician_profiles"."id" LIMIT 1
+--- PASS: TestAcceptInviteCrossTenantTechnician_2405 (1.18s)
 PASS
-ok  	tuneloop-backend/handlers	3.075s
+ok  	tuneloop-backend/handlers	1.985s
