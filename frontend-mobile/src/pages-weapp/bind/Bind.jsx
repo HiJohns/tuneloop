@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Button } from '@tarojs/components'
 import { wxLogin, storage, env, request } from '../../platform'
+import { maskOpenid } from '../../utils/wechatBind.mjs'
 
 export default function Bind() {
   const [status, setStatus] = useState('loading')
@@ -69,16 +70,26 @@ export default function Bind() {
         </View>
       )}
       {status === 'needs_merge' && (
-        <View style={{ alignItems: 'center', padding: 12 }}>
-          <Text style={{ fontSize: 48, marginBottom: 16 }}>🔗</Text>
-          <Text style={{ fontSize: 18, fontWeight: '700', color: '#000', marginBottom: 8 }}>该微信已绑定其他账户</Text>
-          <Text style={{ fontSize: 14, color: '#71717a', marginBottom: 24, textAlign: 'center', lineHeight: '22px' }}>
-            请前往「我的 → 编辑资料 → 微信绑定」确认合并；合并后当前账户的组织关系与密码将迁移至该微信账户。
-          </Text>
-          {mergeInfo?.openid ? (
-            <Text style={{ fontSize: 12, color: '#a1a1aa', marginBottom: 16 }}>openid: {mergeInfo.openid}</Text>
+        <View style={{ alignItems: 'center', padding: 12, width: '100%', boxSizing: 'border-box' }}>
+          <View style={{ display: 'block', width: '100%', textAlign: 'center' }}>
+            <Text style={{ display: 'block', fontSize: 48, marginBottom: 16 }}>🔗</Text>
+          </View>
+          <View style={{ display: 'block', width: '100%' }}>
+            <Text style={{ display: 'block', fontSize: 18, fontWeight: '700', color: '#000', marginBottom: 8, textAlign: 'center' }}>该微信已绑定其他账户</Text>
+          </View>
+          <View style={{ display: 'block', width: '100%' }}>
+            <Text style={{ display: 'block', fontSize: 14, color: '#71717a', marginBottom: 12, textAlign: 'center', lineHeight: '22px' }}>
+              请前往「我的 → 编辑资料 → 微信绑定」确认合并；合并后当前账户的组织关系与密码将迁移至该微信账户。
+            </Text>
+          </View>
+          {maskOpenid(mergeInfo?.openid) ? (
+            <View style={{ display: 'block', width: '100%' }}>
+              <Text style={{ display: 'block', fontSize: 12, color: '#a1a1aa', marginBottom: 16, textAlign: 'center' }}>
+                绑定编号：{maskOpenid(mergeInfo?.openid)}
+              </Text>
+            </View>
           ) : null}
-          <Button onClick={() => Taro.navigateBack()} style={{ backgroundColor: '#915F38', color: '#fff', borderRadius: 22, padding: '12px 32px', fontSize: 14, fontWeight: '700', border: 'none' }}>
+          <Button onClick={() => Taro.navigateBack()} style={{ backgroundColor: '#915F38', color: '#fff', borderRadius: 22, padding: '12px 32px', fontSize: 14, fontWeight: '700', border: 'none', margin: 0 }}>
             返回
           </Button>
         </View>

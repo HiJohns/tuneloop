@@ -41,15 +41,22 @@ export default function WechatBinding() {
     const timer = setInterval(async () => {
       try {
         const res = await api.get(`/users/me/wechat-bind/${qrToken}`)
-        if (res.data?.status === 'bound') {
+        const status = res.data?.status
+        if (status === 'bound') {
           setBound(true)
           setShowQR(false)
           setPolling(false)
           clearInterval(timer)
           message.success('微信绑定成功')
-        } else if (res.data?.status === 'expired') {
+        } else if (status === 'expired') {
           setPolling(false)
           clearInterval(timer)
+        } else if (status === 'needs_merge') {
+          // #2426：冲突立即停止轮询并提示，避免二维码空转 5 分钟。
+          setPolling(false)
+          setShowQR(false)
+          clearInterval(timer)
+          message.warning('该微信已绑定其他账户，请在小程序端确认合并')
         }
       } catch {}
     }, 2000)
