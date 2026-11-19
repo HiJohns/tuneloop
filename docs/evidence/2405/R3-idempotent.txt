@@ -1,27 +1,27 @@
 # build=1.0.9a71e5427 commit=9a71e542771f09f2597c54051ef5d8a14574e690 dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/19 06:27:30 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
-2026/11/19 06:27:30 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2405
-2026/11/19 06:27:30 [DB] Connected to database 'tuneloop_test_verify2405'
+2026/11/19 06:36:45 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
+2026/11/19 06:36:45 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2405
+2026/11/19 06:36:45 [DB] Connected to database 'tuneloop_test_verify2405'
 === RUN   TestAcceptInviteIdempotent_2405
-2026/11/19 06:27:31 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
-2026/11/19 06:27:31 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2405
-2026/11/19 06:27:31 [DB] Connected to database 'tuneloop_test_verify2405'
+2026/11/19 06:36:46 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2405 sslmode=disable
+2026/11/19 06:36:46 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2405
+2026/11/19 06:36:46 [DB] Connected to database 'tuneloop_test_verify2405'
 
-2026/11/19 06:27:32 [32m/home/coder/tuneloop-wt/reverify-2405/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
-[0m[31;1m[617.065ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-2026/11/19 06:27:32 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:44619, clientID=test-ns, namespace=test-ns
-2026/11/19 06:27:32 [IAMClient] Obtained client credentials token, expires in 7200s
-2026/11/19 06:27:32 [IAMClient] Bound user 678c4e3f-e174-441f-bc20-3a22bfb76877 to org fcc6d126-9e84-4f4c-97a5-ae166edfef8e with role repair_technician
+2026/11/19 06:36:47 [32m/home/coder/tuneloop-wt/reverify-2405-fix/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[603.742ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/19 06:36:47 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:46849, clientID=test-ns, namespace=test-ns
+2026/11/19 06:36:47 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/19 06:36:47 [IAMClient] Bound user 0e157209-0780-4cff-8d32-7731c651cd65 to org 5ae377da-1f58-4b76-a077-f6130a282ab2 with role repair_technician
 
-2026/11/19 06:27:32 [31;1m/home/coder/tuneloop-wt/reverify-2405/backend/handlers/staff_invite.go:284 [35;1mrecord not found
-[0m[33m[1.791ms] [34;1m[rows:0][0m SELECT * FROM "merchant_members" WHERE user_id = 'e3b8e822-a56c-48f3-8053-a72f7ae4a3b5' AND merchant_id = 'f61a7ba5-de86-4383-b500-eb320c2e7f8c' ORDER BY "merchant_members"."id" LIMIT 1
+2026/11/19 06:36:47 [31;1m/home/coder/tuneloop-wt/reverify-2405-fix/backend/handlers/staff_invite.go:284 [35;1mrecord not found
+[0m[33m[1.447ms] [34;1m[rows:0][0m SELECT * FROM "merchant_members" WHERE user_id = '1af35dc3-11e6-497f-bf2c-b3787b1b8c5c' AND merchant_id = 'e6ed5c4d-9f59-4c59-a44d-bff7ac58603c' ORDER BY "merchant_members"."id" LIMIT 1
 
-2026/11/19 06:27:32 [31;1m/home/coder/tuneloop-wt/reverify-2405/backend/handlers/staff_invite.go:306 [35;1mrecord not found
-[0m[33m[1.413ms] [34;1m[rows:0][0m SELECT * FROM "technician_profiles" WHERE user_id = 'e3b8e822-a56c-48f3-8053-a72f7ae4a3b5' AND tenant_id = 'fcc6d126-9e84-4f4c-97a5-ae166edfef8e' ORDER BY "technician_profiles"."id" LIMIT 1
-2026/11/19 06:27:32 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:44619, clientID=test-ns, namespace=test-ns
-2026/11/19 06:27:32 [IAMClient] Obtained client credentials token, expires in 7200s
-2026/11/19 06:27:32 [IAMClient] Bound user 678c4e3f-e174-441f-bc20-3a22bfb76877 to org fcc6d126-9e84-4f4c-97a5-ae166edfef8e with role repair_technician
---- PASS: TestAcceptInviteIdempotent_2405 (1.27s)
+2026/11/19 06:36:47 [31;1m/home/coder/tuneloop-wt/reverify-2405-fix/backend/handlers/staff_invite.go:306 [35;1mrecord not found
+[0m[33m[1.363ms] [34;1m[rows:0][0m SELECT * FROM "technician_profiles" WHERE user_id = '1af35dc3-11e6-497f-bf2c-b3787b1b8c5c' AND tenant_id = '5ae377da-1f58-4b76-a077-f6130a282ab2' ORDER BY "technician_profiles"."id" LIMIT 1
+2026/11/19 06:36:47 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:46849, clientID=test-ns, namespace=test-ns
+2026/11/19 06:36:47 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/19 06:36:47 [IAMClient] Bound user 0e157209-0780-4cff-8d32-7731c651cd65 to org 5ae377da-1f58-4b76-a077-f6130a282ab2 with role repair_technician
+--- PASS: TestAcceptInviteIdempotent_2405 (1.08s)
 PASS
-ok  	tuneloop-backend/handlers	2.185s
+ok  	tuneloop-backend/handlers	1.789s

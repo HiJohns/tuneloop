@@ -21,11 +21,11 @@ r7-cross-tenant-tech exit=0
 ## PASS / BUILD
 
 ```
---- PASS: TestAcceptInviteMerchantStaff_2405 (1.11s)
---- PASS: TestAcceptInviteTechnician_2405 (1.23s)
---- PASS: TestAcceptInviteIdempotent_2405 (1.27s)
---- PASS: TestAcceptInviteSiteRegression_2405 (1.22s)
---- PASS: TestAcceptInviteCrossMerchant_2405 (1.23s)
---- PASS: TestAcceptInviteCrossTenantTechnician_2405 (1.18s)
+--- PASS: TestAcceptInviteMerchantStaff_2405 (1.07s)
+--- PASS: TestAcceptInviteTechnician_2405 (1.07s)
+--- PASS: TestAcceptInviteIdempotent_2405 (1.08s)
+--- PASS: TestAcceptInviteSiteRegression_2405 (1.04s)
+--- PASS: TestAcceptInviteCrossMerchant_2405 (1.05s)
+--- PASS: TestAcceptInviteCrossTenantTechnician_2405 (1.04s)
 BUILD OK
 ```
