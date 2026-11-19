@@ -795,7 +795,7 @@ func PayOrder(c *gin.Context) {
 	}
 	// #2331/#2327: 支付分档位闸门——仅 PAYSCORE_ENFORCE=true 时生效；
 	// enforce=false（默认）保持现有行为不变（D12）。
-	if err := services.AssertOrderPayableIfEnforced(order.DepositTier, order.DepositCreditPath, order.CreditState, wechatpay.PayscoreEnforceEnabled()); err != nil {
+	if err := services.AssertOrderPayableIfEnforced(order.DepositTier, order.DepositCreditPath, order.CreditState, orderDepositCents(&order), wechatpay.PayscoreEnforceEnabled()); err != nil {
 		c.JSON(http.StatusForbidden, gin.H{
 			"code":    40320,
 			"message": err.Error(),

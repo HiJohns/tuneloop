@@ -52,7 +52,7 @@ func (h *PayscoreHandler) creditPayload(order *models.Order) gin.H {
 		"risk_amount_cents":   order.CreditRiskAmountCents,
 		"service_order_no":    order.CreditServiceOrderNo,
 		"mock":                h.provider.IsMock(),
-		"requires_assessment": services.RequiresCreditApprovalForOrder(order.DepositTier, order.DepositCreditPath),
+		"requires_assessment": services.RequiresCreditApprovalForOrder(order.DepositTier, order.DepositCreditPath, orderDepositCents(order)),
 		// #2327 D0: 前端 openBusinessView 需要的拉起凭证与过期时间。
 		"credit_package": order.CreditPackage,
 		// #2352 F1: 评测页需提示「订单已创建，请在截止前完成评测与支付」。
@@ -92,7 +92,7 @@ func (h *PayscoreHandler) CreateAssessment(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "无权操作该订单"})
 		return
 	}
-	if !services.RequiresCreditApprovalForOrder(order.DepositTier, order.DepositCreditPath) {
+	if !services.RequiresCreditApprovalForOrder(order.DepositTier, order.DepositCreditPath, orderDepositCents(&order)) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "该押金档位无需信用评估"})
 		return
 	}

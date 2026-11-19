@@ -21,21 +21,20 @@ func RequiresCreditAssessment(tier string) bool {
 // RequiresCreditApprovalForOrder 是「订单级」的信用要求判定（#2327 D4/D13 / #2418）。
 //
 // Owner 2026-11-15「三档一致：未 approved 一律不可支付」：
-//   - internal 路径（内部差额/推荐信资格）不再免评测；
-//   - payscore 路径必须 approved；
-//   - full 档 payscore 保持既有放行（无需评估）；
-//   - zero 档存在两种来源：乐器本身零押金（full<=0，path 为空）与信用免押路径；
-//     只有前者与信用无关（D3 例外）。
-func RequiresCreditApprovalForOrder(tier, creditPath string) bool {
+//   - full 档在 enforce 语义下同样要求 approved（#2418 F1，不再按路径豁免）；
+//   - reduced 档必须 approved；
+//   - zero 档仅当「订单押金为 0」（乐器本身零押金，D3）与信用无关；
+//     信用免押（订单押金 > 0）必须 approved。
+//
+// #2418 F2：零押金判据是**订单押金金额**（depositCents），不是 `deposit_credit_path` 是否为空——
+// 新单一律 `path=payscore`，路径判据会把「乐器本身零押金」误判为需要评测。
+// creditPath 保留参数用于语义追溯，不参与判定。
+func RequiresCreditApprovalForOrder(tier, creditPath string, depositCents int64) bool {
 	switch tier {
 	case models.DepositTierFull:
-		// full 档仅在 internal 资格路径下要求评测；历史 payscore 全押金单保持放行。
-		return creditPath == models.DepositCreditPathInternal
-	case models.DepositTierZero:
-		if creditPath == "" {
-			return false // 乐器本身零押金（D3）
-		}
 		return true
+	case models.DepositTierZero:
+		return depositCents > 0
 	case models.DepositTierReduced:
 		return true
 	default:
@@ -43,9 +42,9 @@ func RequiresCreditApprovalForOrder(tier, creditPath string) bool {
 	}
 }
 
-// AssertOrderPayable 订单级支付闸门：按档位 + 下单时的信用路径判定。
-func AssertOrderPayable(tier, creditPath, creditState string) error {
-	if !RequiresCreditApprovalForOrder(tier, creditPath) {
+// AssertOrderPayable 订单级支付闸门：按档位 + 下单时的信用路径 + 订单押金判定。
+func AssertOrderPayable(tier, creditPath, creditState string, depositCents int64) error {
+	if !RequiresCreditApprovalForOrder(tier, creditPath, depositCents) {
 		return nil
 	}
 	return assertApproved(creditState)
@@ -70,11 +69,11 @@ func AssertTierPayableIfEnforced(tier, creditState string, enforce bool) error {
 }
 
 // AssertOrderPayableIfEnforced 是支付路径唯一使用的闸门组合（enforce + 订单级判定）。
-func AssertOrderPayableIfEnforced(tier, creditPath, creditState string, enforce bool) error {
+func AssertOrderPayableIfEnforced(tier, creditPath, creditState string, depositCents int64, enforce bool) error {
 	if !enforce {
 		return nil
 	}
-	return AssertOrderPayable(tier, creditPath, creditState)
+	return AssertOrderPayable(tier, creditPath, creditState, depositCents)
 }
 
 func assertApproved(creditState string) error {

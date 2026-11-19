@@ -1042,7 +1042,7 @@ steps:
    - ~~确认页只展示全额、档位在支付页选~~（#2352 Rev.2 原方案，**#2357 已改判**：支付页选择位于页面最底部，决定过于重要不宜隐藏）。
 2. 点「提交订单」→ **建单**（携带所选档位与担保人，`deposit_credit_path=payscore`）→ 跳转**独立信用评测页**
    （H5：`/credit-assessment?order_id=…`；weapp：`pages-weapp/credit-assessment/index?order_id=…`）。
-   - **所有订单必经**评测：包括选择全额押金的顾客与全额押金为 0 的乐器。
+   - **所有订单进入评测页**（产品流程，含全额押金顾客与全额押金为 0 的乐器）；支付闸门对「乐器本身零押金」（`orders.deposit = 0`）不强制 `approved`（见「评测状态与支付闸门」）。
    - **评测标的金额 = 乐器原价**（固定值，不随押金档位/差额变化）。
    - 该评测页 URL 作为**微信支付分申请提交的页面地址**（S0 #2328 使用）。
 3. 评测完成后进入**支付页**：按订单已定档位直接展示应付金额（**不再二次选择档位**，避免与已提交的担保人/档位不一致）。
@@ -1074,7 +1074,8 @@ steps:
 
 - 评测状态落库 `credit_state` ∈ `pending` / `approved` / `rejected` / `expired`（随订单记录）。
 - `PAYSCORE_ENFORCE=true` 时：**所有 payscore 新单**（含全额档）未 `approved` → 支付被拦截（403 / 业务码 40320）。
-- **internal 路径（历史/旧客户端）同样需要 approved（#2418）**：内部资格/推荐信不替代微信信用评测；唯一例外是「乐器本身零押金」（全额押金 = 0，`deposit_credit_path` 为空）。
+- **三档一致（#2418）**：`full` / `reduced` / `zero` 在 `PAYSCORE_ENFORCE=true` 下**均**要求 `approved`（internal 路径不豁免）。
+  **唯一例外**是「乐器本身零押金」——判据为**订单押金为 0（`orders.deposit = 0`）**，**不是** `deposit_credit_path` 为空（新单一律 `path=payscore`，空路径仅存在于历史单）。
   - **Owner 裁定（2026-11-15）**：全额档**同样**要求评测通过——不存在「改用全额押金即可绕过」的出口；
     被微信判 `rejected` 的用户本单无法支付，需联系客服（`credit_rejected` 文案不得再引导改用全额）。
   - 相应前端：评测页被拒文案、支付页闸门提示均按此口径；`creditFlow.creditGate(rejected).action = 'blocked'`。
