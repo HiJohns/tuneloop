@@ -1,8 +1,8 @@
-# build=1.0.5548a0040 commit=5548a00404f31029fddddda018cc47cab67613ca dirty=true
+# build=1.0.b70f96eb3 commit=b70f96eb3b80b4d18a873ef2dd4eaa95c1bf7add dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/19 16:17:24 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
-2026/11/19 16:17:24 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339
-2026/11/19 16:17:24 [DB] Connected to database 'tuneloop_test_verify2339'
+2026/11/19 16:19:45 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
+2026/11/19 16:19:45 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339
+2026/11/19 16:19:45 [DB] Connected to database 'tuneloop_test_verify2339'
 === RUN   TestScenarioC_LostAndScrap
     exception_isolation_e2e_test.go:13: lost/scrap exception flow not yet implemented
 --- SKIP: TestScenarioC_LostAndScrap (0.00s)
@@ -13,155 +13,155 @@
     forwarding_session_e2e_test.go:14: forwarding sessions not yet implemented
 --- SKIP: TestScenarioB_ControlledMerchantForwarding (0.00s)
 === RUN   TestScenarioA_StandardClosedLoop
-2026/11/19 16:17:24 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
-2026/11/19 16:17:24 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339
-2026/11/19 16:17:24 [DB] Connected to database 'tuneloop_test_verify2339'
+2026/11/19 16:19:45 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
+2026/11/19 16:19:45 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339
+2026/11/19 16:19:45 [DB] Connected to database 'tuneloop_test_verify2339'
 
-2026/11/19 16:17:25 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
-[0m[31;1m[621.919ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/19 16:19:46 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[638.727ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
 === RUN   TestScenarioA_StandardClosedLoop/A3_Pay
-2026/11/19 16:17:26 [TenantScope][observe] auto-scope injected for table=orders (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 16:19:46 [TenantScope][observe] auto-scope injected for table=orders (add explicit scope, then set ExplicitTenantScopeOnly)
 === RUN   TestScenarioA_StandardClosedLoop/A4_Ship
-2026/11/19 16:17:26 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
-2026/11/19 16:17:26 [TenantScope][observe] auto-scope injected for table=forwarding_sessions (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 16:19:46 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 16:19:46 [TenantScope][observe] auto-scope injected for table=forwarding_sessions (add explicit scope, then set ExplicitTenantScopeOnly)
 
-2026/11/19 16:17:26 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:212 [35;1mrecord not found
-[0m[33m[1.544ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE (order_id = 'b44f3580-f1cd-4430-aac6-738d7c447cde' AND direction = 'outbound' AND status = 'pending') AND "forwarding_sessions"."tenant_id" = '1faaf2a6-fa2c-40a0-9bdd-fa9429701211' ORDER BY "forwarding_sessions"."id" LIMIT 1
-2026/11/19 16:17:26 [TenantScope][observe] auto-scope injected for table=order_payment_records (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 16:19:46 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:212 [35;1mrecord not found
+[0m[33m[1.524ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE (order_id = '05184f7b-731f-4aad-b698-9f0d98f86b39' AND direction = 'outbound' AND status = 'pending') AND "forwarding_sessions"."tenant_id" = 'f7ba3bcf-15fb-4c92-9b64-3b48bdb1ccb4' ORDER BY "forwarding_sessions"."id" LIMIT 1
+2026/11/19 16:19:46 [TenantScope][observe] auto-scope injected for table=order_payment_records (add explicit scope, then set ExplicitTenantScopeOnly)
 
-2026/11/19 16:17:26 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:1030 [35;1mrecord not found
-[0m[33m[2.331ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = 'b44f3580-f1cd-4430-aac6-738d7c447cde' AND status = 'paid') AND "order_payment_records"."tenant_id" = '1faaf2a6-fa2c-40a0-9bdd-fa9429701211' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
-2026/11/19 16:17:26 [WechatShipping] no paid payment record for order b44f3580-f1cd-4430-aac6-738d7c447cde: record not found
+2026/11/19 16:19:46 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:1030 [35;1mrecord not found
+[0m[33m[2.384ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = '05184f7b-731f-4aad-b698-9f0d98f86b39' AND status = 'paid') AND "order_payment_records"."tenant_id" = 'f7ba3bcf-15fb-4c92-9b64-3b48bdb1ccb4' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
+2026/11/19 16:19:46 [WechatShipping] no paid payment record for order 05184f7b-731f-4aad-b698-9f0d98f86b39: record not found
 
-2026/11/19 16:17:26 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
-[0m[33m[1.555ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '1faaf2a6-fa2c-40a0-9bdd-fa9429701211' ORDER BY "merchants"."id" LIMIT 1
+2026/11/19 16:19:46 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.405ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = 'f7ba3bcf-15fb-4c92-9b64-3b48bdb1ccb4' ORDER BY "merchants"."id" LIMIT 1
 === RUN   TestScenarioA_StandardClosedLoop/A5_ConfirmDelivery
 
-2026/11/19 16:17:26 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:1059 [35;1mrecord not found
-[0m[33m[1.540ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = 'b44f3580-f1cd-4430-aac6-738d7c447cde' AND status = 'paid') AND "order_payment_records"."tenant_id" = '1faaf2a6-fa2c-40a0-9bdd-fa9429701211' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
-2026/11/19 16:17:26 [WechatShipping] no paid payment record for order b44f3580-f1cd-4430-aac6-738d7c447cde: record not found
+2026/11/19 16:19:46 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:1059 [35;1mrecord not found
+[0m[33m[1.691ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = '05184f7b-731f-4aad-b698-9f0d98f86b39' AND status = 'paid') AND "order_payment_records"."tenant_id" = 'f7ba3bcf-15fb-4c92-9b64-3b48bdb1ccb4' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
+2026/11/19 16:19:46 [WechatShipping] no paid payment record for order 05184f7b-731f-4aad-b698-9f0d98f86b39: record not found
 === RUN   TestScenarioA_StandardClosedLoop/A6_Return
-2026/11/19 16:17:26 [TenantScope][observe] auto-scope injected for table=damage_reports (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 16:19:46 [TenantScope][observe] auto-scope injected for table=damage_reports (add explicit scope, then set ExplicitTenantScopeOnly)
 
-2026/11/19 16:17:26 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:716 [35;1mrecord not found
-[0m[33m[1.438ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'b44f3580-f1cd-4430-aac6-738d7c447cde' AND "damage_reports"."tenant_id" = '1faaf2a6-fa2c-40a0-9bdd-fa9429701211' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+2026/11/19 16:19:46 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:716 [35;1mrecord not found
+[0m[33m[1.504ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '05184f7b-731f-4aad-b698-9f0d98f86b39' AND "damage_reports"."tenant_id" = 'f7ba3bcf-15fb-4c92-9b64-3b48bdb1ccb4' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
 
-2026/11/19 16:17:26 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:836 [35;1mrecord not found
-[0m[33m[1.309ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'b44f3580-f1cd-4430-aac6-738d7c447cde' AND "damage_reports"."tenant_id" = '1faaf2a6-fa2c-40a0-9bdd-fa9429701211' ORDER BY "damage_reports"."id" LIMIT 1
-2026/11/19 16:17:26 [computeSettlement] order b44f3580-f1cd-4430-aac6-738d7c447cde contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+2026/11/19 16:19:46 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:836 [35;1mrecord not found
+[0m[33m[2.505ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '05184f7b-731f-4aad-b698-9f0d98f86b39' AND "damage_reports"."tenant_id" = 'f7ba3bcf-15fb-4c92-9b64-3b48bdb1ccb4' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/19 16:19:46 [computeSettlement] order 05184f7b-731f-4aad-b698-9f0d98f86b39 contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
 
-2026/11/19 16:17:26 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
-[0m[33m[1.413ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/19 16:19:46 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.390ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
 === RUN   TestScenarioA_StandardClosedLoop/A7_InspectGood
 
-2026/11/19 16:17:26 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:325 [35;1mrecord not found
-[0m[33m[1.721ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = 'b44f3580-f1cd-4430-aac6-738d7c447cde' ORDER BY "settlements"."id" LIMIT 1
-2026/11/19 16:17:26 [computeSettlement] order b44f3580-f1cd-4430-aac6-738d7c447cde contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+2026/11/19 16:19:46 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:325 [35;1mrecord not found
+[0m[33m[1.670ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '05184f7b-731f-4aad-b698-9f0d98f86b39' ORDER BY "settlements"."id" LIMIT 1
+2026/11/19 16:19:46 [computeSettlement] order 05184f7b-731f-4aad-b698-9f0d98f86b39 contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
 
-2026/11/19 16:17:26 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
-[0m[33m[1.345ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/19 16:19:46 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.304ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
 
-2026/11/19 16:17:26 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
-[0m[33m[1.643ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '9a6d21e3-ba5f-465b-a85a-f75a9a932346' ORDER BY "referrals"."id" LIMIT 1
-2026/11/19 16:17:26 [TenantScope][observe] auto-scope injected for table=instruments (add explicit scope, then set ExplicitTenantScopeOnly)
-2026/11/19 16:17:26 [TenantScope][observe] auto-scope injected for table=order_refund_records (add explicit scope, then set ExplicitTenantScopeOnly)
---- PASS: TestScenarioA_StandardClosedLoop (1.33s)
+2026/11/19 16:19:46 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.670ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'd12f4363-6980-4c93-b700-e3f77d826e8e' ORDER BY "referrals"."id" LIMIT 1
+2026/11/19 16:19:46 [TenantScope][observe] auto-scope injected for table=instruments (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 16:19:46 [TenantScope][observe] auto-scope injected for table=order_refund_records (add explicit scope, then set ExplicitTenantScopeOnly)
+--- PASS: TestScenarioA_StandardClosedLoop (1.35s)
     --- PASS: TestScenarioA_StandardClosedLoop/A3_Pay (0.01s)
     --- PASS: TestScenarioA_StandardClosedLoop/A4_Ship (0.03s)
     --- PASS: TestScenarioA_StandardClosedLoop/A5_ConfirmDelivery (0.04s)
-    --- PASS: TestScenarioA_StandardClosedLoop/A6_Return (0.05s)
-    --- PASS: TestScenarioA_StandardClosedLoop/A7_InspectGood (0.09s)
+    --- PASS: TestScenarioA_StandardClosedLoop/A6_Return (0.06s)
+    --- PASS: TestScenarioA_StandardClosedLoop/A7_InspectGood (0.10s)
 === RUN   TestScenarioC_CancelBoundary
 
-2026/11/19 16:17:27 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
-[0m[31;1m[598.319ms] [33m[rows:0][35m TRUNCATE TABLE "audit_logs", "damage_reports", "instrument_media", "instruments", "notifications", "order_logs", "order_status_history", "orders", "pricing_templates", "settlements", "sites", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/19 16:19:47 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[597.181ms] [33m[rows:0][35m TRUNCATE TABLE "audit_logs", "damage_reports", "instrument_media", "instruments", "notifications", "order_logs", "order_status_history", "orders", "pricing_templates", "settlements", "sites", "tenants", "users" RESTART IDENTITY CASCADE[0m
 === RUN   TestScenarioC_CancelBoundary/C1_CancelReserved
 === RUN   TestScenarioC_CancelBoundary/C2_CancelPaid
 === RUN   TestScenarioC_CancelBoundary/C3_CannotCancelShipped
 
-2026/11/19 16:17:27 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:212 [35;1mrecord not found
-[0m[33m[1.432ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE (order_id = '536478e2-6c23-4f50-a5ca-2f484bd69aa9' AND direction = 'outbound' AND status = 'pending') AND "forwarding_sessions"."tenant_id" = '4669052f-5b94-46d2-9344-338915046e55' ORDER BY "forwarding_sessions"."id" LIMIT 1
+2026/11/19 16:19:48 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:212 [35;1mrecord not found
+[0m[33m[1.725ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE (order_id = 'd41d9c04-2bfa-47e7-805f-1448ccb6eb73' AND direction = 'outbound' AND status = 'pending') AND "forwarding_sessions"."tenant_id" = 'daff68fb-5920-46bd-a554-a331951c1c04' ORDER BY "forwarding_sessions"."id" LIMIT 1
 
-2026/11/19 16:17:27 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:1030 [35;1mrecord not found
-[0m[33m[1.459ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = '536478e2-6c23-4f50-a5ca-2f484bd69aa9' AND status = 'paid') AND "order_payment_records"."tenant_id" = '4669052f-5b94-46d2-9344-338915046e55' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
-2026/11/19 16:17:27 [WechatShipping] no paid payment record for order 536478e2-6c23-4f50-a5ca-2f484bd69aa9: record not found
+2026/11/19 16:19:48 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:1030 [35;1mrecord not found
+[0m[33m[2.650ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = 'd41d9c04-2bfa-47e7-805f-1448ccb6eb73' AND status = 'paid') AND "order_payment_records"."tenant_id" = 'daff68fb-5920-46bd-a554-a331951c1c04' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
+2026/11/19 16:19:48 [WechatShipping] no paid payment record for order d41d9c04-2bfa-47e7-805f-1448ccb6eb73: record not found
 
-2026/11/19 16:17:27 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
-[0m[33m[1.453ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '4669052f-5b94-46d2-9344-338915046e55' ORDER BY "merchants"."id" LIMIT 1
+2026/11/19 16:19:48 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.706ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = 'daff68fb-5920-46bd-a554-a331951c1c04' ORDER BY "merchants"."id" LIMIT 1
 === RUN   TestScenarioC_CancelBoundary/C4_CannotShipFromAvailable
---- PASS: TestScenarioC_CancelBoundary (1.05s)
+--- PASS: TestScenarioC_CancelBoundary (1.10s)
     --- PASS: TestScenarioC_CancelBoundary/C1_CancelReserved (0.02s)
-    --- PASS: TestScenarioC_CancelBoundary/C2_CancelPaid (0.02s)
-    --- PASS: TestScenarioC_CancelBoundary/C3_CannotCancelShipped (0.05s)
-    --- PASS: TestScenarioC_CancelBoundary/C4_CannotShipFromAvailable (0.01s)
+    --- PASS: TestScenarioC_CancelBoundary/C2_CancelPaid (0.03s)
+    --- PASS: TestScenarioC_CancelBoundary/C3_CannotCancelShipped (0.06s)
+    --- PASS: TestScenarioC_CancelBoundary/C4_CannotShipFromAvailable (0.02s)
 === RUN   TestScenarioA_DamageVariant
 
-2026/11/19 16:17:28 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
-[0m[31;1m[496.187ms] [33m[rows:0][35m TRUNCATE TABLE "instruments", "order_logs", "order_status_history", "orders", "pricing_templates", "sites", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/19 16:19:48 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[508.882ms] [33m[rows:0][35m TRUNCATE TABLE "instruments", "order_logs", "order_status_history", "orders", "pricing_templates", "sites", "tenants", "users" RESTART IDENTITY CASCADE[0m
 
-2026/11/19 16:17:28 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:212 [35;1mrecord not found
-[0m[33m[1.487ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE (order_id = 'c0313753-bbe7-41b5-b0b4-494e9565b265' AND direction = 'outbound' AND status = 'pending') AND "forwarding_sessions"."tenant_id" = '6ec32b6f-c84a-4481-9ca9-946588ba598c' ORDER BY "forwarding_sessions"."id" LIMIT 1
-2026/11/19 16:17:28 [WechatShipping] order c0313753-bbe7-41b5-b0b4-494e9565b265 has no out_trade_no
+2026/11/19 16:19:49 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:212 [35;1mrecord not found
+[0m[33m[1.432ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE (order_id = '574505dc-56ad-4c67-b017-83112475e5f5' AND direction = 'outbound' AND status = 'pending') AND "forwarding_sessions"."tenant_id" = '03ca0e8b-ff23-4c48-8ec7-04431233f05d' ORDER BY "forwarding_sessions"."id" LIMIT 1
+2026/11/19 16:19:49 [WechatShipping] order 574505dc-56ad-4c67-b017-83112475e5f5 has no out_trade_no
 
-2026/11/19 16:17:28 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
-[0m[33m[1.359ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '6ec32b6f-c84a-4481-9ca9-946588ba598c' ORDER BY "merchants"."id" LIMIT 1
-2026/11/19 16:17:28 [Ledger] cash_paid(0) != ledger net(50000) for order c0313753-bbe7-41b5-b0b4-494e9565b265, using ledger
+2026/11/19 16:19:49 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.382ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '03ca0e8b-ff23-4c48-8ec7-04431233f05d' ORDER BY "merchants"."id" LIMIT 1
+2026/11/19 16:19:49 [Ledger] cash_paid(0) != ledger net(50000) for order 574505dc-56ad-4c67-b017-83112475e5f5, using ledger
 
-2026/11/19 16:17:28 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:716 [35;1mrecord not found
-[0m[33m[1.427ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'c0313753-bbe7-41b5-b0b4-494e9565b265' AND "damage_reports"."tenant_id" = '6ec32b6f-c84a-4481-9ca9-946588ba598c' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+2026/11/19 16:19:49 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:716 [35;1mrecord not found
+[0m[33m[1.502ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '574505dc-56ad-4c67-b017-83112475e5f5' AND "damage_reports"."tenant_id" = '03ca0e8b-ff23-4c48-8ec7-04431233f05d' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
 
-2026/11/19 16:17:28 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:836 [35;1mrecord not found
-[0m[33m[1.503ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'c0313753-bbe7-41b5-b0b4-494e9565b265' AND "damage_reports"."tenant_id" = '6ec32b6f-c84a-4481-9ca9-946588ba598c' ORDER BY "damage_reports"."id" LIMIT 1
-2026/11/19 16:17:28 [computeSettlement] order c0313753-bbe7-41b5-b0b4-494e9565b265 contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+2026/11/19 16:19:49 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:836 [35;1mrecord not found
+[0m[33m[1.500ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '574505dc-56ad-4c67-b017-83112475e5f5' AND "damage_reports"."tenant_id" = '03ca0e8b-ff23-4c48-8ec7-04431233f05d' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/19 16:19:49 [computeSettlement] order 574505dc-56ad-4c67-b017-83112475e5f5 contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
 
-2026/11/19 16:17:28 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
-[0m[33m[1.345ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/19 16:19:49 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.323ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
 === RUN   TestScenarioA_DamageVariant/A7_InspectDamaged
-2026/11/19 16:17:28 [TenantScope][observe] auto-scope injected for table=site_members (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 16:19:49 [TenantScope][observe] auto-scope injected for table=site_members (add explicit scope, then set ExplicitTenantScopeOnly)
 === RUN   TestScenarioA_DamageVariant/A8_AcceptDamage
 
-2026/11/19 16:17:28 [31;1m/home/coder/tuneloop/backend/handlers/damage_refund.go:35 [35;1mrecord not found
-[0m[33m[1.930ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = 'c0313753-bbe7-41b5-b0b4-494e9565b265' ORDER BY created_at DESC,"settlements"."id" LIMIT 1
-2026/11/19 16:17:28 [Ledger] cash_paid(0) != ledger net(50000) for order c0313753-bbe7-41b5-b0b4-494e9565b265, using ledger
-2026/11/19 16:17:28 [computeSettlement] order c0313753-bbe7-41b5-b0b4-494e9565b265 contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+2026/11/19 16:19:49 [31;1m/home/coder/tuneloop/backend/handlers/damage_refund.go:35 [35;1mrecord not found
+[0m[33m[2.554ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '574505dc-56ad-4c67-b017-83112475e5f5' ORDER BY created_at DESC,"settlements"."id" LIMIT 1
+2026/11/19 16:19:49 [Ledger] cash_paid(0) != ledger net(50000) for order 574505dc-56ad-4c67-b017-83112475e5f5, using ledger
+2026/11/19 16:19:49 [computeSettlement] order 574505dc-56ad-4c67-b017-83112475e5f5 contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
 
-2026/11/19 16:17:28 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
-[0m[33m[1.314ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
---- PASS: TestScenarioA_DamageVariant (1.10s)
+2026/11/19 16:19:49 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.318ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestScenarioA_DamageVariant (1.15s)
     --- PASS: TestScenarioA_DamageVariant/A7_InspectDamaged (0.04s)
     --- PASS: TestScenarioA_DamageVariant/A8_AcceptDamage (0.05s)
 === RUN   TestScenarioA_RejectDamageVariant
 
-2026/11/19 16:17:29 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
-[0m[31;1m[621.144ms] [33m[rows:0][35m TRUNCATE TABLE "audit_logs", "damage_reports", "instrument_media", "instruments", "notifications", "order_logs", "order_payment_records", "order_status_history", "orders", "pricing_templates", "sites", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/19 16:19:50 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[626.021ms] [33m[rows:0][35m TRUNCATE TABLE "audit_logs", "damage_reports", "instrument_media", "instruments", "notifications", "order_logs", "order_payment_records", "order_status_history", "orders", "pricing_templates", "sites", "tenants", "users" RESTART IDENTITY CASCADE[0m
 
-2026/11/19 16:17:29 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:212 [35;1mrecord not found
-[0m[33m[1.446ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE (order_id = '31b4e0cc-46a7-4ffc-b304-754048faf772' AND direction = 'outbound' AND status = 'pending') AND "forwarding_sessions"."tenant_id" = '97b8cf50-204f-442a-ae86-402b68bb70b0' ORDER BY "forwarding_sessions"."id" LIMIT 1
+2026/11/19 16:19:50 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:212 [35;1mrecord not found
+[0m[33m[1.465ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE (order_id = 'c39fe19b-437b-4cb9-9c2c-42e1328c5e04' AND direction = 'outbound' AND status = 'pending') AND "forwarding_sessions"."tenant_id" = 'a507cb59-3488-4d35-a2ab-e247333baeb6' ORDER BY "forwarding_sessions"."id" LIMIT 1
 
-2026/11/19 16:17:29 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:1030 [35;1mrecord not found
-[0m[33m[2.148ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = '31b4e0cc-46a7-4ffc-b304-754048faf772' AND status = 'paid') AND "order_payment_records"."tenant_id" = '97b8cf50-204f-442a-ae86-402b68bb70b0' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
-2026/11/19 16:17:29 [WechatShipping] no paid payment record for order 31b4e0cc-46a7-4ffc-b304-754048faf772: record not found
+2026/11/19 16:19:50 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:1030 [35;1mrecord not found
+[0m[33m[2.339ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = 'c39fe19b-437b-4cb9-9c2c-42e1328c5e04' AND status = 'paid') AND "order_payment_records"."tenant_id" = 'a507cb59-3488-4d35-a2ab-e247333baeb6' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
+2026/11/19 16:19:50 [WechatShipping] no paid payment record for order c39fe19b-437b-4cb9-9c2c-42e1328c5e04: record not found
 
-2026/11/19 16:17:29 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
-[0m[33m[1.464ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '97b8cf50-204f-442a-ae86-402b68bb70b0' ORDER BY "merchants"."id" LIMIT 1
+2026/11/19 16:19:50 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.339ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = 'a507cb59-3488-4d35-a2ab-e247333baeb6' ORDER BY "merchants"."id" LIMIT 1
 
-2026/11/19 16:17:29 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:1059 [35;1mrecord not found
-[0m[33m[1.483ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = '31b4e0cc-46a7-4ffc-b304-754048faf772' AND status = 'paid') AND "order_payment_records"."tenant_id" = '97b8cf50-204f-442a-ae86-402b68bb70b0' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
-2026/11/19 16:17:29 [WechatShipping] no paid payment record for order 31b4e0cc-46a7-4ffc-b304-754048faf772: record not found
+2026/11/19 16:19:50 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:1059 [35;1mrecord not found
+[0m[33m[1.498ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = 'c39fe19b-437b-4cb9-9c2c-42e1328c5e04' AND status = 'paid') AND "order_payment_records"."tenant_id" = 'a507cb59-3488-4d35-a2ab-e247333baeb6' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
+2026/11/19 16:19:50 [WechatShipping] no paid payment record for order c39fe19b-437b-4cb9-9c2c-42e1328c5e04: record not found
 
-2026/11/19 16:17:29 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:716 [35;1mrecord not found
-[0m[33m[2.001ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '31b4e0cc-46a7-4ffc-b304-754048faf772' AND "damage_reports"."tenant_id" = '97b8cf50-204f-442a-ae86-402b68bb70b0' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+2026/11/19 16:19:50 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:716 [35;1mrecord not found
+[0m[33m[1.859ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'c39fe19b-437b-4cb9-9c2c-42e1328c5e04' AND "damage_reports"."tenant_id" = 'a507cb59-3488-4d35-a2ab-e247333baeb6' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
 
-2026/11/19 16:17:29 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:836 [35;1mrecord not found
-[0m[33m[1.416ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '31b4e0cc-46a7-4ffc-b304-754048faf772' AND "damage_reports"."tenant_id" = '97b8cf50-204f-442a-ae86-402b68bb70b0' ORDER BY "damage_reports"."id" LIMIT 1
-2026/11/19 16:17:29 [computeSettlement] order 31b4e0cc-46a7-4ffc-b304-754048faf772 contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+2026/11/19 16:19:50 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:836 [35;1mrecord not found
+[0m[33m[1.422ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'c39fe19b-437b-4cb9-9c2c-42e1328c5e04' AND "damage_reports"."tenant_id" = 'a507cb59-3488-4d35-a2ab-e247333baeb6' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/19 16:19:50 [computeSettlement] order c39fe19b-437b-4cb9-9c2c-42e1328c5e04 contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
 
-2026/11/19 16:17:29 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
-[0m[33m[1.339ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/19 16:19:50 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.307ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
 === RUN   TestScenarioA_RejectDamageVariant/InspectDamaged
 === RUN   TestScenarioA_RejectDamageVariant/RejectDamage
---- PASS: TestScenarioA_RejectDamageVariant (1.17s)
+--- PASS: TestScenarioA_RejectDamageVariant (1.23s)
     --- PASS: TestScenarioA_RejectDamageVariant/InspectDamaged (0.04s)
     --- PASS: TestScenarioA_RejectDamageVariant/RejectDamage (0.04s)
 PASS
-ok  	tuneloop-backend/handlers	5.343s
+ok  	tuneloop-backend/handlers	5.423s

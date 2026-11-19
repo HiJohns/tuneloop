@@ -1,35 +1,35 @@
-# build=1.0.5548a0040 commit=5548a00404f31029fddddda018cc47cab67613ca dirty=true
+# build=1.0.b70f96eb3 commit=b70f96eb3b80b4d18a873ef2dd4eaa95c1bf7add dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/19 16:17:12 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
-2026/11/19 16:17:12 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339
-2026/11/19 16:17:12 [DB] Connected to database 'tuneloop_test_verify2339'
+2026/11/19 16:19:32 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
+2026/11/19 16:19:32 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339
+2026/11/19 16:19:32 [DB] Connected to database 'tuneloop_test_verify2339'
 === RUN   TestInspectReturn_Good_ExecutesRefund
-2026/11/19 16:17:12 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
-2026/11/19 16:17:12 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339
-2026/11/19 16:17:12 [DB] Connected to database 'tuneloop_test_verify2339'
+2026/11/19 16:19:33 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
+2026/11/19 16:19:33 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339
+2026/11/19 16:19:33 [DB] Connected to database 'tuneloop_test_verify2339'
 
-2026/11/19 16:17:14 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
-[0m[31;1m[621.374ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-2026/11/19 16:17:14 [TenantScope][observe] auto-scope injected for table=orders (add explicit scope, then set ExplicitTenantScopeOnly)
-2026/11/19 16:17:14 [TenantScope][observe] auto-scope injected for table=order_payment_records (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 16:19:34 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[595.089ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/19 16:19:34 [TenantScope][observe] auto-scope injected for table=orders (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 16:19:34 [TenantScope][observe] auto-scope injected for table=order_payment_records (add explicit scope, then set ExplicitTenantScopeOnly)
 
-2026/11/19 16:17:14 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:325 [35;1mrecord not found
-[0m[33m[1.740ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '8d04fb9b-2f7b-481d-ade4-f7b33ebd40f1' ORDER BY "settlements"."id" LIMIT 1
-2026/11/19 16:17:14 [TenantScope][observe] auto-scope injected for table=instruments (add explicit scope, then set ExplicitTenantScopeOnly)
-2026/11/19 16:17:14 [TenantScope][observe] auto-scope injected for table=damage_reports (add explicit scope, then set ExplicitTenantScopeOnly)
-2026/11/19 16:17:14 [computeSettlement] order 8d04fb9b-2f7b-481d-ade4-f7b33ebd40f1 contract days unresolvable (lease_term=12, rent_days-derived=0) — segment model skipped, falling back to #1743
-2026/11/19 16:17:14 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 16:19:34 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:325 [35;1mrecord not found
+[0m[33m[1.709ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '762887ba-65d8-4182-bbdf-da667f559a1b' ORDER BY "settlements"."id" LIMIT 1
+2026/11/19 16:19:34 [TenantScope][observe] auto-scope injected for table=instruments (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 16:19:34 [TenantScope][observe] auto-scope injected for table=damage_reports (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 16:19:34 [computeSettlement] order 762887ba-65d8-4182-bbdf-da667f559a1b contract days unresolvable (lease_term=12, rent_days-derived=0) — segment model skipped, falling back to #1743
+2026/11/19 16:19:34 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
 
-2026/11/19 16:17:14 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
-[0m[33m[1.454ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
-2026/11/19 16:17:14 [executeRefund] refund failed for order 8d04fb9b-2f7b-481d-ade4-f7b33ebd40f1: wechatpay client not initialized
+2026/11/19 16:19:34 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.441ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/19 16:19:34 [executeRefund] refund failed for order 762887ba-65d8-4182-bbdf-da667f559a1b: wechatpay client not initialized
 
-2026/11/19 16:17:14 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
-[0m[33m[1.698ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '643315b5-f0f6-493f-84d3-fbfa1825a80f' ORDER BY "referrals"."id" LIMIT 1
-2026/11/19 16:17:14 [TenantScope][observe] auto-scope injected for table=order_refund_records (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 16:19:34 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.685ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'c0083e72-69c7-41cb-bb53-6a00eb25dc8b' ORDER BY "referrals"."id" LIMIT 1
+2026/11/19 16:19:34 [TenantScope][observe] auto-scope injected for table=order_refund_records (add explicit scope, then set ExplicitTenantScopeOnly)
 
-2026/11/19 16:17:14 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:518 [35;1mrecord not found
-[0m[33m[1.499ms] [34;1m[rows:0][0m SELECT * FROM "orders" WHERE (id = '8d04fb9b-2f7b-481d-ade4-f7b33ebd40f1' AND tenant_id = '020c95ef-983d-47e8-b485-99d4bb99032d' AND status = 'returning') AND "orders"."tenant_id" = '020c95ef-983d-47e8-b485-99d4bb99032d' ORDER BY "orders"."id" LIMIT 1
---- PASS: TestInspectReturn_Good_ExecutesRefund (1.22s)
+2026/11/19 16:19:34 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:518 [35;1mrecord not found
+[0m[33m[1.481ms] [34;1m[rows:0][0m SELECT * FROM "orders" WHERE (id = '762887ba-65d8-4182-bbdf-da667f559a1b' AND tenant_id = '983ed88d-c4ad-4bc2-8ba3-19f039a28b2f' AND status = 'returning') AND "orders"."tenant_id" = '983ed88d-c4ad-4bc2-8ba3-19f039a28b2f' ORDER BY "orders"."id" LIMIT 1
+--- PASS: TestInspectReturn_Good_ExecutesRefund (1.20s)
 PASS
-ok  	tuneloop-backend/handlers	1.839s
+ok  	tuneloop-backend/handlers	1.762s

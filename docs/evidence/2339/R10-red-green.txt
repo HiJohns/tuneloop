@@ -1,4 +1,4 @@
-# build=1.0.5548a0040 commit=5548a00404f31029fddddda018cc47cab67613ca dirty=true
+# build=1.0.b70f96eb3 commit=b70f96eb3b80b4d18a873ef2dd4eaa95c1bf7add dirty=false
 # fix=db76582f4 red=db76582f4^
 
 === RED: C4_CannotShipFromAvailable @ db76582f4^ (exit=1) ===
@@ -6,10 +6,10 @@
         	            	expected: 400
         	            	actual  : 200
         	Test:       	TestScenarioC_CancelBoundary/C4_CannotShipFromAvailable
---- FAIL: TestScenarioC_CancelBoundary (1.16s)
-    --- FAIL: TestScenarioC_CancelBoundary/C4_CannotShipFromAvailable (0.04s)
+--- FAIL: TestScenarioC_CancelBoundary (1.31s)
+    --- FAIL: TestScenarioC_CancelBoundary/C4_CannotShipFromAvailable (0.08s)
 FAIL
-FAIL	tuneloop-backend/handlers	1.780s
+FAIL	tuneloop-backend/handlers	2.158s
 FAIL
 
 === RED: TestSettlementFlow @ db76582f4^ (exit=1) ===
@@ -21,18 +21,18 @@ FAIL
         	            	expected: 350000
         	            	actual  : 300000
         	Messages:   	rent 3000 + deposit 500 (no points, no discount)
-2026/11/19 16:18:30 [WechatShipping] upload attempt 1/2 failed for rent order 6823850a-3bfa-49ae-83a2-4b443b53eed9 (out_trade_no=mock4cc10b78-f422-40a1-b transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
-2026/11/19 16:18:30 [WechatShipping] upload attempt 2/2 failed for rent order 6823850a-3bfa-49ae-83a2-4b443b53eed9 (out_trade_no=mock4cc10b78-f422-40a1-b transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
-2026/11/19 16:18:30 [WechatShipping] upload_shipping_info gave up after 2 attempts for rent order 6823850a-3bfa-49ae-83a2-4b443b53eed9 (out_trade_no=mock4cc10b78-f422-40a1-b transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
---- FAIL: TestSettlementFlow (16.40s)
+2026/11/19 16:20:47 [WechatShipping] upload attempt 1/2 failed for rent order 59308825-03e3-4ade-905b-d24db0a01d49 (out_trade_no=mockd678fced-d0c5-4af3-8 transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
+2026/11/19 16:20:47 [WechatShipping] upload attempt 2/2 failed for rent order 59308825-03e3-4ade-905b-d24db0a01d49 (out_trade_no=mockd678fced-d0c5-4af3-8 transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
+2026/11/19 16:20:47 [WechatShipping] upload_shipping_info gave up after 2 attempts for rent order 59308825-03e3-4ade-905b-d24db0a01d49 (out_trade_no=mockd678fced-d0c5-4af3-8 transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
+--- FAIL: TestSettlementFlow (16.38s)
 FAIL
-FAIL	tuneloop-backend/handlers	17.069s
+FAIL	tuneloop-backend/handlers	17.068s
 FAIL
 
-=== GREEN: C4_CannotShipFromAvailable @ 5548a00404f31029fddddda018cc47cab67613ca (exit=0) ===
---- PASS: TestScenarioC_CancelBoundary (1.09s)
-ok  	tuneloop-backend/handlers	1.730s
+=== GREEN: C4_CannotShipFromAvailable @ b70f96eb3b80b4d18a873ef2dd4eaa95c1bf7add (exit=0) ===
+--- PASS: TestScenarioC_CancelBoundary (1.10s)
+ok  	tuneloop-backend/handlers	1.819s
 
-=== GREEN: TestSettlementFlow @ 5548a00404f31029fddddda018cc47cab67613ca (exit=0) ===
---- PASS: TestSettlementFlow (16.37s)
-ok  	tuneloop-backend/handlers	16.983s
+=== GREEN: TestSettlementFlow @ b70f96eb3b80b4d18a873ef2dd4eaa95c1bf7add (exit=0) ===
+--- PASS: TestSettlementFlow (16.51s)
+ok  	tuneloop-backend/handlers	17.243s

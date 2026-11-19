@@ -1,15 +1,15 @@
-# build=1.0.5548a0040 commit=5548a00404f31029fddddda018cc47cab67613ca dirty=true
+# build=1.0.b70f96eb3 commit=b70f96eb3b80b4d18a873ef2dd4eaa95c1bf7add dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/19 16:17:56 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
-2026/11/19 16:17:56 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339
-2026/11/19 16:17:56 [DB] Connected to database 'tuneloop_test_verify2339'
+2026/11/19 16:20:15 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
+2026/11/19 16:20:16 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339
+2026/11/19 16:20:16 [DB] Connected to database 'tuneloop_test_verify2339'
 === RUN   TestGetUserInstrumentDetail
-2026/11/19 16:17:56 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
-2026/11/19 16:17:56 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339
-2026/11/19 16:17:56 [DB] Connected to database 'tuneloop_test_verify2339'
+2026/11/19 16:20:16 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
+2026/11/19 16:20:16 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339
+2026/11/19 16:20:16 [DB] Connected to database 'tuneloop_test_verify2339'
 
-2026/11/19 16:17:57 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
-[0m[31;1m[609.901ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
---- PASS: TestGetUserInstrumentDetail (1.05s)
+2026/11/19 16:20:17 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[624.585ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+--- PASS: TestGetUserInstrumentDetail (1.39s)
 PASS
-ok  	tuneloop-backend/handlers	1.672s
+ok  	tuneloop-backend/handlers	2.174s

@@ -1,42 +1,42 @@
-# build=1.0.5548a0040 commit=5548a00404f31029fddddda018cc47cab67613ca dirty=true
+# build=1.0.b70f96eb3 commit=b70f96eb3b80b4d18a873ef2dd4eaa95c1bf7add dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/19 16:17:00 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
-2026/11/19 16:17:01 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339
-2026/11/19 16:17:01 [DB] Connected to database 'tuneloop_test_verify2339'
+2026/11/19 16:19:21 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
+2026/11/19 16:19:21 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339
+2026/11/19 16:19:21 [DB] Connected to database 'tuneloop_test_verify2339'
 === RUN   TestBatchCreateOrder_RentDaysOverridesEndDate
-2026/11/19 16:17:01 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
-2026/11/19 16:17:01 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339
-2026/11/19 16:17:01 [DB] Connected to database 'tuneloop_test_verify2339'
+2026/11/19 16:19:21 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
+2026/11/19 16:19:21 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339
+2026/11/19 16:19:21 [DB] Connected to database 'tuneloop_test_verify2339'
 
-2026/11/19 16:17:02 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
-[0m[31;1m[561.375ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/19 16:19:23 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[604.674ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
 
-2026/11/19 16:17:02 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1107 [35;1mrecord not found
-[0m[33m[1.782ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '7c4265f7-c2f8-44c0-8da7-df4fb3fa288f' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+2026/11/19 16:19:23 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1107 [35;1mrecord not found
+[0m[33m[1.638ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = 'cacfbefa-171e-4d37-afae-fe7a21cbcb19' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
 
-2026/11/19 16:17:02 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1716 [35;1mrecord not found
-[0m[33m[3.742ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '7c4265f7-c2f8-44c0-8da7-df4fb3fa288f' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+2026/11/19 16:19:23 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1716 [35;1mrecord not found
+[0m[33m[3.617ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = 'cacfbefa-171e-4d37-afae-fe7a21cbcb19' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
 
-2026/11/19 16:17:02 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1724 [35;1mrecord not found
-[0m[33m[3.020ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
+2026/11/19 16:19:23 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1724 [35;1mrecord not found
+[0m[33m[2.838ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
 
-2026/11/19 16:17:02 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
-[0m[33m[2.146ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/19 16:19:23 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.968ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
 
-2026/11/19 16:17:02 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
-[0m[33m[1.973ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '9ef09a03-14bb-44cd-81a1-2ac61df75a53' ORDER BY "referrals"."id" LIMIT 1
+2026/11/19 16:19:23 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[2.254ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'f24e2cff-0629-4957-8281-fc6b020b3bf1' ORDER BY "referrals"."id" LIMIT 1
 
-2026/11/19 16:17:02 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1716 [35;1mrecord not found
-[0m[33m[1.293ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '7c4265f7-c2f8-44c0-8da7-df4fb3fa288f' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+2026/11/19 16:19:23 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1716 [35;1mrecord not found
+[0m[33m[1.388ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = 'cacfbefa-171e-4d37-afae-fe7a21cbcb19' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
 
-2026/11/19 16:17:02 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1724 [35;1mrecord not found
-[0m[33m[1.291ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
+2026/11/19 16:19:23 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1724 [35;1mrecord not found
+[0m[33m[1.401ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
 
-2026/11/19 16:17:02 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
-[0m[33m[1.390ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/19 16:19:23 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.404ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
 
-2026/11/19 16:17:02 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
-[0m[33m[1.389ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '9ef09a03-14bb-44cd-81a1-2ac61df75a53' ORDER BY "referrals"."id" LIMIT 1
---- PASS: TestBatchCreateOrder_RentDaysOverridesEndDate (1.10s)
+2026/11/19 16:19:23 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.349ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'f24e2cff-0629-4957-8281-fc6b020b3bf1' ORDER BY "referrals"."id" LIMIT 1
+--- PASS: TestBatchCreateOrder_RentDaysOverridesEndDate (1.22s)
 PASS
-ok  	tuneloop-backend/handlers	1.933s
+ok  	tuneloop-backend/handlers	1.820s

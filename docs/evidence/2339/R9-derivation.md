@@ -1,4 +1,4 @@
-# build=1.0.5548a0040 commit=5548a00404f31029fddddda018cc47cab67613ca dirty=true
+# build=1.0.b70f96eb3 commit=b70f96eb3b80b4d18a873ef2dd4eaa95c1bf7add dirty=false
 # R9 — #2339 R4 退款断言逐值推导（rent / deposit / points）
 
 > 权威裁定：#2339 Rev.5 D1 —— 本单以**当前实现（#1743/#1836 段模型）**为准并逐值推导；
