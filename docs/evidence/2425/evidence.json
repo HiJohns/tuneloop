@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "issue": 2425,
+  "build": "1.0.9164d63ae",
+  "commit": "9164d63ae92ebc72837f7ac2d874023aa4b5347b",
+  "dirty": false,
+  "environment": "backend services tests + frontend-mobile vitest/smoke; fix commit 9164d63ae",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2425.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2425/R1-map-expired.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestWxAuthErrorExpiredToken_2425",
+      "actual": "PASS：invalid/expired exchange_token → status=401 code=40110",
+      "expected": "PASS",
+      "negative": "500 → FAIL",
+      "negative_result": "500/50000 即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2425.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2425/R2-map-existing.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestWxAuthErrorExistingMappings_2425",
+      "actual": "PASS：account not active 403 / wx_user_not_found 404 / invalid wechat code 400；未知 500",
+      "expected": "PASS",
+      "negative": "映射变化 → FAIL",
+      "negative_result": "任一 status 变化即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2425.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2425/R3-decision.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestAccountSelectRetryDecision_2425",
+      "actual": "PASS：40110 → refresh-and-retry；其它 → clear-and-fail",
+      "expected": "PASS",
+      "negative": "直接失败 → FAIL",
+      "negative_result": "误判即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2425.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2425/R4-clear.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestAccountSelectClearToken_2425",
+      "actual": "PASS：50000/空/未知 → clear-and-fail（清 token）",
+      "expected": "PASS",
+      "negative": "保留 → FAIL",
+      "negative_result": "保留 token 即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2425.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2425/R5-prefetch.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestAccountPrefetchFreshness_2425",
+      "actual": "PASS：<4min 新鲜；≥4min/0/空 过期",
+      "expected": "PASS",
+      "negative": "不过期 → FAIL",
+      "negative_result": "5min 仍判新鲜即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2425.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2425/R6-smoke.txt"
+      ],
+      "assert": "exit 0；0 failed",
+      "actual": "PASS：page-smoke 13 files / 68 tests 全部通过",
+      "expected": "PASS",
+      "negative": "失败 → FAIL",
+      "negative_result": "任一失败即 exit 1",
+      "pass": true
+    }
+  ]
+}

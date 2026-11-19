@@ -1,0 +1,13 @@
+# build=1.0.9164d63ae commit=9164d63ae92ebc72837f7ac2d874023aa4b5347b dirty=false
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /home/coder/tuneloop/frontend-mobile
+
+ ✓ scripts/page-smoke/account-select-token-2425.test.jsx (3 tests | 2 skipped) 43ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 2 skipped (3)
+   Start at  15:53:56
+   Duration  5.46s (transform 219ms, setup 151ms, collect 56ms, tests 43ms, environment 2.98s, prepare 1.03s)
+
+--- PASS: TestAccountPrefetchFreshness_2425
