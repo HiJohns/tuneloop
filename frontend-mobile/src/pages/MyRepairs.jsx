@@ -154,12 +154,20 @@ export default function MyRepairs() {
     let company = ''
     let number = ''
     if (env.isMiniProgram) {
-      const res = await Taro.showModal({ title: t('发回物流'), editable: true, placeholderText: t('输入物流公司') })
-      if (!res.confirm) return
-      company = res.content || ''
-      const res2 = await Taro.showModal({ title: t('发回物流'), editable: true, placeholderText: t('输入物流单号') })
-      if (!res2.confirm) return
-      number = res2.content || ''
+      company = (await dialog.showDialog({
+        type: 'editable',
+        title: t('发回物流'),
+        message: t('输入物流公司'),
+        placeholder: t('输入物流公司'),
+      })) || ''
+      if (!company) return
+      number = (await dialog.showDialog({
+        type: 'editable',
+        title: t('发回物流'),
+        message: t('输入物流单号'),
+        placeholder: t('输入物流单号'),
+      })) || ''
+      if (!number) return''
     } else {
       company = prompt('输入物流公司')
       if (!company) return

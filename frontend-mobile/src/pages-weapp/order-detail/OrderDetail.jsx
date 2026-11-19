@@ -271,16 +271,12 @@ export default function OrderDetail() {
     // #1724：补缴/退还按 refund 公式（damage − refund / refund − damage）
     const amt = Number(damage.damage_amount || 0)
     const rf = Number(damage.refund || 0)
-    const ok = await new Promise(resolve => {
-      Taro.showModal({
-        title: t('确认接受定损'),
-        content: amt > rf
-          ? `定损金额 ¥${formatCents(amt)}，应退 ¥${formatCents(rf)}，需补缴 ¥${formatCents((amt - rf))}`
-          : `定损金额 ¥${formatCents(amt)}，应退 ¥${formatCents(rf)}，将退还差额 ¥${formatCents((rf - amt))}`,
-        success: res => resolve(res.confirm),
-        fail: () => resolve(false),
-      })
-    })
+    const ok = await dialog.confirm(
+      amt > rf
+        ? `定损金额 ¥${formatCents(amt)}，应退 ¥${formatCents(rf)}，需补缴 ¥${formatCents((amt - rf))}`
+        : `定损金额 ¥${formatCents(amt)}，应退 ¥${formatCents(rf)}，将退还差额 ¥${formatCents((rf - amt))}`,
+      { title: t('确认接受定损') },
+    )
     if (!ok) return
     setActionLoading(true)
     try {
@@ -299,15 +295,12 @@ export default function OrderDetail() {
   }
 
   const handleDamageReject = async (damage) => {
-    const reason = await new Promise(resolve => {
-      Taro.showModal({
-        title: t('拒绝定损'),
-        editable: true,
-        placeholderText: t('请输入申诉原因'),
-        success: res => resolve(res.confirm ? (res.content || '') : ''),
-        fail: () => resolve(''),
-      })
-    })
+    const reason = (await dialog.showDialog({
+      type: 'editable',
+      title: t('拒绝定损'),
+      message: t('请输入申诉原因'),
+      placeholder: t('请输入申诉原因'),
+    })) || ''
     if (!reason) return
     setActionLoading(true)
     try {

@@ -154,8 +154,12 @@ export default function RepairRequestDetail() {
     try {
       let reason = ''
       if (env.isMiniProgram) {
-        const res = await Taro.showModal({ title: t('申诉'), editable: true, placeholderText: t('请输入申诉原因') })
-        reason = res.confirm ? (res.content || '') : ''
+        reason = (await dialog.showDialog({
+          type: 'editable',
+          title: t('申诉'),
+          message: t('请输入申诉原因'),
+          placeholder: t('请输入申诉原因'),
+        })) || ''
       } else {
         reason = prompt('请输入申诉原因')
       }

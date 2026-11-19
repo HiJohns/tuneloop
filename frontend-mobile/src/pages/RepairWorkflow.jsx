@@ -341,8 +341,12 @@ export default function RepairWorkflow() {
                 if (actionLoading) return
                 let reason = ''
                 if (env.isMiniProgram) {
-                  const res = await Taro.showModal({ title: t('验收不通过'), editable: true, placeholderText: t('请输入不通过原因') })
-                  reason = res.confirm ? (res.content || '') : ''
+                  reason = (await dialog.showDialog({
+                    type: 'editable',
+                    title: t('验收不通过'),
+                    message: t('请输入不通过原因'),
+                    placeholder: t('请输入不通过原因'),
+                  })) || ''
                 } else {
                   reason = prompt('请输入不通过原因')
                 }

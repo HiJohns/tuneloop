@@ -105,7 +105,7 @@ export async function redirectToLogin(reason) {
   }
 
   if (reason && reason !== 'session_expired' && reason !== 'token_missing') {
-    // dialog.confirm is async in weapp (Taro.showModal) — must await, otherwise
+    // dialog.confirm is async in weapp (native modal fallback) — must await, otherwise
     // the confirm is bypassed and the login flow runs behind the modal.
     const ok = await dialog.confirm('此功能需要登录，是否前往登录？')
     if (!ok) return

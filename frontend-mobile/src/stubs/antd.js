@@ -1,4 +1,5 @@
 import Taro from '@tarojs/taro'
+import { dialog } from '../platform'
 
 export const message = {
   success: (msg) => Taro.showToast({ title: msg, icon: 'success', duration: 2000 }),
@@ -9,20 +10,16 @@ export const message = {
 
 export const Modal = {
   confirm: ({ title, content, onOk, onCancel }) => {
-    Taro.showModal({
-      title: title || '确认',
-      content,
-      success: (res) => res.confirm ? onOk?.() : onCancel?.(),
-    })
+    dialog.confirm(content, { title: title || '确认' }).then((ok) => (ok ? onOk?.() : onCancel?.()))
   },
   info: ({ title, content }) => {
-    Taro.showModal({ title, content, showCancel: false })
+    dialog.alert(content, { title })
   },
   warning: ({ title, content }) => {
-    Taro.showModal({ title, content, showCancel: false })
+    dialog.alert(content, { title })
   },
   error: ({ title, content }) => {
-    Taro.showModal({ title, content, showCancel: false })
+    dialog.alert(content, { title })
   },
 }
 

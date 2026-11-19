@@ -197,7 +197,7 @@ export function DialogHost() {
                   fontWeight: '600',
                 }}
               >
-                {t('取消')}
+                {current.cancelText || t('取消')}
               </Button>
             ) : null}
             <Button
@@ -215,7 +215,7 @@ export function DialogHost() {
                 fontWeight: '700',
               }}
             >
-              {t('确定')}
+              {current.confirmText || t('确定')}
             </Button>
           </View>
         ) : null}

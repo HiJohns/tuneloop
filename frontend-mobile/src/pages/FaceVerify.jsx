@@ -336,24 +336,24 @@ export default function FaceVerify() {
   // 不静默降级也不整体重来（重试只补视频，不重复传照片/不新建批次）。
   function askVideoFail(batchId, err) {
     setUploadProgress(null)
-    Taro.showModal({
+    dialog.showDialog({
+      type: 'confirm',
       title: t('视频上传未完成'),
-      content: `照片已提交成功，但动态视频上传失败${err && err.message ? '：' + err.message : ''}。您可重试视频（网络较慢时可能需要几分钟），或仅提交当前照片进入审核。`,
+      message: `照片已提交成功，但动态视频上传失败${err && err.message ? '：' + err.message : ''}。您可重试视频（网络较慢时可能需要几分钟），或仅提交当前照片进入审核。`,
       confirmText: t('重试视频'),
       cancelText: t('仅提交照片'),
-      success: async (r) => {
-        if (!r.confirm) {
-          finishSubmit('已提交照片，等待审核（未含视频）')
-          return
-        }
-        setPhase('Uploading')
-        try {
-          await uploadVideoPart(batchId)
-          finishSubmit()
-        } catch (e2) {
-          if (!stallHandledRef.current) askVideoFail(batchId, e2)
-        }
-      },
+    }).then(async (retry) => {
+      if (!retry) {
+        finishSubmit('已提交照片，等待审核（未含视频）')
+        return
+      }
+      setPhase('Uploading')
+      try {
+        await uploadVideoPart(batchId)
+        finishSubmit()
+      } catch (e2) {
+        if (!stallHandledRef.current) askVideoFail(batchId, e2)
+      }
     })
   }
 
@@ -439,14 +439,14 @@ export default function FaceVerify() {
         // #1821: 录像拿不到素材（桌面版微信等）——不再静默降级为仅照片上传。
         videoPathRef.current = ''
         setPhase('idle')
-        Taro.showModal({
+        dialog.showDialog({
+          type: 'confirm',
           title: t('未获取到视频'),
-          content: t('当前设备未能录制视频（电脑版微信通常不支持录像）。实名认证需要动态视频，请改用手机微信完成；如需继续请仅提交照片（不推荐）。'),
+          message: t('当前设备未能录制视频（电脑版微信通常不支持录像）。实名认证需要动态视频，请改用手机微信完成；如需继续请仅提交照片（不推荐）。'),
           confirmText: t('仅提交照片'),
           cancelText: t('知道了'),
-          success: (r) => {
-            if (r.confirm) doUpload()
-          },
+        }).then((ok) => {
+          if (ok) doUpload()
         })
       },
     })

@@ -275,13 +275,14 @@ export default function ProfileComplete() {
         if (outcome === null) failedSides.push(slot.label)
       }
       if (failedSides.length > 0) {
-        const { confirm } = await Taro.showModal({
+        const ok = await dialog.showDialog({
+          type: 'confirm',
           title: t('证件照上传失败'),
-          content: `${failedSides.join('、')}上传失败，可在注册后于『编辑资料』补传。`,
+          message: `${failedSides.join('、')}上传失败，可在注册后于『编辑资料』补传。`,
           confirmText: t('继续支付'),
           cancelText: t('重试'),
         })
-        if (!confirm) {
+        if (!ok) {
           setSaving(false)
           return
         }

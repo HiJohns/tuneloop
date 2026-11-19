@@ -322,8 +322,12 @@ export default function OrderDetail() {
   const handleDamageReject = async (damage) => {
     let reason = ''
     if (env.isMiniProgram) {
-      const res = await Taro.showModal({ title: t('拒绝定损'), editable: true, placeholderText: t('请输入申诉原因') })
-      reason = res.confirm ? (res.content || '') : ''
+      reason = (await dialog.showDialog({
+        type: 'editable',
+        title: t('拒绝定损'),
+        message: t('请输入申诉原因'),
+        placeholder: t('请输入申诉原因'),
+      })) || ''
     } else {
       reason = window.prompt('请输入申诉原因') || ''
     }

@@ -34,12 +34,8 @@ export default function RepairServiceCreate() {
   useEffect(() => {
     if (!getToken()) {
       if (env.isMiniProgram) {
-        Taro.showModal({
-          title: t('提示'),
-          content: t('请先登录后再提交维修服务单'),
-          showCancel: false,
-          success: () => Taro.switchTab({ url: '/pages-weapp/profile/index' }),
-          fail: () => Taro.switchTab({ url: '/pages-weapp/profile/index' }),
+        dialog.alert('请先登录后再提交维修服务单').then(() => {
+          Taro.switchTab({ url: '/pages-weapp/profile/index' })
         })
       } else {
         dialog.alert('请先登录后再提交维修服务单')
