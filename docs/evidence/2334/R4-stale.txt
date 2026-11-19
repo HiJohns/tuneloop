@@ -1,4 +1,4 @@
-# build=1.0.4835f3e24 commit=4835f3e24f2d2fedb25fdd1f9f736ca18cb31832 dirty=false
+# build=1.0.b8151665f commit=b8151665f909c3621004c3b4a74c6c7ce1127477 dirty=false
 OK no-stale: deposit_waived=true 即免押
 OK no-stale: PAYSCORE_ENABLED=true 默认
 OK no-stale: pending 可支付
