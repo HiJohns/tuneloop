@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2418,
-  "build": "1.0.a7ce472aa",
-  "commit": "a7ce472aa1e5d4c5c6ff3fd99706b4fdc6f5e7eb",
+  "build": "1.0.df46c3d1e",
+  "commit": "df46c3d1e",
   "dirty": false,
   "rows": [
     {
