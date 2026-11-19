@@ -1,23 +1,21 @@
+# build=1.0.f727fb516 commit=f727fb516b93f8e354dce25ae53249dca20d5c50 dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/16 23:54:55 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375 sslmode=disable
-2026/11/16 23:54:56 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375
-2026/11/16 23:54:56 [DB] Connected to database 'tuneloop_test_verify2375'
+2026/11/19 00:43:06 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375 sslmode=disable
+2026/11/19 00:43:07 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375
+2026/11/19 00:43:07 [DB] Connected to database 'tuneloop_test_verify2375'
 === RUN   TestUpdateUserRole_2375
-2026/11/16 23:54:57 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375 sslmode=disable
-2026/11/16 23:54:57 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375
-2026/11/16 23:54:57 [DB] Connected to database 'tuneloop_test_verify2375'
+2026/11/19 00:43:07 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375 sslmode=disable
+2026/11/19 00:43:07 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375
+2026/11/19 00:43:07 [DB] Connected to database 'tuneloop_test_verify2375'
+2026/11/19 00:43:08 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 00:43:08 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:43457, clientID=test-ns, namespace=test-ns
+2026/11/19 00:43:08 [IAMClient] Updated user role with user token: user=7891763f-e778-4bfc-a5e3-6943d81a7a00 role=repair_technician org=455004ba-6b6c-4bbb-b96b-3c6c142e8e64
+2026/11/19 00:43:08 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/19 00:43:08 [IAMClient] Assigned role template repair_technician to user 7891763f-e778-4bfc-a5e3-6943d81a7a00 (via user token)
 
-2026/11/16 23:54:58 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
-[0m[31;1m[405.196ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-2026/11/16 23:54:58 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
-2026/11/16 23:54:58 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:33925, clientID=test-ns, namespace=test-ns
-2026/11/16 23:54:58 [IAMClient] Updated user role with user token: user=f96b0694-98ce-46d7-ba25-df5f3159f1d5 role=repair_technician org=bad0b181-5e40-423f-8d9e-fd933b62d95a
-2026/11/16 23:54:58 [IAMClient] Obtained client credentials token, expires in 7200s
-2026/11/16 23:54:58 [IAMClient] Assigned role template repair_technician to user f96b0694-98ce-46d7-ba25-df5f3159f1d5 (via user token)
-
-2026/11/16 23:54:58 [31;1m/home/coder/tuneloop/backend/handlers/user_staff.go:924 [35;1mERROR: invalid input syntax for type json (SQLSTATE 22P02)
-[0m[33m[6.026ms] [34;1m[rows:0][0m UPDATE "site_members" SET "role"='repair_technician',"roles"=('repair_technician'),"updated_at"='2026-11-16 23:54:58.523' WHERE user_id = '542b4ccd-3f0f-4d86-bc13-87f948d616c0' AND tenant_id = 'bad0b181-5e40-423f-8d9e-fd933b62d95a'
-2026/11/16 23:54:58 [UpdateUser] site_members role sync failed user=542b4ccd-3f0f-4d86-bc13-87f948d616c0: ERROR: invalid input syntax for type json (SQLSTATE 22P02)
---- PASS: TestUpdateUserRole_2375 (1.04s)
+2026/11/19 00:43:08 [31;1m/home/coder/tuneloop/backend/handlers/user_staff.go:924 [35;1mERROR: invalid input syntax for type json (SQLSTATE 22P02)
+[0m[33m[1.822ms] [34;1m[rows:0][0m UPDATE "site_members" SET "role"='repair_technician',"roles"=('repair_technician'),"updated_at"='2026-11-19 00:43:08.113' WHERE user_id = '945f7d4a-9789-44ce-bf58-072f01686e36' AND tenant_id = '455004ba-6b6c-4bbb-b96b-3c6c142e8e64'
+2026/11/19 00:43:08 [UpdateUser] site_members role sync failed user=945f7d4a-9789-44ce-bf58-072f01686e36: ERROR: invalid input syntax for type json (SQLSTATE 22P02)
+--- PASS: TestUpdateUserRole_2375 (0.35s)
 PASS
-ok  	tuneloop-backend/handlers	3.432s
+ok  	tuneloop-backend/handlers	1.350s

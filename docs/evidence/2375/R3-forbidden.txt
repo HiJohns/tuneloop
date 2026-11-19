@@ -1,15 +1,16 @@
+# build=1.0.f727fb516 commit=f727fb516b93f8e354dce25ae53249dca20d5c50 dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/16 23:55:13 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375 sslmode=disable
-2026/11/16 23:55:13 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375
-2026/11/16 23:55:13 [DB] Connected to database 'tuneloop_test_verify2375'
+2026/11/19 00:43:17 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375 sslmode=disable
+2026/11/19 00:43:17 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375
+2026/11/19 00:43:17 [DB] Connected to database 'tuneloop_test_verify2375'
 === RUN   TestUpdateUserRoleForbidden_2375
-2026/11/16 23:55:13 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375 sslmode=disable
-2026/11/16 23:55:13 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375
-2026/11/16 23:55:13 [DB] Connected to database 'tuneloop_test_verify2375'
-2026/11/16 23:55:14 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 00:43:17 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375 sslmode=disable
+2026/11/19 00:43:17 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375
+2026/11/19 00:43:17 [DB] Connected to database 'tuneloop_test_verify2375'
+2026/11/19 00:43:18 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
 
-2026/11/16 23:55:14 [31;1m/home/coder/tuneloop/backend/handlers/user_staff.go:720 [35;1mrecord not found
-[0m[33m[1.043ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE (id = '3ea0ef76-23c4-4a3d-8d42-3f89c714a385' AND tenant_id = 'fd1fcae1-ab22-4537-8cd6-1a88bbb207a2' AND deleted_at IS NULL) AND "users"."tenant_id" = 'fd1fcae1-ab22-4537-8cd6-1a88bbb207a2' ORDER BY "users"."id" LIMIT 1
---- PASS: TestUpdateUserRoleForbidden_2375 (0.64s)
+2026/11/19 00:43:18 [31;1m/home/coder/tuneloop/backend/handlers/user_staff.go:720 [35;1mrecord not found
+[0m[33m[0.394ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE (id = '50756c58-90cd-4313-ba0e-9d63d68dee93' AND tenant_id = 'fe5d03cf-ac81-443d-9c9a-cf7455b8d9e9' AND deleted_at IS NULL) AND "users"."tenant_id" = 'fe5d03cf-ac81-443d-9c9a-cf7455b8d9e9' ORDER BY "users"."id" LIMIT 1
+--- PASS: TestUpdateUserRoleForbidden_2375 (0.29s)
 PASS
-ok  	tuneloop-backend/handlers	1.801s
+ok  	tuneloop-backend/handlers	1.248s

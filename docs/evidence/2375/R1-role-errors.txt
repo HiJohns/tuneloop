@@ -1,29 +1,27 @@
+# build=1.0.f727fb516 commit=f727fb516b93f8e354dce25ae53249dca20d5c50 dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/16 23:54:41 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375 sslmode=disable
-2026/11/16 23:54:41 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375
-2026/11/16 23:54:41 [DB] Connected to database 'tuneloop_test_verify2375'
+2026/11/19 00:42:50 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375 sslmode=disable
+2026/11/19 00:42:51 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375
+2026/11/19 00:42:51 [DB] Connected to database 'tuneloop_test_verify2375'
 === RUN   TestCreateUserRoleErrors_2375
-2026/11/16 23:54:42 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375 sslmode=disable
-2026/11/16 23:54:42 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375
-2026/11/16 23:54:42 [DB] Connected to database 'tuneloop_test_verify2375'
+2026/11/19 00:42:52 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375 sslmode=disable
+2026/11/19 00:42:52 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375
+2026/11/19 00:42:52 [DB] Connected to database 'tuneloop_test_verify2375'
+2026/11/19 00:42:52 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:39825, clientID=test-ns, namespace=test-ns
+2026/11/19 00:42:52 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/19 00:42:52 [#2247] GetOrganization(75c0881a-4d7b-4b2d-9808-9fd10285490e) failed: GetOrganization: IAM response missing org id
 
-2026/11/16 23:54:42 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
-[0m[31;1m[219.437ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-2026/11/16 23:54:42 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:41051, clientID=test-ns, namespace=test-ns
-2026/11/16 23:54:42 [IAMClient] Obtained client credentials token, expires in 7200s
-2026/11/16 23:54:42 [#2247] GetOrganization(a6685807-11aa-4a8d-ae62-d398a040ad68) failed: GetOrganization: IAM response missing org id
+2026/11/19 00:42:52 [31;1m/home/coder/tuneloop/backend/handlers/merchant_scope_2247.go:25 [35;1mrecord not found
+[0m[33m[1.393ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE org_id = '75c0881a-4d7b-4b2d-9808-9fd10285490e' ORDER BY "merchants"."id" LIMIT 1
+2026/11/19 00:42:52 [CreateUser] #2247: cannot resolve merchant for org=75c0881a-4d7b-4b2d-9808-9fd10285490e tenant=75c0881a-4d7b-4b2d-9808-9fd10285490e (fallback to tenant)
+2026/11/19 00:42:52 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
 
-2026/11/16 23:54:42 [31;1m/home/coder/tuneloop/backend/handlers/merchant_scope_2247.go:25 [35;1mrecord not found
-[0m[33m[1.502ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE org_id = 'a6685807-11aa-4a8d-ae62-d398a040ad68' ORDER BY "merchants"."id" LIMIT 1
-2026/11/16 23:54:42 [CreateUser] #2247: cannot resolve merchant for org=a6685807-11aa-4a8d-ae62-d398a040ad68 tenant=a6685807-11aa-4a8d-ae62-d398a040ad68 (fallback to tenant)
-2026/11/16 23:54:42 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
-
-2026/11/16 23:54:42 [31;1m/home/coder/tuneloop/backend/handlers/user_staff.go:249 [35;1mrecord not found
-[0m[33m[0.686ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE (tenant_id = 'a6685807-11aa-4a8d-ae62-d398a040ad68' AND username = 'roleerr2375' AND deleted_at IS NULL) AND "users"."tenant_id" = 'a6685807-11aa-4a8d-ae62-d398a040ad68' ORDER BY "users"."id" LIMIT 1
-2026/11/16 23:54:42 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:41051, clientID=test-ns, namespace=test-ns
-2026/11/16 23:54:42 [IAMClient] Obtained client credentials token, expires in 7200s
-2026/11/16 23:54:42 [IAMClient] Bound user e92a720f-4f94-49bd-b30f-2edef14a58d1 to org a6685807-11aa-4a8d-ae62-d398a040ad68 with role repair_technician (user token)
-2026/11/16 23:54:42 [CreateUser] ListRoleTemplates failed: ListRoleTemplates returned status 404: {"error":"not found"}
---- PASS: TestCreateUserRoleErrors_2375 (0.52s)
+2026/11/19 00:42:52 [31;1m/home/coder/tuneloop/backend/handlers/user_staff.go:249 [35;1mrecord not found
+[0m[33m[0.768ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE (tenant_id = '75c0881a-4d7b-4b2d-9808-9fd10285490e' AND username = 'roleerr2375' AND deleted_at IS NULL) AND "users"."tenant_id" = '75c0881a-4d7b-4b2d-9808-9fd10285490e' ORDER BY "users"."id" LIMIT 1
+2026/11/19 00:42:52 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:39825, clientID=test-ns, namespace=test-ns
+2026/11/19 00:42:52 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/19 00:42:52 [IAMClient] Bound user 2663ca61-8ac5-465a-ad6f-3413205b9dda to org 75c0881a-4d7b-4b2d-9808-9fd10285490e with role repair_technician (user token)
+2026/11/19 00:42:52 [CreateUser] ListRoleTemplates failed: ListRoleTemplates returned status 404: {"error":"not found"}
+--- PASS: TestCreateUserRoleErrors_2375 (0.62s)
 PASS
-ok  	tuneloop-backend/handlers	1.701s
+ok  	tuneloop-backend/handlers	2.514s

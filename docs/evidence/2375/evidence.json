@@ -1,20 +1,20 @@
 {
   "schema_version": 1,
   "issue": 2375,
-  "build": "roles-2375 d43b97d",
-  "commit": "d43b97d2a",
+  "build": "1.0.f727fb516",
+  "commit": "f727fb516b93f8e354dce25ae53249dca20d5c50",
   "dirty": false,
-  "environment": "backend handlers tests on PG 127.0.0.1:15433 + IAM httptest mock; Node 22 build",
+  "environment": "backend handlers role tests on PG 127.0.0.1:15433; frontend-pc build; evidence commit f727fb516",
   "rows": [
     {
       "id": "R1",
-      "command": "go test ./handlers/ -run 'TestCreateUserRoleErrors_2375' -count=1 -v > docs/evidence/2375/R1-role-errors.txt 2>&1",
+      "command": "bash scripts/verify-2375.sh r1-role-errors",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2375/R1-role-errors.txt"
       ],
       "assert": "exit 0；含 --- PASS: TestCreateUserRoleErrors_2375",
-      "actual": "PASS：角色模板 404 → 创建仍 200；data.role_errors 长度 ≥1；users 2 行（操作者 + 新用户）",
+      "actual": "PASS：创建时 IAM 404 → HTTP 200 + role_errors ≥1，用户行仍存在",
       "expected": "PASS",
       "negative": "角色失败导致 500/回滚 → FAIL",
       "negative_result": "断言失败即 exit 1",
@@ -22,13 +22,13 @@
     },
     {
       "id": "R2",
-      "command": "go test ./handlers/ -run 'TestUpdateUserRole_2375' -count=1 -v > docs/evidence/2375/R2-role-update.txt 2>&1",
+      "command": "bash scripts/verify-2375.sh r2-role-update",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2375/R2-role-update.txt"
       ],
       "assert": "exit 0；含 --- PASS: TestUpdateUserRole_2375；用例断言 mock 调用次数与 audit 行数",
-      "actual": "PASS：users.role=repair_technician；IAM role 调用 1 次、模板调用 1 次；audit_logs user.role_update 1 行",
+      "actual": "PASS：users.role 更新；IAM role/template 各 1 次；audit 1 行",
       "expected": "PASS",
       "negative": "只改本地未调 IAM → FAIL",
       "negative_result": "断言失败即 exit 1",
@@ -36,13 +36,13 @@
     },
     {
       "id": "R3",
-      "command": "go test ./handlers/ -run 'TestUpdateUserRoleForbidden_2375' -count=1 -v > docs/evidence/2375/R3-forbidden.txt 2>&1",
+      "command": "bash scripts/verify-2375.sh r3-forbidden",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2375/R3-forbidden.txt"
       ],
       "assert": "exit 0；含 --- PASS: TestUpdateUserRoleForbidden_2375",
-      "actual": "PASS：merchant_admin → 403 40301；跨租户 → 404；两者均未触发 IAM 调用",
+      "actual": "PASS：merchant_admin 白名单外 403；跨租户 404",
       "expected": "PASS",
       "negative": "提权/跨租户通过 → FAIL",
       "negative_result": "断言失败即 exit 1",
@@ -50,17 +50,59 @@
     },
     {
       "id": "R4",
-      "command": "cd frontend-pc && npm run build > ../docs/evidence/2375/R4-list-role.txt 2>&1",
+      "command": "bash scripts/verify-2375.sh r4-list-role",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2375/R4-list-role.txt"
       ],
-      "assert": "exit 0；产物末尾含 built in",
-      "actual": "PASS：npm build exit 0（含 built in）；/staff 含「角色」列（dataIndex role）；StaffEdit 含 role 表单项提交",
+      "assert": "exit 0；含 built in 且首行 PROVENANCE",
+      "actual": "PASS：frontend-pc vite build built in；首行 provenance",
       "expected": "PASS",
       "negative": "构建失败 → exit 1",
+      "negative_result": "构建失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2375.sh r5-pending",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2375/R5-update-pending.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestUpdateUserPendingRoleErrors_2375",
+      "actual": "PASS：pending 用户 IAM role 404 → HTTP 200 + role_errors；本地 role 已更新",
+      "expected": "PASS",
+      "negative": "返回 500 → FAIL",
       "negative_result": "断言失败即 exit 1",
       "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2375.sh r6-iam-params",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2375/R6-iam-mapping.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestUpdateUserRoleIAMPayload_2375",
+      "actual": "PASS：org_id=existingUser.OrgID；repair_technician→repair_technician，merchant_staff→STAFF",
+      "expected": "PASS",
+      "negative": "org/role 与预期不符 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "grep -q 'RESULT: PASS' docs/evidence/2375/R7-role-column.md",
+      "exit": 1,
+      "artifacts": [
+        "docs/evidence/2375/R7-role-column.md"
+      ],
+      "assert": "exit 0",
+      "actual": "PENDING：Owner 角色列真机回执未签（Developer 不代签）",
+      "expected": "PASS",
+      "negative": "回执缺失 → exit 1",
+      "negative_result": "RESULT: PENDING → exit 1",
+      "pass": false
     }
   ]
 }
