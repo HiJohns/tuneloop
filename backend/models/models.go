@@ -362,6 +362,10 @@ type SettlementCalculation struct {
 	// legacy_underpaid | ''（不重算，只标记）。
 	LegacyMarker string `gorm:"type:varchar(40);not null;default:''" json:"legacy_marker"`
 
+	// Supersedes 指向被本行冲正的旧结算行（#2361）：旧行 status→superseded、
+	// 金额不变；新行 calculated + supersedes=旧 id，active 唯一索引不冲突。
+	Supersedes *string `gorm:"type:uuid" json:"supersedes,omitempty"`
+
 	CreatedAt time.Time `json:"created_at"`
 }
 

@@ -484,6 +484,8 @@ var defaultMigrationArtifacts = []migrationArtifact{
 	{20261116001, "settlement_calculations", "legacy_marker", "历史数据标记列（#2360）"},
 	{20261116001, "order_payment_allocations", "", "支付分配账本表（#2360）"},
 	{20261116001, "settlement_action_ledger", "", "结算子动作账本表（#2360）"},
+	// #2361（#2268）：冲正/差额版本化，旧行 superseded、新行 supersedes 指向旧行。
+	{20261117001, "settlement_calculations", "supersedes", "结算冲正来源列（#2361）"},
 }
 
 // verifyArtifacts 纯逻辑（便于单测）：对 version ≥ a.Version 的工件断言存在。

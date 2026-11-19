@@ -1,0 +1,17 @@
+# build=1.0.49f71a254 commit=49f71a25497b7eb13e5d7e3f0191309babe784a1 dirty=true
+MIGRATION_UP_OK: backend/database/migrations/20261117001_settlement_supersedes_2361.up.sql
+MIGRATION_DOWN_OK: backend/database/migrations/20261117001_settlement_supersedes_2361.down.sql
+MODEL_OK: SettlementCalculation.Supersedes
+ARTIFACT_OK: defaultMigrationArtifacts 20261117001 supersedes
+ACTIVE_INDEX_OK: superseded 不参与 active 唯一索引
+# github.com/mattn/go-sqlite3
+sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
+sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+123133 |   zTail = strrchr(zName, '_');
+       |         ^
+[DEBUG] Loaded .env from: ../.env
+=== RUN   TestSettlementSupersedesMigration_2361
+--- PASS: TestSettlementSupersedesMigration_2361 (0.16s)
+PASS
+ok  	tuneloop-backend/services	0.183s
+SCHEMA_OK: 迁移 + 模型 + 工件登记三处齐全，up/down 可执行

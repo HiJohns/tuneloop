@@ -1,0 +1,17 @@
+# build=1.0.49f71a254 commit=49f71a25497b7eb13e5d7e3f0191309babe784a1 dirty=true
+# github.com/mattn/go-sqlite3
+sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
+sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+123133 |   zTail = strrchr(zName, '_');
+       |         ^
+[DEBUG] Loaded .env from: ../.env
+=== RUN   TestSettlementExecutorPartial_2361
+
+2026/11/19 16:29:48 [31;1m/home/coder/tuneloop/backend/services/settlement_executor_2361.go:307 [35;1mrecord not found
+[0m[33m[2.585ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = 'b66bd78f-82f1-4e97-887b-567524df5b96' AND settlement_version = 1 ORDER BY "settlement_calculations"."id" LIMIT 1
+
+2026/11/19 16:29:48 [31;1m/home/coder/tuneloop/backend/services/settlement_executor_2361.go:323 [35;1mrecord not found
+[0m[33m[1.857ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = 'b66bd78f-82f1-4e97-887b-567524df5b96' AND status IN ('confirmed','processing','succeeded','partially_succeeded','failed_retryable') ORDER BY "settlement_calculations"."id" LIMIT 1
+--- PASS: TestSettlementExecutorPartial_2361 (0.44s)
+PASS
+ok  	tuneloop-backend/services	0.460s
