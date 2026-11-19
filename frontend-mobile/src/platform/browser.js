@@ -154,6 +154,16 @@ export const navigation = {
   redirect: (url) => { window.location.href = url },
   // #2326: 会话失效回首页（与 weapp 的 switchTab 目标语义等价，A15 平台层对称）
   resetToHome: () => { window.location.href = '/' },
+  // #2434：返回兜底（H5 对等实现）——无历史时回首页，避免"点了没反应"。
+  safeBack: (fallbackRoute) => {
+    if (typeof window !== 'undefined' && window.history && window.history.length > 1) {
+      window.history.back()
+      return
+    }
+    window.location.href = fallbackRoute && fallbackRoute.startsWith('/') && !fallbackRoute.startsWith('/pages-weapp')
+      ? fallbackRoute
+      : '/'
+  },
   getCurrentPath: () => window.location.pathname + window.location.search,
   getOrigin: () => window.location.origin,
   getQueryParams: () => Object.fromEntries(new URLSearchParams(window.location.search)),

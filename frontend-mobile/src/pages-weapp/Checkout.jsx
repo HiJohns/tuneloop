@@ -1077,7 +1077,7 @@ function BatchCheckout({ nav }) {
       <ScrollView style={{ width: '100%', flex: '1 1 0%', paddingBottom: 144 }} scrollY showScrollbar={false}>
         <View style={{ padding: 16, margin: 16, backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', border: '1px solid #f4f4f5', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <View style={{ textAlign: 'center' }}>
-            <Text style={{ fontSize: 12, color: '#a1a1aa', fontWeight: '700', letterSpacing: '0.1em' }}>TOTAL PAYABLE</Text>
+            <Text style={{ fontSize: 12, color: '#a1a1aa', fontWeight: '700', letterSpacing: '0.1em' }}>{t('应付合计')}</Text>
             <Text style={{ color: '#C21838', fontSize: 36, fontWeight: '900', letterSpacing: '-0.025em' }}>
               ¥{formatCents(grandTotal)}
             </Text>

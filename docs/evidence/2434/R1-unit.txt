@@ -1,0 +1,12 @@
+# build=1.0.94a3afb27 commit=94a3afb275a6a45cd70594aa2fe4136809c41de8 dirty=true
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /home/coder/tuneloop/frontend-mobile
+
+ ✓ scripts/page-smoke/back-nav-2434.test.jsx (4 tests) 11ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  21:02:28
+   Duration  967ms (transform 63ms, setup 34ms, collect 17ms, tests 11ms, environment 432ms, prepare 197ms)
+

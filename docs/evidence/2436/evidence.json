@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "issue": 2436,
+  "build": "1.0.94a3afb27",
+  "commit": "94a3afb275a6a45cd70594aa2fe4136809c41de8",
+  "dirty": true,
+  "environment": "local: vitest page-smoke + static scan; device re-verification pending next prerelease",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2436.sh r1-scan",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2436/R1-scan.txt"
+      ],
+      "assert": "exit 0；src 无裸大写英文文案；两页均 t('应付合计')",
+      "actual": "PASS：静态扫描 0 命中；两页已改为 t('应付合计') 且无 TOTAL PAYABLE 残留",
+      "expected": "PASS",
+      "negative": "残留 TOTAL PAYABLE → FAIL",
+      "negative_result": "扫描或断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2436.sh r2-smoke",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2436/R2-smoke.txt"
+      ],
+      "assert": "exit 0; 84 passed",
+      "actual": "PASS：page-smoke 84 tests 全绿",
+      "expected": "PASS",
+      "negative": "任一失败 → FAIL",
+      "negative_result": "有 failed 即 exit 1",
+      "pass": true
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Button } from '@tarojs/components'
-import { wxLogin, storage, env, request } from '../../platform'
+import { wxLogin, storage, env, request, navigation } from '../../platform'
 import { maskOpenid } from '../../utils/wechatBind.mjs'
 
 export default function Bind() {
@@ -64,7 +64,7 @@ export default function Bind() {
           <Text style={{ fontSize: 48, marginBottom: 16 }}>✅</Text>
           <Text style={{ fontSize: 18, fontWeight: '700', color: '#000', marginBottom: 8 }}>绑定成功</Text>
           <Text style={{ fontSize: 14, color: '#71717a', marginBottom: 24 }}>PC 端将自动刷新</Text>
-          <Button onClick={() => Taro.navigateBack()} style={{ backgroundColor: '#915F38', color: '#fff', borderRadius: 22, padding: '12px 32px', fontSize: 14, fontWeight: '700', border: 'none' }}>
+          <Button onClick={() => navigation.safeBack()} style={{ backgroundColor: '#915F38', color: '#fff', borderRadius: 22, padding: '12px 32px', fontSize: 14, fontWeight: '700', border: 'none' }}>
             返回
           </Button>
         </View>
@@ -89,7 +89,7 @@ export default function Bind() {
               </Text>
             </View>
           ) : null}
-          <Button onClick={() => Taro.navigateBack()} style={{ backgroundColor: '#915F38', color: '#fff', borderRadius: 22, padding: '12px 32px', fontSize: 14, fontWeight: '700', border: 'none', margin: 0 }}>
+          <Button onClick={() => navigation.safeBack()} style={{ backgroundColor: '#915F38', color: '#fff', borderRadius: 22, padding: '12px 32px', fontSize: 14, fontWeight: '700', border: 'none', margin: 0 }}>
             返回
           </Button>
         </View>
@@ -99,7 +99,7 @@ export default function Bind() {
           <Text style={{ fontSize: 48, marginBottom: 16 }}>❌</Text>
           <Text style={{ fontSize: 18, fontWeight: '700', color: '#000', marginBottom: 8 }}>绑定失败</Text>
           <Text style={{ fontSize: 14, color: '#71717a', marginBottom: 24 }}>请重试</Text>
-          <Button onClick={() => Taro.navigateBack()} style={{ backgroundColor: '#915F38', color: '#fff', borderRadius: 22, padding: '12px 32px', fontSize: 14, fontWeight: '700', border: 'none' }}>
+          <Button onClick={() => navigation.safeBack()} style={{ backgroundColor: '#915F38', color: '#fff', borderRadius: 22, padding: '12px 32px', fontSize: 14, fontWeight: '700', border: 'none' }}>
             返回
           </Button>
         </View>

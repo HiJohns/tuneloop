@@ -5,6 +5,8 @@ import { showDialog as appShowDialog, isDialogHostMounted } from '../components/
 // #2431: 小程序 App 实例没有视图层 → App 层 DialogHost 虽「挂载」但不可见，
 // showDialog 的 Promise 永不 resolve。默认降级原生（含自定义按钮文案）。
 import { shouldUseAppDialog, toNativeModalOptions, fromNativeModalResult } from '../utils/dialogFallback'
+// #2434: 扫码直达页无页面栈 → navigateBack 静默失败，统一走 safeBack 兜底。
+import { decideBackAction } from '../utils/backNav.mjs'
 
 // #2267: weapp 复用原生页面显示钩子
 export const useDidShow = Taro.useDidShow
@@ -211,6 +213,16 @@ export const navigation = {
   },
   switchTab: (url) => {
     Taro.switchTab({ url })
+  },
+  // #2434：返回兜底——扫码/分享直达页无页面栈时回首页，避免 navigateBack 静默失败。
+  safeBack: (fallbackRoute) => {
+    const pages = Taro.getCurrentPages() || []
+    const action = decideBackAction({ stackDepth: pages.length, fallbackRoute })
+    if (action.type === 'navigateBack') {
+      Taro.navigateBack()
+      return
+    }
+    Taro.switchTab({ url: action.url })
   },
   getCurrentPath: () => {
     const pages = Taro.getCurrentPages()

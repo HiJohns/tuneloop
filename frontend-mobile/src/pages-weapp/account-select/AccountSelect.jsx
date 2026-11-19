@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Input } from '@tarojs/components'
-import {dialog, request, wxLogin as wxLoginCode, storage, session, env, eventBus, getInputValue } from '../../platform'
+import {dialog, request, wxLogin as wxLoginCode, storage, session, env, eventBus, getInputValue, navigation } from '../../platform'
 import { resolveErrorMessage } from '../../services/api'
 import { parseJWT } from '../../platform/init'
 import { t } from '../../i18n'
@@ -282,7 +282,7 @@ export default function AccountSelect() {
         </View>
       )}
 
-      <View style={{ marginTop: 24, display: 'flex', justifyContent: 'center' }} onClick={() => Taro.navigateBack()}>
+      <View style={{ marginTop: 24, display: 'flex', justifyContent: 'center' }} onClick={() => navigation.safeBack()}>
         <Text style={{ color: '#a1a1aa', fontSize: 13 }}>返回</Text>
       </View>
     </View>

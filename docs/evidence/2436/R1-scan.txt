@@ -1,0 +1,12 @@
+# build=1.0.94a3afb27 commit=94a3afb275a6a45cd70594aa2fe4136809c41de8 dirty=true
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /home/coder/tuneloop/frontend-mobile
+
+ ✓ scripts/page-smoke/no-uppercase-label-2436.test.jsx (2 tests) 29ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  21:02:30
+   Duration  980ms (transform 79ms, setup 65ms, collect 19ms, tests 29ms, environment 432ms, prepare 202ms)
+

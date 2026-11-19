@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { formatCents } from '../../utils/money'
 import Taro from '@tarojs/taro'
 import { View, Text, Input, Picker, Image } from '@tarojs/components'
-import {dialog, storage, session, env, request, wxLogin } from '../../platform'
+import {dialog, storage, session, env, request, wxLogin, navigation } from '../../platform'
 import { apiFetch , resolveErrorMessage } from '../../services/api'
 import IdPhotoUploader from '../../components/IdPhotoUploader'
 import IntroLetterUploader from '../../components/IntroLetterUploader'
@@ -439,7 +439,7 @@ export default function ProfileComplete() {
       {mode !== 'member' && (
         <Text style={{ fontSize: 14, color: '#a1a1aa', textAlign: 'center', display: 'block', marginBottom: 8 }} onClick={goAccountSelect}>{t("用户名密码登录")}</Text>
       )}
-      <Text style={{ fontSize: 14, color: '#a1a1aa', textAlign: 'center', display: 'block' }} onClick={() => Taro.navigateBack()}>{t("返回")}</Text>
+      <Text style={{ fontSize: 14, color: '#a1a1aa', textAlign: 'center', display: 'block' }} onClick={() => navigation.safeBack()}>{t("返回")}</Text>
     </View>
   )
 }

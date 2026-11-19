@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Button, Input } from '@tarojs/components'
-import {dialog, wxLogin, storage, session, env, request, eventBus } from '../../platform'
+import {dialog, wxLogin, storage, session, env, request, eventBus, navigation } from '../../platform'
 import { resolveErrorMessage } from '../../services/api'
 import { computeExpiryMs } from '../../services/sessionToken.mjs'
 import AgreementCheckbox from '../../components/AgreementCheckbox'
@@ -52,7 +52,7 @@ async function handleWxLogin() {
       }
       const pages = Taro.getCurrentPages()
       if (pages.length > 1) {
-        Taro.navigateBack()
+        navigation.safeBack()
       } else {
         Taro.switchTab({ url: '/pages-weapp/home/index' })
       }
@@ -82,7 +82,7 @@ async function handleIAMLogin(identifier, password) {
       } else {
         const pages = Taro.getCurrentPages()
         if (pages.length > 1) {
-          Taro.navigateBack()
+          navigation.safeBack()
         } else {
           Taro.switchTab({ url: '/pages-weapp/profile/index' })
         }
@@ -97,7 +97,7 @@ async function handleIAMLogin(identifier, password) {
 }
 
 function handleGuestBrowse() {
-  Taro.navigateBack()
+  navigation.safeBack()
 }
 
 export default function Login() {
@@ -177,7 +177,7 @@ export default function Login() {
       <Text style={{ fontSize: 10, color: '#d4d4d8', marginTop: 32 }} onClick={handleVersionTap}>{t("版本 v")}{env.version || 'dev'}</Text>
       {showDevMode && (
         <View style={{ marginTop: 12, width: '100%' }}>
-          <Button onClick={() => { storage.removeItem('token'); storage.removeItem('token_expiry'); Taro.navigateBack() }}
+          <Button onClick={() => { storage.removeItem('token'); storage.removeItem('token_expiry'); navigation.safeBack() }}
             style={{ width: '100%', height: 36, backgroundColor: '#fee2e2', color: '#b91c1c', borderRadius: 8, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: '36px' }}>
             {t("清除 Token")}
           </Button>
