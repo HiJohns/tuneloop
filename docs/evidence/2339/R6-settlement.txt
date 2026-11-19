@@ -1,73 +1,74 @@
+# build=1.0.5548a0040 commit=5548a00404f31029fddddda018cc47cab67613ca dirty=true
 [DEBUG] Loaded .env from: ../.env
-2026/11/18 16:16:50 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
-2026/11/18 16:16:50 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2339
-2026/11/18 16:16:50 [DB] Connected to database 'tuneloop_test_verify2339'
+2026/11/19 16:17:34 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
+2026/11/19 16:17:34 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339
+2026/11/19 16:17:34 [DB] Connected to database 'tuneloop_test_verify2339'
 === RUN   TestSettlementFlow
-2026/11/18 16:16:51 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
-2026/11/18 16:16:51 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
-2026/11/18 16:16:51 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2339
-2026/11/18 16:16:51 [DB] Connected to database 'tuneloop_test_verify2339'
+2026/11/19 16:17:34 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
+2026/11/19 16:17:34 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
+2026/11/19 16:17:34 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339
+2026/11/19 16:17:34 [DB] Connected to database 'tuneloop_test_verify2339'
 
-2026/11/18 16:16:51 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
-[0m[31;1m[272.258ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/19 16:17:35 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[611.866ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
 
-2026/11/18 16:16:51 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:542 [35;1mrecord not found
-[0m[33m[13.328ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '02ec1145-bf7f-42ab-a0df-2d9240aad427' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+2026/11/19 16:17:35 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:542 [35;1mrecord not found
+[0m[33m[9.130ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '1b19ab8f-26dd-410d-9ae7-ee68e3ae1f61' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
 
-2026/11/18 16:16:51 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
-[0m[33m[0.764ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/19 16:17:35 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[2.044ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
 
-2026/11/18 16:16:51 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1651 [35;1mrecord not found
-[0m[33m[0.754ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '02ec1145-bf7f-42ab-a0df-2d9240aad427' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+2026/11/19 16:17:35 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1716 [35;1mrecord not found
+[0m[33m[1.868ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '1b19ab8f-26dd-410d-9ae7-ee68e3ae1f61' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
 
-2026/11/18 16:16:51 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1659 [35;1mrecord not found
-[0m[33m[0.647ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
+2026/11/19 16:17:35 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1724 [35;1mrecord not found
+[0m[33m[2.081ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
 
-2026/11/18 16:16:51 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
-[0m[33m[0.828ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'd6a97974-8f2b-4c92-8018-8649789ce2f7' ORDER BY "referrals"."id" LIMIT 1
+2026/11/19 16:17:35 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[2.071ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '8e9fbfcf-33ff-4f13-b93c-afbb88e4fab7' ORDER BY "referrals"."id" LIMIT 1
 
-2026/11/18 16:16:51 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
-[0m[33m[0.424ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '02ec1145-bf7f-42ab-a0df-2d9240aad427' ORDER BY "merchants"."id" LIMIT 1
-2026/11/18 16:16:51 [TenantScope][observe] auto-scope injected for table=orders (add explicit scope, then set ExplicitTenantScopeOnly)
-2026/11/18 16:16:51 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
-2026/11/18 16:16:51 [TenantScope][observe] auto-scope injected for table=forwarding_sessions (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 16:17:35 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.356ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '1b19ab8f-26dd-410d-9ae7-ee68e3ae1f61' ORDER BY "merchants"."id" LIMIT 1
+2026/11/19 16:17:35 [TenantScope][observe] auto-scope injected for table=orders (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 16:17:35 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 16:17:35 [TenantScope][observe] auto-scope injected for table=forwarding_sessions (add explicit scope, then set ExplicitTenantScopeOnly)
 
-2026/11/18 16:16:51 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:212 [35;1mrecord not found
-[0m[33m[0.603ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE (order_id = 'a6b142d0-50d5-41f4-b0d6-fb816231e3dc' AND direction = 'outbound' AND status = 'pending') AND "forwarding_sessions"."tenant_id" = '02ec1145-bf7f-42ab-a0df-2d9240aad427' ORDER BY "forwarding_sessions"."id" LIMIT 1
-2026/11/18 16:16:51 [TenantScope][observe] auto-scope injected for table=order_payment_records (add explicit scope, then set ExplicitTenantScopeOnly)
-2026/11/18 16:16:51 [IAMClient] NewIAMClient: baseURL=http://opencode.linxdeep.com:5561, clientID=test-ns, namespace=test-ns
-2026/11/18 16:17:06 [openidOfUser] resolve failed: user=d6a97974-8f2b-4c92-8018-8649789ce2f7 err=ResolveUserOpenid request failed: failed to get client token: failed to request client token: Post "http://opencode.linxdeep.com:5561/api/v1/auth/token": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-2026/11/18 16:17:06 [WechatShipping] upload attempt 1/2 failed for rent order a6b142d0-50d5-41f4-b0d6-fb816231e3dc (out_trade_no=mock01c71211-034b-42b5-a transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
+2026/11/19 16:17:35 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:212 [35;1mrecord not found
+[0m[33m[1.696ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE (order_id = 'a9ce6199-0f76-4143-babe-db9663d27801' AND direction = 'outbound' AND status = 'pending') AND "forwarding_sessions"."tenant_id" = '1b19ab8f-26dd-410d-9ae7-ee68e3ae1f61' ORDER BY "forwarding_sessions"."id" LIMIT 1
+2026/11/19 16:17:35 [TenantScope][observe] auto-scope injected for table=order_payment_records (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 16:17:35 [IAMClient] NewIAMClient: baseURL=http://opencode.linxdeep.com:5561, clientID=test-ns, namespace=test-ns
+2026/11/19 16:17:50 [openidOfUser] resolve failed: user=8e9fbfcf-33ff-4f13-b93c-afbb88e4fab7 err=ResolveUserOpenid request failed: failed to get client token: failed to request client token: Post "http://opencode.linxdeep.com:5561/api/v1/auth/token": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+2026/11/19 16:17:50 [WechatShipping] upload attempt 1/2 failed for rent order a9ce6199-0f76-4143-babe-db9663d27801 (out_trade_no=mocked501be5-0396-4655-9 transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
 
-2026/11/18 16:17:06 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
-[0m[33m[9.727ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '02ec1145-bf7f-42ab-a0df-2d9240aad427' ORDER BY "merchants"."id" LIMIT 1
-2026/11/18 16:17:06 [WechatShipping] upload attempt 2/2 failed for rent order a6b142d0-50d5-41f4-b0d6-fb816231e3dc (out_trade_no=mock01c71211-034b-42b5-a transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
-2026/11/18 16:17:06 [WechatShipping] upload_shipping_info gave up after 2 attempts for rent order a6b142d0-50d5-41f4-b0d6-fb816231e3dc (out_trade_no=mock01c71211-034b-42b5-a transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
-2026/11/18 16:17:06 [WechatShipping] notify_confirm_receive failed for order a6b142d0-50d5-41f4-b0d6-fb816231e3dc: get access token: WX_APPID or WX_APPSECRET not configured
-2026/11/18 16:17:06 [TenantScope][observe] auto-scope injected for table=instruments (add explicit scope, then set ExplicitTenantScopeOnly)
-2026/11/18 16:17:06 [TenantScope][observe] auto-scope injected for table=damage_reports (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 16:17:50 [31;1m/home/coder/tuneloop/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[3.009ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '1b19ab8f-26dd-410d-9ae7-ee68e3ae1f61' ORDER BY "merchants"."id" LIMIT 1
+2026/11/19 16:17:50 [WechatShipping] upload attempt 2/2 failed for rent order a9ce6199-0f76-4143-babe-db9663d27801 (out_trade_no=mocked501be5-0396-4655-9 transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
+2026/11/19 16:17:50 [WechatShipping] upload_shipping_info gave up after 2 attempts for rent order a9ce6199-0f76-4143-babe-db9663d27801 (out_trade_no=mocked501be5-0396-4655-9 transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
+2026/11/19 16:17:50 [WechatShipping] notify_confirm_receive failed for order a9ce6199-0f76-4143-babe-db9663d27801: get access token: WX_APPID or WX_APPSECRET not configured
+2026/11/19 16:17:50 [TenantScope][observe] auto-scope injected for table=instruments (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 16:17:50 [TenantScope][observe] auto-scope injected for table=damage_reports (add explicit scope, then set ExplicitTenantScopeOnly)
 
-2026/11/18 16:17:06 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:716 [35;1mrecord not found
-[0m[33m[0.449ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'a6b142d0-50d5-41f4-b0d6-fb816231e3dc' AND "damage_reports"."tenant_id" = '02ec1145-bf7f-42ab-a0df-2d9240aad427' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+2026/11/19 16:17:50 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:716 [35;1mrecord not found
+[0m[33m[1.516ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'a9ce6199-0f76-4143-babe-db9663d27801' AND "damage_reports"."tenant_id" = '1b19ab8f-26dd-410d-9ae7-ee68e3ae1f61' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
 
-2026/11/18 16:17:06 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:836 [35;1mrecord not found
-[0m[33m[0.688ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'a6b142d0-50d5-41f4-b0d6-fb816231e3dc' AND "damage_reports"."tenant_id" = '02ec1145-bf7f-42ab-a0df-2d9240aad427' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/19 16:17:50 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:836 [35;1mrecord not found
+[0m[33m[1.429ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'a9ce6199-0f76-4143-babe-db9663d27801' AND "damage_reports"."tenant_id" = '1b19ab8f-26dd-410d-9ae7-ee68e3ae1f61' ORDER BY "damage_reports"."id" LIMIT 1
 
-2026/11/18 16:17:06 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
-[0m[33m[0.591ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/19 16:17:50 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.699ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
 
-2026/11/18 16:17:06 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:325 [35;1mrecord not found
-[0m[33m[3.379ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = 'a6b142d0-50d5-41f4-b0d6-fb816231e3dc' ORDER BY "settlements"."id" LIMIT 1
+2026/11/19 16:17:51 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:325 [35;1mrecord not found
+[0m[33m[1.749ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = 'a9ce6199-0f76-4143-babe-db9663d27801' ORDER BY "settlements"."id" LIMIT 1
 
-2026/11/18 16:17:06 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
-[0m[33m[0.395ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/19 16:17:51 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.327ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
 
-2026/11/18 16:17:07 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
-[0m[33m[0.491ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'd6a97974-8f2b-4c92-8018-8649789ce2f7' ORDER BY "referrals"."id" LIMIT 1
-2026/11/18 16:17:07 [TenantScope][observe] auto-scope injected for table=order_refund_records (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 16:17:51 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.620ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '8e9fbfcf-33ff-4f13-b93c-afbb88e4fab7' ORDER BY "referrals"."id" LIMIT 1
+2026/11/19 16:17:51 [TenantScope][observe] auto-scope injected for table=order_refund_records (add explicit scope, then set ExplicitTenantScopeOnly)
 
-2026/11/18 16:17:07 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:518 [35;1mrecord not found
-[0m[33m[1.404ms] [34;1m[rows:0][0m SELECT * FROM "orders" WHERE (id = 'a6b142d0-50d5-41f4-b0d6-fb816231e3dc' AND tenant_id = '02ec1145-bf7f-42ab-a0df-2d9240aad427' AND status = 'returning') AND "orders"."tenant_id" = '02ec1145-bf7f-42ab-a0df-2d9240aad427' ORDER BY "orders"."id" LIMIT 1
---- PASS: TestSettlementFlow (15.79s)
+2026/11/19 16:17:51 [31;1m/home/coder/tuneloop/backend/handlers/warehouse.go:518 [35;1mrecord not found
+[0m[33m[1.543ms] [34;1m[rows:0][0m SELECT * FROM "orders" WHERE (id = 'a9ce6199-0f76-4143-babe-db9663d27801' AND tenant_id = '1b19ab8f-26dd-410d-9ae7-ee68e3ae1f61' AND status = 'returning') AND "orders"."tenant_id" = '1b19ab8f-26dd-410d-9ae7-ee68e3ae1f61' ORDER BY "orders"."id" LIMIT 1
+--- PASS: TestSettlementFlow (16.35s)
 PASS
-ok  	tuneloop-backend/handlers	16.768s
+ok  	tuneloop-backend/handlers	16.911s
