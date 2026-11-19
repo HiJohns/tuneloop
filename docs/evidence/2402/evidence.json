@@ -37,16 +37,16 @@
     {
       "id": "R3",
       "command": "grep -q 'RESULT: PASS' docs/evidence/2402/R3-invite.md",
-      "exit": 1,
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2402/R3-invite.md"
       ],
       "assert": "exit 0",
-      "actual": "PENDING：Owner 人工回执未签（浏览器 Network 断言 inviteToMerchant；不得代签）",
+      "actual": "PASS：Owner 2026-11-19 预生产实测，手机号 20261117 → 引导弹窗 →「发送加入邀请」发出 POST /api/admin/merchants/060bb8cf…/invites → 201；staff_invites 新增 pending 邀请（invitee 20261117 / 张鸿波）",
       "expected": "PASS",
       "negative": "缺失 → exit 1",
-      "negative_result": "当前 grep 返回 1（文件仍为 RESULT: PENDING）",
-      "pass": false
+      "negative_result": "若请求落在 /api/sites/undefined/invites/send 或仍为 PENDING → exit 1",
+      "pass": true
     },
     {
       "id": "R4",
