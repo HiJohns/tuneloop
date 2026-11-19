@@ -9,30 +9,30 @@
     {
       "id": "R1",
       "command": "grep -q 'RESULT: PASS' docs/evidence/2389/R1-manual.md",
-      "exit": 1,
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2389/R1-manual.md"
       ],
       "assert": "exit 0",
-      "actual": "PENDING：Owner 浏览器回执未签（入口提示且不跳转/无请求）",
+      "actual": "PASS：Owner 2026-11-19 预生产实测，「司马」（无邮箱）行内「重设密码」→「该账号未配置邮箱」弹窗（含「去补充邮箱」），未跳转、无 reset-password 请求",
       "expected": "PASS",
       "negative": "缺失 → exit 1",
-      "negative_result": "当前 grep 返回 1（RESULT: PENDING）",
-      "pass": false
+      "negative_result": "若跳转或出现 reset-password 请求 → exit 1",
+      "pass": true
     },
     {
       "id": "R2",
       "command": "grep -q 'RESULT: PASS' docs/evidence/2389/R2-manual.md",
-      "exit": 1,
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2389/R2-manual.md"
       ],
       "assert": "exit 0",
-      "actual": "PENDING：Owner 浏览器回执未签（直接访问重设页提交禁用）",
+      "actual": "PASS：Owner 2026-11-19 直接访问 /staff/ca5deecc…/reset-password → 提示「该账号未配置邮箱」+ 提交按钮禁用、无请求",
       "expected": "PASS",
       "negative": "缺失 → exit 1",
-      "negative_result": "当前 grep 返回 1（RESULT: PENDING）",
-      "pass": false
+      "negative_result": "若按钮可点或出现 reset-password 请求 → exit 1",
+      "pass": true
     },
     {
       "id": "R3",
