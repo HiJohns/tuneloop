@@ -4530,6 +4530,8 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 ```
 
 > 赠点上限 = `min(用户赠点余额, 总支付额 × PointsPolicy.MaxPayRatio)`。现金 = 总支付额 − 赠点。**`gift_points_max` 返回元（整数，向下取整，#2180）；其余金额字段（`total_rent`/`deposit`/`shipping_fee`/`cash_to_pay`）为分。**
+>
+> **不变量（#2414 D5）**：`cash_to_pay == total_rent + deposit + shipping_fee`；`sum(tiers[].subtotal) == total_rent`。`tiers[].effective_rate` 为元/天（费率），`tiers[].subtotal` 为分。
 
 ---
 

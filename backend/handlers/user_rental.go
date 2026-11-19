@@ -1636,14 +1636,15 @@ func (h *UserRentalHandler) CalculateRental(c *gin.Context) {
 			DiscountPercent: int(math.Round((1 - seg.Discount) * 100)),
 			DaysInTier:      seg.Days,
 			EffectiveRate:   seg.Rate * seg.Discount,
-			Subtotal:        seg.Subtotal,
+			Subtotal:        math.Round(seg.Subtotal * 100), // D4: 分
 		})
 		daysMin = daysMax + 1
 	}
 
+	totalRentCents := int64(math.Round(totalRent * 100))
 	// Membership discount
 	memberDiscountPercent := float64(0)
-	memberDiscountAmount := float64(0)
+	memberDiscountAmountCents := int64(0)
 	var localUser models.User
 	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil && localUser.MembershipLevelID != nil {
 		var rebate models.RebateConfig
@@ -1651,7 +1652,7 @@ func (h *UserRentalHandler) CalculateRental(c *gin.Context) {
 			// RebateConfig.rent_ratio is a discount ratio (e.g., 0.95 = 5% off)
 			if rebate.RentRatio > 0 && rebate.RentRatio < 1 {
 				memberDiscountPercent = (1 - rebate.RentRatio) * 100
-				memberDiscountAmount = totalRent * (1 - rebate.RentRatio)
+				memberDiscountAmountCents = int64(math.Round(float64(totalRentCents) * (1 - rebate.RentRatio)))
 			}
 		}
 	}
@@ -1671,11 +1672,11 @@ func (h *UserRentalHandler) CalculateRental(c *gin.Context) {
 	// (#1757): balance is cents; total (yuan) × ratio converted to cents.
 	// #1900: ratio from gift_policies (per level, level-0 fallback).
 	giftPointsMax := float64(0)
-	totalPay := totalRent + depositYuan + shippingFee
+	totalPayYuan := totalRent + depositYuan + shippingFee
 	if policy := services.GetGiftPolicyByLevel(db, levelIDOrZero(localUser.MembershipLevelID)); policy != nil {
 		giftPointsMax = giftPointsBalance
 		if policy.PayRatio > 0 {
-			maxByRatio := totalPay * policy.PayRatio * 100
+			maxByRatio := totalPayYuan * policy.PayRatio * 100
 			if maxByRatio < giftPointsMax {
 				giftPointsMax = maxByRatio
 			}
@@ -1683,19 +1684,21 @@ func (h *UserRentalHandler) CalculateRental(c *gin.Context) {
 	}
 
 	prepaidPointsMax := prepaidPointsBalance
+	shippingFeeCents := int64(math.Round(shippingFee * 100))
+	totalPayCents := totalRentCents + depositCents + shippingFeeCents
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
 		"tiers":                   tierDetails,
-		"total_rent":              totalRent,
+		"total_rent":              totalRentCents,
 		"member_discount_percent": memberDiscountPercent,
-		"member_discount_amount":  memberDiscountAmount,
+		"member_discount_amount":  memberDiscountAmountCents,
 		"deposit":                 depositCents,
-		"shipping_fee":            shippingFee,
+		"shipping_fee":            shippingFeeCents,
 		"gift_points_max":         math.Floor(giftPointsMax / 100),
 		"prepaid_points_max":      prepaidPointsMax,
 		"gift_points_used":        0,
 		"prepaid_points_used":     0,
-		"cash_to_pay":             totalPay,
+		"cash_to_pay":             totalPayCents,
 	}})
 }
 

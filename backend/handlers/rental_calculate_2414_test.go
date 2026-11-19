@@ -9,6 +9,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -119,4 +120,36 @@ func TestCalculateRentalDepositTrueZero_2414(t *testing.T) {
 	require.Equal(t, http.StatusOK, code, "resp=%v", resp)
 	data := resp["data"].(map[string]interface{})
 	assert.Equal(t, float64(0), data["deposit"], "zero pricing deposit stays zero")
+}
+
+// R5：响应单位一致性（D4）——金额字段一律分；两条不变量成立。
+func TestCalculateRentalUnitConsistency_2414(t *testing.T) {
+	r, instID := setupRentalCalculate2414(t, 0, `{"deposit":0.01}`)
+
+	code, resp := postRentalCalculate2414(t, r, instID, 30)
+	require.Equal(t, http.StatusOK, code, "resp=%v", resp)
+	data := resp["data"].(map[string]interface{})
+
+	totalRent := data["total_rent"].(float64)
+	deposit := data["deposit"].(float64)
+	shipping := data["shipping_fee"].(float64)
+	cash := data["cash_to_pay"].(float64)
+	memberDiscount := data["member_discount_amount"].(float64)
+
+	for name, v := range map[string]float64{
+		"total_rent": totalRent, "deposit": deposit, "shipping_fee": shipping,
+		"cash_to_pay": cash, "member_discount_amount": memberDiscount,
+	} {
+		assert.Equal(t, math.Trunc(v), v, "%s must be integer cents, got %v", name, v)
+	}
+	assert.Equal(t, cash, totalRent+deposit+shipping, "cash_to_pay == total_rent + deposit + shipping_fee")
+
+	tiers := data["tiers"].([]interface{})
+	sumSubtotal := 0.0
+	for _, it := range tiers {
+		row := it.(map[string]interface{})
+		sumSubtotal += row["subtotal"].(float64)
+		assert.Equal(t, math.Trunc(row["subtotal"].(float64)), row["subtotal"].(float64), "tier subtotal must be cents")
+	}
+	assert.Equal(t, totalRent, sumSubtotal, "sum(tiers[].subtotal) == total_rent")
 }
