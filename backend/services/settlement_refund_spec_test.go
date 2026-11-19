@@ -52,6 +52,9 @@ func TestComputeRefundSpecT23_2423(t *testing.T) {
 		t.Fatalf("T23 cash refundable/payable = %d/%d, want 50000/15000",
 			got.CashRefundableCents, got.PayableShortfallCents)
 	}
+	t.Logf("T23: R_after_coupon=%d cap=%d p_refund=%d rent_due=%d rent_shortfall=%d deposit_refund=%d net_cash=%d",
+		in.RAfterCouponCents, got.PCapPoints, got.PRefundPoints, got.RentCashDueCents,
+		got.RentShortfallCents, got.DepositRefundCents, got.NetCashCents)
 	if !got.ConservationOK {
 		t.Fatalf("T23 conservation must hold: left=%d right=%d", got.ConservationLeftCents, got.ConservationRightCents)
 	}
@@ -100,6 +103,9 @@ func TestComputeRefundSpecFixture2339_2423(t *testing.T) {
 	if got.NetCashCents != 4000 {
 		t.Fatalf("net cash = %d, want 4000 分 (¥40); 666.67/506.67 是段模型旧口径", got.NetCashCents)
 	}
+	t.Logf("#2339: R_after_coupon=%d cap=%d p_refund=%d rent_due=%d rent_shortfall=%d deposit_refund=%d net_cash_cents=%d (¥%.2f); legacy model was total_refund=666.67 cash_refundable=506.67",
+		in.RAfterCouponCents, got.PCapPoints, got.PRefundPoints, got.RentCashDueCents,
+		got.RentShortfallCents, got.DepositRefundCents, got.NetCashCents, float64(got.NetCashCents)/100)
 	if !got.ConservationOK {
 		t.Fatalf("conservation must hold: left=%d right=%d", got.ConservationLeftCents, got.ConservationRightCents)
 	}
