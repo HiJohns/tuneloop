@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "issue": 2418,
+  "build": "1.0.fab014174",
+  "commit": "fab0141748b5bc2e2aff9547d3163456ab4b9ab4",
+  "dirty": false,
+  "environment": "backend services unit tests; fix commit fab014174",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2418.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2418/R1-internal-reduced.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestAssertOrderPayableIfEnforced",
+      "actual": "PASS：internal reduced + 未评测 → 拒绝",
+      "expected": "PASS",
+      "negative": "放行 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2418.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2418/R2-internal-full.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：internal full + 未评测 → 拒绝",
+      "expected": "PASS",
+      "negative": "放行 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2418.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2418/R3-zero-deposit.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "actual": "PASS：zero + 空路径（乐器本身零押金）→ 放行",
+      "expected": "PASS",
+      "negative": "拒绝 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2418.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2418/R4-doc.txt"
+      ],
+      "assert": "exit 0；命中文档断言",
+      "actual": "PASS：lease.md 含 internal 路径 requires approved",
+      "expected": "PASS",
+      "negative": "缺失 → FAIL",
+      "negative_result": "文档断言缺失即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2418.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2418/R5-build.txt"
+      ],
+      "assert": "exit 0",
+      "actual": "PASS：cd backend && go build ./... exit 0",
+      "expected": "PASS",
+      "negative": "失败 → FAIL",
+      "negative_result": "构建失败即 exit 1",
+      "pass": true
+    }
+  ]
+}
