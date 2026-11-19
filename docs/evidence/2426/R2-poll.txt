@@ -1,0 +1,13 @@
+# build=1.0.2b2b0c005 commit=2b2b0c005303895bfb45eaa035c594da5c7efdb3 dirty=false
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /home/coder/tuneloop/frontend-mobile
+
+ ✓ scripts/page-smoke/wechat-bind-ui-2426.test.jsx (2 tests | 1 skipped) 24ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 1 skipped (2)
+   Start at  15:42:16
+   Duration  2.57s (transform 110ms, setup 87ms, collect 38ms, tests 24ms, environment 1.64s, prepare 371ms)
+
+--- PASS: TestClassifyBindPollStatus_2426

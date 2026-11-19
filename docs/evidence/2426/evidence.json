@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "issue": 2426,
+  "build": "1.0.2b2b0c005",
+  "commit": "2b2b0c005303895bfb45eaa035c594da5c7efdb3",
+  "dirty": false,
+  "environment": "frontend-mobile vitest/jsdom + frontend-mobile smoke; fix commit 2b2b0c005",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2426.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2426/R1-mask.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestMaskOpenid_2426",
+      "actual": "PASS：长 openid 前6+****+后4；≤12 全掩码；空值空字符串；明文不外泄",
+      "expected": "PASS",
+      "negative": "明文 → FAIL",
+      "negative_result": "输出完整 openid 即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2426.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2426/R2-poll.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestClassifyBindPollStatus_2426",
+      "actual": "PASS：bound/expired/needs_merge 原样；pending/空/未知 → wait",
+      "expected": "PASS",
+      "negative": "误判 → FAIL",
+      "negative_result": "needs_merge 误判为 wait 即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2426.sh r3",
+      "exit": 1,
+      "artifacts": [
+        "docs/evidence/2426/R3-manual.md"
+      ],
+      "assert": "exit 0；含 executor: user 与 RESULT: PASS",
+      "actual": "PENDING：Owner 真机回执未签（三行分离 + 脱敏 + PC 提示）",
+      "expected": "PASS",
+      "negative": "PENDING → FAIL",
+      "negative_result": "RESULT: PENDING → exit 1",
+      "pass": false
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2426.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2426/R4-smoke.txt"
+      ],
+      "assert": "exit 0；0 failed",
+      "actual": "PASS：page-smoke 12 files / 65 tests 全部通过",
+      "expected": "PASS",
+      "negative": "失败 → FAIL",
+      "negative_result": "任一失败即 exit 1",
+      "pass": true
+    }
+  ]
+}
