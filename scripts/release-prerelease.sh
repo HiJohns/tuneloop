@@ -39,15 +39,36 @@ say "== log: ${LOG} =="
 
 fatal() { say "ERROR: $*"; exit 1; }
 
-# ---- 前置检查（失败即退出，不产生半成品） ----
+# ---- 前置检查（默认 fail-fast：宁可 5 秒失败，也不要构建 2 分钟后才死在 go/上传） ----
+# SKIP_PRECHECK=1 可跳过硬性检查（仅用于明确知道后果的场景）
 [ -f frontend-mobile/package.json ] || fatal "not a tuneloop repo root: $REPO_ROOT"
 [ -f Makefile ] || fatal "Makefile missing"
 command -v zip >/dev/null 2>&1 || fatal "zip not installed (apt install zip)"
-command -v go >/dev/null 2>&1 || say "WARN: go not in PATH（如构建机用 /usr/local/go/bin，请先 export PATH）"
-[ -x "$HOME/scripts/upload_to_seafile.sh" ] || say "WARN: ~/scripts/upload_to_seafile.sh 缺失 → Seafile 上传会失败"
+
+# go 常见安装位置自动入 PATH
+for cand in /usr/local/go/bin /usr/lib/go/bin "$HOME/go/bin" /opt/go/bin; do
+  if [ -x "$cand/go" ]; then
+    case ":$PATH:" in *":$cand:"*) ;; *) export PATH="$cand:$PATH" ;; esac
+    break
+  fi
+done
+
+hard_missing=()
+command -v go >/dev/null 2>&1 || hard_missing+=("go（安装 Go 或把 /usr/local/go/bin 加入 PATH）")
+[ -x "$HOME/scripts/upload_to_seafile.sh" ] || hard_missing+=("~/scripts/upload_to_seafile.sh（Seafile 上传脚本，从旧构建机 scp 过来）")
 if ! timeout 15 ssh -o BatchMode=yes -o ConnectTimeout=8 cadenza 'true' >/dev/null 2>&1; then
-  say "WARN: ssh cadenza 不可用（免密/Host 配置检查）→ 最后一步部署触发会失败"
+  hard_missing+=("ssh cadenza 免密（部署触发依赖它）")
 fi
+
+if [ ${#hard_missing[@]} -gt 0 ]; then
+  for m in "${hard_missing[@]}"; do say "MISSING: $m"; done
+  if [ "${SKIP_PRECHECK:-0}" = "1" ]; then
+    say "WARN: SKIP_PRECHECK=1 → 继续（构建很可能在后续步骤失败）"
+  else
+    fatal "前置条件缺失（见上）；修复后重跑，或显式 SKIP_PRECHECK=1 强行继续"
+  fi
+fi
+
 if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
   say "WARN: 工作树有未提交改动（继续发布，但产物含本地修改）"
 fi
