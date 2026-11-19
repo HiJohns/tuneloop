@@ -1,0 +1,2 @@
+# build=1.0.29ba26e5b commit=29ba26e5bdd7aecd45369accd3345cc8d36b683b dirty=true
+PROBE-OK: weapp dialog → native fallback (custom confirm/cancel text preserved)

@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "issue": 2431,
+  "build": "1.0.29ba26e5b",
+  "commit": "29ba26e5bdd7aecd45369accd3345cc8d36b683b",
+  "dirty": true,
+  "environment": "local: vitest(page-smoke) + weapp build (node 22.22.3); device re-verification pending release",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2431.sh r1-unit",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2431/R1-unit.txt"
+      ],
+      "assert": "exit 0; 10 passed",
+      "actual": "PASS：dialog-fallback-2431.test.jsx 10 passed（含负例：宿主 mounted 仍须走原生）",
+      "expected": "PASS",
+      "negative": "宿主 mounted → AppDialog → FAIL",
+      "negative_result": "showCancel/confirmText 缺失或 shouldUseAppDialog 返回 true 即 FAIL",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2431.sh r2-probe",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2431/R2-probe.txt"
+      ],
+      "assert": "exit 0; PROBE-OK",
+      "actual": "PASS：weapp platform 不再以 isDialogHostMounted() 单独决定入队；APP_DIALOG_ON_WEAPP=false；自定义文案映射存在",
+      "expected": "PASS",
+      "negative": "残留 `if (isDialogHostMounted())` 入队分支 → FAIL",
+      "negative_result": "grep 命中即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2431.sh r3-smoke",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2431/R3-smoke.txt"
+      ],
+      "assert": "exit 0; 78 passed",
+      "actual": "PASS：page-smoke 14 files / 78 tests 全绿",
+      "expected": "PASS",
+      "negative": "任一失败 → FAIL",
+      "negative_result": "有 failed 即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2431.sh r4-build",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2431/R4-build.txt"
+      ],
+      "assert": "exit 0; BUILD-OK",
+      "actual": "PASS：npm run build:weapp 成功（node 22.22.3），dist-weapp/app.js 存在",
+      "expected": "PASS",
+      "negative": "构建失败 → FAIL",
+      "negative_result": "非 0 退出即 FAIL",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "manual device re-verification (Owner)",
+      "exit": 1,
+      "artifacts": [
+        "docs/evidence/2431/R5-manual.md"
+      ],
+      "assert": "RESULT: PASS",
+      "actual": "PENDING：等待发布预生产 + 重传体验版后 Owner 真机回验（购物车删除/地址删除/取消订单）",
+      "expected": "PASS",
+      "negative": "仍无弹窗 → FAIL",
+      "negative_result": "回执未签即 exit 1",
+      "pass": false
+    }
+  ]
+}

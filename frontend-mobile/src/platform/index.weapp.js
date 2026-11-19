@@ -1,7 +1,10 @@
 import Taro from '@tarojs/taro'
 // #2214: 集中拦截——dialog 文案统一经 t()（覆盖全部 dialog.* 调用点）
 import { t } from '../i18n'
-import { showDialog, isDialogHostMounted } from '../components/AppDialog'
+import { showDialog as appShowDialog, isDialogHostMounted } from '../components/AppDialog'
+// #2431: 小程序 App 实例没有视图层 → App 层 DialogHost 虽「挂载」但不可见，
+// showDialog 的 Promise 永不 resolve。默认降级原生（含自定义按钮文案）。
+import { shouldUseAppDialog, toNativeModalOptions, fromNativeModalResult } from '../utils/dialogFallback'
 
 // #2267: weapp 复用原生页面显示钩子
 export const useDidShow = Taro.useDidShow
@@ -131,34 +134,68 @@ function showNativeModal(opts) {
   })
 }
 
+// #2431：weapp 是否允许走自绘 AppDialog（默认 false → 一律原生）。
+function preferAppDialog() {
+  return shouldUseAppDialog({ isMiniProgram: true, hostMounted: isDialogHostMounted() })
+}
+
+// #2431：showDialog 语义 → 原生 Taro.showModal / showToast（保留自定义按钮文案）。
+function nativeShowDialog(options = {}) {
+  const params = toNativeModalOptions(options)
+  if (!params) {
+    Taro.showToast({
+      title: options.message || '',
+      icon: options.icon || 'none',
+      duration: options.duration || 2000,
+    })
+    return Promise.resolve(undefined)
+  }
+  return showNativeModal(params).then((res) => fromNativeModalResult(res, options))
+}
+
 export const dialog = {
-  // #2415：自绘实现（DialogHost 已挂载时）；未挂载回退原生。
+  // #2415 自绘 / #2431 小程序默认原生：宿主不可见时绝不入队等待。
   alert: (msg, opts = {}) => {
     const title = t(opts.title || '提示')
     const content = t(msg)
-    if (isDialogHostMounted()) {
-      return showDialog({ type: 'alert', title, message: content })
+    if (preferAppDialog()) {
+      return appShowDialog({ type: 'alert', title, message: content })
     }
-    return showNativeModal({ title, content, showCancel: false }).then(() => undefined)
+    return nativeShowDialog({ type: 'alert', title, message: content })
   },
   confirm: (msg, opts = {}) => {
     const title = t(opts.title || '提示')
     const content = t(msg)
-    if (isDialogHostMounted()) {
-      return showDialog({ type: 'confirm', title, message: content })
+    if (preferAppDialog()) {
+      return appShowDialog({ type: 'confirm', title, message: content })
     }
-    return showNativeModal({ title, content }).then((res) => !!res.confirm)
+    return nativeShowDialog({
+      type: 'confirm',
+      title,
+      message: content,
+      confirmText: opts.confirmText ? t(opts.confirmText) : undefined,
+      cancelText: opts.cancelText ? t(opts.cancelText) : undefined,
+    })
   },
   toast: (msg, opts = {}) => {
     const title = t(msg)
     const duration = opts.duration || 2000
-    if (isDialogHostMounted()) {
-      return showDialog({ type: 'toast', message: title, duration })
+    if (preferAppDialog()) {
+      return appShowDialog({ type: 'toast', message: title, duration })
     }
     Taro.showToast({ title, icon: opts.icon || 'none', duration })
   },
-  // 供 S2 迁移 editable 场景使用：#2415 D4
-  showDialog,
+  // 供 S2 迁移 editable 场景使用：#2415 D4 / #2431 原生降级
+  showDialog: (options = {}) => {
+    if (preferAppDialog()) return appShowDialog(options)
+    return nativeShowDialog({
+      ...options,
+      title: options.title ? t(options.title) : options.title,
+      message: options.message ? t(options.message) : options.message,
+      confirmText: options.confirmText ? t(options.confirmText) : undefined,
+      cancelText: options.cancelText ? t(options.cancelText) : undefined,
+    })
+  },
 }
 
 export const navigation = {
