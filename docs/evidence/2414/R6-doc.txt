@@ -1,0 +1,2 @@
+# build=1.0.12db3c865 commit=12db3c86560cc63c5b2e44707b4aab990fe900ff dirty=false
+DOC_OK: §8.12 units and invariants present

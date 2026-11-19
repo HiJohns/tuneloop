@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "issue": 2414,
-  "build": "1.0.5bb2271e6",
-  "commit": "5bb2271e6cc165243aa6fca12656d7690468cb07",
+  "build": "1.0.12db3c865",
+  "commit": "12db3c86560cc63c5b2e44707b4aab990fe900ff",
   "dirty": false,
-  "environment": "backend handlers entry-level tests on PG 127.0.0.1:15433; fix commit 5bb2271e6",
+  "environment": "backend handlers rental-calculate tests on PG 127.0.0.1:15433; fix commit 12db3c865",
   "rows": [
     {
       "id": "R1",
@@ -14,10 +14,10 @@
         "docs/evidence/2414/R1-zero-fallback.txt"
       ],
       "assert": "exit 0；含 --- PASS: TestCalculateRentalDeposit_2406Rule_2414",
-      "actual": "PASS：instruments.deposit=0 + 定价押金 ¥0.01 → 响应 deposit=1 分（采购定价同源，非 0）",
+      "actual": "PASS：deposit=0 + 定价 0.01 → 响应 deposit=1 分",
       "expected": "PASS",
       "negative": "返回 0 → FAIL",
-      "negative_result": "旧实现实测 FAIL：expected 1 / actual 0（红绿实证见 Work Summary）",
+      "negative_result": "断言失败即 exit 1",
       "pass": true
     },
     {
@@ -28,7 +28,7 @@
         "docs/evidence/2414/R2-instrument.txt"
       ],
       "assert": "exit 0；含 --- PASS",
-      "actual": "PASS：instruments.deposit=500 元 → 响应 deposit=50000 分（乐器显式配置覆盖定价 ¥0.01）",
+      "actual": "PASS：deposit=500 元 → 50000 分",
       "expected": "PASS",
       "negative": "取定价 → FAIL",
       "negative_result": "断言失败即 exit 1",
@@ -42,7 +42,7 @@
         "docs/evidence/2414/R3-true-zero.txt"
       ],
       "assert": "exit 0；含 --- PASS",
-      "actual": "PASS：乐器未配置 + 定价押金 0 → 响应 deposit=0（真零押金，无自造 fallback）",
+      "actual": "PASS：deposit=0 且定价 0 → 0 分",
       "expected": "PASS",
       "negative": "自造 → FAIL",
       "negative_result": "断言失败即 exit 1",
@@ -56,10 +56,52 @@
         "docs/evidence/2414/R4-build.txt"
       ],
       "assert": "exit 0",
-      "actual": "PASS：cd backend && go build ./... exit 0（产物仅 provenance 头）",
+      "actual": "PASS：go build ./... exit 0",
       "expected": "PASS",
       "negative": "失败 → FAIL",
       "negative_result": "构建失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2414.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2414/R5-units.txt"
+      ],
+      "assert": "exit 0；含 --- PASS: TestCalculateRentalUnitConsistency_2414",
+      "actual": "PASS：金额字段整数分；cash_to_pay == total_rent+deposit+shipping_fee；sum(subtotal)==total_rent",
+      "expected": "PASS",
+      "negative": "单位混用 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2414.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2414/R6-doc.txt"
+      ],
+      "assert": "exit 0；§8.12 字段与不变量齐全",
+      "actual": "PASS：api.md §8.12 含金额单位与两条不变量",
+      "expected": "PASS",
+      "negative": "缺字段 → FAIL",
+      "negative_result": "文档断言缺失即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2414.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2414/R7-callers.txt"
+      ],
+      "assert": "exit 0；调用方清单完整",
+      "actual": "PASS：无前端调用方；仅 backend/main.go 路由 + handler 测试",
+      "expected": "PASS",
+      "negative": "缺清单 → FAIL",
+      "negative_result": "前端调用方或路由缺失即 exit 1",
       "pass": true
     }
   ]

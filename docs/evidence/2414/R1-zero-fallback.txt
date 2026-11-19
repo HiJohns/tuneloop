@@ -1,25 +1,23 @@
-# build=1.0.5bb2271e6
-# commit=5bb2271e6cc165243aa6fca12656d7690468cb07
-# dirty=false
+# build=1.0.12db3c865 commit=12db3c86560cc63c5b2e44707b4aab990fe900ff dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/18 17:16:46 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414 sslmode=disable
-2026/11/18 17:16:47 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414
-2026/11/18 17:16:47 [DB] Connected to database 'tuneloop_test_verify2414'
+2026/11/19 05:35:22 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414 sslmode=disable
+2026/11/19 05:35:23 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414
+2026/11/19 05:35:23 [DB] Connected to database 'tuneloop_test_verify2414'
 === RUN   TestCalculateRentalDeposit_2406Rule_2414
-2026/11/18 17:16:47 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414 sslmode=disable
-2026/11/18 17:16:47 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414
-2026/11/18 17:16:47 [DB] Connected to database 'tuneloop_test_verify2414'
-2026/11/18 17:16:47 [TenantScope][observe] auto-scope injected for table=instruments (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 05:35:23 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414 sslmode=disable
+2026/11/19 05:35:23 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414
+2026/11/19 05:35:23 [DB] Connected to database 'tuneloop_test_verify2414'
+2026/11/19 05:35:23 [TenantScope][observe] auto-scope injected for table=instruments (add explicit scope, then set ExplicitTenantScopeOnly)
 
-2026/11/18 17:16:47 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1574 [35;1mrecord not found
-[0m[33m[0.422ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = 'cf4d2d24-34db-46a2-9a69-ca136c50e63c' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
-2026/11/18 17:16:47 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 05:35:23 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1574 [35;1mrecord not found
+[0m[33m[0.476ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = 'e03bce3a-ae9f-42ac-91aa-aabff4eaa6f9' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+2026/11/19 05:35:23 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
 
-2026/11/18 17:16:47 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1648 [35;1mrecord not found
-[0m[33m[0.837ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE iam_sub = 'eaf2e52c-a5f7-48b7-b437-a8cd9c3e6981' AND "users"."tenant_id" = 'cf4d2d24-34db-46a2-9a69-ca136c50e63c' ORDER BY "users"."id" LIMIT 1
+2026/11/19 05:35:23 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1649 [35;1mrecord not found
+[0m[33m[0.966ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE iam_sub = '0911fd10-746d-460d-8e12-1899f51a4849' AND "users"."tenant_id" = 'e03bce3a-ae9f-42ac-91aa-aabff4eaa6f9' ORDER BY "users"."id" LIMIT 1
 
-2026/11/18 17:16:47 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
-[0m[33m[0.474ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
---- PASS: TestCalculateRentalDeposit_2406Rule_2414 (0.23s)
+2026/11/19 05:35:23 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[0.564ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestCalculateRentalDeposit_2406Rule_2414 (0.28s)
 PASS
-ok  	tuneloop-backend/handlers	0.938s
+ok  	tuneloop-backend/handlers	1.037s

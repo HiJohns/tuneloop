@@ -1,0 +1,23 @@
+# build=1.0.12db3c865 commit=12db3c86560cc63c5b2e44707b4aab990fe900ff dirty=false
+[DEBUG] Loaded .env from: ../.env
+2026/11/19 05:35:53 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414 sslmode=disable
+2026/11/19 05:35:53 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414
+2026/11/19 05:35:53 [DB] Connected to database 'tuneloop_test_verify2414'
+=== RUN   TestCalculateRentalUnitConsistency_2414
+2026/11/19 05:35:53 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414 sslmode=disable
+2026/11/19 05:35:53 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414
+2026/11/19 05:35:53 [DB] Connected to database 'tuneloop_test_verify2414'
+2026/11/19 05:35:54 [TenantScope][observe] auto-scope injected for table=instruments (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/19 05:35:54 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1574 [35;1mrecord not found
+[0m[33m[0.564ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = 'beb44dee-47b2-4b53-88f1-08ea1074aefb' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+2026/11/19 05:35:54 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/19 05:35:54 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1649 [35;1mrecord not found
+[0m[33m[1.383ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE iam_sub = 'cd4ad8fc-2209-4af1-be48-2262b92179d8' AND "users"."tenant_id" = 'beb44dee-47b2-4b53-88f1-08ea1074aefb' ORDER BY "users"."id" LIMIT 1
+
+2026/11/19 05:35:54 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[2.622ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestCalculateRentalUnitConsistency_2414 (0.35s)
+PASS
+ok  	tuneloop-backend/handlers	1.424s

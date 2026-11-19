@@ -1,25 +1,23 @@
-# build=1.0.5bb2271e6
-# commit=5bb2271e6cc165243aa6fca12656d7690468cb07
-# dirty=false
+# build=1.0.12db3c865 commit=12db3c86560cc63c5b2e44707b4aab990fe900ff dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/18 17:16:52 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414 sslmode=disable
-2026/11/18 17:16:52 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414
-2026/11/18 17:16:52 [DB] Connected to database 'tuneloop_test_verify2414'
+2026/11/19 05:35:30 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414 sslmode=disable
+2026/11/19 05:35:30 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414
+2026/11/19 05:35:30 [DB] Connected to database 'tuneloop_test_verify2414'
 === RUN   TestCalculateRentalDepositInstrumentOverride_2414
-2026/11/18 17:16:52 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414 sslmode=disable
-2026/11/18 17:16:52 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414
-2026/11/18 17:16:52 [DB] Connected to database 'tuneloop_test_verify2414'
-2026/11/18 17:16:53 [TenantScope][observe] auto-scope injected for table=instruments (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 05:35:30 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414 sslmode=disable
+2026/11/19 05:35:30 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2414
+2026/11/19 05:35:30 [DB] Connected to database 'tuneloop_test_verify2414'
+2026/11/19 05:35:31 [TenantScope][observe] auto-scope injected for table=instruments (add explicit scope, then set ExplicitTenantScopeOnly)
 
-2026/11/18 17:16:53 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1574 [35;1mrecord not found
-[0m[33m[0.607ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '5a40841a-3da6-44d0-b283-bdd81b037b3e' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
-2026/11/18 17:16:53 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/19 05:35:31 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1574 [35;1mrecord not found
+[0m[33m[1.736ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '739b3273-759d-4c97-8109-3a64eacea8ee' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+2026/11/19 05:35:31 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
 
-2026/11/18 17:16:53 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1648 [35;1mrecord not found
-[0m[33m[1.024ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE iam_sub = 'c358982e-2e9f-46fa-b767-d2782600e1da' AND "users"."tenant_id" = '5a40841a-3da6-44d0-b283-bdd81b037b3e' ORDER BY "users"."id" LIMIT 1
+2026/11/19 05:35:31 [31;1m/home/coder/tuneloop/backend/handlers/user_rental.go:1649 [35;1mrecord not found
+[0m[33m[1.266ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE iam_sub = '98d9e9d0-f56a-458c-9cfd-3af9201607be' AND "users"."tenant_id" = '739b3273-759d-4c97-8109-3a64eacea8ee' ORDER BY "users"."id" LIMIT 1
 
-2026/11/18 17:16:53 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
-[0m[33m[0.641ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
---- PASS: TestCalculateRentalDepositInstrumentOverride_2414 (0.24s)
+2026/11/19 05:35:31 [31;1m/home/coder/tuneloop/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[0.582ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestCalculateRentalDepositInstrumentOverride_2414 (0.31s)
 PASS
-ok  	tuneloop-backend/handlers	0.793s
+ok  	tuneloop-backend/handlers	1.253s

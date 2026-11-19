@@ -1,0 +1,6 @@
+# build=1.0.12db3c865 commit=12db3c86560cc63c5b2e44707b4aab990fe900ff dirty=false
+backend/main.go:766:				userOptionalAuth.POST("/rental/calculate", userRentalHandler.CalculateRental)
+backend/handlers/rental_calculate_2414_test.go:3:// #2414：遗留 POST /api/user/rental/calculate 押金口径对齐（#2406 规则）。
+backend/handlers/rental_calculate_2414_test.go:76:	r.POST("/rental/calculate", h.CalculateRental)
+backend/handlers/rental_calculate_2414_test.go:85:	req := httptest.NewRequest(http.MethodPost, "/rental/calculate", bytes.NewReader(body))
+CALLERS OK: no frontend callers; route + handler tests only
