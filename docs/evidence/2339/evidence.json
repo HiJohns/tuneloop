@@ -13,7 +13,7 @@
    "artifacts": [
     "docs/evidence/2339/R1-batch-order.txt"
    ],
-   "assert": "exit 0；含 `--- PASS`",
+   "assert": "exit 0；含 --- PASS",
    "expected": "PASS",
    "negative": "SKIP/FAIL → FAIL",
    "negative_result": "无 --- PASS 或 t.Skip 即 exit 1",
@@ -27,7 +27,7 @@
    "artifacts": [
     "docs/evidence/2339/R2-create-order.txt"
    ],
-   "assert": "exit 0；含 `--- PASS`",
+   "assert": "exit 0；含 --- PASS",
    "expected": "PASS",
    "negative": "FAIL → FAIL",
    "negative_result": "测试失败即 exit 1",
@@ -41,7 +41,7 @@
    "artifacts": [
     "docs/evidence/2339/R3-return-refund.txt"
    ],
-   "assert": "exit 0；含 `--- PASS`",
+   "assert": "exit 0；含 --- PASS",
    "expected": "PASS",
    "negative": "FAIL → FAIL",
    "negative_result": "测试失败即 exit 1",
@@ -55,7 +55,7 @@
    "artifacts": [
     "docs/evidence/2339/R4-refund-diff.txt"
    ],
-   "assert": "exit 0；`--- PASS` 计数 2",
+   "assert": "exit 0；--- PASS 计数 2",
    "expected": "PASS",
    "negative": "少 1 个 → FAIL",
    "negative_result": "PASS 计数 <2 即 exit 1",
@@ -69,7 +69,7 @@
    "artifacts": [
     "docs/evidence/2339/R5-scenarios.txt"
    ],
-   "assert": "exit 0；`--- PASS` 计数 ≥2",
+   "assert": "exit 0；--- PASS 计数 ≥2",
    "expected": "PASS",
    "negative": "SKIP → FAIL",
    "negative_result": "出现 SKIP 即 exit 1",
@@ -83,7 +83,7 @@
    "artifacts": [
     "docs/evidence/2339/R6-settlement.txt"
    ],
-   "assert": "exit 0；含 `--- PASS`",
+   "assert": "exit 0；含 --- PASS",
    "expected": "PASS",
    "negative": "FAIL → FAIL",
    "negative_result": "测试失败即 exit 1",
@@ -97,7 +97,7 @@
    "artifacts": [
     "docs/evidence/2339/R7-detail.txt"
    ],
-   "assert": "exit 0；含 `--- PASS`",
+   "assert": "exit 0；含 --- PASS",
    "expected": "PASS",
    "negative": "FAIL → FAIL",
    "negative_result": "测试失败即 exit 1",
@@ -111,7 +111,7 @@
    "artifacts": [
     "docs/evidence/2339/R8-diff.txt"
    ],
-   "assert": "exit 0；无 `^+.*t.Skip`",
+   "assert": "exit 0；无 ^+.*t.Skip",
    "expected": "PASS",
    "negative": "新增 skip → FAIL",
    "negative_result": "diff 命中 ^+.*t.Skip 即 exit 1",
@@ -139,7 +139,7 @@
    "artifacts": [
     "docs/evidence/2339/R10-red-green.txt"
    ],
-   "assert": "exit 0；含 fix^ 的 `--- FAIL` 与 fix 的 `--- PASS`",
+   "assert": "exit 0；含 fix^ 的 --- FAIL 与 fix 的 --- PASS",
    "expected": "PASS",
    "negative": "只有 PASS → FAIL",
    "negative_result": "fix^ 未 FAIL 或缺 --- PASS 即 exit 1",
