@@ -703,6 +703,81 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 
 // UpdateUser updates existing user information
 // PUT /api/users/:id
+// GetStaffUser GET /admin/staff/:id（#2429）
+// 编辑页按 id 加载用户，避免依赖前端 location.state（刷新/直达即「无法获取用户数据」）。
+// 同时返回归属网点（site_members 权威）与直属商户/维修师傅标识，供前端按类型渲染字段。
+func (h *UserStaffHandler) GetStaffUser(c *gin.Context) {
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+	userID := c.Param("id")
+
+	db := database.GetDB().WithContext(ctx)
+
+	var user models.User
+	q := db.Where("id = ? AND tenant_id = ? AND deleted_at IS NULL", userID, tenantID)
+	if scoped, err := middleware.ApplyOrgScope(q, ctx); err == nil {
+		q = scoped
+	}
+	if err := q.First(&user).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query user: " + err.Error()})
+		}
+		return
+	}
+
+	// 归属网点（site_members 为权威关系；users 表无 site_id 列）
+	var sm struct {
+		SiteID   string
+		SiteName string
+		Role     string
+	}
+	db.Table("site_members AS sm").
+		Select("sm.site_id, s.name AS site_name, sm.role").
+		Joins("JOIN sites s ON s.id = sm.site_id").
+		Where("sm.user_id = ? AND sm.status = 'active'", user.ID).
+		Scan(&sm)
+
+	// 直属商户（merchant_members）
+	var mm struct {
+		MerchantID string
+		Role       string
+	}
+	db.Table("merchant_members").
+		Select("merchant_id, role").
+		Where("user_id = ? AND status = 'active'", user.ID).
+		Scan(&mm)
+
+	var techCount int64
+	db.Model(&models.TechnicianProfile{}).Where("user_id = ?", user.ID).Count(&techCount)
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "success",
+		"data": gin.H{
+			"id":              user.ID,
+			"iam_sub":         user.IAMSub,
+			"name":            user.Name,
+			"username":        user.Username,
+			"phone":           user.Phone,
+			"email":           user.Email,
+			"position":        user.Position,
+			"role":            user.Role,
+			"status":          user.Status,
+			"tenant_id":       user.TenantID,
+			"org_id":          user.OrgID,
+			"site_id":         sm.SiteID,
+			"site_name":       sm.SiteName,
+			"site_role":       sm.Role,
+			"merchant_id":     mm.MerchantID,
+			"merchant_role":   mm.Role,
+			"is_technician":   techCount > 0,
+			"is_direct_staff": sm.SiteID == "",
+		},
+	})
+}
+
 func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(ctx)
@@ -828,7 +903,15 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 				}
 			}
 		} else {
-			siteIDChanged := true
+			// #2429：只有归属网点**真正变化**时才触发 IAM 解绑/绑定。
+			// 此前 siteIDChanged 硬编码为 true → 任何带 site_id 的编辑（哪怕只是改职位）
+			// 都会重放一次 IAM unbind/bind，造成直属员工被误挂网点、org 被改写。
+			var currentSiteID string
+			if err := db.Table("site_members").Select("site_id").
+				Where("user_id = ? AND status = 'active'", userID).Scan(&currentSiteID).Error; err != nil {
+				log.Printf("[UpdateUser] load current site for %s failed: %v", userID, err)
+			}
+			siteIDChanged := currentSiteID != newSiteIDStr
 
 			if siteIDChanged {
 				iamClient := services.NewIAMClient()

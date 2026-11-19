@@ -1,0 +1,14 @@
+# build=1.0.ada06f938 commit=ada06f9383688976fc90b811c23a8631aef5d463 dirty=true
+[DEBUG] Loaded .env from: ../.env
+2026/11/19 23:39:14 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429 sslmode=disable
+2026/11/19 23:39:15 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429
+2026/11/19 23:39:15 [DB] Connected to database 'tuneloop_test_verify2429'
+=== RUN   TestUpdateUser_SameSiteSkipsIAM_2429
+2026/11/19 23:39:15 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429 sslmode=disable
+2026/11/19 23:39:15 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429
+2026/11/19 23:39:15 [DB] Connected to database 'tuneloop_test_verify2429'
+--- PASS: TestUpdateUser_SameSiteSkipsIAM_2429 (0.05s)
+=== RUN   TestGetStaffUser_ReturnsSiteAndDirectFlag_2429
+--- PASS: TestGetStaffUser_ReturnsSiteAndDirectFlag_2429 (0.02s)
+PASS
+ok  	tuneloop-backend/handlers	0.818s

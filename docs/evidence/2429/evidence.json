@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "issue": 2429,
+  "build": "1.0.ada06f938",
+  "commit": "ada06f9383688976fc90b811c23a8631aef5d463",
+  "dirty": true,
+  "environment": "local: Go handler tests (PG 127.0.0.1:5432) + PC vite build; PC UI manual verification pending next prerelease",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2429.sh r1-go",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2429/R1-go.txt"
+      ],
+      "assert": "exit 0；SameSiteSkipsIAM + GetStaffUser 两用例 PASS",
+      "actual": "PASS：同站点保存不再触发 IAM（200，org 不变）；GET /admin/staff/:id 返回 site_id/site_name/is_direct_staff",
+      "expected": "PASS",
+      "negative": "站点未变仍调用 IAM → 500 → FAIL",
+      "negative_result": "单测断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2429.sh r2-pc-build",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2429/R2-pc-build.txt"
+      ],
+      "assert": "exit 0；vite build 成功",
+      "actual": "PASS：PC 前端 build ✓ built in 17.74s",
+      "expected": "PASS",
+      "negative": "构建失败 → FAIL",
+      "negative_result": "非 0 退出即 FAIL",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2429.sh r3-probe",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2429/R3-probe.txt"
+      ],
+      "assert": "exit 0；PROBE-OK",
+      "actual": "PASS：无 siteIDChanged:=true 硬编码；编辑页按 id 加载；职位 AutoComplete；列表编辑入口统一到完整页且弹窗已移除",
+      "expected": "PASS",
+      "negative": "残留硬编码/弹窗双入口 → FAIL",
+      "negative_result": "grep 命中即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "manual PC verification (Owner)",
+      "exit": 1,
+      "artifacts": [
+        "docs/evidence/2429/R4-manual.md"
+      ],
+      "assert": "RESULT: PASS",
+      "actual": "PENDING：待发布预生产后验证（直属员工只改职位可保存且 org 不变；维修师傅无职位字段；角色可改）",
+      "expected": "PASS",
+      "negative": "需选网点才能保存 / org 被改 → FAIL",
+      "negative_result": "回执未签即 exit 1",
+      "pass": false
+    }
+  ]
+}

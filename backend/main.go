@@ -539,6 +539,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.POST("/user/reset-password", handlers.ResetPasswordSelf)
 			authRequired.POST("/user/change-password", handlers.ChangePasswordSelf)
 			authRequired.POST("/users", middleware.RequireSysPerm(middleware.SysPermUserCreate), staffHandler.CreateUser)
+			// #2429：编辑页按 id 加载（不依赖前端 state；返回归属网点/直属商户标识）
+			authRequired.GET("/admin/staff/:id", middleware.RequireSysPerm(middleware.SysPermUserList), staffHandler.GetStaffUser)
 			authRequired.PUT("/users/:id", middleware.RequireSysPerm(middleware.SysPermUserUpdate), staffHandler.UpdateUser)
 			authRequired.DELETE("/users/batch", middleware.RequireSysPerm(middleware.SysPermUserDelete), staffHandler.BatchDeleteUsers)
 			authRequired.POST("/users/reset-password", middleware.RequireSysPerm(middleware.SysPermUserUpdate), staffHandler.ResetPassword)

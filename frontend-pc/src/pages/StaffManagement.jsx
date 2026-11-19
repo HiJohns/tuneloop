@@ -34,9 +34,6 @@ export default function StaffManagement() {
   const [lockedSiteId, setLockedSiteId] = useState(null)
 
   const [userRole, setUserRole] = useState('')
-  const [editModalVisible, setEditModalVisible] = useState(false)
-  const [editingUser, setEditingUser] = useState(null)
-  const [editForm] = Form.useForm()
   const [isMerchantAdmin, setIsMerchantAdmin] = useState(false)
   const [invitePending, setInvitePending] = useState(0) // #2114 待审批徽标
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
@@ -325,35 +322,6 @@ export default function StaffManagement() {
     }
   }
 
-  const handleEditUser = (record) => {
-    setEditingUser(record)
-    editForm.setFieldsValue({
-      name: record.name,
-      phone: record.phone,
-      email: record.email,
-      position: record.position,
-      site_id: record.site_id,
-    })
-    setEditModalVisible(true)
-  }
-
-  const handleSubmitEdit = async () => {
-    try {
-      const values = await editForm.validateFields()
-      const res = await staffApi.updateUser(editingUser.id, values)
-      if (res.code === 20000) {
-        message.success('编辑成功')
-        setEditModalVisible(false)
-        fetchStaffList()
-      } else {
-        message.error(res.message || '编辑失败')
-      }
-    } catch (err) {
-      if (err.errorFields) return
-      message.error('编辑失败: ' + (err.message || ''))
-    }
-  }
-
   // #2114 §8.4: 补齐原先未定义的处理函数（原删除/激活/重设密码按钮会抛 ReferenceError）
   const handleDeleteUser = async (record) => {
     try {
@@ -537,7 +505,7 @@ export default function StaffManagement() {
             type="link" 
             size="small" 
             icon={<EditOutlined />}
-            onClick={() => handleEditUser(record)}
+            onClick={() => navigate(`/staff/${record.id}/edit`, { state: { user: record } })}
           >
             编辑
           </Button>
@@ -844,35 +812,6 @@ export default function StaffManagement() {
 
       {/* #2052：原「员工已存在」冲突选择对话框已移除 —— 改为发送邀请通知 */}
 
-      <Modal
-        title="编辑员工"
-        open={editModalVisible}
-        onCancel={() => setEditModalVisible(false)}
-        onOk={handleSubmitEdit}
-        destroyOnClose
-      >
-        <Form form={editForm} layout="vertical">
-          <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
-            <Input placeholder="请输入姓名" />
-          </Form.Item>
-          <Form.Item name="phone" label="手机" rules={[{ required: true, message: '请输入手机号' }]}>
-            <Input placeholder="请输入手机号" />
-          </Form.Item>
-          <Form.Item name="email" label="邮箱">
-            <Input placeholder="请输入邮箱" />
-          </Form.Item>
-          <Form.Item name="position" label="职位">
-            <Input placeholder="请输入职位" />
-          </Form.Item>
-          <Form.Item name="site_id" label="归属网点" rules={[{ required: true, message: '请选择网点' }]}>
-            <Select placeholder="选择网点">
-              {siteOptions.map(o => (
-                <Option key={o.key} value={o.value}>{o.label}</Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Form>
-      </Modal>
     </div>
   )
 }

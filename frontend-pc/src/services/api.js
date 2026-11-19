@@ -461,6 +461,8 @@ export const staffApi = {
   // #2073: 管理员为目标用户上传头像（multipart；使用 request 传 FormData，勿用 api.post —— #1967 教训）
   uploadUserAvatar: (id, formData) => request(`/admin/users/${id}/avatar`, { method: 'POST', body: formData }),
   list: (params) => api.get('/staff', { params }),
+  // #2429: 编辑页按 id 加载（含归属网点/直属商户标识），不依赖前端 state
+  getUser: (id) => api.get(`/admin/staff/${id}`),
   getMe: () => api.get('/users/me'),
   createUser: (data) => api.post('/users', data),
   updateUser: (id, data) => api.put(`/users/${id}`, data),
