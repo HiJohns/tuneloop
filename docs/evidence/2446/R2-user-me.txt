@@ -1,0 +1,31 @@
+# build=1.0.482c3ad5f commit=482c3ad5f18c426eab4ba63fcd890e598091ba75 dirty=false
+[DEBUG] Loaded .env from: ../.env
+2026/11/20 13:52:52 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2446_evidence sslmode=disable
+2026/11/20 13:52:52 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2446_evidence
+2026/11/20 13:52:52 [DB] Connected to database 'tuneloop_test_2446_evidence'
+=== RUN   TestGetCurrentUser_2446_NeedsCredentials
+2026/11/20 13:52:53 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2446_evidence sslmode=disable
+2026/11/20 13:52:53 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2446_evidence
+2026/11/20 13:52:53 [DB] Connected to database 'tuneloop_test_2446_evidence'
+
+2026/11/20 13:52:54 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[617.837ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] PUT    /users/me                 --> tuneloop-backend/handlers.(*UserStaffHandler).UpdateCurrentUser-fm (2 handlers)
+[GIN-debug] GET    /users/me                 --> tuneloop-backend/handlers.(*UserStaffHandler).GetCurrentUser-fm (2 handlers)
+2026/11/20 13:52:54 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:41917, clientID=test-ns, namespace=test-ns
+2026/11/20 13:52:54 [IAMClient] Obtained client credentials token, expires in 3600s
+
+2026/11/20 13:52:54 [31;1m/home/coder/tuneloop/backend/handlers/user_staff.go:1190 [35;1mrecord not found
+[0m[33m[4.410ms] [34;1m[rows:0][0m SELECT site_members.site_id, sites.name as site_name FROM "site_members" JOIN sites ON sites.id = site_members.site_id WHERE site_members.user_id = '1afb5986-3b47-4637-8f20-34e90d256750' ORDER BY "site_members"."site_id" LIMIT 1
+2026/11/20 13:52:54 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:41917, clientID=test-ns, namespace=test-ns
+2026/11/20 13:52:54 [IAMClient] Obtained client credentials token, expires in 3600s
+
+2026/11/20 13:52:54 [31;1m/home/coder/tuneloop/backend/handlers/user_staff.go:1190 [35;1mrecord not found
+[0m[33m[1.469ms] [34;1m[rows:0][0m SELECT site_members.site_id, sites.name as site_name FROM "site_members" JOIN sites ON sites.id = site_members.site_id WHERE site_members.user_id = '1afb5986-3b47-4637-8f20-34e90d256750' ORDER BY "site_members"."site_id" LIMIT 1
+--- PASS: TestGetCurrentUser_2446_NeedsCredentials (1.11s)
+PASS
+ok  	tuneloop-backend/handlers	1.818s

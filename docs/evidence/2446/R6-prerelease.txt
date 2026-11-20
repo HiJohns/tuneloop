@@ -1,0 +1,5 @@
+# build=1.0.482c3ad5f commit=482c3ad5f18c426eab4ba63fcd890e598091ba75 dirty=false
+active
+NRestarts=0
+"version":"1.0.94"
+PRERELEASE_OK

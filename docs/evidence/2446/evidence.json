@@ -1,0 +1,94 @@
+{
+ "schema_version": 1,
+ "issue": 2446,
+ "build": "1.0.482c3ad5f",
+ "commit": "482c3ad5f18c426eab4ba63fcd890e598091ba75",
+ "dirty": false,
+ "environment": "local handlers tests + page-smoke + weapp build; prerelease 1.0.94 (482c3ad5f)",
+ "rows": [
+  {
+   "id": "R1",
+   "command": "bash scripts/verify-2446.sh r1-backend",
+   "exit": 0,
+   "artifacts": ["docs/evidence/2446/R1-backend.txt"],
+   "assert": "exit 0；合法更新/冲突/非法三组 PASS",
+   "actual": "PASS：3 个 #2446 测试全绿（合法更新、冲突 409、非法 400）",
+   "expected": "PASS",
+   "negative": "静默成功或未更新本地 → FAIL",
+   "negative_result": "测试断言失败即 exit 1",
+   "pass": true
+  },
+  {
+   "id": "R2",
+   "command": "bash scripts/verify-2446.sh r2-user-me",
+   "exit": 0,
+   "artifacts": ["docs/evidence/2446/R2-user-me.txt"],
+   "assert": "exit 0；phone→true；自定义→false；shadow 同步",
+   "actual": "PASS：needs_credentials true/false 两态断言通过",
+   "expected": "PASS",
+   "negative": "恒 true/false → FAIL",
+   "negative_result": "两态断言失败即 exit 1",
+   "pass": true
+  },
+  {
+   "id": "R3",
+   "command": "bash scripts/verify-2446.sh r3-credentials-smoke",
+   "exit": 0,
+   "artifacts": ["docs/evidence/2446/R3-credentials-smoke.txt"],
+   "assert": "exit 0；渲染/提交/清理会话断言 PASS",
+   "actual": "PASS：2 tests（提交 username/password；username=phone 拒绝 PUT）",
+   "expected": "PASS",
+   "negative": "未校验/未清会话 → FAIL",
+   "negative_result": "任一测试失败即 exit 1",
+   "pass": true
+  },
+  {
+   "id": "R4",
+   "command": "bash scripts/verify-2446.sh r4-entry",
+   "exit": 0,
+   "artifacts": ["docs/evidence/2446/R4-entry.txt"],
+   "assert": "exit 0；true 显示、false 隐藏；页面已注册",
+   "actual": "PASS：ENTRY_OK（Bind CTA / Profile gate / app.config 注册）",
+   "expected": "PASS",
+   "negative": "无入口/恒显示 → FAIL",
+   "negative_result": "任一探针缺失即 ENTRY_FAIL",
+   "pass": true
+  },
+  {
+   "id": "R5",
+   "command": "bash scripts/verify-2446.sh r5-weapp-build",
+   "exit": 0,
+   "artifacts": ["docs/evidence/2446/R5-weapp-build.txt"],
+   "assert": "exit 0；build 成功；PROBE-OK",
+   "actual": "PASS：build:weapp 成功；dist-weapp wxml 无原生 HTML 交互标签",
+   "expected": "PASS",
+   "negative": "构建失败/原生标签 → FAIL",
+   "negative_result": "任一失败即 exit 1",
+   "pass": true
+  },
+  {
+   "id": "R6",
+   "command": "bash scripts/verify-2446.sh r6-prerelease",
+   "exit": 0,
+   "artifacts": ["docs/evidence/2446/R6-prerelease.txt"],
+   "assert": "exit 0；版本 1.0.94；服务 active / NRestarts=0",
+   "actual": "PASS：预生产 1.0.94 active / NRestarts=0",
+   "expected": "PASS",
+   "negative": "版本/服务异常 → FAIL",
+   "negative_result": "非 1.0.94 或服务异常即 exit 1",
+   "pass": true
+  },
+  {
+   "id": "R7",
+   "command": "bash scripts/verify-2446.sh r7-owner",
+   "exit": 1,
+   "artifacts": ["docs/evidence/2446/R7-owner.md"],
+   "assert": "OWNER_PASS；PC 登录成功；已设置账户不再出现表单",
+   "actual": "OWNER_PENDING（真机回执未签；不置 ready）",
+   "expected": "PASS",
+   "negative": "PENDING/FAIL → 不得 ready",
+   "negative_result": "r7-owner 检测不到 OWNER_PASS 即 exit 1",
+   "pass": false
+  }
+ ]
+}
