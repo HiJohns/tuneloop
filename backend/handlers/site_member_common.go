@@ -320,16 +320,6 @@ func addMembersCore(c *gin.Context, db *gorm.DB, site models.Site, tenantID, sit
 			}
 		}
 
-		// #2428 D3：跨租户禁止 direct bind；返回 40911 引导邀请。
-		var targetUser models.User
-		if err := db.Where("id = ? AND deleted_at IS NULL", userID).First(&targetUser).Error; err == nil && targetUser.TenantID != tenantID {
-			return res, &addMemberFail{http.StatusConflict, gin.H{
-				"code":    40911,
-				"message": "该用户属于其他商户，请发送加入邀请，由本人确认加入",
-				"data":    gin.H{"need_invite": true},
-			}}
-		}
-
 		normalizedRole := normalizeRole(role)
 		iamRole := toIAMRole(normalizedRole)
 		templateCode := normalizedRole

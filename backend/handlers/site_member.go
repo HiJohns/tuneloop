@@ -92,6 +92,28 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 		return
 	}
 
+	// #2428 D3：跨租户禁止 direct bind（在进入 core 前拦截，返回 40911）。
+	checkIDs := make([]string, 0, len(input.UserIDs)+1)
+	if input.UserID != "" {
+		checkIDs = append(checkIDs, input.UserID)
+	}
+	for _, u := range input.UserIDs {
+		if uid, ok := u["user_id"].(string); ok && uid != "" {
+			checkIDs = append(checkIDs, uid)
+		}
+	}
+	for _, uid := range checkIDs {
+		var target models.User
+		if err := db.Where("id = ? AND deleted_at IS NULL", uid).First(&target).Error; err == nil && target.TenantID != tenantID {
+			c.JSON(http.StatusConflict, gin.H{
+				"code":    40911,
+				"message": "该用户属于其他商户，请发送加入邀请，由本人确认加入",
+				"data":    gin.H{"need_invite": true},
+			})
+			return
+		}
+	}
+
 	var site models.Site
 	if err := db.Where("id = ?", siteID).First(&site).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
