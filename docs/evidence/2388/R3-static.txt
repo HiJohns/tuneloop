@@ -1,1 +1,7 @@
-1
+# build=1.0.c497f053d commit=c497f053d0d8106aebbe328aaa112afefdb2c2e1 dirty=false
+## resolveCreateFeedback 四种 kind（frontend-pc/src/utils/createFeedback.js）
+KIND_OK: password_auto
+KIND_OK: password_manual
+KIND_OK: invite
+KIND_OK: blocked
+STATIC_OK

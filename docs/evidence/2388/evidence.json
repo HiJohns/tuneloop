@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "issue": 2388,
+  "build": "1.0.c497f053d",
+  "commit": "c497f053d0d8106aebbe328aaa112afefdb2c2e1",
+  "dirty": false,
+  "environment": "isolated worktree /home/coder/tuneloop-wt/2388 @ c497f053d; R3/R4 generated with OUT_DIR outside the repo; R1/R2 are Owner-signed receipts",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2388.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2388/R1-manual.md"
+      ],
+      "assert": "exit 0；含 RESULT: PASS",
+      "actual": "PASS：Owner 已签 R1（手动密码：无邀请文案、无一次性密码弹窗）",
+      "expected": "PASS",
+      "negative": "PENDING → FAIL",
+      "negative_result": "回执缺失或非 PASS 即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2388.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2388/R2-auto.md"
+      ],
+      "assert": "exit 0；含 RESULT: PASS",
+      "actual": "PASS：Owner 已签 R2（自动生成：一次性密码弹窗可见）",
+      "expected": "PASS",
+      "negative": "PENDING → FAIL",
+      "negative_result": "回执缺失或非 PASS 即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2388.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2388/R3-static.txt"
+      ],
+      "assert": "exit 0；四种 kind 均命中",
+      "actual": "PASS：password_auto / password_manual / invite / blocked 四种 kind 均命中，STATIC_OK",
+      "expected": "PASS",
+      "negative": "缺分支 → FAIL",
+      "negative_result": "任一 kind 缺失即 STATIC_FAIL 并 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2388.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2388/R4-build.txt"
+      ],
+      "assert": "exit 0；含 built in",
+      "actual": "PASS：pc vite build 成功（built in 28.71s），BUILD_EXIT=0",
+      "expected": "PASS",
+      "negative": "构建失败 → FAIL",
+      "negative_result": "BUILD_EXIT 非 0 即 BUILD_FAIL 并 exit 1",
+      "pass": true
+    }
+  ]
+}
