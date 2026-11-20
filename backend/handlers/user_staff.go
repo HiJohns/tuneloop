@@ -727,17 +727,41 @@ func (h *UserStaffHandler) GetStaffUser(c *gin.Context) {
 		return
 	}
 
-	// 归属网点（site_members 为权威关系；users 表无 site_id 列）
-	var sm struct {
-		SiteID   string
-		SiteName string
-		Role     string
+	// 归属网点（site_members 为权威关系；users 表无 site_id 列）。
+	// #2429 R5/R6：多行 membership 全量返回；主网点优先 users.org_id 匹配项，
+	// 否则取最早一条；双身份（merchant_members + site_members）两者均为 true。
+	type siteMembership struct {
+		SiteID   string `json:"site_id"`
+		SiteName string `json:"site_name"`
+		Role     string `json:"role"`
+		OrgID    string `json:"org_id"`
 	}
-	db.Table("site_members AS sm").
-		Select("sm.site_id, s.name AS site_name, sm.role").
+	var memberships []siteMembership
+	if err := db.Table("site_members AS sm").
+		Select("sm.site_id, s.name AS site_name, sm.role, s.org_id").
 		Joins("JOIN sites s ON s.id = sm.site_id").
 		Where("sm.user_id = ? AND sm.status = 'active'", user.ID).
-		Scan(&sm)
+		Order("s.created_at ASC, sm.site_id ASC").
+		Scan(&memberships).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query site memberships: " + err.Error()})
+		return
+	}
+	var primary siteMembership
+	for _, m := range memberships {
+		if user.OrgID != "" && m.OrgID == user.OrgID {
+			primary = m
+			break
+		}
+	}
+	if primary.SiteID == "" && len(memberships) > 0 {
+		primary = memberships[0]
+	}
+	membershipList := make([]gin.H, 0, len(memberships))
+	for _, m := range memberships {
+		membershipList = append(membershipList, gin.H{
+			"site_id": m.SiteID, "site_name": m.SiteName, "role": m.Role, "org_id": m.OrgID,
+		})
+	}
 
 	// 直属商户（merchant_members）
 	var mm struct {
@@ -751,29 +775,32 @@ func (h *UserStaffHandler) GetStaffUser(c *gin.Context) {
 
 	var techCount int64
 	db.Model(&models.TechnicianProfile{}).Where("user_id = ?", user.ID).Count(&techCount)
-
+	isSiteStaff := len(memberships) > 0
+	isDirectStaff := mm.MerchantID != "" || !isSiteStaff
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
 		"message": "success",
 		"data": gin.H{
-			"id":              user.ID,
-			"iam_sub":         user.IAMSub,
-			"name":            user.Name,
-			"username":        user.Username,
-			"phone":           user.Phone,
-			"email":           user.Email,
-			"position":        user.Position,
-			"role":            user.Role,
-			"status":          user.Status,
-			"tenant_id":       user.TenantID,
-			"org_id":          user.OrgID,
-			"site_id":         sm.SiteID,
-			"site_name":       sm.SiteName,
-			"site_role":       sm.Role,
-			"merchant_id":     mm.MerchantID,
-			"merchant_role":   mm.Role,
-			"is_technician":   techCount > 0,
-			"is_direct_staff": sm.SiteID == "",
+			"id":               user.ID,
+			"iam_sub":          user.IAMSub,
+			"name":             user.Name,
+			"username":         user.Username,
+			"phone":            user.Phone,
+			"email":            user.Email,
+			"position":         user.Position,
+			"role":             user.Role,
+			"status":           user.Status,
+			"tenant_id":        user.TenantID,
+			"org_id":           user.OrgID,
+			"site_id":          primary.SiteID,
+			"site_name":        primary.SiteName,
+			"site_role":        primary.Role,
+			"site_memberships": membershipList,
+			"is_site_staff":    isSiteStaff,
+			"merchant_id":      mm.MerchantID,
+			"merchant_role":    mm.Role,
+			"is_technician":    techCount > 0,
+			"is_direct_staff":  isDirectStaff,
 		},
 	})
 }
@@ -903,76 +930,63 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 				}
 			}
 		} else {
-			// #2429：只有归属网点**真正变化**时才触发 IAM 解绑/绑定。
-			// 此前 siteIDChanged 硬编码为 true → 任何带 site_id 的编辑（哪怕只是改职位）
-			// 都会重放一次 IAM unbind/bind，造成直属员工被误挂网点、org 被改写。
-			var currentSiteID string
-			if err := db.Table("site_members").Select("site_id").
-				Where("user_id = ? AND status = 'active'", userID).Scan(&currentSiteID).Error; err != nil {
-				log.Printf("[UpdateUser] load current site for %s failed: %v", userID, err)
+			// #2429 D1：站点变更判定改为 org 级。site_members 允许多行，
+			// 不能 Scan 单值（结果不确定）；IAM org 只有一层，比较目标 site 的 org
+			// 与用户当前 org 即可覆盖多网点/直属员工/同商户移动。
+			var newSite models.Site
+			if err := db.Where("id = ? AND tenant_id = ?", newSiteIDStr, tenantID).First(&newSite).Error; err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "site not found"})
+				return
 			}
-			siteIDChanged := currentSiteID != newSiteIDStr
+			newOrgID := newSite.OrgID
+			if newOrgID == "" {
+				newOrgID = tenantID
+			}
+			oldOrgID := existingUser.OrgID
+			if oldOrgID == "" {
+				oldOrgID = tenantID
+			}
 
-			if siteIDChanged {
+			if newOrgID != oldOrgID {
 				iamClient := services.NewIAMClient()
-				var newOrgID, oldOrgID string
-
-				var newSite models.Site
-				if err := db.Where("id = ? AND tenant_id = ?", newSiteIDStr, tenantID).First(&newSite).Error; err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "site not found"})
-					return
-				}
-				newOrgID = newSite.OrgID
-				if newOrgID == "" {
-					newOrgID = tenantID
-				}
-
-				if existingUser.OrgID != "" {
-					oldOrgID = existingUser.OrgID
-				}
-
 				if existingUser.IAMSub != "" {
 					oldUnbound := false
-					if oldOrgID != "" {
-						if err := iamClient.UnbindUserFromOrganization(existingUser.IAMSub, oldOrgID, ""); err != nil {
-							c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to unbind user from old organization: " + err.Error()})
-							return
+					if err := iamClient.UnbindUserFromOrganization(existingUser.IAMSub, oldOrgID, ""); err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to unbind user from old organization: " + err.Error()})
+						return
+					}
+					oldUnbound = true
+
+					iamRole := services.GetBusinessRole(existingUser.Role)
+					if iamRole == "" {
+						iamRole = "staff"
+					}
+					if err := iamClient.BindUserToOrganization(existingUser.IAMSub, newOrgID, iamRole, ""); err != nil {
+						if oldUnbound && oldOrgID != "" {
+							oldIamRole := services.GetBusinessRole(existingUser.Role)
+							if oldIamRole == "" {
+								oldIamRole = "staff"
+							}
+							if rebindErr := iamClient.BindUserToOrganization(existingUser.IAMSub, oldOrgID, oldIamRole, ""); rebindErr != nil {
+								log.Printf("[CRITICAL] Compensation rebind failed for user %s to org %s: %v", existingUser.IAMSub, oldOrgID, rebindErr)
+							}
 						}
-						oldUnbound = true
+						c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to bind user to new organization: " + err.Error()})
+						return
 					}
 
-					if newOrgID != "" {
-						iamRole := services.GetBusinessRole(existingUser.Role)
-						if iamRole == "" {
-							iamRole = "staff"
-						}
-						if err := iamClient.BindUserToOrganization(existingUser.IAMSub, newOrgID, iamRole, ""); err != nil {
-							if oldUnbound && oldOrgID != "" {
-								oldIamRole := services.GetBusinessRole(existingUser.Role)
-								if oldIamRole == "" {
-									oldIamRole = "staff"
-								}
-								if rebindErr := iamClient.BindUserToOrganization(existingUser.IAMSub, oldOrgID, oldIamRole, ""); rebindErr != nil {
-									log.Printf("[CRITICAL] Compensation rebind failed for user %s to org %s: %v", existingUser.IAMSub, oldOrgID, rebindErr)
-								}
-							}
-							c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to bind user to new organization: " + err.Error()})
+					template, ok := services.AllRoleTemplates[existingUser.Role]
+					if ok && len(template.CusPermCodes) > 0 {
+						cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(template.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
+						if err := iamClient.SetUserCustomerPermissions(newOrgID, existingUser.IAMSub, cusPerm, cusPermExt); err != nil {
+							c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to set user permissions: " + err.Error()})
 							return
-						}
-
-						template, ok := services.AllRoleTemplates[existingUser.Role]
-						if ok && len(template.CusPermCodes) > 0 {
-							cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(template.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
-							if err := iamClient.SetUserCustomerPermissions(newOrgID, existingUser.IAMSub, cusPerm, cusPermExt); err != nil {
-								c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to set user permissions: " + err.Error()})
-								return
-							}
 						}
 					}
 				}
-
-				updates["org_id"] = newOrgID
 			}
+
+			updates["org_id"] = newOrgID
 		}
 	}
 

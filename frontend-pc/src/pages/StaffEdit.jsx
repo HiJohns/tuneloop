@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Card, Button, Form, Input, Select, AutoComplete, Alert, Space, message } from 'antd'
 import { staffApi, sitesApi } from '../services/api'
+import { resolveStaffFormMode, staffFormRules } from '../utils/staffForm'
 
 function convertSitesToOptions(sites, parentPath = '') {
   let options = []
@@ -34,17 +35,9 @@ export default function StaffEdit() {
   const [siteOptions, setSiteOptions] = useState([])
   const [loadError, setLoadError] = useState('')
 
-  const isTechnician = useMemo(() => {
-    if (!editingUser) return false
-    return !!editingUser.is_technician || editingUser.role === 'repair_technician'
-  }, [editingUser])
-
-  // 直属员工：有 merchant_members 且无 site_members（后端 is_direct_staff）
-  const isDirectStaff = useMemo(() => {
-    if (!editingUser) return false
-    if (typeof editingUser.is_direct_staff === 'boolean') return editingUser.is_direct_staff
-    return !editingUser.site_id
-  }, [editingUser])
+  // #2429 D3：字段模式单一出口；双身份 direct 优先。
+  const formMode = useMemo(() => resolveStaffFormMode(editingUser || {}), [editingUser])
+  const rules = useMemo(() => staffFormRules(formMode), [formMode])
 
   useEffect(() => {
     let cancelled = false
@@ -162,7 +155,7 @@ export default function StaffEdit() {
           </Form.Item>
 
           {/* #2429：维修师傅无「职位」字段（ui.md L2565：师傅职位即「维修师傅」） */}
-          {!isTechnician && (
+          {rules.showPosition && (
             <Form.Item name="position" label="职位" extra="可自由填写；常用项仅供参考（如 客服 / 运营 / 调律）">
               <AutoComplete
                 options={POSITION_OPTIONS}
@@ -173,7 +166,7 @@ export default function StaffEdit() {
           )}
 
           {/* #2429：直属员工不显示「归属网点」必填（否则为保存被迫选网点 → IAM 误绑） */}
-          {isDirectStaff ? (
+          {rules.showMerchantReadonly ? (
             <Form.Item label="归属">
               <Input
                 disabled
