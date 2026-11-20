@@ -217,7 +217,9 @@ export const navigation = {
   // #2434：返回兜底——扫码/分享直达页无页面栈时回首页，避免 navigateBack 静默失败。
   safeBack: (fallbackRoute) => {
     const pages = Taro.getCurrentPages() || []
-    const action = decideBackAction({ stackDepth: pages.length, fallbackRoute })
+    const currentRoute = pages.length > 0 ? (pages[pages.length - 1].route || '') : ''
+    const previousRoute = pages.length > 1 ? (pages[pages.length - 2].route || '') : ''
+    const action = decideBackAction({ stackDepth: pages.length, previousRoute, currentRoute, fallbackRoute })
     if (action.type === 'navigateBack') {
       Taro.navigateBack()
       return

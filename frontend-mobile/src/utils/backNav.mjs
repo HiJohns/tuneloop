@@ -6,12 +6,30 @@
 export const WEAPP_HOME_ROUTE = '/pages-weapp/home/index'
 
 /**
- * 纯函数：根据页面栈深度决定返回动作。
- * @param {{ stackDepth?: number, fallbackRoute?: string }} params
+ * 纯函数：根据页面栈深度与前后 route 决定返回动作。
+ *
+ * 判定表（#2434 R4）：
+ *   depth 0/1（扫码/分享/redirectTo 直达）→ switchTab 首页
+ *   depth >1 且 previousRoute == currentRoute（同级页重复打开）→ switchTab 首页
+ *   depth >1 且上一页不同 → navigateBack（正常返回语义）
+ *
+ * @param {{ stackDepth?: number, previousRoute?: string, currentRoute?: string, fallbackRoute?: string }} params
  * @returns {{ type: 'navigateBack' } | { type: 'switchTab', url: string }}
  */
-export function decideBackAction({ stackDepth, fallbackRoute = WEAPP_HOME_ROUTE } = {}) {
+export function decideBackAction({
+  stackDepth,
+  previousRoute = '',
+  currentRoute = '',
+  fallbackRoute = WEAPP_HOME_ROUTE,
+} = {}) {
   const depth = Number.isFinite(stackDepth) ? stackDepth : 1
-  if (depth > 1) return { type: 'navigateBack' }
-  return { type: 'switchTab', url: fallbackRoute || WEAPP_HOME_ROUTE }
+  const home = fallbackRoute || WEAPP_HOME_ROUTE
+  if (depth > 1) {
+    // 小程序允许同一 route 重复入栈；返回上一层只是回到同名页，等同无出口。
+    if (previousRoute && currentRoute && previousRoute === currentRoute) {
+      return { type: 'switchTab', url: home }
+    }
+    return { type: 'navigateBack' }
+  }
+  return { type: 'switchTab', url: home }
 }
