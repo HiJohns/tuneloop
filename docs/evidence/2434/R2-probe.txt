@@ -1,2 +1,4 @@
-# build=1.0.94a3afb27 commit=94a3afb275a6a45cd70594aa2fe4136809c41de8 dirty=true
-PROBE-OK: scan-prone pages use navigation.safeBack()
+# build=1.0.bf2e5b021 commit=bf2e5b021faedd3ff2d33a648419e7c05c408dd3 dirty=false
+WEAPP_SAFEBACK_OK
+H5_SAFEBACK_OK
+PROBE-OK

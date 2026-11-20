@@ -1,52 +1,66 @@
 {
-  "schema_version": 1,
-  "issue": 2434,
-  "build": "1.0.94a3afb27",
-  "commit": "94a3afb275a6a45cd70594aa2fe4136809c41de8",
-  "dirty": true,
-  "environment": "local: vitest page-smoke; device re-verification pending next prerelease",
-  "rows": [
-    {
-      "id": "R1",
-      "command": "bash scripts/verify-2434.sh r1-unit",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2434/R1-unit.txt"
-      ],
-      "assert": "exit 0；栈深 1/0 → switchTab 首页；>1 → navigateBack",
-      "actual": "PASS：decideBackAction 4 用例（含负例：裸 navigateBack 无栈会静默失败）",
-      "expected": "PASS",
-      "negative": "栈深 1 仍返回 navigateBack → FAIL",
-      "negative_result": "单测断言失败即 exit 1",
-      "pass": true
-    },
-    {
-      "id": "R2",
-      "command": "bash scripts/verify-2434.sh r2-probe",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2434/R2-probe.txt"
-      ],
-      "assert": "exit 0; PROBE-OK",
-      "actual": "PASS：bind/login/profile-complete/account-select 无裸 Taro.navigateBack()；platform 两端口均有 safeBack",
-      "expected": "PASS",
-      "negative": "扫描命中裸 navigateBack → FAIL",
-      "negative_result": "grep 命中即 exit 1",
-      "pass": true
-    },
-    {
-      "id": "R3",
-      "command": "bash scripts/verify-2434.sh r3-smoke",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2434/R3-smoke.txt"
-      ],
-      "assert": "exit 0; 84 passed",
-      "actual": "PASS：page-smoke 84 tests 全绿",
-      "expected": "PASS",
-      "negative": "任一失败 → FAIL",
-      "negative_result": "有 failed 即 exit 1",
-      "pass": true
-    }
-  ]
+ "schema_version": 1,
+ "issue": 2434,
+ "build": "1.0.bf2e5b021",
+ "commit": "bf2e5b021faedd3ff2d33a648419e7c05c408dd3",
+ "dirty": false,
+ "environment": "frontend-mobile vitest/jsdom; fix commit bf2e5b021",
+ "rows": [
+  {
+   "id": "R1",
+   "command": "bash scripts/verify-2434.sh r1-unit",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2434/R1-unit.txt"
+   ],
+   "assert": "exit 0；判定表用例 PASS",
+   "actual": "PASS：8/8（栈深 0/1/2/5、自定义兜底、R4 判定表）",
+   "expected": "PASS",
+   "negative": "栈深 1 失败 → FAIL",
+   "negative_result": "栈深 1 返回 navigateBack 即失败",
+   "pass": true
+  },
+  {
+   "id": "R2",
+   "command": "bash scripts/verify-2434.sh r2-probe",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2434/R2-probe.txt"
+   ],
+   "assert": "exit 0；PROBE-OK",
+   "actual": "PASS：4 个直达页无裸 navigateBack；两端口均有 safeBack",
+   "expected": "PASS",
+   "negative": "裸调用 → FAIL",
+   "negative_result": "命中 Taro.navigateBack() 即 PROBE-FAIL",
+   "pass": true
+  },
+  {
+   "id": "R3",
+   "command": "bash scripts/verify-2434.sh r3-smoke",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2434/R3-smoke.txt"
+   ],
+   "assert": "exit 0；0 failed",
+   "actual": "PASS：page-smoke 16 files / 88 tests",
+   "expected": "PASS",
+   "negative": "失败 → FAIL",
+   "negative_result": "任一 failed 即 exit 1",
+   "pass": true
+  },
+  {
+   "id": "R4",
+   "command": "bash scripts/verify-2434.sh r4-decision",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2434/R4-decision.txt"
+   ],
+   "assert": "exit 0；同名页→switchTab",
+   "actual": "PASS：depth1→首页；depth2 不同→navigateBack；depth2 同名→switchTab；depth5→navigateBack",
+   "expected": "PASS",
+   "negative": "同名仍返回 → FAIL",
+   "negative_result": "同名页 navigateBack 即失败",
+   "pass": true
+  }
+ ]
 }

@@ -1,4 +1,4 @@
-# build=1.0.94a3afb27 commit=94a3afb275a6a45cd70594aa2fe4136809c41de8 dirty=true
+# build=1.0.bf2e5b021 commit=bf2e5b021faedd3ff2d33a648419e7c05c408dd3 dirty=false
 
 > frontend-mobile@1.0.0 smoke
 > vitest run --config vitest.config.js
@@ -63,9 +63,12 @@ Warning: React does not recognize the `scrollIntoView` prop on a DOM element. If
     at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
     at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
 
- ✓ scripts/page-smoke/home-sort.test.jsx (11 tests) 1905ms
-   ✓ H5 home price sort > toggles all three states, preserves mode across categories, and resets on remount 697ms
-   ✓ weapp home price sort > toggles all three states and keeps mode across categories 496ms
+ ✓ scripts/page-smoke/home-sort.test.jsx (11 tests) 3804ms
+   ✓ H5 home price sort > toggles all three states, preserves mode across categories, and resets on remount 1446ms
+   ✓ H5 home price sort > rolls back the label and list when the full price load fails 342ms
+   ✓ weapp home price sort > toggles all three states and keeps mode across categories 845ms
+   ✓ home price sort layout > keeps the 52px pill clear of the category viewport at 375 and 320 494ms
+   ✓ home price sort layout > keeps the 52px pill clear of the category viewport in weapp at 375 and 320 575ms
 stderr | scripts/page-smoke/app-dialog-2415.test.jsx > AppDialog alert (#2415) > TestAppDialogAlert_2415 renders a white card + title and resolves on confirm
 Warning: React does not recognize the `scrollY` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `scrolly` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
     at div
@@ -76,13 +79,15 @@ Warning: React does not recognize the `scrollY` prop on a DOM element. If you in
 Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
- ✓ scripts/page-smoke/app-dialog-2415.test.jsx (7 tests) 442ms
- ✓ scripts/page-smoke/dialog-fallback-2431.test.jsx (10 tests) 16ms
+ ✓ scripts/page-smoke/app-dialog-2415.test.jsx (7 tests) 1385ms
+   ✓ AppDialog alert (#2415) > TestAppDialogAlert_2415 renders a white card + title and resolves on confirm 386ms
+   ✓ DialogHost mount (#2415) > TestDialogHostMounted_2415 mounts in the weapp entry and is referenced by the H5 entry 665ms
+ ✓ scripts/page-smoke/dialog-fallback-2431.test.jsx (10 tests) 37ms
 stderr | scripts/page-smoke/smoke.test.jsx > mobile page render smoke > H5 /checkout renders without fatal errors
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
-9:02:41 PM [vite] warning: Duplicate "style" attribute in JSX element
+12:49:24 AM [vite] warning: Duplicate "style" attribute in JSX element
 36 |                  <View onClick={e => { e.stopPropagation(); setImageIndex(i => (i - 1 + allImgs.length) % allImgs.length) }}
 37 |                    style={{ top: '50%', transform: 'translateY(-50%)' }}
 38 |                    className="absolute left-2 rounded-full w-8 h-8 flex items-center justify-center shadow-sm" style={{ backgroundColor: 'rgba(255,255,255,0.8)' }}>
@@ -149,24 +154,24 @@ Warning: React does not recognize the `placeholderStyle` prop on a DOM element. 
     at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
     at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
 
- ✓ scripts/page-smoke/smoke.test.jsx (18 tests) 6351ms
-   ✓ mobile page render smoke > H5 /checkout renders without fatal errors 570ms
-   ✓ mobile page render smoke > H5 /checkout (zero deposit) renders without fatal errors 319ms
-   ✓ mobile page render smoke > H5 /payment renders without fatal errors 419ms
-   ✓ mobile page render smoke > H5 /order/:id renders without fatal errors 525ms
-   ✓ mobile page render smoke > H5 /credit-assessment renders without fatal errors 324ms
-   ✓ mobile page render smoke > H5 /cart renders without fatal errors 351ms
-   ✓ mobile page render smoke > H5 /profile renders without fatal errors 389ms
-   ✓ mobile page render smoke > H5 /register renders without fatal errors 363ms
-   ✓ mobile page render smoke > weapp checkout renders without fatal errors 442ms
-   ✓ mobile page render smoke > weapp checkout (zero deposit) renders without fatal errors 315ms
-   ✓ mobile page render smoke > weapp payment renders without fatal errors 362ms
-   ✓ mobile page render smoke > weapp order-detail renders without fatal errors 385ms
-   ✓ mobile page render smoke > weapp cart renders without fatal errors 320ms
-   ✓ mobile page render smoke > weapp profile renders without fatal errors 395ms
-   ✓ mobile page render smoke > weapp profile-complete renders without fatal errors 341ms
-   ✓ mobile page render smoke > payment credit gate renders entry when credit is not approved 506ms
- ✓ scripts/page-smoke/bind-wx-accounts.test.jsx (4 tests) 88ms
+ ✓ scripts/page-smoke/smoke.test.jsx (18 tests) 9372ms
+   ✓ mobile page render smoke > H5 /checkout renders without fatal errors 1473ms
+   ✓ mobile page render smoke > H5 /checkout (zero deposit) renders without fatal errors 513ms
+   ✓ mobile page render smoke > H5 /payment renders without fatal errors 877ms
+   ✓ mobile page render smoke > H5 /order/:id renders without fatal errors 663ms
+   ✓ mobile page render smoke > H5 /credit-assessment renders without fatal errors 387ms
+   ✓ mobile page render smoke > H5 /cart renders without fatal errors 434ms
+   ✓ mobile page render smoke > H5 /profile renders without fatal errors 524ms
+   ✓ mobile page render smoke > H5 /register renders without fatal errors 487ms
+   ✓ mobile page render smoke > weapp checkout renders without fatal errors 592ms
+   ✓ mobile page render smoke > weapp checkout (zero deposit) renders without fatal errors 338ms
+   ✓ mobile page render smoke > weapp payment renders without fatal errors 491ms
+   ✓ mobile page render smoke > weapp order-detail renders without fatal errors 560ms
+   ✓ mobile page render smoke > weapp cart renders without fatal errors 364ms
+   ✓ mobile page render smoke > weapp profile renders without fatal errors 613ms
+   ✓ mobile page render smoke > weapp profile-complete renders without fatal errors 438ms
+   ✓ mobile page render smoke > payment credit gate renders entry when credit is not approved 519ms
+ ✓ scripts/page-smoke/bind-wx-accounts.test.jsx (4 tests) 281ms
 stdout | scripts/page-smoke/rent-days-input.test.jsx
 [Dev Mode] Injecting mock wx object for browser debugging
 
@@ -174,24 +179,24 @@ stderr | scripts/page-smoke/rent-days-input.test.jsx > mobile rent days input di
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
- ✓ scripts/page-smoke/rent-days-input.test.jsx (3 tests) 195ms
- ✓ scripts/page-smoke/credit-assessment-2333.test.jsx (5 tests) 12ms
+ ✓ scripts/page-smoke/rent-days-input.test.jsx (3 tests) 537ms
+ ✓ scripts/page-smoke/credit-assessment-2333.test.jsx (5 tests) 41ms
 stderr | scripts/page-smoke/credit-assessment-polling-2407.test.jsx > credit assessment polling (#2407) > keeps polling pending and renders 评测通过 once approved
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
- ✓ scripts/page-smoke/credit-assessment-polling-2407.test.jsx (1 test) 129ms
- ✓ scripts/page-smoke/bind-needs-merge.test.jsx (1 test) 60ms
- ✓ scripts/page-smoke/home-scroll-layout.test.jsx (4 tests) 26ms
- ✓ scripts/page-smoke/credit-flow-tiers.test.jsx (5 tests) 20ms
- ✓ scripts/page-smoke/no-uppercase-label-2436.test.jsx (2 tests) 29ms
- ✓ scripts/page-smoke/credit-return-path-2411.test.jsx (4 tests) 17ms
- ✓ scripts/page-smoke/account-select-token-2425.test.jsx (3 tests) 11ms
- ✓ scripts/page-smoke/back-nav-2434.test.jsx (4 tests) 12ms
- ✓ scripts/page-smoke/wechat-bind-ui-2426.test.jsx (2 tests) 11ms
+ ✓ scripts/page-smoke/credit-assessment-polling-2407.test.jsx (1 test) 295ms
+ ✓ scripts/page-smoke/back-nav-2434.test.jsx (8 tests) 35ms
+ ✓ scripts/page-smoke/bind-needs-merge.test.jsx (1 test) 125ms
+ ✓ scripts/page-smoke/home-scroll-layout.test.jsx (4 tests) 24ms
+ ✓ scripts/page-smoke/credit-flow-tiers.test.jsx (5 tests) 39ms
+ ✓ scripts/page-smoke/no-uppercase-label-2436.test.jsx (2 tests) 88ms
+ ✓ scripts/page-smoke/credit-return-path-2411.test.jsx (4 tests) 34ms
+ ✓ scripts/page-smoke/account-select-token-2425.test.jsx (3 tests) 31ms
+ ✓ scripts/page-smoke/wechat-bind-ui-2426.test.jsx (2 tests) 33ms
 
  Test Files  16 passed (16)
-      Tests  84 passed (84)
-   Start at  21:02:33
-   Duration  22.35s (transform 1.43s, setup 246ms, collect 2.03s, tests 9.32s, environment 6.89s, prepare 1.24s)
+      Tests  88 passed (88)
+   Start at  00:49:00
+   Duration  53.90s (transform 4.65s, setup 493ms, collect 6.18s, tests 16.16s, environment 20.59s, prepare 4.39s)
 
