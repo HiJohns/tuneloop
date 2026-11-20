@@ -1,0 +1,30 @@
+# build=1.0.7b805a260 commit=7b805a260c2e47cc3341397714341be609c48739 dirty=false
+TAP version 13
+# (node:4189710) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/coder/tuneloop/frontend-mobile/src/utils/buttonStyles.test.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /home/coder/tuneloop/frontend-mobile/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: secondary button is 36px with no native margin
+ok 1 - secondary button is 36px with no native margin
+  ---
+  duration_ms: 3.437177
+  ...
+# Subtest: primary button is 48px with no native margin
+ok 2 - primary button is 48px with no native margin
+  ---
+  duration_ms: 0.480225
+  ...
+# Subtest: danger theme uses red palette
+ok 3 - danger theme uses red palette
+  ---
+  duration_ms: 0.492106
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 206.71245

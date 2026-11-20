@@ -1,0 +1,80 @@
+{
+ "schema_version": 1,
+ "issue": 2432,
+ "build": "1.0.7b805a260",
+ "commit": "7b805a260c2e47cc3341397714341be609c48739",
+ "dirty": false,
+ "environment": "frontend-mobile node test/page-smoke + weapp build; fix commit 7b805a260; R5 owner pending",
+ "rows": [
+  {
+   "id": "R1",
+   "command": "bash scripts/verify-2432.sh r1",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2432/R1-address.txt"
+   ],
+   "assert": "exit 0；内联 height/margin",
+   "actual": "PASS：AddressManager 使用 secondaryButtonStyle x3 / primaryButtonStyle x2；旧 py className 清除",
+   "expected": "PASS",
+   "negative": "仅 className → FAIL",
+   "negative_result": "旧 className 残留即失败",
+   "pass": true
+  },
+  {
+   "id": "R2",
+   "command": "bash scripts/verify-2432.sh r2",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2432/R2-styles.txt"
+   ],
+   "assert": "exit 0；36/48",
+   "actual": "PASS：node test 3/3（36/48/margin 0/danger）",
+   "expected": "PASS",
+   "negative": "缺值 → FAIL",
+   "negative_result": "高度/ margin 不符即失败",
+   "pass": true
+  },
+  {
+   "id": "R3",
+   "command": "bash scripts/verify-2432.sh r3",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2432/R3-smoke.txt"
+   ],
+   "assert": "exit 0；0 failed+build",
+   "actual": "PASS：page-smoke 17 files / 93 tests；dist-weapp/app.js 存在",
+   "expected": "PASS",
+   "negative": "失败 → FAIL",
+   "negative_result": "任一失败/无构建即失败",
+   "pass": true
+  },
+  {
+   "id": "R4",
+   "command": "bash scripts/verify-2432.sh r4",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2432/R4-inventory.md"
+   ],
+   "assert": "exit 0；清单完整",
+   "actual": "PASS：输出未内联 Button file:line 清单（其它页面分批）",
+   "expected": "PASS",
+   "negative": "缺失 → FAIL",
+   "negative_result": "无清单即失败",
+   "pass": true
+  },
+  {
+   "id": "R5",
+   "command": "bash scripts/verify-2432.sh r5",
+   "exit": 1,
+   "artifacts": [
+    "docs/evidence/2432/R5-manual.md"
+   ],
+   "assert": "exit 0；RESULT: PASS",
+   "actual": "PENDING：Owner 真机回执未签",
+   "expected": "PASS",
+   "negative": "PENDING → holdon",
+   "negative_result": "PENDING 即 exit 1 / holdon",
+   "pass": false
+  }
+ ]
+}
