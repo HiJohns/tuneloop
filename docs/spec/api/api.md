@@ -1286,7 +1286,7 @@ GET /api/confirmation-sessions/:id
 |---------|------|---------|
 | `base_daily_rate` | **元** | `ToCentsPtr` ×100 存分（instrument.go:416-418） |
 | `total_price` | **元** | `ToCentsPtr` ×100 存分（instrument.go:419-421） |
-| `deposit` | **元** | 传值（含 0）即 `ToCentsPtr` 落 `instruments.deposit` 列；0=零押金乐器（#2321）。缺省=不更新 | 
+| `deposit` | **元** | 传值（含 0）即 `ToCentsPtr` 落 `instruments.deposit` 列；0=显式零押金（2026-11-20 紧急修订）。缺省=不更新；历史 `0` 且 `pricing.deposit>0` 仍回落定价 | 
 | `deposit_reduced_enabled` | bool | 是否启用差额档；`true` 时 `deposit_reduced` 必填（≥0） | 
 | `deposit_reduced` | **元** | 差额押金；`enabled=false` 或未传=清空/NULL；0=差额 0；必须 ≤ 全额 |
 | `pricing` | **元** | 整体 JSON 序列化存 `instruments.pricing` JSONB（instrument.go:401-411） |
