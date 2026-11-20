@@ -16,9 +16,9 @@ func TestValidateRequestedTier_2357(t *testing.T) {
 	assert.NoError(t, validateRequestedTier(models.DepositTierFull, 6000, 2000))
 	assert.NoError(t, validateRequestedTier(models.DepositTierFull, 6000, 0))
 
-	// reduced 需要配置第二档，且必须小于全额
+	// reduced 需要配置第二档；0 为显式零差额档，允许但必须小于全额
 	assert.NoError(t, validateRequestedTier(models.DepositTierReduced, 6000, 2000))
-	assert.Error(t, validateRequestedTier(models.DepositTierReduced, 6000, 0))
+	assert.NoError(t, validateRequestedTier(models.DepositTierReduced, 6000, 0))
 	assert.Error(t, validateRequestedTier(models.DepositTierReduced, 6000, 6000))
 
 	// zero 仅当全额押金 = 0（不得凭信用免掉全额押金）
@@ -37,8 +37,8 @@ func TestResolveDepositTierRejectsZeroReduced_2357(t *testing.T) {
 
 	inst := &models.Instrument{Deposit: &fullOnly, DepositReduced: &zeroReduced}
 	tier, _, reduced, valid := resolveDepositTier(inst, pricing, models.DepositTierReduced)
-	assert.Equal(t, models.DepositTierFull, tier)
-	assert.False(t, valid, "reduced=0 must be treated as unconfigured")
+	assert.Equal(t, models.DepositTierReduced, tier)
+	assert.True(t, valid, "reduced=0 is an explicit zero reduced tier")
 	assert.Zero(t, reduced)
 
 	inst.DepositReduced = &eqReduced

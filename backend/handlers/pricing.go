@@ -250,16 +250,14 @@ func BatchSetInstrumentPricing(c *gin.Context) {
 // pricingResponseWithInstrument merges per-instrument deposit fields into the
 // pricing-v2 response.
 //
-// #2406：口径必须与下单校验一致（resolveDepositTier）——instruments.deposit
-// 只有 >0 才是「显式配置」，=0 表示未配置，押金以定价结果为准。旧实现把 0
-// 也当权威，导致确认页显示「零押金」而下单按定价押金判非零直接 400。
-// reduced 同理：只有 0<reduced 才下发，否则 null（前端据此隐藏差额档）。
+// #2437-urgent：instruments.deposit/deposit_reduced 只要非 nil 即为权威（0 也有效）。
+// NULL 才回落到定价结果；0 表示显式零押金/零差额档。前端据此展示与下单同源。
 func pricingResponseWithInstrument(result *services.InstrumentPricing, instrument *models.Instrument) map[string]interface{} {
 	data := services.FormatPricingResult(result)
-	if instrument.Deposit != nil && *instrument.Deposit > 0 {
+	if instrumentDepositExplicit(instrument) {
 		data["deposit"] = int64(*instrument.Deposit)
 	}
-	if instrument.DepositReduced != nil && *instrument.DepositReduced > 0 {
+	if instrument.DepositReduced != nil {
 		data["deposit_reduced"] = int64(*instrument.DepositReduced)
 	} else {
 		data["deposit_reduced"] = nil

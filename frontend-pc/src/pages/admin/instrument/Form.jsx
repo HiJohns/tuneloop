@@ -557,7 +557,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
             if (pricingArr.length > 0) {
               const p = pricingArr[0]
               form.setFieldsValue({
-                deposit: p.deposit || undefined,
+                deposit: p.deposit != null ? p.deposit : undefined,
                 overdue_daily_fee: p.overdue_daily_fee || p.daily_rent || 0,
               })
             }
@@ -994,7 +994,7 @@ const loadCategoryChildren = async (node) => {
         deposit_reduced: values.deposit_reduced_enabled ? (values.deposit_reduced ?? 0) : null,
         pricing: {
           daily_rent: values.base_daily_rate || 0,
-          deposit: Number(values.deposit) > 0 ? values.deposit : (existingDeposit ?? undefined),
+          deposit: values.deposit != null ? values.deposit : (existingDeposit ?? undefined),
           overdue_daily_fee: values.overdue_daily_fee || values.base_daily_rate || 0,
         },
         images: images,

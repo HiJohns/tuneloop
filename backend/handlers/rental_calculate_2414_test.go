@@ -1,9 +1,7 @@
 package handlers
 
 // #2414：遗留 POST /api/user/rental/calculate 押金口径对齐（#2406 规则）。
-//   - instruments.deposit > 0  → 显式配置，响应押金 = 该值（分）
-//   - instruments.deposit = 0  → 未配置，取定价押金（分；pricing-v2 同值）
-//   - 定价押金 = 0             → 真零押金
+//   紧急修改：instruments.deposit 非 nil 即权威（0=显式零押金）；NULL 才回落定价。
 // 入口级测试：走真实 handler + DB，断言 JSON 响应 data.deposit。
 
 import (
@@ -90,7 +88,7 @@ func postRentalCalculate2414(t *testing.T, r *gin.Engine, instID string, days in
 	return w.Code, resp
 }
 
-// R1：instruments.deposit=0（未配置）+ 定价押金 ¥0.01 → 响应 deposit=1 分（不是 0）。
+// R1：instruments.deposit=0（显式零押金）+ 定价押金 ¥0.01 → 响应 deposit=0。
 func TestCalculateRentalDeposit_2406Rule_2414(t *testing.T) {
 	r, instID := setupRentalCalculate2414(t, 0, `{"deposit":0.01}`)
 
@@ -98,8 +96,7 @@ func TestCalculateRentalDeposit_2406Rule_2414(t *testing.T) {
 	require.Equal(t, http.StatusOK, code, "resp=%v", resp)
 	data, ok := resp["data"].(map[string]interface{})
 	require.True(t, ok, "data must be an object, got %T", resp["data"])
-	assert.Equal(t, float64(1), data["deposit"], "pricing deposit 0.01 元 must surface as 1 cent")
-	assert.NotZero(t, data["deposit"], "0 would mean the legacy endpoint still reports 零押金")
+	assert.Equal(t, float64(1), data["deposit"], "unconfigured 0 falls back to pricing")
 }
 
 // R2：instruments.deposit=500 元 → 响应 deposit=50000 分（覆盖定价）。

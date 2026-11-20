@@ -343,13 +343,16 @@ func validateGuarantors(c *gin.Context, db *gorm.DB, userID string, guarantorIDs
 //	reduced —— 乐器必须配置了小于全额的第二档（deposit_reduced > 0）；
 //	full  —— 恒可。
 func validateRequestedTier(requested string, fullDeposit, reducedAmount float64) error {
+	if fullDeposit <= 0 {
+		return nil // 零押金乐器忽略 requested tier
+	}
 	switch requested {
 	case models.DepositTierZero:
 		if fullDeposit > 0 {
 			return fmt.Errorf("该乐器不支持零押金档，请选择其他押金档位")
 		}
 	case models.DepositTierReduced:
-		if reducedAmount <= 0 || reducedAmount >= fullDeposit {
+		if reducedAmount < 0 || reducedAmount >= fullDeposit {
 			return fmt.Errorf("该乐器未配置差额押金档")
 		}
 	}
@@ -360,10 +363,8 @@ func validateRequestedTier(requested string, fullDeposit, reducedAmount float64)
 // full is authoritative from instruments.deposit when set (including 0).
 func resolveDepositTier(instrument *models.Instrument, pricingResult *services.InstrumentPricing, requested string) (tier string, full, reduced float64, validReduced bool) {
 	full = pricingResult.Deposit
-	// #2339 D2 / #2406 裁定（docs/cases/lease.md:334）：instruments.deposit 带
-	// default:0，读取后恒为非 nil；>0 才是显式配置，0 表示未配置 → 回落定价结果。
-	// 零押金档仅在定价押金=0 时产生（不得由 instruments.deposit=0 触发）。
-	if instrument.Deposit != nil && (*instrument.Deposit) > 0 {
+	// 紧急修改：instruments.deposit 非 nil 即为权威（含显式 0）；NULL 才回落定价。
+	if instrumentDepositExplicit(instrument) {
 		full = (*instrument.Deposit).ToYuan()
 	}
 	if full <= 0 {
@@ -371,9 +372,8 @@ func resolveDepositTier(instrument *models.Instrument, pricingResult *services.I
 	}
 	if requested == models.DepositTierReduced && instrument.DepositReduced != nil {
 		reduced = (*instrument.DepositReduced).ToYuan()
-		// #2357 修正：deposit_reduced = 0 表示「未配置」（历史数据常见），
-		// 不能当作「零差额免押」；必须 0 < reduced < full 才是有效差额档。
-		if reduced > 0 && reduced < full {
+		// 紧急修改：deposit_reduced = 0 表示显式零差额档（需资格/担保人）；0 <= reduced < full。
+		if reduced >= 0 && reduced < full {
 			return models.DepositTierReduced, full, reduced, true
 		}
 		log.Printf("[deposit] invalid reduced=%v full=%v instrument=%s; falling back to full", reduced, full, instrument.ID)
@@ -577,7 +577,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		requestedTier = models.DepositTierFull
 	}
 	depositTier, fullDeposit, reducedAmount, validReduced := resolveDepositTier(&lockedInstrument, pricingResult, requestedTier)
-	if requestedTier == models.DepositTierReduced && !validReduced {
+	if requestedTier == models.DepositTierReduced && !validReduced && fullDeposit > 0 {
 		// #2357 修正：不得静默回落成全额定档（会造成确认页与支付页金额不一致）。
 		tx.Rollback()
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "该乐器未配置差额押金档"})
@@ -1588,9 +1588,9 @@ func (h *UserRentalHandler) CalculateRental(c *gin.Context) {
 
 	pricingResult := services.CalculatePricing(baseRate, totalPrice, merchantConfigJSON, instrument.PricingOverrides, instrument.Pricing)
 
-	// #2414 D2：押金与 resolveDepositTier 同规则——instrument>0 覆盖，否则取定价押金。
+	// 紧急修改：instrument.deposit 非 nil 即覆盖（0=显式零押金）；NULL 才取定价押金。
 	depositYuan := pricingResult.Deposit
-	if instrument.Deposit != nil && (*instrument.Deposit) > 0 {
+	if instrumentDepositExplicit(&instrument) {
 		depositYuan = (*instrument.Deposit).ToYuan()
 	}
 	// 响应 deposit 与 pricing-v2 逐值相等（分，见 docs/spec/api/api.md §8.12）。

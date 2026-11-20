@@ -18,6 +18,39 @@ import (
 var pricingService = service.NewPricingService()
 
 // CreateInstrumentRequest is used for POST (create). Fields are optional except CategoryID.
+// 紧急修改：deposit=0 既可能是「未配置」（历史默认 0），也可能是「显式零押金」。
+// 约定：pricing JSON 的 deposit 也为 0 时视为显式；>0 的顶层值始终权威。
+func instrumentDepositExplicit(instrument *models.Instrument) bool {
+	if instrument == nil || instrument.Deposit == nil {
+		return false
+	}
+	if *instrument.Deposit > 0 {
+		return true
+	}
+	if instrument.Pricing == "" {
+		return false
+	}
+	var pb map[string]interface{}
+	if json.Unmarshal([]byte(instrument.Pricing), &pb) != nil {
+		return false
+	}
+	v, ok := pb["deposit"].(float64)
+	return ok && v == 0
+}
+
+func mergePricingDeposit(raw string, yuan float64) string {
+	pb := map[string]interface{}{}
+	if raw != "" {
+		_ = json.Unmarshal([]byte(raw), &pb)
+	}
+	pb["deposit"] = yuan
+	b, err := json.Marshal(pb)
+	if err != nil {
+		return raw
+	}
+	return string(b)
+}
+
 type CreateInstrumentRequest struct {
 	LevelID               string                   `json:"level_id"`
 	CategoryID            string                   `json:"category_id" binding:"required"`
@@ -416,6 +449,9 @@ func CreateInstrument(c *gin.Context) {
 	} else {
 		instrument.Pricing = "{}"
 	}
+	if req.Deposit != nil {
+		instrument.Pricing = mergePricingDeposit(instrument.Pricing, *req.Deposit)
+	}
 
 	if req.BaseDailyRate != nil && *req.BaseDailyRate > 0 {
 		instrument.BaseDailyRate = models.ToCentsPtr(req.BaseDailyRate)
@@ -664,6 +700,8 @@ func UpdateInstrument(c *gin.Context) {
 	if req.Deposit != nil {
 		// #1987: request is yuan, stored as cents — mirror Create handler.
 		updates["deposit"] = models.ToCentsPtr(req.Deposit)
+		// 紧急修改：同步 pricing.deposit，保证显式 0 在读路径可判定。
+		updates["pricing"] = mergePricingDeposit(instrument.Pricing, *req.Deposit)
 	}
 	if req.DepositReducedEnabled != nil {
 		if *req.DepositReducedEnabled {

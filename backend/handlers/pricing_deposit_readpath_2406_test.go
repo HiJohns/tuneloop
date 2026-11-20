@@ -2,9 +2,7 @@ package handlers
 
 // #2406：确认页（pricing-v2 读路径）与下单校验（resolveDepositTier 写路径）必须同源。
 // 口径（Owner 2026-11-17 裁定）：
-//   - instruments.deposit > 0   → 显式配置，优先；
-//   - instruments.deposit = 0   → 未配置，押金取定价结果（可能是 ¥0.01 这种真实小额）；
-//   - 只有定价押金 = 0 才是「零押金档」。
+//   紧急修改：instruments.deposit 非 nil 即权威（0=显式零押金）；NULL 才回落定价。
 // 缺陷版（pricingResponseWithInstrument 把 0 也当权威）会让页面显示「零押金」而
 // 下单按定价押金判非零 → 400「zero deposit tier ...」。
 import (
@@ -22,15 +20,21 @@ func cents(v float64) *models.Cents {
 	return &c
 }
 
-// R1：instrument.deposit=0（未配置）+ 定价押金 ¥0.01 → 响应必须是 1 分（不是 0）。
+// R1：instrument.deposit=0 且 pricing 无 deposit（未配置）→ 回落定价 1 分。
 func TestPricingResponseDeposit_InstrumentZeroFallsBackToPricing_2406(t *testing.T) {
 	inst := &models.Instrument{Deposit: cents(0)}
 	data := pricingResponseWithInstrument(&services.InstrumentPricing{Deposit: 0.01}, inst)
 
 	got, ok := data["deposit"].(float64)
 	require.True(t, ok, "deposit must be numeric, got %T", data["deposit"])
-	assert.Equal(t, 1.0, got, "pricing deposit 0.01 元 must surface as 1 cent, not 0")
-	assert.NotZero(t, got, "0 would make the confirm page claim 零押金 and the order fail")
+	assert.Equal(t, 1.0, got, "unconfigured 0 falls back to pricing")
+}
+
+// R1b：显式零押金（pricing.deposit=0）→ 响应 0。
+func TestPricingResponseDeposit_ExplicitZero_2437urgent(t *testing.T) {
+	inst := &models.Instrument{Deposit: cents(0), Pricing: `{"deposit":0}`}
+	data := pricingResponseWithInstrument(&services.InstrumentPricing{Deposit: 0.01}, inst)
+	assert.EqualValues(t, int64(0), data["deposit"], "explicit zero overrides pricing")
 }
 
 // R2：instrument.deposit 显式 >0 → 以乐器配置为准（覆盖定价）。
@@ -48,14 +52,14 @@ func TestPricingResponseDeposit_TrueZero_2406(t *testing.T) {
 	inst := &models.Instrument{Deposit: cents(0)}
 	data := pricingResponseWithInstrument(&services.InstrumentPricing{Deposit: 0}, inst)
 
-	assert.Equal(t, 0.0, data["deposit"], "zero pricing deposit stays zero (zero tier allowed)")
+	assert.EqualValues(t, int64(0), data["deposit"], "explicit zero deposit stays zero")
 }
 
-// R4：deposit_reduced 仅在 >0 时下发，0 表示未配置 → null（前端据此隐藏差额档）。
+// R4：deposit_reduced 非 nil 即下发（0=显式零差额档）。
 func TestPricingResponseDeposit_ReducedZeroIsNull_2406(t *testing.T) {
 	inst := &models.Instrument{Deposit: cents(500), DepositReduced: cents(0)}
 	data := pricingResponseWithInstrument(&services.InstrumentPricing{Deposit: 500}, inst)
-	assert.Nil(t, data["deposit_reduced"], "deposit_reduced=0 means unconfigured -> null")
+	assert.EqualValues(t, 0, data["deposit_reduced"], "explicit reduced 0 must surface")
 
 	inst.DepositReduced = cents(200)
 	data = pricingResponseWithInstrument(&services.InstrumentPricing{Deposit: 500}, inst)
