@@ -1,38 +1,52 @@
 {
-  "schema_version": 1,
-  "issue": 2436,
-  "build": "1.0.94a3afb27",
-  "commit": "94a3afb275a6a45cd70594aa2fe4136809c41de8",
-  "dirty": true,
-  "environment": "local: vitest page-smoke + static scan; device re-verification pending next prerelease",
-  "rows": [
-    {
-      "id": "R1",
-      "command": "bash scripts/verify-2436.sh r1-scan",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2436/R1-scan.txt"
-      ],
-      "assert": "exit 0；src 无裸大写英文文案；两页均 t('应付合计')",
-      "actual": "PASS：静态扫描 0 命中；两页已改为 t('应付合计') 且无 TOTAL PAYABLE 残留",
-      "expected": "PASS",
-      "negative": "残留 TOTAL PAYABLE → FAIL",
-      "negative_result": "扫描或断言失败即 exit 1",
-      "pass": true
-    },
-    {
-      "id": "R2",
-      "command": "bash scripts/verify-2436.sh r2-smoke",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2436/R2-smoke.txt"
-      ],
-      "assert": "exit 0; 84 passed",
-      "actual": "PASS：page-smoke 84 tests 全绿",
-      "expected": "PASS",
-      "negative": "任一失败 → FAIL",
-      "negative_result": "有 failed 即 exit 1",
-      "pass": true
-    }
-  ]
+ "schema_version": 1,
+ "issue": 2436,
+ "build": "1.0.a1fd22f87",
+ "commit": "a1fd22f87e909a585ba904552685094993eedb9d",
+ "dirty": false,
+ "environment": "local: vitest page-smoke + static scan; clean tree at fix commit a1fd22f87",
+ "rows": [
+  {
+   "id": "R1",
+   "command": "bash scripts/verify-2436.sh r1-scan",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2436/R1-scan.txt"
+   ],
+   "assert": "exit 0；无 TOTAL PAYABLE；两页 t 调用",
+   "actual": "PASS：静态扫描 0 命中；两页均 t('应付合计')；vitest 2/2",
+   "expected": "PASS",
+   "negative": "残留 → exit 1",
+   "negative_result": "出现 TOTAL PAYABLE 即 exit 1",
+   "pass": true
+  },
+  {
+   "id": "R2",
+   "command": "bash scripts/verify-2436.sh r2-smoke",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2436/R2-smoke.txt"
+   ],
+   "assert": "exit 0；0 failed",
+   "actual": "PASS：page-smoke 16 files / 84 tests 全绿",
+   "expected": "PASS",
+   "negative": "失败 → exit 1",
+   "negative_result": "任一 failed 即 exit 1",
+   "pass": true
+  },
+  {
+   "id": "R3",
+   "command": "bash scripts/verify-2436.sh r3-typography",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2436/R3-typography.md"
+   ],
+   "assert": "exit 0；无英文排版字距",
+   "actual": "PASS：H5 无 uppercase/tracking-widest；weapp 无 letterSpacing；无 TOTAL PAYABLE",
+   "expected": "PASS",
+   "negative": "残留 → exit 1",
+   "negative_result": "命中任一排版残留即 TYPOGRAPHY_FAIL",
+   "pass": true
+  }
+ ]
 }

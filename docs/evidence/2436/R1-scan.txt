@@ -1,12 +1,18 @@
-# build=1.0.94a3afb27 commit=94a3afb275a6a45cd70594aa2fe4136809c41de8 dirty=true
+# build=1.0.a1fd22f87 commit=a1fd22f87e909a585ba904552685094993eedb9d dirty=false
+## 裸英文扫描
+SCAN_OK: 无 TOTAL PAYABLE
+## t() 调用
+1084:            <Text className="text-xs text-zinc-400 font-bold block">{t('应付合计')}</Text>
+1080:            <Text style={{ fontSize: 12, color: '#a1a1aa', fontWeight: '700' }}>{t('应付合计')}</Text>
+## page-smoke 静态用例
 [33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
 
  RUN  v2.1.9 /home/coder/tuneloop/frontend-mobile
 
- ✓ scripts/page-smoke/no-uppercase-label-2436.test.jsx (2 tests) 29ms
+ ✓ scripts/page-smoke/no-uppercase-label-2436.test.jsx (2 tests) 57ms
 
  Test Files  1 passed (1)
       Tests  2 passed (2)
-   Start at  21:02:30
-   Duration  980ms (transform 79ms, setup 65ms, collect 19ms, tests 29ms, environment 432ms, prepare 202ms)
+   Start at  00:32:19
+   Duration  1.89s (transform 117ms, setup 72ms, collect 35ms, tests 57ms, environment 898ms, prepare 422ms)
 
