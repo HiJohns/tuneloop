@@ -1,0 +1,2 @@
+# build=1.0.b334fa7ff commit=b334fa7ff965e34bf9ebfb6456725e19dd08eb43 dirty=false
+PROBE-OK: direct toggle immediate (onChange → handleDirectToggle → handleSearch → page 1); no site_id=null path

@@ -1,0 +1,41 @@
+# build=1.0.b334fa7ff commit=b334fa7ff965e34bf9ebfb6456725e19dd08eb43 dirty=false
+TAP version 13
+# Subtest: R1: siteId=null 省略 site_id，查询串不含 null
+ok 1 - R1: siteId=null 省略 site_id，查询串不含 null
+  ---
+  duration_ms: 2.709395
+  type: 'test'
+  ...
+# Subtest: R1: siteId="" 省略 site_id
+ok 2 - R1: siteId="" 省略 site_id
+  ---
+  duration_ms: 0.585218
+  type: 'test'
+  ...
+# Subtest: R1: 有效 siteId 原样保留
+ok 3 - R1: 有效 siteId 原样保留
+  ---
+  duration_ms: 0.405513
+  type: 'test'
+  ...
+# Subtest: R1: direct 仅 true 时输出，false/undefined 省略
+ok 4 - R1: direct 仅 true 时输出，false/undefined 省略
+  ---
+  duration_ms: 0.370872
+  type: 'test'
+  ...
+# Subtest: R1: name 去空白，空串省略；page/page_size 保留
+ok 5 - R1: name 去空白，空串省略；page/page_size 保留
+  ---
+  duration_ms: 2.918392
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 356.222346

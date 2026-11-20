@@ -1,0 +1,19 @@
+# build=1.0.b334fa7ff commit=b334fa7ff965e34bf9ebfb6456725e19dd08eb43 dirty=false
+[DEBUG] Loaded .env from: ../.env
+2026/11/20 00:15:56 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/20 00:16:06 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/20 00:16:06 [DB] Connected to database 'tuneloop_test'
+=== RUN   TestPersonnelFilter2427_InvalidSiteID_40002
+2026/11/20 00:16:07 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/20 00:16:07 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/20 00:16:07 [DB] Connected to database 'tuneloop_test'
+
+2026/11/20 00:16:09 [32m/home/coder/tuneloop-wt/2427-filter/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[1008.213ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "schema_migrations", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/20 00:16:09 [Personnel] WARN: invalid site_id="null" from user=0c14d115-d682-4606-9048-c83c9747f500: invalid UUID length: 4
+2026/11/20 00:16:09 [Personnel] WARN: invalid site_id="abc" from user=0c14d115-d682-4606-9048-c83c9747f500: invalid UUID length: 3
+2026/11/20 00:16:09 [Personnel] WARN: invalid site_id="undefined" from user=0c14d115-d682-4606-9048-c83c9747f500: invalid UUID length: 9
+2026/11/20 00:16:09 [Personnel] WARN: invalid site_id="123" from user=0c14d115-d682-4606-9048-c83c9747f500: invalid UUID length: 3
+--- PASS: TestPersonnelFilter2427_InvalidSiteID_40002 (2.14s)
+PASS
+ok  	tuneloop-backend/handlers	13.723s

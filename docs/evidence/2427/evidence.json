@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "issue": 2427,
+  "build": "1.0.b334fa7ff",
+  "commit": "b334fa7ff965e34bf9ebfb6456725e19dd08eb43",
+  "dirty": false,
+  "environment": "local: Go handler tests (PG from backend/.env) + PC node --test + PC vite build/eslint; R7 人工浏览器回执待 Owner/Architect 签署",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2427.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2427/R1-query.txt"
+      ],
+      "assert": "exit 0；空 site 省略",
+      "actual": "PASS：5/5 用例通过——siteId null/'' 均省略 site_id；direct 仅 true 输出 direct=true；page/page_size 保留（含 page=1）",
+      "expected": "PASS",
+      "negative": "出现 null → FAIL",
+      "negative_result": "用例断言 personnelQueryString 含 'null' 即失败（实际输出 page=1&page_size=10）",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2427.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2427/R2-toggle.txt"
+      ],
+      "assert": "exit 0；onChange→handleSearch",
+      "actual": "PASS：Checkbox onChange → handleDirectToggle → handleSearch → buildPersonnelQuery + 回第 1 页；旧写法 `site_id: values.siteId || null` 已不存在",
+      "expected": "PASS",
+      "negative": "缺 onChange → FAIL",
+      "negative_result": "grep 未命中 onChange / handleDirectToggle/handleSearch/current:1 即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2427.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2427/R3-uuid.txt"
+      ],
+      "assert": "exit 0；40002",
+      "actual": "PASS：site_id=null/abc/undefined/123 均 400 + code 40002，且日志 WARN 记录非法值；不再出现 22P02 静默 0 行",
+      "expected": "PASS",
+      "negative": "200 → FAIL",
+      "negative_result": "任一非法值返回 200（或空列表）即测试失败",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2427.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2427/R4-all.txt"
+      ],
+      "assert": "exit 0；total>0",
+      "actual": "PASS：省略 site_id 返回全量（含网点成员与商户直属员工）；合法 UUID 仍只返回该网点成员",
+      "expected": "PASS",
+      "negative": "total=0 → FAIL",
+      "negative_result": "total>0 断言失败即测试失败",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2427.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2427/R5-scan.txt"
+      ],
+      "assert": "exit 0；扫描清单完整",
+      "actual": "PASS：frontend-pc/src 全部 new URLSearchParams( 命中已列清单；人员管理链路唯一序列化入口为 utils/personnelQuery.js；api.get/fetchBlob 的 null 过滤确认存在（D4 记录其余命中）",
+      "expected": "PASS",
+      "negative": "漏项 → FAIL",
+      "negative_result": "StaffManagement 仍自行序列化、或 personnelQuery.js 用法超出预期即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2427.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2427/R6-build.txt"
+      ],
+      "assert": "exit 0；双端构建/lint",
+      "actual": "PASS：go build ./... 通过；eslint 改动文件 0 error；vite build 成功（built in 1m 8s）",
+      "expected": "PASS",
+      "negative": "失败 → FAIL",
+      "negative_result": "任一命令非 0 退出即 FAIL",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2427.sh r7",
+      "exit": 1,
+      "artifacts": [
+        "docs/evidence/2427/R7-manual.md"
+      ],
+      "assert": "exit 0；RESULT: PASS",
+      "actual": "PENDING：人工浏览器回执待 Owner/Architect 签署（勾选/取消即时生效；空网点搜索非空；site_id=null 返回 40002）",
+      "expected": "PASS",
+      "negative": "PENDING → FAIL",
+      "negative_result": "回执仍为 RESULT: PENDING 时脚本 exit 1（当前状态）",
+      "pass": false
+    }
+  ]
+}

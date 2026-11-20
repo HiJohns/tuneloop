@@ -1,0 +1,30 @@
+# build=1.0.b334fa7ff commit=b334fa7ff965e34bf9ebfb6456725e19dd08eb43 dirty=false
+## URLSearchParams call sites (frontend-pc/src)
+/home/coder/tuneloop-wt/2427-filter/frontend-pc/src/services/api.js:191:    ? '?' + new URLSearchParams(
+/home/coder/tuneloop-wt/2427-filter/frontend-pc/src/services/api.js:350:      const qs = new URLSearchParams(
+/home/coder/tuneloop-wt/2427-filter/frontend-pc/src/services/api.js:369:    const query = new URLSearchParams(params).toString()
+/home/coder/tuneloop-wt/2427-filter/frontend-pc/src/services/api.js:416:    const query = new URLSearchParams(params).toString()
+/home/coder/tuneloop-wt/2427-filter/frontend-pc/src/services/api.js:471:    const params = new URLSearchParams()
+/home/coder/tuneloop-wt/2427-filter/frontend-pc/src/services/api.js:526:    const query = new URLSearchParams(params).toString()
+/home/coder/tuneloop-wt/2427-filter/frontend-pc/src/services/api.js:532:    const query = new URLSearchParams(params).toString()
+/home/coder/tuneloop-wt/2427-filter/frontend-pc/src/services/api.js:542:    const query = new URLSearchParams(params).toString()
+/home/coder/tuneloop-wt/2427-filter/frontend-pc/src/services/api.js:553:    const query = new URLSearchParams(params).toString()
+/home/coder/tuneloop-wt/2427-filter/frontend-pc/src/services/api.js:689:    const query = new URLSearchParams(params).toString()
+/home/coder/tuneloop-wt/2427-filter/frontend-pc/src/App.jsx:840:    const params = new URLSearchParams(window.location.search)
+/home/coder/tuneloop-wt/2427-filter/frontend-pc/src/pages/admin/instrument/List.jsx:84:      const sp = new URLSearchParams()
+/home/coder/tuneloop-wt/2427-filter/frontend-pc/src/pages/admin/warnings/WarningManagement.jsx:21:    const params = new URLSearchParams()
+/home/coder/tuneloop-wt/2427-filter/frontend-pc/src/pages/admin/repair/MerchantRepairList.jsx:82:    const q = new URLSearchParams()
+/home/coder/tuneloop-wt/2427-filter/frontend-pc/src/pages/OrderManagement.jsx:40:  const [statusFilter, setStatusFilter] = useState(() => new URLSearchParams(window.location.search).get('status') || '')
+/home/coder/tuneloop-wt/2427-filter/frontend-pc/src/pages/OrderManagement.jsx:41:  const [leaseEndDateEq] = useState(() => new URLSearchParams(window.location.search).get('lease_end_date_eq') || '')
+/home/coder/tuneloop-wt/2427-filter/frontend-pc/src/pages/OrderManagement.jsx:45:    const sp = new URLSearchParams(window.location.search)
+/home/coder/tuneloop-wt/2427-filter/frontend-pc/src/pages/OrderManagement.jsx:156:              const params = new URLSearchParams()
+/home/coder/tuneloop-wt/2427-filter/frontend-pc/src/pages/MerchantManagement.jsx:36:    const params = new URLSearchParams(location.search);
+/home/coder/tuneloop-wt/2427-filter/frontend-pc/src/pages/InstrumentStock.jsx:211:      const params = new URLSearchParams()
+/home/coder/tuneloop-wt/2427-filter/frontend-pc/src/utils/logger.js:3:  const urlParams = new URLSearchParams(window.location.search)
+/home/coder/tuneloop-wt/2427-filter/frontend-pc/src/utils/personnelQuery.js:32:  return new URLSearchParams(
+
+## 结论
+- 人员管理链路：已收口到 utils/personnelQuery.js（buildPersonnelQuery + personnelQueryString），无空值入参。
+- api.get / fetchBlob：common 层已过滤 null/undefined/''（本次不重复修改）。
+- 其余命中（如 instrumentsApi.list 直接展开 params 对象）：不在 #2427 范围（D4 仅记录）。
+PROBE-OK: personnel chain has a single serializer; remaining call sites recorded
