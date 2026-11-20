@@ -13,7 +13,7 @@
       "artifacts": [
         "docs/evidence/2436/R0-red.txt"
       ],
-      "assert": "exit 0；含 `INNER_EXIT=1`、`RED_CONFIRMED`、`TOTAL PAYABLE`",
+      "assert": "exit 0；含 INNER_EXIT=1、RED_CONFIRMED、TOTAL PAYABLE",
       "actual": "PASS：pre-fix 2eed6f8a9^ 两页均命中 TOTAL PAYABLE、无 t('应付合计')；内层 vitest exit 1，外层 print RED_CONFIRMED 后 exit 0",
       "expected": "PASS（红例成立）",
       "negative": "红例未复现 → exit 1",
@@ -27,7 +27,7 @@
       "artifacts": [
         "docs/evidence/2436/R1-scan.txt"
       ],
-      "assert": "exit 0；含 `SCAN_OK`；两页 t 调用；2 tests PASS",
+      "assert": "exit 0；含 SCAN_OK；两页 t 调用；2 tests PASS",
       "actual": "PASS：TOTAL PAYABLE 0 命中；两页均为 t('应付合计')；静态用例 2/2 PASS",
       "expected": "PASS",
       "negative": "残留 → exit 1",
@@ -41,7 +41,7 @@
       "artifacts": [
         "docs/evidence/2436/R2-dynamic-scan.txt"
       ],
-      "assert": "exit 0；含 `DYNAMIC_SCAN_OK`；0 未登记 uppercase",
+      "assert": "exit 0；含 DYNAMIC_SCAN_OK；0 未登记 uppercase",
       "actual": "PASS：frontend-mobile/src 无 uppercase、无未登记用户文案大写（JSX 文本 + 文案属性字面量）",
       "expected": "PASS",
       "negative": "命中 → exit 1",
@@ -55,7 +55,7 @@
       "artifacts": [
         "docs/evidence/2436/R3-smoke.txt"
       ],
-      "assert": "exit 0；`SMOKE_EXIT=0`；4 路由「应付总额」；Batch H5/weapp「应付合计」；空购物车负例",
+      "assert": "exit 0；SMOKE_EXIT=0；4 路由「应付总额」；Batch H5/weapp「应付合计」；空购物车负例",
       "actual": "PASS：Batch 用例 3/3；page-smoke 20 files / 101 tests；MARKERS_OK 覆盖 4 条 checkout 路由（应付总额）",
       "expected": "PASS",
       "negative": "marker/断言缺失 → exit 1",
@@ -69,7 +69,7 @@
       "artifacts": [
         "docs/evidence/2436/R4-typography.md"
       ],
-      "assert": "exit 0；含 `TYPOGRAPHY_OK`",
+      "assert": "exit 0；含 TYPOGRAPHY_OK",
       "actual": "PASS：H5 无 uppercase/tracking-widest；weapp 无 letterSpacing；无 TOTAL PAYABLE",
       "expected": "PASS",
       "negative": "残留 → exit 1",
@@ -83,7 +83,7 @@
       "artifacts": [
         "docs/evidence/2436/R5-provenance.txt"
       ],
-      "assert": "exit 0；含 `PROVENANCE_OK`；status 空；HEAD/build/commit/evidence 一致",
+      "assert": "exit 0；含 PROVENANCE_OK；status 空；HEAD/build/commit/evidence 一致",
       "actual": "PASS：隔离树 git status --porcelain -uall 为空；HEAD=8a01a9da3；evidence.json build/commit/dirty 与全部产物首行一致",
       "expected": "PASS",
       "negative": "dirty/commit 不符 → exit 1",
