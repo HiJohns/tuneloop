@@ -1,52 +1,94 @@
 {
- "schema_version": 1,
- "issue": 2436,
- "build": "1.0.a1fd22f87",
- "commit": "a1fd22f87e909a585ba904552685094993eedb9d",
- "dirty": false,
- "environment": "local: vitest page-smoke + static scan; clean tree at fix commit a1fd22f87",
- "rows": [
-  {
-   "id": "R1",
-   "command": "bash scripts/verify-2436.sh r1-scan",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2436/R1-scan.txt"
-   ],
-   "assert": "exit 0；无 TOTAL PAYABLE；两页 t 调用",
-   "actual": "PASS：静态扫描 0 命中；两页均 t('应付合计')；vitest 2/2",
-   "expected": "PASS",
-   "negative": "残留 → exit 1",
-   "negative_result": "出现 TOTAL PAYABLE 即 exit 1",
-   "pass": true
-  },
-  {
-   "id": "R2",
-   "command": "bash scripts/verify-2436.sh r2-smoke",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2436/R2-smoke.txt"
-   ],
-   "assert": "exit 0；0 failed",
-   "actual": "PASS：page-smoke 16 files / 84 tests 全绿",
-   "expected": "PASS",
-   "negative": "失败 → exit 1",
-   "negative_result": "任一 failed 即 exit 1",
-   "pass": true
-  },
-  {
-   "id": "R3",
-   "command": "bash scripts/verify-2436.sh r3-typography",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2436/R3-typography.md"
-   ],
-   "assert": "exit 0；无英文排版字距",
-   "actual": "PASS：H5 无 uppercase/tracking-widest；weapp 无 letterSpacing；无 TOTAL PAYABLE",
-   "expected": "PASS",
-   "negative": "残留 → exit 1",
-   "negative_result": "命中任一排版残留即 TYPOGRAPHY_FAIL",
-   "pass": true
-  }
- ]
+  "schema_version": 1,
+  "issue": 2436,
+  "build": "1.0.8a01a9da3",
+  "commit": "8a01a9da37561b8f28a9942990a4c24a8f0a13c6",
+  "dirty": false,
+  "environment": "isolated worktree /home/coder/tuneloop-wt/2436-r4 @ 8a01a9da3; evidence generated with OUT_DIR outside the repo; frontend-mobile vitest (jsdom)",
+  "rows": [
+    {
+      "id": "R0",
+      "command": "bash scripts/verify-2436.sh r0-red",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2436/R0-red.txt"
+      ],
+      "assert": "exit 0；含 `INNER_EXIT=1`、`RED_CONFIRMED`、`TOTAL PAYABLE`",
+      "actual": "PASS：pre-fix 2eed6f8a9^ 两页均命中 TOTAL PAYABLE、无 t('应付合计')；内层 vitest exit 1，外层 print RED_CONFIRMED 后 exit 0",
+      "expected": "PASS（红例成立）",
+      "negative": "红例未复现 → exit 1",
+      "negative_result": "若 pre-fix 用例通过则输出 RED_NOT_CONFIRMED 并 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2436.sh r1-scan",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2436/R1-scan.txt"
+      ],
+      "assert": "exit 0；含 `SCAN_OK`；两页 t 调用；2 tests PASS",
+      "actual": "PASS：TOTAL PAYABLE 0 命中；两页均为 t('应付合计')；静态用例 2/2 PASS",
+      "expected": "PASS",
+      "negative": "残留 → exit 1",
+      "negative_result": "出现 TOTAL PAYABLE 或缺 t('应付合计') 即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2436.sh r1b-scan",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2436/R2-dynamic-scan.txt"
+      ],
+      "assert": "exit 0；含 `DYNAMIC_SCAN_OK`；0 未登记 uppercase",
+      "actual": "PASS：frontend-mobile/src 无 uppercase、无未登记用户文案大写（JSX 文本 + 文案属性字面量）",
+      "expected": "PASS",
+      "negative": "命中 → exit 1",
+      "negative_result": "任一未登记 uppercase/大写文案命中即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2436.sh r2-smoke",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2436/R3-smoke.txt"
+      ],
+      "assert": "exit 0；`SMOKE_EXIT=0`；4 路由「应付总额」；Batch H5/weapp「应付合计」；空购物车负例",
+      "actual": "PASS：Batch 用例 3/3；page-smoke 20 files / 101 tests；MARKERS_OK 覆盖 4 条 checkout 路由（应付总额）",
+      "expected": "PASS",
+      "negative": "marker/断言缺失 → exit 1",
+      "negative_result": "Batch 用例失败、smoke 失败或任一 checkout marker 缺「应付总额」即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2436.sh r3-typography",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2436/R4-typography.md"
+      ],
+      "assert": "exit 0；含 `TYPOGRAPHY_OK`",
+      "actual": "PASS：H5 无 uppercase/tracking-widest；weapp 无 letterSpacing；无 TOTAL PAYABLE",
+      "expected": "PASS",
+      "negative": "残留 → exit 1",
+      "negative_result": "命中任一排版残留即输出 TYPOGRAPHY_FAIL 并 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2436.sh r4-provenance",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2436/R5-provenance.txt"
+      ],
+      "assert": "exit 0；含 `PROVENANCE_OK`；status 空；HEAD/build/commit/evidence 一致",
+      "actual": "PASS：隔离树 git status --porcelain -uall 为空；HEAD=8a01a9da3；evidence.json build/commit/dirty 与全部产物首行一致",
+      "expected": "PASS",
+      "negative": "dirty/commit 不符 → exit 1",
+      "negative_result": "工作树非空、HEAD 与 evidence.commit 不一致或产物首行不匹配即 exit 1",
+      "pass": true
+    }
+  ]
 }

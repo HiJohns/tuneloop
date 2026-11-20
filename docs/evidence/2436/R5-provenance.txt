@@ -1,0 +1,6 @@
+# build=1.0.8a01a9da3 commit=8a01a9da37561b8f28a9942990a4c24a8f0a13c6 dirty=false
+## provenance 自证（隔离树 + 证据一致性）
+STATUS_CLEAN
+HEAD=8a01a9da37561b8f28a9942990a4c24a8f0a13c6
+EVIDENCE_OK
+PROVENANCE_OK
