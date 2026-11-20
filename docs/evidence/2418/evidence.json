@@ -1,107 +1,136 @@
 {
-  "schema_version": 1,
-  "issue": 2418,
-  "build": "1.0.d5637bf8b",
-  "commit": "d5637bf8bf193708500f8a2a4fa1209c14a5e350",
-  "dirty": false,
-  "rows": [
-    {
-      "id": "R1",
-      "command": "bash scripts/verify-2418.sh r1",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2418/R1-internal-reduced.txt"
-      ],
-      "assert": "exit 0；含 --- PASS: TestAssertOrderPayableIfEnforced",
-      "actual": "exit 0；--- PASS: TestAssertOrderPayableIfEnforced（含 full/zero/internal 各路径；internal reduced 未评测拒绝）",
-      "expected": "PASS",
-      "negative": "放行 → FAIL",
-      "negative_result": "若 internal reduced 未评测被放行 → 用例断言失败",
-      "pass": true
-    },
-    {
-      "id": "R2",
-      "command": "bash scripts/verify-2418.sh r2",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2418/R2-internal-full.txt"
-      ],
-      "assert": "exit 0；含 --- PASS",
-      "actual": "exit 0；--- PASS: TestAssertOrderPayableInternalFull_2418（full+internal 未评测拒绝）",
-      "expected": "PASS",
-      "negative": "放行 → FAIL",
-      "negative_result": "若 full+internal 未评测被放行 → 用例断言失败",
-      "pass": true
-    },
-    {
-      "id": "R3",
-      "command": "bash scripts/verify-2418.sh r3",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2418/R3-zero-deposit.txt"
-      ],
-      "assert": "exit 0；含 --- PASS",
-      "actual": "exit 0；--- PASS: TestAssertOrderPayableZeroDeposit_2418（历史空路径 + 押金 0 放行）",
-      "expected": "PASS",
-      "negative": "拒绝 → FAIL",
-      "negative_result": "若零押金历史单被拒绝 → 用例断言失败",
-      "pass": true
-    },
-    {
-      "id": "R4",
-      "command": "bash scripts/verify-2418.sh r4",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2418/R4-doc.txt"
-      ],
-      "assert": "exit 0；命中文档断言",
-      "actual": "exit 0；docs/cases/lease.md 含「三档一致」「订单押金为 0」「approved」",
-      "expected": "PASS",
-      "negative": "缺失 → FAIL",
-      "negative_result": "若文档缺少三档一致或押金判据 → 脚本返回非 0",
-      "pass": true
-    },
-    {
-      "id": "R5",
-      "command": "bash scripts/verify-2418.sh r5",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2418/R5-build.txt"
-      ],
-      "assert": "exit 0",
-      "actual": "exit 0；go build ./... 无输出",
-      "expected": "PASS",
-      "negative": "失败 → FAIL",
-      "negative_result": "若编译失败 → 脚本返回非 0",
-      "pass": true
-    },
-    {
-      "id": "R6",
-      "command": "bash scripts/verify-2418.sh r6",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2418/R6-full-payscore.txt"
-      ],
-      "assert": "exit 0；含 --- PASS: TestAssertOrderPayableFullPayscore_2418",
-      "actual": "exit 0；full+payscore 未评测拒绝；approved 放行",
-      "expected": "PASS",
-      "negative": "放行 → FAIL",
-      "negative_result": "若 full+payscore 未评测被放行 → 用例断言失败",
-      "pass": true
-    },
-    {
-      "id": "R7",
-      "command": "bash scripts/verify-2418.sh r7",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2418/R7-zero-deposit-payscore.txt"
-      ],
-      "assert": "exit 0；含 --- PASS: TestAssertOrderPayableZeroDepositPayscore_2418",
-      "actual": "exit 0；zero+payscore+押金0 放行；押金>0 未评测拒绝",
-      "expected": "PASS",
-      "negative": "拒绝 → FAIL",
-      "negative_result": "若生产形态零押金单被拒绝（或押金>0 被放行）→ 用例断言失败",
-      "pass": true
-    }
-  ]
+ "schema_version": 1,
+ "issue": 2418,
+ "build": "1.0.b861d902b",
+ "commit": "b861d902b42c089a3f28a5fc1ab7dd456cad3c31",
+ "dirty": false,
+ "environment": "backend services tests + build; fix commit b861d902b",
+ "rows": [
+  {
+   "id": "R1",
+   "command": "bash scripts/verify-2418.sh r1",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2418/R1-internal-reduced.txt"
+   ],
+   "assert": "exit 0；含 --- PASS",
+   "actual": "PASS：reduced/internal 未评测拒绝",
+   "expected": "PASS",
+   "negative": "放行 → FAIL",
+   "negative_result": "放行即失败",
+   "pass": true
+  },
+  {
+   "id": "R2",
+   "command": "bash scripts/verify-2418.sh r2",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2418/R2-internal-full.txt"
+   ],
+   "assert": "exit 0；含 --- PASS",
+   "actual": "PASS：full/internal 未评测拒绝",
+   "expected": "PASS",
+   "negative": "放行 → FAIL",
+   "negative_result": "放行即失败",
+   "pass": true
+  },
+  {
+   "id": "R3",
+   "command": "bash scripts/verify-2418.sh r3",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2418/R3-zero-deposit.txt"
+   ],
+   "assert": "exit 0；含 --- PASS",
+   "actual": "PASS：deposit=0 放行",
+   "expected": "PASS",
+   "negative": "拒绝 → FAIL",
+   "negative_result": "拒绝即失败",
+   "pass": true
+  },
+  {
+   "id": "R4",
+   "command": "bash scripts/verify-2418.sh r4",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2418/R4-doc.txt"
+   ],
+   "assert": "exit 0；文档断言命中",
+   "actual": "PASS：三档一致 + 押金 0",
+   "expected": "PASS",
+   "negative": "缺失 → FAIL",
+   "negative_result": "文档缺失即失败",
+   "pass": true
+  },
+  {
+   "id": "R5",
+   "command": "bash scripts/verify-2418.sh r5",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2418/R5-build.txt"
+   ],
+   "assert": "exit 0",
+   "actual": "PASS：go build ./...",
+   "expected": "PASS",
+   "negative": "失败 → FAIL",
+   "negative_result": "构建失败即失败",
+   "pass": true
+  },
+  {
+   "id": "R6",
+   "command": "bash scripts/verify-2418.sh r6",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2418/R6-full-payscore.txt"
+   ],
+   "assert": "exit 0；含 --- PASS",
+   "actual": "PASS：full/payscore 未评测拒绝",
+   "expected": "PASS",
+   "negative": "放行 → FAIL",
+   "negative_result": "放行即失败",
+   "pass": true
+  },
+  {
+   "id": "R7",
+   "command": "bash scripts/verify-2418.sh r7",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2418/R7-zero-deposit-payscore.txt"
+   ],
+   "assert": "exit 0；含 --- PASS",
+   "actual": "PASS：zero/payscore/押金0 放行",
+   "expected": "PASS",
+   "negative": "拒绝 → FAIL",
+   "negative_result": "拒绝即失败",
+   "pass": true
+  },
+  {
+   "id": "R8",
+   "command": "bash scripts/verify-2418.sh r8",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2418/R8-legacy-removed.txt"
+   ],
+   "assert": "exit 0；三符号 0 定义 + build",
+   "actual": "PASS：RequiresCreditAssessment/AssertTierPayable/AssertTierPayableIfEnforced 均不存在",
+   "expected": "PASS",
+   "negative": "存在 → FAIL",
+   "negative_result": "符号残留即失败",
+   "pass": true
+  },
+  {
+   "id": "R9",
+   "command": "bash scripts/verify-2418.sh r9",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2418/R9-no-calls.txt"
+   ],
+   "assert": "exit 0；全仓 0 命中",
+   "actual": "PASS：全仓无 legacy 符号引用",
+   "expected": "PASS",
+   "negative": "有调用 → FAIL",
+   "negative_result": "有引用即失败",
+   "pass": true
+  }
+ ]
 }
