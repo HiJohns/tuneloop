@@ -1,0 +1,10 @@
+# issue=2445 commit=89327c9c1
+# prerelease verification (cadenza)
+active
+NRestarts=0
+"version":"1.0.93"
+merge_route=400
+{"code":40002,"message":"token and merge_ticket required"}
+status_route=200
+{"code":20000,"data":{"status":"expired"}}
+Nov 20 15:27:54 iZ2ze3qc9nisipzkxw2tmnZ tuneloop[325960]: ✓ Database schema validation passed

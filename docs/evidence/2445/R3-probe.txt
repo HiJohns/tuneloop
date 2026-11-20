@@ -1,0 +1,4 @@
+# issue=2445 commit=89327c9c1
+# command: grep -rlE '<(div|span|img|button|input|textarea|p|select|a)\b' dist-weapp --include='*.wxml' | grep -v '/base.wxml$'
+PROBE-OK: no native HTML interactive/media tags in dist-weapp wxml
+bind page compiled: yes

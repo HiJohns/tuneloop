@@ -1,0 +1,14 @@
+# issue=2445 commit=89327c9c1
+# command: cd frontend-mobile && npm run smoke (node 22)
+ ✓ scripts/page-smoke/no-uppercase-label-2436.test.jsx (2 tests) 81ms
+ ✓ scripts/page-smoke/credit-return-path-2411.test.jsx (4 tests) 34ms
+ ✓ scripts/page-smoke/dialog-host-2437.test.jsx (5 tests) 45ms
+ ✓ scripts/page-smoke/account-select-token-2425.test.jsx (3 tests) 31ms
+ ✓ scripts/page-smoke/wechat-bind-ui-2426.test.jsx (2 tests) 30ms
+ ✓ scripts/page-smoke/address-buttons-2432.test.jsx (2 tests) 21ms
+
+ Test Files  18 passed (18)
+      Tests  96 passed (96)
+   Start at  07:21:35
+   Duration  47.90s (transform 2.20s, setup 495ms, collect 3.83s, tests 12.45s, environment 19.70s, prepare 3.87s)
+

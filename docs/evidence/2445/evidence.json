@@ -1,0 +1,70 @@
+{
+ "schema_version": 1,
+ "issue": 2445,
+ "build": "1.0.89327c9c1",
+ "commit": "89327c9c1421e49f2f9ec2baddae02bb70439590",
+ "dirty": false,
+ "environment": "local handlers tests (isolated PG) + page-smoke + weapp/PC builds; prerelease 1.0.93 + beaconiam f7ccfcd",
+ "rows": [
+  {
+   "id": "R1",
+   "command": "cd backend && TUNELOOP_TEST_DB=tuneloop_test_evidence2445 go test ./handlers -run 'TestMigrateMergedAccountLocal_2445|TestBindMergeFlow_2445|TestConfirmBind|TestGenBindToken|TestPollBindToken|TestWxBindCurrentUser|TestWxMergeCurrentUser' -count=1",
+   "exit": 0,
+   "artifacts": ["docs/evidence/2445/R1-go.txt"],
+   "assert": "exit 0；本地员工表迁移/去重、token 状态、needs_credentials、既有绑定/合并用例全部 PASS",
+   "actual": "PASS：ok tuneloop-backend/handlers 7.629s",
+   "expected": "PASS",
+   "negative": "迁移方向错误/密码覆盖/去重失败 → FAIL",
+   "negative_result": "R1 断言任一失败即 exit 1（测试内含 Y 密码保持与角色并集断言）",
+   "pass": true
+  },
+  {
+   "id": "R2",
+   "command": "cd frontend-mobile && nvm use 22 && npm run smoke",
+   "exit": 0,
+   "artifacts": ["docs/evidence/2445/R2-smoke.txt"],
+   "assert": "exit 0；Bind 页 needs_merge 合并确认/合并成功渲染，不再出现旧「编辑资料」引导",
+   "actual": "PASS：18 files / 96 tests，0 failed",
+   "expected": "PASS",
+   "negative": "仍显示编辑资料或误显示绑定成功 → FAIL",
+   "negative_result": "smoke 断言失败即 exit 1",
+   "pass": true
+  },
+  {
+   "id": "R3",
+   "command": "cd frontend-mobile && grep -rlE '<(div|span|img|button|input|textarea|p|select|a)\\b' dist-weapp --include='*.wxml' | grep -v '/base.wxml$'",
+   "exit": 0,
+   "artifacts": ["docs/evidence/2445/R3-probe.txt"],
+   "assert": "输出为空；Bind 页写入 dist-weapp 且无原生 HTML 交互/媒体标签",
+   "actual": "PASS：PROBE-OK；bind page compiled: yes",
+   "expected": "PASS",
+   "negative": "任一 wxml 含原生标签 → FAIL",
+   "negative_result": "输出非空即 PROBE-FAIL",
+   "pass": true
+  },
+  {
+   "id": "R4",
+   "command": "cd frontend-pc && npm run build; cd frontend-mobile && nvm use 22 && npm run build:weapp",
+   "exit": 0,
+   "artifacts": ["docs/evidence/2445/R4-build.txt"],
+   "assert": "PC 与 weapp 构建均 exit 0",
+   "actual": "PASS：PC built in 43.67s；weapp Compiled successfully in 1.07m",
+   "expected": "PASS",
+   "negative": "构建报错 → FAIL",
+   "negative_result": "任一构建非 0 即 FAIL",
+   "pass": true
+  },
+  {
+   "id": "R5",
+   "command": "ssh cadenza 'systemctl is-active tuneloop-pre; curl /api/config; POST /api/wechat-bind/merge; GET /api/wechat-bind/status/:token; journalctl ...'",
+   "exit": 0,
+   "artifacts": ["docs/evidence/2445/R5-prerelease.txt"],
+   "assert": "预生产 active / NRestarts=0 / version=1.0.93 / merge 路由 400 参数校验 / status 路由 200 / schema validation passed",
+   "actual": "PASS：预生产 1.0.93（89327c9c1）+ beaconiam f7ccfcd；两路由可达；无 FATAL/panic",
+   "expected": "PASS",
+   "negative": "404/5xx/FATAL → FAIL",
+   "negative_result": "路由缺失或服务重启即 FAIL",
+   "pass": true
+  }
+ ]
+}
