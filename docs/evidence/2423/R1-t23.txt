@@ -1,12 +1,12 @@
-# build=1.0.fc8cbc14c commit=fc8cbc14c5d6f3d6b3c5fe0ac35669af8de8b544 dirty=false
+# build=1.0.236bcc86c commit=236bcc86cd0b64aec33370db6d7ac29f6e8f02c4 dirty=false
 # github.com/mattn/go-sqlite3
 sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
 sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
 123133 |   zTail = strrchr(zName, '_');
        |         ^
-[DEBUG] Loaded .env from: ../.env
+[WARNING] No .env file found in common paths
 === RUN   TestComputeRefundSpecT23_2423
     settlement_refund_spec_test.go:55: T23: R_after_coupon=250000 cap=750 p_refund=150 rent_due=175000 rent_shortfall=15000 deposit_refund=50000 net_cash=35000
 --- PASS: TestComputeRefundSpecT23_2423 (0.00s)
 PASS
-ok  	tuneloop-backend/services	0.028s
+ok  	tuneloop-backend/services	0.031s

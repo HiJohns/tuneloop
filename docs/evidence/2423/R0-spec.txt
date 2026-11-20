@@ -1,0 +1,6 @@
+# build=1.0.236bcc86c commit=236bcc86cd0b64aec33370db6d7ac29f6e8f02c4 dirty=false
+## 口径一致性：cases 用例文档 vs 实现（deposit_refund）
+DOC_OK: docs/cases/settlement-refund-spec-v2.md
+DOC_OK: docs/cases/settlement-accounting-rules.md
+IMPL_OK: backend/services/settlement_refund_spec.go
+SPEC_OK

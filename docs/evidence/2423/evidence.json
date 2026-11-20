@@ -1,11 +1,25 @@
 {
   "schema_version": 1,
   "issue": 2423,
-  "build": "1.0.fc8cbc14c",
-  "commit": "fc8cbc14c5d6f3d6b3c5fe0ac35669af8de8b544",
+  "build": "1.0.236bcc86c",
+  "commit": "236bcc86cd0b64aec33370db6d7ac29f6e8f02c4",
   "dirty": false,
-  "environment": "backend services tests (pure function, no DB); fix commit fc8cbc14c",
+  "environment": "isolated worktree @ 236bcc86c; evidence generated with OUT_DIR outside the repo; Go services tests on backend/.env test DB",
   "rows": [
+    {
+      "id": "R0",
+      "command": "bash scripts/verify-2423.sh r0-spec",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2423/R0-spec.txt"
+      ],
+      "assert": "exit 0；含 SPEC_OK",
+      "actual": "PASS：spec v2.3 §3、accounting-rules 押金账户与实现三处公式一致（deposit_held − min(held, undisputed)）；两文档均无 collected−held 退款式",
+      "expected": "PASS",
+      "negative": "公式不一致 → exit 1",
+      "negative_result": "任一文档缺公式或仍写 collected−held 即 SPEC_FAIL 并 exit 1",
+      "pass": true
+    },
     {
       "id": "R1",
       "command": "bash scripts/verify-2423.sh r1",
@@ -13,11 +27,11 @@
       "artifacts": [
         "docs/evidence/2423/R1-t23.txt"
       ],
-      "assert": "exit 0；含 --- PASS: TestComputeRefundSpecT23_2423",
-      "actual": "PASS：cap=750（券后基数）、p_refund=150、rent_shortfall=15000、deposit_refund=50000、net_cash=35000；守恒 50000=50000",
+      "assert": "exit 0；含 PASS",
+      "actual": "PASS：T23 cap=750、p_refund=150、押金退 50000、net cash 35000、守恒 50000/50000",
       "expected": "PASS",
-      "negative": "数值不符 → FAIL",
-      "negative_result": "任一数值偏差即 t.Fatalf → exit 1",
+      "negative": "数值不符 → exit 1",
+      "negative_result": "任一数值与 spec T23 不符即测试失败",
       "pass": true
     },
     {
@@ -27,11 +41,11 @@
       "artifacts": [
         "docs/evidence/2423/R2-fixture2339.txt"
       ],
-      "assert": "exit 0；含 --- PASS: TestComputeRefundSpecFixture2339_2423",
-      "actual": "PASS：#2339 fixture cap=840、p_refund=160、net_cash_cents=4000 (¥40.00)；显式记录段模型旧值 666.67/506.67",
+      "assert": "exit 0；含 PASS",
+      "actual": "PASS：#2339 fixture cap=840、p_refund=160、net_cash 4000（旧段模型 666.67/506.67 不采用）",
       "expected": "PASS",
-      "negative": "666.67 → FAIL",
-      "negative_result": "net_cash != 4000 即 t.Fatalf → exit 1",
+      "negative": "旧口径值 → exit 1",
+      "negative_result": "断言段模型旧值即测试失败",
       "pass": true
     },
     {
@@ -41,11 +55,11 @@
       "artifacts": [
         "docs/evidence/2423/R3-conservation.txt"
       ],
-      "assert": "exit 0；含 --- PASS: TestComputeRefundSpecConservation_2423",
-      "actual": "PASS：200 组合法输入逐组满足 net_cash + PointsToCash(p_refund) == cash_paid + PointsToCash(p_used) − R_after_coupon − fees",
+      "assert": "exit 0；含 PASS",
+      "actual": "PASS：固定种子随机组合下全式 net_cash + PointsToCash(p_refund) = cash_paid + PointsToCash(p_used) − R_after_coupon − deductions_total 恒成立",
       "expected": "PASS",
-      "negative": "违例 → FAIL",
-      "negative_result": "任一违例即 ErrSettlementInvariantViolation/t.Fatalf → exit 1",
+      "negative": "守恒违例 → exit 1",
+      "negative_result": "任一组合违例即测试失败",
       "pass": true
     },
     {
@@ -55,11 +69,11 @@
       "artifacts": [
         "docs/evidence/2423/R4-bounds.txt"
       ],
-      "assert": "exit 0；含 --- PASS: TestComputeRefundSpecBounds_2423",
-      "actual": "PASS：4 个边界 + 负值/ratio 非法/溢出 → error；守恒不一致 → ConservationOK=false + ErrSettlementInvariantViolation",
+      "assert": "exit 0；含 PASS",
+      "actual": "PASS：11 个边界/非法输入子例全通过（无押金、押金扣用、券后 0、p_used>cap、负值、非法比例、溢出、守恒不一致）",
       "expected": "PASS",
-      "negative": "负退款 → FAIL",
-      "negative_result": "panic 或 nil error 即 exit 1",
+      "negative": "子例失败 → exit 1",
+      "negative_result": "任一子例失败即测试失败",
       "pass": true
     },
     {
@@ -69,11 +83,11 @@
       "artifacts": [
         "docs/evidence/2423/R5-build.txt"
       ],
-      "assert": "exit 0",
-      "actual": "PASS：go build ./... exit 0",
+      "assert": "exit 0；含 BUILD_OK",
+      "actual": "PASS：BUILD_CMD=go build ./...；BUILD_EXIT=0；BUILD_OK",
       "expected": "PASS",
-      "negative": "失败 → FAIL",
-      "negative_result": "非 0 退出即 exit 1",
+      "negative": "编译失败 → exit 1",
+      "negative_result": "BUILD_EXIT 非 0 时输出 BUILD_FAIL 并 exit 1",
       "pass": true
     }
   ]
