@@ -6,6 +6,7 @@ import PhotoUploader from '../components/PhotoUploader'
 import PasswordSettingFields from '../components/PasswordSettingFields'
 import InitialPasswordModal from '../components/InitialPasswordModal'
 import { resolveCreateFeedback } from '../utils/createFeedback'
+import { buildPersonnelQuery } from '../utils/personnelQuery'
 import 'react-quill/dist/quill.snow.css'
 import { staffApi, sitesApi, personnelApi, invitesApi } from '../services/api'
 import { resolveErrorMessage } from '../services/errorMessages'
@@ -18,7 +19,7 @@ export default function StaffManagement() {
   const [staffList, setStaffList] = useState([])
   const [loading, setLoading] = useState(false)
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 })
-  const [searchParams, setSearchParams] = useState({ name: '', siteId: null })
+  const [searchParams, setSearchParams] = useState({}) // #2427: 只存规范化后的查询参数（空值已被省略）
   const [siteTree, setSiteTree] = useState([])
   const [viewMode, setViewMode] = useState('list') // 'list' | 'create'
   const [userType, setUserType] = useState('merchant_direct') // #2390: 仅保留商户直属员工
@@ -26,6 +27,8 @@ export default function StaffManagement() {
   const [createPhotoUrl, setCreatePhotoUrl] = useState('') // #2073: 本地预览 URL（选择即预览）
   const [createFormKey, setCreateFormKey] = useState(0) // #2074: 创建表单重挂载 key（清空 ReactQuill 等非受控残留）
   const [createUserForm] = Form.useForm()
+  // #2427：搜索表单实例——「只看直属员工」开关需要读取当前表单值后即时重查。
+  const [searchForm] = Form.useForm()
   // #2372：密码模式（默认自动生成 + 强制改密，D1）；邀请模式仅「有邮箱且未设密码」时由后端走邮件。
   const [createAutoGenerate, setCreateAutoGenerate] = useState(true)
   const [createForcePasswordChange, setCreateForcePasswordChange] = useState(true)
@@ -83,11 +86,15 @@ export default function StaffManagement() {
   const fetchStaffList = async () => {
     setLoading(true)
     try {
-      const params = {
+      // #2427：查询参数统一经 buildPersonnelQuery 构造——空 siteId/空 name 不入参，
+      // 避免 `site_id=null` 这类非法值进入后端（D2）。
+      const params = buildPersonnelQuery({
+        name: searchParams.name,
+        siteId: searchParams.site_id,
+        direct: searchParams.direct === 'true',
         page: pagination.current,
-        page_size: pagination.pageSize,
-        ...searchParams
-      }
+        pageSize: pagination.pageSize,
+      })
       const result = await personnelApi.list(params)
       if (result.code === 20000) {
         const list = result.data?.list || []
@@ -131,13 +138,20 @@ export default function StaffManagement() {
     return options
   }
 
-  const handleSearch = (values) => {
-    setSearchParams({
-      name: values.name || '',
-      site_id: values.siteId || null,
-      ...(values.direct ? { direct: 'true' } : {}) // #2067: 只看直属员工
-    })
-    setPagination({ ...pagination, current: 1 })
+  // #2427 D1：直属开关即时生效——onChange 用当前表单值重查并回到第 1 页；
+  // 「搜索」按钮保留（兼容既有操作习惯）。
+  const handleSearch = (values = {}) => {
+    setSearchParams(buildPersonnelQuery({
+      name: values.name,
+      siteId: values.siteId,
+      direct: values.direct === true || values.direct === 'true',
+    }))
+    setPagination(prev => ({ ...prev, current: 1 }))
+  }
+
+  // #2427 D1：Checkbox 变更即提交查询（不依赖用户再点「搜索」）。
+  const handleDirectToggle = (checked) => {
+    handleSearch({ ...searchForm.getFieldsValue(), direct: checked })
   }
 
   const handleTableChange = (newPagination) => {
@@ -616,6 +630,7 @@ export default function StaffManagement() {
         }
       >
         <Form
+          form={searchForm} /* #2427: 供直属开关 onChange 读取当前筛选值 */
           name="staff-search" /* #2072: 命名空间化字段 id，避免与创建表单同名 id 致浏览器自动填充 */
           layout="inline"
           className="mb-4"
@@ -640,7 +655,10 @@ export default function StaffManagement() {
           {/* #2067: 只看直属员工（商户直属+维修师傅）；仅商户管理员可见 */}
           {isMerchantAdmin && (
             <Form.Item name="direct" valuePropName="checked">
-              <Checkbox>只看直属员工（含维修师傅）</Checkbox>
+              {/* #2427: 勾选/取消立即生效（onChange → handleSearch → 回第 1 页） */}
+              <Checkbox onChange={e => handleDirectToggle(e.target.checked)}>
+                只看直属员工（含维修师傅）
+              </Checkbox>
             </Form.Item>
           )}
           <Form.Item>

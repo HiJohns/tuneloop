@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -11,6 +13,7 @@ import (
 	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -55,30 +58,47 @@ func (h *PersonnelHandler) List(c *gin.Context) {
 		keyword = strings.TrimSpace(c.Query("search"))
 	}
 	siteFilter := strings.TrimSpace(c.Query("site_id"))
+	// #2427 D3：site_id 非法（如 "null"/"abc"）必须 40002 + WARN，
+	// 不得把非法值直接带进 SQL（PG 22P02）后静默返回 0 行。
+	if siteFilter != "" {
+		if _, err := uuid.Parse(siteFilter); err != nil {
+			log.Printf("[Personnel] WARN: invalid site_id=%q from user=%s: %v", siteFilter, middleware.GetUserID(ctx), err)
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid site_id: must be a UUID"})
+			return
+		}
+	}
 	directOnly := c.Query("direct") == "true" // #2067: 只看直属员工（商户直属+师傅）
 
 	var rows []personnelRow
+	var err error
 	switch businessRole {
 	case middleware.BusinessRoleMerchantAdmin:
 		if tid == "" {
 			c.JSON(http.StatusForbidden, gin.H{"code": 40303, "message": "access denied"})
 			return
 		}
-		rows = personnelMerchantView(db, tid, keyword, siteFilter, directOnly)
+		rows, err = personnelMerchantView(db, tid, keyword, siteFilter, directOnly)
 	case middleware.BusinessRoleSiteAdmin:
 		if oid == "" {
 			c.JSON(http.StatusForbidden, gin.H{"code": 40303, "message": "access denied"})
 			return
 		}
-		rows = personnelSiteView(db, oid, keyword)
+		rows, err = personnelSiteView(db, oid, keyword)
 	case middleware.BusinessRoleSystemAdmin:
 		if oid == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "operator has no organization"})
 			return
 		}
-		rows = personnelSystemView(db, oid, keyword)
+		rows, err = personnelSystemView(db, oid, keyword)
 	default:
 		c.JSON(http.StatusForbidden, gin.H{"code": 40303, "message": "access denied"})
+		return
+	}
+	// #2427 D3：视图查询失败必须显式返回，不得静默当作「无数据」（空列表会把故障伪装成 0 条）。
+	if err != nil {
+		log.Printf("[Personnel] ERROR: personnel list query failed (role=%s, tid=%s, oid=%s, site_id=%q): %v",
+			businessRole, tid, oid, siteFilter, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query personnel: " + err.Error()})
 		return
 	}
 
@@ -112,7 +132,7 @@ type siteMembershipRow struct {
 // personnelMerchantView 本商户全员。**membership 为权威**（#2067）：
 // 归属由 site_members.sites.tenant_id / merchant_members.tenant_id / technician_profiles.tenant_id 决定，
 // users 行按 id 取回（local users.tenant_id 不可靠，如商户管理员自身行为全零 uuid）。
-func personnelMerchantView(db *gorm.DB, tid, keyword, siteFilter string, directOnly bool) []personnelRow {
+func personnelMerchantView(db *gorm.DB, tid, keyword, siteFilter string, directOnly bool) ([]personnelRow, error) {
 	// #2067 + #2261：成员归属已由 sites / merchant_members / technician_profiles
 	// 的 tenant_id 显式过滤；本地 users.tenant_id 不可靠（零租户用户），
 	// 必须关闭自动租户范围，否则 users 查询会把零租户成员漏掉。
@@ -134,7 +154,10 @@ func personnelMerchantView(db *gorm.DB, tid, keyword, siteFilter string, directO
 		if siteFilter != "" {
 			smq = smq.Where("sm.site_id = ?", siteFilter)
 		}
-		smq.Scan(&sms)
+		// #2427 R3：Scan 错误必须返回（此前静默 → 0 行，故障伪装成「无数据」）。
+		if err := smq.Scan(&sms).Error; err != nil {
+			return nil, fmt.Errorf("site_members scan failed: %w", err)
+		}
 	}
 	// 2) 直属员工（merchant_members）；指定网点时不列直属
 	mmRoles := map[string]string{}
@@ -143,8 +166,10 @@ func personnelMerchantView(db *gorm.DB, tid, keyword, siteFilter string, directO
 			UserID string
 			Role   string
 		}
-		db.Table("merchant_members").Select("user_id, role").
-			Where("tenant_id = ? AND status = 'active'", tid).Scan(&mms)
+		if err := db.Table("merchant_members").Select("user_id, role").
+			Where("tenant_id = ? AND status = 'active'", tid).Scan(&mms).Error; err != nil {
+			return nil, fmt.Errorf("merchant_members scan failed: %w", err)
+		}
 		for _, m := range mms {
 			mmRoles[m.UserID] = m.Role
 		}
@@ -152,7 +177,10 @@ func personnelMerchantView(db *gorm.DB, tid, keyword, siteFilter string, directO
 	// 3) 维修师傅（直属商户）；指定网点时排除（不属网点）
 	var techIDs []string
 	if siteFilter == "" {
-		db.Model(&models.TechnicianProfile{}).Where("tenant_id = ?", tid).Pluck("user_id", &techIDs)
+		if err := db.Model(&models.TechnicianProfile{}).Where("tenant_id = ?", tid).
+			Pluck("user_id", &techIDs).Error; err != nil {
+			return nil, fmt.Errorf("technician_profiles query failed: %w", err)
+		}
 	}
 
 	// 4) 汇总 user ids（membership 权威）→ 按 id 取 users
@@ -167,7 +195,7 @@ func personnelMerchantView(db *gorm.DB, tid, keyword, siteFilter string, directO
 		idSet[id] = true
 	}
 	if len(idSet) == 0 {
-		return nil
+		return nil, nil
 	}
 	ids := make([]string, 0, len(idSet))
 	for id := range idSet {
@@ -182,26 +210,28 @@ func personnelMerchantView(db *gorm.DB, tid, keyword, siteFilter string, directO
 	// #2072: 新建置顶（此前无 ORDER BY，行序不稳定致新建用户不在当前页）
 	q = q.Order("created_at DESC")
 	if err := q.Find(&users).Error; err != nil {
-		return nil
+		return nil, fmt.Errorf("users query failed: %w", err)
 	}
-	return assemblePersonnel(users, sms, techIDs, mmRoles)
+	return assemblePersonnel(users, sms, techIDs, mmRoles), nil
 }
 
 // personnelSiteView 仅本网点成员（不含维修师傅）。
-func personnelSiteView(db *gorm.DB, siteID, keyword string) []personnelRow {
+func personnelSiteView(db *gorm.DB, siteID, keyword string) ([]personnelRow, error) {
 	var sms []siteMembershipRow
-	db.Table("site_members AS sm").
+	if err := db.Table("site_members AS sm").
 		Select("sm.user_id, sm.site_id, s.name AS site_name, sm.role").
 		Joins("JOIN sites s ON s.id = sm.site_id").
 		Where("sm.site_id = ? AND sm.status = 'active'", siteID).
-		Scan(&sms)
+		Scan(&sms).Error; err != nil {
+		return nil, fmt.Errorf("site_members scan failed: %w", err)
+	}
 
 	ids := make([]string, 0, len(sms))
 	for _, m := range sms {
 		ids = append(ids, m.UserID)
 	}
 	if len(ids) == 0 {
-		return nil
+		return nil, nil
 	}
 	var users []models.User
 	q := db.Where("id IN ? AND deleted_at IS NULL", ids)
@@ -212,14 +242,14 @@ func personnelSiteView(db *gorm.DB, siteID, keyword string) []personnelRow {
 	// #2072: 新建置顶
 	q = q.Order("created_at DESC")
 	if err := q.Find(&users).Error; err != nil {
-		return nil
+		return nil, fmt.Errorf("users query failed: %w", err)
 	}
-	return assemblePersonnel(users, sms, nil, nil)
+	return assemblePersonnel(users, sms, nil, nil), nil
 }
 
 // personnelSystemView 平台员工（根组织 users，与 platform_staff.go 同源）∪ 中转网点成员。
 // 注意：平台员工通常无 site_members 记录，不能走 assemblePersonnel 的「无归属即过滤」逻辑。
-func personnelSystemView(db *gorm.DB, rootOrgID, keyword string) []personnelRow {
+func personnelSystemView(db *gorm.DB, rootOrgID, keyword string) ([]personnelRow, error) {
 	rows := []personnelRow{}
 	seen := map[string]int{}
 
@@ -233,7 +263,7 @@ func personnelSystemView(db *gorm.DB, rootOrgID, keyword string) []personnelRow 
 	}
 	q = q.Order("created_at DESC") // #2072: 新建置顶
 	if err := q.Find(&staff).Error; err != nil {
-		return nil
+		return nil, fmt.Errorf("platform staff query failed: %w", err)
 	}
 	for _, u := range staff {
 		seen[u.ID] = len(rows)
@@ -246,11 +276,13 @@ func personnelSystemView(db *gorm.DB, rootOrgID, keyword string) []personnelRow 
 
 	// 2) 中转网点成员（sites.type='transit'，归属根组织）
 	var sms []siteMembershipRow
-	db.Table("site_members AS sm").
+	if err := db.Table("site_members AS sm").
 		Select("sm.user_id, sm.site_id, s.name AS site_name, sm.role").
 		Joins("JOIN sites s ON s.id = sm.site_id").
 		Where("s.type = ? AND (s.tenant_id = ? OR s.org_id = ?) AND sm.status = 'active'", "transit", rootOrgID, rootOrgID).
-		Scan(&sms)
+		Scan(&sms).Error; err != nil {
+		return nil, fmt.Errorf("transit site_members scan failed: %w", err)
+	}
 	ids := make([]string, 0, len(sms))
 	for _, m := range sms {
 		ids = append(ids, m.UserID)
@@ -264,7 +296,7 @@ func personnelSystemView(db *gorm.DB, rootOrgID, keyword string) []personnelRow 
 		}
 		mq = mq.Order("created_at DESC") // #2072: 新建置顶
 		if err := mq.Find(&members).Error; err != nil {
-			return nil
+			return nil, fmt.Errorf("transit members query failed: %w", err)
 		}
 		byUser := map[string][]siteMembershipRow{}
 		for _, m := range sms {
@@ -299,7 +331,7 @@ func personnelSystemView(db *gorm.DB, rootOrgID, keyword string) []personnelRow 
 			rows = append(rows, row)
 		}
 	}
-	return rows
+	return rows, nil
 }
 
 // assemblePersonnel 将用户 × 网点归属 × 师傅身份组装为一行一人（聚合网点名）。
