@@ -169,6 +169,9 @@ for k, v in (('commit', head), ('build', build), ('dirty', False)):
 for row in ev.get('rows', []):
     for art in row.get('artifacts', []):
         p = os.path.join(root, art)
+        alt = os.path.join(os.environ.get('OUT_DIR', ''), os.path.basename(art))
+        if os.path.exists(alt):
+            p = alt
         if not os.path.exists(p):
             print(f'ARTIFACT_MISSING: {art}'); fail = 1; continue
         first = open(p, encoding='utf-8').readline().strip()
