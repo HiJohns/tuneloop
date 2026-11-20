@@ -1,16 +1,18 @@
 {
   "schema_version": 1,
   "issue": 2443,
-  "build": "1.0.5478b2b39",
-  "commit": "5478b2b39b72c2b70d109649102f16bf533c21b7",
+  "build": "1.0.46b63ed0f",
+  "commit": "46b63ed0fbe3b67f9d569893f1d46a50d5a0a17c",
   "dirty": false,
-  "environment": "isolated PG tuneloop_test_2443; handlers full suite; fix 5478b2b39",
+  "environment": "isolated clean worktree @ 46b63ed0f; handlers full suite 0 FAIL",
   "rows": [
     {
       "id": "R1",
       "command": "bash scripts/verify-2443.sh r1",
       "exit": 0,
-      "artifacts": ["docs/evidence/2443/R1-inventory.txt"],
+      "artifacts": [
+        "docs/evidence/2443/R1-inventory.txt"
+      ],
       "assert": "exit 0；TestGetInventoryRentSetting PASS",
       "actual": "PASS：P1 inventory panic 已消除",
       "expected": "PASS",
@@ -22,7 +24,9 @@
       "id": "R2",
       "command": "bash scripts/verify-2443.sh r2",
       "exit": 0,
-      "artifacts": ["docs/evidence/2443/R2-handlers-full.txt"],
+      "artifacts": [
+        "docs/evidence/2443/R2-handlers-full.txt"
+      ],
       "assert": "exit 0；handlers 全量 0 FAIL",
       "actual": "PASS：go test ./handlers -count=1 -timeout 10m 通过（0 FAIL）",
       "expected": "PASS",
@@ -34,7 +38,9 @@
       "id": "R3",
       "command": "bash scripts/verify-2443.sh r3",
       "exit": 0,
-      "artifacts": ["docs/evidence/2443/R3-build.txt"],
+      "artifacts": [
+        "docs/evidence/2443/R3-build.txt"
+      ],
       "assert": "exit 0；go build ./...",
       "actual": "PASS：backend 编译通过",
       "expected": "PASS",
