@@ -17,7 +17,7 @@ if [ -n "$(git status --porcelain --untracked-files=no | grep -v 'docs/evidence/
 
 if [ "$MODE" = "r4" ]; then
   f="docs/evidence/2416/R4-manual.md"
-  if grep -q 'executor: user' "$f" && grep -q 'RESULT: PASS' "$f"; then
+  if grep -q 'executor: user' "$f" && tail -5 "$f" | grep -q '^RESULT: PASS'; then
     echo "MANUAL_OK: $f"; exit 0
   fi
   echo "MANUAL_PENDING: $f（Owner 真机回执未签）"; exit 1
