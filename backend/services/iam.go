@@ -623,12 +623,14 @@ func (s *IAMService) WxBind(exchangeToken, code, userID string) (*WxBindResult, 
 		ExistingUserID string `json:"existing_user_id"`
 		TargetUserID   string `json:"target_user_id"`
 		OpenID         string `json:"openid"`
+		MergeTicket    string `json:"merge_ticket"`
 	}
 	if err := json.Unmarshal(body, &probe); err == nil && probe.NeedsMerge {
 		return nil, &WxNeedsMergeError{
 			ExistingUserID: probe.ExistingUserID,
 			TargetUserID:   probe.TargetUserID,
 			OpenID:         probe.OpenID,
+			MergeTicket:    probe.MergeTicket,
 		}
 	}
 
@@ -644,6 +646,9 @@ type WxNeedsMergeError struct {
 	ExistingUserID string // 该微信当前绑定的账户（保留方 Y）
 	TargetUserID   string // 本次尝试绑定的账户（待合并方 X）
 	OpenID         string
+	// MergeTicket (#2445): single-use IAM authorization for X→Y merge via a
+	// bind QR token (no X access token available).
+	MergeTicket string
 }
 
 func (e *WxNeedsMergeError) Error() string {
@@ -678,6 +683,46 @@ func (s *IAMService) WxMerge(userToken, fromUserID, toUserID, openid string) err
 		return newIAMAPIError(resp.StatusCode, body)
 	}
 	return nil
+}
+
+// WxMergeConfirmResult is the IAM response for a bind-QR merge (#2445).
+type WxMergeConfirmResult struct {
+	Merged     bool   `json:"merged"`
+	Already    bool   `json:"already"`
+	FromUserID string `json:"from_user_id"`
+	ToUserID   string `json:"to_user_id"`
+	OpenID     string `json:"openid"`
+}
+
+// WxMergeByTicket (#2445) completes a bind-QR X→Y merge using the single-use
+// ticket minted by IAM wx-bind. The ticket is the authorization; no user
+// access token is required (the employee does not know X's credentials).
+func (s *IAMService) WxMergeByTicket(ticket string) (*WxMergeConfirmResult, error) {
+	payload := map[string]string{"merge_ticket": ticket}
+	jsonPayload, _ := json.Marshal(payload)
+	resp, err := s.httpClient.Post(
+		fmt.Sprintf("%s/api/v1/auth/wx-merge-confirm", s.baseURL),
+		"application/json",
+		bytes.NewBuffer(jsonPayload),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call IAM wx-merge-confirm endpoint: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("[IAM DEBUG] WxMergeByTicket non-200 status=%d body=%s", resp.StatusCode, string(body))
+		return nil, newIAMAPIError(resp.StatusCode, body)
+	}
+	var result WxMergeConfirmResult
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse wx-merge-confirm response: %w", err)
+	}
+	if !result.Merged {
+		return nil, fmt.Errorf("wx-merge-confirm did not confirm merge: %s", string(body))
+	}
+	return &result, nil
 }
 
 func (s *IAMService) GetPublicKeyInfo() (*PublicKeyResponse, error) {

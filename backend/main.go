@@ -275,7 +275,12 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	}
 	bindHandler := handlers.NewWechatBindHandler()
 	api.POST("/wechat-bind/confirm", bindHandler.ConfirmBind)
+	api.POST("/wechat-bind/merge", bindHandler.MergeBind)
 	api.GET("/wechat-bind/confirm-page", bindHandler.ConfirmBindPage)
+	// #2445: public status polling — the PC session that generated the QR may
+	// belong to X, whose token is revoked when the merge completes. The token
+	// itself is unguessable and the response only exposes a status string.
+	api.GET("/wechat-bind/status/:token", bindHandler.PollBindToken)
 	authRequired := api.Group("")
 	authRequired.Use(middleware.IAMInterceptor(iamService, iamClient))
 	authRequired.Use(middleware.NoCache())

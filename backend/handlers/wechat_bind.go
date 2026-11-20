@@ -7,6 +7,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -19,10 +20,16 @@ import (
 
 // bindTokenStore holds binding tokens in memory with 5min TTL.
 type bindTokenEntry struct {
-	UserID    string
-	WxOpenid  string
-	Status    string // pending / bound / expired
-	CreatedAt time.Time
+	UserID   string
+	WxOpenid string
+	Status   string // pending / bound / needs_merge / merged / expired
+	// #2445: merge ticket minted by IAM wx-bind (single-use, 5 min) and the
+	// idempotent result of a successful X→Y merge.
+	MergeTicket       string
+	MergedToUserID    string
+	NeedsCredentials  bool
+	SuggestedUsername string
+	CreatedAt         time.Time
 }
 
 var (
@@ -194,6 +201,7 @@ func (h *WechatBindHandler) ConfirmBind(c *gin.Context) {
 		bindTokensMu.Lock()
 		if e, ok := bindTokens[req.Token]; ok {
 			e.Status = "needs_merge"
+			e.MergeTicket = mergeErr.MergeTicket
 		}
 		bindTokensMu.Unlock()
 
@@ -205,6 +213,7 @@ func (h *WechatBindHandler) ConfirmBind(c *gin.Context) {
 				"existing_user_id": mergeErr.ExistingUserID,
 				"target_user_id":   mergeErr.TargetUserID,
 				"openid":           mergeErr.OpenID,
+				"merge_ticket":     mergeErr.MergeTicket,
 			},
 		})
 		return
@@ -222,6 +231,129 @@ func (h *WechatBindHandler) ConfirmBind(c *gin.Context) {
 	bindTokensMu.Unlock()
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "binding success"})
+}
+
+// MergeBind completes a bind-QR needs_merge conflict (#2445).
+//
+// The QR token identifies the admin-provisioned account X; the IAM merge
+// ticket proves the caller controls X's bind token and is bound to
+// (openid, X, Y). Merge direction is always X→Y: X becomes obsolete, the
+// employee's personal account Y keeps its password and receives X's org
+// relations (switch identity appears after re-login).
+func (h *WechatBindHandler) MergeBind(c *gin.Context) {
+	var req struct {
+		Token       string `json:"token" binding:"required"`
+		MergeTicket string `json:"merge_ticket" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "token and merge_ticket required"})
+		return
+	}
+
+	bindTokensMu.Lock()
+	entry, exists := bindTokens[req.Token]
+	if !exists {
+		bindTokensMu.Unlock()
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "invalid or expired token"})
+		return
+	}
+	if entry.Status == "merged" {
+		data := gin.H{
+			"merged":             true,
+			"to_user_id":         entry.MergedToUserID,
+			"needs_credentials":  entry.NeedsCredentials,
+			"suggested_username": entry.SuggestedUsername,
+		}
+		bindTokensMu.Unlock()
+		c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "already merged", "data": data})
+		return
+	}
+	if entry.Status != "needs_merge" {
+		status := entry.Status
+		bindTokensMu.Unlock()
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40902, "message": "token is not waiting for merge (status=" + status + ")"})
+		return
+	}
+	if entry.MergeTicket == "" || entry.MergeTicket != req.MergeTicket {
+		bindTokensMu.Unlock()
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid or expired merge ticket"})
+		return
+	}
+	userID := entry.UserID
+	bindTokensMu.Unlock()
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	var user models.User
+	if err := db.Where("id = ?", userID).First(&user).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40004, "message": "user not found"})
+		return
+	}
+
+	result, mergeErr := services.NewIAMService().WxMergeByTicket(req.MergeTicket)
+	if mergeErr != nil {
+		log.Printf("[MergeBind] IAM wx-merge-confirm failed for token=%s: %v", req.Token, mergeErr)
+		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "账户合并失败: " + mergeErr.Error()})
+		return
+	}
+	if result.FromUserID != user.IAMSub {
+		// Ticket/token mismatch: never let a ticket for another account mutate
+		// this bind token's local data.
+		log.Printf("[MergeBind] ticket from_user_id %s != token user iam_sub %s", result.FromUserID, user.IAMSub)
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "merge ticket does not match binding token"})
+		return
+	}
+
+	// Local staff tables are keyed by local user id (site_members etc.); sync
+	// them synchronously, with the IAM user.account_merged callback as retry
+	// safety net. A local failure must be surfaced (never silently swallowed).
+	localSyncErr := migrateMergedAccountLocal(db, result.FromUserID, result.ToUserID)
+	if localSyncErr != nil {
+		log.Printf("[MergeBind] local account sync failed (from=%s to=%s): %v", result.FromUserID, result.ToUserID, localSyncErr)
+	}
+
+	needsCred, suggested := needsCredentialsForIAMUser(result.ToUserID)
+
+	bindTokensMu.Lock()
+	if e, ok := bindTokens[req.Token]; ok {
+		e.Status = "merged"
+		e.MergedToUserID = result.ToUserID
+		e.NeedsCredentials = needsCred
+		e.SuggestedUsername = suggested
+	}
+	bindTokensMu.Unlock()
+
+	data := gin.H{
+		"merged":             true,
+		"from_user_id":       result.FromUserID,
+		"to_user_id":         result.ToUserID,
+		"needs_credentials":  needsCred,
+		"suggested_username": suggested,
+	}
+	if localSyncErr != nil {
+		data["local_sync"] = false
+		data["warning"] = "员工身份本地数据同步失败，系统将自动重试；如员工身份未生效请联系管理员"
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "merged", "data": data})
+}
+
+// needsCredentialsForIAMUser reports whether the account has never had a
+// user-chosen username/password (WeChat self-registration sets username=phone
+// and a random password). Best-effort: failures are logged and treated as
+// "no prompt" so a merge success is never blocked by this enrichment.
+func needsCredentialsForIAMUser(iamUserID string) (bool, string) {
+	u, err := services.NewIAMClient().GetUser(iamUserID)
+	if err != nil {
+		log.Printf("[MergeBind] GetUser(%s) for credential hint failed: %v", iamUserID, err)
+		return false, ""
+	}
+	phone := strings.TrimSpace(u.Phone)
+	username := strings.TrimSpace(u.Username)
+	suggested := phone
+	if suggested == "" {
+		suggested = username
+	}
+	return username == "" || (phone != "" && username == phone), suggested
 }
 
 // Unbind clears the wx_openid for the current user (PC side).

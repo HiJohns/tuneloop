@@ -1858,10 +1858,19 @@ func (h *UserStaffHandler) WxMergeCurrentUser(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "账户合并失败: " + err.Error()})
 		return
 	}
+
+	// #2445: IAM moved org relations; mirror the local staff cache too. The
+	// user.account_merged callback is the retry safety net.
+	data := gin.H{"merged": true, "to_user_id": req.ToUserID}
+	if syncErr := migrateMergedAccountLocal(database.GetDB().WithContext(database.IdentityCtx(ctx)), userID, req.ToUserID); syncErr != nil {
+		log.Printf("[WxMergeCurrentUser] local account sync failed (from=%s to=%s): %v", userID, req.ToUserID, syncErr)
+		data["local_sync"] = false
+		data["warning"] = "员工身份本地数据同步失败，系统将自动重试"
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
 		"message": "merged",
-		"data":    gin.H{"merged": true, "to_user_id": req.ToUserID},
+		"data":    data,
 	})
 }
 

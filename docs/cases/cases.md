@@ -1283,19 +1283,29 @@ sequenceDiagram
             API->>API: token status → bound
             API-->>Staff: 绑定成功
         else openid 已绑定其他存活账户（needs_merge）
-            IAM-->>API: {needs_merge:true, existing_user_id, target_user_id, openid}
+            IAM-->>API: {needs_merge:true, existing_user_id, target_user_id, openid, merge_ticket}
             API->>API: token status → needs_merge（不落 bound）
-            API-->>Staff: 409 / 40900 + 合并引导（不显示绑定成功）
+            API-->>Staff: 409 / 40900 + merge_ticket（不显示绑定成功）
+            Note over Staff,API: Bind 页展示「合并到我的个人账户」确认（#2445）
+            Staff->>API: POST /api/wechat-bind/merge<br/>{token, merge_ticket}
+            API->>IAM: POST /api/v1/auth/wx-merge-confirm<br/>{merge_ticket}
+            IAM->>IAM: X（管理员预建）→ obsolete；组织关系/职能角色 → Y；不迁移 X 密码
+            IAM-->>API: {merged:true, from_user_id, to_user_id, openid}
+            API->>API: 本地 site_members/merchant_members/technician_profiles X→Y<br/>token status → merged
+            API-->>Staff: 合并成功；清理会话并引导重新登录
         end
     end
 
-    PC->>API: 轮询到 status=bound / needs_merge
+    PC->>API: 轮询到 status=bound / needs_merge / merged
     alt status=bound
         PC->>PC: 关闭二维码弹窗<br/>显示「已绑定」
         PC-->>Admin: 绑定完成
     else status=needs_merge
-        PC->>PC: 提示「该微信已绑定其他账户，请在手机端编辑资料合并」
-        PC-->>Admin: 等待手机端合并（本期不做 PC 合并弹窗/自动登出）
+        PC->>PC: 提示「该微信已绑定其他账户，请在小程序端确认合并」
+        PC-->>Admin: 等待员工确认
+    else status=merged
+        PC->>PC: 提示「该微信已合并到员工个人账户，请员工重新登录并切换身份」
+        PC-->>Admin: 合并完成
     end
 ```
 
@@ -1306,7 +1316,8 @@ sequenceDiagram
 | `POST` | `/api/users/me/wechat-bind` | PC | 生成绑定 token + 小程序码（需登录态） |
 | `GET` | `/api/users/me/wechat-bind/:token` | PC | PC 轮询绑定状态 |
 | `GET` | `/api/wechat-bind/confirm-page` | 微信 | 旧二维码引导页（已降级：绑定须在小程序完成，不再提供 OAuth 网页确认） |
-| `POST` | `/api/wechat-bind/confirm` | 小程序 | 确认绑定（token + exchange_token；wx_openid 仅兼容字段、忽略）。走 IAM `/api/v1/auth/wx-bind`；`needs_merge` → 409/40900，不落绑定 |
+| `POST` | `/api/wechat-bind/confirm` | 小程序 | 确认绑定（token + exchange_token；wx_openid 仅兼容字段、忽略）。走 IAM `/api/v1/auth/wx-bind`；`needs_merge` → 409/40900 + `merge_ticket`，不落绑定 |
+| `POST` | `/api/wechat-bind/merge` | 小程序 | **#2445** 扫码冲突合并（token + merge_ticket）：X→obsolete、关系迁移到 Y、本地员工表同步、token → `merged` |
 | `POST` | `/api/users/me/wechat-unbind` | PC | 解绑微信 |
 
 #### token 生命周期
@@ -1314,7 +1325,8 @@ sequenceDiagram
 ```
 生成 (POST /users/me/wechat-bind) → pending
     ├── 扫码确认 (POST /wechat-bind/confirm) 成功 → bound → 删除
-    ├── 扫码确认返回 needs_merge → needs_merge（不落绑定；等用户在手机端合并）
+    ├── 扫码确认返回 needs_merge → needs_merge（不落绑定；等员工在 Bind 页确认）
+    │      └── 合并成功 (POST /wechat-bind/merge) → merged（PC 轮询提示；再次调用幂等）
     └── 超时 5 分钟 → expired → 定时清理删除
 ```
 
@@ -1326,6 +1338,7 @@ sequenceDiagram
 4. **轮询频率**：PC 端每 2 秒轮询一次，5 分钟超时自动关闭弹窗
 5. **绑定语义（#2016/#2025 一人一记录）**：绑定关系唯一权威源 = `wx_user_bindings`（openid ↔ user_id）；`users.wx_openid`（旧缓存列）已废弃。同一微信号在兼容期内可存在多条历史绑定（存量多户），新流程按一人一记录收敛（不再为同一人新建第二户）。PC 扫码确认（#2410）只走 IAM `/api/v1/auth/wx-bind`，`exchange_token` 为唯一权威；`IAMClient.UpdateUser` / `UpdateUserWithToken` 对非空 `wx_openid` 在发请求前直接拒绝，空值解绑仍走 IAM 删除绑定行，禁止绕过 `needs_merge`
 6. **解绑（#2020，D4 衔接）**：`POST /api/users/me/wechat-unbind` 必须**删除该用户对应的 `wx_user_bindings` 行**（beaconiam `UpdateUser` 空 `wx_openid` 分支由 no-op 改为 DELETE）；解绑后 `wx-accounts` 不再返回该账户
+7. **扫码冲突合并（#2445）**：`needs_merge` 时 IAM 的 `merge_ticket` 是唯一授权（一次性、5 分钟）。合并方向固定为 **X（绑定二维码目标/管理员预建）→ obsolete，Y（openid 已绑定的员工个人账户）保留**。**不迁移 X 的密码**（防止管理员初始密码静默覆盖员工个人密码）；组织关系/职能角色由 IAM 迁移，本地 `site_members` / `merchant_members` / `technician_profiles` 由 tuneloop 同步（`user.account_merged` 回调兜底）；合并后小程序清理会话，重新登录即可在个人中心看到「切换身份」。
 
 ## 4.2 人员管理
 

@@ -95,6 +95,12 @@ func HandleIAMCallback(c *gin.Context) {
 		handleUserActivated(payload, c)
 		evictIdempotentOnFailure(c, eventID)
 		return
+	case "user.account_merged":
+		// #2445：IAM X→Y 合并完成——把本地员工身份表（site_members /
+		// merchant_members / technician_profiles）从 X 迁到 Y。
+		handleUserAccountMerged(payload, c)
+		evictIdempotentOnFailure(c, eventID)
+		return
 	default:
 		log.Printf("[IAMCallback] unknown action: %s (ignored)", event.Action)
 		c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "unknown action, ignored"})
@@ -197,6 +203,24 @@ func handleUserActivated(payload map[string]interface{}, c *gin.Context) {
 
 	log.Printf("[IAMCallback] user.activated processed: iam_sub=%s local=%s bound_invites=%d", userID, u.ID, bound)
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"user_id": u.ID, "bound_invites": bound}})
+}
+
+// handleUserAccountMerged (#2445) mirrors an IAM X→Y merge into the local
+// staff cache. Idempotent; returns 500 on transient DB errors so IAM retries.
+func handleUserAccountMerged(payload map[string]interface{}, c *gin.Context) {
+	from, _ := payload["from_user_id"].(string)
+	to, _ := payload["to_user_id"].(string)
+	if from == "" || to == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": "from_user_id and to_user_id are required"})
+		return
+	}
+	db := database.GetDB().WithContext(c.Request.Context())
+	if err := migrateMergedAccountLocal(db, from, to); err != nil {
+		log.Printf("[IAMCallback] user.account_merged failed (from=%s to=%s): %v", from, to, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to migrate local staff data"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "merged local staff data"})
 }
 
 func handleUserRegistered(payload map[string]interface{}, c *gin.Context) {

@@ -40,7 +40,7 @@ export default function WechatBinding() {
     if (!polling || !qrToken) return
     const timer = setInterval(async () => {
       try {
-        const res = await api.get(`/users/me/wechat-bind/${qrToken}`)
+        const res = await api.get(`/wechat-bind/status/${qrToken}`)
         const status = res.data?.status
         if (status === 'bound') {
           setBound(true)
@@ -57,6 +57,12 @@ export default function WechatBinding() {
           setShowQR(false)
           clearInterval(timer)
           message.warning('该微信已绑定其他账户，请在小程序端确认合并')
+        } else if (status === 'merged') {
+          // #2445：员工在小程序确认合并（X→obsolete，身份转入个人账户）。
+          setPolling(false)
+          setShowQR(false)
+          clearInterval(timer)
+          message.success('该微信已合并到员工个人账户，请员工在小程序重新登录并切换身份')
         }
       } catch {}
     }, 2000)
