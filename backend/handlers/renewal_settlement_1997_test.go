@@ -66,7 +66,6 @@ func TestRenewal1997_Settlement_ChargesConsumedRenewalDays(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.DamageReport{}, &models.OrderPaymentRecord{}))
 
 	tenantID := "00000000-0000-4000-8000-0000000197b1"
 	userID := "00000000-0000-4000-8000-0000000197b2"
@@ -167,7 +166,6 @@ func TestRenewal1997_Fallback_StaleTierSegmentsChargesRenewal(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.DamageReport{}, &models.OrderPaymentRecord{}))
 
 	tenantID := "00000000-0000-4000-8000-0000000197c1"
 	userID := "00000000-0000-4000-8000-0000000197c2"

@@ -61,7 +61,7 @@ func TestStaffCreateUser_IAMConflict_2243(t *testing.T) {
 	r.POST("/users", h.CreateUser)
 
 	code, resp := doCreate2068(t, r, map[string]interface{}{
-		"name": "冲突员工", "phone": "13000000000", "email": "conflict2243@example.com",
+		"name": "冲突员工", "username": "conflict2243", "phone": "13000000000", "email": "conflict2243@example.com",
 		"site_id": siteID,
 	})
 	assert.Equal(t, http.StatusConflict, code, "IAM 409 应映射为 HTTP 409，实际=%v resp=%v", code, resp)
@@ -117,7 +117,7 @@ func TestStaffCreateUser_IAMBadRequest_2243(t *testing.T) {
 	r.POST("/users", h.CreateUser)
 
 	code, resp := doCreate2068(t, r, map[string]interface{}{
-		"name": "参数错误员工", "phone": "13000000001", "email": "badreq2243@example.com",
+		"name": "参数错误员工", "username": "badreq2243", "phone": "13000000001", "email": "badreq2243@example.com",
 		"site_id": siteID,
 	})
 	assert.Equal(t, http.StatusBadRequest, code, "IAM 4xx 应映射为 HTTP 400，实际=%v resp=%v", code, resp)
@@ -158,7 +158,7 @@ func TestStaffCreateUser_IAMConflictFields_2290(t *testing.T) {
 		wantMsgHas string
 	}{
 		{"username_explicit", "username already exists", "taken_login_2290", "u1_2290@example.com", "13100000001", 40911, "username", "taken_login_2290", "用户名"},
-		{"username_blank_is_email", "username already exists", "", "taken_email_2290@example.com", "13100000002", 40914, "email", "taken_email_2290@example.com", "邮箱"},
+		{"username_defined", "username already exists", "u_blank_2290", "taken_email_2290@example.com", "13100000002", 40911, "username", "u_blank_2290", "用户名"},
 		{"email", "email already exists", "u_email_2290", "taken_email2_2290@example.com", "13100000003", 40914, "email", "taken_email2_2290@example.com", "邮箱"},
 		{"phone", "phone already exists", "u_phone_2290", "u_phone_2290@example.com", "13100000004", 40913, "phone", "13100000004", "手机号"},
 		{"unknown", "some new rule", "u_unknown_2290", "u_unknown_2290@example.com", "13100000005", 40910, "", "", "已"},
@@ -192,9 +192,7 @@ func TestStaffCreateUser_IAMConflictFields_2290(t *testing.T) {
 			body := map[string]interface{}{
 				"name": "冲突员工" + uniq(), "phone": tc.phone, "email": tc.email, "site_id": siteID,
 			}
-			if tc.username != "" {
-				body["username"] = tc.username
-			}
+			body["username"] = tc.username
 			code, resp := doCreate2068(t, r, body)
 			assert.Equal(t, http.StatusConflict, code, "case %d: %v", i, resp)
 			assert.Equal(t, tc.wantCode, resp["code"], "case %d resp=%v", i, resp)

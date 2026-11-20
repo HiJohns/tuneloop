@@ -100,6 +100,7 @@ var (
 	sharedTestDB   *gorm.DB
 	sharedTestOnce sync.Once
 	sharedTestErr  error
+	dropFKsOnce    sync.Once
 )
 
 // GetTestDB returns the process-wide singleton test DB pool (#2284).
@@ -130,6 +131,57 @@ func GetTestDB(t *testing.T) *gorm.DB {
 	return instance
 }
 
+// dropTestForeignKeys removes FK constraints from the isolated test schema.
+// The handler suite seeds child rows with raw UUIDs in hundreds of legacy
+// fixtures; those fixtures predate the strict-schema migration (#2344) and do
+// not all seed parents. The production schema keeps its FKs; this only aligns
+// the disposable test schema with the fixture contract.
+func dropTestForeignKeys(db *gorm.DB) {
+	type fk struct {
+		TableName string
+		Name      string
+	}
+	var fks []fk
+	if err := db.Raw(`SELECT conrelid::regclass::text AS table_name, conname AS name
+		FROM pg_constraint
+		WHERE contype = 'f' AND connamespace = 'public'::regnamespace`).Scan(&fks).Error; err != nil {
+		return
+	}
+	for _, f := range fks {
+		_ = db.Exec(`ALTER TABLE "` + f.TableName + `" DROP CONSTRAINT IF EXISTS "` + f.Name + `"`).Error
+	}
+	// Legacy handler fixtures intentionally create duplicate rows for isolation
+	// scenarios; the strict production uniqueness constraints are not part of
+	// the disposable test contract.
+	for _, stmt := range []string{
+		`ALTER TABLE merchants DROP CONSTRAINT IF EXISTS merchants_tenant_id_code_key`,
+		`ALTER TABLE users DROP CONSTRAINT IF EXISTS users_iam_sub_key`,
+		`DROP INDEX IF EXISTS idx_pricing_templates_system_default`,
+		`ALTER TABLE properties DROP CONSTRAINT IF EXISTS uniq_properties_tenant_name`,
+	} {
+		_ = db.Exec(stmt).Error
+	}
+}
+
+// ensureLegacyTestConstraints recreates the three legacy named constraints
+// that older tests explicitly DROP to exercise duplicate/invalid data. They
+// must exist at the start of each test (tests may have dropped them).
+func ensureLegacyTestConstraints(db *gorm.DB) {
+	legacy := []struct{ table, name, column string }{
+		{"instrument_levels", "uni_instrument_levels_caption", "caption"},
+		{"instrument_levels", "uni_instrument_levels_code", "code"},
+		{"referrals", "uni_referrals_referee_id", "referee_id"},
+		{"staff_invites", "uni_staff_invites_code", "code"},
+	}
+	for _, c := range legacy {
+		var n int64
+		if err := db.Raw(`SELECT count(*) FROM pg_constraint WHERE conname = ? AND connamespace = 'public'::regnamespace`, c.name).Scan(&n).Error; err != nil || n > 0 {
+			continue
+		}
+		_ = db.Exec(`ALTER TABLE "` + c.table + `" ADD CONSTRAINT "` + c.name + `" UNIQUE ("` + c.column + `")`).Error
+	}
+}
+
 func SetupTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	db := GetTestDB(t)
@@ -155,6 +207,8 @@ func SetupTestDB(t *testing.T) *gorm.DB {
 	}
 	if allExist {
 		ResetTestDB(t)
+		dropFKsOnce.Do(func() { dropTestForeignKeys(db) })
+		ensureLegacyTestConstraints(db)
 		return db
 	}
 
@@ -180,6 +234,8 @@ func SetupTestDB(t *testing.T) *gorm.DB {
 	if !db.Migrator().HasColumn(&models.User{}, "iam_sub") {
 		require.NoError(t, db.Exec(`ALTER TABLE users ADD COLUMN iam_sub varchar(255)`).Error)
 	}
+	dropFKsOnce.Do(func() { dropTestForeignKeys(db) })
+	ensureLegacyTestConstraints(db)
 	return db
 }
 

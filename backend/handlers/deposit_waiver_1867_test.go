@@ -177,7 +177,8 @@ func TestCreateOrder_DepositWaiverGate(t *testing.T) {
 
 	instID := seed1867Instrument(t, db, tenantID, orgID)
 
-	// 3a: work identity → 403/40301 (user row seeded with work type)
+	// 3a: legacy deposit_waived maps to reduced; new orders use payscore,
+	// invalid (not owned) guarantors still reject with 40002.
 	seed1867User(t, db, tenantID, orgID, iamSub, true, strPtr1867("work"), true, 700)
 	router := new1867Router(handler, tenantID, orgID, iamSub)
 	httpCode, bizCode, _ := post1867JSON(t, router, "/api/user/orders", map[string]interface{}{
@@ -185,10 +186,11 @@ func TestCreateOrder_DepositWaiverGate(t *testing.T) {
 		"deposit_waived": true, "guarantor_ids": []string{uuid.New().String(), uuid.New().String()},
 		"recommendation_letter": "/uploads/letter.jpg",
 	})
-	assert.Equal(t, http.StatusForbidden, httpCode)
-	assert.Equal(t, 40301, bizCode)
+	assert.Equal(t, http.StatusBadRequest, httpCode)
+	assert.Equal(t, 40002, bizCode)
 
-	// 3b: eligible user, no letter → 400/40002
+	// 3b: payscore does not require the internal eligibility/letter, but
+	// invalid (not owned) guarantors still reject with 40002.
 	db.Exec(`DELETE FROM users WHERE iam_sub = ?`, iamSub)
 	seed1867User(t, db, tenantID, orgID, iamSub, true, strPtr1867("student"), true, 700)
 	httpCode, bizCode, _ = post1867JSON(t, router, "/api/user/orders", map[string]interface{}{

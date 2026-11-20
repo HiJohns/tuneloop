@@ -572,10 +572,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	}
 	// #2352 / #2357（Owner 2026-11-15 改判）：档位决定回归「确认订单页」——
 	// 确认页展示全额押金，并提供「差额押金」拉杆（差额需 2 位担保人）。
-	requestedTier := req.DepositTier
-	if requestedTier == "" {
-		requestedTier = models.DepositTierFull
-	}
+	requestedTier := requestedDepositTier(req.DepositTier, req.DepositWaived)
 	depositTier, fullDeposit, reducedAmount, validReduced := resolveDepositTier(&lockedInstrument, pricingResult, requestedTier)
 	if requestedTier == models.DepositTierReduced && !validReduced && fullDeposit > 0 {
 		// #2357 修正：不得静默回落成全额定档（会造成确认页与支付页金额不一致）。

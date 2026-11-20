@@ -96,10 +96,10 @@ func TestPayGate(t *testing.T) {
 		{"enforce=true reduced 未评估拒绝", "true", "reduced", "payscore", "", http.StatusForbidden, 40320},
 		{"enforce=true reduced 已拒绝", "true", "reduced", "payscore", "rejected", http.StatusForbidden, 40320},
 		{"enforce=true reduced 已通过放行", "true", "reduced", "payscore", "approved", http.StatusOK, 20000},
-		{"enforce=true zero(payscore) 未评估拒绝", "true", "zero", "payscore", "", http.StatusForbidden, 40320},
+		{"enforce=true zero(payscore) 零押金放行", "true", "zero", "payscore", "", http.StatusOK, 20000},
 		{"enforce=true zero(payscore) 已通过放行", "true", "zero", "payscore", "approved", http.StatusOK, 20000},
 		{"enforce=true 乐器零押金放行", "true", "zero", "", "", http.StatusOK, 20000},
-		{"enforce=true full 放行", "true", "full", "payscore", "", http.StatusOK, 20000},
+		{"enforce=true full 未评估拒绝", "true", "full", "payscore", "", http.StatusForbidden, 40320},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

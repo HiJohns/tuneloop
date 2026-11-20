@@ -67,7 +67,7 @@ func TestCreateUser2073_BioAllTypesAndDualWrite(t *testing.T) {
 	// 网点员工 + bio（全类型）
 	bio := "<p>客服 3 年</p>"
 	code, resp := doCreate2068(t, r, map[string]interface{}{
-		"name": "员工A", "phone": "13900001001", "email": "bio2073a@example.com", "site_id": siteID, "bio": bio,
+		"name": "员工A", "username": "bio2073a", "phone": "13900001001", "email": "bio2073a@example.com", "site_id": siteID, "bio": bio,
 	})
 	require.Equal(t, http.StatusOK, code, resp)
 	uidA := resp["data"].(map[string]interface{})["id"].(string)
@@ -77,7 +77,7 @@ func TestCreateUser2073_BioAllTypesAndDualWrite(t *testing.T) {
 
 	// 维修师傅 + bio → users.bio + technician_profiles.bio 双写
 	code2, resp2 := doCreate2068(t, r, map[string]interface{}{
-		"name": "师傅B", "phone": "13900001002", "email": "bio2073b@example.com", "user_type": "repair_technician", "bio": bio,
+		"name": "师傅B", "username": "bio2073b", "phone": "13900001002", "email": "bio2073b@example.com", "user_type": "repair_technician", "bio": bio,
 	})
 	require.Equal(t, http.StatusOK, code2, resp2)
 	uidB := resp2["data"].(map[string]interface{})["id"].(string)

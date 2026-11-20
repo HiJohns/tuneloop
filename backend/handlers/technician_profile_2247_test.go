@@ -67,7 +67,7 @@ func TestCreateUser_PlatformAdminRejected_2247(t *testing.T) {
 	r.POST("/users", h.CreateUser)
 
 	code, resp := doCreate2068(t, r, map[string]interface{}{
-		"name": "平台越权", "phone": "13900009941", "email": "platform2247@example.com",
+		"name": "平台越权", "username": "platform2247", "phone": "13900009941", "email": "platform2247@example.com",
 		"user_type": "repair_technician", "site_id": uuid.New().String(),
 	})
 	assert.Equal(t, http.StatusForbidden, code, "resp=%v", resp)
@@ -96,7 +96,7 @@ func TestCreateUser_MerchantAdminProfileAnchored_2247(t *testing.T) {
 	r.POST("/users", h.CreateUser)
 
 	code, resp := doCreate2068(t, r, map[string]interface{}{
-		"name": "商户技师", "phone": "13900009942", "email": "merchant2247@example.com",
+		"name": "商户技师", "username": "merchant2247", "phone": "13900009942", "email": "merchant2247@example.com",
 		"user_type": "repair_technician",
 	})
 	require.Equal(t, http.StatusOK, code, "resp=%v", resp)

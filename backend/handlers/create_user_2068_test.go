@@ -89,7 +89,7 @@ func TestCreateUser2068_TechnicianMergedAndConflict(t *testing.T) {
 
 	// 1) 师傅类型 → 建用户 + technician_profiles（bio 落库）+ 返回 profile id
 	code, resp := doCreate2068(t, r, map[string]interface{}{
-		"name": "新师傅", "phone": "13900000001", "email": "tech2068@example.com",
+		"name": "新师傅", "username": "tech2068", "phone": "13900000001", "email": "tech2068@example.com",
 		"user_type": "repair_technician", "bio": "<p>钢琴 10 年</p>",
 	})
 	require.Equal(t, http.StatusOK, code, resp)
@@ -103,14 +103,14 @@ func TestCreateUser2068_TechnicianMergedAndConflict(t *testing.T) {
 
 	// 2) 唯一性冲突 → 409 + candidates
 	code2, resp2 := doCreate2068(t, r, map[string]interface{}{
-		"name": "重复", "phone": "13900000001", "user_type": "site_staff",
+		"name": "重复", "username": "dup2068", "phone": "13900000001", "user_type": "site_staff",
 	})
 	require.Equal(t, http.StatusConflict, code2)
 	cands, _ := resp2["data"].([]interface{})
 	assert.NotEmpty(t, cands, "409 须返回冲突候选（candidates）")
 
 	// 3) 缺省类型（site_staff）不建师傅档案（回归；网点员工须带 site_id）
-	code3, resp3 := doCreate2068(t, r, map[string]interface{}{"name": "普通员工", "phone": "13900000002", "email": "staff2068@example.com", "site_id": siteID})
+	code3, resp3 := doCreate2068(t, r, map[string]interface{}{"name": "普通员工", "username": "staff2068", "phone": "13900000002", "email": "staff2068@example.com", "site_id": siteID})
 	require.Equal(t, http.StatusOK, code3, resp3)
 	d3, _ := resp3["data"].(map[string]interface{})
 	assert.Empty(t, d3["technician_profile_id"])
@@ -125,6 +125,6 @@ func TestCreateUser2068_TechnicianMergedAndConflict(t *testing.T) {
 	assert.Equal(t, []string{sm.Role}, sm.Roles, "Roles 应等于主角色集合")
 
 	// 4) 非法 user_type → 40001
-	code4, _ := doCreate2068(t, r, map[string]interface{}{"name": "x", "phone": "13900000003", "user_type": "bogus"})
+	code4, _ := doCreate2068(t, r, map[string]interface{}{"name": "x", "username": "bogus2068", "phone": "13900000003", "user_type": "bogus"})
 	assert.Equal(t, http.StatusBadRequest, code4)
 }

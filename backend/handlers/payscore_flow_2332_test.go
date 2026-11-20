@@ -82,7 +82,7 @@ func TestCreditAssessmentFlow(t *testing.T) {
 	require.NoError(t, db.Where("id = ?", orderID).First(&order).Error)
 	assert.Equal(t, services.CreditStatePending, order.CreditState)
 	require.NotEmpty(t, order.CreditServiceOrderNo)
-	assert.Equal(t, int64(models.FromYuan(300)), order.CreditRiskAmountCents, "reduced 风险金额 = 全额-差额")
+	assert.Equal(t, int64(models.FromYuan(1200)), order.CreditRiskAmountCents, "风险金额 = 乐器原价（D2）")
 
 	// 2) 轮询状态：mock QueryOrder → approved 落库（否则 enforce 开启后永远无法支付）。
 	req = httptest.NewRequest(http.MethodGet, "/api/orders/"+orderID+"/credit-status", nil)
