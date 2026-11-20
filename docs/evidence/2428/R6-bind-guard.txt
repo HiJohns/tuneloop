@@ -1,0 +1,16 @@
+# build=1.0.cae06bf43 commit=cae06bf43678657700b5d39687625d0432884f62 dirty=false
+[DEBUG] Loaded .env from: ../.env
+2026/11/20 02:58:17 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2428 sslmode=disable
+2026/11/20 02:58:18 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2428
+2026/11/20 02:58:18 [DB] Connected to database 'tuneloop_test_verify2428'
+=== RUN   TestMerchantAddMemberCrossTenantBlocked_2428
+2026/11/20 02:58:19 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2428 sslmode=disable
+2026/11/20 02:58:19 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2428
+2026/11/20 02:58:19 [DB] Connected to database 'tuneloop_test_verify2428'
+
+2026/11/20 02:58:20 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[779.016ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "schema_migrations", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/20 02:58:20 [IAMClient] NewIAMClient: baseURL=http://opencode.linxdeep.com:5561, clientID=test-ns, namespace=test-ns
+--- PASS: TestMerchantAddMemberCrossTenantBlocked_2428 (1.54s)
+PASS
+ok  	tuneloop-backend/handlers	3.476s
