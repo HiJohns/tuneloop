@@ -174,9 +174,19 @@ export default function Bind() {
             员工身份已转入你的个人账户。请重新登录小程序，在「我的」页点击「切换身份」进入员工身份。
           </Text>
           {mergeResult?.needs_credentials ? (
-            <Text style={{ display: 'block', fontSize: 13, color: '#b45309', marginBottom: 16, textAlign: 'center', lineHeight: '20px' }}>
-              你还没有设置登录用户名/密码；如需 PC 后台登录，请联系管理员设置。
-            </Text>
+            <>
+              <Text style={{ display: 'block', fontSize: 13, color: '#b45309', marginBottom: 12, textAlign: 'center', lineHeight: '20px' }}>
+                你还没有设置登录用户名/密码，设置后可用于 PC 后台登录。
+              </Text>
+              <Button
+                onClick={() => navigation.navigateTo(
+                  `/pages-weapp/credentials/index?username=${encodeURIComponent(mergeResult.suggested_username || '')}`
+                )}
+                style={{ ...primaryBtn, marginBottom: 10 }}
+              >
+                设置登录账号
+              </Button>
+            </>
           ) : null}
           <Button onClick={goRelogin} style={primaryBtn}>去登录</Button>
         </View>

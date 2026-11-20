@@ -1111,6 +1111,7 @@ func (c *IAMClient) GrantCustomerRole(userID string) error {
 
 type UpdateUserRequest struct {
 	Nickname    *string `json:"nickname,omitempty"`
+	Username    *string `json:"username,omitempty"`
 	Name        string  `json:"name,omitempty"`
 	Email       string  `json:"email,omitempty"`
 	Phone       string  `json:"phone,omitempty"`

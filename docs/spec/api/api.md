@@ -493,6 +493,23 @@ Body：`{ role: "<主角色>", roles: ["<角色>", ...] }`（`roles` 可选；�
 
 ---
 
+#### 2.4.1 当前用户资料（`GET/PUT /api/users/me`）
+
+**GET**：返回当前登录用户的本地资料（`username` / `name` / `nickname` / `phone` / `email` 等），并返回 `needs_credentials`：
+- `needs_credentials=true`：`username` 为空或仍等于手机号（微信自助注册的自动形态）；
+- `needs_credentials=false`：用户已设置独立用户名。
+
+**PUT**：当前用户修改本人资料。新增/明确的字段：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `username` | string | 4–32 位字母、数字、下划线；调用 IAM `PUT /users/:id` 并同步本地 `users.username`；命名空间内冲突 → `40900`「用户名已被占用，请换一个」 |
+| `password` | string | ≥8 位且含大写/小写/数字；IAM 更新后 bump `token_version`，响应 `data.relogin=true`，客户端必须重新登录 |
+| `name` / `nickname` / `phone` / `email` | string | 兼容既有资料更新；`email` 变更仍走 IAM 确认邮件 |
+
+**响应**：`{code:20000, data:{status:"success", relogin?:true, username?:string, needs_credentials?:boolean}}`。
+**错误**：`40002` 用户名格式/密码规则；`40900` 用户名冲突；`40104` 未登录。
+
 ### 2.5 影子用户同步
 
 **接口**: `POST /api/auth/sync-user`

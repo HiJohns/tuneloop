@@ -1339,6 +1339,7 @@ sequenceDiagram
 5. **绑定语义（#2016/#2025 一人一记录）**：绑定关系唯一权威源 = `wx_user_bindings`（openid ↔ user_id）；`users.wx_openid`（旧缓存列）已废弃。同一微信号在兼容期内可存在多条历史绑定（存量多户），新流程按一人一记录收敛（不再为同一人新建第二户）。PC 扫码确认（#2410）只走 IAM `/api/v1/auth/wx-bind`，`exchange_token` 为唯一权威；`IAMClient.UpdateUser` / `UpdateUserWithToken` 对非空 `wx_openid` 在发请求前直接拒绝，空值解绑仍走 IAM 删除绑定行，禁止绕过 `needs_merge`
 6. **解绑（#2020，D4 衔接）**：`POST /api/users/me/wechat-unbind` 必须**删除该用户对应的 `wx_user_bindings` 行**（beaconiam `UpdateUser` 空 `wx_openid` 分支由 no-op 改为 DELETE）；解绑后 `wx-accounts` 不再返回该账户
 7. **扫码冲突合并（#2445）**：`needs_merge` 时 IAM 的 `merge_ticket` 是唯一授权（一次性、5 分钟）。合并方向固定为 **X（绑定二维码目标/管理员预建）→ obsolete，Y（openid 已绑定的员工个人账户）保留**。**不迁移 X 的密码**（防止管理员初始密码静默覆盖员工个人密码）；组织关系/职能角色由 IAM 迁移，本地 `site_members` / `merchant_members` / `technician_profiles` 由 tuneloop 同步（`user.account_merged` 回调兜底）；合并后小程序清理会话，重新登录即可在个人中心看到「切换身份」。
+8. **合并后设置登录凭据（#2446）**：P1 合并响应返回 `needs_credentials` / `suggested_username`。若为 true，Bind 成功页显示「设置登录账号」；员工个人中心在 `/users/me.needs_credentials=true` 时显示同一入口。表单用户名 4–32 位字母/数字/下划线、**不得等于手机号**（否则 `needs_credentials` 仍为 true）；密码 ≥8 位且含大小写/数字。`PUT /users/me` 成功返回 `relogin=true`，清会话重新登录；之后用新用户名/密码登录 PC 后台。
 
 ## 4.2 人员管理
 

@@ -960,6 +960,7 @@ API 来源：
 | 📄 平台规则 | `!isGuest` / 全员 | `/pages-weapp/setting/index` / `/setting` |
 | 👑 会员中心 | `!isStaff && !isGuest` / 顾客 | `/pages-weapp/membership/index` / `/membership` |
 | ✏️ 个人资料 | `!isGuest` / 全员 | `/pages-weapp/profile/edit/index` / `/profile/edit` |
+| 🔐 设置登录账号 | `!isGuest && user.needs_credentials` / 无（weapp-only） | `/pages-weapp/credentials/index` / —（H5 不适用，见 `h5-weapp-differences.md` A22） |
 | 🪪 证件照管理 | `!isGuest` / 全员 | `/pages-weapp/profile/edit/index?section=id-photo` / `/profile/edit?section=id-photo`（定位到证件照区块） |
 | ✉️ 系统通知 | `!isGuest` / 全员 | `/pages-weapp/messages/index` / `/messages` |
 | 🧾 申请发票 | `!isStaff && !isGuest` / 顾客 | `/pages-weapp/invoice/index` / `/content?key=invoice` |
@@ -973,6 +974,8 @@ API 来源：
 > **证件照上传直达（#2239）**：人脸识别页「去上传身份证」不再仅回退，而是跳转「编辑资料 → 证件照」区块（`?section=id-photo` 自动滚动定位）；个人中心新增「🪪 证件照管理」入口，解决现有用户无独立上传入口的问题。
 >
 > **「加入商户」文案与条目展示（#2222）**：受邀人收到的是**商户**的邀请（注明网点）——入口/弹窗标题为「加入商户」；**网点级受邀条目**展示「商户名（网点名）· 角色」（`merchant_name` 由 `GET /user/invitations/pending` 下发；缺失时回退网点名）。显隐门控、🤝 图标、一键接受机制不变（#2216）。
+
+> **设置登录账号（#2446）**：weapp-only 页面 `pages-weapp/credentials/index`，仅当 `/users/me` 返回 `needs_credentials=true` 时在个人中心显示；字段为用户名（4–32 位字母/数字/下划线，预填手机号但禁止与手机号相同）、密码、确认密码（≥8 位且含大小写/数字）。提交 `PUT /users/me` 成功后清会话并重新登录；Bind 合并成功页在 `needs_credentials=true` 时提供同一页面入口。
 
 #### 2.6.4a 个人中心「切换身份」按钮（weapp，头部，与「退出登录」并列）
 

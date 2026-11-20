@@ -1076,14 +1076,15 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 		// Fallback: try querying by local id (for users whose iam_sub doesn't match JWT sub)
 		if err2 := db.Where("id = ? AND deleted_at IS NULL", userID).First(&user).Error; err2 != nil {
 			result := gin.H{
-				"id":            userID,
-				"role":          middleware.GetRole(ctx),
-				"business_role": middleware.GetBusinessRole(ctx),
-				"gid":           middleware.GetGid(ctx),
-				"sys_perm":      middleware.GetSysPerm(ctx),
-				"cus_perm":      middleware.GetCusPerm(ctx),
-				"cus_perm_ext":  middleware.GetCusPermExt(ctx),
-				"site_id":       nil,
+				"id":                userID,
+				"needs_credentials": false,
+				"role":              middleware.GetRole(ctx),
+				"business_role":     middleware.GetBusinessRole(ctx),
+				"gid":               middleware.GetGid(ctx),
+				"sys_perm":          middleware.GetSysPerm(ctx),
+				"cus_perm":          middleware.GetCusPerm(ctx),
+				"cus_perm_ext":      middleware.GetCusPermExt(ctx),
+				"site_id":           nil,
 			}
 			if orgID := middleware.GetOrgID(ctx); orgID != "" {
 				var site models.Site
@@ -1165,6 +1166,11 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 				updates["phone"] = iamUser.Phone
 				result["phone"] = iamUser.Phone
 			}
+			if iamUser.Username != "" {
+				updates["username"] = iamUser.Username
+				result["username"] = iamUser.Username
+				user.Username = iamUser.Username
+			}
 			if len(updates) > 0 {
 				updates["is_shadow"] = false
 				db.Model(&user).Updates(updates)
@@ -1204,6 +1210,9 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 		result["email_sent_at"] = sentAt
 		result["email_confirmed_at"] = confirmedAt
 	}
+
+	// #2446: P2 credential prompt (username auto = phone or missing).
+	result["needs_credentials"] = needsCredentialsSetup(&user)
 
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
@@ -1256,6 +1265,7 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 	var req struct {
 		Name         string  `json:"name"`
 		Nickname     string  `json:"nickname"`
+		Username     string  `json:"username"`
 		Phone        string  `json:"phone"`
 		Email        string  `json:"email"`
 		Password     string  `json:"password"`
@@ -1275,10 +1285,25 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 	if req.Nickname != "" {
 		nicknamePtr = &req.Nickname
 	}
+	var usernamePtr *string
+	if trimmed := strings.TrimSpace(req.Username); trimmed != "" {
+		if !reUsername.MatchString(trimmed) {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "用户名需为 4-32 位字母、数字或下划线"})
+			return
+		}
+		usernamePtr = &trimmed
+	}
+	if req.Password != "" {
+		if err := validatePassword(req.Password); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
+			return
+		}
+	}
 	iamClient := services.NewIAMClient()
 	iamReq := &services.UpdateUserRequest{
 		Name:        req.Name,
 		Nickname:    nicknamePtr,
+		Username:    usernamePtr,
 		Email:       req.Email,
 		Phone:       req.Phone,
 		Password:    req.Password,
@@ -1288,7 +1313,11 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 
 	if err := iamClient.UpdateUser(userID, iamReq); err != nil {
 		log.Printf("[UpdateCurrentUser] IAM UpdateUser failed for %s: %v", userID, err)
-		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": err.Error()})
+		msg := err.Error()
+		if strings.Contains(strings.ToLower(msg), "username already exists") {
+			msg = "用户名已被占用，请换一个"
+		}
+		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": msg})
 		return
 	}
 	db := database.GetDB().WithContext(database.IdentityCtx(ctx))
@@ -1303,6 +1332,12 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 	}
 
 	localUpdates := map[string]interface{}{}
+	if usernamePtr != nil {
+		localUpdates["username"] = *usernamePtr
+	}
+	if req.Password != "" {
+		localUpdates["force_password_change"] = false
+	}
 	if req.Name != "" {
 		localUpdates["name"] = req.Name
 	}
@@ -1407,6 +1442,19 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 	emailChanged := req.Email != ""
 	responseData := gin.H{
 		"status": "success",
+	}
+	if req.Password != "" {
+		// IAM bumps token_version on password change; client must re-login.
+		responseData["relogin"] = true
+	}
+	if usernamePtr != nil {
+		responseData["username"] = *usernamePtr
+		phoneForCheck := strings.TrimSpace(currentUser.Phone)
+		if phoneForCheck == "" {
+			phoneForCheck = strings.TrimSpace(req.Phone)
+		}
+		responseData["needs_credentials"] = strings.TrimSpace(*usernamePtr) == "" ||
+			(phoneForCheck != "" && strings.TrimSpace(*usernamePtr) == phoneForCheck)
 	}
 	if emailChanged {
 		responseData["email_confirmation"] = "pending"
@@ -1753,7 +1801,21 @@ var (
 	reUpper = regexp.MustCompile(`[A-Z]`)
 	reLower = regexp.MustCompile(`[a-z]`)
 	reDigit = regexp.MustCompile(`[0-9]`)
+	// #2446: 新用户名允许字母/数字/下划线；允许纯数字以兼容手机号预填。
+	reUsername = regexp.MustCompile(`^[A-Za-z0-9_]{4,32}$`)
 )
+
+// needsCredentialsSetup (#2446): WeChat self-registration auto-sets username to
+// the phone number and a random password. username empty or still equal to the
+// phone is treated as "credentials never set by the user".
+func needsCredentialsSetup(user *models.User) bool {
+	if user == nil {
+		return false
+	}
+	username := strings.TrimSpace(user.Username)
+	phone := strings.TrimSpace(user.Phone)
+	return username == "" || (phone != "" && username == phone)
+}
 
 func validatePassword(password string) error {
 	if len(password) < 8 {

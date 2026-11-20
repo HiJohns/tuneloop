@@ -45,6 +45,7 @@
 | A19 | 登录/资料完善页归属（#2244/#2300） | 无独立 weapp-only 登录/资料完善路由，协议同意在既有注册/登录流程中完成 | `pages-weapp/login`、`pages-weapp/profile-complete` 承载登录后资料完善/协议同意（共享 `AgreementCheckbox`） | 页面归属/流程差异；**两端「必选同意 + 阅读页/勾选流」语义须等价**（#2300 真机回评） |
 | A20 | 支付分信用评测拉起（#2327 S4 / #2352） | **独立评测页** `/credit-assessment?order_id=…`（进入即拉起 `jweixin.openBusinessView`，需 APIv2 JS-SDK 签名，未配置时提示改用小程序；微信外浏览器降级为不可拉起） | **独立评测页** `pages-weapp/credit-assessment/index?order_id=…`（拉起 `wx.openBusinessView`，`businessType: 'wxpayScoreUse'`） | 机制不同（A15 平台层能力分支）；**两端流程等价**：确认页不含评测 → 提交订单后进入评测页（标的=乐器原价）→ 支付页；评测页 URL 用于支付分申请（S0 #2328）；**mock / 缺 package / 未签名时两端都不得伪造拉起成功**（#2328 联调） |
 | A21 | 首页价格排序回顶（#2355） | `ScrollView` ref 设 `scrollTop=0` | 顶部 spacer `id="home-list-top"` + `scrollIntoView`（nextTick 设置） | 机制不同；**三态/价格口径/全量拉取/默认分页/失败回退语义两端须一致** |
+| A22 | 合并后设置登录账号（#2446） | 无独立页面（员工 PC 后台登录使用账号密码；H5 无此流程） | `pages-weapp/credentials`（weapp-only） | 页面仅服务员工 PC 登录凭据设置；**不改变 H5 顾客资料/密码流程**，无 H5 对等入口（#2446 D4） |
 
 ### 2.1 已核对一致的行为（非差异，登记防回归）
 

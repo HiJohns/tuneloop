@@ -13,6 +13,7 @@ const weappPages = [
   'pages-weapp/membership/index',
   'pages-weapp/bind/index',
   'pages-weapp/profile/edit/index',
+  'pages-weapp/credentials/index',
   'pages-weapp/order-detail/index',
   'pages-weapp/search/index',
   'pages-weapp/payment/index',

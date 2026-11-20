@@ -617,6 +617,16 @@ export default function Profile() {
               <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>
           )}
+          {/* 3.1 设置登录账号（#2446：合并后需 PC 登录的员工） */}
+          {!isGuest && user?.needs_credentials && (
+            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/credentials/index')}>
+              <View style={{ display: 'flex', alignItems: 'center' }}>
+                <Text style={{ fontSize: 18, marginRight: 8 }}>🔐</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>设置登录账号</Text>
+              </View>
+              <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
+            </View>
+          )}
           {/* 4. 系统通知（非游客） */}
           {!isGuest && (
             <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/messages/index')}>
