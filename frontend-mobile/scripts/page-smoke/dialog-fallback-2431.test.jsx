@@ -11,9 +11,9 @@ import {
 } from '../../src/utils/dialogFallback.mjs'
 
 describe('shouldUseAppDialog (#2431)', () => {
-  it('小程序端即便宿主已挂载也默认走原生（负例：旧逻辑会入队 AppDialog）', () => {
-    expect(APP_DIALOG_ON_WEAPP).toBe(false)
-    expect(shouldUseAppDialog({ isMiniProgram: true, hostMounted: true })).toBe(false)
+  it('#2437 方案 B：开关开启，宿主可见时走 AppDialog；宿主不可用仍走原生', () => {
+    expect(APP_DIALOG_ON_WEAPP).toBe(true)
+    expect(shouldUseAppDialog({ isMiniProgram: true, hostMounted: true })).toBe(true)
     expect(shouldUseAppDialog({ isMiniProgram: true, hostMounted: false })).toBe(false)
   })
 

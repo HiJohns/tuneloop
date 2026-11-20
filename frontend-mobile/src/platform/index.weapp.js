@@ -161,7 +161,7 @@ export const dialog = {
     const title = t(opts.title || '提示')
     const content = t(msg)
     if (preferAppDialog()) {
-      return appShowDialog({ type: 'alert', title, message: content })
+      return appShowDialog({ type: 'alert', title, message: content, onTimeout: () => nativeShowDialog({ type: 'alert', title, message: content }) })
     }
     return nativeShowDialog({ type: 'alert', title, message: content })
   },
@@ -169,7 +169,10 @@ export const dialog = {
     const title = t(opts.title || '提示')
     const content = t(msg)
     if (preferAppDialog()) {
-      return appShowDialog({ type: 'confirm', title, message: content })
+      return appShowDialog({
+        type: 'confirm', title, message: content,
+        onTimeout: () => nativeShowDialog({ type: 'confirm', title, message: content }),
+      })
     }
     return nativeShowDialog({
       type: 'confirm',
@@ -183,13 +186,13 @@ export const dialog = {
     const title = t(msg)
     const duration = opts.duration || 2000
     if (preferAppDialog()) {
-      return appShowDialog({ type: 'toast', message: title, duration })
+      return appShowDialog({ type: 'toast', message: title, duration, onTimeout: () => nativeShowDialog({ type: 'toast', message: title, duration }) })
     }
     Taro.showToast({ title, icon: opts.icon || 'none', duration })
   },
   // 供 S2 迁移 editable 场景使用：#2415 D4 / #2431 原生降级
   showDialog: (options = {}) => {
-    if (preferAppDialog()) return appShowDialog(options)
+    if (preferAppDialog()) return appShowDialog({ ...options, onTimeout: () => nativeShowDialog(options) })
     return nativeShowDialog({
       ...options,
       title: options.title ? t(options.title) : options.title,

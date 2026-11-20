@@ -1,6 +1,7 @@
 import { useIdentityGuard } from '../../hooks/useIdentityGuard'
 import Bind from './Bind'
+import PageShell from '../../components/PageShell'
 export default function BindWithGuard() {
   useIdentityGuard()
-  return <Bind />
+  return <PageShell><Bind /></PageShell>
 }

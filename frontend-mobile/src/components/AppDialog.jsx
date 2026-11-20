@@ -1,30 +1,62 @@
 import { useEffect, useState } from 'react'
+import Taro from '@tarojs/taro'
 import { View, Text, Button, Input, ScrollView } from '@tarojs/components'
 import { t } from '../i18n'
+import { pickHostRoute } from '../utils/dialogHostQueue.mjs'
 
 // #2415 S1：跨端自绘对话框（白底卡片 + 主色按钮 + 队列）。
 // 订阅式 API：showDialog(...) → Promise；DialogHost 在 app 入口挂载一次。
 // 未挂载时 platform 回退原生（Taro.showModal / window.alert）。
 
 const queue = []
-let listener = null
+const listeners = new Map() // route -> sync（#2437 页面级宿主）
 let seq = 0
 
-function notify() {
-  if (listener) listener()
+function topRoute() {
+  try {
+    const pages = Taro.getCurrentPages ? Taro.getCurrentPages() : []
+    return pages && pages.length ? (pages[pages.length - 1].route || '') : ''
+  } catch {
+    return ''
+  }
 }
 
+function notify() {
+  for (const fn of listeners.values()) {
+    try { fn() } catch { /* host sync 不阻断队列 */ }
+  }
+}
+
+export function notifyDialogHosts() { notify() }
+
 export function __resetDialogQueueForTest() {
+  for (const item of queue) if (item.timer) clearTimeout(item.timer)
   queue.length = 0
+  listeners.clear()
 }
 
 export function isDialogHostMounted() {
-  return typeof listener === 'function'
+  if (listeners.size === 0) return false
+  const top = topRoute()
+  if (!top) return true
+  return listeners.has(top)
 }
 
 export function showDialog(options = {}) {
   return new Promise((resolve) => {
-    queue.push({ id: ++seq, ...options, resolve })
+    const item = { id: ++seq, ...options, resolve }
+    const timeoutMs = Number.isFinite(options.timeoutMs)
+      ? options.timeoutMs
+      : 1500
+    item.timer = setTimeout(() => {
+      const idx = queue.indexOf(item)
+      if (idx < 0) return // 已被宿主消费
+      queue.splice(idx, 1)
+      const fallback = typeof item.onTimeout === 'function' ? item.onTimeout(item) : undefined
+      Promise.resolve(fallback).then(item.resolve)
+      notify()
+    }, timeoutMs)
+    queue.push(item)
     notify()
   })
 }
@@ -33,15 +65,18 @@ export function DialogHost() {
   const [current, setCurrent] = useState(null)
   const [value, setValue] = useState('')
   useEffect(() => {
+    const route = Taro.getCurrentInstance?.().router?.route || ''
     const sync = () => {
-      const next = queue[0] || null
+      const top = topRoute()
+      const mine = pickHostRoute([...listeners.keys()], top)
+      const next = (!top || top === route || mine === route) ? (queue[0] || null) : null
       setCurrent(next)
       setValue(next?.defaultValue || '')
     }
-    listener = sync
+    listeners.set(route, sync)
     sync()
     return () => {
-      if (listener === sync) listener = null
+      if (listeners.get(route) === sync) listeners.delete(route)
     }
   }, [])
 
@@ -49,7 +84,10 @@ export function DialogHost() {
     if (!current || current.type !== 'toast') return undefined
     const timer = setTimeout(() => {
       const item = queue.shift()
-      if (item) item.resolve(undefined)
+      if (item) {
+        if (item.timer) clearTimeout(item.timer)
+        item.resolve(undefined)
+      }
       notify()
     }, current.duration || 2000)
     return () => clearTimeout(timer)
@@ -59,7 +97,10 @@ export function DialogHost() {
 
   const close = (result) => {
     const item = queue.shift()
-    if (item) item.resolve(result)
+    if (item) {
+      if (item.timer) clearTimeout(item.timer)
+      item.resolve(result)
+    }
     notify()
   }
 

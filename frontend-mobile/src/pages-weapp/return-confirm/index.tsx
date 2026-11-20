@@ -1,6 +1,7 @@
 import { useIdentityGuard } from '../../hooks/useIdentityGuard'
 import ReturnConfirm from '../../pages/ReturnConfirm'
+import PageShell from '../../components/PageShell'
 export default function ReturnConfirmWithGuard() {
   useIdentityGuard()
-  return <ReturnConfirm />
+  return <PageShell><ReturnConfirm /></PageShell>
 }

@@ -1,6 +1,7 @@
 import { useIdentityGuard } from '../../hooks/useIdentityGuard'
 import RepairServiceComplete from '../../pages/RepairServiceComplete'
+import PageShell from '../../components/PageShell'
 export default function RepairServiceCompleteWithGuard() {
   useIdentityGuard()
-  return <RepairServiceComplete />
+  return <PageShell><RepairServiceComplete /></PageShell>
 }

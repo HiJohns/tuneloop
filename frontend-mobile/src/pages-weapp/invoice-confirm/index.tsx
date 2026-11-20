@@ -1,6 +1,7 @@
 import { useIdentityGuard } from '../../hooks/useIdentityGuard'
 import InvoiceConfirm from '../../pages/InvoiceConfirm'
+import PageShell from '../../components/PageShell'
 export default function InvoiceConfirmWithGuard() {
   useIdentityGuard()
-  return <InvoiceConfirm />
+  return <PageShell><InvoiceConfirm /></PageShell>
 }

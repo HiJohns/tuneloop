@@ -1,6 +1,7 @@
 import { useIdentityGuard } from '../../hooks/useIdentityGuard'
 import Cart from '../../pages/Cart'
+import PageShell from '../../components/PageShell'
 export default function CartWithGuard() {
   useIdentityGuard()
-  return <Cart />
+  return <PageShell><Cart /></PageShell>
 }

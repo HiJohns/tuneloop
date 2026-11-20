@@ -1,6 +1,7 @@
 import { useIdentityGuard } from '../../hooks/useIdentityGuard'
 import RepairWorkflow from '../../pages/RepairWorkflow'
+import PageShell from '../../components/PageShell'
 export default function RepairWorkflowWithGuard() {
   useIdentityGuard()
-  return <RepairWorkflow />
+  return <PageShell><RepairWorkflow /></PageShell>
 }

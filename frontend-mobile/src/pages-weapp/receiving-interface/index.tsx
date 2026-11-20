@@ -1,6 +1,7 @@
 import { useIdentityGuard } from '../../hooks/useIdentityGuard'
 import ReceivingInterface from '../../pages/ReceivingInterface'
+import PageShell from '../../components/PageShell'
 export default function ReceivingInterfaceWithGuard() {
   useIdentityGuard()
-  return <ReceivingInterface />
+  return <PageShell><ReceivingInterface /></PageShell>
 }

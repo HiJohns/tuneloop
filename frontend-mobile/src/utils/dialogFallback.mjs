@@ -7,9 +7,9 @@
 // Taro.showToast；自定义文案（确认/取消按钮）通过原生 confirmText/cancelText
 // 保留。AppDialog 仍用于 H5（H5 有真实 DOM，宿主可见）。
 //
-// 后续方案 B（页面级挂载 DialogHost）落地后，把 APP_DIALOG_ON_WEAPP 置 true 即可。
+// #2437 方案 B 已落地：页面级 DialogHost + 超时降级，默认开启自绘。
 
-export const APP_DIALOG_ON_WEAPP = false
+export const APP_DIALOG_ON_WEAPP = true
 
 // 是否使用自绘 AppDialog。
 // - H5/浏览器：始终使用（宿主挂在 App-H5，可见）；

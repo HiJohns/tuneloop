@@ -154,11 +154,10 @@ describe('AppDialog toast (#2415)', () => {
 })
 
 // R8
-describe('DialogHost mount (#2415)', () => {
-  it('TestDialogHostMounted_2415 mounts in the weapp entry and is referenced by the H5 entry', async () => {
-    const mod = await import('../../src/app')
-    const App = mod.default
-    render(<App><div>page-content</div></App>)
+describe('DialogHost mount (#2415/#2437)', () => {
+  it('TestDialogHostMounted_2415 mounts via PageShell; H5 keeps App-H5 host', async () => {
+    const PageShell = (await import('../../src/components/PageShell')).default
+    render(<PageShell><div>page-content</div></PageShell>)
     expect(screen.getByText('page-content')).toBeTruthy()
     expect(isDialogHostMounted()).toBe(true)
 

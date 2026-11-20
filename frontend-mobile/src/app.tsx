@@ -7,7 +7,6 @@ import { initPermissionMapping, publicRoutes } from './services/api'
 import { env } from './platform'
 // #2109: E证通 SDK（weapp 自动核身）——顶层无 wx 访问，H5 打包安全；仅 weapp 调用
 import { initEid } from './mp_ecard_sdk/main'
-import DialogHost from './components/DialogHost'
 
 // #ifdef H5
 import './app.css'
@@ -25,13 +24,8 @@ class App extends Component {
   }
 
   render() {
-    // #2415：全局挂载一次 DialogHost；页面 children 原样保留。
-    return (
-      <>
-        {this.props.children}
-        <DialogHost />
-      </>
-    )
+    // #2437：App 层无视图层，DialogHost 下沉到 PageShell；App 只返回 children。
+    return this.props.children
   }
 }
 
