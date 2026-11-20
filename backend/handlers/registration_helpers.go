@@ -147,6 +147,19 @@ func syncLocalUserAndRewards(db *gorm.DB, iamUserID, tenantID, orgID, openid str
 // the #1688 reserved-user activation path).
 // #2311: 注册完成时若已提交第二证件，幂等创建独立的 second_doc 复审批次。
 func ensureSecondDocBatch(db *gorm.DB, userID string) {
+	// #2435 R4：uq_face_capture_batches_user_pending 规定同一用户只能有 1 个
+	// pending 批次（不分 kind）。已有 pending（如 registration）时先跳过，
+	// 待该批次审结后由 approve 路径再次调用本 helper 补建。
+	var pending int64
+	if err := db.Model(&models.FaceCaptureBatch{}).
+		Where("user_id = ? AND status = ?", userID, "pending").
+		Count(&pending).Error; err != nil {
+		log.Printf("[register helper] pending batch check failed for %s: %v", userID, err)
+		return
+	}
+	if pending > 0 {
+		return
+	}
 	var n int64
 	if err := db.Model(&models.FaceCaptureBatch{}).
 		Where("user_id = ? AND kind = ? AND status IN ?", userID, "second_doc", []string{"pending", "approved"}).
