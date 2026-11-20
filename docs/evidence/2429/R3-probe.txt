@@ -1,2 +1,12 @@
-# build=1.0.ada06f938 commit=ada06f9383688976fc90b811c23a8631aef5d463 dirty=true
-PROBE-OK: site-change idempotent + edit page loads by id + direct-staff field rules
+# build=1.0.5d10dc2ef commit=5d10dc2effb88e8eb23344bdebfa3b802b7e1f38 dirty=false
+OK: siteIDChanged removed
+OK: single-site Scan removed
+OK: org-level compare
+OK: memberships returned
+OK: GetStaffUser present
+OK: route registered
+OK: edit loads by id
+OK: position AutoComplete
+OK: staffForm helper used
+OK: legacy modal removed
+PROBE-OK

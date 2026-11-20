@@ -1,0 +1,31 @@
+# build=1.0.5d10dc2ef commit=5d10dc2effb88e8eb23344bdebfa3b802b7e1f38 dirty=false
+TAP version 13
+# Subtest: technician hides position
+ok 1 - technician hides position
+  ---
+  duration_ms: 7.479863
+  ...
+# Subtest: direct employee has no site requirement
+ok 2 - direct employee has no site requirement
+  ---
+  duration_ms: 3.558371
+  ...
+# Subtest: site employee keeps site required
+ok 3 - site employee keeps site required
+  ---
+  duration_ms: 0.415603
+  ...
+# Subtest: dual identity resolves to direct (direct wins)
+ok 4 - dual identity resolves to direct (direct wins)
+  ---
+  duration_ms: 0.338231
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 432.624784
