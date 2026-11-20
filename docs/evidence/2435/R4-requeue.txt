@@ -1,0 +1,33 @@
+# build=1.0.b52d78584 commit=b52d78584f1f5040d3c45e5e570426ef008842eb dirty=false
+[DEBUG] Loaded .env from: ../.env
+2026/11/20 00:44:38 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2435 sslmode=disable
+2026/11/20 00:44:40 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2435
+2026/11/20 00:44:40 [DB] Connected to database 'tuneloop_test_verify2435'
+=== RUN   TestRequeueSecondDocBatches
+2026/11/20 00:44:40 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2435 sslmode=disable
+2026/11/20 00:44:40 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2435
+2026/11/20 00:44:40 [DB] Connected to database 'tuneloop_test_verify2435'
+
+2026/11/20 00:44:41 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[624.175ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "schema_migrations", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/20 00:44:41 [RequeueSecondDoc] user 356a6876-ed49-4402-aba8-e6d85dd911ab (requeue-a): second doc unverified and no open second_doc batch → requeue
+2026/11/20 00:44:41 [RequeueSecondDoc] user ef6205c4-6ac1-4aeb-9c2b-c4511b6e2db5 (requeue-e): second doc unverified and no open second_doc batch → requeue
+2026/11/20 00:44:41 [RequeueSecondDoc] user 04bbf741-8830-4741-a327-76ded080510b (requeue-g): second doc unverified and no open second_doc batch → requeue
+2026/11/20 00:44:41 [RequeueSecondDoc] dry run: 3 users would get a second_doc review batch
+2026/11/20 00:44:41 [RequeueSecondDoc] user 356a6876-ed49-4402-aba8-e6d85dd911ab (requeue-a): second doc unverified and no open second_doc batch → requeue
+2026/11/20 00:44:41 [RequeueSecondDoc] user ef6205c4-6ac1-4aeb-9c2b-c4511b6e2db5 (requeue-e): second doc unverified and no open second_doc batch → requeue
+2026/11/20 00:44:41 [RequeueSecondDoc] user 04bbf741-8830-4741-a327-76ded080510b (requeue-g): second doc unverified and no open second_doc batch → requeue
+2026/11/20 00:44:41 [RequeueSecondDoc] created 3 second_doc review batches
+2026/11/20 00:44:41 [RequeueSecondDoc] created 0 second_doc review batches
+--- PASS: TestRequeueSecondDocBatches (1.45s)
+=== RUN   TestRequeueSecondDocBatches_SkipsInactiveAndDeleted_2435
+
+2026/11/20 00:44:42 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[445.979ms] [33m[rows:0][35m TRUNCATE TABLE "face_capture_batches", "pricing_templates", "users" RESTART IDENTITY CASCADE[0m
+2026/11/20 00:44:42 [RequeueSecondDoc] user ab21f450-3f08-42ff-a82b-8db24a5404b6 (requeue-active-2435): second doc unverified and no open second_doc batch → requeue
+2026/11/20 00:44:42 [RequeueSecondDoc] dry run: 1 users would get a second_doc review batch
+2026/11/20 00:44:42 [RequeueSecondDoc] user ab21f450-3f08-42ff-a82b-8db24a5404b6 (requeue-active-2435): second doc unverified and no open second_doc batch → requeue
+2026/11/20 00:44:42 [RequeueSecondDoc] created 1 second_doc review batches
+--- PASS: TestRequeueSecondDocBatches_SkipsInactiveAndDeleted_2435 (0.90s)
+PASS
+ok  	tuneloop-backend/handlers	4.395s
