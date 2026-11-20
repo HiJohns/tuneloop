@@ -30,16 +30,16 @@ func TestGetInventoryRentSetting(t *testing.T) {
 	siteID := uuid.New()
 
 	// Create test site
-	db.Exec(`INSERT INTO sites (id, name, tenant_id, status, created_at, updated_at) 
+	require.NoError(t, db.Exec(`INSERT INTO sites (id, name, tenant_id, status, created_at, updated_at) 
 		VALUES (?, '测试网点', ?, 'active', ?, ?)`,
-		siteID, tenantID, now, now)
+		siteID, tenantID, now, now).Error)
 
 	// Create test instrument with pricing
 	instrumentID := uuid.New()
 	pricingJSON := `{"daily_rent":100.00,"monthly_rent":2500.00,"deposit":5000.00}`
-	db.Exec(`INSERT INTO instruments (id, sn, category_name, level_name, site_id, pricing, tenant_id, org_id, stock_status, created_at, updated_at) 
-		VALUES (?, 'SN123456', '钢琴', '专业级', ?, ?, ?, ?, 'available', ?, ?)`,
-		instrumentID, siteID, pricingJSON, tenantID, tenantID, now, now)
+	require.NoError(t, db.Exec(`INSERT INTO instruments (id, sn, category_name, level, level_name, site_id, pricing, tenant_id, org_id, stock_status, created_at, updated_at) 
+		VALUES (?, 'SN123456', '钢琴', 'professional', '专业级', ?, ?, ?, ?, 'available', ?, ?)`,
+		instrumentID, siteID, pricingJSON, tenantID, tenantID, now, now).Error)
 
 	// Setup route
 	router := gin.New()
@@ -72,7 +72,7 @@ func TestGetInventoryRentSetting(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
 	assert.Equal(t, 20000, response.Code)
-	assert.Greater(t, len(response.Data.List), 0)
+	require.NotEmpty(t, response.Data.List, "GET /inventory/rent-setting must return the seeded instrument")
 
 	// Verify first item has correct structure
 	firstItem := response.Data.List[0]
