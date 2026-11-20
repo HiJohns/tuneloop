@@ -1,0 +1,12 @@
+# build=1.0.4e026ce1b commit=4e026ce1b4d9e46703b6af3597ae4fa525a3e45d dirty=false
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /home/coder/tuneloop/frontend-mobile
+
+ ✓ scripts/page-smoke/dialog-host-2437.test.jsx (5 tests | 2 skipped) 157ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed | 2 skipped (5)
+   Start at  02:17:42
+   Duration  11.27s (transform 1.02s, setup 341ms, collect 947ms, tests 157ms, environment 6.01s, prepare 2.28s)
+

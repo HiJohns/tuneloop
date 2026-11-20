@@ -1,0 +1,4 @@
+# build=1.0.4e026ce1b commit=4e026ce1b4d9e46703b6af3597ae4fa525a3e45d dirty=false
+SHELLS_OK: all pages-weapp index.tsx use PageShell
+PAGESHELL_HOST_OK
+WEAPP_BUILD_OK

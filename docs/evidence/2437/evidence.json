@@ -1,0 +1,94 @@
+{
+ "schema_version": 1,
+ "issue": 2437,
+ "build": "1.0.4e026ce1b",
+ "commit": "4e026ce1b4d9e46703b6af3597ae4fa525a3e45d",
+ "dirty": false,
+ "environment": "frontend-mobile unit/page-smoke + weapp build; fix commit 4e026ce1b; R6 owner pending",
+ "rows": [
+  {
+   "id": "R1",
+   "command": "bash scripts/verify-2437.sh r1",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2437/R1-host.txt"
+   ],
+   "assert": "exit 0；宿主+build",
+   "actual": "PASS：54 个 pages-weapp 薄壳均用 PageShell；PageShell 渲染 DialogHost；dist-weapp/app.js 存在",
+   "expected": "PASS",
+   "negative": "无宿主 → FAIL",
+   "negative_result": "缺 PageShell/构建产物即失败",
+   "pass": true
+  },
+  {
+   "id": "R2",
+   "command": "bash scripts/verify-2437.sh r2",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2437/R2-queue.txt"
+   ],
+   "assert": "exit 0；顶层消费",
+   "actual": "PASS：pickHostRoute 3 用例（顶层/无宿主不回退/空）",
+   "expected": "PASS",
+   "negative": "非顶层消费 → FAIL",
+   "negative_result": "非顶层消费即失败",
+   "pass": true
+  },
+  {
+   "id": "R3",
+   "command": "bash scripts/verify-2437.sh r3",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2437/R3-timeout.txt"
+   ],
+   "assert": "exit 0；超时回退",
+   "actual": "PASS：宿主未消费 1500ms 后 onTimeout 原生回退并 resolve",
+   "expected": "PASS",
+   "negative": "永不 resolve → FAIL",
+   "negative_result": "Promise 挂起即失败",
+   "pass": true
+  },
+  {
+   "id": "R4",
+   "command": "bash scripts/verify-2437.sh r4",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2437/R4-switch.txt"
+   ],
+   "assert": "exit 0；开关语义",
+   "actual": "PASS：APP_DIALOG_ON_WEAPP=true；hostMounted 决定自绘/原生",
+   "expected": "PASS",
+   "negative": "开关失效 → FAIL",
+   "negative_result": "开关语义不符即失败",
+   "pass": true
+  },
+  {
+   "id": "R5",
+   "command": "bash scripts/verify-2437.sh r5",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2437/R5-smoke.txt"
+   ],
+   "assert": "exit 0；0 failed+build",
+   "actual": "PASS：page-smoke 17 files / 93 tests；dist-weapp/app.js 存在",
+   "expected": "PASS",
+   "negative": "失败 → FAIL",
+   "negative_result": "任一失败/无构建即失败",
+   "pass": true
+  },
+  {
+   "id": "R6",
+   "command": "bash scripts/verify-2437.sh r6",
+   "exit": 1,
+   "artifacts": [
+    "docs/evidence/2437/R6-manual.md"
+   ],
+   "assert": "exit 0；RESULT: PASS",
+   "actual": "PENDING：Owner 真机回执未签",
+   "expected": "PASS",
+   "negative": "PENDING → holdon",
+   "negative_result": "PENDING 即 exit 1 / holdon",
+   "pass": false
+  }
+ ]
+}
