@@ -1,0 +1,75 @@
+{
+  "issue": 2436,
+  "overall": "PASS",
+  "plan": "/home/coder/tuneloop-wt/2436-r4/tmp/pre-ready-2436.7PLuTR/plan.md",
+  "plan_sha256": "6731694885e02244c7a2b5a7a45d28f2f9116cb6b03ecb1f2858ca1bb82a4c7d",
+  "summary": "tmp/work-summary-2436.md",
+  "timestamp": "20261120-141600",
+  "checks": [
+    {
+      "id": "P1",
+      "status": "PASS",
+      "detail": "plan has Verification Matrix / Input Truth & Tool Preflight / Decision Lock / Out of Scope"
+    },
+    {
+      "id": "P2",
+      "status": "PASS",
+      "detail": "Work Summary covers all 7 matrix rows with PASS/N/A"
+    },
+    {
+      "id": "P3",
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
+    },
+    {
+      "id": "P4",
+      "status": "PASS",
+      "detail": "all 1 affected command(s) passed"
+    },
+    {
+      "id": "P12",
+      "status": "PASS",
+      "detail": "Evidence Contract complete: 6 row(s) match the plan and have durable artifacts"
+    },
+    {
+      "id": "P5",
+      "status": "N/A",
+      "detail": "no go.mod/package.json and no --full-gate-cmd: full gate not applicable"
+    },
+    {
+      "id": "P6",
+      "status": "PASS",
+      "detail": "all changed files are declared in the Accepted Plan"
+    },
+    {
+      "id": "P7",
+      "status": "PASS",
+      "detail": "contract three-way section present"
+    },
+    {
+      "id": "P8",
+      "status": "N/A",
+      "detail": "no panel/clarify files changed"
+    },
+    {
+      "id": "P9",
+      "status": "N/A",
+      "detail": "no session/build_version/aiaudit/.rpt/.dat evidence referenced"
+    },
+    {
+      "id": "P10",
+      "status": "N/A",
+      "detail": "no aiaudit reference"
+    },
+    {
+      "id": "P11",
+      "status": "PASS",
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /tmp/opencode/tuneloop-wt/wt-2436; worktree guard: PASS isolated worktree=/home/coder/tuneloop-wt/2436-r4"
+    },
+    {
+      "id": "P13",
+      "status": "PASS",
+      "detail": "fix commit and evidence artifacts are on origin/develop"
+    }
+  ]
+}
