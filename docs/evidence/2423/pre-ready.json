@@ -4,8 +4,76 @@
   "evidence_commit": "4ffe8d25f",
   "pre_ready_tool": {
     "result": "PASS",
-    "report": "tmp/pre-ready-2423.json",
-    "p5_note": "P5=N/A by tool: issue body starts with 'Parent: #2417' (sub-task); full gate executed manually per Plan D4 and recorded below"
+    "plan_sha256": "49f33bd68d03d3fba8b38e69cae3c1afd8907f254c4c15a75e883a7212041dc4",
+    "timestamp": "20261120-054154",
+    "p5_note": "P5=N/A by tool: issue body starts with 'Parent: #2417' (sub-task); full gate executed manually per Plan D4 and recorded under full_gate",
+    "checks": [
+      {
+        "id": "P1",
+        "status": "PASS",
+        "detail": "plan has Verification Matrix / Input Truth & Tool Preflight / Decision Lock / Out of Scope"
+      },
+      {
+        "id": "P2",
+        "status": "PASS",
+        "detail": "Work Summary covers all 6 matrix rows with PASS/N/A"
+      },
+      {
+        "id": "P3",
+        "status": "PASS",
+        "detail": "all referenced evidence paths exist and are durable"
+      },
+      {
+        "id": "P4",
+        "status": "PASS",
+        "detail": "all 1 affected command(s) passed"
+      },
+      {
+        "id": "P12",
+        "status": "PASS",
+        "detail": "Evidence Contract complete: 6 row(s) match the plan and have durable artifacts"
+      },
+      {
+        "id": "P5",
+        "status": "N/A",
+        "detail": "sub-task: full gate belongs to the parent/batch gate"
+      },
+      {
+        "id": "P6",
+        "status": "PASS",
+        "detail": "all changed files are declared in the Accepted Plan"
+      },
+      {
+        "id": "P7",
+        "status": "N/A",
+        "detail": "no contract-affecting files changed"
+      },
+      {
+        "id": "P8",
+        "status": "N/A",
+        "detail": "no panel/clarify files changed"
+      },
+      {
+        "id": "P9",
+        "status": "N/A",
+        "detail": "no session/build_version/aiaudit/.rpt/.dat evidence referenced"
+      },
+      {
+        "id": "P10",
+        "status": "N/A",
+        "detail": "no aiaudit reference"
+      },
+      {
+        "id": "P11",
+        "status": "PASS",
+        "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /tmp/opencode/tuneloop-wt/wt-2423; worktree guard: PASS isolated worktree=/home/coder/tuneloop-wt/2423-r2"
+      },
+      {
+        "id": "P13",
+        "status": "PASS",
+        "detail": "fix commit and evidence artifacts are on origin/develop"
+      }
+    ]
   },
   "full_gate": {
     "command": "cd backend && go test ./... -count=1 -timeout 10m",
