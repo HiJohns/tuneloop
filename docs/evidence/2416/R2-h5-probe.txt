@@ -1,4 +1,4 @@
-# build=1.0.29f09dd87 commit=29f09dd87296554e6bf794be41e4d29062108e47 dirty=true
+# build=1.0.21e7ffae9 commit=21e7ffae9d618679a07c479217273bf7808f0c6c dirty=false
 window.alert count=1
 frontend-mobile/src/platform/browser.js:121:  window.alert(text)
 window.confirm count=1

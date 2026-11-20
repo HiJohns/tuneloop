@@ -1,66 +1,66 @@
 {
-  "schema_version": 1,
-  "issue": 2416,
-  "build": "1.0.7c596c40c",
-  "commit": "7c596c40c9f4db3b6d627a6a6f289a94729e7edf",
-  "dirty": false,
-  "environment": "frontend-mobile vitest/jsdom + node 22; fix commit 7c596c40c",
-  "rows": [
-    {
-      "id": "R1",
-      "command": "bash scripts/verify-2416.sh r1",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2416/R1-probe.txt"
-      ],
-      "assert": "exit 0；调用点计数 ≤1 且命中 platform",
-      "actual": "PASS：Taro.showModal( 调用点=1（仅 platform 回退），业务调用点 0",
-      "expected": "PASS",
-      "negative": ">1 或业务命中 → FAIL",
-      "negative_result": "业务直连残留即 exit 1",
-      "pass": true
-    },
-    {
-      "id": "R2",
-      "command": "bash scripts/verify-2416.sh r2",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2416/R2-h5-probe.txt"
-      ],
-      "assert": "exit 0；回退 ≤1",
-      "actual": "PASS：window.alert 1（回退）、window.confirm 1（回退）；业务直用 0",
-      "expected": "PASS",
-      "negative": ">1 → FAIL",
-      "negative_result": "回退 >1 即 exit 1",
-      "pass": true
-    },
-    {
-      "id": "R3",
-      "command": "bash scripts/verify-2416.sh r3",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2416/R3-smoke.txt"
-      ],
-      "assert": "exit 0；0 failed",
-      "actual": "PASS：page-smoke 11 files / 63 tests 全部通过",
-      "expected": "PASS",
-      "negative": "失败 → FAIL",
-      "negative_result": "任一 smoke 失败即 exit 1",
-      "pass": true
-    },
-    {
-      "id": "R4",
-      "command": "bash scripts/verify-2416.sh r4",
-      "exit": 1,
-      "artifacts": [
-        "docs/evidence/2416/R4-manual.md"
-      ],
-      "assert": "exit 0；含 executor: user 与 RESULT: PASS",
-      "actual": "FAIL：Owner 2026-11-19 真机（体验版 v1.0.935f980ae）购物车删除/地址删除/取消订单三处弹窗均不出现、无后续请求；根因见 #2431（DialogHost 挂在 App 层不可见，showDialog Promise 永不 resolve）",
-      "expected": "PASS",
-      "negative": "PENDING → FAIL",
-      "negative_result": "弹窗不可见 → exit 1（当前即此状态）",
-      "pass": false
-    }
-  ]
+ "schema_version": 1,
+ "issue": 2416,
+ "build": "1.0.21e7ffae9",
+ "commit": "21e7ffae9d618679a07c479217273bf7808f0c6c",
+ "dirty": false,
+ "environment": "frontend-mobile probes + page-smoke; root cause fixed in #2431; fix commit 21e7ffae9; R4 owner pending",
+ "rows": [
+  {
+   "id": "R1",
+   "command": "bash scripts/verify-2416.sh r1",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2416/R1-probe.txt"
+   ],
+   "assert": "exit 0；count≤1 且 platform",
+   "actual": "PASS：Taro.showModal( 仅 platform 回退 1 处",
+   "expected": "PASS",
+   "negative": "业务直连 → FAIL",
+   "negative_result": "业务命中或 count>1 即 exit 1",
+   "pass": true
+  },
+  {
+   "id": "R2",
+   "command": "bash scripts/verify-2416.sh r2",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2416/R2-h5-probe.txt"
+   ],
+   "assert": "exit 0；各≤1",
+   "actual": "PASS：window.alert/confirm 各 1（仅回退）",
+   "expected": "PASS",
+   "negative": ">1 → FAIL",
+   "negative_result": "业务直用即 exit 1",
+   "pass": true
+  },
+  {
+   "id": "R3",
+   "command": "bash scripts/verify-2416.sh r3",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2416/R3-smoke.txt"
+   ],
+   "assert": "exit 0；0 failed",
+   "actual": "PASS：page-smoke 16 files / 88 tests",
+   "expected": "PASS",
+   "negative": "失败 → FAIL",
+   "negative_result": "任一 failed 即 exit 1",
+   "pass": true
+  },
+  {
+   "id": "R4",
+   "command": "bash scripts/verify-2416.sh r4",
+   "exit": 1,
+   "artifacts": [
+    "docs/evidence/2416/R4-manual.md"
+   ],
+   "assert": "exit 0；RESULT: PASS",
+   "actual": "PENDING：Owner 真机回执未签（waitForConfirm）",
+   "expected": "PASS",
+   "negative": "PENDING → holdon",
+   "negative_result": "PENDING 即 exit 1 / holdon",
+   "pass": false
+  }
+ ]
 }
