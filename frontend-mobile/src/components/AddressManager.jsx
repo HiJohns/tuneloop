@@ -3,6 +3,7 @@ import { View, Text, Button, Input, Picker } from '@tarojs/components'
 import { addressesApi, resolveErrorMessage } from '../services/api'
 import { env, dialog, getInputValue } from '../platform'
 import regions from '../data/regions.json'
+import { secondaryButtonStyle, primaryButtonStyle } from '../utils/buttonStyles.mjs'
 
 const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm'
 const provinceNames = regions.map(r => r.name)
@@ -85,7 +86,7 @@ export default function AddressManager({ user }) {
       <View className="flex items-center justify-between mb-3">
         <Text className="text-sm font-bold text-zinc-800">收货地址</Text>
         {!showForm && (
-          <Button onClick={openNewForm} className="text-xs text-white bg-black px-3 py-1 rounded-full font-bold">
+          <Button onClick={openNewForm} style={{ ...primaryButtonStyle(), width: 'auto', height: 36, lineHeight: '36px' }} className="text-xs font-bold">
             + 新地址
           </Button>
         )}
@@ -102,11 +103,11 @@ export default function AddressManager({ user }) {
               </View>
               <Text className="text-xs text-zinc-500">{addr.province} {addr.city} {addr.district} {addr.detail}</Text>
               <View className="flex gap-2 mt-2 pt-2 border-t border-zinc-50">
-                <Button onClick={() => openEditForm(addr)} className="flex-1 py-1.5 bg-zinc-100 rounded-lg text-xs font-bold text-zinc-600">编辑</Button>
+                <Button onClick={() => openEditForm(addr)} style={{ ...secondaryButtonStyle(), flex: 1 }}>编辑</Button>
                 {!addr.is_default && (
-                  <Button onClick={() => handleSetDefault(addr.id)} className="flex-1 py-1.5 bg-zinc-100 rounded-lg text-xs font-bold text-zinc-600">设默认</Button>
+                  <Button onClick={() => handleSetDefault(addr.id)} style={{ ...secondaryButtonStyle(), flex: 1 }}>设默认</Button>
                 )}
-                <Button onClick={() => handleDelete(addr.id)} className="flex-1 py-1.5 bg-red-50 rounded-lg text-xs font-bold text-red-500">删除</Button>
+                <Button onClick={() => handleDelete(addr.id)} style={{ ...secondaryButtonStyle('danger'), flex: 1 }}>删除</Button>
               </View>
             </View>
           ))}
@@ -184,10 +185,10 @@ export default function AddressManager({ user }) {
           <Input className={inputClass} value={form.detail} onInput={e => setForm(p => ({ ...p, detail: getInputValue(e) }))} placeholder="详细地址" />
           <Input className={inputClass} type="number" value={form.postal_code} onInput={e => setForm(p => ({ ...p, postal_code: getInputValue(e) }))} placeholder="邮编" />
           <View className="flex gap-2">
-            <Button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 bg-black text-white rounded-xl font-bold text-sm">
+            <Button onClick={handleSave} disabled={saving} style={{ ...primaryButtonStyle(), flex: 1 }}>
               {saving ? '保存中...' : editingId ? '保存修改' : '新增地址'}
             </Button>
-            <Button onClick={() => { setShowForm(false); setEditingId(null) }} className="px-4 py-2.5 bg-zinc-100 rounded-xl font-bold text-sm text-zinc-600">
+            <Button onClick={() => { setShowForm(false); setEditingId(null) }} style={secondaryButtonStyle()}>
               取消
             </Button>
           </View>
