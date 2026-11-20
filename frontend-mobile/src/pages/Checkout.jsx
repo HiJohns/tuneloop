@@ -1081,7 +1081,7 @@ function BatchCheckout({ navigate }) {
         </View>
         <View className="p-4 m-4 bg-white rounded-2xl shadow-sm border border-zinc-100 flex flex-col items-center">
           <View className="text-center">
-            <Text className="text-xs text-zinc-400 font-bold tracking-widest block">{t('应付合计')}</Text>
+            <Text className="text-xs text-zinc-400 font-bold block">{t('应付合计')}</Text>
             <Text className="text-4xl font-black tracking-tight block">
               ¥{formatCents(grandTotal)}
             </Text>
