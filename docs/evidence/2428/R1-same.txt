@@ -1,22 +1,22 @@
-# build=1.0.cae06bf43 commit=cae06bf43678657700b5d39687625d0432884f62 dirty=false
+# build=1.0.a15cbb252 commit=a15cbb252f459ad7f00ae2b8e0fc36231f4c2801 dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/20 02:55:38 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2428 sslmode=disable
-2026/11/20 02:55:40 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2428
-2026/11/20 02:55:40 [DB] Connected to database 'tuneloop_test_verify2428'
+2026/11/20 03:01:19 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2428 sslmode=disable
+2026/11/20 03:01:22 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2428
+2026/11/20 03:01:22 [DB] Connected to database 'tuneloop_test_verify2428'
 === RUN   TestCheckUserExistsPlatformScope_2428
-2026/11/20 02:55:40 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2428 sslmode=disable
-2026/11/20 02:55:40 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2428
-2026/11/20 02:55:40 [DB] Connected to database 'tuneloop_test_verify2428'
+2026/11/20 03:01:22 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2428 sslmode=disable
+2026/11/20 03:01:22 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2428
+2026/11/20 03:01:22 [DB] Connected to database 'tuneloop_test_verify2428'
 
-2026/11/20 02:55:42 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
-[0m[31;1m[748.455ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "schema_migrations", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/20 03:01:23 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
+[0m[31;1m[651.319ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "schema_migrations", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
     user_check_conflict_2428_test.go:67: R2_CROSS merchant=B 商户 masked=******** same_tenant=false
     user_check_conflict_2428_test.go:68: R4_PRIVACY_OK
     user_check_conflict_2428_test.go:81: R1_SAME_OK
-2026/11/20 02:55:42 [IAMClient] NewIAMClient: baseURL=http://opencode.linxdeep.com:5561, clientID=test-ns, namespace=test-ns
-2026/11/20 02:55:42 [IAMClient] ListUsers: baseURL=http://opencode.linxdeep.com:5561, namespace=test-ns, clientID=test-ns
-2026/11/20 02:55:57 [IAMClient] ListUsers: doRequest error: failed to get client token: failed to request client token: Post "http://opencode.linxdeep.com:5561/api/v1/auth/token": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-2026/11/20 02:55:57 [CheckUserExists] IAM fallback failed: ListUsers request failed: failed to get client token: failed to request client token: Post "http://opencode.linxdeep.com:5561/api/v1/auth/token": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
---- PASS: TestCheckUserExistsPlatformScope_2428 (17.07s)
+2026/11/20 03:01:23 [IAMClient] NewIAMClient: baseURL=http://opencode.linxdeep.com:5561, clientID=test-ns, namespace=test-ns
+2026/11/20 03:01:23 [IAMClient] ListUsers: baseURL=http://opencode.linxdeep.com:5561, namespace=test-ns, clientID=test-ns
+2026/11/20 03:01:38 [IAMClient] ListUsers: doRequest error: failed to get client token: failed to request client token: Post "http://opencode.linxdeep.com:5561/api/v1/auth/token": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+2026/11/20 03:01:38 [CheckUserExists] IAM fallback failed: ListUsers request failed: failed to get client token: failed to request client token: Post "http://opencode.linxdeep.com:5561/api/v1/auth/token": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+--- PASS: TestCheckUserExistsPlatformScope_2428 (16.23s)
 PASS
-ok  	tuneloop-backend/handlers	19.355s
+ok  	tuneloop-backend/handlers	19.708s

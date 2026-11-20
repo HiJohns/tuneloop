@@ -1,4 +1,4 @@
-# build=1.0.cae06bf43 commit=cae06bf43678657700b5d39687625d0432884f62 dirty=false
+# build=1.0.a15cbb252 commit=a15cbb252f459ad7f00ae2b8e0fc36231f4c2801 dirty=false
 
 > frontend-pc@1.0.0 build
 > vite build
@@ -19,4 +19,4 @@ dist/assets/index-Ba18Uu-I.js   2,618.86 kB │ gzip: 805.55 kB
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 51.35s
+✓ built in 1m 41s
