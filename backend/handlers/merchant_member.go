@@ -177,14 +177,15 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 						"code": 40901,
 						"data": gin.H{
 							"conflicts": []gin.H{{
-								"user_id":       conflictErr.UserID,
-								"name":          conflictErr.Name,
-								"email":         conflictErr.Email,
-								"phone":         conflictErr.Phone,
-								"username":      conflictErr.Username,
-								"same_merchant": memberCount > 0,
-								"merchants":     merchants,
-								"error":         conflictErr.Error(),
+								"user_id":         conflictErr.UserID,
+								"name":            conflictErr.Name,
+								"email_masked":    services.MaskEmail(conflictErr.Email),
+								"phone_masked":    services.MaskPhone(conflictErr.Phone),
+								"username_masked": services.MaskUsername(conflictErr.Username),
+								"matched_fields":  services.MatchIdentifier(conflictErr.Phone, conflictErr.Email, conflictErr.Username, "", conflictErr.Email, ""),
+								"same_merchant":   memberCount > 0,
+								"merchants":       merchants,
+								"error":           conflictErr.Error(),
 							}},
 						},
 					})
@@ -298,6 +299,17 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 			Count(&count)
 		if count > 0 {
 			continue
+		}
+
+		// #2428 D3：跨租户禁止 direct bind；只能走加入邀请。
+		var targetUser models.User
+		if err := db.Where("id = ? AND deleted_at IS NULL", userID).First(&targetUser).Error; err == nil && targetUser.TenantID != tenantID {
+			c.JSON(http.StatusConflict, gin.H{
+				"code":    40911,
+				"message": "该用户属于其他商户，请发送加入邀请，由本人确认加入",
+				"data":    gin.H{"need_invite": true},
+			})
+			return
 		}
 
 		normalizedRole := normalizeRole(role)

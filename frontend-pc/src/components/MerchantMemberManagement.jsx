@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Table, Button, Space, message, Tag, Popconfirm, Modal, Input, Select, Form, Alert } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
-import api from '../services/api';
+import api, { invitesApi } from '../services/api';
 import { formatBeijingDate } from '../utils/date';
 import PasswordSettingFields from './PasswordSettingFields';
 import InitialPasswordModal from './InitialPasswordModal'
@@ -140,6 +140,20 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
     setAdding(true);
     try {
       if (formMode === 'existing') {
+        // #2428 D3：跨租户账号禁止 direct bind，改发加入邀请。
+        if (existingUser.same_tenant === false) {
+          const identifier = username.trim() || phone.trim() || email.trim()
+          const invite = await invitesApi.inviteToMerchant(merchantId, { identifier, kind: 'merchant_staff' })
+          if (invite.code === 20100) {
+            message.success('已发送加入邀请，待对方确认')
+            setModalVisible(false)
+            resetForm()
+          } else {
+            message.error(invite.message || '发送邀请失败')
+          }
+          setAdding(false)
+          return
+        }
         const response = await api.post(`/admin/merchants/${merchantId}/members`, {
           user_ids: [{ user_id: existingUser.id, role: selectedRole }],
         });
@@ -378,7 +392,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
               <p><strong>用户名：</strong>{existingUser.username || '-'}</p>
               <p><strong>姓名：</strong>{existingUser.name || '-'}</p>
               <p><strong>邮箱：</strong>{existingUser.email || '-'}</p>
-              <p><strong>手机：</strong>{existingUser.phone || '-'}</p>
+              <p><strong>手机：</strong>{existingUser.phone_masked || '-'}</p>
             </div>
             <Button type="link" onClick={switchToNew} style={{ padding: 0, marginBottom: 16 }}>
               改为新建用户

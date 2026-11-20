@@ -1436,10 +1436,9 @@ func (h *UserStaffHandler) CheckUserExists(c *gin.Context) {
 	}
 
 	db := database.GetDB().WithContext(ctx)
-	scope := "tenant_id = ? AND deleted_at IS NULL"
-	args := []interface{}{tenantID}
-
+	// #2428：检测域与 IAM 平台唯一性对齐——本地不再按 tenant 过滤。
 	var orClauses []string
+	var args []interface{}
 	if phone != "" {
 		orClauses = append(orClauses, "phone = ?")
 		args = append(args, phone)
@@ -1452,43 +1451,64 @@ func (h *UserStaffHandler) CheckUserExists(c *gin.Context) {
 		orClauses = append(orClauses, "username = ?")
 		args = append(args, username)
 	}
+	query := "deleted_at IS NULL AND (" + strings.Join(orClauses, " OR ") + ")"
 
-	query := scope + " AND (" + strings.Join(orClauses, " OR ") + ")"
 	var users []models.User
 	if err := db.Where(query, args...).Find(&users).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query user: " + err.Error()})
 		return
 	}
 
-	if len(users) == 0 {
-		c.JSON(http.StatusOK, gin.H{
-			"code":    20000,
-			"message": "user not found",
-			"data":    gin.H{"exists": false},
+	conflictList := make([]gin.H, 0, len(users)+1)
+	for _, u := range users {
+		var merchantName string
+		db.Table("merchants").Select("name").Where("tenant_id = ?", u.TenantID).Limit(1).Scan(&merchantName)
+		conflictList = append(conflictList, gin.H{
+			"id": u.ID, "name": u.Name,
+			"username_masked": services.MaskUsername(u.Username),
+			"phone_masked":    services.MaskPhone(u.Phone),
+			"email_masked":    services.MaskEmail(u.Email),
+			"same_tenant":     u.TenantID == tenantID,
+			"merchant_name":   merchantName,
+			"source":          "local",
+			"matched_fields":  services.MatchIdentifier(u.Phone, u.Email, u.Username, phone, email, username),
 		})
+	}
+
+	// 本地无命中 → IAM 命名空间兜底（active 用户；失败降级本地）。
+	if len(conflictList) == 0 {
+		if iamUsers, err := services.NewIAMClient().ListUsers(); err == nil {
+			for _, u := range iamUsers {
+				if u.Status == "inactive" || u.Status == "deleted" {
+					continue
+				}
+				fields := services.MatchIdentifier(u.Phone, u.Email, u.Username, phone, email, username)
+				if len(fields) == 0 {
+					continue
+				}
+				conflictList = append(conflictList, gin.H{
+					"id": u.ID, "name": u.Name,
+					"username_masked": services.MaskUsername(u.Username),
+					"phone_masked":    services.MaskPhone(u.Phone),
+					"email_masked":    services.MaskEmail(u.Email),
+					"same_tenant":     false,
+					"merchant_name":   "",
+					"source":          "iam",
+					"matched_fields":  fields,
+				})
+			}
+		} else {
+			log.Printf("[CheckUserExists] IAM fallback failed: %v", err)
+		}
+	}
+
+	if len(conflictList) == 0 {
+		c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "user not found", "data": gin.H{"exists": false}})
 		return
 	}
-
-	var conflictList []gin.H
-	for _, u := range users {
-		conflictList = append(conflictList, gin.H{
-			"id":       u.ID,
-			"name":     u.Name,
-			"phone":    u.Phone,
-			"email":    u.Email,
-			"username": u.Username,
-		})
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"code":    20000,
-		"message": "success",
-		"data": gin.H{
-			"exists": true,
-			"user":   conflictList[0],
-			"users":  conflictList,
-		},
-	})
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "success", "data": gin.H{
+		"exists": true, "user": conflictList[0], "users": conflictList,
+	}})
 }
 
 // BatchDeleteUsers soft-deletes multiple users

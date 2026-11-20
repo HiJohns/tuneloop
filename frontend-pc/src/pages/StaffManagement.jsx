@@ -248,10 +248,17 @@ export default function StaffManagement() {
             }
           },
           onCancel: () => {
-            // 修改信息：清空冲突字段并聚焦，不发任何请求。
-            if (values.phone && existing.phone === values.phone) createUserForm.setFieldsValue({ phone: '' })
-            else if (values.email && existing.email === values.email) createUserForm.setFieldsValue({ email: '' })
-            else if (values.username && existing.username === values.username) createUserForm.setFieldsValue({ username: '' })
+            // #2428 G2：按 matched_fields 精确清空；无匹配则清空全部标识字段。
+            const fields = existing.matched_fields || []
+            if (fields.length === 0) {
+              createUserForm.setFieldsValue({ phone: '', email: '', username: '' })
+            } else {
+              const next = {}
+              if (fields.includes('phone')) next.phone = ''
+              if (fields.includes('email')) next.email = ''
+              if (fields.includes('username')) next.username = ''
+              createUserForm.setFieldsValue(next)
+            }
             createUserForm.scrollToField('phone')
             setTimeout(() => document.getElementById('staff-create_phone')?.focus(), 0)
           },

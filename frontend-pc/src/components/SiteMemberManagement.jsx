@@ -197,6 +197,12 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
     setAdding(true);
     try {
       if (formMode === 'existing') {
+        // #2428 D3：跨租户账号禁止 direct bind，改为提交加入申请。
+        if (existingUser.same_tenant === false) {
+          promptApply({ identifier: phone.trim() || email.trim() || username.trim(), role: selectedRole });
+          setAdding(false);
+          return;
+        }
         const response = await api.post(`${membersBase}/${siteId}/members`, {
           user_ids: [{ user_id: existingUser.id, role: selectedRole }],
         });
@@ -209,8 +215,8 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
           if (response.data?.role_errors?.length > 0) {
             message.warning('绑定成功，但部分角色权限分配失败。');
           }
-        } else if (response.code === 40311) {
-          promptApply({ identifier: existingUser.phone || existingUser.email, role: selectedRole });
+        } else if (response.code === 40311 || response.code === 40911) {
+          promptApply({ identifier: phone.trim() || email.trim() || username.trim(), role: selectedRole });
         } else {
           message.error(response.message || '绑定失败');
         }
@@ -271,7 +277,7 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
           if (data.role_errors?.length > 0) {
             message.warning('用户创建成功，但部分角色权限分配失败。');
           }
-        } else if (response.code === 40311) {
+        } else if (response.code === 40311 || response.code === 40911) {
           // #2114 P2/P3：无权限直接添加非本商户成员 → 提交加入申请
           promptApply({ identifier: phone.trim() || email.trim(), role: selectedRole });
         } else if (response.code === 40902) {
@@ -393,7 +399,7 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
               <p><strong>用户名：</strong>{existingUser.username || '-'}</p>
               <p><strong>姓名：</strong>{existingUser.name || '-'}</p>
               <p><strong>邮箱：</strong>{existingUser.email || '-'}</p>
-              <p><strong>手机：</strong>{existingUser.phone || '-'}</p>
+              <p><strong>手机：</strong>{existingUser.phone_masked || '-'}</p>
             </div>
             <Button type="link" onClick={switchToNew} style={{ padding: 0, marginBottom: 16 }}>
               改为新建用户
