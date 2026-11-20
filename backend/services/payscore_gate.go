@@ -13,11 +13,6 @@ func ResolveCreditRiskAmount(tier string, fullDeposit, reducedDeposit, instrumen
 	return wechatpay.ComputeRiskAmount(tier, fullDeposit, reducedDeposit, instrumentPrice)
 }
 
-// RequiresCreditAssessment 判断该档位是否需要微信信用评估。
-func RequiresCreditAssessment(tier string) bool {
-	return tier == models.DepositTierReduced || tier == models.DepositTierZero
-}
-
 // RequiresCreditApprovalForOrder 是「订单级」的信用要求判定（#2327 D4/D13 / #2418）。
 //
 // Owner 2026-11-15「三档一致：未 approved 一律不可支付」：
@@ -48,24 +43,6 @@ func AssertOrderPayable(tier, creditPath, creditState string, depositCents int64
 		return nil
 	}
 	return assertApproved(creditState)
-}
-
-// AssertTierPayable 支付闸门：reduced/zero 必须信用状态 approved，full 无需评估。
-//
-// 返回 nil 表示允许支付；否则返回可直接透传给前端的错误（含原因码）。
-func AssertTierPayable(tier, creditState string) error {
-	if !RequiresCreditAssessment(tier) {
-		return nil
-	}
-	return assertApproved(creditState)
-}
-
-// AssertTierPayableIfEnforced 在 PAYSCORE_ENFORCE=false 时保持现有行为（不拦截）。
-func AssertTierPayableIfEnforced(tier, creditState string, enforce bool) error {
-	if !enforce {
-		return nil
-	}
-	return AssertTierPayable(tier, creditState)
 }
 
 // AssertOrderPayableIfEnforced 是支付路径唯一使用的闸门组合（enforce + 订单级判定）。

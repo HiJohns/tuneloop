@@ -2,34 +2,6 @@ package services
 
 import "testing"
 
-func TestAssertTierPayable(t *testing.T) {
-	cases := []struct {
-		name  string
-		tier  string
-		state string
-		ok    bool
-	}{
-		{"full 档无需评估", "full", "", true},
-		{"full 档即使拒绝也可支付", "full", "rejected", true},
-		{"reduced 已通过", "reduced", "approved", true},
-		{"reduced 评估中拒绝", "reduced", "pending", false},
-		{"reduced 未评估拒绝", "reduced", "", false},
-		{"reduced 拒绝", "reduced", "rejected", false},
-		{"reduced 过期", "reduced", "expired", false},
-		{"zero 已通过", "zero", "approved", true},
-		{"zero 未评估拒绝", "zero", "", false},
-	}
-	for _, tc := range cases {
-		err := AssertTierPayable(tc.tier, tc.state)
-		if tc.ok && err != nil {
-			t.Fatalf("%s: unexpected error %v", tc.name, err)
-		}
-		if !tc.ok && err == nil {
-			t.Fatalf("%s: expected rejection", tc.name)
-		}
-	}
-}
-
 // TestAssertOrderPayableIfEnforced 覆盖 #2327 D4/D12/D13：
 //   - enforce=false 时一律放行（线上行为不变）；
 //   - zero 档要区分「乐器本身零押金」（internal/空路径）与「payscore 免押」。

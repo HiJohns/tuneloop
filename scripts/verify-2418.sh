@@ -12,7 +12,9 @@ case "$MODE" in
   r5) ART="docs/evidence/2418/R5-build.txt"; TEST="" ;;
   r6) ART="docs/evidence/2418/R6-full-payscore.txt"; TEST='^TestAssertOrderPayableFullPayscore_2418$' ;;
   r7) ART="docs/evidence/2418/R7-zero-deposit-payscore.txt"; TEST='^TestAssertOrderPayableZeroDepositPayscore_2418$' ;;
-  *) echo "usage: $0 <r1|r2|r3|r4|r5|r6|r7>" >&2; exit 2 ;;
+  r8) ART="docs/evidence/2418/R8-legacy-removed.txt"; TEST="" ;;
+  r9) ART="docs/evidence/2418/R9-no-calls.txt"; TEST="" ;;
+  *) echo "usage: $0 <r1|r2|r3|r4|r5|r6|r7|r8|r9>" >&2; exit 2 ;;
 esac
 REPO_ROOT="$(git rev-parse --show-toplevel)"; cd "$REPO_ROOT"
 export PATH="/usr/local/go/bin:${PATH}"
@@ -34,6 +36,19 @@ if [ -n "$(git status --porcelain --untracked-files=no | grep -v 'docs/evidence/
       fi
       ;;
     r5) cd "$REPO_ROOT/backend"; go build ./... ;;
+    r8)
+      cd "$REPO_ROOT"
+      hits=$(grep -rnE "func (RequiresCreditAssessment|AssertTierPayable|AssertTierPayableIfEnforced)\(" backend --include='*.go' || true)
+      if [ -n "$hits" ]; then echo "LEGACY_PRESENT"; echo "$hits"; exit 1; fi
+      echo "LEGACY_REMOVED: 3 symbols absent"
+      ( cd backend && go build ./... )
+      ;;
+    r9)
+      cd "$REPO_ROOT"
+      hits=$(grep -rn "RequiresCreditAssessment\|AssertTierPayable" backend frontend-pc/src frontend-mobile/src --include='*.go' --include='*.js' --include='*.jsx' --include='*.mjs' 2>/dev/null || true)
+      if [ -n "$hits" ]; then echo "REFERENCES_PRESENT"; echo "$hits"; exit 1; fi
+      echo "NO_CALLS: legacy gate symbols have zero references"
+      ;;
   esac
 } 2>&1 | tee "$ART"
 exit "${PIPESTATUS[0]}"
