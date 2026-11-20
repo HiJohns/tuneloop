@@ -12,10 +12,11 @@ package services
 // 不接线（Out of Scope）：本文件不被 computeSettlement 或任何 handler 引用。
 //
 // 关于父单 #2417 Decision Lock 的 `deposit_refund` 行：
-// 该行写作 `deposit_cash_collected_net − deposit_held`，与 spec §3
-// `deposit_held − min(deposit_held, undisputed_deductions)` 及 T23/R2 的期望
-// （押金退 50000、net cash 40）冲突（collected==held 时会退 0）。
-// 本实现以 spec §3 + T23/R2 数值为准；lock 行待 Architect 修正。
+// #2417 已勘误（comment 2026-11-20T05:xx，Architect）：`deposit_refund` 以
+// docs/cases 用例文档为准，即 spec §3
+// `deposit_held − min(deposit_held, undisputed_deductions)`；
+// `deposit_cash_collected_net` 仅用于押金足额校验，不参与退款算式。
+// 本实现与该口径一致（T23 押金退 50000、#2339 net cash 40）。
 
 import (
 	"fmt"
