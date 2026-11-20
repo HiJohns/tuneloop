@@ -1,4 +1,4 @@
-# build=1.0.b8151665f commit=b8151665f909c3621004c3b4a74c6c7ce1127477 dirty=false
+# build=1.0.7571e52c5 commit=7571e52c5339d752532b1457ac36cf674a8fe330 dirty=false
 OK-EN docs/en/api.md
 OK-EN docs/en/ui.md
 OK-EN docs/en/cases.md

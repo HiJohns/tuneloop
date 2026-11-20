@@ -1,18 +1,16 @@
 {
   "schema_version": 1,
   "issue": 2334,
-  "build": "1.0.b8151665f",
-  "commit": "b8151665f909c3621004c3b4a74c6c7ce1127477",
+  "build": "1.0.7571e52c5",
+  "commit": "7571e52c5339d752532b1457ac36cf674a8fe330",
   "dirty": false,
-  "environment": "docs grep + backend build/database tests + frontend-mobile smoke; evidence commit b8151665f",
+  "environment": "docs grep + backend build/database tests + frontend-mobile smoke; HEAD 7571e52c5 (includes fix b8151665f)",
   "rows": [
     {
       "id": "R1",
       "command": "bash scripts/verify-2334.sh r1",
       "exit": 0,
-      "artifacts": [
-        "docs/evidence/2334/R1-docs.txt"
-      ],
+      "artifacts": ["docs/evidence/2334/R1-docs.txt"],
       "assert": "exit 0；全部 OK 无 MISS",
       "actual": "PASS：keys.txt 27 项全部 OK，0 MISS",
       "expected": "PASS",
@@ -24,9 +22,7 @@
       "id": "R2",
       "command": "bash scripts/verify-2334.sh r2",
       "exit": 0,
-      "artifacts": [
-        "docs/evidence/2334/R2-en.txt"
-      ],
+      "artifacts": ["docs/evidence/2334/R2-en.txt"],
       "assert": "exit 0；3/3 文件与字段",
       "actual": "PASS：docs/en/api.md、ui.md、cases.md 均存在且含新增字段",
       "expected": "PASS",
@@ -38,11 +34,9 @@
       "id": "R3",
       "command": "bash scripts/verify-2334.sh r3",
       "exit": 0,
-      "artifacts": [
-        "docs/evidence/2334/R3-gate.txt"
-      ],
-      "assert": "exit 0；smoke 16/16",
-      "actual": "PASS：go build + go test ./database/ 通过；npm run smoke 实际 63/63（Rev.4 G0 已更新，合同行 16/16 为旧计数）",
+      "artifacts": ["docs/evidence/2334/R3-gate.txt"],
+      "assert": "exit 0；smoke 全绿（当前 98/98；计划基线 63/63）",
+      "actual": "PASS：go build ./... + go test ./database/ 通过；npm run smoke 19 files / 98 tests 全绿（新增 #2436/#2446 用例后计数增长）",
       "expected": "PASS",
       "negative": "任一失败 → exit 1",
       "negative_result": "build/database/smoke 任一失败即 exit 1",
@@ -52,14 +46,12 @@
       "id": "R4",
       "command": "bash scripts/verify-2334.sh r4",
       "exit": 0,
-      "artifacts": [
-        "docs/evidence/2334/R4-stale.txt"
-      ],
+      "artifacts": ["docs/evidence/2334/R4-stale.txt"],
       "assert": "exit 0；0 命中旧口径",
       "actual": "PASS：4 个旧口径短语 0 命中",
       "expected": "PASS",
-      "negative": "命中 → exit 1",
-      "negative_result": "命中未标注旧口径即 exit 1",
+      "negative": "命中旧口径 → exit 1",
+      "negative_result": "任一命中即 exit 1",
       "pass": true
     }
   ]

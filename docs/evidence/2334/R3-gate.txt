@@ -1,5 +1,5 @@
-# build=1.0.b8151665f commit=b8151665f909c3621004c3b4a74c6c7ce1127477 dirty=false
-ok  	tuneloop-backend/database	2.175s
+# build=1.0.7571e52c5 commit=7571e52c5339d752532b1457ac36cf674a8fe330 dirty=false
+ok  	tuneloop-backend/database	0.028s
 
 > frontend-mobile@1.0.0 smoke
 > vitest run --config vitest.config.js
@@ -64,30 +64,30 @@ Warning: React does not recognize the `scrollIntoView` prop on a DOM element. If
     at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
     at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
 
- ✓ scripts/page-smoke/home-sort.test.jsx (11 tests) 4445ms
-   ✓ H5 home price sort > toggles all three states, preserves mode across categories, and resets on remount 1313ms
-   ✓ H5 home price sort > rolls back the label and list when the full price load fails 507ms
-   ✓ weapp home price sort > toggles all three states and keeps mode across categories 848ms
-   ✓ home price sort layout > keeps the 52px pill clear of the category viewport at 375 and 320 633ms
-   ✓ home price sort layout > keeps the 52px pill clear of the category viewport in weapp at 375 and 320 974ms
+ ✓ scripts/page-smoke/home-sort.test.jsx (11 tests) 2378ms
+   ✓ H5 home price sort > toggles all three states, preserves mode across categories, and resets on remount 881ms
+   ✓ weapp home price sort > toggles all three states and keeps mode across categories 596ms
+   ✓ home price sort layout > keeps the 52px pill clear of the category viewport in weapp at 375 and 320 337ms
 stderr | scripts/page-smoke/app-dialog-2415.test.jsx > AppDialog alert (#2415) > TestAppDialogAlert_2415 renders a white card + title and resolves on confirm
 Warning: React does not recognize the `scrollY` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `scrolly` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
     at div
     at div
     at div
-    at DialogHost (/home/coder/tuneloop/frontend-mobile/src/components/AppDialog.jsx:31:55)
+    at DialogHost (/home/coder/tuneloop/frontend-mobile/src/components/AppDialog.jsx:67:55)
 
-Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
- ✓ scripts/page-smoke/app-dialog-2415.test.jsx (7 tests) 2187ms
-   ✓ AppDialog alert (#2415) > TestAppDialogAlert_2415 renders a white card + title and resolves on confirm 396ms
-   ✓ DialogHost mount (#2415) > TestDialogHostMounted_2415 mounts in the weapp entry and is referenced by the H5 entry 1206ms
+ ✓ scripts/page-smoke/app-dialog-2415.test.jsx (7 tests) 386ms
+ ✓ scripts/page-smoke/bind-needs-merge.test.jsx (2 tests) 348ms
+   ✓ Bind page needs_merge (#2445) > shows the in-page merge confirmation and never claims success before merging 301ms
+stdout | scripts/page-smoke/credentials-2446.test.jsx
+[Dev Mode] Injecting mock wx object for browser debugging
+
+ ✓ scripts/page-smoke/credentials-2446.test.jsx (2 tests) 178ms
+ ✓ scripts/page-smoke/dialog-fallback-2431.test.jsx (10 tests) 29ms
 stderr | scripts/page-smoke/smoke.test.jsx > mobile page render smoke > H5 /checkout renders without fatal errors
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
-5:43:37 AM [vite] warning: Duplicate "style" attribute in JSX element
+2:29:29 PM [vite] warning: Duplicate "style" attribute in JSX element
 36 |                  <View onClick={e => { e.stopPropagation(); setImageIndex(i => (i - 1 + allImgs.length) % allImgs.length) }}
 37 |                    style={{ top: '50%', transform: 'translateY(-50%)' }}
 38 |                    className="absolute left-2 rounded-full w-8 h-8 flex items-center justify-center shadow-sm" style={{ backgroundColor: 'rgba(255,255,255,0.8)' }}>
@@ -148,31 +148,31 @@ Warning: React does not recognize the `placeholderStyle` prop on a DOM element. 
     at div
     at div
     at Payment (/home/coder/tuneloop/frontend-mobile/src/pages-weapp/payment/Payment.jsx:29:61)
-    at PaymentWithGuard (/home/coder/tuneloop/frontend-mobile/src/pages-weapp/payment/index.tsx:8:25)
+    at PageShell (/home/coder/tuneloop/frontend-mobile/src/components/PageShell.jsx:7:22)
+    at PaymentWithGuard (/home/coder/tuneloop/frontend-mobile/src/pages-weapp/payment/index.tsx:10:25)
     at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
     at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
     at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
     at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
 
- ✓ scripts/page-smoke/smoke.test.jsx (18 tests) 13370ms
-   ✓ mobile page render smoke > H5 /checkout renders without fatal errors 2256ms
-   ✓ mobile page render smoke > H5 /checkout (zero deposit) renders without fatal errors 457ms
-   ✓ mobile page render smoke > H5 /payment renders without fatal errors 736ms
-   ✓ mobile page render smoke > H5 /order/:id renders without fatal errors 1615ms
-   ✓ mobile page render smoke > H5 /credit-assessment renders without fatal errors 469ms
-   ✓ mobile page render smoke > H5 /cart renders without fatal errors 441ms
-   ✓ mobile page render smoke > H5 /profile renders without fatal errors 686ms
-   ✓ mobile page render smoke > H5 /register renders without fatal errors 614ms
-   ✓ mobile page render smoke > weapp checkout renders without fatal errors 853ms
-   ✓ mobile page render smoke > weapp checkout (zero deposit) renders without fatal errors 419ms
-   ✓ mobile page render smoke > weapp payment renders without fatal errors 641ms
-   ✓ mobile page render smoke > weapp order-detail renders without fatal errors 826ms
-   ✓ mobile page render smoke > weapp cart renders without fatal errors 804ms
-   ✓ mobile page render smoke > weapp profile renders without fatal errors 1265ms
-   ✓ mobile page render smoke > weapp profile-complete renders without fatal errors 593ms
-   ✓ mobile page render smoke > payment credit gate renders entry when credit is not approved 568ms
- ✓ scripts/page-smoke/bind-wx-accounts.test.jsx (4 tests) 501ms
-   ✓ Bind page wx-accounts (#2409) > uses wx-accounts openid with no bound accounts and confirms 378ms
+ ✓ scripts/page-smoke/smoke.test.jsx (18 tests) 7903ms
+   ✓ mobile page render smoke > H5 /checkout renders without fatal errors 949ms
+   ✓ mobile page render smoke > H5 /checkout (zero deposit) renders without fatal errors 333ms
+   ✓ mobile page render smoke > H5 /payment renders without fatal errors 441ms
+   ✓ mobile page render smoke > H5 /order/:id renders without fatal errors 588ms
+   ✓ mobile page render smoke > H5 /credit-assessment renders without fatal errors 361ms
+   ✓ mobile page render smoke > H5 /cart renders without fatal errors 392ms
+   ✓ mobile page render smoke > H5 /profile renders without fatal errors 637ms
+   ✓ mobile page render smoke > H5 /register renders without fatal errors 608ms
+   ✓ mobile page render smoke > weapp checkout renders without fatal errors 561ms
+   ✓ mobile page render smoke > weapp checkout (zero deposit) renders without fatal errors 326ms
+   ✓ mobile page render smoke > weapp payment renders without fatal errors 427ms
+   ✓ mobile page render smoke > weapp order-detail renders without fatal errors 473ms
+   ✓ mobile page render smoke > weapp cart renders without fatal errors 330ms
+   ✓ mobile page render smoke > weapp profile renders without fatal errors 480ms
+   ✓ mobile page render smoke > weapp profile-complete renders without fatal errors 440ms
+   ✓ mobile page render smoke > payment credit gate renders entry when credit is not approved 513ms
+ ✓ scripts/page-smoke/bind-wx-accounts.test.jsx (4 tests) 169ms
 stdout | scripts/page-smoke/rent-days-input.test.jsx
 [Dev Mode] Injecting mock wx object for browser debugging
 
@@ -180,22 +180,25 @@ stderr | scripts/page-smoke/rent-days-input.test.jsx > mobile rent days input di
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
- ✓ scripts/page-smoke/rent-days-input.test.jsx (3 tests) 1064ms
-   ✓ mobile rent days input direct editing (#2351) > H5 Checkout keeps the field empty while clearing and retyping 739ms
- ✓ scripts/page-smoke/credit-assessment-2333.test.jsx (5 tests) 42ms
+ ✓ scripts/page-smoke/rent-days-input.test.jsx (3 tests) 351ms
+ ✓ scripts/page-smoke/credit-assessment-2333.test.jsx (5 tests) 65ms
 stderr | scripts/page-smoke/credit-assessment-polling-2407.test.jsx > credit assessment polling (#2407) > keeps polling pending and renders 评测通过 once approved
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
- ✓ scripts/page-smoke/credit-assessment-polling-2407.test.jsx (1 test) 409ms
-   ✓ credit assessment polling (#2407) > keeps polling pending and renders 评测通过 once approved 396ms
- ✓ scripts/page-smoke/bind-needs-merge.test.jsx (1 test) 289ms
- ✓ scripts/page-smoke/home-scroll-layout.test.jsx (4 tests) 79ms
- ✓ scripts/page-smoke/credit-flow-tiers.test.jsx (5 tests) 161ms
- ✓ scripts/page-smoke/credit-return-path-2411.test.jsx (4 tests) 168ms
+ ✓ scripts/page-smoke/credit-assessment-polling-2407.test.jsx (1 test) 192ms
+ ✓ scripts/page-smoke/back-nav-2434.test.jsx (8 tests) 32ms
+ ✓ scripts/page-smoke/home-scroll-layout.test.jsx (4 tests) 30ms
+ ✓ scripts/page-smoke/credit-flow-tiers.test.jsx (5 tests) 26ms
+ ✓ scripts/page-smoke/no-uppercase-label-2436.test.jsx (2 tests) 89ms
+ ✓ scripts/page-smoke/credit-return-path-2411.test.jsx (4 tests) 30ms
+ ✓ scripts/page-smoke/dialog-host-2437.test.jsx (5 tests) 61ms
+ ✓ scripts/page-smoke/account-select-token-2425.test.jsx (3 tests) 21ms
+ ✓ scripts/page-smoke/wechat-bind-ui-2426.test.jsx (2 tests) 21ms
+ ✓ scripts/page-smoke/address-buttons-2432.test.jsx (2 tests) 21ms
 
- Test Files  11 passed (11)
-      Tests  63 passed (63)
-   Start at  05:43:05
-   Duration  81.84s (transform 7.20s, setup 950ms, collect 10.58s, tests 22.71s, environment 32.65s, prepare 6.13s)
+ Test Files  19 passed (19)
+      Tests  98 passed (98)
+   Start at  14:29:12
+   Duration  43.77s (transform 2.48s, setup 483ms, collect 3.85s, tests 12.33s, environment 17.67s, prepare 2.77s)
 
