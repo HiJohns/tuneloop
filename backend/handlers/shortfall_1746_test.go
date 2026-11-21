@@ -51,11 +51,9 @@ func TestExecuteRefund_ShortfallCreatesPaymentRecord(t *testing.T) {
 		CashPaid:         models.FromYuan(200),
 		PricingBreakdown: strPtr(`{"base_daily_rent":1000,"rent_days":35,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":1000},{"days_max":35,"discount_percent":20,"daily_rate":1000}],"tier_segments":[{"tier":1,"days":30,"rate":1000,"discount":1,"subtotal":30000},{"tier":2,"days":5,"rate":1000,"discount":0.8,"subtotal":4000}],"total_amount":34000}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "SN-SHORTFALL-1", StockStatus: "rented",
-	}).Error)
 
 	result, err := executeRefund(db, order)
 	require.NoError(t, err)
@@ -104,11 +102,9 @@ func TestExecuteRefund_ShortfallIdempotent(t *testing.T) {
 		CashPaid:         models.FromYuan(200),
 		PricingBreakdown: strPtr(`{"base_daily_rent":1000,"rent_days":35,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":1000},{"days_max":35,"discount_percent":20,"daily_rate":1000}],"tier_segments":[{"tier":1,"days":30,"rate":1000,"discount":1,"subtotal":30000},{"tier":2,"days":5,"rate":1000,"discount":0.8,"subtotal":4000}],"total_amount":34000}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "SN-SHORTFALL-IDEM", StockStatus: "rented",
-	}).Error)
 
 	// 第一次：生成记录 + 回退
 	_, err := executeRefund(db, order)
@@ -201,6 +197,8 @@ func TestPrepayShortfall_OrderTypeAccepted(t *testing.T) {
 		InstrumentID: uuid.New().String(),
 		Status:       models.OrderStatusReturning,
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
 
 	router := gin.New()
@@ -257,11 +255,9 @@ func TestShortfallNotification_Structured(t *testing.T) {
 		ShippingFee:      models.FromYuan(10),
 		PricingBreakdown: strPtr(`{"base_daily_rent":1000,"rent_days":35,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":1000},{"days_max":35,"discount_percent":20,"daily_rate":1000}],"tier_segments":[{"tier":1,"days":30,"rate":1000,"discount":1,"subtotal":30000},{"tier":2,"days":5,"rate":1000,"discount":0.8,"subtotal":4000}],"total_amount":34000}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "SN-SHORTFALL-NOTIF", StockStatus: "rented",
-	}).Error)
 
 	_, err := executeRefund(db, order)
 	require.NoError(t, err)
@@ -313,6 +309,8 @@ func TestRefundReceipt_ThankYouAndPayments(t *testing.T) {
 		PrepaidPointsUsed: 0,
 		ShippingFee:       0,
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{
 		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID: userID,
@@ -371,11 +369,9 @@ func TestCalculatePayment_Shortfall(t *testing.T) {
 		ShippingFee:      models.FromYuan(10),
 		PricingBreakdown: strPtr(`{"base_daily_rent":1000,"rent_days":35,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":1000},{"days_max":35,"discount_percent":20,"daily_rate":1000}],"tier_segments":[{"tier":1,"days":30,"rate":1000,"discount":1,"subtotal":30000},{"tier":2,"days":5,"rate":1000,"discount":0.8,"subtotal":4000}],"total_amount":34000}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "SN-SHORTFALL-CALC", StockStatus: "rented",
-	}).Error)
 
 	// 生成补缴记录（结算触发）
 	_, err := executeRefund(db, order)
