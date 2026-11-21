@@ -1,0 +1,14 @@
+# build=1.0.980ec7a34 commit=980ec7a34eb99e930f5d7f38852c1b322eb1a151 dirty=false
+## 旧 artifact 不得在 git 索引中
+REMOVED_OK: docs/evidence/2436/R2-smoke.txt
+REMOVED_OK: docs/evidence/2436/R3-typography.md
+## 当前证据集
+PRESENT: R0-red.txt
+PRESENT: R1-scan.txt
+PRESENT: R2-dynamic-scan.txt
+PRESENT: R3-smoke.txt
+PRESENT: R4-typography.md
+PRESENT: R5-provenance.txt
+PRESENT: R6-build.txt
+PRESENT: evidence.json
+CLEAN_OK

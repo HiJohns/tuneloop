@@ -13,7 +13,9 @@ case "$MODE" in
   r2-smoke) ART_NAME="R3-smoke.txt" ;;
   r3-typography) ART_NAME="R4-typography.md" ;;
   r4-provenance) ART_NAME="R5-provenance.txt" ;;
-  *) echo "usage: $0 <r0-red|r1-scan|r1b-scan|r2-smoke|r3-typography|r4-provenance>" >&2; exit 2 ;;
+  r5-build) ART_NAME="R6-build.txt" ;;
+  r6-clean) ART_NAME="R7-clean.txt" ;;
+  *) echo "usage: $0 <r0-red|r1-scan|r1b-scan|r2-smoke|r3-typography|r4-provenance|r5-build|r6-clean>" >&2; exit 2 ;;
 esac
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"; cd "$REPO_ROOT"
@@ -187,6 +189,60 @@ PYEOF
       [ "$fail" = "0" ] && echo "PROVENANCE_OK" || echo "PROVENANCE_FAIL"
     } 2>&1 | tee "$ART"
     grep -q "PROVENANCE_OK" "$ART"
+    exit $?
+    ;;
+
+  r5-build)
+    # R6：独立 UI Issue 的双端构建 gate（H5 vite + weapp Taro）
+    {
+      echo "$PROVENANCE"
+      echo "## node"
+      node -v 2>/dev/null || true
+      case "$(node -v 2>/dev/null)" in
+        v22.*) echo "NODE22_OK" ;;
+        *) echo "NODE22_MISSING: build:weapp requires Node 22 (Taro v4)"; exit 1 ;;
+      esac
+      echo "## H5 build"
+      ( cd frontend-mobile && NODE_OPTIONS="--max-old-space-size=2048" npm run build )
+      h5=$?
+      echo "H5_BUILD_EXIT=$h5"
+      [ "$h5" = "0" ] || { echo "BUILD_FAIL"; exit 1; }
+      echo "## weapp build"
+      ( cd frontend-mobile && NODE_OPTIONS="--max-old-space-size=2048" npm run build:weapp )
+      wa=$?
+      echo "WEAPP_BUILD_EXIT=$wa"
+      [ "$wa" = "0" ] || { echo "WEAPP_BUILD_FAIL"; exit 1; }
+      echo "BUILD_OK"
+      echo "WEAPP_BUILD_OK"
+    } 2>&1 | tee "$ART"
+    grep -q "BUILD_OK" "$ART" && grep -q "WEAPP_BUILD_OK" "$ART"
+    exit $?
+    ;;
+
+  r6-clean)
+    # R7：旧 artifact 清理校验（git 索引 + 当前证据集）
+    {
+      echo "$PROVENANCE"
+      echo "## 旧 artifact 不得在 git 索引中"
+      fail=0
+      for old in docs/evidence/2436/R2-smoke.txt docs/evidence/2436/R3-typography.md; do
+        if git ls-files --error-unmatch "$old" >/dev/null 2>&1; then
+          echo "STALE_INDEXED: $old"; fail=1
+        else
+          echo "REMOVED_OK: $old"
+        fi
+      done
+      echo "## 当前证据集"
+      for f in R0-red.txt R1-scan.txt R2-dynamic-scan.txt R3-smoke.txt R4-typography.md R5-provenance.txt R6-build.txt evidence.json; do
+        if [ -f "docs/evidence/2436/$f" ] || [ -f "$OUT_DIR/$f" ]; then
+          echo "PRESENT: $f"
+        else
+          echo "MISSING: $f"; fail=1
+        fi
+      done
+      [ "$fail" = "0" ] && echo "CLEAN_OK" || echo "CLEAN_FAIL"
+    } 2>&1 | tee "$ART"
+    grep -q "CLEAN_OK" "$ART"
     exit $?
     ;;
 

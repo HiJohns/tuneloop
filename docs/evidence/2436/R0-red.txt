@@ -1,4 +1,4 @@
-# build=1.0.8a01a9da3 commit=8a01a9da37561b8f28a9942990a4c24a8f0a13c6 dirty=false
+# build=1.0.980ec7a34 commit=980ec7a34eb99e930f5d7f38852c1b322eb1a151 dirty=false
 # R0 红例：pre-fix 2eed6f8a9^ + 当前测试用例（期望 FAIL）
 ## pre-fix 残留
 /home/coder/tuneloop-wt/2436-r4/tmp/2436-red/src/pages/Checkout.jsx:1084:            <Text className="text-xs text-zinc-400 font-bold tracking-widest block uppercase">TOTAL PAYABLE</Text>
@@ -10,10 +10,10 @@ PREFIX_HIT: TOTAL PAYABLE 存在且无 t('应付合计')
 
  RUN  v2.1.9 /home/coder/tuneloop-wt/2436-r4/frontend-mobile
 
- ❯ scripts/page-smoke/no-uppercase-label-2436.test.jsx (2 tests | 2 failed) 44ms
-   × no hardcoded uppercase English label (#2436) > R1: 两页确认订单页合计标签走 t() 且无 TOTAL PAYABLE 29ms
+ ❯ scripts/page-smoke/no-uppercase-label-2436.test.jsx (2 tests | 2 failed) 67ms
+   × no hardcoded uppercase English label (#2436) > R1: 两页确认订单页合计标签走 t() 且无 TOTAL PAYABLE 43ms
      → expected 'import { useState, useEffect, useMemo…' to contain 't(\'应付合计\')'
-   × no hardcoded uppercase English label (#2436) > R2: 无未登记的用户可见大写英文（JSX 文本/文案字面量/uppercase） 11ms
+   × no hardcoded uppercase English label (#2436) > R2: 无未登记的用户可见大写英文（JSX 文本/文案字面量/uppercase） 19ms
      → expected [ …(3) ] to deeply equal []
 
 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
@@ -1338,8 +1338,8 @@ AssertionError: expected [ …(3) ] to deeply equal []
 
  Test Files  1 failed (1)
       Tests  2 failed (2)
-   Start at  14:13:48
-   Duration  2.02s (transform 125ms, setup 102ms, collect 44ms, tests 44ms, environment 773ms, prepare 289ms)
+   Start at  05:06:58
+   Duration  3.42s (transform 125ms, setup 99ms, collect 58ms, tests 67ms, environment 1.34s, prepare 691ms)
 
 INNER_EXIT=1
 RED_CONFIRMED: pre-fix 用例失败（红）
