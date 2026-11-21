@@ -24,7 +24,7 @@ import (
 // tests. Returns the order and the DB for follow-up setup/assertions.
 func seedCalcOrder(t *testing.T, status string) (models.Order, *gorm.DB) {
 	db := testfixtures.SetupTestDB(t)
-	require.NoError(t, db.AutoMigrate(&models.SettlementCalculation{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.SettlementCalculation{}}))
 
 	tenantID := uuid.New().String()
 	orgID := tenantID

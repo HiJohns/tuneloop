@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
 
@@ -74,7 +75,7 @@ func TestIAMCallback_UserActivated_2228(t *testing.T) {
 	defer os.Unsetenv("IAM_CALLBACK_SECRET")
 
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.StaffInvite{}, &models.User{}, &models.SiteMember{}, &models.Site{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.StaffInvite{}, &models.User{}, &models.SiteMember{}, &models.Site{}}))
 
 	// 预建账户（init 激活前形态：tuneloop 本地已建行）+ 网点 + pending 定向邀请
 	sub := uuid.New().String()
@@ -167,7 +168,7 @@ func TestIAMCallback_FailedEvent_ReplayReprocessed_2228(t *testing.T) {
 	defer os.Unsetenv("IAM_CALLBACK_SECRET")
 
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.StaffInvite{}, &models.User{}, &models.SiteMember{}, &models.Site{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.StaffInvite{}, &models.User{}, &models.SiteMember{}, &models.Site{}}))
 
 	// 预建账户 + 网点 + pending 定向邀请（形态同 TestIAMCallback_UserActivated_2228）
 	sub := uuid.New().String()
@@ -227,7 +228,7 @@ func TestIAMCallback_Activated_NoInvite_2228(t *testing.T) {
 	defer os.Unsetenv("IAM_CALLBACK_SECRET")
 
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.StaffInvite{}, &models.User{}, &models.SiteMember{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.StaffInvite{}, &models.User{}, &models.SiteMember{}}))
 
 	// 无本地用户 + 无邀请 → 补建用户并 200（no-op 绑定）
 	sub := uuid.New().String()

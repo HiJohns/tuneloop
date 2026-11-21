@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
@@ -26,7 +27,7 @@ func TestAcceptInvite_Guards(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.StaffInvite{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.StaffInvite{}}))
 
 	userID := uuid.New().String()
 	// #2052: JWT sub ≠ 本地 users.id —— 必须能解析（iam_sub 反查）
@@ -114,7 +115,7 @@ func TestInvitation_Guards(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.StaffInvite{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.StaffInvite{}}))
 
 	// #2052: 主动构造 sub ≠ 本地 users.id 的形态（防止 fixture 同值掩盖 sub/key 混用）
 	inviteeSub, inviteeLocal := uuid.New().String(), uuid.New().String()
@@ -196,7 +197,7 @@ func TestListMyPendingInvitations(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.StaffInvite{}, &models.User{}, &models.Site{}, &models.Merchant{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.StaffInvite{}, &models.User{}, &models.Site{}, &models.Merchant{}}))
 
 	mySub, myLocal := uuid.New().String(), uuid.New().String()
 	otherLocal := uuid.New().String()
@@ -299,7 +300,7 @@ func TestAcceptInvitation_IdentifierClaim(t *testing.T) {
 	services.SetIAMInternalURLForTesting(srv.URL)
 	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.StaffInvite{}, &models.User{}, &models.SiteMember{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.StaffInvite{}, &models.User{}, &models.SiteMember{}}))
 
 	mySub, myLocal := uuid.New().String(), uuid.New().String()
 	require.NoError(t, db.Create(&models.User{

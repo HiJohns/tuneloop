@@ -14,6 +14,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/require"
 	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
@@ -275,7 +276,7 @@ func TestPostRegister_RefConsumption(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.Referral{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.Referral{}}))
 	db.Exec("DELETE FROM referrals")
 
 	t.Setenv("IAM_SECRET", testIAMSecret)
@@ -380,7 +381,7 @@ func TestPostRegister_NoPassword_WxBind_FullFlow(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.Referral{}, &models.PointsTransaction{}, &models.SystemSetting{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.Referral{}, &models.PointsTransaction{}, &models.SystemSetting{}}))
 	db.Exec("DELETE FROM referrals")
 	db.Exec("DELETE FROM points_transactions")
 	db.Exec("DELETE FROM system_settings")
@@ -786,7 +787,7 @@ func TestPostRegister_PhoneExists_409(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.Referral{}, &models.PointsTransaction{}, &models.SystemSetting{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.Referral{}, &models.PointsTransaction{}, &models.SystemSetting{}}))
 	db.Exec("DELETE FROM referrals")
 	db.Exec("DELETE FROM points_transactions")
 
@@ -851,7 +852,7 @@ func TestPostRegister_WxBindFailure_Aborts(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.Referral{}, &models.PointsTransaction{}, &models.SystemSetting{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.Referral{}, &models.PointsTransaction{}, &models.SystemSetting{}}))
 	db.Exec("DELETE FROM referrals")
 	db.Exec("DELETE FROM points_transactions")
 
@@ -939,7 +940,7 @@ func TestPostRegister_ExchangeToken_Flow(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.Referral{}, &models.PointsTransaction{}, &models.SystemSetting{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.Referral{}, &models.PointsTransaction{}, &models.SystemSetting{}}))
 	db.Exec("DELETE FROM referrals")
 	db.Exec("DELETE FROM points_transactions")
 
@@ -1046,7 +1047,7 @@ func TestPostRegister_UsernameDerivedFromPhone(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.Referral{}, &models.PointsTransaction{}, &models.SystemSetting{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.Referral{}, &models.PointsTransaction{}, &models.SystemSetting{}}))
 	db.Exec("DELETE FROM referrals")
 	db.Exec("DELETE FROM points_transactions")
 

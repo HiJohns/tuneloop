@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 
@@ -23,7 +24,7 @@ func TestPendingOrders_CRUDAndIsolation(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.PendingOrder{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.PendingOrder{}}))
 
 	tenantID := uuid.New().String()
 	mkUser := func() (string, string) {

@@ -23,7 +23,7 @@ import (
 // #1767 restore-path tests. Returns the DB for follow-up setup/assertions.
 func seedRestoreOrder(t *testing.T, status string, stockStatus string) (models.Order, models.Instrument, string, *gorm.DB) {
 	db := testfixtures.SetupTestDB(t)
-	require.NoError(t, db.AutoMigrate(&models.SettlementCalculation{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.SettlementCalculation{}}))
 
 	tenantID := uuid.New().String()
 	orgID := tenantID

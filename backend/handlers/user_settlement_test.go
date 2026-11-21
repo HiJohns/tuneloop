@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/models"
 )
 
@@ -17,7 +18,7 @@ func TestSettlement_EarlyReturnRebate(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.DamageReport{}, &models.OverdueCharge{}, &models.Settlement{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.Order{}, &models.Instrument{}, &models.DamageReport{}, &models.OverdueCharge{}, &models.Settlement{}}))
 
 	tenantID := "00000000-0000-0000-0000-0000000000e1"
 	orgID := "00000000-0000-0000-0000-0000000000e2"
@@ -72,7 +73,7 @@ func TestSettlement_OverdueFeeDeducted(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.DamageReport{}, &models.OverdueCharge{}, &models.Settlement{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.Order{}, &models.Instrument{}, &models.DamageReport{}, &models.OverdueCharge{}, &models.Settlement{}}))
 
 	tenantID := "00000000-0000-0000-0000-0000000000f1"
 	orgID := "00000000-0000-0000-0000-0000000000f2"
@@ -138,7 +139,7 @@ func TestSettlement_DamagePlusOverdue(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.DamageReport{}, &models.OverdueCharge{}, &models.Settlement{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.Order{}, &models.Instrument{}, &models.DamageReport{}, &models.OverdueCharge{}, &models.Settlement{}}))
 
 	tenantID := "00000000-0000-0000-0000-0000000000a1"
 	orgID := "00000000-0000-0000-0000-0000000000a2"

@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 )
@@ -60,7 +61,7 @@ func TestDashboardStats_2005_Governance(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.Tenant{}, &models.Merchant{}, &models.User{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.Tenant{}, &models.Merchant{}, &models.User{}}))
 
 	tid := uuid.New().String()
 	require.NoError(t, db.Create(&models.Tenant{ID: tid, Name: "S1-" + tid[:8]}).Error)
@@ -95,7 +96,7 @@ func TestDashboardStats_2005_MerchantScope(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.Instrument{}, &models.Order{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.Instrument{}, &models.Order{}}))
 
 	tid := uuid.New().String()
 	otherTid := uuid.New().String()
@@ -147,7 +148,7 @@ func TestDashboardStats_2005_SiteScope(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.Instrument{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.Instrument{}}))
 
 	tid := uuid.New().String()
 	oid := uuid.New().String()

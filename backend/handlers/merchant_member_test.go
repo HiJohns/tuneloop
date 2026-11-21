@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
@@ -109,7 +110,7 @@ func setupMerchantMemberRouter(t *testing.T, tenantID string) (*gin.Engine, *htt
 	cleanup := setupMockIAMAndDB(t)
 	t.Cleanup(cleanup)
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.Merchant{}, &models.MerchantMember{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.Merchant{}, &models.MerchantMember{}}))
 
 	mockIAM := newMerchantMemberMockIAM(t)
 	services.SetIAMInternalURLForTesting(mockIAM.URL)
@@ -296,7 +297,7 @@ func TestCreateMerchant_WithoutAdmin(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.Merchant{}, &models.Site{}))
+	require.NoError(t, testfixtures.AutoMigrateMissingTables(db, []interface{}{&models.Merchant{}, &models.Site{}}))
 
 	tenantID := uuid.New().String()
 
