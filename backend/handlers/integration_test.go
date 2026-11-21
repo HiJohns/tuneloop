@@ -35,6 +35,7 @@ func TestIntegration_Scenario1_RentalClosedLoop(t *testing.T) {
 		ID:          instrumentID,
 		TenantID:    tenantID,
 		OrgID:       &tenantID,
+		Level:       "standard",
 		StockStatus: "available",
 		Pricing:     `[{"daily_rent": 10.0, "weekly_rent": 70.0, "monthly_rent": 240.0, "deposit": 500.0}]`,
 	}

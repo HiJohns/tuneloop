@@ -45,7 +45,7 @@ func TestLeaseEarlyReturn(t *testing.T) {
 		ID:              uuid.New().String(),
 		Code:            "default",
 		Name:            "Default",
-		IsSystemDefault: true,
+		IsSystemDefault: false,
 		IsActive:        true,
 		ConfigSchema:    `{"tiers":[{"days_max":30,"discount_percent":0},{"days_max":365,"discount_percent":20}],"deposit_ratio":0}`,
 	}).Error)

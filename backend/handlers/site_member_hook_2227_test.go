@@ -24,6 +24,7 @@ func TestSiteMemberBeforeCreate_FillsRoles2227(t *testing.T) {
 	// A) 只给主 Role → Roles 自动派生为 [Role]
 	userA := uuid.New().String()
 	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site_members tenant FK
+	testfixtures.SeedUserFK(t, db, userA, tenantID, orgID)
 	require.NoError(t, db.Create(&models.SiteMember{
 		ID: uuid.New().String(), TenantID: tenantID, SiteID: siteID, UserID: userA, Role: "site_member",
 	}).Error)
@@ -34,6 +35,7 @@ func TestSiteMemberBeforeCreate_FillsRoles2227(t *testing.T) {
 	// B) Role 也为空 → Roles 落为 []（非 nil），不违反 NOT NULL
 	userB := uuid.New().String()
 	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site_members tenant FK
+	testfixtures.SeedUserFK(t, db, userB, tenantID, orgID)
 	require.NoError(t, db.Create(&models.SiteMember{
 		ID: uuid.New().String(), TenantID: tenantID, SiteID: siteID, UserID: userB,
 	}).Error)

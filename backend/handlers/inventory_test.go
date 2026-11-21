@@ -100,8 +100,8 @@ func TestBatchUpdateRent(t *testing.T) {
 	// Create test instrument with initial pricing
 	instrumentID := uuid.New()
 	pricingJSON := `{"daily_rent":100.00}`
-	db.Exec(`INSERT INTO instruments (id, sn, category_name, level_name, pricing, tenant_id, org_id, stock_status, created_at, updated_at) 
-		VALUES (?, 'SN123456', '钢琴', '专业级', ?, ?, ?, 'available', ?, ?)`,
+	db.Exec(`INSERT INTO instruments (id, sn, category_name, level, level_name, pricing, tenant_id, org_id, stock_status, created_at, updated_at) 
+		VALUES (?, 'SN123456', '钢琴', 'standard', '专业级', ?, ?, ?, 'available', ?, ?)`,
 		instrumentID, pricingJSON, tenantID, tenantID, now, now)
 
 	// Setup route
