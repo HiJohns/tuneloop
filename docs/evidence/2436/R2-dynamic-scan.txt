@@ -1,14 +1,14 @@
-# build=1.0.8a01a9da3 commit=8a01a9da37561b8f28a9942990a4c24a8f0a13c6 dirty=false
+# build=1.0.980ec7a34 commit=980ec7a34eb99e930f5d7f38852c1b322eb1a151 dirty=false
 ## 动态/样式大写扫描（uppercase + 文案字面量）
 [33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
 
  RUN  v2.1.9 /home/coder/tuneloop-wt/2436-r4/frontend-mobile
 
- ✓ scripts/page-smoke/no-uppercase-label-2436.test.jsx (2 tests | 1 skipped) 67ms
+ ✓ scripts/page-smoke/no-uppercase-label-2436.test.jsx (2 tests | 1 skipped) 98ms
 
  Test Files  1 passed (1)
       Tests  1 passed | 1 skipped (2)
-   Start at  14:13:55
-   Duration  1.82s (transform 97ms, setup 73ms, collect 41ms, tests 67ms, environment 857ms, prepare 317ms)
+   Start at  05:07:12
+   Duration  4.46s (transform 129ms, setup 86ms, collect 66ms, tests 98ms, environment 1.54s, prepare 997ms)
 
 DYNAMIC_SCAN_OK: 0 未登记 uppercase/动态英文大写

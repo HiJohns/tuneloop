@@ -1,4 +1,4 @@
-# build=1.0.8a01a9da3 commit=8a01a9da37561b8f28a9942990a4c24a8f0a13c6 dirty=false
+# build=1.0.980ec7a34 commit=980ec7a34eb99e930f5d7f38852c1b322eb1a151 dirty=false
 # R4 — 中文合计标签字距口径
 
 - 结论：中文标签不保留英文大写排版字距（uppercase/tracking-widest/letterSpacing）。

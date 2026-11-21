@@ -1,4 +1,4 @@
-# build=1.0.8a01a9da3 commit=8a01a9da37561b8f28a9942990a4c24a8f0a13c6 dirty=false
+# build=1.0.980ec7a34 commit=980ec7a34eb99e930f5d7f38852c1b322eb1a151 dirty=false
 ## page-smoke（4 条单乐器路由「应付总额」+ Batch 专用「应付合计」）
 [33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
 
@@ -57,15 +57,15 @@ Warning: Invalid DOM property `maxlength`. Did you mean `maxLength`?
     at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
     at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
 
- ✓ scripts/page-smoke/checkout-batch-total-2436.test.jsx (3 tests) 2082ms
-   ✓ BatchCheckout 合计标签 (#2436 Rev.4) > R3b: H5 无 id + 购物车非空 → 渲染「应付合计」，且无 TOTAL PAYABLE 1166ms
-   ✓ BatchCheckout 合计标签 (#2436 Rev.4) > R3b: weapp 无 id + 购物车非空 → 渲染「应付合计」 592ms
-   ✓ BatchCheckout 合计标签 (#2436 Rev.4) > R3b 负例：空购物车 → 渲染「购物车为空」，不出现「应付合计」 321ms
+ ✓ scripts/page-smoke/checkout-batch-total-2436.test.jsx (3 tests) 4001ms
+   ✓ BatchCheckout 合计标签 (#2436 Rev.4) > R3b: H5 无 id + 购物车非空 → 渲染「应付合计」，且无 TOTAL PAYABLE 2353ms
+   ✓ BatchCheckout 合计标签 (#2436 Rev.4) > R3b: weapp 无 id + 购物车非空 → 渲染「应付合计」 1297ms
+   ✓ BatchCheckout 合计标签 (#2436 Rev.4) > R3b 负例：空购物车 → 渲染「购物车为空」，不出现「应付合计」 339ms
 
  Test Files  1 passed (1)
       Tests  3 passed (3)
-   Start at  14:13:58
-   Duration  4.00s (transform 753ms, setup 59ms, collect 274ms, tests 2.08s, environment 743ms, prepare 347ms)
+   Start at  05:07:20
+   Duration  8.85s (transform 1.87s, setup 106ms, collect 979ms, tests 4.00s, environment 2.10s, prepare 709ms)
 
 BATCH_TEST_EXIT=0
 
@@ -132,10 +132,12 @@ Warning: React does not recognize the `scrollIntoView` prop on a DOM element. If
     at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
     at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
 
- ✓ scripts/page-smoke/home-sort.test.jsx (11 tests) 2241ms
-   ✓ H5 home price sort > toggles all three states, preserves mode across categories, and resets on remount 807ms
-   ✓ weapp home price sort > toggles all three states and keeps mode across categories 572ms
-   ✓ home price sort layout > keeps the 52px pill clear of the category viewport in weapp at 375 and 320 314ms
+ ✓ scripts/page-smoke/home-sort.test.jsx (11 tests) 4243ms
+   ✓ H5 home price sort > toggles all three states, preserves mode across categories, and resets on remount 1710ms
+   ✓ H5 home price sort > rolls back the label and list when the full price load fails 321ms
+   ✓ weapp home price sort > toggles all three states and keeps mode across categories 927ms
+   ✓ home price sort layout > keeps the 52px pill clear of the category viewport at 375 and 320 518ms
+   ✓ home price sort layout > keeps the 52px pill clear of the category viewport in weapp at 375 and 320 655ms
 stderr | scripts/page-smoke/app-dialog-2415.test.jsx > AppDialog alert (#2415) > TestAppDialogAlert_2415 renders a white card + title and resolves on confirm
 Warning: React does not recognize the `scrollY` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `scrolly` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
     at div
@@ -143,18 +145,18 @@ Warning: React does not recognize the `scrollY` prop on a DOM element. If you in
     at div
     at DialogHost (/home/coder/tuneloop-wt/2436-r4/frontend-mobile/src/components/AppDialog.jsx:67:55)
 
- ✓ scripts/page-smoke/app-dialog-2415.test.jsx (7 tests) 363ms
- ✓ scripts/page-smoke/bind-needs-merge.test.jsx (2 tests) 195ms
+ ✓ scripts/page-smoke/app-dialog-2415.test.jsx (7 tests) 705ms
+ ✓ scripts/page-smoke/bind-needs-merge.test.jsx (2 tests) 224ms
 stdout | scripts/page-smoke/credentials-2446.test.jsx
 [Dev Mode] Injecting mock wx object for browser debugging
 
- ✓ scripts/page-smoke/credentials-2446.test.jsx (2 tests) 161ms
- ✓ scripts/page-smoke/dialog-fallback-2431.test.jsx (10 tests) 30ms
+ ✓ scripts/page-smoke/credentials-2446.test.jsx (2 tests) 270ms
+ ✓ scripts/page-smoke/dialog-fallback-2431.test.jsx (10 tests) 27ms
 stderr | scripts/page-smoke/smoke.test.jsx > mobile page render smoke > H5 /checkout renders without fatal errors
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
-2:14:17 PM [vite] warning: Duplicate "style" attribute in JSX element
+5:08:00 AM [vite] warning: Duplicate "style" attribute in JSX element
 36 |                  <View onClick={e => { e.stopPropagation(); setImageIndex(i => (i - 1 + allImgs.length) % allImgs.length) }}
 37 |                    style={{ top: '50%', transform: 'translateY(-50%)' }}
 38 |                    className="absolute left-2 rounded-full w-8 h-8 flex items-center justify-center shadow-sm" style={{ backgroundColor: 'rgba(255,255,255,0.8)' }}>
@@ -222,25 +224,26 @@ Warning: React does not recognize the `placeholderStyle` prop on a DOM element. 
     at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
     at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
 
- ✓ scripts/page-smoke/smoke.test.jsx (18 tests) 7144ms
-   ✓ mobile page render smoke > H5 /checkout renders without fatal errors 801ms
-   ✓ mobile page render smoke > H5 /checkout (zero deposit) renders without fatal errors 332ms
-   ✓ mobile page render smoke > H5 /payment renders without fatal errors 433ms
-   ✓ mobile page render smoke > H5 /order/:id renders without fatal errors 539ms
-   ✓ mobile page render smoke > H5 /credit-assessment renders without fatal errors 342ms
-   ✓ mobile page render smoke > H5 /cart renders without fatal errors 382ms
-   ✓ mobile page render smoke > H5 /profile renders without fatal errors 407ms
-   ✓ mobile page render smoke > H5 /register renders without fatal errors 400ms
-   ✓ mobile page render smoke > weapp checkout renders without fatal errors 529ms
-   ✓ mobile page render smoke > weapp checkout (zero deposit) renders without fatal errors 329ms
-   ✓ mobile page render smoke > weapp payment renders without fatal errors 414ms
-   ✓ mobile page render smoke > weapp order-detail renders without fatal errors 485ms
-   ✓ mobile page render smoke > weapp cart renders without fatal errors 372ms
-   ✓ mobile page render smoke > weapp profile renders without fatal errors 447ms
-   ✓ mobile page render smoke > weapp profile-complete renders without fatal errors 382ms
-   ✓ mobile page render smoke > payment credit gate renders entry when credit is not approved 512ms
- ✓ scripts/page-smoke/no-uppercase-label-2436.test.jsx (2 tests) 66ms
- ✓ scripts/page-smoke/bind-wx-accounts.test.jsx (4 tests) 161ms
+ ✓ scripts/page-smoke/smoke.test.jsx (18 tests) 10206ms
+   ✓ mobile page render smoke > H5 /checkout renders without fatal errors 1446ms
+   ✓ mobile page render smoke > H5 /checkout (zero deposit) renders without fatal errors 399ms
+   ✓ mobile page render smoke > H5 /payment renders without fatal errors 681ms
+   ✓ mobile page render smoke > H5 /order/:id renders without fatal errors 960ms
+   ✓ mobile page render smoke > H5 /credit-assessment renders without fatal errors 433ms
+   ✓ mobile page render smoke > H5 /cart renders without fatal errors 589ms
+   ✓ mobile page render smoke > H5 /profile renders without fatal errors 688ms
+   ✓ mobile page render smoke > H5 /register renders without fatal errors 575ms
+   ✓ mobile page render smoke > weapp checkout renders without fatal errors 714ms
+   ✓ mobile page render smoke > weapp checkout (zero deposit) renders without fatal errors 365ms
+   ✓ mobile page render smoke > weapp payment renders without fatal errors 697ms
+   ✓ mobile page render smoke > weapp order-detail renders without fatal errors 544ms
+   ✓ mobile page render smoke > weapp cart renders without fatal errors 357ms
+   ✓ mobile page render smoke > weapp profile renders without fatal errors 612ms
+   ✓ mobile page render smoke > weapp profile-complete renders without fatal errors 505ms
+   ✓ mobile page render smoke > payment credit gate renders entry when credit is not approved 565ms
+ ✓ scripts/page-smoke/no-uppercase-label-2436.test.jsx (2 tests) 191ms
+ ✓ scripts/page-smoke/bind-wx-accounts.test.jsx (4 tests) 435ms
+   ✓ Bind page wx-accounts (#2409) > uses wx-accounts openid with no bound accounts and confirms 354ms
 stdout | scripts/page-smoke/rent-days-input.test.jsx
 [Dev Mode] Injecting mock wx object for browser debugging
 
@@ -248,14 +251,16 @@ stderr | scripts/page-smoke/rent-days-input.test.jsx > mobile rent days input di
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
- ✓ scripts/page-smoke/rent-days-input.test.jsx (3 tests) 330ms
- ✓ scripts/page-smoke/credit-assessment-2333.test.jsx (5 tests) 22ms
+ ✓ scripts/page-smoke/rent-days-input.test.jsx (3 tests) 758ms
+   ✓ mobile rent days input direct editing (#2351) > H5 Checkout keeps the field empty while clearing and retyping 539ms
+ ✓ scripts/page-smoke/credit-assessment-2333.test.jsx (5 tests) 52ms
 stderr | scripts/page-smoke/credit-assessment-polling-2407.test.jsx > credit assessment polling (#2407) > keeps polling pending and renders 评测通过 once approved
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
- ✓ scripts/page-smoke/credit-assessment-polling-2407.test.jsx (1 test) 184ms
- ✓ scripts/page-smoke/back-nav-2434.test.jsx (8 tests) 26ms
+ ✓ scripts/page-smoke/credit-assessment-polling-2407.test.jsx (1 test) 617ms
+   ✓ credit assessment polling (#2407) > keeps polling pending and renders 评测通过 once approved 606ms
+ ✓ scripts/page-smoke/back-nav-2434.test.jsx (8 tests) 92ms
 stderr | scripts/page-smoke/checkout-batch-total-2436.test.jsx > BatchCheckout 合计标签 (#2436 Rev.4) > R3b: H5 无 id + 购物车非空 → 渲染「应付合计」，且无 TOTAL PAYABLE
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
@@ -309,22 +314,22 @@ Warning: Invalid DOM property `maxlength`. Did you mean `maxLength`?
     at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
     at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
 
- ✓ scripts/page-smoke/checkout-batch-total-2436.test.jsx (3 tests) 1312ms
-   ✓ BatchCheckout 合计标签 (#2436 Rev.4) > R3b: H5 无 id + 购物车非空 → 渲染「应付合计」，且无 TOTAL PAYABLE 623ms
-   ✓ BatchCheckout 合计标签 (#2436 Rev.4) > R3b: weapp 无 id + 购物车非空 → 渲染「应付合计」 376ms
-   ✓ BatchCheckout 合计标签 (#2436 Rev.4) > R3b 负例：空购物车 → 渲染「购物车为空」，不出现「应付合计」 309ms
- ✓ scripts/page-smoke/home-scroll-layout.test.jsx (4 tests) 23ms
- ✓ scripts/page-smoke/credit-flow-tiers.test.jsx (5 tests) 26ms
- ✓ scripts/page-smoke/credit-return-path-2411.test.jsx (4 tests) 24ms
- ✓ scripts/page-smoke/dialog-host-2437.test.jsx (5 tests) 28ms
- ✓ scripts/page-smoke/account-select-token-2425.test.jsx (3 tests) 24ms
- ✓ scripts/page-smoke/wechat-bind-ui-2426.test.jsx (2 tests) 21ms
- ✓ scripts/page-smoke/address-buttons-2432.test.jsx (2 tests) 20ms
+ ✓ scripts/page-smoke/checkout-batch-total-2436.test.jsx (3 tests) 1964ms
+   ✓ BatchCheckout 合计标签 (#2436 Rev.4) > R3b: H5 无 id + 购物车非空 → 渲染「应付合计」，且无 TOTAL PAYABLE 1040ms
+   ✓ BatchCheckout 合计标签 (#2436 Rev.4) > R3b: weapp 无 id + 购物车非空 → 渲染「应付合计」 580ms
+   ✓ BatchCheckout 合计标签 (#2436 Rev.4) > R3b 负例：空购物车 → 渲染「购物车为空」，不出现「应付合计」 332ms
+ ✓ scripts/page-smoke/home-scroll-layout.test.jsx (4 tests) 69ms
+ ✓ scripts/page-smoke/credit-flow-tiers.test.jsx (5 tests) 137ms
+ ✓ scripts/page-smoke/credit-return-path-2411.test.jsx (4 tests) 138ms
+ ✓ scripts/page-smoke/dialog-host-2437.test.jsx (5 tests) 72ms
+ ✓ scripts/page-smoke/account-select-token-2425.test.jsx (3 tests) 32ms
+ ✓ scripts/page-smoke/wechat-bind-ui-2426.test.jsx (2 tests) 55ms
+ ✓ scripts/page-smoke/address-buttons-2432.test.jsx (2 tests) 63ms
 
  Test Files  20 passed (20)
       Tests  101 passed (101)
-   Start at  14:14:03
-   Duration  40.22s (transform 1.84s, setup 335ms, collect 3.41s, tests 12.40s, environment 15.43s, prepare 2.80s)
+   Start at  05:07:31
+   Duration  89.69s (transform 4.68s, setup 701ms, collect 8.58s, tests 20.35s, environment 39.60s, prepare 7.17s)
 
 SMOKE_EXIT=0
 ## checkout markers

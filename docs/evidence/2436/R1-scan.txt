@@ -1,4 +1,4 @@
-# build=1.0.8a01a9da3 commit=8a01a9da37561b8f28a9942990a4c24a8f0a13c6 dirty=false
+# build=1.0.980ec7a34 commit=980ec7a34eb99e930f5d7f38852c1b322eb1a151 dirty=false
 ## 裸英文扫描
 SCAN_OK: 无 TOTAL PAYABLE
 ## t() 调用
@@ -9,10 +9,10 @@ SCAN_OK: 无 TOTAL PAYABLE
 
  RUN  v2.1.9 /home/coder/tuneloop-wt/2436-r4/frontend-mobile
 
- ✓ scripts/page-smoke/no-uppercase-label-2436.test.jsx (2 tests) 68ms
+ ✓ scripts/page-smoke/no-uppercase-label-2436.test.jsx (2 tests) 157ms
 
  Test Files  1 passed (1)
       Tests  2 passed (2)
-   Start at  14:13:52
-   Duration  1.68s (transform 85ms, setup 56ms, collect 38ms, tests 68ms, environment 745ms, prepare 286ms)
+   Start at  05:07:04
+   Duration  4.58s (transform 228ms, setup 224ms, collect 63ms, tests 157ms, environment 2.29s, prepare 749ms)
 
