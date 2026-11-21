@@ -1,0 +1,42 @@
+# build=1.0.3d39a416d commit=3d39a416d136ed9d7d2f5f3ee40a12b7267e7c7d dirty=false
+[DEBUG] Loaded .env from: ../.env
+2026/11/21 05:26:19 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/21 05:26:20 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/21 05:26:20 [DB] Connected to database 'tuneloop_test'
+=== RUN   TestFaceReview_Registration_AutoEnqueuesSecondDoc_2435
+2026/11/21 05:26:20 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/21 05:26:20 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/21 05:26:20 [DB] Connected to database 'tuneloop_test'
+
+2026/11/21 05:26:21 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:289 [33mSLOW SQL >= 200ms
+[0m[31;1m[599.061ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /admin/face-review/queue  --> tuneloop-backend/handlers.(*FaceReviewHandler).Queue-fm (2 handlers)
+[GIN-debug] POST   /admin/face-review/:batchId --> tuneloop-backend/handlers.(*FaceReviewHandler).Review-fm (2 handlers)
+
+2026/11/21 05:26:21 [31;1m/home/coder/tuneloop/backend/handlers/face_review.go:331 [35;1mrecord not found
+[0m[33m[1.277ms] [34;1m[rows:0][0m SELECT "name" FROM "users" WHERE iam_sub = '2d3fcd34-e56c-4452-8468-dd152e48d6d9' ORDER BY "users"."id" LIMIT 1
+2026/11/21 05:26:21 [Notify] WeChat stub: would send template message to user d3cd0a69-649e-4654-a12f-461b2a6a3207 (type=id_verify, ref=d3cd0a69-649e-4654-a12f-461b2a6a3207)
+--- PASS: TestFaceReview_Registration_AutoEnqueuesSecondDoc_2435 (1.29s)
+=== RUN   TestRequeueSecondDocBatches
+2026/11/21 05:26:22 [RequeueSecondDoc] user 3d4d7b79-cf56-445a-8157-27edaa47dab2 (requeue-a): second doc unverified and no open second_doc batch → requeue
+2026/11/21 05:26:22 [RequeueSecondDoc] user caffb3a5-c86b-4657-b553-88ab2fe4dd3e (requeue-e): second doc unverified and no open second_doc batch → requeue
+2026/11/21 05:26:22 [RequeueSecondDoc] user ac755fdd-5211-4eea-95e2-c6d0a58d95c5 (requeue-g): second doc unverified and no open second_doc batch → requeue
+2026/11/21 05:26:22 [RequeueSecondDoc] dry run: 3 users would get a second_doc review batch
+2026/11/21 05:26:22 [RequeueSecondDoc] user 3d4d7b79-cf56-445a-8157-27edaa47dab2 (requeue-a): second doc unverified and no open second_doc batch → requeue
+2026/11/21 05:26:22 [RequeueSecondDoc] user caffb3a5-c86b-4657-b553-88ab2fe4dd3e (requeue-e): second doc unverified and no open second_doc batch → requeue
+2026/11/21 05:26:22 [RequeueSecondDoc] user ac755fdd-5211-4eea-95e2-c6d0a58d95c5 (requeue-g): second doc unverified and no open second_doc batch → requeue
+2026/11/21 05:26:22 [RequeueSecondDoc] created 3 second_doc review batches
+2026/11/21 05:26:22 [RequeueSecondDoc] created 0 second_doc review batches
+--- PASS: TestRequeueSecondDocBatches (0.54s)
+=== RUN   TestRequeueSecondDocBatches_SkipsInactiveAndDeleted_2435
+2026/11/21 05:26:22 [RequeueSecondDoc] user da133e5e-e90a-4ff7-81a9-e96adeac9b72 (requeue-active-2435): second doc unverified and no open second_doc batch → requeue
+2026/11/21 05:26:22 [RequeueSecondDoc] dry run: 1 users would get a second_doc review batch
+2026/11/21 05:26:22 [RequeueSecondDoc] user da133e5e-e90a-4ff7-81a9-e96adeac9b72 (requeue-active-2435): second doc unverified and no open second_doc batch → requeue
+2026/11/21 05:26:22 [RequeueSecondDoc] created 1 second_doc review batches
+--- PASS: TestRequeueSecondDocBatches_SkipsInactiveAndDeleted_2435 (0.39s)
+PASS
+ok  	tuneloop-backend/handlers	2.857s

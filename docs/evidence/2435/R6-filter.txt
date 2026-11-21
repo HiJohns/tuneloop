@@ -1,0 +1,15 @@
+# build=1.0.3d39a416d commit=3d39a416d136ed9d7d2f5f3ee40a12b7267e7c7d dirty=false
+[DEBUG] Loaded .env from: ../.env
+2026/11/21 05:26:13 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/21 05:26:13 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/21 05:26:13 [DB] Connected to database 'tuneloop_test'
+=== RUN   TestUserManagement_SecondDocUnsetFilter_2435
+2026/11/21 05:26:13 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/21 05:26:13 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/21 05:26:13 [DB] Connected to database 'tuneloop_test'
+
+2026/11/21 05:26:14 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:289 [33mSLOW SQL >= 200ms
+[0m[31;1m[588.856ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+--- PASS: TestUserManagement_SecondDocUnsetFilter_2435 (1.25s)
+PASS
+ok  	tuneloop-backend/handlers	1.850s
