@@ -7,6 +7,7 @@ import PasswordSettingFields from '../components/PasswordSettingFields'
 import InitialPasswordModal from '../components/InitialPasswordModal'
 import { resolveCreateFeedback } from '../utils/createFeedback'
 import { buildPersonnelQuery } from '../utils/personnelQuery'
+import { checkPermission, isSystemLevelRole, SysPermBits } from '../config/menuPermissions'
 import 'react-quill/dist/quill.snow.css'
 import { staffApi, sitesApi, personnelApi, invitesApi } from '../services/api'
 import { resolveErrorMessage } from '../services/errorMessages'
@@ -583,6 +584,27 @@ export default function StaffManagement() {
   // Hide site column for site-level roles (they only see their own site)
   const businessRole = localStorage.getItem('user_business_role') || ''
   const isSiteLevel = businessRole === 'site_admin' || businessRole === 'site_member'
+
+  // #2447：「前往网点管理」入口仅对可访问 /organization/sites 的角色显示（与路由同一判定）；
+  // 网点管理员只有 user_view(bit15)，点进去会被 ProtectedRoute 拦截 → 不渲染提示与入口。
+  const canManageSites = (() => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}')
+      if (isSystemLevelRole(userInfo)) return true
+      const sysPerm = parseInt(localStorage.getItem('user_sys_perm') || '0')
+      const cusPerm = parseInt(localStorage.getItem('user_cus_perm') || '0')
+      const mapping = JSON.parse(localStorage.getItem('permission_mapping') || '{}')
+      return checkPermission(
+        { sysPermBits: [SysPermBits.organization_view], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true },
+        sysPerm,
+        cusPerm,
+        mapping
+      )
+    } catch {
+      return false
+    }
+  })()
+
   const columns = isSiteLevel
     ? allColumns.filter(col => col.key !== 'site_name')
     : allColumns
@@ -736,13 +758,16 @@ export default function StaffManagement() {
         size="small"
       >
         {/* #2390：网点员工创建统一走「网点管理 → 成员」；本页仅创建商户直属员工 */}
-        <Alert
-          type="info"
-          showIcon
-          className="mb-3"
-          message="网点员工请在「网点管理 → 成员」中创建"
-          action={<Button size="small" type="link" onClick={() => navigate('/organization/sites')}>前往网点管理</Button>}
-        />
+        {/* #2447：网点管理员无网点管理权限，不显示该提示与死链 */}
+        {canManageSites && (
+          <Alert
+            type="info"
+            showIcon
+            className="mb-3"
+            message="网点员工请在「网点管理 → 成员」中创建"
+            action={<Button size="small" type="link" onClick={() => navigate('/organization/sites')}>前往网点管理</Button>}
+          />
+        )}
         <Form
           key={createFormKey}
           name="staff-create" /* #2072: 命名空间化字段 id */
