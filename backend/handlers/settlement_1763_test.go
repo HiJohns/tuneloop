@@ -40,11 +40,9 @@ func TestComputeSettlement_NoDamageNoOverdue_ZeroCents(t *testing.T) {
 		// Snapshot: single 1-day segment at ¥0.01/day (=1 cent)
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":1,"rent_days":1,"tiers":[{"days_max":1,"discount_percent":0,"daily_rate":1}],"tier_segments":[{"tier":1,"days":1,"rate":1,"discount":1,"subtotal":1}],"total_amount":1}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "SN-CBUG-ZERO", StockStatus: "rented",
-	}).Error)
 
 	result := computeSettlement(order, db)
 
@@ -83,11 +81,9 @@ func TestComputeSettlement_WholeYuanNotShifted(t *testing.T) {
 		// Snapshot: single 1-day segment at ¥36/day (=3600 cents)
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":3600,"rent_days":1,"tiers":[{"days_max":1,"discount_percent":0,"daily_rate":3600}],"tier_segments":[{"tier":1,"days":1,"rate":3600,"discount":1,"subtotal":3600}],"total_amount":3600}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "SN-CBUG-YUAN", StockStatus: "rented",
-	}).Error)
 
 	result := computeSettlement(order, db)
 
@@ -120,11 +116,9 @@ func TestComputeSettlement_FractionalCents(t *testing.T) {
 		// Snapshot: single 1-day segment at ¥0.29/day (=29 cents)
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":29,"rent_days":1,"tiers":[{"days_max":1,"discount_percent":0,"daily_rate":29}],"tier_segments":[{"tier":1,"days":1,"rate":29,"discount":1,"subtotal":29}],"total_amount":29}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "SN-CBUG-FRAC", StockStatus: "rented",
-	}).Error)
 
 	result := computeSettlement(order, db)
 

@@ -53,6 +53,8 @@ func TestRefundDiff_PointsOverCap(t *testing.T) {
 		GiftPointsUsed:   models.FromYuan(1000),
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
 
 	result := computeSettlement(order, db)
@@ -110,6 +112,8 @@ func TestRefundDiff_PointsWithinCap(t *testing.T) {
 		GiftPointsUsed:   models.FromYuan(500),
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
 
 	result := computeSettlement(order, db)
@@ -152,6 +156,8 @@ func TestRefundDiff_TotalSpendingC1(t *testing.T) {
 		GiftPointsUsed:   models.FromYuan(1000),
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
 
 	result := computeSettlement(order, db)
@@ -191,6 +197,8 @@ func TestRefundDiff_RebatePoints(t *testing.T) {
 		GiftPointsUsed:   models.FromYuan(1000),
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
 
 	result := computeSettlement(order, db)
@@ -232,6 +240,8 @@ func TestConfirmSettlement_ClosesOrder(t *testing.T) {
 		GiftPointsUsed:   models.FromYuan(1000),
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
 
 	// Simulate the ConfirmSettlement order-close update (the handler's final
@@ -265,6 +275,8 @@ func TestPaymentCallback_NoDoubleCount(t *testing.T) {
 		GiftPointsUsed:   0,
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
 
 	// Simulate the payment-callback update: gift_used=1000 cents → cash_paid
@@ -291,6 +303,8 @@ func TestSettlement_ShippingFeeSingleDeduction(t *testing.T) {
 	orgID := "00000000-0000-4000-8000-0000000000b2"
 	userID := "00000000-0000-4000-8000-0000000000b3"
 
+	testfixtures.SeedTenantFK(t, db, tenantID)
+	testfixtures.SeedMembershipLevelFK(t, db, 1)
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
 		Username: "shippingfee", Status: "active", MembershipLevelID: intPtr(1),
@@ -311,6 +325,8 @@ func TestSettlement_ShippingFeeSingleDeduction(t *testing.T) {
 		ShippingFee:      models.FromYuan(12.50),
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
 
 	result := computeSettlement(order, db)

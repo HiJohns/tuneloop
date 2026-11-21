@@ -79,11 +79,9 @@ func seedSettlementPayscoreOrder(t *testing.T, depositYuan float64, cashPaidYuan
 		CreditRiskAmountCents: int64(models.FromYuan(300)),
 		PricingBreakdown:      strPtr1867(`{"base_daily_rent":3600,"rent_days":1,"pricing_tiers":[{"days_max":1,"discount_percent":0,"daily_rate":3600}],"tier_segments":[{"tier":1,"days":1,"rate":3600,"discount":1,"subtotal":3600}],"total_amount":3600}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, tenantID, orgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, tenantID, orgID)
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "SN-PS-" + order.ID[:8], StockStatus: "rented",
-	}).Error)
 	if damageYuan > 0 {
 		require.NoError(t, db.Create(&models.DamageReport{
 			ID: uuid.New().String(), LeaseID: order.ID, TenantID: tenantID, OrgID: orgID,

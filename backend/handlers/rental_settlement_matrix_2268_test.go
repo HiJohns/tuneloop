@@ -312,8 +312,10 @@ func TestMatrix_RentalShortfallApplied_2268(t *testing.T) {
 	require.NoError(t, db.Create(&models.User{
 		ID: user, IAMSub: user, TenantID: org, OrgID: org, Status: "active", Name: "补缴用户",
 	}).Error)
+	instrumentID := uuid.NewString()
+	testfixtures.SeedInstrumentFK(t, db, instrumentID, org, org)
 	order := models.Order{
-		ID: uuid.NewString(), TenantID: org, OrgID: org, UserID: user, InstrumentID: uuid.NewString(),
+		ID: uuid.NewString(), TenantID: org, OrgID: org, UserID: user, InstrumentID: instrumentID,
 		Level: "entry", LeaseTerm: 30, Status: "returned",
 		Deposit: 0, CashPaid: models.FromYuan(2800),
 	}
@@ -348,8 +350,10 @@ func TestMatrix_GiftPointsNotDoubleDeducted_2268(t *testing.T) {
 	}).Error)
 	seedGiftBatch(t, db, user)
 	// rent 路径会用 record.Amount 覆盖 cash_paid，端到端不可观测 → 定向断言 helper 不再改 cash
+	instrumentID := uuid.NewString()
+	testfixtures.SeedInstrumentFK(t, db, instrumentID, org, org)
 	order := models.Order{
-		ID: uuid.NewString(), TenantID: org, OrgID: org, UserID: user, InstrumentID: uuid.NewString(),
+		ID: uuid.NewString(), TenantID: org, OrgID: org, UserID: user, InstrumentID: instrumentID,
 		Level: "entry", LeaseTerm: 30, Status: "reserved",
 		Deposit: models.FromYuan(500), CashPaid: models.FromYuan(1000),
 	}
@@ -380,6 +384,7 @@ func TestMatrix_ReferralCommissionOnSettlement_2268(t *testing.T) {
 	level2 := 2
 	referrer := uuid.NewString()
 	referee := uuid.NewString()
+	testfixtures.SeedMembershipLevelFK(t, db, level2)
 	require.NoError(t, db.Create(&models.User{
 		ID: referrer, IAMSub: referrer, TenantID: org, OrgID: org, Status: "active",
 		Name: "推荐人", MembershipLevelID: &level2,
@@ -427,6 +432,7 @@ func TestMatrix_ReferralOnZeroCashOrder_2268(t *testing.T) {
 	level2 := 2
 	referrer := uuid.NewString()
 	referee := uuid.NewString()
+	testfixtures.SeedMembershipLevelFK(t, db, level2)
 	require.NoError(t, db.Create(&models.User{
 		ID: referrer, IAMSub: referrer, TenantID: org, OrgID: org, Status: "active",
 		Name: "推荐人", MembershipLevelID: &level2,
@@ -477,6 +483,7 @@ func TestMatrix_TotalSpendingUnit_2268(t *testing.T) {
 	org := uuid.NewString()
 	referrer, referee := uuid.NewString(), uuid.NewString()
 	level2 := 2
+	testfixtures.SeedMembershipLevelFK(t, db, level2)
 	require.NoError(t, db.Create(&models.User{
 		ID: referrer, IAMSub: referrer, TenantID: org, OrgID: org, Status: "active",
 		Name: "推荐人", MembershipLevelID: &level2,
@@ -511,8 +518,10 @@ func TestMatrix_ShortfallExcessRefund_2268(t *testing.T) {
 	org := uuid.NewString()
 	user := uuid.NewString()
 	require.NoError(t, db.Create(&models.User{ID: user, IAMSub: user, TenantID: org, OrgID: org, Status: "active"}).Error)
+	instrumentID := uuid.NewString()
+	testfixtures.SeedInstrumentFK(t, db, instrumentID, org, org)
 	order := models.Order{
-		ID: uuid.NewString(), TenantID: org, OrgID: org, UserID: user, InstrumentID: uuid.NewString(),
+		ID: uuid.NewString(), TenantID: org, OrgID: org, UserID: user, InstrumentID: instrumentID,
 		Level: "entry", LeaseTerm: 30, Status: "returned", Deposit: 0, CashPaid: models.FromYuan(3500),
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -565,10 +574,11 @@ func TestMatrix_ShortfallExcessRefundAPIFailure_2268(t *testing.T) {
 	stub := &excessRefundStub{err: context.DeadlineExceeded}
 	wechatpay.SetClientForTesting(stub, &wechatpay.Config{RefundNotifyURL: "http://localhost/notify"})
 	t.Cleanup(func() { wechatpay.ResetGlobalForTesting() })
-	org, user, orderID := uuid.NewString(), uuid.NewString(), uuid.NewString()
+	org, user, orderID, instrumentID := uuid.NewString(), uuid.NewString(), uuid.NewString(), uuid.NewString()
 	require.NoError(t, db.Create(&models.User{ID: user, IAMSub: user, TenantID: org, OrgID: org, Status: "active"}).Error)
+	testfixtures.SeedInstrumentFK(t, db, instrumentID, org, org)
 	require.NoError(t, db.Create(&models.Order{ID: orderID, TenantID: org, OrgID: org, UserID: user,
-		InstrumentID: uuid.NewString(), Level: "entry", LeaseTerm: 30, Status: "returned", CashPaid: models.FromYuan(3500)}).Error)
+		InstrumentID: instrumentID, Level: "entry", LeaseTerm: 30, Status: "returned", CashPaid: models.FromYuan(3500)}).Error)
 	no := "rentfail2278"
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{ID: uuid.NewString(), TenantID: org, UserID: user,
 		OrderID: &orderID, OutTradeNo: &no, OrderType: "rent", Amount: models.FromYuan(3500), Type: "payment", Status: "paid"}).Error)

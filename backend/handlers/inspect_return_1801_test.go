@@ -58,6 +58,7 @@ func inspectReturnRouter(t *testing.T, tenantID, orgID, staffID string) (*gin.En
 			Deposit:      models.FromYuan(500),
 			CashPaid:     models.FromYuan(500),
 		}
+		testfixtures.SeedUserFK(t, db, userID, tenantID, orgID)
 		require.NoError(t, db.Create(&order).Error)
 		return order, db
 	}
@@ -74,6 +75,8 @@ func TestInspectReturn_AdditionalShippingFeeSaved(t *testing.T) {
 
 	router, mkOrder := inspectReturnRouter(t, tenantID, orgID, staffID)
 	order, db := mkOrder(t, tenantID, orgID, userID)
+	testfixtures.SeedTenantFK(t, db, tenantID)
+	testfixtures.SeedSiteFK(t, db, orgID, tenantID) // #2443: instruments.current_site_id FK
 
 	reqBody, _ := json.Marshal(map[string]interface{}{
 		"instrument_sn":           "SN-1801-" + time.Now().Format("150405"),
@@ -108,6 +111,8 @@ func TestInspectReturn_ConditionConflictDamageWins(t *testing.T) {
 
 	router, mkOrder := inspectReturnRouter(t, tenantID, orgID, staffID)
 	order, db := mkOrder(t, tenantID, orgID, userID)
+	testfixtures.SeedTenantFK(t, db, tenantID)
+	testfixtures.SeedSiteFK(t, db, orgID, tenantID) // #2443: instruments.current_site_id FK
 
 	reqBody, _ := json.Marshal(map[string]interface{}{
 		"instrument_sn": "SN-1801-" + time.Now().Format("150405"),
@@ -148,12 +153,15 @@ func TestComputeSettlement_IncludesAdditionalShippingFee(t *testing.T) {
 
 	start := "2026-08-01"
 	end := "2026-09-05"
+	instrumentID := uuid.New().String()
+	testfixtures.SeedUserFK(t, db, userID, tenantID, orgID)
+	testfixtures.SeedInstrumentFK(t, db, instrumentID, tenantID, orgID)
 	order := models.Order{
 		ID:               uuid.New().String(),
 		TenantID:         tenantID,
 		OrgID:            orgID,
 		UserID:           userID,
-		InstrumentID:     uuid.New().String(),
+		InstrumentID:     instrumentID,
 		StartDate:        &start,
 		EndDate:          &end,
 		LeaseTerm:        35,
@@ -165,10 +173,6 @@ func TestComputeSettlement_IncludesAdditionalShippingFee(t *testing.T) {
 		PricingBreakdown: strPtr(`{"base_daily_rent":1000,"rent_days":35,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":1000},{"days_max":35,"discount_percent":20,"daily_rate":1000}],"tier_segments":[{"tier":1,"days":30,"rate":1000,"discount":1,"subtotal":30000},{"tier":2,"days":5,"rate":1000,"discount":0.8,"subtotal":4000}],"total_amount":34000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "SN-SETTLE-ADD-SHIP", StockStatus: "available",
-	}).Error)
 
 	// 最新 damage_report 含追加物流费 50 元
 	reportID := uuid.New().String()

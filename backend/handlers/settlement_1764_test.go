@@ -53,11 +53,9 @@ func TestComputeSettlement_FeeItems_Direction(t *testing.T) {
 		// 10-day lease at ¥20/day; returned same day → rent payable ¥20.
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":2000,"rent_days":10,"tiers":[{"days_max":10,"discount_percent":0,"daily_rate":2000}],"tier_segments":[{"tier":1,"days":10,"rate":2000,"discount":1,"subtotal":20000}],"total_amount":20000}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "SN-FEE-DIR", StockStatus: "rented",
-	}).Error)
 
 	result := computeSettlement(order, db)
 	feeItems := feeItemsFrom(t, result.Breakdown)
@@ -101,11 +99,9 @@ func TestComputeSettlement_FeeItems_Shortfall(t *testing.T) {
 		// 30-day lease at ¥20/day; 5 days used → payable rent ¥100.
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":2000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":2000}],"tier_segments":[{"tier":1,"days":30,"rate":2000,"discount":1,"subtotal":60000}],"total_amount":60000}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "SN-FEE-SHORT", StockStatus: "rented",
-	}).Error)
 
 	result := computeSettlement(order, db)
 	feeItems := feeItemsFrom(t, result.Breakdown)
@@ -148,6 +144,8 @@ func TestGetOrder_MerchantName(t *testing.T) {
 		LeaseTerm:    1,
 		Status:       models.OrderStatusReserved,
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
 
 	router := setupTestRouter(t, tenantID, userID)
@@ -189,6 +187,8 @@ func TestGetOrder_MerchantName_Absent(t *testing.T) {
 		LeaseTerm:    1,
 		Status:       models.OrderStatusReserved,
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
 
 	router := setupTestRouter(t, tenantID, userID)

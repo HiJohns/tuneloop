@@ -80,6 +80,8 @@ func TestAgreeDamage_CustomerNoTenant(t *testing.T) {
 	tenantID := "00000000-0000-4000-8000-0000000000c1"
 	orgID := "00000000-0000-4000-8000-0000000000c2"
 	userID := "00000000-0000-4000-8000-0000000000c3"
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
+	testfixtures.SeedMembershipLevelFK(t, db, 1)
 
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
@@ -89,6 +91,7 @@ func TestAgreeDamage_CustomerNoTenant(t *testing.T) {
 	// 订单：租金 3000（30 天×100），押金 500；提前归还 20 天 → actualRent 2000；
 	// paidTotal 3000（租金）+500（押金）=3500。
 	instrumentID := uuid.New().String()
+	testfixtures.SeedInstrumentFK(t, db, instrumentID, tenantID, orgID)
 	returnedAt := time.Date(2026, 8, 20, 12, 0, 0, 0, time.UTC)
 	deliveredAt := time.Date(2026, 8, 1, 9, 0, 0, 0, time.UTC)
 	order := models.Order{
@@ -105,10 +108,6 @@ func TestAgreeDamage_CustomerNoTenant(t *testing.T) {
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: instrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "NO-TENANT", BaseDailyRate: models.ToCentsPtr(float64Ptr(100)), StockStatus: "rented",
-	}).Error)
 	outTradeNo := "dm-notenant-001"
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{
 		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID: userID,
@@ -199,6 +198,8 @@ func TestAgreeDamage_ShortfallPositive(t *testing.T) {
 	tenantID := uuid.New().String()
 	orgID := tenantID
 	userID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
+	testfixtures.SeedMembershipLevelFK(t, db, 1)
 
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
@@ -295,6 +296,8 @@ func TestLoadDamagePayment_IdCompat(t *testing.T) {
 	tenantID := uuid.New().String()
 	orgID := tenantID
 	userID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
+	testfixtures.SeedUserFK(t, db, userID, tenantID, orgID)
 
 	instID := uuid.New().String()
 	require.NoError(t, db.Create(&models.Instrument{

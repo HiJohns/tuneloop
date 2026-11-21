@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 
@@ -28,6 +29,7 @@ func setupUpdateMemberRoleTest(t *testing.T) (tenantID string, siteID string, us
 
 	db := database.GetDB()
 	tenantID = uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	// OrgID 用合法 UUID（UUID 列不可写空串）；user.IAMSub 留空 → 跳过 IAM 分支，隔离本地逻辑
 	site := models.Site{ID: uuid.New().String(), Name: "Role Site", TenantID: tenantID, OrgID: uuid.New().String(), Status: "active"}
 	require.NoError(t, db.Create(&site).Error)

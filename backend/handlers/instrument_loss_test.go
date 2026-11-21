@@ -46,6 +46,7 @@ func setupLossFixture(t *testing.T) lossFixture {
 	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	siteUUID := uuid.New()
 	siteID := siteUUID.String()
+	testfixtures.SeedSiteFK(t, db, siteID, tenantID) // #2443: instruments.current_site_id FK
 	customerSub := uuid.New().String()
 	staffSub := uuid.New().String()
 	for _, u := range []string{customerSub, staffSub} {

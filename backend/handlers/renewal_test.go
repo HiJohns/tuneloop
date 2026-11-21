@@ -25,6 +25,7 @@ import (
 func setupRenewalOrder(t *testing.T, tenantID, userID, orgID string, endDateOffset int) (string, string) {
 	t.Helper()
 	db := database.GetDB()
+	testfixtures.SeedUserFK(t, db, userID, tenantID, orgID) // #2443: orders.user_id FK
 
 	instrument := models.Instrument{
 		TenantID:      tenantID,

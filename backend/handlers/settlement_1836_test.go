@@ -27,6 +27,7 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	orgID := tenantID
 	userID := uuid.New().String()
+	testfixtures.SeedUserFK(t, db, userID, tenantID, orgID)
 	instID := uuid.New().String()
 	require.NoError(t, db.Create(&models.Instrument{
 		ID: instID, TenantID: tenantID, OrgID: &orgID,
@@ -392,6 +393,7 @@ func TestPayableTiers_TruncatedByActualDays(t *testing.T) {
 	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	orgID := tenantID
 	userID := uuid.New().String()
+	testfixtures.SeedUserFK(t, db, userID, tenantID, orgID)
 	instID := uuid.New().String()
 	require.NoError(t, db.Create(&models.Instrument{
 		ID: instID, TenantID: tenantID, OrgID: &orgID,
@@ -453,6 +455,7 @@ func TestPayableTiers_FullTerm_NoOp(t *testing.T) {
 	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	orgID := tenantID
 	userID := uuid.New().String()
+	testfixtures.SeedUserFK(t, db, userID, tenantID, orgID)
 	instID := uuid.New().String()
 	require.NoError(t, db.Create(&models.Instrument{
 		ID: instID, TenantID: tenantID, OrgID: &orgID,

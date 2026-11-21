@@ -36,6 +36,7 @@ func setup1880Fixture(t *testing.T) (*gin.Engine, *gorm.DB, fixture1880) {
 	db := testfixtures.SetupTestDB(t)
 
 	tenantID, orgID, _ := testfixtures.NewTenantIDs("1880a1b2c3d4")
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	siteA := uuid.New().String()
 	require.NoError(t, db.Create(&models.Site{ID: siteA, TenantID: tenantID, OrgID: orgID, Name: "网点A"}).Error)
 

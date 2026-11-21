@@ -54,11 +54,9 @@ func TestComputeSettlement_TierOverflowDays(t *testing.T) {
 		// Snapshot: single 1-day segment at ¥36/day (=3600 cents)
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":3600,"rent_days":1,"pricing_tiers":[{"days_max":1,"discount_percent":0,"daily_rate":3600}],"tier_segments":[{"tier":1,"days":1,"rate":3600,"discount":1,"subtotal":3600}],"total_amount":3600}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "SN-TIER-OVF", StockStatus: "rented",
-	}).Error)
 
 	result := computeSettlement(order, db)
 	require.Equal(t, 2, result.ActualDays)
@@ -83,6 +81,12 @@ func TestInspectReturn_OverdueDays_CaMinusC(t *testing.T) {
 	deliveredAt := time.Date(2026, 8, 1, 10, 0, 0, 0, time.UTC)
 	// C = 1 covered day; Ca = ceil(8-01 10:00 → 8-02 23:00 = 37h) = 2 →
 	// overdue 1 day.
+	require.NoError(t, db.Create(&models.Instrument{
+		ID: instrumentID, TenantID: tenantID, OrgID: &orgID,
+		SN: "SN-OVD-CAMINUSC", StockStatus: "rented",
+		Pricing: `{"daily_rent":36,"deposit":0,"overdue_daily_fee":15}`,
+	}).Error)
+	testfixtures.SeedUserFK(t, db, userID, tenantID, orgID)
 	require.NoError(t, db.Create(&models.Order{
 		ID: orderID, TenantID: tenantID, OrgID: orgID, UserID: userID,
 		InstrumentID: instrumentID, Status: models.OrderStatusReturning,
@@ -90,11 +94,6 @@ func TestInspectReturn_OverdueDays_CaMinusC(t *testing.T) {
 		LeaseTerm: 1, DeliveredAt: &deliveredAt,
 		CashPaid:         models.FromYuan(36),
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":3600,"rent_days":1,"tier_segments":[{"tier":1,"days":1,"rate":3600,"discount":1,"subtotal":3600}]}`),
-	}).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: instrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "SN-OVD-CAMINUSC", StockStatus: "rented",
-		Pricing: `{"daily_rent":36,"deposit":0,"overdue_daily_fee":15}`,
 	}).Error)
 
 	handler := &WarehouseHandler{}
@@ -156,11 +155,9 @@ func TestExecuteRefund_ZeroCashRefund_CompletesSettlement(t *testing.T) {
 		CashPaid:         models.FromYuan(36),
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":3600,"rent_days":1,"pricing_tiers":[{"days_max":1,"discount_percent":0,"daily_rate":3600}],"tier_segments":[{"tier":1,"days":1,"rate":3600,"discount":1,"subtotal":3600}],"total_amount":3600}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "SN-ZERO-RFD", StockStatus: "rented",
-	}).Error)
 
 	result, err := executeRefund(db, order)
 	require.NoError(t, err)
@@ -192,14 +189,15 @@ func TestApplySideEffects_RentWritesBackCashPaid(t *testing.T) {
 
 	orderID := uuid.New().String()
 	instrumentID := uuid.New().String()
+	require.NoError(t, db.Create(&models.Instrument{
+		ID: instrumentID, TenantID: tenantID, OrgID: &orgID,
+		SN: "SN-CB-WB", StockStatus: "available",
+	}).Error)
+	testfixtures.SeedUserFK(t, db, userID, tenantID, orgID)
 	require.NoError(t, db.Create(&models.Order{
 		ID: orderID, TenantID: tenantID, OrgID: orgID, UserID: userID,
 		InstrumentID: instrumentID, Status: models.OrderStatusReserved,
 		CashPaid: models.FromYuan(36), // pre-order full-price snapshot
-	}).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: instrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "SN-CB-WB", StockStatus: "available",
 	}).Error)
 
 	// ENO-style discounted actual payment recomputed at prepay: 36 cents.
@@ -241,9 +239,12 @@ func TestGetOrder_PaymentRecordsCentsContract(t *testing.T) {
 	userID := uuid.New().String()
 
 	orderID := uuid.New().String()
+	instrumentID := uuid.New().String()
+	testfixtures.SeedUserFK(t, db, userID, tenantID, tenantID)
+	testfixtures.SeedInstrumentFK(t, db, instrumentID, tenantID, tenantID)
 	require.NoError(t, db.Create(&models.Order{
 		ID: orderID, TenantID: tenantID, OrgID: tenantID, UserID: userID,
-		InstrumentID: uuid.New().String(), Status: models.OrderStatusPaid,
+		InstrumentID: instrumentID, Status: models.OrderStatusPaid,
 	}).Error)
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{
 		ID: uuid.New().String(), TenantID: tenantID, OrgID: &tenantID, UserID: userID, OrderType: "rent",
@@ -307,11 +308,9 @@ func TestSettlement_UserScenarioA_CouponWaiveDepositOnly(t *testing.T) {
 		// 阶梯: 30 天 @10 元 + 5 天 @8 元 → 合同租金 340
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":1000,"rent_days":35,"pricing_tiers":[{"days_max":30,"discount_percent":0,"daily_rate":1000},{"days_max":35,"discount_percent":20,"daily_rate":800}],"tier_segments":[{"tier":1,"days":30,"rate":1000,"discount":1,"subtotal":30000},{"tier":2,"days":5,"rate":1000,"discount":0.8,"subtotal":4000}],"total_amount":34000}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "SN-SCEN-A", StockStatus: "rented",
-	}).Error)
 
 	result := computeSettlement(order, db)
 
@@ -349,11 +348,9 @@ func TestSettlement_CouponRefundRatio(t *testing.T) {
 		CouponDiscount:   models.FromYuan(990), // 原价 1000 − 实付 10
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":5000,"rent_days":20,"pricing_tiers":[{"days_max":20,"discount_percent":0,"daily_rate":5000}],"tier_segments":[{"tier":1,"days":20,"rate":5000,"discount":1,"subtotal":100000}],"total_amount":100000}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "SN-SCEN-ENO", StockStatus: "rented",
-	}).Error)
 
 	result := computeSettlement(order, db)
 
@@ -391,11 +388,9 @@ func TestSettlement_UserScenarioB_NoDepositNoCoupon(t *testing.T) {
 		ShippingFee:      models.FromYuan(100),
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":1000,"rent_days":35,"pricing_tiers":[{"days_max":30,"discount_percent":0,"daily_rate":1000},{"days_max":35,"discount_percent":20,"daily_rate":800}],"tier_segments":[{"tier":1,"days":30,"rate":1000,"discount":1,"subtotal":30000},{"tier":2,"days":5,"rate":1000,"discount":0.8,"subtotal":4000}],"total_amount":34000}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "SN-SCEN-B", StockStatus: "rented",
-	}).Error)
 
 	result := computeSettlement(order, db)
 
@@ -432,11 +427,9 @@ func TestSettlement_UserScenarioC_Overdue_Shortfall(t *testing.T) {
 		ShippingFee:      models.FromYuan(100),
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":1000,"rent_days":35,"pricing_tiers":[{"days_max":30,"discount_percent":0,"daily_rate":1000},{"days_max":35,"discount_percent":20,"daily_rate":800}],"tier_segments":[{"tier":1,"days":30,"rate":1000,"discount":1,"subtotal":30000},{"tier":2,"days":5,"rate":1000,"discount":0.8,"subtotal":4000}],"total_amount":34000}`),
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
-	require.NoError(t, db.Create(&models.Instrument{
-		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
-		SN: "SN-SCEN-C", StockStatus: "rented",
-	}).Error)
 
 	// 验收时按 Ca−C=5 天持久化逾期费 75 元到 damage report（#1743 新口径）
 	require.NoError(t, db.Create(&models.DamageReport{

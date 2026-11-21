@@ -26,6 +26,8 @@ func TestAgreeDamage_StockGuard_WithRepairPending(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 
 	tenantID, orgID, userID := testfixtures.NewTenantIDs("a1b2c3d4e5f6")
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
+	testfixtures.SeedMembershipLevelFK(t, db, 1)
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
 		Username: "t1user", Status: "active", MembershipLevelID: intPtr(1),

@@ -36,6 +36,8 @@ func TestInspectReturn_Damaged_NotificationActionType(t *testing.T) {
 	userID := uuid.New().String()
 	staffID := uuid.New().String()
 	now := time.Now()
+	testfixtures.SeedTenantFK(t, db, tenantID)
+	testfixtures.SeedSiteFK(t, db, orgID, tenantID) // #2443: instruments.current_site_id FK
 
 	instrument := models.Instrument{
 		TenantID:      tenantID,
@@ -61,6 +63,7 @@ func TestInspectReturn_Damaged_NotificationActionType(t *testing.T) {
 		Deposit:      models.FromYuan(500),
 		CashPaid:     models.FromYuan(35),
 	}
+	testfixtures.SeedUserFK(t, db, userID, tenantID, orgID)
 	require.NoError(t, db.Create(&order).Error)
 
 	handler := NewWarehouseHandler()
@@ -134,6 +137,8 @@ func TestInspectReturn_Good_RefundReceiptNotification(t *testing.T) {
 
 	start := "2026-08-01"
 	end := "2026-08-30"
+	testfixtures.SeedTenantFK(t, db, tenantID)
+	testfixtures.SeedUserFK(t, db, userID, tenantID, orgID)
 	order := models.Order{
 		ID:               uuid.New().String(),
 		TenantID:         tenantID,
@@ -148,6 +153,7 @@ func TestInspectReturn_Good_RefundReceiptNotification(t *testing.T) {
 		CashPaid:         models.FromYuan(3500),
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
+	testfixtures.SeedUserFK(t, db, userID, tenantID, orgID)
 	require.NoError(t, db.Create(&order).Error)
 
 	// #2281：补合同租金流水（¥3500 − 续期 ¥120），账本净额与 cash_paid 一致。
@@ -234,6 +240,8 @@ func TestBuildRefundReceipt_IncludesAllLines(t *testing.T) {
 		ShippingFee:    models.Cents(50),
 		GiftPointsUsed: models.Cents(100),
 	}
+	testfixtures.SeedUserFK(t, db, userID, tenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, tenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{
 		ID:        uuid.New().String(),
@@ -341,7 +349,7 @@ func TestSubmitAppeal_StaffNotification(t *testing.T) {
 		ID:           uuid.New().String(),
 		TenantID:     tenantID,
 		OrgID:        orgID,
-		UserID:       userID,
+		UserID:       localUserID,
 		InstrumentID: instrument.ID,
 		Status:       models.OrderStatusReturning,
 	}
@@ -361,15 +369,16 @@ func TestSubmitAppeal_StaffNotification(t *testing.T) {
 	}
 	require.NoError(t, db.Create(&damageReport).Error)
 
+	testfixtures.SeedTenantFK(t, db, tenantID)
+	testfixtures.SeedSiteFK(t, db, siteID.String(), tenantID)
+	testfixtures.SeedUserFK(t, db, staffAdmin, tenantID, orgID)
+	testfixtures.SeedUserFK(t, db, staffMember, tenantID, orgID)
 	for _, sm := range []models.SiteMember{
 		{ID: uuid.New().String(), TenantID: tenantID, SiteID: siteID.String(), UserID: staffAdmin, Role: "site_admin", Status: "active"},
 		{ID: uuid.New().String(), TenantID: tenantID, SiteID: siteID.String(), UserID: staffMember, Role: "site_member", Status: "active"},
 	} {
 		require.NoError(t, db.Create(&sm).Error)
 	}
-	require.NoError(t, db.Create(&models.Site{
-		ID: siteID.String(), TenantID: tenantID, OrgID: orgID, Name: "测试网点",
-	}).Error)
 
 	handler := NewAppealHandler()
 	router := gin.New()
@@ -464,6 +473,7 @@ func TestResolveAppeal_Final_RefundReceiptAndStaffNotify(t *testing.T) {
 		CashPaid:         models.FromYuan(3500),
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
+	testfixtures.SeedUserFK(t, db, userID, tenantID, orgID)
 	require.NoError(t, db.Create(&order).Error)
 
 	damageAmount := 600.0 // > deposit 500 → confirm completes the order
@@ -496,12 +506,13 @@ func TestResolveAppeal_Final_RefundReceiptAndStaffNotify(t *testing.T) {
 	}
 	require.NoError(t, db.Create(&appeal).Error)
 
+	require.NoError(t, db.Create(&models.Site{
+		ID: siteID.String(), TenantID: tenantID, OrgID: orgID, Name: "测试网点",
+	}).Error)
+	testfixtures.SeedUserFK(t, db, staffMember, tenantID, orgID)
 	require.NoError(t, db.Create(&models.SiteMember{
 		ID: uuid.New().String(), TenantID: tenantID, SiteID: siteID.String(),
 		UserID: staffMember, Role: "site_member", Status: "active",
-	}).Error)
-	require.NoError(t, db.Create(&models.Site{
-		ID: siteID.String(), TenantID: tenantID, OrgID: orgID, Name: "测试网点",
 	}).Error)
 
 	handler := NewAppealHandler()
@@ -566,6 +577,7 @@ func TestRequiredPhotos_Missing(t *testing.T) {
 		InstrumentID: instrument.ID, Level: "standard", LeaseTerm: 30,
 		Status: models.OrderStatusPaid, CashPaid: models.FromYuan(3500),
 	}
+	testfixtures.SeedUserFK(t, db, userID, tenantID, orgID)
 	require.NoError(t, db.Create(&order).Error)
 
 	staff := testutil.MakeSiteMember(tenantID, orgID, userID)

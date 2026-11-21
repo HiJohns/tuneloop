@@ -15,10 +15,11 @@ import (
 
 func TestShortfallExcess_NoRentPayment_2278(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
-	org, user, orderID := uuid.NewString(), uuid.NewString(), uuid.NewString()
+	org, user, orderID, instrumentID := uuid.NewString(), uuid.NewString(), uuid.NewString(), uuid.NewString()
 	require.NoError(t, db.Create(&models.User{ID: user, IAMSub: user, TenantID: org, OrgID: org, Status: "active"}).Error)
+	testfixtures.SeedInstrumentFK(t, db, instrumentID, org, org)
 	require.NoError(t, db.Create(&models.Order{ID: orderID, TenantID: org, OrgID: org, UserID: user,
-		InstrumentID: uuid.NewString(), Level: "entry", LeaseTerm: 30, Status: "returned",
+		InstrumentID: instrumentID, Level: "entry", LeaseTerm: 30, Status: "returned",
 		CashPaid: models.FromYuan(3500)}).Error)
 	require.NoError(t, db.Create(&models.Settlement{OrderID: orderID, ActualRentAmount: models.FromYuan(3000), RefundStatus: "pending"}).Error)
 

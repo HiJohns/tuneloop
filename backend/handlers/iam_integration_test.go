@@ -177,6 +177,7 @@ func TestIAMIntegration_ConfirmationCallback(t *testing.T) {
 	orgID := uuid.New().String()
 	userID := uuid.New().String()
 	sessionID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 
 	session := models.ConfirmationSession{
 		ID:             sessionID,
@@ -194,6 +195,7 @@ func TestIAMIntegration_ConfirmationCallback(t *testing.T) {
 		ExpiresAt:      time.Now().Add(24 * time.Hour),
 	}
 	require.NoError(t, db.Create(&session).Error)
+	testfixtures.SeedSiteFK(t, db, session.ActionTargetID, tenantID) // #2443: site_members.site_id FK
 
 	user := models.User{
 		ID:          userID,
@@ -498,6 +500,7 @@ func TestIAMMock_SiteMemberAdd_CallsBind(t *testing.T) {
 	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	siteOrgID := uuid.New().String()
 
 	site := models.Site{
@@ -861,6 +864,7 @@ func TestAddMember_ExistingAccount_SameMerchant_Returns40902_NoAttach(t *testing
 	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	otherSite := models.Site{
 		Name:     "测试商户",
 		TenantID: tenantID,
@@ -868,6 +872,7 @@ func TestAddMember_ExistingAccount_SameMerchant_Returns40902_NoAttach(t *testing
 		Status:   "active",
 	}
 	require.NoError(t, db.Create(&otherSite).Error)
+	testfixtures.SeedUserFK(t, db, conflictUser.ID, tenantID, otherSite.OrgID) // #2443: site_members.user_id FK
 	require.NoError(t, db.Create(&models.SiteMember{
 		TenantID: tenantID,
 		SiteID:   otherSite.ID,

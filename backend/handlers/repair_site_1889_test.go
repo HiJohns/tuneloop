@@ -48,6 +48,7 @@ type fixture1889 struct {
 func newFixture1889(t *testing.T, db *gorm.DB, seed string, orderStatus string) fixture1889 {
 	t.Helper()
 	tenantID, orgID, _ := testfixtures.NewTenantIDs(seed)
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 
 	siteID := uuid.New().String()
 	require.NoError(t, db.Create(&models.Site{
@@ -71,16 +72,18 @@ func newFixture1889(t *testing.T, db *gorm.DB, seed string, orderStatus string) 
 	}).Error)
 
 	orderID := uuid.New().String()
+	customerID := uuid.New().String()
+	testfixtures.SeedUserFK(t, db, customerID, tenantID, orgID) // #2443: orders.user_id FK
 	require.NoError(t, db.Create(&models.Order{
 		ID: orderID, TenantID: tenantID, OrgID: orgID,
-		UserID: uuid.New().String(), InstrumentID: instrumentID,
+		UserID: customerID, InstrumentID: instrumentID,
 		Level: "standard", LeaseTerm: 30, MonthlyRent: models.FromYuan(100),
 		Status: orderStatus,
 	}).Error)
 
 	return fixture1889{
 		tenantID: tenantID, orgID: orgID, siteID: siteID,
-		operatorSub: operatorSub, customerID: uuid.New().String(),
+		operatorSub: operatorSub, customerID: customerID,
 		instrumentID: instrumentID, orderID: orderID,
 	}
 }

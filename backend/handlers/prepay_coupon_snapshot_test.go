@@ -61,6 +61,8 @@ func seedRentOrder(t *testing.T, tenantID, userID string) models.Order {
 		InstrumentID: uuid.New().String(),
 		Status:       models.OrderStatusReserved,
 	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
 	require.NoError(t, db.Create(&order).Error)
 	return order
 }

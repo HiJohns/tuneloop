@@ -33,6 +33,8 @@ func TestListMerchantOrders_StartDateFilter(t *testing.T) {
 		UserID: userID, InstrumentID: uuid.New().String(),
 		Status: "paid", Level: "standard", MonthlyRent: 10000,
 	}
+	testfixtures.SeedUserFK(t, db, todayOrder.UserID, todayOrder.TenantID, todayOrder.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, todayOrder.InstrumentID, todayOrder.TenantID, todayOrder.OrgID)
 	db.Create(&todayOrder)
 
 	// Order created 3 days ago
@@ -42,6 +44,8 @@ func TestListMerchantOrders_StartDateFilter(t *testing.T) {
 		UserID: userID, InstrumentID: uuid.New().String(),
 		Status: "paid", Level: "standard", MonthlyRent: 10000,
 	}
+	testfixtures.SeedUserFK(t, db, pastOrder.UserID, pastOrder.TenantID, pastOrder.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, pastOrder.InstrumentID, pastOrder.TenantID, pastOrder.OrgID)
 	db.Create(&pastOrder)
 	// Backdate created_at for the past order
 	db.Model(&models.Order{}).Where("id = ?", pastOrder.ID).
@@ -95,6 +99,8 @@ func TestListMerchantOrders_EndDateIncludesFullDay(t *testing.T) {
 		UserID: userID, InstrumentID: uuid.New().String(),
 		Status: "paid", Level: "standard", MonthlyRent: 10000,
 	}
+	testfixtures.SeedUserFK(t, db, lateOrder.UserID, lateOrder.TenantID, lateOrder.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, lateOrder.InstrumentID, lateOrder.TenantID, lateOrder.OrgID)
 	db.Create(&lateOrder)
 	db.Model(&models.Order{}).Where("id = ?", lateOrder.ID).
 		Update("created_at", lateToday)
@@ -106,6 +112,8 @@ func TestListMerchantOrders_EndDateIncludesFullDay(t *testing.T) {
 		UserID: userID, InstrumentID: uuid.New().String(),
 		Status: "paid", Level: "standard", MonthlyRent: 10000,
 	}
+	testfixtures.SeedUserFK(t, db, tomorrowOrder.UserID, tomorrowOrder.TenantID, tomorrowOrder.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, tomorrowOrder.InstrumentID, tomorrowOrder.TenantID, tomorrowOrder.OrgID)
 	db.Create(&tomorrowOrder)
 	db.Model(&models.Order{}).Where("id = ?", tomorrowOrder.ID).
 		Update("created_at", tomorrow)
@@ -149,12 +157,14 @@ func TestListMerchantOrders_NoDateReturnsAll(t *testing.T) {
 	orgID := uuid.New().String()
 	userID := uuid.New().String()
 
+	testfixtures.SeedUserFK(t, db, userID, tenantID, orgID)
 	for i := 0; i < 5; i++ {
 		o := models.Order{
 			ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID,
 			UserID: userID, InstrumentID: uuid.New().String(),
 			Status: "paid", Level: "standard", MonthlyRent: 10000,
 		}
+		testfixtures.SeedInstrumentFK(t, db, o.InstrumentID, tenantID, orgID)
 		db.Create(&o)
 	}
 
