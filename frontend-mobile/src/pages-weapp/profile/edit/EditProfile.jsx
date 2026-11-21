@@ -132,7 +132,8 @@ export default function EditProfile() {
           ...(idPhotoFront ? { id_photo_front: idPhotoFront } : {}),
           ...(idPhotoBack ? { id_photo_back: idPhotoBack } : {}),
           ...(idPhotoOther ? { id_photo_other: idPhotoOther } : {}),
-          // #1924: 第二证件类型不再由顾客提交（审核时由平台员工指定）。
+          // #2435: 用户自报类型（审核员可在 second_doc 审核时修正）。
+          ...(idPhotoOther && secondDocType ? { id_photo_other_type: secondDocType } : {}),
           // #1807: real_name/id_card_no 不再由顾客提交——实名信息由员工在
           // 审核流程根据身份证照核对填写（face_review approve）。
         }),
@@ -280,14 +281,14 @@ export default function EditProfile() {
           )}
           {idPhotoOther ? (
             <View style={{ marginBottom: 8 }}>
-              {/* #2435：类型未定时必须显式说明「未定（待平台核定）」，不出现无解释空白 */}
+              {/* #2435：类型未定时提示用户选择，不出现无解释空白 */}
               <Text style={{ fontSize: 12, display: 'block', color: idPhotoOtherVerified ? '#16a34a' : '#a16207' }}>
                 第二证件类型：{idPhotoOtherVerified
                   ? (SECOND_DOC_LABELS[idPhotoOtherType] || idPhotoOtherType || '已指定类型')
-                  : '未定（待平台核定）'}
+                  : (secondDocType ? (SECOND_DOC_LABELS[secondDocType] || secondDocType) : '请选择第二证件类型')}
               </Text>
               <Text style={{ fontSize: 12, display: 'block', color: '#a1a1aa', marginTop: 2 }}>
-                {idPhotoOtherVerified ? '✅ 已认证（类型由平台核定，不可自行修改）' : '⏳ 已提交，平台审核后指定类型'}
+                {idPhotoOtherVerified ? '✅ 已认证（类型由平台核定，不可自行修改）' : '可自行选择后保存；审核员可在审核时修正'}
               </Text>
             </View>
           ) : null}

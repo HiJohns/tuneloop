@@ -56,6 +56,10 @@ func (h *UserManagementHandler) List(c *gin.Context) {
 		q = q.Where("nickname ILIKE ? OR name ILIKE ? OR username ILIKE ? OR phone ILIKE ?",
 			like, like, like, like)
 	}
+	// #2435: 有第二证件照片但类型未定的账号（PC 筛选/巡检口径）。
+	if c.Query("second_doc_type") == "unset" {
+		q = q.Where("COALESCE(id_photo_other, '') <> '' AND COALESCE(id_photo_other_type, '') = ''")
+	}
 	// #2064: 账户管理筛选（全部/顾客/员工+管理员）——员工判定 = 存在任一成员身份
 	if pt := c.Query("personnel_type"); pt == "customer" || pt == "staff" {
 		staffExists := "EXISTS (SELECT 1 FROM site_members sm WHERE sm.user_id = users.id)" +

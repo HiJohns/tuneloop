@@ -1263,16 +1263,17 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 	tenantID := middleware.GetTenantID(ctx)
 
 	var req struct {
-		Name         string  `json:"name"`
-		Nickname     string  `json:"nickname"`
-		Username     string  `json:"username"`
-		Phone        string  `json:"phone"`
-		Email        string  `json:"email"`
-		Password     string  `json:"password"`
-		IdPhotoFront *string `json:"id_photo_front"`
-		IdPhotoBack  *string `json:"id_photo_back"`
-		RealName     *string `json:"real_name"`
-		IdCardNo     *string `json:"id_card_no"`
+		Name             string  `json:"name"`
+		Nickname         string  `json:"nickname"`
+		Username         string  `json:"username"`
+		Phone            string  `json:"phone"`
+		Email            string  `json:"email"`
+		Password         string  `json:"password"`
+		IdPhotoFront     *string `json:"id_photo_front"`
+		IdPhotoBack      *string `json:"id_photo_back"`
+		IdPhotoOtherType *string `json:"id_photo_other_type"`
+		RealName         *string `json:"real_name"`
+		IdCardNo         *string `json:"id_card_no"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid request body: " + err.Error()})
@@ -1326,7 +1327,7 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 	// 会原样提交已上传的 id_photo_front/back，仅"值变化"才算身份信息变更，
 	// 否则误作废 pending 核身批次）。
 	var currentUser models.User
-	if err := db.Select("face_verified, face_verify_method, real_name, id_card_no, id_photo_front, id_photo_back").
+	if err := db.Select("face_verified, face_verify_method, real_name, id_card_no, id_photo_front, id_photo_back, id_photo_other_verified, id_photo_other_type").
 		Where("iam_sub = ?", userID).First(&currentUser).Error; err != nil {
 		log.Printf("[UpdateCurrentUser] load current user failed for %s: %v", userID, err)
 	}
@@ -1346,6 +1347,24 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 	}
 	if req.Nickname != "" {
 		localUpdates["nickname"] = req.Nickname
+	}
+	if req.IdPhotoOtherType != nil {
+		nextType := strings.TrimSpace(*req.IdPhotoOtherType)
+		if nextType != "" && !validSecondDocType(nextType) {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "id_photo_other_type 需为 student/teacher/work/other"})
+			return
+		}
+		currentType := ""
+		if currentUser.IdPhotoOtherType != nil {
+			currentType = strings.TrimSpace(*currentUser.IdPhotoOtherType)
+		}
+		if currentUser.IdPhotoOtherVerified && nextType != currentType {
+			c.JSON(http.StatusConflict, gin.H{"code": 40903, "message": "第二证件类型已认证，用户不可修改"})
+			return
+		}
+		if nextType != currentType {
+			localUpdates["id_photo_other_type"] = nextType
+		}
 	}
 	// #1807: 证件照按归一化 key 比较（库值可能是 URL/双前缀脏数据，
 	// users/me 返回的 URL 回传后同值重提交必须不算变更，否则误作废批次）。
@@ -1446,6 +1465,9 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 	if req.Password != "" {
 		// IAM bumps token_version on password change; client must re-login.
 		responseData["relogin"] = true
+	}
+	if req.IdPhotoOtherType != nil {
+		responseData["id_photo_other_type"] = strings.TrimSpace(*req.IdPhotoOtherType)
 	}
 	if usernamePtr != nil {
 		responseData["username"] = *usernamePtr

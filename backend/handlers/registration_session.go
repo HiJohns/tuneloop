@@ -139,6 +139,10 @@ func (h *RegistrationSessionHandler) CreateRegistrationSession(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "请先阅读并同意相关协议"})
 		return
 	}
+	if req.IdPhotoOtherType != "" && !validSecondDocType(req.IdPhotoOtherType) {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "id_photo_other_type 需为 student/teacher/work/other"})
+		return
+	}
 	log.Printf("[Consent] registration session: terms agreed (related_agreements)")
 
 	form := registerForm{

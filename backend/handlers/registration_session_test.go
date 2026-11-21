@@ -623,13 +623,12 @@ func TestPaymentCallback_SessionFlow_RealCallback(t *testing.T) {
 	assert.Equal(t, int64(1), userCount, "repeat callback must not create a second account")
 }
 
-// TestRegistrationSecondDocType_Ignored (#1924-audit Bug2): 顾客自填的
-// id_photo_other_type 在注册完成时必须被读取但**忽略** —— user 保持「未定」，
-// 类型由平台员工在 face_review approve 时指定。
+// TestRegistrationSecondDocType_Persisted (#2435): 顾客自填的
+// id_photo_other_type 在注册完成时必须持久化；审核员后续可修正。
 // 说明：走 legacy 完成路径（无预留用户）的自足用例 —— 既有 payment-callback
 // 用例存在存量性问题（iam_sub/Amount 口径过期，被全量套件在
 // TestImportInstruments panic 截断后长期未被运行，与 #1924 无关）。
-func TestRegistrationSecondDocType_Ignored(t *testing.T) {
+func TestRegistrationSecondDocType_Persisted(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
 
@@ -675,7 +674,8 @@ func TestRegistrationSecondDocType_Ignored(t *testing.T) {
 
 	var user models.User
 	require.NoError(t, db.Where("iam_sub = ?", newUserID).First(&user).Error, "user created via legacy completion path")
-	assert.Nil(t, user.IdPhotoOtherType, "customer-declared second-doc type must NOT be applied at registration")
+	require.NotNil(t, user.IdPhotoOtherType)
+	assert.Equal(t, "student", *user.IdPhotoOtherType, "customer-declared second-doc type must persist at registration (#2435)")
 
 	var session models.RegistrationSession
 	require.NoError(t, db.Where("id = ?", s.ID).First(&session).Error)

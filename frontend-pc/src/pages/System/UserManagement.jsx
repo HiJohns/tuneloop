@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Table, Input, Button, Space, Modal, Form, InputNumber, Switch, message, Tag, Typography, Collapse, Image, Divider, Alert, Radio } from 'antd'
+import { Table, Input, Button, Space, Modal, Form, InputNumber, Select, Switch, message, Tag, Typography, Collapse, Image, Divider, Alert, Radio } from 'antd'
 import { DownloadOutlined, IdcardOutlined, ScanOutlined, CheckCircleOutlined, WarningOutlined } from '@ant-design/icons'
 import { api, faceReviewApi, fetchBlob } from '../../services/api'
 import IdPhotoDisplay from '../../components/IdPhotoDisplay'
 import { formatBeijingDate, formatBeijingDateTimeShort } from '../../utils/date'
 
 const { Text } = Typography
+
+const SECOND_DOC_LABELS = { student: '学生证', teacher: '教职工证', work: '工作证', other: '其他' }
 
 const VERIFY_STATUS = {
   none: { label: '未上传证件照', color: 'default' },
@@ -33,6 +35,7 @@ export default function UserManagement() {
   const [search, setSearch] = useState('')
   // #2064: 账户管理筛选（all/customer/staff）
   const [personnelType, setPersonnelType] = useState('all')
+  const [secondDocType, setSecondDocType] = useState('all')
   const [loading, setLoading] = useState(false)
   const [detailVisible, setDetailVisible] = useState(false)
   const [current, setCurrent] = useState(null)
@@ -53,11 +56,12 @@ export default function UserManagement() {
   // Module 2: face batches (read-only, review via face-review queue #1813)
   const [batches, setBatches] = useState([])
 
-  const fetchList = async (p = page, ps = pageSize, s = search, pt = personnelType) => {
+  const fetchList = async (p = page, ps = pageSize, s = search, pt = personnelType, sdt = secondDocType) => {
     setLoading(true)
     try {
       const params = { page: p, pageSize: ps, search: s }
       if (pt && pt !== 'all') params.personnel_type = pt
+      if (sdt === 'unset') params.second_doc_type = 'unset'
       const resp = await api.get('/admin/user-management', { params })
       if (resp?.code === 20000) {
         setList(resp.data.list || [])
@@ -372,6 +376,15 @@ export default function UserManagement() {
           buttonStyle="solid"
           options={[ { label: '全部', value: 'all' }, { label: '顾客', value: 'customer' }, { label: '员工+管理员', value: 'staff' } ]}
         />
+        <Select
+          value={secondDocType}
+          style={{ width: 210 }}
+          onChange={(v) => { setSecondDocType(v); setPage(1); fetchList(1, pageSize, search, personnelType, v) }}
+          options={[
+            { label: '第二证件：全部', value: 'all' },
+            { label: '有照片·类型未定', value: 'unset' },
+          ]}
+        />
         <Input.Search
           placeholder="搜索 昵称/电话/微信号"
           allowClear
@@ -443,8 +456,8 @@ export default function UserManagement() {
               </div>
             </Form.Item>
           )}
-          {detail && current && !isStaffUser && (
-            <Form.Item label={`其他证件照片${idPhotos.otherType ? `（${idPhotos.otherType}）` : '（类型未定：由审核员在实名审核时指定）'}`}>
+          {detail && current && !isStaffUser && idPhotos.other && (
+            <Form.Item label={`其他证件照片${idPhotos.otherType ? `（${SECOND_DOC_LABELS[idPhotos.otherType] || idPhotos.otherType}）` : '（类型未定：待审核，用户可自报，审核员可修正）'}`}>
               <div style={{ display: 'flex', gap: 24 }}>
                 <IdPhotoDisplay
                   side="other"

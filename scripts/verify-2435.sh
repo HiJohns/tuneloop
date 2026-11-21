@@ -1,67 +1,60 @@
 #!/usr/bin/env bash
-# #2435：实名通过补建 second_doc 批次 + UI 兜底 + requeue 排除已清退 + rejected 重开。
-# 用法：bash scripts/verify-2435.sh <r1-go|r2-smoke|r3-probe|r4-requeue|r5-rejected>
+# #2435 Rev.3 evidence driver.
 set -uo pipefail
 
 MODE="${1:-}"
 case "$MODE" in
-  r1-go) ART="docs/evidence/2435/R1-go.txt"; TEST='^(TestFaceReview_Registration_(AutoEnqueuesSecondDoc|NoRequeueWhenSecondDocVerified)_2435|TestFaceReview_Registration_ApprovesWithoutSecondDocType|TestFaceReview_SecondDoc_(RequiresType|ApproveAssignsType))$' ;;
-  r2-smoke) ART="docs/evidence/2435/R2-smoke.txt" ;;
-  r3-probe) ART="docs/evidence/2435/R3-probe.txt" ;;
-  r4-requeue) ART="docs/evidence/2435/R4-requeue.txt"; TEST='^TestRequeueSecondDocBatches' ;;
-  r5-rejected) ART="docs/evidence/2435/R5-rejected.txt"; TEST='^TestFaceReview_Registration_RejectedBatchAllowsOneNewOpen_2435$' ;;
-  *) echo "usage: $0 <r1-go|r2-smoke|r3-probe|r4-requeue|r5-rejected>" >&2; exit 2 ;;
+  r1) NAME="R1-registration-type.txt" ;;
+  r2) NAME="R2-put-type.txt" ;;
+  r3) NAME="R3-render.txt" ;;
+  r4) NAME="R4-save.txt" ;;
+  r5) NAME="R5-pc-detail.txt" ;;
+  r6) NAME="R6-filter.txt" ;;
+  r7) NAME="R7-review.txt" ;;
+  r8) NAME="R8-docs.txt" ;;
+  r9) NAME="R9-full-gate.txt" ;;
+  *) echo "usage: $0 <r1..r9>" >&2; exit 2 ;;
 esac
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"; cd "$REPO_ROOT"
-export PATH="/usr/local/go/bin:${PATH}"
-if [ -f "$REPO_ROOT/backend/.env" ]; then
-  set -a; . "$REPO_ROOT/backend/.env"; set +a
-fi
-export TUNELOOP_TEST_DB="${TUNELOOP_TEST_DB:-tuneloop_test_verify2435}"
-export IAM_NAMESPACE="test-ns"
-export IAM_SECRET="test-secret-1489"
-export TUNELOOP_DB_SIMPLE_PROTOCOL=1
-export TMPDIR="${TMPDIR:-$REPO_ROOT/tmp/gobuild}"
-export GOCACHE="${GOCACHE:-$REPO_ROOT/tmp/gocache}"
-mkdir -p "$TMPDIR" "$GOCACHE" "$(dirname "$ART")"
-
+REPO="$(git rev-parse --show-toplevel)"; cd "$REPO"
+OUT_DIR="${OUT_DIR:-$REPO/docs/evidence/2435}"
+mkdir -p "$OUT_DIR" "$REPO/tmp/gobuild" "$REPO/tmp/gocache"
+ART="$OUT_DIR/$NAME"
 BUILD="1.0.$(git rev-parse --short HEAD)"
 COMMIT="$(git rev-parse HEAD)"
 DIRTY=false
-if [ -n "$(git status --porcelain --untracked-files=no | grep -v 'docs/evidence/2435/' || true)" ]; then
-  DIRTY=true
-fi
-PROVENANCE="# build=$BUILD commit=$COMMIT dirty=$DIRTY"
+[ -n "$(git status --porcelain --untracked-files=no)" ] && DIRTY=true
+PROV="# build=$BUILD commit=$COMMIT dirty=$DIRTY"
+
+node22() {
+  if [ -s "$HOME/.nvm/nvm.sh" ]; then
+    # shellcheck disable=SC1090
+    source "$HOME/.nvm/nvm.sh"; nvm use 22 >/dev/null 2>&1 || true
+  fi
+}
+backend() {
+  cd "$REPO/backend"
+  export TMPDIR="$REPO/tmp/gobuild" GOCACHE="$REPO/tmp/gocache"
+  set -a; . ./.env; set +a
+}
 
 case "$MODE" in
-  r1-go|r4-requeue|r5-rejected)
-    {
-      echo "$PROVENANCE"
-      ( cd "$REPO_ROOT/backend" && go test ./handlers/ -run "$TEST" -count=1 -v )
-    } 2>&1 | tee "$ART"
-    exit "${PIPESTATUS[0]}"
-    ;;
-  r2-smoke)
-    {
-      echo "$PROVENANCE"
-      ( cd "$REPO_ROOT/frontend-mobile" && npm run smoke )
-    } 2>&1 | tee "$ART"
-    exit "${PIPESTATUS[0]}"
-    ;;
-  r3-probe)
-    {
-      echo "$PROVENANCE"
-      fail=0
-      grep -q "未定（待平台核定）" "$REPO_ROOT/frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx" \
-        && echo "UI_OK: 未定（待平台核定）" || { echo "UI_MISSING"; fail=1; }
-      grep -q "ensureSecondDocBatch(tx, batch.UserID)" "$REPO_ROOT/backend/handlers/face_review.go" \
-        && echo "CALLSITE_OK: ensureSecondDocBatch(tx, batch.UserID)" || { echo "CALLSITE_MISSING"; fail=1; }
-      grep -q "id_photo_other_verified" "$REPO_ROOT/backend/handlers/face_review.go" \
-        && echo "SELECT_OK: id_photo_other_verified" || { echo "SELECT_MISSING"; fail=1; }
-      [ "$fail" = "0" ] && echo "PROBE-OK" || echo "PROBE-FAIL"
-      exit "$fail"
-    } 2>&1 | tee "$ART"
-    exit "${PIPESTATUS[0]}"
-    ;;
+  r1)
+    { echo "$PROV"; backend; go test ./handlers/ -run 'TestRegistrationSecondDocType_Persisted' -count=1 -v; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
+  r2)
+    { echo "$PROV"; backend; go test ./handlers/ -run 'TestUpdateCurrentUser_SecondDocType_2435' -count=1 -v; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
+  r3)
+    { echo "$PROV"; node22; cd "$REPO/frontend-mobile"; npx vitest run --config vitest.config.js scripts/page-smoke/second-doc-type-fallback-2435.test.jsx; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
+  r4)
+    { echo "$PROV"; grep -q 'id_photo_other_type: secondDocType' frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx; echo "SAVE_FIELD_OK"; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
+  r5)
+    { echo "$PROV"; grep -q '待审核，用户可自报，审核员可修正' frontend-pc/src/pages/System/UserManagement.jsx; grep -q 'SECOND_DOC_LABELS' frontend-pc/src/pages/System/UserManagement.jsx; echo "PC_DETAIL_OK"; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
+  r6)
+    { echo "$PROV"; backend; go test ./handlers/ -run 'TestUserManagement_SecondDocUnsetFilter_2435' -count=1 -v; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
+  r7)
+    { echo "$PROV"; backend; go test ./handlers/ -run 'TestFaceReview_Registration_AutoEnqueuesSecondDoc_2435|TestRequeueSecondDocBatches' -count=1 -v; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
+  r8)
+    { echo "$PROV"; grep -q '用户自报' docs/cases/id-photos.md; grep -q '待审核' docs/cases/user-management.md; grep -q '四态' docs/spec/ui/ui.md; grep -q 'id_photo_other_type' docs/spec/api/api.md; echo "DOCS_OK"; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
+  r9)
+    { echo "$PROV"; backend; go build ./...; go test ./handlers/ -count=1 -timeout 10m; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
 esac

@@ -348,7 +348,7 @@ func completeRegistrationFromSession(tx *gorm.DB, record *models.OrderPaymentRec
 		// Transfer ID photos from session form_data to the user record (#1787).
 		// The form_data.id_photos is a map of side→storage_key populated by
 		// the session-scoped upload endpoint (POST /auth/registration-sessions/:id/id-photo).
-		if len(form.IDPhotos) > 0 {
+		if len(form.IDPhotos) > 0 || form.IdPhotoOtherType != "" {
 			photoUpdates := map[string]interface{}{}
 			for side, key := range form.IDPhotos {
 				switch side {
@@ -360,6 +360,10 @@ func completeRegistrationFromSession(tx *gorm.DB, record *models.OrderPaymentRec
 					photoUpdates["id_photo_other"] = key
 				}
 			}
+			// #2435: 注册阶段自报的第二证件类型必须持久化；审核员后续可修正。
+			if form.IdPhotoOtherType != "" && validSecondDocType(form.IdPhotoOtherType) {
+				photoUpdates["id_photo_other_type"] = form.IdPhotoOtherType
+			}
 			if len(photoUpdates) > 0 {
 				tx.Model(&models.User{}).Where("id = ?", localUser.ID).Updates(photoUpdates)
 			}
@@ -368,8 +372,7 @@ func completeRegistrationFromSession(tx *gorm.DB, record *models.OrderPaymentRec
 		if form.IDPhotos != nil && form.IDPhotos["other"] != "" {
 			ensureSecondDocBatch(tx, localUser.ID)
 		}
-		// #1924: 第二证件类型不再由顾客指定 —— 保持「未定」，由平台员工在
-		// 审核时指定（face_review approve 的 second_doc_type）。
+		// #2435: 类型权威 = 用户自报 + 审核员修正；注册自报已在上方写入。
 	}
 
 	return tx.Model(&session).Updates(map[string]interface{}{
