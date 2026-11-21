@@ -104,29 +104,37 @@ func TestDashboardStats_2005_MerchantScope(t *testing.T) {
 	// #2009 口径统一：租约指标取自 orders（in_lease / expired），不再用 lease_sessions
 	todayStr := time.Now().Format("2006-01-02")
 	seedScope := func(tenant string) {
-		require.NoError(t, db.Create(&models.Instrument{TenantID: tenant, OrgID: &tenant, SN: "A-" + uuid.New().String()[:8], StockStatus: "rented"}).Error)
+		testfixtures.SeedTenantFK(t, db, tenant)
+		instA := models.Instrument{TenantID: tenant, OrgID: &tenant, SN: "A-" + uuid.New().String()[:8], StockStatus: "rented"}
+		require.NoError(t, db.Create(&instA).Error)
 		require.NoError(t, db.Create(&models.Instrument{TenantID: tenant, OrgID: &tenant, SN: "B-" + uuid.New().String()[:8], StockStatus: "available"}).Error)
 		// 3 条在租（今天/昨天/未来到期）+ 1 条逾期
 		for _, ed := range []string{todayStr, time.Now().AddDate(0, 0, -1).Format("2006-01-02"), time.Now().AddDate(0, 0, 3).Format("2006-01-02")} {
 			end := ed
-			require.NoError(t, db.Create(&models.Order{
-				TenantID: tenant, OrgID: tenant, UserID: uuid.New().String(), InstrumentID: uuid.New().String(),
+			ord2443_0 := models.Order{
+				TenantID: tenant, OrgID: tenant, UserID: uuid.New().String(), InstrumentID: instA.ID,
 				Level: "standard", LeaseTerm: 1, MonthlyRent: models.FromYuan(100),
 				Status: models.OrderStatusInLease, EndDate: &end, CashPaid: models.FromYuan(100),
 				CreatedAt: time.Now().AddDate(0, 0, -10), UpdatedAt: time.Now(),
-			}).Error)
+			}
+			testfixtures.SeedUserFK(t, db, ord2443_0.UserID, tenant, tenant)
+			require.NoError(t, db.Create(&ord2443_0).Error)
 		}
-		require.NoError(t, db.Create(&models.Order{
-			TenantID: tenant, OrgID: tenant, UserID: uuid.New().String(), InstrumentID: uuid.New().String(),
+		ordExpired := models.Order{
+			TenantID: tenant, OrgID: tenant, UserID: uuid.New().String(), InstrumentID: instA.ID,
 			Level: "standard", LeaseTerm: 1, MonthlyRent: models.FromYuan(100),
 			Status: models.OrderStatusExpired, CreatedAt: time.Now().AddDate(0, 0, -10), UpdatedAt: time.Now(),
-		}).Error)
+		}
+		testfixtures.SeedUserFK(t, db, ordExpired.UserID, tenant, tenant)
+		require.NoError(t, db.Create(&ordExpired).Error)
 		// 1 条今日完成（今日新订单 + 收入）
-		require.NoError(t, db.Create(&models.Order{
-			TenantID: tenant, OrgID: tenant, UserID: uuid.New().String(), InstrumentID: uuid.New().String(),
+		ord2443_1 := models.Order{
+			TenantID: tenant, OrgID: tenant, UserID: uuid.New().String(), InstrumentID: instA.ID,
 			Level: "standard", LeaseTerm: 1, MonthlyRent: models.FromYuan(100),
 			Status: "completed", CashPaid: models.FromYuan(100), CreatedAt: time.Now(), UpdatedAt: time.Now(),
-		}).Error)
+		}
+		testfixtures.SeedUserFK(t, db, ord2443_1.UserID, tenant, tenant)
+		require.NoError(t, db.Create(&ord2443_1).Error)
 	}
 	seedScope(tid)
 	seedScope(otherTid) // 不应计入

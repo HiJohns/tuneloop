@@ -23,8 +23,10 @@ func TestAdminOrderFinancials_2281(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 	org := uuid.NewString()
 	orderID := uuid.NewString()
-	require.NoError(t, db.Create(&models.Order{ID: orderID, TenantID: org, OrgID: org, UserID: uuid.NewString(),
-		InstrumentID: uuid.NewString(), Level: "entry", LeaseTerm: 30, Status: "completed", CashPaid: models.FromYuan(1200)}).Error)
+	ord2443_0 := models.Order{ID: orderID, TenantID: org, OrgID: org, UserID: uuid.NewString(),
+		InstrumentID: uuid.NewString(), Level: "entry", LeaseTerm: 30, Status: "completed", CashPaid: models.FromYuan(1200)}
+	testfixtures.SeedOrderParents(t, db, &ord2443_0)
+	require.NoError(t, db.Create(&ord2443_0).Error)
 	pr := models.OrderPaymentRecord{ID: uuid.NewString(), TenantID: org, UserID: uuid.NewString(), OrderID: &orderID,
 		OrderType: "rent", Amount: models.FromYuan(1500), Type: "payment", Status: "paid"}
 	require.NoError(t, db.Create(&pr).Error)
@@ -85,8 +87,10 @@ func TestAdminOrderFinancials_ReplayThree_2281(t *testing.T) {
 		{orderID: uuid.NewString(), orderNo: "YL20260914-003", payments: []models.Cents{6, 5}, refunds: nil, cash: 6, wantDiff: 5},
 	}
 	for _, c := range cases {
-		require.NoError(t, db.Create(&models.Order{ID: c.orderID, OrderNo: c.orderNo, TenantID: org, OrgID: org, UserID: uuid.NewString(),
-			InstrumentID: uuid.NewString(), Level: "entry", LeaseTerm: 30, Status: "completed", CashPaid: c.cash}).Error)
+		ord2443_1 := models.Order{ID: c.orderID, OrderNo: c.orderNo, TenantID: org, OrgID: org, UserID: uuid.NewString(),
+			InstrumentID: uuid.NewString(), Level: "entry", LeaseTerm: 30, Status: "completed", CashPaid: c.cash}
+		testfixtures.SeedOrderParents(t, db, &ord2443_1)
+		require.NoError(t, db.Create(&ord2443_1).Error)
 		for j, amt := range c.payments {
 			pr := models.OrderPaymentRecord{ID: uuid.NewString(), TenantID: org, UserID: uuid.NewString(), OrderID: &c.orderID,
 				OrderType: "rent", Amount: amt, Type: "payment", Status: "paid", OutTradeNo: strPtr("rp-" + uuid.NewString()[:8])}

@@ -140,7 +140,7 @@ func TestApplySideEffects_ShortfallClosesLoop(t *testing.T) {
 	}).Error)
 
 	orderID := uuid.New().String()
-	require.NoError(t, db.Create(&models.Order{
+	ord2443_0 := models.Order{
 		ID: orderID, TenantID: tenantID, OrgID: orgID, UserID: userID,
 		InstrumentID:     uuid.New().String(),
 		StartDate:        strPtr("2026-08-01"),
@@ -150,7 +150,9 @@ func TestApplySideEffects_ShortfallClosesLoop(t *testing.T) {
 		Deposit:          0,
 		CashPaid:         models.FromYuan(200),
 		PricingBreakdown: strPtr(`{"base_daily_rent":1000,"rent_days":35,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":1000},{"days_max":35,"discount_percent":20,"daily_rate":1000}],"tier_segments":[{"tier":1,"days":30,"rate":1000,"discount":1,"subtotal":30000},{"tier":2,"days":5,"rate":1000,"discount":0.8,"subtotal":4000}],"total_amount":34000}`),
-	}).Error)
+	}
+	testfixtures.SeedOrderParents(t, db, &ord2443_0)
+	require.NoError(t, db.Create(&ord2443_0).Error)
 	require.NoError(t, db.Create(&models.Instrument{
 		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID,
 		SN: "SN-SHORTFALL-LOOP", StockStatus: "available",

@@ -30,8 +30,10 @@ func TestInstrumentMisc_ExplicitScope_2276(t *testing.T) {
 	}
 	for _, x := range []struct{ inst, org string }{{instA, orgA}, {instB, orgB}} {
 		oid := uuid.NewString()
-		require.NoError(t, db.Create(&models.Order{ID: oid, TenantID: x.org, OrgID: x.org, UserID: uuid.NewString(),
-			InstrumentID: x.inst, Level: "entry", LeaseTerm: 30, Status: "paid"}).Error)
+		ord2443_0 := models.Order{ID: oid, TenantID: x.org, OrgID: x.org, UserID: uuid.NewString(),
+			InstrumentID: x.inst, Level: "entry", LeaseTerm: 30, Status: "paid"}
+		testfixtures.SeedOrderParents(t, db, &ord2443_0)
+		require.NoError(t, db.Create(&ord2443_0).Error)
 		require.NoError(t, db.Create(&models.OrderStatusHistory{ID: uuid.NewString(), TenantID: x.org, OrderID: oid, StatusFrom: "reserved", StatusTo: "paid"}).Error)
 	}
 

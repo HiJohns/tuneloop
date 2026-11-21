@@ -41,7 +41,7 @@ func TestCreditAssessmentFlow(t *testing.T) {
 		SN: "SN-CREDIT-FLOW", StockStatus: "available",
 		TotalPrice: ptrCents(models.FromYuan(1200)),
 	}).Error)
-	require.NoError(t, db.Create(&models.Order{
+	ord2443_0 := models.Order{
 		ID: orderID, TenantID: tenantID, OrgID: tenantID, UserID: userID,
 		InstrumentID:      instrumentID,
 		Status:            models.OrderStatusReserved,
@@ -50,7 +50,9 @@ func TestCreditAssessmentFlow(t *testing.T) {
 		Deposit:           reduced,
 		DepositFull:       &full,
 		DepositReduced:    &reduced,
-	}).Error)
+	}
+	testfixtures.SeedOrderParents(t, db, &ord2443_0)
+	require.NoError(t, db.Create(&ord2443_0).Error)
 
 	mock := wechatpay.NewMockPayscoreProvider()
 	handler := NewPayscoreHandler(db, mock, &wechatpay.Config{PayScoreServiceID: "SVC1"})
@@ -95,7 +97,7 @@ func TestCreditAssessmentFlow(t *testing.T) {
 
 	// 3) 负例：mock 拒绝 → rejected（不是 approved）。
 	rejectedOrderID := uuid.New().String()
-	require.NoError(t, db.Create(&models.Order{
+	ord2443_1 := models.Order{
 		ID: rejectedOrderID, TenantID: tenantID, OrgID: tenantID, UserID: userID,
 		InstrumentID:         instrumentID,
 		Status:               models.OrderStatusReserved,
@@ -103,7 +105,9 @@ func TestCreditAssessmentFlow(t *testing.T) {
 		DepositCreditPath:    models.DepositCreditPathPayscore,
 		CreditState:          services.CreditStatePending,
 		CreditServiceOrderNo: "rejected-order",
-	}).Error)
+	}
+	testfixtures.SeedOrderParents(t, db, &ord2443_1)
+	require.NoError(t, db.Create(&ord2443_1).Error)
 	mock.Approve = false
 	require.NoError(t, func() error {
 		_, err := mock.CreateOrder(t.Context(), wechatpay.PayScoreCreateParams{OutOrderNo: "rejected-order"})

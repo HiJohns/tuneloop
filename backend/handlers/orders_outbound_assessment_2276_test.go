@@ -25,8 +25,10 @@ func TestOutboundAssessment_ExplicitScope_2276(t *testing.T) {
 	orgA, orgB := uuid.NewString(), uuid.NewString()
 	mk := func(org string) string {
 		id := uuid.NewString()
-		require.NoError(t, db.Create(&models.Order{ID: id, TenantID: org, OrgID: org, UserID: uuid.NewString(),
-			InstrumentID: uuid.NewString(), Level: "entry", LeaseTerm: 30, Status: "paid"}).Error)
+		ord2443_0 := models.Order{ID: id, TenantID: org, OrgID: org, UserID: uuid.NewString(),
+			InstrumentID: uuid.NewString(), Level: "entry", LeaseTerm: 30, Status: "paid"}
+		testfixtures.SeedOrderParents(t, db, &ord2443_0)
+		require.NoError(t, db.Create(&ord2443_0).Error)
 		return id
 	}
 	actor := testutil.TestActor{TenantID: orgA, OrgID: orgA, UserID: uuid.NewString(), Role: "OWNER"}

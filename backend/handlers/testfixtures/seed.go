@@ -55,7 +55,11 @@ func SeedUserFK(t *testing.T, db *gorm.DB, userID, tenantID, orgID string) {
 	}
 	SeedTenantFK(t, db, tenantID)
 	row := models.User{ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID, Username: "u-" + userID[:8], Status: "active"}
-	if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&row).Error; err != nil {
+	q := db.Clauses(clause.OnConflict{DoNothing: true})
+	if orgID == "" {
+		q = q.Omit("org_id")
+	}
+	if err := q.Create(&row).Error; err != nil {
 		t.Fatalf("#2344 seed users(%s): %v", userID, err)
 	}
 }
@@ -95,9 +99,11 @@ func SeedInstrumentFK(t *testing.T, db *gorm.DB, instrumentID, tenantID, orgID s
 	row := models.Instrument{
 		ID:          instrumentID,
 		TenantID:    tenantID,
-		OrgID:       &orgID,
 		SN:          "SN-" + uuid.New().String()[:8],
 		StockStatus: "available",
+	}
+	if orgID != "" {
+		row.OrgID = &orgID
 	}
 	if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&row).Error; err != nil {
 		t.Fatalf("#2443 seed instruments(%s): %v", instrumentID, err)

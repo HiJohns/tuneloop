@@ -93,10 +93,12 @@ func TestReturnOrder_2062_Audit(t *testing.T) {
 	tenantID, orgID := uuid.New().String(), uuid.New().String()
 	userID := uuid.New().String()
 	orderID := uuid.New().String()
-	require.NoError(t, db.Create(&models.Order{
+	ord2443_0 := models.Order{
 		ID: orderID, TenantID: tenantID, OrgID: orgID, UserID: userID,
 		InstrumentID: uuid.New().String(), Status: models.OrderStatusInLease, LeaseTerm: 30,
-	}).Error)
+	}
+	testfixtures.SeedOrderParents(t, db, &ord2443_0)
+	require.NoError(t, db.Create(&ord2443_0).Error)
 
 	r := gin.New()
 	r.Use(audit2062Inject(testutil.MakeCustomer(tenantID, userID)))

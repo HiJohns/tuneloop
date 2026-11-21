@@ -27,11 +27,13 @@ func TestStaffCancelOrder_UsesLedgerNet_2281(t *testing.T) {
 	org, user, staff := uuid.NewString(), uuid.NewString(), uuid.NewString()
 	instID, orderID := uuid.NewString(), uuid.NewString()
 	require.NoError(t, db.Create(&models.Instrument{ID: instID, TenantID: org, OrgID: &org, SN: "SC-2281", StockStatus: "rented"}).Error)
-	require.NoError(t, db.Create(&models.Order{
+	ord2443_0 := models.Order{
 		ID: orderID, TenantID: org, OrgID: org, UserID: user, InstrumentID: instID,
 		Level: "entry", LeaseTerm: 30, Status: models.OrderStatusPaid,
 		CashPaid: models.FromYuan(80), // 缓存虚高：账本净额应为 60
-	}).Error)
+	}
+	testfixtures.SeedOrderParents(t, db, &ord2443_0)
+	require.NoError(t, db.Create(&ord2443_0).Error)
 
 	payID := uuid.NewString()
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{
@@ -77,10 +79,12 @@ func TestCancelOrderByCustomer_UsesLedgerNet_2281(t *testing.T) {
 	org, user := uuid.NewString(), uuid.NewString()
 	instID, orderID := uuid.NewString(), uuid.NewString()
 	require.NoError(t, db.Create(&models.Instrument{ID: instID, TenantID: org, OrgID: &org, SN: "CC-2281", StockStatus: "rented"}).Error)
-	require.NoError(t, db.Create(&models.Order{
+	ord2443_1 := models.Order{
 		ID: orderID, TenantID: org, OrgID: org, UserID: user, InstrumentID: instID,
 		Level: "entry", LeaseTerm: 30, Status: models.OrderStatusPaid, CashPaid: models.FromYuan(80),
-	}).Error)
+	}
+	testfixtures.SeedOrderParents(t, db, &ord2443_1)
+	require.NoError(t, db.Create(&ord2443_1).Error)
 
 	payID := uuid.NewString()
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{

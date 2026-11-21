@@ -18,11 +18,13 @@ func TestRecomputeOrderFinancials_2281(t *testing.T) {
 	org := uuid.NewString()
 	user := uuid.NewString()
 	orderID := uuid.NewString()
-	require.NoError(t, db.Create(&models.Order{
+	ord2443_0 := models.Order{
 		ID: orderID, TenantID: org, OrgID: org, UserID: user,
 		InstrumentID: uuid.NewString(), Level: "entry", LeaseTerm: 30, Status: "completed",
 		CashPaid: models.FromYuan(9999), // 故意错值（聚合缓存）
-	}).Error)
+	}
+	testfixtures.SeedOrderParents(t, db, &ord2443_0)
+	require.NoError(t, db.Create(&ord2443_0).Error)
 
 	pay1 := models.OrderPaymentRecord{ID: uuid.NewString(), TenantID: org, UserID: user, OrderID: &orderID,
 		OrderType: "rent", Amount: models.FromYuan(1000), Type: "payment", Status: "paid"}

@@ -74,7 +74,7 @@ func setupE2ETestEnv(t *testing.T) (*gin.Engine, string, string, string, string)
 
 func createTestOrder(t *testing.T, db *gorm.DB, tenantID, orgID, userID, instrumentID string) string {
 	orderID := uuid.New().String()
-	db.Create(&models.Order{
+	ord2443_0 := models.Order{
 		ID:           orderID,
 		TenantID:     tenantID,
 		OrgID:        orgID,
@@ -84,7 +84,9 @@ func createTestOrder(t *testing.T, db *gorm.DB, tenantID, orgID, userID, instrum
 		StartDate:    strPtr("2026-06-01"),
 		EndDate:      strPtr("2026-07-01"),
 		Deposit:      models.FromYuan(500),
-	})
+	}
+	testfixtures.SeedOrderParents(t, db, &ord2443_0)
+	require.NoError(t, db.Create(&ord2443_0).Error)
 
 	return orderID
 }
@@ -357,7 +359,7 @@ func TestInspectReturn_OverdueFee(t *testing.T) {
 	oldEnd := time.Now().AddDate(0, 0, -10).Format("2006-01-02")
 	start := time.Now().AddDate(0, 0, -30).Format("2006-01-02")
 	pricing := `{"overdue_daily_fee":15,"daily_rent":10}`
-	require.NoError(t, db.Create(&models.Order{
+	ord2443_1 := models.Order{
 		ID:               orderID,
 		TenantID:         tenantID,
 		OrgID:            orgID,
@@ -369,7 +371,9 @@ func TestInspectReturn_OverdueFee(t *testing.T) {
 		Status:           models.OrderStatusReturning,
 		Deposit:          models.FromYuan(500),
 		PricingBreakdown: strPtr(`{"base_daily_rent":100000}`),
-	}).Error)
+	}
+	testfixtures.SeedOrderParents(t, db, &ord2443_1)
+	require.NoError(t, db.Create(&ord2443_1).Error)
 	require.NoError(t, db.Model(&models.Instrument{}).Where("id = ?", instrumentID).Update("pricing", pricing).Error)
 
 	// Scan at today → overdue days = endDate+1 .. today = 10 days
@@ -417,7 +421,7 @@ func TestInspectReturn_NoOverdue(t *testing.T) {
 	orderID := uuid.New().String()
 	futureEnd := time.Now().AddDate(0, 0, 5).Format("2006-01-02")
 	start := time.Now().AddDate(0, 0, -10).Format("2006-01-02")
-	require.NoError(t, db.Create(&models.Order{
+	ord2443_2 := models.Order{
 		ID:               orderID,
 		TenantID:         tenantID,
 		OrgID:            orgID,
@@ -429,7 +433,9 @@ func TestInspectReturn_NoOverdue(t *testing.T) {
 		Status:           models.OrderStatusReturning,
 		Deposit:          models.FromYuan(500),
 		PricingBreakdown: strPtr(`{"base_daily_rent":100000}`),
-	}).Error)
+	}
+	testfixtures.SeedOrderParents(t, db, &ord2443_2)
+	require.NoError(t, db.Create(&ord2443_2).Error)
 
 	reqBody := map[string]interface{}{
 		"instrument_sn": "TEST-SN2",
@@ -485,7 +491,7 @@ func TestInspectReturn_Good_ExecutesRefund(t *testing.T) {
 	start := time.Now().AddDate(0, 0, -2).Format("2006-01-02")
 	end := time.Now().AddDate(0, 0, 10).Format("2006-01-02")
 	now := time.Now()
-	require.NoError(t, db.Create(&models.Order{
+	ord2443_3 := models.Order{
 		ID:                orderID,
 		TenantID:          tenantID,
 		OrgID:             orgID,
@@ -500,7 +506,9 @@ func TestInspectReturn_Good_ExecutesRefund(t *testing.T) {
 		PrepaidPointsUsed: models.Cents(20000),
 		ReturnedAt:        &now,
 		PricingBreakdown:  strPtr(`{"base_daily_rent":10000,"final_daily_rent":10000,"total_amount":120000,"tier_segments":[{"days":12,"rate":10000,"tier":1,"discount":1,"subtotal":120000}]}`),
-	}).Error)
+	}
+	testfixtures.SeedOrderParents(t, db, &ord2443_3)
+	require.NoError(t, db.Create(&ord2443_3).Error)
 
 	// Payment record for the cash portion
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{
@@ -807,7 +815,10 @@ func TestExecuteRefund_NoSelfRebate(t *testing.T) {
 	order := models.Order{
 		ID:                "00000000-0000-0000-0000-00000000aa03",
 		TenantID:          "00000000-0000-0000-0000-000000000000",
+		OrgID:             "00000000-0000-0000-0000-000000000000",
 		UserID:            userID,
+		InstrumentID:      uuid.New().String(),
+		Level:             "standard",
 		CashPaid:          models.FromYuan(6030),
 		PrepaidPointsUsed: 0,
 		GiftPointsUsed:    0,
@@ -819,6 +830,9 @@ func TestExecuteRefund_NoSelfRebate(t *testing.T) {
 		Status:            "completed",
 		PricingBreakdown:  strPtr(`{"base_daily_rent":10000,"final_daily_rent":10000,"tier_segments":[{"days":30,"rate":10000,"tier":1,"discount":1,"subtotal":300000}]}`),
 	}
+
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: settlements.order_id FK
+	require.NoError(t, db.Create(&order).Error)
 
 	tx := db.Begin()
 	_, err := executeRefund(tx, order)
