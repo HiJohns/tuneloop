@@ -309,3 +309,11 @@ steps:
 - **IAM**：`POST /api/v1/users {status:"pending", callback_url, org_id?, role?}` → 建 init 用户 + 确认会话 + 发邀请邮件；`GET /confirm` → **激活** + 派发 **`user.activated` 回调** + 按参数建组织关系 → 转 `/setup-password` 设密码；`POST /api/users/resend-confirmation` 重发；`status='init'` 唯一索引
 - **tuneloop**：`iam_proxy.go` 已支持 `status:"pending"` 分支（当前默认走 `skip_activation=true` 初始密码 → **改为邀请**）；需**注册并处理 IAM 回调**（`HandleIAMCallback` 未注册路由、未处理 `user.activated`）以完成本地组织绑定 / 角色分配（#2032）/ 维修师可见性
 - **弃用**：匿名邀请码（`POST /sites/:id/invites` 已于 #2216 删除）、管理员创建+初始密码（统一为邀请）、微信一账户多绑定并存（改为合并）
+
+## 网点人员流转边界（#2448）
+
+- **网点管理员**：只能对本网点已存在的商户成员做网点级管理；新增人员必须提交 **申请**（`members/apply`），不得直接创建/邀请/重置。
+- **商户管理员**：可直接创建直属员工/维修师、邀请未绑定用户、将已有商户成员加入任意网点，并审批网点管理员的申请。
+- 申请状态机：`pending_approval → pending（已发邀请）→ accepted`，或 `rejected / cancelled / expired(72h)`；审批前不创建 IAM 用户。
+- 网点转移默认 **`transfer`**（移出原网点）；商户管理员可显式选择 **`multi_site`** 保留原网点。多网点当前站点以 JWT `oid` 为准（#2449）。
+- 复用 #2114 的 `staff_invites`、`members/apply`、审批与通知，不新增重复表；同 `(tenant, site, identifier)` 在 `pending_approval|pending` 唯一，禁止自批。
