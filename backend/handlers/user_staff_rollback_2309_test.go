@@ -130,7 +130,7 @@ func TestCreateUser2309_LocalTxFailurePurgesIAM(t *testing.T) {
 	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	raw, _ := json.Marshal(map[string]interface{}{
-		"name": "回滚测试", "username": "rollback2309", "phone": "13900002309", "email": "rollback2309@example.com",
+		"name": "回滚测试", "phone": "13900002309", "email": "rollback2309@example.com",
 		"user_type": "merchant_direct",
 	})
 	w := httptest.NewRecorder()
@@ -153,7 +153,7 @@ func TestCreateUser2309_BindFailurePurgesIAM(t *testing.T) {
 	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 
 	raw, _ := json.Marshal(map[string]interface{}{
-		"name": "绑定失败", "username": "bindfail2309", "phone": "13900002311", "email": "bindfail2309@example.com",
+		"name": "绑定失败", "phone": "13900002311", "email": "bindfail2309@example.com",
 		"user_type": "merchant_direct",
 	})
 	w := httptest.NewRecorder()

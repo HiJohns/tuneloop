@@ -49,26 +49,29 @@ func TestPayscorePath(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, httpCode)
 	})
 
-	t.Run("internal request normalizes to payscore", func(t *testing.T) {
+	t.Run("internal reduced 无推荐信拒绝", func(t *testing.T) {
 		instID := seedTierInstrument(t, db, tenantID, orgID, 500, ptrFloat(200))
-		data := createTierOrder(t, router, map[string]interface{}{
+		httpCode, _, _ := post1867JSON(t, router, "/api/user/orders", map[string]interface{}{
 			"instrument_id": instID, "start_date": "2026-09-15", "end_date": "2026-09-20",
 			"deposit_tier": "reduced", "deposit_credit_path": "internal",
 			"guarantor_ids": guarantors,
 		})
-		var order models.Order
-		require.NoError(t, db.Where("id = ?", data["order_id"]).First(&order).Error)
-		assert.Equal(t, models.DepositCreditPathPayscore, order.DepositCreditPath)
+		assert.Equal(t, http.StatusForbidden, httpCode, "internal 路径仍要求 #1867 资格")
 	})
 
-	t.Run("payscore zero rejected when instrument has deposit", func(t *testing.T) {
+	t.Run("payscore zero 档免押金", func(t *testing.T) {
 		instID := seedTierInstrument(t, db, tenantID, orgID, 500, ptrFloat(200))
-		httpCode, bizCode, _ := post1867JSON(t, router, "/api/user/orders", map[string]interface{}{
+		data := createTierOrder(t, router, map[string]interface{}{
 			"instrument_id": instID, "start_date": "2026-09-15", "end_date": "2026-09-20",
 			"deposit_tier": "zero", "deposit_credit_path": "payscore",
 		})
-		assert.Equal(t, http.StatusBadRequest, httpCode)
-		assert.Equal(t, 40002, bizCode)
+		var order models.Order
+		require.NoError(t, db.Where("id = ?", data["order_id"]).First(&order).Error)
+		assert.Equal(t, models.DepositTierZero, order.DepositTier)
+		assert.Equal(t, models.DepositCreditPathPayscore, order.DepositCreditPath)
+		assert.Equal(t, models.Cents(0), order.Deposit)
+		require.NotNil(t, order.DepositFull)
+		assert.Equal(t, models.FromYuan(500), *order.DepositFull, "免押金额按全额押金快照")
 	})
 
 	t.Run("非法 deposit_credit_path 拒绝", func(t *testing.T) {

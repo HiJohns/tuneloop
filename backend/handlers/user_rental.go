@@ -275,16 +275,6 @@ func validDepositTier(tier string) bool {
 	return tier == "" || tier == models.DepositTierFull || tier == models.DepositTierReduced || tier == models.DepositTierZero
 }
 
-func requestedDepositTier(tier string, legacyWaived bool) string {
-	if tier != "" {
-		return tier
-	}
-	if legacyWaived {
-		return models.DepositTierReduced
-	}
-	return models.DepositTierFull
-}
-
 // validateReducedDepositRequest enforces D1/D4 for the reduced tier:
 // existing waiver eligibility + recommendation letter + 2 owned guarantors.
 func validateReducedDepositRequest(c *gin.Context, db *gorm.DB, userID string, guarantorIDs []string, letter string) bool {
@@ -572,7 +562,10 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	}
 	// #2352 / #2357（Owner 2026-11-15 改判）：档位决定回归「确认订单页」——
 	// 确认页展示全额押金，并提供「差额押金」拉杆（差额需 2 位担保人）。
-	requestedTier := requestedDepositTier(req.DepositTier, req.DepositWaived)
+	requestedTier := req.DepositTier
+	if requestedTier == "" {
+		requestedTier = models.DepositTierFull
+	}
 	depositTier, fullDeposit, reducedAmount, validReduced := resolveDepositTier(&lockedInstrument, pricingResult, requestedTier)
 	if requestedTier == models.DepositTierReduced && !validReduced && fullDeposit > 0 {
 		// #2357 修正：不得静默回落成全额定档（会造成确认页与支付页金额不一致）。
@@ -1129,7 +1122,10 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 	var results []orderResult
 	totalAmount := 0.0
 	guarantorChecked := false
-	requestedTier := requestedDepositTier(req.DepositTier, req.DepositWaived)
+	requestedTier := req.DepositTier
+	if requestedTier == "" {
+		requestedTier = models.DepositTierFull
+	}
 
 	for _, item := range req.Items {
 		startDate, err := time.Parse("2006-01-02", item.StartDate)

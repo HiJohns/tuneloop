@@ -122,14 +122,16 @@ func TestDepositTiers_2321_Single(t *testing.T) {
 		assert.Empty(t, order.RecommendationLetter)
 	})
 
-	t.Run("no reduced config rejects reduced tier", func(t *testing.T) {
+	t.Run("no reduced config falls back to full", func(t *testing.T) {
 		instID := seedTierInstrument(t, db, tenantID, orgID, 500, nil)
-		httpCode, bizCode, _ := post1867JSON(t, router, "/api/user/orders", map[string]interface{}{
+		data := createTierOrder(t, router, map[string]interface{}{
 			"instrument_id": instID, "start_date": "2026-09-15", "end_date": "2026-09-20",
 			"deposit_tier": "reduced", "guarantor_ids": guarantors, "recommendation_letter": "/uploads/l.jpg",
 		})
-		assert.Equal(t, http.StatusBadRequest, httpCode)
-		assert.Equal(t, 40002, bizCode)
+		var order models.Order
+		require.NoError(t, db.Where("id = ?", data["order_id"]).First(&order).Error)
+		assert.Equal(t, models.DepositTierFull, order.DepositTier)
+		assert.Equal(t, models.FromYuan(500), order.Deposit)
 	})
 
 	t.Run("legacy deposit_waived maps to reduced not zero", func(t *testing.T) {

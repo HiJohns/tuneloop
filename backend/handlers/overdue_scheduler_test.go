@@ -19,7 +19,7 @@ func TestOverdueScheduler_TransitionToExpiredOnly(t *testing.T) {
 	db := database.GetDB()
 
 	// Ensure needed tables exist for this test.
-	require.NoError(t, db.AutoMigrate(&models.OverdueCharge{}))
+	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.OverdueCharge{}, &models.OrderStatusHistory{}, &models.OrderLog{}))
 
 	tenantID := "00000000-0000-0000-0000-0000000000c1"
 	orgID := "00000000-0000-0000-0000-0000000000c2"
@@ -71,7 +71,7 @@ func TestOverdueScheduler_NoTransitionWhenNotDue(t *testing.T) {
 	defer cleanup()
 	db := database.GetDB()
 
-	require.NoError(t, db.AutoMigrate(&models.OverdueCharge{}))
+	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.OverdueCharge{}, &models.OrderStatusHistory{}, &models.OrderLog{}))
 
 	tenantID := "00000000-0000-0000-0000-0000000000d1"
 	orgID := "00000000-0000-0000-0000-0000000000d2"

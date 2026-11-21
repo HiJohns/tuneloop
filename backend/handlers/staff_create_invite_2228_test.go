@@ -74,7 +74,7 @@ func TestStaffCreateUser_InviteMode_2228(t *testing.T) {
 
 	// 1) 邀请模式（无 auto_generate / password）→ 成功，无初始密码，IAM 请求不含密码/skip
 	code, resp := doCreate2068(t, r, map[string]interface{}{
-		"name": "受邀员工", "username": "invitee2228", "phone": "13900002228", "email": "invitee2228@example.com",
+		"name": "受邀员工", "phone": "13900002228", "email": "invitee2228@example.com",
 		"site_id": siteID,
 	})
 	require.Equal(t, http.StatusOK, code, resp)
@@ -91,14 +91,14 @@ func TestStaffCreateUser_InviteMode_2228(t *testing.T) {
 
 	// 2) 邀请模式缺邮箱 → 40002（邀请邮件通道必填）
 	code2, resp2 := doCreate2068(t, r, map[string]interface{}{
-		"name": "无邮箱", "username": "noemail2228", "phone": "13900002229", "site_id": siteID,
+		"name": "无邮箱", "phone": "13900002229", "site_id": siteID,
 	})
 	assert.Equal(t, http.StatusBadRequest, code2)
 	assert.Contains(t, resp2["message"], "邮箱")
 
 	// 3) 回归：auto_generate 模式仍可用（初始密码下发不变）
 	code3, resp3 := doCreate2068(t, r, map[string]interface{}{
-		"name": "直建员工", "username": "direct2228", "phone": "13900002230", "email": "direct2228@example.com",
+		"name": "直建员工", "phone": "13900002230", "email": "direct2228@example.com",
 		"site_id": siteID, "auto_generate": true, "force_password_change": true,
 	})
 	require.Equal(t, http.StatusOK, code3, resp3)

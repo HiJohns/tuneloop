@@ -21,7 +21,7 @@ func seed1918Order(t *testing.T, status string, deliveredAt, returnedAt *time.Ti
 	cleanup := setupMockIAMAndDB(t)
 	t.Cleanup(cleanup)
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.OverdueCharge{}))
+	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.DamageReport{}, &models.OverdueCharge{}, &models.Settlement{}))
 
 	tenantID := "00000000-0000-0000-0000-000000001918"
 	orgID := "00000000-0000-0000-0000-000000001919"
