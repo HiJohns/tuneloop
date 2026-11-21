@@ -1,0 +1,2 @@
+# build=1.0.5da654a7d commit=5da654a7d3f5f58c8f01dfdd0b36cb9aae7301fd dirty=false
+STATIC_OK
