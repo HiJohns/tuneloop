@@ -442,3 +442,22 @@ none（未上传证件照）
 4. 独立 second_doc 批次 approve：`second_doc_type` 必填（student/teacher/work/other），只写 `id_photo_other_type` + `id_photo_other_verified=true`。
 5. 删除第二证件（`side=other`）：清空 `id_photo_other`、`id_photo_other_type`、`id_photo_other_verified`、`intro_letter_url`；pending second_doc 批次置 `rejected`。
 6. 断言：实名通过后第二证件仍可为未认证；第二证件通过/驳回不影响 `face_verified`。
+
+## 第二证件类型的权威与展示（#2435）
+
+**权威口径（Owner 2026-11-20 裁定）**：`users.id_photo_other_type` 由**用户自报 + 审核员修正**，两条路径写同一字段，不存在第二真值。
+
+- 自报入口：注册会话（`id_photo_other_type`）、`ProfileComplete`、编辑资料页（`PUT /api/users/me`）。
+- 注册会话必须**持久化**用户自报的类型（`registration_session.form_data` → `users.id_photo_other_type`）；#1924/#2311 的「注册阶段忽略类型、只由审核员指定」例外**废止**。
+- 审核员在 `kind=second_doc` 批次 approve 时仍可修正类型，同时写 `id_photo_other_verified=true`。
+- 已认证（`id_photo_other_verified=true`）后用户不可覆盖类型（`PUT /api/users/me` 返回 `409`），审核员仍可修正。
+- 枚举固定为 `student | teacher | work | other`；非法值 `400`，不猜测、不静默清空。
+
+**展示四态**（编辑资料页 / 个人中心 / PC 用户详情）：
+
+| 状态 | 条件 | 展示 |
+|---|---|---|
+| 有类型 | `id_photo_other` 有值且 `id_photo_other_type` 非空 | 只读显示中文类型（学生证 / 教职工证 / 工作证 / 其他） |
+| 空类型 | `id_photo_other` 有值且 `id_photo_other_type` 为空 | 小程序：「请选择第二证件类型」+ 可保存（自报）；PC：「待审核（用户可自报，审核员可修正）」 |
+| 无照片 | `id_photo_other` 为空 | **隐藏**类型状态行，保留上传入口 |
+| 已认证 | `id_photo_other_verified=true` | 「已认证」+ 中文类型（用户不可改） |

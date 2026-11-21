@@ -32,7 +32,7 @@ steps:
           - {type: api, method: GET, path: /admin/user-management/:id}
           - {type: api, method: PUT, path: /admin/user-management/:id}
     api: {method: PUT, path: /admin/user-management/:id, params: [membership_level_id, promo_points, status]}
-    rule: "积分编辑按点（保存时 ×100 转分）；证件照 URL 防双前缀（历史数据存完整 URL /uploads/media/... 直接返回）；其他证件 id_photo_other + 类型 id_photo_other_type（readOnly 展示；**缺省时明示「类型未定：由审核员在实名审核时指定」**）；**#2108**：`personnel_type=staff` 时隐藏顾客专属区块（身份证照片/其他证件照片/介绍信/实名核身）；介绍信 `intro_letter_url` 有值时以图片预览展示（学生作为第二证件需上传）"
+    rule: "积分编辑按点（保存时 ×100 转分）；证件照 URL 防双前缀（历史数据存完整 URL /uploads/media/... 直接返回）；其他证件 id_photo_other + 类型 id_photo_other_type（readOnly 展示；**缺省时明示「类型未定：待审核（用户可自报，审核员可修正）」**）；**#2108**：`personnel_type=staff` 时隐藏顾客专属区块（身份证照片/其他证件照片/介绍信/实名核身）；介绍信 `intro_letter_url` 有值时以图片预览展示（学生作为第二证件需上传）"
   - seq: 3
     action: 导出用户 CSV
     frontend:

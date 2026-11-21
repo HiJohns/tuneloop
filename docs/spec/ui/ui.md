@@ -790,6 +790,15 @@ API 来源：
 | 反面 | `back` | `id_photo_back` | 一行（~48%） | 同上 |
 | 其他证件 | `other` | `id_photo_other` | 单独一行（下方） | 即时上传/替换/删除 |
 | 证件类型 | `id_photo_other_type` | `GET /users/me → id_photo_other_type` | 第三证件上方 | Picker 选择：学生证/教职工证/工作证/其他（用户自报，审核端可修正） |
+
+**证件类型四态（#2435）**：
+
+| 状态 | 条件 | 展示/行为 |
+|---|---|---|
+| 有类型 | 有照片且类型非空 | 只读显示中文类型；已认证后不可改 |
+| 空类型 | 有照片且类型为空 | 显示「请选择第二证件类型」+ 保存时随 `PUT /users/me` 提交 `id_photo_other_type` |
+| 无照片 | `id_photo_other` 为空 | **隐藏**类型状态行，保留上传入口 |
+| 已认证 | `id_photo_other_verified=true` | 显示「已认证」+ 中文类型；用户不可覆盖（409），审核员可修正 |
 | 介绍信 | `intro_letter_url` | `GET /users/me → intro_letter_url` | 类型=学生证时显示（第三证件上方） | `IntroLetterUploader`（`POST /upload` content_image）；**学生证必传**，未传时阻止第二证件上传（提示「学生证作为第二证件需先上传介绍信」） |
 
 **实名认证区块**（#1787/#1807：实名信息由员工审核填写）:
@@ -1533,6 +1542,7 @@ API 来源：
 > - 第二证件类型由用户选择：学生证 / 教职工证 / 工作证 / 其他（`id_photo_other_type`）。
 > - 选择学生证时必须先上传介绍信（`IntroLetterUploader`，会话级 `side=intro`）；未上传时阻止第二证件上传。
 > - 类型/介绍信随注册 session form_data 落地，审核端可修正。
+> - **#2435**：注册会话必须**持久化**用户自报的类型到 `users.id_photo_other_type`；#1924/#2311 的「注册阶段忽略类型」例外废止。已认证后用户不可覆盖类型（`PUT /users/me` 返回 409），审核员仍可修正。
 
 ### 2.21.2 PC 审核页：注册核身与第二证件复审分离（#2313）
 
