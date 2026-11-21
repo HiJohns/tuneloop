@@ -233,7 +233,7 @@ PYEOF
         fi
       done
       echo "## 当前证据集"
-      for f in R0-red.txt R1-scan.txt R2-dynamic-scan.txt R3-smoke.txt R4-typography.md R5-provenance.txt R6-build.txt R7-clean.txt evidence.json; do
+      for f in R0-red.txt R1-scan.txt R2-dynamic-scan.txt R3-smoke.txt R4-typography.md R5-provenance.txt R6-build.txt evidence.json; do
         if [ -f "docs/evidence/2436/$f" ] || [ -f "$OUT_DIR/$f" ]; then
           echo "PRESENT: $f"
         else
