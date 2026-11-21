@@ -4226,7 +4226,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 **请求参数**: `file` (image), `side` (front|back|other)
 
-**#2057 裁定3（`side=other`）**: 同 `POST /api/user/id-photo`——`second_doc_type`（用户自报）+ `intro_letter_url`；`student` 缺介绍信 → `40902` + `reasons=["no_intro_letter"]`。自报类型随注册会话 form_data 落地，注册完成时**不写** `users.id_photo_other_type`（该列仍由审核端权威指定）。
+**#2057 裁定3（`side=other`）**: 同 `POST /api/user/id-photo`——`second_doc_type`（用户自报）+ `intro_letter_url`；`student` 缺介绍信 → `40902` + `reasons=["no_intro_letter"]`。自报类型随注册会话 form_data 落地，**注册完成时写入 `users.id_photo_other_type`**（#2435：用户自报 + 审核端可修正；#1924/#2311 的「注册阶段忽略类型、由审核端唯一指定」例外废止）。
 
 **响应**:
 ```json
