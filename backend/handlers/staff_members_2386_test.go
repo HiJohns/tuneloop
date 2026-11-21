@@ -68,6 +68,7 @@ func (f *staffFixture2386) direct(t *testing.T, u *models.User, role string, cre
 
 func (f *staffFixture2386) siteMember(t *testing.T, site *models.Site, u *models.User, role string, roles []string, created time.Time) {
 	t.Helper()
+	testfixtures.SeedTenantFK(t, f.db, f.tenantID) // #2443: site_members tenant FK
 	require.NoError(t, f.db.Create(&models.SiteMember{
 		ID: uuid.New().String(), TenantID: f.tenantID, SiteID: site.ID, UserID: u.ID,
 		Role: role, Roles: roles, CreatedAt: created, UpdatedAt: created,

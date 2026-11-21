@@ -44,6 +44,7 @@ func TestGetInstruments_MultiSiteTechnician(t *testing.T) {
 		Username: "tech1911", Name: "技师", Role: "repair_technician", Status: "active",
 	}).Error)
 	mkMembership := func(site string) {
+		testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site_members tenant FK
 		require.NoError(t, db.Create(&models.SiteMember{
 			TenantID: tenantID, SiteID: site, UserID: techID,
 			Role: "repair_technician", Status: "active",

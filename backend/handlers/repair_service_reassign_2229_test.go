@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"tuneloop-backend/handlers/testfixtures"
 
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
@@ -47,6 +48,7 @@ func rsFixture2229(t *testing.T, f svcFixture) (tech2Sub, siteAdminSub, plainUse
 		ID: siteAdminLocalID, IAMSub: siteAdminSub, TenantID: f.tenantID, OrgID: f.orgID,
 		Username: "sa-" + siteAdminSub[:8], Name: "网点管理员", Status: "active",
 	}).Error)
+	testfixtures.SeedTenantFK(t, f.db, f.tenantID) // #2443: site_members tenant FK
 	require.NoError(t, f.db.Create(&models.SiteMember{
 		TenantID: f.tenantID, SiteID: f.siteID, UserID: siteAdminLocalID, Role: "site_admin", Status: "active",
 	}).Error)

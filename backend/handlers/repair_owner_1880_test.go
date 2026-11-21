@@ -47,6 +47,7 @@ func setup1880Fixture(t *testing.T) (*gin.Engine, *gorm.DB, fixture1880) {
 			Username: "u-" + sub[:8], Name: "用户", Status: "active", Phone: "13800000000",
 		}).Error)
 		if siteID != "" {
+			testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site_members tenant FK
 			require.NoError(t, db.Create(&models.SiteMember{TenantID: tenantID, SiteID: siteID, UserID: sub, Role: role, Status: "active"}).Error)
 		}
 		return sub

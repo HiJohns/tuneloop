@@ -873,6 +873,7 @@ func TestAddMember_ExistingAccount_SameMerchant_Returns40902_NoAttach(t *testing
 	}
 	require.NoError(t, db.Create(&otherSite).Error)
 	testfixtures.SeedUserFK(t, db, conflictUser.ID, tenantID, otherSite.OrgID) // #2443: site_members.user_id FK
+	testfixtures.SeedTenantFK(t, db, tenantID)                                 // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.SiteMember{
 		TenantID: tenantID,
 		SiteID:   otherSite.ID,

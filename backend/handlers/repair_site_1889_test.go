@@ -60,6 +60,7 @@ func newFixture1889(t *testing.T, db *gorm.DB, seed string, orderStatus string) 
 		ID: operatorSub, IAMSub: operatorSub, TenantID: tenantID, OrgID: orgID,
 		Username: "op-" + seed, Name: "操作员", Status: "active",
 	}).Error)
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.SiteMember{
 		TenantID: tenantID, SiteID: siteID, UserID: operatorSub,
 		Role: "site_member", Status: "active",

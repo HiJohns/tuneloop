@@ -60,13 +60,16 @@ func TestMigrateMergedAccountLocal_2445(t *testing.T) {
 	require.NoError(t, db.Create(&y).Error)
 
 	// Same site already has Y: dedupe + union roles.
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.SiteMember{
 		TenantID: tenantID, SiteID: siteA, UserID: x.ID, Role: "site_member", Roles: []string{"site_member", "repair_technician"}, Status: "active",
 	}).Error)
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.SiteMember{
 		TenantID: tenantID, SiteID: siteA, UserID: y.ID, Role: "site_admin", Roles: []string{"site_admin"}, Status: "active",
 	}).Error)
 	// Site B only on X: row moves to Y.
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.SiteMember{
 		TenantID: tenantID, SiteID: siteB, UserID: x.ID, Role: "site_admin", Roles: []string{"site_admin"}, Status: "active",
 	}).Error)
@@ -181,6 +184,7 @@ func TestBindMergeFlow_2445(t *testing.T) {
 	}
 	require.NoError(t, db.Create(&x).Error)
 	require.NoError(t, db.Create(&y).Error)
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.SiteMember{
 		TenantID: tenantID, SiteID: siteID, UserID: x.ID, Role: "site_admin", Roles: []string{"site_admin"}, Status: "active",
 	}).Error)

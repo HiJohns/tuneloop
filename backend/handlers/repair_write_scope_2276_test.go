@@ -83,6 +83,7 @@ func TestRepairMoreWrites_ExplicitScope_2276(t *testing.T) {
 	instID, techID, rrID := uuid.NewString(), uuid.NewString(), uuid.NewString()
 	require.NoError(t, db.Create(&models.Instrument{ID: instID, TenantID: tenantA, OrgID: &tenantA, SN: "REP-MORE-2276", RepairStatus: "repair_in_progress"}).Error)
 	require.NoError(t, db.Create(&models.User{ID: techID, IAMSub: techID, TenantID: tenantA, OrgID: tenantA, Status: "active"}).Error)
+	testfixtures.SeedTenantFK(t, db, tenantA) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.SiteMember{TenantID: tenantA, SiteID: siteA, UserID: techID, Role: "repair_technician", Status: "active"}).Error)
 	require.NoError(t, db.Create(&models.RepairRequest{
 		ID: rrID, TenantID: tenantA, SiteID: siteA, UserID: uuid.NewString(),

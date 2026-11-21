@@ -66,6 +66,7 @@ func setupRepairServiceFixture(t *testing.T) svcFixture {
 			Username: "u-" + u[:8], Name: "用户", Status: "active",
 		}).Error)
 	}
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.SiteMember{
 		TenantID: tenantID, SiteID: siteID, UserID: techID, Role: "repair_technician", Status: "active",
 	}).Error)
@@ -80,6 +81,7 @@ func setupRepairServiceFixture(t *testing.T) svcFixture {
 		UserID: techID, TenantID: tenantID, Photo: "p.jpg", Bio: "钢琴维修 12 年",
 		Experience: `[{"craft":"钢琴","years":12}]`, Status: "active",
 	}).Error)
+	testfixtures.SeedTenantFK(t, db, otherTenantID) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.SiteMember{
 		TenantID: otherTenantID, SiteID: otherSiteID, UserID: otherStaffSub, Role: "site_member", Status: "active",
 	}).Error)

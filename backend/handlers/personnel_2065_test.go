@@ -91,16 +91,21 @@ func setupPersonnel2065(t *testing.T) (*gin.Engine, personnel2065Fixture) {
 	require.NoError(t, db.Create(&models.Site{ID: f.transitSite, TenantID: f.rootOrg, OrgID: f.rootOrg, Name: "中转网点", Type: "transit"}).Error)
 
 	// 成员关系
+	testfixtures.SeedTenantFK(t, db, f.tid) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.SiteMember{TenantID: f.tid, SiteID: f.siteA, UserID: f.siteMemberA, Role: "STAFF", Roles: []string{"STAFF"}, Status: "active"}).Error)
+	testfixtures.SeedTenantFK(t, db, f.tid) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.SiteMember{TenantID: f.tid, SiteID: f.siteB, UserID: f.siteMemberB, Role: "STAFF", Roles: []string{"STAFF"}, Status: "active"}).Error)
 	// #2067: 零租户用户的网点成员身份（归属由 sites.tenant_id 决定）
+	testfixtures.SeedTenantFK(t, db, f.tid) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.SiteMember{TenantID: f.tid, SiteID: f.siteA, UserID: f.zeroTenantMember, Role: "STAFF", Roles: []string{"STAFF"}, Status: "active"}).Error)
 	// #2067: 商户直属员工
 	require.NoError(t, db.Create(&models.MerchantMember{TenantID: f.tid, MerchantID: uuid.New().String(), UserID: f.directMember, Role: "site_member", Status: "active"}).Error)
+	testfixtures.SeedTenantFK(t, db, f.rootOrg) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.SiteMember{TenantID: f.rootOrg, SiteID: f.transitSite, UserID: f.transitMember, Role: "STAFF", Roles: []string{"STAFF"}, Status: "active"}).Error)
 	// #2344: 他租户网点必须是真实行（严格 schema 下 site_members.site_id 有 FK）。
 	otherSite := uuid.New().String()
 	require.NoError(t, db.Create(&models.Site{ID: otherSite, TenantID: f.otherTid, OrgID: f.otherTid, Name: "他商户网点", Type: "normal"}).Error)
+	testfixtures.SeedTenantFK(t, db, f.otherTid) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.SiteMember{TenantID: f.otherTid, SiteID: otherSite, UserID: f.otherTenantUser, Role: "STAFF", Roles: []string{"STAFF"}, Status: "active"}).Error)
 
 	// 师傅档案（直属商户，无网点）
@@ -300,6 +305,7 @@ func TestPersonnel2072_NewestFirst(t *testing.T) {
 		ID: newID, IAMSub: newID, TenantID: f.tid, OrgID: f.tid,
 		Username: "new-" + newID[:8], Name: "最新成员", Status: "active",
 	}).Error)
+	testfixtures.SeedTenantFK(t, db, f.tid) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.SiteMember{
 		TenantID: f.tid, SiteID: f.siteA, UserID: newID, Role: "STAFF", Status: "active",
 	}).Error)

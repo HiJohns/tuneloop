@@ -37,7 +37,9 @@ func TestGetMyRoles_IncludesSites(t *testing.T) {
 	siteB := uuid.New().String()
 	require.NoError(t, db.Create(&models.Site{ID: siteA, TenantID: tenantID, OrgID: orgID, Name: "网点A"}).Error)
 	require.NoError(t, db.Create(&models.Site{ID: siteB, TenantID: tenantID, OrgID: orgID, Name: "网点B"}).Error)
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.SiteMember{TenantID: tenantID, SiteID: siteA, UserID: userID, Role: "site_member", Status: "active"}).Error)
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.SiteMember{TenantID: tenantID, SiteID: siteB, UserID: userID, Role: "repair_technician", Status: "active"}).Error)
 
 	actor := testutil.MakeSiteMember(tenantID, orgID, userID)

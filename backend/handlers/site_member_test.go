@@ -35,6 +35,7 @@ func setupUpdateMemberRoleTest(t *testing.T) (tenantID string, siteID string, us
 	require.NoError(t, db.Create(&site).Error)
 	user := models.User{ID: uuid.New().String(), TenantID: tenantID, OrgID: site.OrgID, Name: "U", Status: "active"}
 	require.NoError(t, db.Create(&user).Error)
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.SiteMember{
 		ID: uuid.New().String(), TenantID: tenantID, SiteID: site.ID, UserID: user.ID, Role: "site_member",
 	}).Error)

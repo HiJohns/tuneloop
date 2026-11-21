@@ -515,6 +515,7 @@ func TestResolveAppeal_Final_RefundReceiptAndStaffNotify(t *testing.T) {
 		ID: siteID.String(), TenantID: tenantID, OrgID: orgID, Name: "测试网点",
 	}).Error)
 	testfixtures.SeedUserFK(t, db, staffMember, tenantID, orgID)
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.SiteMember{
 		ID: uuid.New().String(), TenantID: tenantID, SiteID: siteID.String(),
 		UserID: staffMember, Role: "site_member", Status: "active",

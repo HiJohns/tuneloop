@@ -33,6 +33,7 @@ func TestUserManagement2064_PersonnelTypeFilter(t *testing.T) {
 	mk(memberID, "member")
 	mk(techID, "member")
 	require.NoError(t, db.Create(&models.Site{ID: siteID, TenantID: tid, OrgID: tid, Name: "S", Type: "normal"}).Error)
+	testfixtures.SeedTenantFK(t, db, tid) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.SiteMember{TenantID: tid, SiteID: siteID, UserID: memberID, Role: "STAFF", Status: "active"}).Error)
 	require.NoError(t, db.Create(&models.TechnicianProfile{ID: uuid.New().String(), UserID: techID, TenantID: tid, Status: "active"}).Error)
 

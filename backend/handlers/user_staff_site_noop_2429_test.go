@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+	"tuneloop-backend/handlers/testfixtures"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -33,6 +34,7 @@ func TestUpdateUser_SameSiteSkipsIAM_2429(t *testing.T) {
 	require.NoError(t, db.Create(&models.Site{
 		ID: siteID, TenantID: tenantID, OrgID: tenantID, Name: "测试网点",
 	}).Error)
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.SiteMember{
 		ID: uuid.New().String(), TenantID: tenantID, SiteID: siteID, UserID: userID,
 		Role: "Staff", Status: "active",
@@ -77,6 +79,7 @@ func TestGetStaffUser_ReturnsSiteAndDirectFlag_2429(t *testing.T) {
 	require.NoError(t, db.Create(&models.Site{
 		ID: siteID, TenantID: tenantID, OrgID: uuid.New().String(), Name: "西铁营",
 	}).Error)
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.SiteMember{
 		ID: uuid.New().String(), TenantID: tenantID, SiteID: siteID, UserID: userID,
 		Role: "Staff", Status: "active",
@@ -129,6 +132,7 @@ func TestUpdateUser_MultiSiteSameOrgSkipsIAM_2429(t *testing.T) {
 		require.NoError(t, db.Create(&models.Site{
 			ID: siteID, TenantID: tenantID, OrgID: tenantID, Name: fmt.Sprintf("多网点%d", i),
 		}).Error)
+		testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site_members tenant FK
 		require.NoError(t, db.Create(&models.SiteMember{
 			ID: uuid.New().String(), TenantID: tenantID, SiteID: siteID, UserID: userID,
 			Role: "Staff", Status: "active",
@@ -176,6 +180,7 @@ func TestGetStaffUser_MultiSiteDual_2429(t *testing.T) {
 		require.NoError(t, db.Create(&models.Site{
 			ID: siteID, TenantID: tenantID, OrgID: org, Name: fmt.Sprintf("网点%d", i),
 		}).Error)
+		testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site_members tenant FK
 		require.NoError(t, db.Create(&models.SiteMember{
 			ID: uuid.New().String(), TenantID: tenantID, SiteID: siteID, UserID: userID,
 			Role: "Staff", Status: "active",
