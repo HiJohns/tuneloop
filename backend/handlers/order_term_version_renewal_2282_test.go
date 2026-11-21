@@ -20,8 +20,11 @@ func TestOrderTermVersion_RenewalAppend_2282(t *testing.T) {
 	org, user, orderID := uuid.NewString(), uuid.NewString(), uuid.NewString()
 	start, end := "2026-06-01", "2026-07-01"
 	require.NoError(t, db.Create(&models.User{ID: user, IAMSub: user, TenantID: org, OrgID: org, Status: "active"}).Error)
+	instID := uuid.NewString()
+	testfixtures.SeedUserFK(t, db, user, org, org)
+	testfixtures.SeedInstrumentFK(t, db, instID, org, org)
 	require.NoError(t, db.Create(&models.Order{ID: orderID, TenantID: org, OrgID: org, UserID: user,
-		InstrumentID: uuid.NewString(), Level: "entry", LeaseTerm: 30, Status: "in_lease",
+		InstrumentID: instID, Level: "entry", LeaseTerm: 30, Status: "in_lease",
 		StartDate: &start, EndDate: &end, CashPaid: models.FromYuan(1000)}).Error)
 	require.NoError(t, db.Create(&models.OrderTermVersion{OrderID: orderID, Version: 1,
 		StartDate: &start, EndDate: &end, Days: 30, TierSegments: "[]", TotalAmount: models.FromYuan(3000)}).Error)

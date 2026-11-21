@@ -79,8 +79,11 @@ func TestGiftNotDoubleDeducted_RenewalShortfall_2268(t *testing.T) {
 		require.NoError(t, db.Create(&models.User{ID: user, IAMSub: user, TenantID: org, OrgID: org, Status: "active"}).Error)
 		seedGiftBatch(t, db, user)
 		end := "2026-07-01"
+		instID := uuid.NewString()
+		testfixtures.SeedUserFK(t, db, user, org, org)
+		testfixtures.SeedInstrumentFK(t, db, instID, org, org)
 		require.NoError(t, db.Create(&models.Order{ID: orderID, TenantID: org, OrgID: org, UserID: user,
-			InstrumentID: uuid.NewString(), Level: "entry", LeaseTerm: 30, Status: "in_lease",
+			InstrumentID: instID, Level: "entry", LeaseTerm: 30, Status: "in_lease",
 			EndDate: &end, CashPaid: models.FromYuan(500)}).Error)
 		require.NoError(t, db.Create(&models.OrderPaymentRecord{ID: uuid.NewString(), TenantID: org, UserID: user,
 			OrderID: &orderID, OrderType: "rent", Amount: models.FromYuan(500), Type: "payment", Status: "paid"}).Error)
@@ -109,8 +112,11 @@ func TestGiftNotDoubleDeducted_RenewalShortfall_2268(t *testing.T) {
 		org, user, orderID := uuid.NewString(), uuid.NewString(), uuid.NewString()
 		require.NoError(t, db.Create(&models.User{ID: user, IAMSub: user, TenantID: org, OrgID: org, Status: "active"}).Error)
 		seedGiftBatch(t, db, user)
+		instID := uuid.NewString()
+		testfixtures.SeedUserFK(t, db, user, org, org)
+		testfixtures.SeedInstrumentFK(t, db, instID, org, org)
 		require.NoError(t, db.Create(&models.Order{ID: orderID, TenantID: org, OrgID: org, UserID: user,
-			InstrumentID: uuid.NewString(), Level: "entry", LeaseTerm: 30, Status: "returned", CashPaid: models.FromYuan(500)}).Error)
+			InstrumentID: instID, Level: "entry", LeaseTerm: 30, Status: "returned", CashPaid: models.FromYuan(500)}).Error)
 		require.NoError(t, db.Create(&models.Settlement{OrderID: orderID, ActualRentAmount: models.FromYuan(1000), RefundStatus: "pending"}).Error)
 		gift := `{"gift_used":20000}`
 		rec := models.OrderPaymentRecord{ID: uuid.NewString(), TenantID: org, UserID: user, OrderID: &orderID,

@@ -43,6 +43,7 @@ func refundFlowRouter(actor testutil.TestActor) *gin.Engine {
 // refundFlowSeed creates a returning order + user + instrument for L-04 tests.
 func refundFlowSeed(t *testing.T, tenantID, orgID, userID string) (string, string) {
 	db := testfixtures.SetupTestDB(t)
+	testfixtures.SeedSiteFK(t, db, orgID, tenantID) // #2443: instruments.current_site_id FK
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
 		Username: "refunduser", Status: "active",

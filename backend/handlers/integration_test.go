@@ -136,6 +136,9 @@ func TestIntegration_Scenario2_WarehouseProcess(t *testing.T) {
 	}
 	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	db.Create(&order)
+	// #1791 T3: 发货强制买家核身 → fixture 用户需已验证。
+	require.NoError(t, db.Model(&models.User{}).Where("id = ?", userID).
+		Updates(map[string]interface{}{"face_verified": true, "id_photo_front": "/uploads/id-front.jpg"}).Error)
 
 	// Step 1: List orders - GET /api/warehouse/orders
 	req := httptest.NewRequest("GET", "/api/warehouse/orders", nil)
@@ -200,10 +203,12 @@ func TestIntegration_Scenario4_AppealProcess(t *testing.T) {
 	drID := uuid.New().String()
 	appealReason := "Test damage appeal"
 	appealOrderID := uuid.New().String()
-	db.Create(&models.Order{
+	ord := models.Order{
 		ID: appealOrderID, TenantID: tenantID, OrgID: tenantID, UserID: userID,
 		InstrumentID: uuid.New().String(), Level: "standard", LeaseTerm: 30, Status: "in_lease",
-	})
+	}
+	testfixtures.SeedOrderParents(t, db, &ord)
+	db.Create(&ord)
 	db.Create(&models.DamageReport{
 		ID: drID, TenantID: tenantID, OrgID: tenantID,
 		LeaseID: appealOrderID, InstrumentID: uuid.New().String(),
