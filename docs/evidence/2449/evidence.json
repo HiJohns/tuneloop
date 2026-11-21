@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "issue": 2449,
+  "build": "1.0.c6a33bf9c",
+  "commit": "c6a33bf9cd603bf4653f658dbd442a3e9f2144fe",
+  "dirty": false,
+  "environment": "isolated PG; current user site fixture + staff list; full handlers gate delegated to #2443",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2449.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2449/R1-me-site.txt"
+      ],
+      "assert": "exit 0；四态断言 PASS",
+      "actual": "PASS：A/B/空/未知四态符合 D1–D3",
+      "expected": "PASS",
+      "negative": "猜第一条 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2449.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2449/R2-list.txt"
+      ],
+      "assert": "exit 0；site_names 全量",
+      "actual": "PASS：兼容 site_id/site_name 不变，site_names=[SiteA,SiteB]",
+      "expected": "PASS",
+      "negative": "缺字段/单站点 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2449.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2449/R3-build.txt"
+      ],
+      "assert": "build exit 0；2449 用例 PASS",
+      "actual": "PASS：go build ./... + 2449 定向用例",
+      "expected": "PASS",
+      "negative": "失败 → FAIL",
+      "negative_result": "非 0 即 exit 1",
+      "pass": true
+    }
+  ]
+}
