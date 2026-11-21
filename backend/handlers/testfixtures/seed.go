@@ -83,3 +83,23 @@ func UniqueIAMSub(seed string) string {
 func UniqueCode(seed string) string {
 	return seed + "-" + uuid.New().String()[:8]
 }
+
+// SeedInstrumentFK 确保给定乐器行存在（严格 schema 下 orders.instrument_id /
+// instruments.current_site_id 等有 FK）。#2443 Rev.5：FK 种子单一出口。
+func SeedInstrumentFK(t *testing.T, db *gorm.DB, instrumentID, tenantID, orgID string) {
+	t.Helper()
+	if instrumentID == "" {
+		return
+	}
+	SeedTenantFK(t, db, tenantID)
+	row := models.Instrument{
+		ID:          instrumentID,
+		TenantID:    tenantID,
+		OrgID:       &orgID,
+		SN:          "SN-" + uuid.New().String()[:8],
+		StockStatus: "available",
+	}
+	if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&row).Error; err != nil {
+		t.Fatalf("#2443 seed instruments(%s): %v", instrumentID, err)
+	}
+}

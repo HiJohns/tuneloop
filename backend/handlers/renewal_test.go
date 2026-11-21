@@ -77,6 +77,7 @@ func TestRenewal_Overdue_MinDaysValidation(t *testing.T) {
 	defer cleanup()
 
 	tenantID := "00000000-0000-0000-0000-0000000000a1"
+	testfixtures.SeedTenantFK(t, database.GetDB(), tenantID) // #2443: strict schema tenant FK
 	userID := "00000000-0000-0000-0000-0000000000a2"
 	orgID := "00000000-0000-0000-0000-0000000000a3"
 	_, orderID := setupRenewalOrder(t, tenantID, userID, orgID, -4)
@@ -135,6 +136,7 @@ func TestRenewal_NotOverdue_NoMinDays(t *testing.T) {
 	defer cleanup()
 
 	tenantID := "00000000-0000-0000-0000-0000000000b1"
+	testfixtures.SeedTenantFK(t, database.GetDB(), tenantID) // #2443: strict schema tenant FK
 	userID := "00000000-0000-0000-0000-0000000000b2"
 	orgID := "00000000-0000-0000-0000-0000000000b3"
 	_, orderID := setupRenewalOrder(t, tenantID, userID, orgID, 5)
@@ -176,6 +178,7 @@ func TestRenewal_CouponSnapshot(t *testing.T) {
 	}).Error)
 
 	tenantID := "00000000-0000-0000-0000-0000000000b1"
+	testfixtures.SeedTenantFK(t, database.GetDB(), tenantID) // #2443: strict schema tenant FK
 	userID := "00000000-0000-0000-0000-0000000000b2"
 	orgID := "00000000-0000-0000-0000-0000000000b3"
 	// #1760: ConfirmRenewal resolves openid server-side; give the test user a

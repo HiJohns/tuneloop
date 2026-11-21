@@ -45,11 +45,13 @@ func TestMerchantMembers_ListAnchoredToMerchantOrg_2274(t *testing.T) {
 
 	merchantA := uuid.NewString()
 	require.NoError(t, db.Create(&models.Merchant{
-		ID: merchantA, TenantID: shared, OrgID: orgA, Name: "MA-2274",
+		Code: testfixtures.UniqueCode("M"),
+		ID:   merchantA, TenantID: shared, OrgID: orgA, Name: "MA-2274",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}).Error)
 	require.NoError(t, db.Create(&models.Merchant{
-		ID: uuid.NewString(), TenantID: shared, OrgID: orgB, Name: "MB-2274",
+		Code: testfixtures.UniqueCode("M"),
+		ID:   uuid.NewString(), TenantID: shared, OrgID: orgB, Name: "MB-2274",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}).Error)
 
@@ -110,7 +112,8 @@ func TestMerchantMembers_AddAnchoredToMerchantOrg_2274(t *testing.T) {
 	orgA := uuid.NewString()
 	merchantID := uuid.NewString()
 	require.NoError(t, db.Create(&models.Merchant{
-		ID: merchantID, TenantID: shared, OrgID: orgA, Name: "MA-ADD",
+		Code: testfixtures.UniqueCode("M"),
+		ID:   merchantID, TenantID: shared, OrgID: orgA, Name: "MA-ADD",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}).Error)
 

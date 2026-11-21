@@ -24,6 +24,7 @@ func TestStaffCreateUser_IAMConflict_2243(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	operatorID := uuid.New().String()
 	require.NoError(t, db.Create(&models.User{
 		ID: operatorID, IAMSub: operatorID, TenantID: tenantID, OrgID: tenantID,
@@ -80,6 +81,7 @@ func TestStaffCreateUser_IAMBadRequest_2243(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	operatorID := uuid.New().String()
 	require.NoError(t, db.Create(&models.User{
 		ID: operatorID, IAMSub: operatorID, TenantID: tenantID, OrgID: tenantID,
@@ -132,6 +134,7 @@ func TestStaffCreateUser_IAMConflictFields_2290(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	operatorID := uuid.New().String()
 	require.NoError(t, db.Create(&models.User{
 		ID: operatorID, IAMSub: operatorID, TenantID: tenantID, OrgID: tenantID,

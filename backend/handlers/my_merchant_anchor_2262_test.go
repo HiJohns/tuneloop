@@ -26,12 +26,14 @@ func TestMyMerchant_SharedTenantOrgAnchor_2262(t *testing.T) {
 	orgA, orgB := uuid.NewString(), uuid.NewString()
 	// 先插入 B（父实现 OR 查询会命中它）
 	require.NoError(t, db.Create(&models.Merchant{
-		ID: uuid.NewString(), TenantID: shared, OrgID: orgB, Name: "B-2262",
+		Code: testfixtures.UniqueCode("M"),
+		ID:   uuid.NewString(), TenantID: shared, OrgID: orgB, Name: "B-2262",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}).Error)
 	merchantA := uuid.NewString()
 	require.NoError(t, db.Create(&models.Merchant{
-		ID: merchantA, TenantID: shared, OrgID: orgA, Name: "A-2262",
+		Code: testfixtures.UniqueCode("M"),
+		ID:   merchantA, TenantID: shared, OrgID: orgA, Name: "A-2262",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}).Error)
 

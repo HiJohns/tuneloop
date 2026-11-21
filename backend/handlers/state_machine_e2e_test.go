@@ -568,7 +568,7 @@ func TestComputeSettlement_CashPaidExcludesDeposit(t *testing.T) {
 	end := now.Format("2006-01-02")
 
 	order := models.Order{
-		ID:                "tdd-order-1",
+		ID:                uuid.NewString(), // #2443: uuid column requires valid UUID
 		TenantID:          "00000000-0000-0000-0000-000000000000",
 		UserID:            "00000000-0000-0000-0000-000000000000",
 		CashPaid:          models.FromYuan(6030), // ¥3000 rent + ¥3000 deposit + ¥30 shipping
@@ -603,7 +603,7 @@ func TestComputeSettlement_EarlyReturn(t *testing.T) {
 	end := now.AddDate(0, 0, 20).Format("2006-01-02")
 
 	order := models.Order{
-		ID:                "tdd-early-return",
+		ID:                uuid.NewString(), // #2443: uuid column requires valid UUID
 		TenantID:          "00000000-0000-0000-0000-000000000000",
 		UserID:            "00000000-0000-0000-0000-000000000000",
 		CashPaid:          models.FromYuan(6030),

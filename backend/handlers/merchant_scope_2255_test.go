@@ -25,7 +25,8 @@ func TestResolveMerchantOrg_Precedence_2255(t *testing.T) {
 
 	mk := func(tenant, org, name string) {
 		require.NoError(t, db.Create(&models.Merchant{
-			ID: uuid.NewString(), TenantID: tenant, OrgID: org, Name: name,
+			Code: testfixtures.UniqueCode("M"),
+			ID:   uuid.NewString(), TenantID: tenant, OrgID: org, Name: name,
 			Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 		}).Error)
 	}

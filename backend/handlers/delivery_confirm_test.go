@@ -36,6 +36,7 @@ func setupDeliveryOrder(t *testing.T, pb *string, startDate, endDate *string) (s
 	db := database.GetDB()
 
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	orgID := uuid.New().String()
 	userID := uuid.New().String()
 
@@ -182,6 +183,7 @@ func TestConfirmDelivery_ThenRenewal_ChainsCorrectly(t *testing.T) {
 	testfixtures.SetupWechatPayMock(t)
 
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, database.GetDB(), tenantID) // #2443: strict schema tenant FK
 	orgID := uuid.New().String()
 	userID := uuid.New().String()
 

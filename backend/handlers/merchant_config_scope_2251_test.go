@@ -38,11 +38,13 @@ func setupConfigActors2251(t *testing.T) (*gin.Engine, configActorApp) {
 		orgB:         uuid.NewString(),
 	}
 	app.merchantA = models.Merchant{
-		ID: uuid.NewString(), TenantID: app.sharedTenant, OrgID: app.orgA, Name: "M2251-A",
+		Code: testfixtures.UniqueCode("M"),
+		ID:   uuid.NewString(), TenantID: app.sharedTenant, OrgID: app.orgA, Name: "M2251-A",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}
 	app.merchantB = models.Merchant{
-		ID: uuid.NewString(), TenantID: app.sharedTenant, OrgID: app.orgB, Name: "M2251-B",
+		Code: testfixtures.UniqueCode("M"),
+		ID:   uuid.NewString(), TenantID: app.sharedTenant, OrgID: app.orgB, Name: "M2251-B",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}
 
@@ -240,7 +242,8 @@ func TestMerchantRebate_SharedTenantIsolation_2251(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 	app.seed(t, db)
 	// rebate_opt_in 列默认 true；显式置 false 以便区分两商户
-	require.NoError(t, db.Model(&models.Merchant{}).
+	require.NoError(t, db.Model(&models.Merchant{
+		Code: testfixtures.UniqueCode("M")}).
 		Where("id IN ?", []string{app.merchantA.ID, app.merchantB.ID}).
 		Update("rebate_opt_in", false).Error)
 

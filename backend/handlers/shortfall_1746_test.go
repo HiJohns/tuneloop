@@ -29,6 +29,7 @@ func TestExecuteRefund_ShortfallCreatesPaymentRecord(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	orgID := tenantID
 	userID := uuid.New().String()
 	require.NoError(t, db.Create(&models.User{
@@ -83,6 +84,7 @@ func TestExecuteRefund_ShortfallIdempotent(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	orgID := tenantID
 	userID := uuid.New().String()
 	require.NoError(t, db.Create(&models.User{
@@ -131,6 +133,7 @@ func TestApplySideEffects_ShortfallClosesLoop(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	orgID := tenantID
 	userID := uuid.New().String()
 	require.NoError(t, db.Create(&models.User{
@@ -188,6 +191,7 @@ func TestPrepayShortfall_OrderTypeAccepted(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	userID := uuid.New().String()
 	order := models.Order{
 		ID:           uuid.New().String(),
@@ -232,6 +236,7 @@ func TestShortfallNotification_Structured(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	orgID := tenantID
 	userID := uuid.New().String()
 	require.NoError(t, db.Create(&models.User{
@@ -293,6 +298,7 @@ func TestRefundReceipt_ThankYouAndPayments(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	orgID := tenantID
 	userID := uuid.New().String()
 
@@ -344,6 +350,7 @@ func TestCalculatePayment_Shortfall(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	orgID := tenantID
 	userID := uuid.New().String()
 	require.NoError(t, db.Create(&models.User{

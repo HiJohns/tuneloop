@@ -30,11 +30,13 @@ func TestCreateSite_AnchorIsMerchantOrg_2266(t *testing.T) {
 	orgA, orgB := uuid.NewString(), uuid.NewString()
 	merchantA := uuid.NewString()
 	require.NoError(t, db.Create(&models.Merchant{
-		ID: merchantA, TenantID: shared, OrgID: orgA, Name: "A",
+		Code: testfixtures.UniqueCode("M"),
+		ID:   merchantA, TenantID: shared, OrgID: orgA, Name: "A",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}).Error)
 	require.NoError(t, db.Create(&models.Merchant{
-		ID: uuid.NewString(), TenantID: shared, OrgID: orgB, Name: "B",
+		Code: testfixtures.UniqueCode("M"),
+		ID:   uuid.NewString(), TenantID: shared, OrgID: orgB, Name: "B",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}).Error)
 

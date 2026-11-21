@@ -29,11 +29,13 @@ func TestRepairDomain_ExplicitScopeIsolation_2261(t *testing.T) {
 	orgA, orgB := uuid.NewString(), uuid.NewString()
 	sharedTenant := uuid.NewString() // 刻意共享 tenant，验证不依赖它
 	require.NoError(t, db.Create(&models.Merchant{
-		ID: uuid.NewString(), TenantID: sharedTenant, OrgID: orgA, Name: "RA-2261",
+		Code: testfixtures.UniqueCode("M"),
+		ID:   uuid.NewString(), TenantID: sharedTenant, OrgID: orgA, Name: "RA-2261",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}).Error)
 	require.NoError(t, db.Create(&models.Merchant{
-		ID: uuid.NewString(), TenantID: sharedTenant, OrgID: orgB, Name: "RB-2261",
+		Code: testfixtures.UniqueCode("M"),
+		ID:   uuid.NewString(), TenantID: sharedTenant, OrgID: orgB, Name: "RB-2261",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}).Error)
 

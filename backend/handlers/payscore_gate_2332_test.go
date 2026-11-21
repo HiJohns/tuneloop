@@ -74,6 +74,7 @@ func TestPayGate(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	iamSub := uuid.New().String()
 	userID := uuid.New().String()
 	require.NoError(t, db.Create(&models.User{
@@ -137,6 +138,7 @@ func TestPrepayGate(t *testing.T) {
 	})
 
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	iamSub := uuid.New().String()
 	userID := uuid.New().String()
 	require.NoError(t, db.Create(&models.User{

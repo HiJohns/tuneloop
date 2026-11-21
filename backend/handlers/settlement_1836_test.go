@@ -24,6 +24,7 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 
 	cents := func(yuan float64) models.Cents { return models.Cents(int64(yuan*100 + 0.5)) }
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	orgID := tenantID
 	userID := uuid.New().String()
 	instID := uuid.New().String()
@@ -388,6 +389,7 @@ func TestPayableTiers_TruncatedByActualDays(t *testing.T) {
 
 	cents := func(yuan float64) models.Cents { return models.Cents(int64(yuan*100 + 0.5)) }
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	orgID := tenantID
 	userID := uuid.New().String()
 	instID := uuid.New().String()
@@ -448,6 +450,7 @@ func TestPayableTiers_FullTerm_NoOp(t *testing.T) {
 
 	cents := func(yuan float64) models.Cents { return models.Cents(int64(yuan*100 + 0.5)) }
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	orgID := tenantID
 	userID := uuid.New().String()
 	instID := uuid.New().String()

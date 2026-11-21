@@ -124,6 +124,9 @@ func buildMatrixOrder(t *testing.T, db *gorm.DB, c matrixCase) models.Order {
 		DeliveredAt: &start, ReturnedAt: &ret,
 		PricingBreakdown: &pbJSON,
 	}
+	// #2443 Rev.5：严格 schema 下 orders.user_id / instrument_id 有 FK，先 seed 父行。
+	testfixtures.SeedUserFK(t, db, o.UserID, o.TenantID, o.OrgID)
+	testfixtures.SeedInstrumentFK(t, db, o.InstrumentID, o.TenantID, o.OrgID)
 	require.NoError(t, db.Create(&o).Error)
 
 	// 首期支付记录（结算按总实收，不依赖单笔顺序；仍落记录以仿真）

@@ -30,11 +30,13 @@ func TestSettlementConfig_ExplicitMerchantScope_2261(t *testing.T) {
 	merchantA := uuid.NewString()
 	merchantB := uuid.NewString()
 	require.NoError(t, db.Create(&models.Merchant{
-		ID: merchantA, TenantID: shared, OrgID: orgA, Name: "SC-A",
+		Code: testfixtures.UniqueCode("M"),
+		ID:   merchantA, TenantID: shared, OrgID: orgA, Name: "SC-A",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}).Error)
 	require.NoError(t, db.Create(&models.Merchant{
-		ID: merchantB, TenantID: shared, OrgID: orgB, Name: "SC-B",
+		Code: testfixtures.UniqueCode("M"),
+		ID:   merchantB, TenantID: shared, OrgID: orgB, Name: "SC-B",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}).Error)
 

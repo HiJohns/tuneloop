@@ -36,6 +36,7 @@ func TestComputeSettlement_TierOverflowDays(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	orgID := tenantID
 	userID := uuid.New().String()
 
@@ -73,6 +74,7 @@ func TestInspectReturn_OverdueDays_CaMinusC(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	orgID := tenantID
 	userID := uuid.New().String()
 
@@ -132,6 +134,7 @@ func TestExecuteRefund_ZeroCashRefund_CompletesSettlement(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	orgID := tenantID
 	userID := uuid.New().String()
 	require.NoError(t, db.Create(&models.User{
@@ -183,6 +186,7 @@ func TestApplySideEffects_RentWritesBackCashPaid(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	orgID := tenantID
 	userID := uuid.New().String()
 
@@ -233,6 +237,7 @@ func TestGetOrder_PaymentRecordsCentsContract(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	userID := uuid.New().String()
 
 	orderID := uuid.New().String()
@@ -276,6 +281,7 @@ func TestSettlement_UserScenarioA_CouponWaiveDepositOnly(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	orgID := tenantID
 	userID := uuid.New().String()
 	require.NoError(t, db.Create(&models.User{
@@ -321,6 +327,7 @@ func TestSettlement_CouponRefundRatio(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	orgID := tenantID
 	userID := uuid.New().String()
 	require.NoError(t, db.Create(&models.User{
@@ -363,6 +370,7 @@ func TestSettlement_UserScenarioB_NoDepositNoCoupon(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	orgID := tenantID
 	userID := uuid.New().String()
 	require.NoError(t, db.Create(&models.User{
@@ -403,6 +411,7 @@ func TestSettlement_UserScenarioC_Overdue_Shortfall(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	orgID := tenantID
 	userID := uuid.New().String()
 	require.NoError(t, db.Create(&models.User{

@@ -27,11 +27,13 @@ func TestOrdersInstrumentsDomain_ExplicitScopeIsolation_2261(t *testing.T) {
 	shared := uuid.NewString()
 	orgA, orgB := uuid.NewString(), uuid.NewString()
 	require.NoError(t, db.Create(&models.Merchant{
-		ID: uuid.NewString(), TenantID: shared, OrgID: orgA, Name: "OI-A",
+		Code: testfixtures.UniqueCode("M"),
+		ID:   uuid.NewString(), TenantID: shared, OrgID: orgA, Name: "OI-A",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}).Error)
 	require.NoError(t, db.Create(&models.Merchant{
-		ID: uuid.NewString(), TenantID: shared, OrgID: orgB, Name: "OI-B",
+		Code: testfixtures.UniqueCode("M"),
+		ID:   uuid.NewString(), TenantID: shared, OrgID: orgB, Name: "OI-B",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}).Error)
 
