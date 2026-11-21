@@ -54,6 +54,7 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 			Deposit: 0, CashPaid: cents(cash), ShippingFee: cents(1),
 			PricingBreakdown: str1743Ptr(pbJSON),
 		}
+		testfixtures.SeedOrderParents(t, db, &o) // #2443: strict schema order FKs
 		require.NoError(t, db.Create(&o).Error)
 		var renewalSum float64
 		for _, r := range renewals {
@@ -168,6 +169,7 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 				"pricing_tiers":[{"days_max":30,"daily_rate":3600,"discount_percent":0}],
 				"tier_segments":[{"tier":1,"days":3,"rate":3600,"discount":1,"subtotal":10800}]}`),
 		}
+		testfixtures.SeedOrderParents(t, db, &o) // #2443: strict schema order FKs
 		require.NoError(t, db.Create(&o).Error)
 		// #2281：补合同租金流水（1.08 − 0.36 × 2）。
 		require.NoError(t, db.Create(&models.OrderPaymentRecord{
@@ -217,6 +219,7 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 				"pricing_tiers":[{"days_max":30,"daily_rate":3600,"discount_percent":0}],
 				"tier_segments":[{"tier":1,"days":2,"rate":3600,"discount":1,"subtotal":7200}]}`),
 		}
+		testfixtures.SeedOrderParents(t, db, &o) // #2443: strict schema order FKs
 		require.NoError(t, db.Create(&o).Error)
 		// #2281：补合同租金流水（0.72 − 0.36）。
 		require.NoError(t, db.Create(&models.OrderPaymentRecord{
@@ -257,6 +260,7 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 				"pricing_tiers":[{"days_max":30,"daily_rate":3600,"discount_percent":0}],
 				"tier_segments":[{"tier":1,"days":2,"rate":3600,"discount":1,"subtotal":7200}]}`),
 		}
+		testfixtures.SeedOrderParents(t, db, &o) // #2443: strict schema order FKs
 		require.NoError(t, db.Create(&o).Error)
 		require.NoError(t, db.Create(&models.OrderPaymentRecord{
 			TenantID: tenantID, UserID: userID, OrderID: &o.ID,
@@ -292,6 +296,7 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 				"tier_segments":[{"tier":1,"days":10,"rate":2000,"discount":1,"subtotal":20000},
 				                {"tier":2,"days":20,"rate":1500,"discount":1,"subtotal":30000}]}`),
 		}
+		testfixtures.SeedOrderParents(t, db, &xt) // #2443: strict schema order FKs
 		require.NoError(t, db.Create(&xt).Error)
 		res := computeSettlement(xt, db)
 		require.True(t, res.SegmentModel)
@@ -346,6 +351,7 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 				"tier_segments":[{"tier":1,"days":30,"rate":3600,"discount":1,"subtotal":108000},
 				                {"tier":2,"days":3,"rate":3600,"discount":0.95,"subtotal":10260}]}`),
 		}
+		testfixtures.SeedOrderParents(t, db, &o) // #2443: strict schema order FKs
 		require.NoError(t, db.Create(&o).Error)
 		require.NoError(t, db.Create(&models.OrderPaymentRecord{
 			TenantID: tenantID, UserID: userID, OrderID: &o.ID,
@@ -414,6 +420,7 @@ func TestPayableTiers_TruncatedByActualDays(t *testing.T) {
 			"pricing_tiers":[{"days_max":30,"daily_rate":3600,"discount_percent":0}],
 			"tier_segments":[{"tier":1,"days":2,"rate":3600,"discount":1,"subtotal":7200}]}`),
 	}
+	testfixtures.SeedOrderParents(t, db, &o) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&o).Error)
 	// #2281：补合同租金流水（现金 0.72 − 续期 0.36）。
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{
@@ -473,6 +480,7 @@ func TestPayableTiers_FullTerm_NoOp(t *testing.T) {
 			"pricing_tiers":[{"days_max":30,"daily_rate":1800,"discount_percent":0}],
 			"tier_segments":[{"tier":1,"days":2,"rate":1800,"discount":1,"subtotal":3600}]}`),
 	}
+	testfixtures.SeedOrderParents(t, db, &o) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&o).Error)
 
 	res := computeSettlement(o, db)
@@ -521,6 +529,7 @@ func TestSettlement_PostDamageStates(t *testing.T) {
 					"pricing_tiers":[{"days_max":30,"daily_rate":3600,"discount_percent":0}],
 					"tier_segments":[{"tier":1,"days":2,"rate":3600,"discount":1,"subtotal":7200}]}`),
 			}
+			testfixtures.SeedOrderParents(t, db, &o) // #2443: strict schema order FKs
 			require.NoError(t, db.Create(&o).Error)
 			require.NoError(t, db.Create(&models.OrderPaymentRecord{
 				TenantID: tenantID, UserID: userID, OrderID: &o.ID,

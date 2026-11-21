@@ -67,6 +67,7 @@ func setupFeeDetailOrder(t *testing.T, status string) (string, string, string, *
 		PricingBreakdown: &pb,
 		CreatedAt:        time.Date(2026, 8, 1, 9, 0, 0, 0, time.UTC),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	// 首期支付：租金 35 元 + 押金 1 元 = 3600 分。
@@ -345,6 +346,7 @@ func TestFeeDetail_DiscountedPassthrough(t *testing.T) {
 		CashPaid: models.FromYuan(36), ShippingFee: 0,
 		PricingBreakdown: &pb, CreatedAt: time.Date(2026, 8, 31, 9, 0, 0, 0, time.UTC),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	router := setupTestRouter(t, tenantID, userID)

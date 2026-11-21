@@ -50,6 +50,7 @@ func settle1855Order(t *testing.T, db *gorm.DB, supplementCoupon int64) models.O
 			"pricing_tiers":[{"days_max":30,"daily_rate":3600,"discount_percent":0}],
 			"tier_segments":[{"tier":1,"days":2,"rate":3600,"discount":1,"subtotal":7200}]}`),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{
 		TenantID: tenantID, UserID: userID, OrderID: &order.ID,

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http/httptest"
 	"testing"
+	"tuneloop-backend/handlers/testfixtures"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -51,6 +52,7 @@ func setupInvoiceTestData(t *testing.T, tenantID, iamSub, localID, orgID string)
 		Status:       models.OrderStatusCompleted,
 		OrderNo:      "INVTEST-" + uuid.New().String()[:8], // #1965 uniqueIndex：直插需显式唯一
 	}
+	testfixtures.SeedOrderParents(t, db, &order1) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order1).Error)
 
 	settlement := models.Settlement{
@@ -71,6 +73,7 @@ func setupInvoiceTestData(t *testing.T, tenantID, iamSub, localID, orgID string)
 		Status:       models.OrderStatusInLease,
 		OrderNo:      "INVTEST-" + uuid.New().String()[:8], // #1965 uniqueIndex：直插需显式唯一
 	}
+	testfixtures.SeedOrderParents(t, db, &order2) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order2).Error)
 
 	return order1.ID, order2.ID

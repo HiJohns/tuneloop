@@ -47,6 +47,7 @@ func TestOverdueScheduler_TransitionToExpiredOnly(t *testing.T) {
 		LeaseTerm:    5,
 		Status:       models.OrderStatusInLease,
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	// Run the scheduler's overdue processing.
@@ -99,6 +100,7 @@ func TestOverdueScheduler_NoTransitionWhenNotDue(t *testing.T) {
 		LeaseTerm:    10,
 		Status:       models.OrderStatusInLease,
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	s := services.NewOverdueDeductionScheduler()

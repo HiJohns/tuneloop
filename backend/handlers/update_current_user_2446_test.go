@@ -112,7 +112,7 @@ func TestUpdateCurrentUser_2446_UsernamePassword(t *testing.T) {
 	assert.Equal(t, "Abcd1234", stub.updateBody["password"])
 
 	var resp struct {
-		Code int `json:"code"`
+		Code int                    `json:"code"`
 		Data map[string]interface{} `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
@@ -160,7 +160,7 @@ func TestGetCurrentUser_2446_NeedsCredentials(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code, "body=%s", w.Body.String())
 
 	var resp struct {
-		Code int `json:"code"`
+		Code int                    `json:"code"`
 		Data map[string]interface{} `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))

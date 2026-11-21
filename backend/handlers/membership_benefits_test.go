@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"gorm.io/gorm/clause"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -19,8 +20,8 @@ func TestMembershipLevelBenefits(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
 
-	require.NoError(t, db.Create(&models.MembershipLevel{ID: 1, Name: "初级", MinAmount: 0}).Error)
-	require.NoError(t, db.Create(&models.MembershipLevel{ID: 2, Name: "中级", MinAmount: 5000}).Error)
+	require.NoError(t, db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&models.MembershipLevel{ID: 1, Name: "初级", MinAmount: 0}).Error)
+	require.NoError(t, db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&models.MembershipLevel{ID: 2, Name: "中级", MinAmount: 5000}).Error)
 
 	router := gin.New()
 	router.GET("/membership/benefits", GetMembershipBenefits)

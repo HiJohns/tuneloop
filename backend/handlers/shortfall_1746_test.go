@@ -53,6 +53,7 @@ func TestExecuteRefund_ShortfallCreatesPaymentRecord(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	result, err := executeRefund(db, order)
@@ -104,6 +105,7 @@ func TestExecuteRefund_ShortfallIdempotent(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	// 第一次：生成记录 + 回退
@@ -199,6 +201,7 @@ func TestPrepayShortfall_OrderTypeAccepted(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	router := gin.New()
@@ -257,6 +260,7 @@ func TestShortfallNotification_Structured(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	_, err := executeRefund(db, order)
@@ -311,6 +315,7 @@ func TestRefundReceipt_ThankYouAndPayments(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{
 		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID: userID,
@@ -371,6 +376,7 @@ func TestCalculatePayment_Shortfall(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	// 生成补缴记录（结算触发）

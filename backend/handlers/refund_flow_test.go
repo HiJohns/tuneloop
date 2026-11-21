@@ -61,6 +61,7 @@ func refundFlowSeed(t *testing.T, tenantID, orgID, userID string) (string, strin
 		Deposit: models.FromYuan(500), CashPaid: models.FromYuan(3000), // #1806: #1726 迁移时 3000 误写成 30（丢两位）
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 	// #1806: #1724 computeDamageRefund 改从 paid payment records 读 paidTotal；
 	// seed 需配套创建 rent paid record，否则 paidTotal=0 → refund<damage → 走补缴分支。

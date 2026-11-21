@@ -63,6 +63,7 @@ func seedRentOrder(t *testing.T, tenantID, userID string) models.Order {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 	return order
 }
@@ -193,6 +194,7 @@ func TestGetOrder_CouponSnapshotExposed(t *testing.T) {
 		CouponCode:     strPtr("ENO"),
 		CouponDiscount: models.Cents(3564),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	router := setupTestRouter(t, tenantID, userID)

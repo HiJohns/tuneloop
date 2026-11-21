@@ -53,6 +53,7 @@ func staffOrdersSeed(t *testing.T, tenantID, orgID, userID string) (string, stri
 		Status:  models.OrderStatusPaid,
 		Deposit: models.FromYuan(500), CashPaid: models.FromYuan(30),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 	return order.ID, inst.ID
 }

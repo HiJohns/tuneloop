@@ -46,6 +46,7 @@ func TestGetOrder_PaymentRecords_WaivedCoupon(t *testing.T) {
 		Deposit:      0,
 		CashPaid:     models.FromYuan(0.72),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	// jsapi 实付 ¥0.36（rent）
@@ -163,6 +164,7 @@ func TestGetOrder_RefundRecords_OnlyNonZero(t *testing.T) {
 		Deposit:      models.FromYuan(1),
 		CashPaid:     models.FromYuan(1),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	outTradeNo := "refund-otn-1"

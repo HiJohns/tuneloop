@@ -72,6 +72,7 @@ func TestShippingFlow_StaffToken(t *testing.T) {
 		Deposit:      models.FromYuan(500),
 		CashPaid:     models.FromYuan(30),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	handler := NewWarehouseHandler()
@@ -148,6 +149,7 @@ func TestReceiveFlow_StaffToken(t *testing.T) {
 			Deposit:      models.FromYuan(500),
 			CashPaid:     models.FromYuan(1000),
 		}
+		testfixtures.SeedOrderParents(t, db, &o) // #2443: strict schema order FKs
 		require.NoError(t, db.Create(&o).Error)
 		return inst, o
 	}
@@ -224,6 +226,7 @@ func TestStaffFlow_UnauthenticatedDenied(t *testing.T) {
 		Deposit:      models.FromYuan(500),
 		CashPaid:     models.FromYuan(30),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	handler := NewWarehouseHandler()

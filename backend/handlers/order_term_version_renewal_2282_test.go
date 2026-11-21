@@ -60,6 +60,7 @@ func TestOrderTermVersion_MultiRenewalImmutable_2282(t *testing.T) {
 	order := models.Order{ID: orderID, TenantID: org, OrgID: org, UserID: user,
 		InstrumentID: uuid.NewString(), Level: "entry", LeaseTerm: 30, Status: "in_lease",
 		StartDate: &start, EndDate: &end, CashPaid: models.FromYuan(3000), PricingBreakdown: &pb}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 	insertInitialTermVersion(db, &order)
 	// 首期租金流水（账本/结算输入）

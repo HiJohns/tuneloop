@@ -56,6 +56,7 @@ func TestComputeSettlement_TierOverflowDays(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	result := computeSettlement(order, db)
@@ -157,6 +158,7 @@ func TestExecuteRefund_ZeroCashRefund_CompletesSettlement(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	result, err := executeRefund(db, order)
@@ -310,6 +312,7 @@ func TestSettlement_UserScenarioA_CouponWaiveDepositOnly(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	result := computeSettlement(order, db)
@@ -350,6 +353,7 @@ func TestSettlement_CouponRefundRatio(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	result := computeSettlement(order, db)
@@ -390,6 +394,7 @@ func TestSettlement_UserScenarioB_NoDepositNoCoupon(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	result := computeSettlement(order, db)
@@ -429,6 +434,7 @@ func TestSettlement_UserScenarioC_Overdue_Shortfall(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	// 验收时按 Ca−C=5 天持久化逾期费 75 元到 damage report（#1743 新口径）

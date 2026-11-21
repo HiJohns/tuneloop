@@ -55,6 +55,7 @@ func TestAgreeDamage_StockGuard_WithRepairPending(t *testing.T) {
 		ShippingFee:      0,
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"total_amount":300000}`),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 	outTradeNo := "t1-pay-001"
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{
@@ -140,6 +141,7 @@ func TestAgreeDamage_StockGuard_NoRepairStatus(t *testing.T) {
 		ShippingFee:      0,
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"total_amount":300000}`),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 	outTradeNo := "t2-pay-001"
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{

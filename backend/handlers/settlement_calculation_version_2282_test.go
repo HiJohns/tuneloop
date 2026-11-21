@@ -20,6 +20,7 @@ func TestSettlementCalculation_LedgerVersion_2282(t *testing.T) {
 	require.NoError(t, db.Create(&models.User{ID: user, IAMSub: user, TenantID: org, OrgID: org, Status: "active"}).Error)
 	order := models.Order{ID: orderID, TenantID: org, OrgID: org, UserID: user,
 		InstrumentID: uuid.NewString(), Level: "entry", LeaseTerm: 30, Status: "completed"}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	// 无账本（version=0）：重复触发只保留 1 行，并返回既有行。
@@ -55,6 +56,7 @@ func TestSettlementCalculation_ConcurrentIdempotent_2282(t *testing.T) {
 	require.NoError(t, db.Create(&models.User{ID: user, IAMSub: user, TenantID: org, OrgID: org, Status: "active"}).Error)
 	order := models.Order{ID: orderID, TenantID: org, OrgID: org, UserID: user,
 		InstrumentID: uuid.NewString(), Level: "entry", LeaseTerm: 30, Status: "completed"}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	var wg sync.WaitGroup

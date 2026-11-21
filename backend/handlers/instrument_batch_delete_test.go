@@ -82,6 +82,7 @@ func TestBatchDeleteInstruments(t *testing.T) {
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	admin := testutil.MakeSiteAdmin(tenantID, orgID, userID)

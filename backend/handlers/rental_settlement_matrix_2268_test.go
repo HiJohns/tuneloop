@@ -127,6 +127,7 @@ func buildMatrixOrder(t *testing.T, db *gorm.DB, c matrixCase) models.Order {
 	// #2443 Rev.5：严格 schema 下 orders.user_id / instrument_id 有 FK，先 seed 父行。
 	testfixtures.SeedUserFK(t, db, o.UserID, o.TenantID, o.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, o.InstrumentID, o.TenantID, o.OrgID)
+	testfixtures.SeedOrderParents(t, db, &o) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&o).Error)
 
 	// 首期支付记录（结算按总实收，不依赖单笔顺序；仍落记录以仿真）
@@ -319,6 +320,7 @@ func TestMatrix_RentalShortfallApplied_2268(t *testing.T) {
 		Level: "entry", LeaseTerm: 30, Status: "returned",
 		Deposit: 0, CashPaid: models.FromYuan(2800),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 	require.NoError(t, db.Create(&models.Settlement{
 		OrderID: order.ID, ActualRentAmount: models.FromYuan(3000), RefundStatus: "pending",
@@ -357,6 +359,7 @@ func TestMatrix_GiftPointsNotDoubleDeducted_2268(t *testing.T) {
 		Level: "entry", LeaseTerm: 30, Status: "reserved",
 		Deposit: models.FromYuan(500), CashPaid: models.FromYuan(1000),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 	gift := `{"gift_used":20000}`
 	rec := models.OrderPaymentRecord{
@@ -524,6 +527,7 @@ func TestMatrix_ShortfallExcessRefund_2268(t *testing.T) {
 		ID: uuid.NewString(), TenantID: org, OrgID: org, UserID: user, InstrumentID: instrumentID,
 		Level: "entry", LeaseTerm: 30, Status: "returned", Deposit: 0, CashPaid: models.FromYuan(3500),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 	rentNo := "rentexcess2278"
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{

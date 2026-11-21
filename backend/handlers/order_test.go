@@ -271,6 +271,7 @@ func TestCancelOrderByCustomer_StatusGuard(t *testing.T) {
 			Deposit:      models.FromYuan(0),
 			CashPaid:     models.FromYuan(1),
 		}
+		testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 		require.NoError(t, db.Create(&order).Error)
 		return order.ID
 	}

@@ -28,6 +28,7 @@ func setupPropertyResolutionTest(t *testing.T) (*gorm.DB, string) {
 	db.Exec("DELETE FROM categories")
 
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	now := time.Now()
 
 	db.Exec("INSERT INTO properties (id, name, tenant_id, property_type, caption, scope_type, status, created_at, updated_at) VALUES (?, ?, ?, 'text', ?, ?, 'active', ?, ?)",

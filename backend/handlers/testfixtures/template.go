@@ -79,6 +79,12 @@ const seedSQL = `INSERT INTO pricing_templates (id, code, name, config_schema, i
 // SeedTemplateBaseline 在每次 ResetTestDB 后恢复模板种子（system default pricing）。
 func SeedTemplateBaseline(db *gorm.DB) {
 	db.Exec(seedSQL)
+	// #2443 Rev.5：严格 schema 下 users.membership_level_id 有 FK；旧夹具常直接用 1..N。
+	// 统一 seed 1..10（幂等）；显式创建同 ID 的测试改用 upsert（见各 _test.go）。
+	for id := 1; id <= 10; id++ {
+		db.Exec(`INSERT INTO membership_levels (id, name, min_amount) VALUES (?, ?, 0)
+			ON CONFLICT (id) DO NOTHING`, id, "test-level")
+	}
 }
 
 func seedFingerprint() string {

@@ -64,6 +64,7 @@ func TestInspectReturn_Damaged_NotificationActionType(t *testing.T) {
 		CashPaid:     models.FromYuan(35),
 	}
 	testfixtures.SeedUserFK(t, db, userID, tenantID, orgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	handler := NewWarehouseHandler()
@@ -154,6 +155,7 @@ func TestInspectReturn_Good_RefundReceiptNotification(t *testing.T) {
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	testfixtures.SeedUserFK(t, db, userID, tenantID, orgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	// #2281：补合同租金流水（¥3500 − 续期 ¥120），账本净额与 cash_paid 一致。
@@ -242,6 +244,7 @@ func TestBuildRefundReceipt_IncludesAllLines(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, userID, tenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, tenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{
 		ID:        uuid.New().String(),
@@ -353,6 +356,7 @@ func TestSubmitAppeal_StaffNotification(t *testing.T) {
 		InstrumentID: instrument.ID,
 		Status:       models.OrderStatusReturning,
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	damageAmount := 200.0
@@ -474,6 +478,7 @@ func TestResolveAppeal_Final_RefundReceiptAndStaffNotify(t *testing.T) {
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	testfixtures.SeedUserFK(t, db, userID, tenantID, orgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	damageAmount := 600.0 // > deposit 500 → confirm completes the order
@@ -578,6 +583,7 @@ func TestRequiredPhotos_Missing(t *testing.T) {
 		Status: models.OrderStatusPaid, CashPaid: models.FromYuan(3500),
 	}
 	testfixtures.SeedUserFK(t, db, userID, tenantID, orgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	staff := testutil.MakeSiteMember(tenantID, orgID, userID)

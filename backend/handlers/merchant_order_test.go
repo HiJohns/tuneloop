@@ -35,6 +35,7 @@ func TestListMerchantOrders_StartDateFilter(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, todayOrder.UserID, todayOrder.TenantID, todayOrder.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, todayOrder.InstrumentID, todayOrder.TenantID, todayOrder.OrgID)
+	testfixtures.SeedOrderParents(t, db, &todayOrder) // #2443: strict schema order FKs
 	db.Create(&todayOrder)
 
 	// Order created 3 days ago
@@ -46,6 +47,7 @@ func TestListMerchantOrders_StartDateFilter(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, pastOrder.UserID, pastOrder.TenantID, pastOrder.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, pastOrder.InstrumentID, pastOrder.TenantID, pastOrder.OrgID)
+	testfixtures.SeedOrderParents(t, db, &pastOrder) // #2443: strict schema order FKs
 	db.Create(&pastOrder)
 	// Backdate created_at for the past order
 	db.Model(&models.Order{}).Where("id = ?", pastOrder.ID).
@@ -101,6 +103,7 @@ func TestListMerchantOrders_EndDateIncludesFullDay(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, lateOrder.UserID, lateOrder.TenantID, lateOrder.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, lateOrder.InstrumentID, lateOrder.TenantID, lateOrder.OrgID)
+	testfixtures.SeedOrderParents(t, db, &lateOrder) // #2443: strict schema order FKs
 	db.Create(&lateOrder)
 	db.Model(&models.Order{}).Where("id = ?", lateOrder.ID).
 		Update("created_at", lateToday)
@@ -114,6 +117,7 @@ func TestListMerchantOrders_EndDateIncludesFullDay(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, tomorrowOrder.UserID, tomorrowOrder.TenantID, tomorrowOrder.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, tomorrowOrder.InstrumentID, tomorrowOrder.TenantID, tomorrowOrder.OrgID)
+	testfixtures.SeedOrderParents(t, db, &tomorrowOrder) // #2443: strict schema order FKs
 	db.Create(&tomorrowOrder)
 	db.Model(&models.Order{}).Where("id = ?", tomorrowOrder.ID).
 		Update("created_at", tomorrow)
@@ -165,6 +169,7 @@ func TestListMerchantOrders_NoDateReturnsAll(t *testing.T) {
 			Status: "paid", Level: "standard", MonthlyRent: 10000,
 		}
 		testfixtures.SeedInstrumentFK(t, db, o.InstrumentID, tenantID, orgID)
+		testfixtures.SeedOrderParents(t, db, &o) // #2443: strict schema order FKs
 		db.Create(&o)
 	}
 

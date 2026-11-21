@@ -44,6 +44,7 @@ func TestPrepayShortfall_OREZ(t *testing.T) {
 		UserID: user.ID, InstrumentID: uuid.New().String(),
 		Status: models.OrderStatusReturning,
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 	// 验收时创建的 pending 补缴单（#1799）——waived 结清后必须被关闭。
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{

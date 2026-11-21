@@ -307,6 +307,7 @@ func TestUpdateShipping_VerifyRequired(t *testing.T) {
 		UserID: buyer.ID, InstrumentID: instrument.ID,
 		Status: models.OrderStatusPaid,
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	router := gin.New()

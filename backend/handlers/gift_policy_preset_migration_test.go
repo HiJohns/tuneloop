@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"gorm.io/gorm/clause"
 	"os"
 	"strings"
 	"testing"
@@ -17,9 +18,9 @@ func TestGiftPolicyReferralPresetMigration(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 
 	// 非手册名称（复现 name 匹配未命中）+ 三条 referral_ratio=0 的级别行。
-	require.NoError(t, db.Create(&models.MembershipLevel{ID: 1, Name: "乐手会员"}).Error)
-	require.NoError(t, db.Create(&models.MembershipLevel{ID: 2, Name: "首席乐手"}).Error)
-	require.NoError(t, db.Create(&models.MembershipLevel{ID: 3, Name: "演奏家会员"}).Error)
+	require.NoError(t, db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&models.MembershipLevel{ID: 1, Name: "乐手会员"}).Error)
+	require.NoError(t, db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&models.MembershipLevel{ID: 2, Name: "首席乐手"}).Error)
+	require.NoError(t, db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&models.MembershipLevel{ID: 3, Name: "演奏家会员"}).Error)
 	require.NoError(t, db.Create(&models.GiftPolicy{LevelID: 0, PayRatio: 0.3, ReferralRatio: 0.02, ReferralRegPoints: 10, IsActive: true}).Error)
 	for _, id := range []int{1, 2, 3} {
 		require.NoError(t, db.Create(&models.GiftPolicy{LevelID: id, ReferralRatio: 0, ReferralRegPoints: 10, IsActive: true}).Error)

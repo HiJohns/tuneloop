@@ -55,6 +55,7 @@ func TestGetOrder_FeeDetail_Unsettled(t *testing.T) {
 		// total_amount = 300 分（3 天 × 1 元）
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":100,"rent_days":3,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":3,"rate":100,"discount":1,"subtotal":300}],"total_amount":300}`),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	// Paid payment record (order_type=rent, 400 分 = rent 300 + deposit 100).
@@ -177,6 +178,7 @@ func TestGetOrder_FeeDetail_Settled(t *testing.T) {
 		ShippingFee:      models.FromYuan(1),
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":100,"rent_days":3,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":3,"rate":100,"discount":1,"subtotal":300}],"total_amount":300}`),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	outTradeNo := "feesum-otn-2"

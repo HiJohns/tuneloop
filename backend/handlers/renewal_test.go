@@ -52,6 +52,7 @@ func setupRenewalOrder(t *testing.T, tenantID, userID, orgID string, endDateOffs
 		Status:           models.OrderStatusInLease,
 		PricingBreakdown: &pricingBreakdown,
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	return instrument.ID, order.ID

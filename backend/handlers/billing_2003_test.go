@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"tuneloop-backend/handlers/testfixtures"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -68,6 +69,7 @@ func TestBillingReport_CentsToYuanAndFields(t *testing.T) {
 		CreatedAt:         now,
 		UpdatedAt:         now,
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{

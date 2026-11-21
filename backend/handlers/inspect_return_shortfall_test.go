@@ -53,6 +53,7 @@ func TestInspectReturn_BlocksDuplicateReceiveWhenShortfallPending(t *testing.T) 
 		Deposit:      models.FromYuan(500),
 		CashPaid:     models.FromYuan(35),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	// pending payment_shortfall record — first receive already created it
@@ -146,6 +147,7 @@ func TestInspectReturn_NoShortfallCompletesOrder(t *testing.T) {
 		Deposit:      models.FromYuan(500),
 		CashPaid:     models.FromYuan(500),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	handler := NewWarehouseHandler()

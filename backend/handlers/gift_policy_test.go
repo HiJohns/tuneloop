@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"gorm.io/gorm/clause"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -43,7 +44,7 @@ func makeAdminActor() testutil.TestActor {
 // #1945: fields now pay_ratio / referral_ratio / referral_reg_points.
 func TestGiftPolicyCRUD(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
-	require.NoError(t, db.Create(&models.MembershipLevel{ID: 1, Name: "初级", MinAmount: 0}).Error)
+	require.NoError(t, db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&models.MembershipLevel{ID: 1, Name: "初级", MinAmount: 0}).Error)
 	require.NoError(t, db.Create(&models.GiftPolicy{
 		LevelID: 0, PayRatio: 0.3, ReferralRatio: 0, ReferralRegPoints: 10, IsActive: true,
 	}).Error)
@@ -99,7 +100,7 @@ func TestGiftPolicyCRUD(t *testing.T) {
 // TestGiftPolicyLevelFallback: unconfigured level falls back to default row (#1605).
 func TestGiftPolicyLevelFallback(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
-	require.NoError(t, db.Create(&models.MembershipLevel{ID: 1, Name: "初级", MinAmount: 0}).Error)
+	require.NoError(t, db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&models.MembershipLevel{ID: 1, Name: "初级", MinAmount: 0}).Error)
 	require.NoError(t, db.Create(&models.GiftPolicy{
 		LevelID: 0, PayRatio: 0.3, ReferralRatio: 0.02, ReferralRegPoints: 10, IsActive: true,
 	}).Error)

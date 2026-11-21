@@ -61,6 +61,7 @@ func setupDeliveryOrder(t *testing.T, pb *string, startDate, endDate *string) (s
 		EndDate:          endDate,
 		PricingBreakdown: pb,
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	return tenantID, orgID, userID, order.ID
@@ -218,6 +219,7 @@ func TestConfirmDelivery_ThenRenewal_ChainsCorrectly(t *testing.T) {
 		EndDate:          &start,
 		PricingBreakdown: &pb,
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	actor := testutil.MakeCustomer(tenantID, userID)

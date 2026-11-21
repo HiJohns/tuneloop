@@ -55,6 +55,7 @@ func TestComputeSettlement_FeeItems_Direction(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	result := computeSettlement(order, db)
@@ -101,6 +102,7 @@ func TestComputeSettlement_FeeItems_Shortfall(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	result := computeSettlement(order, db)
@@ -146,6 +148,7 @@ func TestGetOrder_MerchantName(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	router := setupTestRouter(t, tenantID, userID)
@@ -189,6 +192,7 @@ func TestGetOrder_MerchantName_Absent(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	router := setupTestRouter(t, tenantID, userID)

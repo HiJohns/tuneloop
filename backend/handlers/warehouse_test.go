@@ -30,6 +30,7 @@ func TestListWarehouseOrders(t *testing.T) {
 		ID: uuid.New().String(), TenantID: tenantID, UserID: uuid.New().String(),
 		InstrumentID: uuid.New().String(), OrgID: uuid.New().String(), Status: models.OrderStatusShipped,
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	db.Create(&order)
 
 	handler := NewWarehouseHandler()
@@ -69,6 +70,7 @@ func TestUpdateShipping(t *testing.T) {
 		ID: orderID, TenantID: tenantID, UserID: uuid.New().String(), OrgID: uuid.New().String(),
 		Status: "paid", InstrumentID: uuid.New().String(),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	db.Create(&order)
 
 	handler := NewWarehouseHandler()

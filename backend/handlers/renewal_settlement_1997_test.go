@@ -104,6 +104,7 @@ func TestRenewal1997_Settlement_ChargesConsumedRenewalDays(t *testing.T) {
 		CashPaid:         models.FromYuan(100), // 合同 10 天 × ¥10
 		PricingBreakdown: &pricingBreakdown,
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 	// #2282 P4a：初始版本（合同 10 天 / ¥100），续租追加 v2。
 	require.NoError(t, db.Create(&models.OrderTermVersion{
@@ -194,6 +195,7 @@ func TestRenewal1997_Fallback_StaleTierSegmentsChargesRenewal(t *testing.T) {
 		Status: models.OrderStatusInLease, DeliveredAt: &delivered,
 		CashPaid: models.FromYuan(140), PricingBreakdown: &stalePB,
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	days := 4

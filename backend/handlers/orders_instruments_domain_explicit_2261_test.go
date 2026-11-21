@@ -47,7 +47,9 @@ func TestOrdersInstrumentsDomain_ExplicitScopeIsolation_2261(t *testing.T) {
 	require.NoError(t, db.Create(&models.User{ID: userA, IAMSub: userA, TenantID: orgA, OrgID: orgA, Status: "active", Name: "A用户"}).Error)
 	orderA := models.Order{ID: uuid.NewString(), TenantID: orgA, OrgID: orgA, UserID: userA, InstrumentID: instA, Level: "entry", LeaseTerm: 30, Status: "in_lease", CashPaid: models.FromYuan(3500)}
 	orderB := models.Order{ID: uuid.NewString(), TenantID: orgB, OrgID: orgB, UserID: uuid.NewString(), InstrumentID: instB, Level: "entry", LeaseTerm: 30, Status: "in_lease", CashPaid: models.FromYuan(3500)}
+	testfixtures.SeedOrderParents(t, db, &orderA) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&orderA).Error)
+	testfixtures.SeedOrderParents(t, db, &orderB) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&orderB).Error)
 
 	// 商户 A 管理员；对比「自动范围 on/off」两种模式（#2261 B3-B 路由级守卫）

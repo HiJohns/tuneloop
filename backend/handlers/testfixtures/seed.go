@@ -103,3 +103,16 @@ func SeedInstrumentFK(t *testing.T, db *gorm.DB, instrumentID, tenantID, orgID s
 		t.Fatalf("#2443 seed instruments(%s): %v", instrumentID, err)
 	}
 }
+
+// SeedOrderParents 确保订单引用的 tenant / user / instrument 行存在
+// （严格 schema 下 orders.user_id / orders.instrument_id 有 FK）。
+// #2443 Rev.5：订单 fixture 的单一 seed 出口。
+func SeedOrderParents(t *testing.T, db *gorm.DB, o *models.Order) {
+	t.Helper()
+	if o == nil {
+		return
+	}
+	SeedTenantFK(t, db, o.TenantID)
+	SeedUserFK(t, db, o.UserID, o.TenantID, o.OrgID)
+	SeedInstrumentFK(t, db, o.InstrumentID, o.TenantID, o.OrgID)
+}

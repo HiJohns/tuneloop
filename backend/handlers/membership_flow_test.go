@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"gorm.io/gorm/clause"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -145,12 +146,12 @@ func TestMembershipFlow(t *testing.T) {
 	// ------------------------------------------------------------------
 	// applySideEffects (membership case) activates the highest level whose
 	// MinAmount <= paid amount (#1575).
-	require.NoError(t, db.Create(&models.MembershipLevel{
+	require.NoError(t, db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&models.MembershipLevel{
 		ID:        1,
 		Name:      "初级会员",
 		MinAmount: 9900,
 	}).Error)
-	require.NoError(t, db.Create(&models.MembershipLevel{
+	require.NoError(t, db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&models.MembershipLevel{
 		ID:        2,
 		Name:      "高级会员",
 		MinAmount: 19900,
@@ -613,6 +614,7 @@ func TestPrepayRentWithCoupon_OREZ(t *testing.T) {
 		Status:       models.OrderStatusReserved,
 		CashPaid:     models.FromYuan(1),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	customer := testutil.MakeCustomer("", user.IAMSub)

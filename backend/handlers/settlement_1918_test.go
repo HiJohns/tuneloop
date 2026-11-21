@@ -57,6 +57,7 @@ func seed1918Order(t *testing.T, status string, deliveredAt, returnedAt *time.Ti
 		CashPaid:         models.FromYuan(3500),
 		PricingBreakdown: &pricingBreakdown,
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 	return order
 }

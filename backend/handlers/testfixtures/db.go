@@ -2,6 +2,7 @@ package testfixtures
 
 import (
 	"os"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -112,6 +113,12 @@ func GetTestDB(t *testing.T) *gorm.DB {
 			if sqlDB, err := sharedTestDB.DB(); err == nil {
 				sqlDB.SetMaxOpenConns(8)
 				sqlDB.SetMaxIdleConns(4)
+			}
+			// #2443 Rev.5：严格 schema 下 users.membership_level_id 有 FK，旧夹具常只写
+			// intPtr(1)/&level2 而不建行。统一在 User 创建前惰性 seed（单一口径，仅测试库）。
+			if err := sharedTestDB.Callback().Create().Before("gorm:create").
+				Register("testfixtures:ensure_membership_level", ensureUserMembershipLevel); err != nil {
+				sharedTestErr = err
 			}
 		}
 	})
@@ -256,4 +263,36 @@ func ResetTestDB(t *testing.T) {
 		}
 	}
 	SeedTemplateBaseline(db)
+}
+
+// ensureUserMembershipLevel 在插入 users 前确保 membership_levels 行存在（幂等）。
+// 仅注册在测试库连接上；生产不受影响。
+func ensureUserMembershipLevel(db *gorm.DB) {
+	if db.Statement == nil || db.Statement.Schema == nil || db.Statement.Schema.Table != "users" {
+		return
+	}
+	rv := reflect.Indirect(reflect.ValueOf(db.Statement.Dest))
+	ensure := func(v reflect.Value) {
+		if v.Kind() != reflect.Struct {
+			return
+		}
+		f := v.FieldByName("MembershipLevelID")
+		if !f.IsValid() || f.Kind() != reflect.Ptr || f.IsNil() {
+			return
+		}
+		id := int(f.Elem().Int())
+		if id <= 0 {
+			return
+		}
+		db.Exec(`INSERT INTO membership_levels (id, name, min_amount) VALUES (?, ?, 0)
+			ON CONFLICT (id) DO NOTHING`, id, "test-level")
+	}
+	switch rv.Kind() {
+	case reflect.Struct:
+		ensure(rv)
+	case reflect.Slice:
+		for i := 0; i < rv.Len(); i++ {
+			ensure(rv.Index(i))
+		}
+	}
 }

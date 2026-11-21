@@ -51,6 +51,7 @@ func TestGiftNotDoubleDeducted_ByOrderType_2268(t *testing.T) {
 				InstrumentID: uuid.NewString(), Level: "entry", LeaseTerm: 30, Status: "in_lease",
 				CashPaid: models.FromYuan(500),
 			}
+			testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 			require.NoError(t, db.Create(&order).Error)
 			gift := `{"gift_used":20000}`
 			rec := models.OrderPaymentRecord{

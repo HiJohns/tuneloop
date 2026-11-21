@@ -107,6 +107,7 @@ func TestAgreeDamage_CustomerNoTenant(t *testing.T) {
 		ShippingFee:      0,
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 	outTradeNo := "dm-notenant-001"
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{
@@ -227,6 +228,7 @@ func TestAgreeDamage_ShortfallPositive(t *testing.T) {
 			"pricing_tiers":[{"days_max":30,"daily_rate":3600,"discount_percent":0}],
 			"tier_segments":[{"tier":1,"days":2,"rate":3600,"discount":1,"subtotal":7200}]}`),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 	// 已付 0.72 = 原单租金 0.36（rent）+ 续租租金 0.36（renewal, days=1）
 	// ——renewal days 供段模型反推 contractDays（2−1=1），全 renewal 会导致段模型拒绝
@@ -319,6 +321,7 @@ func TestLoadDamagePayment_IdCompat(t *testing.T) {
 			"pricing_tiers":[{"days_max":30,"daily_rate":3600,"discount_percent":0}],
 			"tier_segments":[{"tier":1,"days":2,"rate":3600,"discount":1,"subtotal":7200}]}`),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 	// 同 ShortfallPositive：rent 0.36 + renewal 0.36（days=1）→ 段模型 contractDays=1
 	tnoRent := "idc-rent-" + uuid.New().String()[:8]

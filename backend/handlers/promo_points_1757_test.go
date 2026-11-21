@@ -88,6 +88,7 @@ func TestWalletInfo_PromoPointsCents(t *testing.T) {
 		// total_amount = 30000 cents
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":10000,"rent_days":3,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":3,"rate":10000,"discount":1,"subtotal":30000}],"total_amount":30000}`),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	router := gin.New()

@@ -37,6 +37,7 @@ func TestInvoiceSubmit_TenantDerivedFromOrders_2262(t *testing.T) {
 				InstrumentID: uuid.NewString(), Level: "standard", LeaseTerm: 30,
 				Status: models.OrderStatusCompleted, InvoiceApplied: applied,
 			}
+			testfixtures.SeedOrderParents(t, db, o) // #2443: strict schema order FKs
 			require.NoError(t, db.Create(o).Error)
 			return o
 		}
@@ -92,6 +93,7 @@ func TestInvoiceSubmit_TenantDerivedFromOrders_2262(t *testing.T) {
 		db := database.GetDB()
 		oB2 := &models.Order{ID: uuid.NewString(), TenantID: uuid.NewString(), OrgID: uuid.NewString(), UserID: oA1.UserID,
 			InstrumentID: uuid.NewString(), Level: "standard", LeaseTerm: 30, Status: models.OrderStatusCompleted}
+		testfixtures.SeedOrderParents(t, db, oB2) // #2443: strict schema order FKs
 		require.NoError(t, db.Create(oB2).Error)
 		w, _ := post(r, map[string]interface{}{"groups": []map[string]interface{}{{
 			"order_ids": []string{oA1.ID, oB2.ID}, "invoice_type": "普通", "title": "个人",

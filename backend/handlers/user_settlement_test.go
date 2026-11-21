@@ -53,6 +53,7 @@ func TestSettlement_EarlyReturnRebate(t *testing.T) {
 		CashPaid:         models.FromYuan(3500), // rent 3000 + deposit 500 (production contract: CashPaid includes deposit)
 		PricingBreakdown: &pricingBreakdown,
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	result := computeSettlement(order, db)
@@ -107,6 +108,7 @@ func TestSettlement_OverdueFeeDeducted(t *testing.T) {
 		CashPaid:         models.FromYuan(1500), // rent 1000 + deposit 500 (production contract: CashPaid includes deposit)
 		PricingBreakdown: &pricingBreakdown,
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	// Overdue fee computed at return inspection (5 days × 15 = 75), persisted
@@ -173,6 +175,7 @@ func TestSettlement_DamagePlusOverdue(t *testing.T) {
 		CashPaid:         models.FromYuan(1500), // rent 1000 + deposit 500 (production contract: CashPaid includes deposit)
 		PricingBreakdown: &pricingBreakdown,
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	// Report: overdue 2 days × 15 = 30 + damage 100 deducted from deposit (#1708 merge)

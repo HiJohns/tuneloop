@@ -28,6 +28,7 @@ func TestRefundCallback_NetCashPaid_2268(t *testing.T) {
 		InstrumentID: uuid.NewString(), Level: "entry", LeaseTerm: 30, Status: "in_lease",
 		CashPaid: models.FromYuan(3500),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 	require.NoError(t, db.Create(&models.Settlement{OrderID: order.ID, ActualRentAmount: models.FromYuan(3000), RefundStatus: "pending"}).Error)
 	pay := models.OrderPaymentRecord{
@@ -71,6 +72,7 @@ func TestRefundReplay_P0Cases_2278(t *testing.T) {
 		order := models.Order{ID: uuid.NewString(), TenantID: org, OrgID: org, UserID: userID,
 			InstrumentID: uuid.NewString(), Level: "entry", LeaseTerm: 30, Status: "completed",
 			CashPaid: models.Cents(c.paid)}
+		testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 		require.NoError(t, db.Create(&order).Error)
 		pay := models.OrderPaymentRecord{ID: uuid.NewString(), TenantID: org, UserID: userID, OrderID: &order.ID,
 			OrderType: "rent", Amount: models.Cents(c.paid), Type: "payment", Status: "paid"}

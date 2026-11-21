@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"tuneloop-backend/handlers/testfixtures"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -55,6 +56,7 @@ func setupRenewalOrderCents(t *testing.T, tenantID, userID, orgID string) (strin
 		Status:           models.OrderStatusInLease,
 		PricingBreakdown: &pricingBreakdown,
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	return instrument.ID, order.ID
@@ -144,6 +146,7 @@ func TestRenewal_MonthlyRentFallback_Cents(t *testing.T) {
 		Status:       models.OrderStatusInLease,
 		// no PricingBreakdown → snapshot parse fails → monthly fallback path
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	router := renewalRouter(tenantID, userID)

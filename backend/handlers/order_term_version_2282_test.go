@@ -21,6 +21,7 @@ func TestOrderTermVersion_InitialSnapshot_2282(t *testing.T) {
 		UserID: uuid.NewString(), InstrumentID: uuid.NewString(), Level: "entry",
 		LeaseTerm: 30, Status: "reserved", PricingBreakdown: &pb,
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 	insertInitialTermVersion(db, &order)
 

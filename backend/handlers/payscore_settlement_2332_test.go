@@ -81,6 +81,7 @@ func seedSettlementPayscoreOrder(t *testing.T, depositYuan float64, cashPaidYuan
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, tenantID, orgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, tenantID, orgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 	if damageYuan > 0 {
 		require.NoError(t, db.Create(&models.DamageReport{

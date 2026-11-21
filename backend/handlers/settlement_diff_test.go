@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"gorm.io/gorm/clause"
 	"testing"
 	"time"
 
@@ -21,7 +22,7 @@ func TestRefundDiff_PointsOverCap(t *testing.T) {
 	userID := "00000000-0000-4000-8000-0000000000a3"
 
 	// User at level 1 with policy pay_ratio=0.3 → A1 = floor(2800×0.3)=840
-	require.NoError(t, db.Create(&models.MembershipLevel{ID: 1, Name: "初级", MinAmount: 0}).Error)
+	require.NoError(t, db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&models.MembershipLevel{ID: 1, Name: "初级", MinAmount: 0}).Error)
 	require.NoError(t, db.Create(&models.GiftPolicy{
 		LevelID: 1, PayRatio: 0.3, ReferralRatio: 0, IsActive: true,
 	}).Error)
@@ -55,6 +56,7 @@ func TestRefundDiff_PointsOverCap(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	result := computeSettlement(order, db)
@@ -83,7 +85,7 @@ func TestRefundDiff_PointsWithinCap(t *testing.T) {
 	userID := "00000000-0000-4000-8000-0000000000b3"
 
 	// pay_ratio = 0.5 → A1 = floor(2800×0.5) = 1400 ≥ A0=500
-	require.NoError(t, db.Create(&models.MembershipLevel{ID: 1, Name: "初级", MinAmount: 0}).Error)
+	require.NoError(t, db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&models.MembershipLevel{ID: 1, Name: "初级", MinAmount: 0}).Error)
 	require.NoError(t, db.Create(&models.GiftPolicy{
 		LevelID: 1, PayRatio: 0.5, ReferralRatio: 0, IsActive: true,
 	}).Error)
@@ -114,6 +116,7 @@ func TestRefundDiff_PointsWithinCap(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	result := computeSettlement(order, db)
@@ -132,7 +135,7 @@ func TestRefundDiff_TotalSpendingC1(t *testing.T) {
 	orgID := "00000000-0000-4000-8000-0000000000c2"
 	userID := "00000000-0000-4000-8000-0000000000c3"
 
-	require.NoError(t, db.Create(&models.MembershipLevel{ID: 1, Name: "初级", MinAmount: 0}).Error)
+	require.NoError(t, db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&models.MembershipLevel{ID: 1, Name: "初级", MinAmount: 0}).Error)
 	require.NoError(t, db.Create(&models.GiftPolicy{
 		LevelID: 1, PayRatio: 0.3, ReferralRatio: 0, IsActive: true,
 	}).Error)
@@ -158,6 +161,7 @@ func TestRefundDiff_TotalSpendingC1(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	result := computeSettlement(order, db)
@@ -174,7 +178,7 @@ func TestRefundDiff_RebatePoints(t *testing.T) {
 	userID := "00000000-0000-4000-8000-0000000000d3"
 
 	// refund_ratio = 0.1 → A2 = floor(1960 × 0.1) = 196
-	require.NoError(t, db.Create(&models.MembershipLevel{ID: 1, Name: "初级", MinAmount: 0}).Error)
+	require.NoError(t, db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&models.MembershipLevel{ID: 1, Name: "初级", MinAmount: 0}).Error)
 	require.NoError(t, db.Create(&models.GiftPolicy{
 		LevelID: 1, PayRatio: 0.3, ReferralRatio: 0, IsActive: true,
 	}).Error)
@@ -199,6 +203,7 @@ func TestRefundDiff_RebatePoints(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	result := computeSettlement(order, db)
@@ -217,7 +222,7 @@ func TestConfirmSettlement_ClosesOrder(t *testing.T) {
 	orgID := "00000000-0000-4000-8000-0000000000e2"
 	userID := "00000000-0000-4000-8000-0000000000e3"
 
-	require.NoError(t, db.Create(&models.MembershipLevel{ID: 1, Name: "初级", MinAmount: 0}).Error)
+	require.NoError(t, db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&models.MembershipLevel{ID: 1, Name: "初级", MinAmount: 0}).Error)
 	require.NoError(t, db.Create(&models.GiftPolicy{
 		LevelID: 1, PayRatio: 0.3, ReferralRatio: 0, IsActive: true,
 	}).Error)
@@ -242,6 +247,7 @@ func TestConfirmSettlement_ClosesOrder(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	// Simulate the ConfirmSettlement order-close update (the handler's final
@@ -277,6 +283,7 @@ func TestPaymentCallback_NoDoubleCount(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	// Simulate the payment-callback update: gift_used=1000 cents → cash_paid
@@ -327,6 +334,7 @@ func TestSettlement_ShippingFeeSingleDeduction(t *testing.T) {
 	}
 	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
 	testfixtures.SeedInstrumentFK(t, db, order.InstrumentID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	result := computeSettlement(order, db)

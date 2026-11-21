@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"gorm.io/gorm/clause"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,7 +18,7 @@ import (
 // #1987: Update handler must convert yuan → cents like the Create handler.
 func TestUpdateMembershipLevel_MinAmountYuanToCents(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
-	require.NoError(t, db.Create(&models.MembershipLevel{ID: 77, Name: "测试级", MinAmount: 0}).Error)
+	require.NoError(t, db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&models.MembershipLevel{ID: 77, Name: "测试级", MinAmount: 0}).Error)
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()

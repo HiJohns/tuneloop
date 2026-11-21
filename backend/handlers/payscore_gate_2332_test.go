@@ -27,7 +27,7 @@ import (
 func seedPayGateOrder(t *testing.T, db *gorm.DB, tenantID, userID, tier, creditPath, creditState string) string {
 	t.Helper()
 	orderID := uuid.New().String()
-	require.NoError(t, db.Create(&models.Order{
+	order := models.Order{
 		ID: orderID, TenantID: tenantID, OrgID: tenantID, UserID: userID,
 		InstrumentID:      uuid.New().String(),
 		Status:            models.OrderStatusReserved,
@@ -35,7 +35,9 @@ func seedPayGateOrder(t *testing.T, db *gorm.DB, tenantID, userID, tier, creditP
 		DepositCreditPath: creditPath,
 		CreditState:       creditState,
 		CashPaid:          models.FromYuan(100),
-	}).Error)
+	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
+	require.NoError(t, db.Create(&order).Error)
 	return orderID
 }
 

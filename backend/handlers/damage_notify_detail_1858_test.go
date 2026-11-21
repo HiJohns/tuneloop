@@ -53,6 +53,7 @@ func build1858Fixture(t *testing.T, paid []int64) (tenantID, userID, orderID, da
 		ShippingFee:      0,
 		PricingBreakdown: strPtr(`{"base_daily_rent":100,"rent_days":1}`),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	for i, amt := range paid {

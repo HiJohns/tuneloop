@@ -53,6 +53,7 @@ func create1860Fixtures(t *testing.T, siteOrgID string) (db *gorm.DB, tenantID, 
 			"pricing_tiers":[{"days_max":30,"daily_rate":3600,"discount_percent":0}],
 			"tier_segments":[{"tier":1,"days":2,"rate":3600,"discount":1,"subtotal":7200}]}`),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 	days1 := 1
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{
@@ -132,6 +133,7 @@ func TestStaffRefundOrder_DirectOrgHitCompatible(t *testing.T) {
 		Status:  models.OrderStatusDepositRefunding,
 		Deposit: 0, CashPaid: models.FromYuan(0.72), ShippingFee: models.FromYuan(0.01),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	httpCode, bizCode := refund1860(t, tenantID, siteOrgID, orderID)

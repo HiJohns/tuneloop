@@ -134,6 +134,7 @@ func TestIntegration_Scenario2_WarehouseProcess(t *testing.T) {
 		LeaseTerm:    30,
 		Status:       "paid",
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	db.Create(&order)
 
 	// Step 1: List orders - GET /api/warehouse/orders

@@ -59,6 +59,7 @@ func inspectReturnRouter(t *testing.T, tenantID, orgID, staffID string) (*gin.En
 			CashPaid:     models.FromYuan(500),
 		}
 		testfixtures.SeedUserFK(t, db, userID, tenantID, orgID)
+		testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 		require.NoError(t, db.Create(&order).Error)
 		return order, db
 	}
@@ -172,6 +173,7 @@ func TestComputeSettlement_IncludesAdditionalShippingFee(t *testing.T) {
 		CashPaid:         models.FromYuan(3400),
 		PricingBreakdown: strPtr(`{"base_daily_rent":1000,"rent_days":35,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":1000},{"days_max":35,"discount_percent":20,"daily_rate":1000}],"tier_segments":[{"tier":1,"days":30,"rate":1000,"discount":1,"subtotal":30000},{"tier":2,"days":5,"rate":1000,"discount":0.8,"subtotal":4000}],"total_amount":34000}`),
 	}
+	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
 
 	// 最新 damage_report 含追加物流费 50 元
