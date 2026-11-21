@@ -48,6 +48,7 @@ func setupDeliveryOrder(t *testing.T, pb *string, startDate, endDate *string) (s
 		StockStatus:   "shipped",
 	}
 	require.NoError(t, db.Create(&instrument).Error)
+	testfixtures.SeedUserFK(t, db, userID, tenantID, orgID) // #2443: orders.user_id FK
 
 	order := models.Order{
 		ID:               uuid.New().String(),
