@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "issue": 2447,
+  "build": "1.0.5da654a7d",
+  "commit": "5da654a7d3f5f58c8f01dfdd0b36cb9aae7301fd",
+  "dirty": false,
+  "environment": "PC frontend; R1 awaits Owner pre-production receipt (preweb 1.0.95)",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2447.sh r1",
+      "exit": 1,
+      "artifacts": ["docs/evidence/2447/R1-manual.md"],
+      "assert": "exit 0；两类账号回执 + 版本",
+      "actual": "OWNER_PENDING：脚本已就绪，site_admin/merchant_admin 真机回执待 Owner 签署",
+      "expected": "PASS",
+      "negative": "网点可见 → FAIL",
+      "negative_result": "site_admin 仍显示 Alert/链接即判 FAIL",
+      "pass": false
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2447.sh r2",
+      "exit": 0,
+      "artifacts": ["docs/evidence/2447/R2-build.txt"],
+      "assert": "exit 0；BUILD_OK + ESLINT_OK",
+      "actual": "PASS：eslint 0 error；npm run build ✓ built in 3m 29s",
+      "expected": "PASS",
+      "negative": "构建/lint 失败 → FAIL",
+      "negative_result": "eslint 或 build 非 0 即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2447.sh r3",
+      "exit": 0,
+      "artifacts": ["docs/evidence/2447/R3-static.txt"],
+      "assert": "exit 0；门控代码命中",
+      "actual": "PASS：checkPermission + canManageSites 守卫先于 Alert；organization_view + instrument 双权限",
+      "expected": "PASS",
+      "negative": "裸渲染 → FAIL",
+      "negative_result": "缺守卫/缺权限位即 STATIC_FAIL",
+      "pass": true
+    }
+  ]
+}

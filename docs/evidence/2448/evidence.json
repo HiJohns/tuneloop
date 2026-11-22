@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "issue": 2448,
+  "build": "1.0.64a6d2cf6",
+  "commit": "64a6d2cf677479b0bb574ab044bb088876328854",
+  "dirty": false,
+  "environment": "Phase D only: 5 docs; no code changes",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2448.sh d1-docs",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2448/D1-docs.txt"
+      ],
+      "assert": "exit 0；关键段齐备",
+      "actual": "PASS：角色矩阵/两流程/状态机/transfer|multi_site/重置文案/错误码/场景均命中",
+      "expected": "PASS",
+      "negative": "缺段 → FAIL",
+      "negative_result": "任一 MISS 即 exit 1",
+      "pass": true
+    }
+  ]
+}

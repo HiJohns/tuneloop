@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "issue": 2449,
+  "build": "1.0.42dcec6f0",
+  "commit": "42dcec6f0c8ece176d88fa99f22483a68522f8cf",
+  "dirty": false,
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2449 @ 42dcec6f0; evidence generated with OUT_DIR outside the repo; Go handlers tests on tuneloop_test_2449",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2449.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2449/R1-me-site.txt"
+      ],
+      "assert": "exit 0；四态断言 PASS",
+      "actual": "PASS：oid=A→SiteA、oid=B→SiteB、顾客(oid 空)→null、未知 oid（多站点）→null，无第一站点回退",
+      "expected": "PASS",
+      "negative": "猜第一条 → FAIL",
+      "negative_result": "任一态返回第一条站点即测试失败",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2449.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2449/R2-list.txt"
+      ],
+      "assert": "exit 0；site_names 全量",
+      "actual": "PASS：独立用例 TestListStaff_SiteNames_2449 校验兼容字段 site_id/site_name 与 site_names=[SiteA,SiteB]",
+      "expected": "PASS",
+      "negative": "缺字段/单站点 → FAIL",
+      "negative_result": "site_names 缺站点或兼容字段缺失即失败",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2449.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2449/R3-build.txt"
+      ],
+      "assert": "build exit 0；2449 用例 PASS",
+      "actual": "PASS：BUILD_CMD=go build ./...；BUILD_EXIT=0；BUILD_OK；2449 用例全 PASS",
+      "expected": "PASS",
+      "negative": "失败 → FAIL",
+      "negative_result": "build 或 2449 用例非 0 即 exit 1",
+      "pass": true
+    }
+  ]
+}

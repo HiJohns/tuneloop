@@ -260,7 +260,7 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 	query := db.Model(&models.Instrument{}).
 		Select(`instruments.id, instruments.sn, instruments.category_name, 
 				instruments.level_name, instruments.site_id, instruments.pricing,
-				instruments.total_price`)
+				instruments.total_price, instruments.deposit, instruments.deposit_reduced`)
 
 	query = query.Where("instruments.tenant_id = ?", tenantID)
 
@@ -342,8 +342,10 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 		// Parse pricing JSONB (#1743 统一解析器：元语义)
 		pf := services.ParseInstrumentPricing(inst.Pricing)
 		dailyRent := pf.DailyRent
+		// #2444 D1: 与 pricing-v2 同源——只有显式押金（top>0，或 top=0 且
+		// pricing.deposit=0）才覆盖定价；历史未配置（top=0、pricing>0）回落定价。
 		deposit := pf.Deposit
-		if inst.Deposit != nil {
+		if instrumentDepositExplicit(&inst) {
 			deposit = (*inst.Deposit).ToYuan()
 		}
 		shippingFee := pf.ShippingFee
@@ -444,23 +446,23 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 		if item.DailyRent > 0 {
 			pricing["daily_rent"] = item.DailyRent
 		}
-		if item.Deposit != nil {
+		// #2444 D2/D3: deposit 由前端显式提供才写；缺省时不得重算/改写
+		// pricing.deposit（旧兜底会把历史未配置乐器归零）。
+		// 历史形态（top=0、pricing.deposit>0）回传“列表显示值”视为未编辑，
+		// 保持 top=0 + pricing 原值，继续回落定价。
+		pricingDeposit, _ := pricing["deposit"].(float64)
+		currentTopYuan := 0.0
+		if instrument.Deposit != nil {
+			currentTopYuan = (*instrument.Deposit).ToYuan()
+		}
+		legacyUnedited := item.Deposit != nil &&
+			!instrumentDepositExplicit(&instrument) &&
+			currentTopYuan == 0 &&
+			pricingDeposit > 0 &&
+			*item.Deposit == pricingDeposit
+		writeDeposit := item.Deposit != nil && !legacyUnedited
+		if writeDeposit {
 			pricing["deposit"] = *item.Deposit
-		} else if instrument.TotalPrice != nil && *instrument.TotalPrice > 0 {
-			// Fallback: use deposit_ratio × total_price when total_price exists
-			depositRatio := 0.3
-			var config models.MerchantPricingConfig
-			if err := db.Where("tenant_id = ?", instrument.TenantID).First(&config).Error; err == nil {
-				var cfgMap map[string]interface{}
-				if json.Unmarshal([]byte(config.Config), &cfgMap) == nil {
-					if r, ok := cfgMap["deposit_ratio"].(float64); ok && r > 0 {
-						depositRatio = r
-					}
-				}
-			}
-			pricing["deposit"] = (*instrument.TotalPrice).ToYuan() * depositRatio
-		} else {
-			pricing["deposit"] = float64(0)
 		}
 		if item.DepositReducedEnabled != nil {
 			if *item.DepositReducedEnabled {
@@ -492,7 +494,9 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 		if item.DailyRent > 0 {
 			overrides["daily_rent"] = item.DailyRent
 		}
-		overrides["deposit"] = pricing["deposit"]
+		if writeDeposit {
+			overrides["deposit"] = pricing["deposit"]
+		}
 		overrides["shipping_fee"] = item.ShippingFee
 		if item.OverdueDailyFee > 0 {
 			overrides["overdue_daily_fee"] = item.OverdueDailyFee
@@ -509,7 +513,7 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 			"pricing":           string(updatedPricing),
 			"pricing_overrides": string(overridesJSON),
 		}
-		if item.Deposit != nil {
+		if writeDeposit {
 			updateFields["deposit"] = models.ToCentsPtr(item.Deposit)
 		}
 		if item.DepositReducedEnabled != nil {

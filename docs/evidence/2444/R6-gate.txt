@@ -1,0 +1,2 @@
+# build=1.0.e053d587a commit=e053d587a7ffe97122b760a8a534bf07d1693faf dirty=false
+HOLD: R6 handlers 全量 gate 依赖 #2443 收口（Rev.5 严格 schema + seed 修复，0 FAIL）。

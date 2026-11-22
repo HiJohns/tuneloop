@@ -7214,3 +7214,12 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 ### 15.4 回调
 
 支付分回调走既有微信支付回调验签链路；`credit_state` 只由服务端状态机推进，客户端上报的状态不采信。
+
+### 16.6 人员创建/邀请与网点流转（#2448）
+
+- `POST /api/users`：**仅商户管理员/平台管理员**可调用；网点管理员返回 `403`（不得创建 IAM 用户、不得留孤儿）。
+- `POST /api/sites/:id/members/apply`：网点管理员提交申请；body 含 `identifier`（手机或邮箱）、`role`、`note`；重复 `pending_approval|pending` → `409`；跨租户 → `40911`。
+- 审批：商户管理员 `approve/reject`；通过后状态 `pending`（邀请已发），被邀请人接受后 `accepted`；`expired` 为 72h。
+- 网点流转：body 支持 `mode=transfer|multi_site`；缺省 **`transfer`**，`multi_site` 仅商户管理员可选。
+- 无邮箱重置：本单不新增直设端点；前端统一提示，直设执行归 #2374。已有邮箱重置端点不变。
+- 错误码：`40300` 无权限；`40900` 重复申请；`40911` 跨租户冲突；`40404` 目标不存在。

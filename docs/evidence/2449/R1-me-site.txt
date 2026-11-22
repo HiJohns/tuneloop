@@ -1,0 +1,29 @@
+# build=1.0.42dcec6f0 commit=42dcec6f0c8ece176d88fa99f22483a68522f8cf dirty=false
+[DEBUG] Loaded .env from: ../.env
+2026/11/22 01:37:47 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/22 01:37:47 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/22 01:37:47 [DB] Connected to database 'tuneloop_test'
+=== RUN   TestGetCurrentUser_SiteByJWTOrg_2449
+2026/11/22 01:37:47 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/22 01:37:47 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/22 01:37:47 [DB] Connected to database 'tuneloop_test'
+
+2026/11/22 01:37:48 [32m/tmp/opencode/tuneloop/wt-2449/backend/handlers/testfixtures/db.go:289 [33mSLOW SQL >= 200ms
+[0m[31;1m[624.301ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/22 01:37:49 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:38455, clientID=test-ns, namespace=test-ns
+2026/11/22 01:37:49 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 01:37:49 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:38455, clientID=test-ns, namespace=test-ns
+2026/11/22 01:37:49 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 01:37:49 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:38455, clientID=test-ns, namespace=test-ns
+2026/11/22 01:37:49 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 01:37:49 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:38455, clientID=test-ns, namespace=test-ns
+2026/11/22 01:37:49 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 01:37:49 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:38455, clientID=test-ns, namespace=test-ns
+2026/11/22 01:37:49 [IAMClient] Obtained client credentials token, expires in 3600s
+
+2026/11/22 01:37:49 [31;1m/tmp/opencode/tuneloop/wt-2449/backend/handlers/user_staff.go:1199 [35;1mrecord not found
+[0m[33m[1.557ms] [34;1m[rows:0][0m SELECT site_members.site_id, sites.name as site_name FROM "site_members" JOIN sites ON sites.id = site_members.site_id WHERE sites.org_id = 'e3378c6c-89a5-4ee5-9a21-025fb5a51e2f' AND (site_members.user_id = '65082be0-d60b-45fd-8302-6b449ebc97eb' AND sites.status = 'active') ORDER BY sites.created_at ASC,"site_members"."site_id" LIMIT 1
+2026/11/22 01:37:49 [GetCurrentUser] site_context_unresolved user=65082be0-d60b-45fd-8302-6b449ebc97eb oid=e3378c6c-89a5-4ee5-9a21-025fb5a51e2f active_sites=2
+--- PASS: TestGetCurrentUser_SiteByJWTOrg_2449 (1.36s)
+PASS
+ok  	tuneloop-backend/handlers	1.980s

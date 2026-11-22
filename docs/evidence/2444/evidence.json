@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "issue": 2444,
+  "build": "1.0.e053d587a",
+  "commit": "e053d587a7ffe97122b760a8a534bf07d1693faf",
+  "dirty": false,
+  "environment": "isolated PG test fixtures; frontend-pc build; R6 waits for #2443",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2444.sh r1",
+      "exit": 0,
+      "artifacts": ["docs/evidence/2444/R1-list.txt"],
+      "assert": "exit 0；三条 fixture 的列表押金值与期望一致",
+      "actual": "PASS：legacy=500、显式0=0、显式500=500",
+      "expected": "PASS",
+      "negative": "legacy=0 → FAIL",
+      "negative_result": "断言失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2444.sh r2",
+      "exit": 0,
+      "artifacts": ["docs/evidence/2444/R2-no-recompute.txt"],
+      "assert": "exit 0；deposit 缺省时 top/pricing 不变",
+      "actual": "PASS：top=0、pricing.deposit=500 不变",
+      "expected": "PASS",
+      "negative": "被重算 → FAIL",
+      "negative_result": "pricing 变 0/其它即断言失败",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2444.sh r3",
+      "exit": 0,
+      "artifacts": ["docs/evidence/2444/R3-legacy-pin.txt"],
+      "assert": "exit 0；legacy 回传定价押金不固化",
+      "actual": "PASS：top 仍 0、pricing 仍 500，再次 GET 仍 500",
+      "expected": "PASS",
+      "negative": "固化/归零 → FAIL",
+      "negative_result": "top 变 500 或 pricing 变 0 即失败",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2444.sh r4",
+      "exit": 0,
+      "artifacts": ["docs/evidence/2444/R4-zero.txt"],
+      "assert": "exit 0；显式 0 双写且读回 0",
+      "actual": "PASS：创建/更新 0 均同步 pricing.deposit=0；pricing-v2 返回 0",
+      "expected": "PASS",
+      "negative": "读回非 0 → FAIL",
+      "negative_result": "落库或读回非 0 即失败",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2444.sh r5",
+      "exit": 0,
+      "artifacts": ["docs/evidence/2444/R5-build.txt"],
+      "assert": "exit 0；含 BUILD_OK",
+      "actual": "PASS：BUILD_EXIT=0 + BUILD_OK（1m57s）",
+      "expected": "PASS",
+      "negative": "构建失败 → FAIL",
+      "negative_result": "非 0 即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2444.sh r6-gate-baseline",
+      "exit": 1,
+      "artifacts": ["docs/evidence/2444/R6-gate.txt"],
+      "assert": "#2443 后 exit 0；handlers 0 FAIL",
+      "actual": "HOLD：等待 #2443 收口（严格 schema + seed 修复）",
+      "expected": "PASS",
+      "negative": "任一 FAIL → FAIL",
+      "negative_result": "非 0 即 exit 1",
+      "pass": false
+    }
+  ]
+}

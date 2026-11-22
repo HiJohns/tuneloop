@@ -1,0 +1,16 @@
+# build=1.0.64a6d2cf6 commit=64a6d2cf677479b0bb574ab044bb088876328854 dirty=false
+OK docs/cases/user-management.md :: 网点管理员
+OK docs/cases/user-management.md :: 商户管理员
+OK docs/cases/user-management.md :: pending_approval
+OK docs/cases/user-management.md :: transfer
+OK docs/cases/user-management.md :: multi_site
+OK docs/cases/user-management.md :: 该账号未配置邮箱
+OK docs/cases/organization.md :: members/apply
+OK docs/cases/organization.md :: multi_site
+OK docs/spec/ui/ui.md :: 仅
+OK docs/spec/ui/ui.md :: 该账号未配置邮箱
+OK docs/spec/api/api.md :: 403
+OK docs/spec/api/api.md :: pending_approval
+OK docs/spec/api/api.md :: multi_site
+OK docs/cases/cases.md :: 网点管理员申请人员加入
+DOCS_OK

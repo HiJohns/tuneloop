@@ -87,10 +87,11 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 
 	// Load site info + role from site_members (canonical user-site relationship)
 	type userSiteInfo struct {
-		UserID   string
-		SiteID   string
-		SiteName string
-		Role     string
+		UserID    string
+		SiteID    string
+		SiteName  string
+		Role      string
+		SiteNames []string `gorm:"-"`
 	}
 	userSiteMap := make(map[string]userSiteInfo)
 	if len(users) > 0 {
@@ -102,11 +103,16 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 		db.Table("site_members").
 			Select("site_members.user_id, site_members.site_id, sites.name as site_name, site_members.role").
 			Joins("JOIN sites ON sites.id = site_members.site_id").
-			Where("site_members.user_id IN ?", userIDs).
+			Where("site_members.user_id IN ? AND sites.status = ?", userIDs, "active").
+			Order("sites.created_at ASC").
 			Find(&memberSites)
 		for _, ms := range memberSites {
-			if _, exists := userSiteMap[ms.UserID]; !exists {
+			if info, exists := userSiteMap[ms.UserID]; !exists {
+				ms.SiteNames = []string{ms.SiteName}
 				userSiteMap[ms.UserID] = ms
+			} else {
+				info.SiteNames = append(info.SiteNames, ms.SiteName)
+				userSiteMap[ms.UserID] = info
 			}
 		}
 	}
@@ -150,6 +156,7 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 		if usi, ok := userSiteMap[user.ID]; ok {
 			item["site_id"] = usi.SiteID
 			item["site_name"] = usi.SiteName
+			item["site_names"] = usi.SiteNames
 			item["role"] = usi.Role
 		} else if mmRole != "" {
 			// #2375：直属成员（无网点）→ merchant_members.role；否则保持 users.role。
@@ -1178,18 +1185,37 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 		}
 	}
 
-	// Load user's primary site from site_members
+	// #2449: resolve the current site by JWT org context (IAM login context).
+	// Customer context (oid empty) => no site; do not fall back to the first row.
 	var memberSite struct {
 		SiteID   string
 		SiteName string
 	}
-	if err := db.Table("site_members").
-		Select("site_members.site_id, sites.name as site_name").
-		Joins("JOIN sites ON sites.id = site_members.site_id").
-		Where("site_members.user_id = ?", user.ID).
-		First(&memberSite).Error; err == nil && memberSite.SiteID != "" {
-		result["site_id"] = memberSite.SiteID
-		result["site_name"] = memberSite.SiteName
+	loadSite := func(query *gorm.DB) bool {
+		return query.Select("site_members.site_id, sites.name as site_name").
+			Joins("JOIN sites ON sites.id = site_members.site_id").
+			Where("site_members.user_id = ? AND sites.status = ?", user.ID, "active").
+			Order("sites.created_at ASC").
+			First(&memberSite).Error == nil && memberSite.SiteID != ""
+	}
+	if oid := middleware.GetOrgID(ctx); oid != "" {
+		matched := loadSite(db.Table("site_members").Where("sites.org_id = ?", oid))
+		if !matched {
+			var activeCount int64
+			db.Table("site_members").
+				Joins("JOIN sites ON sites.id = site_members.site_id").
+				Where("site_members.user_id = ? AND sites.status = ?", user.ID, "active").
+				Count(&activeCount)
+			if activeCount == 1 {
+				matched = loadSite(db.Table("site_members"))
+			} else if activeCount > 1 {
+				log.Printf("[GetCurrentUser] site_context_unresolved user=%s oid=%s active_sites=%d", user.ID, oid, activeCount)
+			}
+		}
+		if matched {
+			result["site_id"] = memberSite.SiteID
+			result["site_name"] = memberSite.SiteName
+		}
 	}
 
 	// Merchant (tenant) name for staff org context (P-02): shown as a small
