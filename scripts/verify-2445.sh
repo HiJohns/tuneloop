@@ -160,9 +160,9 @@ case "$MODE" in
       cat "$LOG"
       fails="$(grep -c '^--- FAIL' "$LOG" || true)"
       echo "FULL_SUITE_EXIT=$trc FAIL_COUNT=${fails:-0}"
-      # 既有基线包（非本单）：middleware / service（单数）；必须在报告中点名
-      bad="$(grep -E '^FAIL[[:space:]]+tuneloop-backend/' "$LOG" | awk '{print $2}' | grep -vE 'tuneloop-backend/(middleware|service)$' || true)"
-      baseline="$(grep -E '^FAIL[[:space:]]+tuneloop-backend/' "$LOG" | awk '{print $2}' | grep -E 'tuneloop-backend/(middleware|service)$' || true)"
+      # 他批次基线（非本单）：database/#2360、services/#2361、middleware+service（SysPerm/instrument import）
+      bad="$(grep -E '^FAIL[[:space:]]+tuneloop-backend/' "$LOG" | awk '{print $2}' | grep -vE 'tuneloop-backend/(database|middleware|service|services)$' || true)"
+      baseline="$(grep -E '^FAIL[[:space:]]+tuneloop-backend/' "$LOG" | awk '{print $2}' | grep -E 'tuneloop-backend/(database|middleware|service|services)$' || true)"
       if [ -n "$baseline" ]; then
         echo "BASELINE_FAIL:"
         printf '%s\n' "$baseline"
