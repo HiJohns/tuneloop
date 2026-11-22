@@ -13,11 +13,11 @@
       "artifacts": [
         "docs/evidence/2451/R1-querycount.txt"
       ],
-      "assert": "exit 0；日志含 QUERY_COUNT pageSize=10=6 pageSize=100=6 ENRICH=4；测试内断言 q10 == q100 且 q100 <= 6",
-      "actual": "PASS：QUERY_COUNT pageSize=10=6 pageSize=100=6 ENRICH=4（q10=6 q100=6，delta=0）",
+      "assert": "exit 0；日志含 QUERY_COUNT pageSize=10=6 pageSize=100=6 ENRICH=4，且测试内断言 q10 == q100、q100 <= 6",
+      "actual": "PASS：QUERY_COUNT pageSize=10=6 pageSize=100=6 ENRICH=4（q10=6 q100=6，delta=0；测试内 require 断言 q10==q100 且 q100<=6）",
       "expected": "q10=q100=6, ENRICH=4, delta=0",
-      "negative": "修复前 q10=33 q100=303 → FAIL",
-      "negative_result": "红样本已实测：pre-fix public.go + 同测试 → QUERY_COUNT pageSize=10=33 pageSize=100=303 ENRICH=301，--- FAIL（见 Work Summary 红绿实证）",
+      "negative": "修复前 q10=36 q100=306（delta=270）或 q10 != q100 → FAIL",
+      "negative_result": "红样本实测：pre-fix public.go + 同测试 → QUERY_COUNT pageSize=10=33 pageSize=100=303 ENRICH=301，--- FAIL（见 Work Summary 红绿实证）",
       "pass": true
     },
     {
@@ -27,11 +27,11 @@
       "artifacts": [
         "docs/evidence/2451/R2-contract.txt"
       ],
-      "assert": "exit 0；CONTRACT_KEYS=21 且 CONTRACT_OK；controlled 租户 site_address = 中转地址、full 租户 = 站点地址；cover_image == thumbnail",
+      "assert": "exit 0；日志含 CONTRACT_KEYS=21 与 CONTRACT_OK；controlled 租户 site_address = 中转地址、full 租户 = 站点地址",
       "actual": "PASS：CONTRACT_KEYS=21、CONTRACT_OK；tenant A（controlled）site_address=Transit A，tenant B（full）site_address=Addr B；cover_image == thumbnail == /uploads/media/instruments/2451/cover；daily_rate_cents == base_daily_rate",
       "expected": "CONTRACT_KEYS=21 CONTRACT_OK",
-      "negative": "任一字段缺失/为空、site_address 覆盖错误 → FAIL",
-      "negative_result": "测试内 require 逐键/逐值断言，缺失即 FAIL",
+      "negative": "任一字段缺失/为空、site_address 未被 controlled 中转覆盖或误覆盖 full 租户 → FAIL",
+      "negative_result": "测试内逐键/逐值 require 断言，任一字段缺失或覆盖错误即 FAIL",
       "pass": true
     },
     {
@@ -41,11 +41,11 @@
       "artifacts": [
         "docs/evidence/2451/R3-defaults.txt"
       ],
-      "assert": "exit 0；DEFAULTS_OK site_name=- site_address=- site_phone=- tenant_name=；该页查询数 <= 6",
+      "assert": "exit 0；日志含 DEFAULTS_OK site_name=- site_address=- site_phone=- tenant_name=，且该页查询数仍 ≤6",
       "actual": "PASS：DEFAULTS_OK site_name=- site_address=- site_phone=- tenant_name=\"\" queries=6",
       "expected": "DEFAULTS_OK 且 queries <= 6",
-      "negative": "空串代替 \"-\"、panic、空 ID 集合 SQL 语法错误 → FAIL",
-      "negative_result": "空集合分支由 batchSitesByID/batchTenantNames 提前返回，测试断言缺省值与查询数",
+      "negative": "出现空串代替 -、panic、或空 ID 集合触发 SQL 语法错误 → FAIL",
+      "negative_result": "空集合由 batchSitesByID/batchTenantNames 提前返回不发查询；测试断言缺省值与 queries<=6",
       "pass": true
     },
     {
@@ -55,11 +55,11 @@
       "artifacts": [
         "docs/evidence/2451/R4-merchant-parity.txt"
       ],
-      "assert": "exit 0；MERCHANT_PARITY tenants=3 ok=3；A 取 id 最小商户、B 正确、C 不在 map",
-      "actual": "PASS：MERCHANT_PARITY tenants=3 ok=3；tenant A（两个商户）取 00000000-…-0001（A-first）；tenant B 逐字段相等；tenant C 不在 map（len=2）",
+      "assert": "exit 0；日志含 MERCHANT_PARITY tenants=3 ok=3；A 取 id 最小商户、B 正确、C 不在 map",
+      "actual": "PASS：MERCHANT_PARITY tenants=3 ok=3；tenant A（两个商户）取 id 最小的 00000000-…-0001（A-first）；tenant B 与单条 helper 逐字段相等；tenant C 不在 map（len=2）",
       "expected": "MERCHANT_PARITY tenants=3 ok=3",
-      "negative": "取到 A 的第二个商户、C 入 map、字段与单条 helper 不等 → FAIL",
-      "negative_result": "测试内 require 断言 batch[A].Address == A-first 且与 GetMerchantTransitInfo 逐字段比对",
+      "negative": "取到 A 的第二个商户、C 被写入 map、或与单条 helper 任一字段不等 → FAIL",
+      "negative_result": "测试内断言 batch[A].Address == A-first，并与 GetMerchantTransitInfo 逐字段比对；C 缺失即 FAIL",
       "pass": true
     },
     {
@@ -69,8 +69,8 @@
       "artifacts": [
         "docs/evidence/2451/R5-regression.txt"
       ],
-      "assert": "exit 0；--- PASS: TestGetPublicInstruments_DailyRateCentsContract 且 ok tuneloop-backend/handlers",
-      "actual": "PASS：既有价格契约测试 PASS，包级 ok",
+      "assert": "exit 0；ok tuneloop-backend/handlers 且 TestGetPublicInstruments_DailyRateCentsContract 为 PASS",
+      "actual": "PASS：既有价格契约测试 TestGetPublicInstruments_DailyRateCentsContract PASS，包级 ok tuneloop-backend/handlers",
       "expected": "PASS",
       "negative": "既有价格契约测试失败 → FAIL",
       "negative_result": "go test 非 0 或 marker 缺失即 exit 1",
@@ -83,11 +83,11 @@
       "artifacts": [
         "docs/evidence/2451/R6-latency.txt"
       ],
-      "assert": "exit 0；LATENCY pageSize=100 elapsed_ms=<n>，n < 1000",
+      "assert": "exit 0；日志含 LATENCY pageSize=100 elapsed_ms=<n>，n < 1000",
       "actual": "PASS：LATENCY pageSize=100 elapsed_ms=23（< 1000）",
       "expected": "elapsed_ms < 1000",
       "negative": "elapsed_ms >= 1000（旧实现 ~5030ms）→ FAIL",
-      "negative_result": "脚本 assert_num_lt 解析 marker，越界即 exit 1",
+      "negative_result": "脚本 assert_num_lt 解析 marker，>=1000 即 exit 1（旧实现 ~5030ms）",
       "pass": true
     },
     {
@@ -97,10 +97,10 @@
       "artifacts": [
         "docs/evidence/2451/R7-build.txt"
       ],
-      "assert": "exit 0；日志含 BUILD_OK，无编译错误",
+      "assert": "exit 0；日志含 BUILD_OK，无编译错误行",
       "actual": "PASS：BUILD_OK（cd backend && go build ./...）",
       "expected": "BUILD_OK",
-      "negative": "任一编译错误或 go build 非 0 → FAIL",
+      "negative": "任一编译错误或 go build ./... 非 0 → FAIL",
       "negative_result": "脚本以 go build 退出码判定，非 0 即 exit 1",
       "pass": true
     },
@@ -111,11 +111,11 @@
       "artifacts": [
         "docs/evidence/2451/R8-callsites.txt"
       ],
-      "assert": "exit 0；CALLSITES single_total=6 public_single=1 public_batch=1",
+      "assert": "exit 0；日志含 CALLSITES single_total=6 public_single=1 public_batch=1",
       "actual": "PASS：CALLSITES single_total=6 public_single=1 public_batch=1（5 处单条调用 + 1 处定义；public.go 仅详情端点用单条，列表用批量）",
       "expected": "single_total=6 public_single=1 public_batch=1",
-      "negative": "single_total=7/public_single=2（列表仍逐条）或 public_batch=0 → FAIL",
-      "negative_result": "脚本逐项比对计数，任一不等即 exit 1",
+      "negative": "修复前 single_total=7 public_single=2（列表仍逐条）或 public_batch=0（未接入批量）→ FAIL",
+      "negative_result": "脚本逐项比对计数，任一不等即 exit 1（修复前 single_total=7 public_single=2）",
       "pass": true
     },
     {
@@ -125,9 +125,9 @@
       "artifacts": [
         "docs/evidence/2451/R9-fullload.txt"
       ],
-      "assert": "exit 0；FULLLOAD pages=3 items=219 total_ms=<n>，n < 1300；三页无重复/无遗漏",
+      "assert": "exit 0；日志含 FULLLOAD pages=3 items=219 total_ms=<n>，n < 1300",
       "actual": "PASS：FULLLOAD pages=3 items=219 total_ms=92（< 1300）；三页 100/100/19，跨页无重复 ID，219 件全部可见",
-      "expected": "total_ms < 1300 且 items=219",
+      "expected": "total_ms < 1300",
       "negative": "total_ms >= 1300 或 items != 219 → FAIL",
       "negative_result": "测试内 require 断言行数/去重/并集，脚本再校验 marker 与阈值",
       "pass": true
