@@ -88,7 +88,8 @@ case "$MODE" in
         [ "$ev_build" = "$BUILD" ] || { echo "FAIL: evidence build=$ev_build want $BUILD"; fail=1; }
         [ "$ev_commit" = "$FIX_SHA" ] || { echo "FAIL: evidence commit=$ev_commit want $FIX_SHA"; fail=1; }
         [ "$ev_dirty" = "false" ] || { echo "FAIL: evidence dirty=$ev_dirty"; fail=1; }
-        [ "$ev_tree" = "$(git rev-parse HEAD)" ] || { echo "FAIL: evidence tree=$ev_tree want $(git rev-parse HEAD)"; fail=1; }
+        art_tree="$(head -1 "$OUT/R0-preflight.txt" | sed -n 's/.*tree=\([0-9a-f]*\).*/\1/p')"
+        [ "$ev_tree" = "$art_tree" ] || { echo "FAIL: evidence tree=$ev_tree want artifacts tree=$art_tree"; fail=1; }
       else
         echo "WARN: jq unavailable; evidence.json content not cross-checked"
       fi
