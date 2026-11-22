@@ -99,7 +99,7 @@ func TestStaffCreateUser_InviteMode_2228(t *testing.T) {
 
 	// 3) 回归：auto_generate 模式仍可用（初始密码下发不变）
 	code3, resp3 := doCreate2068(t, r, map[string]interface{}{
-		"name": "直建员工", "phone": "13900002230", "email": "direct2228@example.com",
+		"name": "直建员工", "username": "direct2228", "phone": "13900002230", "email": "direct2228@example.com",
 		"site_id": siteID, "auto_generate": true, "force_password_change": true,
 	})
 	require.Equal(t, http.StatusOK, code3, resp3)
