@@ -42,9 +42,10 @@ This file contains instructions and guidelines for AI coding agents working in t
 ```
 develop（开发累积，随时可部署 dev 验证）
   → 发布时：git checkout main && git merge develop（push）
+  → bump VERSION（1.0.x）+ commit + push
   → make release（预生产部署）→ 预生产验证
   → ssh cadenza release.sh 提升生产
-  → 版本号 bump（1.0.x）+ git tag v1.0.x（可选）
+  → git tag v1.0.x（可选）
   → 小程序发布版：make weapp-build-prod + weapp-upload-prod APP_VERSION=1.0.x（见 docs/topics/wechat/weapp.md 发布清单）
 ```
 
@@ -649,8 +650,8 @@ curl -s http://localhost:5561/api/v1/auth/public-key.pem | sha256sum
 # 解码 token 查看签发方
 echo "TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq '.iss'
 
-# 确认后端配置
-grep "BEACONIAM_INTERNAL_URL" /home/coder/tuneloop/.env
+# 确认后端配置（在仓库根目录执行，路径随机器不同）
+grep "BEACONIAM_INTERNAL_URL" .env
 ```
 
 ---
