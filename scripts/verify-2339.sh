@@ -16,7 +16,8 @@ case "$MODE" in
   r8-diff)          ART="docs/evidence/2339/R8-diff.txt" ;;
   r9-derivation)    ART="docs/evidence/2339/R9-derivation.md" ;;
   r10-red-green)    ART="docs/evidence/2339/R10-red-green.txt" ;;
-  *) echo "usage: $0 <r1-batch-order|r2-create-order|r3-return-refund|r4-refund-diff|r5-scenarios|r6-settlement|r7-detail|r8-diff|r9-derivation|r10-red-green>" >&2; exit 2 ;;
+  r11-batch-gate-ref) ART="docs/evidence/2339/R11-batch-gate-ref.txt" ;;
+  *) echo "usage: $0 <r1-batch-order|r2-create-order|r3-return-refund|r4-refund-diff|r5-scenarios|r6-settlement|r7-detail|r8-diff|r9-derivation|r10-red-green|r11-batch-gate-ref>" >&2; exit 2 ;;
 esac
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"; cd "$REPO_ROOT"
@@ -103,6 +104,27 @@ PY
     echo "DERIVATION_OK: rent/deposit/points 三段齐全，R4 数值逐项命中，spec 差异与归属已记录"
     exit 0
     ;;
+  r11-batch-gate-ref)
+      SRC="$REPO_ROOT/docs/evidence/2443/R5-handlers-full.txt"
+      [ -f "$SRC" ] || { echo "FAIL: missing $SRC"; exit 1; }
+      tree="$(head -1 "$SRC" | sed -n 's/.*tree=\([0-9a-f]\{7,40\}\).*/\1/p')"
+      [ "$tree" = "27f35d34b" ] || { echo "FAIL: SOURCE_TREE=$tree want 27f35d34b [FAIL]"; exit 1; }
+      grep -q '^FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0$' "$SRC" \
+        || { echo "FAIL: batch gate summary not clean [FAIL]"; exit 1; }
+      for c in db76582f4 b70f96eb3 a7a881c32; do
+        git merge-base --is-ancestor "$c" 27f35d34b \
+          || { echo "FAIL: $c not ancestor of 27f35d34b [FAIL]"; exit 1; }
+      done
+      {
+        echo "$PROVENANCE"
+        echo "# source=docs/evidence/2443/R5-handlers-full.txt"
+        echo "FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0"
+        echo "SOURCE_TREE=27f35d34b"
+        echo "ANCESTRY_OK: db76582f4 b70f96eb3 a7a881c32 ancestors of 27f35d34b"
+        echo "BATCH_GATE_REF_OK"
+      } 2>&1 | tee "$ART"
+      exit "${PIPESTATUS[0]}"
+      ;;
   r10-red-green)
     RED_WT="$REPO_ROOT/tmp/wt-2339-red"
     git worktree remove --force "$RED_WT" >/dev/null 2>&1 || true
