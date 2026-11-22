@@ -814,3 +814,31 @@ func GetMerchantTransitInfo(ctx context.Context, tenantID string) *MerchantTrans
 		ContactName:  merchant.TransitContactName,
 	}
 }
+
+// GetMerchantTransitInfos 批量版（#2451）：一次查询取回全部 tenant 的商户，
+// 每个 tenant 取 id 最小的商户——复刻单条 helper 的 First() 语义（主键升序 LIMIT 1）。
+// tenantIDs 为空 → 空 map 且不发查询；查询失败 → 空 map，调用方按「无商户」回退，
+// 等价于单条 helper 返回 nil。GetMerchantTransitInfo 保持逐条版不动。
+func GetMerchantTransitInfos(ctx context.Context, tenantIDs []string) map[string]*MerchantTransitInfo {
+	out := make(map[string]*MerchantTransitInfo, len(tenantIDs))
+	if len(tenantIDs) == 0 {
+		return out
+	}
+	db := database.GetDB()
+	var merchants []models.Merchant
+	if err := db.Where("tenant_id IN ?", tenantIDs).Order("id ASC").Find(&merchants).Error; err != nil {
+		return out
+	}
+	for _, merchant := range merchants {
+		if _, ok := out[merchant.TenantID]; ok {
+			continue
+		}
+		out[merchant.TenantID] = &MerchantTransitInfo{
+			MerchantType: merchant.MerchantType,
+			Address:      merchant.TransitAddress,
+			Phone:        merchant.TransitPhone,
+			ContactName:  merchant.TransitContactName,
+		}
+	}
+	return out
+}
