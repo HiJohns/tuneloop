@@ -1,4 +1,4 @@
-# build=1.0.3d39a416d commit=3d39a416d136ed9d7d2f5f3ee40a12b7267e7c7d dirty=true tree=3869ceb8b
+# build=1.0.3d39a416d commit=3d39a416d136ed9d7d2f5f3ee40a12b7267e7c7d dirty=false tree=48755a825
 [33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
 
  RUN  v2.1.9 /tmp/opencode/tuneloop/wt-2435/frontend-mobile
@@ -118,13 +118,13 @@ This ensures that you're testing the behavior the user would see in the browser.
     at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
 
 R4_NO_PHOTO_OMITTED_OK
- ✓ scripts/page-smoke/second-doc-type-fallback-2435.test.jsx (7 tests | 4 skipped) 3087ms
-   ✓ EditProfile 保存接线 (#2435 R4) > R4-1: 已存类型 → 请求体含 id_photo_other_type 与照片，状态一致 1328ms
-   ✓ EditProfile 保存接线 (#2435 R4) > R4-2: 有照片但类型为空 → 不误发类型字段 1006ms
-   ✓ EditProfile 保存接线 (#2435 R4) > R4-3: 无第二证件照片 → 照片与类型字段都不发送 743ms
+ ✓ scripts/page-smoke/second-doc-type-fallback-2435.test.jsx (7 tests | 4 skipped) 2908ms
+   ✓ EditProfile 保存接线 (#2435 R4) > R4-1: 已存类型 → 请求体含 id_photo_other_type 与照片，状态一致 1329ms
+   ✓ EditProfile 保存接线 (#2435 R4) > R4-2: 有照片但类型为空 → 不误发类型字段 799ms
+   ✓ EditProfile 保存接线 (#2435 R4) > R4-3: 无第二证件照片 → 照片与类型字段都不发送 775ms
 
  Test Files  1 passed (1)
       Tests  3 passed | 4 skipped (7)
-   Start at  20:05:47
-   Duration  6.03s (transform 442ms, setup 72ms, collect 601ms, tests 3.09s, environment 1.18s, prepare 508ms)
+   Start at  20:06:17
+   Duration  5.44s (transform 382ms, setup 77ms, collect 514ms, tests 2.91s, environment 934ms, prepare 485ms)
 
