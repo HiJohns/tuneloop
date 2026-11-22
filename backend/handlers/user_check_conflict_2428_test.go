@@ -138,3 +138,48 @@ func TestMerchantAddMemberCrossTenantBlocked_2428(t *testing.T) {
 	require.Equal(t, http.StatusConflict, w.Code, w.Body.String())
 	assert.Contains(t, w.Body.String(), "40911")
 }
+
+// TestSiteAddMemberCrossTenantBlocked_2428（审计 2026-11-22 要求）：
+// fix `a15cbb252` 把跨租户 guard 从 addMembersCore 移到 SiteMemberHandler.AddMember，
+// 必须单独执行 site 入口——merchant 用例不会覆盖它。
+func TestSiteAddMemberCrossTenantBlocked_2428(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	tenantA, tenantB := uuid.New().String(), uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantA, tenantB)
+
+	siteID := uuid.New().String()
+	require.NoError(t, db.Create(&models.Site{
+		ID: siteID, TenantID: tenantA, OrgID: tenantA, Name: "A 网点", Type: "normal", Status: "active",
+	}).Error)
+
+	targetID := uuid.New().String()
+	testfixtures.SeedUserFK(t, db, targetID, tenantB, tenantB)
+
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		ctx := c.Request.WithContext(context.WithValue(c.Request.Context(), middleware.ContextKeyTenantID, tenantA))
+		c.Request = ctx
+		c.Next()
+	})
+	r.POST("/admin/sites/:id/members", (&SiteMemberHandler{}).AddMember)
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"user_ids": []map[string]interface{}{{"user_id": targetID, "role": "Staff"}},
+	})
+	req := httptest.NewRequest("POST", "/admin/sites/"+siteID+"/members", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusConflict, w.Code, w.Body.String())
+	assert.Contains(t, w.Body.String(), "40911")
+	assert.Contains(t, w.Body.String(), "need_invite")
+
+	// guard 必须在进入 addMembersCore（唯一 IAM 调用点）前返回：不得产生任何成员/IAM 任务落库。
+	var members int64
+	require.NoError(t, db.Model(&models.SiteMember{}).Where("site_id = ?", siteID).Count(&members).Error)
+	assert.Zero(t, members, "跨租户 direct bind 不得写入 site_members")
+
+	t.Log("SITE_40911_OK site guard blocked cross-tenant bind, iam_calls=0 members=0")
+}

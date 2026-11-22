@@ -44,11 +44,30 @@ case "$MODE" in
     exit "${PIPESTATUS[0]}"
     ;;
   r5)
-    { echo "$PROVENANCE"; ( cd backend && go build ./... ); ( cd frontend-pc && NODE_OPTIONS="--max-old-space-size=2048" npm run build ); ( cd frontend-pc && npx eslint --quiet src/pages/StaffManagement.jsx src/components/MerchantMemberManagement.jsx src/components/SiteMemberManagement.jsx ); } 2>&1 | tee "$ART"
+    { echo "$PROVENANCE"; fail=0
+      if ( cd backend && go build ./... ); then echo "BUILD_OK"; else echo "BUILD_FAIL"; fail=1; fi
+      if ( cd frontend-pc && NODE_OPTIONS="--max-old-space-size=2048" npm run build ); then echo "PC_BUILD_OK"; else echo "PC_BUILD_FAIL"; fail=1; fi
+      if ( cd frontend-pc && npx eslint --quiet src/pages/StaffManagement.jsx src/components/MerchantMemberManagement.jsx src/components/SiteMemberManagement.jsx ); then echo "ESLINT_OK"; else echo "ESLINT_FAIL"; fail=1; fi
+      exit "$fail"; } 2>&1 | tee "$ART"
     exit "${PIPESTATUS[0]}"
     ;;
   r6)
-    { echo "$PROVENANCE"; ( cd backend && go test ./handlers/ -run 'TestMerchantAddMemberCrossTenantBlocked_2428' -count=1 -v ); } 2>&1 | tee "$ART"
+    { echo "$PROVENANCE"; fail=0
+      ( cd backend && go test ./handlers/ -run 'TestMerchantAddMemberCrossTenantBlocked_2428' -count=1 -v ) 2>&1 | tee /tmp/opencode/2428-r6-merchant.log
+      m_rc=${PIPESTATUS[0]}
+      if [ "$m_rc" -eq 0 ] && grep -q '^--- PASS: TestMerchantAddMemberCrossTenantBlocked_2428' /tmp/opencode/2428-r6-merchant.log; then
+        echo "MERCHANT_40911_OK"
+      else
+        echo "MERCHANT_40911_FAIL rc=$m_rc"; fail=1
+      fi
+      ( cd backend && go test ./handlers/ -run 'TestSiteAddMemberCrossTenantBlocked_2428' -count=1 -v ) 2>&1 | tee /tmp/opencode/2428-r6-site.log
+      s_rc=${PIPESTATUS[0]}
+      if [ "$s_rc" -eq 0 ] && grep -q 'SITE_40911_OK' /tmp/opencode/2428-r6-site.log; then
+        echo "SITE_40911_OK"
+      else
+        echo "SITE_40911_FAIL rc=$s_rc"; fail=1
+      fi
+      exit "$fail"; } 2>&1 | tee "$ART"
     exit "${PIPESTATUS[0]}"
     ;;
   r7)
