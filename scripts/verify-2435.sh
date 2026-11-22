@@ -65,7 +65,26 @@ case "${MODE%%-*}" in
     [ "$fail" -eq 0 ] && echo "R4_SAVE_OK" || echo "R4_SAVE_FAIL"
     exit "$fail" ;;
   r5)
-    { echo "$PROV"; grep -q '待审核，用户可自报，审核员可修正' frontend-pc/src/pages/System/UserManagement.jsx; grep -q 'SECOND_DOC_LABELS' frontend-pc/src/pages/System/UserManagement.jsx; echo "PC_DETAIL_OK"; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
+    {
+      echo "$PROV"
+      cd "$REPO/frontend-pc"
+      f=src/pages/System/UserManagement.jsx
+      fail=0
+      grep -q "SECOND_DOC_LABELS" "$f" && echo "LABELS_MAP_OK" || { echo "LABELS_MAP_MISSING"; fail=1; }
+      for pair in "student: '学生证'" "teacher: '教职工证'" "work: '工作证'" "other: '其他'"; do
+        if grep -Fq "$pair" "$f"; then echo "LABEL_OK $pair"; else echo "LABEL_MISSING $pair"; fail=1; fi
+      done
+      grep -q "idPhotos.other &&" "$f" && echo "OTHER_GATE_OK" || { echo "OTHER_GATE_MISSING"; fail=1; }
+      grep -Fq "类型未定：待审核，用户可自报，审核员可修正" "$f" && echo "PENDING_TEXT_OK" || { echo "PENDING_TEXT_MISSING"; fail=1; }
+      grep -q "readOnly" "$f" && echo "READONLY_OK" || { echo "READONLY_MISSING"; fail=1; }
+      npm run build
+      rc=$?
+      echo "PC_BUILD_EXIT=$rc"
+      [ "$rc" = "0" ] && echo "PC_BUILD_OK" || fail=1
+      [ "$fail" = "0" ] && echo "R5_STRUCTURE_BUILD_OK"
+      exit "$fail"
+    } 2>&1 | tee "$ART"
+    exit "${PIPESTATUS[0]}" ;;
   r6)
     { echo "$PROV"; backend; go test ./handlers/ -run 'TestUserManagement_SecondDocUnsetFilter_2435' -count=1 -v; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
   r7)
