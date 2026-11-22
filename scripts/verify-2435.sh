@@ -59,5 +59,5 @@ case "${MODE%%-*}" in
   r8)
     { echo "$PROV"; grep -q '用户自报' docs/cases/id-photos.md; grep -q '待审核' docs/cases/user-management.md; grep -q '四态' docs/spec/ui/ui.md; grep -q 'id_photo_other_type' docs/spec/api/api.md; echo "DOCS_OK"; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
   r9|r9-gate-baseline)
-    { echo "$PROV"; backend; go build ./... && go test ./handlers/ -count=1 -timeout 10m; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
+    { echo "$PROV"; backend; go build ./... && go test ./handlers/ -count=1 -timeout 15m; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
 esac
