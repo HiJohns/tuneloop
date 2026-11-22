@@ -36,6 +36,7 @@ func TestGetCurrentUser_SiteByJWTOrg_2449(t *testing.T) {
 	services.SetIAMInternalURLForTesting(iamSrv.URL)
 	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
 	tenantID := uuid.NewString()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443/#2449: strict schema tenant FK
 	userID := uuid.NewString()
 	user := models.User{ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: tenantID, Username: "multi-site", Status: "active", IsShadow: false}
 	require.NoError(t, db.Create(&user).Error)
@@ -84,6 +85,7 @@ func TestListStaff_SiteNames_2449(t *testing.T) {
 		return
 	}
 	tenantID := uuid.NewString()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443/#2449: strict schema tenant FK
 	userID := uuid.NewString()
 	require.NoError(t, db.Create(&models.User{
 		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: tenantID,
