@@ -262,6 +262,7 @@ func TestTransitSiteMemberIAMSync(t *testing.T) {
 
 	// 合法角色 → 200（IAM mock bind 200 后才写本地）
 	userID := uuid.New().String()
+	testfixtures.SeedUserFK(t, db, userID, tenantID, site.OrgID) // #2443: site_members.user_id FK
 	code, resp := post1935JSON(t, router, "/api/admin/transit-sites/"+site.ID+"/members", map[string]interface{}{
 		"user_id": userID, "role": "site_member",
 	})
@@ -293,6 +294,7 @@ func TestTransitSiteMemberIAMSync(t *testing.T) {
 	otherSite := models.Site{ID: uuid.New().String(), TenantID: tenantID, OrgID: tenantID, Name: "普通网点", Type: "store", Status: "active", CreatedAt: time.Now(), UpdatedAt: time.Now()}
 	require.NoError(t, db.Create(&otherSite).Error)
 	otherUser := uuid.New().String()
+	testfixtures.SeedUserFK(t, db, otherUser, tenantID, otherSite.OrgID) // #2443: site_members.user_id FK
 	otherMember := models.SiteMember{ID: uuid.New().String(), SiteID: otherSite.ID, UserID: otherUser, TenantID: tenantID, Role: "site_member"}
 	require.NoError(t, db.Create(&otherMember).Error)
 	code, _ = del1935(t, router, "/api/admin/transit-sites/"+site.ID+"/members/"+otherUser)
@@ -338,8 +340,10 @@ func TestTransitSiteMemberRoleTemplateErrorReported(t *testing.T) {
 		failIAM.Close()
 	})
 
+	userID := uuid.New().String()
+	testfixtures.SeedUserFK(t, database.GetDB(), userID, tenantID, site.OrgID) // #2443: site_members.user_id FK
 	code, resp := post1935JSON(t, router, "/api/admin/transit-sites/"+site.ID+"/members", map[string]interface{}{
-		"user_id": uuid.New().String(), "role": "site_member",
+		"user_id": userID, "role": "site_member",
 	})
 	require.Equal(t, 200, code, "bind 成功时成员仍应创建: %v", resp)
 	// #1938：role_errors 位于 data 内（与网点 AddMember 契约一致）

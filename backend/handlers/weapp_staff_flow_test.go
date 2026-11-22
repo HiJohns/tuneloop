@@ -74,6 +74,8 @@ func TestShippingFlow_StaffToken(t *testing.T) {
 	}
 	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
+	require.NoError(t, db.Model(&models.User{}).Where("id = ?", order.UserID).
+		Updates(map[string]interface{}{"face_verified": true, "id_photo_front": "/uploads/id-front.jpg"}).Error)
 
 	handler := NewWarehouseHandler()
 	router := staffTestRouter(tenantID, orgID, staffID, handler)
@@ -121,6 +123,7 @@ func TestReceiveFlow_StaffToken(t *testing.T) {
 	db := setupWeappStaffTables(t)
 	tenantID := uuid.New().String()
 	orgID := uuid.New().String()
+	testfixtures.SeedSiteFK(t, db, orgID, tenantID) // #2443: instruments.current_site_id FK
 	staffID := uuid.New().String()
 	userID := uuid.New().String()
 	now := time.Now()
@@ -151,6 +154,8 @@ func TestReceiveFlow_StaffToken(t *testing.T) {
 		}
 		testfixtures.SeedOrderParents(t, db, &o) // #2443: strict schema order FKs
 		require.NoError(t, db.Create(&o).Error)
+		require.NoError(t, db.Model(&models.User{}).Where("id = ?", o.UserID).
+			Updates(map[string]interface{}{"face_verified": true, "id_photo_front": "/uploads/id-front.jpg"}).Error)
 		return inst, o
 	}
 
@@ -228,6 +233,8 @@ func TestStaffFlow_UnauthenticatedDenied(t *testing.T) {
 	}
 	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
+	require.NoError(t, db.Model(&models.User{}).Where("id = ?", order.UserID).
+		Updates(map[string]interface{}{"face_verified": true, "id_photo_front": "/uploads/id-front.jpg"}).Error)
 
 	handler := NewWarehouseHandler()
 	router := staffTestRouter(tenantID, orgID, staffID, handler)

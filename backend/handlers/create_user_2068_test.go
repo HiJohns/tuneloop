@@ -50,7 +50,9 @@ func newIAMMock2068(t *testing.T, newUserID string) *httptest.Server {
 func doCreate2068(t *testing.T, r *gin.Engine, body map[string]interface{}) (int, map[string]interface{}) {
 	t.Helper()
 	if _, ok := body["username"]; !ok {
-		body["username"] = "u" + uuid.New().String()[:8]
+		if _, auto := body["auto_generate"]; !auto {
+			body["username"] = "u" + uuid.New().String()[:8]
+		}
 	}
 	raw, _ := json.Marshal(body)
 	w := httptest.NewRecorder()

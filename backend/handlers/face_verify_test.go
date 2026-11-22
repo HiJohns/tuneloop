@@ -59,6 +59,10 @@ func faceRouter(provider tencentcloud.FaceVerifyProvider, userID, tenantID, orgI
 func setupFaceVerifyTestUser(t *testing.T, tenantID, userID, orgID string) {
 	t.Helper()
 	db := database.GetDB()
+	var existing models.User
+	if err := db.Where("iam_sub = ?", userID).First(&existing).Error; err == nil {
+		return // #2443: users.iam_sub 唯一；同 id 夹具可复用
+	}
 	user := models.User{
 		IAMSub:   userID,
 		TenantID: tenantID,

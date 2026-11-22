@@ -22,7 +22,7 @@ func TestMerchantWebhook_SharedTenantIsolation_2262(t *testing.T) {
 	orgA, orgB, orgC := uuid.NewString(), uuid.NewString(), uuid.NewString()
 	for _, m := range []struct{ org, name string }{{orgA, "A"}, {orgB, "B"}, {orgC, "C"}} {
 		require.NoError(t, db.Create(&models.Merchant{
-			ID: uuid.NewString(), TenantID: shared, OrgID: m.org, Name: m.name,
+			Code: testfixtures.UniqueCode("wh2262"), ID: uuid.NewString(), TenantID: shared, OrgID: m.org, Name: m.name,
 			Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 		}).Error)
 	}

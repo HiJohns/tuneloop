@@ -32,7 +32,6 @@ func TestListWarehouseOrders(t *testing.T) {
 	}
 	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	db.Create(&order)
-
 	handler := NewWarehouseHandler()
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
@@ -73,6 +72,8 @@ func TestUpdateShipping(t *testing.T) {
 	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	db.Create(&order)
 
+	require.NoError(t, db.Model(&models.User{}).Where("id = ?", order.UserID).
+		Updates(map[string]interface{}{"face_verified": true, "id_photo_front": "/uploads/id-front.jpg"}).Error)
 	handler := NewWarehouseHandler()
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
@@ -145,6 +146,7 @@ func TestReportWechatShipping_OpenIDPriority(t *testing.T) {
 			orderID := uuid.New().String()
 			userID := uuid.New().String()
 			instrumentID := uuid.New().String()
+			testfixtures.SeedInstrumentFK(t, db, instrumentID, tenantID, tenantID) // #2443: orders.instrument_id FK
 			outTradeNo := "rent" + uuid.New().String()[:12]
 			txID := "4500000337" + uuid.New().String()[:10]
 
