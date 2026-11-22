@@ -1,0 +1,75 @@
+{
+  "issue": 2434,
+  "overall": "PASS",
+  "plan": "/home/coder/tuneloop/tmp/plan-2434-rev4.md",
+  "plan_sha256": "cd985783310f6f9b7a1b6984fa89c078a9bd6b67e18a965a785b3f7587e96881",
+  "summary": "/home/coder/tuneloop/tmp/work-summary-2434.md",
+  "timestamp": "20261122-155045",
+  "checks": [
+    {
+      "id": "P1",
+      "status": "PASS",
+      "detail": "plan has Verification Matrix / Input Truth & Tool Preflight / Decision Lock / Out of Scope"
+    },
+    {
+      "id": "P2",
+      "status": "PASS",
+      "detail": "Work Summary covers all 8 matrix rows with PASS/N/A"
+    },
+    {
+      "id": "P3",
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
+    },
+    {
+      "id": "P4",
+      "status": "PASS",
+      "detail": "all 1 affected command(s) passed"
+    },
+    {
+      "id": "P12",
+      "status": "PASS",
+      "detail": "Evidence Contract complete: 8 row(s) match the plan and have durable artifacts"
+    },
+    {
+      "id": "P5",
+      "status": "N/A",
+      "detail": "full gate explicitly skipped with recorded reason"
+    },
+    {
+      "id": "P6",
+      "status": "PASS",
+      "detail": "all changed files are declared in the Accepted Plan"
+    },
+    {
+      "id": "P7",
+      "status": "N/A",
+      "detail": "no contract-affecting files changed"
+    },
+    {
+      "id": "P8",
+      "status": "N/A",
+      "detail": "no panel/clarify files changed"
+    },
+    {
+      "id": "P9",
+      "status": "N/A",
+      "detail": "no session/build_version/aiaudit/.rpt/.dat evidence referenced"
+    },
+    {
+      "id": "P10",
+      "status": "N/A",
+      "detail": "no aiaudit reference"
+    },
+    {
+      "id": "P11",
+      "status": "PASS",
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /tmp/opencode/tuneloop/wt-2434; worktree guard: PASS isolated worktree=/tmp/opencode/tuneloop/wt-2434"
+    },
+    {
+      "id": "P13",
+      "status": "PASS",
+      "detail": "fix commit and evidence artifacts are on origin/develop"
+    }
+  ]
+}
