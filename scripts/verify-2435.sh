@@ -49,9 +49,21 @@ case "${MODE%%-*}" in
   r2)
     { echo "$PROV"; backend; go test ./handlers/ -run 'TestUpdateCurrentUser_SecondDocType_2435' -count=1 -v; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
   r3)
-    { echo "$PROV"; node22; cd "$REPO/frontend-mobile"; npx vitest run --config vitest.config.js scripts/page-smoke/second-doc-type-fallback-2435.test.jsx; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
+    { echo "$PROV"; node22; cd "$REPO/frontend-mobile"; npx vitest run --config vitest.config.js scripts/page-smoke/second-doc-type-fallback-2435.test.jsx -t 'R3'; } 2>&1 | tee "$ART"
+    fail=0
+    for marker in R3_STATE_1_OK R3_STATE_2_OK R3_STATE_3_OK R3_STATE_4_OK; do
+      if grep -q "$marker" "$ART"; then echo "R3_MARKER_OK $marker"; else echo "R3_MARKER_MISSING $marker"; fail=1; fi
+    done
+    [ "$fail" -eq 0 ] && echo "R3_RENDER_OK" || echo "R3_RENDER_FAIL"
+    exit "$fail" ;;
   r4)
-    { echo "$PROV"; grep -q 'id_photo_other_type: secondDocType' frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx; echo "SAVE_FIELD_OK"; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
+    { echo "$PROV"; node22; cd "$REPO/frontend-mobile"; npx vitest run --config vitest.config.js scripts/page-smoke/second-doc-type-fallback-2435.test.jsx -t 'R4'; } 2>&1 | tee "$ART"
+    fail=0
+    for marker in R4_BODY_WITH_TYPE_OK R4_NO_TYPE_OMITTED_OK R4_NO_PHOTO_OMITTED_OK; do
+      if grep -q "$marker" "$ART"; then echo "R4_MARKER_OK $marker"; else echo "R4_MARKER_MISSING $marker"; fail=1; fi
+    done
+    [ "$fail" -eq 0 ] && echo "R4_SAVE_OK" || echo "R4_SAVE_FAIL"
+    exit "$fail" ;;
   r5)
     { echo "$PROV"; grep -q '待审核，用户可自报，审核员可修正' frontend-pc/src/pages/System/UserManagement.jsx; grep -q 'SECOND_DOC_LABELS' frontend-pc/src/pages/System/UserManagement.jsx; echo "PC_DETAIL_OK"; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
   r6)
