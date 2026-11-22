@@ -219,11 +219,10 @@ func TestResolveCategory(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			db, mock := setupMockDB(t)
 			service := NewInstrumentService(db)
-			tx := db.Begin()
-
 			tt.setupMock(mock)
 
-			got, err := service.resolveCategory(tt.instrument, "tenant-1", tx)
+			// resolveCategory 的 Create 自行开启事务；不要预先 Begin（会吞掉 ExpectBegin）。
+			got, err := service.resolveCategory(tt.instrument, "tenant-1", db)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("resolveCategory() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -256,11 +255,11 @@ func TestValidateRequiredColumns(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "missing name column",
+			name: "missing name column (name is optional)",
 			columnIndex: map[string]int{
 				"category_name": 1,
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "missing category_name column",
@@ -296,29 +295,26 @@ func TestParseHeaderRow(t *testing.T) {
 	}{
 		{
 			name:      "english headers",
-			headerRow: []string{"name", "brand", "category_name"},
+			headerRow: []string{"brand", "category_name"},
 			want: map[string]int{
-				"name":          0,
-				"brand":         1,
-				"category_name": 2,
+				"brand":         0,
+				"category_name": 1,
 			},
 		},
 		{
 			name:      "chinese headers",
-			headerRow: []string{"乐器名称", "品牌", "分类名称"},
+			headerRow: []string{"品牌", "分类名称"},
 			want: map[string]int{
-				"name":          0,
-				"brand":         1,
-				"category_name": 2,
+				"brand":         0,
+				"category_name": 1,
 			},
 		},
 		{
 			name:      "mixed headers",
-			headerRow: []string{"name", "品牌", "category_name"},
+			headerRow: []string{"brand", "分类名称"},
 			want: map[string]int{
-				"name":          0,
-				"brand":         1,
-				"category_name": 2,
+				"brand":         0,
+				"category_name": 1,
 			},
 		},
 		{

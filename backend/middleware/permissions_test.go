@@ -119,7 +119,7 @@ func TestMockPermissionRegistry(t *testing.T) {
 func TestSysPermBitNames_Completeness(t *testing.T) {
 	seen := make(map[int]bool)
 	for bit, name := range SysPermBitNames {
-		if bit < 0 || bit > 24 {
+		if bit < 0 || bit > 29 {
 			t.Errorf("SysPerm bit %s has out-of-range bit %d", name, bit)
 		}
 		if seen[bit] {
@@ -127,14 +127,14 @@ func TestSysPermBitNames_Completeness(t *testing.T) {
 		}
 		seen[bit] = true
 	}
-	if len(seen) != 25 {
-		t.Errorf("Expected 25 sys_perm bits (0-24), got %d", len(seen))
+	if len(seen) != 30 {
+		t.Errorf("Expected 30 sys_perm bits (0-29), got %d", len(seen))
 	}
 }
 
 func TestBackwardCompat_ZeroSysPerm(t *testing.T) {
 	c, w := setupTestContext(0, 0)
-	for bit := 0; bit <= 24; bit++ {
+	for bit := 0; bit <= 29; bit++ {
 		middleware := RequireSysPerm(bit)
 		middleware(c)
 		// Reset writer between tests
