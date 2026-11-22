@@ -125,7 +125,7 @@
    "artifacts": [
     "docs/evidence/2339/R9-derivation.md"
    ],
-   "assert": "exit 0；三段推导齐全、与 R4 断言逐值相等、含 spec 差异与归属",
+   "assert": "exit 0；三段推导齐全、与 R4 断言逐值相等、含 spec 差异与 #2417 归属",
    "expected": "PASS",
    "negative": "缺段/未记录差异 → FAIL",
    "negative_result": "缺 rent/deposit/points 段或缺 2800/2500/2333.33/666.67/506.67/160/840/1960/net cash 40/#2417 即 exit 1",
@@ -145,6 +145,21 @@
    "negative_result": "fix^ 未 FAIL 或缺 --- PASS 即 exit 1",
    "actual": "PASS：C4（400 vs 200）与 SettlementFlow（50000 vs 0）在 db76582f4^ FAIL、fix 后 PASS",
    "pass": true
+  },
+  {
+   "id": "R11",
+   "command": "bash scripts/verify-2339.sh r11-batch-gate-ref",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2339/R11-batch-gate-ref.txt"
+   ],
+   "assert": "exit 0；含 SOURCE_TREE=27f35d34b、FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0、ANCESTRY_OK、BATCH_GATE_REF_OK",
+   "expected": "PASS",
+   "negative": "祖先不符/源缺失 → FAIL",
+   "negative_result": "缺 2443 R5 源文件或 tree≠27f35d34b / 汇总非全 0 / 修复-测试提交非其祖先 → exit 1",
+   "actual": "PASS：引用 docs/evidence/2443/R5-handlers-full.txt（tree=27f35d34b，FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0）；db76582f4 / b70f96eb3 / a7a881c32 均为该 tree 祖先",
+   "pass": true
   }
- ]
+ ],
+ "plan_sha256": "67e8082799a94150e5e7d3797653588d1fedbdca9e8c9b64e27c3c80ba04c72a"
 }
