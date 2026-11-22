@@ -84,10 +84,10 @@
         "docs/evidence/2428/R6-bind-guard.txt"
       ],
       "assert": "exit 0；跨租户拒绝 IAM 0",
-      "actual": "PASS：MerchantAddMember 40911，未进入 IAM bind",
+      "actual": "PASS：merchant 路径 40911（MERCHANT_40911_OK）；site 路径 409/40911/need_invite 且未落 site_members（SITE_40911_OK）；guard 在 addMembersCore 前返回（IAM 调用 0）",
       "expected": "PASS",
       "negative": "绑定 → FAIL",
-      "negative_result": "跨租户绑定即失败",
+      "negative_result": "merchant 或 site 任一未拦截（如 site 返回 500/写入成员）→ R6 失败",
       "pass": true
     },
     {

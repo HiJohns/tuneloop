@@ -1,43 +1,49 @@
 # build=1.0.a15cbb252 commit=a15cbb252f459ad7f00ae2b8e0fc36231f4c2801 dirty=false
 BUILD_OK
 [DEBUG] Loaded .env from: ../.env
-2026/11/22 16:23:52 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2428 sslmode=disable
-2026/11/22 16:23:52 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2428
-2026/11/22 16:23:53 [DB] Connected to database 'tuneloop_test_2428'
+2026/11/22 20:10:23 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2428 sslmode=disable
+2026/11/22 20:10:23 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2428
+2026/11/22 20:10:23 [DB] Connected to database 'tuneloop_test_2428'
 === RUN   TestCheckUserExistsPlatformScope_2428
-2026/11/22 16:23:53 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2428 sslmode=disable
-2026/11/22 16:23:53 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2428
-2026/11/22 16:23:53 [DB] Connected to database 'tuneloop_test_2428'
+2026/11/22 20:10:23 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2428 sslmode=disable
+2026/11/22 20:10:23 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2428
+2026/11/22 20:10:23 [DB] Connected to database 'tuneloop_test_2428'
 
-2026/11/22 16:23:54 [32m/tmp/opencode/tuneloop/wt-2428/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[654.759ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/22 20:10:24 [32m/tmp/opencode/tuneloop/wt-2428/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[583.709ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
     user_check_conflict_2428_test.go:67: R2_CROSS merchant=B 商户 masked=******** same_tenant=false
     user_check_conflict_2428_test.go:68: R4_PRIVACY_OK
     user_check_conflict_2428_test.go:81: R1_SAME_OK
-2026/11/22 16:23:54 [IAMClient] NewIAMClient: baseURL=http://opencode.linxdeep.com:5561, clientID=test-ns, namespace=test-ns
-2026/11/22 16:23:54 [IAMClient] ListUsers: baseURL=http://opencode.linxdeep.com:5561, namespace=test-ns, clientID=test-ns
-2026/11/22 16:24:09 [IAMClient] ListUsers: doRequest error: failed to get client token: failed to request client token: Post "http://opencode.linxdeep.com:5561/api/v1/auth/token": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-2026/11/22 16:24:09 [CheckUserExists] IAM fallback failed: ListUsers request failed: failed to get client token: failed to request client token: Post "http://opencode.linxdeep.com:5561/api/v1/auth/token": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
---- PASS: TestCheckUserExistsPlatformScope_2428 (16.17s)
+2026/11/22 20:10:24 [IAMClient] NewIAMClient: baseURL=http://opencode.linxdeep.com:5561, clientID=test-ns, namespace=test-ns
+2026/11/22 20:10:24 [IAMClient] ListUsers: baseURL=http://opencode.linxdeep.com:5561, namespace=test-ns, clientID=test-ns
+2026/11/22 20:10:39 [IAMClient] ListUsers: doRequest error: failed to get client token: failed to request client token: Post "http://opencode.linxdeep.com:5561/api/v1/auth/token": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+2026/11/22 20:10:39 [CheckUserExists] IAM fallback failed: ListUsers request failed: failed to get client token: failed to request client token: Post "http://opencode.linxdeep.com:5561/api/v1/auth/token": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+--- PASS: TestCheckUserExistsPlatformScope_2428 (16.05s)
 === RUN   TestCheckUserExistsIAMFallback_2428
 
-2026/11/22 16:24:10 [32m/tmp/opencode/tuneloop/wt-2428/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[611.697ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchants", "pricing_templates", "users" RESTART IDENTITY CASCADE[0m
-2026/11/22 16:24:10 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:45529, clientID=test-ns, namespace=test-ns
-2026/11/22 16:24:10 [IAMClient] ListUsers: baseURL=http://127.0.0.1:45529, namespace=test-ns, clientID=test-ns
-2026/11/22 16:24:10 [IAMClient] Obtained client credentials token, expires in 3600s
-2026/11/22 16:24:10 [IAMClient] ListUsers: statusCode=200, responseLen=134
-2026/11/22 16:24:10 [IAMClient] ListUsers: parsed result - users count=1, data count=0
-2026/11/22 16:24:10 [IAMClient] ListUsers: returning 1 users from 'users' field
---- PASS: TestCheckUserExistsIAMFallback_2428 (1.05s)
+2026/11/22 20:10:40 [32m/tmp/opencode/tuneloop/wt-2428/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[483.420ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchants", "pricing_templates", "users" RESTART IDENTITY CASCADE[0m
+2026/11/22 20:10:40 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:46703, clientID=test-ns, namespace=test-ns
+2026/11/22 20:10:40 [IAMClient] ListUsers: baseURL=http://127.0.0.1:46703, namespace=test-ns, clientID=test-ns
+2026/11/22 20:10:40 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 20:10:40 [IAMClient] ListUsers: statusCode=200, responseLen=134
+2026/11/22 20:10:40 [IAMClient] ListUsers: parsed result - users count=1, data count=0
+2026/11/22 20:10:40 [IAMClient] ListUsers: returning 1 users from 'users' field
+--- PASS: TestCheckUserExistsIAMFallback_2428 (0.82s)
 === RUN   TestMerchantAddMemberCrossTenantBlocked_2428
 
-2026/11/22 16:24:11 [32m/tmp/opencode/tuneloop/wt-2428/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[593.909ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "pricing_templates" RESTART IDENTITY CASCADE[0m
-2026/11/22 16:24:11 [IAMClient] NewIAMClient: baseURL=http://opencode.linxdeep.com:5552, clientID=test-ns, namespace=test-ns
---- PASS: TestMerchantAddMemberCrossTenantBlocked_2428 (1.09s)
+2026/11/22 20:10:41 [32m/tmp/opencode/tuneloop/wt-2428/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[478.844ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "pricing_templates" RESTART IDENTITY CASCADE[0m
+2026/11/22 20:10:41 [IAMClient] NewIAMClient: baseURL=http://opencode.linxdeep.com:5552, clientID=test-ns, namespace=test-ns
+--- PASS: TestMerchantAddMemberCrossTenantBlocked_2428 (0.82s)
+=== RUN   TestSiteAddMemberCrossTenantBlocked_2428
+
+2026/11/22 20:10:42 [32m/tmp/opencode/tuneloop/wt-2428/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[486.794ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchants", "pricing_templates", "users" RESTART IDENTITY CASCADE[0m
+    user_check_conflict_2428_test.go:184: SITE_40911_OK site guard blocked cross-tenant bind, iam_calls=0 members=0
+--- PASS: TestSiteAddMemberCrossTenantBlocked_2428 (0.85s)
 PASS
-ok  	tuneloop-backend/handlers	22.123s
+ok  	tuneloop-backend/handlers	19.157s
 HANDLERS_2428_OK
 # github.com/mattn/go-sqlite3
 sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
@@ -48,6 +54,6 @@ sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier f
 === RUN   TestContactMask_2428
 --- PASS: TestContactMask_2428 (0.00s)
 PASS
-ok  	tuneloop-backend/services	0.019s
+ok  	tuneloop-backend/services	0.025s
 SERVICES_MASK_OK
 FULL_GATE_OK

@@ -1,16 +1,33 @@
 # build=1.0.a15cbb252 commit=a15cbb252f459ad7f00ae2b8e0fc36231f4c2801 dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/20 03:05:12 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2428 sslmode=disable
-2026/11/20 03:05:13 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2428
-2026/11/20 03:05:13 [DB] Connected to database 'tuneloop_test_verify2428'
+2026/11/22 20:09:59 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2428 sslmode=disable
+2026/11/22 20:09:59 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2428
+2026/11/22 20:09:59 [DB] Connected to database 'tuneloop_test_2428'
 === RUN   TestMerchantAddMemberCrossTenantBlocked_2428
-2026/11/20 03:05:14 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2428 sslmode=disable
-2026/11/20 03:05:14 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2428
-2026/11/20 03:05:14 [DB] Connected to database 'tuneloop_test_verify2428'
+2026/11/22 20:10:00 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2428 sslmode=disable
+2026/11/22 20:10:00 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2428
+2026/11/22 20:10:00 [DB] Connected to database 'tuneloop_test_2428'
 
-2026/11/20 03:05:15 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
-[0m[31;1m[787.583ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "schema_migrations", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-2026/11/20 03:05:15 [IAMClient] NewIAMClient: baseURL=http://opencode.linxdeep.com:5561, clientID=test-ns, namespace=test-ns
---- PASS: TestMerchantAddMemberCrossTenantBlocked_2428 (1.70s)
+2026/11/22 20:10:01 [32m/tmp/opencode/tuneloop/wt-2428/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[599.021ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/22 20:10:01 [IAMClient] NewIAMClient: baseURL=http://opencode.linxdeep.com:5561, clientID=test-ns, namespace=test-ns
+--- PASS: TestMerchantAddMemberCrossTenantBlocked_2428 (1.09s)
 PASS
-ok  	tuneloop-backend/handlers	3.630s
+ok  	tuneloop-backend/handlers	1.718s
+MERCHANT_40911_OK
+[DEBUG] Loaded .env from: ../.env
+2026/11/22 20:10:07 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2428 sslmode=disable
+2026/11/22 20:10:07 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2428
+2026/11/22 20:10:07 [DB] Connected to database 'tuneloop_test_2428'
+=== RUN   TestSiteAddMemberCrossTenantBlocked_2428
+2026/11/22 20:10:08 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2428 sslmode=disable
+2026/11/22 20:10:08 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2428
+2026/11/22 20:10:08 [DB] Connected to database 'tuneloop_test_2428'
+
+2026/11/22 20:10:08 [32m/tmp/opencode/tuneloop/wt-2428/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[588.946ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+    user_check_conflict_2428_test.go:184: SITE_40911_OK site guard blocked cross-tenant bind, iam_calls=0 members=0
+--- PASS: TestSiteAddMemberCrossTenantBlocked_2428 (1.05s)
+PASS
+ok  	tuneloop-backend/handlers	1.620s
+SITE_40911_OK
