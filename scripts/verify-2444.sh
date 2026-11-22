@@ -83,7 +83,7 @@ case "$MODE" in
       elif command -v jq >/dev/null 2>&1; then
         ev_build="$(jq -r '.build // empty' "$EV")"
         ev_commit="$(jq -r '.commit // empty' "$EV")"
-        ev_dirty="$(jq -r '.dirty // empty' "$EV")"
+        ev_dirty="$(jq -r 'if has("dirty") then (.dirty|tostring) else "" end' "$EV")"
         ev_tree="$(jq -r '.tree // empty' "$EV")"
         [ "$ev_build" = "$BUILD" ] || { echo "FAIL: evidence build=$ev_build want $BUILD"; fail=1; }
         [ "$ev_commit" = "$FIX_SHA" ] || { echo "FAIL: evidence commit=$ev_commit want $FIX_SHA"; fail=1; }
