@@ -1,0 +1,18 @@
+PROVENANCE build=1.0.1b7c4c9be commit=1b7c4c9be27470ff66198ab9e1fba4872572571b dirty=false
+$ cd backend && go test ./handlers/ -run '^TestPublicInstruments_100ItemsLatency_2451$' -count=1 -v
+[DEBUG] Loaded .env from: ../.env
+2026/11/22 16:13:13 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_evidence2451 sslmode=disable
+2026/11/22 16:13:14 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_evidence2451
+2026/11/22 16:13:14 [DB] Connected to database 'tuneloop_test_evidence2451'
+=== RUN   TestPublicInstruments_100ItemsLatency_2451
+2026/11/22 16:13:14 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_evidence2451 sslmode=disable
+2026/11/22 16:13:14 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_evidence2451
+2026/11/22 16:13:14 [DB] Connected to database 'tuneloop_test_evidence2451'
+
+2026/11/22 16:13:15 [32m/tmp/opencode/tuneloop/wt-2451/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[706.150ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+    public_instruments_n1_2451_test.go:360: LATENCY pageSize=100 elapsed_ms=23
+--- PASS: TestPublicInstruments_100ItemsLatency_2451 (1.86s)
+PASS
+ok  	tuneloop-backend/handlers	2.635s
+RESULT: PASS r6

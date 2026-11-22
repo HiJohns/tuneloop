@@ -1,0 +1,4 @@
+PROVENANCE build=1.0.1b7c4c9be commit=1b7c4c9be27470ff66198ab9e1fba4872572571b dirty=false
+$ cd backend && go build ./...
+BUILD_OK
+RESULT: PASS r7

@@ -1,0 +1,6 @@
+PROVENANCE build=1.0.1b7c4c9be commit=1b7c4c9be27470ff66198ab9e1fba4872572571b dirty=false
+$ grep -r 'GetMerchantTransitInfo(' backend/handlers (non-test) | wc -l
+$ grep -c 'GetMerchantTransitInfo(' backend/handlers/public.go
+$ grep -c 'GetMerchantTransitInfos(' backend/handlers/public.go
+CALLSITES single_total=6 public_single=1 public_batch=1
+RESULT: PASS r8

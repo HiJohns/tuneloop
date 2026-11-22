@@ -1,0 +1,21 @@
+PROVENANCE build=1.0.1b7c4c9be commit=1b7c4c9be27470ff66198ab9e1fba4872572571b dirty=false
+$ cd backend && go test ./handlers/ -run '^TestGetMerchantTransitInfos_BatchMatchesSingle_2451$' -count=1 -v
+[DEBUG] Loaded .env from: ../.env
+2026/11/22 16:13:01 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_evidence2451 sslmode=disable
+2026/11/22 16:13:01 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_evidence2451
+2026/11/22 16:13:01 [DB] Connected to database 'tuneloop_test_evidence2451'
+=== RUN   TestGetMerchantTransitInfos_BatchMatchesSingle_2451
+2026/11/22 16:13:01 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_evidence2451 sslmode=disable
+2026/11/22 16:13:01 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_evidence2451
+2026/11/22 16:13:01 [DB] Connected to database 'tuneloop_test_evidence2451'
+
+2026/11/22 16:13:02 [32m/tmp/opencode/tuneloop/wt-2451/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[697.904ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+
+2026/11/22 16:13:02 [31;1m/tmp/opencode/tuneloop/wt-2451/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.341ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '1d878ab4-1dce-4c88-ba3f-ff0ff0cff673' ORDER BY "merchants"."id" LIMIT 1
+    public_instruments_n1_2451_test.go:343: MERCHANT_PARITY tenants=3 ok=3
+--- PASS: TestGetMerchantTransitInfos_BatchMatchesSingle_2451 (1.31s)
+PASS
+ok  	tuneloop-backend/handlers	2.144s
+RESULT: PASS r4
