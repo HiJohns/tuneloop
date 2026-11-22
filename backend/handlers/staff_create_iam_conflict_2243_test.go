@@ -161,7 +161,7 @@ func TestStaffCreateUser_IAMConflictFields_2290(t *testing.T) {
 		wantMsgHas string
 	}{
 		{"username_explicit", "username already exists", "taken_login_2290", "u1_2290@example.com", "13100000001", 40911, "username", "taken_login_2290", "用户名"},
-		{"username_blank_is_email", "username already exists", "", "taken_email_2290@example.com", "13100000002", 40914, "email", "taken_email_2290@example.com", "邮箱"},
+		{"username_blank_rejected", "username already exists", " ", "taken_email_2290@example.com", "13100000002", 40001, "", "", "username"},
 		{"email", "email already exists", "u_email_2290", "taken_email2_2290@example.com", "13100000003", 40914, "email", "taken_email2_2290@example.com", "邮箱"},
 		{"phone", "phone already exists", "u_phone_2290", "u_phone_2290@example.com", "13100000004", 40913, "phone", "13100000004", "手机号"},
 		{"unknown", "some new rule", "u_unknown_2290", "u_unknown_2290@example.com", "13100000005", 40910, "", "", "已"},
@@ -193,13 +193,14 @@ func TestStaffCreateUser_IAMConflictFields_2290(t *testing.T) {
 			r.POST("/users", h.CreateUser)
 
 			body := map[string]interface{}{
-				"name": "冲突员工" + uniq(), "phone": tc.phone, "email": tc.email, "site_id": siteID,
-			}
-			if tc.username != "" {
-				body["username"] = tc.username
+				"name": "冲突员工" + uniq(), "username": tc.username, "phone": tc.phone, "email": tc.email, "site_id": siteID,
 			}
 			code, resp := doCreate2068(t, r, body)
-			assert.Equal(t, http.StatusConflict, code, "case %d: %v", i, resp)
+			wantHTTP := http.StatusConflict
+			if tc.wantCode == 40001 {
+				wantHTTP = http.StatusBadRequest // 空用户名在 binding 后置检查阶段即拒绝
+			}
+			assert.Equal(t, wantHTTP, code, "case %d: %v", i, resp)
 			assert.Equal(t, tc.wantCode, resp["code"], "case %d resp=%v", i, resp)
 			msg, _ := resp["message"].(string)
 			assert.Contains(t, msg, tc.wantMsgHas, "case %d message=%q", i, msg)

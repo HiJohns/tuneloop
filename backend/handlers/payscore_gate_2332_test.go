@@ -27,7 +27,7 @@ import (
 func seedPayGateOrder(t *testing.T, db *gorm.DB, tenantID, userID, tier, creditPath, creditState string) string {
 	t.Helper()
 	orderID := uuid.New().String()
-	order := models.Order{
+	o := models.Order{
 		ID: orderID, TenantID: tenantID, OrgID: tenantID, UserID: userID,
 		InstrumentID:      uuid.New().String(),
 		Status:            models.OrderStatusReserved,
@@ -36,8 +36,8 @@ func seedPayGateOrder(t *testing.T, db *gorm.DB, tenantID, userID, tier, creditP
 		CreditState:       creditState,
 		CashPaid:          models.FromYuan(100),
 	}
-	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
-	require.NoError(t, db.Create(&order).Error)
+	testfixtures.SeedOrderParents(t, db, &o) // #2443: orders FKs
+	require.NoError(t, db.Create(&o).Error)
 	return orderID
 }
 
@@ -76,7 +76,6 @@ func TestPayGate(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
 	tenantID := uuid.New().String()
-	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	iamSub := uuid.New().String()
 	userID := uuid.New().String()
 	require.NoError(t, db.Create(&models.User{
@@ -99,10 +98,10 @@ func TestPayGate(t *testing.T) {
 		{"enforce=true reduced 未评估拒绝", "true", "reduced", "payscore", "", http.StatusForbidden, 40320},
 		{"enforce=true reduced 已拒绝", "true", "reduced", "payscore", "rejected", http.StatusForbidden, 40320},
 		{"enforce=true reduced 已通过放行", "true", "reduced", "payscore", "approved", http.StatusOK, 20000},
-		{"enforce=true zero(payscore) 未评估拒绝", "true", "zero", "payscore", "", http.StatusForbidden, 40320},
+		{"enforce=true zero(payscore) 零押金放行", "true", "zero", "payscore", "", http.StatusOK, 20000},
 		{"enforce=true zero(payscore) 已通过放行", "true", "zero", "payscore", "approved", http.StatusOK, 20000},
 		{"enforce=true 乐器零押金放行", "true", "zero", "", "", http.StatusOK, 20000},
-		{"enforce=true full 放行", "true", "full", "payscore", "", http.StatusOK, 20000},
+		{"enforce=true full 未评估拒绝", "true", "full", "payscore", "", http.StatusForbidden, 40320},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -140,7 +139,6 @@ func TestPrepayGate(t *testing.T) {
 	})
 
 	tenantID := uuid.New().String()
-	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: strict schema tenant FK
 	iamSub := uuid.New().String()
 	userID := uuid.New().String()
 	require.NoError(t, db.Create(&models.User{

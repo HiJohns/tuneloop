@@ -496,6 +496,8 @@ func TestInvoice_Eligible_MerchantNameFallback(t *testing.T) {
 	tenantB, orgB := uuid.New().String(), uuid.New().String()
 	localB, iamB := uuid.New().String(), uuid.New().String()
 	setupInvoiceTestData(t, tenantB, iamB, localB, orgB)
+	// #2443: 严格 schema 下 orders 必须有 tenant 行；用空名称模拟“tenant 缺失”的回退目标。
+	require.NoError(t, database.GetDB().Model(&models.Tenant{}).Where("id = ?", tenantB).Update("name", "").Error)
 
 	wB := httptest.NewRecorder()
 	invoiceRouter(tenantB, iamB, orgB).ServeHTTP(wB, httptest.NewRequest("GET", "/api/user/invoices/eligible", nil))

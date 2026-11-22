@@ -31,11 +31,12 @@ func newIAMMock2068(t *testing.T, newUserID string) *httptest.Server {
 	mux.HandleFunc("/api/v1/auth/token", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, map[string]interface{}{"access_token": "t2068", "expires_in": 7200, "token_type": "Bearer"})
 	})
+	_ = newUserID // #2443: strict schema users.iam_sub is unique → new id per create
 	mux.HandleFunc("/api/v1/users", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, map[string]interface{}{"data": map[string]interface{}{"user_id": newUserID, "status": "active"}})
+		writeJSON(w, map[string]interface{}{"data": map[string]interface{}{"user_id": uuid.New().String(), "status": "active"}})
 	})
 	mux.HandleFunc("/api/v1/users/", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, map[string]interface{}{"data": map[string]interface{}{"user_id": newUserID}})
+		writeJSON(w, map[string]interface{}{"data": map[string]interface{}{"user_id": uuid.New().String()}})
 	})
 	mux.HandleFunc("/api/v1/organizations/", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, map[string]interface{}{"data": map[string]interface{}{}})
@@ -48,6 +49,9 @@ func newIAMMock2068(t *testing.T, newUserID string) *httptest.Server {
 
 func doCreate2068(t *testing.T, r *gin.Engine, body map[string]interface{}) (int, map[string]interface{}) {
 	t.Helper()
+	if _, ok := body["username"]; !ok {
+		body["username"] = "u" + uuid.New().String()[:8]
+	}
 	raw, _ := json.Marshal(body)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/users", bytes.NewReader(raw))
@@ -62,6 +66,7 @@ func TestCreateUser2068_TechnicianMergedAndConflict(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site/site_members tenant FK
 	operatorID := uuid.New().String()
 	require.NoError(t, db.Create(&models.User{
 		ID: operatorID, IAMSub: operatorID, TenantID: tenantID, OrgID: tenantID,

@@ -183,8 +183,8 @@ func TestGetInventoryRentSetting_Filters(t *testing.T) {
 		{inst1, "SN-F1", "雅马哈", "U1", cat1, lvl1},
 		{inst2, "SN-F2", "卡瓦依", "K3", cat2, lvl2},
 	} {
-		db.Exec(`INSERT INTO instruments (id, sn, category_name, level_name, category_id, level_id, pricing, tenant_id, org_id, stock_status, created_at, updated_at)
-			VALUES (?, ?, '钢琴', '专业级', ?, ?, '{"daily_rent":100}', ?, ?, 'available', ?, ?)`,
+		db.Exec(`INSERT INTO instruments (id, sn, category_name, level, level_name, category_id, level_id, pricing, tenant_id, org_id, stock_status, created_at, updated_at)
+			VALUES (?, ?, '钢琴', 'standard', '专业级', ?, ?, '{"daily_rent":100}', ?, ?, 'available', ?, ?)`,
 			row.id, row.sn, row.cat, row.lvl, tenantID, tenantID, now, now)
 		db.Exec(`INSERT INTO instrument_properties (id, tenant_id, instrument_id, property_name, value, created_at, updated_at)
 			VALUES (?, ?, ?, '品牌', ?, ?, ?)`, uuid.New().String(), tenantID, row.id, row.brand, now, now)

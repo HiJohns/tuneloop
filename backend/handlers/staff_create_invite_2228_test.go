@@ -25,6 +25,7 @@ func TestStaffCreateUser_InviteMode_2228(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
 	tenantID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site/site_members tenant FK
 	operatorID := uuid.New().String()
 	require.NoError(t, db.Create(&models.User{
 		ID: operatorID, IAMSub: operatorID, TenantID: tenantID, OrgID: tenantID,

@@ -234,6 +234,7 @@ func TestTransitSiteMemberRoleRestriction(t *testing.T) {
 
 	// 合法角色 → 200（#1938：data.directly_added 数组）
 	userID := uuid.New().String()
+	testfixtures.SeedUserFK(t, database.GetDB(), userID, tenantID, site.OrgID) // #2443: site_members.user_id FK
 	code, resp = post1935JSON(t, router, "/api/admin/transit-sites/"+site.ID+"/members", map[string]interface{}{
 		"user_id": userID, "role": "site_member",
 	})

@@ -177,23 +177,24 @@ func TestCreateOrder_DepositWaiverGate(t *testing.T) {
 
 	instID := seed1867Instrument(t, db, tenantID, orgID)
 
-	// 3a: work identity → 403/40301 (user row seeded with work type)
+	// 3a: explicit reduced; new orders use payscore, invalid guarantors → 40002.
 	seed1867User(t, db, tenantID, orgID, iamSub, true, strPtr1867("work"), true, 700)
 	router := new1867Router(handler, tenantID, orgID, iamSub)
 	httpCode, bizCode, _ := post1867JSON(t, router, "/api/user/orders", map[string]interface{}{
 		"instrument_id": instID, "start_date": "2026-09-15", "end_date": "2026-09-20",
-		"deposit_waived": true, "guarantor_ids": []string{uuid.New().String(), uuid.New().String()},
+		"deposit_tier": "reduced", "guarantor_ids": []string{uuid.New().String(), uuid.New().String()},
 		"recommendation_letter": "/uploads/letter.jpg",
 	})
-	assert.Equal(t, http.StatusForbidden, httpCode)
-	assert.Equal(t, 40301, bizCode)
+	assert.Equal(t, http.StatusBadRequest, httpCode)
+	assert.Equal(t, 40002, bizCode)
 
-	// 3b: eligible user, no letter → 400/40002
+	// 3b: payscore does not require the internal eligibility/letter, but
+	// invalid (not owned) guarantors still reject with 40002.
 	db.Exec(`DELETE FROM users WHERE iam_sub = ?`, iamSub)
 	seed1867User(t, db, tenantID, orgID, iamSub, true, strPtr1867("student"), true, 700)
 	httpCode, bizCode, _ = post1867JSON(t, router, "/api/user/orders", map[string]interface{}{
 		"instrument_id": instID, "start_date": "2026-09-15", "end_date": "2026-09-20",
-		"deposit_waived": true, "guarantor_ids": []string{uuid.New().String(), uuid.New().String()},
+		"deposit_tier": "reduced", "guarantor_ids": []string{uuid.New().String(), uuid.New().String()},
 		"recommendation_letter": "",
 	})
 	assert.Equal(t, http.StatusBadRequest, httpCode)
@@ -209,7 +210,7 @@ func TestCreateOrder_DepositWaiverGate(t *testing.T) {
 	router2 := new1867Router(handler, tenantID, orgID, sub2)
 	httpCode, bizCode, data := post1867JSON(t, router2, "/api/user/orders", map[string]interface{}{
 		"instrument_id": instID, "start_date": "2026-09-15", "end_date": "2026-09-20",
-		"deposit_waived": true, "guarantor_ids": []string{g1, g2},
+		"deposit_tier": "reduced", "guarantor_ids": []string{g1, g2},
 		"recommendation_letter": "/uploads/letter-happy.jpg",
 	})
 	require.Equal(t, http.StatusCreated, httpCode)
@@ -243,7 +244,7 @@ func TestBatchCreateOrder_DepositWaiverGate(t *testing.T) {
 		"items": []map[string]interface{}{
 			{"instrument_id": instID, "start_date": "2026-09-15", "end_date": "2026-09-20"},
 		},
-		"deposit_waived":        true,
+		"deposit_tier":          "reduced",
 		"guarantor_ids":         []string{uuid.New().String(), uuid.New().String()},
 		"recommendation_letter": "/uploads/letter.jpg",
 	})
@@ -262,7 +263,7 @@ func TestBatchCreateOrder_DepositWaiverGate(t *testing.T) {
 		"items": []map[string]interface{}{
 			{"instrument_id": instID, "start_date": "2026-09-15", "end_date": "2026-09-20"},
 		},
-		"deposit_waived":        true,
+		"deposit_tier":          "reduced",
 		"guarantor_ids":         []string{g1, g2},
 		"recommendation_letter": "/uploads/letter-batch.jpg",
 	})

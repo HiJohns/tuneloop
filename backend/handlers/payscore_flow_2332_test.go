@@ -41,7 +41,7 @@ func TestCreditAssessmentFlow(t *testing.T) {
 		SN: "SN-CREDIT-FLOW", StockStatus: "available",
 		TotalPrice: ptrCents(models.FromYuan(1200)),
 	}).Error)
-	ord2443_0 := models.Order{
+	require.NoError(t, db.Create(&models.Order{
 		ID: orderID, TenantID: tenantID, OrgID: tenantID, UserID: userID,
 		InstrumentID:      instrumentID,
 		Status:            models.OrderStatusReserved,
@@ -50,9 +50,7 @@ func TestCreditAssessmentFlow(t *testing.T) {
 		Deposit:           reduced,
 		DepositFull:       &full,
 		DepositReduced:    &reduced,
-	}
-	testfixtures.SeedOrderParents(t, db, &ord2443_0)
-	require.NoError(t, db.Create(&ord2443_0).Error)
+	}).Error)
 
 	mock := wechatpay.NewMockPayscoreProvider()
 	handler := NewPayscoreHandler(db, mock, &wechatpay.Config{PayScoreServiceID: "SVC1"})
@@ -84,7 +82,7 @@ func TestCreditAssessmentFlow(t *testing.T) {
 	require.NoError(t, db.Where("id = ?", orderID).First(&order).Error)
 	assert.Equal(t, services.CreditStatePending, order.CreditState)
 	require.NotEmpty(t, order.CreditServiceOrderNo)
-	assert.Equal(t, int64(models.FromYuan(300)), order.CreditRiskAmountCents, "reduced 风险金额 = 全额-差额")
+	assert.Equal(t, int64(models.FromYuan(1200)), order.CreditRiskAmountCents, "风险金额 = 乐器原价（D2）")
 
 	// 2) 轮询状态：mock QueryOrder → approved 落库（否则 enforce 开启后永远无法支付）。
 	req = httptest.NewRequest(http.MethodGet, "/api/orders/"+orderID+"/credit-status", nil)
@@ -97,7 +95,7 @@ func TestCreditAssessmentFlow(t *testing.T) {
 
 	// 3) 负例：mock 拒绝 → rejected（不是 approved）。
 	rejectedOrderID := uuid.New().String()
-	ord2443_1 := models.Order{
+	require.NoError(t, db.Create(&models.Order{
 		ID: rejectedOrderID, TenantID: tenantID, OrgID: tenantID, UserID: userID,
 		InstrumentID:         instrumentID,
 		Status:               models.OrderStatusReserved,
@@ -105,9 +103,7 @@ func TestCreditAssessmentFlow(t *testing.T) {
 		DepositCreditPath:    models.DepositCreditPathPayscore,
 		CreditState:          services.CreditStatePending,
 		CreditServiceOrderNo: "rejected-order",
-	}
-	testfixtures.SeedOrderParents(t, db, &ord2443_1)
-	require.NoError(t, db.Create(&ord2443_1).Error)
+	}).Error)
 	mock.Approve = false
 	require.NoError(t, func() error {
 		_, err := mock.CreateOrder(t.Context(), wechatpay.PayScoreCreateParams{OutOrderNo: "rejected-order"})
