@@ -1,0 +1,37 @@
+# build=1.0.131b92191 commit=131b92191d3f41c75d552f867dd5172611849cd4 dirty=false tree=131b92191
+=== RUN   TestResolveCategory
+=== RUN   TestResolveCategory/exact_match_found
+=== RUN   TestResolveCategory/fuzzy_match_found
+=== RUN   TestResolveCategory/no_match_-_use_default_category
+
+2026/11/22 16:00:22 [31;1m/tmp/opencode/tuneloop/wt-2452/backend/service/instrument.go:419 [35;1mrecord not found
+[0m[33m[0.356ms] [34;1m[rows:0][0m SELECT * FROM "categories" WHERE tenant_id = 'tenant-1' AND name ILIKE '分类名称' ORDER BY "categories"."id" LIMIT 1
+
+2026/11/22 16:00:22 [31;1m/tmp/opencode/tuneloop/wt-2452/backend/service/instrument.go:427 [35;1mrecord not found
+[0m[33m[0.098ms] [34;1m[rows:0][0m SELECT * FROM "categories" WHERE tenant_id = 'tenant-1' AND name = '未分类' ORDER BY "categories"."id" LIMIT 1
+--- PASS: TestResolveCategory (0.00s)
+    --- PASS: TestResolveCategory/exact_match_found (0.00s)
+    --- PASS: TestResolveCategory/fuzzy_match_found (0.00s)
+    --- PASS: TestResolveCategory/no_match_-_use_default_category (0.00s)
+=== RUN   TestValidateRequiredColumns
+=== RUN   TestValidateRequiredColumns/all_required_columns_present
+=== RUN   TestValidateRequiredColumns/missing_name_column_(name_is_optional)
+=== RUN   TestValidateRequiredColumns/missing_category_name_column
+=== RUN   TestValidateRequiredColumns/both_columns_missing
+--- PASS: TestValidateRequiredColumns (0.00s)
+    --- PASS: TestValidateRequiredColumns/all_required_columns_present (0.00s)
+    --- PASS: TestValidateRequiredColumns/missing_name_column_(name_is_optional) (0.00s)
+    --- PASS: TestValidateRequiredColumns/missing_category_name_column (0.00s)
+    --- PASS: TestValidateRequiredColumns/both_columns_missing (0.00s)
+=== RUN   TestParseHeaderRow
+=== RUN   TestParseHeaderRow/english_headers
+=== RUN   TestParseHeaderRow/chinese_headers
+=== RUN   TestParseHeaderRow/mixed_headers
+=== RUN   TestParseHeaderRow/unknown_headers
+--- PASS: TestParseHeaderRow (0.00s)
+    --- PASS: TestParseHeaderRow/english_headers (0.00s)
+    --- PASS: TestParseHeaderRow/chinese_headers (0.00s)
+    --- PASS: TestParseHeaderRow/mixed_headers (0.00s)
+    --- PASS: TestParseHeaderRow/unknown_headers (0.00s)
+PASS
+ok  	tuneloop-backend/service	0.024s

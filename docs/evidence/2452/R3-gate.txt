@@ -1,0 +1,8 @@
+# build=1.0.131b92191 commit=131b92191d3f41c75d552f867dd5172611849cd4 dirty=false tree=131b92191
+BUILD_CMD=go build ./...
+BUILD_EXIT=0
+BUILD_OK
+ok  	tuneloop-backend/middleware	0.099s
+ok  	tuneloop-backend/service	0.038s
+PACKAGE_GATE_EXIT=0
+GATE_OK

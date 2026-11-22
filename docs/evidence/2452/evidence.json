@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "issue": 2452,
+  "build": "1.0.131b92191",
+  "commit": "131b92191d3f41c75d552f867dd5172611849cd4",
+  "tree": "131b92191",
+  "dirty": false,
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2452; middleware/service only; no product change",
+  "rows": [
+    {"id":"R1","command":"bash scripts/verify-2452.sh r1","exit":0,"artifacts":["docs/evidence/2452/R1-middleware.txt"],"assert":"exit 0；PASS；30 位","actual":"PASS：SysPermBitNames 0–29 共 30 位，无越界/重复","expected":"PASS","negative":"越界/重复 → FAIL","negative_result":"断言失败即 exit 1","pass":true},
+    {"id":"R2","command":"bash scripts/verify-2452.sh r2","exit":0,"artifacts":["docs/evidence/2452/R2-service.txt"],"assert":"exit 0；三测试 PASS","actual":"PASS：TestResolveCategory / TestValidateRequiredColumns / TestParseHeaderRow 全通过","expected":"PASS","negative":"任一 FAIL → FAIL","negative_result":"非 0 即 exit 1","pass":true},
+    {"id":"R3","command":"bash scripts/verify-2452.sh r3","exit":0,"artifacts":["docs/evidence/2452/R3-gate.txt"],"assert":"exit 0；build 0 + 两包 0 FAIL","actual":"PASS：BUILD_EXIT=0 / BUILD_OK；middleware+service 均 ok；GATE_OK","expected":"PASS","negative":"失败 → FAIL","negative_result":"任一非 0 即 exit 1","pass":true}
+  ]
+}

@@ -1,0 +1,6 @@
+# build=1.0.131b92191 commit=131b92191d3f41c75d552f867dd5172611849cd4 dirty=false tree=131b92191
+[DEBUG] Loaded .env from: ../.env
+=== RUN   TestSysPermBitNames_Completeness
+--- PASS: TestSysPermBitNames_Completeness (0.00s)
+PASS
+ok  	tuneloop-backend/middleware	0.045s
