@@ -1,0 +1,16 @@
+PROVENANCE: fix=42dcec6f0c8ece176d88fa99f22483a68522f8cf request=2449-20261122T023000Z ts=2026-11-22T12:46:26Z
+[DEBUG] Loaded .env from: ../.env
+2026/11/22 12:52:09 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2449_vr sslmode=disable
+2026/11/22 12:52:09 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2449_vr
+2026/11/22 12:52:09 [DB] Connected to database 'tuneloop_test_2449_vr'
+=== RUN   TestListStaff_SiteNames_2449
+2026/11/22 12:52:09 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2449_vr sslmode=disable
+2026/11/22 12:52:09 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2449_vr
+2026/11/22 12:52:09 [DB] Connected to database 'tuneloop_test_2449_vr'
+
+2026/11/22 12:52:10 [32m/tmp/opencode/tuneloop/wt-2449/backend/handlers/testfixtures/db.go:289 [33mSLOW SQL >= 200ms
+[0m[31;1m[606.290ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/22 12:52:11 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+--- PASS: TestListStaff_SiteNames_2449 (1.40s)
+PASS
+ok  	tuneloop-backend/handlers	2.088s
