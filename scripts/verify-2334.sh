@@ -76,7 +76,7 @@ fi
       [ "$src" = "0" ] && echo "SMOKE_OK"
       exit "$src"
       ;;
-    r5)
+    r5|r5-provenance)
       rc=0
       status="$(git status --porcelain -uall || true)"
       if [ -n "$status" ]; then echo "FAIL: worktree dirty"; printf '%s\n' "$status"; rc=1; else echo "STATUS_CLEAN"; fi
