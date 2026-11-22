@@ -20,7 +20,7 @@ func TestCheckIdentityForOrder(t *testing.T) {
 	str := func(s string) *string { return &s }
 	seed := func(faceVerified bool, front, back *string) string {
 		u := models.User{
-			ID: uuid.New().String(), TenantID: uuid.New().String(), OrgID: uuid.New().String(),
+			ID: uuid.New().String(), IAMSub: uuid.New().String(), TenantID: uuid.New().String(), OrgID: uuid.New().String(),
 			Email: uuid.New().String() + "@example.com", Name: "U", Status: "active",
 			FaceVerified: faceVerified, IdPhotoFront: front, IdPhotoBack: back,
 		}

@@ -30,10 +30,14 @@ func TestForwardingSessionLifecycleAndFees(t *testing.T) {
 	tenantID, orgID, _ := testfixtures.NewTenantIDs("1934ab0c000a")
 
 	orderID := uuid.New().String()
+	fwdUserID, fwdInstID := uuid.New().String(), uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID)
+	testfixtures.SeedUserFK(t, db, fwdUserID, tenantID, orgID)
+	testfixtures.SeedInstrumentFK(t, db, fwdInstID, tenantID, orgID)
 	require.NoError(t, db.Exec(
 		`INSERT INTO orders (id, tenant_id, user_id, instrument_id, status, level, lease_term, monthly_rent, created_at, updated_at)
 		 VALUES (?, ?, ?, ?, 'paid', '入门', 30, 10000, now(), now())`,
-		orderID, tenantID, uuid.New().String(), uuid.New().String()).Error)
+		orderID, tenantID, fwdUserID, fwdInstID).Error)
 
 	session := seed1934Session(t, db, tenantID, orgID, orderID, models.ForwardingDirectionOutbound, models.ForwardingStatusPending)
 
@@ -287,9 +291,13 @@ func TestGetOrderLogisticsFeeTotalAggregation(t *testing.T) {
 
 	ownerID := uuid.New().String()
 	orderID := uuid.New().String()
+	ownerInstID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID)
+	testfixtures.SeedUserFK(t, db, ownerID, tenantID, orgID)
+	testfixtures.SeedInstrumentFK(t, db, ownerInstID, tenantID, orgID)
 	require.NoError(t, db.Exec(`INSERT INTO orders (id, tenant_id, user_id, instrument_id, status, level, lease_term, monthly_rent, created_at, updated_at)
 		VALUES (?, ?, ?, ?, 'shipped', '入门', 30, 10000, now(), now())`,
-		orderID, tenantID, ownerID, uuid.New().String()).Error)
+		orderID, tenantID, ownerID, ownerInstID).Error)
 
 	seedFee := func(segment int, direction, paidBy string, cents int64) {
 		require.NoError(t, db.Exec(`INSERT INTO transit_shipping_fees (order_id, direction, segment, amount, paid_by, recorded_by, created_at)

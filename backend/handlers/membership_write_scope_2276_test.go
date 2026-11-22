@@ -25,8 +25,8 @@ func TestMembershipWrite_ExplicitScope_2276(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
 	tenantA, tenantB := uuid.NewString(), uuid.NewString()
-	merchantA := models.Merchant{ID: uuid.NewString(), TenantID: tenantA, OrgID: tenantA, Name: "Merchant-A", AdminUID: uuid.NewString()}
-	merchantB := models.Merchant{ID: uuid.NewString(), TenantID: tenantB, OrgID: tenantB, Name: "Merchant-B", AdminUID: uuid.NewString()}
+	merchantA := models.Merchant{Code: testfixtures.UniqueCode("m2468"), ID: uuid.NewString(), TenantID: tenantA, OrgID: tenantA, Name: "Merchant-A", AdminUID: uuid.NewString()}
+	merchantB := models.Merchant{Code: testfixtures.UniqueCode("m2468"), ID: uuid.NewString(), TenantID: tenantB, OrgID: tenantB, Name: "Merchant-B", AdminUID: uuid.NewString()}
 	require.NoError(t, db.Create(&merchantA).Error)
 	require.NoError(t, db.Create(&merchantB).Error)
 	siteB := models.Site{ID: uuid.NewString(), TenantID: tenantB, OrgID: tenantB, Name: "Site-B"}
@@ -136,8 +136,8 @@ func TestMerchantAdmin_SharedTenantOrgScope_2276(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
 	shared, orgA, orgB := uuid.NewString(), uuid.NewString(), uuid.NewString()
-	mA := models.Merchant{ID: uuid.NewString(), TenantID: shared, OrgID: orgA, AdminUID: uuid.NewString(), Name: "A", Status: "active"}
-	mB := models.Merchant{ID: uuid.NewString(), TenantID: shared, OrgID: orgB, AdminUID: uuid.NewString(), Name: "B", Status: "active"}
+	mA := models.Merchant{Code: testfixtures.UniqueCode("m2468"), ID: uuid.NewString(), TenantID: shared, OrgID: orgA, AdminUID: uuid.NewString(), Name: "A", Status: "active"}
+	mB := models.Merchant{Code: testfixtures.UniqueCode("m2468"), ID: uuid.NewString(), TenantID: shared, OrgID: orgB, AdminUID: uuid.NewString(), Name: "B", Status: "active"}
 	require.NoError(t, db.Create(&mA).Error)
 	require.NoError(t, db.Create(&mB).Error)
 
@@ -172,8 +172,8 @@ func TestCreateSite_ExplicitScope_2276(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
 	tenantA, tenantB := uuid.NewString(), uuid.NewString()
-	mA := models.Merchant{ID: uuid.NewString(), TenantID: tenantA, OrgID: tenantA, AdminUID: uuid.NewString(), Name: "A", Status: "active"}
-	mB := models.Merchant{ID: uuid.NewString(), TenantID: tenantB, OrgID: tenantB, AdminUID: uuid.NewString(), Name: "B", Status: "active"}
+	mA := models.Merchant{Code: testfixtures.UniqueCode("m2468"), ID: uuid.NewString(), TenantID: tenantA, OrgID: tenantA, AdminUID: uuid.NewString(), Name: "A", Status: "active"}
+	mB := models.Merchant{Code: testfixtures.UniqueCode("m2468"), ID: uuid.NewString(), TenantID: tenantB, OrgID: tenantB, AdminUID: uuid.NewString(), Name: "B", Status: "active"}
 	require.NoError(t, db.Create(&mA).Error)
 	require.NoError(t, db.Create(&mB).Error)
 

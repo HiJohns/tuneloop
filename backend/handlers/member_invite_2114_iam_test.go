@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
@@ -52,6 +53,7 @@ func setupP1GateTestDB(t *testing.T, tenantID string) (siteID, userID string) {
 	cleanup := setupMockIAMAndDB(t)
 	t.Cleanup(cleanup)
 	db := database.GetDB()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site/site_members tenant FK
 	siteID = uuid.NewString()
 	require.NoError(t, db.Create(&models.Site{
 		ID: siteID, Name: "P1 Site", TenantID: tenantID, OrgID: iamOrgC2114, Status: "active",

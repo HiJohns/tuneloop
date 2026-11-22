@@ -267,8 +267,11 @@ func TestExecuteBatchImport_PricingDailyRent(t *testing.T) {
 	}
 	defer delete(importSessions, sessionID)
 
+	tplID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID)
+	testfixtures.SeedPricingTemplateFK(t, db, tplID)
 	require.NoError(t, db.Exec(`INSERT INTO merchant_pricing_configs (id, tenant_id, template_id, config)
-		VALUES (?, ?, ?, '{}')`, uuid.New().String(), tenantID, uuid.New().String()).Error)
+		VALUES (?, ?, ?, '{}')`, uuid.New().String(), tenantID, tplID).Error)
 
 	req := httptest.NewRequest("POST", "/instruments/batch-import", nil)
 	req.Header.Set("Content-Type", "application/json")
@@ -340,8 +343,11 @@ func TestExecuteBatchImport_OrgFromSite(t *testing.T) {
 	}
 	defer delete(importSessions, sessionID)
 
+	tplID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID)
+	testfixtures.SeedPricingTemplateFK(t, db, tplID)
 	require.NoError(t, db.Exec(`INSERT INTO merchant_pricing_configs (id, tenant_id, template_id, config)
-		VALUES (?, ?, ?, '{}')`, uuid.New().String(), tenantID, uuid.New().String()).Error)
+		VALUES (?, ?, ?, '{}')`, uuid.New().String(), tenantID, tplID).Error)
 
 	req := httptest.NewRequest("POST", "/instruments/batch-import", nil)
 	req.Header.Set("Content-Type", "application/json")

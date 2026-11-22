@@ -28,11 +28,11 @@ func TestTechnicianProfilesDomain_ExplicitScopeIsolation_2261(t *testing.T) {
 
 	shared := uuid.NewString()
 	orgA, orgB := uuid.NewString(), uuid.NewString()
-	require.NoError(t, db.Create(&models.Merchant{
+	require.NoError(t, db.Create(&models.Merchant{Code: testfixtures.UniqueCode("m2468"),
 		ID: uuid.NewString(), TenantID: shared, OrgID: orgA, Name: "M-A",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}).Error)
-	require.NoError(t, db.Create(&models.Merchant{
+	require.NoError(t, db.Create(&models.Merchant{Code: testfixtures.UniqueCode("m2468"),
 		ID: uuid.NewString(), TenantID: shared, OrgID: orgB, Name: "M-B",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}).Error)
@@ -79,11 +79,11 @@ func TestMembershipDomain_SitesExplicitScope_2261(t *testing.T) {
 
 	orgA, orgB := uuid.NewString(), uuid.NewString()
 	siteA, siteB := uuid.NewString(), uuid.NewString()
-	require.NoError(t, db.Create(&models.Merchant{
+	require.NoError(t, db.Create(&models.Merchant{Code: testfixtures.UniqueCode("m2468"),
 		ID: uuid.NewString(), TenantID: orgA, OrgID: orgA, Name: "M-A",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}).Error)
-	require.NoError(t, db.Create(&models.Merchant{
+	require.NoError(t, db.Create(&models.Merchant{Code: testfixtures.UniqueCode("m2468"),
 		ID: uuid.NewString(), TenantID: orgB, OrgID: orgB, Name: "M-B",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}).Error)

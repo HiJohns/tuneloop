@@ -34,11 +34,11 @@ func TestRemoveMember_SharedTenant_OrgAnchorAndIAMUnbind_2250(t *testing.T) {
 
 	sharedTenant := uuid.NewString()
 	orgA, orgB := uuid.NewString(), uuid.NewString()
-	merchantA := models.Merchant{
+	merchantA := models.Merchant{Code: testfixtures.UniqueCode("m2468"),
 		ID: uuid.NewString(), TenantID: sharedTenant, OrgID: orgA, Name: "RM-A",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}
-	merchantB := models.Merchant{
+	merchantB := models.Merchant{Code: testfixtures.UniqueCode("m2468"),
 		ID: uuid.NewString(), TenantID: sharedTenant, OrgID: orgB, Name: "RM-B",
 		Address: "x", ContactName: "c", ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
 	}

@@ -80,15 +80,17 @@ func TestIAMCallback_UserActivated_2228(t *testing.T) {
 	// 预建账户（init 激活前形态：tuneloop 本地已建行）+ 网点 + pending 定向邀请
 	sub := uuid.New().String()
 	localID := uuid.New().String()
+	tenantID := uuid.New().String()
+	orgID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.User{
 		ID: localID, IAMSub: sub, Phone: "13800002228", Name: "受邀人",
-		TenantID: uuid.New().String(), OrgID: uuid.New().String(), Status: "active",
+		TenantID: tenantID, OrgID: orgID, Status: "active",
 	}).Error)
 	siteID := uuid.New().String()
-	orgID := uuid.New().String()
-	require.NoError(t, db.Create(&models.Site{ID: siteID, TenantID: uuid.New().String(), OrgID: orgID, Name: "S2228"}).Error)
+	testfixtures.SeedSiteFK(t, db, siteID, tenantID) // #2443: site_members site FK
 	inv := models.StaffInvite{
-		ID: uuid.New().String(), TenantID: uuid.New().String(), OrgID: orgID,
+		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID,
 		SiteID: &siteID, Role: "repair_technician", Code: uuid.New().String()[:16],
 		Status: "pending", ExpiresAt: time.Now().Add(time.Hour),
 		InviteeIdentifier: "13800002228",
@@ -173,15 +175,17 @@ func TestIAMCallback_FailedEvent_ReplayReprocessed_2228(t *testing.T) {
 	// 预建账户 + 网点 + pending 定向邀请（形态同 TestIAMCallback_UserActivated_2228）
 	sub := uuid.New().String()
 	localID := uuid.New().String()
+	tenantID := uuid.New().String()
+	orgID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, tenantID) // #2443: site_members tenant FK
 	require.NoError(t, db.Create(&models.User{
 		ID: localID, IAMSub: sub, Phone: "13800004228", Name: "重试人",
-		TenantID: uuid.New().String(), OrgID: uuid.New().String(), Status: "active",
+		TenantID: tenantID, OrgID: orgID, Status: "active",
 	}).Error)
 	siteID := uuid.New().String()
-	orgID := uuid.New().String()
-	require.NoError(t, db.Create(&models.Site{ID: siteID, TenantID: uuid.New().String(), OrgID: orgID, Name: "S2228C"}).Error)
+	testfixtures.SeedSiteFK(t, db, siteID, tenantID) // #2443: site_members site FK
 	inv := models.StaffInvite{
-		ID: uuid.New().String(), TenantID: uuid.New().String(), OrgID: orgID,
+		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID,
 		SiteID: &siteID, Role: "repair_technician", Code: uuid.New().String()[:16],
 		Status: "pending", ExpiresAt: time.Now().Add(time.Hour),
 		InviteeIdentifier: "13800004228",

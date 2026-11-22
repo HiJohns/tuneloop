@@ -273,6 +273,7 @@ func TestListPendingRepairs_TenantFilter(t *testing.T) {
 
 	tenantA, orgA, _ := testfixtures.NewTenantIDs("d4e5f6a1b2c3")
 	tenantB, orgB, _ := testfixtures.NewTenantIDs("e5f6a1b2c3d4")
+	testfixtures.SeedTenantFK(t, db, tenantA, tenantB) // #2443: site_members tenant FK
 
 	// #2264：站点+成员自包含（不再依赖前序用例残留）
 	siteA := uuid.New().String()

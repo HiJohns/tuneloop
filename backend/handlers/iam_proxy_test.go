@@ -628,6 +628,7 @@ func TestSyncUsers_SiteMember(t *testing.T) {
 	merchantOrgID := uuid.New().String()
 	childOrgID := uuid.New().String()
 	nsOrgID := uuid.New().String()
+	testfixtures.SeedTenantFK(t, db, merchantOrgID) // #2443: site_members tenant FK
 
 	// Pre-create a site matching the child org
 	site := models.Site{

@@ -122,3 +122,15 @@ func SeedOrderParents(t *testing.T, db *gorm.DB, o *models.Order) {
 	SeedUserFK(t, db, o.UserID, o.TenantID, o.OrgID)
 	SeedInstrumentFK(t, db, o.InstrumentID, o.TenantID, o.OrgID)
 }
+
+// SeedPricingTemplateFK ensures merchant_pricing_configs.template_id points to a row.
+func SeedPricingTemplateFK(t *testing.T, db *gorm.DB, id string) {
+	t.Helper()
+	if id == "" {
+		return
+	}
+	row := models.PricingTemplate{ID: id, Code: UniqueCode("tpl"), Name: "test-template", IsActive: true}
+	if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&row).Error; err != nil {
+		t.Fatalf("#2443 seed pricing_templates(%s): %v", id, err)
+	}
+}

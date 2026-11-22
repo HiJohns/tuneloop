@@ -65,8 +65,8 @@ func TestMerchantList_PlatformAdmin_2276(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
 	sharedTenant := uuid.NewString()
-	m1 := models.Merchant{ID: uuid.NewString(), TenantID: sharedTenant, OrgID: uuid.NewString(), AdminUID: uuid.NewString(), Name: "M1", Status: "active"}
-	m2 := models.Merchant{ID: uuid.NewString(), TenantID: sharedTenant, OrgID: uuid.NewString(), AdminUID: uuid.NewString(), Name: "M2", Status: "active"}
+	m1 := models.Merchant{Code: testfixtures.UniqueCode("m2468"), ID: uuid.NewString(), TenantID: sharedTenant, OrgID: uuid.NewString(), AdminUID: uuid.NewString(), Name: "M1", Status: "active"}
+	m2 := models.Merchant{Code: testfixtures.UniqueCode("m2468"), ID: uuid.NewString(), TenantID: sharedTenant, OrgID: uuid.NewString(), AdminUID: uuid.NewString(), Name: "M2", Status: "active"}
 	require.NoError(t, db.Create(&m1).Error)
 	require.NoError(t, db.Create(&m2).Error)
 
