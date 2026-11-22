@@ -1,4 +1,4 @@
-# build=1.0.e053d587a commit=e053d587a7ffe97122b760a8a534bf07d1693faf dirty=false
+# build=1.0.e053d587a commit=e053d587a7ffe97122b760a8a534bf07d1693faf dirty=false tree=d041f1a8d
 
 > frontend-pc@1.0.0 build
 > vite build
@@ -19,6 +19,6 @@ dist/assets/index-Bf_AntYU.js   2,620.26 kB │ gzip: 805.99 kB
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 1m 57s
+✓ built in 30.50s
 BUILD_EXIT=0
 BUILD_OK

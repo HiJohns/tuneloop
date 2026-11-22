@@ -84,11 +84,12 @@
         "docs/evidence/2444/R6-gate.txt"
       ],
       "assert": "#2443 后 exit 0；handlers 0 FAIL",
-      "actual": "PASS：合并 #2443 后 handlers 全量 0 FAIL（848s），无 panic",
+      "actual": "PASS：隔离 worktree，tree=d041f1a8d（含 #2443 ready 合并树）；BUILD_EXIT=0/BUILD_OK；FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0（716s）",
       "expected": "PASS",
       "negative": "任一 FAIL → FAIL",
       "negative_result": "非 0 即 exit 1",
       "pass": true
     }
-  ]
+  ],
+  "tree": "d041f1a8d6d4db1cb94eef3cbe94aede9c55519d"
 }

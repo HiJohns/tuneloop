@@ -1,33 +1,36 @@
-# build=1.0.e053d587a commit=e053d587a7ffe97122b760a8a534bf07d1693faf dirty=false
+# build=1.0.e053d587a commit=e053d587a7ffe97122b760a8a534bf07d1693faf dirty=true tree=d041f1a8d
 [DEBUG] Loaded .env from: ../.env
-2026/11/21 14:23:16 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
-2026/11/21 14:23:16 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
-2026/11/21 14:23:17 [DB] Connected to database 'tuneloop_test'
+2026/11/22 12:58:37 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/22 12:58:37 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/22 12:58:37 [DB] Connected to database 'tuneloop_test'
 === RUN   TestCreateInstrumentExplicitZeroDeposit_2444
-2026/11/21 14:23:17 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
-2026/11/21 14:23:17 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
-2026/11/21 14:23:17 [DB] Connected to database 'tuneloop_test'
+2026/11/22 12:58:37 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test sslmode=disable
+2026/11/22 12:58:37 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test
+2026/11/22 12:58:37 [DB] Connected to database 'tuneloop_test'
 
-2026/11/21 14:23:18 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:289 [33mSLOW SQL >= 200ms
-[0m[31;1m[733.466ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-2026/11/21 14:23:19 [DEBUG CreateInstrument] tenantID=ebb6f433-df3e-4d3b-9cd3-08013126706a, orgID=ebb6f433-df3e-4d3b-9cd3-08013126706a, userID=fca4c694-60c1-4397-956e-f674efa2c98a
-2026/11/21 14:23:19 [DEBUG] CreateInstrument - Parsed: SN='SN-2444-CREATE-ZERO', Level='', LevelID='eca8eb65-1358-4451-80e6-64ab8ea26bdd', CategoryID='22daa540-8f7b-414d-a637-ad8acefebc43', SiteID='', Properties=map[]
-2026/11/21 14:23:19 [DEBUG CreateInstrument] Creating instrument: sn=SN-2444-CREATE-ZERO
-2026/11/21 14:23:19 [DEBUG CreateInstrument] Before DB Create: tenantID=ebb6f433-df3e-4d3b-9cd3-08013126706a
-2026/11/21 14:23:19 [DEBUG CreateInstrument] Success: instrument.ID=493f06d6-387c-4109-b406-1c46b3af9df4
+2026/11/22 12:58:38 [32m/tmp/opencode/tuneloop/wt-2444/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[600.760ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/22 12:58:38 [DEBUG CreateInstrument] tenantID=f392a99a-9240-4790-81c2-0e254698cbaf, orgID=f392a99a-9240-4790-81c2-0e254698cbaf, userID=a69c0bf7-dc96-42f8-baa1-b3463474cc7d
+2026/11/22 12:58:38 [DEBUG] CreateInstrument - Parsed: SN='SN-2444-CREATE-ZERO', Level='', LevelID='01a79bc3-dfa9-43a8-a123-be30ad0fcda0', CategoryID='0348e782-ac1c-4a71-83d3-765cf10f76a2', SiteID='', Properties=map[]
+2026/11/22 12:58:38 [DEBUG CreateInstrument] Creating instrument: sn=SN-2444-CREATE-ZERO
+2026/11/22 12:58:38 [DEBUG CreateInstrument] Before DB Create: tenantID=f392a99a-9240-4790-81c2-0e254698cbaf
+2026/11/22 12:58:38 [DEBUG CreateInstrument] Success: instrument.ID=19868380-0b11-40bf-aaf8-34f7d558d8bc
 
-2026/11/21 14:23:19 [31;1m/home/coder/tuneloop/backend/handlers/pricing.go:318 [35;1mrecord not found
-[0m[33m[1.991ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = 'ebb6f433-df3e-4d3b-9cd3-08013126706a' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
---- PASS: TestCreateInstrumentExplicitZeroDeposit_2444 (1.73s)
+2026/11/22 12:58:38 [31;1m/tmp/opencode/tuneloop/wt-2444/backend/handlers/pricing.go:318 [35;1mrecord not found
+[0m[33m[1.652ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = 'f392a99a-9240-4790-81c2-0e254698cbaf' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+--- PASS: TestCreateInstrumentExplicitZeroDeposit_2444 (1.07s)
 === RUN   TestUpdateInstrumentExplicitZeroDeposit_2444
-2026/11/21 14:23:19 [DEBUG] req.CategoryID = '<nil>', req.Level = '<nil>'
 
-2026/11/21 14:23:19 [31;1m/home/coder/tuneloop/backend/handlers/pricing.go:318 [35;1mrecord not found
-[0m[33m[1.897ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '794b6d02-a6c1-468b-86c4-c901d4fea49a' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
-2026/11/21 14:23:19 [DEBUG] req.CategoryID = '<nil>', req.Level = '<nil>'
+2026/11/22 12:58:39 [32m/tmp/opencode/tuneloop/wt-2444/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[557.983ms] [33m[rows:0][35m TRUNCATE TABLE "categories", "membership_levels", "instrument_levels", "instruments", "pricing_templates", "tenants" RESTART IDENTITY CASCADE[0m
+2026/11/22 12:58:39 [DEBUG] req.CategoryID = '<nil>', req.Level = '<nil>'
 
-2026/11/21 14:23:19 [31;1m/home/coder/tuneloop/backend/handlers/pricing.go:318 [35;1mrecord not found
-[0m[33m[2.746ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '794b6d02-a6c1-468b-86c4-c901d4fea49a' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
---- PASS: TestUpdateInstrumentExplicitZeroDeposit_2444 (0.70s)
+2026/11/22 12:58:39 [31;1m/tmp/opencode/tuneloop/wt-2444/backend/handlers/pricing.go:318 [35;1mrecord not found
+[0m[33m[1.611ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = 'ef65e676-3d1b-4a71-b8ec-a0cbe42b9096' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+2026/11/22 12:58:39 [DEBUG] req.CategoryID = '<nil>', req.Level = '<nil>'
+
+2026/11/22 12:58:39 [31;1m/tmp/opencode/tuneloop/wt-2444/backend/handlers/pricing.go:318 [35;1mrecord not found
+[0m[33m[1.265ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = 'ef65e676-3d1b-4a71-b8ec-a0cbe42b9096' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+--- PASS: TestUpdateInstrumentExplicitZeroDeposit_2444 (0.94s)
 PASS
-ok  	tuneloop-backend/handlers	4.123s
+ok  	tuneloop-backend/handlers	2.678s
