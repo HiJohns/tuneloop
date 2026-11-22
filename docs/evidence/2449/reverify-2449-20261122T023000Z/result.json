@@ -1,0 +1,26 @@
+{
+  "request_id": "2449-20261122T023000Z",
+  "fix_commit": "42dcec6f0c8ece176d88fa99f22483a68522f8cf",
+  "ts": "2026-11-22T03:23:23Z",
+  "result": "PASS",
+  "commands": [
+    {
+      "index": 1,
+      "command": "cd backend && go test ./handlers/ -run '^TestGetCurrentUser_SiteByJWTOrg_2449$' -count=1 -v",
+      "exit": 0,
+      "log": "command-1.log"
+    },
+    {
+      "index": 2,
+      "command": "cd backend && go test ./handlers/ -run '^TestListStaff_SiteNames_2449$' -count=1 -v",
+      "exit": 0,
+      "log": "command-2.log"
+    },
+    {
+      "index": 3,
+      "command": "cd backend && go build ./...",
+      "exit": 0,
+      "log": "command-3.log"
+    }
+  ]
+}
