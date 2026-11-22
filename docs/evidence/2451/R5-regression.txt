@@ -1,0 +1,22 @@
+PROVENANCE build=1.0.1b7c4c9be commit=1b7c4c9be27470ff66198ab9e1fba4872572571b dirty=false
+$ cd backend && go test ./handlers/ -run '^TestGetPublicInstruments_DailyRateCentsContract$' -count=1 -v
+[DEBUG] Loaded .env from: ../.env
+2026/11/22 16:13:07 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_evidence2451 sslmode=disable
+2026/11/22 16:13:08 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_evidence2451
+2026/11/22 16:13:08 [DB] Connected to database 'tuneloop_test_evidence2451'
+=== RUN   TestGetPublicInstruments_DailyRateCentsContract
+2026/11/22 16:13:08 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_evidence2451 sslmode=disable
+2026/11/22 16:13:08 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_evidence2451
+2026/11/22 16:13:08 [DB] Connected to database 'tuneloop_test_evidence2451'
+
+2026/11/22 16:13:09 [32m/tmp/opencode/tuneloop/wt-2451/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[619.766ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /api/public/instruments   --> tuneloop-backend/handlers.GetPublicInstruments (1 handlers)
+--- PASS: TestGetPublicInstruments_DailyRateCentsContract (1.18s)
+PASS
+ok  	tuneloop-backend/handlers	1.876s
+RESULT: PASS r5

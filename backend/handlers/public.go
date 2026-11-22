@@ -121,14 +121,37 @@ func GetPublicInstruments(c *gin.Context) {
 		thumbMap[t.InstrumentID] = url
 	}
 
+	// #2451: 逐件查询 sites/tenants/merchants 是 N+1（pageSize=100 → 300 查/页）。
+	// 改为按当前页去重 ID 批量富化：sites 1 + tenants 1 + merchants 1（与页大小无关）。
+	siteIDSet := make(map[string]struct{}, len(instruments))
+	tenantIDSet := make(map[string]struct{}, len(instruments))
+	for _, instrument := range instruments {
+		if instrument.SiteID != nil {
+			siteIDSet[instrument.SiteID.String()] = struct{}{}
+		}
+		if instrument.TenantID != "" {
+			tenantIDSet[instrument.TenantID] = struct{}{}
+		}
+	}
+	siteIDs := make([]string, 0, len(siteIDSet))
+	for id := range siteIDSet {
+		siteIDs = append(siteIDs, id)
+	}
+	tenantIDs := make([]string, 0, len(tenantIDSet))
+	for id := range tenantIDSet {
+		tenantIDs = append(tenantIDs, id)
+	}
+	siteMap := batchSitesByID(db, siteIDs)
+	tenantNameMap := batchTenantNames(db, tenantIDs)
+	transitMap := GetMerchantTransitInfos(c.Request.Context(), tenantIDs)
+
 	var responseInstruments []map[string]interface{}
 	for _, instrument := range instruments {
 		siteName := "-"
 		siteAddress := "-"
 		sitePhone := "-"
 		if instrument.SiteID != nil {
-			var site models.Site
-			if err := db.First(&site, "id = ?", instrument.SiteID).Error; err == nil {
+			if site, ok := siteMap[instrument.SiteID.String()]; ok {
 				siteName = site.Name
 				if site.Address != "" {
 					siteAddress = site.Address
@@ -139,19 +162,13 @@ func GetPublicInstruments(c *gin.Context) {
 			}
 		}
 
-		instrTransitInfo := GetMerchantTransitInfo(c.Request.Context(), instrument.TenantID)
-		if instrTransitInfo != nil && instrTransitInfo.MerchantType == models.MerchantTypeControlled {
+		if instrTransitInfo := transitMap[instrument.TenantID]; instrTransitInfo != nil &&
+			instrTransitInfo.MerchantType == models.MerchantTypeControlled {
 			siteAddress = instrTransitInfo.Address
 		}
 
 		// Get tenant name
-		tenantName := ""
-		if instrument.TenantID != "" {
-			var tenant models.Tenant
-			if err := db.First(&tenant, "id = ?", instrument.TenantID).Error; err == nil {
-				tenantName = tenant.Name
-			}
-		}
+		tenantName := tenantNameMap[instrument.TenantID]
 
 		coverURL := instrument.CoverImage
 		if coverURL == "" {
@@ -192,6 +209,41 @@ func GetPublicInstruments(c *gin.Context) {
 			"pageSize": pageSize,
 		},
 	})
+}
+
+// batchSitesByID (#2451): 按 ID 集合批量取站点，返回 id → Site。
+// ids 为空直接返回空 map（不发查询，避免 `IN ()` 语法错误）。
+// 查询失败返回空 map：调用方保留各自默认值（"-"），与逐条查询失败时的回退一致。
+func batchSitesByID(db *gorm.DB, ids []string) map[string]models.Site {
+	out := make(map[string]models.Site, len(ids))
+	if len(ids) == 0 {
+		return out
+	}
+	var sites []models.Site
+	if err := db.Where("id IN ?", ids).Find(&sites).Error; err != nil {
+		return out
+	}
+	for _, site := range sites {
+		out[site.ID] = site
+	}
+	return out
+}
+
+// batchTenantNames (#2451): 按 ID 集合批量取租户名，返回 id → name。
+// 空集合不发查询；查询失败返回空 map（调用方回退为空字符串，与逐条失败一致）。
+func batchTenantNames(db *gorm.DB, ids []string) map[string]string {
+	out := make(map[string]string, len(ids))
+	if len(ids) == 0 {
+		return out
+	}
+	var tenants []models.Tenant
+	if err := db.Select("id", "name").Where("id IN ?", ids).Find(&tenants).Error; err != nil {
+		return out
+	}
+	for _, tenant := range tenants {
+		out[tenant.ID] = tenant.Name
+	}
+	return out
 }
 
 // resolveDailyRateCents (#1750): 服务端单点解析乐器日租金（分）。

@@ -1,122 +1,136 @@
 {
- "schema_version": 1,
- "issue": 2428,
- "build": "1.0.a15cbb252",
- "commit": "a15cbb252f459ad7f00ae2b8e0fc36231f4c2801",
- "dirty": false,
- "environment": "backend handlers/services tests + PC build/lint; fix commit cae06bf43",
- "rows": [
-  {
-   "id": "R1",
-   "command": "bash scripts/verify-2428.sh r1",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2428/R1-same.txt"
-   ],
-   "assert": "exit 0；同租户+掩码",
-   "actual": "PASS：同租户命中，phone_masked 138****5678，matched_fields 含 phone",
-   "expected": "PASS",
-   "negative": "完整值 → FAIL",
-   "negative_result": "完整 phone 即失败",
-   "pass": true
-  },
-  {
-   "id": "R2",
-   "command": "bash scripts/verify-2428.sh r2",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2428/R2-cross.txt"
-   ],
-   "assert": "exit 0；跨租户命中",
-   "actual": "PASS：跨租户 exists=true，same_tenant=false，merchant_name=B 商户",
-   "expected": "PASS",
-   "negative": "exists=false → FAIL",
-   "negative_result": "未命中即失败",
-   "pass": true
-  },
-  {
-   "id": "R3",
-   "command": "bash scripts/verify-2428.sh r3",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2428/R3-iam.txt"
-   ],
-   "assert": "exit 0；source=iam",
-   "actual": "PASS：本地无命中，IAM ListUsers 兜底 source=iam",
-   "expected": "PASS",
-   "negative": "未兜底 → FAIL",
-   "negative_result": "无兜底即失败",
-   "pass": true
-  },
-  {
-   "id": "R4",
-   "command": "bash scripts/verify-2428.sh r4",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2428/R4-privacy.txt"
-   ],
-   "assert": "exit 0；无完整值",
-   "actual": "PASS：check 响应不含完整 phone/email；40901 同步掩码",
-   "expected": "PASS",
-   "negative": "明文 → FAIL",
-   "negative_result": "完整值即失败",
-   "pass": true
-  },
-  {
-   "id": "R5",
-   "command": "bash scripts/verify-2428.sh r5",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2428/R5-build.txt"
-   ],
-   "assert": "exit 0；双端构建/lint",
-   "actual": "PASS：go build + PC build 51s + ESLint --quiet 0 error",
-   "expected": "PASS",
-   "negative": "失败 → FAIL",
-   "negative_result": "构建/lint 失败即失败",
-   "pass": true
-  },
-  {
-   "id": "R6",
-   "command": "bash scripts/verify-2428.sh r6",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2428/R6-bind-guard.txt"
-   ],
-   "assert": "exit 0；跨租户拒绝 IAM 0",
-   "actual": "PASS：MerchantAddMember 40911，未进入 IAM bind",
-   "expected": "PASS",
-   "negative": "绑定 → FAIL",
-   "negative_result": "跨租户绑定即失败",
-   "pass": true
-  },
-  {
-   "id": "R7",
-   "command": "bash scripts/verify-2428.sh r7",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2428/R7-identifier.txt"
-   ],
-   "assert": "exit 0；无明文依赖",
-   "actual": "PASS：三调用方使用 matched_fields/same_tenant/本地输入；无 existingUser.phone 依赖",
-   "expected": "PASS",
-   "negative": "断链 → FAIL",
-   "negative_result": "依赖明文即失败",
-   "pass": true
-  },
-  {
-   "id": "R8",
-   "command": "bash scripts/verify-2428.sh r8",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2428/R8-mask.txt"
-   ],
-   "assert": "exit 0；D4 示例",
-   "actual": "PASS：MaskPhone/Email/Username 边界与 D4 示例一致",
-   "expected": "PASS",
-   "negative": "不一致 → FAIL",
-   "negative_result": "规则不符即失败",
-   "pass": true
-  }
- ]
+  "schema_version": 1,
+  "issue": 2428,
+  "build": "1.0.a15cbb252",
+  "commit": "a15cbb252f459ad7f00ae2b8e0fc36231f4c2801",
+  "dirty": false,
+  "environment": "backend handlers/services tests + PC build/lint; fix commit cae06bf43",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2428.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2428/R1-same.txt"
+      ],
+      "assert": "exit 0；同租户+掩码",
+      "actual": "PASS：同租户命中，phone_masked 138****5678，matched_fields 含 phone",
+      "expected": "PASS",
+      "negative": "完整值 → FAIL",
+      "negative_result": "完整 phone 即失败",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2428.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2428/R2-cross.txt"
+      ],
+      "assert": "exit 0；跨租户命中",
+      "actual": "PASS：跨租户 exists=true，same_tenant=false，merchant_name=B 商户",
+      "expected": "PASS",
+      "negative": "exists=false → FAIL",
+      "negative_result": "未命中即失败",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2428.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2428/R3-iam.txt"
+      ],
+      "assert": "exit 0；source=iam",
+      "actual": "PASS：本地无命中，IAM ListUsers 兜底 source=iam",
+      "expected": "PASS",
+      "negative": "未兜底 → FAIL",
+      "negative_result": "无兜底即失败",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2428.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2428/R4-privacy.txt"
+      ],
+      "assert": "exit 0；无完整值",
+      "actual": "PASS：check 响应不含完整 phone/email；40901 同步掩码",
+      "expected": "PASS",
+      "negative": "明文 → FAIL",
+      "negative_result": "完整值即失败",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2428.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2428/R5-build.txt"
+      ],
+      "assert": "exit 0；双端构建/lint",
+      "actual": "PASS：go build + PC build 51s + ESLint --quiet 0 error",
+      "expected": "PASS",
+      "negative": "失败 → FAIL",
+      "negative_result": "构建/lint 失败即失败",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2428.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2428/R6-bind-guard.txt"
+      ],
+      "assert": "exit 0；跨租户拒绝 IAM 0",
+      "actual": "PASS：MerchantAddMember 40911，未进入 IAM bind",
+      "expected": "PASS",
+      "negative": "绑定 → FAIL",
+      "negative_result": "跨租户绑定即失败",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2428.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2428/R7-identifier.txt"
+      ],
+      "assert": "exit 0；无明文依赖",
+      "actual": "PASS：三调用方使用 matched_fields/same_tenant/本地输入；无 existingUser.phone 依赖",
+      "expected": "PASS",
+      "negative": "断链 → FAIL",
+      "negative_result": "依赖明文即失败",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2428.sh r8",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2428/R8-mask.txt"
+      ],
+      "assert": "exit 0；D4 示例",
+      "actual": "PASS：MaskPhone/Email/Username 边界与 D4 示例一致",
+      "expected": "PASS",
+      "negative": "不一致 → FAIL",
+      "negative_result": "规则不符即失败",
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash scripts/verify-2428.sh r9-gate",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2428/R9-full-gate.txt"
+      ],
+      "actual": "PASS：go build ./... exit 0（BUILD_OK）；handlers `-run _2428` 0 FAIL（HANDLERS_2428_OK）；services `-run ContactMask` 0 FAIL（SERVICES_MASK_OK）；FULL_GATE_OK",
+      "negative_result": "任一构建失败、handlers/services 出现 FAIL 或脚本非 0 即失败（FULL_GATE_FAIL + exit 1）",
+      "pass": true,
+      "assert": "exit 0；build 0 + affected 0 FAIL",
+      "expected": "PASS",
+      "negative": "任一 FAIL → FAIL"
+    }
+  ]
 }

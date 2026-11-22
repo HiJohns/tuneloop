@@ -11,13 +11,18 @@ case "$MODE" in
   r6) ART="docs/evidence/2428/R6-bind-guard.txt" ;;
   r7) ART="docs/evidence/2428/R7-identifier.txt" ;;
   r8) ART="docs/evidence/2428/R8-mask.txt" ;;
-  *) echo "usage: $0 <r1|r2|r3|r4|r5|r6|r7|r8>" >&2; exit 2 ;;
+  r9-gate) ART="docs/evidence/2428/R9-full-gate.txt" ;;
+  *) echo "usage: $0 <r1|r2|r3|r4|r5|r6|r7|r8|r9-gate>" >&2; exit 2 ;;
 esac
 REPO_ROOT="$(git rev-parse --show-toplevel)"; cd "$REPO_ROOT"
 if [ -f backend/.env ]; then set -a; . backend/.env; set +a; fi
 export TUNELOOP_TEST_DB="${TUNELOOP_TEST_DB:-tuneloop_test_verify2428}" IAM_NAMESPACE=test-ns IAM_SECRET=test-secret-1489 TUNELOOP_DB_SIMPLE_PROTOCOL=1
 export PATH="/usr/local/go/bin:${PATH}"
-BUILD="1.0.$(git rev-parse --short HEAD)"; COMMIT="$(git rev-parse HEAD)"; DIRTY=false
+# FIX_COMMIT 默认 HEAD；显式传入时校验它必须是 HEAD 的祖先（证据针对该 fix 生成）。
+FIX_COMMIT="${FIX_COMMIT:-$(git rev-parse HEAD)}"
+COMMIT="$(git rev-parse "$FIX_COMMIT")" || { echo "FATAL: bad FIX_COMMIT=$FIX_COMMIT" >&2; exit 3; }
+git merge-base --is-ancestor "$COMMIT" HEAD || { echo "FATAL: FIX_COMMIT $COMMIT is not an ancestor of HEAD" >&2; exit 3; }
+BUILD="1.0.$(git rev-parse --short "$COMMIT")"; DIRTY=false
 if [ -n "$(git status --porcelain --untracked-files=no | grep -v 'docs/evidence/2428/' || true)" ]; then DIRTY=true; fi
 PROVENANCE="# build=$BUILD commit=$COMMIT dirty=$DIRTY"
 mkdir -p "$(dirname "$ART")"
@@ -57,6 +62,30 @@ case "$MODE" in
     ;;
   r8)
     { echo "$PROVENANCE"; ( cd backend && go test ./services/ -run 'ContactMask' -count=1 -v ); } 2>&1 | tee "$ART"
+    exit "${PIPESTATUS[0]}"
+    ;;
+  r9-gate)
+    { echo "$PROVENANCE"
+      fail=0
+      if ( cd backend && go build ./... ); then echo "BUILD_OK"; else echo "BUILD_FAIL"; fail=1; fi
+      ( cd backend && go test ./handlers/ -run '_2428' -count=1 -v ) 2>&1 | tee /tmp/opencode/2428-r9-handlers.log
+      h_rc=${PIPESTATUS[0]}
+      if [ "$h_rc" -eq 0 ] && ! grep -qE '^--- FAIL' /tmp/opencode/2428-r9-handlers.log; then
+        echo "HANDLERS_2428_OK"
+      else
+        echo "HANDLERS_2428_FAIL"
+        fail=1
+      fi
+      ( cd backend && go test ./services/ -run 'ContactMask' -count=1 -v ) 2>&1 | tee /tmp/opencode/2428-r9-services.log
+      s_rc=${PIPESTATUS[0]}
+      if [ "$s_rc" -eq 0 ] && ! grep -qE '^--- FAIL' /tmp/opencode/2428-r9-services.log; then
+        echo "SERVICES_MASK_OK"
+      else
+        echo "SERVICES_MASK_FAIL"
+        fail=1
+      fi
+      [ "$fail" -eq 0 ] && echo "FULL_GATE_OK" || echo "FULL_GATE_FAIL"
+      exit "$fail"; } 2>&1 | tee "$ART"
     exit "${PIPESTATUS[0]}"
     ;;
 esac
