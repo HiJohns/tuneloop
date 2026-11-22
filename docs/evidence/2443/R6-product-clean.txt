@@ -1,0 +1,4 @@
+# build=1.0.06e41a239 commit=06e41a239244bffe8fda52a4ed8130a9fe7b22be dirty=false
+OK: no product file changed since 0ccc9e733
+OK: requestedDepositTier absent
+PRODUCT_CLEAN_OK

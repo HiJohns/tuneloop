@@ -1,51 +1,93 @@
 {
   "schema_version": 1,
   "issue": 2443,
-  "build": "1.0.46b63ed0f",
-  "commit": "46b63ed0fbe3b67f9d569893f1d46a50d5a0a17c",
+  "build": "1.0.06e41a239",
+  "commit": "06e41a239244bffe8fda52a4ed8130a9fe7b22be",
   "dirty": false,
-  "environment": "isolated clean worktree @ 46b63ed0f; handlers full suite 0 FAIL",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2443; strict test schema (production FKs/uniques); handlers full suite green",
   "rows": [
     {
       "id": "R1",
       "command": "bash scripts/verify-2443.sh r1",
       "exit": 0,
-      "artifacts": [
-        "docs/evidence/2443/R1-inventory.txt"
-      ],
-      "assert": "exit 0；TestGetInventoryRentSetting PASS",
-      "actual": "PASS：P1 inventory panic 已消除",
+      "artifacts": ["docs/evidence/2443/R1-inventory.txt"],
+      "assert": "exit 0；2 用例 PASS；无 panic",
+      "actual": "PASS：TestGetInventoryRentSetting + _Filters 均 PASS，无 panic",
       "expected": "PASS",
-      "negative": "panic/FAIL → exit 1",
-      "negative_result": "任一失败即 exit 1",
+      "negative": "panic → FAIL",
+      "negative_result": "任一 panic/静默空列表即 exit 1",
       "pass": true
     },
     {
       "id": "R2",
       "command": "bash scripts/verify-2443.sh r2",
       "exit": 0,
-      "artifacts": [
-        "docs/evidence/2443/R2-handlers-full.txt"
-      ],
-      "assert": "exit 0；handlers 全量 0 FAIL",
-      "actual": "PASS：go test ./handlers -count=1 -timeout 10m 通过（0 FAIL）",
+      "artifacts": ["docs/evidence/2443/R2-schema.txt"],
+      "assert": "exit 0；FK/唯一 >0；42704 = 0",
+      "actual": "PASS：无 dropTestForeignKeys；模板 FK=54 UNIQUE=30；日志 42704=0",
       "expected": "PASS",
-      "negative": "任一 FAIL → exit 1",
-      "negative_result": "任一失败即 exit 1",
+      "negative": "去 FK → FAIL",
+      "negative_result": "存在 drop helper 或 FK/唯一=0 即 exit 1",
       "pass": true
     },
     {
       "id": "R3",
       "command": "bash scripts/verify-2443.sh r3",
       "exit": 0,
-      "artifacts": [
-        "docs/evidence/2443/R3-build.txt"
-      ],
-      "assert": "exit 0；go build ./...",
-      "actual": "PASS：backend 编译通过",
+      "artifacts": ["docs/evidence/2443/R3-fixtures.txt"],
+      "assert": "exit 0；23503/23505/username 均 0",
+      "actual": "PASS：SeedOrderParents 存在；23503=0、23505=0、username required=0",
       "expected": "PASS",
-      "negative": "编译失败 → exit 1",
-      "negative_result": "非 0 即 exit 1",
+      "negative": "残留 → FAIL",
+      "negative_result": "任一残留即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2443.sh r4",
+      "exit": 0,
+      "artifacts": ["docs/evidence/2443/R4-mock-panic.txt"],
+      "assert": "exit 0；两用例 PASS",
+      "actual": "PASS：Test_CreateMerchant_CusPerm + TestTransitSiteMemberRoleRestriction 均 PASS",
+      "expected": "PASS",
+      "negative": "panic/401 → FAIL",
+      "negative_result": "任一失败/panic 即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2443.sh r5-gate",
+      "exit": 0,
+      "artifacts": ["docs/evidence/2443/R5-handlers-full.txt"],
+      "assert": "exit 0；0 FAIL",
+      "actual": "PASS：go test ./handlers/ 773s，0 FAIL、0 panic",
+      "expected": "PASS",
+      "negative": "任一 FAIL → FAIL",
+      "negative_result": "非 0/FAIL>0/panic>0 即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2443.sh r6",
+      "exit": 0,
+      "artifacts": ["docs/evidence/2443/R6-product-clean.txt"],
+      "assert": "exit 0；产品 diff 空",
+      "actual": "PASS：Rev.5 回滚基线 0ccc9e733 之后无产品文件改动；requestedDepositTier 不存在",
+      "expected": "PASS",
+      "negative": "有产品改动 → FAIL",
+      "negative_result": "产品文件出现在 diff 即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2443.sh r7",
+      "exit": 0,
+      "artifacts": ["docs/evidence/2443/R7-hygiene.txt"],
+      "assert": "exit 0；0 skip/-p1/删用例",
+      "actual": "PASS：ADDED_SKIP=0、REMOVED_TEST_FUNCS=0、P1_USAGE=0",
+      "expected": "PASS",
+      "negative": "命中 → FAIL",
+      "negative_result": "新增 skip/删除用例/-p1 即 exit 1",
       "pass": true
     }
   ]

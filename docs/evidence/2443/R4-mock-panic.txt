@@ -1,0 +1,26 @@
+# build=1.0.06e41a239 commit=06e41a239244bffe8fda52a4ed8130a9fe7b22be dirty=false
+[DEBUG] Loaded .env from: ../.env
+2026/11/22 03:17:51 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2443 sslmode=disable
+2026/11/22 03:17:51 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2443
+2026/11/22 03:17:51 [DB] Connected to database 'tuneloop_test_2443'
+=== RUN   Test_CreateMerchant_CusPerm
+    iam_integration_test.go:43: IAM unavailable: Get "http://opencode.linxdeep.com:5561/api/v1/auth/public-key.pem": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+--- SKIP: Test_CreateMerchant_CusPerm (2.00s)
+=== RUN   TestTransitSiteMemberRoleRestriction
+2026/11/22 03:17:53 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2443 sslmode=disable
+2026/11/22 03:17:53 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2443
+2026/11/22 03:17:53 [DB] Connected to database 'tuneloop_test_2443'
+
+2026/11/22 03:17:54 [32m/tmp/opencode/tuneloop/wt-2443/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[608.243ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/22 03:17:54 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:45477, clientID=test-ns, namespace=test-ns
+2026/11/22 03:17:54 [IAMClient] Bound user 3c11851a-a6b6-43fa-9a84-63d98b62d79f to org 00000000-0000-4000-8000-1935ab0c0001 with role STAFF (user token)
+2026/11/22 03:17:54 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 03:17:54 [AddMember] AssignRoleTemplate failed for user 3c11851a-a6b6-43fa-9a84-63d98b62d79f code site_member: AssignRoleTemplateToUserWithToken returned status 404: 404 page not found
+2026/11/22 03:17:54 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:45477, clientID=test-ns, namespace=test-ns
+2026/11/22 03:17:54 [IAMClient] Unbound user with user token: user=3c11851a-a6b6-43fa-9a84-63d98b62d79f org=00000000-0000-4000-8000-1935ab0c0001
+2026/11/22 03:17:54 [IAMClient] Obtained client credentials token, expires in 3600s
+--- PASS: TestTransitSiteMemberRoleRestriction (1.13s)
+PASS
+ok  	tuneloop-backend/handlers	3.886s
+R4_EXIT=0
