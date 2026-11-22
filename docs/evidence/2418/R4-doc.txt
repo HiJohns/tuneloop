@@ -1,2 +1,2 @@
-# build=1.0.b861d902b commit=b861d902b42c089a3f28a5fc1ab7dd456cad3c31 dirty=false
+# build=1.0.b861d902b commit=b861d902b42c089a3f28a5fc1ab7dd456cad3c31 dirty=false tree=7718124ee
 DOC_OK: docs/cases/lease.md 三档一致 + 零押金判据=订单押金为 0

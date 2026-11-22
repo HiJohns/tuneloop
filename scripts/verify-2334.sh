@@ -9,32 +9,33 @@ case "$MODE" in
   r2) ART="docs/evidence/2334/R2-en.txt" ;;
   r3) ART="docs/evidence/2334/R3-gate.txt" ;;
   r4) ART="docs/evidence/2334/R4-stale.txt" ;;
-  *) echo "usage: $0 <r1|r2|r3|r4>" >&2; exit 2 ;;
+  r5|r5-provenance) ART="docs/evidence/2334/R5-provenance.txt" ;;
+  *) echo "usage: $0 <r1|r2|r3|r4|r5-provenance>" >&2; exit 2 ;;
 esac
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 export PATH="/usr/local/go/bin:${PATH}"
+OUT_DIR="${OUT_DIR:-$REPO_ROOT/docs/evidence/2334}"
+mkdir -p "$OUT_DIR" "$REPO_ROOT/tmp"
+ART="$OUT_DIR/$(basename "$ART")"
 export TMPDIR="${TMPDIR:-$REPO_ROOT/tmp/gobuild}"
 export GOCACHE="${GOCACHE:-$REPO_ROOT/tmp/gocache}"
-export POSTGRES_HOST="${POSTGRES_HOST:-127.0.0.1}"
-export POSTGRES_PORT="${POSTGRES_PORT:-15433}"
-export POSTGRES_USER="${POSTGRES_USER:-tuneloop_user}"
-export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-trust}"
-export TUNELOOP_TEST_DB="${TUNELOOP_TEST_DB:-tuneloop_test_verify2334}"
-export IAM_NAMESPACE="${IAM_NAMESPACE:-test-ns}"
-export IAM_SECRET="${IAM_SECRET:-test-secret-1489}"
-mkdir -p "$TMPDIR" "$GOCACHE" "$(dirname "$ART")"
+mkdir -p "$TMPDIR" "$GOCACHE"
+set -a; . /home/coder/tuneloop/backend/.env; set +a
 
-BUILD="1.0.$(git rev-parse --short HEAD)"
-COMMIT="$(git rev-parse HEAD)"
+FIX_REF="${FIX_REF:-b15232591}"
+FIX_SHA="$(git rev-parse "$FIX_REF")"; FIX_SHORT="$(git rev-parse --short "$FIX_REF")"
+HEAD_SHA="$(git rev-parse --short HEAD)"
+BUILD="1.0.$FIX_SHORT"
+COMMIT="$FIX_SHA"
 DIRTY=false
-if [ -n "$(git status --porcelain --untracked-files=no | grep -v 'docs/evidence/2334/' || true)" ]; then
+if [ -n "$(git status --porcelain -uall)" ]; then
   DIRTY=true
 fi
 
 {
-  echo "# build=$BUILD commit=$COMMIT dirty=$DIRTY"
+  echo "# build=$BUILD commit=$COMMIT dirty=$DIRTY tree=$HEAD_SHA"
   case "$MODE" in
     r1)
       rc=0
@@ -65,9 +66,39 @@ fi
     r3)
       cd "$REPO_ROOT/backend"
       go build ./... || exit 1
+      echo "BUILD_OK"
       go test ./database/ -count=1 || exit 1
+      echo "DATABASE_OK"
       cd "$REPO_ROOT/frontend-mobile"
-      npm run smoke || exit 1
+      npm run smoke
+      src=$?
+      echo "SMOKE_EXIT=$src"
+      [ "$src" = "0" ] && echo "SMOKE_OK"
+      exit "$src"
+      ;;
+    r5|r5-provenance)
+      rc=0
+      status="$(git status --porcelain -uall || true)"
+      if [ -n "$status" ]; then echo "FAIL: worktree dirty"; printf '%s\n' "$status"; rc=1; else echo "STATUS_CLEAN"; fi
+      for f in R1-docs R2-en R3-gate R4-stale; do
+        p="$OUT_DIR/$f.txt"
+        if [ ! -f "$p" ]; then echo "FAIL: missing $p"; rc=1; continue; fi
+        first="$(head -1 "$p")"
+        case "$first" in
+          "# build=$BUILD commit=$FIX_SHA dirty=false "*) echo "OK $f" ;;
+          *) echo "FAIL: provenance mismatch in $f: $first"; rc=1 ;;
+        esac
+      done
+      ev="$OUT_DIR/evidence.json"
+      if [ ! -f "$ev" ]; then echo "FAIL: evidence.json missing"; rc=1; else
+        ev_build="$(jq -r '.build // empty' "$ev")"; ev_commit="$(jq -r '.commit // empty' "$ev")"
+        ev_dirty="$(jq -r 'if has("dirty") then (.dirty|tostring) else "" end' "$ev")"
+        [ "$ev_build" = "$BUILD" ] || { echo "FAIL: evidence build=$ev_build"; rc=1; }
+        [ "$ev_commit" = "$FIX_SHA" ] || { echo "FAIL: evidence commit=$ev_commit"; rc=1; }
+        [ "$ev_dirty" = "false" ] || { echo "FAIL: evidence dirty=$ev_dirty"; rc=1; }
+      fi
+      [ "$rc" = "0" ] && echo "PROVENANCE_OK"
+      exit "$rc"
       ;;
     r4)
       rc=0

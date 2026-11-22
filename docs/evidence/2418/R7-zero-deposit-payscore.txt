@@ -1,4 +1,4 @@
-# build=1.0.b861d902b commit=b861d902b42c089a3f28a5fc1ab7dd456cad3c31 dirty=false
+# build=1.0.b861d902b commit=b861d902b42c089a3f28a5fc1ab7dd456cad3c31 dirty=false tree=7718124ee
 # github.com/mattn/go-sqlite3
 sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
 sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
@@ -8,4 +8,4 @@ sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier f
 === RUN   TestAssertOrderPayableZeroDepositPayscore_2418
 --- PASS: TestAssertOrderPayableZeroDepositPayscore_2418 (0.00s)
 PASS
-ok  	tuneloop-backend/services	0.063s
+ok  	tuneloop-backend/services	0.023s

@@ -14,17 +14,24 @@ case "$MODE" in
   r7) ART="docs/evidence/2418/R7-zero-deposit-payscore.txt"; TEST='^TestAssertOrderPayableZeroDepositPayscore_2418$' ;;
   r8) ART="docs/evidence/2418/R8-legacy-removed.txt"; TEST="" ;;
   r9) ART="docs/evidence/2418/R9-no-calls.txt"; TEST="" ;;
-  *) echo "usage: $0 <r1|r2|r3|r4|r5|r6|r7|r8|r9>" >&2; exit 2 ;;
+  r10|r10-gate) ART="docs/evidence/2418/R10-full-gate.txt"; TEST="" ;;
+  *) echo "usage: $0 <r1|r2|r3|r4|r5|r6|r7|r8|r9|r10-gate>" >&2; exit 2 ;;
 esac
 REPO_ROOT="$(git rev-parse --show-toplevel)"; cd "$REPO_ROOT"
 export PATH="/usr/local/go/bin:${PATH}"
+OUT_DIR="${OUT_DIR:-$REPO_ROOT/docs/evidence/2418}"
+mkdir -p "$OUT_DIR" "$REPO_ROOT/tmp"
+ART="$OUT_DIR/$(basename "$ART")"
 export TMPDIR="${TMPDIR:-$REPO_ROOT/tmp/gobuild}"
 export GOCACHE="${GOCACHE:-$REPO_ROOT/tmp/gocache}"
-mkdir -p "$TMPDIR" "$GOCACHE" "$(dirname "$ART")"
-BUILD="1.0.$(git rev-parse --short HEAD)"; COMMIT="$(git rev-parse HEAD)"; DIRTY=false
-if [ -n "$(git status --porcelain --untracked-files=no | grep -v 'docs/evidence/2418/' || true)" ]; then DIRTY=true; fi
+mkdir -p "$TMPDIR" "$GOCACHE"
+FIX_REF="${FIX_REF:-b861d902b}"
+FIX_SHA="$(git rev-parse "$FIX_REF")"; FIX_SHORT="$(git rev-parse --short "$FIX_REF")"
+HEAD_SHA="$(git rev-parse --short HEAD)"
+BUILD="1.0.$FIX_SHORT"; COMMIT="$FIX_SHA"; DIRTY=false
+if [ -n "$(git status --porcelain -uall)" ]; then DIRTY=true; fi
 {
-  echo "# build=$BUILD commit=$COMMIT dirty=$DIRTY"
+  echo "# build=$BUILD commit=$COMMIT dirty=$DIRTY tree=$HEAD_SHA"
   case "$MODE" in
     r1|r2|r3|r6|r7) cd "$REPO_ROOT/backend"; go test ./services/ -run "$TEST" -count=1 -v ;;
     r4)
@@ -48,6 +55,19 @@ if [ -n "$(git status --porcelain --untracked-files=no | grep -v 'docs/evidence/
       hits=$(grep -rn "RequiresCreditAssessment\|AssertTierPayable" backend frontend-pc/src frontend-mobile/src --include='*.go' --include='*.js' --include='*.jsx' --include='*.mjs' 2>/dev/null || true)
       if [ -n "$hits" ]; then echo "REFERENCES_PRESENT"; echo "$hits"; exit 1; fi
       echo "NO_CALLS: legacy gate symbols have zero references"
+      ;;
+    r10|r10-gate)
+      cd "$REPO_ROOT/backend"
+      echo "BUILD_CMD=go build ./..."
+      go build ./...
+      brc=$?
+      echo "BUILD_EXIT=$brc"
+      [ "$brc" = "0" ] && echo "BUILD_OK"
+      go test ./services/ -count=1
+      trc=$?
+      echo "SERVICES_GATE_EXIT=$trc"
+      [ "$brc" = "0" ] && [ "$trc" = "0" ] && echo "GATE_OK"
+      exit "$(( brc != 0 || trc != 0 ))"
       ;;
   esac
 } 2>&1 | tee "$ART"
