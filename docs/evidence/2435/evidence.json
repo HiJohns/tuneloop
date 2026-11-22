@@ -70,11 +70,11 @@
       "artifacts": [
         "docs/evidence/2435/R5-pc-detail.txt"
       ],
-      "assert": "exit 0；中文类型/待审核/隐藏断言 PASS",
-      "actual": "PASS：中文类型标签、待审核文案、无照片隐藏",
+      "assert": "exit 0；四标签映射 + idPhotos.other 门控 + 待审核文案 + readOnly + PC_BUILD_OK",
+      "actual": "PASS：SECOND_DOC_LABELS 四标签映射；idPhotos.other 门控；待审核文案；readOnly；PC_BUILD_EXIT=0 / PC_BUILD_OK（31.5s）",
       "expected": "PASS",
-      "negative": "显示代码或旧文案 → FAIL",
-      "negative_result": "断言失败即 exit 1",
+      "negative": "仅两字 grep / 缺 guard / build 失败 → FAIL",
+      "negative_result": "缺任一结构断言或 build 非 0 即 exit 1",
       "pass": true
     },
     {
