@@ -72,10 +72,13 @@ func TestSettlementSpecPreview_2424(t *testing.T) {
 
 	result := computeSettlement(order, db)
 
-	// 旧字段（Phase A 必须保持不变）。
-	require.InDelta(t, 666.67, result.TotalRefund, 0.01, "旧 TotalRefund 未变")
-	require.InDelta(t, 506.67, result.CashRefundable, 0.01, "旧 CashRefundable 未变")
-	require.InDelta(t, 0, result.PayableShortfall, 0.01, "旧 PayableShortfall 未变")
+	// Phase B（D2）：对外字段切换为 spec 语义。
+	require.InDelta(t, 660.00, result.TotalRefund, 0.01, "TotalRefund = 乐币面值 160 + 现金毛额 500")
+	require.InDelta(t, 500.00, result.CashRefundable, 0.01, "CashRefundable 为毛额")
+	require.InDelta(t, 460.00, result.PayableShortfall, 0.01, "PayableShortfall 为毛额")
+	require.InDelta(t, 160.00, result.GiftPointsRefunded, 0.01, "Gift 退点 160")
+	require.InDelta(t, 1960.00, result.CashBasis, 0.01, "CashBasis = spec.RentCashDue")
+	require.InDelta(t, 500.00, result.RemainingDeposit, 0.01, "RemainingDeposit = spec.DepositRefund")
 
 	// 新增字段：spec v2.3 分账户（#2339：net ¥40 / gross ¥500 / payable ¥460）。
 	require.InDelta(t, 40.00, result.NetCash, 0.01, "net_cash = ¥40")
@@ -149,4 +152,31 @@ func TestDeriveRefundSpecInput_2424(t *testing.T) {
 				got.ConservationLeftCents, got.ConservationRightCents)
 		})
 	}
+}
+
+// R3：Phase B 字段切换（#2339 核心期望值表）。
+func TestSettlementSpecSwitch_2424(t *testing.T) {
+	order := seedSpecPreviewFixture(t)
+	db := testfixtures.GetTestDB(t)
+
+	result := computeSettlement(order, db)
+
+	require.InDelta(t, 500.00, result.CashRefundable, 0.01, "CashRefundable（毛）")
+	require.InDelta(t, 460.00, result.PayableShortfall, 0.01, "PayableShortfall（毛）")
+	require.InDelta(t, 40.00, result.NetCash, 0.01, "NetCash（净）")
+	require.InDelta(t, 660.00, result.TotalRefund, 0.01, "TotalRefund = 160 点 + 500 现金")
+	require.InDelta(t, 160.00, result.GiftPointsRefunded, 0.01, "Gift 退点")
+	require.InDelta(t, 1960.00, result.CashBasis, 0.01, "CashBasis")
+
+	// breakdown 同时保留毛额与 net_cash（D3）。
+	require.EqualValues(t, 50000, result.Breakdown["cash_refundable_gross"])
+	require.EqualValues(t, 46000, result.Breakdown["payable_shortfall_gross"])
+	require.EqualValues(t, 4000, result.Breakdown["net_cash"])
+	require.EqualValues(t, 50000, result.Breakdown["cash_refundable"])
+	require.EqualValues(t, 46000, result.Breakdown["payable_shortfall"])
+	require.EqualValues(t, 840, result.Breakdown["gift_cap"])
+
+	t.Logf("SWITCH_OK cash_refundable=%.2f payable=%.2f net=%.2f total=%.2f gift=%.2f cash_basis=%.2f",
+		result.CashRefundable, result.PayableShortfall, result.NetCash,
+		result.TotalRefund, result.GiftPointsRefunded, result.CashBasis)
 }

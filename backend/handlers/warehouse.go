@@ -737,8 +737,9 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 				// #1799: take shortfall from the settlement result — the pending
 				// shortfall record is created inside executeRefund, so querying
 				// the DB afterwards (or before) cannot reliably see it here.
-				if result.PayableShortfall > 0 {
-					shortfallAmount = int64(models.FromYuan(result.PayableShortfall))
+				// #2424 Phase B：补缴取净额（-NetCash），与执行器一致。
+				if result.NetCash < 0 {
+					shortfallAmount = int64(models.FromYuan(-result.NetCash))
 				}
 			}
 		}
