@@ -39,6 +39,8 @@ backend() {
   cd "$REPO/backend"
   export TMPDIR="${TMPDIR:-$REPO/tmp/gobuild}" GOCACHE="${GOCACHE:-$REPO/tmp/gocache}"
   set -a; . ./.env; set +a
+  export TUNELOOP_TEST_DB="${TUNELOOP_TEST_DB:-tuneloop_test_2435_vr}" \
+         IAM_NAMESPACE="${IAM_NAMESPACE:-test-ns}" IAM_SECRET="${IAM_SECRET:-test-secret-2435}"
 }
 
 case "${MODE%%-*}" in
