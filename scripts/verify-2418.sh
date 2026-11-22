@@ -56,7 +56,7 @@ if [ -n "$(git status --porcelain -uall)" ]; then DIRTY=true; fi
       if [ -n "$hits" ]; then echo "REFERENCES_PRESENT"; echo "$hits"; exit 1; fi
       echo "NO_CALLS: legacy gate symbols have zero references"
       ;;
-    r10)
+    r10|r10-gate)
       cd "$REPO_ROOT/backend"
       echo "BUILD_CMD=go build ./..."
       go build ./...
