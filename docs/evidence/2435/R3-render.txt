@@ -1,12 +1,12 @@
-# build=1.0.3d39a416d commit=3d39a416d136ed9d7d2f5f3ee40a12b7267e7c7d dirty=false
+# build=1.0.3d39a416d commit=3d39a416d136ed9d7d2f5f3ee40a12b7267e7c7d dirty=false tree=b9f307fc9
 [33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
 
- RUN  v2.1.9 /home/coder/tuneloop/frontend-mobile
+ RUN  v2.1.9 /tmp/opencode/tuneloop/wt-2435/frontend-mobile
 
- ✓ scripts/page-smoke/second-doc-type-fallback-2435.test.jsx (2 tests) 19ms
+ ✓ scripts/page-smoke/second-doc-type-fallback-2435.test.jsx (2 tests) 20ms
 
  Test Files  1 passed (1)
       Tests  2 passed (2)
-   Start at  05:26:06
-   Duration  1.74s (transform 80ms, setup 65ms, collect 28ms, tests 19ms, environment 794ms, prepare 346ms)
+   Start at  15:18:39
+   Duration  3.00s (transform 122ms, setup 57ms, collect 29ms, tests 20ms, environment 1.70s, prepare 778ms)
 
