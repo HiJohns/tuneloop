@@ -3,134 +3,18 @@
   "issue": 2435,
   "build": "1.0.3d39a416d",
   "commit": "3d39a416d136ed9d7d2f5f3ee40a12b7267e7c7d",
+  "tree": "5a41e3653",
   "dirty": false,
-  "environment": "handlers full suite green; full go test ./... has pre-existing failures in middleware/service/services (#2361/#2339 baseline)",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2435; R1-R8 reused (dirty=false tree=b9f307fc9), R9 rerun at tree=5a41e3653",
   "rows": [
-    {
-      "id": "R1",
-      "command": "bash scripts/verify-2435.sh r1",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2435/R1-registration-type.txt"
-      ],
-      "assert": "exit 0；持久化/非法/缺失/介绍信用例 PASS",
-      "actual": "PASS",
-      "expected": "PASS",
-      "negative": "类型丢失 → FAIL",
-      "negative_result": "未持久化即 exit 1",
-      "pass": true
-    },
-    {
-      "id": "R2",
-      "command": "bash scripts/verify-2435.sh r2",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2435/R2-put-type.txt"
-      ],
-      "assert": "exit 0；写入/锁定 409/非法 400 用例 PASS",
-      "actual": "PASS",
-      "expected": "PASS",
-      "negative": "覆盖已审核/非法落库 → FAIL",
-      "negative_result": "断言失败即 exit 1",
-      "pass": true
-    },
-    {
-      "id": "R3",
-      "command": "bash scripts/verify-2435.sh r3",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2435/R3-render.txt"
-      ],
-      "assert": "exit 0；四态 render 断言 PASS",
-      "actual": "PASS（四态提示与保存断言）",
-      "expected": "PASS",
-      "negative": "空白/旧文案 → FAIL",
-      "negative_result": "断言失败即 exit 1",
-      "pass": true
-    },
-    {
-      "id": "R4",
-      "command": "bash scripts/verify-2435.sh r4",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2435/R4-save.txt"
-      ],
-      "assert": "exit 0；请求体含类型且状态一致",
-      "actual": "PASS",
-      "expected": "PASS",
-      "negative": "漏字段 → FAIL",
-      "negative_result": "grep 失败即 exit 1",
-      "pass": true
-    },
-    {
-      "id": "R5",
-      "command": "bash scripts/verify-2435.sh r5",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2435/R5-pc-detail.txt"
-      ],
-      "assert": "exit 0；中文类型/待审核/隐藏断言 PASS",
-      "actual": "PASS",
-      "expected": "PASS",
-      "negative": "显示代码/旧文案 → FAIL",
-      "negative_result": "grep 失败即 exit 1",
-      "pass": true
-    },
-    {
-      "id": "R6",
-      "command": "bash scripts/verify-2435.sh r6",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2435/R6-filter.txt"
-      ],
-      "assert": "exit 0；筛选仅目标行；巡检可列出且 fail-if-any 生效",
-      "actual": "PASS",
-      "expected": "PASS",
-      "negative": "混入/漏行 → FAIL",
-      "negative_result": "断言失败即 exit 1",
-      "pass": true
-    },
-    {
-      "id": "R7",
-      "command": "bash scripts/verify-2435.sh r7",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2435/R7-review.txt"
-      ],
-      "assert": "exit 0；自动批次幂等 + 审核指定类型落库",
-      "actual": "PASS",
-      "expected": "PASS",
-      "negative": "重复 open → FAIL",
-      "negative_result": "断言失败即 exit 1",
-      "pass": true
-    },
-    {
-      "id": "R8",
-      "command": "bash scripts/verify-2435.sh r8",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2435/R8-docs.txt"
-      ],
-      "assert": "exit 0；四文档含新口径且无旧表述",
-      "actual": "PASS",
-      "expected": "PASS",
-      "negative": "旧表述 → FAIL",
-      "negative_result": "grep 失败即 exit 1",
-      "pass": true
-    },
-    {
-      "id": "R9",
-      "command": "bash scripts/verify-2435.sh r9",
-      "exit": 0,
-      "artifacts": [
-        "docs/evidence/2435/R9-full-gate.txt"
-      ],
-      "assert": "#2443 P3 后 exit 0；go build + go test 0 FAIL",
-      "actual": "handlers 0 FAIL（374.6s）；go test ./... 仍有 middleware/service/services 既有失败，归属 #2339/#2361 baseline",
-      "expected": "PASS",
-      "negative": "handlers 任一 FAIL → FAIL",
-      "negative_result": "handlers 失败即 exit 1",
-      "pass": true
-    }
+    {"id":"R1","command":"bash scripts/verify-2435.sh r1-registration-type","exit":0,"artifacts":["docs/evidence/2435/R1-registration-type.txt"],"assert":"exit 0；持久化/非法/缺失/介绍信用例 PASS","actual":"PASS：注册自报 student/teacher/work/other 持久化；非法 400；未自报保持空；student 介绍信要求不变","expected":"PASS","negative":"合法类型被忽略或非法落库 → FAIL","negative_result":"断言失败即 exit 1","pass":true},
+    {"id":"R2","command":"bash scripts/verify-2435.sh r2-put-type","exit":0,"artifacts":["docs/evidence/2435/R2-put-type.txt"],"assert":"exit 0；写入/锁定 409/非法 400 用例 PASS","actual":"PASS：未审核可写；已审核 409；非法枚举 400","expected":"PASS","negative":"覆盖已审核或写非法值 → FAIL","negative_result":"断言失败即 exit 1","pass":true},
+    {"id":"R3","command":"bash scripts/verify-2435.sh r3-render","exit":0,"artifacts":["docs/evidence/2435/R3-render.txt"],"assert":"exit 0；四态 render 断言 PASS","actual":"PASS：有类型/空类型/无照片/已审核四态 render 断言通过","expected":"PASS","negative":"空白/旧文案/英文代码 → FAIL","negative_result":"断言失败即 exit 1","pass":true},
+    {"id":"R4","command":"bash scripts/verify-2435.sh r4-save","exit":0,"artifacts":["docs/evidence/2435/R4-save.txt"],"assert":"exit 0；请求体含类型且状态一致","actual":"PASS：保存请求体含 id_photo_other_type；secondDocType/idPhotoOtherType 一致","expected":"PASS","negative":"漏字段 → FAIL","negative_result":"缺字段即 exit 1","pass":true},
+    {"id":"R5","command":"bash scripts/verify-2435.sh r5-pc-detail","exit":0,"artifacts":["docs/evidence/2435/R5-pc-detail.txt"],"assert":"exit 0；中文类型/待审核/隐藏断言 PASS","actual":"PASS：中文类型标签、待审核文案、无照片隐藏","expected":"PASS","negative":"显示代码或旧文案 → FAIL","negative_result":"断言失败即 exit 1","pass":true},
+    {"id":"R6","command":"bash scripts/verify-2435.sh r6-filter","exit":0,"artifacts":["docs/evidence/2435/R6-filter.txt"],"assert":"exit 0；筛选仅目标行；巡检可列出且 fail-if-any 生效","actual":"PASS：second_doc_type=unset 仅返回有照片无类型；巡检脚本可列出/fail-if-any","expected":"PASS","negative":"混入/漏行 → FAIL","negative_result":"断言失败即 exit 1","pass":true},
+    {"id":"R7","command":"bash scripts/verify-2435.sh r7-review","exit":0,"artifacts":["docs/evidence/2435/R7-review.txt"],"assert":"exit 0；自动批次幂等 + 审核指定类型落库","actual":"PASS：manual 放行自动建 1 个 pending 批次且幂等；审核员指定类型落库","expected":"PASS","negative":"重复 open/未落库 → FAIL","negative_result":"断言失败即 exit 1","pass":true},
+    {"id":"R8","command":"bash scripts/verify-2435.sh r8-docs","exit":0,"artifacts":["docs/evidence/2435/R8-docs.txt"],"assert":"exit 0；四文档含新口径且无旧表述","actual":"PASS：id-photos/user-management/ui/api 含自报+审核修正与四态；无注册忽略旧表述","expected":"PASS","negative":"旧表述残留 → FAIL","negative_result":"断言失败即 exit 1","pass":true},
+    {"id":"R9","command":"bash scripts/verify-2435.sh r9-gate-baseline","exit":0,"artifacts":["docs/evidence/2435/R9-full-gate.txt"],"assert":"#2443 P3 后 exit 0；go build + go test 0 FAIL","actual":"PASS：go build ./... 0；go test ./handlers -count=1 -timeout 15m 0 FAIL（748s）","expected":"PASS","negative":"失败未归属 → FAIL","negative_result":"非 0 或 FAIL>0 即 exit 1","pass":true}
   ]
 }
