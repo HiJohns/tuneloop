@@ -10,7 +10,9 @@
       "id": "R1",
       "command": "bash scripts/verify-2443.sh r1",
       "exit": 0,
-      "artifacts": ["docs/evidence/2443/R1-inventory.txt"],
+      "artifacts": [
+        "docs/evidence/2443/R1-inventory.txt"
+      ],
       "assert": "exit 0；2 用例 PASS；无 panic",
       "actual": "PASS：TestGetInventoryRentSetting + _Filters 均 PASS，无 panic",
       "expected": "PASS",
@@ -22,7 +24,9 @@
       "id": "R2",
       "command": "bash scripts/verify-2443.sh r2",
       "exit": 0,
-      "artifacts": ["docs/evidence/2443/R2-schema.txt"],
+      "artifacts": [
+        "docs/evidence/2443/R2-schema.txt"
+      ],
       "assert": "exit 0；FK/唯一 >0；42704 = 0",
       "actual": "PASS：无 dropTestForeignKeys；模板 FK=54 UNIQUE=30；日志 42704=0",
       "expected": "PASS",
@@ -34,7 +38,9 @@
       "id": "R3",
       "command": "bash scripts/verify-2443.sh r3",
       "exit": 0,
-      "artifacts": ["docs/evidence/2443/R3-fixtures.txt"],
+      "artifacts": [
+        "docs/evidence/2443/R3-fixtures.txt"
+      ],
       "assert": "exit 0；23503/23505/username 均 0",
       "actual": "PASS：SeedOrderParents 存在；23503=0、23505=0、username required=0",
       "expected": "PASS",
@@ -46,7 +52,9 @@
       "id": "R4",
       "command": "bash scripts/verify-2443.sh r4",
       "exit": 0,
-      "artifacts": ["docs/evidence/2443/R4-mock-panic.txt"],
+      "artifacts": [
+        "docs/evidence/2443/R4-mock-panic.txt"
+      ],
       "assert": "exit 0；两用例 PASS",
       "actual": "PASS：Test_CreateMerchant_CusPerm + TestTransitSiteMemberRoleRestriction 均 PASS",
       "expected": "PASS",
@@ -58,7 +66,9 @@
       "id": "R5",
       "command": "bash scripts/verify-2443.sh r5-gate",
       "exit": 0,
-      "artifacts": ["docs/evidence/2443/R5-handlers-full.txt"],
+      "artifacts": [
+        "docs/evidence/2443/R5-handlers-full.txt"
+      ],
       "assert": "exit 0；0 FAIL",
       "actual": "PASS：go test ./handlers/ 773s，0 FAIL、0 panic",
       "expected": "PASS",
@@ -70,11 +80,13 @@
       "id": "R6",
       "command": "bash scripts/verify-2443.sh r6",
       "exit": 0,
-      "artifacts": ["docs/evidence/2443/R6-product-clean.txt"],
+      "artifacts": [
+        "docs/evidence/2443/R6-product-clean.txt"
+      ],
       "assert": "exit 0；产品 diff 空",
       "actual": "PASS：Rev.5 回滚基线 0ccc9e733 之后无产品文件改动；requestedDepositTier 不存在",
       "expected": "PASS",
-      "negative": "有产品改动 → FAIL",
+      "negative": "有改动 → FAIL",
       "negative_result": "产品文件出现在 diff 即 exit 1",
       "pass": true
     },
@@ -82,7 +94,9 @@
       "id": "R7",
       "command": "bash scripts/verify-2443.sh r7",
       "exit": 0,
-      "artifacts": ["docs/evidence/2443/R7-hygiene.txt"],
+      "artifacts": [
+        "docs/evidence/2443/R7-hygiene.txt"
+      ],
       "assert": "exit 0；0 skip/-p1/删用例",
       "actual": "PASS：ADDED_SKIP=0、REMOVED_TEST_FUNCS=0、P1_USAGE=0",
       "expected": "PASS",
