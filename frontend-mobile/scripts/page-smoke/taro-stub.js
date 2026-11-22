@@ -38,6 +38,8 @@ const Taro = {
   previewImage: noop,
   getSystemInfoSync: () => ({ windowWidth: 375, windowHeight: 667, statusBarHeight: 20, platform: 'devtools' }),
   getMenuButtonBoundingClientRect: () => ({ top: 10, height: 32, right: 365, left: 300, width: 65 }),
+  // #2434：默认空栈（扫码直达）；测试用 vi.spyOn 注入 1/2 页栈。
+  getCurrentPages: () => [],
   getStorageSync: (key) => {
     try { return window.localStorage.getItem(key) || '' } catch { return '' }
   },
