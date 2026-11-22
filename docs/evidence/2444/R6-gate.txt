@@ -1,9 +1,0 @@
-# build=1.0.e053d587a commit=e053d587a7ffe97122b760a8a534bf07d1693faf dirty=false tree=d041f1a8d
-TREE_COMMIT=d041f1a8d6d4db1cb94eef3cbe94aede9c55519d
-BUILD_CMD=go build ./...
-BUILD_EXIT=0
-BUILD_OK
-FULL_SUITE_CMD=go test ./handlers/ -count=1 -timeout 15m
-ok  	tuneloop-backend/handlers	716.290s
-FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0
-GATE_OK

@@ -1,0 +1,4 @@
+# build=1.0.e053d587a commit=e053d587a7ffe97122b760a8a534bf07d1693faf dirty=false tree=efdf80a97
+TREE_COMMIT=efdf80a97aea1a5435585624cdd7c20ea0b4c190
+STATUS_CLEAN
+ENV_FILE=/home/coder/tuneloop/backend/.env
