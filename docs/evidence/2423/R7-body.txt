@@ -1,0 +1,7 @@
+# build=1.0.236bcc86c commit=236bcc86cd0b64aec33370db6d7ac29f6e8f02c4 dirty=false
+# evaluated_at=ad57af8d9ac79196970bade934703d64c625a367
+## R7 Issue body 守恒式（spec §4 全式，禁止旧简化式）
+BODY_SOURCE=gh issue view 2423
+FORMULA_LINES=1 FULL=1 OLD=0
+LINE: - 守恒断言（spec §4 全式，已按 Rev.2/Rev.3 更正）：`net_cash + PointsToCash(p_refund) == cash_paid + PointsToCash(p_used) − R_after_coupon − deductions_total`；其中 `deductions_total = overdue_penalty + damage_fee + logistics_fee`（争议部分按 §8 排除）。原简化式（缺 `− R_after_coupon − deductions_total`）已废止。
+BODY_FULL_FORMULA_OK

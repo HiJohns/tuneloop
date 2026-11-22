@@ -1,0 +1,48 @@
+# build=1.0.236bcc86c commit=236bcc86cd0b64aec33370db6d7ac29f6e8f02c4 dirty=false
+# evaluated_at=ad57af8d9ac79196970bade934703d64c625a367
+## R6 有效全量 gate（含 P1）：go build + handlers 全量 + refund spec
+BUILD_OK
+ok  	tuneloop-backend/handlers	799.223s
+HANDLERS_OK
+# github.com/mattn/go-sqlite3
+sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
+sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+123133 |   zTail = strrchr(zName, '_');
+       |         ^
+[DEBUG] Loaded .env from: ../.env
+=== RUN   TestComputeRefundSpecT23_2423
+    settlement_refund_spec_test.go:55: T23: R_after_coupon=250000 cap=750 p_refund=150 rent_due=175000 rent_shortfall=15000 deposit_refund=50000 net_cash=35000
+--- PASS: TestComputeRefundSpecT23_2423 (0.00s)
+=== RUN   TestComputeRefundSpecFixture2339_2423
+    settlement_refund_spec_test.go:106: #2339: R_after_coupon=280000 cap=840 p_refund=160 rent_due=196000 rent_shortfall=46000 deposit_refund=50000 net_cash_cents=4000 (¥40.00); legacy model was total_refund=666.67 cash_refundable=506.67
+--- PASS: TestComputeRefundSpecFixture2339_2423 (0.00s)
+=== RUN   TestComputeRefundSpecConservation_2423
+--- PASS: TestComputeRefundSpecConservation_2423 (0.00s)
+=== RUN   TestComputeRefundSpecBounds_2423
+=== RUN   TestComputeRefundSpecBounds_2423/no_deposit
+=== RUN   TestComputeRefundSpecBounds_2423/deposit_consumed_by_fees
+=== RUN   TestComputeRefundSpecBounds_2423/zero_rent_after_coupon
+=== RUN   TestComputeRefundSpecBounds_2423/p_used_over_cap
+=== RUN   TestComputeRefundSpecBounds_2423/negative_rent
+=== RUN   TestComputeRefundSpecBounds_2423/negative_points
+=== RUN   TestComputeRefundSpecBounds_2423/ratio_den_zero
+=== RUN   TestComputeRefundSpecBounds_2423/ratio_num_gt_den
+=== RUN   TestComputeRefundSpecBounds_2423/negative_fee
+=== RUN   TestComputeRefundSpecBounds_2423/overflow_cap
+=== RUN   TestComputeRefundSpecBounds_2423/conservation_mismatch_is_error
+--- PASS: TestComputeRefundSpecBounds_2423 (0.00s)
+    --- PASS: TestComputeRefundSpecBounds_2423/no_deposit (0.00s)
+    --- PASS: TestComputeRefundSpecBounds_2423/deposit_consumed_by_fees (0.00s)
+    --- PASS: TestComputeRefundSpecBounds_2423/zero_rent_after_coupon (0.00s)
+    --- PASS: TestComputeRefundSpecBounds_2423/p_used_over_cap (0.00s)
+    --- PASS: TestComputeRefundSpecBounds_2423/negative_rent (0.00s)
+    --- PASS: TestComputeRefundSpecBounds_2423/negative_points (0.00s)
+    --- PASS: TestComputeRefundSpecBounds_2423/ratio_den_zero (0.00s)
+    --- PASS: TestComputeRefundSpecBounds_2423/ratio_num_gt_den (0.00s)
+    --- PASS: TestComputeRefundSpecBounds_2423/negative_fee (0.00s)
+    --- PASS: TestComputeRefundSpecBounds_2423/overflow_cap (0.00s)
+    --- PASS: TestComputeRefundSpecBounds_2423/conservation_mismatch_is_error (0.00s)
+PASS
+ok  	tuneloop-backend/services	0.021s
+REFUND_SPEC_OK
+FULL_GATE_OK
