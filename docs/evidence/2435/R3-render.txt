@@ -1,12 +1,36 @@
-# build=1.0.3d39a416d commit=3d39a416d136ed9d7d2f5f3ee40a12b7267e7c7d dirty=false tree=b9f307fc9
+# build=1.0.3d39a416d commit=3d39a416d136ed9d7d2f5f3ee40a12b7267e7c7d dirty=true tree=3869ceb8b
 [33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
 
  RUN  v2.1.9 /tmp/opencode/tuneloop/wt-2435/frontend-mobile
 
- ✓ scripts/page-smoke/second-doc-type-fallback-2435.test.jsx (2 tests) 20ms
+stderr | scripts/page-smoke/second-doc-type-fallback-2435.test.jsx > EditProfile 第二证件四态渲染 (#2435 R3) > R3-1: 有类型未审核 → 只读显示中文类型
+Warning: validateDOMNesting(...): <div> cannot appear as a child of <select>.
+    at div
+    at select
+    at div
+    at div
+    at div
+    at div
+    at EditProfile (/tmp/opencode/tuneloop/wt-2435/frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx:36:49)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+R3_STATE_1_OK
+R3_STATE_2_OK
+R3_STATE_3_OK
+R3_STATE_4_OK
+ ✓ scripts/page-smoke/second-doc-type-fallback-2435.test.jsx (7 tests | 3 skipped) 2166ms
+   ✓ EditProfile 第二证件四态渲染 (#2435 R3) > R3-1: 有类型未审核 → 只读显示中文类型 847ms
+   ✓ EditProfile 第二证件四态渲染 (#2435 R3) > R3-2: 有照片无类型 → 提示选择，选择器可操作、保存可用 448ms
+   ✓ EditProfile 第二证件四态渲染 (#2435 R3) > R3-3: 无第二证件照片 → 状态行不渲染 431ms
+   ✓ EditProfile 第二证件四态渲染 (#2435 R3) > R3-4: 已审核 → 中文类型 + 已认证只读 436ms
 
  Test Files  1 passed (1)
-      Tests  2 passed (2)
-   Start at  15:18:39
-   Duration  3.00s (transform 122ms, setup 57ms, collect 29ms, tests 20ms, environment 1.70s, prepare 778ms)
+      Tests  4 passed | 3 skipped (7)
+   Start at  20:05:39
+   Duration  5.13s (transform 443ms, setup 67ms, collect 613ms, tests 2.17s, environment 994ms, prepare 519ms)
 

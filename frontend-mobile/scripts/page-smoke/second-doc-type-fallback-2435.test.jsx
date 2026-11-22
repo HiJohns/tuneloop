@@ -98,7 +98,7 @@ describe('EditProfile 第二证件四态渲染 (#2435 R3)', () => {
     expect(text).toContain('第二证件类型：学生证')
     expect(text).not.toContain('请选择第二证件类型')
     expect(text).toContain('可自行选择后保存；审核员可在审核时修正')
-    console.log('R3_STATE_1_OK')
+    process.stdout.write('R3_STATE_1_OK\n')
   })
 
   it('R3-2: 有照片无类型 → 提示选择，选择器可操作、保存可用', async () => {
@@ -110,7 +110,7 @@ describe('EditProfile 第二证件四态渲染 (#2435 R3)', () => {
     const save = saveButton()
     expect(save, '保存按钮必须渲染').toBeTruthy()
     expect(save.disabled, '保存按钮必须可用').toBe(false)
-    console.log('R3_STATE_2_OK')
+    process.stdout.write('R3_STATE_2_OK\n')
   })
 
   it('R3-3: 无第二证件照片 → 状态行不渲染', async () => {
@@ -120,7 +120,7 @@ describe('EditProfile 第二证件四态渲染 (#2435 R3)', () => {
     expect(text).not.toContain('已认证（类型由平台核定，不可自行修改）')
     // 未上传时仍保留上传入口（#2039 前置条件文案）
     expect(text).toContain('第二证件照（可选，请选择证件类型）')
-    console.log('R3_STATE_3_OK')
+    process.stdout.write('R3_STATE_3_OK\n')
   })
 
   it('R3-4: 已审核 → 中文类型 + 已认证只读', async () => {
@@ -130,7 +130,7 @@ describe('EditProfile 第二证件四态渲染 (#2435 R3)', () => {
     const select = document.querySelector('select')
     expect(select, '类型选择器必须渲染').not.toBeNull()
     expect(select.disabled, '已审核时选择器必须只读').toBe(true)
-    console.log('R3_STATE_4_OK')
+    process.stdout.write('R3_STATE_4_OK\n')
   })
 })
 
@@ -156,7 +156,7 @@ describe('EditProfile 保存接线 (#2435 R4)', () => {
     const body = await saveAndCapture()
     expect(body.id_photo_other).toBe('/uploads/media/other.jpg')
     expect(body.id_photo_other_type).toBe('student')
-    console.log('R4_BODY_WITH_TYPE_OK', JSON.stringify({ id_photo_other_type: body.id_photo_other_type }))
+    process.stdout.write('R4_BODY_WITH_TYPE_OK id_photo_other_type=' + body.id_photo_other_type + '\n')
   })
 
   it('R4-2: 有照片但类型为空 → 不误发类型字段', async () => {
@@ -164,7 +164,7 @@ describe('EditProfile 保存接线 (#2435 R4)', () => {
     const body = await saveAndCapture()
     expect(body.id_photo_other).toBe('/uploads/media/other.jpg')
     expect(Object.prototype.hasOwnProperty.call(body, 'id_photo_other_type')).toBe(false)
-    console.log('R4_NO_TYPE_OMITTED_OK')
+    process.stdout.write('R4_NO_TYPE_OMITTED_OK\n')
   })
 
   it('R4-3: 无第二证件照片 → 照片与类型字段都不发送', async () => {
@@ -172,6 +172,6 @@ describe('EditProfile 保存接线 (#2435 R4)', () => {
     const body = await saveAndCapture()
     expect(Object.prototype.hasOwnProperty.call(body, 'id_photo_other')).toBe(false)
     expect(Object.prototype.hasOwnProperty.call(body, 'id_photo_other_type')).toBe(false)
-    console.log('R4_NO_PHOTO_OMITTED_OK')
+    process.stdout.write('R4_NO_PHOTO_OMITTED_OK\n')
   })
 })

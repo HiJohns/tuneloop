@@ -1,2 +1,130 @@
-# build=1.0.3d39a416d commit=3d39a416d136ed9d7d2f5f3ee40a12b7267e7c7d dirty=false tree=b9f307fc9
-SAVE_FIELD_OK
+# build=1.0.3d39a416d commit=3d39a416d136ed9d7d2f5f3ee40a12b7267e7c7d dirty=true tree=3869ceb8b
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /tmp/opencode/tuneloop/wt-2435/frontend-mobile
+
+stderr | scripts/page-smoke/second-doc-type-fallback-2435.test.jsx > EditProfile 保存接线 (#2435 R4) > R4-1: 已存类型 → 请求体含 id_photo_other_type 与照片，状态一致
+Warning: validateDOMNesting(...): <div> cannot appear as a child of <select>.
+    at div
+    at select
+    at div
+    at div
+    at div
+    at div
+    at EditProfile (/tmp/opencode/tuneloop/wt-2435/frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx:36:49)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+stderr | scripts/page-smoke/second-doc-type-fallback-2435.test.jsx > EditProfile 保存接线 (#2435 R4) > R4-1: 已存类型 → 请求体含 id_photo_other_type 与照片，状态一致
+Warning: An update to EditProfile inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at EditProfile (/tmp/opencode/tuneloop/wt-2435/frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx:36:49)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+Warning: An update to EditProfile inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at EditProfile (/tmp/opencode/tuneloop/wt-2435/frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx:36:49)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+
+R4_BODY_WITH_TYPE_OK id_photo_other_type=student
+stderr | scripts/page-smoke/second-doc-type-fallback-2435.test.jsx > EditProfile 保存接线 (#2435 R4) > R4-2: 有照片但类型为空 → 不误发类型字段
+Warning: An update to EditProfile inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at EditProfile (/tmp/opencode/tuneloop/wt-2435/frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx:36:49)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+Warning: An update to EditProfile inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at EditProfile (/tmp/opencode/tuneloop/wt-2435/frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx:36:49)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+
+R4_NO_TYPE_OMITTED_OK
+stderr | scripts/page-smoke/second-doc-type-fallback-2435.test.jsx > EditProfile 保存接线 (#2435 R4) > R4-3: 无第二证件照片 → 照片与类型字段都不发送
+Warning: An update to EditProfile inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at EditProfile (/tmp/opencode/tuneloop/wt-2435/frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx:36:49)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+Warning: An update to EditProfile inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at EditProfile (/tmp/opencode/tuneloop/wt-2435/frontend-mobile/src/pages-weapp/profile/edit/EditProfile.jsx:36:49)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+
+R4_NO_PHOTO_OMITTED_OK
+ ✓ scripts/page-smoke/second-doc-type-fallback-2435.test.jsx (7 tests | 4 skipped) 3087ms
+   ✓ EditProfile 保存接线 (#2435 R4) > R4-1: 已存类型 → 请求体含 id_photo_other_type 与照片，状态一致 1328ms
+   ✓ EditProfile 保存接线 (#2435 R4) > R4-2: 有照片但类型为空 → 不误发类型字段 1006ms
+   ✓ EditProfile 保存接线 (#2435 R4) > R4-3: 无第二证件照片 → 照片与类型字段都不发送 743ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed | 4 skipped (7)
+   Start at  20:05:47
+   Duration  6.03s (transform 442ms, setup 72ms, collect 601ms, tests 3.09s, environment 1.18s, prepare 508ms)
+
