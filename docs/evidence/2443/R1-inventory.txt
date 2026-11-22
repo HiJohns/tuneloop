@@ -1,15 +1,15 @@
-# build=1.0.06e41a239 commit=06e41a239244bffe8fda52a4ed8130a9fe7b22be dirty=false
+# build=1.0.06e41a239 commit=06e41a239244bffe8fda52a4ed8130a9fe7b22be dirty=false tree=27f35d34b
 [DEBUG] Loaded .env from: ../.env
-2026/11/22 03:17:41 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2443 sslmode=disable
-2026/11/22 03:17:41 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2443
-2026/11/22 03:17:41 [DB] Connected to database 'tuneloop_test_2443'
+2026/11/22 12:25:48 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2443 sslmode=disable
+2026/11/22 12:25:51 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2443
+2026/11/22 12:25:51 [DB] Connected to database 'tuneloop_test_2443'
 === RUN   TestGetInventoryRentSetting
-2026/11/22 03:17:41 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2443 sslmode=disable
-2026/11/22 03:17:41 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2443
-2026/11/22 03:17:42 [DB] Connected to database 'tuneloop_test_2443'
---- PASS: TestGetInventoryRentSetting (0.05s)
+2026/11/22 12:25:51 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2443 sslmode=disable
+2026/11/22 12:25:51 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2443
+2026/11/22 12:25:51 [DB] Connected to database 'tuneloop_test_2443'
+--- PASS: TestGetInventoryRentSetting (0.06s)
 === RUN   TestGetInventoryRentSetting_Filters
---- PASS: TestGetInventoryRentSetting_Filters (0.04s)
+--- PASS: TestGetInventoryRentSetting_Filters (0.05s)
 PASS
-ok  	tuneloop-backend/handlers	0.780s
+ok  	tuneloop-backend/handlers	3.819s
 R1_EXIT=0

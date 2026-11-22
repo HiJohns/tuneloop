@@ -27,7 +27,8 @@ BUILD="1.0.$FIX_SHORT"
 COMMIT="$FIX_SHA"
 DIRTY=false
 [ -n "$(git status --porcelain -uall)" ] && DIRTY=true
-PROV="# build=$BUILD commit=$COMMIT dirty=$DIRTY"
+HEAD_SHA="$(git rev-parse --short HEAD)"
+PROV="# build=$BUILD commit=$COMMIT dirty=$DIRTY tree=$HEAD_SHA"
 
 # Rev.5 rollback commit: product revert is mandated; the fix after it must not
 # touch product files. Hygiene/product checks use this as the baseline.
@@ -182,7 +183,7 @@ case "$MODE" in
         printf '%s\n' "$changed"
         exit 1
       fi
-      echo "OK: no product file changed since $BASELINE_REV"
+      echo "OK: no product file changed in fix chain $BASELINE_REV..$FIX_SHORT"
       if grep -Rqs 'requestedDepositTier' "$REPO_ROOT/backend"; then
         echo "FAIL: requestedDepositTier still present"
         exit 1
