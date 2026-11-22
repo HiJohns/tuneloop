@@ -1,0 +1,9 @@
+# build=1.0.89327c9c1 commit=89327c9c1421e49f2f9ec2baddae02bb70439590 dirty=false tree=201433388
+OK docs/spec/api/api.md :: merge_ticket
+OK docs/spec/api/api.md :: wx-merge-confirm
+OK docs/spec/api/api.md :: wechat-bind/merge
+OK docs/spec/api/api.md :: merged
+OK docs/spec/ui/ui.md :: merged
+OK docs/cases/account-select.md :: 合并
+OK docs/cases/cases.md :: 2445
+DOCS_OK

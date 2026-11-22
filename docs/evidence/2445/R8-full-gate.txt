@@ -1,0 +1,124 @@
+# build=1.0.89327c9c1 commit=89327c9c1421e49f2f9ec2baddae02bb70439590 dirty=false tree=88dd6a5cb
+BUILD_CMD=go build ./...
+BUILD_EXIT=0
+BUILD_OK
+FULL_SUITE_CMD=go test ./... -count=1 -timeout 20m
+?   	tuneloop-backend	[no test files]
+?   	tuneloop-backend/cmd/migrate	[no test files]
+[DEBUG] Loaded .env from: ../.env
+2026/11/22 14:59:52 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 14:59:52 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 14:59:52 [DB] Connected to database 'tuneloop_debug'
+2026/11/22 14:59:52 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 14:59:52 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 14:59:52 [DB] Connected to database 'tuneloop_debug'
+2026/11/22 14:59:52 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 14:59:52 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 14:59:52 [DB] Connected to database 'tuneloop_debug'
+2026/11/22 14:59:52 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 14:59:52 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 14:59:52 [DB] Connected to database 'tuneloop_debug'
+2026/11/22 14:59:52 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 14:59:52 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 14:59:52 [DB] Connected to database 'tuneloop_debug'
+Warning: cannot read migration status for artifact check: failed to create migrate instance: failed to open source, "file://database/migrations": open .: no such file or directory
+
+2026/11/22 14:59:53 [31;1m/tmp/opencode/tuneloop/wt-2445/backend/database/settlement_model_2360_test.go:205 [35;1mERROR: duplicate key value violates unique constraint "idx_settlement_active_order" (SQLSTATE 23505)
+[0m[33m[42.855ms] [34;1m[rows:0][0m INSERT INTO settlement_calculations
+            (order_id, trigger, ledger_version, settlement_version, status, calculated_at)
+            VALUES ('34d4ed90-28b3-4271-bfb7-24b2bbf65d43', 'confirm', 2, 2, 'confirmed', now())
+
+2026/11/22 14:59:53 [31;1m/tmp/opencode/tuneloop/wt-2445/backend/database/settlement_model_2360_test.go:205 [35;1mERROR: duplicate key value violates unique constraint "idx_settlement_active_order" (SQLSTATE 23505)
+[0m[33m[43.921ms] [34;1m[rows:0][0m INSERT INTO settlement_calculations
+            (order_id, trigger, ledger_version, settlement_version, status, calculated_at)
+            VALUES ('34d4ed90-28b3-4271-bfb7-24b2bbf65d43', 'confirm', 3, 3, 'processing', now())
+
+2026/11/22 14:59:53 [31;1m/tmp/opencode/tuneloop/wt-2445/backend/database/settlement_model_2360_test.go:205 [35;1mERROR: duplicate key value violates unique constraint "idx_settlement_active_order" (SQLSTATE 23505)
+[0m[33m[42.726ms] [34;1m[rows:0][0m INSERT INTO settlement_calculations
+            (order_id, trigger, ledger_version, settlement_version, status, calculated_at)
+            VALUES ('34d4ed90-28b3-4271-bfb7-24b2bbf65d43', 'confirm', 4, 4, 'succeeded', now())
+
+2026/11/22 14:59:53 [31;1m/tmp/opencode/tuneloop/wt-2445/backend/database/settlement_model_2360_test.go:205 [35;1mERROR: duplicate key value violates unique constraint "idx_settlement_active_order" (SQLSTATE 23505)
+[0m[33m[42.815ms] [34;1m[rows:0][0m INSERT INTO settlement_calculations
+            (order_id, trigger, ledger_version, settlement_version, status, calculated_at)
+            VALUES ('34d4ed90-28b3-4271-bfb7-24b2bbf65d43', 'confirm', 5, 5, 'partially_succeeded', now())
+
+2026/11/22 14:59:53 [31;1m/tmp/opencode/tuneloop/wt-2445/backend/database/settlement_model_2360_test.go:205 [35;1mERROR: duplicate key value violates unique constraint "idx_settlement_active_order" (SQLSTATE 23505)
+[0m[33m[1.560ms] [34;1m[rows:0][0m INSERT INTO settlement_calculations
+            (order_id, trigger, ledger_version, settlement_version, status, calculated_at)
+            VALUES ('34d4ed90-28b3-4271-bfb7-24b2bbf65d43', 'confirm', 6, 6, 'failed_retryable', now())
+--- FAIL: TestSchemaValidationSettlement_2360 (0.39s)
+    settlement_model_2360_test.go:251: 
+        	Error Trace:	/tmp/opencode/tuneloop/wt-2445/backend/database/settlement_model_2360_test.go:251
+        	Error:      	Received unexpected error:
+        	            	schema validation failed: table settlement_calculations missing column supersedes
+        	Test:       	TestSchemaValidationSettlement_2360
+        	Messages:   	settlement_calculations columns
+2026/11/22 14:59:53 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 14:59:53 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 14:59:53 [DB] Connected to database 'tuneloop_debug'
+2026/11/22 14:59:53 [TenantScope][observe] auto-scope injected for table=ts2261_items (add explicit scope, then set ExplicitTenantScopeOnly)
+FAIL
+FAIL	tuneloop-backend/database	1.415s
+# github.com/mattn/go-sqlite3
+sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
+sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+123133 |   zTail = strrchr(zName, '_');
+       |         ^
+ok  	tuneloop-backend/handlers	723.447s
+?   	tuneloop-backend/handlers/testfixtures	[no test files]
+?   	tuneloop-backend/internal/engine	[no test files]
+?   	tuneloop-backend/internal/service	[no test files]
+?   	tuneloop-backend/internal/tasks	[no test files]
+[DEBUG] Loaded .env from: ../.env
+2026/11/22 14:59:57 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 14:59:57 [IAM] Subject rejected: user u-1 not found in IAM (account deleted)
+2026/11/22 14:59:57 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 14:59:57 [IAM] Subject rejected: user u-1 has status "inactive"
+2026/11/22 14:59:57 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 14:59:57 [IAM] Subject rejected: token for user u-1 predates token_version bump (iat=1795359537 s < tv=1795359607587 ms)
+2026/11/22 14:59:57 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 14:59:57 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 14:59:57 [IAM WARNING] Subject check unavailable for user u-1, failing open: GetUser returned status 500: 
+--- FAIL: TestSysPermBitNames_Completeness (0.00s)
+    permissions_test.go:123: SysPerm bit permission:list has out-of-range bit 26
+    permissions_test.go:123: SysPerm bit permission:update has out-of-range bit 28
+    permissions_test.go:123: SysPerm bit permission:delete has out-of-range bit 29
+    permissions_test.go:123: SysPerm bit permission:view has out-of-range bit 25
+    permissions_test.go:123: SysPerm bit permission:create has out-of-range bit 27
+    permissions_test.go:131: Expected 25 sys_perm bits (0-24), got 30
+FAIL
+FAIL	tuneloop-backend/middleware	0.026s
+ok  	tuneloop-backend/models	0.012s
+--- FAIL: TestResolveCategory (0.00s)
+    --- FAIL: TestResolveCategory/exact_match_found (0.00s)
+        instrument_test.go:228: resolveCategory() error = failed to create default category: all expectations were already fulfilled, call to database transaction Begin was not expected, wantErr false
+    --- FAIL: TestResolveCategory/fuzzy_match_found (0.00s)
+        instrument_test.go:228: resolveCategory() error = failed to create default category: all expectations were already fulfilled, call to database transaction Begin was not expected, wantErr false
+    --- FAIL: TestResolveCategory/no_match_-_use_default_category (0.00s)
+        instrument_test.go:228: resolveCategory() error = failed to create default category: all expectations were already fulfilled, call to database transaction Begin was not expected, wantErr false
+--- FAIL: TestValidateRequiredColumns (0.00s)
+    --- FAIL: TestValidateRequiredColumns/missing_name_column (0.00s)
+        instrument_test.go:283: validateRequiredColumns() error = <nil>, wantErr true
+--- FAIL: TestParseHeaderRow (0.00s)
+    --- FAIL: TestParseHeaderRow/english_headers (0.00s)
+        instrument_test.go:335: parseHeaderRow() returned 2 fields, want 3
+    --- FAIL: TestParseHeaderRow/chinese_headers (0.00s)
+        instrument_test.go:335: parseHeaderRow() returned 2 fields, want 3
+    --- FAIL: TestParseHeaderRow/mixed_headers (0.00s)
+        instrument_test.go:335: parseHeaderRow() returned 2 fields, want 3
+FAIL
+FAIL	tuneloop-backend/service	0.015s
+ok  	tuneloop-backend/services	13.180s
+ok  	tuneloop-backend/services/tencentcloud	0.006s
+ok  	tuneloop-backend/services/wechatpay	0.061s
+?   	tuneloop-backend/testutil	[no test files]
+?   	tuneloop-backend/tools/merge_duplicate_accounts	[no test files]
+?   	tuneloop-backend/tools/oss_smoke	[no test files]
+FAIL
+FULL_SUITE_EXIT=1 FAIL_COUNT=5
+BASELINE_FAIL:
+tuneloop-backend/database
+tuneloop-backend/middleware
+tuneloop-backend/service
+GATE_BASELINE_OK

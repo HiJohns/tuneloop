@@ -1,0 +1,14 @@
+# build=1.0.89327c9c1 commit=89327c9c1421e49f2f9ec2baddae02bb70439590 dirty=false tree=201433388
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /tmp/opencode/tuneloop/wt-2445/frontend-mobile
+
+ ✓ scripts/page-smoke/bind-needs-merge.test.jsx (2 tests) 431ms
+   ✓ Bind page needs_merge (#2445) > shows the in-page merge confirmation and never claims success before merging 394ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  14:37:49
+   Duration  3.46s (transform 343ms, setup 85ms, collect 501ms, tests 431ms, environment 1.33s, prepare 741ms)
+
+R1_EXIT=0

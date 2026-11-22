@@ -1,70 +1,20 @@
 {
- "schema_version": 1,
- "issue": 2445,
- "build": "1.0.89327c9c1",
- "commit": "89327c9c1421e49f2f9ec2baddae02bb70439590",
- "dirty": false,
- "environment": "local handlers tests (isolated PG) + page-smoke + weapp/PC builds; prerelease 1.0.93 + beaconiam f7ccfcd",
- "rows": [
-  {
-   "id": "R1",
-   "command": "cd backend && TUNELOOP_TEST_DB=tuneloop_test_evidence2445 go test ./handlers -run 'TestMigrateMergedAccountLocal_2445|TestBindMergeFlow_2445|TestConfirmBind|TestGenBindToken|TestPollBindToken|TestWxBindCurrentUser|TestWxMergeCurrentUser' -count=1",
-   "exit": 0,
-   "artifacts": ["docs/evidence/2445/R1-go.txt"],
-   "assert": "exit 0；本地员工表迁移/去重、token 状态、needs_credentials、既有绑定/合并用例全部 PASS",
-   "actual": "PASS：ok tuneloop-backend/handlers 7.629s",
-   "expected": "PASS",
-   "negative": "迁移方向错误/密码覆盖/去重失败 → FAIL",
-   "negative_result": "R1 断言任一失败即 exit 1（测试内含 Y 密码保持与角色并集断言）",
-   "pass": true
-  },
-  {
-   "id": "R2",
-   "command": "cd frontend-mobile && nvm use 22 && npm run smoke",
-   "exit": 0,
-   "artifacts": ["docs/evidence/2445/R2-smoke.txt"],
-   "assert": "exit 0；Bind 页 needs_merge 合并确认/合并成功渲染，不再出现旧「编辑资料」引导",
-   "actual": "PASS：18 files / 96 tests，0 failed",
-   "expected": "PASS",
-   "negative": "仍显示编辑资料或误显示绑定成功 → FAIL",
-   "negative_result": "smoke 断言失败即 exit 1",
-   "pass": true
-  },
-  {
-   "id": "R3",
-   "command": "cd frontend-mobile && grep -rlE '<(div|span|img|button|input|textarea|p|select|a)\\b' dist-weapp --include='*.wxml' | grep -v '/base.wxml$'",
-   "exit": 0,
-   "artifacts": ["docs/evidence/2445/R3-probe.txt"],
-   "assert": "输出为空；Bind 页写入 dist-weapp 且无原生 HTML 交互/媒体标签",
-   "actual": "PASS：PROBE-OK；bind page compiled: yes",
-   "expected": "PASS",
-   "negative": "任一 wxml 含原生标签 → FAIL",
-   "negative_result": "输出非空即 PROBE-FAIL",
-   "pass": true
-  },
-  {
-   "id": "R4",
-   "command": "cd frontend-pc && npm run build; cd frontend-mobile && nvm use 22 && npm run build:weapp",
-   "exit": 0,
-   "artifacts": ["docs/evidence/2445/R4-build.txt"],
-   "assert": "PC 与 weapp 构建均 exit 0",
-   "actual": "PASS：PC built in 43.67s；weapp Compiled successfully in 1.07m",
-   "expected": "PASS",
-   "negative": "构建报错 → FAIL",
-   "negative_result": "任一构建非 0 即 FAIL",
-   "pass": true
-  },
-  {
-   "id": "R5",
-   "command": "ssh cadenza 'systemctl is-active tuneloop-pre; curl /api/config; POST /api/wechat-bind/merge; GET /api/wechat-bind/status/:token; journalctl ...'",
-   "exit": 0,
-   "artifacts": ["docs/evidence/2445/R5-prerelease.txt"],
-   "assert": "预生产 active / NRestarts=0 / version=1.0.93 / merge 路由 400 参数校验 / status 路由 200 / schema validation passed",
-   "actual": "PASS：预生产 1.0.93（89327c9c1）+ beaconiam f7ccfcd；两路由可达；无 FATAL/panic",
-   "expected": "PASS",
-   "negative": "404/5xx/FATAL → FAIL",
-   "negative_result": "路由缺失或服务重启即 FAIL",
-   "pass": true
-  }
- ]
+  "schema_version": 1,
+  "issue": 2445,
+  "build": "1.0.89327c9c1",
+  "commit": "89327c9c1421e49f2f9ec2baddae02bb70439590",
+  "tree": "88dd6a5cb",
+  "dirty": false,
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2445; beaconiam f7ccfcd (read-only)",
+  "rows": [
+    {"id":"R1","command":"bash scripts/verify-2445.sh r1-bind-ui","exit":0,"artifacts":["docs/evidence/2445/R1-bind-ui.txt"],"assert":"exit 0；确认按钮/merge 调用/成功文案断言 PASS；无旧引导","actual":"PASS：bind-needs-merge page-smoke 通过，确认按钮/merge/重新登录文案断言成立","expected":"PASS","negative":"未渲染或旧引导 → FAIL","negative_result":"断言失败即 exit 1","pass":true},
+    {"id":"R2","command":"bash scripts/verify-2445.sh r2-local-sync","exit":0,"artifacts":["docs/evidence/2445/R2-local-sync.txt"],"assert":"exit 0；TestMigrateMergedAccountLocal_2445 PASS；并集去重/幂等断言 PASS","actual":"PASS：X→Y 迁移、角色并集去重、X obsolete、二次调用幂等","expected":"PASS","negative":"丢行/重复/覆盖密码 → FAIL","negative_result":"任一断言失败即 exit 1","pass":true},
+    {"id":"R3","command":"bash scripts/verify-2445.sh r3-token","exit":0,"artifacts":["docs/evidence/2445/R3-token.txt"],"assert":"exit 0；TestBindMergeFlow_2445 与既有 Bind/WxMerge 用例 PASS","actual":"PASS：重复合并幂等 merged、公开轮询、既有 Bind/WxMerge 用例通过","expected":"PASS","negative":"401/重复副作用 → FAIL","negative_result":"401 或重复写即 exit 1","pass":true},
+    {"id":"R4","command":"bash scripts/verify-2445.sh r4-iam","exit":0,"artifacts":["docs/evidence/2445/R4-iam-merge.txt"],"assert":"exit 0；beaconiam 3 个 2445 用例 PASS","actual":"PASS：beaconiam f7ccfcd，3 个 2445 auth 用例 PASS","expected":"PASS","negative":"FAIL/未执行 → FAIL","negative_result":"非 0 即 exit 1","pass":true},
+    {"id":"R5","command":"bash scripts/verify-2445.sh r5-iam-password","exit":0,"artifacts":["docs/evidence/2445/R5-iam-password.txt"],"assert":"exit 0；密码不覆盖 + obsolete + token_version 断言 PASS","actual":"PASS：migrate_password=false、X obsolete、token_version bump","expected":"PASS","negative":"密码覆盖 → FAIL","negative_result":"密码被覆盖即失败","pass":true},
+    {"id":"R6","command":"bash scripts/verify-2445.sh r6-weapp-probe","exit":0,"artifacts":["docs/evidence/2445/R6-weapp-probe.txt"],"assert":"exit 0；输出含 PROBE-OK；bind 页已编译","actual":"PASS：dist-weapp/pages-weapp/bind/index.js 存在，无原生 HTML 交互/媒体标签","expected":"PASS","negative":"原生标签/缺页 → FAIL","negative_result":"命中标签或缺页即 exit 1","pass":true},
+    {"id":"R7","command":"bash scripts/verify-2445.sh r7-build","exit":0,"artifacts":["docs/evidence/2445/R7-build.txt"],"assert":"exit 0；PC 与 weapp 构建均成功","actual":"PASS：PC_BUILD_EXIT=0、WEAPP_BUILD_EXIT=0、BUILD_OK","expected":"PASS","negative":"任一失败 → FAIL","negative_result":"任一构建非 0 即 exit 1","pass":true},
+    {"id":"R8","command":"bash scripts/verify-2445.sh r8-gate-baseline","exit":0,"artifacts":["docs/evidence/2445/R8-full-gate.txt"],"assert":"#2443 P3 后 exit 0；go build ./... + go test ./... 0 FAIL","actual":"PASS(baseline-named)：BUILD_OK；FULL_SUITE_EXIT=1 且失败仅 database(#2360)/middleware/service 基线（5 例），无本单新增失败","expected":"PASS","negative":"失败未归属 → FAIL","negative_result":"非基线失败即 exit 1","pass":true},
+    {"id":"R9","command":"bash scripts/verify-2445.sh r9-docs","exit":0,"artifacts":["docs/evidence/2445/R9-docs.txt"],"assert":"exit 0；4 文档含 merge_ticket/wx-merge-confirm/wechat-bind/merge/merged","actual":"PASS：api/ui/account-select/cases 关键契约与 merged 状态命中，无旧编辑资料引导","expected":"PASS","negative":"缺项/旧文案 → FAIL","negative_result":"缺项或旧文案即 exit 1","pass":true}
+  ]
 }

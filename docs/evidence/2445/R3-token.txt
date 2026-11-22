@@ -1,0 +1,35 @@
+# build=1.0.89327c9c1 commit=89327c9c1421e49f2f9ec2baddae02bb70439590 dirty=false tree=201433388
+[DEBUG] Loaded .env from: ../.env
+2026/11/22 14:38:07 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2445_vr sslmode=disable
+2026/11/22 14:38:07 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2445_vr
+2026/11/22 14:38:07 [DB] Connected to database 'tuneloop_test_2445_vr'
+=== RUN   TestBindMergeFlow_2445
+2026/11/22 14:38:07 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2445_vr sslmode=disable
+2026/11/22 14:38:07 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2445_vr
+2026/11/22 14:38:07 [DB] Connected to database 'tuneloop_test_2445_vr'
+
+2026/11/22 14:38:08 [32m/tmp/opencode/tuneloop/wt-2445/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[593.525ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/22 14:38:08 [ConfirmBind] req.Token="0123456789abcdee" exchange_token=present
+
+2026/11/22 14:38:08 [31;1m/tmp/opencode/tuneloop/wt-2445/backend/handlers/account_merge.go:154 [35;1mrecord not found
+[0m[33m[1.611ms] [34;1m[rows:0][0m SELECT * FROM "site_members" WHERE tenant_id = '0a60e716-d2ae-4dbe-9bfd-d56bba767f3d' AND site_id = '07db9946-29ca-4ee4-a847-599d910ab365' AND user_id = '9b9ea3f1-f1f4-41ab-bb1f-2287f4a3cb1c' ORDER BY "site_members"."id" LIMIT 1
+2026/11/22 14:38:08 [AccountMerge] local staff data migrated: 7a29889b-4120-4fac-96c7-251e790aa2d2 (iam-X-2445b) -> 9b9ea3f1-f1f4-41ab-bb1f-2287f4a3cb1c (iam-Y-2445b)
+2026/11/22 14:38:08 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:39865, clientID=test-ns, namespace=test-ns
+2026/11/22 14:38:08 [IAMClient] Obtained client credentials token, expires in 3600s
+--- PASS: TestBindMergeFlow_2445 (1.13s)
+=== RUN   TestPollBindToken_States
+
+2026/11/22 14:38:09 [32m/tmp/opencode/tuneloop/wt-2445/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[493.620ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "pricing_templates", "site_members", "sites", "tenants", "users" RESTART IDENTITY CASCADE[0m
+--- PASS: TestPollBindToken_States (0.86s)
+=== RUN   TestConfirmBind_NeedsMerge
+
+2026/11/22 14:38:10 [32m/tmp/opencode/tuneloop/wt-2445/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[466.965ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "pricing_templates" RESTART IDENTITY CASCADE[0m
+2026/11/22 14:38:10 [ConfirmBind] req.Token="beef1234beef1234" exchange_token=present
+    wechat_bind_test.go:334: needs_merge=true existing=y-user target=x-user token_status=needs_merge
+--- PASS: TestConfirmBind_NeedsMerge (0.83s)
+PASS
+ok  	tuneloop-backend/handlers	3.488s
+R3_EXIT=0

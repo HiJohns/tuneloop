@@ -1,0 +1,27 @@
+# build=1.0.89327c9c1 commit=89327c9c1421e49f2f9ec2baddae02bb70439590 dirty=false tree=201433388
+[DEBUG] Loaded .env from: ../.env
+2026/11/22 14:37:58 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2445_vr sslmode=disable
+2026/11/22 14:37:58 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2445_vr
+2026/11/22 14:37:58 [DB] Connected to database 'tuneloop_test_2445_vr'
+=== RUN   TestMigrateMergedAccountLocal_2445
+2026/11/22 14:37:58 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2445_vr sslmode=disable
+2026/11/22 14:37:58 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2445_vr
+2026/11/22 14:37:58 [DB] Connected to database 'tuneloop_test_2445_vr'
+
+2026/11/22 14:37:59 [32m/tmp/opencode/tuneloop/wt-2445/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[606.760ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+
+2026/11/22 14:37:59 [31;1m/tmp/opencode/tuneloop/wt-2445/backend/handlers/account_merge.go:154 [35;1mrecord not found
+[0m[33m[1.407ms] [34;1m[rows:0][0m SELECT * FROM "site_members" WHERE tenant_id = '3892ae40-5870-48ab-afbf-3c2aaec7e860' AND site_id = 'be44e72f-abd7-4bc3-b1db-a94e29be42c3' AND user_id = 'ebfbfbab-ee50-41b8-8730-b970ee8add41' ORDER BY "site_members"."id" LIMIT 1
+
+2026/11/22 14:37:59 [31;1m/tmp/opencode/tuneloop/wt-2445/backend/handlers/account_merge.go:193 [35;1mrecord not found
+[0m[33m[1.286ms] [34;1m[rows:0][0m SELECT * FROM "merchant_members" WHERE user_id = 'ebfbfbab-ee50-41b8-8730-b970ee8add41' ORDER BY "merchant_members"."id" LIMIT 1
+
+2026/11/22 14:37:59 [31;1m/tmp/opencode/tuneloop/wt-2445/backend/handlers/account_merge.go:229 [35;1mrecord not found
+[0m[33m[2.201ms] [34;1m[rows:0][0m SELECT * FROM "technician_profiles" WHERE user_id = 'ebfbfbab-ee50-41b8-8730-b970ee8add41' AND tenant_id = '3892ae40-5870-48ab-afbf-3c2aaec7e860' ORDER BY "technician_profiles"."id" LIMIT 1
+2026/11/22 14:37:59 [AccountMerge] local staff data migrated: 49e4a34d-deed-4cd1-89f5-b1196e2fa962 (iam-X-2445) -> ebfbfbab-ee50-41b8-8730-b970ee8add41 (iam-Y-2445)
+2026/11/22 14:37:59 [AccountMerge] local staff data migrated: 49e4a34d-deed-4cd1-89f5-b1196e2fa962 (iam-X-2445) -> ebfbfbab-ee50-41b8-8730-b970ee8add41 (iam-Y-2445)
+--- PASS: TestMigrateMergedAccountLocal_2445 (1.16s)
+PASS
+ok  	tuneloop-backend/handlers	1.786s
+R2_EXIT=0

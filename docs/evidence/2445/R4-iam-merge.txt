@@ -1,0 +1,35 @@
+# build=1.0.89327c9c1 commit=89327c9c1421e49f2f9ec2baddae02bb70439590 dirty=false tree=201433388 repo=beaconiam iam_commit=f7ccfcd
+IAM_REPO=/home/coder/beaconiam IAM_HEAD=f7ccfcd
+# github.com/mattn/go-sqlite3
+sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
+sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+123133 |   zTail = strrchr(zName, '_');
+       |         ^
+=== RUN   TestWxBind_NeedsMerge_MintsTicket_2445
+2026/11/22 14:40:44 [DB:INSERT] users id=abc621d6-ea48-436c-b212-dbbebd339214 email= username=x492 status=active role= is_owner=false
+2026/11/22 14:40:45 [DB:INSERT] users id=6589a6df-31dc-4f95-be7e-4ef78b19ff5f email= username=y492 status=active role= is_owner=false
+
+2026/11/22 14:40:45 [31;1m/home/coder/beaconiam/internal/auth/handler.go:1747 [35;1mrecord not found
+[0m[33m[0.082ms] [34;1m[rows:0][0m SELECT * FROM `namespace_apps` WHERE client_id = "merge_app_492" ORDER BY `namespace_apps`.`id` LIMIT 1
+
+2026/11/22 14:40:45 [31;1m/home/coder/beaconiam/internal/auth/handler.go:1828 [35;1mrecord not found
+[0m[33m[0.059ms] [34;1m[rows:0][0m SELECT * FROM `wx_user_bindings` WHERE openid = "openid_W_2445" AND user_id = "abc621d6-ea48-436c-b212-dbbebd339214" ORDER BY `wx_user_bindings`.`id` LIMIT 1
+2026/11/22 14:40:45 [WX-BIND] openid openid_W_2445 already bound to live user 6589a6df-31dc-4f95-be7e-4ef78b19ff5f — needs merge (target abc621d6-ea48-436c-b212-dbbebd339214)
+--- PASS: TestWxBind_NeedsMerge_MintsTicket_2445 (0.35s)
+=== RUN   TestWxMergeConfirm_2445_MergesWithoutPasswordOverwrite
+2026/11/22 14:40:45 [DB:INSERT] users id=86e3dc99-54be-4d73-b68d-87097082dfa6 email= username=x492 status=active role= is_owner=false
+2026/11/22 14:40:45 [DB:INSERT] users id=a618d3ac-56d7-4891-acfd-571ed36a9909 email= username=y492 status=active role= is_owner=false
+2026/11/22 14:40:45 [DB:UPDATE] users id=00000000-0000-0000-0000-000000000000 email= status=init role= org_id=<nil>
+2026/11/22 14:40:45 [DB:INSERT] user_org_relations id=7c255835-ad77-4f76-a03a-b99031681e8a user_id=86e3dc99-54be-4d73-b68d-87097082dfa6 org_id=f0441fd6-0da0-4c96-b6a6-e8fe1cda269c role=member is_active=true
+2026/11/22 14:40:45 [DB:UPDATE] user_org_relations id=00000000-0000-0000-0000-000000000000 user_id=a618d3ac-56d7-4891-acfd-571ed36a9909 org_id=00000000-0000-0000-0000-000000000000 role= is_active=false
+2026/11/22 14:40:45 [DB:UPDATE] users id=00000000-0000-0000-0000-000000000000 email= status=obsolete role= org_id=<nil>
+2026/11/22 14:40:45 [WX-MERGE] merged user 86e3dc99-54be-4d73-b68d-87097082dfa6 into a618d3ac-56d7-4891-acfd-571ed36a9909 (openid W2445)
+--- PASS: TestWxMergeConfirm_2445_MergesWithoutPasswordOverwrite (0.51s)
+=== RUN   TestWxMergeConfirm_2445_RejectsExpiredAndInactiveFrom
+2026/11/22 14:40:45 [DB:INSERT] users id=aafe6dd0-c3a8-487d-a1df-1c5ca1a7b8fa email= username=x492 status=active role= is_owner=false
+2026/11/22 14:40:45 [DB:INSERT] users id=e8c943bd-5819-40c3-aa36-0de2e54ac9c9 email= username=y492 status=active role= is_owner=false
+2026/11/22 14:40:45 [DB:UPDATE] users id=00000000-0000-0000-0000-000000000000 email= status=inactive role= org_id=<nil>
+--- PASS: TestWxMergeConfirm_2445_RejectsExpiredAndInactiveFrom (0.24s)
+PASS
+ok  	beaconiam/internal/auth	1.124s
+IAM_EXIT=0
