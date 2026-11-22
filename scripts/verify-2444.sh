@@ -17,19 +17,41 @@ ART="$OUT/$NAME"
 FIX_REF="${FIX_REF:-HEAD}"
 FIX_SHA="$(git rev-parse "$FIX_REF")"; FIX_SHORT="$(git rev-parse --short "$FIX_REF")"
 BUILD="1.0.$FIX_SHORT"; COMMIT="$FIX_SHA"
-DIRTY=false; [ -n "$(git status --porcelain --untracked-files=no)" ] && DIRTY=true
-backend() { cd "$REPO/backend"; export TMPDIR="$REPO/tmp/gobuild" GOCACHE="$REPO/tmp/gocache"; }
+HEAD_SHA="$(git rev-parse --short HEAD)"
+DIRTY=false; [ -n "$(git status --porcelain -uall)" ] && DIRTY=true
+PROV="# build=$BUILD commit=$COMMIT dirty=$DIRTY tree=$HEAD_SHA"
+backend() { cd "$REPO/backend"; export TMPDIR="${TMPDIR:-$REPO/tmp/gobuild}" GOCACHE="${GOCACHE:-$REPO/tmp/gocache}"; }
 case "$MODE" in
   r1|r2|r3|r4)
-    { echo "# build=$BUILD commit=$COMMIT dirty=$DIRTY"; backend; go test ./handlers/ -run "$TESTS" -count=1 -v; } 2>&1 | tee "$ART"
+    { echo "$PROV"; backend; go test ./handlers/ -run "$TESTS" -count=1 -v; } 2>&1 | tee "$ART"
     exit "${PIPESTATUS[0]}"
     ;;
   r5)
-    { echo "# build=$BUILD commit=$COMMIT dirty=$DIRTY"; cd "$REPO/frontend-pc"; npm run build; rc=$?; echo "BUILD_EXIT=$rc"; [ "$rc" = "0" ] && echo "BUILD_OK"; exit "$rc"; } 2>&1 | tee "$ART"
+    { echo "$PROV"; cd "$REPO/frontend-pc"; npm run build; rc=$?; echo "BUILD_EXIT=$rc"; [ "$rc" = "0" ] && echo "BUILD_OK"; exit "$rc"; } 2>&1 | tee "$ART"
     exit "${PIPESTATUS[0]}"
     ;;
   r6-gate-baseline)
-    { echo "# build=$BUILD commit=$COMMIT dirty=$DIRTY"; backend; go build ./... && go test ./handlers/ -count=1 -timeout 15m; } 2>&1 | tee "$ART"
+    {
+      echo "$PROV"
+      echo "TREE_COMMIT=$(git rev-parse HEAD)"
+      backend
+      echo "BUILD_CMD=go build ./..."
+      go build ./...
+      brc=$?
+      echo "BUILD_EXIT=$brc"
+      [ "$brc" = "0" ] && echo "BUILD_OK"
+      LOG="$REPO/tmp/2444-r6.log"
+      echo "FULL_SUITE_CMD=go test ./handlers/ -count=1 -timeout 15m"
+      go test ./handlers/ -count=1 -timeout 15m > "$LOG" 2>&1
+      trc=$?
+      cat "$LOG"
+      fails="$(grep -c '^--- FAIL' "$LOG" || true)"
+      panics="$(grep -c '^panic:' "$LOG" || true)"
+      echo "FULL_SUITE_EXIT=$trc FAIL_COUNT=${fails:-0} PANIC_COUNT=${panics:-0}"
+      [ "$brc" = "0" ] && [ "$trc" = "0" ] && [ "${fails:-1}" = "0" ] && [ "${panics:-1}" = "0" ] && echo "GATE_OK"
+      [ "$brc" = "0" ] && [ "$trc" = "0" ] && [ "${fails:-1}" = "0" ] && [ "${panics:-1}" = "0" ]
+      exit $?
+    } 2>&1 | tee "$ART"
     exit "${PIPESTATUS[0]}"
     ;;
 esac
