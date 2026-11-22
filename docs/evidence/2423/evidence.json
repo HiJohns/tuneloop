@@ -89,6 +89,34 @@
       "negative": "编译失败 → exit 1",
       "negative_result": "BUILD_EXIT 非 0 时输出 BUILD_FAIL 并 exit 1",
       "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2423.sh r6-gate",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2423/R6-full-gate.txt"
+      ],
+      "actual": "PASS：BUILD_OK；handlers 全量 `ok tuneloop-backend/handlers 799.223s`、0 FAIL、无 panic（HANDLERS_OK）；refund spec 全 PASS（REFUND_SPEC_OK）；FULL_GATE_OK",
+      "negative_result": "构建失败、handlers 出现 FAIL/panic、refund spec FAIL 或日志截断 → FULL_GATE_FAIL + exit 1",
+      "pass": true,
+      "assert": "exit 0；build/handlers/refund 均 PASS；无 panic",
+      "expected": "PASS",
+      "negative": "截断或 FAIL → FAIL"
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2423.sh r7-body",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2423/R7-body.txt"
+      ],
+      "actual": "PASS：FORMULA_LINES=1 FULL=1 OLD=0；body 含 `− R_after_coupon − deductions_total` 全式，无旧简化式残留（BODY_FULL_FORMULA_OK）",
+      "negative_result": "body 缺全式或残留旧简化式 → BODY_FAIL + exit 1",
+      "pass": true,
+      "assert": "exit 0；body 含全式且无旧式",
+      "expected": "PASS",
+      "negative": "旧式残留 → FAIL"
     }
   ]
 }
