@@ -73,7 +73,31 @@ func TestGetCurrentUser_SiteByJWTOrg_2449(t *testing.T) {
 	assert.Nil(t, call("")["site_id"], "customer context (oid empty) must not fall back")
 	assert.Nil(t, call(uuid.NewString())["site_id"], "multi-site unmatched oid must not guess first site")
 
-	// R2: staff list keeps compatibility fields and exposes all active site names.
+}
+
+// R2 (#2449): staff list keeps compatibility fields and exposes all active site names.
+// 独立用例，避免与 R1（/users/me）复用同一证据。
+func TestListStaff_SiteNames_2449(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+	if db == nil {
+		return
+	}
+	tenantID := uuid.NewString()
+	userID := uuid.NewString()
+	require.NoError(t, db.Create(&models.User{
+		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: tenantID,
+		Username: "multi-site-list", Status: "active", IsShadow: false,
+	}).Error)
+
+	siteA, siteB := uuid.NewString(), uuid.NewString()
+	orgA, orgB := uuid.NewString(), uuid.NewString()
+	require.NoError(t, db.Create(&models.Site{ID: siteA, TenantID: tenantID, OrgID: orgA, Name: "SiteA", Status: "active", Type: "normal"}).Error)
+	require.NoError(t, db.Create(&models.Site{ID: siteB, TenantID: tenantID, OrgID: orgB, Name: "SiteB", Status: "active", Type: "normal"}).Error)
+	require.NoError(t, db.Create(&models.SiteMember{TenantID: tenantID, SiteID: siteA, UserID: userID, Role: "site_member", Status: "active"}).Error)
+	require.NoError(t, db.Create(&models.SiteMember{TenantID: tenantID, SiteID: siteB, UserID: userID, Role: "site_member", Status: "active"}).Error)
+
+	h := &UserStaffHandler{}
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
 		actor := testutil.MakeSiteAdmin(tenantID, tenantID, userID)
@@ -99,7 +123,7 @@ func TestGetCurrentUser_SiteByJWTOrg_2449(t *testing.T) {
 		}
 	}
 	require.NotNil(t, row)
-	require.NotNil(t, row["site_id"])
-	require.NotNil(t, row["site_name"])
-	require.ElementsMatch(t, []interface{}{"SiteA", "SiteB"}, row["site_names"])
+	require.NotNil(t, row["site_id"], "compat site_id must be present")
+	require.NotNil(t, row["site_name"], "compat site_name must be present")
+	require.ElementsMatch(t, []interface{}{"SiteA", "SiteB"}, row["site_names"], "site_names must list all active sites")
 }
