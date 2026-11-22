@@ -7,10 +7,75 @@
   "dirty": false,
   "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2334; docs + database + page-smoke; count-independent",
   "rows": [
-    {"id":"R1","command":"bash scripts/verify-2334.sh r1","exit":0,"artifacts":["docs/evidence/2334/R1-docs.txt"],"assert":"exit 0；27 项 keys 全 OK、0 MISS","actual":"PASS：6 份中文文档 27 项 keys 全 OK，0 MISS","expected":"PASS","negative":"MISS → FAIL","negative_result":"任一 MISS 即 exit 1","pass":true},
-    {"id":"R2","command":"bash scripts/verify-2334.sh r2","exit":0,"artifacts":["docs/evidence/2334/R2-en.txt"],"assert":"exit 0；3/3 存在且含字段","actual":"PASS：docs/en/{api,ui,cases}.md 均存在且关键字段命中","expected":"PASS","negative":"缺失 → FAIL","negative_result":"缺文件/字段即 exit 1","pass":true},
-    {"id":"R3","command":"bash scripts/verify-2334.sh r3","exit":0,"artifacts":["docs/evidence/2334/R3-gate.txt"],"assert":"exit 0；BUILD_OK；database ok；smoke 0 failed","actual":"PASS：BUILD_OK；database ok；SMOKE_EXIT=0 / SMOKE_OK（计数无关）","expected":"PASS","negative":"任一失败 → FAIL","negative_result":"非 0 即 exit 1","pass":true},
-    {"id":"R4","command":"bash scripts/verify-2334.sh r4","exit":0,"artifacts":["docs/evidence/2334/R4-stale.txt"],"assert":"exit 0；4 条旧口径 0 命中","actual":"PASS：4 条旧口径均 0 命中","expected":"PASS","negative":"命中 → FAIL","negative_result":"任一命中即 exit 1","pass":true},
-    {"id":"R5","command":"bash scripts/verify-2334.sh r5-provenance","exit":0,"artifacts":["docs/evidence/2334/R5-provenance.txt"],"assert":"exit 0；STATUS_CLEAN；PROVENANCE_OK；首行与 evidence.json 一致","actual":"PASS：STATUS_CLEAN；R1–R4 provenance 一致；PROVENANCE_OK","expected":"PASS","negative":"dirty/不一致 → FAIL","negative_result":"dirty 或首行不一致即 exit 1","pass":true}
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2334.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2334/R1-docs.txt"
+      ],
+      "assert": "exit 0；全 OK 0 MISS",
+      "actual": "PASS：6 份中文文档 27 项 keys 全 OK，0 MISS",
+      "expected": "PASS",
+      "negative": "MISS → FAIL",
+      "negative_result": "任一 MISS 即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2334.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2334/R2-en.txt"
+      ],
+      "assert": "exit 0；3/3 + 字段",
+      "actual": "PASS：docs/en/{api,ui,cases}.md 均存在且关键字段命中",
+      "expected": "PASS",
+      "negative": "缺失 → FAIL",
+      "negative_result": "缺文件/字段即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2334.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2334/R3-gate.txt"
+      ],
+      "assert": "exit 0；BUILD_OK；database ok；smoke 0 failed",
+      "actual": "PASS：BUILD_OK；database ok；SMOKE_EXIT=0 / SMOKE_OK（计数无关）",
+      "expected": "PASS",
+      "negative": "任一失败 → FAIL",
+      "negative_result": "非 0 即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2334.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2334/R4-stale.txt"
+      ],
+      "assert": "exit 0；0 命中旧口径",
+      "actual": "PASS：4 条旧口径均 0 命中",
+      "expected": "PASS",
+      "negative": "命中 → FAIL",
+      "negative_result": "任一命中即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2334.sh r5-provenance",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2334/R5-provenance.txt"
+      ],
+      "assert": "exit 0；STATUS_CLEAN + PROVENANCE_OK",
+      "actual": "PASS：STATUS_CLEAN；R1–R4 provenance 一致；PROVENANCE_OK",
+      "expected": "PASS",
+      "negative": "dirty/不符 → FAIL",
+      "negative_result": "dirty 或首行不一致即 exit 1",
+      "pass": true
+    }
   ]
 }
