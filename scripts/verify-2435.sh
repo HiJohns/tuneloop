@@ -4,15 +4,15 @@ set -uo pipefail
 
 MODE="${1:-}"
 case "$MODE" in
-  r1) NAME="R1-registration-type.txt" ;;
-  r2) NAME="R2-put-type.txt" ;;
-  r3) NAME="R3-render.txt" ;;
-  r4) NAME="R4-save.txt" ;;
-  r5) NAME="R5-pc-detail.txt" ;;
-  r6) NAME="R6-filter.txt" ;;
-  r7) NAME="R7-review.txt" ;;
-  r8) NAME="R8-docs.txt" ;;
-  r9) NAME="R9-full-gate.txt" ;;
+  r1|r1-registration-type) NAME="R1-registration-type.txt" ;;
+  r2|r2-put-type) NAME="R2-put-type.txt" ;;
+  r3|r3-render) NAME="R3-render.txt" ;;
+  r4|r4-save) NAME="R4-save.txt" ;;
+  r5|r5-pc-detail) NAME="R5-pc-detail.txt" ;;
+  r6|r6-filter) NAME="R6-filter.txt" ;;
+  r7|r7-review) NAME="R7-review.txt" ;;
+  r8|r8-docs) NAME="R8-docs.txt" ;;
+  r9|r9-gate-baseline) NAME="R9-full-gate.txt" ;;
   *) echo "usage: $0 <r1..r9>" >&2; exit 2 ;;
 esac
 
@@ -20,11 +20,14 @@ REPO="$(git rev-parse --show-toplevel)"; cd "$REPO"
 OUT_DIR="${OUT_DIR:-$REPO/docs/evidence/2435}"
 mkdir -p "$OUT_DIR" "$REPO/tmp/gobuild" "$REPO/tmp/gocache"
 ART="$OUT_DIR/$NAME"
-BUILD="1.0.$(git rev-parse --short HEAD)"
-COMMIT="$(git rev-parse HEAD)"
+FIX_REF="${FIX_REF:-HEAD}"
+FIX_SHA="$(git rev-parse "$FIX_REF")"; FIX_SHORT="$(git rev-parse --short "$FIX_REF")"
+HEAD_SHA="$(git rev-parse --short HEAD)"
+BUILD="1.0.$FIX_SHORT"
+COMMIT="$FIX_SHA"
 DIRTY=false
-[ -n "$(git status --porcelain --untracked-files=no)" ] && DIRTY=true
-PROV="# build=$BUILD commit=$COMMIT dirty=$DIRTY"
+[ -n "$(git status --porcelain -uall)" ] && DIRTY=true
+PROV="# build=$BUILD commit=$COMMIT dirty=$DIRTY tree=$HEAD_SHA"
 
 node22() {
   if [ -s "$HOME/.nvm/nvm.sh" ]; then
@@ -34,11 +37,11 @@ node22() {
 }
 backend() {
   cd "$REPO/backend"
-  export TMPDIR="$REPO/tmp/gobuild" GOCACHE="$REPO/tmp/gocache"
+  export TMPDIR="${TMPDIR:-$REPO/tmp/gobuild}" GOCACHE="${GOCACHE:-$REPO/tmp/gocache}"
   set -a; . ./.env; set +a
 }
 
-case "$MODE" in
+case "${MODE%%-*}" in
   r1)
     { echo "$PROV"; backend; go test ./handlers/ -run 'TestRegistrationSecondDocType_Persisted' -count=1 -v; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
   r2)
@@ -55,6 +58,6 @@ case "$MODE" in
     { echo "$PROV"; backend; go test ./handlers/ -run 'TestFaceReview_Registration_AutoEnqueuesSecondDoc_2435|TestRequeueSecondDocBatches' -count=1 -v; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
   r8)
     { echo "$PROV"; grep -q '用户自报' docs/cases/id-photos.md; grep -q '待审核' docs/cases/user-management.md; grep -q '四态' docs/spec/ui/ui.md; grep -q 'id_photo_other_type' docs/spec/api/api.md; echo "DOCS_OK"; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
-  r9)
-    { echo "$PROV"; backend; go build ./...; go test ./handlers/ -count=1 -timeout 10m; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
+  r9|r9-gate-baseline)
+    { echo "$PROV"; backend; go build ./... && go test ./handlers/ -count=1 -timeout 10m; } 2>&1 | tee "$ART"; exit "${PIPESTATUS[0]}" ;;
 esac
