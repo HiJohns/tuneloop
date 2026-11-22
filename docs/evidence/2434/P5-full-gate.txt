@@ -1,0 +1,381 @@
+# build=1.0.7cd1c190f commit=7cd1c190fffc13ee9f37988841acb00ac5a7aabb dirty=false tree=7d464a7a5
+BUILD_CMD=go build ./...
+BUILD_EXIT=0
+BUILD_OK
+FULL_SUITE_CMD=go test ./... -count=1 -timeout 20m
+?   	tuneloop-backend	[no test files]
+?   	tuneloop-backend/cmd/migrate	[no test files]
+[DEBUG] Loaded .env from: ../.env
+2026/11/22 15:37:19 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:37:19 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:37:19 [DB] Connected to database 'tuneloop_debug'
+2026/11/22 15:37:19 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:37:19 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:37:19 [DB] Connected to database 'tuneloop_debug'
+2026/11/22 15:37:19 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:37:19 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:37:19 [DB] Connected to database 'tuneloop_debug'
+2026/11/22 15:37:19 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:37:19 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:37:19 [DB] Connected to database 'tuneloop_debug'
+2026/11/22 15:37:19 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:37:19 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:37:19 [DB] Connected to database 'tuneloop_debug'
+Warning: cannot read migration status for artifact check: failed to create migrate instance: failed to open source, "file://database/migrations": open .: no such file or directory
+
+2026/11/22 15:37:20 [32m/tmp/opencode/tuneloop/wt-2434/backend/database/settlement_model_2360_test.go:82 [33mSLOW SQL >= 200ms
+[0m[31;1m[891.177ms] [33m[rows:0][35m CREATE DATABASE "tuneloop_test_2434_vr"[0m
+
+2026/11/22 15:37:21 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/database/settlement_model_2360_test.go:205 [35;1mERROR: duplicate key value violates unique constraint "idx_settlement_active_order" (SQLSTATE 23505)
+[0m[33m[2.310ms] [34;1m[rows:0][0m INSERT INTO settlement_calculations
+            (order_id, trigger, ledger_version, settlement_version, status, calculated_at)
+            VALUES ('c0618136-183b-4dc9-8062-3097abeb02e8', 'confirm', 2, 2, 'confirmed', now())
+
+2026/11/22 15:37:21 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/database/settlement_model_2360_test.go:205 [35;1mERROR: duplicate key value violates unique constraint "idx_settlement_active_order" (SQLSTATE 23505)
+[0m[33m[1.702ms] [34;1m[rows:0][0m INSERT INTO settlement_calculations
+            (order_id, trigger, ledger_version, settlement_version, status, calculated_at)
+            VALUES ('c0618136-183b-4dc9-8062-3097abeb02e8', 'confirm', 3, 3, 'processing', now())
+
+2026/11/22 15:37:21 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/database/settlement_model_2360_test.go:205 [35;1mERROR: duplicate key value violates unique constraint "idx_settlement_active_order" (SQLSTATE 23505)
+[0m[33m[1.388ms] [34;1m[rows:0][0m INSERT INTO settlement_calculations
+            (order_id, trigger, ledger_version, settlement_version, status, calculated_at)
+            VALUES ('c0618136-183b-4dc9-8062-3097abeb02e8', 'confirm', 4, 4, 'succeeded', now())
+
+2026/11/22 15:37:21 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/database/settlement_model_2360_test.go:205 [35;1mERROR: duplicate key value violates unique constraint "idx_settlement_active_order" (SQLSTATE 23505)
+[0m[33m[1.383ms] [34;1m[rows:0][0m INSERT INTO settlement_calculations
+            (order_id, trigger, ledger_version, settlement_version, status, calculated_at)
+            VALUES ('c0618136-183b-4dc9-8062-3097abeb02e8', 'confirm', 5, 5, 'partially_succeeded', now())
+
+2026/11/22 15:37:21 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/database/settlement_model_2360_test.go:205 [35;1mERROR: duplicate key value violates unique constraint "idx_settlement_active_order" (SQLSTATE 23505)
+[0m[33m[1.485ms] [34;1m[rows:0][0m INSERT INTO settlement_calculations
+            (order_id, trigger, ledger_version, settlement_version, status, calculated_at)
+            VALUES ('c0618136-183b-4dc9-8062-3097abeb02e8', 'confirm', 6, 6, 'failed_retryable', now())
+--- FAIL: TestSchemaValidationSettlement_2360 (0.40s)
+    settlement_model_2360_test.go:251: 
+        	Error Trace:	/tmp/opencode/tuneloop/wt-2434/backend/database/settlement_model_2360_test.go:251
+        	Error:      	Received unexpected error:
+        	            	schema validation failed: table settlement_calculations missing column supersedes
+        	Test:       	TestSchemaValidationSettlement_2360
+        	Messages:   	settlement_calculations columns
+2026/11/22 15:37:21 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:37:21 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:37:21 [DB] Connected to database 'tuneloop_debug'
+2026/11/22 15:37:21 [TenantScope][observe] auto-scope injected for table=ts2261_items (add explicit scope, then set ExplicitTenantScopeOnly)
+FAIL
+FAIL	tuneloop-backend/database	2.097s
+# github.com/mattn/go-sqlite3
+sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
+sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+123133 |   zTail = strrchr(zName, '_');
+       |         ^
+ok  	tuneloop-backend/handlers	731.569s
+?   	tuneloop-backend/handlers/testfixtures	[no test files]
+?   	tuneloop-backend/internal/engine	[no test files]
+?   	tuneloop-backend/internal/service	[no test files]
+?   	tuneloop-backend/internal/tasks	[no test files]
+[DEBUG] Loaded .env from: ../.env
+2026/11/22 15:37:49 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 15:37:49 [IAM] Subject rejected: user u-1 not found in IAM (account deleted)
+2026/11/22 15:37:49 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 15:37:49 [IAM] Subject rejected: user u-1 has status "inactive"
+2026/11/22 15:37:49 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 15:37:49 [IAM] Subject rejected: token for user u-1 predates token_version bump (iat=1795361809 s < tv=1795361879277 ms)
+2026/11/22 15:37:49 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 15:37:49 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 15:37:49 [IAM WARNING] Subject check unavailable for user u-1, failing open: GetUser returned status 500: 
+--- FAIL: TestSysPermBitNames_Completeness (0.00s)
+    permissions_test.go:123: SysPerm bit permission:create has out-of-range bit 27
+    permissions_test.go:123: SysPerm bit permission:update has out-of-range bit 28
+    permissions_test.go:123: SysPerm bit permission:list has out-of-range bit 26
+    permissions_test.go:123: SysPerm bit permission:view has out-of-range bit 25
+    permissions_test.go:123: SysPerm bit permission:delete has out-of-range bit 29
+    permissions_test.go:131: Expected 25 sys_perm bits (0-24), got 30
+FAIL
+FAIL	tuneloop-backend/middleware	0.026s
+ok  	tuneloop-backend/models	0.009s
+--- FAIL: TestResolveCategory (0.00s)
+    --- FAIL: TestResolveCategory/exact_match_found (0.00s)
+        instrument_test.go:228: resolveCategory() error = failed to create default category: all expectations were already fulfilled, call to database transaction Begin was not expected, wantErr false
+    --- FAIL: TestResolveCategory/fuzzy_match_found (0.00s)
+        instrument_test.go:228: resolveCategory() error = failed to create default category: all expectations were already fulfilled, call to database transaction Begin was not expected, wantErr false
+    --- FAIL: TestResolveCategory/no_match_-_use_default_category (0.00s)
+        instrument_test.go:228: resolveCategory() error = failed to create default category: all expectations were already fulfilled, call to database transaction Begin was not expected, wantErr false
+--- FAIL: TestValidateRequiredColumns (0.00s)
+    --- FAIL: TestValidateRequiredColumns/missing_name_column (0.00s)
+        instrument_test.go:283: validateRequiredColumns() error = <nil>, wantErr true
+--- FAIL: TestParseHeaderRow (0.00s)
+    --- FAIL: TestParseHeaderRow/english_headers (0.00s)
+        instrument_test.go:335: parseHeaderRow() returned 2 fields, want 3
+    --- FAIL: TestParseHeaderRow/chinese_headers (0.00s)
+        instrument_test.go:335: parseHeaderRow() returned 2 fields, want 3
+    --- FAIL: TestParseHeaderRow/mixed_headers (0.00s)
+        instrument_test.go:335: parseHeaderRow() returned 2 fields, want 3
+FAIL
+FAIL	tuneloop-backend/service	0.013s
+[DEBUG] Loaded .env from: ../.env
+2026/11/22 15:39:12 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:39:12 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:39:12 [DB] Connected to database 'tuneloop_debug'
+
+2026/11/22 15:39:12 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/collection_reminder_scheduler.go:135 [35;1mrecord not found
+[0m[33m[5.207ms] [34;1m[rows:0][0m SELECT * FROM "instruments" WHERE id = 'd49d7000-ede8-41a4-97a8-f60524433b07' ORDER BY "instruments"."id" LIMIT 1
+2026/11/22 15:39:12 [CollectionReminderScheduler] reminded 1/1 overdue shortfall orders
+2026/11/22 15:39:12 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:39:12 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:39:12 [DB] Connected to database 'tuneloop_debug'
+2026/11/22 15:39:13 [CollectionReminderScheduler] reminded 1/1 overdue shortfall orders
+2026/11/22 15:39:13 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:39:13 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:39:13 [DB] Connected to database 'tuneloop_debug'
+
+2026/11/22 15:39:14 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/collection_reminder_scheduler.go:135 [35;1mrecord not found
+[0m[33m[3.877ms] [34;1m[rows:0][0m SELECT * FROM "instruments" WHERE id = 'd83f552c-1dd2-4739-9e72-c6a3308ae9e7' ORDER BY "instruments"."id" LIMIT 1
+2026/11/22 15:39:14 [CollectionReminderScheduler] reminded 1/1 overdue shortfall orders
+2026/11/22 15:39:14 [DualStorage] OSS upload failed (soft) key=c.jpg: put failed
+2026/11/22 15:39:14 [MediaStorage] STORAGE_MODE=oss but OSS_ENDPOINT/OSS_BUCKET missing — falling back to LocalStorage
+2026/11/22 15:39:14 [MediaStorage] STORAGE_MODE=dual but OSS_ENDPOINT/OSS_BUCKET missing — falling back to LocalStorage
+2026/11/22 15:39:14 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:39:14 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:39:14 [DB] Connected to database 'tuneloop_debug'
+
+2026/11/22 15:39:14 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/email.go:267 [35;1mrecord not found
+[0m[33m[3.937ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE tenant_id = '00000000-0000-0000-0000-000000000000' AND setting_key = 'warning_notification' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/22 15:39:14 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/email.go:280 [35;1mrecord not found
+[0m[33m[1.295ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE tenant_id = '00000000-0000-0000-0000-000000000000' AND setting_key = 'warning_notification' ORDER BY "system_settings"."id" LIMIT 1
+2026/11/22 15:39:14 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:39:14 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:39:14 [DB] Connected to database 'tuneloop_debug'
+
+2026/11/22 15:39:14 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/email.go:267 [35;1mrecord not found
+[0m[33m[4.356ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE tenant_id = '00000000-0000-0000-0000-000000000000' AND setting_key = 'warning_notification' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/22 15:39:14 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/email.go:280 [35;1mrecord not found
+[0m[33m[1.947ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE tenant_id = '00000000-0000-0000-0000-000000000000' AND setting_key = 'warning_notification' ORDER BY "system_settings"."id" LIMIT 1
+2026/11/22 15:39:14 [WarningNotify] WeChat alert to merchant_admin: warning 6d955a60-d5a4-4f39-ad3a-a369ed53f2a2 (test-send)
+2026/11/22 15:39:14 [WarningNotify] WeChat alert to site_admin: warning 6d955a60-d5a4-4f39-ad3a-a369ed53f2a2 (test-send)
+
+2026/11/22 15:39:14 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/email.go:88 [35;1mrecord not found
+[0m[33m[1.992ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE tenant_id = '00000000-0000-0000-0000-000000000000' AND setting_key = 'smtp_config' ORDER BY "system_settings"."id" LIMIT 1
+2026/11/22 15:39:14 [WarningEmail] send failed warning=6d955a60-d5a4-4f39-ad3a-a369ed53f2a2 level=high: SMTP 未配置（界面与 .env 均无可用配置）
+
+2026/11/22 15:39:14 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/webhook.go:191 [35;1mrecord not found
+[0m[33m[4.495ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE id = 'bbd1e2dc-26a4-4cb2-88bc-ee854dde013c' OR org_id = 'bbd1e2dc-26a4-4cb2-88bc-ee854dde013c' ORDER BY "merchants"."id" LIMIT 1
+2026/11/22 15:39:14 [WarningNotify] WeChat alert to merchant_admin: warning 6d955a60-d5a4-4f39-ad3a-a369ed53f2a2 (test-send)
+2026/11/22 15:39:14 [WarningNotify] WeChat alert to site_admin: warning 6d955a60-d5a4-4f39-ad3a-a369ed53f2a2 (test-send)
+
+2026/11/22 15:39:14 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/email.go:88 [35;1mrecord not found
+[0m[33m[2.099ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE tenant_id = '00000000-0000-0000-0000-000000000000' AND setting_key = 'smtp_config' ORDER BY "system_settings"."id" LIMIT 1
+2026/11/22 15:39:14 [WarningEmail] sent via personal warning=6d955a60-d5a4-4f39-ad3a-a369ed53f2a2 level=high recipients=1
+
+2026/11/22 15:39:14 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/webhook.go:191 [35;1mrecord not found
+[0m[33m[1.963ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE id = 'bbd1e2dc-26a4-4cb2-88bc-ee854dde013c' OR org_id = 'bbd1e2dc-26a4-4cb2-88bc-ee854dde013c' ORDER BY "merchants"."id" LIMIT 1
+2026/11/22 15:39:14 [WarningNotify] WeChat alert to merchant_admin: warning 6d955a60-d5a4-4f39-ad3a-a369ed53f2a2 (test-send)
+2026/11/22 15:39:14 [WarningNotify] WeChat alert to site_admin: warning 6d955a60-d5a4-4f39-ad3a-a369ed53f2a2 (test-send)
+
+2026/11/22 15:39:14 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/webhook.go:191 [35;1mrecord not found
+[0m[33m[2.031ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE id = 'bbd1e2dc-26a4-4cb2-88bc-ee854dde013c' OR org_id = 'bbd1e2dc-26a4-4cb2-88bc-ee854dde013c' ORDER BY "merchants"."id" LIMIT 1
+2026/11/22 15:39:14 [IAMClient] ListUsers: baseURL=http://127.0.0.1:44501, namespace=tuneloop_1, clientID=test-ns
+2026/11/22 15:39:14 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 15:39:14 [IAMClient] ListUsers: statusCode=200, responseLen=164
+2026/11/22 15:39:14 [IAMClient] ListUsers: parsed result - users count=1, data count=0
+2026/11/22 15:39:14 [IAMClient] ListUsers: returning 1 users from 'users' field
+2026/11/22 15:39:14 [IAMClient] CreateOrGetUser: user u-1 matched only by username "lisi" with different email/phone, rejecting
+2026/11/22 15:39:14 [IAMClient] ListUsers: baseURL=http://127.0.0.1:43791, namespace=tuneloop_1, clientID=test-ns
+2026/11/22 15:39:14 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 15:39:14 [IAMClient] ListUsers: statusCode=200, responseLen=164
+2026/11/22 15:39:14 [IAMClient] ListUsers: parsed result - users count=1, data count=0
+2026/11/22 15:39:14 [IAMClient] ListUsers: returning 1 users from 'users' field
+2026/11/22 15:39:14 [IAMClient] CreateOrGetUser: conflicts found, returning existing user u-1
+2026/11/22 15:39:14 [IAMClient] ListUsers: baseURL=http://127.0.0.1:43371, namespace=tuneloop_1, clientID=test-ns
+2026/11/22 15:39:14 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 15:39:14 [IAMClient] ListUsers: statusCode=200, responseLen=164
+2026/11/22 15:39:14 [IAMClient] ListUsers: parsed result - users count=1, data count=0
+2026/11/22 15:39:14 [IAMClient] ListUsers: returning 1 users from 'users' field
+2026/11/22 15:39:14 [IAMClient] CreateOrGetUser: conflicts found, returning existing user u-1
+2026/11/22 15:39:14 [IAMClient] ListUsers: baseURL=http://127.0.0.1:43243, namespace=tuneloop_1, clientID=test-ns
+2026/11/22 15:39:14 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 15:39:14 [IAMClient] ListUsers: statusCode=200, responseLen=13
+2026/11/22 15:39:14 [IAMClient] ListUsers: parsed result - users count=0, data count=0
+2026/11/22 15:39:14 [IAMClient] ListUsers: returning 0 users from 'data' field
+2026/11/22 15:39:14 [IAMClient] Created user via CreateOrGetUser: user_id=new-user-123
+2026/11/22 15:39:14 [IAMClient] ListUsers: baseURL=http://127.0.0.1:39031, namespace=tuneloop_1, clientID=test-ns
+2026/11/22 15:39:14 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 15:39:14 [IAMClient] ListUsers: statusCode=200, responseLen=158
+2026/11/22 15:39:14 [IAMClient] ListUsers: parsed result - users count=1, data count=0
+2026/11/22 15:39:14 [IAMClient] ListUsers: returning 1 users from 'users' field
+2026/11/22 15:39:14 [IAMClient] CreateOrGetUser: user u-1 matched only by username "lisi" with different email/phone, rejecting
+2026/11/22 15:39:14 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 15:39:14 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 15:39:14 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 15:39:14 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/22 15:39:14 [IAMClient] Updated user: user_id=u-1
+2026/11/22 15:39:14 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:39:14 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:39:14 [DB] Connected to database 'tuneloop_debug'
+2026/11/22 15:39:15 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:39:15 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:39:15 [DB] Connected to database 'tuneloop_debug'
+2026/11/22 15:39:15 [membership] upgrade blocked for user 00000000-0000-0000-0000-0000000001a1: 存在逾期未归还订单（orders.status=expired）
+2026/11/22 15:39:15 [membership] upgrade blocked for user 00000000-0000-0000-0000-0000000001a1: 存在未支付补缴记录（damage/repair/loss pending）
+2026/11/22 15:39:15 [membership] upgrade blocked for user 00000000-0000-0000-0000-0000000001e1: 存在未结损坏流程（pending_damage_response/damage_appealing）
+2026/11/22 15:39:15 [membership] upgrade blocked for user 00000000-0000-0000-0000-0000000001e1: 存在未决申诉（pending/reviewing/forwarded）
+2026/11/22 15:39:15 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:39:15 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:39:15 [DB] Connected to database 'tuneloop_debug'
+2026/11/22 15:39:16 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:39:16 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:39:16 [DB] Connected to database 'tuneloop_debug'
+2026/11/22 15:39:17 [PaymentAllocation] legacy audit legacy_derived_rent_cash for order bdfc8013-aaa2-4f91-9b03-cb9a7c11e62f: legacy fallback: paid_net=100000 deposit=0 derived_rent=100000 (no deposit deductions, no allocation rows)
+2026/11/22 15:39:17 [PaymentAllocation] legacy audit legacy_policy_unresolved for order 380c9cbf-f8ed-46f8-92bc-eeeacdfd63d4: deposit deductions detected (1 overdue charge rows); derived rent is forbidden
+2026/11/22 15:39:17 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:39:17 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:39:17 [DB] Connected to database 'tuneloop_debug'
+2026/11/22 15:39:17 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:39:17 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:39:17 [DB] Connected to database 'tuneloop_debug'
+2026/11/22 15:39:18 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:39:18 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:39:18 [DB] Connected to database 'tuneloop_debug'
+2026/11/22 15:39:18 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:39:18 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:39:18 [DB] Connected to database 'tuneloop_debug'
+2026/11/22 15:39:18 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:39:18 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:39:18 [DB] Connected to database 'tuneloop_debug'
+2026/11/22 15:39:19 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:39:19 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:39:19 [DB] Connected to database 'tuneloop_debug'
+2026/11/22 15:39:19 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:39:19 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:39:19 [DB] Connected to database 'tuneloop_debug'
+2026/11/22 15:39:19 [PointBatchScheduler] expired 1 batches, total 1.50
+2026/11/22 15:39:19 [PointBatchScheduler] reminded 1 expiring batches
+
+2026/11/22 15:39:19 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/rent_calculator.go:258 [35;1mno such table: promo_plans
+[0m[33m[0.186ms] [34;1m[rows:0][0m SELECT * FROM `promo_plans` WHERE plan_type = "promo_campaign" AND is_active = true AND (start_date IS NULL OR start_date <= "2026-11-22") AND (end_date IS NULL OR end_date >= "2026-11-22") ORDER BY scope_type ASC, created_at ASC
+
+2026/11/22 15:39:19 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/rent_calculator.go:258 [35;1mno such table: promo_plans
+[0m[33m[0.173ms] [34;1m[rows:0][0m SELECT * FROM `promo_plans` WHERE plan_type = "promo_campaign" AND is_active = true AND (start_date IS NULL OR start_date <= "2026-11-22") AND (end_date IS NULL OR end_date >= "2026-11-22") ORDER BY scope_type ASC, created_at ASC
+2026/11/22 15:39:19 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:39:19 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:39:19 [DB] Connected to database 'tuneloop_debug'
+
+2026/11/22 15:39:20 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/email.go:147 [35;1mrecord not found
+[0m[33m[4.204ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE tenant_id = '00000000-0000-0000-0000-000000000000' AND setting_key = 'smtp_config' ORDER BY "system_settings"."id" LIMIT 1
+2026/11/22 15:39:20 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:39:20 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:39:20 [DB] Connected to database 'tuneloop_debug'
+
+2026/11/22 15:39:20 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/email.go:129 [35;1mrecord not found
+[0m[33m[4.415ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE tenant_id = '00000000-0000-0000-0000-000000000000' AND setting_key = 'smtp_config' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/22 15:39:20 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/email.go:147 [35;1mrecord not found
+[0m[33m[2.287ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE tenant_id = '00000000-0000-0000-0000-000000000000' AND setting_key = 'smtp_config' ORDER BY "system_settings"."id" LIMIT 1
+2026/11/22 15:39:20 [Mail] primary (UI) send failed, falling back to env SMTP: primary down
+
+2026/11/22 15:39:20 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/email.go:88 [35;1mrecord not found
+[0m[33m[1.642ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE tenant_id = '00000000-0000-0000-0000-000000000000' AND setting_key = 'smtp_config' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/22 15:39:20 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/settlement_executor_2361.go:307 [35;1mrecord not found
+[0m[33m[15.700ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = 'f903378e-735b-4ff7-8a70-d3825a2b188d' AND settlement_version = 1 ORDER BY "settlement_calculations"."id" LIMIT 1
+
+2026/11/22 15:39:20 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/settlement_executor_2361.go:323 [35;1mrecord not found
+[0m[33m[4.938ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = 'f903378e-735b-4ff7-8a70-d3825a2b188d' AND status IN ('confirmed','processing','succeeded','partially_succeeded','failed_retryable') ORDER BY "settlement_calculations"."id" LIMIT 1
+
+2026/11/22 15:39:21 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/settlement_executor_2361.go:307 [35;1mrecord not found
+[0m[33m[3.299ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = 'bcb51f5a-8c17-4799-a33f-8d3676bd0883' AND settlement_version = 1 ORDER BY "settlement_calculations"."id" LIMIT 1
+
+2026/11/22 15:39:21 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/settlement_executor_2361.go:323 [35;1mrecord not found
+[0m[33m[2.352ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = 'bcb51f5a-8c17-4799-a33f-8d3676bd0883' AND status IN ('confirmed','processing','succeeded','partially_succeeded','failed_retryable') ORDER BY "settlement_calculations"."id" LIMIT 1
+
+2026/11/22 15:39:21 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/settlement_executor_2361.go:395 [35;1mFATAL: terminating connection due to administrator command (SQLSTATE 57P01)
+[0m[33m[1.508ms] [34;1m[rows:0][0m INSERT INTO "settlement_action_ledger" ("settlement_id","order_id","settlement_version","action_type","idempotency_key","payment_channel","channel_txn_id","original_txn_id","executed_amount_cents","executed_points","retry_count","status","error_message","created_at","updated_at","id") VALUES ('b84b9504-551c-4465-8064-d244b50793bf','bcb51f5a-8c17-4799-a33f-8d3676bd0883',1,'fee_charge','b84b9504-551c-4465-8064-d244b50793bf:fee_charge:order:bcb51f5a-8c17-4799-a33f-8d3676bd0883','',NULL,NULL,46000,0,0,'pending',NULL,'2026-11-22 15:39:21.36','2026-11-22 15:39:21.36','9179c505-56f5-4e78-9342-e05a9585b600') ON CONFLICT DO NOTHING RETURNING "id"
+
+2026/11/22 15:39:21 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/settlement_executor_2361_test.go:226 [35;1mrecord not found
+[0m[33m[13.173ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = 'bcb51f5a-8c17-4799-a33f-8d3676bd0883' ORDER BY "settlement_calculations"."id" LIMIT 1
+--- FAIL: TestSettlementExecutorIdempotency_2361 (0.42s)
+    settlement_executor_2361_test.go:226: 
+        	Error Trace:	/tmp/opencode/tuneloop/wt-2434/backend/services/settlement_executor_2361_test.go:226
+        	Error:      	Received unexpected error:
+        	            	record not found
+        	Test:       	TestSettlementExecutorIdempotency_2361
+
+2026/11/22 15:39:21 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/settlement_executor_2361.go:307 [35;1mrecord not found
+[0m[33m[3.856ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = '4714ee96-3186-47b2-a358-fefaaeba3951' AND settlement_version = 1 ORDER BY "settlement_calculations"."id" LIMIT 1
+
+2026/11/22 15:39:21 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/settlement_executor_2361.go:323 [35;1mrecord not found
+[0m[33m[2.066ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = '4714ee96-3186-47b2-a358-fefaaeba3951' AND status IN ('confirmed','processing','succeeded','partially_succeeded','failed_retryable') ORDER BY "settlement_calculations"."id" LIMIT 1
+
+2026/11/22 15:39:22 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/settlement_executor_2361.go:307 [35;1mrecord not found
+[0m[33m[2.654ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = 'cfcdac3c-6fe5-4371-9b96-1413a94b86a9' AND settlement_version = 1 ORDER BY "settlement_calculations"."id" LIMIT 1
+
+2026/11/22 15:39:22 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/settlement_executor_2361.go:323 [35;1mrecord not found
+[0m[33m[1.680ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = 'cfcdac3c-6fe5-4371-9b96-1413a94b86a9' AND status IN ('confirmed','processing','succeeded','partially_succeeded','failed_retryable') ORDER BY "settlement_calculations"."id" LIMIT 1
+
+2026/11/22 15:39:22 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/settlement_executor_2361.go:479 [35;1mFATAL: terminating connection due to administrator command (SQLSTATE 57P01); conn closed
+[0m[33m[3.936ms] [34;1m[rows:0][0m UPDATE "settlement_action_ledger" SET "channel_txn_id"='txn-points_restore',"status"='succeeded',"updated_at"='2026-11-22 15:39:22.348' WHERE id = '89a84996-3f52-4f62-940a-a8c35be69f84'
+--- FAIL: TestSettlementExecutorReversal_2361 (0.45s)
+    settlement_executor_2361_test.go:285: 
+        	Error Trace:	/tmp/opencode/tuneloop/wt-2434/backend/services/settlement_executor_2361_test.go:285
+        	Error:      	Received unexpected error:
+        	            	FATAL: terminating connection due to administrator command (SQLSTATE 57P01); conn closed
+        	Test:       	TestSettlementExecutorReversal_2361
+
+2026/11/22 15:39:22 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/settlement_executor_2361.go:307 [35;1mrecord not found
+[0m[33m[2.720ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = '8df73652-ee98-404b-b033-3686287acb8f' AND settlement_version = 1 ORDER BY "settlement_calculations"."id" LIMIT 1
+
+2026/11/22 15:39:22 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/settlement_executor_2361.go:323 [35;1mrecord not found
+[0m[33m[2.145ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = '8df73652-ee98-404b-b033-3686287acb8f' AND status IN ('confirmed','processing','succeeded','partially_succeeded','failed_retryable') ORDER BY "settlement_calculations"."id" LIMIT 1
+2026/11/22 15:39:23 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:39:23 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:39:23 [DB] Connected to database 'tuneloop_debug'
+
+2026/11/22 15:39:23 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/webhook.go:170 [35;1mrecord not found
+[0m[33m[5.512ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE tenant_id = '276429c5-a56e-40b7-97d7-b05f9df57e96' AND setting_key = 'notification_webhook' ORDER BY "system_settings"."id" LIMIT 1
+2026/11/22 15:39:23 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:39:23 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:39:23 [DB] Connected to database 'tuneloop_debug'
+
+2026/11/22 15:39:23 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/email.go:280 [35;1mrecord not found
+[0m[33m[4.438ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE tenant_id = '00000000-0000-0000-0000-000000000000' AND setting_key = 'warning_notification' ORDER BY "system_settings"."id" LIMIT 1
+2026/11/22 15:39:23 [WarningNotify] WeChat alert to merchant_admin: warning ad4711f8-eab2-402a-9f5c-a1e1e8fa1a0b (routing-test)
+2026/11/22 15:39:23 [WarningNotify] WeChat alert to site_admin: warning ad4711f8-eab2-402a-9f5c-a1e1e8fa1a0b (routing-test)
+2026/11/22 15:39:23 [WarningWebhook] sent warning=ad4711f8-eab2-402a-9f5c-a1e1e8fa1a0b
+
+2026/11/22 15:39:23 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/webhook.go:170 [35;1mrecord not found
+[0m[33m[2.049ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE tenant_id = 'f559cd38-2bdc-411f-8824-5313dcee46da' AND setting_key = 'notification_webhook' ORDER BY "system_settings"."id" LIMIT 1
+2026/11/22 15:39:23 [WarningNotify] WeChat alert to merchant_admin: warning ad4711f8-eab2-402a-9f5c-a1e1e8fa1a0b (routing-test)
+2026/11/22 15:39:23 [WarningNotify] WeChat alert to site_admin: warning ad4711f8-eab2-402a-9f5c-a1e1e8fa1a0b (routing-test)
+
+2026/11/22 15:39:23 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/webhook.go:110 [35;1mrecord not found
+[0m[33m[2.122ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE tenant_id = 'af47e2a1-4330-425c-95f0-ad0fadf98cd9' AND setting_key = 'notification_webhook' ORDER BY "system_settings"."id" LIMIT 1
+2026/11/22 15:39:23 [WarningWebhook] sent warning=ad4711f8-eab2-402a-9f5c-a1e1e8fa1a0b
+2026/11/22 15:39:23 [WarningNotify] WeChat alert to merchant_admin: warning ad4711f8-eab2-402a-9f5c-a1e1e8fa1a0b (routing-test)
+2026/11/22 15:39:23 [WarningNotify] WeChat alert to site_admin: warning ad4711f8-eab2-402a-9f5c-a1e1e8fa1a0b (routing-test)
+2026/11/22 15:39:23 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug sslmode=disable
+2026/11/22 15:39:23 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_debug
+2026/11/22 15:39:23 [DB] Connected to database 'tuneloop_debug'
+
+2026/11/22 15:39:23 [31;1m/tmp/opencode/tuneloop/wt-2434/backend/services/webhook.go:191 [35;1mrecord not found
+[0m[33m[1.421ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE id = 'd4349936-6abd-465e-8e04-83c88a09dc02' OR org_id = 'd4349936-6abd-465e-8e04-83c88a09dc02' ORDER BY "merchants"."id" LIMIT 1
+2026/11/22 15:39:23 [WechatShipping] upload attempt 1/2 failed for virtual membership (out_trade_no=out_trade_1 transaction_id=tx_1): wechat upload_shipping_info error 10060001: 支付单不存在
+2026/11/22 15:39:23 [WechatShipping] upload_shipping_info ok label=virtual membership out_trade_no=out_trade_1 transaction_id=tx_1
+2026/11/22 15:39:23 [WechatShipping] upload attempt 1/2 failed for virtual membership (out_trade_no=out_trade_2 transaction_id=tx_2): wechat upload_shipping_info error 10060001: 支付单不存在
+2026/11/22 15:39:24 [WechatShipping] upload attempt 2/2 failed for virtual membership (out_trade_no=out_trade_2 transaction_id=tx_2): wechat upload_shipping_info error 10060001: 支付单不存在
+2026/11/22 15:39:24 [WechatShipping] upload_shipping_info gave up after 2 attempts for virtual membership (out_trade_no=out_trade_2 transaction_id=tx_2): wechat upload_shipping_info error 10060001: 支付单不存在
+FAIL
+FAIL	tuneloop-backend/services	11.894s
+ok  	tuneloop-backend/services/tencentcloud	0.006s
+ok  	tuneloop-backend/services/wechatpay	0.062s
+?   	tuneloop-backend/testutil	[no test files]
+?   	tuneloop-backend/tools/merge_duplicate_accounts	[no test files]
+?   	tuneloop-backend/tools/oss_smoke	[no test files]
+FAIL
+FULL_SUITE_EXIT=1 FAIL_COUNT=7
+BASELINE_FAIL:
+tuneloop-backend/database
+tuneloop-backend/middleware
+tuneloop-backend/service
+tuneloop-backend/services
+P5_BASELINE_OK

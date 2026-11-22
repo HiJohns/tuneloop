@@ -1,0 +1,9 @@
+# build=1.0.7cd1c190f commit=7cd1c190fffc13ee9f37988841acb00ac5a7aabb dirty=false tree=7d464a7a5
+WORKTREE_CLEAN_OK
+OK R0-red
+OK R1-unit
+OK R2-probe
+OK R3-smoke
+OK R4-decision
+OK R5-bind-render
+PROVENANCE_OK

@@ -1,12 +1,14 @@
-# build=1.0.bf2e5b021 commit=bf2e5b021faedd3ff2d33a648419e7c05c408dd3 dirty=false
+# build=1.0.7cd1c190f commit=7cd1c190fffc13ee9f37988841acb00ac5a7aabb dirty=false tree=7d464a7a5
 [33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
 
- RUN  v2.1.9 /home/coder/tuneloop/frontend-mobile
+ RUN  v2.1.9 /tmp/opencode/tuneloop/wt-2434/frontend-mobile
 
- ✓ scripts/page-smoke/back-nav-2434.test.jsx (8 tests) 46ms
+ ✓ scripts/page-smoke/back-nav-2434.test.jsx (11 tests) 391ms
+   ✓ R5 Bind 空栈渲染 (#2434) > 栈深 1（扫码直达）→ switchTab 首页，且不 navigateBack 338ms
 
  Test Files  1 passed (1)
-      Tests  8 passed (8)
-   Start at  00:48:54
-   Duration  4.36s (transform 209ms, setup 109ms, collect 78ms, tests 46ms, environment 1.80s, prepare 1.42s)
+      Tests  11 passed (11)
+   Start at  15:35:55
+   Duration  2.32s (transform 348ms, setup 69ms, collect 358ms, tests 391ms, environment 750ms, prepare 409ms)
 
+MODE_EXIT=0

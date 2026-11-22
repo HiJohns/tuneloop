@@ -1,66 +1,19 @@
 {
- "schema_version": 1,
- "issue": 2434,
- "build": "1.0.bf2e5b021",
- "commit": "bf2e5b021faedd3ff2d33a648419e7c05c408dd3",
- "dirty": false,
- "environment": "frontend-mobile vitest/jsdom; fix commit bf2e5b021",
- "rows": [
-  {
-   "id": "R1",
-   "command": "bash scripts/verify-2434.sh r1-unit",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2434/R1-unit.txt"
-   ],
-   "assert": "exit 0；判定表用例 PASS",
-   "actual": "PASS：8/8（栈深 0/1/2/5、自定义兜底、R4 判定表）",
-   "expected": "PASS",
-   "negative": "栈深 1 失败 → FAIL",
-   "negative_result": "栈深 1 返回 navigateBack 即失败",
-   "pass": true
-  },
-  {
-   "id": "R2",
-   "command": "bash scripts/verify-2434.sh r2-probe",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2434/R2-probe.txt"
-   ],
-   "assert": "exit 0；PROBE-OK",
-   "actual": "PASS：4 个直达页无裸 navigateBack；两端口均有 safeBack",
-   "expected": "PASS",
-   "negative": "裸调用 → FAIL",
-   "negative_result": "命中 Taro.navigateBack() 即 PROBE-FAIL",
-   "pass": true
-  },
-  {
-   "id": "R3",
-   "command": "bash scripts/verify-2434.sh r3-smoke",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2434/R3-smoke.txt"
-   ],
-   "assert": "exit 0；0 failed",
-   "actual": "PASS：page-smoke 16 files / 88 tests",
-   "expected": "PASS",
-   "negative": "失败 → FAIL",
-   "negative_result": "任一 failed 即 exit 1",
-   "pass": true
-  },
-  {
-   "id": "R4",
-   "command": "bash scripts/verify-2434.sh r4-decision",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2434/R4-decision.txt"
-   ],
-   "assert": "exit 0；同名页→switchTab",
-   "actual": "PASS：depth1→首页；depth2 不同→navigateBack；depth2 同名→switchTab；depth5→navigateBack",
-   "expected": "PASS",
-   "negative": "同名仍返回 → FAIL",
-   "negative_result": "同名页 navigateBack 即失败",
-   "pass": true
-  }
- ]
+  "schema_version": 1,
+  "issue": 2434,
+  "build": "1.0.7cd1c190f",
+  "commit": "7cd1c190fffc13ee9f37988841acb00ac5a7aabb",
+  "tree": "7d464a7a5",
+  "dirty": false,
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2434; page-smoke jsdom; handlers/baseline-aware full gate",
+  "rows": [
+    {"id":"R0","command":"bash scripts/verify-2434.sh r0-red","exit":0,"artifacts":["docs/evidence/2434/R0-red.txt"],"assert":"exit 0；含 RED_CONFIRMED；pre-fix 3 处裸 navigateBack 且无 safeBack","actual":"PASS：pre-fix 3 处 Taro.navigateBack()、0 处 safeBack，RED_CONFIRMED","expected":"PASS（红例成立）","negative":"红例未复现 → exit 1","negative_result":"计数不符即 exit 1","pass":true},
+    {"id":"R1","command":"bash scripts/verify-2434.sh r1-unit","exit":0,"artifacts":["docs/evidence/2434/R1-unit.txt"],"assert":"exit 0；8 用例 PASS；同名页→switchTab","actual":"PASS：8 用例通过（含同名页→switchTab）","expected":"PASS","negative":"栈深 1 失败 → FAIL","negative_result":"失败即 exit 1","pass":true},
+    {"id":"R2","command":"bash scripts/verify-2434.sh r2-probe","exit":0,"artifacts":["docs/evidence/2434/R2-probe.txt"],"assert":"exit 0；含 PROBE-OK；4 页无裸 navigateBack；两端口 safeBack","actual":"PASS：4 页无裸 navigateBack；weapp/H5 均有 safeBack；PROBE-OK","expected":"PASS","negative":"裸调用 → FAIL","negative_result":"命中裸调用即 exit 1","pass":true},
+    {"id":"R3","command":"bash scripts/verify-2434.sh r3-smoke","exit":0,"artifacts":["docs/evidence/2434/R3-smoke.txt"],"assert":"exit 0；0 failed","actual":"PASS：page-smoke 21 files / 106 tests，0 failed","expected":"PASS","negative":"失败 → FAIL","negative_result":"非 0 即 exit 1","pass":true},
+    {"id":"R4","command":"bash scripts/verify-2434.sh r4-decision","exit":0,"artifacts":["docs/evidence/2434/R4-decision.txt"],"assert":"exit 0；4 passed；4 skipped=R1 filtered；同名页→switchTab","actual":"PASS：4 passed；4 skipped 为 R1 过滤（非 R4 断言 skip）","expected":"PASS","negative":"同名仍返回 → FAIL","negative_result":"断言失败即 exit 1","pass":true},
+    {"id":"R5","command":"bash scripts/verify-2434.sh r5-bind-render","exit":0,"artifacts":["docs/evidence/2434/R5-bind-render.txt"],"assert":"exit 0；3 用例 PASS；1 页→switchTab 首页；2 页不同→navigateBack；2 页同名→switchTab","actual":"PASS：真实 render/click Bind 返回；3 用例通过（1 页→switchTab、2 页不同→navigateBack、2 页同名→switchTab）","expected":"PASS","negative":"仅 grep/mock safeBack/未点击 → FAIL","negative_result":"未真实点击或断言失败即 exit 1","pass":true},
+    {"id":"R6","command":"bash scripts/verify-2434.sh r6-provenance","exit":0,"artifacts":["docs/evidence/2434/R6-provenance.txt"],"assert":"exit 0；含 PROVENANCE_OK；status -uall 空；HEAD/build/commit/evidence 一致","actual":"PASS：WORKTREE_CLEAN_OK；R0–R5 provenance 一致；PROVENANCE_OK","expected":"PASS","negative":"dirty/commit 不符 → exit 1","negative_result":"dirty 或 provenance 不符即 exit 1","pass":true},
+    {"id":"R7","command":"bash scripts/verify-2434.sh p5-full","exit":0,"artifacts":["docs/evidence/2434/P5-full-gate.txt"],"assert":"exit 0；go build ./... 0；go test ./... 0 FAIL；仅在 #2443 P3 后","actual":"PASS(baseline-aware)：BUILD_OK；go test ./... 仅 database(#2360)/middleware/service/services(#2361) 基线失败，无本单新增失败；P5_BASELINE_OK","expected":"PASS","negative":"任一 FAIL 或依赖未完成 → HOLD/FAIL","negative_result":"非基线失败即 exit 1","pass":true}
+  ]
 }
