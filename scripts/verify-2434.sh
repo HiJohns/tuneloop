@@ -133,6 +133,7 @@ case "$MODE" in
       brc=$?
       echo "BUILD_EXIT=$brc"
       [ "$brc" = "0" ] && echo "BUILD_OK"
+      mkdir -p "$REPO/tmp"
       LOG="$REPO/tmp/2434-full-gate.log"
       echo "FULL_SUITE_CMD=go test ./... -count=1 -timeout 20m"
       go test ./... -count=1 -timeout 20m > "$LOG" 2>&1
