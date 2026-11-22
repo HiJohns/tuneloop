@@ -1,8 +1,8 @@
-# build=1.0.e053d587a commit=e053d587a7ffe97122b760a8a534bf07d1693faf dirty=true tree=93dbbe022
+# build=1.0.e053d587a commit=e053d587a7ffe97122b760a8a534bf07d1693faf dirty=false tree=1b0f93d58
 OK R0-preflight
 OK R1-list
 OK R2-no-recompute
 OK R3-legacy-pin
 OK R4-zero
 OK R5-build
-FAIL: evidence dirty=
+PROVENANCE_OK
