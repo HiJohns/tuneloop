@@ -1,165 +1,165 @@
 {
- "schema_version": 1,
- "issue": 2339,
- "build": "1.0.b70f96eb3",
- "commit": "b70f96eb3b80b4d18a873ef2dd4eaa95c1bf7add",
- "dirty": false,
- "environment": "backend handlers tests on local PG (backend/.env), fix commit b70f96eb3",
- "rows": [
-  {
-   "id": "R1",
-   "command": "bash scripts/verify-2339.sh r1-batch-order",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2339/R1-batch-order.txt"
-   ],
-   "assert": "exit 0；含 --- PASS",
-   "expected": "PASS",
-   "negative": "SKIP/FAIL → FAIL",
-   "negative_result": "无 --- PASS 或 t.Skip 即 exit 1",
-   "actual": "PASS：TestBatchCreateOrder_RentDaysOverridesEndDate",
-   "pass": true
-  },
-  {
-   "id": "R2",
-   "command": "bash scripts/verify-2339.sh r2-create-order",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2339/R2-create-order.txt"
-   ],
-   "assert": "exit 0；含 --- PASS",
-   "expected": "PASS",
-   "negative": "FAIL → FAIL",
-   "negative_result": "测试失败即 exit 1",
-   "actual": "PASS：TestCreateRentalOrder",
-   "pass": true
-  },
-  {
-   "id": "R3",
-   "command": "bash scripts/verify-2339.sh r3-return-refund",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2339/R3-return-refund.txt"
-   ],
-   "assert": "exit 0；含 --- PASS",
-   "expected": "PASS",
-   "negative": "FAIL → FAIL",
-   "negative_result": "测试失败即 exit 1",
-   "actual": "PASS：TestInspectReturn_Good_ExecutesRefund",
-   "pass": true
-  },
-  {
-   "id": "R4",
-   "command": "bash scripts/verify-2339.sh r4-refund-diff",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2339/R4-refund-diff.txt"
-   ],
-   "assert": "exit 0；--- PASS 计数 2",
-   "expected": "PASS",
-   "negative": "少 1 个 → FAIL",
-   "negative_result": "PASS 计数 <2 即 exit 1",
-   "actual": "PASS：PointsOverCap 666.67/506.67/160/1960 + PointsWithinCap 666.67/2300（R9 逐值推导）",
-   "pass": true
-  },
-  {
-   "id": "R5",
-   "command": "bash scripts/verify-2339.sh r5-scenarios",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2339/R5-scenarios.txt"
-   ],
-   "assert": "exit 0；--- PASS 计数 ≥2",
-   "expected": "PASS",
-   "negative": "SKIP → FAIL",
-   "negative_result": "出现 SKIP 即 exit 1",
-   "actual": "PASS：场景 A/C 共 17 个 PASS（含 C4）",
-   "pass": true
-  },
-  {
-   "id": "R6",
-   "command": "bash scripts/verify-2339.sh r6-settlement",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2339/R6-settlement.txt"
-   ],
-   "assert": "exit 0；含 --- PASS",
-   "expected": "PASS",
-   "negative": "FAIL → FAIL",
-   "negative_result": "测试失败即 exit 1",
-   "actual": "PASS：TestSettlementFlow（押金 50000 分，按 #2406 定价回退）",
-   "pass": true
-  },
-  {
-   "id": "R7",
-   "command": "bash scripts/verify-2339.sh r7-detail",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2339/R7-detail.txt"
-   ],
-   "assert": "exit 0；含 --- PASS",
-   "expected": "PASS",
-   "negative": "FAIL → FAIL",
-   "negative_result": "测试失败即 exit 1",
-   "actual": "PASS：TestGetUserInstrumentDetail",
-   "pass": true
-  },
-  {
-   "id": "R8",
-   "command": "bash scripts/verify-2339.sh r8-diff",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2339/R8-diff.txt"
-   ],
-   "assert": "exit 0；无 ^+.*t.Skip",
-   "expected": "PASS",
-   "negative": "新增 skip → FAIL",
-   "negative_result": "diff 命中 ^+.*t.Skip 即 exit 1",
-   "actual": "PASS：db76582f4^..db76582f4 backend diff 无新增 t.Skip",
-   "pass": true
-  },
-  {
-   "id": "R9",
-   "command": "bash scripts/verify-2339.sh r9-derivation",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2339/R9-derivation.md"
-   ],
-   "assert": "exit 0；三段推导齐全、与 R4 断言逐值相等、含 spec 差异与 #2417 归属",
-   "expected": "PASS",
-   "negative": "缺段/未记录差异 → FAIL",
-   "negative_result": "缺 rent/deposit/points 段或缺 2800/2500/2333.33/666.67/506.67/160/840/1960/net cash 40/#2417 即 exit 1",
-   "actual": "PASS：rent 2800/2500→2333.33→666.67；deposit 500；points 840/160；spec net cash 40 差异归 #2359–#2363/#2417",
-   "pass": true
-  },
-  {
-   "id": "R10",
-   "command": "bash scripts/verify-2339.sh r10-red-green",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2339/R10-red-green.txt"
-   ],
-   "assert": "exit 0；含 fix^ 的 --- FAIL 与 fix 的 --- PASS",
-   "expected": "PASS",
-   "negative": "只有 PASS → FAIL",
-   "negative_result": "fix^ 未 FAIL 或缺 --- PASS 即 exit 1",
-   "actual": "PASS：C4（400 vs 200）与 SettlementFlow（50000 vs 0）在 db76582f4^ FAIL、fix 后 PASS",
-   "pass": true
-  },
-  {
-   "id": "R11",
-   "command": "bash scripts/verify-2339.sh r11-batch-gate-ref",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2339/R11-batch-gate-ref.txt"
-   ],
-   "assert": "exit 0；含 SOURCE_TREE=27f35d34b、FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0、ANCESTRY_OK、BATCH_GATE_REF_OK",
-   "expected": "PASS",
-   "negative": "祖先不符/源缺失 → FAIL",
-   "negative_result": "缺 2443 R5 源文件或 tree≠27f35d34b / 汇总非全 0 / 修复-测试提交非其祖先 → exit 1",
-   "actual": "PASS：引用 docs/evidence/2443/R5-handlers-full.txt（tree=27f35d34b，FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0）；db76582f4 / b70f96eb3 / a7a881c32 均为该 tree 祖先",
-   "pass": true
-  }
- ],
- "plan_sha256": "67e8082799a94150e5e7d3797653588d1fedbdca9e8c9b64e27c3c80ba04c72a"
+  "schema_version": 1,
+  "issue": 2339,
+  "build": "1.0.b70f96eb3",
+  "commit": "b70f96eb3b80b4d18a873ef2dd4eaa95c1bf7add",
+  "dirty": false,
+  "environment": "backend handlers tests on local PG (backend/.env), fix commit b70f96eb3",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2339.sh r1-batch-order",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2339/R1-batch-order.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "expected": "PASS",
+      "negative": "SKIP/FAIL → FAIL",
+      "negative_result": "无 --- PASS 或 t.Skip 即 exit 1",
+      "actual": "PASS：TestBatchCreateOrder_RentDaysOverridesEndDate",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2339.sh r2-create-order",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2339/R2-create-order.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "expected": "PASS",
+      "negative": "FAIL → FAIL",
+      "negative_result": "测试失败即 exit 1",
+      "actual": "PASS：TestCreateRentalOrder",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2339.sh r3-return-refund",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2339/R3-return-refund.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "expected": "PASS",
+      "negative": "FAIL → FAIL",
+      "negative_result": "测试失败即 exit 1",
+      "actual": "PASS：TestInspectReturn_Good_ExecutesRefund",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2339.sh r4-refund-diff",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2339/R4-refund-diff.txt"
+      ],
+      "assert": "exit 0；--- PASS 计数 2",
+      "expected": "PASS",
+      "negative": "少 1 个 → FAIL",
+      "negative_result": "PASS 计数 <2 即 exit 1",
+      "actual": "PASS：PointsOverCap 666.67/506.67/160/1960 + PointsWithinCap 666.67/2300（R9 逐值推导）",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2339.sh r5-scenarios",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2339/R5-scenarios.txt"
+      ],
+      "assert": "exit 0；--- PASS 计数 ≥2",
+      "expected": "PASS",
+      "negative": "SKIP → FAIL",
+      "negative_result": "出现 SKIP 即 exit 1",
+      "actual": "PASS：场景 A/C 共 17 个 PASS（含 C4）",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2339.sh r6-settlement",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2339/R6-settlement.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "expected": "PASS",
+      "negative": "FAIL → FAIL",
+      "negative_result": "测试失败即 exit 1",
+      "actual": "PASS：TestSettlementFlow（押金 50000 分，按 #2406 定价回退）",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2339.sh r7-detail",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2339/R7-detail.txt"
+      ],
+      "assert": "exit 0；含 --- PASS",
+      "expected": "PASS",
+      "negative": "FAIL → FAIL",
+      "negative_result": "测试失败即 exit 1",
+      "actual": "PASS：TestGetUserInstrumentDetail",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2339.sh r8-diff",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2339/R8-diff.txt"
+      ],
+      "assert": "exit 0；无 ^+.*t.Skip",
+      "expected": "PASS",
+      "negative": "新增 skip → FAIL",
+      "negative_result": "diff 命中 ^+.*t.Skip 即 exit 1",
+      "actual": "PASS：db76582f4^..db76582f4 backend diff 无新增 t.Skip",
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash scripts/verify-2339.sh r9-derivation",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2339/R9-derivation.md"
+      ],
+      "assert": "exit 0；三段推导齐全、与 R4 断言逐值相等、含 spec 差异与 #2417 归属",
+      "expected": "PASS",
+      "negative": "缺段/未记录差异 → FAIL",
+      "negative_result": "缺 rent/deposit/points 段或缺 2800/2500/2333.33/666.67/506.67/160/840/1960/net cash 40/#2417 即 exit 1",
+      "actual": "PASS：rent 2800/2500→2333.33→666.67；deposit 500；points 840/160；spec net cash 40 差异归 #2359–#2363/#2417",
+      "pass": true
+    },
+    {
+      "id": "R10",
+      "command": "bash scripts/verify-2339.sh r10-red-green",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2339/R10-red-green.txt"
+      ],
+      "assert": "exit 0；含 fix^ 的 --- FAIL 与 fix 的 --- PASS",
+      "expected": "PASS",
+      "negative": "只有 PASS → FAIL",
+      "negative_result": "fix^ 未 FAIL 或缺 --- PASS 即 exit 1",
+      "actual": "PASS：C4（400 vs 200）与 SettlementFlow（50000 vs 0）在 db76582f4^ FAIL、fix 后 PASS",
+      "pass": true
+    },
+    {
+      "id": "R11",
+      "command": "bash scripts/verify-2339.sh r11-batch-gate-ref",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2339/R11-batch-gate-ref.txt"
+      ],
+      "assert": "exit 0；含 SOURCE_TREE=27f35d34b、FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0、ANCESTRY_OK、BATCH_GATE_REF_OK",
+      "expected": "PASS",
+      "negative": "祖先不符/源缺失 → FAIL",
+      "negative_result": "缺 2443 R5 源文件或 tree≠27f35d34b / 汇总非全 0 / 修复-测试提交非其祖先 → exit 1",
+      "actual": "PASS：引用 docs/evidence/2443/R5-handlers-full.txt（tree=27f35d34b，FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0）；R11 首行 build=1.0.b70f96eb3 commit=b70f96eb3… dirty=false，与 evidence.json 一致；BATCH_GATE_REF_OK",
+      "pass": true
+    }
+  ],
+  "plan_sha256": "c3281e2209c46e1fe266283e5690ec3593f73d4dccec22fe8d78a751e2177926"
 }

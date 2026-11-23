@@ -34,8 +34,12 @@ export IAM_SECRET="${IAM_SECRET:-test-secret-1489}"
 export TUNELOOP_DB_SIMPLE_PROTOCOL=1
 mkdir -p "$TMPDIR" "$GOCACHE" "$(dirname "$ART")"
 
-BUILD="1.0.$(git rev-parse --short HEAD)"
-COMMIT="$(git rev-parse HEAD)"
+# 审计 2026-11-23：provenance 必须固定本单 test/fix，而不是生成时的 HEAD
+# （R11 曾用 HEAD=470443ac5，与 evidence.json 的 b70f96eb3 不一致）。
+PROV_COMMIT="$(git rev-parse "${PROV_REF:-b70f96eb3}")" || { echo "FATAL: bad PROV_REF" >&2; exit 3; }
+git merge-base --is-ancestor "$PROV_COMMIT" HEAD || { echo "FATAL: PROV_REF $PROV_COMMIT not ancestor of HEAD" >&2; exit 3; }
+BUILD="1.0.$(git rev-parse --short "$PROV_COMMIT")"
+COMMIT="$PROV_COMMIT"
 DIRTY=false
 if [ -n "$(git status --porcelain --untracked-files=no | grep -v 'docs/evidence/2339/' || true)" ]; then
   DIRTY=true

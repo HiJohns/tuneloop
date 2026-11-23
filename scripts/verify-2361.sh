@@ -16,6 +16,9 @@ case "$MODE" in
 esac
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"; cd "$REPO_ROOT"
+OUT_DIR="${OUT_DIR:-$REPO_ROOT/docs/evidence/2361}"
+mkdir -p "$OUT_DIR"
+ART="$OUT_DIR/$(basename "$ART")"
 export PATH="/usr/local/go/bin:${PATH}"
 export TMPDIR="${TMPDIR:-$REPO_ROOT/tmp/gobuild}"
 export GOCACHE="${GOCACHE:-$REPO_ROOT/tmp/gocache}"
@@ -28,13 +31,17 @@ export IAM_SECRET="${IAM_SECRET:-test-secret-1489}"
 export TUNELOOP_DB_SIMPLE_PROTOCOL=1
 mkdir -p "$TMPDIR" "$GOCACHE" "$(dirname "$ART")"
 
-BUILD="1.0.$(git rev-parse --short HEAD)"
-COMMIT="$(git rev-parse HEAD)"
+# 审计 2026-11-20：dirty 必须含 untracked，且不得整体排除证据目录；
+# 证据生成前树必须干净（OUT_DIR 指到树外），FIX_COMMIT 显式指向实现提交。
+EVAL_AT="$(git rev-parse HEAD)"
+COMMIT="$(git rev-parse "${FIX_COMMIT:-HEAD}")" || { echo "FATAL: bad FIX_COMMIT" >&2; exit 3; }
+git merge-base --is-ancestor "$COMMIT" "$EVAL_AT" || { echo "FATAL: FIX_COMMIT not ancestor of HEAD" >&2; exit 3; }
+BUILD="1.0.$(git rev-parse --short "$COMMIT")"
 DIRTY=false
-if [ -n "$(git status --porcelain --untracked-files=no | grep -v 'docs/evidence/2361/' || true)" ]; then
+if [ -n "$(git status --porcelain -uall)" ]; then
   DIRTY=true
 fi
-PROVENANCE="# build=$BUILD commit=$COMMIT dirty=$DIRTY"
+PROVENANCE="# build=$BUILD commit=$COMMIT dirty=$DIRTY tree=$EVAL_AT"
 
 if [ "$MODE" = "r6-schema" ]; then
   UP="backend/database/migrations/20261117001_settlement_supersedes_2361.up.sql"

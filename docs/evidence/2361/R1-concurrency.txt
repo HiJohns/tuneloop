@@ -1,4 +1,4 @@
-# build=1.0.29da094d4 commit=29da094d489aebfba2c860f061d1dc693b57785d dirty=false
+# build=1.0.29da094d4 commit=29da094d489aebfba2c860f061d1dc693b57785d dirty=false tree=878cd7dcd0b52c12c6d66753a9525bad875bf618
 # github.com/mattn/go-sqlite3
 sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
 sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
@@ -7,11 +7,11 @@ sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier f
 [DEBUG] Loaded .env from: ../.env
 === RUN   TestSettlementExecutorConcurrency_2361
 
-2026/11/19 16:30:16 [31;1m/home/coder/tuneloop/backend/services/settlement_executor_2361.go:307 [35;1mrecord not found
-[0m[33m[9.704ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = '3c13e08f-b86f-47d0-ae54-68c6aea1e268' AND settlement_version = 1 ORDER BY "settlement_calculations"."id" LIMIT 1
+2026/11/23 00:40:46 [31;1m/tmp/opencode/tuneloop/wt-2361/backend/services/settlement_executor_2361.go:307 [35;1mrecord not found
+[0m[33m[16.833ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = '0f294290-b97f-4265-9b7f-defca231d763' AND settlement_version = 1 ORDER BY "settlement_calculations"."id" LIMIT 1
 
-2026/11/19 16:30:16 [31;1m/home/coder/tuneloop/backend/services/settlement_executor_2361.go:323 [35;1mrecord not found
-[0m[33m[3.388ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = '3c13e08f-b86f-47d0-ae54-68c6aea1e268' AND status IN ('confirmed','processing','succeeded','partially_succeeded','failed_retryable') ORDER BY "settlement_calculations"."id" LIMIT 1
---- PASS: TestSettlementExecutorConcurrency_2361 (0.49s)
+2026/11/23 00:40:46 [31;1m/tmp/opencode/tuneloop/wt-2361/backend/services/settlement_executor_2361.go:323 [35;1mrecord not found
+[0m[33m[2.535ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = '0f294290-b97f-4265-9b7f-defca231d763' AND status IN ('confirmed','processing','succeeded','partially_succeeded','failed_retryable') ORDER BY "settlement_calculations"."id" LIMIT 1
+--- PASS: TestSettlementExecutorConcurrency_2361 (0.91s)
 PASS
-ok  	tuneloop-backend/services	0.509s
+ok  	tuneloop-backend/services	0.938s
