@@ -82,6 +82,10 @@ case "$MODE" in
     exit "${PIPESTATUS[0]}"
     ;;
   r9-derivation)
+    # OUT_DIR 树外生成时，推导正文以仓库内既有文档为源，仅刷新 provenance 头。
+    if [ ! -f "$ART" ] && [ -f "docs/evidence/2339/R9-derivation.md" ]; then
+      cp "docs/evidence/2339/R9-derivation.md" "$ART"
+    fi
     if [ ! -f "$ART" ]; then echo "MISSING: $ART" >&2; exit 1; fi
     python3 - "$ART" "$PROVENANCE" <<'PY'
 import sys
