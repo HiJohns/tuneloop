@@ -1,0 +1,22 @@
+# build=1.0.624ce9d80 commit=624ce9d80a0a9a1248f26e8f99890efa38d64210 dirty=false phase_a_commit=624ce9d80a0a9a1248f26e8f99890efa38d64210
+[DEBUG] Loaded .env from: ../.env
+2026/11/23 01:05:12 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2424_r1 sslmode=disable
+2026/11/23 01:05:12 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2424_r1
+2026/11/23 01:05:12 [DB] Connected to database 'tuneloop_test_2424_r1'
+=== RUN   TestSettlementSpecPreview_2424
+2026/11/23 01:05:12 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2424_r1 sslmode=disable
+2026/11/23 01:05:12 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2424_r1
+2026/11/23 01:05:12 [DB] Connected to database 'tuneloop_test_2424_r1'
+
+2026/11/23 01:05:13 [32m/tmp/opencode/2424-phase-a.mVhsyY/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[583.887ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:05:13 [31;1m/tmp/opencode/2424-phase-a.mVhsyY/backend/handlers/user_settlement.go:807 [35;1mrecord not found
+[0m[33m[2.163ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '2719526b-1e79-4661-85f0-e0916ed80982' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:05:13 [31;1m/tmp/opencode/2424-phase-a.mVhsyY/backend/handlers/user_settlement.go:927 [35;1mrecord not found
+[0m[33m[1.421ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '2719526b-1e79-4661-85f0-e0916ed80982' ORDER BY "damage_reports"."id" LIMIT 1
+    settlement_spec_preview_2424_test.go:90: PHASE_A_OK net_cash=40.00 gross=500.00 payable=460.00 legacy_total=666.67 legacy_cash=506.67
+--- PASS: TestSettlementSpecPreview_2424 (1.10s)
+PASS
+ok  	tuneloop-backend/handlers	1.692s

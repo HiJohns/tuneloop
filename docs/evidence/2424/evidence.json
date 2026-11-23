@@ -1,0 +1,110 @@
+{
+ "schema_version": 1,
+ "issue": 2424,
+ "build": "1.0.59b858e7",
+ "commit": "59b858e76a67036c14af23bf18b9892dcbf64ee5",
+ "dirty": false,
+ "environment": "backend handlers targeted tests on local PG; R1/R2 @ Phase A tree 624ce9d80 (D6), R3-R7 @ fix 59b858e7",
+ "plan_sha256": "9f034727c866e1d09d0fc8fc4ccefaebfd1552235da1ee0d7be9308d500ced18",
+ "rows": [
+  {
+   "id": "R1",
+   "command": "bash scripts/verify-2424.sh r1-phase-a",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2424/R1-phase-a.txt"
+   ],
+   "assert": "exit 0；含 --- PASS: TestSettlementSpecPreview_2424",
+   "expected": "PASS",
+   "negative": "新字段缺失 → FAIL",
+   "negative_result": "Phase A 树旧字段变化或新字段缺失 → exit 1（脚本 grep legacy_total=666.67 / PHASE_A_OK）",
+   "actual": "PASS（Phase A 树 624ce9d80，D6 独立 gate）：PHASE_A_OK net 40.00 / gross 500.00 / payable 460.00；legacy 666.67 / 506.67 / 0",
+   "pass": true
+  },
+  {
+   "id": "R2",
+   "command": "bash scripts/verify-2424.sh r2-regression",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2424/R2-regression.txt"
+   ],
+   "assert": "exit 0；既有用例 PASS",
+   "expected": "PASS",
+   "negative": "任一 FAIL → FAIL",
+   "negative_result": "任一既有用例 FAIL → exit 1（脚本 grep --- FAIL）",
+   "actual": "PASS：Phase A 树上段模型/券/1855/RefundDiff 等既有用例全绿（无 --- FAIL）",
+   "pass": true
+  },
+  {
+   "id": "R3",
+   "command": "bash scripts/verify-2424.sh r3-switch",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2424/R3-switch.txt"
+   ],
+   "assert": "exit 0；含 --- PASS: TestSettlementSpecSwitch_2424",
+   "expected": "PASS",
+   "negative": "666.67/506.67 → FAIL",
+   "negative_result": "命中 666.67/506.67 旧值或缺少 PASS → exit 1",
+   "actual": "PASS：CashRefundable 500 / Payable 460 / NetCash 40 / TotalRefund 660 / gift 160",
+   "pass": true
+  },
+  {
+   "id": "R4",
+   "command": "bash scripts/verify-2424.sh r4-matrix",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2424/R4-matrix.txt",
+    "docs/evidence/2424/R4-derivation.md"
+   ],
+   "assert": "exit 0；19 个文件 PASS 且推导齐全",
+   "expected": "PASS",
+   "negative": "任一 FAIL/缺推导 → FAIL",
+   "negative_result": "任一测试 FAIL 或 R4-derivation 缺少 old→new/fixture/券/gross/net → exit 1",
+   "actual": "PASS：20 个文件 83 个测试全绿（134 个 PASS 含子用例）；R4-derivation 覆盖 fixture 变更与 old→new",
+   "pass": true
+  },
+  {
+   "id": "R5",
+   "command": "bash scripts/verify-2424.sh r5-execution",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2424/R5-execution.txt"
+   ],
+   "assert": "exit 0；含 --- PASS: TestExecuteRefundNet_2424",
+   "expected": "PASS",
+   "negative": "退款+补缴并存 → FAIL",
+   "negative_result": "退款与补缴并存 / DB 非净额 / net 0 未 completed → exit 1",
+   "actual": "PASS：net 40 → 退款 4000 分；net −100 → 补缴 10000 分 pending；net 0 → completed；DB 存净额",
+   "pass": true
+  },
+  {
+   "id": "R6",
+   "command": "bash scripts/verify-2424.sh r6-doc",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2424/R6-doc.txt"
+   ],
+   "assert": "exit 0；命中历史口径与毛/净说明",
+   "expected": "PASS",
+   "negative": "缺失 → FAIL",
+   "negative_result": "缺“历史口径”或“对外毛额 / 执行净额”或“优惠券权威” → exit 1",
+   "actual": "PASS：spec 文档新增实现状态/毛净口径；lease L-06 增毛额/净额与券权威两条规则",
+   "pass": true
+  },
+  {
+   "id": "R7",
+   "command": "bash scripts/verify-2424.sh r7-build",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2424/R7-build.txt"
+   ],
+   "assert": "exit 0",
+   "expected": "PASS",
+   "negative": "失败 → FAIL",
+   "negative_result": "build 失败 → exit 1",
+   "actual": "PASS：backend go build ./... exit 0",
+   "pass": true
+  }
+ ]
+}

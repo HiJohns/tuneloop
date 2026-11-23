@@ -1,0 +1,22 @@
+# build=1.0.59b858e76 commit=59b858e76a67036c14af23bf18b9892dcbf64ee5 dirty=false
+== docs/cases/settlement-refund-spec-v2.md ==
+13:## 0. 实现状态与字段口径（#2424，2026-11-23）
+15:- **权威**：退款金额以本文件 v2.3 为准；段级折后模型（#1743 整单 r / #1836 段模型）**保留为展示与明细（历史口径）**，不再作为退款字段的权威来源。
+16:- **对外字段（毛额/净额分列）**：`cash_refundable` = 租金可退 + 押金可退（毛额）；`payable_shortfall` = 租金缺口 + 押金不足的费用缺口（毛额）；`net_cash` = 两者之差（**执行口径**）；`TotalRefund` = 乐币面值 + 现金毛额。
+17:- **资金执行**：`net_cash > 0` 退款、`< 0` 补缴、`= 0` 直接 completed；`settlements.cash_refundable` 落**实际退款净额**，breakdown 同时保留 `cash_refundable_gross` / `payable_shortfall_gross` / `net_cash`。
+18:- **优惠券权威**：逐笔 `order_payment_records.coupon_discount`（`orders.coupon_discount` 仅 legacy 按段原价占比兜底）；`R_after_coupon = rentPayable − usedCoupon`，`usedCoupon = Σ Usage[i]/Days[i] × segmentCoupon[i]`。乐币只通过 `p_used` 进入公式，禁止用段模型 `Rate`/`discountedRent` 反推券额（会与 `p_used` 双重抵扣）。
+68:coupon_discount_cents = 优惠券抵扣（>=0）
+69:R_after_coupon_cents  = R_actual_list_cents - coupon_discount_cents   // 必须 >= 0
+102:net_cash_cents        = cash_refundable_cents - cash_payable_cents
+135:net_cash_cents + PointsToCashCents(p_refund_points)
+270:R_actual_list_cents, coupon_discount_cents, R_after_coupon_cents, actual_days
+276:cash_refundable_cents, cash_payable_cents, net_cash_cents
+== docs/cases/lease.md (L-06) ==
+624:- **退款分流判定（#1745 / v2）**：按 **L-06 v2 分账户**计算 `net_cash`：
+625:  - `net_cash > 0` → **自动退款**（净额一次退回；账本保留租金/押金两条分录）
+626:  - `net_cash < 0` → **补缴**（净额一次收取，差额 = `rent_shortfall + other_fee_shortfall`）
+844:    api: {method: POST, path: /orders/:id/refund, params: [], internal: "L-06 v2 分账户：cap=floor(R_actual×ratio_snapshot); p_refund=max(0,p_used−cap); rent_cash_paid=cash_paid−deposit; rent_cash_due=R_actual−min(p_used,cap); rent_refund=max(0,rent_cash_paid−rent_cash_due); rent_shortfall=max(0,−(...)); deposit_refund=deposit−min(deposit,deductions); other_fee_shortfall=max(0,deductions−deposit); net_cash=rent_refund+deposit_refund−rent_shortfall−other_fee_shortfall"}
+880:     `net_cash = cash_refundable − cash_payable`（**执行层按净额一次收/付**；渠道/资金来源/协议不允许时按原交易分笔执行，账务合计仍等于 net_cash；账本保留分账户分录）
+881:   - 校验（守恒）：`net_cash + p_refund = cash_paid + p_used − R_actual − deductions`
+891:- **对外毛额 / 执行净额（#2424）**：API `cash_refundable` / `payable_shortfall` 为**毛额**；`net_cash` 为**执行口径**（>0 退款、<0 补缴、=0 直接 completed）；`settlements.cash_refundable` 存**实际退款净额**；`TotalRefund` = 乐币面值 + 现金毛额
+892:- **优惠券权威（#2424 Rev.6）**：逐笔 `order_payment_records.coupon_discount` 为权威（`orders.coupon_discount` 仅 legacy 按段原价占比兜底）；`R_after_coupon = rentPayable − usedCoupon`，`usedCoupon = Σ Usage[i]/Days[i] × segmentCoupon[i]`，乐币只走 `p_used`

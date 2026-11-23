@@ -1,0 +1,1800 @@
+# build=1.0.59b858e76 commit=59b858e76a67036c14af23bf18b9892dcbf64ee5 dirty=false
+# files=20 tests=83
+[DEBUG] Loaded .env from: ../.env
+2026/11/23 01:07:04 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2424_r4 sslmode=disable
+2026/11/23 01:07:04 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2424_r4
+2026/11/23 01:07:05 [DB] Connected to database 'tuneloop_test_2424_r4'
+=== RUN   TestInspectReturn_AdditionalShippingFeeSaved
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] PUT    /api/warehouse/orders/:id/return-inspect --> tuneloop-backend/handlers.(*WarehouseHandler).InspectReturn-fm (2 handlers)
+2026/11/23 01:07:05 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2424_r4 sslmode=disable
+2026/11/23 01:07:05 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2424_r4
+2026/11/23 01:07:05 [DB] Connected to database 'tuneloop_test_2424_r4'
+
+2026/11/23 01:07:06 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[588.820ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:06 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.773ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '6496cdad-a994-45b2-8761-f540bf57c598' ORDER BY "settlements"."id" LIMIT 1
+2026/11/23 01:07:06 [computeSettlement] order 6496cdad-a994-45b2-8761-f540bf57c598 contract days unresolvable (lease_term=30, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/23 01:07:06 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.716ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:07:06 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:1911 [35;1mrecord not found
+[0m[33m[1.480ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE order_id = '6496cdad-a994-45b2-8761-f540bf57c598' AND order_type = 'rent' AND status = 'paid' ORDER BY "order_payment_records"."id" LIMIT 1
+
+2026/11/23 01:07:06 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.582ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'c77c78f5-f122-4219-b2bd-e5c39e5894ba' ORDER BY "referrals"."id" LIMIT 1
+--- PASS: TestInspectReturn_AdditionalShippingFeeSaved (1.20s)
+=== RUN   TestInspectReturn_ConditionConflictDamageWins
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] PUT    /api/warehouse/orders/:id/return-inspect --> tuneloop-backend/handlers.(*WarehouseHandler).InspectReturn-fm (2 handlers)
+
+2026/11/23 01:07:07 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[603.594ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "damage_reports", "instrument_media", "instruments", "notifications", "order_logs", "order_refund_records", "order_status_history", "orders", "pricing_templates", "settlements", "sites", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:07 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/repair.go:580 [35;1mrecord not found
+[0m[33m[1.312ms] [34;1m[rows:0][0m SELECT "id" FROM "users" WHERE iam_sub = '27d18a80-25ab-4d57-b349-120630907025' ORDER BY "users"."id" LIMIT 1
+--- PASS: TestInspectReturn_ConditionConflictDamageWins (1.04s)
+=== RUN   TestComputeSettlement_IncludesAdditionalShippingFee
+
+2026/11/23 01:07:08 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[583.708ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "damage_reports", "instrument_media", "instruments", "notifications", "order_logs", "order_status_history", "orders", "pricing_templates", "sites", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/23 01:07:08 [computeSettlement] segment build failed for order 60571fe6-d819-48ab-9667-ea844b5e9e97: segment paid exceeds original total — falling back to #1743
+
+2026/11/23 01:07:08 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.350ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestComputeSettlement_IncludesAdditionalShippingFee (1.02s)
+=== RUN   TestLeaseEarlyReturn
+2026/11/23 01:07:08 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
+
+2026/11/23 01:07:09 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[524.791ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "damage_reports", "instruments", "orders", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:09 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_rental.go:532 [35;1mrecord not found
+[0m[33m[8.711ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '00000000-0000-4000-8000-00000000e1f1' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/23 01:07:09 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.967ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:07:09 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_rental.go:1709 [35;1mrecord not found
+[0m[33m[1.798ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '00000000-0000-4000-8000-00000000e1f1' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/23 01:07:09 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_rental.go:1717 [35;1mrecord not found
+[0m[33m[1.940ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/23 01:07:09 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.859ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '00000000-0000-4000-8000-00000000e1f3' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/23 01:07:09 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.422ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '00000000-0000-4000-8000-00000000e1f1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/23 01:07:09 [TenantScope][observe] auto-scope injected for table=orders (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/23 01:07:09 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/23 01:07:09 [TenantScope][observe] auto-scope injected for table=forwarding_sessions (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/23 01:07:09 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/warehouse.go:212 [35;1mrecord not found
+[0m[33m[1.513ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE (order_id = 'cdad77c4-583a-437d-b893-47ed73bab894' AND direction = 'outbound' AND status = 'pending') AND "forwarding_sessions"."tenant_id" = '00000000-0000-4000-8000-00000000e1f1' ORDER BY "forwarding_sessions"."id" LIMIT 1
+2026/11/23 01:07:09 [TenantScope][observe] auto-scope injected for table=order_payment_records (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/23 01:07:09 [IAMClient] NewIAMClient: baseURL=http://opencode.linxdeep.com:5561, clientID=test-ns, namespace=test-ns
+2026/11/23 01:07:24 [openidOfUser] resolve failed: user=00000000-0000-4000-8000-00000000e1f3 err=ResolveUserOpenid request failed: failed to get client token: failed to request client token: Post "http://opencode.linxdeep.com:5561/api/v1/auth/token": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+2026/11/23 01:07:24 [WechatShipping] upload attempt 1/2 failed for rent order cdad77c4-583a-437d-b893-47ed73bab894 (out_trade_no=mockf9461ead-3e18-490f-b transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
+
+2026/11/23 01:07:24 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[3.001ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '00000000-0000-4000-8000-00000000e1f1' ORDER BY "merchants"."id" LIMIT 1
+2026/11/23 01:07:24 [WechatShipping] upload attempt 2/2 failed for rent order cdad77c4-583a-437d-b893-47ed73bab894 (out_trade_no=mockf9461ead-3e18-490f-b transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
+2026/11/23 01:07:24 [WechatShipping] upload_shipping_info gave up after 2 attempts for rent order cdad77c4-583a-437d-b893-47ed73bab894 (out_trade_no=mockf9461ead-3e18-490f-b transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
+2026/11/23 01:07:24 [WechatShipping] notify_confirm_receive failed for order cdad77c4-583a-437d-b893-47ed73bab894: get access token: WX_APPID or WX_APPSECRET not configured
+2026/11/23 01:07:24 [TenantScope][observe] auto-scope injected for table=instruments (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/23 01:07:24 [TenantScope][observe] auto-scope injected for table=damage_reports (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/23 01:07:24 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[2.035ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'cdad77c4-583a-437d-b893-47ed73bab894' AND "damage_reports"."tenant_id" = '00000000-0000-4000-8000-00000000e1f1' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:24 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.419ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'cdad77c4-583a-437d-b893-47ed73bab894' AND "damage_reports"."tenant_id" = '00000000-0000-4000-8000-00000000e1f1' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:24 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.307ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:07:24 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.663ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = 'cdad77c4-583a-437d-b893-47ed73bab894' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/23 01:07:24 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.420ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:07:24 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[2.054ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '00000000-0000-4000-8000-00000000e1f3' ORDER BY "referrals"."id" LIMIT 1
+2026/11/23 01:07:24 [TenantScope][observe] auto-scope injected for table=order_refund_records (add explicit scope, then set ExplicitTenantScopeOnly)
+--- PASS: TestLeaseEarlyReturn (16.19s)
+=== RUN   TestOrderTermVersion_RenewalAppend_2282
+
+2026/11/23 01:07:25 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[648.281ms] [33m[rows:0][35m TRUNCATE TABLE "order_term_versions", "audit_logs", "membership_levels", "damage_reports", "electronic_contracts", "instrument_media", "instruments", "notifications", "order_payment_records", "order_logs", "order_refund_records", "order_status_history", "orders", "pricing_templates", "settlements", "users" RESTART IDENTITY CASCADE[0m
+--- PASS: TestOrderTermVersion_RenewalAppend_2282 (1.10s)
+=== RUN   TestOrderTermVersion_MultiRenewalImmutable_2282
+
+2026/11/23 01:07:26 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[544.044ms] [33m[rows:0][35m TRUNCATE TABLE "order_term_versions", "membership_levels", "instruments", "notifications", "order_payment_records", "order_logs", "orders", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/23 01:07:26 [Ledger] cash_paid(300000) != ledger net(1200000) for order 245a6827-9870-4c90-acaf-d983ebb57c70, using ledger
+
+2026/11/23 01:07:26 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.365ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '245a6827-9870-4c90-acaf-d983ebb57c70' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:26 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.347ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '245a6827-9870-4c90-acaf-d983ebb57c70' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:07:26 [computeSettlement] segment build failed for order 245a6827-9870-4c90-acaf-d983ebb57c70: segment paid exceeds original total — falling back to #1743
+
+2026/11/23 01:07:26 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:139 [35;1mrecord not found
+[0m[33m[1.369ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 10 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:07:26 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.322ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/23 01:07:26 [Ledger] cash_paid(300000) != ledger net(1200000) for order 245a6827-9870-4c90-acaf-d983ebb57c70, using ledger
+
+2026/11/23 01:07:26 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.376ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '245a6827-9870-4c90-acaf-d983ebb57c70' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:26 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.366ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '245a6827-9870-4c90-acaf-d983ebb57c70' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:07:26 [computeSettlement] segment build failed for order 245a6827-9870-4c90-acaf-d983ebb57c70: segment paid exceeds original total — falling back to #1743
+
+2026/11/23 01:07:26 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:139 [35;1mrecord not found
+[0m[33m[1.346ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 10 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:07:26 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.345ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestOrderTermVersion_MultiRenewalImmutable_2282 (1.17s)
+=== RUN   TestSettlementCashVsPayscore
+
+2026/11/23 01:07:27 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[549.167ms] [33m[rows:0][35m TRUNCATE TABLE "order_term_versions", "membership_levels", "instruments", "notifications", "order_payment_records", "order_logs", "orders", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:27 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.703ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '5a9209ad-2561-492f-9aae-ecc60fa56e39' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/23 01:07:27 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.393ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '5a9209ad-2561-492f-9aae-ecc60fa56e39' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:27 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.334ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '5a9209ad-2561-492f-9aae-ecc60fa56e39' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:27 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.326ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:07:27 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:1911 [35;1mrecord not found
+[0m[33m[1.447ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE order_id = '5a9209ad-2561-492f-9aae-ecc60fa56e39' AND order_type = 'rent' AND status = 'paid' ORDER BY "order_payment_records"."id" LIMIT 1
+
+2026/11/23 01:07:27 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.626ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'e8db509c-0bd8-4d7a-858a-47719b4c9797' ORDER BY "referrals"."id" LIMIT 1
+2026/11/23 01:07:27 [payscore] order 5a9209ad-2561-492f-9aae-ecc60fa56e39 settled action=complete service_order=so-reduced-1
+--- PASS: TestSettlementCashVsPayscore (0.97s)
+=== RUN   TestRefundNotForPayscore
+
+2026/11/23 01:07:28 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[509.976ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "instruments", "order_refund_records", "orders", "pricing_templates", "settlements", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:28 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.730ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '1eabd830-ce73-46f1-90f1-aa537482011b' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/23 01:07:28 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.409ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:07:28 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.717ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '9c012183-2408-4db1-9534-43bb6df198c8' ORDER BY "referrals"."id" LIMIT 1
+2026/11/23 01:07:28 [payscore] order 1eabd830-ce73-46f1-90f1-aa537482011b settled action=complete service_order=so-zero-1
+--- PASS: TestRefundNotForPayscore (1.00s)
+=== RUN   TestRefundPayscoreCancel
+
+2026/11/23 01:07:29 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[562.204ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "damage_reports", "instruments", "notifications", "order_payment_records", "orders", "pricing_templates", "settlements", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/23 01:07:29 [payscore] order 77cc79a5-d13c-4748-98f8-f821b8c558f9 settled action=cancel service_order=so-cancel-1
+--- PASS: TestRefundPayscoreCancel (0.96s)
+=== RUN   TestRenewal1997_Overdue_MinDaysNotOffByOne
+
+2026/11/23 01:07:30 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[493.893ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "instruments", "orders", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+--- PASS: TestRenewal1997_Overdue_MinDaysNotOffByOne (0.89s)
+=== RUN   TestRenewal1997_Settlement_ChargesConsumedRenewalDays
+
+2026/11/23 01:07:31 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[497.848ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "instruments", "orders", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:31 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.397ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '88a65472-437f-440c-a13a-f4a753d4aba6' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:31 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.375ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '88a65472-437f-440c-a13a-f4a753d4aba6' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:31 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:139 [35;1mrecord not found
+[0m[33m[1.346ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 10 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:07:31 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.327ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+    renewal_settlement_1997_test.go:153: actualDays=14 rentPayable=140.00 totalRentPaid=140.00 refund=0.00 shortfall=0.00 segmentModel=true
+--- PASS: TestRenewal1997_Settlement_ChargesConsumedRenewalDays (0.97s)
+=== RUN   TestRenewal1997_Fallback_StaleTierSegmentsChargesRenewal
+
+2026/11/23 01:07:32 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[547.509ms] [33m[rows:0][35m TRUNCATE TABLE "order_term_versions", "membership_levels", "instruments", "notifications", "order_payment_records", "order_logs", "orders", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/23 01:07:32 [Ledger] cash_paid(14000) != ledger net(4000) for order c26cd5b5-c6e0-49bc-8a6e-77a7419f24bd, using ledger
+
+2026/11/23 01:07:32 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.546ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'c26cd5b5-c6e0-49bc-8a6e-77a7419f24bd' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:32 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.376ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'c26cd5b5-c6e0-49bc-8a6e-77a7419f24bd' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:07:32 [computeSettlement] segment model rejected order c26cd5b5-c6e0-49bc-8a6e-77a7419f24bd: actual lease days exceed covered segment days — falling back to #1743
+
+2026/11/23 01:07:32 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.391ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+    renewal_settlement_1997_test.go:220: fallback: actualDays=15 rentPayable=140.00 paid=40.00 refund=0.00 segmentModel=false
+--- PASS: TestRenewal1997_Fallback_StaleTierSegmentsChargesRenewal (1.01s)
+=== RUN   TestRentalSettlementMatrix_2268
+=== RUN   TestRentalSettlementMatrix_2268/1_预约-支付-物流费-无损退款
+
+2026/11/23 01:07:33 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[520.399ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "instruments", "order_payment_records", "orders", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:33 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.330ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'ea1ae872-9d7a-43c2-b583-930db3bbe3b2' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:33 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.391ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'ea1ae872-9d7a-43c2-b583-930db3bbe3b2' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:07:33 [computeSettlement] segment build failed for order ea1ae872-9d7a-43c2-b583-930db3bbe3b2: segment paid exceeds original total — falling back to #1743
+
+2026/11/23 01:07:33 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.330ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+    rental_settlement_matrix_2268_test.go:281: days=30 rent=3000.00 totalPaid=3020.00 refund=500.00 shortfall=0.00 segment=false cashPaid=352000
+=== RUN   TestRentalSettlementMatrix_2268/2_优惠码（租金9折）
+
+2026/11/23 01:07:34 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[523.873ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "instruments", "order_payment_records", "orders", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:34 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.400ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '10ec6d81-0ecb-4078-89ba-222316fcca72' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:34 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.360ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '10ec6d81-0ecb-4078-89ba-222316fcca72' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:34 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.333ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+    rental_settlement_matrix_2268_test.go:281: days=30 rent=2700.00 totalPaid=2700.00 refund=500.00 shortfall=0.00 segment=true cashPaid=320000
+=== RUN   TestRentalSettlementMatrix_2268/3_免押（押金0）
+
+2026/11/23 01:07:35 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[535.513ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "instruments", "order_payment_records", "orders", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:35 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.356ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'a3345f34-4250-4654-b81b-9988384ef6be' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:35 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.325ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'a3345f34-4250-4654-b81b-9988384ef6be' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:35 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.367ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+    rental_settlement_matrix_2268_test.go:281: days=30 rent=3000.00 totalPaid=3000.00 refund=0.00 shortfall=0.00 segment=true cashPaid=300000
+=== RUN   TestRentalSettlementMatrix_2268/4_续租一次（30+30，二档95折）
+
+2026/11/23 01:07:36 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[521.978ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "instruments", "order_payment_records", "orders", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:36 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.384ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '23be0f32-ace8-4a8a-b0ee-28305e2700af' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:36 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.337ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '23be0f32-ace8-4a8a-b0ee-28305e2700af' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:36 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.343ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+    rental_settlement_matrix_2268_test.go:281: days=60 rent=5850.00 totalPaid=5850.00 refund=500.00 shortfall=0.00 segment=true cashPaid=635000
+=== RUN   TestRentalSettlementMatrix_2268/5_逾期后先续租再按时终结（逾期费=0，检查时录入）
+
+2026/11/23 01:07:37 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[524.251ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "instruments", "order_payment_records", "orders", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:37 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.385ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '3f031a1e-6131-4597-85a0-94c7fc72bf5c' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:37 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.320ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '3f031a1e-6131-4597-85a0-94c7fc72bf5c' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:37 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.330ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+    rental_settlement_matrix_2268_test.go:281: days=60 rent=5850.00 totalPaid=5850.00 refund=500.00 shortfall=0.00 segment=true cashPaid=635000
+=== RUN   TestRentalSettlementMatrix_2268/6_逾期状态下终结（逾期费300）
+
+2026/11/23 01:07:38 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[521.044ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "instruments", "order_payment_records", "orders", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:38 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.310ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+    rental_settlement_matrix_2268_test.go:281: days=30 rent=3000.00 totalPaid=3000.00 refund=200.00 shortfall=0.00 segment=true cashPaid=350000
+=== RUN   TestRentalSettlementMatrix_2268/7_定损无损坏（同无损）
+
+2026/11/23 01:07:39 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[546.634ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "membership_levels", "damage_reports", "instruments", "order_payment_records", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:39 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.791ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '71b5fc26-a69c-47f4-9af7-9e021ee4d6b4' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:39 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.430ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '71b5fc26-a69c-47f4-9af7-9e021ee4d6b4' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:39 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.380ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+    rental_settlement_matrix_2268_test.go:281: days=30 rent=3000.00 totalPaid=3000.00 refund=500.00 shortfall=0.00 segment=true cashPaid=350000
+=== RUN   TestRentalSettlementMatrix_2268/8a_定损200用户接受（押金内）
+
+2026/11/23 01:07:40 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[516.279ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "membership_levels", "instruments", "order_payment_records", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:40 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.386ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+    rental_settlement_matrix_2268_test.go:281: days=30 rent=3000.00 totalPaid=3000.00 refund=300.00 shortfall=0.00 segment=true cashPaid=350000
+=== RUN   TestRentalSettlementMatrix_2268/8b_定损700超过押金（补缴200）
+
+2026/11/23 01:07:41 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[538.086ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "membership_levels", "damage_reports", "instruments", "order_payment_records", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:41 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.337ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+    rental_settlement_matrix_2268_test.go:281: days=30 rent=3000.00 totalPaid=3000.00 refund=0.00 shortfall=200.00 segment=true cashPaid=350000
+=== RUN   TestRentalSettlementMatrix_2268/9a_申诉后赔付额改为0
+
+2026/11/23 01:07:42 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[538.939ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "membership_levels", "damage_reports", "instruments", "order_payment_records", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:42 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.847ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '9290a896-ca5a-4f0a-a45e-209e285d59a5' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:42 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.375ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '9290a896-ca5a-4f0a-a45e-209e285d59a5' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:42 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.330ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+    rental_settlement_matrix_2268_test.go:281: days=30 rent=3000.00 totalPaid=3000.00 refund=500.00 shortfall=0.00 segment=true cashPaid=350000
+=== RUN   TestRentalSettlementMatrix_2268/9b_申诉后赔付额改为300
+
+2026/11/23 01:07:42 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[516.797ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "membership_levels", "instruments", "order_payment_records", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:43 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.313ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+    rental_settlement_matrix_2268_test.go:281: days=30 rent=3000.00 totalPaid=3000.00 refund=200.00 shortfall=0.00 segment=true cashPaid=350000
+=== RUN   TestRentalSettlementMatrix_2268/12_多次续租（30+30+30）
+
+2026/11/23 01:07:43 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[541.572ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "membership_levels", "damage_reports", "instruments", "order_payment_records", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:44 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.839ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'ea752902-cca5-4dc5-a15d-a0e807cda912' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:44 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.518ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'ea752902-cca5-4dc5-a15d-a0e807cda912' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:44 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.345ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+    rental_settlement_matrix_2268_test.go:281: days=90 rent=8700.00 totalPaid=8700.00 refund=500.00 shortfall=0.00 segment=true cashPaid=920000
+=== RUN   TestRentalSettlementMatrix_2268/13_续租后提前归还（用40/60天）
+
+2026/11/23 01:07:44 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[521.580ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "membership_levels", "instruments", "order_payment_records", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:45 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.360ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '9577f3c5-d804-465e-b7c8-afc6f178cfbf' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:45 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.392ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '9577f3c5-d804-465e-b7c8-afc6f178cfbf' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:45 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.337ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+    rental_settlement_matrix_2268_test.go:281: days=40 rent=3950.00 totalPaid=5850.00 refund=2400.00 shortfall=0.00 segment=true cashPaid=635000
+=== RUN   TestRentalSettlementMatrix_2268/14_追加物流费600致押金不足（补缴100）
+
+2026/11/23 01:07:45 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[520.174ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "membership_levels", "instruments", "order_payment_records", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/23 01:07:45 [computeSettlement] segment build failed for order c1f8d7b5-e7b6-4e15-9ba4-2c26af3a7e11: segment paid exceeds original total — falling back to #1743
+
+2026/11/23 01:07:45 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.351ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+    rental_settlement_matrix_2268_test.go:281: days=30 rent=3000.00 totalPaid=3020.00 refund=0.00 shortfall=100.00 segment=false cashPaid=352000
+=== RUN   TestRentalSettlementMatrix_2268/16_优惠码9折首段+续租按阶梯95折
+
+2026/11/23 01:07:46 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[539.863ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "membership_levels", "damage_reports", "instruments", "order_payment_records", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:46 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.949ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '8b64b637-d198-4360-b3d9-8043736a6ac7' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:46 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.373ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '8b64b637-d198-4360-b3d9-8043736a6ac7' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:46 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.322ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+    rental_settlement_matrix_2268_test.go:281: days=60 rent=5550.00 totalPaid=5550.00 refund=500.00 shortfall=0.00 segment=true cashPaid=605000
+=== RUN   TestRentalSettlementMatrix_2268/17_续租跨档（30+150，续租段5%）
+
+2026/11/23 01:07:47 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[519.928ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "membership_levels", "instruments", "order_payment_records", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:47 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.363ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'a9edfa60-2ae4-4f69-b16a-8c721b66664e' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:47 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.330ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'a9edfa60-2ae4-4f69-b16a-8c721b66664e' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:47 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.346ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+    rental_settlement_matrix_2268_test.go:281: days=180 rent=17250.00 totalPaid=17250.00 refund=500.00 shortfall=0.00 segment=true cashPaid=1775000
+=== RUN   TestRentalSettlementMatrix_2268/18_逾期+定损同时超押金（补缴200）
+
+2026/11/23 01:07:48 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[521.483ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "membership_levels", "instruments", "order_payment_records", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:48 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.333ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+    rental_settlement_matrix_2268_test.go:281: days=30 rent=3000.00 totalPaid=3000.00 refund=0.00 shortfall=200.00 segment=true cashPaid=350000
+=== RUN   TestRentalSettlementMatrix_2268/19_逾期300+续租一次（退200）
+
+2026/11/23 01:07:49 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[550.964ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "membership_levels", "damage_reports", "instruments", "order_payment_records", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:49 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.375ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+    rental_settlement_matrix_2268_test.go:281: days=60 rent=5850.00 totalPaid=5850.00 refund=200.00 shortfall=0.00 segment=true cashPaid=635000
+--- PASS: TestRentalSettlementMatrix_2268 (17.03s)
+    --- PASS: TestRentalSettlementMatrix_2268/1_预约-支付-物流费-无损退款 (0.92s)
+    --- PASS: TestRentalSettlementMatrix_2268/2_优惠码（租金9折） (0.92s)
+    --- PASS: TestRentalSettlementMatrix_2268/3_免押（押金0） (0.97s)
+    --- PASS: TestRentalSettlementMatrix_2268/4_续租一次（30+30，二档95折） (0.93s)
+    --- PASS: TestRentalSettlementMatrix_2268/5_逾期后先续租再按时终结（逾期费=0，检查时录入） (0.93s)
+    --- PASS: TestRentalSettlementMatrix_2268/6_逾期状态下终结（逾期费300） (0.92s)
+    --- PASS: TestRentalSettlementMatrix_2268/7_定损无损坏（同无损） (0.99s)
+    --- PASS: TestRentalSettlementMatrix_2268/8a_定损200用户接受（押金内） (0.92s)
+    --- PASS: TestRentalSettlementMatrix_2268/8b_定损700超过押金（补缴200） (0.94s)
+    --- PASS: TestRentalSettlementMatrix_2268/9a_申诉后赔付额改为0 (0.98s)
+    --- PASS: TestRentalSettlementMatrix_2268/9b_申诉后赔付额改为300 (0.95s)
+    --- PASS: TestRentalSettlementMatrix_2268/12_多次续租（30+30+30） (0.95s)
+    --- PASS: TestRentalSettlementMatrix_2268/13_续租后提前归还（用40/60天） (0.98s)
+    --- PASS: TestRentalSettlementMatrix_2268/14_追加物流费600致押金不足（补缴100） (0.93s)
+    --- PASS: TestRentalSettlementMatrix_2268/16_优惠码9折首段+续租按阶梯95折 (0.95s)
+    --- PASS: TestRentalSettlementMatrix_2268/17_续租跨档（30+150，续租段5%） (0.96s)
+    --- PASS: TestRentalSettlementMatrix_2268/18_逾期+定损同时超押金（补缴200） (0.92s)
+    --- PASS: TestRentalSettlementMatrix_2268/19_逾期300+续租一次（退200） (0.96s)
+=== RUN   TestMatrix_RentalShortfallApplied_2268
+
+2026/11/23 01:07:50 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[543.728ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "order_payment_records", "membership_levels", "damage_reports", "instruments", "tenants", "users" RESTART IDENTITY CASCADE[0m
+--- PASS: TestMatrix_RentalShortfallApplied_2268 (0.94s)
+=== RUN   TestMatrix_GiftPointsNotDoubleDeducted_2268
+
+2026/11/23 01:07:51 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[496.900ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "settlements", "membership_levels", "instruments", "tenants", "users" RESTART IDENTITY CASCADE[0m
+--- PASS: TestMatrix_GiftPointsNotDoubleDeducted_2268 (0.95s)
+=== RUN   TestMatrix_ReferralCommissionOnSettlement_2268
+
+2026/11/23 01:07:52 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[544.488ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "points_transactions", "order_payment_records", "membership_levels", "instruments", "tenants", "users", "point_batches", "point_batch_consumptions" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:52 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.728ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '82d6a15e-0c6a-4b96-99a5-5a9a25f7eb50' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/23 01:07:52 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.366ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '82d6a15e-0c6a-4b96-99a5-5a9a25f7eb50' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:52 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[2.240ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '82d6a15e-0c6a-4b96-99a5-5a9a25f7eb50' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:52 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.318ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestMatrix_ReferralCommissionOnSettlement_2268 (1.04s)
+=== RUN   TestMatrix_ReferralOnZeroCashOrder_2268
+
+2026/11/23 01:07:53 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[564.869ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "points_transactions", "settlements", "order_payment_records", "membership_levels", "gift_policies", "instruments", "order_refund_records", "referrals", "tenants", "users", "point_batches", "referral_commissions" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:53 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.674ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '738a9e32-2333-45db-a8c9-df2770b61c0c' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/23 01:07:53 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.456ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '738a9e32-2333-45db-a8c9-df2770b61c0c' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:53 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.521ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '738a9e32-2333-45db-a8c9-df2770b61c0c' ORDER BY "damage_reports"."id" LIMIT 1
+--- PASS: TestMatrix_ReferralOnZeroCashOrder_2268 (1.08s)
+=== RUN   TestMatrix_TotalSpendingUnit_2268
+
+2026/11/23 01:07:54 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[546.443ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "settlements", "order_payment_records", "membership_levels", "gift_policies", "instruments", "order_refund_records", "referrals", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:54 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.666ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = 'b3508b8f-28e1-423d-a47c-33c8e93ebee1' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/23 01:07:54 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.347ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'b3508b8f-28e1-423d-a47c-33c8e93ebee1' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:54 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.324ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'b3508b8f-28e1-423d-a47c-33c8e93ebee1' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:54 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.350ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestMatrix_TotalSpendingUnit_2268 (1.04s)
+=== RUN   TestMatrix_ShortfallExcessRefund_2268
+
+2026/11/23 01:07:55 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[563.637ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "settlements", "points_transactions", "order_payment_records", "membership_levels", "gift_policies", "instruments", "order_refund_records", "referrals", "tenants", "users", "point_batches", "referral_commissions" RESTART IDENTITY CASCADE[0m
+--- PASS: TestMatrix_ShortfallExcessRefund_2268 (1.02s)
+=== RUN   TestMatrix_ShortfallExcessRefundAPIFailure_2268
+
+2026/11/23 01:07:56 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[538.397ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "settlements", "order_payment_records", "instruments", "membership_levels", "order_refund_records", "tenants", "users" RESTART IDENTITY CASCADE[0m
+--- PASS: TestMatrix_ShortfallExcessRefundAPIFailure_2268 (0.95s)
+=== RUN   TestComputeSettlement_TierOverflowDays
+
+2026/11/23 01:07:57 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[535.494ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "settlements", "order_payment_records", "instruments", "membership_levels", "order_refund_records", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:57 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.385ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '2f61762f-4308-4b2b-8a81-d47bfb0bd21d' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:57 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.329ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '2f61762f-4308-4b2b-8a81-d47bfb0bd21d' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:07:57 [computeSettlement] segment model rejected order 2f61762f-4308-4b2b-8a81-d47bfb0bd21d: actual lease days exceed covered segment days — falling back to #1743
+
+2026/11/23 01:07:57 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.337ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestComputeSettlement_TierOverflowDays (0.97s)
+=== RUN   TestInspectReturn_OverdueDays_CaMinusC
+
+2026/11/23 01:07:58 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[494.795ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:58 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.650ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = 'b8f14cea-9e38-4e02-8ae5-484d2e0e02a7' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/23 01:07:58 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.359ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:07:58 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.625ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '10d67a66-ffee-4448-ab5c-d192080ca4c4' ORDER BY "referrals"."id" LIMIT 1
+--- PASS: TestInspectReturn_OverdueDays_CaMinusC (0.96s)
+=== RUN   TestExecuteRefund_ZeroCashRefund_CompletesSettlement
+
+2026/11/23 01:07:59 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[587.610ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "order_payment_records", "damage_reports", "settlements", "order_logs", "notifications", "order_status_history", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:07:59 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.760ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '02ccb0b4-eba3-4eed-b2ac-be131e5791f5' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/23 01:07:59 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.947ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '02ccb0b4-eba3-4eed-b2ac-be131e5791f5' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:59 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.372ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '02ccb0b4-eba3-4eed-b2ac-be131e5791f5' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:07:59 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.325ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:07:59 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.646ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'bba49b04-535d-414f-99d8-7a203e642b6e' ORDER BY "referrals"."id" LIMIT 1
+--- PASS: TestExecuteRefund_ZeroCashRefund_CompletesSettlement (1.02s)
+=== RUN   TestApplySideEffects_RentWritesBackCashPaid
+
+2026/11/23 01:08:00 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[497.996ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "settlements", "tenants", "users" RESTART IDENTITY CASCADE[0m
+--- PASS: TestApplySideEffects_RentWritesBackCashPaid (0.94s)
+=== RUN   TestGetOrder_PaymentRecordsCentsContract
+
+2026/11/23 01:08:01 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[500.689ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "order_logs", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/23 01:08:01 [GetOrder] orderID=cebb2156-d302-4c30-86f9-b74f976016f0 tenantID="083aa538-387f-44ce-ab21-f65b3af3e2af" userID="3948aeab-1f6f-41aa-9668-fb60a7f5d4b3" role=""
+2026/11/23 01:08:01 [IAMClient] NewIAMClient: baseURL=http://opencode.linxdeep.com:5552, clientID=test-ns, namespace=test-ns
+2026/11/23 01:08:01 [OrderDetail] IAM GetUser failed for iam_sub=3948aeab-1f6f-41aa-9668-fb60a7f5d4b3: GetUser request failed: failed to get client token: token endpoint returned status 401: {"error":"invalid client credentials"}
+ (local cache may be stale)
+
+2026/11/23 01:08:01 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/order.go:218 [35;1mrecord not found
+[0m[33m[1.819ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = 'cebb2156-d302-4c30-86f9-b74f976016f0' ORDER BY created_at DESC,"settlements"."id" LIMIT 1
+2026/11/23 01:08:01 [Ledger] cash_paid(0) != ledger net(36) for order cebb2156-d302-4c30-86f9-b74f976016f0, using ledger
+
+2026/11/23 01:08:01 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.404ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'cebb2156-d302-4c30-86f9-b74f976016f0' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:01 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.364ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'cebb2156-d302-4c30-86f9-b74f976016f0' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:01 [computeSettlement] order cebb2156-d302-4c30-86f9-b74f976016f0 contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/23 01:08:01 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.325ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:08:01 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.355ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '083aa538-387f-44ce-ab21-f65b3af3e2af' ORDER BY "merchants"."id" LIMIT 1
+--- PASS: TestGetOrder_PaymentRecordsCentsContract (0.94s)
+=== RUN   TestSettlement_UserScenarioA_CouponWaiveDepositOnly
+
+2026/11/23 01:08:02 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[518.173ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "order_payment_records", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:02 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.406ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '40a7a2a8-7706-4f6c-baf7-030c407e0d02' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:02 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.338ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '40a7a2a8-7706-4f6c-baf7-030c407e0d02' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:02 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.303ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/23 01:08:02 [computeSettlement] #2424 refund spec skipped for order 40a7a2a8-7706-4f6c-baf7-030c407e0d02: settlement: conservation invariant violated: left=1000000 right=0 (net=1000000 p_refund=0 cash_paid=0 p_used=0 R_after_coupon=0 deductions=0)
+--- PASS: TestSettlement_UserScenarioA_CouponWaiveDepositOnly (0.97s)
+=== RUN   TestSettlement_CouponRefundRatio
+
+2026/11/23 01:08:03 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[496.191ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:03 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.425ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '58b1a558-3d03-41f6-af70-907d46577370' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:03 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.388ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '58b1a558-3d03-41f6-af70-907d46577370' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:03 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.430ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestSettlement_CouponRefundRatio (0.95s)
+=== RUN   TestSettlement_UserScenarioB_NoDepositNoCoupon
+
+2026/11/23 01:08:04 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[537.654ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:04 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.418ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'f769ad2e-8812-46de-98db-0ecf08eaf090' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:04 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.439ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'f769ad2e-8812-46de-98db-0ecf08eaf090' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:04 [computeSettlement] segment build failed for order f769ad2e-8812-46de-98db-0ecf08eaf090: segment paid exceeds original total — falling back to #1743
+
+2026/11/23 01:08:04 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.371ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestSettlement_UserScenarioB_NoDepositNoCoupon (1.02s)
+=== RUN   TestSettlement_UserScenarioC_Overdue_Shortfall
+
+2026/11/23 01:08:05 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[510.680ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/23 01:08:05 [computeSettlement] segment build failed for order a8417ff3-54a1-405e-bffe-1613a7e95913: segment paid exceeds original total — falling back to #1743
+
+2026/11/23 01:08:05 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.350ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestSettlement_UserScenarioC_Overdue_Shortfall (0.92s)
+=== RUN   TestComputeSettlement_NoDamageNoOverdue_ZeroCents
+
+2026/11/23 01:08:06 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[516.931ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "damage_reports", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:06 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[42.310ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'a9e9b995-959d-446a-b84d-a7e38f75aec8' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:06 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.640ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'a9e9b995-959d-446a-b84d-a7e38f75aec8' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:06 [computeSettlement] segment model rejected order a9e9b995-959d-446a-b84d-a7e38f75aec8: actual lease days exceed covered segment days — falling back to #1743
+
+2026/11/23 01:08:06 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.363ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestComputeSettlement_NoDamageNoOverdue_ZeroCents (0.95s)
+=== RUN   TestComputeSettlement_WholeYuanNotShifted
+
+2026/11/23 01:08:07 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[494.206ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:07 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.335ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '3e69b563-f3b2-4e4d-85d3-3053f357edd9' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:07 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.333ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '3e69b563-f3b2-4e4d-85d3-3053f357edd9' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:07 [computeSettlement] segment model rejected order 3e69b563-f3b2-4e4d-85d3-3053f357edd9: actual lease days exceed covered segment days — falling back to #1743
+
+2026/11/23 01:08:07 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[2.284ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestComputeSettlement_WholeYuanNotShifted (0.89s)
+=== RUN   TestComputeSettlement_FractionalCents
+
+2026/11/23 01:08:08 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[491.674ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:08 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.384ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '479dc3e8-1fbf-4260-ac77-f7927df3e7ce' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:08 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.347ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '479dc3e8-1fbf-4260-ac77-f7927df3e7ce' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:08 [computeSettlement] segment model rejected order 479dc3e8-1fbf-4260-ac77-f7927df3e7ce: actual lease days exceed covered segment days — falling back to #1743
+
+2026/11/23 01:08:08 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.361ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestComputeSettlement_FractionalCents (0.90s)
+=== RUN   TestComputeSettlement_FeeItems_Direction
+
+2026/11/23 01:08:08 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[491.327ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:09 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.371ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '438b7482-5324-4fdf-8177-b2dab98bb7ff' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:09 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.328ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '438b7482-5324-4fdf-8177-b2dab98bb7ff' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:09 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.304ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestComputeSettlement_FeeItems_Direction (0.88s)
+=== RUN   TestComputeSettlement_FeeItems_Shortfall
+
+2026/11/23 01:08:09 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[497.740ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:09 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.349ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'd191fa39-a896-4224-8627-5ce1d5a94663' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:09 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.357ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'd191fa39-a896-4224-8627-5ce1d5a94663' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:09 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.327ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestComputeSettlement_FeeItems_Shortfall (0.93s)
+=== RUN   TestGetOrder_MerchantName
+
+2026/11/23 01:08:10 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[504.379ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/23 01:08:10 [GetOrder] orderID=53e00e6c-5f96-42fe-9069-74d368c4d308 tenantID="166c0d5a-347e-4dd3-9b73-56a9216be4c2" userID="ac6ce8ca-b651-44f1-9402-ad4f10003d57" role=""
+
+2026/11/23 01:08:10 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/order.go:218 [35;1mrecord not found
+[0m[33m[1.721ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '53e00e6c-5f96-42fe-9069-74d368c4d308' ORDER BY created_at DESC,"settlements"."id" LIMIT 1
+
+2026/11/23 01:08:10 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/order.go:526 [35;1mrecord not found
+[0m[33m[1.486ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE order_id = '53e00e6c-5f96-42fe-9069-74d368c4d308' AND status = 'paid' AND type = 'payment' ORDER BY "order_payment_records"."id" LIMIT 1
+
+2026/11/23 01:08:10 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.341ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '53e00e6c-5f96-42fe-9069-74d368c4d308' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:10 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.303ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '53e00e6c-5f96-42fe-9069-74d368c4d308' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:10 [computeSettlement] order 53e00e6c-5f96-42fe-9069-74d368c4d308 contract days unresolvable (lease_term=1, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/23 01:08:10 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.295ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestGetOrder_MerchantName (0.92s)
+=== RUN   TestGetOrder_MerchantName_Absent
+
+2026/11/23 01:08:11 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[511.255ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "tenants", "merchants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/23 01:08:11 [GetOrder] orderID=f45cf9b2-123c-440a-b8b4-db463f507e48 tenantID="89e5deea-eea6-40ce-b107-02c83e64ee76" userID="c2c52bb7-403d-41df-8e74-73f69d961604" role=""
+
+2026/11/23 01:08:11 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/order.go:218 [35;1mrecord not found
+[0m[33m[1.626ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = 'f45cf9b2-123c-440a-b8b4-db463f507e48' ORDER BY created_at DESC,"settlements"."id" LIMIT 1
+
+2026/11/23 01:08:11 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/order.go:526 [35;1mrecord not found
+[0m[33m[1.454ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE order_id = 'f45cf9b2-123c-440a-b8b4-db463f507e48' AND status = 'paid' AND type = 'payment' ORDER BY "order_payment_records"."id" LIMIT 1
+
+2026/11/23 01:08:11 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.382ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'f45cf9b2-123c-440a-b8b4-db463f507e48' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:11 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.343ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'f45cf9b2-123c-440a-b8b4-db463f507e48' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:11 [computeSettlement] order f45cf9b2-123c-440a-b8b4-db463f507e48 contract days unresolvable (lease_term=1, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/23 01:08:11 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.309ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:08:11 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.818ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '89e5deea-eea6-40ce-b107-02c83e64ee76' ORDER BY "merchants"."id" LIMIT 1
+--- PASS: TestGetOrder_MerchantName_Absent (0.92s)
+=== RUN   TestFeeDetail_PaidBlock_Tiers
+
+2026/11/23 01:08:12 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[492.090ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/23 01:08:12 [GetOrder] orderID=92589739-6e05-4ecd-b740-1e3b5133f720 tenantID="00000000-0000-4000-8000-c1d2e3f4a5b1" userID="00000000-0000-4000-8000-c1d2e3f4a5b3" role=""
+
+2026/11/23 01:08:12 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/order.go:218 [35;1mrecord not found
+[0m[33m[1.672ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '92589739-6e05-4ecd-b740-1e3b5133f720' ORDER BY created_at DESC,"settlements"."id" LIMIT 1
+
+2026/11/23 01:08:12 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/order.go:479 [35;1mrecord not found
+[0m[33m[1.407ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE order_id = '92589739-6e05-4ecd-b740-1e3b5133f720' AND order_type = 'payment_shortfall' AND status = 'pending' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
+
+2026/11/23 01:08:12 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.367ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '92589739-6e05-4ecd-b740-1e3b5133f720' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:12 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.414ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '92589739-6e05-4ecd-b740-1e3b5133f720' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:12 [computeSettlement] segment build failed for order 92589739-6e05-4ecd-b740-1e3b5133f720: segment paid exceeds original total — falling back to #1743
+
+2026/11/23 01:08:12 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.326ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:08:12 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.377ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '00000000-0000-4000-8000-c1d2e3f4a5b1' ORDER BY "merchants"."id" LIMIT 1
+--- PASS: TestFeeDetail_PaidBlock_Tiers (0.95s)
+=== RUN   TestFeeDetail_LegacyRenewal_NoTiers
+
+2026/11/23 01:08:13 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[514.716ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "order_payment_records", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/23 01:08:13 [GetOrder] orderID=9bc7ff0b-f216-47d8-9b10-63cf665bf291 tenantID="00000000-0000-4000-8000-c1d2e3f4a5b1" userID="00000000-0000-4000-8000-c1d2e3f4a5b3" role=""
+
+2026/11/23 01:08:13 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/order.go:218 [35;1mrecord not found
+[0m[33m[1.737ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '9bc7ff0b-f216-47d8-9b10-63cf665bf291' ORDER BY created_at DESC,"settlements"."id" LIMIT 1
+
+2026/11/23 01:08:13 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/order.go:479 [35;1mrecord not found
+[0m[33m[1.395ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE order_id = '9bc7ff0b-f216-47d8-9b10-63cf665bf291' AND order_type = 'payment_shortfall' AND status = 'pending' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
+
+2026/11/23 01:08:13 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.435ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '9bc7ff0b-f216-47d8-9b10-63cf665bf291' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:13 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.353ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '9bc7ff0b-f216-47d8-9b10-63cf665bf291' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:13 [computeSettlement] order 9bc7ff0b-f216-47d8-9b10-63cf665bf291 contract days unresolvable (lease_term=35, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/23 01:08:13 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.353ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:08:13 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.330ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '00000000-0000-4000-8000-c1d2e3f4a5b1' ORDER BY "merchants"."id" LIMIT 1
+--- PASS: TestFeeDetail_LegacyRenewal_NoTiers (0.93s)
+=== RUN   TestFeeDetail_SettledReconstruction
+
+2026/11/23 01:08:14 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[522.095ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "order_payment_records", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/23 01:08:14 [GetOrder] orderID=33cfaa13-cfa4-4bfa-acc0-a52c67f6ecf0 tenantID="00000000-0000-4000-8000-c1d2e3f4a5b1" userID="00000000-0000-4000-8000-c1d2e3f4a5b3" role=""
+
+2026/11/23 01:08:14 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/order.go:218 [35;1mrecord not found
+[0m[33m[1.695ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '33cfaa13-cfa4-4bfa-acc0-a52c67f6ecf0' ORDER BY created_at DESC,"settlements"."id" LIMIT 1
+
+2026/11/23 01:08:14 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/order.go:479 [35;1mrecord not found
+[0m[33m[1.428ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE order_id = '33cfaa13-cfa4-4bfa-acc0-a52c67f6ecf0' AND order_type = 'payment_shortfall' AND status = 'pending' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
+
+2026/11/23 01:08:14 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.535ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '33cfaa13-cfa4-4bfa-acc0-a52c67f6ecf0' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:14 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.325ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '33cfaa13-cfa4-4bfa-acc0-a52c67f6ecf0' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:14 [computeSettlement] segment build failed for order 33cfaa13-cfa4-4bfa-acc0-a52c67f6ecf0: segment paid exceeds original total — falling back to #1743
+
+2026/11/23 01:08:14 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.391ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:08:14 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.403ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '00000000-0000-4000-8000-c1d2e3f4a5b1' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/23 01:08:14 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.332ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '33cfaa13-cfa4-4bfa-acc0-a52c67f6ecf0' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:14 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.344ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '33cfaa13-cfa4-4bfa-acc0-a52c67f6ecf0' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:14 [computeSettlement] segment build failed for order 33cfaa13-cfa4-4bfa-acc0-a52c67f6ecf0: segment paid exceeds original total — falling back to #1743
+
+2026/11/23 01:08:14 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.324ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/23 01:08:14 [GetOrder] orderID=33cfaa13-cfa4-4bfa-acc0-a52c67f6ecf0 tenantID="00000000-0000-4000-8000-c1d2e3f4a5b1" userID="00000000-0000-4000-8000-c1d2e3f4a5b3" role=""
+
+2026/11/23 01:08:14 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.381ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '00000000-0000-4000-8000-c1d2e3f4a5b1' ORDER BY "merchants"."id" LIMIT 1
+--- PASS: TestFeeDetail_SettledReconstruction (0.99s)
+=== RUN   TestFeeDetail_DiscountedPassthrough
+
+2026/11/23 01:08:15 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[542.416ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "settlements", "pricing_templates", "instruments", "membership_levels", "order_payment_records", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/23 01:08:15 [GetOrder] orderID=a9916076-6b09-421b-92cb-0151c73864c6 tenantID="e948f644-49b6-49a6-93f9-721c4e7f7deb" userID="e03c703d-8a46-4a57-9597-bd7bbdf6d87d" role=""
+
+2026/11/23 01:08:15 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/order.go:218 [35;1mrecord not found
+[0m[33m[1.672ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = 'a9916076-6b09-421b-92cb-0151c73864c6' ORDER BY created_at DESC,"settlements"."id" LIMIT 1
+
+2026/11/23 01:08:15 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/order.go:479 [35;1mrecord not found
+[0m[33m[2.079ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE order_id = 'a9916076-6b09-421b-92cb-0151c73864c6' AND order_type = 'payment_shortfall' AND status = 'pending' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
+
+2026/11/23 01:08:15 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/order.go:526 [35;1mrecord not found
+[0m[33m[1.369ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE order_id = 'a9916076-6b09-421b-92cb-0151c73864c6' AND status = 'paid' AND type = 'payment' ORDER BY "order_payment_records"."id" LIMIT 1
+
+2026/11/23 01:08:15 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.365ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'a9916076-6b09-421b-92cb-0151c73864c6' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:15 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.357ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'a9916076-6b09-421b-92cb-0151c73864c6' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:15 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.334ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:08:15 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.366ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = 'e948f644-49b6-49a6-93f9-721c4e7f7deb' ORDER BY "merchants"."id" LIMIT 1
+--- PASS: TestFeeDetail_DiscountedPassthrough (0.99s)
+=== RUN   TestComputeSettlement_SegmentScenarios
+
+2026/11/23 01:08:16 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[493.264ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "tenants", "users" RESTART IDENTITY CASCADE[0m
+=== RUN   TestComputeSettlement_SegmentScenarios/场景1-三码-实租1天-补缴0.28
+
+2026/11/23 01:08:16 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.399ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '1b3c007e-55ea-491b-8db1-3288784ae0f0' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:16 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.336ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '1b3c007e-55ea-491b-8db1-3288784ae0f0' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:16 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.332ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+=== RUN   TestComputeSettlement_SegmentScenarios/场景2A-续1无码-实租1天-应退35.36
+
+2026/11/23 01:08:16 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.370ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'e4e0699f-f506-4729-a2f1-0cd026ac99bf' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:16 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.362ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'e4e0699f-f506-4729-a2f1-0cd026ac99bf' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:16 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.337ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+=== RUN   TestComputeSettlement_SegmentScenarios/场景2B-续1无码-实租2天-应补0.64
+
+2026/11/23 01:08:16 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.344ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '36ec12f3-c3b7-46bc-ab3e-9427c3b45cf3' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:16 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.339ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '36ec12f3-c3b7-46bc-ab3e-9427c3b45cf3' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:16 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.331ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+=== RUN   TestComputeSettlement_SegmentScenarios/反推合同天数-lease_term=0(月语义)-三码实租1天-段模型补0.28
+
+2026/11/23 01:08:16 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.353ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'c05cacde-0273-41d6-8b43-97f34dfef8d5' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:16 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.327ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'c05cacde-0273-41d6-8b43-97f34dfef8d5' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:16 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.284ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+=== RUN   TestComputeSettlement_SegmentScenarios/1bf456df形状-两码两段实租1天-段模型补0.64
+
+2026/11/23 01:08:16 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.317ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '1c949a2d-3407-48f3-9e78-6c165fd01bab' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:16 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.296ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '1c949a2d-3407-48f3-9e78-6c165fd01bab' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:16 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.368ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+=== RUN   TestComputeSettlement_SegmentScenarios/续费缺days-合同天数不可反推-回退1743
+2026/11/23 01:08:16 [Ledger] cash_paid(72) != ledger net(36) for order d74cb242-212b-4519-9d44-29ada3d53257, using ledger
+
+2026/11/23 01:08:16 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.308ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'd74cb242-212b-4519-9d44-29ada3d53257' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:16 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.324ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'd74cb242-212b-4519-9d44-29ada3d53257' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:16 [computeSettlement] order d74cb242-212b-4519-9d44-29ada3d53257 contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/23 01:08:16 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.315ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+=== RUN   TestComputeSettlement_SegmentScenarios/跨阶-无码-实租12天-段级应收与rentPayable逐分相等
+
+2026/11/23 01:08:16 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.362ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '32b8baa3-1c1e-4802-9628-26d27ae29a88' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:16 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.318ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '32b8baa3-1c1e-4802-9628-26d27ae29a88' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:16 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.319ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+=== RUN   TestComputeSettlement_SegmentScenarios/跨阶-无码-续费跨30天边界-renewalOffset与contractDays续接
+
+2026/11/23 01:08:17 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.332ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'fa30af6c-76f9-40f7-b942-f3a2f7e4d28a' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:17 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.431ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'fa30af6c-76f9-40f7-b942-f3a2f7e4d28a' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:17 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.326ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestComputeSettlement_SegmentScenarios (1.35s)
+    --- PASS: TestComputeSettlement_SegmentScenarios/场景1-三码-实租1天-补缴0.28 (0.06s)
+    --- PASS: TestComputeSettlement_SegmentScenarios/场景2A-续1无码-实租1天-应退35.36 (0.07s)
+    --- PASS: TestComputeSettlement_SegmentScenarios/场景2B-续1无码-实租2天-应补0.64 (0.06s)
+    --- PASS: TestComputeSettlement_SegmentScenarios/反推合同天数-lease_term=0(月语义)-三码实租1天-段模型补0.28 (0.06s)
+    --- PASS: TestComputeSettlement_SegmentScenarios/1bf456df形状-两码两段实租1天-段模型补0.64 (0.06s)
+    --- PASS: TestComputeSettlement_SegmentScenarios/续费缺days-合同天数不可反推-回退1743 (0.05s)
+    --- PASS: TestComputeSettlement_SegmentScenarios/跨阶-无码-实租12天-段级应收与rentPayable逐分相等 (0.05s)
+    --- PASS: TestComputeSettlement_SegmentScenarios/跨阶-无码-续费跨30天边界-renewalOffset与contractDays续接 (0.10s)
+=== RUN   TestPayableTiers_TruncatedByActualDays
+
+2026/11/23 01:08:17 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[521.215ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "order_payment_records", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:17 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.415ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'd1aeff82-6125-481d-a74e-670ba8ff4089' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:17 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.365ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'd1aeff82-6125-481d-a74e-670ba8ff4089' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:17 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.319ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestPayableTiers_TruncatedByActualDays (0.92s)
+=== RUN   TestPayableTiers_FullTerm_NoOp
+
+2026/11/23 01:08:18 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[526.154ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "order_payment_records", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:18 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.352ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'f0c45b98-628f-4fad-aaf0-b16d610e3317' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:18 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.321ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'f0c45b98-628f-4fad-aaf0-b16d610e3317' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:18 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.366ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestPayableTiers_FullTerm_NoOp (0.92s)
+=== RUN   TestSettlement_PostDamageStates
+
+2026/11/23 01:08:19 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[505.696ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "tenants", "users" RESTART IDENTITY CASCADE[0m
+=== RUN   TestSettlement_PostDamageStates/pending_damage_response
+
+2026/11/23 01:08:19 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.296ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+=== RUN   TestSettlement_PostDamageStates/damage_appealing
+
+2026/11/23 01:08:19 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.299ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+=== RUN   TestSettlement_PostDamageStates/deposit_refunding
+
+2026/11/23 01:08:19 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.339ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:08:19 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.287ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestSettlement_PostDamageStates (1.09s)
+    --- PASS: TestSettlement_PostDamageStates/pending_damage_response (0.07s)
+    --- PASS: TestSettlement_PostDamageStates/damage_appealing (0.10s)
+    --- PASS: TestSettlement_PostDamageStates/deposit_refunding (0.09s)
+=== RUN   TestComputeSettlement_SupplementWaive_CancelsShortfall
+
+2026/11/23 01:08:20 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[547.472ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "order_payment_records", "damage_reports", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:20 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.378ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:08:20 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.321ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestComputeSettlement_SupplementWaive_CancelsShortfall (1.01s)
+=== RUN   TestApplySideEffects_DamageWaive_NoRollback
+=== RUN   TestApplySideEffects_DamageWaive_NoRollback/OREZ_waived
+
+2026/11/23 01:08:21 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[541.610ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "order_payment_records", "damage_reports", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:21 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.672ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '13e0ba25-c061-4e23-83dd-d66c9cf48d90' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/23 01:08:21 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.342ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:08:21 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.563ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '40178843-3f71-474a-a7bd-3c74d9d3bf13' ORDER BY "referrals"."id" LIMIT 1
+=== RUN   TestApplySideEffects_DamageWaive_NoRollback/jsapi_paid
+
+2026/11/23 01:08:22 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[544.365ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "settlements", "pricing_templates", "instruments", "membership_levels", "order_payment_records", "damage_reports", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:22 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.702ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = 'b03e5a37-040e-4df4-9656-1c450a68e828' ORDER BY "settlements"."id" LIMIT 1
+2026/11/23 01:08:22 [Ledger] cash_paid(137) != ledger net(72) for order b03e5a37-040e-4df4-9656-1c450a68e828, using ledger
+
+2026/11/23 01:08:22 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.417ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:08:23 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.706ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'b6cf3490-8cf5-42c2-96d6-aaf7cdd642d6' ORDER BY "referrals"."id" LIMIT 1
+--- PASS: TestApplySideEffects_DamageWaive_NoRollback (2.04s)
+    --- PASS: TestApplySideEffects_DamageWaive_NoRollback/OREZ_waived (1.00s)
+    --- PASS: TestApplySideEffects_DamageWaive_NoRollback/jsapi_paid (1.04s)
+=== RUN   TestSettlement_NotEnded_InclusiveDays
+
+2026/11/23 01:08:23 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[546.542ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "settlements", "pricing_templates", "instruments", "membership_levels", "order_payment_records", "damage_reports", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:23 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.863ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'f2750c15-d87a-40b9-9626-de4d7b9d1646' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:23 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.393ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'f2750c15-d87a-40b9-9626-de4d7b9d1646' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:23 [computeSettlement] segment build failed for order f2750c15-d87a-40b9-9626-de4d7b9d1646: segment paid exceeds original total — falling back to #1743
+
+2026/11/23 01:08:23 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.379ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestSettlement_NotEnded_InclusiveDays (0.95s)
+=== RUN   TestSettlement_Returned_LeaseDaysUnchanged
+
+2026/11/23 01:08:24 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[496.793ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:24 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.377ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '9ee4ce1f-71ec-4cf9-8ced-ff154b348aba' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:24 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.302ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '9ee4ce1f-71ec-4cf9-8ced-ff154b348aba' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:24 [computeSettlement] segment build failed for order 9ee4ce1f-71ec-4cf9-8ced-ff154b348aba: segment paid exceeds original total — falling back to #1743
+
+2026/11/23 01:08:24 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.285ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestSettlement_Returned_LeaseDaysUnchanged (0.90s)
+=== RUN   TestRefundDiff_PointsOverCap
+
+2026/11/23 01:08:25 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[511.875ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:25 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.393ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '01760ade-b6b9-477e-b49b-508af1b9d878' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:25 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.304ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '01760ade-b6b9-477e-b49b-508af1b9d878' ORDER BY "damage_reports"."id" LIMIT 1
+--- PASS: TestRefundDiff_PointsOverCap (0.96s)
+=== RUN   TestRefundDiff_PointsWithinCap
+
+2026/11/23 01:08:26 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[501.377ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "gift_policies", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:26 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.407ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '9c68596e-b9b0-4ed7-81cb-9326fd4ea014' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:26 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.322ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '9c68596e-b9b0-4ed7-81cb-9326fd4ea014' ORDER BY "damage_reports"."id" LIMIT 1
+--- PASS: TestRefundDiff_PointsWithinCap (0.91s)
+=== RUN   TestRefundDiff_TotalSpendingC1
+
+2026/11/23 01:08:27 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[502.161ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "gift_policies", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:27 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.335ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '31a3507f-10f7-42bb-8ff6-d3a5438c0b31' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:27 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.323ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '31a3507f-10f7-42bb-8ff6-d3a5438c0b31' ORDER BY "damage_reports"."id" LIMIT 1
+--- PASS: TestRefundDiff_TotalSpendingC1 (0.90s)
+=== RUN   TestRefundDiff_RebatePoints
+
+2026/11/23 01:08:28 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[503.827ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "gift_policies", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:28 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.346ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'da84572e-9078-462a-9586-8a61d806e9c9' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:28 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.314ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'da84572e-9078-462a-9586-8a61d806e9c9' ORDER BY "damage_reports"."id" LIMIT 1
+--- PASS: TestRefundDiff_RebatePoints (0.96s)
+=== RUN   TestConfirmSettlement_ClosesOrder
+
+2026/11/23 01:08:29 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[502.291ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "gift_policies", "tenants", "users" RESTART IDENTITY CASCADE[0m
+--- PASS: TestConfirmSettlement_ClosesOrder (0.90s)
+=== RUN   TestPaymentCallback_NoDoubleCount
+
+2026/11/23 01:08:30 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[503.115ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "gift_policies", "tenants", "users" RESTART IDENTITY CASCADE[0m
+--- PASS: TestPaymentCallback_NoDoubleCount (0.91s)
+=== RUN   TestSettlement_ShippingFeeSingleDeduction
+
+2026/11/23 01:08:31 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[499.184ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "membership_levels", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:31 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.580ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '95b96c66-d967-4fbe-a097-bc59750a78f6' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:31 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.357ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '95b96c66-d967-4fbe-a097-bc59750a78f6' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:31 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:139 [35;1mrecord not found
+[0m[33m[1.326ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 1 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:08:31 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.300ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestSettlement_ShippingFeeSingleDeduction (0.92s)
+=== RUN   TestSettlementFlow
+2026/11/23 01:08:31 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
+
+2026/11/23 01:08:32 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[493.642ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "tenants", "membership_levels", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:32 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_rental.go:532 [35;1mrecord not found
+[0m[33m[2.858ms] [34;1m[rows:0][0m SELECT * FROM "merchant_pricing_configs" WHERE tenant_id = '040c1c8e-e524-4c3c-b5ee-11f0eca75d74' ORDER BY "merchant_pricing_configs"."id" LIMIT 1
+
+2026/11/23 01:08:32 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.616ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:08:32 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_rental.go:1709 [35;1mrecord not found
+[0m[33m[1.386ms] [34;1m[rows:0][0m SELECT "payment_timeout" FROM "merchant_settlement_configs" WHERE tenant_id = '040c1c8e-e524-4c3c-b5ee-11f0eca75d74' AND is_enabled = true ORDER BY "merchant_settlement_configs"."payment_timeout" LIMIT 1
+
+2026/11/23 01:08:32 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_rental.go:1717 [35;1mrecord not found
+[0m[33m[1.299ms] [34;1m[rows:0][0m SELECT * FROM "system_settings" WHERE setting_key = 'payment_timeout_minutes' ORDER BY "system_settings"."id" LIMIT 1
+
+2026/11/23 01:08:32 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.652ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '18c31ab4-9891-41e2-985d-45da55f8edce' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/23 01:08:32 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.358ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '040c1c8e-e524-4c3c-b5ee-11f0eca75d74' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/23 01:08:32 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/warehouse.go:212 [35;1mrecord not found
+[0m[33m[1.544ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE (order_id = 'cdef7055-9fca-4887-a7f5-ec4dddbb5cef' AND direction = 'outbound' AND status = 'pending') AND "forwarding_sessions"."tenant_id" = '040c1c8e-e524-4c3c-b5ee-11f0eca75d74' ORDER BY "forwarding_sessions"."id" LIMIT 1
+2026/11/23 01:08:32 [IAMClient] NewIAMClient: baseURL=http://opencode.linxdeep.com:5552, clientID=test-ns, namespace=test-ns
+2026/11/23 01:08:32 [openidOfUser] resolve failed: user=18c31ab4-9891-41e2-985d-45da55f8edce err=ResolveUserOpenid request failed: failed to get client token: token endpoint returned status 401: {"error":"invalid client credentials"}
+2026/11/23 01:08:32 [WechatShipping] upload attempt 1/2 failed for rent order cdef7055-9fca-4887-a7f5-ec4dddbb5cef (out_trade_no=mockbf6538cb-fb98-468f-9 transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
+
+2026/11/23 01:08:32 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.490ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '040c1c8e-e524-4c3c-b5ee-11f0eca75d74' ORDER BY "merchants"."id" LIMIT 1
+2026/11/23 01:08:32 [WechatShipping] upload attempt 2/2 failed for rent order cdef7055-9fca-4887-a7f5-ec4dddbb5cef (out_trade_no=mockbf6538cb-fb98-468f-9 transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
+2026/11/23 01:08:32 [WechatShipping] upload_shipping_info gave up after 2 attempts for rent order cdef7055-9fca-4887-a7f5-ec4dddbb5cef (out_trade_no=mockbf6538cb-fb98-468f-9 transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
+2026/11/23 01:08:32 [WechatShipping] notify_confirm_receive failed for order cdef7055-9fca-4887-a7f5-ec4dddbb5cef: get access token: WX_APPID or WX_APPSECRET not configured
+
+2026/11/23 01:08:32 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.396ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'cdef7055-9fca-4887-a7f5-ec4dddbb5cef' AND "damage_reports"."tenant_id" = '040c1c8e-e524-4c3c-b5ee-11f0eca75d74' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:32 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.338ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'cdef7055-9fca-4887-a7f5-ec4dddbb5cef' AND "damage_reports"."tenant_id" = '040c1c8e-e524-4c3c-b5ee-11f0eca75d74' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:32 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.332ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:08:32 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.670ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = 'cdef7055-9fca-4887-a7f5-ec4dddbb5cef' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/23 01:08:32 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.316ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:08:32 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.587ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '18c31ab4-9891-41e2-985d-45da55f8edce' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/23 01:08:32 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/warehouse.go:518 [35;1mrecord not found
+[0m[33m[1.592ms] [34;1m[rows:0][0m SELECT * FROM "orders" WHERE (id = 'cdef7055-9fca-4887-a7f5-ec4dddbb5cef' AND tenant_id = '040c1c8e-e524-4c3c-b5ee-11f0eca75d74' AND status = 'returning') AND "orders"."tenant_id" = '040c1c8e-e524-4c3c-b5ee-11f0eca75d74' ORDER BY "orders"."id" LIMIT 1
+--- PASS: TestSettlementFlow (1.17s)
+=== RUN   TestComputeSettlement_UsesLedgerNet_2281
+
+2026/11/23 01:08:33 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[654.117ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "settlements", "pricing_templates", "audit_logs", "order_term_versions", "instruments", "membership_levels", "order_payment_records", "damage_reports", "electronic_contracts", "notifications", "instrument_media", "order_logs", "order_refund_records", "order_status_history", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:33 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.933ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'ebe04508-a039-4b94-8a40-8653e5c8a8b5' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:33 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.403ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'ebe04508-a039-4b94-8a40-8653e5c8a8b5' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:33 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.344ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/23 01:08:33 [Ledger] cash_paid(999900) != ledger net(300000) for order ebe04508-a039-4b94-8a40-8653e5c8a8b5, using ledger
+
+2026/11/23 01:08:33 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.366ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'ebe04508-a039-4b94-8a40-8653e5c8a8b5' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:33 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.589ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'ebe04508-a039-4b94-8a40-8653e5c8a8b5' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:33 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.350ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestComputeSettlement_UsesLedgerNet_2281 (1.09s)
+=== RUN   TestSettlementSpecPreview_2424
+
+2026/11/23 01:08:34 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[544.303ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "pricing_templates", "instruments", "tenants", "membership_levels", "order_payment_records", "order_refund_records", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:34 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.402ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '8946f4e7-6221-4dbe-8a7f-6180cc735534' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:34 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.389ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '8946f4e7-6221-4dbe-8a7f-6180cc735534' ORDER BY "damage_reports"."id" LIMIT 1
+    settlement_spec_preview_2424_test.go:93: PHASE_A_OK net_cash=40.00 gross=500.00 payable=460.00 legacy_total=660.00 legacy_cash=500.00
+--- PASS: TestSettlementSpecPreview_2424 (0.99s)
+=== RUN   TestDeriveRefundSpecInput_2424
+=== RUN   TestDeriveRefundSpecInput_2424/无押金
+=== RUN   TestDeriveRefundSpecInput_2424/押金已扣用（other_fee_吃满押金）
+=== RUN   TestDeriveRefundSpecInput_2424/券后租金为_0
+=== RUN   TestDeriveRefundSpecInput_2424/预付跨界费（contract_list_<_现金租金）
+--- PASS: TestDeriveRefundSpecInput_2424 (0.00s)
+    --- PASS: TestDeriveRefundSpecInput_2424/无押金 (0.00s)
+    --- PASS: TestDeriveRefundSpecInput_2424/押金已扣用（other_fee_吃满押金） (0.00s)
+    --- PASS: TestDeriveRefundSpecInput_2424/券后租金为_0 (0.00s)
+    --- PASS: TestDeriveRefundSpecInput_2424/预付跨界费（contract_list_<_现金租金） (0.00s)
+=== RUN   TestSettlementSpecSwitch_2424
+
+2026/11/23 01:08:35 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[521.180ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "instruments", "tenants", "membership_levels", "pricing_templates", "gift_policies", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:35 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.351ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'f334fbab-0b49-496a-89af-75b4142f7f79' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:35 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.338ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'f334fbab-0b49-496a-89af-75b4142f7f79' ORDER BY "damage_reports"."id" LIMIT 1
+    settlement_spec_preview_2424_test.go:179: SWITCH_OK cash_refundable=500.00 payable=460.00 net=40.00 total=660.00 gift=160.00 cash_basis=1960.00
+--- PASS: TestSettlementSpecSwitch_2424 (0.92s)
+=== RUN   TestExecuteRefundNet_2424
+=== RUN   TestExecuteRefundNet_2424/net_positive_refunds_4000_cents
+
+2026/11/23 01:08:36 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[502.565ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "instruments", "tenants", "membership_levels", "pricing_templates", "gift_policies", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:36 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.803ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '2367982a-092c-43bf-b5be-ebacea2f0f7f' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/23 01:08:36 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.390ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '2367982a-092c-43bf-b5be-ebacea2f0f7f' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:36 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[2.144ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '2367982a-092c-43bf-b5be-ebacea2f0f7f' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:36 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:435 [35;1mrecord not found
+[0m[33m[1.402ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE order_id = '2367982a-092c-43bf-b5be-ebacea2f0f7f' AND order_type = 'rent' AND status = 'paid' ORDER BY "order_payment_records"."id" LIMIT 1
+
+2026/11/23 01:08:36 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:1911 [35;1mrecord not found
+[0m[33m[1.580ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE order_id = '2367982a-092c-43bf-b5be-ebacea2f0f7f' AND order_type = 'rent' AND status = 'paid' ORDER BY "order_payment_records"."id" LIMIT 1
+
+2026/11/23 01:08:36 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.655ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '00000000-0000-4000-8000-0000000000c3' ORDER BY "referrals"."id" LIMIT 1
+=== RUN   TestExecuteRefundNet_2424/net_negative_creates_shortfall_10000_cents
+
+2026/11/23 01:08:37 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[523.188ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "instruments", "tenants", "membership_levels", "pricing_templates", "gift_policies", "settlements", "order_refund_records", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:37 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.650ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = 'b2a4a202-4a9f-4a17-941e-4506e648a434' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/23 01:08:37 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.357ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'b2a4a202-4a9f-4a17-941e-4506e648a434' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:37 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.404ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'b2a4a202-4a9f-4a17-941e-4506e648a434' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:37 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.872ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:08:37 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.617ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'd2f7ca2c-0fd0-4c26-8346-b7d1355abdc4' ORDER BY "referrals"."id" LIMIT 1
+=== RUN   TestExecuteRefundNet_2424/net_zero_completes_without_money_movement
+
+2026/11/23 01:08:38 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[544.683ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "instruments", "tenants", "membership_levels", "order_payment_records", "pricing_templates", "notifications", "settlements", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:38 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.705ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '7444fc91-da9e-49a7-9a01-a5cd26fe147b' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/23 01:08:38 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.419ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '7444fc91-da9e-49a7-9a01-a5cd26fe147b' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:38 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.344ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '7444fc91-da9e-49a7-9a01-a5cd26fe147b' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:38 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.374ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:08:38 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.637ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'b6c745ee-3b37-476b-90fe-93d6e171d421' ORDER BY "referrals"."id" LIMIT 1
+--- PASS: TestExecuteRefundNet_2424 (2.92s)
+    --- PASS: TestExecuteRefundNet_2424/net_positive_refunds_4000_cents (0.95s)
+    --- PASS: TestExecuteRefundNet_2424/net_negative_creates_shortfall_10000_cents (1.00s)
+    --- PASS: TestExecuteRefundNet_2424/net_zero_completes_without_money_movement (0.96s)
+=== RUN   TestExecuteRefund_ShortfallCreatesPaymentRecord
+
+2026/11/23 01:08:39 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[494.761ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "tenants", "membership_levels", "pricing_templates", "settlements", "instruments", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:39 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.722ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '8e04fd2a-28f0-40b5-8f10-169fa9ada7d0' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/23 01:08:39 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.407ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '8e04fd2a-28f0-40b5-8f10-169fa9ada7d0' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:39 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.370ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '8e04fd2a-28f0-40b5-8f10-169fa9ada7d0' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:39 [computeSettlement] segment model rejected order 8e04fd2a-28f0-40b5-8f10-169fa9ada7d0: actual lease days exceed covered segment days — falling back to #1743
+
+2026/11/23 01:08:39 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.308ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:08:39 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.629ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '4e63e846-6c9d-45f3-9c4d-47848ff2dcd0' ORDER BY "referrals"."id" LIMIT 1
+--- PASS: TestExecuteRefund_ShortfallCreatesPaymentRecord (0.95s)
+=== RUN   TestExecuteRefund_ShortfallIdempotent
+
+2026/11/23 01:08:40 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[553.182ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "tenants", "membership_levels", "order_payment_records", "pricing_templates", "notifications", "settlements", "instruments", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:40 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[41.960ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '2d2b3e3a-3800-4f59-b91c-f3ac8aa97eee' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/23 01:08:40 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.344ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '2d2b3e3a-3800-4f59-b91c-f3ac8aa97eee' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:40 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.322ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '2d2b3e3a-3800-4f59-b91c-f3ac8aa97eee' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:40 [computeSettlement] segment model rejected order 2d2b3e3a-3800-4f59-b91c-f3ac8aa97eee: actual lease days exceed covered segment days — falling back to #1743
+
+2026/11/23 01:08:40 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.313ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:08:40 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.781ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'e643529a-8bd1-4c37-b6dd-ba56422fe716' ORDER BY "referrals"."id" LIMIT 1
+--- PASS: TestExecuteRefund_ShortfallIdempotent (1.04s)
+=== RUN   TestApplySideEffects_ShortfallClosesLoop
+
+2026/11/23 01:08:41 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[543.142ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "tenants", "membership_levels", "order_payment_records", "pricing_templates", "notifications", "settlements", "instruments", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:41 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:1911 [35;1mrecord not found
+[0m[33m[1.477ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE order_id = '92e34f1b-b21d-43b9-bd84-a9b272df513e' AND order_type = 'rent' AND status = 'paid' ORDER BY "order_payment_records"."id" LIMIT 1
+--- PASS: TestApplySideEffects_ShortfallClosesLoop (0.97s)
+=== RUN   TestPrepayShortfall_OrderTypeAccepted
+
+2026/11/23 01:08:42 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[536.659ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "tenants", "membership_levels", "order_payment_records", "pricing_templates", "settlements", "instruments", "order_refund_records", "users" RESTART IDENTITY CASCADE[0m
+2026/11/23 01:08:42 [IAMClient] NewIAMClient: baseURL=http://opencode.linxdeep.com:5552, clientID=test-ns, namespace=test-ns
+2026/11/23 01:08:42 [PrepayOrder] resolve openid failed: user=2e05247b-4a22-4b1b-a2b3-3713e82096ac err=ResolveUserOpenid request failed: failed to get client token: token endpoint returned status 401: {"error":"invalid client credentials"}
+2026/11/23 01:08:42 [PrepayOrder] native QR fallback (no local openid): orderType=payment_shortfall user=2e05247b-4a22-4b1b-a2b3-3713e82096ac orderID="9fb084fe-3696-408c-9726-2802bba67088"
+--- PASS: TestPrepayShortfall_OrderTypeAccepted (0.93s)
+=== RUN   TestShortfallNotification_Structured
+
+2026/11/23 01:08:43 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[518.416ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "tenants", "membership_levels", "order_payment_records", "pricing_templates", "instruments", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:43 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.697ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = 'd7ae9add-d7a6-4beb-9845-28e90c06d841' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/23 01:08:43 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.385ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'd7ae9add-d7a6-4beb-9845-28e90c06d841' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:43 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.317ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'd7ae9add-d7a6-4beb-9845-28e90c06d841' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:43 [computeSettlement] segment model rejected order d7ae9add-d7a6-4beb-9845-28e90c06d841: actual lease days exceed covered segment days — falling back to #1743
+
+2026/11/23 01:08:43 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.301ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:08:43 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.730ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '8bd9f2d9-562b-4253-aae7-d3f3fcdb1307' ORDER BY "referrals"."id" LIMIT 1
+--- PASS: TestShortfallNotification_Structured (1.01s)
+=== RUN   TestRefundReceipt_ThankYouAndPayments
+
+2026/11/23 01:08:44 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[542.330ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "tenants", "membership_levels", "order_payment_records", "pricing_templates", "notifications", "settlements", "instruments", "users" RESTART IDENTITY CASCADE[0m
+--- PASS: TestRefundReceipt_ThankYouAndPayments (0.93s)
+=== RUN   TestCalculatePayment_Shortfall
+
+2026/11/23 01:08:45 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[525.059ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "tenants", "membership_levels", "order_payment_records", "pricing_templates", "instruments", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:45 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.845ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '5827949b-47cf-458f-a38c-98d797c41d2c' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/23 01:08:45 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.439ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '5827949b-47cf-458f-a38c-98d797c41d2c' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:45 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.392ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '5827949b-47cf-458f-a38c-98d797c41d2c' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:45 [computeSettlement] segment model rejected order 5827949b-47cf-458f-a38c-98d797c41d2c: actual lease days exceed covered segment days — falling back to #1743
+
+2026/11/23 01:08:45 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.502ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:08:45 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[2.066ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '766e086f-5f84-440a-bab7-1a69ab79d696' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/23 01:08:45 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.332ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:08:45 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.506ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '5827949b-47cf-458f-a38c-98d797c41d2c' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:45 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.379ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '5827949b-47cf-458f-a38c-98d797c41d2c' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:45 [computeSettlement] segment model rejected order 5827949b-47cf-458f-a38c-98d797c41d2c: actual lease days exceed covered segment days — falling back to #1743
+
+2026/11/23 01:08:45 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.300ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestCalculatePayment_Shortfall (1.01s)
+=== RUN   TestScenarioA_StandardClosedLoop
+
+2026/11/23 01:08:46 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[550.659ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "tenants", "membership_levels", "order_payment_records", "pricing_templates", "notifications", "settlements", "instruments", "users" RESTART IDENTITY CASCADE[0m
+=== RUN   TestScenarioA_StandardClosedLoop/A3_Pay
+=== RUN   TestScenarioA_StandardClosedLoop/A4_Ship
+
+2026/11/23 01:08:46 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/warehouse.go:212 [35;1mrecord not found
+[0m[33m[1.511ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE (order_id = '9128d4e8-31b4-4db1-a1a0-c2477e1606ab' AND direction = 'outbound' AND status = 'pending') AND "forwarding_sessions"."tenant_id" = '80efb9b0-3753-4736-9f7d-2f073b81ccab' ORDER BY "forwarding_sessions"."id" LIMIT 1
+
+2026/11/23 01:08:46 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/warehouse.go:1031 [35;1mrecord not found
+[0m[33m[2.081ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = '9128d4e8-31b4-4db1-a1a0-c2477e1606ab' AND status = 'paid') AND "order_payment_records"."tenant_id" = '80efb9b0-3753-4736-9f7d-2f073b81ccab' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
+2026/11/23 01:08:46 [WechatShipping] no paid payment record for order 9128d4e8-31b4-4db1-a1a0-c2477e1606ab: record not found
+
+2026/11/23 01:08:46 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.413ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '80efb9b0-3753-4736-9f7d-2f073b81ccab' ORDER BY "merchants"."id" LIMIT 1
+=== RUN   TestScenarioA_StandardClosedLoop/A5_ConfirmDelivery
+
+2026/11/23 01:08:46 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/warehouse.go:1060 [35;1mrecord not found
+[0m[33m[1.534ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = '9128d4e8-31b4-4db1-a1a0-c2477e1606ab' AND status = 'paid') AND "order_payment_records"."tenant_id" = '80efb9b0-3753-4736-9f7d-2f073b81ccab' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
+2026/11/23 01:08:46 [WechatShipping] no paid payment record for order 9128d4e8-31b4-4db1-a1a0-c2477e1606ab: record not found
+=== RUN   TestScenarioA_StandardClosedLoop/A6_Return
+
+2026/11/23 01:08:46 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.427ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '9128d4e8-31b4-4db1-a1a0-c2477e1606ab' AND "damage_reports"."tenant_id" = '80efb9b0-3753-4736-9f7d-2f073b81ccab' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:46 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.474ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '9128d4e8-31b4-4db1-a1a0-c2477e1606ab' AND "damage_reports"."tenant_id" = '80efb9b0-3753-4736-9f7d-2f073b81ccab' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:46 [computeSettlement] order 9128d4e8-31b4-4db1-a1a0-c2477e1606ab contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/23 01:08:46 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.339ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/23 01:08:46 [computeSettlement] #2424 refund spec skipped for order 9128d4e8-31b4-4db1-a1a0-c2477e1606ab: settlement: conservation invariant violated: left=50000 right=0 (net=50000 p_refund=0 cash_paid=0 p_used=0 R_after_coupon=0 deductions=0)
+=== RUN   TestScenarioA_StandardClosedLoop/A7_InspectGood
+
+2026/11/23 01:08:46 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.652ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '9128d4e8-31b4-4db1-a1a0-c2477e1606ab' ORDER BY "settlements"."id" LIMIT 1
+2026/11/23 01:08:46 [computeSettlement] order 9128d4e8-31b4-4db1-a1a0-c2477e1606ab contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/23 01:08:46 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.342ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/23 01:08:46 [computeSettlement] #2424 refund spec skipped for order 9128d4e8-31b4-4db1-a1a0-c2477e1606ab: settlement: conservation invariant violated: left=50000 right=0 (net=50000 p_refund=0 cash_paid=0 p_used=0 R_after_coupon=0 deductions=0)
+
+2026/11/23 01:08:46 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:1911 [35;1mrecord not found
+[0m[33m[1.481ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = '9128d4e8-31b4-4db1-a1a0-c2477e1606ab' AND order_type = 'rent' AND status = 'paid') AND "order_payment_records"."tenant_id" = '80efb9b0-3753-4736-9f7d-2f073b81ccab' ORDER BY "order_payment_records"."id" LIMIT 1
+
+2026/11/23 01:08:46 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.644ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '5e035dcb-196a-4f3a-9ad5-180748ab5f8a' ORDER BY "referrals"."id" LIMIT 1
+--- PASS: TestScenarioA_StandardClosedLoop (1.27s)
+    --- PASS: TestScenarioA_StandardClosedLoop/A3_Pay (0.01s)
+    --- PASS: TestScenarioA_StandardClosedLoop/A4_Ship (0.07s)
+    --- PASS: TestScenarioA_StandardClosedLoop/A5_ConfirmDelivery (0.04s)
+    --- PASS: TestScenarioA_StandardClosedLoop/A6_Return (0.05s)
+    --- PASS: TestScenarioA_StandardClosedLoop/A7_InspectGood (0.10s)
+=== RUN   TestScenarioC_CancelBoundary
+
+2026/11/23 01:08:47 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[635.295ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "audit_logs", "membership_levels", "pricing_templates", "damage_reports", "notifications", "instrument_media", "settlements", "instruments", "order_refund_records", "order_status_history", "order_logs", "tenants", "sites", "users" RESTART IDENTITY CASCADE[0m
+=== RUN   TestScenarioC_CancelBoundary/C1_CancelReserved
+=== RUN   TestScenarioC_CancelBoundary/C2_CancelPaid
+=== RUN   TestScenarioC_CancelBoundary/C3_CannotCancelShipped
+
+2026/11/23 01:08:47 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/warehouse.go:212 [35;1mrecord not found
+[0m[33m[1.434ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE (order_id = 'd06f5efe-7cca-4bdd-b745-67900c86000a' AND direction = 'outbound' AND status = 'pending') AND "forwarding_sessions"."tenant_id" = '18add463-57e2-4e3a-b432-8835761506e1' ORDER BY "forwarding_sessions"."id" LIMIT 1
+
+2026/11/23 01:08:47 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/warehouse.go:1031 [35;1mrecord not found
+[0m[33m[1.623ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = 'd06f5efe-7cca-4bdd-b745-67900c86000a' AND status = 'paid') AND "order_payment_records"."tenant_id" = '18add463-57e2-4e3a-b432-8835761506e1' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
+2026/11/23 01:08:47 [WechatShipping] no paid payment record for order d06f5efe-7cca-4bdd-b745-67900c86000a: record not found
+
+2026/11/23 01:08:47 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.363ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '18add463-57e2-4e3a-b432-8835761506e1' ORDER BY "merchants"."id" LIMIT 1
+=== RUN   TestScenarioC_CancelBoundary/C4_CannotShipFromAvailable
+--- PASS: TestScenarioC_CancelBoundary (1.16s)
+    --- PASS: TestScenarioC_CancelBoundary/C1_CancelReserved (0.04s)
+    --- PASS: TestScenarioC_CancelBoundary/C2_CancelPaid (0.04s)
+    --- PASS: TestScenarioC_CancelBoundary/C3_CannotCancelShipped (0.06s)
+    --- PASS: TestScenarioC_CancelBoundary/C4_CannotShipFromAvailable (0.03s)
+=== RUN   TestScenarioA_DamageVariant
+
+2026/11/23 01:08:48 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[512.131ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "membership_levels", "pricing_templates", "instruments", "order_status_history", "order_logs", "tenants", "sites", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:48 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/warehouse.go:212 [35;1mrecord not found
+[0m[33m[1.505ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE (order_id = '28843b93-f14d-42ec-a24e-59f6f36ac110' AND direction = 'outbound' AND status = 'pending') AND "forwarding_sessions"."tenant_id" = '5e79d2be-0831-4584-ac25-1adba613ae67' ORDER BY "forwarding_sessions"."id" LIMIT 1
+2026/11/23 01:08:48 [WechatShipping] order 28843b93-f14d-42ec-a24e-59f6f36ac110 has no out_trade_no
+
+2026/11/23 01:08:48 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.892ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '5e79d2be-0831-4584-ac25-1adba613ae67' ORDER BY "merchants"."id" LIMIT 1
+2026/11/23 01:08:48 [Ledger] cash_paid(0) != ledger net(50000) for order 28843b93-f14d-42ec-a24e-59f6f36ac110, using ledger
+
+2026/11/23 01:08:48 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.481ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '28843b93-f14d-42ec-a24e-59f6f36ac110' AND "damage_reports"."tenant_id" = '5e79d2be-0831-4584-ac25-1adba613ae67' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:48 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.360ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '28843b93-f14d-42ec-a24e-59f6f36ac110' AND "damage_reports"."tenant_id" = '5e79d2be-0831-4584-ac25-1adba613ae67' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:48 [computeSettlement] order 28843b93-f14d-42ec-a24e-59f6f36ac110 contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/23 01:08:48 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.343ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+=== RUN   TestScenarioA_DamageVariant/A7_InspectDamaged
+2026/11/23 01:08:48 [TenantScope][observe] auto-scope injected for table=site_members (add explicit scope, then set ExplicitTenantScopeOnly)
+=== RUN   TestScenarioA_DamageVariant/A8_AcceptDamage
+
+2026/11/23 01:08:48 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/damage_refund.go:35 [35;1mrecord not found
+[0m[33m[1.699ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '28843b93-f14d-42ec-a24e-59f6f36ac110' ORDER BY created_at DESC,"settlements"."id" LIMIT 1
+2026/11/23 01:08:48 [Ledger] cash_paid(0) != ledger net(50000) for order 28843b93-f14d-42ec-a24e-59f6f36ac110, using ledger
+2026/11/23 01:08:48 [computeSettlement] order 28843b93-f14d-42ec-a24e-59f6f36ac110 contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/23 01:08:48 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.317ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestScenarioA_DamageVariant (1.17s)
+    --- PASS: TestScenarioA_DamageVariant/A7_InspectDamaged (0.04s)
+    --- PASS: TestScenarioA_DamageVariant/A8_AcceptDamage (0.05s)
+=== RUN   TestInspectReturn_OverdueFee
+
+2026/11/23 01:08:49 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[635.598ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "membership_levels", "order_payment_records", "pricing_templates", "damage_reports", "notifications", "instrument_media", "instruments", "order_status_history", "order_logs", "tenants", "audit_logs", "sites", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:49 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.758ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = 'd8d659b5-d11b-442d-859f-0416d8dc25cd' ORDER BY "settlements"."id" LIMIT 1
+2026/11/23 01:08:49 [computeSettlement] order d8d659b5-d11b-442d-859f-0416d8dc25cd contract days unresolvable (lease_term=20, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/23 01:08:49 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.373ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/23 01:08:49 [computeSettlement] #2424 refund spec skipped for order d8d659b5-d11b-442d-859f-0416d8dc25cd: settlement: conservation invariant violated: left=-1965000 right=-2015000 (net=-1965000 p_refund=0 cash_paid=0 p_used=0 R_after_coupon=2000000 deductions=15000)
+
+2026/11/23 01:08:50 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.695ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'ff5e611b-5d89-4793-80b6-78c6e88d5051' ORDER BY "referrals"."id" LIMIT 1
+    state_machine_e2e_test.go:402: RESP BODY: {"code":20000,"data":{"assessment_id":"e41024b5-6e62-4eac-8ab7-1c150589a590","condition":"good","order_id":"d8d659b5-d11b-442d-859f-0416d8dc25cd","overdue_daily_rate":15,"overdue_days":10,"overdue_fee":150,"shortfall_amount":1965000,"status":"completed"},"message":"success"}
+    state_machine_e2e_test.go:405: DB end_date=2026-11-13T00:00:00Z status=returning
+--- PASS: TestInspectReturn_OverdueFee (1.17s)
+=== RUN   TestInspectReturn_NoOverdue
+
+2026/11/23 01:08:50 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[614.592ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "membership_levels", "order_payment_records", "pricing_templates", "damage_reports", "notifications", "instrument_media", "settlements", "instruments", "order_status_history", "order_logs", "tenants", "sites", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:51 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[2.004ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '2d40b93c-bc43-4c3e-b560-049d5e9e075f' ORDER BY "settlements"."id" LIMIT 1
+2026/11/23 01:08:51 [computeSettlement] order 2d40b93c-bc43-4c3e-b560-049d5e9e075f contract days unresolvable (lease_term=15, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/23 01:08:51 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.329ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/23 01:08:51 [computeSettlement] #2424 refund spec skipped for order 2d40b93c-bc43-4c3e-b560-049d5e9e075f: settlement: conservation invariant violated: left=-1450000 right=-1500000 (net=-1450000 p_refund=0 cash_paid=0 p_used=0 R_after_coupon=1500000 deductions=0)
+
+2026/11/23 01:08:51 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.638ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '87d8b1f4-2743-4591-b1db-236b72bd1933' ORDER BY "referrals"."id" LIMIT 1
+--- PASS: TestInspectReturn_NoOverdue (1.17s)
+=== RUN   TestInspectReturn_Good_ExecutesRefund
+
+2026/11/23 01:08:52 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[613.121ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "membership_levels", "order_payment_records", "pricing_templates", "damage_reports", "notifications", "instrument_media", "settlements", "instruments", "order_status_history", "order_logs", "tenants", "sites", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:52 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.738ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = 'c202fdb0-f223-4fc3-891e-c5da71f2816e' ORDER BY "settlements"."id" LIMIT 1
+2026/11/23 01:08:52 [computeSettlement] order c202fdb0-f223-4fc3-891e-c5da71f2816e contract days unresolvable (lease_term=12, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/23 01:08:52 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.463ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/23 01:08:52 [computeSettlement] #2424 refund spec skipped for order c202fdb0-f223-4fc3-891e-c5da71f2816e: settlement: conservation invariant violated: left=20000 right=0 (net=20000 p_refund=0 cash_paid=30000 p_used=0 R_after_coupon=30000 deductions=0)
+
+2026/11/23 01:08:52 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.679ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'd95f8a2a-0124-4b76-917f-1c08b983aebb' ORDER BY "referrals"."id" LIMIT 1
+
+2026/11/23 01:08:52 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/warehouse.go:518 [35;1mrecord not found
+[0m[33m[1.501ms] [34;1m[rows:0][0m SELECT * FROM "orders" WHERE (id = 'c202fdb0-f223-4fc3-891e-c5da71f2816e' AND tenant_id = 'd7e19816-947a-4972-8d88-c0519042bf5a' AND status = 'returning') AND "orders"."tenant_id" = 'd7e19816-947a-4972-8d88-c0519042bf5a' ORDER BY "orders"."id" LIMIT 1
+--- PASS: TestInspectReturn_Good_ExecutesRefund (1.12s)
+=== RUN   TestComputeSettlement_CashPaidExcludesDeposit
+
+2026/11/23 01:08:53 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[635.053ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "membership_levels", "order_payment_records", "pricing_templates", "damage_reports", "notifications", "instrument_media", "settlements", "order_refund_records", "order_logs", "tenants", "instruments", "order_status_history", "sites", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:53 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.818ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '648c3477-30f9-4b9f-82a2-950f5e8534c5' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:53 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.396ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '648c3477-30f9-4b9f-82a2-950f5e8534c5' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:53 [computeSettlement] order 648c3477-30f9-4b9f-82a2-950f5e8534c5 contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/23 01:08:53 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:1204 [35;1mrecord not found
+[0m[33m[1.368ms] [34;1m[rows:0][0m SELECT "membership_level_id" FROM "users" WHERE id = '00000000-0000-0000-0000-000000000000' ORDER BY "users"."id" LIMIT 1
+
+2026/11/23 01:08:53 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.263ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestComputeSettlement_CashPaidExcludesDeposit (1.02s)
+=== RUN   TestComputeSettlement_EarlyReturn
+
+2026/11/23 01:08:53 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.370ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'a19d047a-36f7-4eb4-98e1-de490a377364' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:53 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.331ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'a19d047a-36f7-4eb4-98e1-de490a377364' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:53 [computeSettlement] order a19d047a-36f7-4eb4-98e1-de490a377364 contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/23 01:08:53 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:1204 [35;1mrecord not found
+[0m[33m[1.381ms] [34;1m[rows:0][0m SELECT "membership_level_id" FROM "users" WHERE id = '00000000-0000-0000-0000-000000000000' ORDER BY "users"."id" LIMIT 1
+
+2026/11/23 01:08:53 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.336ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestComputeSettlement_EarlyReturn (0.02s)
+=== RUN   TestComputeSettlement_DamageAccept
+2026/11/23 01:08:53 [computeSettlement] order 00000000-0000-0000-0000-0000ddddd001 contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/23 01:08:53 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:1204 [35;1mrecord not found
+[0m[33m[1.283ms] [34;1m[rows:0][0m SELECT "membership_level_id" FROM "users" WHERE id = '00000000-0000-0000-0000-000000000000' ORDER BY "users"."id" LIMIT 1
+
+2026/11/23 01:08:53 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.293ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestComputeSettlement_DamageAccept (0.02s)
+=== RUN   TestComputeSettlement_LateReturn
+2026/11/23 01:08:53 [computeSettlement] order 00000000-0000-0000-0000-0000ddddd002 contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/23 01:08:53 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:1204 [35;1mrecord not found
+[0m[33m[1.252ms] [34;1m[rows:0][0m SELECT "membership_level_id" FROM "users" WHERE id = '00000000-0000-0000-0000-000000000000' ORDER BY "users"."id" LIMIT 1
+
+2026/11/23 01:08:53 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.297ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestComputeSettlement_LateReturn (0.02s)
+=== RUN   TestScenarioA_RejectDamageVariant
+
+2026/11/23 01:08:54 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[519.334ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "pricing_templates", "damage_reports", "tenants", "instruments", "sites", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:54 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/warehouse.go:212 [35;1mrecord not found
+[0m[33m[1.562ms] [34;1m[rows:0][0m SELECT * FROM "forwarding_sessions" WHERE (order_id = '283f8b87-b48c-4abb-971b-d9651c317fce' AND direction = 'outbound' AND status = 'pending') AND "forwarding_sessions"."tenant_id" = '3a13af4b-e814-44ab-84ee-77a7b4ca75b5' ORDER BY "forwarding_sessions"."id" LIMIT 1
+
+2026/11/23 01:08:54 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/warehouse.go:1031 [35;1mrecord not found
+[0m[33m[1.510ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = '283f8b87-b48c-4abb-971b-d9651c317fce' AND status = 'paid') AND "order_payment_records"."tenant_id" = '3a13af4b-e814-44ab-84ee-77a7b4ca75b5' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
+2026/11/23 01:08:54 [WechatShipping] no paid payment record for order 283f8b87-b48c-4abb-971b-d9651c317fce: record not found
+
+2026/11/23 01:08:54 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/merchant.go:807 [35;1mrecord not found
+[0m[33m[1.769ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE tenant_id = '3a13af4b-e814-44ab-84ee-77a7b4ca75b5' ORDER BY "merchants"."id" LIMIT 1
+
+2026/11/23 01:08:54 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/warehouse.go:1060 [35;1mrecord not found
+[0m[33m[1.411ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE (order_id = '283f8b87-b48c-4abb-971b-d9651c317fce' AND status = 'paid') AND "order_payment_records"."tenant_id" = '3a13af4b-e814-44ab-84ee-77a7b4ca75b5' ORDER BY created_at DESC,"order_payment_records"."id" LIMIT 1
+2026/11/23 01:08:54 [WechatShipping] no paid payment record for order 283f8b87-b48c-4abb-971b-d9651c317fce: record not found
+
+2026/11/23 01:08:54 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.857ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '283f8b87-b48c-4abb-971b-d9651c317fce' AND "damage_reports"."tenant_id" = '3a13af4b-e814-44ab-84ee-77a7b4ca75b5' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:54 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.319ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '283f8b87-b48c-4abb-971b-d9651c317fce' AND "damage_reports"."tenant_id" = '3a13af4b-e814-44ab-84ee-77a7b4ca75b5' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:54 [computeSettlement] order 283f8b87-b48c-4abb-971b-d9651c317fce contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/23 01:08:54 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.320ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/23 01:08:54 [computeSettlement] #2424 refund spec skipped for order 283f8b87-b48c-4abb-971b-d9651c317fce: settlement: conservation invariant violated: left=50000 right=0 (net=50000 p_refund=0 cash_paid=0 p_used=0 R_after_coupon=0 deductions=0)
+=== RUN   TestScenarioA_RejectDamageVariant/InspectDamaged
+=== RUN   TestScenarioA_RejectDamageVariant/RejectDamage
+--- PASS: TestScenarioA_RejectDamageVariant (1.15s)
+    --- PASS: TestScenarioA_RejectDamageVariant/InspectDamaged (0.04s)
+    --- PASS: TestScenarioA_RejectDamageVariant/RejectDamage (0.04s)
+=== RUN   TestExecuteRefund_NoSelfRebate
+
+2026/11/23 01:08:55 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[654.845ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "membership_levels", "appeals", "pricing_templates", "damage_reports", "notifications", "instrument_media", "order_logs", "tenants", "audit_logs", "order_status_history", "instruments", "sites", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:55 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.685ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '00000000-0000-0000-0000-00000000aa03' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/23 01:08:55 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.945ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '00000000-0000-0000-0000-00000000aa03' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:55 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.411ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '00000000-0000-0000-0000-00000000aa03' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:08:55 [computeSettlement] order 00000000-0000-0000-0000-00000000aa03 contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/23 01:08:55 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:1911 [35;1mrecord not found
+[0m[33m[1.395ms] [34;1m[rows:0][0m SELECT * FROM "order_payment_records" WHERE order_id = '00000000-0000-0000-0000-00000000aa03' AND order_type = 'rent' AND status = 'paid' ORDER BY "order_payment_records"."id" LIMIT 1
+
+2026/11/23 01:08:55 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[2.969ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '00000000-0000-0000-0000-00000000aa01' ORDER BY "referrals"."id" LIMIT 1
+--- PASS: TestExecuteRefund_NoSelfRebate (1.10s)
+=== RUN   TestSettlement_EarlyReturnRebate
+
+2026/11/23 01:08:56 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[519.008ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "membership_levels", "pricing_templates", "gift_policies", "settlements", "order_refund_records", "tenants", "instruments", "sites", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:08:56 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.423ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '83ceeb02-d374-4a37-9af7-109726d4e7ea' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:56 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.333ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '83ceeb02-d374-4a37-9af7-109726d4e7ea' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:08:56 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.801ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestSettlement_EarlyReturnRebate (0.91s)
+=== RUN   TestSettlement_OverdueFeeDeducted
+
+2026/11/23 01:08:57 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[495.287ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "membership_levels", "pricing_templates", "tenants", "instruments", "users" RESTART IDENTITY CASCADE[0m
+2026/11/23 01:08:57 [computeSettlement] segment model rejected order b284b2e4-2e17-4c55-aeab-f96016a05230: actual lease days exceed covered segment days — falling back to #1743
+
+2026/11/23 01:08:57 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[2.053ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestSettlement_OverdueFeeDeducted (0.93s)
+=== RUN   TestSettlement_DamagePlusOverdue
+
+2026/11/23 01:08:58 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[513.289ms] [33m[rows:0][35m TRUNCATE TABLE "orders", "membership_levels", "pricing_templates", "damage_reports", "tenants", "instruments", "users" RESTART IDENTITY CASCADE[0m
+2026/11/23 01:08:58 [computeSettlement] segment model rejected order 1b632e98-88f3-4237-92d2-5764ebd2e06f: actual lease days exceed covered segment days — falling back to #1743
+
+2026/11/23 01:08:58 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.273ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestSettlement_DamagePlusOverdue (0.91s)
+PASS
+ok  	tuneloop-backend/handlers	114.295s
