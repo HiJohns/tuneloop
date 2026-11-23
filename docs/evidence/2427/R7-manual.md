@@ -5,6 +5,8 @@
 > 或已部署该 fix 的 `preweb`）逐项执行后，把 `RESULT: PENDING` 改为 `RESULT: PASS`；
 > 任一项不符写 `RESULT: FAIL` 并附现象（不得未执行就写 PASS）。勾选方式：把 `[ ]` 改成 `[x]`。
 
+executor: owner
+
 ## 前置条件
 
 - PC 前端包含 fix commit（`/api/config` 的 `build` 或页面 JS hash 与该提交一致），账号为 **商户管理员**（`businessRole=merchant_admin`）。

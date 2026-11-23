@@ -4,7 +4,7 @@
   "build": "1.0.b334fa7ff",
   "commit": "b334fa7ff965e34bf9ebfb6456725e19dd08eb43",
   "dirty": false,
-  "environment": "local: Go handler tests (PG from backend/.env) + PC node --test + PC vite build/eslint; R7 人工浏览器回执待 Owner/Architect 签署",
+  "environment": "local: Go handler tests (PG from backend/.env) + PC node --test + PC vite build/eslint; R7 Owner 浏览器回执 2026-11-23 preweb 1.0.95 PASS",
   "rows": [
     {
       "id": "R1",
@@ -93,16 +93,16 @@
     {
       "id": "R7",
       "command": "bash scripts/verify-2427.sh r7",
-      "exit": 1,
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2427/R7-manual.md"
       ],
       "assert": "exit 0；RESULT: PASS",
-      "actual": "PENDING：人工浏览器回执待 Owner/Architect 签署（勾选/取消即时生效；空网点搜索非空；site_id=null 返回 40002）",
+      "actual": "PASS：Owner 2026-11-23 在 preweb 1.0.95（c8b44252b）实测——勾选「只看直属」不点搜索即刷新 8→6 且 URL 带 direct=true、取消回到 8；网点=卡丹萨乐器 5 条，清空网点后 total=8 且 URL 不含 site_id；40 分钟窗口无 22P02 / invalid site_id",
       "expected": "PASS",
       "negative": "PENDING → FAIL",
-      "negative_result": "回执仍为 RESULT: PENDING 时脚本 exit 1（当前状态）",
-      "pass": false
+      "negative_result": "回执仍为 RESULT: PENDING 或缺少 executor 署名时脚本 exit 1（本次已签 executor: owner）",
+      "pass": true
     }
   ]
 }
