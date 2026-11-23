@@ -1,3 +1,4 @@
+# build=1.0.59b858e76 commit=59b858e76a67036c14af23bf18b9892dcbf64ee5 dirty=false
 # R4-derivation — #2424 Rev.6（Phase B 断言 old→new 逐项推导）
 
 > 生成口径：spec v2.3 §3/§4；券权威 = 逐笔 `order_payment_records.coupon_discount`；
