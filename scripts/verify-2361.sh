@@ -51,7 +51,9 @@ if [ "$MODE" = "r7-full-gate" ]; then
     ( cd "$REPO_ROOT/backend" && go build ./... ) || build_rc=$?
     if [ "$build_rc" = "0" ]; then echo "BUILD_OK"; else echo "BUILD_FAILED"; fi
     suite_log="$(mktemp "${TMPDIR:-/tmp}/2361-full-suite.XXXXXX")"
-    ( cd "$REPO_ROOT/backend" && go test ./... -count=1 -timeout 30m ) >"$suite_log" 2>&1
+    # -p 1：handlers/database/services 共用同一测试库，包级并行会互相清表；
+    # 串行包执行仍是完整全量套件（不跳过/不放宽任何断言）。
+    ( cd "$REPO_ROOT/backend" && go test ./... -p 1 -count=1 -timeout 30m ) >"$suite_log" 2>&1
     suite_rc=$?
     fail_count=$(grep -c '^--- FAIL' "$suite_log" || true)
     panic_count=$(grep -ci 'panic:' "$suite_log" || true)
