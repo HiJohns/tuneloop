@@ -217,7 +217,8 @@ case "$ROW" in
         body="" rc=0
         GATE_REPORT="$OUT_DIR/pre-ready-2457.json"
         SUMMARY="$REPO_ROOT/tmp/work-summary-2457.md"
-        if [ ! -f "$GATE_REPORT" ] || [ ! -s "$GATE_REPORT" ]; then
+        existing_result="$(jq -r '.overall // empty' "$GATE_REPORT" 2>/dev/null || true)"
+        if [ ! -f "$GATE_REPORT" ] || [ ! -s "$GATE_REPORT" ] || [ "$existing_result" != "PASS" ]; then
             if [ -f "$SUMMARY" ]; then
                 "$PRE_READY" "$ISSUE" \
                     --plan-file "$OUT_DIR/plan.md" \
