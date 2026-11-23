@@ -1,9 +1,10 @@
 {
   "schema_version": 1,
   "issue": "2456",
-  "build": "1.0.662fcf31d",
-  "commit": "662fcf31da4b8be1ae8046ba315b16548c5a0256",
+  "build": "1.0.7e1a90f78",
+  "commit": "7e1a90f789d97a53a2c7abfe6f52882c86486c47",
   "dirty": false,
+  "plan_sha256": "5ce05af1d148d2e0833ce3cd179cdf4d4eb960531c9c730275916123661898de",
   "rows": [
     {
       "id": "R1",
@@ -12,10 +13,10 @@
         "docs/evidence/2456/R1-migration.txt"
       ],
       "assert": "exit 0；grep MIGRATION_PAIR=ok、ARTIFACT_REGISTERED=pc_sessions、MODEL_IN_VALIDATE=yes",
-      "actual": "MIGRATION_PAIR=ok ARTIFACT_REGISTERED=pc_sessions MODEL_IN_VALIDATE=yes；NEG_MISSING_DOWN=bad；exit=0",
+      "actual": "MIGRATION_PAIR=ok ARTIFACT_REGISTERED=pc_sessions MODEL_IN_VALIDATE=yes LAST_ACTIVITY_TZ=timestamptz；exit=0",
       "expected": "PASS",
       "negative": "缺 down 文件或未登记 artifact → FAIL",
-      "negative_result": "NEG_MISSING_DOWN=bad：把 down 指向不存在文件后同一谓词返回 bad（rc=1）；未登记 artifact 时 ARTIFACT_REGISTERED=missing → rc=1",
+      "negative_result": "缺 down 文件或未登记 artifact / last_activity_at 非 timestamptz → 该行 rc=1",
       "exit": 0,
       "pass": true
     },
@@ -25,11 +26,11 @@
       "artifacts": [
         "docs/evidence/2456/R2-pc-register.txt"
       ],
-      "assert": "exit 0；grep PC_CALLBACK_ROWS=1、PC_LOGIN_ROWS=1、H5_CALLBACK_ROWS=0",
-      "actual": "PC_CALLBACK_ROWS=1 PC_LOGIN_ROWS=1 H5_CALLBACK_ROWS=0；NEG_H5_AS_PC=0；exit=0",
+      "assert": "exit 0；grep PC_CALLBACK_ROWS=1、H5_CALLBACK_ROWS=0、MOBILE_LOGIN_ROWS=0",
+      "actual": "PC_CALLBACK_ROWS=1 H5_CALLBACK_ROWS=0 MOBILE_LOGIN_ROWS=0 NEG_H5_AS_PC=0；exit=0",
       "expected": "PASS",
-      "negative": "H5_CALLBACK_ROWS=1 → FAIL",
-      "negative_result": "H5 回调 client_type=wx 实际 HTTP=200 且 H5_CALLBACK_ROWS=0；若误把 H5 当 PC 则该值=1 → rc=1。NEG_H5_AS_PC=0（wx/wechat/mobile 判为移动端；空/web/pc 不判为移动端）",
+      "negative": "MOBILE_LOGIN_ROWS=1 或 H5_CALLBACK_ROWS=1 → FAIL",
+      "negative_result": "误把 H5 当 PC（H5_CALLBACK_ROWS=1）或账密登录登记（MOBILE_LOGIN_ROWS=1）→ 断言失败",
       "exit": 0,
       "pass": true
     },
@@ -43,7 +44,7 @@
       "actual": "HTTP=401 CODE=40110 IAM_CALLS=0；exit=0",
       "expected": "PASS",
       "negative": "HTTP=200 或 IAM_CALLS=1 → FAIL",
-      "negative_result": "实跑 HTTP=401 / IAM_CALLS=0（未向 IAM 续期）；脚本按期望值逐键比对，出现 HTTP=200 或 IAM_CALLS=1 时 rc=1",
+      "negative_result": "HTTP=200 或 IAM_CALLS=1（为已超时会话续签）→ 断言失败",
       "exit": 0,
       "pass": true
     },
@@ -53,11 +54,11 @@
       "artifacts": [
         "docs/evidence/2456/R4-idle-allow.txt"
       ],
-      "assert": "exit 0；grep CODE=20000、IAM_CALLS=1、TOUCHED=1",
-      "actual": "HTTP=200 CODE=20000 IAM_CALLS=1 TOUCHED=1；exit=0",
+      "assert": "exit 0；grep CODE=20000、IAM_CALLS=1、TOUCHED=0",
+      "actual": "HTTP=200 CODE=20000 IAM_CALLS=1 TOUCHED=0；exit=0",
       "expected": "PASS",
-      "negative": "TOUCHED=0 → FAIL",
-      "negative_result": "TOUCHED=1（last_activity_at 前移超过 1 分钟）；若续期后未前移则 TOUCHED=0 → rc=1",
+      "negative": "TOUCHED=1 → FAIL",
+      "negative_result": "TOUCHED=1（续期前移活动时间，轮询可永久保活）→ 断言失败",
       "exit": 0,
       "pass": true
     },
@@ -71,7 +72,7 @@
       "actual": "HTTP=200 CODE=20000 IDLE_ENFORCED=0 IAM_CALLS=1；exit=0",
       "expected": "PASS",
       "negative": "CODE=40110 → FAIL",
-      "negative_result": "无 pc_sessions 行（模拟 H5/小程序令牌）时 IDLE_ENFORCED=0 且 CODE=20000；若误套 idle 则 CODE=40110 → rc=1",
+      "negative_result": "CODE=40110（误拒 H5/小程序令牌）→ 断言失败",
       "exit": 0,
       "pass": true
     },
@@ -85,7 +86,7 @@
       "actual": "HTTP=200 OWNER_TOUCHED=1 OTHER_TOUCHED=0 NO_TOKEN_HTTP=401；exit=0",
       "expected": "PASS",
       "negative": "OTHER_TOUCHED=1 → FAIL",
-      "negative_result": "他人 sub 的 pc_sessions 行保持 now()-30m（OTHER_TOUCHED=0）；若被误更新则 =1 → rc=1。无身份请求返回 401",
+      "negative_result": "OTHER_TOUCHED=1（误更新他人会话）→ 断言失败",
       "exit": 0,
       "pass": true
     },
@@ -99,7 +100,7 @@
       "actual": "MINUTES_1_REJECT=1 ZERO_DISABLED=1 INVALID_FALLBACK=60 CLAMP_MAX=1440；exit=0",
       "expected": "PASS",
       "negative": "ZERO_DISABLED=0 → FAIL",
-      "negative_result": "=0（禁用）时 61 分钟静置仍放行（ZERO_DISABLED=1）；若仍拒绝则 ZERO_DISABLED=0 → rc=1。非法值回落 60、上限截断 1440",
+      "negative_result": "ZERO_DISABLED=0（=0 仍拒绝）/ 非法值未回落 60 → 断言失败",
       "exit": 0,
       "pass": true
     },
@@ -113,7 +114,7 @@
       "actual": "# tests 5 / # pass 5 / # fail 0；exit=0",
       "expected": "PASS",
       "negative": "任一 fail 或断言数 <5 → FAIL",
-      "negative_result": "node --test 实跑 5 条断言全通过；任一断言失败则 # fail 非 0，断言数 <5 时无 # pass 5 → rc=1",
+      "negative_result": "任一断言失败或断言数 <5 → 断言失败",
       "exit": 0,
       "pass": true
     },
@@ -127,7 +128,7 @@
       "actual": "WIRING_40110=1 WIRING_ACTIVITY=1 WIRING_REASON=1；exit=0",
       "expected": "PASS",
       "negative": "任一 =0 → FAIL",
-      "negative_result": "api.js 含 40110/clearTokens(/idle_timeout/pc-activity，App.jsx 含 startActivityTracking(，LogoutPage.jsx 含 idle_timeout；任一缺失对应 WIRING_*=0 → rc=1",
+      "negative_result": "api.js 缺 40110 或 App.jsx 未接线 startActivityTracking → 断言失败",
       "exit": 0,
       "pass": true
     },
@@ -141,7 +142,49 @@
       "actual": "BUILD_EXIT=0 LINT_EXIT=0 NO_UNDEF=0；exit=0",
       "expected": "PASS",
       "negative": "任一非 0 → FAIL",
-      "negative_result": "vite build 与 eslint 均 exit 0、no-undef 计数 0；任一非 0 → rc=1",
+      "negative_result": "build/lint 任一非 0 或存在 no-undef → 断言失败",
+      "exit": 0,
+      "pass": true
+    },
+    {
+      "id": "R11",
+      "command": "bash scripts/verify-2456.sh r11",
+      "artifacts": [
+        "docs/evidence/2456/R11-poll-no-keepalive.txt"
+      ],
+      "assert": "exit 0；grep AT_61M_CODE=40110、AT_59M_TOUCHED=0",
+      "actual": "AT_59M_HTTP=200 AT_59M_TOUCHED=0 AT_61M_HTTP=401 AT_61M_CODE=40110；exit=0",
+      "expected": "PASS",
+      "negative": "AT_61M_HTTP=200 → FAIL",
+      "negative_result": "AT_61M_HTTP=200（轮询保活成功）或 AT_59M_TOUCHED=1 → 断言失败",
+      "exit": 0,
+      "pass": true
+    },
+    {
+      "id": "R12",
+      "command": "bash scripts/verify-2456.sh r12",
+      "artifacts": [
+        "docs/evidence/2456/R12-weapp-login-unaffected.txt"
+      ],
+      "assert": "exit 0；grep MOBILE_LOGIN_ROWS=0、MOBILE_CODE=20000",
+      "actual": "MOBILE_LOGIN_ROWS=0 MOBILE_REFRESH_HTTP=200 MOBILE_CODE=20000 IDLE_ENFORCED=0；exit=0",
+      "expected": "PASS",
+      "negative": "MOBILE_CODE=40110 → FAIL",
+      "negative_result": "MOBILE_CODE=40110（小程序被 idle 踢出）或登录行 >0 → 断言失败",
+      "exit": 0,
+      "pass": true
+    },
+    {
+      "id": "R13",
+      "command": "bash scripts/verify-2456.sh r13",
+      "artifacts": [
+        "docs/evidence/2456/R13-gate.txt"
+      ],
+      "assert": "exit 0；grep GATE_RESULT=PASS、PLAN_SOURCE=PASS",
+      "actual": "GATE_PRESENT=1 GATE_RESULT=PASS GATE_PLAN_SHA_MATCH=1 PLAN_SOURCE=PASS；exit=0",
+      "expected": "PASS",
+      "negative": "gate 缺失或 sha 不一致 → FAIL",
+      "negative_result": "gate 报告缺失、result 非 PASS 或 plan sha 不一致 → 断言失败",
       "exit": 0,
       "pass": true
     }
