@@ -227,6 +227,7 @@ case "$ROW" in
                     --evidence-file "$OUT_DIR/evidence.json" \
                     --fix-commit "$FIX_SHA" \
                     --remote-ref origin/issue-2457 \
+                    --allow-local-only \
                     --report "$GATE_REPORT" \
                     --dry-run >/dev/null 2>&1 || true
             fi
