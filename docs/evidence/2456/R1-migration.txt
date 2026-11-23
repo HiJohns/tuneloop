@@ -1,0 +1,7 @@
+# build=1.0.662fcf31d # commit=662fcf31da4b8be1ae8046ba315b16548c5a0256 # dirty=false
+MIGRATION_FILES=20261123001_pc_session_idle_2456.up.sql,20261123001_pc_session_idle_2456.down.sql
+MIGRATION_PAIR=ok
+NEG_MISSING_DOWN=bad
+ARTIFACT_REGISTERED=pc_sessions
+MODEL_IN_VALIDATE=yes
+

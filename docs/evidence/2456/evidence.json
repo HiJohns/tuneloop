@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "issue": "2456",
+  "build": "1.0.662fcf31d",
+  "commit": "662fcf31da4b8be1ae8046ba315b16548c5a0256",
+  "dirty": false,
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2456.sh r1",
+      "artifacts": [
+        "docs/evidence/2456/R1-migration.txt"
+      ],
+      "assert": "exit 0；grep `MIGRATION_PAIR=ok`、`ARTIFACT_REGISTERED=pc_sessions`、`MODEL_IN_VALIDATE=yes`",
+      "actual": "MIGRATION_PAIR=ok ARTIFACT_REGISTERED=pc_sessions MODEL_IN_VALIDATE=yes；NEG_MISSING_DOWN=bad；exit=0",
+      "expected": "PASS",
+      "negative": "缺 down 文件或未登记 artifact → FAIL",
+      "negative_result": "NEG_MISSING_DOWN=bad：把 down 指向不存在文件后同一谓词返回 bad（rc=1）；未登记 artifact 时 ARTIFACT_REGISTERED=missing → rc=1",
+      "exit": 0,
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2456.sh r2",
+      "artifacts": [
+        "docs/evidence/2456/R2-pc-register.txt"
+      ],
+      "assert": "exit 0；grep `PC_CALLBACK_ROWS=1`、`PC_LOGIN_ROWS=1`、`H5_CALLBACK_ROWS=0`",
+      "actual": "PC_CALLBACK_ROWS=1 PC_LOGIN_ROWS=1 H5_CALLBACK_ROWS=0；NEG_H5_AS_PC=0；exit=0",
+      "expected": "PASS",
+      "negative": "`H5_CALLBACK_ROWS=1` → FAIL",
+      "negative_result": "H5 回调 client_type=wx 实际 HTTP=200 且 H5_CALLBACK_ROWS=0；若误把 H5 当 PC 则该值=1 → rc=1。NEG_H5_AS_PC=0（wx/wechat/mobile 判为移动端；空/web/pc 不判为移动端）",
+      "exit": 0,
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2456.sh r3",
+      "artifacts": [
+        "docs/evidence/2456/R3-idle-reject.txt"
+      ],
+      "assert": "exit 0；grep `CODE=40110`、`IAM_CALLS=0`、`HTTP=401`",
+      "actual": "HTTP=401 CODE=40110 IAM_CALLS=0；exit=0",
+      "expected": "PASS",
+      "negative": "`HTTP=200` 或 `IAM_CALLS=1` → FAIL",
+      "negative_result": "实跑 HTTP=401 / IAM_CALLS=0（未向 IAM 续期）；脚本按期望值逐键比对，出现 HTTP=200 或 IAM_CALLS=1 时 rc=1",
+      "exit": 0,
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2456.sh r4",
+      "artifacts": [
+        "docs/evidence/2456/R4-idle-allow.txt"
+      ],
+      "assert": "exit 0；grep `CODE=20000`、`IAM_CALLS=1`、`TOUCHED=1`",
+      "actual": "HTTP=200 CODE=20000 IAM_CALLS=1 TOUCHED=1；exit=0",
+      "expected": "PASS",
+      "negative": "`TOUCHED=0` → FAIL",
+      "negative_result": "TOUCHED=1（last_activity_at 前移超过 1 分钟）；若续期后未前移则 TOUCHED=0 → rc=1",
+      "exit": 0,
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2456.sh r5",
+      "artifacts": [
+        "docs/evidence/2456/R5-nonpc-unaffected.txt"
+      ],
+      "assert": "exit 0；grep `CODE=20000`、`IDLE_ENFORCED=0`",
+      "actual": "HTTP=200 CODE=20000 IDLE_ENFORCED=0 IAM_CALLS=1；exit=0",
+      "expected": "PASS",
+      "negative": "`CODE=40110` → FAIL",
+      "negative_result": "无 pc_sessions 行（模拟 H5/小程序令牌）时 IDLE_ENFORCED=0 且 CODE=20000；若误套 idle 则 CODE=40110 → rc=1",
+      "exit": 0,
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2456.sh r6",
+      "artifacts": [
+        "docs/evidence/2456/R6-activity.txt"
+      ],
+      "assert": "exit 0；grep `OWNER_TOUCHED=1`、`OTHER_TOUCHED=0`、`NO_TOKEN_HTTP=401`",
+      "actual": "HTTP=200 OWNER_TOUCHED=1 OTHER_TOUCHED=0 NO_TOKEN_HTTP=401；exit=0",
+      "expected": "PASS",
+      "negative": "`OTHER_TOUCHED=1` → FAIL",
+      "negative_result": "他人 sub 的 pc_sessions 行保持 now()-30m（OTHER_TOUCHED=0）；若被误更新则 =1 → rc=1。无身份请求返回 401",
+      "exit": 0,
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2456.sh r7",
+      "artifacts": [
+        "docs/evidence/2456/R7-config.txt"
+      ],
+      "assert": "exit 0；grep `MINUTES_1_REJECT=1`、`ZERO_DISABLED=1`、`INVALID_FALLBACK=60`",
+      "actual": "MINUTES_1_REJECT=1 ZERO_DISABLED=1 INVALID_FALLBACK=60 CLAMP_MAX=1440；exit=0",
+      "expected": "PASS",
+      "negative": "`ZERO_DISABLED=0` → FAIL",
+      "negative_result": "=0（禁用）时 61 分钟静置仍放行（ZERO_DISABLED=1）；若仍拒绝则 ZERO_DISABLED=0 → rc=1。非法值回落 60、上限截断 1440",
+      "exit": 0,
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2456.sh r8",
+      "artifacts": [
+        "docs/evidence/2456/R8-frontend-unit.txt"
+      ],
+      "assert": "exit 0；grep `# pass 5`、`# fail 0`",
+      "actual": "# tests 5 / # pass 5 / # fail 0；exit=0",
+      "expected": "PASS",
+      "negative": "任一 fail 或断言数 <5 → FAIL",
+      "negative_result": "node --test 实跑 5 条断言全通过；任一断言失败则 # fail 非 0、断言数 <5 时无 '# pass 5' → rc=1",
+      "exit": 0,
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash scripts/verify-2456.sh r9",
+      "artifacts": [
+        "docs/evidence/2456/R9-wiring.txt"
+      ],
+      "assert": "exit 0；grep `WIRING_40110=1`、`WIRING_ACTIVITY=1`、`WIRING_REASON=1`",
+      "actual": "WIRING_40110=1 WIRING_ACTIVITY=1 WIRING_REASON=1；exit=0",
+      "expected": "PASS",
+      "negative": "任一 `=0` → FAIL",
+      "negative_result": "api.js 含 40110/clearTokens(/idle_timeout/pc-activity，App.jsx 含 startActivityTracking(，LogoutPage.jsx 含 idle_timeout；任一缺失对应 WIRING_*=0 → rc=1",
+      "exit": 0,
+      "pass": true
+    },
+    {
+      "id": "R10",
+      "command": "bash scripts/verify-2456.sh r10",
+      "artifacts": [
+        "docs/evidence/2456/R10-build.txt"
+      ],
+      "assert": "exit 0；grep `BUILD_EXIT=0`、`LINT_EXIT=0`",
+      "actual": "BUILD_EXIT=0 LINT_EXIT=0 NO_UNDEF=0；exit=0",
+      "expected": "PASS",
+      "negative": "任一非 0 → FAIL",
+      "negative_result": "vite build 与 eslint 均 exit 0、no-undef 计数 0；任一非 0 → rc=1",
+      "exit": 0,
+      "pass": true
+    }
+  ]
+}
