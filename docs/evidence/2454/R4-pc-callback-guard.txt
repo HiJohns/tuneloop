@@ -1,31 +1,31 @@
-# build=1.0.74c2800bc # commit=74c2800bcaffff428390c21d46234c9f25196b29 # dirty=false
+# build=1.0.4494a64ba # commit=4494a64ba90f5f7df06256b8f63ab5d08b65864c # dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/23 21:15:21 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2454_r4 sslmode=disable
-2026/11/23 21:15:22 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2454_r4
-2026/11/23 21:15:22 [DB] Connected to database 'tuneloop_test_2454_r4'
+2026/11/23 21:17:29 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2454_r4 sslmode=disable
+2026/11/23 21:17:29 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2454_r4
+2026/11/23 21:17:29 [DB] Connected to database 'tuneloop_test_2454_r4'
 === RUN   TestPCCallbackRejectsEmptyOrgContext_2454
-2026/11/23 21:15:22 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2454_r4 sslmode=disable
-2026/11/23 21:15:22 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2454_r4
-2026/11/23 21:15:22 [DB] Connected to database 'tuneloop_test_2454_r4'
+2026/11/23 21:17:29 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2454_r4 sslmode=disable
+2026/11/23 21:17:29 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2454_r4
+2026/11/23 21:17:29 [DB] Connected to database 'tuneloop_test_2454_r4'
 
-2026/11/23 21:15:23 [32m/home/coder/worktrees/tuneloop/wt-2454/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[616.615ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "coupons", "schema_migrations", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/23 21:17:30 [32m/home/coder/worktrees/tuneloop/wt-2454/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[597.538ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "coupons", "schema_migrations", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
 
-2026/11/23 21:15:23 [31;1m/home/coder/worktrees/tuneloop/wt-2454/backend/handlers/auth.go:191 [35;1mrecord not found
-[0m[33m[3.309ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE iam_sub = '22bfb6d9-9365-46bd-9660-c036f229ce0e' ORDER BY "users"."id" LIMIT 1
-2026/11/23 21:15:23 [Auth] PC callback rejected empty org context: client=test-ns_web sub=22bfb6d9-9365-46bd-9660-c036f229ce0e
+2026/11/23 21:17:30 [31;1m/home/coder/worktrees/tuneloop/wt-2454/backend/handlers/auth.go:191 [35;1mrecord not found
+[0m[33m[3.297ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE iam_sub = '22bfb6d9-9365-46bd-9660-c036f229ce0e' ORDER BY "users"."id" LIMIT 1
+2026/11/23 21:17:30 [Auth] PC callback rejected empty org context: client=test-ns_web sub=22bfb6d9-9365-46bd-9660-c036f229ce0e
     pc_callback_guard_2454_test.go:94: PC_HTTP=502
     pc_callback_guard_2454_test.go:95: CODE=50202
     pc_callback_guard_2454_test.go:96: COOKIE_SET=0
---- PASS: TestPCCallbackRejectsEmptyOrgContext_2454 (1.09s)
+--- PASS: TestPCCallbackRejectsEmptyOrgContext_2454 (1.05s)
 === RUN   TestH5CallbackKeepsEmptyContextToken_2454
 
-2026/11/23 21:15:24 [32m/home/coder/worktrees/tuneloop/wt-2454/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[492.540ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "pricing_templates", "users" RESTART IDENTITY CASCADE[0m
+2026/11/23 21:17:31 [32m/home/coder/worktrees/tuneloop/wt-2454/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[468.856ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "pricing_templates", "users" RESTART IDENTITY CASCADE[0m
 
-2026/11/23 21:15:24 [31;1m/home/coder/worktrees/tuneloop/wt-2454/backend/handlers/auth.go:191 [35;1mrecord not found
-[0m[33m[3.342ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE iam_sub = '22bfb6d9-9365-46bd-9660-c036f229ce0e' ORDER BY "users"."id" LIMIT 1
+2026/11/23 21:17:31 [31;1m/home/coder/worktrees/tuneloop/wt-2454/backend/handlers/auth.go:191 [35;1mrecord not found
+[0m[33m[2.291ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE iam_sub = '22bfb6d9-9365-46bd-9660-c036f229ce0e' ORDER BY "users"."id" LIMIT 1
     pc_callback_guard_2454_test.go:111: H5_HTTP=200
---- PASS: TestH5CallbackKeepsEmptyContextToken_2454 (0.86s)
+--- PASS: TestH5CallbackKeepsEmptyContextToken_2454 (0.81s)
 PASS
-ok  	tuneloop-backend/handlers	2.715s
+ok  	tuneloop-backend/handlers	2.426s

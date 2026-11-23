@@ -1,4 +1,4 @@
-# build=1.0.74c2800bc # commit=74c2800bcaffff428390c21d46234c9f25196b29 # dirty=false
+# build=1.0.4494a64ba # commit=4494a64ba90f5f7df06256b8f63ab5d08b65864c # dirty=false
 BEACONIAM_COMMIT=1075fbd731bb913a502beaeb5d61f666d1113350
 # github.com/mattn/go-sqlite3
 sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
@@ -6,16 +6,16 @@ sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier f
 123133 |   zTail = strrchr(zName, '_');
        |         ^
 === RUN   TestAuthorizationCodeGrant_LegacyCodeMultiOrg_OrgNotSelected_500
-2026/11/23 21:15:16 [DB:INSERT] users id=995a58ae-9571-4d05-9119-a16a4345cdff email= username=test2446 status=active role=USER is_owner=false
-2026/11/23 21:15:16 [DB:INSERT] user_org_relations id=1ac729ea-0ff5-4da7-94b7-3344a51d12dc user_id=995a58ae-9571-4d05-9119-a16a4345cdff org_id=76d46658-0000-4000-8000-000000000001 role=STAFF is_active=true
-2026/11/23 21:15:16 [DB:INSERT] user_org_relations id=1aface70-c8d7-40e2-b32f-32d6d4615fa1 user_id=995a58ae-9571-4d05-9119-a16a4345cdff org_id=a5eb38d4-0000-4000-8000-000000000002 role=STAFF is_active=true
+2026/11/23 21:17:23 [DB:INSERT] users id=25dbf3b2-999a-404b-81e6-33518850db4a email= username=test2446 status=active role=USER is_owner=false
+2026/11/23 21:17:23 [DB:INSERT] user_org_relations id=a5470d95-3d1a-40a9-a2ff-569a1a4c205b user_id=25dbf3b2-999a-404b-81e6-33518850db4a org_id=76d46658-0000-4000-8000-000000000001 role=STAFF is_active=true
+2026/11/23 21:17:23 [DB:INSERT] user_org_relations id=fb3632d0-47b8-4d0f-bd6f-cea12497b910 user_id=25dbf3b2-999a-404b-81e6-33518850db4a org_id=a5eb38d4-0000-4000-8000-000000000002 role=STAFF is_active=true
 
-2026/11/23 21:15:16 [31;1m/home/coder/beaconiam/internal/auth/handler.go:882 [35;1mrecord not found
-[0m[33m[0.050ms] [34;1m[rows:0][0m SELECT * FROM `namespace_apps` WHERE client_id = "tuneloop_1_web" ORDER BY is_active DESC,`namespace_apps`.`id` LIMIT 1
-2026/11/23 21:15:16 [TOKEN:CODE_GRANT] legacy code without org context for multi-org user user=995a58ae-9571-4d05-9119-a16a4345cdff relations=2
+2026/11/23 21:17:23 [31;1m/home/coder/beaconiam/internal/auth/handler.go:882 [35;1mrecord not found
+[0m[33m[0.049ms] [34;1m[rows:0][0m SELECT * FROM `namespace_apps` WHERE client_id = "tuneloop_1_web" ORDER BY is_active DESC,`namespace_apps`.`id` LIMIT 1
+2026/11/23 21:17:23 [TOKEN:CODE_GRANT] legacy code without org context for multi-org user user=25dbf3b2-999a-404b-81e6-33518850db4a relations=2
     handler_select_org_test.go:169: HTTP=400
     handler_select_org_test.go:170: ERROR=org_not_selected
     handler_select_org_test.go:171: ACCESS_TOKEN_EMPTY=1
 --- PASS: TestAuthorizationCodeGrant_LegacyCodeMultiOrg_OrgNotSelected_500 (0.01s)
 PASS
-ok  	beaconiam/internal/auth	0.019s
+ok  	beaconiam/internal/auth	0.020s

@@ -1,4 +1,4 @@
-# build=1.0.74c2800bc # commit=74c2800bcaffff428390c21d46234c9f25196b29 # dirty=false
+# build=1.0.4494a64ba # commit=4494a64ba90f5f7df06256b8f63ab5d08b65864c # dirty=false
 BEACONIAM_COMMIT=1075fbd731bb913a502beaeb5d61f666d1113350
 # github.com/mattn/go-sqlite3
 sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
@@ -6,12 +6,12 @@ sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier f
 123133 |   zTail = strrchr(zName, '_');
        |         ^
 === RUN   TestAuthorizationCodeGrant_BoundOrgContext_500
-2026/11/23 21:15:14 [DB:INSERT] users id=3e1765ba-4c83-4782-84d0-9e1086ef24ac email= username=test2446 status=active role=USER is_owner=false
-2026/11/23 21:15:14 [DB:INSERT] user_org_relations id=3053a909-560f-4bfb-a05f-e36185477dfc user_id=3e1765ba-4c83-4782-84d0-9e1086ef24ac org_id=76d46658-0000-4000-8000-000000000001 role=STAFF is_active=true
-2026/11/23 21:15:14 [DB:INSERT] user_org_relations id=5470819e-d020-471b-815b-eb55e7e91d0b user_id=3e1765ba-4c83-4782-84d0-9e1086ef24ac org_id=a5eb38d4-0000-4000-8000-000000000002 role=STAFF is_active=true
+2026/11/23 21:17:21 [DB:INSERT] users id=bc9f35c2-c992-45fb-bc2e-e722417af63f email= username=test2446 status=active role=USER is_owner=false
+2026/11/23 21:17:21 [DB:INSERT] user_org_relations id=9287b759-d44f-4be2-b2e2-809a6f8df5da user_id=bc9f35c2-c992-45fb-bc2e-e722417af63f org_id=76d46658-0000-4000-8000-000000000001 role=STAFF is_active=true
+2026/11/23 21:17:21 [DB:INSERT] user_org_relations id=3beb8df1-aa8d-4eaf-b3fc-7b0e2aca47ac user_id=bc9f35c2-c992-45fb-bc2e-e722417af63f org_id=a5eb38d4-0000-4000-8000-000000000002 role=STAFF is_active=true
 
-2026/11/23 21:15:14 [31;1m/home/coder/beaconiam/internal/auth/handler.go:882 [35;1mrecord not found
-[0m[33m[0.052ms] [34;1m[rows:0][0m SELECT * FROM `namespace_apps` WHERE client_id = "tuneloop_1_web" ORDER BY is_active DESC,`namespace_apps`.`id` LIMIT 1
+2026/11/23 21:17:21 [31;1m/home/coder/beaconiam/internal/auth/handler.go:882 [35;1mrecord not found
+[0m[33m[0.061ms] [34;1m[rows:0][0m SELECT * FROM `namespace_apps` WHERE client_id = "tuneloop_1_web" ORDER BY is_active DESC,`namespace_apps`.`id` LIMIT 1
     handler_select_org_test.go:151: OID=76d46658-0000-4000-8000-000000000001
     handler_select_org_test.go:152: TID=bfce6c6d-0000-4000-8000-000000000001
     handler_select_org_test.go:153: ROLE=STAFF
