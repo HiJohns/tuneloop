@@ -178,13 +178,14 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 	tx := db.Begin()
 
 	settlement := models.Settlement{
-		ID:                  uuid.New().String(),
-		OrderID:             orderID,
-		ActualRentDays:      result.ActualDays,
-		ActualRentAmount:    models.FromYuan(result.RentPayable),
-		OriginalRentAmount:  models.FromYuan(result.TotalRentPaid + order.GiftPointsUsed.ToYuan()),
-		GiftPointsRefunded:  models.FromYuan(result.GiftPointsRefunded),
-		CashRefundable:      models.FromYuan(result.CashRefundable),
+		ID:                 uuid.New().String(),
+		OrderID:            orderID,
+		ActualRentDays:     result.ActualDays,
+		ActualRentAmount:   models.FromYuan(result.RentPayable),
+		OriginalRentAmount: models.FromYuan(result.TotalRentPaid + order.GiftPointsUsed.ToYuan()),
+		GiftPointsRefunded: models.FromYuan(result.GiftPointsRefunded),
+		// #2424 Phase B（D3）：DB 落实际退款净额（支付页/对账与真实资金一致）。
+		CashRefundable:      models.FromYuan(math.Max(0, result.NetCash)),
 		RefundMethod:        req.RefundMethod,
 		RefundStatus:        "pending",
 		OverdueChargesTotal: models.FromYuan(result.OverdueChargesTotal),
@@ -212,9 +213,55 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		// #1983 阶段 2：不再写 users.promo_points 快照（上一步已按批次恢复）
 	}
 
+	// #2424 Phase B（D1）：净额执行——net<0 生成补缴记录，不发起退款。
+	if result.NetCash < 0 {
+		shortfallOrgID := order.OrgID
+		if shortfallOrgID == "" {
+			shortfallOrgID = "00000000-0000-0000-0000-000000000000"
+		}
+		var shortfallCount int64
+		tx.Model(&models.OrderPaymentRecord{}).
+			Where("order_id = ? AND order_type = ? AND status = ?", orderID, "payment_shortfall", "pending").
+			Count(&shortfallCount)
+		if shortfallCount == 0 {
+			shortfallRecord := models.OrderPaymentRecord{
+				ID:        uuid.New().String(),
+				TenantID:  order.TenantID,
+				OrgID:     &shortfallOrgID,
+				UserID:    order.UserID,
+				OrderID:   &order.ID,
+				OrderType: "payment_shortfall",
+				Amount:    models.FromYuan(-result.NetCash),
+				Type:      "payment",
+				Status:    "pending",
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			}
+			if err := tx.Create(&shortfallRecord).Error; err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create shortfall record"})
+				return
+			}
+		}
+		if err := tx.Model(&settlement).Update("refund_status", "pending").Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update settlement status"})
+			return
+		}
+		if order.Status == models.OrderStatusCompleted {
+			tx.Model(&models.Order{}).Where("id = ?", orderID).Update("status", models.OrderStatusReturning)
+		}
+	} else if result.NetCash == 0 {
+		if err := tx.Model(&settlement).Update("refund_status", "completed").Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update settlement status"})
+			return
+		}
+	}
+
 	// Cash refund via WeChat Pay (if cash was paid on this order)
-	if result.CashRefundable > 0 {
-		rec, status, refundErr := initiateCashRefund(c.Request.Context(), tx, order, models.FromYuan(result.CashRefundable), "租赁结算退款")
+	if result.NetCash > 0 {
+		rec, status, refundErr := initiateCashRefund(c.Request.Context(), tx, order, models.FromYuan(result.NetCash), "租赁结算退款")
 		settlement.RefundStatus = status
 		if refundErr != nil {
 			log.Printf("[ConfirmSettlement] refund failed for order %s: %v", orderID, refundErr)
@@ -360,13 +407,14 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 		breakdownJSON, _ := json.Marshal(result.Breakdown)
 
 		settlement = &models.Settlement{
-			ID:                  uuid.New().String(),
-			OrderID:             order.ID,
-			ActualRentDays:      result.ActualDays,
-			ActualRentAmount:    models.FromYuan(result.RentPayable),
-			OriginalRentAmount:  models.FromYuan(result.TotalRentPaid + order.GiftPointsUsed.ToYuan()),
-			GiftPointsRefunded:  models.FromYuan(result.GiftPointsRefunded),
-			CashRefundable:      models.FromYuan(result.CashRefundable),
+			ID:                 uuid.New().String(),
+			OrderID:            order.ID,
+			ActualRentDays:     result.ActualDays,
+			ActualRentAmount:   models.FromYuan(result.RentPayable),
+			OriginalRentAmount: models.FromYuan(result.TotalRentPaid + order.GiftPointsUsed.ToYuan()),
+			GiftPointsRefunded: models.FromYuan(result.GiftPointsRefunded),
+			// #2424 Phase B（D3）：DB 落实际退款净额（毛额见 breakdown）。
+			CashRefundable:      models.FromYuan(math.Max(0, result.NetCash)),
 			PrepaidRefunded:     0, // no prepaid-points deduction logic yet (#1636)
 			RefundMethod:        "wechat_pay",
 			RefundStatus:        "pending",
@@ -397,7 +445,8 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 	// 不静默 clamp——生成补缴记录（pending），订单回退等待补缴，
 	// settlement 保持 pending 直至补缴支付回调闭环（L-04 关键规则：
 	// 补缴完成前订单不关单）。
-	if result.PayableShortfall > 0 {
+	if result.NetCash < 0 {
+		shortfallAmount := -result.NetCash
 		if settlement != nil {
 			settlement.RefundStatus = "pending"
 		}
@@ -419,7 +468,7 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 				UserID:    order.UserID,
 				OrderID:   &order.ID,
 				OrderType: "payment_shortfall",
-				Amount:    models.FromYuan(result.PayableShortfall),
+				Amount:    models.FromYuan(shortfallAmount),
 				Type:      "payment",
 				Status:    "pending",
 				CreatedAt: time.Now(),
@@ -433,11 +482,11 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 			// 时生成并回写记录——通知携带 order_id 由前端走 prepay。
 			shortfallContent := fmt.Sprintf(
 				"您的订单实际费用超出已付金额，需补缴 ¥%.2f。补缴完成后订单将自动完成结算。\n%s",
-				result.PayableShortfall,
+				shortfallAmount,
 				buildShortfallBreakdownText(order, &result),
 			)
 			shortfallAD := map[string]interface{}{
-				"shortfall_amount": int64(models.FromYuan(result.PayableShortfall)),
+				"shortfall_amount": int64(models.FromYuan(shortfallAmount)),
 				"order_id":         order.ID,
 				"breakdown": map[string]interface{}{
 					"rent":          int64(models.FromYuan(result.RentPayable)),
@@ -476,7 +525,7 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 			tx.Model(&models.Order{}).Where("id = ?", order.ID).
 				Update("status", models.OrderStatusReturning)
 		}
-	} else if result.CashRefundable <= 0 && settlement != nil {
+	} else if result.NetCash <= 0 && settlement != nil {
 		// #1743: nothing cash-refundable → the settlement is DONE. Leaving
 		// "pending" kept the customer UI on 处理中 forever. (Guarded: the
 		// existingFound retry path has no fresh settlement row here.)
@@ -484,12 +533,12 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 	}
 
 	// Cash refund via WeChat Pay
-	if result.CashRefundable > 0 {
+	if result.NetCash > 0 {
 		ctx := tx.Statement.Context
 		if ctx == nil {
 			ctx = context.Background()
 		}
-		rec, status, refundErr := initiateCashRefund(ctx, tx, order, models.FromYuan(result.CashRefundable), "租赁结算退款")
+		rec, status, refundErr := initiateCashRefund(ctx, tx, order, models.FromYuan(result.NetCash), "租赁结算退款")
 		if refundErr != nil {
 			log.Printf("[executeRefund] refund failed for order %s: %v", order.ID, refundErr)
 		}
@@ -617,18 +666,117 @@ type settlementResult struct {
 	TotalRefund            float64
 	CashRefundable         float64
 	PayableShortfall       float64 // #1743: 补缴金额（totalRefund<0 时，需顾客补付）
-	GiftPointsRefunded     float64
-	OverdueChargesTotal    float64
-	ActualDays             int
-	CashBasis              float64 // C1: cash actually paid for rent (R1 − A1), spending/rebate basis
-	DiscountedRent         float64 // #1836: 段级折后租金应收（元）
-	DiscountedDue          float64 // #1836: 段级折后应收（元，含物流原价）
-	SegmentModel           bool    // #1836: 净额是否由段级模型判定（false=#1743 兜底）
+	// #2424 Phase A：spec v2.3 分账户预览（不改旧字段语义）。
+	NetCash               float64
+	CashRefundableGross   float64
+	PayableShortfallGross float64
+	GiftPointsRefunded    float64
+	OverdueChargesTotal   float64
+	ActualDays            int
+	CashBasis             float64 // C1: cash actually paid for rent (R1 − A1), spending/rebate basis
+	DiscountedRent        float64 // #1836: 段级折后租金应收（元）
+	DiscountedDue         float64 // #1836: 段级折后应收（元，含物流原价）
+	SegmentModel          bool    // #1836: 净额是否由段级模型判定（false=#1743 兜底）
 	// #2327 S3b/D14: 支付分收口动作（complete/cancel），空=未走支付分。
 	// 现金退款与支付分担保是两条独立通道，本字段只决定支付分侧动作。
 	PayscoreAction      string
 	PayscoreDeductCents int64 // 超出押金的扣款额（应由支付分完结收取，≤ risk amount）
 	Breakdown           map[string]interface{}
+}
+
+// refundSpecInputParams 汇总 computeSettlement 已算出的中间量（金额为元，除显式标注 Cents 的字段）。
+// #2424 Phase A：只做「元→分」换算与 spec §3.1 口径推导，不含任何资金动作。
+type refundSpecInputParams struct {
+	AfterCouponYuan     float64 // 段模型 discountedRent，或 #1743 兜底 rentPayable×couponRatio
+	CashPaidCents       int64   // order.CashPaid（含押金）
+	DepositCents        int64   // order.Deposit
+	ContractListCents   int64   // 合同标价合计（版本/定价快照/段 subtotal 兜底）
+	GiftPointsUsedCents int64   // order.GiftPointsUsed（存储分语义）
+	OtherFeeYuan        float64 // 逾期 + 定损 + 物流（无争议部分）
+	SupplementPaidYuan  float64 // 已收补缴/定损款（含优惠券冲减）
+	CouponRemainderYuan float64 // 未折入租金的券剩余抵扣
+	PayRatio            float64
+}
+
+// deriveRefundSpecInput 按 spec v2.3 §3.1/§4 从订单中间量推导 ComputeRefundSpec 输入（分）。
+// 口径（#2424 Rev.3 Phase A 步骤 1）：
+//   - cash_rent_portion = max(0, cash_paid − deposit)；upfront_fees = max(0, portion − contract_list)；
+//   - rent_cash_paid_net = portion − upfront_fees；deposit_collected = min(deposit, cash_paid)；
+//   - fees_due = max(0, other_fee − upfront_fees − supplement_paid)，再减券剩余抵扣（不产生负数）；
+//   - cash_paid_for_spec = rent_cash_paid_net + deposit_collected（保证 §4 守恒）。
+func deriveRefundSpecInput(p refundSpecInputParams) (services.RefundSpecInput, error) {
+	var out services.RefundSpecInput
+
+	afterCouponCents := int64(math.Round(p.AfterCouponYuan * 100))
+	if afterCouponCents < 0 {
+		afterCouponCents = 0
+	}
+	cashRentPortion := p.CashPaidCents - p.DepositCents
+	if cashRentPortion < 0 {
+		cashRentPortion = 0
+	}
+	contractList := p.ContractListCents
+	if contractList < 0 {
+		contractList = 0
+	}
+	upfrontFees := cashRentPortion - contractList
+	if upfrontFees < 0 {
+		upfrontFees = 0
+	}
+	rentCashPaidNet := cashRentPortion - upfrontFees
+
+	depositCollected := p.DepositCents
+	if p.CashPaidCents < depositCollected {
+		depositCollected = p.CashPaidCents
+	}
+	if depositCollected < 0 {
+		depositCollected = 0
+	}
+
+	feesDue := int64(math.Round(p.OtherFeeYuan*100)) -
+		upfrontFees - int64(math.Round(p.SupplementPaidYuan*100))
+	if feesDue < 0 {
+		feesDue = 0
+	}
+	if couponRemainder := int64(math.Round(p.CouponRemainderYuan * 100)); couponRemainder > 0 {
+		feesDue -= couponRemainder
+		if feesDue < 0 {
+			feesDue = 0
+		}
+	}
+
+	pUsed, err := services.PointsFromStoredCents(p.GiftPointsUsedCents)
+	if err != nil {
+		return out, err
+	}
+	ratioNum := int64(math.Round(p.PayRatio * 1e6))
+	ratioDen := int64(1e6)
+	if ratioNum < 0 {
+		ratioNum = 0
+	}
+	if ratioNum > ratioDen {
+		ratioNum = ratioDen
+	}
+
+	return services.RefundSpecInput{
+		RAfterCouponCents:            afterCouponCents,
+		PUsedPoints:                  pUsed,
+		RentCashPaidNetCents:         rentCashPaidNet,
+		DepositCashCollectedNetCents: depositCollected,
+		DepositHeldCents:             p.DepositCents,
+		OtherFeeCents:                feesDue,
+		CashPaidNetCents:             rentCashPaidNet + depositCollected,
+		RatioNum:                     ratioNum,
+		RatioDen:                     ratioDen,
+	}, nil
+}
+
+// giftCapForBreakdown 返回落库用的乐币 cap：spec 可用时用 spec 的 p_cap（点），否则回退旧 a1。
+func giftCapForBreakdown(a1 models.Cents, spec services.RefundSpec, specErr error) int64 {
+	if specErr == nil {
+		return spec.PCapPoints
+	}
+	return int64(a1)
 }
 
 // computeSettlement performs the tier-based rent calculation and refund math.
@@ -874,10 +1022,19 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	// ---- 前置：续费支付记录 / 首期天数 / 合同实付 / 定价策略 ----
 	var renewalRecs []renewalRec
 	if err := db.Model(&models.OrderPaymentRecord{}).
-		Select("amount, days, status").
+		Select("amount, days, status, coupon_discount").
 		Where("order_id = ? AND order_type = ? AND type = ? AND status = ?", order.ID, "renewal", "payment", "paid").
 		Order("created_at ASC").Scan(&renewalRecs).Error; err != nil {
 		log.Printf("[computeSettlement] failed to load renewal records for order %s: %v", order.ID, err)
+	}
+	// #2424 Rev.6 D8：券权威 = 逐笔支付流水的 coupon_discount。
+	var contractCouponCents int64
+	if err := db.Model(&models.OrderPaymentRecord{}).
+		Where("order_id = ? AND order_type = ? AND type = ? AND status IN ?",
+			order.ID, "rent", "payment", []string{"paid", "waived"}).
+		Select("COALESCE(SUM(coupon_discount), 0)").Row().Scan(&contractCouponCents); err != nil {
+		log.Printf("[computeSettlement] failed to load contract coupon for order %s: %v", order.ID, err)
+		contractCouponCents = 0
 	}
 	initialDays := order.LeaseTerm
 	if initialDays <= 0 {
@@ -918,6 +1075,8 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	discountedDue := 0.0
 	var segmentUsage []int
 	couponRemainderYuan := 0.0 // #1902: 优惠码未折入段折扣的剩余抵扣额（元）
+	// #2424 Rev.6 D7：usedCoupon = Σ Usage[i]/Days[i] × segmentCoupon[i]（元）。
+	usedCouponYuan := 0.0
 	// 合同初始覆盖天数（#1838 二次修正 + #1837 共用）：orders.lease_term 为【月】语义
 	// （days/30，日租单=0），不可作为段模型输入。权威反推：pricing_breakdown.
 	// rent_days 被续费累加为"全部覆盖天数"（renewal.go）→ 合同初始天数 =
@@ -951,13 +1110,22 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	if contractDays > 0 {
 		var segs []PaidSegment
 		var paidTotalCents int64
-		segs, paidTotalCents, segErr := makePaidSegments(contractDays, pricingTiers, baseDailyRentCents, contractRent, renewalRecs)
+		segs, paidTotalCents, segErr := makePaidSegments(contractDays, pricingTiers, baseDailyRentCents,
+			contractRent, contractCouponCents, renewalRecs, int64(order.CouponDiscount))
 		if segErr == nil {
 			if ds, dsErr := computeDiscountedSettlement(actualDays, segs, int64(math.Round(shippingFee*100)), paidTotalCents); dsErr == nil {
 				useDiscounted = true
 				discountedRent = float64(ds.DiscountedRent) / 100
 				discountedDue = float64(ds.DiscountedDue) / 100
 				segmentUsage = ds.Usage
+				usedCouponCents := int64(0)
+				for i := range segs {
+					if ds.Usage[i] > 0 && segs[i].Days > 0 {
+						usedCouponCents += int64(math.Round(float64(segs[i].CouponDiscountCents) *
+							float64(ds.Usage[i]) / float64(segs[i].Days)))
+					}
+				}
+				usedCouponYuan = float64(usedCouponCents) / 100
 				// #1902: 段折扣率只承载了优惠码中「折入租金」的部分；押金/物流等
 				// 非租金抵扣额不在段模型内 → 未折入部分继续抵扣净额补缴，
 				// 余额不产生退款（OREZ 整单免 → 不退也不补，#1743 第四轮口径）。
@@ -980,6 +1148,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	}
 
 	var totalRefund, payableShortfall float64
+	couponRatioForSpec := 1.0
 	if useDiscounted {
 		// 折后应收（分）已含物流；逾期/定损按原价追加（不打折）。
 		netYuan := (discountedDue + overdueFee + damageDeducted) - paidTotal
@@ -999,6 +1168,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		if originalTotal > 0 {
 			couponRatio = paidTotal / originalTotal
 		}
+		couponRatioForSpec = couponRatio
 		dueTotal := rentPayable + overdueFee + damageDeducted + shippingFee
 		refundOriginal := originalTotal - dueTotal
 		totalRefund = refundOriginal * couponRatio
@@ -1067,6 +1237,68 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	}
 	if cashRefundable < 0 {
 		cashRefundable = 0
+	}
+
+	// #2424 Phase A：调用 spec v2.3 纯函数，仅新增 net/gross 字段，旧字段语义不变（D1/D6）。
+	contractListCents := int64(0)
+	if hasVersions && versionTotal > 0 {
+		contractListCents = int64(versionTotal)
+	} else {
+		segSubtotalCents := 0.0
+		for _, ts := range tierSegments {
+			segSubtotalCents += ts.Subtotal * 100
+		}
+		contractListCents = int64(math.Round(segSubtotalCents))
+		if contractListCents == 0 && order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+			var pb map[string]interface{}
+			if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
+				if v, ok := pb["total_amount"].(float64); ok {
+					contractListCents = int64(math.Round(v))
+				}
+			}
+		}
+	}
+	// #2424 Rev.6 D7：R_after_coupon = 标价租金 − usedCoupon。
+	// usedCoupon 由逐笔支付流水的券额按 PaidSegment.Usage 分配到实际使用段；
+	// discountedRent / couponAppliedToRent 同时含乐币，禁止作为券额（会与 p_used 双重抵扣）。
+	// 校验：#2339 fixture（R1=2800、现金 2000、乐币 1000、押金 500）→ net ¥40；
+	// SegmentScenarios 场景1（券 35.64/笔、实租 1 天）→ R_after 36 分。
+	afterCouponYuan := rentPayable - usedCouponYuan
+	if !useDiscounted {
+		afterCouponYuan = rentPayable * couponRatioForSpec
+	}
+	if afterCouponYuan < 0 {
+		afterCouponYuan = 0
+	}
+	var spec services.RefundSpec
+	specInput, specErr := deriveRefundSpecInput(refundSpecInputParams{
+		AfterCouponYuan:     afterCouponYuan,
+		CashPaidCents:       int64(order.CashPaid),
+		DepositCents:        int64(order.Deposit),
+		ContractListCents:   contractListCents,
+		GiftPointsUsedCents: int64(order.GiftPointsUsed),
+		OtherFeeYuan:        overdueFee + damageDeducted + shippingFee,
+		SupplementPaidYuan:  supplementPaid,
+		CouponRemainderYuan: couponRemainderYuan,
+		PayRatio:            payRatio,
+	})
+	if specErr == nil {
+		spec, specErr = services.ComputeRefundSpec(specInput)
+	}
+	if specErr != nil {
+		log.Printf("[computeSettlement] #2424 refund spec skipped for order %s: %v", order.ID, specErr)
+	}
+	netCash := float64(spec.NetCashCents) / 100
+	cashRefundableGross := float64(spec.CashRefundableCents) / 100
+	payableShortfallGross := float64(spec.PayableShortfallCents) / 100
+	if specErr == nil {
+		// #2424 Phase B（D1/D2）：对外字段切换为 spec 语义——
+		// CashRefundable/PayableShortfall 为毛额，TotalRefund = 乐币面值 + 现金毛额，
+		// RemainingDeposit 用 spec 押金退额；执行侧只认 NetCash。
+		cashRefundable = cashRefundableGross
+		payableShortfall = payableShortfallGross
+		totalRefund = (float64(spec.PRefundPoints)*100 + float64(spec.CashRefundableCents)) / 100
+		remainingDeposit = float64(spec.DepositRefundCents) / 100
 	}
 
 	// #1728 P3：breakdown JSONB 金额存分（元 ×100）；比例（pay_ratio）保持小数。
@@ -1284,12 +1516,16 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		"cash_refundable":           c(cashRefundable),
 		"payable_shortfall":         c(payableShortfall), // #1743: 补缴金额（应付 > 已付）
 		"gift_points_used":          int64(order.GiftPointsUsed),
-		"gift_cap":                  int64(a1),
+		"gift_cap":                  giftCapForBreakdown(a1, spec, specErr),
 		"gift_points_refunded":      c(giftPointsRefunded),
 		"cash_paid":                 int64(order.CashPaid),
 		"pay_ratio":                 payRatio,
 		"tier_segments":             tierSegsCents,
 		"fee_items":                 feeItems,
+		// #2424 Phase A：spec v2.3 分账户预览（旧键语义不变）。
+		"net_cash":                c(netCash),
+		"cash_refundable_gross":   c(cashRefundableGross),
+		"payable_shortfall_gross": c(payableShortfallGross),
 	}
 
 	// #1803 T2: 三段统一费用明细（实付段/应付段/净额段）——单一数据源，
@@ -1319,6 +1555,10 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	if cashBasis < 0 {
 		cashBasis = 0
 	}
+	if specErr == nil {
+		// #2424 Phase B：C1 口径与 spec 的 rent_cash_due 对齐。
+		cashBasis = float64(spec.RentCashDueCents) / 100
+	}
 
 	// #2327 S3b/D14: 结算时区分「现金押金」与「支付分担保」两条通道。
 	// 现金退款只来自实付押金；支付分只做 complete/cancel，绝不返现。
@@ -1342,6 +1582,9 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		TotalRefund:            totalRefund,
 		CashRefundable:         cashRefundable,
 		PayableShortfall:       payableShortfall,
+		NetCash:                netCash,
+		CashRefundableGross:    cashRefundableGross,
+		PayableShortfallGross:  payableShortfallGross,
 		GiftPointsRefunded:     giftPointsRefunded,
 		OverdueChargesTotal:    overdueFee,
 		ActualDays:             actualDays,

@@ -11,9 +11,10 @@ import (
 // renewalRec is a paid renewal payment record (used by the segment model and
 // the paid_block rendering in computeSettlement).
 type renewalRec struct {
-	Amount models.Cents
-	Days   *int
-	Status string
+	Amount         models.Cents
+	Days           *int
+	Status         string
+	CouponDiscount models.Cents
 }
 
 // segment_settlement.go — 段级折后结算模型（#1836）
@@ -34,6 +35,9 @@ type PaidSegment struct {
 	Days          int     // 子段覆盖天数（原价阶内）
 	OriginalDaily int64   // 子段原价日租（分）
 	Rate          float64 // 段折扣率（该支付段实付/原价，无码 1.0）
+	// CouponDiscountCents 是该子段分摊到的优惠券额（分，按原价占比分摊）。
+	// #2424 Rev.6 D8：券权威来自逐笔支付流水，仅 legacy 时按段原价占比分摊订单券。
+	CouponDiscountCents int64
 }
 
 // segmentDiscountedSettlement 为段级折后结算的纯计算结果（分）。
@@ -118,7 +122,8 @@ func computeDiscountedSettlement(actualDays int, segments []PaidSegment, shippin
 // 每笔支付段（合同/续费）展开为其原价阶子段；子段原价日租 = base_daily_rent
 // × 该子段政策折扣；段折扣率 = 段实付 / 段原价合计（展开与 paidBlock 同口径）。
 func makePaidSegments(initialDays int, pricingTiers []services.PricingTierConfig,
-	baseDailyRentCents float64, contractRent float64, renewalRecs []renewalRec) ([]PaidSegment, int64, error) {
+	baseDailyRentCents float64, contractRent float64, contractCouponCents int64,
+	renewalRecs []renewalRec, legacyOrderCouponCents int64) ([]PaidSegment, int64, error) {
 
 	roundCents := func(v float64) int64 { return int64(math.Round(v)) }
 
@@ -140,6 +145,7 @@ func makePaidSegments(initialDays int, pricingTiers []services.PricingTierConfig
 		days         int
 		original     float64 // 分（原价合计）
 		paid         int64   // 分（实付）
+		coupon       int64   // 分（该笔支付核销的券额）
 		tierSegments []services.TierSegment
 	}
 	payments := []payment{}
@@ -154,6 +160,7 @@ func makePaidSegments(initialDays int, pricingTiers []services.PricingTierConfig
 		kind: "contract", days: initialDays,
 		original:     contractOrig,
 		paid:         roundCents(contractRent * 100),
+		coupon:       contractCouponCents,
 		tierSegments: contractTiers,
 	})
 
@@ -171,9 +178,38 @@ func makePaidSegments(initialDays int, pricingTiers []services.PricingTierConfig
 			kind: "renewal", days: *r.Days,
 			original:     orig,
 			paid:         int64(r.Amount),
+			coupon:       int64(r.CouponDiscount),
 			tierSegments: tiers,
 		})
 		offset += *r.Days
+	}
+
+	// #2424 Rev.6 D8：逐笔券额为权威；全部缺失时才按段原价占比分摊订单级
+	// legacy 券（orders.coupon_discount）。
+	totalRecordedCoupon := int64(0)
+	for _, p := range payments {
+		totalRecordedCoupon += p.coupon
+	}
+	if totalRecordedCoupon == 0 && legacyOrderCouponCents > 0 {
+		totalOrig := 0.0
+		for _, p := range payments {
+			totalOrig += p.original
+		}
+		if totalOrig > 0 {
+			remaining := legacyOrderCouponCents
+			for i := range payments {
+				if i == len(payments)-1 {
+					payments[i].coupon = remaining
+					break
+				}
+				share := int64(math.Round(float64(legacyOrderCouponCents) * payments[i].original / totalOrig))
+				if share > remaining {
+					share = remaining
+				}
+				payments[i].coupon = share
+				remaining -= share
+			}
+		}
 	}
 
 	segs := []PaidSegment{}
@@ -187,13 +223,31 @@ func makePaidSegments(initialDays int, pricingTiers []services.PricingTierConfig
 		if p.original > 0 {
 			rate = float64(p.paid) / p.original
 		}
-		for _, ts := range p.tierSegments {
+		remainingCoupon := p.coupon
+		for si, ts := range p.tierSegments {
 			daily := tierDailyCents(ts.Tier) * ts.Discount
+			subOrig := daily * float64(ts.Days)
+			segCoupon := int64(0)
+			if remainingCoupon > 0 {
+				if si == len(p.tierSegments)-1 || p.original <= 0 {
+					segCoupon = remainingCoupon
+				} else {
+					segCoupon = int64(math.Round(float64(p.coupon) * subOrig / p.original))
+				}
+				if maxCoupon := roundCents(subOrig); segCoupon > maxCoupon {
+					segCoupon = maxCoupon
+				}
+				if segCoupon > remainingCoupon {
+					segCoupon = remainingCoupon
+				}
+				remainingCoupon -= segCoupon
+			}
 			segs = append(segs, PaidSegment{
-				Kind:          p.kind,
-				Days:          ts.Days,
-				OriginalDaily: roundCents(daily),
-				Rate:          rate,
+				Kind:                p.kind,
+				Days:                ts.Days,
+				OriginalDaily:       roundCents(daily),
+				Rate:                rate,
+				CouponDiscountCents: segCoupon,
 			})
 		}
 	}

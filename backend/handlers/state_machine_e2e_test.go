@@ -715,8 +715,9 @@ func TestComputeSettlement_LateReturn(t *testing.T) {
 	}
 
 	result := computeSettlement(order, db)
-	totalRefund := result.CashRefundable
-
+	// #2424 Phase B：执行按净额；毛额含押金全退 2220，净额扣租金缺口 470 → 1750。
+	totalRefund := result.NetCash
+	require.InDelta(t, 2220.0, result.CashRefundable, 0.01, "gross cash refundable = deposit − overdue − shipping")
 	// rentPaid(3000) + remainingDeposit(3000-750=2250) - rentPayable(3500) ≈ 1750
 	require.GreaterOrEqual(t, totalRefund, 1500.0, "Late return: refund should be >= ¥1500")
 	require.LessOrEqual(t, totalRefund, 2000.0, "Late return: refund should be <= ¥2000")

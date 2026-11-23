@@ -10,6 +10,15 @@
 
 ---
 
+## 0. 实现状态与字段口径（#2424，2026-11-23）
+
+- **权威**：退款金额以本文件 v2.3 为准；段级折后模型（#1743 整单 r / #1836 段模型）**保留为展示与明细（历史口径）**，不再作为退款字段的权威来源。
+- **对外字段（毛额/净额分列）**：`cash_refundable` = 租金可退 + 押金可退（毛额）；`payable_shortfall` = 租金缺口 + 押金不足的费用缺口（毛额）；`net_cash` = 两者之差（**执行口径**）；`TotalRefund` = 乐币面值 + 现金毛额。
+- **资金执行**：`net_cash > 0` 退款、`< 0` 补缴、`= 0` 直接 completed；`settlements.cash_refundable` 落**实际退款净额**，breakdown 同时保留 `cash_refundable_gross` / `payable_shortfall_gross` / `net_cash`。
+- **优惠券权威**：逐笔 `order_payment_records.coupon_discount`（`orders.coupon_discount` 仅 legacy 按段原价占比兜底）；`R_after_coupon = rentPayable − usedCoupon`，`usedCoupon = Σ Usage[i]/Days[i] × segmentCoupon[i]`。乐币只通过 `p_used` 进入公式，禁止用段模型 `Rate`/`discountedRent` 反推券额（会与 `p_used` 双重抵扣）。
+
+---
+
 ## 0. 单位与类型（P0，已定）
 
 | 量 | 单位/类型 |

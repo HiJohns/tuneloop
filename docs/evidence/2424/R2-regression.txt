@@ -1,0 +1,192 @@
+# build=1.0.624ce9d80 commit=624ce9d80a0a9a1248f26e8f99890efa38d64210 dirty=false phase_a_commit=624ce9d80a0a9a1248f26e8f99890efa38d64210
+[DEBUG] Loaded .env from: ../.env
+2026/11/23 01:05:47 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2424_r2 sslmode=disable
+2026/11/23 01:05:47 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2424_r2
+2026/11/23 01:05:47 [DB] Connected to database 'tuneloop_test_2424_r2'
+=== RUN   TestSettlement_UserScenarioB_NoDepositNoCoupon
+2026/11/23 01:05:48 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2424_r2 sslmode=disable
+2026/11/23 01:05:48 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2424_r2
+2026/11/23 01:05:48 [DB] Connected to database 'tuneloop_test_2424_r2'
+
+2026/11/23 01:05:49 [32m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[600.599ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:05:49 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:807 [35;1mrecord not found
+[0m[33m[2.218ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '3c5b2d3c-7330-43c4-a502-17a7f812ce6c' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:05:49 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:927 [35;1mrecord not found
+[0m[33m[1.360ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '3c5b2d3c-7330-43c4-a502-17a7f812ce6c' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:05:49 [computeSettlement] segment build failed for order 3c5b2d3c-7330-43c4-a502-17a7f812ce6c: segment paid exceeds original total — falling back to #1743
+
+2026/11/23 01:05:49 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.672ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestSettlement_UserScenarioB_NoDepositNoCoupon (1.13s)
+=== RUN   TestComputeSettlement_SegmentScenarios
+
+2026/11/23 01:05:49 [32m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[492.884ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "instruments", "orders", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+=== RUN   TestComputeSettlement_SegmentScenarios/场景1-三码-实租1天-补缴0.28
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:807 [35;1mrecord not found
+[0m[33m[1.400ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'f27191e6-f300-4349-bfe7-1203e3280f3c' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:927 [35;1mrecord not found
+[0m[33m[1.361ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'f27191e6-f300-4349-bfe7-1203e3280f3c' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.336ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+=== RUN   TestComputeSettlement_SegmentScenarios/场景2A-续1无码-实租1天-应退35.36
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:807 [35;1mrecord not found
+[0m[33m[1.332ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '43bcb9f6-1665-4ea6-aa08-bb3eae469402' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:927 [35;1mrecord not found
+[0m[33m[1.350ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '43bcb9f6-1665-4ea6-aa08-bb3eae469402' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.314ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+=== RUN   TestComputeSettlement_SegmentScenarios/场景2B-续1无码-实租2天-应补0.64
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:807 [35;1mrecord not found
+[0m[33m[1.308ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '5ace50a9-36f7-4138-a3cf-f82362c04e8f' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:927 [35;1mrecord not found
+[0m[33m[1.361ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '5ace50a9-36f7-4138-a3cf-f82362c04e8f' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.311ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+=== RUN   TestComputeSettlement_SegmentScenarios/反推合同天数-lease_term=0(月语义)-三码实租1天-段模型补0.28
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:807 [35;1mrecord not found
+[0m[33m[1.328ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '4c1d4ce4-3009-42ae-8d67-43362b789193' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:927 [35;1mrecord not found
+[0m[33m[1.382ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '4c1d4ce4-3009-42ae-8d67-43362b789193' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.332ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+=== RUN   TestComputeSettlement_SegmentScenarios/1bf456df形状-两码两段实租1天-段模型补0.64
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:807 [35;1mrecord not found
+[0m[33m[1.295ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '126fa7aa-f4b3-4562-969f-a94d948c5e09' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:927 [35;1mrecord not found
+[0m[33m[1.287ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '126fa7aa-f4b3-4562-969f-a94d948c5e09' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.346ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+=== RUN   TestComputeSettlement_SegmentScenarios/续费缺days-合同天数不可反推-回退1743
+2026/11/23 01:05:50 [Ledger] cash_paid(72) != ledger net(36) for order 5dd4f4d8-83af-4a8e-a2b4-be60faf5b968, using ledger
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:807 [35;1mrecord not found
+[0m[33m[1.339ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '5dd4f4d8-83af-4a8e-a2b4-be60faf5b968' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:927 [35;1mrecord not found
+[0m[33m[1.412ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '5dd4f4d8-83af-4a8e-a2b4-be60faf5b968' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:05:50 [computeSettlement] order 5dd4f4d8-83af-4a8e-a2b4-be60faf5b968 contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.342ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+=== RUN   TestComputeSettlement_SegmentScenarios/跨阶-无码-实租12天-段级应收与rentPayable逐分相等
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:807 [35;1mrecord not found
+[0m[33m[1.476ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '96a6ffef-a0f7-4f37-84ab-db49efe93fff' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:927 [35;1mrecord not found
+[0m[33m[1.391ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '96a6ffef-a0f7-4f37-84ab-db49efe93fff' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.445ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+=== RUN   TestComputeSettlement_SegmentScenarios/跨阶-无码-续费跨30天边界-renewalOffset与contractDays续接
+2026/11/23 01:05:50 [Ledger] cash_paid(118260) != ledger net(17460) for order fe95979e-a650-4f5f-a88a-e7aa4915d0fc, using ledger
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:807 [35;1mrecord not found
+[0m[33m[1.317ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'fe95979e-a650-4f5f-a88a-e7aa4915d0fc' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:927 [35;1mrecord not found
+[0m[33m[1.339ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'fe95979e-a650-4f5f-a88a-e7aa4915d0fc' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 01:05:50 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.365ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestComputeSettlement_SegmentScenarios (1.33s)
+    --- PASS: TestComputeSettlement_SegmentScenarios/场景1-三码-实租1天-补缴0.28 (0.06s)
+    --- PASS: TestComputeSettlement_SegmentScenarios/场景2A-续1无码-实租1天-应退35.36 (0.05s)
+    --- PASS: TestComputeSettlement_SegmentScenarios/场景2B-续1无码-实租2天-应补0.64 (0.05s)
+    --- PASS: TestComputeSettlement_SegmentScenarios/反推合同天数-lease_term=0(月语义)-三码实租1天-段模型补0.28 (0.06s)
+    --- PASS: TestComputeSettlement_SegmentScenarios/1bf456df形状-两码两段实租1天-段模型补0.64 (0.06s)
+    --- PASS: TestComputeSettlement_SegmentScenarios/续费缺days-合同天数不可反推-回退1743 (0.09s)
+    --- PASS: TestComputeSettlement_SegmentScenarios/跨阶-无码-实租12天-段级应收与rentPayable逐分相等 (0.05s)
+    --- PASS: TestComputeSettlement_SegmentScenarios/跨阶-无码-续费跨30天边界-renewalOffset与contractDays续接 (0.05s)
+=== RUN   TestSettlement_PostDamageStates
+
+2026/11/23 01:05:51 [32m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[516.134ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "instruments", "order_payment_records", "orders", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+=== RUN   TestSettlement_PostDamageStates/pending_damage_response
+2026/11/23 01:05:51 [Ledger] cash_paid(72) != ledger net(36) for order 49964e06-f99c-4955-908b-52dbe38d8257, using ledger
+
+2026/11/23 01:05:51 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.340ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+=== RUN   TestSettlement_PostDamageStates/damage_appealing
+2026/11/23 01:05:51 [Ledger] cash_paid(72) != ledger net(36) for order dd02cc0e-e01b-4bac-a24f-cdf7d18521db, using ledger
+
+2026/11/23 01:05:51 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.295ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+=== RUN   TestSettlement_PostDamageStates/deposit_refunding
+2026/11/23 01:05:51 [Ledger] cash_paid(72) != ledger net(36) for order 4dab0078-ebf8-47f3-9d76-a9ec1b43cfca, using ledger
+
+2026/11/23 01:05:51 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.360ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/23 01:05:51 [Ledger] cash_paid(72) != ledger net(36) for order 4dab0078-ebf8-47f3-9d76-a9ec1b43cfca, using ledger
+
+2026/11/23 01:05:51 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.355ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestSettlement_PostDamageStates (1.05s)
+    --- PASS: TestSettlement_PostDamageStates/pending_damage_response (0.06s)
+    --- PASS: TestSettlement_PostDamageStates/damage_appealing (0.06s)
+    --- PASS: TestSettlement_PostDamageStates/deposit_refunding (0.08s)
+=== RUN   TestComputeSettlement_SupplementWaive_CancelsShortfall
+
+2026/11/23 01:05:52 [32m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[541.291ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "damage_reports", "instruments", "order_payment_records", "orders", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/23 01:05:52 [Ledger] cash_paid(72) != ledger net(36) for order 71d5447d-c20e-4600-8ae3-d23b8a9097c6, using ledger
+
+2026/11/23 01:05:52 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.275ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/23 01:05:52 [Ledger] cash_paid(72) != ledger net(36) for order 543558ca-b0b0-4740-aee4-14ec151a4e61, using ledger
+
+2026/11/23 01:05:52 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.426ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestComputeSettlement_SupplementWaive_CancelsShortfall (1.04s)
+=== RUN   TestRefundDiff_PointsOverCap
+
+2026/11/23 01:05:53 [32m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[540.247ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "damage_reports", "instruments", "order_payment_records", "orders", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:05:53 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:807 [35;1mrecord not found
+[0m[33m[1.786ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '3a52907e-c8d6-4b9c-b638-4aef659d6152' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:05:53 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:927 [35;1mrecord not found
+[0m[33m[1.363ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '3a52907e-c8d6-4b9c-b638-4aef659d6152' ORDER BY "damage_reports"."id" LIMIT 1
+--- PASS: TestRefundDiff_PointsOverCap (0.95s)
+=== RUN   TestRefundDiff_PointsWithinCap
+
+2026/11/23 01:05:54 [32m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[517.975ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "gift_policies", "instruments", "orders", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:05:54 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:807 [35;1mrecord not found
+[0m[33m[1.354ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '7bd75461-cd95-4ace-a821-a25e055d88d1' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:05:54 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:927 [35;1mrecord not found
+[0m[33m[1.438ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '7bd75461-cd95-4ace-a821-a25e055d88d1' ORDER BY "damage_reports"."id" LIMIT 1
+--- PASS: TestRefundDiff_PointsWithinCap (0.94s)
+=== RUN   TestComputeSettlement_LateReturn
+2026/11/23 01:05:54 [computeSettlement] order 00000000-0000-0000-0000-0000ddddd002 contract days unresolvable (lease_term=0, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/23 01:05:54 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/handlers/user_settlement.go:1131 [35;1mrecord not found
+[0m[33m[1.246ms] [34;1m[rows:0][0m SELECT "membership_level_id" FROM "users" WHERE id = '00000000-0000-0000-0000-000000000000' ORDER BY "users"."id" LIMIT 1
+
+2026/11/23 01:05:54 [31;1m/tmp/opencode/2424-phase-a.FZJbUc/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.307ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+--- PASS: TestComputeSettlement_LateReturn (0.02s)
+PASS
+ok  	tuneloop-backend/handlers	7.070s

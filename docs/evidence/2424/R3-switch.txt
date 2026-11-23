@@ -1,0 +1,22 @@
+# build=1.0.59b858e76 commit=59b858e76a67036c14af23bf18b9892dcbf64ee5 dirty=false
+[DEBUG] Loaded .env from: ../.env
+2026/11/23 01:06:28 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2424_r3 sslmode=disable
+2026/11/23 01:06:28 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2424_r3
+2026/11/23 01:06:28 [DB] Connected to database 'tuneloop_test_2424_r3'
+=== RUN   TestSettlementSpecSwitch_2424
+2026/11/23 01:06:28 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2424_r3 sslmode=disable
+2026/11/23 01:06:28 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2424_r3
+2026/11/23 01:06:28 [DB] Connected to database 'tuneloop_test_2424_r3'
+
+2026/11/23 01:06:29 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[570.018ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:06:29 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[2.170ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'd238cf9e-4191-4138-9021-0ac46e589710' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:06:29 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.339ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'd238cf9e-4191-4138-9021-0ac46e589710' ORDER BY "damage_reports"."id" LIMIT 1
+    settlement_spec_preview_2424_test.go:179: SWITCH_OK cash_refundable=500.00 payable=460.00 net=40.00 total=660.00 gift=160.00 cash_basis=1960.00
+--- PASS: TestSettlementSpecSwitch_2424 (1.10s)
+PASS
+ok  	tuneloop-backend/handlers	1.648s
