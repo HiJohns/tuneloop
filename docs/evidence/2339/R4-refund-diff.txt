@@ -1,32 +1,32 @@
 # build=1.0.b70f96eb3 commit=b70f96eb3b80b4d18a873ef2dd4eaa95c1bf7add dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/19 16:19:38 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
-2026/11/19 16:19:39 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339
-2026/11/19 16:19:39 [DB] Connected to database 'tuneloop_test_verify2339'
+2026/11/23 02:12:30 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
+2026/11/23 02:12:30 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339
+2026/11/23 02:12:30 [DB] Connected to database 'tuneloop_test_verify2339'
 === RUN   TestRefundDiff_PointsOverCap
-2026/11/19 16:19:39 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
-2026/11/19 16:19:39 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339
-2026/11/19 16:19:39 [DB] Connected to database 'tuneloop_test_verify2339'
+2026/11/23 02:12:31 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339 sslmode=disable
+2026/11/23 02:12:31 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2339
+2026/11/23 02:12:31 [DB] Connected to database 'tuneloop_test_verify2339'
 
-2026/11/19 16:19:40 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
-[0m[31;1m[597.811ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/23 02:12:32 [32m/tmp/opencode/tuneloop/wt-2339/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[725.129ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
 
-2026/11/19 16:19:40 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:716 [35;1mrecord not found
-[0m[33m[2.262ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '8047e531-d0d4-4123-8826-3763f36adce8' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+2026/11/23 02:12:32 [31;1m/tmp/opencode/tuneloop/wt-2339/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[2.283ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '4afb23ed-e7d2-4082-aef2-6eb3be833042' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
 
-2026/11/19 16:19:40 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:836 [35;1mrecord not found
-[0m[33m[1.479ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '8047e531-d0d4-4123-8826-3763f36adce8' ORDER BY "damage_reports"."id" LIMIT 1
---- PASS: TestRefundDiff_PointsOverCap (1.09s)
+2026/11/23 02:12:32 [31;1m/tmp/opencode/tuneloop/wt-2339/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.462ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '4afb23ed-e7d2-4082-aef2-6eb3be833042' ORDER BY "damage_reports"."id" LIMIT 1
+--- PASS: TestRefundDiff_PointsOverCap (1.45s)
 === RUN   TestRefundDiff_PointsWithinCap
 
-2026/11/19 16:19:41 [32m/home/coder/tuneloop/backend/handlers/testfixtures/db.go:233 [33mSLOW SQL >= 200ms
-[0m[31;1m[493.639ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "gift_policies", "instruments", "orders", "pricing_templates", "users" RESTART IDENTITY CASCADE[0m
+2026/11/23 02:12:33 [32m/tmp/opencode/tuneloop/wt-2339/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[635.945ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "gift_policies", "instruments", "orders", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
 
-2026/11/19 16:19:41 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:716 [35;1mrecord not found
-[0m[33m[1.381ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '5285d9ec-d3dd-45e6-877c-321a998b8df9' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+2026/11/23 02:12:33 [31;1m/tmp/opencode/tuneloop/wt-2339/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.468ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '7be24e6d-5ff9-489c-a92c-9a176ed22a4f' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
 
-2026/11/19 16:19:41 [31;1m/home/coder/tuneloop/backend/handlers/user_settlement.go:836 [35;1mrecord not found
-[0m[33m[1.438ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '5285d9ec-d3dd-45e6-877c-321a998b8df9' ORDER BY "damage_reports"."id" LIMIT 1
---- PASS: TestRefundDiff_PointsWithinCap (0.87s)
+2026/11/23 02:12:33 [31;1m/tmp/opencode/tuneloop/wt-2339/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.459ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '7be24e6d-5ff9-489c-a92c-9a176ed22a4f' ORDER BY "damage_reports"."id" LIMIT 1
+--- PASS: TestRefundDiff_PointsWithinCap (1.15s)
 PASS
-ok  	tuneloop-backend/handlers	2.608s
+ok  	tuneloop-backend/handlers	3.510s
