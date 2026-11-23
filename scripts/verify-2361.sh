@@ -56,12 +56,14 @@ if [ "$MODE" = "r7-full-gate" ]; then
     fail_count=$(grep -c '^--- FAIL' "$suite_log" || true)
     panic_count=$(grep -ci 'panic:' "$suite_log" || true)
     pkg_total=$(cd "$REPO_ROOT/backend" && go list ./... | wc -l | tr -d ' ')
+    pkg_with_tests=$(cd "$REPO_ROOT/backend" && go list -f '{{if gt (len .TestGoFiles) 0}}{{.ImportPath}}{{end}}' ./... | sed '/^$/d' | wc -l | tr -d ' ')
     pkg_ok=$(grep -c '^ok[[:space:]]' "$suite_log" || true)
     echo "FULL_SUITE_EXIT=$suite_rc"
     echo "FAIL_COUNT=$fail_count"
     echo "PANIC_COUNT=$panic_count"
-    echo "PACKAGES_OK=$pkg_ok/$pkg_total"
-    if [ "$suite_rc" != "0" ] || [ "$fail_count" != "0" ] || [ "$panic_count" != "0" ] || [ "$pkg_ok" != "$pkg_total" ]; then
+    echo "PACKAGES_OK=$pkg_ok/$pkg_with_tests"
+    echo "PACKAGES_TOTAL=$pkg_total (no-test packages: $((pkg_total - pkg_with_tests)))"
+    if [ "$suite_rc" != "0" ] || [ "$fail_count" != "0" ] || [ "$panic_count" != "0" ] || [ "$pkg_ok" != "$pkg_with_tests" ]; then
       grep -E '^(--- FAIL|FAIL|panic:)' "$suite_log" | head -40
       echo "FULL_GATE_FAILED"
       rm -f "$suite_log"
