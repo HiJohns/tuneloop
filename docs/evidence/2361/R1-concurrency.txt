@@ -1,4 +1,4 @@
-# build=1.0.29da094d4 commit=29da094d489aebfba2c860f061d1dc693b57785d dirty=false tree=878cd7dcd0b52c12c6d66753a9525bad875bf618
+# build=1.0.543ee08a5 commit=543ee08a58a2fc8c06b91d0852344291c89890ed dirty=false tree=543ee08a58a2fc8c06b91d0852344291c89890ed
 # github.com/mattn/go-sqlite3
 sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
 sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
@@ -7,11 +7,14 @@ sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier f
 [DEBUG] Loaded .env from: ../.env
 === RUN   TestSettlementExecutorConcurrency_2361
 
-2026/11/23 00:40:46 [31;1m/tmp/opencode/tuneloop/wt-2361/backend/services/settlement_executor_2361.go:307 [35;1mrecord not found
-[0m[33m[16.833ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = '0f294290-b97f-4265-9b7f-defca231d763' AND settlement_version = 1 ORDER BY "settlement_calculations"."id" LIMIT 1
+2026/11/23 02:28:05 [31;1m/tmp/opencode/tuneloop/wt-2361/backend/services/settlement_executor_2361.go:307 [35;1mrecord not found
+[0m[33m[13.498ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = '237f885f-5d80-40d7-944e-dba9a82a2521' AND settlement_version = 1 ORDER BY "settlement_calculations"."id" LIMIT 1
 
-2026/11/23 00:40:46 [31;1m/tmp/opencode/tuneloop/wt-2361/backend/services/settlement_executor_2361.go:323 [35;1mrecord not found
-[0m[33m[2.535ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = '0f294290-b97f-4265-9b7f-defca231d763' AND status IN ('confirmed','processing','succeeded','partially_succeeded','failed_retryable') ORDER BY "settlement_calculations"."id" LIMIT 1
---- PASS: TestSettlementExecutorConcurrency_2361 (0.91s)
+2026/11/23 02:28:05 [31;1m/tmp/opencode/tuneloop/wt-2361/backend/services/settlement_executor_2361.go:323 [35;1mrecord not found
+[0m[33m[5.193ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = '237f885f-5d80-40d7-944e-dba9a82a2521' AND status IN ('confirmed','processing','succeeded','partially_succeeded','failed_retryable') ORDER BY "settlement_calculations"."id" LIMIT 1
+
+2026/11/23 02:28:05 [32m/tmp/opencode/tuneloop/wt-2361/backend/services/settlement_executor_2361.go:301 [33mSLOW SQL >= 200ms
+[0m[31;1m[211.684ms] [33m[rows:1][35m SELECT * FROM "orders" WHERE id = '237f885f-5d80-40d7-944e-dba9a82a2521' ORDER BY "orders"."id" LIMIT 1 FOR UPDATE[0m
+--- PASS: TestSettlementExecutorConcurrency_2361 (0.66s)
 PASS
-ok  	tuneloop-backend/services	0.938s
+ok  	tuneloop-backend/services	0.679s
