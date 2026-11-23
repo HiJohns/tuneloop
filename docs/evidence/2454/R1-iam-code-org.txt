@@ -6,12 +6,12 @@ sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier f
 123133 |   zTail = strrchr(zName, '_');
        |         ^
 === RUN   TestAuthorizationCodeGrant_BoundOrgContext_500
-2026/11/23 21:17:21 [DB:INSERT] users id=bc9f35c2-c992-45fb-bc2e-e722417af63f email= username=test2446 status=active role=USER is_owner=false
-2026/11/23 21:17:21 [DB:INSERT] user_org_relations id=9287b759-d44f-4be2-b2e2-809a6f8df5da user_id=bc9f35c2-c992-45fb-bc2e-e722417af63f org_id=76d46658-0000-4000-8000-000000000001 role=STAFF is_active=true
-2026/11/23 21:17:21 [DB:INSERT] user_org_relations id=3beb8df1-aa8d-4eaf-b3fc-7b0e2aca47ac user_id=bc9f35c2-c992-45fb-bc2e-e722417af63f org_id=a5eb38d4-0000-4000-8000-000000000002 role=STAFF is_active=true
+2026/11/23 21:18:40 [DB:INSERT] users id=434aa668-78f0-4b47-9e6b-313fdf0a8f46 email= username=test2446 status=active role=USER is_owner=false
+2026/11/23 21:18:40 [DB:INSERT] user_org_relations id=bb45d04b-8592-477e-98f7-c14dfa2062fc user_id=434aa668-78f0-4b47-9e6b-313fdf0a8f46 org_id=76d46658-0000-4000-8000-000000000001 role=STAFF is_active=true
+2026/11/23 21:18:40 [DB:INSERT] user_org_relations id=67141eb2-af47-47ae-923d-11adf6ae85ba user_id=434aa668-78f0-4b47-9e6b-313fdf0a8f46 org_id=a5eb38d4-0000-4000-8000-000000000002 role=STAFF is_active=true
 
-2026/11/23 21:17:21 [31;1m/home/coder/beaconiam/internal/auth/handler.go:882 [35;1mrecord not found
-[0m[33m[0.061ms] [34;1m[rows:0][0m SELECT * FROM `namespace_apps` WHERE client_id = "tuneloop_1_web" ORDER BY is_active DESC,`namespace_apps`.`id` LIMIT 1
+2026/11/23 21:18:40 [31;1m/home/coder/beaconiam/internal/auth/handler.go:882 [35;1mrecord not found
+[0m[33m[0.050ms] [34;1m[rows:0][0m SELECT * FROM `namespace_apps` WHERE client_id = "tuneloop_1_web" ORDER BY is_active DESC,`namespace_apps`.`id` LIMIT 1
     handler_select_org_test.go:151: OID=76d46658-0000-4000-8000-000000000001
     handler_select_org_test.go:152: TID=bfce6c6d-0000-4000-8000-000000000001
     handler_select_org_test.go:153: ROLE=STAFF
@@ -19,4 +19,4 @@ sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier f
     handler_select_org_test.go:155: REFRESH_CTX=ok
 --- PASS: TestAuthorizationCodeGrant_BoundOrgContext_500 (0.01s)
 PASS
-ok  	beaconiam/internal/auth	0.020s
+ok  	beaconiam/internal/auth	0.021s
