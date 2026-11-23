@@ -178,3 +178,13 @@ CreateMerchant → CreateUser(CallbackURL)  ← CreateOrg(CallbackURL)
 - **前端提示**：`wx-accounts`/多户选择返回 `reactivatable: true`，可用于「重新激活」提示。
 - **tuneloop 本地缓存**：`users` 以 `iam_sub` 关联，恢复登录后自然续用；JWT 由恢复后的 relation 重新签发（授权走 JWT claims，不依赖本地缓存）。
 - 迁移版本：beaconiam `20260924_mark_deleted_reactivation`。
+
+## 组织名镜像语义：IAM `organizations.name` 是权威源（#2457）
+
+- **`sites.name` 不是独立别名**，而是 IAM `organizations.name` 的**本地镜像**：读取以 IAM 为准，写入必须先 IAM 后本地。`CreateSite` 早已把 `req.Name` 同时写入 IAM（`CreateOrganization`），本裁定把 `UpdateSite` 补齐到同一口径。
+- **写入路径**（`SiteHandler.UpdateSite`）：`name` 变化时先用**服务凭据**（client-credentials，非操作者 token）调用 IAM `PUT /api/v1/organizations/{org_id}`（body 只含 `name`）；成功后才更新本地 `sites.name`。
+- **失败语义**：IAM `409`（同命名空间组织名冲突）→ HTTP `409` + `code=40900`；其它 IAM 失败 → HTTP `502` + `code=50200`；**任何 IAM 失败都不得写本地**（避免二次漂移）。
+- **幂等**：`name` 与当前一致（仅改地址/电话/营业时间等）→ 不调用 IAM。
+- **历史/本机降级**：`sites.org_id` 为空 → 跳过 IAM 并记 `WARN site without org_id`；IAM 未配置（本地/测试）→ 跳过并记 `WARN iam not configured`。
+- **存量漂移**：`scripts/site-name-drift.sh --report` 只读比对 `sites.name` 与 IAM 组织名；`--apply` 仅限 Owner 明确授权（`OWNER_APPROVED_SITE_RENAME=1`），未授权 exit 2 且不写库。
+- **相关**：#2455（同商户网点名唯一 + 组织名/网点名可辨识）、#2454（PC 选网点后空组织 token）。

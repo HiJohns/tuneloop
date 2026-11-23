@@ -91,6 +91,11 @@ func TestMembershipDomain_SitesExplicitScope_2261(t *testing.T) {
 	require.NoError(t, db.Create(&models.Site{ID: siteA, TenantID: orgA, OrgID: uuid.NewString(), Name: "site-A", Status: "active"}).Error)
 	require.NoError(t, db.Create(&models.Site{ID: siteB, TenantID: orgB, OrgID: uuid.NewString(), Name: "site-B", Status: "active"}).Error)
 
+	// #2457 R14（被翻转的既有断言）：UpdateSite 改为 IAM-first 后，本用例的改名
+	// 请求会外呼 IAM。注入 fake IAM（200）保持「自有 200 / 跨商户 404 / on-off 等价」
+	// 四项断言原样成立；不 skip、不放宽 404（AGENTS.md §语义变更）。
+	newFakeIAMSite2457(t, http.StatusOK, "renamed-A")
+
 	actor := testutil.TestActor{TenantID: orgA, OrgID: orgA, UserID: uuid.NewString(), Role: "OWNER"}
 	newRouter := func(explicit bool) *gin.Engine {
 		r := gin.New()

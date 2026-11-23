@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -544,6 +545,115 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 	// #2261 B3-C：显式租户过滤（关闭自动范围后仍不可跨租户更新）
 	tenantID := middleware.GetTenantID(c.Request.Context())
 
+	// #2457: IAM organizations.name 是组织名权威源，sites.name 只是本地镜像。
+	// 改名必须先写 IAM，成功后才写本地缓存；IAM 失败不得落本地（否则二次漂移）。
+	var site models.Site
+	if err := db.Where("id = ? AND tenant_id = ?", siteID, tenantID).First(&site).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"code":    40400,
+				"message": "site not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to load site: " + err.Error(),
+		})
+		return
+	}
+
+	newName := strings.TrimSpace(req.Name)
+	nameChanged := newName != site.Name
+	if nameChanged {
+		// 名称变更前置校验（全部在 IAM 调用之前，Decision Lock D2/D5）。
+		if newName == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40002,
+				"message": "site name must not be empty",
+			})
+			return
+		}
+		if strings.TrimSpace(site.OrgID) == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40002,
+				"message": "该网点未绑定 IAM 组织，无法改名（禁止本地单边改名）",
+			})
+			return
+		}
+		if strings.TrimSpace(site.OrgID) == strings.TrimSpace(site.TenantID) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40002,
+				"message": "该网点是商户/命名空间锚点网点，禁止改名",
+			})
+			return
+		}
+
+		var duplicate int64
+		if countErr := db.Model(&models.Site{}).
+			Where("tenant_id = ? AND id <> ? AND deleted_at IS NULL AND lower(name) = lower(?)", tenantID, siteID, newName).
+			Count(&duplicate).Error; countErr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "failed to check duplicate site name: " + countErr.Error(),
+			})
+			return
+		}
+		if duplicate > 0 {
+			c.JSON(http.StatusConflict, gin.H{
+				"code":    40900,
+				"message": "网点名已存在",
+			})
+			return
+		}
+
+		iamClient := services.NewIAMClient()
+		userToken := bearerTokenOf(c)
+		var iamErr error
+		if userToken == "" {
+			// 无调用者令牌（内部调用/测试）：直接使用服务凭据。
+			_, iamErr = iamClient.UpdateOrganizationName(site.OrgID, newName)
+		} else {
+			_, iamErr = iamClient.UpdateOrganizationNameWithToken(userToken, site.OrgID, newName)
+			if iamErr != nil && errors.Is(iamErr, services.ErrIAMForbidden) &&
+				middleware.GetSysPerm(c.Request.Context())&(1<<middleware.SysPermOrganizationUpdate) != 0 {
+				// D3: 用户令牌被 IAM 拒绝但本地已通过 organization_update 位图 →
+				// 用服务凭据重试一次（不静默只改本地），并留审计日志。
+				log.Printf("[UpdateSite] IAM rename escalated to service credentials user=%s org=%s",
+					middleware.GetUserID(c.Request.Context()), site.OrgID)
+				_, iamErr = iamClient.UpdateOrganizationName(site.OrgID, newName)
+			}
+		}
+		if iamErr != nil {
+			log.Printf("[UpdateSite] IAM organization rename failed org_id=%s: %v", site.OrgID, iamErr)
+			switch {
+			case errors.Is(iamErr, services.ErrIAMForbidden):
+				c.JSON(http.StatusForbidden, gin.H{
+					"code":    40301,
+					"message": "IAM 拒绝修改组织名（权限不足）: " + iamErr.Error(),
+				})
+			case errors.Is(iamErr, services.ErrIAMOrgNotFound):
+				c.JSON(http.StatusNotFound, gin.H{
+					"code":    40400,
+					"message": "IAM 组织不存在（org_id 失效）: " + iamErr.Error(),
+				})
+			case errors.Is(iamErr, services.ErrIAMOrgNameConflict):
+				c.JSON(http.StatusConflict, gin.H{
+					"code":    40900,
+					"message": "网点名已存在（IAM 组织名冲突）: " + iamErr.Error(),
+				})
+			default:
+				c.JSON(http.StatusBadGateway, gin.H{
+					"code":    50000,
+					"message": "IAM 更新组织名失败: " + iamErr.Error(),
+				})
+			}
+			// IAM 失败 → 不写本地（D3）。
+			return
+		}
+		log.Printf("[UpdateSite] IAM organization renamed org_id=%s name=%q", site.OrgID, newName)
+	}
+
 	result := db.Model(&models.Site{}).Where("id = ? AND tenant_id = ?", siteID, tenantID).Updates(map[string]interface{}{
 		"name":           req.Name,
 		"address":        req.Address,
@@ -557,6 +667,14 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 	})
 
 	if result.Error != nil {
+		if nameChanged {
+			// IAM 已改名、本地失败：显式告知可重试（重试走同名分支补本地，D4）。
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "IAM 已改名，本地同步失败，请重试: " + result.Error.Error(),
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "failed to update site: " + result.Error.Error(),

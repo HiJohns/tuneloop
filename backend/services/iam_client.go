@@ -53,6 +53,17 @@ var ErrIAMUserExists = errors.New("iam user already exists")
 // 失败。调用方应保留 IAM 原始 message 并映射为 HTTP 400（不再统一 500）。
 var ErrIAMInvalidRequest = errors.New("iam request rejected")
 
+// ErrIAMOrgNameConflict（#2457）：IAM UpdateOrganization 返回 409（同命名空间组织名冲突）。
+// 调用方应映射为业务冲突（409 + 可读文案），不得统一 500/502。
+var ErrIAMOrgNameConflict = errors.New("iam organization name conflict")
+
+// ErrIAMForbidden（#2457）：IAM 返回 401/403（调用者权限不足）。
+// UpdateSite 据此决定是否用服务凭据重试一次（Decision Lock D3）。
+var ErrIAMForbidden = errors.New("iam forbidden")
+
+// ErrIAMOrgNotFound（#2457）：IAM 返回 404（组织已不存在 / org_id 失效）。
+var ErrIAMOrgNotFound = errors.New("iam organization not found")
+
 // userAuthState (#1735): IAM-authoritative subject validity snapshot used by
 // the auth middleware (token_version + account status).
 type userAuthState struct {
@@ -515,6 +526,80 @@ func (c *IAMClient) GetOrganization(orgID string) (*Organization, error) {
 	}
 	if org.ID == "" {
 		return nil, fmt.Errorf("GetOrganization: IAM response missing org id")
+	}
+	return &org, nil
+}
+
+// UpdateOrganizationName renames an organization in IAM, which is the source of
+// truth for organization names (#2457). Local mirrors (sites.name) must only be
+// written after this call succeeds.
+//
+// Uses the client-credentials (service) token. Prefer UpdateOrganizationNameWithToken
+// when the caller has an end-user token, so IAM can attribute the change to the user.
+func (c *IAMClient) UpdateOrganizationName(orgID, name string) (*Organization, error) {
+	return c.updateOrganizationName("", orgID, name)
+}
+
+// UpdateOrganizationNameWithToken renames an organization on behalf of an
+// end-user (their bearer token), which lets IAM enforce the user's own
+// organization permission (#2457 D3). A 403 is reported as ErrIAMForbidden so the
+// caller can decide whether to escalate to service credentials.
+func (c *IAMClient) UpdateOrganizationNameWithToken(userToken, orgID, name string) (*Organization, error) {
+	if strings.TrimSpace(userToken) == "" {
+		return nil, fmt.Errorf("%w: user token is required", ErrIAMInvalidRequest)
+	}
+	return c.updateOrganizationName(strings.TrimSpace(userToken), orgID, name)
+}
+
+// updateOrganizationName 是两条公开入口的共享实现：token 为空时用服务凭据，
+// 非空时用调用者令牌。状态码映射为可判别错误（403/401 → ErrIAMForbidden、
+// 404 → ErrIAMOrgNotFound、409 → ErrIAMOrgNameConflict、其它 → 原始错误）。
+func (c *IAMClient) updateOrganizationName(token, orgID, name string) (*Organization, error) {
+	orgID = strings.TrimSpace(orgID)
+	if orgID == "" {
+		return nil, fmt.Errorf("%w: organization id is required", ErrIAMInvalidRequest)
+	}
+	name = strings.TrimSpace(name)
+	if name == "" {
+		// IAM UpdateOrg overwrites name whenever the field is present; reject
+		// empty names here because IAM does not validate them.
+		return nil, fmt.Errorf("%w: organization name is required", ErrIAMInvalidRequest)
+	}
+
+	path := fmt.Sprintf("/api/v1/organizations/%s", orgID)
+	payload := map[string]string{"name": name}
+	var respBody []byte
+	var statusCode int
+	var err error
+	if token == "" {
+		respBody, statusCode, err = c.doRequest("PUT", path, payload)
+	} else {
+		respBody, statusCode, err = c.doRequestWithToken("PUT", path, token, payload)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("UpdateOrganizationName request failed: %w", err)
+	}
+	switch statusCode {
+	case http.StatusOK:
+	case http.StatusUnauthorized, http.StatusForbidden:
+		return nil, fmt.Errorf("%w: %s", ErrIAMForbidden, string(respBody))
+	case http.StatusNotFound:
+		return nil, fmt.Errorf("%w: %s", ErrIAMOrgNotFound, string(respBody))
+	case http.StatusConflict:
+		return nil, fmt.Errorf("%w: %s", ErrIAMOrgNameConflict, string(respBody))
+	default:
+		return nil, fmt.Errorf("UpdateOrganizationName returned status %d: %s", statusCode, string(respBody))
+	}
+
+	var org Organization
+	if err := json.Unmarshal(respBody, &org); err != nil {
+		return nil, fmt.Errorf("failed to parse UpdateOrganizationName response: %w", err)
+	}
+	if org.ID == "" {
+		return nil, fmt.Errorf("UpdateOrganizationName: IAM response missing org id")
+	}
+	if org.Name == "" {
+		org.Name = name
 	}
 	return &org, nil
 }
