@@ -1,0 +1,27 @@
+# build=1.0.74c2800bc # commit=74c2800bcaffff428390c21d46234c9f25196b29 # dirty=false
+BEACONIAM_COMMIT=1075fbd731bb913a502beaeb5d61f666d1113350
+# github.com/mattn/go-sqlite3
+sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
+sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+123133 |   zTail = strrchr(zName, '_');
+       |         ^
+=== RUN   TestSelectOrg_BindsCodeAndIsExchangeable_500
+2026/11/23 21:15:17 [DB:INSERT] users id=366c59f2-52e0-498e-b3f4-9e8b39d8f335 email= username=test2446 status=active role=USER is_owner=false
+2026/11/23 21:15:17 [DB:INSERT] user_org_relations id=364cea16-94fe-434a-ba23-58f3030b0c82 user_id=366c59f2-52e0-498e-b3f4-9e8b39d8f335 org_id=76d46658-0000-4000-8000-000000000001 role=STAFF is_active=true
+2026/11/23 21:15:17 [DB:INSERT] user_org_relations id=52fcb020-c714-452b-a811-0da52c2ad836 user_id=366c59f2-52e0-498e-b3f4-9e8b39d8f335 org_id=a5eb38d4-0000-4000-8000-000000000002 role=STAFF is_active=true
+2026/11/23 21:15:17 [SELECT_ORG] bound code=select-code-1 user=366c59f2-52e0-498e-b3f4-9e8b39d8f335 org=76d46658-0000-4000-8000-000000000001
+
+2026/11/23 21:15:17 [31;1m/home/coder/beaconiam/internal/auth/handler.go:882 [35;1mrecord not found
+[0m[33m[0.071ms] [34;1m[rows:0][0m SELECT * FROM `namespace_apps` WHERE client_id = "tuneloop_1_web" ORDER BY is_active DESC,`namespace_apps`.`id` LIMIT 1
+    handler_select_org_test.go:201: RESP_CODE_PRESENT=1
+    handler_select_org_test.go:202: CODE_EXCHANGE_OID=76d46658-0000-4000-8000-000000000001
+    handler_select_org_test.go:203: REUSE_HTTP=400
+--- PASS: TestSelectOrg_BindsCodeAndIsExchangeable_500 (0.01s)
+=== RUN   TestSelectOrg_RejectsForeignCode_500
+2026/11/23 21:15:17 [DB:INSERT] users id=29641516-2273-416e-bec0-062afacb7c45 email= username=test2446 status=active role=USER is_owner=false
+2026/11/23 21:15:17 [DB:INSERT] user_org_relations id=1b9822f0-05f8-4978-a278-ccb0e768ae58 user_id=29641516-2273-416e-bec0-062afacb7c45 org_id=76d46658-0000-4000-8000-000000000001 role=STAFF is_active=true
+2026/11/23 21:15:17 [DB:INSERT] user_org_relations id=ed3abffe-58fb-4a92-a122-d241efdbae36 user_id=29641516-2273-416e-bec0-062afacb7c45 org_id=a5eb38d4-0000-4000-8000-000000000002 role=STAFF is_active=true
+2026/11/23 21:15:17 [DB:INSERT] users id=fd636b58-7113-4488-b47c-4c0f2d8533e7 email= username=other status=active role=USER is_owner=false
+--- PASS: TestSelectOrg_RejectsForeignCode_500 (0.01s)
+PASS
+ok  	beaconiam/internal/auth	0.027s

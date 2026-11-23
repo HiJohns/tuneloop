@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "issue": "2454",
+  "build": "1.0.74c2800bc",
+  "commit": "74c2800bcaffff428390c21d46234c9f25196b29",
+  "dirty": false,
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2454.sh r1",
+      "artifacts": [
+        "docs/evidence/2454/R1-iam-code-org.txt"
+      ],
+      "assert": "exit 0；grep ROLE=STAFF、FN_ROLES_NONEMPTY=1、OID=76d46658",
+      "actual": "IAM_CALLS=1 OID=76d46658-0000-4000-8000-000000000001 TID=bfce6c6d-0000-4000-8000-000000000001 ROLE=STAFF FN_ROLES_NONEMPTY=1 REFRESH_CTX=ok；exit=0",
+      "expected": "PASS",
+      "negative": "OID=（空）或 ROLE=USER → FAIL",
+      "negative_result": "BEACONIAM_COMMIT=1075fbd731bb913a502beaeb5d61f666d1113350（授权码绑定组织）；若 OID 为空或 ROLE=USER 则 verify r1 直接 FAIL",
+      "exit": 0,
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2454.sh r2",
+      "artifacts": [
+        "docs/evidence/2454/R2-iam-legacy.txt"
+      ],
+      "assert": "exit 0；grep HTTP=400、ERROR=org_not_selected",
+      "actual": "HTTP=400 ERROR=org_not_selected ACCESS_TOKEN_EMPTY=1；exit=0",
+      "expected": "PASS",
+      "negative": "HTTP=200 → FAIL",
+      "negative_result": "legacy 多组织 code 交换返回 400 且响应无 access_token；若 HTTP=200 则 verify r2 FAIL",
+      "exit": 0,
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2454.sh r3",
+      "artifacts": [
+        "docs/evidence/2454/R3-iam-select-org.txt"
+      ],
+      "assert": "exit 0；grep RESP_CODE_PRESENT=1、CODE_EXCHANGE_OID=76d46658",
+      "actual": "RESP_CODE_PRESENT=1 CODE_EXCHANGE_OID=76d46658-0000-4000-8000-000000000001 REUSE_HTTP=400；exit=0",
+      "expected": "PASS",
+      "negative": "RESP_CODE_PRESENT=0 → FAIL",
+      "negative_result": "已使用 code 再调 select-org → 400（不静默复用）；RESP_CODE_PRESENT=0 时 verify r3 FAIL",
+      "exit": 0,
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2454.sh r4",
+      "artifacts": [
+        "docs/evidence/2454/R4-pc-callback-guard.txt"
+      ],
+      "assert": "exit 0；grep CODE=50202、COOKIE_SET=0、H5_HTTP=200",
+      "actual": "PC_HTTP=502 CODE=50202 COOKIE_SET=0 H5_HTTP=200；exit=0",
+      "expected": "PASS",
+      "negative": "PC_HTTP=200 → FAIL",
+      "negative_result": "PC 分支 502/50202 且未写 cookie；H5 分支 200。PC_HTTP=200（接受空上下文）时 verify r4 FAIL",
+      "exit": 0,
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2454.sh r5",
+      "artifacts": [
+        "docs/evidence/2454/R5-pc-callback-ui.txt"
+      ],
+      "assert": "exit 0；grep FAILURE_BRANCH_NO_TOKEN=1、SHOWS_SERVER_MESSAGE=1",
+      "actual": "FAILURE_BRANCH_NO_TOKEN=1 SHOWS_SERVER_MESSAGE=1 EVIDENCE_TYPE=static；exit=0",
+      "expected": "PASS",
+      "negative": "任一 =0 → FAIL",
+      "negative_result": "失败分支（含 50202）不写 token 分支且展示后端 message；任一 =0 → verify r5 FAIL",
+      "exit": 0,
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2454.sh r6",
+      "artifacts": [
+        "docs/evidence/2454/R6-auth-error-copy.txt"
+      ],
+      "assert": "exit 0；grep ORG_CTX_REASON=1、LOGOUT_COPY=1",
+      "actual": "ORG_CTX_REASON=1 LOGOUT_COPY=1 EVIDENCE_TYPE=static；exit=0",
+      "expected": "PASS",
+      "negative": "任一 =0 → FAIL",
+      "negative_result": "api.js 40104 → clearTokens + logout_reason=org_context_missing，LogoutPage 含专属文案；任一 =0 → verify r6 FAIL",
+      "exit": 0,
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2454.sh r7",
+      "artifacts": [
+        "docs/evidence/2454/R7-build.txt"
+      ],
+      "assert": "exit 0；grep TUNELOOP_BUILD=0、BEACONIAM_BUILD=0、PC_BUILD=0",
+      "actual": "TUNELOOP_BUILD=0 BEACONIAM_BUILD=0 PC_BUILD=0；exit=0",
+      "expected": "PASS",
+      "negative": "任一非 0 → FAIL",
+      "negative_result": "任一构建非 0 → verify r7 FAIL",
+      "exit": 0,
+      "pass": true
+    }
+  ]
+}

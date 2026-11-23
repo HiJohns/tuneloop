@@ -1,0 +1,10 @@
+# build=1.0.74c2800bc # commit=74c2800bcaffff428390c21d46234c9f25196b29 # dirty=false
+BEACONIAM_COMMIT=1075fbd731bb913a502beaeb5d61f666d1113350
+TUNELOOP_BUILD=0
+# github.com/mattn/go-sqlite3
+sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
+sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+123133 |   zTail = strrchr(zName, '_');
+       |         ^
+BEACONIAM_BUILD=0
+PC_BUILD=0
