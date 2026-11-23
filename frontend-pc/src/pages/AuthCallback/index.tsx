@@ -40,26 +40,29 @@ const AuthCallback: React.FC = () => {
     })
       .then(response => response.json())
       .then(data => {
-        if (data.code === 20000 && data.data && data.data.access_token) {
-          // Store the token with the correct key that getToken() expects
-          localStorage.setItem('token', data.data.access_token);
-          localStorage.setItem('token_expiry', (Date.now() + (data.data.expires_in || 3600) * 1000).toString());
-          if (data.data.refresh_token) {
-            localStorage.setItem('refresh_token', data.data.refresh_token);
-          }
-          
-          // Redirect to original URL or dashboard
-          if (originalUrl) {
-            sessionStorage.removeItem('original_request_url');
-            window.location.href = originalUrl;
-          } else {
-            window.location.href = '/dashboard';
-          }
-        } else {
-          message.error('认证失败：无法获取访问令牌');
+        // #2454 R5：失败分支（含 50202「登录上下文缺失」）不得落任何 token，
+        // 直接展示后端返回的 message，再重新发起 OAuth（可重选组织）。
+        if (data.code !== 20000 || !data.data || !data.data.access_token) {
+          message.error(data.message || '认证失败：无法获取访问令牌');
           setTimeout(() => {
             window.location.href = getOAuthUrl();
           }, 2000);
+          return;
+        }
+
+        // Store the token with the correct key that getToken() expects
+        localStorage.setItem('token', data.data.access_token);
+        localStorage.setItem('token_expiry', (Date.now() + (data.data.expires_in || 3600) * 1000).toString());
+        if (data.data.refresh_token) {
+          localStorage.setItem('refresh_token', data.data.refresh_token);
+        }
+
+        // Redirect to original URL or dashboard
+        if (originalUrl) {
+          sessionStorage.removeItem('original_request_url');
+          window.location.href = originalUrl;
+        } else {
+          window.location.href = '/dashboard';
         }
       })
       .catch(error => {

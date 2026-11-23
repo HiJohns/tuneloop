@@ -178,3 +178,15 @@ CreateMerchant → CreateUser(CallbackURL)  ← CreateOrg(CallbackURL)
 - **前端提示**：`wx-accounts`/多户选择返回 `reactivatable: true`，可用于「重新激活」提示。
 - **tuneloop 本地缓存**：`users` 以 `iam_sub` 关联，恢复登录后自然续用；JWT 由恢复后的 relation 重新签发（授权走 JWT claims，不依赖本地缓存）。
 - 迁移版本：beaconiam `20260924_mark_deleted_reactivation`。
+
+## 授权码组织上下文与 PC 空上下文拒绝（#2454 / beaconiam#500）
+
+- **授权码携带组织上下文**：`authorization_codes.org_id`（beaconiam 迁移 `20261123_authorization_code_org`）。
+  - 单组织登录（或 namespace 过滤后只剩一个组织）签发 code 时直接绑定该组织；
+  - 多组织登录签发的 code `org_id IS NULL`，用户在 IAM 组织选择页选定后由 `POST /api/v1/auth/select-org`（body `{org_id, code}`）把组织写回该 code，并在响应中回传同一 `code`；
+  - 授权端必须用 **select-org 返回的 code** 交换 token（用登录时的旧 code 会换回未绑定上下文的 token）。
+- **legacy code 显式失败**：多组织账号的未绑定组织 code 交换返回 `400 org_not_selected`，不再静默签发空组织（`oid/tid` 为空、`fn_roles` 为空、零权限）USER token；已使用的 code 不得被 select-org 复用（`400 authorization code already used`）。
+- **tuneloop PC 回调拒绝**（Decision Lock D3）：PC 分支（`client_type` 缺失）遇到空上下文 claims → `502` + `50202` + 「登录上下文缺失（未选择组织），请重新登录」，不写 cookie/localStorage；H5/小程序分支（`client_type ∈ {wx,wechat,mobile}`）不受影响（D4）。
+- **PC 前端**：`/callback` 失败分支不落任何 token 并展示后端 message（2s 后重新发起 OAuth，可重选组织）；`40104` → `clearTokens()` + `logout_reason=org_context_missing` → 登出页提示「登录上下文缺失，请重新登录并选择组织」。
+- **部署顺序**（Ops Follow-up）：beaconiam 先发布（授权码绑定组织），tuneloop 后发布；否则 PC 会稳定收到可诊断的 `50202`（不可登录但不再静默弹回）。
+- 相关：#2457（组织名权威源）、#2455（同商户网点名唯一 + 组织名/网点名可辨识）、#2456（PC idle）。

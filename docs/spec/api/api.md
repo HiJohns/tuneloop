@@ -196,6 +196,14 @@ H5 未捕获 JS 错误（`window.onerror` / `unhandledrejection`）上报，仅�
 
 > **Cookie（#2181）**：回调成功时同时下发会话 cookie——`token`（access，maxAge=`expires_in`，非 HttpOnly，供 JS/上传通道读取）+ `refresh_token`（HttpOnly，30 天）；域按 `Host` 判定（含 `cadenzayueqi.com` → `.cadenzayueqi.com`，含 `linxdeep.com` → `.linxdeep.com`，否则 host-only）。
 
+> **空组织上下文拒绝（#2454 D3）**：PC 分支（`client_type` 缺失）在 code 换回的 token claims 满足
+> `oid=="" && tid=="" && len(fn_roles)==0 && sys_perm==0 && cus_perm==0` 时，回调返回
+> `HTTP 502` + `code=50202` + message `登录上下文缺失（未选择组织），请重新登录`，**不写** auth cookie / 不落 token。
+> 该形状来自「多组织账号未选择组织」的旧 IAM 授权码；H5/小程序分支（`client_type ∈ {wx,wechat,mobile}`）不受影响。
+> 配套：IAM 侧授权码已绑定组织（beaconiam#500），`POST /api/v1/auth/select-org` 携带并返回该 code；legacy 多组织 code 交换返回 `400 org_not_selected`（不再静默签发空上下文 token）。
+> PC 前端收到 `50202` 时展示后端 message 并重新发起 OAuth；受保护接口返回 `40104` 时清 token 并以
+> `logout_reason=org_context_missing` 登出，登出页文案「登录上下文缺失，请重新登录并选择组织」。
+
 ---
 
 ### 2.2 微信小程序登录
