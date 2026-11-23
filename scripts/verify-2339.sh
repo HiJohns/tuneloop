@@ -40,9 +40,14 @@ PROV_COMMIT="$(git rev-parse "${PROV_REF:-b70f96eb3}")" || { echo "FATAL: bad PR
 git merge-base --is-ancestor "$PROV_COMMIT" HEAD || { echo "FATAL: PROV_REF $PROV_COMMIT not ancestor of HEAD" >&2; exit 3; }
 BUILD="1.0.$(git rev-parse --short "$PROV_COMMIT")"
 COMMIT="$PROV_COMMIT"
+# 审计 2026-11-23（Rev.7 D7）：dirty 含 untracked，且不得排除 evidence 目录；
+# 证据用 OUT_DIR 指到树外生成，生成前 git status --porcelain -uall 必须为空。
 DIRTY=false
-if [ -n "$(git status --porcelain --untracked-files=no | grep -v 'docs/evidence/2339/' || true)" ]; then
+if [ -n "$(git status --porcelain -uall)" ]; then
   DIRTY=true
+fi
+if [ -n "${OUT_DIR:-}" ]; then
+  ART="$OUT_DIR/$(basename "$ART")"
 fi
 PROVENANCE="# build=$BUILD commit=$COMMIT dirty=$DIRTY"
 FIX_COMMIT="db76582f4"
