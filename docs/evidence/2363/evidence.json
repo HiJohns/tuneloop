@@ -1,0 +1,82 @@
+{
+ "schema_version": 1,
+ "issue": 2363,
+ "build": "1.0.f7484fee7",
+ "commit": "f7484fee703999f6d75c3d1d20d39add3c1a5eeb",
+ "dirty": false,
+ "environment": "backend handlers targeted tests + full handlers window gate on isolated PG; R2 pending Owner/ops receipt",
+ "plan_sha256": "9ca3ae296665616fbf0f53bae6b23f6914061d1e0d68efd5aeef815e718ef1f1",
+ "rows": [
+  {
+   "id": "R1",
+   "command": "bash scripts/verify-2363-settlement.sh legacy-tags",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2363/R1-legacy-tags.txt"
+   ],
+   "assert": "exit 0；三类标记各 1 行",
+   "expected": "PASS",
+   "negative": "缺标记 → FAIL",
+   "negative_result": "缺标记或金额被回显逻辑改动 → FAIL",
+   "actual": "PASS：三类 legacy_marker（underpaid / policy_unresolved / derived_rent_cash）各 1 行；金额字段不变；无标记不回显原因",
+   "pass": true
+  },
+  {
+   "id": "R2",
+   "command": "bash scripts/verify-2363-settlement.sh scenarios",
+   "exit": 3,
+   "artifacts": [
+    "docs/evidence/2363/R2-scenarios.md"
+   ],
+   "assert": "exit 0；12/12 + 分账户",
+   "expected": "PASS",
+   "negative": "缺场景 → FAIL",
+   "negative_result": "缺场景 → FAIL（PENDING 时 holdon）",
+   "actual": "PENDING：预生产 12 场景需 Owner/ops 真机回执（Developer 无预生产写权限）",
+   "pass": false
+  },
+  {
+   "id": "R3",
+   "command": "bash scripts/verify-2363-settlement.sh receipts",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2363/R3-receipts.txt"
+   ],
+   "assert": "exit 0；分账户合计=净额",
+   "expected": "PASS",
+   "negative": "不等 → FAIL",
+   "negative_result": "合计 ≠ 净额 → FAIL",
+   "actual": "PASS：分账户毛额 500/460 → net 40；收据实际退款 = net + 赠点 = 200",
+   "pass": true
+  },
+  {
+   "id": "R4",
+   "command": "bash scripts/verify-2363-settlement.sh window",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2363/R4-gate.txt"
+   ],
+   "assert": "exit 0；FAIL=0 且差异空",
+   "expected": "PASS",
+   "negative": "新增 FAIL → FAIL",
+   "negative_result": "新增 FAIL → FAIL",
+   "actual": "PASS：全量 handlers 0 FAIL / 0 panic（WINDOW_GATE_EXIT=0）",
+   "pass": true
+  },
+  {
+   "id": "R5",
+   "command": "bash scripts/verify-2363-settlement.sh assertions",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2363/R5-assertions.md",
+    "docs/evidence/2363/R5-assertions.txt"
+   ],
+   "assert": "exit 0；old→new 齐全",
+   "expected": "PASS",
+   "negative": "缺项 → FAIL",
+   "negative_result": "旧断言残留/缺 old→new → FAIL",
+   "actual": "PASS：三文件断言迁移已由 #2424 完成并复核（无 666.67 残留）；本单新增 R1/R3 断言",
+   "pass": true
+  }
+ ]
+}

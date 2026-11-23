@@ -1,0 +1,66 @@
+# build=1.0.f7484fee7 commit=f7484fee703999f6d75c3d1d20d39add3c1a5eeb dirty=false
+[DEBUG] Loaded .env from: ../.env
+2026/11/23 02:52:46 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2363_r1 sslmode=disable
+2026/11/23 02:52:46 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2363_r1
+2026/11/23 02:52:46 [DB] Connected to database 'tuneloop_test_2363_r1'
+=== RUN   TestSettlementLegacyMarkerEcho_2363
+2026/11/23 02:52:46 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2363_r1 sslmode=disable
+2026/11/23 02:52:46 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2363_r1
+2026/11/23 02:52:46 [DB] Connected to database 'tuneloop_test_2363_r1'
+
+2026/11/23 02:52:48 [32m/tmp/opencode/tuneloop/wt-2363/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[673.294ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "gift_policies", "instrument_levels", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+=== RUN   TestSettlementLegacyMarkerEcho_2363/marker=legacy_underpaid
+
+2026/11/23 02:52:48 [31;1m/tmp/opencode/tuneloop/wt-2363/backend/handlers/user_settlement.go:897 [35;1mrecord not found
+[0m[33m[1.322ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '42d89625-1b9a-4b9e-925a-d67b65857a88' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 02:52:48 [31;1m/tmp/opencode/tuneloop/wt-2363/backend/handlers/user_settlement.go:1017 [35;1mrecord not found
+[0m[33m[1.351ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '42d89625-1b9a-4b9e-925a-d67b65857a88' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 02:52:48 [31;1m/tmp/opencode/tuneloop/wt-2363/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.684ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+=== RUN   TestSettlementLegacyMarkerEcho_2363/marker=legacy_policy_unresolved
+
+2026/11/23 02:52:48 [31;1m/tmp/opencode/tuneloop/wt-2363/backend/handlers/user_settlement.go:897 [35;1mrecord not found
+[0m[33m[1.347ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '2ca467f0-03f3-466e-ae9a-6e9d134751af' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 02:52:48 [31;1m/tmp/opencode/tuneloop/wt-2363/backend/handlers/user_settlement.go:1017 [35;1mrecord not found
+[0m[33m[1.354ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '2ca467f0-03f3-466e-ae9a-6e9d134751af' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 02:52:48 [31;1m/tmp/opencode/tuneloop/wt-2363/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.297ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+=== RUN   TestSettlementLegacyMarkerEcho_2363/marker=legacy_derived_rent_cash
+
+2026/11/23 02:52:48 [31;1m/tmp/opencode/tuneloop/wt-2363/backend/handlers/user_settlement.go:897 [35;1mrecord not found
+[0m[33m[1.407ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'b89d9b62-70e2-489d-afea-7fc8347ba45d' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 02:52:48 [31;1m/tmp/opencode/tuneloop/wt-2363/backend/handlers/user_settlement.go:1017 [35;1mrecord not found
+[0m[33m[1.308ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = 'b89d9b62-70e2-489d-afea-7fc8347ba45d' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 02:52:48 [31;1m/tmp/opencode/tuneloop/wt-2363/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.356ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+=== RUN   TestSettlementLegacyMarkerEcho_2363/marker=
+
+2026/11/23 02:52:48 [31;1m/tmp/opencode/tuneloop/wt-2363/backend/handlers/user_settlement.go:657 [35;1mrecord not found
+[0m[33m[1.502ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = '5c907aa5-b978-4c97-82a1-088bea099285' AND legacy_marker <> '' ORDER BY settlement_version DESC, created_at DESC,"settlement_calculations"."id" LIMIT 1
+
+2026/11/23 02:52:48 [31;1m/tmp/opencode/tuneloop/wt-2363/backend/handlers/user_settlement.go:897 [35;1mrecord not found
+[0m[33m[1.337ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '5c907aa5-b978-4c97-82a1-088bea099285' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 02:52:48 [31;1m/tmp/opencode/tuneloop/wt-2363/backend/handlers/user_settlement.go:1017 [35;1mrecord not found
+[0m[33m[1.352ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '5c907aa5-b978-4c97-82a1-088bea099285' ORDER BY "damage_reports"."id" LIMIT 1
+
+2026/11/23 02:52:48 [31;1m/tmp/opencode/tuneloop/wt-2363/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.359ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 02:52:48 [31;1m/tmp/opencode/tuneloop/wt-2363/backend/handlers/user_settlement.go:657 [35;1mrecord not found
+[0m[33m[1.522ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = '5c907aa5-b978-4c97-82a1-088bea099285' AND legacy_marker <> '' ORDER BY settlement_version DESC, created_at DESC,"settlement_calculations"."id" LIMIT 1
+--- PASS: TestSettlementLegacyMarkerEcho_2363 (1.65s)
+    --- PASS: TestSettlementLegacyMarkerEcho_2363/marker=legacy_underpaid (0.10s)
+    --- PASS: TestSettlementLegacyMarkerEcho_2363/marker=legacy_policy_unresolved (0.08s)
+    --- PASS: TestSettlementLegacyMarkerEcho_2363/marker=legacy_derived_rent_cash (0.08s)
+    --- PASS: TestSettlementLegacyMarkerEcho_2363/marker= (0.09s)
+PASS
+ok  	tuneloop-backend/handlers	2.730s
+LEGACY_TAGS_OK
