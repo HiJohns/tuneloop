@@ -287,6 +287,9 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	authRequired.Use(middleware.AuditLogger(auditWriter))
 	authRequired.Use(middleware.RequirePasswordNotForceChange())
 	{
+		// #2456: PC 后台静置活动上报（仅显式用户交互；60s 服务端节流）
+		authRequired.POST("/auth/pc-activity", authHandler.PCActivity)
+
 		// IAM Proxy routes
 		iamProxyHandler := handlers.NewIAMProxyHandler()
 		// #2386: 全体成员聚合视图（只读；权限在 handler 内按业务角色降级/隔离）

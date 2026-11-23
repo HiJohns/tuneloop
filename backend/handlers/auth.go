@@ -132,7 +132,7 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 	if clientType == "" {
 		clientType = postBody.ClientType
 	}
-	if clientType == "wx" || clientType == "wechat" || clientType == "mobile" {
+	if isMobileClientType(clientType) {
 		if wxURI := os.Getenv("EXTERNAL_MOBILE_URL"); wxURI != "" {
 			redirectURI = wxURI + "/callback"
 		}
@@ -150,7 +150,7 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 	iamNs := os.Getenv("IAM_NAMESPACE")
 	appClientID := iamNs + "_web"
 	appSecret := services.GetAppSecret(appClientID)
-	if clientType == "wx" || clientType == "wechat" || clientType == "mobile" {
+	if isMobileClientType(clientType) {
 		appClientID = iamNs + "_wechat"
 		appSecret = services.GetAppSecret(appClientID)
 	}
@@ -214,10 +214,81 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 	// #2181: 统一设置/续期 PC 会话 cookie
 	setAuthCookies(c, tokenResp)
 
+	// #2456: PC 入口登记 idle 会话锚点；H5/小程序（client_type=wx 等）不登记，
+	// 其令牌在 /auth/refresh 中不会命中 pc_sessions，保持既有续期语义（D5）。
+	if !isMobileClientType(clientType) && claims != nil {
+		h.registerPCSession(claims.UserID, tokenResp.RefreshToken)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": tokenResp,
 	})
+}
+
+// isMobileClientType 报告回调/登录是否来自 H5（client_type=wx）或小程序通道。
+// PC 与 H5 共用 /auth/callback，端判定必须以 client_type 为准（D2）。
+func isMobileClientType(clientType string) bool {
+	switch clientType {
+	case "wx", "wechat", "mobile":
+		return true
+	default:
+		return false
+	}
+}
+
+// registerPCSession 登记/续期一条 PC 会话（#2456 D1）。
+// refresh_token 或 iam_sub 缺失时跳过：没有会话键就无法在续期时执行 idle 校验，
+// 不能写入半截记录。DB 失败仅告警，不阻断登录（登录凭证本身已由 IAM 判定）。
+func (h *AuthHandler) registerPCSession(iamSub, refreshToken string) {
+	if h.db == nil || iamSub == "" || refreshToken == "" {
+		return
+	}
+	now := time.Now()
+	refreshHash := services.HashRefreshToken(refreshToken)
+
+	var existing models.PCSession
+	err := h.db.Where("refresh_hash = ?", refreshHash).First(&existing).Error
+	switch {
+	case err == nil:
+		if updateErr := h.db.Model(&models.PCSession{}).Where("id = ?", existing.ID).
+			Updates(map[string]interface{}{
+				"iam_sub":          iamSub,
+				"last_activity_at": now,
+				"revoked_at":       nil,
+				"updated_at":       now,
+			}).Error; updateErr != nil {
+			log.Printf("[Auth] WARN: failed to touch pc_sessions id=%s: %v", existing.ID, updateErr)
+		}
+	case errors.Is(err, gorm.ErrRecordNotFound):
+		row := models.PCSession{
+			IAMSub:         iamSub,
+			RefreshHash:    refreshHash,
+			LastActivityAt: now,
+		}
+		if createErr := h.db.Create(&row).Error; createErr != nil {
+			log.Printf("[Auth] WARN: failed to register pc session sub=%s: %v", iamSub, createErr)
+		}
+	default:
+		log.Printf("[Auth] WARN: failed to look up pc session sub=%s: %v", iamSub, err)
+	}
+}
+
+// findPCSession 按 refresh token 摘要查找 PC 会话；未命中返回 (nil, nil)，
+// 调用方据此区分「非 PC 会话」（放行）与「读取失败」（报错）。
+func (h *AuthHandler) findPCSession(refreshToken string) (*models.PCSession, error) {
+	if h.db == nil || refreshToken == "" {
+		return nil, nil
+	}
+	var row models.PCSession
+	err := h.db.Where("refresh_hash = ?", services.HashRefreshToken(refreshToken)).First(&row).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &row, nil
 }
 
 // setAuthCookies 统一设置/续期 PC 会话 cookie（#2181）。
@@ -288,6 +359,15 @@ func (h *AuthHandler) PostLogin(c *gin.Context) {
 
 	// #2181: 账密登录同样设置会话 cookie（与 OAuth 回调一致）
 	setAuthCookies(c, tokenResp)
+
+	// #2456: 账密登录是 PC 入口 → 登记 idle 会话锚点。
+	// sub 从 IAM 签发的 access_token 解析；解析失败只告警（不阻断登录），
+	// 该登录会话仅退化为「不适用 idle 策略」。
+	if claims, claimErr := h.iamService.ValidateToken(tokenResp.AccessToken); claimErr != nil {
+		log.Printf("[Login] WARN: cannot resolve iam_sub for pc session: %v", claimErr)
+	} else if claims != nil {
+		h.registerPCSession(claims.UserID, tokenResp.RefreshToken)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
@@ -1019,6 +1099,27 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		return
 	}
 
+	// #2456: PC 后台 idle timeout。仅当 refresh token 命中 pc_sessions 行时校验；
+	// H5/小程序令牌没有本表行 → 完全保持既有续期语义（D5）。
+	// 过期必须在调用 IAM 之前拒绝，避免为已静置超时的会话再签发 token。
+	idleTimeout := services.PCSessionIdleTimeout()
+	pcSession, sessionErr := h.findPCSession(req.RefreshToken)
+	if sessionErr != nil {
+		log.Printf("[Auth] failed to read pc session state: %v", sessionErr)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to read session state",
+		})
+		return
+	}
+	if pcSession != nil && idleTimeout > 0 && time.Since(pcSession.LastActivityAt) > idleTimeout {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"code":    40110,
+			"message": "登录已超时，请重新登录",
+		})
+		return
+	}
+
 	tokenResp, err := h.iamService.RefreshToken(req.RefreshToken)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -1028,11 +1129,58 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		return
 	}
 
+	// #2456: 续期成功即视为会话仍活跃，前移 last_activity_at（仅 PC 会话）。
+	if pcSession != nil && idleTimeout > 0 {
+		now := time.Now()
+		if touchErr := h.db.Model(&models.PCSession{}).Where("id = ?", pcSession.ID).
+			Updates(map[string]interface{}{
+				"last_activity_at": now,
+				"updated_at":       now,
+			}).Error; touchErr != nil {
+			log.Printf("[Auth] WARN: failed to touch pc_sessions id=%s: %v", pcSession.ID, touchErr)
+		}
+	}
+
 	// #2181: 续期 cookie，使 cookie 生命周期与 token 同步
 	setAuthCookies(c, tokenResp)
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": tokenResp,
+	})
+}
+
+// PCActivity 记录 PC 前台的用户交互活动（#2456 D3）。
+// 活动信号只来自显式用户交互（前端 60s 节流上报）；后台轮询不计活动，
+// 否则 60s 通知轮询会让 idle 永不触发。服务端再按 60s 节流一次，防止高频写入。
+func (h *AuthHandler) PCActivity(c *gin.Context) {
+	iamSub := middleware.GetUserID(c.Request.Context())
+	if iamSub == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"code":    40104,
+			"message": "authentication required",
+		})
+		return
+	}
+
+	now := time.Now()
+	result := h.db.Model(&models.PCSession{}).
+		Where("iam_sub = ? AND last_activity_at <= ?", iamSub, now.Add(-services.PCActivityTouchThreshold)).
+		Updates(map[string]interface{}{
+			"last_activity_at": now,
+			"updated_at":       now,
+		})
+	if result.Error != nil {
+		log.Printf("[Auth] failed to record pc activity sub=%s: %v", iamSub, result.Error)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to record activity",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{"updated": result.RowsAffected},
 	})
 }

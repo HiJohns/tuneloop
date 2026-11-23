@@ -1518,3 +1518,16 @@ type ReferralCommission struct {
 	BasisCents  Cents     `gorm:"type:bigint;not null;default:0" json:"basis_cents"`
 	CreatedAt   time.Time `json:"created_at"`
 }
+
+// PCSession (#2456): PC 管理后台 idle timeout 的会话锚点。
+// 仅 PC 入口（OAuth 回调 / 账密登录）写入；H5 与小程序不写本表，因此
+// /auth/refresh 仅在 refresh_hash 命中本行时才执行静置超时判定（D5）。
+type PCSession struct {
+	ID             string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	IAMSub         string     `gorm:"type:varchar(255);not null;index:idx_pc_sessions_iam_sub" json:"iam_sub"`
+	RefreshHash    string     `gorm:"type:varchar(64);not null;uniqueIndex:idx_pc_sessions_refresh_hash" json:"refresh_hash"`
+	LastActivityAt time.Time  `gorm:"not null;default:now()" json:"last_activity_at"`
+	RevokedAt      *time.Time `json:"revoked_at,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+}

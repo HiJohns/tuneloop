@@ -1,4 +1,5 @@
 import Logger from '../utils/logger'
+import { isIdleTimeoutPayload } from '../utils/pcSession'
 import { resolveErrorMessage } from './errorMessages'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
@@ -118,6 +119,12 @@ function isTokenExpiringSoon(token) {
   }
 }
 
+// #2456: idle 过期已置位 logout_reason='idle_timeout'，后续通用认证失败分支
+// 不得覆盖该提示（否则用户看到的是「身份验证失败」而不是「登录已超时」）。
+function isIdleLogoutPending() {
+  return localStorage.getItem('logout_reason') === 'idle_timeout'
+}
+
 async function handleAuthError(token, retryCount, endpoint, options) {
   console.log('%c[AUTH DEBUG] handleAuthError called', 'color: orange;', {
     endpoint, retryCount, hasToken: !!token,
@@ -132,6 +139,8 @@ async function handleAuthError(token, retryCount, endpoint, options) {
     } catch (e) {
       console.error('%c[AUTH DEBUG] refreshAccessToken FAILED:', 'color: red;', e.message)
       Logger.warn('AUTH', 'Token refresh failed in handleAuthError:', e.message)
+      // #2456: idle 过期已经跳转并写明原因，这里不得再覆盖 logout_reason。
+      if (isIdleLogoutPending()) return
     }
   }
 
@@ -157,6 +166,17 @@ async function refreshAccessToken() {
   })
   
   if (!response.ok) {
+    // #2456: PC 后台静置超时 —— 后端拒绝续期时返回 code 40110
+    // （message：登录已超时，请重新登录）。必须清空本地会话并回登录页，
+    // 不能落到通用 'Token refresh failed'（否则用户停在半登录态）。
+    const payload = await response.json().catch(() => null)
+    if (isIdleTimeoutPayload(payload)) {
+      Logger.warn('AUTH', 'PC session idle timeout, re-login required')
+      clearTokens()
+      localStorage.setItem('logout_reason', 'idle_timeout')
+      window.location.href = '/logout'
+      throw new Error('Session idle timeout (40110)')
+    }
     throw new Error('Token refresh failed')
   }
   
@@ -167,6 +187,24 @@ async function refreshAccessToken() {
   }
   
   throw new Error('Invalid refresh response')
+}
+
+// #2456: PC 后台活动上报 —— 仅由显式用户交互触发（utils/pcSession.startActivityTracking
+// 已按 60s 节流）；后台轮询不调用本函数，否则 idle 永远不会触发（Accepted Plan D3）。
+export async function reportPCActivity() {
+  const token = getToken()
+  if (!token) return null
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/pc-activity`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!response.ok) return null
+    return await response.json()
+  } catch (e) {
+    Logger.warn('AUTH', 'PC activity report failed:', e.message)
+    return null
+  }
 }
 
 // #2181: 供非 request() 通道（如带进度的 XHR 上传）获取"新鲜" token——
@@ -219,6 +257,8 @@ async function request(endpoint, options = {}, retryCount = 0) {
       token = getToken()
     } catch (e) {
       Logger.warn('AUTH', 'Token refresh failed:', e.message)
+      // #2456: idle 过期已清 token 并跳转，终止本次请求，避免用旧 token 再打一轮。
+      if (isIdleLogoutPending()) return []
     }
 }
   

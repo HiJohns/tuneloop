@@ -6,6 +6,7 @@ const REASONS = {
   'token_invalid': '登录已失效，正在跳转登录页',
   'auth_failed': '身份验证失败，正在跳转登录页',
   'session_expired': '会话已过期，正在跳转登录页',
+  'idle_timeout': '登录已超时，请重新登录',
   'redirect_to_login': '正在跳转登录页',
 }
 
