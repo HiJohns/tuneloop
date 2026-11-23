@@ -1,4 +1,4 @@
-# build=1.0.29da094d4 commit=29da094d489aebfba2c860f061d1dc693b57785d dirty=false
+# build=1.0.29da094d4 commit=29da094d489aebfba2c860f061d1dc693b57785d dirty=false tree=878cd7dcd0b52c12c6d66753a9525bad875bf618
 MIGRATION_UP_OK: backend/database/migrations/20261117001_settlement_supersedes_2361.up.sql
 MIGRATION_DOWN_OK: backend/database/migrations/20261117001_settlement_supersedes_2361.down.sql
 MODEL_OK: SettlementCalculation.Supersedes
@@ -11,7 +11,7 @@ sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier f
        |         ^
 [DEBUG] Loaded .env from: ../.env
 === RUN   TestSettlementSupersedesMigration_2361
---- PASS: TestSettlementSupersedesMigration_2361 (0.16s)
+--- PASS: TestSettlementSupersedesMigration_2361 (0.19s)
 PASS
-ok  	tuneloop-backend/services	0.182s
+ok  	tuneloop-backend/services	0.218s
 SCHEMA_OK: 迁移 + 模型 + 工件登记三处齐全，up/down 可执行
