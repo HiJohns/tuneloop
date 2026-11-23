@@ -28,7 +28,9 @@ export TUNELOOP_DB_SIMPLE_PROTOCOL=1
 HEAD_SHA="$(git rev-parse HEAD)"
 HEAD_SHORT="$(git rev-parse --short HEAD)"
 DIRTY=false
-if [ -n "$(git status --porcelain)" ]; then DIRTY=true; fi
+# 只统计已被跟踪文件的修改：docs/evidence/<N> 产物在生成阶段仍是未跟踪文件，
+# 不该把 evidence 自身计为 dirty（否则计划要求的 dirty=false 永远无法满足）。
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then DIRTY=true; fi
 PROVENANCE="# build=1.0.$HEAD_SHORT # commit=$HEAD_SHA # dirty=$DIRTY"
 
 BEACONIAM_COMMIT=""
