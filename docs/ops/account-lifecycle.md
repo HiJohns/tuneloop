@@ -118,10 +118,10 @@ sequenceDiagram
 
 | 端 | 会话事实源 | 续期语义 |
 |----|-----------|---------|
-| PC（OAuth 回调无 `client_type`、`/auth/login`） | 本地 `pc_sessions`（`iam_sub` + `refresh_hash` + `last_activity_at`） | `/auth/refresh` 校验静置时长，超时返回 HTTP 401 `code 40110`，不再向 IAM 续期 |
-| H5（`client_type=wx`）/ 小程序（`/auth/wx-login`） | 无 `pc_sessions` 行 | 保持既有 7 天 refresh 语义，不套用 idle |
+| PC（**仅** OAuth 回调，`client_type` 非 wx/wechat/mobile） | 本地 `pc_sessions`（`iam_sub` + `refresh_hash` + `last_activity_at TIMESTAMPTZ`） | `/auth/refresh` 校验静置时长，超时返回 HTTP 401 `code 40110`，不再向 IAM 续期；**续期不前移活动时间** |
+| H5（`client_type=wx`）/ 小程序（`/auth/wx-login`、`/auth/login` 账密登录） | 无 `pc_sessions` 行 | 保持既有 7 天 refresh 语义，不套用 idle |
 
-- **活动信号**：只有显式用户交互（`POST /auth/pc-activity`，前端 60s 节流 + 服务端 60s 节流）。后台轮询/定时请求不计活动，否则 idle 永不触发。
+- **活动信号**：只有显式用户交互（`POST /auth/pc-activity`，前端 60s 节流 + 服务端 60s 节流）。后台轮询/定时请求不计活动，**续期本身也不前移活动时间**，否则 60s 轮询会把会话永久保活。
 - **配置**：`PC_IDLE_TIMEOUT_MINUTES` 默认 60；`0` 禁用；负数/非法回落 60；上限 1440（超出截断）。会话策略属部署配置，不设后台配置页。
 - **既有令牌（部署前签发、无 `pc_sessions` 行）**：不做追溯拒绝，下次登录起生效。
 - **前端行为**：收到 `40110` → 清空本地 token + `logout_reason=idle_timeout` → `/logout` 提示「登录已超时，请重新登录」。

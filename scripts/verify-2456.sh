@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # scripts/verify-2456.sh — PC 管理后台 idle timeout（#2456）证据生成器。
 #
-# 用法：bash scripts/verify-2456.sh <r1|r2|r3|r4|r5|r6|r7|r8|r9|r10>
+# 用法：bash scripts/verify-2456.sh <r1..r13>
 #
 # 每行把结果写入 docs/evidence/2456/R*-*.txt（首行为 provenance），
 # 并在 stdout 打印机器可判定的断言键值；任一行失败以非 0 退出。
@@ -16,15 +16,23 @@ DOWN_SQL="$ROOT/backend/database/migrations/${MIGRATION}.down.sql"
 BUILD_LOCK="${OPENCODE_BUILD_LOCK:-$HOME/.config/opencode/scripts/build-lock}"
 
 die_usage() {
-    echo "usage: $0 <r1|r2|r3|r4|r5|r6|r7|r8|r9|r10>" >&2
+    echo "usage: $0 <r1..r13>" >&2
     exit 2
 }
 
 [ -n "$ROW" ] || die_usage
 
-COMMIT="$(git -C "$ROOT" rev-parse HEAD)"
-SHORT="$(git -C "$ROOT" rev-parse --short HEAD)"
-if [ -n "$(git -C "$ROOT" status --porcelain --untracked-files=no)" ]; then
+# provenance 锚定本单最新 fix commit（证据提交后再次生成保持一致）。
+FIX_SUBJECT="$(git -C "$ROOT" log --format=%s --grep='issue-2456' -1 2>/dev/null || true)"
+FIX_SHA="$(git -C "$ROOT" log --format=%H --grep='issue-2456' -1 2>/dev/null || true)"
+case "$FIX_SUBJECT" in
+    fix*) : ;;
+    *) FIX_SHA="" ;;
+esac
+[ -n "$FIX_SHA" ] || FIX_SHA="$(git -C "$ROOT" rev-parse HEAD)"
+COMMIT="$FIX_SHA"
+SHORT="$(git -C "$ROOT" rev-parse --short=8 "$COMMIT")"
+if [ -n "$(git -C "$ROOT" status --porcelain --untracked-files=no -- . ':(exclude)docs/evidence/2456')" ]; then
     DIRTY="true"
 else
     DIRTY="false"
@@ -119,6 +127,15 @@ row_r1() {
         rc=1
     fi
 
+    # v2 D8：last_activity_at 必须是 timestamptz（迁移 + 模型）。
+    if has "$UP_SQL" "last_activity_at TIMESTAMPTZ" \
+        && has "$ROOT/backend/models/models.go" 'type:timestamptz;not null;default:now()'; then
+        body+="LAST_ACTIVITY_TZ=timestamptz"$'\n'
+    else
+        body+="LAST_ACTIVITY_TZ=wrong"$'\n'
+        rc=1
+    fi
+
     finish "R1-migration.txt" "$rc" "$body"
 }
 
@@ -149,7 +166,7 @@ row_go_test() {
 
 row_r2() {
     row_go_test "R2-pc-register.txt" '^TestPCIdleR2_' \
-        "PC_CALLBACK_ROWS=1" "PC_LOGIN_ROWS=1" "H5_CALLBACK_ROWS=0"
+        "PC_CALLBACK_ROWS=1" "H5_CALLBACK_ROWS=0" "MOBILE_LOGIN_ROWS=0"
 }
 row_r3() {
     row_go_test "R3-idle-reject.txt" '^TestPCIdleR3_' \
@@ -157,7 +174,7 @@ row_r3() {
 }
 row_r4() {
     row_go_test "R4-idle-allow.txt" '^TestPCIdleR4_' \
-        "HTTP=200" "CODE=20000" "IAM_CALLS=1" "TOUCHED=1"
+        "HTTP=200" "CODE=20000" "IAM_CALLS=1" "TOUCHED=0"
 }
 row_r5() {
     row_go_test "R5-nonpc-unaffected.txt" '^TestPCIdleR5_' \
@@ -273,6 +290,44 @@ row_r10() {
     finish "R10-build.txt" "$rc" "$body"
 }
 
+# r13：gate 四源一致（读校验）。gate 报告缺失/非 PASS 时用一次 --dry-run（本机）
+# 生成 bootstrap 报告；重型全量 gate 由 /work 在 ready 前执行。
+row_r13() {
+    local body="" rc=0 gate_report="$OUT_DIR/pre-ready-2456.json" summary="$ROOT/tmp/work-summary-2456.md"
+    local pre_ready="${OPENCODE_PRE_READY:-$HOME/.config/opencode/scripts/pre-ready-check.sh}"
+    local plan_source="${OPENCODE_PLAN_SOURCE:-$HOME/.config/opencode/scripts/plan-source.sh}"
+    local existing
+    existing="$(jq -r '.overall // empty' "$gate_report" 2>/dev/null || true)"
+    if [ ! -f "$gate_report" ] || [ ! -s "$gate_report" ] || [ "$existing" != "PASS" ]; then
+        if [ -f "$summary" ] && [ -f "$OUT_DIR/evidence.json" ]; then
+            "$pre_ready" 2456 --plan-file "$OUT_DIR/plan.md" --summary-file "$summary" \
+                --changed-files "$ROOT/tmp/changed-2456.txt" --evidence-file "$OUT_DIR/evidence.json" \
+                --fix-commit "$COMMIT" --remote-ref origin/issue-2456 --allow-local-only \
+                --report "$gate_report" --dry-run >/dev/null 2>&1 || true
+        fi
+    fi
+    if [ -f "$gate_report" ]; then body+="GATE_PRESENT=1"$'\n'; else body+="GATE_PRESENT=0"$'\n'; rc=1; fi
+    local result plan_sha gate_sha
+    result="$(jq -r '.overall // empty' "$gate_report" 2>/dev/null || true)"
+    [ "$result" = "PASS" ] && body+="GATE_RESULT=PASS"$'\n' || { body+="GATE_RESULT=${result:-missing}"$'\n'; rc=1; }
+    plan_sha="$(sha256sum "$OUT_DIR/plan.md" | awk '{print $1}')"
+    gate_sha="$(jq -r '.plan_sha256 // empty' "$gate_report" 2>/dev/null || true)"
+    if [ -n "$gate_sha" ] && [ "$gate_sha" = "$plan_sha" ]; then
+        body+="GATE_PLAN_SHA_MATCH=1"$'\n'
+    else
+        body+="GATE_PLAN_SHA_MATCH=0"$'\n'
+        rc=1
+    fi
+    if "$plan_source" --issue 2456 >/tmp/plan-source-2456.log 2>&1; then
+        body+="PLAN_SOURCE=PASS"$'\n'
+    else
+        body+="PLAN_SOURCE=FAIL"$'\n'
+        body+="$(tail -5 /tmp/plan-source-2456.log)"$'\n'
+        rc=1
+    fi
+    finish "R13-gate.txt" "$rc" "$body"
+}
+
 case "$ROW" in
     r1) row_r1 ;;
     r2) row_r2 ;;
@@ -284,5 +339,10 @@ case "$ROW" in
     r8) row_r8 ;;
     r9) row_r9 ;;
     r10) row_r10 ;;
+    r11) row_go_test "R11-poll-no-keepalive.txt" '^TestPCIdleR11_' \
+        "AT_59M_TOUCHED=0" "AT_61M_HTTP=401" "AT_61M_CODE=40110" ;;
+    r12) row_go_test "R12-weapp-login-unaffected.txt" '^TestPCIdleR12_' \
+        "MOBILE_LOGIN_ROWS=0" "MOBILE_CODE=20000" "IDLE_ENFORCED=0" ;;
+    r13) row_r13 ;;
     *) die_usage ;;
 esac

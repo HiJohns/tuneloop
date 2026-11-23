@@ -1526,7 +1526,7 @@ type PCSession struct {
 	ID             string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	IAMSub         string     `gorm:"type:varchar(255);not null;index:idx_pc_sessions_iam_sub" json:"iam_sub"`
 	RefreshHash    string     `gorm:"type:varchar(64);not null;uniqueIndex:idx_pc_sessions_refresh_hash" json:"refresh_hash"`
-	LastActivityAt time.Time  `gorm:"not null;default:now()" json:"last_activity_at"`
+	LastActivityAt time.Time  `gorm:"type:timestamptz;not null;default:now()" json:"last_activity_at"`
 	RevokedAt      *time.Time `json:"revoked_at,omitempty"`
 	CreatedAt      time.Time  `json:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at"`

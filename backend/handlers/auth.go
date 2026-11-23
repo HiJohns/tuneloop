@@ -360,14 +360,9 @@ func (h *AuthHandler) PostLogin(c *gin.Context) {
 	// #2181: 账密登录同样设置会话 cookie（与 OAuth 回调一致）
 	setAuthCookies(c, tokenResp)
 
-	// #2456: 账密登录是 PC 入口 → 登记 idle 会话锚点。
-	// sub 从 IAM 签发的 access_token 解析；解析失败只告警（不阻断登录），
-	// 该登录会话仅退化为「不适用 idle 策略」。
-	if claims, claimErr := h.iamService.ValidateToken(tokenResp.AccessToken); claimErr != nil {
-		log.Printf("[Login] WARN: cannot resolve iam_sub for pc session: %v", claimErr)
-	} else if claims != nil {
-		h.registerPCSession(claims.UserID, tokenResp.RefreshToken)
-	}
+	// #2456 v2 D2: 账密登录**不是** PC 入口——`/auth/login` 的唯一调用方是小程序
+	// （pages-weapp/login、account-select）。若在此登记 pc_sessions，小程序令牌会被
+	// 静默套上 1h idle 策略（审计 Finding 1）。PC 会话只在 OAuth 回调登记。
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
@@ -1129,17 +1124,9 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		return
 	}
 
-	// #2456: 续期成功即视为会话仍活跃，前移 last_activity_at（仅 PC 会话）。
-	if pcSession != nil && idleTimeout > 0 {
-		now := time.Now()
-		if touchErr := h.db.Model(&models.PCSession{}).Where("id = ?", pcSession.ID).
-			Updates(map[string]interface{}{
-				"last_activity_at": now,
-				"updated_at":       now,
-			}).Error; touchErr != nil {
-			log.Printf("[Auth] WARN: failed to touch pc_sessions id=%s: %v", pcSession.ID, touchErr)
-		}
-	}
+	// #2456 v2 D3: 续期**不前移** last_activity_at——活动只由 POST /auth/pc-activity 记录。
+	// 否则 PC 的 60s 后台轮询（通知中心滑窗续期）会把会话永久保活，idle 永不触发
+	// （审计 Finding 2）。
 
 	// #2181: 续期 cookie，使 cookie 生命周期与 token 同步
 	setAuthCookies(c, tokenResp)

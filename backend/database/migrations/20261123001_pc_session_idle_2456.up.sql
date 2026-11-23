@@ -11,10 +11,10 @@ CREATE TABLE IF NOT EXISTS pc_sessions (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     iam_sub          VARCHAR(255) NOT NULL,
     refresh_hash     VARCHAR(64) NOT NULL,
-    last_activity_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    revoked_at       TIMESTAMP,
-    created_at       TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at       TIMESTAMP NOT NULL DEFAULT NOW()
+    last_activity_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    revoked_at       TIMESTAMPTZ,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_pc_sessions_refresh_hash ON pc_sessions(refresh_hash);

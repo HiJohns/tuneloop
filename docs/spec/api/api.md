@@ -469,7 +469,8 @@ Body：`{ role: "<主角色>", roles: ["<角色>", ...] }`（`roles` 可选；�
 
 > **Cookie（#2181）**：刷新成功同样**续期** `token` / `refresh_token` cookie（与 §2.1 回调一致），使 cookie 生命周期与 token 同步——修复旧实现下 cookie 到期后依赖 cookie 的请求（如上传）恒 401 的问题。
 
-**PC 静置超时（#2456）**：只有 PC 入口（OAuth 回调 `/api/auth/callback` 无 `client_type`、账密登录 `/api/auth/login`）写入 `pc_sessions`（`refresh_hash = sha256(refresh_token)`、`last_activity_at`）。`/api/auth/refresh` 若命中本表行且 `now - last_activity_at > PC_IDLE_TIMEOUT_MINUTES`（默认 60，`0` 禁用），**在调用 IAM 之前**拒绝续期：
+**PC 静置超时（#2456）**：**只有 PC OAuth 回调**（`/api/auth/callback`，`client_type` 非 `wx`/`wechat`/`mobile`）写入 `pc_sessions`（`refresh_hash = sha256(refresh_token)`、`last_activity_at TIMESTAMPTZ`）。
+账密登录 `/api/auth/login`（唯一调用方是小程序）与 H5/小程序通道**均不登记**。`/api/auth/refresh` 若命中本表行且 `now - last_activity_at > PC_IDLE_TIMEOUT_MINUTES`（默认 60，`0` 禁用），**在调用 IAM 之前**拒绝续期：
 
 ```json
 { "code": 40110, "message": "登录已超时，请重新登录" }
@@ -491,6 +492,7 @@ HTTP 401。H5（`client_type=wx`）与小程序 `/api/auth/wx-login` 令牌没�
 ```
 
 - 只在前台**显式用户交互**时上报（PC 前端 `utils/pcSession.startActivityTracking` 按 60s 节流）；后台轮询不计活动，否则 idle 永不触发。
+- **续期不前移活动时间**：`POST /api/auth/refresh` 成功不会 touch `last_activity_at`；只有本接口能前移（否则 60s 轮询续期会把会话永久保活）。
 - 服务端再按 60s 节流：仅当该 `iam_sub` 的 `last_activity_at <= now-60s` 时写入；只更新调用者自己的会话。
 - 无 token → HTTP 401（`code 40104`）。
 

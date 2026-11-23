@@ -102,8 +102,8 @@ func newPCIdleFakeIAM(t *testing.T, refreshCalls *int) *httptest.Server {
 	return httptest.NewServer(mux)
 }
 
-// R2: 仅 PC 入口（OAuth 回调无 client_type / 账密登录）写 pc_sessions；
-// H5 回调（client_type=wx）不写。
+// R2（v2 D2）: **仅** PC OAuth 回调（client_type 非 wx/wechat/mobile）写 pc_sessions；
+// H5 回调（client_type=wx）与账密登录（/auth/login，唯一调用方是小程序）都不写。
 func TestPCIdleR2_RegistrationOnlyForPCEntrypoints(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
@@ -147,8 +147,8 @@ func TestPCIdleR2_RegistrationOnlyForPCEntrypoints(t *testing.T) {
 	router.ServeHTTP(login, loginReq)
 	require.Equal(t, http.StatusOK, login.Code)
 	loginRows := countPCSessionsByRefresh(t, db, "rt-login")
-	t.Logf("PC_LOGIN_ROWS=%d", loginRows)
-	require.Equal(t, int64(1), loginRows, "password login must register exactly one pc session")
+	t.Logf("MOBILE_LOGIN_ROWS=%d", loginRows)
+	require.Equal(t, int64(0), loginRows, "账密登录（小程序）不得登记 pc_sessions（v2 D2）")
 }
 
 // R2 负例：客户端类型判定必须把 H5/小程序判为移动端（否则会被误当 PC 登记 idle 会话，
@@ -247,8 +247,9 @@ func TestPCIdleR4_ActiveSessionRefreshes(t *testing.T) {
 
 	var after models.PCSession
 	require.NoError(t, db.Where("id = ?", seeded.ID).First(&after).Error)
+	// v2 D3: 续期不得前移活动时间（活动只由 /auth/pc-activity 记录）。
 	touched := 0
-	if after.LastActivityAt.After(seeded.LastActivityAt.Add(1 * time.Minute)) {
+	if after.LastActivityAt.After(seeded.LastActivityAt.Add(1 * time.Second)) {
 		touched = 1
 	}
 
@@ -259,7 +260,7 @@ func TestPCIdleR4_ActiveSessionRefreshes(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code)
 	require.Equal(t, 20000, code)
 	require.Equal(t, 1, refreshCalls)
-	require.Equal(t, 1, touched, "successful refresh must advance last_activity_at")
+	require.Equal(t, 0, touched, "续期不得前移 last_activity_at（v2 D3）")
 }
 
 // R5: 非 PC 会话（无 pc_sessions 行，模拟 H5/小程序令牌）不受 idle 策略影响。
@@ -387,4 +388,94 @@ func TestPCIdleR7_ConfigDrivenThreshold(t *testing.T) {
 	t.Logf("ZERO_DISABLED=%d", disabled)
 	require.Equal(t, 1, rejected)
 	require.Equal(t, 1, disabled)
+}
+
+// R11（v2 D3）：后台轮询触发的滑窗续期不得保活会话。
+// 59 分钟：续期成功但活动时间不变；61 分钟：拒绝续期（轮询无法续命）。
+func TestPCIdleR11_PollRefreshNoKeepalive(t *testing.T) {
+	cleanup := setupMockIAMAndDB(t)
+	defer cleanup()
+	db := database.GetDB()
+	ensurePCSessionsTable(t, db)
+	t.Setenv("PC_IDLE_TIMEOUT_MINUTES", "60")
+
+	refreshCalls := 0
+	iamServer := newPCIdleFakeIAM(t, &refreshCalls)
+	defer iamServer.Close()
+	services.SetIAMInternalURLForTesting(iamServer.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
+
+	seed59 := seedPCSession(t, db, pcIdleTestSub, "rt-59", time.Now().Add(-59*time.Minute))
+	seed61 := seedPCSession(t, db, pcIdleOtherSub, "rt-61", time.Now().Add(-61*time.Minute))
+
+	router := refreshRouter(t, db)
+
+	w59 := postRefresh(t, router, "rt-59")
+	code59 := decodeCode(t, w59)
+	var after59 models.PCSession
+	require.NoError(t, db.Where("id = ?", seed59.ID).First(&after59).Error)
+	touched := 0
+	if after59.LastActivityAt.After(seed59.LastActivityAt.Add(1 * time.Second)) {
+		touched = 1
+	}
+
+	w61 := postRefresh(t, router, "rt-61")
+	code61 := decodeCode(t, w61)
+
+	t.Logf("AT_59M_HTTP=%d", w59.Code)
+	t.Logf("AT_59M_TOUCHED=%d", touched)
+	t.Logf("AT_61M_HTTP=%d", w61.Code)
+	t.Logf("AT_61M_CODE=%d", code61)
+
+	require.Equal(t, http.StatusOK, w59.Code)
+	require.Equal(t, 20000, code59)
+	require.Equal(t, 0, touched, "轮询续期不得前移活动时间")
+	require.Equal(t, http.StatusUnauthorized, w61.Code, "61 分钟静置的会话必须被拒绝")
+	require.Equal(t, 40110, code61)
+	_ = seed61
+}
+
+// R12（v2 D2/D5）：小程序账密登录不登记 pc_sessions，其 refresh 永不套用 idle。
+func TestPCIdleR12_WeappLoginUnaffected(t *testing.T) {
+	cleanup := setupMockIAMAndDB(t)
+	defer cleanup()
+	db := database.GetDB()
+	ensurePCSessionsTable(t, db)
+	t.Setenv("PC_IDLE_TIMEOUT_MINUTES", "60")
+
+	refreshCalls := 0
+	iamServer := newPCIdleFakeIAM(t, &refreshCalls)
+	defer iamServer.Close()
+	services.SetIAMInternalURLForTesting(iamServer.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
+
+	handler := NewAuthHandler(db)
+	loginRouter := gin.New()
+	loginRouter.POST("/api/auth/login", handler.PostLogin)
+
+	login := httptest.NewRecorder()
+	loginReq := httptest.NewRequest("POST", "/api/auth/login", strings.NewReader(`{"identifier":"wx@example.com","password":"secret"}`))
+	loginReq.Header.Set("Content-Type", "application/json")
+	loginRouter.ServeHTTP(login, loginReq)
+	require.Equal(t, http.StatusOK, login.Code)
+
+	loginRows := countPCSessionsByRefresh(t, db, "rt-login")
+	enforced := 0
+	if loginRows > 0 {
+		enforced = 1
+	}
+
+	// 小程序随后续期：无 pc_sessions 行 → 放行。
+	w := postRefresh(t, refreshRouter(t, db), "rt-login")
+	code := decodeCode(t, w)
+
+	t.Logf("MOBILE_LOGIN_ROWS=%d", loginRows)
+	t.Logf("MOBILE_REFRESH_HTTP=%d", w.Code)
+	t.Logf("MOBILE_CODE=%d", code)
+	t.Logf("IDLE_ENFORCED=%d", enforced)
+
+	require.Equal(t, int64(0), loginRows, "小程序账密登录不得登记 pc_sessions")
+	require.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, 20000, code)
+	require.Equal(t, 0, enforced)
 }
