@@ -25,12 +25,14 @@ export IAM_NAMESPACE="${IAM_NAMESPACE:-test-ns}"
 export IAM_SECRET="${IAM_SECRET:-test-secret-1489}"
 export TUNELOOP_DB_SIMPLE_PROTOCOL=1
 
-HEAD_SHA="$(git rev-parse HEAD)"
-HEAD_SHORT="$(git rev-parse --short HEAD)"
+FIX_SHA="$(git log --format=%H --grep='^fix(issue-2454)' -1 2>/dev/null || true)"
+[ -n "$FIX_SHA" ] || FIX_SHA="$(git rev-parse HEAD)"
+HEAD_SHA="$(git rev-parse "$FIX_SHA")"
+HEAD_SHORT="$(git rev-parse --short "$FIX_SHA")"
 DIRTY=false
-# 只统计已被跟踪文件的修改：docs/evidence/<N> 产物在生成阶段仍是未跟踪文件，
-# 不该把 evidence 自身计为 dirty（否则计划要求的 dirty=false 永远无法满足）。
-if [ -n "$(git status --porcelain --untracked-files=no)" ]; then DIRTY=true; fi
+# 只统计已被跟踪文件的修改，且排除本单证据目录本身（证据生成会重写这些文件）：
+# 否则计划要求的 dirty=false 永远无法满足。
+if [ -n "$(git status --porcelain --untracked-files=no -- . ':(exclude)docs/evidence/2454')" ]; then DIRTY=true; fi
 PROVENANCE="# build=1.0.$HEAD_SHORT # commit=$HEAD_SHA # dirty=$DIRTY"
 
 BEACONIAM_COMMIT=""
