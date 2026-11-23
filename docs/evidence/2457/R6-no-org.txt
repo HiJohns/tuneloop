@@ -1,0 +1,19 @@
+# build=1.0.a96848040 commit=a96848040e330db0211df1dd72385b941122d833 dirty=true
+[DEBUG] Loaded .env from: ../.env
+2026/11/23 20:08:10 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2457_r6 sslmode=disable
+2026/11/23 20:08:10 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2457_r6
+2026/11/23 20:08:10 [DB] Connected to database 'tuneloop_test_2457_r6'
+=== RUN   TestUpdateSite_LegacySiteWithoutOrgSkipsIAM_2457
+2026/11/23 20:08:10 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2457_r6 sslmode=disable
+2026/11/23 20:08:10 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2457_r6
+2026/11/23 20:08:10 [DB] Connected to database 'tuneloop_test_2457_r6'
+
+2026/11/23 20:08:11 [32m/home/coder/worktrees/tuneloop/wt-2457/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[605.674ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "gift_policies", "instrument_levels", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+    site_update_iam_2457_test.go:271: IAM_SKIPPED=1
+    site_update_iam_2457_test.go:272: CODE=20000
+    site_update_iam_2457_test.go:273: LOG_SNIPPET=2026/11/23 20:08:11 [TenantScope][observe] auto-scope injected for table=sites (add explicit scope, then set ExplicitTenantScopeOnly)
+        2026/11/23 20:08:11 [UpdateSite] WARN site without org_id id=7cb5b741-187e-4d98-94b8-486f68ec5640; skipping IAM organization rename
+--- PASS: TestUpdateSite_LegacySiteWithoutOrgSkipsIAM_2457 (1.12s)
+PASS
+ok  	tuneloop-backend/handlers	1.841s

@@ -1,0 +1,21 @@
+# build=1.0.a96848040 commit=a96848040e330db0211df1dd72385b941122d833 dirty=true
+--- report ---
+MISMATCH=2
+ALIGNED=1
+SKIPPED=0
+ACTION=align-local-to-iam site=0a0fb375-0000-4000-8000-000000000001 local=卡丹萨乐器 iam=海淀店
+ACTION=align-local-to-iam site=96c2ec80-0000-4000-8000-000000000002 local=卡丹萨乐器 iam=卡丹萨西铁营
+ACTION=none site=9ab58685-0000-4000-8000-000000000003 name=北京中转站
+ALIGN_ROWS=2
+UNAUTHORIZED_APPLY_EXIT=2
+DB_WRITES=0
+--- authorised apply ---
+MISMATCH=2
+ALIGNED=1
+SKIPPED=0
+ACTION=align-local-to-iam site=0a0fb375-0000-4000-8000-000000000001 local=卡丹萨乐器 iam=海淀店
+ACTION=align-local-to-iam site=96c2ec80-0000-4000-8000-000000000002 local=卡丹萨乐器 iam=卡丹萨西铁营
+ACTION=none site=9ab58685-0000-4000-8000-000000000003 name=北京中转站
+DB_WRITES=2
+AUTHORIZED_DB_WRITES=2
+RESULT: PASS

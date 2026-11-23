@@ -1,0 +1,19 @@
+# build=1.0.a96848040 commit=a96848040e330db0211df1dd72385b941122d833 dirty=true
+[DEBUG] Loaded .env from: ../.env
+2026/11/23 20:08:01 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2457_r5 sslmode=disable
+2026/11/23 20:08:01 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2457_r5
+2026/11/23 20:08:01 [DB] Connected to database 'tuneloop_test_2457_r5'
+=== RUN   TestUpdateSite_NoopRenameSkipsIAM_2457
+2026/11/23 20:08:01 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2457_r5 sslmode=disable
+2026/11/23 20:08:01 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2457_r5
+2026/11/23 20:08:01 [DB] Connected to database 'tuneloop_test_2457_r5'
+
+2026/11/23 20:08:02 [32m/home/coder/worktrees/tuneloop/wt-2457/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[517.579ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "gift_policies", "instrument_levels", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/23 20:08:02 [TenantScope][observe] auto-scope injected for table=sites (add explicit scope, then set ExplicitTenantScopeOnly)
+    site_update_iam_2457_test.go:240: IAM_CALLS=0
+    site_update_iam_2457_test.go:241: DB_ADDRESS=新地址
+    site_update_iam_2457_test.go:242: CODE=20000
+--- PASS: TestUpdateSite_NoopRenameSkipsIAM_2457 (1.08s)
+PASS
+ok  	tuneloop-backend/handlers	1.858s
