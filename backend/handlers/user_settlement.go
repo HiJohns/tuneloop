@@ -1691,8 +1691,10 @@ func buildRefundReceipt(db *gorm.DB, order models.Order, s *settlementResult) st
 	if s.GiftPointsRefunded > 0 {
 		sb.WriteString(fmt.Sprintf("退回赠点：%.0f 点\n", s.GiftPointsRefunded))
 	}
-	sb.WriteString(fmt.Sprintf("退回微信：¥%.2f\n", s.CashRefundable))
-	sb.WriteString(fmt.Sprintf("实际退款合计：¥%.2f\n", s.CashRefundable+s.GiftPointsRefunded))
+	// #2453 D1：用户面实际退款/合计必须用执行净额（毛额可能含未抵消的补缴）。
+	netRefund := math.Max(0, s.NetCash)
+	sb.WriteString(fmt.Sprintf("退回微信：¥%.2f\n", netRefund))
+	sb.WriteString(fmt.Sprintf("实际退款合计：¥%.2f\n", netRefund+s.GiftPointsRefunded))
 	sb.WriteString("返点赠点到账：详见会员中心\n")
 	// #1747 L-04 流程 5：三路径通知统一含感谢语
 	sb.WriteString("感谢您的租赁，欢迎再次光临！")
@@ -1708,7 +1710,9 @@ func buildRefundActionData(db *gorm.DB, order models.Order, s *settlementResult)
 		"membership": true,
 	}
 	if s != nil {
-		ad["refund_cents"] = int64(models.FromYuan(s.CashRefundable))
+		// #2453 D2：退款/补缴金额一律取执行净额；毛额仅用于分账户展示。
+		ad["refund_cents"] = int64(models.FromYuan(math.Max(0, s.NetCash)))
+		ad["shortfall_cents"] = int64(models.FromYuan(math.Max(0, -s.NetCash)))
 		ad["gift_refund_cents"] = int64(models.FromYuan(s.GiftPointsRefunded))
 	}
 	ad["payments"] = buildPaymentRecordsJSON(db, order.ID)
@@ -1782,7 +1786,8 @@ func buildShortfallBreakdownText(order models.Order, s *settlementResult) string
 	}
 	sb.WriteString(fmt.Sprintf("应付合计：¥%.2f\n", s.RentPayable+s.OverdueChargesTotal+s.DamageDeducted+order.ShippingFee.ToYuan()))
 	sb.WriteString(fmt.Sprintf("已付总额：¥%.2f\n", (order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed).ToYuan()))
-	sb.WriteString(fmt.Sprintf("需补缴：¥%.2f", s.PayableShortfall))
+	// #2453 D1：补缴结论用执行净额（毛额会高估实际应补）。
+	sb.WriteString(fmt.Sprintf("需补缴：¥%.2f", math.Max(0, -s.NetCash)))
 	return sb.String()
 }
 

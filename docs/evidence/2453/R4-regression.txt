@@ -1,0 +1,88 @@
+# build=1.0.199cfb9ef commit=199cfb9efbd0ab50bf4a909e1a48c84ac6ec2414 dirty=false
+[DEBUG] Loaded .env from: ../.env
+2026/11/23 01:46:32 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2453_r4 sslmode=disable
+2026/11/23 01:46:32 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2453_r4
+2026/11/23 01:46:32 [DB] Connected to database 'tuneloop_test_2453_r4'
+=== RUN   TestInspectReturn_Good_RefundReceiptNotification
+2026/11/23 01:46:32 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2453_r4 sslmode=disable
+2026/11/23 01:46:32 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2453_r4
+2026/11/23 01:46:32 [DB] Connected to database 'tuneloop_test_2453_r4'
+
+2026/11/23 01:46:33 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[543.281ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] PUT    /api/warehouse/orders/:id/return-inspect --> tuneloop-backend/handlers.(*WarehouseHandler).InspectReturn-fm (2 handlers)
+
+2026/11/23 01:46:34 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.873ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '9df0d61c-ea40-4bee-b5a3-9aa1e33f9f54' ORDER BY "settlements"."id" LIMIT 1
+2026/11/23 01:46:34 [computeSettlement] order 9df0d61c-ea40-4bee-b5a3-9aa1e33f9f54 contract days unresolvable (lease_term=30, rent_days-derived=0) — segment model skipped, falling back to #1743
+
+2026/11/23 01:46:34 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[2.129ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+2026/11/23 01:46:34 [executeRefund] refund failed for order 9df0d61c-ea40-4bee-b5a3-9aa1e33f9f54: wechatpay client not initialized
+
+2026/11/23 01:46:34 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.729ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '394e8ba0-0546-4265-9892-3a76e959cc98' ORDER BY "referrals"."id" LIMIT 1
+--- PASS: TestInspectReturn_Good_RefundReceiptNotification (1.25s)
+=== RUN   TestBuildRefundReceipt_IncludesAllLines
+
+2026/11/23 01:46:35 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[626.614ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "damage_reports", "instrument_media", "instruments", "notifications", "order_logs", "order_payment_records", "order_refund_records", "order_status_history", "orders", "pricing_templates", "settlements", "tenants", "users" RESTART IDENTITY CASCADE[0m
+--- PASS: TestBuildRefundReceipt_IncludesAllLines (1.07s)
+=== RUN   TestResolveAppeal_Final_RefundReceiptAndStaffNotify
+
+2026/11/23 01:46:36 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[537.877ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "instruments", "order_payment_records", "order_refund_records", "orders", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] PUT    /api/merchant/appeals/:id/resolve --> tuneloop-backend/handlers.(*AppealHandler).ResolveAppeal-fm (2 handlers)
+
+2026/11/23 01:46:36 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[2.445ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '02a98044-5f57-45d6-8b13-b85cf1b9395f' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/23 01:46:36 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.335ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:46:36 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.592ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = 'e6901f24-5763-4b75-a6bc-915294363d72' ORDER BY "referrals"."id" LIMIT 1
+--- PASS: TestResolveAppeal_Final_RefundReceiptAndStaffNotify (1.17s)
+=== RUN   TestBuildRefundReceipt_NetCash_2453
+
+2026/11/23 01:46:37 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[585.088ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "appeals", "damage_reports", "instruments", "notifications", "order_status_history", "orders", "pricing_templates", "site_members", "settlements", "sites", "tenants", "users" RESTART IDENTITY CASCADE[0m
+--- PASS: TestBuildRefundReceipt_NetCash_2453 (0.92s)
+=== RUN   TestBuildRefundActionData_NetCash_2453
+
+2026/11/23 01:46:38 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[468.287ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "pricing_templates" RESTART IDENTITY CASCADE[0m
+--- PASS: TestBuildRefundActionData_NetCash_2453 (0.81s)
+=== RUN   TestBuildShortfallBreakdownText_NetCash_2453
+--- PASS: TestBuildShortfallBreakdownText_NetCash_2453 (0.00s)
+=== RUN   TestExecuteRefund_ShortfallCreatesPaymentRecord
+
+2026/11/23 01:46:38 [32m/tmp/opencode/tuneloop/wt-2424/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[465.785ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "pricing_templates" RESTART IDENTITY CASCADE[0m
+
+2026/11/23 01:46:39 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:372 [35;1mrecord not found
+[0m[33m[1.712ms] [34;1m[rows:0][0m SELECT * FROM "settlements" WHERE order_id = '6531cc60-52f4-4f9c-9960-7e5dc382d14d' ORDER BY "settlements"."id" LIMIT 1
+
+2026/11/23 01:46:39 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:864 [35;1mrecord not found
+[0m[33m[1.691ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '6531cc60-52f4-4f9c-9960-7e5dc382d14d' ORDER BY created_at desc,"damage_reports"."id" LIMIT 1
+
+2026/11/23 01:46:39 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/handlers/user_settlement.go:984 [35;1mrecord not found
+[0m[33m[1.403ms] [34;1m[rows:0][0m SELECT * FROM "damage_reports" WHERE lease_id = '6531cc60-52f4-4f9c-9960-7e5dc382d14d' ORDER BY "damage_reports"."id" LIMIT 1
+2026/11/23 01:46:39 [computeSettlement] segment model rejected order 6531cc60-52f4-4f9c-9960-7e5dc382d14d: actual lease days exceed covered segment days — falling back to #1743
+
+2026/11/23 01:46:39 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:143 [35;1mrecord not found
+[0m[33m[1.383ms] [34;1m[rows:0][0m SELECT * FROM "gift_policies" WHERE level_id = 0 AND is_active = true ORDER BY "gift_policies"."id" LIMIT 1
+
+2026/11/23 01:46:39 [31;1m/tmp/opencode/tuneloop/wt-2424/backend/services/membership_engine.go:157 [35;1mrecord not found
+[0m[33m[1.897ms] [34;1m[rows:0][0m SELECT * FROM "referrals" WHERE referee_id = '17a5c81b-8203-448a-894e-b726156e3b47' ORDER BY "referrals"."id" LIMIT 1
+--- PASS: TestExecuteRefund_ShortfallCreatesPaymentRecord (0.94s)
+PASS
+ok  	tuneloop-backend/handlers	6.871s

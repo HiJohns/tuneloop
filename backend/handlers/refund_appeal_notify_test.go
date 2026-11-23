@@ -266,6 +266,7 @@ func TestBuildRefundReceipt_IncludesAllLines(t *testing.T) {
 		OverdueChargesTotal: 30,
 		TotalRefund:         400,
 		CashRefundable:      400,
+		NetCash:             400, // #2453 D5：手工构造必须显式设置执行净额
 		ActualDays:          30,
 	}
 	receipt := buildRefundReceipt(db, order, s)
