@@ -12,7 +12,8 @@ case "$MODE" in
   r4-reversal)    ART="docs/evidence/2361/R4-reversal.txt"; TEST='^TestSettlementExecutorReversal_2361$' ;;
   r5-netting)     ART="docs/evidence/2361/R5-netting.txt"; TEST='^TestSettlementExecutorNetting_2361$' ;;
   r6-schema)      ART="docs/evidence/2361/R6-schema.txt" ;;
-  *) echo "usage: $0 <r1-concurrency|r2-idempotency|r3-partial|r4-reversal|r5-netting|r6-schema>" >&2; exit 2 ;;
+  r7-full-gate)   ART="docs/evidence/2361/R7-full-gate.txt" ;;
+  *) echo "usage: $0 <r1-concurrency|r2-idempotency|r3-partial|r4-reversal|r5-netting|r6-schema|r7-full-gate>" >&2; exit 2 ;;
 esac
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"; cd "$REPO_ROOT"
@@ -42,6 +43,35 @@ if [ -n "$(git status --porcelain -uall)" ]; then
   DIRTY=true
 fi
 PROVENANCE="# build=$BUILD commit=$COMMIT dirty=$DIRTY tree=$EVAL_AT"
+
+if [ "$MODE" = "r7-full-gate" ]; then
+  {
+    echo "$PROVENANCE"
+    build_rc=0
+    ( cd "$REPO_ROOT/backend" && go build ./... ) || build_rc=$?
+    if [ "$build_rc" = "0" ]; then echo "BUILD_OK"; else echo "BUILD_FAILED"; fi
+    suite_log="$(mktemp "${TMPDIR:-/tmp}/2361-full-suite.XXXXXX")"
+    ( cd "$REPO_ROOT/backend" && go test ./... -count=1 -timeout 30m ) >"$suite_log" 2>&1
+    suite_rc=$?
+    fail_count=$(grep -c '^--- FAIL' "$suite_log" || true)
+    panic_count=$(grep -ci 'panic:' "$suite_log" || true)
+    pkg_total=$(cd "$REPO_ROOT/backend" && go list ./... | wc -l | tr -d ' ')
+    pkg_ok=$(grep -c '^ok[[:space:]]' "$suite_log" || true)
+    echo "FULL_SUITE_EXIT=$suite_rc"
+    echo "FAIL_COUNT=$fail_count"
+    echo "PANIC_COUNT=$panic_count"
+    echo "PACKAGES_OK=$pkg_ok/$pkg_total"
+    if [ "$suite_rc" != "0" ] || [ "$fail_count" != "0" ] || [ "$panic_count" != "0" ] || [ "$pkg_ok" != "$pkg_total" ]; then
+      grep -E '^(--- FAIL|FAIL|panic:)' "$suite_log" | head -40
+      echo "FULL_GATE_FAILED"
+      rm -f "$suite_log"
+      exit 1
+    fi
+    rm -f "$suite_log"
+    echo "FULL_GATE_OK"
+  } 2>&1 | tee "$ART"
+  exit "${PIPESTATUS[0]}"
+fi
 
 if [ "$MODE" = "r6-schema" ]; then
   UP="backend/database/migrations/20261117001_settlement_supersedes_2361.up.sql"

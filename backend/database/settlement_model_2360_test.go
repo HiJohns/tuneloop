@@ -27,6 +27,10 @@ import (
 
 const settlement2360Migration = "20261116001_settlement_ledger_2360"
 
+// #2361 Rev.3：scratch schema 必须同时重放 supersedes 迁移，否则
+// validateModelColumns 会因缺列拒绝启动（executor 版本化依赖该列/索引）。
+const settlement2361Migration = "20261117001_settlement_supersedes_2361"
+
 // settlement2360BaseDDL 是迁移前 settlement_calculations 的等价形态
 // （20260822001 + 20260824007 result TEXT + 20261025002 ledger_version）。
 const settlement2360BaseDDL = `
@@ -105,22 +109,27 @@ func openScratch2360(t *testing.T) (*gorm.DB, string) {
 	return db, schema
 }
 
-func readMigration2360(t *testing.T, suffix string) string {
+func readMigrationFile(t *testing.T, name, suffix string) string {
 	t.Helper()
 	candidates := []string{
-		filepath.Join("migrations", settlement2360Migration+suffix),
-		filepath.Join("..", "database", "migrations", settlement2360Migration+suffix),
+		filepath.Join("migrations", name+suffix),
+		filepath.Join("..", "database", "migrations", name+suffix),
 	}
 	if dir := strings.TrimSpace(os.Getenv("MIGRATION_PATH")); dir != "" {
-		candidates = append([]string{filepath.Join(dir, settlement2360Migration+suffix)}, candidates...)
+		candidates = append([]string{filepath.Join(dir, name+suffix)}, candidates...)
 	}
 	for _, p := range candidates {
 		if b, err := os.ReadFile(p); err == nil {
 			return string(b)
 		}
 	}
-	t.Fatalf("migration file not found: %s", settlement2360Migration+suffix)
+	t.Fatalf("migration file not found: %s", name+suffix)
 	return ""
+}
+
+func readMigration2360(t *testing.T, suffix string) string {
+	t.Helper()
+	return readMigrationFile(t, settlement2360Migration, suffix)
 }
 
 // 说明：information_schema/pg_indexes 是跨 schema 的全局视图，必须带 schema 过滤，
@@ -169,6 +178,7 @@ func TestMigrationSettlementModel_2360(t *testing.T) {
 	}
 	assert.True(t, tableExists2360(t, db, schema, "order_payment_allocations"))
 	assert.True(t, tableExists2360(t, db, schema, "settlement_action_ledger"))
+
 	assert.True(t, indexExists2360(t, db, schema, "idx_settlement_active_order"))
 	assert.True(t, indexExists2360(t, db, schema, "idx_opa_source"))
 	assert.True(t, indexExists2360(t, db, schema, "idx_sal_idempotency"))
@@ -233,6 +243,8 @@ func TestSchemaValidationSettlement_2360(t *testing.T) {
 	db, schema := openScratch2360(t)
 	require.NoError(t, db.Exec(settlement2360BaseDDL).Error)
 	require.NoError(t, db.Exec(readMigration2360(t, ".up.sql")).Error)
+	// #2361 Rev.3：同 schema 继续重放 supersedes 迁移（启动时会按版本顺序执行）。
+	require.NoError(t, db.Exec(readMigrationFile(t, settlement2361Migration, ".up.sql")).Error)
 
 	// 先做 schema 作用域断言（information_schema 是跨 schema 全局视图，
 	// 不能只靠 validateModelColumns 判断本 schema 的迁移是否生效）。
@@ -246,6 +258,12 @@ func TestSchemaValidationSettlement_2360(t *testing.T) {
 	}
 	assert.True(t, tableExists2360(t, db, schema, "order_payment_allocations"))
 	assert.True(t, tableExists2360(t, db, schema, "settlement_action_ledger"))
+
+	// #2361 Rev.3：supersedes 列 + 冲正来源索引（executor 版本化依赖）。
+	assert.True(t, columnExists2360(t, db, schema, "settlement_calculations", "supersedes"),
+		"20261117001 must add supersedes column")
+	assert.True(t, indexExists2360(t, db, schema, "idx_settlement_supersedes"),
+		"20261117001 must add idx_settlement_supersedes")
 
 	// 启动校验会对这三个模型逐列核对
 	require.NoError(t, validateModelColumns(db, &models.SettlementCalculation{}), "settlement_calculations columns")
@@ -262,6 +280,17 @@ func TestSchemaValidationSettlement_2360(t *testing.T) {
 	}
 	require.NotEmpty(t, arts, "20261116001 artifacts must be registered")
 	require.NoError(t, verifyArtifacts(db, 20261116001, arts), "20261116001 artifacts must match schema")
+
+	// #2361：20261117001 工件也要在 scratch schema 上核验（非仅登记存在）。
+	var arts2361 []migrationArtifact
+	for _, a := range defaultMigrationArtifacts {
+		if a.Version == 20261117001 {
+			arts2361 = append(arts2361, a)
+		}
+	}
+	require.NotEmpty(t, arts2361, "20261117001 artifacts must be registered")
+	require.NoError(t, verifyArtifacts(db, 20261117001, arts2361),
+		"20261117001 artifacts must match schema")
 	// 负例：登记不存在的列必须被识别（防止断言失效却静默通过）
 	bad := append(append([]migrationArtifact{}, arts...), migrationArtifact{Version: 20261116001, Table: "settlement_calculations", Column: "settlement_missing_col_2360", Desc: "synthetic"})
 	require.Error(t, verifyArtifacts(db, 20261116001, bad), "synthetic missing column must fail verification")
@@ -285,9 +314,12 @@ func TestSchemaValidationSettlement_2360(t *testing.T) {
 	require.NoError(t, db.Exec(`INSERT INTO settlement_calculations (order_id, trigger, ledger_version) VALUES (?, 'confirm', 2)`, orderID).Error)
 	require.NoError(t, db.Exec(`INSERT INTO settlement_calculations (order_id, trigger, ledger_version) VALUES (?, 'preview', 3)`, orderID).Error)
 
-	// down + up 触发回填逻辑（up 可重复执行）
+	// down + up 触发回填逻辑（up 可重复执行）；supersedes 迁移随后幂等重放。
 	require.NoError(t, db.Exec(readMigration2360(t, ".down.sql")).Error)
 	require.NoError(t, db.Exec(readMigration2360(t, ".up.sql")).Error)
+	require.NoError(t, db.Exec(readMigrationFile(t, settlement2361Migration, ".up.sql")).Error)
+	assert.True(t, columnExists2360(t, db, schema, "settlement_calculations", "supersedes"),
+		"supersedes column must survive 20261116001 down/up replay")
 
 	// 回填后同一订单只能有一条 confirmed，不违反 partial unique index
 	var confirmed int64
