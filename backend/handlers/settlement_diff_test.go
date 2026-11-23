@@ -348,3 +348,28 @@ func TestSettlement_ShippingFeeSingleDeduction(t *testing.T) {
 	require.Equal(t, 487.50, result.TotalRefund, "refund = rent + (deposit − shipping) − rent; shipping once")
 	require.Equal(t, 0.0, result.DepositDeductedOverdue+result.DamageDeducted, "no overdue/damage in this case")
 }
+
+// TestSettlementReceiptAccountsNet_2363（#2363 R3）：分账户四项合计 = 净额。
+// 收据的「实际退款」必须等于毛额退款 − 毛额补缴（net_cash），不得用毛额冒充。
+func TestSettlementReceiptAccountsNet_2363(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+
+	s := &settlementResult{
+		CashRefundable:        500,
+		CashRefundableGross:   500,
+		PayableShortfall:      460,
+		PayableShortfallGross: 460,
+		NetCash:               40,
+		GiftPointsRefunded:    160,
+		ActualDays:            28,
+		RemainingDeposit:      500,
+	}
+	require.InDelta(t, 40.0, s.CashRefundableGross-s.PayableShortfallGross, 1e-9,
+		"分账户：现金可退毛额 − 补缴毛额 = net_cash")
+	require.InDelta(t, s.NetCash, s.CashRefundableGross-s.PayableShortfallGross, 1e-9,
+		"合计必须等于净额")
+
+	receipt := buildRefundReceipt(db, models.Order{ID: uuid.New().String()}, s)
+	require.Contains(t, receipt, "退回微信：¥40.00", "实际退款 = net_cash")
+	require.Contains(t, receipt, "实际退款合计：¥200.00", "net 40 + 赠点面值 160")
+}

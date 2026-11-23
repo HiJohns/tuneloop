@@ -301,3 +301,109 @@ func TestSettlementFlow(t *testing.T) {
 
 // Ensure unused imports compile even when the test DB is skipped.
 var _ = context.Background()
+
+// TestSettlementLegacyMarkerEcho_2363（#2363 R1）：历史标记只读回显。
+// GET /user/settlements/:id 与 /calculate 必须返回 legacy_marker + legacy_reason，
+// 且金额字段不变（不重算、不接 v2.3 执行器）。
+func TestSettlementLegacyMarkerEcho_2363(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+
+	h := NewUserSettlementHandler()
+	router := gin.New()
+	router.GET("/user/settlements/:id", h.GetSettlement)
+	router.GET("/user/settlements/:id/calculate", h.CalculateSettlement)
+
+	cases := []struct {
+		marker string
+	}{
+		{"legacy_underpaid"},
+		{"legacy_policy_unresolved"},
+		{"legacy_derived_rent_cash"},
+		{""}, // 无标记：不得回显伪原因
+	}
+	for _, tc := range cases {
+		t.Run("marker="+tc.marker, func(t *testing.T) {
+			tenantID := uuid.New().String()
+			orgID := tenantID
+			userID := uuid.New().String()
+			instID := uuid.New().String()
+			require.NoError(t, db.Create(&models.Instrument{
+				ID: instID, TenantID: tenantID, OrgID: &orgID,
+				SN: "SN-LEGACY-" + uuid.New().String()[:6], StockStatus: "rented",
+			}).Error)
+			delivered := time.Date(2026, 8, 1, 10, 0, 0, 0, time.UTC)
+			returned := time.Date(2026, 8, 11, 10, 0, 0, 0, time.UTC)
+			order := models.Order{
+				TenantID: tenantID, OrgID: orgID, UserID: userID, InstrumentID: instID,
+				StartDate: strPtr("2026-08-01"), EndDate: strPtr("2026-08-20"),
+				LeaseTerm: 20, Status: models.OrderStatusReturned,
+				DeliveredAt: &delivered, ReturnedAt: &returned,
+				Deposit: 0, CashPaid: models.FromYuan(1000),
+				PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":20,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":20,"rate":10000,"discount":1,"subtotal":200000}],"total_amount":200000}`),
+			}
+			testfixtures.SeedUserFK(t, db, userID, tenantID, orgID)
+			testfixtures.SeedOrderParents(t, db, &order)
+			require.NoError(t, db.Create(&order).Error)
+
+			// 已落库结算（金额不得被回显逻辑改动）
+			require.NoError(t, db.Create(&models.Settlement{
+				ID: uuid.New().String(), OrderID: order.ID,
+				ActualRentDays: 10, ActualRentAmount: models.FromYuan(1000),
+				OriginalRentAmount: models.FromYuan(2000), CashRefundable: models.FromYuan(1234),
+				RefundStatus: "completed", Breakdown: "{}",
+			}).Error)
+			if tc.marker != "" {
+				require.NoError(t, db.Create(&models.SettlementCalculation{
+					ID: uuid.New().String(), OrderID: order.ID, TenantID: tenantID,
+					Trigger: "confirm", SettlementVersion: 1, Status: "succeeded",
+					LegacyMarker: tc.marker,
+				}).Error)
+			}
+
+			// GET /user/settlements/:id
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest("GET", "/user/settlements/"+order.ID, nil)
+			router.ServeHTTP(w, req)
+			require.Equal(t, http.StatusOK, w.Code)
+			var got struct {
+				Code int `json:"code"`
+				Data struct {
+					CashRefundable models.Cents `json:"cash_refundable"`
+				} `json:"data"`
+				LegacyMarker string `json:"legacy_marker"`
+				LegacyReason string `json:"legacy_reason"`
+			}
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))
+			require.Equal(t, 20000, got.Code)
+			require.Equal(t, tc.marker, got.LegacyMarker)
+			require.Equal(t, models.FromYuan(1234), got.Data.CashRefundable, "金额不得被回显逻辑改动")
+			if tc.marker == "" {
+				require.Empty(t, got.LegacyReason, "无标记不得编造原因")
+			} else {
+				require.NotEmpty(t, got.LegacyReason, "标记必须有可读原因")
+			}
+
+			// GET /user/settlements/:id/calculate
+			w2 := httptest.NewRecorder()
+			req2 := httptest.NewRequest("GET", "/user/settlements/"+order.ID+"/calculate", nil)
+			router.ServeHTTP(w2, req2)
+			require.Equal(t, http.StatusOK, w2.Code, w2.Body.String())
+			var calc struct {
+				Code         int             `json:"code"`
+				Data         json.RawMessage `json:"data"`
+				LegacyMarker string          `json:"legacy_marker"`
+				LegacyReason string          `json:"legacy_reason"`
+			}
+			require.NoError(t, json.Unmarshal(w2.Body.Bytes(), &calc))
+			require.Equal(t, 20000, calc.Code)
+			require.NotEmpty(t, calc.Data, "预览字节必须保留（#1738）")
+			require.Equal(t, tc.marker, calc.LegacyMarker)
+			if tc.marker == "" {
+				require.Empty(t, calc.LegacyReason)
+			} else {
+				require.NotEmpty(t, calc.LegacyReason)
+			}
+		})
+	}
+}

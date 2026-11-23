@@ -73,9 +73,13 @@ func (h *UserSettlementHandler) CalculateSettlement(c *gin.Context) {
 		log.Printf("[SettlementAudit] preview record failed for order %s: %v", order.ID, err)
 	}
 
+	// #2363 D2：历史标记只读回显（不改金额、不接 v2.3 计算/执行）。
+	legacyMarker, legacyReason := legacyMarkerForOrder(db, order.ID)
 	c.JSON(http.StatusOK, gin.H{
-		"code": 20000,
-		"data": json.RawMessage(breakdownJSON),
+		"code":          20000,
+		"data":          json.RawMessage(breakdownJSON),
+		"legacy_marker": legacyMarker,
+		"legacy_reason": legacyReason,
 	})
 }
 
@@ -634,10 +638,39 @@ func (h *UserSettlementHandler) GetSettlement(c *gin.Context) {
 		return
 	}
 
+	// #2363 D2：历史标记只读回显（订单级最近一次非空标记）。
+	legacyMarker, legacyReason := legacyMarkerForOrder(db, orderID)
 	c.JSON(http.StatusOK, gin.H{
-		"code": 20000,
-		"data": settlement,
+		"code":          20000,
+		"data":          settlement,
+		"legacy_marker": legacyMarker,
+		"legacy_reason": legacyReason,
 	})
+}
+
+// legacyMarkerForOrder 返回订单最近一次非空的历史标记与可读原因（#2363）。
+// 标记由 #2360/#2359 写入 settlement_calculations.legacy_marker；本单只读回显，
+// 不重算金额、不触发迁移。空标记返回空字符串（前端不展示）。
+func legacyMarkerForOrder(db *gorm.DB, orderID string) (string, string) {
+	var row models.SettlementCalculation
+	if err := db.Where("order_id = ? AND legacy_marker <> ''", orderID).
+		Order("settlement_version DESC, created_at DESC").First(&row).Error; err != nil {
+		return "", ""
+	}
+	return row.LegacyMarker, legacyMarkerReason(row.LegacyMarker)
+}
+
+func legacyMarkerReason(marker string) string {
+	switch marker {
+	case services.LegacyMarkerUnderpaid:
+		return "历史订单少收：按实收金额结算，不追溯差额"
+	case services.LegacyMarkerPolicyUnresolved:
+		return "历史订单缺少会员比例快照：按当前政策回退并以快照能力分级"
+	case services.CashSourceLegacyDerivedRent:
+		return "历史退款分配不完整：租金现金按支付账本推导"
+	default:
+		return ""
+	}
 }
 
 func parseDate(s *string) *time.Time {
