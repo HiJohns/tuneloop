@@ -199,12 +199,13 @@ func TestUpdateSite_WritesIAMBeforeLocal_2457(t *testing.T) {
 	mu.Lock()
 	during := nameDuringIAM
 	mu.Unlock()
-	order := "local-then-iam"
+	// 契约断言值固定为 iam_before_local（= IAM 先于本地写）。
+	order := "local_before_iam"
 	if during == "A" {
-		order = "iam-then-local"
+		order = "iam_before_local"
 	}
 	body, path, _ := iam.snapshot()
-	require.Equal(t, "iam-then-local", order, "IAM 调用时本地仍应是旧名")
+	require.Equal(t, "iam_before_local", order, "IAM 调用时本地仍应是旧名")
 	require.Equal(t, 1, iam.callCount(), "改名必须恰好调用一次 IAM")
 	require.JSONEq(t, `{"name":"B"}`, body)
 	require.Contains(t, path, "/api/v1/organizations/")

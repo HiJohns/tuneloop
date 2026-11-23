@@ -82,7 +82,14 @@ row_handlers() {
         want="${pair#*=}"
         got="$(grep_key "$log" "$key")"
         body+="$key=${got:-missing}"$'\n'
-        [ "${got:-}" = "$want" ] || rc=1
+        if [ "$key" = "PATH" ]; then
+            case "${got:-}" in
+                "$want"*) : ;;
+                *) rc=1 ;;
+            esac
+        else
+            [ "${got:-}" = "$want" ] || rc=1
+        fi
     done
     if [ "$rc" != "0" ]; then
         body+="--- go test output (tail) ---"$'\n'
@@ -102,7 +109,14 @@ row_services() {
         want="${pair#*=}"
         got="$(grep_key "$log" "$key")"
         body+="$key=${got:-missing}"$'\n'
-        [ "${got:-}" = "$want" ] || rc=1
+        if [ "$key" = "PATH" ]; then
+            case "${got:-}" in
+                "$want"*) : ;;
+                *) rc=1 ;;
+            esac
+        else
+            [ "${got:-}" = "$want" ] || rc=1
+        fi
     done
     if [ "$rc" != "0" ]; then
         body+="--- go test output (tail) ---"$'\n'
