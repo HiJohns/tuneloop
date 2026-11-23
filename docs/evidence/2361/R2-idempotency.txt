@@ -1,4 +1,4 @@
-# build=1.0.29da094d4 commit=29da094d489aebfba2c860f061d1dc693b57785d dirty=false tree=878cd7dcd0b52c12c6d66753a9525bad875bf618
+# build=1.0.543ee08a5 commit=543ee08a58a2fc8c06b91d0852344291c89890ed dirty=false tree=543ee08a58a2fc8c06b91d0852344291c89890ed
 # github.com/mattn/go-sqlite3
 sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
 sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
@@ -7,11 +7,11 @@ sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier f
 [DEBUG] Loaded .env from: ../.env
 === RUN   TestSettlementExecutorIdempotency_2361
 
-2026/11/23 00:40:52 [31;1m/tmp/opencode/tuneloop/wt-2361/backend/services/settlement_executor_2361.go:307 [35;1mrecord not found
-[0m[33m[2.620ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = '985eca03-19b7-4d48-92cc-6dd6143d472b' AND settlement_version = 1 ORDER BY "settlement_calculations"."id" LIMIT 1
+2026/11/23 02:28:08 [31;1m/tmp/opencode/tuneloop/wt-2361/backend/services/settlement_executor_2361.go:307 [35;1mrecord not found
+[0m[33m[2.375ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = '4f8380da-d655-4828-a056-1aace2be8bd7' AND settlement_version = 1 ORDER BY "settlement_calculations"."id" LIMIT 1
 
-2026/11/23 00:40:52 [31;1m/tmp/opencode/tuneloop/wt-2361/backend/services/settlement_executor_2361.go:323 [35;1mrecord not found
-[0m[33m[2.430ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = '985eca03-19b7-4d48-92cc-6dd6143d472b' AND status IN ('confirmed','processing','succeeded','partially_succeeded','failed_retryable') ORDER BY "settlement_calculations"."id" LIMIT 1
---- PASS: TestSettlementExecutorIdempotency_2361 (0.45s)
+2026/11/23 02:28:08 [31;1m/tmp/opencode/tuneloop/wt-2361/backend/services/settlement_executor_2361.go:323 [35;1mrecord not found
+[0m[33m[1.531ms] [34;1m[rows:0][0m SELECT * FROM "settlement_calculations" WHERE order_id = '4f8380da-d655-4828-a056-1aace2be8bd7' AND status IN ('confirmed','processing','succeeded','partially_succeeded','failed_retryable') ORDER BY "settlement_calculations"."id" LIMIT 1
+--- PASS: TestSettlementExecutorIdempotency_2361 (0.40s)
 PASS
-ok  	tuneloop-backend/services	0.501s
+ok  	tuneloop-backend/services	0.415s
