@@ -1,0 +1,81 @@
+{
+ "schema_version": 1,
+ "issue": 2453,
+ "build": "1.0.199cfb9ef",
+ "commit": "199cfb9efbd0ab50bf4a909e1a48c84ac6ec2414",
+ "dirty": false,
+ "environment": "backend handlers notification/receipt tests on local PG; fix 199cfb9ef",
+ "plan_sha256": "931f417402edad44b9334839be38bc59bb4d17200464184f55490c0478bf0ab5",
+ "rows": [
+  {
+   "id": "R1",
+   "command": "bash scripts/verify-2453.sh r1-receipt",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2453/R1-receipt.txt"
+   ],
+   "assert": "exit 0；RECEIPT_NET_OK；含净额 40/200",
+   "expected": "PASS",
+   "negative": "出现 500/660 → FAIL",
+   "negative_result": "出现「退回微信 ¥500」或「合计 ¥660」→ FAIL（脚本检查 RECEIPT_NET_OK + 测试 NotContains）",
+   "actual": "PASS：#2339 形状（毛 500/460，net 40，赠点 160）→「退回微信：¥40.00」「实际退款合计：¥200.00」，无 500/660",
+   "pass": true
+  },
+  {
+   "id": "R2",
+   "command": "bash scripts/verify-2453.sh r2-action-data",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2453/R2-action-data.txt"
+   ],
+   "assert": "exit 0；ACTION_NET_OK；4000/0/16000 与 0/28",
+   "expected": "PASS",
+   "negative": "毛额或缺 shortfall_cents → FAIL",
+   "negative_result": "用毛额 50000/46000 或缺少 shortfall_cents → FAIL",
+   "actual": "PASS：refund_cents=4000 / shortfall_cents=0 / gift=16000；负净额 → 0 / 28 / 0",
+   "pass": true
+  },
+  {
+   "id": "R3",
+   "command": "bash scripts/verify-2453.sh r3-shortfall",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2453/R3-shortfall.txt"
+   ],
+   "assert": "exit 0；SHORTFALL_NET_OK；含 0.28",
+   "expected": "PASS",
+   "negative": "显示 1.00 → FAIL",
+   "negative_result": "显示「需补缴 ¥1.00」→ FAIL",
+   "actual": "PASS：毛补 1.00、net −0.28 → 文本「需补缴：¥0.28」，无 1.00",
+   "pass": true
+  },
+  {
+   "id": "R4",
+   "command": "bash scripts/verify-2453.sh r4-regression",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2453/R4-regression.txt"
+   ],
+   "assert": "exit 0；--- PASS 全部；新用例存在",
+   "expected": "PASS",
+   "negative": "任一 FAIL/无净额判别 → FAIL",
+   "negative_result": "任一测试 FAIL 或缺少净额判别用例 → FAIL",
+   "actual": "PASS：7 个通知/收据/补缴测试全绿；新 #2339 判别用例断言净额 ≠ 毛额",
+   "pass": true
+  },
+  {
+   "id": "R5",
+   "command": "bash scripts/verify-2453.sh r5-build",
+   "exit": 0,
+   "artifacts": [
+    "docs/evidence/2453/R5-build.txt"
+   ],
+   "assert": "exit 0；BUILD_OK",
+   "expected": "PASS",
+   "negative": "构建失败 → FAIL",
+   "negative_result": "build 或定向测试失败 → FAIL",
+   "actual": "PASS：backend go build ./... exit 0；R4 0 FAIL",
+   "pass": true
+  }
+ ]
+}

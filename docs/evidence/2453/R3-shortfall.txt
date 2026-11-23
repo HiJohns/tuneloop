@@ -1,0 +1,10 @@
+# build=1.0.199cfb9ef commit=199cfb9efbd0ab50bf4a909e1a48c84ac6ec2414 dirty=false
+[DEBUG] Loaded .env from: ../.env
+2026/11/23 01:46:23 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2453_r3_shortfall sslmode=disable
+2026/11/23 01:46:23 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2453_r3_shortfall
+2026/11/23 01:46:23 [DB] Connected to database 'tuneloop_test_2453_r3_shortfall'
+=== RUN   TestBuildShortfallBreakdownText_NetCash_2453
+--- PASS: TestBuildShortfallBreakdownText_NetCash_2453 (0.00s)
+PASS
+ok  	tuneloop-backend/handlers	0.535s
+SHORTFALL_NET_OK
