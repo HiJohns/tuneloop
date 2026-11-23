@@ -6,10 +6,10 @@
         	            	expected: 400
         	            	actual  : 200
         	Test:       	TestScenarioC_CancelBoundary/C4_CannotShipFromAvailable
---- FAIL: TestScenarioC_CancelBoundary (1.31s)
-    --- FAIL: TestScenarioC_CancelBoundary/C4_CannotShipFromAvailable (0.08s)
+--- FAIL: TestScenarioC_CancelBoundary (1.73s)
+    --- FAIL: TestScenarioC_CancelBoundary/C4_CannotShipFromAvailable (0.06s)
 FAIL
-FAIL	tuneloop-backend/handlers	2.158s
+FAIL	tuneloop-backend/handlers	23.625s
 FAIL
 
 === RED: TestSettlementFlow @ db76582f4^ (exit=1) ===
@@ -21,18 +21,18 @@ FAIL
         	            	expected: 350000
         	            	actual  : 300000
         	Messages:   	rent 3000 + deposit 500 (no points, no discount)
-2026/11/19 16:20:47 [WechatShipping] upload attempt 1/2 failed for rent order 59308825-03e3-4ade-905b-d24db0a01d49 (out_trade_no=mockd678fced-d0c5-4af3-8 transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
-2026/11/19 16:20:47 [WechatShipping] upload attempt 2/2 failed for rent order 59308825-03e3-4ade-905b-d24db0a01d49 (out_trade_no=mockd678fced-d0c5-4af3-8 transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
-2026/11/19 16:20:47 [WechatShipping] upload_shipping_info gave up after 2 attempts for rent order 59308825-03e3-4ade-905b-d24db0a01d49 (out_trade_no=mockd678fced-d0c5-4af3-8 transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
---- FAIL: TestSettlementFlow (16.38s)
+2026/11/23 02:15:29 [WechatShipping] upload attempt 1/2 failed for rent order 1a67986a-a6ab-461c-af6e-75eec563540a (out_trade_no=mock240fb3f1-aa6b-4d19-8 transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
+2026/11/23 02:15:29 [WechatShipping] upload attempt 2/2 failed for rent order 1a67986a-a6ab-461c-af6e-75eec563540a (out_trade_no=mock240fb3f1-aa6b-4d19-8 transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
+2026/11/23 02:15:29 [WechatShipping] upload_shipping_info gave up after 2 attempts for rent order 1a67986a-a6ab-461c-af6e-75eec563540a (out_trade_no=mock240fb3f1-aa6b-4d19-8 transaction_id=): get access token: WX_APPID or WX_APPSECRET not configured
+--- FAIL: TestSettlementFlow (16.90s)
 FAIL
-FAIL	tuneloop-backend/handlers	17.068s
+FAIL	tuneloop-backend/handlers	18.009s
 FAIL
 
 === GREEN: C4_CannotShipFromAvailable @ b70f96eb3b80b4d18a873ef2dd4eaa95c1bf7add (exit=0) ===
---- PASS: TestScenarioC_CancelBoundary (1.10s)
-ok  	tuneloop-backend/handlers	1.819s
+--- PASS: TestScenarioC_CancelBoundary (1.81s)
+ok  	tuneloop-backend/handlers	18.209s
 
 === GREEN: TestSettlementFlow @ b70f96eb3b80b4d18a873ef2dd4eaa95c1bf7add (exit=0) ===
---- PASS: TestSettlementFlow (16.51s)
-ok  	tuneloop-backend/handlers	17.243s
+--- PASS: TestSettlementFlow (17.29s)
+ok  	tuneloop-backend/handlers	18.230s
