@@ -64,16 +64,14 @@ func TestRefundDiff_PointsOverCap(t *testing.T) {
 	require.Equal(t, 2800.0, result.RentPayable, "R1 = 28×100")
 	// A1 = floor(2800 × 0.3) = 840; A0 = 1000 > A1 → refund 160 gift points
 	require.Equal(t, 160.0, result.GiftPointsRefunded, "A0−A1 = 1000−840")
-	// #2339 Rev.5 D1：以下期望值是当前实现（#1836 段级折后模型）的输出，
-	// 逐值推导见 docs/evidence/2339/R9-derivation.md（rent / deposit / points）。
-	// 与 spec v2.3 分账户公式的差异已记录在同一文档，归属 #2359–#2363，
-	// 由 follow-up #2417 收敛；本单不改结算实现。
-	require.InDelta(t, 666.67, result.TotalRefund, 0.01, "total refund (segment model)")
-	// C1 = R1 − A1 = 2800−840 = 1960；段模型下现金部分 = 总退款 − 退点。
-	require.InDelta(t, 506.67, result.CashRefundable, 0.01, "cash refund after gift split (segment model)")
+	// #2424 Phase B（spec v2.3 分账户）：TotalRefund = 乐币面值 160 + 现金毛额 500。
+	require.InDelta(t, 660.00, result.TotalRefund, 0.01, "TotalRefund = 乐币 160 + 现金毛额 500")
+	require.InDelta(t, 500.00, result.CashRefundable, 0.01, "cash refundable (gross, deposit)")
+	require.InDelta(t, 460.00, result.PayableShortfall, 0.01, "payable shortfall (gross)")
+	require.InDelta(t, 40.00, result.NetCash, 0.01, "net cash = 500 − 460")
 	require.Equal(t, 1960.0, result.CashBasis, "C1 = R1 − A1")
-	// Conservation（段模型）：gift_refunded + cash = total_refund。
-	require.InDelta(t, 666.67, result.GiftPointsRefunded+result.CashRefundable, 0.01, "conservation")
+	// Conservation（spec）：gift_refunded + cash gross = TotalRefund。
+	require.InDelta(t, 660.00, result.GiftPointsRefunded+result.CashRefundable, 0.01, "conservation")
 }
 
 // TestRefundDiff_PointsWithinCap: A1 ≥ A0 → gift stays, cash refund = R0−R1.
@@ -123,7 +121,11 @@ func TestRefundDiff_PointsWithinCap(t *testing.T) {
 
 	require.Equal(t, 0.0, result.GiftPointsRefunded, "gift stays at A0")
 	// #2339 Rev.5 D1：当前实现输出（R9 逐值推导）；spec v2.3 差异归 #2417。
-	require.InDelta(t, 666.67, result.CashRefundable, 0.01, "full cash refund (segment model)")
+	// #2424 Phase B（spec v2.3）：押金全退 500；租金已足额 → 现金毛额 500、net 200。
+	require.InDelta(t, 500.00, result.CashRefundable, 0.01, "cash refundable (gross, deposit)")
+	require.InDelta(t, 300.00, result.PayableShortfall, 0.01, "payable shortfall (gross)")
+	require.InDelta(t, 200.00, result.NetCash, 0.01, "net cash = 500 − 300")
+	require.InDelta(t, 500.00, result.TotalRefund, 0.01, "TotalRefund = 现金毛额")
 	require.Equal(t, 2300.0, result.CashBasis, "C1 = 2800−500")
 }
 

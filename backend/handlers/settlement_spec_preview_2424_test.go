@@ -180,3 +180,112 @@ func TestSettlementSpecSwitch_2424(t *testing.T) {
 		result.CashRefundable, result.PayableShortfall, result.NetCash,
 		result.TotalRefund, result.GiftPointsRefunded, result.CashBasis)
 }
+
+// seedNetCashOrder_2424 构造 30 天整租的简单订单：日租 ¥100，实付 cashYuan。
+// 用于 R5 净额执行三分支（net>0 / net<0 / net=0）。
+func seedNetCashOrder_2424(t *testing.T, cashYuan float64) models.Order {
+	t.Helper()
+	db := testfixtures.SetupTestDB(t)
+	tenantID := uuid.New().String()
+	orgID := tenantID
+	userID := uuid.New().String()
+	instID := uuid.New().String()
+	require.NoError(t, db.Create(&models.Instrument{
+		ID: instID, TenantID: tenantID, OrgID: &orgID,
+		SN: "SN-NET-" + uuid.New().String()[:6], StockStatus: "rented",
+	}).Error)
+	delivered := time.Date(2026, 8, 1, 10, 0, 0, 0, time.UTC)
+	returned := time.Date(2026, 8, 31, 10, 0, 0, 0, time.UTC) // 30 天整
+	order := models.Order{
+		TenantID: tenantID, OrgID: orgID, UserID: userID, InstrumentID: instID,
+		StartDate: strPtr("2026-08-01"), EndDate: strPtr("2026-08-30"),
+		LeaseTerm: 30, Status: models.OrderStatusCompleted,
+		DeliveredAt: &delivered, ReturnedAt: &returned,
+		Deposit: 0, CashPaid: models.FromYuan(cashYuan), ShippingFee: 0,
+		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"deposit":0,"total_amount":300000,
+			"pricing_tiers":[{"days_max":30,"daily_rate":10000,"discount_percent":0}],
+			"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}]}`),
+	}
+	testfixtures.SeedUserFK(t, db, order.UserID, order.TenantID, order.OrgID)
+	testfixtures.SeedOrderParents(t, db, &order)
+	require.NoError(t, db.Create(&order).Error)
+	return order
+}
+
+// R5（#2424 Rev.6）：执行器按净额三选一——退款 = net、补缴 = −net、0 直接 completed；
+// DB settlements.cash_refundable 落实际退款净额（D3）。
+func TestExecuteRefundNet_2424(t *testing.T) {
+	t.Run("net_positive_refunds_4000_cents", func(t *testing.T) {
+		order := seedSpecPreviewFixture(t)
+		db := testfixtures.GetTestDB(t)
+
+		result, err := executeRefund(db, order)
+		require.NoError(t, err)
+		require.InDelta(t, 40.0, result.NetCash, 0.01)
+		require.InDelta(t, 500.0, result.CashRefundable, 0.01, "对外仍为毛额")
+
+		var settlement models.Settlement
+		require.NoError(t, db.Where("order_id = ?", order.ID).First(&settlement).Error)
+		require.Equal(t, models.FromYuan(40), settlement.CashRefundable, "DB 存净额 4000 分")
+		require.Equal(t, "completed", settlement.RefundStatus)
+
+		var refund models.OrderRefundRecord
+		require.NoError(t, db.Where("order_id = ?", order.ID).First(&refund).Error)
+		require.Equal(t, models.FromYuan(40), refund.Amount, "实际退款 = net 4000 分")
+
+		var shortfallCount int64
+		db.Model(&models.OrderPaymentRecord{}).
+			Where("order_id = ? AND order_type = ?", order.ID, "payment_shortfall").
+			Count(&shortfallCount)
+		require.Zero(t, shortfallCount, "退款与补缴不得并存")
+	})
+
+	t.Run("net_negative_creates_shortfall_10000_cents", func(t *testing.T) {
+		order := seedNetCashOrder_2424(t, 2900) // 应收 3000 − 实付 2900 = 补缴 100
+		db := testfixtures.GetTestDB(t)
+
+		result, err := executeRefund(db, order)
+		require.NoError(t, err)
+		require.InDelta(t, -100.0, result.NetCash, 0.01)
+
+		var rec models.OrderPaymentRecord
+		require.NoError(t, db.Where("order_id = ? AND order_type = ?", order.ID, "payment_shortfall").First(&rec).Error)
+		require.Equal(t, models.FromYuan(100), rec.Amount, "补缴 = −net 10000 分")
+		require.Equal(t, "pending", rec.Status)
+
+		var settlement models.Settlement
+		require.NoError(t, db.Where("order_id = ?", order.ID).First(&settlement).Error)
+		require.Equal(t, "pending", settlement.RefundStatus)
+		require.Equal(t, models.Cents(0), settlement.CashRefundable, "补缴场景无退款净额")
+
+		var refundCount int64
+		db.Model(&models.OrderRefundRecord{}).
+			Where("payment_record_id IN (SELECT id FROM order_payment_records WHERE order_id = ?)", order.ID).
+			Count(&refundCount)
+		require.Zero(t, refundCount, "补缴场景不得生成退款记录")
+	})
+
+	t.Run("net_zero_completes_without_money_movement", func(t *testing.T) {
+		order := seedNetCashOrder_2424(t, 3000) // 应收 = 实付 → net 0
+		db := testfixtures.GetTestDB(t)
+
+		result, err := executeRefund(db, order)
+		require.NoError(t, err)
+		require.InDelta(t, 0.0, result.NetCash, 0.01)
+
+		var settlement models.Settlement
+		require.NoError(t, db.Where("order_id = ?", order.ID).First(&settlement).Error)
+		require.Equal(t, "completed", settlement.RefundStatus)
+		require.Equal(t, models.Cents(0), settlement.CashRefundable)
+
+		var refundCount, shortfallCount int64
+		db.Model(&models.OrderRefundRecord{}).
+			Where("payment_record_id IN (SELECT id FROM order_payment_records WHERE order_id = ?)", order.ID).
+			Count(&refundCount)
+		db.Model(&models.OrderPaymentRecord{}).
+			Where("order_id = ? AND order_type = ?", order.ID, "payment_shortfall").
+			Count(&shortfallCount)
+		require.Zero(t, refundCount, "net=0 不退款")
+		require.Zero(t, shortfallCount, "net=0 不补缴")
+	})
+}

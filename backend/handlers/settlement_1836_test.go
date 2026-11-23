@@ -60,23 +60,44 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 		for _, r := range renewals {
 			renewalSum += r[1].(float64)
 		}
+		// #2424 Rev.6 D8/D10：券权威=逐笔支付流水。每笔券额 = 该段标价 − 实付
+		// （三码场景每笔 36.00 − 0.36 = 35.64；无码续费为 0）。
+		dailyCents := int64(3600)
+		totalCoupon := int64(0)
 		// #2281：账本为唯一事实源——补合同租金流水（cash − 续期合计）。
 		if contract := cash - renewalSum; contract > 0 {
+			contractCents := int64(cents(contract))
+			contractCoupon := dailyCents - contractCents
+			if contractCoupon < 0 {
+				contractCoupon = 0
+			}
+			totalCoupon += contractCoupon
 			require.NoError(t, db.Create(&models.OrderPaymentRecord{
 				TenantID: tenantID, UserID: userID, OrderID: &o.ID,
 				OrderType: "rent", Type: "payment", Status: "paid",
-				Amount: cents(contract), CreatedAt: time.Date(2026, 8, 1, 9, 0, 0, 0, time.UTC),
+				Amount: cents(contract), CouponDiscount: models.Cents(contractCoupon),
+				CreatedAt: time.Date(2026, 8, 1, 9, 0, 0, 0, time.UTC),
 			}).Error)
 		}
 		for i, r := range renewals {
 			days := r[0].(int)
 			amount := r[1].(float64)
+			amountCents := int64(cents(amount))
+			couponCents := dailyCents*int64(days) - amountCents
+			if couponCents < 0 {
+				couponCents = 0
+			}
+			totalCoupon += couponCents
 			require.NoError(t, db.Create(&models.OrderPaymentRecord{
 				TenantID: tenantID, UserID: userID, OrderID: &o.ID,
 				OrderType: "renewal", Type: "payment", Status: "paid",
-				Amount: cents(amount), Days: &days,
+				Amount: cents(amount), Days: &days, CouponDiscount: models.Cents(couponCents),
 				CreatedAt: time.Date(2026, 8, 1, 10+i, 0, 0, 0, time.UTC),
 			}).Error)
+		}
+		if totalCoupon > 0 {
+			require.NoError(t, db.Model(&models.Order{}).Where("id = ?", o.ID).
+				Update("coupon_discount", models.Cents(totalCoupon)).Error)
 		}
 		return o
 	}
@@ -89,9 +110,14 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 		require.True(t, res.SegmentModel)
 		require.InDelta(t, 0.36, res.DiscountedRent, 1e-9)
 		require.InDelta(t, 1.36, res.DiscountedDue, 1e-9)
-		require.InDelta(t, 0, res.TotalRefund, 1e-9)
-		require.InDelta(t, 0.28, res.PayableShortfall, 1e-9)
-		require.Equal(t, int64(28), res.Breakdown["payable_shortfall"])
+		// #2424 Phase B：毛额/净额分列（券 3564 分/笔），净额语义与旧口径一致。
+		require.InDelta(t, 0.72, res.TotalRefund, 1e-9, "TotalRefund = 现金毛额（退 0.72）")
+		require.InDelta(t, 0.72, res.CashRefundable, 1e-9)
+		require.InDelta(t, 1.00, res.PayableShortfall, 1e-9, "毛额补缴 = 物流 1.00")
+		require.InDelta(t, -0.28, res.NetCash, 1e-9, "净额补缴 0.28")
+		require.Equal(t, int64(100), res.Breakdown["payable_shortfall"])
+		require.Equal(t, int64(72), res.Breakdown["cash_refundable_gross"])
+		require.Equal(t, int64(-28), res.Breakdown["net_cash"])
 		// #1837: discount_amount fields (plan §4)
 		paidBlock := res.Breakdown["paid_block"].(map[string]interface{})
 		contractRent := paidBlock["contract_rent"].(map[string]interface{})
@@ -113,8 +139,10 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 		require.True(t, res.SegmentModel)
 		require.InDelta(t, 0.36, res.DiscountedRent, 1e-9)
 		require.InDelta(t, 1.36, res.DiscountedDue, 1e-9)
-		require.InDelta(t, 35.36, res.TotalRefund, 1e-9)
-		require.InDelta(t, 0, res.PayableShortfall, 1e-9)
+		require.InDelta(t, 36.36, res.TotalRefund, 1e-9, "TotalRefund = 现金毛额（退 36.36）")
+		require.InDelta(t, 36.36, res.CashRefundable, 1e-9)
+		require.InDelta(t, 1.00, res.PayableShortfall, 1e-9, "毛额补缴 = 物流 1.00")
+		require.InDelta(t, 35.36, res.NetCash, 1e-9, "净额应退 35.36")
 		// #1837: discount_amount fields (plan §4)
 		paidBlock := res.Breakdown["paid_block"].(map[string]interface{})
 		contractRent := paidBlock["contract_rent"].(map[string]interface{})
@@ -139,8 +167,10 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 		require.True(t, res.SegmentModel)
 		require.InDelta(t, 36.36, res.DiscountedRent, 1e-9)
 		require.InDelta(t, 37.36, res.DiscountedDue, 1e-9)
-		require.Zero(t, res.TotalRefund)
-		require.InDelta(t, 0.64, res.PayableShortfall, 1e-9)
+		require.InDelta(t, 0.36, res.TotalRefund, 1e-9, "TotalRefund = 现金毛额（退 0.36）")
+		require.InDelta(t, 0.36, res.CashRefundable, 1e-9)
+		require.InDelta(t, 1.00, res.PayableShortfall, 1e-9, "毛额补缴 = 物流 1.00")
+		require.InDelta(t, -0.64, res.NetCash, 1e-9, "净额补缴 0.64")
 	})
 
 	t.Run("反推合同天数-lease_term=0(月语义)-三码实租1天-段模型补0.28", func(t *testing.T) {
@@ -164,7 +194,7 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 			Status:      models.OrderStatusReturned,
 			DeliveredAt: &delivered, ReturnedAt: &returned,
 			Deposit: 0, CashPaid: cents(1.08), ShippingFee: cents(1),
-			CouponDiscount: cents(35.64),
+			CouponDiscount: cents(106.92),
 			PricingBreakdown: str1743Ptr(`{"base_daily_rent":3600,"rent_days":3,"deposit":0,"total_amount":10800,
 				"pricing_tiers":[{"days_max":30,"daily_rate":3600,"discount_percent":0}],
 				"tier_segments":[{"tier":1,"days":3,"rate":3600,"discount":1,"subtotal":10800}]}`),
@@ -172,25 +202,28 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 		testfixtures.SeedOrderParents(t, db, &o) // #2443: strict schema order FKs
 		require.NoError(t, db.Create(&o).Error)
 		// #2281：补合同租金流水（1.08 − 0.36 × 2）。
+		// #2424 Rev.6 D8：逐笔券额 35.64（标价 36.00 − 实付 0.36）。
 		require.NoError(t, db.Create(&models.OrderPaymentRecord{
 			TenantID: tenantID, UserID: userID, OrderID: &o.ID,
-			OrderType: "rent", Type: "payment", Status: "paid", Amount: cents(0.36),
+			OrderType: "rent", Type: "payment", Status: "paid",
+			Amount: cents(0.36), CouponDiscount: cents(35.64),
 		}).Error)
 		require.NoError(t, db.Create(&models.OrderPaymentRecord{
 			TenantID: tenantID, UserID: userID, OrderID: &o.ID,
 			OrderType: "renewal", Type: "payment", Status: "paid",
-			Amount: cents(0.36), Days: intPtr(1),
+			Amount: cents(0.36), Days: intPtr(1), CouponDiscount: cents(35.64),
 		}).Error)
 		require.NoError(t, db.Create(&models.OrderPaymentRecord{
 			TenantID: tenantID, UserID: userID, OrderID: &o.ID,
 			OrderType: "renewal", Type: "payment", Status: "paid",
-			Amount: cents(0.36), Days: intPtr(1),
+			Amount: cents(0.36), Days: intPtr(1), CouponDiscount: cents(35.64),
 		}).Error)
 		res := computeSettlement(o, db)
 		require.True(t, res.SegmentModel, "合同天数反推（3−2=1）应启用段模型")
 		require.InDelta(t, 0.36, res.DiscountedRent, 1e-9)
-		require.InDelta(t, 0.28, res.PayableShortfall, 1e-9, "段模型口径：补缴 0.28")
-		require.Zero(t, res.TotalRefund)
+		require.InDelta(t, 1.00, res.PayableShortfall, 1e-9, "毛额补缴 = 物流 1.00")
+		require.InDelta(t, 0.72, res.TotalRefund, 1e-9, "TotalRefund = 现金毛额（退 0.72）")
+		require.InDelta(t, -0.28, res.NetCash, 1e-9, "净额补缴 0.28")
 	})
 
 	t.Run("1bf456df形状-两码两段实租1天-段模型补0.64", func(t *testing.T) {
@@ -214,7 +247,7 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 			LeaseTerm: 0, Status: models.OrderStatusReturning,
 			DeliveredAt: &delivered, ReturnedAt: &returned,
 			Deposit: 0, CashPaid: cents(0.72), ShippingFee: cents(1),
-			CouponDiscount: cents(35.64),
+			CouponDiscount: cents(71.28),
 			PricingBreakdown: str1743Ptr(`{"base_daily_rent":3600,"rent_days":2,"deposit":0,"total_amount":7200,
 				"pricing_tiers":[{"days_max":30,"daily_rate":3600,"discount_percent":0}],
 				"tier_segments":[{"tier":1,"days":2,"rate":3600,"discount":1,"subtotal":7200}]}`),
@@ -222,21 +255,24 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 		testfixtures.SeedOrderParents(t, db, &o) // #2443: strict schema order FKs
 		require.NoError(t, db.Create(&o).Error)
 		// #2281：补合同租金流水（0.72 − 0.36）。
+		// #2424 Rev.6 D8：逐笔券额 35.64。
 		require.NoError(t, db.Create(&models.OrderPaymentRecord{
 			TenantID: tenantID, UserID: userID, OrderID: &o.ID,
-			OrderType: "rent", Type: "payment", Status: "paid", Amount: cents(0.36),
+			OrderType: "rent", Type: "payment", Status: "paid",
+			Amount: cents(0.36), CouponDiscount: cents(35.64),
 		}).Error)
 		require.NoError(t, db.Create(&models.OrderPaymentRecord{
 			TenantID: tenantID, UserID: userID, OrderID: &o.ID,
 			OrderType: "renewal", Type: "payment", Status: "paid",
-			Amount: cents(0.36), Days: intPtr(1),
+			Amount: cents(0.36), Days: intPtr(1), CouponDiscount: cents(35.64),
 		}).Error)
 		res := computeSettlement(o, db)
 		require.True(t, res.SegmentModel, "rent_days−renewal(2−1=1) 应启用段模型")
 		require.InDelta(t, 0.36, res.DiscountedRent, 1e-9)
 		require.InDelta(t, 1.36, res.DiscountedDue, 1e-9)
-		require.InDelta(t, 0.64, res.PayableShortfall, 1e-9, "补缴 1.36−0.72=0.64")
-		require.Zero(t, res.TotalRefund)
+		require.InDelta(t, 1.00, res.PayableShortfall, 1e-9, "毛额补缴 = 物流 1.00")
+		require.InDelta(t, 0.36, res.TotalRefund, 1e-9, "TotalRefund = 现金毛额（退 0.36）")
+		require.InDelta(t, -0.64, res.NetCash, 1e-9, "净额补缴 0.64")
 	})
 
 	t.Run("续费缺days-合同天数不可反推-回退1743", func(t *testing.T) {
@@ -353,6 +389,13 @@ func TestComputeSettlement_SegmentScenarios(t *testing.T) {
 		}
 		testfixtures.SeedOrderParents(t, db, &o) // #2443: strict schema order FKs
 		require.NoError(t, db.Create(&o).Error)
+		// #2281 账本为唯一事实源：fixture 必须落地合同租金流水（1008.00），
+		// 否则 ledger net 只剩续费 174.60 → 结算误判大额补缴。
+		require.NoError(t, db.Create(&models.OrderPaymentRecord{
+			TenantID: tenantID, UserID: userID, OrderID: &o.ID,
+			OrderType: "rent", Type: "payment", Status: "paid",
+			Amount: cents(1008.00),
+		}).Error)
 		require.NoError(t, db.Create(&models.OrderPaymentRecord{
 			TenantID: tenantID, UserID: userID, OrderID: &o.ID,
 			OrderType: "renewal", Type: "payment", Status: "paid",
@@ -415,7 +458,7 @@ func TestPayableTiers_TruncatedByActualDays(t *testing.T) {
 		Status:      models.OrderStatusReturning,
 		DeliveredAt: &delivered, ReturnedAt: &returned,
 		Deposit: 0, CashPaid: cents(0.72), ShippingFee: cents(0.01),
-		CouponDiscount: cents(35.64),
+		CouponDiscount: cents(71.28),
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":3600,"rent_days":2,"deposit":0,"total_amount":7200,
 			"pricing_tiers":[{"days_max":30,"daily_rate":3600,"discount_percent":0}],
 			"tier_segments":[{"tier":1,"days":2,"rate":3600,"discount":1,"subtotal":7200}]}`),
@@ -426,12 +469,12 @@ func TestPayableTiers_TruncatedByActualDays(t *testing.T) {
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{
 		TenantID: tenantID, UserID: userID, OrderID: &o.ID,
 		OrderType: "rent", Type: "payment", Status: "paid",
-		Amount: cents(0.36),
+		Amount: cents(0.36), CouponDiscount: cents(35.64),
 	}).Error)
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{
 		TenantID: tenantID, UserID: userID, OrderID: &o.ID,
 		OrderType: "renewal", Type: "payment", Status: "paid",
-		Amount: cents(0.36), Days: &days1,
+		Amount: cents(0.36), Days: &days1, CouponDiscount: cents(35.64),
 	}).Error)
 
 	res := computeSettlement(o, db)
@@ -449,7 +492,10 @@ func TestPayableTiers_TruncatedByActualDays(t *testing.T) {
 	// 折后口径顶层字段（fee_detail 透传的数据源）
 	require.Equal(t, true, res.Breakdown["segment_model"])
 	require.Equal(t, int64(37), res.Breakdown["discounted_due"], "折后 0.36 + 物流 0.01 = 0.37")
-	require.InDelta(t, 0.35, res.TotalRefund, 1e-9, "0.72 − 0.37 = 0.35 应退")
+	// #2424 Phase B：毛额退 0.36（券后应收 0.36 vs 实付 0.72），净额 0.36 − 物流 0.01 = 0.35。
+	require.InDelta(t, 0.36, res.TotalRefund, 1e-9, "TotalRefund = 现金毛额（退 0.36）")
+	require.InDelta(t, 0.01, res.PayableShortfall, 1e-9, "毛额补缴 = 物流 0.01")
+	require.InDelta(t, 0.35, res.NetCash, 1e-9, "净额应退 0.35")
 }
 
 // TestPayableTiers_FullTerm_NoOp (#1850 用例 C): actualDays=全租期时截断为
@@ -524,17 +570,23 @@ func TestSettlement_PostDamageStates(t *testing.T) {
 				LeaseTerm: 0, Status: status,
 				DeliveredAt: &delivered, ReturnedAt: &returned,
 				Deposit: 0, CashPaid: cents(0.72), ShippingFee: cents(0.01),
-				CouponDiscount: cents(35.64),
+				CouponDiscount: cents(71.28),
 				PricingBreakdown: str1743Ptr(`{"base_daily_rent":3600,"rent_days":2,"deposit":0,"total_amount":7200,
 					"pricing_tiers":[{"days_max":30,"daily_rate":3600,"discount_percent":0}],
 					"tier_segments":[{"tier":1,"days":2,"rate":3600,"discount":1,"subtotal":7200}]}`),
 			}
 			testfixtures.SeedOrderParents(t, db, &o) // #2443: strict schema order FKs
 			require.NoError(t, db.Create(&o).Error)
+			// #2424 Rev.6 D8：逐笔券额 35.64（合同 + 续费各一笔）。
+			require.NoError(t, db.Create(&models.OrderPaymentRecord{
+				TenantID: tenantID, UserID: userID, OrderID: &o.ID,
+				OrderType: "rent", Type: "payment", Status: "paid",
+				Amount: cents(0.36), CouponDiscount: cents(35.64),
+			}).Error)
 			require.NoError(t, db.Create(&models.OrderPaymentRecord{
 				TenantID: tenantID, UserID: userID, OrderID: &o.ID,
 				OrderType: "renewal", Type: "payment", Status: "paid",
-				Amount: cents(0.36), Days: &days1,
+				Amount: cents(0.36), Days: &days1, CouponDiscount: cents(35.64),
 			}).Error)
 			damage := models.Cents(100) // 定损赔偿 ¥1
 			require.NoError(t, db.Create(&models.DamageReport{
@@ -555,10 +607,15 @@ func TestSettlement_PostDamageStates(t *testing.T) {
 					Where("lease_id = ?", o.ID).Update("deposit_deducted", int64(100)).
 					Update("status", "agreed").Error)
 				res2 := computeSettlement(o, db)
-				require.InDelta(t, 0.65, res2.PayableShortfall, 1e-9, "0.37+1.00−0.72 = 0.65 补缴（裁决值）")
+				// #2424 Phase B：毛额 = 物流 0.01 + 定损 1.00；净额 −0.65（旧口径）。
+				require.InDelta(t, 1.01, res2.PayableShortfall, 1e-9, "毛额补缴 = 物流 0.01 + 定损 1.00")
+				require.InDelta(t, 0.36, res2.CashRefundable, 1e-9, "毛额退租金 0.36")
+				require.InDelta(t, -0.65, res2.NetCash, 1e-9, "净额补缴 0.65（裁决值）")
 			} else {
 				// pending/appealing：预扣 damage_amount → 净补缴 0.65
-				require.InDelta(t, 0.65, res.PayableShortfall, 1e-9, "预扣赔偿：0.37+1.00−0.72 = 0.65")
+				require.InDelta(t, 1.01, res.PayableShortfall, 1e-9, "毛额补缴 = 物流 0.01 + 预扣定损 1.00")
+				require.InDelta(t, 0.36, res.CashRefundable, 1e-9, "毛额退租金 0.36")
+				require.InDelta(t, -0.65, res.NetCash, 1e-9, "净额补缴 0.65")
 			}
 		})
 	}

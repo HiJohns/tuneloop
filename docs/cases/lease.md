@@ -888,6 +888,8 @@ steps:
 - **乐币比例取下单快照**（`points_policy_snapshot`），政策变更不溯既往；缺快照老单 fallback 最新并标 `legacy_policy`
 - **新单必须足额收款**：`cash_paid = 合同标价租金 − p_used + deposit`；历史少收单标 `legacy_underpaid`，不追溯
 - **净额结清的三条硬约束**：协议授权（押金可扣项须在《租用服务协议》明示）/ 争议不抵扣（申诉挂起）/ 账本分账户（净额只作用于现金动作）
+- **对外毛额 / 执行净额（#2424）**：API `cash_refundable` / `payable_shortfall` 为**毛额**；`net_cash` 为**执行口径**（>0 退款、<0 补缴、=0 直接 completed）；`settlements.cash_refundable` 存**实际退款净额**；`TotalRefund` = 乐币面值 + 现金毛额
+- **优惠券权威（#2424 Rev.6）**：逐笔 `order_payment_records.coupon_discount` 为权威（`orders.coupon_discount` 仅 legacy 按段原价占比兜底）；`R_after_coupon = rentPayable − usedCoupon`，`usedCoupon = Σ Usage[i]/Days[i] × segmentCoupon[i]`，乐币只走 `p_used`
 - **累计花销口径 = 实付现金租金（`rent_cash_due`，不含押金、不含乐币面值）**：防止乐币循环放大（行业惯例：按实付现金计）
 - **不再发放退款返点**（#1945 取消"退款返点给自己"，`refund_ratio`/`refund_rebate` 已移除）
 - 支付快照必须存 `pay_ratio`（修复：PointsPolicySnapshot 此前仅存 scope_type/scope_id，cap_rate 恒为 0）

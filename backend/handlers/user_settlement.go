@@ -1022,10 +1022,19 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	// ---- 前置：续费支付记录 / 首期天数 / 合同实付 / 定价策略 ----
 	var renewalRecs []renewalRec
 	if err := db.Model(&models.OrderPaymentRecord{}).
-		Select("amount, days, status").
+		Select("amount, days, status, coupon_discount").
 		Where("order_id = ? AND order_type = ? AND type = ? AND status = ?", order.ID, "renewal", "payment", "paid").
 		Order("created_at ASC").Scan(&renewalRecs).Error; err != nil {
 		log.Printf("[computeSettlement] failed to load renewal records for order %s: %v", order.ID, err)
+	}
+	// #2424 Rev.6 D8：券权威 = 逐笔支付流水的 coupon_discount。
+	var contractCouponCents int64
+	if err := db.Model(&models.OrderPaymentRecord{}).
+		Where("order_id = ? AND order_type = ? AND type = ? AND status IN ?",
+			order.ID, "rent", "payment", []string{"paid", "waived"}).
+		Select("COALESCE(SUM(coupon_discount), 0)").Row().Scan(&contractCouponCents); err != nil {
+		log.Printf("[computeSettlement] failed to load contract coupon for order %s: %v", order.ID, err)
+		contractCouponCents = 0
 	}
 	initialDays := order.LeaseTerm
 	if initialDays <= 0 {
@@ -1066,9 +1075,8 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	discountedDue := 0.0
 	var segmentUsage []int
 	couponRemainderYuan := 0.0 // #1902: 优惠码未折入段折扣的剩余抵扣额（元）
-	// #2424 Phase A：段模型内已折入租金的券额（元）。R_after_coupon 只扣券，
-	// 乐币（gift points）由 spec 的 p_used 单独承载，避免与 discountedRent 双重抵扣。
-	couponAppliedToRentYuan := 0.0
+	// #2424 Rev.6 D7：usedCoupon = Σ Usage[i]/Days[i] × segmentCoupon[i]（元）。
+	usedCouponYuan := 0.0
 	// 合同初始覆盖天数（#1838 二次修正 + #1837 共用）：orders.lease_term 为【月】语义
 	// （days/30，日租单=0），不可作为段模型输入。权威反推：pricing_breakdown.
 	// rent_days 被续费累加为"全部覆盖天数"（renewal.go）→ 合同初始天数 =
@@ -1102,13 +1110,22 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	if contractDays > 0 {
 		var segs []PaidSegment
 		var paidTotalCents int64
-		segs, paidTotalCents, segErr := makePaidSegments(contractDays, pricingTiers, baseDailyRentCents, contractRent, renewalRecs)
+		segs, paidTotalCents, segErr := makePaidSegments(contractDays, pricingTiers, baseDailyRentCents,
+			contractRent, contractCouponCents, renewalRecs, int64(order.CouponDiscount))
 		if segErr == nil {
 			if ds, dsErr := computeDiscountedSettlement(actualDays, segs, int64(math.Round(shippingFee*100)), paidTotalCents); dsErr == nil {
 				useDiscounted = true
 				discountedRent = float64(ds.DiscountedRent) / 100
 				discountedDue = float64(ds.DiscountedDue) / 100
 				segmentUsage = ds.Usage
+				usedCouponCents := int64(0)
+				for i := range segs {
+					if ds.Usage[i] > 0 && segs[i].Days > 0 {
+						usedCouponCents += int64(math.Round(float64(segs[i].CouponDiscountCents) *
+							float64(ds.Usage[i]) / float64(segs[i].Days)))
+					}
+				}
+				usedCouponYuan = float64(usedCouponCents) / 100
 				// #1902: 段折扣率只承载了优惠码中「折入租金」的部分；押金/物流等
 				// 非租金抵扣额不在段模型内 → 未折入部分继续抵扣净额补缴，
 				// 余额不产生退款（OREZ 整单免 → 不退也不补，#1743 第四轮口径）。
@@ -1116,7 +1133,6 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 				for _, seg := range segs {
 					couponAppliedToRentCents += int64(math.Round(float64(seg.OriginalDaily) * float64(seg.Days) * (1 - seg.Rate)))
 				}
-				couponAppliedToRentYuan = float64(couponAppliedToRentCents) / 100
 				couponRemainder := (order.CouponDiscount.ToYuan()*100 - float64(couponAppliedToRentCents)) / 100
 				if couponRemainder > 0 {
 					couponRemainderYuan = couponRemainder
@@ -1227,33 +1243,27 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	contractListCents := int64(0)
 	if hasVersions && versionTotal > 0 {
 		contractListCents = int64(versionTotal)
-	} else if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
-		var pb map[string]interface{}
-		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
-			if v, ok := pb["total_amount"].(float64); ok {
-				contractListCents = int64(math.Round(v))
-			}
-		}
-	}
-	if contractListCents == 0 {
+	} else {
 		segSubtotalCents := 0.0
 		for _, ts := range tierSegments {
 			segSubtotalCents += ts.Subtotal * 100
 		}
 		contractListCents = int64(math.Round(segSubtotalCents))
+		if contractListCents == 0 && order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+			var pb map[string]interface{}
+			if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
+				if v, ok := pb["total_amount"].(float64); ok {
+					contractListCents = int64(math.Round(v))
+				}
+			}
+		}
 	}
-	// R_after_coupon = 标价租金 − 券抵扣（券由 CouponDiscount 承载；乐币走 p_used）。
-	// 段模型的 discountedRent / couponAppliedToRent 同时含乐币折扣（Rate=实付/标价），
-	// 直接用会与 p_used 双重抵扣；券抵扣以 CouponDiscount 为上界取较小者。
-	// 校验：#2339 fixture（R1=2800、现金 2000、乐币 1000、押金 500）→ net ¥40。
-	couponRentYuan := couponAppliedToRentYuan
-	if coupon := order.CouponDiscount.ToYuan(); coupon < couponRentYuan {
-		couponRentYuan = coupon
-	}
-	if couponRentYuan < 0 {
-		couponRentYuan = 0
-	}
-	afterCouponYuan := rentPayable - couponRentYuan
+	// #2424 Rev.6 D7：R_after_coupon = 标价租金 − usedCoupon。
+	// usedCoupon 由逐笔支付流水的券额按 PaidSegment.Usage 分配到实际使用段；
+	// discountedRent / couponAppliedToRent 同时含乐币，禁止作为券额（会与 p_used 双重抵扣）。
+	// 校验：#2339 fixture（R1=2800、现金 2000、乐币 1000、押金 500）→ net ¥40；
+	// SegmentScenarios 场景1（券 35.64/笔、实租 1 天）→ R_after 36 分。
+	afterCouponYuan := rentPayable - usedCouponYuan
 	if !useDiscounted {
 		afterCouponYuan = rentPayable * couponRatioForSpec
 	}

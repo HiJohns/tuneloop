@@ -400,8 +400,11 @@ func TestSettlement_UserScenarioB_NoDepositNoCoupon(t *testing.T) {
 	result := computeSettlement(order, db)
 
 	require.Equal(t, 100.0, result.RentPayable)
-	require.Equal(t, 140.0, result.TotalRefund, "refund = 340 − 100 − 100 (物流费在押金为 0 时仍全额扣除)")
-	require.Equal(t, 0.0, result.PayableShortfall)
+	// #2424 Phase B：毛额 = 租金多付 240；净额 = 240 − 物流 100 = 140（旧口径）。
+	require.InDelta(t, 240.0, result.TotalRefund, 0.01, "TotalRefund = 现金毛额（退 240）")
+	require.InDelta(t, 240.0, result.CashRefundable, 0.01)
+	require.InDelta(t, 100.0, result.PayableShortfall, 0.01, "毛额补缴 = 物流 100（押金 0 全额转补缴）")
+	require.InDelta(t, 140.0, result.NetCash, 0.01, "净额应退 140")
 }
 
 // TestSettlement_UserScenarioC_Overdue_Shortfall (#1743 用户验证例 C):

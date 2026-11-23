@@ -45,17 +45,23 @@ func settle1855Order(t *testing.T, db *gorm.DB, supplementCoupon int64) models.O
 		Status:      models.OrderStatusCompleted, // damage waived 后 completed 再结算（applySideEffects 路径）
 		DeliveredAt: &delivered, ReturnedAt: &returned,
 		Deposit: 0, CashPaid: cents(0.72), ShippingFee: cents(0.01),
-		CouponDiscount: cents(35.64),
+		CouponDiscount: cents(71.28),
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":3600,"rent_days":2,"deposit":0,"total_amount":7200,
 			"pricing_tiers":[{"days_max":30,"daily_rate":3600,"discount_percent":0}],
 			"tier_segments":[{"tier":1,"days":2,"rate":3600,"discount":1,"subtotal":7200}]}`),
 	}
 	testfixtures.SeedOrderParents(t, db, &order) // #2443: strict schema order FKs
 	require.NoError(t, db.Create(&order).Error)
+	// #2424 Rev.6 D8：逐笔券额 35.64（合同 + 续费各一笔）。
+	require.NoError(t, db.Create(&models.OrderPaymentRecord{
+		TenantID: tenantID, UserID: userID, OrderID: &order.ID,
+		OrderType: "rent", Type: "payment", Status: "paid",
+		Amount: cents(0.36), CouponDiscount: cents(35.64),
+	}).Error)
 	require.NoError(t, db.Create(&models.OrderPaymentRecord{
 		TenantID: tenantID, UserID: userID, OrderID: &order.ID,
 		OrderType: "renewal", Type: "payment", Status: "paid",
-		Amount: cents(0.36), Days: &days1,
+		Amount: cents(0.36), Days: &days1, CouponDiscount: cents(35.64),
 	}).Error)
 
 	// 定损 agreed：裁决落库 DepositDeducted=¥1.00（completed 态结算读取该值）
@@ -91,15 +97,19 @@ func TestComputeSettlement_SupplementWaive_CancelsShortfall(t *testing.T) {
 	orderWith := settle1855Order(t, db, 65)
 	resWith := computeSettlement(orderWith, db)
 	require.True(t, resWith.SegmentModel)
-	require.InDelta(t, 0.0, resWith.PayableShortfall, 1e-9,
+	// #2424 Phase B：毛额退 0.36 / 补 0.36 → net 0（waived coupon 65 计入已付）。
+	require.InDelta(t, 0.36, resWith.CashRefundable, 1e-9, "毛额退租金 0.36")
+	require.InDelta(t, 0.36, resWith.PayableShortfall, 1e-9, "毛额补缴 = 物流 0.01 + 定损 1.00 − waived 0.65")
+	require.InDelta(t, 0.0, resWith.NetCash, 1e-9,
 		"waived coupon 65 计入已付 → 0.37+1.00−(0.72+0.65)=0，不得再生成补缴")
-	require.InDelta(t, 0.0, resWith.TotalRefund, 1e-9)
+	require.InDelta(t, 0.36, resWith.TotalRefund, 1e-9)
 
 	// 修复前行为锁定：同形状但 coupon 未入账（coupon_discount=0）→ 0.65 补缴
 	orderWithout := settle1855Order(t, db, 0)
 	resWithout := computeSettlement(orderWithout, db)
-	require.InDelta(t, 0.65, resWithout.PayableShortfall, 1e-9,
-		"discriminator：coupon 不入账时补缴 0.65（修复前死循环值）")
+	require.InDelta(t, 1.01, resWithout.PayableShortfall, 1e-9,
+		"discriminator：coupon 不入账时毛额补缴 1.01（净额 0.65，修复前死循环值）")
+	require.InDelta(t, -0.65, resWithout.NetCash, 1e-9)
 }
 
 // TestApplySideEffects_DamageWaive_NoRollback (#1855 §四.1 E2E):
@@ -159,9 +169,12 @@ func TestApplySideEffects_DamageWaive_NoRollback(t *testing.T) {
 			require.Equal(t, "completed", settlement.RefundStatus, "零退款结算直接闭环")
 			var bd struct {
 				PayableShortfall float64 `json:"payable_shortfall"`
+				NetCash          float64 `json:"net_cash"`
 			}
 			require.NoError(t, json.Unmarshal([]byte(settlement.Breakdown), &bd))
-			require.InDelta(t, 0.0, bd.PayableShortfall, 1e-9, "落库 breakdown 无补缴残留")
+			// #2424 Phase B：breakdown 落毛额（分）；执行/闭环看 net_cash。
+			require.InDelta(t, 36.0, bd.PayableShortfall, 1e-9, "毛额补缴 36 分")
+			require.InDelta(t, 0.0, bd.NetCash, 1e-9, "净额 0：无补缴残留")
 		})
 	}
 }
