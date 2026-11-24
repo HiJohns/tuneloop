@@ -1290,9 +1290,18 @@ func (c *IAMClient) UnbindUserFromOrganization(userID, orgID, operatorID string)
 	return nil
 }
 
+// UpdateUserRoleRequest is the JSON body contract for the IAM org-role endpoint.
+// #2461: beaconiam (a7e2845) binds the role from the JSON body on PUT; Echo's
+// default binder does not read the query string for PUT, so the previous
+// `?role=` form always produced 400 "role is required".
+type UpdateUserRoleRequest struct {
+	Role string `json:"role"`
+}
+
 func (c *IAMClient) UpdateUserRoleInOrg(orgID, userID, role string) error {
-	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/role?role=%s", orgID, userID, role)
-	respBody, statusCode, err := c.doRequest("PUT", path, nil)
+	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/role", orgID, userID)
+	req := &UpdateUserRoleRequest{Role: role}
+	respBody, statusCode, err := c.doRequest("PUT", path, req)
 	if err != nil {
 		return fmt.Errorf("UpdateUserRole request failed: %w", err)
 	}
@@ -1456,8 +1465,9 @@ func (c *IAMClient) UnbindUserFromOrganizationWithToken(token, userID, orgID, op
 }
 
 func (c *IAMClient) UpdateUserRoleInOrgWithToken(token, orgID, userID, role string) error {
-	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/role?role=%s", orgID, userID, role)
-	respBody, statusCode, err := c.doRequestWithToken("PUT", path, token, nil)
+	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/role", orgID, userID)
+	req := &UpdateUserRoleRequest{Role: role}
+	respBody, statusCode, err := c.doRequestWithToken("PUT", path, token, req)
 	if err != nil {
 		return fmt.Errorf("UpdateUserRoleWithToken request failed: %w", err)
 	}

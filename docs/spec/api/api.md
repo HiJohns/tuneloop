@@ -360,6 +360,7 @@ H5 未捕获 JS 错误（`window.onerror` / `unhandledrejection`）上报，仅�
 Body：`{ role: "<主角色>", roles: ["<角色>", ...] }`（`roles` 可选；缺省时 `roles=[role]`；仅传 `role` 的**旧调用行为不变**）
 - 主角色 `role` = `roles[0]`；本地 `site_members.roles` 存全集；IAM 逐角色分配模板，`functional_roles` 为全集
 - 响应：成功 `20000`；`role_errors`（若有）随响应透出
+- **IAM 失败语义（#2461）**：主角色同步（IAM `PUT /organizations/{org}/users/{user}/role`，**JSON body** `{"role":"..."}`）失败 → `502` + code `50000`，且**不写本地**；模板/附加权限失败 → `200` + `role_errors`（沿用 #2375），本地主角色照常更新，禁止静默降级
 
 #### 邀请制加入（#2031 → #2216 改**定向邀请制**，一人一号）
 

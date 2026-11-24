@@ -12,11 +12,15 @@
 
 Tuneloop 的 `IAMClaims` 结构体中同时有 `Oid` 和 `Gid`。`Gid` 在 IAM JWT 中不存在，应废弃。
 
-### UpdateUserRoleInOrg 参数格式
+### UpdateUserRoleInOrg 参数格式（2026-11-24 已切换为 JSON body，#2461）
 
-- beaconiam #313 计划将端点改为接受 JSON body `{"role": "ADMIN"}`
-- 当前 tuneloop 发送 query param `?role=ADMIN` 作为过渡
-- 等 beaconiam 部署 JSON body 支持后，tuneloop 需切回 JSON body
+- beaconiam `a7e2845` 起，`PUT /api/v1/organizations/{org}/users/{user}/role` 只从 **JSON body** `{"role":"STAFF"}` 绑定角色（Echo `DefaultBinder` 对 PUT **不解析 query**）。
+- tuneloop 客户端已对齐：`UpdateUserRoleInOrg` / `UpdateUserRoleInOrgWithToken` 只发 JSON body，**不再携带 `?role=`**；继续用 query 会稳定收到 400 `role is required`（表现为「本地改了、IAM 没改」的权限漂移）。
+- 失败语义分级（#2461 D2）：
+  - **主角色同步失败 = fail-fast**：`PUT /sites/:id/members/:uid` 返回 502/50000 且**不写本地**；
+  - **模板/附加权限失败 = 可见**：HTTP 200 + 响应 `data.role_errors` 非空（沿用 #2375 契约），本地主角色照常更新；
+  - 换商户管理员 = 补偿式全成败：bind 新 → demote 旧；demote 失败则解绑新管理员并 502；补偿也失败 → 500 + `CRITICAL` 日志（禁止静默）。
+- **部署顺序**：beaconiam 必须先包含 `a7e2845`，再发布 tuneloop；否则角色同步仍会 400。预生产实测（日志出现 `Updated user role with user token` 且 IAM `user_org_relations.role` 变化）由部署侧回执承担。
 
 ## 身份模型：一人一记录 + 顾客角色 + 组织上下文（#2025 / #2026 / #2027 B1）
 

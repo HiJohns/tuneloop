@@ -585,18 +585,28 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 		oldAdmin = ""
 	}
 
+	// #2461 D3：换管理员 = 补偿式全成败（bind 新 → demote 旧；demote 失败则解绑新并 502）。
+	adminWarning := ""
 	if newAdmin != oldAdmin {
 		iamClient := services.NewIAMClient()
 		operatorID := middleware.GetUserID(c.Request.Context())
 		userToken := services.ExtractUserToken(c)
 
+		newBound := false
+		var newUser models.User
+
 		// Bind new admin if provided (bind first per #618 best practice)
 		if input.AdminUID != "" && input.AdminUID != nilUUID && merchant.OrgID != "" {
-			var newUser models.User
 			if err := database.GetDB().Where("id = ?", input.AdminUID).First(&newUser).Error; err == nil && newUser.IAMSub != "" {
 				if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, newUser.IAMSub, merchant.OrgID, "OWNER", operatorID); bindErr != nil {
+					// #2461：bind 失败不得只 log —— 通过 admin_pending + admin_sync_warning 显式可见。
 					log.Printf("[UpdateMerchant] Failed to bind new admin %s: %v", newUser.IAMSub, bindErr)
+					adminWarning = "新管理员绑定 IAM 失败：" + bindErr.Error()
+				} else {
+					newBound = true
 				}
+				merchant.AdminPending = true
+			} else {
 				merchant.AdminPending = true
 			}
 		}
@@ -607,6 +617,22 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 			if err := database.GetDB().Where("id = ?", merchant.AdminUID).First(&oldUser).Error; err == nil && oldUser.IAMSub != "" {
 				if demoteErr := iamClient.UpdateUserRoleInOrgWithToken(userToken, merchant.OrgID, oldUser.IAMSub, "USER"); demoteErr != nil {
 					log.Printf("[UpdateMerchant] Failed to demote old admin %s: %v", oldUser.IAMSub, demoteErr)
+					// 补偿：解绑刚绑定的新管理员，保证「换管理员」全成败
+					if newBound {
+						if unbindErr := iamClient.UnbindUserFromOrganizationWithToken(userToken, newUser.IAMSub, merchant.OrgID, newUser.IAMSub); unbindErr != nil {
+							log.Printf("[UpdateMerchant] CRITICAL: compensation unbind failed new_admin=%s org=%s: %v", newUser.IAMSub, merchant.OrgID, unbindErr)
+							c.JSON(http.StatusInternalServerError, gin.H{
+								"code":    50000,
+								"message": "换管理员失败（旧管理员降级失败且新管理员解绑失败），请联系管理员人工核对 IAM 组织关系",
+							})
+							return
+						}
+					}
+					c.JSON(http.StatusBadGateway, gin.H{
+						"code":    50000,
+						"message": "换管理员失败（旧管理员降级失败），请重试",
+					})
+					return
 				}
 			}
 		}
@@ -629,10 +655,15 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	resp := gin.H{
 		"code": 20000,
 		"data": merchant,
-	})
+	}
+	// #2461：新管理员 bind 失败时除 admin_pending 外还要有显式告警字段（禁止只 log）。
+	if adminWarning != "" {
+		resp["admin_sync_warning"] = adminWarning
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 // DeleteMerchant DELETE /api/merchants/:id - Delete merchant

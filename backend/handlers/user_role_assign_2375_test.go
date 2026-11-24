@@ -74,10 +74,15 @@ func setupRoleMock2375WithRoleStatus(t *testing.T, rec *iamRoleMock2375, templat
 					orgID = parts[i+1]
 				}
 			}
+			// #2461：客户端契约改为 JSON body（beaconiam a7e2845）；role 不再来自 query。
+			var roleReq struct {
+				Role string `json:"role"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&roleReq)
 			rec.mu.Lock()
 			rec.roleCalls++
 			rec.lastOrgID = orgID
-			rec.lastRole = r.URL.Query().Get("role")
+			rec.lastRole = roleReq.Role
 			rec.mu.Unlock()
 			if rec.roleStatus != http.StatusOK {
 				w.WriteHeader(rec.roleStatus)
