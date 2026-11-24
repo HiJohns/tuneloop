@@ -1,0 +1,33 @@
+{
+  "request_id": "2461-20261124T011000Z",
+  "fix_commit": "573df4d0ce51b0c884fd609c8f8976ef4d135e1e",
+  "ts": "2026-11-24T01:57:29Z",
+  "result": "PASS",
+  "commands": [
+    {
+      "index": 1,
+      "command": "cd backend && go build ./...",
+      "exit": 0,
+      "log": "command-1.log"
+    },
+    {
+      "index": 2,
+      "command": "cd backend && go test ./handlers -count=1 -timeout 15m",
+      "exit": 0,
+      "log": "command-2.log"
+    },
+    {
+      "index": 3,
+      "command": "cd backend && go test ./services -count=1 -timeout 15m",
+      "exit": 0,
+      "log": "command-3.log"
+    }
+  ],
+  "full_gate": {
+    "artifact": "full-gate.txt",
+    "exit": 0,
+    "fail_count": 0,
+    "panic_count": 0
+  },
+  "lock": "heavy-lock host (serialized with other suites)"
+}
