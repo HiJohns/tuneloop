@@ -128,7 +128,7 @@ row_services() {
 case "$ROW" in
     r1)
         row_handlers "R1-iam-first.txt" '^TestUpdateSite_WritesIAMBeforeLocal_2457$' \
-            "IAM_CALLS=1" "ORDER=iam_before_local" "NO_DRIFT=1"
+            "IAM_CALLS=1" "ORDER=iam_before_local" "NO_DRIFT=1" 'IAM_BODY={"name":"B"}' "LOCAL_NAME=C"
         ;;
     r2)
         row_handlers "R2-iam-fail.txt" '^TestUpdateSite_IAMFailureKeepsLocal_2457$' \
