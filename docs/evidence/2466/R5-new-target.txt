@@ -1,0 +1,15 @@
+# build=1.0.8d73aec29 # commit=8d73aec29ab0f467c24854648b1a286b94395966 # dirty=false
+# tree=6beda35d9ef93f70598aef362fec285147e8ea39
+[DEBUG] Loaded .env from: ../.env
+2026/11/24 15:01:55 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2466 sslmode=disable
+2026/11/24 15:01:56 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2466
+2026/11/24 15:01:56 [DB] Connected to database 'tuneloop_test_2466'
+=== RUN   TestSiteTransfer_NewTarget_2466
+2026/11/24 15:01:56 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2466 sslmode=disable
+2026/11/24 15:01:56 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2466
+2026/11/24 15:01:56 [DB] Connected to database 'tuneloop_test_2466'
+2026/11/24 15:01:56 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:37959, clientID=test-ns, namespace=test-ns
+    user_site_transfer_2466_test.go:303: ROWS_AFTER=2 PRIMARY_SITE=C OTHER_SITE_UNCHANGED=B
+--- PASS: TestSiteTransfer_NewTarget_2466 (0.10s)
+PASS
+ok  	tuneloop-backend/handlers	0.647s

@@ -7243,3 +7243,14 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 - 网点流转：body 支持 `mode=transfer|multi_site`；缺省 **`transfer`**，`multi_site` 仅商户管理员可选。
 - 无邮箱重置：本单不新增直设端点；前端统一提示，直设执行归 #2374。已有邮箱重置端点不变。
 - 错误码：`40300` 无权限；`40900` 重复申请；`40911` 跨租户冲突；`40404` 目标不存在。
+
+
+### `PUT /api/users/:id` 的 `site_id` 语义（#2466）
+
+- `site_id` 表示员工「归属网点」；保存时按 `site_members` 主行做迁移：
+  已隶属目标 → 删除旧主行；未隶属 → 迁移旧主行；无行 → 插入。
+- **仅当目标网点所属组织（org）变化时**才重绑 IAM（unbind 旧 org → bind 新 org，角色由主行角色映射：`site_admin→ADMIN`、`site_member/merchant_staff→STAFF`），并按主行 `roles` 重建 `functional_roles`。
+- 错误码：
+  - `40001`：目标网点不存在/跨租户/非 active；
+  - `50200`（HTTP 502，body `code=50000`）：IAM 重绑或模板同步失败，本地不变（含「切换网点失败」）；
+  - `50000`（HTTP 500）：IAM 补偿失败，需人工核对组织关系。

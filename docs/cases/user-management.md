@@ -195,3 +195,15 @@ pending_approval → pending（已发邀请） → accepted
 - 有邮箱：行内与批量均发送邮件重置。
 - 无邮箱（#2374 完成前）：行内/批量统一弹框——标题「该账号未配置邮箱」，正文「无法通过邮件重置密码。请由商户管理员在成员详情中直接设置临时密码（功能对接中）。」，仅「知道了」；**不得发 reset-password 请求**，不得提示已发送。
 - 批量混合：有邮箱的正常发送；无邮箱列入 `skipped_no_email` 并明示。
+
+### 编辑员工切换归属网点（#2466）
+
+- 「归属网点」以 `site_members` 主行为事实源（`sites.created_at ASC, site_members.created_at ASC` 首行）。
+- 保存 `PUT /users/:id` 且 `site_id` 与主网点不同时：
+  - 用户已隶属目标网点 → 删除旧主行（主网点切换，不产生唯一键冲突）；
+  - 否则迁移旧主行 `site_id` 到目标网点（保留 role/roles）；
+  - 无 `site_members` 行 → 按 `users.role`（缺省 `site_member`）插入目标网点行。
+- 仅在组织（org）变化时重绑 IAM：`unbind(旧 org)` → `bind(新 org, toIAMRole(主行角色))`（`site_admin→ADMIN`、`site_member/merchant_staff→STAFF`）→ 按角色模板设置客户权限 → 按主行 `roles` 集合重建 `functional_roles`。
+- 失败语义（禁止半态）：任一 IAM 步骤失败 → HTTP 502 +「切换网点失败：…」，本地 `users.org_id` 与 `site_members` 均不变；已完成的 IAM 步骤尽力补偿，补偿失败 → HTTP 500 +「请联系管理员人工核对 IAM 组织关系」+ CRITICAL 日志。
+- 审计日志：`user.site_transfer`（`from_site`/`to_site`/`from_org`/`to_org`/`iam_role`）。
+- 目标网点不存在/跨租户/非 active → `400/40001`。
