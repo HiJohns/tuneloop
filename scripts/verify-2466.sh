@@ -24,9 +24,12 @@ export TMPDIR="${TMPDIR:-$REPO/tmp/gobuild}" GOCACHE="${GOCACHE:-$REPO/tmp/gocac
 if [ -f "$REPO/backend/.env" ]; then set -a; . "$REPO/backend/.env"; set +a; fi
 export TUNELOOP_TEST_DB="${TUNELOOP_TEST_DB:-tuneloop_test_2466}" IAM_NAMESPACE="${IAM_NAMESPACE:-test-ns}" IAM_SECRET="${IAM_SECRET:-test-secret-1489}" TUNELOOP_DB_SIMPLE_PROTOCOL=1
 
-HEAD_SHA="$(git rev-parse HEAD)"; HEAD_SHORT="$(git rev-parse --short HEAD)"
+HEAD_SHA="$(git rev-parse HEAD)"
+FIX_SHA="$(git rev-parse "${FIX_REF:-HEAD}")"
+git merge-base --is-ancestor "$FIX_SHA" "$HEAD_SHA" || { echo "FATAL: FIX_REF not ancestor" >&2; exit 3; }
+FIX_SHORT="$(git rev-parse --short "$FIX_SHA")"
 DIRTY=false; [ -n "$(git status --porcelain -uall)" ] && DIRTY=true
-PROV="# build=1.0.$HEAD_SHORT commit=$HEAD_SHA dirty=$DIRTY"
+PROV="# build=1.0.$FIX_SHORT commit=$FIX_SHA dirty=$DIRTY tree=$HEAD_SHA"
 
 case "$MODE" in
   r1|r2|r3|r4|r5|r6|r7|r8)
