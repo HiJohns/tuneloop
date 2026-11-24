@@ -579,7 +579,27 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 		userToken := services.ExtractUserToken(c)
 
 		// D8（Owner O3）：namespace 内唯一预检（IAM 侧尚无唯一索引，见 tracking Issue）。
-		conflictOrgID, listErr := findOrganizationNameConflict(iamClient, userToken, merchant.OrgID, newName)
+		// 先做本地跨商户兜底（廉价、不依赖 IAM 可见性），再用服务凭据查 IAM 全 namespace。
+		localConflictID, localErr := findLocalMerchantNameConflict(c.Request.Context(), merchant.ID, newName)
+		if localErr != nil {
+			log.Printf("[UpdateMerchant] failed to verify merchant name uniqueness locally org_id=%s: %v", merchant.OrgID, localErr)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "无法校验商户名唯一性（本地）: " + localErr.Error(),
+			})
+			return
+		}
+		if localConflictID != "" {
+			log.Printf("[UpdateMerchant] merchant name conflict (local) org_id=%s conflict_merchant=%s name=%q",
+				merchant.OrgID, localConflictID, newName)
+			c.JSON(http.StatusConflict, gin.H{
+				"code":    40900,
+				"message": "商户名在命名空间内已存在",
+			})
+			return
+		}
+
+		conflictOrgID, listErr := findOrganizationNameConflict(iamClient, merchant.OrgID, newName)
 		if listErr != nil {
 			log.Printf("[UpdateMerchant] failed to verify merchant name uniqueness org_id=%s: %v", merchant.OrgID, listErr)
 			c.JSON(http.StatusBadGateway, gin.H{
@@ -771,8 +791,13 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 // （lower + trim 归一）的其它组织，返回其 org_id；无冲突返回空串。
 // #2459 D8（Owner O3）：IAM 侧尚无 (namespace_id, lower(name)) 唯一索引，
 // tuneloop 在改名前置预检覆盖常规路径；并发绕过由 beaconiam 跟踪 Issue 收敛。
-func findOrganizationNameConflict(client *services.IAMClient, userToken, ownOrgID, newName string) (string, error) {
-	orgs, err := listOrganizationsForRename(client, userToken)
+//
+// 必须用**服务凭据**（namespace 级可见性）读取列表：#2459 审计阻断项 A —— 调用者
+// 令牌会被 IAM ListOrgs 的 visibility scope 裁剪（商户管理员只看到本商户子树），
+// 跨商户同名会被放行；SelfOnly 角色下用户令牌列表直接 403，改名被误判为故障。
+// 权限判定仍由 IAM 在真正的改名 PUT 上完成（D7 不变）。
+func findOrganizationNameConflict(client *services.IAMClient, ownOrgID, newName string) (string, error) {
+	orgs, err := client.ListOrganizations()
 	if err != nil {
 		return "", err
 	}
@@ -789,13 +814,31 @@ func findOrganizationNameConflict(client *services.IAMClient, userToken, ownOrgI
 	return "", nil
 }
 
-// listOrganizationsForRename 读取同 namespace 组织列表：有调用者令牌时用其令牌，
-// 否则退回服务凭据（与 UpdateOrganizationName* 的令牌选择口径一致）。
-func listOrganizationsForRename(client *services.IAMClient, userToken string) ([]services.Organization, error) {
-	if strings.TrimSpace(userToken) == "" {
-		return client.ListOrganizations()
+// findLocalMerchantNameConflict 是 namespace 内唯一性的本地兜底预检：
+// IAM 列表受可见性/分页/故障影响可能漏掉对方组织，而同 namespace 的其它商户在本地
+// merchants 表里一定可见（#2459 审计建议 2，双保险）。
+//
+// 这里显式跳过自动 tenant 过滤（ExplicitTenantScopeOnly）：本次查询的目的正是跨
+// tenant 比较同 namespace 的商户名，且只回报「是否重名」，不返回其它字段。
+func findLocalMerchantNameConflict(ctx context.Context, excludeMerchantID, newName string) (string, error) {
+	target := strings.ToLower(strings.TrimSpace(newName))
+	excludeMerchantID = strings.TrimSpace(excludeMerchantID)
+	if target == "" || excludeMerchantID == "" {
+		return "", nil
 	}
-	return client.ListOrganizationsWithToken(userToken)
+	var hit models.Merchant
+	err := database.GetDB().WithContext(database.ExplicitTenantScopeOnly(ctx)).
+		Model(&models.Merchant{}).
+		Select("id").
+		Where("id <> ?", excludeMerchantID).
+		Where("lower(btrim(name)) = ?", target).
+		Order("created_at ASC").
+		Limit(1).
+		Find(&hit).Error
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(hit.ID), nil
 }
 
 // DeleteMerchant DELETE /api/merchants/:id - Delete merchant

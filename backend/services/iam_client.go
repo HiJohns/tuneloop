@@ -457,57 +457,75 @@ func (c *IAMClient) getNamespaceID() (string, error) {
 	return ns.ID, nil
 }
 
-// ListOrganizations gets all organizations under the configured namespace
-func (c *IAMClient) ListOrganizations() ([]Organization, error) {
+// iamOrgListPageSize 是 /api/v1/organizations 的单页大小；分页上限防止 IAM
+// 忽略 page 参数时无限循环（100 页 = 10 万组织，远超单 namespace 规模）。
+const (
+	iamOrgListPageSize = 1000
+	iamOrgListMaxPages = 100
+)
+
+// listOrganizations 分页读取同 namespace 的组织列表（#2459 审计：单页 page_size=1000
+// 且不翻页会在组织数 >1000 时漏组织，使唯一性预检不完整）。
+// token 为空 → 服务凭据（namespace 级可见性）；非空 → 调用者令牌（受 IAM
+// visibility scope 裁剪，只用于本就需要按调用者视角展示的场景）。
+func (c *IAMClient) listOrganizations(token string) ([]Organization, error) {
 	nsID, err := c.getNamespaceID()
 	if err != nil {
-		return nil, fmt.Errorf("ListOrganizations: failed to resolve namespace: %w", err)
+		return nil, fmt.Errorf("listOrganizations: failed to resolve namespace: %w", err)
 	}
 
-	path := fmt.Sprintf("/api/v1/organizations?namespace_id=%s&page_size=1000", nsID)
-	respBody, statusCode, err := c.doRequest("GET", path, nil)
-	if err != nil {
-		return nil, fmt.Errorf("ListOrganizations request failed: %w", err)
-	}
+	all := make([]Organization, 0, iamOrgListPageSize)
+	for page := 1; page <= iamOrgListMaxPages; page++ {
+		path := fmt.Sprintf("/api/v1/organizations?namespace_id=%s&page=%d&page_size=%d",
+			nsID, page, iamOrgListPageSize)
 
-	if statusCode != http.StatusOK {
-		return nil, fmt.Errorf("ListOrganizations returned status %d: %s", statusCode, string(respBody))
-	}
+		var (
+			respBody   []byte
+			statusCode int
+			reqErr     error
+		)
+		if token == "" {
+			respBody, statusCode, reqErr = c.doRequest("GET", path, nil)
+		} else {
+			respBody, statusCode, reqErr = c.doRequestWithToken("GET", path, token, nil)
+		}
+		if reqErr != nil {
+			return nil, fmt.Errorf("listOrganizations request failed: %w", reqErr)
+		}
+		if statusCode != http.StatusOK {
+			return nil, fmt.Errorf("listOrganizations returned status %d: %s", statusCode, string(respBody))
+		}
 
-	var result struct {
-		Organizations []Organization `json:"organizations"`
-	}
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, fmt.Errorf("failed to parse ListOrganizations response: %w", err)
-	}
+		var result struct {
+			Organizations []Organization `json:"organizations"`
+			Total         int64          `json:"total"`
+			Page          int            `json:"page"`
+			PageSize      int            `json:"page_size"`
+		}
+		if err := json.Unmarshal(respBody, &result); err != nil {
+			return nil, fmt.Errorf("failed to parse listOrganizations response: %w", err)
+		}
 
-	return result.Organizations, nil
+		all = append(all, result.Organizations...)
+		// 短页或已达 total → 结束；否则继续翻页。
+		if len(result.Organizations) < iamOrgListPageSize || int64(len(all)) >= result.Total {
+			return all, nil
+		}
+	}
+	return all, nil
 }
 
+// ListOrganizations gets all organizations under the configured namespace
+// using service credentials (namespace-wide visibility).
+func (c *IAMClient) ListOrganizations() ([]Organization, error) {
+	return c.listOrganizations("")
+}
+
+// ListOrganizationsWithToken lists organizations as seen by the end-user token
+// (IAM visibility scope applies). Use it only where the caller's own view is
+// required; namespace-wide checks must use ListOrganizations.
 func (c *IAMClient) ListOrganizationsWithToken(token string) ([]Organization, error) {
-	nsID, err := c.getNamespaceID()
-	if err != nil {
-		return nil, fmt.Errorf("ListOrganizationsWithToken: failed to resolve namespace: %w", err)
-	}
-
-	path := fmt.Sprintf("/api/v1/organizations?namespace_id=%s&page_size=1000", nsID)
-	respBody, statusCode, err := c.doRequestWithToken("GET", path, token, nil)
-	if err != nil {
-		return nil, fmt.Errorf("ListOrganizationsWithToken request failed: %w", err)
-	}
-
-	if statusCode != http.StatusOK {
-		return nil, fmt.Errorf("ListOrganizationsWithToken returned status %d: %s", statusCode, string(respBody))
-	}
-
-	var result struct {
-		Organizations []Organization `json:"organizations"`
-	}
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, fmt.Errorf("failed to parse ListOrganizationsWithToken response: %w", err)
-	}
-
-	return result.Organizations, nil
+	return c.listOrganizations(token)
 }
 
 // GetOrganization fetches a single organization by ID from IAM.

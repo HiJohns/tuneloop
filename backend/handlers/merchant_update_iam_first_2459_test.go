@@ -49,20 +49,27 @@ const (
 // fakeIAMMerchant2459 是 UpdateMerchant 用例的最小 IAM：
 // token 端点 + namespace 解析 + 同 namespace 组织列表 + PUT organizations/:id。
 // 只有 PUT 计入「改名调用」（IAM_CALLS）；列表调用单独计数（LIST_CALLS）。
+//
+// #2459 审计（阻断项 A）：GET /organizations 必须按 Authorization 区分可见性 ——
+// 服务凭据（namespace 级）看到 userOrgs 之外的全部组织，用户令牌只看到
+// userOrgs（模拟 IAM ListOrgs 的 VisibleOrgIDs 裁剪，或 SelfOnly → 403）。
 type fakeIAMMerchant2459 struct {
-	srv         *httptest.Server
-	mu          sync.Mutex
-	putCalls    int
-	listCalls   int
-	tokenCalls  int
-	lastBody    string
-	lastPath    string
-	lastAuth    string
-	putStatus   int
-	statusFor   map[string]int // Authorization 后缀 → 状态码（R4 的 403→200）
-	orgs        []services.Organization
-	onPut       func()
-	responseOrg string
+	srv            *httptest.Server
+	mu             sync.Mutex
+	putCalls       int
+	listCalls      int
+	tokenCalls     int
+	lastBody       string
+	lastPath       string
+	lastAuth       string
+	lastListAuth   string
+	putStatus      int
+	statusFor      map[string]int // Authorization 后缀 → 状态码（R4 的 403→200）
+	orgs           []services.Organization
+	userOrgs       []services.Organization
+	userListStatus int
+	onPut          func()
+	responseOrg    string
 }
 
 func newFakeIAMMerchant2459(t *testing.T, putStatus int, orgs []services.Organization) *fakeIAMMerchant2459 {
@@ -81,11 +88,28 @@ func newFakeIAMMerchant2459(t *testing.T, putStatus int, orgs []services.Organiz
 		case strings.HasPrefix(r.URL.Path, "/api/v1/namespaces/"):
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{"id": merchantNamespace2459})
 		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/organizations":
+			auth := r.Header.Get("Authorization")
 			f.mu.Lock()
 			f.listCalls++
-			orgs := f.orgs
+			f.lastListAuth = auth
+			full := f.orgs
+			visible := f.userOrgs
+			userStatus := f.userListStatus
 			f.mu.Unlock()
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{"organizations": orgs})
+			// 服务凭据（客户端凭证 token）→ namespace 全量；其它 → 调用者可见范围。
+			if !strings.HasSuffix(auth, merchantSvcToken2459) {
+				if userStatus != 0 {
+					w.WriteHeader(userStatus)
+					_, _ = w.Write([]byte(`{"error":"insufficient permissions"}`))
+					return
+				}
+				if visible != nil {
+					full = visible
+				}
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"organizations": full, "total": len(full), "page": 1, "page_size": 1000,
+			})
 		case r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/api/v1/organizations/"):
 			raw, _ := io.ReadAll(r.Body)
 			f.mu.Lock()
@@ -164,6 +188,26 @@ func (f *fakeIAMMerchant2459) setResponseOrg(name string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.responseOrg = name
+}
+
+// setUserVisibleOrgs 模拟 IAM ListOrgs 的可见性裁剪：用户令牌只看到这些组织。
+func (f *fakeIAMMerchant2459) setUserVisibleOrgs(orgs []services.Organization) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.userOrgs = orgs
+}
+
+// setUserListStatus 模拟 SelfOnly 角色：用户令牌读组织列表直接 403。
+func (f *fakeIAMMerchant2459) setUserListStatus(status int) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.userListStatus = status
+}
+
+func (f *fakeIAMMerchant2459) lastListAuthHeader() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.lastListAuth
 }
 
 // seedMerchant2459 建一个商户：tenant_id == org_id == 商户根组织（商户管理员语义）。
@@ -479,5 +523,103 @@ func TestUpdateMerchant_DuplicateNameInNamespace_2459(t *testing.T) {
 	t.Logf("CODE=%v", resp["code"])
 	t.Logf("IAM_CALLS=%d", iam.putCount())
 	t.Logf("LIST_CALLS=%d", iam.listCount())
+	t.Logf("DB_NAME=%s", after.Name)
+}
+
+// R13-A（#2459 审计阻断项 A）：跨商户重名必须仍然 409。
+// 真实形态：商户管理员的用户令牌只能看到本商户子树（IAM ListOrgs 的 VisibleOrgIDs），
+// 对方商户组织对用户令牌不可见 —— 因此预检必须用服务凭据（namespace 级）读取。
+func TestUpdateMerchant_CrossMerchantDuplicateName_2459(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	tenantID, merchantID, _ := seedMerchant2459(t, db, "旧名")
+
+	self := services.Organization{ID: tenantID, Name: "旧名"}
+	other := services.Organization{ID: merchantOtherOrgID2459, Name: "卡丹萨"}
+	iam := newFakeIAMMerchant2459(t, http.StatusOK, []services.Organization{self, other})
+	// 用户令牌视角：只看得到本商户子树（看不到 other）。
+	iam.setUserVisibleOrgs([]services.Organization{self})
+
+	r := merchantRouter2459(tenantID, merchantOrgID2459Or(tenantID), "OWNER", 0)
+	code, resp := putMerchant2459(t, r, merchantID, `{"name":"卡丹萨"}`, merchantUserToken2459)
+
+	require.Equal(t, http.StatusConflict, code, "%v", resp)
+	require.EqualValues(t, 40900, resp["code"])
+	require.Zero(t, iam.putCount(), "跨商户重名不得调用 IAM 改名")
+	require.Equal(t, 1, iam.listCount(), "重名预检必须读取同 namespace 组织列表")
+	require.True(t, strings.HasSuffix(iam.lastListAuthHeader(), merchantSvcToken2459),
+		"预检必须用服务凭据（namespace 级可见性），实际=%s", iam.lastListAuthHeader())
+
+	after := merchantByID2459(t, db, merchantID)
+	require.Equal(t, "旧名", after.Name)
+
+	t.Logf("STATUS=%d", code)
+	t.Logf("CODE=%v", resp["code"])
+	t.Logf("IAM_CALLS=%d", iam.putCount())
+	t.Logf("LIST_CALLS=%d", iam.listCount())
+	t.Logf("CROSS_MERCHANT=1")
+	t.Logf("LIST_AUTH=service")
+	t.Logf("DB_NAME=%s", after.Name)
+}
+
+// R13-B（#2459 审计阻断项 A）：SelfOnly 角色下用户令牌读列表 403，
+// 改名不得被误判为故障（502）—— 预检走服务凭据，权限判定仍在真实 PUT 上。
+func TestUpdateMerchant_SelfOnlyUserTokenDoesNotBlockRename_2459(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	tenantID, merchantID, _ := seedMerchant2459(t, db, "A")
+
+	iam := newFakeIAMMerchant2459(t, http.StatusOK, orgRefs2459("A"))
+	iam.setResponseOrg("B")
+	// 用户令牌读组织列表 → 403（IAM SelfOnly 分支）。
+	iam.setUserListStatus(http.StatusForbidden)
+
+	r := merchantRouter2459(tenantID, merchantOrgID2459Or(tenantID), "OWNER", 0)
+	code, resp := putMerchant2459(t, r, merchantID, `{"name":"B"}`, merchantUserToken2459)
+
+	require.Equal(t, http.StatusOK, code, "%v", resp)
+	require.EqualValues(t, 20000, resp["code"])
+	require.Equal(t, 1, iam.putCount())
+	require.True(t, strings.HasSuffix(iam.lastListAuthHeader(), merchantSvcToken2459),
+		"预检不得使用会被 SelfOnly 裁剪的用户令牌，实际=%s", iam.lastListAuthHeader())
+
+	after := merchantByID2459(t, db, merchantID)
+	require.Equal(t, "B", after.Name)
+
+	t.Logf("STATUS=%d", code)
+	t.Logf("CODE=%v", resp["code"])
+	t.Logf("IAM_CALLS=%d", iam.putCount())
+	t.Logf("SELF_ONLY=1")
+	t.Logf("LIST_AUTH=service")
+	t.Logf("DB_NAME=%s", after.Name)
+}
+
+// R13-C（#2459 审计建议 2）：本地兜底 —— IAM 列表完全看不到对方组织时，
+// 本地 merchants 表仍能发现同 namespace（跨 tenant）重名 → 409。
+func TestUpdateMerchant_LocalMerchantDuplicateName_2459(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	tenantID, merchantID, _ := seedMerchant2459(t, db, "旧名")
+
+	// 另一个商户（不同 tenant）用了目标名。
+	otherTenantID, otherMerchantID, _ := seedMerchant2459(t, db, "卡丹萨")
+	require.NotEqual(t, tenantID, otherTenantID)
+
+	// IAM 列表只回本商户子树（模拟 IAM 不可见/漏项），本地仍必须拦住。
+	iam := newFakeIAMMerchant2459(t, http.StatusOK, []services.Organization{{ID: tenantID, Name: "旧名"}})
+
+	r := merchantRouter2459(tenantID, merchantOrgID2459Or(tenantID), "OWNER", 0)
+	code, resp := putMerchant2459(t, r, merchantID, `{"name":"  卡丹萨  "}`, merchantUserToken2459)
+
+	require.Equal(t, http.StatusConflict, code, "%v", resp)
+	require.EqualValues(t, 40900, resp["code"])
+	require.Zero(t, iam.putCount(), "本地重名命中不得调用 IAM 改名")
+
+	after := merchantByID2459(t, db, merchantID)
+	require.Equal(t, "旧名", after.Name)
+	other := merchantByID2459(t, db, otherMerchantID)
+	require.Equal(t, "卡丹萨", other.Name)
+
+	t.Logf("STATUS=%d", code)
+	t.Logf("CODE=%v", resp["code"])
+	t.Logf("IAM_CALLS=%d", iam.putCount())
+	t.Logf("LOCAL_CONFLICT=1")
 	t.Logf("DB_NAME=%s", after.Name)
 }
