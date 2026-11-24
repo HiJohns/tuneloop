@@ -1,0 +1,6 @@
+# build=1.0.9187af203 # commit=9187af203bae52f6a77bd26cce8e0ea27e4271a0 # dirty=false
+DOMAIN_GUARD=1
+PREFILL_LEGACY=merchant_staff
+PREFILL_LEGACY_ADMIN=merchant_staff
+PREFILL_NORMAL=site_member
+PREFILL_DIRECT=merchant_staff

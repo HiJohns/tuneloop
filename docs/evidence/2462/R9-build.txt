@@ -1,0 +1,9 @@
+# build=1.0.9187af203 # commit=9187af203bae52f6a77bd26cce8e0ea27e4271a0 # dirty=false
+BUILD_CMD=cd backend && go build ./...
+BUILD_EXIT=0
+TESTS_CMD=go test ./handlers -run 2462 (含 2375 回归)
+ok  	tuneloop-backend/handlers	6.965s
+ok  	tuneloop-backend/handlers	5.750s
+TESTS_FAIL=0
+PC_BUILD_CMD=cd frontend-pc && npm run build
+PC_BUILD=0

@@ -1,0 +1,8 @@
+PROVENANCE: fix=9187af203bae52f6a77bd26cce8e0ea27e4271a0 request=2462-20261124T010500Z ts=2026-11-24T18:36:51Z
+CMD: cd backend && go build ./...
+PWD: /home/coder/worktrees/tuneloop/wt-2462
+GO: go version go1.22.5 linux/amd64
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s25-p25-657d6f at_ms=1795545412140 wait_ms=161
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s25-p25-657d6f wait_ms=161
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795545422574 hold_ms=10434
+EXIT=0

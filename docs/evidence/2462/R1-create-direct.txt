@@ -1,0 +1,27 @@
+# build=1.0.9187af203 # commit=9187af203bae52f6a77bd26cce8e0ea27e4271a0 # dirty=false
+[WARNING] No .env file found in common paths
+2026/11/24 00:46:27 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2462 sslmode=disable
+2026/11/24 00:46:27 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2462
+2026/11/24 00:46:27 [DB] Connected to database 'tuneloop_test_2462'
+=== RUN   TestCreateMerchantDirectRoleDomain_2462
+2026/11/24 00:46:27 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2462 sslmode=disable
+2026/11/24 00:46:27 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2462
+2026/11/24 00:46:27 [DB] Connected to database 'tuneloop_test_2462'
+
+2026/11/24 00:46:28 [32m/home/coder/worktrees/tuneloop/wt-2462/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[601.667ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/24 00:46:28 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:37659, clientID=test-ns, namespace=test-ns
+2026/11/24 00:46:28 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/24 00:46:28 [#2247] GetOrganization(660ad1d6-1b64-4788-a288-950b1a73f3ad) failed: GetOrganization: IAM response missing org id
+2026/11/24 00:46:28 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/24 00:46:28 [31;1m/home/coder/worktrees/tuneloop/wt-2462/backend/handlers/user_staff.go:256 [35;1mrecord not found
+[0m[33m[1.638ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE (tenant_id = '660ad1d6-1b64-4788-a288-950b1a73f3ad' AND username = 'u-direct-2462' AND deleted_at IS NULL) AND "users"."tenant_id" = '660ad1d6-1b64-4788-a288-950b1a73f3ad' ORDER BY "users"."id" LIMIT 1
+2026/11/24 00:46:28 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:37659, clientID=test-ns, namespace=test-ns
+2026/11/24 00:46:28 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/24 00:46:28 [IAMClient] Bound user be4fe9a9-148e-4374-8088-9f54a9e5cb3a to org 660ad1d6-1b64-4788-a288-950b1a73f3ad with role STAFF (user token)
+2026/11/24 00:46:28 [IAMClient] Assigned role template merchant_staff to user be4fe9a9-148e-4374-8088-9f54a9e5cb3a (via user token)
+    user_role_domain_2462_test.go:182: USERS_ROLE=merchant_staff MM_ROLE=merchant_staff SITE_MEMBERS_ROWS=0
+--- PASS: TestCreateMerchantDirectRoleDomain_2462 (1.08s)
+PASS
+ok  	tuneloop-backend/handlers	1.883s

@@ -23,6 +23,21 @@ const POSITION_OPTIONS = [
   { value: '调律' }, { value: '维修' }, { value: '前台' },
 ]
 
+// #2462 D6：编辑页角色初值的域判定。
+// 直属员工（无网点归属）的历史值可能被写成网点角色（存量脏数据），
+// 直接预填会让「保存」把它再次持久化成网点角色 → 这里仅修正显示/初始值：
+//   - 无 site_id 且 role ∈ {site_member, site_admin} → merchant_staff
+//   - 其它情况（含正常网点员工）→ 原 role
+// 只影响表单初值，不回写后端、不改列表返回。
+const SITE_DOMAIN_ROLES = ['site_member', 'site_admin']
+
+function resolveInitialRole(user) {
+  const role = user?.role || ''
+  const hasSite = Boolean(user?.site_id)
+  if (!hasSite && SITE_DOMAIN_ROLES.includes(role)) return 'merchant_staff'
+  return role
+}
+
 export default function StaffEdit() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -72,7 +87,7 @@ export default function StaffEdit() {
       phone: editingUser.phone,
       position: editingUser.position,
       site_id: editingUser.site_id || undefined,
-      role: editingUser.role,
+      role: resolveInitialRole(editingUser),
     })
   }, [editingUser, userForm])
 
