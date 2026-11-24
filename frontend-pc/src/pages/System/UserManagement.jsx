@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Table, Input, Button, Space, Modal, Form, InputNumber, Select, Switch, message, Tag, Typography, Collapse, Image, Divider, Alert, Radio } from 'antd'
-import { DownloadOutlined, IdcardOutlined, ScanOutlined, CheckCircleOutlined, WarningOutlined } from '@ant-design/icons'
+import { Table, Input, Button, Space, Modal, Form, InputNumber, Select, Switch, message, Tag, Typography, Collapse, Image, Divider, Alert, Radio, Empty, Spin, Tooltip } from 'antd'
+import { DownloadOutlined, IdcardOutlined, ScanOutlined, CheckCircleOutlined, WarningOutlined, QuestionCircleOutlined } from '@ant-design/icons'
 import { api, faceReviewApi, fetchBlob } from '../../services/api'
 import IdPhotoDisplay from '../../components/IdPhotoDisplay'
 import { formatBeijingDate, formatBeijingDateTimeShort } from '../../utils/date'
+import { shouldShowWarning, orphanTitle, orphanEmptyText, isEmptyState } from '../../utils/orphanPanel'
 
 const { Text } = Typography
 
@@ -53,6 +54,10 @@ export default function UserManagement() {
   const [orphanLoading, setOrphanLoading] = useState(false)
   const [orphanSelected, setOrphanSelected] = useState([])
   const [orphanPurging, setOrphanPurging] = useState(false)
+  // #2469: 接住后端扫描统计 + 失败态（供空态文案与错误占位使用）。
+  const [orphanScanned, setOrphanScanned] = useState(null)
+  const [orphanMinAge, setOrphanMinAge] = useState(null)
+  const [orphanError, setOrphanError] = useState('')
   // Module 2: face batches (read-only, review via face-review queue #1813)
   const [batches, setBatches] = useState([])
 
@@ -173,14 +178,20 @@ export default function UserManagement() {
   // ---- #2369: IAM orphan accounts ----
   const fetchOrphans = async () => {
     setOrphanLoading(true)
+    setOrphanError('')
     try {
       const resp = await api.get('/admin/iam-orphans')
       if (resp?.code === 20000) {
         setOrphans(resp.data?.list || [])
+        // #2469: 后端已返回扫描统计，展示层不再丢弃。
+        setOrphanScanned(resp.data?.scanned)
+        setOrphanMinAge(resp.data?.min_age_minute)
       } else {
+        setOrphanError(resp?.message || '加载 IAM 孤儿账号失败')
         message.error(resp?.message || '加载 IAM 孤儿账号失败')
       }
     } catch (err) {
+      setOrphanError(err?.message || '网络异常')
       message.error('加载 IAM 孤儿账号失败: ' + (err.message || ''))
     }
     setOrphanLoading(false)
@@ -246,6 +257,11 @@ export default function UserManagement() {
       onOk: () => purgeOrphans(orphanSelected),
     })
   }
+
+  // #2469: 空态互斥与判定条件（四条条件收进 Tooltip，不再以红条正文呈现）
+  const orphanEmpty = isEmptyState({ loading: orphanLoading, error: orphanError, list: orphans })
+  const orphanMinAgeLabel = Number.isFinite(orphanMinAge) ? orphanMinAge : 60
+  const orphanConditions = `孤儿判定（四条全部满足）：① 本地 users 表无本地记录；② IAM 侧无活跃组织关系；③ 账号状态为 pending；④ 已挂起 ≥ ${orphanMinAgeLabel} 分钟`
 
   const orphanColumns = [
     { title: '登录名', dataIndex: 'username', key: 'username', render: v => v || '-' },
@@ -607,7 +623,7 @@ export default function UserManagement() {
 
       {/* #2369: IAM 孤儿账号（pending + org_id 空 + 本地无 iam_sub + ≥60 分钟） */}
       <Modal
-        title="IAM 孤儿账号"
+        title={orphanTitle(orphans, orphanScanned)}
         open={orphanOpen}
         onCancel={() => setOrphanOpen(false)}
         footer={[
@@ -620,26 +636,73 @@ export default function UserManagement() {
         width={900}
         destroyOnClose
       >
-        <Alert
-          type="warning"
-          showIcon
-          style={{ marginBottom: 12 }}
-          message="这些账号只存在于 IAM（创建时本地事务已回滚，本地无任何记录），同邮箱/用户名重试会一直冲突。"
-          description="清理会物理删除 IAM 账号，不可撤销。IAM 侧的 user_task_queues 遗留任务需按运维 SOP 另行核对。"
-        />
-        <Table
-          rowKey="id"
-          size="small"
-          loading={orphanLoading}
-          dataSource={orphans}
-          columns={orphanColumns}
-          rowSelection={{
-            selectedRowKeys: orphanSelected,
-            onChange: (keys) => setOrphanSelected(keys),
-          }}
-          pagination={false}
-          locale={{ emptyText: '当前没有孤儿账号' }}
-        />
+        {/* #2469 R5 加载中：只显示扫描中，不渲染表格/空态（避免先闪「未发现」） */}
+        {orphanLoading && (
+          <div style={{ padding: '48px 0', textAlign: 'center' }}>
+            <Spin tip="正在扫描 IAM 账号…">
+              <div style={{ height: 32 }} />
+            </Spin>
+          </div>
+        )}
+
+        {/* #2469 R5 失败态：不得显示「未发现孤儿账号」 */}
+        {!orphanLoading && orphanError && orphans.length === 0 && (
+          <Alert
+            type="error"
+            showIcon
+            message="加载失败，请点击刷新重试"
+            description={orphanError}
+          />
+        )}
+
+        {/* #2469 R2 空态：不渲染表头/全选，改为中性 Empty + 扫描说明 */}
+        {orphanEmpty && (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            style={{ padding: '32px 0' }}
+            description={(
+              <div>
+                <div style={{ fontSize: 15, color: 'rgba(0, 0, 0, 0.85)', marginBottom: 6 }}>未发现孤儿账号</div>
+                <div style={{ fontSize: 12, color: 'rgba(0, 0, 0, 0.45)' }}>
+                  {orphanEmptyText(orphanScanned, orphanMinAge)}
+                </div>
+              </div>
+            )}
+          >
+            <Button onClick={fetchOrphans} loading={orphanLoading}>刷新</Button>
+          </Empty>
+        )}
+
+        {/* #2469 R3 有数据：一行不可撤销提示（判定条件收进 Tooltip）+ 正常表格 */}
+        {shouldShowWarning(orphans) && (
+          <>
+            <Alert
+              type="warning"
+              showIcon
+              style={{ marginBottom: 12 }}
+              message={(
+                <Space size={4}>
+                  <span>清理会物理删除 IAM 账号，不可撤销。</span>
+                  <Tooltip title={orphanConditions}>
+                    <QuestionCircleOutlined style={{ cursor: 'help' }} />
+                  </Tooltip>
+                </Space>
+              )}
+            />
+            <Table
+              rowKey="id"
+              size="small"
+              loading={orphanLoading}
+              dataSource={orphans}
+              columns={orphanColumns}
+              rowSelection={{
+                selectedRowKeys: orphanSelected,
+                onChange: (keys) => setOrphanSelected(keys),
+              }}
+              pagination={false}
+            />
+          </>
+        )}
       </Modal>
     </div>
   )
