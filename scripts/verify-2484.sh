@@ -182,7 +182,14 @@ r7)
     fi
     plan_sha="$(sha256sum "$OUT_DIR/plan.md" | awk '{print $1}')"
     body+="GATE_PLAN_SHA=$plan_sha"$'\n'
-    body+="PLAN_SOURCE=$( [ -f "$GATE_REPORT" ] && jq -r '(.plan_source // "missing")' "$GATE_REPORT" 2>/dev/null || echo missing)"$'\n'
+    # PLAN_SOURCE：gate 报告的 plan_sha256 必须与 plan.md 快照一致（四源一致）。
+    gate_plan_sha="$( [ -f "$GATE_REPORT" ] && jq -r '.plan_sha256 // "missing"' "$GATE_REPORT" 2>/dev/null || echo missing)"
+    if [ -n "$gate_plan_sha" ] && [ "$gate_plan_sha" = "$plan_sha" ]; then
+        body+="PLAN_SOURCE=PASS"$'\n'
+    else
+        body+="PLAN_SOURCE=FAIL"$'\n'
+        rc=1
+    fi
     body+="--- gate log tail ---"$'\n'
     body+="$(tail -25 "$REPO_ROOT/tmp/pre-ready-$ISSUE-r7.log" 2>/dev/null || true)"$'\n'
     finish R7-gate.txt "$rc" "$body"
