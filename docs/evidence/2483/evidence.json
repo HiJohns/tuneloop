@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "issue": 2483,
+  "build": "1.0.c58d75df",
+  "commit": "c58d75df6249d562023296fd8f52f436369e5669",
+  "dirty": false,
+  "plan_sha256": "fcb25b57ca73eb2fc5fd8c434e1b3bb2600baf507b0c3529c1f1471072167abd",
+  "environment": "beaconwork worktree /home/coder/worktrees/tuneloop/wt-2483 (base origin/develop); frontend-pc node 20.20.2 (npm ci), node --test for pure functions, eslint + vite build for wiring",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2483.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2483/R1-priority.txt"
+      ],
+      "assert": "exit 0；grep DUAL=site、SITE_ONLY=site、TECH=technician",
+      "actual": "PASS：NODE_TEST_EXIT=0 DUAL=site SITE_ONLY=site DIRECT_ONLY=direct TECH=technician DUAL_SHOW_SITE=1 DUAL_SHOW_MERCHANT_READONLY=0（node --test 7/7）",
+      "expected": "PASS",
+      "negative": "DUAL=direct → FAIL",
+      "negative_result": "维持 #2429 的 direct 优先（修复前 resolveStaffFormMode）→ 双归属 mode=direct、showSite=0 → DUAL=direct 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2483.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2483/R2-red-green.txt"
+      ],
+      "assert": "exit 0；grep OLD_FAIL=1、RED_GREEN=1",
+      "actual": "PASS：OLD_MODE=direct NEW_MODE=site OLD_FAIL=1 NEW_PASS=1 RED_GREEN=1",
+      "expected": "PASS",
+      "negative": "旧版 PASS → FAIL",
+      "negative_result": "旧实现（direct 优先）若也满足新断言则断言抓不到缺陷 → OLD_FAIL=0，RED_GREEN=0 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2483.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2483/R3-fields.txt"
+      ],
+      "assert": "exit 0；grep SITE_SELECTABLE=1、MERCHANT_READONLY_HIDDEN_ON_DUAL=1",
+      "actual": "PASS：SITE_SELECTABLE=1 MERCHANT_READONLY_HIDDEN_ON_DUAL=1 SITE_ITEM_LINES=1（staffFormRules(dual)=showSite:true/showMerchantReadonly:false）",
+      "expected": "PASS",
+      "negative": "双归属仍只读直属 → FAIL",
+      "negative_result": "双归属解析为 direct 时 rules.showSite=false、showMerchantReadonly=true → 网点下拉不渲染、归属只读 → SITE_SELECTABLE=0 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2483.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2483/R4-role-fallback.txt"
+      ],
+      "assert": "exit 0；grep ROLE_FALLBACK=site_member、ROLE_FALLBACK2=merchant_staff",
+      "actual": "PASS：ROLE_FALLBACK=site_member ROLE_FALLBACK2=merchant_staff ROLE_DIRECT_DOMAIN=merchant_staff",
+      "expected": "PASS",
+      "negative": "空角色 → FAIL",
+      "negative_result": "只取 user.role（users.role=''）→ 角色下拉为空 → ROLE_FALLBACK= 空 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2483.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2483/R5-dual-hint.txt"
+      ],
+      "assert": "exit 0；grep DUAL_HINT=1、GUIDE_LINK=/staff/direct",
+      "actual": "PASS：DUAL_HINT=1 GUIDE_LINK=/staff/direct DUAL_MEMO=1（Alert type=warning + 前往直属员工管理按钮）",
+      "expected": "PASS",
+      "negative": "无提示 → FAIL",
+      "negative_result": "缺少 isDualIdentity 提示块 → DUAL_HINT=0、GUIDE_LINK 缺失 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2483.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2483/R6-flip.txt"
+      ],
+      "assert": "exit 0；grep FLIPPED_ASSERT=1、BACKEND_UNCHANGED=1",
+      "actual": "PASS：FLIPPED_ASSERT=1 DIRECT_WINS_GONE=1 BACKEND_UNCHANGED=1（staffForm.test.js:27 新断言；backend/ 无 diff）",
+      "expected": "PASS",
+      "negative": "旧断言残留 → FAIL",
+      "negative_result": "旧断言 'dual identity resolves to direct (direct wins)' 仍在 → DIRECT_WINS_GONE=0 → FAIL；顺手改后端 → BACKEND_UNCHANGED=0 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2483.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2483/R7-build-lint.txt"
+      ],
+      "assert": "exit 0；grep PC_BUILD=0、LINT_EXIT=0",
+      "actual": "PASS：PC_BUILD=0 LINT_EXIT=0 LINT_ERRORS=0（vite build 5422 modules；eslint staffForm.js/StaffEdit.jsx 0 error）",
+      "expected": "PASS",
+      "negative": "任一非 0 → FAIL",
+      "negative_result": "构建或 lint 失败（如 eslint 报 no-undef）→ PC_BUILD/LINT_EXIT 非 0 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2483.sh r8",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2483/R8-gate.txt"
+      ],
+      "assert": "exit 0；grep GATE_RESULT=PASS、FULL_SUITE_EXIT=0、PLAN_SOURCE=PASS",
+      "actual": "PASS：GATE_RESULT=PASS FULL_SUITE_EXIT=0 P5=PASS PLAN_SOURCE=PASS（全量命令 cd frontend-pc && npm ci --no-audit --no-fund && npm run build）",
+      "expected": "PASS",
+      "negative": "P5=NA 或 sha 不一致 → FAIL",
+      "negative_result": "未提供 --full-gate-cmd / P5 为 N/A，或 gate 的 plan_sha256 与 docs/evidence/2483/plan.md 不一致 → FAIL",
+      "pass": true
+    }
+  ]
+}

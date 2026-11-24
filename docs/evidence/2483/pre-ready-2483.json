@@ -1,0 +1,95 @@
+{
+  "issue": 2483,
+  "overall": "FAIL",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2483/docs/evidence/2483/plan.md",
+  "plan_sha256": "fcb25b57ca73eb2fc5fd8c434e1b3bb2600baf507b0c3529c1f1471072167abd",
+  "summary": "/home/coder/worktrees/tuneloop/wt-2483/tmp/work-summary-2483.md",
+  "timestamp": "20261124-232712",
+  "checks": [
+    {
+      "id": "P1",
+      "status": "PASS",
+      "detail": "plan has Verification Matrix / Input Truth & Tool Preflight / Decision Lock / Out of Scope"
+    },
+    {
+      "id": "P2",
+      "status": "PASS",
+      "detail": "Work Summary covers all 8 matrix rows with PASS/N/A"
+    },
+    {
+      "id": "P3",
+      "status": "FAIL",
+      "detail": "evidence paths do not exist: StaffEdit.jsx docs/evidence/2483/pre-ready-2483.json"
+    },
+    {
+      "id": "P4",
+      "status": "PASS",
+      "detail": "all 1 affected command(s) passed"
+    },
+    {
+      "id": "P12",
+      "status": "FAIL",
+      "detail": "commit is not an ancestor of HEAD: a35fead67aa51edee0e0a1b1884b2a67f6b54b25; commit must equal the latest fix commit c58d75df6249d562023296fd8f52f436369e5669 (got: a35fead67aa51edee0e0a1b1884b2a67f6b54b25)"
+    },
+    {
+      "id": "P14",
+      "status": "FAIL",
+      "detail": "provenance mismatch build: artifact=1.0.c58d75df evidence=1.0.a35fead6 (docs/evidence/2483/R1-priority.txt)"
+    },
+    {
+      "id": "P15",
+      "status": "N/A",
+      "detail": "no batch gate reference in the plan"
+    },
+    {
+      "id": "P16",
+      "status": "N/A",
+      "detail": "no UI render rows in the plan"
+    },
+    {
+      "id": "P17",
+      "status": "PASS",
+      "detail": "plan snapshot and Accepted Plan comment match the gated plan"
+    },
+    {
+      "id": "P5",
+      "status": "N/A",
+      "detail": "skipped: P12/P14/P15/P16 static checks failed (static checks run first)"
+    },
+    {
+      "id": "P6",
+      "status": "PASS",
+      "detail": "all changed files are declared in the Accepted Plan"
+    },
+    {
+      "id": "P7",
+      "status": "N/A",
+      "detail": "no contract-affecting files changed"
+    },
+    {
+      "id": "P8",
+      "status": "N/A",
+      "detail": "no panel/clarify files changed"
+    },
+    {
+      "id": "P9",
+      "status": "N/A",
+      "detail": "no session/build_version/aiaudit/.rpt/.dat evidence referenced"
+    },
+    {
+      "id": "P10",
+      "status": "N/A",
+      "detail": "no aiaudit reference"
+    },
+    {
+      "id": "P11",
+      "status": "PASS",
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /home/coder/worktrees/tuneloop/wt-2483; worktree guard: PASS isolated worktree=/home/coder/worktrees/tuneloop/wt-2483"
+    },
+    {
+      "id": "P13",
+      "status": "FAIL",
+      "detail": "remote ref not found: origin/issue-2483"
+    }
+  ]
+}
