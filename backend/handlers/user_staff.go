@@ -1221,19 +1221,45 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	// #2375：本地目标域同步（网点/商户直属），保持单一主角色（D4）。
+	// #2375：本地目标域同步（网点/商户直属）；#2482：改主角色 = 合并角色全集。
 	if roleChanged {
 		// #2475：roles 是 jsonb，map Update 不走 serializer，必须显式序列化；
-		// 序列化失败进 role_errors（可见、不静默），不阻断其它字段更新（D2）。
-		rolesExpr, rolesErr := siteMemberRolesExpr([]string{newRole})
-		if rolesErr != nil {
-			log.Printf("[UpdateUser] site_members roles encode failed user=%s: %v", userID, rolesErr)
-			roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "encode site_members roles: " + rolesErr.Error()})
-		} else if err := db.Model(&models.SiteMember{}).
-			Where("user_id = ? AND tenant_id = ?", userID, tenantID).
-			Updates(map[string]interface{}{"role": newRole, "roles": rolesExpr}).Error; err != nil {
-			log.Printf("[UpdateUser] site_members role sync failed user=%s: %v", userID, err)
-			roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "sync site_members: " + err.Error()})
+		// #2482：逐行合并（不同网点行可有不同 roles），保留其它身份，仅原位替换主角色。
+		type siteMemberRow struct {
+			ID        string
+			RolesJSON string
+		}
+		var rows []siteMemberRow
+		if err := db.Raw(
+			"SELECT id, roles::text AS roles_json FROM site_members WHERE user_id = ? AND tenant_id = ? ORDER BY site_id",
+			userID, tenantID,
+		).Scan(&rows).Error; err != nil {
+			log.Printf("[UpdateUser] site_members roles load failed user=%s: %v", userID, err)
+			roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "load site_members roles: " + err.Error()})
+			rows = nil
+		}
+		for _, row := range rows {
+			var existingRoles []string
+			if row.RolesJSON != "" {
+				if err := json.Unmarshal([]byte(row.RolesJSON), &existingRoles); err != nil {
+					log.Printf("[UpdateUser] site_members roles parse failed user=%s site_member=%s: %v", userID, row.ID, err)
+					roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "parse site_members roles: " + err.Error()})
+					continue
+				}
+			}
+			merged := mergeSiteMemberRoles(existingRoles, existingUser.Role, newRole)
+			rolesExpr, rolesErr := siteMemberRolesExpr(merged)
+			if rolesErr != nil {
+				log.Printf("[UpdateUser] site_members roles encode failed user=%s site_member=%s: %v", userID, row.ID, rolesErr)
+				roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "encode site_members roles: " + rolesErr.Error()})
+				continue
+			}
+			if err := db.Model(&models.SiteMember{}).
+				Where("id = ?", row.ID).
+				Updates(map[string]interface{}{"role": newRole, "roles": rolesExpr}).Error; err != nil {
+				log.Printf("[UpdateUser] site_members role sync failed user=%s site_member=%s: %v", userID, row.ID, err)
+				roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "sync site_members: " + err.Error()})
+			}
 		}
 		if err := db.Model(&models.MerchantMember{}).
 			Where("user_id = ? AND tenant_id = ?", userID, tenantID).
