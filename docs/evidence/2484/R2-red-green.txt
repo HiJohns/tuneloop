@@ -1,0 +1,10 @@
+# build=1.0.827f9d1d # commit=827f9d1dc70e496d4ed08b49499fc1309e3b63e9 # dirty=true
+OLD_SRC=827f9d1dc70e496d4ed08b49499fc1309e3b63e9^:scripts/report-merchant-direct-role-drift-2462.sh
+OLD_FIXTURE=tab(users_role empty, has_site_member=1)
+OLD_ACTION=ACTION=align
+OLD_ALIGN_ROWS=1
+NEW_FIXTURE=pipe(users_role empty, has_site_member=1)
+NEW_ACTION=ACTION=none
+NEW_ALIGN_ROWS=0
+RED_GREEN=1
+

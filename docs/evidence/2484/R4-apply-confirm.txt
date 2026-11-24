@@ -1,0 +1,18 @@
+# build=1.0.827f9d1d # commit=827f9d1dc70e496d4ed08b49499fc1309e3b63e9 # dirty=true
+NO_CONFIRM_EXIT=2
+CONFIRM0_EXIT=2
+CONFIRM1_EXIT=0
+CONFIRM1_OUT=APPLY_READY=1
+CONFIRM_ROWS=1
+ACTION=align user_id=u9 mm_role=site_member users_role=site_member merchant_id=m9
+psql: error: connection to server at "127.0.0.1", port 5432 failed: FATAL:  database "tuneloop" does not exist
+APPLY_FAILED user_id=u9
+ALIGN_ROWS=1
+NONE_ROWS=0
+DB_WRITES=0
+READONLY=1
+RESULT: PASS
+APPLY_CONFIRM_MISMATCH=1
+APPLY_READY=1
+DB_WRITES=0
+

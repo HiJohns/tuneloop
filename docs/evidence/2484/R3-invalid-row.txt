@@ -1,0 +1,12 @@
+# build=1.0.827f9d1d # commit=827f9d1dc70e496d4ed08b49499fc1309e3b63e9 # dirty=true
+SHORT_ROW_EXIT=3
+SHORT_ROW_OUT=BAD_ROW=1
+ROW_FIELDS=4
+FIXTURE_INVALID=1
+DB_WRITES=0
+READONLY=1
+RESULT: FAIL (malformed row: expected 5 pipe-separated fields and has_site_member in 0|1)
+BAD_ENUM_EXIT=3
+EXIT=3
+DB_WRITES=0
+
