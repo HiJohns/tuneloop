@@ -3,6 +3,8 @@ import { Card, Table, Button, Modal, Form, Input, Select, message, Spin, Space, 
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined, SendOutlined, MailOutlined, ReloadOutlined, TeamOutlined } from '@ant-design/icons'
 import ReactQuill from 'react-quill'
 import PhotoUploader from '../components/PhotoUploader'
+import FormConflictAlert from '../components/FormConflictAlert'
+import { isBusinessCorrectableConflict } from '../utils/formConflict'
 import PasswordSettingFields from '../components/PasswordSettingFields'
 import InitialPasswordModal from '../components/InitialPasswordModal'
 import { resolveCreateFeedback } from '../utils/createFeedback'
@@ -27,6 +29,8 @@ export default function StaffManagement() {
   const [createPhotoFile, setCreatePhotoFile] = useState(null) // #2073: 创建照片文件（头像，创建后上传）
   const [createPhotoUrl, setCreatePhotoUrl] = useState('') // #2073: 本地预览 URL（选择即预览）
   const [createFormKey, setCreateFormKey] = useState(0) // #2074: 创建表单重挂载 key（清空 ReactQuill 等非受控残留）
+  // #2480 v2（D5/D8）：业务可纠正冲突（40900 等）在创建表单内持久提示，不用 3 秒 toast。
+  const [formConflict, setFormConflict] = useState('')
   const [createUserForm] = Form.useForm()
   // #2427：搜索表单实例——「只看直属员工」开关需要读取当前表单值后即时重查。
   const [searchForm] = Form.useForm()
@@ -181,9 +185,11 @@ export default function StaffManagement() {
     resetCreateForm()
     setInitialPasswords([])
     setPasswordModalOpen(false)
+    setFormConflict('') // #2480 D8：入口/取消/成功后清空冲突提示
   }
 
   const handleCreateUser = async (values) => {
+    setFormConflict('') // #2480 D8：提交开始即清空陈旧冲突提示
     try {
       // #2372：无邮箱时必须给出登录名（后端 #2376 以 username 为唯一必填登录标识）。
       if (!values.username?.trim()) {
@@ -331,10 +337,15 @@ export default function StaffManagement() {
         }
         setViewMode('list')
         fetchStaffList()
-      } else if (result.code === 40900) {
-        const users = result.data || []
+      } else if (isBusinessCorrectableConflict(result)) {
+        // #2480 v2：业务冲突改为表单内持久提示（D7 共享件），不再用 3 秒 toast。
+        const users = Array.isArray(result.data) ? result.data : []
         const names = users.map(u => `${u.name}(${u.phone})`).join(', ')
-        message.error(`创建员工失败：姓名、手机号或邮箱与以下员工冲突: ${names}`)
+        setFormConflict(
+          names
+            ? `创建员工失败：姓名、手机号或邮箱与以下员工冲突: ${names}`
+            : (result.message || '创建员工失败：该员工信息与已有员工冲突，请修改后重试'),
+        )
       } else {
         // #2290：4091x（IAM 字段冲突）等未显式处理的 code 不得静默
         message.error(resolveErrorMessage(result, '创建员工失败，请稍后重试'))
@@ -775,9 +786,15 @@ export default function StaffManagement() {
           layout="vertical"
           onFinish={handleCreateUser}
         >
+          {/* #2480 v2：业务冲突持久提示（D7 共享件；40900 不再走 toast） */}
+          <FormConflictAlert text={formConflict} testId="staff-form-conflict" />
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
-              <Input placeholder="姓名" />
+              <Input
+                placeholder="姓名"
+                onChange={() => { if (formConflict) setFormConflict('') }} // #2480 D8：改输入即清空
+              />
             </Form.Item>
             <Form.Item
               name="username"
@@ -788,10 +805,16 @@ export default function StaffManagement() {
               <Input placeholder="登录名" autoComplete="off" />
             </Form.Item>
             <Form.Item name="email" label="邮箱（选填）">
-              <Input placeholder="留空则用下方密码模式直接创建" />
+              <Input
+                placeholder="留空则用下方密码模式直接创建"
+                onChange={() => { if (formConflict) setFormConflict('') }} // #2480 D8：改输入即清空
+              />
             </Form.Item>
             <Form.Item name="phone" label="手机号" rules={[{ required: true, message: '请输入手机号' }]}>
-              <Input placeholder="手机号" />
+              <Input
+                placeholder="手机号"
+                onChange={() => { if (formConflict) setFormConflict('') }} // #2480 D8：改输入即清空
+              />
             </Form.Item>
           </div>
 

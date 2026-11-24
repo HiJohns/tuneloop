@@ -5,6 +5,8 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { sitesApi, api } from '../services/api'
 import Logger from '../utils/logger'
 import SiteMemberManagement from '../components/SiteMemberManagement'
+import FormConflictAlert from '../components/FormConflictAlert'
+import { conflictText, isBusinessCorrectableConflict } from '../utils/formConflict'
  
 const { Option } = Select
 
@@ -57,6 +59,8 @@ export default function SiteManagement() {
   const [searchText, setSearchText] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [conflictMessage, setConflictMessage] = useState('')
+  // #2480 v2（D5/D8）：业务可纠正冲突（40900 等）用持久提示，不用 3 秒 toast。
+  const [formConflict, setFormConflict] = useState('')
   const [isMerchantAdmin, setIsMerchantAdmin] = useState(false)
   const [merchantOptions, setMerchantOptions] = useState([])
 
@@ -257,6 +261,7 @@ export default function SiteManagement() {
       
       setSaving(true)
       setConflictMessage('')
+      setFormConflict('') // #2480 D8：提交开始即清空陈旧冲突提示
       
       let result;
       if (formMode === 'edit' && editingSite?.id) {
@@ -276,19 +281,22 @@ export default function SiteManagement() {
         return
       }
       
-      if (result.code === 40900) {
-        message.error(result.message || '网点名称已存在')
+      // #2480 v2：409 业务冲突改为表单内持久提示（D7 共享件），并清除旧提示后重新设置。
+      if (isBusinessCorrectableConflict(result)) {
+        setFormConflict(conflictText(result, '网点名称已存在'))
         return
       }
       
       if (formMode === 'edit') {
         if (result.data?.updated) {
           message.success('更新成功')
+          setFormConflict('') // #2480 D8：成功后清空
           setViewMode('detail')
         }
       } else if (result.data?.id) {
         Logger.state('SiteManagement', { action: 'siteCreated', siteId: result.data.id })
         await refreshAndSelectTreeNode(result.data.id)
+        setFormConflict('') // #2480 D8：成功后清空
         setViewMode('detail')
       }
       
@@ -458,6 +466,7 @@ filterTreeNode={(node) => {
                     setManagerInfo({ name: '', id: null, email: '', phone: '' })
                     setLookupError({ message: '', visible: false })
                     setConflictMessage('')
+                    setFormConflict('') // #2480 D8：取消时清空
                   }}>取消</Button>
                   <Button 
                     type="primary" 
@@ -477,8 +486,14 @@ filterTreeNode={(node) => {
                   rules={[{ required: true, message: '请输入网点名称' }]}
                   data-testid="site-form-name"
                 >
-                  <Input placeholder="请输入网点名称" />
+                  <Input
+                    placeholder="请输入网点名称"
+                    onChange={() => { if (formConflict) setFormConflict('') }} // #2480 D8：改名即清空
+                  />
                 </Form.Item>
+
+                {/* #2480 v2：业务冲突持久提示（D7 共享件；40900 不再走 toast） */}
+                <FormConflictAlert text={formConflict} testId="site-form-conflict" />
 
                 {!isMerchantAdmin && (
                   <Form.Item

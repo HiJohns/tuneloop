@@ -1,22 +1,29 @@
 #!/usr/bin/env bash
 # #2480 证据生成器 — 409 业务冲突文案：后端具体 message 优先于 ERROR_CODE_MAP 通用文案。
 #
-# 用法：bash scripts/verify-2480.sh <r1|r2|r3|r4|r5|r6>
+# 用法：bash scripts/verify-2480.sh <r1..r13>
 #   r1  R1-pc-resolver.txt      PC 解析器四层顺序（node --test 8 条 fixture）
 #   r2  R2-mobile-core.txt      mobile 纯核心同层序（node --test 8 条 fixture）
 #   r3  R3-parity.txt           PC ↔ mobile 平价（10 条 fixture）
 #   r4  R4-wiring-static.txt    mobile 出口接线静态结构断言（Owner 豁免 D4）
 #   r5  R5-build-lint.txt       PC 构建 + 两端 eslint（改动文件）
 #   r6  R6-gate.txt             gate 报告 + plan-source 四源一致（读校验）
+#   r7  R7-conflict-fn.txt      业务可纠正冲突判定纯函数（node --test）
+#   r8  R8-site-alert.txt       网点表单持久提示接线（静态结构断言，D6 豁免）
+#   r9  R9-staff-alert.txt      创建员工持久提示接线（静态结构断言，D6 豁免）
+#   r10 R10-residual.txt        Tier 1 完整性与残留度量（可失败）
+#   r11 R11-scan.txt            Tier 2 只读扫描清单（#2485 输入）
+#   r12 R12-build-lint.txt      PC 构建 + eslint（含新文件）
+#   r13 R13-gate.txt            gate 四源 + 全部 13 份 artifact 重建度量
 #
 # 产物首行 provenance：`# build=1.0.<fix短码> # commit=<sha> # dirty=<bool>`
 set -uo pipefail
 
 MODE="${1:-}"
 case "$MODE" in
-  r1|r2|r3|r4|r5|r6) ;;
+  r1|r2|r3|r4|r5|r6|r7|r8|r9|r10|r11|r12|r13) ;;
   *)
-    echo "usage: $0 <r1|r2|r3|r4|r5|r6>" >&2
+    echo "usage: $0 <r1..r13>" >&2
     exit 2
     ;;
 esac
@@ -40,6 +47,12 @@ DIRTY=false
 PROV="# build=1.0.$FIX_SHORT # commit=$FIX_SHA # dirty=$DIRTY"
 TREE_LINE="# tree=$HEAD_SHA"
 
+SCAN="scripts/scan-form-error-toasts-2480.sh"
+CONFLICT_FN="frontend-pc/src/utils/formConflict.js"
+CONFLICT_TEST="frontend-pc/tests/formConflict.test.mjs"
+ALERT_COMPONENT="frontend-pc/src/components/FormConflictAlert.jsx"
+SITE_PAGE="frontend-pc/src/pages/SiteManagement.jsx"
+STAFF_PAGE="frontend-pc/src/pages/StaffManagement.jsx"
 PC_SRC="frontend-pc/src/services/errorMessages.js"
 PC_TEST="frontend-pc/tests/errorMessages.test.mjs"
 MOBILE_CORE="frontend-mobile/src/services/errorMessageResolution.mjs"
@@ -233,6 +246,225 @@ case "$MODE" in
     forbid "$LOG" 'P5=N/A' || RC=1
     forbid "$LOG" 'GATE_PLAN_SHA_MATCH=0' || RC=1
     ;;
+
+  r7)
+    NAME="R7-conflict-fn.txt"
+    { printf '%s\n%s\n' "$PROV" "$TREE_LINE"
+      echo "NODE_TEST_CMD=node --test $CONFLICT_TEST"
+      node --test "$CONFLICT_TEST" 2>&1
+      echo "NODE_TEST_EXIT=$?"
+    } > "$LOG" 2>&1
+    grep -q '^NODE_TEST_EXIT=0$' "$LOG" || RC=1
+    require_tokens "$LOG" \
+      'TRUE_40900=1' 'TRUE_40002=1' \
+      'FALSE_50000=0' 'FALSE_20000=0' 'FALSE_NULL=0' 'FALSE_40901=0' \
+      'TEXT_FALLBACK=请修改后重新提交' 'TEXT_MESSAGE=网点名称已存在' || RC=1
+    # 负例：40901（既有账户，Modal 引导）被判为可纠正冲突 → FAIL
+    forbid "$LOG" 'FALSE_40901=1' || RC=1
+    forbid "$LOG" 'TEXT_FALLBACK=undefined' || RC=1
+    ;;
+  r8)
+    NAME="R8-site-alert.txt"
+    { printf '%s\n%s\n' "$PROV" "$TREE_LINE"
+      persist_alert=$(grep -c '<FormConflictAlert' "$SITE_PAGE")
+      no_toast=$(awk '
+        /message\.error\(/ {
+          start = NR - 8; if (start < 1) start = 1
+          for (i = start; i <= NR; i++) if (buf[i] ~ /40900|isBusinessCorrectableConflict/) { hit++; break }
+        }
+        { buf[NR] = $0 }
+        END { print hit + 0 }' "$SITE_PAGE")
+      clear_typing=$(grep -c "if (formConflict) setFormConflict('')" "$SITE_PAGE")
+      clear_submit=$(awk '/setSaving\(true\)/ {f=1; next} f && /setFormConflict\(..\)/ {hit=1; exit} END {print hit + 0}' "$SITE_PAGE")
+      clear_cancel=$(awk '/>取消<\/Button>/ {for (i = NR - 5; i <= NR; i++) if (buf[i] ~ /setFormConflict/) hit=1} {buf[NR] = $0} END {print hit + 0}' "$SITE_PAGE")
+      clear_success=$(awk '/message\.success\(.更新成功.\)|refreshAndSelectTreeNode/ {for (i = NR; i <= NR + 3; i++) want[i] = 1} NR in want && /setFormConflict\(..\)/ {hit++} END {print hit + 0}' "$SITE_PAGE")
+      printf '%s\n' \
+        "PERSIST_ALERT=$([ "$persist_alert" -ge 1 ] && echo 1 || echo 0)" \
+        "NO_40900_TOAST=$([ "$no_toast" -eq 0 ] && echo 1 || echo 0)" \
+        "CLEAR_ON_TYPING=$([ "$clear_typing" -ge 1 ] && echo 1 || echo 0)" \
+        "CLEAR_ON_SUBMIT=${clear_submit}" \
+        "CLEAR_ON_CANCEL=${clear_cancel}" \
+        "CLEAR_ON_SUCCESS=$([ "${clear_success:-0}" -ge 2 ] && echo 1 || echo 0)" \
+        "RAW_40900_TOAST_LINES=$no_toast" \
+        "PERSIST_ALERT_SITES=$persist_alert"
+      echo "--- 409 branch ---"
+      grep -n -A3 'isBusinessCorrectableConflict' "$SITE_PAGE" | head -12
+    } > "$LOG" 2>&1
+    require_tokens "$LOG" 'PERSIST_ALERT=1' 'NO_40900_TOAST=1' \
+      'CLEAR_ON_TYPING=1' 'CLEAR_ON_SUBMIT=1' 'CLEAR_ON_CANCEL=1' 'CLEAR_ON_SUCCESS=1' || RC=1
+    # 负例：40900 分支仍用 message.error（旧实现）→ FAIL
+    forbid "$LOG" 'NO_40900_TOAST=0' || RC=1
+    ;;
+  r9)
+    NAME="R9-staff-alert.txt"
+    { printf '%s\n%s\n' "$PROV" "$TREE_LINE"
+      persist_alert=$(grep -c '<FormConflictAlert' "$STAFF_PAGE")
+      no_toast=$(awk '
+        /message\.error\(/ {
+          start = NR - 8; if (start < 1) start = 1
+          for (i = start; i <= NR; i++) if (buf[i] ~ /40900|isBusinessCorrectableConflict/) { hit++; break }
+        }
+        { buf[NR] = $0 }
+        END { print hit + 0 }' "$STAFF_PAGE")
+      clear_typing=$(grep -c "if (formConflict) setFormConflict('')" "$STAFF_PAGE")
+      clear_submit=$(awk '/const handleCreateUser = async/ {f=1; next} f && /setFormConflict\(..\)/ {hit=1; exit} END {print hit + 0}' "$STAFF_PAGE")
+      clear_cancel=$(awk '/const resetCreateState = \(\) =>/ {f=1; next} f && /setFormConflict\(..\)/ {hit=1; exit} END {print hit + 0}' "$STAFF_PAGE")
+      printf '%s\n' \
+        "PERSIST_ALERT=$([ "$persist_alert" -ge 1 ] && echo 1 || echo 0)" \
+        "NO_40900_TOAST=$([ "$no_toast" -eq 0 ] && echo 1 || echo 0)" \
+        "CLEAR_ON_TYPING=$([ "$clear_typing" -ge 3 ] && echo 1 || echo 0)" \
+        "CLEAR_ON_SUBMIT=${clear_submit}" \
+        "CLEAR_ON_CANCEL=${clear_cancel}" \
+        "TYPING_CLEAR_SITES=$clear_typing" \
+        "RAW_40900_TOAST_LINES=$no_toast"
+      echo "--- 409 branch ---"
+      grep -n -A6 'isBusinessCorrectableConflict' "$STAFF_PAGE" | head -14
+    } > "$LOG" 2>&1
+    require_tokens "$LOG" 'PERSIST_ALERT=1' 'NO_40900_TOAST=1' 'CLEAR_ON_TYPING=1' \
+      'CLEAR_ON_SUBMIT=1' 'CLEAR_ON_CANCEL=1' || RC=1
+    forbid "$LOG" 'NO_40900_TOAST=0' || RC=1
+    ;;
+  r10)
+    NAME="R10-residual.txt"
+    { printf '%s\n%s\n' "$PROV" "$TREE_LINE"
+      tier1_sites=0
+      for f in "$SITE_PAGE" "$STAFF_PAGE"; do
+        grep -q 'isBusinessCorrectableConflict' "$f" && tier1_sites=$((tier1_sites + 1))
+      done
+      converted=0
+      for f in "$SITE_PAGE" "$STAFF_PAGE"; do
+        if grep -q '<FormConflictAlert' "$f" && grep -q 'setFormConflict(' "$f"; then
+          converted=$((converted + 1))
+        fi
+      done
+      shared=0
+      for f in "$SITE_PAGE" "$STAFF_PAGE"; do
+        grep -q "from '../components/FormConflictAlert'" "$f" && shared=$((shared + 1))
+      done
+      residual=0
+      for f in "$SITE_PAGE" "$STAFF_PAGE"; do
+        n=$(awk '
+          /message\.error\(/ {
+            start = NR - 8; if (start < 1) start = 1
+            for (i = start; i <= NR; i++) if (buf[i] ~ /40900|isBusinessCorrectableConflict|conflictText/) { hit++; break }
+          }
+          { buf[NR] = $0 }
+          END { print hit + 0 }' "$f")
+        residual=$((residual + n))
+      done
+      local_dup=0
+      for f in "$SITE_PAGE" "$STAFF_PAGE"; do
+        n=$(awk '/<Alert/ {for (i = NR - 3; i <= NR + 3; i++) want[i] = 1} NR in want && /40900|冲突/' "$f" | wc -l | tr -d ' ')
+        local_dup=$((local_dup + n))
+      done
+      printf '%s\n' \
+        "TIER1_SITES=$tier1_sites" \
+        "TIER1_CONVERTED=$converted" \
+        "RESIDUAL_BUSINESS_TOAST=$residual" \
+        "SHARED_REUSE=$shared" \
+        "LOCAL_ALERT_DUP=$local_dup"
+    } > "$LOG" 2>&1
+    require_tokens "$LOG" 'TIER1_SITES=2' 'TIER1_CONVERTED=2' \
+      'RESIDUAL_BUSINESS_TOAST=0' 'SHARED_REUSE=2' 'LOCAL_ALERT_DUP=0' || RC=1
+    ;;
+  r11)
+    NAME="R11-scan.txt"
+    { printf '%s\n%s\n' "$PROV" "$TREE_LINE"
+      bash "$SCAN" 2>&1
+      echo "SCAN_EXIT=$?"
+      echo "SCAN_SOURCE=$SCAN"
+      grep -cE '^(psql|mysql|mongo|docker exec)' "$SCAN" >/dev/null 2>&1 && echo "DB_CMD_HITS=1" || echo "DB_CMD_HITS=0"
+    } > "$LOG" 2>&1
+    grep -q '^SCAN_EXIT=0$' "$LOG" || RC=1
+    scan_rows=$(sed -n 's/^SCAN_ROWS=\([0-9][0-9]*\)$/\1/p' "$LOG" | tail -1)
+    classified=$(sed -n 's/^CLASSIFIED_ROWS=\([0-9][0-9]*\)$/\1/p' "$LOG" | tail -1)
+    [ "${scan_rows:-0}" -gt 0 ] || RC=1
+    [ "${scan_rows:-0}" = "${classified:-x}" ] || RC=1
+    require_tokens "$LOG" 'READONLY=1' 'DB_WRITES=0' 'TIER1_SITES=2' 'DB_CMD_HITS=0' || RC=1
+    # 负例：扫描脚本出现写库/写文件动作 → FAIL
+    # 负例：扫描脚本引入写库语句 → FAIL（只读脚本不得出现任何 SQL 写操作）
+    if grep -Eqi 'psql|mysql|docker exec|insert into|update [a-z_]+ set|delete from' "$SCAN"; then
+      echo "SCAN_HAS_WRITE=1"; RC=1
+    else
+      echo "SCAN_HAS_WRITE=0"
+    fi
+    ;;
+
+  r12)
+    NAME="R12-build-lint.txt"
+    BUILD=0
+    LINT=0
+    { printf '%s\n%s\n' "$PROV" "$TREE_LINE"
+      echo "PC_BUILD_CMD=cd frontend-pc && npm run build"
+      ( cd frontend-pc && npm run build ) 2>&1 | tail -10
+      BUILD=${PIPESTATUS[0]}
+      echo "PC_BUILD=$BUILD"
+      echo "LINT_CMD=npx eslint $CONFLICT_FN $ALERT_COMPONENT $SITE_PAGE $STAFF_PAGE $CONFLICT_TEST"
+      ( cd frontend-pc && npx eslint "src/utils/formConflict.js" "src/components/FormConflictAlert.jsx" \
+          "src/pages/SiteManagement.jsx" "src/pages/StaffManagement.jsx" "tests/formConflict.test.mjs" ) 2>&1 | tail -6
+      LINT=${PIPESTATUS[0]}
+      echo "LINT_EXIT=$LINT"
+      [ "$BUILD" = "0" ] && [ "$LINT" = "0" ] && echo "BUILD_LINT_OK" || echo "BUILD_LINT_FAIL"
+    } > "$LOG" 2>&1
+    grep -q '^BUILD_LINT_OK$' "$LOG" || RC=1
+    require_tokens "$LOG" 'PC_BUILD=0' 'LINT_EXIT=0' || RC=1
+    forbid "$LOG" 'LINT_EXIT=1' || RC=1
+    ;;
+  r13)
+    NAME="R13-gate.txt"
+    { printf '%s\n%s\n' "$PROV" "$TREE_LINE"
+      fail=0
+      GATE="$OUT_DIR/pre-ready-$ISSUE.json"
+      overall="$(jq -r '.overall // empty' "$GATE" 2>/dev/null)"
+      if [ -f "$GATE" ] && [ "$overall" = "PASS" ]; then
+        echo "GATE_RESULT=PASS"
+      elif [ ! -f "$GATE" ]; then
+        echo "GATE_RESULT=PENDING(no report yet)"; fail=1
+      else
+        echo "GATE_RESULT=MISSING_OR_FAIL(${overall:-missing})"; fail=1
+      fi
+      p5=$(jq -r '.checks[]? | select(.id=="P5") | .status' "$GATE" 2>/dev/null | head -1)
+      echo "P5=${p5:-MISSING}"
+      if [ "$p5" = "PASS" ]; then
+        echo "FULL_SUITE_EXIT=0 (derived from P5 PASS)"
+      else
+        echo "FULL_SUITE_EXIT=PENDING"; fail=1
+      fi
+      gate_sha="$(jq -r '.plan_sha256 // empty' "$GATE" 2>/dev/null)"
+      plan_sha="$(sha256sum "$OUT_DIR/plan.md" | awk '{print $1}')"
+      if [ -n "$gate_sha" ] && [ "$gate_sha" = "$plan_sha" ]; then
+        echo "GATE_PLAN_SHA_MATCH=1"
+      else
+        echo "GATE_PLAN_SHA_MATCH=0"; fail=1
+      fi
+      # REBUILT_ROWS：本 commit 重新生成的 artifact 数（R1-R12 + 本行自身）
+      rebuilt=0
+      for f in R1-pc-resolver.txt R2-mobile-core.txt R3-parity.txt R4-wiring-static.txt \
+               R5-build-lint.txt R6-gate.txt R7-conflict-fn.txt R8-site-alert.txt \
+               R9-staff-alert.txt R10-residual.txt R11-scan.txt R12-build-lint.txt; do
+        [ -f "$OUT_DIR/$f" ] || continue
+        if head -1 "$OUT_DIR/$f" | grep -q "commit=$FIX_SHA "; then
+          rebuilt=$((rebuilt + 1))
+        fi
+      done
+      echo "REBUILT_ROWS=$((rebuilt + 1))"
+      echo "REBUILT_OTHERS=$rebuilt"
+      bash "$HOME/.config/opencode/scripts/plan-source.sh" --issue "$ISSUE" > "$REPO/tmp/plan-source-2480.log" 2>&1
+      tail -6 "$REPO/tmp/plan-source-2480.log"
+      if grep -q 'PLAN_SOURCE: PASS' "$REPO/tmp/plan-source-2480.log"; then
+        echo "PLAN_SOURCE=PASS"
+      else
+        echo "PLAN_SOURCE=FAIL"; fail=1
+      fi
+      [ "$fail" = "0" ] && echo "GATE_OK" || echo "GATE_FAIL"
+    } > "$LOG" 2>&1
+    grep -q '^GATE_OK$' "$LOG" || RC=1
+    require_tokens "$LOG" 'GATE_RESULT=PASS' 'FULL_SUITE_EXIT=0' 'PLAN_SOURCE=PASS' \
+      'GATE_PLAN_SHA_MATCH=1' 'REBUILT_ROWS=13' || RC=1
+    forbid "$LOG" 'P5=N/A' || RC=1
+    forbid "$LOG" 'GATE_PLAN_SHA_MATCH=0' || RC=1
+    ;;
+
 esac
 
 ART="$OUT_DIR/$NAME"
