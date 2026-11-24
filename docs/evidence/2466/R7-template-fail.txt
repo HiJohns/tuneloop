@@ -1,26 +1,27 @@
-# build=1.0.8d73aec29 commit=8d73aec29ab0f467c24854648b1a286b94395966 dirty=false tree=b5a279aede4944cbf5c75a944dd4aee223a025b3
+# build=1.0.8d73aec29 # commit=8d73aec29ab0f467c24854648b1a286b94395966 # dirty=false
+# tree=6beda35d9ef93f70598aef362fec285147e8ea39
 [DEBUG] Loaded .env from: ../.env
-2026/11/24 13:18:35 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2466 sslmode=disable
-2026/11/24 13:18:35 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2466
-2026/11/24 13:18:35 [DB] Connected to database 'tuneloop_test_2466'
+2026/11/24 15:02:06 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2466 sslmode=disable
+2026/11/24 15:02:06 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2466
+2026/11/24 15:02:06 [DB] Connected to database 'tuneloop_test_2466'
 === RUN   TestSiteTransfer_TemplateFail_Explicit_2466
-2026/11/24 13:18:36 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2466 sslmode=disable
-2026/11/24 13:18:36 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2466
-2026/11/24 13:18:36 [DB] Connected to database 'tuneloop_test_2466'
-2026/11/24 13:18:36 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:34527, clientID=test-ns, namespace=test-ns
-2026/11/24 13:18:36 [IAMClient] Obtained client credentials token, expires in 3600s
-2026/11/24 13:18:36 [IAMClient] Unbound user 4a289060-8a7c-4c78-9856-4fe7f8581741 from org cd457aff-9557-47b0-b6a8-e4c71492b6c6
-2026/11/24 13:18:36 [IAMClient] Incremented perm_version
-2026/11/24 13:18:36 [IAMClient] Bound user 4a289060-8a7c-4c78-9856-4fe7f8581741 to org 482fe0fd-f94e-44ee-b792-3cc13efa7d93 with role STAFF
-2026/11/24 13:18:36 [IAMClient] Incremented perm_version
-2026/11/24 13:18:36 [IAMClient] Incremented perm_version
-2026/11/24 13:18:36 [IAMClient] Unbound user 4a289060-8a7c-4c78-9856-4fe7f8581741 from org 482fe0fd-f94e-44ee-b792-3cc13efa7d93
-2026/11/24 13:18:36 [IAMClient] Incremented perm_version
-2026/11/24 13:18:36 [IAMClient] Bound user 4a289060-8a7c-4c78-9856-4fe7f8581741 to org cd457aff-9557-47b0-b6a8-e4c71492b6c6 with role STAFF
-2026/11/24 13:18:36 [IAMClient] Incremented perm_version
-2026/11/24 13:18:36 [IAMClient] Incremented perm_version
-2026/11/24 13:18:36 [IAMClient] Assigned role template site_member to user 4a289060-8a7c-4c78-9856-4fe7f8581741 (via user token)
+2026/11/24 15:02:06 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2466 sslmode=disable
+2026/11/24 15:02:06 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2466
+2026/11/24 15:02:06 [DB] Connected to database 'tuneloop_test_2466'
+2026/11/24 15:02:06 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:38681, clientID=test-ns, namespace=test-ns
+2026/11/24 15:02:06 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/24 15:02:06 [IAMClient] Unbound user 49ec6dcb-d4f2-496e-8213-dadc8587abb0 from org 84ac799c-2f4f-4a7a-916c-9e4aa2e9c36c
+2026/11/24 15:02:06 [IAMClient] Incremented perm_version
+2026/11/24 15:02:06 [IAMClient] Bound user 49ec6dcb-d4f2-496e-8213-dadc8587abb0 to org ff5be213-18b2-469c-b0f5-bae5968bf3be with role STAFF
+2026/11/24 15:02:06 [IAMClient] Incremented perm_version
+2026/11/24 15:02:06 [IAMClient] Incremented perm_version
+2026/11/24 15:02:06 [IAMClient] Unbound user 49ec6dcb-d4f2-496e-8213-dadc8587abb0 from org ff5be213-18b2-469c-b0f5-bae5968bf3be
+2026/11/24 15:02:06 [IAMClient] Incremented perm_version
+2026/11/24 15:02:06 [IAMClient] Bound user 49ec6dcb-d4f2-496e-8213-dadc8587abb0 to org 84ac799c-2f4f-4a7a-916c-9e4aa2e9c36c with role STAFF
+2026/11/24 15:02:06 [IAMClient] Incremented perm_version
+2026/11/24 15:02:06 [IAMClient] Incremented perm_version
+2026/11/24 15:02:06 [IAMClient] Assigned role template site_member to user 49ec6dcb-d4f2-496e-8213-dadc8587abb0 (via user token)
     user_site_transfer_2466_test.go:344: STATUS=502 MSG_CONTAINS=切换网点失败 IAM_UNBIND_NEW=1 SITE_UNCHANGED=1
---- PASS: TestSiteTransfer_TemplateFail_Explicit_2466 (0.08s)
+--- PASS: TestSiteTransfer_TemplateFail_Explicit_2466 (0.07s)
 PASS
-ok  	tuneloop-backend/handlers	0.729s
+ok  	tuneloop-backend/handlers	0.624s
