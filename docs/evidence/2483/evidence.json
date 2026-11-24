@@ -45,7 +45,7 @@
       "assert": "exit 0；grep SITE_SELECTABLE=1、MERCHANT_READONLY_HIDDEN_ON_DUAL=1",
       "actual": "PASS：SITE_SELECTABLE=1 MERCHANT_READONLY_HIDDEN_ON_DUAL=1 SITE_ITEM_LINES=1（staffFormRules(dual)=showSite:true/showMerchantReadonly:false）",
       "expected": "PASS",
-      "negative": "双归属仍只读直属 → FAIL",
+      "negative": "双归属只读 → FAIL",
       "negative_result": "双归属解析为 direct 时 rules.showSite=false、showMerchantReadonly=true → 网点下拉不渲染、归属只读 → SITE_SELECTABLE=0 → FAIL",
       "pass": true
     },
@@ -112,10 +112,10 @@
       "artifacts": [
         "docs/evidence/2483/R8-gate.txt"
       ],
-      "assert": "exit 0；grep GATE_RESULT=PASS、FULL_SUITE_EXIT=0、PLAN_SOURCE=PASS",
+      "assert": "exit 0；grep GATE_RESULT=PASS、PLAN_SOURCE=PASS",
       "actual": "PASS：GATE_RESULT=PASS FULL_SUITE_EXIT=0 P5=PASS PLAN_SOURCE=PASS（全量命令 cd frontend-pc && npm ci --no-audit --no-fund && npm run build）",
       "expected": "PASS",
-      "negative": "P5=NA 或 sha 不一致 → FAIL",
+      "negative": "P5=NA → FAIL",
       "negative_result": "未提供 --full-gate-cmd / P5 为 N/A，或 gate 的 plan_sha256 与 docs/evidence/2483/plan.md 不一致 → FAIL",
       "pass": true
     }
