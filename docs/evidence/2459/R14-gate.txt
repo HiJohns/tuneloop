@@ -1,2 +1,10 @@
 # build=1.0.f0d9a403 # commit=f0d9a40309542a43fcde3a73b559b99a1c9bdf78 # dirty=false
-GATE_RESULT=PENDING
+FULL_SUITE_CMD=cd backend && go build ./... && go test ./handlers -count=1 -timeout 15m && go test ./services -count=1 -timeout 15m
+FULL_SUITE_EXIT=0
+FAIL_COUNT=0
+PANIC_COUNT=0
+GATE_RESULT=PASS
+GATE_PLAN_SHA_MATCH=1
+P5=PASS
+PLAN_SOURCE=PASS
+

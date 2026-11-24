@@ -1,10 +1,10 @@
 {
   "issue": 2459,
-  "overall": "FAIL",
+  "overall": "PASS",
   "plan": "/home/coder/worktrees/tuneloop/wt-2459/docs/evidence/2459/plan.md",
   "plan_sha256": "b9b874a018dc307f191109709edbc293bd6ae936839bb86eced9230fcc998ead",
   "summary": "/home/coder/worktrees/tuneloop/wt-2459/tmp/work-summary-2459.md",
-  "timestamp": "20261124-194314",
+  "timestamp": "20261124-202445",
   "checks": [
     {
       "id": "P1",
@@ -18,8 +18,8 @@
     },
     {
       "id": "P3",
-      "status": "FAIL",
-      "detail": "evidence paths do not exist: R1-iam-first.txt R10-doc.txt R11-build.txt R12-perm.txt R13-unique.txt R14-gate.txt R2-iam-fail.txt R3-idempotent.txt R4-escalate.txt R5-conflict.txt R6-not-found.txt R7-empty-name.txt R8-reuse.txt R9-drift.txt UpdateOrganizationName(...) docs/evidence/2459/pre-ready-2459.json gate-run.sh matrix_parser.sh merchants.name pre-ready-check.sh"
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
     },
     {
       "id": "P4",
@@ -54,7 +54,7 @@
     {
       "id": "P5",
       "status": "PASS",
-      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (eb6579802e7f1083586a6428fef344c4c6c110bc); source head=run baseline=run"
+      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (eb6579802e7f1083586a6428fef344c4c6c110bc); source head=run baseline=cache"
     },
     {
       "id": "P6",
@@ -63,8 +63,8 @@
     },
     {
       "id": "P7",
-      "status": "FAIL",
-      "detail": "contract-affecting change requires '### 契约三向核对' (Plan/API, docs, handler/frontend)"
+      "status": "PASS",
+      "detail": "contract three-way section present"
     },
     {
       "id": "P8",
@@ -83,8 +83,8 @@
     },
     {
       "id": "P11",
-      "status": "FAIL",
-      "detail": "fix commit(s) not ancestors of HEAD: cb2c447676b10c6f6cee5af4f0cf23cb7b562983; recovery: git reflog; git cherry-pick <lost>; git fsck --lost-found"
+      "status": "PASS",
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /home/coder/worktrees/tuneloop/wt-2459; worktree guard: PASS isolated worktree=/home/coder/worktrees/tuneloop/wt-2459"
     },
     {
       "id": "P13",
