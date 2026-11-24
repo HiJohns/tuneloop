@@ -1,5 +1,5 @@
-# build=1.0.03e336fa5 # commit=03e336fa58a515f597d5cc5a55e678865db00e01 # dirty=false
-# tree=1cc71e0c1d15d227481c4e8c937447cb6d5b0dc6
+# build=1.0.f44853fe1 # commit=f44853fe1f5e731a2ff40c674ed842155430bfe6 # dirty=false
+# tree=f44853fe1f5e731a2ff40c674ed842155430bfe6
 CORE_LAYERS=1
 CORE_CJK=1
 SINGLE_EXIT=1

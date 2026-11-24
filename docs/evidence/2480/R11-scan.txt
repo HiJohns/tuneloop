@@ -1,0 +1,364 @@
+# build=1.0.f44853fe1 # commit=f44853fe1f5e731a2ff40c674ed842155430bfe6 # dirty=false
+# tree=f44853fe1f5e731a2ff40c674ed842155430bfe6
+frontend-pc/src/components/IdPhotoDisplay.jsx:32	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/components/IdPhotoDisplay.jsx:35	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/components/IdPhotoDisplay.jsx:49	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/components/IdPhotoDisplay.jsx:52	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/components/MerchantMemberManagement.jsx:152	tier=keep:instant	code=20100	modal=1	reason=code 20100 not a user-correctable conflict
+frontend-pc/src/components/MerchantMemberManagement.jsx:170	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/components/MerchantMemberManagement.jsx:205	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/components/MerchantMemberManagement.jsx:255	tier=keep:instant	code=40901	modal=1	reason=code 40901 = existing account, Modal guided (D4)
+frontend-pc/src/components/MerchantMemberManagement.jsx:274	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/components/MerchantMemberManagement.jsx:277	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/components/MerchantMemberManagement.jsx:297	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/components/MerchantMemberManagement.jsx:299	tier=keep:instant	code=none	modal=0	reason=permission feedback
+frontend-pc/src/components/MerchantMemberManagement.jsx:68	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/components/MerchantMemberManagement.jsx:84	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/components/SiteMemberManagement.jsx:105	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/components/SiteMemberManagement.jsx:117	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/components/SiteMemberManagement.jsx:187	tier=keep:instant	code=20100	modal=1	reason=code 20100 not a user-correctable conflict
+frontend-pc/src/components/SiteMemberManagement.jsx:190	tier=keep:instant	code=20100	modal=1	reason=code 20100 not a user-correctable conflict
+frontend-pc/src/components/SiteMemberManagement.jsx:221	tier=keep:instant	code=40311	modal=0	reason=code 40311 not a user-correctable conflict
+frontend-pc/src/components/SiteMemberManagement.jsx:235	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/components/SiteMemberManagement.jsx:256	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/components/SiteMemberManagement.jsx:290	tier=keep:instant	code=40902	modal=1	reason=code 40902 = existing account, Modal guided (D4)
+frontend-pc/src/components/SiteMemberManagement.jsx:293	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/components/SiteMemberManagement.jsx:85	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/components/WechatBinding.jsx:25	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/components/WechatBinding.jsx:34	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/components/WechatBinding.jsx:92	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/AppealManagement.jsx:57	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/AppealManagement.jsx:72	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/AppealManagement.jsx:96	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/ChangePassword.jsx:15	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/ChangePassword.jsx:30	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/ChangePassword.jsx:33	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/ClientManagement.jsx:32	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/ClientManagement.jsx:60	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/ClientManagement.jsx:77	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/pages/ContractView.jsx:26	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/ContractView.jsx:36	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/DepositFlow.jsx:59	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/DepositFlow.jsx:82	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/pages/DirectMemberManagement.jsx:102	tier=keep:instant	code=20100	modal=0	reason=code 20100 not a user-correctable conflict
+frontend-pc/src/pages/DirectMemberManagement.jsx:106	tier=keep:instant	code=20100	modal=0	reason=code 20100 not a user-correctable conflict
+frontend-pc/src/pages/DirectMemberManagement.jsx:172	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/pages/DirectMemberManagement.jsx:176	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/DirectMemberManagement.jsx:59	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/DirectMemberManagement.jsx:89	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/FinanceConfig.jsx:59	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/IAMSyncPage.jsx:42	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/IAMSyncPage.jsx:50	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/IAMSyncPage.jsx:53	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/InstrumentDetailUser.jsx:27	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/InstrumentDetailUser.jsx:60	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/InstrumentListUser.jsx:52	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/InstrumentStock.jsx:176	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/InstrumentStock.jsx:179	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/InstrumentStock.jsx:200	tier=keep:instant	code=20000	modal=1	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/InstrumentStock.jsx:203	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/pages/InstrumentStock.jsx:224	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/InstrumentStock.jsx:248	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/InstrumentStock.jsx:251	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/InstrumentStock.jsx:303	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/InstrumentStock.jsx:304	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/InstrumentStock.jsx:324	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/InstrumentStock.jsx:325	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/InviteManagement.jsx:101	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/InviteManagement.jsx:104	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/InviteManagement.jsx:52	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/InviteManagement.jsx:55	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/InviteManagement.jsx:78	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/InviteManagement.jsx:81	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/LeaseLedger.jsx:108	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/LeaseLedger.jsx:68	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/LeaseLedger.jsx:96	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/pages/MerchantManagement.jsx:106	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/MerchantManagement.jsx:131	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/MerchantManagement.jsx:149	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/MerchantManagement.jsx:71	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/OrderManagement.jsx:137	tier=keep:instant	code=20000	modal=1	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/OrderManagement.jsx:138	tier=keep:instant	code=20000	modal=1	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/OrderManagement.jsx:148	tier=keep:instant	code=20000	modal=1	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/OrderManagement.jsx:149	tier=keep:instant	code=20000	modal=1	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/OrderManagement.jsx:171	tier=keep:instant	code=20000	modal=1	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/OrderManagement.jsx:172	tier=keep:instant	code=20000	modal=1	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/OrderManagement.jsx:75	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/OrderPayment.jsx:29	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/OrderPayment.jsx:45	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/OrderPayment.jsx:59	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/OverdueAlerts.jsx:41	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/Setup/index.jsx:30	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/Setup/index.jsx:56	tier=keep:instant	code=none	modal=0	reason=permission feedback
+frontend-pc/src/pages/Setup/index.jsx:59	tier=keep:instant	code=none	modal=0	reason=permission feedback
+frontend-pc/src/pages/SiteBulkImport.jsx:27	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/SiteBulkImport.jsx:37	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/SiteBulkImport.jsx:40	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/SiteBulkImport.jsx:50	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/SiteBulkImport.jsx:64	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/SiteBulkImport.jsx:70	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/SiteBulkImport.jsx:80	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/SiteBulkImport.jsx:83	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/SiteManagement.jsx:115	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/SiteManagement.jsx:239	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/SiteManagement.jsx:309	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/StaffBulkImport.jsx:27	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/StaffBulkImport.jsx:39	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/StaffBulkImport.jsx:42	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/StaffBulkImport.jsx:52	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/StaffBulkImport.jsx:66	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/StaffBulkImport.jsx:72	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/StaffBulkImport.jsx:82	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/StaffBulkImport.jsx:85	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/StaffEdit.jsx:124	tier=keep:instant	code=none	modal=0	reason=permission feedback
+frontend-pc/src/pages/StaffEdit.jsx:127	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/StaffManagement.jsx:113	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/StaffManagement.jsx:196	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/StaffManagement.jsx:254	tier=keep:instant	code=20100	modal=0	reason=code 20100 not a user-correctable conflict
+frontend-pc/src/pages/StaffManagement.jsx:351	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/StaffManagement.jsx:354	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/StaffManagement.jsx:366	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/StaffManagement.jsx:369	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/StaffManagement.jsx:380	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/StaffManagement.jsx:383	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/StaffManagement.jsx:414	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/StaffManagement.jsx:417	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/StaffManagement.jsx:444	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/StaffResetPassword.jsx:54	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/StaffResetPassword.jsx:57	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/System/AuditLogPage.jsx:111	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/System/AuditLogPage.jsx:94	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/System/BannerManagePage.jsx:105	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/BannerManagePage.jsx:113	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/pages/System/BannerManagePage.jsx:138	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/BannerManagePage.jsx:189	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/System/BannerManagePage.jsx:22	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/BannerManagePage.jsx:25	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/BannerManagePage.jsx:52	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/BannerManagePage.jsx:55	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/BannerManagePage.jsx:70	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/System/BannerManagePage.jsx:84	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/System/BannerManagePage.jsx:95	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/GiftPolicies.jsx:30	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/GiftPolicies.jsx:48	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/GiftPolicies.jsx:50	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/GiftPolicies.jsx:64	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/GiftPolicies.jsx:66	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/MallImageManageCard.jsx:104	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/MallImageManageCard.jsx:112	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/pages/System/MallImageManageCard.jsx:138	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/MallImageManageCard.jsx:188	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/System/MallImageManageCard.jsx:22	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/MallImageManageCard.jsx:25	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/MallImageManageCard.jsx:52	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/MallImageManageCard.jsx:55	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/MallImageManageCard.jsx:70	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/System/MallImageManageCard.jsx:84	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/System/MallImageManageCard.jsx:95	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/MembershipHandbookPage.jsx:31	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/MembershipHandbookPage.jsx:33	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/System/MembershipHandbookPage.jsx:74	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/MembershipHandbookPage.jsx:77	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/MembershipHandbookPage.jsx:91	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/MembershipHandbookPage.jsx:94	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/MembershipLevelsPage.jsx:35	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/MembershipLevelsPage.jsx:46	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/MembershipLevelsPage.jsx:61	tier=keep:instant	code=20000	modal=1	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/MembershipLevelsPage.jsx:71	tier=keep:instant	code=20000	modal=1	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/TechnicianProfiles.jsx:109	tier=keep:instant	code=20000	modal=1	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/TechnicianProfiles.jsx:110	tier=keep:instant	code=20000	modal=1	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/TechnicianProfiles.jsx:118	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/TechnicianProfiles.jsx:42	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/TechnicianProfiles.jsx:93	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/System/UserManagement.jsx:148	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/UserManagement.jsx:151	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/UserManagement.jsx:170	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/UserManagement.jsx:173	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/System/UserManagement.jsx:191	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/UserManagement.jsx:195	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/System/UserManagement.jsx:227	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/System/UserManagement.jsx:230	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/System/UserManagement.jsx:296	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/UserManagement.jsx:316	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/UserManagement.jsx:319	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/UserManagement.jsx:337	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/UserManagement.jsx:340	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/UserManagement.jsx:76	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/System/UserManagement.jsx:94	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/TenantManagement.jsx:32	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/TenantManagement.jsx:50	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/pages/UserProfile.jsx:26	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/UserProfile.jsx:52	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/UserProfile.jsx:54	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/UserProfile.jsx:61	tier=keep:instant	code=42900	modal=0	reason=code 42900 not a user-correctable conflict
+frontend-pc/src/pages/WarehouseManagement.jsx:117	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/WarehouseManagement.jsx:128	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/pages/WarehouseManagement.jsx:146	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/WarehouseManagement.jsx:160	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/WarehouseManagement.jsx:176	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/WarehouseManagement.jsx:187	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/pages/WarehouseManagement.jsx:41	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/WarehouseManagement.jsx:64	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/WarehouseManagement.jsx:91	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/ContentEdit.jsx:107	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/ContentEdit.jsx:122	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/ContentEdit.jsx:123	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/ContentEdit.jsx:47	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/ContentEdit.jsx:49	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/PermissionManage/index.jsx:140	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/pages/admin/PermissionManage/index.jsx:143	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/pages/admin/PermissionManage/index.jsx:147	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/pages/admin/PermissionManage/index.jsx:235	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/PermissionManage/index.jsx:248	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/PermissionManage/index.jsx:307	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/pages/admin/PermissionManage/index.jsx:311	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/pages/admin/PermissionManage/index.jsx:86	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/audit/DamageAssessment.jsx:33	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/audit/DamageAssessment.jsx:36	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/audit/DamageAssessment.jsx:60	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/audit/DamageAssessment.jsx:63	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/billing/BillingDashboard.jsx:49	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/billing/BillingDashboard.jsx:70	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/category/List.jsx:124	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/category/List.jsx:143	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/category/List.jsx:158	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/category/List.jsx:227	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/category/List.jsx:267	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/pages/admin/category/List.jsx:97	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/face-review/index.jsx:152	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/face-review/index.jsx:155	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/face-review/index.jsx:175	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/face-review/index.jsx:178	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/face-review/index.jsx:63	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/face-review/index.jsx:66	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/face-review/index.jsx:87	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/face-review/index.jsx:90	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/instrument/BatchImport.jsx:101	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/instrument/BatchImport.jsx:17	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/instrument/BatchImport.jsx:446	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/instrument/BatchImport.jsx:45	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/instrument/BatchImport.jsx:67	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/instrument/BatchImport.jsx:70	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/instrument/BatchImport.jsx:98	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/instrument/Detail.jsx:113	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/instrument/Detail.jsx:126	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/instrument/Detail.jsx:136	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/instrument/Detail.jsx:148	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/instrument/Detail.jsx:161	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/instrument/Detail.jsx:164	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/instrument/Detail.jsx:179	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/instrument/Detail.jsx:182	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/instrument/Detail.jsx:374	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/instrument/Detail.jsx:376	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/instrument/Detail.jsx:480	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/instrument/Detail.jsx:490	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/instrument/Detail.jsx:513	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/instrument/Detail.jsx:515	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/instrument/Detail.jsx:587	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/instrument/Detail.jsx:590	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/instrument/Detail.jsx:628	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/instrument/Detail.jsx:658	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/instrument/Detail.jsx:659	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/instrument/Detail.jsx:692	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/instrument/Detail.jsx:695	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/instrument/Detail.jsx:743	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/instrument/Detail.jsx:746	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/instrument/Detail.jsx:955	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/instrument/Form.jsx:1094	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/instrument/Form.jsx:1484	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/instrument/Form.jsx:610	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/instrument/Form.jsx:862	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/instrument/Form.jsx:905	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/instrument/Form.jsx:922	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/instrument/Form.jsx:932	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/instrument/Form.jsx:965	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/instrument/List.jsx:106	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/instrument/List.jsx:129	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/instrument/List.jsx:140	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/instrument/List.jsx:303	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/instrument/List.jsx:344	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/instrument/List.jsx:384	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/instrument/List.jsx:423	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/instrument/List.jsx:438	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/instrument/List.jsx:467	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/pages/admin/inventory/RentSetting.jsx:101	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/inventory/RentSetting.jsx:104	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/inventory/RentSetting.jsx:148	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/inventory/RentSetting.jsx:151	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/inventory/RentSetting.jsx:174	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/inventory/RentSetting.jsx:177	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/inventory/RentSetting.jsx:196	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/invoice/InvoiceList.jsx:38	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/invoice/InvoiceList.jsx:70	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/invoice/InvoiceList.jsx:72	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/invoice/InvoiceList.jsx:86	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/invoice/InvoiceList.jsx:88	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/payments/PaymentList.jsx:52	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/payments/PaymentList.jsx:67	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/payments/PaymentList.jsx:78	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/payments/PaymentList.jsx:80	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/platform-staff/index.jsx:28	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/platform-staff/index.jsx:31	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/platform-staff/index.jsx:69	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/platform-staff/index.jsx:72	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/platform-staff/index.jsx:85	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/platform-staff/index.jsx:88	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/pricing/MerchantPricingConfig.jsx:120	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/pricing/MerchantPricingConfig.jsx:123	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/pricing/MerchantPricingConfig.jsx:45	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/pricing/MerchantPricingConfig.jsx:48	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/pricing/MerchantPricingConfig.jsx:91	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/pricing/MerchantPricingConfig.jsx:95	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/pricing/MerchantPricingConfig.jsx:99	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/property/List.jsx:114	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/pages/admin/property/List.jsx:128	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/property/List.jsx:138	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/property/List.jsx:160	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/pages/admin/property/List.jsx:183	tier=keep:instant	code=none	modal=1	reason=Modal guided flow
+frontend-pc/src/pages/admin/property/List.jsx:61	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/repair/MerchantRepairList.jsx:164	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/repair/MerchantRepairList.jsx:167	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/repair/RepairConfigPage.jsx:32	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/transit/TransitCenter.jsx:100	tier=keep:instant	code=20000	modal=1	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/transit/TransitCenter.jsx:107	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/transit/TransitCenter.jsx:46	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/transit/TransitCenter.jsx:73	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/transit/TransitCenter.jsx:83	tier=keep:instant	code=20000	modal=1	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/warnings/SmtpSettings.jsx:32	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/warnings/SmtpSettings.jsx:33	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/warnings/SmtpSettings.jsx:49	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/warnings/SmtpSettings.jsx:51	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/warnings/SmtpSettings.jsx:56	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/warnings/SmtpSettings.jsx:63	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/warnings/SmtpSettings.jsx:65	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/warnings/WarningSettings.jsx:29	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/warnings/WarningSettings.jsx:31	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/warnings/WarningSettings.jsx:39	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/warnings/WarningSettings.jsx:40	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/warnings/WarningSettings.jsx:47	tier=keep:instant	code=none	modal=0	reason=transport/unknown error fallback
+frontend-pc/src/pages/admin/warnings/WarningSettings.jsx:49	tier=defer:tier2	code=none	modal=0	reason=needs per-page judgement
+frontend-pc/src/pages/admin/warnings/WarningSettings.jsx:61	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/admin/warnings/WarningSettings.jsx:62	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/merchant/NotificationSettings.jsx:23	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/merchant/NotificationSettings.jsx:25	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/merchant/NotificationSettings.jsx:39	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/merchant/NotificationSettings.jsx:41	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/merchant/NotificationSettings.jsx:50	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+frontend-pc/src/pages/merchant/NotificationSettings.jsx:51	tier=keep:instant	code=20000	modal=0	reason=code 20000 not a user-correctable conflict
+SCAN_ROWS=345
+CLASSIFIED_ROWS=345
+UNCLASSIFIED_ROWS=0
+TIER1_SITES=2
+TIER1_CONVERTED=2
+SHARED_REUSE=2
+TIER1_RESIDUAL_TOAST=0
+CONVERTED_ROWS=0
+KEEP_ROWS=265
+DEFER_ROWS=80
+AMBIGUOUS=/home/coder/worktrees/tuneloop/wt-2480/frontend-pc/src/components/MerchantMemberManagement.jsx:205 /home/coder/worktrees/tuneloop/wt-2480/frontend-pc/src/components/SiteMemberManagement.jsx:221 /home/coder/worktrees/tuneloop/wt-2480/frontend-pc/src/components/SiteMemberManagement.jsx:256 /home/coder/worktrees/tuneloop/wt-2480/frontend-pc/src/pages/System/BannerManagePage.jsx:105 /home/coder/worktrees/tuneloop/wt-2480/frontend-pc/src/pages/System/MallImageManageCard.jsx:104 /home/coder/worktrees/tuneloop/wt-2480/frontend-pc/src/pages/UserProfile.jsx:52 /home/coder/worktrees/tuneloop/wt-2480/frontend-pc/src/pages/UserProfile.jsx:54 /home/coder/worktrees/tuneloop/wt-2480/frontend-pc/src/pages/admin/pricing/MerchantPricingConfig.jsx:120 /home/coder/worktrees/tuneloop/wt-2480/frontend-pc/src/pages/admin/pricing/MerchantPricingConfig.jsx:123
+READONLY=1
+DB_WRITES=0
+RESULT: PASS (scan rows=345 classified=345)
+SCAN_EXIT=0
+SCAN_SOURCE=scripts/scan-form-error-toasts-2480.sh
+DB_CMD_HITS=0

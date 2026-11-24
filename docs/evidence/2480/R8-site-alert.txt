@@ -1,0 +1,20 @@
+# build=1.0.f44853fe1 # commit=f44853fe1f5e731a2ff40c674ed842155430bfe6 # dirty=false
+# tree=f44853fe1f5e731a2ff40c674ed842155430bfe6
+PERSIST_ALERT=1
+NO_40900_TOAST=1
+CLEAR_ON_TYPING=1
+CLEAR_ON_SUBMIT=1
+CLEAR_ON_CANCEL=1
+CLEAR_ON_SUCCESS=1
+RAW_40900_TOAST_LINES=0
+PERSIST_ALERT_SITES=1
+--- 409 branch ---
+9:import { conflictText, isBusinessCorrectableConflict } from '../utils/formConflict'
+10- 
+11-const { Option } = Select
+12-
+--
+285:      if (isBusinessCorrectableConflict(result)) {
+286-        setFormConflict(conflictText(result, '网点名称已存在'))
+287-        return
+288-      }

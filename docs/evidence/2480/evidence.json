@@ -1,10 +1,11 @@
 {
   "schema_version": 1,
   "issue": 2480,
-  "build": "1.0.03e336fa5",
-  "commit": "03e336fa58a515f597d5cc5a55e678865db00e01",
+  "build": "1.0.f44853fe1",
+  "commit": "f44853fe1f5e731a2ff40c674ed842155430bfe6",
   "dirty": false,
-  "plan_sha256": "232517f30297dd7a4d412681308d1c586a8c6c59ec1de4a5c88c58159ff7dbeb",
+  "plan_sha256": "60fdb380122b8777e0600eb999944c49484ca00e92507ea08313b63311b96513",
+  "environment": "beaconwork worktree /home/coder/worktrees/tuneloop/wt-2480 (base origin/develop); frontend-pc node 20.20.2 (npm ci), frontend-mobile eslint via shared node_modules, node --test for pure functions, vite build for wiring",
   "rows": [
     {
       "id": "R1",
@@ -13,11 +14,11 @@
       "artifacts": [
         "docs/evidence/2480/R1-pc-resolver.txt"
       ],
-      "assert": "exit 0；grep L40900_CN=human_message、L40900_ASCII=code_map、C40912_CN=",
-      "actual": "L40900_CN=human_message; L40900_ASCII=code_map; C40912_CN=学生证作为第二证件需介绍信",
+      "assert": "exit 0；grep L40900_CN=human_message、L40900_ASCII=code_map、LAYERS=",
+      "actual": "PASS：L40900_CN=human_message L40900_ASCII=code_map LAYERS=human_message,code_map,code_map,human_message,message_map,fallback,raw_message,human_message（node --test 8 条 fixture 全绿）",
       "expected": "PASS",
       "negative": "中文被通用文案遮蔽 → FAIL",
-      "negative_result": "负例通过：C40900_CN 未等于「数据冲突，请刷新后重试」（实测 网点名称已存在）",
+      "negative_result": "若 code 家族仍先于 message 透传 → L40900_CN=code_map（文案「数据冲突，请刷新后重试」）→ FAIL",
       "pass": true
     },
     {
@@ -28,10 +29,10 @@
         "docs/evidence/2480/R2-mobile-core.txt"
       ],
       "assert": "exit 0；grep L_CN=human_message、L_ASCII=code_map、LAYERS=",
-      "actual": "L_CN=human_message; L_ASCII=code_map; LAYERS=human_message,code_map,code_map,human_message,message_map,fallback,raw_message,human_message",
+      "actual": "PASS：L_CN=human_message L_ASCII=code_map LAYERS 与 R1 逐项一致（mobile 纯核心 8 条 fixture 全绿）",
       "expected": "PASS",
       "negative": "layer 序列与 PC 不同 → FAIL",
-      "negative_result": "负例通过：mobile LAYERS 序列与 PC 完全一致（无 L_CN=code_map）",
+      "negative_result": "mobile 核心层序与 PC 分叉（任一 layer 不同）→ LAYERS 不一致 → FAIL",
       "pass": true
     },
     {
@@ -42,10 +43,10 @@
         "docs/evidence/2480/R3-parity.txt"
       ],
       "assert": "exit 0；grep PARITY=1、CASES=10、DIFFS=0",
-      "actual": "PARITY=1; CASES=10; DIFFS=0",
+      "actual": "PASS：PARITY=1 CASES=10 DIFFS=0",
       "expected": "PASS",
-      "negative": "任一 case 文本不同 → FAIL",
-      "negative_result": "负例通过：无 PARITY=0 行，10 条用例文本全部相同",
+      "negative": "任一 case 不同 → FAIL",
+      "negative_result": "双端任一 fixture 文本不同 → DIFFS>0 且 PARITY=0 → FAIL",
       "pass": true
     },
     {
@@ -56,10 +57,10 @@
         "docs/evidence/2480/R4-wiring-static.txt"
       ],
       "assert": "exit 0；grep SINGLE_EXIT=1、RAW_MESSAGE_NO_T=1、REEXPORT_KEPT=1",
-      "actual": "SINGLE_EXIT=1; RAW_MESSAGE_NO_T=1; REEXPORT_KEPT=1",
+      "actual": "PASS：SINGLE_EXIT=1 RAW_MESSAGE_NO_T=1 REEXPORT_KEPT=1 DELEGATES_CORE=1",
       "expected": "PASS",
       "negative": "无条件套 t → FAIL",
-      "negative_result": "负例通过：RAW_BRANCH_UNTYPED=1（human_message/raw_message 分支未套 t），无失败标记",
+      "negative_result": "后端原文分支被 t() 包装 → RAW_MESSAGE_NO_T=0 → FAIL",
       "pass": true
     },
     {
@@ -70,10 +71,10 @@
         "docs/evidence/2480/R5-build-lint.txt"
       ],
       "assert": "exit 0；grep PC_BUILD=0、LINT_EXIT=0",
-      "actual": "PC_BUILD=0; LINT_EXIT=0; LINT_MOBILE_EXIT=0",
+      "actual": "PASS：PC_BUILD=0 LINT_EXIT=0 LINT_MOBILE_EXIT=0（vite build + 两端 eslint）",
       "expected": "PASS",
       "negative": "任一非 0 → FAIL",
-      "negative_result": "负例通过：PC_BUILD/LINT_EXIT/LINT_MOBILE_EXIT 均非 1（全部 0）",
+      "negative_result": "构建或 lint 非 0（含 no-undef）→ PC_BUILD/LINT_EXIT 非 0 → FAIL",
       "pass": true
     },
     {
@@ -84,10 +85,108 @@
         "docs/evidence/2480/R6-gate.txt"
       ],
       "assert": "exit 0；grep GATE_RESULT=PASS、FULL_SUITE_EXIT=0、PLAN_SOURCE=PASS",
-      "actual": "GATE_RESULT=PASS; FULL_SUITE_EXIT=0 (derived from P5 PASS); PLAN_SOURCE=PASS",
+      "actual": "PASS：GATE_RESULT=PASS P5=PASS PLAN_SOURCE=PASS GATE_PLAN_SHA_MATCH=1（读同轮 gate 报告）",
       "expected": "PASS",
       "negative": "P5=NA → FAIL",
-      "negative_result": "负例通过：P5 非 N/A，四源 sha 一致（GATE_PLAN_SHA_MATCH=1）",
+      "negative_result": "未跑全量 gate（P5=N/A）或四源 sha 不一致 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2480.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2480/R7-conflict-fn.txt"
+      ],
+      "assert": "exit 0；grep TRUE_40900=1、FALSE_40901=1、TEXT_FALLBACK=",
+      "actual": "PASS：TRUE_40900=1 TRUE_40002=1 TRUE_40004=1 TRUE_40005=1 FALSE_50000=0 FALSE_20000=0 FALSE_NULL=0 FALSE_40901=0 FALSE_40902=0 TEXT_MESSAGE=网点名称已存在 TEXT_FALLBACK=请修改后重新提交",
+      "expected": "PASS",
+      "negative": "40901 判 true → FAIL",
+      "negative_result": "把 40901（既有账户，Modal 引导）列入 BUSINESS_CORRECTABLE_CODES → FALSE_40901=1 → FAIL；message 为空却输出 undefined → TEXT_FALLBACK 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2480.sh r8",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2480/R8-site-alert.txt"
+      ],
+      "assert": "exit 0；grep PERSIST_ALERT=1、NO_40900_TOAST=1、CLEAR_ON_CANCEL=1",
+      "actual": "PASS：PERSIST_ALERT=1 NO_40900_TOAST=1 CLEAR_ON_TYPING=1 CLEAR_ON_SUBMIT=1 CLEAR_ON_CANCEL=1 CLEAR_ON_SUCCESS=1 RAW_40900_TOAST_LINES=0",
+      "expected": "PASS",
+      "negative": "40900 仍 message.error → FAIL",
+      "negative_result": "保留 `message.error(result.message || '网点名称已存在')`（修复前形态）→ 40900 分支仍为 toast → NO_40900_TOAST=0 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash scripts/verify-2480.sh r9",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2480/R9-staff-alert.txt"
+      ],
+      "assert": "exit 0；grep PERSIST_ALERT=1、NO_40900_TOAST=1、CLEAR_ON_TYPING=1",
+      "actual": "PASS：PERSIST_ALERT=1 NO_40900_TOAST=1 CLEAR_ON_TYPING=1 CLEAR_ON_SUBMIT=1 CLEAR_ON_CANCEL=1 TYPING_CLEAR_SITES=3 RAW_40900_TOAST_LINES=0",
+      "expected": "PASS",
+      "negative": "冲突列表仍在 toast → FAIL",
+      "negative_result": "把冲突员工列表继续拼进 message.error（修复前形态）→ NO_40900_TOAST=0 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R10",
+      "command": "bash scripts/verify-2480.sh r10",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2480/R10-residual.txt"
+      ],
+      "assert": "exit 0；grep TIER1_CONVERTED=2、RESIDUAL_BUSINESS_TOAST=0、SHARED_REUSE=2",
+      "actual": "PASS：TIER1_SITES=2 TIER1_CONVERTED=2 RESIDUAL_BUSINESS_TOAST=0 SHARED_REUSE=2 LOCAL_ALERT_DUP=0",
+      "expected": "PASS",
+      "negative": "残留 ≥1 → FAIL",
+      "negative_result": "任一 Tier 1 页面残留业务 code toast（RESIDUAL_BUSINESS_TOAST≥1）或页面自写冲突 Alert（LOCAL_ALERT_DUP≥1）→ FAIL",
+      "pass": true
+    },
+    {
+      "id": "R11",
+      "command": "bash scripts/verify-2480.sh r11",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2480/R11-scan.txt"
+      ],
+      "assert": "exit 0；grep CLASSIFIED_ROWS=、READONLY=1、DB_WRITES=0",
+      "actual": "PASS：SCAN_ROWS=345 CLASSIFIED_ROWS=345 UNCLASSIFIED_ROWS=0 TIER1_SITES=2 TIER1_CONVERTED=2 DEFER_ROWS=80 READONLY=1 DB_WRITES=0",
+      "expected": "PASS",
+      "negative": "存在未分类行 → FAIL",
+      "negative_result": "出现未分类行（CLASSIFIED_ROWS≠SCAN_ROWS）或脚本含写库语句 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R12",
+      "command": "bash scripts/verify-2480.sh r12",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2480/R12-build-lint.txt"
+      ],
+      "assert": "exit 0；grep PC_BUILD=0、LINT_EXIT=0",
+      "actual": "PASS：PC_BUILD=0 LINT_EXIT=0（含新文件 formConflict.js / FormConflictAlert.jsx / formConflict.test.mjs）",
+      "expected": "PASS",
+      "negative": "任一非 0 → FAIL",
+      "negative_result": "新文件引入 lint error（如 no-undef）或构建失败 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R13",
+      "command": "bash scripts/verify-2480.sh r13",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2480/R13-gate.txt"
+      ],
+      "assert": "exit 0；grep GATE_RESULT=PASS、FULL_SUITE_EXIT=0、REBUILT_ROWS=13",
+      "actual": "PASS：GATE_RESULT=PASS FULL_SUITE_EXIT=0 PLAN_SOURCE=PASS GATE_PLAN_SHA_MATCH=1 REBUILT_ROWS=13",
+      "expected": "PASS",
+      "negative": "REBUILT_ROWS<13 → FAIL",
+      "negative_result": "任一 artifact 仍指向旧 fix commit（REBUILT_ROWS<13）或 P5=N/A 或四源 sha 不一致 → FAIL",
       "pass": true
     }
   ]
