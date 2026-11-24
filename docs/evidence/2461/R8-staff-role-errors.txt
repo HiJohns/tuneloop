@@ -1,0 +1,22 @@
+# build=1.0.573df4d0c # commit=573df4d0ce51b0c884fd609c8f8976ef4d135e1e # dirty=false
+[WARNING] No .env file found in common paths
+2026/11/24 00:16:44 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2461 sslmode=disable
+2026/11/24 00:16:44 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2461
+2026/11/24 00:16:44 [DB] Connected to database 'tuneloop_test_2461'
+=== RUN   TestUpdateStaffRoleIAMFailRoleErrors_2461
+2026/11/24 00:16:45 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2461 sslmode=disable
+2026/11/24 00:16:45 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2461
+2026/11/24 00:16:45 [DB] Connected to database 'tuneloop_test_2461'
+
+2026/11/24 00:16:46 [32m/home/coder/worktrees/tuneloop/wt-2461/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[600.805ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/24 00:16:46 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/24 00:16:46 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:43945, clientID=test-ns, namespace=test-ns
+
+2026/11/24 00:16:46 [31;1m/home/coder/worktrees/tuneloop/wt-2461/backend/handlers/user_staff.go:1028 [35;1mERROR: invalid input syntax for type json (SQLSTATE 22P02)
+[0m[33m[46.674ms] [34;1m[rows:0][0m UPDATE "site_members" SET "role"='repair_technician',"roles"=('repair_technician'),"updated_at"='2026-11-24 00:16:46.14' WHERE user_id = '35b28379-6512-4bc0-9f89-56ceae53a19c' AND tenant_id = '0290e880-f17f-42af-9e87-a13f43a1bd8d'
+2026/11/24 00:16:46 [UpdateUser] site_members role sync failed user=35b28379-6512-4bc0-9f89-56ceae53a19c: ERROR: invalid input syntax for type json (SQLSTATE 22P02)
+    member_role_iam_fail_2461_test.go:390: STATUS=200 ROLE_ERRORS=1 USERS_ROLE_UPDATED=1
+--- PASS: TestUpdateStaffRoleIAMFailRoleErrors_2461 (1.11s)
+PASS
+ok  	tuneloop-backend/handlers	1.682s

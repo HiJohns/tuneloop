@@ -204,6 +204,8 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 	primaryRole := allRoles[0]
 
 	// Update IAM binding to match new role
+	// #2461 D2：主角色同步失败 = fail-fast（502，本地不写）；模板分配失败 = role_errors 可见。
+	var roleErrors []gin.H
 	var site models.Site
 	if err := db.Where("id = ?", siteID).First(&site).Error; err == nil && site.OrgID != "" {
 		iamClient := services.NewIAMClient()
@@ -212,17 +214,28 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 		if err := database.GetDB().Where("id = ?", userID).First(&iamUser).Error; err == nil && iamUser.IAMSub != "" {
 			iamRole := toIAMRole(primaryRole)
 
-			// Update org role in IAM
+			// Update org role in IAM — 失败必须显式返回，禁止只 log 后继续写本地（主线：权限漂移）
 			if primaryRole == "site_admin" {
 				if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, iamUser.IAMSub, site.OrgID, iamRole, middleware.GetUserID(c.Request.Context())); bindErr != nil {
 					log.Printf("[UpdateMemberRole] BindUser failed for %s: %v", iamUser.IAMSub, bindErr)
+					c.JSON(http.StatusBadGateway, gin.H{
+						"code":    50000,
+						"message": "Failed to sync member role to IAM: " + bindErr.Error(),
+					})
+					return
 				}
 			} else {
 				if demoteErr := iamClient.UpdateUserRoleInOrgWithToken(userToken, site.OrgID, iamUser.IAMSub, iamRole); demoteErr != nil {
 					log.Printf("[UpdateMemberRole] UpdateRole failed for %s: %v", iamUser.IAMSub, demoteErr)
+					c.JSON(http.StatusBadGateway, gin.H{
+						"code":    50000,
+						"message": "Failed to sync member role to IAM: " + demoteErr.Error(),
+					})
+					return
 				}
 			}
 			// #2035: 为集合中每个角色分配对应模板（IAM functional_roles 全集）
+			// #2461 D2：模板/附加权限失败不阻断本地更新，但必须随响应可见（role_errors）。
 			nsID := middleware.GetNamespaceID(c.Request.Context())
 			if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
 				for _, t := range templates {
@@ -230,6 +243,7 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 						if t.Code == rc {
 							if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, iamUser.IAMSub, site.OrgID, t.Code); err != nil {
 								log.Printf("[UpdateMemberRole] AssignRoleTemplate failed code=%s: %v", t.Code, err)
+								roleErrors = append(roleErrors, gin.H{"code": t.Code, "error": "assign role template: " + err.Error()})
 							}
 							break
 						}
@@ -237,6 +251,7 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 				}
 			} else {
 				log.Printf("[UpdateMemberRole] ListRoleTemplates failed: %v", err)
+				roleErrors = append(roleErrors, gin.H{"error": "failed to list role templates: " + err.Error()})
 			}
 		}
 	}
@@ -268,13 +283,19 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 		return
 	}
 
+	respData := gin.H{
+		"site_id":  siteID,
+		"user_id":  userID,
+		"new_role": input.Role,
+	}
+	// #2461 D2：模板/附加权限同步失败不阻断，但必须可见（沿用 #2375 role_errors 契约）。
+	if len(roleErrors) > 0 {
+		respData["role_errors"] = roleErrors
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": gin.H{
-			"site_id":  siteID,
-			"user_id":  userID,
-			"new_role": input.Role,
-		},
+		"data": respData,
 	})
 }
 
