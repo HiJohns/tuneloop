@@ -5,7 +5,7 @@
   "plan_sha256": "35d9fd2f796913edf39244333ce8931083abecc7ebdbaba3ec9f3a712c140653",
   "config_sha": "1a1d46357e5db8dc32ce85d6ddf90dc1d2577fb9",
   "summary": "/tmp/opencode/tuneloop/wt-2484/tmp/work-summary-2484.md",
-  "timestamp": "20261124-232300",
+  "timestamp": "20261124-232356",
   "checks": [
     {
       "id": "P1",
@@ -14,13 +14,13 @@
     },
     {
       "id": "P2",
-      "status": "FAIL",
-      "detail": "Work Summary does not cover the matrix:; row has no status cell: R4 --apply 二次确认"
+      "status": "PASS",
+      "detail": "Work Summary covers all 7 matrix rows with PASS/N/A"
     },
     {
       "id": "P3",
-      "status": "FAIL",
-      "detail": "evidence paths do not exist: site_name_drift.go verify-2484.sh"
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
     },
     {
       "id": "P4",
@@ -29,13 +29,13 @@
     },
     {
       "id": "P12",
-      "status": "FAIL",
-      "detail": "R1: assert does not match the plan contract; R1: negative does not match the plan contract; R2: assert does not match the plan contract; R3: assert does not match the plan contract; R4: assert does not match the plan contract; R5: assert does not match the plan contract; R5: negative does not match the plan contract; R6: assert does not match the plan contract; R7: assert does not match the plan contract; R7: negative does not match the plan contract"
+      "status": "PASS",
+      "detail": "Evidence Contract complete: 7 row(s) match the plan and have durable artifacts"
     },
     {
       "id": "P14",
       "status": "FAIL",
-      "detail": "provenance mismatch dirty: artifact=true evidence=false (docs/evidence/2484/R1-empty-field.txt)"
+      "detail": "provenance mismatch dirty: artifact=true evidence=false (docs/evidence/2484/R7-gate.txt)"
     },
     {
       "id": "P18",
@@ -94,8 +94,8 @@
     },
     {
       "id": "P13",
-      "status": "FAIL",
-      "detail": "artifacts not on origin/issue-2484: docs/evidence/2484/R7-gate.txt"
+      "status": "PASS",
+      "detail": "fix commit and evidence artifacts are on origin/issue-2484"
     }
   ]
 }
