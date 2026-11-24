@@ -1,4 +1,8 @@
 # build=1.0.c58d75df # commit=c58d75df6249d562023296fd8f52f436369e5669 # dirty=false
 FULL_SUITE_CMD=cd frontend-pc && npm ci --no-audit --no-fund && npm run build
 FULL_SUITE_EXIT=0
-GATE_RESULT=PENDING
+GATE_RESULT=PASS
+GATE_PLAN_SHA_MATCH=1
+P5=PASS
+PLAN_SOURCE=PASS
+

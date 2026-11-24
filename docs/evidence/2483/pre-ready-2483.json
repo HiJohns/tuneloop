@@ -1,10 +1,10 @@
 {
   "issue": 2483,
-  "overall": "FAIL",
+  "overall": "PASS",
   "plan": "/home/coder/worktrees/tuneloop/wt-2483/docs/evidence/2483/plan.md",
   "plan_sha256": "fcb25b57ca73eb2fc5fd8c434e1b3bb2600baf507b0c3529c1f1471072167abd",
   "summary": "/home/coder/worktrees/tuneloop/wt-2483/tmp/work-summary-2483.md",
-  "timestamp": "20261124-232712",
+  "timestamp": "20261124-233301",
   "checks": [
     {
       "id": "P1",
@@ -18,8 +18,8 @@
     },
     {
       "id": "P3",
-      "status": "FAIL",
-      "detail": "evidence paths do not exist: StaffEdit.jsx docs/evidence/2483/pre-ready-2483.json"
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
     },
     {
       "id": "P4",
@@ -28,13 +28,13 @@
     },
     {
       "id": "P12",
-      "status": "FAIL",
-      "detail": "commit is not an ancestor of HEAD: a35fead67aa51edee0e0a1b1884b2a67f6b54b25; commit must equal the latest fix commit c58d75df6249d562023296fd8f52f436369e5669 (got: a35fead67aa51edee0e0a1b1884b2a67f6b54b25)"
+      "status": "PASS",
+      "detail": "Evidence Contract complete: 8 row(s) match the plan and have durable artifacts"
     },
     {
       "id": "P14",
-      "status": "FAIL",
-      "detail": "provenance mismatch build: artifact=1.0.c58d75df evidence=1.0.a35fead6 (docs/evidence/2483/R1-priority.txt)"
+      "status": "PASS",
+      "detail": "artifact provenance matches evidence (8 artifacts)"
     },
     {
       "id": "P15",
@@ -53,8 +53,8 @@
     },
     {
       "id": "P5",
-      "status": "N/A",
-      "detail": "skipped: P12/P14/P15/P16 static checks failed (static checks run first)"
+      "status": "PASS",
+      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (eb6579802e7f1083586a6428fef344c4c6c110bc); source head=run baseline=cache"
     },
     {
       "id": "P6",
@@ -88,8 +88,8 @@
     },
     {
       "id": "P13",
-      "status": "FAIL",
-      "detail": "remote ref not found: origin/issue-2483"
+      "status": "PASS",
+      "detail": "fix commit and evidence artifacts are on origin/issue-2483"
     }
   ]
 }
