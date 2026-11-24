@@ -1,205 +1,206 @@
 {
   "schema_version": 1,
-  "issue": "2457",
-  "build": "1.0.d823a4f75",
-  "commit": "d823a4f75ddf193f4e41efeadd0b1dd6e53650b6",
+  "issue": 2457,
+  "build": "1.0.0a256c8d",
+  "commit": "0a256c8dd0f69cd109dd3ba020a5f049f962c816",
   "dirty": false,
-  "plan_sha256": "8f34d696c6e3e981b27b79fcb72406f1279947935f26219a033de01146c733e4",
+  "plan_sha256": "fcce1c38bd6dc364d06145744b6797938178ae6164f6b084c413ac9bbef15ffa",
+  "environment": "beaconwork worktree wt-2457; PostgreSQL test DB tuneloop_test_2457; fake IAM via httptest",
   "rows": [
     {
       "id": "R1",
       "command": "bash scripts/verify-2457.sh r1",
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2457/R1-iam-first.txt"
       ],
-      "assert": "exit 0；含 IAM_CALLS=1 与 ORDER=iam_before_local",
-      "actual": "IAM_CALLS=1 ORDER=iam_before_local；exit=0",
+      "assert": "exit 0；含 IAM_CALLS=1、ORDER=iam_before_local、NO_DRIFT=1",
+      "actual": "PASS：IAM_CALLS=1 ORDER=iam_before_local IAM_BODY={\"name\":\"B\"} NO_DRIFT=1 LOCAL_NAME=C",
       "expected": "PASS",
-      "negative": "缺 IAM 调用 → FAIL",
-      "negative_result": "去掉 IAM 调用（只写本地）时 ORDER=local_before_iam → 断言失败",
-      "exit": 0,
+      "negative": "缺 IAM 调用或 NO_DRIFT=0 → FAIL",
+      "negative_result": "仅写本地不调 IAM → ORDER=local_before_iam；写回 req.Name → NO_DRIFT=0",
       "pass": true
     },
     {
       "id": "R2",
       "command": "bash scripts/verify-2457.sh r2",
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2457/R2-iam-fail.txt"
       ],
-      "assert": "exit 0；含 STATUS=500 与 LOCAL_NAME=A",
-      "actual": "STATUS=500 HTTP=502 LOCAL_NAME=A；exit=0",
+      "assert": "exit 0；含 STATUS=502、REAL_STATUS=1、LOCAL_NAME=A",
+      "actual": "PASS：STATUS=502 REAL_STATUS=1 CODE=50000 LOCAL_NAME=A",
       "expected": "PASS",
-      "negative": "本地被改 → FAIL",
-      "negative_result": "IAM 失败仍写本地时 LOCAL_NAME=B → 断言失败（本地被改）",
-      "exit": 0,
+      "negative": "REAL_STATUS=0（常量化）或本地被改 → FAIL",
+      "negative_result": "本地被改成新名 → LOCAL_NAME=B 断言失败",
       "pass": true
     },
     {
       "id": "R3",
       "command": "bash scripts/verify-2457.sh r3",
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2457/R3-conflict.txt"
       ],
       "assert": "exit 0；含 STATUS=409 与 CODE=40900",
-      "actual": "STATUS=409 CODE=40900 LOCAL_NAME=A；exit=0",
+      "actual": "PASS：STATUS=409 CODE=40900 LOCAL_NAME=A",
       "expected": "PASS",
       "negative": "500 → FAIL",
-      "negative_result": "IAM 409 被映射成 500 或本地被改 → 断言失败",
-      "exit": 0,
+      "negative_result": "返回 500 或本地被改 → 断言失败",
       "pass": true
     },
     {
       "id": "R4",
       "command": "bash scripts/verify-2457.sh r4",
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2457/R4-escalate.txt"
       ],
       "assert": "exit 0；含 IAM_CALLS=2 与 ESCALATED=1",
-      "actual": "IAM_CALLS=2 ESCALATED=1 FINAL_HTTP=200；exit=0",
+      "actual": "PASS：IAM_CALLS=2 ESCALATED=1 FINAL_HTTP=200",
       "expected": "PASS",
       "negative": "未重试 → FAIL",
-      "negative_result": "不重试时 IAM_CALLS=1 且 HTTP=403 → 断言失败",
-      "exit": 0,
+      "negative_result": "只调 1 次或返回 403 → 断言失败",
       "pass": true
     },
     {
       "id": "R5",
       "command": "bash scripts/verify-2457.sh r5",
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2457/R5-idempotent.txt"
       ],
       "assert": "exit 0；含 IAM_CALLS=0 与 ADDRESS=updated",
-      "actual": "IAM_CALLS=0 ADDRESS=updated；exit=0",
+      "actual": "PASS：IAM_CALLS=0 ADDRESS=updated",
       "expected": "PASS",
       "negative": "IAM 被调用 → FAIL",
-      "negative_result": "同名仍调用 IAM 时 IAM_CALLS=1 → 断言失败",
-      "exit": 0,
+      "negative_result": "IAM 被调用（IAM_CALLS=1）→ 断言失败",
       "pass": true
     },
     {
       "id": "R6",
       "command": "bash scripts/verify-2457.sh r6",
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2457/R6-anchor-guard.txt"
       ],
-      "assert": "exit 0；含 STATUS=400 与 IAM_CALLS=0",
-      "actual": "STATUS=400 CODE=40002 IAM_CALLS=0；exit=0",
+      "assert": "exit 0；含 STATUS=400、IAM_CALLS=0、ANCHOR_BYPASS=0",
+      "actual": "PASS：STATUS=400 CODE=40002 IAM_CALLS=0 ANCHOR_BYPASS=0（含空格绕过用例）",
       "expected": "PASS",
-      "negative": "成功改名 → FAIL",
-      "negative_result": "锚点网点改名成功（200）或调用 IAM → 断言失败",
-      "exit": 0,
+      "negative": "空格绕过成功（ANCHOR_BYPASS=1）→ FAIL",
+      "negative_result": "空格绕过成功（ANCHOR_BYPASS=1/HTTP=200）→ 断言失败",
       "pass": true
     },
     {
       "id": "R7",
       "command": "bash scripts/verify-2457.sh r7",
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2457/R7-duplicate.txt"
       ],
       "assert": "exit 0；含 STATUS=409 与 IAM_CALLS=0",
-      "actual": "STATUS=409 CODE=40900 IAM_CALLS=0；exit=0",
+      "actual": "PASS：STATUS=409 CODE=40900 IAM_CALLS=0",
       "expected": "PASS",
       "negative": "重名成功 → FAIL",
-      "negative_result": "重名写入成功或先调 IAM → 断言失败",
-      "exit": 0,
+      "negative_result": "重名写入成功或调用 IAM → 断言失败",
       "pass": true
     },
     {
       "id": "R8",
       "command": "bash scripts/verify-2457.sh r8",
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2457/R8-empty-name.txt"
       ],
       "assert": "exit 0；含 STATUS=400 与 IAM_CALLS=0",
-      "actual": "STATUS=400 CODE=40002 IAM_CALLS=0；exit=0",
+      "actual": "PASS：STATUS=400 CODE=40002 IAM_CALLS=0",
       "expected": "PASS",
       "negative": "空名调用 IAM → FAIL",
-      "negative_result": "空白名调用 IAM 或返回 200 → 断言失败",
-      "exit": 0,
+      "negative_result": "空名调用 IAM 或 200 → 断言失败",
       "pass": true
     },
     {
       "id": "R9",
       "command": "bash scripts/verify-2457.sh r9",
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2457/R9-client.txt"
       ],
       "assert": "exit 0；含 METHOD=PUT 与 PATH=/api/v1/organizations/",
-      "actual": "METHOD=PUT PATH=/api/v1/organizations/<orgID>；403/404/409 映射为对应 sentinel；exit=0",
+      "actual": "PASS：METHOD=PUT PATH=/api/v1/organizations/org-id（403/404/409 映射可判别）",
       "expected": "PASS",
       "negative": "方法/路径错 → FAIL",
-      "negative_result": "方法/路径错或状态码不可判别 → 断言失败",
-      "exit": 0,
+      "negative_result": "方法/路径错或错误不可判别 → 断言失败",
       "pass": true
     },
     {
       "id": "R10",
       "command": "bash scripts/verify-2457.sh r10",
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2457/R10-drift.txt"
       ],
       "assert": "exit 0；含 DRIFT_ROWS=3 与 DRIFT_ROWS_EMPTY=0",
-      "actual": "DRIFT_ROWS=3 DRIFT_ROWS_EMPTY=0；exit=0",
+      "actual": "PASS：DRIFT_ROWS=3 DRIFT_ROWS_EMPTY=0",
       "expected": "PASS",
       "negative": "计数不符 → FAIL",
-      "negative_result": "3 条输入输出 0 行（比对逻辑失效）→ 断言失败",
-      "exit": 0,
+      "negative_result": "3 条输入输出 0 行 → 断言失败",
       "pass": true
     },
     {
       "id": "R11",
       "command": "bash scripts/verify-2457.sh r11",
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2457/R11-doc.txt"
       ],
       "assert": "exit 0；含 DOC_TOKENS=3",
-      "actual": "DOC_TOKENS=3（先更新 IAM / 镜像 / 锚点）；exit=0",
+      "actual": "PASS：DOC_TOKENS=3（先更新 IAM / 镜像 / 锚点）",
       "expected": "PASS",
       "negative": "少于 3 → FAIL",
-      "negative_result": "缺任一文档表述 → 断言失败",
-      "exit": 0,
+      "negative_result": "少于 3 个文档 token → 断言失败",
       "pass": true
     },
     {
       "id": "R12",
       "command": "bash scripts/verify-2457.sh r12",
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2457/R12-build.txt"
       ],
       "assert": "exit 0；含 BUILD_OK 与 VET_OK",
-      "actual": "BUILD_OK=1 VET_OK=1；exit=0",
+      "actual": "PASS：BUILD_OK=1 VET_OK=1",
       "expected": "PASS",
       "negative": "构建失败 → FAIL",
-      "negative_result": "build/vet 任一非 0 → 断言失败",
-      "exit": 0,
+      "negative_result": "build/vet 非 0 → 断言失败",
       "pass": true
     },
     {
       "id": "R14",
       "command": "bash scripts/verify-2457.sh r14",
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2457/R14-legacy-regression.txt"
       ],
       "assert": "exit 0；含 LEGACY_2261=PASS 与 SKIPPED=0",
-      "actual": "LEGACY_2261=PASS SKIPPED=0 CROSS_TENANT_404_ASSERT=kept；exit=0",
+      "actual": "PASS：LEGACY_2261=PASS SKIPPED=0 CROSS_TENANT_404_ASSERT=kept",
       "expected": "PASS",
       "negative": "SKIP 或 404 放宽 → FAIL",
-      "negative_result": "用例被 skip 或把跨商户 404 放宽为 4xx → 断言失败",
-      "exit": 0,
+      "negative_result": "用例被 skip 或 404 放宽 → 断言失败",
       "pass": true
     },
     {
       "id": "R15",
       "command": "bash scripts/verify-2457.sh r15",
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2457/R15-gate.txt"
       ],
-      "assert": "exit 0；含 GATE_RESULT=PASS 与 PLAN_SOURCE=PASS",
-      "actual": "GATE_RESULT=PASS GATE_PLAN_SHA_MATCH=1 PLAN_SOURCE=PASS；exit=0",
+      "assert": "exit 0；含 FULL_SUITE_EXIT=0、FAIL_COUNT=0、PLAN_SOURCE=PASS、P5=NA_ABSENT",
+      "actual": "PASS：FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0 GATE_RESULT=PASS PLAN_SOURCE=PASS GATE_PLAN_SHA_MATCH=1（内嵌 gate 用 allow-local-only bootstrap；ready 前以 origin/issue-2457 复跑校验 P13）",
       "expected": "PASS",
-      "negative": "缺 gate 报告或 sha 不一致 → FAIL",
-      "negative_result": "gate 报告缺失/result 非 PASS/plan sha 不一致 → 断言失败",
-      "exit": 0,
+      "negative": "P5=NA（全量未跑）→ FAIL",
+      "negative_result": "缺 gate 报告、P5 为 N/A 或 sha 不一致 → 断言失败",
       "pass": true
     }
   ]

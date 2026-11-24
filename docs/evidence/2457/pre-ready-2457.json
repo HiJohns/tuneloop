@@ -1,10 +1,10 @@
 {
   "issue": 2457,
-  "overall": "PASS",
+  "overall": "FAIL",
   "plan": "/home/coder/worktrees/tuneloop/wt-2457/docs/evidence/2457/plan.md",
-  "plan_sha256": "8f34d696c6e3e981b27b79fcb72406f1279947935f26219a033de01146c733e4",
+  "plan_sha256": "fcce1c38bd6dc364d06145744b6797938178ae6164f6b084c413ac9bbef15ffa",
   "summary": "/home/coder/worktrees/tuneloop/wt-2457/tmp/work-summary-2457.md",
-  "timestamp": "20261123-214940",
+  "timestamp": "20261124-015657",
   "checks": [
     {
       "id": "P1",
@@ -18,8 +18,8 @@
     },
     {
       "id": "P3",
-      "status": "PASS",
-      "detail": "all referenced evidence paths exist and are durable"
+      "status": "FAIL",
+      "detail": "evidence paths do not exist: ...WithToken R6-anchor-guard.txt httptest.ResponseRecorder.Code req.Name sites.address sites.name t.Skip w.Code"
     },
     {
       "id": "P4",
@@ -43,8 +43,8 @@
     },
     {
       "id": "P5",
-      "status": "N/A",
-      "detail": "no go.mod/package.json and no --full-gate-cmd: full gate not applicable"
+      "status": "FAIL",
+      "detail": "working tree is dirty or has untracked files (only tmp/ and --allow-file are allowed):  docs/evidence/2457/R1-iam-first.txt docs/evidence/2457/R10-drift.txt docs/evidence/2457/R11-doc.txt docs/evidence/2457/R12-build.txt docs/evidence/2457/R14-legacy-regression.txt docs/evidence/2457/R15-gate.txt docs/evidence/2457/R2-iam-fail.txt docs/evidence/2457/R3-conflict.txt docs/evidence/2457/R4-escalate.txt docs/evidence/2457/R5-idempotent.txt docs/evidence/2457/R6-anchor-guard.txt docs/evidence/2457/R7-duplicate.txt docs/evidence/2457/R8-empty-name.txt docs/evidence/2457/R9-client.txt docs/evidence/2457/evidence.json scripts/verify-2457.sh"
     },
     {
       "id": "P6",
@@ -53,8 +53,8 @@
     },
     {
       "id": "P7",
-      "status": "PASS",
-      "detail": "contract three-way section present"
+      "status": "FAIL",
+      "detail": "contract-affecting change requires '### 契约三向核对' (Plan/API, docs, handler/frontend)"
     },
     {
       "id": "P8",

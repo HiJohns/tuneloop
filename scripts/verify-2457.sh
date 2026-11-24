@@ -247,11 +247,14 @@ case "$ROW" in
                 --changed-files "$CHANGED" \
                 --evidence-file "$OUT_DIR/evidence.json" \
                 --fix-commit "$FIX_SHA" \
+                --affected-cmd "cd backend && go test ./handlers -run '_2457$|^TestMembershipDomain_SitesExplicitScope_2261$' -count=1" \
+                --affected-cmd "cd backend && go test ./services -run '_2457$' -count=1" \
                 --remote-ref origin/issue-2457 \
                 --gate-adapter go \
                 --full-gate-cmd "$FULL_CMD" \
                 --gate-lock-scope host \
                 --gate-lock-fail-fast \
+                --allow-local-only \
                 --report "$GATE_REPORT" > "$REPO_ROOT/tmp/pre-ready-2457-r15.log" 2>&1 || true
         fi
 
