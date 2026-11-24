@@ -128,11 +128,11 @@ row_services() {
 case "$ROW" in
     r1)
         row_handlers "R1-iam-first.txt" '^TestUpdateSite_WritesIAMBeforeLocal_2457$' \
-            "IAM_CALLS=1" "ORDER=iam_before_local"
+            "IAM_CALLS=1" "ORDER=iam_before_local" "NO_DRIFT=1"
         ;;
     r2)
         row_handlers "R2-iam-fail.txt" '^TestUpdateSite_IAMFailureKeepsLocal_2457$' \
-            "STATUS=500" "LOCAL_NAME=A"
+            "STATUS=502" "REAL_STATUS=1" "LOCAL_NAME=A"
         ;;
     r3)
         row_handlers "R3-conflict.txt" '^TestUpdateSite_IAMConflictMapsTo409_2457$' \
@@ -148,7 +148,7 @@ case "$ROW" in
         ;;
     r6)
         row_handlers "R6-anchor-guard.txt" '^TestUpdateSite_AnchorGuard_2457$' \
-            "STATUS=400" "IAM_CALLS=0"
+            "STATUS=400" "IAM_CALLS=0" "ANCHOR_BYPASS=0"
         ;;
     r7)
         row_handlers "R7-duplicate.txt" '^TestUpdateSite_DuplicateNamePrecheck_2457$' \
@@ -214,30 +214,51 @@ case "$ROW" in
         finish "R14-legacy-regression.txt" "$rc" "$body"
         ;;
     r15)
+        # v4 Findings C：R15 必须是可执行的全量 gate 证据（P5 不得为 N/A）。
         body="" rc=0
         GATE_REPORT="$OUT_DIR/pre-ready-2457.json"
         SUMMARY="$REPO_ROOT/tmp/work-summary-2457.md"
-        existing_result="$(jq -r '.overall // empty' "$GATE_REPORT" 2>/dev/null || true)"
-        if [ ! -f "$GATE_REPORT" ] || [ ! -s "$GATE_REPORT" ] || [ "$existing_result" != "PASS" ]; then
-            if [ -f "$SUMMARY" ]; then
-                "$PRE_READY" "$ISSUE" \
-                    --plan-file "$OUT_DIR/plan.md" \
-                    --summary-file "$SUMMARY" \
-                    --changed-files "$REPO_ROOT/tmp/changed-2457.txt" \
-                    --evidence-file "$OUT_DIR/evidence.json" \
-                    --fix-commit "$FIX_SHA" \
-                    --remote-ref origin/issue-2457 \
-                    --allow-local-only \
-                    --report "$GATE_REPORT" \
-                    --dry-run >/dev/null 2>&1 || true
-            fi
+        CHANGED="$REPO_ROOT/tmp/changed-2457.txt"
+        SUITE_LOG="$REPO_ROOT/tmp/full-suite-2457.log"
+        FULL_CMD='cd backend && go build ./... && go test ./handlers -count=1 -timeout 30m && go test ./services -count=1 -timeout 15m'
+
+        : > "$SUITE_LOG"
+        run_heavy bash -c "$FULL_CMD" > "$SUITE_LOG" 2>&1
+        suite_exit=$?
+        fail_count="$(grep -cE '^--- FAIL' "$SUITE_LOG" || true)"
+        panic_count="$(grep -cE '^panic:' "$SUITE_LOG" || true)"
+        body+="FULL_SUITE_CMD=$FULL_CMD"$'\n'
+        body+="FULL_SUITE_EXIT=$suite_exit"$'\n'
+        body+="FAIL_COUNT=$fail_count"$'\n'
+        body+="PANIC_COUNT=$panic_count"$'\n'
+        if [ "$suite_exit" != "0" ] || [ "$fail_count" != "0" ] || [ "$panic_count" != "0" ]; then
+            rc=1
+            body+="--- full suite output (tail) ---"$'\n'
+            body+="$(tail -40 "$SUITE_LOG")"$'\n'
         fi
+
+        if [ -f "$SUMMARY" ] && [ -f "$CHANGED" ]; then
+            "$PRE_READY" "$ISSUE" \
+                --plan-file "$OUT_DIR/plan.md" \
+                --summary-file "$SUMMARY" \
+                --changed-files "$CHANGED" \
+                --evidence-file "$OUT_DIR/evidence.json" \
+                --fix-commit "$FIX_SHA" \
+                --remote-ref origin/issue-2457 \
+                --gate-adapter go \
+                --full-gate-cmd "$FULL_CMD" \
+                --gate-lock-scope host \
+                --gate-lock-fail-fast \
+                --report "$GATE_REPORT" > "$REPO_ROOT/tmp/pre-ready-2457-r15.log" 2>&1 || true
+        fi
+
         gate_result="$(jq -r '.overall // empty' "$GATE_REPORT" 2>/dev/null || true)"
         if [ -f "$GATE_REPORT" ] && [ "$gate_result" = "PASS" ]; then
             body+="GATE_RESULT=PASS"$'\n'
         else
             body+="GATE_RESULT=${gate_result:-missing}"$'\n'
             rc=1
+            body+="$(tail -20 "$REPO_ROOT/tmp/pre-ready-2457-r15.log" 2>/dev/null)"$'\n'
         fi
         plan_sha="$(sha256sum "$OUT_DIR/plan.md" | awk '{print $1}')"
         gate_sha="$(jq -r '.plan_sha256 // empty' "$GATE_REPORT" 2>/dev/null || true)"
@@ -247,11 +268,11 @@ case "$ROW" in
             body+="GATE_PLAN_SHA_MATCH=0"$'\n'
             rc=1
         fi
-        if "$PLAN_SOURCE" --issue "$ISSUE" >/tmp/plan-source-2457.log 2>&1; then
+        if "$PLAN_SOURCE" --issue "$ISSUE" >"$REPO_ROOT/tmp/plan-source-2457.log" 2>&1; then
             body+="PLAN_SOURCE=PASS"$'\n'
         else
             body+="PLAN_SOURCE=FAIL"$'\n'
-            body+="$(tail -5 /tmp/plan-source-2457.log)"$'\n'
+            body+="$(tail -5 "$REPO_ROOT/tmp/plan-source-2457.log")"$'\n'
             rc=1
         fi
         finish "R15-gate.txt" "$rc" "$body"

@@ -563,9 +563,14 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 		return
 	}
 
+	// #2457 v4（Findings A）：名称规范化单一真值。
+	// 请求值与当前值有差异（含仅前后空格）→ 先过全部守卫（防止「加空格绕过锚点/绑定/重名」）；
+	// 再以 trim 后的 newName 作为 IAM body 与本地写库的唯一值；trim 后与现值相同则
+	// 视为未改名（不写 name 列、不调 IAM），避免制造 sites.name ≠ organizations.name 漂移。
 	newName := strings.TrimSpace(req.Name)
+	rawChanged := req.Name != site.Name
 	nameChanged := newName != site.Name
-	if nameChanged {
+	if rawChanged {
 		// 名称变更前置校验（全部在 IAM 调用之前，Decision Lock D2/D5）。
 		if newName == "" {
 			c.JSON(http.StatusBadRequest, gin.H{
@@ -606,7 +611,10 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 			})
 			return
 		}
+	}
 
+	// 仅当 trim 后的名称真正变化时才写 IAM（空格补丁视为未改名，D1/R5 幂等）。
+	if nameChanged {
 		iamClient := services.NewIAMClient()
 		userToken := bearerTokenOf(c)
 		var iamErr error
@@ -654,8 +662,7 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 		log.Printf("[UpdateSite] IAM organization renamed org_id=%s name=%q", site.OrgID, newName)
 	}
 
-	result := db.Model(&models.Site{}).Where("id = ? AND tenant_id = ?", siteID, tenantID).Updates(map[string]interface{}{
-		"name":           req.Name,
+	updates := map[string]interface{}{
 		"address":        req.Address,
 		"type":           req.Type,
 		"latitude":       req.Latitude,
@@ -664,7 +671,12 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 		"postal_code":    req.PostalCode,
 		"business_hours": req.BusinessHours,
 		"updated_at":     gorm.Expr("NOW()"),
-	})
+	}
+	// 名称列只在「trim 后真正改名」时写入，且写入值恒为 newName（与 IAM body 同一真值）。
+	if nameChanged {
+		updates["name"] = newName
+	}
+	result := db.Model(&models.Site{}).Where("id = ? AND tenant_id = ?", siteID, tenantID).Updates(updates)
 
 	if result.Error != nil {
 		if nameChanged {

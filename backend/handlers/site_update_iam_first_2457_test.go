@@ -1,15 +1,18 @@
 package handlers
 
-// #2457（v3）：IAM organizations.name 是组织名权威源，sites.name 只是本地镜像。
+// #2457（v4）：IAM organizations.name 是组织名权威源，sites.name 只是本地镜像。
 // UpdateSite 改名必须先写 IAM，成功后才写本地；IAM 失败不得落本地（避免二次漂移）。
 //
-// 证据行（Accepted Plan v3 R1–R8）：
-//   R1 改名 IAM 优先          → IAM_CALLS=1 / ORDER=iam_before_local
-//   R2 IAM 失败不改本地        → HTTP=502 / LOCAL_NAME=<旧名>
+// v4 起：name 必须 TrimSpace 后同时用于「守卫 / IAM body / 本地写库」，
+// trim 后与现值相同视为未改名（不写 name 列），防止加空格绕过守卫或制造漂移。
+//
+// 证据行（Accepted Plan v4 R1–R8）：
+//   R1 改名 IAM 优先 + 规范化 → IAM_CALLS=1 / ORDER=iam_before_local / IAM_BODY / NO_DRIFT=1
+//   R2 IAM 失败不改本地        → STATUS(w.Code)=502 / REAL_STATUS=1 / LOCAL_NAME=<旧名>
 //   R3 IAM 重名映射            → HTTP=409 / CODE=40900
 //   R4 403 服务凭据升级        → IAM_CALLS=2 / ESCALATED=1
 //   R5 同名幂等                → IAM_CALLS=0 / ADDRESS=updated
-//   R6 商户锚点守卫            → HTTP=400 / CODE=40002 / IAM_CALLS=0
+//   R6 商户锚点守卫（含空格）  → HTTP=400 / CODE=40002 / IAM_CALLS=0 / ANCHOR_BYPASS=0
 //   R7 同商户重名预检          → HTTP=409 / CODE=40900 / IAM_CALLS=0
 //   R8 空名称拒绝              → HTTP=400 / CODE=40002 / IAM_CALLS=0
 
@@ -213,9 +216,34 @@ func TestUpdateSite_WritesIAMBeforeLocal_2457(t *testing.T) {
 	after := siteName2457(t, db, siteID)
 	require.Equal(t, "B", after.Name)
 
+	// 第一阶段（无空格）已满足 R1 合同：IAM 恰好 1 次、且在本地写之前。
 	t.Logf("IAM_CALLS=%d", iam.callCount())
 	t.Logf("ORDER=%s", order)
 	t.Logf("IAM_BODY=%s", body)
+
+	// R1 ②（Findings A）：前后空格输入必须落在 trim 后的同名值上（IAM body == 本地列）。
+	iam.name = "C"
+	code2, resp2 := putSite2457(t, r, siteID, `{"name":"  C  "}`, siteUpdateUserToken2457)
+	require.Equal(t, http.StatusOK, code2, "%v", resp2)
+	body2, _, _ := iam.snapshot()
+	require.JSONEq(t, `{"name":"C"}`, body2, "IAM body 必须是 trim 后的名称")
+
+	afterNorm := siteName2457(t, db, siteID)
+	require.Equal(t, "C", afterNorm.Name, "本地名称必须是 trim 后的名称")
+
+	var iamBody struct {
+		Name string `json:"name"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(body2), &iamBody))
+	noDrift := 0
+	if iamBody.Name == afterNorm.Name {
+		noDrift = 1
+	}
+	require.Equal(t, 1, noDrift, "NO_DRIFT：IAM 组织名与本地 sites.name 必须一致")
+
+	t.Logf("IAM_CALLS_TOTAL=%d", iam.callCount())
+	t.Logf("NO_DRIFT=%d", noDrift)
+	t.Logf("LOCAL_NAME=%s", afterNorm.Name)
 }
 
 // R2：IAM 5xx → 5xx 返回，本地保持旧名（不二次漂移）。
@@ -228,15 +256,24 @@ func TestUpdateSite_IAMFailureKeepsLocal_2457(t *testing.T) {
 	r := siteUpdateRouter2457(tenantID, 0)
 	code, resp := putSite2457(t, r, siteID, `{"name":"B"}`, siteUpdateUserToken2457)
 
-	require.GreaterOrEqual(t, code, 500, "IAM 失败必须是 5xx: %v", resp)
+	require.Equal(t, http.StatusBadGateway, code, "D3 默认映射必须是 502: %v", resp)
+	require.EqualValues(t, 50000, resp["code"])
 	require.Equal(t, 1, iam.callCount())
 
 	after := siteName2457(t, db, siteID)
 	require.Equal(t, "A", after.Name, "IAM 失败不得落本地")
 
-	t.Logf("# STATUS = upstream IAM status for this fixture; API returns HTTP=%d per D3 mapping", code)
-	t.Logf("STATUS=%d", http.StatusInternalServerError)
+	// REAL_STATUS 取自真实响应码（禁止用常量冒充）。
+	realStatus := 0
+	if code == http.StatusBadGateway {
+		realStatus = 1
+	}
+	require.Equal(t, 1, realStatus)
+
+	t.Logf("STATUS=%d", code)
 	t.Logf("HTTP=%d", code)
+	t.Logf("REAL_STATUS=%d", realStatus)
+	t.Logf("CODE=%v", resp["code"])
 	t.Logf("LOCAL_NAME=%s", after.Name)
 }
 
@@ -328,9 +365,25 @@ func TestUpdateSite_AnchorGuard_2457(t *testing.T) {
 	after := siteName2457(t, db, siteID)
 	require.Equal(t, "anchor", after.Name)
 
+	// R6 ②（Findings A）：锚点网点提交「现值 + 空格」时，trim 后虽等于现值，
+	// 仍必须先过锚点守卫 —— 旧实现会把它当作变更并写本地，形成绕过。
+	code2, resp2 := putSite2457(t, r, siteID, `{"name":"anchor "}`, siteUpdateUserToken2457)
+	require.Equal(t, http.StatusBadRequest, code2, "空格绕过必须被锚点守卫拦住: %v", resp2)
+	require.EqualValues(t, 40002, resp2["code"])
+	require.Empty(t, iam.callCount(), "空格绕过不得调用 IAM")
+
+	afterBypass := siteName2457(t, db, siteID)
+	anchorBypass := 0
+	if afterBypass.Name != "anchor" {
+		anchorBypass = 1
+	}
+	require.Equal(t, 0, anchorBypass, "ANCHOR_BYPASS=0：本地名不得被空格绕过改写")
+
 	t.Logf("STATUS=%d", code)
 	t.Logf("CODE=%v", resp["code"])
 	t.Logf("IAM_CALLS=%d", iam.callCount())
+	t.Logf("ANCHOR_BYPASS=%d", anchorBypass)
+	t.Logf("LOCAL_NAME=%s", afterBypass.Name)
 }
 
 // R7：同租户已有同名网点 → 409/40900，且不调 IAM。
