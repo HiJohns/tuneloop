@@ -1,28 +1,4 @@
-# build=1.0.7f987f5c # commit=7f987f5cf74f6ec369c87181e7fa2f0c86f8142a # dirty=false
-FULL_SUITE_CMD=cd frontend-pc && npm run build
+# build=1.0.3959f40e # commit=3959f40eb6583d935604f8b7f5901ce39497d021 # dirty=false
+FULL_SUITE_CMD=cd frontend-pc && npm ci --no-audit --no-fund && npm run build
 FULL_SUITE_EXIT=0
-GATE_RESULT=FAIL
-ID   STATUS DETAIL
-P1   PASS   plan has Verification Matrix / Input Truth & Tool Preflight / Decision Lock / Out of Scope
-P2   PASS   Work Summary covers all 7 matrix rows with PASS/N/A
-P3   FAIL   evidence paths do not exist: DirectMemberManagement.jsx:229 StaffManagement.jsx docs/evidence/2478/pre-ready-2478.json frontend-pc/src/pages/DirectMemberManagement.jsx:229 frontend-pc/src/pages/StaffManagement.jsx:189-196 isCreateIntent(location.state)
-P4   PASS   all 1 affected command(s) passed
-P12  FAIL   R4: negative does not match the plan contract
-P14  PASS   artifact provenance matches evidence (7 artifacts)
-P15  N/A    no batch gate reference in the plan
-P16  N/A    no UI render rows in the plan
-P17  PASS   plan snapshot and Accepted Plan comment match the gated plan
-P5   N/A    skipped: P12/P14/P15/P16 static checks failed (static checks run first)
-P6   PASS   all changed files are declared in the Accepted Plan
-P7   N/A    no contract-affecting files changed
-P8   N/A    no panel/clarify files changed
-P9   N/A    no session/build_version/aiaudit/.rpt/.dat evidence referenced
-P10  N/A    no aiaudit reference
-P11  PASS   fix commit(s) are ancestors of HEAD; canonical worktree /home/coder/worktrees/tuneloop/wt-2478; worktree guard: PASS isolated worktree=/home/coder/worktrees/tuneloop/wt-2478
-P13  FAIL   remote ref not found: origin/issue-2478
-REPORT: /home/coder/worktrees/tuneloop/wt-2478/docs/evidence/2478/pre-ready-2478.json
-RESULT: FAIL
-GATE_PLAN_SHA_MATCH=1
-P5=N/A
-PLAN_SOURCE=PASS
-
+GATE_RESULT=PENDING

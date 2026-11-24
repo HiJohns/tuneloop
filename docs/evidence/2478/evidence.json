@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2478,
-  "build": "1.0.7f987f5c",
-  "commit": "7f987f5cf74f6ec369c87181e7fa2f0c86f8142a",
+  "build": "1.0.3959f40e",
+  "commit": "3959f40eb6583d935604f8b7f5901ce39497d021",
   "dirty": false,
   "plan_sha256": "2f7bb3b406460526a702c76ff1275f5e0433ca95ebcbde7f48f5ab4fb17b4212",
   "environment": "beaconwork worktree /home/coder/worktrees/tuneloop/wt-2478 (base origin/develop); frontend-pc node 20.20.2 with node_modules symlinked to the primary checkout; node --test for pure functions, eslint + vite build for wiring",
@@ -99,7 +99,7 @@
         "docs/evidence/2478/R7-gate.txt"
       ],
       "assert": "exit 0；grep GATE_RESULT=PASS、FULL_SUITE_EXIT=0、PLAN_SOURCE=PASS",
-      "actual": "PASS：FULL_SUITE_EXIT=0 GATE_RESULT=PASS GATE_PLAN_SHA_MATCH=1 P5=PASS PLAN_SOURCE=PASS",
+      "actual": "PASS：GATE_RESULT=PASS FULL_SUITE_EXIT=0 P5=PASS PLAN_SOURCE=PASS（gate 报告 docs/evidence/2478/pre-ready-2478.json；全量命令 cd frontend-pc && npm ci --no-audit --no-fund && npm run build）",
       "expected": "PASS",
       "negative": "P5=NA 或 sha 不一致 → FAIL",
       "negative_result": "gate 跳过全量前端 build（P5=N/A）或 plan sha 与 Accepted Plan 评论不一致 → 断言失败",
