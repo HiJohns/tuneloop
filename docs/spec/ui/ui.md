@@ -3783,7 +3783,7 @@ components/
 
 #### 3.28.3 直属成员管理子页（`/staff/direct`，组件 `DirectMemberManagement.jsx`）
 - **路由**：`/staff/direct`；**权限**：`member:invite` 或 `user_view`（系统级角色放行）
-- **商户管理员**：顶部展示本人所属商户（`GET /api/admin/my-merchant`）；列表为「只看直属员工」（`GET /api/admin/personnel?direct=true`）；「邀请直属员工」→ `POST /api/admin/merchants/:id/invites {identifier, kind:'merchant_staff'}`；「创建员工」跳 `/staff`
+- **商户管理员**：顶部展示本人所属商户（`GET /api/admin/my-merchant`）；列表为「只看直属员工」（`GET /api/admin/personnel?direct=true`）；「邀请直属员工」→ `POST /api/admin/merchants/:id/invites {identifier, kind:'merchant_staff'}`；「创建员工」**单击直达** `/staff` 创建表单（`location.state` 一次性意图，落地页消费后 `replace` 清空——刷新/后退不重复打开，#2478）
 - **平台管理员**：展示「邀请平台员工」→ `POST /api/admin/platform-staff/invites {identifier}`
 - 邀请均需对方已注册（手机号/邮箱）；待对方在移动端「我的 → 系统消息」接受后生效。
 
