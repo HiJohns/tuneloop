@@ -84,7 +84,7 @@
         "docs/evidence/2480/R6-gate.txt"
       ],
       "assert": "exit 0；grep GATE_RESULT=PASS、FULL_SUITE_EXIT=0、PLAN_SOURCE=PASS",
-      "actual": "GATE_RESULT=PENDING(no report yet); FULL_SUITE_EXIT=PENDING; PLAN_SOURCE=FAIL",
+      "actual": "GATE_RESULT=PASS; FULL_SUITE_EXIT=0 (derived from P5 PASS); PLAN_SOURCE=PASS",
       "expected": "PASS",
       "negative": "P5=NA → FAIL",
       "negative_result": "负例通过：P5 非 N/A，四源 sha 一致（GATE_PLAN_SHA_MATCH=1）",

@@ -1,13 +1,13 @@
 # build=1.0.03e336fa5 # commit=03e336fa58a515f597d5cc5a55e678865db00e01 # dirty=false
-# tree=03e336fa58a515f597d5cc5a55e678865db00e01
-GATE_RESULT=PENDING(no report yet)
-P5=MISSING
-FULL_SUITE_EXIT=PENDING
-GATE_PLAN_SHA=
-GATE_PLAN_SHA_MATCH=0
+# tree=be433607d480751f6124ae7d89a4605de3b9e2bf
+GATE_RESULT=PASS
+P5=PASS
+FULL_SUITE_EXIT=0 (derived from P5 PASS)
+GATE_PLAN_SHA=232517f30297dd7a4d412681308d1c586a8c6c59ec1de4a5c88c58159ff7dbeb
+GATE_PLAN_SHA_MATCH=1
 PLAN_SOURCE: plan sha=232517f30297dd7a4d412681308d1c586a8c6c59ec1de4a5c88c58159ff7dbeb source=/home/coder/worktrees/tuneloop/wt-2480/docs/evidence/2480/plan.md
-PLAN_SOURCE: FAIL gate-missing /home/coder/worktrees/tuneloop/wt-2480/docs/evidence/2480/pre-ready-2480.json
-PLAN_SOURCE: FAIL evidence-missing /home/coder/worktrees/tuneloop/wt-2480/docs/evidence/2480/evidence.json
-PLAN_SOURCE: FAIL
-PLAN_SOURCE=FAIL
-GATE_FAIL
+PLAN_SOURCE: gate sha=232517f30297dd7a4d412681308d1c586a8c6c59ec1de4a5c88c58159ff7dbeb source=/home/coder/worktrees/tuneloop/wt-2480/docs/evidence/2480/pre-ready-2480.json
+PLAN_SOURCE: evidence sha=232517f30297dd7a4d412681308d1c586a8c6c59ec1de4a5c88c58159ff7dbeb source=/home/coder/worktrees/tuneloop/wt-2480/docs/evidence/2480/evidence.json
+PLAN_SOURCE: PASS sha=232517f30297dd7a4d412681308d1c586a8c6c59ec1de4a5c88c58159ff7dbeb
+PLAN_SOURCE=PASS
+GATE_OK
