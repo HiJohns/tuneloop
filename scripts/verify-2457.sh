@@ -26,12 +26,8 @@ usage() {
 mkdir -p "$OUT_DIR"
 
 # provenance 锚定到本单最新的 fix commit：证据提交后再次生成仍保持一致。
-FIX_SHA="$(git log --format=%H --grep='issue-2457' -1 2>/dev/null || true)"
-FIX_SUBJECT="$(git log --format=%s --grep='issue-2457' -1 2>/dev/null || true)"
-case "$FIX_SUBJECT" in
-    fix*) : ;;
-    *) FIX_SHA="" ;;
-esac
+# 与 pre-ready P12 同口径：取最近一条 `fix(issue-<N>)` 提交（不含其后的 test/docs 收尾提交）。
+FIX_SHA="$(git log --format=%H --grep="^fix(issue-$ISSUE)" -1 2>/dev/null || true)"
 [ -n "$FIX_SHA" ] || FIX_SHA="$(git rev-parse HEAD)"
 SHORT="$(git rev-parse --short=8 "$FIX_SHA")"
 DIRTY=false
