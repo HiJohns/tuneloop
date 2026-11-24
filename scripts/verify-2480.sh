@@ -26,7 +26,11 @@ ISSUE=2480
 OUT_DIR="${OUT_DIR:-$REPO/docs/evidence/$ISSUE}"; mkdir -p "$OUT_DIR"
 EVIDENCE_DIR="docs/evidence/$ISSUE"
 HEAD_SHA="$(git rev-parse HEAD)"
-# provenance 锚定本单 fix commit（调用方传 FIX_REF=<fix-commit>）；证据收尾提交不改变锚点。
+# provenance 锚定本单 fix commit：调用方传 FIX_REF=<fix-commit>；缺省取本单最新 fix 提交，
+# 避免被 pre-ready P4（affected-cmd 重跑本脚本）或证据收尾提交改锚点。
+if [ -z "${FIX_REF:-}" ]; then
+  FIX_REF="$(git log --format=%H --grep="^fix(issue-$ISSUE)" -1 2>/dev/null || true)"
+fi
 FIX_SHA="$(git rev-parse "${FIX_REF:-HEAD}")"
 git merge-base --is-ancestor "$FIX_SHA" "$HEAD_SHA" || { echo "FATAL: FIX_REF not ancestor" >&2; exit 3; }
 FIX_SHORT="$(git rev-parse --short "$FIX_SHA")"
