@@ -233,12 +233,15 @@ case "$ROW" in
             body+="$(tail -40 "$SUITE_LOG")"$'\n'
         fi
 
-        # 先落一版 interim 产物（P12/P3 只校验存在性），gate 通过后由 finish() 覆写最终断言。
-        {
-            printf '%s\n' "$PROVENANCE"
-            printf '%s\n' "$body"
-            printf 'GATE_RESULT=PENDING\n'
-        } > "$OUT_DIR/R15-gate.txt"
+        # 首次运行（产物尚未提交/不存在）时先落一版 interim（P12/P3 只校验存在性）；
+        # 若已存在（已提交的 PENDING/历史版本），不要在此刻覆写 —— 否则 gate 会因工作树变脏而 P5 FAIL。
+        if [ ! -f "$OUT_DIR/R15-gate.txt" ]; then
+            {
+                printf '%s\n' "$PROVENANCE"
+                printf '%s\n' "$body"
+                printf 'GATE_RESULT=PENDING\n'
+            } > "$OUT_DIR/R15-gate.txt"
+        fi
 
         if [ -f "$SUMMARY" ] && [ -f "$CHANGED" ]; then
             "$PRE_READY" "$ISSUE" \
