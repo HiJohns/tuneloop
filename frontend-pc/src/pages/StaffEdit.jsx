@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Card, Button, Form, Input, Select, AutoComplete, Alert, Space, message } from 'antd'
 import { staffApi, sitesApi } from '../services/api'
-import { resolveStaffFormMode, staffFormRules } from '../utils/staffForm'
+import { resolveStaffFormMode, staffFormRules, isDualIdentity, resolveInitialRole } from '../utils/staffForm'
 
 function convertSitesToOptions(sites, parentPath = '') {
   let options = []
@@ -23,21 +23,6 @@ const POSITION_OPTIONS = [
   { value: '调律' }, { value: '维修' }, { value: '前台' },
 ]
 
-// #2462 D6：编辑页角色初值的域判定。
-// 直属员工（无网点归属）的历史值可能被写成网点角色（存量脏数据），
-// 直接预填会让「保存」把它再次持久化成网点角色 → 这里仅修正显示/初始值：
-//   - 无 site_id 且 role ∈ {site_member, site_admin} → merchant_staff
-//   - 其它情况（含正常网点员工）→ 原 role
-// 只影响表单初值，不回写后端、不改列表返回。
-const SITE_DOMAIN_ROLES = ['site_member', 'site_admin']
-
-function resolveInitialRole(user) {
-  const role = user?.role || ''
-  const hasSite = Boolean(user?.site_id)
-  if (!hasSite && SITE_DOMAIN_ROLES.includes(role)) return 'merchant_staff'
-  return role
-}
-
 export default function StaffEdit() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -53,6 +38,8 @@ export default function StaffEdit() {
   // #2429 D3：字段模式单一出口；双身份 direct 优先。
   const formMode = useMemo(() => resolveStaffFormMode(editingUser || {}), [editingUser])
   const rules = useMemo(() => staffFormRules(formMode), [formMode])
+  // #2483：双归属（merchant_members + site_members 并存）时给出持久提示与指引入口。
+  const dualIdentity = useMemo(() => isDualIdentity(editingUser || {}), [editingUser])
 
   useEffect(() => {
     let cancelled = false
@@ -178,6 +165,18 @@ export default function StaffEdit() {
                 filterOption={(input, option) => (option?.value || '').includes(input)}
               />
             </Form.Item>
+          )}
+
+          {/* #2483：双归属员工——改网点不会移除直属登记，给出持久提示与指引入口 */}
+          {dualIdentity && (
+            <Alert
+              type="warning"
+              showIcon
+              style={{ marginBottom: 16 }}
+              message="该员工同时登记为商户直属员工"
+              description="此处修改归属网点不会移除直属登记；如需退出直属域，请到「直属员工管理」移除。"
+              action={<Button size="small" onClick={() => navigate('/staff/direct')}>前往直属员工管理</Button>}
+            />
           )}
 
           {/* #2429：直属员工不显示「归属网点」必填（否则为保存被迫选网点 → IAM 误绑） */}
