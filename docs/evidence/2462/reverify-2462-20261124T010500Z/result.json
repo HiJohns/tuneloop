@@ -1,0 +1,42 @@
+{
+  "request_id": "2462-20261124T010500Z",
+  "fix_commit": "9187af203bae52f6a77bd26cce8e0ea27e4271a0",
+  "ts": "2026-11-24T19:05:27Z",
+  "result": "PASS",
+  "worktree": "/home/coder/worktrees/tuneloop/wt-2462",
+  "worktree_head": "9187af203bae52f6a77bd26cce8e0ea27e4271a0",
+  "dirty_business_code": false,
+  "toolchain": "go1.25.0",
+  "commands": [
+    {
+      "index": 1,
+      "command": "cd backend && go build ./...",
+      "exit": 0,
+      "log": "command-1.txt"
+    },
+    {
+      "index": 2,
+      "command": "cd backend && go test ./handlers -count=1 -timeout 15m",
+      "exit": 0,
+      "log": "command-2.txt"
+    },
+    {
+      "index": 3,
+      "command": "cd backend && go test ./services -count=1 -timeout 15m",
+      "exit": 0,
+      "log": "command-3.txt"
+    }
+  ],
+  "full_gate": {
+    "artifact": "full-gate.txt",
+    "exit": 0,
+    "fail_count": 0,
+    "panic_count": 0
+  },
+  "concurrency": {
+    "lock_scope": "host",
+    "wrapper": "heavy-run.sh",
+    "lock_timeouts": 0,
+    "note": "commands executed sequentially under host heavy-lock (slots=1); command-3 waited 884.886s for the lock and then ran alone, no DB slot exhaustion"
+  }
+}

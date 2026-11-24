@@ -1,0 +1,8 @@
+PROVENANCE: fix=9187af203bae52f6a77bd26cce8e0ea27e4271a0 request=2462-20261124T010500Z ts=2026-11-24T19:05:27Z
+FULL_SUITE_CMD=cd backend && go build ./... && go test ./handlers -count=1 -timeout 15m && go test ./services -count=1 -timeout 15m
+WORKTREE=/home/coder/worktrees/tuneloop/wt-2462 HEAD=9187af203bae52f6a77bd26cce8e0ea27e4271a0 DIRTY=0
+TOOLCHAIN=go1.25.0
+ok  	tuneloop-backend/handlers	759.753s
+ok  	tuneloop-backend/services	12.448s
+CMD1_EXIT=0 CMD2_EXIT=0 CMD3_EXIT=0
+FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0
