@@ -1,0 +1,7 @@
+# build=1.0.7f987f5c # commit=7f987f5cf74f6ec369c87181e7fa2f0c86f8142a # dirty=false
+REPLACE_TRUE=1
+STATE_NULL=1
+PAGE_INTENT_LEAK=0
+--- consume navigate ---
+194:    navigate(location.pathname, { replace: true, state: null })
+

@@ -1,0 +1,10 @@
+# build=1.0.7f987f5c # commit=7f987f5cf74f6ec369c87181e7fa2f0c86f8142a # dirty=false
+CONSUME_EFFECT=1
+SET_CREATE=1
+--- consume block ---
+    if (!isCreateIntent(location.state)) return
+    resetCreateState()
+    setViewMode('create')
+    navigate(location.pathname, { replace: true, state: null })
+  }, [location.state])
+

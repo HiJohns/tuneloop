@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "issue": 2478,
+  "build": "1.0.7f987f5c",
+  "commit": "7f987f5cf74f6ec369c87181e7fa2f0c86f8142a",
+  "dirty": false,
+  "plan_sha256": "2f7bb3b406460526a702c76ff1275f5e0433ca95ebcbde7f48f5ab4fb17b4212",
+  "environment": "beaconwork worktree /home/coder/worktrees/tuneloop/wt-2478 (base origin/develop); frontend-pc node 20.20.2 with node_modules symlinked to the primary checkout; node --test for pure functions, eslint + vite build for wiring",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2478.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2478/R1-pure.txt"
+      ],
+      "assert": "exit 0；grep NULL=false、TRUE=true、STRING=false",
+      "actual": "PASS：NULL=false EMPTY=false TRUE=true STRING=false NUMBER=false STATE_HAS_OPEN=true STATE_TYPE=merchant_direct CONSUMED=false（node --test 6/6 pass）",
+      "expected": "PASS",
+      "negative": "STRING=true → FAIL",
+      "negative_result": "宽松真值判定（`state.openCreate` 未严格 === true）时 {openCreate:'true'} 会被判为 true → STRING 断言失败并触发创建表单",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2478.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2478/R2-intent-static.txt"
+      ],
+      "assert": "exit 0；grep INTENT_NAV=1、BARE_NAV=0",
+      "actual": "PASS：INTENT_NAV=1 BARE_NAV=0 INTENT_IMPORT=1（DirectMemberManagement.jsx:229 navigate('/staff', { state: createIntentState() })）",
+      "expected": "PASS",
+      "negative": "BARE_NAV=1 → FAIL",
+      "negative_result": "保留裸 `navigate('/staff')`（修复前形态）→ BARE_NAV=1 且 INTENT_NAV=0 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2478.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2478/R3-consume-static.txt"
+      ],
+      "assert": "exit 0；grep CONSUME_EFFECT=1、SET_CREATE=1",
+      "actual": "PASS：CONSUME_EFFECT=1 SET_CREATE=1（isCreateIntent(location.state) → resetCreateState() → setViewMode('create')）",
+      "expected": "PASS",
+      "negative": "CONSUME_EFFECT=0 → FAIL",
+      "negative_result": "落地页缺少消费 effect（修复前形态）→ CONSUME_EFFECT=0，必须再点一次页内「创建员工」才进表单 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2478.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2478/R4-replace-static.txt"
+      ],
+      "assert": "exit 0；grep REPLACE_TRUE=1、STATE_NULL=1",
+      "actual": "PASS：REPLACE_TRUE=1 STATE_NULL=1 PAGE_INTENT_LEAK=0（navigate(location.pathname, { replace: true, state: null })）",
+      "expected": "PASS",
+      "negative": "REPLACE_TRUE=0（用 push 保留 state）→ FAIL",
+      "negative_result": "消费后用 push 保留 location.state → 刷新/前进后退再次命中意图并重复打开表单 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2478.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2478/R5-cancel-static.txt"
+      ],
+      "assert": "exit 0；grep CANCEL_TO_LIST=1、DEFAULT_LIST=1",
+      "actual": "PASS：CANCEL_TO_LIST=1 DEFAULT_LIST=1（取消分支 resetCreateState()+setViewMode('list')；useState('list') 默认列表视图不变）",
+      "expected": "PASS",
+      "negative": "取消仍停留 create → FAIL",
+      "negative_result": "取消分支未回退列表（或默认 viewMode 改为 create）→ CANCEL_TO_LIST=0 / DEFAULT_LIST=0 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2478.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2478/R6-build.txt"
+      ],
+      "assert": "exit 0；grep PC_BUILD=0、LINT_EXIT=0",
+      "actual": "PASS：PC_BUILD=0 LINT_EXIT=0 LINT_ERRORS=0（vite build 5423 modules；eslint 三文件 0 error / 6 warning）",
+      "expected": "PASS",
+      "negative": "任一非 0 → FAIL",
+      "negative_result": "build 或 eslint 非 0（如新增 no-undef）→ PC_BUILD/LINT_EXIT 非 0 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2478.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2478/R7-gate.txt"
+      ],
+      "assert": "exit 0；grep GATE_RESULT=PASS、FULL_SUITE_EXIT=0、PLAN_SOURCE=PASS",
+      "actual": "PASS：FULL_SUITE_EXIT=0 GATE_RESULT=PASS GATE_PLAN_SHA_MATCH=1 P5=PASS PLAN_SOURCE=PASS",
+      "expected": "PASS",
+      "negative": "P5=NA 或 sha 不一致 → FAIL",
+      "negative_result": "gate 跳过全量前端 build（P5=N/A）或 plan sha 与 Accepted Plan 评论不一致 → 断言失败",
+      "pass": true
+    }
+  ]
+}

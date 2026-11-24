@@ -1,0 +1,5 @@
+# build=1.0.7f987f5c # commit=7f987f5cf74f6ec369c87181e7fa2f0c86f8142a # dirty=false
+PC_BUILD=0
+LINT_EXIT=0
+LINT_ERRORS=0
+

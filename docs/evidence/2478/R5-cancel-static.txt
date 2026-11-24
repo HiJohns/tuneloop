@@ -1,0 +1,14 @@
+# build=1.0.7f987f5c # commit=7f987f5cf74f6ec369c87181e7fa2f0c86f8142a # dirty=false
+CANCEL_TO_LIST=1
+DEFAULT_LIST=1
+--- cancel / default ---
+26:  const [viewMode, setViewMode] = useState('list') // 'list' | 'create'
+180:  // 全量重置（表单 + 一次性弹窗）；用于入口/取消/无弹窗路径，弹窗关闭由 onClose 清理。
+181-  const resetCreateState = () => {
+182-    resetCreateForm()
+--
+430:      cancelText: '取消',
+431-      okButtonProps: { danger: true },
+432-      onOk: async () => {
+--
+
