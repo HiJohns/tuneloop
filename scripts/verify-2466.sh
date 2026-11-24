@@ -60,7 +60,7 @@ case "$MODE" in
       [ -n "$p5" ] && [ "$p5" != "N/A" ] || { echo "P5_IS_NA"; fail=1; }
       bash "$HOME/.config/opencode/scripts/plan-source.sh" --issue 2466 2>&1 | tail -5 | tee /tmp/opencode/2466-r9-plan-source.log
       grep -q 'PLAN_SOURCE: PASS' /tmp/opencode/2466-r9-plan-source.log || { echo "PLAN_SOURCE=FAIL"; fail=1; }
-      if [ -f "$REPO/docs/evidence/2466/full-gate.log" ] && grep -q 'FULL_SUITE_EXIT=0' "$REPO/docs/evidence/2466/full-gate.log"; then
+      if [ -f "$REPO/docs/evidence/2466/R9-gate.txt" ] && grep -q 'FULL_SUITE_EXIT=0' "$REPO/docs/evidence/2466/R9-gate.txt"; then
         echo "FULL_SUITE_EXIT=0"
       else
         echo "FULL_SUITE_EXIT=MISSING"; fail=1

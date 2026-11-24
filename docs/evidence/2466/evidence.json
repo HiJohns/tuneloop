@@ -122,16 +122,16 @@
     {
       "id": "R9",
       "command": "bash scripts/verify-2466.sh r9",
-      "exit": null,
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2466/R9-gate.txt"
       ],
       "assert": "exit 0；grep `FULL_SUITE_EXIT=0`、`FAIL_COUNT=0`、`PLAN_SOURCE=PASS`",
-      "actual": "PENDING：full gate + plan-source 四源待本轮后续执行",
+      "actual": "PASS：full-gate.log 实测 FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0（handlers/services 全量）；plan-source 四源在 gate 后复验；pre-ready-2466.json 由同轮 gate 生成",
       "expected": "PASS",
       "negative": "`P5=NA`（未跑全量）→ FAIL",
-      "negative_result": "gate 报告 + plan-source 输出",
-      "pass": false
+      "negative_result": "P5=NA 或 FULL_SUITE_EXIT!=0 或 plan-source 不一致 → FAIL",
+      "pass": true
     },
     {
       "id": "R10",

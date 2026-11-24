@@ -1,0 +1,6 @@
+# build=1.0.8d73aec29 commit=8d73aec29ab0f467c24854648b1a286b94395966 dirty=false tree=32e8f83a532eef8da7ce2acb030cae93c4928920
+GATE_PLAN_SHA=b97c67abe16cfe73b637be82c2948a8f08bc77ffe2be4f0d10e28f9cc4d51e65
+FULL_SUITE_CMD=cd backend && go build ./... && go test ./handlers -count=1 -timeout 15m && go test ./services -count=1 -timeout 15m
+ok  	tuneloop-backend/handlers	749.628s
+ok  	tuneloop-backend/services	11.991s
+FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0
