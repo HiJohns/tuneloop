@@ -38,12 +38,13 @@ finish() { # name rc body
     [ "$2" = "0" ] || return 1
 }
 
-run_test() { # regex
-    ( cd "$REPO_ROOT/backend" && run_heavy go test ./handlers -run "$1" -count=1 -v 2>&1 )
+run_test() { # regex — 归一化 go test -v 的 file.go:LINE: 前缀，便于 KEY= 断言
+    ( cd "$REPO_ROOT/backend" && run_heavy go test ./handlers -run "$1" -count=1 -v 2>&1 ) \
+        | sed -E 's/^[[:space:]]*[^[:space:]]+_test\.go:[0-9]+: //'
 }
 
 keys() { # regex
-    grep -E "$1" | sed 's/^[[:space:]]*//'
+    grep -E "$1"
 }
 
 rc=0
