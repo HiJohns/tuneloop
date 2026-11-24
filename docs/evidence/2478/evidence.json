@@ -59,7 +59,7 @@
       "assert": "exit 0；grep REPLACE_TRUE=1、STATE_NULL=1",
       "actual": "PASS：REPLACE_TRUE=1 STATE_NULL=1 PAGE_INTENT_LEAK=0（navigate(location.pathname, { replace: true, state: null })）",
       "expected": "PASS",
-      "negative": "REPLACE_TRUE=0（用 push 保留 state）→ FAIL",
+      "negative": "REPLACE_TRUE=0 → FAIL",
       "negative_result": "消费后用 push 保留 location.state → 刷新/前进后退再次命中意图并重复打开表单 → FAIL",
       "pass": true
     },
