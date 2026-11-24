@@ -1,3 +1,4 @@
+# build=1.0.d43b97d2a # commit=d43b97d2a0ccadf3be58c446a093436bf355b7b4 # dirty=false
 # R7-role-column 人工回执 — #2375
 
 > executor: user
