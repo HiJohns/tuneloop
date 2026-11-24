@@ -2601,6 +2601,10 @@ const handleSyncUsersFromIAM = async () => {
 
 职位列取 `position`（缺失时回退 role 映射；师傅显示「维修师傅」）。
 
+**#2462 角色列与编辑页预填口径**：
+- 角色列对直属员工（无 `site_members` 行 / 无 `site_name`）显示 `商户直属员工`（`merchant_staff`），不再显示「成员」；
+- 员工编辑页（`StaffEdit.jsx`）角色初值做域判定：该用户**无网点归属**（无 `site_id`）且历史 `role` 为网点角色（`site_member`/`site_admin`）时回填 `商户直属员工`；正常网点员工保持原值。该修正只影响表单初始值，不回写后端、不改列表返回。
+
 #### 网点管理员角色分配
 
 **组件**: `frontend-pc/src/components/SiteMemberManagement.jsx`

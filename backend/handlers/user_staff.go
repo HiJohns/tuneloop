@@ -371,6 +371,10 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
+	// #2462 D1：users.role = 域角色（merchant_direct → merchant_staff 等），
+	// 与 merchant_members/site_members 保持一致；此前从不写入导致恒为空串。
+	user.Role = resolvedRole
+
 	if resolvedRole == "site_admin" {
 		callerRole := middleware.GetBusinessRole(c.Request.Context())
 		if callerRole != middleware.BusinessRoleMerchantAdmin && callerRole != middleware.BusinessRoleSiteAdmin && callerRole != middleware.BusinessRoleSystemAdmin {
@@ -536,7 +540,9 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 			}
 			mm := models.MerchantMember{
 				TenantID: merchantOrg, MerchantID: merch.ID, UserID: user.ID,
-				Role: "site_member", Status: "active",
+				// #2462 D2：直属域角色必须与 users.role 一致（此前硬编码 site_member
+				// 使「直属员工」被持久化成网点角色）。
+				Role: resolvedRole, Status: "active",
 			}
 			if err := tx.Create(&mm).Error; err != nil {
 				return err
@@ -997,7 +1003,11 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 		}
 	}
 
-	if newRole != "" {
+	// #2462 D3：角色未变化时一律视为未变更 —— 不写 users.role、不写域记录、
+	// 不触发 IAM 角色同步（此前「只改职位」也会同步并失败）。
+	roleChanged := newRole != "" && newRole != existingUser.Role
+
+	if roleChanged {
 		updates["role"] = newRole
 		// IAM 同步：失败进 role_errors（不阻断本地更新，D3/#2375）。
 		if existingUser.IAMSub != "" {
@@ -1022,7 +1032,7 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 	}
 
 	// #2375：本地目标域同步（网点/商户直属），保持单一主角色（D4）。
-	if newRole != "" {
+	if roleChanged {
 		if err := db.Model(&models.SiteMember{}).
 			Where("user_id = ? AND tenant_id = ?", userID, tenantID).
 			Updates(map[string]interface{}{"role": newRole, "roles": []string{newRole}}).Error; err != nil {

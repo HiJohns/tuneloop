@@ -219,6 +219,14 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 > **#2129 角色模板新增**：`merchant_staff`（**商户直属员工**，不挂靠网点）——cus_perm = 网点员工集合 **+ `repair:read`**；用于区分商户直属与网点员工（前端据此对 `site_staff` 隐藏维修服务入口）。
 > **授权范围原则**：维修服务单**关联商户组织**——可见性由组织范围决定（网点员工 oid=网点组织，天然不可见）；`repair:read` 仅作操作谓词。
 
+> **#2462 `users.role` 的域语义（强制）**：`users.role` 是**域角色落库字段**，创建时按用户类型写入并与域表保持一致——
+> - `merchant_direct`（商户直属员工）→ `users.role = merchant_staff`，且 `merchant_members.role = merchant_staff`；
+> - `site_staff`（网点员工）→ `users.role = site_member|site_admin`，且 `site_members.role` 与之一致；
+> - `repair_technician`（维修师傅）→ `users.role = repair_technician`（建 `technician_profiles`，不写 `merchant_members`）。
+>
+> 编辑时角色**未变化**（`role` 提交值等于现值）视为未变更：不写 `users.role`、不写域表、不触发 IAM 角色同步。
+> 存量脏数据（`merchant_members.role='site_member'` 且无 `site_members` 行）只出**只读清单**（`scripts/report-merchant-direct-role-drift-2462.sh`），回填需 Owner 显式授权（`OWNER_APPROVED_MERCHANT_DIRECT_ROLE=1`），禁止静默改名。
+
 ### 4.3 系统级角色对 cus_perm 门控路由的放行（#1964）
 
 > `RequireCusPerm` / `RequireAnyCusPerm`（`backend/middleware/permissions.go`）在检查
