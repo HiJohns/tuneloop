@@ -984,7 +984,7 @@ func main() {
 	dryRunFlag := flag.Bool("dry-run", false, "Dry-run mode")
 	downloadPlatformCert := flag.Bool("download-platform-cert", false, "Download WeChat platform certificate and exit")
 	setOrderDetailPath := flag.String("set-order-detail-path", "", "Set WeChat mini program order detail path (e.g. 'pages-weapp/order-detail/index?out_trade_no=${商品订单号}')")
-	siteNameDrift := flag.Bool("site-name-drift", false, "Report sites.name vs IAM organization name drift (read-only dry-run), then exit")
+	siteNameDrift := flag.Bool("site-name-drift", false, "Report sites.name/merchants.name vs IAM organization name drift (read-only dry-run), then exit")
 	flag.Parse()
 
 	// Load environment file if specified
@@ -1014,8 +1014,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// #2457: 只读漂移报告（sites.name vs IAM organizations.name）。
-	// 没有任何写路径：存量 3 条对齐由 Owner 裁定后交 ops 执行（Decision Lock D6）。
+	// #2457 / #2459: 只读漂移报告（sites.name / merchants.name vs IAM organizations.name）。
+	// 没有任何写路径：存量对齐由 Owner 裁定后交 ops 执行（Decision Lock D6）。
 	if *siteNameDrift {
 		if err := services.RunSiteNameDriftReport(db); err != nil {
 			fmt.Printf("FATAL: site name drift report failed: %v\n", err)

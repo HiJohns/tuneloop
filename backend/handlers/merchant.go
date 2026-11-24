@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -550,9 +551,101 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 		return
 	}
 
+	// #2459: IAM organizations.name 是商户名的权威源，merchants.name 只是本地镜像（D1）。
+	// 改名必须先写 IAM，成功后才写本地；任何 IAM 失败都不落库（含 admin_uid 变更，D3）。
+	origName := merchant.Name
+	newName := strings.TrimSpace(input.Name)
+	nameChanged := newName != "" && newName != origName
+
+	if nameChanged {
+		// D7（Owner O3）：商户名只允许商户管理员（OWNER）修改；平台/系统管理员改名一律 403。
+		if middleware.GetBusinessRole(c.Request.Context()) != middleware.BusinessRoleMerchantAdmin {
+			c.JSON(http.StatusForbidden, gin.H{
+				"code":    40301,
+				"message": "仅商户管理员可修改商户名称",
+			})
+			return
+		}
+		// 未绑定 IAM 组织时只能单边改本地 → 必然漂移，直接拒绝。
+		if strings.TrimSpace(merchant.OrgID) == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40002,
+				"message": "该商户未绑定 IAM 组织，无法改名（禁止本地单边改名）",
+			})
+			return
+		}
+
+		iamClient := services.NewIAMClient()
+		userToken := services.ExtractUserToken(c)
+
+		// D8（Owner O3）：namespace 内唯一预检（IAM 侧尚无唯一索引，见 tracking Issue）。
+		conflictOrgID, listErr := findOrganizationNameConflict(iamClient, userToken, merchant.OrgID, newName)
+		if listErr != nil {
+			log.Printf("[UpdateMerchant] failed to verify merchant name uniqueness org_id=%s: %v", merchant.OrgID, listErr)
+			c.JSON(http.StatusBadGateway, gin.H{
+				"code":    50000,
+				"message": "无法校验商户名唯一性: " + listErr.Error(),
+			})
+			return
+		}
+		if conflictOrgID != "" {
+			log.Printf("[UpdateMerchant] merchant name conflict org_id=%s conflict_org=%s name=%q",
+				merchant.OrgID, conflictOrgID, newName)
+			c.JSON(http.StatusConflict, gin.H{
+				"code":    40900,
+				"message": "商户名在命名空间内已存在",
+			})
+			return
+		}
+
+		var iamErr error
+		if userToken == "" {
+			// 无调用者令牌（内部调用/测试）：直接使用服务凭据。
+			_, iamErr = iamClient.UpdateOrganizationName(merchant.OrgID, newName)
+		} else {
+			_, iamErr = iamClient.UpdateOrganizationNameWithToken(userToken, merchant.OrgID, newName)
+			if iamErr != nil && errors.Is(iamErr, services.ErrIAMForbidden) &&
+				middleware.GetSysPerm(c.Request.Context())&(1<<middleware.SysPermTenantUpdate) != 0 {
+				// D4：用户令牌被 IAM 拒绝但本地已通过 tenant_update →
+				// 用服务凭据重试一次（不静默只改本地），并留审计日志。
+				log.Printf("[UpdateMerchant] IAM rename escalated to service credentials user=%s org=%s",
+					middleware.GetUserID(c.Request.Context()), merchant.OrgID)
+				_, iamErr = iamClient.UpdateOrganizationName(merchant.OrgID, newName)
+			}
+		}
+		if iamErr != nil {
+			log.Printf("[UpdateMerchant] IAM organization rename failed org_id=%s: %v", merchant.OrgID, iamErr)
+			switch {
+			case errors.Is(iamErr, services.ErrIAMForbidden):
+				c.JSON(http.StatusForbidden, gin.H{
+					"code":    40301,
+					"message": "IAM 拒绝修改商户组织名（权限不足）: " + iamErr.Error(),
+				})
+			case errors.Is(iamErr, services.ErrIAMOrgNotFound):
+				c.JSON(http.StatusNotFound, gin.H{
+					"code":    40400,
+					"message": "IAM 组织不存在（org_id 失效）: " + iamErr.Error(),
+				})
+			case errors.Is(iamErr, services.ErrIAMOrgNameConflict):
+				c.JSON(http.StatusConflict, gin.H{
+					"code":    40900,
+					"message": "商户名在命名空间内已存在（IAM 组织名冲突）: " + iamErr.Error(),
+				})
+			default:
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"code":    50000,
+					"message": "IAM 更新商户组织名失败: " + iamErr.Error(),
+				})
+			}
+			// IAM 失败 → 不落库（D3：admin_uid 变更一并放弃，避免半更新）。
+			return
+		}
+		log.Printf("[UpdateMerchant] IAM organization renamed org_id=%s name=%q", merchant.OrgID, newName)
+	}
+
 	// Update fields
-	if input.Name != "" {
-		merchant.Name = input.Name
+	if nameChanged {
+		merchant.Name = newName
 	}
 	if input.Phone != "" {
 		merchant.Phone = input.Phone
@@ -648,6 +741,14 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 
 	result = db.Save(&merchant)
 	if result.Error != nil {
+		if nameChanged {
+			// IAM 已改名、本地失败：显式告知可重试（重试走同名分支补本地，D3）。
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "IAM 已改名，本地同步失败，请重试: " + result.Error.Error(),
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to update merchant: " + result.Error.Error(),
@@ -664,6 +765,37 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 		resp["admin_sync_warning"] = adminWarning
 	}
 	c.JSON(http.StatusOK, resp)
+}
+
+// findOrganizationNameConflict 在 IAM 同 namespace 的组织中查找与 newName 重名
+// （lower + trim 归一）的其它组织，返回其 org_id；无冲突返回空串。
+// #2459 D8（Owner O3）：IAM 侧尚无 (namespace_id, lower(name)) 唯一索引，
+// tuneloop 在改名前置预检覆盖常规路径；并发绕过由 beaconiam 跟踪 Issue 收敛。
+func findOrganizationNameConflict(client *services.IAMClient, userToken, ownOrgID, newName string) (string, error) {
+	orgs, err := listOrganizationsForRename(client, userToken)
+	if err != nil {
+		return "", err
+	}
+	target := strings.ToLower(strings.TrimSpace(newName))
+	ownOrgID = strings.TrimSpace(ownOrgID)
+	for _, org := range orgs {
+		if strings.TrimSpace(org.ID) == ownOrgID {
+			continue
+		}
+		if strings.ToLower(strings.TrimSpace(org.Name)) == target {
+			return org.ID, nil
+		}
+	}
+	return "", nil
+}
+
+// listOrganizationsForRename 读取同 namespace 组织列表：有调用者令牌时用其令牌，
+// 否则退回服务凭据（与 UpdateOrganizationName* 的令牌选择口径一致）。
+func listOrganizationsForRename(client *services.IAMClient, userToken string) ([]services.Organization, error) {
+	if strings.TrimSpace(userToken) == "" {
+		return client.ListOrganizations()
+	}
+	return client.ListOrganizationsWithToken(userToken)
 }
 
 // DeleteMerchant DELETE /api/merchants/:id - Delete merchant
