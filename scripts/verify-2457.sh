@@ -233,6 +233,13 @@ case "$ROW" in
             body+="$(tail -40 "$SUITE_LOG")"$'\n'
         fi
 
+        # 先落一版 interim 产物（P12/P3 只校验存在性），gate 通过后由 finish() 覆写最终断言。
+        {
+            printf '%s\n' "$PROVENANCE"
+            printf '%s\n' "$body"
+            printf 'GATE_RESULT=PENDING\n'
+        } > "$OUT_DIR/R15-gate.txt"
+
         if [ -f "$SUMMARY" ] && [ -f "$CHANGED" ]; then
             "$PRE_READY" "$ISSUE" \
                 --plan-file "$OUT_DIR/plan.md" \
