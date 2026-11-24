@@ -486,6 +486,8 @@ var defaultMigrationArtifacts = []migrationArtifact{
 	{20261116001, "settlement_action_ledger", "", "结算子动作账本表（#2360）"},
 	// #2361（#2268）：冲正/差额版本化，旧行 superseded、新行 supersedes 指向旧行。
 	{20261117001, "settlement_calculations", "supersedes", "结算冲正来源列（#2361）"},
+	// #2456：PC 后台 idle timeout 会话表（仅 PC 入口写入）。
+	{20261123001, "pc_sessions", "", "PC 会话 idle 超时表（#2456）"},
 }
 
 // verifyArtifacts 纯逻辑（便于单测）：对 version ≥ a.Version 的工件断言存在。
@@ -711,6 +713,8 @@ var modelsToValidate = []interface{}{
 
 	&models.OrderPaymentAllocation{}, // #2360: 支付分配账本
 	&models.SettlementActionLedger{}, // #2360: 结算子动作账本
+
+	&models.PCSession{}, // #2456: PC 后台 idle timeout 会话（20261123001 migration）
 }
 
 // ModelsToValidateForTest 暴露启动校验清单（测试用，#2360 R4）。

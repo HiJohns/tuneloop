@@ -8,6 +8,7 @@ const REASONS = {
   // #2454: 空组织上下文（多组织账号未选择组织）→ 明确提示重新登录并选择组织
   'org_context_missing': '登录上下文缺失，请重新登录并选择组织',
   'session_expired': '会话已过期，正在跳转登录页',
+  'idle_timeout': '登录已超时，请重新登录',
   'redirect_to_login': '正在跳转登录页',
 }
 

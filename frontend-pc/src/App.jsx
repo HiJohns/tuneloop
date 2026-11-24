@@ -13,7 +13,8 @@ import {
 } from '@ant-design/icons'
 
 import { ProtectedRoute, AuthGuard, getToken, storeToken } from './components/ProtectedRoute'
-import { api, initPermissionMapping } from './services/api'
+import { api, initPermissionMapping, reportPCActivity } from './services/api'
+import { startActivityTracking } from './utils/pcSession'
 import { SysPermBits, checkPermission, isNamespaceAdmin, getNamespaceAdminMenuKeys } from './config/menuPermissions'
 import Dashboard from './pages/Dashboard'
 import FinanceConfig from './pages/FinanceConfig'
@@ -180,6 +181,13 @@ function MainLayout() {
     checkExpiry()
     const timer = setInterval(checkExpiry, 30000)
     return () => clearInterval(timer)
+  }, [])
+
+  // #2456: PC 后台静置超时 —— 只有显式用户交互才上报活动（60s 节流），
+  // 后台 60s 通知轮询 / 30s token 检查都不算活动，否则 idle 永不触发（D3）。
+  useEffect(() => {
+    const stopActivityTracking = startActivityTracking(reportPCActivity)
+    return stopActivityTracking
   }, [])
 
   // 60s countdown — force redirect when warning is shown
