@@ -1,10 +1,10 @@
 {
   "issue": 2478,
-  "overall": "FAIL",
+  "overall": "PASS",
   "plan": "/home/coder/worktrees/tuneloop/wt-2478/docs/evidence/2478/plan.md",
   "plan_sha256": "2f7bb3b406460526a702c76ff1275f5e0433ca95ebcbde7f48f5ab4fb17b4212",
   "summary": "/home/coder/worktrees/tuneloop/wt-2478/tmp/work-summary-2478.md",
-  "timestamp": "20261124-223421",
+  "timestamp": "20261124-231555",
   "checks": [
     {
       "id": "P1",
@@ -18,8 +18,8 @@
     },
     {
       "id": "P3",
-      "status": "FAIL",
-      "detail": "evidence paths do not exist: DirectMemberManagement.jsx:229 StaffManagement.jsx docs/evidence/2478/pre-ready-2478.json frontend-pc/src/pages/DirectMemberManagement.jsx:229 frontend-pc/src/pages/StaffManagement.jsx:189-196 isCreateIntent(location.state)"
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
     },
     {
       "id": "P4",
@@ -28,8 +28,8 @@
     },
     {
       "id": "P12",
-      "status": "FAIL",
-      "detail": "R4: negative does not match the plan contract"
+      "status": "PASS",
+      "detail": "Evidence Contract complete: 7 row(s) match the plan and have durable artifacts"
     },
     {
       "id": "P14",
@@ -53,8 +53,8 @@
     },
     {
       "id": "P5",
-      "status": "N/A",
-      "detail": "skipped: P12/P14/P15/P16 static checks failed (static checks run first)"
+      "status": "PASS",
+      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (eb6579802e7f1083586a6428fef344c4c6c110bc); source head=run baseline=run"
     },
     {
       "id": "P6",
@@ -88,8 +88,8 @@
     },
     {
       "id": "P13",
-      "status": "FAIL",
-      "detail": "remote ref not found: origin/issue-2478"
+      "status": "PASS",
+      "detail": "fix commit and evidence artifacts are on origin/issue-2478"
     }
   ]
 }
