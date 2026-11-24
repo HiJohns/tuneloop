@@ -1,0 +1,54 @@
+# build=1.0.3cc10ca40 # commit=3cc10ca4002eed30d7a8727bbab310a6a890b121 # dirty=false
+# tree=3cc10ca4002eed30d7a8727bbab310a6a890b121
+TAP version 13
+# SHOW_EMPTY=false
+# SHOW_ONE=true
+# TITLE_HIT=命中 1 个
+# EMPTY_TEXT_HAS_SCANNED=1
+# ISEMPTY_LOADING=false
+# ISEMPTY_ERROR=false
+# Subtest: 空列表不渲染告警
+ok 1 - 空列表不渲染告警
+  ---
+  duration_ms: 4.151939
+  ...
+# Subtest: 有 1 条命中时渲染告警
+ok 2 - 有 1 条命中时渲染告警
+  ---
+  duration_ms: 0.460854
+  ...
+# Subtest: 标题：空态固定、有数据含命中数
+ok 3 - 标题：空态固定、有数据含命中数
+  ---
+  duration_ms: 0.715922
+  ...
+# Subtest: 空态文案带扫描数与挂起门槛，缺失时降级
+ok 4 - 空态文案带扫描数与挂起门槛，缺失时降级
+  ---
+  duration_ms: 0.522267
+  ...
+# Subtest: 加载中不算空态（避免先闪「未发现」）
+ok 5 - 加载中不算空态（避免先闪「未发现」）
+  ---
+  duration_ms: 2.361384
+  ...
+# Subtest: 请求失败不算空态
+ok 6 - 请求失败不算空态
+  ---
+  duration_ms: 0.451384
+  ...
+# Subtest: 稳定空态为真
+ok 7 - 稳定空态为真
+  ---
+  duration_ms: 0.330751
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 126.144901
+MARKERS_OK

@@ -1,0 +1,14 @@
+# build=1.0.3cc10ca40 # commit=3cc10ca4002eed30d7a8727bbab310a6a890b121 # dirty=false
+# tree=3cc10ca4002eed30d7a8727bbab310a6a890b121
+GATE_RESULT=PENDING(no report yet)
+P5=MISSING
+P5_IS_NA
+FULL_SUITE_EXIT=PENDING
+GATE_PLAN_SHA=
+GATE_PLAN_SHA_MATCH=0
+PLAN_SOURCE: plan sha=05f8c665ae068edfd956678402a95c576f27377ee82779d1298e9e1b5642ae53 source=/home/coder/worktrees/tuneloop/wt-2469/docs/evidence/2469/plan.md
+PLAN_SOURCE: FAIL gate-missing /home/coder/worktrees/tuneloop/wt-2469/docs/evidence/2469/pre-ready-2469.json
+PLAN_SOURCE: FAIL evidence-missing /home/coder/worktrees/tuneloop/wt-2469/docs/evidence/2469/evidence.json
+PLAN_SOURCE: FAIL
+PLAN_SOURCE=FAIL
+GATE_FAIL

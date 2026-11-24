@@ -1,0 +1,5 @@
+# build=1.0.3cc10ca40 # commit=3cc10ca4002eed30d7a8727bbab310a6a890b121 # dirty=false
+# tree=3cc10ca4002eed30d7a8727bbab310a6a890b121
+CONFIRM_KEPT=1
+BATCH_DISABLED_KEPT=1
+R7_OK

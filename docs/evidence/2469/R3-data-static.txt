@@ -1,0 +1,36 @@
+# build=1.0.3cc10ca40 # commit=3cc10ca4002eed30d7a8727bbab310a6a890b121 # dirty=false
+# tree=3cc10ca4002eed30d7a8727bbab310a6a890b121
+TITLE_USES_helper=1
+WARNING_ONE_LINE=1
+        {/* #2469 R3 有数据：一行不可撤销提示（判定条件收进 Tooltip）+ 正常表格 */}
+        {shouldShowWarning(orphans) && (
+          <>
+            <Alert
+              type="warning"
+              showIcon
+              style={{ marginBottom: 12 }}
+              message={(
+                <Space size={4}>
+                  <span>清理会物理删除 IAM 账号，不可撤销。</span>
+                  <Tooltip title={orphanConditions}>
+                    <QuestionCircleOutlined style={{ cursor: 'help' }} />
+                  </Tooltip>
+                </Space>
+              )}
+            />
+            <Table
+              rowKey="id"
+              size="small"
+              loading={orphanLoading}
+              dataSource={orphans}
+              columns={orphanColumns}
+              rowSelection={{
+                selectedRowKeys: orphanSelected,
+                onChange: (keys) => setOrphanSelected(keys),
+              }}
+              pagination={false}
+            />
+          </>
+        )}
+      </Modal>
+R3_OK

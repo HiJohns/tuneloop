@@ -1,0 +1,39 @@
+# build=1.0.3cc10ca40 # commit=3cc10ca4002eed30d7a8727bbab310a6a890b121 # dirty=false
+# tree=3cc10ca4002eed30d7a8727bbab310a6a890b121
+SPIN_BRANCH=1
+ERROR_BRANCH=1
+EMPTY_TEXT_ABSENT_IN_ERROR=1
+--- loading block ---
+        {/* #2469 R5 加载中：只显示扫描中，不渲染表格/空态（避免先闪「未发现」） */}
+        {orphanLoading && (
+          <div style={{ padding: '48px 0', textAlign: 'center' }}>
+            <Spin tip="正在扫描 IAM 账号…">
+              <div style={{ height: 32 }} />
+            </Spin>
+          </div>
+        )}
+
+        {/* #2469 R5 失败态：不得显示「未发现孤儿账号」 */}
+        {!orphanLoading && orphanError && orphans.length === 0 && (
+          <Alert
+            type="error"
+            showIcon
+            message="加载失败，请点击刷新重试"
+            description={orphanError}
+          />
+        )}
+
+        {/* #2469 R2 空态：不渲染表头/全选，改为中性 Empty + 扫描说明 */}
+--- error block ---
+        {/* #2469 R5 失败态：不得显示「未发现孤儿账号」 */}
+        {!orphanLoading && orphanError && orphans.length === 0 && (
+          <Alert
+            type="error"
+            showIcon
+            message="加载失败，请点击刷新重试"
+            description={orphanError}
+          />
+        )}
+
+        {/* #2469 R2 空态：不渲染表头/全选，改为中性 Empty + 扫描说明 */}
+R5_OK
