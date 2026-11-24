@@ -127,7 +127,7 @@
         "docs/evidence/2466/R9-gate.txt"
       ],
       "assert": "exit 0；grep FULL_SUITE_EXIT=0、FAIL_COUNT=0、PLAN_SOURCE=PASS",
-      "actual": "PASS：full-gate.log 实测 FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0（handlers/services 全量）；plan-source 四源在 gate 后复验；pre-ready-2466.json 由同轮 gate 生成",
+      "actual": "PASS：pre-ready-2466.json overall=PASS 且 P5=PASS（clean worktree，HEAD 失败集 ⊆ origin/develop 基线）；FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0；plan-source 四源 PASS（plan/gate/evidence sha 一致）",
       "expected": "PASS",
       "negative": "P5=NA（未跑全量）→ FAIL",
       "negative_result": "P5=NA 或 FULL_SUITE_EXIT!=0 或 plan-source 不一致 → FAIL",
