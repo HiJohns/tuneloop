@@ -1,0 +1,5 @@
+PROVENANCE: fix=4494a64ba90f5f7df06256b8f63ab5d08b65864c request=2454-20261123T222359Z ts=2026-11-23T23:22:27Z
+FULL_SUITE_CMD=cd backend && go build ./... && go test ./handlers -count=1 -timeout 15m && go test ./services -count=1 -timeout 15m
+ok  	tuneloop-backend/handlers	808.929s
+ok  	tuneloop-backend/services	12.367s
+FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0

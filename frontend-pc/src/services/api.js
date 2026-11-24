@@ -259,6 +259,16 @@ async function request(endpoint, options = {}, retryCount = 0) {
     // deactivated (40106) / token revoked by credential change (40107).
     // Skip refresh: a revoked session must not mint new tokens.
     const body = await response.clone().json().catch(() => null)
+    // #2454 R6: 40104 = 组织上下文缺失（PC 拿着空组织 token 调受保护接口）。
+    // 刷新救不回来（refresh 会回到同一空上下文），直接清 token 并以专属原因登出。
+    if (body && body.code === 40104) {
+      console.warn('[AUTH] Organization context missing (40104) → clearing tokens → org_context_missing')
+      Logger.warn('AUTH', 'Org context missing (40104), clearing session')
+      clearTokens()
+      localStorage.setItem('logout_reason', 'org_context_missing')
+      window.location.href = '/logout'
+      return []
+    }
     if (body && [40105, 40106, 40107].includes(body.code)) {
       console.warn('[AUTH] Session invalid (code ' + body.code + ') → clearing tokens → re-login required')
       Logger.warn('AUTH', 'Auth invalid code ' + body.code + ', clearing session')

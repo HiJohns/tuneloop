@@ -211,6 +211,22 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		}
 	}
 
+	// #2454 D3：PC 分支拒绝「空组织上下文」token。
+	// 多组织账号在 IAM 未选择组织时会拿到 oid/tid 为空、无职能角色、零权限的
+	// USER token；把它写进 cookie/localStorage 只会让首页渲染一半后 401 弹回登录。
+	// 这里显式失败并给出可诊断文案（H5/小程序分支不受影响，见 D4）。
+	isPCBranch := clientType != "wx" && clientType != "wechat" && clientType != "mobile"
+	if err == nil && isPCBranch &&
+		claims.TenantID == "" && claims.OrgID == "" &&
+		len(claims.Roles) == 0 && claims.SysPerm == 0 && claims.CusPerm == 0 {
+		log.Printf("[Auth] PC callback rejected empty org context: client=%s sub=%s", appClientID, claims.UserID)
+		c.JSON(http.StatusBadGateway, gin.H{
+			"code":    50202,
+			"message": "登录上下文缺失（未选择组织），请重新登录",
+		})
+		return
+	}
+
 	// #2181: 统一设置/续期 PC 会话 cookie
 	setAuthCookies(c, tokenResp)
 
