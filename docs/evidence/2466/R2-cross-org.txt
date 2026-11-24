@@ -1,0 +1,21 @@
+# build=1.0.8d73aec29 commit=8d73aec29ab0f467c24854648b1a286b94395966 dirty=false tree=b5a279aede4944cbf5c75a944dd4aee223a025b3
+[DEBUG] Loaded .env from: ../.env
+2026/11/24 13:18:04 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2466 sslmode=disable
+2026/11/24 13:18:04 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2466
+2026/11/24 13:18:04 [DB] Connected to database 'tuneloop_test_2466'
+=== RUN   TestSiteTransfer_CrossOrg_Staff_2466
+2026/11/24 13:18:04 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2466 sslmode=disable
+2026/11/24 13:18:04 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2466
+2026/11/24 13:18:04 [DB] Connected to database 'tuneloop_test_2466'
+2026/11/24 13:18:05 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:38321, clientID=test-ns, namespace=test-ns
+2026/11/24 13:18:05 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/24 13:18:05 [IAMClient] Unbound user 79560231-77b0-4058-9cc3-ec6d0a634a73 from org b560104f-034b-4a34-a02a-bd1dde30a410
+2026/11/24 13:18:05 [IAMClient] Incremented perm_version
+2026/11/24 13:18:05 [IAMClient] Bound user 79560231-77b0-4058-9cc3-ec6d0a634a73 to org 902e10dd-d275-4508-94b8-835634a09c67 with role STAFF
+2026/11/24 13:18:05 [IAMClient] Incremented perm_version
+2026/11/24 13:18:05 [IAMClient] Incremented perm_version
+2026/11/24 13:18:05 [IAMClient] Assigned role template site_member to user 79560231-77b0-4058-9cc3-ec6d0a634a73 (via user token)
+    user_site_transfer_2466_test.go:239: SITE_ID=B USERS_ORG=902e10dd-d275-4508-94b8-835634a09c67 BIND_ROLE=STAFF FUNC_ROLES_CONTAINS=site_member
+--- PASS: TestSiteTransfer_CrossOrg_Staff_2466 (0.09s)
+PASS
+ok  	tuneloop-backend/handlers	1.064s

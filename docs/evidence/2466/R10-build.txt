@@ -1,0 +1,88 @@
+# build=1.0.8d73aec29 commit=8d73aec29ab0f467c24854648b1a286b94395966 dirty=false tree=b5a279aede4944cbf5c75a944dd4aee223a025b3
+BUILD_CMD=go build ./...
+BUILD_EXIT=0
+[DEBUG] Loaded .env from: ../.env
+2026/11/24 13:18:55 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2466 sslmode=disable
+2026/11/24 13:18:56 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2466
+2026/11/24 13:18:56 [DB] Connected to database 'tuneloop_test_2466'
+=== RUN   TestSiteTransfer_SameOrg_LocalOnly_2466
+2026/11/24 13:18:56 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2466 sslmode=disable
+2026/11/24 13:18:56 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2466
+2026/11/24 13:18:56 [DB] Connected to database 'tuneloop_test_2466'
+2026/11/24 13:18:56 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:39129, clientID=test-ns, namespace=test-ns
+    user_site_transfer_2466_test.go:216: SITE_ID=B ORG_UNCHANGED=1 IAM_CALLS=0
+--- PASS: TestSiteTransfer_SameOrg_LocalOnly_2466 (0.08s)
+=== RUN   TestSiteTransfer_CrossOrg_Staff_2466
+2026/11/24 13:18:56 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:43841, clientID=test-ns, namespace=test-ns
+2026/11/24 13:18:56 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/24 13:18:56 [IAMClient] Unbound user 46f6bff3-4de7-4306-9d52-9d0bfc1d556b from org aa40f843-0a0e-4415-adc3-83c880769148
+2026/11/24 13:18:56 [IAMClient] Incremented perm_version
+2026/11/24 13:18:56 [IAMClient] Bound user 46f6bff3-4de7-4306-9d52-9d0bfc1d556b to org 128976a1-6ca1-43b9-a2d5-be3080b88895 with role STAFF
+2026/11/24 13:18:56 [IAMClient] Incremented perm_version
+2026/11/24 13:18:56 [IAMClient] Incremented perm_version
+2026/11/24 13:18:56 [IAMClient] Assigned role template site_member to user 46f6bff3-4de7-4306-9d52-9d0bfc1d556b (via user token)
+    user_site_transfer_2466_test.go:239: SITE_ID=B USERS_ORG=128976a1-6ca1-43b9-a2d5-be3080b88895 BIND_ROLE=STAFF FUNC_ROLES_CONTAINS=site_member
+--- PASS: TestSiteTransfer_CrossOrg_Staff_2466 (0.06s)
+=== RUN   TestSiteTransfer_CrossOrg_Admin_2466
+2026/11/24 13:18:56 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:46369, clientID=test-ns, namespace=test-ns
+2026/11/24 13:18:56 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/24 13:18:56 [IAMClient] Unbound user 1e4cd2e5-06ac-414d-bfbe-c4fc4ce46876 from org cbfabda3-36ac-41fb-ba19-b66dd45a4daa
+2026/11/24 13:18:56 [IAMClient] Incremented perm_version
+2026/11/24 13:18:56 [IAMClient] Bound user 1e4cd2e5-06ac-414d-bfbe-c4fc4ce46876 to org cc4eaf0e-11f5-4da6-8b67-d310b5d2c37b with role ADMIN
+2026/11/24 13:18:56 [IAMClient] Incremented perm_version
+2026/11/24 13:18:56 [IAMClient] Incremented perm_version
+2026/11/24 13:18:56 [IAMClient] Assigned role template site_admin to user 1e4cd2e5-06ac-414d-bfbe-c4fc4ce46876 (via user token)
+    user_site_transfer_2466_test.go:255: BIND_ROLE=ADMIN FUNC_ROLES_CONTAINS=site_admin
+--- PASS: TestSiteTransfer_CrossOrg_Admin_2466 (0.06s)
+=== RUN   TestSiteTransfer_TargetAlreadyMember_2466
+2026/11/24 13:18:56 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:45141, clientID=test-ns, namespace=test-ns
+    user_site_transfer_2466_test.go:277: ROWS_AFTER=1 TARGET_ROW_KEPT=1 UNIQUE_VIOLATION=0
+--- PASS: TestSiteTransfer_TargetAlreadyMember_2466 (0.06s)
+=== RUN   TestSiteTransfer_NewTarget_2466
+2026/11/24 13:18:56 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:41099, clientID=test-ns, namespace=test-ns
+    user_site_transfer_2466_test.go:303: ROWS_AFTER=2 PRIMARY_SITE=C OTHER_SITE_UNCHANGED=B
+--- PASS: TestSiteTransfer_NewTarget_2466 (0.06s)
+=== RUN   TestSiteTransfer_IAMBindFail_NoHalfState_2466
+2026/11/24 13:18:56 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:43333, clientID=test-ns, namespace=test-ns
+2026/11/24 13:18:56 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/24 13:18:56 [IAMClient] Unbound user 0640adca-c9d2-4a6c-ac60-63370f9aef42 from org b22966f6-85a0-41bb-8184-20f6e5f15fc0
+2026/11/24 13:18:56 [IAMClient] Incremented perm_version
+2026/11/24 13:18:56 [IAMClient] Unbound user 0640adca-c9d2-4a6c-ac60-63370f9aef42 from org 782b4221-adba-4b0f-b4da-c2080ae21732
+2026/11/24 13:18:56 [IAMClient] Incremented perm_version
+2026/11/24 13:18:56 [IAMClient] Bound user 0640adca-c9d2-4a6c-ac60-63370f9aef42 to org b22966f6-85a0-41bb-8184-20f6e5f15fc0 with role STAFF
+2026/11/24 13:18:56 [IAMClient] Incremented perm_version
+2026/11/24 13:18:56 [IAMClient] Incremented perm_version
+2026/11/24 13:18:56 [IAMClient] Assigned role template site_member to user 0640adca-c9d2-4a6c-ac60-63370f9aef42 (via user token)
+    user_site_transfer_2466_test.go:324: STATUS=502 SITE_UNCHANGED=1 ORG_UNCHANGED=1 IAM_COMPENSATED=1
+--- PASS: TestSiteTransfer_IAMBindFail_NoHalfState_2466 (0.05s)
+=== RUN   TestSiteTransfer_TemplateFail_Explicit_2466
+2026/11/24 13:18:56 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:43319, clientID=test-ns, namespace=test-ns
+2026/11/24 13:18:56 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/24 13:18:56 [IAMClient] Unbound user ccc94b03-7884-4969-90ee-f5ea71ccb5ba from org 2a156ee5-177f-4a79-b41b-b41f61cad7fa
+2026/11/24 13:18:56 [IAMClient] Incremented perm_version
+2026/11/24 13:18:56 [IAMClient] Bound user ccc94b03-7884-4969-90ee-f5ea71ccb5ba to org 380f02e9-8e44-4474-8219-b05b30033f81 with role STAFF
+2026/11/24 13:18:56 [IAMClient] Incremented perm_version
+2026/11/24 13:18:56 [IAMClient] Incremented perm_version
+2026/11/24 13:18:56 [IAMClient] Unbound user ccc94b03-7884-4969-90ee-f5ea71ccb5ba from org 380f02e9-8e44-4474-8219-b05b30033f81
+2026/11/24 13:18:56 [IAMClient] Incremented perm_version
+2026/11/24 13:18:56 [IAMClient] Bound user ccc94b03-7884-4969-90ee-f5ea71ccb5ba to org 2a156ee5-177f-4a79-b41b-b41f61cad7fa with role STAFF
+2026/11/24 13:18:56 [IAMClient] Incremented perm_version
+2026/11/24 13:18:56 [IAMClient] Incremented perm_version
+2026/11/24 13:18:56 [IAMClient] Assigned role template site_member to user ccc94b03-7884-4969-90ee-f5ea71ccb5ba (via user token)
+    user_site_transfer_2466_test.go:344: STATUS=502 MSG_CONTAINS=切换网点失败 IAM_UNBIND_NEW=1 SITE_UNCHANGED=1
+--- PASS: TestSiteTransfer_TemplateFail_Explicit_2466 (0.05s)
+=== RUN   TestSiteTransfer_Readback_2466
+2026/11/24 13:18:56 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:40095, clientID=test-ns, namespace=test-ns
+2026/11/24 13:18:56 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/24 13:18:56 [IAMClient] Unbound user 002ab5f2-3d1d-4b2e-8c51-0c6180367820 from org 6b28dc9e-9387-46ba-9f5f-7697419acb01
+2026/11/24 13:18:56 [IAMClient] Incremented perm_version
+2026/11/24 13:18:56 [IAMClient] Bound user 002ab5f2-3d1d-4b2e-8c51-0c6180367820 to org dc214d89-1434-4557-829f-154bad22a867 with role STAFF
+2026/11/24 13:18:56 [IAMClient] Incremented perm_version
+2026/11/24 13:18:56 [IAMClient] Incremented perm_version
+2026/11/24 13:18:56 [IAMClient] Assigned role template site_member to user 002ab5f2-3d1d-4b2e-8c51-0c6180367820 (via user token)
+    user_site_transfer_2466_test.go:388: DETAIL_SITE_ID=B DETAIL_SITE_NAME=新网点 LIST_SITE_MATCH=1
+--- PASS: TestSiteTransfer_Readback_2466 (0.08s)
+PASS
+ok  	tuneloop-backend/handlers	1.073s
+TESTS_FAIL=0
+BUILD_OK

@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "issue": 2466,
+  "build": "1.0.8d73aec29",
+  "commit": "8d73aec29ab0f467c24854648b1a286b94395966",
+  "dirty": false,
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2466; TUNELOOP_TEST_DB=tuneloop_test_2466; fake IAM via httptest",
+  "plan_sha256": "b97c67abe16cfe73b637be82c2948a8f08bc77ffe2be4f0d10e28f9cc4d51e65",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2466.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2466/R1-same-org.txt"
+      ],
+      "assert": "exit 0；grep `SITE_ID=B`、`IAM_CALLS=0`、`ORG_UNCHANGED=1`",
+      "actual": "PASS：同 org 切网点本地迁移，IAM 0 次",
+      "expected": "PASS",
+      "negative": "IAM_CALLS>0 或站点未变 → FAIL",
+      "negative_result": "测试内断言 site/org/IAM 计数",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2466.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2466/R2-cross-org.txt"
+      ],
+      "assert": "exit 0；grep `BIND_ROLE=STAFF`、`IAM_ORDER=unbind_then_bind`、`FUNC_ROLES_CONTAINS=site_member`",
+      "actual": "PASS：跨 org bind STAFF + 模板 site_member + 权限设置",
+      "expected": "PASS",
+      "negative": "BIND_ROLE=user → FAIL",
+      "negative_result": "fake IAM 捕获 action/role/模板",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2466.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2466/R3-admin.txt"
+      ],
+      "assert": "exit 0；grep `BIND_ROLE=ADMIN`、`FUNC_ROLES_CONTAINS=site_admin`",
+      "actual": "PASS：site_admin 不降权",
+      "expected": "PASS",
+      "negative": "BIND_ROLE=STAFF → FAIL",
+      "negative_result": "fake IAM 断言 ADMIN/site_admin",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2466.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2466/R4-existing-target.txt"
+      ],
+      "assert": "exit 0；grep `ROWS_AFTER=1`、`UNIQUE_VIOLATION=0`",
+      "actual": "PASS：目标已隶属 → 删旧主行",
+      "expected": "PASS",
+      "negative": "ROWS_AFTER=2 → FAIL",
+      "negative_result": "DB 行数断言",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2466.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2466/R5-new-target.txt"
+      ],
+      "assert": "exit 0；grep `ROWS_AFTER=2`、`PRIMARY_SITE=C`",
+      "actual": "PASS：新目标迁移旧主行，其他行不变",
+      "expected": "PASS",
+      "negative": "其它行被改 → FAIL",
+      "negative_result": "DB 行集合断言",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2466.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2466/R6-iam-fail.txt"
+      ],
+      "assert": "exit 0；grep `STATUS=502`、`SITE_UNCHANGED=1`、`IAM_COMPENSATED=1`",
+      "actual": "PASS：bind 失败 502 + 补偿，本地不变",
+      "expected": "PASS",
+      "negative": "本地被改或未补偿 → FAIL",
+      "negative_result": "补偿 bind 计数 + DB 断言",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2466.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2466/R7-template-fail.txt"
+      ],
+      "assert": "exit 0；grep `STATUS=502`、`MSG_CONTAINS=切换网点失败`、`IAM_UNBIND_NEW=1`",
+      "actual": "PASS：模板失败 502 + 显式文案 + unbind 新组织",
+      "expected": "PASS",
+      "negative": "返回 200 → FAIL",
+      "negative_result": "fake IAM 失败注入 + 文案断言",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2466.sh r8",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2466/R8-readback.txt"
+      ],
+      "assert": "exit 0；grep `DETAIL_SITE_ID=B`、`LIST_SITE_MATCH=1`",
+      "actual": "PASS：详情/列表读回新网点",
+      "expected": "PASS",
+      "negative": "仍返回旧网点 → FAIL",
+      "negative_result": "GET /admin/staff/:id + GET /staff 断言",
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash scripts/verify-2466.sh r9",
+      "exit": null,
+      "artifacts": [
+        "docs/evidence/2466/R9-gate.txt"
+      ],
+      "assert": "exit 0；grep `FULL_SUITE_EXIT=0`、`FAIL_COUNT=0`、`PLAN_SOURCE=PASS`",
+      "actual": "PENDING：full gate + plan-source 四源待本轮后续执行",
+      "expected": "PASS",
+      "negative": "`P5=NA`（未跑全量）→ FAIL",
+      "negative_result": "gate 报告 + plan-source 输出",
+      "pass": false
+    },
+    {
+      "id": "R10",
+      "command": "bash scripts/verify-2466.sh r10",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2466/R10-build.txt"
+      ],
+      "assert": "exit 0；grep `BUILD_EXIT=0`、`TESTS_FAIL=0`",
+      "actual": "PASS：build 0，8 个 _2466 用例 0 FAIL",
+      "expected": "PASS",
+      "negative": "任一非 0 → FAIL",
+      "negative_result": "构建退出码 + FAIL 计数",
+      "pass": true
+    }
+  ]
+}
