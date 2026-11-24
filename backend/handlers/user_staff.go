@@ -708,6 +708,237 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 	})
 }
 
+// primarySiteMemberForUser 返回「主网点」行（与 ListStaff/GetStaffUser 口径一致：
+// sites.created_at ASC, site_members.created_at ASC 首行）。
+func primarySiteMemberForUser(db *gorm.DB, tenantID, userID string) (*models.SiteMember, *models.Site, error) {
+	var row struct {
+		models.SiteMember
+		SiteCreatedAt time.Time
+	}
+	err := db.Table("site_members").
+		Select("site_members.*, sites.created_at AS site_created_at").
+		Joins("JOIN sites ON sites.id = site_members.site_id").
+		Where("site_members.user_id = ? AND site_members.tenant_id = ?", userID, tenantID).
+		Order("sites.created_at ASC, site_members.created_at ASC").
+		Limit(1).Scan(&row).Error
+	if err != nil {
+		return nil, nil, err
+	}
+	if row.ID == "" {
+		return nil, nil, nil
+	}
+	var site models.Site
+	if err := db.Where("id = ?", row.SiteID).First(&site).Error; err != nil {
+		return nil, nil, err
+	}
+	m := row.SiteMember
+	return &m, &site, nil
+}
+
+// siteTransferRoles 返回主行角色集合（缺省 users.role → site_member）。
+func siteTransferRoles(row *models.SiteMember, userRole string) (string, []string) {
+	primary := ""
+	if row != nil {
+		primary = row.Role
+		if len(row.Roles) > 0 {
+			primary = row.Roles[0]
+		}
+	}
+	if primary == "" {
+		primary = userRole
+	}
+	if primary == "" {
+		primary = "site_member"
+	}
+	roles := []string{}
+	if row != nil && len(row.Roles) > 0 {
+		for _, r := range row.Roles {
+			if r != "" {
+				roles = append(roles, r)
+			}
+		}
+	}
+	if len(roles) == 0 {
+		roles = []string{primary}
+	}
+	return primary, roles
+}
+
+// compensateSiteTransfer 尽力把 IAM 恢复到旧组织（D6）；返回组合错误。
+func compensateSiteTransfer(iam *services.IAMClient, sub, oldOrg, newOrg, oldPrimary string, oldRoles []string, token string) error {
+	var errs []string
+	if newOrg != "" && newOrg != oldOrg {
+		if err := iam.UnbindUserFromOrganization(sub, newOrg, ""); err != nil {
+			errs = append(errs, "unbind new: "+err.Error())
+		}
+	}
+	if oldOrg != "" {
+		if err := iam.BindUserToOrganization(sub, oldOrg, toIAMRole(oldPrimary), ""); err != nil {
+			errs = append(errs, "rebind old: "+err.Error())
+		}
+		if tmpl, ok := services.AllRoleTemplates[oldPrimary]; ok && len(tmpl.CusPermCodes) > 0 {
+			cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(tmpl.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
+			if err := iam.SetUserCustomerPermissions(oldOrg, sub, cusPerm, cusPermExt); err != nil {
+				errs = append(errs, "restore perms: "+err.Error())
+			}
+		}
+		for _, r := range oldRoles {
+			if err := iam.AssignRoleTemplateToUserWithToken(token, sub, oldOrg, r); err != nil {
+				errs = append(errs, "restore template "+r+": "+err.Error())
+			}
+		}
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf("%s", strings.Join(errs, "; "))
+	}
+	return nil
+}
+
+// performSiteTransfer 执行 #2466 的网点迁移：IAM 先行（仅跨 org），本地单事务，
+// 失败按 D6 补偿并返回明确的 HTTP 状态（禁止半态）。
+func performSiteTransfer(c *gin.Context, db *gorm.DB, tenantID, userID string, user *models.User, target models.Site) (int, gin.H) {
+	targetOrg := target.OrgID
+	if targetOrg == "" {
+		targetOrg = tenantID
+	}
+	oldOrg := user.OrgID
+	if oldOrg == "" {
+		oldOrg = tenantID
+	}
+	orgChanged := targetOrg != oldOrg
+
+	primaryRow, primarySite, err := primarySiteMemberForUser(db, tenantID, userID)
+	if err != nil {
+		return http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to load current site: " + err.Error()}
+	}
+	if primarySite != nil && primarySite.ID == target.ID {
+		return 0, nil // 主网点未变
+	}
+
+	primaryRole, roles := siteTransferRoles(primaryRow, user.Role)
+	token := services.ExtractUserToken(c)
+	iam := services.NewIAMClient()
+	iamDone := false
+	sub := user.IAMSub
+
+	if orgChanged && sub != "" {
+		if err := iam.UnbindUserFromOrganization(sub, oldOrg, ""); err != nil {
+			return http.StatusBadGateway, gin.H{"code": 50000, "message": "切换网点失败：解绑旧组织失败：" + err.Error()}
+		}
+		if err := iam.BindUserToOrganization(sub, targetOrg, toIAMRole(primaryRole), ""); err != nil {
+			if compErr := compensateSiteTransfer(iam, sub, oldOrg, targetOrg, primaryRole, roles, token); compErr != nil {
+				log.Printf("[CRITICAL] #2466 site transfer compensation failed user=%s old=%s new=%s: %v", userID, oldOrg, targetOrg, compErr)
+				return http.StatusInternalServerError, gin.H{"code": 50000, "message": "切换网点失败且 IAM 回滚失败，请联系管理员人工核对 IAM 组织关系"}
+			}
+			return http.StatusBadGateway, gin.H{"code": 50000, "message": "切换网点失败：绑定新组织失败：" + err.Error()}
+		}
+		iamDone = true
+		if tmpl, ok := services.AllRoleTemplates[primaryRole]; ok && len(tmpl.CusPermCodes) > 0 {
+			cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(tmpl.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
+			if err := iam.SetUserCustomerPermissions(targetOrg, sub, cusPerm, cusPermExt); err != nil {
+				if compErr := compensateSiteTransfer(iam, sub, oldOrg, targetOrg, primaryRole, roles, token); compErr != nil {
+					log.Printf("[CRITICAL] #2466 permission rollback failed user=%s: %v", userID, compErr)
+					return http.StatusInternalServerError, gin.H{"code": 50000, "message": "切换网点失败且 IAM 回滚失败，请联系管理员人工核对 IAM 组织关系"}
+				}
+				return http.StatusBadGateway, gin.H{"code": 50000, "message": "切换网点失败：设置权限失败：" + err.Error()}
+			}
+		}
+		for _, r := range roles {
+			if err := iam.AssignRoleTemplateToUserWithToken(token, sub, targetOrg, r); err != nil {
+				if compErr := compensateSiteTransfer(iam, sub, oldOrg, targetOrg, primaryRole, roles, token); compErr != nil {
+					log.Printf("[CRITICAL] #2466 template rollback failed user=%s: %v", userID, compErr)
+					return http.StatusInternalServerError, gin.H{"code": 50000, "message": "切换网点失败且 IAM 回滚失败，请联系管理员人工核对 IAM 组织关系"}
+				}
+				return http.StatusBadGateway, gin.H{"code": 50000, "message": "切换网点失败：同步角色模板失败：" + err.Error()}
+			}
+		}
+	}
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		if iamDone {
+			_ = compensateSiteTransfer(iam, sub, oldOrg, targetOrg, primaryRole, roles, token)
+		}
+		return http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to begin transaction: " + tx.Error.Error()}
+	}
+	fail := func(msg string) (int, gin.H) {
+		tx.Rollback()
+		if iamDone {
+			if compErr := compensateSiteTransfer(iam, sub, oldOrg, targetOrg, primaryRole, roles, token); compErr != nil {
+				log.Printf("[CRITICAL] #2466 local-failure rollback failed user=%s: %v", userID, compErr)
+				return http.StatusInternalServerError, gin.H{"code": 50000, "message": "切换网点失败且 IAM 回滚失败，请联系管理员人工核对 IAM 组织关系"}
+			}
+		}
+		return http.StatusInternalServerError, gin.H{"code": 50000, "message": msg}
+	}
+
+	if orgChanged {
+		if err := tx.Model(&models.User{}).Where("id = ? AND tenant_id = ?", userID, tenantID).
+			Updates(map[string]interface{}{"org_id": targetOrg, "updated_at": time.Now()}).Error; err != nil {
+			return fail("failed to update user org: " + err.Error())
+		}
+	}
+
+	if primaryRow == nil {
+		// 异常/直属员工误设：按 users.role（缺省 site_member）插入目标网点行。
+		row := models.SiteMember{
+			ID:       uuid.New().String(),
+			TenantID: tenantID,
+			SiteID:   target.ID,
+			UserID:   userID,
+			Role:     primaryRole,
+			Roles:    roles,
+			Status:   "active",
+		}
+		if err := tx.Create(&row).Error; err != nil {
+			return fail("failed to create site membership: " + err.Error())
+		}
+	} else {
+		var existingTarget int64
+		if err := tx.Model(&models.SiteMember{}).
+			Where("tenant_id = ? AND site_id = ? AND user_id = ?", tenantID, target.ID, userID).
+			Count(&existingTarget).Error; err != nil {
+			return fail("failed to check target membership: " + err.Error())
+		}
+		if existingTarget > 0 {
+			// 已隶属目标网点：删除旧主行（主网点切换，避免唯一键冲突）。
+			if err := tx.Where("id = ?", primaryRow.ID).Delete(&models.SiteMember{}).Error; err != nil {
+				return fail("failed to delete previous primary membership: " + err.Error())
+			}
+		} else {
+			if err := tx.Model(&models.SiteMember{}).Where("id = ?", primaryRow.ID).
+				Updates(map[string]interface{}{"site_id": target.ID, "updated_at": time.Now()}).Error; err != nil {
+				return fail("failed to move site membership: " + err.Error())
+			}
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		if iamDone {
+			if compErr := compensateSiteTransfer(iam, sub, oldOrg, targetOrg, primaryRole, roles, token); compErr != nil {
+				log.Printf("[CRITICAL] #2466 commit-failure rollback failed user=%s: %v", userID, compErr)
+			}
+		}
+		return http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to commit site transfer: " + err.Error()}
+	}
+
+	fromSiteID := ""
+	if primaryRow != nil {
+		fromSiteID = primaryRow.SiteID
+	}
+	writeAuditLog(db, tenantID, middleware.GetUserID(c.Request.Context()), "user.site_transfer", "user", userID, map[string]interface{}{
+		"from_site": fromSiteID,
+		"to_site":   target.ID,
+		"from_org":  oldOrg,
+		"to_org":    targetOrg,
+		"iam_role":  toIAMRole(primaryRole),
+	})
+	if orgChanged {
+		user.OrgID = targetOrg
+	}
+	return 0, nil
+}
+
 // UpdateUser updates existing user information
 // PUT /api/users/:id
 // GetStaffUser GET /admin/staff/:id（#2429）
@@ -937,63 +1168,22 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 				}
 			}
 		} else {
-			// #2429 D1：站点变更判定改为 org 级。site_members 允许多行，
-			// 不能 Scan 单值（结果不确定）；IAM org 只有一层，比较目标 site 的 org
-			// 与用户当前 org 即可覆盖多网点/直属员工/同商户移动。
+			// #2466 D1/D2/D3/D4/D5/D6：归属网点 = site_members 主行；
+			// 同 org 只迁移本地、跨 org 才重绑 IAM；任一 IAM 失败不写本地并尝试补偿。
 			var newSite models.Site
 			if err := db.Where("id = ? AND tenant_id = ?", newSiteIDStr, tenantID).First(&newSite).Error; err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "site not found"})
 				return
 			}
-			newOrgID := newSite.OrgID
-			if newOrgID == "" {
-				newOrgID = tenantID
+			if newSite.Status != "" && newSite.Status != "active" {
+				c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "target site is not active"})
+				return
 			}
-			oldOrgID := existingUser.OrgID
-			if oldOrgID == "" {
-				oldOrgID = tenantID
+			status, body := performSiteTransfer(c, db, tenantID, userID, &existingUser, newSite)
+			if status != 0 {
+				c.JSON(status, body)
+				return
 			}
-
-			if newOrgID != oldOrgID {
-				iamClient := services.NewIAMClient()
-				if existingUser.IAMSub != "" {
-					oldUnbound := false
-					if err := iamClient.UnbindUserFromOrganization(existingUser.IAMSub, oldOrgID, ""); err != nil {
-						c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to unbind user from old organization: " + err.Error()})
-						return
-					}
-					oldUnbound = true
-
-					iamRole := services.GetBusinessRole(existingUser.Role)
-					if iamRole == "" {
-						iamRole = "staff"
-					}
-					if err := iamClient.BindUserToOrganization(existingUser.IAMSub, newOrgID, iamRole, ""); err != nil {
-						if oldUnbound && oldOrgID != "" {
-							oldIamRole := services.GetBusinessRole(existingUser.Role)
-							if oldIamRole == "" {
-								oldIamRole = "staff"
-							}
-							if rebindErr := iamClient.BindUserToOrganization(existingUser.IAMSub, oldOrgID, oldIamRole, ""); rebindErr != nil {
-								log.Printf("[CRITICAL] Compensation rebind failed for user %s to org %s: %v", existingUser.IAMSub, oldOrgID, rebindErr)
-							}
-						}
-						c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to bind user to new organization: " + err.Error()})
-						return
-					}
-
-					template, ok := services.AllRoleTemplates[existingUser.Role]
-					if ok && len(template.CusPermCodes) > 0 {
-						cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(template.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
-						if err := iamClient.SetUserCustomerPermissions(newOrgID, existingUser.IAMSub, cusPerm, cusPermExt); err != nil {
-							c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to set user permissions: " + err.Error()})
-							return
-						}
-					}
-				}
-			}
-
-			updates["org_id"] = newOrgID
 		}
 	}
 
