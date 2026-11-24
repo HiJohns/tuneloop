@@ -1,0 +1,21 @@
+# build=1.0.573df4d0c # commit=573df4d0ce51b0c884fd609c8f8976ef4d135e1e # dirty=false
+[WARNING] No .env file found in common paths
+2026/11/24 00:16:29 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2461 sslmode=disable
+2026/11/24 00:16:29 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2461
+2026/11/24 00:16:29 [DB] Connected to database 'tuneloop_test_2461'
+=== RUN   TestUpdateMerchantAdminDemoteFailureCompensates_2461
+2026/11/24 00:16:29 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2461 sslmode=disable
+2026/11/24 00:16:29 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2461
+2026/11/24 00:16:29 [DB] Connected to database 'tuneloop_test_2461'
+
+2026/11/24 00:16:30 [32m/home/coder/worktrees/tuneloop/wt-2461/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[568.902ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/24 00:16:30 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:36909, clientID=test-ns, namespace=test-ns
+2026/11/24 00:16:30 [IAMClient] Bound user 490af1c7-316e-4253-8e9d-7e34df1c47a1 to org b3efd5ce-3d20-4bc9-94b9-cfd9d9e68d1b with role OWNER (user token)
+2026/11/24 00:16:30 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/24 00:16:30 [UpdateMerchant] Failed to demote old admin ecf50aae-28a5-42c6-9d03-509535dbd070: UpdateUserRoleWithToken returned status 500: {"error":"role endpoint unavailable"}
+2026/11/24 00:16:30 [IAMClient] Unbound user with user token: user=490af1c7-316e-4253-8e9d-7e34df1c47a1 org=b3efd5ce-3d20-4bc9-94b9-cfd9d9e68d1b
+    member_role_iam_fail_2461_test.go:328: STATUS=502 MSG_CONTAINS=旧管理员降级失败 IAM_UNBIND_CALLS=1 ADMIN_UID_UNCHANGED=1
+--- PASS: TestUpdateMerchantAdminDemoteFailureCompensates_2461 (1.04s)
+PASS
+ok  	tuneloop-backend/handlers	1.712s

@@ -1,0 +1,38 @@
+# build=1.0.573df4d0c # commit=573df4d0ce51b0c884fd609c8f8976ef4d135e1e # dirty=false
+[WARNING] No .env file found in common paths
+2026/11/24 00:16:51 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2461 sslmode=disable
+2026/11/24 00:16:51 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2461
+2026/11/24 00:16:51 [DB] Connected to database 'tuneloop_test_2461'
+=== RUN   TestTransitSiteMemberRoleFailFast_2461
+2026/11/24 00:16:51 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2461 sslmode=disable
+2026/11/24 00:16:51 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2461
+2026/11/24 00:16:51 [DB] Connected to database 'tuneloop_test_2461'
+
+2026/11/24 00:16:52 [32m/home/coder/worktrees/tuneloop/wt-2461/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[558.207ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/24 00:16:52 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:36861, clientID=test-ns, namespace=test-ns
+    role_failfast_regression_2461_test.go:82: TRANSIT=502
+--- PASS: TestTransitSiteMemberRoleFailFast_2461 (1.04s)
+=== RUN   TestPermissionManageSetUserRoleFailFast_2461
+
+2026/11/24 00:16:53 [32m/home/coder/worktrees/tuneloop/wt-2461/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[496.070ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "pricing_templates", "site_members", "sites", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/24 00:16:53 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:44753, clientID=test-ns, namespace=test-ns
+2026/11/24 00:16:53 [SetUserRole] Request: userID=ac9caa37-226f-474b-880d-d41d06b3703a orgID=
+2026/11/24 00:16:53 [SetUserRole] orgID overridden by users.OrgID: 39542862-48d9-40cb-88d1-bb845a2ecdf7
+2026/11/24 00:16:53 [SetUserRole] request body: role_code=site_member
+2026/11/24 00:16:53 [SetUserRole] IAMSub found by users.id: iamUserID=c1dabf6a-35e8-4770-852e-a2282024779b
+2026/11/24 00:16:53 [SetUserRole] Calling IAM: token_len=8 org=39542862-48d9-40cb-88d1-bb845a2ecdf7 user=c1dabf6a-35e8-4770-852e-a2282024779b role=STAFF
+2026/11/24 00:16:53 [SetUserRole] UpdateUserRoleInOrgWithToken failed: userID=ac9caa37-226f-474b-880d-d41d06b3703a iamUserID=c1dabf6a-35e8-4770-852e-a2282024779b orgID=39542862-48d9-40cb-88d1-bb845a2ecdf7 role=STAFF err=UpdateUserRoleWithToken returned status 500: {"error":"role endpoint unavailable"}
+    role_failfast_regression_2461_test.go:108: PERMISSION=500
+--- PASS: TestPermissionManageSetUserRoleFailFast_2461 (1.02s)
+=== RUN   TestMerchantMemberRoleFailFast_2461
+
+2026/11/24 00:16:54 [32m/home/coder/worktrees/tuneloop/wt-2461/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[493.970ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/24 00:16:54 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:37203, clientID=test-ns, namespace=test-ns
+2026/11/24 00:16:54 [MerchantUpdateRole] UpdateRole failed for 58b6de0e-4d40-4e2c-abeb-560aec6dc81b: UpdateUserRoleWithToken returned status 500: {"error":"role endpoint unavailable"}
+    role_failfast_regression_2461_test.go:148: MERCHANT_MEMBER=500
+--- PASS: TestMerchantMemberRoleFailFast_2461 (0.85s)
+PASS
+ok  	tuneloop-backend/handlers	3.503s

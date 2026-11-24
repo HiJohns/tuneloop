@@ -1,0 +1,14 @@
+# build=1.0.573df4d0c # commit=573df4d0ce51b0c884fd609c8f8976ef4d135e1e # dirty=false
+# github.com/mattn/go-sqlite3
+sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
+sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+123133 |   zTail = strrchr(zName, '_');
+       |         ^
+[WARNING] No .env file found in common paths
+=== RUN   TestUpdateUserRoleInOrgWithTokenJSONBody_2461
+2026/11/24 00:15:16 [IAMClient] Updated user role with user token: user=USER1 role=ADMIN org=ORG1
+2026/11/24 00:15:16 [IAMClient] Obtained client credentials token, expires in 3600s
+    iam_client_role_contract_2461_test.go:106: METHOD=PUT PATH=/api/v1/organizations/ORG1/users/USER1/role HAS_QUERY=0 BODY={"role":"ADMIN"} AUTH=user-token
+--- PASS: TestUpdateUserRoleInOrgWithTokenJSONBody_2461 (0.00s)
+PASS
+ok  	tuneloop-backend/services	0.021s

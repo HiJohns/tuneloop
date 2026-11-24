@@ -1,0 +1,20 @@
+# build=1.0.573df4d0c # commit=573df4d0ce51b0c884fd609c8f8976ef4d135e1e # dirty=false
+[WARNING] No .env file found in common paths
+2026/11/24 00:16:23 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2461 sslmode=disable
+2026/11/24 00:16:23 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2461
+2026/11/24 00:16:23 [DB] Connected to database 'tuneloop_test_2461'
+=== RUN   TestUpdateMemberRoleTemplateErrorsVisible_2461
+2026/11/24 00:16:23 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2461 sslmode=disable
+2026/11/24 00:16:23 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2461
+2026/11/24 00:16:23 [DB] Connected to database 'tuneloop_test_2461'
+
+2026/11/24 00:16:24 [32m/home/coder/worktrees/tuneloop/wt-2461/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[601.601ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/24 00:16:24 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:43891, clientID=test-ns, namespace=test-ns
+2026/11/24 00:16:24 [IAMClient] Bound user abc103d4-acb3-44aa-83e7-55b611a90d1f to org 136b3ea9-85f2-49d3-9fbf-7a706273c65e with role ADMIN (user token)
+2026/11/24 00:16:24 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/24 00:16:24 [UpdateMemberRole] AssignRoleTemplate failed code=site_admin: AssignRoleTemplateToUserWithToken returned status 500: {"error":"role template assign unavailable"}
+    member_role_iam_fail_2461_test.go:250: STATUS=200 ROLE_ERRORS=1 LOCAL_ROLE=site_admin
+--- PASS: TestUpdateMemberRoleTemplateErrorsVisible_2461 (1.08s)
+PASS
+ok  	tuneloop-backend/handlers	1.682s
