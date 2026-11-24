@@ -1,0 +1,6 @@
+# build=1.0.f0d9a403 # commit=f0d9a40309542a43fcde3a73b559b99a1c9bdf78 # dirty=false
+IAM_CALLS=1
+ORDER=iam_before_local
+IAM_BODY={"name":"B"}
+LOCAL_NAME=B
+

@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "issue": 2459,
+  "build": "1.0.f0d9a403",
+  "commit": "f0d9a40309542a43fcde3a73b559b99a1c9bdf78",
+  "dirty": false,
+  "plan_sha256": "b9b874a018dc307f191109709edbc293bd6ae936839bb86eced9230fcc998ead",
+  "environment": "beaconwork worktree /home/coder/worktrees/tuneloop/wt-2459; baseline = origin/develop after #2457 merge (D9 final baseline); PostgreSQL test DB via tunnel 127.0.0.1:25432; fake IAM via httptest",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2459.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2459/R1-iam-first.txt"
+      ],
+      "assert": "exit 0；含 IAM_CALLS=1 与 ORDER=iam_before_local",
+      "actual": "PASS：IAM_CALLS=1 ORDER=iam_before_local IAM_BODY={\"name\":\"B\"} LOCAL_NAME=B",
+      "expected": "PASS",
+      "negative": "IAM 0 次 → FAIL",
+      "negative_result": "旧 handler 红跑实测：ORDER=local_before_iam、IAM_CALLS=0 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2459.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2459/R2-iam-fail.txt"
+      ],
+      "assert": "exit 0；含 STATUS=500 与 LOCAL_UNCHANGED=1",
+      "actual": "PASS：STATUS=500 CODE=50000 LOCAL_UNCHANGED=1 LOCAL_NAME=A",
+      "expected": "PASS",
+      "negative": "本地被改 → FAIL",
+      "negative_result": "若 IAM 失败仍 db.Save：name/admin_uid 被改写 → LOCAL_UNCHANGED=0",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2459.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2459/R3-idempotent.txt"
+      ],
+      "assert": "exit 0；含 IAM_CALLS=0 与 PHONE=updated",
+      "actual": "PASS：IAM_CALLS=0 PHONE=updated",
+      "expected": "PASS",
+      "negative": "IAM 被调 → FAIL",
+      "negative_result": "同名也调用 IAM 改名 → IAM_CALLS=1 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2459.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2459/R4-escalate.txt"
+      ],
+      "assert": "exit 0；含 IAM_CALLS=2 与 ESCALATED=1",
+      "actual": "PASS：IAM_CALLS=2 ESCALATED=1 FINAL_HTTP=200",
+      "expected": "PASS",
+      "negative": "未重试 → FAIL",
+      "negative_result": "用户令牌 403 后直接返回 403（IAM_CALLS=1）→ FAIL",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2459.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2459/R5-conflict.txt"
+      ],
+      "assert": "exit 0；含 STATUS=409 与 CODE=40900",
+      "actual": "PASS：STATUS=409 CODE=40900 LOCAL_NAME=A",
+      "expected": "PASS",
+      "negative": "500 → FAIL",
+      "negative_result": "IAM 409 被当 5xx 透传 → STATUS=500 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2459.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2459/R6-not-found.txt"
+      ],
+      "assert": "exit 0；含 STATUS=404 与 CODE=40400",
+      "actual": "PASS：STATUS=404 CODE=40400 LOCAL_NAME=A",
+      "expected": "PASS",
+      "negative": "200 → FAIL",
+      "negative_result": "org_id 失效被静默忽略 → 200 且本地改名 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2459.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2459/R7-empty-name.txt"
+      ],
+      "assert": "exit 0；含 IAM_CALLS=0 与 NAME=unchanged",
+      "actual": "PASS：IAM_CALLS=0 NAME=unchanged",
+      "expected": "PASS",
+      "negative": "名称被清空 → FAIL",
+      "negative_result": "把空名写入 name 列或调用 IAM 空名 → NAME 变化/IAM_CALLS=1 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2459.sh r8",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2459/R8-reuse.txt"
+      ],
+      "assert": "exit 0；含 REUSE_HITS=2 与 NEW_HTTP=0",
+      "actual": "PASS：REUSE_HITS=2 NEW_HTTP=0",
+      "expected": "PASS",
+      "negative": "新写 HTTP → FAIL",
+      "negative_result": "merchant.go 出现 http.NewRequest/Client 即 NEW_HTTP>0 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash scripts/verify-2459.sh r9",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2459/R9-drift.txt"
+      ],
+      "assert": "exit 0；含 MERCHANT_DRIFT_ROWS=2 与 MERCHANT_DRIFT_EMPTY=0",
+      "actual": "PASS：MERCHANT_DRIFT_ROWS=2 MERCHANT_DRIFT_EMPTY=0",
+      "expected": "PASS",
+      "negative": "计数不符 → FAIL",
+      "negative_result": "2 条不一致返回 0 行（比对核心未复用）→ FAIL",
+      "pass": true
+    },
+    {
+      "id": "R10",
+      "command": "bash scripts/verify-2459.sh r10",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2459/R10-doc.txt"
+      ],
+      "assert": "exit 0；含 DOC_TOKENS=3",
+      "actual": "PASS：DOC_TOKENS=3 DOC_SECTIONS=先更新 IAM,镜像,不落库",
+      "expected": "PASS",
+      "negative": "少于 3 → FAIL",
+      "negative_result": "文档缺「先更新 IAM」/「镜像」/「不落库」任一 → DOC_TOKENS<3 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R11",
+      "command": "bash scripts/verify-2459.sh r11",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2459/R11-build.txt"
+      ],
+      "assert": "exit 0；含 BUILD_OK 与 VET_OK",
+      "actual": "PASS：BUILD_OK=1 VET_OK=1",
+      "expected": "PASS",
+      "negative": "构建失败 → FAIL",
+      "negative_result": "go build 或 go vet 非 0 → BUILD_OK=0/VET_OK=0 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R12",
+      "command": "bash scripts/verify-2459.sh r12",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2459/R12-perm.txt"
+      ],
+      "assert": "exit 0；含 STATUS=403、CODE=40301、IAM_CALLS=0",
+      "actual": "PASS：STATUS=403 CODE=40301 IAM_CALLS=0 DB_NAME=A",
+      "expected": "PASS",
+      "negative": "平台管理员改名成功 → FAIL",
+      "negative_result": "旧 handler 红跑实测：STATUS=200（改名成功）→ FAIL",
+      "pass": true
+    },
+    {
+      "id": "R13",
+      "command": "bash scripts/verify-2459.sh r13",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2459/R13-unique.txt"
+      ],
+      "assert": "exit 0；含 STATUS=409、CODE=40900、IAM_CALLS=0",
+      "actual": "PASS：STATUS=409 CODE=40900 IAM_CALLS=0 LIST_CALLS=1 DB_NAME=旧名",
+      "expected": "PASS",
+      "negative": "STATUS=200 → FAIL",
+      "negative_result": "旧 handler 红跑实测：STATUS=200 且本地改名 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R14",
+      "command": "bash scripts/verify-2459.sh r14",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2459/R14-gate.txt"
+      ],
+      "assert": "exit 0；含 FULL_SUITE_EXIT=0、PLAN_SOURCE=PASS",
+      "actual": "PASS：FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0 GATE_RESULT=PASS GATE_PLAN_SHA_MATCH=1 P5=PASS PLAN_SOURCE=PASS",
+      "expected": "PASS",
+      "negative": "P5=NA 或 sha 不一致 → FAIL",
+      "negative_result": "gate 跳过全量（P5=N/A）或 plan sha 与 comment 不一致 → GATE_PLAN_SHA_MATCH=0/P5=NA → FAIL",
+      "pass": true
+    }
+  ]
+}

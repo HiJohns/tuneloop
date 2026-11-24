@@ -1,0 +1,95 @@
+{
+  "issue": 2459,
+  "overall": "FAIL",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2459/docs/evidence/2459/plan.md",
+  "plan_sha256": "b9b874a018dc307f191109709edbc293bd6ae936839bb86eced9230fcc998ead",
+  "summary": "/home/coder/worktrees/tuneloop/wt-2459/tmp/work-summary-2459.md",
+  "timestamp": "20261124-194314",
+  "checks": [
+    {
+      "id": "P1",
+      "status": "PASS",
+      "detail": "plan has Verification Matrix / Input Truth & Tool Preflight / Decision Lock / Out of Scope"
+    },
+    {
+      "id": "P2",
+      "status": "PASS",
+      "detail": "Work Summary covers all 14 matrix rows with PASS/N/A"
+    },
+    {
+      "id": "P3",
+      "status": "FAIL",
+      "detail": "evidence paths do not exist: R1-iam-first.txt R10-doc.txt R11-build.txt R12-perm.txt R13-unique.txt R14-gate.txt R2-iam-fail.txt R3-idempotent.txt R4-escalate.txt R5-conflict.txt R6-not-found.txt R7-empty-name.txt R8-reuse.txt R9-drift.txt UpdateOrganizationName(...) docs/evidence/2459/pre-ready-2459.json gate-run.sh matrix_parser.sh merchants.name pre-ready-check.sh"
+    },
+    {
+      "id": "P4",
+      "status": "PASS",
+      "detail": "all 2 affected command(s) passed"
+    },
+    {
+      "id": "P12",
+      "status": "PASS",
+      "detail": "Evidence Contract complete: 14 row(s) match the plan and have durable artifacts"
+    },
+    {
+      "id": "P14",
+      "status": "PASS",
+      "detail": "artifact provenance matches evidence (14 artifacts)"
+    },
+    {
+      "id": "P15",
+      "status": "N/A",
+      "detail": "no batch gate reference in the plan"
+    },
+    {
+      "id": "P16",
+      "status": "N/A",
+      "detail": "no UI render rows in the plan"
+    },
+    {
+      "id": "P17",
+      "status": "PASS",
+      "detail": "plan snapshot and Accepted Plan comment match the gated plan"
+    },
+    {
+      "id": "P5",
+      "status": "PASS",
+      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (eb6579802e7f1083586a6428fef344c4c6c110bc); source head=run baseline=run"
+    },
+    {
+      "id": "P6",
+      "status": "PASS",
+      "detail": "all changed files are declared in the Accepted Plan"
+    },
+    {
+      "id": "P7",
+      "status": "FAIL",
+      "detail": "contract-affecting change requires '### 契约三向核对' (Plan/API, docs, handler/frontend)"
+    },
+    {
+      "id": "P8",
+      "status": "N/A",
+      "detail": "no panel/clarify files changed"
+    },
+    {
+      "id": "P9",
+      "status": "N/A",
+      "detail": "no session/build_version/aiaudit/.rpt/.dat evidence referenced"
+    },
+    {
+      "id": "P10",
+      "status": "N/A",
+      "detail": "no aiaudit reference"
+    },
+    {
+      "id": "P11",
+      "status": "FAIL",
+      "detail": "fix commit(s) not ancestors of HEAD: cb2c447676b10c6f6cee5af4f0cf23cb7b562983; recovery: git reflog; git cherry-pick <lost>; git fsck --lost-found"
+    },
+    {
+      "id": "P13",
+      "status": "PASS",
+      "detail": "fix commit and evidence artifacts are on origin/issue-2459"
+    }
+  ]
+}
