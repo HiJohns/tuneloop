@@ -191,7 +191,9 @@ EOF
         SUMMARY="$REPO_ROOT/tmp/work-summary-2478.md"
         CHANGED="$REPO_ROOT/tmp/changed-2478.txt"
         SUITE_LOG="$REPO_ROOT/tmp/full-suite-2478.log"
-        FULL_CMD='cd frontend-pc && npm run build'
+        # P5 在干净 worktree（git worktree add，无 gitignore 的 node_modules）里执行，
+        # 因此门禁命令必须自带依赖安装，否则 `vite: not found`（rc=127）。
+        FULL_CMD='cd frontend-pc && npm ci --no-audit --no-fund && npm run build'
 
         : > "$SUITE_LOG"
         run_heavy bash -c "$FULL_CMD" > "$SUITE_LOG" 2>&1
