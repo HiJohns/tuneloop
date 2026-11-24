@@ -1,0 +1,26 @@
+# build=1.0.9187af203 # commit=9187af203bae52f6a77bd26cce8e0ea27e4271a0 # dirty=false
+[WARNING] No .env file found in common paths
+2026/11/24 00:46:40 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2462 sslmode=disable
+2026/11/24 00:46:40 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2462
+2026/11/24 00:46:40 [DB] Connected to database 'tuneloop_test_2462'
+=== RUN   TestCreateTechnicianRoleDomain_2462
+2026/11/24 00:46:40 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2462 sslmode=disable
+2026/11/24 00:46:40 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2462
+2026/11/24 00:46:40 [DB] Connected to database 'tuneloop_test_2462'
+
+2026/11/24 00:46:41 [32m/home/coder/worktrees/tuneloop/wt-2462/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[596.052ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/24 00:46:41 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:38703, clientID=test-ns, namespace=test-ns
+2026/11/24 00:46:41 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/24 00:46:41 [#2247] GetOrganization(546a0df3-b6d4-4cfe-9d0d-f970e6ee8d07) failed: GetOrganization: IAM response missing org id
+2026/11/24 00:46:41 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/24 00:46:41 [31;1m/home/coder/worktrees/tuneloop/wt-2462/backend/handlers/user_staff.go:256 [35;1mrecord not found
+[0m[33m[1.712ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE (tenant_id = '546a0df3-b6d4-4cfe-9d0d-f970e6ee8d07' AND username = 'u-tech-2462' AND deleted_at IS NULL) AND "users"."tenant_id" = '546a0df3-b6d4-4cfe-9d0d-f970e6ee8d07' ORDER BY "users"."id" LIMIT 1
+2026/11/24 00:46:41 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:38703, clientID=test-ns, namespace=test-ns
+2026/11/24 00:46:41 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/24 00:46:41 [IAMClient] Bound user 72757ffd-b4fd-4dcb-90f9-882b0635b35d to org 546a0df3-b6d4-4cfe-9d0d-f970e6ee8d07 with role repair_technician (user token)
+    user_role_domain_2462_test.go:253: USERS_ROLE=repair_technician TECH_PROFILES=1 MM_ROWS=0
+--- PASS: TestCreateTechnicianRoleDomain_2462 (1.06s)
+PASS
+ok  	tuneloop-backend/handlers	1.650s

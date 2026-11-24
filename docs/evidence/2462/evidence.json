@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "issue": 2462,
+  "build": "1.0.9187af203",
+  "commit": "9187af203bae52f6a77bd26cce8e0ea27e4271a0",
+  "dirty": false,
+  "plan_sha256": "da95b7f26866e33a554e92cf198310d514ad32a5232b2ba52b0e13013b52b50c",
+  "environment": "beaconwork worktree wt-2462; PostgreSQL test DB tuneloop_test_2462; fake IAM via httptest; PC build via vite",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2462.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2462/R1-create-direct.txt"
+      ],
+      "assert": "exit 0；grep USERS_ROLE=merchant_staff、MM_ROLE=merchant_staff、SITE_MEMBERS_ROWS=0",
+      "actual": "PASS：USERS_ROLE=merchant_staff MM_ROLE=merchant_staff SITE_MEMBERS_ROWS=0",
+      "expected": "PASS",
+      "negative": "USERS_ROLE= 空或 MM_ROLE=site_member → FAIL",
+      "negative_result": "旧实现 users.role 空、mm.role=site_member → 两条断言失败（exit 1）",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2462.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2462/R2-create-site.txt"
+      ],
+      "assert": "exit 0；grep USERS_ROLE=site_member、ROLE_MATCH=1",
+      "actual": "PASS：USERS_ROLE=site_member SM_ROLE=site_member ROLE_MATCH=1",
+      "expected": "PASS",
+      "negative": "两者不等 → FAIL",
+      "negative_result": "users.role 为空或与 site_members.role 不等 → 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2462.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2462/R3-create-tech.txt"
+      ],
+      "assert": "exit 0；grep USERS_ROLE=repair_technician、TECH_PROFILES=1",
+      "actual": "PASS：USERS_ROLE=repair_technician TECH_PROFILES=1 MM_ROWS=0",
+      "expected": "PASS",
+      "negative": "USERS_ROLE=site_member → FAIL",
+      "negative_result": "users.role 被写成其它域角色或误建 merchant_members → 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2462.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2462/R4-list-role.txt"
+      ],
+      "assert": "exit 0；grep LIST_ROLE=merchant_staff、ROLE_MATCH=1",
+      "actual": "PASS：LIST_ROLE=merchant_staff ROLE_MATCH=1 SITE_NAME_EMPTY=1",
+      "expected": "PASS",
+      "negative": "LIST_ROLE=site_member → FAIL",
+      "negative_result": "列表回退到 site_member 或带出 site_name → 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2462.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2462/R5-noop-role.txt"
+      ],
+      "assert": "exit 0；grep IAM_ROLE_CALLS=0、ROLE_ERRORS=0、USERS_ROLE_UNCHANGED=1",
+      "actual": "PASS：USERS_ROLE_UNCHANGED=1 IAM_ROLE_CALLS=0 ROLE_ERRORS=0 POSITION=首席",
+      "expected": "PASS",
+      "negative": "IAM_ROLE_CALLS=1 → FAIL",
+      "negative_result": "无变化仍调 IAM（IAM_ROLE_CALLS=1）→ 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2462.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2462/R6-role-change.txt"
+      ],
+      "assert": "exit 0；grep IAM_ROLE_CALLS=1、IAM_ROLE_VALUE=STAFF、USERS_ROLE=merchant_staff",
+      "actual": "PASS：USERS_ROLE=merchant_staff MM_ROLE=merchant_staff IAM_ROLE_CALLS=1 IAM_ROLE_VALUE=STAFF",
+      "expected": "PASS",
+      "negative": "IAM_ROLE_CALLS=0 → FAIL",
+      "negative_result": "漏同步（IAM_ROLE_CALLS=0）或角色映射非 STAFF → 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2462.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2462/R7-drift.txt"
+      ],
+      "assert": "exit 0；grep ALIGN_ROWS=2、READONLY=1、UNAUTHORIZED_APPLY_EXIT=2",
+      "actual": "PASS：ALIGN_ROWS=2 NONE_ROWS=1 READONLY=1 UNAUTHORIZED_APPLY_EXIT=2 DB_WRITES=0",
+      "expected": "PASS",
+      "negative": "READONLY=0 或未授权 apply 成功 → FAIL",
+      "negative_result": "未授权 --apply 成功或出现写库（DB_WRITES>0）→ 失败",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2462.sh r8",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2462/R8-prefill.txt"
+      ],
+      "assert": "exit 0；grep PREFILL_LEGACY=merchant_staff、PREFILL_NORMAL=site_member",
+      "actual": "PASS：DOMAIN_GUARD=1 PREFILL_LEGACY=merchant_staff PREFILL_NORMAL=site_member（evidence_type=static，D5 Owner 豁免）",
+      "expected": "PASS",
+      "negative": "legacy 仍 site_member → FAIL",
+      "negative_result": "legacy 仍回填 site_member 或缺域判定分支 → 失败",
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash scripts/verify-2462.sh r9",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2462/R9-build.txt"
+      ],
+      "assert": "exit 0；grep BUILD_EXIT=0、TESTS_FAIL=0、PC_BUILD=0",
+      "actual": "PASS：BUILD_EXIT=0 TESTS_FAIL=0 PC_BUILD=0",
+      "expected": "PASS",
+      "negative": "任一非 0 → FAIL",
+      "negative_result": "任一命令非 0 → 失败",
+      "pass": true
+    }
+  ]
+}

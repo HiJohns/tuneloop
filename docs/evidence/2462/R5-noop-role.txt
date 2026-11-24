@@ -1,0 +1,17 @@
+# build=1.0.9187af203 # commit=9187af203bae52f6a77bd26cce8e0ea27e4271a0 # dirty=false
+[WARNING] No .env file found in common paths
+2026/11/24 00:46:53 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2462 sslmode=disable
+2026/11/24 00:46:53 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2462
+2026/11/24 00:46:53 [DB] Connected to database 'tuneloop_test_2462'
+=== RUN   TestUpdateStaffRoleNoop_2462
+2026/11/24 00:46:53 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2462 sslmode=disable
+2026/11/24 00:46:53 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_2462
+2026/11/24 00:46:53 [DB] Connected to database 'tuneloop_test_2462'
+
+2026/11/24 00:46:55 [32m/home/coder/worktrees/tuneloop/wt-2462/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[597.354ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/24 00:46:55 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+    user_role_domain_2462_test.go:363: USERS_ROLE_UNCHANGED=1 IAM_ROLE_CALLS=0 ROLE_ERRORS=0 POSITION=首席
+--- PASS: TestUpdateStaffRoleNoop_2462 (1.17s)
+PASS
+ok  	tuneloop-backend/handlers	1.813s
