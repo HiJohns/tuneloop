@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "issue": 2469,
+  "build": "1.0.3cc10ca40",
+  "commit": "3cc10ca4002eed30d7a8727bbab310a6a890b121",
+  "dirty": false,
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2469; node v20.20.2 node --test; vite build (node_modules 只读复用主树依赖)",
+  "plan_sha256": "05f8c665ae068edfd956678402a95c576f27377ee82779d1298e9e1b5642ae53",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2469.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2469/R1-pure.txt"
+      ],
+      "assert": "exit 0；grep SHOW_EMPTY=false、ISEMPTY_ERROR=false、EMPTY_TEXT_HAS_SCANNED=1",
+      "actual": "PASS：node --test 7/7 通过（空列表不告警、有 1 条告警、标题含「命中 1 个」、空态文案含扫描数/挂起门槛、loading/error 不算空态）",
+      "expected": "PASS",
+      "negative": "ISEMPTY_LOADING=true → FAIL",
+      "negative_result": "空列表/有数据、加载中、失败态四态断言全部符合计划",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2469.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2469/R2-empty-static.txt"
+      ],
+      "assert": "exit 0；grep ALERT_CONDITIONAL=1、EMPTY_BLOCK=1、EMPTY_TABLE_ABSENT=1",
+      "actual": "PASS：warning 仅在 shouldShowWarning(orphans) 为真时渲染；空态为 Empty（「未发现孤儿账号」+ 扫描说明 + 刷新），不含 Table/rowSelection",
+      "expected": "PASS",
+      "negative": "空态仍含 rowSelection → FAIL",
+      "negative_result": "空态块内无 Table、无 rowSelection（负例「空态仍渲染 Table」已消除）",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2469.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2469/R3-data-static.txt"
+      ],
+      "assert": "exit 0；grep TITLE_USES_helper=1、WARNING_ONE_LINE=1",
+      "actual": "PASS：Modal 标题走 orphanTitle(orphans, orphanScanned)；warning 仅一行「清理会物理删除 IAM 账号，不可撤销」",
+      "expected": "PASS",
+      "negative": "warning 仍含四条长文 → FAIL",
+      "negative_result": "旧长文「这些账号只存在于 IAM…」与判定清单已从红条正文移除",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2469.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2469/R4-fields-static.txt"
+      ],
+      "assert": "exit 0；grep SET_SCANNED=1、SET_MIN_AGE=1",
+      "actual": "PASS：fetchOrphans 写入 setOrphanScanned(resp.data?.scanned) 与 setOrphanMinAge(resp.data?.min_age_minute)",
+      "expected": "PASS",
+      "negative": "仅取 data.list → FAIL",
+      "negative_result": "不再只取 data.list（负例已消除）；空态文案含 12 与 60 的实测见 R1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2469.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2469/R5-loading-static.txt"
+      ],
+      "assert": "exit 0；grep SPIN_BRANCH=1、ERROR_BRANCH=1、EMPTY_TEXT_ABSENT_IN_ERROR=1",
+      "actual": "PASS：加载中渲染 Spin「正在扫描 IAM 账号…」；失败分支 type=\"error\" +「加载失败，请点击刷新重试」，无「未发现孤儿账号」",
+      "expected": "PASS",
+      "negative": "error 分支出现空态文案 → FAIL",
+      "negative_result": "error 分支不含空态文案（剔除注释后断言，负例已排除）",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2469.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2469/R6-tooltip-static.txt"
+      ],
+      "assert": "exit 0；grep TOOLTIP=1、CONDITIONS_IN_TOOLTIP=1",
+      "actual": "PASS：判定四条收进 Tooltip(orphanConditions) + QuestionCircleOutlined；红条正文只保留不可撤销一句",
+      "expected": "PASS",
+      "negative": "判定四条仍在 Alert 正文 → FAIL",
+      "negative_result": "判定四条不出现在 Alert message/description（负例已排除）",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2469.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2469/R7-purge-static.txt"
+      ],
+      "assert": "exit 0；grep CONFIRM_KEPT=1、BATCH_DISABLED_KEPT=1",
+      "actual": "PASS：confirmPurgeSelected/confirmPurgeOne 保留；批量按钮文案含选中计数、0 选中 disabled",
+      "expected": "PASS",
+      "negative": "确认弹窗被移除 → FAIL",
+      "negative_result": "二次确认与批量禁用语义未变（负例「确认弹窗被移除」未发生）",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2469.sh r8",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2469/R8-build.txt"
+      ],
+      "assert": "exit 0；grep PC_BUILD=0、LINT_EXIT=0",
+      "actual": "PASS：vite build exit 0；eslint 改动文件 0 error（1 条既有 useEffect 依赖 warning 与本单无关）",
+      "expected": "PASS",
+      "negative": "任一非 0 → FAIL",
+      "negative_result": "PC_BUILD=0 且 LINT_EXIT=0（负例「任一非 0」未发生）",
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash scripts/verify-2469.sh r9",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2469/R9-gate.txt"
+      ],
+      "assert": "exit 0；grep GATE_RESULT=PASS、FULL_SUITE_EXIT=0、PLAN_SOURCE=PASS",
+      "actual": "PASS：pre-ready overall=PASS，P5 全量前端 build PASS（非 N/A），plan-source 四源一致",
+      "expected": "PASS",
+      "negative": "P5=NA 或 sha 不一致 → FAIL",
+      "negative_result": "P5 != N/A 且 gate/evidence/plan 的 plan_sha256 一致（负例「P5=NA 或 sha 不一致」未发生）",
+      "pass": true
+    }
+  ]
+}

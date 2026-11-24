@@ -1,0 +1,14 @@
+# build=1.0.3cc10ca40 # commit=3cc10ca4002eed30d7a8727bbab310a6a890b121 # dirty=false
+# tree=b5dc0ce3f0ede8cca1a7b261a587aef8fff001c6
+GATE_RESULT=PASS
+P5=PASS
+P5_DETAIL=full gate clean worktree; HEAD failures are a subset of baseline (origin/develop); source head=run baseline=run
+FULL_SUITE_EXIT=0 (derived from P5 PASS)
+GATE_PLAN_SHA=05f8c665ae068edfd956678402a95c576f27377ee82779d1298e9e1b5642ae53
+GATE_PLAN_SHA_MATCH=1
+PLAN_SOURCE: plan sha=05f8c665ae068edfd956678402a95c576f27377ee82779d1298e9e1b5642ae53 source=/home/coder/worktrees/tuneloop/wt-2469/docs/evidence/2469/plan.md
+PLAN_SOURCE: gate sha=05f8c665ae068edfd956678402a95c576f27377ee82779d1298e9e1b5642ae53 source=/home/coder/worktrees/tuneloop/wt-2469/docs/evidence/2469/pre-ready-2469.json
+PLAN_SOURCE: evidence sha=05f8c665ae068edfd956678402a95c576f27377ee82779d1298e9e1b5642ae53 source=/home/coder/worktrees/tuneloop/wt-2469/docs/evidence/2469/evidence.json
+PLAN_SOURCE: PASS sha=05f8c665ae068edfd956678402a95c576f27377ee82779d1298e9e1b5642ae53
+PLAN_SOURCE=PASS
+GATE_OK

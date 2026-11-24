@@ -1,0 +1,25 @@
+# build=1.0.3cc10ca40 # commit=3cc10ca4002eed30d7a8727bbab310a6a890b121 # dirty=false
+# tree=3cc10ca4002eed30d7a8727bbab310a6a890b121
+ALERT_CONDITIONAL=1
+EMPTY_BLOCK=1
+EMPTY_TABLE_ABSENT=1
+        {/* #2469 R2 空态：不渲染表头/全选，改为中性 Empty + 扫描说明 */}
+        {orphanEmpty && (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            style={{ padding: '32px 0' }}
+            description={(
+              <div>
+                <div style={{ fontSize: 15, color: 'rgba(0, 0, 0, 0.85)', marginBottom: 6 }}>未发现孤儿账号</div>
+                <div style={{ fontSize: 12, color: 'rgba(0, 0, 0, 0.45)' }}>
+                  {orphanEmptyText(orphanScanned, orphanMinAge)}
+                </div>
+              </div>
+            )}
+          >
+            <Button onClick={fetchOrphans} loading={orphanLoading}>刷新</Button>
+          </Empty>
+        )}
+
+        {/* #2469 R3 有数据：一行不可撤销提示（判定条件收进 Tooltip）+ 正常表格 */}
+R2_OK
