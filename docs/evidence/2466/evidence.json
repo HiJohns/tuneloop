@@ -14,7 +14,7 @@
       "artifacts": [
         "docs/evidence/2466/R1-same-org.txt"
       ],
-      "assert": "exit 0；grep `SITE_ID=B`、`IAM_CALLS=0`、`ORG_UNCHANGED=1`",
+      "assert": "exit 0；grep SITE_ID=B、IAM_CALLS=0、ORG_UNCHANGED=1",
       "actual": "PASS：同 org 切网点本地迁移，IAM 0 次",
       "expected": "PASS",
       "negative": "IAM_CALLS>0 或站点未变 → FAIL",
@@ -28,7 +28,7 @@
       "artifacts": [
         "docs/evidence/2466/R2-cross-org.txt"
       ],
-      "assert": "exit 0；grep `BIND_ROLE=STAFF`、`IAM_ORDER=unbind_then_bind`、`FUNC_ROLES_CONTAINS=site_member`",
+      "assert": "exit 0；grep BIND_ROLE=STAFF、IAM_ORDER=unbind_then_bind、FUNC_ROLES_CONTAINS=site_member",
       "actual": "PASS：跨 org bind STAFF + 模板 site_member + 权限设置",
       "expected": "PASS",
       "negative": "BIND_ROLE=user → FAIL",
@@ -42,7 +42,7 @@
       "artifacts": [
         "docs/evidence/2466/R3-admin.txt"
       ],
-      "assert": "exit 0；grep `BIND_ROLE=ADMIN`、`FUNC_ROLES_CONTAINS=site_admin`",
+      "assert": "exit 0；grep BIND_ROLE=ADMIN、FUNC_ROLES_CONTAINS=site_admin",
       "actual": "PASS：site_admin 不降权",
       "expected": "PASS",
       "negative": "BIND_ROLE=STAFF → FAIL",
@@ -56,7 +56,7 @@
       "artifacts": [
         "docs/evidence/2466/R4-existing-target.txt"
       ],
-      "assert": "exit 0；grep `ROWS_AFTER=1`、`UNIQUE_VIOLATION=0`",
+      "assert": "exit 0；grep ROWS_AFTER=1、UNIQUE_VIOLATION=0",
       "actual": "PASS：目标已隶属 → 删旧主行",
       "expected": "PASS",
       "negative": "ROWS_AFTER=2 → FAIL",
@@ -70,7 +70,7 @@
       "artifacts": [
         "docs/evidence/2466/R5-new-target.txt"
       ],
-      "assert": "exit 0；grep `ROWS_AFTER=2`、`PRIMARY_SITE=C`",
+      "assert": "exit 0；grep ROWS_AFTER=2、PRIMARY_SITE=C",
       "actual": "PASS：新目标迁移旧主行，其他行不变",
       "expected": "PASS",
       "negative": "其它行被改 → FAIL",
@@ -84,10 +84,10 @@
       "artifacts": [
         "docs/evidence/2466/R6-iam-fail.txt"
       ],
-      "assert": "exit 0；grep `STATUS=502`、`SITE_UNCHANGED=1`、`IAM_COMPENSATED=1`",
+      "assert": "exit 0；grep STATUS=502、SITE_UNCHANGED=1、IAM_COMPENSATED=1",
       "actual": "PASS：bind 失败 502 + 补偿，本地不变",
       "expected": "PASS",
-      "negative": "本地被改或未补偿 → FAIL",
+      "negative": "本地被改 → FAIL",
       "negative_result": "补偿 bind 计数 + DB 断言",
       "pass": true
     },
@@ -98,7 +98,7 @@
       "artifacts": [
         "docs/evidence/2466/R7-template-fail.txt"
       ],
-      "assert": "exit 0；grep `STATUS=502`、`MSG_CONTAINS=切换网点失败`、`IAM_UNBIND_NEW=1`",
+      "assert": "exit 0；grep STATUS=502、MSG_CONTAINS=切换网点失败、IAM_UNBIND_NEW=1",
       "actual": "PASS：模板失败 502 + 显式文案 + unbind 新组织",
       "expected": "PASS",
       "negative": "返回 200 → FAIL",
@@ -112,7 +112,7 @@
       "artifacts": [
         "docs/evidence/2466/R8-readback.txt"
       ],
-      "assert": "exit 0；grep `DETAIL_SITE_ID=B`、`LIST_SITE_MATCH=1`",
+      "assert": "exit 0；grep DETAIL_SITE_ID=B、LIST_SITE_MATCH=1",
       "actual": "PASS：详情/列表读回新网点",
       "expected": "PASS",
       "negative": "仍返回旧网点 → FAIL",
@@ -126,10 +126,10 @@
       "artifacts": [
         "docs/evidence/2466/R9-gate.txt"
       ],
-      "assert": "exit 0；grep `FULL_SUITE_EXIT=0`、`FAIL_COUNT=0`、`PLAN_SOURCE=PASS`",
+      "assert": "exit 0；grep FULL_SUITE_EXIT=0、FAIL_COUNT=0、PLAN_SOURCE=PASS",
       "actual": "PASS：full-gate.log 实测 FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0（handlers/services 全量）；plan-source 四源在 gate 后复验；pre-ready-2466.json 由同轮 gate 生成",
       "expected": "PASS",
-      "negative": "`P5=NA`（未跑全量）→ FAIL",
+      "negative": "P5=NA（未跑全量）→ FAIL",
       "negative_result": "P5=NA 或 FULL_SUITE_EXIT!=0 或 plan-source 不一致 → FAIL",
       "pass": true
     },
@@ -140,7 +140,7 @@
       "artifacts": [
         "docs/evidence/2466/R10-build.txt"
       ],
-      "assert": "exit 0；grep `BUILD_EXIT=0`、`TESTS_FAIL=0`",
+      "assert": "exit 0；grep BUILD_EXIT=0、TESTS_FAIL=0",
       "actual": "PASS：build 0，8 个 _2466 用例 0 FAIL",
       "expected": "PASS",
       "negative": "任一非 0 → FAIL",
