@@ -1,0 +1,30 @@
+# build=1.0.827f9d1d # commit=827f9d1dc70e496d4ed08b49499fc1309e3b63e9 # dirty=true
+FULL_SUITE_CMD=bash scripts/tests/test_merchant_direct_role_drift_2462.sh && bash scripts/tests/test_merchant_direct_role_drift_2484.sh
+FULL_SUITE_EXIT=0
+FAIL_COUNT=0
+GATE_RESULT=FAIL
+GATE_PLAN_SHA=35d9fd2f796913edf39244333ce8931083abecc7ebdbaba3ec9f3a712c140653
+PLAN_SOURCE=missing
+--- gate log tail ---
+ID   STATUS DETAIL
+P1   PASS   plan has Verification Matrix / Input Truth & Tool Preflight / Decision Lock / Out of Scope
+P2   FAIL   Work Summary does not cover the matrix:; row has no status cell: R4 --apply 二次确认
+P3   FAIL   evidence paths do not exist: site_name_drift.go verify-2484.sh
+P4   PASS   all 1 affected command(s) passed
+P12  FAIL   R1: assert does not match the plan contract; R1: negative does not match the plan contract; R2: assert does not match the plan contract; R3: assert does not match the plan contract; R4: assert does not match the plan contract; R5: assert does not match the plan contract; R5: negative does not match the plan contract; R6: assert does not match the plan contract; R7: assert does not match the plan contract; R7: negative does not match the plan contract
+P14  FAIL   provenance mismatch dirty: artifact=true evidence=false (docs/evidence/2484/R1-empty-field.txt)
+P18  WARN   tooling_commit missing (legacy bundle); config_sha=1a1d46357e5db8dc32ce85d6ddf90dc1d2577fb9
+P15  N/A    no batch gate reference in the plan
+P16  N/A    no UI render rows in the plan
+P17  PASS   plan snapshot and Accepted Plan comment match the gated plan
+P5   N/A    skipped: P12/P14/P15/P16 static checks failed (static checks run first)
+P6   PASS   all changed files are declared in the Accepted Plan
+P7   N/A    no contract-affecting files changed
+P8   N/A    no panel/clarify files changed
+P9   N/A    no session/build_version/aiaudit/.rpt/.dat evidence referenced
+P10  N/A    no aiaudit reference
+P11  PASS   fix commit(s) are ancestors of HEAD; canonical worktree /tmp/opencode/tuneloop/wt-2484; worktree guard: PASS isolated worktree=/tmp/opencode/tuneloop/wt-2484
+P13  FAIL   artifacts not on origin/issue-2484: docs/evidence/2484/R7-gate.txt
+REPORT: /tmp/opencode/tuneloop/wt-2484/docs/evidence/2484/pre-ready-2484.json
+RESULT: FAIL
+

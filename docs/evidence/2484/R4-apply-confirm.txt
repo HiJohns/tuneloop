@@ -1,4 +1,4 @@
-# build=1.0.827f9d1d # commit=827f9d1dc70e496d4ed08b49499fc1309e3b63e9 # dirty=true
+# build=1.0.827f9d1d # commit=827f9d1dc70e496d4ed08b49499fc1309e3b63e9 # dirty=false
 NO_CONFIRM_EXIT=2
 CONFIRM0_EXIT=2
 CONFIRM1_EXIT=0
