@@ -51,7 +51,9 @@ rc=0
 case "$ROW" in
 r1)
     out="$(run_test 'TestMergeSiteMemberRoles_2482')"; s=$?
-    body="$(keys '^(CASE[0-9]=|ORDER_STABLE=)' <<<"$out")"$'\n'"TESTS_EXIT=$s"$'\n'
+    body="$(keys '^(CASE[0-9]=|ORDER_STABLE=)' <<<"$out")"$'\n'
+    body+="EMPTY_NEW=$(grep -E '^CASE5=' <<<"$out" | cut -d= -f2)"$'\n'
+    body+="TESTS_EXIT=$s"$'\n'
     [ "$s" = "0" ] && grep -q '^CASE1=site_admin,repair_technician' <<<"$out" && grep -q '^ORDER_STABLE=1' <<<"$out" || rc=1
     finish R1-merge-fn.txt "$rc" "$body"
     ;;
