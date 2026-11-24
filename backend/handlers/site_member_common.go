@@ -6,6 +6,7 @@ package handlers
 //       new_users:[{username,name,email,phone,role,password,auto_generate,force_password_change}] + skip_activation。
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -19,6 +20,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // errAlreadyRegistered is returned when adding a member whose phone/email
@@ -379,4 +381,33 @@ func addMembersCore(c *gin.Context, db *gorm.DB, site models.Site, tenantID, sit
 	}
 
 	return res, nil
+}
+
+// siteMemberRolesExpr 把角色集合序列化为 jsonb 表达式（#2475）。
+//
+// GORM 的 map Update 绕过 `serializer:json`，直接传 Go `[]string` 会被渲染成
+// SQL 数组字面量 `('site_member')`，对 jsonb 列报 SQLSTATE 22P02。所有 map
+// 写入 site_members.roles 的路径必须复用本 helper（与 site_member.go 的
+// UpdateMemberRole 同口径），不得各自拼 SQL。
+//
+// 语义：去空白 + 去重保序；nil/空集合 → `[]`（roles 列 NOT NULL）。
+func siteMemberRolesExpr(roles []string) (clause.Expr, error) {
+	normalized := make([]string, 0, len(roles))
+	seen := make(map[string]struct{}, len(roles))
+	for _, role := range roles {
+		role = strings.TrimSpace(role)
+		if role == "" {
+			continue
+		}
+		if _, ok := seen[role]; ok {
+			continue
+		}
+		seen[role] = struct{}{}
+		normalized = append(normalized, role)
+	}
+	encoded, err := json.Marshal(normalized)
+	if err != nil {
+		return clause.Expr{}, fmt.Errorf("encode site_member roles: %w", err)
+	}
+	return gorm.Expr("?::jsonb", string(encoded)), nil
 }

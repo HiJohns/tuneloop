@@ -1223,9 +1223,15 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 
 	// #2375：本地目标域同步（网点/商户直属），保持单一主角色（D4）。
 	if roleChanged {
-		if err := db.Model(&models.SiteMember{}).
+		// #2475：roles 是 jsonb，map Update 不走 serializer，必须显式序列化；
+		// 序列化失败进 role_errors（可见、不静默），不阻断其它字段更新（D2）。
+		rolesExpr, rolesErr := siteMemberRolesExpr([]string{newRole})
+		if rolesErr != nil {
+			log.Printf("[UpdateUser] site_members roles encode failed user=%s: %v", userID, rolesErr)
+			roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "encode site_members roles: " + rolesErr.Error()})
+		} else if err := db.Model(&models.SiteMember{}).
 			Where("user_id = ? AND tenant_id = ?", userID, tenantID).
-			Updates(map[string]interface{}{"role": newRole, "roles": []string{newRole}}).Error; err != nil {
+			Updates(map[string]interface{}{"role": newRole, "roles": rolesExpr}).Error; err != nil {
 			log.Printf("[UpdateUser] site_members role sync failed user=%s: %v", userID, err)
 			roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "sync site_members: " + err.Error()})
 		}
