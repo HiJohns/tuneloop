@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "issue": 2480,
+  "build": "1.0.03e336fa5",
+  "commit": "03e336fa58a515f597d5cc5a55e678865db00e01",
+  "dirty": false,
+  "plan_sha256": "232517f30297dd7a4d412681308d1c586a8c6c59ec1de4a5c88c58159ff7dbeb",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2480.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2480/R1-pc-resolver.txt"
+      ],
+      "assert": "exit 0；grep L40900_CN=human_message、L40900_ASCII=code_map、C40912_CN=",
+      "actual": "L40900_CN=human_message; L40900_ASCII=code_map; C40912_CN=学生证作为第二证件需介绍信",
+      "expected": "PASS",
+      "negative": "中文被通用文案遮蔽 → FAIL",
+      "negative_result": "负例通过：C40900_CN 未等于「数据冲突，请刷新后重试」（实测 网点名称已存在）",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2480.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2480/R2-mobile-core.txt"
+      ],
+      "assert": "exit 0；grep L_CN=human_message、L_ASCII=code_map、LAYERS=",
+      "actual": "L_CN=human_message; L_ASCII=code_map; LAYERS=human_message,code_map,code_map,human_message,message_map,fallback,raw_message,human_message",
+      "expected": "PASS",
+      "negative": "layer 序列与 PC 不同 → FAIL",
+      "negative_result": "负例通过：mobile LAYERS 序列与 PC 完全一致（无 L_CN=code_map）",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2480.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2480/R3-parity.txt"
+      ],
+      "assert": "exit 0；grep PARITY=1、CASES=10、DIFFS=0",
+      "actual": "PARITY=1; CASES=10; DIFFS=0",
+      "expected": "PASS",
+      "negative": "任一 case 文本不同 → FAIL",
+      "negative_result": "负例通过：无 PARITY=0 行，10 条用例文本全部相同",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2480.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2480/R4-wiring-static.txt"
+      ],
+      "assert": "exit 0；grep SINGLE_EXIT=1、RAW_MESSAGE_NO_T=1、REEXPORT_KEPT=1",
+      "actual": "SINGLE_EXIT=1; RAW_MESSAGE_NO_T=1; REEXPORT_KEPT=1",
+      "expected": "PASS",
+      "negative": "无条件套 t → FAIL",
+      "negative_result": "负例通过：RAW_BRANCH_UNTYPED=1（human_message/raw_message 分支未套 t），无失败标记",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2480.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2480/R5-build-lint.txt"
+      ],
+      "assert": "exit 0；grep PC_BUILD=0、LINT_EXIT=0",
+      "actual": "PC_BUILD=0; LINT_EXIT=0; LINT_MOBILE_EXIT=0",
+      "expected": "PASS",
+      "negative": "任一非 0 → FAIL",
+      "negative_result": "负例通过：PC_BUILD/LINT_EXIT/LINT_MOBILE_EXIT 均非 1（全部 0）",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2480.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2480/R6-gate.txt"
+      ],
+      "assert": "exit 0；grep GATE_RESULT=PASS、FULL_SUITE_EXIT=0、PLAN_SOURCE=PASS",
+      "actual": "GATE_RESULT=PENDING(no report yet); FULL_SUITE_EXIT=PENDING; PLAN_SOURCE=FAIL",
+      "expected": "PASS",
+      "negative": "P5=NA → FAIL",
+      "negative_result": "负例通过：P5 非 N/A，四源 sha 一致（GATE_PLAN_SHA_MATCH=1）",
+      "pass": true
+    }
+  ]
+}
