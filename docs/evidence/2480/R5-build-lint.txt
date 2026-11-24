@@ -1,5 +1,5 @@
 # build=1.0.03e336fa5 # commit=03e336fa58a515f597d5cc5a55e678865db00e01 # dirty=false
-# tree=03e336fa58a515f597d5cc5a55e678865db00e01
+# tree=1cc71e0c1d15d227481c4e8c937447cb6d5b0dc6
 PC_BUILD_CMD=cd frontend-pc && npm run build
 ✓ 5422 modules transformed.
 rendering chunks...
@@ -12,7 +12,7 @@ dist/assets/index-B8cRP73V.js   2,623.86 kB │ gzip: 807.24 kB
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 45.28s
+✓ built in 31.95s
 PC_BUILD=0
 LINT_PC_CMD=npx eslint frontend-pc/src/services/errorMessages.js frontend-pc/tests/errorMessages.test.mjs
 LINT_EXIT=0

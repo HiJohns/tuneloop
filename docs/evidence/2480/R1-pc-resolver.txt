@@ -1,5 +1,5 @@
 # build=1.0.03e336fa5 # commit=03e336fa58a515f597d5cc5a55e678865db00e01 # dirty=false
-# tree=03e336fa58a515f597d5cc5a55e678865db00e01
+# tree=1cc71e0c1d15d227481c4e8c937447cb6d5b0dc6
 TAP version 13
 # C40900_CN=网点名称已存在
 # L40900_CN=human_message
@@ -15,42 +15,42 @@ TAP version 13
 # Subtest: 409 + 可读中文 message：具体文案优先于通用 code 映射（缺陷版会得到「数据冲突」）
 ok 1 - 409 + 可读中文 message：具体文案优先于通用 code 映射（缺陷版会得到「数据冲突」）
   ---
-  duration_ms: 6.521985
+  duration_ms: 3.51427
   ...
 # Subtest: ASCII message 视为机器码：仍走 code 家族通用文案（不外溢英文技术串）
 ok 2 - ASCII message 视为机器码：仍走 code 家族通用文案（不外溢英文技术串）
   ---
-  duration_ms: 0.423923
+  duration_ms: 0.413873
   ...
 # Subtest: 无 message 的 409：通用文案兜底不变
 ok 3 - 无 message 的 409：通用文案兜底不变
   ---
-  duration_ms: 1.563679
+  duration_ms: 2.330793
   ...
 # Subtest: 4091x（不在 code map）继续透传中文 message
 ok 4 - 4091x（不在 code map）继续透传中文 message
   ---
-  duration_ms: 6.604207
+  duration_ms: 5.364348
   ...
 # Subtest: L1 英文精确键 → 中文翻译（\#1675 行为不变）
 ok 5 - L1 英文精确键 → 中文翻译（\#1675 行为不变）
   ---
-  duration_ms: 0.687002
+  duration_ms: 0.664021
   ...
 # Subtest: null / 缺字段 → fallback；自定义 fallback 生效
 ok 6 - null / 缺字段 → fallback；自定义 fallback 生效
   ---
-  duration_ms: 0.327191
+  duration_ms: 1.450106
   ...
 # Subtest: 非字符串 message（对象/数组）不渲染 [object Object]，也不抛错
 ok 7 - 非字符串 message（对象/数组）不渲染 [object Object]，也不抛错
   ---
-  duration_ms: 2.089526
+  duration_ms: 0.369671
   ...
 # Subtest: 八条 fixture 的文本与层序（LAYERS 序列须与 mobile 完全一致）
 ok 8 - 八条 fixture 的文本与层序（LAYERS 序列须与 mobile 完全一致）
   ---
-  duration_ms: 6.04288
+  duration_ms: 7.569207
   ...
 1..8
 # tests 8
@@ -60,5 +60,5 @@ ok 8 - 八条 fixture 的文本与层序（LAYERS 序列须与 mobile 完全一�
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 357.664402
+# duration_ms 325.221438
 NODE_TEST_EXIT=0
