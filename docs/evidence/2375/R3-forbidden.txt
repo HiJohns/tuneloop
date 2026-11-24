@@ -1,16 +1,19 @@
-# build=1.0.f727fb516 commit=f727fb516b93f8e354dce25ae53249dca20d5c50 dirty=false
-[DEBUG] Loaded .env from: ../.env
-2026/11/19 00:43:17 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375 sslmode=disable
-2026/11/19 00:43:17 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375
-2026/11/19 00:43:17 [DB] Connected to database 'tuneloop_test_verify2375'
+# build=1.0.d43b97d2a # commit=d43b97d2a0ccadf3be58c446a093436bf355b7b4 # dirty=false
+[WARNING] No .env file found in common paths
+2026/11/24 16:36:10 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2375 sslmode=disable
+2026/11/24 16:36:11 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2375
+2026/11/24 16:36:11 [DB] Connected to database 'tuneloop_test_verify2375'
 === RUN   TestUpdateUserRoleForbidden_2375
-2026/11/19 00:43:17 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375 sslmode=disable
-2026/11/19 00:43:17 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_verify2375
-2026/11/19 00:43:17 [DB] Connected to database 'tuneloop_test_verify2375'
-2026/11/19 00:43:18 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/24 16:36:11 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2375 sslmode=disable
+2026/11/24 16:36:11 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2375
+2026/11/24 16:36:11 [DB] Connected to database 'tuneloop_test_verify2375'
 
-2026/11/19 00:43:18 [31;1m/home/coder/tuneloop/backend/handlers/user_staff.go:720 [35;1mrecord not found
-[0m[33m[0.394ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE (id = '50756c58-90cd-4313-ba0e-9d63d68dee93' AND tenant_id = 'fe5d03cf-ac81-443d-9c9a-cf7455b8d9e9' AND deleted_at IS NULL) AND "users"."tenant_id" = 'fe5d03cf-ac81-443d-9c9a-cf7455b8d9e9' ORDER BY "users"."id" LIMIT 1
---- PASS: TestUpdateUserRoleForbidden_2375 (0.29s)
+2026/11/24 16:36:12 [32m/home/coder/worktrees/tuneloop/wt-2375/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[577.762ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "coupons", "schema_migrations", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/24 16:36:12 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/24 16:36:12 [31;1m/home/coder/worktrees/tuneloop/wt-2375/backend/handlers/user_staff.go:829 [35;1mrecord not found
+[0m[33m[1.535ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE (id = '0942f00c-3f07-4804-9396-0dbff12bfa8b' AND tenant_id = '1dca481b-cc7f-4efe-adbd-d2cea5620fda' AND deleted_at IS NULL) AND "users"."tenant_id" = '1dca481b-cc7f-4efe-adbd-d2cea5620fda' ORDER BY "users"."id" LIMIT 1
+--- PASS: TestUpdateUserRoleForbidden_2375 (1.06s)
 PASS
-ok  	tuneloop-backend/handlers	1.248s
+ok  	tuneloop-backend/handlers	1.659s

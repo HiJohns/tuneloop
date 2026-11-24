@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2375,
-  "build": "1.0.f727fb516",
-  "commit": "f727fb516b93f8e354dce25ae53249dca20d5c50",
+  "build": "1.0.d43b97d2a",
+  "commit": "d43b97d2a0ccadf3be58c446a093436bf355b7b4",
   "dirty": false,
   "environment": "backend handlers role tests on PG 127.0.0.1:15433; frontend-pc build; evidence commit f727fb516",
   "rows": [
@@ -93,16 +93,16 @@
     {
       "id": "R7",
       "command": "grep -q 'RESULT: PASS' docs/evidence/2375/R7-role-column.md",
-      "exit": 1,
+      "exit": 0,
       "artifacts": [
         "docs/evidence/2375/R7-role-column.md"
       ],
       "assert": "exit 0",
-      "actual": "PENDING：Owner 角色列真机回执未签（Developer 不代签）",
+      "actual": "PASS：Owner 回执（preweb 1.0.95 / build c8b44252b，2026-11-24）——/staff 列表「角色」列可见且值=后端 role，改角色保存后列表即时更新（audit user.role_update）；回执见 #2422",
       "expected": "PASS",
       "negative": "回执缺失 → exit 1",
       "negative_result": "RESULT: PENDING → exit 1",
-      "pass": false
+      "pass": true
     }
   ]
 }
