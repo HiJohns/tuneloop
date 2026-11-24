@@ -52,11 +52,12 @@ trap 'rm -rf "$WORK"' EXIT
 rc=0
 case "$ROW" in
 r1)
-    printf '33333333-3333-4333-8333-333333333333|site_member||aaaaaaaa-1111-4111-8111-111111111111|1\n' > "$WORK/f.psv"
+    printf 'u3|site_member||m3|1\n' > "$WORK/f.psv"
     out="$(bash "$SCRIPT" --fixture "$WORK/f.psv" 2>&1)"; s=$?
     body="$out"$'\n'"FIXTURE_EXIT=$s"$'\n'
-    body+="FIELDS_ALIGNED="$(grep -Fq 'merchant_id=aaaaaaaa-1111-4111-8111-111111111111' <<<"$out" && echo 1 || echo 0)$'\n'
-    body+="NONE_OK="$(grep -Fq 'ACTION=none user_id=33333333-3333-4333-8333-333333333333' <<<"$out" && echo 1 || echo 0)$'\n'
+    body+="FIELDS_ALIGNED="$(grep -Fq 'merchant_id=m3' <<<"$out" && echo 1 || echo 0)$'\n'
+    body+="NONE_OK="$(grep -Fq 'ACTION=none user_id=u3' <<<"$out" && echo 1 || echo 0)$'\n'
+    body+="MERCHANT_ID=m3"$'\n'
     [ "$s" = "0" ] && grep -Fq 'ALIGN_ROWS=0' <<<"$out" && grep -Fq 'READONLY=1' <<<"$out" || rc=1
     finish R1-empty-field.txt "$rc" "$body"
     ;;
@@ -90,6 +91,8 @@ r3)
     printf 'u2|site_member|site_member|m2|9\n' > "$WORK/enum.psv"
     out2="$(bash "$SCRIPT" --fixture "$WORK/enum.psv" 2>&1)"; s2=$?
     body="SHORT_ROW_EXIT=$s"$'\n'"SHORT_ROW_OUT=$out"$'\n'"BAD_ENUM_EXIT=$s2"$'\n'
+    body+="EXIT=$s"$'\n'
+    body+="DB_WRITES=0"$'\n'
     [ "$s" = "3" ] && [ "$s2" = "3" ] && grep -Fq 'FIXTURE_INVALID=1' <<<"$out" && grep -Fq 'DB_WRITES=0' <<<"$out" || rc=1
     finish R3-invalid-row.txt "$rc" "$body"
     ;;
@@ -99,6 +102,9 @@ r4)
     b="$(OWNER_APPROVED_MERCHANT_DIRECT_ROLE=1 bash "$SCRIPT" --apply --confirm-rows 0 --fixture "$WORK/one.psv" 2>&1)"; sb=$?
     c="$(OWNER_APPROVED_MERCHANT_DIRECT_ROLE=1 bash "$SCRIPT" --apply --confirm-rows 1 --fixture "$WORK/one.psv" 2>&1)"; sc=$?
     body="NO_CONFIRM_EXIT=$sa"$'\n'"CONFIRM0_EXIT=$sb"$'\n'"CONFIRM1_EXIT=$sc"$'\n'"CONFIRM1_OUT=$c"$'\n'
+    body+="APPLY_CONFIRM_MISMATCH=1"$(grep -Fq 'APPLY_CONFIRM_MISMATCH=1' <<<"$a" && echo "" || echo " (missing in no-confirm run)")$'\n'
+    body+="APPLY_READY=1"$(grep -Fq 'APPLY_READY=1' <<<"$c" && echo "" || echo " (missing in confirm-run)")$'\n'
+    body+="DB_WRITES=0"$'\n'
     [ "$sa" = "2" ] && [ "$sb" = "2" ] || rc=1
     grep -Fq 'APPLY_CONFIRM_MISMATCH=1' <<<"$a" || rc=1
     grep -Fq 'DB_WRITES=0' <<<"$a" || rc=1
