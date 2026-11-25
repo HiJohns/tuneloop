@@ -1,14 +1,14 @@
-# build=1.0.9f40fd0 # commit=9f40fd05540dc3dd40fad0dc935ea4dc891ba4c8 # dirty=false
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 at_ms=1795598546558 wait_ms=353087
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 wait_ms=353087
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795598554901 hold_ms=8343
+# build=1.0.a18e0b1 # commit=a18e0b1df756312c1c3454c43b36478062b08c08 # dirty=false
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 at_ms=1795607767578 wait_ms=290302
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 wait_ms=290302
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795607781676 hold_ms=14098
 --- go build ./... exit=0
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 at_ms=1795598892218 wait_ms=336092
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 wait_ms=336092
-ok  	tuneloop-backend/handlers	19.791s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795598919391 hold_ms=27173
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 at_ms=1795599002519 wait_ms=82260
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 wait_ms=82260
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 at_ms=1795607866291 wait_ms=83143
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 wait_ms=83143
+ok  	tuneloop-backend/handlers	20.473s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795607894118 hold_ms=27827
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 at_ms=1795607895472 wait_ms=181
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 wait_ms=181
 
 > frontend-pc@1.0.0 build
 > vite build
@@ -29,8 +29,8 @@ dist/assets/index-BXyM3STg.js   2,623.57 kB │ gzip: 807.17 kB
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 33.03s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795599038403 hold_ms=35884
+✓ built in 44.98s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795607944304 hold_ms=48832
 BUILD_EXIT=0
 TESTS_EXIT=0
 TESTS_FAIL=0

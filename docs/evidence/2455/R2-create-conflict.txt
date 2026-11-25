@@ -1,33 +1,33 @@
-# build=1.0.9f40fd0 # commit=9f40fd05540dc3dd40fad0dc935ea4dc891ba4c8 # dirty=false
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 at_ms=1795597986283 wait_ms=58643
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 wait_ms=58643
+# build=1.0.a18e0b1 # commit=a18e0b1df756312c1c3454c43b36478062b08c08 # dirty=false
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 at_ms=1795606305591 wait_ms=631751
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 wait_ms=631751
 [WARNING] No .env file found in common paths
-2026/11/25 09:13:12 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/25 11:31:51 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
 [test-template] migrations replayed: files=407 up=221 statements=1795 create_table=14 create_index=0 index_guard=283 dml_guard=54 alter_table=1013 add_column=6 version=20261123002
 Built test template tuneloop_test_template
-2026/11/25 09:13:22 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/25 09:13:22 [DB] Connected to database 'tuneloop_test_local'
+2026/11/25 11:32:00 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/25 11:32:00 [DB] Connected to database 'tuneloop_test_local'
 === RUN   TestCreateSite_DuplicateNameRejectedBeforeIAM_2455
-2026/11/25 09:13:22 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/25 09:13:22 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/25 09:13:22 [DB] Connected to database 'tuneloop_test_local'
+2026/11/25 11:32:00 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/25 11:32:00 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/25 11:32:00 [DB] Connected to database 'tuneloop_test_local'
 
-2026/11/25 09:13:23 [32m/home/coder/worktrees/tuneloop/wt-2455/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[614.595ms] [33m[rows:0][35m TRUNCATE TABLE "_test_template_meta", "instrument_levels", "membership_levels", "coupons", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "schema_migrations", "membership_level_benefits" RESTART IDENTITY CASCADE[0m
-2026/11/25 09:13:23 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:45039, clientID=test-ns, namespace=test-ns
-2026/11/25 09:13:23 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:45039, clientID=test-ns, namespace=test-ns
-2026/11/25 09:13:23 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:45039, clientID=test-ns, namespace=test-ns
-2026/11/25 09:13:23 [IAMClient] Obtained client credentials token, expires in 3600s
-2026/11/25 09:13:23 [IAMClient] Created organization with user token: org_id=91b840a2-3d29-4135-b4ca-e4f12fb4135d, admin_id=
-    site_name_unique_2455_test.go:293: HTTP=409
-    site_name_unique_2455_test.go:294: CODE=40900
-    site_name_unique_2455_test.go:295: IAM_CALLS=0
-    site_name_unique_2455_test.go:296: TRIMMED_CASE_HTTP=409
-    site_name_unique_2455_test.go:297: DISTINCT_NAME_HTTP=201
---- PASS: TestCreateSite_DuplicateNameRejectedBeforeIAM_2455 (0.82s)
+2026/11/25 11:32:01 [32m/home/coder/worktrees/tuneloop/wt-2455/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[640.444ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/25 11:32:01 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:42091, clientID=test-ns, namespace=test-ns
+2026/11/25 11:32:01 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:42091, clientID=test-ns, namespace=test-ns
+2026/11/25 11:32:01 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:42091, clientID=test-ns, namespace=test-ns
+2026/11/25 11:32:01 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/25 11:32:01 [IAMClient] Created organization with user token: org_id=31c5033e-432a-47d1-ba08-bdc32f3f527d, admin_id=
+    site_name_unique_2455_test.go:298: HTTP=409
+    site_name_unique_2455_test.go:299: CODE=40900
+    site_name_unique_2455_test.go:300: IAM_CALLS=0
+    site_name_unique_2455_test.go:301: TRIMMED_CASE_HTTP=409
+    site_name_unique_2455_test.go:302: DISTINCT_NAME_HTTP=201
+--- PASS: TestCreateSite_DuplicateNameRejectedBeforeIAM_2455 (0.83s)
 PASS
-ok  	tuneloop-backend/handlers	11.517s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795598003825 hold_ms=17542
+ok  	tuneloop-backend/handlers	10.669s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795606321825 hold_ms=16234
 HTTP=409
 CODE=40900
 IAM_CALLS=0
