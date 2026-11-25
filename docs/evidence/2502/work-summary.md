@@ -15,7 +15,7 @@
 
 ### Remote
 
-remote: origin/issue-2502@<evidence-head>; fix=813a0c5e6 pushed=yes; evidence=<evidence-head> pushed=yes
+remote: origin/issue-2502; fix=813a0c5e6 pushed=yes; evidence commits pushed=yes（plan 快照 + R1–R7 + evidence.json + gate 报告）
 
 ### 验证层级（Issue #70）
 
@@ -113,6 +113,40 @@ R1–R8 全部 PASS；逐行记录见 `docs/evidence/2502/evidence.json`（build
 
 ### Pre-ready gate
 
-待 gate 运行后回填（`docs/evidence/2502/pre-ready-2502.json`）。
+命令（HEAD 干净树，`origin/issue-2502` 已 push）：
+
+```
+pre-ready-check.sh 2502 --plan-file docs/evidence/2502/plan.md \
+  --summary-file docs/evidence/2502/work-summary.md \
+  --changed-files docs/evidence/2502/changed-files.txt \
+  --evidence-file docs/evidence/2502/evidence.json \
+  --affected-cmd "cd frontend-mobile && npx vitest run --config vitest.config.js scripts/page-smoke/profile-identity-badge-2502.test.jsx" \
+  --remote-ref origin/issue-2502 \
+  --report docs/evidence/2502/pre-ready-2502.json
+```
+
+关键输出（完整报告见 `docs/evidence/2502/pre-ready-2502.json`，overall=PASS）：
+
+```
+P1   PASS   plan has Verification Matrix / Input Truth & Tool Preflight / Decision Lock / Out of Scope
+P2   PASS   Work Summary covers all 8 matrix rows with PASS/N/A
+P3   PASS   all referenced evidence paths exist and are durable
+P4   PASS   all 1 affected command(s) passed
+P5   N/A    sub-task: full gate belongs to the parent/batch gate
+P6   PASS   all changed files are declared in the Accepted Plan
+P7   PASS   contract three-way section present
+P12  PASS   Evidence Contract complete: 8 row(s) match the plan and have durable artifacts
+P13  PASS   fix commit and evidence artifacts are on origin/issue-2502
+P14  PASS   artifact provenance matches evidence (8 artifacts)
+P16  PASS   UI rows use render evidence or a recorded static exemption
+P17  PASS   plan snapshot and Accepted Plan comment match the gated plan
+RESULT: PASS
+```
+
+plan 来源：Accepted Plan 评论（2026-11-25T09:55:22Z），plan_sha256=e053dfc1bcea62ce9e17e89b83504d1fd40a0e524e8c46546cfd0f92648ccf1b（Accepted Plan 评论 / plan 快照 / gate 报告 / evidence.json 四源一致）。
+
+### R8 bootstrap 说明（证据形态）
+
+`docs/evidence/2502/pre-ready-2502.json` 既是 R8 的产物又是 gate 的输入：首次运行因该工件尚不存在而 P12 FAIL（报告仍被写出），提交并 push 该报告后复跑即 PASS。两次运行都记录在 git 历史与 report 的 `timestamp` 中，未修改任何断言迁就结果。
 
 *Model: DeepSeek V4.1 Flash 1017*

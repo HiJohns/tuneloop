@@ -1,6 +1,6 @@
 {
   "issue": 2502,
-  "overall": "FAIL",
+  "overall": "PASS",
   "plan": "docs/evidence/2502/plan.md",
   "plan_sha256": "e053dfc1bcea62ce9e17e89b83504d1fd40a0e524e8c46546cfd0f92648ccf1b",
   "config_sha": "db40145bac55c26278f9da24652d1a7bad2ebaca",
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "docs/evidence/2502/work-summary.md",
-  "timestamp": "20261125-123009",
+  "timestamp": "20261125-123333",
   "checks": [
     {
       "id": "P1",
@@ -24,8 +24,8 @@
     },
     {
       "id": "P3",
-      "status": "FAIL",
-      "detail": "evidence paths do not exist: AccountSelect.jsx Cart.jsx Checkout.jsx Profile.jsx StaffInstruments.jsx contexts[].label docs/evidence/2502/pre-ready-2502.json process.stdout.write"
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
     },
     {
       "id": "P4",
@@ -34,13 +34,13 @@
     },
     {
       "id": "P12",
-      "status": "FAIL",
-      "detail": "R1: assert does not match the plan contract; R2: assert does not match the plan contract; R2: negative does not match the plan contract; R4: negative does not match the plan contract; R5: assert does not match the plan contract; R6: negative does not match the plan contract; R8: artifact not found: docs/evidence/2502/pre-ready-2502.json"
+      "status": "PASS",
+      "detail": "Evidence Contract complete: 8 row(s) match the plan and have durable artifacts"
     },
     {
       "id": "P14",
-      "status": "FAIL",
-      "detail": "artifact missing: docs/evidence/2502/pre-ready-2502.json"
+      "status": "PASS",
+      "detail": "artifact provenance matches evidence (8 artifacts)"
     },
     {
       "id": "P18",
@@ -65,7 +65,7 @@
     {
       "id": "P5",
       "status": "N/A",
-      "detail": "skipped: P12/P14/P15/P16 static checks failed (static checks run first)"
+      "detail": "no go.mod/package.json and no --full-gate-cmd: full gate not applicable"
     },
     {
       "id": "P6",
@@ -74,8 +74,8 @@
     },
     {
       "id": "P7",
-      "status": "FAIL",
-      "detail": "contract-affecting change requires '### 契约三向核对' (Plan/API, docs, handler/frontend)"
+      "status": "PASS",
+      "detail": "contract three-way section present"
     },
     {
       "id": "P8",
@@ -99,8 +99,8 @@
     },
     {
       "id": "P13",
-      "status": "FAIL",
-      "detail": "artifacts not on origin/issue-2502: docs/evidence/2502/pre-ready-2502.json"
+      "status": "PASS",
+      "detail": "fix commit and evidence artifacts are on origin/issue-2502"
     }
   ]
 }
