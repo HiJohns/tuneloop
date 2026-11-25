@@ -4,6 +4,7 @@
   "build": "1.0.b41983e3",
   "commit": "b41983e329cfae1a1175d371e42f1c7af218451b",
   "dirty": false,
+  "plan_sha256": "0408876224045a441e2018c6a3ee08f0e8aafd89229bf72319b34d4b982d0eaa",
   "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2497 (branch issue-2497, base origin/develop b6c6d3c41 with #2480 merged); backend go build + frontend-pc eslint/build; node --test for PC/mobile resolvers; no real IAM/production calls",
   "rows": [
     {
