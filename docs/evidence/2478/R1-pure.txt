@@ -1,0 +1,12 @@
+# build=1.0.3959f40e # commit=3959f40eb6583d935604f8b7f5901ce39497d021 # dirty=false
+NODE_TEST_EXIT=0
+NULL=false
+EMPTY=false
+TRUE=true
+STRING=false
+NUMBER=false
+STATE_HAS_OPEN=true
+STATE_TYPE=merchant_direct
+CONSUMED=false
+PROBE_EXIT=0
+

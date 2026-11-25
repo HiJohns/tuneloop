@@ -9,6 +9,7 @@ import PasswordSettingFields from '../components/PasswordSettingFields'
 import InitialPasswordModal from '../components/InitialPasswordModal'
 import { resolveCreateFeedback } from '../utils/createFeedback'
 import { buildPersonnelQuery } from '../utils/personnelQuery'
+import { isCreateIntent } from '../utils/staffCreateIntent'
 import { checkPermission, isSystemLevelRole, SysPermBits } from '../config/menuPermissions'
 import 'react-quill/dist/quill.snow.css'
 import { staffApi, sitesApi, personnelApi, invitesApi } from '../services/api'
@@ -187,6 +188,16 @@ export default function StaffManagement() {
     setPasswordModalOpen(false)
     setFormConflict('') // #2480 D8：入口/取消/成功后清空冲突提示
   }
+
+  // #2478：消费跨页「创建员工」一次性意图（直属成员管理单击即进创建表单）。
+  // 命中后立即 replace 清掉 state，刷新/前进后退不会重复打开表单；
+  // 返回列表后再从直属成员管理点击会带上新的 state，仍然生效。
+  useEffect(() => {
+    if (!isCreateIntent(location.state)) return
+    resetCreateState()
+    setViewMode('create')
+    navigate(location.pathname, { replace: true, state: null })
+  }, [location.state])
 
   const handleCreateUser = async (values) => {
     setFormConflict('') // #2480 D8：提交开始即清空陈旧冲突提示
