@@ -120,6 +120,21 @@ PASS
 ## Pre-ready gate
 
 - 报告：docs/evidence/2513/pre-ready-2513.json
-- 结果：见下方 gate 关键输出（重跑后刷新）。
+- 结果：`RESULT: PASS`（关键输出如下）。
+
+```text
+$ ~/.config/opencode/scripts/pre-ready-check.sh 2513 --summary-file docs/evidence/2513/summary.md \
+    --changed-files docs/evidence/2513/changed-files.txt \
+    --evidence-file docs/evidence/2513/evidence.json \
+    --affected-cmd "bash scripts/verify-2513.sh r5" \
+    --full-gate-cmd "bash scripts/verify-2513.sh gate" --gate-lock-scope host \
+    --report docs/evidence/2513/pre-ready-2513.json
+P1 PASS  P2 PASS  P3 PASS  P4 PASS  P12 PASS  P14 PASS  P17 PASS
+P5 N/A (sub-task: full gate belongs to the parent/batch gate)  P6 PASS  P11 PASS  P13 PASS
+P15/P16/P7/P8/P9/P10 N/A
+P18 WARN tooling_commit missing (legacy bundle)
+REPORT: docs/evidence/2513/pre-ready-2513.json
+RESULT: PASS
+```
 
 *Model: DeepSeek V4.1 Flash 1017*
