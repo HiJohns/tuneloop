@@ -1,5 +1,5 @@
-# build=1.0.f44853fe1 # commit=f44853fe1f5e731a2ff40c674ed842155430bfe6 # dirty=false
-# tree=f44853fe1f5e731a2ff40c674ed842155430bfe6
+# build=1.0.c931502a0 # commit=c931502a0152238d6f5a70c4a0a310dda8410db0 # dirty=false
+# tree=c931502a0152238d6f5a70c4a0a310dda8410db0
 PC_BUILD_CMD=cd frontend-pc && npm run build
 ✓ 5424 modules transformed.
 rendering chunks...
@@ -12,7 +12,7 @@ dist/assets/index-CSNJmD7k.js   2,624.63 kB │ gzip: 807.59 kB
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 45.23s
+✓ built in 3m 10s
 PC_BUILD=0
 LINT_PC_CMD=npx eslint frontend-pc/src/services/errorMessages.js frontend-pc/tests/errorMessages.test.mjs
 LINT_EXIT=0
