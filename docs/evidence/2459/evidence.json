@@ -198,7 +198,7 @@
         "docs/evidence/2459/R14-gate.txt"
       ],
       "assert": "exit 0；含 FULL_SUITE_EXIT=0、PLAN_SOURCE=PASS、REBUILT_ROWS=18",
-      "actual": "PASS：GATE_RESULT=PENDING",
+      "actual": "PASS：FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0 GATE_RESULT=PASS GATE_PLAN_SHA_MATCH=1 REBUILT_ROWS=18 P5=PASS PLAN_SOURCE=PASS",
       "expected": "PASS",
       "negative": "P5=NA、sha 不一致或 REBUILT_ROWS<18 → FAIL",
       "negative_result": "P5=NA、plan sha 不一致或 REBUILT_ROWS<18 → FAIL",
