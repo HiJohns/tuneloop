@@ -142,6 +142,7 @@ r5)
             --affected-cmd "$AFFECTED_CMD" \
             --gate-adapter go \
             --full-gate-cmd "$FULL_CMD" \
+            --remote-ref "origin/issue-$ISSUE" \
             --gate-lock-scope host \
             --report "$GATE_REPORT" > "$REPO_ROOT/tmp/pre-ready-$ISSUE-r5.log" 2>&1 || true
     fi
@@ -163,8 +164,9 @@ r5)
         body+="PLAN_SOURCE=FAIL"$'\n'
         rc=1
     fi
-    body+="--- gate log tail ---"$'\n'
-    body+="$(tail -25 "$REPO_ROOT/tmp/pre-ready-$ISSUE-r5.log" 2>/dev/null || true)"$'\n'
+    # 不内联 per-run gate 日志尾巴：gate 每次的缓存键不同，会让 artifact 每次都变化
+    # （干净树上 P5 会把它判成 dirty）。机器可判定键已足以复现结论。
+    body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
     finish R5-gate.txt "$rc" "$body"
     ;;
 r6)

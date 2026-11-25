@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "issue": 2479,
+  "build": "1.0.0316cb94",
+  "commit": "0316cb94c5aef8c709d2f51099332b9f6b6ae6d3",
+  "dirty": false,
+  "plan_sha256": "a0a9109bfdcb7a06ae6feaf95a2b4c7b04d815a38fd549c634f899e447933ff3",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2479 (base origin/develop 33e983cac); handler-level tests with fake IAM + node test DB (127.0.0.1:25432 tuneloop_test_*); no real IAM/production calls",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2479.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2479/R1-nil-admin.txt"
+      ],
+      "assert": "exit 0；grep STATUS=201、ASSIGN_CALLS=0、INFO_SKIP=1",
+      "actual": "PASS：admin_id=00000000-0000-0000-0000-000000000000 → STATUS=201 / ASSIGN_CALLS=0 / ERR_LOG=0 / INFO_SKIP=1 / NIL_UUID_ASSIGN_REF=0（fake IAM 对 nil UUID 目标返回 404，与真实 IAM 一致，但 0 次调用）",
+      "expected": "PASS",
+      "negative": "ASSIGN_CALLS=3 → FAIL",
+      "negative_result": "父提交版本（HEAD^）同 fixture 实测 `Should be zero, but was 3` + `--- FAIL`（3 次 404 重试）；修复版 0 次",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2479.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2479/R2-empty-admin.txt"
+      ],
+      "assert": "exit 0；grep STATUS=201、ASSIGN_CALLS=0",
+      "actual": "PASS：admin_id=\"\" 与 空白/非 UUID（`   `、`not-a-uuid`）均 → STATUS=201 / ASSIGN_CALLS=0，日志含 skip INFO、无 AssignRoleTemplate attempt",
+      "expected": "PASS",
+      "negative": "ASSIGN_CALLS>0 → FAIL",
+      "negative_result": "ASSIGN_CALLS=0（两类畸形 admin_id 均未触达 IAM）",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2479.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2479/R3-with-admin.txt"
+      ],
+      "assert": "exit 0；grep ASSIGN_CALLS=1、TEMPLATE_CODE=site_admin",
+      "actual": "PASS：有效 admin_id → ASSIGN_CALLS=1（首次成功，不重试）/ TEMPLATE_CODE=site_admin",
+      "expected": "PASS",
+      "negative": "ASSIGN_CALLS=0 → FAIL",
+      "negative_result": "ASSIGN_CALLS=1，说明守卫只拦「无负责人」，正常路径未被误跳",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2479.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2479/R4-retry.txt"
+      ],
+      "assert": "exit 0；grep ASSIGN_CALLS=3、RETRY_OK=1",
+      "actual": "PASS：有效 admin_id + 前两次 404、第三次 200 → ASSIGN_CALLS=3 / RETRY_OK=1 / ERR_LOG_FAILED_AFTER=0",
+      "expected": "PASS",
+      "negative": "放弃重试 → FAIL",
+      "negative_result": "ASSIGN_CALLS=3 且无 `failed after retries`，既有重试逻辑未被破坏",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2479.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2479/R5-gate.txt"
+      ],
+      "assert": "exit 0；grep FULL_SUITE_EXIT=0、PLAN_SOURCE=PASS",
+      "actual": "PASS：全量 go test ./handlers + ./services FULL_SUITE_EXIT=0 / FAIL_COUNT=0 / PANIC_COUNT=0；pre-ready gate overall=PASS（P5 在 HEAD/baseline 干净 worktree 复核）；四源 plan_sha256 一致（GATE_PLAN_SHA=a0a9109b…，PLAN_SOURCE=PASS）",
+      "expected": "PASS",
+      "negative": "P5=NA → FAIL",
+      "negative_result": "FULL_SUITE_EXIT=0 且 GATE_RESULT=PASS（详见 docs/evidence/2479/R5-gate.txt）",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2479.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2479/R6-build.txt"
+      ],
+      "assert": "exit 0；grep BUILD_EXIT=0、TESTS_FAIL=0",
+      "actual": "PASS：`go build ./...` BUILD_EXIT=0；`go test ./handlers -run TestCreateSite` TESTS_EXIT=0 / TESTS_FAIL=0 / TESTS_PASS_COUNT=8（含 #2266 基线用例）",
+      "expected": "PASS",
+      "negative": "任一非 0 → FAIL",
+      "negative_result": "BUILD_EXIT=0、TESTS_FAIL=0",
+      "pass": true
+    }
+  ]
+}

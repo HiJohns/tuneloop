@@ -1,0 +1,10 @@
+# build=1.0.0316cb94 # commit=0316cb94c5aef8c709d2f51099332b9f6b6ae6d3 # dirty=false
+FULL_SUITE_CMD=cd backend && go test ./handlers -count=1 -timeout 15m && go test ./services -count=1 -timeout 15m
+FULL_SUITE_EXIT=0
+FAIL_COUNT=0
+PANIC_COUNT=0
+GATE_RESULT=PASS
+GATE_PLAN_SHA=a0a9109bfdcb7a06ae6feaf95a2b4c7b04d815a38fd549c634f899e447933ff3
+PLAN_SOURCE=PASS
+RESULT: PASS
+
