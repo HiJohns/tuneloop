@@ -359,9 +359,20 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	}
 
 	// Admin ID from IAM cascading bind response
-	adminID := orgResp.AdminID
+	adminID := strings.TrimSpace(orgResp.AdminID)
+	// #2479：未指定负责人时 IAM 返回 nil UUID（非空串，旧守卫只判空串），
+	// 空白/非法值同样不得作为 AssignRoleTemplate 的目标（不把非法值传给 IAM）。
+	// 判空口径与 merchant.go 的 nil UUID 判定保持一致。
+	hasAdmin := adminID != "" && adminID != uuid.Nil.String()
+	if hasAdmin {
+		if _, parseErr := uuid.Parse(adminID); parseErr != nil {
+			hasAdmin = false
+		}
+	}
 
-	if adminID != "" {
+	if !hasAdmin {
+		log.Printf("[CreateSite] skip role template assignment: no admin (site=%s org=%s)", req.Name, siteOrgID)
+	} else {
 		nsID := middleware.GetNamespaceID(c.Request.Context())
 		if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
 			for _, t := range templates {
