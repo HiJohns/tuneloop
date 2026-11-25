@@ -10,6 +10,13 @@
 # - r5 静态核对回退链（不得再写 sites.id）+ 只读存量排查 SQL 文本；
 # - r6 构建 + CreateOrder/BatchCreateOrder 定向回归；
 # - gate 全量 handlers 套件（供 pre-ready --full-gate-cmd 使用）。
+#
+# 锁纪律（#2512 run-aborted 审计项）：本脚本**不得**自己申请 heavy-lock。
+# pre-ready-check.sh 已用 heavy-run.sh 包住 --affected-cmd，gate-run.sh 也已持有
+# host lock；脚本内再调 heavy-lock/heavy-run 会等待同一把锁形成自死锁（外层持锁
+# 31 分钟，queue 越积越长）。需要锁的场景由调用方在外层包裹：
+#   ~/.config/opencode/scripts/heavy-run.sh -- bash scripts/verify-2512.sh r6
+# r6 以 NESTED_LOCK_REFS=0 作为防漂移断言（脚本内出现 heavy-lock/heavy-run 即 FAIL）。
 set -uo pipefail
 
 ROW="${1:-}"
@@ -18,7 +25,6 @@ cd "$REPO_ROOT" || exit 2
 ISSUE=2512
 OUT_DIR="$REPO_ROOT/docs/evidence/$ISSUE"
 HANDLER="backend/handlers/user_rental.go"
-HEAVY_RUN="${OPENCODE_HEAVY_RUN:-$HOME/.config/opencode/scripts/heavy-run.sh}"
 GO_BIN="${GO_BIN:-$(command -v go 2>/dev/null || true)}"
 [ -n "$GO_BIN" ] || GO_BIN=/usr/local/go/bin/go
 
@@ -35,14 +41,6 @@ if [ -n "$(git status --porcelain --untracked-files=no -- . ":(exclude)docs/evid
     DIRTY=true
 fi
 PROVENANCE="# build=1.0.$SHORT # commit=$FIX_SHA # dirty=$DIRTY"
-
-run_heavy() {
-    if [ -x "$HEAVY_RUN" ]; then
-        "$HEAVY_RUN" -- "$@"
-    else
-        "$@"
-    fi
-}
 
 finish() { # artifact-file exit-code body
     local name=$1 rc=$2 body=$3
@@ -80,7 +78,7 @@ run_go_row() { # artifact test-regex sentinel key=value...
 
     (
         cd "$REPO_ROOT/backend" || exit 2
-        run_heavy "$GO_BIN" test ./handlers -run "$pattern" -count=1 -v
+        "$GO_BIN" test ./handlers -run "$pattern" -count=1 -v
     ) > "$log" 2>&1
     local test_rc=$?
     body+="TEST_CMD=cd backend && go test ./handlers -run '$pattern' -count=1 -v"$'\n'
@@ -168,24 +166,29 @@ r6)
     body="" rc=0
     build_log="$REPO_ROOT/tmp/verify-${ISSUE}-r6-build.log"
     reg_log="$REPO_ROOT/tmp/verify-${ISSUE}-r6-reg.log"
+    # 防漂移：脚本内不得出现锁调用（外层 pre-ready/gate 已持锁，内层再申请会自死锁）。
+    # bracket 写法避免断言行匹配自身。
+    nested_lock_refs="$(grep -vE '^[[:space:]]*#' "$0" | grep -cE 'run_[h]eavy|heavy-[l]ock\.sh|heavy-[r]un\.sh' || true)"
     (
         cd "$REPO_ROOT/backend" || exit 2
-        run_heavy "$GO_BIN" build ./...
+        "$GO_BIN" build ./...
     ) > "$build_log" 2>&1
     build_rc=$?
     (
         cd "$REPO_ROOT/backend" || exit 2
-        run_heavy "$GO_BIN" test ./handlers -run 'CreateOrder|BatchCreateOrder' -count=1
+        "$GO_BIN" test ./handlers -run 'CreateOrder|BatchCreateOrder' -count=1
     ) > "$reg_log" 2>&1
     reg_rc=$?
     body+="BUILD_CMD=cd backend && go build ./..."$'\n'
     body+="BUILD_RC=$build_rc"$'\n'
     body+="REG_CMD=cd backend && go test ./handlers -run 'CreateOrder|BatchCreateOrder' -count=1"$'\n'
     body+="REG_RC=$reg_rc"$'\n'
+    body+="NESTED_LOCK_REFS=$nested_lock_refs"$'\n'
     body+="--- build tail ---"$'\n'"$(tail -5 "$build_log")"$'\n'
     body+="--- regression tail ---"$'\n'"$(tail -5 "$reg_log")"$'\n'
     [ "$build_rc" = "0" ] || rc=1
     [ "$reg_rc" = "0" ] || rc=1
+    [ "$nested_lock_refs" = "0" ] || rc=1
     [ "$rc" = "0" ] && body+="R6_OK"$'\n'
     body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
     finish R6-build-regression.txt "$rc" "$body"
@@ -194,7 +197,7 @@ gate)
     log="$REPO_ROOT/tmp/verify-${ISSUE}-gate.log"
     (
         cd "$REPO_ROOT/backend" || exit 2
-        run_heavy "$GO_BIN" build ./... && run_heavy "$GO_BIN" test ./handlers -count=1 -timeout 30m
+        "$GO_BIN" build ./... && "$GO_BIN" test ./handlers -count=1 -timeout 30m
     ) > "$log" 2>&1
     rc=$?
     printf '%s\n' "$PROVENANCE"
