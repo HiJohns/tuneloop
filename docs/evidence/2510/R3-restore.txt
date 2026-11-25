@@ -1,0 +1,6 @@
+# build=1.0.f11aedb5 # commit=f11aedb567ec2a6b57ea3cc17eaf25b2b0e7f030 # dirty=false
+# tree=f11aedb567ec2a6b57ea3cc17eaf25b2b0e7f030
+    instrument_loss_test.go:446: STATUS=200
+    instrument_loss_test.go:447: RESTORED_DAMAGED=0
+    instrument_loss_test.go:448: INSTRUMENT_AVAILABLE=1
+GO_TEST_EXIT=0

@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "issue": 2510,
+  "build": "1.0.f11aedb5",
+  "commit": "f11aedb567ec2a6b57ea3cc17eaf25b2b0e7f030",
+  "dirty": false,
+  "plan_sha256": "94171858b95e0c09a603b7dc51ff9689299c99899ce5ecaaf4d4ebef50fa2fec",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2510 (branch issue-2510, base origin/develop f2af4c7fd); Go + real Postgres test DB 127.0.0.1:15433/tuneloop_test_local (TUNELOOP_TEST_ALLOW_SKIP unset → skip=fail); no frontend, no network",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2510.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2510/R1-id-domain.txt"
+      ],
+      "assert": "exit 0；grep OLD_PREDICATE_MATCH=0、NEW_RULE_MATCH=1、RED_CONFIRMED=1",
+      "actual": "PASS：SITE_ID=104ef99d…、SITE_ORG=6ae58685…（两域不同值）、OLD_PREDICATE_MATCH=0、NEW_RULE_MATCH=1、RED_CONFIRMED=1、GO_TEST_EXIT=0",
+      "expected": "PASS",
+      "negative": "OLD_PREDICATE_MATCH=1 → FAIL",
+      "negative_result": "夹具已改为 sites.org_id = siteOrg ≠ sites.id；旧字符串谓词（current_site_id == oid）不成立，红例成立",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2510.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2510/R2-register.txt"
+      ],
+      "assert": "exit 0；grep STATUS=200、LOSS_RECORD_CREATED=1、INSTRUMENT_LOST=1",
+      "actual": "PASS：STATUS=200、CODE=20000、LOSS_RECORD_CREATED=1、INSTRUMENT_LOST=1、GO_TEST_EXIT=0（actor = site_member，oid = sites.org_id）",
+      "expected": "PASS",
+      "negative": "STATUS=403 → FAIL",
+      "negative_result": "修复前同一 fixture 返回 403（expected 200 / actual 403，TestInstrumentLoss2510_RegisterBySiteOrg FAIL）；修复后 200 且落库",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2510.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2510/R3-restore.txt"
+      ],
+      "assert": "exit 0；grep STATUS=200、RESTORED_DAMAGED=0、INSTRUMENT_AVAILABLE=1",
+      "actual": "PASS：STATUS=200、RESTORED_DAMAGED=0、INSTRUMENT_AVAILABLE=1、GO_TEST_EXIT=0",
+      "expected": "PASS",
+      "negative": "STATUS=403 → FAIL",
+      "negative_result": "修复前网点账号找回同样 403；修复后恢复上架（stock_status=available，restored_damaged=false）",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2510.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2510/R4-cross-org.txt"
+      ],
+      "assert": "exit 0；grep LOST_STATUS=403、RESTORE_STATUS=403、LEAK_RECORDS=0",
+      "actual": "PASS：LOST_STATUS=403、RESTORE_STATUS=403、LEAK_RECORDS=0、STOCK_STATUS_UNCHANGED=1、GO_TEST_EXIT=0（乐器在他组织站点）",
+      "expected": "PASS",
+      "negative": "LOST_STATUS=200 或 LEAK_RECORDS=1 → FAIL",
+      "negative_result": "跨组织两个接口均被拒，未产生 instrument_loss_records 行，乐器状态未变（无越权副作用）",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2510.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2510/R5-old-behavior-gone.txt"
+      ],
+      "assert": "exit 0；grep OLD_OID_ALLOWED=0、OLD_OID_LOST_STATUS=403、OLD_OID_RESTORE_STATUS=403",
+      "actual": "PASS：OLD_OID_LOST_STATUS=403、OLD_OID_RESTORE_STATUS=403、OLD_OID_ALLOWED=0、GO_TEST_EXIT=0（actor oid = sites.id，旧错误口径）",
+      "expected": "PASS",
+      "negative": "OLD_OID_ALLOWED=1 → FAIL",
+      "negative_result": "旧「字符串相等」放行语义已消失：把站点 ID 当作组织 ID 不再获得访问权",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2510.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2510/R6-regression.txt"
+      ],
+      "assert": "exit 0；grep REGRESSION_PASS=1、FAIL_COUNT=0",
+      "actual": "PASS：TESTS_RUN=12、PASS_COUNT=12、FAIL_COUNT=0、SKIP_COUNT=0、REGRESSION_PASS=1、GO_TEST_EXIT=0（含 LS-03/03a/03b/05/06 结算链路与 #2510 五条新用例）",
+      "expected": "PASS",
+      "negative": "FAIL_COUNT=1 → FAIL",
+      "negative_result": "夹具 ID 域修正后既有套件仍全绿：断言值未变，仅修正 org/id 域归属",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2510.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2510/R7-build-scan.txt"
+      ],
+      "assert": "exit 0；grep BUILD_RC=0、OID_SITE_STRING_COMPARE=0、LIST_SCOPE_OID=0",
+      "actual": "PASS：BUILD_RC=0（cd backend && go build ./...）、OID_SITE_STRING_COMPARE=0、LIST_SCOPE_OID=0、CURRENT_SITE_HITS=4（判定处 + 日志/取值，无字符串比较）",
+      "expected": "PASS",
+      "negative": "BUILD_RC=1 或 OID_SITE_STRING_COMPARE=1 → FAIL",
+      "negative_result": "同类扫描：本文件已无 `CurrentSiteID.String() != oid` 比较；`List` 未消费 oid（跨网点可见性按 D4 转 #2514）",
+      "pass": true
+    }
+  ]
+}
