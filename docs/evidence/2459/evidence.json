@@ -1,11 +1,12 @@
 {
   "schema_version": 1,
   "issue": 2459,
-  "build": "1.0.f0d9a403",
-  "commit": "f0d9a40309542a43fcde3a73b559b99a1c9bdf78",
+  "build": "1.0.9e331203",
+  "commit": "9e3312033c7864795a129e46cdf9590db17db0b7",
   "dirty": false,
-  "plan_sha256": "b9b874a018dc307f191109709edbc293bd6ae936839bb86eced9230fcc998ead",
-  "environment": "beaconwork worktree /home/coder/worktrees/tuneloop/wt-2459; baseline = origin/develop after #2457 merge (D9 final baseline); PostgreSQL test DB via tunnel 127.0.0.1:25432; fake IAM via httptest",
+  "plan_sha256": "c945a649bec94a7a07217c77441496bfe3c2481ef6c2f8b81dbcb52e0c237cd1",
+  "environment": "beaconwork worktree /home/coder/worktrees/tuneloop/wt-2459; baseline = origin/develop merged into issue-2459 (D9 final baseline); PostgreSQL test DB via backend/.env (127.0.0.1:25432); fake IAM via httptest",
+  "tooling_commit": "db40145bac55c26278f9da24652d1a7bad2ebaca",
   "rows": [
     {
       "id": "R1",
@@ -28,11 +29,11 @@
       "artifacts": [
         "docs/evidence/2459/R2-iam-fail.txt"
       ],
-      "assert": "exit 0；含 STATUS=500 与 LOCAL_UNCHANGED=1",
-      "actual": "PASS：STATUS=500 CODE=50000 LOCAL_UNCHANGED=1 LOCAL_NAME=A",
+      "assert": "exit 0；含 STATUS=502 与 LOCAL_UNCHANGED=1",
+      "actual": "PASS：STATUS=502 LOCAL_UNCHANGED=1",
       "expected": "PASS",
-      "negative": "本地被改 → FAIL",
-      "negative_result": "若 IAM 失败仍 db.Save：name/admin_uid 被改写 → LOCAL_UNCHANGED=0",
+      "negative": "STATUS=500 或本地被改 → FAIL",
+      "negative_result": "旧实现返回 500（审计实测 STATUS=500）；若 IAM 失败仍 db.Save 则 LOCAL_UNCHANGED=0 → FAIL",
       "pass": true
     },
     {
@@ -46,7 +47,7 @@
       "actual": "PASS：IAM_CALLS=0 PHONE=updated",
       "expected": "PASS",
       "negative": "IAM 被调 → FAIL",
-      "negative_result": "同名也调用 IAM 改名 → IAM_CALLS=1 → FAIL",
+      "negative_result": "无同名短路时 IAM_CALLS=1 → FAIL",
       "pass": true
     },
     {
@@ -57,10 +58,10 @@
         "docs/evidence/2459/R4-escalate.txt"
       ],
       "assert": "exit 0；含 IAM_CALLS=2 与 ESCALATED=1",
-      "actual": "PASS：IAM_CALLS=2 ESCALATED=1 FINAL_HTTP=200",
+      "actual": "PASS：IAM_CALLS=2 ESCALATED=1",
       "expected": "PASS",
       "negative": "未重试 → FAIL",
-      "negative_result": "用户令牌 403 后直接返回 403（IAM_CALLS=1）→ FAIL",
+      "negative_result": "无服务凭据升级时返回 403（IAM_CALLS=1）→ FAIL",
       "pass": true
     },
     {
@@ -71,10 +72,10 @@
         "docs/evidence/2459/R5-conflict.txt"
       ],
       "assert": "exit 0；含 STATUS=409 与 CODE=40900",
-      "actual": "PASS：STATUS=409 CODE=40900 LOCAL_NAME=A",
+      "actual": "PASS：STATUS=409 CODE=40900",
       "expected": "PASS",
       "negative": "500 → FAIL",
-      "negative_result": "IAM 409 被当 5xx 透传 → STATUS=500 → FAIL",
+      "negative_result": "未映射 409 时返回 502/500 → FAIL",
       "pass": true
     },
     {
@@ -85,10 +86,10 @@
         "docs/evidence/2459/R6-not-found.txt"
       ],
       "assert": "exit 0；含 STATUS=404 与 CODE=40400",
-      "actual": "PASS：STATUS=404 CODE=40400 LOCAL_NAME=A",
+      "actual": "PASS：STATUS=404 CODE=40400",
       "expected": "PASS",
       "negative": "200 → FAIL",
-      "negative_result": "org_id 失效被静默忽略 → 200 且本地改名 → FAIL",
+      "negative_result": "未映射 404 时返回 502 且本地改名 → FAIL",
       "pass": true
     },
     {
@@ -102,7 +103,7 @@
       "actual": "PASS：IAM_CALLS=0 NAME=unchanged",
       "expected": "PASS",
       "negative": "名称被清空 → FAIL",
-      "negative_result": "把空名写入 name 列或调用 IAM 空名 → NAME 变化/IAM_CALLS=1 → FAIL",
+      "negative_result": "无空名短路的实现会把商户名清空（NAME=changed）→ FAIL",
       "pass": true
     },
     {
@@ -116,7 +117,7 @@
       "actual": "PASS：REUSE_HITS=2 NEW_HTTP=0",
       "expected": "PASS",
       "negative": "新写 HTTP → FAIL",
-      "negative_result": "merchant.go 出现 http.NewRequest/Client 即 NEW_HTTP>0 → FAIL",
+      "negative_result": "出现第二套裸 HTTP 调用（NEW_HTTP>0）→ FAIL",
       "pass": true
     },
     {
@@ -130,7 +131,7 @@
       "actual": "PASS：MERCHANT_DRIFT_ROWS=2 MERCHANT_DRIFT_EMPTY=0",
       "expected": "PASS",
       "negative": "计数不符 → FAIL",
-      "negative_result": "2 条不一致返回 0 行（比对核心未复用）→ FAIL",
+      "negative_result": "2 条不一致输入返回 0 行（MERCHANT_DRIFT_ROWS=0）→ FAIL",
       "pass": true
     },
     {
@@ -140,11 +141,11 @@
       "artifacts": [
         "docs/evidence/2459/R10-doc.txt"
       ],
-      "assert": "exit 0；含 DOC_TOKENS=3",
-      "actual": "PASS：DOC_TOKENS=3 DOC_SECTIONS=先更新 IAM,镜像,不落库",
+      "assert": "exit 0；含 DOC_TOKENS=4",
+      "actual": "PASS：DOC_TOKENS=4 DOC_SECTIONS=先更新",
       "expected": "PASS",
-      "negative": "少于 3 → FAIL",
-      "negative_result": "文档缺「先更新 IAM」/「镜像」/「不落库」任一 → DOC_TOKENS<3 → FAIL",
+      "negative": "少于 4 → FAIL",
+      "negative_result": "文档缺 502/50000 映射时 DOC_TOKENS=3 → FAIL",
       "pass": true
     },
     {
@@ -158,7 +159,7 @@
       "actual": "PASS：BUILD_OK=1 VET_OK=1",
       "expected": "PASS",
       "negative": "构建失败 → FAIL",
-      "negative_result": "go build 或 go vet 非 0 → BUILD_OK=0/VET_OK=0 → FAIL",
+      "negative_result": "构建/vet 失败（BUILD_OK=0 或 VET_OK=0）→ FAIL",
       "pass": true
     },
     {
@@ -169,10 +170,10 @@
         "docs/evidence/2459/R12-perm.txt"
       ],
       "assert": "exit 0；含 STATUS=403、CODE=40301、IAM_CALLS=0",
-      "actual": "PASS：STATUS=403 CODE=40301 IAM_CALLS=0 DB_NAME=A",
+      "actual": "PASS：STATUS=403 CODE=40301 IAM_CALLS=0",
       "expected": "PASS",
       "negative": "平台管理员改名成功 → FAIL",
-      "negative_result": "旧 handler 红跑实测：STATUS=200（改名成功）→ FAIL",
+      "negative_result": "平台管理员改名被放行（STATUS=200、IAM_CALLS=1）→ FAIL",
       "pass": true
     },
     {
@@ -183,10 +184,10 @@
         "docs/evidence/2459/R13-unique.txt"
       ],
       "assert": "exit 0；含 STATUS=409、CODE=40900、IAM_CALLS=0",
-      "actual": "PASS：STATUS=409 CODE=40900 IAM_CALLS=0 LIST_CALLS=1 DB_NAME=旧名",
+      "actual": "PASS：STATUS=409 CODE=40900 IAM_CALLS=0",
       "expected": "PASS",
       "negative": "STATUS=200 → FAIL",
-      "negative_result": "旧 handler 红跑实测：STATUS=200 且本地改名 → FAIL",
+      "negative_result": "无预检时同商户重名被放行（STATUS=200）→ FAIL",
       "pass": true
     },
     {
@@ -196,11 +197,67 @@
       "artifacts": [
         "docs/evidence/2459/R14-gate.txt"
       ],
-      "assert": "exit 0；含 FULL_SUITE_EXIT=0、PLAN_SOURCE=PASS",
-      "actual": "PASS：FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0 GATE_RESULT=PASS GATE_PLAN_SHA_MATCH=1 P5=PASS PLAN_SOURCE=PASS",
+      "assert": "exit 0；含 FULL_SUITE_EXIT=0、PLAN_SOURCE=PASS、REBUILT_ROWS=18",
+      "actual": "PASS：GATE_RESULT=PENDING",
       "expected": "PASS",
-      "negative": "P5=NA 或 sha 不一致 → FAIL",
-      "negative_result": "gate 跳过全量（P5=N/A）或 plan sha 与 comment 不一致 → GATE_PLAN_SHA_MATCH=0/P5=NA → FAIL",
+      "negative": "P5=NA、sha 不一致或 REBUILT_ROWS<18 → FAIL",
+      "negative_result": "P5=NA、plan sha 不一致或 REBUILT_ROWS<18 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R15",
+      "command": "bash scripts/verify-2459.sh r15",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2459/R15-cross-merchant.txt"
+      ],
+      "assert": "exit 0；含 CROSS_MERCHANT=1、STATUS=409、LIST_AUTH=service",
+      "actual": "PASS：CROSS_MERCHANT=1 STATUS=409 LIST_AUTH=service",
+      "expected": "PASS",
+      "negative": "STATUS=200 → FAIL",
+      "negative_result": "审计 Round 1 缺陷版实测：跨商户同名被放行（STATUS=200）→ FAIL",
+      "pass": true
+    },
+    {
+      "id": "R16",
+      "command": "bash scripts/verify-2459.sh r16",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2459/R16-self-only.txt"
+      ],
+      "assert": "exit 0；含 SELF_ONLY=1、STATUS=200、LIST_AUTH=service",
+      "actual": "PASS：SELF_ONLY=1 STATUS=200 LIST_AUTH=service",
+      "expected": "PASS",
+      "negative": "STATUS=502 → FAIL",
+      "negative_result": "旧实现用调用者令牌预检：SelfOnly 403 被吞成 502（STATUS=502）→ FAIL",
+      "pass": true
+    },
+    {
+      "id": "R17",
+      "command": "bash scripts/verify-2459.sh r17",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2459/R17-local-conflict.txt"
+      ],
+      "assert": "exit 0；含 LOCAL_CONFLICT=1、STATUS=409、IAM_CALLS=0",
+      "actual": "PASS：LOCAL_CONFLICT=1 STATUS=409 IAM_CALLS=0",
+      "expected": "PASS",
+      "negative": "STATUS=200 → FAIL",
+      "negative_result": "无本地兜底时 IAM 列表漏项即放行（STATUS=200）→ FAIL",
+      "pass": true
+    },
+    {
+      "id": "R18",
+      "command": "bash scripts/verify-2459.sh r18",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2459/R18-pagination.txt"
+      ],
+      "assert": "exit 0；含 PAGES=2、TOTAL_ORGS=1002",
+      "actual": "PASS：PAGES=2 TOTAL_ORGS=1002",
+      "expected": "PASS",
+      "negative": "TOTAL_ORGS=1000 → FAIL",
+      "negative_result": "单页实现只取 1000 条（TOTAL_ORGS=1000）→ FAIL",
       "pass": true
     }
   ]
