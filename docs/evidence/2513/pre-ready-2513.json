@@ -1,16 +1,16 @@
 {
   "issue": 2513,
   "overall": "PASS",
-  "plan": "/home/coder/worktrees/tuneloop/wt-2513/tmp/pre-ready-2513.AYyb6f/plan.md",
-  "plan_sha256": "1c5a5dfd140167330bda5e9a1f986f49b7fbc5767d50e1487f92b635086ef021",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2513/tmp/pre-ready-2513.GEEcaY/plan.md",
+  "plan_sha256": "571da7958df327d3c224d67c8b089918b862ecc5ba3aeffc24eaf82d7c7ebcd8",
   "config_sha": "f663626b8fe3895a49dffa4c43266664546741db",
   "provenance": {
-    "build": "1.0.d7a3cecc",
-    "commit": "d7a3cecc2c7342a9d9b9777347345f1f6924eb41",
+    "build": "1.0.27d9cf29",
+    "commit": "27d9cf29e10fdbce00686d686575d9c071118648",
     "dirty": false
   },
   "summary": "docs/evidence/2513/summary.md",
-  "timestamp": "20261125-190328",
+  "timestamp": "20261125-192700",
   "checks": [
     {
       "id": "P1",
