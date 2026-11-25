@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2504,
-  "build": "1.0.d741315f",
-  "commit": "d741315f51b54872684bafa3f3779d007c4a0615",
+  "build": "1.0.9ee0eef8",
+  "commit": "9ee0eef85e77817fae9c6e84278d8e862724876f",
   "dirty": false,
   "plan_sha256": "e459f99ad1151e595ea85d9cbb586f6d0b87aefeb6fc7b3bbbbbf90dc3019996",
   "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2504 (branch issue-2504, base origin/develop b6c6d3c41); node 20.20.2; node --test for PC/mobile resolvers; PC vite build + PC/mobile eslint; scripts/verify-2480.sh r1-r4 re-run for R7; no backend/network calls",
