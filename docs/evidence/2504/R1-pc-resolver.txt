@@ -1,0 +1,12 @@
+# build=1.0.9ee0eef8 # commit=9ee0eef85e77817fae9c6e84278d8e862724876f # dirty=false
+TEST_CMD=node --test frontend-pc/tests/errorMessages.test.mjs
+TEST_EXIT=0
+TESTS_FAIL=0
+L40303=code_map
+C40303=暂无权限访问该页面
+L49999_ASCII=fallback
+C49999_ASCII=操作失败，请重试
+LAYERS=human_message,code_map,code_map,human_message,message_map,fallback,fallback,human_message
+LEAK=0
+RESULT: PASS
+

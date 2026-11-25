@@ -107,8 +107,8 @@ case "$MODE" in
       'C40900_EMPTY=数据冲突，请刷新后重试' \
       'C40912_CN=学生证作为第二证件需介绍信' \
       'C_L1=未找到订单' 'C_NULL=操作失败，请重试' \
-      'C49999_ASCII=unknown conflict' \
-      'LAYERS=human_message,code_map,code_map,human_message,message_map,fallback,raw_message,human_message' || RC=1
+      'C49999_ASCII=操作失败，请重试' \
+      'LAYERS=human_message,code_map,code_map,human_message,message_map,fallback,fallback,human_message' || RC=1
     # 负例：具体文案仍被通用文案遮蔽 → FAIL
     forbid "$LOG" 'C40900_CN=数据冲突，请刷新后重试' || RC=1
     ;;
@@ -122,7 +122,7 @@ case "$MODE" in
     require_tokens "$LOG" \
       'L_CN=human_message' 'L_ASCII=code_map' 'L_EMPTY=code_map' \
       'L_40912=human_message' 'L_NULL=fallback' \
-      'LAYERS=human_message,code_map,code_map,human_message,message_map,fallback,raw_message,human_message' || RC=1
+      'LAYERS=human_message,code_map,code_map,human_message,message_map,fallback,fallback,human_message' || RC=1
     # 负例：mobile 层序与 PC 不一致 → FAIL（LAYERS 逐字比对已在上面锁定）
     forbid "$LOG" 'L_CN=code_map' || RC=1
     ;;
@@ -133,7 +133,7 @@ case "$MODE" in
       echo "PARITY_EXIT=$?"
     } > "$LOG" 2>&1
     grep -q '^PARITY_EXIT=0$' "$LOG" || RC=1
-    require_tokens "$LOG" 'PARITY=1' 'CASES=10' 'DIFFS=0' || RC=1
+    require_tokens "$LOG" 'PARITY=1' 'CASES=12' 'DIFFS=0' || RC=1
     forbid "$LOG" 'PARITY=0' || RC=1
     ;;
   r4)
