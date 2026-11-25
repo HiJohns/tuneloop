@@ -1,6 +1,6 @@
 {
   "issue": 2459,
-  "overall": "FAIL",
+  "overall": "PASS",
   "plan": "/home/coder/worktrees/tuneloop/wt-2459/docs/evidence/2459/plan.md",
   "plan_sha256": "c945a649bec94a7a07217c77441496bfe3c2481ef6c2f8b81dbcb52e0c237cd1",
   "config_sha": "db40145bac55c26278f9da24652d1a7bad2ebaca",
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "/home/coder/worktrees/tuneloop/wt-2459/tmp/work-summary-2459.md",
-  "timestamp": "20261125-062104",
+  "timestamp": "20261125-071516",
   "checks": [
     {
       "id": "P1",
@@ -24,8 +24,8 @@
     },
     {
       "id": "P3",
-      "status": "FAIL",
-      "detail": "evidence paths do not exist: R1-iam-first.txt R10-doc.txt R11-build.txt R12-perm.txt R13-unique.txt R14-gate.txt R15-cross-merchant.txt R16-self-only.txt R17-local-conflict.txt R18-pagination.txt R2-iam-fail.txt R3-idempotent.txt R4-escalate.txt R5-conflict.txt R6-not-found.txt R7-empty-name.txt R8-reuse.txt R9-drift.txt evidence.json iam_client.go main.go matrix_parser.sh merchants.name plan-source.sh plan.md pre-ready-2459.json pre-ready-check.sh site.go site_name_drift.go verify-2459.sh"
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
     },
     {
       "id": "P4",
@@ -65,7 +65,7 @@
     {
       "id": "P5",
       "status": "PASS",
-      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (eb6579802e7f1083586a6428fef344c4c6c110bc); source head=run baseline=cache"
+      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (eb6579802e7f1083586a6428fef344c4c6c110bc); source head=cache(reused:non-input) baseline=cache"
     },
     {
       "id": "P6",
