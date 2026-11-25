@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, notificationApi, resolveLogin , resolveErrorMessage } from '../services/api'
-import { identityBadgeText, roleBadgeTextFromRoles } from '../utils/identity'
+import { identityBadgeText, roleBadgeTextFromRoles, isStaffBadgeVisible } from '../utils/identity'
 import { env, storage, session, eventBus, wxLogin, dialog } from '../platform'
 import { parseJWT } from '../platform/init'
 import BottomNav from '../components-weapp/BottomNav'
@@ -420,7 +420,7 @@ export default function Profile() {
                     color: isStaff ? '#1e3a8a' : '#71717a',
                     backgroundColor: isStaff ? '#e0e7ff' : '#f4f4f5',
                   }}>
-                    {isStaff
+                    {isStaffBadgeVisible(claims.role)
                       ? identityBadgeText({ tenantName: user?.tenant_name, siteName: user?.site_name, roles: myRoles, isStaff })
                       : roleBadgeText}
                   </Text>

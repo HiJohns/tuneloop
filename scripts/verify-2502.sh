@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 # scripts/verify-2502.sh — #2502 移动端「我的」身份徽标（商户名 · 网点名 · 职位）证据生成器。
 #
-# 用法：bash scripts/verify-2502.sh <r1|r2|r3|r4|r5|r6|r7>
+# 用法：bash scripts/verify-2502.sh <r1|r2|r3|r4|r5|r6|r7|r9|r10|r11|r12|r13>
 #
 # 每行把结果写入 docs/evidence/2502/R*-*.txt（首行为 PROVENANCE），并打印机器可
 # 判定的断言键值；任一行断言不成立以非 0 退出。
 #
-# - r1–r5 走 vitest 页烟测试（scripts/page-smoke/profile-identity-badge-2502.test.jsx，
+# - r1–r5、r13 走 vitest 页烟测试（scripts/page-smoke/profile-identity-badge-2502.test.jsx，
 #   用 `-t` 只跑对应用例；用例通过 process.stdout.write 输出 KEY=value）；
 # - r6 走 npx eslint（3 个改动 JS 文件）；
-# - r7 静态核对 ui/api/h5-weapp-differences 三篇文档。
+# - r7 静态核对 ui/api/h5-weapp-differences 三篇文档；
+# - r9/r10 自持移动端构建（build:h5 / build:weapp，Node 22）；r11 全量页烟；
+# - r12 校验 canonical gate 报告（docs/evidence/2502/pre-ready-2502.json）为 PASS。
 # R8（pre-ready gate）由 canonical pre-ready-check.sh 产出，不在此脚本内。
 set -uo pipefail
 
@@ -29,7 +31,7 @@ DIFF_DOC="docs/cases/h5-weapp-differences.md"
 
 mkdir -p "$OUT_DIR" "$REPO_ROOT/tmp"
 
-usage() { echo "usage: $0 <r1|r2|r3|r4|r5|r6|r7>" >&2; exit 2; }
+usage() { echo "usage: $0 <r1|r2|r3|r4|r5|r6|r7|r9|r10|r11|r12|r13>" >&2; exit 2; }
 [ -n "$ROW" ] || usage
 
 # Node 22（Taro v4 / vitest 兼容；AGENTS.md「Node.js 版本要求」）
@@ -164,6 +166,143 @@ r7)
     [ "$ui" = "1" ] && [ "$api" = "1" ] && [ "$diff" = "1" ] || rc=1
     body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
     finish R7-docs.txt "$rc" "$body"
+    ;;
+r13)
+    body="" rc=0
+    log="$REPO_ROOT/tmp/verify-${ISSUE}-${ROW}.log"
+    (
+        cd "$REPO_ROOT/frontend-mobile" || exit 2
+        run_heavy npx vitest run --config vitest.config.js "$TEST_FILE" -t 'TestProfileBadgeLegacyCustomer_2502' --reporter=verbose
+    ) > "$log" 2>&1
+    test_rc=$?
+    absent="$(kv "$log" ORG_ABSENT_BOTH_ENDS)"
+    body+="TEST_FILE=$TEST_FILE"$'\n'
+    body+="TEST_PATTERN=TestProfileBadgeLegacyCustomer_2502"$'\n'
+    body+="TEST_EXIT=$test_rc"$'\n'
+    body+="ORG_ABSENT_BOTH_ENDS=$absent"$'\n'
+    [ "$test_rc" = "0" ] || rc=1
+    grep -qE "Tests[[:space:]]+[1-9][0-9]* passed" "$log" || rc=1
+    [ "$absent" = "1" ] || rc=1
+    body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
+    finish R13-legacy-customer.txt "$rc" "$body"
+    ;;
+r9)
+    # 计划 R9 的入口 = `npm run build:h5`（Taro H5），期望结果 = `dist/index.html` 含新 hash。
+    # 本仓 `taro` 的 outputRoot 为 dist-h5（无 HTML 入口），发布用 H5 包由 vite `npm run build`
+    # 产出到 dist/（Makefile:206-207）→ 两条都跑，使 R9 的入口与产物两列同时成立。
+    body="" rc=0
+    log="$REPO_ROOT/tmp/verify-${ISSUE}-r9-build-h5.log"
+    vite_log="$REPO_ROOT/tmp/verify-${ISSUE}-r9-build-vite.log"
+    index_html="$REPO_ROOT/frontend-mobile/dist/index.html"
+    taro_app="$REPO_ROOT/frontend-mobile/dist-h5/js/app.js"
+    rm -rf "$REPO_ROOT/frontend-mobile/dist" "$REPO_ROOT/frontend-mobile/dist-h5"
+    (
+        cd "$REPO_ROOT/frontend-mobile" || exit 2
+        run_heavy npm run build:h5
+    ) > "$log" 2>&1
+    build_exit=$?
+    (
+        cd "$REPO_ROOT/frontend-mobile" || exit 2
+        run_heavy npm run build
+    ) > "$vite_log" 2>&1
+    vite_exit=$?
+    hash="missing"
+    if [ -f "$index_html" ]; then
+        hash="$(grep -oE '(assets|src)/[A-Za-z0-9_./-]+\.js' "$index_html" | head -1)"
+        [ -n "$hash" ] || hash="missing"
+    fi
+    taro_helper="0"
+    [ -f "$taro_app" ] && taro_helper="$(grep -c "维修师傅" "$taro_app" 2>/dev/null || true)"
+    dist_helper="0"
+    if [ -d "$REPO_ROOT/frontend-mobile/dist/assets" ]; then
+        dist_helper="$(grep -rl "维修师傅" "$REPO_ROOT/frontend-mobile/dist/assets" 2>/dev/null | wc -l | tr -d ' ')"
+    fi
+    body+="BUILD_CMD=cd frontend-mobile && npm run build:h5"$'\n'
+    body+="BUILD_EXIT=$build_exit"$'\n'
+    body+="TARO_H5_BUNDLE=$([ -f "$taro_app" ] && echo present || echo missing)"$'\n'
+    body+="TARO_H5_ROLE_LABEL_HITS=${taro_helper:-0}"$'\n'
+    body+="DIST_ASSETS_WITH_ROLE_LABEL=${dist_helper:-0}"$'\n'
+    body+="VITE_BUILD_CMD=cd frontend-mobile && npm run build"$'\n'
+    body+="VITE_BUILD_EXIT=$vite_exit"$'\n'
+    body+="H5_INDEX_HTML=$([ -f "$index_html" ] && echo present || echo missing)"$'\n'
+    body+="H5_BUNDLE_HASH=$hash"$'\n'
+    [ "$build_exit" = "0" ] || rc=1
+    [ "$vite_exit" = "0" ] || rc=1
+    [ "${dist_helper:-0}" -ge 1 ] || rc=1
+    [ -f "$index_html" ] || rc=1
+    [ "$hash" != "missing" ] || rc=1
+    if [ "$rc" = "0" ]; then body+="BUILD_H5_OK"$'\n'; fi
+    body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
+    finish R9-build-h5.txt "$rc" "$body"
+    ;;
+r10)
+    body="" rc=0
+    log="$REPO_ROOT/tmp/verify-${ISSUE}-r10-build-weapp.log"
+    profile_js="$REPO_ROOT/frontend-mobile/dist-weapp/pages-weapp/profile/index.js"
+    rm -rf "$REPO_ROOT/frontend-mobile/dist-weapp"
+    (
+        cd "$REPO_ROOT/frontend-mobile" || exit 2
+        run_heavy npm run build:weapp
+    ) > "$log" 2>&1
+    build_exit=$?
+    helper_refs="0"
+    size="0"
+    if [ -f "$profile_js" ]; then
+        size="$(wc -c < "$profile_js" | tr -d ' ')"
+        helper_refs="$(grep -c "identityBadgeText" "$profile_js" 2>/dev/null || true)"
+    fi
+    body+="BUILD_CMD=cd frontend-mobile && npm run build:weapp"$'\n'
+    body+="BUILD_EXIT=$build_exit"$'\n'
+    body+="WEAPP_PROFILE_BUNDLE=$([ -f "$profile_js" ] && echo present || echo missing)"$'\n'
+    body+="WEAPP_PROFILE_BYTES=$size"$'\n'
+    body+="HELPER_REF_COUNT=${helper_refs:-0}"$'\n'
+    [ "$build_exit" = "0" ] || rc=1
+    [ -f "$profile_js" ] || rc=1
+    [ "${helper_refs:-0}" -ge 1 ] || rc=1
+    if [ "$rc" = "0" ]; then body+="BUILD_WEAPP_OK"$'\n'; fi
+    body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
+    finish R10-build-weapp.txt "$rc" "$body"
+    ;;
+r11)
+    body="" rc=0
+    log="$REPO_ROOT/tmp/verify-${ISSUE}-r11-smoke.log"
+    (
+        cd "$REPO_ROOT/frontend-mobile" || exit 2
+        run_heavy npm run smoke
+    ) > "$log" 2>&1
+    smoke_exit=$?
+    fails="$(sed -nE 's/^[[:space:]]*Tests[[:space:]]+([0-9]+) failed.*/\1/p' "$log" | tail -1)"
+    [ -n "$fails" ] || fails=0
+    passed="$(sed -nE 's/^[[:space:]]*Tests[[:space:]]+([0-9]+) passed.*/\1/p' "$log" | tail -1)"
+    body+="SMOKE_CMD=cd frontend-mobile && npm run smoke"$'\n'
+    body+="SMOKE_EXIT=$smoke_exit"$'\n'
+    body+="TESTS_PASSED=${passed:-0}"$'\n'
+    body+="TESTS_FAIL=$fails"$'\n'
+    [ "$smoke_exit" = "0" ] || rc=1
+    [ "$fails" = "0" ] || rc=1
+    [ "${passed:-0}" -ge 1 ] || rc=1
+    body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
+    finish R11-smoke.txt "$rc" "$body"
+    ;;
+r12)
+    body="" rc=0
+    report="$OUT_DIR/pre-ready-$ISSUE.json"
+    overall="missing"
+    dirty="missing"
+    if [ -f "$report" ]; then
+        overall="$(python3 -c "import json,sys;d=json.load(open(sys.argv[1]));print(d.get('overall','missing'))" "$report" 2>/dev/null || echo missing)"
+        dirty="$(python3 -c "import json,sys;d=json.load(open(sys.argv[1]));print(str((d.get('provenance') or {}).get('dirty','missing')).lower())" "$report" 2>/dev/null || echo missing)"
+    fi
+    body+="REPORT=$report"$'\n'
+    body+="OVERALL=$overall"$'\n'
+    body+="PROVENANCE_DIRTY=$dirty"$'\n'
+    [ "$overall" = "PASS" ] || rc=1
+    [ "$dirty" = "false" ] || rc=1
+    body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
+    # R12 的产物就是 gate 报告本身（canonical pre-ready 输出），此处只校验不覆写。
+    printf '%s\n' "$body"
+    [ "$rc" = "0" ] || exit 1
+    exit 0
     ;;
 *)
     usage

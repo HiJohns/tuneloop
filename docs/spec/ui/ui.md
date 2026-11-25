@@ -680,6 +680,7 @@ setInterval(() => {
 - **回退**：缺任一组织段 → 只显示另一项；两者都缺 → 只显示职位；**禁止**渲染 `undefined`/`null`，也禁止出现前导/尾随 ` · `。
 - **职位标签**：`site_admin` → 管理员、`site_member` → 员工、`repair_technician` → 维修师傅（多角色以 ` · ` 连接）；无匹配角色 → 员工；非员工 → 顾客。
 - **双端一致**：H5（`pages/Profile.jsx`）与 weapp（`pages-weapp/Profile.jsx`）同文案、同顺序，统一由 `frontend-mobile/src/utils/identity.js` 的 `identityBadgeText()` 产出（禁止页面各自拼口径）。weapp 多身份顾客的「顾客」徽标 H5 无（H5 无 `login_contexts`），登记为 `docs/cases/h5-weapp-differences.md` A23。
+- **可见性（#2502 D6）**：徽标仅在员工上下文显示——JWT `role` 非空且非 `USER`/`GUEST`（与 weapp `isStaff`、后端 `GetBusinessRole` 同口径，`isStaffBadgeVisible()`）。遗留 token 即使 `oid`/`tid` 非空但 `role=USER`，两端都不得显示商户/网点名。
 
 #### 顾客视图
 

@@ -169,6 +169,43 @@ describe('profile identity badge (#2502)', () => {
     out('NO_TENANT_LEAK', '1')
   })
 
+  it('TestProfileBadgeLegacyCustomer_2502 hides org identity for legacy USER+org tokens', async () => {
+    // #2502 R13：遗留 token（role=USER 但带 oid/tid）+ /users/me 带组织名。
+    // H5 的 isStaffRole 以 oid/tid 判定员工 → 徽标必须仍按 role 判定，两端都不得展示组织名。
+    const legacyToken = makeToken({
+      sub: 'user-3',
+      user_id: 'user-3',
+      role: 'USER',
+      oid: 'org-1',
+      tid: 'tenant-1',
+      exp: Math.floor(Date.now() / 1000) + 86400,
+    })
+    window.localStorage.setItem('token', legacyToken)
+    installFetch({ user: STAFF_FIXTURE, member: { roles: [], sites: [] } })
+
+    renderH5()
+    await waitFor(() => expect(document.body.textContent).toContain('路人'))
+    const h5Text = document.body.textContent || ''
+    expect(h5Text).not.toContain('cadenza')
+    expect(h5Text).not.toContain('卡丹萨乐器')
+
+    cleanup()
+
+    renderWeapp()
+    await waitFor(() => expect(document.body.textContent).toContain('路人'))
+    const weappText = document.body.textContent || ''
+    expect(weappText).not.toContain('cadenza')
+    expect(weappText).not.toContain('卡丹萨乐器')
+
+    const absentBothEnds = !h5Text.includes('cadenza') &&
+      !h5Text.includes('卡丹萨乐器') &&
+      !weappText.includes('cadenza') &&
+      !weappText.includes('卡丹萨乐器')
+    expect(absentBothEnds).toBe(true)
+
+    out('ORG_ABSENT_BOTH_ENDS', absentBothEnds ? '1' : '0')
+  })
+
   it('TestIdentityHelperRedGreen_2502 proves old text dropped the merchant name', () => {
     expect(formatOrgIdentity('a', 'b')).toBe('a · b')
     expect(formatOrgIdentity('', 'b')).toBe('b')

@@ -3,9 +3,9 @@ import Taro from '@tarojs/taro'
 import { useNavigate } from 'react-router-dom'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, notificationApi , resolveErrorMessage } from '../services/api'
-import { identityBadgeText } from '../utils/identity'
+import { identityBadgeText, isStaffBadgeVisible } from '../utils/identity'
 import { env, storage, session, toWeappRoute, getInputValue, eventBus, useDidShow } from '../platform'
-import { getAppConfig } from '../platform/init'
+import { getAppConfig, parseJWT } from '../platform/init'
 import { isStaffRole } from '../utils/role'
 import BottomNav from '../components/BottomNav'
 import JoinSiteModal from '../components/JoinSiteModal'
@@ -239,6 +239,9 @@ export default function Profile() {
   const displayName = user?.nickname || user?.name || user?.username || '路人'
   const token = getToken()
   const isStaff = isStaffRole(token)
+  // #2502 D6：头部徽标可见性单独判定（`role` 非空且非 USER/GUEST）；
+  // 遗留「USER + oid/tid」token 下 `isStaffRole` 为真，但徽标不得展示组织名（R13）。
+  const showStaffBadge = isStaffBadgeVisible((parseJWT(token) || {}).role)
   // #2089：金刚区角色判定（纯维修师 / 员工兼师傅）
   const isTech = myRoles.includes('repair_technician')
   const hasSiteRole = myRoles.some(r => ['site_admin', 'site_member'].includes(r))
@@ -330,9 +333,9 @@ export default function Profile() {
                   <Text className="text-sm text-zinc-500">{user?.phone || '未绑定手机'}</Text>
                 )}
               </View>
-              {isStaff && (
+              {showStaffBadge && (
                 <Text className="text-xs text-zinc-400 mt-1">
-                  {identityBadgeText({ tenantName: user?.tenant_name, siteName: user?.site_name, roles: myRoles, isStaff })}
+                  {identityBadgeText({ tenantName: user?.tenant_name, siteName: user?.site_name, roles: myRoles, isStaff: showStaffBadge })}
                 </Text>
               )}
               {user?.membership_level_id && (

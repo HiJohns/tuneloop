@@ -25,3 +25,11 @@ export function roleBadgeTextFromRoles(roles = [], isStaff = false) {
 export function identityBadgeText({ tenantName, siteName, roles = [], isStaff = false } = {}) {
   return [formatOrgIdentity(tenantName, siteName), roleBadgeTextFromRoles(roles, isStaff)].filter(Boolean).join(' · ')
 }
+
+// 徽标可见性（#2502 D6）：角色非空且非顾客/访客 —— 与 weapp `isStaff`、后端
+// GetBusinessRole 一致。H5 的 `isStaffRole` 以 `oid`/`tid` 非空判定员工，遇到
+// 遗留「USER + 组织声明」token 会把组织名当员工身份展示（#2502 R13），因此徽标
+// 单独使用本谓词，不改动金刚区/BottomNav 的既有判定（D7）。
+export function isStaffBadgeVisible(role) {
+  return !!role && role !== 'USER' && role !== 'GUEST'
+}
