@@ -2,7 +2,8 @@
 # Evidence generator for #2513 (S5 维修服务 site 过滤/守卫 ID 域修复).
 #
 # Rows: r1 r2 r3 r4 (定向用例 + 特征串扫描), r5 (既有维修服务套件回归),
-#       r6 (构建 + 同类扫描), gate (供 pre-ready --full-gate-cmd 使用).
+#       r6 (构建 + 同类扫描), gate (供 pre-ready --full-gate-cmd 使用),
+#       ledger (从最新 fix commit 派生 evidence.json 的 build/commit/dirty 并执行 R7 断言).
 #
 # 用法（证据生成必须在该单 fix commit 之后、干净树上执行）：
 #   bash scripts/verify-2513.sh r1 > docs/evidence/2513/R1-pending-dispatch.txt
@@ -21,13 +22,18 @@ if ! command -v go >/dev/null 2>&1; then
   done
 fi
 
-SHORT="$(git -C "$ROOT_DIR" rev-parse --short=8 HEAD)"
-COMMIT="$(git -C "$ROOT_DIR" rev-parse HEAD)"
-if [ -n "$(git -C "$ROOT_DIR" status --porcelain --untracked-files=no)" ]; then
+# Provenance 锚定本单最新的 fix commit（P12/P13 口径一致）：证据在 fix commit
+# 之后重新生成时锚点不变；只允许证据目录与 tmp/ 处于未提交状态。
+COMMIT="$(git -C "$ROOT_DIR" log --format=%H --grep="^fix(issue-2513)" -1 2>/dev/null || true)"
+[ -n "$COMMIT" ] || COMMIT="$(git -C "$ROOT_DIR" rev-parse HEAD)"
+SHORT="$(git -C "$ROOT_DIR" rev-parse --short=8 "$COMMIT")"
+if [ -n "$(git -C "$ROOT_DIR" status --porcelain --untracked-files=no -- . \
+  ":(exclude)docs/evidence/2513" ':(exclude)tmp')" ]; then
   DIRTY="true"
 else
   DIRTY="false"
 fi
+FIX_COMMIT="$COMMIT"
 
 provenance() {
   echo "# build=1.0.$SHORT # commit=$COMMIT # dirty=$DIRTY"
@@ -58,9 +64,11 @@ row_r1() {
     fail_row R1 "test-not-pass"
   fi
   echo "MERCHANT_ROWS=$(marker MERCHANT_ROWS "$out")"
+  echo "MERCHANT_STAFF_ROWS=$(marker MERCHANT_STAFF_ROWS "$out")"
   echo "LEGACY_VISIBLE=$(marker LEGACY_VISIBLE "$out")"
   echo "OLD_SITE_EQ_OID_ROWS=$(marker OLD_SITE_EQ_OID_ROWS "$out")"
   [ "$(marker MERCHANT_ROWS "$out")" = "2" ] || fail_row R1 "merchant-rows-not-2"
+  [ "$(marker MERCHANT_STAFF_ROWS "$out")" = "2" ] || fail_row R1 "merchant-staff-rows-not-2"
   [ "$(marker LEGACY_VISIBLE "$out")" = "1" ] || fail_row R1 "legacy-not-visible"
   echo "R1_OK"
 }
@@ -178,6 +186,62 @@ row_gate() {
   echo "GATE_OK"
 }
 
+# 账本（evidence.json）锚点派生：禁止手改 build/commit/dirty（Round 1 审计 Bug 1）。
+# 从最新 fix commit + artifact provenance 派生并写回，同时执行 R7 的可执行断言。
+# 用法：ledger [--require-gate]（--require-gate 追加校验 gate 报告 provenance == fix commit）
+row_ledger() {
+  local require_gate="${1:-}"
+  local outdir="$ROOT_DIR/docs/evidence/2513"
+  local ev="$outdir/evidence.json"
+  local gate="$outdir/pre-ready-2513.json"
+  local want line f rid count total passcount gate_commit dirty_json
+  want="# build=1.0.$SHORT # commit=$FIX_COMMIT # dirty=$DIRTY"
+
+  if [ "$DIRTY" = "true" ]; then
+    fail_row LEDGER "working-tree-dirty(git status must be clean except docs/evidence/2513, tmp/)"
+  fi
+
+  for f in R1-pending-dispatch.txt R2-list-tasks-site.txt R3-staff-allowed.txt \
+           R4-negative.txt R5-regression.txt R6-build-scan.txt; do
+    [ -f "$outdir/$f" ] || fail_row LEDGER "artifact-missing:$f"
+    line="$(head -1 "$outdir/$f")"
+    [ "$line" = "$want" ] || fail_row LEDGER "artifact-provenance-mismatch:$f"
+  done
+  echo "ARTIFACT_PROVENANCE=OK"
+
+  if [ "$DIRTY" = "true" ]; then dirty_json=true; else dirty_json=false; fi
+  if ! jq --arg build "1.0.$SHORT" --arg commit "$FIX_COMMIT" --argjson dirty "$dirty_json" \
+      '.build = $build | .commit = $commit | .dirty = $dirty' "$ev" > "$ev.tmp.$$"; then
+    rm -f "$ev.tmp.$$"
+    fail_row LEDGER "evidence-json-rewrite-failed"
+  fi
+  mv "$ev.tmp.$$" "$ev"
+  echo "LEDGER_BUILD=1.0.$SHORT"
+  echo "LEDGER_COMMIT=$FIX_COMMIT"
+  echo "LEDGER_DIRTY=$DIRTY"
+
+  total="$(jq -r '.rows | length' "$ev")"
+  passcount="$(jq -r '[.rows[] | select(.pass == true)] | length' "$ev")"
+  for rid in R1 R2 R3 R4 R5 R6 R7; do
+    count="$(jq -r --arg id "$rid" '[.rows[] | select(.id == $id)] | length' "$ev")"
+    [ "$count" = "1" ] || fail_row LEDGER "row-${rid}-count=${count}"
+  done
+  [ "$passcount" = "$total" ] || fail_row LEDGER "rows-not-all-pass:${passcount}/${total}"
+  echo "LEDGER_ROWS=$passcount/$total"
+
+  [ -f "$gate" ] || fail_row LEDGER "gate-report-missing"
+  # 可执行断言（Round 1 审计 Bug 1）：gate 报告顶层键是 overall
+  jq -e '.overall == "PASS"' "$gate" >/dev/null || fail_row LEDGER "gate-not-pass"
+  echo "GATE_OVERALL=PASS"
+
+  if [ "$require_gate" = "--require-gate" ]; then
+    gate_commit="$(jq -r '.provenance.commit // empty' "$gate")"
+    [ "$gate_commit" = "$FIX_COMMIT" ] || fail_row LEDGER "gate-report-stale:${gate_commit:-missing}"
+    echo "GATE_PROVENANCE_COMMIT=$gate_commit"
+  fi
+  echo "LEDGER_OK"
+}
+
 main() {
   local row="${1:-}"
   provenance
@@ -189,8 +253,9 @@ main() {
     r5) row_r5 ;;
     r6) row_r6 ;;
     gate) row_gate ;;
+    ledger) row_ledger "${2:-}" ;;
     *)
-      echo "usage: $0 r1|r2|r3|r4|r5|r6|gate" >&2
+      echo "usage: $0 r1|r2|r3|r4|r5|r6|gate|ledger [--require-gate]" >&2
       exit 2
       ;;
   esac

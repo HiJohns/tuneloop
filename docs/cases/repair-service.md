@@ -138,7 +138,8 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 - **调用 / 获取（员工）**
   - `POST /api/repair-services/:id/legs {leg, logistics_fee_cents}`
   - 待发回清单：`GET /api/repair-services?scope=site&status=done_repair`　**【RS-API-2】**（现 `GET /api/repair-services/pending-dispatch` 保留兼容）
-  - **兼容入口同口径**（#2513）：`pending-dispatch` 与 `scope=site&status=done_repair` 使用同一闸门与同一归属集合（`tenant_id IN 归属集合`，**无 site 过滤**）；两者返回形态差异（`{list,total}` vs `{list}`）不影响可见性口径
+  - **兼容入口同口径**（#2513）：`pending-dispatch` 与 `scope=site&status=done_repair` 使用同一闸门与同一归属集合（`tenant_id IN 归属集合`，**无 site 过滤**）
+  - 两者响应体相同：均为 `data.{list,total}`（`total = len(list)`，无分页游标）；差异仅在入参与上限——`pending-dispatch` 固定 `status=done_repair`、无 200 条上限，`scope=site` 支持 `status/start/end/sort`、`Limit(200)` 且回填 `user_name`。这些差异不影响可见性口径
 
 ## RS-06 加价（维修师报价修正，weapp 工作台）
 

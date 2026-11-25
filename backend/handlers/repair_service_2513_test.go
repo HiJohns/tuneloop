@@ -186,15 +186,26 @@ func TestRepairService2513_PendingDispatchMerchantSeesLegacy(t *testing.T) {
 	code, list := f.get(t, actor, "/repair-services/pending-dispatch")
 	require.Equal(t, http.StatusOK, code)
 
+	// R1 补充（Round 1 审计 Semantic Challenge）：merchant_admin 在
+	// repairServiceMerchantLevel 的角色分支短路，pending-dispatch 的 DB 分支
+	// （merchants.org_id = oid）此前没有正向用例；这里用商户直属员工
+	// （Role=STAFF + oid=商户 org）覆盖该分支。
+	staffActor := f.merchantActor()
+	staffActor.Role = "STAFF"
+	code, staffList := f.get(t, staffActor, "/repair-services/pending-dispatch")
+	require.Equal(t, http.StatusOK, code)
+
 	legacyVisible := 0
 	if containsRRID(list, f.rrLegacy) {
 		legacyVisible = 1
 	}
 	t.Logf("MERCHANT_ROWS=%d", len(list))
+	t.Logf("MERCHANT_STAFF_ROWS=%d", len(staffList))
 	t.Logf("LEGACY_VISIBLE=%d", legacyVisible)
 	t.Logf("OLD_SITE_EQ_OID_ROWS=%d", oldRows)
 
 	assert.Equal(t, 2, len(list), "商户层级应看到 2 张待发回单（含历史带 site_id 行）")
+	assert.Equal(t, 2, len(staffList), "商户直属员工（STAFF + oid=商户 org）的 DB 分支必须看到同样 2 张")
 	assert.Equal(t, 1, legacyVisible, "历史带 site_id 单必须可见")
 	assert.Equal(t, int64(0), oldRows, "旧谓词 site_id = oid 必须恒空（红证据）")
 	assert.True(t, containsRRID(list, f.rrNull), "商户级无 site 单保持可见")
