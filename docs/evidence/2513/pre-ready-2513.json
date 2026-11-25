@@ -1,0 +1,106 @@
+{
+  "issue": 2513,
+  "overall": "FAIL",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2513/tmp/pre-ready-2513.UN4T1H/plan.md",
+  "plan_sha256": "1c5a5dfd140167330bda5e9a1f986f49b7fbc5767d50e1487f92b635086ef021",
+  "config_sha": "f663626b8fe3895a49dffa4c43266664546741db",
+  "provenance": {
+    "build": "1.0.d7a3cecc",
+    "commit": "d7a3cecc2c7342a9d9b9777347345f1f6924eb41",
+    "dirty": false
+  },
+  "summary": "docs/evidence/2513/summary.md",
+  "timestamp": "20261125-190012",
+  "checks": [
+    {
+      "id": "P1",
+      "status": "PASS",
+      "detail": "plan has Verification Matrix / Input Truth & Tool Preflight / Decision Lock / Out of Scope"
+    },
+    {
+      "id": "P2",
+      "status": "FAIL",
+      "detail": "Work Summary does not cover the matrix:; row has no status cell: R1 待发回清单：商户层级见历史带 site 行; row has no status cell: R2 任务列表 scope=site 不再漏历史行; row has no status cell: R3 单条守卫：历史行可操作; row has no status cell: R4 负例：跨租户 / 网点账号口径; row has no status cell: R5 既有维修服务套件回归; row has no status cell: R6 构建 + 同类扫描; row has no status cell: R7 pre-ready gate（四源 + 定向测试 + 构建）"
+    },
+    {
+      "id": "P3",
+      "status": "FAIL",
+      "detail": "evidence paths do not exist: 1.0.d7a3cecc R1-pending-dispatch.txt R2-list-tasks-site.txt R3-staff-allowed.txt R4-negative.txt R5-regression.txt R6-build-scan.txt docs/evidence/2513/pre-ready-2513.json"
+    },
+    {
+      "id": "P4",
+      "status": "N/A",
+      "detail": "--dry-run: skipped 1 affected command(s)"
+    },
+    {
+      "id": "P12",
+      "status": "FAIL",
+      "detail": "R1: assert does not match the plan contract; R1: expected does not match the plan contract; R1: negative does not match the plan contract; R2: assert does not match the plan contract; R2: expected does not match the plan contract; R2: negative does not match the plan contract; R3: assert does not match the plan contract; R3: expected does not match the plan contract; R3: negative does not match the plan contract; R4: assert does not match the plan contract; R4: expected does not match the plan contract; R4: negative does not match the plan contract; R5: assert does not match the plan contract; R5: negative does not match the plan contract; R6: assert does not match the plan contract; R6: expected does not match the plan contract; R6: negative does not match the plan contract; R7: assert does not match the plan contract; R7: expected does not match the plan contract; R7: negative does not match the plan contract; R7: artifact not found: docs/evidence/2513/pre-ready-2513.json"
+    },
+    {
+      "id": "P14",
+      "status": "FAIL",
+      "detail": "artifact missing: docs/evidence/2513/pre-ready-2513.json"
+    },
+    {
+      "id": "P18",
+      "status": "WARN",
+      "detail": "tooling_commit missing (legacy bundle); config_sha=f663626b8fe3895a49dffa4c43266664546741db"
+    },
+    {
+      "id": "P15",
+      "status": "N/A",
+      "detail": "no batch gate reference in the plan"
+    },
+    {
+      "id": "P16",
+      "status": "N/A",
+      "detail": "no UI render rows in the plan"
+    },
+    {
+      "id": "P17",
+      "status": "PASS",
+      "detail": "plan snapshot and Accepted Plan comment match the gated plan"
+    },
+    {
+      "id": "P5",
+      "status": "N/A",
+      "detail": "skipped: P12/P14/P15/P16 static checks failed (static checks run first)"
+    },
+    {
+      "id": "P6",
+      "status": "PASS",
+      "detail": "all changed files are declared in the Accepted Plan"
+    },
+    {
+      "id": "P7",
+      "status": "N/A",
+      "detail": "no contract-affecting files changed"
+    },
+    {
+      "id": "P8",
+      "status": "N/A",
+      "detail": "no panel/clarify files changed"
+    },
+    {
+      "id": "P9",
+      "status": "N/A",
+      "detail": "no session/build_version/aiaudit/.rpt/.dat evidence referenced"
+    },
+    {
+      "id": "P10",
+      "status": "N/A",
+      "detail": "no aiaudit reference"
+    },
+    {
+      "id": "P11",
+      "status": "PASS",
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /home/coder/worktrees/tuneloop/wt-2513; worktree guard: PASS isolated worktree=/home/coder/worktrees/tuneloop/wt-2513"
+    },
+    {
+      "id": "P13",
+      "status": "FAIL",
+      "detail": "artifacts not on origin/issue-2513: docs/evidence/2513/pre-ready-2513.json"
+    }
+  ]
+}
