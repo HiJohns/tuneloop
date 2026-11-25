@@ -7,7 +7,7 @@ NESTED_LOCK_REFS=0
 --- build tail ---
 
 --- regression tail ---
-ok  	tuneloop-backend/handlers	19.899s
+ok  	tuneloop-backend/handlers	17.542s
 R6_OK
 RESULT: PASS
 

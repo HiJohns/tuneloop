@@ -1,7 +1,7 @@
 {
   "issue": 2512,
-  "overall": "FAIL",
-  "plan": "/home/coder/worktrees/tuneloop/wt-2512/tmp/pre-ready-2512.4vxjlg/plan.md",
+  "overall": "PASS",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2512/tmp/pre-ready-2512.KGN0nq/plan.md",
   "plan_sha256": "9e7ca42277b7276e00500ea3ed9afef0f1c0700e8f713c070a219fe02e0f25b3",
   "config_sha": "f663626b8fe3895a49dffa4c43266664546741db",
   "provenance": {
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "docs/evidence/2512/summary.md",
-  "timestamp": "20261125-222620",
+  "timestamp": "20261125-222944",
   "checks": [
     {
       "id": "P1",
@@ -24,8 +24,8 @@
     },
     {
       "id": "P3",
-      "status": "FAIL",
-      "detail": "evidence paths do not exist: *uuid.UUID 1.0.7013596d CurrentSiteID.String() backend/models/models.go:87,98,99 docs/cases/cases.md:289 docs/evidence/2512/pre-ready-2512.json docs/spec/api/api.md:91 evidence-artifacts.sh gate-run.sh heavy-lock.sh heavy-run.sh instrument.OrgID instruments.org_id log.Printf matrix_parser.sh merchant_order.go orders.org_id plan-lint.sh pre-ready-check.sh repair_service.go sites.id sites.org_id testutil.SeedVerifiedCustomer user_rental.go user_rental.go:30-49 warehouse.go:52-56 warehouse.go:697,872 {\"overall\":\"PASS\",...}"
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
     },
     {
       "id": "P4",
@@ -34,13 +34,13 @@
     },
     {
       "id": "P12",
-      "status": "FAIL",
-      "detail": "R7: artifact not found: docs/evidence/2512/pre-ready-2512.json"
+      "status": "PASS",
+      "detail": "Evidence Contract complete: 7 row(s) match the plan and have durable artifacts"
     },
     {
       "id": "P14",
-      "status": "FAIL",
-      "detail": "artifact missing: docs/evidence/2512/pre-ready-2512.json"
+      "status": "PASS",
+      "detail": "artifact provenance matches evidence (7 artifacts)"
     },
     {
       "id": "P18",
@@ -65,7 +65,7 @@
     {
       "id": "P5",
       "status": "N/A",
-      "detail": "skipped: P12/P14/P15/P16 static checks failed (static checks run first)"
+      "detail": "sub-task: full gate belongs to the parent/batch gate"
     },
     {
       "id": "P6",
@@ -99,8 +99,8 @@
     },
     {
       "id": "P13",
-      "status": "FAIL",
-      "detail": "artifacts not on origin/issue-2512: docs/evidence/2512/pre-ready-2512.json"
+      "status": "PASS",
+      "detail": "fix commit and evidence artifacts are on origin/issue-2512"
     }
   ]
 }

@@ -99,7 +99,7 @@
         "docs/evidence/2512/pre-ready-2512.json"
       ],
       "assert": "exit 0；GATE_RESULT=PASS，jq -e '.result == \"PASS\"'，evidence 每行 pass=true",
-      "actual": "PASS：gate 由本行命令执行（报告 docs/evidence/2512/pre-ready-2512.json）；P12 七行合同完整、P13 fix 与证据在 origin/issue-2512、provenance.dirty=false",
+      "actual": "PASS：`pre-ready-check.sh 2512`（计划 R7 命令）exit 0、`RESULT: PASS`、报告 `.overall == \"PASS\"`、零 FAIL（12 项 PASS / 4 项 N/A：P5 子任务、P8/P9/P10 不适用）；P12 七行合同与计划逐字一致、P13 fix 7013596d2 与全部 artifact 在 origin/issue-2512、P14 provenance 与 bundle 一致、`provenance.dirty=false`",
       "expected": "dirty=false、P13 提交在 origin/issue-2512",
       "negative": "任一 P 项失败 / evidence 缺行 / dirty=true → gate 非 0，禁止 ready",
       "negative_result": "negative verified（红）：本次 run-aborted 即红证据——`--affected-cmd` 内层自申请 host lock → 自死锁（外层持锁 31m），gate 未能完成；修复后同命令在锁内直接执行",

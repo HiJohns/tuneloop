@@ -75,7 +75,7 @@ Commit：
     --report docs/evidence/2512/pre-ready-2512.json
   ```
 
-- 报告：`docs/evidence/2512/pre-ready-2512.json`（`"overall": "PASS"`，零 FAIL；见该报告的 `checks[]`）。
+- 报告：`docs/evidence/2512/pre-ready-2512.json`（`"overall": "PASS"`、exit 0、RESULT: PASS、12 项 PASS / 4 项 N/A / 零 FAIL；明细见 `checks[]`）。
 - 关键输出：P2（矩阵 7 行全 PASS）、P3（证据路径均存在且非 tmp-only）、P6（4 个改动文件均在计划 Files 内）、P7（契约三向核对）、P12（Evidence Contract 7 行与计划逐字一致、每行 `pass=true`、artifact 存在）、P13（fix `7013596d2` 与证据提交在 `origin/issue-2512`）、P14（artifact provenance 与 bundle 一致）、P17（plan 快照与 Accepted Plan 一致）、P18（tooling_commit）。
 - 子任务只跑受影响包：`--affected-cmd "bash scripts/verify-2512.sh r6"`（构建 + `CreateOrder|BatchCreateOrder` 定向回归，内层不再申请锁）；`--full-gate-cmd` 为同一 harness 的 `gate`（`go build ./...` + `go test ./handlers -timeout 30m`，30m ≥ 实测）；按子任务口径 P5 = N/A，父批次全量由 #2509 承担。
 - 首次运行因 R7 自身 artifact（gate 报告）尚不存在而 P12 FAIL（报告仍被写出）；随后同一命令复跑通过——这是「报告即验收产物」的既有语义，非代码缺陷。
