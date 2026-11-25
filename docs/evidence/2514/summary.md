@@ -80,14 +80,18 @@ Commit：`8f7dc8c05`（fix，含 plan 快照）。
 | 变更点 | 状态 | 证据 |
 |---|---|---|
 | R1 共享 payload/反馈纯函数 | PASS | docs/evidence/2514/R1-batch-pricing-fn.txt |
-| R2 库存监控页接线 | PASS | docs/evidence/2514/R2-stock-page-static.txt |
-| R3 乐器列表页接线 | PASS | docs/evidence/2514/R3-list-page-static.txt |
+| R2 库存监控页接线（页面结构） | PASS | docs/evidence/2514/R2-stock-page-static.txt |
+| R3 乐器列表页接线（页面结构） | PASS | docs/evidence/2514/R3-list-page-static.txt |
 | R4 同类路径扫描 | PASS | docs/evidence/2514/R4-path-scan.txt |
 | R5 文档契约 | PASS | docs/evidence/2514/R5-docs-sync.txt |
 | R6 全量构建 + ESLint | PASS | docs/evidence/2514/R6-build-lint.txt |
-| R7 pre-ready gate | PASS | docs/evidence/2514/pre-ready-2514.json |
+| R7 pre-ready gate（四源 + 全量构建） | PASS | docs/evidence/2514/pre-ready-2514.json |
 
-无 RISK 行。
+### 契约三向核对
+
+- **Plan/API**：计划把批量设价收敛到后端**唯一**存在的端点 `PUT /api/instruments/batch-pricing`（`backend/main.go` 注册，`RequireRole(ADMIN, OWNER, site_admin)` + `ExplicitTenantScope`）；R4 断言 `BACKEND_BATCH_PRICING_ROUTE=1`、`BACKEND_GHOST_ROUTE=0`（后端从不注册 `/instruments/batch/price`）。
+- **docs**：`docs/spec/api/api.md` §5.6.2 的路径、权限、请求体（`items` 必填，`base_daily_rate` 单位元）与响应（`data.updated`）逐项对照 `backend/handlers/pricing.go` 的 `BatchSetInstrumentPricing` 绑定结构；已知边界（逐条失败只回计数）标注归 #2519。
+- **handler/frontend**：前端 payload 由 `frontend-pc/src/utils/batchPricing.js` 生成 `{items:[{id, base_daily_rate}]}`，字段名与单位（元）与 handler 的 json tag 一致；响应按 `code` 与 `data.updated` 消费，不再发送 handler 无法绑定的 `{ids, price_type, amount, operator}`。
 
 ### Dependency Order / 验收规则
 
