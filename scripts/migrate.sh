@@ -232,6 +232,7 @@ while IFS= read -r line; do
     echo "ROW_FIELDS=$ROW_FIELDS"
     echo "ERROR: expected 3 fields (uid|email|cus_perm), got $ROW_FIELDS: $line"
     BAD_ROW=1
+    MIGRATE_INVALID=1
     continue
   fi
   IFS='|' read -r uid email cus_perm <<< "$line"
@@ -239,6 +240,7 @@ while IFS= read -r line; do
     echo "BAD_ROW=1"
     echo "ERROR: empty uid in row: $line"
     BAD_ROW=1
+    MIGRATE_INVALID=1
     continue
   fi
   if ! [[ "${cus_perm:-}" =~ ^[0-9]+$ ]]; then

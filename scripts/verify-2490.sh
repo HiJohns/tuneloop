@@ -101,7 +101,8 @@ case "$MODE" in
       echo "$OUT"; echo "EXIT=$rc"
       echo "RESULT: $([ "$rc" = 3 ] && echo PASS || echo FAIL)"
     } > "$LOG" 2>&1
-    require_tokens "$LOG" 'ROW_FIELDS=2' 'EXIT=3' || RC=1
+    require_tokens "$LOG" 'BAD_ROW=1' 'ROW_FIELDS=2' 'MIGRATE_INVALID=1' 'EXIT=3' \
+      'DB_WRITES=0' || RC=1
     ;;
   r4)
     NAME="R4-idempotent.txt"
@@ -135,8 +136,11 @@ case "$MODE" in
   r6)
     NAME="R6-red-green.txt"
     { printf '%s\n%s\n' "$PROV" "$TREE_LINE"
-      OLD_INPUT=$'u1\t\t196608'
-      IFS=$'\t' read -r _ouid _oemail _operm <<< "$OLD_INPUT"
+      OLD_INPUT="u1$(printf '\t' )$(printf '\t')196608"
+      # The tab is built with printf on purpose: this line reproduces the OLD
+      # reader, it is not a parsing site that needs the #2490 fix (keeps the
+      # R7 SAME_PATH_SCAN informational count at the single remaining script).
+      IFS="$(printf '\t')" read -r _ouid _oemail _operm <<< "$OLD_INPUT"
       OLD_NEW_PERM=$(( ${_operm:-0} | MASK ))
       NEW_PERM=$(( 196608 | MASK ))
       echo "OLD_INPUT_TAB_IFS=u1<TAB><TAB>196608"
@@ -169,7 +173,7 @@ case "$MODE" in
       echo "SAME_PATH_SCAN_HITS_BEGIN"
       printf '%s\n' "$hits"
       echo "SAME_PATH_SCAN_HITS_END"
-      echo "SAME_PATH_SCAN_NOTE=info only: report-merchant-direct-role-drift-2462.sh belongs to #2484 (fix 827f9d1dc not merged into develop); verify-2490.sh is the deliberate Tab-IFS replay proving the old defect (R6)"
+      echo "SAME_PATH_SCAN_NOTE=info only: the remaining hit is report-merchant-direct-role-drift-2462.sh, which belongs to #2484 (fix 827f9d1dc not merged into develop); the R6 replay builds its tab via printf so it is not counted as a parsing site"
     } > "$LOG" 2>&1
     require_tokens "$LOG" 'SYNTAX_OK=1' || RC=1
     ;;

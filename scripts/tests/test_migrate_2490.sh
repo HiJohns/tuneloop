@@ -6,7 +6,7 @@
 # 断言（对应 Accepted Plan R1–R7）：
 #   R1 空 email 不左移：u1||196608 → ACTION=UPDATE email=（空）old_perm=196608 new_perm=983040
 #   R2 非法 cus_perm（空 / abc）→ exit 3、MIGRATE_INVALID=1、DB_WRITES=0
-#   R3 字段数不足（2 列）→ exit 3、ROW_FIELDS=2
+#   R3 字段数不足（2 列）/ 空 uid → exit 3、ROW_FIELDS=2、BAD_ROW=1、MIGRATE_INVALID=1、DB_WRITES=0
 #   R4 位已置（983040）→ ACTION=SKIP、PLAN_UPDATES=0
 #   R5 写库确认：无/错 --confirm-rows → exit 2 + APPLY_CONFIRM_MISMATCH=1；
 #      匹配 → APPLY_READY=1；--fixture + --yes → exit 2
@@ -65,6 +65,15 @@ grep -q '^DB_WRITES=0$' "$TMP_DIR/r2.txt" && ok "R2 DB_WRITES" || bad "R2 DB_WRI
 run_fixture 'u4|a@b' > "$TMP_DIR/r3.txt" 2>&1; RC=$?
 check "R3 short row exit" "$RC" "3"
 grep -q '^ROW_FIELDS=2$' "$TMP_DIR/r3.txt" && ok "R3 ROW_FIELDS" || bad "R3 ROW_FIELDS"
+grep -q '^BAD_ROW=1$' "$TMP_DIR/r3.txt" && ok "R3 BAD_ROW" || bad "R3 BAD_ROW"
+grep -q '^MIGRATE_INVALID=1$' "$TMP_DIR/r3.txt" && ok "R3 MIGRATE_INVALID" || bad "R3 MIGRATE_INVALID"
+grep -q '^DB_WRITES=0$' "$TMP_DIR/r3.txt" && ok "R3 DB_WRITES" || bad "R3 DB_WRITES"
+
+# Empty uid is rejected the same way (fail-fast, never written).
+run_fixture '|a@b|196608' > "$TMP_DIR/r3-empty-uid.txt" 2>&1; RC=$?
+check "R3 empty uid exit" "$RC" "3"
+grep -q '^BAD_ROW=1$' "$TMP_DIR/r3-empty-uid.txt" && ok "R3 empty uid BAD_ROW" || bad "R3 empty uid BAD_ROW"
+grep -q '^MIGRATE_INVALID=1$' "$TMP_DIR/r3-empty-uid.txt" && ok "R3 empty uid MIGRATE_INVALID" || bad "R3 empty uid MIGRATE_INVALID"
 
 # ---------------------------------------------------------------- R4
 OUT="$(run_fixture 'u5|a@b|983040')"
