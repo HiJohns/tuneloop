@@ -101,12 +101,15 @@ func (f *fakeIAMSite2455) setOnCreate(hook func()) {
 
 // applySiteNameIndex2455 executes the real up migration and guarantees the
 // index is removed again (the shared test DB keeps schema between cases).
+// Leaving the index in place breaks unrelated cases in the same package: e.g.
+// TestSyncOrganizations_SiteTenantID inserts a second site with the same
+// (tenant_id, name), which the unique index (correctly) rejects.
 func applySiteNameIndex2455(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	up, err := os.ReadFile(siteNameMigrationUp2455)
 	require.NoError(t, err, "up migration must exist")
 	require.NoError(t, db.Exec(string(up)).Error, "up migration must apply on a clean fixture")
-	t.Cleanup(func() { _ = db.Exec(string(up)).Error })
+	t.Cleanup(func() { _ = db.Exec("DROP INDEX IF EXISTS " + siteNameIndex2455).Error })
 }
 
 func dropSiteNameIndex2455(t *testing.T, db *gorm.DB) {
@@ -202,8 +205,10 @@ func TestSiteNameUniqueIndex_2455(t *testing.T) {
 	down, err := os.ReadFile(siteNameMigrationDown2455)
 	require.NoError(t, err)
 
-	// Restore the template state (index present) for the rest of the package run.
-	t.Cleanup(func() { _ = db.Exec(string(up)).Error })
+	// 共享测试库由 AutoMigrate 建表（不含迁移原生索引）：用例结束必须删掉索引，
+	// 否则同包其他用例（如 TestSyncOrganizations_SiteTenantID 会写入同商户同名网点）
+	// 会被唯一索引误伤——#2455 实测踩坑。
+	t.Cleanup(func() { _ = db.Exec("DROP INDEX IF EXISTS " + siteNameIndex2455).Error })
 
 	require.NoError(t, db.Exec(string(up)).Error, "up migration must apply")
 
