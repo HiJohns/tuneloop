@@ -27,8 +27,13 @@ if ! command -v go >/dev/null 2>&1 && [ -x /usr/local/go/bin/go ]; then
   export PATH="/usr/local/go/bin:$PATH"
 fi
 
-HEAD_SHA="$(git rev-parse HEAD)"
-SHORT_SHA="$(git rev-parse --short HEAD)"
+# Provenance is anchored to this Issue's fix commit (same convention as #2455):
+# regenerating evidence from a later evidence/harness commit must not shift the
+# recorded build/commit, otherwise artifact and evidence.json (P12/P14) diverge.
+FIX_SHA="$(git log --format=%H --grep='^fix(issue-2529)' -1 2>/dev/null || true)"
+[ -n "$FIX_SHA" ] || FIX_SHA="$(git rev-parse HEAD)"
+HEAD_SHA="$(git rev-parse --verify "${FIX_SHA}^{commit}")"
+SHORT_SHA="$(git rev-parse --short "$HEAD_SHA")"
 BUILD="1.0.${SHORT_SHA}"
 DIRTY=false
 if [ -n "$(git status --porcelain --untracked-files=no -- . ':!docs/evidence')" ]; then
@@ -98,6 +103,10 @@ case "$ROW" in
 
     count() { grep -c -- "$1" "$2" 2>/dev/null || true; }
     count_re() { grep -cE -- "$1" "$2" 2>/dev/null || true; }
+    # Tree counter: `grep -c` has no -r and on a directory prints 0 / exit 2, so a
+    # directory-wide assertion built on it can never fail (audit round 1, Bug 1).
+    # Count real matching lines recursively instead.
+    count_tree() { grep -rnE -- "$1" "$2" 2>/dev/null | wc -l | tr -d ' '; }
 
     # Detail page must use the single-record endpoint and stop scanning list page 1.
     DETAIL_USES_GET=0
@@ -112,7 +121,26 @@ case "$ROW" in
     LIST_SCAN=$((LIST_SCAN + $(count_re '\.find\(a => a\.id === id\)' "$PAGE_DETAIL")))
 
     # Legacy placeholder paths (never committed to public/) must be gone repo-wide.
-    LEGACY_PLACEHOLDER_REF="$(count_re 'placeholder-instrument\.png|"/placeholder\.png"' frontend-pc/src || true)"
+    PLACEHOLDER_PATTERN='placeholder-instrument\.png|"/placeholder\.png"'
+    LEGACY_PLACEHOLDER_REF="$(count_tree "$PLACEHOLDER_PATTERN" frontend-pc/src)"
+    LEGACY_PLACEHOLDER_REF="${LEGACY_PLACEHOLDER_REF:-missing}"
+
+    # Red side of the very same probe: the fix commit's parent must still carry
+    # both legacy paths (2 hits). If the counter above could never be non-zero,
+    # this assertion fails, so the green value cannot be trivially true.
+    LEGACY_PLACEHOLDER_REF_PRE_FIX=missing
+    PRE_FIX_COMMIT="$(git rev-parse --verify "${HEAD_SHA}^" 2>/dev/null || true)"
+    if [ -n "$PRE_FIX_COMMIT" ]; then
+      PRE_FIX_DIR="$(mktemp -d)"
+      if git archive "$PRE_FIX_COMMIT" frontend-pc/src | tar -x -C "$PRE_FIX_DIR" 2>/dev/null; then
+        echo "LEGACY_PLACEHOLDER_REF_PRE_FIX_TREE=$(git rev-parse --short "$PRE_FIX_COMMIT")"
+        grep -rnE -- "$PLACEHOLDER_PATTERN" "$PRE_FIX_DIR/frontend-pc/src" 2>/dev/null \
+          | sed "s#^$PRE_FIX_DIR/##" || true
+        LEGACY_PLACEHOLDER_REF_PRE_FIX="$(count_tree "$PLACEHOLDER_PATTERN" "$PRE_FIX_DIR/frontend-pc/src")"
+        LEGACY_PLACEHOLDER_REF_PRE_FIX="${LEGACY_PLACEHOLDER_REF_PRE_FIX:-missing}"
+      fi
+      rm -rf "$PRE_FIX_DIR"
+    fi
 
     # Both neighbours must fall back to the shared placeholder constant.
     FALLBACK_WIRED=0
@@ -122,6 +150,7 @@ case "$ROW" in
     echo "ASSET_DETAIL_USES_GET=${DETAIL_USES_GET}"
     echo "LIST_STILL_USES_LIST_SCAN=${LIST_SCAN}"
     echo "LEGACY_PLACEHOLDER_REF=${LEGACY_PLACEHOLDER_REF}"
+    echo "LEGACY_PLACEHOLDER_REF_PRE_FIX=${LEGACY_PLACEHOLDER_REF_PRE_FIX}"
     echo "FALLBACK_WIRED=${FALLBACK_WIRED}"
 
     assert_eq NODE_TEST_RC 0 "$NODE_RC"
@@ -129,6 +158,7 @@ case "$ROW" in
     assert_eq ASSET_DETAIL_USES_GET 1 "$DETAIL_USES_GET"
     assert_eq LIST_STILL_USES_LIST_SCAN 0 "${LIST_SCAN:-1}"
     assert_eq LEGACY_PLACEHOLDER_REF 0 "${LEGACY_PLACEHOLDER_REF:-1}"
+    assert_eq LEGACY_PLACEHOLDER_REF_PRE_FIX 2 "${LEGACY_PLACEHOLDER_REF_PRE_FIX:-missing}"
     assert_eq FALLBACK_WIRED 2 "${FALLBACK_WIRED:-0}"
     echo "R2_OK"
     ;;
