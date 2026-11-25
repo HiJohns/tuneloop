@@ -1,0 +1,95 @@
+{
+  "issue": 2488,
+  "overall": "FAIL",
+  "plan": "docs/evidence/2488/plan.md",
+  "plan_sha256": "22fe9a2251132ac47466933c4eb60a408a8e377064e45933c6c623bcfbef3206",
+  "summary": "tmp/work-summary-2488.md",
+  "timestamp": "20261125-002427",
+  "checks": [
+    {
+      "id": "P1",
+      "status": "PASS",
+      "detail": "plan has Verification Matrix / Input Truth & Tool Preflight / Decision Lock / Out of Scope"
+    },
+    {
+      "id": "P2",
+      "status": "FAIL",
+      "detail": "Work Summary does not cover the matrix:; row has no status cell: R7 gate 四源 + 全量 PC 构建"
+    },
+    {
+      "id": "P3",
+      "status": "FAIL",
+      "detail": "evidence paths do not exist: message.error('更新失败')"
+    },
+    {
+      "id": "P4",
+      "status": "PASS",
+      "detail": "all 1 affected command(s) passed"
+    },
+    {
+      "id": "P12",
+      "status": "FAIL",
+      "detail": "R3: artifact not found: docs/evidence/2488/R3-mall-image.txt"
+    },
+    {
+      "id": "P14",
+      "status": "FAIL",
+      "detail": "artifact missing: docs/evidence/2488/R3-mall-image.txt"
+    },
+    {
+      "id": "P15",
+      "status": "N/A",
+      "detail": "no batch gate reference in the plan"
+    },
+    {
+      "id": "P16",
+      "status": "N/A",
+      "detail": "no UI render rows in the plan"
+    },
+    {
+      "id": "P17",
+      "status": "PASS",
+      "detail": "plan snapshot and Accepted Plan comment match the gated plan"
+    },
+    {
+      "id": "P5",
+      "status": "N/A",
+      "detail": "skipped: P12/P14/P15/P16 static checks failed (static checks run first)"
+    },
+    {
+      "id": "P6",
+      "status": "FAIL",
+      "detail": "changed files not declared in the plan (Architect approval required): docs/evidence/2488/R3-mallimage.txt"
+    },
+    {
+      "id": "P7",
+      "status": "N/A",
+      "detail": "no contract-affecting files changed"
+    },
+    {
+      "id": "P8",
+      "status": "N/A",
+      "detail": "no panel/clarify files changed"
+    },
+    {
+      "id": "P9",
+      "status": "N/A",
+      "detail": "no session/build_version/aiaudit/.rpt/.dat evidence referenced"
+    },
+    {
+      "id": "P10",
+      "status": "N/A",
+      "detail": "no aiaudit reference"
+    },
+    {
+      "id": "P11",
+      "status": "PASS",
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /home/coder/worktrees/tuneloop/wt-2488; worktree guard: PASS isolated worktree=/home/coder/worktrees/tuneloop/wt-2488"
+    },
+    {
+      "id": "P13",
+      "status": "FAIL",
+      "detail": "artifacts not on origin/issue-2488: docs/evidence/2488/R3-mall-image.txt"
+    }
+  ]
+}

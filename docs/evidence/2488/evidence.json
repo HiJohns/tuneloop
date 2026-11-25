@@ -6,7 +6,7 @@
     "1b85f9acded29232036e78f8416f0c069bbfdcef"
   ],
   "commit": "1b85f9acded29232036e78f8416f0c069bbfdcef",
-  "dirty": false,
+  "dirty": true,
   "plan_sha256": "22fe9a2251132ac47466933c4eb60a408a8e377064e45933c6c623bcfbef3206",
   "environment": "beaconwork worktree /home/coder/worktrees/tuneloop/wt-2488 (base origin/issue-2480); frontend-pc npm build via vite; static wiring assertions; read-only inventory scan",
   "rows": [
