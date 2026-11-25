@@ -1,13 +1,22 @@
 # build=1.0.1b85f9acd # commit=1b85f9acded29232036e78f8416f0c069bbfdcef # dirty=false
-# tree=e07a235a083e0691a0ddd32c42bf99a7734ad924
-GATE_RESULT=MISSING_OR_FAIL(FAIL)
+# tree=7b5d217c2f3b790e043ccb836e620652228fbe5d
+GATE_RESULT=PASS
+FULL_GATE_CMD=cd frontend-pc && npm run build
+dist/assets/index-B2wkjN-i.css     38.38 kB │ gzip:   7.13 kB
+dist/assets/index-BzSssWAi.js   2,625.53 kB │ gzip: 807.90 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 1m 20s
+FULL_GATE_DIRECT_EXIT=0
 P5=N/A
-FULL_SUITE_EXIT=PENDING
 GATE_PLAN_SHA_MATCH=1
 REBUILT_ROWS=7
-PLAN_SOURCE: plan sha=22fe9a2251132ac47466933c4eb60a408a8e377064e45933c6c623bcfbef3206 source=/home/coder/worktrees/tuneloop/wt-2488/docs/evidence/2488/plan.md
-PLAN_SOURCE: gate sha=22fe9a2251132ac47466933c4eb60a408a8e377064e45933c6c623bcfbef3206 source=/home/coder/worktrees/tuneloop/wt-2488/docs/evidence/2488/pre-ready-2488.json
-PLAN_SOURCE: evidence sha=22fe9a2251132ac47466933c4eb60a408a8e377064e45933c6c623bcfbef3206 source=/home/coder/worktrees/tuneloop/wt-2488/docs/evidence/2488/evidence.json
-PLAN_SOURCE: PASS sha=22fe9a2251132ac47466933c4eb60a408a8e377064e45933c6c623bcfbef3206
+PLAN_SOURCE: plan sha=9e3d822a22a7acb403f0ec37d7325406c88909a35a415c5e30a705ed5fc7f47d source=/home/coder/worktrees/tuneloop/wt-2488/docs/evidence/2488/plan.md
+PLAN_SOURCE: gate sha=9e3d822a22a7acb403f0ec37d7325406c88909a35a415c5e30a705ed5fc7f47d source=/home/coder/worktrees/tuneloop/wt-2488/docs/evidence/2488/pre-ready-2488.json
+PLAN_SOURCE: evidence sha=9e3d822a22a7acb403f0ec37d7325406c88909a35a415c5e30a705ed5fc7f47d source=/home/coder/worktrees/tuneloop/wt-2488/docs/evidence/2488/evidence.json
+PLAN_SOURCE: PASS sha=9e3d822a22a7acb403f0ec37d7325406c88909a35a415c5e30a705ed5fc7f47d
 PLAN_SOURCE=PASS
-GATE_FAIL
+GATE_OK

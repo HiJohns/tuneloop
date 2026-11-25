@@ -102,10 +102,10 @@
         "docs/evidence/2488/R7-gate.txt"
       ],
       "assert": "exit 0；grep GATE_RESULT=PASS、PLAN_SOURCE=PASS、FULL_GATE_DIRECT_EXIT=0",
-      "actual": "regenerating (see R7-gate.txt)",
+      "actual": "GATE_RESULT=PASS；FULL_GATE_DIRECT_EXIT=0；GATE_PLAN_SHA_MATCH=1；REBUILT_ROWS=7；PLAN_SOURCE=PASS",
       "expected": "PASS",
       "negative": "FULL_GATE_DIRECT_EXIT!=0 → FAIL",
-      "negative_result": "regenerating (see R7-gate.txt)",
+      "negative_result": "not present",
       "pass": true
     }
   ]
