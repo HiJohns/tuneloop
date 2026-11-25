@@ -52,7 +52,8 @@ forbid() {
   if grep -Fq -- "$2" "$1"; then echo "ASSERT_FAIL: forbidden token present: [$2]" >&2; return 1; fi
 }
 
-WORK="$(mktemp -d "${TMPDIR:-/tmp}/verify-2490.XXXXXX")"
+mkdir -p "$REPO/tmp"
+WORK="$(mktemp -d "$REPO/tmp/verify-2490.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
 LOG="$WORK/out.log"
 RC=0
@@ -89,7 +90,8 @@ case "$MODE" in
       echo "--- non-numeric cus_perm ---"; echo "$OUT2"; echo "EXIT=$rc2"
       echo "RESULT: $([ "$rc1" = 3 ] && [ "$rc2" = 3 ] && echo PASS || echo FAIL)"
     } > "$LOG" 2>&1
-    require_tokens "$LOG" 'MIGRATE_INVALID=1' 'EXIT=3' 'DB_WRITES=0' || RC=1
+    require_tokens "$LOG" 'MIGRATE_INVALID=1' 'EXIT=3' 'DB_WRITES=0' \
+      'BAD_PERM=abc' 'RESULT: FAIL' || RC=1
     ;;
   r3)
     NAME="R3-short-row.txt"
@@ -123,6 +125,10 @@ case "$MODE" in
       run_fixture 'u1||196608' --confirm-rows 1; echo "EXIT=$?"
       echo "--- (d) --fixture + --yes (mutually exclusive) ---"
       run_fixture 'u1||196608' --yes; echo "EXIT=$?"
+      echo "--- (e) zero-update plan with stale --confirm-rows 1 (strict D4) ---"
+      run_fixture 'u5|a@b|983040' --confirm-rows 1; echo "EXIT=$?"
+      echo "--- (f) zero-update plan with --confirm-rows 0 ---"
+      run_fixture 'u5|a@b|983040' --confirm-rows 0; echo "EXIT=$?"
     } > "$LOG" 2>&1
     require_tokens "$LOG" 'APPLY_CONFIRM_MISMATCH=1' 'APPLY_READY=1' 'DB_WRITES=0' || RC=1
     ;;
@@ -157,9 +163,13 @@ case "$MODE" in
       else
         echo "SHELLCHECK_EXIT=NA (shellcheck not installed)"
       fi
-      n=$(grep -rn "IFS=\$'\\\\t'" scripts 2>/dev/null | grep -vc 'tests/test_migrate_2490.sh' || true)
+      hits=$(grep -rn "IFS=\$'\\\\t'" scripts 2>/dev/null | grep -v 'tests/test_migrate_2490.sh' || true)
+      n=$(printf '%s' "$hits" | grep -c . || true)
       echo "SAME_PATH_SCAN=${n:-0}"
-      echo "SAME_PATH_SCAN_NOTE=info only (report-merchant-direct-role-drift-2462.sh belongs to #2484)"
+      echo "SAME_PATH_SCAN_HITS_BEGIN"
+      printf '%s\n' "$hits"
+      echo "SAME_PATH_SCAN_HITS_END"
+      echo "SAME_PATH_SCAN_NOTE=info only: report-merchant-direct-role-drift-2462.sh belongs to #2484 (fix 827f9d1dc not merged into develop); verify-2490.sh is the deliberate Tab-IFS replay proving the old defect (R6)"
     } > "$LOG" 2>&1
     require_tokens "$LOG" 'SYNTAX_OK=1' || RC=1
     ;;

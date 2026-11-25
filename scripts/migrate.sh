@@ -6,8 +6,9 @@ set -euo pipefail
 # Adds bit 18 (category:manage) and bit 19 (attribute:manage) to cus_perm
 # for all namespace_admin users in IAM.
 #
+# >>> usage
 # Usage:
-#   ./migrate.sh                          # interactive dry-run (no changes)
+#   ./migrate.sh                          # dry-run plan (no changes)
 #   ./migrate.sh --yes --confirm-rows N   # apply, after confirming the row count
 #   ./migrate.sh --fixture FILE|-         # offline dry-run against a fixture
 #                                         # (feature: uid|email|cus_perm per line)
@@ -20,11 +21,16 @@ set -euo pipefail
 #   * `--yes` requires `--confirm-rows N` equal to the planned update count;
 #   * `--fixture` is dry-run only and mutually exclusive with `--yes`.
 #
+# Machine-readable keys: PLAN_UPDATES, SKIPPED, BAD_ROW, ROW_FIELDS, BAD_PERM,
+#   MIGRATE_INVALID, APPLY_READY, APPLY_CONFIRM_MISMATCH, DB_WRITES,
+#   RESULT: PASS|FAIL.
+#
 # Env vars (or reads from .env in same directory):
 #   BEACONIAM_INTERNAL_URL  — IAM internal URL (default: http://localhost:5561)
 #   IAM_CLIENT_ID           — IAM client ID (default: tuneloop)
 #   IAM_CLIENT_SECRET       — IAM client secret (also reads IAM_SECRET alias)
 #   IAM_NAMESPACE           — IAM namespace (default: tuneloop)
+# <<< usage
 
 DRY_RUN=true
 FIXTURE=""
@@ -32,26 +38,29 @@ CONFIRM_ROWS=""
 APPLY_REQUESTED=false
 
 usage() {
-  sed -n '9,30p' "$0"
+  # Marker-based so the help text stays correct when the header grows.
+  awk '/^# >>> usage$/{f=1;next} /^# <<< usage$/{f=0} f{sub(/^# ?/,"");print}' "$0"
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --yes) DRY_RUN=false; APPLY_REQUESTED=true; shift ;;
     --fixture) FIXTURE="${2:-}"; shift 2 || { echo "ERROR: --fixture requires a path or -"; exit 2; } ;;
-    --confirm-rows) CONFIRM_ROWS="${2:-}"; shift 2 || { echo "ERROR: --confirm-rows requires a number"; exit 2; } ;;
+    --confirm-rows) CONFIRM_ROWS="${2:-}"; shift 2 || { echo "ERROR: --confirm-rows requires a number"; echo "RESULT: FAIL"; exit 2; } ;;
     -h|--help) usage; exit 0 ;;
-    *) echo "ERROR: unknown argument: $1"; usage; exit 2 ;;
+    *) echo "ERROR: unknown argument: $1"; usage; echo "RESULT: FAIL"; exit 2 ;;
   esac
 done
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ENV_FILE="$SCRIPT_DIR/.env"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # ---------------------------------------------------------------- arg gates
 if [[ -n "$FIXTURE" && "$APPLY_REQUESTED" = true ]]; then
   # D3: fixture data must never be written to a real IAM.
   echo "ERROR: --fixture is dry-run only and cannot be combined with --yes"
+  echo "RESULT: FAIL"
   exit 2
 fi
 
@@ -59,11 +68,13 @@ if [[ "$APPLY_REQUESTED" = true ]]; then
   if [[ -z "$CONFIRM_ROWS" ]]; then
     echo "APPLY_CONFIRM_MISMATCH=1"
     echo "ERROR: --yes requires --confirm-rows <n> (the number printed as PLAN_UPDATES)"
+    echo "RESULT: FAIL"
     exit 2
   fi
   if ! [[ "$CONFIRM_ROWS" =~ ^[0-9]+$ ]]; then
     echo "APPLY_CONFIRM_MISMATCH=1"
     echo "ERROR: --confirm-rows must be a non-negative integer"
+    echo "RESULT: FAIL"
     exit 2
   fi
 fi
@@ -87,6 +98,7 @@ NAMESPACE="${IAM_NAMESPACE:-tuneloop}"
 
 if [[ -z "$FIXTURE" && -z "$CLIENT_SECRET" ]]; then
   echo "ERROR: IAM_CLIENT_SECRET (or IAM_SECRET) is required (set env var or add to .env)"
+  echo "RESULT: FAIL"
   exit 1
 fi
 
@@ -111,6 +123,7 @@ if [[ -n "$FIXTURE" ]]; then
   else
     if [[ ! -f "$FIXTURE" ]]; then
       echo "ERROR: fixture not found: $FIXTURE"
+      echo "RESULT: FAIL"
       exit 2
     fi
     ADMIN_USERS="$(cat "$FIXTURE")"
@@ -125,6 +138,7 @@ else
     -d "{\"grant_type\":\"client_credentials\",\"client_id\":\"$CLIENT_ID\",\"client_secret\":\"$CLIENT_SECRET\"}" 2>&1) || {
     echo "ERROR: Failed to get client token from IAM"
     echo "  Response: $TOKEN_RESP"
+    echo "RESULT: FAIL"
     exit 1
   }
 
@@ -132,6 +146,7 @@ else
   if [[ -z "$TOKEN" ]]; then
     echo "ERROR: No access_token in response"
     echo "  Response: $TOKEN_RESP"
+    echo "RESULT: FAIL"
     exit 1
   fi
   echo "  Token acquired."
@@ -143,6 +158,7 @@ else
     -H "Authorization: Bearer $TOKEN" 2>&1) || {
     echo "ERROR: Failed to get namespace info"
     echo "  Response: $NS_RESP"
+    echo "RESULT: FAIL"
     exit 1
   }
 
@@ -150,6 +166,7 @@ else
   if [[ -z "$NS_ORG_ID" ]]; then
     echo "ERROR: Could not extract namespace org ID"
     echo "  Response: $NS_RESP"
+    echo "RESULT: FAIL"
     exit 1
   fi
   echo "  Namespace org ID: $NS_ORG_ID"
@@ -161,6 +178,7 @@ else
     -H "Authorization: Bearer $TOKEN" 2>&1) || {
     echo "ERROR: Failed to list org users"
     echo "  Response: $USERS_RESP"
+    echo "RESULT: FAIL"
     exit 1
   }
 
@@ -184,6 +202,7 @@ for u in users:
 
   if [[ -z "$ADMIN_USERS" ]]; then
     echo "  No namespace_admin users found. Nothing to migrate."
+    echo "RESULT: PASS"
     exit 0
   fi
 
@@ -198,7 +217,9 @@ fi
 # ------------------------------------------------------- parse + validate
 # Emits one normalized record per valid row; any malformed row aborts the run
 # (fail-fast, exit 3) so nothing is written from a mis-parsed record.
-PLAN_FILE="$(mktemp "${TMPDIR:-/tmp}/migrate-plan.XXXXXX")"
+# Scratch file lives under the project tmp/ (never a system temp dir).
+mkdir -p "$PROJECT_ROOT/tmp"
+PLAN_FILE="$(mktemp "$PROJECT_ROOT/tmp/migrate-plan.XXXXXX")"
 trap 'rm -f "$PLAN_FILE"' EXIT
 
 BAD_ROW=0
@@ -222,6 +243,7 @@ while IFS= read -r line; do
   fi
   if ! [[ "${cus_perm:-}" =~ ^[0-9]+$ ]]; then
     echo "BAD_ROW=1"
+    echo "BAD_PERM=${cus_perm:-}"
     echo "MIGRATE_INVALID=1"
     echo "ERROR: cus_perm must be a non-negative integer (got '${cus_perm:-}'): $line"
     BAD_ROW=1
@@ -236,6 +258,7 @@ if [[ "$BAD_ROW" = "1" ]]; then
   echo "MIGRATE_INVALID=$MIGRATE_INVALID"
   echo "DB_WRITES=0"
   echo "ERROR: aborting migration because of malformed input (no changes were made)"
+  echo "RESULT: FAIL"
   exit 3
 fi
 echo "MIGRATE_INVALID=0"
@@ -266,10 +289,13 @@ echo "PLAN_UPDATES=$UPDATED"
 echo "SKIPPED=$SKIPPED"
 
 # ------------------------------------------------------ write confirmation
-if [[ "$UPDATED" -gt 0 && -n "$CONFIRM_ROWS" && "$CONFIRM_ROWS" != "$UPDATED" ]]; then
+# D4: --confirm-rows must equal the planned update count exactly (including the
+# zero-update case: a stale count must never be treated as "close enough").
+if [[ -n "$CONFIRM_ROWS" && "$CONFIRM_ROWS" != "$UPDATED" ]]; then
   echo "APPLY_CONFIRM_MISMATCH=1"
   echo "ERROR: --confirm-rows=$CONFIRM_ROWS does not match PLAN_UPDATES=$UPDATED"
   echo "DB_WRITES=0"
+  echo "RESULT: FAIL"
   exit 2
 fi
 if [[ -n "$CONFIRM_ROWS" ]]; then
@@ -288,9 +314,11 @@ if [[ "$DRY_RUN" = true ]]; then
     echo "  Re-run with: ./migrate.sh --yes --confirm-rows $UPDATED"
   fi
   echo "============================================"
+  echo "RESULT: PASS"
   exit 0
 fi
 
+DB_FAILURES=0
 while IFS='|' read -r uid email cus_perm; do
   [[ -z "$uid" ]] && continue
   CURRENT_PERM=$((cus_perm))
@@ -303,6 +331,7 @@ while IFS='|' read -r uid email cus_perm; do
     -d "{\"raw_bits\":true,\"cus_perm\":$NEW_PERM}" 2>&1) || {
     echo "    ERROR: Failed to update $email"
     echo "    Response: $RESP"
+    DB_FAILURES=$((DB_FAILURES + 1))
     continue
   }
   echo "    OK — $email updated"
@@ -314,4 +343,11 @@ echo ""
 echo "============================================"
 echo "  Migration complete"
 echo "  Updated: $DB_WRITES  Skipped: $SKIPPED"
+if [[ "$DB_FAILURES" -gt 0 ]]; then
+  echo "  Failures: $DB_FAILURES"
+  echo "============================================"
+  echo "RESULT: FAIL"
+  exit 1
+fi
 echo "============================================"
+echo "RESULT: PASS"
