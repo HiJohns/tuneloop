@@ -1,16 +1,16 @@
 {
   "issue": 2504,
-  "overall": "FAIL",
-  "plan": "/home/coder/worktrees/tuneloop/wt-2504/tmp/pre-ready-2504.vd6zdH/plan.md",
+  "overall": "PASS",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2504/tmp/pre-ready-2504.Mfv9PR/plan.md",
   "plan_sha256": "e459f99ad1151e595ea85d9cbb586f6d0b87aefeb6fc7b3bbbbbf90dc3019996",
   "config_sha": "f663626b8fe3895a49dffa4c43266664546741db",
   "provenance": {
-    "build": "1.0.d741315f",
-    "commit": "d741315f51b54872684bafa3f3779d007c4a0615",
+    "build": "1.0.9ee0eef8",
+    "commit": "9ee0eef85e77817fae9c6e84278d8e862724876f",
     "dirty": false
   },
   "summary": "tmp/work-summary-2504.md",
-  "timestamp": "20261125-150330",
+  "timestamp": "20261125-151419",
   "checks": [
     {
       "id": "P1",
@@ -24,8 +24,8 @@
     },
     {
       "id": "P3",
-      "status": "FAIL",
-      "detail": "evidence paths do not exist: R4-flip.txt verify-2480.sh verify-2480.sh:110 verify-2480.sh:111 verify-2480.sh:125 verify-2480.sh:136"
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
     },
     {
       "id": "P4",
@@ -39,8 +39,8 @@
     },
     {
       "id": "P14",
-      "status": "FAIL",
-      "detail": "provenance mismatch dirty: artifact=true evidence=false (docs/evidence/2504/R6-build-lint.txt)"
+      "status": "PASS",
+      "detail": "artifact provenance matches evidence (8 artifacts)"
     },
     {
       "id": "P18",
@@ -65,7 +65,7 @@
     {
       "id": "P5",
       "status": "N/A",
-      "detail": "skipped: P12/P14/P15/P16 static checks failed (static checks run first)"
+      "detail": "no go.mod/package.json and no --full-gate-cmd: full gate not applicable"
     },
     {
       "id": "P6",
@@ -74,8 +74,8 @@
     },
     {
       "id": "P7",
-      "status": "FAIL",
-      "detail": "contract-affecting change requires '### 契约三向核对' (Plan/API, docs, handler/frontend)"
+      "status": "PASS",
+      "detail": "contract three-way section present"
     },
     {
       "id": "P8",
