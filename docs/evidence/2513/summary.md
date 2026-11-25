@@ -1,8 +1,8 @@
 # Work Summary — #2513 S5 维修服务 oid ↔ site_id 误用修复
 
 - Fix commit（Round 1）: d7a3cecc2（`fix(issue-2513): repair service drops the oid/site_id ID-domain misuse`）
-- Fix commit（Round 2，当前）: 27d9cf29e（`fix(issue-2513): align R7 assertion with the gate report schema`）
-- Evidence artifacts（R1–R6）: 27d9cf29e（首行 provenance 由 `scripts/verify-2513.sh ledger` 锚定）
+- Fix commit（Round 2，当前）: c23683da（`fix(issue-2513): align R7 assertion with the gate report schema` + `fix(issue-2513): ledger also derives the plan hash for four-source parity`；前一提交 27d9cf29e）
+- Evidence artifacts（R1–R6）: c23683da（首行 provenance 由 `scripts/verify-2513.sh ledger` 锚定）
 - Evidence ledger/gate/summary: 本摘要所在提交（`git log -1 --format=%H -- docs/evidence/2513/`）；分支 `origin/issue-2513`
 - 涉及文件：backend/handlers/repair_service.go、backend/handlers/repair_service_2513_test.go（新增）、scripts/verify-2513.sh（新增/扩展 ledger）、docs/cases/repair-service.md
 
@@ -107,8 +107,8 @@ PASS
 
 | session / 命令 | repo | build_version | fix commit | artifact |
 |---|---|---|---|---|
-| bash scripts/verify-2513.sh r1..r6 | tuneloop | 1.0.27d9cf29（首行 provenance） | 27d9cf29e | docs/evidence/2513/R1-pending-dispatch.txt 等 6 份 |
-| bash scripts/verify-2513.sh ledger | tuneloop | 1.0.27d9cf29 | 27d9cf29e | docs/evidence/2513/evidence.json（build/commit/dirty 派生，非手改） |
+| bash scripts/verify-2513.sh r1..r6 | tuneloop | 1.0.c23683da（首行 provenance） | c23683da | docs/evidence/2513/R1-pending-dispatch.txt 等 6 份 |
+| bash scripts/verify-2513.sh ledger | tuneloop | 1.0.c23683da | c23683da | docs/evidence/2513/evidence.json（build/commit/dirty/plan_sha256 派生，非手改） |
 
 - 证据均在 **fix commit 之后**、干净树上重新生成（git status --porcelain --untracked-files=no 为空 → dirty=false），无手工修改的 artifact。
 
@@ -126,7 +126,7 @@ PASS
 
 ## Remote
 
-- remote: origin/issue-2513; fix=27d9cf29e pushed=yes（历史 fix=d7a3cecc2）；evidence artifacts=27d9cf29e 锚点；ledger/gate/summary=本摘要所在提交（见 `git log -1 --format=%H -- docs/evidence/2513/`）
+- remote: origin/issue-2513; fix=c23683da pushed=yes（历史 fix=d7a3cecc2、27d9cf29e）；evidence artifacts=c23683da 锚点；ledger/gate/summary=本摘要所在提交（见 `git log -1 --format=%H -- docs/evidence/2513/`）
 
 ## Pre-ready gate
 
@@ -149,12 +149,13 @@ RESULT: PASS
 
 $ bash scripts/verify-2513.sh ledger --require-gate
 ARTIFACT_PROVENANCE=OK
-LEDGER_BUILD=1.0.27d9cf29
-LEDGER_COMMIT=27d9cf29e10fdbce00686d686575d9c071118648
+LEDGER_BUILD=1.0.c23683da
+LEDGER_COMMIT=c23683daef8109638aaed08dc7f388db81ceebbc
 LEDGER_DIRTY=false
+LEDGER_PLAN_SHA=571da7958df327d3c224d67c8b089918b862ecc5ba3aeffc24eaf82d7c7ebcd8
 LEDGER_ROWS=7/7
 GATE_OVERALL=PASS
-GATE_PROVENANCE_COMMIT=27d9cf29e10fdbce00686d686575d9c071118648
+GATE_PROVENANCE_COMMIT=c23683daef8109638aaed08dc7f388db81ceebbc
 LEDGER_OK
 ```
 
