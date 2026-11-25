@@ -6210,18 +6210,20 @@ GET /api/admin/dashboard/near-transfers
 | businessRole | 可见范围 |
 |---|---|
 | merchant_admin | 本商户全员 = 各网点成员 ∪ **商户直属员工**（`merchant_members`）∪ **维修师傅**（`technician_profiles`）；直属/师傅行 site_name=「直属商户」、师傅 position=「维修师傅」。**归属锚定 membership**：由 `site_members→sites.tenant_id` / `merchant_members.tenant_id` / `technician_profiles.tenant_id` 决定，users 按 id 取回（**不按 `users.tenant_id` 过滤**——本地缓存该列不可靠） |
-| site_admin | **仅本网点成员**（`site_members.site_id = JWT oid`，不含维修师傅） |
+| site_admin | **本网点（组织域）全部成员**：`JOIN sites s ON s.id = sm.site_id WHERE s.org_id = JWT oid`；不含维修师傅。JWT `oid` 是**网点自身的 IAM 组织 ID**（`sites.org_id`），与 `site_members.site_id`（`sites.id`）**不是同一域**（#2508）。一个组织下有多个站点时返回**该组织全部站点**成员，**不递归**子网点（`sites.parent_id`） |
 | system_admin | **平台员工**（根组织 users，role∈staff/namespace_admin/sys_admin）∪ **中转网点成员**（`sites.type='transit'`）；平台员工无网点归属时 site_name=「平台」 |
 | 其他（customer 等） | `40303` |
 
-**Query**: `page`（默认 1）、`page_size`（默认 20，≤100）、`name`（姓名 ILIKE；页面搜索表单参数）、`site_id`（**merchant 视图**按网点过滤成员，师傅/直属员工不属网点故排除）、`direct`（**merchant 视图**：`true`=只看直属员工（`merchant_members`）+ 维修师傅；与 `site_id` 同传时 **direct 优先**）、`search`（name/phone/email ILIKE，通用口径；name 优先）
+**Query**: `page`（默认 1）、`page_size`（默认 20，≤100）、`name`（姓名 ILIKE；页面搜索表单参数）、`site_id`（**merchant 视图**按网点过滤成员，师傅/直属员工不属网点故排除；**site_admin 视图亦生效**，语义为「与本组织求交」——跨组织站点 ID 得到空集，不报错、不泄漏）、`direct`（**merchant 视图**：`true`=只看直属员工（`merchant_members`）+ 维修师傅；与 `site_id` 同传时 **direct 优先**）、`search`（name/phone/email ILIKE，通用口径；name 优先）
+
+**ID 域（#2508）**: `sites.org_id`（= JWT `oid`，组织 ID）与 `sites.id`（= `site_members.site_id`，本地主键）是两列不同域，生产上恒不相等。凡按组织隔离的查询必须 `JOIN sites` 用 `s.org_id`；把 `oid` 直接当 `site_id` 比较会恒返回 0 行且无报错（静默空列表）。
 
 **响应行**: `{id, user_id, name, phone, email, position, role, status, iam_sub, site_id, site_name, is_technician, bio, avatar}`（#2073 增 `bio`/`avatar`）
 （一行一人；多网点归属时 `site_name` 逗号聚合；`id`/`user_id` 同值，兼容既有行操作）
 
 **排序**（#2072）：按 `users.created_at DESC`（**新建用户置顶**；此前无 ORDER BY，行序不稳定致新建用户不在当前页）。
 
-**隔离**: 商户/网点视图均有 tenant/org WHERE 强制（#688 纪律）；跨商户/跨网点不可见。
+**隔离**: 商户/网点视图均有 tenant/org WHERE 强制（#688 纪律）；跨商户/跨网点不可见。site 视图解析出 0 名成员时返回空列表 **并记 `WARN` 日志**（含 org），使「恒空」可被巡检发现（#2427 D3 / #2508 B5）；查询失败返回 `50000`，不得以空列表代替。
 
 #### 10.18.1 创建用户
 

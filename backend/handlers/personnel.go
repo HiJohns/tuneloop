@@ -19,7 +19,7 @@ import (
 
 // #2065 人员管理三视图（角色感知）：
 //   - merchant_admin：本商户全员 = 各网点成员 ∪ 维修师傅（直属商户，不挂网点）
-//   - site_admin：仅本网点成员（不含维修师傅）
+//   - site_admin：本网点（**组织域**：JWT `oid` = `sites.org_id`）成员，不含维修师傅
 //   - system_admin：平台员工（根组织 users）∪ 中转网点成员
 //
 // 字段：姓名/电话/所属网点/职位（+ email/status/iam_sub 供既有行操作复用）。
@@ -83,7 +83,9 @@ func (h *PersonnelHandler) List(c *gin.Context) {
 			c.JSON(http.StatusForbidden, gin.H{"code": 40303, "message": "access denied"})
 			return
 		}
-		rows, err = personnelSiteView(db, oid, keyword)
+		// #2508: oid 是组织 ID（sites.org_id），与 site_id（sites.id）不同域；
+		// site_id 过滤与本组织求交，必须在视图内消费（D2）。
+		rows, err = personnelSiteView(db, oid, keyword, siteFilter)
 	case middleware.BusinessRoleSystemAdmin:
 		if oid == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "operator has no organization"})
@@ -216,14 +218,36 @@ func personnelMerchantView(db *gorm.DB, tid, keyword, siteFilter string, directO
 }
 
 // personnelSiteView 仅本网点成员（不含维修师傅）。
-func personnelSiteView(db *gorm.DB, siteID, keyword string) ([]personnelRow, error) {
+//
+// #2508：JWT `oid` 是**组织 ID**（`sites.org_id`），而 `site_members.site_id`
+// 存的是 `sites.id`——两者不同域。必须经 `sites` 关联按组织过滤；直接把 `oid`
+// 当 `site_id` 比较会让 site_admin 的人员列表恒为空（静默 0 条，无报错）。
+func personnelSiteView(db *gorm.DB, orgID, keyword, siteFilter string) ([]personnelRow, error) {
+	// #2067 / D4：membership 为权威（users.tenant_id 不可靠，如零租户成员），
+	// 隔离由 `sites.org_id = oid` 与成员关系承担，故显式关闭自动租户范围。
+	scopeCtx := db.Statement.Context
+	if scopeCtx == nil {
+		scopeCtx = context.Background()
+	}
+	db = db.WithContext(database.ExplicitTenantScopeOnly(scopeCtx))
+
 	var sms []siteMembershipRow
-	if err := db.Table("site_members AS sm").
+	smq := db.Table("site_members AS sm").
 		Select("sm.user_id, sm.site_id, s.name AS site_name, sm.role").
 		Joins("JOIN sites s ON s.id = sm.site_id").
-		Where("sm.site_id = ? AND sm.status = 'active'", siteID).
-		Scan(&sms).Error; err != nil {
-		return nil, fmt.Errorf("site_members scan failed: %w", err)
+		Where("s.org_id = ? AND sm.status = 'active'", orgID)
+	// D2：site_id 与本组织求交——跨组织站点 ID 得到空集（不报错、不泄漏）。
+	if siteFilter != "" {
+		smq = smq.Where("sm.site_id = ?", siteFilter)
+	}
+	if err := smq.Scan(&sms).Error; err != nil {
+		return nil, fmt.Errorf("site_members scan failed (org=%s): %w", orgID, err)
+	}
+	if len(sms) == 0 {
+		// #2427 D3 / #2508 B5：「恒空」必须留可观测痕迹，否则 ID 域/配置问题
+		// 会再次以「空列表、无报错」的形态逃过巡检。
+		log.Printf("[Personnel] WARN: site view resolved 0 active members for org=%s (site_id=%q, keyword=%q)",
+			orgID, siteFilter, keyword)
 	}
 
 	ids := make([]string, 0, len(sms))
