@@ -2257,6 +2257,8 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
 
 > **游客支持**：已认证但未绑定组织的用户（token 中 `tid`/`oid` 为空）也可调用此接口。
 > 订单的 `tenant_id` 和 `org_id` 从乐器 (`instrument`) 记录中派生，无需依赖 token 中的组织绑定。
+>
+> **`org_id` 派生顺序（#2509 / #2512，强制）**：`instruments.org_id` → 按 `instruments.site_id` / `instruments.current_site_id` 反查 `sites.org_id`。**禁止**把 `sites.id`（站点主键）写入 `orders.org_id`（组织域）。三者均不可解析时返回 `400 / 40002`（乐器归属信息不完整），不得以站点 ID 兜底。
 
 **请求 Body**:
 ```json
@@ -2305,6 +2307,8 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
 
 > **游客支持**：已认证但未绑定组织的用户（token 中 `tid`/`oid` 为空）也可调用此接口。
 > 订单的 `tenant_id` 和 `org_id` 从第一批乐器的记录中派生。
+>
+> **`org_id` 派生顺序（#2509 / #2512，强制）**：`instruments.org_id` → 按 `site_id` / `current_site_id` 反查 `sites.org_id`（**禁止**写入 `sites.id`）。批量要求**全部**条目可解析（全有或全无）：任一条目不可解析 → 整批返回 `400 / 40002`（消息含乐器 ID），且**零落库**，不得部分成功。
 
 **请求 Body**:
 ```json

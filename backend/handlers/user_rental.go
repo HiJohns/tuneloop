@@ -27,6 +27,26 @@ type pointsUsageError struct {
 	Message string
 }
 
+// resolveOrderOrgID 解析订单归属组织（sites.org_id 域，不得写入 sites.id）：
+// instrument.OrgID → 按 site_id / current_site_id 反查 sites.org_id → 解析不到返回 ""。
+// 口径：#2509 同族 ID 域审计 / #2512；权威 docs/cases/cases.md:289（sites.id = 站点主键，
+// sites.org_id = 组织域）与 docs/spec/api/api.md:91（归属从对象推导）。
+func resolveOrderOrgID(db *gorm.DB, inst *models.Instrument) string {
+	if inst.OrgID != nil && *inst.OrgID != "" {
+		return *inst.OrgID
+	}
+	for _, sid := range []*uuid.UUID{inst.SiteID, inst.CurrentSiteID} {
+		if sid == nil {
+			continue
+		}
+		var site models.Site
+		if err := db.Select("org_id").Where("id = ?", *sid).First(&site).Error; err == nil && site.OrgID != "" {
+			return site.OrgID
+		}
+	}
+	return ""
+}
+
 // pointsRatioFromDecimal 把十进制比例（如 points_policies.max_pay_ratio=0.3）归一化为整数比。
 // #2362 Rev.2 A1/D3：只通过十进制字符串解析，禁止二进制浮点参与 cap 运算。
 func pointsRatioFromDecimal(v float64) (int64, int64, bool) {
@@ -430,13 +450,14 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	// Guest (tid empty): derive tenant/org from instrument
 	if effectiveTenantID == "" {
 		effectiveTenantID = instrument.TenantID
-		if instrument.OrgID != nil {
-			effectiveOrgID = *instrument.OrgID
-		} else if instrument.SiteID != nil {
-			effectiveOrgID = instrument.SiteID.String()
-		} else if instrument.CurrentSiteID != nil {
-			effectiveOrgID = instrument.CurrentSiteID.String()
+		// #2509/#2512: resolve the org through sites.org_id (never sites.id).
+		org := resolveOrderOrgID(db, &instrument)
+		if org == "" {
+			log.Printf("[CreateOrder] WARN: instrument %s has no resolvable org (org_id/site_id/current_site_id empty or site missing org)", instrument.ID)
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "乐器归属信息不完整，暂时无法下单，请联系门店"})
+			return
 		}
+		effectiveOrgID = org
 	}
 
 	// Ensure user exists locally (guest may not have a local record yet)
@@ -1028,23 +1049,34 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 	db = database.GetDB().WithContext(ctx)
 
 	// Verify all instruments are available (no tenant_id filter for guests)
+	verified := make([]models.Instrument, 0, len(req.Items))
 	for _, item := range req.Items {
 		var inst models.Instrument
 		if err := db.Where("id = ? AND stock_status = ?", item.InstrumentID, "available").First(&inst).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "乐器 " + item.InstrumentID + " 暂不可租"})
 			return
 		}
-		// Derive tenant from first instrument if guest
-		if effectiveTenantID == "" {
-			effectiveTenantID = inst.TenantID
-			if inst.OrgID != nil {
-				effectiveOrgID = *inst.OrgID
-			} else if inst.SiteID != nil {
-				effectiveOrgID = inst.SiteID.String()
-			} else if inst.CurrentSiteID != nil {
-				effectiveOrgID = inst.CurrentSiteID.String()
+		verified = append(verified, inst)
+	}
+
+	// #2509/#2512: guest (tid empty) — derive tenant/org from the instruments.
+	// The org is always sites.org_id (never sites.id); if any instrument cannot
+	// be resolved the whole batch is rejected before any write (D4).
+	if effectiveTenantID == "" && len(verified) > 0 {
+		effectiveTenantID = verified[0].TenantID
+		org := ""
+		for i := range verified {
+			resolved := resolveOrderOrgID(db, &verified[i])
+			if resolved == "" {
+				log.Printf("[CreateBatchOrders] WARN: instrument %s has no resolvable org (org_id/site_id/current_site_id empty or site missing org)", verified[i].ID)
+				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "乐器 " + verified[i].ID + " 归属信息不完整，暂时无法下单，请联系门店"})
+				return
+			}
+			if org == "" {
+				org = resolved
 			}
 		}
+		effectiveOrgID = org
 	}
 
 	// #1867: deposit-free gate — verified student/teacher identity, credit
