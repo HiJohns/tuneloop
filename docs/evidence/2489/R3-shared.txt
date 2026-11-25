@@ -1,0 +1,11 @@
+# build=1.0.d08a6228e # commit=d08a6228ee7fb655edb3a517c8df8077fca67ea3 # dirty=false
+# tree=82cdda3f8cadeda3186eb91f6e02c0a253eb3023
+REUSE=pages/admin/PermissionManage/index.jsx
+REUSE=pages/admin/pricing/MerchantPricingConfig.jsx
+REUSE=pages/admin/transit/TransitCenter.jsx
+REUSE=pages/System/MembershipLevelsPage.jsx
+REUSE=pages/MerchantManagement.jsx
+REUSE=pages/TenantManagement.jsx
+SHARED_REUSE=6
+LOCAL_ALERT_DUP=0
+LOCAL_CODE_LIST=0
