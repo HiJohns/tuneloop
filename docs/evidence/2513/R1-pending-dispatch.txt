@@ -1,0 +1,5 @@
+# build=1.0.d7a3cecc # commit=d7a3cecc2c7342a9d9b9777347345f1f6924eb41 # dirty=false
+MERCHANT_ROWS=2
+LEGACY_VISIBLE=1
+OLD_SITE_EQ_OID_ROWS=0
+R1_OK

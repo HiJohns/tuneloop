@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "issue": 2513,
+  "build": "1.0.d7a3cecc",
+  "commit": "d7a3cecc2c7342a9d9b9777347345f1f6924eb41",
+  "dirty": false,
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2513.sh r1 > docs/evidence/2513/R1-pending-dispatch.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2513/R1-pending-dispatch.txt"
+      ],
+      "assert": "exit 0；`grep -q '^R1_OK$'` 且 `grep -q 'MERCHANT_ROWS=2'`",
+      "actual": "MERCHANT_ROWS=2 LEGACY_VISIBLE=1 OLD_SITE_EQ_OID_ROWS=0 R1_OK",
+      "expected": "`LEGACY_VISIBLE=1`、`OLD_SITE_EQ_OID_ROWS=0`",
+      "negative": "修复后仍 0 行/漏 `rrLegacy` → `R1_FAIL` 且非 0 退出",
+      "negative_result": "旧谓词 site_id=oid 恒 0 行（红证据）",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2513.sh r2 > docs/evidence/2513/R2-list-tasks-site.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2513/R2-list-tasks-site.txt"
+      ],
+      "assert": "exit 0；`grep -q '^R2_OK$'` 且 `grep -q 'SITE_SCOPE_ROWS=2'`",
+      "actual": "SITE_SCOPE_ROWS=2 OLD_FILTER_ROWS=1 R2_OK",
+      "expected": "`OLD_FILTER_ROWS=1`（红证据）",
+      "negative": "修复后仍 1 行 → `R2_FAIL` 且非 0 退出",
+      "negative_result": "旧谓词只命中 NULL 行 1 行（红证据）",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2513.sh r3 > docs/evidence/2513/R3-staff-allowed.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2513/R3-staff-allowed.txt"
+      ],
+      "assert": "exit 0；`grep -q '^R3_OK$'` 且 `grep -q 'ALLOWED_LEGACY=1'`",
+      "actual": "ALLOWED_LEGACY=1 QUOTE_STATUS=200 OLD_DIRECT_OID_COMPARE=0 R3_OK",
+      "expected": "`OLD_DIRECT_OID_COMPARE=0`、quote 入口 200",
+      "negative": "历史行仍 403 → `R3_FAIL` 且非 0 退出",
+      "negative_result": "旧 rr.SiteID != oid 分支 0 残留",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2513.sh r4 > docs/evidence/2513/R4-negative.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2513/R4-negative.txt"
+      ],
+      "assert": "exit 0；`grep -q '^R4_OK$'` 且 `grep -q 'OTHER_TENANT_ROWS=0'`",
+      "actual": "OTHER_TENANT_ROWS=0 OTHER_TENANT_ALLOWED=0 SITE_STAFF_ROWS=0 SITE_STAFF_PENDING_ROWS=0 R4_OK",
+      "expected": "`OTHER_TENANT_ALLOWED=0`、`SITE_STAFF_ROWS=0`",
+      "negative": "他租户/网点账号出现 >0 行 → `R4_FAIL` 且非 0 退出",
+      "negative_result": "网点账号仍 0 行（#2122 保持）",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2513.sh r5 > docs/evidence/2513/R5-regression.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2513/R5-regression.txt"
+      ],
+      "assert": "exit 0；`grep -q '^R5_OK$'` 且 `grep -q 'FAIL_COUNT=0'`",
+      "actual": "PASS_COUNT=41 FAIL_COUNT=0 REGRESSION_PASS=1 R5_OK",
+      "expected": "既有 #2116/#2122/#2134/#2248/#2255 用例全绿",
+      "negative": "任一既有用例 FAIL → `R5_FAIL` 且非 0 退出",
+      "negative_result": "既有用例 0 FAIL",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2513.sh r6 > docs/evidence/2513/R6-build-scan.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2513/R6-build-scan.txt"
+      ],
+      "assert": "exit 0；`grep -q '^R6_OK$'` 且 `grep -q 'BUILD_RC=0'`",
+      "actual": "BUILD_RC=0 SITE_ID_EQ_ORG=0 SITE_FILTER_IN_SERVICE=0 MERCHANT_GATE_SHARED=1 R6_OK",
+      "expected": "`SITE_ID_EQ_ORG=0`、`SITE_FILTER_IN_SERVICE=0`、`MERCHANT_GATE_SHARED=1`",
+      "negative": "残留 ID 域比较或闸门未复用 → `R6_FAIL` 且非 0 退出",
+      "negative_result": "三处特征串 0 残留",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "~/.config/opencode/scripts/pre-ready-check.sh 2513 --summary-file docs/evidence/2513/summary.md --changed-files docs/evidence/2513/changed-files.txt --evidence-file docs/evidence/2513/evidence.json --affected-cmd \"bash scripts/verify-2513.sh r5\" --full-gate-cmd \"bash scripts/verify-2513.sh gate\" --report docs/evidence/2513/pre-ready-2513.json",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2513/pre-ready-2513.json"
+      ],
+      "assert": "exit 0；`GATE_RESULT=PASS`，`jq -e '.result == \"PASS\"'`，evidence 每行 `pass=true`",
+      "actual": "GATE_RESULT=PASS",
+      "expected": "`dirty=false`、P13 提交在 `origin/issue-2513`",
+      "negative": "任一 P 项失败 / evidence 缺行 / `dirty=true` → gate 非 0，禁止 ready",
+      "negative_result": "bootstrap 报告后重跑 gate 通过；dirty=false；P13 在 origin/issue-2513",
+      "pass": true
+    }
+  ]
+}
