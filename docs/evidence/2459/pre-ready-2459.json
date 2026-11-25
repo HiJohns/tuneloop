@@ -1,6 +1,6 @@
 {
   "issue": 2459,
-  "overall": "PASS",
+  "overall": "FAIL",
   "plan": "/home/coder/worktrees/tuneloop/wt-2459/docs/evidence/2459/plan.md",
   "plan_sha256": "c945a649bec94a7a07217c77441496bfe3c2481ef6c2f8b81dbcb52e0c237cd1",
   "config_sha": "db40145bac55c26278f9da24652d1a7bad2ebaca",
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "/home/coder/worktrees/tuneloop/wt-2459/tmp/work-summary-2459.md",
-  "timestamp": "20261125-071516",
+  "timestamp": "20261125-073414",
   "checks": [
     {
       "id": "P1",
@@ -29,8 +29,8 @@
     },
     {
       "id": "P4",
-      "status": "PASS",
-      "detail": "all 2 affected command(s) passed"
+      "status": "FAIL",
+      "detail": "affected command(s) failed:; [1] cd backend && go test ./handlers -run '_2459$' -count=1 (tail: FAIL tuneloop-backend/handlers [setup failed] FAIL [heavy-lock] released scope=host slot=0 rc=1 at_ms=1795593047215 hold_ms=2253 ); [1] cd backend && go test ./services -run '_2459$' -count=1 (tail: FAIL tuneloop-backend/services [setup failed] FAIL [heavy-lock] released scope=host slot=0 rc=1 at_ms=1795593067159 hold_ms=612 )"
     },
     {
       "id": "P12",
