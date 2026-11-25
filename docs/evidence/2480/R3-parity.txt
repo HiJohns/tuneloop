@@ -1,5 +1,5 @@
-# build=1.0.f44853fe1 # commit=f44853fe1f5e731a2ff40c674ed842155430bfe6 # dirty=false
-# tree=f44853fe1f5e731a2ff40c674ed842155430bfe6
+# build=1.0.c931502a0 # commit=c931502a0152238d6f5a70c4a0a310dda8410db0 # dirty=false
+# tree=c931502a0152238d6f5a70c4a0a310dda8410db0
 CASE=40900+中文 PARITY=1 LAYER=human_message PC="网点名称已存在" MOBILE="网点名称已存在"
 CASE=40900+ASCII PARITY=1 LAYER=code_map PC="数据冲突，请刷新后重试" MOBILE="数据冲突，请刷新后重试"
 CASE=40900+空串 PARITY=1 LAYER=code_map PC="数据冲突，请刷新后重试" MOBILE="数据冲突，请刷新后重试"

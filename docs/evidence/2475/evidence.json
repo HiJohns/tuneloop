@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "issue": 2475,
+  "build": "1.0.b4f2b3c3",
+  "commit": "b4f2b3c33e07c6d71a00c9b493efe80bc9ddc2ab",
+  "dirty": false,
+  "plan_sha256": "7aa643baa3157b97fb2b711881028b7b26474e577161aa84e52f97105752940d",
+  "environment": "beaconwork worktree /home/coder/worktrees/tuneloop/wt-2475 (base origin/develop); PostgreSQL test DB via tunnel 127.0.0.1:25432 (strict schema); fake IAM via httptest",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2475.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2475/R1-staff-roles.txt"
+      ],
+      "assert": "exit 0；grep NO_22P02=1、ROLE=site_admin、ROLE_ERRORS=0",
+      "actual": "PASS：NO_22P02=1 ROLES_JSON=[\"site_admin\"] ROLE=site_admin ROLE_ERRORS=0",
+      "expected": "PASS",
+      "negative": "出现 22P02 → FAIL",
+      "negative_result": "缺陷版红跑实测：response 含 role_errors 且 error 为 SQLSTATE 22P02 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2475.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2475/R2-proxy-roles.txt"
+      ],
+      "assert": "exit 0；grep NO_22P02=1、ROLES_JSON=[\"site_admin\"]",
+      "actual": "PASS：NO_22P02=1 ROLES_JSON=[\"site_admin\"] ROLE=site_admin",
+      "expected": "PASS",
+      "negative": "roles 未写入 → FAIL",
+      "negative_result": "缺陷版红跑实测：ensureSiteMember 返回 true 但 roles 仍为 [\"site_member\"]（role 列被写、roles 报 22P02）→ FAIL",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2475.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2475/R3-helper.txt"
+      ],
+      "assert": "exit 0；grep DEDUP=、EMPTY=[]、NIL=[]",
+      "actual": "PASS：DEDUP=[\"site_member\",\"repair_technician\"] EMPTY=[] NIL=[]",
+      "expected": "PASS",
+      "negative": "空集合写成 NULL → FAIL",
+      "negative_result": "nil/空输入序列化为 null 而不是 [] → 断言 EMPTY/NIL 失败（roles NOT NULL 也会违约）",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2475.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2475/R4-multi-role.txt"
+      ],
+      "assert": "exit 0；grep STATUS=200、ROLES_KEPT=1",
+      "actual": "PASS：STATUS=200 ROLES_JSON=[\"site_member\",\"repair_technician\"] ROLES_KEPT=1",
+      "expected": "PASS",
+      "negative": "多角色被压成单项 → FAIL",
+      "negative_result": "roles 被写成单角色（丢 repair_technician）→ ROLES_KEPT=0 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2475.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2475/R5-gate.txt"
+      ],
+      "assert": "exit 0；grep FULL_SUITE_EXIT=0、PLAN_SOURCE=PASS",
+      "actual": "PASS：FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0 GATE_RESULT=PASS GATE_PLAN_SHA_MATCH=1 P5=PASS PLAN_SOURCE=PASS",
+      "expected": "PASS",
+      "negative": "P5=NA → FAIL",
+      "negative_result": "gate 跳过全量（P5=N/A）或 plan sha 与 comment 不一致 → P5=NA/GATE_PLAN_SHA_MATCH=0 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2475.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2475/R6-build.txt"
+      ],
+      "assert": "exit 0；grep BUILD_EXIT=0、TESTS_FAIL=0",
+      "actual": "PASS：BUILD_EXIT=0 TESTS_EXIT=0 TESTS_FAIL=0",
+      "expected": "PASS",
+      "negative": "任一非 0 → FAIL",
+      "negative_result": "go build 或定向测试（2475 / UpdateMemberRole / 2375）非 0 → FAIL",
+      "pass": true
+    }
+  ]
+}

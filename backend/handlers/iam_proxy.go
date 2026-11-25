@@ -1073,8 +1073,19 @@ func ensureSiteMember(db *gorm.DB, userID string, iamOrgID string, iamRole strin
 	if existingRole != "" {
 		siteRole := mapIAMRoleToSiteRole(iamRole)
 		if existingRole != siteRole {
-			db.Model(&models.SiteMember{}).Where("user_id = ? AND site_id = ?", userID, site.ID).
-				Updates(map[string]interface{}{"role": siteRole, "roles": []string{siteRole}}) // #2034
+			// #2475：roles 是 jsonb，map Update 不走 serializer；序列化失败时
+			// 跳过 roles 修正但仍更新主列 role（D2），只记录日志，不让整批同步失败。
+			updates := map[string]interface{}{"role": siteRole}
+			if rolesExpr, rolesErr := siteMemberRolesExpr([]string{siteRole}); rolesErr != nil {
+				log.Printf("[IAMProxy] SyncUsers: failed to encode site_members roles for user %s site %s: %v", userID, site.ID, rolesErr)
+			} else {
+				updates["roles"] = rolesExpr
+			}
+			if err := db.Model(&models.SiteMember{}).Where("user_id = ? AND site_id = ?", userID, site.ID).
+				Updates(updates).Error; err != nil {
+				log.Printf("[IAMProxy] SyncUsers: failed to correct site_member role for user %s site %s: %v", userID, site.ID, err)
+				return false
+			}
 			log.Printf("[IAMProxy] SyncUsers: corrected site_member role for user %s site %s: %s -> %s", userID, site.ID, existingRole, siteRole)
 			return true
 		}

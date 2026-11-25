@@ -1,0 +1,117 @@
+# build=1.0.c0539fd00 # commit=c0539fd00ba769039194e174dfd49a70ad754303 # dirty=false
+# tree=c0539fd00ba769039194e174dfd49a70ad754303
+--- (a) --yes without --confirm-rows ---
+APPLY_CONFIRM_MISMATCH=1
+ERROR: --yes requires --confirm-rows <n> (the number printed as PLAN_UPDATES)
+RESULT: FAIL
+EXIT=2
+--- (b) --confirm-rows mismatch (9 vs 1) ---
+============================================
+  Namespace Admin cus_perm Migration
+============================================
+IAM URL:        http://localhost:5561
+Client ID:      tuneloop
+Bits to set:    18 (category:manage) + 19 (attribute:manage)
+Bitmask:        786432
+Mode:           DRY RUN (no changes)
+============================================
+
+[1/4] Reading fixture (offline mode)...
+  Fixture rows: 1
+MIGRATE_INVALID=0
+
+[4/4] Updating cus_perm...
+ACTION=UPDATE uid=u1 email= old_perm=196608 new_perm=983040
+PLAN_UPDATES=1
+SKIPPED=0
+APPLY_CONFIRM_MISMATCH=1
+ERROR: --confirm-rows=9 does not match PLAN_UPDATES=1
+DB_WRITES=0
+RESULT: FAIL
+EXIT=2
+--- (c) --confirm-rows match (1) ---
+============================================
+  Namespace Admin cus_perm Migration
+============================================
+IAM URL:        http://localhost:5561
+Client ID:      tuneloop
+Bits to set:    18 (category:manage) + 19 (attribute:manage)
+Bitmask:        786432
+Mode:           DRY RUN (no changes)
+============================================
+
+[1/4] Reading fixture (offline mode)...
+  Fixture rows: 1
+MIGRATE_INVALID=0
+
+[4/4] Updating cus_perm...
+ACTION=UPDATE uid=u1 email= old_perm=196608 new_perm=983040
+PLAN_UPDATES=1
+SKIPPED=0
+APPLY_READY=1
+DB_WRITES=0
+
+============================================
+  Migration plan only (dry run)
+  To update: 1  Skipped: 0
+  (DRY RUN — no changes were made)
+============================================
+RESULT: PASS
+EXIT=0
+--- (d) --fixture + --yes (mutually exclusive) ---
+ERROR: --fixture is dry-run only and cannot be combined with --yes
+RESULT: FAIL
+EXIT=2
+--- (e) zero-update plan with stale --confirm-rows 1 (strict D4) ---
+============================================
+  Namespace Admin cus_perm Migration
+============================================
+IAM URL:        http://localhost:5561
+Client ID:      tuneloop
+Bits to set:    18 (category:manage) + 19 (attribute:manage)
+Bitmask:        786432
+Mode:           DRY RUN (no changes)
+============================================
+
+[1/4] Reading fixture (offline mode)...
+  Fixture rows: 1
+MIGRATE_INVALID=0
+
+[4/4] Updating cus_perm...
+ACTION=SKIP uid=u5 email=a@b old_perm=983040
+PLAN_UPDATES=0
+SKIPPED=1
+APPLY_CONFIRM_MISMATCH=1
+ERROR: --confirm-rows=1 does not match PLAN_UPDATES=0
+DB_WRITES=0
+RESULT: FAIL
+EXIT=2
+--- (f) zero-update plan with --confirm-rows 0 ---
+============================================
+  Namespace Admin cus_perm Migration
+============================================
+IAM URL:        http://localhost:5561
+Client ID:      tuneloop
+Bits to set:    18 (category:manage) + 19 (attribute:manage)
+Bitmask:        786432
+Mode:           DRY RUN (no changes)
+============================================
+
+[1/4] Reading fixture (offline mode)...
+  Fixture rows: 1
+MIGRATE_INVALID=0
+
+[4/4] Updating cus_perm...
+ACTION=SKIP uid=u5 email=a@b old_perm=983040
+PLAN_UPDATES=0
+SKIPPED=1
+APPLY_READY=1
+DB_WRITES=0
+
+============================================
+  Migration plan only (dry run)
+  To update: 0  Skipped: 1
+  (DRY RUN — no changes were made)
+============================================
+RESULT: PASS
+EXIT=0

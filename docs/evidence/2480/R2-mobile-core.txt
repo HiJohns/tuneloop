@@ -1,5 +1,5 @@
-# build=1.0.f44853fe1 # commit=f44853fe1f5e731a2ff40c674ed842155430bfe6 # dirty=false
-# tree=f44853fe1f5e731a2ff40c674ed842155430bfe6
+# build=1.0.c931502a0 # commit=c931502a0152238d6f5a70c4a0a310dda8410db0 # dirty=false
+# tree=c931502a0152238d6f5a70c4a0a310dda8410db0
 TAP version 13
 # L_CN=human_message
 # L_ASCII=code_map
@@ -10,42 +10,42 @@ TAP version 13
 # Subtest: CJK 判定：中文 true，ASCII / 非字符串 false
 ok 1 - CJK 判定：中文 true，ASCII / 非字符串 false
   ---
-  duration_ms: 4.381827
+  duration_ms: 5.660347
   ...
 # Subtest: 可读中文 message 优先于 code 家族通用文案（缺陷版为 code_map）
 ok 2 - 可读中文 message 优先于 code 家族通用文案（缺陷版为 code_map）
   ---
-  duration_ms: 0.858047
+  duration_ms: 0.728213
   ...
 # Subtest: ASCII message 仍走 code map（不外溢英文技术串）
 ok 3 - ASCII message 仍走 code map（不外溢英文技术串）
   ---
-  duration_ms: 0.424943
+  duration_ms: 0.33122
   ...
 # Subtest: 空 / 缺 message 的 409 → code map 兜底
 ok 4 - 空 / 缺 message 的 409 → code map 兜底
   ---
-  duration_ms: 2.396635
+  duration_ms: 2.359164
   ...
 # Subtest: 4091x 未入 map：中文 message 继续透传
 ok 5 - 4091x 未入 map：中文 message 继续透传
   ---
-  duration_ms: 3.632004
+  duration_ms: 5.285585
   ...
 # Subtest: L1 英文精确键 → 中文翻译；null → fallback
 ok 6 - L1 英文精确键 → 中文翻译；null → fallback
   ---
-  duration_ms: 0.451755
+  duration_ms: 0.532777
   ...
 # Subtest: 未知 code 的其它 message 透传（raw_message），不含 [object Object]
 ok 7 - 未知 code 的其它 message 透传（raw_message），不含 [object Object]
   ---
-  duration_ms: 2.487118
+  duration_ms: 0.481935
   ...
 # Subtest: 八条 fixture 的层序与 PC 完全一致
 ok 8 - 八条 fixture 的层序与 PC 完全一致
   ---
-  duration_ms: 14.651838
+  duration_ms: 8.053212
   ...
 1..8
 # tests 8
@@ -55,5 +55,5 @@ ok 8 - 八条 fixture 的层序与 PC 完全一致
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 387.93455
+# duration_ms 361.312888
 NODE_TEST_EXIT=0

@@ -1,0 +1,13 @@
+# build=1.0.c0539fd00 # commit=c0539fd00ba769039194e174dfd49a70ad754303 # dirty=false
+# tree=470c3ac721b6ba2b7c1043307e6508367f7e2397
+GATE_RESULT=PASS
+P5=PASS
+FULL_SUITE_EXIT=0 (derived from P5 PASS)
+GATE_PLAN_SHA_MATCH=1
+REBUILT_ROWS=8
+PLAN_SOURCE: plan sha=96b00219a606bffb6f103699eea7291fd73e64774c36a7547815d65bc0f6e04a source=/home/coder/worktrees/tuneloop/wt-2490/docs/evidence/2490/plan.md
+PLAN_SOURCE: gate sha=96b00219a606bffb6f103699eea7291fd73e64774c36a7547815d65bc0f6e04a source=/home/coder/worktrees/tuneloop/wt-2490/docs/evidence/2490/pre-ready-2490.json
+PLAN_SOURCE: evidence sha=96b00219a606bffb6f103699eea7291fd73e64774c36a7547815d65bc0f6e04a source=/home/coder/worktrees/tuneloop/wt-2490/docs/evidence/2490/evidence.json
+PLAN_SOURCE: PASS sha=96b00219a606bffb6f103699eea7291fd73e64774c36a7547815d65bc0f6e04a
+PLAN_SOURCE=PASS
+GATE_OK

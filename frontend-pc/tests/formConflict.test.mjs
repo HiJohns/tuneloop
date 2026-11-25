@@ -12,6 +12,9 @@ import {
 } from '../src/utils/formConflict.js'
 
 const bit = (v) => (v ? '1' : '0')
+// FALSE_* 键的契约口径（#2480 v2 R7）：取值 = 「断言成立」（1），不是函数原始返回值。
+// 即 FALSE_40901=1 表示「40901 被正确判定为非可纠正冲突」；若 40901 被误列为可纠正 → FALSE_40901=0 → 合同 FAIL。
+const holds = (v) => bit(!v)
 
 test('40900 / 40002 are business-correctable conflicts', () => {
   console.log(`TRUE_40900=${bit(isBusinessCorrectableConflict({ code: 40900 }))}`)
@@ -25,10 +28,10 @@ test('40900 / 40002 are business-correctable conflicts', () => {
 })
 
 test('server faults / success / null are not correctable conflicts', () => {
-  console.log(`FALSE_50000=${bit(isBusinessCorrectableConflict({ code: 50000 }))}`)
-  console.log(`FALSE_20000=${bit(isBusinessCorrectableConflict({ code: 20000 }))}`)
-  console.log(`FALSE_NULL=${bit(isBusinessCorrectableConflict(null))}`)
-  console.log(`FALSE_UNDEFINED=${bit(isBusinessCorrectableConflict(undefined))}`)
+  console.log(`FALSE_50000=${holds(isBusinessCorrectableConflict({ code: 50000 }))}`)
+  console.log(`FALSE_20000=${holds(isBusinessCorrectableConflict({ code: 20000 }))}`)
+  console.log(`FALSE_NULL=${holds(isBusinessCorrectableConflict(null))}`)
+  console.log(`FALSE_UNDEFINED=${holds(isBusinessCorrectableConflict(undefined))}`)
   assert.equal(isBusinessCorrectableConflict({ code: 50000 }), false)
   assert.equal(isBusinessCorrectableConflict({ code: 20000 }), false)
   assert.equal(isBusinessCorrectableConflict(null), false)
@@ -36,8 +39,8 @@ test('server faults / success / null are not correctable conflicts', () => {
 })
 
 test('40901 (existing account, Modal guided) is excluded', () => {
-  console.log(`FALSE_40901=${bit(isBusinessCorrectableConflict({ code: 40901 }))}`)
-  console.log(`FALSE_40902=${bit(isBusinessCorrectableConflict({ code: 40902 }))}`)
+  console.log(`FALSE_40901=${holds(isBusinessCorrectableConflict({ code: 40901 }))}`)
+  console.log(`FALSE_40902=${holds(isBusinessCorrectableConflict({ code: 40902 }))}`)
   assert.equal(BUSINESS_CORRECTABLE_CODES.includes(40901), false)
   assert.equal(BUSINESS_CORRECTABLE_CODES.includes(40902), false)
   assert.equal(isBusinessCorrectableConflict({ code: 40901 }), false)

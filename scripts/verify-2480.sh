@@ -257,10 +257,11 @@ case "$MODE" in
     grep -q '^NODE_TEST_EXIT=0$' "$LOG" || RC=1
     require_tokens "$LOG" \
       'TRUE_40900=1' 'TRUE_40002=1' \
-      'FALSE_50000=0' 'FALSE_20000=0' 'FALSE_NULL=0' 'FALSE_40901=0' \
+      'FALSE_50000=1' 'FALSE_20000=1' 'FALSE_NULL=1' 'FALSE_40901=1' \
       'TEXT_FALLBACK=请修改后重新提交' 'TEXT_MESSAGE=网点名称已存在' || RC=1
-    # 负例：40901（既有账户，Modal 引导）被判为可纠正冲突 → FAIL
-    forbid "$LOG" 'FALSE_40901=1' || RC=1
+    # FALSE_* 取值口径 = 「断言成立」（1）；负例：40901（既有账户，Modal 引导）被判为可纠正冲突
+    # → FALSE_40901=0（断言不成立）→ FAIL
+    forbid "$LOG" 'FALSE_40901=0' || RC=1
     forbid "$LOG" 'TEXT_FALLBACK=undefined' || RC=1
     ;;
   r8)
