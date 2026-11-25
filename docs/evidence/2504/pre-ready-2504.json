@@ -1,0 +1,106 @@
+{
+  "issue": 2504,
+  "overall": "PASS",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2504/tmp/pre-ready-2504.9F67gt/plan.md",
+  "plan_sha256": "9ecbbde1ba76e8e96f3f70df228dd5b4fcb289e06c278f2aa1a5b72b6a8fcb07",
+  "config_sha": "f663626b8fe3895a49dffa4c43266664546741db",
+  "provenance": {
+    "build": "1.0.16a271f5",
+    "commit": "16a271f5cef078d7059de4dbbe33f8b8d8050cc1",
+    "dirty": false
+  },
+  "summary": "tmp/work-summary-2504.md",
+  "timestamp": "20261125-132617",
+  "checks": [
+    {
+      "id": "P1",
+      "status": "PASS",
+      "detail": "plan has Verification Matrix / Input Truth & Tool Preflight / Decision Lock / Out of Scope"
+    },
+    {
+      "id": "P2",
+      "status": "PASS",
+      "detail": "Work Summary covers all 6 matrix rows with PASS/N/A"
+    },
+    {
+      "id": "P3",
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
+    },
+    {
+      "id": "P4",
+      "status": "PASS",
+      "detail": "all 2 affected command(s) passed"
+    },
+    {
+      "id": "P12",
+      "status": "PASS",
+      "detail": "Evidence Contract complete: 6 row(s) match the plan and have durable artifacts"
+    },
+    {
+      "id": "P14",
+      "status": "PASS",
+      "detail": "artifact provenance matches evidence (6 artifacts)"
+    },
+    {
+      "id": "P18",
+      "status": "WARN",
+      "detail": "tooling_commit missing (legacy bundle); config_sha=f663626b8fe3895a49dffa4c43266664546741db"
+    },
+    {
+      "id": "P15",
+      "status": "N/A",
+      "detail": "no batch gate reference in the plan"
+    },
+    {
+      "id": "P16",
+      "status": "N/A",
+      "detail": "no UI render rows in the plan"
+    },
+    {
+      "id": "P17",
+      "status": "PASS",
+      "detail": "plan snapshot and Accepted Plan comment match the gated plan"
+    },
+    {
+      "id": "P5",
+      "status": "N/A",
+      "detail": "no go.mod/package.json and no --full-gate-cmd: full gate not applicable"
+    },
+    {
+      "id": "P6",
+      "status": "PASS",
+      "detail": "all changed files are declared in the Accepted Plan"
+    },
+    {
+      "id": "P7",
+      "status": "PASS",
+      "detail": "contract three-way section present"
+    },
+    {
+      "id": "P8",
+      "status": "N/A",
+      "detail": "no panel/clarify files changed"
+    },
+    {
+      "id": "P9",
+      "status": "N/A",
+      "detail": "no session/build_version/aiaudit/.rpt/.dat evidence referenced"
+    },
+    {
+      "id": "P10",
+      "status": "N/A",
+      "detail": "no aiaudit reference"
+    },
+    {
+      "id": "P11",
+      "status": "PASS",
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /home/coder/worktrees/tuneloop/wt-2504; worktree guard: PASS isolated worktree=/home/coder/worktrees/tuneloop/wt-2504"
+    },
+    {
+      "id": "P13",
+      "status": "PASS",
+      "detail": "fix commit and evidence artifacts are on origin/issue-2504"
+    }
+  ]
+}
