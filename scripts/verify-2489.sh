@@ -178,6 +178,14 @@ case "$MODE" in
     NAME="R10-gate.txt"
     { printf '%s\n%s\n' "$PROV" "$TREE_LINE"
       fail=0
+      # 计划 v2 D6：本单是子任务（Parent: #2486），harness 的 P5 恒为 N/A，
+      # 因此全量 PC 构建由本行**直接执行**并记录退出码（不再要求 FULL_SUITE_EXIT / P5=PASS）。
+      echo "FULL_GATE_CMD=cd frontend-pc && npm run build"
+      ( cd frontend-pc && npm run build ) 2>&1 | tail -8
+      FGE="${PIPESTATUS[0]}"
+      echo "FULL_GATE_DIRECT_EXIT=$FGE"
+      [ "$FGE" = "0" ] || fail=1
+
       GATE="$OUT_DIR/pre-ready-$ISSUE.json"
       overall="$(jq -r '.overall // empty' "$GATE" 2>/dev/null)"
       if [ -f "$GATE" ] && [ "$overall" = "PASS" ]; then
@@ -189,11 +197,6 @@ case "$MODE" in
       fi
       p5=$(jq -r '.checks[]? | select(.id=="P5") | .status' "$GATE" 2>/dev/null | head -1)
       echo "P5=${p5:-MISSING}"
-      if [ "$p5" = "PASS" ]; then
-        echo "FULL_SUITE_EXIT=0 (derived from P5 PASS)"
-      else
-        echo "FULL_SUITE_EXIT=PENDING"; fail=1
-      fi
       gate_sha="$(jq -r '.plan_sha256 // empty' "$GATE" 2>/dev/null)"
       plan_sha="$(sha256sum "$OUT_DIR/plan.md" | awk '{print $1}')"
       echo "GATE_PLAN_SHA=$gate_sha"
@@ -211,7 +214,7 @@ case "$MODE" in
       echo "REBUILT_ROWS=$((rebuilt + 1))"
       echo "REBUILT_OTHERS=$rebuilt"
       bash "$HOME/.config/opencode/scripts/plan-source.sh" --issue "$ISSUE" > "$REPO/tmp/plan-source-2489.log" 2>&1
-      tail -6 "$REPO/tmp/plan-source-2489.log"
+      grep '^PLAN_SOURCE:' "$REPO/tmp/plan-source-2489.log" | tail -6
       if grep -q 'PLAN_SOURCE: PASS' "$REPO/tmp/plan-source-2489.log"; then
         echo "PLAN_SOURCE=PASS"
       else
@@ -220,9 +223,8 @@ case "$MODE" in
       [ "$fail" = "0" ] && echo "GATE_OK" || echo "GATE_FAIL"
     } > "$LOG" 2>&1
     grep -q '^GATE_OK$' "$LOG" || RC=1
-    require_tokens "$LOG" 'GATE_RESULT=PASS' 'FULL_SUITE_EXIT=0' 'PLAN_SOURCE=PASS' \
+    require_tokens "$LOG" 'GATE_RESULT=PASS' 'FULL_GATE_DIRECT_EXIT=0' 'PLAN_SOURCE=PASS' \
       'GATE_PLAN_SHA_MATCH=1' 'REBUILT_ROWS=10' || RC=1
-    forbid "$LOG" 'P5=N/A' || RC=1
     ;;
 esac
 
