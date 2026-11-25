@@ -1,0 +1,9 @@
+# build=1.0.220785f52 # commit=220785f52d7eee81d62efcfa5b35c7da923535c5 # dirty=false
+== R4 resolver determinism + primary branch unchanged ==
+EARLIEST_FALLBACK=1
+ANCHOR_PREFERRED=1
+EMPTY_FOR_UNKNOWN=1
+PRIMARY_EQUALS_OPERATOR_SITE=1
+PRIMARY_NOT_ORG=1
+--- PASS: TestResolveSiteIDByOrg2511_Deterministic (2.40s)
+R4_OK

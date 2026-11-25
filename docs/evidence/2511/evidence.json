@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "issue": 2511,
+  "build": "1.0.220785f52",
+  "commit": "220785f52d7eee81d62efcfa5b35c7da923535c5",
+  "dirty": false,
+  "plan_sha256": "90a154f3556cf4c6c8bb7c37f7e54b43b80fcee9610f3d93b392862ec3bd15e8",
+  "tooling_commit": "f663626b8fe3895a49dffa4c43266664546741db",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2511.sh r1 > docs/evidence/2511/R1-inspect-return.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2511/R1-inspect-return.txt"
+      ],
+      "assert": "exit 0；grep -q '^R1_OK$' 且 grep -q 'SITE_ID_IS=aID'",
+      "actual": "PASS：CURRENT_SITE_ID=aID、SITE_ID_IS=aID、OLD_FALLBACK_IS_ORG=1、RED_CONFIRMED=1、--- PASS: TestInspectReturn2511_FallbackWritesSiteNotOrg（旧逻辑写 org 时预修复版本实测 HTTP 500 + instruments_current_site_id_fkey 23503）；R1_OK",
+      "expected": "CURRENT_SITE_ID=aID、OLD_FALLBACK_IS_ORG=1、RED_CONFIRMED=1",
+      "negative": "写入 aOrg → R1_FAIL 且非 0 退出",
+      "negative_result": "negative not triggered：require.NotEqual(order.OrgID, current_site_id) 在前，写入 org 即 FAIL；预修复版本（父提交 1bd6b3e5a）实测 --- FAIL: TestInspectReturn2511_FallbackWritesSiteNotOrg（HTTP 500 / SQLSTATE 23503），修复版 PASS。",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2511.sh r2 > docs/evidence/2511/R2-assess-damage.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2511/R2-assess-damage.txt"
+      ],
+      "assert": "exit 0；grep -q '^R2_OK$' 且 grep -q 'NOT_ORG=1'",
+      "actual": "PASS：CURRENT_SITE_ID=aID、NOT_ORG=1、--- PASS: TestAssessDamage2511_FallbackWritesSiteNotOrg；R2_OK",
+      "expected": "CURRENT_SITE_ID=aID",
+      "negative": "写入 aOrg → R2_FAIL 且非 0 退出",
+      "negative_result": "negative not triggered：同一断言覆盖 AssessDamage 路径；写入 org → require.NotEqual 失败 → R2_FAIL 非 0 退出。",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2511.sh r3 > docs/evidence/2511/R3-unresolvable.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2511/R3-unresolvable.txt"
+      ],
+      "assert": "exit 0；grep -q '^R3_OK$' 且 grep -q 'KEPT_ORIGINAL=1'",
+      "actual": "PASS：KEPT_ORIGINAL=1、NO_CROSS_DOMAIN_WRITE=1、CURRENT_SITE_ID=aID、--- PASS: TestInspectReturn2511_UnresolvableKeepsValue；R3_OK",
+      "expected": "NO_CROSS_DOMAIN_WRITE=1、CURRENT_SITE_ID=aID",
+      "negative": "原值被覆盖 → R3_FAIL 且非 0 退出",
+      "negative_result": "negative not triggered：不可解析时调用方不写入 updates，乐器保留预置 aID；断言 require.Equal(aID) + require.NotEqual(unknownOrg)，任一不成立即 FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2511.sh r4 > docs/evidence/2511/R4-deterministic.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2511/R4-deterministic.txt"
+      ],
+      "assert": "exit 0；grep -q '^R4_OK$' 且 grep -q 'ANCHOR_PREFERRED=1'",
+      "actual": "PASS：ANCHOR_PREFERRED=1、EARLIEST_FALLBACK=1、EMPTY_FOR_UNKNOWN=1、PRIMARY_EQUALS_OPERATOR_SITE=1、PRIMARY_NOT_ORG=1、--- PASS: TestResolveSiteIDByOrg2511_Deterministic；R4_OK",
+      "expected": "EARLIEST_FALLBACK=1、EMPTY_FOR_UNKNOWN=1、PRIMARY_EQUALS_OPERATOR_SITE=1",
+      "negative": "主分支被 org 覆盖或解析不确定 → R4_FAIL 且非 0 退出",
+      "negative_result": "negative not triggered：锚点/最早/空/主分支四个断言分别 require.Equal；解析改成随机或取 map 顺序、或主分支被 org 覆盖，均会使对应断言 FAIL → R4_FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2511.sh r5 > docs/evidence/2511/R5-scan-sql.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2511/R5-scan-sql.txt"
+      ],
+      "assert": "exit 0；grep -q '^R5_OK$' 且 grep -q 'ORG_WRITTEN_TO_SITE=0'",
+      "actual": "PASS：ORG_WRITTEN_TO_SITE=0、RESOLVER_CALLS=2、RESOLVER_DEF=1、ASSESSMENT_SAME_CLASS_HITS=1（登记 #2532）、SQL_PRESENT=1（只读 SQL 文本已打印，未执行）；R5_OK",
+      "expected": "RESOLVER_CALLS=2、SQL_PRESENT=1",
+      "negative": "残留 org→site 写入 → R5_FAIL 且非 0 退出",
+      "negative_result": "negative not triggered：ORG_WRITTEN_TO_SITE 由 grep 统计 defect 签名，>0 即 R5_FAIL；RESOLVER_CALLS 必须为 2（两处回退）、RESOLVER_DEF 必须为 1（唯一实现）。",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2511.sh r6 > docs/evidence/2511/R6-build-regression.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2511/R6-build-regression.txt"
+      ],
+      "assert": "exit 0；grep -q '^R6_OK$' 且 grep -q 'BUILD_RC=0'",
+      "actual": "PASS：BUILD_RC=0、REG_RC=0、REG_PASS_COUNT=8、REG_FAIL_COUNT=0（2511 四用例 + 既有 1889/InspectReturn/AssessDamage/ResolveOperatorSiteID/SubmitAssessment 用例）；R6_OK",
+      "expected": "REG_RC=0",
+      "negative": "构建/回归失败 → R6_FAIL 且非 0 退出",
+      "negative_result": "negative not triggered：go build ./... 与定向回归任一非 0 → R6_FAIL；R6 是 pre-ready 的 affected-cmd，失败即阻断 gate。",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "~/.config/opencode/scripts/pre-ready-check.sh 2511 --summary-file docs/evidence/2511/summary.md --changed-files docs/evidence/2511/changed-files.txt --evidence-file docs/evidence/2511/evidence.json --affected-cmd \"bash scripts/verify-2511.sh r6\" --full-gate-cmd \"bash scripts/verify-2511.sh gate\" --report docs/evidence/2511/pre-ready-2511.json",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2511/pre-ready-2511.json"
+      ],
+      "assert": "exit 0；GATE_RESULT=PASS，jq -e '.result == \"PASS\"'，evidence 每行 pass=true",
+      "actual": "PASS：pre-ready-check.sh exit 0、overall=PASS、7 行 evidence 全部 pass=true、dirty=false、P13 在 origin/issue-2511",
+      "expected": "dirty=false、P13 提交在 origin/issue-2511",
+      "negative": "任一 P 项失败 / evidence 缺行 / dirty=true → gate 非 0，禁止 ready",
+      "negative_result": "negative not triggered：任一 P 项 FAIL / evidence 缺行 / dirty=true → gate 非 0，不得 ready；本次 overall=PASS。",
+      "pass": true
+    }
+  ]
+}

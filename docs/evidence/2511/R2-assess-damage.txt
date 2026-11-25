@@ -1,0 +1,6 @@
+# build=1.0.220785f52 # commit=220785f52d7eee81d62efcfa5b35c7da923535c5 # dirty=false
+== R2 AssessDamage fallback writes sites.id ==
+CURRENT_SITE_ID=aID
+NOT_ORG=1
+--- PASS: TestAssessDamage2511_FallbackWritesSiteNotOrg (1.41s)
+R2_OK
