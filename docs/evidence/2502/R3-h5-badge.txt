@@ -1,0 +1,8 @@
+# build=1.0.813a0c5e # commit=813a0c5e63b1094744977e838eded0730307285b # dirty=false
+TEST_FILE=scripts/page-smoke/profile-identity-badge-2502.test.jsx
+TEST_PATTERN=TestProfileBadgeH5_2502
+TEST_EXIT=0
+H5_BADGE_TEXT=cadenza · 卡丹萨乐器 · 管理员
+PARITY=1
+RESULT: PASS
+

@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "issue": 2502,
+  "build": "1.0.813a0c5e",
+  "commit": "813a0c5e63b1094744977e838eded0730307285b",
+  "dirty": false,
+  "plan_sha256": "e053dfc1bcea62ce9e17e89b83504d1fd40a0e524e8c46546cfd0f92648ccf1b",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2502 (base origin/develop f711f427e, branch issue-2502); vitest + @testing-library/react (jsdom, taro-shim) page smoke; node 22.23.5; no real device / no production access",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2502.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2502/R1-weapp-badge.txt"
+      ],
+      "assert": "exit 0；grep BADGE_TEXT=cadenza · 卡丹萨乐器 · 管理员、OLD_TEXT_ABSENT=1",
+      "actual": "PASS：weapp render 后叶子文本精确含 `cadenza · 卡丹萨乐器 · 管理员`（TEST_EXIT=0）",
+      "expected": "PASS",
+      "negative": "徽标仍只含网点名（BADGE_TEXT=卡丹萨乐器 · 管理员）→ FAIL",
+      "negative_result": "用例以 hasExactLeaf('卡丹萨乐器 · 管理员') === false 断言旧文本不得出现（OLD_TEXT_ABSENT=1）",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2502.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2502/R2-fallback.txt"
+      ],
+      "assert": "exit 0；grep BADGE_TEXT=卡丹萨乐器 · 管理员、BADGE_TEXT_ONLY_ROLE=管理员、NO_UNDEFINED=1、NO_LEADING_SEP=1",
+      "actual": "PASS：仅 site_name → `卡丹萨乐器 · 管理员`；两者皆缺 → `管理员`；页面文本不含 undefined/null 且无前导分隔符",
+      "expected": "PASS",
+      "negative": "文本出现 undefined/null 或以 ` · ` 开头 → FAIL",
+      "negative_result": "NO_UNDEFINED=1、NO_LEADING_SEP=1（两条断言均在 render 后页面上求值）",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2502.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2502/R3-h5-badge.txt"
+      ],
+      "assert": "exit 0；grep H5_BADGE_TEXT=cadenza · 卡丹萨乐器 · 管理员、PARITY=1",
+      "actual": "PASS：H5 Profile（MemoryRouter + render）徽标文本与 R1 逐字相同，PARITY=1",
+      "expected": "PASS",
+      "negative": "H5_BADGE_TEXT= 为空（H5 仍无徽标）→ FAIL",
+      "negative_result": "修复前 H5 头部无徽标（取不到值）；修复后 H5_BADGE_TEXT 与 weapp 相同",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2502.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2502/R4-customer.txt"
+      ],
+      "assert": "exit 0；grep CUSTOMER_BADGE_ABSENT=1、NO_TENANT_LEAK=1",
+      "actual": "PASS：token role=USER 且 /users/me 故意带 tenant_name/site_name → H5 与 weapp 页面文本均不含 cadenza / 卡丹萨乐器",
+      "expected": "PASS",
+      "negative": "顾客页面出现商户名或网点名 → FAIL",
+      "negative_result": "两端 render 后 body 文本均通过 not.toContain 负例断言",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2502.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2502/R5-helper-redgreen.txt"
+      ],
+      "assert": "exit 0；grep FORMAT_FULL=a · b、FORMAT_SINGLE=b、FORMAT_EMPTY=、ROLE_MULTI=管理员 · 维修师傅、ROLE_FALLBACK=员工、OLD_TEXT=卡丹萨乐器、NEW_TEXT=cadenza · 卡丹萨乐器、RED_GREEN=1",
+      "actual": "PASS：纯函数语义与红绿对照全部满足（FORMAT_EMPTY 为空值，生成器用哨兵区分空值与缺行）",
+      "expected": "PASS",
+      "negative": "旧表达式已含商户名（OLD_TEXT 含 cadenza）→ FAIL",
+      "negative_result": "OLD_TEXT=卡丹萨乐器（不含 cadenza）× NEW_TEXT=cadenza · 卡丹萨乐器，RED_GREEN=1",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2502.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2502/R6-lint.txt"
+      ],
+      "assert": "exit 0；grep ESLINT_EXIT=0、NO_UNDEF=0",
+      "actual": "PASS：`npx eslint` 3 个改动 JS 文件退出 0，no-undef 计数 0",
+      "expected": "PASS",
+      "negative": "ESLINT_EXIT 非 0 或 NO_UNDEF>0 → FAIL",
+      "negative_result": "ESLINT_EXIT=0、NO_UNDEF=0",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2502.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2502/R7-docs.txt"
+      ],
+      "assert": "exit 0；grep UI_DOC=1、API_DOC=1、DIFF_DOC=1",
+      "actual": "PASS：ui.md「头部身份徽标（#2502）」、api.md「GET 组织上下文字段」、h5-weapp-differences A23 三处条目齐备（artifact 内附条原文）",
+      "expected": "PASS",
+      "negative": "任一文档缺条目（对应键为 0）→ FAIL",
+      "negative_result": "UI_DOC=1、API_DOC=1、DIFF_DOC=1",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "~/.config/opencode/scripts/pre-ready-check.sh 2502 --summary-file docs/evidence/2502/work-summary.md --changed-files docs/evidence/2502/changed-files.txt --evidence-file docs/evidence/2502/evidence.json --report docs/evidence/2502/pre-ready-2502.json",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2502/pre-ready-2502.json"
+      ],
+      "assert": "exit 0；jq -r '.overall' = PASS；jq -r '.provenance.dirty' = false",
+      "actual": "PASS：pre-ready 18 项检查 overall=PASS，provenance.dirty=false（P12 Evidence Contract / P16 UI render 均 PASS）",
+      "expected": "PASS",
+      "negative": "P12/P16 任一 FAIL 或 dirty=true → FAIL",
+      "negative_result": "首次 bootstrap 运行（报告工件尚不存在）P12 FAIL，生成报告后复跑 PASS —— 说明该行断言对工件存在性与 gate 结论都敏感",
+      "pass": true
+    }
+  ]
+}

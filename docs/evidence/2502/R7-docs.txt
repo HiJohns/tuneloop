@@ -1,0 +1,15 @@
+# build=1.0.813a0c5e # commit=813a0c5e63b1094744977e838eded0730307285b # dirty=false
+UI_DOC=1
+API_DOC=1
+DIFF_DOC=1
+--- ui.md ---
+676:#### 头部身份徽标（#2502）
+--- api.md ---
+539:**GET 组织上下文字段（#2449 / #2117 / #2502）**：
+540-
+541-| 字段 | 类型 | 说明 |
+542-|---|---|---|
+--- h5-weapp-differences.md ---
+49:| A23 | 「我的」身份徽标（#2502） | 姓名下一行显示 `商户名 · 网点名 · 职位`（`pages/Profile.jsx`） | 同 H5 同文案（`pages-weapp/Profile.jsx`），另有多身份顾客「顾客」徽标 | 员工身份徽标两端同文案、同顺序、同回退（缺项只显示剩余项）；**weapp 顾客徽标 H5 无**（H5 无 `login_contexts`/切换身份）→ 可接受差异 |
+RESULT: PASS
+

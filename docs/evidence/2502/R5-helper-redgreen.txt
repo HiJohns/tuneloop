@@ -1,0 +1,14 @@
+# build=1.0.813a0c5e # commit=813a0c5e63b1094744977e838eded0730307285b # dirty=false
+TEST_FILE=scripts/page-smoke/profile-identity-badge-2502.test.jsx
+TEST_PATTERN=TestIdentityHelperRedGreen_2502
+TEST_EXIT=0
+FORMAT_FULL=a · b
+FORMAT_SINGLE=b
+FORMAT_EMPTY=
+ROLE_MULTI=管理员 · 维修师傅
+ROLE_FALLBACK=员工
+OLD_TEXT=卡丹萨乐器
+NEW_TEXT=cadenza · 卡丹萨乐器
+RED_GREEN=1
+RESULT: PASS
+
