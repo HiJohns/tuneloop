@@ -1493,6 +1493,44 @@ GET /api/confirmation-sessions/:id
 
 ---
 
+### 5.6.2 批量设价
+
+**接口**: `PUT /api/instruments/batch-pricing`
+
+**权限**: `ADMIN` / `OWNER` / `site_admin`（服务端 `RequireRole(ADMIN, OWNER, site_admin)`；租户范围由 JWT 作用域限定，跨租户 id 会被跳过）
+
+**请求 Body**:
+```json
+{
+  "items": [
+    { "id": "instr-001", "base_daily_rate": 100 },
+    { "id": "instr-002", "base_daily_rate": 120, "overrides": { "deposit": 800 } }
+  ]
+}
+```
+- `items`: **必填**（非空数组），每项含 `id`（必填）、`base_daily_rate`（可选）、`overrides`（可选）。
+- `base_daily_rate` 单位为**元**（服务端 `models.ToCentsPtr` ×100 后存「分」）。
+- `overrides` 当前仅 `daily_rent` / `deposit` 两个键被消费（见 `backend/services/pricing.go`）。
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": { "updated": 2 }
+}
+```
+
+> `data.updated` 为**实际更新条数**，可能小于请求条数。
+
+**已知边界（归 #2519）**:
+- 逐条失败（DB 错误 / 乐器不属于当前租户 / `base_daily_rate <= 0`）当前**只记服务端日志并跳过**，接口仍返回 20000；前端只能比对 `data.updated` 与请求条数，给出「部分更新」提示，无法得知失败原因。
+- 周租 / 月租 / 押金档位，以及 `increase` / `decrease` / `multiply` 运算**未实现**（后端无对应字段与读改写能力）；前端 UI 只暴露「日租金 + 设置为」。
+- 前端唯一实现为 `frontend-pc/src/utils/batchPricing.js`（`buildBatchPricingPayload` / `batchPricingFeedback`），库存监控页与乐器列表页共用，禁止各页自拼 payload。
+- 历史缺陷（#2514）：旧前端调用 `PUT /api/instruments/batch/price`（不存在）并发送 `{ids, price_type, amount, operator}` → 恒 404 且 payload 与后端的 `items` + 元 契约不同。本接口是唯一批量设价端点。
+
+---
+
 ### 5.7 乐器管理扩展
 
 #### 5.7.1 检查乐器 SN 码
