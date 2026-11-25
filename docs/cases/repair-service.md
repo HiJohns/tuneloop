@@ -138,6 +138,7 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 - **调用 / 获取（员工）**
   - `POST /api/repair-services/:id/legs {leg, logistics_fee_cents}`
   - 待发回清单：`GET /api/repair-services?scope=site&status=done_repair`　**【RS-API-2】**（现 `GET /api/repair-services/pending-dispatch` 保留兼容）
+  - **兼容入口同口径**（#2513）：`pending-dispatch` 与 `scope=site&status=done_repair` 使用同一闸门与同一归属集合（`tenant_id IN 归属集合`，**无 site 过滤**）；两者返回形态差异（`{list,total}` vs `{list}`）不影响可见性口径
 
 ## RS-06 加价（维修师报价修正，weapp 工作台）
 
@@ -268,7 +269,7 @@ related: "#1943（咨询，holdon）｜docs/cases/repair.md（v3 维修工单，
 | — | `POST /api/user/repair-services` | 顾客（无 oid） | userOptionalAuth | 创建 → `{id, repair_code}` |
 | RS-API-1 | `GET /api/common/repair-technicians`　**新增** | 顾客（无 oid） | userOptionalAuth | 可选维修师列表 → `{list:[{technician_id,name,avatar,avatar_thumb,bio,experience,tenant_id}]}`（**维修师直属商户，无 site 维度**；**不得**依赖 JWT 租户；按公共口径） |
 | — | `POST /api/user/repair-services/:id/select-technician` | 顾客（无 oid） | userOptionalAuth | 选师 → `{id}`（**维修师直属商户，不再挂载网点**；归属校验按 `repair.user_id`） |
-| RS-API-2 | `GET /api/repair-services?scope=mine\|site&status=<csv>&start=&end=`　**新增** | 维修师/员工（**有 oid**） | authRequired | 任务列表（scope=mine 指派给我；scope=site **仅商户层级**——`#2122` 商户组织闸门，网点账号返回空）；`#2128` 增可选时间区间 `start`/`end`（ISO8601，`updated_at ∈ [start,end)`，**由前端控制显示范围**，当前默认近 30 天） |
+| RS-API-2 | `GET /api/repair-services?scope=mine\|site&status=<csv>&start=&end=`　**新增** | 维修师/员工（**有 oid**） | authRequired | 任务列表（scope=mine 指派给我；scope=site **仅商户层级**——`#2122` 商户组织闸门，网点账号返回空）；**`site_id` 不是可见性维度**（服务单归属=维修师直属商户，历史带 `site_id` 行照常可见，不按 site 过滤，#2513）；`#2128` 增可选时间区间 `start`/`end`（ISO8601，`updated_at ∈ [start,end)`，**由前端控制显示范围**，当前默认近 30 天） |
 | — | `POST /api/repair-services/:id/quote` | 维修师（有 oid） | authRequired | 报价（归属校验 `repairServiceStaffAllowed`） |
 | #2229 | `POST /api/repair-services/:id/reassign {technician_id, reason}`　**新增** | **网点管理员**（有 oid） | authRequired | 询价阶段转派（仅 `pending_quote`；**原因必填**；写时间线 `reassigned` + `audit_logs(reassign_repair_service)`；通知原/新师傅；**主状态不变**，仅归属变更；见 RS-15） |
 | — | `POST /api/user/repair-services/:id/accept` | 顾客（无 oid） | userOptionalAuth | 接受报价 → `{payable_cents}` |
