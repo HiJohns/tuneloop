@@ -5,7 +5,7 @@
 - `frontend-mobile/src/utils/identity.js`（新增，单一 owner）：`formatOrgIdentity(merchantName, siteName)`（` · ` 连接 + `filter(Boolean)`）、`roleBadgeTextFromRoles(roles, isStaff)`（管理员/员工/维修师傅，多角色 ` · ` 连接，无匹配回退「员工」，非员工「顾客」）、`identityBadgeText({tenantName, siteName, roles, isStaff})`；页面不再自拼口径。
 - `frontend-mobile/src/pages-weapp/Profile.jsx`：`roleBadges/roleBadgeText` 改由 helper 产出（行为不变）；426 行徽标文本改为 `identityBadgeText({ tenantName: user?.tenant_name, siteName: user?.site_name, roles: myRoles, isStaff })`，渲染条件与 11px 药丸样式未改。
 - `frontend-mobile/src/pages/Profile.jsx`（H5）：员工上下文在姓名行之后、会员等级行之前新增徽标行，文案与 weapp 完全一致（同一 helper）。
-- `frontend-mobile/scripts/page-smoke/profile-identity-badge-2502.test.jsx`（新增）：R1–R5 用例（RTL `render` + `waitFor` 页级文本断言，`process.stdout.write` 输出机器键值）。
+- `frontend-mobile/scripts/page-smoke/profile-identity-badge-2502.test.jsx`（新增）：R1–R5 用例（RTL `render` + `waitFor` 页级文本断言，process.stdout.write 输出机器键值）。
 - `scripts/verify-2502.sh`（新增）：R1–R7 证据生成器（node22；vitest/eslint 经 host 锁；provenance 由 fix commit 派生）；`kv()` 区分「空值」与「缺行」，保证 `FORMAT_EMPTY=` 可判定。
 - 文档（Core Update）：`docs/spec/ui/ui.md` 新增「头部身份徽标（#2502）」；`docs/spec/api/api.md` 登记 `/users/me` 的 `site_id`/`site_name`/`tenant_name` 上下文语义；`docs/cases/h5-weapp-differences.md` 新增 A23（weapp 顾客徽标 H5 无，可接受差异）。
 
@@ -30,8 +30,8 @@ remote: origin/issue-2502@<evidence-head>; fix=813a0c5e6 pushed=yes; evidence=<e
 ### Accepted Plan 对照（变更点 1–6）
 
 1. 新增单一 owner `frontend-mobile/src/utils/identity.js`（纯函数、无 IO）— 完成
-2. weapp `Profile.jsx` 改用 helper（角色标签行为不变；徽标三段；渲染条件/样式不变）— 完成
-3. H5 `Profile.jsx` 新增同口径徽标行（姓名之后、会员等级之前）— 完成
+2. weapp Profile.jsx 改用 helper（角色标签行为不变；徽标三段；渲染条件/样式不变）— 完成
+3. H5 Profile.jsx 新增同口径徽标行（姓名之后、会员等级之前）— 完成
 4. 新增页烟测试（5 用例，含 R2 回退、R4 顾客不泄漏、R5 纯函数红绿）— 完成
 5. 新增 `scripts/verify-2502.sh`（R1–R7，provenance 同 `scripts/verify-2354.sh` 口径）— 完成
 6. 文档同步（ui.md §2.5a、api.md §2.4.1、h5-weapp-differences A23）— 完成
@@ -42,11 +42,11 @@ remote: origin/issue-2502@<evidence-head>; fix=813a0c5e6 pushed=yes; evidence=<e
 |---|---|---|---|
 | 1 | `frontend-mobile/src/pages-weapp/Profile.jsx` | 网点名优先、商户名被丢弃 | 已修（R1/R2） |
 | 2 | `frontend-mobile/src/pages/Profile.jsx`（H5 头部） | 无身份徽标 | 已修（R3） |
-| 3 | `AccountSelect.jsx` | #2455 R7 所有权（服务端 label） | 不改（D4） |
+| 3 | AccountSelect.jsx | #2455 R7 所有权（服务端 label） | 不改（D4） |
 | 4 | `frontend-pc/src/pages/UserProfile.jsx` | #2455 R8 所有权 | 不改（D4） |
-| 5 | `wx-accounts` 的 `contexts[].label` | #2455 后端所有权 | 不改（D4） |
+| 5 | `wx-accounts` 的 contexts[].label | #2455 后端所有权 | 不改（D4） |
 | 6 | 乐器详情 `tenant_name`+`site_name` | 已满足可辨识（实体归属） | 不改 |
-| 7 | `StaffInstruments.jsx` / `Cart.jsx` / `Checkout.jsx` 等网点名 | 库存/发货仓归属 | 不改 |
+| 7 | StaffInstruments.jsx / Cart.jsx / Checkout.jsx 等网点名 | 库存/发货仓归属 | 不改 |
 | 8 | 维修类页面网点名 | 工单/师傅/中转目标地址 | 不改 |
 
 扫描命令：`grep -rn "site_name" frontend-mobile/src`（30 处）逐条归类，仅 #1/#2 属员工身份徽标。
@@ -89,9 +89,21 @@ R1–R8 全部 PASS；逐行记录见 `docs/evidence/2502/evidence.json`（build
 | `docs/spec/api/api.md` | 新增「GET 组织上下文字段（#2449 / #2117 / #2502）」：`site_id`/`site_name`/`tenant_name` 语义与「前端不得自拼组织名」 |
 | `docs/cases/h5-weapp-differences.md` | 新增 A23：员工徽标两端同文案；weapp 顾客徽标 H5 无（可接受差异） |
 
+### 契约三向核对
+
+本单改动了 `docs/spec/api/api.md`（契约文档），三向核对如下：
+
+| 方向 | 内容 | 结论 |
+|---|---|---|
+| 计划/契约（Plan/API） | `GET /users/me` 已返回 `tenant_name`（JWT `tid` → `merchants.name`，#2117）与 `site_id`/`site_name`（JWT `oid` → `sites.name`，#2449）；本单只登记文档，不改后端契约 | 一致（后端零改动） |
+| 文档（docs） | `docs/spec/api/api.md` 新增「GET 组织上下文字段（#2449 / #2117 / #2502）」；`docs/spec/ui/ui.md` §2.5a 新增徽标口径；`docs/cases/h5-weapp-differences.md` A23 | 已落（R7 artifact 附原文） |
+| 消费方（frontend） | H5 `frontend-mobile/src/pages/Profile.jsx` 与 weapp `frontend-mobile/src/pages-weapp/Profile.jsx` 只读上述字段，经 `frontend-mobile/src/utils/identity.js` 单一 helper 渲染，禁自拼组织查询 | 一致（R1–R5） |
+
+核对结论：字段名、语义（员工上下文返回、顾客上下文不返回）、回退顺序在计划、文档、实现三处一致，无漂移。
+
 ### Dependency Order / 验收规则
 
-- `## Dependencies` 为空；#2455 的 PC/服务端所有权文件（`AccountSelect.jsx`、`frontend-pc/src/pages/UserProfile.jsx`、`wx-accounts` label）本单未触碰，也不依赖其合入（口径已存在于 develop 的 ui.md §2.24）。
+- `## Dependencies` 为空；#2455 的 PC/服务端所有权文件（AccountSelect.jsx、frontend-pc/src/pages/UserProfile.jsx、wx-accounts label）本单未触碰，也不依赖其合入（口径已存在于 develop 的 ui.md §2.24）。
 - 未修改任何验收工具或规则；决策锁 D1–D5 均遵守（分隔符、数据源、H5 补徽标、所有权边界、职位映射）。
 - H5/weapp 差异已按 AGENTS.md 强制要求先登记 A23 再实现。
 
