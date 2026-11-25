@@ -4,6 +4,8 @@ import { Button, Card, Form, Input, Modal, Select, Space, Table, Tag, message, T
 import { PlusOutlined } from '@ant-design/icons'
 import { api } from '../../../services/api'
 import SiteMemberManagement from '../../../components/SiteMemberManagement'
+import FormConflictAlert from '../../../components/FormConflictAlert'
+import { conflictText, isBusinessCorrectableConflict } from '../../../utils/formConflict'
 
 const { Text } = Typography
 
@@ -29,6 +31,10 @@ export default function TransitCenter() {
   const [routeModalOpen, setRouteModalOpen] = useState(false)
   const [routeForm] = Form.useForm()
 
+  // #2489（沿用 #2480 D8）：业务可纠正冲突用表单内持久提示，不用 3 秒 toast。
+  const [siteConflict, setSiteConflict] = useState('')
+  const [routeConflict, setRouteConflict] = useState('')
+
   const fetchAll = useCallback(async () => {
     setLoading(true)
     try {
@@ -53,26 +59,45 @@ export default function TransitCenter() {
 
   const openCreate = () => {
     setEditingSite(null)
+    setSiteConflict('') // #2489 D8：打开表单即清空陈旧冲突提示
     siteForm.resetFields()
     setSiteModalOpen(true)
   }
 
   const openEdit = (site) => {
     setEditingSite(site)
+    setSiteConflict('')
     siteForm.setFieldsValue(site)
     setSiteModalOpen(true)
   }
 
   const handleSiteSubmit = async () => {
     const values = await siteForm.validateFields()
+    setSiteConflict('') // #2489 D8：提交开始即清空陈旧冲突提示
     if (editingSite) {
-      await api.put(`/admin/transit-sites/${editingSite.id}`, values)
+      const r = await api.put(`/admin/transit-sites/${editingSite.id}`, values)
+      if (r.code !== 20000) {
+        if (isBusinessCorrectableConflict(r)) {
+          setSiteConflict(conflictText(r, '更新失败，请调整后重试'))
+          return
+        }
+        message.error(r.message || '更新失败')
+        return
+      }
       message.success('已更新')
     } else {
       const r = await api.post('/admin/transit-sites', values)
-      if (r.code !== 20000) { message.error(r.message || '创建失败'); return }
+      if (r.code !== 20000) {
+        if (isBusinessCorrectableConflict(r)) {
+          setSiteConflict(conflictText(r, '创建失败，请调整后重试'))
+          return
+        }
+        message.error(r.message || '创建失败')
+        return
+      }
       message.success('中转网点已创建')
     }
+    setSiteConflict('')
     setSiteModalOpen(false)
     fetchAll()
   }
@@ -90,12 +115,16 @@ export default function TransitCenter() {
 
   const handleRouteCreate = async () => {
     const values = await routeForm.validateFields()
+    setRouteConflict('') // #2489 D8：提交开始即清空
     const r = await api.post('/transit-routes', values)
     if (r.code === 20000) {
       message.success('路由已创建')
+      setRouteConflict('')
       setRouteModalOpen(false)
       routeForm.resetFields()
       fetchAll()
+    } else if (isBusinessCorrectableConflict(r)) {
+      setRouteConflict(conflictText(r, '创建失败，请调整后重试'))
     } else {
       message.error(r.message || '创建失败')
     }
@@ -162,9 +191,10 @@ export default function TransitCenter() {
         title={editingSite ? '编辑中转网点' : '创建中转网点'}
         open={siteModalOpen}
         onOk={handleSiteSubmit}
-        onCancel={() => setSiteModalOpen(false)}
+        onCancel={() => { setSiteConflict(''); setSiteModalOpen(false) }}
         destroyOnClose
       >
+        <FormConflictAlert text={siteConflict} testId="transit-site-conflict" />
         <Form form={siteForm} layout="vertical">
           <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
             <Input placeholder="如 北京中转站" />
@@ -205,9 +235,10 @@ export default function TransitCenter() {
         title="新增中转路由（受控网点 → 中转网点）"
         open={routeModalOpen}
         onOk={handleRouteCreate}
-        onCancel={() => setRouteModalOpen(false)}
+        onCancel={() => { setRouteConflict(''); setRouteModalOpen(false) }}
         destroyOnClose
       >
+        <FormConflictAlert text={routeConflict} testId="transit-route-conflict" />
         <Form form={routeForm} layout="vertical">
           <Form.Item name="controlled_site_id" label="受控网点" rules={[{ required: true, message: '请选择受控网点' }]}>
             <Select placeholder="选择受控网点" options={controlledSites.map(s => ({ value: s.id, label: s.name }))} />

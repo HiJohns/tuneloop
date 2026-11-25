@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { Card, Table, Button, Input, InputNumber, Select, Form, Space, message, Modal, Popconfirm } from 'antd'
 import { PlusOutlined, DeleteOutlined, SaveOutlined, UndoOutlined } from '@ant-design/icons'
 import { api } from '../../../services/api'
+import FormConflictAlert from '../../../components/FormConflictAlert'
+import { conflictText, isBusinessCorrectableConflict } from '../../../utils/formConflict'
 
 const DEFAULT_CONFIG = {
   tiers: [
@@ -22,6 +24,8 @@ export default function MerchantPricingConfig() {
   const [configured, setConfigured] = useState(false)
   const [templateName, setTemplateName] = useState('')
   const [saved, setSaved] = useState(false)
+  // #2489（沿用 #2480 D8）：业务可纠正冲突用表单内持久提示，不用 3 秒 toast。
+  const [formConflict, setFormConflict] = useState('')
 
   useEffect(() => {
     loadConfig()
@@ -62,6 +66,7 @@ export default function MerchantPricingConfig() {
   }
 
   const handleTierChange = (index, field, value) => {
+    setFormConflict('') // #2489 D8：编辑即清空陈旧冲突提示
     setTiers(prev => prev.map((tier, i) =>
       i === index ? { ...tier, [field]: value } : tier
     ))
@@ -108,6 +113,7 @@ export default function MerchantPricingConfig() {
     }
 
     setLoading(true)
+    setFormConflict('') // #2489 D8：提交开始即清空陈旧冲突提示
     try {
       const response = await api.put('/pricing/merchant-config', {
         template_id: templateId,
@@ -115,7 +121,11 @@ export default function MerchantPricingConfig() {
       })
       if (response.code === 20000 || response.code === 20100) {
         message.success('定价策略配置已保存')
+        setFormConflict('') // #2489 D8：成功后清空
         setSaved(true)
+      } else if (isBusinessCorrectableConflict(response)) {
+        // #2489：阶梯/押金配置冲突改为表单内持久提示。
+        setFormConflict(conflictText(response, '保存失败，请调整后重试'))
       } else {
         message.error('保存失败: ' + response.message)
       }
@@ -227,6 +237,7 @@ export default function MerchantPricingConfig() {
           </Space>
         }
       >
+        <FormConflictAlert text={formConflict} testId="pricing-config-conflict" />
         <div className="mb-6">
           <h3 className="text-base font-medium mb-2">定价阶梯</h3>
           <p className="text-gray-500 text-sm mb-3">

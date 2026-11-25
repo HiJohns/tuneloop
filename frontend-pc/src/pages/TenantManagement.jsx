@@ -3,6 +3,8 @@ import { Table, Button, Modal, Form, Input, message, Tag, Space, Select } from '
 import { PlusOutlined } from '@ant-design/icons'
 import { api } from '../services/api'
 import { formatBeijingDate } from '../utils/date'
+import FormConflictAlert from '../components/FormConflictAlert'
+import { conflictText, isBusinessCorrectableConflict } from '../utils/formConflict'
 
 const { Option } = Select
 
@@ -15,6 +17,8 @@ export default function TenantManagement() {
   const [total, setTotal] = useState(0)
   const [modalVisible, setModalVisible] = useState(false)
   const [form] = Form.useForm()
+  // #2489（沿用 #2480 D8）：业务可纠正冲突用表单内持久提示，不用 3 秒 toast。
+  const [formConflict, setFormConflict] = useState('')
 
   useEffect(() => {
     fetchTenants()
@@ -35,19 +39,28 @@ export default function TenantManagement() {
   }
 
   const handleCreateTenant = () => {
+    setFormConflict('') // #2489 D8：打开表单即清空陈旧冲突提示
     form.resetFields()
     setModalVisible(true)
   }
 
   const handleSubmit = async (values) => {
+    setFormConflict('') // #2489 D8：提交开始即清空
     try {
       await api.post('/system/tenants', values)
       message.success('租户创建成功')
+      setFormConflict('')
       setModalVisible(false)
       fetchTenants()
     } catch (error) {
       console.error('Failed to create tenant:', error)
-      message.error('创建租户失败')
+      const payload = error.response?.data
+      if (isBusinessCorrectableConflict(payload)) {
+        // #2489：租户重名等业务冲突改为表单内持久提示。
+        setFormConflict(conflictText(payload, '创建租户失败，请调整后重试'))
+      } else {
+        message.error(payload?.message || '创建租户失败')
+      }
     }
   }
 
@@ -101,17 +114,18 @@ export default function TenantManagement() {
       <Modal
         title="创建租户"
         open={modalVisible}
-        onCancel={() => setModalVisible(false)}
+        onCancel={() => { setFormConflict(''); setModalVisible(false) }}
         onOk={() => form.submit()}
         width={600}
       >
+        <FormConflictAlert text={formConflict} testId="tenant-form-conflict" />
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item
             name="name"
             label="租户名称"
             rules={[{ required: true, message: '请输入租户名称' }]}
           >
-            <Input placeholder="请输入租户名称" />
+            <Input placeholder="请输入租户名称" onChange={() => { if (formConflict) setFormConflict('') }} />
           </Form.Item>
 
           <Form.Item

@@ -5,6 +5,8 @@ import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import api from '../services/api';
 import { formatBeijingDate } from '../utils/date';
 import MerchantMemberManagement from '../components/MerchantMemberManagement';
+import FormConflictAlert from '../components/FormConflictAlert';
+import { conflictText, isBusinessCorrectableConflict } from '../utils/formConflict';
 
 const MerchantManagement = () => {
   const navigate = useNavigate();
@@ -26,6 +28,10 @@ const MerchantManagement = () => {
   const [formMode, setFormMode] = useState('create'); // 'create' | 'edit'
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
+  // #2489（沿用 #2480 D8）：业务可纠正冲突用表单内持久提示，不用 3 秒 toast。
+  // 409 语义由后端（#2459 IAM 优先 + namespace 唯一）决定，本页只消费共享判定，不自写 code 白名单。
+  const [formConflict, setFormConflict] = useState('');
+  const [settlementConflict, setSettlementConflict] = useState('');
 
   useEffect(() => {
     fetchMerchants();
@@ -123,17 +129,26 @@ const MerchantManagement = () => {
 
   const saveSettlement = async () => {
     try {
+      setSettlementConflict('') // #2489 D8：提交开始即清空
       const values = await settlementForm.validateFields()
       await api.put(`/admin/merchant/${settlementMerchant.id}/settlement`, values)
+      setSettlementConflict('')
       message.success('分账配置保存成功')
     } catch (err) {
       if (err.errorFields) return // validation error
-      message.error('保存失败: ' + (err.response?.data?.message || err.message))
+      const payload = err.response?.data
+      if (isBusinessCorrectableConflict(payload)) {
+        // #2489：分账比例/账号等业务冲突改为表单内持久提示。
+        setSettlementConflict(conflictText(payload, '保存失败，请调整后重试'))
+        return
+      }
+      message.error('保存失败: ' + (payload?.message || err.message))
     }
   };
 
   const handleSubmit = async (values) => {
     setSaving(true);
+    setFormConflict(''); // #2489 D8：提交开始即清空陈旧冲突提示
     try {
       if (formMode === 'edit' && editingMerchant) {
         await api.put(`/merchants/${editingMerchant.id}`, values);
@@ -142,11 +157,18 @@ const MerchantManagement = () => {
         await api.post('/merchants', values);
         message.success('商户创建成功');
       }
+      setFormConflict('');
       setViewMode('detail');
       fetchMerchants();
       navigate('/merchants');
     } catch (error) {
-      message.error(error.response?.data?.message || '操作失败');
+      const payload = error.response?.data
+      if (isBusinessCorrectableConflict(payload)) {
+        // #2489：商户重名等 409 业务冲突改为表单内持久提示（语义以 #2459 为准）。
+        setFormConflict(conflictText(payload, '操作失败，请调整后重试'))
+      } else {
+        message.error(payload?.message || '操作失败')
+      }
     } finally {
       setSaving(false);
     }
@@ -258,6 +280,7 @@ const MerchantManagement = () => {
                 layout="vertical"
                 onFinish={saveSettlement}
               >
+                <FormConflictAlert text={settlementConflict} testId="merchant-settlement-conflict" />
                 <Form.Item name="receiver_type" label="接收方类型" rules={[{ required: true, message: '请选择类型' }]}>
                   <Select>
                     <Select.Option value="merchant">商户号</Select.Option>
@@ -306,12 +329,13 @@ const MerchantManagement = () => {
       }
     >
       <Form form={form} onFinish={handleSubmit} layout="vertical" style={{ maxWidth: 600 }}>
+        <FormConflictAlert text={formConflict} testId="merchant-form-conflict" />
         <Form.Item
           name="name"
           label="商户名"
           rules={[{ required: true, message: '请输入商户名' }]}
         >
-          <Input placeholder="输入商户名称" />
+          <Input placeholder="输入商户名称" onChange={() => { if (formConflict) setFormConflict(''); }} />
         </Form.Item>
 
         <Form.Item name="phone" label="联系电话">
@@ -368,7 +392,7 @@ const MerchantManagement = () => {
           <Button type="primary" htmlType="submit" loading={saving}>
             {formMode === 'create' ? '创建商户' : '保存修改'}
           </Button>
-          <Button onClick={() => { setViewMode('detail'); if (editingMerchant) navigate('/merchants/' + editingMerchant.id); else navigate('/merchants'); }}>取消</Button>
+          <Button onClick={() => { setFormConflict(''); setViewMode('detail'); if (editingMerchant) navigate('/merchants/' + editingMerchant.id); else navigate('/merchants'); }}>取消</Button>
         </Space>
       </Form>
     </Card>

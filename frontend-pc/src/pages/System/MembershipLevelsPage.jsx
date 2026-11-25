@@ -3,6 +3,8 @@ import { Card, Table, Button, Space, Modal, Form, Input, InputNumber, message } 
 import { PlusOutlined, EditOutlined, DeleteOutlined, SettingOutlined } from '@ant-design/icons';
 import { api } from '../../services/api';
 import { formatCents, toYuan } from '../../utils/money';
+import FormConflictAlert from '../../components/FormConflictAlert';
+import { conflictText, isBusinessCorrectableConflict } from '../../utils/formConflict';
 
 export default function MembershipLevelsPage() {
   const [levels, setLevels] = useState([]);
@@ -13,6 +15,9 @@ export default function MembershipLevelsPage() {
   const [benefitsVisible, setBenefitsVisible] = useState(false);
   const [benefitsLevel, setBenefitsLevel] = useState(null);
   const [benefitForm] = Form.useForm();
+  // #2489（沿用 #2480 D8）：业务可纠正冲突用表单内持久提示，不用 3 秒 toast。
+  const [levelConflict, setLevelConflict] = useState('');
+  const [benefitConflict, setBenefitConflict] = useState('');
 
   const fetchLevels = async () => {
     setLoading(true);
@@ -26,6 +31,7 @@ export default function MembershipLevelsPage() {
 
   const openBenefits = async (level) => {
     setBenefitsLevel(level);
+    setBenefitConflict(''); // #2489 D8：打开表单即清空陈旧冲突提示
     setBenefitsVisible(true);
     benefitForm.resetFields();
     const res = await api.get(`/admin/membership-levels/${level.id}/benefits`);
@@ -38,10 +44,14 @@ export default function MembershipLevelsPage() {
 
   const saveBenefits = async () => {
     const values = await benefitForm.validateFields();
+    setBenefitConflict(''); // #2489 D8：提交开始即清空
     const res = await api.put(`/admin/membership-levels/${benefitsLevel.id}/benefits`, values);
     if (res.code === 20000) {
       message.success('权益已保存');
+      setBenefitConflict('');
       setBenefitsVisible(false);
+    } else if (isBusinessCorrectableConflict(res)) {
+      setBenefitConflict(conflictText(res, '保存失败，请调整后重试'));
     } else {
       message.error(res.message);
     }
@@ -49,15 +59,20 @@ export default function MembershipLevelsPage() {
 
   const handleSave = async () => {
     const values = await form.validateFields();
+    setLevelConflict(''); // #2489 D8：提交开始即清空
     const method = editing ? api.put : api.post;
     const url = editing ? `/admin/membership-levels/${editing.id}` : '/admin/membership-levels';
     const res = await method(url, values);
     if (res.code === 20000) {
       message.success(editing ? '已更新' : '已创建');
+      setLevelConflict('');
       setModalVisible(false);
       setEditing(null);
       form.resetFields();
       fetchLevels();
+    } else if (isBusinessCorrectableConflict(res)) {
+      // #2489：门槛冲突 / 重名等改为表单内持久提示。
+      setLevelConflict(conflictText(res, '保存失败，请调整后重试'));
     } else { message.error(res.message); }
   };
 
@@ -82,7 +97,7 @@ export default function MembershipLevelsPage() {
       render: (_, r) => (
         <Space>
           <Button size="small" icon={<SettingOutlined />} onClick={() => openBenefits(r)}>权益</Button>
-          <Button size="small" icon={<EditOutlined />} onClick={() => { setEditing(r); form.setFieldsValue({ ...r, min_amount: toYuan(r.min_amount) }); setModalVisible(true); }}>编辑</Button>
+          <Button size="small" icon={<EditOutlined />} onClick={() => { setLevelConflict(''); setEditing(r); form.setFieldsValue({ ...r, min_amount: toYuan(r.min_amount) }); setModalVisible(true); }}>编辑</Button>
           <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(r.id)}>删除</Button>
         </Space>
       ),
@@ -92,19 +107,21 @@ export default function MembershipLevelsPage() {
   return (
     <Card title="会员级别管理">
       <div className="mb-4">
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditing(null); form.resetFields(); setModalVisible(true); }}>新增级别</Button>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => { setLevelConflict(''); setEditing(null); form.resetFields(); setModalVisible(true); }}>新增级别</Button>
       </div>
       <Table dataSource={levels} columns={columns} rowKey="id" loading={loading} pagination={false} />
-      <Modal title={editing ? '编辑级别' : '新增级别'} open={modalVisible} onOk={handleSave} onCancel={() => { setModalVisible(false); setEditing(null); form.resetFields(); }} destroyOnClose>
+      <Modal title={editing ? '编辑级别' : '新增级别'} open={modalVisible} onOk={handleSave} onCancel={() => { setLevelConflict(''); setModalVisible(false); setEditing(null); form.resetFields(); }} destroyOnClose>
+        <FormConflictAlert text={levelConflict} testId="membership-level-conflict" />
         <Form form={form} layout="vertical">
           <Form.Item name="id" label="级别 ID" rules={[{ required: true }]}><InputNumber min={1} disabled={!!editing} style={{ width: '100%' }} /></Form.Item>
-          <Form.Item name="name" label="名称" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="min_amount" label="最低消费金额" rules={[{ required: true }]}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item>
+          <Form.Item name="name" label="名称" rules={[{ required: true }]}><Input onChange={() => { if (levelConflict) setLevelConflict(''); }} /></Form.Item>
+          <Form.Item name="min_amount" label="最低消费金额" rules={[{ required: true }]}><InputNumber min={0} style={{ width: '100%' }} onChange={() => { if (levelConflict) setLevelConflict(''); }} /></Form.Item>
         </Form>
       </Modal>
       <Modal title={`权益配置 — ${benefitsLevel?.name || ''}（${benefitsLevel?.id || ''} 级）`} open={benefitsVisible}
-        onOk={saveBenefits} onCancel={() => { setBenefitsVisible(false); setBenefitsLevel(null); }}
+        onOk={saveBenefits} onCancel={() => { setBenefitConflict(''); setBenefitsVisible(false); setBenefitsLevel(null); }}
         width={680} destroyOnClose>
+        <FormConflictAlert text={benefitConflict} testId="membership-benefit-conflict" />
         <Form form={benefitForm} layout="vertical">
           <Form.Item label="权益条目（保存后整体替换该档权益，顺序即展示顺序）">
             <Form.List name="items">
