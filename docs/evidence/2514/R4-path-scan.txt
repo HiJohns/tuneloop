@@ -1,0 +1,22 @@
+# build=1.0.8f7dc8c05 # commit=8f7dc8c055edf7050b82d1d1412292bb25d09c67 # dirty=false
+== R4 /instruments batch write-call scan (frontend pages vs backend routes) ==
+BATCH_PRICE_CALLS=0
+BATCH_PRICING_CALLS=3
+BATCH_STATUS_CALLS=1
+BATCH_DELETE_CALLS=2
+BACKEND_BATCH_PRICING_ROUTE=1
+BACKEND_BATCH_IMPORT_ROUTE=1
+BACKEND_BATCH_STATUS_ROUTE=0
+BACKEND_GHOST_ROUTE=0
+RESIDUAL_OUTSIDE_ALLOWLIST=0
+-- batch call set (allowlist: batch-pricing / batch-import / batch/status -> #2519 / DELETE batch) --
+frontend-pc/src/services/api.js:444:  batchImport: (sessionId, propertyResolutions = []) => api.post('/instruments/batch-import', { session_id: sessionId, property_resolutions: propertyResolutions }),
+frontend-pc/src/services/api.js:563:  batchSetPricing: (data) => api.put('/instruments/batch-pricing', data),
+frontend-pc/src/pages/admin/inventory/RentSetting.jsx:164:      const response = await api.put('/instruments/batch-pricing', {
+frontend-pc/src/pages/admin/instrument/List.jsx:337:      const result = await api.put('/instruments/batch/status', {
+frontend-pc/src/pages/admin/instrument/List.jsx:368:          const result = await api.delete('/instruments/batch', {
+frontend-pc/src/pages/admin/instrument/Detail.jsx:494:                            const res = await api.put('/instruments/batch-pricing', {
+frontend-pc/src/pages/InstrumentStock.jsx:251:          const result = await api.delete('/instruments/batch', { ids: selectedRowKeys })
+-- other /instruments write calls (path params, existing endpoints; informational) --
+OTHER_WRITE_CALLS=20
+R4_OK

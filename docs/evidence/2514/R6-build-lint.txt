@@ -1,0 +1,47 @@
+# build=1.0.8f7dc8c05 # commit=8f7dc8c055edf7050b82d1d1412292bb25d09c67 # dirty=false
+== R6 frontend build + eslint no-undef ==
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed at_ms=1795622209854 wait_ms=195
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed wait_ms=195
+
+> frontend-pc@1.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 5425 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                     0.53 kB │ gzip:   0.34 kB
+dist/assets/index-B2wkjN-i.css     38.38 kB │ gzip:   7.13 kB
+dist/assets/index-DdnRLAeG.js   2,625.00 kB │ gzip: 807.87 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 30.66s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795622241743 hold_ms=31889
+
+/home/coder/worktrees/tuneloop/wt-2514/frontend-pc/src/pages/InstrumentStock.jsx
+   64:6   warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  156:56  warning  'openRestoreModal' was used before it was defined                                                            no-use-before-define
+  159:56  warning  'openLostModal' was used before it was defined                                                               no-use-before-define
+  164:59  warning  'handleDeleteInstrument' was used before it was defined                                                      no-use-before-define
+
+/home/coder/worktrees/tuneloop/wt-2514/frontend-pc/src/pages/admin/instrument/List.jsx
+   54:5   warning  'fetchCategories' was used before it was defined                                                                                                                     no-use-before-define
+   63:5   warning  'fetchInstruments' was used before it was defined                                                                                                                    no-use-before-define
+   64:6   warning  React Hook useEffect has missing dependencies: 'fetchInstruments', 'pagination.page', and 'pagination.pageSize'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+   73:5   warning  'fetchInstruments' was used before it was defined                                                                                                                    no-use-before-define
+   74:6   warning  React Hook useEffect has missing dependencies: 'fetchInstruments' and 'pagination.pageSize'. Either include them or remove the dependency array                      react-hooks/exhaustive-deps
+  273:32  warning  'deleteInstrument' was used before it was defined                                                                                                                    no-use-before-define
+
+✖ 10 problems (0 errors, 10 warnings)
+
+BUILD_EXIT=0
+ESLINT_RC=0
+ESLINT_NO_UNDEF=0
+R6_OK
