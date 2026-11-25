@@ -29,7 +29,7 @@ Commit：`8f7dc8c05`（fix，含 plan 快照）。
 
 ### Remote
 
-- remote: origin/issue-2514; fix=8f7dc8c05 pushed=yes; evidence=<evidence commit> pushed=yes
+- remote: origin/issue-2514; fix=8f7dc8c05 pushed=yes; evidence=175a7e7ce (bundle) / a119dc3a9 (summary rows) / 679d8516e (gate report) / e30ec3617 (summary P3 fix) pushed=yes
 
 ### 红绿实证
 
