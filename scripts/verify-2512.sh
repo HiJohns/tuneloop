@@ -135,14 +135,29 @@ r5)
     current_as_org="$(grep -cE 'effectiveOrgID = .*CurrentSiteID\.String\(\)' "$HANDLER" 2>/dev/null || true)"
     resolver_calls="$(grep -c 'resolveOrderOrgID(db, ' "$HANDLER" 2>/dev/null || true)"
     sql_present=0
+    sql_set_semantics=0
     read -r -d '' SQL_TEXT <<'SQL'
 -- #2512 R5 只读存量排查 SQL（禁止在 CI 中执行；数据修复需 Owner 授权，见 D3）
--- 1) orders.org_id 落在 sites.id 域的存量行（域污染）
+-- 1) orders.org_id 落在 sites.id 域的存量行（本 bug 的直接产物，细分项）
 SELECT count(*) AS polluted_orders
 FROM orders o
 JOIN sites s ON o.org_id::text = s.id::text
 WHERE o.org_id IS NOT NULL AND o.org_id <> s.org_id;
--- 2) instruments.org_id 为空但 site 可反查的存量乐器（回退链会走 sites.org_id）
+-- 2) AC4 集合语义：orders.org_id 不落在组织集合
+--    （sites.org_id ∪ merchants.org_id）内的存量行。
+--    既覆盖「站点 ID 域污染」，也覆盖组织已删除 / 导入脏值 / 跨环境拷库等
+--    不属于任何 sites.id 的污染值（仅用 1) 会低报）。
+SELECT count(*) AS orders_org_outside_org_sets
+FROM orders o
+WHERE o.org_id IS NOT NULL
+  AND o.org_id::text NOT IN (
+    SELECT s.org_id::text FROM sites s
+    WHERE s.org_id IS NOT NULL AND s.org_id::text <> ''
+    UNION
+    SELECT m.org_id::text FROM merchants m
+    WHERE m.org_id IS NOT NULL AND m.org_id::text <> ''
+  );
+-- 3) instruments.org_id 为空但 site 可反查的存量乐器（回退链会走 sites.org_id）
 SELECT count(*) AS instruments_org_null_site_present
 FROM instruments i
 JOIN sites s ON s.id = i.site_id
@@ -150,11 +165,17 @@ WHERE i.org_id IS NULL AND i.org_id IS DISTINCT FROM s.org_id;
 SQL
     printf '%s' "$SQL_TEXT" | grep -q 'polluted_orders' && \
       printf '%s' "$SQL_TEXT" | grep -q 'instruments_org_null_site_present' && sql_present=1
+    # 集合语义可判定：必须同时出现「不在集合内」查询的三要素（NOT IN + 两个组织集合）。
+    printf '%s' "$SQL_TEXT" | grep -q 'orders_org_outside_org_sets' && \
+      printf '%s' "$SQL_TEXT" | grep -q 'NOT IN' && \
+      printf '%s' "$SQL_TEXT" | grep -q 'FROM sites' && \
+      printf '%s' "$SQL_TEXT" | grep -q 'FROM merchants' && sql_set_semantics=1
     body+="SCAN_FILE=$HANDLER"$'\n'
     body+="SITE_ID_AS_ORG=$site_as_org"$'\n'
     body+="CURRENT_SITE_AS_ORG=$current_as_org"$'\n'
     body+="RESOLVER_CALLS=$resolver_calls"$'\n'
     body+="SQL_PRESENT=$sql_present"$'\n'
+    body+="SQL_SET_SEMANTICS=$sql_set_semantics"$'\n'
     body+="--- resolver ---"$'\n'
     body+="$(grep -nE 'func resolveOrderOrgID|resolveOrderOrgID\(db, ' "$HANDLER" || true)"$'\n'
     body+="--- read-only SQL ---"$'\n'"$SQL_TEXT"$'\n'
@@ -162,6 +183,7 @@ SQL
     [ "$current_as_org" = "0" ] || rc=1
     [ "$resolver_calls" = "2" ] || rc=1
     [ "$sql_present" = "1" ] || rc=1
+    [ "$sql_set_semantics" = "1" ] || rc=1
     [ "$rc" = "0" ] && body+="R5_OK"$'\n'
     body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
     finish R5-scan-sql.txt "$rc" "$body"
