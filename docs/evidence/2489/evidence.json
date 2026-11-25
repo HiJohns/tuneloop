@@ -141,10 +141,10 @@
         "docs/evidence/2489/R10-gate.txt"
       ],
       "assert": "exit 0；grep GATE_RESULT=PASS、PLAN_SOURCE=PASS、FULL_GATE_DIRECT_EXIT=0",
-      "actual": "PENDING: 本行由 r10 直接执行全量 PC 构建并读取 gate 报告；首轮先登记以满足 P12 顺序，gate PASS 后回填 GATE_RESULT=PASS / FULL_GATE_DIRECT_EXIT=0 / PLAN_SOURCE=PASS",
+      "actual": "PASS：r10 直接执行 cd frontend-pc && npm run build → FULL_GATE_DIRECT_EXIT=0（built in 52.04s）；gate overall=PASS（P5=N/A，子任务口径 D6）；四源 plan_sha256=7961a439e5… 一致（GATE_PLAN_SHA_MATCH=1、PLAN_SOURCE=PASS、REBUILT_ROWS=10）",
       "expected": "PASS",
       "negative": "FULL_GATE_DIRECT_EXIT!=0 → FAIL",
-      "negative_result": "待 r10 回填（FULL_GATE_DIRECT_EXIT / GATE_RESULT）",
+      "negative_result": "FULL_GATE_DIRECT_EXIT=0（负例条件未命中）；PLAN_SOURCE=PASS",
       "pass": true
     }
   ]

@@ -1,15 +1,24 @@
 # build=1.0.d08a6228e # commit=d08a6228ee7fb655edb3a517c8df8077fca67ea3 # dirty=false
-# tree=d08a6228ee7fb655edb3a517c8df8077fca67ea3
-GATE_RESULT=PENDING(no report yet)
-P5=MISSING
-FULL_SUITE_EXIT=PENDING
-GATE_PLAN_SHA=
-GATE_PLAN_SHA_MATCH=0
+# tree=70f90a8c236a92347230d37c7d9308192d8bbfaf
+FULL_GATE_CMD=cd frontend-pc && npm run build
+dist/assets/index-B2wkjN-i.css     38.38 kB │ gzip:   7.13 kB
+dist/assets/index-DW-csUzd.js   2,626.46 kB │ gzip: 808.43 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 52.04s
+FULL_GATE_DIRECT_EXIT=0
+GATE_RESULT=PASS
+P5=N/A
+GATE_PLAN_SHA=7961a439e539bdea50f4d044d4bfb721582624aa80651d936cf93cf00fcf1a17
+GATE_PLAN_SHA_MATCH=1
 REBUILT_ROWS=10
 REBUILT_OTHERS=9
-PLAN_SOURCE: plan sha=64be29b54f70da9904c13cfe02064190ae9f2b66948b0def104247a91f3bfd86 source=/home/coder/worktrees/tuneloop/wt-2489/docs/evidence/2489/plan.md
-PLAN_SOURCE: FAIL gate-missing /home/coder/worktrees/tuneloop/wt-2489/docs/evidence/2489/pre-ready-2489.json
-PLAN_SOURCE: FAIL evidence-missing /home/coder/worktrees/tuneloop/wt-2489/docs/evidence/2489/evidence.json
-PLAN_SOURCE: FAIL
-PLAN_SOURCE=FAIL
-GATE_FAIL
+PLAN_SOURCE: plan sha=7961a439e539bdea50f4d044d4bfb721582624aa80651d936cf93cf00fcf1a17 source=/home/coder/worktrees/tuneloop/wt-2489/docs/evidence/2489/plan.md
+PLAN_SOURCE: gate sha=7961a439e539bdea50f4d044d4bfb721582624aa80651d936cf93cf00fcf1a17 source=/home/coder/worktrees/tuneloop/wt-2489/docs/evidence/2489/pre-ready-2489.json
+PLAN_SOURCE: evidence sha=7961a439e539bdea50f4d044d4bfb721582624aa80651d936cf93cf00fcf1a17 source=/home/coder/worktrees/tuneloop/wt-2489/docs/evidence/2489/evidence.json
+PLAN_SOURCE: PASS sha=7961a439e539bdea50f4d044d4bfb721582624aa80651d936cf93cf00fcf1a17
+PLAN_SOURCE=PASS
+GATE_OK
