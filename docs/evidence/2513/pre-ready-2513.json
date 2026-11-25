@@ -1,7 +1,7 @@
 {
   "issue": 2513,
   "overall": "PASS",
-  "plan": "/home/coder/worktrees/tuneloop/wt-2513/tmp/pre-ready-2513.IYExCp/plan.md",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2513/tmp/pre-ready-2513.AYyb6f/plan.md",
   "plan_sha256": "1c5a5dfd140167330bda5e9a1f986f49b7fbc5767d50e1487f92b635086ef021",
   "config_sha": "f663626b8fe3895a49dffa4c43266664546741db",
   "provenance": {
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "docs/evidence/2513/summary.md",
-  "timestamp": "20261125-190157",
+  "timestamp": "20261125-190328",
   "checks": [
     {
       "id": "P1",
