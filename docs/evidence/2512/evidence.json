@@ -71,10 +71,10 @@
         "docs/evidence/2512/R5-scan-sql.txt"
       ],
       "assert": "exit 0；grep -q '^R5_OK$' 且 grep -q 'SITE_ID_AS_ORG=0'",
-      "actual": "PASS：R5_OK、SITE_ID_AS_ORG=0、CURRENT_SITE_AS_ORG=0、RESOLVER_CALLS=2、SQL_PRESENT=1；provenance `# build=1.0.7013596d # commit=7013596d2496b751ad6345220f71db8d8e1a4088 # dirty=false`",
+      "actual": "PASS：R5_OK、SITE_ID_AS_ORG=0、CURRENT_SITE_AS_ORG=0、RESOLVER_CALLS=2、SQL_PRESENT=1、SQL_SET_SEMANTICS=1（AC4 集合语义查询存在：orders.org_id::text NOT IN (sites.org_id UNION merchants.org_id)，产物内可见 orders_org_outside_org_sets）；provenance `# build=1.0.7013596d # commit=7013596d2496b751ad6345220f71db8d8e1a4088 # dirty=false`",
       "expected": "CURRENT_SITE_AS_ORG=0、RESOLVER_CALLS=2、SQL_PRESENT=1",
       "negative": "残留站点 ID 兜底 → R5_FAIL 且非 0 退出",
-      "negative_result": "negative verified（红）：残留 `effectiveOrgID = instrument.SiteID.String()` / `CurrentSiteID.String()` 或解析器调用次数 != 2 → R5_FAIL；修复后均为 0/2",
+      "negative_result": "negative verified（红→绿）：(a) 残留 `effectiveOrgID = instrument.SiteID.String()` / `CurrentSiteID.String()` 或解析器调用次数 != 2 → R5_FAIL；(b) 审计 r1 Bug 1 红侧：旧 harness 的只读 SQL 缺集合语义（产物无 orders_org_outside_org_sets / merchants → SQL_SET_SEMANTICS 不可判定），仅靠 SQL_PRESENT=1 仍 R5_OK（绿而 AC4 未达）；补集合语义查询后 SQL_SET_SEMANTICS=1，缺失即 R5_FAIL。修复后均为 0/2/1",
       "pass": true
     },
     {

@@ -4,18 +4,33 @@ SITE_ID_AS_ORG=0
 CURRENT_SITE_AS_ORG=0
 RESOLVER_CALLS=2
 SQL_PRESENT=1
+SQL_SET_SEMANTICS=1
 --- resolver ---
 34:func resolveOrderOrgID(db *gorm.DB, inst *models.Instrument) string {
 454:		org := resolveOrderOrgID(db, &instrument)
 1069:			resolved := resolveOrderOrgID(db, &verified[i])
 --- read-only SQL ---
 -- #2512 R5 只读存量排查 SQL（禁止在 CI 中执行；数据修复需 Owner 授权，见 D3）
--- 1) orders.org_id 落在 sites.id 域的存量行（域污染）
+-- 1) orders.org_id 落在 sites.id 域的存量行（本 bug 的直接产物，细分项）
 SELECT count(*) AS polluted_orders
 FROM orders o
 JOIN sites s ON o.org_id::text = s.id::text
 WHERE o.org_id IS NOT NULL AND o.org_id <> s.org_id;
--- 2) instruments.org_id 为空但 site 可反查的存量乐器（回退链会走 sites.org_id）
+-- 2) AC4 集合语义：orders.org_id 不落在组织集合
+--    （sites.org_id ∪ merchants.org_id）内的存量行。
+--    既覆盖「站点 ID 域污染」，也覆盖组织已删除 / 导入脏值 / 跨环境拷库等
+--    不属于任何 sites.id 的污染值（仅用 1) 会低报）。
+SELECT count(*) AS orders_org_outside_org_sets
+FROM orders o
+WHERE o.org_id IS NOT NULL
+  AND o.org_id::text NOT IN (
+    SELECT s.org_id::text FROM sites s
+    WHERE s.org_id IS NOT NULL AND s.org_id::text <> ''
+    UNION
+    SELECT m.org_id::text FROM merchants m
+    WHERE m.org_id IS NOT NULL AND m.org_id::text <> ''
+  );
+-- 3) instruments.org_id 为空但 site 可反查的存量乐器（回退链会走 sites.org_id）
 SELECT count(*) AS instruments_org_null_site_present
 FROM instruments i
 JOIN sites s ON s.id = i.site_id
