@@ -1,10 +1,12 @@
-# build=1.0.d08a6228e # commit=d08a6228ee7fb655edb3a517c8df8077fca67ea3 # dirty=false
-# tree=82cdda3f8cadeda3186eb91f6e02c0a253eb3023
+# build=1.0.eaf436b60 # commit=eaf436b60456040cd49cea11d6d55a1a9be066eb # dirty=false
+# tree=eaf436b60456040cd49cea11d6d55a1a9be066eb
 PAGE=pages/admin/PermissionManage/index.jsx converted=3 code_first=1
 PAGE=pages/admin/pricing/MerchantPricingConfig.jsx converted=1 code_first=1
-PAGE=pages/admin/transit/TransitCenter.jsx converted=0 code_first=0
-PAGE=pages/System/MembershipLevelsPage.jsx converted=0 code_first=0
-PAGE=pages/MerchantManagement.jsx converted=1 code_first=1
+PAGE=pages/admin/transit/TransitCenter.jsx converted=3 code_first=1
+PAGE=pages/System/MembershipLevelsPage.jsx converted=2 code_first=1
+PAGE=pages/MerchantManagement.jsx converted=2 code_first=1
 PAGE=pages/TenantManagement.jsx converted=1 code_first=1
-CONVERTED_ROWS=6
+CONVERTED_ROWS=12
 CODE_FIRST=1
+PAGES_WITH_CONVERSION=6
+PAGES_TOTAL=6

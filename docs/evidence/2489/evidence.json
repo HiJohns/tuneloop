@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2489,
-  "build": "1.0.d08a6228e",
-  "commit": "d08a6228ee7fb655edb3a517c8df8077fca67ea3",
+  "build": "1.0.eaf436b60",
+  "commit": "eaf436b60456040cd49cea11d6d55a1a9be066eb",
   "dirty": false,
   "plan_sha256": "4d864c15553758530e88504ff26a0b72239eb46f0f3d8cf902553af9eec6a13f",
   "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2489 (base origin/develop b6c6d3c41 incl. #2480; branch issue-2489); frontend-pc static text scan + vite build + eslint; no browser/real backend",
@@ -15,7 +15,7 @@
         "docs/evidence/2489/R1-classify.txt"
       ],
       "assert": "exit 0；含 UNCLASSIFIED=0",
-      "actual": "PASS：31 个 message.error 调用点逐行分类（business-correctable 14 / keep:instant 17 / defer 0 / residual 0），UNCLASSIFIED=0、READONLY=1，行数与 #2480 基线（同 6 文件 31 行）一致",
+      "actual": "PASS：31 个 message.error 调用点逐行分类（BUSINESS_FALLBACK_ROWS=14 / KEEP_ROWS=17 / DEFER_ROWS=0 / BUSINESS_TOAST_RESIDUAL=0），UNCLASSIFIED=0、READONLY=1、DB_WRITES=0；行数与 #2480 基线（同 6 文件 31 行）一致",
       "expected": "PASS",
       "negative": "出现无结论行 → FAIL",
       "negative_result": "修复前同批 toast 行 reads_code=0 且无 tier 结论（旧扫描器将业务码仍走 toast 记为 residual）；修复后 residual=0",
@@ -29,10 +29,10 @@
         "docs/evidence/2489/R2-converted.txt"
       ],
       "assert": "exit 0；含 CONVERTED_ROWS>=1 与 CODE_FIRST=1",
-      "actual": "PASS：6 个页面均先取 code（isBusinessCorrectableConflict），命中后 setFormConflict(conflictText(...))；CONVERTED_ROWS=6（每页各 1 处转换分支）、CODE_FIRST=1",
+      "actual": "PASS：6/6 页先取 code（isBusinessCorrectableConflict）再写持久提示（set*Conflict(conflictText(...))）；CONVERTED_ROWS=12（PermissionManage 3 / MerchantPricingConfig 1 / TransitCenter 3 / MembershipLevelsPage 2 / MerchantManagement 2 / TenantManagement 1）、CODE_FIRST=1、PAGES_WITH_CONVERSION=6/6",
       "expected": "PASS",
       "negative": "缺 code 判定 → FAIL",
-      "negative_result": "修复前页面为 message.error(resp.message)（丢弃 code，无法分类）；修复后每页 predicate 与 setFormConflict 成对出现",
+      "negative_result": "修复前页面为 message.error(resp.message)（丢弃 code，无法分类）；修复后每页 predicate + 持久提示成对出现；测量口径已修正为任意 set*Conflict(conflictText(（旧脚本只认 setFormConflict，把 TransitCenter / MembershipLevelsPage 误计为 0）→ 现在 6/6 页均计到转换点",
       "pass": true
     },
     {
@@ -57,7 +57,7 @@
         "docs/evidence/2489/R4-residual.txt"
       ],
       "assert": "exit 0；含 BUSINESS_TOAST_RESIDUAL=0",
-      "actual": "PASS：BUSINESS_TOAST_RESIDUAL=0；17 条 keep:instant 行全部带 reason（KEEP_WITH_REASON=17）",
+      "actual": "PASS：BUSINESS_TOAST_RESIDUAL=0；17 条 keep:instant 行全部带 reason（KEEP_WITH_REASON=17）；BUSINESS_FALLBACK_ROWS=14（业务分支已转持久提示，toast 仅作非业务兜底）",
       "expected": "PASS",
       "negative": "残留 >0 → FAIL",
       "negative_result": "修复前业务码 toast 会被计入 residual（>0）；修复后 =0，且 keep 行均有 reason",
@@ -71,7 +71,7 @@
         "docs/evidence/2489/R5-build.txt"
       ],
       "assert": "exit 0；含 BUILD_OK 与 ESLINT_OK",
-      "actual": "PASS：frontend-pc npm run build BUILD_EXIT=0（43.38s，BUILD_OK）；6 个改动文件 npx eslint LINT_EXIT=0（ESLINT_OK）",
+      "actual": "PASS：frontend-pc npm run build BUILD_EXIT=0（33.44s，BUILD_OK）；6 个改动文件 npx eslint LINT_EXIT=0（ESLINT_OK）",
       "expected": "PASS",
       "negative": "构建失败 → FAIL",
       "negative_result": "构建/lint 任一非 0 会使该行 FAIL；本轮两次均 exit 0",
