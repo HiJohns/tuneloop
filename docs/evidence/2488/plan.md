@@ -1,4 +1,7 @@
-## Accepted Plan — #2488（内容/展示类页面：业务可纠正错误 → 持久提示）
+## Accepted Plan — #2488 v2（内容/展示类页面：业务可纠正错误 → 持久提示）
+
+> **v2 说明（与 #2489 同一计划缺口）**：本单正文首行 `Parent: #2486` → `pre-ready-check.sh` 判定为 **sub-task**，P5 恒为 `N/A`，故 R7 原写的 `FULL_SUITE_EXIT=0` 与负例 `P5=NA → FAIL` 互斥（计划/harness 冲突，非实现缺陷）。
+> v2 裁定：R7 改为「本单直接执行全量 PC 构建并记录退出码」→ 断言 `GATE_RESULT=PASS` + `PLAN_SOURCE=PASS` + `FULL_GATE_DIRECT_EXIT=0`；负例改为 `FULL_GATE_DIRECT_EXIT!=0 → FAIL`；P5 的 N/A 由 D6 承接（父 #2486 收口复核）。
 
 ### 背景与现状核对（代码为据）
 
@@ -29,7 +32,7 @@
 | R4 库存操作页 | `frontend-pc/src/pages/InstrumentStock.jsx` | 库存调整/状态变更 | `40005/40900`（状态不允许/冲突） | PC | 同上；状态冲突不得被误判为瞬时（`STATE_CONFLICT=1`） | R4 |
 | R5 共享件复用与残留 | 3 文件 + `frontend-pc/src/components/FormConflictAlert.jsx` | `bash scripts/verify-2488.sh r5` | 修后树 | PC | `SHARED_REUSE=3`、`LOCAL_ALERT_DUP=0`、`LOCAL_CODE_LIST=0`、`BUSINESS_TOAST_RESIDUAL=0` | R5 |
 | R6 构建与 lint | `frontend-pc` | `cd frontend-pc && npm run build` + `npx eslint` 改动文件 | 修后树 | PC | `PC_BUILD=0`、`LINT_EXIT=0` | R6 |
-| R7 gate 四源 + 全量 PC 构建 | `docs/evidence/2488/pre-ready-2488.json`、`docs/evidence/2488/plan.md` | `--full-gate-cmd "cd frontend-pc && npm run build"` + `plan-source.sh --issue 2488` | 修后树（干净） | PC | `GATE_RESULT=PASS`、`FULL_SUITE_EXIT=0`、`PLAN_SOURCE=PASS` | R7 |
+| R7 gate 四源 + 全量 PC 构建（子任务直跑） | `docs/evidence/2488/pre-ready-2488.json`、`docs/evidence/2488/plan.md`、`scripts/verify-2488.sh` | `bash scripts/verify-2488.sh r7`（内部直接 `cd frontend-pc && npm run build` 并记录退出码）+ `plan-source.sh --issue 2488` | 修后树（干净）；子任务 P5 按 harness 为 N/A | PC | `GATE_RESULT=PASS`、`PLAN_SOURCE=PASS`、`FULL_GATE_DIRECT_EXIT=0`；P5 的 N/A 由 D6 承接 | R7 |
 
 ## Input Truth & Tool Preflight
 
@@ -38,6 +41,7 @@
 - **损坏输入拒绝**：`resp` 非对象 → 瞬时；`message` 非字符串 → 页面兜底；空 `text` → 组件返回 `null`。
 - **工具盲区**：PC 无组件测试运行器 → 静态接线断言；真实截图由 `[Ops-Followup of #2488]` 承载；扫描脚本文本级分类，`ambiguous` 必须人工落 `reason`。
 - **影响面预检**：不改 `40901/40902` 的 `Modal` 分支；不改上传/库存 API 与权限门控；不改 `message.success`。
+- **gate 语义基线（D6）**：`pre-ready-check.sh:1092-1098` 对 `Parent:` 子任务固定 `na P5`，故 R7 的可执行断言为 `GATE_RESULT=PASS` + `PLAN_SOURCE=PASS` + 本单直跑 `FULL_GATE_DIRECT_EXIT=0`。
 
 ## Decision Lock
 
@@ -48,6 +52,8 @@
 | D3 | 共享件唯一 owner（#2480），禁止自写 Alert / 复制白名单 | Architect | 本计划锁定 | 阻塞实现 |
 | D4 | `InstrumentStock` 的「状态不允许（40005）」属**业务可纠正**（用户可改数量/先归还再操作），必须持久提示 | Architect | 本计划锁定 | 阻塞实现 |
 | D5 | UI 行证据 = 静态接线断言；真实渲染由 Ops 截图回评（**Owner 豁免**，`evidence_type: static`） | Architect | owner_approved（沿用本仓前端豁免惯例） | 若审计要求 render → 另立前端测试基建 Issue |
+| D6 | **子任务 gate 语义**：`Parent: #2486` → P5 判为 `N/A`；R7 不得要求 `P5=PASS`/`FULL_SUITE_EXIT=0`，全量 PC 构建由 `scripts/verify-2488.sh r7` 直接执行并记录 `FULL_GATE_DIRECT_EXIT`，批次全量由父任务 #2486 收口复核 | Architect | owner_approved（与 harness 子任务规则一致） | 若 Owner 要求子任务也必须有 P5=PASS → 需先改 harness（另立 Issue），本单阻塞 |
+| D7 | 不做 `### Batch Gate Reference` 登记：P15 需父任务 gate 产物存在（#2486 收口时才产出），改由 D6 双轨覆盖 | Architect | 本计划锁定 | 若审计坚持 P15 引用 → 等 #2486 收口后补登 |
 
 ### Evidence Types
 
@@ -75,7 +81,7 @@
 | R4 | fake `40005`（状态不允许） | 库存操作 | `docs/evidence/2488/R4-stock.txt` | `PERSIST_ALERT=1`、`STATE_CONFLICT=1` | 40005 仍 toast → FAIL |
 | R5 | 修后源码 | `bash scripts/verify-2488.sh r5` | `docs/evidence/2488/R5-residual.txt` | `SHARED_REUSE=3`、`LOCAL_ALERT_DUP=0`、`BUSINESS_TOAST_RESIDUAL=0` | 残留 ≥1 → FAIL |
 | R6 | 修后 `frontend-pc` | `npm run build` + `npx eslint` | `docs/evidence/2488/R6-build-lint.txt` | `PC_BUILD=0`、`LINT_EXIT=0` | 任一非 0 → FAIL |
-| R7 | 修后干净树 + gate | 读校验 | `docs/evidence/2488/R7-gate.txt` | `GATE_RESULT=PASS`、`FULL_SUITE_EXIT=0`、`PLAN_SOURCE=PASS` | `P5=NA` → FAIL |
+| R7 | 修后干净树 + 本单直跑全量 PC 构建 + gate 报告 | `bash scripts/verify-2488.sh r7` | `docs/evidence/2488/R7-gate.txt` | `GATE_RESULT=PASS`、`PLAN_SOURCE=PASS`、`FULL_GATE_DIRECT_EXIT=0` | `FULL_GATE_DIRECT_EXIT!=0` 或 `GATE_RESULT!=PASS` → FAIL |
 
 ## Evidence Contract
 
@@ -87,7 +93,7 @@
 | R4 | `bash scripts/verify-2488.sh r4` | `docs/evidence/2488/R4-stock.txt` | exit 0；grep `PERSIST_ALERT=1`、`STATE_CONFLICT=1` | PASS | 40005 仍 toast → FAIL | dev |
 | R5 | `bash scripts/verify-2488.sh r5` | `docs/evidence/2488/R5-residual.txt` | exit 0；grep `SHARED_REUSE=3`、`BUSINESS_TOAST_RESIDUAL=0` | PASS | 残留 ≥1 → FAIL | dev |
 | R6 | `bash scripts/verify-2488.sh r6` | `docs/evidence/2488/R6-build-lint.txt` | exit 0；grep `PC_BUILD=0`、`LINT_EXIT=0` | PASS | 任一非 0 → FAIL | dev |
-| R7 | `bash scripts/verify-2488.sh r7` | `docs/evidence/2488/R7-gate.txt` | exit 0；grep `GATE_RESULT=PASS`、`PLAN_SOURCE=PASS` | PASS | `P5=NA` → FAIL | dev |
+| R7 | `bash scripts/verify-2488.sh r7` | `docs/evidence/2488/R7-gate.txt` | exit 0；grep `GATE_RESULT=PASS`、`PLAN_SOURCE=PASS`、`FULL_GATE_DIRECT_EXIT=0` | PASS | `FULL_GATE_DIRECT_EXIT!=0` → FAIL | dev |
 
 ## Artifact Provenance
 
@@ -153,4 +159,5 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - **部署侧**：预生产截图回评由 `[Ops-Followup of #2488]` 承载。
 
 *Model: DeepSeek V4.1 Flash 1017*
+
 

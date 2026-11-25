@@ -1,10 +1,16 @@
 {
   "issue": 2488,
-  "overall": "FAIL",
+  "overall": "PASS",
   "plan": "docs/evidence/2488/plan.md",
-  "plan_sha256": "22fe9a2251132ac47466933c4eb60a408a8e377064e45933c6c623bcfbef3206",
+  "plan_sha256": "9e3d822a22a7acb403f0ec37d7325406c88909a35a415c5e30a705ed5fc7f47d",
+  "config_sha": "db40145bac55c26278f9da24652d1a7bad2ebaca",
+  "provenance": {
+    "build": "1.0.1b85f9acd",
+    "commit": "1b85f9acded29232036e78f8416f0c069bbfdcef",
+    "dirty": false
+  },
   "summary": "tmp/work-summary-2488.md",
-  "timestamp": "20261125-002614",
+  "timestamp": "20261125-052226",
   "checks": [
     {
       "id": "P1",
@@ -13,8 +19,8 @@
     },
     {
       "id": "P2",
-      "status": "FAIL",
-      "detail": "Work Summary does not cover the matrix:; row has no status cell: R7 gate 四源 + 全量 PC 构建"
+      "status": "PASS",
+      "detail": "Work Summary covers all 7 matrix rows with PASS/N/A"
     },
     {
       "id": "P3",
@@ -33,8 +39,13 @@
     },
     {
       "id": "P14",
-      "status": "FAIL",
-      "detail": "provenance mismatch dirty: artifact=true evidence=false (docs/evidence/2488/R3-mall-image.txt)"
+      "status": "PASS",
+      "detail": "artifact provenance matches evidence (7 artifacts)"
+    },
+    {
+      "id": "P18",
+      "status": "WARN",
+      "detail": "tooling_commit missing (legacy bundle); config_sha=db40145bac55c26278f9da24652d1a7bad2ebaca"
     },
     {
       "id": "P15",
@@ -54,7 +65,7 @@
     {
       "id": "P5",
       "status": "N/A",
-      "detail": "skipped: P12/P14/P15/P16 static checks failed (static checks run first)"
+      "detail": "sub-task: full gate belongs to the parent/batch gate"
     },
     {
       "id": "P6",
