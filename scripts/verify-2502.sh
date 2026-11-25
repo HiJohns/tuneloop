@@ -195,6 +195,7 @@ r9)
     vite_log="$REPO_ROOT/tmp/verify-${ISSUE}-r9-build-vite.log"
     index_html="$REPO_ROOT/frontend-mobile/dist/index.html"
     taro_app="$REPO_ROOT/frontend-mobile/dist-h5/js/app.js"
+    h5_dist="$REPO_ROOT/frontend-mobile/dist-h5"
     rm -rf "$REPO_ROOT/frontend-mobile/dist" "$REPO_ROOT/frontend-mobile/dist-h5"
     (
         cd "$REPO_ROOT/frontend-mobile" || exit 2
@@ -212,7 +213,8 @@ r9)
         [ -n "$hash" ] || hash="missing"
     fi
     taro_helper="0"
-    [ -f "$taro_app" ] && taro_helper="$(grep -c "维修师傅" "$taro_app" 2>/dev/null || true)"
+    # Taro H5 把页面代码分到 chunk：helper 以未压缩名出现在 chunk/*.js。
+    taro_helper="$(grep -rl "identityBadgeText" "$h5_dist" --include='*.js' 2>/dev/null | wc -l | tr -d ' ')"
     dist_helper="0"
     if [ -d "$REPO_ROOT/frontend-mobile/dist/assets" ]; then
         dist_helper="$(grep -rl "维修师傅" "$REPO_ROOT/frontend-mobile/dist/assets" 2>/dev/null | wc -l | tr -d ' ')"
@@ -220,7 +222,7 @@ r9)
     body+="BUILD_CMD=cd frontend-mobile && npm run build:h5"$'\n'
     body+="BUILD_EXIT=$build_exit"$'\n'
     body+="TARO_H5_BUNDLE=$([ -f "$taro_app" ] && echo present || echo missing)"$'\n'
-    body+="TARO_H5_ROLE_LABEL_HITS=${taro_helper:-0}"$'\n'
+    body+="TARO_H5_HELPER_FILES=${taro_helper:-0}"$'\n'
     body+="DIST_ASSETS_WITH_ROLE_LABEL=${dist_helper:-0}"$'\n'
     body+="VITE_BUILD_CMD=cd frontend-mobile && npm run build"$'\n'
     body+="VITE_BUILD_EXIT=$vite_exit"$'\n'
@@ -228,6 +230,7 @@ r9)
     body+="H5_BUNDLE_HASH=$hash"$'\n'
     [ "$build_exit" = "0" ] || rc=1
     [ "$vite_exit" = "0" ] || rc=1
+    [ "${taro_helper:-0}" -ge 1 ] || rc=1
     [ "${dist_helper:-0}" -ge 1 ] || rc=1
     [ -f "$index_html" ] || rc=1
     [ "$hash" != "missing" ] || rc=1
@@ -246,19 +249,32 @@ r10)
     ) > "$log" 2>&1
     build_exit=$?
     helper_refs="0"
+    role_labels="0"
+    field_refs="0"
+    site_refs="0"
     size="0"
     if [ -f "$profile_js" ]; then
         size="$(wc -c < "$profile_js" | tr -d ' ')"
-        helper_refs="$(grep -c "identityBadgeText" "$profile_js" 2>/dev/null || true)"
+        # minified：helper 调用只剩下 `tenantName:` 参数名；角色标签为 Taro 转义的 \uXXXX。
+        helper_refs="$(grep -cF 'tenantName:' "$profile_js" 2>/dev/null || true)"
+        role_labels="$(grep -cF '\u7ef4\u4fee\u5e08\u5085' "$profile_js" 2>/dev/null || true)"
+        field_refs="$(grep -c 'tenant_name' "$profile_js" 2>/dev/null || true)"
+        site_refs="$(grep -c 'site_name' "$profile_js" 2>/dev/null || true)"
     fi
     body+="BUILD_CMD=cd frontend-mobile && npm run build:weapp"$'\n'
     body+="BUILD_EXIT=$build_exit"$'\n'
     body+="WEAPP_PROFILE_BUNDLE=$([ -f "$profile_js" ] && echo present || echo missing)"$'\n'
     body+="WEAPP_PROFILE_BYTES=$size"$'\n'
-    body+="HELPER_REF_COUNT=${helper_refs:-0}"$'\n'
+    body+="HELPER_CALL_REFS=${helper_refs:-0}"$'\n'
+    body+="ROLE_LABEL_TRIPLE=${role_labels:-0}"$'\n'
+    body+="TENANT_NAME_REFS=${field_refs:-0}"$'\n'
+    body+="SITE_NAME_REFS=${site_refs:-0}"$'\n'
     [ "$build_exit" = "0" ] || rc=1
     [ -f "$profile_js" ] || rc=1
     [ "${helper_refs:-0}" -ge 1 ] || rc=1
+    [ "${role_labels:-0}" -ge 1 ] || rc=1
+    [ "${field_refs:-0}" -ge 1 ] || rc=1
+    [ "${site_refs:-0}" -ge 1 ] || rc=1
     if [ "$rc" = "0" ]; then body+="BUILD_WEAPP_OK"$'\n'; fi
     body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
     finish R10-build-weapp.txt "$rc" "$body"
