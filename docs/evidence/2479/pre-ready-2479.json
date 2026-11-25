@@ -1,10 +1,10 @@
 {
   "issue": 2479,
   "overall": "PASS",
-  "plan": "/home/coder/worktrees/tuneloop/wt-2479/docs/evidence/2479/plan.md",
+  "plan": "docs/evidence/2479/plan.md",
   "plan_sha256": "a0a9109bfdcb7a06ae6feaf95a2b4c7b04d815a38fd549c634f899e447933ff3",
-  "summary": "/home/coder/worktrees/tuneloop/wt-2479/tmp/work-summary-2479.md",
-  "timestamp": "20261125-042907",
+  "summary": "tmp/work-summary-2479.md",
+  "timestamp": "20261125-043429",
   "checks": [
     {
       "id": "P1",
