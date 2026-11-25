@@ -16,8 +16,11 @@ cd "$ROOT" || exit 2
 
 ISSUE=2455
 EDIR="docs/evidence/$ISSUE"
-COMMIT="$(git rev-parse HEAD)"
-SHORT="$(git rev-parse --short=7 HEAD)"
+# Provenance 锚定到本单最新 fix commit（与 pre-ready P12/P14 同口径）：证据提交后重新生成
+# 仍保持一致，不会因 HEAD 后移（docs(evidence) 提交）导致 artifact 与 evidence.json 冲突。
+COMMIT="$(git log --format=%H --grep="^fix(issue-$ISSUE)" -1 2>/dev/null || true)"
+[ -n "$COMMIT" ] || COMMIT="$(git rev-parse HEAD)"
+SHORT="$(git rev-parse --short=7 "$COMMIT")"
 BUILD="1.0.$SHORT"
 
 export PATH="/usr/local/go/bin:$PATH"
@@ -47,10 +50,15 @@ dirty_flag() {
   if [ -n "$d" ]; then echo "true"; else echo "false"; fi
 }
 
+provenance() {
+  printf '# build=%s # commit=%s # dirty=%s' "$BUILD" "$COMMIT" "$(dirty_flag)"
+}
+
 header() {
   local artifact="$1"
   mkdir -p "$(dirname "$artifact")"
-  printf '# build=%s # commit=%s # dirty=%s\n' "$BUILD" "$COMMIT" "$(dirty_flag)" > "$artifact"
+  provenance > "$artifact"
+  printf '\n' >> "$artifact"
 }
 
 # extract_tokens <log> — pull `TOKEN=VALUE` lines emitted by t.Logf/echo.
@@ -246,7 +254,12 @@ row_r9() {
 row_r10() {
   local artifact="$EDIR/R10-gate.txt" log="$ROOT/tmp/evidence-$ISSUE/r10.log"
   local report="$EDIR/pre-ready-$ISSUE.json"
-  header "$artifact"
+  local summary="$ROOT/tmp/work-summary-$ISSUE.md"
+  local changed="$ROOT/tmp/changed-$ISSUE.txt"
+  local full_cmd="cd backend && go test ./handlers -count=1 -timeout 20m && go test ./services -count=1 -timeout 15m"
+  local prov
+  prov="$(provenance)"
+  mkdir -p "$EDIR"
   : > "$log"
 
   # 1) 全量套件（与 gate P5 同口径）：跨 handlers + services。
@@ -261,14 +274,39 @@ row_r10() {
   fail_count="$(grep -c -- '--- FAIL' "$log" || true)"
   panic_count="$(grep -ci 'panic:' "$log" || true)"
 
-  # 2) plan-source 四源一致（Accepted Plan 评论 / plan.md / gate / evidence.json）。
+  # 2) gate 报告：R10 读的是真实跑过的 gate（P5 不允许 N/A）。首次执行时本行产物尚不存在，
+  #    而 gate 的 P12 需要 evidence.json 中每行有记录 → 先落一版 interim（P12/P3 只校验存在性），
+  #    再由本函数用 --full-gate-cmd 真跑一次 gate 覆盖为最终结果（与 #2457 R15 同口径）。
+  if [ ! -f "$artifact" ]; then
+    {
+      printf '%s\n' "$prov"
+      echo "GATE_RESULT=PENDING"
+    } > "$artifact"
+  fi
+  if [ -f "$summary" ] && [ -f "$changed" ]; then
+    ( cd "$ROOT" && OPENCODE_WORKTREE_ROOT="${OPENCODE_WORKTREE_ROOT:-$HOME/worktrees}" \
+        bash "$HOME/.config/opencode/scripts/pre-ready-check.sh" "$ISSUE" \
+        --plan-file "$EDIR/plan.md" \
+        --summary-file "$summary" \
+        --changed-files "$changed" \
+        --evidence-file "$EDIR/evidence.json" \
+        --fix-commit "$COMMIT" \
+        --affected-cmd "cd backend && go test ./handlers -run 'TestSiteNameUnique|TestCreateSite_DuplicateNameRejectedBeforeIAM_2455|TestCreateSite_CrossTenantSameNameAllowed_2455|TestUpdateSite_DuplicateNameRejectedBeforeIAM_2455|TestWxAccounts_ContextLabelDisambiguatesSameNamedSites_2455' -count=1 -timeout 15m" \
+        --remote-ref "origin/issue-$ISSUE" \
+        --gate-adapter go \
+        --full-gate-cmd "$full_cmd" \
+        --gate-lock-scope host \
+        --report "$report" ) > "$log.gate" 2>&1 || true
+  fi
+
+  # 3) plan-source 四源一致（Accepted Plan 评论 / plan.md / gate / evidence.json）。
   bash "$HOME/.config/opencode/scripts/plan-source.sh" --issue "$ISSUE" > "$log.plan-source" 2>&1
   local plan_source_rc=$?
   local plan_source=PASS
   [ "$plan_source_rc" = "0" ] || plan_source=FAIL
 
-  # 3) gate 报告（P5 必须真跑，不允许 N/A）。
-  local gate_result=MISSING p5=N/A gate_sha= want_sha= sha_match=0
+  # 4) gate 报告（P5 必须真跑，不允许 N/A）。
+  local gate_result=MISSING p5=NA gate_sha= want_sha= sha_match=0
   if [ -f "$report" ]; then
     gate_result="$(jq -r '.overall // "MISSING"' "$report")"
     p5="$(jq -r '.checks[] | select(.id=="P5") | .status' "$report" 2>/dev/null | head -1)"
@@ -280,10 +318,11 @@ row_r10() {
   local full_suite_exit=1
   { [ "$suite_exit" = "0" ] && [ "$services_exit" = "0" ]; } && full_suite_exit=0
 
-  cat "$log" >> "$artifact"
-  cat "$log.plan-source" >> "$artifact"
   {
-    echo "FULL_SUITE_CMD=cd backend && go test ./handlers -count=1 -timeout 20m && go test ./services -count=1 -timeout 15m"
+    printf '%s\n' "$prov"
+    cat "$log"
+    cat "$log.plan-source"
+    echo "FULL_SUITE_CMD=$full_cmd"
     echo "FULL_SUITE_EXIT=$full_suite_exit"
     echo "SERVICES_EXIT=$services_exit"
     echo "FAIL_COUNT=$fail_count"
@@ -292,7 +331,7 @@ row_r10() {
     echo "P5=$p5"
     echo "GATE_PLAN_SHA_MATCH=$sha_match"
     echo "PLAN_SOURCE=$plan_source"
-  } >> "$artifact"
+  } > "$artifact"
 
   [ "$full_suite_exit" = "0" ] || return 1
   [ "$fail_count" = "0" ] || return 1
