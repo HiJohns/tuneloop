@@ -1,0 +1,7 @@
+# build=1.0.f7bf8e416 # commit=f7bf8e416b64ad699acee0634608f19f35db3424 # dirty=false
+== R5 docs sync (api.md §12.2 / ui.md §5) ==
+API_DOC_STALE=0
+API_DOC_NOWRITE=1
+API_DOC_FIELDS=1
+UI_DOC_READONLY=1
+R5_OK

@@ -1,0 +1,8 @@
+docs/evidence/2516/plan.md
+docs/spec/api/api.md
+docs/spec/ui/ui.md
+frontend-pc/src/pages/TenantManagement.jsx
+frontend-pc/src/services/api.js
+frontend-pc/src/utils/apiResult.js
+frontend-pc/tests/apiResult.test.mjs
+scripts/verify-2516.sh

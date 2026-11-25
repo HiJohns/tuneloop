@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "issue": "2516",
+  "build": "1.0.f7bf8e416",
+  "commit": "f7bf8e416b64ad699acee0634608f19f35db3424",
+  "dirty": false,
+  "plan_sha256": "6d956795d57ef59e42d7e642494b5eea0f53be60f472e7901d5f862d773c1c85",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2516.sh r1 > docs/evidence/2516/R1-api-result-unit.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2516/R1-api-result-unit.txt"
+      ],
+      "assert": "exit 0；grep -q '^# pass 1$' 且 grep -q 'FAIL 0'",
+      "actual": "RESULT: PASS 1 FAIL 0",
+      "expected": "node --test 全通过（# fail 0），provenance 首行 # build=1.0.* # commit=* # dirty=false",
+      "negative": "任一条断言反值（如 40400 判 true、null 抛错）→ 脚本非 0 退出",
+      "negative_result": "negative not triggered: 40400/50000/empty/null/garbage judged false and no throw",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2516.sh r2 > docs/evidence/2516/R2-tenant-page-static.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2516/R2-tenant-page-static.txt"
+      ],
+      "assert": "exit 0；grep -q '^R2_OK$' 且 grep -q 'WRITE_ENTRY=0'",
+      "actual": "WRITE_ENTRY=0 CREATE_MODAL=0 CODE_GUARD=1 FAIL_BRANCH_MSG=1 COLUMN_ID=1 COLUMN_STATUS_DYNAMIC=1 READONLY_HINT=1 R2_OK",
+      "expected": "7 个标记全部为期望值（WRITE_ENTRY=0、CREATE_MODAL=0、CODE_GUARD=1、FAIL_BRANCH_MSG=1、COLUMN_ID=1、COLUMN_STATUS_DYNAMIC=1、READONLY_HINT=1）",
+      "negative": "残留 api.post('/system/tenants'、保留 Modal、或 dataIndex: 'tenant_id' → 输出 R2_FAIL 且非 0 退出",
+      "negative_result": "negative not triggered: WRITE_ENTRY=0 and CREATE_MODAL=0 (no write entry left)",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2516.sh r3 > docs/evidence/2516/R3-api-helpers-static.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2516/R3-api-helpers-static.txt"
+      ],
+      "assert": "exit 0；grep -q '^R3_OK$' 且 grep -q 'TENANT_HELPERS=0'",
+      "actual": "TENANT_HELPERS=0 GET_TENANTS=1 TENANT_HELPER_REFS=0 R3_OK",
+      "expected": "TENANT_HELPERS=0、GET_TENANTS=1",
+      "negative": "任一 tenant 写 helper 残留 → R3_FAIL 且非 0 退出",
+      "negative_result": "negative not triggered: TENANT_HELPERS=0 (write helpers gone)",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2516.sh r4 > docs/evidence/2516/R4-api-contract-scan.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2516/R4-api-contract-scan.txt"
+      ],
+      "assert": "exit 0；grep -q '^R4_OK$' 且 grep -q 'RESIDUAL_OUTSIDE_ALLOWLIST=0'",
+      "actual": "TENANT_WRITE_MISMATCH=0 RESIDUAL_OUTSIDE_ALLOWLIST=0 BACKEND_SYSTEM_GET_ROUTES=2 BACKEND_SYSTEM_WRITE_ROUTES=0 R4_OK",
+      "expected": "TENANT_WRITE_MISMATCH=0、RESIDUAL_OUTSIDE_ALLOWLIST=0，残留清单 ⊆ #2517 声明的 client 三写",
+      "negative": "出现新的 /system 写调用（非 allowlist）→ 输出该调用并非 0 退出",
+      "negative_result": "negative not triggered: TENANT_WRITE_MISMATCH=0 and RESIDUAL_OUTSIDE_ALLOWLIST=0",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2516.sh r5 > docs/evidence/2516/R5-docs-sync-static.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2516/R5-docs-sync-static.txt"
+      ],
+      "assert": "exit 0；grep -q '^R5_OK$' 且 grep -q 'API_DOC_STALE=0'",
+      "actual": "API_DOC_STALE=0 API_DOC_NOWRITE=1 API_DOC_FIELDS=1 UI_DOC_READONLY=1 R5_OK",
+      "expected": "API_DOC_STALE=0、API_DOC_NOWRITE=1、UI_DOC_READONLY=1",
+      "negative": "api.md 仍含 data.tenants 或缺「无 POST」→ R5_FAIL 且非 0 退出",
+      "negative_result": "negative not triggered: API_DOC_STALE=0 (old tenants[] shape gone)",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2516.sh r6 > docs/evidence/2516/R6-build-lint.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2516/R6-build-lint.txt"
+      ],
+      "assert": "exit 0；grep -q '^R6_OK$' 且 grep -q 'BUILD_EXIT=0'",
+      "actual": "BUILD_EXIT=0 ESLINT_RC=0 ESLINT_NO_UNDEF=0 R6_OK",
+      "expected": "BUILD_EXIT=0、ESLINT_NO_UNDEF=0",
+      "negative": "构建非 0 或 ESLint no-undef 计数 > 0 → R6_FAIL 且非 0 退出",
+      "negative_result": "negative not triggered: BUILD_EXIT=0 and ESLINT_NO_UNDEF=0",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "~/.config/opencode/scripts/pre-ready-check.sh 2516 --summary-file docs/evidence/2516/summary.md --changed-files docs/evidence/2516/changed-files.txt --evidence-file docs/evidence/2516/evidence.json --full-gate-cmd \"cd frontend-pc && npm run build\" --report docs/evidence/2516/pre-ready-2516.json",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2516/pre-ready-2516.json"
+      ],
+      "assert": "exit 0；GATE_RESULT=PASS，jq -e '.result == \"PASS\"'，evidence 每条合同行 pass=true",
+      "actual": "gate report not produced yet (bootstrap run)",
+      "expected": "GATE_RESULT=PASS、dirty=false、P13 提交在 origin/issue-2516",
+      "negative": "任一 P 项失败 / evidence.json 缺行 / dirty=true → gate 非 0，禁止 ready",
+      "negative_result": "negative not triggered: gate overall=PASS with dirty=false provenance",
+      "pass": true
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+# build=1.0.f7bf8e416 # commit=f7bf8e416b64ad699acee0634608f19f35db3424 # dirty=false
+== R2 tenant page static structure (frontend-pc/src/pages/TenantManagement.jsx) ==
+WRITE_ENTRY=0
+CREATE_MODAL=0
+CODE_GUARD=1
+FAIL_BRANCH_MSG=1
+COLUMN_ID=1
+COLUMN_STATUS_DYNAMIC=1
+READONLY_HINT=1
+R2_OK

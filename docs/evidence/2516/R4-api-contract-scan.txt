@@ -1,0 +1,12 @@
+# build=1.0.f7bf8e416 # commit=f7bf8e416b64ad699acee0634608f19f35db3424 # dirty=false
+== R4 /system path contract scan (frontend pages vs backend routes) ==
+TENANT_WRITE_MISMATCH=0
+RESIDUAL_CLIENT_WRITES=3 (allowlist: ClientManagement.jsx ×3, owner #2517)
+RESIDUAL_OUTSIDE_ALLOWLIST=0
+BACKEND_SYSTEM_GET_ROUTES=2
+BACKEND_SYSTEM_WRITE_ROUTES=0
+-- residual set (#2517 allowlist) --
+frontend-pc/src/pages/ClientManagement.jsx:55:      await api.delete(`/system/clients/${clientId}`)
+frontend-pc/src/pages/ClientManagement.jsx:67:        await api.put(`/system/clients/${editingClient.id}`, values)
+frontend-pc/src/pages/ClientManagement.jsx:70:        await api.post('/system/clients', values)
+R4_OK

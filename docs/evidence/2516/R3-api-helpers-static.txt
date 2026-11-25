@@ -1,0 +1,6 @@
+# build=1.0.f7bf8e416 # commit=f7bf8e416b64ad699acee0634608f19f35db3424 # dirty=false
+== R3 dead tenant write helpers removed (frontend-pc/src/services/api.js) ==
+TENANT_HELPERS=0
+GET_TENANTS=1
+TENANT_HELPER_REFS=0
+R3_OK

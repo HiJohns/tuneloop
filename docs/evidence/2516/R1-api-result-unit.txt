@@ -1,0 +1,28 @@
+# build=1.0.f7bf8e416 # commit=f7bf8e416b64ad699acee0634608f19f35db3424 # dirty=false
+== R1 apiResult terminal contract (node --test) ==
+TAP version 13
+# OK_20000=1
+# FALSE_40400=1
+# FALSE_50000=1
+# FALSE_EMPTY=1
+# FALSE_NULL=1
+# FALSE_UNDEFINED=1
+# FALSE_STRING_CODE=1
+# FALSE_GARBAGE_CODE=1
+# MSG_PREFERS_BACKEND=1
+# MSG_FALLBACK=1
+# Subtest: apiResult terminal contract: only 20000 is success, messages never render undefined
+ok 1 - apiResult terminal contract: only 20000 is success, messages never render undefined
+  ---
+  duration_ms: 10.357483
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 191.961552
+RESULT: PASS 1 FAIL 0
