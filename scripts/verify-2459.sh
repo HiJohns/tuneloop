@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # scripts/verify-2459.sh — UpdateMerchant 改名 IAM 优先（#2459）证据生成器。
 #
-# 用法：bash scripts/verify-2459.sh <r1|r2|r3|r4|r5|r6|r7|r8|r9|r10|r11|r12|r13|r14>
+# 用法：bash scripts/verify-2459.sh <r1..r18>
 #
 # 每行把结果写入 docs/evidence/2459/R*-*.txt（首行为 provenance），
 # 并打印机器可判定的断言键值；任一行失败以非 0 退出。
@@ -18,7 +18,7 @@ PLAN_SOURCE="${OPENCODE_PLAN_SOURCE:-$HOME/.config/opencode/scripts/plan-source.
 cd "$REPO_ROOT" || exit 2
 
 usage() {
-    echo "usage: $0 <r1|r2|r3|r4|r5|r6|r7|r8|r9|r10|r11|r12|r13|r14>" >&2
+    echo "usage: $0 <r1..r18>" >&2
     exit 2
 }
 [ -n "$ROW" ] || usage
@@ -119,7 +119,7 @@ case "$ROW" in
         ;;
     r2)
         row_handlers "R2-iam-fail.txt" '^TestUpdateMerchant_IAMFailureKeepsLocal_2459$' \
-            "STATUS=500" "LOCAL_UNCHANGED=1"
+            "STATUS=502" "LOCAL_UNCHANGED=1"
         ;;
     r3)
         row_handlers "R3-idempotent.txt" '^TestUpdateMerchant_NoopRenameSkipsIAM_2459$' \
@@ -163,9 +163,10 @@ case "$ROW" in
         grep -qF "先更新 IAM" "$DOC" && tokens=$((tokens + 1))
         grep -qF "镜像" "$DOC" && tokens=$((tokens + 1))
         grep -qF "不落库" "$DOC" && tokens=$((tokens + 1))
+        grep -qF "502/50000" "$DOC" && tokens=$((tokens + 1))
         body+="DOC_TOKENS=$tokens"$'\n'
-        body+="DOC_SECTIONS=先更新 IAM,镜像,不落库"$'\n'
-        [ "$tokens" = "3" ] || rc=1
+        body+="DOC_SECTIONS=先更新 IAM,镜像,不落库,502"$'\n'
+        [ "$tokens" = "4" ] || rc=1
         finish "R10-doc.txt" "$rc" "$body"
         ;;
     r11)
@@ -254,6 +255,17 @@ case "$ROW" in
             body+="GATE_PLAN_SHA_MATCH=0"$'\n'
             rc=1
         fi
+        rebuilt=0
+        for f in R1-iam-first.txt R2-iam-fail.txt R3-idempotent.txt R4-escalate.txt R5-conflict.txt \
+                 R6-not-found.txt R7-empty-name.txt R8-reuse.txt R9-drift.txt R10-doc.txt R11-build.txt \
+                 R12-perm.txt R13-unique.txt R15-cross-merchant.txt R16-self-only.txt \
+                 R17-local-conflict.txt R18-pagination.txt; do
+            [ -f "$OUT_DIR/$f" ] || continue
+            head -1 "$OUT_DIR/$f" | grep -q "commit=$FIX_SHA " && rebuilt=$((rebuilt + 1))
+        done
+        body+="REBUILT_ROWS=$((rebuilt + 1))"$'\n'
+        [ "$((rebuilt + 1))" = "18" ] || rc=1
+
         p5_status="$(jq -r '[.checks[]? | select(.id == "P5")][0].status // "missing"' "$GATE_REPORT" 2>/dev/null || echo missing)"
         body+="P5=${p5_status:-missing}"$'\n'
         [ "$p5_status" = "PASS" ] || rc=1
@@ -265,6 +277,22 @@ case "$ROW" in
             rc=1
         fi
         finish "R14-gate.txt" "$rc" "$body"
+        ;;
+    r15)
+        row_handlers "R15-cross-merchant.txt" '^TestUpdateMerchant_CrossMerchantDuplicateName_2459$' \
+            "CROSS_MERCHANT=1" "STATUS=409" "LIST_AUTH=service"
+        ;;
+    r16)
+        row_handlers "R16-self-only.txt" '^TestUpdateMerchant_SelfOnlyUserTokenDoesNotBlockRename_2459$' \
+            "SELF_ONLY=1" "STATUS=200" "LIST_AUTH=service"
+        ;;
+    r17)
+        row_handlers "R17-local-conflict.txt" '^TestUpdateMerchant_LocalMerchantDuplicateName_2459$' \
+            "LOCAL_CONFLICT=1" "STATUS=409" "IAM_CALLS=0"
+        ;;
+    r18)
+        row_services "R18-pagination.txt" '^TestListOrganizationsPagesUntilTotal_2459$' \
+            "PAGES=2" "TOTAL_ORGS=1002"
         ;;
     *)
         usage

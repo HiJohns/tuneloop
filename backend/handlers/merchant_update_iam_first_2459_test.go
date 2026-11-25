@@ -329,7 +329,7 @@ func TestUpdateMerchant_IAMFailureKeepsLocal_2459(t *testing.T) {
 	code, resp := putMerchant2459(t, r, merchantID,
 		`{"name":"B","admin_uid":"`+newAdmin+`"}`, merchantUserToken2459)
 
-	require.Equal(t, http.StatusInternalServerError, code, "%v", resp)
+	require.Equal(t, http.StatusBadGateway, code, "%v", resp)
 	require.EqualValues(t, 50000, resp["code"])
 	require.Equal(t, 1, iam.putCount())
 

@@ -652,7 +652,9 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 					"message": "商户名在命名空间内已存在（IAM 组织名冲突）: " + iamErr.Error(),
 				})
 			default:
-				c.JSON(http.StatusInternalServerError, gin.H{
+				// D11（#2459 v3）：默认失败分支与 #2457 站点改名同构 —— 网关级 502，
+				// 而不是 500（上游 IAM 故障属于 bad gateway 语义）。
+				c.JSON(http.StatusBadGateway, gin.H{
 					"code":    50000,
 					"message": "IAM 更新商户组织名失败: " + iamErr.Error(),
 				})
