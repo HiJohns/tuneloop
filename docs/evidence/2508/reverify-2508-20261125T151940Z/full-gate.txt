@@ -1,0 +1,10 @@
+PROVENANCE: fix=448a2b0ec282690913b16ea9544e5ad72cd3c201 request=2508-20261125T151940Z ts=2026-11-25T15:40:00Z
+FULL_SUITE_CMD=cd backend && go build ./... && go test ./handlers -count=1 -timeout 15m && go test ./services -count=1 -timeout 15m
+FULL_SUITE_EXIT=0
+FAIL_COUNT=0
+PANIC_COUNT=0
+GATE_RESULT=PASS
+BUILD=go1.25.0 (GOTOOLCHAIN=go1.25.0) DIRTY=false
+go version go1.25.0 linux/amd64
+ok  	tuneloop-backend/handlers	813.367s
+ok  	tuneloop-backend/services	11.065s

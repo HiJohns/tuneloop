@@ -1,0 +1,8 @@
+PROVENANCE: fix=448a2b0ec282690913b16ea9544e5ad72cd3c201 request=2508-20261125T151940Z ts=2026-11-25T15:24:43Z
+CMD: cd backend && go test ./handlers -count=1 -timeout 15m
+PWD: /home/coder/worktrees/tuneloop/reverify-2508
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s31-p31-5e90ff at_ms=1795620283655 wait_ms=186
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s31-p31-5e90ff wait_ms=186
+ok  	tuneloop-backend/handlers	813.367s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795621103322 hold_ms=819667
+EXIT=0
