@@ -1,35 +1,35 @@
-# build=1.0.8f7dc8c05 # commit=8f7dc8c055edf7050b82d1d1412292bb25d09c67 # dirty=false
+# build=1.0.41b853a71 # commit=41b853a71d03ee86db166782bb21eb2d5a0ebfc9 # dirty=false
 == R1 shared batch-pricing builder (frontend-pc/src/utils/batchPricing.js) ==
 TAP version 13
 # Subtest: 合法输入映射为后端契约 items[{id, base_daily_rate}]（元）
 ok 1 - 合法输入映射为后端契约 items[{id, base_daily_rate}]（元）
   ---
-  duration_ms: 3.280883
+  duration_ms: 3.343895
   ...
 # Subtest: 空选择 / 非数组 ids：前置拒绝且不产生 payload
 ok 2 - 空选择 / 非数组 ids：前置拒绝且不产生 payload
   ---
-  duration_ms: 0.288259
+  duration_ms: 0.413003
   ...
 # Subtest: 非本轮支持的 price_type：前置拒绝（后端无周/月租与押金语义）
 ok 3 - 非本轮支持的 price_type：前置拒绝（后端无周/月租与押金语义）
   ---
-  duration_ms: 0.34251
+  duration_ms: 0.33485
   ...
 # Subtest: 金额缺失/0/NaN/负数：前置拒绝（后端 <=0 会静默跳过）
 ok 4 - 金额缺失/0/NaN/负数：前置拒绝（后端 <=0 会静默跳过）
   ---
-  duration_ms: 0.353442
+  duration_ms: 0.338711
   ...
 # Subtest: updated 与请求条数：全部更新 → success，部分/缺失 → warning
 ok 5 - updated 与请求条数：全部更新 → success，部分/缺失 → warning
   ---
-  duration_ms: 1.781505
+  duration_ms: 2.028243
   ...
 # Subtest: 选项与后端能力同源：只暴露日租金与设置为
 ok 6 - 选项与后端能力同源：只暴露日租金与设置为
   ---
-  duration_ms: 0.31556
+  duration_ms: 0.381542
   ...
 1..6
 # tests 6
@@ -39,7 +39,7 @@ ok 6 - 选项与后端能力同源：只暴露日租金与设置为
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 123.015686
+# duration_ms 142.911624
 RESULT: PASS 6 FAIL 0
 PAYLOAD_ITEMS=2
 ITEM_KEYS=id,base_daily_rate

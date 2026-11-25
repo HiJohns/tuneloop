@@ -1,4 +1,4 @@
-# build=1.0.8f7dc8c05 # commit=8f7dc8c055edf7050b82d1d1412292bb25d09c67 # dirty=false
+# build=1.0.41b853a71 # commit=41b853a71d03ee86db166782bb21eb2d5a0ebfc9 # dirty=false
 == R5 api.md §5.6.2 batch-pricing contract (docs/spec/api/api.md) ==
 DOC_SECTION=1
 DOC_ITEMS_REQUIRED=1

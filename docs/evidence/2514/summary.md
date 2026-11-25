@@ -20,11 +20,12 @@
 - 核心文档（Core Update）：`docs/spec/api/api.md` 新增 §5.6.2 批量设价——路径 `PUT /api/instruments/batch-pricing`、权限、`items` 必填、`base_daily_rate` 单位元、响应 data.updated、已知边界（逐条失败只回计数 / 周月租与增减乘未实现 → #2519）、历史 ghost 路径说明。
 - `scripts/verify-2514.sh`（新增）：R1–R6 证据 harness + `gate` 子命令（供 `--full-gate-cmd`）。
 
-Commit：`8f7dc8c05`（fix，含 plan 快照）。
+Commit：`8f7dc8c05`（fix，含 plan 快照）+ `41b853a71`（fix，gate 入口：干净 worktree 内装依赖、不再嵌套 host 锁）。
 
 ### 验证层级（Issue #70）
 
 - 独立 Issue（无 Parent）：前端定向 `node --test frontend-pc/tests/batchPricing.test.mjs`（6 pass / 0 fail）+ `npm run build`（exit 0）+ ESLint 改动 4 个文件（0 error；10 个既有 warning）+ R4 路径扫描（前端写调用 ↔ 后端注册表）。
+- 证据在 fix commit `41b853a71` 之后整体重新生成（R1–R6 首个 provenance 行 = `build=1.0.41b853a71 # commit=41b853a71… # dirty=false`）；父/批次全量 gate 不适用（独立 Issue，无 Parent）。
 - 无后端改动、无 migration，未跑 go build/test。
 
 ### Remote
@@ -50,10 +51,9 @@ Commit：`8f7dc8c05`（fix，含 plan 快照）。
 
 ### Pre-ready gate
 
-- RESULT: PASS → `docs/evidence/2514/pre-ready-2514.json`。
-- 合同 7 行（R1–R7）逐行 PASS；P13 fix 与证据在 `origin/issue-2514`；P5 `--full-gate-cmd "bash scripts/verify-2514.sh gate"`（HEAD clean worktree 构建 + lint）。
-- 运行期参数：`--fix-commit 8f7dc8c05`、`--no-gate-cache`（宿主缓存存着依赖缺失时的旧 rc=127 记录）、`--affected-cmd "node --test frontend-pc/tests/batchPricing.test.mjs"`。
-- 依赖可见性：P5 在 worktree 下新建干净 worktree 构建，npm 依赖不在版本库；本轮在 worktree 的 tmp 目录建了指向已安装 node_modules 的链接（tmp 已 gitignore，工作树仍 clean）。只共享依赖，构建源码仍来自该干净 worktree 的 HEAD。
+- 命令（R7）：`pre-ready-check.sh 2514 --summary-file docs/evidence/2514/summary.md --changed-files docs/evidence/2514/changed-files.txt --evidence-file docs/evidence/2514/evidence.json --full-gate-cmd "bash scripts/verify-2514.sh gate" --report docs/evidence/2514/pre-ready-2514.json`，附加 `--fix-commit 41b853a71 --affected-cmd "node --test frontend-pc/tests/batchPricing.test.mjs" --no-gate-cache`。
+- 报告：`docs/evidence/2514/pre-ready-2514.json`；本轮 gate 的 `RESULT` 与 P5/P12/P13 输出在 gate 完成后回填本节。
+- 依赖可见性 / 锁边界：`gate` 子命令在 pre-ready 的干净 worktree 内 `npm ci --prefer-offline` 安装依赖后再 `npm run build`；该命令已由 `gate-run.sh` 持有 host 锁，故 gate 分支改用 `run_build_plain`（不再嵌套 `heavy-run.sh`——嵌套会等待自己已持有的 host 锁而死锁，这是上一轮 gate 挂起、无 `gate-head.json` 的根因）。`r6` 仍在 worktree 内走 `run_build`（独立执行时需要锁）。
 
 ### Evidence Contract（7/7 PASS）
 

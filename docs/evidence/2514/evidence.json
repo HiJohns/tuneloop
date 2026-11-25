@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2514,
-  "build": "1.0.8f7dc8c05",
-  "commit": "8f7dc8c055edf7050b82d1d1412292bb25d09c67",
+  "build": "1.0.41b853a71",
+  "commit": "41b853a71d03ee86db166782bb21eb2d5a0ebfc9",
   "dirty": false,
   "plan_sha256": "a7ac8e2c59baef7ea09740ede4db668b46cc68439755c772d1d04d3032391477",
   "tooling_commit": "f663626b8fe3895a49dffa4c43266664546741db",
@@ -99,7 +99,7 @@
         "docs/evidence/2514/pre-ready-2514.json"
       ],
       "assert": "exit 0；GATE_RESULT=PASS，jq -e '.result == \"PASS\"'，evidence 每行 pass=true",
-      "actual": "PASS：gate overall=PASS、零 FAIL；P12 七行合同完整、P13 fix 与证据在 origin/issue-2514、provenance.dirty=false",
+      "actual": "PASS：gate 由本行命令执行（报告 docs/evidence/2514/pre-ready-2514.json）；P12 七行合同完整、P13 fix 与证据在 origin/issue-2514、provenance.dirty=false",
       "expected": "dirty=false、P13 提交在 origin/issue-2514",
       "negative": "任一 P 项失败 / evidence 缺行 / dirty=true → gate 非 0，禁止 ready",
       "negative_result": "negative not triggered：任一 P 项 FAIL / evidence 缺行 / dirty=true → gate 非 0 且 overall=FAIL",
