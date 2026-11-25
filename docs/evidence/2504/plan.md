@@ -28,6 +28,10 @@
 
 > 后端 `access denied` **保持不变**（机器码，供前端映射与日志检索）；`docs/spec/api/api.md` 明确「后端 message 为机器码，前端按 code 映射，ASCII 不透传」。
 
+- `scripts/verify-2480.sh:110` `C49999_ASCII=unknown conflict` → `C49999_ASCII=操作失败，请重试`
+- `scripts/verify-2480.sh:111`/`:125` `LAYERS=…,fallback,raw_message,human_message` → `LAYERS=…,fallback,fallback,human_message`
+- `scripts/verify-2480.sh:136` `CASES=10` → `CASES=12`
+
 ### 变更点
 
 1. `frontend-pc/src/services/errorMessages.js`：
@@ -48,7 +52,7 @@
 | PC 解析器：40303 映射 + ASCII 兜底 | `frontend-pc/src/services/errorMessages.js` | `node --test frontend-pc/tests/errorMessages.test.mjs` | `{code:40303,message:'access denied'}`；`{code:49999,message:'unknown conflict'}` | PC | 前者 `code_map` → 「暂无权限访问该页面」；后者 `fallback` → 「操作失败，请重试」；八条 fixture 层序更新为 `…,fallback,…` | R1（合同 R1） |
 | mobile 解析核心同上 | `frontend-mobile/src/services/errorMessageResolution.mjs` | `node --test frontend-mobile/src/services/errorMessageResolution.test.mjs` | 同上 | mobile | 与 PC 逐字同文案、同层序（`L40303=code_map`、`L49999_ASCII=fallback`） | R2（合同 R2） |
 | 双端平价（含新码与 ASCII 负例） | `scripts/check-error-message-parity-2480.mjs` | `node scripts/check-error-message-parity-2480.mjs` | 12+ 用例（新增 40303+access denied / 40303+空串） | PC + mobile | `PARITY=1`、`DIFFS=0`；`CASE=49999+ASCII` 两端 `LAYER=fallback` | R3（合同 R3） |
-| 旧断言翻转无残留 | PC/mobile 测试 + 平价脚本 | `bash scripts/verify-2504.sh r4` | 静态：检查 4 处翻转点 | PC + mobile | `STALE_RAW_PC=0`、`STALE_RAW_MOBILE=0`、`FLIP_COUNT=4`、`OLD_BEHAVIOR_GONE=1` | R4（合同 R4） |
+| 旧断言翻转无残留 | PC/mobile 测试 + 平价脚本 | `bash scripts/verify-2504.sh r4` | 静态：检查 4 处翻转点 | PC + mobile | `STALE_RAW_PC=0`、`STALE_RAW_MOBILE=0`、`STALE_VERIFY2480=0`、`FLIP_COUNT=8`、`OLD_BEHAVIOR_GONE=1` | R4（合同 R4） |
 | 入口可见性 + 真实链路接线（静态） | `frontend-pc/src/services/errorMessages.js`（被门控/接线消费的唯一出口） | 源码结构断言（见 G0 R5 的四个接线点） | `site_member`（sys_perm 空）打开 `/staff` | PC | `/staff` 菜单 `requireAll` + sysPermBits[15] → 菜单隐藏；非 2xx 由 `resolveErrorMessage({code,message})` 转 `Error.message`，页面展示该中文（无 `access denied` 直出） | R5（合同 R5） |
 | 构建 + lint | `frontend-pc`、`frontend-mobile` | `npm run build`（PC）+ `npx eslint` 改动文件 | 修后树 | PC + mobile | `PC_BUILD=0`、`LINT_PC=0`、`LINT_MOBILE=0` | R6（合同 R6） |
 
@@ -61,6 +65,8 @@
 - **影响面预检**：L4 收紧后，**未知 code + 英文 message** 从「原样英文」变为「通用中文 fallback」——这是本单目标；已知高频英文 message 均在 L1 `ERROR_MESSAGE_MAP`（`order not found` 等），不受影响。`raw_message` 仍保留给含 CJK 的后端文案。
 
 ## Decision Lock
+
+| D8 | L4 `raw_message` 处置 | 采纳 **Option 1**：删除不可达返回分支；层名保留并在 JSDoc / api.md 标注「已被 L2 `human_message` 覆盖（不可达）」；`verify-2480.sh` 只翻 4 个旧 token（r4 判据不动） |
 
 | ID | 决策项 | 责任人 | 锁定条件 | 未锁定时的处理 |
 |---|---|---|---|---|
@@ -91,9 +97,11 @@
 | R1 | `{code:40303,message:'access denied'}`；`{code:49999,message:'unknown conflict'}`；八条既定 fixture | `node --test frontend-pc/tests/errorMessages.test.mjs` | `docs/evidence/2504/R1-pc-resolver.txt` | `L40303=code_map`、`C40303=暂无权限访问该页面`、`L49999_ASCII=fallback`、`C49999_ASCII=操作失败，请重试`、`LAYERS=human_message,code_map,code_map,human_message,message_map,fallback,fallback,human_message` | 英文 `access denied` 出现在输出 → FAIL |
 | R2 | 同上 | `node --test frontend-mobile/src/services/errorMessageResolution.test.mjs` | `docs/evidence/2504/R2-mobile-resolver.txt` | `L40303=code_map`、`C40303=暂无权限访问该页面`、`L49999_ASCII=fallback`、`LAYERS` 与 R1 完全一致 | 层序与 PC 不同 → FAIL |
 | R3 | 12+ 平价用例（新增 `40303+access denied`、`40303+空串`） | `node scripts/check-error-message-parity-2480.mjs` | `docs/evidence/2504/R3-parity.txt` | `PARITY=1`、`DIFFS=0`、`CASES>=12`、`CASE=49999+ASCII PARITY=1 LAYER=fallback` | `DIFFS>0` → FAIL |
-| R4 | 4 处翻转点（测试/平价脚本） | `bash scripts/verify-2504.sh r4` | `docs/evidence/2504/R4-flip.txt` | `STALE_RAW_PC=0`、`STALE_RAW_MOBILE=0`、`FLIP_COUNT=4`、`OLD_BEHAVIOR_GONE=1` | 仍存在 `raw_message` 的 ASCII 期望 → FAIL |
+| R4 | 4 处翻转点（测试/平价脚本） | `bash scripts/verify-2504.sh r4` | `docs/evidence/2504/R4-flip.txt` | `STALE_RAW_PC=0`、`STALE_RAW_MOBILE=0`、`STALE_VERIFY2480=0`、`FLIP_COUNT=8`、`OLD_BEHAVIOR_GONE=1` | 仍存在 `raw_message` 的 ASCII 期望 → FAIL |
 | R5 | `App.jsx:359` 菜单项、`menuPermissions.js:39-62`、`api.js:352`、`StaffManagement.jsx:112-113` | `bash scripts/verify-2504.sh r5` | `docs/evidence/2504/R5-wiring-static.txt` | `MENU_GATED=1`、`API_RESOLVES=1`、`PAGE_MESSAGE_FROM_RESOLVER=1`、`DIRECT_ENGLISH_LEAK=0` | 页面直出 `error.response.message` 且未经 resolver → FAIL |
 | R6 | 修后树 | `bash scripts/verify-2504.sh r6` | `docs/evidence/2504/R6-build-lint.txt` | `PC_BUILD=0`、`LINT_PC=0`、`LINT_MOBILE=0` | 任一非 0 → FAIL |
+| R7 #2480 证据脚本回归 | `scripts/verify-2480.sh` | `bash scripts/verify-2504.sh r7`（内部跑 r1–r4） | `docs/evidence/2504/R7-verify2480.txt` | `V2480_R1=0`、`V2480_R2=0`、`V2480_R3=0`、`V2480_R4=0` | 任一 FAIL → FAIL |
+| R8 L4 死层处置（Option 1） | PC/mobile 解析核心 + `docs/spec/api/api.md` | `bash scripts/verify-2504.sh r8` | `docs/evidence/2504/R8-l4-disposition.txt` | `RAW_BRANCH_REMOVED=1`、`DOC_ANNOTATED=1` | 死分支残留/缺注解 → FAIL |
 
 ## Evidence Contract
 
@@ -102,7 +110,7 @@
 | R1 | `bash scripts/verify-2504.sh r1` | `docs/evidence/2504/R1-pc-resolver.txt` | exit 0；grep `L40303=code_map`、`C40303=暂无权限访问该页面`、`L49999_ASCII=fallback`、`LAYERS=human_message,code_map,code_map,human_message,message_map,fallback,fallback,human_message` | PASS | 输出含 `access denied` → FAIL | dev |
 | R2 | `bash scripts/verify-2504.sh r2` | `docs/evidence/2504/R2-mobile-resolver.txt` | exit 0；grep `L40303=code_map`、`C40303=暂无权限访问该页面`、`L49999_ASCII=fallback` | PASS | 层序与 PC 不一致 → FAIL | dev |
 | R3 | `bash scripts/verify-2504.sh r3` | `docs/evidence/2504/R3-parity.txt` | exit 0；grep `PARITY=1`、`DIFFS=0`、`CASE=49999+ASCII PARITY=1 LAYER=fallback` | PASS | `DIFFS=1` → FAIL | dev |
-| R4 | `bash scripts/verify-2504.sh r4` | `docs/evidence/2504/R4-flip.txt` | exit 0；grep `STALE_RAW_PC=0`、`STALE_RAW_MOBILE=0`、`FLIP_COUNT=4`、`OLD_BEHAVIOR_GONE=1` | PASS | `STALE_RAW_PC=1` → FAIL | dev |
+| R4 | `bash scripts/verify-2504.sh r4` | `docs/evidence/2504/R4-flip.txt` | exit 0；grep `STALE_RAW_PC=0`、`STALE_RAW_MOBILE=0`、`STALE_VERIFY2480=0`、`FLIP_COUNT=8`、`OLD_BEHAVIOR_GONE=1` | PASS | `STALE_RAW_PC=1` → FAIL | dev |
 | R5 | `bash scripts/verify-2504.sh r5` | `docs/evidence/2504/R5-wiring-static.txt` | exit 0；grep `MENU_GATED=1`、`API_RESOLVES=1`、`PAGE_MESSAGE_FROM_RESOLVER=1`、`DIRECT_ENGLISH_LEAK=0` | PASS | 直出英文分支命中 → FAIL | dev |
 | R6 | `bash scripts/verify-2504.sh r6` | `docs/evidence/2504/R6-build-lint.txt` | exit 0；grep `PC_BUILD=0`、`LINT_PC=0`、`LINT_MOBILE=0` | PASS | `PC_BUILD=1` → FAIL | dev |
 
@@ -116,6 +124,8 @@
 | `docs/evidence/2504/R4-flip.txt` | `# build=1.0.<fix> # commit=<sha> # dirty=false` |
 | `docs/evidence/2504/R5-wiring-static.txt` | `# build=1.0.<fix> # commit=<sha> # dirty=false` |
 | `docs/evidence/2504/R6-build-lint.txt` | `# build=1.0.<fix> # commit=<sha> # dirty=false` |
+| `docs/evidence/2504/R7-verify2480.txt` | `# build=1.0.<fix> # commit=<sha> # dirty=false` |
+| `docs/evidence/2504/R8-l4-disposition.txt` | `# build=1.0.<fix> # commit=<sha> # dirty=false` |
 
 evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 
@@ -139,6 +149,8 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - Confidence: high
 
 ### Files（变更文件清单）
+
+- `scripts/verify-2480.sh`
 
 - `frontend-pc/src/services/errorMessages.js`
 - `frontend-mobile/src/services/errorMessages.js`
@@ -176,4 +188,5 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - **部署侧**：预生产 `site_member` 直链 `/staff` 的人工走查 + 小程序真机文案，由关闭时创建的 `[Ops-Followup of #2504]`（仅 `waitForConfirm`）承载。
 
 *Model: DeepSeek V4.1 Flash 1017*
+
 

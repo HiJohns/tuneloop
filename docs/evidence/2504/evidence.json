@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "issue": 2504,
-  "build": "1.0.16a271f5",
-  "commit": "16a271f5cef078d7059de4dbbe33f8b8d8050cc1",
+  "build": "1.0.d741315f",
+  "commit": "d741315f51b54872684bafa3f3779d007c4a0615",
   "dirty": false,
-  "plan_sha256": "9ecbbde1ba76e8e96f3f70df228dd5b4fcb289e06c278f2aa1a5b72b6a8fcb07",
-  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2504 (branch issue-2504, base origin/develop b6c6d3c41); node 20.20.2; npm deps reused from sibling worktrees (frontend-pc: wt-2489 node_modules, frontend-mobile: primary worktree node_modules) via gitignored symlink; PC vite build + PC/mobile eslint; no backend, no network calls",
+  "plan_sha256": "e459f99ad1151e595ea85d9cbb586f6d0b87aefeb6fc7b3bbbbbf90dc3019996",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2504 (branch issue-2504, base origin/develop b6c6d3c41); node 20.20.2; node --test for PC/mobile resolvers; PC vite build + PC/mobile eslint; scripts/verify-2480.sh r1-r4 re-run for R7; no backend/network calls",
   "rows": [
     {
       "id": "R1",
@@ -56,11 +56,11 @@
       "artifacts": [
         "docs/evidence/2504/R4-flip.txt"
       ],
-      "assert": "exit 0；grep STALE_RAW_PC=0、STALE_RAW_MOBILE=0、FLIP_COUNT=4、OLD_BEHAVIOR_GONE=1",
-      "actual": "PASS：FLIP_PC_UNKNOWN=1 FLIP_MOBILE_UNKNOWN=1 FLIP_MOBILE_SPECIAL=1 FLIP_PARITY_NEG=1 FLIP_COUNT=4 STALE_RAW_PC=0 STALE_RAW_MOBILE=0 OLD_TEXT_PC=0 OLD_BEHAVIOR_GONE=1",
+      "assert": "exit 0；grep STALE_RAW_PC=0、STALE_RAW_MOBILE=0、STALE_VERIFY2480=0、FLIP_COUNT=8、OLD_BEHAVIOR_GONE=1",
+      "actual": "PASS：FLIP_COUNT=8（PC fixture / mobile fixture / mobile 专项 / parity 负例 + verify-2480 的 C49999_ASCII、LAYERS×2、CASES 四处翻转）、STALE_RAW_PC=0、STALE_RAW_MOBILE=0、STALE_VERIFY2480=0、OLD_BEHAVIOR_GONE=1",
       "expected": "PASS",
       "negative": "STALE_RAW_PC=1 → FAIL",
-      "negative_result": "翻转前两文件各含 layer: 'raw_message' 期望（R4 将报 STALE_RAW_*=1）；翻转后为 0，且 4 处翻转点全部就位",
+      "negative_result": "翻转前 verify-2480.sh 仍固定 C49999_ASCII=unknown conflict / LAYERS=…,raw_message,… / CASES=10 （审计 Bug 1）；现 STALE_VERIFY2480=0 且 FLIP_COUNT=8",
       "pass": true
     },
     {
@@ -85,10 +85,38 @@
         "docs/evidence/2504/R6-build-lint.txt"
       ],
       "assert": "exit 0；grep PC_BUILD=0、LINT_PC=0、LINT_MOBILE=0",
-      "actual": "PASS：PC_BUILD=0（cd frontend-pc && npm run build） LINT_PC=0（eslint src/services/errorMessages.js） LINT_MOBILE=0（eslint errorMessages.js + errorMessageResolution.mjs + 测试）",
+      "actual": "PASS：PC_BUILD=0（cd frontend-pc && npm run build）、LINT_PC=0（eslint src/services/errorMessages.js）、LINT_MOBILE=0（eslint errorMessages.js + errorMessageResolution.mjs + 测试）",
       "expected": "PASS",
       "negative": "PC_BUILD=1 → FAIL",
       "negative_result": "三项均为 0；构建/静态检查失败任一非 0 即 FAIL",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2504.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2504/R7-verify2480.txt"
+      ],
+      "assert": "exit 0；grep V2480_R1=0、V2480_R2=0、V2480_R3=0、V2480_R4=0",
+      "actual": "PASS：#2480 证据生成器四个模式全部通过（V2480_R1=0、V2480_R2=0、V2480_R3=0、V2480_R4=0）",
+      "expected": "PASS",
+      "negative": "任一 FAIL → FAIL",
+      "negative_result": "翻转前 r1/r2/r3 因 4 个旧 token 恒 RC=1（审计 Bug 1 实证）；翻转后全部 0",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2504.sh r8",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2504/R8-l4-disposition.txt"
+      ],
+      "assert": "exit 0；grep RAW_BRANCH_REMOVED=1、DOC_ANNOTATED=1",
+      "actual": "PASS：RAW_BRANCH_REMOVED=1（PC=0 / mobile=0 处 `layer: 'raw_message'` 返回）、DOC_ANNOTATED=1（api.md §1.3 标注该层不可达）",
+      "expected": "PASS",
+      "negative": "死分支残留/缺注解 → FAIL",
+      "negative_result": "D8 Option 1：删除不可达返回分支，层名仅在 JSDoc/文档保留并显式标注不可达",
       "pass": true
     }
   ]
