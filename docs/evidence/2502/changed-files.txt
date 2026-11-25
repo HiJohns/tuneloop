@@ -1,11 +1,15 @@
 docs/cases/h5-weapp-differences.md
 docs/evidence/2502/R1-weapp-badge.txt
+docs/evidence/2502/R10-build-weapp.txt
+docs/evidence/2502/R11-smoke.txt
+docs/evidence/2502/R13-legacy-customer.txt
 docs/evidence/2502/R2-fallback.txt
 docs/evidence/2502/R3-h5-badge.txt
 docs/evidence/2502/R4-customer.txt
 docs/evidence/2502/R5-helper-redgreen.txt
 docs/evidence/2502/R6-lint.txt
 docs/evidence/2502/R7-docs.txt
+docs/evidence/2502/R9-build-h5.txt
 docs/evidence/2502/changed-files.txt
 docs/evidence/2502/evidence.json
 docs/evidence/2502/plan.md
