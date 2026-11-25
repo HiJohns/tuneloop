@@ -57,6 +57,8 @@ export default function UserManagement() {
   // #2469: 接住后端扫描统计 + 失败态（供空态文案与错误占位使用）。
   const [orphanScanned, setOrphanScanned] = useState(null)
   const [orphanMinAge, setOrphanMinAge] = useState(null)
+  // #2470：旧 IAM 无孤儿端点时后端回退到「可见 pending」，必须中性告知，不能假装全量。
+  const [orphanFallback, setOrphanFallback] = useState(false)
   const [orphanError, setOrphanError] = useState('')
   // Module 2: face batches (read-only, review via face-review queue #1813)
   const [batches, setBatches] = useState([])
@@ -186,6 +188,8 @@ export default function UserManagement() {
         // #2469: 后端已返回扫描统计，展示层不再丢弃。
         setOrphanScanned(resp.data?.scanned)
         setOrphanMinAge(resp.data?.min_age_minute)
+        // #2470：endpoint=pending 表示旧 IAM 回退，面板需显式标注能力缺失。
+        setOrphanFallback(resp.data?.fallback_unsupported === true)
       } else {
         setOrphanError(resp?.message || '加载 IAM 孤儿账号失败')
         message.error(resp?.message || '加载 IAM 孤儿账号失败')
@@ -643,6 +647,16 @@ export default function UserManagement() {
               <div style={{ height: 32 }} />
             </Spin>
           </div>
+        )}
+
+        {/* #2470：旧 IAM 回退（endpoint=pending）时中性提示能力缺失，不静默 */}
+        {!orphanLoading && orphanFallback && (
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 12 }}
+            message="当前 IAM 版本不支持全量孤儿扫描（仅显示可见 pending）"
+          />
         )}
 
         {/* #2469 R5 失败态：不得显示「未发现孤儿账号」 */}

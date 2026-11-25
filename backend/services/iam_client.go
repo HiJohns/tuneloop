@@ -964,6 +964,108 @@ func (c *IAMClient) ListPendingUsersWithToken(token string) ([]User, error) {
 	return all, nil
 }
 
+// OrphanCandidateResult is the normalised payload of the dedicated IAM orphan
+// endpoint (#2470 / beaconiam#502).
+//
+// Unsupported is true when the running IAM build has no orphan endpoint (404/405)
+// or violates the response contract; the scoped pending list is then used and the
+// panel must label itself as "capability unavailable" instead of silently
+// pretending the scan was exhaustive (D2/D3).
+type OrphanCandidateResult struct {
+	Users          []User
+	Total          int
+	ScannedPending int
+	Unsupported    bool
+}
+
+// ListOrphanCandidatesWithToken lists pending IAM users WITHOUT the active
+// organisation-relation filter applied by GET /users?status=pending.
+//
+// The IAM side filters non-global admins by active org relations
+// (beaconiam internal/handler/user_handler.go:128-134), so "bind failed" orphans
+// (no relation at all) are invisible to the scoped endpoint. The dedicated
+// endpoint returns them; older IAM builds fall back to the scoped list (#2470 D2).
+func (c *IAMClient) ListOrphanCandidatesWithToken(token string, minAgeMinute int) (*OrphanCandidateResult, error) {
+	if token == "" {
+		return nil, fmt.Errorf("ListOrphanCandidatesWithToken: empty user token")
+	}
+	const pageSize = 100
+	const maxPages = 100 // hard cap: 10k candidates, prevents unbounded loops
+
+	var all []User
+	total := 0
+	scanned := 0
+	for page := 1; page <= maxPages; page++ {
+		path := fmt.Sprintf("/api/v1/users/orphans?min_age_minute=%d&page_size=%d&page=%d", minAgeMinute, pageSize, page)
+		respBody, statusCode, err := c.doRequestWithToken("GET", path, token, nil)
+		if err != nil {
+			return nil, fmt.Errorf("ListOrphanCandidatesWithToken request failed (page %d): %w", page, err)
+		}
+		if statusCode == http.StatusNotFound || statusCode == http.StatusMethodNotAllowed {
+			return c.fallbackOrphanCandidatesWithToken(token)
+		}
+		if statusCode != http.StatusOK {
+			return nil, fmt.Errorf("ListOrphanCandidatesWithToken returned status %d (page %d): %s", statusCode, page, string(respBody))
+		}
+
+		// Users is a pointer so a missing "users" field (protocol error) can be
+		// distinguished from a legitimately empty list (#2470 Input Truth).
+		var result struct {
+			Users          *[]User `json:"users"`
+			Data           *[]User `json:"data"`
+			Total          int     `json:"total"`
+			ScannedPending int     `json:"scanned_pending"`
+			PageSize       int     `json:"page_size"`
+		}
+		if err := json.Unmarshal(respBody, &result); err != nil {
+			return nil, fmt.Errorf("failed to parse ListOrphanCandidatesWithToken response (page %d): %w", page, err)
+		}
+		pageUsers := result.Users
+		if pageUsers == nil {
+			pageUsers = result.Data
+		}
+		if pageUsers == nil {
+			log.Printf("[IAMOrphan] orphan endpoint returned no users field (page %d), fallback to scoped pending list", page)
+			return c.fallbackOrphanCandidatesWithToken(token)
+		}
+		all = append(all, *pageUsers...)
+		total = result.Total
+		scanned = result.ScannedPending
+
+		effectivePageSize := pageSize
+		if result.PageSize > 0 && result.PageSize < pageSize {
+			effectivePageSize = result.PageSize
+		}
+		if len(*pageUsers) < effectivePageSize {
+			break
+		}
+	}
+	if total <= 0 {
+		total = len(all)
+	}
+	if scanned <= 0 {
+		// Older IAM builds may omit scanned_pending; never under-report the scan.
+		scanned = len(all)
+	}
+	return &OrphanCandidateResult{Users: all, Total: total, ScannedPending: scanned}, nil
+}
+
+// fallbackOrphanCandidatesWithToken degrades to the relation-filtered pending
+// list so a tuneloop-first / IAM-later rollout keeps working (#2470 D2).
+func (c *IAMClient) fallbackOrphanCandidatesWithToken(token string) (*OrphanCandidateResult, error) {
+	log.Printf("[IAMOrphan] orphan endpoint unsupported, fallback to scoped pending list")
+	pending, err := c.ListPendingUsersWithToken(token)
+	if err != nil {
+		return nil, fmt.Errorf("fallback to scoped pending list failed: %w", err)
+	}
+	return &OrphanCandidateResult{
+		Users:          pending,
+		Total:          len(pending),
+		ScannedPending: len(pending),
+		Unsupported:    true,
+	}, nil
+}
+
 // GetUser retrieves a single user from IAM by ID using service auth
 func (c *IAMClient) GetUser(userID string) (*User, error) {
 	path := fmt.Sprintf("/api/v1/users/%s", userID)

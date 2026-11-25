@@ -51,21 +51,34 @@ type iamOrphanItem struct {
 	AgeMinutes int64      `json:"age_minutes"`
 }
 
-// orphanFromPending 按 D2 过滤 IAM pending 列表，并用 localIAMSubs 排除本地存在行。
+// isEligibleOrphan 是 D2 四条判定的唯一实现（#2470 D4：语义不变）。
+//  1. IAM status = pending
+//  2. IAM user.org_id 为空
+//  3. 本地 users 表无该 iam_sub
+//  4. 创建时间早于 orphanMinAge
+func isEligibleOrphan(u *services.User, localExists bool, now time.Time) bool {
+	if u == nil || u.ID == "" || u.Status != "pending" {
+		return false
+	}
+	if u.OrgID != "" {
+		return false
+	}
+	if localExists {
+		return false
+	}
+	if u.CreatedAt == nil || now.Sub(*u.CreatedAt) < orphanMinAge {
+		return false
+	}
+	return true
+}
+
+// orphanFromPending 按 D2 过滤 IAM 候选列表，并用 localIAMSubs 排除本地存在行。
 // 抽成纯函数便于单测覆盖过滤语义（不依赖 IAM/Gin）。
 func orphanFromPending(pending []services.User, localIAMSubs map[string]bool, now time.Time) []iamOrphanItem {
 	items := make([]iamOrphanItem, 0, len(pending))
-	for _, u := range pending {
-		if u.ID == "" || u.Status != "pending" {
-			continue
-		}
-		if u.OrgID != "" {
-			continue
-		}
-		if localIAMSubs[u.ID] {
-			continue
-		}
-		if u.CreatedAt == nil || now.Sub(*u.CreatedAt) < orphanMinAge {
+	for i := range pending {
+		u := &pending[i]
+		if !isEligibleOrphan(u, localIAMSubs[u.ID], now) {
 			continue
 		}
 		items = append(items, iamOrphanItem{
@@ -79,6 +92,24 @@ func orphanFromPending(pending []services.User, localIAMSubs map[string]bool, no
 		})
 	}
 	return items
+}
+
+// eligibleOrphanIDs 在候选列表内按 D2 四条判定逐 ID 复核（Purge 实时校验，
+// #2470 D5：List 与 Purge 必须同源判定）。
+func eligibleOrphanIDs(ids []string, candidates []services.User, localIAMSubs map[string]bool, now time.Time) map[string]bool {
+	byID := make(map[string]*services.User, len(candidates))
+	for i := range candidates {
+		if candidates[i].ID != "" {
+			byID[candidates[i].ID] = &candidates[i]
+		}
+	}
+	eligible := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		if isEligibleOrphan(byID[id], localIAMSubs[id], now) {
+			eligible[id] = true
+		}
+	}
+	return eligible
 }
 
 // localIAMSubSet 返回本地 users 表中已登记的 iam_sub 集合（跨租户，D5 误删防护）。
@@ -114,12 +145,14 @@ func (h *IAMOrphanHandler) List(c *gin.Context) {
 	}
 
 	iamClient := services.NewIAMClient()
-	pending, err := iamClient.ListPendingUsersWithToken(token)
+	// #2470 D1/D2：走「不被活跃关系过滤」的孤儿端点；旧 IAM 自动回退并标记。
+	candidates, err := iamClient.ListOrphanCandidatesWithToken(token, int(orphanMinAge.Minutes()))
 	if err != nil {
-		log.Printf("[IAMOrphan] ListPendingUsersWithToken failed: %v", err)
-		c.JSON(http.StatusBadGateway, gin.H{"code": 50200, "message": "failed to list pending IAM users: " + err.Error()})
+		log.Printf("[IAMOrphan] ListOrphanCandidatesWithToken failed: %v", err)
+		c.JSON(http.StatusBadGateway, gin.H{"code": 50200, "message": "failed to list IAM orphan candidates: " + err.Error()})
 		return
 	}
+	pending := candidates.Users
 
 	// 跨租户查本地 iam_sub：系统管理员视图必须看到全平台的「已登记」集合，
 	// 否则会把其它租户的正常账号误判为孤儿（D5 防线的输入）。
@@ -133,14 +166,24 @@ func (h *IAMOrphanHandler) List(c *gin.Context) {
 	localSubs := localIAMSubSet(db, ids)
 
 	items := orphanFromPending(pending, localSubs, time.Now())
+	scanned := candidates.ScannedPending
+	if scanned <= 0 {
+		scanned = len(pending)
+	}
+	endpoint := "orphans"
+	if candidates.Unsupported {
+		endpoint = "pending"
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
 		"message": "success",
 		"data": gin.H{
-			"list":           items,
-			"total":          len(items),
-			"scanned":        len(pending),
-			"min_age_minute": int64(orphanMinAge.Minutes()),
+			"list":                 items,
+			"total":                len(items),
+			"scanned":              scanned,
+			"min_age_minute":       int64(orphanMinAge.Minutes()),
+			"fallback_unsupported": candidates.Unsupported,
+			"endpoint":             endpoint,
 		},
 	})
 }
@@ -189,26 +232,40 @@ func (h *IAMOrphanHandler) Purge(c *gin.Context) {
 	}
 
 	iamClient := services.NewIAMClient()
-	pending, err := iamClient.ListPendingUsersWithToken(token)
+	// #2470 D5：Purge 复核必须与 List 同源（同一新方法 + 同一回退）。
+	candidates, err := iamClient.ListOrphanCandidatesWithToken(token, int(orphanMinAge.Minutes()))
 	if err != nil {
 		log.Printf("[IAMOrphan] purge pre-check list failed: %v", err)
-		c.JSON(http.StatusBadGateway, gin.H{"code": 50200, "message": "failed to verify IAM pending users: " + err.Error()})
+		c.JSON(http.StatusBadGateway, gin.H{"code": 50200, "message": "failed to verify IAM orphan candidates: " + err.Error()})
 		return
 	}
 	db := database.GetDB().WithContext(database.IdentityCtx(c.Request.Context()))
 	localSubs := localIAMSubSet(db, ids)
 
 	// 逐 ID 复核当前（实时）孤儿状态，避免用过期面板数据误删。
-	eligible := make(map[string]bool, len(ids))
-	for _, id := range ids {
-		for _, u := range pending {
-			if u.ID != id {
+	now := time.Now()
+	eligible := eligibleOrphanIDs(ids, candidates.Users, localSubs, now)
+
+	// 回退路径下旧列表被「活跃关系」过滤，真正的无关系孤儿可能不在列表内
+	// （#2470 D5）：逐 ID 实时取 IAM 用户，仍按四条判定本地复算，绝不因
+	// 「旧列表未命中」直接判 not an orphan。
+	if candidates.Unsupported {
+		listed := make(map[string]bool, len(candidates.Users))
+		for _, u := range candidates.Users {
+			listed[u.ID] = true
+		}
+		for _, id := range ids {
+			if listed[id] || eligible[id] || localSubs[id] {
 				continue
 			}
-			if u.OrgID == "" && !localSubs[id] && u.CreatedAt != nil && time.Since(*u.CreatedAt) >= orphanMinAge {
+			u, getErr := iamClient.GetUser(id)
+			if getErr != nil {
+				log.Printf("[IAMOrphan] fallback realtime verify failed for %s: %v", id, getErr)
+				continue
+			}
+			if isEligibleOrphan(u, localSubs[id], now) {
 				eligible[id] = true
 			}
-			break
 		}
 	}
 
