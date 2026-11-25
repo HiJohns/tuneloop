@@ -5,8 +5,10 @@
 //   L1 message_map   — 精确英文键翻译（#1675）
 //   L2 human_message — 后端可读中文文案原样透传（#2480，先于 code 家族）
 //   L3 code_map      — code 家族通用中文（仅 L2 未命中时兜底）
-//   L4 raw_message   — 其它 message 透传（#2104）
+//   L4 raw_message   — 仅「含 CJK 的可读文案」兜底透传（#2104；#2504 收紧）
 //   L5 fallback      — 调用点兜底
+//
+// #2504：ASCII 机器串（如后端硬编码 `access denied`）不得经 L4 直出；未知码走 fallback。
 //
 // PC（frontend-pc/src/services/errorMessages.js）与 mobile（errorMessages.js）各有一份 map，
 // 但顺序与判定必须一致；跨包漂移由 scripts/check-error-message-parity-2480.mjs 兜住（D5）。
@@ -40,7 +42,8 @@ export function resolveErrorCore(result, options = {}) {
   if (hasMessage(message) && messageMap[message]) return { text: messageMap[message], layer: 'message_map' }
   if (isHumanReadableMessage(message)) return { text: message, layer: 'human_message' }
   if (code && codeMap[code]) return { text: codeMap[code], layer: 'code_map' }
-  if (hasMessage(message)) return { text: message, layer: 'raw_message' }
+  // #2504：L4 只透传含 CJK 的可读文案；ASCII 机器串不外溢，未知码走 fallback。
+  if (hasMessage(message) && isHumanReadableMessage(message)) return { text: message, layer: 'raw_message' }
   return { text: fallback, layer: 'fallback' }
 }
 

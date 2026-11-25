@@ -18,12 +18,17 @@ const FIXTURES = [
   { key: '40912', input: { code: 40912, message: '学生证作为第二证件需介绍信' }, layer: 'human_message' },
   { key: 'L1', input: { message: 'order not found' }, layer: 'message_map' },
   { key: 'NULL', input: null, layer: 'fallback' },
-  { key: 'UNKNOWN', input: { code: 49999, message: 'unknown conflict' }, layer: 'raw_message' },
+  // #2504：ASCII 机器串不再经 L4 直出（旧期望 raw_message 已翻转）
+  { key: 'UNKNOWN', input: { code: 49999, message: 'unknown conflict' }, layer: 'fallback' },
   { key: 'INVITE', input: { code: 40901, message: '该用户已有待处理的邀请申请' }, layer: 'human_message' },
 ]
 
 // 与 errorMessages.js 的 map 同口径的极小样本（只覆盖本用例需要的键）。
-const CODE_MAP = { 40900: '数据冲突，请刷新后重试', 40901: '数据冲突，请刷新后重试' }
+const CODE_MAP = {
+  40303: '暂无权限访问该页面',
+  40900: '数据冲突，请刷新后重试',
+  40901: '数据冲突，请刷新后重试',
+}
 const MESSAGE_MAP = { 'order not found': '未找到订单' }
 
 function core(input, overrides = {}) {
@@ -69,13 +74,25 @@ test('L1 英文精确键 → 中文翻译；null → fallback', () => {
   assert.equal(core(null, { fallback: '自定义兜底' }).text, '自定义兜底')
 })
 
-test('未知 code 的其它 message 透传（raw_message），不含 [object Object]', () => {
-  assert.equal(core({ code: 49999, message: 'unknown conflict' }).layer, 'raw_message')
-  assert.equal(core({ code: 49999, message: 'unknown conflict' }).text, 'unknown conflict')
+test('未知 code 的 ASCII message 不外溢（#2504 收紧 L4 → fallback），不含 [object Object]', () => {
+  assert.equal(core({ code: 49999, message: 'unknown conflict' }).layer, 'fallback')
+  assert.equal(core({ code: 49999, message: 'unknown conflict' }).text, '操作失败，请重试')
   const objectMessage = core({ code: 40900, message: { detail: '网点名称已存在' } })
   assert.equal(objectMessage.layer, 'code_map')
   assert.equal(objectMessage.text, '数据冲突，请刷新后重试')
   assert.ok(!objectMessage.text.includes('[object Object]'))
+  console.log(`L49999_ASCII=${core({ code: 49999, message: 'unknown conflict' }).layer}`)
+  console.log(`C49999_ASCII=${core({ code: 49999, message: 'unknown conflict' }).text}`)
+})
+
+test('40303 + access denied → code_map 中文（#2504 主诉，与 PC 同文案）', () => {
+  const result = core({ code: 40303, message: 'access denied' })
+  assert.equal(result.layer, 'code_map')
+  assert.equal(result.text, '暂无权限访问该页面')
+  // 负例：英文 `access denied` 直出 → 失败
+  assert.ok(!result.text.includes('access denied'))
+  console.log(`L40303=${result.layer}`)
+  console.log(`C40303=${result.text}`)
 })
 
 test('八条 fixture 的层序与 PC 完全一致', () => {

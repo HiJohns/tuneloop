@@ -4,7 +4,9 @@
 // 不能被 code 家族通用文案（40900「数据冲突，请刷新后重试」）遮蔽。
 // 解析顺序（唯一出口 resolveErrorMessage）：
 //   L1 ERROR_MESSAGE_MAP 精确英文键 → L2 可读中文 message 透传 → L3 code 家族兜底 →
-//   L4 其它 message 透传 → L5 调用点 fallback。
+//   L4 可读中文 message 兜底透传 → L5 调用点 fallback。
+// #2504：L4 只在 message 含 CJK 时透传；ASCII 机器串（如后端硬编码 `access denied`）
+// 一律不外溢，落到 code 家族或 fallback（与 #2480 的 CJK 透传规则对称）。
 
 // L2: code 家族 → 通用中文（兜底）
 export const ERROR_CODE_MAP = {
@@ -23,6 +25,7 @@ export const ERROR_CODE_MAP = {
   40104: '登录状态异常，请重新登录',
   40300: '暂无权限执行此操作',
   40301: '暂无权限执行此操作',
+  40303: '暂无权限访问该页面', // #2504：personnel/权限中间件「权限范围不匹配」
   40400: '未找到相关数据',
   40900: '数据冲突，请刷新后重试',
   40901: '数据冲突，请刷新后重试',
@@ -118,8 +121,9 @@ export function resolveErrorCore(result, options = {}) {
   // #2290/#2104 曾把 4091x 排除出 map，本单把规则升级为「含 CJK 即优先透传」。
   if (isHumanReadableMessage(message)) return { text: message, layer: 'human_message' }
   if (code && codeMap[code]) return { text: codeMap[code], layer: 'code_map' }
-  // #2104：未知 code 且后端给出可执行 message 时透传，不再被通用 fallback 遮蔽。
-  if (hasMessage(message)) return { text: message, layer: 'raw_message' }
+  // #2504：L4 只透传含 CJK 的可读文案；ASCII 机器串（如 `access denied`）不得直出，
+  // 已知码已在 L3 命中，未知码走 fallback。
+  if (hasMessage(message) && isHumanReadableMessage(message)) return { text: message, layer: 'raw_message' }
   return { text: fallback, layer: 'fallback' }
 }
 
